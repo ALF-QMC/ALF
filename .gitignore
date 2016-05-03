@@ -1,0 +1,15 @@
+# compilation related files
+/**/*.o
+/**/*.mod
+/**/*.a
+/**/*.out
+
+# tex related files
+/**/*.aux
+/**/*.log
+/**/*.gz
+/**/*Notes.bib
+
+# hidden folders
+.*
+/**/.*
