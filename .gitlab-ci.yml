@@ -12,4 +12,7 @@ GQMCT:
     - cd ..
     - cd Prog_7
     - make
+    - cd ..
+    - cd Prog_8
+    - make
     
