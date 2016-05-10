@@ -32,6 +32,9 @@
       Integer,                       private :: Nobs
       Complex (Kind=8), allocatable, private :: obs_scal(:)
       Complex (Kind=8), allocatable, private ::  Den_eq(:,:,:), Den_eq0(:)
+      Complex (Kind=8), allocatable, private ::  SpinX_eq(:,:,:), SpinX_eq0(:)
+      Complex (Kind=8), allocatable, private ::  SpinY_eq(:,:,:), SpinY_eq0(:)
+      Complex (Kind=8), allocatable, private ::  SpinZ_eq(:,:,:), SpinZ_eq0(:)
 
       ! For time displaced
       Integer,                       private :: NobsT
@@ -361,6 +364,9 @@
           Integer :: I
           Allocate ( Obs_scal(5) )
           Allocate ( Den_eq(Latt%N,Norb,Norb), Den_eq0(Norb) ) 
+          Allocate ( SpinX_eq(Latt%N,1,1), spinX_eq0(1) ) 
+          Allocate ( SpinY_eq(Latt%N,1,1), spinY_eq0(1) ) 
+          Allocate ( SpinZ_eq(Latt%N,1,1), spinZ_eq0(1) ) 
           If (Ltau == 1) then 
              Allocate ( Green_tau(Latt%N,Ltrot+1,Norb,Norb), Den_tau(Latt%N,Ltrot+1,Norb,Norb) )
           endif
@@ -380,6 +386,12 @@
           Obs_scal  = cmplx(0.d0,0.d0)
           Den_eq    = cmplx(0.d0,0.d0)
           Den_eq0   = cmplx(0.d0,0.d0)
+          SpinX_eq    = cmplx(0.d0,0.d0)
+          SpinX_eq0   = cmplx(0.d0,0.d0)
+          SpinY_eq    = cmplx(0.d0,0.d0)
+          SpinY_eq0   = cmplx(0.d0,0.d0)
+          SpinZ_eq    = cmplx(0.d0,0.d0)
+          SpinZ_eq0   = cmplx(0.d0,0.d0)
 
           If (Ltau == 1) then
              NobsT = 0
@@ -401,7 +413,7 @@
           
           !Local 
           Complex (Kind=8) :: GRC(Ndim,Ndim,N_FL), ZK
-          Complex (Kind=8) :: Zrho, Zkin, ZPot, Z, ZP,ZS
+          Complex (Kind=8) :: Zrho, Zkin, ZPot, Z, ZP,ZS, weight
           Integer :: I,J, no,no1, n, n1, imj, nf, I1, I2, J1, J2, Nc
           
           Real (Kind=8) :: G(4,4), X, FI, FJ
@@ -470,6 +482,39 @@
              enddo
              Den_eq0(no) = Den_eq0(no) +   GRC(I1,I1,1)*ZP*ZS 
           enddo
+          
+          do I=1,Latt%N
+	     do no=1,Norb
+		I1 = Invlist(I,no)
+		if (no<=8) then
+		   I2 = Invlist(I,no+8)
+		else
+		   I2 = Invlist(I,no-8)
+		endif
+		do J=1,Latt%N
+		   imj = latt%imj(I,J)
+		   do no1=1,Norb
+		      J1 = Invlist(J,no1)
+		      if (no1<=8) then
+			J2 = Invlist(J,no1+8)
+		      else
+			J2 = Invlist(J,no1-8)
+		      endif
+		      weight=cmplx(1.d0,0.d0)
+		      if ( (no>=9 .and. no1<=8) .or. (no<=8 .and. no1>=9) ) weight=-weight
+		      SpinX_eq (imj,1,1) = SpinX_eq (imj,1,1)   +  &
+			   & (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+			   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+		      SpinY_eq (imj,1,1) = SpinY_eq (imj,1,1)   -  &
+			   & (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+			   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * weight * ZP*ZS
+		      SpinZ_eq (imj,1,1) = SpinZ_eq (imj,1,1)   +  &
+			   & (   GRC(I1,J1,1) * GR (I1,J1,1)      +  &
+			   &     GRC(I1,I1,1) * GRC(J1,J1,1)         ) * weight * ZP*ZS
+		   enddo
+		enddo
+	     enddo
+          enddo
 
         end Subroutine Obser
 !==========================================================        
@@ -503,6 +548,12 @@
           Phase_bin = Obs_scal(5)/cmplx(dble(Nobs),0.d0)
           File_pr ="Den_eq"
           Call Print_bin(Den_eq, Den_eq0, Latt, Nobs, Phase_bin, file_pr)
+          File_pr ="SpinX_eq"
+          Call Print_bin(SpinX_eq, SpinX_eq0, Latt, Nobs, Phase_bin, file_pr)
+          File_pr ="SpinY_eq"
+          Call Print_bin(SpinY_eq, SpinY_eq0, Latt, Nobs, Phase_bin, file_pr)
+          File_pr ="SpinZ_eq"
+          Call Print_bin(SpinZ_eq, SpinZ_eq0, Latt, Nobs, Phase_bin, file_pr)
 
           File_pr ="ener"
           Call Print_scal(Obs_scal, Nobs, file_pr)
