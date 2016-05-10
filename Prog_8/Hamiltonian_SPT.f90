@@ -530,7 +530,7 @@
           
           !Locals
           Complex (Kind=8) :: Z, ZP, ZS
-          Integer :: IMJ, I, J
+          Integer :: IMJ, I1, I, no, J1, J, no1 
 
           ZP = PHASE/cmplx(Real(Phase,kind=8),0.d0)
           ZS = cmplx(Real(Phase,kind=8)/Abs(Real(Phase,kind=8)), 0.d0)
@@ -540,11 +540,15 @@
           endif
           If ( N_FL == 1 ) then 
              Z =  cmplx(dble(N_SUN),0.d0)
-             Do I = 1,Latt%N
-                Do J = 1,Latt%N
+             Do I1 = 1,Ndim
+		I  = List(I1,1)
+		no = List(I1,2)
+                Do J1 = 1,Ndim
+		   J  = List(J1,1)
+		   no1 = List(J1,2)
                    imj = latt%imj(I,J)
-                   Green_tau(imj,nt+1,1,1) = green_tau(imj,nt+1,1,1)  +  Z * GT0(I,J,1) * ZP* ZS
-                   Den_tau  (imj,nt+1,1,1) = Den_tau  (imj,nt+1,1,1)  -  Z * GT0(I,J,1)*G0T(J,I,1) * ZP* ZS
+                   Green_tau(imj,nt+1,no,no1) = green_tau(imj,nt+1,no,no1)  +  Z * GT0(I1,J1,1) * ZP* ZS
+                   Den_tau  (imj,nt+1,no,no1) = Den_tau  (imj,nt+1,no,no1)  -  Z * GT0(I1,J1,1)*G0T(J1,I1,1) * ZP* ZS
                 Enddo
              Enddo
           Endif
