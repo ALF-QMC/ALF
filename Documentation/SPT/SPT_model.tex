@@ -221,6 +221,57 @@ As $H$, $\tilde{R}$ and $\tilde{S}^z$ mutually commute, we can add another quant
 
 {\clr I think, that the nodes of the Dirac cone has to be 8-fold degenerate such that the rotation symmetry fixes their position to $(\pi,\pi)$. Is this correct??? We have to be really sure here, otherwise we might interpret the QMC data wrong and the numerics will not necessarily show us that this reasoning is incorrect.}
 
+\section{Tests of the protecting symmetries}
+
+The set of independent symmetries of the interacting Hamiltonian is given by 
+
+\begin{tabular}{|c|c|c|}
+\hline 
+Name & Action on operators & Action on scalars \\ 
+\hline 
+$\T$ & $\T \chi_{\br,\alpha} \T^{-1}=\gamma_{14}\chi_{\br, \alpha}$ & $\T i \T^{-1}=-i$ \\ 
+\hline 
+$\C$ & $\C \chi_{\br,\alpha} \C^{-1}=\chi_{\br, \alpha}^\dag \gamma_{23}^\dag$ & $\T i \T^{-1}=i$ \\ 
+\hline 
+$\R$ & $\R \chi_{\br,\alpha} \R^{-1}=\gamma_{45}\chi_{\br, \alpha}$ & $\T i \T^{-1}=i$ \\ 
+\hline 
+$C_4$ & $C_4 \chi_{\br,\alpha} C_4^{-1}=\frac{1}{\sqrt{2}}(1+\gamma_{12})\chi_{(-r_y,r_x), \alpha}$ & $C_4 i C_4^{-1}=i$ \\ 
+\hline 
+$P_x$ & $P_x \chi_{\br,\alpha} P_x^{-1}=\gamma_{15}\chi_{(-r_x,r_y), \alpha}$ & $P_x i P_x^{-1}=i$ \\ 
+\hline 
+$S_x $ & $S_x \chi_{\br} S_x^{-1}=\sigma_x\otimes 1 \, \chi_{\br}$ & $S_x i S_x^{-1}=i$ \\ 
+\hline 
+$S_z $ & $S_\alpha \chi_{\br} S_z^{-1}=\sigma_z\otimes 1 \, \chi_{\br}$ & $S_z i S_z^{-1}=i$ \\ 
+\hline 
+$U_1 $ & $U_1 \chi_{\br} U_1^{-1}=1\otimes \sigma_z \, \chi_{\br}$ & $U_1 i U_1=i$ \\ 
+\hline 
+\end{tabular} 
+
+This allows to define the following operators that are protected by exactly one symmetry and classify them by the aquired sign upon symmetry transformations:
+
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|}
+\hline 
+operator $O$ &  $\T O \T^{-1}$ &  $\C O \C^{-1}$ &  $\R O \R^{-1}$ &  $C_4 O C_4^{-1}$ &  $P_x O P_x^{-1}$ &  $S_x O S_x^{-1}$ &  $S_z O S_z^{-1}$ &  $U_1 O U_1^{-1}$ \\ 
+\hline 
+$\sum_{\bk,\alpha} i \chi_{\bk,\alpha}^\dag (\sin k_x \gamma_1 + \sin k_y \gamma_2)\gamma_3\chi_{\bk,\alpha} $ & - & + & + & + & + & + & + & + \\ 
+\hline 
+$\sum_{\bk} (n_\bk - 8)$ & + & - & + & + & + & + & + & + \\ 
+\hline 
+$\sum_{\bk,\alpha} \chi_{\bk,\alpha}^\dag \gamma_4 \chi_{\bk,\alpha} $ & + & +	 & - & + & + & + & + & + \\ 
+\hline 
+$\sum_{\bk,\alpha} \chi_{\bk,\alpha}^\dag (\sin k_x \gamma_1 - \sin k_y \gamma_2)\chi_{\bk,\alpha} $ & + & + & + & - & + & + & + & + \\ 
+\hline 
+$\sum_{\bk,\alpha} \chi_{\bk,\alpha}^\dag (\sin k_y \gamma_1 - \sin k_x \gamma_2)\chi_{\bk,\alpha} $ & + & + & + & + & - & + & + & + \\ 
+\hline 
+$\sum_\bk \chi_{\bk}^\dag \sigma_z\otimes 1  \, \gamma_3 \chi_{\bk}$ & + & + & + & + & + & - & + & + \\ 
+\hline 
+$\sum_\bk \chi_{\bk}^\dag \sigma_x\otimes 1  \, \gamma_3 \chi_{\bk}$ & + & + & + & + & + & + & - & + \\ 
+\hline 
+$\sum_\bk \chi_\bk^\dag 1 \otimes \sigma_x  \, \gamma_3 \chi_\bk $ & + & + & + & + & + & + & + & - \\ 
+\hline 
+\end{tabular} 
+Remark: I first thought that the pseudo-spin-spin would already signal a breaking of the SU(2) symmetry, but a magnetic instability is also forbidden by PHS.
+
 %(Raquel)
 %The above Hamiltonian is composed of four disconnected sectors, each describing a lattice Dirac Hamiltonian of winding number 1. The symmetries that rotate within this space is not particularly relevent for the topology, but you are welcome to use them to simplify the diagrams.
 %
