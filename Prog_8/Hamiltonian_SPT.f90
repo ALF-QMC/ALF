@@ -230,15 +230,15 @@
                 Do I = 1,Latt%N
                    do no = 1,4
                       do no1 = 1,4
-                         Z =  cmplx(2.d0+1.d0*Ham_Lam,0.d0)*Gamma_M(no,no1,3)
+                         Z =  cmplx(2.d0 + Ham_Lam,0.d0)*Gamma_M(no,no1,3)*Ham_T
                          Op_T(nc,n)%O( Invlist_1(I,no) ,Invlist_1(I,no1) )  =  Z
                       enddo
                    enddo
                    I1 =  Latt%nnlist(I,1,0)
                    do no = 1,4
                       do no1 = 1,4
-                         Z = (cmplx(0.d0,1.d0*Ham_T)*Gamma_M(no,no1,1) &
-				&    + cmplx(1.d0,0.d0)*Gamma_M(no,no1,3))/cmplx(2.d0,0.d0)
+                         Z = (cmplx(0.d0,1.d0)*Gamma_M(no,no1,1) &
+				&    + Gamma_M(no,no1,3))*cmplx(0.d5,0.d0)*Ham_T
                          Op_T(nc,n)%O( invlist_1(I ,no  ), invlist_1(I1,no1  ) )  = &
 				& Op_T(nc,n)%O( invlist_1(I ,no  ), invlist_1(I1,no1  ) ) +  Z
                          Op_T(nc,n)%O( invlist_1(I1,no1 ), invlist_1(I ,no   ) )  = &
@@ -248,8 +248,8 @@
                    I2   = Latt%nnlist(I,0,1)
                    do no = 1,4
                       do no1 = 1,4
-                         Z =   ( cmplx(0.d0,1.d0*Ham_T) * Gamma_M(no,no1,2) &
-				&    + cmplx(1.d0,0.d0) * Gamma_M(no,no1,3) )/cmplx(2.d0,0.d0)
+                         Z =   ( cmplx(0.d0,1.d0) * Gamma_M(no,no1,2) &
+				&    + Gamma_M(no,no1,3) )*cmplx(0.d5,0.d0)*Ham_T
                          Op_T(nc,n)%O( invlist_1(I ,no ), invlist_1(I2,no1  ) )  = &
 				& Op_T(nc,n)%O( invlist_1(I ,no ), invlist_1(I2,no1  ) ) + Z
                          Op_T(nc,n)%O( invlist_1(I2,no1), invlist_1(I ,no   ) )  = &
