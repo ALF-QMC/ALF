@@ -25,7 +25,7 @@
          Real (Kind=8), allocatable :: Phase(:)
          Type  (Mat_C), allocatable :: Bins(:,:), Bins_R(:,:)
          Complex (Kind=8), allocatable :: Bins0(:,:)
-         Complex (Kind=8) :: Z, Xmean,Xerr, Xmean_r,Xerr_r
+         Complex (Kind=8) :: Z, Xmean,Xerr, Xmean_r,Xerr_r, weight1, weight2
          Real    (Kind=8) :: Xk_p(2), XR_p(2) , XR1_p(2)
          Complex (Kind=8), allocatable :: V_help(:), V_help_R(:)
          Real (Kind=8) :: Pi, a1_p(2), a2_p(2), L1_p(2), L2_p(2), del_p(2)
@@ -202,6 +202,20 @@
             enddo
             call ERRCALCJ(V_help,   XMean, XERR, N_rebin ) 
             Write(33,"('# Suscpetibility: ', F12.6,2x,F12.6)")  dble(Xmean  ), dble(Xerr  )
+            V_help   = 0.d0
+            do nb = 1,Nbins 
+               do no = 1,Norb
+		  weight1= cmplx((-1.d0)**((no-1)/4),0.d0)
+! 		  if (nb==1) write(*,*) no, weight1
+                  Do no1 = 1,Norb
+		     weight2= cmplx((-1.d0)**((no1-1)/4),0.d0)
+! 		     if (nb==1) write(*,*) no1, weight2
+                     V_help  (nb) = V_help  (nb) + 0.25*weight1*weight2* bins(n,nb)%el(no,no1)
+                  enddo
+               enddo
+            enddo
+            call ERRCALCJ(V_help,   XMean, XERR, N_rebin ) 
+            Write(33,"('# Suscpetibility U1: ', F12.6,2x,F12.6)")  dble(Xmean  ), dble(Xerr  )
 	    do no = 1,Norb
                V_help   = 0.d0
                !n = Rot90(n, Xk_p, Ndim)
