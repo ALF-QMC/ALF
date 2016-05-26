@@ -202,6 +202,15 @@
             enddo
             call ERRCALCJ(V_help,   XMean, XERR, N_rebin ) 
             Write(33,"('# Suscpetibility: ', F12.6,2x,F12.6)")  dble(Xmean  ), dble(Xerr  )
+	    do no = 1,Norb
+               V_help   = 0.d0
+               !n = Rot90(n, Xk_p, Ndim)
+               do nb = 1,Nbins 
+                     V_help  (nb) = V_help  (nb) + Bins0(nb,no)
+               enddo
+               call ERRCALCJ(V_help,   XMean, XERR, N_rebin ) 
+	       Write(33,"('# Background: ', F12.6,2x,F12.6)")  dble(Xmean  ), dble(Xerr  )
+	    enddo
          endif
          Close(33)
 
