@@ -197,8 +197,8 @@
              Do no1 = 1,2
                 Gamma_M(no+2,no1  ,1)  =  Sigma_M(no,no1,0) 
                 Gamma_M(no  ,no1+2,1)  =  Sigma_M(no,no1,0) 
-                Gamma_M(no+2,no1  ,2)  =  cmplx( 0.d0,-1.d0)*Sigma_M(no,no1,0)
-                Gamma_M(no  ,no1+2,2)  =  cmplx( 0.d0, 1.d0)*Sigma_M(no,no1,0)
+                Gamma_M(no+2,no1  ,2)  =  cmplx( 0.d0, 1.d0)*Sigma_M(no,no1,0)
+                Gamma_M(no  ,no1+2,2)  =  cmplx( 0.d0,-1.d0)*Sigma_M(no,no1,0)
                 Gamma_M(no  ,no1  ,3)  =  cmplx( 1.d0, 0.d0)*Sigma_M(no,no1,1)
                 Gamma_M(no+2,no1+2,3)  =  cmplx(-1.d0, 0.d0)*Sigma_M(no,no1,1)
                 Gamma_M(no  ,no1  ,4)  =  cmplx( 1.d0, 0.d0)*Sigma_M(no,no1,2)
@@ -284,6 +284,18 @@
 
           Ps = cmplx(0.d0,0.d0)
           Call mmult (Tmp,Gamma_M(:,:,3), Gamma_M(:,:,4) )
+          
+! !           Do n=1,5
+! 	    write(*,*) "Gamma34"
+! 	    do no=1,4
+! 	    do no1=1,4
+! 	      write(*,*) Tmp(no,no1)
+! 	    enddo
+! 	    write(*,*)
+! 	    enddo
+! 	    write(*,*)
+! !           enddo
+          
           do ns = 1,2
              if (ns == 1) X =  1.d0/2d0
              if (ns == 2) X = -1.d0/2.d0
@@ -299,6 +311,17 @@
           Do ns = 1,2
              Call mmult ( Ps_G5(:,:,ns), Ps(:,:,ns), Gamma_M(:,:,5) )
           enddo
+          
+!           Do ns=1,2
+! 	    write(*,*) "PsG5 ", ns
+! 	    do no=1,4
+! 	    do no1=1,4
+! 	      write(*,*) Ps_G5(no,no1,ns)
+! 	    enddo
+! 	    write(*,*)
+! 	    enddo
+! 	    write(*,*)
+!           enddo
       
           Sx = cmplx(0.d0,0.d0)
           Sy = cmplx(0.d0,0.d0)
@@ -315,8 +338,8 @@
                       
                       Sy(no    , no1 + 4 ,ns,npm) =  cmplx(0.d0, -1.d0    )*Ps_G5(no,no1,ns)
                       Sy(no +4 , no1     ,ns,npm) =  cmplx(0.d0,  1.d0    )*Ps_G5(no,no1,ns)
-                      Sy(no +8 , no1 + 12,ns,npm) =  cmplx(0.d0,  1.d0*xpm)*Ps_G5(no,no1,ns)
-                      Sy(no+12 , no1 + 8 ,ns,npm) =  cmplx(0.d0, -1.d0*xpm)*Ps_G5(no,no1,ns)
+                      Sy(no +8 , no1 + 12,ns,npm) =  cmplx(0.d0, -1.d0*xpm)*Ps_G5(no,no1,ns)
+                      Sy(no+12 , no1 + 8 ,ns,npm) =  cmplx(0.d0,  1.d0*xpm)*Ps_G5(no,no1,ns)
                    enddo
                 enddo
              enddo
@@ -556,11 +579,11 @@
 		   enddo
 		enddo
 		
-		weight=cmplx(1.d0,0.d0)
-		if ( no>=9 ) weight=-weight
-		
-		tmp =  GRC(I1,I1,1)* weight * 0.25 * ZP*ZS
-		Spin_eq0 (1) = Spin_eq0 (1)   +  tmp
+! 		weight=cmplx(1.d0,0.d0)
+! 		if ( no>=9 ) weight=-weight
+! 		
+! 		tmp =  GRC(I1,I1,1)* weight * 0.25 * ZP*ZS
+! 		Spin_eq0 (1) = Spin_eq0 (1)   +  tmp
 		
 	     enddo
           enddo
@@ -1255,15 +1278,15 @@
 		    enddo
 		    
 		    
-		    if (a==b) then
-		      I1 = Invlist(I,4*(no-1)+a)
-		      I2 = Invlist(I,4*(no-1)+a)
-		      signum = 1
-		      if ((no==2) .or. (no==4)) signum=-1
-		      weight = cmplx(dble(signum),0.d0)
-		      tmp =   GRC(I1,I2,1)* ZP*ZS
-		      U1_eq0 (1) = U1_eq0 (1)   +  weight*tmp*0.5
-		    endif
+! 		    if (a==b) then
+! 		      I1 = Invlist(I,4*(no-1)+a)
+! 		      I2 = Invlist(I,4*(no-1)+a)
+! 		      signum = 1
+! 		      if ((no==2) .or. (no==4)) signum=-1
+! 		      weight = cmplx(dble(signum),0.d0)
+! 		      tmp =   GRC(I1,I2,1)* ZP*ZS
+! 		      U1_eq0 (1) = U1_eq0 (1)   +  weight*tmp*0.5
+! 		    endif
 		    
 		  enddo
 		  enddo
