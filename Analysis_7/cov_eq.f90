@@ -216,6 +216,22 @@
             enddo
             call ERRCALCJ(V_help,   XMean, XERR, N_rebin ) 
             Write(33,"('# Suscpetibility U1: ', F12.6,2x,F12.6)")  dble(Xmean  ), dble(Xerr  )
+            V_help   = 0.d0
+            do nb = 1,Nbins 
+               do no = 1,Norb
+		  weight1= cmplx(1.d0,0.d0)
+		  if (no>8) weight1=-weight1
+! 		  if (nb==1) write(*,*) no, weight1
+                  Do no1 = 1,Norb
+		     weight2= cmplx(1.d0,0.d0)
+		     if (no1>8) weight2=-weight2
+! 		     if (nb==1) write(*,*) no1, weight2
+                     V_help  (nb) = V_help  (nb) + 0.25*weight1*weight2* bins(n,nb)%el(no,no1)
+                  enddo
+               enddo
+            enddo
+            call ERRCALCJ(V_help,   XMean, XERR, N_rebin ) 
+            Write(33,"('# Suscpetibility Sz: ', F12.6,2x,F12.6)")  dble(Xmean  ), dble(Xerr  )
 	    do no = 1,Norb
                V_help   = 0.d0
                !n = Rot90(n, Xk_p, Ndim)
