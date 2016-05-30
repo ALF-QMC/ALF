@@ -54,6 +54,12 @@
       Complex (Kind=8), allocatable, private :: Green_tau(:,:,:,:), Den_tau(:,:,:,:)
       Complex (Kind=8), allocatable, private :: U1_tau(:,:,:,:), U1xy_tau(:,:,:,:)
       Complex (Kind=8), allocatable, private :: Spinz_tau(:,:,:,:), Spinxy_tau(:,:,:,:)
+      
+      Complex (Kind=8), allocatable, private ::  Den_sus(:,:,:), Den_sus0(:)
+      Complex (Kind=8), allocatable, private ::  U1_sus(:,:,:), U1_sus0(:)
+      Complex (Kind=8), allocatable, private ::  U1xy_sus(:,:,:), U1xy_sus0(:)
+      Complex (Kind=8), allocatable, private ::  Spinz_sus(:,:,:), Spinz_sus0(:)
+      Complex (Kind=8), allocatable, private ::  Spinxy_sus(:,:,:), Spinxy_sus0(:)
 
       contains 
 
@@ -425,6 +431,11 @@
              Allocate ( Green_tau(Latt%N,Ltrot+1,Norb,Norb), Den_tau(Latt%N,Ltrot+1,1,1) )
              Allocate ( U1_tau(Latt%N,Ltrot+1,1,1), U1xy_tau(Latt%N,Ltrot+1,1,1) )
              Allocate ( Spinz_tau(Latt%N,Ltrot+1,1,1), Spinxy_tau(Latt%N,Ltrot+1,1,1) )
+	     Allocate ( Den_sus(Latt%N,1,1), Den_sus0(1) ) 
+	     Allocate ( U1_sus(Latt%N,1,1), U1_sus0(1) )
+	     Allocate ( U1xy_sus(Latt%N,1,1), U1xy_sus0(1) )
+	     Allocate ( Spinz_sus(Latt%N,1,1), spinz_sus0(1) )
+	     Allocate ( Spinxy_sus(Latt%N,1,1), spinxy_sus0(1) ) 
           endif
           
         end Subroutine Alloc_obs
@@ -482,6 +493,17 @@
              U1xy_tau = cmplx(0.d0,0.d0)
              Spinz_tau = cmplx(0.d0,0.d0)
              Spinxy_tau = cmplx(0.d0,0.d0)
+          
+	     Den_eq    = cmplx(0.d0,0.d0)
+	     Den_eq0   = cmplx(0.d0,0.d0)
+	     U1_sus    = cmplx(0.d0,0.d0)
+	     U1_sus0   = cmplx(0.d0,0.d0)
+	     U1xy_sus    = cmplx(0.d0,0.d0)
+	     U1xy_sus0   = cmplx(0.d0,0.d0)
+	     Spinz_sus    = cmplx(0.d0,0.d0)
+	     Spinz_sus0   = cmplx(0.d0,0.d0)
+	     Spinxy_sus    = cmplx(0.d0,0.d0)
+	     Spinxy_sus0   = cmplx(0.d0,0.d0)
           endif
 
         end Subroutine Init_obs
@@ -1406,6 +1428,16 @@
              Call Print_bin_tau(Spinz_tau,Latt,NobsT,Phase_tau, file_pr,dtau)
              File_pr = "Spinxy_tau"
              Call Print_bin_tau(Spinxy_tau,Latt,NobsT,Phase_tau, file_pr,dtau)
+	     File_pr ="Den_sus"
+	     Call Print_bin(Den_sus, Den_sus0, Latt, NobsT, Phase_tau, file_pr)
+	     File_pr ="U1_sus"
+	     Call Print_bin(U1_sus, U1_sus0, Latt, NobsT, Phase_tau, file_pr)
+	     File_pr ="U1xy_sus"
+	     Call Print_bin(U1xy_sus, U1xy_sus0, Latt, NobsT, Phase_tau, file_pr)
+	     File_pr ="Spinz_sus"
+	     Call Print_bin(Spinz_sus, Spinz_sus0, Latt, NobsT, Phase_tau, file_pr)
+	     File_pr ="Spinxy_sus"
+	     Call Print_bin(Spinxy_sus, Spinxy_sus0, Latt, NobsT, Phase_tau, file_pr)
           endif
 !!$#ifdef MPI
 !!$          Write(6,*)  Irank, 'out Pr_obs', LTAU
@@ -1423,7 +1455,7 @@
           Complex (Kind=8), INTENT(IN) :: Phase
           
           !Locals
-          Complex (Kind=8) :: Z, ZP, ZS, tmp, DeltaI, DeltaJ, weight
+          Complex (Kind=8) :: Z, ZP, ZS, tmp, DeltaI, DeltaJ, weight, weightbeta
           Integer :: IMJ, I1, I, no, J1, J, no1, I2, J2, signum
 
           ZP = PHASE/cmplx(Real(Phase,kind=8),0.d0)
@@ -1432,6 +1464,10 @@
              Phase_tau = Phase_tau + ZS
              NobsT     = NobsT + 1
           endif
+          
+          weightbeta = cmplx(dtau,0.d0)
+          If (NT == 0 .or. NT==Ltrot) weightbeta=0.5*weightbeta 
+          
           If ( N_FL == 1 ) then 
              Z =  cmplx(dble(N_SUN),0.d0)
              Do I1 = 1,Ndim
@@ -1449,19 +1485,22 @@
                    if (I1==I2 .and. nt==0) DeltaI=cmplx(1.d0,0.d0)
                    DeltaJ=cmplx(0.d0,0.d0)
                    if (J1==J2 .and. nt==0) DeltaJ=cmplx(1.d0,0.d0)
-                   tmp =  Z * ( - GT0(I2,J1,1)*G0T(J2,I1,1)) * ZP* ZS		!(DeltaI - GTT(I2,I1,1))*(DeltaJ - G00(J2,J1,1))
+                   tmp =  Z * ( (DeltaI - GTT(I2,I1,1))*(DeltaJ - G00(J2,J1,1)) - GT0(I2,J1,1)*G0T(J2,I1,1)) * ZP* ZS		!
                    
-                   Den_tau  (imj,nt+1,1,1) = Den_tau  (imj,nt+1,1,1)  +  tmp  ! - cmplx(64.d0,0.d0)
+                   Den_tau  (imj,nt+1,1,1) = Den_tau  (imj,nt+1,1,1)  +  tmp  - cmplx(0.25d0,0.d0)
+                   Den_sus  (imj,1,1) = Den_sus  (imj,1,1)  +  weightbeta*(tmp  - cmplx(0.25d0,0.d0))
                      
 		   weight=cmplx(1.d0,0.d0)
 		   if ( (no>=9 .and. no1<=8) .or. (no<=8 .and. no1>=9) ) weight=-weight
 		   Spinz_tau (imj,nt+1,1,1) = Spinz_tau (imj,nt+1,1,1)   +   weight * 0.25 * tmp
+		   Spinz_sus (imj,1,1) = Spinz_sus (imj,1,1)   +  weightbeta * weight * 0.25 * tmp
 		    
 		   signum = 1
 		   if (((no-1)/4+1==2) .or. ((no-1)/4+1==4)) signum=-1
 		   if (((no1-1)/4+1==2) .or. ((no1-1)/4+1 ==4)) signum=-signum
 		   weight = cmplx(dble(signum),0.d0)
 		   U1_tau (imj,nt+1,1,1) = U1_tau (imj,nt+1,1,1)   +  weight*tmp*0.25
+		   U1_sus (imj,1,1) = U1_sus (imj,1,1)   + weightbeta* weight*tmp*0.25
 
 		enddo
 	      enddo
@@ -1482,6 +1521,7 @@
 			  if (J1==J2 .and. nt==0) DeltaJ=cmplx(1.d0,0.d0)
 			  tmp =  Z * ((DeltaI - GTT(I2,I1,1))*(DeltaJ - G00(J2,J1,1)) - GT0(I2,J1,1)*G0T(J2,I1,1)) * ZP* ZS
 			  Spinxy_tau (imj,nt+1,1,1) = Spinxy_tau (imj,nt+1,1,1)   +  tmp
+			  Spinxy_sus (imj,1,1) = Spinxy_sus (imj,1,1)   +   weightbeta*tmp
 			  
 			  if (no<=4) then
 			    I1 = Invlist(I,no)
@@ -1504,6 +1544,7 @@
 			  if (J1==J2 .and. nt==0) DeltaJ=cmplx(1.d0,0.d0)
 			  tmp =  Z * ((DeltaI - GTT(I2,I1,1))*(DeltaJ - G00(J2,J1,1)) - GT0(I2,J1,1)*G0T(J2,I1,1)) * ZP* ZS
 			  U1xy_tau (imj,nt+1,1,1) = U1xy_tau (imj,nt+1,1,1)   +  tmp
+			  U1xy_sus (imj,1,1) = U1xy_sus (imj,1,1)   +  weightbeta*tmp
 		      enddo
 		    enddo
 		    
