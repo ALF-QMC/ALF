@@ -549,6 +549,14 @@
 		      
 		      weight=cmplx(1.d0,0.d0)
 		      if ( (no>=9 .and. no1<=8) .or. (no<=8 .and. no1>=9) ) weight=-weight
+ 		      
+! 		      tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+! 			   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS*0.25
+! 		      Spin_eq (imj,1,1) = Spin_eq (imj,1,1)   +  tmp
+! 		      
+! 		      tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+! 			   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * weight * ZP*ZS * 0.25
+! 		      Spin_eq (imj,2,2) = Spin_eq (imj,2,2)   -  tmp
 		      
 		      tmp =  (   GRC(I1,J1,1) * GR (I1,J1,1)      +  &
 			   &     GRC(I1,I1,1) * GRC(J1,J1,1)         ) * weight * 0.25 * ZP*ZS
