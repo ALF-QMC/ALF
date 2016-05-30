@@ -35,7 +35,9 @@
       Complex (Kind=8), allocatable, private ::  Den_eq(:,:,:), Den_eq0(:)
       Complex (Kind=8), allocatable, private ::  R_eq(:,:,:), R_eq0(:)
       Complex (Kind=8), allocatable, private ::  U1_eq(:,:,:), U1_eq0(:)
-      Complex (Kind=8), allocatable, private ::  Spin_eq(:,:,:), Spin_eq0(:)
+      Complex (Kind=8), allocatable, private ::  U1xy_eq(:,:,:), U1xy_eq0(:)
+      Complex (Kind=8), allocatable, private ::  Spinz_eq(:,:,:), Spinz_eq0(:)
+      Complex (Kind=8), allocatable, private ::  Spinxy_eq(:,:,:), Spinxy_eq0(:)
       Complex (Kind=8), allocatable, private ::  TRS_eq(:,:,:), TRS_eq0(:)
       Complex (Kind=8), allocatable, private ::  PHS_eq(:,:,:), PHS_eq0(:)
       Complex (Kind=8), allocatable, private ::  RS_eq(:,:,:), RS_eq0(:)
@@ -50,6 +52,8 @@
       Integer,                       private :: NobsT
       Complex (Kind=8),              private :: Phase_tau
       Complex (Kind=8), allocatable, private :: Green_tau(:,:,:,:), Den_tau(:,:,:,:)
+      Complex (Kind=8), allocatable, private :: U1_tau(:,:,:,:), U1xy_tau(:,:,:,:)
+      Complex (Kind=8), allocatable, private :: Spinz_tau(:,:,:,:), Spinxy_tau(:,:,:,:)
 
       contains 
 
@@ -401,10 +405,12 @@
           Integer, Intent(In) :: Ltau
           Integer :: I
           Allocate ( Obs_scal(5) )
-          Allocate ( Den_eq(Latt%N,Norb,Norb), Den_eq0(Norb) ) 
+          Allocate ( Den_eq(Latt%N,1,1), Den_eq0(1) ) 
           Allocate ( R_eq(Latt%N,1,1), R_eq0(1) ) 
           Allocate ( U1_eq(Latt%N,1,1), U1_eq0(1) )
-          Allocate ( Spin_eq(Latt%N,1,1), spin_eq0(1) ) 
+          Allocate ( U1xy_eq(Latt%N,1,1), U1xy_eq0(1) )
+          Allocate ( Spinz_eq(Latt%N,1,1), spinz_eq0(1) )
+          Allocate ( Spinxy_eq(Latt%N,1,1), spinxy_eq0(1) ) 
           Allocate ( TRS_eq(Latt%N,1,1), TRS_eq0(1) )
           Allocate ( PHS_eq(Latt%N,1,1), PHS_eq0(1) )
           Allocate ( RS_eq(Latt%N,1,1), RS_eq0(1) )
@@ -416,7 +422,9 @@
           Allocate ( U12S_eq(Latt%N,1,1), U12S_eq0(1) )
           
           If (Ltau == 1) then 
-             Allocate ( Green_tau(Latt%N,Ltrot+1,Norb,Norb), Den_tau(Latt%N,Ltrot+1,Norb,Norb) )
+             Allocate ( Green_tau(Latt%N,Ltrot+1,Norb,Norb), Den_tau(Latt%N,Ltrot+1,1,1) )
+             Allocate ( U1_tau(Latt%N,Ltrot+1,1,1), U1xy_tau(Latt%N,Ltrot+1,1,1) )
+             Allocate ( Spinz_tau(Latt%N,Ltrot+1,1,1), Spinxy_tau(Latt%N,Ltrot+1,1,1) )
           endif
           
         end Subroutine Alloc_obs
@@ -439,8 +447,12 @@
           R_eq0   = cmplx(0.d0,0.d0)
           U1_eq    = cmplx(0.d0,0.d0)
           U1_eq0   = cmplx(0.d0,0.d0)
-          Spin_eq    = cmplx(0.d0,0.d0)
-          Spin_eq0   = cmplx(0.d0,0.d0)
+          U1xy_eq    = cmplx(0.d0,0.d0)
+          U1xy_eq0   = cmplx(0.d0,0.d0)
+          Spinz_eq    = cmplx(0.d0,0.d0)
+          Spinz_eq0   = cmplx(0.d0,0.d0)
+          Spinxy_eq    = cmplx(0.d0,0.d0)
+          Spinxy_eq0   = cmplx(0.d0,0.d0)
           
           TRS_eq    = cmplx(0.d0,0.d0)
           TRS_eq0   = cmplx(0.d0,0.d0)
@@ -466,6 +478,10 @@
              Phase_tau = cmplx(0.d0,0.d0)
              Green_tau = cmplx(0.d0,0.d0)
              Den_tau = cmplx(0.d0,0.d0)
+             U1_tau = cmplx(0.d0,0.d0)
+             U1xy_tau = cmplx(0.d0,0.d0)
+             Spinz_tau = cmplx(0.d0,0.d0)
+             Spinxy_tau = cmplx(0.d0,0.d0)
           endif
 
         end Subroutine Init_obs
@@ -543,47 +559,58 @@
                 J = List(J1,1)
                 no1 = list(J1,2)
                 imj = latt%imj(I,J)
+		
+		tmp =  (   GRC(I1,J1,1) * GR (I1,J1,1)      +  &
+		      &     GRC(I1,I1,1) * GRC(J1,J1,1)         ) *ZP*ZS
 
-                DEN_Eq (imj,no,no1) = DEN_Eq (imj,no,no1)   +  &
-                     & (   GRC(I1,J1,1) * GR (I1,J1,1)      +  &
-                     &     GRC(I1,I1,1) * GRC(J1,J1,1)         ) * ZP*ZS
+                DEN_Eq (imj,1,1) = DEN_Eq (imj,1,1)   +  tmp
+                     
+		weight=cmplx(1.d0,0.d0)
+		if ( (no>=9 .and. no1<=8) .or. (no<=8 .and. no1>=9) ) weight=-weight
+		Spinz_eq (imj,1,1) = Spinz_eq (imj,1,1)   +   weight * 0.25 * tmp
+		
+		signum = 1
+		if (((no-1)/4+1==2) .or. ((no-1)/4+1==4)) signum=-1
+		if (((no1-1)/4+1==2) .or. ((no1-1)/4+1 ==4)) signum=-signum
+		weight = cmplx(dble(signum),0.d0)
+		U1_eq (imj,1,1) = U1_eq (imj,1,1)   +  weight*tmp*0.25
 
              enddo
-             Den_eq0(no) = Den_eq0(no) +   GRC(I1,I1,1)*ZP*ZS 
+             Den_eq0(1) = Den_eq0(1) +   GRC(I1,I1,1)*ZP*ZS 
           enddo
           
           do I=1,Latt%N
-	     do no=1,Norb
-		I1 = Invlist(I,no)
-		if (no<=8) then
-		   I2 = Invlist(I,no+8)
-		else
-		   I2 = Invlist(I,no-8)
-		endif
+	     do no=1,8
 		do J=1,Latt%N
 		   imj = latt%imj(I,J)
-		   do no1=1,Norb
-		      J1 = Invlist(J,no1)
-		      if (no1<=8) then
-			J2 = Invlist(J,no1+8)
-		      else
-			J2 = Invlist(J,no1-8)
-		      endif
-		      
-		      weight=cmplx(1.d0,0.d0)
-		      if ( (no>=9 .and. no1<=8) .or. (no<=8 .and. no1>=9) ) weight=-weight
+		   do no1=1,8
+		      I1 = Invlist(I,no)
+		      I2 = Invlist(I,no+8)
+		      J1 = Invlist(J,no1+8)
+		      J2 = Invlist(J,no1)
  		      
-! 		      tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-! 			   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS*0.25
-! 		      Spin_eq (imj,1,1) = Spin_eq (imj,1,1)   +  tmp
-! 		      
-! 		      tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-! 			   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * weight * ZP*ZS * 0.25
-! 		      Spin_eq (imj,2,2) = Spin_eq (imj,2,2)   -  tmp
+		      tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+			   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+		      Spinxy_eq (imj,1,1) = Spinxy_eq (imj,1,1)   +  tmp
 		      
-		      tmp =  (   GRC(I1,J1,1) * GR (I1,J1,1)      +  &
-			   &     GRC(I1,I1,1) * GRC(J1,J1,1)         ) * weight * 0.25 * ZP*ZS
-		      Spin_eq (imj,1,1) = Spin_eq (imj,1,1)   +  tmp
+		      if (no<=4) then
+			I1 = Invlist(I,no)
+			I2 = Invlist(I,no+4)
+		      else
+			I1= Invlist(I,no+4)
+			I2 = Invlist(I,no+8)
+		      endif
+		      if (no1<=4) then
+			J1 = Invlist(J,no1+4)
+			J2 = Invlist(J,no1)
+		      else
+			J1 = Invlist(J,no1+8)
+			J2 = Invlist(J,no1+4)
+		      endif
+ 		      
+		      tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+			   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+		      U1xy_eq (imj,1,1) = U1xy_eq (imj,1,1)   +  tmp
 		   enddo
 		enddo
 		
@@ -626,21 +653,21 @@
 			  R_eq (imj,1,1) = R_eq (imj,1,1)   +  weight*tmp
 			endif
 			
-    ! 		    U(1) correlation
-			if ((a==b) .and. (c==d)) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(I,4*(no-1)+a)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(J,4*(no1-1)+c)
-			  signum = 1
-			  if ((no==2) .or. (no==4)) signum=-1
-			  if ((no1==2) .or. (no1 ==4)) signum=-signum
-			  weight = cmplx(dble(signum),0.d0)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  U1_eq (imj,1,1) = U1_eq (imj,1,1)   +  weight*tmp*0.25
-    ! 		      write(*,*) 4*(no-1)+a, I1, I2, 4*(no1-1)+c, J1, J2, signum
-			endif
+!     ! 		    U(1) correlation
+! 			if ((a==b) .and. (c==d)) then
+! 			  I1 = Invlist(I,4*(no-1)+a)
+! 			  I2 = Invlist(I,4*(no-1)+a)
+! 			  J1 = Invlist(J,4*(no1-1)+c)
+! 			  J2 = Invlist(J,4*(no1-1)+c)
+! 			  signum = 1
+! 			  if ((no==2) .or. (no==4)) signum=-1
+! 			  if ((no1==2) .or. (no1 ==4)) signum=-signum
+! 			  weight = cmplx(dble(signum),0.d0)
+! 			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+! 				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+! 			  U1_eq (imj,1,1) = U1_eq (imj,1,1)   +  weight*tmp*0.25
+!     ! 		      write(*,*) 4*(no-1)+a, I1, I2, 4*(no1-1)+c, J1, J2, signum
+! 			endif
 			
     ! 		    TR symmetry check
 			weight = gamma_13(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0)
@@ -1340,8 +1367,12 @@
           Call Print_bin(R_eq, R_eq0, Latt, Nobs, Phase_bin, file_pr)
           File_pr ="U1_eq"
           Call Print_bin(U1_eq, U1_eq0, Latt, Nobs, Phase_bin, file_pr)
-          File_pr ="Spin_eq"
-          Call Print_bin(Spin_eq, Spin_eq0, Latt, Nobs, Phase_bin, file_pr)
+          File_pr ="U1xy_eq"
+          Call Print_bin(U1xy_eq, U1xy_eq0, Latt, Nobs, Phase_bin, file_pr)
+          File_pr ="Spinz_eq"
+          Call Print_bin(Spinz_eq, Spinz_eq0, Latt, Nobs, Phase_bin, file_pr)
+          File_pr ="Spinxy_eq"
+          Call Print_bin(Spinxy_eq, Spinxy_eq0, Latt, Nobs, Phase_bin, file_pr)
           File_pr ="SymCheckTR_eq"
           Call Print_bin(TRS_eq, TRS_eq0, Latt, Nobs, Phase_bin, file_pr)
           File_pr ="SymCheckR_eq"
@@ -1367,6 +1398,14 @@
              Call Print_bin_tau(Green_tau,Latt,NobsT,Phase_tau, file_pr,dtau)
              File_pr = "Den_tau"
              Call Print_bin_tau(Den_tau,Latt,NobsT,Phase_tau, file_pr,dtau)
+             File_pr = "U1_tau"
+             Call Print_bin_tau(U1_tau,Latt,NobsT,Phase_tau, file_pr,dtau)
+             File_pr = "U1xy_tau"
+             Call Print_bin_tau(U1xy_tau,Latt,NobsT,Phase_tau, file_pr,dtau)
+             File_pr = "Spinz_tau"
+             Call Print_bin_tau(Spinz_tau,Latt,NobsT,Phase_tau, file_pr,dtau)
+             File_pr = "Spinxy_tau"
+             Call Print_bin_tau(Spinxy_tau,Latt,NobsT,Phase_tau, file_pr,dtau)
           endif
 !!$#ifdef MPI
 !!$          Write(6,*)  Irank, 'out Pr_obs', LTAU
@@ -1384,8 +1423,8 @@
           Complex (Kind=8), INTENT(IN) :: Phase
           
           !Locals
-          Complex (Kind=8) :: Z, ZP, ZS
-          Integer :: IMJ, I1, I, no, J1, J, no1 
+          Complex (Kind=8) :: Z, ZP, ZS, tmp, DeltaI, DeltaJ, weight
+          Integer :: IMJ, I1, I, no, J1, J, no1, I2, J2, signum
 
           ZP = PHASE/cmplx(Real(Phase,kind=8),0.d0)
           ZS = cmplx(Real(Phase,kind=8)/Abs(Real(Phase,kind=8)), 0.d0)
@@ -1403,7 +1442,77 @@
 		   no1 = List(J1,2)
                    imj = latt%imj(I,J)
                    Green_tau(imj,nt+1,no,no1) = green_tau(imj,nt+1,no,no1)  +  Z * GT0(I1,J1,1) * ZP* ZS
-                   Den_tau  (imj,nt+1,no,no1) = Den_tau  (imj,nt+1,no,no1)  -  Z * GT0(I1,J1,1)*G0T(J1,I1,1) * ZP* ZS
+                   
+                   I2=I1
+                   J2=J1
+                   DeltaI=cmplx(0.d0,0.d0)
+                   if (I1==I2 .and. nt==0) DeltaI=cmplx(1.d0,0.d0)
+                   DeltaJ=cmplx(0.d0,0.d0)
+                   if (J1==J2 .and. nt==0) DeltaJ=cmplx(1.d0,0.d0)
+                   tmp =  Z * ( - GT0(I2,J1,1)*G0T(J2,I1,1)) * ZP* ZS		!(DeltaI - GTT(I2,I1,1))*(DeltaJ - G00(J2,J1,1))
+                   
+                   Den_tau  (imj,nt+1,1,1) = Den_tau  (imj,nt+1,1,1)  +  tmp  ! - cmplx(64.d0,0.d0)
+                     
+		   weight=cmplx(1.d0,0.d0)
+		   if ( (no>=9 .and. no1<=8) .or. (no<=8 .and. no1>=9) ) weight=-weight
+		   Spinz_tau (imj,nt+1,1,1) = Spinz_tau (imj,nt+1,1,1)   +   weight * 0.25 * tmp
+		    
+		   signum = 1
+		   if (((no-1)/4+1==2) .or. ((no-1)/4+1==4)) signum=-1
+		   if (((no1-1)/4+1==2) .or. ((no1-1)/4+1 ==4)) signum=-signum
+		   weight = cmplx(dble(signum),0.d0)
+		   U1_tau (imj,nt+1,1,1) = U1_tau (imj,nt+1,1,1)   +  weight*tmp*0.25
+
+		enddo
+	      enddo
+	      
+	      do I=1,Latt%N
+		do no=1,8
+		    do J=1,Latt%N
+		      imj = latt%imj(I,J)
+		      do no1=1,8
+			  I1 = Invlist(I,no)
+			  I2 = Invlist(I,no+8)
+			  J1 = Invlist(J,no1+8)
+			  J2 = Invlist(J,no1)
+			  
+			  DeltaI=cmplx(0.d0,0.d0)
+			  if (I1==I2 .and. nt==0) DeltaI=cmplx(1.d0,0.d0)
+			  DeltaJ=cmplx(0.d0,0.d0)
+			  if (J1==J2 .and. nt==0) DeltaJ=cmplx(1.d0,0.d0)
+			  tmp =  Z * ((DeltaI - GTT(I2,I1,1))*(DeltaJ - G00(J2,J1,1)) - GT0(I2,J1,1)*G0T(J2,I1,1)) * ZP* ZS
+			  Spinxy_tau (imj,nt+1,1,1) = Spinxy_tau (imj,nt+1,1,1)   +  tmp
+			  
+			  if (no<=4) then
+			    I1 = Invlist(I,no)
+			    I2 = Invlist(I,no+4)
+			  else
+			    I1= Invlist(I,no+4)
+			    I2 = Invlist(I,no+8)
+			  endif
+			  if (no1<=4) then
+			    J1 = Invlist(J,no1+4)
+			    J2 = Invlist(J,no1)
+			  else
+			    J1 = Invlist(J,no1+8)
+			    J2 = Invlist(J,no1+4)
+			  endif
+			  
+			  DeltaI=cmplx(0.d0,0.d0)
+			  if (I1==I2 .and. nt==0) DeltaI=cmplx(1.d0,0.d0)
+			  DeltaJ=cmplx(0.d0,0.d0)
+			  if (J1==J2 .and. nt==0) DeltaJ=cmplx(1.d0,0.d0)
+			  tmp =  Z * ((DeltaI - GTT(I2,I1,1))*(DeltaJ - G00(J2,J1,1)) - GT0(I2,J1,1)*G0T(J2,I1,1)) * ZP* ZS
+			  U1xy_tau (imj,nt+1,1,1) = U1xy_tau (imj,nt+1,1,1)   +  tmp
+		      enddo
+		    enddo
+		    
+    ! 		weight=cmplx(1.d0,0.d0)
+    ! 		if ( no>=9 ) weight=-weight
+    ! 		
+    ! 		tmp =  GRC(I1,I1,1)* weight * 0.25 * ZP*ZS
+    ! 		Spin_eq0 (1) = Spin_eq0 (1)   +  tmp
+		    
                 Enddo
              Enddo
           Endif
