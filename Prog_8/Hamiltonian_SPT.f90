@@ -52,12 +52,13 @@
       Integer,                       private :: NobsT
       Complex (Kind=8),              private :: Phase_tau
       Complex (Kind=8), allocatable, private :: Green_tau(:,:,:,:), Den_tau(:,:,:,:)
-      Complex (Kind=8), allocatable, private :: U1_tau(:,:,:,:), U1xy_tau(:,:,:,:)
+      Complex (Kind=8), allocatable, private :: U1_tau(:,:,:,:), U1xy_tau(:,:,:,:), U1xyG_tau(:,:,:,:)
       Complex (Kind=8), allocatable, private :: Spinz_tau(:,:,:,:), Spinxy_tau(:,:,:,:)
       
       Complex (Kind=8), allocatable, private ::  Den_sus(:,:,:), Den_sus0(:)
       Complex (Kind=8), allocatable, private ::  U1_sus(:,:,:), U1_sus0(:)
       Complex (Kind=8), allocatable, private ::  U1xy_sus(:,:,:), U1xy_sus0(:)
+      Complex (Kind=8), allocatable, private ::  U1xyG_sus(:,:,:), U1xyG_sus0(:)
       Complex (Kind=8), allocatable, private ::  Spinz_sus(:,:,:), Spinz_sus0(:)
       Complex (Kind=8), allocatable, private ::  Spinxy_sus(:,:,:), Spinxy_sus0(:)
 
@@ -111,6 +112,7 @@
              OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
              READ(5,NML=VAR_SPT)
              CLOSE(5)
+             Ham_Vint=Ham_Vint*(1.d0-Ham_T)
 #ifdef MPI
           endif
 
@@ -269,10 +271,10 @@
                 enddo
                 Op_T(nc,n)%g=cmplx(-Dtau,0.d0)
                 Call Op_set(Op_T(nc,n)) 
-                ! Just for tests
-                Do I = 1, Ndim/4
-                   Write(6,*) i,Op_T(nc,n)%E(i)
-                enddo
+!                 ! Just for tests
+!                 Do I = 1, Ndim/4
+!                    Write(6,*) i,Op_T(nc,n)%E(i)
+!                 enddo
              enddo
           enddo
 
@@ -410,7 +412,7 @@
           Implicit none
           Integer, Intent(In) :: Ltau
           Integer :: I
-          Allocate ( Obs_scal(5) )
+          Allocate ( Obs_scal(6) )
           Allocate ( Den_eq(Latt%N,1,1), Den_eq0(1) ) 
           Allocate ( R_eq(Latt%N,1,1), R_eq0(1) ) 
           Allocate ( U1_eq(Latt%N,1,1), U1_eq0(1) )
@@ -429,11 +431,12 @@
           
           If (Ltau == 1) then 
              Allocate ( Green_tau(Latt%N,Ltrot+1,Norb,Norb), Den_tau(Latt%N,Ltrot+1,1,1) )
-             Allocate ( U1_tau(Latt%N,Ltrot+1,1,1), U1xy_tau(Latt%N,Ltrot+1,1,1) )
+             Allocate ( U1_tau(Latt%N,Ltrot+1,1,1), U1xy_tau(Latt%N,Ltrot+1,1,1) )		!, U1xyG_tau(Latt%N,Ltrot+1,1,1) )
              Allocate ( Spinz_tau(Latt%N,Ltrot+1,1,1), Spinxy_tau(Latt%N,Ltrot+1,1,1) )
 	     Allocate ( Den_sus(Latt%N,1,1), Den_sus0(1) ) 
 	     Allocate ( U1_sus(Latt%N,1,1), U1_sus0(1) )
 	     Allocate ( U1xy_sus(Latt%N,1,1), U1xy_sus0(1) )
+! 	     Allocate ( U1xyG_sus(Latt%N,1,1), U1xyG_sus0(1) )
 	     Allocate ( Spinz_sus(Latt%N,1,1), spinz_sus0(1) )
 	     Allocate ( Spinxy_sus(Latt%N,1,1), spinxy_sus0(1) ) 
           endif
@@ -491,6 +494,7 @@
              Den_tau = cmplx(0.d0,0.d0)
              U1_tau = cmplx(0.d0,0.d0)
              U1xy_tau = cmplx(0.d0,0.d0)
+             U1xyG_tau = cmplx(0.d0,0.d0)
              Spinz_tau = cmplx(0.d0,0.d0)
              Spinxy_tau = cmplx(0.d0,0.d0)
           
@@ -500,6 +504,8 @@
 	     U1_sus0   = cmplx(0.d0,0.d0)
 	     U1xy_sus    = cmplx(0.d0,0.d0)
 	     U1xy_sus0   = cmplx(0.d0,0.d0)
+! 	     U1xyG_sus    = cmplx(0.d0,0.d0)
+! 	     U1xyG_sus0   = cmplx(0.d0,0.d0)
 	     Spinz_sus    = cmplx(0.d0,0.d0)
 	     Spinz_sus0   = cmplx(0.d0,0.d0)
 	     Spinxy_sus    = cmplx(0.d0,0.d0)
@@ -521,7 +527,7 @@
           Complex (Kind=8) :: GRC(Ndim,Ndim,N_FL), ZK
           Complex (Kind=8) :: Zrho, Zkin, ZPot, Z, ZP,ZS, weight, tmp
           Integer :: I,J, no,no1, n, n1, imj, nf, I1, I2, J1, J2, Nc, Ix, Iy, Jx, Jy, Imx, Imy, Jmx, Jmy
-          Integer :: a, b, c, d, signum
+          Integer :: a, b, c, d, signum, K, K1, L ,L1, nf1
           
           Real (Kind=8) :: G(4,4), X, FI, FJ
           
@@ -568,11 +574,40 @@
 
           ZPot = cmplx(0.d0,0.d0)
 
+          Nc = Size( Op_V,1)
+          Do nf = 1,N_FL
+             Do n = 1,Nc
+		weight=(Op_V(n,nf)%g)**2/(-dtau)
+                Do J = 1,Op_V(n,nf)%N
+                   J1 = Op_V(n,nf)%P(J)
+                   DO I = 1,Op_V(n,nf)%N
+                      if (abs(Op_V(n,nf)%O(i,j)) >= 0.00001) then
+			  I1 = Op_V(n,nf)%P(I)
+			  Do K = 1,Op_V(n,nf)%N
+			    K1 = Op_V(n,nf)%P(K)
+			    DO L = 1,Op_V(n,nf)%N
+			      if (abs(Op_V(n,nf)%O(k,l)) >= 0.00001) then
+				L1 = Op_V(n,nf)%P(L)
+				tmp =  (   GRC(I1,L1,1) * GR (J1,K1,1)      +  &
+				      &     GRC(I1,J1,1) * GRC(K1,L1,1)         )
+				ZPot  = ZPot  + weight*Op_V(n,nf)%O(i,j)*Op_V(n,nf)%O(k,l)*tmp
+			      endif
+			    Enddo
+			  ENddo
+		      endif
+                   Enddo
+                ENddo
+! 		write(*,*) Zpot
+             Enddo
+          Enddo
+          Zkin = Zkin*cmplx( dble(N_SUN), 0.d0 )
+
           Obs_scal(1) = Obs_scal(1) + zrho * ZP*ZS
           Obs_scal(2) = Obs_scal(2) + zkin * ZP*ZS
           Obs_scal(3) = Obs_scal(3) + Zpot * ZP*ZS
           Obs_scal(4) = Obs_scal(4) + (zkin +  Zpot)*ZP*ZS
-          Obs_scal(5) = Obs_scal(5) + ZS
+          Obs_scal(5) = Obs_scal(5) + (zkin -  Zpot)*ZP*ZS
+          Obs_scal(6) = Obs_scal(6) + ZS
           ! You will have to allocate more space if you want to include more  scalar observables.
           DO I1 = 1,Ndim
              I  = List(I1,1)
@@ -1424,6 +1459,8 @@
              Call Print_bin_tau(U1_tau,Latt,NobsT,Phase_tau, file_pr,dtau)
              File_pr = "U1xy_tau"
              Call Print_bin_tau(U1xy_tau,Latt,NobsT,Phase_tau, file_pr,dtau)
+!              File_pr = "U1xyG_tau"
+!              Call Print_bin_tau(U1xyG_tau,Latt,NobsT,Phase_tau, file_pr,dtau)
              File_pr = "Spinz_tau"
              Call Print_bin_tau(Spinz_tau,Latt,NobsT,Phase_tau, file_pr,dtau)
              File_pr = "Spinxy_tau"
@@ -1434,6 +1471,8 @@
 	     Call Print_bin(U1_sus, U1_sus0, Latt, NobsT, Phase_tau, file_pr)
 	     File_pr ="U1xy_sus"
 	     Call Print_bin(U1xy_sus, U1xy_sus0, Latt, NobsT, Phase_tau, file_pr)
+! 	     File_pr ="U1xyG_sus"
+! 	     Call Print_bin(U1xyG_sus, U1xyG_sus0, Latt, NobsT, Phase_tau, file_pr)
 	     File_pr ="Spinz_sus"
 	     Call Print_bin(Spinz_sus, Spinz_sus0, Latt, NobsT, Phase_tau, file_pr)
 	     File_pr ="Spinxy_sus"
@@ -1545,6 +1584,8 @@
 			  tmp =  Z * ((DeltaI - GTT(I2,I1,1))*(DeltaJ - G00(J2,J1,1)) - GT0(I2,J1,1)*G0T(J2,I1,1)) * ZP* ZS
 			  U1xy_tau (imj,nt+1,1,1) = U1xy_tau (imj,nt+1,1,1)   +  tmp
 			  U1xy_sus (imj,1,1) = U1xy_sus (imj,1,1)   +  weightbeta*tmp
+! 			  U1xyG_tau (imj,nt+1,1,1) = U1xyG_tau (imj,nt+1,1,1)   +  (-1)**(no+no1)*tmp
+! 			  U1xyG_sus (imj,1,1) = U1xyG_sus (imj,1,1)   +  (-1)**(no+no1)*weightbeta*tmp
 		      enddo
 		    enddo
 		    
