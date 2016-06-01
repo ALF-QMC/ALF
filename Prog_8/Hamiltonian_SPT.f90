@@ -382,7 +382,7 @@
                                If (nxy == 2)  Op_V(nc,nf)%O(no,no1) = Sy(no,no1,ns,npm)
                             Enddo
                          Enddo
-                         Op_V(nc,nf)%g = SQRT(CMPLX(-Xpm*DTAU*Ham_Vint*(1.d0-Ham_T)/8.d0,0.D0)) 
+                         Op_V(nc,nf)%g = SQRT(CMPLX(-Xpm*DTAU*Ham_Vint/8.d0,0.D0)) 
                          Op_V(nc,nf)%alpha  = cmplx(0.d0,0.d0)
                          Op_V(nc,nf)%type   = 2
                          Call Op_set( Op_V(nc,nf) )
