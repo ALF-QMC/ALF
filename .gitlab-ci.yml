@@ -1,10 +1,13 @@
-types:
+stages:
+  - SCA
+  - style
   - build
   - test
+  - deploy
 
 
 Ising:
-  type: build
+  stage: build
   script:
     - cmake -E make_directory build
     - cd build
@@ -12,7 +15,7 @@ Ising:
     - cmake --build . --target qmct_Hub --config Release
 
 Hubbard:
-  type: build
+  stage: build
   script:
     - cmake -E make_directory build
     - cd build
@@ -20,7 +23,7 @@ Hubbard:
     - cmake --build . --target qmct_Hub --config Release
 
 SPT:
-  type: build
+  stage: build
   script:
     - cmake -E make_directory build
     - cd build
@@ -28,7 +31,7 @@ SPT:
     - cmake --build . --target qmct_SPT --config Release
 
 Analysis:
-  type: build
+  stage: build
   script:
     - cmake -E make_directory build
     - cd build
