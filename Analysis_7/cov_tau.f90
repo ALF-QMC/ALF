@@ -70,7 +70,7 @@
                      do no = 1,norb
                         do no1 = 1,Norb
                            read(10,*) Z
-                           if (no == no1) bins(n,nt,nb-n_skip) = bins(n,nt,nb-n_skip) +  real(Z,Kind=8) 
+                           if (no == no1) bins(n,nt,nb-n_skip) = bins(n,nt,nb-n_skip) +  real(Z,Kind=8) /Norb
                         enddo
                      enddo
                   enddo

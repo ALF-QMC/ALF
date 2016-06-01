@@ -188,7 +188,7 @@
                     & Xk_p(1), Xk_p(2), dble(Xmean  ), dble(Xerr  )
             enddo
          enddo
-         If (Norb > 1 ) then 
+         If (Norb > 0 ) then 
             !Compute susecptibility 
             Xk_p = 0.d0
             n = Inv_K(Xk_p,Latt)
