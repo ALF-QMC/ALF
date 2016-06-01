@@ -1,0 +1,166 @@
+      SUBROUTINE BALANC(NM,N,A,LOW,IGH,SCALE)
+C
+      INTEGER I,J,K,L,M,N,JJ,NM,IGH,LOW,IEXC
+      DOUBLE PRECISION A(NM,N),SCALE(N)
+      DOUBLE PRECISION C,F,G,R,S,B2,RADIX
+      LOGICAL NOCONV
+C
+C     THIS SUBROUTINE IS A TRANSLATION OF THE ALGOL PROCEDURE BALANCE,
+C     NUM. MATH. 13, 293-304(1969) BY PARLETT AND REINSCH.
+C     HANDBOOK FOR AUTO. COMP., VOL.II-LINEAR ALGEBRA, 315-326(1971).
+C
+C     THIS SUBROUTINE BALANCES A REAL MATRIX AND ISOLATES
+C     EIGENVALUES WHENEVER POSSIBLE.
+C
+C     ON INPUT
+C
+C        NM MUST BE SET TO THE ROW DIMENSION OF TWO-DIMENSIONAL
+C          ARRAY PARAMETERS AS DECLARED IN THE CALLING PROGRAM
+C          DIMENSION STATEMENT.
+C
+C        N IS THE ORDER OF THE MATRIX.
+C
+C        A CONTAINS THE INPUT MATRIX TO BE BALANCED.
+C
+C     ON OUTPUT
+C
+C        A CONTAINS THE BALANCED MATRIX.
+C
+C        LOW AND IGH ARE TWO INTEGERS SUCH THAT A(I,J)
+C          IS EQUAL TO ZERO IF
+C           (1) I IS GREATER THAN J AND
+C           (2) J=1,...,LOW-1 OR I=IGH+1,...,N.
+C
+C        SCALE CONTAINS INFORMATION DETERMINING THE
+C           PERMUTATIONS AND SCALING FACTORS USED.
+C
+C     SUPPOSE THAT THE PRINCIPAL SUBMATRIX IN ROWS LOW THROUGH IGH
+C     HAS BEEN BALANCED, THAT P(J) DENOTES THE INDEX INTERCHANGED
+C     WITH J DURING THE PERMUTATION STEP, AND THAT THE ELEMENTS
+C     OF THE DIAGONAL MATRIX USED ARE DENOTED BY D(I,J).  THEN
+C        SCALE(J) = P(J),    FOR J = 1,...,LOW-1
+C                 = D(J,J),      J = LOW,...,IGH
+C                 = P(J)         J = IGH+1,...,N.
+C     THE ORDER IN WHICH THE INTERCHANGES ARE MADE IS N TO IGH+1,
+C     THEN 1 TO LOW-1.
+C
+C     NOTE THAT 1 IS RETURNED FOR IGH IF IGH IS ZERO FORMALLY.
+C
+C     THE ALGOL PROCEDURE EXC CONTAINED IN BALANCE APPEARS IN
+C     BALANC  IN LINE.  (NOTE THAT THE ALGOL ROLES OF IDENTIFIERS
+C     K,L HAVE BEEN REVERSED.)
+C
+C     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW,
+C     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
+C
+C     THIS VERSION DATED AUGUST 1983.
+C
+C     ------------------------------------------------------------------
+C
+      RADIX = 16.0D0
+C
+      B2 = RADIX * RADIX
+      K = 1
+      L = N
+      GO TO 100
+C     .......... IN-LINE PROCEDURE FOR ROW AND
+C                COLUMN EXCHANGE ..........
+   20 SCALE(M) = J
+      IF (J .EQ. M) GO TO 50
+C
+      DO 30 I = 1, L
+         F = A(I,J)
+         A(I,J) = A(I,M)
+         A(I,M) = F
+   30 CONTINUE
+C
+      DO 40 I = K, N
+         F = A(J,I)
+         A(J,I) = A(M,I)
+         A(M,I) = F
+   40 CONTINUE
+C
+   50 GO TO (80,130), IEXC
+C     .......... SEARCH FOR ROWS ISOLATING AN EIGENVALUE
+C                AND PUSH THEM DOWN ..........
+   80 IF (L .EQ. 1) GO TO 280
+      L = L - 1
+C     .......... FOR J=L STEP -1 UNTIL 1 DO -- ..........
+  100 DO 120 JJ = 1, L
+         J = L + 1 - JJ
+C
+         DO 110 I = 1, L
+            IF (I .EQ. J) GO TO 110
+            IF (A(J,I) .NE. 0.0D0) GO TO 120
+  110    CONTINUE
+C
+         M = L
+         IEXC = 1
+         GO TO 20
+  120 CONTINUE
+C
+      GO TO 140
+C     .......... SEARCH FOR COLUMNS ISOLATING AN EIGENVALUE
+C                AND PUSH THEM LEFT ..........
+  130 K = K + 1
+C
+  140 DO 170 J = K, L
+C
+         DO 150 I = K, L
+            IF (I .EQ. J) GO TO 150
+            IF (A(I,J) .NE. 0.0D0) GO TO 170
+  150    CONTINUE
+C
+         M = K
+         IEXC = 2
+         GO TO 20
+  170 CONTINUE
+C     .......... NOW BALANCE THE SUBMATRIX IN ROWS K TO L ..........
+      DO 180 I = K, L
+  180 SCALE(I) = 1.0D0
+C     .......... ITERATIVE LOOP FOR NORM REDUCTION ..........
+  190 NOCONV = .FALSE.
+C
+      DO 270 I = K, L
+         C = 0.0D0
+         R = 0.0D0
+C
+         DO 200 J = K, L
+            IF (J .EQ. I) GO TO 200
+            C = C + DABS(A(J,I))
+            R = R + DABS(A(I,J))
+  200    CONTINUE
+C     .......... GUARD AGAINST ZERO C OR R DUE TO UNDERFLOW ..........
+         IF (C .EQ. 0.0D0 .OR. R .EQ. 0.0D0) GO TO 270
+         G = R / RADIX
+         F = 1.0D0
+         S = C + R
+  210    IF (C .GE. G) GO TO 220
+         F = F * RADIX
+         C = C * B2
+         GO TO 210
+  220    G = R * RADIX
+  230    IF (C .LT. G) GO TO 240
+         F = F / RADIX
+         C = C / B2
+         GO TO 230
+C     .......... NOW BALANCE ..........
+  240    IF ((C + R) / F .GE. 0.95D0 * S) GO TO 270
+         G = 1.0D0 / F
+         SCALE(I) = SCALE(I) * F
+         NOCONV = .TRUE.
+C
+         DO 250 J = K, N
+  250    A(I,J) = A(I,J) * G
+C
+         DO 260 J = 1, L
+  260    A(J,I) = A(J,I) * F
+C
+  270 CONTINUE
+C
+      IF (NOCONV) GO TO 190
+C
+  280 LOW = K
+      IGH = L
+      RETURN
+      END

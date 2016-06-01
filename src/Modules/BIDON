@@ -1,0 +1,846 @@
+0a1,6
+> 
+> 
+> 
+> 
+> 
+> 
+1a8,9
+> 
+>        
+3,9c11,20
+<        Use Files_mod
+<        Integer, private :: NTAU, nt, Ngamma, ng, Ndis, nd, Iseed
+<        Real (Kind=8), private :: Delta, Delta2, OM_st_1, Om_en_1, DeltaXMAX, Beta, Pi, Dom
+<        Real (Kind=8), allocatable, private :: XQMC1(:)
+<        ! You can still optimize a bit for by redefining the Kernel table to:
+<        ! xker_table(nt,nw) -> xker_table(nt,nw) / sigma(nt)
+<        ! This will save quite a lot of divisions in the
+---
+>        Use Files_mod 
+> 
+>        
+>        Integer, private :: NTAU, nt, Ngamma, ng,  Ndis, nd, Iseed
+>        Real  (Kind=8), private :: Delta, Delta2, OM_st_1, Om_en_1, DeltaXMAX, Beta, Pi, Dom
+>        Real  (Kind=8), allocatable, private  :: XQMC1(:)
+> 
+>        ! You can still optimize a bit for  by redefining the Kernel table to: 
+>        ! xker_table(nt,nw)  -> xker_table(nt,nw) / sigma(nt)  
+>        ! This will save quite a lot of divisions in the 
+10a22
+>  
+11a24
+> 
+13c26,27
+<               & Ngamma_1, OM_ST, OM_EN, Ndis_1, Nsweeps, NBins, NWarm, L_cov )
+---
+>               &                  Ngamma_1, OM_ST, OM_EN, Ndis_1, Nsweeps, NBins, NWarm, L_cov ) 
+>            
+15c29,34
+<            Real (Kind=8), Dimension(:) :: XQMC, Xtau, Alpha_tot
+---
+> 
+> 
+> 
+> 
+>            
+>            Real (Kind=8), Dimension(:)   :: XQMC, Xtau, Alpha_tot
+17c36
+<            Real (Kind=8), External :: XKER, Back_trans_Aom
+---
+>            Real (Kind=8), External       :: XKER, Back_trans_Aom   
+19,23c38,43
+<            Integer :: Nsweeps, NBins, Ngamma_1, Ndis_1, nw, nt1
+<            Integer, optional :: L_cov
+<            ! Local
+<            Integer lp, NSims, ns, nb, nc, Nwarm, nalp1, nalp2, Nex, p_star, Ndis_table, &
+<                 & io_error, io_error1, i
+---
+>            Integer       :: Nsweeps, NBins, Ngamma_1, Ndis_1, nw, nt1
+>            Integer,  optional ::  L_cov
+> 
+>            ! Local 
+>            Integer lp,  NSims, ns, nb, nc, Nwarm, nalp1, nalp2, Nex, p_star, Ndis_table, &
+>                 &       io_error, io_error1, i
+25c45
+<                 & Xn_tot(:,:,:), En_tot(:)
+---
+>                 &                        Xn_tot(:,:,:), En_tot(:)
+27,29c47,49
+<            Real (Kind=8) :: Ranf, En_M, Res, X, Alpha, Acc_1, Acc_2, En, DeltaE, Ratio, D
+<            Real (Kind=8) :: Aom, om, XMAX, tau
+<            Real (Kind=8) :: CPUT, CPUTM
+---
+>            Real (Kind=8)  :: Ranf, En_M, Res, X, Alpha, Acc_1, Acc_2, En, DeltaE, Ratio, D
+>            Real (Kind=8)  :: Aom, om, XMAX, tau
+>            Real (Kind=8)  :: CPUT, CPUTM
+32c52,62
+<            Real (Kind=8), allocatable :: Xker_table(:,:), U(:,:), sigma(:)
+---
+>            Real  (Kind=8), allocatable  :: Xker_table(:,:), U(:,:), sigma(:)
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+34c64
+<            NDis = Ndis_1
+---
+>            NDis  =  Ndis_1
+36,41c66,72
+<            delta = 0.001
+<            delta2 = delta*delta
+<            Ngamma = Ngamma_1
+<            Beta = Beta_1 ! Physical temperature for calculation of the kernel.
+<            Ntau = Size(xqmc,1)
+<            NSims = Size(Alpha_tot,1)
+---
+>            delta     = 0.001
+>            delta2    = delta*delta
+>            Ngamma    = Ngamma_1
+>            Beta      = Beta_1      ! Physical temperature for calculation of the kernel.
+> 
+>            Ntau  = Size(xqmc,1)
+>            NSims = Size(Alpha_tot,1) 
+43c74
+<            Allocate (En_m_tot(NSims), En_e_tot(NSims), En_tot(NSims) )
+---
+>            Allocate (En_m_tot(NSims), En_e_tot(NSims),  En_tot(NSims) )
+44a76
+> 
+46a79
+> 
+48,49c81,83
+<            ! Setup table for the Kernel
+<            Ndis_table = 50000
+---
+> 
+>            ! Setup  table for the Kernel
+>            Ndis_table  = 50000
+59,61c93,95
+<            ! Normalize data to have zeroth moment of unity.
+<            xqmc = xqmc / XMOM1
+<            cov = cov / ((XMOM1)**2)
+---
+>            ! Normalize data to have zeroth moment of unity. 
+>            xqmc    =  xqmc /   XMOM1
+>            cov     =  cov  / ((XMOM1)**2)
+62a97
+> 
+64c99
+<            If ( Present(L_cov) ) then
+---
+>            If ( Present(L_cov) ) then 
+76c111
+<               sigma(nt) = sqrt(sigma(nt))
+---
+>               sigma(nt)  = sqrt(sigma(nt))
+81c116
+<                  xqmc1(nt1) = xqmc1(nt1) + xqmc(nt)*U(nt,nt1)
+---
+>                  xqmc1(nt1) = xqmc1(nt1) + xqmc(nt)*U(nt,nt1) 
+83c118
+<               xqmc1(nt1) = xqmc1(nt1)/sigma(nt1)
+---
+>               xqmc1(nt1)    = xqmc1(nt1)/sigma(nt1)
+91c126
+<                     Vhelp(nt1) = Vhelp(nt1) + Xker_table(nt,nw)*U(nt,nt1)
+---
+>                     Vhelp(nt1) = Vhelp(nt1)  +  Xker_table(nt,nw)*U(nt,nt1)
+95c130
+<                  Xker_table(nt1,nw) = Vhelp(nt1)/sigma(nt1) !! This has changed !!
+---
+>                  Xker_table(nt1,nw) = Vhelp(nt1)/sigma(nt1)  !! This has changed !!
+98,99c133,134
+<            deallocate( U, Sigma )
+<            Allocate ( G_Mean(Ntau) )
+---
+>            deallocate( U, Sigma     )
+>            Allocate  ( G_Mean(Ntau) )
+101,102c136,138
+< ! write(6,*) ' There are ', Ngamma,' delta-functions for a spectrum'
+< ! Write(6,*) ' Initializing'
+---
+>            
+> !          write(6,*) ' There are ', Ngamma,' delta-functions for a spectrum'
+> !          Write(6,*) ' Initializing'
+104,105c140,143
+<            D = 1.d0 / (Om_en_1 - Om_st_1)
+<            Iseed = 8752143
+---
+>            D     = 1.d0 / (Om_en_1 - Om_st_1)
+> 
+>            Iseed  = 8752143
+>               
+107c145,146
+<            File_Aom = "dump_Aom"
+---
+>            File_Aom  = "dump_Aom"
+>   
+115c154
+<                     read(41,*) Xn_tot(ng,1,ns), Xn_tot(ng,2,ns)
+---
+>                     read(41,*)  Xn_tot(ng,1,ns),  Xn_tot(ng,2,ns) 
+122c161
+<                     read(42,*) Xn_m_tot(nd,ns), Xn_e_tot(nd,ns)
+---
+>                     read(42,*)  Xn_m_tot(nd,ns), Xn_e_tot(nd,ns) 
+125c164
+<                  Open (Unit=44,File='Max_stoch_log', Status="unknown", position="append")
+---
+>                  Open (Unit=44,File='Max_stoch_log', Status="unknown",  position="append")
+132,133c171,172
+<                     Xn_tot(ng,1,ns) = ranf(iseed)
+<                     Xn_tot(ng,2,ns) = 1.d0/dble(Ngamma)
+---
+>                     Xn_tot(ng,1,ns) = ranf(iseed) 
+>                     Xn_tot(ng,2,ns) = 1.d0/dble(Ngamma) 
+140,141c179,180
+<               nc = 0
+<                  Open (Unit=44,File='Max_stoch_log', Status="unknown", position="append")
+---
+>               nc    = 0
+>                  Open (Unit=44,File='Max_stoch_log', Status="unknown",  position="append")
+147c186,187
+<            CALL SYSTEM_CLOCK(COUNT_RATE=N_P_SEC)
+---
+> 
+>            CALL SYSTEM_CLOCK(COUNT_RATE=N_P_SEC)  
+157,158c197,198
+<                  Call MC(Xtau, Xker_table, Xn, Alpha, NSweeps, Xn_m, En, En_m, &
+<                       & Acc_1, Acc_2 ) ! Just one bin
+---
+>                  Call MC(Xtau, Xker_table, Xn, Alpha,  NSweeps,  Xn_m, En, En_m, &
+>                       &  Acc_1, Acc_2 ) ! Just one bin
+163,165c203,205
+<                  En_tot(ns) = En ! this is the energy of the configuration Xn_tot for simulation ns
+<                  Open (Unit=44,File='Max_stoch_log', Status="unknown", position="append")
+<                  Write(44,2003) 1.d0/Alpha, En_m, Acc_1, Acc_2
+---
+>                  En_tot(ns) = En ! this is the energy of the configuration Xn_tot for simulation ns 
+>                  Open (Unit=44,File='Max_stoch_log', Status="unknown",  position="append")
+>                  Write(44,2003)  1.d0/Alpha, En_m, Acc_1, Acc_2
+166a207
+> 
+170c211
+<                        Xn_m(nd) = Xn_m(nd) * D * dble(Ndis)
+---
+>                        Xn_m(nd) = Xn_m(nd) * D * dble(Ndis) 
+178c219
+<               ! Exchange
+---
+>               ! Exchange 
+181c222
+<                  nalp1= nint( ranf(iseed)*dble(NSims-1) + 0.5 ) ! 1..(NSims-1)
+---
+>                  nalp1=  nint( ranf(iseed)*dble(NSims-1) + 0.5 ) ! 1..(NSims-1)
+183,184c224,225
+<                  DeltaE = (Alpha_tot(nalp1)*En_tot(nalp2) + Alpha_tot(nalp2)*En_tot(nalp1))&
+<                       & -(Alpha_tot(nalp1)*En_tot(nalp1) + Alpha_tot(nalp2)*En_tot(nalp2))
+---
+>                  DeltaE =  (Alpha_tot(nalp1)*En_tot(nalp2) +  Alpha_tot(nalp2)*En_tot(nalp1))&
+>                       &   -(Alpha_tot(nalp1)*En_tot(nalp1) +  Alpha_tot(nalp2)*En_tot(nalp2))
+186c227
+<                  if (Ratio.gt.ranf(iseed)) Then
+---
+>                  if (Ratio.gt.ranf(iseed)) Then 
+190,191c231,232
+<                        Xn(ng,1) = Xn_tot(ng,1,nalp1)
+<                        Xn(ng,2) = Xn_tot(ng,2,nalp1)
+---
+>                        Xn(ng,1) =  Xn_tot(ng,1,nalp1) 
+>                        Xn(ng,2) =  Xn_tot(ng,2,nalp1)
+194,197c235,238
+<                        Xn_tot(ng,1,nalp1) = Xn_tot(ng,1,nalp2)
+<                        Xn_tot(ng,2,nalp1) = Xn_tot(ng,2,nalp2)
+<                        Xn_tot(ng,1,nalp2) = Xn(ng,1)
+<                        Xn_tot(ng,2,nalp2) = Xn(ng,2)
+---
+>                        Xn_tot(ng,1,nalp1) =  Xn_tot(ng,1,nalp2) 
+>                        Xn_tot(ng,2,nalp1) =  Xn_tot(ng,2,nalp2) 
+>                        Xn_tot(ng,1,nalp2) =  Xn(ng,1) 
+>                        Xn_tot(ng,2,nalp2) =  Xn(ng,2) 
+205c246,247
+<               Open (Unit=44,File='Max_stoch_log', Status="unknown", position="append")
+---
+> 
+>               Open (Unit=44,File='Max_stoch_log', Status="unknown",  position="append")
+208a251
+>            
+212c255
+<               Open (Unit=44,File='Max_stoch_log', Status="unknown", position="append")
+---
+>               Open (Unit=44,File='Max_stoch_log', Status="unknown",  position="append")
+215c258
+<            ! dump so as to restart.
+---
+>            ! dump  so as to restart.
+221c264
+<                  write(41,*) Xn_tot(ng,1,ns), Xn_tot(ng,2,ns)
+---
+>                  write(41,*)  Xn_tot(ng,1,ns),  Xn_tot(ng,2,ns) 
+228c271
+<                  write(42,*) Xn_m_tot(nd,ns), Xn_e_tot(nd,ns)
+---
+>                  write(42,*)  Xn_m_tot(nd,ns), Xn_e_tot(nd,ns) 
+233a277,280
+> 
+>            
+> 
+>             
+236,237c283,284
+<                  En_m_tot(ns) = En_m_tot(ns) / dble(nc)
+<                  En_e_tot(ns) = En_e_tot(ns) / dble(nc)
+---
+>                  En_m_tot(ns) =  En_m_tot(ns) / dble(nc)
+>                  En_e_tot(ns) =  En_e_tot(ns) / dble(nc)
+246a294
+>               
+252,253c300,301
+<                     Xn_m_tot(nd,ns) = Xn_m_tot(nd,ns) / dble(nc) ! * delta /(dble(nc)*pi)
+<                     Xn_e_tot(nd,ns) = Xn_e_tot(nd,ns) / dble(nc) ! * delta /(dble(nc)*pi)
+---
+>                     Xn_m_tot(nd,ns) = Xn_m_tot(nd,ns) / dble(nc) ! * delta  /(dble(nc)*pi)
+>                     Xn_e_tot(nd,ns) = Xn_e_tot(nd,ns) / dble(nc) ! * delta  /(dble(nc)*pi)
+255c303
+<                     if (Xn_e_tot(nd,ns).gt.0.d0) then
+---
+>                     if (Xn_e_tot(nd,ns).gt.0.d0) then 
+264c312
+<                     ! PhiM1(dble(nd)/dble(NDis)), Xn_m_tot(nd,ns)
+---
+>                     !          PhiM1(dble(nd)/dble(NDis)), Xn_m_tot(nd,ns)
+267a316
+>               
+269c318
+<               File_root ="Aom_ps"
+---
+>               File_root ="Aom_ps" 
+275,276c324,325
+<                        Xn_m(nd) = Xn_m(nd) + (En_m_tot(ns) - En_m_tot(ns+1))*Xn_m_tot(nd,ns)
+<                        Xn_e(nd) = Xn_e(nd) + (En_m_tot(ns) - En_m_tot(ns+1))*Xn_e_tot(nd,ns)
+---
+>                        Xn_m(nd) = Xn_m(nd)  + (En_m_tot(ns)  - En_m_tot(ns+1))*Xn_m_tot(nd,ns)
+>                        Xn_e(nd) = Xn_e(nd)  + (En_m_tot(ns)  - En_m_tot(ns+1))*Xn_e_tot(nd,ns)
+290,291c339,340
+<                     Xn_m(nd) = Back_Trans_Aom(Aom,Beta,om)
+<                     Xn_e(nd) = Back_Trans_Aom(Err,Beta,om)
+---
+>                     Xn_m(nd) = Back_Trans_Aom(Aom,Beta,om) 
+>                     Xn_e(nd) = Back_Trans_Aom(Err,Beta,om) 
+299c348
+<                  close(66)
+---
+>                  close(66) 
+300a350
+> 
+303c353
+<                  Write(41,*) Phim1(Xn_tot(ng,1,Nsims)) , Xn_tot(ng,2,Nsims)
+---
+>                  Write(41,*)  Phim1(Xn_tot(ng,1,Nsims)) , Xn_tot(ng,2,Nsims)
+305a356
+>               
+307c358
+<            DeAllocate (En_m_tot, En_e_tot, En_tot )
+---
+>            DeAllocate (En_m_tot, En_e_tot,  En_tot )
+314,317c365,370
+< 2001 format(F14.7,2x,F14.7,2x,F14.7)
+< 2004 format(F14.7,2x,F14.7,2x,F14.7,2x,F14.7)
+< 2005 format(F14.7,2x,F14.7,2x,F14.7,2x,F14.7,2x,F14.7)
+< 2003 format('Alpha, En_m, Acc ', F14.7,2x,F24.12,2x,F14.7,2x,F14.7,2x,F14.7)
+---
+>            
+> 
+> 2001       format(F14.7,2x,F14.7,2x,F14.7)
+> 2004       format(F14.7,2x,F14.7,2x,F14.7,2x,F14.7)
+> 2005       format(F14.7,2x,F14.7,2x,F14.7,2x,F14.7,2x,F14.7)
+> 2003       format('Alpha, En_m, Acc ', F14.7,2x,F24.12,2x,F14.7,2x,F14.7,2x,F14.7)
+318a372,373
+> 
+> 
+321,322c376,378
+<               & Ngamma_1, OM_ST, OM_EN, Nsweeps, NBins, NWarm, Aom_res,&
+<               & xom_res, Chisq )
+---
+>               &                  Ngamma_1, OM_ST, OM_EN, Nsweeps, NBins, NWarm, Aom_res,&
+>               &                  xom_res, Chisq ) 
+>            
+324c380
+<            Real (Kind=8), Dimension(:) :: XQMC, Xtau, Alpha_tot, Aom_res, Xom_res
+---
+>            Real (Kind=8), Dimension(:)   :: XQMC, Xtau, Alpha_tot, Aom_res, Xom_res
+326c382
+<            Real (Kind=8), external :: XKER
+---
+>            Real (Kind=8), external       :: XKER
+328,330c384,387
+<            Integer :: Nsweeps, NBins, Ngamma_1, Ndis_1, nw, nt1, Lcov
+<            ! Local
+<            Integer lp, NSims, ns, nb, nc, Nwarm, nalp1, nalp2, Nex, p_star
+---
+>            Integer       :: Nsweeps, NBins, Ngamma_1, Ndis_1, nw, nt1, Lcov
+>         
+>            ! Local 
+>            Integer lp,  NSims, ns, nb, nc, Nwarm, nalp1, nalp2, Nex, p_star
+332c389
+<                 & Xn_tot(:,:,:), En_tot(:), Xker_table(:,:)
+---
+>                 &                        Xn_tot(:,:,:), En_tot(:), Xker_table(:,:)
+336c393,395
+<            Real (Kind=8), allocatable :: U(:,:), sigma(:)
+---
+>            Real  (Kind=8), allocatable  ::  U(:,:), sigma(:)
+> 
+> 
+338,339c397,398
+<            Iseed = 8752143
+<            NDis = Size(Aom_res,1)
+---
+>            Iseed  = 8752143
+>            NDis  =  Size(Aom_res,1)
+341,346c400,406
+<            delta = 0.001
+<            delta2 = delta*delta
+<            Ngamma = Ngamma_1
+<            Beta = Beta_1 ! Physical temperature for calculation of the kernel.
+<            Ntau = Size(xqmc,1)
+<            NSims = Size(Alpha_tot,1)
+---
+>            delta     = 0.001
+>            delta2    = delta*delta
+>            Ngamma  = Ngamma_1
+>            Beta    = Beta_1   ! Physical temperature for calculation of the kernel.
+> 
+>            Ntau  = Size(xqmc,1)
+>            NSims = Size(Alpha_tot,1) 
+348c408
+<            Allocate (En_m_tot(NSims), En_e_tot(NSims), En_tot(NSims) )
+---
+>            Allocate (En_m_tot(NSims), En_e_tot(NSims),  En_tot(NSims) )
+349a410
+> 
+351a413
+> 
+353,354c415,417
+<            ! Setup table for the Kernel
+<            Ndis = Size(Aom_res)
+---
+> 
+>            ! Setup  table for the Kernel 
+>            Ndis = Size(Aom_res) 
+365,367c428,431
+<            ! Normalize data to have zeroth moment of unity.
+<            xqmc = xqmc / XMOM1
+<            cov = cov / ((XMOM1)**2)
+---
+> 
+>            ! Normalize data to have zeroth moment of unity. 
+>            xqmc    =  xqmc /   XMOM1
+>            cov     =  cov  / ((XMOM1)**2)
+368a433
+> 
+373c438
+<                  sigma(nt) = sqrt(sigma(nt))
+---
+>                  sigma(nt)  = sqrt(sigma(nt))
+378c443
+<                     xqmc1(nt1) = xqmc1(nt1) + xqmc(nt)*U(nt,nt1)
+---
+>                     xqmc1(nt1) = xqmc1(nt1) + xqmc(nt)*U(nt,nt1) 
+380c445
+<                  xqmc1(nt1) = xqmc1(nt1)/sigma(nt1)
+---
+>                  xqmc1(nt1)    = xqmc1(nt1)/sigma(nt1)
+388c453
+<                        Vhelp(nt1) = Vhelp(nt1) + Xker_table(nt,nw)*U(nt,nt1)
+---
+>                        Vhelp(nt1) = Vhelp(nt1)  +  Xker_table(nt,nw)*U(nt,nt1)
+392c457
+<                     Xker_table(nt1,nw) = Vhelp(nt1)/sigma(nt1) !! This has changed !!
+---
+>                     Xker_table(nt1,nw) = Vhelp(nt1)/sigma(nt1)  !! This has changed !!
+400c465
+<                  sigma(nt) = 1.d0/sqrt(cov(nt,nt))
+---
+>                  sigma(nt)  = 1.d0/sqrt(cov(nt,nt))
+404c469
+<                  xqmc1(nt1) = xqmc(nt1)*sigma(nt1)
+---
+>                  xqmc1(nt1)  = xqmc(nt1)*sigma(nt1)
+410c475
+<                     Xker_table(nt1,nw) = Xker_table(nt1,nw)*sigma(nt1) !! This has changed !!
+---
+>                     Xker_table(nt1,nw) = Xker_table(nt1,nw)*sigma(nt1)  !! This has changed !!
+417,418c482,484
+< ! write(6,*) ' There are ', Ngamma,' delta-functions for a spectrum'
+< ! Write(6,*) ' Initializing'
+---
+> 
+> !          write(6,*) ' There are ', Ngamma,' delta-functions for a spectrum'
+> !          Write(6,*) ' Initializing'
+421,422c487,488
+<                  Xn_tot(ng,1,ns) = ranf(iseed)
+<                  Xn_tot(ng,2,ns) = 1.d0/dble(Ngamma)
+---
+>                  Xn_tot(ng,1,ns) = ranf(iseed) 
+>                  Xn_tot(ng,2,ns) = 1.d0/dble(Ngamma) 
+431c497,498
+<            Open (Unit=44,File='Max_stoch_log', Status="unknown", position="append")
+---
+> 
+>            Open (Unit=44,File='Max_stoch_log', Status="unknown",  position="append")
+433c500
+<            nc = 0
+---
+>            nc    = 0
+441,442c508,509
+<                  Call MC(Xtau, Xker_table, Xn, Alpha, NSweeps, Xn_m, En, En_m, &
+<                       & Acc_1, Acc_2 ) ! Just one bin
+---
+>                  Call MC(Xtau, Xker_table, Xn, Alpha,  NSweeps,  Xn_m, En, En_m, &
+>                       &  Acc_1, Acc_2 ) ! Just one bin
+447,448c514,515
+<                  En_tot(ns) = En ! this is the energy of the configuration Xn_tot for simulation ns
+<                  Write(44,2003) 1.d0/Alpha, En_m, Acc_1, Acc_2
+---
+>                  En_tot(ns) = En ! this is the energy of the configuration Xn_tot for simulation ns 
+>                  Write(44,2003)  1.d0/Alpha, En_m, Acc_1, Acc_2
+452c519
+<                        Xn_m(nd) = Xn_m(nd) * D * dble(Ndis)
+---
+>                        Xn_m(nd) = Xn_m(nd) * D * dble(Ndis) 
+460c527
+<               ! Exchange
+---
+>               ! Exchange 
+463c530
+<                  nalp1= nint( ranf(iseed)*dble(NSims-1) + 0.5 ) ! 1..(NSims-1)
+---
+>                  nalp1=  nint( ranf(iseed)*dble(NSims-1) + 0.5 ) ! 1..(NSims-1)
+465,466c532,533
+<                  DeltaE = (Alpha_tot(nalp1)*En_tot(nalp2) + Alpha_tot(nalp2)*En_tot(nalp1))&
+<                       & -(Alpha_tot(nalp1)*En_tot(nalp1) + Alpha_tot(nalp2)*En_tot(nalp2))
+---
+>                  DeltaE =  (Alpha_tot(nalp1)*En_tot(nalp2) +  Alpha_tot(nalp2)*En_tot(nalp1))&
+>                       &   -(Alpha_tot(nalp1)*En_tot(nalp1) +  Alpha_tot(nalp2)*En_tot(nalp2))
+468c535
+<                  if (Ratio.gt.ranf(iseed)) Then
+---
+>                  if (Ratio.gt.ranf(iseed)) Then 
+472,473c539,540
+<                        Xn(ng,1) = Xn_tot(ng,1,nalp1)
+<                        Xn(ng,2) = Xn_tot(ng,2,nalp1)
+---
+>                        Xn(ng,1) =  Xn_tot(ng,1,nalp1) 
+>                        Xn(ng,2) =  Xn_tot(ng,2,nalp1)
+476,479c543,546
+<                        Xn_tot(ng,1,nalp1) = Xn_tot(ng,1,nalp2)
+<                        Xn_tot(ng,2,nalp1) = Xn_tot(ng,2,nalp2)
+<                        Xn_tot(ng,1,nalp2) = Xn(ng,1)
+<                        Xn_tot(ng,2,nalp2) = Xn(ng,2)
+---
+>                        Xn_tot(ng,1,nalp1) =  Xn_tot(ng,1,nalp2) 
+>                        Xn_tot(ng,2,nalp1) =  Xn_tot(ng,2,nalp2) 
+>                        Xn_tot(ng,1,nalp2) =  Xn(ng,1) 
+>                        Xn_tot(ng,2,nalp2) =  Xn(ng,2) 
+486c553
+<               Acc_1 = Acc_1/dble(Nex)
+---
+>               Acc_1 = Acc_1/dble(Nex) 
+488a556
+>         
+491,492c559,560
+<               En_m_tot(ns) = En_m_tot(ns) / dble(nc)
+<               En_e_tot(ns) = En_e_tot(ns) / dble(nc)
+---
+>               En_m_tot(ns) =  En_m_tot(ns) / dble(nc)
+>               En_e_tot(ns) =  En_e_tot(ns) / dble(nc)
+503a572
+>            
+506,507c575,576
+<                  Xn_m_tot(nd,ns) = Xn_m_tot(nd,ns) / dble(nc) ! * delta /(dble(nc)*pi)
+<                  Xn_e_tot(nd,ns) = Xn_e_tot(nd,ns) / dble(nc) ! * delta /(dble(nc)*pi)
+---
+>                  Xn_m_tot(nd,ns) = Xn_m_tot(nd,ns) / dble(nc) ! * delta  /(dble(nc)*pi)
+>                  Xn_e_tot(nd,ns) = Xn_e_tot(nd,ns) / dble(nc) ! * delta  /(dble(nc)*pi)
+509c578
+<                  if (Xn_e_tot(nd,ns).gt.0.d0) then
+---
+>                  if (Xn_e_tot(nd,ns).gt.0.d0) then 
+518c587
+<                  if (ns.eq.Nsims) then
+---
+>                  if (ns.eq.Nsims) then 
+524a594
+>            
+526,527c596,599
+<            xqmc = XMOM1* xqmc
+<            cov = ((XMOM1)**2)* cov
+---
+>            xqmc  =    XMOM1* xqmc
+>            cov   =  ((XMOM1)**2)* cov 
+> 
+> 
+529c601
+<            DeAllocate (En_m_tot, En_e_tot, En_tot )
+---
+>            DeAllocate (En_m_tot, En_e_tot,  En_tot )
+536,539c608,612
+< 2001 format(F14.7,2x,F14.7,2x,F14.7)
+< 2004 format(F14.7,2x,F14.7,2x,F14.7,2x,F14.7)
+< 2005 format(F14.7,2x,F14.7,2x,F14.7,2x,F14.7,2x,F14.7)
+< 2003 format('Alpha, En_m, Acc ', F14.7,2x,F14.7,2x,F14.7,2x,F14.7,2x,F14.7)
+---
+>            
+> 2001       format(F14.7,2x,F14.7,2x,F14.7)
+> 2004       format(F14.7,2x,F14.7,2x,F14.7,2x,F14.7)
+> 2005       format(F14.7,2x,F14.7,2x,F14.7,2x,F14.7,2x,F14.7)
+> 2003       format('Alpha, En_m, Acc ', F14.7,2x,F14.7,2x,F14.7,2x,F14.7,2x,F14.7)
+541,542c614,615
+< !***********
+<          Real (Kind=8) Function Phim1(x)
+---
+> !***********         
+>          Real  (Kind=8) Function Phim1(x) 
+549c622,624
+<          Integer Function NPhim1(x)
+---
+> 
+> 
+>          Integer  Function NPhim1(x) 
+550a626
+> 
+552a629
+> 
+554,555c631,633
+<            om = x*(Om_en_1 - Om_st_1) + Om_st_1
+<            NPhiM1 = Nint ( (om - Om_st_1)/Dom + 0.75 )
+---
+>            om   =  x*(Om_en_1 - Om_st_1) + Om_st_1
+>            NPhiM1  = Nint ( (om - Om_st_1)/Dom + 0.75 )
+>       
+556a635,636
+> 
+> 
+558a639
+> 
+561c642
+<            Real (Kind=8), Dimension(:) :: Xn_m
+---
+>            Real (Kind=8), Dimension(:)   :: Xn_m
+562a644,645
+> 
+>            
+569a653
+>            
+570a655
+> 
+572a658
+> 
+575c661
+<            Real (Kind=8), Dimension(:) :: Xn_m
+---
+>            Real (Kind=8), Dimension(:)   :: Xn_m
+576a663,664
+> 
+>            
+581a670
+>               
+582a672,673
+>          
+> 
+584c675,676
+<          Subroutine MC(Xtau, Xker_table, Xn, Alpha, NSweeps, Xn_m, En, En_m, Acc_1,Acc_2)
+---
+>          Subroutine MC(Xtau, Xker_table,  Xn, Alpha,  NSweeps,  Xn_m, En, En_m, Acc_1,Acc_2)
+> 
+587a680
+> 
+589c682
+<            Real (Kind=8), Dimension(:) :: Xtau, Xn_m
+---
+>            Real (Kind=8), Dimension(:)   :: Xtau, Xn_m
+591,592c684,686
+<            Integer :: NSweeps, nl, Lambda_max, ng1, ng2
+<            !Local
+---
+>            Integer  ::  NSweeps, nl, Lambda_max, ng1, ng2
+> 
+>            !Local  
+594,597c688,693
+<                 & A_gamma_o(:), Z_gamma_o(:)
+<            Real (Kind=8), Allocatable :: XKER_stor(:,:), XKER_new(:)
+<            Real (Kind=8) :: X, En, En1, DeltaE, XP, XM, om
+<            Integer, Allocatable :: Lambda(:)
+---
+>                 &                                         A_gamma_o(:), Z_gamma_o(:)
+> 
+>            Real (Kind=8), Allocatable :: XKER_stor(:,:), XKER_new(:) 
+> 
+>            Real (Kind=8) :: X,  En, En1, DeltaE, XP, XM, om
+>            Integer,  Allocatable :: Lambda(:)
+598a695
+> 
+601c698,699
+<                 & Z_gamma_o(2), A_gamma_o(2) ) ! Max of moves of two walkers.
+---
+>                 &               Z_gamma_o(2), A_gamma_o(2)    )  ! Max of moves of two walkers.  
+> 
+603,604c701,705
+<            Xn_m = 0.d0
+<            En_m = 0.d0
+---
+> 
+>            Xn_m   = 0.d0
+>            En_m   = 0.d0
+> 
+> 
+610,611c711,712
+<                  Z_gamma = xn(ng,2)
+<                  XKer_stor( nt, ng ) = XKER_table(nt, NPhiM1(A_gamma) )
+---
+>                  Z_gamma = xn(ng,2) 
+>                  XKer_stor( nt, ng ) =   XKER_table(nt, NPhiM1(A_gamma) ) 
+615c716
+<               h(nt) = X - xqmc1(nt)
+---
+>               h(nt)  =  X -  xqmc1(nt) 
+616a718,719
+>            
+>            
+619c722
+<                  ! Weight sharing moves.
+---
+>                  ! Weight sharing moves. 
+621,623c724,726
+<                     x = ranf(iseed)
+<                     if (x.gt.0.5) then
+<                        ! Weight sharing moves.
+---
+>                     x = ranf(iseed) 
+>                     if (x.gt.0.5) then 
+>                        ! Weight sharing moves. 
+626,627c729,730
+<                        do
+<                           Lambda(2) = nint(ranf(iseed)*dble(Ngamma) + 0.5)
+---
+>                        do 
+>                           Lambda(2) = nint(ranf(iseed)*dble(Ngamma) + 0.5) 
+632c735,736
+<                        A_gamma_o(1) = Xn(ng1,1)
+---
+> 
+>                        A_gamma_o(1) = Xn(ng1,1) 
+635,636c739,741
+<                        Z_gamma_o(2) = Xn(ng2,2)
+<                        A_gamma_p(1) = Xn(ng1,1)
+---
+>                        Z_gamma_o(2) = Xn(ng2,2) 
+> 
+>                        A_gamma_p(1) = Xn(ng1,1) 
+638,640c743,747
+<                        s = (Z_gamma_o(1) + Z_gamma_o(2))*ranf(iseed) - Z_gamma_o(1)
+<                        Z_gamma_p(1) = Z_gamma_o(1) + s
+<                        Z_gamma_p(2) = Z_gamma_o(2) - s
+---
+> 
+>                        s = (Z_gamma_o(1) + Z_gamma_o(2))*ranf(iseed) - Z_gamma_o(1) 
+>                        Z_gamma_p(1) =    Z_gamma_o(1) + s
+>                        Z_gamma_p(2) =    Z_gamma_o(2) - s
+> 
+641a749
+> 
+644,646c752,754
+<                           X = Xker_stor(nt,ng1)*( Z_gamma_p(1) - Z_gamma_o(1) ) + &
+<                                & Xker_stor(nt,ng2)*( Z_gamma_p(2) - Z_gamma_o(2) )
+<                           Deltah(nt) = X
+---
+>                           X =    Xker_stor(nt,ng1)*( Z_gamma_p(1) - Z_gamma_o(1) ) + &
+>                                & Xker_stor(nt,ng2)*( Z_gamma_p(2) - Z_gamma_o(2) ) 
+>                           Deltah(nt) = X  
+653a762
+> 
+655c764,765
+<                        A_gamma_p(1) = xpbc( Xn(ng1,1) + (ranf(iseed) - 0.5)*DeltaXMAX, 1.d0 )
+---
+>                        A_gamma_p(1) = xpbc( Xn(ng1,1) +  (ranf(iseed) - 0.5)*DeltaXMAX, 1.d0 )
+> 
+657c767
+<                        nw = NPhiM1(A_gamma_p(1))
+---
+>                        nw =  NPhiM1(A_gamma_p(1))
+660a771
+>                        
+662,663c773,774
+<                           X = ( Xker_new(nt) - Xker_stor(nt,ng1) ) * Z_gamma_o(1)
+<                           Deltah(nt) = X
+---
+>                           X =  ( Xker_new(nt) - Xker_stor(nt,ng1) ) * Z_gamma_o(1) 
+>                           Deltah(nt) = X  
+666c777,779
+<                     DeltaE = 0.d0
+---
+> 
+> 
+>                     DeltaE =  0.d0
+668c781
+<                        DeltaE = DeltaE + (Deltah(nt) + 2.0 * h(nt) ) *Deltah(nt)
+---
+>                        DeltaE = DeltaE  + (Deltah(nt) + 2.0 * h(nt) ) *Deltah(nt) 
+670c783
+<                     Ratio = exp( -alpha * DeltaE )
+---
+>                     Ratio = exp( -alpha * DeltaE ) 
+672,674c785,787
+<                     if (Ratio .gt. ranf(iseed)) Then
+<                        ! write(6,*) 'Accepted'
+<                        if (Lambda_max.eq.1) then
+---
+>                     if (Ratio .gt. ranf(iseed)) Then 
+>                        ! write(6,*) 'Accepted' 
+>                        if (Lambda_max.eq.1) then 
+678c791
+<                              Xker_stor(nt,ng1) = Xker_new(nt)
+---
+>                              Xker_stor(nt,ng1) = Xker_new(nt) 
+687c800
+<                          h(nt) = h(nt) + Deltah(nt)
+---
+>                          h(nt) = h(nt) +  Deltah(nt)
+696c809
+<                  Call Sum_Xn_Boxes( Xn_m, Xn )
+---
+>                  Call Sum_Xn_Boxes( Xn_m, Xn )   
+701a815,816
+> 
+> 
+703c818
+<            Deallocate ( Lambda, Z_gamma_p, A_gamma_p, Z_gamma_o, A_gamma_o )
+---
+>            Deallocate ( Lambda, Z_gamma_p, A_gamma_p, Z_gamma_o, A_gamma_o ) 
+705,706c820,822
+< 2005 format(I4,2x,I4,2x,F14.7,2x,F14.7,' --> ',F14.7,2x,F14.7)
+< 2006 format(I4,2x,F14.7, ' --> ',F14.7)
+---
+>            
+> 2005       format(I4,2x,I4,2x,F14.7,2x,F14.7,' --> ',F14.7,2x,F14.7)
+> 2006       format(I4,2x,F14.7, ' --> ',F14.7)
+707a824,826
+> 
+> 
+> 
+709,710c828,829
+<          real (Kind=8) function xpbc(X,XL)
+<            real (kind=8) :: X, XL
+---
+>          real (Kind=8)  function xpbc(X,XL)
+>            real (kind=8) ::  X, XL
+714a834,835
+> 
+>          
