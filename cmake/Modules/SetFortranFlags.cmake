@@ -75,22 +75,22 @@ SET_COMPILE_FLAG(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS}"
                          "-ta=host"      # Portland Group
                 )
                 
-SET_COMPILE_FLAG(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS}"
-               Fortran "-ffree-form" # GNU
-                       "-free" #Intel Linux and MacOS
-                       "/free" #Intel Windows
-)
+#SET_COMPILE_FLAG(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS}"
+#               Fortran "-ffree-form" # GNU
+#                       "-free" #Intel Linux and MacOS
+#                       "/free" #Intel Windows
+#)
 
-SET_COMPILE_FLAG(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS}"
-               Fortran "-ffree-line-length-none" # GNU
-)
+#SET_COMPILE_FLAG(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS}"
+#               Fortran "-ffree-line-length-none" # GNU
+#)
                 
-SET_COMPILE_FLAG(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE}"
-                 Fortran "-cpp" # GNU
-                         "-fpp"        # Intel
-                         "/fpp"        # Intel Windows
-                         "-Mpreprocess"       # Portland Group
-                )
+#SET_COMPILE_FLAG(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE}"
+#                 Fortran "-cpp" # GNU
+#                         "-fpp"        # Intel
+#                         "/fpp"        # Intel Windows
+#                         "-Mpreprocess"       # Portland Group
+#                )
 
 ###################
 ### DEBUG FLAGS ###
