@@ -69,6 +69,7 @@ SET(SRCEIS ${SRC}/MyEis)
 SET(SRCNAG ${SRC}/MyNag)
 SET(SRCLIN ${SRC}/MyLin)
 SET(SRCPROG ${SRC}/Prog)
+SET(SRCANALYSIS ${SRC}/Analysis)
 
 # Have the .mod files placed in the lib folder
 SET(CMAKE_Fortran_MODULE_DIRECTORY ${LIB})
@@ -82,6 +83,7 @@ ADD_SUBDIRECTORY(${SRCLIN} ${LIB}/MyLin)
 
 # The source for the FOO binary and have it placed in the bin folder
 ADD_SUBDIRECTORY(${SRCPROG} ${BIN})
+ADD_SUBDIRECTORY(${SRCANALYSIS} ${BIN}/Analysis)
 
 # Add a distclean target to the Makefile
 ADD_CUSTOM_TARGET(distclean 
