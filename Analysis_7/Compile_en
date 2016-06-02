@@ -1,5 +1,5 @@
 TARGET= jackv5.out
-OBJS=  jackv5.o
+OBJS=  jackv6.o
 
   
 .SUFFIXES: .f90 .f

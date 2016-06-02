@@ -241,7 +241,7 @@
                 Do I = 1,Latt%N
                    do no = 1,4
                       do no1 = 1,4
-                         Z =  cmplx(2.d0 + Ham_Lam,0.d0)*Gamma_M(no,no1,3)*Ham_T
+                         Z =  cmplx(2.d0 + Ham_Lam,0.d0)*Gamma_M(no,no1,3)
                          Op_T(nc,n)%O( Invlist_1(I,no) ,Invlist_1(I,no1) )  =  Z
                       enddo
                    enddo
@@ -249,7 +249,7 @@
                    do no = 1,4
                       do no1 = 1,4
                          Z = (cmplx(0.d0,1.d0)*Gamma_M(no,no1,1) &
-				&    + Gamma_M(no,no1,3))*cmplx(0.d5,0.d0)*Ham_T
+				&    + Gamma_M(no,no1,3))*cmplx(0.5d0,0.d0)
                          Op_T(nc,n)%O( invlist_1(I ,no  ), invlist_1(I1,no1  ) )  = &
 				& Op_T(nc,n)%O( invlist_1(I ,no  ), invlist_1(I1,no1  ) ) +  Z
                          Op_T(nc,n)%O( invlist_1(I1,no1 ), invlist_1(I ,no   ) )  = &
@@ -260,7 +260,7 @@
                    do no = 1,4
                       do no1 = 1,4
                          Z =   ( cmplx(0.d0,1.d0) * Gamma_M(no,no1,2) &
-				&    + Gamma_M(no,no1,3) )*cmplx(0.d5,0.d0)*Ham_T
+				&    + Gamma_M(no,no1,3) )*cmplx(0.5d0,0.d0)
                          Op_T(nc,n)%O( invlist_1(I ,no ), invlist_1(I2,no1  ) )  = &
 				& Op_T(nc,n)%O( invlist_1(I ,no ), invlist_1(I2,no1  ) ) + Z
                          Op_T(nc,n)%O( invlist_1(I2,no1), invlist_1(I ,no   ) )  = &
@@ -268,12 +268,12 @@
                       enddo
                    enddo
                 enddo
-                Op_T(nc,n)%g=cmplx(-Dtau,0.d0)
+                Op_T(nc,n)%g=cmplx(-Dtau*Ham_T,0.d0)
                 Call Op_set(Op_T(nc,n)) 
-!                 ! Just for tests
-!                 Do I = 1, Ndim/4
-!                    Write(6,*) i,Op_T(nc,n)%E(i)
-!                 enddo
+                ! Just for tests
+                Do I = 1, Ndim/4
+                   Write(6,*) i,Op_T(nc,n)%E(i)
+                enddo
              enddo
           enddo
 
@@ -411,7 +411,7 @@
           Implicit none
           Integer, Intent(In) :: Ltau
           Integer :: I
-          Allocate ( Obs_scal(6) )
+          Allocate ( Obs_scal(8) )
           Allocate ( Den_eq(Latt%N,1,1), Den_eq0(1) ) 
           Allocate ( R_eq(Latt%N,1,1), R_eq0(1) ) 
           Allocate ( U1_eq(Latt%N,1,1), U1_eq0(1) )
@@ -524,7 +524,7 @@
           
           !Local 
           Complex (Kind=8) :: GRC(Ndim,Ndim,N_FL), ZK
-          Complex (Kind=8) :: Zrho, Zkin, ZPot, Z, ZP,ZS, weight, tmp
+          Complex (Kind=8) :: Zrho, Zkin, ZPot, ZL, Z, ZP,ZS, weight, tmp
           Integer :: I,J, no,no1, n, n1, imj, nf, I1, I2, J1, J2, Nc, Ix, Iy, Jx, Jy, Imx, Imy, Jmx, Jmy
           Integer :: a, b, c, d, signum, K, K1, L ,L1, nf1
           
@@ -548,7 +548,7 @@
           ! Compute scalar observables. 
 
           Zkin = cmplx(0.d0,0.d0)
-
+          
           Nc = Size( Op_T,1)
           Do nf = 1,N_FL
              Do n = 1,Nc
@@ -562,6 +562,26 @@
              Enddo
           Enddo
           Zkin = Zkin*cmplx( dble(N_SUN), 0.d0 )
+          
+          ZL = cmplx(0.d0,0.d0)
+          
+          Nc = Size( Op_T,1)
+          Do nf = 1,N_FL
+             Do n = 1,Nc
+                Do I = 1,Latt%N
+                   DO no = 1,4
+                   DO a = 1,4
+                   DO b = 1,4
+                      I1 = InvList(I,4*(no-1)+a)
+		      J1 = InvList(I,4*(no-1)+b)
+                      ZL  = ZL  + Gamma_M(a,b,3)*Grc(i1,j1,nf) 
+                   Enddo
+                   Enddo
+                   Enddo
+                ENddo
+             Enddo
+          Enddo
+          ZL = ZL*cmplx( dble(N_SUN), 0.d0 )
 
           Zrho = cmplx(0.d0,0.d0)
           Do nf = 1,N_FL
@@ -570,13 +590,12 @@
              enddo
           enddo
           Zrho = Zrho*cmplx( dble(N_SUN), 0.d0 )
-
           ZPot = cmplx(0.d0,0.d0)
 
           Nc = Size( Op_V,1)
           Do nf = 1,N_FL
              Do n = 1,Nc
-		weight=(Op_V(n,nf)%g)**2/(-dtau)
+		weight=(-1)**((n-1)/Latt%N)/8.d0
                 Do J = 1,Op_V(n,nf)%N
                    J1 = Op_V(n,nf)%P(J)
                    DO I = 1,Op_V(n,nf)%N
@@ -602,11 +621,13 @@
           ZPot = ZPot*cmplx( dble(N_SUN), 0.d0 )
 
           Obs_scal(1) = Obs_scal(1) + zrho * ZP*ZS
-          Obs_scal(2) = Obs_scal(2) + zkin * ZP*ZS
-          Obs_scal(3) = Obs_scal(3) + Zpot * ZP*ZS
-          Obs_scal(4) = Obs_scal(4) + (zkin +  Zpot)*ZP*ZS
-          Obs_scal(5) = Obs_scal(5) + (zkin/Ham_T -  Zpot/(1.d0-Ham_T))*ZP*ZS
-          Obs_scal(6) = Obs_scal(6) + ZS
+          Obs_scal(2) = Obs_scal(2) + zkin*Ham_T * ZP*ZS
+          Obs_scal(3) = Obs_scal(3) + Zpot*Ham_Vint * ZP*ZS
+          Obs_scal(4) = Obs_scal(4) + (zkin*Ham_T +  Zpot*Ham_Vint)*ZP*ZS
+          Obs_scal(5) = Obs_scal(5) + (zkin -  Zpot)*ZP*ZS
+          Obs_scal(6) = Obs_scal(6) + (Zpot)*ZP*ZS
+          Obs_scal(7) = Obs_scal(7) + (ZL)*ZP*ZS
+          Obs_scal(8) = Obs_scal(8) + ZS
           ! You will have to allocate more space if you want to include more  scalar observables.
           DO I1 = 1,Ndim
              I  = List(I1,1)
