@@ -21,7 +21,7 @@
       Type (Lattice),       private :: Latt
       Integer, parameter,   private :: Norb=16
       Integer, allocatable, private :: List(:,:), Invlist(:,:)
-      Integer,              private :: L1, L2
+      Integer,              private :: L1, L2, FlagSym
       real (Kind=8),        private :: Ham_T, Ham_Vint,  Ham_Lam
       real (Kind=8),        private :: Dtau, Beta
       Character (len=64),   private :: Model, Lattice_type
@@ -76,7 +76,7 @@
 
           NAMELIST /VAR_lattice/  L1, L2, Lattice_type, Model
 
-          NAMELIST /VAR_SPT/  ham_T, Ham_Vint,  Ham_Lam,  Dtau, Beta
+          NAMELIST /VAR_SPT/  ham_T, Ham_Vint,  Ham_Lam,  Dtau, Beta, FlagSym
 
 
 #ifdef MPI
@@ -115,11 +115,12 @@
 #ifdef MPI
           endif
 
-          CALL MPI_BCAST(ham_T    ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
-          CALL MPI_BCAST(ham_Vint ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
-          CALL MPI_BCAST(ham_Lam  ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
-          CALL MPI_BCAST(Dtau     ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
-          CALL MPI_BCAST(Beta     ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
+          CALL MPI_BCAST(ham_T    ,1,MPI_REAL8,   0,MPI_COMM_WORLD,ierr)
+          CALL MPI_BCAST(ham_Vint ,1,MPI_REAL8,   0,MPI_COMM_WORLD,ierr)
+          CALL MPI_BCAST(ham_Lam  ,1,MPI_REAL8,   0,MPI_COMM_WORLD,ierr)
+          CALL MPI_BCAST(Dtau     ,1,MPI_REAL8,   0,MPI_COMM_WORLD,ierr)
+          CALL MPI_BCAST(Beta     ,1,MPI_REAL8,   0,MPI_COMM_WORLD,ierr)
+          CALL MPI_BCAST(FlagSym  ,1,MPI_INTEGER, 0,MPI_COMM_WORLD,ierr)
 #endif
 
           Call Ham_hop
@@ -136,6 +137,7 @@
              Write(50,*) 't             : ', Ham_T
              Write(50,*) 'V             : ', Ham_Vint
              Write(50,*) 'Lambda        : ', Ham_Lam
+             Write(50,*) 'FlagSym       : ', FlagSym
              close(50)
 #ifdef MPI
           endif
@@ -413,20 +415,23 @@
           Integer :: I
           Allocate ( Obs_scal(8) )
           Allocate ( Den_eq(Latt%N,1,1), Den_eq0(1) ) 
-          Allocate ( R_eq(Latt%N,1,1), R_eq0(1) ) 
           Allocate ( U1_eq(Latt%N,1,1), U1_eq0(1) )
-          Allocate ( U1xy_eq(Latt%N,1,1), U1xy_eq0(1) )
           Allocate ( Spinz_eq(Latt%N,1,1), spinz_eq0(1) )
-          Allocate ( Spinxy_eq(Latt%N,1,1), spinxy_eq0(1) ) 
-          Allocate ( TRS_eq(Latt%N,1,1), TRS_eq0(1) )
-          Allocate ( PHS_eq(Latt%N,1,1), PHS_eq0(1) )
-          Allocate ( RS_eq(Latt%N,1,1), RS_eq0(1) )
-          Allocate ( C4S_eq(Latt%N,1,1), C4S_eq0(1) )
-          Allocate ( PxS_eq(Latt%N,1,1), PxS_eq0(1) )
-          Allocate ( SxS_eq(Latt%N,1,1), SxS_eq0(1) )
-          Allocate ( SzS_eq(Latt%N,1,1), SzS_eq0(1) )
-          Allocate ( U11S_eq(Latt%N,1,1), U11S_eq0(1) )
-          Allocate ( U12S_eq(Latt%N,1,1), U12S_eq0(1) )
+          
+          if (FlagSym ==1) then
+	      Allocate ( R_eq(Latt%N,1,1), R_eq0(1) ) 
+	      Allocate ( U1xy_eq(Latt%N,1,1), U1xy_eq0(1) )
+	      Allocate ( Spinxy_eq(Latt%N,1,1), spinxy_eq0(1) ) 
+	      Allocate ( TRS_eq(Latt%N,1,1), TRS_eq0(1) )
+	      Allocate ( PHS_eq(Latt%N,1,1), PHS_eq0(1) )
+	      Allocate ( RS_eq(Latt%N,1,1), RS_eq0(1) )
+	      Allocate ( C4S_eq(Latt%N,1,1), C4S_eq0(1) )
+	      Allocate ( PxS_eq(Latt%N,1,1), PxS_eq0(1) )
+	      Allocate ( SxS_eq(Latt%N,1,1), SxS_eq0(1) )
+	      Allocate ( SzS_eq(Latt%N,1,1), SzS_eq0(1) )
+	      Allocate ( U11S_eq(Latt%N,1,1), U11S_eq0(1) )
+	      Allocate ( U12S_eq(Latt%N,1,1), U12S_eq0(1) )
+	  endif
           
           If (Ltau == 1) then 
              Allocate ( Green_tau(Latt%N,Ltrot+1,Norb,Norb), Den_tau(Latt%N,Ltrot+1,1,1) )
@@ -456,35 +461,38 @@
           
           Den_eq    = cmplx(0.d0,0.d0)
           Den_eq0   = cmplx(0.d0,0.d0)
-          R_eq    = cmplx(0.d0,0.d0)
-          R_eq0   = cmplx(0.d0,0.d0)
-          U1_eq    = cmplx(0.d0,0.d0)
-          U1_eq0   = cmplx(0.d0,0.d0)
-          U1xy_eq    = cmplx(0.d0,0.d0)
-          U1xy_eq0   = cmplx(0.d0,0.d0)
           Spinz_eq    = cmplx(0.d0,0.d0)
           Spinz_eq0   = cmplx(0.d0,0.d0)
-          Spinxy_eq    = cmplx(0.d0,0.d0)
-          Spinxy_eq0   = cmplx(0.d0,0.d0)
+          U1_eq    = cmplx(0.d0,0.d0)
+          U1_eq0   = cmplx(0.d0,0.d0)
           
-          TRS_eq    = cmplx(0.d0,0.d0)
-          TRS_eq0   = cmplx(0.d0,0.d0)
-          PHS_eq    = cmplx(0.d0,0.d0)
-          PHS_eq0   = cmplx(0.d0,0.d0)
-          RS_eq    = cmplx(0.d0,0.d0)
-          RS_eq0   = cmplx(0.d0,0.d0)
-          C4S_eq    = cmplx(0.d0,0.d0)
-          C4S_eq0   = cmplx(0.d0,0.d0)
-          PxS_eq    = cmplx(0.d0,0.d0)
-          PxS_eq0   = cmplx(0.d0,0.d0)
-          SxS_eq    = cmplx(0.d0,0.d0)
-          SxS_eq0   = cmplx(0.d0,0.d0)
-          SzS_eq    = cmplx(0.d0,0.d0)
-          SzS_eq0   = cmplx(0.d0,0.d0)
-          U11S_eq    = cmplx(0.d0,0.d0)
-          U11S_eq0   = cmplx(0.d0,0.d0)
-          U12S_eq    = cmplx(0.d0,0.d0)
-          U12S_eq0   = cmplx(0.d0,0.d0)
+          if (FlagSym ==1 ) then
+	      R_eq    = cmplx(0.d0,0.d0)
+	      R_eq0   = cmplx(0.d0,0.d0)
+	      U1xy_eq    = cmplx(0.d0,0.d0)
+	      U1xy_eq0   = cmplx(0.d0,0.d0)
+	      Spinxy_eq    = cmplx(0.d0,0.d0)
+	      Spinxy_eq0   = cmplx(0.d0,0.d0)
+	      
+	      TRS_eq    = cmplx(0.d0,0.d0)
+	      TRS_eq0   = cmplx(0.d0,0.d0)
+	      PHS_eq    = cmplx(0.d0,0.d0)
+	      PHS_eq0   = cmplx(0.d0,0.d0)
+	      RS_eq    = cmplx(0.d0,0.d0)
+	      RS_eq0   = cmplx(0.d0,0.d0)
+	      C4S_eq    = cmplx(0.d0,0.d0)
+	      C4S_eq0   = cmplx(0.d0,0.d0)
+	      PxS_eq    = cmplx(0.d0,0.d0)
+	      PxS_eq0   = cmplx(0.d0,0.d0)
+	      SxS_eq    = cmplx(0.d0,0.d0)
+	      SxS_eq0   = cmplx(0.d0,0.d0)
+	      SzS_eq    = cmplx(0.d0,0.d0)
+	      SzS_eq0   = cmplx(0.d0,0.d0)
+	      U11S_eq    = cmplx(0.d0,0.d0)
+	      U11S_eq0   = cmplx(0.d0,0.d0)
+	      U12S_eq    = cmplx(0.d0,0.d0)
+	      U12S_eq0   = cmplx(0.d0,0.d0)
+	  endif
 
           If (Ltau == 1) then
              NobsT = 0
@@ -629,6 +637,8 @@
           Obs_scal(7) = Obs_scal(7) + (ZL)*ZP*ZS
           Obs_scal(8) = Obs_scal(8) + ZS
           ! You will have to allocate more space if you want to include more  scalar observables.
+          
+          
           DO I1 = 1,Ndim
              I  = List(I1,1)
              no = List(I1,2)
@@ -656,755 +666,735 @@
              Den_eq0(1) = Den_eq0(1) +   GRC(I1,I1,1)*ZP*ZS 
           enddo
           
-          do I=1,Latt%N
-	     do no=1,8
-		do J=1,Latt%N
-		   imj = latt%imj(I,J)
-		   do no1=1,8
-		      I1 = Invlist(I,no)
-		      I2 = Invlist(I,no+8)
-		      J1 = Invlist(J,no1+8)
-		      J2 = Invlist(J,no1)
- 		      
-		      tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-			   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-		      Spinxy_eq (imj,1,1) = Spinxy_eq (imj,1,1)   +  tmp
-		      
-		      if (no<=4) then
+          if (FlagSym ==1) then
+	    do I=1,Latt%N
+	      do no=1,8
+		  do J=1,Latt%N
+		    imj = latt%imj(I,J)
+		    do no1=1,8
 			I1 = Invlist(I,no)
-			I2 = Invlist(I,no+4)
-		      else
-			I1= Invlist(I,no+4)
 			I2 = Invlist(I,no+8)
-		      endif
-		      if (no1<=4) then
-			J1 = Invlist(J,no1+4)
-			J2 = Invlist(J,no1)
-		      else
 			J1 = Invlist(J,no1+8)
-			J2 = Invlist(J,no1+4)
-		      endif
- 		      
-		      tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-			   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-		      U1xy_eq (imj,1,1) = U1xy_eq (imj,1,1)   +  tmp
-		   enddo
-		enddo
-		
-! 		weight=cmplx(1.d0,0.d0)
-! 		if ( no>=9 ) weight=-weight
-! 		
-! 		tmp =  GRC(I1,I1,1)* weight * 0.25 * ZP*ZS
-! 		Spin_eq0 (1) = Spin_eq0 (1)   +  tmp
-		
-	     enddo
-          enddo
-          
-          do I=1,Latt%N
-	    Ix = Latt%nnlist(I,1,0)
-	    Iy = Latt%nnlist(I,0,1)
-	    Imx = Latt%nnlist(I,-1,0)
-	    Imy = Latt%nnlist(I,0,-1)
-	    do J=1,Latt%N
-		Jx = Latt%nnlist(J,1,0)
-		Jy = Latt%nnlist(J,0,1)
-		Jmx = Latt%nnlist(J,-1,0)
-		Jmy = Latt%nnlist(J,0,-1)
-		imj = latt%imj(I,J)
-		do no=1,4
-		  do a=1,4
-		  do b=1,4
-		    do no1=1,4
-		      do c=1,4
-		      do d=1,4
+			J2 = Invlist(J,no1)
 			
-    ! 		    R correlation
-			weight = -gamma_45(a,b)*Gamma_45(c,d)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(I,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(J,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  R_eq (imj,1,1) = R_eq (imj,1,1)   +  weight*tmp
+			tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+			    &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			Spinxy_eq (imj,1,1) = Spinxy_eq (imj,1,1)   +  tmp
+			
+			if (no<=4) then
+			  I1 = Invlist(I,no)
+			  I2 = Invlist(I,no+4)
+			else
+			  I1= Invlist(I,no+4)
+			  I2 = Invlist(I,no+8)
+			endif
+			if (no1<=4) then
+			  J1 = Invlist(J,no1+4)
+			  J2 = Invlist(J,no1)
+			else
+			  J1 = Invlist(J,no1+8)
+			  J2 = Invlist(J,no1+4)
 			endif
 			
-!     ! 		    U(1) correlation
-! 			if ((a==b) .and. (c==d)) then
-! 			  I1 = Invlist(I,4*(no-1)+a)
-! 			  I2 = Invlist(I,4*(no-1)+a)
-! 			  J1 = Invlist(J,4*(no1-1)+c)
-! 			  J2 = Invlist(J,4*(no1-1)+c)
-! 			  signum = 1
-! 			  if ((no==2) .or. (no==4)) signum=-1
-! 			  if ((no1==2) .or. (no1 ==4)) signum=-signum
-! 			  weight = cmplx(dble(signum),0.d0)
-! 			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-! 				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-! 			  U1_eq (imj,1,1) = U1_eq (imj,1,1)   +  weight*tmp*0.25
-!     ! 		      write(*,*) 4*(no-1)+a, I1, I2, 4*(no1-1)+c, J1, J2, signum
-! 			endif
-			
-    ! 		    TR symmetry check
-			weight = gamma_13(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Ix,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jx,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-			weight = gamma_13(a,b)*Gamma_23(c,d)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Ix,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jy,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-			weight = -gamma_13(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Ix,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jmx,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-			weight = -gamma_13(a,b)*Gamma_23(c,d)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Ix,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jmy,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-			weight = gamma_23(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Iy,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jx,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-			weight = gamma_23(a,b)*Gamma_23(c,d)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Iy,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jy,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-			weight = -gamma_23(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Iy,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jmx,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-			weight = -gamma_23(a,b)*Gamma_23(c,d)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Iy,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jmy,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-			weight = -gamma_13(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Imx,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jx,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-			weight = -gamma_13(a,b)*Gamma_23(c,d)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Imx,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jy,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-			weight = gamma_13(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Imx,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jmx,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-			weight = gamma_13(a,b)*Gamma_23(c,d)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Imx,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jmy,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-			weight = -gamma_23(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Imy,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jx,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-			weight = -gamma_23(a,b)*Gamma_23(c,d)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Imy,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jy,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-			weight = gamma_23(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Imy,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jmx,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-			weight = gamma_23(a,b)*Gamma_23(c,d)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Imy,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jmy,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    R symmetry check X°\dag gamma_4 X as correlation
-			weight = gamma_M(a,b,4)*Gamma_M(c,d,4)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(I,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(J,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  RS_eq (imj,1,1) = RS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    C4 symmetry check
-    ! 		    11
-			weight = -gamma_M(a,b,1)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Ix,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jx,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    12
-			weight = gamma_M(a,b,1)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Ix,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jy,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    13
-			weight = gamma_M(a,b,1)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Ix,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jmx,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    14
-			weight = -gamma_M(a,b,1)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Ix,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jmy,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    21
-			weight = gamma_M(a,b,2)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Iy,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jx,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    22
-			weight = -gamma_M(a,b,2)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Iy,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jy,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    23
-			weight = -gamma_M(a,b,2)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Iy,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jmx,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    24
-			weight = gamma_M(a,b,2)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Iy,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jmy,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    31
-			weight = gamma_M(a,b,1)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Imx,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jx,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    32
-			weight = -gamma_M(a,b,1)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Imx,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jy,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    33
-			weight = -gamma_M(a,b,1)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Imx,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jmx,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    34
-			weight = gamma_M(a,b,1)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Imx,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jmy,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    41
-			weight = -gamma_M(a,b,2)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Imy,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jx,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    42
-			weight = gamma_M(a,b,2)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Imy,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jy,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    43
-			weight = gamma_M(a,b,2)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Imy,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jmx,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    44
-			weight = -gamma_M(a,b,2)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Imy,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jmy,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    Px symmetry check
-    ! 		    11
-			weight = -gamma_M(a,b,1)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Iy,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jy,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    12
-			weight = gamma_M(a,b,1)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Iy,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jx,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    13
-			weight = gamma_M(a,b,1)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Iy,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jmy,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    14
-			weight = -gamma_M(a,b,1)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Iy,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jmx,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    21
-			weight = gamma_M(a,b,2)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Ix,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jy,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    22
-			weight = -gamma_M(a,b,2)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Ix,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jx,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    23
-			weight = -gamma_M(a,b,2)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Ix,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jmy,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    24
-			weight = gamma_M(a,b,2)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Ix,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jmx,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    31
-			weight = gamma_M(a,b,1)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Imy,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jy,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    32
-			weight = -gamma_M(a,b,1)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Imy,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jx,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    33
-			weight = -gamma_M(a,b,1)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Imy,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jmy,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    34
-			weight = gamma_M(a,b,1)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Imy,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jmx,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    41
-			weight = -gamma_M(a,b,2)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Imx,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jy,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    42
-			weight = gamma_M(a,b,2)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Imx,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jx,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    43
-			weight = gamma_M(a,b,2)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Imx,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jmy,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    44
-			weight = -gamma_M(a,b,2)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(Imx,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(Jmx,4*(no1-1)+d)
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    SU(2)_x symmetry check
-			weight = gamma_M(a,b,3)*gamma_M(c,d,3)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(I,4*(no-1)+b)
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(J,4*(no1-1)+d)
-			  if ((no>2 .and. no1<3) .or. (no<3 .and. no1>2)) weight = -weight
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  SxS_eq (imj,1,1) = SxS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    SU(2)_z symmetry check
-			weight = gamma_M(a,b,3)*gamma_M(c,d,3)
-			if ( abs(weight) > 0.01 ) then
-			  I1 = Invlist(I,4*(no-1)+a)
-			  if (no<3) then
-			    I2 = Invlist(I,4*(no+1)+b)
-			  else
-			    I2 = Invlist(I,4*(no-3)+b)
-			  endif
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  if (no1 < 3) then
-			    J2 = Invlist(J,4*(no1+1)+d)
-			  else
-			    J2 = Invlist(J,4*(no1-3)+d)
-			  endif
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  SzS_eq (imj,1,1) = SzS_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    U(1)_1 symmetry check
-			weight = gamma_M(a,b,3)*gamma_M(c,d,3)
-			if ( abs(weight) > 0.01 ) then
-			  signum = (-1)**no
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(I,4*(no-signum-1)+b)
-			  signum = (-1)**no1
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(J,4*(no1-signum-1)+d)
-    ! 		      if ((no>2 .and. no1<3) .or. (no<3 .and. n1>2)) weight = -weight
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  U11S_eq (imj,1,1) = U11S_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-    ! 		    U(1)_2 symmetry check
-			if (a.eq.b .and. c.eq.d) then
-			  signum = (-1)**no
-			  weight = cmplx(0.d0,dble(signum))
-			  I1 = Invlist(I,4*(no-1)+a)
-			  I2 = Invlist(I,4*(no-signum-1)+b)
-			  signum = (-1)**no1
-			  weight = cmplx(0.d0,dble(signum))*weight
-			  J1 = Invlist(J,4*(no1-1)+c)
-			  J2 = Invlist(J,4*(no1-signum-1)+d)
-    ! 		      if ((no>2 .and. no1<3) .or. (no<3 .and. n1>2)) weight = -weight
-			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-			  U12S_eq (imj,1,1) = U12S_eq (imj,1,1)   +  weight*tmp
-			endif
-			
-		      enddo
-		      enddo
+			tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+			    &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			U1xy_eq (imj,1,1) = U1xy_eq (imj,1,1)   +  tmp
 		    enddo
-		    
-		    
-! 		    if (a==b) then
-! 		      I1 = Invlist(I,4*(no-1)+a)
-! 		      I2 = Invlist(I,4*(no-1)+a)
-! 		      signum = 1
-! 		      if ((no==2) .or. (no==4)) signum=-1
-! 		      weight = cmplx(dble(signum),0.d0)
-! 		      tmp =   GRC(I1,I2,1)* ZP*ZS
-! 		      U1_eq0 (1) = U1_eq0 (1)   +  weight*tmp*0.5
-! 		    endif
-		    
 		  enddo
-		  enddo
-		enddo
+		  
+	      enddo
 	    enddo
-          enddo
+	    
+	    do I=1,Latt%N
+	      Ix = Latt%nnlist(I,1,0)
+	      Iy = Latt%nnlist(I,0,1)
+	      Imx = Latt%nnlist(I,-1,0)
+	      Imy = Latt%nnlist(I,0,-1)
+	      do J=1,Latt%N
+		  Jx = Latt%nnlist(J,1,0)
+		  Jy = Latt%nnlist(J,0,1)
+		  Jmx = Latt%nnlist(J,-1,0)
+		  Jmy = Latt%nnlist(J,0,-1)
+		  imj = latt%imj(I,J)
+		  do no=1,4
+		    do a=1,4
+		    do b=1,4
+		      do no1=1,4
+			do c=1,4
+			do d=1,4
+			  
+      ! 		    R correlation
+			  weight = -gamma_45(a,b)*Gamma_45(c,d)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(I,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(J,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    R_eq (imj,1,1) = R_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    TR symmetry check
+			  weight = gamma_13(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Ix,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jx,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+			  weight = gamma_13(a,b)*Gamma_23(c,d)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Ix,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jy,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+			  weight = -gamma_13(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Ix,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jmx,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+			  weight = -gamma_13(a,b)*Gamma_23(c,d)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Ix,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jmy,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+			  weight = gamma_23(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Iy,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jx,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+			  weight = gamma_23(a,b)*Gamma_23(c,d)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Iy,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jy,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+			  weight = -gamma_23(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Iy,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jmx,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+			  weight = -gamma_23(a,b)*Gamma_23(c,d)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Iy,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jmy,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+			  weight = -gamma_13(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Imx,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jx,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+			  weight = -gamma_13(a,b)*Gamma_23(c,d)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Imx,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jy,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+			  weight = gamma_13(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Imx,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jmx,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+			  weight = gamma_13(a,b)*Gamma_23(c,d)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Imx,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jmy,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+			  weight = -gamma_23(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Imy,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jx,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+			  weight = -gamma_23(a,b)*Gamma_23(c,d)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Imy,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jy,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+			  weight = gamma_23(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Imy,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jmx,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+			  weight = gamma_23(a,b)*Gamma_23(c,d)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Imy,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jmy,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    R symmetry check X°\dag gamma_4 X as correlation
+			  weight = gamma_M(a,b,4)*Gamma_M(c,d,4)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(I,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(J,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    RS_eq (imj,1,1) = RS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    C4 symmetry check
+      ! 		    11
+			  weight = -gamma_M(a,b,1)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Ix,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jx,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    12
+			  weight = gamma_M(a,b,1)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Ix,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jy,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    13
+			  weight = gamma_M(a,b,1)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Ix,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jmx,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    14
+			  weight = -gamma_M(a,b,1)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Ix,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jmy,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    21
+			  weight = gamma_M(a,b,2)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Iy,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jx,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    22
+			  weight = -gamma_M(a,b,2)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Iy,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jy,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    23
+			  weight = -gamma_M(a,b,2)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Iy,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jmx,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    24
+			  weight = gamma_M(a,b,2)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Iy,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jmy,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    31
+			  weight = gamma_M(a,b,1)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Imx,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jx,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    32
+			  weight = -gamma_M(a,b,1)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Imx,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jy,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    33
+			  weight = -gamma_M(a,b,1)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Imx,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jmx,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    34
+			  weight = gamma_M(a,b,1)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Imx,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jmy,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    41
+			  weight = -gamma_M(a,b,2)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Imy,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jx,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    42
+			  weight = gamma_M(a,b,2)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Imy,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jy,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    43
+			  weight = gamma_M(a,b,2)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Imy,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jmx,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    44
+			  weight = -gamma_M(a,b,2)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Imy,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jmy,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    Px symmetry check
+      ! 		    11
+			  weight = -gamma_M(a,b,1)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Iy,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jy,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    12
+			  weight = gamma_M(a,b,1)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Iy,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jx,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    13
+			  weight = gamma_M(a,b,1)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Iy,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jmy,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    14
+			  weight = -gamma_M(a,b,1)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Iy,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jmx,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    21
+			  weight = gamma_M(a,b,2)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Ix,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jy,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    22
+			  weight = -gamma_M(a,b,2)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Ix,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jx,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    23
+			  weight = -gamma_M(a,b,2)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Ix,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jmy,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    24
+			  weight = gamma_M(a,b,2)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Ix,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jmx,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    31
+			  weight = gamma_M(a,b,1)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Imy,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jy,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    32
+			  weight = -gamma_M(a,b,1)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Imy,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jx,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    33
+			  weight = -gamma_M(a,b,1)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Imy,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jmy,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    34
+			  weight = gamma_M(a,b,1)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Imy,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jmx,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    41
+			  weight = -gamma_M(a,b,2)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Imx,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jy,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    42
+			  weight = gamma_M(a,b,2)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Imx,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jx,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    43
+			  weight = gamma_M(a,b,2)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Imx,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jmy,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    44
+			  weight = -gamma_M(a,b,2)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(Imx,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(Jmx,4*(no1-1)+d)
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    SU(2)_x symmetry check
+			  weight = gamma_M(a,b,3)*gamma_M(c,d,3)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(I,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(J,4*(no1-1)+d)
+			    if ((no>2 .and. no1<3) .or. (no<3 .and. no1>2)) weight = -weight
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    SxS_eq (imj,1,1) = SxS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    SU(2)_z symmetry check
+			  weight = gamma_M(a,b,3)*gamma_M(c,d,3)
+			  if ( abs(weight) > 0.01 ) then
+			    I1 = Invlist(I,4*(no-1)+a)
+			    if (no<3) then
+			      I2 = Invlist(I,4*(no+1)+b)
+			    else
+			      I2 = Invlist(I,4*(no-3)+b)
+			    endif
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    if (no1 < 3) then
+			      J2 = Invlist(J,4*(no1+1)+d)
+			    else
+			      J2 = Invlist(J,4*(no1-3)+d)
+			    endif
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    SzS_eq (imj,1,1) = SzS_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    U(1)_1 symmetry check
+			  weight = gamma_M(a,b,3)*gamma_M(c,d,3)
+			  if ( abs(weight) > 0.01 ) then
+			    signum = (-1)**no
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(I,4*(no-signum-1)+b)
+			    signum = (-1)**no1
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(J,4*(no1-signum-1)+d)
+      ! 		      if ((no>2 .and. no1<3) .or. (no<3 .and. n1>2)) weight = -weight
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    U11S_eq (imj,1,1) = U11S_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+      ! 		    U(1)_2 symmetry check
+			  if (a.eq.b .and. c.eq.d) then
+			    signum = (-1)**no
+			    weight = cmplx(0.d0,dble(signum))
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(I,4*(no-signum-1)+b)
+			    signum = (-1)**no1
+			    weight = cmplx(0.d0,dble(signum))*weight
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(J,4*(no1-signum-1)+d)
+      ! 		      if ((no>2 .and. no1<3) .or. (no<3 .and. n1>2)) weight = -weight
+			    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+				  &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+			    U12S_eq (imj,1,1) = U12S_eq (imj,1,1)   +  weight*tmp
+			  endif
+			  
+			enddo
+			enddo
+		      enddo
+		      
+		      
+  ! 		    if (a==b) then
+  ! 		      I1 = Invlist(I,4*(no-1)+a)
+  ! 		      I2 = Invlist(I,4*(no-1)+a)
+  ! 		      signum = 1
+  ! 		      if ((no==2) .or. (no==4)) signum=-1
+  ! 		      weight = cmplx(dble(signum),0.d0)
+  ! 		      tmp =   GRC(I1,I2,1)* ZP*ZS
+  ! 		      U1_eq0 (1) = U1_eq0 (1)   +  weight*tmp*0.5
+  ! 		    endif
+		      
+		    enddo
+		    enddo
+		  enddo
+	      enddo
+	    enddo
+          endif
           
 !           write(*,*) U1_eq0(1)
 
@@ -1437,38 +1427,43 @@
 !!$          Write(6,*)  'In Pr_obs', LTAU
 !!$#endif
     
+          
+          File_pr ="ener"
+          Call Print_scal(Obs_scal, Nobs, file_pr)
+          
           Phase_bin = Obs_scal(5)/cmplx(dble(Nobs),0.d0)
           File_pr ="Den_eq"
           Call Print_bin(Den_eq, Den_eq0, Latt, Nobs, Phase_bin, file_pr)
-          File_pr ="R_eq"
-          Call Print_bin(R_eq, R_eq0, Latt, Nobs, Phase_bin, file_pr)
           File_pr ="U1_eq"
           Call Print_bin(U1_eq, U1_eq0, Latt, Nobs, Phase_bin, file_pr)
-          File_pr ="U1xy_eq"
-          Call Print_bin(U1xy_eq, U1xy_eq0, Latt, Nobs, Phase_bin, file_pr)
           File_pr ="Spinz_eq"
           Call Print_bin(Spinz_eq, Spinz_eq0, Latt, Nobs, Phase_bin, file_pr)
-          File_pr ="Spinxy_eq"
-          Call Print_bin(Spinxy_eq, Spinxy_eq0, Latt, Nobs, Phase_bin, file_pr)
-          File_pr ="SymCheckTR_eq"
-          Call Print_bin(TRS_eq, TRS_eq0, Latt, Nobs, Phase_bin, file_pr)
-          File_pr ="SymCheckR_eq"
-          Call Print_bin(RS_eq, RS_eq0, Latt, Nobs, Phase_bin, file_pr)
-          File_pr ="SymCheckC4_eq"
-          Call Print_bin(C4S_eq, C4S_eq0, Latt, Nobs, Phase_bin, file_pr)
-          File_pr ="SymCheckPx_eq"
-          Call Print_bin(PxS_eq, PxS_eq0, Latt, Nobs, Phase_bin, file_pr)
-          File_pr ="SymCheckSx_eq"
-          Call Print_bin(SxS_eq, SxS_eq0, Latt, Nobs, Phase_bin, file_pr)
-          File_pr ="SymCheckSz_eq"
-          Call Print_bin(SzS_eq, SzS_eq0, Latt, Nobs, Phase_bin, file_pr)
-          File_pr ="SymCheck1U1_eq"
-          Call Print_bin(U11S_eq, U11S_eq0, Latt, Nobs, Phase_bin, file_pr)
-          File_pr ="SymCheck2U1_eq"
-          Call Print_bin(U12S_eq, U12S_eq0, Latt, Nobs, Phase_bin, file_pr)
-
-          File_pr ="ener"
-          Call Print_scal(Obs_scal, Nobs, file_pr)
+          
+          if (FlagSym == 1) then
+	    File_pr ="R_eq"
+	    Call Print_bin(R_eq, R_eq0, Latt, Nobs, Phase_bin, file_pr)
+	    File_pr ="U1xy_eq"
+	    Call Print_bin(U1xy_eq, U1xy_eq0, Latt, Nobs, Phase_bin, file_pr)
+	    File_pr ="Spinxy_eq"
+	    Call Print_bin(Spinxy_eq, Spinxy_eq0, Latt, Nobs, Phase_bin, file_pr)
+	    File_pr ="SymCheckTR_eq"
+	    Call Print_bin(TRS_eq, TRS_eq0, Latt, Nobs, Phase_bin, file_pr)
+	    File_pr ="SymCheckR_eq"
+	    Call Print_bin(RS_eq, RS_eq0, Latt, Nobs, Phase_bin, file_pr)
+	    File_pr ="SymCheckC4_eq"
+	    Call Print_bin(C4S_eq, C4S_eq0, Latt, Nobs, Phase_bin, file_pr)
+	    File_pr ="SymCheckPx_eq"
+	    Call Print_bin(PxS_eq, PxS_eq0, Latt, Nobs, Phase_bin, file_pr)
+	    File_pr ="SymCheckSx_eq"
+	    Call Print_bin(SxS_eq, SxS_eq0, Latt, Nobs, Phase_bin, file_pr)
+	    File_pr ="SymCheckSz_eq"
+	    Call Print_bin(SzS_eq, SzS_eq0, Latt, Nobs, Phase_bin, file_pr)
+	    File_pr ="SymCheck1U1_eq"
+	    Call Print_bin(U11S_eq, U11S_eq0, Latt, Nobs, Phase_bin, file_pr)
+	    File_pr ="SymCheck2U1_eq"
+	    Call Print_bin(U12S_eq, U12S_eq0, Latt, Nobs, Phase_bin, file_pr)
+	  endif
+          
           If (Ltau == 1) then
              Phase_tau = Phase_tau/cmplx(dble(NobsT),0.d0)
              File_pr = "Green_tau"
@@ -1608,12 +1603,6 @@
  			  U1xyG_sus (imj,1,1) = U1xyG_sus (imj,1,1)   +  (-1)**(no/2+no1/2+(no-1)/4+(no1-1)/4)*weightbeta*tmp
 		      enddo
 		    enddo
-		    
-    ! 		weight=cmplx(1.d0,0.d0)
-    ! 		if ( no>=9 ) weight=-weight
-    ! 		
-    ! 		tmp =  GRC(I1,I1,1)* weight * 0.25 * ZP*ZS
-    ! 		Spin_eq0 (1) = Spin_eq0 (1)   +  tmp
 		    
                 Enddo
              Enddo
