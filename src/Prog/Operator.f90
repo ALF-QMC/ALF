@@ -287,7 +287,7 @@ Contains
 
     ! Local 
     Complex (Kind=8) :: VH(Ndim,Op%N), Z, Z1
-    Integer :: n, i, m, m1
+    Integer :: n, i, m, m1, oppm, oppn
     
     
     
@@ -329,17 +329,19 @@ Contains
           enddo
        enddo
        Do n = 1,Op%N
+          oppn = Op%P(n)
           Do I = 1,Ndim
-             Mat(Op%P(n),I) =   VH(I,n) 
+             Mat(oppn,I) =   VH(I,n) 
           Enddo
        Enddo
     elseif (N_Type == 2) then
        VH = cmplx(0.d0,0.d0)
        do n = 1,Op%N
           Do m = 1,Op%N
-             Z1 =  conjg(Op%U(n,m)) 
+             Z1 =  conjg(Op%U(n,m))
+             oppm = Op%P(m)
              DO I = 1,Ndim
-                VH(I,n)  = VH(I,n) + Mat(I,Op%P(m)) * Z1
+                VH(I,n)  = VH(I,n) + Mat(I,oppm) * Z1
              Enddo
           enddo
        Enddo
