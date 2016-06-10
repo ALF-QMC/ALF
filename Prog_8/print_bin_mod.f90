@@ -10,7 +10,7 @@
 
        Contains
          
-         Subroutine  Print_bin_C(Dat_eq,Dat_eq0,Latt, Nobs, Phase_bin_tmp, file_pr)
+         Subroutine  Print_bin_C(Dat_eq,Dat_eq0,Latt, Nobs, Phase_bin, file_pr)
            Use Lattices_v3
            Implicit none
 #include "machine"
@@ -21,7 +21,7 @@
            Complex (Kind=8), Dimension(:,:,:), Intent(inout):: Dat_eq
            Complex (Kind=8), Dimension(:)    , Intent(inout):: Dat_eq0
            Type (Lattice),                     Intent(In)   :: Latt
-           Complex (Kind=8),                   Intent(In)   :: Phase_bin_tmp
+           Complex (Kind=8),                   Intent(Inout):: Phase_bin
            Character (len=64),                 Intent(In)   :: File_pr
            Integer,                            Intent(In)   :: Nobs
           
@@ -29,7 +29,6 @@
            Integer :: Norb, I, no,no1
            Complex (Kind=8), allocatable :: Tmp(:,:,:), Tmp1(:)
            Real    (Kind=8)              :: x_p(2) 
-           Complex (Kind=8)              :: Phase_bin
 #ifdef MPI
            Complex (Kind=8):: Z
            Integer         :: Ierr, Isize, Irank
@@ -38,7 +37,6 @@
            CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
 #endif
 
-           Phase_bin = Phase_bin_tmp
            Norb = size(Dat_eq,3)
            if ( .not. (Latt%N  == Size(Dat_eq,1) ) ) then 
               Write(6,*) 'Error in Print_bin' 
@@ -95,7 +93,7 @@
 
 !=========================================================
 
-         Subroutine  Print_bin_R(Dat_eq,Dat_eq0,Latt, Nobs, Phase_bin_tmp, file_pr)
+         Subroutine  Print_bin_R(Dat_eq,Dat_eq0,Latt, Nobs, Phase_bin, file_pr)
            Use Lattices_v3
            Implicit none
 #include "machine"
@@ -106,7 +104,7 @@
            Real    (Kind=8), Dimension(:,:,:), Intent(inout) :: Dat_eq
            Real    (Kind=8), Dimension(:)    , Intent(inout) :: Dat_eq0
            Type (Lattice),                     Intent(In)    :: Latt
-           Complex (Kind=8),                   Intent(In)    :: Phase_bin_tmp
+           Complex (Kind=8),                   Intent(Inout) :: Phase_bin
            Character (len=64),                 Intent(In)    :: File_pr
            Integer,                            Intent(In)    :: Nobs
            
@@ -114,7 +112,6 @@
            Integer :: Norb, I, no,no1
            Real    (Kind=8), allocatable :: Tmp(:,:,:), Tmp1(:)
            Real    (Kind=8)              :: x_p(2) 
-           Complex (Kind=8)              :: Phase_bin
 #ifdef MPI
            Integer        :: Ierr, Isize, Irank
            Complex (Kind=8)              :: Z
@@ -123,7 +120,6 @@
            CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
 #endif
            
-           Phase_bin = Phase_bin_tmp
            Norb = size(Dat_eq,3)
            if ( .not. (Latt%N  == Size(Dat_eq,1) ) ) then 
               Write(6,*) 'Error in Print_bin' 

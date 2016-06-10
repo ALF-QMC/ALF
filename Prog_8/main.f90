@@ -7,6 +7,8 @@ Program Main
   Use Control
   Use Tau_m_mod
   Use Hop_mod
+  
+ 
   Implicit none
 #include "machine"
 #ifdef MPI
@@ -64,10 +66,12 @@ Program Main
   COMPLEX (Kind=8), Dimension(:,:,:), Allocatable    :: GR
   
 
-  Integer :: Nwrap, NSweep, NBin, Ltau, NSTM, NT, NT1, NVAR, LOBS_EN, LOBS_ST, NBC, NSW
+  Integer :: Nwrap, NSweep, NBin, NBin_eff,Ltau, NSTM, NT, NT1, NVAR, LOBS_EN, LOBS_ST, NBC, NSW
   Integer :: NTAU, NTAU1
+  Real(Kind=8) :: CPU_MAX 
 
-  NAMELIST /VAR_QMC/   Nwrap, NSweep, NBin, Ltau, LOBS_EN, LOBS_ST
+
+  NAMELIST /VAR_QMC/   Nwrap, NSweep, NBin, Ltau, LOBS_EN, LOBS_ST, CPU_MAX
 
   Integer :: Ierr, I,J,nf, nst, n
   Complex (Kind=8) :: Z_ONE = cmplx(1.d0,0.d0), Phase, Z, Z1
@@ -81,6 +85,12 @@ Program Main
   Real (kind=8) :: Weight
   Integer :: nr,nth
   Logical :: Log
+  
+  ! For the truncation of the program:
+  Logical        :: prog_truncation
+  Real(kind=8)   :: time_bin_start,time_bin_end
+    
+  
 #ifdef MPI
   Integer        ::  Isize, Irank
   INTEGER        :: STATUS(MPI_STATUS_SIZE)
@@ -107,6 +117,7 @@ Program Main
      END IF
      READ(5,NML=VAR_QMC)
      CLOSE(5)
+     NBin_eff = NBin
 #ifdef MPI
   Endif
   CALL MPI_BCAST(Nwrap   ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
@@ -115,9 +126,10 @@ Program Main
   CALL MPI_BCAST(Ltau    ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
   CALL MPI_BCAST(LOBS_EN ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
   CALL MPI_BCAST(LOBS_ST ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+  CALL MPI_BCAST(CPU_MAX ,1,MPI_REAL8,  0,MPI_COMM_WORLD,ierr)
 #endif
-  
-  
+ 
+ 
   Call control_init
   Call Alloc_obs(Ltau)
   Call Op_SetHS
@@ -248,6 +260,8 @@ Program Main
      ! Here, you have the green functions on time slice 1.
      ! Set bin observables to zero.
 
+     Call cpu_time(time_bin_start) 
+     
      Call Init_obs(Ltau)
      DO NSW = 1, NSWEEP
  
@@ -439,9 +453,28 @@ Program Main
      ENDDO
      Call Pr_obs(Ltau)
      Call confout
+          
+     Call cpu_time(time_bin_end)
+     prog_truncation = .false.
+     Call make_truncation(prog_truncation,CPU_MAX,time_bin_start,time_bin_end)
+     If (prog_truncation) then 
+        Nbin_eff = nbc
+        exit !exit the loop over the bin index, labelled NBC.
+     Endif
+     
   Enddo
   Call Control_Print
 
+#ifdef MPI
+        If (Irank == 0 ) then
+#endif
+           Open (Unit=50,file="info", status="unknown", position="append")
+           Write(50,*)' Effective number of bins   : ', Nbin_eff
+           Close(50)
+#ifdef MPI
+        endif
+#endif
+ 
 #ifdef MPI
    CALL MPI_FINALIZE(ierr)
 #endif
