@@ -140,7 +140,7 @@
       
 
       subroutine make_truncation(prog_truncation,cpu_max,time_bin_start,time_bin_end)
-      ! This subroutine checks if the condition for a controlled termination of the program are met.
+      ! This subroutine checks if the conditions for a controlled termination of the program are met.
       ! The subroutine contains a hard-coded threshold (in unit of bins): 
       ! if time_remain/time_bin_duration < threshold the program terminates.
 
