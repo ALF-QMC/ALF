@@ -24,4 +24,4 @@ clean:
 	(make -f Compile_Hub   clean );\
 	(make -f Compile_SPT   clean );\
 	(make -f Compile_Ising clean );\
-	rm *.mod *~ \#* 
+	rm -f *.mod *~ \#* 
