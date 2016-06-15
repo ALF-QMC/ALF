@@ -292,11 +292,11 @@ Contains
     Integer, INTENT(IN) :: N_Type
 
     ! Local 
-    Complex (Kind=8) :: Z, Z1, tmp, ExpOp(Op%N), ExpMop(Op%N), VH(Op%N,Ndim)
-    Integer :: n, i, m, m1
+    Complex (Kind=8) :: Z, Z1, tmp, ExpOp(Op%N), ExpMop(Op%N), VH(Op%N,Ndim), ExpHere !, zdotu, zdotc
+    Integer :: n, i, m, m1 !, nop
     
     
-    
+!     nop=size(Op%U,1)
     
     !!!!! N_Type ==1
     !    exp(Op%g*spin*Op%E)*(Op%U^{dagger})*Mat*Op%U*exp(-Op%g*spin*Op%E)
@@ -321,12 +321,14 @@ Contains
        
       !$OMP PARALLEL DO PRIVATE(tmp)
        do n = 1,Op%N
+	  ExpHere=ExpMOp(n)
 	  DO I = 1,Ndim
+!              Mat(I,Op%P(n))  =  ExpMOp(n) * zdotu(Op%N,Op%U(1,n),1,VH(1,I),1) 
 	     tmp=cmplx(0.d0,0.d0)
 	     Do m = 1,Op%N
 		tmp = tmp + VH(m,I) * Op%U(m,n)
              Enddo
-             Mat(I,Op%P(n))  =  tmp * ExpMOp(n)
+             Mat(I,Op%P(n))  =  ExpHere * tmp
           enddo
        Enddo
       !$OMP END PARALLEL DO
@@ -338,12 +340,14 @@ Contains
        Enddo
       !$OMP PARALLEL DO PRIVATE(tmp)
        do n = 1,Op%N
+          ExpHere=ExpOp(n)
           DO I = 1,Ndim
+!               Mat(Op%P(n),I)  = zdotc(Op%N,Op%U(1,n),1,VH(1,I),1) * ExpOp(n)
              tmp=cmplx(0.d0,0.d0)
 	     Do m = 1,Op%N
                 tmp = tmp + conjg(Op%U(m,n))* VH(m,I)
              Enddo
-              Mat(Op%P(n),I)  = tmp * ExpOp(n)
+              Mat(Op%P(n),I)  = ExpHere * tmp
           enddo
        enddo
       !$OMP END PARALLEL DO
@@ -356,11 +360,12 @@ Contains
       !$OMP PARALLEL DO PRIVATE(tmp)
        do n = 1,Op%N
           DO I = 1,Ndim
+!              Mat(I,Op%P(n))  = zdotc(Op%N,Op%U(n,1),nop,VH(1,I),1)
              tmp=cmplx(0.d0,0.d0)
 	     Do m = 1,Op%N
                 tmp = tmp +  VH(m,I) * conjg(Op%U(n,m)) 
              Enddo
-             Mat(I,Op%P(n))  = tmp
+             Mat(I,Op%P(n))  =  tmp
           enddo
        Enddo
       !$OMP END PARALLEL DO
@@ -373,6 +378,7 @@ Contains
       !$OMP PARALLEL DO PRIVATE(tmp)
        do n = 1,Op%N
           DO I = 1,Ndim
+! 	     Mat(Op%P(n),I)  = zdotu(Op%N,Op%U(n,1),nop,VH(1,I),1)
              tmp=cmplx(0.d0,0.d0)
 	     Do m = 1,Op%N
 	        tmp = tmp + Op%U(n,m) * VH(m,I)
@@ -395,9 +401,11 @@ Contains
     Integer, INTENT(IN) :: N_Type
 
     ! Local 
-    Complex (Kind=8) :: VH(Op%N,Ndim), Z, Z1, tmp, ExpOp(Op%N), ExpMop(Op%N)
+    Complex (Kind=8) :: VH(Op%N,Ndim), Z, Z1, tmp, ExpOp(Op%N), ExpMop(Op%N), ExpHere !, zdotu, zdotc
 !     Complex (Kind=8) :: alpha, beta, tmp2(Op%N,Ndim)
-    Integer :: n, i, m, m1
+    Integer :: n, i, m, m1 !, nop
+    
+!     nop=size(Op%U,1)
     
     !!!!! N_Type == 1
     !    Op%U*exp(-Op%g*spin*Op%E)*Mat*exp(Op%g*spin*Op%E)*(Op%U^{dagger})
@@ -415,40 +423,44 @@ Contains
        enddo
        
        Do n = 1,Op%N
+	  expHere=ExpOp(n)
           Do I = 1,Ndim
-             VH(n,I) = Mat(I,Op%P(n)) * ExpOp(n)
+             VH(n,I) = Mat(I,Op%P(n)) * ExpHere
           Enddo
        Enddo
        
        ! ZGEMM might be the better multiplication, but the additional copy precess seem to be to expensive
 !        alpha = cmplx (1.0d0,0.0d0)
 !        beta = cmplx (0.0d0,0.0d0)
-!        CALL ZGEMM('T','C',Ndim,Op%N,Op%N,alpha,VH,Op%N,Op%U,size(Op%U,1),beta,tmp,Ndim)
+!        CALL ZGEMM('T','C',Ndim,Op%N,Op%N,alpha,VH,Op%N,Op%U,nop,beta,tmp,Ndim)
        !$OMP PARALLEL DO PRIVATE(tmp)
        do n = 1,Op%N
           DO I = 1,Ndim
+!              Mat(I,Op%P(n))  = zdotc(Op%N,Op%U(n,1),nop,VH(1,I),1)
              tmp=cmplx(0.d0,0.d0)
 	     Do m = 1,Op%N
                 tmp = tmp + VH(m,I) * conjg(Op%U(n,m))
              Enddo
-             Mat(I,Op%P(n))  =  tmp
+             Mat(I,Op%P(n))  = tmp
           enddo
        Enddo
        !$OMP END PARALLEL DO
 
        Do n = 1,Op%N
+	  ExpHere=ExpMOp(n)
           Do I = 1,Ndim
-             VH(n,I) = ExpMOp(n) * Mat(Op%P(n),I)
+             VH(n,I) = ExpHere * Mat(Op%P(n),I)
           Enddo
        Enddo
        
        ! ZGEMM might be the better multiplication, but the additional copy precess seem to be to expensive
 !        alpha = cmplx (1.0d0,0.0d0)
 !        beta = cmplx (0.0d0,0.0d0)
-!        CALL ZGEMM('T','T',Ndim,Op%N,Op%N,alpha,VH,Op%N,Op%U,size(Op%U,1),beta,tmp,Ndim)
+!        CALL ZGEMM('T','T',Ndim,Op%N,Op%N,alpha,VH,Op%N,Op%U,nop,beta,tmp,Ndim)
       !$OMP PARALLEL DO PRIVATE(tmp)
        do n = 1,Op%N
 	 DO I = 1,Ndim
+! 	   Mat(Op%P(n),I)  = zdotu(Op%N,Op%U(n,1),nop,VH(1,I),1)
            tmp=cmplx(0.d0,0.d0)
 	   Do m = 1,Op%N
 	      tmp = tmp + Op%U(n,m)*VH(m,I)
@@ -467,10 +479,11 @@ Contains
        ! ZGEMM might be the better multiplication, but the additional copy precess seem to be to expensive
 !        alpha = cmplx (1.0d0,0.0d0)
 !        beta = cmplx (0.0d0,0.0d0)
-!        CALL ZGEMM('T','N',Ndim,Op%N,Op%N,alpha,VH,Op%N,Op%U,size(Op%U,1),beta,tmp,Ndim)
+!        CALL ZGEMM('T','N',Ndim,Op%N,Op%N,alpha,VH,Op%N,Op%U,nop,beta,tmp,Ndim)
        !$OMP PARALLEL DO PRIVATE(tmp)
        do n = 1,Op%N
           DO I = 1,Ndim
+!              Mat(I,Op%P(n))  =  zdotu(Op%N,Op%U(1,n),1,VH(1,I),1)
              tmp=cmplx(0.d0,0.d0)
              Do m = 1,Op%N
 	        tmp = tmp + VH(m,I) * Op%U(m,n)
@@ -489,10 +502,11 @@ Contains
        ! ZGEMM might be the better multiplication, but the additional copy precess seem to be to expensive
 !        alpha = cmplx (1.0d0,0.0d0)
 !        beta = cmplx (0.0d0,0.0d0)
-!        CALL ZGEMM('C','N',Op%N,Ndim,Op%N,alpha,Op%U,size(Op%U,1),VH,Op%N,beta,tmp2,Op%N)
+!        CALL ZGEMM('C','N',Op%N,Ndim,Op%N,alpha,Op%U,nop,VH,Op%N,beta,tmp2,Op%N)
       !$OMP PARALLEL DO PRIVATE(tmp)
        do n = 1,Op%N
           DO I = 1,Ndim
+!              Mat(Op%P(n),I)  = zdotc(Op%N,Op%U(1,n),1,VH(1,I),1)
              tmp=cmplx(0.d0,0.d0)
 	     Do m = 1,Op%N
                 tmp = tmp + conjg(Op%U(m,n))* VH(m,I) 

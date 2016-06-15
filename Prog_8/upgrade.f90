@@ -135,7 +135,7 @@
               ! Replace by Zgemm?
               alpha = cmplx (-1.0d0,0.0d0)
               beta = cmplx (1.0d0,0.0d0)
-              CALL ZGEMM('N','T',Ndim,Ndim,Op_dim,alpha,xp_v,size(xp_v,1),y_v,size(y_v,1),beta,gr(:,:,nf),size(gr,1))
+              CALL ZGEMM('N','T',Ndim,Ndim,Op_dim,alpha,xp_v,size(xp_v,1),y_v,size(y_v,1),beta,gr(1,1,nf),size(gr,1))
               ! This call of ZGEMM does NOT YET work --> debugging required!!!
               
 ! 	      !$OMP PARALLEL DO PRIVATE(tmp)
