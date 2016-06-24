@@ -1,4 +1,4 @@
-export ANNAL=${DIR}"/Analysis_7/"
+export ANNAL=${HOME}"/Doktorarbeit/General_QMCT_code/Analysis_7/"
 
 $ANNAL/jackv5.out 
 for filename in *_eq; do
