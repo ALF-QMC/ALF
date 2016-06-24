@@ -288,7 +288,7 @@
           Implicit none 
           
           Integer :: nf, nth, n, n1, n2, n3, n4, I, I1, I2, J,  Ix, Iy, nc, no,no1, ns, npm 
-          Integer :: nxy
+          Integer :: nxy, noff
           Real (Kind=8) :: X_p(2), X1_p(2), X2_p(2), X, XJ, Xpm
 
           Complex (Kind=8) :: Ps(4,4,2), Ps_G5(4,4,2), Tmp(4,4), Z
@@ -363,25 +363,27 @@
           Allocate( Op_V(8*Latt%N,N_FL) )
           do nf = 1,N_FL
              do i  = 1, 8*Latt%N
-                Call Op_make(Op_V(i,nf),Norb) 
+                Call Op_make(Op_V(i,nf),Norb/2) 
              enddo
           enddo
           nc = 0
           Do nf = 1,N_FL
              do nxy = 1,2
                 do ns = 1,2
+                   noff=2
+                   if (ns==2) noff=1
                    do npm = 1,2 
                       Xpm = 1.d0
                       if (npm == 2) Xpm = -1.d0
                       Do i = 1,Latt%N
                          nc = nc + 1 
-                         Do no = 1,Norb
-                            Op_V(nc,nf)%P(no)   = Invlist(I,no)  
+                         Do no = 1,Norb/2
+                            Op_V(nc,nf)%P(no)   = Invlist(I,2*(no-1)+noff)  
                          enddo
-                         Do no = 1,Norb
-                            Do no1 = 1,Norb
-                               If (nxy == 1)  Op_V(nc,nf)%O(no,no1) = Sx(no,no1,ns,npm)
-                               If (nxy == 2)  Op_V(nc,nf)%O(no,no1) = Sy(no,no1,ns,npm)
+                         Do no = 1,Norb/2
+                            Do no1 = 1,Norb/2
+                               If (nxy == 1)  Op_V(nc,nf)%O(no,no1) = Sx(2*(no-1)+noff,2*(no1-1)+noff,ns,npm)
+                               If (nxy == 2)  Op_V(nc,nf)%O(no,no1) = Sy(2*(no-1)+noff,2*(no1-1)+noff,ns,npm)
                             Enddo
                          Enddo
                          Op_V(nc,nf)%g = SQRT(CMPLX(-Xpm*DTAU*Ham_Vint/8.d0,0.D0)) 

@@ -19,7 +19,7 @@
 	COMPLEX (Kind=8), Dimension(:,:), Allocatable ::  UUP,  VUP, TPUP, TPUP1, &
              &	                                          TPUPM1,TPUP1M1,  UUPM1, VUP1
         COMPLEX (Kind=8), Dimension(:) , Allocatable ::  DUP
-	COMPLEX (Kind=8) ::  ZDUP1, ZDDO1, ZDUP2, ZDDO2, Z1, ZUP, ZDO, Z
+	COMPLEX (Kind=8) ::  ZDUP1, ZDDO1, ZDUP2, ZDDO2, Z1, ZUP, ZDO, Z, alpha, beta
         Integer :: I,J, N_size, NCON, NR, NT, N
         Real (Kind=8) :: X, Xmax
         
@@ -92,17 +92,31 @@
                 & real(SQRT( Z* conjg(Z)),kind=8)
         ENDDO
         !Write(6,*) 'Cgr1, Cutoff: ', Xmax
-
-
-        DO J = 1,N_size
-        DO I = 1,N_size
-           ZUP = CMPLX(0.D0,0.D0)
-           DO NR = 1,N_size
-             ZUP = ZUP + TPUPM1(I,NR)*TPUP1M1(NR,J)/DUP(NR)
+	
+	! This might improve the performance
+        DO NR = 1,N_size
+           ZUP = DUP(NR)
+           DO I = 1,N_size
+              TPUP1(NR,I) = TPUPM1(I,NR)/ZUP
 	   ENDDO
-           GRUP(I,J) = ZUP
 	ENDDO
-	ENDDO
+	alpha = cmplx (1.0d0,0.0d0)
+	beta = cmplx (0.0d0,0.0d0)
+	CALL ZGEMM('T','N',N_size,N_size,N_size,alpha,TPUP1,N_size,TPUP1M1,N_size,beta,grup,size(grup,1))
+
+!         ! THIS IS THE OLD VERSION
+!         !$OMP PARALLEL DO PRIVATE(ZUP)
+!         DO J = 1,N_size
+!         DO I = 1,N_size
+!            ZUP = CMPLX(0.D0,0.D0)
+!            DO NR = 1,N_size
+!              ZUP = ZUP + TPUPM1(I,NR)*TPUP1M1(NR,J)/DUP(NR)
+! 	   ENDDO
+!            GRUP(I,J) = ZUP
+! 	ENDDO
+! 	ENDDO
+! 	!$OMP END PARALLEL DO
+	
         PHASE = Z1/SQRT( Z1* CONJG(Z1) )
 
         Deallocate(UUP, VUP, TPUP,TPUP1,TPUPM1, TPUP1M1, UUPM1, VUP1, DUP )

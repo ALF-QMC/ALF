@@ -14,13 +14,13 @@
         Complex (Kind=double) :: Mat(Op_dim,Op_Dim), Delta(Op_dim,N_FL)
         Complex (Kind=double) :: Ratio(N_FL), Ratiotot, Z1 
         Integer :: ns_new, ns_old, n,m,nf, i,j
-        Complex (Kind= double) :: ZK, Z, D_Mat
+        Complex (Kind= double) :: ZK, Z, D_Mat, tmp
         Integer, external :: nranf
         
         Real (Kind = double) :: Weight
-        Complex (Kind = double) :: u(Ndim,Op_dim), v(Ndim,Op_dim) 
+        Complex (Kind = double) :: u(Ndim,Op_dim), v(Ndim,Op_dim) ,alpha, beta
         Complex (Kind = double) :: x_v(Ndim,Op_dim), y_v(Ndim,Op_dim),   xp_v(Ndim,Op_dim)
-        Complex (Kind = double) :: s_xv(Op_dim), s_yu(Op_dim)
+        Complex (Kind = double) :: s_xv(Op_dim), s_yu(Op_dim), tmpMat(Ndim,Ndim)
         
         Logical :: Log
 
@@ -130,13 +130,30 @@
                  enddo
               enddo
               
-              do n = 1,Op_dim
-                 do j = 1,Ndim
-                    do i = 1,Ndim
-                       gr(i,j,nf) = gr(i,j,nf) - xp_v(i,n)*y_v(j,n)
-                    enddo
-                 enddo
-              enddo
+              ! gr(:,:,nf) -= xp_v(:,:) * y_v(:,:)^T
+              
+              ! Replace by Zgemm?
+              alpha = cmplx (-1.0d0,0.0d0)
+              beta = cmplx (1.0d0,0.0d0)
+              CALL ZGEMM('N','T',Ndim,Ndim,Op_dim,alpha,xp_v,size(xp_v,1),y_v,size(y_v,1),beta,gr(1,1,nf),size(gr,1))
+              ! This call of ZGEMM does NOT YET work --> debugging required!!!
+              
+! 	      !$OMP PARALLEL DO PRIVATE(tmp)
+!               do j = 1,Ndim
+!                  do i = 1,Ndim
+! 		    tmp=cmplx(0.d0,0.d0)
+! 		    do n = 1,Op_dim
+! 		       tmp = tmp - xp_v(i,n)*y_v(j,n)
+!                     enddo
+!                     if (abs(tmpMat(i,j)-tmp) >= 0.00001) then
+!                       write(*,*) tmpMat(i,j), tmp, abs(tmpMat(i,j)-tmp)
+!                     else
+!                       write(*,*) "OK"
+!                     endif
+! 		    gr(i,j,nf) = gr(i,j,nf) + tmp
+!                  enddo
+!               enddo
+! 	      !$OMP END PARALLEL DO
            enddo
            
            ! Flip the spin
