@@ -35,6 +35,7 @@
       Complex (Kind=8), allocatable, private ::  Den_eq(:,:,:), Den_eq0(:)
       Complex (Kind=8), allocatable, private ::  R_eq(:,:,:), R_eq0(:)
       Complex (Kind=8), allocatable, private ::  U1_eq(:,:,:), U1_eq0(:)
+      Complex (Kind=8), allocatable, private ::  L_eq(:,:,:), L_eq0(:)
       Complex (Kind=8), allocatable, private ::  U1xy_eq(:,:,:), U1xy_eq0(:)
       Complex (Kind=8), allocatable, private ::  Spinz_eq(:,:,:), Spinz_eq0(:)
       Complex (Kind=8), allocatable, private ::  Spinxy_eq(:,:,:), Spinxy_eq0(:)
@@ -419,6 +420,7 @@
           Allocate ( Den_eq(Latt%N,1,1), Den_eq0(1) ) 
           Allocate ( U1_eq(Latt%N,1,1), U1_eq0(1) )
           Allocate ( Spinz_eq(Latt%N,1,1), spinz_eq0(1) )
+          Allocate ( L_eq(Latt%N,1,1), L_eq0(1) )
           
           if (FlagSym ==1) then
 	      Allocate ( R_eq(Latt%N,1,1), R_eq0(1) ) 
@@ -467,6 +469,8 @@
           Spinz_eq0   = cmplx(0.d0,0.d0)
           U1_eq    = cmplx(0.d0,0.d0)
           U1_eq0   = cmplx(0.d0,0.d0)
+          L_eq    = cmplx(0.d0,0.d0)
+          L_eq0   = cmplx(0.d0,0.d0)
           
           if (FlagSym ==1 ) then
 	      R_eq    = cmplx(0.d0,0.d0)
@@ -561,7 +565,7 @@
           
           Nc = Size( Op_T,1)
           Do nf = 1,N_FL
-             Do n = 1,Nc
+!              Do n = 1,Nc
                 Do J = 1,Op_T(n,nf)%N
                    J1 = Op_T(n,nf)%P(J)
                    DO I = 1,Op_T(n,nf)%N
@@ -569,15 +573,15 @@
                       Zkin  = Zkin  + Op_T(n,nf)%O(i,j)*Grc(i1,j1,nf) 
                    Enddo
                 ENddo
-             Enddo
+!              Enddo
           Enddo
           Zkin = Zkin*cmplx( dble(N_SUN), 0.d0 )
           
           ZL = cmplx(0.d0,0.d0)
           
-          Nc = Size( Op_T,1)
+!           Nc = Size( Op_T,1)
           Do nf = 1,N_FL
-             Do n = 1,Nc
+!              Do n = 1,Nc
                 Do I = 1,Latt%N
                    DO no = 1,4
                    DO a = 1,4
@@ -589,7 +593,7 @@
                    Enddo
                    Enddo
                 ENddo
-             Enddo
+!              Enddo
           Enddo
           ZL = ZL*cmplx( dble(N_SUN), 0.d0 )
 
@@ -667,6 +671,50 @@
              enddo
              Den_eq0(1) = Den_eq0(1) +   GRC(I1,I1,1)*ZP*ZS 
           enddo
+	    
+! 	  do I=1,Latt%N
+! 	    do J=1,Latt%N
+! 	      imj = latt%imj(I,J)
+! 	      do a=1,4
+! 	      do b=1,4
+! 		if ( abs(gamma_M(a,b,3))>0.01 ) then
+! 		  do c=1,4
+! 		  do d=1,4
+! 		    weight = gamma_M(a,b,3)*Gamma_M(c,d,3)
+! 		    if ( abs(weight) > 0.01 ) then
+! 		      do no=1,4
+! 			do no1=1,4
+! 			  I1 = Invlist(I,4*(no-1)+a)
+! 			  I2 = Invlist(I,4*(no-1)+b)
+! 			  J1 = Invlist(J,4*(no1-1)+c)
+! 			  J2 = Invlist(J,4*(no1-1)+d)
+! 			  tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+! 				&     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+! 			  L_eq (imj,1,1) = L_eq (imj,1,1)   +  weight*tmp 
+! 			enddo
+! 		      enddo
+! 		    endif
+! 		  enddo
+! 		  enddo
+! 		endif
+! 	      enddo
+! 	      enddo
+! 	    enddo
+! ! 	  enddo
+! 	  
+! 	  do I=1,Latt%N
+! 	    do a=1,4
+! 	    do b=1,4
+! 	      if ( abs(gamma_M(a,b,3))>0.01 ) then
+! 		do no=1,4
+! 		  I1 = InvList(I,4*(no-1)+a)
+! 		  J1 = InvList(I,4*(no-1)+b)
+! 		  L_eq0(1)  = L_eq0(1)  + Gamma_M(a,b,3)*Grc(i1,j1,1)
+! 		enddo
+! 	      endif
+! 	    enddo
+! 	    enddo
+! 	  enddo
           
           if (FlagSym ==1) then
 	    do I=1,Latt%N
@@ -1433,7 +1481,7 @@
           File_pr ="ener"
           Call Print_scal(Obs_scal, Nobs, file_pr)
           
-          Phase_bin = Obs_scal(5)/cmplx(dble(Nobs),0.d0)
+          Phase_bin = Obs_scal(8)/cmplx(dble(Nobs),0.d0)
           File_pr ="Den_eq"
           Call Print_bin(Den_eq, Den_eq0, Latt, Nobs, Phase_bin, file_pr)
           File_pr ="U1_eq"
@@ -1494,6 +1542,9 @@
 	     Call Print_bin(Spinz_sus, Spinz_sus0, Latt, NobsT, Phase_tau, file_pr)
 	     File_pr ="Spinxy_sus"
 	     Call Print_bin(Spinxy_sus, Spinxy_sus0, Latt, NobsT, Phase_tau, file_pr)
+	     L_eq0=L_eq0*sqrt(beta)
+	     File_pr ="L_eq"
+	     Call Print_bin(L_eq, L_eq0, Latt, NobsT, Phase_tau, file_pr)
           endif
 !!$#ifdef MPI
 !!$          Write(6,*)  Irank, 'out Pr_obs', LTAU
@@ -1512,13 +1563,29 @@
           
           !Locals
           Complex (Kind=8) :: Z, ZP, ZS, tmp, DeltaI, DeltaJ, weight, weightbeta
-          Integer :: IMJ, I1, I, no, J1, J, no1, I2, J2, signum
+          Integer :: IMJ, I1, I, no, J1, J, no1, I2, J2, signum,a,b,c,d
 
           ZP = PHASE/cmplx(Real(Phase,kind=8),0.d0)
           ZS = cmplx(Real(Phase,kind=8)/Abs(Real(Phase,kind=8)), 0.d0)
           If (NT == 0 ) then 
              Phase_tau = Phase_tau + ZS
              NobsT     = NobsT + 1
+	  
+	     do I=1,Latt%N
+	       do a=1,4
+	       do b=1,4
+		 if ( abs(gamma_M(a,b,3))>0.01 ) then
+		   do no=1,4
+		     I1 = InvList(I,4*(no-1)+a)
+		     J1 = InvList(I,4*(no-1)+b)
+		     DeltaI=cmplx(0.d0,0.d0)
+		     if (I1==J1) DeltaI=cmplx(1.d0,0.d0)
+		     L_eq0(1)  = L_eq0(1)  + Gamma_M(a,b,3)*(DeltaI - G00(j1,i1,1)) * ZP* ZS
+		   enddo
+		 endif
+	       enddo
+	       enddo
+	     enddo
           endif
           
           weightbeta = cmplx(dtau,0.d0)
@@ -1608,6 +1675,41 @@
 		    
                 Enddo
              Enddo
+             
+             
+	    
+	    do I=1,Latt%N
+	      do J=1,Latt%N
+		imj = latt%imj(I,J)
+		do a=1,4
+		do b=1,4
+		  if ( abs(gamma_M(a,b,3))>0.01 ) then
+		    do c=1,4
+		    do d=1,4
+		      weight = gamma_M(a,b,3)*Gamma_M(c,d,3)
+		      if ( abs(weight) > 0.01 ) then
+			do no=1,4
+			  do no1=1,4
+			    I1 = Invlist(I,4*(no-1)+a)
+			    I2 = Invlist(I,4*(no-1)+b)
+			    J1 = Invlist(J,4*(no1-1)+c)
+			    J2 = Invlist(J,4*(no1-1)+d)
+			    DeltaI=cmplx(0.d0,0.d0)
+			    if (I1==I2 .and. nt==0) DeltaI=cmplx(1.d0,0.d0)
+			    DeltaJ=cmplx(0.d0,0.d0)
+			    if (J1==J2 .and. nt==0) DeltaJ=cmplx(1.d0,0.d0)
+			    tmp =  Z * ((DeltaI - GTT(I2,I1,1))*(DeltaJ - G00(J2,J1,1)) - GT0(I2,J1,1)*G0T(J2,I1,1)) * ZP* ZS
+			    L_eq (imj,1,1) = L_eq (imj,1,1)   +  weight*tmp*weightbeta 
+			  enddo
+			enddo
+		      endif
+		    enddo
+		    enddo
+		  endif
+		enddo
+		enddo
+	      enddo
+	    enddo
           Endif
         end Subroutine OBSERT
 
