@@ -565,7 +565,7 @@
           
           Nc = Size( Op_T,1)
           Do nf = 1,N_FL
-!              Do n = 1,Nc
+             Do n = 1,Nc
                 Do J = 1,Op_T(n,nf)%N
                    J1 = Op_T(n,nf)%P(J)
                    DO I = 1,Op_T(n,nf)%N
@@ -573,7 +573,7 @@
                       Zkin  = Zkin  + Op_T(n,nf)%O(i,j)*Grc(i1,j1,nf) 
                    Enddo
                 ENddo
-!              Enddo
+             Enddo
           Enddo
           Zkin = Zkin*cmplx( dble(N_SUN), 0.d0 )
           
