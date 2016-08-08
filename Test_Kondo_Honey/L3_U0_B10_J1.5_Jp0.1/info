@@ -1,0 +1,44 @@
+ =====================================
+ Model is      : Kondo                                                           
+ Lattice is    : Honeycomb                                                       
+ Lattice size  :            3           3
+ Beta          :    10.000000000000000     
+ dtau,Ltrot    :   0.10000000000000001              100
+ Checkerboard  :            1
+ t             :    1.0000000000000000     
+ U             :    0.0000000000000000     
+ J             :    1.5000000000000000     
+ Jz            :   0.10000000000000001     
+ Sweeps             :            1
+ Bin                :            1
+ Measure Int.       :            1         100
+ Stabilization,Wrap :           10
+ Nstm               :           10
+ Ltau               :            0
+ No CPU-time limitation 
+  Precision Green  Mean, Max :    3.8134005278255479E-008   3.3132214189990350E-006
+  Precision Phase, Max       :    9.0978561695376214E-007
+  Acceptance                 :   0.39444444444444443     
+  CPU Time                   :   0.36261299999999996     
+ =====================================
+ Model is      : Kondo                                                           
+ Lattice is    : Honeycomb                                                       
+ Lattice size  :            3           3
+ Beta          :    10.000000000000000     
+ dtau,Ltrot    :   0.10000000000000001              100
+ Checkerboard  :            1
+ t             :    1.0000000000000000     
+ U             :    0.0000000000000000     
+ J             :    1.5000000000000000     
+ Jz            :   0.10000000000000001     
+ Sweeps             :           20
+ Bin                :            5
+ Measure Int.       :            1         100
+ Stabilization,Wrap :           10
+ Nstm               :           10
+ Ltau               :            0
+ No CPU-time limitation 
+  Precision Green  Mean, Max :    7.6365517804311628E-008   1.8697625304386900E-004
+  Precision Phase, Max       :    1.9533313676545205E-006
+  Acceptance                 :   0.42303263888888887     
+  CPU Time                   :    35.874094999999997     

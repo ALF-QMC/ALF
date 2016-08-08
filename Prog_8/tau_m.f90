@@ -8,7 +8,7 @@
 
        Contains
 
-         SUBROUTINE TAU_M( UST,DST,VST, GR, PHASE, NSTM, NWRAP ) 
+         SUBROUTINE TAU_M( UST,DST,VST, GR, PHASE, NSTM, NWRAP, STAB_NT  ) 
            
            Implicit none
 
@@ -68,6 +68,8 @@
            Complex (Kind=double), Intent(in) :: UST(NDIM,NDIM,NSTM,N_FL), VST(NDIM,NDIM,NSTM,N_FL), DST(NDIM,NSTM,N_FL) 
            Complex (Kind=double), Intent(in) :: GR(NDIM,NDIM,N_FL),  Phase
            Integer, Intent(In) :: NSTM, NWRAP
+           Integer, Intent(In) :: STAB_NT(0:NSTM)         
+
            
 
            ! Local 
@@ -103,7 +105,7 @@
            enddo
            DR = cone
               
-       
+           NST = 1
            DO NT = 0,LTROT - 1
               ! Now wrapup:
               NT1 = NT + 1
@@ -114,21 +116,16 @@
               ! In Module Hamiltonian
               CALL OBSERT(NT1, GT0,G0T,G00,GTT,PHASE)
               
-              IF ( MOD(NT1,NWRAP).EQ.0 .AND. NT1.NE.LTROT ) THEN
-                 NTST = NT1 - NWRAP
-                 NST  = NT1/(NWRAP)
+              IF ( Stab_nt(NST) == NT1 .AND.  NT1 .NE. LTROT ) THEN
+                 !NTST = NT1 - NWRAP
+                 !NST  = NT1/(NWRAP)
+                 NTST = Stab_nt(NST-1)
                  ! WRITE(6,*) 'NT1, NST: ', NT1,NST
                  CALL WRAPUR(NTST, NT1,UR, DR, VR)
                  DO nf = 1,N_FL
-                    DO J = 1,NDIM
-                       DO I = 1,NDIM
-                          UL(I,J,nf) = UST(I,J,NST,nf)
-                          VL(I,J,nf) = VST(I,J,NST,nf)
-                       ENDDO
-                    ENDDO
-                    DO I = 1,NDIM
-                       DL(I,nf) = DST(I,NST,nf)
-                    ENDDO
+                    UL(:,:,nf) = UST(:,:,NST,nf)
+                    VL(:,:,nf) = VST(:,:,NST,nf)
+                    DL(:  ,nf) = DST(:  ,NST,nf)
                  Enddo
                  Do nf = 1,N_FL
                     Do J = 1,Ndim
@@ -148,10 +145,10 @@
                          &      UR(:,:,nf),DR(:,nf),VR(:,:,nf), UL(:,:,nf),DL(:,nf),VL(:,:,nf),NDIM)
                     !Call CGR2   (GT0(:,:,nf), G00(:,:,nf), GTT(:,:,nf), G0T(:,:,nf), &
                     !     &      UR(:,:,nf),DR(:,nf),VR(:,:,nf), UL(:,:,nf),DL(:,nf),VL(:,:,nf),NDIM)
-
+                    
                     !Call CGR2_1(GT0(:,:,nf), G00(:,:,nf), GTT(:,:,nf), G0T(:,:,nf), &
                     !      &    UR(:,:,nf),DR(:,nf),VR(:,:,nf), UL(:,:,nf),DL(:,nf),VL(:,:,nf),NDIM,NVAR)
-
+                    
                     !Write(6,*) 'End Call CGR2'
                     !Write(6,*) ' Tau ', NT1
                     !Write(6,*) ' G00 '
@@ -163,6 +160,7 @@
                     !Write(6,*) ' G0T '
                     Call Control_Precision_tau(HLP6      , G0T(:,:,nf), Ndim)
                  Enddo
+                 NST = NST + 1
               Endif
            ENDDO
            

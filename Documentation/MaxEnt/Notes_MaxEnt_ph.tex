@@ -1,0 +1,107 @@
+\documentclass[12pt]{article}
+\usepackage{a4}
+\usepackage{amsmath}
+%%% DFG prefers Arial =>
+% substitute Helvetica (called "Arial" by Windows people)
+% for the default \sf font
+% use with \bfseries instead of \bf and \slshape instead of \it
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+
+\setlength{\textheight}{23.8cm}
+\setlength{\textwidth}{15.5cm} %previously 14.5
+\setlength{\evensidemargin}{0.8cm}
+\setlength{\oddsidemargin}{0.8cm}
+\setlength{\topmargin}{0.3cm}
+\setlength{\parindent}{0.5cm}
+\headheight=0.0cm
+\headsep=0.0cm
+
+\hfuzz=5pt
+\parindent=0pt
+\parskip=5pt
+
+
+\begin{document}
+\section{Maximum entropy in the  particle-hole channel}
+\subsection{Imaginary time formulation}
+	 For particle-hole quantities such as spin-spin or charge-charge correlations, 
+the  Kernel reads:
+\begin{equation}
+	\langle S(q,\tau) S(-q,0) \rangle  = \frac{1}{\pi} 
+   \int {\rm d} \omega  \frac{e^{- \tau \omega} }{ 1 - e^{-\beta  \omega} } \chi''(q,\omega).
+\end{equation}
+This follows directly from the  Lehmann representation: 
+\begin{equation}
+ \chi''(q,\omega)  = \frac{\pi}{Z} \sum_{n,m} e^{-\beta E_n} |\langle n | S(q) | \rangle m |^2 
+\delta ( \omega + E_n - E_m) \left( 1 - e^{-\beta  \omega} \right) 
+\end{equation}
+
+In principle that's it. In practice  the setup of the Stochastic MaxEnt is a bit tricky, 
+since as input one  needs the sum rule.  
+Consider: 
+\begin{equation}
+	coth(\beta \omega/2) \chi''(q,\omega)
+\end{equation}
+For this quantitiy, we have the sum rule since: 
+\begin{equation}
+	\int {\rm d} \omega 	coth(\beta \omega/2) \chi''(q,\omega) = 
+  2 \pi \langle S(q,\tau=0) S(-q,0) \rangle
+\end{equation}
+which is just the first point in the data. 
+
+Hence,
+\begin{equation}
+	\langle S(q,\tau) S(-q,0) \rangle  =  
+       \int {\rm d} \omega  \underbrace{ \frac{1}{\pi} \frac{e^{- \tau \omega} }
+            { 1 - e^{-\beta  \omega} } tanh(\beta \omega/2)  }_{K(\tau,\omega)} 
+       \underbrace{ coth(\beta \omega/2)   \chi''(q,\omega) }_{A(\omega)} 
+\end{equation}
+and one extracts with the MaxEnt $A(\omega) $ which one then transforms back to the 
+quantitiy one wants.  In general,  the codes will produce the dynamical  structure factor: 
+\begin{equation}
+ S(q\omega)  = \chi''(q,\omega)/\left( 1 - e^{-\beta  \omega} \right)    
+\end{equation}
+
+Note  that 
+$\langle S(q,\tau) S(-q,0) \rangle  =  \langle S(q,\beta - \tau) S(-q,0) \rangle   $ so that 
+it reads in only  the data for $ \tau = 0,\beta/2 $.  
+Also since $A(\omega) $ is a symmetric function the omega range  can be restricted to positive values. 
+
+\subsection{Matsubara frequency  formulation}
+
+Let 
+\begin{equation}
+  \chi(q,i\Omega_m) = \int_0^{\beta} {\rm d} \tau  e^{i \Omega_m \tau}
+	\langle S(q,\tau) S(-q,0) \rangle  = \frac{1}{\pi}
+   \int {\rm d} \omega  \frac{\chi''(q,\omega)}{ \omega - i \Omega_m }.
+\end{equation}
+Using the fact that $\chi''(q,\omega) = -\chi''(q,-\omega)$ one obtains:
+\begin{equation}
+\begin{gathered}
+  \chi(q,i\Omega_m) = 
+	\frac{1}{\pi}
+   \int_0^{\infty} {\rm d} \omega \left(\frac{1}{ \omega - i \Omega_m } - \frac{1}{ -\omega - i \Omega_m } \right)
+         \chi''(q,\omega) \\
+    = \frac{2}{\pi} \int_0^{\infty} {\rm d} \omega \frac{\omega^2}{ \omega^2  + \Omega_m^2 } 
+  \frac{\chi''(q,\omega)}{\omega} 
+   \equiv \int_0^{\infty} {\rm d} \omega K(\omega,i\Omega_m) A(q,\omega)
+\end{gathered}
+\end{equation}
+with
+\begin{equation}
+   K(\omega,i\Omega_m) = \frac{\omega^2}{ \omega^2  + \Omega_m^2 } 
+\end{equation}
+and
+\begin{equation}
+A(q,\omega) =  \frac{2}{\pi}   \frac{\chi''(q,\omega)}{\omega} 
+\end{equation}
+The above definitions are useful since the image satisfies the sum rule:
+\begin{equation}
+\int_0^{\infty} {\rm d} \omega A(q,\omega) =  \frac{1}{\pi}  \int_{-\infty}^{\infty} {\rm d} \omega 
+   \frac{\chi''(q,\omega)}{\omega}   \equiv \chi(q,i\Omega_m=0)
+\end{equation}
+
+\end{document} 
+
+

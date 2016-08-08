@@ -1,0 +1,31 @@
+!===============================================================================
+!  Variables for the Hubb program
+!-------------------------------------------------------------------------------
+
+&VAR_lattice 
+L1    = 3 
+L2    = 3 
+Lattice_type = "Honeycomb"
+Model = "Kondo" 
+/
+
+
+&VAR_Kondo
+ham_T   = 1.0 
+ham_J   = 1.5
+ham_Jz  = 0.1
+ham_U   = 0.0
+Beta    = 10.0
+dtau    = 0.1
+Checkerboard=1
+/
+
+&VAR_QMC
+Nwrap   = 10
+NSweep  = 20
+NBin    = 5
+Ltau    = 0
+LOBS_ST = 1
+LOBS_EN = 100
+/
+! slash terminates namelist statement - DO NOT REMOVE

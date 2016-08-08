@@ -1,5 +1,9 @@
 Module Operator_mod
 
+  !!!!!! This version of  Operator.f90 contains optimization carried out by Johannes Hofmann
+  !!!!!! The original version of this module can be found in Operator_FFA.f90 
+  !!!!!! Both versions  must give the same results
+
   Use MyMats
 
   Implicit none
@@ -78,7 +82,7 @@ Contains
     do nf = 1,Size(Op_V,2)
        do n = 1,size(Op_V,1)
           do nt = 1,size(nsigma,2)
-             Phase = Phase*exp( Op_V(n,nf)%g * Op_V(n,nf)%alpha * Phi(nsigma(n,nt),Op_V(n,nf)%type) )
+             Phase = Phase*exp(cmplx(0.d0, Aimag( Op_V(n,nf)%g * Op_V(n,nf)%alpha ) * Phi(nsigma(n,nt),Op_V(n,nf)%type) ) )
           enddo
        enddo
     enddo

@@ -1,5 +1,9 @@
       Subroutine Upgrade(GR,N_op,NT,PHASE,Op_dim) 
 
+!!!!!! This version of  Upgrade.f90  contains optimization carried out by Johannes Hofmann
+!!!!!! The original version of this routine can be found in upgrade_FFA.f90 
+!!!!!! Both versions  must give the same results
+        
         Use Hamiltonian
         Use Random_wrap
         Use Control
@@ -21,7 +25,6 @@
         Complex (Kind = double) :: u(Ndim,Op_dim), v(Ndim,Op_dim) ,alpha, beta
         Complex (Kind = double) :: x_v(Ndim,Op_dim), y_v(Ndim,Op_dim),   xp_v(Ndim,Op_dim)
         Complex (Kind = double) :: s_xv(Op_dim), s_yu(Op_dim), tmpMat(Ndim,Ndim)
-        
         Logical :: Log
 
         
@@ -130,14 +133,25 @@
                  enddo
               enddo
               
+
+
+              !do n = 1,Op_dim
+              !   do j = 1,Ndim
+              !      do i = 1,Ndim
+              !         gr(i,j,nf) = gr(i,j,nf) - xp_v(i,n)*y_v(j,n)
+              !      enddo
+              !   enddo
+              !enddo
               ! gr(:,:,nf) -= xp_v(:,:) * y_v(:,:)^T
-              
-              ! Replace by Zgemm?
+              ! Replace by Zgemm 
               alpha = cmplx (-1.0d0,0.0d0)
-              beta = cmplx (1.0d0,0.0d0)
+              beta  = cmplx ( 1.0d0,0.0d0)
               CALL ZGEMM('N','T',Ndim,Ndim,Op_dim,alpha,xp_v,size(xp_v,1),y_v,size(y_v,1),beta,gr(1,1,nf),size(gr,1))
-              ! This call of ZGEMM does NOT YET work --> debugging required!!!
               
+
+!!!!!         Requires additional space
+!             Complex (Kind = double) ::  tmpMat(Ndim,Ndim), tmp
+!           
 ! 	      !$OMP PARALLEL DO PRIVATE(tmp)
 !               do j = 1,Ndim
 !                  do i = 1,Ndim
@@ -154,6 +168,7 @@
 !                  enddo
 !               enddo
 ! 	      !$OMP END PARALLEL DO
+
            enddo
            
            ! Flip the spin

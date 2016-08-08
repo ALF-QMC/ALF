@@ -1063,8 +1063,19 @@
         
 
       END SUBROUTINE SVD_C
-!***************
 
+!--------------------------------------------------------------------
+!> @author
+!> Fakher Assaad and  Florian Goth
+!
+!> @brief 
+!> This function diagonalizes the input matrix A and returns
+!> eigenvalues and vectors using the lapack routine DSYEV
+!
+!> @param[in] A a 2D array constituting the input matrix
+!> @param[out] U a 2D array containing the eigen vectors
+!> @param[out] W a 1D array containing the sorted eigenvalues
+!--------------------------------------------------------------------
       SUBROUTINE DIAG_R(A,U,W)
         IMPLICIT NONE
         REAL (KIND=8), INTENT(IN), DIMENSION(:,:) :: A
@@ -1072,8 +1083,8 @@
         REAL (KIND=8), INTENT(INOUT), DIMENSION(:) :: W
 
 
-        INTEGER ND1,ND2, MATZ,IERR
-        REAL (KIND=8), DIMENSION(:), ALLOCATABLE :: FV1,FV2
+        INTEGER ND1,ND2,IERR
+        REAL (KIND=8), DIMENSION(:), ALLOCATABLE :: WORK
 
          ND1 = SIZE(A,1)
          ND2 = SIZE(A,2)
@@ -1083,15 +1094,13 @@
             STOP
          ENDIF
 
-         MATZ = 1
          IERR = 0
-         U=0
+         U=A
          W=0
-         ALLOCATE(FV1(ND1))
-         ALLOCATE(FV2(ND1))
-         CALL RS(ND1,ND1,A,W,MATZ,U, FV1,FV2,IERR)
-         DEALLOCATE(FV1)
-         DEALLOCATE(FV2)
+         ! let's just give lapack enough memory
+         ALLOCATE(WORK(3*ND1))
+         CALL DSYEV('V', 'U', ND1, U, ND1, W, WORK, 3*ND1, IERR)
+         DEALLOCATE(WORK)
 
       END SUBROUTINE DIAG_R
 !*********
@@ -1144,67 +1153,6 @@
         endif
         
       End SUBROUTINE DIAG_I
-!====================================================
-      SUBROUTINE DIAG_I_old(A,U,W)
-        ! Uses Eispack
-        IMPLICIT NONE
-        COMPLEX (KIND=8), INTENT(IN)   , DIMENSION(:,:) :: A
-        COMPLEX (KIND=8), INTENT(INOUT), DIMENSION(:,:) :: U
-        REAL    (KIND=8), INTENT(INOUT), DIMENSION(:)   :: W
-
-
-        INTEGER ND1,ND2, MATZ,IERR, I,J
-        REAL (KIND=8), DIMENSION( :), ALLOCATABLE :: FV1,FV2
-        REAL (KIND=8), DIMENSION(:,:), ALLOCATABLE :: AR,AI, ER, EI, FM1
-
-
-        ND1 = SIZE(A,1)
-        ND2 = SIZE(A,2)
-        
-        IF (ND1.NE.ND2) THEN
-           WRITE(6,*) 'Error in matrix dimension DIAG_I'
-           STOP
-        ENDIF
-        ND2 = SIZE(W,1)
-        IF (ND2.NE.ND1) THEN
-           WRITE(6,*) 'Error 1 in matrix dimension DIAG_I'
-           STOP
-        ENDIF
-        ND2 = SIZE(U,1)
-         IF (ND2.NE.ND1) THEN
-            WRITE(6,*) 'Error 2 in matrix dimension DIAG_I'
-            STOP
-         ENDIF
-         ND2 = SIZE(U,2)
-         IF (ND2.NE.ND1) THEN
-            WRITE(6,*) 'Error 3 in matrix dimension DIAG_I'
-            STOP
-         ENDIF
-         ALLOCATE (AR(ND1,ND1), AI(ND1,ND1), ER(ND1,ND1), EI(ND1,ND1))
-         ALLOCATE (FV1(ND1), FV2(ND1), FM1(2,ND1))
-
-         MATZ = 1
-         IERR = 0
-         U=0
-         W=0
-         DO J = 1,ND1
-            DO I = 1,ND1
-               AR(I,J) = DBLE (A(I,J))
-               AI(I,J) = AIMAG(A(I,J))
-            ENDDO
-         ENDDO
-         CALL CH(ND1,ND1,AR,AI, W, MATZ,ER,EI, FV1,FV2,FM1,IERR)
-         DO J = 1,ND1
-            DO I = 1,ND1
-               U(I,J) = CMPLX (ER(I,J), EI(I,J))
-            ENDDO
-         ENDDO
-
-         DEALLOCATE (AR, AI, ER, EI)
-         DEALLOCATE (FV1, FV2, FM1)
-         
-       END SUBROUTINE DIAG_I_OLD
-
 
       SUBROUTINE SECONDS(X)
         IMPLICIT NONE
