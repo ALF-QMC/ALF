@@ -1,19 +1,21 @@
  =====================================
  Model is      : Hubbard_SU2                                                     
- Beta          :    1.0000000000000000     
- dtau,Ltrot    :    5.0000000000000003E-002          20
+ Beta          :    5.0000000000000000     
+ dtau,Ltrot    :   0.10000000000000001               50
  N_SUN         :            2
  N_FL          :            1
  t             :    1.0000000000000000     
  Ham_U         :    4.0000000000000000     
  Ham_chem      :    0.0000000000000000     
- Sweeps             :        10000
- Bin                :          100
+ Sweeps             :          500
  Measure Int.       :            1         100
  Stabilization,Wrap :           10
- Nstm               :            2
- Ltau               :            0
-  Precision Green  Mean, Max :    1.2579765255871175E-008   2.5405605861550390E-004
-  Precision Phase, Max       :    7.5777338057161465E-007
-  Acceptance                 :   0.37992909375000000     
-  CPU Time                   :    532.98977700000000     
+ Nstm               :            5
+ Ltau               :            1
+Prog will stop after hours:    0.1000
+  Precision Green  Mean, Max :    1.1086707951591438E-014   2.5746232205156390E-010
+  Precision Phase, Max       :    7.9638256832237036E-012
+  Precision tau    Mean, Max :    4.3022110509014297E-015   3.6935850959491259E-012
+  Acceptance                 :   0.34897386904761907     
+  CPU Time                   :    336.68308000000002     
+  Effective number of bins   :           21

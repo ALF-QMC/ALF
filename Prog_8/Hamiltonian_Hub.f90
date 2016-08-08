@@ -38,7 +38,9 @@
       ! For time displaced
       Integer,                       private :: NobsT
       Complex (Kind=8),              private :: Phase_tau
-      Complex (Kind=8), allocatable, private :: Green_tau(:,:,:,:), Den_tau(:,:,:,:)
+      Complex (Kind=8), allocatable, private :: Green_tau(:,:,:,:), Den_tau(:,:,:,:), SpinZ_tau(:,:,:,:)
+      Complex (Kind=8), allocatable, private :: SpinXY_tau(:,:,:,:)
+      Complex (Kind=8), allocatable, private :: Green0_tau(:), Den0_tau(:), SpinZ0_tau(:), SpinXY0_tau(:)
       
     contains 
 
@@ -308,7 +310,9 @@
 
                
           If (Ltau == 1) then 
-             Allocate ( Green_tau(Latt%N,Ltrot+1,1,1), Den_tau(Latt%N,Ltrot+1,1,1) )
+             Allocate ( Green_tau(Latt%N,Ltrot+1,1,1), Den_tau   (Latt%N,Ltrot+1,1,1) )
+             Allocate ( SpinZ_tau(Latt%N,Ltrot+1,1,1), SpinXY_tau(Latt%N,Ltrot+1,1,1) )
+             Allocate ( Green0_tau(1), Den0_tau(1), SpinZ0_tau(1), SpinXY0_tau(1) )
           endif
           
         end Subroutine Alloc_obs
@@ -336,9 +340,15 @@
 
           If (Ltau == 1) then
              NobsT = 0
-             Phase_tau = cmplx(0.d0,0.d0)
-             Green_tau = cmplx(0.d0,0.d0)
-             Den_tau = cmplx(0.d0,0.d0)
+             Phase_tau  = cmplx(0.d0,0.d0)
+             Green_tau  = cmplx(0.d0,0.d0)
+             Den_tau    = cmplx(0.d0,0.d0)
+             SpinZ_tau  = cmplx(0.d0,0.d0)
+             SpinXY_tau = cmplx(0.d0,0.d0)
+             Green0_tau = cmplx(0.d0,0.d0)
+             Den0_tau   = cmplx(0.d0,0.d0)
+             SpinZ0_tau  = cmplx(0.d0,0.d0)
+             SpinXY0_tau = cmplx(0.d0,0.d0)
           endif
 
         end Subroutine Init_obs
@@ -485,7 +495,7 @@
           File_pr ="Den_eq"
           Call Print_bin(Den_eq, Den_eq0, Latt, Nobs, Phase_bin, file_pr)
           File_pr ="Green_eq"
-          Call Print_bin(Green_eq , Green_eq0 ,Latt, Nobs, Phase_bin, file_pr)
+          Call Print_bin(Green_eq, Green_eq0, Latt, Nobs, Phase_bin, file_pr)
 
           File_pr ="ener"
           Call Print_scal(Obs_scal, Nobs, file_pr)
@@ -493,9 +503,14 @@
           If (Ltau == 1) then
              Phase_tau = Phase_tau/cmplx(dble(NobsT),0.d0)
              File_pr = "Green_tau"
-             Call Print_bin_tau(Green_tau,Latt,NobsT,Phase_tau, file_pr,dtau)
+             Call Print_bin_tau(Green_tau,Latt,NobsT,Phase_tau, file_pr,dtau       )
              File_pr = "Den_tau"
-             Call Print_bin_tau(Den_tau,Latt,NobsT,Phase_tau, file_pr,dtau)
+             Call Print_bin_tau(Den_tau,Latt,NobsT,Phase_tau, file_pr,dtau,Den0_tau)
+             File_pr = "SpinZ_tau"
+             Call Print_bin_tau(SpinZ_tau,Latt,NobsT,Phase_tau, file_pr,dtau,SpinZ0_tau)
+             File_pr = "SpinXY_tau"
+             Call Print_bin_tau(SpinXY_tau,Latt,NobsT,Phase_tau, file_pr,dtau,SpinXY0_tau)
+
           endif
 
 !!$#ifdef MPI
@@ -523,16 +538,56 @@
              Phase_tau = Phase_tau + ZS
              NobsT     = NobsT + 1
           endif
-          If ( N_FL == 1 ) then 
+          If ( Model == "Hubbard_SU2"  ) then 
+
              Z =  cmplx(dble(N_SUN),0.d0)
              Do I = 1,Latt%N
                 Do J = 1,Latt%N
                    imj = latt%imj(I,J)
                    Green_tau(imj,nt+1,1,1) = green_tau(imj,nt+1,1,1)  +  Z * GT0(I,J,1) * ZP* ZS
-                   Den_tau  (imj,nt+1,1,1) = Den_tau  (imj,nt+1,1,1)  -  Z * GT0(I,J,1)*G0T(J,I,1) * ZP* ZS
+
+                   
+                   Den_tau  (imj,nt+1,1,1) = Den_tau  (imj,nt+1,1,1)  +                           ( &
+                        &    Z*Z*(cmplx(1.d0,0.d0) - GTT(I,I,1))*(cmplx(1.d0,0.d0) - G00(J,J,1))  -     &
+                        &    Z * GT0(I,J,1)*G0T(J,I,1)                                            ) * ZP * ZS
+
+
+                   SpinZ_tau(imj,nt+1,1,1) = SpinZ_tau(imj,nt+1,1,1) +  &
+                       &      - Z*G0T(J,I,1) * GT0(I,J,1) *ZP*ZS
+
+                   SpinXY_tau(imj,nt+1,1,1) = SpinXY_tau(imj,nt+1,1,1) +  &
+                       &      - Z*G0T(J,I,1) * GT0(I,J,1) *ZP*ZS
                 Enddo
              Enddo
-          Endif
+             
+             Do I = 1,Latt%N
+                Den0_tau(1) = Den0_tau(1) + Z*(cmplx(1.d0,0.d0) - GTT(I,I,1)) * ZP * ZS
+             Enddo
+          Elseif ( Model == "Hubbard_Mz"  ) then 
+             Do I = 1,Latt%N
+                Do J = 1,Latt%N
+                   imj = latt%imj(I,J)
+                   Green_tau(imj,nt+1,1,1) = green_tau(imj,nt+1,1,1)  +   ( GT0(I,J,1) + GT0(I,J,2) ) * ZP* ZS
+
+                   Den_tau(imj,nt+1,1,1)  = Den_tau   (imj,nt+1,1,1)  +  (  &
+                        &    (cmplx(2.0,0.d0) - GTT(I,I,1) - GTT(I,I,2) ) * ( cmplx(2.0,0.d0) - G00(J,J,1) -  G00(J,J,2) ) &
+                        & -  ( G0T(J,I,1) * GT0(I,J,1) + G0T(J,I,2) * GT0(I,J,2) )   )*ZP*ZS     
+
+                   SpinZ_tau(imj,nt+1,1,1) = SpinZ_tau(imj,nt+1,1,1) + ( &
+                       &    (GTT(I,I,1) -  GTT(I,I,2) ) * ( G00(J,J,1)  -  G00(J,J,2) )   &
+                       &  - (G0T(J,I,1) * GT0(I,J,1)  +  G0T(J,I,2) * GT0(I,J,2) )    )*ZP*ZS
+
+                   SpinXY_tau(imj,nt+1,1,1) = SpinXY_tau(imj,nt+1,1,1)  - &
+                        &   (G0T(J,I,1) * GT0(I,J,2)  +  G0T(J,I,2) * GT0(I,J,1))*ZP*ZS
+
+                enddo
+             enddo
+             
+             Do I = 1,Latt%N
+                Den0_tau(1) = Den0_tau(1) + (cmplx(2.d0,0.d0) - GTT(I,I,1) - GTT(I,I,2)) * ZP * ZS
+             Enddo
+          endif
+
         end Subroutine OBSERT
 
 

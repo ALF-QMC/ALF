@@ -8,6 +8,7 @@ Module Random_Wrap
        CALL RANDOM_SEED (SIZE=K) 
      end Subroutine Get_seed_Len
 
+     
      Subroutine Ranset(Iseed_vec)
        Implicit none
        Integer, Dimension(:) :: Iseed_vec
@@ -21,6 +22,10 @@ Module Random_Wrap
        Allocate         (SEED_start(K) ) 
        ! Setup SEED_start
        Iseed = Iseed_vec(1)
+       If (Iseed == 0 )  then 
+          Iseed = 8752143
+          N = 0
+       endif
        do i = 1,K
           if (i <= N) then 
              SEED_Start(i) = Iseed_vec(i)
@@ -80,6 +85,15 @@ Module Random_Wrap
        Call Random_Number(X)
        ranf = X
      end function ranf
+
+
+     real (Kind=8)  function  ranf_wrap(iq)
+       implicit none
+       integer, optional ::  iq
+       Real (Kind=8) :: X
+       Call Random_Number(X)
+       ranf_wrap = X
+     end function ranf_wrap
      
 
       real (kind=8)  function  rang(iq)

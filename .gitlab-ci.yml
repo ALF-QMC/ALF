@@ -2,14 +2,49 @@ types:
   - build
   - test
 
-
-GQMCT:
+.build_template: &build_definition
   type: build
   script:
     - . configure.sh
     - cd Libraries
+    - gfortran -v
     - make
     - cd ..
     - cd Prog_8
     - make
-    
+
+GQMCT_Wheezy:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-wheezy-gfortran-blas-lapack
+  <<: *build_definition
+
+GQMCT_Jessie:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-gfortran-blas-lapack
+  <<: *build_definition
+
+GQMCT_Stretch:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-stretch-gfortran-blas-lapack
+  <<: *build_definition
+
+GQMCT_Wheezy_OpenBlas:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-wheezy-gfortran-openblas-lapack
+  <<: *build_definition
+
+GQMCT_Jessie_OpenBlas:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-gfortran-openblas-lapack
+  <<: *build_definition
+
+GQMCT_Stretch_OpenBlas:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-stretch-gfortran-openblas-lapack
+  <<: *build_definition
+
+GQMCT_CentOS:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:centos-7-gfortran-blas-lapack
+  <<: *build_definition
+
+GQMCT_OpenSuse-13.2:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:opensuse-13.2-gfortran-blas-lapack
+  <<: *build_definition
+
+GQMCT_OpenSuse-42.1:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:opensuse-42.1-gfortran-blas-lapack
+  <<: *build_definition

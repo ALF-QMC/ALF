@@ -1,1 +1,0 @@
-if77 -c -O4 -Mvect -nx  *.f

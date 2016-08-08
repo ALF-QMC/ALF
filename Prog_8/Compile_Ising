@@ -1,6 +1,6 @@
 TARGET= Ising.out
 OBJS=  control_mod.o Operator.o print_bin_mod.o Hamiltonian_Ising.o Hop_mod.o  UDV_WRAP.o tau_m.o  main.o wrapul.o  cgr1.o wrapgrup.o wrapur.o upgrade.o \
-       nranf.o wrapgrdo.o outconfc.o  inconfc.o cgr2.o cgr2_2.o cgr2_1.o
+       nranf.o wrapgrdo.o outconfc.o  inconfc.o cgr2.o cgr2_2.o cgr2_1.o 
 
   
 .SUFFIXES: .f90 .f

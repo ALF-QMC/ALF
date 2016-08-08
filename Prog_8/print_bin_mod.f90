@@ -4,9 +4,6 @@
           module procedure Print_bin_C, Print_bin_R
        end Interface Print_bin
 
-       Interface Print_bin_tau
-          module procedure Print_bin_tau_C
-       end Interface Print_bin_tau
 
        Contains
          
@@ -217,7 +214,7 @@
          End Subroutine Print_scal
 
 !==============================================================
-         Subroutine  Print_bin_tau_C(Dat_tau,Latt, Nobs, Phase_bin, file_pr, dtau)
+         Subroutine  Print_bin_tau(Dat_tau, Latt, Nobs, Phase_bin, file_pr, dtau, Dat0_tau)
            Use Lattices_v3
            Implicit none
 #include "machine"
@@ -225,7 +222,8 @@
            include 'mpif.h'
 #endif   
 
-           Complex (Kind=8), Dimension(:,:,:,:), Intent(inout):: Dat_tau
+           Complex (Kind=8), Dimension(:,:,:,:), Intent(inout):: Dat_tau   ! (Latt%N, Ltau,Norb, Norb)
+           Complex (Kind=8), Dimension(:      ), Intent(inout), optional :: Dat0_tau  ! (Norb)
            Type (Lattice),                       Intent(In)   :: Latt
            Complex (Kind=8),                     Intent(In)   :: Phase_bin
            Character (len=64),                   Intent(In)   :: File_pr
@@ -234,7 +232,7 @@
           
            ! Local
            Integer :: Norb, I, no,no1, LT, nt
-           Complex (Kind=8), allocatable :: Tmp(:,:,:,:)
+           Complex (Kind=8), allocatable :: Tmp(:,:,:,:), Tmp0(:)
            Complex (Kind=8) :: Phase_mean 
            Real    (Kind=8)              :: x_p(2) 
 #ifdef MPI
@@ -252,19 +250,32 @@
               Stop
            endif
            LT = Size(Dat_tau,2)
-           Allocate (Tmp(Latt%N,LT,Norb,Norb) )
-           Dat_tau = Dat_tau/cmplx(dble(Nobs),0.d0)
+           Allocate (Tmp (Latt%N,LT,Norb,Norb) )
+           Allocate (Tmp0(Norb) )
+
+           Tmp0 = cmplx(0.d0,0.d0)
+           Dat_tau  = Dat_tau /cmplx(dble(Nobs),0.d0)
+           If (Present(Dat0_tau) ) Dat0_tau = Dat0_tau/cmplx(dble(Nobs)*dble(Latt%N)*dble(LT),0.d0)
            
 #ifdef MPI
            I = Latt%N*Norb*Norb*LT
            Tmp = cmplx(0.d0,0.d0)
            CALL MPI_REDUCE(Dat_tau,Tmp,I,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
            Dat_tau = Tmp/CMPLX(DBLE(ISIZE),0.D0)
+           
+           If (Present(Dat0_tau) ) then
+              I = Norb
+              Tmp0 = cmplx(0.d0,0.d0)
+              CALL MPI_REDUCE(Dat0_tau,Tmp0,I,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
+              Dat0_tau = Tmp0/CMPLX(DBLE(ISIZE),0.D0)
+           endif
+
            I = 1
            CALL MPI_REDUCE(Phase_mean,Z,I,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
            Phase_mean= Z/CMPLX(DBLE(ISIZE),0.D0)
            If (Irank == 0 ) then
 #endif
+              If (Present(Dat0_tau) ) Tmp0 = Dat0_tau
               do nt = 1,LT
                  do no = 1,Norb
                     do no1 = 1,Norb
@@ -274,6 +285,9 @@
               enddo
               Open (Unit=10,File=File_pr, status="unknown",  position="append")
               Write(10,*) dble(Phase_mean),Norb,Latt%N, LT, dtau
+              Do no = 1,Norb
+                 Write(10,*)  Tmp0(no)
+              enddo
               do I = 1,Latt%N
                  x_p = dble(Latt%listk(i,1))*Latt%b1_p + dble(Latt%listk(i,2))*Latt%b2_p  
                  Write(10,*) X_p(1), X_p(2)
@@ -290,10 +304,9 @@
            Endif
 #endif
               
-           deallocate (Tmp )
-          
+           deallocate (Tmp, Tmp0 )
 
-         End Subroutine Print_bin_tau_C
+         End Subroutine Print_bin_tau
 
 
          
