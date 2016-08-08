@@ -10,7 +10,7 @@ OBJS=  control_mod.o Operator.o print_bin_mod.o Hamiltonian_SPT.o Hop_mod.o  UDV
   
 .SUFFIXES: .f90 .f
 .f.o .f90.o:
-	$(FC) -c -cpp -o $@ $(FLAGS) $<
+	$(FC) -c -cpp $(FLAGS) -o $@ $<
 
 $(TARGET): $(OBJS)
 	$(FC) $(LF) -o $(TARGET) $(OBJS) $(LIBS)

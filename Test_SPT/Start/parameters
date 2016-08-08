@@ -19,7 +19,7 @@ dtau    = 0.1
 /
 
 &VAR_QMC
-Nwrap   = 10
+Nwrap   = 20
 NSweep  = 5 
 NBin    = 5
 Ltau    = 0
