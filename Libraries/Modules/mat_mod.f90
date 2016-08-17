@@ -221,180 +221,231 @@
          ENDDO
        END SUBROUTINE INITD_R
 
-       SUBROUTINE INITD_C(A,X)
+!--------------------------------------------------------------------
+!> @author
+!> Fakher Assaad and  Florian Goth
+!
+!> @brief 
+!> This functions sets the matrix to a diagonal matrix with identical
+!> entries on the diagonal.
+!
+!> @param[inout] A a 2D array constituting the input matrix.
+!> @param[X] the scalar that we set the diagonal to.
+!--------------------------------------------------------------------
+       SUBROUTINE INITD_C(A, X)
          IMPLICIT NONE
-         COMPLEX (KIND=8), DIMENSION(:,:) :: A
-         COMPLEX (KIND=8) X
-         INTEGER I,J, N, M
-
+         COMPLEX (KIND=8), DIMENSION(:,:), INTENT(INOUT) :: A
+         COMPLEX (KIND=8), INTENT(IN) :: X
+         INTEGER I, N
+         
+         A = (0.D0, 0.D0)
          N = SIZE(A,1)
-         M = SIZE(A,2)
-
-! WRITE(6,*) 'In Init1 complex', N,M
          DO I = 1,N
-         DO J = 1,M
-            A(I,J) = CMPLX(0.D0,0.D0)
-         ENDDO
-         ENDDO
-         DO I = 1,N
-            A(I,I) = X
+            A(I, I) = X
          ENDDO
        END SUBROUTINE INITD_C
 
-
-!*************
-       SUBROUTINE INV_R0(A,AINV,DET)
+!--------------------------------------------------------------------
+!> @author
+!> Fakher Assaad and  Florian Goth
+!
+!> @brief 
+!> This function calculates the LU decomposition and the determinant
+!> of the input matrix.
+!
+!> @param[in] A a 2D array constituting the input matrix.
+!> @param[out] AINV a 2D array containing the inverse of the matrix A.
+!> @param[out] DET the determinant of the input matrix.
+!--------------------------------------------------------------------
+       SUBROUTINE INV_R0(A, AINV, DET)
          IMPLICIT NONE
-         REAL (KIND=8), DIMENSION(:,:) :: A,AINV
-         REAL (KIND=8) :: DET
-         INTEGER I,J, N, M
+         REAL (KIND=8), DIMENSION(:,:), INTENT(IN) :: A
+         REAL (KIND=8), DIMENSION(:,:), INTENT(INOUT) :: AINV
+         REAL (KIND=8), INTENT(OUT) :: DET
+         INTEGER I,J
 
 ! Working space.
-         REAL (KIND=8) :: DET1(2)
+         REAL (KIND=8) :: SGN
          REAL (KIND=8), DIMENSION(:), ALLOCATABLE :: WORK
          INTEGER, DIMENSION(:), ALLOCATABLE :: IPVT
-         INTEGER INFO, JOB, LDA
+         INTEGER INFO, LDA
 
          LDA = SIZE(A,1)
 ! Working space.
          ALLOCATE ( IPVT(LDA) )
          ALLOCATE ( WORK(LDA) )
-
-
-         DO I = 1,LDA
-            DO J = 1,LDA
-               AINV(J,I) = A(J,I)
-            ENDDO
-         ENDDO
-
-! Linpack routines.
-
-         CALL DGEFA(AINV,LDA,LDA,IPVT,INFO)
-         JOB = 11
-         CALL DGEDI(AINV,LDA,LDA,IPVT,DET1,WORK,JOB)
-
-         !Write(6,*) 'In Inv_R0', DET1
-         DET = DET1(1) * 10.D0**DET1(2)
-
+         
+         AINV = A
+         CALL DGETRF(LDA, LDA, AINV, LDA, IPVT, INFO)
+         DET = 1.0
+         SGN = 1.0
+         DO i = 1, LDA
+         DET = DET * AINV(i,i)
+         IF (IPVT(i) .ne. i) THEN
+            SGN = -SGN
+         ENDIF
+         enddo
+         DET = SGN * DET
+         CALL DGETRI(LDA, AINV, LDA, IPVT, WORK, LDA, INFO)
 
          DEALLOCATE (IPVT)
          DEALLOCATE (WORK)
        END SUBROUTINE INV_R0
 
 
-!*************
-       SUBROUTINE INV_R_Variable(A,AINV,DET,Ndim)
+!--------------------------------------------------------------------
+!> @author
+!> Fakher Assaad and  Florian Goth
+!
+!> @brief 
+!> This function calculates the LU decomposition and the determinant
+!> in a subpart of the input matrix.
+!
+!> @param[in] A a 2D array constituting the input matrix.
+!> @param[out] AINV a 2D array containing the inverse of the subpart
+!> @param[out] DET the determinant of the input matrix.
+!> @param[in] Ndim The size of the subpart.
+!--------------------------------------------------------------------
+       SUBROUTINE INV_R_Variable(A, AINV, DET, Ndim)
          IMPLICIT NONE
-         REAL (KIND=8), DIMENSION(:,:) :: A,AINV
-         REAL (KIND=8) :: DET
-         INTEGER I,J, N, M, Ndim
+         REAL (KIND=8), DIMENSION(:,:), INTENT(IN) :: A
+         REAL (KIND=8), DIMENSION(:,:), INTENT(INOUT) :: AINV
+         REAL (KIND=8), INTENT(OUT) :: DET
+         INTEGER, INTENT(IN) :: Ndim
 
 ! Working space.
-         REAL (KIND=8) :: DET1(2)
+         REAL (KIND=8) :: SGN
          REAL (KIND=8), DIMENSION(:), ALLOCATABLE :: WORK
          INTEGER, DIMENSION(:), ALLOCATABLE :: IPVT
-         INTEGER INFO, JOB, LDA
+         INTEGER INFO, LDA, I
 
-         LDA =  SIZE(A,1)
+         LDA = SIZE(A,1)
 ! Working space.
          ALLOCATE ( IPVT(Ndim) )
-         ALLOCATE ( WORK(Ndim) )
-
-
-         DO I = 1,LDA
-            DO J = 1,LDA
-               AINV(J,I) = A(J,I)
-            ENDDO
+         ALLOCATE ( WORK(LDA) )
+         
+         AINV = A
+         CALL DGETRF(Ndim, Ndim, AINV, LDA, IPVT, INFO)
+         DET = 1.0
+         SGN = 1.0
+         DO i = 1, Ndim
+         DET = DET * AINV(i,i)
+         IF (IPVT(i) .ne. i) THEN
+            SGN = -SGN
+         ENDIF
          ENDDO
-
-! Linpack routines.
-
-         CALL DGEFA(AINV,LDA,Ndim,IPVT,INFO)
-         JOB = 11
-         CALL DGEDI(AINV,LDA,Ndim,IPVT,DET1,WORK,JOB)
-
-         DET = DET1(1) * 10.D0**DET1(2)
+         DET = SGN * DET
+         CALL DGETRI(Ndim, AINV, LDA, IPVT, WORK, LDA, INFO)
 
          DEALLOCATE (IPVT)
          DEALLOCATE (WORK)
        END SUBROUTINE INV_R_VARIABLE
 
-!*************
+!--------------------------------------------------------------------
+!> @author
+!> Fakher Assaad and  Florian Goth
+!
+!> @brief 
+!> This function calculates the LU decomposition and the determinant
+!> in a subpart of the input matrix.
+!
+!> @param[in] A a 2D array constituting the input matrix.
+!> @param[out] AINV a 2D array containing the inverse of the subpart
+!> @param[out] DET The determinant in a kind of Mantissa-Exponent like
+!>                 representation. The full determinant is d1*10^d2
+!>                 (1.0 <= |d1| < 10.0) OR (d1 == 0.0)
+!> @param[in] Ndim The size of the subpart.
+!
+!> TODO: In a test the best accuracy could be obtained using the log10
+!! below. Another possibility would be using the EXPONENT and FRACTION
+!! intrinsics. This turned out to be not so good.
+!! Currently the case of a singular matrix is not handled, since it was
+!! catched in the old linpack version.
+!--------------------------------------------------------------------
        SUBROUTINE INV_R_Variable_1(A,AINV,DET,Ndim)
          IMPLICIT NONE
-         REAL (KIND=8), DIMENSION(:,:) :: A,AINV
-         REAL (KIND=8) :: DET(2)
-         INTEGER I,J, N, M, Ndim
+         REAL (KIND=8), DIMENSION(:,:), INTENT(IN) :: A
+         REAL (KIND=8), DIMENSION(:,:), INTENT(INOUT) :: AINV
+         REAL (KIND=8), DIMENSION(2), INTENT(OUT) :: DET
+         INTEGER, INTENT(IN) :: Ndim
 
 ! Working space.
-         REAL (KIND=8) :: DET1(2)
          REAL (KIND=8), DIMENSION(:), ALLOCATABLE :: WORK
          INTEGER, DIMENSION(:), ALLOCATABLE :: IPVT
-         INTEGER INFO, JOB, LDA
+         INTEGER INFO, LDA, I
 
-         LDA =  SIZE(A,1)
+         LDA = SIZE(A,1)
 ! Working space.
          ALLOCATE ( IPVT(Ndim) )
-         ALLOCATE ( WORK(Ndim) )
-
-
-         DO I = 1,LDA
-            DO J = 1,LDA
-               AINV(J,I) = A(J,I)
-            ENDDO
-         ENDDO
-
-! Linpack routines.
-
-         CALL DGEFA(AINV,LDA,Ndim,IPVT,INFO)
-         JOB = 11
-         CALL DGEDI(AINV,LDA,Ndim,IPVT,DET1,WORK,JOB)
-
-         ! Determinant  = DET1(1) * 10.D0**DET1(2)
-         DET(1) = DET1(1) 
-         DET(2) = DET1(2)
+         ALLOCATE ( WORK(LDA) )
+         
+         AINV = A
+         CALL DGETRF(Ndim, Ndim, AINV, LDA, IPVT, INFO)
+         DET(1) = 1.0
+         DET(2) = 0.0
+!         SGN = 1.0
+         DO i = 1, Ndim
+         IF (AINV(i, i) < 0.0) THEN
+         DET(1) = -DET(1)
+         ENDIF
+         DET(2) = DET(2) + LOG10(ABS(AINV(i,i)))
+         IF (IPVT(i) .ne. i) THEN
+            DET(1) = -DET(1)
+         ENDIF
+         ENDDO         
+         CALL DGETRI(Ndim, AINV, LDA, IPVT, WORK, LDA, INFO)
 
          DEALLOCATE (IPVT)
          DEALLOCATE (WORK)
        END SUBROUTINE INV_R_VARIABLE_1
 
-
-!*************
-       SUBROUTINE INV_R1(A,AINV,DET1)
+!--------------------------------------------------------------------
+!> @author
+!> Fakher Assaad and  Florian Goth
+!
+!> @brief 
+!> This function calculates the LU decomposition and the determinant
+!> of the input matrix.
+!
+!> @param[in] A a 2D array constituting the input matrix.
+!> @param[out] AINV a 2D array containing the inverse of the matrix A.
+!> @param[out] DET The determinant in a kind of Mantissa-Exponent like
+!>                 representation. The full determinant is d1*10^d2
+!>                 (1.0 <= |d1| < 10.0) OR (d1 == 0.0)
+!
+!> @todo the same restrictions as in INV_R_VARIABLE_1 apply.
+!--------------------------------------------------------------------
+       SUBROUTINE INV_R1(A,AINV,DET)
          IMPLICIT NONE
-         REAL (KIND=8), DIMENSION(:,:) :: A,AINV
-         REAL (KIND=8) :: DET1(2)
-         INTEGER I,J, N, M
+         REAL (KIND=8), DIMENSION(:,:), INTENT(IN) :: A
+         REAL (KIND=8), DIMENSION(:,:), INTENT(INOUT) :: AINV
+         REAL (KIND=8), DIMENSION(2), INTENT(OUT) :: DET
 
 ! Working space.
          REAL (KIND=8), DIMENSION(:), ALLOCATABLE :: WORK
          INTEGER, DIMENSION(:), ALLOCATABLE :: IPVT
-         INTEGER INFO, JOB, LDA
+         INTEGER INFO, LDA, I
 
          LDA = SIZE(A,1)
 ! Working space.
          ALLOCATE ( IPVT(LDA) )
          ALLOCATE ( WORK(LDA) )
-
-
-         DO I = 1,LDA
-            DO J = 1,LDA
-               AINV(J,I) = A(J,I)
-            ENDDO
-         ENDDO
-
-! Linpack routines.
-
-         CALL DGEFA(AINV,LDA,LDA,IPVT,INFO)
-         JOB = 11
-         CALL DGEDI(AINV,LDA,LDA,IPVT,DET1,WORK,JOB)
-
-
-
-
-
-
-
+         
+         AINV = A
+         CALL DGETRF(LDA, LDA, AINV, LDA, IPVT, INFO)
+         DET(1) = 1.0
+         DET(2) = 0.0
+!         SGN = 1.0
+         DO i = 1, LDA
+         IF (AINV(i, i) < 0.0) THEN
+         DET(1) = -DET(1)
+         ENDIF
+         DET(2) = DET(2) + LOG10(ABS(AINV(i,i)))
+         IF (IPVT(i) .ne. i) THEN
+            DET(1) = -DET(1)
+         ENDIF
+         ENDDO         
+         CALL DGETRI(LDA, AINV, LDA, IPVT, WORK, LDA, INFO)
          DEALLOCATE (IPVT)
          DEALLOCATE (WORK)
        END SUBROUTINE INV_R1
@@ -448,125 +499,156 @@
          DEALLOCATE (IPIV)
          DEALLOCATE (WORK)
        END SUBROUTINE INV_R2
-!*************
+
+!--------------------------------------------------------------------
+!> @author
+!> Fakher Assaad and  Florian Goth
+!
+!> @brief 
+!> This function calculates the LU decomposition and the determinant
+!> of a complex input matrix.
+!
+!> @param[in] A a 2D array constituting the input matrix.
+!> @param[out] AINV a 2D array containing the inverse of the matrix A.
+!> @param[out] DET the determinant of the input matrix.
+!--------------------------------------------------------------------
 
        SUBROUTINE INV_C(A,AINV,DET)
          IMPLICIT NONE
-         COMPLEX (KIND=8), DIMENSION(:,:) :: A,AINV
-         COMPLEX (KIND=8) :: DET
-         INTEGER I,J, N, M
+         COMPLEX (KIND=8), DIMENSION(:,:), INTENT(IN) :: A
+         COMPLEX (KIND=8), DIMENSION(:,:), INTENT(INOUT) :: AINV
+         COMPLEX (KIND=8), INTENT(OUT) :: DET
+         INTEGER I,J
 
 ! Working space.
-         COMPLEX (KIND=8) :: DET1(2)
+         REAL (KIND=8) :: SGN
          COMPLEX (KIND=8), DIMENSION(:), ALLOCATABLE :: WORK
          INTEGER, DIMENSION(:), ALLOCATABLE :: IPVT
-         INTEGER INFO, JOB, LDA
+         INTEGER INFO, LDA
 
          LDA = SIZE(A,1)
 ! Working space.
          ALLOCATE ( IPVT(LDA) )
          ALLOCATE ( WORK(LDA) )
-
-
-         DO I = 1,LDA
-            DO J = 1,LDA
-               AINV(J,I) = A(J,I)
-            ENDDO
-         ENDDO
-
-! Linpack routines.
-
-         CALL ZGEFA(AINV,LDA,LDA,IPVT,INFO)
-         JOB = 11
-         CALL ZGEDI(AINV,LDA,LDA,IPVT,DET1,WORK,JOB)
-
-
-
-
-
-
-
-         DET = DET1(1)*10.D0**DET1(2)
+         
+         AINV = A
+         CALL ZGETRF(LDA, LDA, AINV, LDA, IPVT, INFO)
+         DET = (1.0, 0.0)
+         SGN = 1.0
+         DO i = 1, LDA
+         DET = DET * AINV(i,i)
+         IF (IPVT(i) .ne. i) THEN
+            SGN = -SGN
+         ENDIF
+         enddo
+         DET = SGN * DET
+         CALL ZGETRI(LDA, AINV, LDA, IPVT, WORK, LDA, INFO)
 
          DEALLOCATE (IPVT)
          DEALLOCATE (WORK)
        END SUBROUTINE INV_C
 
-!========================================================================
-       SUBROUTINE INV_C_Variable(A,AINV,DET,Ndim)
+!--------------------------------------------------------------------
+!> @author
+!> Fakher Assaad and  Florian Goth
+!
+!> @brief 
+!> This function calculates the LU decomposition and the determinant
+!> in a subpart of the complex input matrix.
+!
+!> @param[in] A a 2D array constituting the input matrix.
+!> @param[out] AINV a 2D array containing the inverse of the subpart
+!> @param[out] DET the determinant of the input matrix.
+!> @param[in] Ndim The size of the subpart.
+!--------------------------------------------------------------------
+       SUBROUTINE INV_C_Variable(A, AINV, DET, Ndim)
          IMPLICIT NONE
-         COMPLEX (KIND=8), DIMENSION(:,:) :: A,AINV
-         COMPLEX (KIND=8) :: DET
-         INTEGER I,J, N, M,Ndim
+         COMPLEX (KIND=8), DIMENSION(:,:), INTENT(IN) :: A
+         COMPLEX (KIND=8), DIMENSION(:,:), INTENT(INOUT) :: AINV
+         COMPLEX (KIND=8), INTENT(OUT) :: DET
+         INTEGER, INTENT(IN) :: Ndim
 
 ! Working space.
-         COMPLEX (KIND=8) :: DET1(2)
+         REAL (KIND=8) :: SGN
          COMPLEX (KIND=8), DIMENSION(:), ALLOCATABLE :: WORK
          INTEGER, DIMENSION(:), ALLOCATABLE :: IPVT
-         INTEGER INFO, JOB, LDA
+         INTEGER INFO, LDA, I
 
          LDA = SIZE(A,1)
 ! Working space.
          ALLOCATE ( IPVT(Ndim) )
-         ALLOCATE ( WORK(Ndim) )
-
-
-         DO I = 1,LDA
-            DO J = 1,LDA
-               AINV(J,I) = A(J,I)
-            ENDDO
+         ALLOCATE ( WORK(LDA) )
+         
+         AINV = A
+         CALL ZGETRF(Ndim, Ndim, AINV, LDA, IPVT, INFO)
+         DET = 1.0
+         SGN = 1.0
+         DO i = 1, Ndim
+         DET = DET * AINV(i,i)
+         IF (IPVT(i) .ne. i) THEN
+            SGN = -SGN
+         ENDIF
          ENDDO
-
-! Linpack routines.
-
-         CALL ZGEFA(AINV,LDA,Ndim,IPVT,INFO)
-         JOB = 11
-         CALL ZGEDI(AINV,LDA,Ndim,IPVT,DET1,WORK,JOB)
-
-
-         DET = DET1(1)*10.D0**DET1(2)
+         DET = SGN * DET
+         CALL ZGETRI(Ndim, AINV, LDA, IPVT, WORK, LDA, INFO)
 
          DEALLOCATE (IPVT)
          DEALLOCATE (WORK)
        END SUBROUTINE INV_C_VARIABLE
 
-!========================================================================
-       SUBROUTINE INV_C1(A,AINV,DET1)
+!--------------------------------------------------------------------
+!> @author
+!> Fakher Assaad and  Florian Goth
+!
+!> @brief 
+!> This function calculates the LU decomposition and the determinant
+!> of the complex input matrix.
+!
+!> @param[in] A a 2D array constituting the input matrix.
+!> @param[out] AINV a 2D array containing the inverse of the matrix A.
+!> @param[out] DET The determinant in a kind of Mantissa-Exponent like
+!>                 representation. The full determinant is d1*10^d2
+!>                 (1.0 <= |d1| < 10.0) OR (d1 == 0.0)
+!
+!> @todo the same restrictions as in INV_R_VARIABLE_1 apply.
+!--------------------------------------------------------------------
+       SUBROUTINE INV_C1(A, AINV, DET)
          IMPLICIT NONE
-         COMPLEX (KIND=8), DIMENSION(:,:) :: A,AINV
-         COMPLEX (KIND=8) :: DET1(2)
-         INTEGER I,J, N, M
+         COMPLEX (KIND=8), DIMENSION(:,:), INTENT(IN) :: A
+         COMPLEX (KIND=8), DIMENSION(:,:), INTENT(INOUT) :: AINV
+         COMPLEX (KIND=8), DIMENSION(2), INTENT(OUT) :: DET
 
 ! Working space.
          COMPLEX (KIND=8), DIMENSION(:), ALLOCATABLE :: WORK
          INTEGER, DIMENSION(:), ALLOCATABLE :: IPVT
-         INTEGER INFO, JOB, LDA
+         INTEGER INFO, LDA, I
+         REAL (KIND=8) :: mag
 
          LDA = SIZE(A,1)
 ! Working space.
          ALLOCATE ( IPVT(LDA) )
          ALLOCATE ( WORK(LDA) )
-
-
-         DO I = 1,LDA
-            DO J = 1,LDA
-               AINV(J,I) = A(J,I)
-            ENDDO
+         
+         AINV = A
+         CALL ZGETRF(LDA, LDA, AINV, LDA, IPVT, INFO)
+         DET(1) = (1.0, 0.0)
+         DET(2) = 0.0
+         DO i = 1, LDA
+         mag = ABS(AINV(i, i))
+         ! update the phase
+         DET(1) = DET(1) * AINV(i, i)/mag
+         ! update the magnitude
+         DET(2) = DET(2) + LOG10(mag)
+         ! consider signs due to permutations
+         IF (IPVT(i) .ne. i) THEN
+            DET(1) = DET(1) * -1.d0
+         ENDIF
          ENDDO
-
-! Linpack routines.
-
-         CALL ZGEFA(AINV,LDA,LDA,IPVT,INFO)
-         JOB = 11
-         CALL ZGEDI(AINV,LDA,LDA,IPVT,DET1,WORK,JOB)
-
-
+         CALL ZGETRI(LDA, AINV, LDA, IPVT, WORK, LDA, INFO)
          DEALLOCATE (IPVT)
          DEALLOCATE (WORK)
        END SUBROUTINE INV_C1
 !*****
-
-
 
        SUBROUTINE COMPARE_C(A,B,XMAX,XMEAN)
          IMPLICIT NONE
@@ -671,9 +753,7 @@
                XNORM(I) = XNORM(I) + ABS(A(NR,I))
             ENDDO
          ENDDO
-         DO I = 1,ND2
-            VHELP(I) = XNORM(I)
-         ENDDO
+         VHELP = XNORM
 
          DO I = 1,ND2
             XMAX = 0.D0
@@ -887,8 +967,7 @@
            XMDIFF = 0.D0
            DO J = 1,LQ
               DO I = 1,NE
-                 Z = (TEST(J,I)-A(J,I)) * CONJG(TEST(J,I)-A(J,I))
-                 X = SQRT(DBLE(Z))
+                 X = ABS(TEST(J,I)-A(J,I))
                  IF (X.GT.XMDIFF) XMDIFF = X
               ENDDO
            ENDDO
@@ -1145,7 +1224,7 @@
                     Z =  Z + U(I,m)*cmplx(W(m),0.d0, Kind=8)*Conjg(U(J,m))
                  ENDDO
                  Z = Z - A(I,J)
-                 X = sqrt( Z*Conjg(Z) )
+                 X = ABS(Z)
                  If (X > XMAX ) XMAX = X
               ENDDO
            ENDDO

@@ -4,7 +4,6 @@ FLAGS= $(FL)
 LF = $(Lflags)
 LIBS= $(Libs)/Modules/modules_90.a \
       $(Libs)/MyNag/libnag.a \
-      $(Libs)/MyLin/liblin.a \
       $(LIB_BLAS_LAPACK)
 
 Hub:
