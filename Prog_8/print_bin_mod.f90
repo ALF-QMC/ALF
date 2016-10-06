@@ -42,21 +42,21 @@
               Stop
            endif
            Allocate (Tmp(Latt%N,Norb,Norb), Tmp1(Norb) )
-           Dat_eq = Dat_eq/cmplx(dble(Nobs),0.d0)
-           Dat_eq0 = Dat_eq0/cmplx(dble(Nobs)*dble(Latt%N),0.d0)
+           Dat_eq = Dat_eq/dble(Nobs)
+           Dat_eq0 = Dat_eq0/dble(Nobs*Latt%N)
            
 #ifdef MPI
            I = Latt%N*Norb*Norb
-           Tmp = cmplx(0.d0,0.d0)
+           Tmp = cmplx(0.d0, 0.d0, kind(0.D0))
            CALL MPI_REDUCE(Dat_eq,Tmp,I,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
-           Dat_eq = Tmp/CMPLX(DBLE(ISIZE),0.D0)
+           Dat_eq = Tmp/DBLE(ISIZE)
            I = 1
            CALL MPI_REDUCE(Phase_bin,Z,I,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
-           Phase_bin= Z/CMPLX(DBLE(ISIZE),0.D0)
+           Phase_bin= Z/DBLE(ISIZE)
 
            I = Norb
            CALL MPI_REDUCE(Dat_eq0,Tmp1,I,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
-           Dat_eq0 = Tmp1/CMPLX(DBLE(ISIZE),0.D0)
+           Dat_eq0 = Tmp1/DBLE(ISIZE)
 
            If (Irank == 0 ) then
 #endif
@@ -136,12 +136,12 @@
            Dat_eq = Tmp/DBLE(ISIZE)
            I = 1
            CALL MPI_REDUCE(Phase_bin,Z,I,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
-           Phase_bin= Z/CMPLX(DBLE(ISIZE),0.D0)
+           Phase_bin= Z/DBLE(ISIZE)
            If (Irank == 0 ) then
 
            I = Norb
            CALL MPI_REDUCE(Dat_eq0,Tmp1,I,MPI_REAL8,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
-           Dat_eq0 = Tmp1/CMPLX(DBLE(ISIZE),0.D0)
+           Dat_eq0 = Tmp1/DBLE(ISIZE)
 
 #endif
            
@@ -196,11 +196,11 @@
            
            Norb = size(Obs,1)
            Allocate ( Tmp(Norb) )
-           Obs = Obs/cmplx(dble(Nobs),0.d0)
+           Obs = Obs/dble(Nobs)
 #ifdef MPI
            Tmp = 0.d0
            CALL MPI_REDUCE(Obs,Tmp,Norb,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
-           Obs = Tmp/cmplx(DBLE(ISIZE),0.d0)
+           Obs = Tmp/DBLE(ISIZE)
            if (Irank == 0 ) then
 #endif
               Open (Unit=10,File=File_pr, status="unknown",  position="append")
@@ -253,26 +253,26 @@
            Allocate (Tmp (Latt%N,LT,Norb,Norb) )
            Allocate (Tmp0(Norb) )
 
-           Tmp0 = cmplx(0.d0,0.d0)
-           Dat_tau  = Dat_tau /cmplx(dble(Nobs),0.d0)
-           If (Present(Dat0_tau) ) Dat0_tau = Dat0_tau/cmplx(dble(Nobs)*dble(Latt%N)*dble(LT),0.d0)
+           Tmp0 = cmplx(0.d0, 0.d0, kind(0.D0))
+           Dat_tau  = Dat_tau/dble(Nobs)
+           If (Present(Dat0_tau) ) Dat0_tau = Dat0_tau/dble(Nobs*Latt%N*LT)
            
 #ifdef MPI
            I = Latt%N*Norb*Norb*LT
-           Tmp = cmplx(0.d0,0.d0)
+           Tmp = cmplx(0.d0, 0.d0, kind(0.D0))
            CALL MPI_REDUCE(Dat_tau,Tmp,I,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
-           Dat_tau = Tmp/CMPLX(DBLE(ISIZE),0.D0)
+           Dat_tau = Tmp/DBLE(ISIZE),
            
            If (Present(Dat0_tau) ) then
               I = Norb
-              Tmp0 = cmplx(0.d0,0.d0)
+              Tmp0 = cmplx(0.d0, 0.d0, kind(0.D0))
               CALL MPI_REDUCE(Dat0_tau,Tmp0,I,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
-              Dat0_tau = Tmp0/CMPLX(DBLE(ISIZE),0.D0)
+              Dat0_tau = Tmp0/DBLE(ISIZE)
            endif
 
            I = 1
            CALL MPI_REDUCE(Phase_mean,Z,I,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
-           Phase_mean= Z/CMPLX(DBLE(ISIZE),0.D0)
+           Phase_mean= Z/DBLE(ISIZE)
            If (Irank == 0 ) then
 #endif
               If (Present(Dat0_tau) ) Tmp0 = Dat0_tau

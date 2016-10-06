@@ -7,7 +7,7 @@ export FL="-c  -O3  -fp-model fast=2 -xHost -unroll -finline-functions -ipo -ip 
 export FL="${FL} -g"
 
 export Libs=${DIR}"/Libraries/"
-export LIB_BLAS_LAPACK="-lblas -llapack"
+#export LIB_BLAS_LAPACK="-lblas -llapack"
 export LIB_BLAS_LAPACK="-mkl=sequential"
 # uncomment next lines for hybrid of MPI and OpenMP
 #export LIB_BLAS_LAPACK="-mkl=parallel -qopenmp"

@@ -190,35 +190,34 @@
           !  Per flavor, the  hopping is given by: 
           !  e^{-dtau H_t}  =    Prod_{n=1}^{Ncheck} e^{-dtau_n H_{n,t}}
 
-          Integer :: I, I1, I2,I3,no, no1,  n, Ncheck, nc , nth
+          Integer :: I, I1, I2 ,no, no1, n, Ncheck, nc
           Integer, allocatable :: Invlist_1(:,:)
-          Real    (Kind=8) :: X
           Complex (Kind=8) :: Z
 
 
           ! Setup Gamma matrices
-          Gamma_M = cmplx(0.d0,0.d0)
-          Sigma_M = cmplx(0.d0,0.d0)
-          Sigma_M(1,1,0) = cmplx( 1.d0, 0.d0)
-          Sigma_M(2,2,0) = cmplx( 1.d0, 0.d0)
-          Sigma_M(1,2,1) = cmplx( 1.d0, 0.d0)
-          Sigma_M(2,1,1) = cmplx( 1.d0, 0.d0)
-          Sigma_M(1,2,2) = cmplx( 0.d0,-1.d0)
-          Sigma_M(2,1,2) = cmplx( 0.d0, 1.d0)
-          Sigma_M(1,1,3) = cmplx( 1.d0, 0.d0)
-          Sigma_M(2,2,3) = cmplx(-1.d0, 0.d0)
+          Gamma_M = cmplx(0.d0, 0.d0, kind(0.D0))
+          Sigma_M = cmplx(0.d0, 0.d0, kind(0.D0))
+          Sigma_M(1,1,0) = cmplx( 1.d0, 0.d0, kind(0.D0))
+          Sigma_M(2,2,0) = cmplx( 1.d0, 0.d0, kind(0.D0))
+          Sigma_M(1,2,1) = cmplx( 1.d0, 0.d0, kind(0.D0))
+          Sigma_M(2,1,1) = cmplx( 1.d0, 0.d0, kind(0.D0))
+          Sigma_M(1,2,2) = cmplx( 0.d0,-1.d0, kind(0.D0))
+          Sigma_M(2,1,2) = cmplx( 0.d0, 1.d0, kind(0.D0))
+          Sigma_M(1,1,3) = cmplx( 1.d0, 0.d0, kind(0.D0))
+          Sigma_M(2,2,3) = cmplx(-1.d0, 0.d0, kind(0.D0))
           Do no = 1,2
              Do no1 = 1,2
                 Gamma_M(no+2,no1  ,1)  =  Sigma_M(no,no1,0) 
                 Gamma_M(no  ,no1+2,1)  =  Sigma_M(no,no1,0) 
-                Gamma_M(no+2,no1  ,2)  =  cmplx( 0.d0, 1.d0)*Sigma_M(no,no1,0)
-                Gamma_M(no  ,no1+2,2)  =  cmplx( 0.d0,-1.d0)*Sigma_M(no,no1,0)
-                Gamma_M(no  ,no1  ,3)  =  cmplx( 1.d0, 0.d0)*Sigma_M(no,no1,1)
-                Gamma_M(no+2,no1+2,3)  =  cmplx(-1.d0, 0.d0)*Sigma_M(no,no1,1)
-                Gamma_M(no  ,no1  ,4)  =  cmplx( 1.d0, 0.d0)*Sigma_M(no,no1,2)
-                Gamma_M(no+2,no1+2,4)  =  cmplx(-1.d0, 0.d0)*Sigma_M(no,no1,2)
-                Gamma_M(no  ,no1  ,5)  =  cmplx( 1.d0, 0.d0)*Sigma_M(no,no1,3)
-                Gamma_M(no+2,no1+2,5)  =  cmplx(-1.d0, 0.d0)*Sigma_M(no,no1,3)
+                Gamma_M(no+2,no1  ,2)  =  cmplx( 0.d0, 1.d0, kind(0.D0))*Sigma_M(no,no1,0)
+                Gamma_M(no  ,no1+2,2)  =  cmplx( 0.d0,-1.d0, kind(0.D0))*Sigma_M(no,no1,0)
+                Gamma_M(no  ,no1  ,3)  =  cmplx( 1.d0, 0.d0, kind(0.D0))*Sigma_M(no,no1,1)
+                Gamma_M(no+2,no1+2,3)  =  cmplx(-1.d0, 0.d0, kind(0.D0))*Sigma_M(no,no1,1)
+                Gamma_M(no  ,no1  ,4)  =  cmplx( 1.d0, 0.d0, kind(0.D0))*Sigma_M(no,no1,2)
+                Gamma_M(no+2,no1+2,4)  =  cmplx(-1.d0, 0.d0, kind(0.D0))*Sigma_M(no,no1,2)
+                Gamma_M(no  ,no1  ,5)  =  cmplx( 1.d0, 0.d0, kind(0.D0))*Sigma_M(no,no1,3)
+                Gamma_M(no+2,no1+2,5)  =  cmplx(-1.d0, 0.d0, kind(0.D0))*Sigma_M(no,no1,3)
              Enddo
           Enddo
           
@@ -244,15 +243,15 @@
                 Do I = 1,Latt%N
                    do no = 1,4
                       do no1 = 1,4
-                         Z =  cmplx(2.d0 + Ham_Lam,0.d0)*Gamma_M(no,no1,3)
+                         Z =  cmplx(2.d0 + Ham_Lam, 0.d0, kind(0.D0))*Gamma_M(no,no1,3)
                          Op_T(nc,n)%O( Invlist_1(I,no) ,Invlist_1(I,no1) )  =  Z
                       enddo
                    enddo
                    I1 =  Latt%nnlist(I,1,0)
                    do no = 1,4
                       do no1 = 1,4
-                         Z = (cmplx(0.d0,1.d0)*Gamma_M(no,no1,1) &
-				&    + Gamma_M(no,no1,3))*cmplx(0.5d0,0.d0)
+                         Z = (cmplx(0.d0,1.d0, kind(0.D0))*Gamma_M(no,no1,1) &
+				&    + Gamma_M(no,no1,3))*cmplx(0.5d0,0.d0, kind(0.D0))
                          Op_T(nc,n)%O( invlist_1(I ,no  ), invlist_1(I1,no1  ) )  = &
 				& Op_T(nc,n)%O( invlist_1(I ,no  ), invlist_1(I1,no1  ) ) +  Z
                          Op_T(nc,n)%O( invlist_1(I1,no1 ), invlist_1(I ,no   ) )  = &
@@ -262,8 +261,8 @@
                    I2   = Latt%nnlist(I,0,1)
                    do no = 1,4
                       do no1 = 1,4
-                         Z =   ( cmplx(0.d0,1.d0) * Gamma_M(no,no1,2) &
-				&    + Gamma_M(no,no1,3) )*cmplx(0.5d0,0.d0)
+                         Z =   ( cmplx(0.d0,1.d0, kind(0.D0)) * Gamma_M(no,no1,2) &
+				&    + Gamma_M(no,no1,3) )*cmplx(0.5d0,0.d0, kind(0.D0))
                          Op_T(nc,n)%O( invlist_1(I ,no ), invlist_1(I2,no1  ) )  = &
 				& Op_T(nc,n)%O( invlist_1(I ,no ), invlist_1(I2,no1  ) ) + Z
                          Op_T(nc,n)%O( invlist_1(I2,no1), invlist_1(I ,no   ) )  = &
@@ -271,7 +270,7 @@
                       enddo
                    enddo
                 enddo
-                Op_T(nc,n)%g=cmplx(-Dtau*Ham_T,0.d0)
+                Op_T(nc,n)%g=cmplx(-Dtau*Ham_T,0.d0, kind(0.D0))
                 Call Op_set(Op_T(nc,n)) 
                 ! Just for tests
                 Do I = 1, Ndim/4
@@ -296,7 +295,7 @@
           Complex (Kind=8) :: Sx(16,16,2,2), Sy(16,16,2,2)
 
 
-          Ps = cmplx(0.d0,0.d0)
+          Ps = cmplx(0.d0, 0.d0, kind(0.D0))
           Call mmult (Tmp,Gamma_M(:,:,3), Gamma_M(:,:,4) )
           
 ! !           Do n=1,5
@@ -315,9 +314,9 @@
              if (ns == 2) X = -1.d0/2.d0
              Do I = 1,4
                 Do J = 1,4
-                   Z = cmplx(0.d0,0.d0)
-                   if ( I == J )  Z = cmplx(1.d0/2.d0,0.d0)
-                   Ps(I,J,ns) =   Z  + cmplx(0.d0,X) * tmp(I,J)
+                   Z = cmplx(0.d0, 0.d0, kind(0.D0))
+                   if ( I == J )  Z = cmplx(1.d0/2.d0, 0.d0, kind(0.D0))
+                   Ps(I,J,ns) =   Z  + cmplx(0.d0, X, kind(0.D0)) * tmp(I,J)
                 Enddo
              Enddo
           Enddo
@@ -337,23 +336,23 @@
 ! 	    write(*,*)
 !           enddo
       
-          Sx = cmplx(0.d0,0.d0)
-          Sy = cmplx(0.d0,0.d0)
+          Sx = cmplx(0.d0,0.d0, kind(0.D0))
+          Sy = cmplx(0.d0,0.d0, kind(0.D0))
           Do ns = 1,2
              Do npm = 1,2
                 if (npm == 1) Xpm =  1.0
                 if (npm == 2) Xpm = -1.0
                 Do no = 1,4
                    do no1 = 1,4
-                      Sx(no    , no1 + 4 ,ns,npm) =  cmplx(1.d0, 0.d0)*Ps_G5(no,no1,ns)
-                      Sx(no +4 , no1     ,ns,npm) =  cmplx(1.d0, 0.d0)*Ps_G5(no,no1,ns)
-                      Sx(no +8 , no1 + 12,ns,npm) =  cmplx(xpm,  0.d0)*Ps_G5(no,no1,ns)
-                      Sx(no+12 , no1 + 8 ,ns,npm) =  cmplx(xpm,  0.d0)*Ps_G5(no,no1,ns)
+                      Sx(no    , no1 + 4 ,ns,npm) =  cmplx(1.d0, 0.d0, kind(0.D0))*Ps_G5(no,no1,ns)
+                      Sx(no +4 , no1     ,ns,npm) =  cmplx(1.d0, 0.d0, kind(0.D0))*Ps_G5(no,no1,ns)
+                      Sx(no +8 , no1 + 12,ns,npm) =  cmplx(xpm,  0.d0, kind(0.D0))*Ps_G5(no,no1,ns)
+                      Sx(no+12 , no1 + 8 ,ns,npm) =  cmplx(xpm,  0.d0, kind(0.D0))*Ps_G5(no,no1,ns)
                       
-                      Sy(no    , no1 + 4 ,ns,npm) =  cmplx(0.d0, -1.d0    )*Ps_G5(no,no1,ns)
-                      Sy(no +4 , no1     ,ns,npm) =  cmplx(0.d0,  1.d0    )*Ps_G5(no,no1,ns)
-                      Sy(no +8 , no1 + 12,ns,npm) =  cmplx(0.d0, -1.d0*xpm)*Ps_G5(no,no1,ns)
-                      Sy(no+12 , no1 + 8 ,ns,npm) =  cmplx(0.d0,  1.d0*xpm)*Ps_G5(no,no1,ns)
+                      Sy(no    , no1 + 4 ,ns,npm) =  cmplx(0.d0, -1.d0    , kind(0.D0))*Ps_G5(no,no1,ns)
+                      Sy(no +4 , no1     ,ns,npm) =  cmplx(0.d0,  1.d0    , kind(0.D0))*Ps_G5(no,no1,ns)
+                      Sy(no +8 , no1 + 12,ns,npm) =  cmplx(0.d0, -1.d0*xpm, kind(0.D0))*Ps_G5(no,no1,ns)
+                      Sy(no+12 , no1 + 8 ,ns,npm) =  cmplx(0.d0,  1.d0*xpm, kind(0.D0))*Ps_G5(no,no1,ns)
                    enddo
                 enddo
              enddo
@@ -387,8 +386,8 @@
                                If (nxy == 2)  Op_V(nc,nf)%O(no,no1) = Sy(2*(no-1)+noff,2*(no1-1)+noff,ns,npm)
                             Enddo
                          Enddo
-                         Op_V(nc,nf)%g = SQRT(CMPLX(-Xpm*DTAU*Ham_Vint/8.d0,0.D0)) 
-                         Op_V(nc,nf)%alpha  = cmplx(0.d0,0.d0)
+                         Op_V(nc,nf)%g = SQRT(CMPLX(-Xpm*DTAU*Ham_Vint/8.d0, 0.D0, kind(0.D0))) 
+                         Op_V(nc,nf)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
                          Op_V(nc,nf)%type   = 2
                          Call Op_set( Op_V(nc,nf) )
                          ! The operator reads: 
@@ -406,7 +405,7 @@
         Real (Kind=8) function S0(n,nt)  
           Implicit none
           Integer, Intent(IN) :: n,nt 
-          Integer :: i, nt1 
+
           S0 = 1.d0
         end function S0
 
@@ -458,71 +457,69 @@
           Implicit none
           Integer, Intent(In) :: Ltau
           
-          Integer :: I,n
-          
           Nobs = 0
-          Obs_scal  = cmplx(0.d0,0.d0)
+          Obs_scal  = cmplx(0.d0,0.d0, kind(0.D0))
           
-          Den_eq    = cmplx(0.d0,0.d0)
-          Den_eq0   = cmplx(0.d0,0.d0)
-          Spinz_eq    = cmplx(0.d0,0.d0)
-          Spinz_eq0   = cmplx(0.d0,0.d0)
-          U1_eq    = cmplx(0.d0,0.d0)
-          U1_eq0   = cmplx(0.d0,0.d0)
-          L_eq    = cmplx(0.d0,0.d0)
-          L_eq0   = cmplx(0.d0,0.d0)
+          Den_eq    = cmplx(0.d0,0.d0, kind(0.D0))
+          Den_eq0   = cmplx(0.d0,0.d0, kind(0.D0))
+          Spinz_eq    = cmplx(0.d0,0.d0, kind(0.D0))
+          Spinz_eq0   = cmplx(0.d0,0.d0, kind(0.D0))
+          U1_eq    = cmplx(0.d0,0.d0, kind(0.D0))
+          U1_eq0   = cmplx(0.d0,0.d0, kind(0.D0))
+          L_eq    = cmplx(0.d0,0.d0, kind(0.D0))
+          L_eq0   = cmplx(0.d0,0.d0, kind(0.D0))
           
           if (FlagSym ==1 ) then
-	      R_eq    = cmplx(0.d0,0.d0)
-	      R_eq0   = cmplx(0.d0,0.d0)
-	      U1xy_eq    = cmplx(0.d0,0.d0)
-	      U1xy_eq0   = cmplx(0.d0,0.d0)
-	      Spinxy_eq    = cmplx(0.d0,0.d0)
-	      Spinxy_eq0   = cmplx(0.d0,0.d0)
+	      R_eq    = cmplx(0.d0,0.d0, kind(0.D0))
+	      R_eq0   = cmplx(0.d0,0.d0, kind(0.D0))
+	      U1xy_eq    = cmplx(0.d0,0.d0, kind(0.D0))
+	      U1xy_eq0   = cmplx(0.d0,0.d0, kind(0.D0))
+	      Spinxy_eq    = cmplx(0.d0,0.d0, kind(0.D0))
+	      Spinxy_eq0   = cmplx(0.d0,0.d0, kind(0.D0))
 	      
-	      TRS_eq    = cmplx(0.d0,0.d0)
-	      TRS_eq0   = cmplx(0.d0,0.d0)
-	      PHS_eq    = cmplx(0.d0,0.d0)
-	      PHS_eq0   = cmplx(0.d0,0.d0)
-	      RS_eq    = cmplx(0.d0,0.d0)
-	      RS_eq0   = cmplx(0.d0,0.d0)
-	      C4S_eq    = cmplx(0.d0,0.d0)
-	      C4S_eq0   = cmplx(0.d0,0.d0)
-	      PxS_eq    = cmplx(0.d0,0.d0)
-	      PxS_eq0   = cmplx(0.d0,0.d0)
-	      SxS_eq    = cmplx(0.d0,0.d0)
-	      SxS_eq0   = cmplx(0.d0,0.d0)
-	      SzS_eq    = cmplx(0.d0,0.d0)
-	      SzS_eq0   = cmplx(0.d0,0.d0)
-	      U11S_eq    = cmplx(0.d0,0.d0)
-	      U11S_eq0   = cmplx(0.d0,0.d0)
-	      U12S_eq    = cmplx(0.d0,0.d0)
-	      U12S_eq0   = cmplx(0.d0,0.d0)
+	      TRS_eq    = cmplx(0.d0,0.d0, kind(0.D0))
+	      TRS_eq0   = cmplx(0.d0,0.d0, kind(0.D0))
+	      PHS_eq    = cmplx(0.d0,0.d0, kind(0.D0))
+	      PHS_eq0   = cmplx(0.d0,0.d0, kind(0.D0))
+	      RS_eq    = cmplx(0.d0,0.d0, kind(0.D0))
+	      RS_eq0   = cmplx(0.d0,0.d0, kind(0.D0))
+	      C4S_eq    = cmplx(0.d0,0.d0, kind(0.D0))
+	      C4S_eq0   = cmplx(0.d0,0.d0, kind(0.D0))
+	      PxS_eq    = cmplx(0.d0,0.d0, kind(0.D0))
+	      PxS_eq0   = cmplx(0.d0,0.d0, kind(0.D0))
+	      SxS_eq    = cmplx(0.d0,0.d0, kind(0.D0))
+	      SxS_eq0   = cmplx(0.d0,0.d0, kind(0.D0))
+	      SzS_eq    = cmplx(0.d0,0.d0, kind(0.D0))
+	      SzS_eq0   = cmplx(0.d0,0.d0, kind(0.D0))
+	      U11S_eq    = cmplx(0.d0,0.d0, kind(0.D0))
+	      U11S_eq0   = cmplx(0.d0,0.d0, kind(0.D0))
+	      U12S_eq    = cmplx(0.d0,0.d0, kind(0.D0))
+	      U12S_eq0   = cmplx(0.d0,0.d0, kind(0.D0))
 	  endif
 
           If (Ltau == 1) then
              NobsT = 0
-             Phase_tau = cmplx(0.d0,0.d0)
-             Green_tau = cmplx(0.d0,0.d0)
-             Den_tau = cmplx(0.d0,0.d0)
-             U1_tau = cmplx(0.d0,0.d0)
-             U1xy_tau = cmplx(0.d0,0.d0)
-             U1xyG_tau = cmplx(0.d0,0.d0)
-             Spinz_tau = cmplx(0.d0,0.d0)
-             Spinxy_tau = cmplx(0.d0,0.d0)
+             Phase_tau = cmplx(0.d0,0.d0, kind(0.D0))
+             Green_tau = cmplx(0.d0,0.d0, kind(0.D0))
+             Den_tau = cmplx(0.d0,0.d0, kind(0.D0))
+             U1_tau = cmplx(0.d0,0.d0, kind(0.D0))
+             U1xy_tau = cmplx(0.d0,0.d0, kind(0.D0))
+             U1xyG_tau = cmplx(0.d0,0.d0, kind(0.D0))
+             Spinz_tau = cmplx(0.d0,0.d0, kind(0.D0))
+             Spinxy_tau = cmplx(0.d0,0.d0, kind(0.D0))
           
-	     Den_eq    = cmplx(0.d0,0.d0)
-	     Den_eq0   = cmplx(0.d0,0.d0)
-	     U1_sus    = cmplx(0.d0,0.d0)
-	     U1_sus0   = cmplx(0.d0,0.d0)
-	     U1xy_sus    = cmplx(0.d0,0.d0)
-	     U1xy_sus0   = cmplx(0.d0,0.d0)
- 	     U1xyG_sus    = cmplx(0.d0,0.d0)
- 	     U1xyG_sus0   = cmplx(0.d0,0.d0)
-	     Spinz_sus    = cmplx(0.d0,0.d0)
-	     Spinz_sus0   = cmplx(0.d0,0.d0)
-	     Spinxy_sus    = cmplx(0.d0,0.d0)
-	     Spinxy_sus0   = cmplx(0.d0,0.d0)
+	     Den_eq    = cmplx(0.d0,0.d0, kind(0.D0))
+	     Den_eq0   = cmplx(0.d0,0.d0, kind(0.D0))
+	     U1_sus    = cmplx(0.d0,0.d0, kind(0.D0))
+	     U1_sus0   = cmplx(0.d0,0.d0, kind(0.D0))
+	     U1xy_sus    = cmplx(0.d0,0.d0, kind(0.D0))
+	     U1xy_sus0   = cmplx(0.d0,0.d0, kind(0.D0))
+ 	     U1xyG_sus    = cmplx(0.d0,0.d0, kind(0.D0))
+ 	     U1xyG_sus0   = cmplx(0.d0,0.d0, kind(0.D0))
+	     Spinz_sus    = cmplx(0.d0,0.d0, kind(0.D0))
+	     Spinz_sus0   = cmplx(0.d0,0.d0, kind(0.D0))
+	     Spinxy_sus    = cmplx(0.d0,0.d0, kind(0.D0))
+	     Spinxy_sus0   = cmplx(0.d0,0.d0, kind(0.D0))
           endif
 
         end Subroutine Init_obs
@@ -545,15 +542,15 @@
           Real (Kind=8) :: G(4,4), X, FI, FJ
           
           Nobs = Nobs + 1
-          ZP = PHASE/cmplx(Real(Phase,kind=8),0.d0)
-          ZS = cmplx(Real(Phase,kind=8)/Abs(Real(Phase,kind=8)), 0.d0)
+          ZP = PHASE/Real(Phase, kind(0.D0))
+          ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
           
 
           Do nf = 1,N_FL
              Do I = 1,Ndim
                 Do J = 1,Ndim
-                   ZK = cmplx(0.d0,0.d0)
-                   If ( I == J ) ZK = cmplx(1.d0,0.d0)
+                   ZK = cmplx(0.d0, 0.d0, kind(0.D0))
+                   If ( I == J ) ZK = cmplx(1.d0, 0.d0, kind(0.D0))
                    GRC(I,J,nf)  = ZK - GR(J,I,nf)
                 Enddo
              Enddo
@@ -561,8 +558,8 @@
           ! GRC(i,j,nf) = < c^{dagger}_{j,nf } c_{j,nf } >
           ! Compute scalar observables. 
 
-          Zkin = cmplx(0.d0,0.d0)
-          
+          Zkin = cmplx(0.d0,0.d0, kind(0.D0))
+
           Nc = Size( Op_T,1)
           Do nf = 1,N_FL
              Do n = 1,Nc
@@ -575,9 +572,9 @@
                 ENddo
              Enddo
           Enddo
-          Zkin = Zkin*cmplx( dble(N_SUN), 0.d0 )
+          Zkin = Zkin*cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
           
-          ZL = cmplx(0.d0,0.d0)
+          ZL = cmplx(0.d0,0.d0, kind(0.D0))
           
 !           Nc = Size( Op_T,1)
           Do nf = 1,N_FL
@@ -595,16 +592,16 @@
                 ENddo
 !              Enddo
           Enddo
-          ZL = ZL*cmplx( dble(N_SUN), 0.d0 )
+          ZL = ZL*cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
 
-          Zrho = cmplx(0.d0,0.d0)
+          Zrho = cmplx(0.d0, 0.d0, kind(0.D0))
           Do nf = 1,N_FL
              Do I = 1,Ndim
                 Zrho = Zrho + Grc(i,i,nf) 
              enddo
           enddo
-          Zrho = Zrho*cmplx( dble(N_SUN), 0.d0 )
-          ZPot = cmplx(0.d0,0.d0)
+          Zrho = Zrho*cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
+          ZPot = cmplx(0.d0,0.d0, kind(0.D0))
 
           Nc = Size( Op_V,1)
           Do nf = 1,N_FL
@@ -632,7 +629,7 @@
 ! 		write(*,*) Zpot
              Enddo
           Enddo
-          ZPot = ZPot*cmplx( dble(N_SUN), 0.d0 )
+          ZPot = ZPot*cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
 
           Obs_scal(1) = Obs_scal(1) + zrho * ZP*ZS
           Obs_scal(2) = Obs_scal(2) + zkin*Ham_T * ZP*ZS
@@ -658,14 +655,14 @@
 
                 DEN_Eq (imj,1,1) = DEN_Eq (imj,1,1)   +  tmp
                      
-		weight=cmplx(1.d0,0.d0)
+		weight=cmplx(1.d0,0.d0, kind(0.D0))
 		if ( (no>=9 .and. no1<=8) .or. (no<=8 .and. no1>=9) ) weight=-weight
 		Spinz_eq (imj,1,1) = Spinz_eq (imj,1,1)   +   weight * 0.25 * tmp
 		
 		signum = 1
 		if (((no-1)/4+1==2) .or. ((no-1)/4+1==4)) signum=-1
 		if (((no1-1)/4+1==2) .or. ((no1-1)/4+1 ==4)) signum=-signum
-		weight = cmplx(dble(signum),0.d0)
+		weight = cmplx(dble(signum),0.d0, kind(0.D0))
 		U1_eq (imj,1,1) = U1_eq (imj,1,1)   +  weight*tmp*0.25
 
              enddo
@@ -786,7 +783,7 @@
 			  endif
 			  
       ! 		    TR symmetry check
-			  weight = gamma_13(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0)
+			  weight = gamma_13(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Ix,4*(no-1)+b)
@@ -797,7 +794,7 @@
 			    TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
 			  endif
 			  
-			  weight = gamma_13(a,b)*Gamma_23(c,d)/cmplx(4.d0,0.d0)
+			  weight = gamma_13(a,b)*Gamma_23(c,d)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Ix,4*(no-1)+b)
@@ -808,7 +805,7 @@
 			    TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
 			  endif
 			  
-			  weight = -gamma_13(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0)
+			  weight = -gamma_13(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Ix,4*(no-1)+b)
@@ -819,7 +816,7 @@
 			    TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
 			  endif
 			  
-			  weight = -gamma_13(a,b)*Gamma_23(c,d)/cmplx(4.d0,0.d0)
+			  weight = -gamma_13(a,b)*Gamma_23(c,d)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Ix,4*(no-1)+b)
@@ -830,7 +827,7 @@
 			    TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
 			  endif
 			  
-			  weight = gamma_23(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0)
+			  weight = gamma_23(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Iy,4*(no-1)+b)
@@ -841,7 +838,7 @@
 			    TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
 			  endif
 			  
-			  weight = gamma_23(a,b)*Gamma_23(c,d)/cmplx(4.d0,0.d0)
+			  weight = gamma_23(a,b)*Gamma_23(c,d)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Iy,4*(no-1)+b)
@@ -852,7 +849,7 @@
 			    TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
 			  endif
 			  
-			  weight = -gamma_23(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0)
+			  weight = -gamma_23(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Iy,4*(no-1)+b)
@@ -863,7 +860,7 @@
 			    TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
 			  endif
 			  
-			  weight = -gamma_23(a,b)*Gamma_23(c,d)/cmplx(4.d0,0.d0)
+			  weight = -gamma_23(a,b)*Gamma_23(c,d)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Iy,4*(no-1)+b)
@@ -874,7 +871,7 @@
 			    TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
 			  endif
 			  
-			  weight = -gamma_13(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0)
+			  weight = -gamma_13(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Imx,4*(no-1)+b)
@@ -885,7 +882,7 @@
 			    TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
 			  endif
 			  
-			  weight = -gamma_13(a,b)*Gamma_23(c,d)/cmplx(4.d0,0.d0)
+			  weight = -gamma_13(a,b)*Gamma_23(c,d)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Imx,4*(no-1)+b)
@@ -896,7 +893,7 @@
 			    TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
 			  endif
 			  
-			  weight = gamma_13(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0)
+			  weight = gamma_13(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Imx,4*(no-1)+b)
@@ -907,7 +904,7 @@
 			    TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
 			  endif
 			  
-			  weight = gamma_13(a,b)*Gamma_23(c,d)/cmplx(4.d0,0.d0)
+			  weight = gamma_13(a,b)*Gamma_23(c,d)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Imx,4*(no-1)+b)
@@ -918,7 +915,7 @@
 			    TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
 			  endif
 			  
-			  weight = -gamma_23(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0)
+			  weight = -gamma_23(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Imy,4*(no-1)+b)
@@ -929,7 +926,7 @@
 			    TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
 			  endif
 			  
-			  weight = -gamma_23(a,b)*Gamma_23(c,d)/cmplx(4.d0,0.d0)
+			  weight = -gamma_23(a,b)*Gamma_23(c,d)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Imy,4*(no-1)+b)
@@ -940,7 +937,7 @@
 			    TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
 			  endif
 			  
-			  weight = gamma_23(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0)
+			  weight = gamma_23(a,b)*Gamma_13(c,d)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Imy,4*(no-1)+b)
@@ -951,7 +948,7 @@
 			    TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
 			  endif
 			  
-			  weight = gamma_23(a,b)*Gamma_23(c,d)/cmplx(4.d0,0.d0)
+			  weight = gamma_23(a,b)*Gamma_23(c,d)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Imy,4*(no-1)+b)
@@ -976,7 +973,7 @@
 			  
       ! 		    C4 symmetry check
       ! 		    11
-			  weight = -gamma_M(a,b,1)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
+			  weight = -gamma_M(a,b,1)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Ix,4*(no-1)+b)
@@ -988,7 +985,7 @@
 			  endif
 			  
       ! 		    12
-			  weight = gamma_M(a,b,1)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
+			  weight = gamma_M(a,b,1)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Ix,4*(no-1)+b)
@@ -1000,7 +997,7 @@
 			  endif
 			  
       ! 		    13
-			  weight = gamma_M(a,b,1)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
+			  weight = gamma_M(a,b,1)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Ix,4*(no-1)+b)
@@ -1012,7 +1009,7 @@
 			  endif
 			  
       ! 		    14
-			  weight = -gamma_M(a,b,1)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
+			  weight = -gamma_M(a,b,1)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Ix,4*(no-1)+b)
@@ -1024,7 +1021,7 @@
 			  endif
 			  
       ! 		    21
-			  weight = gamma_M(a,b,2)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
+			  weight = gamma_M(a,b,2)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Iy,4*(no-1)+b)
@@ -1036,7 +1033,7 @@
 			  endif
 			  
       ! 		    22
-			  weight = -gamma_M(a,b,2)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
+			  weight = -gamma_M(a,b,2)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Iy,4*(no-1)+b)
@@ -1048,7 +1045,7 @@
 			  endif
 			  
       ! 		    23
-			  weight = -gamma_M(a,b,2)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
+			  weight = -gamma_M(a,b,2)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Iy,4*(no-1)+b)
@@ -1060,7 +1057,7 @@
 			  endif
 			  
       ! 		    24
-			  weight = gamma_M(a,b,2)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
+			  weight = gamma_M(a,b,2)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Iy,4*(no-1)+b)
@@ -1072,7 +1069,7 @@
 			  endif
 			  
       ! 		    31
-			  weight = gamma_M(a,b,1)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
+			  weight = gamma_M(a,b,1)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Imx,4*(no-1)+b)
@@ -1084,7 +1081,7 @@
 			  endif
 			  
       ! 		    32
-			  weight = -gamma_M(a,b,1)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
+			  weight = -gamma_M(a,b,1)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Imx,4*(no-1)+b)
@@ -1096,7 +1093,7 @@
 			  endif
 			  
       ! 		    33
-			  weight = -gamma_M(a,b,1)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
+			  weight = -gamma_M(a,b,1)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Imx,4*(no-1)+b)
@@ -1108,7 +1105,7 @@
 			  endif
 			  
       ! 		    34
-			  weight = gamma_M(a,b,1)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
+			  weight = gamma_M(a,b,1)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Imx,4*(no-1)+b)
@@ -1120,7 +1117,7 @@
 			  endif
 			  
       ! 		    41
-			  weight = -gamma_M(a,b,2)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
+			  weight = -gamma_M(a,b,2)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Imy,4*(no-1)+b)
@@ -1132,7 +1129,7 @@
 			  endif
 			  
       ! 		    42
-			  weight = gamma_M(a,b,2)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
+			  weight = gamma_M(a,b,2)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Imy,4*(no-1)+b)
@@ -1144,7 +1141,7 @@
 			  endif
 			  
       ! 		    43
-			  weight = gamma_M(a,b,2)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
+			  weight = gamma_M(a,b,2)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Imy,4*(no-1)+b)
@@ -1156,7 +1153,7 @@
 			  endif
 			  
       ! 		    44
-			  weight = -gamma_M(a,b,2)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
+			  weight = -gamma_M(a,b,2)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Imy,4*(no-1)+b)
@@ -1169,7 +1166,7 @@
 			  
       ! 		    Px symmetry check
       ! 		    11
-			  weight = -gamma_M(a,b,1)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
+			  weight = -gamma_M(a,b,1)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Iy,4*(no-1)+b)
@@ -1181,7 +1178,7 @@
 			  endif
 			  
       ! 		    12
-			  weight = gamma_M(a,b,1)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
+			  weight = gamma_M(a,b,1)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Iy,4*(no-1)+b)
@@ -1193,7 +1190,7 @@
 			  endif
 			  
       ! 		    13
-			  weight = gamma_M(a,b,1)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
+			  weight = gamma_M(a,b,1)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Iy,4*(no-1)+b)
@@ -1205,7 +1202,7 @@
 			  endif
 			  
       ! 		    14
-			  weight = -gamma_M(a,b,1)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
+			  weight = -gamma_M(a,b,1)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Iy,4*(no-1)+b)
@@ -1217,7 +1214,7 @@
 			  endif
 			  
       ! 		    21
-			  weight = gamma_M(a,b,2)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
+			  weight = gamma_M(a,b,2)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Ix,4*(no-1)+b)
@@ -1229,7 +1226,7 @@
 			  endif
 			  
       ! 		    22
-			  weight = -gamma_M(a,b,2)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
+			  weight = -gamma_M(a,b,2)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Ix,4*(no-1)+b)
@@ -1241,7 +1238,7 @@
 			  endif
 			  
       ! 		    23
-			  weight = -gamma_M(a,b,2)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
+			  weight = -gamma_M(a,b,2)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Ix,4*(no-1)+b)
@@ -1253,7 +1250,7 @@
 			  endif
 			  
       ! 		    24
-			  weight = gamma_M(a,b,2)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
+			  weight = gamma_M(a,b,2)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Ix,4*(no-1)+b)
@@ -1265,7 +1262,7 @@
 			  endif
 			  
       ! 		    31
-			  weight = gamma_M(a,b,1)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
+			  weight = gamma_M(a,b,1)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Imy,4*(no-1)+b)
@@ -1277,7 +1274,7 @@
 			  endif
 			  
       ! 		    32
-			  weight = -gamma_M(a,b,1)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
+			  weight = -gamma_M(a,b,1)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Imy,4*(no-1)+b)
@@ -1289,7 +1286,7 @@
 			  endif
 			  
       ! 		    33
-			  weight = -gamma_M(a,b,1)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
+			  weight = -gamma_M(a,b,1)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Imy,4*(no-1)+b)
@@ -1301,7 +1298,7 @@
 			  endif
 			  
       ! 		    34
-			  weight = gamma_M(a,b,1)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
+			  weight = gamma_M(a,b,1)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Imy,4*(no-1)+b)
@@ -1313,7 +1310,7 @@
 			  endif
 			  
       ! 		    41
-			  weight = -gamma_M(a,b,2)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
+			  weight = -gamma_M(a,b,2)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Imx,4*(no-1)+b)
@@ -1325,7 +1322,7 @@
 			  endif
 			  
       ! 		    42
-			  weight = gamma_M(a,b,2)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
+			  weight = gamma_M(a,b,2)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Imx,4*(no-1)+b)
@@ -1337,7 +1334,7 @@
 			  endif
 			  
       ! 		    43
-			  weight = gamma_M(a,b,2)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0)
+			  weight = gamma_M(a,b,2)*Gamma_M(c,d,1)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Imx,4*(no-1)+b)
@@ -1349,7 +1346,7 @@
 			  endif
 			  
       ! 		    44
-			  weight = -gamma_M(a,b,2)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0)
+			  weight = -gamma_M(a,b,2)*Gamma_M(c,d,2)/cmplx(4.d0,0.d0, kind(0.D0))
 			  if ( abs(weight) > 0.01 ) then
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(Imx,4*(no-1)+b)
@@ -1411,11 +1408,11 @@
       ! 		    U(1)_2 symmetry check
 			  if (a.eq.b .and. c.eq.d) then
 			    signum = (-1)**no
-			    weight = cmplx(0.d0,dble(signum))
+			    weight = cmplx(0.d0,dble(signum), kind(0.D0))
 			    I1 = Invlist(I,4*(no-1)+a)
 			    I2 = Invlist(I,4*(no-signum-1)+b)
 			    signum = (-1)**no1
-			    weight = cmplx(0.d0,dble(signum))*weight
+			    weight = cmplx(0.d0,dble(signum), kind(0.D0))*weight
 			    J1 = Invlist(J,4*(no1-1)+c)
 			    J2 = Invlist(J,4*(no1-signum-1)+d)
       ! 		      if ((no>2 .and. no1<3) .or. (no<3 .and. n1>2)) weight = -weight
@@ -1477,11 +1474,10 @@
 !!$          Write(6,*)  'In Pr_obs', LTAU
 !!$#endif
     
-          
           File_pr ="ener"
           Call Print_scal(Obs_scal, Nobs, file_pr)
           
-          Phase_bin = Obs_scal(8)/cmplx(dble(Nobs),0.d0)
+          Phase_bin = Obs_scal(8)/dble(Nobs)
           File_pr ="Den_eq"
           Call Print_bin(Den_eq, Den_eq0, Latt, Nobs, Phase_bin, file_pr)
           File_pr ="U1_eq"
@@ -1515,7 +1511,7 @@
 	  endif
           
           If (Ltau == 1) then
-             Phase_tau = Phase_tau/cmplx(dble(NobsT),0.d0)
+             Phase_tau = Phase_tau/dble(NobsT)
              File_pr = "Green_tau"
              Call Print_bin_tau(Green_tau,Latt,NobsT,Phase_tau, file_pr,dtau)
              File_pr = "Den_tau"
@@ -1565,8 +1561,8 @@
           Complex (Kind=8) :: Z, ZP, ZS, tmp, DeltaI, DeltaJ, weight, weightbeta
           Integer :: IMJ, I1, I, no, J1, J, no1, I2, J2, signum,a,b,c,d
 
-          ZP = PHASE/cmplx(Real(Phase,kind=8),0.d0)
-          ZS = cmplx(Real(Phase,kind=8)/Abs(Real(Phase,kind=8)), 0.d0)
+          ZP = PHASE/Real(Phase, kind(0.D0))
+          ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
           If (NT == 0 ) then 
              Phase_tau = Phase_tau + ZS
              NobsT     = NobsT + 1
@@ -1592,7 +1588,7 @@
           If (NT == 0 .or. NT==Ltrot) weightbeta=0.5*weightbeta 
           
           If ( N_FL == 1 ) then 
-             Z =  cmplx(dble(N_SUN),0.d0)
+             Z =  cmplx(dble(N_SUN),0.d0, kind(0.D0))
              Do I1 = 1,Ndim
 		I  = List(I1,1)
 		no = List(I1,2)
@@ -1604,14 +1600,14 @@
                    
                    I2=I1
                    J2=J1
-                   DeltaI=cmplx(0.d0,0.d0)
-                   if (I1==I2 .and. nt==0) DeltaI=cmplx(1.d0,0.d0)
-                   DeltaJ=cmplx(0.d0,0.d0)
-                   if (J1==J2 .and. nt==0) DeltaJ=cmplx(1.d0,0.d0)
+                   DeltaI=cmplx(0.d0,0.d0, kind(0.D0))
+                   if (I1==I2 .and. nt==0) DeltaI=cmplx(1.d0,0.d0, kind(0.D0))
+                   DeltaJ=cmplx(0.d0,0.d0, kind(0.D0))
+                   if (J1==J2 .and. nt==0) DeltaJ=cmplx(1.d0,0.d0, kind(0.D0))
                    tmp =  Z * ( (DeltaI - GTT(I2,I1,1))*(DeltaJ - G00(J2,J1,1)) - GT0(I2,J1,1)*G0T(J2,I1,1)) * ZP* ZS		!
                    
-                   Den_tau  (imj,nt+1,1,1) = Den_tau  (imj,nt+1,1,1)  +  tmp  - cmplx(0.25d0,0.d0)
-                   Den_sus  (imj,1,1) = Den_sus  (imj,1,1)  +  weightbeta*(tmp  - cmplx(0.25d0,0.d0))
+                   Den_tau  (imj,nt+1,1,1) = Den_tau  (imj,nt+1,1,1)  +  tmp  - cmplx(0.25d0,0.d0, kind(0.D0))
+                   Den_sus  (imj,1,1) = Den_sus  (imj,1,1)  +  weightbeta*(tmp  - cmplx(0.25d0,0.d0, kind(0.D0)))
                      
 		   weight=cmplx(1.d0,0.d0)
 		   if ( (no>=9 .and. no1<=8) .or. (no<=8 .and. no1>=9) ) weight=-weight
@@ -1621,7 +1617,7 @@
 		   signum = 1
 		   if (((no-1)/4+1==2) .or. ((no-1)/4+1==4)) signum=-1
 		   if (((no1-1)/4+1==2) .or. ((no1-1)/4+1 ==4)) signum=-signum
-		   weight = cmplx(dble(signum),0.d0)
+		   weight = cmplx(dble(signum),0.d0, kind(0.D0))
 		   U1_tau (imj,nt+1,1,1) = U1_tau (imj,nt+1,1,1)   +  weight*tmp*0.25
 		   U1_sus (imj,1,1) = U1_sus (imj,1,1)   + weightbeta* weight*tmp*0.25
 
@@ -1638,10 +1634,10 @@
 			  J1 = Invlist(J,no1+8)
 			  J2 = Invlist(J,no1)
 			  
-			  DeltaI=cmplx(0.d0,0.d0)
-			  if (I1==I2 .and. nt==0) DeltaI=cmplx(1.d0,0.d0)
-			  DeltaJ=cmplx(0.d0,0.d0)
-			  if (J1==J2 .and. nt==0) DeltaJ=cmplx(1.d0,0.d0)
+			  DeltaI=cmplx(0.d0,0.d0, kind(0.D0))
+			  if (I1==I2 .and. nt==0) DeltaI=cmplx(1.d0,0.d0, kind(0.D0))
+			  DeltaJ=cmplx(0.d0,0.d0, kind(0.D0))
+			  if (J1==J2 .and. nt==0) DeltaJ=cmplx(1.d0,0.d0, kind(0.D0))
 			  tmp =  Z * ((DeltaI - GTT(I2,I1,1))*(DeltaJ - G00(J2,J1,1)) - GT0(I2,J1,1)*G0T(J2,I1,1)) * ZP* ZS
 			  Spinxy_tau (imj,nt+1,1,1) = Spinxy_tau (imj,nt+1,1,1)   +  tmp
 			  Spinxy_sus (imj,1,1) = Spinxy_sus (imj,1,1)   +   weightbeta*tmp
@@ -1661,10 +1657,10 @@
 			    J2 = Invlist(J,no1+4)
 			  endif
 			  
-			  DeltaI=cmplx(0.d0,0.d0)
-			  if (I1==I2 .and. nt==0) DeltaI=cmplx(1.d0,0.d0)
-			  DeltaJ=cmplx(0.d0,0.d0)
-			  if (J1==J2 .and. nt==0) DeltaJ=cmplx(1.d0,0.d0)
+			  DeltaI=cmplx(0.d0,0.d0, kind(0.D0))
+			  if (I1==I2 .and. nt==0) DeltaI=cmplx(1.d0,0.d0, kind(0.D0))
+			  DeltaJ=cmplx(0.d0,0.d0, kind(0.D0))
+			  if (J1==J2 .and. nt==0) DeltaJ=cmplx(1.d0,0.d0, kind(0.D0))
 			  tmp =  Z * ((DeltaI - GTT(I2,I1,1))*(DeltaJ - G00(J2,J1,1)) - GT0(I2,J1,1)*G0T(J2,I1,1)) * ZP* ZS
 			  U1xy_tau (imj,nt+1,1,1) = U1xy_tau (imj,nt+1,1,1)   +  tmp
 			  U1xy_sus (imj,1,1) = U1xy_sus (imj,1,1)   +  weightbeta*tmp
@@ -1694,10 +1690,10 @@
 			    I2 = Invlist(I,4*(no-1)+b)
 			    J1 = Invlist(J,4*(no1-1)+c)
 			    J2 = Invlist(J,4*(no1-1)+d)
-			    DeltaI=cmplx(0.d0,0.d0)
-			    if (I1==I2 .and. nt==0) DeltaI=cmplx(1.d0,0.d0)
-			    DeltaJ=cmplx(0.d0,0.d0)
-			    if (J1==J2 .and. nt==0) DeltaJ=cmplx(1.d0,0.d0)
+			    DeltaI=cmplx(0.d0,0.d0, kind(0.D0))
+			    if (I1==I2 .and. nt==0) DeltaI=cmplx(1.d0,0.d0, kind(0.D0))
+			    DeltaJ=cmplx(0.d0,0.d0, kind(0.D0))
+			    if (J1==J2 .and. nt==0) DeltaJ=cmplx(1.d0,0.d0, kind(0.D0))
 			    tmp =  Z * ((DeltaI - GTT(I2,I1,1))*(DeltaJ - G00(J2,J1,1)) - GT0(I2,J1,1)*G0T(J2,I1,1)) * ZP* ZS
 			    L_eq (imj,1,1) = L_eq (imj,1,1)   +  weight*tmp*weightbeta 
 			  enddo

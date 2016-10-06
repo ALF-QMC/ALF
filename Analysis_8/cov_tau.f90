@@ -16,7 +16,7 @@
          end Interface
 
          Integer :: Ndim, Norb
-         Integer :: no, no1, n, nbins, n_skip, nb, N_rebin, nT, Lt,m,n1
+         Integer :: no, no1, n, nbins, n_skip, nb, nT, Lt
          real (Kind=8):: X, Y,  dtau, X_diag
          real (Kind=8), allocatable :: Xmean(:), Xcov(:,:)
          Complex (Kind=8) :: Z
@@ -64,7 +64,7 @@
          Allocate ( bins(Ndim,Lt,Nbins), Phase(Nbins), Xk_p(2,ndim), V_help(lt,Nbins), bins0(Nbins,Norb))
          Allocate (Xmean(Lt), Xcov(Lt,Lt))
          bins  = 0.d0
-         bins0 = cmplx(0.d0,0.d0)
+         bins0 = cmplx(0.d0,0.d0,Kind(0.d0))
          Open ( Unit=10, File="intau", status="unknown" ) 
          do nb = 1, nbins + n_skip
             if (nb > n_skip ) then
@@ -126,7 +126,7 @@
                !enddo
                !V_help = V_help/4.d0
                call COV(bins(n,:,:), phase, Xcov, Xmean )
-               write(File_out,'("g_",F4.2,"_"F4.2)')  Xk_p(1,n), Xk_p(2,n)
+               write(File_out,'("g_",F4.2,"_",F4.2)')  Xk_p(1,n), Xk_p(2,n)
                Open (Unit=10,File=File_out,status="unknown")
                do nt = 1, LT
                   Write(10,"(F14.7,2x,F16.8,2x,F16.8)") &

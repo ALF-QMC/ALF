@@ -22,7 +22,7 @@
         Real (Kind=8) :: X
 
         NCON = 0  ! Test for UDV ::::  0: Off,  1: On.
-        Z_ONE = cmplx(1.d0,0.d0)
+        Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
         
         Do nf = 1,N_FL
            CALL INITD(TMP,Z_ONE)

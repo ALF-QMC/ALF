@@ -176,9 +176,7 @@
           !Per flavor, the  hopping is given by: 
           !  e^{-dtau H_t}  =    Prod_{n=1}^{Ncheck} e^{-dtau_n H_{n,t}}
 
-          
           Integer :: I, I1, I2, n, Ncheck,nc
-          Real (Kind=8) :: X
 
           Ncheck = 1
           allocate(Op_T(Ncheck,N_FL))
@@ -187,20 +185,20 @@
                 Call Op_make(Op_T(nc,n),Ndim)
                 If (One_dimensional ) then 
                    DO I = 1, Latt%N
-                      I1 = Latt%nnlist(I,1,0)
-                      Op_T(nc,n)%O(I,I1) = cmplx(-Ham_T,0.d0)
-                      Op_T(nc,n)%O(I1,I) = cmplx(-Ham_T,0.d0)
-                      Op_T(nc,n)%O(I ,I) = cmplx(-Ham_chem,0.d0)
+                      I1 = Latt%nnlist(I, 1, 0)
+                      Op_T(nc,n)%O(I,I1) = cmplx(-Ham_T, 0.d0, kind(0.D0))
+                      Op_T(nc,n)%O(I1,I) = cmplx(-Ham_T, 0.d0, kind(0.D0))
+                      Op_T(nc,n)%O(I ,I) = cmplx(-Ham_chem, 0.d0, kind(0.D0))
                    ENDDO
                 else
                    DO I = 1, Latt%N
                       I1 = Latt%nnlist(I,1,0)
                       I2 = Latt%nnlist(I,0,1)
-                      Op_T(nc,n)%O(I,I1) = cmplx(-Ham_T,   0.d0)
-                      Op_T(nc,n)%O(I1,I) = cmplx(-Ham_T,   0.d0)
-                      Op_T(nc,n)%O(I,I2) = cmplx(-Ham_T,   0.d0)
-                      Op_T(nc,n)%O(I2,I) = cmplx(-Ham_T,   0.d0)
-                      Op_T(nc,n)%O(I ,I) = cmplx(-Ham_chem,0.d0)
+                      Op_T(nc,n)%O(I,I1) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+                      Op_T(nc,n)%O(I1,I) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+                      Op_T(nc,n)%O(I,I2) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+                      Op_T(nc,n)%O(I2,I) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+                      Op_T(nc,n)%O(I ,I) = cmplx(-Ham_chem, 0.d0, kind(0.D0))
                    ENDDO
                 endif
                 
@@ -208,11 +206,11 @@
                    Op_T(nc,n)%P(i) = i 
                 Enddo
                 if ( abs(Ham_T) < 1.E-6 .and.  abs(Ham_chem) < 1.E-6 ) then 
-                   Op_T(nc,n)%g=cmplx(0.d0 ,0.d0)
+                   Op_T(nc,n)%g = 0.d0
                 else
-                   Op_T(nc,n)%g=cmplx(-Dtau,0.d0) 
+                   Op_T(nc,n)%g = -Dtau
                 endif
-                Op_T(nc,n)%alpha=cmplx(0.d0,0.d0) 
+                Op_T(nc,n)%alpha=cmplx(0.d0,0.d0, kind(0.D0))
                 !Write(6,*) 'In Ham_hop', Ham_T
                 Call Op_set(Op_T(nc,n)) 
                 !Write(6,*) 'In Ham_hop 1'
@@ -231,8 +229,8 @@
           
           Implicit none 
           
-          Integer :: nf, nth, n, n1, n2, n3, n4, I, I1, I2, J,  Ix, Iy, nc
-          Real (Kind=8) :: X_p(2), X1_p(2), X2_p(2), X
+          Integer :: nf, I, nc
+          Real (Kind=8) :: X
 
           
           If (Model == "Hubbard_SU2")  then
@@ -248,9 +246,9 @@
                 Do i = 1,Latt%N
                    nc = nc + 1
                    Op_V(nc,nf)%P(1) = I
-                   Op_V(nc,nf)%O(1,1) = cmplx(1.d0  ,0.d0)
-                   Op_V(nc,nf)%g      = SQRT(CMPLX(-DTAU*ham_U/(DBLE(N_SUN)),0.D0)) 
-                   Op_V(nc,nf)%alpha  = cmplx(-0.5d0,0.d0)
+                   Op_V(nc,nf)%O(1,1) = cmplx(1.d0  ,0.d0, kind(0.D0))
+                   Op_V(nc,nf)%g      = SQRT(CMPLX(-DTAU*ham_U/(DBLE(N_SUN)), 0.D0, kind(0.D0))) 
+                   Op_V(nc,nf)%alpha  = cmplx(-0.5d0,0.d0, kind(0.D0))
                    Op_V(nc,nf)%type   = 2
                    Call Op_set( Op_V(nc,nf) )
                    ! The operator reads:  
@@ -273,9 +271,9 @@
                 Do i = 1,Latt%N
                    nc = nc + 1
                    Op_V(nc,nf)%P(1) = I
-                   Op_V(nc,nf)%O(1,1) = cmplx(1.d0  ,0.d0)
-                   Op_V(nc,nf)%g      = X*SQRT(CMPLX(DTAU*ham_U/2.d0 ,0.D0)) 
-                   Op_V(nc,nf)%alpha  = cmplx(0.d0,0.d0)
+                   Op_V(nc,nf)%O(1,1) = cmplx(1.d0, 0.d0, kind(0.D0))
+                   Op_V(nc,nf)%g      = X*SQRT(CMPLX(DTAU*ham_U/2.d0, 0.D0, kind(0.D0))) 
+                   Op_V(nc,nf)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
                    Op_V(nc,nf)%type   = 2
                    Call Op_set( Op_V(nc,nf) )
                    ! The operator reads:  
@@ -291,7 +289,6 @@
         Real (Kind=8) function S0(n,nt)  
           Implicit none
           Integer, Intent(IN) :: n,nt 
-          Integer :: i, nt1 
           S0 = 1.d0
           
         end function S0
@@ -301,7 +298,6 @@
 
           Implicit none
           Integer, Intent(In) :: Ltau
-          Integer :: I
          
           Allocate ( Obs_scal(5) )
           Allocate ( Green_eq(Latt%N,1,1), SpinZ_eq(Latt%N,1,1), SpinXY_eq(Latt%N,1,1), &
@@ -324,31 +320,28 @@
           Implicit none
           Integer, Intent(In) :: Ltau
           
-          Integer :: I,n
-          
           Nobs = 0
-          Obs_scal  = cmplx(0.d0,0.d0)
-          Green_eq  = cmplx(0.d0,0.d0) 
-          SpinZ_eq  = cmplx(0.d0,0.d0) 
-          SpinXY_eq = cmplx(0.d0,0.d0) 
-          Den_eq    = cmplx(0.d0,0.d0) 
-          Green_eq0 = cmplx(0.d0,0.d0) 
-          SpinZ_eq0 = cmplx(0.d0,0.d0) 
-          SpinXY_eq0= cmplx(0.d0,0.d0) 
-          Den_eq0   = cmplx(0.d0,0.d0) 
-
+          Obs_scal  = cmplx(0.d0,0.d0, kind(0.D0))
+          Green_eq  = cmplx(0.d0,0.d0, kind(0.D0))
+          SpinZ_eq  = cmplx(0.d0,0.d0, kind(0.D0))
+          SpinXY_eq = cmplx(0.d0,0.d0, kind(0.D0))
+          Den_eq    = cmplx(0.d0,0.d0, kind(0.D0))
+          Green_eq0 = cmplx(0.d0,0.d0, kind(0.D0))
+          SpinZ_eq0 = cmplx(0.d0,0.d0, kind(0.D0))
+          SpinXY_eq0= cmplx(0.d0,0.d0, kind(0.D0))
+          Den_eq0   = cmplx(0.d0,0.d0, kind(0.D0))
 
           If (Ltau == 1) then
              NobsT = 0
-             Phase_tau  = cmplx(0.d0,0.d0)
-             Green_tau  = cmplx(0.d0,0.d0)
-             Den_tau    = cmplx(0.d0,0.d0)
-             SpinZ_tau  = cmplx(0.d0,0.d0)
-             SpinXY_tau = cmplx(0.d0,0.d0)
-             Green0_tau = cmplx(0.d0,0.d0)
-             Den0_tau   = cmplx(0.d0,0.d0)
-             SpinZ0_tau  = cmplx(0.d0,0.d0)
-             SpinXY0_tau = cmplx(0.d0,0.d0)
+             Phase_tau  = cmplx(0.d0,0.d0, kind(0.D0))
+             Green_tau  = cmplx(0.d0,0.d0, kind(0.D0))
+             Den_tau    = cmplx(0.d0,0.d0, kind(0.D0))
+             SpinZ_tau  = cmplx(0.d0,0.d0, kind(0.D0))
+             SpinXY_tau = cmplx(0.d0,0.d0, kind(0.D0))
+             Green0_tau = cmplx(0.d0,0.d0, kind(0.D0))
+             Den0_tau   = cmplx(0.d0,0.d0, kind(0.D0))
+             SpinZ0_tau  = cmplx(0.d0,0.d0, kind(0.D0))
+             SpinXY0_tau = cmplx(0.d0,0.d0, kind(0.D0))
           endif
 
         end Subroutine Init_obs
@@ -365,56 +358,49 @@
           !Local 
           Complex (Kind=8) :: GRC(Ndim,Ndim,N_FL), ZK
           Complex (Kind=8) :: Zrho, Zkin, ZPot, Z, ZP,ZS
-          Integer :: I,J, no,no1, n, n1, imj, nf, I1, I2, J1, J2
-          
-          Real (Kind=8) :: G(4,4), X, FI, FJ
+          Integer :: I,J, imj, nf, dec
           
           Nobs = Nobs + 1
-          ZP = PHASE/cmplx(Real(Phase,kind=8),0.d0)
-          ZS = cmplx(Real(Phase,kind=8)/Abs(Real(Phase,kind=8)), 0.d0)
+          ZP = PHASE/Real(Phase, kind(0.D0))
+          ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
           
 
           Do nf = 1,N_FL
              Do I = 1,Ndim
                 Do J = 1,Ndim
-                   ZK = cmplx(0.d0,0.d0)
-                   If ( I == J ) ZK = cmplx(1.d0,0.d0)
-                   GRC(I,J,nf)  = ZK - GR(J,I,nf)
+                   GRC(I, J, nf) = -GR(J, I, nf)
                 Enddo
+                GRC(I, I, nf) = 1.D0 + GRC(I, I, nf)
              Enddo
           Enddo
           ! GRC(i,j,nf) = < c^{dagger}_{j,nf } c_{j,nf } >
           ! Compute scalar observables. 
-          Zkin = cmplx(0.d0,0.d0)
+          Zkin = cmplx(0.d0, 0.d0, kind(0.D0))
           Do nf = 1,N_FL
              Do J = 1,Ndim
-                DO I = 1,Ndim
-                   Zkin  = Zkin  + Op_T(1,nf)%O(i,j)*Grc(i,j,nf) 
-                Enddo
+                Zkin = Zkin + sum(Op_T(1,nf)%O(:, j)*Grc(:, j, nf))
              ENddo
           Enddo
-          Zkin = Zkin*cmplx( dble(N_SUN), 0.d0 )
+          Zkin = Zkin * dble(N_SUN)
 
-          Zrho = cmplx(0.d0,0.d0)
+          Zrho = cmplx(0.d0,0.d0, kind(0.D0))
           Do nf = 1,N_FL
              Do I = 1,Ndim
                 Zrho = Zrho + Grc(i,i,nf) 
              enddo
           enddo
-          Zrho = Zrho*cmplx( dble(N_SUN), 0.d0 )
+          Zrho = Zrho* dble(N_SUN)
 
-          ZPot = cmplx(0.d0,0.d0)
+          ZPot = cmplx(0.d0, 0.d0, kind(0.D0))
           If ( Model == "Hubbard_SU2" ) then
-             Do I = 1,Ndim
-                ZPot = ZPot + Grc(i,i,1) * Grc(i,i,1)
-             Enddo
-             Zpot = Zpot*cmplx(ham_U,0.d0)
-          elseif ( Model == "Hubbard_Mz" ) then
-             Do I = 1,Ndim
-                ZPot = ZPot + Grc(i,i,1) * Grc(i,i,2)
-             Enddo
-             Zpot = Zpot*cmplx(ham_U,0.d0)
+            dec = 1
+          else
+            dec = 2
           endif
+          Do I = 1,Ndim
+             ZPot = ZPot + Grc(i,i,1) * Grc(i,i, dec)
+          Enddo
+          Zpot = Zpot*ham_U
 
           Obs_scal(1) = Obs_scal(1) + zrho * ZP*ZS
           Obs_scal(2) = Obs_scal(2) + zkin * ZP*ZS
@@ -425,7 +411,7 @@
           
           ! Compute spin-spin, Green, and den-den correlation functions  !  This is general N_SUN, and  N_FL = 1
           If ( Model == "Hubbard_SU2"  ) then 
-             Z =  cmplx(dble(N_SUN),0.d0)
+             Z =  cmplx(dble(N_SUN), 0.d0, kind(0.D0))
              Do I = 1,Latt%N
                 Do J = 1,Latt%N
                    imj = latt%imj(I,J)
@@ -469,7 +455,6 @@
           include 'mpif.h'
 #endif   
 
-
           Integer,  Intent(In) ::  Ltau
 
           Character (len=64) :: File_pr
@@ -487,7 +472,7 @@
 !!$          Write(6,*)  'In Pr_obs', LTAU
 !!$#endif
     
-          Phase_bin = Obs_scal(5)/cmplx(dble(Nobs),0.d0)
+          Phase_bin = Obs_scal(5)/dble(Nobs)
           File_pr ="SpinZ_eq"
           Call Print_bin(SpinZ_eq ,SpinZ_eq0, Latt, Nobs, Phase_bin, file_pr)
           File_pr ="SpinXY_eq"
@@ -501,7 +486,7 @@
           Call Print_scal(Obs_scal, Nobs, file_pr)
 
           If (Ltau == 1) then
-             Phase_tau = Phase_tau/cmplx(dble(NobsT),0.d0)
+             Phase_tau = Phase_tau/dble(NobsT)
              File_pr = "Green_tau"
              Call Print_bin_tau(Green_tau,Latt,NobsT,Phase_tau, file_pr,dtau       )
              File_pr = "Den_tau"
@@ -532,15 +517,15 @@
           Complex (Kind=8) :: Z, ZP, ZS
           Integer :: IMJ, I, J
 
-          ZP = PHASE/cmplx(Real(Phase,kind=8),0.d0)
-          ZS = cmplx(Real(Phase,kind=8)/Abs(Real(Phase,kind=8)), 0.d0)
+          ZP = PHASE/Real(Phase, kind(0.D0))
+          ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
           If (NT == 0 ) then 
              Phase_tau = Phase_tau + ZS
              NobsT     = NobsT + 1
           endif
           If ( Model == "Hubbard_SU2"  ) then 
 
-             Z =  cmplx(dble(N_SUN),0.d0)
+             Z =  cmplx(dble(N_SUN),0.d0, kind(0.D0))
              Do I = 1,Latt%N
                 Do J = 1,Latt%N
                    imj = latt%imj(I,J)
@@ -548,20 +533,20 @@
 
                    
                    Den_tau  (imj,nt+1,1,1) = Den_tau  (imj,nt+1,1,1)  +                           ( &
-                        &    Z*Z*(cmplx(1.d0,0.d0) - GTT(I,I,1))*(cmplx(1.d0,0.d0) - G00(J,J,1))  -     &
+                        &    Z*Z*(1.d0 - GTT(I,I,1))*(1.d0 - G00(J,J,1))  -     &
                         &    Z * GT0(I,J,1)*G0T(J,I,1)                                            ) * ZP * ZS
 
 
-                   SpinZ_tau(imj,nt+1,1,1) = SpinZ_tau(imj,nt+1,1,1) +  &
+                   SpinZ_tau(imj,nt+1,1,1) = SpinZ_tau(imj,nt+1,1,1)  &
                        &      - Z*G0T(J,I,1) * GT0(I,J,1) *ZP*ZS
 
-                   SpinXY_tau(imj,nt+1,1,1) = SpinXY_tau(imj,nt+1,1,1) +  &
+                   SpinXY_tau(imj,nt+1,1,1) = SpinXY_tau(imj,nt+1,1,1)  &
                        &      - Z*G0T(J,I,1) * GT0(I,J,1) *ZP*ZS
                 Enddo
              Enddo
              
              Do I = 1,Latt%N
-                Den0_tau(1) = Den0_tau(1) + Z*(cmplx(1.d0,0.d0) - GTT(I,I,1)) * ZP * ZS
+                Den0_tau(1) = Den0_tau(1) + Z*(1.d0 - GTT(I,I,1)) * ZP * ZS
              Enddo
           Elseif ( Model == "Hubbard_Mz"  ) then 
              Do I = 1,Latt%N
@@ -570,7 +555,7 @@
                    Green_tau(imj,nt+1,1,1) = green_tau(imj,nt+1,1,1)  +   ( GT0(I,J,1) + GT0(I,J,2) ) * ZP* ZS
 
                    Den_tau(imj,nt+1,1,1)  = Den_tau   (imj,nt+1,1,1)  +  (  &
-                        &    (cmplx(2.0,0.d0) - GTT(I,I,1) - GTT(I,I,2) ) * ( cmplx(2.0,0.d0) - G00(J,J,1) -  G00(J,J,2) ) &
+                        &    (2.D0 - GTT(I,I,1) - GTT(I,I,2) ) * ( 2.D0 - G00(J,J,1) -  G00(J,J,2) ) &
                         & -  ( G0T(J,I,1) * GT0(I,J,1) + G0T(J,I,2) * GT0(I,J,2) )   )*ZP*ZS     
 
                    SpinZ_tau(imj,nt+1,1,1) = SpinZ_tau(imj,nt+1,1,1) + ( &
@@ -584,7 +569,7 @@
              enddo
              
              Do I = 1,Latt%N
-                Den0_tau(1) = Den0_tau(1) + (cmplx(2.d0,0.d0) - GTT(I,I,1) - GTT(I,I,2)) * ZP * ZS
+                Den0_tau(1) = Den0_tau(1) + (2.d0 - GTT(I,I,1) - GTT(I,I,2)) * ZP * ZS
              Enddo
           endif
 

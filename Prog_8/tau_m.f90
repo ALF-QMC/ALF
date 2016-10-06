@@ -65,9 +65,9 @@
               end SUBROUTINE CGR2
            end Interface
      
+           Integer, Intent(In) :: NSTM, NWRAP
            Complex (Kind=double), Intent(in) :: UST(NDIM,NDIM,NSTM,N_FL), VST(NDIM,NDIM,NSTM,N_FL), DST(NDIM,NSTM,N_FL) 
            Complex (Kind=double), Intent(in) :: GR(NDIM,NDIM,N_FL),  Phase
-           Integer, Intent(In) :: NSTM, NWRAP
            Integer, Intent(In) :: STAB_NT(0:NSTM)         
 
            
@@ -86,7 +86,7 @@
            Do nf = 1, N_FL
               DO J = 1,Ndim 
                  DO I = 1,Ndim
-                    Z = cmplx(0.d0,0.d0)
+                    Z = cmplx(0.d0, 0.d0, kind(0.D0))
                     if (I == J ) Z = cone
                     G00(I,J,nf) = GR(I,J,nf)
                     GT0(I,J,nf) = GR(I,J,nf)

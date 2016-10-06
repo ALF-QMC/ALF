@@ -19,16 +19,17 @@
 
 
         ! Working space.
-        COMPLEX (Kind=8) ::  U(Ndim,Ndim), U1(Ndim,Ndim), V1(Ndim,Ndim), TMP(Ndim,Ndim), TMP1(Ndim,Ndim)
-	COMPLEX (Kind=8) ::  D1(Ndim), Z_ONE
-        Integer :: I, J, NT, NCON, nr, n, nf
+        COMPLEX (Kind=8) ::  U1(Ndim,Ndim), V1(Ndim,Ndim), TMP(Ndim,Ndim), TMP1(Ndim,Ndim)
+        COMPLEX (Kind=8) ::  D1(Ndim), Z_ONE, beta
+        Integer :: NT, NCON, n, nf
         Real    (Kind=8) ::  X
  
 
 
         NCON = 0  ! Test for UDV ::::  0: Off,  1: On.
 
-        Z_ONE = cmplx(1.d0,0.d0)
+        Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
+        beta = 0.D0
         Do nf = 1, N_FL
            CALL INITD(TMP,Z_ONE)
            DO NT = NTAU1, NTAU+1 , -1
@@ -42,35 +43,17 @@
            ENDDO
            
            !Carry out U,D,V decomposition.
-           DO J = 1,NDim
-              DO I = 1,NDim
-                 TMP1(I,J) = CONJG( TMP(J,I) )
-                 U   (I,J) = CONJG( UL (J,I,nf) )
-              ENDDO
-           ENDDO
-           CALL MMULT(TMP,TMP1,U)
-           DO J = 1,NDim
-              DO I = 1,NDim
-                 TMP(I,J) = TMP(I,J)*DL(J,nf)
-              ENDDO
+           TMP1 = CONJG(TRANSPOSE(TMP))
+           CALL ZGEMM('N', 'C', Ndim, Ndim, Ndim, Z_ONE, TMP1, Ndim, UL(:, :, nf), Ndim, beta, TMP, Ndim)
+           DO n = 1,NDim
+              TMP(:, n) = TMP(:, n) * DL(n, nf)
            ENDDO
            CALL UDV_WRAP(TMP,U1,D1,V1,NCON)
            !CALL UDV(TMP,U1,D1,V1,NCON)
-           DO J = 1,NDim
-              DO I = 1,NDim
-                 UL (I,J,nf)  = CONJG( U1(J,I) )
-                 TMP(I,J)     = CONJG( V1(J,I) )
-              ENDDO
-           ENDDO
-           CALL MMULT(TMP1,VL(:,:,nf),TMP)
-           DO J = 1,NDim
-              DO I = 1,NDim
-                 VL(I,J,nf) = TMP1(I,J)
-              ENDDO
-           ENDDO
-           DO I = 1,NDim
-              DL(I,nf) = D1(I)
-           ENDDO
+           UL(:, :, nf) = CONJG(TRANSPOSE(U1))
+           CALL ZGEMM('N', 'C', Ndim, Ndim, Ndim, Z_ONE, VL(:, :, nf), Ndim, V1, Ndim, beta, TMP1, Ndim)
+           VL(:, :, nf) = TMP1
+           DL(:, nf) = D1
         ENDDO
         
       END SUBROUTINE WRAPUL

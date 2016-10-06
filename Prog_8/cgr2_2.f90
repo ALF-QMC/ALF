@@ -35,16 +35,20 @@
 
         ! Local::
         Complex  (Kind=double) :: U3B(2*LQ,2*LQ), V3B(2*LQ,2*LQ), HLPB1(2*LQ,2*LQ), HLPB2(2*LQ,2*LQ), &
-             &                   V2INV(LQ,LQ), V1INV(LQ,LQ), HLP2(LQ,LQ)
+             &                   V1INV(LQ,LQ)
         Complex  (Kind=double) :: D3B(2*LQ)
-        Complex  (Kind=double) :: Z
-        Real (Kind=double) :: X, Xmax
+        Complex  (Kind=double) :: Z, alpha, beta
+        Complex(Kind = Kind(0.D0)), allocatable, Dimension(:) :: TMPVEC
+        Complex(Kind = Kind(0.D0)), allocatable, Dimension(:, :) :: MYU2
 
-        Integer :: LQ2, I,J, M, ILQ, JLQ, NCON, I1, J1,N 
+        Integer :: LQ2, I,J, NCON
         
         LQ2 = LQ*2
         NCON = 0
-        
+        alpha = 1.D0
+        beta = 0.D0
+        ALLOCATE(TMPVEC(LQ2), MYU2(LQ, LQ))
+        MYU2 = CONJG(TRANSPOSE(U2))
         If (dble(D1(1)) >  dble(D2(1)) ) Then 
 
            !Write(6,*) "D1(1) >  D2(1)", dble(D1(1)), dble(D2(1))
@@ -55,19 +59,15 @@
               DO I = 1,LQ
                  HLPB2(I   , J    ) =  V1INV(I,J)
                  HLPB2(I   , J+LQ ) =  D1(I)*U1(I,J)
-                 HLPB2(I+LQ, J+LQ ) =  Conjg(U2(J,I))
+                 HLPB2(I+LQ, J+LQ ) =  MYU2(I, J)
                  HLPB2(I+LQ, J    ) = -D2(I)*V2(I,J)
               ENDDO
            ENDDO
-           DO J = 1,LQ2
-              DO I = 1,LQ2
-                 HLPB1(I,J)  = Conjg(HLPB2(J,I))
-              ENDDO
-           ENDDO
-           
+           HLPB1 = CT(HLPB2)
+
            !CALL UDV_wrap(HLPB1,U3B,D3B,V3B,NCON)
            CALL UDV_wrap_Pivot(HLPB1,U3B,D3B,V3B,NCON,LQ2,LQ2)
-           
+           TMPVEC = conjg(1.D0/D3B)
 !!$!!!!!!!!!!!!!  Tests
 !!$        Xmax = 0.d0
 !!$        DO I = 1,LQ2
@@ -90,87 +90,53 @@
 !!$        ENDDO
 !!$        !Write(6,*) 'Cgr2_2, Cutoff: ', Xmax
 !!$!!!!!!!!!!!!! End Tests
-           DO J = 1,LQ2
-              DO I = 1,LQ2
-                 HLPB2(I,J) = Conjg(V3B(J,I))
-              ENDDO
-           ENDDO
-           CALL INV(HLPB2,V3B,Z)
            HLPB1 = cmplx(0.d0,0.d0,double)
            DO I = 1,LQ
               DO J = 1,LQ
                  HLPB1(I   , J    ) =  V1INV(I,J)
-                 HLPB1(I+LQ, J+LQ ) =  Conjg(U2(J,I))
+                 HLPB1(I+LQ, J+LQ ) =  MYU2(I, J)
               ENDDO
            ENDDO
-           CALL MMULT(HLPB2,V3B,HLPB1)
+           CALL INV(V3B,HLPB2,Z)
+           CALL ZGEMM('C', 'N', LQ2, LQ2, LQ2, alpha, HLPB2, LQ2, HLPB1, LQ2, beta, V3B, LQ2) ! Block structure of HLPB1 is not exploited
            DO J = 1,LQ2
               DO I = 1,LQ2
-                 HLPB1(I,J)  = Conjg(cmplx(1.d0,0.d0,double)/D3B(I))*HLPB2(I,J)
+                 HLPB1(I,J)  = TMPVEC(I)*V3B(I,J)
               ENDDO
            ENDDO
-           CALL MMULT(HLPB2,U3B,HLPB1)
-           DO I = 1,LQ
-              I1 = I+LQ
-              DO J = 1,LQ
-                 J1 = J + LQ
-                 GR00(I,J) = HLPB2(I ,J )
-                 GRTT(I,J) = HLPB2(I1,J1)
-                 GRT0(I,J) = HLPB2(I1,J )
-                 GR0T(I,J) = HLPB2(I,J1 )
-              ENDDO
-           ENDDO
+           CALL get_blocks_of_prod(GR00, GR0T, GRT0, GRTT, U3B, HLPB1, LQ)
         Else
            !Write(6,*) "D1(1) <  D2(1)", dble(D1(1)), dble(D2(1))
-           HLPB2 = cmplx(0.D0,0.d0,double)
            CALL INV(V1,V1INV,Z)
            DO J = 1,LQ
               DO I = 1,LQ
-                 HLPB2(I   , J    ) =  Conjg(U2(J,I))
+                 HLPB2(I   , J    ) =  MYU2(I, J)
                  HLPB2(I   , J+LQ ) = -D2(I)*V2(I,J)
                  HLPB2(I+LQ, J+LQ ) =  V1INV(I,J)
                  HLPB2(I+LQ, J    ) =  D1(I)*U1(I,J)
               ENDDO
            ENDDO
-           DO J = 1,LQ2
-              DO I = 1,LQ2
-                 HLPB1(I,J)  = Conjg(HLPB2(J,I))
-              ENDDO
-           ENDDO
+           HLPB1 = CT(HLPB2)
            
            !CALL UDV_wrap(HLPB1,U3B,D3B,V3B,NCON)
            CALL UDV_wrap_Pivot(HLPB1,U3B,D3B,V3B,NCON,LQ2,LQ2)
-           
-           DO J = 1,LQ2
-              DO I = 1,LQ2
-                 HLPB2(I,J) = Conjg(V3B(J,I))
-              ENDDO
-           ENDDO
-           CALL INV(HLPB2,V3B,Z)
+           TMPVEC = conjg(1.D0/D3B)
            HLPB1 = cmplx(0.d0,0.d0,double)
            DO I = 1,LQ
               DO J = 1,LQ
-                 HLPB1(I   , J    ) =  Conjg(U2(J,I))
+                 HLPB1(I   , J    ) =  MYU2(I, J)
                  HLPB1(I+LQ, J+LQ ) =  V1INV(I,J)
               ENDDO
            ENDDO
-           CALL MMULT(HLPB2,V3B,HLPB1)
+           CALL INV(V3B,HLPB2,Z)
+           CALL ZGEMM('C', 'N', LQ2, LQ2, LQ2, alpha, HLPB2, LQ2, HLPB1, LQ2, beta, V3B, LQ2) ! Block structure of HLPB1 is not exploited
+           
            DO J = 1,LQ2
               DO I = 1,LQ2
-                 HLPB1(I,J)  = Conjg(cmplx(1.d0,0.d0,double)/D3B(I))*HLPB2(I,J)
+                 HLPB1(I,J)  = TMPVEC(I)*V3B(I,J)
               ENDDO
            ENDDO
-           CALL MMULT(HLPB2,U3B,HLPB1)
-           DO I = 1,LQ
-              I1 = I+LQ
-              DO J = 1,LQ
-                 J1 = J + LQ
-                 GRTT(I,J) = HLPB2(I ,J )
-                 GR00(I,J) = HLPB2(I1,J1)
-                 GR0T(I,J) = HLPB2(I1,J )
-                 GRT0(I,J) = HLPB2(I,J1 )
-              ENDDO
-           ENDDO
+           call get_blocks_of_prod(GRTT, GRT0, GR0T, GR00, U3B, HLPB1, LQ)
         Endif
-        
+        DEALLOCATE(TMPVEC, MYU2)
       END SUBROUTINE CGR2_2
