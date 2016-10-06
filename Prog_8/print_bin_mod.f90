@@ -261,7 +261,7 @@
            I = Latt%N*Norb*Norb*LT
            Tmp = cmplx(0.d0, 0.d0, kind(0.D0))
            CALL MPI_REDUCE(Dat_tau,Tmp,I,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
-           Dat_tau = Tmp/DBLE(ISIZE),
+           Dat_tau = Tmp/DBLE(ISIZE)
            
            If (Present(Dat0_tau) ) then
               I = Norb
