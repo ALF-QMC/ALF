@@ -111,7 +111,7 @@
                  Z = 1.D0/Z
                  x_v(:, n) = x_v(:, n) * z
               enddo
-              Allocate (Zarr(Op_dim,NDim), grarr(NDim, Op_dim))
+              Allocate (Zarr(Op_dim,Op_dim), grarr(NDim, Op_dim))
               alpha = 1.D0
               beta = 0.D0
               Zarr = x_v(Op_V(n_op,nf)%P, :)
