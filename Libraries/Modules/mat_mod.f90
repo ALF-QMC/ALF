@@ -224,7 +224,7 @@
 !> entries on the diagonal.
 !
 !> @param[inout] A a 2D array constituting the input matrix.
-!> @param[X] the scalar that we set the diagonal to.
+!> @param[in] Xthe scalar that we set the diagonal to.
 !--------------------------------------------------------------------
        SUBROUTINE INITD_C(A, X)
          IMPLICIT NONE
@@ -296,7 +296,7 @@
 !> in a subpart of the input matrix.
 !
 !> @param[in] A a 2D array constituting the input matrix.
-!> @param[out] AINV a 2D array containing the inverse of the subpart
+!> @param[out] AINV a 2D array containing the inverse of the subpart.
 !> @param[out] DET the determinant of the input matrix.
 !> @param[in] Ndim The size of the subpart.
 !--------------------------------------------------------------------
@@ -1064,54 +1064,63 @@
 
         RETURN
       END SUBROUTINE QR_C
-!********************
+
+!--------------------------------------------------------------------
+!> @author
+!> Fakher Assaad and  Florian Goth
+!
+!> @brief 
+!> This function calculates the SVD using the standard QR algorithm
+!> of LaPack.
+!
+!> @note Using the Divide & Conquer algorithm would not yield 
+!> enough accuracy for using within an auxiliary field type algorithm.
+!
+!> @param[in] A a 2D array constituting the input matrix.
+!> @param[out] U a 2D array containing the left singular vectors.
+!> @param[out] D a 1D array containing the sorted singular values.
+!> @param[out] V a 2D array containing the right singular vectors.
+!> @param[in] NCON
+!--------------------------------------------------------------------
+
       SUBROUTINE SVD_C(A,U,D,V,NCON)
         !Uses LaPack Routine 
         !#include "machine"
 
         IMPLICIT NONE
-        COMPLEX (KIND=8), INTENT(IN), DIMENSION(:,:) :: A
-        COMPLEX (KIND=8), INTENT(INOUT), DIMENSION(:,:) :: U,V
-        COMPLEX (KIND=8), INTENT(INOUT), DIMENSION(:) :: D
+        COMPLEX (KIND=Kind(0.D0)), INTENT(IN), DIMENSION(:,:) :: A
+        COMPLEX (KIND=Kind(0.D0)), INTENT(INOUT), DIMENSION(:,:) :: U,V
+        COMPLEX (KIND=Kind(0.D0)), INTENT(INOUT), DIMENSION(:) :: D
         INTEGER, INTENT(IN) :: NCON
 
         !! Local
-        REAL    (Kind=8), Allocatable :: RWORK(:), S(:)
-        COMPLEX (Kind=8), Allocatable :: WORK(:), A1(:,:)
+        REAL    (Kind=Kind(0.D0)), Allocatable :: RWORK(:), S(:)
+        COMPLEX (Kind=Kind(0.D0)), Allocatable :: WORK(:), A1(:,:)
         CHARACTER (Len=1):: JOBU,JOBVT
         INTEGER          :: M,N, LDA, LDVT, LDU, LWORK, I, J, I1, INFO
-        REAL    (Kind=8) :: X, Xmax
-        COMPLEX (Kind=8) :: Z
+        REAL    (Kind=Kind(0.D0)) :: X, Xmax
+        COMPLEX (Kind=Kind(0.D0)) :: Z
         
         JOBU = "A"
         JOBVT= "A"
         M = SIZE(A,1)
         N = SIZE(A,2)
-        Allocate (A1(M,N))
-        Allocate (S(N))
-        A1  = A
+        Allocate (A1(M,N), S(N))
+        A1 = A
         LDA = M
         LDU = M
         LDVT = N
-        if (M > N) then
-           LWORK = 2*N + M
-           I = 3*N
-           IF ( 5*N -4  > I) I =  5*N -4
-           ALLOCATE (RWORK(I))
-        Else
-           LWORK = 2*M + N
-           I = 3*M
-           IF ( 5*M -4  > I) I =  5*M -4
-           ALLOCATE (RWORK(I))
-        Endif
-        Allocate (WORK(LWORK))
-        
-
+        ALLOCATE( RWORK(5*MIN(M,N)), WORK(10))
+! Query optimal amount of memory
+        CALL ZGESVD( JOBU, JOBVT, M, N, A1, LDA, S, U, LDU, V, LDVT,&
+             &        WORK, -1, RWORK, INFO )
+        LWORK = INT(DBLE(WORK(1)))
+        DEALLOCATE(WORK)
+	ALLOCATE(WORK(LWORK))
         CALL ZGESVD( JOBU, JOBVT, M, N, A1, LDA, S, U, LDU, V, LDVT,&
              &        WORK, LWORK, RWORK, INFO )
-
         DO I = 1,N
-           D(I) = cmplx(S(I),0.d0,kind=8)
+           D(I) = cmplx(S(I), 0.d0, kind(0.D0))
         ENDDO
 
         IF (NCON ==  1) THEN
@@ -1119,7 +1128,7 @@
            Xmax = 0.d0
            DO I = 1,M
               DO I1 = 1,N
-                 Z = cmplx(0.d0,0.d0,Kind=8)
+                 Z = cmplx(0.d0,0.d0,Kind(0.D0))
                  DO J = 1,N
                     Z  =  Z + U(I,J) *D(J) *V(J,I1)
                  ENDDO
@@ -1142,11 +1151,11 @@
 !
 !> @brief 
 !> This function diagonalizes the input matrix A and returns
-!> eigenvalues and vectors using the lapack routine DSYEV
+!> eigenvalues and vectors using the lapack routine DSYEV.
 !
-!> @param[in] A a 2D array constituting the input matrix
-!> @param[out] U a 2D array containing the eigen vectors
-!> @param[out] W a 1D array containing the sorted eigenvalues
+!> @param[in] A a 2D array constituting the input matrix.
+!> @param[out] U a 2D array containing the eigen vectors.
+!> @param[out] W a 1D array containing the sorted eigenvalues.
 !--------------------------------------------------------------------
       SUBROUTINE DIAG_R(A,U,W)
         IMPLICIT NONE
