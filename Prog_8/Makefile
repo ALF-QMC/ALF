@@ -1,6 +1,6 @@
 FC= $(mpif90)
 FC= $(f90)
-FLAGS= $(FL) -std03
+FLAGS= $(FL)
 LF = $(Lflags)
 LIBS= $(Libs)/Modules/modules_90.a \
       $(Libs)/MyNag/libnag.a \
