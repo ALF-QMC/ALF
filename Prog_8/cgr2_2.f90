@@ -40,21 +40,19 @@
         Complex  (Kind=double) :: Z, alpha, beta
         Complex(Kind = Kind(0.D0)), allocatable, Dimension(:) :: TMPVEC
         Complex(Kind = Kind(0.D0)), allocatable, Dimension(:, :) :: MYU2
+        INTEGER, Dimension(:), Allocatable :: IPVT
 
-        Integer :: LQ2, I,J, NCON
+        Integer :: LQ2, I,J, NCON, info
         
         LQ2 = LQ*2
         NCON = 0
         alpha = 1.D0
         beta = 0.D0
-        ALLOCATE(TMPVEC(LQ2), MYU2(LQ, LQ))
+        ALLOCATE(TMPVEC(LQ2), MYU2(LQ, LQ), IPVT(LQ2))
         MYU2 = CONJG(TRANSPOSE(U2))
+        CALL INV(V1,V1INV,Z)
         If (dble(D1(1)) >  dble(D2(1)) ) Then 
-
            !Write(6,*) "D1(1) >  D2(1)", dble(D1(1)), dble(D2(1))
-
-           HLPB2 = cmplx(0.D0,0.d0,double)
-           CALL INV(V1,V1INV,Z)
            DO J = 1,LQ
               DO I = 1,LQ
                  HLPB2(I   , J    ) =  V1INV(I,J)
@@ -97,17 +95,16 @@
                  HLPB1(I+LQ, J+LQ ) =  MYU2(I, J)
               ENDDO
            ENDDO
-           CALL INV(V3B,HLPB2,Z)
-           CALL ZGEMM('C', 'N', LQ2, LQ2, LQ2, alpha, HLPB2, LQ2, HLPB1, LQ2, beta, V3B, LQ2) ! Block structure of HLPB1 is not exploited
+           CALL ZGETRF(LQ2, LQ2, V3B, LQ2, IPVT, info)
+           CALL ZGETRS('C', LQ2, LQ2, V3B, LQ2, IPVT, HLPB1, LQ2, info)! Block structure of HLPB1 is not exploited
            DO J = 1,LQ2
               DO I = 1,LQ2
-                 HLPB1(I,J)  = TMPVEC(I)*V3B(I,J)
+                 HLPB1(I,J)  = TMPVEC(I)*HLPB1(I,J)
               ENDDO
            ENDDO
            CALL get_blocks_of_prod(GR00, GR0T, GRT0, GRTT, U3B, HLPB1, LQ)
         Else
            !Write(6,*) "D1(1) <  D2(1)", dble(D1(1)), dble(D2(1))
-           CALL INV(V1,V1INV,Z)
            DO J = 1,LQ
               DO I = 1,LQ
                  HLPB2(I   , J    ) =  MYU2(I, J)
@@ -128,15 +125,14 @@
                  HLPB1(I+LQ, J+LQ ) =  V1INV(I,J)
               ENDDO
            ENDDO
-           CALL INV(V3B,HLPB2,Z)
-           CALL ZGEMM('C', 'N', LQ2, LQ2, LQ2, alpha, HLPB2, LQ2, HLPB1, LQ2, beta, V3B, LQ2) ! Block structure of HLPB1 is not exploited
-           
+           CALL ZGETRF(LQ2, LQ2, V3B, LQ2, IPVT, info)
+           CALL ZGETRS('C', LQ2, LQ2, V3B, LQ2, IPVT, HLPB1, LQ2, info)! Block structure of HLPB1 is not exploited
            DO J = 1,LQ2
               DO I = 1,LQ2
-                 HLPB1(I,J)  = TMPVEC(I)*V3B(I,J)
+                 HLPB1(I,J)  = TMPVEC(I)*HLPB1(I,J)
               ENDDO
            ENDDO
            call get_blocks_of_prod(GRTT, GRT0, GR0T, GR00, U3B, HLPB1, LQ)
         Endif
-        DEALLOCATE(TMPVEC, MYU2)
+        DEALLOCATE(TMPVEC, MYU2, IPVT)
       END SUBROUTINE CGR2_2

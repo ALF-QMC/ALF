@@ -67,9 +67,9 @@
 
       Subroutine Control_PrecisionP(Z,Z1)
         Implicit none
-        Complex (Kind=8), INTENT(IN) :: Z,Z1
-        Real    (Kind=8) :: X
-        X = sqrt(dble((Z-Z1)*conjg(Z-Z1)))
+        Complex (Kind=Kind(0.D0)), INTENT(IN) :: Z,Z1
+        Real    (Kind=Kind(0.D0)) :: X
+        X = ABS(Z-Z1)
         if ( X > XMAXP ) XMAXP = X
       End Subroutine Control_PrecisionP
       

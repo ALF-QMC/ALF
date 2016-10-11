@@ -43,12 +43,12 @@
            ENDDO
            
            !Carry out U,D,V decomposition.
-           TMP1 = CONJG(TRANSPOSE(TMP))
-           CALL ZGEMM('N', 'C', Ndim, Ndim, Ndim, Z_ONE, TMP1, Ndim, UL(:, :, nf), Ndim, beta, TMP, Ndim)
+!           TMP1 = CONJG(TRANSPOSE(TMP))
+           CALL ZGEMM('C', 'C', Ndim, Ndim, Ndim, Z_ONE, TMP, Ndim, UL(:, :, nf), Ndim, beta, TMP1, Ndim)
            DO n = 1,NDim
-              TMP(:, n) = TMP(:, n) * DL(n, nf)
+              TMP1(:, n) = TMP1(:, n) * DL(n, nf)
            ENDDO
-           CALL UDV_WRAP(TMP,U1,D1,V1,NCON)
+           CALL UDV_WRAP(TMP1,U1,D1,V1,NCON)
            !CALL UDV(TMP,U1,D1,V1,NCON)
            UL(:, :, nf) = CONJG(TRANSPOSE(U1))
            CALL ZGEMM('N', 'C', Ndim, Ndim, Ndim, Z_ONE, VL(:, :, nf), Ndim, V1, Ndim, beta, TMP1, Ndim)
