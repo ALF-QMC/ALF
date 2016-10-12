@@ -19,4 +19,4 @@ clean:
 	(make -f Compile_Max  clean );\
 	(make -f Compile_Max_ph  clean );\
 	(make -f Compile_en  clean );\
-	rm *.mod *~ \#* *.out
+	rm -f *.mod *~ \#* *.out
