@@ -3,7 +3,8 @@
 !!!!!! This version of  Upgrade.f90  contains optimization carried out by Johannes Hofmann
 !!!!!! The original version of this routine can be found in upgrade_FFA.f90 
 !!!!!! Both versions  must give the same results
-        
+
+       
         Use Hamiltonian
         Use Random_wrap
         Use Control
@@ -27,8 +28,7 @@
         Complex (Kind = double) :: s_xv(Op_dim), s_yu(Op_dim)
         Logical :: Log
 
-        
-        if ( sqrt(dble(OP_V(n_op,1)%g*conjg(OP_V(n_op,1)%g))) < 1.D-6 ) return
+        if ( abs(OP_V(n_op,1)%g) < 1.D-6 ) return
         
         ! Compute the ratio
         nf = 1
@@ -39,13 +39,13 @@
            ns_new = NFLIPL(Ns_old,nranf(3))
         endif
         Do nf = 1,N_FL
-           Z1 = Op_V(n_op,nf)%g * cmplx( Phi(ns_new,Op_V(n_op,nf)%type) -  Phi(ns_old,Op_V(n_op,nf)%type), 0.d0)  
+           Z1 = Op_V(n_op,nf)%g * ( Phi(ns_new,Op_V(n_op,nf)%type) -  Phi(ns_old,Op_V(n_op,nf)%type))
            Do m = 1,Op_V(n_op,nf)%N_non_zero
-              Z =  exp( Z1* Op_V(n_op,nf)%E(m) ) - cmplx(1.d0,0.d0)
+              Z =  exp( Z1* Op_V(n_op,nf)%E(m) ) - 1.d0
               Delta(m,nf) = Z
               do n = 1,Op_V(n_op,nf)%N_non_zero
-                 ZK = cmplx(0.d0,0.d0)
-                 If (n == m ) ZK = cmplx(1.d0,0.d0)
+                 ZK = cmplx(0.d0, 0.d0, kind(0.D0))
+                 If (n == m ) ZK = cmplx(1.d0, 0.d0, kind(0.D0))
                  Mat(n , m )  = ZK  +  ( ZK - GR( Op_V(n_op,nf)%P(n), Op_V(n_op,nf)%P(m),nf )) * Z
               Enddo
            Enddo
@@ -59,13 +59,10 @@
            Ratio(nf) =  D_Mat * exp( Z1*Op_V(n_op,nf)%alpha )
         Enddo
         
-        Ratiotot = cmplx(1.d0,0.d0)
-        Do nf = 1,N_FL
-           Ratiotot = Ratiotot * Ratio(nf) 
-        enddo
+        Ratiotot = Product(Ratio)
         nf = 1
-        Ratiotot = (Ratiotot**dble(N_SUN)) * cmplx(Gaml(ns_new, Op_V(n_op,nf)%type)/Gaml(ns_old, Op_V(n_op,nf)%type),0.d0)
-        Ratiotot = Ratiotot*cmplx(S0(n_op,nt),0.d0)
+        Ratiotot = (Ratiotot**dble(N_SUN)) * Gaml(ns_new, Op_V(n_op,nf)%type)/Gaml(ns_old, Op_V(n_op,nf)%type)
+        Ratiotot = Ratiotot * real(S0(n_op,nt), kind(0.D0))!Just to be save since S0 seems to be user supplied
         
 
         !Write(6,*) Ratiotot
@@ -75,43 +72,39 @@
         Log = .false. 
         if ( Weight > ranf() )  Then
            Log = .true.
-           Phase = Phase * Ratiotot/cmplx(weight,0.d0)
+           Phase = Phase * Ratiotot/weight
            !Write(6,*) 'Accepted : ', Ratiotot
 
            Do nf = 1,N_FL
               ! Setup u(i,n), v(n,i) 
-              u = cmplx(0.d0,0.d0)
-              v = cmplx(0.d0,0.d0)
+              u = cmplx(0.d0, 0.d0, kind(0.D0))
+              v = cmplx(0.d0, 0.d0, kind(0.D0))
               do n = 1,Op_V(n_op,nf)%N_non_zero
                  u( Op_V(n_op,nf)%P(n), n) = Delta(n,nf)
                  do i = 1,Ndim
                     v(i,n) = - GR( Op_V(n_op,nf)%P(n), i, nf )
                  enddo
-                 v(Op_V(n_op,nf)%P(n), n)  = cmplx(1.d0,0.d0) - GR( Op_V(n_op,nf)%P(n),  Op_V(n_op,nf)%P(n), nf)
+                 v(Op_V(n_op,nf)%P(n), n)  = 1.d0 - GR( Op_V(n_op,nf)%P(n),  Op_V(n_op,nf)%P(n), nf)
               enddo
 
               
-              x_v = cmplx(0.d0,0.d0)
-              y_v = cmplx(0.d0,0.d0)
+              x_v = cmplx(0.d0, 0.d0, kind(0.D0))
+              y_v = cmplx(0.d0, 0.d0, kind(0.D0))
               i = Op_V(n_op,nf)%P(1)
-              x_v(i,1) = u(i,1)/(cmplx(1.d0,0.d0) + v(i,1)*u(i,1) )
-              Do i = 1,Ndim
-                 y_v(i,1) = v(i,1)
-              enddo
+              x_v(i, 1) = u(i, 1)/(1.d0 + v(i,1)*u(i,1) )
+              y_v(:, 1) = v(:, 1)
               do n = 2,Op_V(n_op,nf)%N_non_zero
-                 s_yu = cmplx(0.d0,0.d0)
-                 s_xv = cmplx(0.d0,0.d0)
+                 s_yu = cmplx(0.d0, 0.d0, kind(0.D0))
+                 s_xv = cmplx(0.d0, 0.d0, kind(0.D0))
                  do m = 1,n-1
-                    do i = 1,Ndim
-                       s_yu(m) = s_yu(m) + y_v(i,m)*u(i,n)
-                       s_xv(m) = s_xv(m) + x_v(i,m)*v(i,n)
-                    enddo
+                    s_yu(m) = s_yu(m) + sum(y_v(:, m) * u(:, n))
+                    s_xv(m) = s_xv(m) + sum(x_v(:, m) * v(:, n))
                  enddo
                  Do i = 1,Ndim
                     x_v(i,n) = u(i,n)
                     y_v(i,n) = v(i,n)
                  enddo
-                 Z = cmplx(1.d0,0.d0) +  u( Op_V(n_op,nf)%P(n), n)*v(Op_V(n_op,nf)%P(n),n)
+                 Z = 1.d0 + u( Op_V(n_op,nf)%P(n), n)*v(Op_V(n_op,nf)%P(n),n)
                  do m = 1,n-1
                     Z = Z - s_xv(m)*s_yu(m)
                     Do i = 1,Ndim
@@ -123,7 +116,7 @@
                     x_v(i,n) = x_v(i,n)/Z
                  Enddo
               enddo
-              xp_v = cmplx(0.d0,0.d0)
+              xp_v = cmplx(0.d0, 0.d0, kind(0.D0))
               do n = 1,Op_dim
                  do m = 1,Op_dim
                     j = Op_V(n_op,nf)%P(m)
@@ -144,8 +137,8 @@
               !enddo
               ! gr(:,:,nf) -= xp_v(:,:) * y_v(:,:)^T
               ! Replace by Zgemm 
-              alpha = cmplx (-1.0d0,0.0d0)
-              beta  = cmplx ( 1.0d0,0.0d0)
+              alpha = cmplx (-1.0d0, 0.0d0, kind(0.D0))
+              beta  = cmplx ( 1.0d0, 0.0d0, kind(0.D0))
               CALL ZGEMM('N','T',Ndim,Ndim,Op_dim,alpha,xp_v,size(xp_v,1),y_v,size(y_v,1),beta,gr(1,1,nf),size(gr,1))
               
 

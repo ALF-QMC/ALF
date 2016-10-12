@@ -19,13 +19,13 @@
             end function Rot90
          end Interface
 
-         Integer :: Ndim, Norb, nr, nx, ny,nk, ierr
+         Integer :: Ndim, Norb, ierr
          Integer :: no, no1, n, n1,m,  nbins, n_skip, nb, N_rebin
          real (Kind=8):: X, Y 
          Real (Kind=8), allocatable :: Phase(:)
          Type  (Mat_C), allocatable :: Bins(:,:), Bins_R(:,:)
          Complex (Kind=8), allocatable :: Bins0(:,:)
-         Complex (Kind=8) :: Z, Xmean,Xerr, Xmean_r,Xerr_r
+         Complex (Kind=8) :: Z, Xmean,Xerr
          Real    (Kind=8) :: Xk_p(2), XR_p(2) , XR1_p(2)
          Complex (Kind=8), allocatable :: V_help(:), V_help_R(:)
          Real (Kind=8) :: Pi, a1_p(2), a2_p(2), L1_p(2), L2_p(2), del_p(2)
@@ -132,7 +132,7 @@
                      do no = 1,norb
                         do no1 = 1,Norb
                            bins(m,nb-n_skip)%el(no,no1)  =  bins(m,nb-n_skip)%el(no,no1) -  &
-                                &        cmplx(dble(Latt%N),0.d0)*Bins0(nb-n_skip,no)*Bins0(nb-n_skip,no1)
+                                &        cmplx(dble(Latt%N),0.d0,kind(0.d0))*Bins0(nb-n_skip,no)*Bins0(nb-n_skip,no1)
                         enddo
                      enddo
                   endif

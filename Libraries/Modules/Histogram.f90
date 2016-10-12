@@ -99,7 +99,7 @@
              else
                 nv = int((value   - Hist%range_st )/Hist%dis)
                 if (nv < 1) nv =1
-	        if (nv > size(Hist%el,1) ) nv = size(Hist%el,1)
+                if (nv > size(Hist%el,1) ) nv = size(Hist%el,1)
                 Hist%el(nv) = Hist%el(nv) + 1.0
                 Hist%count = Hist%count + 1.0
              endif

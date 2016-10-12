@@ -1,4 +1,37 @@
-      SUBROUTINE CGR2_1(GRT0, GR00, GRTT, GR0T, U2, D2, V2, U1, D1, V1, LQ, NVAR)
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief
+!> This function scales every Row of M with an entry from the vector D
+!>
+!> @note
+!> GCC does not by itself pull out the division by D from the inner loop
+!> in every other expression that I tried, therefore this explicit loop construct
+!> is necessary.
+!>
+!> @param[inout] M The matrix whose rows we scale
+!> @param[in] D A vector with the scaling factors
+!> @param[in] A boolean variable wether we do a ccomplex conjugate on D
+!> @param[in] LQ The length of the vectors and the dimension of M
+!--------------------------------------------------------------------
+        Subroutine scalematrix(M, D, c, LQ)
+        Integer, Intent(In) :: LQ
+        Integer :: J
+        Complex (Kind = Kind(0.D0)), Intent(Inout) :: M(LQ,LQ)
+        Complex (Kind = Kind(0.D0)), Intent(In) :: D(LQ)
+        Complex (Kind = Kind(0.D0)) :: Z
+        Logical, Intent(In) :: c
+
+        DO J = 1,LQ
+            Z = 1.D0/D(J)
+            If (c) Z = Conjg(z)
+            M(:,J) = M(:,J)*Z
+        ENDDO
+
+        end Subroutine
+
+        SUBROUTINE CGR2_1(GRT0, GR00, GRTT, GR0T, U2, D2, V2, U1, D1, V1, LQ, NVAR)
 
         !       B2 = U2*D2*V2 is right (i.e. from time slice 0 to tau) propagation to time tau 
         !       B1 = V1*D1*U1 is left  (i.e. from time slice Ltrot to tau) propagation to time tau
@@ -38,8 +71,8 @@
         ! Local::
         Complex  (Kind=double) :: HLP1(LQ,LQ), HLP2(LQ,LQ), U(LQ,LQ), D(LQ), V(LQ,LQ)
         Complex  (Kind=double) :: Z, Z1, Z2
-        Real     (Kind=double) :: X, Xmax, Xmin, X1, X2, Xmax1, Xmax2, Xmean
-        Integer                :: I, J, M, NCON, NVAR1
+        Real     (Kind=double) :: Xmax, Xmin, Xmax1, Xmax2, Xmean
+        Integer                :: I, J, NCON, NVAR1
 
         Complex  (Kind=double) :: V2inv(LQ,LQ), V1inv(LQ,LQ)
         
@@ -50,11 +83,7 @@
         CALL INV( V1, V1inv, Z1)
 
         
-        DO I = 1,LQ
-           DO J = 1,LQ
-              HLP1(I,J) = CONJG( U1(J,I) ) 
-           ENDDO
-        ENDDO
+        HLP1 = CT(U1)
         CALL MMULT(HLP2,HLP1,U1)
         HLP1 = cmplx(0.d0,0.d0,kind=8)
         DO I = 1,LQ
@@ -62,12 +91,8 @@
         ENDDO
         Xmax = 0.d0
         CALL COMPARE(HLP1, HLP2, XMAX, XMEAN)
-        
-        DO I = 1,LQ
-           DO J = 1,LQ
-              HLP1(I,J) = CONJG( U2(J,I) ) 
-           ENDDO
-        ENDDO
+
+        HLP1 = CT(U2)
         CALL MMULT(HLP2,HLP1,U2)
         HLP1 = cmplx(0.d0,0.d0,kind=8)
         DO I = 1,LQ
@@ -100,16 +125,11 @@
         Call MMULT(HLP1,V1inv,V2inv)
         Call MMULT(HLP2,U1,U2)
         DO J = 1,LQ
-           DO I = 1,LQ
-              HLP2(I,J) = D1(I)*HLP2(I,J)*D2(J)  + HLP1(I,J)
-           ENDDO
+            HLP2(:,J) = D1(:) * HLP2(:, J) * D2(J) + HLP1(:,J)
         ENDDO
-        Xmax1 = dble( D1(1) )
-        Xmax2 = dble( D2(1) )
-        DO I = 2,LQ
-           If (  dble( D1(I) ) > Xmax1 ) Xmax1 =  dble( D1(I) )
-           If (  dble( D2(I) ) > Xmax2 ) Xmax2 =  dble( D2(I) )
-        Enddo
+        
+        Xmax1 = maxval(dble(D1))
+        Xmax2 = maxval(dble(D2))
         Nvar1 = 1
         If ( Xmax2 > Xmax1) Nvar1 = 2
         If (Nvar1 == 1) then
@@ -117,38 +137,18 @@
            Call UDV_WRAP(HLP2, U, D, V, Ncon) 
            CALL INV  (V,HLP2 ,Z   )
            CALL MMULT(V,V2inv,HLP2)
-           DO J = 1,LQ
-              DO I = 1,LQ
-                 V(I,J) = V(I,J)/D(J)
-              ENDDO
-           ENDDO
-           DO I = 1,LQ
-              DO J = 1,LQ
-                 HLP1(I,J) = Conjg(U(J,I))
-              ENDDO
-           ENDDO
+           CALL SCALEMATRIX(V, D, .FALSE., LQ)
+           HLP1 = CT(U)
            CALL MMULT( HLP2, HLP1,V1inv)
            CALL MMULT (GR00, V, HLP2)
         else
            !  V2^-1 (UDV  )^(-1,*) V1^-1 =  V2^-1 U  D^-1 V^(-1,*) V1^-1
-           DO J = 1,LQ
-              DO I = 1,LQ
-                 HLP1(I,J) = conjg(HLP2(J,I))
-              ENDDO
-           ENDDO
+           HLP1 = CT(HLP2)
            Call UDV_WRAP(HLP1, U, D, V, Ncon) 
            Call MMULT(HLP1, V2inv, U)
-           DO J = 1,LQ
-              DO I = 1,LQ
-                 HLP1(I,J) = HLP1(I,J)/D(J)
-              ENDDO
-           ENDDO
+           Call SCALEMATRIX(HLP1, D, .FALSE., LQ)
            CALL INV (V, HLP2, Z)
-           DO J = 1,LQ
-              DO I = 1,LQ
-                 V(I,J) = CONJG(HLP2(J,I))
-              ENDDO
-           ENDDO
+           V = CT(HLP2)
            CALL MMULT(HLP2,V,V1inv)
            CALL MMULT(GR00,HLP1,HLP2)
         endif
@@ -168,32 +168,19 @@
         !                            =  U2 ( D1*^-1 (U1 U2) + ( V2 V1)* D2* )^-1 V1*
         !       B2 = U2*D2*V2
         !       B1 = V1*D1*U1
-        Xmax2 = dble(cmplx(1.d0,0.d0)/D1(1))
-        Xmax1 = dble(D2(1))
-        Do I = 2,LQ
-           X2 = dble(cmplx(1.d0,0.d0)/D1(I))
-           X1 = dble(D2(I))
-           If ( X2 > Xmax2 ) Xmax2 = X2
-           If ( X1 > Xmax1 ) Xmax1 = X1
-        ENDDO
+        Xmax2 = maxval(dble(1.D0/D1))
+        Xmax1 = maxval(dble(D2))
         NVAR1 = 1
         If (Xmax2  > Xmax1)  Nvar1 = 2
         Call  MMULT(HLP1,U1,U2)
+!TODO: Consider benchmarking wether it is beneficial to interchange loops. Here it is saving divisions vs. proper mem access
         DO J = 1,LQ
-           DO I =1,LQ
-              HLP1(I,J) =  HLP1(I,J)/conjg(D1(I))
-           ENDDO
+           HLP1(:, J) =  HLP1(:,J)/conjg(D1(:))
         ENDDO
         Call MMULT(V,V2,V1)
+        HLP2 = CT(V)
         DO J = 1,LQ
-           DO I = 1,LQ
-              HLP2(I,J) = Conjg(V(J,I))
-           ENDDO
-        ENDDO
-        DO J = 1,LQ
-           DO I =1,LQ
-              HLP2(I,J) = HLP1(I,J) +  HLP2(I,J)*conjg(D2(J))
-           ENDDO
+            HLP2(:, J) = HLP1(:,J) + HLP2(:,J) * conjg(D2(J))
         ENDDO
         NCON = 0
         IF ( NVAR1 == 1 ) Then
@@ -201,53 +188,27 @@
            !  -G0T*= U2 V^-1 D^-1 U* V1*
            CALL UDV_WRAP(HLP2,U,D,V,NCON)
            CALL MMULT (HLP1, V1, U)
-           DO I = 1,LQ
-              DO J = 1,LQ
-                 U(I,J) = conjg(HLP1(J,I))
-              ENDDO
-           ENDDO
+           U = CT(HLP1)
            CALL INV(V,HLP2,Z)
            Call MMULT(HLP1,U2,HLP2)
-           DO J = 1,LQ
-              Z = cmplx(1.d0,0.d0,kind=8)/D(J)
-              DO I = 1,LQ
-                 HLP1(I,J) = HLP1(I,J)*Z
-              ENDDO
-           ENDDO
+           CALL SCALEMATRIX(HLP1, D, .FALSE., LQ)
            Call MMULT (HLP2,HLP1,U) 
            DO I = 1,LQ
-              DO J = 1,LQ
-                 GR0T(I,J) = -conjg(HLP2(J,I))
-              ENDDO
+                GR0T(I, :) = - conjg(HLP2(:, I))
            ENDDO
         ELSE
            !  UDV of HLP2*
            !  -G0T*= U2 (U D V)*^-1 V1* =  U2 U D*^-1 V*^-1 V1*
-           DO I = 1,LQ
-              DO J = 1,LQ
-                 HLP1(I,J) = conjg(HLP2(J,I))
-              ENDDO
-           ENDDO
+           HLP1 = CT(HLP2)
            CALL UDV_WRAP(HLP1,U,D,V,NCON)
            CALL MMULT (HLP1, U2, U)
-           DO J = 1,LQ
-              Z = cmplx(1.d0,0.d0,kind=8)/D(J)
-              DO I = 1,LQ
-                 HLP1(I,J) = HLP1(I,J)*Z
-              ENDDO
-           ENDDO
+           CALL SCALEMATRIX(HLP1, D, .FALSE., LQ)
            CALL INV(V,HLP2,Z)
            Call MMULT(V,V1,HLP2)
-           DO I = 1,LQ
-              DO J = 1,LQ
-                 HLP2(I,J) = conjg(V(J,I))
-              ENDDO
-           ENDDO
+           HLP2 = CT(V)
            Call MMULT (V,HLP1,HLP2)
            DO I = 1,LQ
-              DO J = 1,LQ
-                 GR0T(I,J) = -conjg(V(J,I))
-              ENDDO
+                GR0T(I, :) = -conjg(V(:, I))
            ENDDO
         ENDIF
 
@@ -259,33 +220,20 @@
         !                     =   (V2^-1 D2^-1 U2^-1  + V1 D1 U1)^-1 =  
         !                     =   ( (V2^-1 D2^-1 U2^-1 U1^-1  + V1 D1 ) U1  )^-1 = 
         !                     =   U1^-1 (  ( D2^-1 (U1 U2)^-1  + V2*V1 D1 )   )^-1 V2 
-        Xmax2 = dble(cmplx(1.d0,0.d0)/D2(1))
-        Xmax1 = dble(D1(1))
-        Do I = 2,LQ
-           X2 = dble(cmplx(1.d0,0.d0)/D2(I))
-           X1 = dble(D1(I))
-           If ( X2 > Xmax2 ) Xmax2 = X2
-           If ( X1 > Xmax1 ) Xmax1 = X1
-        ENDDO
+        Xmax2 = maxval(dble(1.D0/D2))
+        Xmax1 = maxval(dble(D1))
         NVAR1 = 1
         If (Xmax2 > Xmax1 ) NVAR1 = 2
         !Write(6,*) "CGR2_1: NVAR,NVAR1 ", NVAR, NVAR1
         Call  MMULT(HLP2,U1,U2)
+        HLP1 = CT(HLP2)
+!TODO: Consider benchmarking wether it is beneficial to interchange loops. Here it is saving divisions vs. proper mem access
         DO J = 1,LQ
-           DO I = 1,LQ
-              HLP1(I,J) = Conjg(HLP2(J,I))
-           ENDDO
-        ENDDO
-        DO J = 1,LQ
-           DO I =1,LQ
-              HLP1(I,J) =  HLP1(I,J)/D2(I) 
-           ENDDO
+           HLP1(:, J) =  HLP1(:,J)/D2(:)
         ENDDO
         Call MMULT(HLP2,V2,V1)
         DO J = 1,LQ
-           DO I =1,LQ
-              HLP2(I,J) = HLP1(I,J) +  HLP2(I,J)*D1(J) 
-           ENDDO
+            HLP2(:, J) = HLP1(:,J) + HLP2(:,J) * D1(J)
         ENDDO
         NCON = 0
         IF ( NVAR1 == 1 ) Then
@@ -293,53 +241,24 @@
            CALL UDV_WRAP(HLP2,U,D,V,NCON)
            CALL MMULT (HLP1, V, U1) 
            CALL INV(HLP1,HLP2,Z)
-           DO J = 1,LQ
-              Z = cmplx(1.d0,0.d0)/D(J)
-              DO I = 1,LQ
-                 HLP2(I,J) = HLP2(I,J)*Z
-              ENDDO
-           ENDDO
-           DO I = 1,LQ
-              DO J = 1,LQ
-                 HLP1(I,J) = Conjg(U(J,I))
-              ENDDO
-           ENDDO
+           CALL SCALEMATRIX(HLP2, D, .FALSE., LQ)
+           HLP1 = CT(U)
            CALL MMULT(U,HLP1,V2)
            Call MMULT (GRT0, HLP2,U)
         ELSE
            !UDV of HLP2^*
-           DO J = 1,LQ
-              DO I =1,LQ
-                 HLP1(I,J) = Conjg(HLP2(J,I))
-              ENDDO
-           ENDDO
+           HLP1 = CT(HLP2)
            CALL UDV_WRAP(HLP1,U,D,V,NCON) 
-           DO I = 1,LQ
-              DO J = 1,LQ
-                 HLP1(I,J) = conjg(U1(J,I))
-              ENDDO
-           ENDDO
+           HLP1 = CT(U1)
            CALL MMULT( HLP2, HLP1,U)
-           DO J = 1,LQ
-              DO I = 1,LQ
-                 HLP2(I,J) = HLP2(I,J)/Conjg(D(J))
-              ENDDO
-           ENDDO
-           DO I = 1,LQ
-              DO J = 1,LQ
-                 HLP1(I,J) = conjg(V(J,I))
-              ENDDO
-           ENDDO
+           CALL SCALEMATRIX(HLP2, D, .TRUE., LQ)
+           HLP1 = CT(V)
            CALL INV(HLP1,V,Z)
            CALL MMULT(U,V,V2)
            Call MMULT (GRT0, HLP2,U)
         ENDIF
-        Xmin = abs(dble(D(1)))
-        DO I = 1,LQ
-           if (abs(dble(D(I))) <   Xmin ) Xmin = abs(dble(D(I)))
-        ENDDO
+        Xmin = minval(abs(dble(D)))
         Write(6,*) 'Cgr2_1 T0, Xmin: ', Xmin
-
 
         !Compute GRTT
         Z  = cmplx(1.d0,0.d0,kind=8)

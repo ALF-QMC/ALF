@@ -15,38 +15,28 @@
         COMPLEX(Kind=8) :: PHASE
         INTEGER         :: NVAR
  
-	!Local
-	COMPLEX (Kind=8), Dimension(:,:), Allocatable ::  UUP,  VUP, TPUP, TPUP1, &
-             &	                                          TPUPM1,TPUP1M1,  UUPM1, VUP1
+        !Local
+        COMPLEX (Kind=8), Dimension(:,:), Allocatable ::  UUP, VUP, TPUP, TPUP1, TPUPM1, TPUP1M1, UUPM1, VUP1
         COMPLEX (Kind=8), Dimension(:) , Allocatable ::  DUP
-	COMPLEX (Kind=8) ::  ZDUP1, ZDDO1, ZDUP2, ZDDO2, Z1, ZUP, ZDO, Z
-        Integer :: I,J, N_size, NCON, NR, NT, N
+        COMPLEX (Kind=8) ::  ZDUP1, ZDDO1, ZDUP2, ZDDO2, Z1, ZUP, ZDO
+        Integer :: I,J, N_size, NCON
         Real (Kind=8) :: X, Xmax
         
         N_size = SIZE(DLUP,1)
-	NCON = 0
+        NCON = 0
 
         Allocate( UUP(N_size,N_size),  VUP(N_size,N_size), TPUP(N_size,N_size), TPUP1(N_size,N_size), &
-             & 	  TPUPM1(N_size,N_size),TPUP1M1(N_size,N_size),  UUPM1(N_size,N_size), VUP1(N_size,N_size), DUP(N_size) )
+             & TPUPM1(N_size,N_size),TPUP1M1(N_size,N_size),  UUPM1(N_size,N_size), VUP1(N_size,N_size), DUP(N_size) )
 	
         !Write(6,*) 'In CGR', N_size
         CALL MMULT(VUP,VRUP,VLUP)
         DO J = 1,N_size
-        DO I = 1,N_size
-           TPUP(I,J) = DRUP(I)*VUP(I,J)*DLUP(J)
-	ENDDO
-	ENDDO
+            TPUP(:,J) = DRUP(:)*VUP(:,J)*DLUP(J)
+        ENDDO
         CALL MMULT(UUP,ULUP,URUP)
-        DO J = 1,N_size
-        DO I = 1,N_size
-           UUPM1(I,J) =  CONJG(UUP(J,I))
-	ENDDO
-	ENDDO
-        DO J = 1,N_size
-        DO I = 1,N_size
-           TPUP(I,J) = TPUP(I,J) + UUPM1(I,J)
-	ENDDO
-	ENDDO
+! Fusing the CT and the Matrix Addition breaks the vectorization on GCC. Hence only benchmarks can decide.
+        UUPM1 = CT(UUP)
+        TPUP=TPUP + UUPM1
         IF (NVAR.EQ.1) THEN
            !WRITE(6,*) 'UDV of U + DR * V * DL'
            CALL UDV_WRAP(TPUP,UUP,DUP,VUP,NCON)
@@ -60,50 +50,32 @@
            CALL MMULT(TPUP1,URUP,UUP)
            CALL INV(TPUP1,TPUP1M1,ZDUP2)
            Z1 = ZDUP1*ZDUP2
-        ELSEIF (NVAR.EQ.2) THEN
+        ELSE
            !WRITE(6,*) 'UDV of (U + DR * V * DL)^{*}'
-           DO J = 1,N_size
-           DO I = 1,N_size
-              TPUP1(I,J) = CONJG( TPUP(J,I) )
-	   ENDDO
-	   ENDDO
+           TPUP1 = CT(TPUP)
            CALL UDV_WRAP(TPUP1,UUP,DUP,VUP,NCON)
            !CALL UDV(TPUP1,UUP,DUP,VUP,NCON)
-           DO J = 1,N_size
-           DO I = 1,N_size
-              TPUP(I,J) = CONJG( ULUP(J,I) )
-	   ENDDO
-	   ENDDO
+           TPUP = CT(ULUP)
            CALL MMULT(TPUPM1,TPUP,UUP)
-           DO J = 1,N_size
-           DO I = 1,N_size
-              VUP1(I,J) = CONJG( VUP(J,I) )
-	   ENDDO
-	   ENDDO
+           VUP1 = CT(VUP)
            CALL MMULT(TPUP1,URUP,VUP1)
            CALL INV(TPUP1,TPUP1M1,ZDUP2)
            CALL INV(TPUPM1, TPUP, ZDUP1)
            Z1 = ZDUP2/ZDUP1
         ENDIF
         DO I = 1,N_size
-           Z =  DUP(I)
-           if (I == 1)  Xmax = real(SQRT( Z* conjg(Z)),kind=8) 
-           if ( real(SQRT( Z* conjg(Z)),kind=8)  < Xmax ) Xmax = &
-                & real(SQRT( Z* conjg(Z)),kind=8)
+           X = ABS(DUP(I))
+           if (I == 1)  Xmax = X
+           if ( X  < Xmax ) Xmax = X
         ENDDO
         !Write(6,*) 'Cgr1, Cutoff: ', Xmax
 
-
         DO J = 1,N_size
         DO I = 1,N_size
-           ZUP = CMPLX(0.D0,0.D0)
-           DO NR = 1,N_size
-             ZUP = ZUP + TPUPM1(I,NR)*TPUP1M1(NR,J)/DUP(NR)
-	   ENDDO
-           GRUP(I,J) = ZUP
-	ENDDO
-	ENDDO
-        PHASE = Z1/SQRT( Z1* CONJG(Z1) )
+           GRUP(I, J) = Sum(TPUPM1(I,:) * TPUP1M1(:,J)/DUP)
+        ENDDO
+        ENDDO
+        PHASE = Z1/ABS(Z1)
 
         Deallocate(UUP, VUP, TPUP,TPUP1,TPUPM1, TPUP1M1, UUPM1, VUP1, DUP )
 

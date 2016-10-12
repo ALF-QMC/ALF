@@ -35,12 +35,11 @@
 
         ! Local::
         Complex  (Kind=double) :: U3B(2*LQ,2*LQ), V3B(2*LQ,2*LQ), HLPB1(2*LQ,2*LQ), HLPB2(2*LQ,2*LQ), &
-             &                   V2INV(LQ,LQ), V1INV(LQ,LQ), HLP2(LQ,LQ)
+             &                   V1INV(LQ,LQ)
         Complex  (Kind=double) :: D3B(2*LQ)
         Complex  (Kind=double) :: Z
-        Real (Kind=double) :: X, Xmax
 
-        Integer :: LQ2, I,J, M, ILQ, JLQ, NCON, I1, J1,N 
+        Integer :: LQ2, I,J, NCON
         
         LQ2 = LQ*2
         NCON = 0
@@ -59,12 +58,8 @@
                  HLPB2(I+LQ, J    ) = -D2(I)*V2(I,J)
               ENDDO
            ENDDO
-           DO J = 1,LQ2
-              DO I = 1,LQ2
-                 HLPB1(I,J)  = Conjg(HLPB2(J,I))
-              ENDDO
-           ENDDO
-           
+           HLPB1 = CT(HLPB2)
+
            !CALL UDV_wrap(HLPB1,U3B,D3B,V3B,NCON)
            CALL UDV_wrap_Pivot(HLPB1,U3B,D3B,V3B,NCON,LQ2,LQ2)
            
@@ -90,11 +85,7 @@
 !!$        ENDDO
 !!$        !Write(6,*) 'Cgr2_2, Cutoff: ', Xmax
 !!$!!!!!!!!!!!!! End Tests
-           DO J = 1,LQ2
-              DO I = 1,LQ2
-                 HLPB2(I,J) = Conjg(V3B(J,I))
-              ENDDO
-           ENDDO
+           HLPB2 = CT(V3B)
            CALL INV(HLPB2,V3B,Z)
            HLPB1 = cmplx(0.d0,0.d0,double)
            DO I = 1,LQ
@@ -109,17 +100,7 @@
                  HLPB1(I,J)  = Conjg(cmplx(1.d0,0.d0,double)/D3B(I))*HLPB2(I,J)
               ENDDO
            ENDDO
-           CALL MMULT(HLPB2,U3B,HLPB1)
-           DO I = 1,LQ
-              I1 = I+LQ
-              DO J = 1,LQ
-                 J1 = J + LQ
-                 GR00(I,J) = HLPB2(I ,J )
-                 GRTT(I,J) = HLPB2(I1,J1)
-                 GRT0(I,J) = HLPB2(I1,J )
-                 GR0T(I,J) = HLPB2(I,J1 )
-              ENDDO
-           ENDDO
+           CALL get_blocks_of_prod(GR00, GR0T, GRT0, GRTT, U3B, HLPB1, LQ)
         Else
            !Write(6,*) "D1(1) <  D2(1)", dble(D1(1)), dble(D2(1))
            HLPB2 = cmplx(0.D0,0.d0,double)
@@ -132,20 +113,12 @@
                  HLPB2(I+LQ, J    ) =  D1(I)*U1(I,J)
               ENDDO
            ENDDO
-           DO J = 1,LQ2
-              DO I = 1,LQ2
-                 HLPB1(I,J)  = Conjg(HLPB2(J,I))
-              ENDDO
-           ENDDO
+           HLPB1 = CT(HLPB2)
            
            !CALL UDV_wrap(HLPB1,U3B,D3B,V3B,NCON)
            CALL UDV_wrap_Pivot(HLPB1,U3B,D3B,V3B,NCON,LQ2,LQ2)
            
-           DO J = 1,LQ2
-              DO I = 1,LQ2
-                 HLPB2(I,J) = Conjg(V3B(J,I))
-              ENDDO
-           ENDDO
+           HLPB2 = CT(V3B)
            CALL INV(HLPB2,V3B,Z)
            HLPB1 = cmplx(0.d0,0.d0,double)
            DO I = 1,LQ
@@ -160,17 +133,7 @@
                  HLPB1(I,J)  = Conjg(cmplx(1.d0,0.d0,double)/D3B(I))*HLPB2(I,J)
               ENDDO
            ENDDO
-           CALL MMULT(HLPB2,U3B,HLPB1)
-           DO I = 1,LQ
-              I1 = I+LQ
-              DO J = 1,LQ
-                 J1 = J + LQ
-                 GRTT(I,J) = HLPB2(I ,J )
-                 GR00(I,J) = HLPB2(I1,J1)
-                 GR0T(I,J) = HLPB2(I1,J )
-                 GRT0(I,J) = HLPB2(I,J1 )
-              ENDDO
-           ENDDO
+           call get_blocks_of_prod(GRTT, GRT0, GR0T, GR00, U3B, HLPB1, LQ)
         Endif
         
       END SUBROUTINE CGR2_2

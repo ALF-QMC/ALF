@@ -44,8 +44,8 @@
           Allocate ( U_Hlp (Ndim, Ndim_hop) )
           Allocate ( U_Hlp1(Ndim, Ndim_hop) )
           
-          Exp_T = cmplx(0.d0,0.d0)
-          Exp_T_M1 = cmplx(0.d0,0.d0)
+          Exp_T = cmplx(0.d0, 0.d0, kind(0.D0))
+          Exp_T_M1 = cmplx(0.d0, 0.d0, kind(0.D0))
           do nf = 1,N_FL
              do nc = 1,Ncheck
                 g = Op_T(nc,nf)%g
