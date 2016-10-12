@@ -1,6 +1,7 @@
     Module Hamiltonian
 
       Use Operator_mod
+      !, only: Op_make, Op_set, Operator
       Use Lattices_v3 
       Use MyMats 
       Use Random_Wrap
@@ -8,7 +9,11 @@
       Use Matrix
       Use Print_bin_mod
       
+      Implicit none
 
+      !Private 
+      !Public  Op_V, Op_T, nsigma, Ndim,  N_FL,  N_SUN,  Ltrot
+ 
       Type (Operator), dimension(:,:), allocatable  :: Op_V
       Type (Operator), dimension(:,:), allocatable  :: Op_T
       Integer, allocatable :: nsigma(:,:)

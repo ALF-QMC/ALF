@@ -31,7 +31,7 @@
              !Local 
              
 
-             Nw_1   = range*2.d0/dis
+             Nw_1   = NINT(range*2.d0/dis)
              
              call Make_log_mesh(Hist%Mesh,  Lambda, Center, Range, Type, Nw_1)
              write(6,*) 'In Construct_hist: ',  Size(Hist%Mesh%Xom,1)

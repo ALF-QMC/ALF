@@ -240,7 +240,7 @@ C
 C           Temporarily store  beta,  put  zeta( k )  in  a( k, k )  and
 C           form  gamma( k ).
 C
-            TEMP = A(K,K)
+            TEMP = DBLE(A(K,K))
             A(K,K) = DREAL(THETA(K))
             GAMMA = DCMPLX(DREAL(ONE),DIMAG(THETA(K)))
 C

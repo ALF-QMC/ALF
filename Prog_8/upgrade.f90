@@ -3,7 +3,8 @@
 !!!!!! This version of  Upgrade.f90  contains optimization carried out by Johannes Hofmann
 !!!!!! The original version of this routine can be found in upgrade_FFA.f90 
 !!!!!! Both versions  must give the same results
-        
+
+       
         Use Hamiltonian
         Use Random_wrap
         Use Control
