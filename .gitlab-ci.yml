@@ -13,6 +13,7 @@ stages:
     - cd ..
     - cd Prog_8
     - make
+    - make SPT
     - make Ising
     - make Kondo_Honey
 
@@ -27,6 +28,7 @@ stages:
     - cd ..
     - cd Prog_8
     - make
+    - make SPT
     - make Ising
     - make Kondo_Honey
 
