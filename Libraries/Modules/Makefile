@@ -2,7 +2,7 @@
 #FC= mpxlf90
 #FLAGS= -c  -q64  -O4 
 #FLAGS= -c   -O3 -fbounds-check
-FLAGS= -c   -O3 
+FLAGS= -c   -O3 -std=f2003
 SUFFIX= -qsuffix=f=f90
 LF= 
 LIB=modules_90.a
@@ -12,4 +12,4 @@ all:
 
 clean:
 	(make -f Compile  clean ) ;\
- 	rm *.mod *~ \#* 
+ 	rm -f *.mod *~ \#* 

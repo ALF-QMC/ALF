@@ -229,13 +229,13 @@
                    nnr2 =  nint ( Iscalar(Latt%BZ2_p,x_p) / (2.d0*pi) )
                    nnr  = Latt%invlist(nnr1,nnr2)
                    Latt%nnlist(nr,nd1,nd2) = nnr
-	           if ( nnr < 1  .or.  nnr > Latt%N ) then 
-	               write(6,*) "Error in nnlist ", nnr 
+                   if ( nnr < 1  .or.  nnr > Latt%N ) then 
+                       write(6,*) "Error in nnlist ", nnr 
                        x1_p =  dble(Latt%list(nr,1))*Latt%a1_p + dble(Latt%list(nr,2))*Latt%a2_p
                        !Write(91,"(F14.7,2x,F14.7,2x,F14.7,2x,F14.7)") x1_p(1), x1_p(2), d_p(1), d_p(2)
                        Write(91,"(F14.7,2x,F14.7)") x1_p(1) , x1_p(2)
                        Write(91,*) 
-	           endif
+                    endif
                 enddo
              enddo
           enddo
@@ -335,7 +335,7 @@
           Type (Lattice) :: Latt
           
           Integer :: nkx, nky, nk
-          Real (Kind=8) :: XK1_P(2), XK2_P(2), X, Zero
+          Real (Kind=8) :: XK1_P(2), XK2_P(2), Zero
 
           call npbc(xk1_p, xk_p , Latt%BZ1_p, Latt%BZ2_p)
           call npbc(xk2_p, xk1_p, Latt%BZ1_p, Latt%BZ2_p)
@@ -565,12 +565,12 @@
           do nt = 1,nb
              do nr = 1,LQ
                 IR_p =  dble(Latt%list(nr,1))*Latt%a1_p + dble(Latt%list(nr,2))*Latt%a2_p  
-                X_MAT = cmplx(0.d0,0.d0)
+                X_MAT = cmplx(0.d0, 0.d0, kind(0.D0))
                 do nk = 1,LQ
                    XK_p =  dble(Latt%listk(nk,1))*Latt%b1_p + dble(Latt%listk(nk,2))*Latt%b2_p
-                   X_MAT = X_MAT + exp( cmplx(0.d0,(Iscalar(XK_p,IR_p))) ) *Xin_K(nk,nt)%el
+                   X_MAT = X_MAT + exp( cmplx(0.d0,(Iscalar(XK_p,IR_p)), kind(0.D0)) ) *Xin_K(nk,nt)%el
                 enddo
-                Xout_R(nr,nt)%el = X_MAT/cmplx(dble(LQ),0.d0)
+                Xout_R(nr,nt)%el = X_MAT/dble(LQ)
              enddo
           enddo
 
@@ -634,12 +634,12 @@
           do nt = 1,nb
              do nr = 1,LQ
                 IR_p =  dble(Latt%list(nr,1))*Latt%a1_p + dble(Latt%list(nr,2))*Latt%a2_p  
-                Z = cmplx(0.d0,0.d0)
+                Z = cmplx(0.d0, 0.d0, kind(0.D0))
                 do nk = 1,LQ
                    XK_p =  dble(Latt%listk(nk,1))*Latt%b1_p + dble(Latt%listk(nk,2))*Latt%b2_p
-                   Z = Z + cmplx(cos(Iscalar(XK_p,IR_p)),0.d0)*Xin_K(nk,nt)
+                   Z = Z + cos(Iscalar(XK_p,IR_p))*Xin_K(nk,nt)
                 enddo
-                Xout_R(nr,nt) = Z/cmplx(dble(LQ),0.d0)
+                Xout_R(nr,nt) = Z/dble(LQ)
              enddo
           enddo
 
@@ -692,7 +692,7 @@
 
           Real (Kind=8)                              :: XK_p(2), IR_p(2), X_mat
           
-          Integer :: nb, norb, nk, nt, LQ, nr
+          Integer :: nk, LQ, nr
 
           LQ     = Latt%N
 
@@ -722,7 +722,7 @@
           Complex (Kind=8)                            :: X_MAT
           Real    (Kind=8)                            :: XK_p(2), IR_p(2)
 
-          Integer :: nb, norb, LQ, nt, nr, nk
+          Integer :: LQ, nr, nk
 
           LQ     = Latt%N
 
@@ -732,12 +732,12 @@
           
           do nk = 1,LQ
              XK_p =  dble(Latt%listk(nk,1))*Latt%b1_p + dble(Latt%listk(nk,2))*Latt%b2_p
-             X_MAT = cmplx(0.d0,0.d0)
+             X_MAT = cmplx(0.d0,0.d0, kind(0.D0))
              do nr = 1,LQ
                 IR_p =  dble(Latt%list(nr,1))*Latt%a1_p + dble(Latt%list(nr,2))*Latt%a2_p  
-                X_MAT = X_MAT + exp( cmplx(0.d0,-(Iscalar(XK_p,IR_p))) ) *Xin_R(nr)
+                X_MAT = X_MAT + exp( cmplx(0.d0,-(Iscalar(XK_p,IR_p)), kind(0.D0)) ) *Xin_R(nr)
              enddo
-             Xout_K(nk) = X_MAT/cmplx(dble(LQ),0.d0)
+             Xout_K(nk) = X_MAT/dble(LQ)
           enddo
 
         end subroutine FT_R_to_K_C

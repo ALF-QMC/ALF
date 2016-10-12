@@ -4,4 +4,4 @@
 
 3)    In this version,  NWRAP does not have to be a multiple of Ltrot.  This greatly facilitates temperature scans. 
 
-4)    I have included the Condo model on the honeycomb lattice with z-frustrating interactions.
+4)    I have included the Condo model on the honeycomb lattice with z-frustrating interactions. 

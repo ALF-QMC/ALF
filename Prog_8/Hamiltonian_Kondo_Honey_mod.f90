@@ -203,7 +203,6 @@
           !Per flavor, the  hopping is given by: 
           !  e^{-dtau H_t}  =    Prod_{n=1}^{Ncheck} e^{-dtau_n H_{n,t}}
           Integer :: I, I1, I2,I3,no, n, Ncheck, nc, ncoord
-          Real (Kind=8) :: X
 
           !allocate(Exp_T   (Ndim,Ndim,N_FL) )
           !allocate(Exp_T_M1(Ndim,Ndim,N_FL) )
@@ -228,9 +227,9 @@
                       Call Op_make(Op_T(nc,n),2)
                       Op_T(nc,n)%P(1) = I1
                       Op_T(nc,n)%P(2) = I2
-                      Op_T(nc,n)%O( 1 , 2 ) = cmplx(-Ham_T,   0.d0)
-                      Op_T(nc,n)%O( 2 , 1 ) = cmplx(-Ham_T,   0.d0)
-                      Op_T(nc,n)%g=cmplx(-Dtau,0.d0)
+                      Op_T(nc,n)%O( 1 , 2 ) = cmplx(-Ham_T,   0.d0, kind(0.D0))
+                      Op_T(nc,n)%O( 2 , 1 ) = cmplx(-Ham_T,   0.d0, kind(0.D0))
+                      Op_T(nc,n)%g=cmplx(-Dtau, 0.d0, kind(0.D0))
                       !Write(6,*) 'In Ham_hop', Ham_T
                       Call Op_set(Op_T(nc,n)) 
                       !Write(6,*) 'In Ham_hop 1'
@@ -255,18 +254,18 @@
                    enddo
                    Do I = 1,Latt%N
                       I1 = I
-                      Op_T(nc,n)%O( I ,I1 + Latt%N) = cmplx(-Ham_T,   0.d0)
-                      Op_T(nc,n)%O( I1+Latt%N, I  ) = cmplx(-Ham_T,   0.d0)
+                      Op_T(nc,n)%O( I ,I1 + Latt%N) = cmplx(-Ham_T,   0.d0, kind(0.D0))
+                      Op_T(nc,n)%O( I1+Latt%N, I  ) = cmplx(-Ham_T,   0.d0, kind(0.D0))
                       
                       I2   = Latt%nnlist(I,1,-1)
-                      Op_T(nc,n)%O( I ,I2 + Latt%N) = cmplx(-Ham_T,   0.d0)
-                      Op_T(nc,n)%O( I2+Latt%N, I  ) = cmplx(-Ham_T,   0.d0)
+                      Op_T(nc,n)%O( I ,I2 + Latt%N) = cmplx(-Ham_T,   0.d0, kind(0.D0))
+                      Op_T(nc,n)%O( I2+Latt%N, I  ) = cmplx(-Ham_T,   0.d0, kind(0.D0))
                       
                       I3   = Latt%nnlist(i,0,-1)
-                      Op_T(nc,n)%O( I ,I3 + Latt%N) = cmplx(-Ham_T,   0.d0)
-                      Op_T(nc,n)%O( I3+Latt%N, I  ) = cmplx(-Ham_T,   0.d0)
+                      Op_T(nc,n)%O( I ,I3 + Latt%N) = cmplx(-Ham_T,   0.d0, kind(0.D0))
+                      Op_T(nc,n)%O( I3+Latt%N, I  ) = cmplx(-Ham_T,   0.d0, kind(0.D0))
                    ENDDO
-                   Op_T(nc,n)%g=cmplx(-Dtau,0.d0)
+                   Op_T(nc,n)%g=cmplx(-Dtau, 0.d0, kind(0.D0))
                    !Write(6,*) 'In Ham_hop', Ham_T
                    Call Op_set(Op_T(nc,n)) 
                    !Write(6,*) 'In Ham_hop 1'
@@ -287,8 +286,8 @@
           
           Implicit none 
           
-          Integer :: nf, nth, n, n1, n2, n3, n4, I, I1, I2, J,  Ix, Iy, nc, no
-          Real (Kind=8) :: X_p(2), X1_p(2), X2_p(2), X, XJ
+          Integer :: nf, nth, I, J, nc, no
+          Real (Kind=8) :: X
 
 
           ! Number of opertors. 
@@ -318,9 +317,9 @@
                 Do no = 3,4
                    nc = nc + 1 
                    Op_V(nc,nf)%P(1)   = Invlist(I,no)  ! f-site
-                   Op_V(nc,nf)%O(1,1) = cmplx(1.d0  ,0.d0)
-                   Op_V(nc,nf)%g      = SQRT(CMPLX(-DTAU*ham_U/2.d0,0.D0)) 
-                   Op_V(nc,nf)%alpha  = cmplx(-0.5d0,0.d0)
+                   Op_V(nc,nf)%O(1,1) = cmplx(1.d0, 0.d0, kind(0.D0))
+                   Op_V(nc,nf)%g      = SQRT(CMPLX(-DTAU*ham_U/2.d0, 0.D0, kind(0.D0))) 
+                   Op_V(nc,nf)%alpha  = cmplx(-0.5d0, 0.d0, kind(0.D0))
                    Op_V(nc,nf)%type   = 2
                    Call Op_set( Op_V(nc,nf) )
                    ! The operator reads:  
@@ -334,10 +333,10 @@
                    nc = nc + 1 
                    Op_V(nc,nf)%P(1) = Invlist(I,no  )
                    Op_V(nc,nf)%P(2) = Invlist(I,no+2)
-                   Op_V(nc,nf)%O(1,2) = cmplx(1.d0  ,0.d0)
-                   Op_V(nc,nf)%O(2,1) = cmplx(1.d0  ,0.d0)
-                   Op_V(nc,nf)%g      = SQRT(CMPLX(DTAU*Ham_J/4.d0,0.D0)) 
-                   Op_V(nc,nf)%alpha  = cmplx(0.d0,0.d0)
+                   Op_V(nc,nf)%O(1,2) = cmplx(1.d0  ,0.d0, kind(0.D0))
+                   Op_V(nc,nf)%O(2,1) = cmplx(1.d0  ,0.d0, kind(0.D0))
+                   Op_V(nc,nf)%g      = SQRT(CMPLX(DTAU*Ham_J/4.d0, 0.D0, kind(0.D0)))
+                   Op_V(nc,nf)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
                    Op_V(nc,nf)%type   = 2
                    Call Op_set( Op_V(nc,nf) )
                 Enddo
@@ -352,10 +351,10 @@
                       nc = nc + 1 
                       Op_V(nc,nf)%P(1) = Invlist(I,no)
                       Op_V(nc,nf)%P(2) = Invlist(J,no)
-                      Op_V(nc,nf)%O(1,1) = cmplx( 1.d0  ,0.d0)
-                      Op_V(nc,nf)%O(2,2) = cmplx(-1.d0  ,0.d0)
-                      Op_V(nc,nf)%g      = X*SQRT(CMPLX(DTAU*ham_Jz/2.d0,0.D0)) 
-                      Op_V(nc,nf)%alpha  = cmplx(0.d0,0.d0)
+                      Op_V(nc,nf)%O(1,1) = cmplx( 1.d0, 0.d0, kind(0.D0))
+                      Op_V(nc,nf)%O(2,2) = cmplx(-1.d0, 0.d0, kind(0.D0))
+                      Op_V(nc,nf)%g      = X*SQRT(CMPLX(DTAU*ham_Jz/2.d0, 0.D0, kind(0.D0))) 
+                      Op_V(nc,nf)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
                       Op_V(nc,nf)%type   = 2
                       Call Op_set( Op_V(nc,nf) )
                       ! The operator reads:  
@@ -372,7 +371,7 @@
         Real (Kind=8) function S0(n,nt)  
           Implicit none
           Integer, Intent(IN) :: n,nt 
-          Integer :: i, nt1 
+
           S0 = 1.d0
         end function S0
 !===================================================================================           
@@ -380,7 +379,6 @@
 
           Implicit none
           Integer, Intent(In) :: Ltau
-          Integer :: I
           Allocate ( Obs_scal(5) )
           Allocate ( Spinz_eq(Latt%N,Norb,Norb) , Spinz_eq0(Norb)   )
           Allocate ( Spinxy_eq(Latt%N,Norb,Norb), Spinxy_eq0(Norb) ) 
@@ -398,22 +396,20 @@
           Implicit none
           Integer, Intent(In) :: Ltau
           
-          Integer :: I,n
-          
           Nobs = 0
-          Obs_scal  = cmplx(0.d0,0.d0)
-          SpinZ_eq  = cmplx(0.d0,0.d0) 
-          SpinZ_eq0 = cmplx(0.d0,0.d0) 
-          Spinxy_eq = cmplx(0.d0,0.d0) 
-          Spinxy_eq0= cmplx(0.d0,0.d0) 
-          Den_eq    = cmplx(0.d0,0.d0)
-          Den_eq0   = cmplx(0.d0,0.d0)
+          Obs_scal  = cmplx(0.d0, 0.d0, kind(0.D0))
+          SpinZ_eq  = cmplx(0.d0, 0.d0, kind(0.D0))
+          SpinZ_eq0 = cmplx(0.d0, 0.d0, kind(0.D0))
+          Spinxy_eq = cmplx(0.d0, 0.d0, kind(0.D0))
+          Spinxy_eq0= cmplx(0.d0, 0.d0, kind(0.D0))
+          Den_eq    = cmplx(0.d0, 0.d0, kind(0.D0))
+          Den_eq0   = cmplx(0.d0, 0.d0, kind(0.D0))
 
           If (Ltau == 1) then
              NobsT = 0
-             Phase_tau = cmplx(0.d0,0.d0)
-             Green_tau = cmplx(0.d0,0.d0)
-             Den_tau = cmplx(0.d0,0.d0)
+             Phase_tau = cmplx(0.d0, 0.d0, kind(0.D0))
+             Green_tau = cmplx(0.d0, 0.d0, kind(0.D0))
+             Den_tau = cmplx(0.d0, 0.d0, kind(0.D0))
           endif
 
         end Subroutine Init_obs
@@ -428,41 +424,39 @@
           Integer, INTENT(IN)          :: Ntau
           
           !Local 
-          Complex (Kind=8) :: GRC(Ndim,Ndim,N_FL), ZK, G(4,4,N_FL)
-          Complex (Kind=8) :: Zrho, Zkin, ZPot, Z, ZP,ZS
-          Integer :: I,J, no,no1, n, n1, imj, nf, I1, I2,I3, J1, J2, I0, J0, ns, nc, NC_tot
-          
-          Real (Kind=8) ::  X
+          Complex (Kind=8) :: GRC(Ndim,Ndim,N_FL), ZK
+          Complex (Kind=8) :: Zrho, Zkin, ZPot, ZP,ZS
+          Integer :: I,J, no,no1, imj, nf, I1, I2, I3, J1, I0
           
           Nobs = Nobs + 1
-          ZP = PHASE/cmplx(Real(Phase,kind=8),0.d0)
-          ZS = cmplx(Real(Phase,kind=8)/Abs(Real(Phase,kind=8)), 0.d0)
+          ZP = PHASE/Real(Phase, kind(0.D0))
+          ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
           
 
           Do nf = 1,N_FL
              Do I = 1,Ndim
                 Do J = 1,Ndim
-                   ZK = cmplx(0.d0,0.d0)
-                   If ( I == J ) ZK = cmplx(1.d0,0.d0)
+                   ZK = cmplx(0.d0, 0.d0, kind(0.D0))
+                   If ( I == J ) ZK = cmplx(1.d0, 0.d0, kind(0.D0))
                    GRC(I,J,nf)  = ZK - GR(J,I,nf)
                 Enddo
              Enddo
           Enddo
           ! GRC(i,j,nf) = < c^{dagger}_{j,nf } c_{j,nf } >
           ! Compute scalar observables. 
-          Zkin = cmplx(0.d0,0.d0)
+          Zkin = cmplx(0.d0, 0.d0, kind(0.D0))
           Do nf = 1,N_FL
              Do I = 1,Latt%N
                 I0 = invlist(I,1)
                 I1 = invlist(I,2)
                 I2 = Invlist( Latt%nnlist(I,1,-1),2 )
                 I3 = invlist( Latt%nnlist(I,0,-1),2 )  
-                Zkin = Zkin + Grc(I0,I1,nf) +  Grc(I1,I0,nf)  + &
-                     &      + Grc(I0,I2,nf) +  Grc(I2,I0,nf)  + &
+                Zkin = Zkin + Grc(I0,I1,nf) +  Grc(I1,I0,nf) &
+                     &      + Grc(I0,I2,nf) +  Grc(I2,I0,nf) &
                      &      + Grc(I0,I3,nf) +  Grc(I3,I0,nf)
              Enddo
           Enddo
-          Zkin = - Zkin*cmplx( Ham_T*dble(N_SUN), 0.d0 )
+          Zkin = - Zkin*Ham_T*dble(N_SUN)
           !Nc_tot = Size(OP_T,1)
           !Write(6,*) 'Obser', Nc_tot
           !Do nf = 1,N_FL
@@ -479,22 +473,22 @@
           !Write(6,*) 'End Compute Kin: ', Size(OP_T,1), Size(OP_T,2)
           
 
-          Zrho = cmplx(0.d0,0.d0)
+          Zrho = cmplx(0.d0, 0.d0, kind(0.D0))
           Do nf = 1,N_FL
              Do I = 1,Ndim
                 Zrho = Zrho + Grc(i,i,nf) 
              enddo
           enddo
-          Zrho = Zrho*cmplx( dble(N_SUN), 0.d0 )
+          Zrho = Zrho*dble(N_SUN)
 
-          ZPot = cmplx(0.d0,0.d0)
+          ZPot = cmplx(0.d0, 0.d0, kind(0.D0))
           Do no = 3,4
              Do I = 1,Latt%N
                 I1 = Invlist(I,no)
                 ZPot = ZPot + Grc(I1,I1,1) * Grc(I1,I1,2)
              Enddo
           Enddo
-          Zpot = Zpot*cmplx(ham_U,0.d0)
+          Zpot = Zpot*ham_U
 
           Obs_scal(1) = Obs_scal(1) + zrho * ZP*ZS
           Obs_scal(2) = Obs_scal(2) + zkin * ZP*ZS
@@ -515,7 +509,7 @@
                      &   (GRC(I1,I1,2) - GRC(I1,I1,1))*(GRC(J1,J1,2) - GRC(J1,J1,1))    ) * ZP*ZS
                 ! c^d_(i,u) c_(i,d) c^d_(j,d) c_(j,u)  +  c^d_(i,d) c_(i,u) c^d_(j,u) c_(j,d)
                 SPINXY_Eq (imj,no,no1) = SPINXY_Eq (imj,no,no1)  +  &
-                     & (   GRC(I1,J1,1) * GR(I1,J1,2) +  GRC(I1,J1,2) * GR(I1,J1,1)    ) * cmplx(2.d0,0.d0)* ZP*ZS
+                     & (   GRC(I1,J1,1) * GR(I1,J1,2) +  GRC(I1,J1,2) * GR(I1,J1,1)    ) * 2.d0 * ZP*ZS
 
                 DEN_Eq (imj,no,no1) = DEN_Eq (imj,no,no1)  +  &
                      & (   GRC(I1,J1,1) * GR(I1,J1,1) +  GRC(I1,J1,2) * GR(I1,J1,2)    + &
@@ -554,7 +548,7 @@
 !!$          Write(6,*)  'In Pr_obs', LTAU
 !!$#endif
     
-          Phase_bin = Obs_scal(5)/cmplx(dble(Nobs),0.d0)
+          Phase_bin = Obs_scal(5)/dble(Nobs)
           File_pr ="SpinZ_eq"
           Call Print_bin(SpinZ_eq ,SpinZ_eq0, Latt, Nobs, Phase_bin, file_pr)
           File_pr ="SpinXY_eq"
@@ -564,7 +558,7 @@
           File_pr ="ener"
           Call Print_scal(Obs_scal, Nobs, file_pr)
           If (Ltau == 1) then
-             Phase_tau = Phase_tau/cmplx(dble(NobsT),0.d0)
+             Phase_tau = Phase_tau/dble(NobsT)
              File_pr = "Green_tau"
              Call Print_bin_tau(Green_tau,Latt,NobsT,Phase_tau, file_pr,dtau)
              File_pr = "Den_tau"
@@ -589,14 +583,14 @@
           Complex (Kind=8) :: Z, ZP, ZS
           Integer :: IMJ, I, J
 
-          ZP = PHASE/cmplx(Real(Phase,kind=8),0.d0)
-          ZS = cmplx(Real(Phase,kind=8)/Abs(Real(Phase,kind=8)), 0.d0)
+          ZP = PHASE/Real(Phase, kind(0.D0))
+          ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
           If (NT == 0 ) then 
              Phase_tau = Phase_tau + ZS
              NobsT     = NobsT + 1
           endif
           If ( N_FL == 1 ) then 
-             Z =  cmplx(dble(N_SUN),0.d0)
+             Z =  cmplx(dble(N_SUN), 0.d0, kind(0.D0))
              Do I = 1,Latt%N
                 Do J = 1,Latt%N
                    imj = latt%imj(I,J)

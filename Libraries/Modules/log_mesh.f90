@@ -27,8 +27,7 @@
           Type (logmesh)      :: Mesh
           Real (Kind=8)       :: Lambda, Center, Range
           Integer, Optional   :: Nw_1 
-          Real (Kind=8)       :: DeltaX,  XS
-          Integer             :: N, nc, Nw 
+          Integer             :: N, Nw 
           Character(len=10)   :: Type
 
           Real (Kind=8)  :: Dom, Om_st, Om_en
@@ -45,7 +44,7 @@
              if (Present(Nw_1) ) then 
                 Nw = Nw_1
              else
-                Nw = 10.d0*log(10.d0)/log(Lambda)
+                Nw = NINT(10.D0*log(10.D0)/log(Lambda))
              endif
              Mesh%Nw         = Nw
              Mesh%Nom        = 2*Nw + 3
@@ -150,7 +149,7 @@
           Real (Kind=8)  :: X
           Integer      , Optional     :: m_1
 
-          Integer ::  n, m
+          Integer ::  m
           Real (Kind=8) :: X1,X2,Y1,Y2,a,b 
 
           m = m_find(X,Mesh)
@@ -213,20 +212,20 @@
           Integer      , Optional     :: m_1
 
 
-          Integer  ::  n, m
+          Integer  ::  m
           Complex  (Kind=8) :: Z1,Z2, Z
           Real     (Kind=8) :: x1,x2,t
 
           m = m_find(X,Mesh)
           if (m == 0 ) then
-             Lookup_log_mesh_C = cmplx(0.d0,0.d0)
+             Lookup_log_mesh_C = cmplx(0.d0, 0.d0, kind(0.D0))
           else
              x1 =  Mesh%xom(m-1)
              x2 =  Mesh%xom(m  )
              t  = (x1 - X)/(x2-x1)
              Z1 = f(m-1)
              Z2 = f(m  )  
-             Z  = Z1 + (Z1-Z2)*cmplx(t,0.d0)
+             Z  = Z1 + (Z1-Z2)*t
              Lookup_log_mesh_C = Z
           endif
           
@@ -263,11 +262,11 @@
           Complex     (Kind=8)  :: Z
           Integer               :: n
 
-          Z = cmplx(0.d0,0.d0)
+          Z = cmplx(0.d0, 0.d0, kind(0.D0))
           do n = 1,Mesh%Nom-1
-             Z = Z + cmplx(Mesh%DXom(n),0.d0) * ( f(n+1) + f(n) )
+             Z = Z + Mesh%DXom(n) * ( f(n+1) + f(n) )
           enddo
-          Inter_log_mesh_C = Z / cmplx(2.d0,0.d0)
+          Inter_log_mesh_C = Z /2.d0
           
         end Function Inter_log_mesh_C
 

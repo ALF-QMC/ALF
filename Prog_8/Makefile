@@ -1,10 +1,9 @@
 FC= $(mpif90)
 FC= $(f90)
-FLAGS= $(FL) 
+FLAGS= $(FL) -std=f2003
 LF = $(Lflags)
 LIBS= $(Libs)/Modules/modules_90.a \
       $(Libs)/MyNag/libnag.a \
-      $(Libs)/MyLin/liblin.a \
       $(LIB_BLAS_LAPACK)
 
 Hub:

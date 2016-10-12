@@ -30,12 +30,12 @@ Module MaxEnt_stoch_mod
            Integer, optional :: L_cov
 
            ! Local
-           Integer lp, NSims, ns, nb, nc, Nwarm, nalp1, nalp2, Nex, p_star, Ndis_table, &
+           Integer NSims, ns, nb, nc, Nwarm, nalp1, nalp2, Nex, p_star, Ndis_table, &
                 & io_error, io_error1, i, n, nc1
            Real (Kind=8), Allocatable :: Xn_M_tot(:,:), En_M_tot(:), Xn_E_tot(:,:), En_E_tot(:), &
                 & Xn_tot(:,:,:), En_tot(:)
            Real (Kind=8), Allocatable :: G_Mean(:), Xn_m(:), Xn_e(:), Xn(:,:), Vhelp(:)
-           Real (Kind=8) :: En_M, Res, X, Alpha, Acc_1, Acc_2, En, DeltaE, Ratio, D
+           Real (Kind=8) :: En_M, X, Alpha, Acc_1, Acc_2, En, DeltaE, Ratio, D
            Real (Kind=8) :: Aom, om, XMAX, tau
            Real (Kind=8) :: CPUT, CPUTM
            Integer :: ICPU_1, ICPU_2, N_P_SEC
@@ -102,13 +102,9 @@ Module MaxEnt_stoch_mod
            do nw = 1,Ndis_table
               Vhelp = 0.d0
               do nt1 = 1,Ntau
-                 do nt = 1,Ntau
-                    Vhelp(nt1) = Vhelp(nt1) + Xker_table(nt,nw)*U(nt,nt1)
-                 enddo
+                 Vhelp(nt1) = Vhelp(nt1) + dot_product(Xker_table(:, nw), U(:,nt1))
               enddo
-              do nt1 = 1,ntau
-                 Xker_table(nt1,nw) = Vhelp(nt1)/sigma(nt1) !! This has changed !!
-              enddo
+              Xker_table(:, nw) = Vhelp/sigma
            enddo
            deallocate( U, Sigma )
            Allocate ( G_Mean(Ntau) )
@@ -380,14 +376,14 @@ Module MaxEnt_stoch_mod
            Real (Kind=8), Dimension(:,:) :: COV
            Real (Kind=8), external :: XKER
            Real (Kind=8) :: CHISQ, OM_ST, OM_EN, Beta_1, Xmom1, Err
-           Integer :: Nsweeps, NBins, Ngamma_1, Ndis_1, nw, nt1, Lcov
+           Integer :: Nsweeps, NBins, Ngamma_1, nw, nt1, Lcov
            ! Local
-           Integer lp, NSims, ns, nb, nc, Nwarm, nalp1, nalp2, Nex, p_star
+           Integer NSims, ns, nb, nc, Nwarm, nalp1, nalp2, Nex
            Real (Kind=8), Allocatable :: Xn_M_tot(:,:), En_M_tot(:), Xn_E_tot(:,:), En_E_tot(:), &
                 & Xn_tot(:,:,:), En_tot(:), Xker_table(:,:)
            Real (Kind=8), Allocatable :: G_Mean(:), Xn_m(:), Xn_e(:), Xn(:,:), Vhelp(:)
-           Real (Kind=8) :: En_M, Res, X, Alpha, Acc_1, Acc_2, En, DeltaE, Ratio, D
-           Real (Kind=8) :: Aom, om, XMAX, tau
+           Real (Kind=8) :: En_M, Alpha, Acc_1, Acc_2, En, DeltaE, Ratio, D
+           Real (Kind=8) :: Aom, om, tau
            Real (Kind=8), allocatable :: U(:,:), sigma(:)
            Pi = acos(-1.d0)
            Call Get_seed_Len(L_seed)
@@ -593,10 +589,10 @@ Module MaxEnt_stoch_mod
            Deallocate( Xker_table )
            DeAllocate(Iseed_vec)
 
-2001       format(F14.7,2x,F14.7,2x,F14.7)
-2004       format(F14.7,2x,F14.7,2x,F14.7,2x,F14.7)
-2005       format(F14.7,2x,F14.7,2x,F14.7,2x,F14.7,2x,F14.7)
-2003       format('Alpha, En_m, Acc ', F14.7,2x,F14.7,2x,F14.7,2x,F14.7,2x,F14.7)
+2001     format(F14.7,2x,F14.7,2x,F14.7)
+2004     format(F14.7,2x,F14.7,2x,F14.7,2x,F14.7)
+2005     format(F14.7,2x,F14.7,2x,F14.7,2x,F14.7,2x,F14.7)
+2003     format('Alpha, En_m, Acc ', F14.7,2x,F14.7,2x,F14.7,2x,F14.7,2x,F14.7)
          end Subroutine MaxEnt_stoch_fit
  !***********
          Real (Kind=8) Function Phim1(x)
@@ -648,15 +644,15 @@ Module MaxEnt_stoch_mod
            Implicit None
            Real (Kind=8), Dimension(:,:) :: Xn, Xker_table
            Real (Kind=8), Dimension(:) :: Xtau, Xn_m
-           Real (Kind=8) :: Alpha, En_m, s, ratio, ranf, A_gamma, Z_gamma, Acc_1, Acc_2
+           Real (Kind=8) :: Alpha, En_m, s, ratio, A_gamma, Z_gamma, Acc_1, Acc_2
            Integer :: NSweeps, nl, Lambda_max, ng1, ng2
            !Local
            Real (Kind=8), Allocatable :: h(:), Deltah(:), A_gamma_p(:), Z_gamma_p(:), &
                 & A_gamma_o(:), Z_gamma_o(:)
            Real (Kind=8), Allocatable :: XKER_stor(:,:), XKER_new(:)
-           Real (Kind=8) :: X, En, En1, DeltaE, XP, XM, om
+           Real (Kind=8) :: X, En, DeltaE
            Integer, Allocatable :: Lambda(:)
-           Integer :: nb, nsw, Nacc_1, Nacc_2, nw
+           Integer :: nsw, Nacc_1, Nacc_2, nw
            Allocate (h(ntau), Deltah(ntau) )
            Allocate (Lambda(2), Z_gamma_p(2), A_gamma_p(2), &
                 & Z_gamma_o(2), A_gamma_o(2) ) ! Max of moves of two walkers.
@@ -716,13 +712,8 @@ Module MaxEnt_stoch_mod
                        A_gamma_p(1) = xpbc( Xn(ng1,1) + (ranf_wrap() - 0.5)*DeltaXMAX, 1.d0 )
                        !om = PhiM1(A_gamma_p(1))
                        nw = NPhiM1(A_gamma_p(1))
-                       do nt = 1,ntau
-                          Xker_new(nt) = Xker_table(nt,nw) ! Xker(xtau(nt),om, beta)
-                       enddo
-                       do nt = 1,ntau
-                          X = ( Xker_new(nt) - Xker_stor(nt,ng1) ) * Z_gamma_o(1)
-                          Deltah(nt) = X
-                       enddo
+                       Xker_new = Xker_table(:, nw)
+                       Deltah = ( Xker_new - Xker_stor(:, ng1) ) * Z_gamma_o(1)
                     endif
                     DeltaE = 0.d0
                     do nt = 1,ntau
@@ -735,24 +726,17 @@ Module MaxEnt_stoch_mod
                        if (Lambda_max.eq.1) then
                           Nacc_1 = Nacc_1 + 1
                           ng1 = Lambda(1)
-                          do nt = 1,ntau
-                             Xker_stor(nt,ng1) = Xker_new(nt)
-                          enddo
+                          Xker_stor(:, ng1) = Xker_new
                        endif
                        if (Lambda_max.eq.2) Nacc_2 = Nacc_2 + 1
                        do nl = 1,Lambda_max
                           Xn(Lambda(nl),1) = A_gamma_p(nl)
                           Xn(Lambda(nl),2) = Z_gamma_p(nl)
                       enddo
-                      do nt = 1,ntau
-                         h(nt) = h(nt) + Deltah(nt)
-                      enddo
+                      h = h + Deltah
                     endif
                  enddo
-                 En = 0.0
-                 do nt = 1,Ntau
-                    En = En + h(nt)*h(nt)
-                 enddo
+                 En = dot_product(h, h)
                  En_m = En_m + En
                  Call Sum_Xn_Boxes( Xn_m, Xn )
               enddo
@@ -763,8 +747,8 @@ Module MaxEnt_stoch_mod
            Deallocate ( h, Deltah )
            Deallocate ( Lambda, Z_gamma_p, A_gamma_p, Z_gamma_o, A_gamma_o )
            Deallocate ( XKER_stor, XKER_new )
-2005 format(I4,2x,I4,2x,F14.7,2x,F14.7,' --> ',F14.7,2x,F14.7)
-2006 format(I4,2x,F14.7, ' --> ',F14.7)
+2005       format(I4,2x,I4,2x,F14.7,2x,F14.7,' --> ',F14.7,2x,F14.7)
+2006       format(I4,2x,F14.7, ' --> ',F14.7)
          end Subroutine MC
 !**********
          real (Kind=8) function xpbc(X,XL)

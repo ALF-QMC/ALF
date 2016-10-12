@@ -36,41 +36,36 @@
            !Write(lp,*) n,  W(n)
            if ( abs( dble(W(n)) ) <  0.00001 ) then
               N_c = N_c + 1
-              do i = 1,Ndim
-                 U1(i,N_c)  =  VR(i,n) 
-              enddo
+              U1(:, N_c) = VR(:, n)
            endif
         enddo
         !Write(6,*) "N_c ", N_c 
         NCON = 0
         Call UDV  (U1,U,D,V,NCON)
         
-        ! Setpup G_perp
-        gperp = cmplx(0.d0,0.d0)
+        ! Setup G_perp
         Do i = 1,Ndim
            do j = 1,Ndim
-              do n = 1,Ndim/2
-                 Gperp(i,j)  =  Gperp(i,j)  +  U(i,n) * conjg( U(j,n) ) 
-              enddo
+            Gperp(i, j) = dot_product(U(j, :), U(i, :))
            enddo
         enddo
 
 #ifdef Test_gperp
         X = 0.05
-        A  =  cmplx(1.d0-X,0.d0) * G    + cmplx(x,0.d0)*Gperp
+        A  =  cmplx(1.d0-X,0.d0, kind(0.D0)) * G    + cmplx(x,0.d0, kind(0.D0))*Gperp
         Call Inv(A,VR,Z) 
         Write(lp,*) "Det is ", Z 
         Call MMult(VL,A,VR)
-        VR = cmplx(0.d0,0.d0)
+        VR = cmplx(0.d0,0.d0, kind (0.D0))
         do i = 1,Ndim
-           VR(I,I)  = cmplx(1.d0,0.d0)
+           VR(I,I)  = cmplx(1.d0,0.d0, kind(0.D0))
         enddo
         Call Compare(VL,VR,Xmax,Xmean) 
         Write(lp,*) 'Compare: ', Xmax, Xmean
 
         ! This is for testing
         do n = 1,N_c
-           Vec  = cmplx(0.d0,0.d0)
+           Vec  = cmplx(0.d0,0.d0, kind(0.D0))
            do i = 1,Ndim
               do j = 1,Ndim
                  Vec(i)  = Vec(i) + G(i,j) * U(j,n)
@@ -86,7 +81,7 @@
 
         do n = 1,N_c
            do m = n,N_c
-              Z = cmplx(0.d0,0.d0)
+              Z = cmplx(0.d0,0.d0, kind(0.D0))
               do j = 1,Ndim
                  Z = Z + Conjg(U(j,m)) * U(j,n)
               enddo
