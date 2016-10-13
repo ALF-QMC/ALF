@@ -336,8 +336,8 @@
 !             write(*,*)
 !           enddo
       
-          Sx = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-          Sy = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
+          Sx = 0.d0
+          Sy = 0.d0
           Do ns = 1,2
              Do npm = 1,2
                 if (npm == 1) Xpm =  1.0
@@ -458,68 +458,68 @@
           Integer, Intent(In) :: Ltau
           
           Nobs = 0
-          Obs_scal  = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
+          Obs_scal  = 0.d0
           
-          Den_eq    = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-          Den_eq0   = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-          Spinz_eq    = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-          Spinz_eq0   = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-          U1_eq    = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-          U1_eq0   = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-          L_eq    = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-          L_eq0   = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
+          Den_eq    = 0.d0
+          Den_eq0   = 0.d0
+          Spinz_eq    = 0.d0
+          Spinz_eq0   = 0.d0
+          U1_eq    = 0.d0
+          U1_eq0   = 0.d0
+          L_eq    = 0.d0
+          L_eq0   = 0.d0
           
           if (FlagSym ==1 ) then
-              R_eq    = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-              R_eq0   = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-              U1xy_eq    = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-              U1xy_eq0   = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-              Spinxy_eq    = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-              Spinxy_eq0   = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
+              R_eq    = 0.d0
+              R_eq0   = 0.d0
+              U1xy_eq    = 0.d0
+              U1xy_eq0   = 0.d0
+              Spinxy_eq    = 0.d0
+              Spinxy_eq0   = 0.d0
               
-              TRS_eq    = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-              TRS_eq0   = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-              PHS_eq    = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-              PHS_eq0   = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-              RS_eq    = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-              RS_eq0   = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-              C4S_eq    = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-              C4S_eq0   = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-              PxS_eq    = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-              PxS_eq0   = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-              SxS_eq    = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-              SxS_eq0   = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-              SzS_eq    = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-              SzS_eq0   = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-              U11S_eq    = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-              U11S_eq0   = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-              U12S_eq    = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-              U12S_eq0   = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
+              TRS_eq    = 0.d0
+              TRS_eq0   = 0.d0
+              PHS_eq    = 0.d0
+              PHS_eq0   = 0.d0
+              RS_eq    = 0.d0
+              RS_eq0   = 0.d0
+              C4S_eq    = 0.d0
+              C4S_eq0   = 0.d0
+              PxS_eq    = 0.d0
+              PxS_eq0   = 0.d0
+              SxS_eq    = 0.d0
+              SxS_eq0   = 0.d0
+              SzS_eq    = 0.d0
+              SzS_eq0   = 0.d0
+              U11S_eq    = 0.d0
+              U11S_eq0   = 0.d0
+              U12S_eq    = 0.d0
+              U12S_eq0   = 0.d0
           endif
 
           If (Ltau == 1) then
              NobsT = 0
-             Phase_tau = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-             Green_tau = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-             Den_tau = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-             U1_tau = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-             U1xy_tau = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-             U1xyG_tau = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-             Spinz_tau = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-             Spinxy_tau = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
+             Phase_tau = 0.d0
+             Green_tau = 0.d0
+             Den_tau = 0.d0
+             U1_tau = 0.d0
+             U1xy_tau = 0.d0
+             U1xyG_tau = 0.d0
+             Spinz_tau = 0.d0
+             Spinxy_tau = 0.d0
           
-             Den_eq    = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-             Den_eq0   = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-             U1_sus    = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-             U1_sus0   = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-             U1xy_sus    = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-             U1xy_sus0   = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-             U1xyG_sus    = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-             U1xyG_sus0   = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-             Spinz_sus    = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-             Spinz_sus0   = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-             Spinxy_sus    = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
-             Spinxy_sus0   = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
+             Den_eq    = 0.d0
+             Den_eq0   = 0.d0
+             U1_sus    = 0.d0
+             U1_sus0   = 0.d0
+             U1xy_sus    = 0.d0
+             U1xy_sus0   = 0.d0
+             U1xyG_sus    = 0.d0
+             U1xyG_sus0   = 0.d0
+             Spinz_sus    = 0.d0
+             Spinz_sus0   = 0.d0
+             Spinxy_sus    = 0.d0
+             Spinxy_sus0   = 0.d0
           endif
 
         end Subroutine Init_obs
@@ -558,7 +558,7 @@
           ! GRC(i,j,nf) = < c^{dagger}_{j,nf } c_{j,nf } >
           ! Compute scalar observables. 
 
-          Zkin = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
+          Zkin = 0.d0
 
           Nc = Size( Op_T,1)
           Do nf = 1,N_FL
@@ -574,7 +574,7 @@
           Enddo
           Zkin = Zkin*N_SUN!cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
           
-          ZL = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
+          ZL = 0.d0
           
 !           Nc = Size( Op_T,1)
           Do nf = 1,N_FL
@@ -601,7 +601,7 @@
              enddo
           enddo
           Zrho = Zrho*N_SUN!cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
-          ZPot = 0.d0!cmplx(0.d0,0.d0, kind(0.D0))
+          ZPot = 0.d0
 
           Nc = Size( Op_V,1)
           Do nf = 1,N_FL
@@ -1600,9 +1600,9 @@
                    
                    I2=I1
                    J2=J1
-                   DeltaI=0.d0!cmplx(0.d0,0.d0, kind(0.D0))
+                   DeltaI=0.d0
                    if (I1==I2 .and. nt==0) DeltaI=cmplx(1.d0,0.d0, kind(0.D0))
-                   DeltaJ=0.d0!cmplx(0.d0,0.d0, kind(0.D0))
+                   DeltaJ=0.d0
                    if (J1==J2 .and. nt==0) DeltaJ=cmplx(1.d0,0.d0, kind(0.D0))
                    tmp =  Z * ( (DeltaI - GTT(I2,I1,1))*(DeltaJ - G00(J2,J1,1)) - GT0(I2,J1,1)*G0T(J2,I1,1)) * ZP* ZS                !
                    
@@ -1634,9 +1634,9 @@
                           J1 = Invlist(J,no1+8)
                           J2 = Invlist(J,no1)
                           
-                          DeltaI=0.d0!cmplx(0.d0,0.d0, kind(0.D0))
+                          DeltaI=0.d0
                           if (I1==I2 .and. nt==0) DeltaI=cmplx(1.d0,0.d0, kind(0.D0))
-                          DeltaJ=0.d0!cmplx(0.d0,0.d0, kind(0.D0))
+                          DeltaJ=0.d0
                           if (J1==J2 .and. nt==0) DeltaJ=cmplx(1.d0,0.d0, kind(0.D0))
                           tmp =  Z * ((DeltaI - GTT(I2,I1,1))*(DeltaJ - G00(J2,J1,1)) - GT0(I2,J1,1)*G0T(J2,I1,1)) * ZP* ZS
                           Spinxy_tau (imj,nt+1,1,1) = Spinxy_tau (imj,nt+1,1,1)   +  tmp
@@ -1657,9 +1657,9 @@
                             J2 = Invlist(J,no1+4)
                           endif
                           
-                          DeltaI=0.d0!cmplx(0.d0,0.d0, kind(0.D0))
+                          DeltaI=0.d0
                           if (I1==I2 .and. nt==0) DeltaI=cmplx(1.d0,0.d0, kind(0.D0))
-                          DeltaJ=0.d0!cmplx(0.d0,0.d0, kind(0.D0))
+                          DeltaJ=0.d0
                           if (J1==J2 .and. nt==0) DeltaJ=cmplx(1.d0,0.d0, kind(0.D0))
                           tmp =  Z * ((DeltaI - GTT(I2,I1,1))*(DeltaJ - G00(J2,J1,1)) - GT0(I2,J1,1)*G0T(J2,I1,1)) * ZP* ZS
                           U1xy_tau (imj,nt+1,1,1) = U1xy_tau (imj,nt+1,1,1)   +  tmp
@@ -1690,9 +1690,9 @@
                             I2 = Invlist(I,4*(no-1)+b)
                             J1 = Invlist(J,4*(no1-1)+c)
                             J2 = Invlist(J,4*(no1-1)+d)
-                            DeltaI=0.d0!cmplx(0.d0,0.d0, kind(0.D0))
+                            DeltaI=0.d0
                             if (I1==I2 .and. nt==0) DeltaI=cmplx(1.d0,0.d0, kind(0.D0))
-                            DeltaJ=0.d0!cmplx(0.d0,0.d0, kind(0.D0))
+                            DeltaJ=0.d0
                             if (J1==J2 .and. nt==0) DeltaJ=cmplx(1.d0,0.d0, kind(0.D0))
                             tmp =  Z * ((DeltaI - GTT(I2,I1,1))*(DeltaJ - G00(J2,J1,1)) - GT0(I2,J1,1)*G0T(J2,I1,1)) * ZP* ZS
                             L_eq (imj,1,1) = L_eq (imj,1,1)   +  weight*tmp*weightbeta 
