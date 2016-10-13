@@ -665,7 +665,7 @@ end subroutine
         case default
         do n = 1, Op%N
             DO I = 1, Ndim 
-                Mat(Op%P(n), I) = Dot_Product(Op%U(n, :), VH(:, I))!this involves a conjg
+                Mat(Op%P(n), I) = Dot_Product(Op%U(:, n), VH(:, I))!this involves a conjg
             enddo
         enddo
         end select
