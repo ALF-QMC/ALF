@@ -252,7 +252,7 @@ Contains
     Enddo
     
   end subroutine
-  
+
 !--------------------------------------------------------------------
 !> @author
 !> Florian Goth
@@ -277,7 +277,10 @@ Contains
     Complex (Kind = Kind(0.D0)), INTENT(INOUT) :: Mat (Ndim,Ndim)
     Integer, INTENT(IN) :: P(opn)
     Integer :: n,i
+    Complex (Kind = Kind(0.D0)) :: alpha, beta, tmp(opn, Ndim)
 
+    alpha = 1.D0
+    beta = 0.D0
     select case (opn)
     case (1)
         DO I = 1, Ndim
@@ -289,13 +292,10 @@ Contains
             Mat(P(2), I) = U(2,1) * V(1, I) + U(2,2) * V(2, I)
         enddo
     case default
-    do n = 1, opn
-        DO I = 1, Ndim
-            Mat(P(n), I) = Sum(U(n,:) * V(:, I))
-        enddo
-    enddo
+    CALL ZGEMM('N','N', opn, Ndim, opn, alpha, U, opn, V, opn, beta, tmp, opn)
+    Mat((P), :) = tmp
     end select
-    
+
   end subroutine
 
 !--------------------------------------------------------------------
@@ -322,7 +322,10 @@ Contains
     Complex (Kind = Kind(0.D0)), INTENT(INOUT) :: Mat (Ndim,Ndim)
     Integer, INTENT(IN) :: P(opn)
     Integer :: n, i
+    Complex (Kind = Kind(0.D0)) :: alpha, beta, tmp(Ndim, opn)
 
+    alpha = 1.D0
+    beta = 0.D0
     select case (opn)
     case (1)
         DO I = 1, Ndim
@@ -334,11 +337,8 @@ Contains
             Mat(I, P(2)) = conjg(U(2,1)) * V(1, I) + conjg(U(2,2)) * V(2, I)
         enddo
     case default
-    do n = 1, opn
-        DO I = 1, Ndim 
-            Mat(I, P(n)) = Dot_Product(U(n, :), V(:, I))!this involves a conjg
-        enddo
-    enddo
+        CALL ZGEMM('T','C', Ndim, opn, opn, alpha, V, opn, U, opn, beta, tmp, Ndim)
+        Mat(:, (P)) = tmp
     end select
         
   end subroutine
@@ -370,8 +370,9 @@ Contains
     Complex (Kind = Kind(0.D0)), INTENT(INOUT) :: Mat (Ndim,Ndim)
     Integer, INTENT(IN) :: P(opn)
     Integer :: n, i
-    Complex (Kind = Kind(0.D0)) lexp
+    Complex (Kind = Kind(0.D0)) :: beta
 
+    beta = 0.D0
     select case (opn)
     case (1)
         DO I = 1, Ndim
@@ -384,10 +385,7 @@ Contains
         enddo
     case default
     do n = 1, opn
-        lexp = Z(n)
-        DO I = 1, Ndim
-            Mat(I, P(n)) = lexp * Sum(U(:, n) * V(:, I))
-        enddo
+        call zgemv('T', opn, Ndim, Z(n), V, opn, U(:, n), 1, beta, Mat(:, P(n)), 1)
     Enddo
     end select
 
@@ -420,8 +418,9 @@ Contains
     Complex (Kind = Kind(0.D0)), INTENT(INOUT) :: Mat (Ndim, Ndim)
     Integer, INTENT(IN) :: P(opn)
     Integer :: n, i
-    Complex (Kind = Kind(0.D0)) lexp
+    Complex (Kind = Kind(0.D0)) :: beta
 
+    beta = 0.D0
     select case (opn)
     case (1)
         DO I = 1, Ndim
@@ -434,10 +433,7 @@ Contains
         enddo
     case default
     do n = 1, opn
-        lexp = Z(n)
-        DO I = 1, Ndim
-            Mat(P(n), I) = lexp * Dot_Product(U(:, n), V(:, I))
-        enddo
+        call zgemv('T', opn, Ndim, Z(n), V, opn, conjg(U(:, n)), 1, beta, Mat(P(n), 1), size(Mat, 1))
     Enddo
     end select
 
@@ -588,8 +584,10 @@ end subroutine
     Complex (Kind=8) :: VH(Op%N,Ndim), ExpOp(Op%N), ExpMop(Op%N), ExpHere !, zdotu, zdotc
 !     Complex (Kind=8) :: alpha, beta, tmp2(Op%N,Ndim)
     Integer :: n, i
-    
-!     nop=size(Op%U,1)
+    Complex (Kind = Kind(0.D0)) :: alpha, beta, tmp(Ndim, Op%N), tmp2(Op%N, Ndim)
+
+    alpha = 1.D0
+    beta = 0.D0
     
     !!!!! N_Type == 1
     !    Op%U*exp(-Op%g*spin*Op%E)*Mat*exp(Op%g*spin*Op%E)*(Op%U^{dagger})
@@ -605,30 +603,18 @@ end subroutine
           expHere=ExpOp(n)
           VH(n, :) = ExpHere * Mat(:, Op%P(n))
        Enddo
-       
-       ! ZGEMM might be the better multiplication, but the additional copy precess seem to be to expensive
-!        alpha = cmplx (1.0d0,0.0d0)
-!        beta = cmplx (0.0d0,0.0d0)
-!        CALL ZGEMM('T','C',Ndim,Op%N,Op%N,alpha,VH,Op%N,Op%U,nop,beta,tmp,Ndim)
+
        call opmultct(VH, Op%U, Op%P, Mat, Op%N, Ndim)
 
        Do n = 1,Op%N
           ExpHere=ExpMOp(n)
           VH(n, :) = ExpHere * Mat(Op%P(n), :)
        Enddo
-       
-       ! ZGEMM might be the better multiplication, but the additional copy precess seem to be to expensive
-!        alpha = cmplx (1.0d0,0.0d0)
-!        beta = cmplx (0.0d0,0.0d0)
-!        CALL ZGEMM('T','T',Ndim,Op%N,Op%N,alpha,VH,Op%N,Op%U,nop,beta,tmp,Ndim)
+    
        call opmult(VH, Op%U, Op%P, Mat, Op%N, Ndim)
     elseif (N_Type == 2) then
     call copy_select_rows(VH, Mat, Op%P, Op%N, Ndim)
        
-       ! ZGEMM might be the better multiplication, but the additional copy precess seem to be to expensive
-!        alpha = cmplx (1.0d0,0.0d0)
-!        beta = cmplx (0.0d0,0.0d0)
-!        CALL ZGEMM('T','N',Ndim,Op%N,Op%N,alpha,VH,Op%N,Op%U,nop,beta,tmp,Ndim)
     select case (Op%N)
     case (1)
         DO I = 1, Ndim
@@ -640,18 +626,11 @@ end subroutine
             Mat(I, Op%P(2)) = Op%U(1, 2) * VH(1, I) + Op%U(2, 2) * VH(2, I)
         enddo
     case default
-       do n = 1,Op%N
-          DO I = 1,Ndim
-             Mat(I, Op%P(n))  =  Sum(VH(:, I) * Op%U(:, n))
-          enddo
-       Enddo
+        CALL ZGEMM('T','N', Ndim, op%N, op%N, alpha, VH, op%n, Op%U, op%n, beta, tmp, Ndim)
+        Mat(:, (Op%P)) = tmp
     end select
       call copy_select_columns(VH, Mat, Op%P, Op%N, Ndim)
        
-       ! ZGEMM might be the better multiplication, but the additional copy precess seem to be to expensive
-!        alpha = cmplx (1.0d0,0.0d0)
-!        beta = cmplx (0.0d0,0.0d0)
-!        CALL ZGEMM('C','N',Op%N,Ndim,Op%N,alpha,Op%U,nop,VH,Op%N,beta,tmp2,Op%N)
         select case (Op%N)
         case (1)
             DO I = 1, Ndim
@@ -663,11 +642,8 @@ end subroutine
                 Mat(Op%P(2), I) = conjg(Op%U(1,2)) * VH(1, I) + conjg(Op%U(2,2)) * VH(2, I)
             enddo
         case default
-        do n = 1, Op%N
-            DO I = 1, Ndim 
-                Mat(Op%P(n), I) = Dot_Product(Op%U(:, n), VH(:, I))!this involves a conjg
-            enddo
-        enddo
+        CALL ZGEMM('C','N', op%N, Ndim, op%N, alpha, Op%U, op%n, VH, op%n, beta, tmp2, op%n)
+        Mat(Op%P, :) = tmp2
         end select
     endif
     
