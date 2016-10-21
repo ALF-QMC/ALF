@@ -1,0 +1,38 @@
+proc runmytest { test_name command_line } {
+    global verbose
+
+    # When verbose, tell the user what we are running
+    if { $verbose > 1 } {
+        send_user "starting $command_line\n"
+    }
+    
+    # Run the program.
+    spawn $command_line
+    
+    expect {
+        # Check for any warning messages in the output first
+        Warning {
+        fail "$test_name: warning: $expect_out(buffer)"
+        }
+    
+        # Check for any error messages
+        ERROR {
+        fail "$test_name: error: $expect_out(buffer)"
+        }
+    
+        # The string indicating successful completion
+        "success" {
+             pass "$test_name\n"
+        }
+    
+        # EOF and timeout only come after everything else. EOF must be an error.
+        eof {
+        fail "$test_name: EOF\n"
+        }
+    
+        # Timeout requires inspection to determine the cause of failure.
+        timeout {
+            unresolved "$test_name: timeout"
+        }
+    }
+}
