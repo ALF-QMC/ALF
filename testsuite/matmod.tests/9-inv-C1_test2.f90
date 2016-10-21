@@ -33,5 +33,5 @@ Program Test9
         write (*,*) "ERROR", B
         STOP 4
         endif
-        write (*,*) success
+        write (*,*) "success"
 end Program Test9
