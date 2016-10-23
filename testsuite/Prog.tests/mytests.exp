@@ -1,0 +1,12 @@
+set timeout 3
+
+runmytest "Testing Diagonalization of real matrix" "matmod.tests/1-diag-real-matrix.bin"
+runmytest "Test 2" "matmod.tests/2-inv-r0.bin"
+runmytest "Test 3" "matmod.tests/3-inv-R-variable.bin"
+runmytest "Test 4" "matmod.tests/4-inv-R-variable-1.bin"
+runmytest "Test 5" "matmod.tests/5-inv-R1.bin"
+runmytest "Test 6" "matmod.tests/6-inv_C.bin"
+runmytest "Test 7" "matmod.tests/7-inv_C_variable.bin"
+runmytest "Test 8" "matmod.tests/8-inv-C1.bin"
+runmytest "Test 9: Complex Inversion" "matmod.tests/9-inv-C1_test2.bin"
+runmytest "Test 10" "matmod.tests/10-initd_C.bin"
