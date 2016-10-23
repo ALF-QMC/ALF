@@ -15,6 +15,31 @@ runmytest "9-Op-Phase.f90" "Prog.tests/9-Op-Phase.bin"
 runmytest "10-Op-mmultL.f90" "Prog.tests/10-Op-mmultL.bin"
 runmytest "11-Op-mmultR.f90" "Prog.tests/11-Op-mmultR.bin"
 runmytest "12-get-matrix-blocks.f90" "Prog.tests/12-get-matrix-blocks.bin"
-runmytest "13-Op-Wrapup.f90" "Prog.tests/13-Op-Wrapup.bin"
+
+set test_name "13-Op-Wrapup.f90" 
+spawn "Prog.tests/13-Op-Wrapup.bin"
+
+expect {
+    # Check for any error messages
+    ERROR {
+        xfail "$test_name: error: $expect_out(buffer)"
+    }
+
+    # The string indicating successful completion
+    "success" {
+         xpass "$test_name\n"
+    }
+
+    # EOF and timeout only come after everything else. EOF must be an error.
+    eof {
+        fail "$test_name: EOF\n"
+    }
+
+    # Timeout requires inspection to determine the cause of failure.
+    timeout {
+        unresolved "$test_name: timeout"
+    }
+}
+
 runmytest "14-Op-Wrapdo.f90" "Prog.tests/14-Op-Wrapdo.bin"
 runmytest "15-cgr.f90" "Prog.tests/15-cgr.bin"
