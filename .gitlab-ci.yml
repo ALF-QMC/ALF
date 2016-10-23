@@ -17,18 +17,6 @@ stages:
     - make Ising
     - make Kondo_Honey
 
-.dejagnutestsuite_template: &dejagnutestsuite_definition
-  stage: test
-  script:
-    - . configure.sh
-    - export f90="gfortran"
-    - cd Libraries
-    - gfortran -v
-    - make
-    - cd ..
-    - cd Prog_8
-    - make
-
 .warnconv_template: &warnconv_definition
   stage: warnconv
   script:
@@ -43,6 +31,26 @@ stages:
     - make
     - make Ising
     - make Kondo_Honey
+
+.dejagnutestsuite_template: &dejagnutestsuite_definition
+  stage: test
+  script:
+    - . configure.sh
+    - export f90="gfortran"
+    - cd Libraries
+    - gfortran -v
+    - make
+    - cd ..
+    - cd Prog_8
+    - make
+    - cd ..
+    - cd testsuite/matmod.tests
+    - make
+    - cd ..
+    - cd Prog.tests 
+    - make
+    - cd ..
+    - runtest
 
 GQMCT_Wheezy:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-wheezy-gfortran-blas-lapack

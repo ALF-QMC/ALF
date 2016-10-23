@@ -1,4 +1,4 @@
-FC=gfortran
+FC=$(f90)
 INCLUDES=-I ../../Libraries/Modules/
 LIBS=../../Libraries/Modules/modules_90.a -llapack -lblas ../../Libraries/MyNag/libnag.a
 FLAGS=-L ../../Libraries/Modules/
