@@ -7,7 +7,7 @@ Use Operator_mod
 implicit none
 
         COMPLEX (KIND=KIND(0.D0)), DIMENSION(3) :: ExpOp, ExpMOp, ExpOpold, ExpMOpold
-        Real (KIND = KIND(0.D0)) :: spin
+        Real (KIND = KIND(0.D0)) :: spin, diffre, diffim
         Integer :: i,n
         Type(Operator) :: Op
         
@@ -35,9 +35,15 @@ if (ExpOpold(i) .ne. ExpOp(i)) then
 write (*,*) "ERROR", Expopold(i), expop(i)
 STOP 2
 endif
-if (ExpMOpold(i) .ne. ExpMOp(i)) then
-write (*,*) "ERROR"
+diffre = ABS(real(ExpMOpold(i) - ExpMOp(i)))
+diffim = ABS(aimag(ExpMOpold(i) - ExpMOp(i)))
+if ( diffre > MAX(ABS(real(ExpMopold(i))), ABS(real(ExpMop(i))) )*1D-15 ) then
+write (*,*) "ERROR", ExpMopold(i), ExpMOp(i)
 STOP 3
+endif
+if ( diffim > MAX(ABS(aimag(ExpMopold(i))), ABS(aimag(ExpMop(i))) )*1D-15 ) then
+write (*,*) "ERROR", ExpMopold(i), ExpMOp(i)
+STOP 4
 endif
 enddo
 
