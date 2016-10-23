@@ -1,7 +1,7 @@
 ! compile with
 ! gfortran -Wall -std=f2003 -I ../../../Prog_8/  -I ../../../Libraries/Modules/ -L ../../../Libraries/Modules/ main.f90 ../../../Prog_8/Operator.o ../../../Libraries/Modules/modules_90.a -llapack -lblas ../../../Libraries/MyNag/libnag.a
 !
-Program OPMULTTEST
+Program Wrapup
 !
       Use Operator_mod
       Implicit None
@@ -87,7 +87,7 @@ Program OPMULTTEST
          End Do
       End Do
       write (*,*) "success"
-End Program OPMULTTEST
+End Program Wrapup
 !
 Subroutine Op_WrapupFFA (Mat, Op, spin, Ndim, N_Type)
 !
