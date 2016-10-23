@@ -17,6 +17,18 @@ stages:
     - make Ising
     - make Kondo_Honey
 
+.dejagnutestsuite_template: &dejagnutestsuite_definition
+  stage: test
+  script:
+    - . configure.sh
+    - export f90="gfortran"
+    - cd Libraries
+    - gfortran -v
+    - make
+    - cd ..
+    - cd Prog_8
+    - make
+
 .warnconv_template: &warnconv_definition
   stage: warnconv
   script:
@@ -103,3 +115,39 @@ GQMCT_OpenSuse-13.2_conv:
 GQMCT_OpenSuse-42.1_conv:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:opensuse-42.1-gfortran-blas-lapack
   <<: *warnconv_definition
+  
+GQMCT_Wheezy_tests:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-wheezy-gfortran-blas-lapack
+  <<: *dejagnutestsuite_definition
+
+GQMCT_Jessie_tests:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-gfortran-blas-lapack
+  <<: *dejagnutestsuite_definition
+
+GQMCT_Stretch_tests:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-stretch-gfortran-blas-lapack
+  <<: *dejagnutestsuite_definition
+
+GQMCT_Wheezy_OpenBlas_tests:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-wheezy-gfortran-openblas-lapack
+  <<: *dejagnutestsuite_definition
+
+GQMCT_Jessie_OpenBlas_tests:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-gfortran-openblas-lapack
+  <<: *dejagnutestsuite_definition
+
+GQMCT_Stretch_OpenBlas_tests:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-stretch-gfortran-openblas-lapack
+  <<: *dejagnutestsuite_definition
+
+GQMCT_CentOS_tests:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:centos-7-gfortran-blas-lapack
+  <<: *dejagnutestsuite_definition
+
+GQMCT_OpenSuse-13.2_tests:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:opensuse-13.2-gfortran-blas-lapack
+  <<: *dejagnutestsuite_definition
+
+GQMCT_OpenSuse-42.1_tests:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:opensuse-42.1-gfortran-blas-lapack
+  <<: *dejagnutestsuite_definition
