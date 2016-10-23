@@ -62,10 +62,12 @@ Program OPEXPMULTTEST
          Do i = 1, Ndim
             Do j = 1, Ndim
                If (matold(i, j) .Ne. matnew(i, j)) Then
+               write (*,*) "ERROR"
                   Stop 2
                End If
             End Do
          End Do
          Deallocate (U, V, Z, E, P)
       End Do
+      write (*,*) "success"
 End Program OPEXPMULTTEST

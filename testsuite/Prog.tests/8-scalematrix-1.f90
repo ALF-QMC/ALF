@@ -32,15 +32,14 @@ Program TESTSCALEMATRIX
         do j = 1,Ndim
         tmp = matold(i,j) - matnew(i,j)
         if (Aimag(tmp) > Abs(Aimag(matnew(i,j)))*1.D-15  ) then
-        write (*,*) matold(i,j), matnew(i,j)
+        write (*,*) "ERROR", matold(i,j), matnew(i,j)
         STOP 2
         endif
         if (Real(tmp) > Abs(Real(matnew(i,j)))*1.D-15  ) then
-        write (*,*) matold(i,j), matnew(i,j)
+        write (*,*) "ERROR", matold(i,j), matnew(i,j)
         STOP 2
         endif
-
         enddo
     enddo
-
+write (*,*) "success"
 end Program TESTSCALEMATRIX

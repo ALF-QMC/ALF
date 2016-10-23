@@ -30,9 +30,10 @@ Use Operator_mod
     do i = 1,3
         do j = 1,3
         if (Vold(i,j) .ne. Vnew(i,j)) then
+        write (*,*) "ERROR"
         STOP 2
         endif
         enddo
     enddo
-
+write (*,*) "success"
 end Program CSC

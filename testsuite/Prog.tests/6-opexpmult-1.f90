@@ -62,11 +62,11 @@ Program OPEXPMULTTEST
             Do j = 1, Ndim
                tmp = matold (i, j) - matnew (i, j)
                If (Aimag(tmp) > Abs(Aimag(matnew(i, j)))*1.D-14) Then
-                  Write (*,*) matold (i, j), matnew (i, j)
+                  Write (*,*) "ERROR", matold (i, j), matnew (i, j)
                   Stop 2
                End If
                If (Real(tmp) > Abs(Real(matnew(i, j)))*1.D-14) Then
-                  Write (*,*) matold (i, j), matnew (i, j)
+                  Write (*,*) "ERROR", matold (i, j), matnew (i, j)
                   Stop 2
                End If
 !
@@ -74,4 +74,5 @@ Program OPEXPMULTTEST
          End Do
          Deallocate (U, V, P, Z)
       End Do
+      write (*,*) "success"
 End Program OPEXPMULTTEST

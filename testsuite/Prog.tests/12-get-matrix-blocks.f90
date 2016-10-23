@@ -37,21 +37,25 @@ Use MyMats
     do i = 1,LQ
         do j = 1,LQ
         if (GR00o(i,j) .ne. GR00n(i,j)) then
+        write (*,*) "ERROR"
         STOP 1
         endif
         
         if (GR0To(i,j) .ne. GR0Tn(i,j)) then
+        write (*,*) "ERROR"
         STOP 2
         endif
         
         if (GRT0o(i,j) .ne. GRT0n(i,j)) then
+        write (*,*) "ERROR"
         STOP 3
         endif
 
         if (GRTTo(i,j) .ne. GRTTn(i,j)) then
+        write (*,*) "ERROR"
         STOP 4
         endif
         enddo
     enddo
-
+    write (*,*) "success"
 end Program TESTGETMATRIXSUBBLOCKS

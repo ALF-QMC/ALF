@@ -32,13 +32,14 @@ implicit none
 
 do i = 1, 3
 if (ExpOpold(i) .ne. ExpOp(i)) then
-write (*,*) Expopold(i), expop(i)
+write (*,*) "ERROR", Expopold(i), expop(i)
 STOP 2
 endif
 if (ExpMOpold(i) .ne. ExpMOp(i)) then
+write (*,*) "ERROR"
 STOP 3
 endif
 enddo
 
-
+write (*,*) "success"
 end Program OPMULTTEST

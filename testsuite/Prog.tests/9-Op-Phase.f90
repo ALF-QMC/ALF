@@ -48,7 +48,8 @@ implicit none
     diff = Phaseold - Phasenew
     
     if (abs(diff) < MAX(ABS(Phaseold),ABS(Phasenew)) 1D-15) then
-    write (*,*) Phaseold, Phasenew
+    write (*,*) "ERROR", Phaseold, Phasenew
     STOP 2
     endif
+    write (*,*) "success"
 end Program TESTOP_PHASE

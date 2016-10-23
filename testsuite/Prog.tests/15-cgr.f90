@@ -56,11 +56,11 @@ call CGRold(PHASEold, NVAR, GRUPold, URUP, DRUP, VRUP, ULUP, DLUP, VLUP)
     Zre = real(Phasenew-Phaseold)
     Zim = aimag(Phasenew-Phaseold)
     if (Abs(Zre) > MAX(ABS(real(Phasenew)), ABS(real(Phaseold)) )*1D-15) then
-    write (*,*) "error in real part", real(Phasenew), real(Phaseold)
+    write (*,*) "ERROR in real part", real(Phasenew), real(Phaseold)
     STOP 6
     endif
     if (Abs(Zim) > MAX(ABS(aimag(Phasenew)), ABS(aimag(Phaseold)) )*1D-15) then
-    write (*,*) "error in imag part", aimag(Phasenew), aimag(Phaseold)
+    write (*,*) "ERROR in imag part", aimag(Phasenew), aimag(Phaseold)
     STOP 7
     endif
 
@@ -71,11 +71,11 @@ call CGRold(PHASEold, NVAR, GRUPold, URUP, DRUP, VRUP, ULUP, DLUP, VLUP)
     Zim = aimag(GRUPnew(i,j)-GRUPold(i,j))
     if (Abs(Zre) > MAX(ABS(real(GRUPnew(i,j))), ABS(real(GRUPold(i,j))) )*1D-15) then
     write (*,*) "opn: ", opn, "N_type", N_type
-    write (*,*) "error in real part", real(GRUPnew(i,j)), real(GRUPold(i,j))
+    write (*,*) "ERROR in real part", real(GRUPnew(i,j)), real(GRUPold(i,j))
     STOP 2
     endif
     if (Abs(Zim) > MAX(ABS(aimag(GRUPnew(i,j))), ABS(aimag(GRUPold(i,j))) )*1D-15) then
-    write (*,*) "error in imag part", aimag(GRUPnew(i,j)), aimag(GRUPold(i,j))
+    write (*,*) "ERROR in imag part", aimag(GRUPnew(i,j)), aimag(GRUPold(i,j))
     STOP 3
     endif
     enddo
@@ -83,6 +83,7 @@ call CGRold(PHASEold, NVAR, GRUPold, URUP, DRUP, VRUP, ULUP, DLUP, VLUP)
 
 deallocate(URUP, VRUP, ULUP, VLUP, GRUPnew, GRUPold, DLUP, DRUP)
 enddo
+write (*,*) "success"
 end Program TESTCGR
 
       SUBROUTINE CGRold(PHASE,NVAR, GRUP, URUP,DRUP,VRUP, ULUP,DLUP,VLUP)
