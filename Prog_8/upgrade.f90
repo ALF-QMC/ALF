@@ -27,8 +27,9 @@
         Complex (Kind = double) :: y_v(Ndim,Op_dim), xp_v(Ndim,Op_dim)
         Complex (Kind = double) :: x_v(Ndim,Op_dim)
         Logical :: Log
-        Complex (Kind = double), Dimension(:, :), Allocatable ::Zarr, grarr
-        
+        Complex (Kind = Kind(0.D0)), Dimension(:, :), Allocatable :: Zarr, grarr
+        Complex (Kind = Kind(0.D0)), Dimension(:), Allocatable :: sxv, syu
+
         if ( abs(OP_V(n_op,1)%g) < 1.D-6 ) return
 
         ! Compute the ratio
@@ -78,8 +79,9 @@
 
            Do nf = 1,N_FL
               ! Setup u(i,n), v(n,i) 
-              u = cmplx(0.d0, 0.d0, kind(0.D0))
-              v = cmplx(0.d0, 0.d0, kind(0.D0))
+              beta = 0.D0
+              call zlaset('N', Ndim, Op_dim, beta, beta, u, size(u, 1))
+              call zlaset('N', Ndim, Op_dim, beta, beta, v, size(v, 1))
               do n = 1,Op_V(n_op,nf)%N_non_zero
                  u( Op_V(n_op,nf)%P(n), n) = Delta(n,nf)
                  do i = 1,Ndim
@@ -88,35 +90,32 @@
                  v(Op_V(n_op,nf)%P(n), n)  = 1.d0 - GR( Op_V(n_op,nf)%P(n),  Op_V(n_op,nf)%P(n), nf)
               enddo
 
-              
-              x_v = cmplx(0.d0, 0.d0, kind(0.D0))
-              y_v = cmplx(0.d0, 0.d0, kind(0.D0))
+              call zlaset('N', Ndim, Op_dim, beta, beta, x_v, size(x_v, 1))
+              call zlaset('N', Ndim, Op_dim, beta, beta, y_v, size(y_v, 1))
               i = Op_V(n_op,nf)%P(1)
               x_v(i, 1) = u(i, 1)/(1.d0 + v(i,1)*u(i,1) )
-              y_v(:, 1) = v(:, 1)
+              call zcopy(Ndim, v(:, 1), 1, y_v(:, 1), 1)
               do n = 2,Op_V(n_op,nf)%N_non_zero
-                 Do i = 1,Ndim
-                    x_v(i,n) = u(i,n)
-                    y_v(i,n) = v(i,n)
-                 enddo
+                 call zcopy(Ndim, u(:, n), 1, x_v(:, n), 1)
+                 call zcopy(Ndim, v(:, n), 1, y_v(:, n), 1)
                  Z = 1.d0 + u( Op_V(n_op,nf)%P(n), n)*v(Op_V(n_op,nf)%P(n),n)
+                 alpha = -1.D0
+                 Allocate(syu(n), sxv(n))
+                 call zgemv('T', NDim, n-1, alpha, y_v, Ndim, u(1,n), 1, beta , syu, 1)
+                 call zgemv('T', NDim, n-1, alpha, x_v, Ndim, v(1,n), 1, beta , sxv, 1)
                  do m = 1,n-1
-                    tmpsyu = sum(y_v(:, m) * u(:, n))
-                    tmpsxv = sum(x_v(:, m) * v(:, n))
-                    Z = Z - tmpsxv*tmpsyu
-                    Do i = 1,Ndim
-                       x_v(i,n) = x_v(i,n) - x_v(i,m)*tmpsyu
-                       y_v(i,n) = y_v(i,n) - y_v(i,m)*tmpsxv
-                    enddo
+                    Z = Z - syu(m)*sxv(m)
+                    call zaxpy(Ndim, syu(m), x_v(1, m), 1, x_v(1, n), 1)
+                    call zaxpy(Ndim, sxv(m), y_v(1, m), 1, y_v(1, n), 1)
                  enddo
                  Z = 1.D0/Z
-                 x_v(:, n) = x_v(:, n) * z
+                 call zscal(Ndim, Z, x_v(1, n), 1)
+                 Deallocate(syu, sxv)
               enddo
               Allocate (Zarr(Op_dim,Op_dim), grarr(NDim, Op_dim))
-              alpha = 1.D0
-              beta = 0.D0
               Zarr = x_v(Op_V(n_op,nf)%P, :)
               grarr = gr(:, Op_V(n_op,nf)%P, nf)
+              alpha = 1.D0
               CALL ZGEMM('N', 'N', NDim, Op_Dim, Op_Dim, alpha, grarr, size(grarr,1), Zarr, size(Zarr,1), beta, xp_v, size(xp_v,1))
               Deallocate(Zarr, grarr)
               !do n = 1,Op_dim

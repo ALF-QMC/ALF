@@ -44,7 +44,6 @@
            ENDDO
            
            !Carry out U,D,V decomposition.
-!           TMP1 = CONJG(TRANSPOSE(TMP))
            CALL ZGEMM('C', 'C', Ndim, Ndim, Ndim, Z_ONE, TMP, Ndim, UL(:, :, nf), Ndim, beta, TMP1, Ndim)
            DO n = 1,NDim
               TMP1(:, n) = TMP1(:, n) * DL(n, nf)

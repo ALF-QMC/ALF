@@ -29,7 +29,6 @@
         beta = 0.D0
         Allocate( UUP(N_size,N_size),  VUP(N_size,N_size), TPUP(N_size,N_size), TPUP1(N_size,N_size), &
              & TPUPM1(N_size,N_size), DUP(N_size), IPVT(N_size) )
-
         !Write(6,*) 'In CGR', N_size
         CALL MMULT(VUP,VRUP,VLUP)
         DO J = 1,N_size
@@ -85,7 +84,6 @@
            ENDDO
         ENDDO
         !Write(6,*) 'Cgr1, Cutoff: ', Xmax
-!        TPUPM1 = TRANSPOSE(TPUPM1)
         call ZGETRS('T', N_size, N_size, TPUP1, N_size, IPVT, UUP, N_size, info)
         GRUP = TRANSPOSE(UUP)
         PHASE = Z1/ABS(Z1)

@@ -18,7 +18,7 @@ Use Operator_mod
         P(i) = i
         enddo
         
-        call copy_select_columns(Vnew, mat, P, 3, 3)
+        call copy_select_columns(Vnew, mat, P, 3, 5)
         
 ! check old version
     Do n = 1,3

@@ -144,15 +144,11 @@
           do nc =  1, Ncheck
              If ( dble( Op_T(nc,nf)%g*conjg(Op_T(nc,nf)%g) ) > Zero ) then
                 do n = 1,Ndim_hop
-                   do I = 1,Ndim
-                      U_Hlp(I,n) = Out(I,Op_T(nc,nf)%P(n))
-                   enddo
+                  call zcopy(Ndim, Out(1, Op_T(nc,nf)%P(n)), 1, U_Hlp(1, n), 1)
                 enddo
                 Call mmult(U_Hlp1,U_Hlp,Exp_T(:,:,nc,nf))
                 do n = 1,Ndim_hop
-                   DO I = 1,Ndim
-                      OUT(I,OP_T(nc,nf)%P(n)) = U_hlp1(I,n)
-                   Enddo
+                  call zcopy(Ndim, U_hlp1(1, n), 1, OUT(1,OP_T(nc,nf)%P(n)), 1)
                 Enddo
              Endif
           Enddo
