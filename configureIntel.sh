@@ -9,4 +9,5 @@ export FL="-c -O3 -fp-model fast=2 -xHost -unroll -finline-functions -ipo -ip -h
 
 export Libs=${DIR}"/Libraries/"
 #export LIB_BLAS_LAPACK="-lblas -llapack"
-export LIB_BLAS_LAPACK="-mkl=sequential"
+#export LIB_BLAS_LAPACK="-mkl=sequential"
+export LIB_BLAS_LAPACK="-mkl=parallel"
