@@ -106,6 +106,7 @@
 
           N_FL  = 1
           N_SUN = 1
+          FlagSym = 0
           
 #ifdef MPI
           If (Irank == 0 ) then
@@ -273,9 +274,9 @@
                 Op_T(nc,n)%g=cmplx(-Dtau*Ham_T,0.d0, kind(0.D0))
                 Call Op_set(Op_T(nc,n)) 
                 ! Just for tests
-                Do I = 1, Ndim/4
-                   Write(6,*) i,Op_T(nc,n)%E(i)
-                enddo
+!                 Do I = 1, Ndim/4
+!                    Write(6,*) i,Op_T(nc,n)%E(i)
+!                 enddo
              enddo
           enddo
 

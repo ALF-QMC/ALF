@@ -133,7 +133,7 @@ Program Main
   CALL MPI_BCAST(CPU_MAX ,1,MPI_REAL8,  0,MPI_COMM_WORLD,ierr)
 #endif
  
-  IF (ABS(CPU_MAX) > Zero ) NBIN = 1000000
+!   IF (ABS(CPU_MAX) > Zero ) NBIN = 1000000
  
   Call control_init
   Call Alloc_obs(Ltau)
