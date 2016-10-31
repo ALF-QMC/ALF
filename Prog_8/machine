@@ -1,1 +1,1 @@
-#define noMPI
+#define MPI
