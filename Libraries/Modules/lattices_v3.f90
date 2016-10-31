@@ -397,7 +397,7 @@
 
         integer function Iscalar_II(i_p, j_p)
           Implicit none
-          integer, dimension(:) :: i_p, j_p
+          integer, dimension(:), intent(in) :: i_p, j_p
           integer i
           
           Iscalar_II = 0
@@ -411,8 +411,8 @@
 !********
         Real (Kind=8)  function Iscalar_IR(x_p, j_p)
           Implicit none
-          Real (Kind=8), dimension(:) ::  x_p
-          integer, dimension(:) ::  j_p
+          Real (Kind=8), dimension(:), intent(in) ::  x_p
+          integer, dimension(:), intent(in) ::  j_p
           integer i
           
           Iscalar_IR = 0.d0
@@ -424,15 +424,10 @@
         end function Iscalar_IR
 !********
 
-        Real (Kind=8)  function Iscalar_RR(x_p, y_p)
+        pure Real (Kind=8)  function Iscalar_RR(x_p, y_p)
           Implicit none
-          Real (Kind=8), dimension(:) ::  x_p, y_p
-          integer i
-          
-          Iscalar_RR = 0.d0
-          do i = 1,  size(x_p)
-             Iscalar_RR = Iscalar_RR + x_p(i)*y_p(i)
-          enddo
+          Real (Kind = Kind(0.D0)), dimension(:), intent(in) ::  x_p, y_p
+          Iscalar_RR = dot_product(x_p, y_p)
         end function Iscalar_RR
 
 !********
@@ -507,7 +502,7 @@
           
           Implicit none
           
-          Type (Lattice)                             :: Latt
+          Type (Lattice), intent(in)                 :: Latt
           Type (Mat_R ), Dimension(:,:)              :: Xin_K, Xout_R 
           Real (Kind=8), Dimension(:,:), allocatable :: X_MAT
           Real (Kind=8)                              :: XK_p(2), IR_p(2)
@@ -546,7 +541,7 @@
           
           Implicit none
           
-          Type (Lattice)                                :: Latt
+          Type (Lattice), intent(in)                    :: Latt
           Type (Mat_C )   , Dimension(:,:)              :: Xin_K, Xout_R 
           Complex (Kind=8), Dimension(:,:), allocatable :: X_MAT
           Real    (Kind=8)                              :: XK_p(2), IR_p(2)
@@ -588,7 +583,7 @@
           
           Implicit none
           
-          Type (Lattice)                             :: Latt
+          Type (Lattice), intent(in)                 :: Latt
           Real (Kind=8), Dimension(:,:)              :: Xin_K, Xout_R 
           Real (Kind=8)                              :: XK_p(2), IR_p(2), X_Mat
           Integer :: LQ, nb, nt, nr, nk
@@ -622,7 +617,7 @@
           
           Implicit none
           
-          Type (Lattice)                             :: Latt
+          Type (Lattice), intent(in)                 :: Latt
           Complex (Kind=8), Dimension(:,:)           :: Xin_K, Xout_R 
           Complex (Kind=8)                           :: Z
           Real    (Kind=8)                           :: XK_p(2), IR_p(2)
@@ -658,7 +653,7 @@
           
           Implicit none
 
-          Type (Lattice)                             :: Latt
+          Type (Lattice), intent(in)                 :: Latt
           Type (Mat_R ), Dimension(:,:)              :: Xin_R, Xout_K 
           Real (Kind=8), Dimension(:,:), allocatable :: X_MAT
           Real (Kind=8)                              :: XK_p(2), IR_p(2)
@@ -697,7 +692,7 @@
           
           Implicit none
 
-          Type (Lattice)                             :: Latt
+          Type (Lattice), intent(in)                 :: Latt
           Real (Kind=8),   Dimension(:)              :: Xin_R, Xout_K 
 
           Real (Kind=8)                              :: XK_p(2), IR_p(2), X_mat
@@ -729,10 +724,10 @@
           
           Implicit none
           
-          Type (Lattice)                              :: Latt
+          Type (Lattice), intent(in)                  :: Latt
           Complex (Kind=8), Dimension(:)              :: Xin_R, Xout_K 
           Complex (Kind=8)                            :: X_MAT
-          Real    (Kind=8)                            :: XK_p(2), IR_p(2)
+          Real    (Kind=8)                            :: XK_p(2), IR_p(2), ang
 
           Integer :: LQ, nr, nk
 
@@ -748,7 +743,9 @@
              X_MAT = cmplx(0.d0,0.d0, kind(0.D0))
              do nr = 1,LQ
                 IR_p =  dble(Latt%list(nr,1))*Latt%a1_p + dble(Latt%list(nr,2))*Latt%a2_p  
-                X_MAT = X_MAT + exp( cmplx(0.d0,-(Iscalar(XK_p,IR_p)), kind(0.D0)) ) *Xin_R(nr)
+                ang = -Iscalar(XK_p,IR_p)
+!                X_MAT = X_MAT + exp( cmplx(0.d0,-(Iscalar(XK_p,IR_p)), kind(0.D0)) ) *Xin_R(nr)
+X_MAT = X_MAT + cmplx(cos(ang), sin(ang), kind(0.D0)) * Xin_R(nr)
              enddo
              Xout_K(nk) = X_MAT/dble(LQ)
           enddo
@@ -756,7 +753,4 @@
 
         end subroutine FT_R_to_K_C
 
-        
       end Module Lattices_v3
-
-      

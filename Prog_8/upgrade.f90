@@ -19,7 +19,7 @@
         Complex (Kind=double) :: Mat(Op_dim,Op_Dim), Delta(Op_dim,N_FL)
         Complex (Kind=double) :: Ratio(N_FL), Ratiotot, Z1 
         Integer :: ns_new, ns_old, n,m,nf, i,j
-        Complex (Kind= double) :: ZK, Z, D_Mat, Z2, myexp, tmpsxv, tmpsyu
+        Complex (Kind= double) :: ZK, Z, D_Mat, Z2, myexp, s1, s2
         Integer, external :: nranf
         
         Real (Kind = double) :: Weight, reZ, imZ
@@ -56,7 +56,14 @@
            If (Size(Mat,1) == 1 ) then
               D_mat = Mat(1,1)
            elseif (Size(Mat,1) == 2 ) then
-              D_mat = Mat(1,1)*Mat(2,2) - Mat(2,1)*Mat(1,2)
+              s1 = Mat(1,1)*Mat(2,2)
+              s2 = Mat(2,1)*Mat(1,2)
+              If (Abs(s1) > Abs(s2)) then
+                D_mat = s1*(1.D0 - s2/s1)
+              else
+                D_mat = s2*(s1/s2 - 1.D0)
+              Endif
+!              D_mat =  - Mat(2,1)*Mat(1,2)
            else
               D_mat = Det(Mat,Size(Mat,1))
            endif

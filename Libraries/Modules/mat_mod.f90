@@ -993,7 +993,7 @@
         COMPLEX (KIND=8), INTENT(IN), DIMENSION(:,:) :: A
         COMPLEX (KIND=8), INTENT(INOUT), DIMENSION(:,:) :: U,V
         INTEGER, INTENT(IN) :: NCON
-        INTEGER :: NE, LQ, IFAIL, I, J, NR
+        INTEGER :: NE, LQ, IFAIL, I, J, NR, LDV, LDU, DU2, DV2
 
         !Local
         COMPLEX (KIND=8), DIMENSION(:,:), ALLOCATABLE :: TMP, TEST
@@ -1003,25 +1003,22 @@
 
         LQ = SIZE(A,1)
         NE = SIZE(A,2)
-
-        U = 0.D0 ; V = 0.D0
+        LDV = SIZE(V,1)
+        LDU = SIZE(U,1)
+        DV2 = SIZE(V,2)
+        DU2 = SIZE(U,2)
+        Z = 0.D0
+        call ZLASET('A', LDU, DU2, Z, Z, U, LDU)
+        call ZLASET('A', LDV, DV2, Z, Z, V, LDV)
         ALLOCATE (TMP(LQ,NE), THETA(NE), WORK(NE))
-
-        TMP = A
+        call ZLACPY('A', LQ, NE, A, LQ, TMP, LQ)
 
         !You now want to UDV TMP. Nag routines.
         IFAIL = 0
 
         CALL F01RCF(LQ,NE,TMP,LQ,THETA,IFAIL)
 
-
-!$OMP parallel do default(shared) private(I,J)
-        DO I = 1,NE
-           DO J = I,NE
-              V(I,J) = TMP(I,J)
-           ENDDO
-        ENDDO
-!$OMP end parallel do
+        call ZLACPY('U', NE, NE, TMP, LQ, V, LDV)
         DETV = 1.D0
         !V is an NE by NE upper triangular matrix with real diagonal elements.
 !$OMP parallel do default(shared) private(I) reduction(*:Detv)
@@ -1035,13 +1032,7 @@
         CALL F01REF('Separate', LQ,NE, NE, TMP, &
              & LQ, THETA, WORK, IFAIL)
 
-!$OMP parallel do default(shared) private(I,J)
-        DO J = 1,NE
-           DO I = 1,LQ
-              U(I,J) = TMP(I,J)
-           ENDDO
-        ENDDO
-!$OMP end parallel do
+        call ZLACPY('A', LQ, NE, TMP, LQ, U, LDU)
 
         IF (DBLE(DETV).LT.0.D0) THEN
 !$OMP parallel do default(shared) private(I)
@@ -1056,21 +1047,10 @@
 !$OMP end parallel do
         ENDIF
 
-
         !Test accuracy.
         IF (NCON.EQ.1) THEN
            ALLOCATE( TEST(LQ,NE) )
-!$OMP parallel do default(shared) private(I,J,Z,NR)
-           DO J = 1,NE
-              DO I = 1,LQ
-                 Z = 0.D0
-                 DO NR = 1,NE
-                    Z = Z + U(I,NR)*V(NR,J)
-                 ENDDO
-                 TEST(I,J) = Z
-              ENDDO
-           ENDDO
-!$OMP end parallel do
+           call MMULT(TEST, U, V)
            XMDIFF = 0.D0
            DO J = 1,LQ
               DO I = 1,NE

@@ -178,13 +178,15 @@
            ! Aout= Ain = B(NT  , NT1)
            
            Implicit none
-           Complex (Kind=double), intent(INOUT) :: Ain(Ndim,Ndim,N_FL)
+           Complex (Kind=Kind(0.D0)), intent(INOUT) :: Ain(Ndim,Ndim,N_FL)
            Integer, INTENT(IN) :: NT
 
            !Locals
            Integer :: J,I,nf,n 
-           Complex (Kind=double) :: HLP4(Ndim,Ndim)
-           Real    (Kind=double) :: X
+           Complex (Kind=Kind(0.D0)), allocatable, Dimension(:, :) :: HLP4
+           Real    (Kind=Kind(0.D0)) :: X
+           
+           Allocate(HLP4(Ndim, Ndim))
 
            Do nf = 1,N_FL
               !CALL MMULT(HLP4,Exp_T(:,:,nf) ,Ain(:,:,nf))
@@ -193,14 +195,9 @@
                  X = Phi(nsigma(n,nt),Op_V(n,nf)%type)
                  Call Op_mmultR(HLP4,Op_V(n,nf),X,Ndim)
               ENDDO
-!$OMP parallel do default(shared) private(J,I)
-              Do J = 1,Ndim
-                 do I = 1,Ndim
-                    Ain(I,J,nf) = HLP4(I,J)
-                 enddo
-              ENDDO
-!$OMP end parallel do
+              Call ZLACPY('A', Ndim, Ndim, HLP4, Ndim, Ain(1,1, nf), Ndim)
            Enddo
+           Deallocate(HLP4)
            
          end SUBROUTINE PROPR
 !==============================================================
@@ -213,13 +210,15 @@
            Implicit none
            
            !Arguments 
-           Complex (Kind=double), intent(Inout) ::  AIN(Ndim, Ndim, N_FL) 
+           Complex (Kind=Kind(0.D0)), intent(Inout) ::  AIN(Ndim, Ndim, N_FL) 
            Integer :: NT
            
            ! Locals 
            Integer :: J,I,nf,n 
-           Complex (Kind=double) :: HLP4(Ndim,Ndim)
-           Real    (Kind=double) :: X
+           Complex (Kind=Kind(0.D0)), allocatable, Dimension(:, :) :: HLP4
+           Real    (Kind=Kind(0.D0)) :: X
+           
+           Allocate(HLP4(Ndim, Ndim))
            
            do nf = 1,N_FL
               !Call MMULT(HLP4,Ain(:,:,nf),Exp_T_M1(:,:,nf) )
@@ -228,14 +227,9 @@
                  X = -Phi(nsigma(n,nt),Op_V(n,nf)%type)
                  Call Op_mmultL(HLP4,Op_V(n,nf),X,Ndim)
               Enddo
-!$OMP parallel do default(shared) private(J,I)
-              Do J = 1,Ndim
-                 do I = 1,Ndim
-                    Ain(I,J,nf) = HLP4(I,J)
-                 enddo
-              Enddo
-!$OMP end parallel do
+              Call ZLACPY('A', Ndim, Ndim, HLP4, Ndim, Ain(1,1, nf), Ndim)
            enddo
+           Deallocate(HLP4)
            
          END SUBROUTINE PROPRM1
 !==============================================================

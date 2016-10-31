@@ -81,7 +81,7 @@ Contains
 !> @param[in] Nsigma
 !> @param[in] N_SUN 
 !--------------------------------------------------------------------
-  Subroutine  Op_phase(Phase,OP_V,Nsigma,N_SUN) ! This also goes in Operator  (Input is nsigma, Op_V).
+  Pure Subroutine  Op_phase(Phase,OP_V,Nsigma,N_SUN) ! This also goes in Operator  (Input is nsigma, Op_V).
     Implicit none
 
     Complex  (Kind=8), Intent(Inout) :: Phase
@@ -105,7 +105,7 @@ Contains
   end Subroutine Op_phase
   
 
-  subroutine Op_make(Op,N)
+  Pure subroutine Op_make(Op,N)
     Implicit none
     Type (Operator), intent(INOUT) :: Op
     Integer, Intent(IN) :: N
@@ -120,7 +120,7 @@ Contains
     Op%alpha = cmplx(0.d0,0.d0, kind(0.D0))
   end subroutine Op_make
 
-  subroutine Op_clear(Op,N)
+  Pure subroutine Op_clear(Op,N)
     Implicit none
     Type (Operator), intent(INOUT) :: Op
     Integer, Intent(IN) :: N
@@ -169,7 +169,7 @@ Contains
   end subroutine Op_set
 
 
-  subroutine Op_exp(g,Op,Mat)
+  Pure subroutine Op_exp(g,Op,Mat)
     Implicit none 
     Type (Operator), Intent(IN)  :: Op
     Complex (Kind=8), Dimension(:,:), INTENT(OUT) :: Mat
@@ -528,7 +528,7 @@ Contains
 !> @param[in] Op The Operator whose eigenvalues we exponentiate
 !> @param[in] spin The spin direction that we consider
 !--------------------------------------------------------------------
-subroutine FillExpOps(ExpOp, ExpMop, Op, spin)
+Pure subroutine FillExpOps(ExpOp, ExpMop, Op, spin)
     Implicit none
     Type (Operator) , INTENT(IN) :: Op
     Complex(kind = kind(0.D0)), INTENT(INOUT) :: ExpOp(Op%N), ExpMop(Op%N)
