@@ -15,18 +15,22 @@
        INTEGER, INTENT(IN) :: N1,N2
        
        ! Locals
-       REAL (Kind=8) :: VHELP(N2), XNORM(N2), XMAX, XMEAN
+       REAL (Kind=8) :: VHELP(N2), XNORM(N2), XMAX, XMEAN, TMP
        INTEGER :: IVPT(N2), IVPTM1(N2), I, J, K, IMAX
        COMPLEX (KIND=8)  :: A1(N1,N2), A2(N1,N2)
        
+!$OMP parallel do default(shared) private(I,TMP)
        DO I = 1,N2
-          XNORM(I) = 0.D0
+          TMP = 0.D0
           DO J = 1,N1
-             XNORM(I) = XNORM(I) + DBLE( A(J,I) * CONJG( A(J,I) ) )
+             TMP = TMP + DBLE( A(J,I) * CONJG( A(J,I) ) )
           ENDDO
+          XNORM(I)=TMP
        ENDDO
+!$OMP end parallel do
        VHELP = XNORM
       
+       ! IS THAT some kind of sorting???
        DO I = 1,N2
           XMAX = VHELP(1)
           IMAX = 1
@@ -40,18 +44,22 @@
           IVPTM1(IMAX)=  I
           IVPT(I) = IMAX
        ENDDO
+!$OMP parallel do default(shared) private(I,K)
        DO I = 1,N2
           K = IVPT(I)
           A1(:, I) = A(:, K)
        ENDDO
+!$OMP end parallel do
        
        CALL UDV_Wrap(A1,U,D,V,NCON)
        
        A1 = V
+!$OMP parallel do default(shared) private(I,K)
        DO I = 1,N2
           K = IVPTM1(I)
           V(:, I) = A1(:,K)
        ENDDO
+!$OMP end parallel do
        
 
        IF (NCON == 1) THEN

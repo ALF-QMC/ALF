@@ -276,6 +276,7 @@
            If (Irank == 0 ) then
 #endif
               If (Present(Dat0_tau) ) Tmp0 = Dat0_tau
+!$OMP parallel do default(shared) private(nt,no,no1)
               do nt = 1,LT
                  do no = 1,Norb
                     do no1 = 1,Norb
@@ -283,6 +284,7 @@
                     enddo
                  enddo
               enddo
+!$OMP end parallel do
               Open (Unit=10,File=File_pr, status="unknown",  position="append")
               Write(10,*) dble(Phase_mean),Norb,Latt%N, LT, dtau
               Do no = 1,Norb

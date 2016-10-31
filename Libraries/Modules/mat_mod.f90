@@ -901,16 +901,20 @@
         CALL F01RCF(LQ,NE,TMP,LQ,THETA,IFAIL)
 
 
+!$OMP parallel do default(shared) private(I,J)
         DO I = 1,NE
            DO J = I,NE
               V(I,J) = TMP(I,J)
            ENDDO
         ENDDO
+!$OMP end parallel do
         DETV = 1.D0
         !V is an NE by NE upper triangular matrix with real diagonal elements.
+!$OMP parallel do default(shared) private(I) reduction(*:DETV)
         DO I = 1,NE
            DETV = DETV * DBLE( TMP(I,I) )
         ENDDO
+!$OMP end parallel do
 
         !Compute U
 
@@ -921,19 +925,25 @@
 
 
 
+!$OMP parallel do default(shared) private(I,J)
         DO J = 1,NE
            DO I = 1,LQ
               U(I,J) = TMP(I,J)
            ENDDO
         ENDDO
+!$OMP end parallel do
 
         IF (DBLE(DETV).LT.0.D0) THEN
+!$OMP parallel do default(shared) private(I)
            DO I = 1,LQ
               U(I,1) = -U(I,1)
            ENDDO
+!$OMP end parallel do
+!$OMP parallel do default(shared) private(I)
            DO I = 1,NE
               V(1,I) = -V(1,I)
            ENDDO
+!$OMP end parallel do
         ENDIF
 
         !Scale V1 to a unit triangluar matrix.
@@ -1005,41 +1015,52 @@
         CALL F01RCF(LQ,NE,TMP,LQ,THETA,IFAIL)
 
 
+!$OMP parallel do default(shared) private(I,J)
         DO I = 1,NE
            DO J = I,NE
               V(I,J) = TMP(I,J)
            ENDDO
         ENDDO
+!$OMP end parallel do
         DETV = 1.D0
         !V is an NE by NE upper triangular matrix with real diagonal elements.
+!$OMP parallel do default(shared) private(I) reduction(*:Detv)
         DO I = 1,NE
            DETV = DETV * DBLE( TMP(I,I) )
         ENDDO
+!$OMP end parallel do
 
         !Compute U
 
         CALL F01REF('Separate', LQ,NE, NE, TMP, &
              & LQ, THETA, WORK, IFAIL)
 
+!$OMP parallel do default(shared) private(I,J)
         DO J = 1,NE
            DO I = 1,LQ
               U(I,J) = TMP(I,J)
            ENDDO
         ENDDO
+!$OMP end parallel do
 
         IF (DBLE(DETV).LT.0.D0) THEN
+!$OMP parallel do default(shared) private(I)
            DO I = 1,LQ
               U(I,1) = -U(I,1)
            ENDDO
+!$OMP end parallel do
+!$OMP parallel do default(shared) private(I)
            DO I = 1,NE
               V(1,I) = -V(1,I)
            ENDDO
+!$OMP end parallel do
         ENDIF
 
 
         !Test accuracy.
         IF (NCON.EQ.1) THEN
            ALLOCATE( TEST(LQ,NE) )
+!$OMP parallel do default(shared) private(I,J,Z,NR)
            DO J = 1,NE
               DO I = 1,LQ
                  Z = 0.D0
@@ -1049,6 +1070,7 @@
                  TEST(I,J) = Z
               ENDDO
            ENDDO
+!$OMP end parallel do
            XMDIFF = 0.D0
            DO J = 1,LQ
               DO I = 1,NE
@@ -1119,9 +1141,11 @@
 	ALLOCATE(WORK(LWORK))
         CALL ZGESVD( JOBU, JOBVT, M, N, A1, LDA, S, U, LDU, V, LDVT,&
              &        WORK, LWORK, RWORK, INFO )
+!$OMP parallel do default(shared) private(I)
         DO I = 1,N
            D(I) = cmplx(S(I), 0.d0, kind(0.D0))
         ENDDO
+!$OMP end parallel do
 
         IF (NCON ==  1) THEN
            Write(6,*) JobU, JobVT

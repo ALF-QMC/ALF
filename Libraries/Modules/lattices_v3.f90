@@ -524,6 +524,7 @@
           allocate ( X_MAT(norb,norb) )
 
           
+!$OMP parallel do default(shared) private(nt,nr,IR_p,X_MAT,nk,XK_p)
           do nt = 1,nb
              do nr = 1,LQ
                 IR_p =  dble(Latt%list(nr,1))*Latt%a1_p + dble(Latt%list(nr,2))*Latt%a2_p  
@@ -535,6 +536,7 @@
                 Xout_R(nr,nt)%el = X_MAT/dble(LQ)
              enddo
           enddo
+!$OMP end parallel do
 
           deallocate(X_Mat)
         end subroutine FT_K_to_R_Mat
@@ -562,6 +564,7 @@
           allocate ( X_MAT(norb,norb) )
 
           
+!$OMP parallel do default(shared) private(nt,nr,IR_p,X_MAT,nk,XK_p)
           do nt = 1,nb
              do nr = 1,LQ
                 IR_p =  dble(Latt%list(nr,1))*Latt%a1_p + dble(Latt%list(nr,2))*Latt%a2_p  
@@ -573,6 +576,7 @@
                 Xout_R(nr,nt)%el = X_MAT/dble(LQ)
              enddo
           enddo
+!$OMP end parallel do
 
           deallocate(X_Mat)
 
@@ -597,6 +601,7 @@
           !Write(6,*) Xin_K(Latt%N,Ltrot)%el(1,1)
           
 
+!$OMP parallel do default(shared) private(nt,nr,IR_p,X_MAT,nk,XK_p)
           do nt = 1,nb
              do nr = 1,LQ
                 IR_p =  dble(Latt%list(nr,1))*Latt%a1_p + dble(Latt%list(nr,2))*Latt%a2_p  
@@ -608,6 +613,7 @@
                 Xout_R(nr,nt) = X_MAT/dble(LQ)
              enddo
           enddo
+!$OMP end parallel do
 
         end subroutine FT_K_to_R
 
@@ -631,6 +637,7 @@
           !Write(6,*) Xin_K(Latt%N,Ltrot)%el(1,1)
           
 
+!$OMP parallel do default(shared) private(nt,nr,IR_p,Z,nk,XK_p)
           do nt = 1,nb
              do nr = 1,LQ
                 IR_p =  dble(Latt%list(nr,1))*Latt%a1_p + dble(Latt%list(nr,2))*Latt%a2_p  
@@ -642,6 +649,7 @@
                 Xout_R(nr,nt) = Z/dble(LQ)
              enddo
           enddo
+!$OMP end parallel do
 
         end subroutine FT_K_to_R_C
 
@@ -668,6 +676,7 @@
           allocate ( X_MAT(norb,norb) )
 
           
+!$OMP parallel do default(shared) private(nt,nr,IR_p,X_MAT,nk,XK_p)
           do nt = 1,nb
              do nk = 1,LQ
                 XK_p =  dble(Latt%listk(nk,1))*Latt%b1_p + dble(Latt%listk(nk,2))*Latt%b2_p
@@ -679,6 +688,7 @@
                 Xout_K(nk,nt)%el = X_MAT/dble(LQ)
              enddo
           enddo
+!$OMP end parallel do
 
           deallocate(X_Mat)
         end subroutine FT_R_to_K_mat
@@ -700,6 +710,7 @@
           !Write(6,*) Xin_R(1,1)%el(1,1)
           !Write(6,*) Xin_R(Latt%N,Ltrot)%el(1,1)
           
+!$OMP parallel do default(shared) private(nr,IR_p,X_MAT,nk,XK_p)
           do nk = 1,LQ
              XK_p =  dble(Latt%listk(nk,1))*Latt%b1_p + dble(Latt%listk(nk,2))*Latt%b2_p
              X_MAT = 0.d0
@@ -709,6 +720,7 @@
              enddo
              Xout_K(nk) = X_MAT/dble(LQ)
           enddo
+!$OMP end parallel do
           
         end subroutine FT_R_to_K
 
@@ -730,6 +742,7 @@
           !Write(6,*) Xin_K(1,1)%el(1,1)
           !Write(6,*) Xin_K(Latt%N,nb)%el(1,1)
           
+!$OMP parallel do default(shared) private(nr,IR_p,X_MAT,nk,XK_p)
           do nk = 1,LQ
              XK_p =  dble(Latt%listk(nk,1))*Latt%b1_p + dble(Latt%listk(nk,2))*Latt%b2_p
              X_MAT = cmplx(0.d0,0.d0, kind(0.D0))
@@ -739,6 +752,7 @@
              enddo
              Xout_K(nk) = X_MAT/dble(LQ)
           enddo
+!$OMP end parallel do
 
         end subroutine FT_R_to_K_C
 

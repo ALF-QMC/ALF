@@ -84,6 +84,7 @@
            
            !Tau = 0
            Do nf = 1, N_FL
+!$OMP parallel do default(shared) private(J,I,Z)
               DO J = 1,Ndim 
                  DO I = 1,Ndim
                     Z = cmplx(0.d0, 0.d0, kind(0.D0))
@@ -94,6 +95,7 @@
                     G0T(I,J,nf) = -(Z - GR(I,J,nf))
                  ENDDO
               ENDDO
+!$OMP end parallel do
            Enddo
            NT = 0
            ! In Module Hamiltonian
@@ -128,6 +130,7 @@
                     DL(:  ,nf) = DST(:  ,NST,nf)
                  Enddo
                  Do nf = 1,N_FL
+!$OMP parallel do default(shared) private(J,I)
                     Do J = 1,Ndim
                        DO I = 1,Ndim
                           HLP4(I,J) = GTT(I,J,nf)
@@ -135,6 +138,7 @@
                           HLP6(I,J) = G0T(I,J,nf)
                        Enddo
                     Enddo
+!$OMP end parallel do
                     NVAR = 1
                     IF (NT1  >  LTROT/2) NVAR = 2
                     !DO I = 1,Ndim
@@ -189,11 +193,13 @@
                  X = Phi(nsigma(n,nt),Op_V(n,nf)%type)
                  Call Op_mmultR(HLP4,Op_V(n,nf),X,Ndim)
               ENDDO
+!$OMP parallel do default(shared) private(J,I)
               Do J = 1,Ndim
                  do I = 1,Ndim
                     Ain(I,J,nf) = HLP4(I,J)
                  enddo
               ENDDO
+!$OMP end parallel do
            Enddo
            
          end SUBROUTINE PROPR
@@ -222,11 +228,13 @@
                  X = -Phi(nsigma(n,nt),Op_V(n,nf)%type)
                  Call Op_mmultL(HLP4,Op_V(n,nf),X,Ndim)
               Enddo
+!$OMP parallel do default(shared) private(J,I)
               Do J = 1,Ndim
                  do I = 1,Ndim
                     Ain(I,J,nf) = HLP4(I,J)
                  enddo
               Enddo
+!$OMP end parallel do
            enddo
            
          END SUBROUTINE PROPRM1
