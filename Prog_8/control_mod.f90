@@ -157,7 +157,7 @@
       logical, intent(out)         :: prog_truncation
       real(kind=8), intent(in)     :: cpu_max
       integer (kind=8), intent(in) :: count_bin_start, count_bin_end
-      integer (kind=8)             :: count_alloc_end
+      real (kind=8)                :: count_alloc_end
       real(kind=8)                 :: time_bin_duration,time_remain,bins_remain,threshold
 #ifdef MPI   
       real(kind=8)                 :: bins_remain_mpi
