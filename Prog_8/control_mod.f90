@@ -3,8 +3,8 @@
     Use MyMats
     Implicit none
 
-    real (Kind=8)   , private, save :: XMEANG, XMAXG, XMAXP,  Xmean_tau, Xmax_tau , count_rate
-    Integer (kind=8), private, save :: count_CPU_start,count_CPU_end
+    real (Kind=8)   , private, save :: XMEANG, XMAXG, XMAXP,  Xmean_tau, Xmax_tau
+    Integer (kind=8), private, save :: count_CPU_start,count_CPU_end,count_rate
     Integer         , private, save :: NCG, NCG_tau
     Integer (Kind=8), private, save :: NC_up, ACC_up
 
@@ -94,7 +94,7 @@
         ACC = 0.d0
         IF (NC_up > 0 )  ACC = dble(ACC_up)/dble(NC_up)
         call system_clock(count_CPU_end)
-        time = (count_CPU_end-count_CPU_start)/count_rate
+        time = (count_CPU_end-count_CPU_start)/dble(count_rate)
         
  
 #ifdef MPI
@@ -171,8 +171,8 @@
       call mpi_comm_rank(mpi_comm_world, rank_mpi, err_mpi) 
 #endif    
       count_alloc_end   = count_CPU_start + cpu_max*3600*count_rate 
-      time_bin_duration = (count_bin_end-count_bin_start)/count_rate
-      time_remain       = (count_alloc_end - count_bin_end)/count_rate
+      time_bin_duration = (count_bin_end-count_bin_start)/dble(count_rate)
+      time_remain       = (count_alloc_end - count_bin_end)/dble(count_rate)
       bins_remain       = time_remain/time_bin_duration
       
 #ifdef MPI
