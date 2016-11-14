@@ -1,0 +1,268 @@
+% !TEX root = Doc.tex
+\section{Walkthrough: the $SU(2)$-Hubbard model on a square lattice}
+To implement a Hamiltonian, the user has to provide  a module   which  specifies the lattice, the model, as well as the observables  he/she  wishes to compute. 
+In this section, we describe the module \texttt{Hamiltonian\_Hub.f90} which is an implementation of the Hubbard model on the square lattice. 
+ The Hamiltonian reads 
+\begin{equation}
+\label{eqn_hubbard_sun}
+\mathcal{H}=
+\sum\limits_{\sigma=1}^{2} 
+\sum\limits_{x,y =1 }^{N_{unit\; cells }} 
+  c^{\dagger}_{x \sigma} T_{x,y}c^{\phantom\dagger}_{y \sigma} 
++ \frac{U}{2}\sum\limits_{x}\left[
+\sum\limits_{\sigma=1}^{2}
+\left(  c^{\dagger}_{x \sigma} c^{\phantom\dagger}_{x \sigma}  -1/2 \right) \right]^{2}\;.
+\end{equation} 
+We can make contact with the general form of the Hamiltonian by setting: 
+$N_{fl} = 1$, $N_{col} \equiv N_{SUn}     =2 $,   $M_T    =    1$,  $T^{(ks)}_{x y}   =  T_{x,y}$,  $M_V   =  N_{Unit\; cells} $,  $U_{k}       =   -\frac{U}{2}$, 
+ $V_{x y}^{(ks)} =  \delta_{x,y} \delta_{x,k}$,  $\alpha_{ks}   =  \frac{1}{2}  $ and $M_I       = 0 $.
+
+
+
+\subsection{Setting the Hamiltonian.  \texttt{Ham\_set} }
+The main program will call the subroutine   \texttt{Ham\_set} in the module \texttt{Hamiltonian\_Hub.f90}.
+This  subroutine  defines the  public variables
+\begin{lstlisting}
+
+  Type (Operator), dimension(:,:), allocatable  :: Op_V
+  Type (Operator), dimension(:,:), allocatable  :: Op_T
+  Integer, allocatable :: nsigma(:,:)
+  Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot
+
+\end{lstlisting}
+which specify the model.  This  routine will first  read the parameter file,  then set the lattice, \texttt{Call Ham\_latt},  set the hopping \texttt{Call Ham\_hop}  and set the interaction
+\texttt{call Ham\_V}.  
+The parameters are read in from the file \texttt{parameters}: 
+\begin{lstlisting}
+
+===============================================================================
+!  Variables for the Hubb program
+!-------------------------------------------------------------------------------
+&VAR_lattice
+L1=4                    ! Length in direction a_1
+L2=4                    ! Length in direction a_2
+Lattice_type = "Square"	! a_1 = (1,0) and a_2=(0,1)
+Model = "Hubbard_SU2"   ! Sets  Nf = 1, N_sun = 2
+/
+&VAR_Hubbard            ! Variables for the Hubbard model
+ham_T   =1.D0
+ham_chem=0.D0
+ham_U   =4.D0
+Beta    =5.D0
+dtau    =0.1D0          ! Thereby Ltrot=Beta/dtau
+/
+&VAR_QMC      ! Variables for the QMC run
+Nwrap   = 10  ! Stabilization. Green functions will be computed from scratch 
+              ! after each time interval  Nwrap*Dtau
+NSweep  = 500 ! Number of sweeps
+NBin    = 2   ! Number of bins
+Ltau    = 1   ! 1 for calculation of time desplaced. 0 otherwise
+LOBS_ST = 1   ! Start measurments at time slice LOBS_ST
+LOBS_EN =50   ! End   measurments at time slice LOBS_EN
+CPU_MAX= 0.1  ! Code will stop after CPU_MAX hours. 
+              ! If not specified, code will stop after Nbin bins.
+/
+
+\end{lstlisting}
+%\end{verbatim}
+Here we have three name lists relevant for  defining the lattice, model parameters as well  as the Monte Carlo run.   Thereby, \texttt{Ltrot=Beta/dtau}. 
+
+\subsubsection{The lattice.   \texttt{Call Ham\_latt} }
+The choice \texttt{Lattice\_type = "Square"} sets $\vec{a}_1 =  (1,0) $ and $\vec{a}_2 =  (0,1) $  and for an $L_1 \times L_2$  lattice  $\vec{L}_1 = L_1 \vec{a}_1$ and  $\vec{L}_2 = L_2 \vec{a}_2$.     The call to  \texttt{ Call Make\_Lattice( L1, L2, a1,  a2, Latt)} will generate the lattice   \texttt{Latt} of type \texttt{Lattice} such that  $N_{dim}   =N_{unit\;cell} \equiv Latt\%N$. 
+
+
+\subsubsection{Hopping term. \texttt{Call Ham\_hop}}
+The hopping matrix is implemented as follows. 
+We allocate an array of dimension $1\times 1$ of type operator  called \texttt{Op\_T} and set the  dimension for the hopping  matrix to $N=N_{dim}$. One  allocates and initializes this type by a single call to the subroutine \texttt{Op\_make}: 
+\begin{lstlisting}
+
+call Op_make(Op_T(1,1),Ndim)
+
+\end{lstlisting}
+Since the hopping  does not  break down into small blocks ${\bm P}=\mathds{1}$   and  
+\begin{lstlisting}
+
+Do i= 1,Latt%N
+  Op_T(1,1)%P(i) = i
+Enddo
+
+\end{lstlisting}
+We set the hopping matrix  with 
+\begin{lstlisting}
+
+DO I = 1, Latt%N
+   Ix = Latt%nnlist(I,1,0)
+   Iy = Latt%nnlist(I,0,1)
+   Op_T(1,1)%O(I  ,Ix) = cmplx(-Ham_T,   0.d0,kind(0.D0))
+   Op_T(1,1)%O(Ix,I  ) = cmplx(-Ham_T,   0.d0,kind(0.D0))
+   Op_T(1,1)%O(I  ,Iy) = cmplx(-Ham_T,   0.d0,kind(0.D0))
+   Op_T(1,1)%O(Iy, I ) = cmplx(-Ham_T,   0.d0,kind(0.D0))
+   Op_T(1,1)%O(I  ,I ) = cmplx(-Ham_chem,0.d0,kind(0.D0))
+ENDDO
+
+\end{lstlisting}
+Here,    the integer  function \texttt{  j=  Latt\%nnlist(I,n,m)}   is defined in the lattice module and returns the index of the lattice site $ \vec{I} +  n \vec{a}_1 +  m \vec{a}_2$. Note that periodic boundary conditions are 
+already taken into account.  The hopping parameter, \texttt{Ham\_T} as well as the chemical potential \texttt{Ham\_chem} are read from the parameter file.  
+%Finally,   \texttt{ Op_T(1,1)\%g = -Dtau }
+
+\mycomment{Note that although a checkerboard decomposition is not  used here,  it can be implemented by considering a larger number of sparse Hopping matrices.}
+
+\subsubsection{Interaction term. \texttt{Call Ham\_V}}
+To implement this interaction, we allocate an array of \texttt{Operator} type. The array is called  \texttt{Op\_V} and has dimensions $N_{dim}\times N_{fl}=N_{dim} \times 1$. 
+We set the dimension for the interaction term to  $N=1$, and  allocate and initialize this array of type  \texttt{Operator} by repeatedly calling the subroutine \texttt{Op\_make}: 
+
+\begin{lstlisting}
+
+do i  = 1,Latt%N
+   call Op_make(Op_V(i,1),1)
+enddo
+
+\end{lstlisting}
+For each lattice site $i$, the  matrices ${\bm P}$ are of dimension $1\times N_{dim} $ and have only one non-vanishing entry. Thereby we can set:
+
+\begin{lstlisting}
+
+Do i = 1,Latt%N
+   Op_V(i,1)%P(1)   = i
+   Op_V(i,1)%O(1,1) = cmplx(1.d0,0.d0, kind(0.D0))
+   Op_V(i,1)%g      = sqrt(cmplx(-dtau*ham_U/(dble(N_SUN)),0.D0,kind(0.D0)))
+   Op_V(i,1)%alpha  = cmplx(-0.5d0,0.d0, kind(0.D0))
+   Op_V(i,1)%type   = 2
+Enddo
+
+\end{lstlisting}
+so as to completely define the interaction term. 
+
+
+\subsection{Observables}
+
+At this point, all the information   for the simulation to  start has been provided.  The code will sequentially go through  the operator list  \texttt{Op\_V}  and update the  fields.   Between  time slices   \texttt{LOBS\_ST}  and 
+\texttt{LOBS\_EN}   the main program will call the routine  \texttt{Obser(GR,Phase,Ntau)}   which is also provided by the user.  For each configuration of the  fields Wicks theorem holds so that it suffices 
+to  know the single particle Green function so as to compute  any observable. 
+The main program provides the  equal time Green function: 
+\texttt{GR(Ndim,Ndim,N\_FL)}, the phase \texttt{PHASE} and the time slice on which the measurement is being carried out \texttt{Ntau}.   The Green function is defined as: 
+\begin{equation}
+	 GR(x,y,\sigma)  = \langle c^{\phantom{\dagger}}_{x,\sigma} c^{\dagger}_{y,\sigma}  \rangle
+\end{equation}
+Space for observables in allocated in the  subroutine \texttt{Call Alloc\_obs}. At the beginning of each bin, the  observables are set to zero \texttt{Call Init\_obs} and at the end of each bin the observables are written out on disc \texttt{Call Pr\_obs}.
+
+
+
+\section{Walkthrough: the $SU(2)$-Hubbard model on a square lattice coupled to a transverse Ising field}
+
+
+
+
+The model we consider here  is very similar to the  above,  but has an additional coupling to a transverse field. 
+\begin{equation}
+\label{eqn_hubbard_sun_Ising}
+\mathcal{H}=
+\sum\limits_{\sigma=1}^{2} 
+\sum\limits_{x,y } 
+  c^{\dagger}_{x \sigma} T_{x,y}c^{\phantom\dagger}_{y \sigma} 
++ \frac{U}{2}\sum\limits_{x}\left[
+\sum\limits_{\sigma=1}^{2}
+\left(  c^{\dagger}_{x \sigma} c^{\phantom\dagger}_{x \sigma}  -1/2 \right) \right]^{2}   
++  \xi \sum_{\sigma,\langle x,y \rangle} \hat{Z}_{\langle x,y \rangle}  \left( c^{\dagger}_{x \sigma} c^{\phantom\dagger}_{y \sigma}  + h.c. \right) + h \sum_{\langle x,y \rangle} \hat{X}_{\langle x,y \rangle}
+\end{equation}
+We can make contact with the general form of the Hamiltonian by setting: 
+$N_{fl} = 1$, $N_{col} \equiv N_{SUn}     =2 $,   $M_T    =    1$,  $T^{(ks)}_{x y}   =  T_{x,y}$,  $M_V   =  N_{Unit\; cells} \equiv N_{dim}$,  $U_{k}       =   -\frac{U}{2}$, 
+ $V_{x y}^{(ks)} =  \delta_{x,y} \delta_{x,k}$,  $\alpha_{ks}   =  \frac{1}{2}  $ and $M_I       = 2 N_{Unit\; cells} $.
+The modifications  required to generalize the Hubbard model code to the above model are two-fold.  Firstly, one has to specify the function \texttt{Real (Kind=8) function S0(n,nt)} and  secondly  modify the interaction \texttt{Call Ham\_V}.
+
+
+\subsection{Interaction term. \texttt{Call Ham\_V}}
+The dimension of   \texttt{Op\_V}  is now  $(M_V + M_I)\times N_{fl}=(3*N_{dim}) \times 1$. 
+We set the effective dimension  for the Hubbard term to  $N=1$  and to  $N=2$ for the Ising term. The allocation of this array of operators reads: 
+
+\begin{lstlisting}
+
+do i  = 1,Ndim
+  call Op_make(Op_V(i,1),1)
+enddo
+do i  =  Ndim+1, 3*Ndim
+  call Op_make(Op_V(i,1),2)
+enddo
+
+\end{lstlisting}
+As for the Hubbard case, the first \texttt{Ndim}  operators read: 
+
+\begin{lstlisting}
+
+Do i = 1,Ndim
+    Op_V(i,1)%P(1)   = i
+    Op_V(i,1)%O(1,1) = cmplx(1.d0  ,0.d0, kind(0.D0))
+    Op_V(i,1)%g      = sqrt(cmplx(-dtau*ham_U/(DBLE(N_SUN)), 0.D0, kind(0.D0)))
+    Op_V(i,1)%alpha  = cmplx(-0.5d0,0.d0, kind(0.D0))
+    Op_V(i,1)%type   = 2
+Enddo
+
+\end{lstlisting}
+The  next \texttt{2*Ndim} operators run through the 2N bonds of the square lattice and   are given by:
+\begin{lstlisting}
+
+Do nc = 1,N_coord   ! Coordination number = 2
+   Do i = 1,Ndim
+      j = i + nc*Ndim
+      Op_V(j,1)%P(1)    =  i 
+      If (nc == 1) Op_V(j,1)%P(2)   = Latt%nnlist(i,1,0)
+      If (nc == 2) Op_V(j,1)%P(2)   = Latt%nnlist(i,0,1)
+      Op_V(j,1)%O(1,2) = cmplx(1.d0  ,0.d0, kind(0.D0))
+      Op_V(j,1)%O(2,1) = cmplx(1.d0  ,0.d0, kind(0.D0))
+      Op_V(j,1)%g      = cmplx(-dtau*ham_xi, 0.D0, kind(0.D0)))
+      Op_V(j,1)%alpha  = cmplx(0d0,0.d0, kind(0.D0))
+      Op_V(j,1)%type   = 1
+    Enddo
+Enddo
+
+\end{lstlisting}
+
+Here,  \texttt{ham\_xi} defines the coupling strength  between the Ising  and fermion degree of freedom.
+
+\subsection{The function \texttt{Real (Kind=8) function S0(n,nt)} }
+As mentioned above,  a configuration is given by
+\begin{equation}
+	C = \left\{   s_{i,\tau} ,  l_{j,\tau}  \text{ with }  i=1\cdots M_I,  j = 1\cdots M_V,  \tau=1,L_{Trotter}  \right\}
+\end{equation}
+and is stored in the  integer array \texttt{nsigma(M\_V + M\_I, Ltrot)}.  With the above ordering of Hubbard and Ising interaction terms,  and a for a given  imaginary time, the first Ndim 
+fields corresponds to the Hubbard  interaction and the next 2*Ndim ones to the Ising interaction.    The first   argument of the function \texttt{S0}, n,  corresponds to the index of the operator  string 
+\texttt{Op\_V(n,1)}. If \texttt{Op\_V(n,1)\%type = 2},    \texttt{S0(n,nt)}  returns 1.  If   \texttt{Op\_V(n,1)\%type = 1}  then function \texttt{S0}  returns
+\begin{equation}
+\frac{e^{-S_{0,I} \left(  s_{1,\tau},  \cdots,  - s_{m,\tau},  \cdots s_{M_I,\tau}   \right) } }{e^{-S_{0,I}  \left(  s_{1,\tau},  \cdots,   s_{m,\tau},  \cdots s_{M_I,\tau}   \right)   } }	
+\end{equation}
+That is,  $ \texttt{S0(n,nt)} $  returns the ratio of the new to old weight  of the  Ising Hamiltonian upon flipping a single Ising spin $ s_{m,\tau} $. Note that in  this specific case  \texttt{ m = n -  Ndim } 
+ 
+
+%\begin{table}[h]
+%   \begin{tabular}{l l}
+%    Name of variable in the code & Description \\\hline
+%    \texttt{Ndim}    & Spacial dimension of the lattice (total number of sites) \\
+%    \texttt{Latt\%N} & Number of unit cells of the underlying Bravais lattice  \\
+%    \texttt{Op\_T}   & Array of structure variables that bundles all variables\\
+%                     & needed to define the hopping operator.\\
+%    \texttt{Op\_V}   & Array of structure variables that bundles all variables\\
+%                     & needed to define the two-particle interaction operator.\\ 
+%    \texttt{N\_sun}  & Number of fermion colors \mycomment{spin states of the $SU(N_{sun})$-symmetric fermions}\\
+%    \texttt{N\_fl}   & Number of fermion flavors\\
+%   \end{tabular}
+%   \caption{Common variables that are set in the Hamiltonian, operator and lattice modules of the code. 
+%   \mycomment{!!! We have a missmatch in the labelling: $N_{col}=\texttt{N\_sun}$ !!!}
+%   \label{tab:definitions}}
+%\end{table}
+%
+%\subsection{Definition of the square lattice}
+%This is set in the subroutine \texttt{Ham\_latt}.
+%The square lattice is already implemented. In principle, one can specify other lattice geometries and use them by specifying the keyword \texttt{Lattice\_type} in the parameter file.
+%
+%
+%
+%\subsection{Observables for the Hubbard model}
+%
+%
+%To do next:
+%\begin{itemize}
+%\item dicuss the measurements: what observables exit and how do I add a new one?
+%\item  discuss the implementation of the lattice.
+%\item discuss the Hubbard-Stratonovich decompositions (this is related to the coupling in the operator structure), discuss also the spin-symmetry-breaking HS-decomposition for the Hubbard model.
+%\end{itemize}
+%

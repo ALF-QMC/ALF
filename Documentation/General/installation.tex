@@ -1,0 +1,19 @@
+\section{Installation}
+\subsection{Dependencies}
+\textit{which software and libraries are needed and which version}
+\begin{itemize}
+\item libraries: LAPACK, BLAS, EISPACK, NAG \textit{They are included in the package, but NAG is not  public-domain (?)}
+\item tools: cmake
+\item compiler: gfortran or ifort
+\end{itemize}
+
+
+\subsection{Build the GQMC program from source code}
+\textit{configuration, compile and Installation}
+In the top level directory, where the README file resides, do:
+\begin{verbatim}
+mkdir build
+cd build
+cmake ..
+make
+\end{verbatim}
