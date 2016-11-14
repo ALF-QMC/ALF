@@ -23,13 +23,11 @@
         Complex (Kind = Kind(0.D0)) :: Z
         Logical, Intent(In) :: c
 
-!$OMP parallel do default(shared) private(J,Z)
         DO J = 1,LQ
             Z = 1.D0/D(J)
             If (c) Z = Conjg(z)
             M(:,J) = M(:,J)*Z
         ENDDO
-!$OMP end parallel do
 
         end Subroutine
 
@@ -119,11 +117,9 @@
         !                      = V2^-1 ( (V2 V1)^-1 + D1 U1 U2 D2     )^-1 V1^-1
         Call MMULT(HLP1,V1inv,V2inv)
         Call MMULT(HLP2,U1,U2)
-!$OMP parallel do default(shared) private(J)
         DO J = 1,LQ
             HLP2(:,J) = D1(:) * HLP2(:, J) * D2(J) + HLP1(:,J)
         ENDDO
-!$OMP end parallel do
         
         Xmax1 = maxval(dble(D1))
         Xmax2 = maxval(dble(D2))
@@ -166,17 +162,13 @@
         If (Xmax2  > Xmax1)  Nvar1 = 2
         Call  MMULT(HLP1,U1,U2)
 !TODO: Consider benchmarking wether it is beneficial to interchange loops. Here it is saving divisions vs. proper mem access
-!$OMP parallel do default(shared) private(J)
         DO J = 1,LQ
            HLP1(:, J) =  HLP1(:,J)/conjg(D1(:))
         ENDDO
-!$OMP end parallel do
         CALL ZGEMM('C', 'C', LQ, LQ, LQ, alpha, V1, LQ, V2, LQ, beta, HLP2, LQ)
-!$OMP parallel do default(shared) private(J)
         DO J = 1,LQ
             HLP2(:, J) = HLP1(:,J) + HLP2(:,J) * conjg(D2(J))
         ENDDO
-!$OMP end parallel do
         NCON = 0
         IF ( NVAR1 == 1 ) Then
            !  UDV of HLP2
@@ -210,17 +202,13 @@
         !Write(6,*) "CGR2_1: NVAR,NVAR1 ", NVAR, NVAR1
         CALL ZGEMM('C', 'C', LQ, LQ, LQ, alpha, U2, LQ, U1, LQ, beta, HLP1, LQ)
 !TODO: Consider benchmarking wether it is beneficial to interchange loops. Here it is saving divisions vs. proper mem access
-!$OMP parallel do default(shared) private(J)
         DO J = 1,LQ
            HLP1(:, J) =  HLP1(:,J)/D2(:)
         ENDDO
-!$OMP end parallel do
         Call MMULT(HLP2,V2,V1)
-!$OMP parallel do default(shared) private(J)
         DO J = 1,LQ
             HLP2(:, J) = HLP1(:,J) + HLP2(:,J) * D1(J)
         ENDDO
-!$OMP end parallel do
         NCON = 0
         IF ( NVAR1 == 1 ) Then
            !  UDV of HLP2

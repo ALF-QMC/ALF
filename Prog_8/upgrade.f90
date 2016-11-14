@@ -42,7 +42,6 @@
         endif
         Do nf = 1,N_FL
            Z1 = Op_V(n_op,nf)%g * ( Phi(ns_new,Op_V(n_op,nf)%type) -  Phi(ns_old,Op_V(n_op,nf)%type))
-!$OMP parallel do default(shared) private(n,m,myexp,Z)
            Do m = 1,Op_V(n_op,nf)%N_non_zero
               myexp = exp( Z1* Op_V(n_op,nf)%E(m) )
               Z = myexp - 1.d0
@@ -52,7 +51,6 @@
               Enddo
               Mat(m,m) = myexp + Mat(m,m)
            Enddo
-!$OMP end parallel do
            If (Size(Mat,1) == 1 ) then
               D_mat = Mat(1,1)
            elseif (Size(Mat,1) == 2 ) then
@@ -91,7 +89,6 @@
               beta = 0.D0
               call zlaset('N', Ndim, Op_dim, beta, beta, u, size(u, 1))
               call zlaset('N', Ndim, Op_dim, beta, beta, v, size(v, 1))
-!$OMP parallel do default(shared) private(n,i)
               do n = 1,Op_V(n_op,nf)%N_non_zero
                  u( Op_V(n_op,nf)%P(n), n) = Delta(n,nf)
                  do i = 1,Ndim
@@ -99,7 +96,6 @@
                  enddo
                  v(Op_V(n_op,nf)%P(n), n)  = 1.d0 - GR( Op_V(n_op,nf)%P(n),  Op_V(n_op,nf)%P(n), nf)
               enddo
-!$OMP end parallel do
 
               call zlaset('N', Ndim, Op_dim, beta, beta, x_v, size(x_v, 1))
               call zlaset('N', Ndim, Op_dim, beta, beta, y_v, size(y_v, 1))

@@ -901,20 +901,16 @@
         CALL F01RCF(LQ,NE,TMP,LQ,THETA,IFAIL)
 
 
-!$OMP parallel do default(shared) private(I,J)
         DO I = 1,NE
            DO J = I,NE
               V(I,J) = TMP(I,J)
            ENDDO
         ENDDO
-!$OMP end parallel do
         DETV = 1.D0
         !V is an NE by NE upper triangular matrix with real diagonal elements.
-!$OMP parallel do default(shared) private(I) reduction(*:DETV)
         DO I = 1,NE
            DETV = DETV * DBLE( TMP(I,I) )
         ENDDO
-!$OMP end parallel do
 
         !Compute U
 
@@ -925,25 +921,19 @@
 
 
 
-!$OMP parallel do default(shared) private(I,J)
         DO J = 1,NE
            DO I = 1,LQ
               U(I,J) = TMP(I,J)
            ENDDO
         ENDDO
-!$OMP end parallel do
 
         IF (DBLE(DETV).LT.0.D0) THEN
-!$OMP parallel do default(shared) private(I)
            DO I = 1,LQ
               U(I,1) = -U(I,1)
            ENDDO
-!$OMP end parallel do
-!$OMP parallel do default(shared) private(I)
            DO I = 1,NE
               V(1,I) = -V(1,I)
            ENDDO
-!$OMP end parallel do
         ENDIF
 
         !Scale V1 to a unit triangluar matrix.
@@ -1021,11 +1011,9 @@
         call ZLACPY('U', NE, NE, TMP, LQ, V, LDV)
         DETV = 1.D0
         !V is an NE by NE upper triangular matrix with real diagonal elements.
-!$OMP parallel do default(shared) private(I) reduction(*:Detv)
         DO I = 1,NE
            DETV = DETV * DBLE( TMP(I,I) )
         ENDDO
-!$OMP end parallel do
 
         !Compute U
 
@@ -1035,16 +1023,12 @@
         call ZLACPY('A', LQ, NE, TMP, LQ, U, LDU)
 
         IF (DBLE(DETV).LT.0.D0) THEN
-!$OMP parallel do default(shared) private(I)
            DO I = 1,LQ
               U(I,1) = -U(I,1)
            ENDDO
-!$OMP end parallel do
-!$OMP parallel do default(shared) private(I)
            DO I = 1,NE
               V(1,I) = -V(1,I)
            ENDDO
-!$OMP end parallel do
         ENDIF
 
         !Test accuracy.

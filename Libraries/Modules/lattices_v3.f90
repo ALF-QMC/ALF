@@ -745,7 +745,7 @@
                 IR_p =  dble(Latt%list(nr,1))*Latt%a1_p + dble(Latt%list(nr,2))*Latt%a2_p  
                 ang = -Iscalar(XK_p,IR_p)
 !                X_MAT = X_MAT + exp( cmplx(0.d0,-(Iscalar(XK_p,IR_p)), kind(0.D0)) ) *Xin_R(nr)
-X_MAT = X_MAT + cmplx(cos(ang), sin(ang), kind(0.D0)) * Xin_R(nr)
+                X_MAT = X_MAT + cmplx(cos(ang), sin(ang), kind(0.D0)) * Xin_R(nr)
              enddo
              Xout_K(nk) = X_MAT/dble(LQ)
           enddo

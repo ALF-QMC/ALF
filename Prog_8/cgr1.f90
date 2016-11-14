@@ -31,11 +31,9 @@
              & TPUPM1(N_size,N_size), DUP(N_size), IPVT(N_size) )
         !Write(6,*) 'In CGR', N_size
         CALL MMULT(VUP,VRUP,VLUP)
-!$OMP parallel do default(shared) private(J)
         DO J = 1,N_size
             TPUP(:,J) = DRUP(:)*VUP(:,J)*DLUP(J)
         ENDDO
-!$OMP end parallel do
         CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, URUP, N_size, ULUP, N_size, alpha, TPUP, N_size)
         IF (NVAR.EQ.1) THEN
            !WRITE(6,*) 'UDV of U + DR * V * DL'
@@ -75,7 +73,6 @@
            ZDUP1 = DET_C(TPUP, N_size)! Det destroys its argument
            Z1 = ZDUP2/ZDUP1
         ENDIF
-!$OMP parallel do default(shared) private(I,J,sv)
         DO J = 1, N_size
            sv = DBLE(DUP(J))
 !            X = ABS(sv)
@@ -86,7 +83,6 @@
               UUP(J, I) = TPUPM1(I, J) * sv
            ENDDO
         ENDDO
-!$OMP end parallel do
         !Write(6,*) 'Cgr1, Cutoff: ', Xmax
         call ZGETRS('T', N_size, N_size, TPUP1, N_size, IPVT, UUP, N_size, info)
         GRUP = TRANSPOSE(UUP)

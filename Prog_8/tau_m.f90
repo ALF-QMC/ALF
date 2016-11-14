@@ -83,20 +83,26 @@
            Integer  ::  I, J, nf, NT, NT1, NTST, NST, NVAR
            
            !Tau = 0
+           G00=GT0=G0T=GTT=GR
            Do nf = 1, N_FL
-!$OMP parallel do default(shared) private(J,I,Z)
               DO J = 1,Ndim 
-                 DO I = 1,Ndim
-                    Z = cmplx(0.d0, 0.d0, kind(0.D0))
-                    if (I == J ) Z = cone
-                    G00(I,J,nf) = GR(I,J,nf)
-                    GT0(I,J,nf) = GR(I,J,nf)
-                    GTT(I,J,nf) = GR(I,J,nf)
-                    G0T(I,J,nf) = -(Z - GR(I,J,nf))
-                 ENDDO
+                 G0T(J,J,nf) = G0T(J,J,nf) - cone
               ENDDO
-!$OMP end parallel do
            Enddo
+!            Do nf = 1, N_FL
+! ! $OMP parallel do default(shared) private(J,I,Z)
+!               DO J = 1,Ndim 
+!                  DO I = 1,Ndim
+!                     Z = cmplx(0.d0, 0.d0, kind(0.D0))
+!                     if (I == J ) Z = cone
+!                     G00(I,J,nf) = GR(I,J,nf)
+!                     GT0(I,J,nf) = GR(I,J,nf)
+!                     GTT(I,J,nf) = GR(I,J,nf)
+!                     G0T(I,J,nf) = -(Z - GR(I,J,nf))
+!                  ENDDO
+!               ENDDO
+! ! $OMP end parallel do
+!            Enddo
            NT = 0
            ! In Module Hamiltonian
            CALL OBSERT(NT,  GT0,G0T,G00,GTT, PHASE)
@@ -130,15 +136,16 @@
                     DL(:  ,nf) = DST(:  ,NST,nf)
                  Enddo
                  Do nf = 1,N_FL
-!$OMP parallel do default(shared) private(J,I)
-                    Do J = 1,Ndim
-                       DO I = 1,Ndim
-                          HLP4(I,J) = GTT(I,J,nf)
-                          HLP5(I,J) = GT0(I,J,nf)
-                          HLP6(I,J) = G0T(I,J,nf)
-                       Enddo
-                    Enddo
-!$OMP end parallel do
+                    HLP4=GTT(:,:,nf)
+                    HLP5=GT0(:,:,nf)
+                    HLP6=G0T(:,:,nf)
+!                     Do J = 1,Ndim
+!                        DO I = 1,Ndim
+!                           HLP4(I,J) = GTT(I,J,nf)
+!                           HLP5(I,J) = GT0(I,J,nf)
+!                           HLP6(I,J) = G0T(I,J,nf)
+!                        Enddo
+!                     Enddo
                     NVAR = 1
                     IF (NT1  >  LTROT/2) NVAR = 2
                     !DO I = 1,Ndim

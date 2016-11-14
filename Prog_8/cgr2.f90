@@ -27,7 +27,6 @@
         Integer :: I, J, I1, J1
 
         CALL MMULT(HLP, U, V)
-!$OMP parallel do default(shared) private(I,I1,J,J1)
         DO I = 1,LQ
           I1 = I+LQ
           DO J = 1,LQ
@@ -38,7 +37,6 @@
               B(I,J) = HLP(I,J1 )
           ENDDO
         ENDDO
-!$OMP end parallel do
 
       end Subroutine
 
@@ -83,15 +81,12 @@
         CALL INV(V2,V2INV,Z)
         CALL INV(V1,V1INV,Z)
         CALL MMULT(HLP2,V1INV,V2INV)
-!$OMP parallel do default(shared) private(I,J)
         DO J = 1,LQ
            DO I = 1,LQ
               HLPB1(I,J) = HLP2(I,J)
            ENDDO
         ENDDO
-!$OMP end parallel do
         CALL MMULT(HLP2,U1,U2)
-!$OMP parallel do default(shared) private(I,ILQ,J,JLQ)
         DO I = 1,LQ
            ILQ = I+LQ
            DO J = 1,LQ
@@ -99,7 +94,6 @@
               HLPB1(ILQ,JLQ) = conjg( HLP2(J,I) ) ! = (U1*U2)^T
            ENDDO
         ENDDO
-!$OMP end parallel do
         NCON = 0
         CALL UDV_wrap(HLPB1,U3B,D3B,V3B,NCON)
         
@@ -109,7 +103,6 @@
         
         HLPB2 = cmplx(0.d0,0.d0,double)
         call ZLACPY('A', LQ, LQ, V2INV, LQ, HLPB2, LQ2)
-!$OMP parallel do default(shared) private(I,ILQ,J,JLQ)
         DO I = 1,LQ
            ILQ = I + LQ
            DO J = 1, LQ
@@ -117,7 +110,6 @@
               HLPB2(ILQ,JLQ) = conjg(U1(J,I))
            ENDDO
         ENDDO
-!$OMP end parallel do
         allocate(IPVT(LQ2))
         call ZGESV(LQ2, LQ2, V3B, LQ2, IPVT, HLPB2, LQ2, I)
         call ZLACPY('A', LQ2, LQ2, HLPB2, LQ2, V3B, LQ2)
@@ -128,7 +120,6 @@
         
         HLPB2 = cmplx(0.D0,0.d0,double)
         call ZLACPY('A', LQ, LQ, V1INV, LQ, HLPB2, LQ2)
-!$OMP parallel do default(shared) private(I,ILQ,J,JLQ)
         DO I = 1,LQ
            ILQ = I + LQ
            DO J = 1,LQ
@@ -136,17 +127,14 @@
               HLPB2(ILQ,JLQ) = conjg(U2(J,I))
            ENDDO
         ENDDO
-!$OMP end parallel do
         CALL ZGEMM('C', 'N', LQ2, LQ2, LQ2, alpha, U3B, LQ2, HLPB2, LQ2, beta, HLPB1, LQ2)
         ! G = V3B * D3B^{-1}* U3B
-!$OMP parallel do default(shared) private(M,Z,J,JLQ)
         DO M = 1,LQ2
            Z = cone/D3B(M)
            DO J = 1,LQ2
               HLPB1(M,J) =   Z * HLPB1(M,J) 
            ENDDO
         ENDDO
-!$OMP end parallel do
         call get_blocks_of_prod(GR00, GR0T, GRT0, GRTT, V3B, HLPB1, LQ)
  
     END SUBROUTINE CGR2

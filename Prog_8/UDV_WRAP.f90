@@ -44,22 +44,18 @@
           IVPTM1(IMAX)=  I
           IVPT(I) = IMAX
        ENDDO
-!$OMP parallel do default(shared) private(I,K)
        DO I = 1,N2
           K = IVPT(I)
           A1(:, I) = A(:, K)
        ENDDO
-!$OMP end parallel do
        
        CALL UDV_Wrap(A1,U,D,V,NCON)
        
        A1 = V
-!$OMP parallel do default(shared) private(I,K)
        DO I = 1,N2
           K = IVPTM1(I)
           V(:, I) = A1(:,K)
        ENDDO
-!$OMP end parallel do
        
 
        IF (NCON == 1) THEN
