@@ -19,7 +19,7 @@
         Complex (Kind=double) :: Mat(Op_dim,Op_Dim), Delta(Op_dim,N_FL)
         Complex (Kind=double) :: Ratio(N_FL), Ratiotot, Z1 
         Integer :: ns_new, ns_old, n,m,nf, i,j
-        Complex (Kind= double) :: ZK, Z, D_Mat, Z2, myexp, tmpsxv, tmpsyu
+        Complex (Kind= double) :: ZK, Z, D_Mat, Z2, myexp, s1, s2
         Integer, external :: nranf
         
         Real (Kind = double) :: Weight, reZ, imZ
@@ -42,6 +42,7 @@
         endif
         Do nf = 1,N_FL
            Z1 = Op_V(n_op,nf)%g * ( Phi(ns_new,Op_V(n_op,nf)%type) -  Phi(ns_old,Op_V(n_op,nf)%type))
+!$OMP parallel do default(shared) private(n,m,myexp,Z)
            Do m = 1,Op_V(n_op,nf)%N_non_zero
               myexp = exp( Z1* Op_V(n_op,nf)%E(m) )
               Z = myexp - 1.d0
@@ -51,10 +52,18 @@
               Enddo
               Mat(m,m) = myexp + Mat(m,m)
            Enddo
+!$OMP end parallel do
            If (Size(Mat,1) == 1 ) then
               D_mat = Mat(1,1)
            elseif (Size(Mat,1) == 2 ) then
-              D_mat = Mat(1,1)*Mat(2,2) - Mat(2,1)*Mat(1,2)
+              s1 = Mat(1,1)*Mat(2,2)
+              s2 = Mat(2,1)*Mat(1,2)
+              If (Abs(s1) > Abs(s2)) then
+                D_mat = s1*(1.D0 - s2/s1)
+              else
+                D_mat = s2*(s1/s2 - 1.D0)
+              Endif
+!              D_mat =  - Mat(2,1)*Mat(1,2)
            else
               D_mat = Det(Mat,Size(Mat,1))
            endif
@@ -82,6 +91,7 @@
               beta = 0.D0
               call zlaset('N', Ndim, Op_dim, beta, beta, u, size(u, 1))
               call zlaset('N', Ndim, Op_dim, beta, beta, v, size(v, 1))
+!$OMP parallel do default(shared) private(n,i)
               do n = 1,Op_V(n_op,nf)%N_non_zero
                  u( Op_V(n_op,nf)%P(n), n) = Delta(n,nf)
                  do i = 1,Ndim
@@ -89,6 +99,7 @@
                  enddo
                  v(Op_V(n_op,nf)%P(n), n)  = 1.d0 - GR( Op_V(n_op,nf)%P(n),  Op_V(n_op,nf)%P(n), nf)
               enddo
+!$OMP end parallel do
 
               call zlaset('N', Ndim, Op_dim, beta, beta, x_v, size(x_v, 1))
               call zlaset('N', Ndim, Op_dim, beta, beta, y_v, size(y_v, 1))
@@ -101,12 +112,16 @@
                  Z = 1.d0 + u( Op_V(n_op,nf)%P(n), n)*v(Op_V(n_op,nf)%P(n),n)
                  alpha = -1.D0
                  Allocate(syu(n), sxv(n))
+                 !Use of ZGEMM should be possible, it might scale as N^2 instead of 2*N though
                  call zgemv('T', NDim, n-1, alpha, y_v, Ndim, u(1,n), 1, beta , syu, 1)
                  call zgemv('T', NDim, n-1, alpha, x_v, Ndim, v(1,n), 1, beta , sxv, 1)
+                 alpha = 1.D0
+                 call zgemv('N', NDim, n-1, alpha, x_v, Ndim, syu, 1, alpha, x_v(1, n), 1)
+                 call zgemv('N', NDim, n-1, alpha, y_v, Ndim, sxv, 1, alpha, y_v(1, n), 1)
                  do m = 1,n-1
                     Z = Z - syu(m)*sxv(m)
-                    call zaxpy(Ndim, syu(m), x_v(1, m), 1, x_v(1, n), 1)
-                    call zaxpy(Ndim, sxv(m), y_v(1, m), 1, y_v(1, n), 1)
+!                     call zaxpy(Ndim, syu(m), x_v(1, m), 1, x_v(1, n), 1)
+!                     call zaxpy(Ndim, sxv(m), y_v(1, m), 1, y_v(1, n), 1)
                  enddo
                  Z = 1.D0/Z
                  call zscal(Ndim, Z, x_v(1, n), 1)

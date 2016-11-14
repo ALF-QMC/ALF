@@ -3,10 +3,11 @@
     Use MyMats
     Implicit none
 
-    real (Kind=8)   , private, save :: XMEANG, XMAXG, XMAXP, CPU_time_st, CPU_time_en, Xmean_tau, Xmax_tau
+    real (Kind=8)   , private, save :: XMEANG, XMAXG, XMAXP,  Xmean_tau, Xmax_tau
+    Integer (kind=8), private, save :: count_CPU_start,count_CPU_end,count_rate
     Integer         , private, save :: NCG, NCG_tau
     Integer (Kind=8), private, save :: NC_up, ACC_up
- 
+
     
     Contains
 
@@ -20,7 +21,8 @@
         NCG_tau   = 0
         NC_up     = 0
         ACC_up    = 0
-        Call CPU_TIME(CPU_time_st)
+
+        call system_clock(count_CPU_start,count_rate)
       end subroutine control_init
       
       Subroutine Control_upgrade(Log) 
@@ -91,8 +93,10 @@
         
         ACC = 0.d0
         IF (NC_up > 0 )  ACC = dble(ACC_up)/dble(NC_up)
-        Call CPU_TIME(CPU_time_en)
-        Time = CPU_time_en -  CPU_time_st
+        call system_clock(count_CPU_end)
+        time = (count_CPU_end-count_CPU_start)/dble(count_rate)
+        
+ 
 #ifdef MPI
         X = 0.d0
         CALL MPI_REDUCE(XMEANG,X,1,MPI_REAL8,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
@@ -138,7 +142,8 @@
 #endif
       end Subroutine Control_Print
       
-      subroutine make_truncation(prog_truncation,cpu_max,time_bin_start,time_bin_end)
+     
+      subroutine make_truncation(prog_truncation,cpu_max,count_bin_start,count_bin_end)
       !!!!!!! Written by M. Bercx
       ! This subroutine checks if the conditions for a controlled termination of the program are met.
       ! The subroutine contains a hard-coded threshold (in unit of bins): 
@@ -149,12 +154,14 @@
   include 'mpif.h'
 #endif  
     
-      logical, intent(out)     :: prog_truncation
-      real(kind=8), intent(in) :: cpu_max, time_bin_start, time_bin_end
-      real(kind=8)             :: time_bin_duration,time_alloc_end,time_remain,bins_remain,threshold
+      logical, intent(out)         :: prog_truncation
+      real(kind=8), intent(in)     :: cpu_max
+      integer (kind=8), intent(in) :: count_bin_start, count_bin_end
+      real (kind=8)             :: count_alloc_end
+      real(kind=8)                 :: time_bin_duration,time_remain,bins_remain,threshold
 #ifdef MPI   
-      real(kind=8)             :: bins_remain_mpi
-      integer                  :: err_mpi,rank_mpi,tasks_mpi
+      real(kind=8)                 :: bins_remain_mpi
+      integer                      :: err_mpi,rank_mpi,tasks_mpi
 #endif
       threshold = 1.5d0
       prog_truncation = .false.
@@ -163,9 +170,9 @@
       call mpi_comm_size(mpi_comm_world, tasks_mpi, err_mpi)
       call mpi_comm_rank(mpi_comm_world, rank_mpi, err_mpi) 
 #endif    
-      time_alloc_end    = cpu_time_st + cpu_max*3600 
-      time_bin_duration = time_bin_end-time_bin_start
-      time_remain       = time_alloc_end - time_bin_end
+      count_alloc_end   = count_CPU_start + cpu_max*3600*count_rate 
+      time_bin_duration = (count_bin_end-count_bin_start)/dble(count_rate)
+      time_remain       = (count_alloc_end - count_bin_end)/dble(count_rate)
       bins_remain       = time_remain/time_bin_duration
       
 #ifdef MPI
@@ -181,7 +188,6 @@
 #endif
       end subroutine make_truncation
      
-
     end module control
   
   

@@ -89,8 +89,8 @@ Program Main
   Logical :: Log
   
   ! For the truncation of the program:
-  Logical        :: prog_truncation
-  Real(kind=8)   :: time_bin_start,time_bin_end
+  Logical          :: prog_truncation
+  integer (kind=8) :: count_bin_start, count_bin_end
     
   
 #ifdef MPI
@@ -267,7 +267,7 @@ Program Main
      ! Here, you have the green functions on time slice 1.
      ! Set bin observables to zero.
 
-     Call cpu_time(time_bin_start) 
+     call system_clock(count_bin_start)
      
      Call Init_obs(Ltau)
      DO NSW = 1, NSWEEP
@@ -427,11 +427,11 @@ Program Main
      ENDDO
      Call Pr_obs(Ltau)
      Call confout
-          
-     Call cpu_time(time_bin_end)
+
+     call system_clock(count_bin_end)
      prog_truncation = .false.
      if ( abs(CPU_MAX) > Zero ) then
-        Call make_truncation(prog_truncation,CPU_MAX,time_bin_start,time_bin_end)
+        Call make_truncation(prog_truncation,CPU_MAX,count_bin_start,count_bin_end)        
      endif
      If (prog_truncation) then 
         Nbin_eff = nbc

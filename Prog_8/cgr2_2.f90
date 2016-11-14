@@ -53,6 +53,7 @@
         CALL INV(V1,V1INV,Z)
         If (dble(D1(1)) >  dble(D2(1)) ) Then 
            !Write(6,*) "D1(1) >  D2(1)", dble(D1(1)), dble(D2(1))
+!$OMP parallel do default(shared) private(I,J)
            DO J = 1,LQ
               DO I = 1,LQ
                  HLPB2(I   , J    ) =  V1INV(I,J)
@@ -61,6 +62,7 @@
                  HLPB2(I+LQ, J    ) = -D2(I)*V2(I,J)
               ENDDO
            ENDDO
+!$OMP end parallel do
            HLPB1 = CT(HLPB2)
 
            !CALL UDV_wrap(HLPB1,U3B,D3B,V3B,NCON)
@@ -89,22 +91,27 @@
 !!$        !Write(6,*) 'Cgr2_2, Cutoff: ', Xmax
 !!$!!!!!!!!!!!!! End Tests
            HLPB1 = cmplx(0.d0,0.d0,double)
+!$OMP parallel do default(shared) private(I,J)
            DO I = 1,LQ
               DO J = 1,LQ
                  HLPB1(I   , J    ) =  V1INV(I,J)
                  HLPB1(I+LQ, J+LQ ) =  MYU2(I, J)
               ENDDO
            ENDDO
+!$OMP end parallel do
            CALL ZGETRF(LQ2, LQ2, V3B, LQ2, IPVT, info)
            CALL ZGETRS('C', LQ2, LQ2, V3B, LQ2, IPVT, HLPB1, LQ2, info)! Block structure of HLPB1 is not exploited
+!$OMP parallel do default(shared) private(I,J)
            DO J = 1,LQ2
               DO I = 1,LQ2
                  HLPB1(I,J)  = TMPVEC(I)*HLPB1(I,J)
               ENDDO
            ENDDO
+!$OMP end parallel do
            CALL get_blocks_of_prod(GR00, GR0T, GRT0, GRTT, U3B, HLPB1, LQ)
         Else
            !Write(6,*) "D1(1) <  D2(1)", dble(D1(1)), dble(D2(1))
+!$OMP parallel do default(shared) private(I,J)
            DO J = 1,LQ
               DO I = 1,LQ
                  HLPB2(I   , J    ) =  MYU2(I, J)
@@ -113,25 +120,30 @@
                  HLPB2(I+LQ, J    ) =  D1(I)*U1(I,J)
               ENDDO
            ENDDO
+!$OMP end parallel do
            HLPB1 = CT(HLPB2)
            
            !CALL UDV_wrap(HLPB1,U3B,D3B,V3B,NCON)
            CALL UDV_wrap_Pivot(HLPB1,U3B,D3B,V3B,NCON,LQ2,LQ2)
            TMPVEC = conjg(1.D0/D3B)
            HLPB1 = cmplx(0.d0,0.d0,double)
+!$OMP parallel do default(shared) private(I,J)
            DO I = 1,LQ
               DO J = 1,LQ
                  HLPB1(I   , J    ) =  MYU2(I, J)
                  HLPB1(I+LQ, J+LQ ) =  V1INV(I,J)
               ENDDO
            ENDDO
+!$OMP end parallel do
            CALL ZGETRF(LQ2, LQ2, V3B, LQ2, IPVT, info)
            CALL ZGETRS('C', LQ2, LQ2, V3B, LQ2, IPVT, HLPB1, LQ2, info)! Block structure of HLPB1 is not exploited
+!$OMP parallel do default(shared) private(I,J)
            DO J = 1,LQ2
               DO I = 1,LQ2
                  HLPB1(I,J)  = TMPVEC(I)*HLPB1(I,J)
               ENDDO
            ENDDO
+!$OMP end parallel do
            call get_blocks_of_prod(GRTT, GRT0, GR0T, GR00, U3B, HLPB1, LQ)
         Endif
         DEALLOCATE(TMPVEC, MYU2, IPVT)

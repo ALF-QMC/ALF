@@ -81,7 +81,7 @@ Contains
 !> @param[in] Nsigma
 !> @param[in] N_SUN 
 !--------------------------------------------------------------------
-  Subroutine  Op_phase(Phase,OP_V,Nsigma,N_SUN) ! This also goes in Operator  (Input is nsigma, Op_V).
+  Pure Subroutine  Op_phase(Phase,OP_V,Nsigma,N_SUN) ! This also goes in Operator  (Input is nsigma, Op_V).
     Implicit none
 
     Complex  (Kind=8), Intent(Inout) :: Phase
@@ -105,7 +105,7 @@ Contains
   end Subroutine Op_phase
   
 
-  subroutine Op_make(Op,N)
+  Pure subroutine Op_make(Op,N)
     Implicit none
     Type (Operator), intent(INOUT) :: Op
     Integer, Intent(IN) :: N
@@ -120,7 +120,7 @@ Contains
     Op%alpha = cmplx(0.d0,0.d0, kind(0.D0))
   end subroutine Op_make
 
-  subroutine Op_clear(Op,N)
+  Pure subroutine Op_clear(Op,N)
     Implicit none
     Type (Operator), intent(INOUT) :: Op
     Integer, Intent(IN) :: N
@@ -169,7 +169,7 @@ Contains
   end subroutine Op_set
 
 
-  subroutine Op_exp(g,Op,Mat)
+  Pure subroutine Op_exp(g,Op,Mat)
     Implicit none 
     Type (Operator), Intent(IN)  :: Op
     Complex (Kind=8), Dimension(:,:), INTENT(OUT) :: Mat
@@ -213,9 +213,11 @@ Contains
     Integer , Dimension(:), INTENT(IN) :: P
     Integer :: n
     
+!$OMP parallel do default(shared) private(n)
     Do n = 1, opn
        call zcopy(Ndim, Mat(1, P(n)), 1, V(n, 1), opn)
     Enddo
+!$OMP end parallel do
     
   end subroutine
 
@@ -243,9 +245,11 @@ Contains
     Integer , Dimension(:), INTENT(IN) :: P
     Integer :: n
     
+!$OMP parallel do default(shared) private(n)
     Do n = 1, opn
         call zcopy(Ndim, Mat(P(n), 1), Ndim, V(n, 1), opn)
     Enddo
+!$OMP end parallel do
     
   end subroutine
 
@@ -386,9 +390,11 @@ Contains
             Mat(I, P(2)) = Z(2) * (U(1, 2) * V(1, I) + U(2, 2) * V(2, I))
         enddo
     case default
+!$OMP parallel do default(shared) private(n)
         do n = 1, opn
             call zgemv('T', opn, Ndim, Z(n), V, opn, U(:, n), 1, beta, Mat(:, P(n)), 1)
         Enddo
+!$OMP end parallel do
     end select
   end subroutine
 
@@ -433,9 +439,11 @@ Contains
             Mat(P(2), I) = Z(2) * (conjg(U(1, 2)) * V(1, I) + conjg(U(2, 2)) * V(2, I))
         enddo
     case default
+!$OMP parallel do default(shared) private(n)
         do n = 1, opn
             call zgemv('T', opn, Ndim, Z(n), V, opn, conjg(U(:, n)), 1, beta, Mat(P(n), 1), size(Mat, 1))
         Enddo
+!$OMP end parallel do
     end select
 
   end subroutine
@@ -520,7 +528,7 @@ Contains
 !> @param[in] Op The Operator whose eigenvalues we exponentiate
 !> @param[in] spin The spin direction that we consider
 !--------------------------------------------------------------------
-subroutine FillExpOps(ExpOp, ExpMop, Op, spin)
+Pure subroutine FillExpOps(ExpOp, ExpMop, Op, spin)
     Implicit none
     Type (Operator) , INTENT(IN) :: Op
     Complex(kind = kind(0.D0)), INTENT(INOUT) :: ExpOp(Op%N), ExpMop(Op%N)
@@ -602,17 +610,21 @@ end subroutine
     If (N_type == 1) then
        call FillExpOps(ExpOp, ExpMop, Op, spin)
        
+!$OMP parallel do default(shared) private(n)
        Do n = 1,Op%N
           expHere=ExpOp(n)
           VH(n, :) = ExpHere * Mat(:, Op%P(n))
        Enddo
+!$OMP end parallel do
 
        call opmultct(VH, Op%U, Op%P, Mat, Op%N, Ndim)
 
+!$OMP parallel do default(shared) private(n)
        Do n = 1,Op%N
           ExpHere=ExpMOp(n)
           VH(n, :) = ExpHere * Mat(Op%P(n), :)
        Enddo
+!$OMP end parallel do
     
        call opmult(VH, Op%U, Op%P, Mat, Op%N, Ndim)
     elseif (N_Type == 2) then

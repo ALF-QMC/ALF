@@ -548,6 +548,7 @@
           
 
           Do nf = 1,N_FL
+!$OMP parallel do default(shared) private(I,J,ZK)
              Do I = 1,Ndim
                 Do J = 1,Ndim
                    ZK = 0.d0!cmplx(0.d0, 0.d0, kind(0.D0))
@@ -555,6 +556,7 @@
                    GRC(I,J,nf)  = ZK - GR(J,I,nf)
                 Enddo
              Enddo
+!$OMP end parallel do
           Enddo
           ! GRC(i,j,nf) = < c^{dagger}_{j,nf } c_{j,nf } >
           ! Compute scalar observables. 
@@ -563,6 +565,7 @@
 
           Nc = Size( Op_T,1)
           Do nf = 1,N_FL
+!$OMP parallel do default(shared) private(n,J,J1,I,I1) reduction(+:Zkin)
              Do n = 1,Nc
                 Do J = 1,Op_T(n,nf)%N
                    J1 = Op_T(n,nf)%P(J)
@@ -572,6 +575,7 @@
                    Enddo
                 ENddo
              Enddo
+!$OMP end parallel do
           Enddo
           Zkin = Zkin*N_SUN!cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
           
@@ -580,6 +584,7 @@
 !           Nc = Size( Op_T,1)
           Do nf = 1,N_FL
 !              Do n = 1,Nc
+!$OMP parallel do default(shared) private(I,no,a,b,I1,J1) reduction(+:ZL)
                 Do I = 1,Latt%N
                    DO no = 1,4
                    DO a = 1,4
@@ -591,6 +596,7 @@
                    Enddo
                    Enddo
                 ENddo
+!$OMP end parallel do
 !              Enddo
           Enddo
           ZL = ZL*N_SUN!cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
@@ -606,6 +612,7 @@
 
           Nc = Size( Op_V,1)
           Do nf = 1,N_FL
+!$OMP parallel do default(shared) private(n,weight,J,J1,I,I1,K,K1,L,L1,tmp) reduction(+:ZPot)
              Do n = 1,Nc
                 weight=(-1)**((n-1)/Latt%N)/8.d0
                 Do J = 1,Op_V(n,nf)%N
@@ -629,6 +636,7 @@
                 ENddo
 !                 write(*,*) Zpot
              Enddo
+!$OMP end parallel do
           Enddo
           ZPot = ZPot*N_SUN!cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
 
@@ -643,6 +651,7 @@
           ! You will have to allocate more space if you want to include more  scalar observables.
           
           
+!$OMP parallel do default(shared) private(I1,I,no,J1,J,no1,imj,tmp,weight,signum)
           DO I1 = 1,Ndim
              I  = List(I1,1)
              no = List(I1,2)
@@ -669,6 +678,7 @@
              enddo
              Den_eq0(1) = Den_eq0(1) +   GRC(I1,I1,1)*ZP*ZS 
           enddo
+!$OMP end parallel do
             
 !           do I=1,Latt%N
 !             do J=1,Latt%N
@@ -715,6 +725,7 @@
 !           enddo
           
           if (FlagSym ==1) then
+!$OMP parallel do default(shared) private(I,I1,I2,no,J,J1,J2,no1,imj,tmp,weight,signum)
             do I=1,Latt%N
               do no=1,8
                   do J=1,Latt%N
@@ -752,7 +763,9 @@
                   
               enddo
             enddo
+!$OMP end parallel do
             
+!$OMP parallel do default(shared) private(I,I1,I2,Ix,Iy,Imx,Imy,no,J,J1,J2,jx,jy,jmx,jmy,no1,imj,a,b,c,d,tmp,weight,signum)
             do I=1,Latt%N
               Ix = Latt%nnlist(I,1,0)
               Iy = Latt%nnlist(I,0,1)
@@ -1442,6 +1455,7 @@
                   enddo
               enddo
             enddo
+!$OMP end parallel do
           endif
           
 !           write(*,*) U1_eq0(1)
@@ -1568,6 +1582,7 @@
              Phase_tau = Phase_tau + ZS
              NobsT     = NobsT + 1
           
+!$OMP parallel do default(shared) private(I,I1,I2,no,J,J1,J2,no1,imj,a,b,c,d,tmp,weight,weightbeta,signum,DeltaI,DeltaJ)
              do I=1,Latt%N
                do a=1,4
                do b=1,4
@@ -1583,6 +1598,7 @@
                enddo
                enddo
              enddo
+!$OMP end parallel do
           endif
           
           weightbeta = cmplx(dtau,0.d0,kind(0.D0))
@@ -1590,6 +1606,7 @@
           
           If ( N_FL == 1 ) then 
              Z =  cmplx(dble(N_SUN),0.d0, kind(0.D0))
+!$OMP parallel do default(shared) private(I,I1,I2,no,J,J1,J2,no1,imj,a,b,c,d,tmp,weight,weightbeta,signum,DeltaI,DeltaJ)
              Do I1 = 1,Ndim
                 I  = List(I1,1)
                 no = List(I1,2)
@@ -1624,7 +1641,9 @@
 
                 enddo
               enddo
+!$OMP end parallel do
               
+!$OMP parallel do default(shared) private(I,I1,I2,no,J,J1,J2,no1,imj,a,b,c,d,tmp,weight,weightbeta,signum,DeltaI,DeltaJ)
               do I=1,Latt%N
                 do no=1,8
                     do J=1,Latt%N
@@ -1672,9 +1691,11 @@
                     
                 Enddo
              Enddo
+!$OMP end parallel do
              
              
             
+!$OMP parallel do default(shared) private(I,I1,I2,no,J,J1,J2,no1,imj,a,b,c,d,tmp,weight,weightbeta,signum,DeltaI,DeltaJ)
             do I=1,Latt%N
               do J=1,Latt%N
                 imj = latt%imj(I,J)
@@ -1707,6 +1728,7 @@
                 enddo
               enddo
             enddo
+!$OMP end parallel do
           Endif
         end Subroutine OBSERT
 
