@@ -83,7 +83,10 @@
            Integer  ::  I, J, nf, NT, NT1, NTST, NST, NVAR
            
            !Tau = 0
-           G00=GT0=G0T=GTT=GR
+           G00=GR
+           GT0=GR
+           G0T=GR
+           GTT=GR
            Do nf = 1, N_FL
               DO J = 1,Ndim 
                  G0T(J,J,nf) = G0T(J,J,nf) - cone

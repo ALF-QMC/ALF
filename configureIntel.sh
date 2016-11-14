@@ -2,11 +2,11 @@ export DIR=`pwd`
 export f90=ifort
 #export f90="gfortran"
 
-export FL="-c -O3 -fp-model fast=2 -march=corei7-avx -unroll -finline-functions -ipo -ip -heap-arrays 1024 -DnMPI"
+export FL="-c -O3 -fp-model fast=2 -xHost -unroll -finline-functions -ipo -ip -heap-arrays 1024 -no-wrap-margin -DnMPI"
 # -parallel -qopenmp"
 
 #uncomment the next line if you want to debug/profile your code
-export FL="${FL} -g"
+export FL="${FL} -g -traceback"
 
 export Libs=${DIR}"/Libraries/"
 #export LIB_BLAS_LAPACK="-lblas -llapack"

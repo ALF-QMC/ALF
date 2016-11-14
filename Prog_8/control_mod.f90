@@ -4,7 +4,7 @@
     Implicit none
 
     real (Kind=8)   , private, save :: XMEANG, XMAXG, XMAXP,  Xmean_tau, Xmax_tau
-    Integer (kind=8), private, save :: count_CPU_start,count_CPU_end,count_rate
+    Integer (kind=8), private, save :: count_CPU_start,count_CPU_end,count_rate,count_max
     Integer         , private, save :: NCG, NCG_tau
     Integer (Kind=8), private, save :: NC_up, ACC_up
 
@@ -22,7 +22,7 @@
         NC_up     = 0
         ACC_up    = 0
 
-        call system_clock(count_CPU_start,count_rate)
+        call system_clock(count_CPU_start,count_rate,count_max)
       end subroutine control_init
       
       Subroutine Control_upgrade(Log) 
@@ -95,7 +95,7 @@
         IF (NC_up > 0 )  ACC = dble(ACC_up)/dble(NC_up)
         call system_clock(count_CPU_end)
         time = (count_CPU_end-count_CPU_start)/dble(count_rate)
-        
+        if (count_CPU_end .lt. count_CPU_start) time = (count_max+count_CPU_end-count_CPU_start)/dble(count_rate)
  
 #ifdef MPI
         X = 0.d0
@@ -157,7 +157,7 @@
       logical, intent(out)         :: prog_truncation
       real(kind=8), intent(in)     :: cpu_max
       integer (kind=8), intent(in) :: count_bin_start, count_bin_end
-      real (kind=8)             :: count_alloc_end
+      real (kind=8)                :: count_alloc_end
       real(kind=8)                 :: time_bin_duration,time_remain,bins_remain,threshold
 #ifdef MPI   
       real(kind=8)                 :: bins_remain_mpi
@@ -173,6 +173,10 @@
       count_alloc_end   = count_CPU_start + cpu_max*3600*count_rate 
       time_bin_duration = (count_bin_end-count_bin_start)/dble(count_rate)
       time_remain       = (count_alloc_end - count_bin_end)/dble(count_rate)
+      if (count_bin_end .lt. count_bin_start) then ! the counter has wrapped around
+         time_bin_duration = (count_max+count_bin_end-count_bin_start)/dble(count_rate)
+         time_remain       = (count_alloc_end - count_bin_end-count_max)/dble(count_rate)     
+      endif
       bins_remain       = time_remain/time_bin_duration
       
 #ifdef MPI

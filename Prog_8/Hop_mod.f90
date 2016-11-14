@@ -111,18 +111,18 @@
           Out = In
           do nc =  1,Ncheck
              If ( dble( Op_T(nc,nf)%g*conjg(Op_T(nc,nf)%g) ) > Zero ) then
-		do n = 1,Ndim_hop
-		  call zcopy(Ndim,Out(Op_T(nc,nf)%P(n),1),Ndim,V_Hlp(n,1),Ndim_hop)
-		enddo
+                do n = 1,Ndim_hop
+                  call zcopy(Ndim,Out(Op_T(nc,nf)%P(n),1),Ndim,V_Hlp(n,1),Ndim_hop)
+                enddo
 !                 do I = 1,Ndim
 !                    do n = 1,Ndim_hop
 !                       V_Hlp(n,I) = Out(Op_T(nc,nf)%P(n),I)
 !                    enddo
 !                 enddo
                 Call mmult(V_HLP1,Exp_T_m1(:,:,nc,nf),V_Hlp)
-		do n = 1,Ndim_hop
-		  call zcopy(Ndim,V_Hlp1(n,1),Ndim_hop,Out(Op_T(nc,nf)%P(n),1),Ndim)
-		enddo
+                do n = 1,Ndim_hop
+                  call zcopy(Ndim,V_Hlp1(n,1),Ndim_hop,Out(Op_T(nc,nf)%P(n),1),Ndim)
+                enddo
 !                 DO I = 1,Ndim
 !                    do n = 1,Ndim_hop
 !                       OUT(OP_T(nc,nf)%P(n),I) = V_hlp1(n,I)
