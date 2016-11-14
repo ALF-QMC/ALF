@@ -229,13 +229,13 @@
                    nnr2 =  nint ( Iscalar(Latt%BZ2_p,x_p) / (2.d0*pi) )
                    nnr  = Latt%invlist(nnr1,nnr2)
                    Latt%nnlist(nr,nd1,nd2) = nnr
-	           if ( nnr < 1  .or.  nnr > Latt%N ) then 
-	               write(6,*) "Error in nnlist ", nnr 
+                   if ( nnr < 1  .or.  nnr > Latt%N ) then 
+                       write(6,*) "Error in nnlist ", nnr 
                        x1_p =  dble(Latt%list(nr,1))*Latt%a1_p + dble(Latt%list(nr,2))*Latt%a2_p
                        !Write(91,"(F14.7,2x,F14.7,2x,F14.7,2x,F14.7)") x1_p(1), x1_p(2), d_p(1), d_p(2)
                        Write(91,"(F14.7,2x,F14.7)") x1_p(1) , x1_p(2)
                        Write(91,*) 
-	           endif
+                    endif
                 enddo
              enddo
           enddo
@@ -335,7 +335,7 @@
           Type (Lattice) :: Latt
           
           Integer :: nkx, nky, nk
-          Real (Kind=8) :: XK1_P(2), XK2_P(2), X, Zero
+          Real (Kind=8) :: XK1_P(2), XK2_P(2), Zero
 
           call npbc(xk1_p, xk_p , Latt%BZ1_p, Latt%BZ2_p)
           call npbc(xk2_p, xk1_p, Latt%BZ1_p, Latt%BZ2_p)
@@ -397,7 +397,7 @@
 
         integer function Iscalar_II(i_p, j_p)
           Implicit none
-          integer, dimension(:) :: i_p, j_p
+          integer, dimension(:), intent(in) :: i_p, j_p
           integer i
           
           Iscalar_II = 0
@@ -411,8 +411,8 @@
 !********
         Real (Kind=8)  function Iscalar_IR(x_p, j_p)
           Implicit none
-          Real (Kind=8), dimension(:) ::  x_p
-          integer, dimension(:) ::  j_p
+          Real (Kind=8), dimension(:), intent(in) ::  x_p
+          integer, dimension(:), intent(in) ::  j_p
           integer i
           
           Iscalar_IR = 0.d0
@@ -424,15 +424,10 @@
         end function Iscalar_IR
 !********
 
-        Real (Kind=8)  function Iscalar_RR(x_p, y_p)
+        pure Real (Kind=8)  function Iscalar_RR(x_p, y_p)
           Implicit none
-          Real (Kind=8), dimension(:) ::  x_p, y_p
-          integer i
-          
-          Iscalar_RR = 0.d0
-          do i = 1,  size(x_p)
-             Iscalar_RR = Iscalar_RR + x_p(i)*y_p(i)
-          enddo
+          Real (Kind = Kind(0.D0)), dimension(:), intent(in) ::  x_p, y_p
+          Iscalar_RR = dot_product(x_p, y_p)
         end function Iscalar_RR
 
 !********
@@ -507,7 +502,7 @@
           
           Implicit none
           
-          Type (Lattice)                             :: Latt
+          Type (Lattice), intent(in)                 :: Latt
           Type (Mat_R ), Dimension(:,:)              :: Xin_K, Xout_R 
           Real (Kind=8), Dimension(:,:), allocatable :: X_MAT
           Real (Kind=8)                              :: XK_p(2), IR_p(2)
@@ -524,6 +519,7 @@
           allocate ( X_MAT(norb,norb) )
 
           
+!$OMP parallel do default(shared) private(nt,nr,IR_p,X_MAT,nk,XK_p)
           do nt = 1,nb
              do nr = 1,LQ
                 IR_p =  dble(Latt%list(nr,1))*Latt%a1_p + dble(Latt%list(nr,2))*Latt%a2_p  
@@ -535,6 +531,7 @@
                 Xout_R(nr,nt)%el = X_MAT/dble(LQ)
              enddo
           enddo
+!$OMP end parallel do
 
           deallocate(X_Mat)
         end subroutine FT_K_to_R_Mat
@@ -544,7 +541,7 @@
           
           Implicit none
           
-          Type (Lattice)                                :: Latt
+          Type (Lattice), intent(in)                    :: Latt
           Type (Mat_C )   , Dimension(:,:)              :: Xin_K, Xout_R 
           Complex (Kind=8), Dimension(:,:), allocatable :: X_MAT
           Real    (Kind=8)                              :: XK_p(2), IR_p(2)
@@ -562,17 +559,19 @@
           allocate ( X_MAT(norb,norb) )
 
           
+!$OMP parallel do default(shared) private(nt,nr,IR_p,X_MAT,nk,XK_p)
           do nt = 1,nb
              do nr = 1,LQ
                 IR_p =  dble(Latt%list(nr,1))*Latt%a1_p + dble(Latt%list(nr,2))*Latt%a2_p  
-                X_MAT = cmplx(0.d0,0.d0)
+                X_MAT = cmplx(0.d0, 0.d0, kind(0.D0))
                 do nk = 1,LQ
                    XK_p =  dble(Latt%listk(nk,1))*Latt%b1_p + dble(Latt%listk(nk,2))*Latt%b2_p
-                   X_MAT = X_MAT + exp( cmplx(0.d0,(Iscalar(XK_p,IR_p))) ) *Xin_K(nk,nt)%el
+                   X_MAT = X_MAT + exp( cmplx(0.d0,(Iscalar(XK_p,IR_p)), kind(0.D0)) ) *Xin_K(nk,nt)%el
                 enddo
-                Xout_R(nr,nt)%el = X_MAT/cmplx(dble(LQ),0.d0)
+                Xout_R(nr,nt)%el = X_MAT/dble(LQ)
              enddo
           enddo
+!$OMP end parallel do
 
           deallocate(X_Mat)
 
@@ -584,7 +583,7 @@
           
           Implicit none
           
-          Type (Lattice)                             :: Latt
+          Type (Lattice), intent(in)                 :: Latt
           Real (Kind=8), Dimension(:,:)              :: Xin_K, Xout_R 
           Real (Kind=8)                              :: XK_p(2), IR_p(2), X_Mat
           Integer :: LQ, nb, nt, nr, nk
@@ -597,6 +596,7 @@
           !Write(6,*) Xin_K(Latt%N,Ltrot)%el(1,1)
           
 
+!$OMP parallel do default(shared) private(nt,nr,IR_p,X_MAT,nk,XK_p)
           do nt = 1,nb
              do nr = 1,LQ
                 IR_p =  dble(Latt%list(nr,1))*Latt%a1_p + dble(Latt%list(nr,2))*Latt%a2_p  
@@ -608,6 +608,7 @@
                 Xout_R(nr,nt) = X_MAT/dble(LQ)
              enddo
           enddo
+!$OMP end parallel do
 
         end subroutine FT_K_to_R
 
@@ -616,7 +617,7 @@
           
           Implicit none
           
-          Type (Lattice)                             :: Latt
+          Type (Lattice), intent(in)                 :: Latt
           Complex (Kind=8), Dimension(:,:)           :: Xin_K, Xout_R 
           Complex (Kind=8)                           :: Z
           Real    (Kind=8)                           :: XK_p(2), IR_p(2)
@@ -631,17 +632,19 @@
           !Write(6,*) Xin_K(Latt%N,Ltrot)%el(1,1)
           
 
+!$OMP parallel do default(shared) private(nt,nr,IR_p,Z,nk,XK_p)
           do nt = 1,nb
              do nr = 1,LQ
                 IR_p =  dble(Latt%list(nr,1))*Latt%a1_p + dble(Latt%list(nr,2))*Latt%a2_p  
-                Z = cmplx(0.d0,0.d0)
+                Z = cmplx(0.d0, 0.d0, kind(0.D0))
                 do nk = 1,LQ
                    XK_p =  dble(Latt%listk(nk,1))*Latt%b1_p + dble(Latt%listk(nk,2))*Latt%b2_p
-                   Z = Z + cmplx(cos(Iscalar(XK_p,IR_p)),0.d0)*Xin_K(nk,nt)
+                   Z = Z + cos(Iscalar(XK_p,IR_p))*Xin_K(nk,nt)
                 enddo
-                Xout_R(nr,nt) = Z/cmplx(dble(LQ),0.d0)
+                Xout_R(nr,nt) = Z/dble(LQ)
              enddo
           enddo
+!$OMP end parallel do
 
         end subroutine FT_K_to_R_C
 
@@ -650,7 +653,7 @@
           
           Implicit none
 
-          Type (Lattice)                             :: Latt
+          Type (Lattice), intent(in)                 :: Latt
           Type (Mat_R ), Dimension(:,:)              :: Xin_R, Xout_K 
           Real (Kind=8), Dimension(:,:), allocatable :: X_MAT
           Real (Kind=8)                              :: XK_p(2), IR_p(2)
@@ -668,6 +671,7 @@
           allocate ( X_MAT(norb,norb) )
 
           
+!$OMP parallel do default(shared) private(nt,nr,IR_p,X_MAT,nk,XK_p)
           do nt = 1,nb
              do nk = 1,LQ
                 XK_p =  dble(Latt%listk(nk,1))*Latt%b1_p + dble(Latt%listk(nk,2))*Latt%b2_p
@@ -679,6 +683,7 @@
                 Xout_K(nk,nt)%el = X_MAT/dble(LQ)
              enddo
           enddo
+!$OMP end parallel do
 
           deallocate(X_Mat)
         end subroutine FT_R_to_K_mat
@@ -687,12 +692,12 @@
           
           Implicit none
 
-          Type (Lattice)                             :: Latt
+          Type (Lattice), intent(in)                 :: Latt
           Real (Kind=8),   Dimension(:)              :: Xin_R, Xout_K 
 
           Real (Kind=8)                              :: XK_p(2), IR_p(2), X_mat
           
-          Integer :: nb, norb, nk, nt, LQ, nr
+          Integer :: nk, LQ, nr
 
           LQ     = Latt%N
 
@@ -700,6 +705,7 @@
           !Write(6,*) Xin_R(1,1)%el(1,1)
           !Write(6,*) Xin_R(Latt%N,Ltrot)%el(1,1)
           
+!$OMP parallel do default(shared) private(nr,IR_p,X_MAT,nk,XK_p)
           do nk = 1,LQ
              XK_p =  dble(Latt%listk(nk,1))*Latt%b1_p + dble(Latt%listk(nk,2))*Latt%b2_p
              X_MAT = 0.d0
@@ -709,6 +715,7 @@
              enddo
              Xout_K(nk) = X_MAT/dble(LQ)
           enddo
+!$OMP end parallel do
           
         end subroutine FT_R_to_K
 
@@ -717,12 +724,12 @@
           
           Implicit none
           
-          Type (Lattice)                              :: Latt
+          Type (Lattice), intent(in)                  :: Latt
           Complex (Kind=8), Dimension(:)              :: Xin_R, Xout_K 
           Complex (Kind=8)                            :: X_MAT
-          Real    (Kind=8)                            :: XK_p(2), IR_p(2)
+          Real    (Kind=8)                            :: XK_p(2), IR_p(2), ang
 
-          Integer :: nb, norb, LQ, nt, nr, nk
+          Integer :: LQ, nr, nk
 
           LQ     = Latt%N
 
@@ -730,19 +737,20 @@
           !Write(6,*) Xin_K(1,1)%el(1,1)
           !Write(6,*) Xin_K(Latt%N,nb)%el(1,1)
           
+!$OMP parallel do default(shared) private(nr,IR_p,X_MAT,nk,XK_p)
           do nk = 1,LQ
              XK_p =  dble(Latt%listk(nk,1))*Latt%b1_p + dble(Latt%listk(nk,2))*Latt%b2_p
-             X_MAT = cmplx(0.d0,0.d0)
+             X_MAT = cmplx(0.d0,0.d0, kind(0.D0))
              do nr = 1,LQ
                 IR_p =  dble(Latt%list(nr,1))*Latt%a1_p + dble(Latt%list(nr,2))*Latt%a2_p  
-                X_MAT = X_MAT + exp( cmplx(0.d0,-(Iscalar(XK_p,IR_p))) ) *Xin_R(nr)
+                ang = -Iscalar(XK_p,IR_p)
+!                X_MAT = X_MAT + exp( cmplx(0.d0,-(Iscalar(XK_p,IR_p)), kind(0.D0)) ) *Xin_R(nr)
+                X_MAT = X_MAT + cmplx(cos(ang), sin(ang), kind(0.D0)) * Xin_R(nr)
              enddo
-             Xout_K(nk) = X_MAT/cmplx(dble(LQ),0.d0)
+             Xout_K(nk) = X_MAT/dble(LQ)
           enddo
+!$OMP end parallel do
 
         end subroutine FT_R_to_K_C
 
-        
       end Module Lattices_v3
-
-      

@@ -8,4 +8,4 @@ $(LIB): $(OBJS)
 .f.o:
 	$(FC) $(FLAGS) $< 
 clean:
-	rm $(LIB) $(OBJS)
+	rm -f $(LIB) $(OBJS)

@@ -18,7 +18,7 @@
 	! Upgrade NTAU + 1     NTAU: [0:LTROT-1]
 
         ! Arguments
-	COMPLEX (Kind=8), INTENT(INOUT) ::  GR(Ndim,Ndim,N_FL)
+        COMPLEX (Kind=8), INTENT(INOUT) ::  GR(Ndim,Ndim,N_FL)
         COMPLEX (Kind=8), INTENT(INOUT) ::  PHASE
         INTEGER, INTENT(IN) :: NTAU
         

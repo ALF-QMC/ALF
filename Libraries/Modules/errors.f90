@@ -87,15 +87,15 @@
               Rhelp(nt) = dble(en(nt))
            enddo
            call errcalc(Rhelp, xm, xerr)
-           zm   =  cmplx(xm  , 0.d0)
-           Zerr =  cmplx(xerr, 0.d0)
+           zm   =  cmplx(xm  , 0.d0, kind(0.D0))
+           Zerr =  cmplx(xerr, 0.d0, kind(0.D0))
 
            do nt = 1,np
               Rhelp(nt) = aimag(en(nt))
            enddo
            call errcalc(Rhelp, xm, xerr)
-           zm   =  zm   + cmplx( 0.d0, xm   )
-           Zerr =  Zerr + cmplx( 0.d0, xerr )
+           zm   =  zm   + cmplx( 0.d0, xm, kind(0.D0)   )
+           Zerr =  Zerr + cmplx( 0.d0, xerr, kind(0.D0) )
 
            RETURN
          END SUBROUTINE ERRCALC_C
@@ -148,14 +148,14 @@
            ! Build the jackknife averages and send to errcalc.
 
            DO N = 1,NP
-              Z = CMPLX(0.D0, 0.D0)
+              Z = CMPLX(0.D0, 0.D0, kind(0.D0))
               DO N1 = 1,NP
                  IF (N1.NE.N) Z = Z + EN(N1)
               ENDDO
-              EN1(N) = Z / CMPLX(DBLE(NP -1) , 0.d0)
+              EN1(N) = Z / DBLE(NP -1)
            ENDDO
            CALL ERRCALC(EN1,ZM,ZERR)
-           ZERR = ZERR*CMPLX(DBLE(NP),0.d0)
+           ZERR = ZERR*DBLE(NP)
            DEALLOCATE  ( EN1 )
 
            RETURN
@@ -171,7 +171,7 @@
            COMPLEX (KIND=8), DIMENSION(:) ::  EN
            COMPLEX (KIND=8)               ::  ZM, ZERR, Z
            COMPLEX (KIND=8), DIMENSION(:), ALLOCATABLE ::  EN1
-           INTEGER     :: NP, N, N1, NP1, NREBIN, NC, NB
+           INTEGER     :: NP, N, NP1, NREBIN, NC, NB
 
            NP = SIZE(EN)
            NP1 = NP/NREBIN
@@ -179,12 +179,12 @@
            ! Rebin
            NC = 0
            DO N = 1,NP1
-              Z = CMPLX(0.D0,0.D0)
+              Z = CMPLX(0.D0, 0.D0, kind(0.D0))
               DO NB = 1,NREBIN
                  NC = NC + 1
                  Z = Z + EN(NC)
               ENDDO
-              Z = Z/CMPLX(DBLE(NREBIN),0.d0)
+              Z = Z/DBLE(NREBIN)
               EN1(N) = Z
            ENDDO
            CALL ERRCALC_J_C(EN1,ZM,ZERR)
@@ -287,8 +287,8 @@
            ! Build the jackknife averages and send to errcalc
 
            DO N = 1,NP
-              X  = CMPLX(0.D0,0.D0)
-              XS = CMPLX(0.D0,0.D0)
+              X  = CMPLX(0.D0, 0.D0, kind(0.D0))
+              XS = CMPLX(0.D0, 0.D0, kind(0.D0))
               DO N1 = 1,NP
                  IF (N1.NE.N)  X  = X  + EN(N1)
                  IF (N1.NE.N)  XS = XS + SI(N1)
@@ -296,7 +296,7 @@
               EN1(N) = X / XS
            ENDDO
            CALL ERRCALC(EN1,XM,XERR)
-           XERR = XERR*CMPLX(DBLE(NP),0.d0)
+           XERR = XERR*DBLE(NP)
            DEALLOCATE  ( EN1 )
 
            RETURN
@@ -354,8 +354,8 @@
            !Local
            REAL (KIND=8), DIMENSION(:  ), ALLOCATABLE  ::  HLP
            REAL (KIND=8), DIMENSION(:,:), ALLOCATABLE  ::  HLP1
-           REAL (KIND=8)                 ::  X, XM, XERR, Y, Err, Res, DTAU
-           INTEGER :: NT, NT1, NB, NB1, NTDM, NDATA
+           REAL (KIND=8)                 ::  X, Y, Err, Res, DTAU
+           INTEGER :: NT, NB, NB1, NTDM, NDATA
            
            NTDM  = SIZE(GR,1)
            NDATA = SIZE(GR,2)
@@ -399,7 +399,7 @@
            IMPLICIT NONE
 
            INTEGER  :: N, I
-           REAL (KIND=8) ::  A, B, RES, X, X1
+           REAL (KIND=8) ::  A, B, X, X1
            REAL (KIND=8), EXTERNAL :: F
 
            REAL (KIND=8) ::  DEL
@@ -641,12 +641,12 @@
 
            
            ALLOCATE( HLP(NDATA), HLP1(NTDM,NDATA), XMEAN_R(NTDM) )
-           XMEAN = CMPLX(0.d0,0.d0)
-           XCOV  = CMPLX(0.d0,0.d0)
+           XMEAN = CMPLX(0.d0, 0.d0, kind(0.D0))
+           XCOV  = CMPLX(0.d0, 0.d0, kind(0.D0))
            
            DO NTH = 1,2
-              Z = CMPLX(1.0, 0.0) 
-              IF (NTH .EQ. 2 ) Z = CMPLX( 0.0, -1.0 )
+              Z = CMPLX(1.D0, 0.D0, kind(0.D0))
+              IF (NTH .EQ. 2 ) Z = CMPLX( 0.D0, -1.D0, kind(0.D0))
               DO NT = 1,NTDM
                  DO NB= 1, NDATA
                     X = 0.D0
@@ -661,7 +661,7 @@
                     HLP (NB   ) = X/Y
                  ENDDO
                  CALL ERRCALC(HLP,XM ,XERR)
-                 XMEAN(NT) = XMEAN(NT) + CONJG(Z)*CMPLX(XM,0.d0)
+                 XMEAN(NT) = XMEAN(NT) + CONJG(Z)*XM
                  XMEAN_R(NT) = XM
                  !if (Nth.eq.2) write(6,*) XM
               ENDDO
@@ -674,8 +674,7 @@
                        X = X +  HLP1(NT,NB)*HLP1(NT1,NB)
                     ENDDO
                     X = X/DBLE(NDATA)
-                    XCOV(NT,NT1)  = XCOV(NT,NT1) + CONJG(Z)* &
-                         &    CMPLX( ( X - XMEAN_R(NT)*XMEAN_R(NT1) )*DBLE(NDATA) , 0.d0 )
+                    XCOV(NT,NT1)  = XCOV(NT,NT1) + CONJG(Z)* ( X - XMEAN_R(NT)*XMEAN_R(NT1) )*DBLE(NDATA)
                  ENDDO
               ENDDO
            ENDDO
@@ -716,9 +715,9 @@
               XMEAN_1(I) = X
            ENDDO
            DO I = 1,NTAU
-	      IF (SIG_1(I).LT.0.d0) Then 
-	          write(6,*) 'Error in Cov_err', SIG_1(I)
-	      Endif
+              IF (SIG_1(I).LT.0.d0) Then 
+                  write(6,*) 'Error in Cov_err', SIG_1(I)
+              Endif
               XMEAN_1(I) = XMEAN_1(I) + SQRT(ABS(SIG_1(I)))*RANG(ISEED)
            ENDDO
            DO I = 1,NTAU

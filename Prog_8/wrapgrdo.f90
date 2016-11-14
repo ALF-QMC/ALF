@@ -18,13 +18,13 @@
         ! Given GREEN at time NTAU => GREEN at time NTAU - 1,
         ! Upgrade NTAU  [LTROT:1]
         
-	COMPLEX (Kind=8), INTENT(INOUT) :: GR(Ndim,Ndim,N_FL)
+        COMPLEX (Kind=8), INTENT(INOUT) :: GR(Ndim,Ndim,N_FL)
         COMPLEX (Kind=8), INTENT(INOUT) :: PHASE
         Integer :: NTAU
 
         ! Local
         Complex (Kind=8) :: Mat_TMP(Ndim,Ndim)
-        Integer :: nf, N_Type, n, I,J
+        Integer :: nf, N_Type, n
         real (Kind=8) :: spin
 
         Do n = size(Op_V,1), 1, -1

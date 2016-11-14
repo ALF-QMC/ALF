@@ -3,7 +3,6 @@ FC= $(f90)
 FLAGS= $(FL) 
 LIBS= $(Libs)/Modules/modules_90.a \
       $(Libs)/MyNag/libnag.a \
-      $(Libs)/MyLin/liblin.a \
       $(LIB_BLAS_LAPACK)
 
 all:
@@ -19,4 +18,4 @@ clean:
 	(make -f Compile_Max  clean );\
 	(make -f Compile_Max_ph  clean );\
 	(make -f Compile_en  clean );\
-	rm *.mod *~ \#* *.out
+	rm -f *.mod *~ \#* *.out

@@ -59,8 +59,7 @@ Program Main
      
   end Interface
 
-  COMPLEX (Kind=8), Dimension(:)    , Allocatable   ::  D
-  COMPLEX (KIND=8), Dimension(:,:)  , Allocatable   ::  TEST, A, U, V
+  COMPLEX (KIND=8), Dimension(:,:)  , Allocatable   ::  TEST
 
   COMPLEX (Kind=8), Dimension(:,:)  , Allocatable    :: DL, DR
   COMPLEX (Kind=8), Dimension(:,:,:), Allocatable    :: UL, VL, UR, VR
@@ -74,8 +73,8 @@ Program Main
 
   NAMELIST /VAR_QMC/   Nwrap, NSweep, NBin, Ltau, LOBS_EN, LOBS_ST, CPU_MAX
 
-  Integer :: Ierr, I,J,nf, nst, n
-  Complex (Kind=8) :: Z_ONE = cmplx(1.d0,0.d0), Phase, Z, Z1
+  Integer :: Ierr, I,nf, nst, n
+  Complex (Kind=8) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Phase, Z, Z1
   Real    (Kind=8) :: ZERO = 10D-8
   Integer, dimension(:), allocatable :: Stab_nt
   
@@ -90,8 +89,8 @@ Program Main
   Logical :: Log
   
   ! For the truncation of the program:
-  Logical        :: prog_truncation
-  Real(kind=8)   :: time_bin_start,time_bin_end
+  Logical          :: prog_truncation
+  integer (kind=8) :: count_bin_start, count_bin_end
     
   
 #ifdef MPI
@@ -134,7 +133,7 @@ Program Main
   CALL MPI_BCAST(CPU_MAX ,1,MPI_REAL8,  0,MPI_COMM_WORLD,ierr)
 #endif
  
-  IF (ABS(CPU_MAX) > Zero ) NBIN = 1000000
+!   IF (ABS(CPU_MAX) > Zero ) NBIN = 1000000
  
   Call control_init
   Call Alloc_obs(Ltau)
@@ -241,7 +240,7 @@ Program Main
   
 
   NVAR = 1
-  Phase = cmplx(1.d0,0.d0)
+  Phase = cmplx(1.d0, 0.d0, kind(0.D0))
   do nf = 1,N_Fl
      CALL CGR(Z, NVAR, GR(:,:,nf), UR(:,:,nf),DR(:,nf),VR(:,:,nf),  UL(:,:,nf),DL(:,nf),VL(:,:,nf)  )
      Phase = Phase*Z
@@ -268,7 +267,7 @@ Program Main
      ! Here, you have the green functions on time slice 1.
      ! Set bin observables to zero.
 
-     Call cpu_time(time_bin_start) 
+     call system_clock(count_bin_start)
      
      Call Init_obs(Ltau)
      DO NSW = 1, NSWEEP
@@ -297,7 +296,7 @@ Program Main
               NT1 = Stab_nt(NST-1)
               !Write(6,*) 'Wrapur : ', NT1, NTAU1
               CALL WRAPUR(NT1, NTAU1,UR, DR, VR)
-              Z = cmplx(1.d0,0.d0)
+              Z = cmplx(1.d0, 0.d0, kind(0.D0))
               Do nf = 1, N_FL
                  UL(:,:,nf) = UST(:,:,NST,nf)
                  VL(:,:,nf) = VST(:,:,NST,nf)
@@ -352,7 +351,7 @@ Program Main
               !Write(6,*) 'Wrapul : ', NT1, NTAU1
               CALL WRAPUL(NT1,NTAU1, UL, DL, VL )
               !Write(6,*)  'Write UL, read UR ', NTAU1, NST
-              Z = cmplx(1.d0,0.d0)
+              Z = cmplx(1.d0, 0.d0, kind(0.D0))
               do nf = 1,N_FL
                  UR(:,:,nf) = UST(:,:,NST,nf)
                  VR(:,:,nf) = VST(:,:,NST,nf)
@@ -388,7 +387,7 @@ Program Main
            CALL INITD(VR(:,:,nf),Z_ONE)
            DR(:,nf) = Z_ONE
         ENDDO
-        Z = cmplx(1.d0,0.d0)
+        Z = cmplx(1.d0, 0.d0, kind(0.D0))
         do nf = 1,N_FL
            TEST(:,:) = GR(:,:,nf)
            NVAR = 1
@@ -402,12 +401,12 @@ Program Main
         Phase = Z
         NST =  NSTM
         Do nf = 1,N_FL
-           UST(:,:,NST,nf) = CMPLX(0.D0,0.D0)
-           VST(:,:,NST,nf) = CMPLX(0.D0,0.D0)
+           UST(:,:,NST,nf) = CMPLX(0.D0, 0.D0, kind(0.D0))
+           VST(:,:,NST,nf) = CMPLX(0.D0, 0.D0, kind(0.D0))
            DO I = 1,Ndim
-              DST(I  ,NST,nf)  = CMPLX(1.D0,0.D0)
-              UST(I,I,NST,nf)  = CMPLX(1.D0,0.D0)
-              VST(I,I,NST,nf)  = CMPLX(1.D0,0.D0)
+              DST(I  ,NST,nf)  = CMPLX(1.D0, 0.D0, kind(0.D0))
+              UST(I,I,NST,nf)  = CMPLX(1.D0, 0.D0, kind(0.D0))
+              VST(I,I,NST,nf)  = CMPLX(1.D0, 0.D0, kind(0.D0))
            ENDDO
         enddo
         IF ( LTAU == 1 ) then
@@ -428,11 +427,11 @@ Program Main
      ENDDO
      Call Pr_obs(Ltau)
      Call confout
-          
-     Call cpu_time(time_bin_end)
+
+     call system_clock(count_bin_end)
      prog_truncation = .false.
      if ( abs(CPU_MAX) > Zero ) then
-        Call make_truncation(prog_truncation,CPU_MAX,time_bin_start,time_bin_end)
+        Call make_truncation(prog_truncation,CPU_MAX,count_bin_start,count_bin_end)        
      endif
      If (prog_truncation) then 
         Nbin_eff = nbc

@@ -44,8 +44,8 @@
           Allocate ( U_Hlp (Ndim, Ndim_hop) )
           Allocate ( U_Hlp1(Ndim, Ndim_hop) )
           
-          Exp_T = cmplx(0.d0,0.d0)
-          Exp_T_M1 = cmplx(0.d0,0.d0)
+          Exp_T = cmplx(0.d0, 0.d0, kind(0.D0))
+          Exp_T_M1 = cmplx(0.d0, 0.d0, kind(0.D0))
           do nf = 1,N_FL
              do nc = 1,Ncheck
                 g = Op_T(nc,nf)%g
@@ -69,24 +69,23 @@
           
           Complex (Kind=8), intent(IN)  :: IN(Ndim,Ndim)
           Complex (Kind=8), intent(INOUT) :: OUT(Ndim,Ndim)
-          Integer :: nf
+          Integer, intent(IN) :: nf
           
           !Local 
-          Integer :: nc, I, n
+          Complex (Kind=Kind(0.D0)) :: alpha, beta
+          Integer :: nc, n
           
           Out = In
+          alpha = 1.D0
+          beta = 0.D0
           do nc =  Ncheck,1,-1
              If ( dble( Op_T(nc,nf)%g*conjg(Op_T(nc,nf)%g) ) > Zero ) then
-                do I = 1,Ndim
-                   do n = 1,Ndim_hop
-                      V_Hlp(n,I) = Out(Op_T(nc,nf)%P(n),I)
-                   enddo
+                do n = 1,Ndim_hop
+                    call ZCOPY(Ndim, Out(Op_T(nc,nf)%P(n),1), NDim, U_Hlp(1, n), 1)
                 enddo
-                Call mmult(V_HLP1,Exp_T(:,:,nc,nf),V_Hlp)
-                DO I = 1,Ndim
-                   do n = 1,Ndim_hop
-                      OUT(OP_T(nc,nf)%P(n),I) = V_hlp1(n,I)
-                   Enddo
+                Call ZGEMM('N', 'T', Ndim, Ndim_hop, Ndim_hop, alpha, U_Hlp, NDim, Exp_T(:,:,nc,nf), Ndim_hop, beta, U_HLP1, Ndim)
+                do n = 1,Ndim_hop
+                    call ZCOPY(Ndim, U_hlp1(1,n), 1, OUT(OP_T(nc,nf)%P(n),1), Ndim)
                 Enddo
              Endif
           Enddo
@@ -112,17 +111,23 @@
           Out = In
           do nc =  1,Ncheck
              If ( dble( Op_T(nc,nf)%g*conjg(Op_T(nc,nf)%g) ) > Zero ) then
-                do I = 1,Ndim
-                   do n = 1,Ndim_hop
-                      V_Hlp(n,I) = Out(Op_T(nc,nf)%P(n),I)
-                   enddo
+                do n = 1,Ndim_hop
+                  call zcopy(Ndim,Out(Op_T(nc,nf)%P(n),1),Ndim,V_Hlp(n,1),Ndim_hop)
                 enddo
+!                 do I = 1,Ndim
+!                    do n = 1,Ndim_hop
+!                       V_Hlp(n,I) = Out(Op_T(nc,nf)%P(n),I)
+!                    enddo
+!                 enddo
                 Call mmult(V_HLP1,Exp_T_m1(:,:,nc,nf),V_Hlp)
-                DO I = 1,Ndim
-                   do n = 1,Ndim_hop
-                      OUT(OP_T(nc,nf)%P(n),I) = V_hlp1(n,I)
-                   Enddo
-                Enddo
+                do n = 1,Ndim_hop
+                  call zcopy(Ndim,V_Hlp1(n,1),Ndim_hop,Out(Op_T(nc,nf)%P(n),1),Ndim)
+                enddo
+!                 DO I = 1,Ndim
+!                    do n = 1,Ndim_hop
+!                       OUT(OP_T(nc,nf)%P(n),I) = V_hlp1(n,I)
+!                    Enddo
+!                 Enddo
              Endif
           Enddo
           
@@ -147,15 +152,11 @@
           do nc =  1, Ncheck
              If ( dble( Op_T(nc,nf)%g*conjg(Op_T(nc,nf)%g) ) > Zero ) then
                 do n = 1,Ndim_hop
-                   do I = 1,Ndim
-                      U_Hlp(I,n) = Out(I,Op_T(nc,nf)%P(n))
-                   enddo
+                  call zcopy(Ndim, Out(1, Op_T(nc,nf)%P(n)), 1, U_Hlp(1, n), 1)
                 enddo
                 Call mmult(U_Hlp1,U_Hlp,Exp_T(:,:,nc,nf))
                 do n = 1,Ndim_hop
-                   DO I = 1,Ndim
-                      OUT(I,OP_T(nc,nf)%P(n)) = U_hlp1(I,n)
-                   Enddo
+                  call zcopy(Ndim, U_hlp1(1, n), 1, OUT(1,OP_T(nc,nf)%P(n)), 1)
                 Enddo
              Endif
           Enddo
@@ -180,15 +181,11 @@
           do nc =  Ncheck,1,-1
              If ( dble( Op_T(nc,nf)%g*conjg(Op_T(nc,nf)%g) ) > Zero ) then
                 do n = 1,Ndim_hop
-                   do I = 1,Ndim
-                      U_Hlp(I,n) = Out(I,Op_T(nc,nf)%P(n))
-                   enddo
+                   call zcopy(Ndim, Out(1, Op_T(nc,nf)%P(n)), 1, U_Hlp(1, n), 1)
                 enddo
                 Call mmult(U_Hlp1,U_Hlp,Exp_T_M1(:,:,nc,nf))
                 do n = 1,Ndim_hop
-                   DO I = 1,Ndim
-                      OUT(I,OP_T(nc,nf)%P(n)) = U_hlp1(I,n)
-                   Enddo
+                   call zcopy(Ndim, U_Hlp1(1, n), 1, Out(1, Op_T(nc,nf)%P(n)), 1)
                 Enddo
              Endif
           Enddo

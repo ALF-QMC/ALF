@@ -1,0 +1,73 @@
+\documentclass[10pt,Arial]{article}
+\usepackage{graphicx}
+\usepackage{a4wide}
+\usepackage[utf8]{inputenc}
+\usepackage{bbm}               % for getting a nice 1
+\usepackage[fleqn]{amsmath} % math environments and more by the AMS
+\usepackage{amssymb}
+\usepackage{wasysym}
+\usepackage{color}
+\usepackage{xspace}
+\usepackage{bm}
+\usepackage{subfigure}
+\usepackage{tcolorbox}
+\usepackage{dsfont}
+
+\usepackage{xcolor}
+\usepackage{lmodern}
+\usepackage{listings}
+\lstset{language=Fortran,
+  basicstyle=\ttfamily,
+  keywordstyle=\color{red},
+  commentstyle=\color{blue},
+  morecomment=[l]{!\ }% Comment only with space after !
+  breakatwhitespace=false,
+  keepspaces=true,
+  showstringspaces=false,
+  columns=flexible
+}
+
+
+\definecolor{dark-gray}{gray}{0.4}
+\definecolor{light-gray}{gray}{0.9}
+\definecolor{babyblueeyes}{rgb}{0.63, 0.79, 0.95}
+%\titleformat{\section}
+%{\color{blue}\normalfont\Large\bfseries}
+%{\color{blue}\thesection}{1em}{}
+%\titleformat{\subsection}
+%{\color{dark-gray}\normalfont\large\bfseries}
+%{\color{dark-gray}\thesubsection}{1em}{}
+% \newcommand{\comment}[1]{{\color{red} #1}}
+
+\newcommand{\mycomment}[1]{{\color{blue} #1}}
+% \begin{tcolorbox}[width=\textwidth,colback={babyblueeyes},title={},colbacktitle=yellow,coltitle=blue]    
+% text ...
+% \end{tcolorbox}
+
+\makeindex
+\begin{document}
+\title{Documentation for the General QMC code}
+\author{Authors:~Martin Bercx and Fakher F. Assaad}
+\maketitle
+\tableofcontents
+\clearpage
+\input{model}
+\input{implementation}
+\input{input_output.tex}
+\input{walkthrough_hubbard.tex}
+\input{tutorial_model.tex}
+
+%\clearpage
+%\input{overview}
+%\clearpage
+%\input{files}
+%\input{hamiltonian}
+
+%\input{installation}
+%\input{reference}
+%\input{license}
+%\input{ideas}
+
+
+
+\end{document}

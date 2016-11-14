@@ -65,9 +65,9 @@
               end SUBROUTINE CGR2
            end Interface
      
+           Integer, Intent(In) :: NSTM, NWRAP
            Complex (Kind=double), Intent(in) :: UST(NDIM,NDIM,NSTM,N_FL), VST(NDIM,NDIM,NSTM,N_FL), DST(NDIM,NSTM,N_FL) 
            Complex (Kind=double), Intent(in) :: GR(NDIM,NDIM,N_FL),  Phase
-           Integer, Intent(In) :: NSTM, NWRAP
            Integer, Intent(In) :: STAB_NT(0:NSTM)         
 
            
@@ -83,18 +83,29 @@
            Integer  ::  I, J, nf, NT, NT1, NTST, NST, NVAR
            
            !Tau = 0
+           G00=GR
+           GT0=GR
+           G0T=GR
+           GTT=GR
            Do nf = 1, N_FL
               DO J = 1,Ndim 
-                 DO I = 1,Ndim
-                    Z = cmplx(0.d0,0.d0)
-                    if (I == J ) Z = cone
-                    G00(I,J,nf) = GR(I,J,nf)
-                    GT0(I,J,nf) = GR(I,J,nf)
-                    GTT(I,J,nf) = GR(I,J,nf)
-                    G0T(I,J,nf) = -(Z - GR(I,J,nf))
-                 ENDDO
+                 G0T(J,J,nf) = G0T(J,J,nf) - cone
               ENDDO
            Enddo
+!            Do nf = 1, N_FL
+! ! $OMP parallel do default(shared) private(J,I,Z)
+!               DO J = 1,Ndim 
+!                  DO I = 1,Ndim
+!                     Z = cmplx(0.d0, 0.d0, kind(0.D0))
+!                     if (I == J ) Z = cone
+!                     G00(I,J,nf) = GR(I,J,nf)
+!                     GT0(I,J,nf) = GR(I,J,nf)
+!                     GTT(I,J,nf) = GR(I,J,nf)
+!                     G0T(I,J,nf) = -(Z - GR(I,J,nf))
+!                  ENDDO
+!               ENDDO
+! ! $OMP end parallel do
+!            Enddo
            NT = 0
            ! In Module Hamiltonian
            CALL OBSERT(NT,  GT0,G0T,G00,GTT, PHASE)
@@ -128,13 +139,16 @@
                     DL(:  ,nf) = DST(:  ,NST,nf)
                  Enddo
                  Do nf = 1,N_FL
-                    Do J = 1,Ndim
-                       DO I = 1,Ndim
-                          HLP4(I,J) = GTT(I,J,nf)
-                          HLP5(I,J) = GT0(I,J,nf)
-                          HLP6(I,J) = G0T(I,J,nf)
-                       Enddo
-                    Enddo
+                    HLP4=GTT(:,:,nf)
+                    HLP5=GT0(:,:,nf)
+                    HLP6=G0T(:,:,nf)
+!                     Do J = 1,Ndim
+!                        DO I = 1,Ndim
+!                           HLP4(I,J) = GTT(I,J,nf)
+!                           HLP5(I,J) = GT0(I,J,nf)
+!                           HLP6(I,J) = G0T(I,J,nf)
+!                        Enddo
+!                     Enddo
                     NVAR = 1
                     IF (NT1  >  LTROT/2) NVAR = 2
                     !DO I = 1,Ndim
@@ -174,13 +188,15 @@
            ! Aout= Ain = B(NT  , NT1)
            
            Implicit none
-           Complex (Kind=double), intent(INOUT) :: Ain(Ndim,Ndim,N_FL)
+           Complex (Kind=Kind(0.D0)), intent(INOUT) :: Ain(Ndim,Ndim,N_FL)
            Integer, INTENT(IN) :: NT
 
            !Locals
            Integer :: J,I,nf,n 
-           Complex (Kind=double) :: HLP4(Ndim,Ndim)
-           Real    (Kind=double) :: X
+           Complex (Kind=Kind(0.D0)), allocatable, Dimension(:, :) :: HLP4
+           Real    (Kind=Kind(0.D0)) :: X
+           
+           Allocate(HLP4(Ndim, Ndim))
 
            Do nf = 1,N_FL
               !CALL MMULT(HLP4,Exp_T(:,:,nf) ,Ain(:,:,nf))
@@ -189,12 +205,9 @@
                  X = Phi(nsigma(n,nt),Op_V(n,nf)%type)
                  Call Op_mmultR(HLP4,Op_V(n,nf),X,Ndim)
               ENDDO
-              Do J = 1,Ndim
-                 do I = 1,Ndim
-                    Ain(I,J,nf) = HLP4(I,J)
-                 enddo
-              ENDDO
+              Call ZLACPY('A', Ndim, Ndim, HLP4, Ndim, Ain(1,1, nf), Ndim)
            Enddo
+           Deallocate(HLP4)
            
          end SUBROUTINE PROPR
 !==============================================================
@@ -207,13 +220,15 @@
            Implicit none
            
            !Arguments 
-           Complex (Kind=double), intent(Inout) ::  AIN(Ndim, Ndim, N_FL) 
+           Complex (Kind=Kind(0.D0)), intent(Inout) ::  AIN(Ndim, Ndim, N_FL) 
            Integer :: NT
            
            ! Locals 
            Integer :: J,I,nf,n 
-           Complex (Kind=double) :: HLP4(Ndim,Ndim)
-           Real    (Kind=double) :: X
+           Complex (Kind=Kind(0.D0)), allocatable, Dimension(:, :) :: HLP4
+           Real    (Kind=Kind(0.D0)) :: X
+           
+           Allocate(HLP4(Ndim, Ndim))
            
            do nf = 1,N_FL
               !Call MMULT(HLP4,Ain(:,:,nf),Exp_T_M1(:,:,nf) )
@@ -222,12 +237,9 @@
                  X = -Phi(nsigma(n,nt),Op_V(n,nf)%type)
                  Call Op_mmultL(HLP4,Op_V(n,nf),X,Ndim)
               Enddo
-              Do J = 1,Ndim
-                 do I = 1,Ndim
-                    Ain(I,J,nf) = HLP4(I,J)
-                 enddo
-              Enddo
+              Call ZLACPY('A', Ndim, Ndim, HLP4, Ndim, Ain(1,1, nf), Ndim)
            enddo
+           Deallocate(HLP4)
            
          END SUBROUTINE PROPRM1
 !==============================================================
