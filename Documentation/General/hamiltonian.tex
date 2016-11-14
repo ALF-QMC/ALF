@@ -1,0 +1,58 @@
+\section{Module Hamiltonian}
+\textit{Detailed description of the module Hamiltonian since it will be modified by the users}
+
+The module contains the following subroutines:
+\subsection{ham\_set}
+It calls the subroutines
+\begin{itemize}
+\item ham\_latt
+\item ham\_hop
+\item ham\_v
+\end{itemize}
+It reads in the file
+\begin{itemize}
+\item parameters
+\end{itemize}
+It sets the variables {\tt ltrot,n\_fl,n\_sun}.
+If compiled as a MPI-program, it broadcasts all variables that define the lattice, the model and the simulation process.
+
+
+\subsection{ham\_latt}
+It sets the lattice, by calling the subroutine
+\begin{itemize}
+\item make\_lattice(l1\_p, l2\_p, a1\_p,  a2\_p, latt)
+\end{itemize}
+
+\subsection{ham\_hop}
+Setup of the hopping amplitudes between the vertices of the graph (lattice sites and unit cell orbitals). 
+It calls the subroutines
+\begin{itemize}
+\item op\_make(op\_t(nc,n),ndim
+\item op\_set(op\_t(nc,n))
+\end{itemize}
+
+\subsection{ham\_v}
+It calls the subroutines
+\begin{itemize}
+\item op\_make(op\_v(i,nf),1)
+\item op\_set( op\_v(nc,nf) )
+\end{itemize}
+\subsection{s0(n,nt)}
+It is defined as $s0(n,nt)=1.d0$. Why? It is superfluous.
+
+\subsection{alloc\_obs(ltau)}
+Allocation of equal time and time-resolved quantities.
+
+\subsection{init\_obs(ltau)}
+Initializes equal time and time-resolved quantities with zero.
+
+\subsection{obser(gr,phase,ntau)}
+Includes the definition of all equal-time observables (scalars and correlation functions) that are built from the single-particle Green function based on 
+Wick's theorem.
+
+\subsection{pr\_obs(ltau)}
+Output (print) of the observables.
+
+\subsection{obsert(nt,gt0,g0t,g00,gtt,phase)}
+Includes the definition of time-resolved observables that are built from the time-resolved single-particle Green function based on 
+Wick's theorem.

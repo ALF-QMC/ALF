@@ -363,7 +363,7 @@
           !Local 
           Complex (Kind=8) :: GRC(Ndim,Ndim,N_FL), ZK
           Complex (Kind=8) :: Zrho, Zkin, ZPot, Z, ZP,ZS
-          Integer :: I,J, imj, nf
+          Integer :: I,J, imj, nf, dec
           
           Nobs = Nobs + 1
           ZP = PHASE/Real(Phase, kind(0.D0))
@@ -373,10 +373,9 @@
           Do nf = 1,N_FL
              Do I = 1,Ndim
                 Do J = 1,Ndim
-                   ZK = cmplx(0.d0, 0.d0, kind(0.D0))
-                   If ( I == J ) ZK = cmplx(1.d0, 0.d0, kind(0.D0))
-                   GRC(I,J,nf)  = ZK - GR(J,I,nf)
+                   GRC(I, J, nf) = -GR(J, I, nf)
                 Enddo
+                GRC(I, I, nf) = 1.D0 + GRC(I, I, nf)
              Enddo
           Enddo
           ! GRC(i,j,nf) = < c^{dagger}_{j,nf } c_{j,nf } >
@@ -399,16 +398,14 @@
 
           ZPot = cmplx(0.d0, 0.d0, kind(0.D0))
           If ( Model == "Hubbard_SU2" ) then
-             Do I = 1,Ndim
-                ZPot = ZPot + Grc(i,i,1) * Grc(i,i,1)
-             Enddo
-             Zpot = Zpot*ham_U
-          elseif ( Model == "Hubbard_Mz" ) then
-             Do I = 1,Ndim
-                ZPot = ZPot + Grc(i,i,1) * Grc(i,i,2)
-             Enddo
-             Zpot = Zpot*ham_U
+            dec = 1
+          else
+            dec = 2
           endif
+          Do I = 1,Ndim
+             ZPot = ZPot + Grc(i,i,1) * Grc(i,i, dec)
+          Enddo
+          Zpot = Zpot*ham_U
 
           Obs_scal(1) = Obs_scal(1) + zrho * ZP*ZS
           Obs_scal(2) = Obs_scal(2) + zkin * ZP*ZS

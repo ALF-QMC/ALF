@@ -65,12 +65,14 @@
         Complex (Kind=double) :: U3B(2*LQ,2*LQ), V3B(2*LQ,2*LQ), HLPB1(2*LQ,2*LQ), HLPB2(2*LQ,2*LQ), &
              &                   V2INV(LQ,LQ), V1INV(LQ,LQ), HLP2(LQ,LQ)
         Complex  (Kind=double) :: D3B(2*LQ)
-        Complex  (Kind=double) :: Z
+        Complex  (Kind=double) :: Z, alpha, beta
+        Integer, dimension(:), allocatable :: IPVT
         
         Integer :: LQ2, I,J, M, ILQ, JLQ, NCON
         
         LQ2 = LQ*2
-        
+        alpha = 1.D0
+        beta = 0.D0
         HLPB1 = cmplx(0.D0,0.d0,double)
         DO I = 1,LQ
            HLPB1(I   , I + LQ ) =  D1(I)
@@ -95,39 +97,12 @@
         NCON = 0
         CALL UDV_wrap(HLPB1,U3B,D3B,V3B,NCON)
         
-        
-        !       Multiplication:
-        !	U3B^T * ( V1INV  0   )   = U3B
-        !	        ( 0      U2^T )
-        
-        HLPB1 = CT(U3B)
-        HLPB2 = cmplx(0.D0,0.d0,double)
-        DO I = 1,LQ
-           DO J = 1,LQ
-              HLPB2(I,J) = V1INV(I,J)
-           ENDDO
-        ENDDO
-        DO I = 1,LQ
-           ILQ = I + LQ
-           DO J = 1,LQ
-              JLQ = J + LQ
-              HLPB2(ILQ,JLQ) = conjg(U2(J,I))
-           ENDDO
-        ENDDO
-        CALL MMULT(U3B,HLPB1,HLPB2)
-        
-        
         !       Multiplication:
         !	( V2INV   0    )*(V3B)^{-1}   = V3B
         !	( 0       U1^T )
         
-        CALL INV(V3B,HLPB1,Z)
         HLPB2 = cmplx(0.d0,0.d0,double)
-        DO I = 1,LQ
-           DO J = 1,LQ
-              HLPB2(I,J) = V2INV(I,J)
-           ENDDO
-        ENDDO
+        call ZLACPY('A', LQ, LQ, V2INV, LQ, HLPB2, LQ2)
         DO I = 1,LQ
            ILQ = I + LQ
            DO J = 1, LQ
@@ -135,16 +110,31 @@
               HLPB2(ILQ,JLQ) = conjg(U1(J,I))
            ENDDO
         ENDDO
-        CALL MMULT(V3B,HLPB2,HLPB1)
+        allocate(IPVT(LQ2))
+        call ZGESV(LQ2, LQ2, V3B, LQ2, IPVT, HLPB2, LQ2, I)
+        call ZLACPY('A', LQ2, LQ2, HLPB2, LQ2, V3B, LQ2)
+        deallocate(IPVT)
+        !       Multiplication:
+        !	U3B^T * ( V1INV  0   )   = U3B
+        !	        ( 0      U2^T )
         
-        
+        HLPB2 = cmplx(0.D0,0.d0,double)
+        call ZLACPY('A', LQ, LQ, V1INV, LQ, HLPB2, LQ2)
+        DO I = 1,LQ
+           ILQ = I + LQ
+           DO J = 1,LQ
+              JLQ = J + LQ
+              HLPB2(ILQ,JLQ) = conjg(U2(J,I))
+           ENDDO
+        ENDDO
+        CALL ZGEMM('C', 'N', LQ2, LQ2, LQ2, alpha, U3B, LQ2, HLPB2, LQ2, beta, HLPB1, LQ2)
         ! G = V3B * D3B^{-1}* U3B
         DO M = 1,LQ2
            Z = cone/D3B(M)
            DO J = 1,LQ2
-              U3B(M,J) =   Z * U3B(M,J) 
+              HLPB1(M,J) =   Z * HLPB1(M,J) 
            ENDDO
         ENDDO
-        call get_blocks_of_prod(GR00, GR0T, GRT0, GRTT, V3B, U3B, LQ)
+        call get_blocks_of_prod(GR00, GR0T, GRT0, GRTT, V3B, HLPB1, LQ)
  
     END SUBROUTINE CGR2

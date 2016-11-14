@@ -74,30 +74,23 @@
         Real     (Kind=double) :: Xmax, Xmin, Xmax1, Xmax2, Xmean
         Integer                :: I, J, NCON, NVAR1
 
-        Complex  (Kind=double) :: V2inv(LQ,LQ), V1inv(LQ,LQ)
+        Complex  (Kind=double) :: V2inv(LQ,LQ), V1inv(LQ,LQ), alpha, beta
         
 
         NCON = 0
 
         Call INV( V2, V2inv, Z2)
         CALL INV( V1, V1inv, Z1)
+        alpha = 1.D0
+        beta = 0.D0
 
-        
-        HLP1 = CT(U1)
-        CALL MMULT(HLP2,HLP1,U1)
-        HLP1 = cmplx(0.d0,0.d0,kind=8)
-        DO I = 1,LQ
-           HLP1(I,I) =  cmplx(1.d0,0.d0,kind=8)
-        ENDDO
+        CALL ZGEMM('C', 'N', LQ, LQ, LQ, alpha, U1, LQ, U1, LQ, beta, HLP2, LQ)
+        CALL ZLASET('A', LQ, LQ, alpha, beta, HLP1, LQ)
         Xmax = 0.d0
         CALL COMPARE(HLP1, HLP2, XMAX, XMEAN)
 
-        HLP1 = CT(U2)
-        CALL MMULT(HLP2,HLP1,U2)
-        HLP1 = cmplx(0.d0,0.d0,kind=8)
-        DO I = 1,LQ
-           HLP1(I,I) =  cmplx(1.d0,0.d0,kind=8)
-        ENDDO
+        CALL ZGEMM('C', 'N', LQ, LQ, LQ, alpha, U2, LQ, U2, LQ, beta, HLP2, LQ)
+        CALL ZLASET('A', LQ, LQ, alpha, beta, HLP1, LQ)
         Xmax1 = 0.d0
         CALL COMPARE(HLP1, HLP2, XMAX1, XMEAN)
         Write(77,*) "Cgr2_1  V1inv V2inv : ", Xmax, Xmax1 
@@ -136,23 +129,18 @@
            !  V2^-1 (UDV  )^-1 V1^-1 =  V2^-1 V^-1 D^-1 U^-1 V1^-1
            Call UDV_WRAP(HLP2, U, D, V, Ncon) 
            CALL INV  (V,HLP2 ,Z   )
-           CALL MMULT(V,V2inv,HLP2)
-           CALL SCALEMATRIX(V, D, .FALSE., LQ)
-           HLP1 = CT(U)
-           CALL MMULT( HLP2, HLP1,V1inv)
-           CALL MMULT (GR00, V, HLP2)
+           CALL MMULT(HLP1,V2inv,HLP2)
+           CALL ZGEMM('C', 'N', LQ, LQ, LQ, alpha, U, LQ, V1Inv, LQ, beta, HLP2, LQ)
         else
            !  V2^-1 (UDV  )^(-1,*) V1^-1 =  V2^-1 U  D^-1 V^(-1,*) V1^-1
            HLP1 = CT(HLP2)
            Call UDV_WRAP(HLP1, U, D, V, Ncon) 
+           CALL INV (V, HLP1, Z)
+           CALL ZGEMM('C', 'N', LQ, LQ, LQ, alpha, HLP1, LQ, V1Inv, LQ, beta, HLP2, LQ)
            Call MMULT(HLP1, V2inv, U)
-           Call SCALEMATRIX(HLP1, D, .FALSE., LQ)
-           CALL INV (V, HLP2, Z)
-           V = CT(HLP2)
-           CALL MMULT(HLP2,V,V1inv)
-           CALL MMULT(GR00,HLP1,HLP2)
         endif
-        
+        Call SCALEMATRIX(HLP1, D, .FALSE., LQ)
+        CALL MMULT(GR00,HLP1,HLP2)
         ! Compute G0T
         ! G00 = (1 + B1*B2)^-1   G0T = -(1 -  (1 + B1*B2)^-1 )*B2^-1              =
         !                            = -( 1 +  B1*B2 - 1)  (1 + B1*B2)^-1 * B2^-1 =
@@ -177,8 +165,7 @@
         DO J = 1,LQ
            HLP1(:, J) =  HLP1(:,J)/conjg(D1(:))
         ENDDO
-        Call MMULT(V,V2,V1)
-        HLP2 = CT(V)
+        CALL ZGEMM('C', 'C', LQ, LQ, LQ, alpha, V1, LQ, V2, LQ, beta, HLP2, LQ)
         DO J = 1,LQ
             HLP2(:, J) = HLP1(:,J) + HLP2(:,J) * conjg(D2(J))
         ENDDO
@@ -187,32 +174,20 @@
            !  UDV of HLP2
            !  -G0T*= U2 V^-1 D^-1 U* V1*
            CALL UDV_WRAP(HLP2,U,D,V,NCON)
-           CALL MMULT (HLP1, V1, U)
-           U = CT(HLP1)
            CALL INV(V,HLP2,Z)
+           CALL MMULT (V, V1, U) ! V = V1 * U, reuse of the variable V as temporary storage
            Call MMULT(HLP1,U2,HLP2)
-           CALL SCALEMATRIX(HLP1, D, .FALSE., LQ)
-           Call MMULT (HLP2,HLP1,U) 
-           DO I = 1,LQ
-                GR0T(I, :) = - conjg(HLP2(:, I))
-           ENDDO
         ELSE
            !  UDV of HLP2*
            !  -G0T*= U2 (U D V)*^-1 V1* =  U2 U D*^-1 V*^-1 V1*
            HLP1 = CT(HLP2)
            CALL UDV_WRAP(HLP1,U,D,V,NCON)
-           CALL MMULT (HLP1, U2, U)
-           CALL SCALEMATRIX(HLP1, D, .FALSE., LQ)
            CALL INV(V,HLP2,Z)
            Call MMULT(V,V1,HLP2)
-           HLP2 = CT(V)
-           Call MMULT (V,HLP1,HLP2)
-           DO I = 1,LQ
-                GR0T(I, :) = -conjg(V(:, I))
-           ENDDO
+           CALL MMULT (HLP1, U2, U)
         ENDIF
-
-
+        CALL SCALEMATRIX(HLP1, (-D), .FALSE., LQ)
+        CALL ZGEMM('N', 'C', LQ, LQ, LQ, alpha, V, LQ, HLP1, LQ, beta, GR0T, LQ)
 
 
         ! Compute GT0
@@ -225,8 +200,7 @@
         NVAR1 = 1
         If (Xmax2 > Xmax1 ) NVAR1 = 2
         !Write(6,*) "CGR2_1: NVAR,NVAR1 ", NVAR, NVAR1
-        Call  MMULT(HLP2,U1,U2)
-        HLP1 = CT(HLP2)
+        CALL ZGEMM('C', 'C', LQ, LQ, LQ, alpha, U2, LQ, U1, LQ, beta, HLP1, LQ)
 !TODO: Consider benchmarking wether it is beneficial to interchange loops. Here it is saving divisions vs. proper mem access
         DO J = 1,LQ
            HLP1(:, J) =  HLP1(:,J)/D2(:)
@@ -241,23 +215,18 @@
            CALL UDV_WRAP(HLP2,U,D,V,NCON)
            CALL MMULT (HLP1, V, U1) 
            CALL INV(HLP1,HLP2,Z)
-           CALL SCALEMATRIX(HLP2, D, .FALSE., LQ)
-           HLP1 = CT(U)
-           CALL MMULT(U,HLP1,V2)
-           Call MMULT (GRT0, HLP2,U)
+           CALL ZGEMM('C', 'N', LQ, LQ, LQ, alpha, U, LQ, V2, LQ, beta, V, LQ)
         ELSE
            !UDV of HLP2^*
            HLP1 = CT(HLP2)
-           CALL UDV_WRAP(HLP1,U,D,V,NCON) 
-           HLP1 = CT(U1)
-           CALL MMULT( HLP2, HLP1,U)
-           CALL SCALEMATRIX(HLP2, D, .TRUE., LQ)
-           HLP1 = CT(V)
-           CALL INV(HLP1,V,Z)
-           CALL MMULT(U,V,V2)
-           Call MMULT (GRT0, HLP2,U)
+           CALL UDV_WRAP(HLP1,U,D,V,NCON)
+           CALL ZGEMM('C', 'N', LQ, LQ, LQ, alpha, U1, LQ, U, LQ, beta, HLP2, LQ)
+           CALL INV(V,HLP1,Z)
+           CALL ZGEMM('C', 'N', LQ, LQ, LQ, alpha, HLP1, LQ, V2, LQ, beta, V, LQ)
         ENDIF
+        CALL SCALEMATRIX(HLP2, D, NVAR .ne. 1, LQ)
         Xmin = minval(abs(dble(D)))
+        Call MMULT (GRT0, HLP2, V)
         Write(6,*) 'Cgr2_1 T0, Xmin: ', Xmin
 
         !Compute GRTT
