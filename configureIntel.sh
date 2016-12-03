@@ -2,7 +2,7 @@ export DIR=`pwd`
 export f90=ifort
 #export f90="gfortran"
 
-export FL="-c -O3 -fp-model fast=2 -xHost -unroll -finline-functions -ipo -ip -heap-arrays 1024 -no-wrap-margin -DnMPI"
+export FL="-c -O3 -fp-model fast=2 -axCORE-AVX2 -unroll -finline-functions -ipo -ip -heap-arrays 1024 -no-wrap-margin -DnMPI"
 # -parallel -qopenmp"
 
 #uncomment the next line if you want to debug/profile your code

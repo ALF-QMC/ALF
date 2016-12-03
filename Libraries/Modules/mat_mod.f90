@@ -178,7 +178,7 @@
          ALP = CMPLX(1.D0,0.D0,Kind=Kind(0d0))
          BET = CMPLX(0.D0,0.D0,Kind=Kind(0d0))
 
-         CALL ZGEMM('n','n',N,P,M,ALP,A,LDA,B,LDB,BET,C,LDC)
+         CALL ZGEMM('n','n',N,P,M,ALP,A(1,1),LDA,B(1,1),LDB,BET,C(1,1),LDC)
 
 
          ! WRITE(6,*) 'In complex', N,M,P
@@ -526,7 +526,7 @@
          ALLOCATE ( WORK(LDA) )
          
          AINV = A
-         CALL ZGETRF(LDA, LDA, AINV, LDA, IPVT, INFO)
+         CALL ZGETRF(LDA, LDA, AINV(1,1), LDA, IPVT, INFO)
          DET = (1.D0, 0.D0)
          SGN = 1.D0
          DO i = 1, LDA
@@ -536,7 +536,7 @@
          ENDIF
          enddo
          DET = SGN * DET
-         CALL ZGETRI(LDA, AINV, LDA, IPVT, WORK, LDA, INFO)
+         CALL ZGETRI(LDA, AINV(1,1), LDA, IPVT, WORK, LDA, INFO)
 
          DEALLOCATE (IPVT)
          DEALLOCATE (WORK)
@@ -1098,12 +1098,12 @@
         LDVT = N
         ALLOCATE( RWORK(5*MIN(M,N)), WORK(10))
 ! Query optimal amount of memory
-        CALL ZGESVD( JOBU, JOBVT, M, N, A1, LDA, S, U, LDU, V, LDVT,&
+        CALL ZGESVD( JOBU, JOBVT, M, N, A1(1,1), LDA, S, U(1,1), LDU, V(1,1), LDVT,&
              &        WORK, -1, RWORK, INFO )
         LWORK = INT(DBLE(WORK(1)))
         DEALLOCATE(WORK)
 	ALLOCATE(WORK(LWORK))
-        CALL ZGESVD( JOBU, JOBVT, M, N, A1, LDA, S, U, LDU, V, LDVT,&
+        CALL ZGESVD( JOBU, JOBVT, M, N, A1(1,1), LDA, S, U(1,1), LDU, V(1,1), LDVT,&
              &        WORK, LWORK, RWORK, INFO )
 !$OMP parallel do default(shared) private(I)
         DO I = 1,N
@@ -1200,7 +1200,7 @@
 	
 	!Write(6,*) 'In Diag'
 
-        Call ZHEEV (JOBZ, UPLO, N, U, N, W, WORK, LWORK, RWORK, INFO)
+        Call ZHEEV (JOBZ, UPLO, N, U(1,1), N, W(1), WORK, LWORK, RWORK(1), INFO)
 
         Deallocate (WORK, RWORK)
         
