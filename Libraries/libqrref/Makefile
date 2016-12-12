@@ -7,4 +7,4 @@ all: $(OBJS)
 	$(FC) $(SUFFIX) $(FLAGS) $< 
 
 clean: 
-	rm $(OBJS)
+	rm -f $(OBJS)
