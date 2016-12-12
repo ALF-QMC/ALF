@@ -5,9 +5,11 @@ OBJS=mat_mod.o Random_Wrap.o errors.o Files_mod.o maxent.o  matrix.o  maxent_sto
 $(LIB): $(OBJS)
 	ar  -r $(LIB) $(OBJS)
 
-.SUFFIXES: .f90
-.f90.o:
-	$(FC) $(SUFFIX) $(FLAGS) $< 
+%.o: %.f90
+	$(FC) $(FLAGS) -c $<
+
+%.o: %.F90
+	$(FC) $(FLAGS) -c $<
 
 errors.o: mat_mod.o
 

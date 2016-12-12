@@ -690,23 +690,39 @@
          XMEAN = XMEAN/DBLE(N*M)
        END SUBROUTINE COMPARE_R
 
-!*****************
+!--------------------------------------------------------------------
+!> @author
+!> Fakher Assaad and Florian Goth
+!
+!> @brief 
+!> This function calculates the UDV decomposition using the standard 
+!> QR algorithm of LaPack.
+!
+!> @note Using the Divide & Conquer algorithm would not yield 
+!> enough accuracy for using within an auxiliary field type algorithm.
+!
+!> @param[in] A a 2D array constituting the input matrix.
+!> @param[out] U a 2D array containing the left singular vectors.
+!> @param[out] D a 1D array containing the sorted singular values.
+!> @param[out] V an triangular shaped matrix
+!> @param[in] NCON
+!--------------------------------------------------------------------
        SUBROUTINE UDV1_R(A,U,D,V,NCON)
          IMPLICIT NONE
-         REAL (KIND=8), INTENT(IN), DIMENSION(:,:) :: A
-         REAL (KIND=8), INTENT(INOUT), DIMENSION(:,:) :: U,V
-         REAL (KIND=8), INTENT(INOUT), DIMENSION(:) :: D
+         REAL (KIND=KIND(0.D0)), INTENT(IN), DIMENSION(:,:) :: A
+         REAL (KIND=KIND(0.D0)), INTENT(INOUT), DIMENSION(:,:) :: U,V
+         REAL (KIND=KIND(0.D0)), INTENT(INOUT), DIMENSION(:) :: D
          INTEGER, INTENT(IN) :: NCON
-         INTEGER I,J,K, ND1, ND2, NR, IMAX, IFAIL
 
 !        The Det of V is not equal to unity. 
 ! Locals:
          INTEGER, DIMENSION(:), ALLOCATABLE :: IVPT, IVPTM1
-         REAL (KIND=8), DIMENSION(:), ALLOCATABLE :: XNORM, VHELP,&
-              & THETA, WORK
-         REAL (KIND=8), DIMENSION(:,:), ALLOCATABLE :: TMP, V1,&
+         REAL (KIND=KIND(0.D0)), DIMENSION(:), ALLOCATABLE :: XNORM, VHELP,&
+              & TAU, WORK
+         REAL (KIND=KIND(0.D0)), DIMENSION(:,:), ALLOCATABLE :: TMP, V1,&
               & TEST, TEST1, TEST2
-         REAL (KIND=8) :: XMAX, XMEAN, Z
+         REAL (KIND=KIND(0.D0)) :: XMAX, XMEAN, Z
+         INTEGER I,J,K, ND1, ND2, NR, IMAX, INFO, LWORK
 
          ND1 = SIZE(A,1)
          ND2 = SIZE(A,2)
@@ -734,7 +750,7 @@
          ALLOCATE(IVPT (ND2))
          ALLOCATE(IVPTM1(ND2))
          ALLOCATE(WORK (ND2))
-         ALLOCATE(THETA (ND2))
+         ALLOCATE(TAU (ND2))
 
          ALLOCATE(TMP(ND1,ND2))
          ALLOCATE(V1 (ND2,ND2))
@@ -770,11 +786,16 @@
          ENDDO
 
 
-         !You now want to UDV TMP. Nag routines.
-         IFAIL = 0
+         !You now want to UDV TMP.
+         INFO = 0
 
-
-         CALL F01QCF(ND1,ND2,TMP,ND1,THETA,IFAIL)
+        ! Query optimal work space
+        CALL DGEQRF(ND1, ND2, TMP, ND1, TAU, WORK, -1, INFO)
+        LWORK = INT(WORK(1))
+        DEALLOCATE(WORK)
+        ALLOCATE(WORK(LWORK))
+        CALL DGEQRF(ND1, ND2, TMP, ND1, TAU, WORK, LWORK, INFO)
+!         CALL F01QCF(ND1,ND2,TMP,ND1,THETA,INFO)
          
 
          !Scale V1 to a unit triangluar matrix.
@@ -788,20 +809,19 @@
             ENDDO
          ENDDO
          
-         
 ! Compute U
-         IFAIL = 0
-
-         CALL F01QEF('Separate', ND1,ND2, ND2, TMP,&
-              & ND1, THETA, WORK, IFAIL)
-
-
-         DO I = 1,ND1
-            DO J = 1,ND2
-               U(I,J) = TMP(I,J)
-            ENDDO
-         ENDDO
-
+         INFO = 0
+        CALL DORGQR(ND1, ND2, ND2, TMP, ND1, TAU, WORK, LWORK, INFO)
+!         CALL F01QEF('Separate', ND1,ND2, ND2, TMP,&
+!              & ND1, THETA, WORK, INFO)
+        CALL DLACPY('A', ND1, ND2, TMP, ND1, U, Size(U,1))
+! 
+!          DO I = 1,ND1
+!             DO J = 1,ND2
+!                U(I,J) = TMP(I,J)
+!             ENDDO
+!          ENDDO
+         DEALLOCATE(TMP, WORK, TAU)
 
 ! Finish the pivotting.
          DO I = 1,ND2
@@ -861,51 +881,73 @@
          DEALLOCATE(VHELP )
          DEALLOCATE(IVPT )
          DEALLOCATE(IVPTM1)
-         DEALLOCATE(WORK )
-         DEALLOCATE(THETA )
-
-         DEALLOCATE(TMP)
          DEALLOCATE(V1 )
 
       END SUBROUTINE UDV1_R
 
-!***************
+!--------------------------------------------------------------------
+!> @author
+!> Fakher Assaad and Florian Goth
+!
+!> @brief 
+!> This function calculates the UDV decomposition using the standard 
+!> QR algorithm of LaPack.
+!
+!> @note Using the Divide & Conquer algorithm would not yield 
+!> enough accuracy for using within an auxiliary field type algorithm.
+!
+!> @param[in] A a 2D array constituting the input matrix.
+!> @param[out] U a 2D array containing the left singular vectors.
+!> @param[out] D a 1D array containing the sorted singular values.
+!> @param[out] V an triangular shaped matrix
+!> @param[in] NCON
+!--------------------------------------------------------------------
       SUBROUTINE UDV_C(A,U,D,V,NCON)
-        !Uses Nag library.
-        !#include "machine"
-
         IMPLICIT NONE
-        COMPLEX (KIND=8), INTENT(IN), DIMENSION(:,:) :: A
-        COMPLEX (KIND=8), INTENT(INOUT), DIMENSION(:,:) :: U,V
-        COMPLEX (KIND=8), INTENT(INOUT), DIMENSION(:) :: D
+        COMPLEX (KIND=KIND(0.D0)), INTENT(IN), DIMENSION(:,:) :: A
+        COMPLEX (KIND=KIND(0.D0)), INTENT(INOUT), DIMENSION(:,:) :: U,V
+        COMPLEX (KIND=KIND(0.D0)), INTENT(INOUT), DIMENSION(:) :: D
         INTEGER, INTENT(IN) :: NCON
-        INTEGER :: NE, LQ, IFAIL, I, J, NR
 
         !Local
-        COMPLEX (KIND=8), DIMENSION(:,:), ALLOCATABLE :: TMP, TEST
-        COMPLEX (KIND=8), DIMENSION(:), ALLOCATABLE :: THETA, WORK
-        COMPLEX (KIND=8) :: Z
-        REAL (KIND=8) :: DETV, XMDIFF, X
+        COMPLEX (KIND=KIND(0.D0)), DIMENSION(:,:), ALLOCATABLE :: TMP, TEST
+        COMPLEX (KIND=KIND(0.D0)), DIMENSION(:), ALLOCATABLE :: TAU, WORK
+        COMPLEX (KIND=KIND(0.D0)) :: Z
+        REAL (KIND=KIND(0.D0)) :: DETV, XMDIFF, X
+        INTEGER :: NE, LQ, INFO, I, J, NR, LWORK
 
         LQ = SIZE(A,1)
         NE = SIZE(A,2)
 
         U = 0.D0 ; V = 0.D0; D = 0.D0
-        ALLOCATE (TMP(LQ,NE), THETA(NE), WORK(NE))
+        ALLOCATE (TMP(LQ,NE), TAU(NE), WORK(NE))
 
         TMP = A
 
-        !You now want to UDV TMP. Nag routines.
-        IFAIL = 0
+        !You now want to UDV TMP.
+        INFO = 0
 
-        CALL F01RCF(LQ,NE,TMP,LQ,THETA,IFAIL)
+        ! Query optimal work space. Old style NAG routines use the previously allocated work array
+#if !defined(OLDNAG)
+#if defined(QRREF)
+        CALL ZGEQRF_REF(LQ, NE, TMP, LQ, TAU, WORK, -1, INFO)
+#else
+        CALL ZGEQRF(LQ, NE, TMP, LQ, TAU, WORK, -1, INFO)
+#endif
+        LWORK = INT(DBLE(WORK(1)))
+        DEALLOCATE(WORK)
+        ALLOCATE(WORK(LWORK))
+#endif
 
+#if defined(QRREF)
+        CALL ZGEQRF_REF(LQ, NE, TMP, LQ, TAU, WORK, LWORK, INFO)
+#elif !defined(OLDNAG)
+        CALL ZGEQRF(LQ, NE, TMP, LQ, TAU, WORK, LWORK, INFO)
+#else
+        CALL F01RCF(LQ,NE,TMP,LQ,TAU,INFO)  
+#endif
+        CALL ZLACPY('U', NE, NE, TMP, LQ, V, Size(V,1))
 
-        DO I = 1,NE
-           DO J = I,NE
-              V(I,J) = TMP(I,J)
-           ENDDO
-        ENDDO
         DETV = 1.D0
         !V is an NE by NE upper triangular matrix with real diagonal elements.
         DO I = 1,NE
@@ -913,20 +955,17 @@
         ENDDO
 
         !Compute U
-
+! We assume that ZUNGQR and ZGEQRF can work on the same work array.
+#if defined(QRREF)
+        CALL ZUNGQR_REF(LQ, NE, NE, TMP, LQ, TAU, WORK, LWORK, INFO)
+#elif !defined(OLDNAG)
+        CALL ZUNGQR(LQ, NE, NE, TMP, LQ, TAU, WORK, LWORK, INFO)
+#else
         CALL F01REF('Separate', LQ,NE, NE, TMP, &
-             & LQ, THETA, WORK, IFAIL)
-
-
-
-
-
-        DO J = 1,NE
-           DO I = 1,LQ
-              U(I,J) = TMP(I,J)
-           ENDDO
-        ENDDO
-
+            & LQ, TAU, WORK, INFO)
+#endif
+        CALL ZLACPY('A', LQ, NE, TMP, LQ, U, Size(U,1))
+        DEALLOCATE(TAU, TMP, WORK)
         IF (DBLE(DETV).LT.0.D0) THEN
            DO I = 1,LQ
               U(I,1) = -U(I,1)
@@ -968,28 +1007,23 @@
            WRITE(6,*) 'Accuracy, ortho: ',XMDIFF
            DEALLOCATE( TEST )
         ENDIF
-
-        DEALLOCATE (TMP, THETA, WORK)
-
         RETURN
       END SUBROUTINE UDV_C
 
 !***************
       SUBROUTINE QR_C(A,U,V,NCON)
-        !Uses Nag library.
-        !#include "machine"
 
         IMPLICIT NONE
-        COMPLEX (KIND=8), INTENT(IN), DIMENSION(:,:) :: A
-        COMPLEX (KIND=8), INTENT(INOUT), DIMENSION(:,:) :: U,V
+        COMPLEX (KIND=KIND(0.D0)), INTENT(IN), DIMENSION(:,:) :: A
+        COMPLEX (KIND=KIND(0.D0)), INTENT(INOUT), DIMENSION(:,:) :: U,V
         INTEGER, INTENT(IN) :: NCON
-        INTEGER :: NE, LQ, IFAIL, I, J, NR, LDV, LDU, DU2, DV2
 
         !Local
-        COMPLEX (KIND=8), DIMENSION(:,:), ALLOCATABLE :: TMP, TEST
-        COMPLEX (KIND=8), DIMENSION(:), ALLOCATABLE :: THETA, WORK
-        COMPLEX (KIND=8) :: Z
-        REAL (KIND=8) :: DETV, XMDIFF, X
+        COMPLEX (KIND=KIND(0.D0)), DIMENSION(:,:), ALLOCATABLE :: TMP, TEST
+        COMPLEX (KIND=KIND(0.D0)), DIMENSION(:), ALLOCATABLE :: TAU, WORK
+        COMPLEX (KIND=KIND(0.D0)) :: Z
+        REAL (KIND=KIND(0.D0)) :: DETV, XMDIFF, X
+        INTEGER :: NE, LQ, INFO, I, J, NR, LDV, LDU, DU2, DV2, LWORK
 
         LQ = SIZE(A,1)
         NE = SIZE(A,2)
@@ -1000,28 +1034,48 @@
         Z = 0.D0
         call ZLASET('A', LDU, DU2, Z, Z, U, LDU)
         call ZLASET('A', LDV, DV2, Z, Z, V, LDV)
-        ALLOCATE (TMP(LQ,NE), THETA(NE), WORK(NE))
+        ALLOCATE (TMP(LQ,NE), TAU(NE), WORK(NE))
         call ZLACPY('A', LQ, NE, A, LQ, TMP, LQ)
 
         !You now want to UDV TMP. Nag routines.
-        IFAIL = 0
+        INFO = 0
 
-        CALL F01RCF(LQ,NE,TMP,LQ,THETA,IFAIL)
-
+        ! Query optimal work space. Old style NAG routines use the previously allocated work array
+#if !defined(OLDNAG)
+#if defined(QRREF)
+        CALL ZGEQRF_REF(LQ, NE, TMP, LQ, TAU, WORK, -1, INFO)
+#else
+        CALL ZGEQRF(LQ, NE, TMP, LQ, TAU, WORK, -1, INFO)
+#endif
+        LWORK = INT(DBLE(WORK(1)))
+        DEALLOCATE(WORK)
+        ALLOCATE(WORK(LWORK))
+#endif
+#if defined(QRREF)
+        CALL ZGEQRF_REF(LQ, NE, TMP, LQ, TAU, WORK, LWORK, INFO)
+#elif !defined(OLDNAG)
+        CALL ZGEQRF(LQ, NE, TMP, LQ, TAU, WORK, LWORK, INFO)
+#else
+        CALL F01RCF(LQ,NE,TMP,LQ,TAU,INFO)  
+#endif
         call ZLACPY('U', NE, NE, TMP, LQ, V, LDV)
         DETV = 1.D0
         !V is an NE by NE upper triangular matrix with real diagonal elements.
         DO I = 1,NE
            DETV = DETV * DBLE( TMP(I,I) )
         ENDDO
-
         !Compute U
-
+! We assume that ZUNGQR and ZGEQRF can work on the same work array.
+#if defined(QRREF)
+        CALL ZUNGQR_REF(LQ, NE, NE, TMP, LQ, TAU, WORK, LWORK, INFO)
+#elif !defined(OLDNAG)
+        CALL ZUNGQR(LQ, NE, NE, TMP, LQ, TAU, WORK, LWORK, INFO)
+#else
         CALL F01REF('Separate', LQ,NE, NE, TMP, &
-             & LQ, THETA, WORK, IFAIL)
-
+            & LQ, TAU, WORK, INFO)
+#endif
         call ZLACPY('A', LQ, NE, TMP, LQ, U, LDU)
-
+        DEALLOCATE(WORK, TAU, TMP)
         IF (DBLE(DETV).LT.0.D0) THEN
            DO I = 1,LQ
               U(I,1) = -U(I,1)
@@ -1045,15 +1099,12 @@
            WRITE(6,*) 'Accuracy, QR: ',XMDIFF
            DEALLOCATE( TEST )
         ENDIF
-
-        DEALLOCATE (TMP, THETA, WORK)
-
         RETURN
       END SUBROUTINE QR_C
 
 !--------------------------------------------------------------------
 !> @author
-!> Fakher Assaad and  Florian Goth
+!> Fakher Assaad and Florian Goth
 !
 !> @brief 
 !> This function calculates the SVD using the standard QR algorithm
