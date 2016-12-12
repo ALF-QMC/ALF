@@ -10,7 +10,6 @@
          Subroutine  Print_bin_C(Dat_eq,Dat_eq0,Latt, Nobs, Phase_bin_tmp, file_pr)
            Use Lattices_v3
            Implicit none
-#include "machine"
 #ifdef MPI
            include 'mpif.h'
 #endif   
@@ -95,7 +94,6 @@
          Subroutine  Print_bin_R(Dat_eq,Dat_eq0,Latt, Nobs, Phase_bin_tmp, file_pr)
            Use Lattices_v3
            Implicit none
-#include "machine"
 #ifdef MPI
            include 'mpif.h'
 #endif   
@@ -175,7 +173,6 @@
          Subroutine  Print_scal(Obs, Nobs, file_pr)
            
            Implicit none
-#include "machine"
 #ifdef MPI
            include 'mpif.h'
 #endif   
@@ -217,7 +214,6 @@
          Subroutine  Print_bin_tau(Dat_tau, Latt, Nobs, Phase_bin, file_pr, dtau, Dat0_tau)
            Use Lattices_v3
            Implicit none
-#include "machine"
 #ifdef MPI
            include 'mpif.h'
 #endif   

@@ -233,7 +233,6 @@
 !***************************************************************
      Subroutine UDV_Wrap(A,U,D,V,NCON)
 
-#include "machine"            
 
        Implicit None
 #ifdef MPI            

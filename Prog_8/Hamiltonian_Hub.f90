@@ -53,7 +53,6 @@
       Subroutine Ham_Set
 
           Implicit none
-#include "machine"
 #ifdef MPI
           include 'mpif.h'
 #endif   
@@ -455,7 +454,6 @@
         Subroutine  Pr_obs(LTAU)
 
           Implicit none
-#include "machine"
 #ifdef MPI
           include 'mpif.h'
 #endif   

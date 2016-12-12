@@ -4,8 +4,6 @@
 
          Implicit none
 
-#include "machine"
-         
 
 #ifdef MPI
          INCLUDE 'mpif.h'

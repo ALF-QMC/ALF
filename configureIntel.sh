@@ -10,5 +10,5 @@ export FL="${FL} -g -traceback"
 
 export Libs=${DIR}"/Libraries/"
 #export LIB_BLAS_LAPACK="-lblas -llapack"
-export LIB_BLAS_LAPACK="-mkl=sequential"
+export LIB_BLAS_LAPACK="-mkl"
 #export LIB_BLAS_LAPACK="-mkl=parallel"

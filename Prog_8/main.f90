@@ -10,7 +10,6 @@ Program Main
   
  
   Implicit none
-#include "machine"
 #ifdef MPI
   include 'mpif.h'
 #endif   

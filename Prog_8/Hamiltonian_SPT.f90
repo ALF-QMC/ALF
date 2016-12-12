@@ -68,7 +68,6 @@
         Subroutine Ham_Set
 
           Implicit none
-#include "machine"
 #ifdef MPI
           include 'mpif.h'
 #endif   
@@ -1467,7 +1466,6 @@
 
           Use Print_bin_mod
           Implicit none
-#include "machine"
 #ifdef MPI
           include 'mpif.h'
 #endif   
