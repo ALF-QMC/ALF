@@ -42,7 +42,7 @@
                  TMP(I,J)  = VR(I,J,nf)
               ENDDO
            ENDDO
-           CALL UDV_WRAP(TMP1,UR(:,:,nf),DR(:,nf),V1,NCON)
+           CALL UDV_WRAP_Pivot(TMP1,UR(:,:,nf),DR(:,nf),V1,NCON,Ndim,Ndim)
            CALL MMULT(VR(:,:,nf),V1,TMP)
         ENDDO
       END SUBROUTINE WRAPUR

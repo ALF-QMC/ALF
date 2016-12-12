@@ -25,10 +25,11 @@
        COMPLEX (KIND=8)  :: A1(N1,N2), A2(N1,N2), V1(N2,N2), U1(N2,N2), Z
        
        DO I = 1,N2
-          XNORM(I) = 0.D0
+          TMP = 0.D0
           DO J = 1,N1
-             XNORM(I) = XNORM(I) + DBLE( A(J,I) * CONJG( A(J,I) ) )
+             TMP = TMP + DBLE( A(J,I) * CONJG( A(J,I) ) )
           ENDDO
+          XNORM(I)=TMP
        ENDDO
        VHELP = XNORM
       
@@ -99,7 +100,7 @@
        INTEGER, INTENT(IN) :: N1,N2
        
        ! Locals
-       REAL (Kind=8) :: VHELP(N2), XNORM(N2), XMAX, XMEAN
+       REAL (Kind=8) :: VHELP(N2), XNORM(N2), XMAX, XMEAN, TMP
        INTEGER :: IVPT(N2), IVPTM1(N2), I, J, K, IMAX
        COMPLEX (KIND=8)  :: A1(N1,N2), A2(N1,N2), V1(N2,N2)
        
