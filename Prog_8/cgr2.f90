@@ -1,45 +1,3 @@
-!--------------------------------------------------------------------
-!> @author
-!> Florian Goth
-!
-!> @brief
-!> This function separates out function blocks from the result of the matrix
-!> product of U*V.
-!> The assumed layout for the result is:
-!>  (A, B)
-!>  (C, D)
-!>
-!> @param[in] U
-!> @param[in] V
-!> @param[inout] A
-!> @param[inout] B
-!> @param[inout] C
-!> @param[inout] D
-!> @param[in] LQ The dimension of the matrices A, B, C, D
-!--------------------------------------------------------------------
-      Subroutine get_blocks_of_prod(A, B, C, D, U, V, LQ)
-        Use MyMats
-        Implicit none
-        Integer, intent(in) :: LQ
-        Complex (Kind=Kind(0.D0)), intent(inout) :: A(LQ, LQ), B(LQ, LQ), C(LQ, LQ), D(LQ, LQ)
-        Complex (Kind=Kind(0.D0)), intent(in) :: U(2*LQ, 2*LQ), V(2*LQ, 2*LQ)
-        Complex (Kind=Kind(0.D0)) :: HLP(2*LQ, 2*LQ)
-        Integer :: I, J, I1, J1
-
-        CALL MMULT(HLP, U, V)
-        DO I = 1,LQ
-          I1 = I+LQ
-          DO J = 1,LQ
-              J1 = J + LQ
-              A(I,J) = HLP(I ,J )
-              D(I,J) = HLP(I1,J1)
-              C(I,J) = HLP(I1,J )
-              B(I,J) = HLP(I,J1 )
-          ENDDO
-        ENDDO
-
-      end Subroutine
-
       SUBROUTINE CGR2(GRT0, GR00, GRTT, GR0T, U2, D2, V2, U1, D1, V1, LQ)
           
         !       B2 = U2*D2*V2
@@ -135,6 +93,7 @@
               HLPB1(M,J) =   Z * HLPB1(M,J) 
            ENDDO
         ENDDO
-        call get_blocks_of_prod(GR00, GR0T, GRT0, GRTT, V3B, HLPB1, LQ)
+        call MMULT(HLPB2, V3B, HLPB1)
+        call get_blocks(GR00, GR0T, GRT0, GRTT, HLPB1, LQ)
  
     END SUBROUTINE CGR2
