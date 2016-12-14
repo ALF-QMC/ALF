@@ -213,6 +213,11 @@
 !==============================================================
          Subroutine  Print_bin_tau(Dat_tau, Latt, Nobs, Phase_bin, file_pr, dtau, Dat0_tau)
            Use Lattices_v3
+#ifdef ZLIB
+           USE F95ZLIB
+           USE IOPORTS
+           USE ISO_C_BINDING
+#endif  
            Implicit none
 #ifdef MPI
            include 'mpif.h'
@@ -227,10 +232,15 @@
            Real (kind=8),                        Intent(In)   :: dtau
           
            ! Local
-           Integer :: Norb, I, no,no1, LT, nt
+           Integer :: Norb, I, no,no1, LT, nt,ios
            Complex (Kind=8), allocatable :: Tmp(:,:,:,:), Tmp0(:)
            Complex (Kind=8) :: Phase_mean 
            Real    (Kind=8)              :: x_p(2) 
+#ifdef ZLIB
+           TYPE(IOPORT) :: fd
+           Character (len=64) :: File_tmp
+           CHARACTER(LEN=255), TARGET :: LINE
+#endif  
 #ifdef MPI
            Complex (Kind=8):: Z
            Integer         :: Ierr, Isize, Irank
@@ -281,23 +291,49 @@
                  enddo
               enddo
 !$OMP end parallel do
+#ifdef ZLIB
+              write(File_tmp,*) TRIM(ADJUSTL(File_pr)),".gz"
+              CALL FGZ_OPEN(TRIM(ADJUSTL(File_tmp)),'a9',fd,ios)
+              Write(Line,*) dble(Phase_mean),Norb,Latt%N, LT, dtau
+              CALL FGZ_WRITE(fd,TRIM(LINE),'yes',IOS)
+#else
               Open (Unit=10,File=File_pr, status="unknown",  position="append")
               Write(10,*) dble(Phase_mean),Norb,Latt%N, LT, dtau
+#endif
               Do no = 1,Norb
+#ifdef ZLIB
+                 Write(LINE,*)  Tmp0(no)
+                 CALL FGZ_WRITE(fd,TRIM(LINE),'yes',IOS)
+#else
                  Write(10,*)  Tmp0(no)
+#endif
               enddo
               do I = 1,Latt%N
-                 x_p = dble(Latt%listk(i,1))*Latt%b1_p + dble(Latt%listk(i,2))*Latt%b2_p  
+                 x_p = dble(Latt%listk(i,1))*Latt%b1_p + dble(Latt%listk(i,2))*Latt%b2_p 
+#ifdef ZLIB 
+                 Write(Line,*) X_p(1), X_p(2)
+                 CALL FGZ_WRITE(fd,TRIM(LINE),'yes',IOS)
+#else
                  Write(10,*) X_p(1), X_p(2)
+#endif
                  Do nt = 1,LT
                     do no = 1,Norb
                        do no1 = 1,Norb
+#ifdef ZLIB 
+                          Write(Line,*) tmp(I,nt,no,no1)
+                          CALL FGZ_WRITE(fd,TRIM(LINE),'yes',IOS)
+#else
                           Write(10,*) tmp(I,nt,no,no1)
+#endif
                        enddo
                     enddo
                  enddo
               enddo
+#ifdef ZLIB 
+              CALL FGZ_CLOSE(fd,IOS)
+#else
               close(10)
+#endif
 #ifdef MPI
            Endif
 #endif
