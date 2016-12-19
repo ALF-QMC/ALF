@@ -14,8 +14,6 @@ stages:
     - cd ..
     - cd Prog
     - make
-    - make Ising
-    - make Kondo_Honey
 
 .warnconv_template: &warnconv_definition
   stage: warnconv
@@ -29,8 +27,6 @@ stages:
     - cd ..
     - cd Prog
     - make
-    - make Ising
-    - make Kondo_Honey
 
 .test_template: &test_definition
   stage: test
