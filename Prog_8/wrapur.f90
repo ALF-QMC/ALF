@@ -55,14 +55,14 @@
 
 
         ! Working space.
-        Complex (Kind=Kind(0.d0)) :: Z_ONE
+        Complex (Kind=Kind(0.d0)) :: Z_ONE, beta
         COMPLEX (Kind=Kind(0.d0)) :: V1(Ndim,Ndim), TMP(Ndim,Ndim), TMP1(Ndim,Ndim)
         Integer :: NT, NCON, n, nf
         Real (Kind=Kind(0.d0)) :: X
 
         NCON = 0  ! Test for UDV ::::  0: Off,  1: On.
         Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
-        
+        beta = 0.D0
         Do nf = 1,N_FL
            CALL INITD(TMP,Z_ONE)
            DO NT = NTAU + 1, NTAU1
@@ -74,12 +74,13 @@
                  Call Op_mmultR(TMP,Op_V(n,nf),X,Ndim)
               ENDDO
            ENDDO
-           CALL MMULT(TMP1,TMP,UR(:,:,nf))
-           CALL ZLACPY('A', Ndim, Ndim, VR(1,1,nf), Ndim, TMP, Ndim)
+
+           CALL ZGEMM('N', 'N', Ndim, Ndim, Ndim, Z_ONE, TMP, Ndim, UR(1, 1, nf), Ndim, beta, TMP1, Ndim)
            DO n = 1,NDim
                  TMP1(:, n) = TMP1(:, n)*DR(n, nf)
            ENDDO
            CALL UDV_WRAP_Pivot(TMP1,UR(:,:,nf),DR(:,nf),V1,NCON,Ndim,Ndim)
-           CALL MMULT(VR(:,:,nf),V1,TMP)
+           CALL ZGEMM('N', 'N', Ndim, Ndim, Ndim, Z_ONE, V1, Ndim, VR(1, 1, nf), Ndim, beta, TMP1, Ndim)
+           VR(:, :, nf) = TMP1
         ENDDO
       END SUBROUTINE WRAPUR
