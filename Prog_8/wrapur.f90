@@ -57,7 +57,7 @@
         ! Working space.
         Complex (Kind=Kind(0.d0)) :: Z_ONE
         COMPLEX (Kind=Kind(0.d0)) :: V1(Ndim,Ndim), TMP(Ndim,Ndim), TMP1(Ndim,Ndim)
-        Integer ::NCON, NT, I, J, n, nf
+        Integer :: NT, NCON, n, nf
         Real (Kind=Kind(0.d0)) :: X
 
         NCON = 0  ! Test for UDV ::::  0: Off,  1: On.
@@ -75,11 +75,9 @@
               ENDDO
            ENDDO
            CALL MMULT(TMP1,TMP,UR(:,:,nf))
-           DO J = 1,NDim
-              DO I = 1,NDim
-                 TMP1(I,J) = TMP1(I,J)*DR(J,nf)
-                 TMP(I,J)  = VR(I,J,nf)
-              ENDDO
+           CALL ZLACPY('A', Ndim, Ndim, VR(1,1,nf), Ndim, TMP, Ndim)
+           DO n = 1,NDim
+                 TMP1(:, n) = TMP1(:, n)*DR(n, nf)
            ENDDO
            CALL UDV_WRAP_Pivot(TMP1,UR(:,:,nf),DR(:,nf),V1,NCON,Ndim,Ndim)
            CALL MMULT(VR(:,:,nf),V1,TMP)
