@@ -56,11 +56,12 @@
 
         ! Working space.
         Complex (Kind=Kind(0.d0)) :: Z_ONE, beta
-        COMPLEX (Kind=Kind(0.d0)) :: V1(Ndim,Ndim), TMP(Ndim,Ndim), TMP1(Ndim,Ndim)
+        COMPLEX (Kind=Kind(0.d0)), allocatable, dimension(:, :) :: V1, TMP, TMP1
         Integer :: NT, NCON, n, nf
         Real (Kind=Kind(0.d0)) :: X
 
         NCON = 0  ! Test for UDV ::::  0: Off,  1: On.
+        Allocate (V1(Ndim,Ndim), TMP(Ndim,Ndim), TMP1(Ndim,Ndim))
         Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
         beta = 0.D0
         Do nf = 1,N_FL
@@ -83,4 +84,5 @@
            CALL ZGEMM('N', 'N', Ndim, Ndim, Ndim, Z_ONE, V1, Ndim, VR(1, 1, nf), Ndim, beta, TMP1, Ndim)
            VR(:, :, nf) = TMP1
         ENDDO
+        deallocate(V1, TMP, TMP1)
       END SUBROUTINE WRAPUR
