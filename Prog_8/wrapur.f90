@@ -30,6 +30,42 @@
 !     - If you make substantial changes to the program we require you to either consider contributing
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
  
+ 
+!--------------------------------------------------------------------
+!> @author 
+!> ALF-project
+!
+!> @brief 
+!> This function updates the UDV matrices with the new matrix stored in TMP.
+!
+!> @param [inout] U
+!> @param [inout] D
+!> @param [inout] V
+!> @param [in] TMP
+!> @param [in] TMP1
+!> @param [in] Ndim The size of the matrices
+!> @param [in] NCON wether we check.
+!-------------------------------------------------------------------
+ SUBROUTINE ur_update_matrices(U, D, V, V1, TMP, TMP1, Ndim, NCON)
+        Use UDV_Wrap_mod
+        Implicit None
+        INTEGER, intent(in) :: Ndim, NCON
+        COMPLEX (Kind=Kind(0.d0)) :: U(Ndim,Ndim), V(Ndim,Ndim), V1(Ndim,Ndim), TMP(Ndim,Ndim),TMP1(Ndim,Ndim)
+        COMPLEX (Kind=Kind(0.d0)) :: D(Ndim)
+        COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta
+        INTEGER :: n
+
+        Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
+        beta = 0.D0
+        CALL ZGEMM('N', 'N', Ndim, Ndim, Ndim, Z_ONE, TMP, Ndim, U(1, 1), Ndim, beta, TMP1, Ndim)
+        DO n = 1,NDim
+            TMP1(:, n) = TMP1(:, n)*D(n)
+        ENDDO
+        CALL UDV_WRAP_Pivot(TMP1, U, D , V1,NCON,Ndim,Ndim)
+        CALL ZGEMM('N', 'N', Ndim, Ndim, Ndim, Z_ONE, V1, Ndim, V(1, 1), Ndim, beta, TMP1, Ndim)
+        V = TMP1
+END SUBROUTINE ur_update_matrices
+ 
      SUBROUTINE WRAPUR(NTAU, NTAU1, UR, DR, VR)
 
 !--------------------------------------------------------------------
@@ -44,7 +80,6 @@
 !-------------------------------------------------------------------
         
         Use Operator_mod, only : Phi
-        Use UDV_Wrap_mod
         Use Hop_mod
         Implicit None
 
@@ -55,7 +90,7 @@
 
 
         ! Working space.
-        Complex (Kind=Kind(0.d0)) :: Z_ONE, beta
+        Complex (Kind=Kind(0.d0)) :: Z_ONE
         COMPLEX (Kind=Kind(0.d0)), allocatable, dimension(:, :) :: V1, TMP, TMP1
         Integer :: NT, NCON, n, nf
         Real (Kind=Kind(0.d0)) :: X
@@ -63,7 +98,6 @@
         NCON = 0  ! Test for UDV ::::  0: Off,  1: On.
         Allocate (V1(Ndim,Ndim), TMP(Ndim,Ndim), TMP1(Ndim,Ndim))
         Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
-        beta = 0.D0
         Do nf = 1,N_FL
            CALL INITD(TMP,Z_ONE)
            DO NT = NTAU + 1, NTAU1
@@ -76,13 +110,7 @@
               ENDDO
            ENDDO
 
-           CALL ZGEMM('N', 'N', Ndim, Ndim, Ndim, Z_ONE, TMP, Ndim, UR(1, 1, nf), Ndim, beta, TMP1, Ndim)
-           DO n = 1,NDim
-                 TMP1(:, n) = TMP1(:, n)*DR(n, nf)
-           ENDDO
-           CALL UDV_WRAP_Pivot(TMP1,UR(:,:,nf),DR(:,nf),V1,NCON,Ndim,Ndim)
-           CALL ZGEMM('N', 'N', Ndim, Ndim, Ndim, Z_ONE, V1, Ndim, VR(1, 1, nf), Ndim, beta, TMP1, Ndim)
-           VR(:, :, nf) = TMP1
+           CALL ur_update_matrices(UR(:,:,nf), DR(:, nf), VR(:,:,nf), V1, TMP, TMP1, Ndim, NCON)
         ENDDO
         deallocate(V1, TMP, TMP1)
       END SUBROUTINE WRAPUR

@@ -29,6 +29,41 @@
 !     - If you make substantial changes to the program we require you to either consider contributing
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
       
+!--------------------------------------------------------------------
+!> @author 
+!> ALF-project
+!
+!> @brief 
+!> This function updates the UDV matrices with the new matrix stored in TMP.
+!
+!> @param [inout] U
+!> @param [inout] D
+!> @param [inout] V
+!> @param [in] TMP
+!> @param [in] TMP1
+!> @param [in] Ndim The size of the matrices
+!> @param [in] NCON wether we check.
+!-------------------------------------------------------------------
+ SUBROUTINE ul_update_matrices(U, D, V, V1, TMP, TMP1, Ndim, NCON)
+        Use UDV_Wrap_mod
+        Implicit None
+        INTEGER, intent(in) :: Ndim, NCON
+        COMPLEX (Kind=Kind(0.d0)) :: U(Ndim,Ndim), V(Ndim,Ndim), V1(Ndim,Ndim), TMP(Ndim,Ndim),TMP1(Ndim,Ndim)
+        COMPLEX (Kind=Kind(0.d0)) :: D(Ndim)
+        COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta
+        INTEGER :: n
+
+        Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
+        beta = 0.D0
+        CALL ZGEMM('C', 'C', Ndim, Ndim, Ndim, Z_ONE, TMP, Ndim, U(1, 1), Ndim, beta, TMP1, Ndim)
+        DO n = 1,NDim
+            TMP1(:, n) = TMP1(:, n) * D(n)
+        ENDDO
+        CALL UDV_WRAP_Pivot(TMP1, TMP, D, V1,NCON,Ndim,Ndim)
+        CALL ZGEMM('N', 'C', Ndim, Ndim, Ndim, Z_ONE, V(1, 1), Ndim, V1, Ndim, beta, TMP1, Ndim)
+        V = TMP1
+END SUBROUTINE ul_update_matrices
+
       SUBROUTINE WRAPUL(NTAU1, NTAU, UL ,DL, VL)
 
 !--------------------------------------------------------------------
@@ -45,8 +80,6 @@
         !NOTE:    NTAU1 > NTAU.
         Use Operator_mod, only : Phi
         Use Hop_mod
-        Use UDV_Wrap_mod
-
         Implicit none
 
         ! Arguments
@@ -78,13 +111,7 @@
            ENDDO
            
            !Carry out U,D,V decomposition.
-           CALL ZGEMM('C', 'C', Ndim, Ndim, Ndim, Z_ONE, TMP, Ndim, UL(1, 1, nf), Ndim, beta, TMP1, Ndim)
-           DO n = 1,NDim
-              TMP1(:, n) = TMP1(:, n) * DL(n, nf)
-           ENDDO
-           CALL UDV_WRAP_Pivot(TMP1, TMP, DL(:, nf), V1,NCON,Ndim,Ndim)
-           CALL ZGEMM('N', 'C', Ndim, Ndim, Ndim, Z_ONE, VL(1, 1, nf), Ndim, V1, Ndim, beta, TMP1, Ndim)
-           VL(:, :, nf) = TMP1
+           CALL ul_update_matrices(UL(:,:,nf), DL(:, nf), VL(:,:,nf), V1, TMP, TMP1, Ndim, NCON)
            UL(:, :, nf) = CONJG(TRANSPOSE(TMP))
         ENDDO
         deallocate(V1, TMP, TMP1)
