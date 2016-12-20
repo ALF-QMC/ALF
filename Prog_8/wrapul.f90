@@ -72,11 +72,11 @@
            DO NT = NTAU1, NTAU+1 , -1
               Do n = Size(Op_V,1),1,-1
                  X = Phi(nsigma(n,nt),Op_V(n,nf)%type)
-                 Call Op_mmultL(Tmp,Op_V(n,nf),X,Ndim)
+                 Call Op_mmultL(TMP,Op_V(n,nf),X,Ndim)
               enddo
               !CALL MMULT( TMP1,Tmp,Exp_T(:,:,nf) )
-              Call  Hop_mod_mmthl (Tmp, Tmp1,nf)
-              Tmp = Tmp1
+              Call  Hop_mod_mmthl (TMP, TMP1,nf)
+              TMP = TMP1
            ENDDO
            
            !Carry out U,D,V decomposition.

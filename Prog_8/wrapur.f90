@@ -71,7 +71,7 @@
               TMP = TMP1
               Do n = 1,Size(Op_V,1)
                  X = Phi(nsigma(n,nt),Op_V(n,nf)%type)
-                 Call Op_mmultR(Tmp,Op_V(n,nf),X,Ndim)
+                 Call Op_mmultR(TMP,Op_V(n,nf),X,Ndim)
               ENDDO
            ENDDO
            CALL MMULT(TMP1,TMP,UR(:,:,nf))
