@@ -57,7 +57,7 @@
 
         ! Working space.
         COMPLEX (Kind=Kind(0.d0)) ::  U1(Ndim,Ndim), V1(Ndim,Ndim), TMP(Ndim,Ndim), TMP1(Ndim,Ndim)
-        COMPLEX (Kind=Kind(0.d0)) ::  D1(Ndim), Z_ONE, beta
+        COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta
         Integer :: NT, NCON, n, nf
         Real    (Kind=Kind(0.d0)) ::  X
  
@@ -84,13 +84,11 @@
            DO n = 1,NDim
               TMP1(:, n) = TMP1(:, n) * DL(n, nf)
            ENDDO
-           CALL UDV_WRAP_Pivot(TMP1,U1,D1,V1,NCON,Ndim,Ndim)
+           CALL UDV_WRAP_Pivot(TMP1,U1,DL(:, nf), V1,NCON,Ndim,Ndim)
            !CALL UDV(TMP,U1,D1,V1,NCON)
            UL(:, :, nf) = CONJG(TRANSPOSE(U1))
            CALL ZGEMM('N', 'C', Ndim, Ndim, Ndim, Z_ONE, VL(:, :, nf), Ndim, V1, Ndim, beta, TMP1, Ndim)
            VL(:, :, nf) = TMP1
-           DL(:, nf) = D1
-        ENDDO
-        
+        ENDDO        
       END SUBROUTINE WRAPUL
       
