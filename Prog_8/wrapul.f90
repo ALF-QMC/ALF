@@ -90,14 +90,13 @@ END SUBROUTINE ul_update_matrices
 
         ! Working space.
         COMPLEX (Kind=Kind(0.d0)), allocatable, dimension(:, :) ::  V1, TMP, TMP1
-        COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta
+        COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE
         Integer :: NT, NCON, n, nf
         Real    (Kind=Kind(0.d0)) ::  X
  
         NCON = 0  ! Test for UDV ::::  0: Off,  1: On.
         Allocate (V1(Ndim,Ndim), TMP(Ndim,Ndim), TMP1(Ndim,Ndim))
         Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
-        beta = 0.D0
         Do nf = 1, N_FL
            CALL INITD(TMP,Z_ONE)
            DO NT = NTAU1, NTAU+1 , -1
