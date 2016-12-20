@@ -44,7 +44,6 @@
 
         !NOTE:    NTAU1 > NTAU.
         Use Operator_mod, only : Phi
-        Use Hamiltonian
         Use Hop_mod
         Use UDV_Wrap_mod
 

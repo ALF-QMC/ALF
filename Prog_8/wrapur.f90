@@ -43,7 +43,7 @@
 !
 !-------------------------------------------------------------------
         
-        Use Hamiltonian
+        Use Operator_mod, only : Phi
         Use UDV_Wrap_mod
         Use Hop_mod
         Implicit None
