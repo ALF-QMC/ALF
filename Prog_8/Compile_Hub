@@ -1,6 +1,6 @@
 TARGET= Hubb.out
 OBJS=  control_mod.o Operator.o print_bin_mod.o Hamiltonian_Hub.o Hop_mod.o  UDV_WRAP.o tau_m.o  main.o wrapul.o  cgr1.o wrapgrup.o wrapur.o upgrade.o \
-       wrapgrdo.o outconfc.o  inconfc.o cgr2.o cgr2_2.o cgr2_1.o  observables_mod.o
+       wrapgrdo.o outconfc.o  inconfc.o cgr2.o cgr2_2.o cgr2_1.o  observables_mod.o wrap_helpers.o
 
 
   
