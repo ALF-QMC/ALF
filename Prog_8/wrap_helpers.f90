@@ -44,14 +44,28 @@
 !> @param [in] Ndim The size of the matrices
 !> @param [in] NCON wether we check.
 !-------------------------------------------------------------------
+
+SUBROUTINE pm(M, gr)
+Implicit NONE
+Integer :: gr
+COMPLEX (Kind=Kind(0.d0)), intent(in) :: M(gr,gr)
+Integer :: i,j
+do i = 1, gr
+write (*,*) real(M(i, :))
+enddo
+write (*,*) "----------------------------"
+end subroutine
+
  SUBROUTINE ul_update_matrices(U, D, V, V1, TMP, TMP1, Ndim, NCON)
         Use UDV_Wrap_mod
         Implicit None
         INTEGER, intent(in) :: Ndim, NCON
         COMPLEX (Kind=Kind(0.d0)) :: U(Ndim,Ndim), V(Ndim,Ndim), V1(Ndim,Ndim), TMP(Ndim,Ndim),TMP1(Ndim,Ndim)
+        COMPLEX (Kind=Kind(0.d0)) :: TMP2(Ndim, Ndim), TMP3(Ndim, Ndim)
         COMPLEX (Kind=Kind(0.d0)) :: D(Ndim), TAU(Ndim), WORK(2*Ndim), RWORK(2*Ndim)
         COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta
         INTEGER :: n, IPVT(Ndim), INFO
+        LOGICAL :: FORWRD
 
         Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
         beta = 0.D0
@@ -61,27 +75,32 @@
         DO n = 1,NDim
             TMP1(:, n) = TMP1(:, n) * D(n)
             D(n) = 1.D0
+            IPVT(n) = n
         ENDDO
         write (*,*) "INPUT"
-        write (*, *) MATMUL(TMP1, V)
+        TMP3 =  MATMUL(TMP1, V)
+        CALL pm(TMP3, Ndim)
         ! QR Zerlegung von TMP1
-        CALL ZGEQRF(Ndim, Ndim, TMP1, Ndim, TAU, WORK, 2*Ndim, INFO)
-!        call ZGEQP3(Ndim, Ndim, TMP1, Ndim, IPVT, TAU, WORK, 2*Ndim, RWORK, INFO)
+!        CALL ZGEQRF(Ndim, Ndim, TMP1, Ndim, TAU, WORK, 2*Ndim, INFO)
+        call ZGEQP3(Ndim, Ndim, TMP1, Ndim, IPVT, TAU, WORK, 2*Ndim, RWORK, INFO)
         ! Permute V
-!        CALL ZLASWP(Ndim, V, Ndim, 1, Ndim, IPVT, 1)
+!        FORWRD = .true.
+!        CALL ZLAPMT(FORWRD, Ndim, Ndim, V, Ndim, IPVT)
+
         !CALL UDV_WRAP_Pivot(TMP1, TMP, D, V1,NCON,Ndim,Ndim)
         ! V = V * V1^dagger
 !        CALL ZGEMM('N', 'C', Ndim, Ndim, Ndim, Z_ONE, V(1, 1), Ndim, V1, Ndim, beta, TMP1, Ndim)
 !        V = TMP1
 write (*,*) "TMP1"
-WRITE(*,*) TMP1
-        CALL ZTRMM('R', 'U', 'C', 'N', Ndim, Ndim, Z_ONE, TMP1, Ndim, V, Ndim)
+call pm(tmp1, Ndim)
+        CALL ZTRMM('R', 'U', 'N', 'N', Ndim, Ndim, Z_ONE, TMP1, Ndim, V, Ndim)
         write (*,*) "New V"
-        write (*,*) V
+        call pm(V, Ndim)
         CALL ZUNGQR(Ndim, Ndim, Ndim, TMP1, Ndim, TAU, WORK, 2*Ndim, INFO)
         U = TMP1
         WRITE (*,*) "OUTPUT"
-        WRITE(*, *) MATMUL(U, V)
+        TMP3 = MATMUL(V, U)
+        CALL pm(TMP3, Ndim)
         STOP 2
 END SUBROUTINE ul_update_matrices
 
@@ -102,45 +121,51 @@ END SUBROUTINE ul_update_matrices
 !-------------------------------------------------------------------
  SUBROUTINE ur_update_matrices(U, D, V, V1, TMP, TMP1, Ndim, NCON)
         Use UDV_Wrap_mod
+        Use MyMats
         Implicit None
         INTEGER, intent(in) :: Ndim, NCON
         COMPLEX (Kind=Kind(0.d0)) :: U(Ndim,Ndim), V(Ndim,Ndim), V1(Ndim,Ndim), TMP(Ndim,Ndim),TMP1(Ndim,Ndim)
+        COMPLEX (Kind=Kind(0.d0)) :: TMP2(Ndim, Ndim), TMP3(Ndim, Ndim)
         COMPLEX (Kind=Kind(0.d0)) :: D(Ndim), TAU(Ndim), WORK(2*Ndim), RWORK(2*Ndim)
-        COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta
-        INTEGER :: n, IPVT(Ndim), INFO
+        COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta, tempC
+        INTEGER :: n, IPVT(Ndim), IPVTINV(Ndim), INFO, IPVT2(Ndim), p(Ndim), tempidx, k
+        INTEGER :: i,j
+        INTEGER :: visited(Ndim), cycle(Ndim), cycstart, cycend, idx, visitedindices, cyclelen
         LOGICAL :: FORWRD
-
+        REAL(Kind=Kind(0.d0)) :: XMAX, XMEAN
+        
+        ! QR(TMP * U * D) * V
         Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
         beta = 0.D0
-        ! TMP1 = TMP * U
         CALL ZGEMM('N', 'N', Ndim, Ndim, Ndim, Z_ONE, TMP, Ndim, U(1, 1), Ndim, beta, TMP1, Ndim)
         ! TMP1 = TMP1 * D
         DO n = 1,NDim
             TMP1(:, n) = TMP1(:, n)*D(n)
             D(n) = 1.D0
-!            IPVT(n) = n
+            IPVT(n) = 0
         ENDDO
-                write (*,*) "INPUT"
-        write (*, *) MATMUL(TMP1, V)
-        ! QR Zerlegung on TMP1
+!                 write (*,*) "COMPARISON"
+!                 TMP = MATMUL(TMP1, V)
+!                 call pm(TMP, Ndim)
+!                write (*,*) "input to QR"
+!                call pm(TMP1, Ndim)
+        ! QR Zerlegung von TMP1
 !        CALL ZGEQRF(Ndim, Ndim, TMP1, Ndim, TAU, WORK, 2*Ndim, INFO)
         call ZGEQP3(Ndim, Ndim, TMP1, Ndim, IPVT, TAU, WORK, 2*Ndim, RWORK, INFO)
-        write (*,*) IPVT
-        CALL ZLASWP(Ndim, V, Ndim, 1, Ndim, IPVT, 1)
-!FORWRD = .false.
-!CALL ZLAPMT(FORWRD, Ndim, Ndim, V, Ndim, IPVT)
-!        CALL UDV_WRAP_Pivot(TMP1, U, D , V1,NCON,Ndim,Ndim)
-write (*,*) "TMP1"
-WRITE(*,*) TMP1
-!        V = V1 * V
-CALL ZTRMM('L', 'U', 'N', 'N', Ndim, Ndim, Z_ONE, TMP1, Ndim, V, Ndim)
-        write (*,*) "New V"
-        write (*,*) V
+        FORWRD = .true.
+        CALL ZLAPMR(FORWRD, Ndim, Ndim, V, Ndim, IPVT) ! lapack 3.4.2
+        CALL ZTRMM('L', 'U', 'N', 'N', Ndim, Ndim, Z_ONE, TMP1, Ndim, V, Ndim)
         CALL ZUNGQR(Ndim, Ndim, Ndim, TMP1, Ndim, TAU, WORK, 2*Ndim, INFO)
         U = TMP1
-        WRITE (*,*) "OUTPUT"
-        WRITE(*, *) MATMUL(U, V)
-        STOP 2
-!        CALL ZGEMM('N', 'N', Ndim, Ndim, Ndim, Z_ONE, V1, Ndim, V(1, 1), Ndim, beta, TMP1, Ndim)
-!        V = TMP1
+!        IF (NCON == 1) THEN
+!           !Check the result  A = U D V
+!           DO J = 1,N2
+!              TMP3(:, J) = D * V(:, J)
+!           ENDDO
+!           !Write(6,*) 'Here'
+!           Call MMULT (TMP3, U, TMP2)
+!           !Call MMULT (A2,U,V)
+!           CALL COMPARE(A, TMP3, XMAX,XMEAN)
+!           Write (6,*) 'Check afer NEW Pivoting', XMAX
+!        ENDIF
 END SUBROUTINE ur_update_matrices
