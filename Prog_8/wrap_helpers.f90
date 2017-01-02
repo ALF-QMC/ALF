@@ -75,7 +75,7 @@ end subroutine
         DO n = 1,NDim
             TMP1(:, n) = TMP1(:, n) * D(n)
             D(n) = 1.D0
-            IPVT(n) = n
+            IPVT(n) = 0
         ENDDO
         write (*,*) "INPUT"
         TMP3 =  MATMUL(TMP1, V)
@@ -84,8 +84,9 @@ end subroutine
 !        CALL ZGEQRF(Ndim, Ndim, TMP1, Ndim, TAU, WORK, 2*Ndim, INFO)
         call ZGEQP3(Ndim, Ndim, TMP1, Ndim, IPVT, TAU, WORK, 2*Ndim, RWORK, INFO)
         ! Permute V
-!        FORWRD = .true.
-!        CALL ZLAPMT(FORWRD, Ndim, Ndim, V, Ndim, IPVT)
+        write (*,*) IPVT
+        FORWRD = .true.
+        CALL ZLAPMT(FORWRD, Ndim, Ndim, V, Ndim, IPVT)
 
         !CALL UDV_WRAP_Pivot(TMP1, TMP, D, V1,NCON,Ndim,Ndim)
         ! V = V * V1^dagger
@@ -93,15 +94,15 @@ end subroutine
 !        V = TMP1
 write (*,*) "TMP1"
 call pm(tmp1, Ndim)
-        CALL ZTRMM('R', 'U', 'N', 'N', Ndim, Ndim, Z_ONE, TMP1, Ndim, V, Ndim)
+        CALL ZTRMM('R', 'U', 'C', 'N', Ndim, Ndim, Z_ONE, TMP1, Ndim, V, Ndim)
         write (*,*) "New V"
         call pm(V, Ndim)
         CALL ZUNGQR(Ndim, Ndim, Ndim, TMP1, Ndim, TAU, WORK, 2*Ndim, INFO)
-        U = TMP1
+        TMP = CT(TMP1)
         WRITE (*,*) "OUTPUT"
-        TMP3 = MATMUL(V, U)
+        TMP3 = CT(MATMUL(V, TMP))
         CALL pm(TMP3, Ndim)
-        STOP 2
+!        STOP 2
 END SUBROUTINE ul_update_matrices
 
 !--------------------------------------------------------------------
