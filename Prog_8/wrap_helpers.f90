@@ -96,7 +96,7 @@ end subroutine
         CALL ZTRMM('R', 'U', 'C', 'N', Ndim, Ndim, Z_ONE, TMP1, Ndim, V, Ndim)
         ! create explicit U
         CALL ZUNGQR(Ndim, Ndim, Ndim, TMP1, Ndim, TAU, WORK, 2*Ndim, INFO)
-!        TMP = TMP1
+        TMP = TMP1
         U = TMP1
 !         WRITE (*,*) "OUTPUT"
 !         TMP3 = MATMUL(V, CT(TMP))
