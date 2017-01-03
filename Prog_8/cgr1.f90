@@ -36,7 +36,7 @@
 !> ALF-project
 !
 !> @brief 
-!>    Cmputes  GRUP = (1 + UR*DR*VR*VL*DL*UL)^-1
+!>    Computes  GRUP = (1 + UR*DR*VR*VL*DL*UL)^-1
 !>    NVAR = 1 Big scales are in DL
 !>    NVAR = 2 Big scales are in DR
 !
