@@ -55,12 +55,12 @@
 
         ! Working space.
         Complex (Kind=Kind(0.d0)) :: Z_ONE
-        COMPLEX (Kind=Kind(0.d0)), allocatable, dimension(:, :) :: V1, TMP, TMP1
+        COMPLEX (Kind=Kind(0.d0)), allocatable, dimension(:, :) :: TMP, TMP1
         Integer :: NT, NCON, n, nf
         Real (Kind=Kind(0.d0)) :: X
 
         NCON = 0  ! Test for UDV ::::  0: Off,  1: On.
-        Allocate (V1(Ndim,Ndim), TMP(Ndim,Ndim), TMP1(Ndim,Ndim))
+        Allocate (TMP(Ndim,Ndim), TMP1(Ndim,Ndim))
         Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
         Do nf = 1,N_FL
            CALL INITD(TMP,Z_ONE)
@@ -74,7 +74,7 @@
               ENDDO
            ENDDO
 
-           CALL ur_update_matrices(UR(:,:,nf), DR(:, nf), VR(:,:,nf), V1, TMP, TMP1, Ndim, NCON)
+           CALL ur_update_matrices(UR(:,:,nf), DR(:, nf), VR(:,:,nf), TMP, TMP1, Ndim, NCON)
         ENDDO
-        deallocate(V1, TMP, TMP1)
+        deallocate(TMP, TMP1)
       END SUBROUTINE WRAPUR
