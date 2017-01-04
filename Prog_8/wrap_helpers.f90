@@ -117,14 +117,16 @@ END SUBROUTINE ul_update_matrices
 !
 !> @brief 
 !> This function updates the UDV matrices with the new matrix stored in TMP.
+!> Essentially we calculate the product TMP * U * D * V
+!> For the result we generate a new decomposition in the form U, D, V
 !
-!> @param [inout] U An orthogonal matrix in full storage
-!> @param [inout] D
-!> @param [inout] V
-!> @param [in] TMP
-!> @param [in] TMP1
+!> @param [inout] U A unitary matrix in full storage.
+!> @param [inout] D The entries of a diagonal matrix.
+!> @param [inout] V A full matrix
+!> @param [in] TMP A full matrix
+!> @param [in] TMP1 temporary storage
 !> @param [in] Ndim The size of the matrices
-!> @param [in] NCON wether we check.
+!> @param [in] NCON wether we check.(TODO: currently not used)
 !-------------------------------------------------------------------
  SUBROUTINE ur_update_matrices(U, D, V, TMP, TMP1, Ndim, NCON)
         Use UDV_Wrap_mod
@@ -138,7 +140,7 @@ END SUBROUTINE ul_update_matrices
         INTEGER :: INFO, i, j
         INTEGER, allocatable, Dimension(:) :: IPVT
         LOGICAL :: FORWRD
-        REAL(Kind=Kind(0.d0)) :: X, !XMAX, XMEAN
+        REAL(Kind=Kind(0.d0)) :: X!, XMAX, XMEAN
         
         ! QR(TMP * U * D) * V
         Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
