@@ -50,7 +50,7 @@
         ! Arguments
         COMPLEX (Kind=Kind(0.d0)) :: UL(Ndim,Ndim,N_FL), VL(Ndim,Ndim,N_FL)
         COMPLEX (Kind=Kind(0.d0)) :: DL(Ndim,N_FL)
-        Integer :: NTAU1, NTAU
+        Integer, intent(in) :: NTAU1, NTAU
 
 
         ! Working space.
@@ -76,7 +76,7 @@
            
            !Carry out U,D,V decomposition.
            CALL ul_update_matrices(UL(:,:,nf), DL(:, nf), VL(:,:,nf), TMP, TMP1, Ndim, NCON)
-           UL(:, :, nf) = CONJG(TRANSPOSE(TMP))
+           UL(:, :, nf) = CONJG(TRANSPOSE(UL(:,:,nf)))
         ENDDO
         deallocate(TMP, TMP1)
       END SUBROUTINE WRAPUL

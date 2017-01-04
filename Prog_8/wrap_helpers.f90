@@ -60,16 +60,17 @@ end subroutine
         Use UDV_Wrap_mod
         Implicit None
         INTEGER, intent(in) :: Ndim, NCON
-        COMPLEX (Kind=Kind(0.d0)) :: U(Ndim,Ndim), V(Ndim,Ndim), TMP(Ndim,Ndim),TMP1(Ndim,Ndim)
-        COMPLEX (Kind=Kind(0.d0)) :: D(Ndim), TAU(Ndim), WORK(2*Ndim), RWORK(2*Ndim)
+        COMPLEX (Kind=Kind(0.d0)), intent(in) :: TMP(Ndim,Ndim)
+        COMPLEX (Kind=Kind(0.d0)), intent(inout) :: U(Ndim,Ndim), V(Ndim,Ndim), TMP1(Ndim,Ndim), D(Ndim)
+        COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK, RWORK
         COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta
-        INTEGER :: IPVT(Ndim), INFO, i, j
+        INTEGER, allocatable, Dimension(:) :: IPVT
+        INTEGER :: INFO, i, j
         LOGICAL :: FORWRD
         REAL(Kind=Kind(0.D0)) :: X  
 
         Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
         beta = 0.D0
-        IPVT = 0
         ! TMP1 = TMP^dagger * U^dagger
         CALL ZGEMM('C', 'C', Ndim, Ndim, Ndim, Z_ONE, TMP, Ndim, U(1, 1), Ndim, beta, TMP1, Ndim)
         ! TMP1 = TMP1 * D
@@ -79,8 +80,14 @@ end subroutine
 !          write (*,*) "INPUT"
 !          TMP3 =  MATMUL(V, TMP1)
 !          CALL pm(TMP3, Ndim)
-        ! QR decomposition of TMP1 with full column pivoting, AP = QR
-        call ZGEQP3(Ndim, Ndim, TMP1, Ndim, IPVT, TAU, WORK, 2*Ndim, RWORK, INFO)
+        ALLOCATE(TAU(Ndim), RWORK(2*Ndim), IPVT(Ndim))
+        IPVT = 0
+        ! Query and allocate optimal amount of work space
+        call ZGEQP3(Ndim, Ndim, TMP1, Ndim, IPVT, TAU, beta, -1, RWORK, INFO)
+        I = INT(DBLE(BETA))
+        ALLOCATE(WORK(I))
+        ! QR decomposition of TMP1 with full column pivoting, AP = QR)
+        call ZGEQP3(Ndim, Ndim, TMP1, Ndim, IPVT, TAU, WORK, I, RWORK, INFO)
         ! separate off D
         do i = 1, Ndim
             X = ABS(TMP1(i, i))
@@ -96,7 +103,7 @@ end subroutine
         CALL ZTRMM('R', 'U', 'C', 'N', Ndim, Ndim, Z_ONE, TMP1, Ndim, V, Ndim)
         ! create explicit U
         CALL ZUNGQR(Ndim, Ndim, Ndim, TMP1, Ndim, TAU, WORK, 2*Ndim, INFO)
-        TMP = TMP1
+        DEALLOCATE(TAU, WORK, RWORK, IPVT)
         U = TMP1
 !         WRITE (*,*) "OUTPUT"
 !         TMP3 = MATMUL(V, CT(TMP))
@@ -124,24 +131,31 @@ END SUBROUTINE ul_update_matrices
         Use MyMats
         Implicit None
         INTEGER, intent(in) :: Ndim, NCON
-        COMPLEX (Kind=Kind(0.d0)) :: U(Ndim,Ndim), V(Ndim,Ndim), TMP(Ndim,Ndim),TMP1(Ndim,Ndim)
-        COMPLEX (Kind=Kind(0.d0)) :: D(Ndim), TAU(Ndim), WORK(2*Ndim), RWORK(2*Ndim)
+        COMPLEX (Kind=Kind(0.d0)), intent(in) :: TMP(Ndim,Ndim)
+        COMPLEX (Kind=Kind(0.d0)), intent(inout) :: U(Ndim,Ndim), V(Ndim,Ndim), TMP1(Ndim,Ndim), D(Ndim)
+        COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK, RWORK
         COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta
-        INTEGER :: IPVT(Ndim), INFO, IPVT2(Ndim), i, j
+        INTEGER :: INFO, i, j
+        INTEGER, allocatable, Dimension(:) :: IPVT
         LOGICAL :: FORWRD
-        REAL(Kind=Kind(0.d0)) :: XMAX, XMEAN, X
+        REAL(Kind=Kind(0.d0)) :: X, !XMAX, XMEAN
         
         ! QR(TMP * U * D) * V
         Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
         beta = 0.D0
-        IPVT = 0
         CALL ZGEMM('N', 'N', Ndim, Ndim, Ndim, Z_ONE, TMP, Ndim, U(1, 1), Ndim, beta, TMP1, Ndim)
         ! TMP1 = TMP1 * D
         DO i = 1,NDim
             TMP1(:, i) = TMP1(:, i)*D(i)
         ENDDO
+        ALLOCATE(TAU(Ndim), RWORK(2*Ndim), IPVT(Ndim))
+        IPVT = 0
+        ! Query and allocate optimal amount of work space
+        call ZGEQP3(Ndim, Ndim, TMP1, Ndim, IPVT, TAU, beta, -1, RWORK, INFO)
+        I = INT(DBLE(BETA))
+        ALLOCATE(WORK(I))
         ! QR decomposition of TMP1 with full column pivoting, AP = QR
-        call ZGEQP3(Ndim, Ndim, TMP1, Ndim, IPVT, TAU, WORK, 2*Ndim, RWORK, INFO)   
+        call ZGEQP3(Ndim, Ndim, TMP1, Ndim, IPVT, TAU, WORK, I, RWORK, INFO)   
         ! separate off D
         do i = 1, Ndim
             X = ABS(TMP1(i, i))
@@ -158,6 +172,7 @@ END SUBROUTINE ul_update_matrices
         CALL ZTRMM('L', 'U', 'N', 'N', Ndim, Ndim, Z_ONE, TMP1, Ndim, V, Ndim)
         ! Generate explicit U
         CALL ZUNGQR(Ndim, Ndim, Ndim, TMP1, Ndim, TAU, WORK, 2*Ndim, INFO)
+        DEALLOCATE(IPVT)
         U = TMP1
 ! DO i = 1, Ndim
 ! do j = 1, ndim
