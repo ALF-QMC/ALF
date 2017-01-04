@@ -174,7 +174,7 @@ END SUBROUTINE ul_update_matrices
         CALL ZTRMM('L', 'U', 'N', 'N', Ndim, Ndim, Z_ONE, TMP1, Ndim, V, Ndim)
         ! Generate explicit U
         CALL ZUNGQR(Ndim, Ndim, Ndim, TMP1, Ndim, TAU, WORK, 2*Ndim, INFO)
-        DEALLOCATE(IPVT)
+        DEALLOCATE(TAU, WORK, RWORK, IPVT)
         U = TMP1
 ! DO i = 1, Ndim
 ! do j = 1, ndim
