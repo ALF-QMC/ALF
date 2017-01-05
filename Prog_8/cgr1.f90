@@ -121,7 +121,6 @@
            endif
            Z1 = Z1 * TPUP1(I, I)
            enddo
-           DEALLOCATE(TAU, WORK, RWORK)
         ELSE
 !           WRITE(6,*) 'UDV of (U + DR * V * DL)^{*}'
            TPUP1 = CT(TPUP)
@@ -169,6 +168,7 @@
            ZDUP1 = DET_C(TPUP, N_size)! Det destroys its argument
            Z1 = ZDUP2/ZDUP1
         ENDIF
+        DEALLOCATE(TAU, WORK, RWORK)
         DO J = 1, N_size
            sv = DBLE(DUP(J))
            X = ABS(sv)
