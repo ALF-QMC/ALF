@@ -70,17 +70,16 @@
         alpha = 1.D0
         beta = 0.D0
         Allocate( UUP(N_size,N_size), TPUP(N_size,N_size), TPUP1(N_size,N_size), &
-             & TPUPM1(N_size,N_size), DUP(N_size), IPVT(N_size) )
+             & TPUPM1(N_size,N_size), DUP(N_size), IPVT(N_size), TAU(N_size), RWORK(2*N_size))
         !Write(6,*) 'In CGR', N_size
         CALL MMULT(TPUP1,VRUP,VLUP)
         DO J = 1,N_size
             TPUP(:,J) = DRUP(:)*TPUP1(:,J)*DLUP(J)
         ENDDO
         CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, URUP, N_size, ULUP, N_size, alpha, TPUP, N_size)
+        IPVT = 0
         IF (NVAR.EQ.1) THEN
 !           WRITE(6,*) 'UDV of U + DR * V * DL'
-            ALLOCATE(TAU(N_size), RWORK(2*N_size))
-            IPVT = 0
             ! Query and allocate optimal amount of work space
             call ZGEQP3(N_size, N_size, TPUP, N_size, IPVT, TAU, beta, -1, RWORK, INFO)
             LWORK = INT(DBLE(beta))
@@ -95,14 +94,14 @@
                     TPUP(i, j) = TPUP(i, j) / X
                 enddo
             enddo
-           ! URUP = URUP * UUP
+            ! URUP = URUP * UUP
             TPUP1 = URUP
-           CALL ZUNMQR('R', 'N', N_size, N_size, N_size, TPUP, N_size, TAU, TPUP1, N_size, WORK, LWORK, INFO)
-           TPUPM1 = ULUP
-           ! ULUP = R * P * ULUP
-           FORWRD = .true.
-           CALL ZLAPMR(FORWRD, N_size, N_size, TPUPM1, N_size, IPVT) ! lapack 3.3
-           CALL ZTRMM('L', 'U', 'N', 'N', N_size, N_size, alpha, TPUP, N_size, TPUPM1, N_size)
+            CALL ZUNMQR('R', 'N', N_size, N_size, N_size, TPUP, N_size, TAU, TPUP1, N_size, WORK, LWORK, INFO)
+            TPUPM1 = ULUP
+            ! ULUP = R * P * ULUP
+            FORWRD = .true.
+            CALL ZLAPMR(FORWRD, N_size, N_size, TPUPM1, N_size, IPVT) ! lapack 3.3
+            CALL ZTRMM('L', 'U', 'N', 'N', N_size, N_size, alpha, TPUP, N_size, TPUPM1, N_size)
 
 !!           CALL UDV_WRAP_Pivot(TPUP,UUP,DUP,VUP,NCON,N_size,N_Size)
            !CALL UDV(TPUP,UUP,DUP,VUP,NCON)
@@ -112,7 +111,6 @@
            !enddo
            CALL INV(TPUPM1,TPUP,ZDUP1)
            TPUPM1 = TPUP
-!           CALL MMULT(TPUP1,URUP,UUP)
            CALL ZGETRF(N_size, N_size, TPUP1, N_size, IPVT, info)
            Z1 = ZDUP1
            Do i = 1, N_size
@@ -125,8 +123,6 @@
 !           WRITE(6,*) 'UDV of (U + DR * V * DL)^{*}'
            TPUP1 = CT(TPUP)
 !!           CALL UDV_WRAP_Pivot(TPUP1,UUP,DUP,VUP,NCON,N_size,N_size)
-           ALLOCATE(TAU(N_size), RWORK(2*N_size))
-            IPVT = 0
             ! Query and allocate optimal amount of work space
             call ZGEQP3(N_size, N_size, TPUP1, N_size, IPVT, TAU, beta, -1, RWORK, INFO)
             LWORK = INT(DBLE(beta))
@@ -141,9 +137,6 @@
                     TPUP1(i, j) = TPUP1(i, j) / X
                 enddo
             enddo
-           
-           
-           !CALL UDV(TPUP1,UUP,DUP,VUP,NCON)
            ! TPUPM1 = ULUP * UUP
            TPUPM1 = CT(ULUP)
            CALL ZUNMQR('R', 'N', N_size, N_size, N_size, TPUP1, N_size, TAU, TPUPM1, N_size, WORK, LWORK, INFO)
