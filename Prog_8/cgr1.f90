@@ -59,8 +59,11 @@
         COMPLEX (Kind=Kind(0.d0)), Dimension(:) , Allocatable ::  DUP
         INTEGER, Dimension(:), Allocatable :: IPVT
         COMPLEX (Kind=Kind(0.d0)) ::  ZDUP1, ZDDO1, ZDUP2, ZDDO2, Z1, ZUP, ZDO, alpha, beta
-        Integer :: I,J, N_size, NCON, info
+        Integer :: I,J, N_size, NCON, info, LWORK
         Real (Kind=Kind(0.D0)) :: X, Xmax, sv
+        
+        COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK, RWORK
+        LOGICAL :: FORWRD
         
         N_size = SIZE(DLUP,1)
         NCON = 0
@@ -75,15 +78,41 @@
         ENDDO
         CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, URUP, N_size, ULUP, N_size, alpha, TPUP, N_size)
         IF (NVAR.EQ.1) THEN
-           !WRITE(6,*) 'UDV of U + DR * V * DL'
-           CALL UDV_WRAP_Pivot(TPUP,UUP,DUP,VUP,NCON,N_size,N_Size)
+           WRITE(6,*) 'UDV of U + DR * V * DL'
+            ALLOCATE(TAU(N_size), RWORK(2*N_size))
+            IPVT = 0
+            ! Query and allocate optimal amount of work space
+            call ZGEQP3(N_size, N_size, TPUP, N_size, IPVT, TAU, beta, -1, RWORK, INFO)
+            LWORK = INT(DBLE(beta))
+            ALLOCATE(WORK(LWORK))
+            ! QR decomposition of TMP1 with full column pivoting, AP = QR
+            call ZGEQP3(N_size, N_size, TPUP, N_size, IPVT, TAU, WORK, LWORK, RWORK, INFO)
+            ! separate off DUP
+            do i = 1, N_size
+                X = ABS(TPUP(i, i))
+                DUP(i) = X
+                do j = i, N_size
+                    TPUP(i, j) = TPUP(i, j) / X
+                enddo
+            enddo
+           ! URUP = URUP * UUP
+            TPUP1 = URUP
+           CALL ZUNMQR('R', 'N', N_size, N_size, N_size, TPUP, N_size, TAU, TPUP1, N_size, WORK, LWORK, INFO)
+           TPUPM1 = ULUP
+           ! ULUP = R * P * ULUP
+           FORWRD = .true.
+           CALL ZLAPMR(FORWRD, N_size, N_size, TPUPM1, N_size, IPVT) ! lapack 3.3
+           CALL ZTRMM('L', 'U', 'N', 'N', N_size, N_size, alpha, TPUP, N_size, TPUPM1, N_size)
+
+!!           CALL UDV_WRAP_Pivot(TPUP,UUP,DUP,VUP,NCON,N_size,N_Size)
            !CALL UDV(TPUP,UUP,DUP,VUP,NCON)
-           CALL MMULT(TPUP,VUP,ULUP)
+!!           CALL MMULT(TPUP,VUP,ULUP)
            !Do I = 1,N_size
            !   Write(6,*) DLUP(I)
            !enddo
-           CALL INV(TPUP,TPUPM1,ZDUP1)
-           CALL MMULT(TPUP1,URUP,UUP)
+           CALL INV(TPUPM1,TPUP,ZDUP1)
+           TPUPM1 = TPUP
+!           CALL MMULT(TPUP1,URUP,UUP)
            CALL ZGETRF(N_size, N_size, TPUP1, N_size, IPVT, info)
            Z1 = ZDUP1
            Do i = 1, N_size
@@ -92,13 +121,41 @@
            endif
            Z1 = Z1 * TPUP1(I, I)
            enddo
+           DEALLOCATE(TAU, WORK, RWORK)
         ELSE
-           !WRITE(6,*) 'UDV of (U + DR * V * DL)^{*}'
+           WRITE(6,*) 'UDV of (U + DR * V * DL)^{*}'
            TPUP1 = CT(TPUP)
-           CALL UDV_WRAP_Pivot(TPUP1,UUP,DUP,VUP,NCON,N_size,N_size)
+!!           CALL UDV_WRAP_Pivot(TPUP1,UUP,DUP,VUP,NCON,N_size,N_size)
+           ALLOCATE(TAU(N_size), RWORK(2*N_size))
+            IPVT = 0
+            ! Query and allocate optimal amount of work space
+            call ZGEQP3(N_size, N_size, TPUP1, N_size, IPVT, TAU, beta, -1, RWORK, INFO)
+            LWORK = INT(DBLE(beta))
+            ALLOCATE(WORK(LWORK))
+            ! QR decomposition of TMP1 with full column pivoting, AP = QR
+            call ZGEQP3(N_size, N_size, TPUP1, N_size, IPVT, TAU, WORK, LWORK, RWORK, INFO)
+            ! separate off DUP
+            do i = 1, N_size
+                X = ABS(TPUP1(i, i))
+                DUP(i) = X
+                do j = i, N_size
+                    TPUP1(i, j) = TPUP1(i, j) / X
+                enddo
+            enddo
+           
+           
            !CALL UDV(TPUP1,UUP,DUP,VUP,NCON)
-           CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, ULUP, N_size, UUP, N_size, beta, TPUPM1, N_size)
-           CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, URUP, N_size, VUP, N_size, beta, TPUP1, N_size)
+           ! TPUPM1 = ULUP * UUP
+           TPUPM1 = CT(ULUP)
+           CALL ZUNMQR('R', 'N', N_size, N_size, N_size, TPUP1, N_size, TAU, TPUPM1, N_size, WORK, LWORK, INFO)
+!!           CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, ULUP, N_size, UUP, N_size, beta, TPUPM1, N_size)
+            ! TPUP1 = URUP * VUP^dagger, VUP = VUP*P^dagger
+            TPUP = URUP
+            FORWRD = .true.
+            CALL ZLAPMT(FORWRD, N_size, N_size, TPUP, N_size, IPVT)
+            CALL ZTRMM('R', 'U', 'C', 'N', N_size, N_size, alpha, TPUP1, N_size, TPUP, N_size)
+            TPUP1 = TPUP
+!!           CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, URUP, N_size, VUP, N_size, beta, TPUP1, N_size)
            CALL ZGETRF(N_size, N_size, TPUP1, N_size, IPVT, info)
            ZDUP2 = 1.D0
            do i = 1, N_size
@@ -107,6 +164,7 @@
             ZDUP2 = -ZDUP2
            endif
            enddo
+           write (*,*) ZDUP2
            TPUP = TPUPM1
            ZDUP1 = DET_C(TPUP, N_size)! Det destroys its argument
            Z1 = ZDUP2/ZDUP1
