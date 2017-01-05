@@ -55,7 +55,7 @@
         INTEGER         :: NVAR
  
         !Local
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  UUP, VUP, TPUP, TPUP1, TPUPM1
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  UUP, TPUP, TPUP1, TPUPM1
         COMPLEX (Kind=Kind(0.d0)), Dimension(:) , Allocatable ::  DUP
         INTEGER, Dimension(:), Allocatable :: IPVT
         COMPLEX (Kind=Kind(0.d0)) ::  ZDUP1, ZDDO1, ZDUP2, ZDDO2, Z1, ZUP, ZDO, alpha, beta
@@ -69,16 +69,16 @@
         NCON = 0
         alpha = 1.D0
         beta = 0.D0
-        Allocate( UUP(N_size,N_size),  VUP(N_size,N_size), TPUP(N_size,N_size), TPUP1(N_size,N_size), &
+        Allocate( UUP(N_size,N_size), TPUP(N_size,N_size), TPUP1(N_size,N_size), &
              & TPUPM1(N_size,N_size), DUP(N_size), IPVT(N_size) )
         !Write(6,*) 'In CGR', N_size
-        CALL MMULT(VUP,VRUP,VLUP)
+        CALL MMULT(TPUP1,VRUP,VLUP)
         DO J = 1,N_size
-            TPUP(:,J) = DRUP(:)*VUP(:,J)*DLUP(J)
+            TPUP(:,J) = DRUP(:)*TPUP1(:,J)*DLUP(J)
         ENDDO
         CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, URUP, N_size, ULUP, N_size, alpha, TPUP, N_size)
         IF (NVAR.EQ.1) THEN
-           WRITE(6,*) 'UDV of U + DR * V * DL'
+!           WRITE(6,*) 'UDV of U + DR * V * DL'
             ALLOCATE(TAU(N_size), RWORK(2*N_size))
             IPVT = 0
             ! Query and allocate optimal amount of work space
@@ -123,7 +123,7 @@
            enddo
            DEALLOCATE(TAU, WORK, RWORK)
         ELSE
-           WRITE(6,*) 'UDV of (U + DR * V * DL)^{*}'
+!           WRITE(6,*) 'UDV of (U + DR * V * DL)^{*}'
            TPUP1 = CT(TPUP)
 !!           CALL UDV_WRAP_Pivot(TPUP1,UUP,DUP,VUP,NCON,N_size,N_size)
            ALLOCATE(TAU(N_size), RWORK(2*N_size))
@@ -164,7 +164,7 @@
             ZDUP2 = -ZDUP2
            endif
            enddo
-           write (*,*) ZDUP2
+!           write (*,*) ZDUP2
            TPUP = TPUPM1
            ZDUP1 = DET_C(TPUP, N_size)! Det destroys its argument
            Z1 = ZDUP2/ZDUP1
@@ -182,6 +182,6 @@
         call ZGETRS('T', N_size, N_size, TPUP1, N_size, IPVT, UUP, N_size, info)
         GRUP = TRANSPOSE(UUP)
         PHASE = Z1/ABS(Z1)
-        Deallocate(UUP, VUP, TPUP,TPUP1,TPUPM1, DUP, IPVT )
+        Deallocate(UUP, TPUP,TPUP1,TPUPM1, DUP, IPVT )
 
       END SUBROUTINE CGR
