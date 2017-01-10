@@ -45,7 +45,8 @@
         Use UDV_Wrap_mod
 
         Implicit None
-
+        Integer :: IZAMAX, izmax1
+        REAL(Kind=Kind(0.D0)) :: DZSUM1, DZNRM2
 
 	!Arguments.
         COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(IN)   ::  URUP, VRUP, ULUP, VLUP
@@ -88,7 +89,16 @@
             call ZGEQP3(N_size, N_size, TPUP, N_size, IPVT, TAU, WORK, LWORK, RWORK, INFO)
             ! separate off DUP
             do i = 1, N_size
-                X = ABS(TPUP(i, i))
+        ! plain diagonal entry
+             X = ABS(TPUP(i, i))
+!             ! a inf-norm
+!             X = TPUP(i, i+izamax(Ndim+1-i, TPUP(i, i), Ndim)-1)
+!             ! another inf-norm
+!             X = TPUP(i, i-1+izmax1(Ndim+1-i, TPUP(i, i), Ndim))
+!             ! 1-norm
+!            X = DZSUM1(N_size+1-i, TPUP(i, i), N_size)
+            ! 2-norm
+!            X = DZNRM2(N_size+1-i, TPUP(i, i), N_size)
                 DUP(i) = X
                 do j = i, N_size
                     TPUP(i, j) = TPUP(i, j) / X
@@ -127,11 +137,21 @@
             call ZGEQP3(N_size, N_size, TPUP1, N_size, IPVT, TAU, beta, -1, RWORK, INFO)
             LWORK = INT(DBLE(beta))
             ALLOCATE(WORK(LWORK))
-            ! QR decomposition of TMP1 with full column pivoting, AP = QR
+            ! QR decomposition of TPUP1 with full column pivoting, AP = QR
             call ZGEQP3(N_size, N_size, TPUP1, N_size, IPVT, TAU, WORK, LWORK, RWORK, INFO)
             ! separate off DUP
             do i = 1, N_size
                 X = ABS(TPUP1(i, i))
+        ! plain diagonal entry
+             X = ABS(TPUP1(i, i))
+!             ! a inf-norm
+!             X = TPUP1(i, i+izamax(Ndim+1-i, TPUP1(i, i), Ndim)-1)
+!             ! another inf-norm
+!             X = TPUP1(i, i-1+izmax1(Ndim+1-i, TPUP1(i, i), Ndim))
+!             ! 1-norm
+!            X = DZSUM1(N_size+1-i, TPUP1(i, i), N_size)
+            ! 2-norm
+!            X = DZNRM2(N_size+1-i, TPUP1(i, i), N_size)
                 DUP(i) = X
                 do j = i, N_size
                     TPUP1(i, j) = TPUP1(i, j) / X

@@ -59,15 +59,17 @@ end subroutine
  SUBROUTINE ul_update_matrices(U, D, V, TMP, TMP1, Ndim, NCON)
         Use UDV_Wrap_mod
         Implicit None
+        Integer :: IZAMAX, izmax1
+        REAL(Kind=Kind(0.D0)) :: DZSUM1, DZNRM2
         INTEGER, intent(in) :: Ndim, NCON
         COMPLEX (Kind=Kind(0.d0)), intent(in) :: TMP(Ndim,Ndim)
         COMPLEX (Kind=Kind(0.d0)), intent(inout) :: U(Ndim,Ndim), V(Ndim,Ndim), TMP1(Ndim,Ndim), D(Ndim)
         COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK, RWORK
         COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta
         INTEGER, allocatable, Dimension(:) :: IPVT
-        INTEGER :: INFO, i, j
+        INTEGER :: INFO, i, j, t1
         LOGICAL :: FORWRD
-        REAL(Kind=Kind(0.D0)) :: X  
+        REAL(Kind=Kind(0.D0)) :: X
 
         Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
         beta = 0.D0
@@ -88,9 +90,21 @@ end subroutine
         ALLOCATE(WORK(I))
         ! QR decomposition of TMP1 with full column pivoting, AP = QR)
         call ZGEQP3(Ndim, Ndim, TMP1, Ndim, IPVT, TAU, WORK, I, RWORK, INFO)
-        ! separate off D
+        ! separate off D and calculate the respective row-norms
         do i = 1, Ndim
-            X = ABS(TMP1(i, i))
+        ! plain diagonal entry
+             X = ABS(TMP1(i, i))
+!             ! a inf-norm
+!             X = TMP1(i, i+izamax(Ndim+1-i, TMP1(i, i), Ndim)-1)
+!             ! another inf-norm
+!             X = TMP1(i, i-1+izmax1(Ndim+1-i, TMP1(i, i), Ndim))
+!             ! 1-norm
+!            X = DZSUM1(Ndim+1-i, TMP1(i, i), Ndim)
+            ! 2-norm
+!            X = DZNRM2(Ndim+1-i, TMP1(i, i), Ndim)
+!             write (*, *) i, ABS(TMP1(i, i)), i+izamax(Ndim+1-i, TMP1(i, i), Ndim)-1, TMP1(i, i+izamax(Ndim+1-i, & 
+!             & TMP1(i, i), Ndim)-1), i-1 + izmax1(Ndim+1-i, TMP1(i, i), Ndim), TMP1(i, i-1+izmax1(Ndim+1-i, &
+!             & TMP1(i, i), Ndim)), DZSUM1(Ndim+1-i, TMP1(i, i), Ndim), DZNRM2(Ndim+1-i, TMP1(i, i), Ndim)
             D(i) = X
             do j = i, Ndim
                 TMP1(i, j) = TMP1(i,j) / X
@@ -133,6 +147,8 @@ END SUBROUTINE ul_update_matrices
         Use MyMats
         Implicit None
         INTEGER, intent(in) :: Ndim, NCON
+        Integer :: IZAMAX, izmax1
+        REAL(Kind=Kind(0.D0)) :: DZSUM1, DZNRM2
         COMPLEX (Kind=Kind(0.d0)), intent(in) :: TMP(Ndim,Ndim)
         COMPLEX (Kind=Kind(0.d0)), intent(inout) :: U(Ndim,Ndim), V(Ndim,Ndim), TMP1(Ndim,Ndim), D(Ndim)
         COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK, RWORK
@@ -160,7 +176,16 @@ END SUBROUTINE ul_update_matrices
         call ZGEQP3(Ndim, Ndim, TMP1, Ndim, IPVT, TAU, WORK, I, RWORK, INFO)   
         ! separate off D
         do i = 1, Ndim
-            X = ABS(TMP1(i, i))
+        ! plain diagonal entry
+             X = ABS(TMP1(i, i))
+!             ! a inf-norm
+!             X = TMP1(i, i+izamax(Ndim+1-i, TMP1(i, i), Ndim)-1)
+!             ! another inf-norm
+!             X = TMP1(i, i-1+izmax1(Ndim+1-i, TMP1(i, i), Ndim))
+            ! 1-norm
+!            X = DZSUM1(Ndim+1-i, TMP1(i, i), Ndim)
+            ! 2-norm
+!            X = DZNRM2(Ndim+1-i, TMP1(i, i), Ndim)
             D(i) = X
             do j = i, Ndim
                 TMP1(i, j) = TMP1(i,j) / X
