@@ -37,6 +37,7 @@
       Complex (Kind=8), allocatable, private ::  U1_eq(:,:,:), U1_eq0(:)
       Complex (Kind=8), allocatable, private ::  L_eq(:,:,:), L_eq0(:)
       Complex (Kind=8), allocatable, private ::  U1xy_eq(:,:,:), U1xy_eq0(:)
+      Complex (Kind=8), allocatable, private ::  U1xyG_eq(:,:,:), U1xyG_eq0(:)
       Complex (Kind=8), allocatable, private ::  Spinz_eq(:,:,:), Spinz_eq0(:)
       Complex (Kind=8), allocatable, private ::  Spinxy_eq(:,:,:), Spinxy_eq0(:)
       Complex (Kind=8), allocatable, private ::  TRS_eq(:,:,:), TRS_eq0(:)
@@ -418,13 +419,14 @@
           Allocate ( Obs_scal(8) )
           Allocate ( Den_eq(Latt%N,1,1), Den_eq0(1) ) 
           Allocate ( U1_eq(Latt%N,1,1), U1_eq0(1) )
-          Allocate ( Spinz_eq(Latt%N,1,1), spinz_eq0(1) )
+          Allocate ( U1xy_eq(Latt%N,1,1), U1xy_eq0(1) )
+          Allocate ( U1xyG_eq(Latt%N,1,1), U1xyG_eq0(1) )
           Allocate ( L_eq(Latt%N,1,1), L_eq0(1) )
+          Allocate ( Spinz_eq(Latt%N,1,1), spinz_eq0(1) )
+          Allocate ( Spinxy_eq(Latt%N,1,1), spinxy_eq0(1) ) 
           
           if (FlagSym ==1) then
               Allocate ( R_eq(Latt%N,1,1), R_eq0(1) ) 
-              Allocate ( U1xy_eq(Latt%N,1,1), U1xy_eq0(1) )
-              Allocate ( Spinxy_eq(Latt%N,1,1), spinxy_eq0(1) ) 
               Allocate ( TRS_eq(Latt%N,1,1), TRS_eq0(1) )
               Allocate ( PHS_eq(Latt%N,1,1), PHS_eq0(1) )
               Allocate ( RS_eq(Latt%N,1,1), RS_eq0(1) )
@@ -466,16 +468,18 @@
           Spinz_eq0   = 0.d0
           U1_eq    = 0.d0
           U1_eq0   = 0.d0
+          U1xy_eq    = 0.d0
+          U1xy_eq0   = 0.d0
+          U1xyG_eq    = 0.d0
+          U1xyG_eq0   = 0.d0
+          Spinxy_eq    = 0.d0
+          Spinxy_eq0   = 0.d0
           L_eq    = 0.d0
           L_eq0   = 0.d0
           
           if (FlagSym ==1 ) then
               R_eq    = 0.d0
               R_eq0   = 0.d0
-              U1xy_eq    = 0.d0
-              U1xy_eq0   = 0.d0
-              Spinxy_eq    = 0.d0
-              Spinxy_eq0   = 0.d0
               
               TRS_eq    = 0.d0
               TRS_eq0   = 0.d0
@@ -675,7 +679,17 @@
                 U1_eq (imj,1,1) = U1_eq (imj,1,1)   +  weight*tmp*0.25
 
              enddo
-             Den_eq0(1) = Den_eq0(1) +   GRC(I1,I1,1)*ZP*ZS 
+             tmp=GRC(I1,I1,1)
+             Den_eq0(1) = Den_eq0(1) +   tmp*ZP*ZS 
+                     
+!              weight=cmplx(1.d0,0.d0, kind(0.D0))
+!              if ( (no>=9) ) weight=-weight
+!              Spinz_eq0 (1) = Spinz_eq0 (1)   +   weight * 0.5 * tmp
+!             
+!              signum = 1
+!              if (((no-1)/4+1==2) .or. ((no-1)/4+1==4)) signum=-1
+!              weight = cmplx(dble(signum),0.d0, kind(0.D0))
+!              U1_eq0 (1) = U1_eq0 (1)   +  weight*tmp*0.5
           enddo
 !$OMP end parallel do
             
@@ -723,47 +737,58 @@
 !             enddo
 !           enddo
           
-          if (FlagSym ==1) then
 !$OMP parallel do default(shared) private(I,I1,I2,no,J,J1,J2,no1,imj,tmp,weight,signum)
-            do I=1,Latt%N
-              do no=1,8
-                  do J=1,Latt%N
-                    imj = latt%imj(I,J)
-                    do no1=1,8
-                        I1 = Invlist(I,no)
-                        I2 = Invlist(I,no+8)
-                        J1 = Invlist(J,no1+8)
-                        J2 = Invlist(J,no1)
-                        
-                        tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-                            &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-                        Spinxy_eq (imj,1,1) = Spinxy_eq (imj,1,1)   +  tmp
-                        
-                        if (no<=4) then
-                          I1 = Invlist(I,no)
-                          I2 = Invlist(I,no+4)
-                        else
-                          I1= Invlist(I,no+4)
-                          I2 = Invlist(I,no+8)
-                        endif
-                        if (no1<=4) then
-                          J1 = Invlist(J,no1+4)
-                          J2 = Invlist(J,no1)
-                        else
-                          J1 = Invlist(J,no1+8)
-                          J2 = Invlist(J,no1+4)
-                        endif
-                        
-                        tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
-                            &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
-                        U1xy_eq (imj,1,1) = U1xy_eq (imj,1,1)   +  tmp
-                    enddo
+          do I=1,Latt%N
+            do no=1,8
+                I1 = Invlist(I,no)
+                I2 = Invlist(I,no+8)
+                do J=1,Latt%N
+                  imj = latt%imj(I,J)
+                  do no1=1,8
+                    J1 = Invlist(J,no1+8)
+                    J2 = Invlist(J,no1)
+                    
+                    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+                        &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+                    Spinxy_eq (imj,1,1) = Spinxy_eq (imj,1,1)   +  tmp
                   enddo
-                  
-              enddo
+                enddo
+                
             enddo
+          enddo
+          
+          do I=1,Latt%N
+            do no=1,8
+                if (no<=4) then
+                  I1 = Invlist(I,no)
+                  I2 = Invlist(I,no+4)
+                else
+                  I1= Invlist(I,no+4)
+                  I2 = Invlist(I,no+8)
+                endif
+                do J=1,Latt%N
+                  imj = latt%imj(I,J)
+                  do no1=1,8
+                    if (no1<=4) then
+                      J1 = Invlist(J,no1+4)
+                      J2 = Invlist(J,no1)
+                    else
+                      J1 = Invlist(J,no1+8)
+                      J2 = Invlist(J,no1+4)
+                    endif
+                    
+                    tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+                        &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+                    U1xy_eq (imj,1,1) = U1xy_eq (imj,1,1)   +  tmp
+                    U1xyG_eq (imj,1,1) = U1xyG_eq (imj,1,1)   +  (-1)**(no/2+no1/2+(no-1)/4+(no1-1)/4)*tmp
+                  enddo
+                enddo
+                
+            enddo
+          enddo
 !$OMP end parallel do
             
+          if (FlagSym ==1) then
 !$OMP parallel do default(shared) private(I,I1,I2,Ix,Iy,Imx,Imy,no,J,J1,J2,jx,jy,jmx,jmy,no1,imj,a,b,c,d,tmp,weight,signum)
             do I=1,Latt%N
               Ix = Latt%nnlist(I,1,0)
@@ -1495,16 +1520,18 @@
           Call Print_bin(Den_eq, Den_eq0, Latt, Nobs, Phase_bin, file_pr)
           File_pr ="U1_eq"
           Call Print_bin(U1_eq, U1_eq0, Latt, Nobs, Phase_bin, file_pr)
+          File_pr ="U1xy_eq"
+          Call Print_bin(U1xy_eq, U1xy_eq0, Latt, Nobs, Phase_bin, file_pr)
+          File_pr ="U1xyG_eq"
+          Call Print_bin(U1xyG_eq, U1xyG_eq0, Latt, Nobs, Phase_bin, file_pr)
           File_pr ="Spinz_eq"
           Call Print_bin(Spinz_eq, Spinz_eq0, Latt, Nobs, Phase_bin, file_pr)
+          File_pr ="Spinxy_eq"
+          Call Print_bin(Spinxy_eq, Spinxy_eq0, Latt, Nobs, Phase_bin, file_pr)
           
           if (FlagSym == 1) then
             File_pr ="R_eq"
             Call Print_bin(R_eq, R_eq0, Latt, Nobs, Phase_bin, file_pr)
-            File_pr ="U1xy_eq"
-            Call Print_bin(U1xy_eq, U1xy_eq0, Latt, Nobs, Phase_bin, file_pr)
-            File_pr ="Spinxy_eq"
-            Call Print_bin(Spinxy_eq, Spinxy_eq0, Latt, Nobs, Phase_bin, file_pr)
             File_pr ="SymCheckTR_eq"
             Call Print_bin(TRS_eq, TRS_eq0, Latt, Nobs, Phase_bin, file_pr)
             File_pr ="SymCheckR_eq"
@@ -1533,8 +1560,8 @@
              Call Print_bin_tau(U1_tau,Latt,NobsT,Phase_tau, file_pr,dtau)
              File_pr = "U1xy_tau"
              Call Print_bin_tau(U1xy_tau,Latt,NobsT,Phase_tau, file_pr,dtau)
-              File_pr = "U1xyG_tau"
-              Call Print_bin_tau(U1xyG_tau,Latt,NobsT,Phase_tau, file_pr,dtau)
+             File_pr = "U1xyG_tau"
+             Call Print_bin_tau(U1xyG_tau,Latt,NobsT,Phase_tau, file_pr,dtau)
              File_pr = "Spinz_tau"
              Call Print_bin_tau(Spinz_tau,Latt,NobsT,Phase_tau, file_pr,dtau)
              File_pr = "Spinxy_tau"
