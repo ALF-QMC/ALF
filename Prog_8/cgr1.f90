@@ -147,16 +147,9 @@
         ENDDO
 !!        call ZGETRS('T', N_size, N_size, TPUP1, N_size, IPVT, UUP, N_size, info)
 
-beta = 0.D0
 CALL ZUNMQR('R', 'C', N_size, N_size, N_size, TEMP, N_size, TAU, UUP, N_size, WORK, LWORK, INFO)
-
-        CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, UUP, N_size, URUP, N_size, beta, TPUPM1, N_size)
-        
-UUP = TPUPM1
-        
-        GRUP = TRANSPOSE(UUP)
-        
-        GRUP = UUP
+        beta = 0.D0
+        CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, UUP, N_size, URUP, N_size, beta, GRUP, N_size)        
         
         PHASE = Z1/ABS(Z1)
 
