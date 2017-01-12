@@ -58,7 +58,7 @@
         !Local
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  UUP, TPUP, TPUP1, TPUPM1, TEMP, TEMP2
         COMPLEX (Kind=Kind(0.d0)), Dimension(:) , Allocatable ::  DUP
-        INTEGER, Dimension(:), Allocatable :: IPVT, IPVT2
+        INTEGER, Dimension(:), Allocatable :: IPVT
         COMPLEX (Kind=Kind(0.d0)) ::  ZDUP1, ZDDO1, ZDUP2, ZDDO2, Z1, ZUP, ZDO, alpha, beta
         Integer :: I,J, N_size, NCON, info, LWORK
         Real (Kind=Kind(0.D0)) :: X, Xmax, sv
@@ -71,7 +71,7 @@
         alpha = 1.D0
         beta = 0.D0
         Allocate( UUP(N_size,N_size), TPUP(N_size,N_size), TPUP1(N_size,N_size), &
-        & TEMP(N_size, N_size), TEMP2(N_size, N_size), IPVT2(N_size),&
+        & TEMP(N_size, N_size), TEMP2(N_size, N_size),&
              & TPUPM1(N_size,N_size), DUP(N_size), IPVT(N_size), TAU(N_size), RWORK(2*N_size))
         !Write(6,*) 'In CGR', N_size
         CALL MMULT(TPUP1,VRUP,VLUP)
@@ -171,7 +171,7 @@ UUP = TPUPM1
             ALLOCATE(WORK(LWORK))
             ! QR decomposition of TPUP1 with full column pivoting, AP = QR
             call ZGEQP3(N_size, N_size, TPUP1, N_size, IPVT, TAU, WORK, LWORK, RWORK, INFO)
-            ! separate off DUP
+            ! separate off DUP. The comments denote various variants
             do i = 1, N_size
         ! plain diagonal entry
              X = ABS(TPUP1(i, i))
@@ -211,12 +211,12 @@ UUP = TPUPM1
 CALL ZTRSM('R', 'U', 'C', 'N', N_size, N_size, alpha, TPUP1, N_size, UUP, N_size)
 ! apply inverse permutation matrix
             FORWRD = .false.
-            CALL ZLAPMT(FORWRD, N_size, N_size, UUP, N_size, IPVT2)
+            CALL ZLAPMT(FORWRD, N_size, N_size, UUP, N_size, IPVT)
 ! perform multiplication with URUP
         beta = 0.D0
 CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, UUP, N_size, URUP, N_size, beta, GRUP, N_size)
 
-! calculate the determinant in the old fashion
+! calculate the determinant in the old fashion. should be removed soon since it is almost duplicate
 
 !!           CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, ULUP, N_size, UUP, N_size, beta, TPUPM1, N_size)
             ! TPUP1 = URUP * VUP^dagger, VUP = VUP*P^dagger
@@ -243,6 +243,6 @@ CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, UUP, N_size, URUP, N_size, b
 !         GRUP = TRANSPOSE(UUP)
         PHASE = Z1/ABS(Z1)
         ENDIF
-        Deallocate(UUP, TPUP,TPUP1,TPUPM1, DUP, IPVT, TEMP, TEMP2, IPVT2 )
+        Deallocate(UUP, TPUP,TPUP1,TPUPM1, DUP, IPVT, TEMP, TEMP2)
 
       END SUBROUTINE CGR
