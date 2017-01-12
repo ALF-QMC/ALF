@@ -56,9 +56,9 @@
         INTEGER         :: NVAR
  
         !Local
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  UUP, TPUP, TPUP1, TPUPM1
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  UUP, TPUP, TPUP1, TPUPM1, TEMP, TEMP2
         COMPLEX (Kind=Kind(0.d0)), Dimension(:) , Allocatable ::  DUP
-        INTEGER, Dimension(:), Allocatable :: IPVT
+        INTEGER, Dimension(:), Allocatable :: IPVT, IPVT2
         COMPLEX (Kind=Kind(0.d0)) ::  ZDUP1, ZDDO1, ZDUP2, ZDDO2, Z1, ZUP, ZDO, alpha, beta
         Integer :: I,J, N_size, NCON, info, LWORK
         Real (Kind=Kind(0.D0)) :: X, Xmax, sv
@@ -71,6 +71,7 @@
         alpha = 1.D0
         beta = 0.D0
         Allocate( UUP(N_size,N_size), TPUP(N_size,N_size), TPUP1(N_size,N_size), &
+        & TEMP(N_size, N_size), TEMP2(N_size, N_size), IPVT2(N_size),&
              & TPUPM1(N_size,N_size), DUP(N_size), IPVT(N_size), TAU(N_size), RWORK(2*N_size))
         !Write(6,*) 'In CGR', N_size
         CALL MMULT(TPUP1,VRUP,VLUP)
@@ -107,6 +108,7 @@
             ! URUP = URUP * UUP
             TPUP1 = URUP
             CALL ZUNMQR('R', 'N', N_size, N_size, N_size, TPUP, N_size, TAU, TPUP1, N_size, WORK, LWORK, INFO)
+            TEMP = TPUP
             TPUPM1 = ULUP
             ! ULUP = R * P * ULUP
             FORWRD = .true.
@@ -129,6 +131,36 @@
            endif
            Z1 = Z1 * TPUP1(I, I)
            enddo
+           
+           
+!                   DEALLOCATE(TAU, WORK, RWORK)
+        DO J = 1, N_size
+           sv = DBLE(DUP(J))
+           X = ABS(sv)
+           if (J == 1)  Xmax = X
+           if ( X  < Xmax ) Xmax = X
+           sv = 1.D0/sv
+           DO I = 1, N_size
+!               UUP(J, I) = TPUPM1(I, J) * sv
+              UUP(I,J) = TPUPM1(I, J) * sv
+           ENDDO
+        ENDDO
+!!        call ZGETRS('T', N_size, N_size, TPUP1, N_size, IPVT, UUP, N_size, info)
+
+beta = 0.D0
+CALL ZUNMQR('R', 'C', N_size, N_size, N_size, TEMP, N_size, TAU, UUP, N_size, WORK, LWORK, INFO)
+
+        CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, UUP, N_size, URUP, N_size, beta, TPUPM1, N_size)
+        
+UUP = TPUPM1
+        
+        GRUP = TRANSPOSE(UUP)
+        
+        GRUP = UUP
+        
+        PHASE = Z1/ABS(Z1)
+
+                    DEALLOCATE(TAU, WORK, RWORK)          
         ELSE
 !           WRITE(6,*) 'UDV of (U + DR * V * DL)^{*}'
            TPUP1 = CT(TPUP)
@@ -141,7 +173,6 @@
             call ZGEQP3(N_size, N_size, TPUP1, N_size, IPVT, TAU, WORK, LWORK, RWORK, INFO)
             ! separate off DUP
             do i = 1, N_size
-                X = ABS(TPUP1(i, i))
         ! plain diagonal entry
              X = ABS(TPUP1(i, i))
 !             ! a inf-norm
@@ -160,6 +191,12 @@
            ! TPUPM1 = ULUP * UUP
            TPUPM1 = CT(ULUP)
            CALL ZUNMQR('R', 'N', N_size, N_size, N_size, TPUP1, N_size, TAU, TPUPM1, N_size, WORK, LWORK, INFO)
+           
+           
+           ! save triangular matrix
+           TEMP2 = TPUP1
+           IPVT2 = IPVT
+                      
 !!           CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, ULUP, N_size, UUP, N_size, beta, TPUPM1, N_size)
             ! TPUP1 = URUP * VUP^dagger, VUP = VUP*P^dagger
             TPUP = URUP
@@ -180,8 +217,8 @@
            TPUP = TPUPM1
            ZDUP1 = DET_C(TPUP, N_size)! Det destroys its argument
            Z1 = ZDUP2/ZDUP1
-        ENDIF
-        DEALLOCATE(TAU, WORK, RWORK)
+           
+           
         DO J = 1, N_size
            sv = DBLE(DUP(J))
            X = ABS(sv)
@@ -189,12 +226,40 @@
            if ( X  < Xmax ) Xmax = X
            sv = 1.D0/sv
            DO I = 1, N_size
-              UUP(J, I) = TPUPM1(I, J) * sv
+             UUP(I, J) = TPUPM1(I, J) * sv
            ENDDO
         ENDDO
-        call ZGETRS('T', N_size, N_size, TPUP1, N_size, IPVT, UUP, N_size, info)
-        GRUP = TRANSPOSE(UUP)
+! We solve the equation
+! G * A = UUP for G with A = URUP * P * R^dagger
+! first we solve y * R^dagger = UUP
+CALL ZTRSM('R', 'U', 'C', 'N', N_size, N_size, alpha, TEMP2, N_size, UUP, N_size)
+! apply inverse permutation matrix
+            FORWRD = .false.
+            CALL ZLAPMT(FORWRD, N_size, N_size, UUP, N_size, IPVT2)
+! perform multiplication with URUP
+        beta = 0.D0
+CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, UUP, N_size, URUP, N_size, beta, GRUP, N_size)
+
+!         call ZGETRS('T', N_size, N_size, TPUP1, N_size, IPVT, UUP, N_size, info)
+!         GRUP = TRANSPOSE(UUP)
+!         call pm(GRUP, N_size)
         PHASE = Z1/ABS(Z1)
-        Deallocate(UUP, TPUP,TPUP1,TPUPM1, DUP, IPVT )
+        DEALLOCATE(TAU, WORK, RWORK)
+        ENDIF
+!         DEALLOCATE(TAU, WORK, RWORK)
+!         DO J = 1, N_size
+!            sv = DBLE(DUP(J))
+!            X = ABS(sv)
+!            if (J == 1)  Xmax = X
+!            if ( X  < Xmax ) Xmax = X
+!            sv = 1.D0/sv
+!            DO I = 1, N_size
+!               UUP(J, I) = TPUPM1(I, J) * sv
+!            ENDDO
+!         ENDDO
+!         call ZGETRS('T', N_size, N_size, TPUP1, N_size, IPVT, UUP, N_size, info)
+!         GRUP = TRANSPOSE(UUP)
+!         PHASE = Z1/ABS(Z1)
+        Deallocate(UUP, TPUP,TPUP1,TPUPM1, DUP, IPVT, TEMP, TEMP2, IPVT2 )
 
       END SUBROUTINE CGR
