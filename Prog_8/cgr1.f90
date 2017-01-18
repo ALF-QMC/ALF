@@ -56,12 +56,12 @@
         INTEGER         :: NVAR
  
         !Local
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  UUP, TPUP, TPUP1, TPUPM1, TEMP, TEMP2
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  UUP, TPUP, TPUP1, TPUPM1, TEMP, ID
         COMPLEX (Kind=Kind(0.d0)), Dimension(:) , Allocatable ::  DUP
-        INTEGER, Dimension(:), Allocatable :: IPVT
+        INTEGER, Dimension(:), Allocatable :: IPVT, VISITED
         COMPLEX (Kind=Kind(0.d0)) ::  ZDUP1, ZDDO1, ZDUP2, ZDDO2, Z1, ZUP, ZDO, alpha, beta
-        Integer :: I,J, N_size, NCON, info, LWORK
-        Real (Kind=Kind(0.D0)) :: X, Xmax, sv
+        Integer :: I,J, N_size, NCON, info, LWORK, nonzeroes, next, L
+        Real (Kind=Kind(0.D0)) :: X, Xmax, sv, sign
         
         COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK, RWORK
         LOGICAL :: FORWRD
@@ -71,14 +71,20 @@
         alpha = 1.D0
         beta = 0.D0
         Allocate( UUP(N_size,N_size), TPUP(N_size,N_size), TPUP1(N_size,N_size), &
-        & TEMP(N_size, N_size), TEMP2(N_size, N_size),&
+        & TEMP(N_size, N_size), ID(N_size, N_size),VISITED(N_size),&
              & TPUPM1(N_size,N_size), DUP(N_size), IPVT(N_size), TAU(N_size), RWORK(2*N_size))
         !Write(6,*) 'In CGR', N_size
         CALL MMULT(TPUP1,VRUP,VLUP)
         DO J = 1,N_size
             TPUP(:,J) = DRUP(:)*TPUP1(:,J)*DLUP(J)
         ENDDO
-        CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, URUP, N_size, ULUP, N_size, alpha, TPUP, N_size)
+        ! can be inserted again once we are sure that we may assume that UR and UL stem from householder reflectors
+!        CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, URUP, N_size, ULUP, N_size, alpha, TPUP, N_size)
+        CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, URUP, N_size, ULUP, N_size, beta, TPUPM1, N_size)
+        TPUP = TPUP + TPUPM1
+        ! calculate determinant of UR*UL
+        PHASE = CONJG(DET_C(TPUPM1, N_size))
+        PHASE = PHASE/ABS(PHASE)
         IPVT = 0
         IF (NVAR.EQ.1) THEN
 !           WRITE(6,*) 'UDV of U + DR * V * DL'
@@ -88,6 +94,41 @@
             ALLOCATE(WORK(LWORK))
             ! QR decomposition of TMP1 with full column pivoting, AP = QR
             call ZGEQP3(N_size, N_size, TPUP, N_size, IPVT, TAU, WORK, LWORK, RWORK, INFO)
+
+            ! Another attempt at calculating the sign of P
+            VISITED = 0
+            do i = 1, N_size
+                if (VISITED(i) .eq. 0) then
+                next = i
+                L = 0
+                do while (VISITED(next) .eq. 0)
+                 L = L + 1
+                 VISITED(next) = 1
+                 next = IPVT(next)
+                enddo
+                if(MOD(L, 2) .eq. 0) then
+                    PHASE = -PHASE
+                endif
+                endif
+            enddo
+            
+            ! count the number of householder reflectors that were generated
+            nonzeroes = 0
+            do i = 1, N_size
+            if (tau(i) .ne. CMPLX(0.D0, 0.D0,Kind=Kind(0.D0))) then
+            nonzeroes = nonzeroes +1
+            endif
+            enddo
+            ! update the phase with the info from the QR decomposition
+               !test if N_size is odd via checking the least significant bit
+            if (btest(nonzeroes, 0)) then
+            PHASE = -PHASE
+            endif
+            ! conside the upper triangular right matrix R
+            DO i = 1, N_size
+                PHASE = PHASE * TPUP(i,i)/Abs(TPUP(i,i))
+            enddo
+
             ! separate off DUP
             do i = 1, N_size
         ! plain diagonal entry
@@ -115,45 +156,25 @@
             CALL ZLAPMR(FORWRD, N_size, N_size, TPUPM1, N_size, IPVT) ! lapack 3.3
             CALL ZTRMM('L', 'U', 'N', 'N', N_size, N_size, alpha, TPUP, N_size, TPUPM1, N_size)
 
-!!           CALL UDV_WRAP_Pivot(TPUP,UUP,DUP,VUP,NCON,N_size,N_Size)
-           !CALL UDV(TPUP,UUP,DUP,VUP,NCON)
-!!           CALL MMULT(TPUP,VUP,ULUP)
-           !Do I = 1,N_size
-           !   Write(6,*) DLUP(I)
-           !enddo
            CALL INV(TPUPM1,TPUP,ZDUP1)
            TPUPM1 = TPUP
-           CALL ZGETRF(N_size, N_size, TPUP1, N_size, IPVT, info)
-           Z1 = ZDUP1
-           Do i = 1, N_size
-           IF (IPVT(i) .ne. i) THEN
-            Z1 = -Z1
-           endif
-           Z1 = Z1 * TPUP1(I, I)
-           enddo
            
            
-!                   DEALLOCATE(TAU, WORK, RWORK)
-        DO J = 1, N_size
+                   DO J = 1, N_size
            sv = DBLE(DUP(J))
            X = ABS(sv)
            if (J == 1)  Xmax = X
            if ( X  < Xmax ) Xmax = X
            sv = 1.D0/sv
            DO I = 1, N_size
-!               UUP(J, I) = TPUPM1(I, J) * sv
               UUP(I,J) = TPUPM1(I, J) * sv
            ENDDO
         ENDDO
-!!        call ZGETRS('T', N_size, N_size, TPUP1, N_size, IPVT, UUP, N_size, info)
 
 CALL ZUNMQR('R', 'C', N_size, N_size, N_size, TEMP, N_size, TAU, UUP, N_size, WORK, LWORK, INFO)
         beta = 0.D0
         CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, UUP, N_size, URUP, N_size, beta, GRUP, N_size)        
-        
-        PHASE = Z1/ABS(Z1)
-
-                    DEALLOCATE(TAU, WORK, RWORK)          
+        DEALLOCATE(TAU, WORK, RWORK)          
         ELSE
 !           WRITE(6,*) 'UDV of (U + DR * V * DL)^{*}'
            TPUP1 = CT(TPUP)
@@ -236,6 +257,6 @@ CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, UUP, N_size, URUP, N_size, b
 !         GRUP = TRANSPOSE(UUP)
         PHASE = Z1/ABS(Z1)
         ENDIF
-        Deallocate(UUP, TPUP,TPUP1,TPUPM1, DUP, IPVT, TEMP, TEMP2)
+        Deallocate(UUP, TPUP,TPUP1,TPUPM1, DUP, IPVT, TEMP, VISITED)
 
       END SUBROUTINE CGR
