@@ -85,19 +85,20 @@
         PHASE = CONJG(DET_C(RHS, N_size))
         PHASE = PHASE/ABS(PHASE)
         IPVT = 0
-        IF (NVAR.EQ.1) THEN
-!           WRITE(6,*) 'UDV of U + DR * V * DL'
-            ! Query and allocate optimal amount of work space
-            call ZGEQP3(N_size, N_size, TPUP, N_size, IPVT, TAU, beta, -1, RWORK, INFO)
-            LWORK = INT(DBLE(beta))
-            ALLOCATE(WORK(LWORK))
-            ! QR decomposition of TMP1 with full column pivoting, AP = QR
-            call ZGEQP3(N_size, N_size, TPUP, N_size, IPVT, TAU, WORK, LWORK, RWORK, INFO)
+        IF (NVAR .NE. 1) THEN
+            TPUP = CT(TPUP)
+        ENDIF
+        ! Query and allocate optimal amount of work space
+        call ZGEQP3(N_size, N_size, TPUP, N_size, IPVT, TAU, DUP(1), -1, RWORK, INFO)
+        LWORK = INT(DBLE(DUP(1)))
+        ALLOCATE(WORK(LWORK))
+        ! QR decomposition of TMP1 with full column pivoting, AP = QR
+        call ZGEQP3(N_size, N_size, TPUP, N_size, IPVT, TAU, WORK, LWORK, RWORK, INFO)
 
-            ! Another attempt at calculating the sign of P
-            VISITED = 0
-            do i = 1, N_size
-                if (VISITED(i) .eq. 0) then
+        ! Another attempt at calculating the sign of P
+        VISITED = 0
+        do i = 1, N_size
+            if (VISITED(i) .eq. 0) then
                 next = i
                 L = 0
                 do while (VISITED(next) .eq. 0)
@@ -108,30 +109,30 @@
                 if(MOD(L, 2) .eq. 0) then
                     PHASE = -PHASE
                 endif
-                endif
-            enddo
+            endif
+        enddo
             
-            ! count the number of householder reflectors that were generated
-            nonzeroes = 0
-            do i = 1, N_size
-            if (tau(i) .ne. CMPLX(0.D0, 0.D0,Kind=Kind(0.D0))) then
-            nonzeroes = nonzeroes +1
-            endif
-            enddo
-            ! update the phase with the info from the QR decomposition
-               !test if N_size is odd via checking the least significant bit
-            if (btest(nonzeroes, 0)) then
-            PHASE = -PHASE
-            endif
-            ! conside the upper triangular right matrix R
-            DO i = 1, N_size
-                PHASE = PHASE * TPUP(i,i)/Abs(TPUP(i,i))
-            enddo
+        ! count the number of householder reflectors that were generated
+        nonzeroes = 0
+        do i = 1, N_size
+        if (tau(i) .ne. CMPLX(0.D0, 0.D0,Kind=Kind(0.D0))) then
+        nonzeroes = nonzeroes +1
+        endif
+        enddo
+        ! update the phase with the info from the QR decomposition
+            !test if N_size is odd via checking the least significant bit
+        if (btest(nonzeroes, 0)) then
+        PHASE = -PHASE
+        endif
+        ! conside the upper triangular right matrix R
+        DO i = 1, N_size
+            PHASE = PHASE * TPUP(i,i)/Abs(TPUP(i,i))
+        enddo
 
-            ! separate off DUP
-            do i = 1, N_size
+        ! separate off DUP
+        do i = 1, N_size
         ! plain diagonal entry
-             X = ABS(TPUP(i, i))
+            X = ABS(TPUP(i, i))
 !             ! a inf-norm
 !             X = TPUP(i, i+izamax(Ndim+1-i, TPUP(i, i), Ndim)-1)
 !             ! another inf-norm
@@ -140,19 +141,20 @@
 !            X = DZSUM1(N_size+1-i, TPUP(i, i), N_size)
             ! 2-norm
 !            X = DZNRM2(N_size+1-i, TPUP(i, i), N_size)
-                DUP(i) = X
-                do j = i, N_size
-                    TPUP(i, j) = TPUP(i, j) / X
-                enddo
+            DUP(i) = X
+            do j = i, N_size
+                TPUP(i, j) = TPUP(i, j) / X
             enddo
+        enddo
             
+        IF(NVAR .EQ. 1) then
             ! This is supposed to solve the system 
             ! URUP U D V P^dagger ULUP G = 1
-            
             ! initialize the rhs with CT(URUP)
             RHS = CT(URUP)
             ! RHS = U^dagger * RHS
             CALL ZUNMQR('L', 'C', N_size, N_size, N_size, TPUP, N_size, TAU, RHS, N_size, WORK, LWORK, INFO)
+            DEALLOCATE(TAU, WORK, RWORK)   
             !apply inverse of D to RHS
         DO J = 1, N_size
            sv = DBLE(DUP(J))
@@ -172,73 +174,8 @@
             FORWRD = .false.
             CALL ZLAPMR(FORWRD, N_size, N_size, RHS, N_size, IPVT)
         ! perform multiplication with ULUP and store in GRUP
-        beta = 0.D0
-        CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, ULUP, N_size, RHS, N_size, beta, GRUP, N_size)
-        DEALLOCATE(TAU, WORK, RWORK)          
+        CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, ULUP, N_size, RHS, N_size, beta, GRUP, N_size)       
         ELSE
-!           WRITE(6,*) 'UDV of (U + DR * V * DL)^{*}'
-            TPUP = CT(TPUP)
-!!           CALL UDV_WRAP_Pivot(TPUP1,UUP,DUP,VUP,NCON,N_size,N_size)
-            ! Query and allocate optimal amount of work space
-            call ZGEQP3(N_size, N_size, TPUP, N_size, IPVT, TAU, beta, -1, RWORK, INFO)
-            LWORK = INT(DBLE(beta))
-            ALLOCATE(WORK(LWORK))
-            ! QR decomposition of TPUP1 with full column pivoting, AP = QR
-            call ZGEQP3(N_size, N_size, TPUP, N_size, IPVT, TAU, WORK, LWORK, RWORK, INFO)
-            ! Another attempt at calculating the sign of P. I somehow believe there should be a simpler way. 
-            ! But the trick that I use in the calculation of the determinant does not work. it seems that lapacks LU 
-            ! decomposition represents the Permutation differently then the pivoted QR decomposition
-            VISITED = 0
-            do i = 1, N_size
-                if (VISITED(i) .eq. 0) then
-                next = i
-                L = 0
-                do while (VISITED(next) .eq. 0)
-                 L = L + 1
-                 VISITED(next) = 1
-                 next = IPVT(next)
-                enddo
-                if(MOD(L, 2) .eq. 0) then
-                    PHASE = -PHASE
-                endif
-                endif
-            enddo
-            
-            ! count the number of householder reflectors that were generated
-            nonzeroes = 0
-            do i = 1, N_size
-            if (TAU(i) .ne. CMPLX(0.D0, 0.D0,Kind=Kind(0.D0))) then
-            nonzeroes = nonzeroes +1
-            endif
-            enddo
-            ! update the phase with the info from the QR decomposition
-               !test if N_size is odd via checking the least significant bit
-            if (btest(nonzeroes, 0)) then
-            PHASE = -PHASE
-            endif
-            ! conside the upper triangular right matrix R
-            DO i = 1, N_size
-                PHASE = PHASE * TPUP(i,i)/Abs(TPUP(i,i))
-            enddo
-            
-            ! separate off DUP. The comments denote various variants
-            do i = 1, N_size
-        ! plain diagonal entry
-             X = ABS(TPUP(i, i))
-!             ! a inf-norm
-!             X = TPUP1(i, i+izamax(Ndim+1-i, TPUP1(i, i), Ndim)-1)
-!             ! another inf-norm
-!             X = TPUP1(i, i-1+izmax1(Ndim+1-i, TPUP1(i, i), Ndim))
-!             ! 1-norm
-!            X = DZSUM1(N_size+1-i, TPUP1(i, i), N_size)
-            ! 2-norm
-!            X = DZNRM2(N_size+1-i, TPUP1(i, i), N_size)
-                DUP(i) = X
-                do j = i, N_size
-                    TPUP(i, j) = TPUP(i, j) / X
-                enddo
-            enddo
-            
             ! This solves the system G * URUP * P * R^dagger * D * U^dagger * ULUP = 1
             
            ! RHS = ULUP * UUP
@@ -266,7 +203,6 @@
             FORWRD = .false.
             CALL ZLAPMT(FORWRD, N_size, N_size, RHS, N_size, IPVT)
         ! perform multiplication with URUP
-        beta = 0.D0
         CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, RHS, N_size, URUP, N_size, beta, GRUP, N_size)
         Phase = Conjg(Phase)
         ENDIF
