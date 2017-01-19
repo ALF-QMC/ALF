@@ -56,11 +56,11 @@
         INTEGER         :: NVAR
  
         !Local
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  UUP, TPUP, TPUP1, RHS
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  TPUP, RHS
         COMPLEX (Kind=Kind(0.d0)), Dimension(:) , Allocatable ::  DUP
         INTEGER, Dimension(:), Allocatable :: IPVT, VISITED
-        COMPLEX (Kind=Kind(0.d0)) ::  ZDUP1, ZDDO1, ZDUP2, ZDDO2, Z1, ZUP, ZDO, alpha, beta
-        Integer :: I,J, N_size, NCON, info, LWORK, nonzeroes, next, L
+        COMPLEX (Kind=Kind(0.d0)) ::  alpha, beta
+        Integer :: I, J, N_size, NCON, info, LWORK, nonzeroes, next, L
         Real (Kind=Kind(0.D0)) :: X, Xmax, sv, sign
         
         COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK, RWORK
@@ -70,13 +70,12 @@
         NCON = 0
         alpha = 1.D0
         beta = 0.D0
-        Allocate( UUP(N_size,N_size), TPUP(N_size,N_size), TPUP1(N_size,N_size), &
-        &VISITED(N_size), RHS(N_size, N_size),&
+        Allocate(TPUP(N_size,N_size), VISITED(N_size), RHS(N_size, N_size),&
              &DUP(N_size), IPVT(N_size), TAU(N_size), RWORK(2*N_size))
         !Write(6,*) 'In CGR', N_size
-        CALL MMULT(TPUP1,VRUP,VLUP)
+        CALL MMULT(TPUP,VRUP,VLUP)
         DO J = 1,N_size
-            TPUP(:,J) = DRUP(:)*TPUP1(:,J)*DLUP(J)
+            TPUP(:,J) = DRUP(:)*TPUP(:,J)*DLUP(J)
         ENDDO
         ! can be inserted again once we are sure that we may assume that UR and UL stem from householder reflectors
 !        CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, URUP, N_size, ULUP, N_size, alpha, TPUP, N_size)
@@ -178,14 +177,14 @@
         DEALLOCATE(TAU, WORK, RWORK)          
         ELSE
 !           WRITE(6,*) 'UDV of (U + DR * V * DL)^{*}'
-           TPUP1 = CT(TPUP)
+            TPUP = CT(TPUP)
 !!           CALL UDV_WRAP_Pivot(TPUP1,UUP,DUP,VUP,NCON,N_size,N_size)
             ! Query and allocate optimal amount of work space
-            call ZGEQP3(N_size, N_size, TPUP1, N_size, IPVT, TAU, beta, -1, RWORK, INFO)
+            call ZGEQP3(N_size, N_size, TPUP, N_size, IPVT, TAU, beta, -1, RWORK, INFO)
             LWORK = INT(DBLE(beta))
             ALLOCATE(WORK(LWORK))
             ! QR decomposition of TPUP1 with full column pivoting, AP = QR
-            call ZGEQP3(N_size, N_size, TPUP1, N_size, IPVT, TAU, WORK, LWORK, RWORK, INFO)
+            call ZGEQP3(N_size, N_size, TPUP, N_size, IPVT, TAU, WORK, LWORK, RWORK, INFO)
             ! Another attempt at calculating the sign of P. I somehow believe there should be a simpler way. 
             ! But the trick that I use in the calculation of the determinant does not work. it seems that lapacks LU 
             ! decomposition represents the Permutation differently then the pivoted QR decomposition
@@ -219,13 +218,13 @@
             endif
             ! conside the upper triangular right matrix R
             DO i = 1, N_size
-                PHASE = PHASE * TPUP1(i,i)/Abs(TPUP1(i,i))
+                PHASE = PHASE * TPUP(i,i)/Abs(TPUP(i,i))
             enddo
             
             ! separate off DUP. The comments denote various variants
             do i = 1, N_size
         ! plain diagonal entry
-             X = ABS(TPUP1(i, i))
+             X = ABS(TPUP(i, i))
 !             ! a inf-norm
 !             X = TPUP1(i, i+izamax(Ndim+1-i, TPUP1(i, i), Ndim)-1)
 !             ! another inf-norm
@@ -236,7 +235,7 @@
 !            X = DZNRM2(N_size+1-i, TPUP1(i, i), N_size)
                 DUP(i) = X
                 do j = i, N_size
-                    TPUP1(i, j) = TPUP1(i, j) / X
+                    TPUP(i, j) = TPUP(i, j) / X
                 enddo
             enddo
             
@@ -244,10 +243,10 @@
             
            ! RHS = ULUP * UUP
            RHS = CT(ULUP)
-           CALL ZUNMQR('R', 'N', N_size, N_size, N_size, TPUP1, N_size, TAU, RHS, N_size, WORK, LWORK, INFO)
+           CALL ZUNMQR('R', 'N', N_size, N_size, N_size, TPUP, N_size, TAU, RHS, N_size, WORK, LWORK, INFO)
         DEALLOCATE(TAU, WORK, RWORK)
 
-! set up the rhs
+        ! apply D^-1 to RHS
         DO J = 1, N_size
            sv = DBLE(DUP(J))
            X = ABS(sv)
@@ -260,9 +259,9 @@
         ENDDO
         
         ! We solve the equation
-        ! G * A = UUP for G with A = URUP * P * R^dagger
-        ! first we solve y * R^dagger = UUP
-        CALL ZTRSM('R', 'U', 'C', 'N', N_size, N_size, alpha, TPUP1, N_size, RHS, N_size)
+        ! G * A = RHS for G with A = URUP * P * R^dagger
+        ! first we solve y * R^dagger = RHS
+        CALL ZTRSM('R', 'U', 'C', 'N', N_size, N_size, alpha, TPUP, N_size, RHS, N_size)
         ! apply inverse permutation matrix
             FORWRD = .false.
             CALL ZLAPMT(FORWRD, N_size, N_size, RHS, N_size, IPVT)
@@ -271,6 +270,6 @@
         CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, RHS, N_size, URUP, N_size, beta, GRUP, N_size)
         Phase = Conjg(Phase)
         ENDIF
-        Deallocate(UUP, TPUP,TPUP1, DUP, IPVT, VISITED, RHS)
+        Deallocate(TPUP, DUP, IPVT, VISITED, RHS)
 
       END SUBROUTINE CGR
