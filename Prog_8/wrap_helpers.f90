@@ -146,7 +146,7 @@ END SUBROUTINE ul_update_matrices
         COMPLEX (Kind=Kind(0.d0)), intent(inout) :: U(Ndim,Ndim), V(Ndim,Ndim), TMP1(Ndim,Ndim), D(Ndim)
         COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK, RWORK
         COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta
-        INTEGER :: INFO, i, LWORK
+        INTEGER :: INFO, i, j, LWORK
         INTEGER, allocatable, Dimension(:) :: IPVT
         LOGICAL :: FORWRD
         REAL(Kind=Kind(0.d0)) :: X!, XMAX, XMEAN
@@ -180,12 +180,14 @@ END SUBROUTINE ul_update_matrices
             ! 2-norm
 !            X = DZNRM2(Ndim+1-i, TMP1(i, i), Ndim)
             D(i) = X
-            TMP1(i, :) = TMP1(i, :) / X
+            DO j = i, Ndim
+                TMP1(i, j) = TMP1(i, j) / X
+            ENDDO
         enddo
         !Permute V. Since we multiply with V from the right we have to permute the rows.
         ! A V = A P P^-1 V = Q R P^-1 V
         FORWRD = .true.
-        CALL ZLAPMR(FORWRD, Ndim, Ndim, V, Ndim, IPVT) ! lapack 3.4.2
+        CALL ZLAPMR(FORWRD, Ndim, Ndim, V, Ndim, IPVT) ! lapack 3.3
         ! V = R * V
         CALL ZTRMM('L', 'U', 'N', 'N', Ndim, Ndim, Z_ONE, TMP1, Ndim, V, Ndim)
         ! Generate explicit U
