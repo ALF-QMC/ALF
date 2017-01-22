@@ -164,7 +164,7 @@ END SUBROUTINE ul_update_matrices
         ! Query and allocate optimal amount of work space
         call ZGEQP3(Ndim, Ndim, TMP1, Ndim, IPVT, TAU, beta, -1, RWORK, INFO)
         LWORK = INT(DBLE(BETA))
-        ALLOCATE(WORK(I))
+        ALLOCATE(WORK(LWORK))
         ! QR decomposition of TMP1 with full column pivoting, AP = QR
         call ZGEQP3(Ndim, Ndim, TMP1, Ndim, IPVT, TAU, WORK, LWORK, RWORK, INFO)
         ! separate off D
