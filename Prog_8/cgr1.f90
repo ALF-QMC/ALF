@@ -39,6 +39,9 @@
 !>    Computes  GRUP = (1 + UR*DR*VR*VL*DL*UL)^-1
 !>    NVAR = 1 Big scales are in DL
 !>    NVAR = 2 Big scales are in DR
+!> Implementation note: we calculate the Phase as:
+!> NVAR = 1 : Phase = det(URUP * ULUP)/ |det(URUP * ULUP)| * det(P) * det(R) *det(Q)/ |det(R) det(Q)| 
+!> NVAR = 2 : Phase = det(URUP * ULUP)/ |det(URUP * ULUP)| * det(P) * det^*(R) *det^*(Q)/ |det(R) det(Q)| 
 !
 !--------------------------------------------------------------------
 
@@ -95,7 +98,8 @@
         ! QR decomposition of TPUP with full column pivoting, AP = QR
         call ZGEQP3(N_size, N_size, TPUP, N_size, IPVT, TAU, WORK, LWORK, RWORK, INFO)
 !         CALL PM(TPUP, N_size)
-        ! Another attempt at calculating the sign of P
+        ! Calculate the sign of the permutation from the pivoting. Somehow the format used by the QR decomposition of lapack
+        ! is different from that of the LU decomposition of lapack
         VISITED = 0
         do i = 1, N_size
             if (VISITED(i) .eq. 0) then
@@ -112,20 +116,23 @@
             endif
         enddo
         !calculate the determinant of the unitary matrix Q and the upper triangular matrix R
-    DO i = 1, N_size
-        Z = TAU(i)
-        IF(NVAR .EQ. 1) THEN
-            PHASE = PHASE * TPUP(i,i)/Abs(TPUP(i,i))
-        ELSE
-            ! the diagonal should be real, but let's be safe....
-            PHASE = PHASE * CONJG(TPUP(i,i))/Abs(TPUP(i,i))
-            Z = CONJG(Z) ! conjugate the elementary reflector
-        ENDIF
-        if (Z .ne. CMPLX(0.D0, 0.D0, Kind=Kind(0.D0))) then
-            X = ABS(Z)
-            Z = 1.D0 - 2.D0 * (Z/X) * (DBLE(Z)/X)
-            PHASE = PHASE * Z/ABS(Z)
-        endif
+        DO i = 1, N_size
+            Z = TAU(i)
+            IF(NVAR .EQ. 1) THEN
+                PHASE = PHASE * TPUP(i,i)/Abs(TPUP(i,i))
+            ELSE
+                ! the diagonal should be real, but let's be safe....
+                PHASE = PHASE * CONJG(TPUP(i,i))/Abs(TPUP(i,i))
+                Z = CONJG(Z) ! conjugate the elementary reflector
+            ENDIF
+            if (Z .ne. CMPLX(0.D0, 0.D0, Kind=Kind(0.D0))) then
+            ! here we calculate the determinant of a single householder reflector: det(1 - tau * v v* ) = 1 - tau * v^* v
+            ! In lapack the scalar tau and the vector v are scaled such that |tau|^2 |v|^2 = 2 Re(tau)
+            ! the complete determinant det(Q) is the product of all reflectors
+                X = ABS(Z)
+                Z = 1.D0 - 2.D0 * (Z/X) * (DBLE(Z)/X)
+                PHASE = PHASE * Z/ABS(Z)
+            endif
         enddo
         ! separate off DUP
         do i = 1, N_size
