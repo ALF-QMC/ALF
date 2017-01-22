@@ -50,18 +50,18 @@
 
 	!Arguments.
         COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(IN)   ::  URUP, VRUP, ULUP, VLUP
-        COMPLEX(Kind=Kind(0.d0)), Dimension(:),   Intent(In)   ::  DLUP, DRUP
+        COMPLEX(Kind=Kind(0.d0)), Dimension(:),   Intent(IN)   ::  DLUP, DRUP
         COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(INOUT) :: GRUP
-        COMPLEX(Kind=Kind(0.d0)) :: PHASE
+        COMPLEX(Kind=Kind(0.d0)), Intent(INOUT) :: PHASE
         INTEGER         :: NVAR
  
         !Local
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  TPUP, RHS
         COMPLEX (Kind=Kind(0.d0)), Dimension(:) , Allocatable ::  DUP
         INTEGER, Dimension(:), Allocatable :: IPVT, VISITED
-        COMPLEX (Kind=Kind(0.d0)) ::  alpha, beta
-        Integer :: I, J, N_size, NCON, info, LWORK, nonzeroes, next, L
-        Real (Kind=Kind(0.D0)) :: X, Xmax, sv, sign
+        COMPLEX (Kind=Kind(0.d0)) ::  alpha, beta, Z
+        Integer :: I, J, N_size, NCON, info, LWORK, next, L
+        Real (Kind=Kind(0.D0)) :: X, Xmax, sv
         
         COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK, RWORK
         LOGICAL :: FORWRD
@@ -92,9 +92,9 @@
         call ZGEQP3(N_size, N_size, TPUP, N_size, IPVT, TAU, DUP(1), -1, RWORK, INFO)
         LWORK = INT(DBLE(DUP(1)))
         ALLOCATE(WORK(LWORK))
-        ! QR decomposition of TMP1 with full column pivoting, AP = QR
+        ! QR decomposition of TPUP with full column pivoting, AP = QR
         call ZGEQP3(N_size, N_size, TPUP, N_size, IPVT, TAU, WORK, LWORK, RWORK, INFO)
-
+!         CALL PM(TPUP, N_size)
         ! Another attempt at calculating the sign of P
         VISITED = 0
         do i = 1, N_size
@@ -111,24 +111,29 @@
                 endif
             endif
         enddo
-            
-        ! count the number of householder reflectors that were generated
-        nonzeroes = 0
-        do i = 1, N_size
-        if (tau(i) .ne. CMPLX(0.D0, 0.D0,Kind=Kind(0.D0))) then
-        nonzeroes = nonzeroes +1
+        !calculate the determinant of the unitary matrix Q
+    DO i = 1, N_size
+        Z = TAU(i)
+        X = ABS(Z)
+        if (Z .ne. CMPLX(0.D0, 0.D0, Kind=Kind(0.D0))) then
+         Z = 1.D0 - 2.D0 * (Z/X) * (DBLE(Z)/X)
+        IF (NVAR .EQ. 1) THEN
+            PHASE = PHASE * Z/ABS(Z)
+        ELSE
+            PHASE = PHASE * CONJG(Z)/ABS(Z)
+        ENDIF
         endif
-        enddo
-        ! update the phase with the info from the QR decomposition
-            !test if N_size is odd via checking the least significant bit
-        if (btest(nonzeroes, 0)) then
-        PHASE = -PHASE
-        endif
-        ! conside the upper triangular right matrix R
-        DO i = 1, N_size
-            PHASE = PHASE * TPUP(i,i)/Abs(TPUP(i,i))
-        enddo
+    ENDDO
 
+        ! consider the triangular right matrix R
+        DO i = 1, N_size
+        IF(NVAR .EQ. 1) THEN
+            PHASE = PHASE * TPUP(i,i)/Abs(TPUP(i,i))
+        ELSE
+            ! the diagonal should be real, but let's be safe....
+            PHASE = PHASE * CONJG(TPUP(i,i))/Abs(TPUP(i,i))
+        ENDIF
+        enddo
         ! separate off DUP
         do i = 1, N_size
         ! plain diagonal entry
@@ -174,7 +179,7 @@
             FORWRD = .false.
             CALL ZLAPMR(FORWRD, N_size, N_size, RHS, N_size, IPVT)
         ! perform multiplication with ULUP and store in GRUP
-        CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, ULUP, N_size, RHS, N_size, beta, GRUP, N_size)       
+        CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, ULUP, N_size, RHS, N_size, beta, GRUP, N_size)
         ELSE
             ! This solves the system G * URUP * P * R^dagger * D * U^dagger * ULUP = 1
             
@@ -204,8 +209,6 @@
             CALL ZLAPMT(FORWRD, N_size, N_size, RHS, N_size, IPVT)
         ! perform multiplication with URUP
         CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, RHS, N_size, URUP, N_size, beta, GRUP, N_size)
-        Phase = Conjg(Phase)
         ENDIF
         Deallocate(TPUP, DUP, IPVT, VISITED, RHS)
-
       END SUBROUTINE CGR
