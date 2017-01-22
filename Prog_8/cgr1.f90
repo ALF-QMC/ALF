@@ -45,6 +45,7 @@
 !
 !--------------------------------------------------------------------
 
+        USE MyMats
         Implicit None
         Integer :: IZAMAX, izmax1
         REAL(Kind=Kind(0.D0)) :: DZSUM1, DZNRM2
