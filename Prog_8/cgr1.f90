@@ -128,7 +128,7 @@
             if (Z .ne. CMPLX(0.D0, 0.D0, Kind=Kind(0.D0))) then
             ! here we calculate the determinant of a single householder reflector: det(1 - tau * v v* ) = 1 - tau * v^* v
             ! In lapack the scalar tau and the vector v are scaled such that |tau|^2 |v|^2 = 2 Re(tau)
-            ! the complete determinant det(Q) is the product of all reflectors
+            ! the complete determinant det(Q) is the product of all reflectors. See http://www.netlib.org/lapack/lug/node128.html
                 X = ABS(Z)
                 Z = 1.D0 - 2.D0 * (Z/X) * (DBLE(Z)/X)
                 PHASE = PHASE * Z/ABS(Z)
