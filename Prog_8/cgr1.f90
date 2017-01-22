@@ -45,8 +45,6 @@
 !
 !--------------------------------------------------------------------
 
-        Use UDV_Wrap_mod
-
         Implicit None
         Integer :: IZAMAX, izmax1
         REAL(Kind=Kind(0.D0)) :: DZSUM1, DZNRM2
