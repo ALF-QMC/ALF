@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 The ALF project
+!  Copyright (C) 2016, 2017 The ALF project
 ! 
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -111,28 +111,21 @@
                 endif
             endif
         enddo
-        !calculate the determinant of the unitary matrix Q
+        !calculate the determinant of the unitary matrix Q and the upper triangular matrix R
     DO i = 1, N_size
         Z = TAU(i)
-        X = ABS(Z)
-        if (Z .ne. CMPLX(0.D0, 0.D0, Kind=Kind(0.D0))) then
-         Z = 1.D0 - 2.D0 * (Z/X) * (DBLE(Z)/X)
-        IF (NVAR .EQ. 1) THEN
-            PHASE = PHASE * Z/ABS(Z)
-        ELSE
-            PHASE = PHASE * CONJG(Z)/ABS(Z)
-        ENDIF
-        endif
-    ENDDO
-
-        ! consider the triangular right matrix R
-        DO i = 1, N_size
         IF(NVAR .EQ. 1) THEN
             PHASE = PHASE * TPUP(i,i)/Abs(TPUP(i,i))
         ELSE
             ! the diagonal should be real, but let's be safe....
             PHASE = PHASE * CONJG(TPUP(i,i))/Abs(TPUP(i,i))
+            Z = CONJG(Z) ! conjugate the elementary reflector
         ENDIF
+        if (Z .ne. CMPLX(0.D0, 0.D0, Kind=Kind(0.D0))) then
+            X = ABS(Z)
+            Z = 1.D0 - 2.D0 * (Z/X) * (DBLE(Z)/X)
+            PHASE = PHASE * Z/ABS(Z)
+        endif
         enddo
         ! separate off DUP
         do i = 1, N_size
@@ -160,13 +153,12 @@
             ! RHS = U^dagger * RHS
             CALL ZUNMQR('L', 'C', N_size, N_size, N_size, TPUP, N_size, TAU, RHS, N_size, WORK, LWORK, INFO)
             DEALLOCATE(TAU, WORK, RWORK)   
-            !apply inverse of D to RHS
+            !apply inverse of D to RHS from the left
         DO J = 1, N_size
            sv = DBLE(DUP(J))
            X = ABS(sv)
            if (J == 1)  Xmax = X
            if ( X  < Xmax ) Xmax = X
-           sv = 1.D0/sv
            DO I = 1, N_size
               RHS(I,J) = RHS(I, J) / DUP(I)
            ENDDO
@@ -188,7 +180,7 @@
            CALL ZUNMQR('R', 'N', N_size, N_size, N_size, TPUP, N_size, TAU, RHS, N_size, WORK, LWORK, INFO)
         DEALLOCATE(TAU, WORK, RWORK)
 
-        ! apply D^-1 to RHS
+        ! apply D^-1 to RHS from the right
         DO J = 1, N_size
            sv = DBLE(DUP(J))
            X = ABS(sv)
