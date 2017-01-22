@@ -51,7 +51,7 @@ Integer :: gr
 COMPLEX (Kind=Kind(0.d0)), intent(in) :: M(gr,gr)
 Integer :: i,j
 do i = 1, gr
-write (*,*) real(M(i, :))
+write (*,*) M(i, :)
 enddo
 write (*,*) "----------------------------"
 end subroutine
@@ -67,7 +67,7 @@ end subroutine
         COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK, RWORK
         COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta
         INTEGER, allocatable, Dimension(:) :: IPVT
-        INTEGER :: INFO, i, j, t1
+        INTEGER :: INFO, i, j, t1, LWORK
         LOGICAL :: FORWRD
         REAL(Kind=Kind(0.D0)) :: X
 
@@ -79,17 +79,14 @@ end subroutine
         DO i = 1,NDim
             TMP1(:, i) = TMP1(:, i) * D(i)
         ENDDO
-!          write (*,*) "INPUT"
-!          TMP3 =  MATMUL(V, TMP1)
-!          CALL pm(TMP3, Ndim)
         ALLOCATE(TAU(Ndim), RWORK(2*Ndim), IPVT(Ndim))
         IPVT = 0
         ! Query and allocate optimal amount of work space
-        call ZGEQP3(Ndim, Ndim, TMP1, Ndim, IPVT, TAU, beta, -1, RWORK, INFO)
-        I = INT(DBLE(BETA))
-        ALLOCATE(WORK(I))
+        call ZGEQP3(Ndim, Ndim, TMP1, Ndim, IPVT, TAU, BETA, -1, RWORK, INFO)
+        LWORK = INT(DBLE(BETA))
+        ALLOCATE(WORK(LWORK))
         ! QR decomposition of TMP1 with full column pivoting, AP = QR)
-        call ZGEQP3(Ndim, Ndim, TMP1, Ndim, IPVT, TAU, WORK, I, RWORK, INFO)
+        call ZGEQP3(Ndim, Ndim, TMP1, Ndim, IPVT, TAU, WORK, LWORK, RWORK, INFO)
         ! separate off D and calculate the respective row-norms
         do i = 1, Ndim
         ! plain diagonal entry
@@ -116,13 +113,9 @@ end subroutine
         ! V = V * R^dagger
         CALL ZTRMM('R', 'U', 'C', 'N', Ndim, Ndim, Z_ONE, TMP1, Ndim, V, Ndim)
         ! create explicit U
-        CALL ZUNGQR(Ndim, Ndim, Ndim, TMP1, Ndim, TAU, WORK, 2*Ndim, INFO)
+        CALL ZUNGQR(Ndim, Ndim, Ndim, TMP1, Ndim, TAU, WORK, LWORK, INFO)
         DEALLOCATE(TAU, WORK, RWORK, IPVT)
         U = TMP1
-!         WRITE (*,*) "OUTPUT"
-!         TMP3 = MATMUL(V, CT(TMP))
-!         CALL pm(TMP3, Ndim)
-!        STOP 2
 END SUBROUTINE ul_update_matrices
 
 !--------------------------------------------------------------------
@@ -153,7 +146,7 @@ END SUBROUTINE ul_update_matrices
         COMPLEX (Kind=Kind(0.d0)), intent(inout) :: U(Ndim,Ndim), V(Ndim,Ndim), TMP1(Ndim,Ndim), D(Ndim)
         COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK, RWORK
         COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta
-        INTEGER :: INFO, i, j
+        INTEGER :: INFO, i, LWORK
         INTEGER, allocatable, Dimension(:) :: IPVT
         LOGICAL :: FORWRD
         REAL(Kind=Kind(0.d0)) :: X!, XMAX, XMEAN
@@ -170,10 +163,10 @@ END SUBROUTINE ul_update_matrices
         IPVT = 0
         ! Query and allocate optimal amount of work space
         call ZGEQP3(Ndim, Ndim, TMP1, Ndim, IPVT, TAU, beta, -1, RWORK, INFO)
-        I = INT(DBLE(BETA))
+        LWORK = INT(DBLE(BETA))
         ALLOCATE(WORK(I))
         ! QR decomposition of TMP1 with full column pivoting, AP = QR
-        call ZGEQP3(Ndim, Ndim, TMP1, Ndim, IPVT, TAU, WORK, I, RWORK, INFO)   
+        call ZGEQP3(Ndim, Ndim, TMP1, Ndim, IPVT, TAU, WORK, LWORK, RWORK, INFO)
         ! separate off D
         do i = 1, Ndim
         ! plain diagonal entry
@@ -187,9 +180,7 @@ END SUBROUTINE ul_update_matrices
             ! 2-norm
 !            X = DZNRM2(Ndim+1-i, TMP1(i, i), Ndim)
             D(i) = X
-            do j = i, Ndim
-                TMP1(i, j) = TMP1(i,j) / X
-            enddo
+            TMP1(i, :) = TMP1(i, :) / X
         enddo
         !Permute V. Since we multiply with V from the right we have to permute the rows.
         ! A V = A P P^-1 V = Q R P^-1 V
@@ -198,27 +189,7 @@ END SUBROUTINE ul_update_matrices
         ! V = R * V
         CALL ZTRMM('L', 'U', 'N', 'N', Ndim, Ndim, Z_ONE, TMP1, Ndim, V, Ndim)
         ! Generate explicit U
-        CALL ZUNGQR(Ndim, Ndim, Ndim, TMP1, Ndim, TAU, WORK, 2*Ndim, INFO)
+        CALL ZUNGQR(Ndim, Ndim, Ndim, TMP1, Ndim, TAU, WORK, LWORK, INFO)
         DEALLOCATE(TAU, WORK, RWORK, IPVT)
         U = TMP1
-! DO i = 1, Ndim
-! do j = 1, ndim
-! V(i,j) = D(i) * V(i,j)
-! enddo
-! enddo
-!         
-!         
-!         TMP3 = MATMUL(U, V)
-!         call pm(TMP3, Ndim)
-!        IF (NCON == 1) THEN
-!           !Check the result  A = U D V
-!           DO J = 1,N2
-!              TMP3(:, J) = D * V(:, J)
-!           ENDDO
-!           !Write(6,*) 'Here'
-!           Call MMULT (TMP3, U, TMP2)
-!           !Call MMULT (A2,U,V)
-!           CALL COMPARE(A, TMP3, XMAX,XMEAN)
-!           Write (6,*) 'Check afer NEW Pivoting', XMAX
-!        ENDIF
 END SUBROUTINE ur_update_matrices
