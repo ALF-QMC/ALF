@@ -4,12 +4,12 @@
 # -DMPI selects MPI.
 PROGRAMMCONFIGURATION="-DQRREF -DSTAB1"
 PROGRAMMCONFIGURATION=""
-f90="gfortran"
 f90="ifort"
+f90="gfortran"
 export f90
+F90OPTFLAGS="-O3 "
 F90OPTFLAGS="-O3 -Wconversion  -fcheck=all"
 F90OPTFLAGS="-O3 -Wconversion "
-F90OPTFLAGS="-O3 "
 export F90OPTFLAGS
 FL="-c ${F90OPTFLAGS} ${PROGRAMMCONFIGURATION}"
 export FL

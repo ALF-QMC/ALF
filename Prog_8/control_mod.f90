@@ -159,8 +159,9 @@
         ACC = 0.d0
         IF (NC_up > 0 )  ACC = dble(ACC_up)/dble(NC_up)
         ACC_Glob = 0.d0
-        IF (NC_Glob_up > 0 )  ACC_Glob = dble(ACC_Glob_up)/dble(NC_Glob_up)
-        
+        IF (NC_Glob_up    > 0 )  ACC_Glob    = dble(ACC_Glob_up)/dble(NC_Glob_up)
+        IF (NC_Phase_GLob > 0 ) XMEANP_Glob  = XMEANP_Glob/dble(NC_Phase_GLob)
+
         Call CPU_TIME(CPU_time_en)
         Time = CPU_time_en -  CPU_time_st
 #ifdef MPI
@@ -200,7 +201,7 @@
 
         CALL MPI_REDUCE(XMAXP_GLOB,X,1,MPI_REAL8,MPI_MAX, 0,MPI_COMM_WORLD,IERR)
         XMAXP_GLOB = X
-
+        
 
         If (Irank == 0 ) then
 #endif
@@ -216,11 +217,11 @@
               Write(50,*) ' Precision tau    Mean, Max : ', XMEAN_tau, XMAX_tau
            endif
            Write(50,*) ' Acceptance                 : ', ACC
-           If (ACC_Glob > 1.0D-6)  then
+           !If (ACC_Glob > 1.D-200 ) then
               Write(50,*) ' Acceptance_Glob            : ', ACC_Glob
-              Write(50,*) ' Mean Phase diff Glob       : ', XMEANP_Glob/dble(NC_Phase_GLob)
+              Write(50,*) ' Mean Phase diff Glob       : ', XMEANP_Glob 
               Write(50,*) ' Max  Phase diff Glob       : ', XMAXP_Glob
-           Endif
+           !endif
            Write(50,*) ' CPU Time                   : ', Time
            Close(50)
 #ifdef MPI

@@ -27,7 +27,7 @@ The Hamiltonian reads
 \end{equation} 
 We can make contact with the general form of the Hamiltonian by setting: 
 $N_{\mathrm{fl}} = 1$, $N_{\mathrm{col}} \equiv \texttt{N\_SUN}     =2 $,   $M_T    =    1$,  $T^{(ks)}_{x y}   =  T_{x,y}$,  $M_V   =  N_{\text{unit cell}} $,  $U_{k}       =   -\frac{U}{2}$, 
- $V_{x y}^{(ks)} =  \delta_{x,y} \delta_{x,k}$,  $\alpha_{ks}   =  \frac{1}{2}  $ and $M_I       = 0 $.
+ $V_{x y}^{(ks)} =  \delta_{x,y} \delta_{x,k}$,  $\alpha_{ks}   = - \frac{1}{2}  $ and $M_I       = 0 $.
 
 %------------------------------------------------------------
 \subsection{Setting the Hamiltonian:  \texttt{Ham\_set} }
@@ -426,7 +426,7 @@ The model we consider here  is very similar to the  above,  but has an additiona
 \end{eqnarray}
 We can make contact with the general form of the Hamiltonian by setting: 
 $N_{\mathrm{fl}} = 1$, $N_{\mathrm{col}} \equiv \texttt{N\_SUN}     =2 $,   $M_T    =    1$,  $T^{(ks)}_{x y}   =  T_{x,y}$,  $M_V   =  N_{\text{unit cell}} \equiv N_{\mathrm{dim}}$,  $U_{k}       =   -\frac{U}{2}$, 
- $V_{x y}^{(ks)} =  \delta_{x,y} \delta_{x,k}$,  $\alpha_{ks}   =  \frac{1}{2}  $ and $M_I       = 2 N_{\text{unit cell}} $.  
+ $V_{x y}^{(ks)} =  \delta_{x,y} \delta_{x,k}$,  $\alpha_{ks}   = - \frac{1}{2}  $ and $M_I       = 2 N_{\text{unit cell}} $.  
  The last two terms of the  above Hamiltonian describes a  transverse Ising field model on the bonds of the square lattice.  This  type of Hamiltonian  has  recently been extensively discussed  \cite{Schattner15,Xu16,Assaad16}.  Here we adopt the notation of Ref.~\cite{Assaad16}. Note that   $\langle \langle x,y \rangle \langle x',y' \rangle \rangle $ denotes nearest neighbor bonds.
 The modifications  required to generalize the Hubbard model code to the above model are two-fold. 
 

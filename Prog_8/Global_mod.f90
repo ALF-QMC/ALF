@@ -86,7 +86,7 @@ Contains
     INTEGER, dimension(:),     INTENT   (IN), allocatable      :: Stab_nt
     
 !>  Local variables.
-    Integer :: NST, NSTM, NF, NT, NT1, NVAR,N, N1,N2, I
+    Integer :: NST, NSTM, NF, NT, NT1, NVAR,N, N1,N2, I, NC
     Integer, Dimension(:,:),  allocatable :: nsigma_old
     Real    (Kind=Kind(0.d0)) :: T0_Proposal_ratio, Weight
     Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Z, Ratiotot, Phase_old, Phase_new
@@ -118,6 +118,7 @@ Contains
        Write(6,*) 'Testing global : ',  Phase_old, Phase
     Endif
 
+
     If (L_test) then 
        ! Testing    
        Do nf = 1,N_FL
@@ -145,91 +146,97 @@ Contains
     !> Store old configuration
     nsigma_old = nsigma 
     !> Phase_old, Phase_det_old and Det_vec_old  are all set. 
+    NC = 0
     Do n = 1,N_Global
        !> Draw a new spin configuration. This is provides by the user in the Hamiltonian module
        !> Note that nsigma is a variable in the module Hamiltonian
-       Call Global_move(T0_Proposal_ratio)
-       !> Compute the new Green function
-       DO nf = 1,N_FL
-          CALL INITD(UL(:,:,Nf),Z_ONE)
-          DL(:,nf) = Z_ONE
-          CALL INITD(VL(:,:,nf),Z_ONE)
-       ENDDO
-       DO NST = NSTM-1,1,-1
-          NT1 = Stab_nt(NST+1)
-          NT  = Stab_nt(NST  )
-          !Write(6,*) NT1,NT, NST
-          CALL WRAPUL(NT1,NT,UL,DL, VL)
-          Do nf = 1,N_FL
-             UST(:,:,NST,nf) = UL(:,:,nf)
-             VST(:,:,NST,nf) = VL(:,:,nf)
-             DST(:  ,NST,nf) = DL(:  ,nf)
+       Call Global_move(T0_Proposal_ratio,nsigma_old)
+       If (T0_Proposal_ratio > 1.D-24) then
+          NC = NC + 1
+          !> Compute the new Green function
+          DO nf = 1,N_FL
+             CALL INITD(UL(:,:,Nf),Z_ONE)
+             DL(:,nf) = Z_ONE
+             CALL INITD(VL(:,:,nf),Z_ONE)
           ENDDO
-       ENDDO
-       NT1 = stab_nt(1)
-       CALL WRAPUL(NT1,0, UL ,DL, VL)
-       !You could now compute the det directly here.
-       Phase_new = cmplx(1.d0,0.d0,kind(0.d0))
-       do nf = 1,N_Fl
-          Call Compute_Fermion_Det(Z,Det_Vec_new(:,nf),UL(:,:,nf),DL(:,nf),VL(:,:,nf))
-          Phase_det_new(nf) = Z
-          Phase_new = Phase_new*Z
-       Enddo
-       call Op_phase(Phase_new,OP_V,Nsigma,N_SUN) 
-       
-       Ratiotot = Compute_Ratio_Global(Phase_Det_old, Phase_Det_new, &
-       &                               Det_vec_old, Det_vec_new, nsigma_old, T0_Proposal_ratio) 
-
-       !Write(6,*) 'Ratio_global: ', Ratiotot
-
-       Weight = abs(  real(Phase_old * Ratiotot, kind=Kind(0.d0))/real(Phase_old,kind=Kind(0.d0)) )
-       
-       Z = Phase_old * Ratiotot/ABS(Ratiotot)
-       Call Control_PrecisionP_Glob(Z,Phase_new)
-       !Write(6,*) Z, Phase_new
-
-       
-       Log = .false. 
-       if ( Weight > ranf_wrap() )  Then
-          Log = .true.
-          Phase_old     = Phase_new
-          Phase_det_old = Phase_det_new
-          nsigma_old    = nsigma
-          Det_vec_old   = Det_vec_new
-       else
-          nsigma = nsigma_old
+          DO NST = NSTM-1,1,-1
+             NT1 = Stab_nt(NST+1)
+             NT  = Stab_nt(NST  )
+             !Write(6,*) NT1,NT, NST
+             CALL WRAPUL(NT1,NT,UL,DL, VL)
+             Do nf = 1,N_FL
+                UST(:,:,NST,nf) = UL(:,:,nf)
+                VST(:,:,NST,nf) = VL(:,:,nf)
+                DST(:  ,NST,nf) = DL(:  ,nf)
+             ENDDO
+          ENDDO
+          NT1 = stab_nt(1)
+          CALL WRAPUL(NT1,0, UL ,DL, VL)
+          !You could now compute the det directly here.
+          Phase_new = cmplx(1.d0,0.d0,kind(0.d0))
+          do nf = 1,N_Fl
+             Call Compute_Fermion_Det(Z,Det_Vec_new(:,nf),UL(:,:,nf),DL(:,nf),VL(:,:,nf))
+             Phase_det_new(nf) = Z
+             Phase_new = Phase_new*Z
+          Enddo
+          call Op_phase(Phase_new,OP_V,Nsigma,N_SUN) 
+          
+          Ratiotot = Compute_Ratio_Global(Phase_Det_old, Phase_Det_new, &
+               &                               Det_vec_old, Det_vec_new, nsigma_old, T0_Proposal_ratio) 
+          
+          !Write(6,*) 'Ratio_global: ', Ratiotot
+          
+          Weight = abs(  real(Phase_old * Ratiotot, kind=Kind(0.d0))/real(Phase_old,kind=Kind(0.d0)) )
+          
+          Z = Phase_old * Ratiotot/ABS(Ratiotot)
+          Call Control_PrecisionP_Glob(Z,Phase_new)
+          !Write(6,*) Z, Phase_new
+          
+          
+          Log = .false. 
+          if ( Weight > ranf_wrap() )  Then
+             Log = .true.
+             Phase_old     = Phase_new
+             Phase_det_old = Phase_det_new
+             nsigma_old    = nsigma
+             Det_vec_old   = Det_vec_new
+          else
+             nsigma = nsigma_old
+          endif
+          Call Control_upgrade_Glob(Log)
        endif
-       Call Control_upgrade_Glob(Log)
     Enddo
 
-    If (.not.Log) then
-       DO nf = 1,N_FL
-          CALL INITD(UL(:,:,Nf),Z_ONE)
-          DL(:,nf) = Z_ONE
-          CALL INITD(VL(:,:,nf),Z_ONE)
-       ENDDO
-       DO NST = NSTM-1,1,-1
-          NT1 = Stab_nt(NST+1)
-          NT  = Stab_nt(NST  )
-          !Write(6,*) NT1,NT, NST
-          CALL WRAPUL(NT1,NT,UL,DL, VL)
-          Do nf = 1,N_FL
-             UST(:,:,NST,nf) = UL(:,:,nf)
-             VST(:,:,NST,nf) = VL(:,:,nf)
-             DST(:  ,NST,nf) = DL(:  ,nf)
+    If (NC > 0 ) then
+       If (.not.Log) then
+          DO nf = 1,N_FL
+             CALL INITD(UL(:,:,Nf),Z_ONE)
+             DL(:,nf) = Z_ONE
+             CALL INITD(VL(:,:,nf),Z_ONE)
           ENDDO
-       ENDDO
-       NT1 = stab_nt(1)
-       CALL WRAPUL(NT1,0, UL ,DL, VL)
-    Endif
-    !Compute the Green functions so as to provide correct starting point for the sequential updates.
-    NVAR = 1
-    Phase =cmplx(1.d0,0.d0,kind(0.d0))
-    do nf = 1,N_Fl
-       CALL CGR(Z, NVAR, GR(:,:,nf), UR(:,:,nf),DR(:,nf),VR(:,:,nf),  UL(:,:,nf),DL(:,nf),VL(:,:,nf)  )
-       Phase = Phase*Z
-    Enddo
-    call Op_phase(Phase,OP_V,Nsigma,N_SUN) 
+          DO NST = NSTM-1,1,-1
+             NT1 = Stab_nt(NST+1)
+             NT  = Stab_nt(NST  )
+             !Write(6,*) NT1,NT, NST
+             CALL WRAPUL(NT1,NT,UL,DL, VL)
+             Do nf = 1,N_FL
+                UST(:,:,NST,nf) = UL(:,:,nf)
+                VST(:,:,NST,nf) = VL(:,:,nf)
+                DST(:  ,NST,nf) = DL(:  ,nf)
+             ENDDO
+          ENDDO
+          NT1 = stab_nt(1)
+          CALL WRAPUL(NT1,0, UL ,DL, VL)
+       Endif
+       !Compute the Green functions so as to provide correct starting point for the sequential updates.
+       NVAR = 1
+       Phase =cmplx(1.d0,0.d0,kind(0.d0))
+       do nf = 1,N_Fl
+          CALL CGR(Z, NVAR, GR(:,:,nf), UR(:,:,nf),DR(:,nf),VR(:,:,nf),  UL(:,:,nf),DL(:,nf),VL(:,:,nf)  )
+          Phase = Phase*Z
+       Enddo
+       call Op_phase(Phase,OP_V,Nsigma,N_SUN) 
+    endif
     
     Deallocate ( nsigma_old)
     Deallocate ( Det_vec_old  , Det_vec_new  ) 
