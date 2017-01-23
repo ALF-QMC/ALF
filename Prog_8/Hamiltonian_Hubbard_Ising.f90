@@ -359,14 +359,20 @@
                 Enddo
              Enddo
           Elseif  ( Model == "Hubbard_SU2_Ising" ) then
-             Allocate(Op_V(3*Ndim,N_FL))
+             If ( Abs(Ham_U) > 1.d-6) then
+                Allocate(Op_V(3*Ndim,N_FL))
+             else
+                Allocate(Op_V(2*Ndim,N_FL))
+             endif
              do nf = 1,N_FL
                 do i  =  1, N_coord*Ndim
                    call Op_make(Op_V(i,nf),2)
                 enddo
-                do i  = N_coord*Ndim +1 ,  N_coord*Ndim + Ndim ! For Hubbatd
-                   Call Op_make(Op_V(i,nf),1)
-                enddo
+                If ( Abs(Ham_U) > 1.d-6) then
+                   do i  = N_coord*Ndim +1 ,  N_coord*Ndim + Ndim ! For Hubbard
+                      Call Op_make(Op_V(i,nf),1)
+                   enddo
+                endif
              enddo
              Do nc = 1,Ndim*N_coord   ! Runs over bonds.  Coordination number = 2.
                                       ! For the square lattice Ndim = Latt%N
@@ -383,16 +389,17 @@
                 Call Op_set( Op_V(nc,1) )
              Enddo
 
-             Do i = 1,Ndim
-                nc1 = N_coord*Ndim + i
-                Op_V(nc1,1)%P(1)   = i
-                Op_V(nc1,1)%O(1,1) = cmplx(1.d0  ,0.d0, kind(0.D0))
-                Op_V(nc1,1)%g      = sqrt(cmplx(-dtau*ham_U/(DBLE(N_SUN)), 0.D0, kind(0.D0)))
-                Op_V(nc1,1)%alpha  = cmplx(-0.5d0,0.d0, kind(0.d0))
-                Op_V(nc1,1)%type   = 2
-                Call Op_set( Op_V(nc1,1) )
-             Enddo
-
+             If ( Abs(Ham_U) > 1.d-6) then
+                Do i = 1,Ndim
+                   nc1 = N_coord*Ndim + i
+                   Op_V(nc1,1)%P(1)   = i
+                   Op_V(nc1,1)%O(1,1) = cmplx(1.d0  ,0.d0, kind(0.D0))
+                   Op_V(nc1,1)%g      = sqrt(cmplx(-dtau*ham_U/(DBLE(N_SUN)), 0.D0, kind(0.D0)))
+                   Op_V(nc1,1)%alpha  = cmplx(-0.5d0,0.d0, kind(0.d0))
+                   Op_V(nc1,1)%type   = 2
+                   Call Op_set( Op_V(nc1,1) )
+                Enddo
+             Endif
           Endif
         end Subroutine Ham_V
 
@@ -458,30 +465,30 @@
           !> Local
           Integer :: I, nt, n, ns_old, n1,n2,n3,n4
           
-          !If (Model == "Hubbard_SU2_Ising" ) then 
-          !   T0_Proposal_ratio = 1.d0
-          !   I = nranf(Latt%N) 
-          !   n1  = L_bond(I,1)
-          !   n2  = L_bond(I,2)
-          !   n3  = L_bond(Latt%nnlist(I,-1,0),1)
-          !   n4  = L_bond(Latt%nnlist(I,0,-1),2)
-          !   do nt = 1,Ltrot
-          !      nsigma(n1,nt) = -nsigma(n1,nt)
-          !      nsigma(n2,nt) = -nsigma(n2,nt)
-          !      nsigma(n3,nt) = -nsigma(n3,nt)
-          !      nsigma(n4,nt) = -nsigma(n4,nt)
-          !   enddo
-          !endif
-
-          nt = nranf(Ltrot)
-          n  = nranf(size(Op_V,1)) ! 
-          ns_old = nsigma(n,nt) 
-          T0_Proposal_ratio = 1.d0
-          if ( Op_V(n,1)%type == 1  ) then
-             nsigma(n,nt) = - Ns_old
-          else
-             nsigma(n,nt) = NFLIPL(Ns_old,nranf(3))
+          If (Model == "Hubbard_SU2_Ising" ) then 
+             T0_Proposal_ratio = 1.d0
+             I = nranf(Latt%N) 
+             n1  = L_bond(I,1)
+             n2  = L_bond(I,2)
+             n3  = L_bond(Latt%nnlist(I,-1,0),1)
+             n4  = L_bond(Latt%nnlist(I,0,-1),2)
+             do nt = 1,Ltrot
+                nsigma(n1,nt) = -nsigma(n1,nt)
+                nsigma(n2,nt) = -nsigma(n2,nt)
+                nsigma(n3,nt) = -nsigma(n3,nt)
+                nsigma(n4,nt) = -nsigma(n4,nt)
+             enddo
           endif
+
+          !nt = nranf(Ltrot)
+          !n  = nranf(size(Op_V,1)) ! 
+          !ns_old = nsigma(n,nt) 
+          !T0_Proposal_ratio = 1.d0
+          !if ( Op_V(n,1)%type == 1  ) then
+          !   nsigma(n,nt) = - Ns_old
+          !else
+          !   nsigma(n,nt) = NFLIPL(Ns_old,nranf(3))
+          !endif
 
         End Subroutine Global_move
 !===================================================================================           

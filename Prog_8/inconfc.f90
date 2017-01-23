@@ -112,7 +112,7 @@
          ENDIF
             
 #else   
-         INQUIRE (FILE='CONFIN_0', EXIST=LCONF)
+         INQUIRE (FILE='confin_0', EXIST=LCONF)
          IF (LCONF) THEN
             FILE_TG = "confin_0"
             CALL GET_SEED_LEN(K)
