@@ -17,6 +17,8 @@
       Type (Operator), dimension(:,:), allocatable  :: Op_T
       Integer, allocatable :: nsigma(:,:)
       Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot
+!>    Variables for updating scheme
+      Logical              :: Propose_S0, Global_moves
       
 
 !>    Privat variables 
@@ -89,6 +91,8 @@
 #endif
           Call Ham_latt
 
+          Propose_S0 = .false.
+          Global_moves =.false.
           If ( Model == "Hubbard_Mz") then
              N_FL = 2
              N_SUN = 1

@@ -19,19 +19,20 @@ dtau    = 0.1
 
 &VAR_QMC
 Nwrap   = 10
-NSweep  = 500
+NSweep  = 50
 NBin    = 10
 Ltau    = 1
 LOBS_ST = 1
 LOBS_EN = 100
-CPU_MAX = 0.1
 /
+CPU_MAX = 0.1
 
 &VAR_Ising
-Ham_xi = 1.d0
+Ham_xi = 2.d0
 Ham_J  = 0.d0
-Ham_h  = 2.d0
-Ham_F  = 1.d0
+Ham_h  = 3.d0
+Ham_F  = 2.d0
+T0_Update_Ising = .false.
 /
 
 &VAR_errors 

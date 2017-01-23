@@ -1358,6 +1358,49 @@
 
 !--------------------------------------------------------------------
 !> @author
+!> F.Assaad
+!
+!> @brief 
+!> Returns the determinant as det = \prod_i=1^N d(i). 
+!> Uses Lapack LU decomposition
+!> 
+!====================================================
+      Subroutine DET_C_LU(Mat1,D,N)
+
+        Implicit none
+        
+        ! Arguments
+        Integer, intent(in) :: N 
+        Complex(Kind=Kind(0.d0)), intent(in)  :: mat1(N,N)
+        Complex(Kind=Kind(0.d0)), intent(out) :: D(N)
+        
+        
+        Complex(Kind=Kind(0.d0)) :: mat(N,N)
+
+        integer :: i, info
+        integer :: ipiv(N)
+
+        integer :: sgn
+        
+        mat = mat1
+        ipiv = 0
+
+        !Lapack LU decomposition
+        call zgetrf(N, N, mat, N, ipiv, info)
+        
+        do i = 1,N 
+           D(i) = mat(i,i)
+        enddo
+        sgn =  1
+        do i = 1, N
+           if(ipiv(i) /= i)  sgn = -sgn
+        enddo
+        if (sgn == -1 ) D(1) = - D(1)
+
+      end Subroutine DET_C_LU
+
+!--------------------------------------------------------------------
+!> @author
 !> Florian Goth
 !
 !> @brief 

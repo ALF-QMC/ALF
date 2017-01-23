@@ -186,7 +186,6 @@
             RHS = CT(ULUP)
             CALL ZUNMQR('R', 'N', N_size, N_size, N_size, TPUP(1,1), N_size, TAU(1), RHS(1,1), N_size, WORK(1), LWORK, INFO)
             DEALLOCATE(TAU, WORK)
-
             ! apply D^-1 to RHS from the right
             DO J = 1, N_size
                 sv = DBLE(DUP(J))

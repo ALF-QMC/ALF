@@ -49,6 +49,7 @@ Program Main
   Use Control
   Use Tau_m_mod
   Use Hop_mod
+  Use Global_mod
  
   Implicit none
 #ifdef MPI
@@ -96,7 +97,6 @@ Program Main
        Integer :: NTAU1, NTAU
      END SUBROUTINE WRAPUR
 
-     
   end Interface
 
   COMPLEX (Kind=Kind(0.d0)), Dimension(:,:)  , Allocatable   ::  TEST
@@ -227,6 +227,9 @@ Program Main
   endif
 #endif
 
+
+  !Call Test_Hamiltonian
+
   
   Allocate ( UST(NDIM,NDIM,NSTM,N_FL), VST(NDIM,NDIM,NSTM,N_FL), DST(NDIM,NSTM,N_FL) )
   Allocate ( Test(Ndim,Ndim) )
@@ -249,6 +252,7 @@ Program Main
   DO NST = NSTM-1,1,-1
      NT1 = Stab_nt(NST+1)
      NT  = Stab_nt(NST  )
+     !Write(6,*)'Hi', NT1,NT, NST
      CALL WRAPUL(NT1,NT,UL,DL, VL)
      Do nf = 1,N_FL
         UST(:,:,NST,nf) = UL(:,:,nf)
@@ -274,6 +278,8 @@ Program Main
   !WRITE(6,*) 'Phase is: ',  PHASE
 #endif
 
+
+
   Call Control_init
 
   DO  NBC = 1, NBIN
@@ -283,8 +289,13 @@ Program Main
      Call cpu_time(time_bin_start) 
      
      Call Init_obs(Ltau)
+
      DO NSW = 1, NSWEEP
  
+
+        ! Global updates
+        If (Global_moves) Call Global_Updates(Phase,GR,UR,DR,VR, UL,DL,VL,Stab_nt, UST, VST, DST)
+
         !Propagation from 1 to Ltrot
         !Set the right storage to 1
         

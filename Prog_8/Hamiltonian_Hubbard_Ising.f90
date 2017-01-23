@@ -17,7 +17,9 @@
       Type (Operator), dimension(:,:), allocatable  :: Op_T
       Integer, allocatable :: nsigma(:,:)
       Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot
-      
+!>    Variables for updating scheme
+      Logical              :: Propose_S0, Global_moves
+      Integer              :: N_Global 
 
 !>    Privat variables 
       Type (Lattice),       private :: Latt 
@@ -30,15 +32,14 @@
       Integer, allocatable, private :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
 
 
-
 !>    Privat Observables
       Type (Obser_Vec ),  private, dimension(:), allocatable ::   Obs_scal
       Type (Obser_Latt),  private, dimension(:), allocatable ::   Obs_eq
       Type (Obser_Latt),  private, dimension(:), allocatable ::   Obs_tau
       
 !>    Storage for the Ising action
-      Real (Kind=Kind(0.d0)),        private :: DW_Ising_tau(-1:1), DW_Ising_Space(-1:1), DW_Ising_Flux(-1:1,-1:1)
-      Integer, allocatable, private :: L_bond(:,:), L_bond_inv(:,:), Ising_nnlist(:,:)
+      Real (Kind=Kind(0.d0)), private :: DW_Ising_tau(-1:1), DW_Ising_Space(-1:1), DW_Ising_Flux(-1:1,-1:1)
+      Integer, allocatable  , private :: L_bond(:,:), L_bond_inv(:,:), Ising_nnlist(:,:)
 
       
     contains 
@@ -59,7 +60,7 @@
 
           NAMELIST /VAR_Hubbard/  ham_T, ham_chem, ham_U, Dtau, Beta
 
-          NAMELIST /VAR_Ising/    Ham_h, Ham_J, Ham_xi, Ham_F
+          NAMELIST /VAR_Ising/    Ham_h, Ham_J, Ham_xi, Ham_F, Propose_S0, Global_moves, N_Global
 
 #ifdef MPI
           Integer        :: Isize, Irank
@@ -109,6 +110,9 @@
 #ifdef MPI
           If (Irank == 0 ) then
 #endif
+             Propose_S0   = .false.
+             Global_moves = .false.
+             N_Global = 1
              OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
              READ(5,NML=VAR_Hubbard)
              If ( Model == "Hubbard_SU2_Ising" )  Read(5,NML=VAR_Ising)
@@ -126,6 +130,9 @@
              CALL MPI_BCAST(Ham_J    ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
              CALL MPI_BCAST(Ham_h    ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
              CALL MPI_BCAST(Ham_F    ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(Global_moves, 1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(Propose_S0,   1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(N_Global,     1,MPI_Integer,0,MPI_COMM_WORLD,ierr)
           Endif
 #endif
           Call Ham_hop
@@ -152,6 +159,11 @@
                 Write(50,*) 'Ham_J         : ', Ham_J
                 Write(50,*) 'Ham_h         : ', Ham_h
                 Write(50,*) 'Ham_F         : ', Ham_F
+                If ( Propose_S0 )  Write(50,*) 'Propose Ising moves according to  bare Ising action'
+                If ( Global_moves ) Then
+                   Write(50,*) 'Global moves are enabled   '
+                   Write(50,*) '# of global moves / sweep :', N_Global
+                Endif
              Endif
 #if defined(STAB1) 
              Write(50,*) 'STAB1 is defined '
@@ -390,6 +402,7 @@
           Integer, Intent(IN) :: n,nt
           Integer :: nt1,I, F1,F2,I1,I2,I3
           
+          !> Ratio for local spin-flip
           S0 = 1.d0
           If ( Op_V(n,1)%type == 1 ) then 
              do i = 1,4
@@ -432,6 +445,110 @@
           
         end function S0
 
+!===================================================================================           
+        Subroutine Global_move(T0_Proposal_ratio)
+          !>  The input is the field nsigma declared in this module. This routine generates a 
+          !>  global update with  and returns the propability  
+          !>  T0_Proposal_ratio  =  T0( sigma_out-> sigma_in ) /  T0( sigma_in -> sigma_out)  
+          !>   
+          
+          Implicit none
+          Real (Kind=Kind(0.d0)) :: T0_Proposal_ratio
+          
+          !> Local
+          Integer :: I, nt, n, ns_old, n1,n2,n3,n4
+          
+          !If (Model == "Hubbard_SU2_Ising" ) then 
+          !   T0_Proposal_ratio = 1.d0
+          !   I = nranf(Latt%N) 
+          !   n1  = L_bond(I,1)
+          !   n2  = L_bond(I,2)
+          !   n3  = L_bond(Latt%nnlist(I,-1,0),1)
+          !   n4  = L_bond(Latt%nnlist(I,0,-1),2)
+          !   do nt = 1,Ltrot
+          !      nsigma(n1,nt) = -nsigma(n1,nt)
+          !      nsigma(n2,nt) = -nsigma(n2,nt)
+          !      nsigma(n3,nt) = -nsigma(n3,nt)
+          !      nsigma(n4,nt) = -nsigma(n4,nt)
+          !   enddo
+          !endif
+
+          nt = nranf(Ltrot)
+          n  = nranf(size(Op_V,1)) ! 
+          ns_old = nsigma(n,nt) 
+          T0_Proposal_ratio = 1.d0
+          if ( Op_V(n,1)%type == 1  ) then
+             nsigma(n,nt) = - Ns_old
+          else
+             nsigma(n,nt) = NFLIPL(Ns_old,nranf(3))
+          endif
+
+        End Subroutine Global_move
+!===================================================================================           
+        Real (Kind=kind(0.d0)) Function Delta_S0_global(Nsigma_old)
+
+          !>  This function computes the ratio:  e^{-S0(nsigma)}/e^{-S0(nsigma_old)}
+          Implicit none 
+
+          !> Arguments
+          Integer, dimension(:,:), allocatable :: Nsigma_old
+          !> Local 
+          Integer :: I,n,n1,n2,n3,n4,nt,nt1, nc_F, nc_J, nc_h_p, nc_h_m
+
+          Delta_S0_global = 1.d0
+          If ( Model == "Hubbard_SU2_Ising" ) then
+             nc_F = 0
+             nc_J = 0
+             nc_h_p = 0
+             nc_h_m = 0
+             Do I = 1,Latt%N
+                n1  = L_bond(I,1)
+                n2  = L_bond(Latt%nnlist(I,1,0),2)
+                n3  = L_bond(Latt%nnlist(I,0,1),1)
+                n4  = L_bond(I,2)
+                do nt = 1,Ltrot
+                   nt1 = nt +1 
+                   if (nt == Ltrot) nt1 = 1
+                   if (nsigma(n1,nt) == nsigma(n1,nt1) ) then 
+                      nc_h_p = nc_h_p + 1
+                   else
+                      nc_h_m = nc_h_m + 1
+                   endif
+                   if (nsigma_old(n1,nt) == nsigma_old(n1,nt1) ) then 
+                      nc_h_p = nc_h_p - 1
+                   else
+                      nc_h_m = nc_h_m - 1
+                   endif
+
+                   if (nsigma(n4,nt) == nsigma(n4,nt1) ) then 
+                      nc_h_p = nc_h_p + 1
+                   else
+                      nc_h_m = nc_h_m + 1
+                   endif
+                   if (nsigma_old(n4,nt) == nsigma_old(n4,nt1) ) then 
+                      nc_h_p = nc_h_p - 1
+                   else
+                      nc_h_m = nc_h_m - 1
+                   endif
+                   
+                   nc_F = nc_F + nsigma    (n1,nt)*nsigma    (n2,nt)*nsigma    (n3,nt)*nsigma    (n4,nt)  &
+                        &      - nsigma_old(n1,nt)*nsigma_old(n2,nt)*nsigma_old(n3,nt)*nsigma_old(n4,nt) 
+                   
+                   nc_J = nc_J + nsigma(n1,nt)*nsigma(n2,nt) + &
+                        &        nsigma(n2,nt)*nsigma(n3,nt) + &
+                        &        nsigma(n3,nt)*nsigma(n3,nt) + &
+                        &        nsigma(n4,nt)*nsigma(n1,nt) - &
+                        &        nsigma_old(n1,nt)*nsigma_old(n2,nt) - &
+                        &        nsigma_old(n2,nt)*nsigma_old(n3,nt) - &
+                        &        nsigma_old(n3,nt)*nsigma_old(n4,nt) - &
+                        &        nsigma_old(n4,nt)*nsigma_old(n1,nt) 
+                   
+                enddo
+             enddo
+             Delta_S0_global = ( sinh(Dtau*Ham_h)**nc_h_m ) * (cosh(Dtau*Ham_h)**nc_h_p) * &
+                  &            exp( -Dtau*(Ham_F*real(nc_F,kind(0.d0)) -  Ham_J*real(nc_J,kind(0.d0))))
+          endif
+        end Function Delta_S0_global
 !===================================================================================           
         Subroutine Setup_Ising_action
           
@@ -887,6 +1004,38 @@
         
       end Function iFlux
 
+!===================================================================================
+
+      Subroutine Test_Hamiltonian
+        
+        Implicit none
+        
+        Integer :: n,  nc, n_op, nt
+        Integer, allocatable :: nsigma_old(:,:)
+        Real (Kind=kind(0.d0)) :: X, X1
+        
+        n = size(Op_V,1)
+        allocate (nsigma_old(n,Ltrot))
+        do nc = 1,100
+           !nt  = nranf(Ltrot)
+           !n_op= nranf(n)
+           !if ( OP_V(n_op,1)%type == 1 ) then
+           !   X = S0(n_op,nt)
+           !   nsigma_old = nsigma
+           !   nsigma(n_op,nt) = -nsigma(n_op,nt)
+           !   X1 = Delta_S0_global(Nsigma_old) 
+           !   Write(6,*) nc, X, X1
+           !endif
+           nsigma_old = nsigma
+           Call Global_move(X)
+           X1 = Delta_S0_global(Nsigma_old) 
+           Write(6,*) nc, X, X1
+        enddo
+        deallocate (nsigma_old)
+
+        stop
+
+      end Subroutine Test_Hamiltonian
 
       end Module Hamiltonian
 

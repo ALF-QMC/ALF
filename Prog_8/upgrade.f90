@@ -70,6 +70,10 @@
         nf = 1
         ns_old = nsigma(n_op,nt)
         If ( Op_V(n_op,nf)%type == 1) then
+           if ( Propose_S0 ) then
+              Weight = 1.d0 - 1.d0/(1.d0+S0(n_op,nt))
+              If ( Weight < ranf_wrap() ) Return
+           endif
            ns_new = -ns_old
         else
            ns_new = NFLIPL(Ns_old,nranf(3))
@@ -105,7 +109,8 @@
         Ratiotot = Product(Ratio)
         nf = 1
         Ratiotot = (Ratiotot**dble(N_SUN)) * Gaml(ns_new, Op_V(n_op,nf)%type)/Gaml(ns_old, Op_V(n_op,nf)%type)
-        Ratiotot = Ratiotot * real(S0(n_op,nt), kind(0.D0))!Just to be save since S0 seems to be user supplied
+        if ( .not. Propose_S0 ) &
+             &  Ratiotot = Ratiotot * real(S0(n_op,nt), kind(0.D0))  ! Just to be safe since S0 seems to be user supplied
         
 
         !Write(6,*) Ratiotot
@@ -115,7 +120,7 @@
         Log = .false. 
         if ( Weight > ranf_wrap() )  Then
            Log = .true.
-           Phase = Phase * Ratiotot/weight
+           Phase = Phase * Ratiotot/sqrt(Ratiotot*conjg(Ratiotot))
            !Write(6,*) 'Accepted : ', Ratiotot
 
            Do nf = 1,N_FL
@@ -198,6 +203,7 @@
            ! Flip the spin
            nsigma(n_op,nt) = ns_new
         endif
+
         Call Control_upgrade(Log)
 
       End Subroutine Upgrade
