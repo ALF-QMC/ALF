@@ -120,7 +120,7 @@
         Log = .false. 
         if ( Weight > ranf_wrap() )  Then
            Log = .true.
-           Phase = Phase * Ratiotot/sqrt(Ratiotot*conjg(Ratiotot))
+           Phase = Phase * Ratiotot/Abs(Ratiotot)
            !Write(6,*) 'Accepted : ', Ratiotot
 
            Do nf = 1,N_FL
