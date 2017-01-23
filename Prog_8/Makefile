@@ -14,6 +14,10 @@ Hub:
 	cp $(Libs)/Modules/*.mod . ;\
 	(make -f Compile_Hub  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" ) 
 
+Hub_Can:
+	cp $(Libs)/Modules/*.mod . ;\
+	(make -f Compile_Hub_Can  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" ) 
+
 SPT:
 	cp $(Libs)/Modules/*.mod . ;\
 	(make -f Compile_SPT  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" LF="$(LF)" ) 
