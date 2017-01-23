@@ -1,7 +1,7 @@
 TARGET= Examples.out
-OBJS=  control_mod.o Operator.o observables_mod.o Hamiltonian_Examples.o Hop_mod.o  UDV_WRAP.o tau_m.o  main.o wrapul.o  cgr1.o wrapgrup.o wrapur.o upgrade.o \
-        wrapgrdo.o outconfc.o  inconfc.o  cgr2_2.o wrap_helpers.o
-
+OBJS=  control_mod.o Operator.o observables_mod.o Hamiltonian_Examples.o Hop_mod.o  UDV_WRAP.o Global_mod.o \
+       tau_m.o  main.o wrapul.o  cgr1.o wrapgrup.o wrapur.o upgrade.o \
+       wrapgrdo.o outconfc.o  inconfc.o  cgr2_2.o wrap_helpers.o
 
   
 .SUFFIXES: .f90 .f
