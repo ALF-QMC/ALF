@@ -50,7 +50,7 @@
 
 
          Integer      :: Nunit, Norb, ierr
-         Integer      :: no, no1, n, n1,m,  nbins, n_skip, nb, N_rebin, N_cov
+         Integer      :: no, no1, n, n1,m,  nbins, n_skip, nb, N_rebin, N_cov, N_Back
          real (Kind=Kind(0.d0)):: X, Y 
          Complex (Kind=Kind(0.d0)), allocatable :: Phase(:)
          Type  (Mat_C), allocatable :: Bins (:,:), Bins_R(:,:)
@@ -66,10 +66,12 @@
          
 
          NAMELIST /VAR_lattice/  L1, L2, Lattice_type, Model
-         NAMELIST /VAR_errors/   n_skip, N_rebin, N_Cov
+         NAMELIST /VAR_errors/   n_skip, N_rebin, N_Cov, N_Back
 
 
 
+         
+         N_Back = 1
          OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
          IF (ierr /= 0) THEN
             WRITE(*,*) 'unable to open <parameters>',ierr
@@ -147,13 +149,15 @@
                bins  (n,nb)%el = cmplx(0.d0,0.d0,kind(0.d0))
             Enddo
          Enddo
+         Bins0 = cmplx(0.d0,0.d0,kind(0.d0))
          Open ( Unit=10, File="ineq", status="unknown" ) 
          do nb = 1, nbins + n_skip
             if (nb > n_skip ) then
                Read(10,*,End=10) X,no,no1
                Phase(nb-n_skip) = cmplx(X,0.d0,kind(0.d0))
                Do no = 1,Norb
-                  Read(10,*) Bins0(nb-n_skip,no)
+                  Read(10,*) Z
+                  if (N_Back == 1 ) Bins0(nb-n_skip,no) = Z
                enddo
                do n = 1,Nunit
                   Read(10,*) Xk_p(1), Xk_p(2)

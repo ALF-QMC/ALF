@@ -51,11 +51,11 @@
         Complex (Kind=Kind(0.d0)) Z1,Z2,Z3,Z4,Z5
         Complex (Kind=Kind(0.d0)), Allocatable  :: Tmp(:)
         Integer :: Nobs 
-        Integer :: NST, NS, NS1, NS2, NSTEP, NC, NP,  Nbins, NP_EFF, ISEED, I, IOBS
+        Integer :: NST, NS, NS1, NS2, NSTEP, NC, NP,  Nbins, NP_EFF, ISEED, I, IOBS, N_Back
         Integer :: N,N1, NBIN
 
         Integer :: n_skip, N_rebin, N_Cov, ierr
-        NAMELIST /VAR_errors/   n_skip, N_rebin, N_Cov
+        NAMELIST /VAR_errors/   n_skip, N_rebin, N_Cov, N_Back
 
 
          OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)

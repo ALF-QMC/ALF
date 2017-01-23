@@ -10,6 +10,10 @@ Examples:
 	cp $(Libs)/Modules/*.mod . ;\
 	(make -f Compile_Examples  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" ) 
 
+Hub_Ising:
+	cp $(Libs)/Modules/*.mod . ;\
+	(make -f Compile_Hub_Ising  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" ) 
+
 Hub:
 	cp $(Libs)/Modules/*.mod . ;\
 	(make -f Compile_Hub  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" ) 
@@ -32,6 +36,7 @@ Kondo_Honey:
 
 clean: 	
 	(make -f Compile_Examples   clean );\
+	(make -f Compile_Hub_Ising   clean );\
 	(make -f Compile_Hub   clean );\
 	(make -f Compile_SPT   clean );\
 	(make -f Compile_Ising clean );\

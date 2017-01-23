@@ -48,7 +48,7 @@
 
 
          Integer :: Nunit, Norb
-         Integer :: no, no1, n, nbins, n_skip, nb, NT, NT1, Lt, N_rebin, N_cov, ierr
+         Integer :: no, no1, n, nbins, n_skip, nb, NT, NT1, Lt, N_rebin, N_cov, ierr, N_Back
          real    (Kind=Kind(0.d0)):: X, Y,  dtau, X_diag
          Complex (Kind=Kind(0.d0)), allocatable :: Xmean(:), Xcov(:,:)
          Complex (Kind=Kind(0.d0)) :: Z, Z_diag
@@ -60,10 +60,12 @@
          Real    (Kind=Kind(0.d0)), allocatable :: Xk_p(:,:)
          Character (len=64) :: File_out
 
-         NAMELIST /VAR_errors/   n_skip, N_rebin, N_Cov
+         NAMELIST /VAR_errors/   n_skip, N_rebin, N_Cov, N_Back
  
 
 
+         
+         N_Back = 1
          OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
          IF (ierr /= 0) THEN
             WRITE(*,*) 'unable to open <parameters>',ierr
@@ -102,6 +104,7 @@
 
          ! Allocate  space
          Allocate ( bins(Nunit,Lt,Nbins), Phase(Nbins), Xk_p(2,Nunit), V_help(lt,Nbins), bins0(Nbins,Norb))
+         
          Allocate (Xmean(Lt), Xcov(Lt,Lt))
          bins  = 0.d0
          bins0 = cmplx(0.d0,0.d0,Kind(0.d0))
@@ -111,7 +114,8 @@
                Read(10,*,End=10) Phase(nb-n_skip),no,no1,n, X
                Z_diag = cmplx(0.d0,0.d0,kind(0.d0))
                Do no = 1,Norb
-                  Read(10,*)  bins0(nb-n_skip,no)
+                  Read(10,*)   Z 
+                  If ( N_back == 1 )   bins0(nb-n_skip,no) = Z
                   Z_diag =  Z_diag + bins0(nb-n_skip,no)*bins0(nb-n_skip,no)
                Enddo
                do n = 1,Nunit

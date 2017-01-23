@@ -136,6 +136,13 @@ Program Main
   INTEGER        :: STATUS(MPI_STATUS_SIZE)
 #endif
 
+
+#ifdef MPI
+  CALL MPI_INIT(ierr)
+  CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
+  CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+#endif
+
 #ifdef MPI
   If (  Irank == 0 ) then
 #endif
@@ -144,12 +151,6 @@ Program Main
      write (*,*) "This is free software, and you are welcome to redistribute it under certain conditions."
 #ifdef MPI
   endif
-#endif
-
-#ifdef MPI
-  CALL MPI_INIT(ierr)
-  CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-  CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
 #endif
   
   Call Ham_set
