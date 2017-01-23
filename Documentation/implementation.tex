@@ -137,14 +137,14 @@ To make contact with the general expression (\ref{eqn:exponent_mat}) we set $g=-
 In case of the hopping matrix, the type variable $\texttt{Op\_T\%type}$  is neglected by the code. 
 All in all, the corresponding array of structure variables is  \texttt{Op\_T(M$_T$,N$_{fl}$)}.
 
-\item For the interaction Hamiltonian (\ref{eqn:general_ham_v}), which is of perfect-square type, we have to set the exponentiated matrices $e^{  \sqrt{ \Delta \tau  U_k} \eta_{k\tau} {\bm V}^{(ks)} }$:
+\item For the interaction Hamiltonian (\ref{eqn:general_ham_v}), which is of perfect-square type, we have to set the exponentiated matrices $e^{  \sqrt{ -  \Delta \tau  U_k} \eta_{k\tau} {\bm V}^{(ks)} }$:
 
 In this case, ${\mathbf X}  = \mathbf{V}^{(ks)}$. A single variable  \texttt{Op\_V}  describes the operator matrix:
 \begin{equation}
-             \left[ \left( \sum_{x,y}^{N_{\mathrm{dim}}} \hat{c}^{\dagger}_x V_{x,y}^{(ks)} \hat{c}^{\phantom{\dagger}}_{y}  \right) - \alpha_{ks} \right]  \;,
+             \left[ \left( \sum_{x,y}^{N_{\mathrm{dim}}} \hat{c}^{\dagger}_x V_{x,y}^{(ks)} \hat{c}^{\phantom{\dagger}}_{y}  \right)  + \alpha_{ks} \right]  \;,
 \end{equation} 
 where $k=[1, M_{V}]$ and $s=[1, N_{\mathrm{fl}}]$. 
-To make contact with the general expression (\ref{eqn:exponent_mat}), we set  $\alpha = -\alpha_{ks}$ and $g = \sqrt{\Delta \tau  U_k}$. 
+To make contact with the general expression (\ref{eqn:exponent_mat}), we set  $\alpha = \alpha_{ks}$ and $g = \sqrt{-\Delta \tau  U_k}$. 
 The discrete Hubbard-Stratonovich decomposition which is used for the perfect-square interaction, is selected by setting the type variable to $\texttt{Op\_V\%type}=2$.
 All in all, the required structure variables \texttt{Op\_V} are defined  using the array \texttt{Op\_V(M$_V$,N$_{fl}$)}.
 
