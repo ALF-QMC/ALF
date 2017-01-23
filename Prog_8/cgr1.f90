@@ -72,8 +72,7 @@
         NCON = 0
         alpha = 1.D0
         beta = 0.D0
-        Allocate(TPUP(N_size,N_size), VISITED(N_size), RHS(N_size, N_size),&
-             &DUP(N_size), IPVT(N_size), TAU(N_size), RWORK(2*N_size))
+        Allocate(TPUP(N_size,N_size), RHS(N_size, N_size), IPVT(N_size), TAU(N_size), RWORK(2*N_size))
         !Write(6,*) 'In CGR', N_size
         CALL MMULT(TPUP,VRUP,VLUP)
         DO J = 1,N_size
@@ -81,21 +80,23 @@
         ENDDO
         ! can be inserted again once we are sure that we may assume that UR and UL stem from householder reflectors
 !        CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, URUP, N_size, ULUP, N_size, alpha, TPUP, N_size)
-        CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, URUP, N_size, ULUP, N_size, beta, RHS, N_size)
+        CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, URUP(1,1), N_size, ULUP(1,1), N_size, beta, RHS(1,1), N_size)
         TPUP = TPUP + RHS
         ! calculate determinant of UR*UL
         PHASE = CONJG(DET_C(RHS, N_size))
         PHASE = PHASE/ABS(PHASE)
         IPVT = 0
         IF (NVAR .NE. 1) THEN
-            TPUP = CT(TPUP)
+            TPUP = CONJG(TRANSPOSE(TPUP))
         ENDIF
         ! Query and allocate optimal amount of work space
-        call ZGEQP3(N_size, N_size, TPUP, N_size, IPVT, TAU, DUP(1), -1, RWORK, INFO)
-        LWORK = INT(DBLE(DUP(1)))
+        call ZGEQP3(N_size, N_size, TPUP(1, 1), N_size, IPVT, TAU(1), RHS(1, 1), -1, RWORK(1), INFO) ! Abuse RHS(1,1) for temporary storage
+        LWORK = INT(DBLE(RHS(1, 1)))
         ALLOCATE(WORK(LWORK))
         ! QR decomposition of TPUP with full column pivoting, AP = QR
-        call ZGEQP3(N_size, N_size, TPUP, N_size, IPVT, TAU, WORK, LWORK, RWORK, INFO)
+        call ZGEQP3(N_size, N_size, TPUP(1, 1), N_size, IPVT, TAU(1), WORK(1), LWORK, RWORK(1), INFO)
+        DEALLOCATE(RWORK)
+        ALLOCATE(VISITED(N_size), DUP(N_size))
 !         CALL PM(TPUP, N_size)
         ! Calculate the sign of the permutation from the pivoting. Somehow the format used by the QR decomposition of lapack
         ! is different from that of the LU decomposition of lapack
@@ -127,7 +128,7 @@
             if (Z .ne. CMPLX(0.D0, 0.D0, Kind=Kind(0.D0))) then
             ! here we calculate the determinant of a single householder reflector: det(1 - tau * v v* ) = 1 - tau * v^* v
             ! In lapack the scalar tau and the vector v are scaled such that |tau|^2 |v|^2 = 2 Re(tau)
-            ! the complete determinant det(Q) is the product of all reflectors. See http://www.netlib.org/lapack/lug/node128.html
+            ! The complete determinant det(Q) is the product of all reflectors. See http://www.netlib.org/lapack/lug/node128.html
                 X = ABS(Z)
                 Z = 1.D0 - 2.D0 * (Z/X) * (DBLE(Z)/X)
                 PHASE = PHASE * Z/ABS(Z)
@@ -157,56 +158,56 @@
             ! initialize the rhs with CT(URUP)
             RHS = CT(URUP)
             ! RHS = U^dagger * RHS
-            CALL ZUNMQR('L', 'C', N_size, N_size, N_size, TPUP, N_size, TAU, RHS, N_size, WORK, LWORK, INFO)
-            DEALLOCATE(TAU, WORK, RWORK)   
+            CALL ZUNMQR('L', 'C', N_size, N_size, N_size, TPUP(1,1), N_size, TAU(1), RHS(1,1), N_size, WORK(1), LWORK, INFO)
+            DEALLOCATE(TAU, WORK)
             !apply inverse of D to RHS from the left
-        DO J = 1, N_size
-           sv = DBLE(DUP(J))
-           X = ABS(sv)
-           if (J == 1)  Xmax = X
-           if ( X  < Xmax ) Xmax = X
-           DO I = 1, N_size
-              RHS(I,J) = RHS(I, J) / DUP(I)
-           ENDDO
-        ENDDO
-        ! We solve the equation
-        !  A * G = RHS for G with A = R * P^dagger * ULUP
-        ! first we solve R *y = RHS. The solution is afterwards in RHS
-        CALL ZTRSM('L', 'U', 'N', 'N', N_size, N_size, alpha, TPUP, N_size, RHS, N_size)
-        ! apply permutation matrix
+            DO J = 1, N_size
+                sv = DBLE(DUP(J))
+                X = ABS(sv)
+                if (J == 1)  Xmax = X
+                if ( X  < Xmax ) Xmax = X
+                DO I = 1, N_size
+                    RHS(I,J) = RHS(I, J) / DUP(I)
+                ENDDO
+            ENDDO
+            ! We solve the equation
+            !  A * G = RHS for G with A = R * P^dagger * ULUP
+            ! first we solve R *y = RHS. The solution is afterwards in RHS
+            CALL ZTRSM('L', 'U', 'N', 'N', N_size, N_size, alpha, TPUP(1,1), N_size, RHS(1,1), N_size)
+            ! apply permutation matrix
             FORWRD = .false.
-            CALL ZLAPMR(FORWRD, N_size, N_size, RHS, N_size, IPVT)
-        ! perform multiplication with ULUP and store in GRUP
-        CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, ULUP, N_size, RHS, N_size, beta, GRUP, N_size)
+            CALL ZLAPMR(FORWRD, N_size, N_size, RHS(1,1), N_size, IPVT(1))
+            ! perform multiplication with ULUP and store in GRUP
+            CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, ULUP(1,1), N_size, RHS(1,1), N_size, beta, GRUP(1,1), N_size)
         ELSE
             ! This solves the system G * URUP * P * R^dagger * D * U^dagger * ULUP = 1
             
-           ! RHS = ULUP * UUP
-           RHS = CT(ULUP)
-           CALL ZUNMQR('R', 'N', N_size, N_size, N_size, TPUP, N_size, TAU, RHS, N_size, WORK, LWORK, INFO)
-        DEALLOCATE(TAU, WORK, RWORK)
+            ! RHS = ULUP * UUP
+            RHS = CT(ULUP)
+            CALL ZUNMQR('R', 'N', N_size, N_size, N_size, TPUP(1,1), N_size, TAU(1), RHS(1,1), N_size, WORK(1), LWORK, INFO)
+            DEALLOCATE(TAU, WORK)
 
-        ! apply D^-1 to RHS from the right
-        DO J = 1, N_size
-           sv = DBLE(DUP(J))
-           X = ABS(sv)
-           if (J == 1)  Xmax = X
-           if ( X  < Xmax ) Xmax = X
-           sv = 1.D0/sv
-           DO I = 1, N_size
-             RHS(I, J) = RHS(I, J) * sv
-           ENDDO
-        ENDDO
+            ! apply D^-1 to RHS from the right
+            DO J = 1, N_size
+                sv = DBLE(DUP(J))
+                X = ABS(sv)
+                if (J == 1)  Xmax = X
+                if ( X  < Xmax ) Xmax = X
+                sv = 1.D0/sv
+                DO I = 1, N_size
+                    RHS(I, J) = RHS(I, J) * sv
+                ENDDO
+            ENDDO
         
-        ! We solve the equation
-        ! G * A = RHS for G with A = URUP * P * R^dagger
-        ! first we solve y * R^dagger = RHS
-        CALL ZTRSM('R', 'U', 'C', 'N', N_size, N_size, alpha, TPUP, N_size, RHS, N_size)
-        ! apply inverse permutation matrix
+            ! We solve the equation
+            ! G * A = RHS for G with A = URUP * P * R^dagger
+            ! first we solve y * R^dagger = RHS
+            CALL ZTRSM('R', 'U', 'C', 'N', N_size, N_size, alpha, TPUP(1, 1), N_size, RHS(1, 1), N_size)
+            ! apply inverse permutation matrix
             FORWRD = .false.
-            CALL ZLAPMT(FORWRD, N_size, N_size, RHS, N_size, IPVT)
-        ! perform multiplication with URUP
-        CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, RHS, N_size, URUP, N_size, beta, GRUP, N_size)
+            CALL ZLAPMT(FORWRD, N_size, N_size, RHS(1, 1), N_size, IPVT(1))
+            ! perform multiplication with URUP
+            CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, RHS(1, 1), N_size, URUP(1, 1), N_size, beta, GRUP(1, 1), N_size)
         ENDIF
         Deallocate(TPUP, DUP, IPVT, VISITED, RHS)
       END SUBROUTINE CGR
