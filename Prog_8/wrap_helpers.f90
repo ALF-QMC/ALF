@@ -77,45 +77,44 @@ end subroutine
         CALL ZGEMM('C', 'C', Ndim, Ndim, Ndim, Z_ONE, TMP, Ndim, U(1, 1), Ndim, beta, TMP1, Ndim)
         ! TMP1 = TMP1 * D
         DO i = 1,NDim
-            TMP1(:, i) = TMP1(:, i) * D(i)
+            U(:, i) = TMP1(:, i) * D(i)
         ENDDO
         ALLOCATE(TAU(Ndim), RWORK(2*Ndim), IPVT(Ndim))
         IPVT = 0
         ! Query and allocate optimal amount of work space
-        call ZGEQP3(Ndim, Ndim, TMP1, Ndim, IPVT, TAU, BETA, -1, RWORK, INFO)
+        call ZGEQP3(Ndim, Ndim, U, Ndim, IPVT, TAU, BETA, -1, RWORK, INFO)
         LWORK = INT(DBLE(BETA))
         ALLOCATE(WORK(LWORK))
-        ! QR decomposition of TMP1 with full column pivoting, AP = QR)
-        call ZGEQP3(Ndim, Ndim, TMP1, Ndim, IPVT, TAU, WORK, LWORK, RWORK, INFO)
+        ! QR decomposition of U with full column pivoting, A P = Q R)
+        call ZGEQP3(Ndim, Ndim, U, Ndim, IPVT, TAU, WORK, LWORK, RWORK, INFO)
         ! separate off D and calculate the respective row-norms
         do i = 1, Ndim
         ! plain diagonal entry
-             X = ABS(TMP1(i, i))
+             X = ABS(U(i, i))
 !             ! a inf-norm
-!             X = TMP1(i, i+izamax(Ndim+1-i, TMP1(i, i), Ndim)-1)
+!             X = U(i, i+izamax(Ndim+1-i, U(i, i), Ndim)-1)
 !             ! another inf-norm
-!             X = TMP1(i, i-1+izmax1(Ndim+1-i, TMP1(i, i), Ndim))
+!             X = U(i, i-1+izmax1(Ndim+1-i, U(i, i), Ndim))
 !             ! 1-norm
-!            X = DZSUM1(Ndim+1-i, TMP1(i, i), Ndim)
+!            X = DZSUM1(Ndim+1-i, U(i, i), Ndim)
             ! 2-norm
-!            X = DZNRM2(Ndim+1-i, TMP1(i, i), Ndim)
+!            X = DZNRM2(Ndim+1-i, U(i, i), Ndim)
 !             write (*, *) i, ABS(TMP1(i, i)), i+izamax(Ndim+1-i, TMP1(i, i), Ndim)-1, TMP1(i, i+izamax(Ndim+1-i, & 
 !             & TMP1(i, i), Ndim)-1), i-1 + izmax1(Ndim+1-i, TMP1(i, i), Ndim), TMP1(i, i-1+izmax1(Ndim+1-i, &
 !             & TMP1(i, i), Ndim)), DZSUM1(Ndim+1-i, TMP1(i, i), Ndim), DZNRM2(Ndim+1-i, TMP1(i, i), Ndim)
             D(i) = X
             do j = i, Ndim
-                TMP1(i, j) = TMP1(i,j) / X
+                U(i, j) = U(i, j) / X
             enddo
         enddo
         ! Permute V, since we multiply with V from the left we have to permute its columns
         FORWRD = .true.
         CALL ZLAPMT(FORWRD, Ndim, Ndim, V, Ndim, IPVT)
         ! V = V * R^dagger
-        CALL ZTRMM('R', 'U', 'C', 'N', Ndim, Ndim, Z_ONE, TMP1, Ndim, V, Ndim)
-        ! create explicit U
-        CALL ZUNGQR(Ndim, Ndim, Ndim, TMP1, Ndim, TAU, WORK, LWORK, INFO)
+        CALL ZTRMM('R', 'U', 'C', 'N', Ndim, Ndim, Z_ONE, U, Ndim, V, Ndim)
+        ! create explicitly U in the storage already present for it
+        CALL ZUNGQR(Ndim, Ndim, Ndim, U, Ndim, TAU, WORK, LWORK, INFO)
         DEALLOCATE(TAU, WORK, RWORK, IPVT)
-        U = TMP1
 END SUBROUTINE ul_update_matrices
 
 !--------------------------------------------------------------------
@@ -137,7 +136,7 @@ END SUBROUTINE ul_update_matrices
 !-------------------------------------------------------------------
  SUBROUTINE ur_update_matrices(U, D, V, TMP, TMP1, Ndim, NCON)
         Use UDV_Wrap_mod
-        Use MyMats
+
         Implicit None
         INTEGER, intent(in) :: Ndim, NCON
         Integer :: IZAMAX, izmax1
@@ -157,41 +156,40 @@ END SUBROUTINE ul_update_matrices
         CALL ZGEMM('N', 'N', Ndim, Ndim, Ndim, Z_ONE, TMP, Ndim, U(1, 1), Ndim, beta, TMP1, Ndim)
         ! TMP1 = TMP1 * D
         DO i = 1,NDim
-            TMP1(:, i) = TMP1(:, i)*D(i)
+            U(:, i) = TMP1(:, i)*D(i)
         ENDDO
         ALLOCATE(TAU(Ndim), RWORK(2*Ndim), IPVT(Ndim))
         IPVT = 0
         ! Query and allocate optimal amount of work space
-        call ZGEQP3(Ndim, Ndim, TMP1, Ndim, IPVT, TAU, beta, -1, RWORK, INFO)
+        call ZGEQP3(Ndim, Ndim, U, Ndim, IPVT, TAU, beta, -1, RWORK, INFO)
         LWORK = INT(DBLE(BETA))
         ALLOCATE(WORK(LWORK))
-        ! QR decomposition of TMP1 with full column pivoting, AP = QR
-        call ZGEQP3(Ndim, Ndim, TMP1, Ndim, IPVT, TAU, WORK, LWORK, RWORK, INFO)
+        ! QR decomposition of U with full column pivoting, AP = QR
+        call ZGEQP3(Ndim, Ndim, U, Ndim, IPVT, TAU, WORK, LWORK, RWORK, INFO)
         ! separate off D
         do i = 1, Ndim
         ! plain diagonal entry
-             X = ABS(TMP1(i, i))
+             X = ABS(U(i, i))
 !             ! a inf-norm
-!             X = TMP1(i, i+izamax(Ndim+1-i, TMP1(i, i), Ndim)-1)
+!             X = U(i, i+izamax(Ndim+1-i, U(i, i), Ndim)-1)
 !             ! another inf-norm
-!             X = TMP1(i, i-1+izmax1(Ndim+1-i, TMP1(i, i), Ndim))
+!             X = U(i, i-1+izmax1(Ndim+1-i, U(i, i), Ndim))
             ! 1-norm
-!            X = DZSUM1(Ndim+1-i, TMP1(i, i), Ndim)
+!            X = DZSUM1(Ndim+1-i, U(i, i), Ndim)
             ! 2-norm
-!            X = DZNRM2(Ndim+1-i, TMP1(i, i), Ndim)
+!            X = DZNRM2(Ndim+1-i, U(i, i), Ndim)
             D(i) = X
             DO j = i, Ndim
-                TMP1(i, j) = TMP1(i, j) / X
+                U(i, j) = U(i, j) / X
             ENDDO
         enddo
-        !Permute V. Since we multiply with V from the right we have to permute the rows.
+        ! Permute V. Since we multiply with V from the right we have to permute the rows.
         ! A V = A P P^-1 V = Q R P^-1 V
         FORWRD = .true.
         CALL ZLAPMR(FORWRD, Ndim, Ndim, V, Ndim, IPVT) ! lapack 3.3
         ! V = R * V
-        CALL ZTRMM('L', 'U', 'N', 'N', Ndim, Ndim, Z_ONE, TMP1, Ndim, V, Ndim)
-        ! Generate explicit U
-        CALL ZUNGQR(Ndim, Ndim, Ndim, TMP1, Ndim, TAU, WORK, LWORK, INFO)
+        CALL ZTRMM('L', 'U', 'N', 'N', Ndim, Ndim, Z_ONE, U, Ndim, V, Ndim)
+        ! Generate explicit U in the previously abused storage of U
+        CALL ZUNGQR(Ndim, Ndim, Ndim, U, Ndim, TAU, WORK, LWORK, INFO)
         DEALLOCATE(TAU, WORK, RWORK, IPVT)
-        U = TMP1
 END SUBROUTINE ur_update_matrices
