@@ -192,30 +192,7 @@
            ENDDO
            HLPB1 = CT(HLPB2)
 
-           !CALL UDV_wrap(HLPB1,U3B,D3B,V3B,NCON)
            CALL UDV_wrap_Pivot(HLPB1,U3B,D3B,V3B,NCON,LQ2,LQ2)
-! !!$!!!!!!!!!!!!!  Tests
-! !!$        Xmax = 0.d0
-! !!$        DO I = 1,LQ2
-! !!$           DO J = 1,LQ2
-! !!$              Z = cmplx(0.d0,0.d0)
-! !!$              DO N = 1,LQ2
-! !!$                 Z = Z + U3B(I,N) *conjg(U3B(J,N))
-! !!$              ENDDO
-! !!$              if (I == J)  Z = Z - cmplx(1.d0,0.d0)
-! !!$              X = real(SQRT( Z* conjg(Z)),Kind=Kind(0.d0))
-! !!$              if (X > Xmax) Xmax = X
-! !!$           ENDDO
-! !!$        ENDDO
-! !!$        !Write(6,*) 'Cgr2_2, ortho: ', Xmax
-! !!$        DO I = 1,LQ2
-! !!$           Z =  D3B(I)
-! !!$           if (I == 1)  Xmax = real(SQRT( Z* conjg(Z)),Kind=Kind(0.d0)) 
-! !!$           if ( real(SQRT( Z* conjg(Z)),Kind=Kind(0.d0))  < Xmax ) Xmax = &
-! !!$                & real(SQRT( Z* conjg(Z)),Kind=Kind(0.d0))
-! !!$        ENDDO
-! !!$        !Write(6,*) 'Cgr2_2, Cutoff: ', Xmax
-! !!$!!!!!!!!!!!!! End Tests
            call solve_extended_System(HLPB1, V1INV, MYU2, U3B, D3B, V3B, LQ)
            call get_blocks(GR00, GR0T, GRT0, GRTT, HLPB1, LQ)
         Else
@@ -230,7 +207,6 @@
            ENDDO
            HLPB1 = CT(HLPB2)
            
-           !CALL UDV_wrap(HLPB1,U3B,D3B,V3B,NCON)
            CALL UDV_wrap_Pivot(HLPB1,U3B,D3B,V3B,NCON,LQ2,LQ2)
            call solve_extended_System(HLPB1, MYU2, V1INV, U3B, D3B, V3B, LQ)
            call get_blocks(GRTT, GRT0, GR0T, GR00, HLPB1, LQ)

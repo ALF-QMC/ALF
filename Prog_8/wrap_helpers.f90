@@ -28,7 +28,19 @@
 ! 
 !     - If you make substantial changes to the program we require you to either consider contributing
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
-      
+
+
+SUBROUTINE pm(M, gr)
+Implicit NONE
+Integer :: gr
+COMPLEX (Kind=Kind(0.d0)), intent(in) :: M(gr,gr)
+Integer :: i,j
+do i = 1, gr
+write (*,*) M(i, :)
+enddo
+write (*,*) "----------------------------"
+end subroutine
+
 !--------------------------------------------------------------------
 !> @author 
 !> ALF-project
@@ -44,18 +56,6 @@
 !> @param [in] Ndim The size of the matrices
 !> @param [in] NCON wether we check.
 !-------------------------------------------------------------------
-
-SUBROUTINE pm(M, gr)
-Implicit NONE
-Integer :: gr
-COMPLEX (Kind=Kind(0.d0)), intent(in) :: M(gr,gr)
-Integer :: i,j
-do i = 1, gr
-write (*,*) M(i, :)
-enddo
-write (*,*) "----------------------------"
-end subroutine
-
  SUBROUTINE ul_update_matrices(U, D, V, TMP, TMP1, Ndim, NCON)
         Use UDV_Wrap_mod
         Implicit None
@@ -136,7 +136,6 @@ END SUBROUTINE ul_update_matrices
 !-------------------------------------------------------------------
  SUBROUTINE ur_update_matrices(U, D, V, TMP, TMP1, Ndim, NCON)
         Use UDV_Wrap_mod
-
         Implicit None
         INTEGER, intent(in) :: Ndim, NCON
         Integer :: IZAMAX, izmax1
@@ -189,7 +188,7 @@ END SUBROUTINE ul_update_matrices
         CALL ZLAPMR(FORWRD, Ndim, Ndim, V, Ndim, IPVT) ! lapack 3.3
         ! V = R * V
         CALL ZTRMM('L', 'U', 'N', 'N', Ndim, Ndim, Z_ONE, U, Ndim, V, Ndim)
-        ! Generate explicit U in the previously abused storage of U
+        ! Generate explicitly U in the previously abused storage of U
         CALL ZUNGQR(Ndim, Ndim, Ndim, U, Ndim, TAU, WORK, LWORK, INFO)
         DEALLOCATE(TAU, WORK, RWORK, IPVT)
 END SUBROUTINE ur_update_matrices
