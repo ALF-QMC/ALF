@@ -86,33 +86,34 @@
 !> @param[in] V3 Matrix, dimension(2*LQ, 2*LQ)
 !> @param[in] LQ The dimension of the matrices UCT and V1INV
 !--------------------------------------------------------------------
-           Subroutine solve_extended_System(HLP, UCT, VINV, A, D, TAU, PIVT, LQ)
+           Subroutine solve_extended_System(HLP, UCT, VINV, A, D, TAU, PIVT, LQ, WORK, LWORK)
            Use MyMats
            Implicit none
-           Integer, intent(in) :: LQ
-           Complex (Kind=Kind(0.D0)), intent(in) :: A(2*LQ, 2*LQ), D(2*LQ), TAU(2*LQ), UCT(LQ,LQ), VINV(LQ,LQ)
-           Integer, Allocatable, Dimension(:) :: PIVT
+           Integer, intent(in) :: LQ, LWORK
+           Complex (Kind=Kind(0.D0)), intent(in) :: A(2*LQ, 2*LQ), D(2*LQ), TAU(2*LQ), UCT(LQ,LQ), VINV(LQ,LQ), WORK(LWORK)
+           Integer, Dimension(:), intent(in) :: PIVT(2*LQ)
            Complex (Kind=Kind(0.D0)), intent(inout) :: HLP(2*LQ, 2*LQ)
            Complex (Kind=Kind(0.D0)), Allocatable, Dimension(:) :: TMPVEC
 !           INTEGER, Dimension(:), Allocatable :: IPVT
            Integer :: LQ2, info, I, j
-           Complex (Kind=Kind(0.D0)) :: zero, alpha
+           Complex (Kind=Kind(0.D0)) :: z
+           LOGICAL :: FORWRD
 
-           zero = 0.D0
-           alpha = 1.D0
+           z = 0.D0
            LQ2 = 2*LQ
            ALLOCATE(TMPVEC(LQ2))
-           TMPVEC = conjg(1.D0/D3)
+           TMPVEC = conjg(1.D0/D)
            ! set HLP equal to zero
-           call zlaset('A', LQ2, LQ2, zero, zero, HLP, LQ2)
+           call zlaset('A', LQ2, LQ2, z, z, HLP, LQ2)
            DO I = 1, LQ
               DO J = 1, LQ
                  HLP(I   , J    ) =  UCT(I, J)
                  HLP(I+LQ, J+LQ ) =  VINV(I,J)
               ENDDO
            ENDDO
+           z = 1.D0
            !V3 P^* X = H1
-           CALL ZTRSM('L', 'U', 'N', 'N', LQ2, LQ2, alpha, A(1, 1), LQ2, HLP(1, 1), LQ2)
+           CALL ZTRSM('L', 'U', 'N', 'N', LQ2, LQ2, z, A(1, 1), LQ2, HLP(1, 1), LQ2)
            FORWRD = .false.
            CALL ZLAPMR(FORWRD, LQ2, LQ2, HLP(1, 1), LQ2, PIVT(1))
 !           CALL ZGETRF(LQ2, LQ2, V3, LQ2, IPVT, info)
@@ -172,20 +173,21 @@
 
         ! Local::
         Complex  (Kind=Kind(0.d0)) :: V1INV(LQ,LQ)
-        Complex  (Kind=Kind(0.d0)) :: D3B(2*LQ)
+        Complex  (Kind=Kind(0.d0)) :: D3(2*LQ)
         Complex  (Kind=Kind(0.d0)) :: Z, alpha, beta
-        Complex(Kind = Kind(0.D0)), allocatable, Dimension(:, :) :: MYU2, HLPB1, HLPB2, U3B, V3B
-        Integer :: LQ2, I,J, NCON
+        Complex(Kind = Kind(0.D0)), allocatable, Dimension(:, :) :: MYU2, HLPB1, HLPB2
+        Integer :: LQ2, I,J, NCON, LWORK, info
         
         COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK, RWORK
         INTEGER, Dimension(:), Allocatable :: IPVT, VISITED
         LOGICAL :: FORWRD
+        Real (Kind=Kind(0.D0)) :: X, Xmax, sv
         
         LQ2 = LQ*2
         NCON = 0
         alpha = 1.D0
         beta = 0.D0
-        ALLOCATE(MYU2(LQ, LQ), HLPB1(LQ2, LQ2), HLPB2(LQ2, LQ2), U3B(LQ2, LQ2), V3B(LQ2, LQ2))
+        ALLOCATE(MYU2(LQ, LQ), HLPB1(LQ2, LQ2), HLPB2(LQ2, LQ2))
         Allocate(IPVT(LQ2), TAU(LQ2), RWORK(2*LQ2))
         MYU2 = CONJG(TRANSPOSE(U2))
         CALL INV(V1,V1INV,Z)
@@ -210,7 +212,7 @@
         call ZGEQP3(LQ2, LQ2, HLPB1(1, 1), LQ2, IPVT, TAU(1), WORK(1), LWORK, RWORK(1), INFO)
         DEALLOCATE(RWORK)
         ! separate off D3
-        do i = 1, N_size
+        do i = 1, LQ2
         ! plain diagonal entry
             X = ABS(HLPB1(i, i))
 !             ! a inf-norm
@@ -222,12 +224,12 @@
             ! 2-norm
 !            X = DZNRM2(N_size+1-i, TPUP(i, i), N_size)
             D3(i) = X
-            do j = i, N_size
+            do j = i, LQ2
                 HLPB1(i, j) = HLPB1(i, j) / X
             enddo
         enddo
-           call solve_extended_System(HLPB2, V1INV, MYU2, HLPB1, D3, TAU, IPVT, LQ)
-           call get_blocks(GR00, GR0T, GRT0, GRTT, HLPB1, LQ)
+           call solve_extended_System(HLPB2, V1INV, MYU2, HLPB1, D3, TAU, IPVT, LQ, WORK, LWORK)
+           call get_blocks(GR00, GR0T, GRT0, GRTT, HLPB2, LQ)
         Else
            !Write(6,*) "D1(1) <  D2(1)", dble(D1(1)), dble(D2(1))
            DO J = 1,LQ
@@ -240,10 +242,35 @@
            ENDDO
            HLPB1 = CT(HLPB2)
            
-           CALL UDV_wrap_Pivot(HLPB1,U3B,D3B,V3B,NCON,LQ2,LQ2)
-           call solve_extended_System(HLPB1, MYU2, V1INV, U3B, D3B, V3B, LQ)
-           call get_blocks(GRTT, GRT0, GR0T, GR00, HLPB1, LQ)
+!           CALL UDV_wrap_Pivot(HLPB1,U3B,D3B,V3B,NCON,LQ2,LQ2)
+        ! Query and allocate optimal amount of work space
+        call ZGEQP3(LQ2, LQ2, HLPB1(1, 1), LQ2, IPVT, TAU(1), Z, -1, RWORK(1), INFO)
+        LWORK = INT(DBLE(Z))
+        ALLOCATE(WORK(LWORK))
+        ! QR decomposition of TPUP with full column pivoting, AP = QR
+        call ZGEQP3(LQ2, LQ2, HLPB1(1, 1), LQ2, IPVT, TAU(1), WORK(1), LWORK, RWORK(1), INFO)
+        DEALLOCATE(RWORK)
+        ! separate off D3
+        do i = 1, LQ2
+        ! plain diagonal entry
+            X = ABS(HLPB1(i, i))
+!             ! a inf-norm
+!             X = TPUP(i, i+izamax(Ndim+1-i, TPUP(i, i), Ndim)-1)
+!             ! another inf-norm
+!             X = TPUP(i, i-1+izmax1(Ndim+1-i, TPUP(i, i), Ndim))
+!             ! 1-norm
+!            X = DZSUM1(N_size+1-i, TPUP(i, i), N_size)
+            ! 2-norm
+!            X = DZNRM2(N_size+1-i, TPUP(i, i), N_size)
+            D3(i) = X
+            do j = i, LQ2
+                HLPB1(i, j) = HLPB1(i, j) / X
+            enddo
+        enddo
+           call solve_extended_System(HLPB2, MYU2, V1INV, HLPB1, D3, TAU, IPVT, LQ, WORK, LWORK)
+!           call solve_extended_System(HLPB1, MYU2, V1INV, U3B, D3B, V3B, LQ)
+           call get_blocks(GRTT, GRT0, GR0T, GR00, HLPB2, LQ)
         Endif
-        DEALLOCATE(MYU2, HLPB1, HLPB2, U3B, V3B, WORK, IPVT, TAU)
+        DEALLOCATE(MYU2, HLPB1, HLPB2, WORK, IPVT, TAU)
         
       END SUBROUTINE CGR2_2
