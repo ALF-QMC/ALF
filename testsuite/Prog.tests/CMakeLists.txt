@@ -64,7 +64,6 @@ endforeach(iter)
 foreach(iter ${progtests})
 target_link_libraries(${iter} ${CMAKE_CURRENT_SOURCE_DIR}/../../Libraries/Modules/modules_90.a )
 target_link_libraries(${iter} ${CMAKE_CURRENT_SOURCE_DIR}/../../Libraries/libqrref/libqrref.a)
-target_link_libraries(${iter} /home/sifff/Documents/Z03/lapack-3.6.1/liblapack.a)
 target_link_libraries(${iter} ${LAPACK_LIBRARIES})
 endforeach(iter)
 
