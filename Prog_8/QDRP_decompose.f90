@@ -29,12 +29,26 @@
 !     - If you make substantial changes to the program we require you to either consider contributing
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
-! This constructs a decompostion Mat = Q D R P^*
-
 Module QDRP_mod
 
 Contains
 
+!--------------------------------------------------------------------
+!> @author 
+!> ALF-project
+!
+!> @brief 
+!> ! This constructs a decompostion Mat = Q D R P^* using a pivoted QR decomposition
+!
+!> @param Ndim[in] The size of the involved matrices
+!> @param Mat[inout] The matrix that we want to decompose. The Householder reflectors and the upper
+!>            triangular matrix are returned in Mat on exit
+!> @param D[inout] The diagonal elements
+!> @param IPVT[inout] A Pivoting vector that collects the permutations. Can be used by ?LAPMR and ?LAPMT
+!> @param TAU[inout] The scalar factors for the Householder decomposition
+!> @param WORK[inout] work memory. We query and allocate it in this routine. Needs to be deallocated outside.
+!> @param LWORK[inout] optimal size of the work memory.
+!--------------------------------------------------------------------
 SUBROUTINE QDRP_decompose(Ndim, Mat, D, IPVT, TAU, WORK, LWORK)
 Implicit None
 Integer, intent(in) :: Ndim
@@ -50,13 +64,14 @@ Integer :: info, i, j
 Real(Kind=Kind(0.d0)) :: X
 
         ALLOCATE(RWORK(2*Ndim))
+        ! Query optimal amount of memory
         call ZGEQP3(Ndim, Ndim, Mat(1, 1), Ndim, IPVT, TAU(1), Z, -1, RWORK(1), INFO)
         LWORK = INT(DBLE(Z))
         ALLOCATE(WORK(LWORK))
-        ! QR decomposition of TPUP with full column pivoting, AP = QR
+        ! QR decomposition of Mat with full column pivoting, Mat * P = Q * R
         call ZGEQP3(Ndim, Ndim, Mat(1, 1), Ndim, IPVT, TAU(1), WORK(1), LWORK, RWORK(1), INFO)
         DEALLOCATE(RWORK)
-        ! separate off D3
+        ! separate off D
         do i = 1, Ndim
         ! plain diagonal entry
             X = ABS(Mat(i, i))
