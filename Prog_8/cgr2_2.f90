@@ -72,7 +72,7 @@
 !
 !> @brief
 !> This functions constructs an extended matrix H1 from UCT and VINV for use as the rhs of
-!> an equation. Then the solution X of the System V3 * X = H1 is sought.
+!> an equation. Then the solution X of the System V3^* * X = H1 is sought.
 !> Then a scaling by D3 and a multiplication by U3 is performed.
 !> Usually the matrices U3, D3, V3 stem from a UDV decomposition.
 !
@@ -112,12 +112,10 @@
               ENDDO
            ENDDO
            z = 1.D0
-           !V3 P^* X = H1
-           CALL ZTRSM('L', 'U', 'N', 'N', LQ2, LQ2, z, A(1, 1), LQ2, HLP(1, 1), LQ2)
-           FORWRD = .false.
+           !P * V3^* X = H1
+           FORWRD = .true.
            CALL ZLAPMR(FORWRD, LQ2, LQ2, HLP(1, 1), LQ2, PIVT(1))
-!           CALL ZGETRF(LQ2, LQ2, V3, LQ2, IPVT, info)
-!           CALL ZGETRS('C', LQ2, LQ2, V3, LQ2, IPVT, HLPB1, LQ2, info)! Block structure of HLPB1 is not exploited
+           CALL ZTRSM('L', 'U', 'C', 'N', LQ2, LQ2, z, A(1, 1), LQ2, HLP(1, 1), LQ2)! Block structure of HLPB1 is not exploited
            DO J = 1,LQ2
               DO I = 1,LQ2
                  HLP(I,J)  = TMPVEC(I)*HLP(I,J)
@@ -126,8 +124,6 @@
            deallocate (TMPVEC)
            ! Res = U * HLP
            CALL ZUNMQR('L', 'N', LQ2, LQ2, LQ2, A(1, 1), LQ2, TAU(1), HLP(1, 1), LQ2, WORK(1), LWORK, INFO)
-!           CALL MMULT(HLP, U3, HLPB1)
-!           deallocate(HLPB1)
            end subroutine solve_extended_System
 
 !--------------------------------------------------------------------
