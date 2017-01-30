@@ -30,6 +30,11 @@
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
 ! This constructs a decompostion Mat = Q D R P^*
+
+Module QDRP_mod
+
+Contains
+
 SUBROUTINE QDRP_decompose(Ndim, Mat, D, IPVT, TAU, WORK, LWORK)
 Implicit None
 Integer, intent(in) :: Ndim
@@ -44,7 +49,7 @@ COMPLEX(Kind=Kind(0.d0)) :: Z
 Integer :: info, i, j
 Real(Kind=Kind(0.d0)) :: X
 
-ALLOCATE(RWORK(2*Ndim))
+        ALLOCATE(RWORK(2*Ndim))
         call ZGEQP3(Ndim, Ndim, Mat(1, 1), Ndim, IPVT, TAU(1), Z, -1, RWORK(1), INFO)
         LWORK = INT(DBLE(Z))
         ALLOCATE(WORK(LWORK))
@@ -68,5 +73,6 @@ ALLOCATE(RWORK(2*Ndim))
                 Mat(i, j) = Mat(i, j) / X
             enddo
         enddo
-        DEALLOCATE(RWORK)
 END SUBROUTINE
+
+End Module QDRP_mod
