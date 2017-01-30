@@ -47,10 +47,8 @@
 !--------------------------------------------------------------------
 
         USE MyMats
+        USE QDRP_mod
         Implicit None
-        Integer :: IZAMAX, izmax1
-        REAL(Kind=Kind(0.D0)) :: DZSUM1, DZNRM2
-
 	!Arguments.
         COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(IN)   ::  URUP, VRUP, ULUP, VLUP
         COMPLEX(Kind=Kind(0.d0)), Dimension(:),   Intent(IN)   ::  DLUP, DRUP
@@ -66,14 +64,14 @@
         Integer :: I, J, N_size, NCON, info, LWORK, next, L
         Real (Kind=Kind(0.D0)) :: X, Xmax, sv
         
-        COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK, RWORK
+        COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK
         LOGICAL :: FORWRD
         
         N_size = SIZE(DLUP,1)
         NCON = 0
         alpha = 1.D0
         beta = 0.D0
-        Allocate(TPUP(N_size,N_size), RHS(N_size, N_size), IPVT(N_size), TAU(N_size), RWORK(2*N_size))
+        Allocate(TPUP(N_size,N_size), RHS(N_size, N_size), IPVT(N_size), TAU(N_size), DUP(N_size))
         !Write(6,*) 'In CGR', N_size
         CALL MMULT(TPUP,VRUP,VLUP)
         DO J = 1,N_size
@@ -90,15 +88,8 @@
         IF (NVAR .NE. 1) THEN
             TPUP = CONJG(TRANSPOSE(TPUP))
         ENDIF
-        ! Query and allocate optimal amount of work space
-        call ZGEQP3(N_size, N_size, TPUP(1, 1), N_size, IPVT, TAU(1), RHS(1, 1), -1, RWORK(1), INFO) ! Abuse RHS(1,1) for temporary storage
-        LWORK = INT(DBLE(RHS(1, 1)))
-        ALLOCATE(WORK(LWORK))
-        ! QR decomposition of TPUP with full column pivoting, AP = QR
-        call ZGEQP3(N_size, N_size, TPUP(1, 1), N_size, IPVT, TAU(1), WORK(1), LWORK, RWORK(1), INFO)
-        DEALLOCATE(RWORK)
-        ALLOCATE(VISITED(N_size), DUP(N_size))
-!         CALL PM(TPUP, N_size)
+        call QDRP_decompose(N_size, TPUP, DUP, IPVT, TAU, WORK, LWORK)
+        ALLOCATE(VISITED(N_size))
         ! Calculate the sign of the permutation from the pivoting. Somehow the format used by the QR decomposition of lapack
         ! is different from that of the LU decomposition of lapack
         VISITED = 0
@@ -135,24 +126,6 @@
                 PHASE = PHASE * Z/ABS(Z)
             endif
         enddo
-        ! separate off DUP
-        do i = 1, N_size
-        ! plain diagonal entry
-            X = ABS(TPUP(i, i))
-!             ! a inf-norm
-!             X = TPUP(i, i+izamax(Ndim+1-i, TPUP(i, i), Ndim)-1)
-!             ! another inf-norm
-!             X = TPUP(i, i-1+izmax1(Ndim+1-i, TPUP(i, i), Ndim))
-!             ! 1-norm
-!            X = DZSUM1(N_size+1-i, TPUP(i, i), N_size)
-            ! 2-norm
-!            X = DZNRM2(N_size+1-i, TPUP(i, i), N_size)
-            DUP(i) = X
-            do j = i, N_size
-                TPUP(i, j) = TPUP(i, j) / X
-            enddo
-        enddo
-            
         IF(NVAR .EQ. 1) then
             ! This is supposed to solve the system 
             ! URUP U D V P^dagger ULUP G = 1
