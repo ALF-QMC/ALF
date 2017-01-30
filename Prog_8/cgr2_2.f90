@@ -72,19 +72,22 @@
 !
 !> @brief
 !> This functions constructs an extended matrix H1 from UCT and VINV for use as the rhs of
-!> an equation. Then the solution X of the System V3^* * X = H1 is sought.
-!> Then a scaling by D3 and a multiplication by U3 is performed.
-!> Usually the matrices U3, D3, V3 stem from a UDV decomposition.
+!> an equation. Then the solution X of the System P^* V^* * X = H1 is sought.
+!> Then a scaling by D and a multiplication by a unitary matrix is performed.
 !
 !> The rationale for constructing this extended matrix is that Fakher says it's more stable.
 !>
 !> @param[inout] HLP The result matrix
 !> @param[in] UCT Matrix, dimension(LQ, LQ)
 !> @param[in] V1INV Matrix, dimension(LQ, LQ)
-!> @param[in] U3 Matrix, dimension(2*LQ, 2*LQ)
-!> @param[in] D3 Matrix, dimension(2*LQ, 2*LQ)
-!> @param[in] V3 Matrix, dimension(2*LQ, 2*LQ)
+!> @param[in] A The input matrix that contains the Householder reflectors on its subdiagonal
+!>              and the upper triangular matrix R in its upper part as returned by ?GETRF
+!> @param[in] D A vector containing the scales.
+!> @param[in] TAU A vecto containing the scalar factors of the Householder decomposition
+!> @param[in] IPVT A permutation vector usable by ?LAPMR/?LAPMT
 !> @param[in] LQ The dimension of the matrices UCT and V1INV
+!> @param[in] WORK work space
+!> @param[in] LWORK The size of the work space.
 !--------------------------------------------------------------------
            Subroutine solve_extended_System(HLP, UCT, VINV, A, D, TAU, PIVT, LQ, WORK, LWORK)
            Implicit none
@@ -117,7 +120,7 @@
            CALL ZTRSM('L', 'U', 'C', 'N', LQ2, LQ2, z, A(1, 1), LQ2, HLP(1, 1), LQ2)! Block structure of HLPB1 is not exploited
            DO J = 1,LQ2
               DO I = 1,LQ2
-                 HLP(I,J)  = TMPVEC(I)*HLP(I,J)
+                 HLP(I, J)  = TMPVEC(I)*HLP(I, J)
               ENDDO
            ENDDO
            deallocate (TMPVEC)
