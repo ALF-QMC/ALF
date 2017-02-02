@@ -23,8 +23,9 @@ implicit none
         Integer :: Ndim, LWORK, info, i, j
         Complex(Kind=kind(0.D0)) :: alpha
         Logical :: FWD
+        REAL(Kind=Kind(0.D0)) :: diff
         
-        do ndim=2, 10, 5
+        do ndim=2, 50, 4
         Allocate(A(ndim, ndim), D(ndim), Tau(ndim), IPVT(ndim), TEST(Ndim, ndim), TMP(ndim, ndim))
         do i = 1, ndim
         do j = 1, ndim
@@ -32,9 +33,9 @@ implicit none
         enddo
         enddo
         TEST = A
-        do i = 1, ndim
-        write (*,*) TEST(i, :)
-        enddo
+!        do i = 1, ndim
+!        write (*,*) DBLE(TEST(i, :))
+!        enddo
         call QDRP_decompose(ndim, A, D, IPVT, TAU, WORK, LWORK)
         TMP = A
         CALL ZUNGQR(ndim, ndim, ndim, A, ndim, tau, work, lwork, info)
@@ -45,12 +46,21 @@ implicit none
         enddo
         alpha = 1.D0
         call ztrmm('R', 'U', 'N', 'N', ndim, ndim, alpha, TMP, ndim, A, ndim)
-        FWD = .true.
+        FWD = .false.
         call ZLAPMT(FWD, ndim, ndim, A, ndim, IPVT)
-        write(*,*) "------------------"
-        do i = 1, ndim
-        write (*,*) A(i, :)
-        enddo
-        deallocate(A, D, TAU, IPVT, test, tmp)
+!        write(*,*) "------------------"
+!        do i = 1, ndim
+!        write (*,*) DBLE(A(i, :))
+!        enddo
+!        write(*,*) "----------------------------------------"
+do i = 1, ndim
+do j = 1, ndim
+diff = abs(dble(test(i,j) - a(i,j)))
+if (diff > max(abs(dble(test(i,j))), abs(dble(a(i,j)))) * 1D-14) then
+write(*,*) "Error!", ndim, i, j, test(i,j), a(i,j)
+endif
+enddo
+enddo
+        deallocate(A, D, TAU, IPVT, test, tmp, WORK)
         enddo
 end Program TESTQDRP
