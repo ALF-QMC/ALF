@@ -1,7 +1,7 @@
 FC= $(mpif90)
 FC= $(f90)
-FLAGS= $(FL) -std=f2003
-LF = $(Lflags) -std=f2003
+FLAGS= $(FL) -std03
+LF = $(Lflags) -std03
 LIBS= $(Libs)/Modules/modules_90.a \
       $(Libs)/libqrref/libqrref.a \
       $(LIB_BLAS_LAPACK)

@@ -1,15 +1,15 @@
 export DIR=`pwd`
 
 #LRZ enviroment
+module switch mpi.ibm mpi.intel
+module switch intel intel/17.0
+module switch mkl mkl/2017
 export f90=mpif90
-module unload mpi.ibm
-module load mpi.intel
-module unload mkl
-module load mkl/11.3_s
 
-export FL="-c -O3 -fp-model fast=2 -xHost -unroll -finline-functions -ipo -ip -heap-arrays 1024"
+export FL="-c -O3 -fp-model fast=2 -xCORE-AVX2 -unroll -finline-functions -ipo -ip -heap-arrays 1024 -no-wrap-margin -DMPI -DZLIB"
+# -parallel -qopenmp"
 #uncomment the next line if you want to debug/profile your code
-export FL="${FL} -g -traceback"
+#export FL="${FL} -g -traceback"
 
 export Libs=${DIR}"/Libraries/"
-export LIB_BLAS_LAPACK=$MKL_LIB
+export LIB_BLAS_LAPACK=$MKL_LIB" -lz"
