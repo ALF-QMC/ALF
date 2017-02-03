@@ -41,7 +41,7 @@ end interface
         Dold = D
         TMPold = TMP
         NCON = 1
-        call ur_update_matrices(U, D, V, V1, TMP, TMP1, Ndim, NCON)
+        call ur_update_matrices(U, D, V, TMP, TMP1, Ndim, NCON)
         call ur_update_matrices_old(Uold, Dold, Vold, V1, TMPold, TMP1, Ndim, NCON)
         
         ! compare
@@ -71,11 +71,11 @@ end interface
         enddo
         
         Z = D(i) - Dold(i)
-        if (Abs(real(Z)) > MAX(ABS(REAL(D(i))), ABS(REAL(Dold(i))))*1D-10) then
+        if (Abs(real(Z)) > MAX(ABS(REAL(D(i))), ABS(REAL(Dold(i))))*1D-15) then
         write (*,*) "Error in D real part", D(i), Dold(i)
         STOP 6
         endif
-        if (Abs(AIMAG(Z)) > MAX(ABS(AIMAG(D(i))), ABS(AIMAG(Dold(i))))*1D-10 ) then
+        if (Abs(AIMAG(Z)) > MAX(ABS(AIMAG(D(i))), ABS(AIMAG(Dold(i))))*1D-15 ) then
         write (*,*) "Error in D imag part", D(i), Dold(i)
         STOP 7
         endif
