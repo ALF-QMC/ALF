@@ -11,11 +11,7 @@ OBJS=  control_mod.o Operator.o print_bin_mod.o observables_mod.o Hamiltonian_SP
   
 .SUFFIXES: .f90 .f
 .f.o .f90.o:
-<<<<<<< HEAD
-	$(FC) -c -cpp -pg -o $@ $(FLAGS) $<
-=======
 	$(FC) -c $(F90USEFULFLAGS) -o $@ $(FLAGS) $<
->>>>>>> origin/master
 
 $(TARGET): $(OBJS)
 	$(FC) -pg $(LF) -o $(TARGET) $(OBJS) $(LIBS)
