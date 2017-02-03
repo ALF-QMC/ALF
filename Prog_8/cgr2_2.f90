@@ -178,7 +178,7 @@
 
 
         ! Local::
-        Complex  (Kind=Kind(0.d0)) :: D3(2*LQ)
+        Complex  (Kind=Kind(0.d0)), allocatable, Dimension(:) :: D3
         Complex  (Kind=Kind(0.d0)) :: Z
         Complex(Kind = Kind(0.D0)), allocatable, Dimension(:, :) :: MYU2, HLPB1, HLPB2, V1INV
         Integer :: LQ2, I, J, NCON, LWORK, info
@@ -188,7 +188,7 @@
         
         LQ2 = LQ*2
         NCON = 0
-        ALLOCATE(MYU2(LQ, LQ), V1INV(LQ,LQ), HLPB1(LQ2, LQ2), HLPB2(LQ2, LQ2))
+        ALLOCATE(MYU2(LQ, LQ), V1INV(LQ,LQ), HLPB1(LQ2, LQ2), HLPB2(LQ2, LQ2), D3(LQ2))
         Allocate(IPVT(LQ2), TAU(LQ2))
         IPVT = 0
         MYU2 = CONJG(TRANSPOSE(U2))
@@ -222,6 +222,6 @@
            call solve_extended_System(HLPB2, MYU2, V1INV, HLPB1, D3, TAU, IPVT, LQ, WORK, LWORK)
            call get_blocks(GRTT, GRT0, GR0T, GR00, HLPB2, LQ)
         Endif
-        DEALLOCATE(MYU2, V1INV, HLPB1, HLPB2, WORK, IPVT, TAU)
+        DEALLOCATE(MYU2, V1INV, HLPB1, HLPB2, WORK, IPVT, TAU, D3)
         
       END SUBROUTINE CGR2_2
