@@ -50,7 +50,7 @@ end interface
         call ul_update_matrices_old(Uold, Dold, Vold, V1, TMPold, TMP1, Ndim, NCON)
         
      ! compare
-!     do i = 1, Ndim
+     do i = 1, Ndim
 !     do j = 1, Ndim
 !         Z = V(i,j) - Vold(i,j)
      
@@ -74,18 +74,18 @@ end interface
 !         endif
 !         
 !     enddo
-!         
-!         Z = D(i) - Dold(i)
-!         if (Abs(real(Z)) > MAX(ABS(REAL(D(i))), ABS(REAL(Dold(i))))*1D-15 ) then
-!         write (*,*) "Error in D real part", D(i), Dold(i)
-!         STOP 6
-!         endif
-!         if (Abs(AIMAG(Z)) > MAX(ABS(AIMAG(D(i))), ABS(AIMAG(Dold(i))))*1D-15 ) then
-!         write (*,*) "Error in D imag part", D(i), Dold(i)
-!         STOP 7
-!         endif
-!         
-!        enddo
+
+         Z = D(i) - Dold(i)
+         if (Abs(real(Z)) > MAX(ABS(REAL(D(i))), ABS(REAL(Dold(i))))*1D-15 ) then
+         write (*,*) "Error in D real part", D(i), Dold(i)
+         STOP 6
+         endif
+         if (Abs(AIMAG(Z)) > MAX(ABS(AIMAG(D(i))), ABS(AIMAG(Dold(i))))*1D-15 ) then
+         write (*,*) "Error in D imag part", D(i), Dold(i)
+         STOP 7
+         endif
+
+        enddo
         Deallocate(U, V, D, Vold, Uold, Dold, TMP, TMPold, V1, TMP1)
         enddo
         
