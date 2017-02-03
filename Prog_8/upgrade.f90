@@ -60,7 +60,7 @@
         Complex (Kind=Kind(0.d0)) :: u(Ndim,Op_dim), v(Ndim,Op_dim) ,alpha, beta
         Complex (Kind=Kind(0.d0)) :: y_v(Ndim,Op_dim), xp_v(Ndim,Op_dim)
         Complex (Kind=Kind(0.d0)) :: x_v(Ndim,Op_dim)
-        Logical :: Log
+        Logical :: toggle
         Complex (Kind=Kind(0.D0)), Dimension(:, :), Allocatable :: Zarr, grarr
         Complex (Kind=Kind(0.D0)), Dimension(:), Allocatable :: sxv, syu
 
@@ -117,9 +117,9 @@
         
         Weight = abs(  real(Phase * Ratiotot, kind=Kind(0.d0))/real(Phase,kind=Kind(0.d0)) )
       
-        Log = .false. 
+        toggle = .false. 
         if ( Weight > ranf_wrap() )  Then
-           Log = .true.
+           toggle = .true.
            Phase = Phase * Ratiotot/Abs(Ratiotot)
            !Write(6,*) 'Accepted : ', Ratiotot
 
@@ -204,6 +204,6 @@
            nsigma(n_op,nt) = ns_new
         endif
 
-        Call Control_upgrade(Log)
+        Call Control_upgrade(toggle)
 
       End Subroutine Upgrade

@@ -1,5 +1,7 @@
 ! compile with
-! gfortran -Wall -std=f2003  -I ../../Libraries/Modules/ -I ../../Prog_8/ -L ../../Libraries/Modules/ -L ../../Prog_8/  17-solve-extended-system.f90 ../../Prog_8/cgr2_2.o ../../Prog_8/UDV_WRAP.o ../../Libraries/Modules/modules_90.a -llapack -lblas ../../Libraries/MyNag/libnag.a
+! gfortran -Wall -std=f2003  -I ../../Libraries/Modules/ -I ../../Prog_8/ 
+! -L ../../Libraries/Modules/ -L ../../Prog_8/  17-solve-extended-system.f90 
+! ../../Prog_8/cgr2_2.o ../../Prog_8/UDV_WRAP.o ../../Libraries/Modules/modules_90.a -llapack -lblas
 
 
 Program SOLVEXTENDEDSYSTEM

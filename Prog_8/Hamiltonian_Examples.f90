@@ -269,6 +269,7 @@
                          Op_T(nc,n)%O(I1 ,I1) = cmplx(-Ham_chem, 0.d0, kind(0.D0))
                       enddo
                       I1 = Invlist(I,1)
+                      J1 = I1
                       Do nc1 = 1,N_coord
                          select case (nc1)
                          case (1)
@@ -279,6 +280,7 @@
                             J1 = invlist(Latt%nnlist(I,0,-1),2) 
                          case default
                             Write(6,*) ' Error in  Ham_Hop '  
+                            Stop
                          end select
                          Op_T(nc,n)%O(I1,J1) = cmplx(-Ham_T,    0.d0, kind(0.D0))
                          Op_T(nc,n)%O(J1,I1) = cmplx(-Ham_T,    0.d0, kind(0.D0))
@@ -363,6 +365,7 @@
              Do nc = 1,Ndim*N_coord   ! Runs over bonds.  Coordination number = 2.
                                       ! For the square lattice Ndim = Latt%N
                 I1 = L_bond_inv(nc,1)
+                I2 = I1
                 if ( L_bond_inv(nc,2)  == 1 ) I2 = Latt%nnlist(I1,1,0)
                 if ( L_bond_inv(nc,2)  == 2 ) I2 = Latt%nnlist(I1,0,1)
                 Op_V(nc,1)%P(1) = I1
@@ -426,6 +429,8 @@
              Do n1= 1, L1/2
                 Do n2 = 1,L2
                    nc = nc + 1
+                   n_orientation = 1
+                   I1 = 1
                    If (nth == 1 ) then
                       X_p = dble(2*n1)*latt%a1_p + dble(n2)*latt%a2_p 
                       I1 = Inv_R(X_p,Latt)
@@ -558,6 +563,9 @@
           Implicit none
           Real (Kind=Kind(0.d0)), intent(out) :: T0_Proposal_ratio
           Integer, dimension(:,:),  allocatable, intent(in)  :: nsigma_old
+
+          T0_Proposal_ratio  = 0.d0
+
         End Subroutine Global_move
 !========================================================================
         Real (Kind=kind(0.d0)) Function Delta_S0_global(Nsigma_old)
@@ -567,6 +575,9 @@
           
           !> Arguments
           Integer, dimension(:,:), allocatable, intent(IN) :: Nsigma_old
+
+          Delta_S0_global = 0.d0
+
         end Function Delta_S0_global
 !========================================================================
         Subroutine Obser(GR,Phase,Ntau)

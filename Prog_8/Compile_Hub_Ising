@@ -7,7 +7,7 @@ OBJS=  control_mod.o Operator.o observables_mod.o Hamiltonian_Hubbard_Ising.o Ho
   
 .SUFFIXES: .f90 .f
 .f.o .f90.o:
-	$(FC) -c -cpp -o $@ $(FLAGS) $<
+	$(FC) -c $(F90USEFULFLAGS) -o $@ $(FLAGS) $<
 
 $(TARGET): $(OBJS)
 	$(FC) $(LF) -o $(TARGET) $(OBJS) $(LIBS)

@@ -519,15 +519,16 @@ Module MaxEnt_mod
           !  
           !  return
           !end function f_fit
+          
+          !>  Shft A Shift
 
-
-          Subroutine MaxEnt_T0 ( XQMC,  COV, A, XKER, ALPHA_ST, CHISQ, Rel_err, Shift, xtau, f_fit)
+          Subroutine MaxEnt_T0 ( XQMC,  COV, A, XKER, ALPHA_ST, CHISQ, Rel_err, Shft, xtau, f_fit)
            
             Implicit None
             Real (Kind=Kind(0.d0)), Dimension(:)   :: XQMC, A
             Real (Kind=Kind(0.d0)), Dimension(:,:) :: COV, XKER
             Real (Kind=Kind(0.d0)) :: ALPHA_ST, CHISQ,  Rel_err 
-            Real (Kind=Kind(0.d0)), Optional :: Shift
+            Real (Kind=Kind(0.d0)), Optional :: Shft
             Real (Kind=Kind(0.d0)), Dimension(:), Optional :: xtau
             Real (Kind=Kind(0.d0)), external,  Optional :: f_fit
 
@@ -574,9 +575,9 @@ Module MaxEnt_mod
                   XKer_1(nt, nw) = XKer(nt, nw)  
                enddo
             enddo
-            IF ( PRESENT(Shift) .and. PRESENT(xtau) .and. PRESENT(F_FIT) ) Then 
+            IF ( PRESENT(Shft) .and. PRESENT(xtau) .and. PRESENT(F_FIT) ) Then 
                write(6,*) 'The data will be shifted'
-               shift = 0.d0
+               shft = 0.d0
                Nd_fit = Ntau_eff/2
                Allocate   (xdata_fit(Nd_fit), fdata_fit(Nd_fit),  error_fit(Nd_fit) )
                do  nt = 1,Nd_fit
@@ -586,14 +587,14 @@ Module MaxEnt_mod
                enddo
                call fit(xdata_fit,fdata_fit,error_fit,ares,chisq_fit,f_fit)
                write(6,*) 'The slope is : ', Ares(2)
-               shift = -Ares(2)  - 0.2
+               shft = -Ares(2)  - 0.2
                Deallocate (xdata_fit, fdata_fit,  error_fit )
                do nt = 1,Ntau_eff
-                  xqmc_1(nt) = xqmc_1(nt)*exp(xtau(nt)*shift)
+                  xqmc_1(nt) = xqmc_1(nt)*exp(xtau(nt)*shft)
                enddo
                do nt = 1,Ntau_eff
                   do nt1 = 1,Ntau_eff
-                     cov_1(nt,nt1) = cov_1(nt,nt1)*exp( (xtau(nt) + xtau(nt1))*shift ) 
+                     cov_1(nt,nt1) = cov_1(nt,nt1)*exp( (xtau(nt) + xtau(nt1))*shft ) 
                   enddo
                enddo
             else

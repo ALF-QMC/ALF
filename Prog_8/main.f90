@@ -434,6 +434,7 @@ Program Main
         exit !exit the loop over the bin index, labelled NBC.
      Endif
   Enddo
+  DEALLOCATE(DL, DR, UL, UR, VR, VL, GR, UST, VST, DST, TEST, Stab_nt)
   Call Control_Print
 
 #ifdef MPI

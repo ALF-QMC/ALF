@@ -19,13 +19,14 @@
 
       Contains
         
+        !< Rng The Range
 
-        subroutine Make_log_mesh ( Mesh,  Lambda, Center, Range, Type, Nw_1 )
+        subroutine Make_log_mesh ( Mesh,  Lambda, Center, Rng, Type, Nw_1 )
 
           Implicit None
 
           Type (logmesh)      :: Mesh
-          Real (Kind=Kind(0.d0))       :: Lambda, Center, Range
+          Real (Kind=Kind(0.d0))       :: Lambda, Center, Rng
           Integer, Optional   :: Nw_1 
           Integer             :: N, Nw 
           Character(len=10)   :: Type
@@ -33,10 +34,10 @@
           Real (Kind=Kind(0.d0))  :: Dom, Om_st, Om_en
 
           Mesh%Center     = Center
-          Mesh%Range      = Range
+          Mesh%Range      = Rng
           If (Type == "Log" ) Then 
-             OM_st = Center - Range
-             OM_en = Center + Range
+             OM_st = Center - Rng
+             OM_en = Center + Rng
              Mesh%Om_st = Om_st
              Mesh%Om_en = Om_en
              Mesh%Lambda     = Lambda
@@ -51,11 +52,11 @@
              Mesh%Log_Lambda = Log(Lambda)
              Allocate   ( Mesh%Xom(2*Nw + 3), Mesh%DXom(2*Nw+3) ) 
              Do n = 0,Nw
-                Mesh%xom (n+1          ) =  Center  -   Range * (Lambda**(-n))
+                Mesh%xom (n+1          ) =  Center  -   Rng * (Lambda**(-n))
              enddo
              Mesh%xom   (Nw+2         ) =  Center
              do n = Nw,0,-1
-                Mesh%xom(Nw+3 +(Nw-n) ) =  Center  +   Range * (Lambda**(-n))
+                Mesh%xom(Nw+3 +(Nw-n) ) =  Center  +   Rng * (Lambda**(-n))
              enddo
              Mesh%Precision = Mesh%Lambda**(-Mesh%Nw)
           elseif (Type == "Lin" ) then
@@ -66,9 +67,9 @@
                 Mesh%Nom  = 2*Nw + 1  
                 Mesh%Type = "Lin"
                 Allocate   ( Mesh%Xom(2*Nw + 1), Mesh%DXom(2*Nw+1) ) 
-                OM_st = Center - Range
-                OM_en = Center + Range
-                Dom = Range/dble(Nw_1) 
+                OM_st = Center - Rng
+                OM_en = Center + Rng
+                Dom = Rng/dble(Nw_1) 
                 Mesh%Dom   = Dom
                 Mesh%Om_st = Om_st
                 Mesh%Om_en = Om_en

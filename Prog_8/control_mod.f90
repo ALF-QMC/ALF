@@ -77,18 +77,18 @@
         Call CPU_TIME(CPU_time_st)
       end subroutine control_init
       
-      Subroutine Control_upgrade(Log) 
+      Subroutine Control_upgrade(toggle) 
         Implicit none
-        Logical :: Log
+        Logical :: toggle
         NC_up = NC_up + 1
-        if (Log) ACC_up = ACC_up + 1
+        if (toggle) ACC_up = ACC_up + 1
       end Subroutine Control_upgrade
 
-      Subroutine Control_upgrade_Glob(Log) 
+      Subroutine Control_upgrade_Glob(toggle) 
         Implicit none
-        Logical :: Log
+        Logical :: toggle
         NC_Glob_up = NC_Glob_up + 1
-        if (Log) ACC_Glob_up = ACC_Glob_up + 1
+        if (toggle) ACC_Glob_up = ACC_Glob_up + 1
       end Subroutine Control_upgrade_Glob
 
       Subroutine Control_PrecisionG(A,B,Ndim)
@@ -147,7 +147,7 @@
 #ifdef MPI
         include 'mpif.h'
 #endif
-        Real (Kind=Kind(0.d0)) :: Time, Acc, Acc_Glob
+        Real (Kind=Kind(0.d0)) :: passedTime, Acc, Acc_Glob
 #ifdef MPI
         REAL (Kind=Kind(0.d0))  :: X
         Integer        :: Ierr, Isize, Irank
@@ -163,7 +163,7 @@
         IF (NC_Phase_GLob > 0 ) XMEANP_Glob  = XMEANP_Glob/dble(NC_Phase_GLob)
 
         Call CPU_TIME(CPU_time_en)
-        Time = CPU_time_en -  CPU_time_st
+        passedTime = CPU_time_en -  CPU_time_st
 #ifdef MPI
 
 
@@ -222,7 +222,7 @@
               Write(50,*) ' Mean Phase diff Glob       : ', XMEANP_Glob 
               Write(50,*) ' Max  Phase diff Glob       : ', XMAXP_Glob
            !endif
-           Write(50,*) ' CPU Time                   : ', Time
+           Write(50,*) ' CPU Time                   : ', passedTime
            Close(50)
 #ifdef MPI
         endif

@@ -91,7 +91,7 @@ Contains
     Real    (Kind=Kind(0.d0)) :: T0_Proposal_ratio, Weight
     Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Z, Ratiotot, Phase_old, Phase_new
     Complex (Kind=Kind(0.d0)), allocatable :: Det_vec_old(:,:), Det_vec_new(:,:), Phase_Det_new(:), Phase_Det_old(:)
-    Logical :: LOG, L_Test
+    Logical :: TOGGLE, L_Test
 
  
 
@@ -193,9 +193,9 @@ Contains
           !Write(6,*) Z, Phase_new
           
           
-          Log = .false. 
+          TOGGLE = .false. 
           if ( Weight > ranf_wrap() )  Then
-             Log = .true.
+             TOGGLE = .true.
              Phase_old     = Phase_new
              Phase_det_old = Phase_det_new
              nsigma_old    = nsigma
@@ -203,12 +203,12 @@ Contains
           else
              nsigma = nsigma_old
           endif
-          Call Control_upgrade_Glob(Log)
+          Call Control_upgrade_Glob(TOGGLE)
        endif
     Enddo
 
     If (NC > 0 ) then
-       If (.not.Log) then
+       If (.not.TOGGLE) then
           DO nf = 1,N_FL
              CALL INITD(UL(:,:,Nf),Z_ONE)
              DL(:,nf) = Z_ONE
@@ -255,7 +255,7 @@ Contains
 !> Fakher Assaad 
 !>
 !> @brief 
-!> Thsi fucntion computes ratio of weights  T0(nsigma--> nsigma_old) W(nsigma)/ 
+!> This fucntion computes ratio of weights  T0(nsigma--> nsigma_old) W(nsigma)/ 
 !>                                          T0(nsigma_old--> nsigma) W(nsigma_old) =
 !>                                          T0_Proposal_ratio   W(nsigma)/  W(nsigma_old)
 !> 
