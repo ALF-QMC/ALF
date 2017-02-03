@@ -40,7 +40,7 @@
 !>    and      PHASE = det(1 + UR*DR*VR*VL*DL*UL) / abs(det(1 + UR*DR*VR*VL*DL*UL)) 
 !>    NVAR = 1 Big scales are in DL
 !>    NVAR = 2 Big scales are in DR
-!> Implementation note: we calculate the Phase as:
+!> Implementation note: we calculate the phase as:
 !> NVAR = 1 : Phase = det(URUP * ULUP)/ |det(URUP * ULUP)| * det(P) * det(R) *det(Q)/ |det(R) det(Q)| 
 !> NVAR = 2 : Phase = det(URUP * ULUP)/ |det(URUP * ULUP)| * det(P) * det^*(R) *det^*(Q)/ |det(R) det(Q)| 
 !
@@ -50,15 +50,15 @@
         USE QDRP_mod
         Implicit None
 	!Arguments.
-        COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(IN)   ::  URUP, VRUP, ULUP, VLUP
+        COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(IN), allocatable   ::  URUP, VRUP, ULUP, VLUP
         COMPLEX(Kind=Kind(0.d0)), Dimension(:),   Intent(IN)   ::  DLUP, DRUP
-        COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(INOUT) :: GRUP
+        COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(INOUT), allocatable :: GRUP
         COMPLEX(Kind=Kind(0.d0)), Intent(INOUT) :: PHASE
         INTEGER         :: NVAR
  
         !Local
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  TPUP, RHS
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:) , Allocatable ::  DUP
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), allocatable ::  TPUP, RHS
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:) , allocatable ::  DUP
         INTEGER, Dimension(:), Allocatable :: IPVT, VISITED
         COMPLEX (Kind=Kind(0.d0)) ::  alpha, beta, Z
         Integer :: I, J, N_size, NCON, info, LWORK, next, L
@@ -91,7 +91,7 @@
         call QDRP_decompose(N_size, TPUP, DUP, IPVT, TAU, WORK, LWORK)
         ALLOCATE(VISITED(N_size))
         ! Calculate the sign of the permutation from the pivoting. Somehow the format used by the QR decomposition of lapack
-        ! is different from that of the LU decomposition of lapack
+        ! is different from that of the LU decomposition of lapack.
         VISITED = 0
         do i = 1, N_size
             if (VISITED(i) .eq. 0) then
@@ -132,7 +132,7 @@
             ! initialize the rhs with CT(URUP)
             RHS = CT(URUP)
             ! RHS = U^dagger * RHS
-            CALL ZUNMQR('L', 'C', N_size, N_size, N_size, TPUP(1,1), N_size, TAU(1), RHS(1,1), N_size, WORK(1), LWORK, INFO)
+            CALL ZUNMQR('L', 'C', N_size, N_size, N_size, TPUP(1, 1), N_size, TAU(1), RHS(1, 1), N_size, WORK(1), LWORK, INFO)
             DEALLOCATE(TAU, WORK)
             !apply inverse of D to RHS from the left
             DO J = 1, N_size
@@ -147,18 +147,18 @@
             ! We solve the equation
             !  A * G = RHS for G with A = R * P^dagger * ULUP
             ! first we solve R *y = RHS. The solution is afterwards in RHS
-            CALL ZTRSM('L', 'U', 'N', 'N', N_size, N_size, alpha, TPUP(1,1), N_size, RHS(1,1), N_size)
+            CALL ZTRSM('L', 'U', 'N', 'N', N_size, N_size, alpha, TPUP(1, 1), N_size, RHS(1, 1), N_size)
             ! apply permutation matrix
             FORWRD = .false.
-            CALL ZLAPMR(FORWRD, N_size, N_size, RHS(1,1), N_size, IPVT(1))
+            CALL ZLAPMR(FORWRD, N_size, N_size, RHS(1, 1), N_size, IPVT(1))
             ! perform multiplication with ULUP and store in GRUP
-            CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, ULUP(1,1), N_size, RHS(1,1), N_size, beta, GRUP(1,1), N_size)
+            CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, ULUP(1, 1), N_size, RHS(1, 1), N_size, beta, GRUP(1, 1), N_size)
         ELSE
             ! This solves the system G * URUP * P * R^dagger * D * U^dagger * ULUP = 1
             
             ! RHS = ULUP * UUP
             RHS = CT(ULUP)
-            CALL ZUNMQR('R', 'N', N_size, N_size, N_size, TPUP(1,1), N_size, TAU(1), RHS(1,1), N_size, WORK(1), LWORK, INFO)
+            CALL ZUNMQR('R', 'N', N_size, N_size, N_size, TPUP(1, 1), N_size, TAU(1), RHS(1, 1), N_size, WORK(1), LWORK, INFO)
             DEALLOCATE(TAU, WORK)
             ! apply D^-1 to RHS from the right
             DO J = 1, N_size
