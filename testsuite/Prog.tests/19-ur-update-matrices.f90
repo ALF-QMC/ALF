@@ -71,11 +71,11 @@ end interface
         enddo
         
         Z = D(i) - Dold(i)
-        if (Abs(real(Z)) > MAX(ABS(REAL(D(i))), ABS(REAL(Dold(i))))*1D-15 ) then
+        if (Abs(real(Z)) > MAX(ABS(REAL(D(i))), ABS(REAL(Dold(i))))*1D-14 ) then
         write (*,*) "Error in D real part", D(i), Dold(i)
         STOP 6
         endif
-        if (Abs(AIMAG(Z)) > MAX(ABS(AIMAG(D(i))), ABS(AIMAG(Dold(i))))*1D-15 ) then
+        if (Abs(AIMAG(Z)) > MAX(ABS(AIMAG(D(i))), ABS(AIMAG(Dold(i))))*1D-14 ) then
         write (*,*) "Error in D imag part", D(i), Dold(i)
         STOP 7
         endif
