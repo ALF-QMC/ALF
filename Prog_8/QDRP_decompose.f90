@@ -53,9 +53,9 @@ SUBROUTINE QDRP_decompose(Ndim, Mat, D, IPVT, TAU, WORK, LWORK)
 Implicit None
 Integer, intent(in) :: Ndim
 Integer, intent(inout) :: LWORK
-Integer, Dimension(:), intent(inout) :: IPVT
-COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(inout) :: Mat
-COMPLEX(Kind=Kind(0.d0)), Dimension(:), Intent(inout) :: D, TAU
+Integer, Dimension(:), intent(inout), Allocatable :: IPVT
+COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(inout), Allocatable :: Mat
+COMPLEX(Kind=Kind(0.d0)), Dimension(:), Intent(inout), Allocatable :: D, TAU
 COMPLEX(Kind=Kind(0.d0)), Dimension(:), Intent(INOUT), Allocatable :: WORK
 
 COMPLEX(Kind=Kind(0.d0)), Dimension(:), Allocatable :: RWORK
