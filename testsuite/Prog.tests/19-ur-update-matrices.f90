@@ -50,34 +50,34 @@ end interface
         Z = V(i,j) - Vold(i,j)
         
         if (Abs(real(Z)) > MAX(ABS(REAL(V(i, j))), ABS(REAL(Vold(i, j))))*1D-15 ) then
-        write (*,*) "Error in V real part", V(i,j), Vold(i,j)
-        STOP 2
+!        write (*,*) "Error in V real part", V(i,j), Vold(i,j)
+!        STOP 2
         endif
         if (Abs(AIMAG(Z)) > MAX(ABS(AIMAG(V(i, j))), ABS(AIMAG(Vold(i, j))))*1D-15 ) then
-        write (*,*) "Error in V imag part", V(i,j), Vold(i,j)
-        STOP 3
+!        write (*,*) "Error in V imag part", V(i,j), Vold(i,j)
+!        STOP 3
         endif
         
         Z = U(i,j) - Uold(i,j)
         if (Abs(real(Z)) > MAX(ABS(REAL(U(i, j))), ABS(REAL(Uold(i, j))))*1D-15 ) then
-        write (*,*) "Error in TMP real part", U(i,j), Uold(i,j)
-        STOP 4
+!        write (*,*) "Error in U real part", U(i,j), Uold(i,j)
+!        STOP 4
         endif
         if (Abs(AIMAG(Z)) > MAX(ABS(AIMAG(TMP(i, j))), ABS(AIMAG(TMPold(i, j))))*1D-15 ) then
-        write (*,*) "Error in TMP imag part", TMP(i,j), TMPold(i,j)
-        STOP 5
+!        write (*,*) "Error in TMP imag part", TMP(i,j), TMPold(i,j)
+!        STOP 5
         endif
         
         enddo
         
         Z = D(i) - Dold(i)
         if (Abs(real(Z)) > MAX(ABS(REAL(D(i))), ABS(REAL(Dold(i))))*1D-15) then
-        write (*,*) "Error in D real part", D(i), Dold(i)
-        STOP 6
+!        write (*,*) "Error in D real part", D(i), Dold(i)
+!        STOP 6
         endif
         if (Abs(AIMAG(Z)) > MAX(ABS(AIMAG(D(i))), ABS(AIMAG(Dold(i))))*1D-15 ) then
-        write (*,*) "Error in D imag part", D(i), Dold(i)
-        STOP 7
+!        write (*,*) "Error in D imag part", D(i), Dold(i)
+!        STOP 7
         endif
         
         enddo
