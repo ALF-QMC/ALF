@@ -94,8 +94,9 @@
            Integer, intent(in) :: LQ, LWORK
            Complex (Kind=Kind(0.D0)), intent(in) :: A(2*LQ, 2*LQ), D(2*LQ), TAU(2*LQ), UCT(LQ,LQ), VINV(LQ,LQ), WORK(LWORK)
            Integer, Dimension(:), intent(in) :: PIVT(2*LQ)
-           Complex (Kind=Kind(0.D0)), intent(inout), Allocatable, dimension(:,:) :: HLP
+           Complex (Kind=Kind(0.D0)), intent(inout) :: HLP(2*LQ, 2*LQ)
            Complex (Kind=Kind(0.D0)), Allocatable, Dimension(:) :: TMPVEC
+!           INTEGER, Dimension(:), Allocatable :: IPVT
            Integer :: LQ2, info, I, j
            Complex (Kind=Kind(0.D0)) :: z
            LOGICAL :: FORWRD
@@ -160,15 +161,6 @@
         Use MyMats
         Use QDRP_mod
         Implicit none
-        Interface
-          Subroutine solve_extended_System(HLP, UCT, VINV, A, D, TAU, PIVT, LQ, WORK, LWORK)
-           Implicit none
-           Integer, intent(in) :: LQ, LWORK
-           Complex (Kind=Kind(0.D0)), intent(in) :: A(2*LQ, 2*LQ), D(2*LQ), TAU(2*LQ), UCT(LQ,LQ), VINV(LQ,LQ), WORK(LWORK)
-           Integer, Dimension(:), intent(in) :: PIVT(2*LQ)
-           Complex (Kind=Kind(0.D0)), intent(inout), Allocatable, dimension(:,:) :: HLP
-           End Subroutine
-        End Interface
 
         !  Arguments
         Integer,  intent(in) :: LQ

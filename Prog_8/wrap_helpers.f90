@@ -50,9 +50,8 @@
         Integer :: IZAMAX, izmax1
         REAL(Kind=Kind(0.D0)) :: DZSUM1, DZNRM2
         INTEGER, intent(in) :: Ndim, NCON
-        COMPLEX (Kind=Kind(0.d0)), intent(in), allocatable, dimension(:, :) :: TMP
-        COMPLEX (Kind=Kind(0.d0)), intent(inout), allocatable, dimension(:,: ) :: U, V, TMP1
-        COMPLEX (Kind=Kind(0.d0)), intent(inout), allocatable, dimension(:) :: D
+        COMPLEX (Kind=Kind(0.d0)), intent(in) :: TMP(Ndim,Ndim)
+        COMPLEX (Kind=Kind(0.d0)), intent(inout) :: U(Ndim,Ndim), V(Ndim,Ndim), TMP1(Ndim,Ndim), D(Ndim)
         COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK
         COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta
         INTEGER, allocatable, Dimension(:) :: IPVT
@@ -62,7 +61,7 @@
         Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
         beta = 0.D0
         ! TMP1 = TMP^dagger * U^dagger
-        CALL ZGEMM('C', 'C', Ndim, Ndim, Ndim, Z_ONE, TMP(1, 1), Ndim, U(1, 1), Ndim, beta, TMP1(1, 1), Ndim)
+        CALL ZGEMM('C', 'C', Ndim, Ndim, Ndim, Z_ONE, TMP, Ndim, U(1, 1), Ndim, beta, TMP1, Ndim)
         ! TMP1 = TMP1 * D
         DO i = 1,NDim
             U(:, i) = TMP1(:, i) * D(i)
@@ -72,11 +71,11 @@
         call QDRP_decompose(Ndim, U, D, IPVT, TAU, WORK, LWORK)
         ! Permute V, since we multiply with V from the left we have to permute its columns
         FORWRD = .true.
-        CALL ZLAPMT(FORWRD, Ndim, Ndim, V(1, 1), Ndim, IPVT(1))
+        CALL ZLAPMT(FORWRD, Ndim, Ndim, V, Ndim, IPVT)
         ! V = V * R^dagger
-        CALL ZTRMM('R', 'U', 'C', 'N', Ndim, Ndim, Z_ONE, U(1, 1), Ndim, V(1, 1), Ndim)
+        CALL ZTRMM('R', 'U', 'C', 'N', Ndim, Ndim, Z_ONE, U, Ndim, V, Ndim)
         ! create explicitly U in the storage already present for it
-        CALL ZUNGQR(Ndim, Ndim, Ndim, U(1, 1), Ndim, TAU(1), WORK(1), LWORK, INFO)
+        CALL ZUNGQR(Ndim, Ndim, Ndim, U, Ndim, TAU, WORK, LWORK, INFO)
         DEALLOCATE(TAU, WORK, IPVT)
 END SUBROUTINE ul_update_matrices
 
@@ -101,9 +100,8 @@ END SUBROUTINE ul_update_matrices
         Use QDRP_mod
         Implicit None
         INTEGER, intent(in) :: Ndim, NCON
-        COMPLEX (Kind=Kind(0.d0)), intent(in), allocatable, dimension(:, :) :: TMP
-        COMPLEX (Kind=Kind(0.d0)), intent(inout), allocatable, dimension(:, :) :: U, V, TMP1
-        COMPLEX (Kind=Kind(0.d0)), intent(inout), allocatable, dimension(:) :: D
+        COMPLEX (Kind=Kind(0.d0)), intent(in) :: TMP(Ndim,Ndim)
+        COMPLEX (Kind=Kind(0.d0)), intent(inout) :: U(Ndim,Ndim), V(Ndim,Ndim), TMP1(Ndim,Ndim), D(Ndim)
         COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK
         COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta
         INTEGER :: INFO, i, j, LWORK
@@ -113,7 +111,7 @@ END SUBROUTINE ul_update_matrices
         ! QR(TMP * U * D) * V
         Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
         beta = 0.D0
-        CALL ZGEMM('N', 'N', Ndim, Ndim, Ndim, Z_ONE, TMP(1, 1), Ndim, U(1, 1), Ndim, beta, TMP1(1, 1), Ndim)
+        CALL ZGEMM('N', 'N', Ndim, Ndim, Ndim, Z_ONE, TMP, Ndim, U(1, 1), Ndim, beta, TMP1, Ndim)
         ! TMP1 = TMP1 * D
         DO i = 1,NDim
             U(:, i) = TMP1(:, i)*D(i)
@@ -124,10 +122,10 @@ END SUBROUTINE ul_update_matrices
         ! Permute V. Since we multiply with V from the right we have to permute the rows.
         ! A V = A P P^-1 V = Q R P^-1 V
         FORWRD = .true.
-        CALL ZLAPMR(FORWRD, Ndim, Ndim, V(1, 1), Ndim, IPVT(1)) ! lapack 3.3
+        CALL ZLAPMR(FORWRD, Ndim, Ndim, V, Ndim, IPVT) ! lapack 3.3
         ! V = R * V
-        CALL ZTRMM('L', 'U', 'N', 'N', Ndim, Ndim, Z_ONE, U(1, 1), Ndim, V(1, 1), Ndim)
+        CALL ZTRMM('L', 'U', 'N', 'N', Ndim, Ndim, Z_ONE, U, Ndim, V, Ndim)
         ! Generate explicitly U in the previously abused storage of U
-        CALL ZUNGQR(Ndim, Ndim, Ndim, U(1, 1), Ndim, TAU(1), WORK(1), LWORK, INFO)
+        CALL ZUNGQR(Ndim, Ndim, Ndim, U, Ndim, TAU, WORK, LWORK, INFO)
         DEALLOCATE(TAU, WORK, IPVT)
 END SUBROUTINE ur_update_matrices
