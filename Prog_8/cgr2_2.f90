@@ -96,7 +96,6 @@
            Integer, Dimension(:), intent(in) :: PIVT(2*LQ)
            Complex (Kind=Kind(0.D0)), intent(inout) :: HLP(2*LQ, 2*LQ)
            Complex (Kind=Kind(0.D0)), Allocatable, Dimension(:) :: TMPVEC
-!           INTEGER, Dimension(:), Allocatable :: IPVT
            Integer :: LQ2, info, I, j
            Complex (Kind=Kind(0.D0)) :: z
            LOGICAL :: FORWRD

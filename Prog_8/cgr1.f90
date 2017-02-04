@@ -79,7 +79,7 @@
         ENDDO
         ! can be inserted again once we are sure that we may assume that UR and UL stem from householder reflectors
 !        CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, URUP, N_size, ULUP, N_size, alpha, TPUP, N_size)
-        CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, URUP(1,1), N_size, ULUP(1,1), N_size, beta, RHS(1,1), N_size)
+        CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, URUP, N_size, ULUP, N_size, beta, RHS(1, 1), N_size)
         TPUP = TPUP + RHS
         ! calculate determinant of UR*UL
         PHASE = CONJG(DET_C(RHS, N_size))
@@ -132,7 +132,7 @@
             ! initialize the rhs with CT(URUP)
             RHS = CT(URUP)
             ! RHS = U^dagger * RHS
-            CALL ZUNMQR('L', 'C', N_size, N_size, N_size, TPUP(1,1), N_size, TAU(1), RHS(1,1), N_size, WORK(1), LWORK, INFO)
+            CALL ZUNMQR('L', 'C', N_size, N_size, N_size, TPUP(1, 1), N_size, TAU(1), RHS(1,1), N_size, WORK(1), LWORK, INFO)
             DEALLOCATE(TAU, WORK)
             !apply inverse of D to RHS from the left
             DO J = 1, N_size
@@ -158,7 +158,7 @@
             
             ! RHS = ULUP * UUP
             RHS = CT(ULUP)
-            CALL ZUNMQR('R', 'N', N_size, N_size, N_size, TPUP(1,1), N_size, TAU(1), RHS(1,1), N_size, WORK(1), LWORK, INFO)
+            CALL ZUNMQR('R', 'N', N_size, N_size, N_size, TPUP(1, 1), N_size, TAU(1), RHS(1, 1), N_size, WORK(1), LWORK, INFO)
             DEALLOCATE(TAU, WORK)
             ! apply D^-1 to RHS from the right
             DO J = 1, N_size

@@ -45,6 +45,7 @@
         
         Use Operator_mod, only : Phi
         Use Hop_mod
+        Use Wrap_helpers
         Implicit None
 
         ! Arguments

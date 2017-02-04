@@ -44,6 +44,7 @@
         !NOTE:    NTAU1 > NTAU.
         Use Operator_mod, only : Phi
         Use Hop_mod
+        Use Wrap_helpers
         Implicit none
 
         ! Arguments
