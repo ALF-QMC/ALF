@@ -47,8 +47,8 @@
         Implicit none
 
         ! Arguments
-        COMPLEX (Kind=Kind(0.d0)) :: UL(Ndim,Ndim,N_FL), VL(Ndim,Ndim,N_FL)
-        COMPLEX (Kind=Kind(0.d0)) :: DL(Ndim,N_FL)
+        COMPLEX (Kind=Kind(0.d0)), intent(inout) :: UL(Ndim,Ndim,N_FL), VL(Ndim,Ndim,N_FL)
+        COMPLEX (Kind=Kind(0.d0)), intent(inout) :: DL(Ndim,N_FL)
         Integer, intent(in) :: NTAU1, NTAU
 
 
@@ -79,4 +79,3 @@
         ENDDO
         deallocate(TMP, TMP1)
       END SUBROUTINE WRAPUL
-      
