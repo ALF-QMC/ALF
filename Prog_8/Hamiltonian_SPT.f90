@@ -756,7 +756,9 @@
                 
             enddo
           enddo
+!$OMP end parallel do
           
+!$OMP parallel do default(shared) private(I,I1,I2,no,J,J1,J2,no1,imj,tmp,weight,signum)
           do I=1,Latt%N
             do no=1,8
                 if (no<=4) then
