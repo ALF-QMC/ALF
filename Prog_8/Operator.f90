@@ -213,9 +213,11 @@ Contains
     Integer , Dimension(:), INTENT(IN) :: P
     Integer :: n
     
+!$OMP parallel do default(shared)
     Do n = 1, opn
        call zcopy(Ndim, Mat(1, P(n)), 1, V(n, 1), opn)
     Enddo
+!$OMP end parallel do
     
   end subroutine
 
@@ -243,9 +245,11 @@ Contains
     Integer , Dimension(:), INTENT(IN) :: P
     Integer :: n
     
+!$OMP parallel do default(shared)
     Do n = 1, opn
         call zcopy(Ndim, Mat(P(n), 1), Ndim, V(n, 1), opn)
     Enddo
+!$OMP end parallel do
     
   end subroutine
 
@@ -386,9 +390,11 @@ Contains
             Mat(I, P(2)) = Z(2) * (U(1, 2) * V(1, I) + U(2, 2) * V(2, I))
         enddo
     case default
+!$OMP parallel do default(shared)
         do n = 1, opn
             call zgemv('T', opn, Ndim, Z(n), V, opn, U(:, n), 1, beta, Mat(:, P(n)), 1)
         Enddo
+!$OMP end parallel do
     end select
   end subroutine
 
@@ -433,9 +439,11 @@ Contains
             Mat(P(2), I) = Z(2) * (conjg(U(1, 2)) * V(1, I) + conjg(U(2, 2)) * V(2, I))
         enddo
     case default
+!$OMP parallel do default(shared)
         do n = 1, opn
             call zgemv('T', opn, Ndim, Z(n), V, opn, conjg(U(:, n)), 1, beta, Mat(P(n), 1), size(Mat, 1))
         Enddo
+!$OMP end parallel do
     end select
 
   end subroutine
@@ -602,17 +610,21 @@ end subroutine
     If (N_type == 1) then
        call FillExpOps(ExpOp, ExpMop, Op, spin)
        
+!$OMP parallel do default(shared) private(expHere)
        Do n = 1,Op%N
           expHere=ExpOp(n)
           VH(n, :) = ExpHere * Mat(:, Op%P(n))
        Enddo
+!$OMP end parallel do
 
        call opmultct(VH, Op%U, Op%P, Mat, Op%N, Ndim)
 
+!$OMP parallel do default(shared) private(ExpHere)
        Do n = 1,Op%N
           ExpHere=ExpMOp(n)
           VH(n, :) = ExpHere * Mat(Op%P(n), :)
        Enddo
+!$OMP end parallel do
     
        call opmult(VH, Op%U, Op%P, Mat, Op%N, Ndim)
     elseif (N_Type == 2) then

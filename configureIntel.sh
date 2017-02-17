@@ -10,7 +10,7 @@ export FL="${FL} -DZLIB"
 export FL="${FL} -parallel -qopenmp"
 
 #uncomment the next line if you want to debug/profile your code
-#export FL="${FL} -g -traceback"
+export FL="${FL} -g"
 
 export Libs=${DIR}"/Libraries/"
 #export LIB_BLAS_LAPACK="-lblas -llapack"
