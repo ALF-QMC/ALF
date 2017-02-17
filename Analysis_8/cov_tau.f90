@@ -17,7 +17,7 @@
 
          Integer :: Ndim, Norb
          Integer :: no, no1, n, nbins, n_skip, nb, nT, Lt
-         real (Kind=8):: X, Y,  dtau, X_diag
+         real (Kind=8):: X, Y,  dtau, X_diag, X1, x2
          real (Kind=8), allocatable :: Xmean(:), Xcov(:,:)
          Complex (Kind=8) :: Z
          Real (Kind=8) :: Zero=1.D-8
@@ -47,7 +47,7 @@
                   enddo
                enddo
             enddo
-            Write(6,*) nbins
+!             Write(6,*) nbins
             nbins = nbins + 1
          enddo
 10       continue
@@ -65,7 +65,10 @@
          Allocate (Xmean(Lt), Xcov(Lt,Lt))
          bins  = 0.d0
          bins0 = cmplx(0.d0,0.d0,Kind(0.d0))
+         x1=0.d0
+         x2=0.d0
          Open ( Unit=10, File="intau", status="unknown" ) 
+         Open ( Unit=55, File="timeline", status="unknown" ) 
          do nb = 1, nbins + n_skip
             if (nb > n_skip ) then
                Read(10,*,End=10) Phase(nb-n_skip),no,no1,n, X
@@ -84,6 +87,13 @@
                         enddo
                      enddo
                   enddo
+                  if (Xk_p(1,n)==0.D0 .and. Xk_p(2,n)==0.D0) then
+                    X=real(bins(n,1,nb-n_skip))
+                    y=real(bins(n,Lt/2,nb-n_skip))
+                    X1=x1+X
+                    X2=x2+Y
+                    write(55,*) X, x1/(nb-n_skip), y, x2/(nb-n_skip)
+                  endif
                   if ( sqrt(Xk_p(1,n)**2 + Xk_p(2,n)**2) < 1.D-6 ) then
                      Do nt = 1,Lt
                         bins(n,nt,nb-n_skip) =   bins(n,nt,nb-n_skip) - X_diag
@@ -108,10 +118,11 @@
             endif
          enddo
          close(10)
+         close(55)
 
-         do n = 1,Nbins
-            Write(6,*) Phase(n)
-         Enddo
+!          do n = 1,Nbins
+!             Write(6,*) Phase(n)
+!          Enddo
          do n = 1,Ndim
             V_help = 0.d0
             !n1 = n

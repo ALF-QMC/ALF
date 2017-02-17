@@ -1647,10 +1647,10 @@
                    if (I1==I2 .and. nt==0) DeltaI=cmplx(1.d0,0.d0, kind(0.D0))
                    DeltaJ=0.d0
                    if (J1==J2 .and. nt==0) DeltaJ=cmplx(1.d0,0.d0, kind(0.D0))
-                   tmp =  Z * ( (DeltaI - GTT(I2,I1,1))*(DeltaJ - G00(J2,J1,1)) - GT0(I2,J1,1)*G0T(J2,I1,1)) * ZP* ZS
+                   tmp =  Z * ( (DeltaI - GTT(I2,I1,1))*(DeltaJ - G00(J2,J1,1)) - GT0(I2,J1,1)*G0T(J2,I1,1)) * ZP* ZS  - 0.25d0
                    
-                   Den_tau  (imj,nt+1,1,1) = Den_tau  (imj,nt+1,1,1)  +  tmp  - 0.25d0
-                   Den_sus  (imj,1,1) = Den_sus  (imj,1,1)  +  weightbeta*(tmp  - 0.25d0)
+                   Den_tau  (imj,nt+1,1,1) = Den_tau  (imj,nt+1,1,1)  +  tmp
+                   Den_sus  (imj,1,1) = Den_sus  (imj,1,1)  +  weightbeta*tmp
                      
                    weight=cmplx(1.d0,0.d0,kind(0.D0))
                    if ( (no>=9 .and. no1<=8) .or. (no<=8 .and. no1>=9) ) weight=-weight
