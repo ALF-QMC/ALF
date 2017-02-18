@@ -293,9 +293,14 @@ Contains
             Mat(P(2), I) = U(2,1) * V(1, I) + U(2,2) * V(2, I)
         enddo
     case default
-        Allocate(tmp(opn, Ndim))
-        CALL ZGEMM('N','N', opn, Ndim, opn, alpha, U, opn, V, opn, beta, tmp, opn)
-        Mat((P), :) = tmp
+        Allocate(tmp(Ndim,opn))
+        CALL ZGEMM('T','T', Ndim, opn, opn, alpha, V, opn, U, opn, beta, tmp, Ndim)
+!$OMP parallel do default(shared)
+        do n = 1,opn
+            call zcopy(Ndim, tmp(1,n), 1, Mat(P(n),1), Ndim)
+        Enddo
+!$OMP end parallel do
+!         Mat((P), :) = tmp
         Deallocate(tmp)
     end select
 
@@ -343,7 +348,12 @@ Contains
     case default
         Allocate(tmp(Ndim, opn))
         CALL ZGEMM('T','C', Ndim, opn, opn, alpha, V, opn, U, opn, beta, tmp, Ndim)
-        Mat(:, (P)) = tmp
+!$OMP parallel do default(shared)
+        do n = 1,opn
+            call zcopy(Ndim, tmp(1,n), 1, Mat(1,P(n)), 1)
+        Enddo
+!$OMP end parallel do
+!         Mat(:, (P)) = tmp
         Deallocate(tmp)
     end select
         
