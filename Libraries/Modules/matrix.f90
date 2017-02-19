@@ -1,14 +1,53 @@
+
+!  Copyright (C) 2016 The ALF project
+! 
+!     The ALF project is free software: you can redistribute it and/or modify
+!     it under the terms of the GNU General Public License as published by
+!     the Free Software Foundation, either version 3 of the License, or
+!     (at your option) any later version.
+! 
+!     The ALF project is distributed in the hope that it will be useful,
+!     but WITHOUT ANY WARRANTY; without even the implied warranty of
+!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+!     GNU General Public License for more details.
+! 
+!     You should have received a copy of the GNU General Public License
+!     along with Foobar.  If not, see http://www.gnu.org/licenses/.
+!     
+!     Under Section 7 of GPL version 3 we require you to fulfill the following additional terms:
+!     
+!     - It is our hope that this program makes a contribution to the scientific community. Being
+!       part of that community we feel that it is reasonable to require you to give an attribution
+!       back to the original authors if you have benefitted from this program.
+!       Guidelines for a proper citation can be found on the project's homepage
+!       http://alf.physik.uni-wuerzburg.de .
+!       
+!     - We require the preservation of the above copyright notice and this license in all original files.
+!     
+!     - We prohibit the misrepresentation of the origin of the original source files. To obtain 
+!       the original source files please visit the homepage http://alf.physik.uni-wuerzburg.de .
+! 
+!     - If you make substantial changes to the program we require you to either consider contributing
+!       to the ALF project or to mark your material in a reasonable way as different from the original version.   
      MODULE Matrix
 
+!--------------------------------------------------------------------
+!> @author 
+!> ALF-project
+!
+!> @brief 
+!> Definition of a matrix type. 
+!> 
+!--------------------------------------------------------------------
 
-
+       
        Type Mat_C
-          complex (Kind=8), pointer :: el(:,:)
+          complex (Kind=Kind(0.d0)), pointer :: el(:,:)
           Integer :: dim
        end Type Mat_C
 
        Type Mat_R
-          Real (Kind=8), pointer :: el(:,:)
+          Real (Kind=Kind(0.d0)), pointer :: el(:,:)
           Integer :: dim
        end Type Mat_R
 
@@ -49,32 +88,3 @@
 
 
 
-!!!!!!!!!!!!! Would be nice to implement one day.... !!!!!!!!!!!!!!!!!!!!!
-! Use MyMats
-!
-! interface assignment(=)
-! module procedure Equal_C
-! end interface
-! interface operator(*)
-! module procedure Mat_mult_C
-! end interface
-! subroutine Equal_C(Z_out, Z_in)
-! type (Mat_C), intent(in) :: Z_in
-! type (MAT_C), intent(out) :: Z_out
-! Z_out%A = Z_in%A
-! end subroutine Equal_C
-!
-! function Mat_mult_C(Z1, Z2) result(Z3)
-!
-! type (Mat_C) , intent(in) :: Z1 , Z2
-! type (Mat_C) :: Z3
-! integer N
-!
-! N = size(Z1%A,1)
-! Call Construct_Mat(Z3,N)
-!
-! Call MMULT(Z3%A, Z1%A, Z2%A)
-!
-! end function Mat_mult_C
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

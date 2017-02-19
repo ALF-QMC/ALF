@@ -1,6 +1,6 @@
     Module Natural_Constants
 
-      Real (Kind =8)  :: eV, amu, Ang, hbar, pi
+      Real (Kind=Kind(0.d0))  :: eV, amu, Ang, hbar, pi
 
     contains
      

@@ -1,0 +1,101 @@
+% Copyright (c) 2016 The ALF project.
+% This is the ALF project documentation.
+% The ALF project documentation by the ALF contributors is licensed
+% under a Creative Commons Attribution-ShareAlike 4.0 International License.
+% For the licensing details of the documentation see license.CCBYSA.
+
+
+\documentclass[10pt,Arial]{scrartcl}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage{bbm}            
+\usepackage[fleqn]{amsmath} 
+\usepackage{amssymb}
+\usepackage{wasysym}
+\usepackage{color}
+\usepackage{soul}
+\usepackage{xspace}
+\usepackage{bm}
+\usepackage{subfigure}
+\usepackage{tcolorbox}
+\usepackage{dsfont}
+\usepackage{footnote}
+\usepackage{alltt}
+\usepackage{xcolor}
+\usepackage{lmodern}
+\usepackage{listings}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{hyperref} 
+
+\lstset{language=Fortran,
+  basicstyle=\ttfamily,
+  keywordstyle=\color{red},
+  commentstyle=\color{blue},
+  morecomment=[l]{!\ }% Comment only with space after !
+  breakatwhitespace=false,
+  keepspaces=true,
+  showstringspaces=false,
+  columns=flexible
+}
+
+\lstdefinestyle{custombash}{
+language=bash,
+  basicstyle=\ttfamily,
+  keywordstyle=\color{red},
+  commentstyle=\color{blue},
+  morecomment=[l]{\#\ }% Comment only with space after #
+  breakatwhitespace=false,
+  keepspaces=true,
+  showstringspaces=false,
+  columns=flexible
+}
+
+\def\Tr{\mathop{\mathrm{Tr}}}
+\def\Trf{\mathop{\mathrm{Tr}_{\mathrm{F}}}}
+\makesavenoteenv{tabular}
+\makesavenoteenv{table}
+\setkomafont{author}{\large}
+\setkomafont{date}{\large}
+
+\newcommand{\mycomment}[1]{{\color{blue} #1}}
+\newcommand{\FAcomment}[1]{{\color{red} #1}}
+
+\makeindex
+\begin{document}
+%---------------------------------------------------------------------------------------------------------
+\title{The \textit{ALF} (\textit{A}lgorithms for \textit{L}attice \textit{F}ermions) project release 0.5}
+\subtitle{Documentation for the  auxiliary field quantum Monte Carlo  code.}
+\author{Martin Bercx,  Florian Goth,  Johannes S. Hofmann, Fakher F. Assaad }
+%---------------------------------------------------------------------------------------------------------
+\maketitle
+
+Copyright \textcopyright ~2016, The \textit{ALF} Project.\\
+This is the ALF Project Documentation by the ALF contributors.
+It is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License.
+You are free to share and benefit from this documentation as long as this license is preserved
+and proper attribution to the authors is given. For details see the ALF project
+homepage \url{alf.physik.uni-wuerzburg.de}.
+\tableofcontents
+\clearpage
+\input{intro}
+\input{model}
+\input{implementation}
+\input{updating}
+\input{files}
+\input{walkthrough_hubbard}
+\input{other_models}
+\input{analysis}
+\input{running}
+\input{performance}
+\input{conclusion}
+\addcontentsline{toc}{section}{Acknowledgments}
+\input{acknowledgment}
+\addcontentsline{toc}{section}{References}
+\bibliographystyle{./prXsty} 
+\bibliography{./fassaad}
+\addcontentsline{toc}{section}{License}
+\input{license}
+
+\end{document}

@@ -14,20 +14,20 @@
            include 'mpif.h'
 #endif   
 
-           Complex (Kind=8), Dimension(:,:,:), Intent(inout):: Dat_eq
-           Complex (Kind=8), Dimension(:)    , Intent(inout):: Dat_eq0
+           Complex (Kind=Kind(0.d0)), Dimension(:,:,:), Intent(inout):: Dat_eq
+           Complex (Kind=Kind(0.d0)), Dimension(:)    , Intent(inout):: Dat_eq0
            Type (Lattice),                     Intent(In)   :: Latt
-           Complex (Kind=8),                   Intent(In)   :: Phase_bin_tmp
+           Complex (Kind=Kind(0.d0)),                   Intent(In)   :: Phase_bin_tmp
            Character (len=64),                 Intent(In)   :: File_pr
            Integer,                            Intent(In)   :: Nobs
           
            ! Local
            Integer :: Norb, I, no,no1
-           Complex (Kind=8), allocatable :: Tmp(:,:,:), Tmp1(:)
-           Real    (Kind=8)              :: x_p(2) 
-           Complex (Kind=8)              :: Phase_bin
+           Complex (Kind=Kind(0.d0)), allocatable :: Tmp(:,:,:), Tmp1(:)
+           Real    (Kind=Kind(0.d0))              :: x_p(2) 
+           Complex (Kind=Kind(0.d0))              :: Phase_bin
 #ifdef MPI
-           Complex (Kind=8):: Z
+           Complex (Kind=Kind(0.d0)):: Z
            Integer         :: Ierr, Isize, Irank
            INTEGER         :: STATUS(MPI_STATUS_SIZE)
            CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
@@ -50,10 +50,12 @@
            CALL MPI_REDUCE(Dat_eq,Tmp,I,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
            Dat_eq = Tmp/DBLE(ISIZE)
            I = 1
+           Z = cmplx(0.d0,0.d0,kind(0.d0))
            CALL MPI_REDUCE(Phase_bin,Z,I,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
            Phase_bin= Z/DBLE(ISIZE)
 
            I = Norb
+           Tmp1 = cmplx(0.d0,0.d0,kind(0.d0))
            CALL MPI_REDUCE(Dat_eq0,Tmp1,I,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
            Dat_eq0 = Tmp1/DBLE(ISIZE)
 
@@ -98,21 +100,21 @@
            include 'mpif.h'
 #endif   
            
-           Real    (Kind=8), Dimension(:,:,:), Intent(inout) :: Dat_eq
-           Real    (Kind=8), Dimension(:)    , Intent(inout) :: Dat_eq0
+           Real    (Kind=Kind(0.d0)), Dimension(:,:,:), Intent(inout) :: Dat_eq
+           Real    (Kind=Kind(0.d0)), Dimension(:)    , Intent(inout) :: Dat_eq0
            Type (Lattice),                     Intent(In)    :: Latt
-           Complex (Kind=8),                   Intent(In)    :: Phase_bin_tmp
+           Complex (Kind=Kind(0.d0)),                   Intent(In)    :: Phase_bin_tmp
            Character (len=64),                 Intent(In)    :: File_pr
            Integer,                            Intent(In)    :: Nobs
            
            ! Local
            Integer :: Norb, I, no,no1
-           Real    (Kind=8), allocatable :: Tmp(:,:,:), Tmp1(:)
-           Real    (Kind=8)              :: x_p(2) 
-           Complex (Kind=8)              :: Phase_bin
+           Real    (Kind=Kind(0.d0)), allocatable :: Tmp(:,:,:), Tmp1(:)
+           Real    (Kind=Kind(0.d0))              :: x_p(2) 
+           Complex (Kind=Kind(0.d0))              :: Phase_bin
 #ifdef MPI
            Integer        :: Ierr, Isize, Irank
-           Complex (Kind=8)              :: Z
+           Complex (Kind=Kind(0.d0))              :: Z
            INTEGER        :: STATUS(MPI_STATUS_SIZE)
            CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
            CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
@@ -133,11 +135,13 @@
            CALL MPI_REDUCE(Dat_eq,Tmp,I,MPI_REAL8,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
            Dat_eq = Tmp/DBLE(ISIZE)
            I = 1
+           Z = cmplx(0.d0,0.d0,kind(0.d0))
            CALL MPI_REDUCE(Phase_bin,Z,I,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
            Phase_bin= Z/DBLE(ISIZE)
            If (Irank == 0 ) then
 
-           I = Norb
+           I = Norb 
+           Tmp1 = cmplx(0.d0,0.d0,kind(0.d0))
            CALL MPI_REDUCE(Dat_eq0,Tmp1,I,MPI_REAL8,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
            Dat_eq0 = Tmp1/DBLE(ISIZE)
 
@@ -177,13 +181,13 @@
            include 'mpif.h'
 #endif   
            
-           Complex   (Kind=8), Dimension(:), Intent(inout) :: Obs
+           Complex   (Kind=Kind(0.d0)), Dimension(:), Intent(inout) :: Obs
            Character (len=64),               Intent(In)    :: File_pr
            Integer,                          Intent(In)    :: Nobs
            
            ! Local
            Integer :: Norb,I
-           Complex  (Kind=8), allocatable :: Tmp(:)
+           Complex  (Kind=Kind(0.d0)), allocatable :: Tmp(:)
 #ifdef MPI
            Integer        :: Ierr, Isize, Irank
            INTEGER        :: STATUS(MPI_STATUS_SIZE)
@@ -223,26 +227,26 @@
            include 'mpif.h'
 #endif   
 
-           Complex (Kind=8), Dimension(:,:,:,:), Intent(inout):: Dat_tau   ! (Latt%N, Ltau,Norb, Norb)
-           Complex (Kind=8), Dimension(:      ), Intent(inout), optional :: Dat0_tau  ! (Norb)
+           Complex (Kind=Kind(0.d0)), Dimension(:,:,:,:), Intent(inout):: Dat_tau   ! (Latt%N, Ltau,Norb, Norb)
+           Complex (Kind=Kind(0.d0)), Dimension(:      ), Intent(inout), optional :: Dat0_tau  ! (Norb)
            Type (Lattice),                       Intent(In)   :: Latt
-           Complex (Kind=8),                     Intent(In)   :: Phase_bin
+           Complex (Kind=Kind(0.d0)),                     Intent(In)   :: Phase_bin
            Character (len=64),                   Intent(In)   :: File_pr
            Integer,                              Intent(In)   :: Nobs
-           Real (kind=8),                        Intent(In)   :: dtau
+           Real (Kind=Kind(0.d0)),                        Intent(In)   :: dtau
           
            ! Local
            Integer :: Norb, I, no,no1, LT, nt,ios
-           Complex (Kind=8), allocatable :: Tmp(:,:,:,:), Tmp0(:)
-           Complex (Kind=8) :: Phase_mean 
-           Real    (Kind=8)              :: x_p(2) 
+           Complex (Kind=Kind(0.d0)), allocatable :: Tmp(:,:,:,:), Tmp0(:)
+           Complex (Kind=Kind(0.d0)) :: Phase_mean 
+           Real    (Kind=Kind(0.d0))              :: x_p(2) 
 #ifdef ZLIB
            TYPE(IOPORT) :: fd
            Character (len=64) :: File_tmp
            CHARACTER(LEN=255), TARGET :: LINE
 #endif  
 #ifdef MPI
-           Complex (Kind=8):: Z
+           Complex (Kind=Kind(0.d0)):: Z
            Integer         :: Ierr, Isize, Irank
            INTEGER         :: STATUS(MPI_STATUS_SIZE)
            CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
@@ -277,6 +281,7 @@
            endif
 
            I = 1
+           Z = cmplx(0.d0,0d.0,kind(0.d0))
            CALL MPI_REDUCE(Phase_mean,Z,I,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
            Phase_mean= Z/DBLE(ISIZE)
            If (Irank == 0 ) then

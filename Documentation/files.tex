@@ -1,0 +1,211 @@
+% Copyright (c) 2016 The ALF project.
+% This is a part of the ALF project documentation.
+% The ALF project documentation by the ALF contributors is licensed
+% under a Creative Commons Attribution-ShareAlike 4.0 International License.
+% For the licensing details of the documentation see license.CCBYSA.
+
+% !TEX root = Doc.tex
+%------------------------------------------------------------
+\section{File structure}\label{sec:files}
+%------------------------------------------------------------
+%
+\begin{table}[h]
+   \begin{tabular}{@{} l l @{}}\toprule
+   Directory & Description \\\midrule
+   \path{Prog/} & Main program and subroutines  \\
+  \path{Libraries/} & Collection of mathematical routines \\  
+  \path{Analysis/} & Routines for error analysis \\
+  \path{Examples/} & Example simulations for Hubbard-type models\\
+  \path{Start/}   & Parameter files and scripts  \\
+  \path{Documentation/} & Documentation of the QMC code.\\\bottomrule
+  \hline
+%   \path{configure.sh} & sets the global variables for compilation \\
+   \end{tabular}
+   \caption{Overview of the directories.\label{table:files}}
+\end{table}
+%
+
+The code package consists of the program directories \path{Prog/}, \path{Libraries/} and \path{Analysis/}. 
+The sample simulations corresponding to the walkthroughs of Sec.~\ref{sec:walk1} - \ref{sec:walk2} are included in \path{Examples/}. 
+The package content is summarized in Table~\ref{table:files}.
+
+%------------------------------------------------------------
+\subsection{Input files}\label{sec:input}
+%------------------------------------------------------------
+%
+\begin{table}[h]
+   \begin{tabular}{@{} l l @{}}\toprule
+   File & Description \\\midrule
+  \path{parameters} &  Sets the parameters for lattice, model, QMC process, and the error analysis.\\
+  \path{seeds} & List of integer numbers to initialize the random number generator and \\
+   & to start a simulation from scratch.\\
+  \path{confin_<thread number>} & Input files for the HS and Ising configuration, used to continue a simulation.\\\bottomrule
+   \end{tabular}
+   \caption{Overview of the input files in \texttt{Start/} required for a simulation. \label{table:input}}
+\end{table}
+%
+The input files are listed in Table~\ref{table:input}. 
+The parameter file \path{Start/parameters} has the following form, 
+using as an example  the $SU(2)$-symmetric Hubbard model on a square lattice (see Sec.~\ref{sec:walk1} for a detailed walkthrough):
+%
+\begin{lstlisting} 
+===============================================================================
+!  Variables for the Hubb program
+!-------------------------------------------------------------------------------
+&VAR_lattice
+L1 = 4                    ! Length in direction a_1
+L2 = 4                    ! Length in direction a_2
+Lattice_type = "Square"	  ! a_1 = (1,0),  a_2=(0,1),  Norb=1, N_coord=2
+!Lattice_type ="Honeycomb"! a_1 = (1,0),  a_2 =(1/2,sqrt(3)/2), Norb=2, N_coord=3
+Model = "Hubbard_SU2"     ! Sets Nf=1, N_sun=2. HS field couples to the density
+!Model = "Hubbard_Mz"     ! Sets Nf=2, N_sun=1. HS field couples to the 
+                          ! z-component of magnetization.  
+!Model="Hubbard_SU2_Ising"! Sets Nf_1, N_sun=2 and runs only for the square lattice
+                          ! Hubbard model  coupled to transverse Ising field
+/
+&VAR_Hubbard              ! Variables for the Hubbard model
+ham_T   = 1.D0            ! Hopping parameter
+ham_chem= 0.D0            ! chemical potential
+ham_U   = 4.D0            ! Hubbard interaction
+Beta    = 5.D0            ! inverse temperature
+dtau    = 0.1D0           ! Thereby Ltrot=Beta/dtau
+/
+
+&VAR_Ising                ! Model parameters for the Ising code
+Ham_xi = 1.d0             ! Only needed if Model="Hubbard_SU2_Ising"
+Ham_J  = 0.2d0
+Ham_h  = 2.d0
+/
+
+&VAR_QMC                  ! Variables for the QMC run
+Nwrap   = 10              ! Stabilization. Green functions will be computed from scratch 
+                          ! after each time interval  Nwrap*Dtau
+NSweep  = 500             ! Number of sweeps
+NBin    = 2               ! Number of bins
+Ltau    = 1               ! 1 for calculation of time displaced Green functions. 0 otherwise
+LOBS_ST = 1               ! Start measurements at time slice LOBS_ST
+LOBS_EN = 50              ! End   measurements at time slice LOBS_EN
+CPU_MAX = 0.1             ! Code will stop after CPU_MAX hours. 
+                          ! If not specified, code will stop after Nbin bins.
+/                          
+&VAR_errors               ! Variables for analysis programs
+n_skip  = 1               ! Number of bins that will be skipped. 
+N_rebin = 1               ! Rebinning  
+N_Cov   = 0               ! If set to 1 covariance will be computed
+                          ! for unequal time correlation functions.                   
+/            
+\end{lstlisting}
+%
+
+%------------------------------------------------------------
+\subsection{Output files} \label{sec:output}
+%------------------------------------------------------------
+%
+\begin{table}[h]
+   \begin{tabular}{@{} l l @{}}\toprule
+   File & Description \\\midrule
+   \path{info} & After completion of the simulation, this file documents parameters of the  model,\\
+   & the QMC run and simulation metrics (precision, acceptance rate, CPU time).\\
+   \path{X_scal} & Results of equal-time measurements of scalar observables. \\
+   & The placeholder \path{X} stands for the observables \path{Kin, Pot, Part}, and \path{Ener}. \\
+   \path{Y_eq, Y_tau} & Results of equal-time and time-displaced measurements of correlation functions. \\
+   & The placeholder \path{Y} stands for \path{Green, SpinZ, SpinXY}, and \path{Den}. \\   
+   \path{confout_<thread number>} & Output files for the HS and Ising configuration. \\\bottomrule
+   \end{tabular}
+   \caption{Overview of the standard output files. 
+  See Sec.~\ref{sec:obs} for the definitions of observables and correlation functions. \label{table:output}}
+\end{table}
+%
+The output of the measured data is organized in bins. One bin corresponds to the geometric average over a fixed number of individual measurements which depends 
+on the chosen measurement interval \path{[LOBS_ST,LOBS_EN]} on the imaginary time axis and on the number \path{NSweep} of Monte Carlo sweeps. If the user run a parallelized version of the code, the average also extends 
+over the number of MPI threads. 
+The standard output files are listed in Table~\ref{table:output}. 
+
+The formatting of the output for a single bin depends on the observable type: \path{Obs_vec} or \path{Obs_Latt}.
+\begin{itemize}
+\item Observables of type \path{Obs_vec}:
+For each additional bin, a single new line is added to the output file.
+In case of an observable with \path{N_size} components, the formatting is 
+\begin{verbatim}
+N_size + 1    <measured value, 1> ... <measured value, N_size>    <measured sign>
+\end{verbatim}
+The counter variable \path{N_size+1} refers to the number of measurements per line, including the phase measurement. 
+This format is required by the error analysis routine (see Sec.~\ref{sec:analysis}). 
+Scalar observables like kinetic energy, potential energy, total energy and particle number are treated as a vector 
+of size \path{N_size=1}.
+
+\item Observables of type \path{Obs_Latt}:
+For each additional bin, a new data block is added to the output file. 
+The block consists of the expectation values [Eq.~(\ref{eqn:o})] contributing to the background part [Eq.~(\ref{eqn:s_back})] of the correlation function,
+and the correlated part [Eq.~(\ref{eqn:s_corr})] of the correlation function.
+For imaginary-time displaced correlation functions, the formatting of the block follows this scheme:
+\begin{alltt}
+<measured sign>  <N_orbital>  <N_unit_cell> <N_time_slices> <dtau>
+do alpha = 1, N_orbital
+    \(\langle\hat{O}\sb{\alpha}\rangle \)
+enddo
+do i = 1, N_unit_cell
+   <reciprocal lattice vector k(i)>
+   do tau = 1, N_time_slices
+      do alpha = 1, N_orbital
+         do beta = 1, N_orbital
+            \(\langle\,S\sb{\alpha,\beta}\sp{(corr)}(k(i),\tau)\rangle\)
+         enddo
+      enddo
+   enddo
+enddo
+\end{alltt}
+The same block structure is used for equal-time correlation functions, except for the entries  \path{<N_time_slices>} and \path{<dtau>} 
+which are not present in the latter.
+Using this structure for the bins as input,
+the full correlation function $S_{\alpha,\beta}(\vec{k},\tau)$ [Eq.~(\ref{eqn:s})] is then calculated by calling the error analysis routine (see Sec.~\ref{sec:analysis})
+\end{itemize}
+
+%------------------------------------------------------------
+\subsubsection{The \texttt{info}  file and stabilization}
+%------------------------------------------------------------
+
+The finite temperature  auxiliary field QMC algorithm is known to be numerically  unstable. 
+The origin the numerical instabilities arises  from the imaginary time propagation which invariably leads to exponentially small and exponentially large scales.
+Numerical stabilization of the code is delicate and has been pioneered in Ref.~\cite{White89}  for the finite temperature algorithm and in Refs.~\cite{Sugiyama86,Sorella89} for the zero  temperature projective algorithm.
+As shown in Ref.~\cite{Assaad08_rev}  scales can be omitted in the ground state algorithm -- thus rendering it very stable --  but have to be taken into account in the  finite temperature code. Apart from runtime information, the file \texttt{info} contains important information concerning the stability of the code.
+For example, in the directory \path{Examples/Hubbard_SU2_Square} an example simulation of the $4 \times 4$ Hubbard model at $U/t=4$ and $\beta t = 10$, the \texttt{info} file contains the lines
+\begin{alltt}
+Precision Green  Mean, Max :    1.2918865817224671E-014   4.0983018995027644E-011
+Precision Phase, Max       :    5.0272908791449966E-012
+Precision tau    Mean, Max :    8.4596701790588625E-015   3.5033530012121281E-011
+\end{alltt}
+showing the mean and maximum difference between the {\it  wrapped }  and from scratched computed equal and time displaced  Green functions \cite{Assaad08_rev}.
+A stable code  should produce results where the mean difference is smaller than the  stochastic error. The above example  shows a very stable  simulation since the Green function  is of order 1. Numerical stabilization is delicate and there is no guarantee  that it will work for all models.
+For example switching to a HS field which couples to the z-component of the magnetization will yield (see directory \path{Examples/Hubbard_Mz_Square}):
+ \begin{alltt}
+Precision Green  Mean, Max :    5.0823874429126405E-011   5.8621144596315844E-006
+Precision Phase, Max       :    0.0000000000000000     
+Precision tau    Mean, Max :    1.5929357848647394E-011   1.0985132530727526E-005 
+\end{alltt}
+This is still an excellent precision but nevertheless a couple of order of magnitudes less precise than a HS decomposition coupling to the charge. 
+If the numerical stabilization turns out to be bad, one option is to reduce the  value of the parameter \texttt{Nwrap} in the parameter file. 
+For performing the stabilization of the involved matrix multiplications we rely on routines from lapack. Hence it is very likely that your results may change significantly if you switch libraries.
+In order to offer a simple baseline to which people can quickly switch if they want to see whether their results depend on the library used for linear algebra routines we have included parts of the lapack-3.6.1 reference implementation from
+\url{http://www.netlib.org/lapack/}. You can switch to the QR decomposition related routines from the lapack reference implementation by including the switch \texttt{-DQRREF} into their PROGRAMMCONFIGURATION string.
+To use these routines you need to link against a lapack library that implements at least the lapack-3.4.0 interface. \footnote{ We have encountered some compiling issues with this flag. In particular  the  older  intel  ifort  compiler version 10.1  fails for all optimization levels.} 
+
+To provide further flexibility, we have incorporated different stabilization schemes.  Our default strategy is quick and generically works well but we have  encountered some  models where  it  fails.   If this applies to your model, you can use the switch \texttt{-DSTAB1}   in the \texttt{set\_env.sh}  file and recompile the code. 
+
+%------------------------------------------------------------
+\subsection{Scripts}\label{sec:scripts}
+%------------------------------------------------------------
+%
+\begin{table}[h]
+   \begin{tabular}{@{} l l l @{}}\toprule
+   Script & Description & Section\\\midrule
+   \path{set_env.sh} & Sets the environment variables for the compiler& \\
+   & and the libraries. & \ref{sec:running}\\
+   \path{Start/out_to_in.sh} & Copies the output configurations of HS and Ising spins &\\
+   & to the respective input files. & \ref{sec:running} \\
+   \path{Start/analysis.sh} & Starts the error analysis. & \ref{sec:analysis}\\\bottomrule
+   \end{tabular}
+   \caption{Overview of the bash script files. 
+      \label{table:scripts}}
+\end{table}
+%

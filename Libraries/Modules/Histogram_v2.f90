@@ -4,9 +4,9 @@
 
          Type Histogram 
             Type (logmesh) :: mesh
-            Real (Kind=8), pointer :: el(:)
-            Real (Kind=8)  :: range_st, range_en, dis
-            Real (Kind=8)  :: count
+            Real (Kind=Kind(0.d0)), pointer :: el(:)
+            Real (Kind=Kind(0.d0))  :: range_st, range_en, dis
+            Real (Kind=Kind(0.d0))  :: count
             Character (16) :: File
             
          end Type Histogram
@@ -23,7 +23,7 @@
            subroutine Construct_Hist(Hist, file, range, center, dis, Type, Lambda)
              Implicit none
              type (Histogram)  :: Hist
-             Real  (Kind=8)    :: Range, Center, dis, Lambda
+             Real  (Kind=Kind(0.d0))    :: Range, Center, dis, Lambda
              Character (16)    :: File
              Character(len=10) :: Type
              Integer :: n, Nw_1
@@ -61,7 +61,7 @@
 !!$             type (Histogram) :: Hist
 !!$             
 !!$             integer :: io_error, nv
-!!$             Real (Kind=8) :: X,Y
+!!$             Real (Kind=Kind(0.d0)) :: X,Y
 !!$             
 !!$
 !!$             Open ( unit=20,file=Hist%file,status='old',action='read', iostat=io_error)
@@ -93,11 +93,11 @@
 
            end subroutine Write_Hist
 
-           Real (Kind=8) function Inter_Hist(Hist)
+           Real (Kind=Kind(0.d0)) function Inter_Hist(Hist)
              Implicit none
              type (Histogram) :: Hist
              Integer :: nv
-             Real (Kind=8) :: X
+             Real (Kind=Kind(0.d0)) :: X
              
              X = 0.d0
              do nv = 1,size(Hist%el,1) -1
@@ -111,7 +111,7 @@
            subroutine Add_Hist(Hist,value)
              Implicit none
              type (Histogram) :: Hist
-             Real (Kind=8)    :: value
+             Real (Kind=Kind(0.d0))    :: value
              Integer :: nv
              
              nv = m_find(Value,Hist%Mesh) 

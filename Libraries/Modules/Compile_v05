@@ -1,0 +1,18 @@
+OBJS= mat_mod.o  Random_Wrap.o errors.o Files_mod.o matrix.o  lattices_v3.o 
+
+
+$(LIB): $(OBJS)
+	ar  -r $(LIB) $(OBJS)
+
+%.o: %.f90
+	$(FC) $(FLAGS) -c $<
+
+%.o: %.F90
+	$(FC) $(FLAGS) -c $<
+
+errors.o: mat_mod.o
+
+maxent.o: mat_mod.o errors.o
+
+clean: 
+	rm $(OBJS)
