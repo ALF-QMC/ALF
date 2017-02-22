@@ -30,7 +30,7 @@
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
 #if defined(MKL_DIRECT_CALL)
-    include "mkl_direct_call.fi"
+#include "mkl_direct_call.fi"
 #endif
 
     Module Hop_mod

@@ -2,15 +2,25 @@ export DIR=`pwd`
 export f90=ifort
 #export f90="gfortran"
 
-export FL="-c -O3 -fp-model fast=2 -xHost -unroll -finline-functions -ipo -ip -heap-arrays 1024 -no-wrap-margin -DnMPI"
+PROGRAMMCONFIGURATION=""
+# PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DSTAB1"
+# PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DSTAB2"
+# PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DQRREF"
+#uncomment the next line if you want an MPI parallel version
+# PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DMPI"
 #uncomment the next line if you want compressed tau-resolved data files
-export FL="${FL} -DZLIB"
+PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DZLIB"
+PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DMKL_DIRECT_CALL"
 
-#export FL="-c -O0 -heap-arrays 1024 -no-wrap-margin"
-export FL="${FL} -parallel -qopenmp"
+F90OPTFLAGS="-O3 -fp-model fast=2 -xHost -unroll -finline-functions -ipo -ip -heap-arrays 1024 -no-wrap-margin"
+#uncomment the next line if you want to use additional openmp parallelization
+F90OPTFLAGS=${F90OPTFLAGS}" -parallel -qopenmp"
+F90USEFULFLAGS="-cpp -std03"
+export F90USEFULFLAGS
+export F90OPTFLAGS
 
-#uncomment the next line if you want to debug/profile your code
-export FL="${FL} -g"
+FL="-c ${F90OPTFLAGS} ${PROGRAMMCONFIGURATION}"
+export FL
 
 export Libs=${DIR}"/Libraries/"
 #export LIB_BLAS_LAPACK="-lblas -llapack"

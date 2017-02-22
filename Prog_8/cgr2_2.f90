@@ -30,7 +30,7 @@
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
 #if defined(MKL_DIRECT_CALL)
-    include "mkl_direct_call.fi"
+#include "mkl_direct_call.fi"
 #endif
 
 !--------------------------------------------------------------------
@@ -70,7 +70,7 @@
 
       end Subroutine
 
-#if defined(STAB2) 
+#if defined(STAB2) || defined(STAB1) 
 !--------------------------------------------------------------------
 !> @author
 !> Florian Goth
@@ -220,7 +220,7 @@
 !--------------------------------------------------------------------
 
    
-#if defined(STAB2)   
+#if defined(STAB2) || defined(STAB1)   
 
         Use MyMats
         Use UDV_WRAP_mod

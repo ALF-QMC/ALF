@@ -43,7 +43,7 @@
 !
 !-------------------------------------------------------------------
 
-#if defined(STAB2)         
+#if defined(STAB2) || defined(STAB1)        
         Use Hamiltonian
         Use UDV_Wrap_mod
         Use Hop_mod

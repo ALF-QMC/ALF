@@ -41,7 +41,7 @@
 !
 !--------------------------------------------------------------------
 
-#if defined(STAB2) 
+#if defined(STAB2)  || defined(STAB1)
         !NOTE:    NTAU1 > NTAU.
         Use Operator_mod, only : Phi
         Use Hamiltonian
