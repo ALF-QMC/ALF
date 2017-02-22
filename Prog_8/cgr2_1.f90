@@ -1,3 +1,8 @@
+
+#if defined(MKL_DIRECT_CALL)
+    include "mkl_direct_call.fi"
+#endif
+
 !--------------------------------------------------------------------
 !> @author
 !> Florian Goth

@@ -1,5 +1,5 @@
 
-!  Copyright (C) 2016 The ALF project
+!  Copyright (C) 2016 2017 The ALF project
 ! 
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -42,7 +42,50 @@
 !> NOTE:    NTAU1 > NTAU.
 !
 !-------------------------------------------------------------------
+
+#if defined(STAB2)         
+        Use Hamiltonian
+        Use UDV_Wrap_mod
+        Use Hop_mod
+        Implicit None
+
+        ! Arguments
+        COMPLEX (Kind=Kind(0.d0)) :: UR(Ndim,Ndim,N_FL), VR(Ndim,Ndim,N_FL)
+        COMPLEX (Kind=Kind(0.d0)) :: DR(Ndim,N_FL)
+        Integer :: NTAU1, NTAU
+
+
+        ! Working space.
+        Complex (Kind=Kind(0.d0)) :: Z_ONE
+        COMPLEX (Kind=Kind(0.d0)) :: V1(Ndim,Ndim), TMP(Ndim,Ndim), TMP1(Ndim,Ndim)
+        Integer ::NCON, NT, I, J, n, nf
+        Real (Kind=Kind(0.d0)) :: X
+
+        NCON = 0  ! Test for UDV ::::  0: Off,  1: On.
+        Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
         
+        Do nf = 1,N_FL
+           CALL INITD(TMP,Z_ONE)
+           DO NT = NTAU + 1, NTAU1
+              !CALL MMULT(TMP1,Exp_T(:,:,nf) ,TMP)
+              Call Hop_mod_mmthr(TMP,TMP1,nf)
+              TMP = TMP1
+              Do n = 1,Size(Op_V,1)
+                 X = Phi(nsigma(n,nt),Op_V(n,nf)%type)
+                 Call Op_mmultR(Tmp,Op_V(n,nf),X,Ndim)
+              ENDDO
+           ENDDO
+           CALL MMULT(TMP1,TMP,UR(:,:,nf))
+           DO J = 1,NDim
+              DO I = 1,NDim
+                 TMP1(I,J) = TMP1(I,J)*DR(J,nf)
+                 TMP(I,J)  = VR(I,J,nf)
+              ENDDO
+           ENDDO
+           CALL UDV_WRAP_Pivot(TMP1,UR(:,:,nf),DR(:,nf),V1,NCON,Ndim,Ndim)
+           CALL MMULT(VR(:,:,nf),V1,TMP)
+        ENDDO
+#else
         Use Operator_mod, only : Phi
         Use Hop_mod
         Use Wrap_helpers
@@ -78,4 +121,6 @@
            CALL ur_update_matrices(UR(:,:,nf), DR(:, nf), VR(:,:,nf), TMP, TMP1, Ndim, NCON)
         ENDDO
         deallocate(TMP, TMP1)
+
+#endif
       END SUBROUTINE WRAPUR

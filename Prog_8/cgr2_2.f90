@@ -1,4 +1,4 @@
-!  Copyright (C) 2016, 2017 The ALF project
+!  Copyright (C) 2016, 2017  The ALF project
 ! 
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -28,6 +28,10 @@
 ! 
 !     - If you make substantial changes to the program we require you to either consider contributing
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
+
+#if defined(MKL_DIRECT_CALL)
+    include "mkl_direct_call.fi"
+#endif
 
 !--------------------------------------------------------------------
 !> @author
@@ -66,6 +70,63 @@
 
       end Subroutine
 
+#if defined(STAB2) 
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief
+!> This functions constructs an extended matrix H1 from UCT and VINV for use as the rhs of
+!> an equation. Then the solution X of the System V3 * X = H1 is sought.
+!> Then a scaling by D3 and a multiplication by U3 is performed.
+!> usually the matrices U3, D3, V3 stem from a UDV decomposition.
+!
+!> The rationale for constructing this extended matrix is that Fakher says it's more stable.
+!>
+!> @param[inout] HLP The result matrix
+!> @param[in] UCT Matrix, dimension(LQ, LQ)
+!> @param[in] V1INV Matrix, dimension(LQ, LQ)
+!> @param[in] U3 Matrix, dimension(2*LQ, 2*LQ)
+!> @param[in] D3 Matrix, dimension(2*LQ, 2*LQ)
+!> @param[in] V3 Matrix, dimension(2*LQ, 2*LQ)
+!> @param[in] LQ The dimension of the matrices UCT and V1INV
+!--------------------------------------------------------------------
+           Subroutine solve_extended_System(HLP, UCT, VINV, U3, D3, V3, LQ)
+           Use MyMats
+           Implicit none
+           Integer, intent(in) :: LQ
+           Complex (Kind=Kind(0.D0)), intent(in) :: U3(2*LQ, 2*LQ), D3(2*LQ), V3(2*LQ,2*LQ), UCT(LQ,LQ), VINV(LQ,LQ)
+           Complex (Kind=Kind(0.D0)), intent(inout) ::HLP(2*LQ, 2*LQ)
+           Complex (Kind=Kind(0.D0)), Allocatable, Dimension(:) :: TMPVEC
+           Complex (Kind=Kind(0.D0)), Allocatable, Dimension(:, :) :: HLPB1
+           INTEGER, Dimension(:), Allocatable :: IPVT
+           Integer :: LQ2, info, I, j
+           Complex (Kind=Kind(0.D0)) :: zero
+
+           zero = 0.D0
+           LQ2 = 2*LQ
+           ALLOCATE(TMPVEC(LQ2), HLPB1(LQ2, LQ2), IPVT(LQ2))
+           TMPVEC = conjg(1.D0/D3)
+           ! set HLPB1 equal to zero
+           call zlaset('A', LQ2, LQ2, zero, zero, HLPB1, LQ2)
+           DO I = 1, LQ
+              DO J = 1, LQ
+                 HLPB1(I   , J    ) =  UCT(I, J)
+                 HLPB1(I+LQ, J+LQ ) =  VINV(I,J)
+              ENDDO
+           ENDDO
+           CALL ZGETRF(LQ2, LQ2, V3, LQ2, IPVT, info)
+           CALL ZGETRS('C', LQ2, LQ2, V3, LQ2, IPVT, HLPB1, LQ2, info)! Block structure of HLPB1 is not exploited
+           DO J = 1,LQ2
+              DO I = 1,LQ2
+                 HLPB1(I,J)  = TMPVEC(I)*HLPB1(I,J)
+              ENDDO
+           ENDDO
+           deallocate (TMPVEC)
+           CALL MMULT(HLP, U3, HLPB1)
+           deallocate(HLPB1)
+         end subroutine solve_extended_System
+#else
 !--------------------------------------------------------------------
 !> @author
 !> Florian Goth
@@ -89,7 +150,7 @@
 !> @param[in] WORK work space
 !> @param[in] LWORK The size of the work space.
 !--------------------------------------------------------------------
-           Subroutine solve_extended_System(HLP, UCT, VINV, A, D, TAU, PIVT, LQ, WORK, LWORK)
+         Subroutine solve_extended_System(HLP, UCT, VINV, A, D, TAU, PIVT, LQ, WORK, LWORK)
            Implicit none
            Integer, intent(in) :: LQ, LWORK
            Complex (Kind=Kind(0.D0)), intent(in) :: A(2*LQ, 2*LQ), D(2*LQ), TAU(2*LQ), UCT(LQ,LQ), VINV(LQ,LQ), WORK(LWORK)
@@ -125,7 +186,8 @@
            deallocate (TMPVEC)
            ! Res = U * HLP
            CALL ZUNMQR('L', 'N', LQ2, LQ2, LQ2, A(1, 1), LQ2, TAU(1), HLP(1, 1), LQ2, WORK(1), LWORK, INFO)
-           end subroutine solve_extended_System
+         end subroutine solve_extended_System
+#endif
 
 !--------------------------------------------------------------------
 
@@ -157,6 +219,91 @@
 !
 !--------------------------------------------------------------------
 
+   
+#if defined(STAB2)   
+
+        Use MyMats
+        Use UDV_WRAP_mod
+        Implicit none
+
+        !  Arguments
+        Integer,  intent(in) :: LQ
+        Complex (Kind=Kind(0.d0)), intent(in)    :: U1(LQ,LQ), V1(LQ,LQ), U2(LQ,LQ), V2(LQ,LQ)
+        Complex (Kind=Kind(0.d0)), intent(in)    :: D2(LQ), D1(LQ)
+        Complex (Kind=Kind(0.d0)), intent(inout) :: GRT0(LQ,LQ), GR0T(LQ,LQ), GR00(LQ,LQ), GRTT(LQ,LQ)
+
+
+        ! Local::
+        Complex  (Kind=Kind(0.d0)) :: V1INV(LQ,LQ)
+        Complex  (Kind=Kind(0.d0)) :: D3B(2*LQ)
+        Complex  (Kind=Kind(0.d0)) :: Z, alpha, beta
+        Complex(Kind = Kind(0.D0)), allocatable, Dimension(:, :) :: MYU2, HLPB1, HLPB2, U3B, V3B
+        Integer :: LQ2, I,J, NCON
+        
+        LQ2 = LQ*2
+        NCON = 0
+        alpha = 1.D0
+        beta = 0.D0
+        ALLOCATE(MYU2(LQ, LQ), HLPB1(LQ2, LQ2), HLPB2(LQ2, LQ2), U3B(LQ2, LQ2), V3B(LQ2, LQ2))
+        MYU2 = CONJG(TRANSPOSE(U2))
+        CALL INV(V1,V1INV,Z)
+        If (dble(D1(1)) >  dble(D2(1)) ) Then 
+           !Write(6,*) "D1(1) >  D2(1)", dble(D1(1)), dble(D2(1))
+           DO J = 1,LQ
+              DO I = 1,LQ
+                 HLPB2(I   , J    ) =  V1INV(I,J)
+                 HLPB2(I   , J+LQ ) =  D1(I)*U1(I,J)
+                 HLPB2(I+LQ, J+LQ ) =  MYU2(I, J)
+                 HLPB2(I+LQ, J    ) = -D2(I)*V2(I,J)
+              ENDDO
+           ENDDO
+           HLPB1 = CT(HLPB2)
+
+           !CALL UDV_wrap(HLPB1,U3B,D3B,V3B,NCON)
+           CALL UDV_wrap_Pivot(HLPB1,U3B,D3B,V3B,NCON,LQ2,LQ2)
+! !!$!!!!!!!!!!!!!  Tests
+! !!$        Xmax = 0.d0
+! !!$        DO I = 1,LQ2
+! !!$           DO J = 1,LQ2
+! !!$              Z = cmplx(0.d0,0.d0)
+! !!$              DO N = 1,LQ2
+! !!$                 Z = Z + U3B(I,N) *conjg(U3B(J,N))
+! !!$              ENDDO
+! !!$              if (I == J)  Z = Z - cmplx(1.d0,0.d0)
+! !!$              X = real(SQRT( Z* conjg(Z)),Kind=Kind(0.d0))
+! !!$              if (X > Xmax) Xmax = X
+! !!$           ENDDO
+! !!$        ENDDO
+! !!$        !Write(6,*) 'Cgr2_2, ortho: ', Xmax
+! !!$        DO I = 1,LQ2
+! !!$           Z =  D3B(I)
+! !!$           if (I == 1)  Xmax = real(SQRT( Z* conjg(Z)),Kind=Kind(0.d0)) 
+! !!$           if ( real(SQRT( Z* conjg(Z)),Kind=Kind(0.d0))  < Xmax ) Xmax = &
+! !!$                & real(SQRT( Z* conjg(Z)),Kind=Kind(0.d0))
+! !!$        ENDDO
+! !!$        !Write(6,*) 'Cgr2_2, Cutoff: ', Xmax
+! !!$!!!!!!!!!!!!! End Tests
+           call solve_extended_System(HLPB1, V1INV, MYU2, U3B, D3B, V3B, LQ)
+           call get_blocks(GR00, GR0T, GRT0, GRTT, HLPB1, LQ)
+        Else
+           !Write(6,*) "D1(1) <  D2(1)", dble(D1(1)), dble(D2(1))
+           DO J = 1,LQ
+              DO I = 1,LQ
+                 HLPB2(I   , J    ) =  MYU2(I, J)
+                 HLPB2(I   , J+LQ ) = -D2(I)*V2(I,J)
+                 HLPB2(I+LQ, J+LQ ) =  V1INV(I,J)
+                 HLPB2(I+LQ, J    ) =  D1(I)*U1(I,J)
+              ENDDO
+           ENDDO
+           HLPB1 = CT(HLPB2)
+           
+           !CALL UDV_wrap(HLPB1,U3B,D3B,V3B,NCON)
+           CALL UDV_wrap_Pivot(HLPB1,U3B,D3B,V3B,NCON,LQ2,LQ2)
+           call solve_extended_System(HLPB1, MYU2, V1INV, U3B, D3B, V3B, LQ)
+           call get_blocks(GRTT, GRT0, GR0T, GR00, HLPB1, LQ)
+        Endif
+        DEALLOCATE(MYU2, HLPB1, HLPB2, U3B, V3B)
+#else
         Use MyMats
         Use QDRP_mod
         Implicit none
@@ -214,5 +361,7 @@
            call get_blocks(GRTT, GRT0, GR0T, GR00, HLPB2, LQ)
         Endif
         DEALLOCATE(MYU2, V1INV, HLPB1, HLPB2, WORK, IPVT, TAU, D3)
+
+#endif
         
       END SUBROUTINE CGR2_2

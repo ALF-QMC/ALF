@@ -3,11 +3,13 @@
 # In addition the NAG library has to be specified in LIB_BLAS_LAPACK.
 # -DMPI selects MPI.
 PROGRAMMCONFIGURATION="-DSTAB1"
+PROGRAMMCONFIGURATION="-DSTAB2"
 PROGRAMMCONFIGURATION=""
 f90="ifort"
+f90="gfortran"
 export f90
-F90OPTFLAGS="-O3 "
 F90OPTFLAGS="-O3 -Wconversion  -fcheck=all -g -heap-arrays 1024"
+F90OPTFLAGS="-O3 "
 F90USEFULFLAGS="-cpp -std=f2003"
 export F90USEFULFLAGS
 export F90OPTFLAGS

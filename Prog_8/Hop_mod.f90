@@ -29,6 +29,9 @@
 !     - If you make substantial changes to the program we require you to either consider contributing
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
+#if defined(MKL_DIRECT_CALL)
+    include "mkl_direct_call.fi"
+#endif
 
     Module Hop_mod
 
@@ -116,7 +119,8 @@
           Complex (Kind=Kind(0.D0)) :: alpha, beta
           Integer :: nc, n
           
-          Out = In
+!           Out = In
+          call zlacpy('A', ndim, ndim, In, ndim, Out, ndim)
           alpha = 1.D0
           beta = 0.D0
           do nc =  Ncheck,1,-1
@@ -154,7 +158,8 @@
           Integer :: nc, I, n 
           
           
-          Out = In
+!           Out = In
+          call zlacpy('A', ndim, ndim, In, ndim, Out, ndim)
           do nc =  1,Ncheck
              If ( dble( Op_T(nc,nf)%g*conjg(Op_T(nc,nf)%g) ) > Zero ) then
 !$OMP parallel do default(shared)
@@ -199,7 +204,8 @@
           !Local 
           Integer :: nc, I, n  
           
-          Out = In
+!           Out = In
+          call zlacpy('A', ndim, ndim, In, ndim, Out, ndim)
           do nc =  1, Ncheck
              If ( dble( Op_T(nc,nf)%g*conjg(Op_T(nc,nf)%g) ) > Zero ) then
 !$OMP parallel do default(shared)
@@ -234,7 +240,8 @@
           !Local 
           Integer :: nc, I, n  
           
-          Out = In
+!           Out = In
+          call zlacpy('A', ndim, ndim, In, ndim, Out, ndim)
           do nc =  Ncheck,1,-1
              If ( dble( Op_T(nc,nf)%g*conjg(Op_T(nc,nf)%g) ) > Zero ) then
 !$OMP parallel do default(shared)

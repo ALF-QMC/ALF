@@ -280,28 +280,24 @@
            enddo
 
            !Setup imj 
-           If (LQ  .lt. 1000 ) then 
-              Allocate ( Latt%imj(LQ,LQ) )
-              do nr = 1, Latt%N
-                 x_p = dble(Latt%list(nr,1))*Latt%a1_p + dble(Latt%list(nr,2))*a2_p  
-                 do nr1 = 1,Latt%N
-                    x1_p = dble(Latt%list(nr1,1))*Latt%a1_p + dble(Latt%list(nr1,2))*a2_p  
-                    d_p = x_p - x1_p
-                    call npbc(x1_p  , d_p , Latt%L1_p, Latt%L2_p)
-                    call npbc(d_p , x1_p, Latt%L1_p, Latt%L2_p)
-                    imj_1 =  nint ( Iscalar(Latt%BZ1_p,d_p) / (2.d0*pi) )
-                    imj_2 =  nint ( Iscalar(Latt%BZ2_p,d_p) / (2.d0*pi) )
-                    imj   = Latt%invlist(imj_1,imj_2)
-                    Latt%imj(nr,nr1) = imj 
-                 enddo
+           Allocate ( Latt%imj(LQ,LQ) )
+           do nr = 1, Latt%N
+              x_p = dble(Latt%list(nr,1))*Latt%a1_p + dble(Latt%list(nr,2))*a2_p  
+              do nr1 = 1,Latt%N
+                 x1_p = dble(Latt%list(nr1,1))*Latt%a1_p + dble(Latt%list(nr1,2))*a2_p  
+                 d_p = x_p - x1_p
+                 call npbc(x1_p  , d_p , Latt%L1_p, Latt%L2_p)
+                 call npbc(d_p , x1_p, Latt%L1_p, Latt%L2_p)
+                 imj_1 =  nint ( Iscalar(Latt%BZ1_p,d_p) / (2.d0*pi) )
+                 imj_2 =  nint ( Iscalar(Latt%BZ2_p,d_p) / (2.d0*pi) )
+                 imj   = Latt%invlist(imj_1,imj_2)
+                 Latt%imj(nr,nr1) = imj 
               enddo
-           endif
-
+           enddo
+           
            deallocate ( b1_p, b2_p, xk_p, b_p )
            deallocate ( BZ1_p, BZ2_p )
            deallocate ( x_p,  x1_p, d_p,  a_p )
-
-
 
          end subroutine MAKE_LATTICE
 

@@ -29,6 +29,9 @@
 !     - If you make substantial changes to the program we require you to either consider contributing
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
+#if defined(MKL_DIRECT_CALL)
+    include "mkl_direct_call.fi"
+#endif
 
 Program Main
 
@@ -128,9 +131,9 @@ Program Main
   Logical :: Log
   
   ! For the truncation of the program:
-  Logical          :: prog_truncation
-  integer (kind=8) :: count_bin_start, count_bin_end
-    
+  logical                   :: prog_truncation
+  integer (kind=kind(0.d0)) :: count_bin_start, count_bin_end
+
 #ifdef MPI
   Integer        ::  Isize, Irank
   INTEGER        :: STATUS(MPI_STATUS_SIZE)
@@ -212,7 +215,7 @@ Program Main
      Write(50,*) 'Measure Int.       : ', LOBS_ST, LOBS_EN
      Write(50,*) 'Stabilization,Wrap : ', Nwrap
      Write(50,*) 'Nstm               : ', NSTM
-     Write(50,*) 'Ltau               : ', Ltau 
+     Write(50,*) 'Ltau               : ', Ltau     
 #ifdef MPI
      Write(50,*) 'Number of  threads : ', ISIZE
 #endif   

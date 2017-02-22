@@ -36,6 +36,7 @@ Kondo_Honey:
 
 clean: 	
 	(make -f Compile_Examples   clean );\
+	(make -f Compile_Hub_Can   clean );\
 	(make -f Compile_Hub_Ising   clean );\
 	(make -f Compile_Hub   clean );\
 	(make -f Compile_SPT   clean );\

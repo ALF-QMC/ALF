@@ -47,8 +47,8 @@
     Use MyMats
     Implicit none
 
-    real (Kind=8)   , private, save :: XMEANG, XMAXG, XMAXP,  Xmean_tau, Xmax_tau
-    Integer (kind=8), private, save :: count_CPU_start,count_CPU_end,count_rate,count_max
+    real    (Kind=Kind(0.d0)), private, save :: XMEANG, XMAXG, XMAXP,  Xmean_tau, Xmax_tau
+    Integer (Kind=Kind(0.d0)), private, save :: count_CPU_start,count_CPU_end,count_rate,count_max
     Integer          , private, save :: NCG, NCG_tau
     Integer (Kind=Kind(0.d0)) , private, save :: NC_up, ACC_up
     Integer (Kind=kind(0.d0)),  private, save :: NC_Glob_up, ACC_Glob_up
@@ -166,8 +166,8 @@
 
         call system_clock(count_CPU_end)
         time = (count_CPU_end-count_CPU_start)/dble(count_rate)
-        if (count_CPU_end .lt. count_CPU_start) time = (count_max+count_CPU_end-count_CPU_start)/dble(count_rate)
- 
+        if (count_CPU_end .lt. count_CPU_start) time = (count_max+count_CPU_end-count_CPU_start)/dble(count_rate)      
+
 #ifdef MPI
 
 
@@ -244,14 +244,14 @@
   include 'mpif.h'
 #endif  
     
-      logical, intent(out)         :: prog_truncation
-      real(kind=8), intent(in)     :: cpu_max
-      integer (kind=8), intent(in) :: count_bin_start, count_bin_end
-      real (kind=8)                :: count_alloc_end
-      real(kind=8)                 :: time_bin_duration,time_remain,bins_remain,threshold
+      logical, intent(out)                 :: prog_truncation
+      real(kind=kind(0.d0)), intent(in)    :: cpu_max
+      integer(kind=kind(0.d0)), intent(in) :: count_bin_start, count_bin_end
+      real(kind=kind(0.d0))                :: count_alloc_end
+      real(kind=kind(0.d0))                :: time_bin_duration,time_remain,bins_remain,threshold
 #ifdef MPI   
-      real(Kind=Kind(0.d0))             :: bins_remain_mpi
-      integer                      :: err_mpi,rank_mpi,tasks_mpi
+      real(kind=kind(0.d0))                :: bins_remain_mpi
+      integer                              :: err_mpi,rank_mpi,tasks_mpi
 #endif
       threshold = 1.5d0
       prog_truncation = .false.

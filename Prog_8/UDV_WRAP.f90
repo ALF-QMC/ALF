@@ -28,6 +28,11 @@
 ! 
 !     - If you make substantial changes to the program we require you to either consider contributing
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
+
+#if defined(MKL_DIRECT_CALL)
+    include "mkl_direct_call.fi"
+#endif
+
    Module UDV_Wrap_mod
 
      Use MyMats

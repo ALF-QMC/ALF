@@ -2,6 +2,7 @@
 ! gfortran -Wall -std=f2003 -I ../../Prog_8/  -I ../../Libraries/Modules/ -L ../../Libraries/Modules/ 18-ul-update-matrices.f90 ../../Prog_8/wrap_helpers.o ../../Prog_8/UDV_WRAP.o ../../Libraries/Modules/modules_90.a ../../../../lapack-3.6.1/liblapack.a -lblas
 
 Program TESTULUPDATEMATRICES
+        Use Wrap_helpers
 implicit none
 interface
 SUBROUTINE ul_update_matrices_old(U, D, V, V1, TMP, TMP1, Ndim, NCON)
