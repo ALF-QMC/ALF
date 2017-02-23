@@ -1,15 +1,18 @@
 export DIR=`pwd`
 export f90=ifort
-#export f90="gfortran"
 
 PROGRAMMCONFIGURATION=""
 # PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DSTAB1"
 # PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DSTAB2"
 # PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DQRREF"
+
 #uncomment the next line if you want an MPI parallel version
-# PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DMPI"
+PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DMPI"
+export f90=mpiifort
+
 #uncomment the next line if you want compressed tau-resolved data files
 PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DZLIB"
+
 PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DMKL_DIRECT_CALL"
 
 F90OPTFLAGS="-O3 -fp-model fast=2 -xHost -unroll -finline-functions -ipo -ip -heap-arrays 1024 -no-wrap-margin"
