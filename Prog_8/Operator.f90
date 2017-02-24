@@ -340,16 +340,9 @@ Contains
             Mat(P(2), I) = U(2,1) * V(1, I) + U(2,2) * V(2, I)
         enddo
     case default
-!         Allocate(tmp(Ndim,opn))
-!         CALL ZGEMM('T','T', Ndim, opn, opn, alpha, V, opn, U, opn, beta, tmp, Ndim)
-!$OMP parallel do default(shared)
         do n = 1,opn
-          call zgemv('T', opn, Ndim, alpha, V,opn, U(n,1), opn, beta, Mat(P(n),1), Ndim)
-!             call zcopy(Ndim, tmp(1,n), 1, Mat(P(n),1), Ndim)
+          call ZGEMV('T', opn, Ndim, alpha, V,opn, U(n,1), opn, beta, Mat(P(n),1), Ndim)
         Enddo
-!$OMP end parallel do
-!         Mat((P), :) = tmp
-!         Deallocate(tmp)
     end select
 
   end subroutine
@@ -394,14 +387,11 @@ Contains
             Mat(I, P(2)) = conjg(U(2,1)) * V(1, I) + conjg(U(2,2)) * V(2, I)
         enddo
     case default
-        Allocate(tmp(Ndim, opn))
-        CALL ZGEMM('T','C', Ndim, opn, opn, alpha, V, opn, U, opn, beta, tmp, Ndim)
-!$OMP parallel do default(shared)
+        Allocate(tmp(opn, opn))
+        tmp=transpose(conjg(U))
         do n = 1,opn
-            call zcopy(Ndim, tmp(1,n), 1, Mat(1,P(n)), 1)
+          call ZGEMV('T', opn, Ndim, alpha, V,opn, tmp(1,n), 1, beta, Mat(1,P(n)), 1)
         Enddo
-!$OMP end parallel do
-!         Mat(:, (P)) = tmp
         Deallocate(tmp)
     end select
         
@@ -448,11 +438,9 @@ Contains
             Mat(I, P(2)) = Z(2) * (U(1, 2) * V(1, I) + U(2, 2) * V(2, I))
         enddo
     case default
-!$OMP parallel do default(shared)
         do n = 1, opn
-            call zgemv('T', opn, Ndim, Z(n), V, opn, U(:, n), 1, beta, Mat(:, P(n)), 1)
+            call ZGEMV('T', opn, Ndim, Z(n), V, opn, U(:, n), 1, beta, Mat(:, P(n)), 1)
         Enddo
-!$OMP end parallel do
     end select
   end subroutine
 
@@ -497,11 +485,9 @@ Contains
             Mat(P(2), I) = Z(2) * (conjg(U(1, 2)) * V(1, I) + conjg(U(2, 2)) * V(2, I))
         enddo
     case default
-!$OMP parallel do default(shared)
         do n = 1, opn
-            call zgemv('T', opn, Ndim, Z(n), V, opn, conjg(U(:, n)), 1, beta, Mat(P(n), 1), size(Mat, 1))
+            call ZGEMV('T', opn, Ndim, Z(n), V, opn, conjg(U(:, n)), 1, beta, Mat(P(n), 1), size(Mat, 1))
         Enddo
-!$OMP end parallel do
     end select
 
   end subroutine
@@ -535,7 +521,6 @@ Contains
     ! Out Mat = Mat*exp(spin*Op)
     allocate(VH(Op%N,Ndim), ExpOp(Op%N,Op%N), tmp(Op%N,Op%N), Z(Op%N))
     call copy_select_rows(VH, Mat, Op%P, Op%N, Ndim)
-!     call op_exp(cmplx(spin,0.d0,Kind(0.d0)),Op,ExpOp)
     alpha = 1.d0
     beta = 0.d0
     Z = exp(Op%g * spin * Op%E)
@@ -544,16 +529,10 @@ Contains
       tmp(:,n) = Z(n) * Op%U(:,n)
     enddo
 !$OMP end parallel do
-    call zgemm('N','C',Op%n,Op%n,Op%n,alpha,tmp,Op%n,Op%U,Op%n,beta,ExpOp,Op%n)
-!$OMP parallel do default(shared)
+    call ZGEMM('N','C',Op%n,Op%n,Op%n,alpha,tmp,Op%n,Op%U,Op%n,beta,ExpOp,Op%n)
     do n = 1, op%n
-      call zgemv('T',Op%n,Ndim,alpha,VH,Op%n,ExpOp(1,n),1,beta,Mat(1,Op%P(n)),1)
+      call ZGEMV('T',Op%n,Ndim,alpha,VH,Op%n,ExpOp(1,n),1,beta,Mat(1,Op%P(n)),1)
     enddo
-!$OMP end parallel do
-!     Z = exp(Op%g * spin * Op%E)
-!     call opexpmult(VH, Op%U, Op%P, Mat, Z, Op%N, Ndim)
-!     call copy_select_rows(VH, Mat, Op%P, Op%N, Ndim)
-!     call opmultct(VH, Op%U, Op%P, Mat, Op%N, Ndim)
     deallocate(VH, ExpOp, tmp, Z)
   end subroutine Op_mmultL
 
@@ -586,7 +565,6 @@ Contains
     ! Out Mat = exp(spin*Op)*Mat
     allocate(VH(Op%N,Ndim), ExpOp(Op%N,Op%N), tmp(Op%N,Op%N), Z(Op%N))
     call copy_select_columns(VH, Mat, Op%P, Op%N, Ndim)
-!     call op_exp(cmplx(spin,0.d0,Kind(0.d0)),Op,ExpOp)
     alpha = 1.d0
     beta = 0.d0
     Z = exp(Op%g * spin * Op%E)
@@ -595,12 +573,8 @@ Contains
       tmp(:,n) = Z(n) * Op%U(:,n)
     enddo
 !$OMP end parallel do
-    call zgemm('N','C',Op%n,Op%n,Op%n,alpha,tmp,Op%n,Op%U,Op%n,beta,ExpOp,Op%n)
+    call ZGEMM('N','C',Op%n,Op%n,Op%n,alpha,tmp,Op%n,Op%U,Op%n,beta,ExpOp,Op%n)
     call opmult(VH, ExpOp, Op%P, Mat, Op%N, Ndim)
-!     Z = exp(Op%g * spin * Op%E)
-!     call opexpmultct(VH, Op%U, Op%P, Mat, Z, Op%N, Ndim)    
-!     call copy_select_columns(VH, Mat, Op%P, Op%N, Ndim)
-!     call opmult(VH, Op%U, Op%P, Mat, Op%N, Ndim)
     deallocate(VH, ExpOp, tmp, Z)
   end subroutine Op_mmultR
 
