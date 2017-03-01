@@ -17,4 +17,4 @@ errors.o: mat_mod.o
 maxent.o: mat_mod.o errors.o
 
 clean: 
-	rm $(OBJS)
+	rm -f $(OBJS)

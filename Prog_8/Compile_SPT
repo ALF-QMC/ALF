@@ -14,7 +14,7 @@ OBJS=  control_mod.o Operator.o f95zlib.o print_bin_mod.o observables_mod.o Hami
   
 .SUFFIXES: .f90 .f
 .f.o .f90.o:
-	$(FC) -c $(F90USEFULFLAGS) -o $@ $(FLAGS) $<
+	$(FC) -c $(F90USEFULFLAGS) $(FLAGS) -o $@ $<
 
 $(TARGET): $(OBJS)
 	$(FC) $(LF) -o $(TARGET) $(OBJS) $(LIBS)
