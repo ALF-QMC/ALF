@@ -4,11 +4,11 @@
         Use ERRORS
         Implicit none
 
-        REAL    (KIND=8), DIMENSION(:,:), ALLOCATABLE :: OBS
-        REAL    (KIND=8), DIMENSION(:),   ALLOCATABLE :: EN, SIGN
-        REAL    (KIND=8) :: XM, XERR
+        REAL    (Kind=Kind(0.d0)), DIMENSION(:,:), ALLOCATABLE :: OBS
+        REAL    (Kind=Kind(0.d0)), DIMENSION(:),   ALLOCATABLE :: EN, SIGN
+        REAL    (Kind=Kind(0.d0)) :: XM, XERR
 
-        Complex (Kind=8) Z1,Z2,Z3,Z4,Z5,Z6
+        Complex (Kind=Kind(0.d0)) Z1,Z2,Z3,Z4,Z5
         Integer :: NST, NS, NS1, NS2, NSTEP, NC, NP, NOBS, Nbins, NP_EFF, ISEED, I, IOBS
         Integer :: N, NBIN
 
@@ -17,7 +17,7 @@
         !Open (Unit=12, File="ener_hist", status="unknown") 
         nbins = 0
         do
-            read(10,*,End=10)  Z1, Z2, Z3, Z4, Z5, Z5
+            read(10,*,End=10)  Z1, Z2, Z3, Z4, Z5
             nbins = nbins + 1
          enddo
 10       continue
@@ -26,7 +26,7 @@
          !Close(12)
          
          NP = NBINS
-         NOBS = 6
+         NOBS = 5
          
          ALLOCATE(OBS(NP,NOBS))
          !	Error on energy
@@ -45,15 +45,14 @@
          DO N = 1,NP
             IF (N.GE.NST) THEN
                NC = NC + 1
-               READ(20,*) Z1,Z2,Z3, Z4, Z5, Z6
+               READ(20,*) Z1,Z2,Z3, Z4, Z5
                OBS(NC,1) = dble(Z1) 
                OBS(NC,2) = dble(Z2) 
                OBS(NC,3) = dble(Z3)
                OBS(NC,4) = dble(Z4) 
                OBS(NC,5) = dble(Z5)
-               OBS(NC,6) = dble(Z6)
             ELSE
-               READ(20,*) Z1,Z2,Z3, Z4, Z5, Z6
+               READ(20,*) Z1,Z2,Z3, Z4, Z5
             ENDIF
          ENDDO
          CLOSE(20)
@@ -71,10 +70,9 @@
             ENDDO
             IF (IOBS.EQ.1) WRITE(21,*) ' rho           '
             IF (IOBS.EQ.2) WRITE(21,*) ' kin           '
-            IF (IOBS.EQ.3) WRITE(21,*) ' pot           '
+            IF (IOBS.EQ.3) WRITE(21,*) ' double        '
             IF (IOBS.EQ.4) WRITE(21,*) ' Energy        '
-            IF (IOBS.EQ.5) WRITE(21,*) ' dF/dt         '
-            IF (IOBS.EQ.NOBS) WRITE(21,*) ' phase         '
+            IF (IOBS.EQ.5) WRITE(21,*) ' phase         '
             DO NBIN = NS1, NS2, NSTEP
                if (NBIN.gt.0) then
                   IF (IOBS.EQ.NOBS .or. Iobs.eq.1 ) then 

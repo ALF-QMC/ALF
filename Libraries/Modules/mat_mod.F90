@@ -1,4 +1,45 @@
+!  Copyright (C) 2016 The ALF project
+! 
+!     The ALF project is free software: you can redistribute it and/or modify
+!     it under the terms of the GNU General Public License as published by
+!     the Free Software Foundation, either version 3 of the License, or
+!     (at your option) any later version.
+! 
+!     The ALF project is distributed in the hope that it will be useful,
+!     but WITHOUT ANY WARRANTY; without even the implied warranty of
+!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+!     GNU General Public License for more details.
+! 
+!     You should have received a copy of the GNU General Public License
+!     along with Foobar.  If not, see http://www.gnu.org/licenses/.
+!     
+!     Under Section 7 of GPL version 3 we require you to fulfill the following additional terms:
+!     
+!     - It is our hope that this program makes a contribution to the scientific community. Being
+!       part of that community we feel that it is reasonable to require you to give an attribution
+!       back to the original authors if you have benefitted from this program.
+!       Guidelines for a proper citation can be found on the project's homepage
+!       http://alf.physik.uni-wuerzburg.de .
+!       
+!     - We require the preservation of the above copyright notice and this license in all original files.
+!     
+!     - We prohibit the misrepresentation of the origin of the original source files. To obtain 
+!       the original source files please visit the homepage http://alf.physik.uni-wuerzburg.de .
+! 
+!     - If you make substantial changes to the program we require you to either consider contributing
+!       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
+
+
+!--------------------------------------------------------------------
+!> @author 
+!> ALF-project
+!
+!> @brief 
+!> Wrappers for linear algebra.
+!> 
+!
+!--------------------------------------------------------------------
     MODULE MyMats
 
        INTERFACE MMULT
@@ -41,13 +82,13 @@
        END INTERFACE
      CONTAINS
 
-!*************
+!--------------------------------------------------------------------
        SUBROUTINE DIAG_GEN(Z_MAT,U,W,LR,ICON)
          IMPLICIT NONE
-         COMPLEX   (KIND=8), INTENT(IN), DIMENSION(:,:) :: Z_MAT
+         COMPLEX   (Kind=Kind(0.d0)), INTENT(IN), DIMENSION(:,:) :: Z_MAT
          CHARACTER (LEN=1),  INTENT(IN)  :: LR
-         COMPLEX   (KIND=8), INTENT(INOUT), DIMENSION(:,:) :: U
-         COMPLEX   (KIND=8), INTENT(INOUT), DIMENSION(:) :: W
+         COMPLEX   (Kind=Kind(0.d0)), INTENT(INOUT), DIMENSION(:,:) :: U
+         COMPLEX   (Kind=Kind(0.d0)), INTENT(INOUT), DIMENSION(:) :: W
          INTEGER :: ICON
 
          !!!! Uses Lapack !!!
@@ -58,12 +99,12 @@
          !  Local space
          INTEGER :: N, LDA, LDVL, LDVR, INFO, LWORK, I, J, M
          CHARACTER (LEN=1) ::   JOBVL, JOBVR
-         COMPLEX (KIND=8), ALLOCATABLE, DIMENSION(:,:) :: A, VL, VR
-         REAL (KIND=8)   , ALLOCATABLE, DIMENSION(:) :: RWORK
-         COMPLEX (KIND=8), ALLOCATABLE, DIMENSION(:) :: WORK
+         COMPLEX (Kind=Kind(0.d0)), ALLOCATABLE, DIMENSION(:,:) :: A, VL, VR
+         REAL (Kind=Kind(0.d0))   , ALLOCATABLE, DIMENSION(:) :: RWORK
+         COMPLEX (Kind=Kind(0.d0)), ALLOCATABLE, DIMENSION(:) :: WORK
          
-         REAL    (KIND=8) :: XMAX, X
-         COMPLEX (KIND=8) :: Z
+         REAL    (Kind=Kind(0.d0)) :: XMAX, X
+         COMPLEX (Kind=Kind(0.d0)) :: Z
          
          N = SIZE(Z_MAT,1)
          ALLOCATE(A(N,N))
@@ -135,11 +176,11 @@
          
 
        END SUBROUTINE DIAG_GEN
-!*************
+!--------------------------------------------------------------------
        SUBROUTINE MMULT_R(C, A, B)
          IMPLICIT NONE
-         REAL (KIND=8), DIMENSION(:,:) :: A,B,C
-         REAL (KIND=8) :: ALP, BET
+         REAL (Kind=Kind(0.d0)), DIMENSION(:,:) :: A,B,C
+         REAL (Kind=Kind(0.d0)) :: ALP, BET
          INTEGER N, M, P, LDA, LDB, LDC
          N = SIZE(A,1) ! Rows in A
          M = SIZE(A,2) ! Columns in A
@@ -166,8 +207,8 @@
 
        SUBROUTINE MMULT_C(C, A, B)
          IMPLICIT NONE
-         COMPLEX (KIND=8), DIMENSION(:,:) :: A,B,C
-         COMPLEX (KIND=8) :: ALP, BET
+         COMPLEX (Kind=Kind(0.d0)), DIMENSION(:,:) :: A,B,C
+         COMPLEX (Kind=Kind(0.d0)) :: ALP, BET
          INTEGER N, M, P, LDA, LDB, LDC
 
          N = SIZE(A,1)
@@ -197,8 +238,8 @@
 !*********
        SUBROUTINE INITD_R(A,X)
          IMPLICIT NONE
-         REAL (KIND=8), DIMENSION(:,:) :: A
-         REAL (KIND=8) X
+         REAL (Kind=Kind(0.d0)), DIMENSION(:,:) :: A
+         REAL (Kind=Kind(0.d0)) X
          INTEGER I,J, N, M
 
          N = SIZE(A,1)
@@ -447,14 +488,14 @@
 !*************
        SUBROUTINE INV_R2(A,AINV)
          IMPLICIT NONE
-         REAL (KIND=8), DIMENSION(:,:) :: A,AINV
+         REAL (Kind=Kind(0.d0)), DIMENSION(:,:) :: A,AINV
 
          INTEGER I, J
 
 ! Uses Lapack routines.
 
 ! Working space.
-         REAL (KIND=8), DIMENSION(:), ALLOCATABLE :: WORK
+         REAL (Kind=Kind(0.d0)), DIMENSION(:), ALLOCATABLE :: WORK
          INTEGER, DIMENSION(:), ALLOCATABLE :: IPIV
          INTEGER INFO, LDA, LWORK
 
@@ -479,15 +520,6 @@
 
 
 
-
-
-
-
-! Compute the determinant here if needed.
-! detz = dcmplx(1.d0,0.d0)
-! do n = 1,ne
-! detz = detz * AINV(n,n)
-! enddo ! Check. This may be wrong.
 
 
          DEALLOCATE (IPIV)
@@ -646,11 +678,11 @@
 
        SUBROUTINE COMPARE_C(A,B,XMAX,XMEAN)
          IMPLICIT NONE
-         COMPLEX (KIND=8), DIMENSION(:,:) :: A,B
-         REAL (KIND=8) :: XMAX, XMEAN
+         COMPLEX (Kind=Kind(0.d0)), DIMENSION(:,:) :: A,B
+         REAL (Kind=Kind(0.d0)) :: XMAX, XMEAN
          INTEGER I,J, N, M
 
-         REAL (KIND=8) :: DIFF
+         REAL (Kind=Kind(0.d0)) :: DIFF
 
          N = SIZE(A,1)
          M = SIZE(A,2)
@@ -669,11 +701,11 @@
 
        SUBROUTINE COMPARE_R(A,B,XMAX,XMEAN)
          IMPLICIT NONE
-         REAL (KIND=8) , INTENT(IN), DIMENSION(:,:) :: A,B
-         REAL (KIND=8) , INTENT(INOUT) :: XMAX, XMEAN
+         REAL (Kind=Kind(0.d0)) , INTENT(IN), DIMENSION(:,:) :: A,B
+         REAL (Kind=Kind(0.d0)) , INTENT(INOUT) :: XMAX, XMEAN
          INTEGER I,J, N, M
 
-         REAL (KIND=8) :: DIFF
+         REAL (Kind=Kind(0.d0)) :: DIFF
 
          N = SIZE(A,1)
          M = SIZE(A,2)
@@ -697,9 +729,6 @@
 !> @brief 
 !> This function calculates the UDV decomposition using the standard 
 !> QR algorithm of LaPack.
-!
-!> @note Using the Divide & Conquer algorithm would not yield 
-!> enough accuracy for using within an auxiliary field type algorithm.
 !
 !> @param[in] A a 2D array constituting the input matrix.
 !> @param[out] U a 2D array containing the left singular vectors.
@@ -890,11 +919,8 @@
 !> Fakher Assaad and Florian Goth
 !
 !> @brief 
-!> This function calculates the UDV decomposition using the standard 
+!> This function calculates a UDV decomposition using the standard 
 !> QR algorithm of LaPack.
-!
-!> @note Using the Divide & Conquer algorithm would not yield 
-!> enough accuracy for using within an auxiliary field type algorithm.
 !
 !> @param[in] A a 2D array constituting the input matrix.
 !> @param[out] U a 2D array containing the left singular vectors.
@@ -1228,18 +1254,18 @@
       SUBROUTINE DIAG_I(A,U,W)
         ! Uses Lapack
         IMPLICIT NONE
-        COMPLEX (KIND=8), INTENT(IN)   , DIMENSION(:,:) :: A
-        COMPLEX (KIND=8), INTENT(INOUT), DIMENSION(:,:) :: U
-        REAL    (KIND=8), INTENT(INOUT), DIMENSION(:)   :: W
+        COMPLEX (Kind=Kind(0.d0)), INTENT(IN)   , DIMENSION(:,:) :: A
+        COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT), DIMENSION(:,:) :: U
+        REAL    (Kind=Kind(0.d0)), INTENT(INOUT), DIMENSION(:)   :: W
         
         CHARACTER (len=1) :: UPLO, JOBZ
         INTEGER :: N, LWORK, INFO
-        COMPLEX (KIND=8), allocatable :: WORK (:)
-        REAL    (KIND=8), allocatable :: RWORK(:)
+        COMPLEX (Kind=Kind(0.d0)), allocatable :: WORK (:)
+        REAL    (Kind=Kind(0.d0)), allocatable :: RWORK(:)
         Logical :: Test
         Integer :: I,J,m
-        Complex (Kind=8) :: Z 
-        Real (Kind=8) :: X, XMAX
+        Complex (Kind=Kind(0.d0)) :: Z 
+        Real (Kind=Kind(0.d0)) :: X, XMAX
 
         JOBZ = "V"
         UPLO = "U"
@@ -1260,9 +1286,9 @@
            XMAX = 0.d0
            DO I = 1,N
               DO J = 1,N
-                 Z = cmplx(0.d0,0.d0,kind=8)
+                 Z = cmplx(0.d0,0.d0,Kind=Kind(0.d0))
                  DO m = 1,N
-                    Z =  Z + U(I,m)*cmplx(W(m),0.d0, Kind=8)*Conjg(U(J,m))
+                    Z =  Z + U(I,m)*cmplx(W(m),0.d0, Kind=Kind(0.d0))*Conjg(U(J,m))
                  ENDDO
                  Z = Z - A(I,J)
                  X = ABS(Z)
@@ -1276,16 +1302,19 @@
 
       SUBROUTINE SECONDS(X)
         IMPLICIT NONE
-        REAL (KIND=8), INTENT(INOUT) :: X
+        REAL (Kind=Kind(0.d0)), INTENT(INOUT) :: X
 
         !DATE_AND_TIME(date, time, zone, values)
         !date_and_time([date][,time][,zone][,values])
-        !Subroutine. Die Parameter haben das Attribut intent(out), geben also Werte zurück.
+        !Subroutine. Die Parameter haben das Attribut intent(out), geben also Werte zurueck.
 
-        ! date: skalare, normale Zeichenvariable von wenigstens 8 Zeichen. Die linken 8 Zeichen bekommen einen Wert der Form JJJJMMTT . JJJJ Jahr, MM Monat, TT Tag im Monat.
-        !time: skalare, normale Zeichenvariable von wenigstens 10 Zeichen. Die linken 10 Zeichen bekommen einen Wert der Form hhmmss.sss , wobei hh die Stunde des Tages ist, mm die Minute innerhalb der Stunde, und ss.sss die Sekunde mit Bruchteilen.
-        ! zone: skalare, normale Zeichenvariable von wenigstens 5 Zeichen. Die linken 5 Zeichen bekommen einen Wert der Form hhmm . hh Stunden, mm Minuten Zeitdifferenz gegenüber der UTC-Weltzeit.
-        !values: Eindimensionales Integer-Feld. Länge wenigstens 8. 1: Jahr, z.B. 1993. 2: Monat. 3: Monatstag. 4: Zeitdifferenz zur Weltzeit in Minuten. 5: Stunde des Tages. 6: Minute innerhalb der Stunde. 7: Sekunden 8. Millisekunden.
+        ! date: skalare, normale Zeichenvariable von wenigstens 8 Zeichen. 
+        ! Die linken 8 Zeichen bekommen einen Wert der Form JJJJMMTT . JJJJ Jahr, MM Monat, TT Tag im Monat.
+        ! time: skalare, normale Zeichenvariable von wenigstens 10 Zeichen. 
+        ! Die linken 10 Zeichen bekommen einen Wert der Form hhmmss.sss , wobei hh die Stunde des Tages ist, mm die Minute innerhalb der Stunde, und ss.sss die Sekunde mit Bruchteilen.
+        ! zone: skalare, normale Zeichenvariable von wenigstens 5 Zeichen. Die linken 5 Zeichen bekommen einen Wert der Form hhmm . hh Stunden, mm Minuten Zeitdifferenz gegenueber der UTC-Weltzeit.
+        !values: Eindimensionales Integer-Feld. Laenge wenigstens 8. 
+        !1 : Jahr, z.B. 1993. 2: Monat. 3: Monatstag. 4: Zeitdifferenz zur Weltzeit in Minuten. 5: Stunde des Tages. 6: Minute innerhalb der Stunde. 7: Sekunden 8. Millisekunden.
 
         !character(len=10) :: d,t
         integer,dimension(8) :: V
@@ -1298,13 +1327,13 @@
       END SUBROUTINE SECONDS
 
 !====================================================
-      Complex (Kind=8) Function DET_C(Mat,N)
+      Complex (Kind=Kind(0.d0)) Function DET_C(Mat,N)
 
         Implicit none
         
         ! Arguments
         Integer, intent(in) :: N 
-        Complex(kind=8), intent(inout) :: mat(N,N)
+        Complex(Kind=Kind(0.d0)), intent(inout) :: mat(N,N)
         
         integer :: i, info
         integer :: ipiv(N)
@@ -1328,6 +1357,49 @@
         if (sgn == -1 ) det_C = - det_C 
 
       end function DET_C
+
+!--------------------------------------------------------------------
+!> @author
+!> F.Assaad
+!
+!> @brief 
+!> Returns the determinant as det = \prod_i=1^N d(i). 
+!> Uses Lapack LU decomposition
+!> 
+!====================================================
+      Subroutine DET_C_LU(Mat1,D,N)
+
+        Implicit none
+        
+        ! Arguments
+        Integer, intent(in) :: N 
+        Complex(Kind=Kind(0.d0)), intent(in)  :: mat1(N,N)
+        Complex(Kind=Kind(0.d0)), intent(out) :: D(N)
+        
+        
+        Complex(Kind=Kind(0.d0)) :: mat(N,N)
+
+        integer :: i, info
+        integer :: ipiv(N)
+
+        integer :: sgn
+        
+        mat = mat1
+        ipiv = 0
+
+        !Lapack LU decomposition
+        call zgetrf(N, N, mat, N, ipiv, info)
+        
+        do i = 1,N 
+           D(i) = mat(i,i)
+        enddo
+        sgn =  1
+        do i = 1, N
+           if(ipiv(i) /= i)  sgn = -sgn
+        enddo
+        if (sgn == -1 ) D(1) = - D(1)
+
+      end Subroutine DET_C_LU
 
 !--------------------------------------------------------------------
 !> @author

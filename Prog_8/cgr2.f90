@@ -6,7 +6,6 @@
         !           (-B2   1  )
         
 
-        Use Precdef
         Use UDV_WRAP_mod
         Use MyMats
 
@@ -14,16 +13,16 @@
 
         !  Arguments
         Integer :: LQ
-        Complex (Kind=double), intent(in)    :: U1(LQ,LQ), V1(LQ,LQ), U2(LQ,LQ), V2(LQ,LQ)
-        Complex (Kind=double), intent(in)    :: D2(LQ), D1(LQ)
-        Complex (Kind=double), intent(inout) :: GRT0(LQ,LQ), GR0T(LQ,LQ), GR00(LQ,LQ), GRTT(LQ,LQ)
+        Complex (Kind=Kind(0.d0)), intent(in)    :: U1(LQ,LQ), V1(LQ,LQ), U2(LQ,LQ), V2(LQ,LQ)
+        Complex (Kind=Kind(0.d0)), intent(in)    :: D2(LQ), D1(LQ)
+        Complex (Kind=Kind(0.d0)), intent(inout) :: GRT0(LQ,LQ), GR0T(LQ,LQ), GR00(LQ,LQ), GRTT(LQ,LQ)
 
 
         ! Local::
-        Complex (Kind=double) :: U3B(2*LQ,2*LQ), V3B(2*LQ,2*LQ), HLPB1(2*LQ,2*LQ), HLPB2(2*LQ,2*LQ), &
+        Complex (Kind=Kind(0.d0)) :: U3B(2*LQ,2*LQ), V3B(2*LQ,2*LQ), HLPB1(2*LQ,2*LQ), HLPB2(2*LQ,2*LQ), &
              &                   V2INV(LQ,LQ), V1INV(LQ,LQ), HLP2(LQ,LQ)
-        Complex  (Kind=double) :: D3B(2*LQ)
-        Complex  (Kind=double) :: Z, alpha, beta
+        Complex  (Kind=Kind(0.d0)) :: D3B(2*LQ)
+        Complex  (Kind=Kind(0.d0)) :: Z, alpha, beta
         Integer, dimension(:), allocatable :: IPVT
         
         Integer :: LQ2, I,J, M, ILQ, JLQ, NCON
@@ -31,7 +30,7 @@
         LQ2 = LQ*2
         alpha = 1.D0
         beta = 0.D0
-        HLPB1 = cmplx(0.D0,0.d0,double)
+        HLPB1 = cmplx(0.D0,0.d0,kind(0.d0))
         DO I = 1,LQ
            HLPB1(I   , I + LQ ) =  D1(I)
            HLPB1(I+LQ, I      ) = -D2(I)
@@ -59,7 +58,7 @@
         !	( V2INV   0    )*(V3B)^{-1}   = V3B
         !	( 0       U1^T )
         
-        HLPB2 = cmplx(0.d0,0.d0,double)
+        HLPB2 = cmplx(0.d0,0.d0,Kind(0.d0))
         call ZLACPY('A', LQ, LQ, V2INV, LQ, HLPB2, LQ2)
         DO I = 1,LQ
            ILQ = I + LQ
@@ -76,7 +75,7 @@
         !	U3B^T * ( V1INV  0   )   = U3B
         !	        ( 0      U2^T )
         
-        HLPB2 = cmplx(0.D0,0.d0,double)
+        HLPB2 = cmplx(0.D0,0.d0,Kind(0.d0))
         call ZLACPY('A', LQ, LQ, V1INV, LQ, HLPB2, LQ2)
         DO I = 1,LQ
            ILQ = I + LQ
@@ -88,7 +87,7 @@
         CALL ZGEMM('C', 'N', LQ2, LQ2, LQ2, alpha, U3B, LQ2, HLPB2, LQ2, beta, HLPB1, LQ2)
         ! G = V3B * D3B^{-1}* U3B
         DO M = 1,LQ2
-           Z = cone/D3B(M)
+           Z = cmplx(1.d0,0.d0,kind(0.d0))/D3B(M)
            DO J = 1,LQ2
               HLPB1(M,J) =   Z * HLPB1(M,J) 
            ENDDO

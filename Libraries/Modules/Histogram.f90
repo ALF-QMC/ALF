@@ -1,9 +1,9 @@
        Module Histograms
 
          Type Histogram 
-            Real (Kind=8), pointer :: el(:)
-            Real (Kind=8)  :: range_st, range_en, dis
-            Real (Kind=8)  :: count
+            Real (Kind=Kind(0.d0)), pointer :: el(:)
+            Real (Kind=Kind(0.d0))  :: range_st, range_en, dis
+            Real (Kind=Kind(0.d0))  :: count
             Character (16) :: File
             
          end Type Histogram
@@ -20,7 +20,7 @@
            subroutine Construct_Hist(Hist, file, range_st, range_en, dis)
              Implicit none
              type (Histogram) :: Hist
-             Real  (Kind=8)   :: range_st, range_en, dis
+             Real  (Kind=Kind(0.d0))   :: range_st, range_en, dis
              Character (16)   :: File
              
              Integer :: n
@@ -55,7 +55,7 @@
              type (Histogram) :: Hist
              
              integer :: io_error, nv
-             Real (Kind=8) :: X,Y
+             Real (Kind=Kind(0.d0)) :: X,Y
              
 
              Open ( unit=20,file=Hist%file,status='old',action='read', iostat=io_error)
@@ -91,7 +91,7 @@
            subroutine Add_Hist(Hist,value)
              Implicit none
              type (Histogram) :: Hist
-             Real (Kind=8)    :: value
+             Real (Kind=Kind(0.d0))    :: value
              Integer :: nv
 
              if ( value .gt.  Hist%range_en .or. value .lt.  Hist%range_st ) then

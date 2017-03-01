@@ -8,10 +8,10 @@ Module MaxEnt_mod
            Module Procedure MaxEnt_T, MaxEnt_T0
         end Interface
 
-        REAL (KIND=8), Private   ::   ZERO, ALPHA,  PI, XMOM1
-        REAL (KIND=8), Dimension(:),                Private :: XPARAM(20)
-        REAL (KIND=8), Dimension(:),   Allocatable, Private :: XLAM,  DEF, SIG1
-        REAL (KIND=8), DIMENSION(:,:), Allocatable, Private :: COVM1, UC
+        REAL (Kind=Kind(0.d0)), Private   ::   ZERO, ALPHA,  PI, XMOM1
+        REAL (Kind=Kind(0.d0)), Dimension(:),                Private :: XPARAM(20)
+        REAL (Kind=Kind(0.d0)), Dimension(:),   Allocatable, Private :: XLAM,  DEF, SIG1
+        REAL (Kind=Kind(0.d0)), DIMENSION(:,:), Allocatable, Private :: COVM1, UC
         Integer,   Private :: NTAU, NOM
 
 
@@ -20,13 +20,13 @@ Module MaxEnt_mod
           Subroutine MaxEnt_T( XQMC, COV, A, XKER, ALPHA_ST, CHISQ,DEFAULT)
 
             Implicit None
-            Real (Kind=8), Dimension(:)   :: XQMC, A
-            Real (Kind=8), Dimension(:,:) :: COV, XKER
-            Real (Kind=8) :: ALPHA_ST, CHISQ, ALPHA_N
-            Real (Kind=8), Dimension(:), optional   :: Default
+            Real (Kind=Kind(0.d0)), Dimension(:)   :: XQMC, A
+            Real (Kind=Kind(0.d0)), Dimension(:,:) :: COV, XKER
+            Real (Kind=Kind(0.d0)) :: ALPHA_ST, CHISQ, ALPHA_N
+            Real (Kind=Kind(0.d0)), Dimension(:), optional   :: Default
 
             Integer       :: NT, NT1, NT2, NW, NFLAG, NCOUNT
-            Real (Kind=8) :: X, XENT, XQ, PR_ALP, XTRACE, DIFF1, DIFF , Tol_chi_def
+            Real (Kind=Kind(0.d0)) :: X, XENT, XQ, PR_ALP, XTRACE, DIFF1, DIFF , Tol_chi_def
 
 
 	    Tol_chi_def = 1000000000000.0
@@ -167,16 +167,16 @@ Module MaxEnt_mod
 
             Implicit None
             !Arguments
-            REAL (KIND=8)                 :: XQ,XENT,CHISQ
-            REAL (Kind=8), Dimension(:)   :: XQMC, A
-            REAL (Kind=8), Dimension(:,:) :: COV, XKER
+            REAL (Kind=Kind(0.d0))                 :: XQ,XENT,CHISQ
+            REAL (Kind=Kind(0.d0)), Dimension(:)   :: XQMC, A
+            REAL (Kind=Kind(0.d0)), Dimension(:,:) :: COV, XKER
 
 
             !Working space
-            REAL (KIND=8), DIMENSION(:),  ALLOCATABLE ::  XLAM1,  F
-            REAL (KIND=8), DIMENSION(:,:),ALLOCATABLE ::  AH, AHINV 
+            REAL (Kind=Kind(0.d0)), DIMENSION(:),  ALLOCATABLE ::  XLAM1,  F
+            REAL (Kind=Kind(0.d0)), DIMENSION(:,:),ALLOCATABLE ::  AH, AHINV 
         
-            Real (Kind=8) :: X, XNORM, DET1(2), XMAX
+            Real (Kind=Kind(0.d0)) :: X, XNORM, DET1(2), XMAX
             Integer :: NITER, NT, NT1, NW
   
 
@@ -248,15 +248,15 @@ Module MaxEnt_mod
 
 
             !Arguments
-            REAL (KIND=8)                 :: XQ,XENT,CHISQ
-            REAL (Kind=8), Dimension(:)   :: XQMC, A
-            REAL (Kind=8), Dimension(:,:) :: COV, XKER
+            REAL (Kind=Kind(0.d0))                 :: XQ,XENT,CHISQ
+            REAL (Kind=Kind(0.d0)), Dimension(:)   :: XQMC, A
+            REAL (Kind=Kind(0.d0)), Dimension(:,:) :: COV, XKER
 
 
             !Working space
-            REAL (KIND=8), DIMENSION(:),  ALLOCATABLE ::  XLAM1,  F, GBAR
+            REAL (Kind=Kind(0.d0)), DIMENSION(:),  ALLOCATABLE ::  XLAM1,  F, GBAR
         
-            Real (Kind=8) :: X, XNORM, DET1(2), XMAX
+            Real (Kind=Kind(0.d0)) :: X, XNORM, DET1(2), XMAX
             Integer :: NITER, NT, NT1, NW
   
 
@@ -311,10 +311,10 @@ Module MaxEnt_mod
             Implicit None
 
             ! Arguments:
-            Real (Kind=8), Dimension(:) :: A
-            Real (Kind=8), Dimension(:,:) :: XKER
+            Real (Kind=Kind(0.d0)), Dimension(:) :: A
+            Real (Kind=Kind(0.d0)), Dimension(:,:) :: XKER
             
-            Real (Kind=8) :: X
+            Real (Kind=Kind(0.d0)) :: X
             Integer :: Nw, Nt
             
             DO NW = 1,NOM
@@ -333,11 +333,11 @@ Module MaxEnt_mod
             !AH(tau,tau1) = \frac{\partial F_tau} {\partial tau1  }
 
             ! Arguments
-            REAL (KIND=8), DIMENSION(:,:) ::  AH, COV, XKER
-            REAL (KIND=8), DIMENSION(:) ::  A
+            REAL (Kind=Kind(0.d0)), DIMENSION(:,:) ::  AH, COV, XKER
+            REAL (Kind=Kind(0.d0)), DIMENSION(:) ::  A
 
             Integer NT, NT1, NW
-            Real (Kind=8) :: X
+            Real (Kind=Kind(0.d0)) :: X
 
             IF ( SIZE(AH,1).NE.NTAU .OR. SIZE(AH,2).NE.NTAU) THEN
                WRITE(6,*) 'Error in Setah '
@@ -363,10 +363,10 @@ Module MaxEnt_mod
             
           
             !Arguments
-            REAL (KIND=8), DIMENSION(:) :: F, A, XQMC
-            REAL (KIND=8), DIMENSION(:,:) :: COV, XKER
+            REAL (Kind=Kind(0.d0)), DIMENSION(:) :: F, A, XQMC
+            REAL (Kind=Kind(0.d0)), DIMENSION(:,:) :: COV, XKER
             
-            REAL (Kind=8) :: X, X1
+            REAL (Kind=Kind(0.d0)) :: X, X1
             Integer :: Nt, Nt1, Nw
             
             IF (SIZE(F,1).NE.NTAU) THEN
@@ -391,14 +391,14 @@ Module MaxEnt_mod
             Implicit None
 
             !Arguments
-            REAL (KIND=8)   :: XQ, XENT, CHISQ
-            Real (Kind=8), Dimension(:)   :: A, XQMC
-            Real (Kind=8), Dimension(:,:) :: XKER
+            REAL (Kind=Kind(0.d0))   :: XQ, XENT, CHISQ
+            Real (Kind=Kind(0.d0)), Dimension(:)   :: A, XQMC
+            Real (Kind=Kind(0.d0)), Dimension(:,:) :: XKER
 
             !Local
-            REAL (KIND=8), DIMENSION(:), ALLOCATABLE  ::  VHLP
+            REAL (Kind=Kind(0.d0)), DIMENSION(:), ALLOCATABLE  ::  VHLP
             Integer :: Nw, Nt, Nt1
-            Real (Kind=8) :: X
+            Real (Kind=Kind(0.d0)) :: X
 
             XENT  = 0.D0
             CHISQ = 0.D0
@@ -432,20 +432,20 @@ Module MaxEnt_mod
           SUBROUTINE CALCPR_ALP(XQMC,  COV, A, XKER,XQ,XENT,PR_ALP,XTRACE)
             Implicit None
 
-            Real (Kind=8), Dimension(:)   :: XQMC,  A
-            Real (Kind=8), Dimension(:,:) :: COV, XKER
+            Real (Kind=Kind(0.d0)), Dimension(:)   :: XQMC,  A
+            Real (Kind=Kind(0.d0)), Dimension(:,:) :: COV, XKER
 
 
             ! Arguments
-            REAL (KIND=8)   :: XQ,XENT, PR_ALP,XTRACE
+            REAL (Kind=Kind(0.d0))   :: XQ,XENT, PR_ALP,XTRACE
             
 
             ! Local
-            REAL (KIND=8), DIMENSION(:)                :: DET1(2)
-            REAL (KIND=8), DIMENSION(:,:), ALLOCATABLE :: XMAT, XMATM1, XKER1
+            REAL (Kind=Kind(0.d0)), DIMENSION(:)                :: DET1(2)
+            REAL (Kind=Kind(0.d0)), DIMENSION(:,:), ALLOCATABLE :: XMAT, XMATM1, XKER1
 
             Integer :: NFLAG,  NW, NT, NT1, NW1
-            REAL (Kind=8) :: XLDET
+            REAL (Kind=Kind(0.d0)) :: XLDET
             
             ALLOCATE (XKER1(NTAU,NOM), XMAT(NOM,NOM), XMATM1(NOM,NOM) )
             XKER1 = 0.D0;    XMAT = 0.D0;   XMATM1 = 0.D0
@@ -510,38 +510,39 @@ Module MaxEnt_mod
 
 
 
-          !real (kind=8)  function f_fit(k,x)
+          !real (Kind=Kind(0.d0))  function f_fit(k,x)
           !  integer k
-          !  real (kind=8) x
+          !  real (Kind=Kind(0.d0)) x
           !  
           !  if ( k.eq.1) f_fit = 1.d0
           !  if ( k.eq.2) f_fit = x
           !  
           !  return
           !end function f_fit
+          
+          !>  Shft A Shift
 
-
-          Subroutine MaxEnt_T0 ( XQMC,  COV, A, XKER, ALPHA_ST, CHISQ, Rel_err, Shift, xtau, f_fit)
+          Subroutine MaxEnt_T0 ( XQMC,  COV, A, XKER, ALPHA_ST, CHISQ, Rel_err, Shft, xtau, f_fit)
            
             Implicit None
-            Real (Kind=8), Dimension(:)   :: XQMC, A
-            Real (Kind=8), Dimension(:,:) :: COV, XKER
-            Real (Kind=8) :: ALPHA_ST, CHISQ,  Rel_err 
-            Real (Kind=8), Optional :: Shift
-            Real (Kind=8), Dimension(:), Optional :: xtau
-            Real (Kind=8), external,  Optional :: f_fit
+            Real (Kind=Kind(0.d0)), Dimension(:)   :: XQMC, A
+            Real (Kind=Kind(0.d0)), Dimension(:,:) :: COV, XKER
+            Real (Kind=Kind(0.d0)) :: ALPHA_ST, CHISQ,  Rel_err 
+            Real (Kind=Kind(0.d0)), Optional :: Shft
+            Real (Kind=Kind(0.d0)), Dimension(:), Optional :: xtau
+            Real (Kind=Kind(0.d0)), external,  Optional :: f_fit
 
-            Real (Kind=8), Dimension(:)  , Allocatable   :: XQMC_1
-            Real (Kind=8), Dimension(:,:), Allocatable   :: COV_1, XKER_1
+            Real (Kind=Kind(0.d0)), Dimension(:)  , Allocatable   :: XQMC_1
+            Real (Kind=Kind(0.d0)), Dimension(:,:), Allocatable   :: COV_1, XKER_1
 
             ! For the fit if requested.
-            Real (Kind=8) :: chisq_fit,  Ares(2)
-            Real (Kind=8), Dimension(:), allocatable :: xdata_fit, fdata_fit,  error_fit
+            Real (Kind=Kind(0.d0)) :: chisq_fit,  Ares(2)
+            Real (Kind=Kind(0.d0)), Dimension(:), allocatable :: xdata_fit, fdata_fit,  error_fit
             Integer :: Nd_fit
-            !real (kind=8), external  :: f_fit
+            !real (Kind=Kind(0.d0)), external  :: f_fit
 
             Integer nt, nt1, ntau_eff, nw
-            Real (Kind=8) :: X
+            Real (Kind=Kind(0.d0)) :: X
 
             ntau = size(xqmc,1) 
 	    Nom  = Size(A,1) 
@@ -574,9 +575,9 @@ Module MaxEnt_mod
                   XKer_1(nt, nw) = XKer(nt, nw)  
                enddo
             enddo
-            IF ( PRESENT(Shift) .and. PRESENT(xtau) .and. PRESENT(F_FIT) ) Then 
+            IF ( PRESENT(Shft) .and. PRESENT(xtau) .and. PRESENT(F_FIT) ) Then 
                write(6,*) 'The data will be shifted'
-               shift = 0.d0
+               shft = 0.d0
                Nd_fit = Ntau_eff/2
                Allocate   (xdata_fit(Nd_fit), fdata_fit(Nd_fit),  error_fit(Nd_fit) )
                do  nt = 1,Nd_fit
@@ -586,14 +587,14 @@ Module MaxEnt_mod
                enddo
                call fit(xdata_fit,fdata_fit,error_fit,ares,chisq_fit,f_fit)
                write(6,*) 'The slope is : ', Ares(2)
-               shift = -Ares(2)  - 0.2
+               shft = -Ares(2)  - 0.2
                Deallocate (xdata_fit, fdata_fit,  error_fit )
                do nt = 1,Ntau_eff
-                  xqmc_1(nt) = xqmc_1(nt)*exp(xtau(nt)*shift)
+                  xqmc_1(nt) = xqmc_1(nt)*exp(xtau(nt)*shft)
                enddo
                do nt = 1,Ntau_eff
                   do nt1 = 1,Ntau_eff
-                     cov_1(nt,nt1) = cov_1(nt,nt1)*exp( (xtau(nt) + xtau(nt1))*shift ) 
+                     cov_1(nt,nt1) = cov_1(nt,nt1)*exp( (xtau(nt) + xtau(nt1))*shft ) 
                   enddo
                enddo
             else
@@ -611,13 +612,13 @@ Module MaxEnt_mod
             ! Sets the Kernel for Green functions. 
             Implicit none
             
-            Real (Kind=8), Dimension(:)   :: XTAU, XQMC, A, XOM 
-            Real (Kind=8), Dimension(:,:) :: COV
+            Real (Kind=Kind(0.d0)), Dimension(:)   :: XTAU, XQMC, A, XOM 
+            Real (Kind=Kind(0.d0)), Dimension(:,:) :: COV
             
-            Real (Kind=8) :: ALPHA_ST, CHISQ, BETA
+            Real (Kind=Kind(0.d0)) :: ALPHA_ST, CHISQ, BETA
             
             
-            Real (Kind=8), Dimension(:,:), allocatable :: xker
+            Real (Kind=Kind(0.d0)), Dimension(:,:), allocatable :: xker
             
             Integer :: NT,  NW,  NTAU, NOM
             
@@ -641,15 +642,15 @@ Module MaxEnt_mod
           Subroutine MaxEnt_T_Bryan( XQMC,  COV, A, XKER, ALPHA_ST, ALPHA_EN, CHISQ ) 
 
             Implicit None
-            Real (Kind=8), Dimension(:)   :: XQMC, A
-            Real (Kind=8), Dimension(:,:) :: COV, XKER
-            Real (Kind=8) :: ALPHA_ST, CHISQ, ALPHA_N, ALPHA_EN
+            Real (Kind=Kind(0.d0)), Dimension(:)   :: XQMC, A
+            Real (Kind=Kind(0.d0)), Dimension(:,:) :: COV, XKER
+            Real (Kind=Kind(0.d0)) :: ALPHA_ST, CHISQ, ALPHA_N, ALPHA_EN
 
             Integer       :: NT, NT1, NT2, NW, NFLAG, NCOUNT, NTH
-            Real (Kind=8) :: X, XENT, XQ, PR_ALP, XTRACE, DIFF1, DIFF , Tol_chi_def, XNORM, &
+            Real (Kind=Kind(0.d0)) :: X, XENT, XQ, PR_ALP, XTRACE, DIFF1, DIFF , Tol_chi_def, XNORM, &
                  &           D_ALPHA, ALPHA_OLD, XNORM_TOT
 
-            Real (Kind=8), Dimension(:), allocatable   :: A_ME
+            Real (Kind=Kind(0.d0)), Dimension(:), allocatable   :: A_ME
 
 	    Tol_chi_def = 100000000000000.0
             NTAU = SIZE(XQMC,1)

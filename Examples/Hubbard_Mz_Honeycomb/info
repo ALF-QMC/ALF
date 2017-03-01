@@ -1,0 +1,23 @@
+ =====================================
+ Model is      : Hubbard_Mz                                                      
+ Lattice is    : Honeycomb                                                       
+ # of orbitals :           18
+ Beta          :    10.000000000000000     
+ dtau,Ltrot    :   0.10000000000000001              100
+ N_SUN         :            1
+ N_FL          :            2
+ t             :    1.0000000000000000     
+ Ham_U         :    4.0000000000000000     
+ Ham_chem      :    0.0000000000000000     
+ Sweeps             :          500
+ Measure Int.       :            1         100
+ Stabilization,Wrap :           10
+ Nstm               :           10
+ Ltau               :            1
+Prog will stop after hours:    0.1000
+  Precision Green  Mean, Max :    1.2872203621362693E-011   3.1585872073414123E-006
+  Precision Phase, Max       :    0.0000000000000000     
+  Precision tau    Mean, Max :    3.4341051932209441E-012   1.5188448315439640E-006
+  Acceptance                 :   0.42819527777777777     
+  CPU Time                   :    310.46271599999994     
+  Effective number of bins   :            8

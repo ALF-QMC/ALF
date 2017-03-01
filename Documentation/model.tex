@@ -1,0 +1,234 @@
+% Copyright (c) 2016 The ALF project.
+% This is a part of the ALF project documentation.
+% The ALF project documentation by the ALF contributors is licensed
+% under a Creative Commons Attribution-ShareAlike 4.0 International License.
+% For the licensing details of the documentation see license.CCBYSA.
+
+% !TEX root = Doc.tex
+%------------------------------------------------------------
+\section{Definition of the model Hamiltonian}\label{sec:def}
+%------------------------------------------------------------
+
+The class of solvable models includes  Hamiltonians $\hat{\mathcal{H}}$ that have the following general form:
+\begin{eqnarray}
+\hat{\mathcal{H}}&=&\hat{\mathcal{H}}_{T}+\hat{\mathcal{H}}_{V} +  \hat{\mathcal{H}}_{I} +   \hat{\mathcal{H}}_{0,I}\;,\mathrm{where}
+\label{eqn:general_ham}\\
+\hat{\mathcal{H}}_{T}
+&=&
+\sum\limits_{k=1}^{M_T}
+\sum\limits_{\sigma=1}^{N_{\mathrm{col}}}
+\sum\limits_{s=1}^{N_{\mathrm{fl}}}
+\sum\limits_{x,y}^{N_{\mathrm{dim}}}
+\hat{c}^{\dagger}_{x \sigma   s}T_{xy}^{(k s)} \hat{c}^{\phantom\dagger}_{y \sigma s}  \equiv  \sum\limits_{k=1}^{M_T} \hat{T}^{(k)}
+\label{eqn:general_ham_t}\\
+\hat{\mathcal{H}}_{V}
+&=&
+\sum\limits_{k=1}^{M_V}U_{k}
+\left\{
+\sum\limits_{\sigma=1}^{N_{\mathrm{col}}}
+\sum\limits_{s=1}^{N_{\mathrm{fl}}}
+\left[
+\left(
+\sum\limits_{x,y}^{N_{\mathrm{dim}}}
+\hat{c}^{\dagger}_{x \sigma s}V_{xy}^{(k s)}\hat{c}^{\phantom\dagger}_{y \sigma s}
+\right)
++\alpha_{k s} 
+\right]
+\right\}^{2}  \equiv   
+\sum\limits_{k=1}^{M_V}U_{k}   \left(\hat{V}^{(k)} \right)^2
+\label{eqn:general_ham_v}\\
+\hat{\mathcal{H}}_{I}  & = &
+\sum\limits_{k=1}^{M_I} \hat{Z}_{k} 
+\left(
+\sum\limits_{\sigma=1}^{N_{\mathrm{col}}}
+\sum\limits_{s=1}^{N_{\mathrm{fl}}}
+\sum\limits_{x,y}^{N_{\mathrm{dim}}}
+\hat{c}^{\dagger}_{x \sigma s} I_{xy}^{(k s)}\hat{c}^{\phantom\dagger}_{y \sigma s}
+\right) \equiv \sum\limits_{k=1}^{M_I} \hat{Z}_{k}    \hat{I}^{(k)} 
+\;.\label{eqn:general_ham_i}
+\end{eqnarray}
+The indices have the following meaning:
+\begin{itemize}
+\item The number of fermion \textit{flavors} is set by $N_{\mathrm{fl}}$.  After the Hubbard-Stratonovich transformation, the action will be block diagonal in the flavor index. 
+\item The number of fermion \textit{colors} is set by $N_{\mathrm{col}}$.    The Hamiltonian is invariant under  SU($N_{\mathrm{col}}$)  rotations. Note that  in the code $ N_{\mathrm{col}} \equiv \texttt{N\_{SUN}} $. 
+\item The indices $x,y$ label lattice sites where $x,y=1,\cdots, N_{\mathrm{dim}}$. 
+
+$N_{\mathrm{dim}}$ is the total number of spacial vertices: $N_{\mathrm{dim}}=N_{\text{unit cell}} N_{\mathrm{orbital}}$, 
+where $N_{\text{unit cell}}$ is the number of unit cells of the underlying Bravais lattice and $N_{\mathrm{orbital}}$ is the number of (spacial) orbitals per unit cell.
+\item Therefore, the  matrices $\bm{T}^{(k s)}$, $\bm{V}^{(ks)}$  and $\bm{I}^{(ks)}$ are  of dimension $N_{\mathrm{dim}}\times N_{\mathrm{dim}}$
+\item The number of interaction terms  is labelled by $M_V$   and $M_I$.   $M_T> 1 $ would allow for a checkerboard decomposition.
+\end{itemize}
+The Ising part of the general Hamiltonian (\ref{eqn:general_ham}) is $\hat{\mathcal{H}}_{0,I}+ \hat{\mathcal{H}}_{I}$ and  has the following properties:
+\begin{itemize}
+\item $\hat{Z}_k$ is an Ising spin operator which corresponds to the Pauli matrix $\hat{\sigma}_{z}$. It couples to a general one-body term. 
+\item  The dynamics of the Ising spins is given by $\hat{\mathcal{H}}_{0,I}$. This term is not specified here; 
+it has to be specified by the user and is only relevant when the Monte Carlo update probability is computed in the code (see Sec.~\ref{sec:walk2} for an example).
+\end{itemize}
+Note that the matrices  $\bm{T}^{(ks)}$,  $\bm{V}^{(ks)}$ and  $\bm{I}^{(ks)}$ explicitly depend on the flavor index $s$ but not on the color index $\sigma$. 
+The color index $\sigma$ only appears in  the  second quantized operators such that the Hamiltonian is manifestly SU($N_{\mathrm{col}}$)    symmetric.  We also require
+the matrices $\bm{T}^{(ks)}$,  $\bm{V}^{(ks)}$ and  $\bm{I}^{(ks)}$  to be  Hermitian.
+
+%------------------------------------------------------------
+\subsection{Formulation of the QMC}  
+%------------------------------------------------------------
+
+The formulation of the  Monte Carlo simulation is based on the following.
+\begin{itemize}
+\item  We will discretize the imaginary time propagation: $\beta = \Delta \tau L_{\text{Trotter}} $
+\item  We will use  the   discrete Hubbard-Stratonovich transformation:
+\begin{equation}
+\label{HS_squares}
+        e^{\Delta \tau  \lambda  \hat{A}^2 } =
+        \sum_{ l = \pm 1, \pm 2}  \gamma(l)
+e^{ \sqrt{\Delta \tau \lambda }
+       \eta(l)  \hat{A} }
+                + {\cal O} (\Delta \tau ^4)\;,
+\end{equation}
+where the fields $\eta$ and $\gamma$ take the values:
+\begin{eqnarray}
+ \gamma(\pm 1)  = 1 + \sqrt{6}/3, \quad  \eta(\pm 1 ) = \pm \sqrt{2 \left(3 - \sqrt{6} \right)}\;,\\\nonumber
+  \gamma(\pm 2) = 1 - \sqrt{6}/3, \quad  \eta(\pm 2 ) = \pm \sqrt{2 \left(3 + \sqrt{6} \right)}\;.
+\nonumber
+\end{eqnarray}
+\item  We will work in  a basis for the Ising spins  where  $\hat{Z}_k$ is diagonal: $\hat{Z}_{k}|s_{k}\rangle = s_{k}|s_{k}\rangle$, where $s_{k}=\pm 1$.
+\item From the above it follows that the  Monte Carlo configuration space $C$  
+is given by the combined spaces of Ising spin configurations  and of Hubbard-Stratonovich discrete field configurations:
+\begin{equation}
+	C = \left\{   s_{i,\tau} ,  l_{j,\tau}  \text{ with }  i=1\cdots M_I,\;  j = 1\cdots M_V,\; \tau=1\cdots L_{\mathrm{Trotter}}  \right\}
+\end{equation}
+Here, the Ising spins take the values  $s_{i,\tau} = \pm 1$ and  the Hubbard-Stratonovich fields take the values  $l_{j,\tau}  = \pm 2, \pm 1 $.
+\end{itemize}
+
+%------------------------------------------------------------
+\subsubsection{The partition function}
+%------------------------------------------------------------
+
+With the above, the partition function of the model (\ref{eqn:general_ham}) can be written as follows.
+\begin{eqnarray}\label{eqn:partition_1}
+Z &=& \Tr{\left(e^{-\beta \hat{\mathcal{H}} }\right)}\nonumber\\
+  &=&   \Tr{  \left[ e^{-\Delta \tau \hat{\mathcal{H}}_{0,I}}   \prod_{k=1}^{M_T}   e^{-\Delta \tau \hat{T}^{(k)}}  
+    \prod_{k=1}^{M_V}   e^{ - \Delta \tau  U_k \left(  \hat{V}^{(k)} \right)^2}   \prod_{k=1}^{M_I}   e^{  -\Delta \tau  \hat{\sigma}_{k}  \hat{I}^{(k)}} 
+   \right]^{L_{\text{Trotter}}}}  + \mathcal{O}(\Delta\tau^{2})\nonumber \\
+   &=&
+   \sum_{C} \left( \prod_{k=1}^{M_V} \prod_{\tau=1}^{L_{\mathrm{Trotter}}} \gamma_{k,\tau} \right) e^{-S_{0,I} \left( \left\{ s_{i,\tau} \right\}  \right) }\times \nonumber\\
+   &\quad&
+    \Trf{ \left\{  \prod_{\tau=1}^{L_{\mathrm{Trotter}}} \left[   \prod_{k=1}^{M_T}   e^{-\Delta \tau \hat{T}^{(k)}}  
+    \prod_{k=1}^{M_V}   e^{  \sqrt{ -\Delta \tau  U_k} \eta_{k,\tau} \hat{V}^{(k)} }   \prod_{k=1}^{M_I}   e^{  -\Delta \tau s_{k,\tau}  \hat{I}^{(k)}}  \right]\right\} }+ \mathcal{O}(\Delta\tau^{2})\;.
+\end{eqnarray}
+In the above,  the trace $\mathrm{Tr} $  runs over the Ising spins as well as over the fermionic degrees of freedom, and $ \mathrm{Tr}_{\mathrm{F}}  $ only over the  fermionic Fock space. 
+$S_{0,I} \left( \left\{ s_{i,\tau} \right\}  \right)  $ is the action  corresponding to the Ising Hamiltonian,  and is only dependent on the Ising spins so that  it can be pulled out of the fermionic trace.
+At this point,  and  since for a given configuration $C$  we are dealing with a free propagation, we can integrate out the fermions to obtain a determinant: 
+\begin{eqnarray}
+ &\quad&\Trf{ \left\{  \prod_{\tau=1}^{L_{\mathrm{Trotter}}} \left[   \prod_{k=1}^{M_T}   e^{-\Delta \tau \hat{T}^{(k)}}  
+    \prod_{k=1}^{M_V}   e^{  \sqrt{ - \Delta \tau  U_k} \eta_{k,\tau} \hat{V}^{(k)} }   \prod_{k=1}^{M_I}   e^{  -\Delta \tau s_{k,\tau}  \hat{I}^{(k)}}  \right] \right\}} = \nonumber\\
+&\quad& \quad\prod\limits_{s=1}^{N_{\mathrm{fl}}} \left[  e^{\sum\limits_{k=1}^{M_V} \sum\limits_{\tau = 1}^{L_{\mathrm{Trotter}}}\sqrt{-\Delta \tau U_k}  \alpha_{k,s} \eta_{k,\tau} }
+   \right]^{N_{\mathrm{col}}}\times
+\nonumber\\
+&\quad&\quad   \prod\limits_{s=1}^{N_{\mathrm{fl}}} 
+   \left[
+    \det\left(  1 + 
+     \prod_{\tau=1}^{L_{\mathrm{Trotter}}}   \prod_{k=1}^{M_T}   e^{-\Delta \tau {\bf T}^{(ks)}}  
+    \prod_{k=1}^{M_V}   e^{  \sqrt{ -\Delta \tau  U_k} \eta_{k,\tau} {\bm V}^{(ks)} }   \prod_{k=1}^{M_I}   e^{  -\Delta \tau s_{k,\tau}  {\bm I}^{(ks)}}  
+     \right) \right]^{N_{\mathrm{col}}}\;,
+\end{eqnarray}
+where the matrices ${\bf T}^{(ks)}$,  ${\bf V}^{(ks)}$, and  ${\bf I}^{(ks)}$ define the Hamiltonian [Eq.~(\ref{eqn:general_ham}) - (\ref{eqn:general_ham_i})].
+All in all,   the partition function is given by:
+\begin{eqnarray}\label{eqn:partition_2}
+    Z  &=&   \sum_{C}   e^{-S_{0,I} \left( \left\{ s_{i,\tau} \right\}  \right) }     \left( \prod_{k=1}^{M_V} \prod_{\tau=1}^{L_{\mathrm{Trotter}}} \gamma_{k,\tau} \right)
+    e^{ N_{\mathrm{col}}\sum\limits_{s=1}^{N_{\mathrm{fl}}} \sum\limits_{k=1}^{M_V} \sum\limits_{\tau = 1}^{L_{\mathrm{Trotter}}}\sqrt{-\Delta \tau U_k}  \alpha_{k,s} \eta_{k,\tau} } 
+  \times   \nonumber \\
+  &\quad&
+      \prod_{s=1}^{N_{\mathrm{fl}}}\left[\det\left(  1 + 
+     \prod_{\tau=1}^{L_{\mathrm{Trotter}}}   \prod_{k=1}^{M_T}   e^{-\Delta \tau {\bm T}^{(ks)}}  
+    \prod_{k=1}^{M_V}   e^{  \sqrt{ -\Delta \tau  U_k} \eta_{k,\tau} {\bm V}^{(ks)} }   \prod_{k=1}^{M_I}   e^{  -\Delta \tau s_{k,\tau}  {\bm I}^{(ks)}}  
+     \right) \right]^{N_{\mathrm{col}}}  \nonumber \\ 
+     & \equiv&  \sum_{C} e^{-S(C) }\;.
+\end{eqnarray}
+In the above, one notices that the weight factorizes in  the flavor index. The color index raises the determinant to the power $N_{\mathrm{col}}$. 
+This corresponds to  an explicit $SU(N_{\mathrm{col}})$ symmetry   for each  configuration. This symmetry is manifest in the fact that the single particle  Green functions are color independent, again for each given  configuration $C$.
+
+%------------------------------------------------------------
+\subsubsection{Observables}\label{Observables.General}
+%------------------------------------------------------------
+
+In the auxiliary field QMC approach, the single particle Green function plays a crucial role.  It determines the Monte Carlo dynamics and is used to compute  observables:
+\begin{equation}\label{eqn:obs}
+\langle \hat{O}  \rangle  = \frac{ \text{Tr}   \left[ e^{- \beta \hat{H}}  \hat{O}   \right] }{ \text{Tr}   \left[ e^{- \beta \hat{H}}  \right] } =   \sum_{C}   P(C) 
+   \langle \langle \hat{O}  \rangle \rangle_{(C)} , \text{   with   } 
+  P(C)   = \frac{ e^{-S(C)}}{\sum_C e^{-S(C)}}\;,
+\end{equation}
+and $\langle \langle \hat{O}  \rangle \rangle_{(C)} $ denotes the observed value of $\hat{O}$ for a given configuration $C$.
+For a given configuration $C$  one can use Wicks theorem to compute $O (C) $   from the knowledge of the single particle Green function: 
+\begin{equation}
+       G( x,\sigma,s, \tau |    x',\sigma',s', \tau')   =       \langle \langle {\cal T} \hat{c}^{\phantom\dagger}_{x \sigma s} (\tau)  \hat{c}^{\dagger}_{x' \sigma' s'} (\tau') \rangle \rangle_{C}
+\end{equation}
+where $ {\cal T} $ corresponds to the imaginary time ordering operator.   The  corresponding equal time quantity reads, 
+\begin{equation}
+       G( x,\sigma,s, \tau |    x',\sigma',s', \tau)   =       \langle \langle {\cal T} \hat{c}^{\phantom\dagger}_{x \sigma s} (\tau)  \hat{c}^{\dagger}_{x' \sigma' s'} (\tau) \rangle \rangle_{C}
+\end{equation}
+Since  for a given HS field translation invariance in imaginary time is broken, the Green function has an explicit $\tau$ and $\tau'$ dependence.   On the other hand it is diagonal in the flavor index, and independent on the color index.  The later reflects the  explicit SU(N)   color symmetry present at the level of individual HS configurations. 
+
+To compute equal time as well as time-displaced observables,  one can make use of Wicks theorem. A convenient formulation of this theorem for  QMC simulations reads: 
+\begin{eqnarray}
+& & \langle \langle 	{\cal T}   c^{\dagger}_{\underline x_{1}}(\tau_{1}) c^{\phantom\dagger}_{{\underline x}'_{1}}(\tau'_{1})  
+\cdots c^{\dagger}_{\underline x_{n}}(\tau_{n}) c^{\phantom\dagger}_{{\underline x}'_{n}}(\tau'_{n}) 
+\rangle \rangle_{C} =
+\nonumber \\ & & \det  
+\begin{bmatrix}
+   \langle \langle   {\cal T}   c^{\dagger}_{\underline x_{1}}(\tau_{1}) c^{\phantom\dagger}_{{\underline x}'_{1}}(\tau'_{1})  \rangle \rangle_{C} & 
+    \langle \langle  {\cal T}   c^{\dagger}_{\underline x_{1}}(\tau_{1}) c^{\phantom\dagger}_{{\underline x}'_{2}}(\tau'_{2})  \rangle \rangle_{C}  & \dots   &   
+    \langle \langle   {\cal T}   c^{\dagger}_{\underline x_{1}}(\tau_{1}) c^{\phantom\dagger}_{{\underline x}'_{n}}(\tau'_{n})  \rangle \rangle_{C}  \\
+    \langle \langle   {\cal T}   c^{\dagger}_{\underline x_{2}}(\tau_{2}) c^{\phantom\dagger}_{{\underline x}'_{1}}(\tau'_{1})  \rangle \rangle_{C}  & 
+      \langle \langle   {\cal T}   c^{\dagger}_{\underline x_{2}}(\tau_{2}) c^{\phantom\dagger}_{{\underline x}'_{2}}(\tau'_{2})  \rangle \rangle_{C}  & \dots  &
+       \langle \langle   {\cal T}   c^{\dagger}_{\underline x_{2}}(\tau_{2}) c^{\phantom\dagger}_{{\underline x}'_{n}}(\tau'_{n})  \rangle \rangle_{C}   \\
+    \vdots & \vdots &  \ddots & \vdots \\
+    \langle \langle   {\cal T}   c^{\dagger}_{\underline x_{n}}(\tau_{n}) c^{\phantom\dagger}_{{\underline x}'_{1}}(\tau'_{1})  \rangle \rangle_{C}   & 
+     \langle \langle   {\cal T}   c^{\dagger}_{\underline x_{n}}(\tau_{n}) c^{\phantom\dagger}_{{\underline x}'_{2}}(\tau'_{2})  \rangle \rangle_{C}   & \dots  & 
+     \langle \langle   {\cal T}   c^{\dagger}_{\underline x_{n}}(\tau_{n}) c^{\phantom\dagger}_{{\underline x}'_{n}}(\tau'_{n})  \rangle \rangle_{C}
+ \end{bmatrix}
+\end{eqnarray}
+In the subroutines   \path{Obser}  and \path{ObserT} of  the module \path{Hamiltonian_Examples.f90} (see Sec.~\ref{sec:obs})   the user is provided with the equal time and time displaced correlation function. Using the  above  formulation  of  Wicks theorem, arbitrary  correlation functions can be computed. We note however, that the program is limited to the calculation of observables that contain only two different imaginary times.  
+
+%------------------------------------------------------------
+\subsubsection{Reweighting and the sign problem}\label{sec:reweight}
+%------------------------------------------------------------
+
+In general, the action  $S(C) $ will be complex, thereby inhibiting a direct Monte Carlo sampling of $P(C)$.   This leads to the infamous sign problem.  When the average sign is not too small, we can nevertheless  compute observables within a reweighting scheme.   Here we adopt the following scheme. First  note  that the partition function is real such that: 
+\begin{equation}
+	Z =   \sum_{C}  e^{-S(C)}    =  \sum_{C}  \overline{e^{-S(C)}} = \sum_{C}  \Re \left[e^{-S(C)} \right]. 
+\end{equation}
+Thereby\footnote{The attentive reader will have noticed that   for arbitrary Trotter decompositions,  the  imaginary time propagator is not necessarily Hermitian. Thereby, the above equation is correct only up to corrections stemming from the  controlled Trotter systematic error. }
+and with the definition
+\begin{equation}
+\label{Sign.eq}
+	 \text{ sign }(C)   =  \frac{   \Re \left[e^{-S(C)} \right]  } {\left| \Re \left[e^{-S(C)} \right]  \right|  }\;,
+\end{equation}
+the computation of the observable [Eq.~(\ref{eqn:obs})] is re-expressed as follows:
+\begin{eqnarray}\label{eqn:obs_rw}
+\langle \hat{O}  \rangle  &=&  \frac{\sum_{C}  e^{-S(C)} \langle \langle \hat{O}  \rangle \rangle_{(C)} }{\sum_{C}  e^{-S(C)}}       \nonumber \\ 
+                          &=&  \frac{\sum_{C}   \Re \left[e^{-S(C)} \right]    \frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}  \langle \langle \hat{O}  \rangle \rangle_{(C)} }{\sum_{C}   \Re \left[e^{-S(C)} \right]}    \nonumber \\ 
+          &=&
+   \frac{
+     \left\{
+      \sum_{C}  \left| \Re \left[e^{-S(C)} \right]  \right|   \text{ sign }(C)   \frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}  \langle \langle \hat{O}  \rangle \rangle_{(C)}  \right\}/
+            \sum_{C}  \left| \Re \left[ e^{-S(C)} \right] \right|  
+          }  
+          { 
+          \left\{ \sum_{C}  \left|  \Re \left[ e^{-S(C)} \right]   \right|   \text{ sign }(C) \right\}/
+            \sum_{C}   \left| \Re \left[ e^{-S(C)} \right] \right|  
+          } \nonumber\\
+          &=&
+  	 \frac{  \left\langle  \text{ sign }   \frac{e^{-S}} {\Re \left[e^{-S} \right]}  \langle \langle \hat{O}  \rangle \rangle  \right\rangle_{\overline{P}} } { \langle \text{sign}   \rangle_{\overline{P}}}  \;.      
+\end{eqnarray} 
+The average sign is 
+\begin{equation}\label{eqn:sign_rw}
+	 \langle \text{sign} \rangle_{\overline{P}} =    \frac { \sum_{C}  \left|  \Re \left[ e^{-S(C)} \right]   \right|   \text{ sign }(C) }  {  \sum_{C}   \left| \Re \left[ e^{-S(C)} \right] \right|  } \;,
+\end{equation}
+and we have  $\langle \text{sign} \rangle_{\overline{P}} \in \mathbb{R}$ per definition.
+According to Eq.~(\ref{eqn:obs_rw}) and Eq.~(\ref{eqn:sign_rw}), the Monte Carlo simulation samples the probability distribution 
+\begin{equation}  
+	 \overline{P}(C) = \frac{ \left|  \Re \left[ e^{-S(C)} \right] \right| }{\sum_C \left|  \Re \left[ e^{-S(C)} \right]  \right| }\;.
+\end{equation}
+
+
+ 

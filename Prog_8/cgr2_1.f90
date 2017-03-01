@@ -1,3 +1,38 @@
+!  Copyright (C) 2016, 2017  The ALF project
+! 
+!     The ALF project is free software: you can redistribute it and/or modify
+!     it under the terms of the GNU General Public License as published by
+!     the Free Software Foundation, either version 3 of the License, or
+!     (at your option) any later version.
+! 
+!     The ALF project is distributed in the hope that it will be useful,
+!     but WITHOUT ANY WARRANTY; without even the implied warranty of
+!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+!     GNU General Public License for more details.
+! 
+!     You should have received a copy of the GNU General Public License
+!     along with Foobar.  If not, see http://www.gnu.org/licenses/.
+!     
+!     Under Section 7 of GPL version 3 we require you to fulfill the following additional terms:
+!     
+!     - It is our hope that this program makes a contribution to the scientific community. Being
+!       part of that community we feel that it is reasonable to require you to give an attribution
+!       back to the original authors if you have benefitted from this program.
+!       Guidelines for a proper citation can be found on the project's homepage
+!       http://alf.physik.uni-wuerzburg.de .
+!       
+!     - We require the preservation of the above copyright notice and this license in all original files.
+!     
+!     - We prohibit the misrepresentation of the origin of the original source files. To obtain 
+!       the original source files please visit the homepage http://alf.physik.uni-wuerzburg.de .
+! 
+!     - If you make substantial changes to the program we require you to either consider contributing
+!       to the ALF project or to mark your material in a reasonable way as different from the original version.
+
+#if defined(MKL_DIRECT_CALL)
+#include "mkl_direct_call.fi"
+#endif
+
 !--------------------------------------------------------------------
 !> @author
 !> Florian Goth
@@ -44,7 +79,6 @@
         !  Here you want to compute  G00, G0T, GT0 and GTT just by involving LQ x LQ matrix operations. 
         !  If NVAR == 1  then the  large scales are in D1 
         !  If NVAR == 2  then the  large scales are in D2
-        Use Precdef
         Use MyMats
         USe UDV_Wrap_mod
 
@@ -52,29 +86,29 @@
         
         Interface
            SUBROUTINE CGR(Z,NVAR, GRUP, URUP,DRUP,VRUP, ULUP,DLUP,VLUP)
-             COMPLEX(Kind=8), Dimension(:,:), Intent(In) ::  URUP, VRUP, ULUP, VLUP
-             COMPLEX(Kind=8), Dimension(:), Intent(In)   ::  DLUP, DRUP
-             COMPLEX(Kind=8), Dimension(:,:), Intent(INOUT) :: GRUP
+             COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(In) ::  URUP, VRUP, ULUP, VLUP
+             COMPLEX(Kind=Kind(0.d0)), Dimension(:), Intent(In)   ::  DLUP, DRUP
+             COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(INOUT) :: GRUP
         
-             COMPLEX(Kind=8) :: Z
+             COMPLEX(Kind=Kind(0.d0)) :: Z
            END SUBROUTINE CGR
         end Interface
 
 
         !  Arguments
         Integer,  intent(in) :: LQ, NVAR
-        Complex (Kind=double), intent(in)    :: U1(LQ,LQ), V1(LQ,LQ), U2(LQ,LQ), V2(LQ,LQ)
-        Complex (Kind=double), intent(in)    :: D2(LQ), D1(LQ)
-        Complex (Kind=double), intent(inout) :: GRT0(LQ,LQ), GR0T(LQ,LQ), GR00(LQ,LQ), GRTT(LQ,LQ)
+        Complex (Kind=Kind(0.d0)), intent(in)    :: U1(LQ,LQ), V1(LQ,LQ), U2(LQ,LQ), V2(LQ,LQ)
+        Complex (Kind=Kind(0.d0)), intent(in)    :: D2(LQ), D1(LQ)
+        Complex (Kind=Kind(0.d0)), intent(inout) :: GRT0(LQ,LQ), GR0T(LQ,LQ), GR00(LQ,LQ), GRTT(LQ,LQ)
 
 
         ! Local::
-        Complex  (Kind=double) :: HLP1(LQ,LQ), HLP2(LQ,LQ), U(LQ,LQ), D(LQ), V(LQ,LQ)
-        Complex  (Kind=double) :: Z, Z1, Z2
-        Real     (Kind=double) :: Xmax, Xmin, Xmax1, Xmax2, Xmean
+        Complex  (Kind=Kind(0.d0)) :: HLP1(LQ,LQ), HLP2(LQ,LQ), U(LQ,LQ), D(LQ), V(LQ,LQ)
+        Complex  (Kind=Kind(0.d0)) :: Z, Z1, Z2
+        Real     (Kind=Kind(0.d0)) :: Xmax, Xmin, Xmax1, Xmax2, Xmean
         Integer                :: I, J, NCON, NVAR1
 
-        Complex  (Kind=double) :: V2inv(LQ,LQ), V1inv(LQ,LQ), alpha, beta
+        Complex  (Kind=Kind(0.d0)) :: V2inv(LQ,LQ), V1inv(LQ,LQ), alpha, beta
         
 
         NCON = 0
@@ -230,8 +264,8 @@
         Write(6,*) 'Cgr2_1 T0, Xmin: ', Xmin
 
         !Compute GRTT
-        Z  = cmplx(1.d0,0.d0,kind=8)
-        Z1 = cmplx(1.d0,0.d0,kind=8)
+        Z  = cmplx(1.d0,0.d0,Kind=Kind(0.d0))
+        Z1 = cmplx(1.d0,0.d0,Kind=Kind(0.d0))
         CALL CGR(Z,NVAR,GRTT, U2,D2,V2, U1,D1,V1)
 
  
@@ -264,10 +298,10 @@
 !!$              HLP2(I,J) =   HLP2(I,J)  + HLP1(I,J)*D2(J)
 !!$           ENDDO
 !!$        ENDDO
-!!$        Xmax2 = dble(cmplx(1.d0,0.d0,Kind=8)/D1(1))
+!!$        Xmax2 = dble(cmplx(1.d0,0.d0,Kind=Kind(0.d0))/D1(1))
 !!$        Xmax1 = dble(D2(1))
 !!$        Do I = 2,LQ
-!!$           X2 = dble(cmplx(1.d0,0.d0,Kind=8)/D1(I))
+!!$           X2 = dble(cmplx(1.d0,0.d0,Kind=Kind(0.d0))/D1(I))
 !!$           X1 = dble(D2(I))
 !!$           If ( X2 > Xmax2 ) Xmax2 = X2
 !!$           If ( X1 > Xmax1 ) Xmax1 = X1

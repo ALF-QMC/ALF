@@ -1,0 +1,43 @@
+!===============================================================================
+!  Variables for the Hubb program
+!-------------------------------------------------------------------------------
+
+&VAR_lattice 
+L1    = 4 
+L2    = 4 
+Lattice_type = "Square"      ! Square, Honeycomb
+Model        = "Hubbard_Mz"  ! Hubbard_SU2, Hubbard_Mz, Hubbard_SU2_Ising
+/
+
+&VAR_Hubbard
+ham_T   = 1.0D0
+ham_chem= 0.0D0
+ham_U   = 4.0
+Beta    = 2.0
+dtau    = 0.1 
+Lambda  = 2.0
+n_Lambda = 10
+/
+
+&VAR_QMC
+Nwrap   = 10
+NSweep  = 50
+NBin    = 2
+Ltau    = 0
+LOBS_ST = 1
+LOBS_EN = 100
+/
+
+&VAR_Ising
+Ham_xi = 1.d0
+Ham_J  = 0.2d0
+Ham_h  = 2.d0
+/
+
+&VAR_errors 
+n_skip  = 1
+N_rebin = 1
+N_Cov   = 0
+/
+CPU_MAX = 0.1
+! slash terminates namelist statement - DO NOT REMOVE

@@ -9,7 +9,7 @@ REAL (KIND=KIND(0.D0)), dimension(:), allocatable :: d
 INTEGER :: ncon, i, j, ndim, nr
 REAL (KIND=KIND(0.D0)) :: Z
 
-ndim = 100
+ndim = 30
 ncon = 1
 allocate(a(ndim, ndim), u(ndim, ndim), v(ndim, ndim), d(ndim), test(ndim, ndim))
 ! initialize A to the Hilbert matrix
