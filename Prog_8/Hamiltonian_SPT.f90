@@ -1653,9 +1653,9 @@
                    I2=I1
                    J2=J1
                    DeltaI=0.d0
-                   if (I1==I2 .and. nt==0) DeltaI=cmplx(1.d0,0.d0, kind(0.D0))
+                   if (I1==I2) DeltaI=cmplx(1.d0,0.d0, kind(0.D0)) ! .and. nt==0
                    DeltaJ=0.d0
-                   if (J1==J2 .and. nt==0) DeltaJ=cmplx(1.d0,0.d0, kind(0.D0))
+                   if (J1==J2) DeltaJ=cmplx(1.d0,0.d0, kind(0.D0)) ! .and. nt==0
                    tmp =  Z * ( (DeltaI - GTT(I2,I1,1))*(DeltaJ - G00(J2,J1,1)) - GT0(I2,J1,1)*G0T(J2,I1,1)) * ZP* ZS  - 0.25d0
                    
                    Den_tau  (imj,nt+1,1,1) = Den_tau  (imj,nt+1,1,1)  +  tmp
@@ -1689,9 +1689,9 @@
                           J2 = Invlist(J,no1)
                           
                           DeltaI=0.d0
-                          if (I1==I2 .and. nt==0) DeltaI=cmplx(1.d0,0.d0, kind(0.D0))
+                          if (I1==I2) DeltaI=cmplx(1.d0,0.d0, kind(0.D0)) ! .and. nt==0
                           DeltaJ=0.d0
-                          if (J1==J2 .and. nt==0) DeltaJ=cmplx(1.d0,0.d0, kind(0.D0))
+                          if (J1==J2) DeltaJ=cmplx(1.d0,0.d0, kind(0.D0)) ! .and. nt==0
                           tmp =  Z * ((DeltaI - GTT(I2,I1,1))*(DeltaJ - G00(J2,J1,1)) - GT0(I2,J1,1)*G0T(J2,I1,1)) * ZP* ZS
                           Spinxy_tau (imj,nt+1,1,1) = Spinxy_tau (imj,nt+1,1,1)   +  tmp
                           Spinxy_sus (imj,1,1) = Spinxy_sus (imj,1,1)   +   weightbeta*tmp
@@ -1712,9 +1712,9 @@
                           endif
                           
                           DeltaI=0.d0
-                          if (I1==I2 .and. nt==0) DeltaI=cmplx(1.d0,0.d0, kind(0.D0))
+                          if (I1==I2) DeltaI=cmplx(1.d0,0.d0, kind(0.D0)) ! .and. nt==0
                           DeltaJ=0.d0
-                          if (J1==J2 .and. nt==0) DeltaJ=cmplx(1.d0,0.d0, kind(0.D0))
+                          if (J1==J2) DeltaJ=cmplx(1.d0,0.d0, kind(0.D0)) ! .and. nt==0
                           tmp =  Z * ((DeltaI - GTT(I2,I1,1))*(DeltaJ - G00(J2,J1,1)) - GT0(I2,J1,1)*G0T(J2,I1,1)) * ZP* ZS
                           U1xy_tau (imj,nt+1,1,1) = U1xy_tau (imj,nt+1,1,1)   +  tmp
                           U1xy_sus (imj,1,1) = U1xy_sus (imj,1,1)   +  weightbeta*tmp
@@ -1747,9 +1747,9 @@
                             J1 = Invlist(J,4*(no1-1)+c)
                             J2 = Invlist(J,4*(no1-1)+d)
                             DeltaI=0.d0
-                            if (I1==I2 .and. nt==0) DeltaI=cmplx(1.d0,0.d0, kind(0.D0))
+                            if (I1==I2) DeltaI=cmplx(1.d0,0.d0, kind(0.D0)) ! .and. nt==0
                             DeltaJ=0.d0
-                            if (J1==J2 .and. nt==0) DeltaJ=cmplx(1.d0,0.d0, kind(0.D0))
+                            if (J1==J2) DeltaJ=cmplx(1.d0,0.d0, kind(0.D0)) ! .and. nt==0
                             tmp =  Z * ((DeltaI - GTT(I2,I1,1))*(DeltaJ - G00(J2,J1,1)) - GT0(I2,J1,1)*G0T(J2,I1,1)) * ZP* ZS
                             L_eq (imj,1,1) = L_eq (imj,1,1)   +  weight*tmp*weightbeta 
                           enddo
