@@ -2,13 +2,13 @@
 
        Use MaxEnt_stoch_mod
   
-       Implicit Real (KIND=8) (A-G,O-Z)
+       Implicit Real (Kind=Kind(0.d0)) (A-G,O-Z)
        Implicit Integer (H-N)
        
-       Real (Kind=8), Dimension(:), allocatable :: XQMC, XTAU, Alpha_tot, om_bf, alp_bf
-       Real (Kind=8), Dimension(:,:), allocatable :: XCOV, Xn
-       Real (Kind=8) :: X_moments(2), Xerr_moments(2)
-       Real (Kind=8), External :: XKER, Back_trans_Aom
+       Real (Kind=Kind(0.d0)), Dimension(:), allocatable :: XQMC, XTAU, Alpha_tot, om_bf, alp_bf
+       Real (Kind=Kind(0.d0)), Dimension(:,:), allocatable :: XCOV, Xn
+       Real (Kind=Kind(0.d0)) :: X_moments(2), Xerr_moments(2)
+       Real (Kind=Kind(0.d0)), External :: XKER, Back_trans_Aom
        Character (Len=64) :: command
 
 
@@ -97,10 +97,10 @@
      
 
 
-     Real (Kind=8) function XKER(tau,om, beta)
+     Real (Kind=Kind(0.d0)) function XKER(tau,om, beta)
 
        Implicit None
-       real (Kind=8) :: tau, om, pi, beta
+       real (Kind=Kind(0.d0)) :: tau, om, pi, beta
 
        pi = 3.1415927
 
@@ -108,10 +108,10 @@
 
      end function XKER
 
-     Real (Kind=8) function Back_trans_Aom(Aom, om, beta)
+     Real (Kind=Kind(0.d0)) function Back_trans_Aom(Aom, om, beta)
 
        Implicit None
-       real (Kind=8) ::  Aom, om, beta
+       real (Kind=Kind(0.d0)) ::  Aom, om, beta
 
        !Back_trans_Aom = Aom/(1.d0 + exp(-beta*om) )   ! This gives S(q,om) = chi(q,om)/(1 - e^(-beta om))
        Back_trans_Aom = Aom

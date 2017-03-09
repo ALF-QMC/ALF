@@ -3,7 +3,7 @@
       implicit none
       integer :: N
       
-      nranf  = nint(ranf()*dble(N) + 0.5)
+      nranf  = nint(ranf_wrap()*dble(N) + 0.5)
 
       if (nranf .lt. 1 ) nranf = 1
       if (nranf .gt. N ) nranf = N 

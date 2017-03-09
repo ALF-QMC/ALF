@@ -13,6 +13,9 @@
       Type (Operator), dimension(:,:), allocatable  :: Op_T
       Integer, allocatable :: nsigma(:,:)
       Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot
+!>    Variables for updating scheme
+      Logical              :: Propose_S0, Global_moves
+      Integer              :: N_Global
 
 
       
@@ -22,53 +25,52 @@
       Integer, parameter,   private :: Norb=16
       Integer, allocatable, private :: List(:,:), Invlist(:,:)
       Integer,              private :: L1, L2, FlagSym
-      real (Kind=8),        private :: Ham_T, Ham_Vint,  Ham_Lam
-      real (Kind=8),        private :: Dtau, Beta
+      real (Kind=Kind(0.d0)),        private :: Ham_T, Ham_Vint,  Ham_Lam
+      real (Kind=Kind(0.d0)),        private :: Dtau, Beta
       Character (len=64),   private :: Model, Lattice_type
-      Complex (Kind=8),     private :: Gamma_M(4,4,5), Sigma_M(2,2,0:3)
-      Complex (Kind=8),     private :: Gamma_13(4,4), Gamma_23(4,4), Gamma_45(4,4)
+      Complex (Kind=Kind(0.d0)),     private :: Gamma_M(4,4,5), Sigma_M(2,2,0:3)
+      Complex (Kind=Kind(0.d0)),     private :: Gamma_13(4,4), Gamma_23(4,4), Gamma_45(4,4)
 
 
       ! Observables
       Integer,                       private :: Nobs
-      Complex (Kind=8), allocatable, private :: obs_scal(:)
-      Complex (Kind=8), allocatable, private ::  Den_eq(:,:,:), Den_eq0(:)
-      Complex (Kind=8), allocatable, private ::  R_eq(:,:,:), R_eq0(:)
-      Complex (Kind=8), allocatable, private ::  U1_eq(:,:,:), U1_eq0(:)
-      Complex (Kind=8), allocatable, private ::  L_eq(:,:,:), L_eq0(:)
-      Complex (Kind=8), allocatable, private ::  U1xy_eq(:,:,:), U1xy_eq0(:)
-      Complex (Kind=8), allocatable, private ::  Spinz_eq(:,:,:), Spinz_eq0(:)
-      Complex (Kind=8), allocatable, private ::  Spinxy_eq(:,:,:), Spinxy_eq0(:)
-      Complex (Kind=8), allocatable, private ::  TRS_eq(:,:,:), TRS_eq0(:)
-      Complex (Kind=8), allocatable, private ::  PHS_eq(:,:,:), PHS_eq0(:)
-      Complex (Kind=8), allocatable, private ::  RS_eq(:,:,:), RS_eq0(:)
-      Complex (Kind=8), allocatable, private ::  C4S_eq(:,:,:), C4S_eq0(:)
-      Complex (Kind=8), allocatable, private ::  PxS_eq(:,:,:), PxS_eq0(:)
-      Complex (Kind=8), allocatable, private ::  SxS_eq(:,:,:), SxS_eq0(:)
-      Complex (Kind=8), allocatable, private ::  SzS_eq(:,:,:), SzS_eq0(:)
-      Complex (Kind=8), allocatable, private ::  U11S_eq(:,:,:), U11S_eq0(:)
-      Complex (Kind=8), allocatable, private ::  U12S_eq(:,:,:), U12S_eq0(:)
+      Complex (Kind=Kind(0.d0)), allocatable, private :: obs_scal(:)
+      Complex (Kind=Kind(0.d0)), allocatable, private ::  Den_eq(:,:,:), Den_eq0(:)
+      Complex (Kind=Kind(0.d0)), allocatable, private ::  R_eq(:,:,:), R_eq0(:)
+      Complex (Kind=Kind(0.d0)), allocatable, private ::  U1_eq(:,:,:), U1_eq0(:)
+      Complex (Kind=Kind(0.d0)), allocatable, private ::  L_eq(:,:,:), L_eq0(:)
+      Complex (Kind=Kind(0.d0)), allocatable, private ::  U1xy_eq(:,:,:), U1xy_eq0(:)
+      Complex (Kind=Kind(0.d0)), allocatable, private ::  Spinz_eq(:,:,:), Spinz_eq0(:)
+      Complex (Kind=Kind(0.d0)), allocatable, private ::  Spinxy_eq(:,:,:), Spinxy_eq0(:)
+      Complex (Kind=Kind(0.d0)), allocatable, private ::  TRS_eq(:,:,:), TRS_eq0(:)
+      Complex (Kind=Kind(0.d0)), allocatable, private ::  PHS_eq(:,:,:), PHS_eq0(:)
+      Complex (Kind=Kind(0.d0)), allocatable, private ::  RS_eq(:,:,:), RS_eq0(:)
+      Complex (Kind=Kind(0.d0)), allocatable, private ::  C4S_eq(:,:,:), C4S_eq0(:)
+      Complex (Kind=Kind(0.d0)), allocatable, private ::  PxS_eq(:,:,:), PxS_eq0(:)
+      Complex (Kind=Kind(0.d0)), allocatable, private ::  SxS_eq(:,:,:), SxS_eq0(:)
+      Complex (Kind=Kind(0.d0)), allocatable, private ::  SzS_eq(:,:,:), SzS_eq0(:)
+      Complex (Kind=Kind(0.d0)), allocatable, private ::  U11S_eq(:,:,:), U11S_eq0(:)
+      Complex (Kind=Kind(0.d0)), allocatable, private ::  U12S_eq(:,:,:), U12S_eq0(:)
 
       ! For time displaced
       Integer,                       private :: NobsT
-      Complex (Kind=8),              private :: Phase_tau
-      Complex (Kind=8), allocatable, private :: Green_tau(:,:,:,:), Den_tau(:,:,:,:)
-      Complex (Kind=8), allocatable, private :: U1_tau(:,:,:,:), U1xy_tau(:,:,:,:), U1xyG_tau(:,:,:,:)
-      Complex (Kind=8), allocatable, private :: Spinz_tau(:,:,:,:), Spinxy_tau(:,:,:,:)
+      Complex (Kind=Kind(0.d0)),              private :: Phase_tau
+      Complex (Kind=Kind(0.d0)), allocatable, private :: Green_tau(:,:,:,:), Den_tau(:,:,:,:)
+      Complex (Kind=Kind(0.d0)), allocatable, private :: U1_tau(:,:,:,:), U1xy_tau(:,:,:,:), U1xyG_tau(:,:,:,:)
+      Complex (Kind=Kind(0.d0)), allocatable, private :: Spinz_tau(:,:,:,:), Spinxy_tau(:,:,:,:)
       
-      Complex (Kind=8), allocatable, private ::  Den_sus(:,:,:), Den_sus0(:)
-      Complex (Kind=8), allocatable, private ::  U1_sus(:,:,:), U1_sus0(:)
-      Complex (Kind=8), allocatable, private ::  U1xy_sus(:,:,:), U1xy_sus0(:)
-      Complex (Kind=8), allocatable, private ::  U1xyG_sus(:,:,:), U1xyG_sus0(:)
-      Complex (Kind=8), allocatable, private ::  Spinz_sus(:,:,:), Spinz_sus0(:)
-      Complex (Kind=8), allocatable, private ::  Spinxy_sus(:,:,:), Spinxy_sus0(:)
+      Complex (Kind=Kind(0.d0)), allocatable, private ::  Den_sus(:,:,:), Den_sus0(:)
+      Complex (Kind=Kind(0.d0)), allocatable, private ::  U1_sus(:,:,:), U1_sus0(:)
+      Complex (Kind=Kind(0.d0)), allocatable, private ::  U1xy_sus(:,:,:), U1xy_sus0(:)
+      Complex (Kind=Kind(0.d0)), allocatable, private ::  U1xyG_sus(:,:,:), U1xyG_sus0(:)
+      Complex (Kind=Kind(0.d0)), allocatable, private ::  Spinz_sus(:,:,:), Spinz_sus0(:)
+      Complex (Kind=Kind(0.d0)), allocatable, private ::  Spinxy_sus(:,:,:), Spinxy_sus0(:)
 
       contains 
 
         Subroutine Ham_Set
 
           Implicit none
-#include "machine"
 #ifdef MPI
           include 'mpif.h'
 #endif   
@@ -103,6 +105,10 @@
           CALL MPI_BCAST(Lattice_type,64 ,MPI_CHARACTER, 0,MPI_COMM_WORLD,IERR)
 #endif
           Call Ham_latt
+
+          Propose_S0 = .false.
+          Global_moves =.false.
+          N_Global = 1
 
           N_FL  = 1
           N_SUN = 1
@@ -151,7 +157,7 @@
           Implicit none
           !Set the lattice
           Integer :: no, I, nc
-          Real (Kind=8)  :: a1_p(2), a2_p(2), L1_p(2), L2_p(2)
+          Real (Kind=Kind(0.d0))  :: a1_p(2), a2_p(2), L1_p(2), L2_p(2)
           If ( Lattice_type =="Square" ) then
              a1_p(1) =  1.0  ; a1_p(2) =  0.d0
              a2_p(1) =  0.0  ; a2_p(2) =  1.d0
@@ -192,7 +198,7 @@
 
           Integer :: I, I1, I2 ,no, no1, n, Ncheck, nc
           Integer, allocatable :: Invlist_1(:,:)
-          Complex (Kind=8) :: Z
+          Complex (Kind=Kind(0.d0)) :: Z
 
 
           ! Setup Gamma matrices
@@ -289,10 +295,10 @@
           
           Integer :: nf, nth, n, n1, n2, n3, n4, I, I1, I2, J,  Ix, Iy, nc, no,no1, ns, npm 
           Integer :: nxy, noff
-          Real (Kind=8) :: X_p(2), X1_p(2), X2_p(2), X, XJ, Xpm
+          Real (Kind=Kind(0.d0)) :: X_p(2), X1_p(2), X2_p(2), X, XJ, Xpm
 
-          Complex (Kind=8) :: Ps(4,4,2), Ps_G5(4,4,2), Tmp(4,4), Z
-          Complex (Kind=8) :: Sx(16,16,2,2), Sy(16,16,2,2)
+          Complex (Kind=Kind(0.d0)) :: Ps(4,4,2), Ps_G5(4,4,2), Tmp(4,4), Z
+          Complex (Kind=Kind(0.d0)) :: Sx(16,16,2,2), Sy(16,16,2,2)
 
 
           Ps = cmplx(0.d0, 0.d0, kind(0.D0))
@@ -402,7 +408,7 @@
         end Subroutine Ham_V
         
 !===================================================================================           
-        Real (Kind=8) function S0(n,nt)  
+        Real (Kind=Kind(0.d0)) function S0(n,nt)  
           Implicit none
           Integer, Intent(IN) :: n,nt 
 
@@ -529,17 +535,17 @@
           
           Implicit none
           
-          Complex (Kind=8), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
-          Complex (Kind=8), Intent(IN) :: PHASE
+          Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
+          Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE
           Integer, INTENT(IN)          :: Ntau
           
           !Local 
-          Complex (Kind=8) :: GRC(Ndim,Ndim,N_FL), ZK
-          Complex (Kind=8) :: Zrho, Zkin, ZPot, ZL, Z, ZP,ZS, weight, tmp
+          Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK
+          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, ZL, Z, ZP,ZS, weight, tmp
           Integer :: I,J, no,no1, n, n1, imj, nf, I1, I2, J1, J2, Nc, Ix, Iy, Jx, Jy, Imx, Imy, Jmx, Jmy
           Integer :: a, b, c, d, signum, K, K1, L ,L1, nf1
           
-          Real (Kind=8) :: G(4,4), X, FI, FJ
+          Real (Kind=Kind(0.d0)) :: G(4,4), X, FI, FJ
           
           Nobs = Nobs + 1
           ZP = PHASE/Real(Phase, kind(0.D0))
@@ -1452,7 +1458,6 @@
 
           Use Print_bin_mod
           Implicit none
-#include "machine"
 #ifdef MPI
           include 'mpif.h'
 #endif   
@@ -1461,7 +1466,7 @@
           Integer,  Intent(In) ::  Ltau
 
           Character (len=64) :: File_pr
-          Complex   (Kind=8) :: Phase_bin
+          Complex   (Kind=Kind(0.d0)) :: Phase_bin
 #ifdef MPI
           Integer        :: Isize, Irank, Ierr
           Integer        :: STATUS(MPI_STATUS_SIZE)
@@ -1554,11 +1559,11 @@
           Implicit none
           
           Integer         , INTENT(IN) :: NT
-          Complex (Kind=8), INTENT(IN) :: GT0(Ndim,Ndim,N_FL),G0T(Ndim,Ndim,N_FL),G00(Ndim,Ndim,N_FL),GTT(Ndim,Ndim,N_FL)
-          Complex (Kind=8), INTENT(IN) :: Phase
+          Complex (Kind=Kind(0.d0)), INTENT(IN) :: GT0(Ndim,Ndim,N_FL),G0T(Ndim,Ndim,N_FL),G00(Ndim,Ndim,N_FL),GTT(Ndim,Ndim,N_FL)
+          Complex (Kind=Kind(0.d0)), INTENT(IN) :: Phase
           
           !Locals
-          Complex (Kind=8) :: Z, ZP, ZS, tmp, DeltaI, DeltaJ, weight, weightbeta
+          Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS, tmp, DeltaI, DeltaJ, weight, weightbeta
           Integer :: IMJ, I1, I, no, J1, J, no1, I2, J2, signum,a,b,c,d
 
           ZP = PHASE/Real(Phase, kind(0.D0))
@@ -1708,6 +1713,27 @@
          enddo
           Endif
         end Subroutine OBSERT
+!========================================================================
+        ! Functions for Global moves.  These move are not implemented in this example.
+        Subroutine Global_move(T0_Proposal_ratio,nsigma_old)
+          
+          !>  The input is the field nsigma declared in this module. This routine generates a 
+          !>  global update with  and returns the propability  
+          !>  T0_Proposal_ratio  =  T0( sigma_out-> sigma_in ) /  T0( sigma_in -> sigma_out)  
+          !>   
+          Implicit none
+          Real (Kind=Kind(0.d0)), intent(out) :: T0_Proposal_ratio
+          Integer, dimension(:,:),  allocatable, intent(in)  :: nsigma_old
+        End Subroutine Global_move
+!========================================================================
+        Real (Kind=kind(0.d0)) Function Delta_S0_global(Nsigma_old)
 
+          !>  This function computes the ratio:  e^{-S0(nsigma)}/e^{-S0(nsigma_old)}
+          Implicit none 
+          
+          !> Arguments
+          Integer, dimension(:,:), allocatable, intent(IN) :: Nsigma_old
+        end Function Delta_S0_global
+!========================================================================
 
     end Module Hamiltonian

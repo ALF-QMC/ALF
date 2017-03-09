@@ -12,8 +12,8 @@ Module MaxEnt_stoch_mod
 
 
        Integer, private :: NTAU, nt, Ngamma, ng, Ndis, nd, Iseed
-       Real (Kind=8), private :: Delta, Delta2, OM_st_1, Om_en_1, DeltaXMAX, Beta, Pi, Dom
-       Real (Kind=8), allocatable, private :: XQMC1(:)
+       Real (Kind=Kind(0.d0)), private :: Delta, Delta2, OM_st_1, Om_en_1, DeltaXMAX, Beta, Pi, Dom
+       Real (Kind=Kind(0.d0)), allocatable, private :: XQMC1(:)
 
        ! You can still optimize a bit for by redefining the Kernel table to:
        ! xker_table(nt,nw) -> xker_table(nt,nw) / sigma(nt)
@@ -31,25 +31,25 @@ Module MaxEnt_stoch_mod
 
 
 
-           Real (Kind=8), Dimension(:) :: XQMC, Xtau, Alpha_tot
-           Real (Kind=8), Dimension(:,:) :: COV
-           Real (Kind=8), External :: XKER, Back_trans_Aom
-           Real (Kind=8) :: CHISQ, OM_ST, OM_EN, Beta_1, Xmom1, Err
+           Real (Kind=Kind(0.d0)), Dimension(:) :: XQMC, Xtau, Alpha_tot
+           Real (Kind=Kind(0.d0)), Dimension(:,:) :: COV
+           Real (Kind=Kind(0.d0)), External :: XKER, Back_trans_Aom
+           Real (Kind=Kind(0.d0)) :: CHISQ, OM_ST, OM_EN, Beta_1, Xmom1, Err
            Integer :: Nsweeps, NBins, Ngamma_1, Ndis_1, nw, nt1
            Integer, optional :: L_cov
 
            ! Local
            Integer lp, NSims, ns, nb, nc, Nwarm, nalp1, nalp2, Nex, p_star, Ndis_table, &
                 & io_error, io_error1, i
-           Real (Kind=8), Allocatable :: Xn_M_tot(:,:), En_M_tot(:), Xn_E_tot(:,:), En_E_tot(:), &
+           Real (Kind=Kind(0.d0)), Allocatable :: Xn_M_tot(:,:), En_M_tot(:), Xn_E_tot(:,:), En_E_tot(:), &
                 & Xn_tot(:,:,:), En_tot(:)
-           Real (Kind=8), Allocatable :: G_Mean(:), Xn_m(:), Xn_e(:), Xn(:,:), Vhelp(:)
-           Real (Kind=8) :: Ranf, En_M, Res, X, Alpha, Acc_1, Acc_2, En, DeltaE, Ratio, D
-           Real (Kind=8) :: Aom, om, XMAX, tau
-           Real (Kind=8) :: CPUT, CPUTM
+           Real (Kind=Kind(0.d0)), Allocatable :: G_Mean(:), Xn_m(:), Xn_e(:), Xn(:,:), Vhelp(:)
+           Real (Kind=Kind(0.d0)) :: Ranf, En_M, Res, X, Alpha, Acc_1, Acc_2, En, DeltaE, Ratio, D
+           Real (Kind=Kind(0.d0)) :: Aom, om, XMAX, tau
+           Real (Kind=Kind(0.d0)) :: CPUT, CPUTM
            Integer :: ICPU_1, ICPU_2, N_P_SEC
            Character (64) :: File_root, File1, File_conf, File_Aom
-           Real (Kind=8), allocatable :: Xker_table(:,:), U(:,:), sigma(:)
+           Real (Kind=Kind(0.d0)), allocatable :: Xker_table(:,:), U(:,:), sigma(:)
            Pi = acos(-1.d0)
            NDis = Ndis_1
            DeltaXMAX = 0.01
@@ -341,19 +341,19 @@ Module MaxEnt_stoch_mod
               & Ngamma_1, OM_ST, OM_EN, Nsweeps, NBins, NWarm, Aom_res,&
               & xom_res, Chisq )
            Implicit None
-           Real (Kind=8), Dimension(:) :: XQMC, Xtau, Alpha_tot, Aom_res, Xom_res
-           Real (Kind=8), Dimension(:,:) :: COV
-           Real (Kind=8), external :: XKER
-           Real (Kind=8) :: CHISQ, OM_ST, OM_EN, Beta_1, Xmom1, Err
+           Real (Kind=Kind(0.d0)), Dimension(:) :: XQMC, Xtau, Alpha_tot, Aom_res, Xom_res
+           Real (Kind=Kind(0.d0)), Dimension(:,:) :: COV
+           Real (Kind=Kind(0.d0)), external :: XKER
+           Real (Kind=Kind(0.d0)) :: CHISQ, OM_ST, OM_EN, Beta_1, Xmom1, Err
            Integer :: Nsweeps, NBins, Ngamma_1, Ndis_1, nw, nt1, Lcov
            ! Local
            Integer lp, NSims, ns, nb, nc, Nwarm, nalp1, nalp2, Nex, p_star
-           Real (Kind=8), Allocatable :: Xn_M_tot(:,:), En_M_tot(:), Xn_E_tot(:,:), En_E_tot(:), &
+           Real (Kind=Kind(0.d0)), Allocatable :: Xn_M_tot(:,:), En_M_tot(:), Xn_E_tot(:,:), En_E_tot(:), &
                 & Xn_tot(:,:,:), En_tot(:), Xker_table(:,:)
-           Real (Kind=8), Allocatable :: G_Mean(:), Xn_m(:), Xn_e(:), Xn(:,:), Vhelp(:)
-           Real (Kind=8) :: Ranf, En_M, Res, X, Alpha, Acc_1, Acc_2, En, DeltaE, Ratio, D
-           Real (Kind=8) :: Aom, om, XMAX, tau
-           Real (Kind=8), allocatable :: U(:,:), sigma(:)
+           Real (Kind=Kind(0.d0)), Allocatable :: G_Mean(:), Xn_m(:), Xn_e(:), Xn(:,:), Vhelp(:)
+           Real (Kind=Kind(0.d0)) :: Ranf, En_M, Res, X, Alpha, Acc_1, Acc_2, En, DeltaE, Ratio, D
+           Real (Kind=Kind(0.d0)) :: Aom, om, XMAX, tau
+           Real (Kind=Kind(0.d0)), allocatable :: U(:,:), sigma(:)
            Pi = acos(-1.d0)
            Iseed = 8752143
            NDis = Size(Aom_res,1)
@@ -559,27 +559,27 @@ Module MaxEnt_stoch_mod
 2003 format('Alpha, En_m, Acc ', F14.7,2x,F14.7,2x,F14.7,2x,F14.7,2x,F14.7)
          end Subroutine MaxEnt_stoch_fit
 !***********
-         Real (Kind=8) Function Phim1(x)
+         Real (Kind=Kind(0.d0)) Function Phim1(x)
            Implicit None
            ! Flat Default with sum 1. This is the correct sum rule for the data!
            ! D(om) = 1/(Om_en_1 - Om_st_1)
-           Real (Kind=8) :: x
+           Real (Kind=Kind(0.d0)) :: x
            PhiM1 = x*(Om_en_1 - Om_st_1) + Om_st_1
          end Function Phim1
          Integer Function NPhim1(x)
            Implicit None
            ! Flat Default with sum 1. This is the correct sum rule for the data!
            ! D(om) = 1/(Om_en_1 - Om_st_1)
-           Real (Kind=8) :: x, om
+           Real (Kind=Kind(0.d0)) :: x, om
            om = x*(Om_en_1 - Om_st_1) + Om_st_1
            NPhiM1 = Nint ( (om - Om_st_1)/Dom + 0.75 )
          end Function NPhim1
 !***********
          Subroutine Sum_Xn(Xn_m,Xn)
            Implicit none
-           Real (Kind=8), Dimension(:,:) :: Xn
-           Real (Kind=8), Dimension(:) :: Xn_m
-           Real (Kind=8) :: X
+           Real (Kind=Kind(0.d0)), Dimension(:,:) :: Xn
+           Real (Kind=Kind(0.d0)), Dimension(:) :: Xn_m
+           Real (Kind=Kind(0.d0)) :: X
            do nd = 1,NDis
               X = dble( nd )/dble( NDis )
               do ng = 1,Ngamma
@@ -591,9 +591,9 @@ Module MaxEnt_stoch_mod
 !***********
          Subroutine Sum_Xn_Boxes(Xn_m,Xn)
            Implicit none
-           Real (Kind=8), Dimension(:,:) :: Xn
-           Real (Kind=8), Dimension(:) :: Xn_m
-           Real (Kind=8) :: X
+           Real (Kind=Kind(0.d0)), Dimension(:,:) :: Xn
+           Real (Kind=Kind(0.d0)), Dimension(:) :: Xn_m
+           Real (Kind=Kind(0.d0)) :: X
            do ng = 1,Ngamma
               X = Xn(ng,1)
               nd = Nint(dble(NDis)*X + 0.5 )
@@ -602,18 +602,18 @@ Module MaxEnt_stoch_mod
          end Subroutine Sum_Xn_Boxes
 !***********
          Subroutine MC(Xtau, Xker_table, Xn, Alpha, NSweeps, Xn_m, En, En_m, Acc_1,Acc_2)
-           !Implicit Real (KIND=8) (A-G,O-Z)
+           !Implicit Real (Kind=Kind(0.d0)) (A-G,O-Z)
            !Implicit Integer (H-N)
            Implicit None
-           Real (Kind=8), Dimension(:,:) :: Xn, Xker_table
-           Real (Kind=8), Dimension(:) :: Xtau, Xn_m
-           Real (Kind=8) :: Alpha, En_m, s, ratio, ranf, A_gamma, Z_gamma, Acc_1, Acc_2
+           Real (Kind=Kind(0.d0)), Dimension(:,:) :: Xn, Xker_table
+           Real (Kind=Kind(0.d0)), Dimension(:) :: Xtau, Xn_m
+           Real (Kind=Kind(0.d0)) :: Alpha, En_m, s, ratio, ranf, A_gamma, Z_gamma, Acc_1, Acc_2
            Integer :: NSweeps, nl, Lambda_max, ng1, ng2
            !Local
-           Real (Kind=8), Allocatable :: h(:), Deltah(:), A_gamma_p(:), Z_gamma_p(:), &
+           Real (Kind=Kind(0.d0)), Allocatable :: h(:), Deltah(:), A_gamma_p(:), Z_gamma_p(:), &
                 & A_gamma_o(:), Z_gamma_o(:)
-           Real (Kind=8), Allocatable :: XKER_stor(:,:), XKER_new(:)
-           Real (Kind=8) :: X, En, En1, DeltaE, XP, XM, om
+           Real (Kind=Kind(0.d0)), Allocatable :: XKER_stor(:,:), XKER_new(:)
+           Real (Kind=Kind(0.d0)) :: X, En, En1, DeltaE, XP, XM, om
            Integer, Allocatable :: Lambda(:)
            Integer :: nb, nsw, Nacc_1, Nacc_2, nw
            Allocate (h(ntau), Deltah(ntau) )
@@ -726,8 +726,8 @@ Module MaxEnt_stoch_mod
 2006 format(I4,2x,F14.7, ' --> ',F14.7)
          end Subroutine MC
 !**********
-         real (Kind=8) function xpbc(X,XL)
-           real (kind=8) :: X, XL
+         real (Kind=Kind(0.d0)) function xpbc(X,XL)
+           real (Kind=Kind(0.d0)) :: X, XL
            XPBC = X
            if (X.GT. XL ) XPBC = X - XL
            if (X.LT. 0.0) XPBC = X + XL

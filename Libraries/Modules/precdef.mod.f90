@@ -12,11 +12,11 @@
       !double = selected_real_kind(p=15,r=307)   ! selected_real_kind(2*precision(1.0_double)), 8 byte
       double = 8   ! selected_real_kind(2*precision(1.0_double)), 8 byte
       
-   REAL(kind=double), PARAMETER :: &
+   REAL(kind=Kind(0.d0)), PARAMETER :: &
       rone = 1.0D0, &
       rzero = 0.0D0
 
-   COMPLEX(kind=double), PARAMETER :: &
+   COMPLEX(kind=Kind(0.d0)), PARAMETER :: &
       cone = cmplx(rone,rzero,double), &
       czero = cmplx(rzero,rzero,double)
 

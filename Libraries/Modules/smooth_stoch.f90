@@ -1,10 +1,10 @@
     Program Trans
       
-      Implicit Real (KIND=8) (A-G,O-Z)
+      Implicit Real (Kind=Kind(0.d0)) (A-G,O-Z)
       Implicit Integer (H-N)
 
       parameter (Ndis=650)
-      Real (Kind=8) :: Xn_m(Ndis), om(Ndis), Xn_m_new(Ndis)
+      Real (Kind=Kind(0.d0)) :: Xn_m(Ndis), om(Ndis), Xn_m_new(Ndis)
 
       open  (Unit=10, File="Aom_ps_20",status="unknown")
       do i = 1,Ndis
@@ -30,10 +30,10 @@
     end Program Trans
 
  
-    real (Kind=8) function g(del,a,om,pi)
+    real (Kind=Kind(0.d0)) function g(del,a,om,pi)
       
       implicit none 
-      real (Kind=8) :: del, a, om, pi
+      real (Kind=Kind(0.d0)) :: del, a, om, pi
 
       g = exp( -((om - a)/del)**2)/(sqrt(pi)*del)
 

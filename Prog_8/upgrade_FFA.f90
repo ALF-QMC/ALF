@@ -3,24 +3,23 @@
         Use Hamiltonian
         Use Random_wrap
         Use Control
-        Use Precdef
         Implicit none 
         
-        Complex (Kind=double) :: GR(Ndim,Ndim, N_FL) 
+        Complex (Kind=Kind(0.d0)) :: GR(Ndim,Ndim, N_FL) 
         Integer, INTENT(IN) :: N_op, Nt, Op_dim
-        Complex (Kind=double) :: Phase
+        Complex (Kind=Kind(0.d0)) :: Phase
 
         ! Local ::
-        Complex (Kind=double) :: Mat(Op_dim,Op_Dim), Delta(Op_dim,N_FL)
-        Complex (Kind=double) :: Ratio(N_FL), Ratiotot, Z1 
+        Complex (Kind=Kind(0.d0)) :: Mat(Op_dim,Op_Dim), Delta(Op_dim,N_FL)
+        Complex (Kind=Kind(0.d0)) :: Ratio(N_FL), Ratiotot, Z1 
         Integer :: ns_new, ns_old, n,m,nf, i,j
-        Complex (Kind= double) :: ZK, Z, D_Mat
+        Complex (Kind=Kind(0.d0)) :: ZK, Z, D_Mat
         Integer, external :: nranf
         
-        Real (Kind = double) :: Weight
-        Complex (Kind = double) :: u(Ndim,Op_dim), v(Ndim,Op_dim) 
-        Complex (Kind = double) :: x_v(Ndim,Op_dim), y_v(Ndim,Op_dim),   xp_v(Ndim,Op_dim)
-        Complex (Kind = double) :: s_xv(Op_dim), s_yu(Op_dim)
+        Real    (Kind =Kind(0.d0)) :: Weight
+        Complex (Kind =Kind(0.d0)) :: u(Ndim,Op_dim), v(Ndim,Op_dim) 
+        Complex (Kind =Kind(0.d0)) :: x_v(Ndim,Op_dim), y_v(Ndim,Op_dim),   xp_v(Ndim,Op_dim)
+        Complex (Kind =Kind(0.d0)) :: s_xv(Op_dim), s_yu(Op_dim)
         
         Logical :: Log
 
@@ -67,7 +66,7 @@
 
         !Write(6,*) Ratiotot
         
-        Weight = abs(  real(Phase * Ratiotot, kind=double)/real(Phase,kind=double) )
+        Weight = abs(  real(Phase * Ratiotot, kind=Kind(0.d0))/real(Phase,kind=Kind(0.d0)) )
       
         Log = .false. 
         if ( Weight > ranf() )  Then

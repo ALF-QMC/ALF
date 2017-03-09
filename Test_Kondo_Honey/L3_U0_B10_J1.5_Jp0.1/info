@@ -42,3 +42,25 @@
   Precision Phase, Max       :    1.9533313676545205E-006
   Acceptance                 :   0.42303263888888887     
   CPU Time                   :    35.874094999999997     
+ =====================================
+ Model is      : Kondo                                                           
+ Lattice is    : Honeycomb                                                       
+ Lattice size  :            3           3
+ Beta          :    10.000000000000000     
+ dtau,Ltrot    :   0.10000000000000001              100
+ Checkerboard  :            1
+ t             :    1.0000000000000000     
+ U             :    0.0000000000000000     
+ J             :    1.5000000000000000     
+ Jz            :   0.10000000000000001     
+ Sweeps             :           20
+ Measure Int.       :            1         100
+ Stabilization,Wrap :           10
+ Nstm               :           10
+ Ltau               :            0
+ Bin                :            5
+ No CPU-time limitation 
+  Precision Green  Mean, Max :    2.6760343128905352E-014   2.6032809241627319E-010
+  Precision Phase, Max       :    0.0000000000000000     
+  Acceptance                 :   0.42303263888888887     
+  CPU Time                   :    31.054971000000002     

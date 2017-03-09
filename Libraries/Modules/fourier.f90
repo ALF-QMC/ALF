@@ -28,15 +28,15 @@ Module  Fourier
     subroutine  Matz_tau_T(griom, xiom, grtau, xtau, beta)
       implicit none
       ! Given the  G(i omega) calculates G(tau).
-      real    (Kind=8), Dimension(:) :: xiom,  xtau
-      real    (Kind=8) :: beta
-      complex (Kind=8), Dimension(:) :: griom
-      real    (Kind=8), Dimension(:) :: grtau
+      real    (Kind=Kind(0.d0)), Dimension(:) :: xiom,  xtau
+      real    (Kind=Kind(0.d0)) :: beta
+      complex (Kind=Kind(0.d0)), Dimension(:) :: griom
+      real    (Kind=Kind(0.d0)), Dimension(:) :: grtau
       
       
       Integer          :: Niom, Ntau, nt, niw, Ntail
-      Real    (Kind=8) :: a,b, x
-      complex (Kind=8), Dimension(:), allocatable :: griom1
+      Real    (Kind=Kind(0.d0)) :: a,b, x
+      complex (Kind=Kind(0.d0)), Dimension(:), allocatable :: griom1
 
       Niom = size( xiom ,1 )
       Ntau = size( xtau, 1 )
@@ -76,15 +76,15 @@ Module  Fourier
       !Working on this
       implicit none
       ! Given the  G(i omega) calculates G(tau) ! for bosons.
-      real    (Kind=8), Dimension(:) :: xiom,  xtau
-      real    (Kind=8) :: beta
-      real    (Kind=8), Dimension(:) :: griom
-      real    (Kind=8), Dimension(:) :: grtau
+      real    (Kind=Kind(0.d0)), Dimension(:) :: xiom,  xtau
+      real    (Kind=Kind(0.d0)) :: beta
+      real    (Kind=Kind(0.d0)), Dimension(:) :: griom
+      real    (Kind=Kind(0.d0)), Dimension(:) :: grtau
       
       
       Integer          :: Niom, Ntau, nt, niw
-      Real    (Kind=8) :: x
-      complex (Kind=8), Dimension(:), allocatable :: griom1
+      Real    (Kind=Kind(0.d0)) :: x
+      complex (Kind=Kind(0.d0)), Dimension(:), allocatable :: griom1
 
       Niom = size( xiom ,1 )
       Ntau = size( xtau, 1 )
@@ -130,16 +130,16 @@ Module  Fourier
     subroutine  Matz_tau_T0(griom, xiom, grt0, gr0t,  xtau, beta)
       implicit none
       ! Given the  G(i omega) calculates G(tau).
-      real    (Kind=8), Dimension(:) :: xiom,  xtau
-      real    (Kind=8) :: beta
-      complex (Kind=8), Dimension(:) :: griom
-      real    (Kind=8), Dimension(:) :: grt0, gr0t
+      real    (Kind=Kind(0.d0)), Dimension(:) :: xiom,  xtau
+      real    (Kind=Kind(0.d0)) :: beta
+      complex (Kind=Kind(0.d0)), Dimension(:) :: griom
+      real    (Kind=Kind(0.d0)), Dimension(:) :: grt0, gr0t
 
       
       
       Integer          :: Niom, Ntau, nt, niw, Ntail
-      Real    (Kind=8) :: a,b, xp, xm
-      complex (Kind=8), Dimension(:), allocatable :: griom1
+      Real    (Kind=Kind(0.d0)) :: a,b, xp, xm
+      complex (Kind=Kind(0.d0)), Dimension(:), allocatable :: griom1
 
       Niom = size( xiom ,1 )
       Ntau = size( xtau, 1 )
@@ -181,13 +181,13 @@ Module  Fourier
     subroutine  Matz_tau_T0_all(g_iom, xiom, g_t0, g_0t,  xtau, beta)
       implicit none
       ! Given the  G(i omega) calculates G(tau).
-      real    (Kind=8), Dimension(:) :: xiom,  xtau
-      real    (Kind=8) :: beta
+      real    (Kind=Kind(0.d0)), Dimension(:) :: xiom,  xtau
+      real    (Kind=Kind(0.d0)) :: beta
       Type    (Mat_C), Dimension(:,:) :: g_iom
       Type    (Mat_R), Dimension(:,:) :: g_t0, g_0t
 
-      Complex (Kind=8), Dimension(:), allocatable :: giom
-      Real    (Kind=8), Dimension(:), allocatable :: gt0, g0t
+      Complex (Kind=Kind(0.d0)), Dimension(:), allocatable :: giom
+      Real    (Kind=Kind(0.d0)), Dimension(:), allocatable :: gt0, g0t
       
       Integer :: Niom, Ntau, nt, niw, Norb, LQ_C
       Integer :: nk, no1, no2
@@ -270,13 +270,13 @@ Module  Fourier
     subroutine  Matz_tau_T_all(g_iom, xiom, g_t0,  xtau, beta)
       implicit none
       ! Given the  G(i omega) calculates G(tau).
-      real    (Kind=8), Dimension(:) :: xiom,  xtau
-      real    (Kind=8) :: beta
+      real    (Kind=Kind(0.d0)), Dimension(:) :: xiom,  xtau
+      real    (Kind=Kind(0.d0)) :: beta
       Type    (Mat_C), Dimension(:,:) :: g_iom
       Type    (Mat_R), Dimension(:,:) :: g_t0
 
-      Complex (Kind=8), Dimension(:), allocatable :: giom
-      Real    (Kind=8), Dimension(:), allocatable :: gt0
+      Complex (Kind=Kind(0.d0)), Dimension(:), allocatable :: giom
+      Real    (Kind=Kind(0.d0)), Dimension(:), allocatable :: gt0
       
       Integer :: Niom, Ntau, nt, niw, Norb, LQ_C
       Integer :: nk, no1, no2
@@ -355,13 +355,13 @@ Module  Fourier
     subroutine  Matz_tau_T_cdmft(g_iom, xiom, g_t0,  xtau, beta)
       implicit none
       ! Given the  G(i omega) calculates G(tau).
-      real    (Kind=8), Dimension(:) :: xiom,  xtau
-      real    (Kind=8) :: beta
+      real    (Kind=Kind(0.d0)), Dimension(:) :: xiom,  xtau
+      real    (Kind=Kind(0.d0)) :: beta
       Type    (Mat_C), Dimension(:) :: g_iom
       Type    (Mat_R), Dimension(:) :: g_t0
 
-      Complex (Kind=8), Dimension(:), allocatable :: giom
-      Real    (Kind=8), Dimension(:), allocatable :: gt0
+      Complex (Kind=Kind(0.d0)), Dimension(:), allocatable :: giom
+      Real    (Kind=Kind(0.d0)), Dimension(:), allocatable :: gt0
       
       Integer :: Niom, Ntau, nt, niw, Norb
       Integer :: no1, no2
@@ -434,17 +434,17 @@ Module  Fourier
     subroutine  Matz_tau_T_all_C(g_iom, xiom, g_t0,  xtau, beta)
       implicit none
       ! Given the  G(i omega) calculates G(tau).
-      real    (Kind=8), Dimension(:) :: xiom,  xtau
-      real    (Kind=8) :: beta
+      real    (Kind=Kind(0.d0)), Dimension(:) :: xiom,  xtau
+      real    (Kind=Kind(0.d0)) :: beta
       Type    (Mat_C), Dimension(:,:) :: g_iom
       Type    (Mat_C), Dimension(:,:) :: g_t0
 
-      Complex (Kind=8), Dimension(:), allocatable :: giom
-      Real    (Kind=8), Dimension(:), allocatable :: gt0
+      Complex (Kind=Kind(0.d0)), Dimension(:), allocatable :: giom
+      Real    (Kind=Kind(0.d0)), Dimension(:), allocatable :: gt0
       
       Integer :: Niom, Ntau, nt, niw, Norb, LQ_C
       Integer :: nk, no1, no2
-      Complex (Kind=8) :: Z1, Z2
+      Complex (Kind=Kind(0.d0)) :: Z1, Z2
 
       Write (6,*) "In Matz_tau_T_all_C"
       Write (6,*) "Size of griom: ", size(g_iom,1), size(g_iom,2)
@@ -524,17 +524,17 @@ Module  Fourier
       Implicit none
 
       !Arguments
-      Complex (Kind=8), Dimension(:)   :: griom
-      Real    (Kind=8), Dimension(:)   :: xiom, xom, grtau, xtau, A
-      Real    (Kind=8), Dimension(:,:) :: cov
-      Real    (Kind=8) :: Beta
+      Complex (Kind=Kind(0.d0)), Dimension(:)   :: griom
+      Real    (Kind=Kind(0.d0)), Dimension(:)   :: xiom, xom, grtau, xtau, A
+      Real    (Kind=Kind(0.d0)), Dimension(:,:) :: cov
+      Real    (Kind=Kind(0.d0)) :: Beta
       
       ! Local 
-      Real (Kind=8), Dimension(:), allocatable :: xqmc
-      Real (Kind=8), Dimension(:,:), allocatable :: xker
+      Real (Kind=Kind(0.d0)), Dimension(:), allocatable :: xqmc
+      Real (Kind=Kind(0.d0)), Dimension(:,:), allocatable :: xker
       
       Integer :: Nom, Ntau, Niom, Niw, Nt, Nw
-      Real (Kind=8) :: Alpha_st,  Chisq, x
+      Real (Kind=Kind(0.d0)) :: Alpha_st,  Chisq, x
 
       Nom   = Size(Xom ,1)
       Niom  = Size(Xiom,1)
@@ -576,19 +576,19 @@ Module  Fourier
       Implicit none
 
       !Arguments
-      Complex (Kind=8), Dimension(:)   :: griom
-      Real    (Kind=8), Dimension(:)   :: xiom, grtau, xtau
-      Real    (Kind=8), Dimension(:,:) :: cov
-      Real    (Kind=8)                 :: Beta, OM_ST, OM_EN
-      Real    (Kind=8), Dimension(:)   :: Alpha_tot
-      Real    (Kind=8), external       :: xker_func
+      Complex (Kind=Kind(0.d0)), Dimension(:)   :: griom
+      Real    (Kind=Kind(0.d0)), Dimension(:)   :: xiom, grtau, xtau
+      Real    (Kind=Kind(0.d0)), Dimension(:,:) :: cov
+      Real    (Kind=Kind(0.d0))                 :: Beta, OM_ST, OM_EN
+      Real    (Kind=Kind(0.d0)), Dimension(:)   :: Alpha_tot
+      Real    (Kind=Kind(0.d0)), external       :: xker_func
       Integer                          :: Nsweeps, NBins, NWarm
       
       ! Local 
-      Real (Kind=8), Dimension(:  ), allocatable :: xqmc, A, xom
+      Real (Kind=Kind(0.d0)), Dimension(:  ), allocatable :: xqmc, A, xom
       
       Integer ::  Ntau, Niom, Niw, Nt, Nw, Ndis, Ngamma, Lcov
-      Real (Kind=8) ::  Chisq, x, dom, xmom1
+      Real (Kind=Kind(0.d0)) ::  Chisq, x, dom, xmom1
 
       Ndis   =  5000
       Allocate ( A(ndis),xom(ndis) )
@@ -634,17 +634,17 @@ Module  Fourier
       ! Working on this.
       implicit none
       ! Arguments
-      Real   ( Kind=8 ) , Dimension(:)   :: griom
-      Real   ( Kind=8 ) , Dimension(:)   :: xiom, xom, grtau, xtau, A
-      Real   ( Kind=8 ) , Dimension(:,:) :: cov
-      Real   ( Kind=8 )  :: Beta
+      Real   ( Kind=Kind(0.d0) ) , Dimension(:)   :: griom
+      Real   ( Kind=Kind(0.d0) ) , Dimension(:)   :: xiom, xom, grtau, xtau, A
+      Real   ( Kind=Kind(0.d0) ) , Dimension(:,:) :: cov
+      Real   ( Kind=Kind(0.d0) )  :: Beta
       
       ! Local 
-      Real (Kind=8), Dimension(:  ), allocatable :: xqmc
-      Real (Kind=8), Dimension(:,:), allocatable :: xker
+      Real (Kind=Kind(0.d0)), Dimension(:  ), allocatable :: xqmc
+      Real (Kind=Kind(0.d0)), Dimension(:,:), allocatable :: xker
       
       Integer :: Nom, Ntau, Niom, Niw, Nt, Nw
-      Real (Kind=8) :: Alpha_st,  Chisq, x, Zero
+      Real (Kind=Kind(0.d0)) :: Alpha_st,  Chisq, x, Zero
 
       Nom   = Size(Xom ,1)
       Zero = 1.D-10
@@ -717,20 +717,20 @@ Module  Fourier
       Implicit none
 
       !Arguments
-      Complex (Kind=8), Dimension(:)   :: griom
-      Real    (Kind=8), Dimension(:)   :: xiom,g_t0, g_0t, xtau
-      Real    (Kind=8), Dimension(:,:) :: cov_t0, cov_0t
-      Real    (Kind=8)                 :: Beta, OM_ST, OM_EN, Rel_Err
-      Real    (Kind=8), Dimension(:)   :: Alpha_tot
-      Real    (Kind=8), external       :: xker_func
+      Complex (Kind=Kind(0.d0)), Dimension(:)   :: griom
+      Real    (Kind=Kind(0.d0)), Dimension(:)   :: xiom,g_t0, g_0t, xtau
+      Real    (Kind=Kind(0.d0)), Dimension(:,:) :: cov_t0, cov_0t
+      Real    (Kind=Kind(0.d0))                 :: Beta, OM_ST, OM_EN, Rel_Err
+      Real    (Kind=Kind(0.d0)), Dimension(:)   :: Alpha_tot
+      Real    (Kind=Kind(0.d0)), external       :: xker_func
       Integer                          :: Nsweeps, NBins, NWarm
       
       ! Local 
-      Real (Kind=8), Dimension(:  ), allocatable :: xqmc, A_t0, A_0t, xom
+      Real (Kind=Kind(0.d0)), Dimension(:  ), allocatable :: xqmc, A_t0, A_0t, xom
       
       Integer ::  Ntau, Niom, Niw, Nt, Nw, Ndis, Ngamma, Lcov
-      Real (Kind=8) ::  Chisq, x, dom, xmom1
-      Complex (Kind=8) :: z 
+      Real (Kind=Kind(0.d0)) ::  Chisq, x, dom, xmom1
+      Complex (Kind=Kind(0.d0)) :: z 
 
       Ndis   =  5000
       Allocate ( A_0t(ndis),A_t0(ndis), xom(ndis) )
@@ -797,20 +797,20 @@ Module  Fourier
       Implicit none
 
       !Arguments
-      Complex (Kind=8), Dimension(:)   :: griom
-      Real    (Kind=8), Dimension(:)   :: xiom, g_t0, g_0t, xtau, A_0t, A_t0, xom
-      Real    (Kind=8), Dimension(:,:) :: cov_t0, cov_0t  
-      Real    (Kind=8)  :: Rel_Err
-      Real    (Kind=8), optional      :: Beta
+      Complex (Kind=Kind(0.d0)), Dimension(:)   :: griom
+      Real    (Kind=Kind(0.d0)), Dimension(:)   :: xiom, g_t0, g_0t, xtau, A_0t, A_t0, xom
+      Real    (Kind=Kind(0.d0)), Dimension(:,:) :: cov_t0, cov_0t  
+      Real    (Kind=Kind(0.d0))  :: Rel_Err
+      Real    (Kind=Kind(0.d0)), optional      :: Beta
 
       ! Local 
-      Real (Kind=8), Dimension(:), allocatable :: xqmc
-      Real (Kind=8), Dimension(:,:), allocatable :: xker
+      Real (Kind=Kind(0.d0)), Dimension(:), allocatable :: xqmc
+      Real (Kind=Kind(0.d0)), Dimension(:,:), allocatable :: xker
       
       Integer :: Nom, Ntau, Niom, Niw, Nt, Nw
-      Real (Kind=8) :: Alpha_st,  Chisq, x
+      Real (Kind=Kind(0.d0)) :: Alpha_st,  Chisq, x
       
-      Complex (Kind=8) :: z 
+      Complex (Kind=Kind(0.d0)) :: z 
 
       Nom   = Size(Xom ,1)
       Niom  = Size(Xiom,1)
@@ -913,12 +913,12 @@ Module  Fourier
       Type    (Mat_C),  Dimension(:,:) :: g_iom_mat
       Type    (Mat_R),  Dimension(:,:) :: g_t0_mat, g_0t_mat
       Type    (Mat_R),  Dimension(:,:) :: error_t0_mat, error_0t_mat
-      Real    (Kind=8), Dimension(:)   :: xiom,  xtau, xom
-      Real    (Kind=8) :: Rel_err
+      Real    (Kind=Kind(0.d0)), Dimension(:)   :: xiom,  xtau, xom
+      Real    (Kind=Kind(0.d0)) :: Rel_err
 
-      Complex (Kind=8), Dimension(:),   allocatable :: giom
-      Real    (Kind=8), Dimension(:),   allocatable :: gt0, g0t, A0t, At0
-      Real    (Kind=8), Dimension(:,:), allocatable :: covt0, cov0t
+      Complex (Kind=Kind(0.d0)), Dimension(:),   allocatable :: giom
+      Real    (Kind=Kind(0.d0)), Dimension(:),   allocatable :: gt0, g0t, A0t, At0
+      Real    (Kind=Kind(0.d0)), Dimension(:,:), allocatable :: covt0, cov0t
 
       Integer ::   Nom, Ntau, Niom, Nt, Nw
 
@@ -933,7 +933,7 @@ Module  Fourier
       ! Local 
       Integer ::   LQ_c,   Norb
       Integer ::   nk, no1,no2
-      Complex (Kind=8) :: Zp
+      Complex (Kind=Kind(0.d0)) :: Zp
 
       Ntau = size(g_t0_mat,2)
       If ( Ntau.ne.size(g_0t_mat,2) .OR. Ntau.ne.size(xtau,1)  ) Then 
@@ -999,15 +999,15 @@ Module  Fourier
       Type    (Mat_C),  Dimension(:,:) :: g_iom_mat
       Type    (Mat_C),  Dimension(:,:) :: g_t0_mat
       Type    (Mat_R),  Dimension(:,:) :: error_t0_mat
-      Real    (Kind=8), Dimension(:)   :: xiom,  xtau
-      Real    (Kind=8)                 :: Beta, OM_St, OM_EN
-      Real    (Kind=8), external       :: Xker_func
-      Real    (Kind=8), Dimension(:)   :: Alpha_tot
+      Real    (Kind=Kind(0.d0)), Dimension(:)   :: xiom,  xtau
+      Real    (Kind=Kind(0.d0))                 :: Beta, OM_St, OM_EN
+      Real    (Kind=Kind(0.d0)), external       :: Xker_func
+      Real    (Kind=Kind(0.d0)), Dimension(:)   :: Alpha_tot
       Integer                          :: Nsweeps, NBins, NWarm
       
-      Complex (Kind=8), Dimension(:),   allocatable :: giom
-      Real    (Kind=8), Dimension(:),   allocatable :: gt0
-      Real    (Kind=8), Dimension(:,:), allocatable :: covt0
+      Complex (Kind=Kind(0.d0)), Dimension(:),   allocatable :: giom
+      Real    (Kind=Kind(0.d0)), Dimension(:),   allocatable :: gt0
+      Real    (Kind=Kind(0.d0)), Dimension(:,:), allocatable :: covt0
 
       Integer ::   Ntau, Niom, Nt, Nw
 
@@ -1026,7 +1026,7 @@ Module  Fourier
       ! Local 
       Integer ::   LQ_c,   Norb
       Integer ::   nk, no1,no2
-      Complex (Kind=8) :: Z1, Z2
+      Complex (Kind=Kind(0.d0)) :: Z1, Z2
 
       Ntau = size(g_t0_mat,2)
       If (  Ntau.ne.size(xtau,1)  ) Then 
@@ -1091,15 +1091,15 @@ Module  Fourier
       Type    (Mat_C),  Dimension(:,:) :: g_iom_mat
       Type    (Mat_R),  Dimension(:,:) :: g_t0_mat
       Type    (Mat_R),  Dimension(:,:) :: error_t0_mat
-      Real    (Kind=8), Dimension(:)   :: xiom,  xtau
-      Real    (Kind=8)                 :: Beta, OM_St, OM_EN
-      Real    (Kind=8), external       :: Xker_func
-      Real    (Kind=8), Dimension(:)   :: Alpha_tot
+      Real    (Kind=Kind(0.d0)), Dimension(:)   :: xiom,  xtau
+      Real    (Kind=Kind(0.d0))                 :: Beta, OM_St, OM_EN
+      Real    (Kind=Kind(0.d0)), external       :: Xker_func
+      Real    (Kind=Kind(0.d0)), Dimension(:)   :: Alpha_tot
       Integer                          :: Nsweeps, NBins, NWarm
       
-      Complex (Kind=8), Dimension(:),   allocatable :: giom
-      Real    (Kind=8), Dimension(:),   allocatable :: gt0
-      Real    (Kind=8), Dimension(:,:), allocatable :: covt0
+      Complex (Kind=Kind(0.d0)), Dimension(:),   allocatable :: giom
+      Real    (Kind=Kind(0.d0)), Dimension(:),   allocatable :: gt0
+      Real    (Kind=Kind(0.d0)), Dimension(:,:), allocatable :: covt0
 
       Integer ::   Ntau, Niom, Nt, Nw
 
@@ -1114,7 +1114,7 @@ Module  Fourier
       ! Local 
       Integer ::   LQ_c,   Norb
       Integer ::   nk, no1,no2
-      Complex (Kind=8) :: Zp
+      Complex (Kind=Kind(0.d0)) :: Zp
 
       Ntau = size(g_t0_mat,2)
       If (  Ntau.ne.size(xtau,1)  ) Then 
@@ -1175,15 +1175,15 @@ Module  Fourier
       Type    (Mat_C),  Dimension(:) :: g_iom_mat
       Type    (Mat_R),  Dimension(:) :: g_t0_mat
       Type    (Mat_R),  Dimension(:) :: error_t0_mat
-      Real    (Kind=8), Dimension(:)   :: xiom,  xtau
-      Real    (Kind=8)                 :: Beta, OM_St, OM_EN
-      Real    (Kind=8), external       :: Xker_func
-      Real    (Kind=8), Dimension(:)   :: Alpha_tot
+      Real    (Kind=Kind(0.d0)), Dimension(:)   :: xiom,  xtau
+      Real    (Kind=Kind(0.d0))                 :: Beta, OM_St, OM_EN
+      Real    (Kind=Kind(0.d0)), external       :: Xker_func
+      Real    (Kind=Kind(0.d0)), Dimension(:)   :: Alpha_tot
       Integer                          :: Nsweeps, NBins, NWarm
       
-      Complex (Kind=8), Dimension(:),   allocatable :: giom
-      Real    (Kind=8), Dimension(:),   allocatable :: gt0
-      Real    (Kind=8), Dimension(:,:), allocatable :: covt0
+      Complex (Kind=Kind(0.d0)), Dimension(:),   allocatable :: giom
+      Real    (Kind=Kind(0.d0)), Dimension(:),   allocatable :: gt0
+      Real    (Kind=Kind(0.d0)), Dimension(:,:), allocatable :: covt0
 
       Integer ::   Ntau, Niom, Nt, Nw
 
@@ -1198,7 +1198,7 @@ Module  Fourier
       ! Local 
       Integer ::   Norb
       Integer ::   no1,no2
-      Complex (Kind=8) :: Zp
+      Complex (Kind=Kind(0.d0)) :: Zp
 
       Ntau = size(g_t0_mat,1)
       If (  Ntau.ne.size(xtau,1)  ) Then 
@@ -1252,12 +1252,12 @@ Module  Fourier
       Type    (Mat_C),  Dimension(:,:) :: g_iom_mat
       Type    (Mat_R),  Dimension(:,:) :: g_t0_mat
       Type    (Mat_R),  Dimension(:,:) :: error_t0_mat
-      Real    (Kind=8), Dimension(:)   :: xiom,  xtau, xom
-      Real    (Kind=8) :: Beta
+      Real    (Kind=Kind(0.d0)), Dimension(:)   :: xiom,  xtau, xom
+      Real    (Kind=Kind(0.d0)) :: Beta
 
-      Complex (Kind=8), Dimension(:),   allocatable :: giom
-      Real    (Kind=8), Dimension(:),   allocatable :: gt0, At0
-      Real    (Kind=8), Dimension(:,:), allocatable :: covt0
+      Complex (Kind=Kind(0.d0)), Dimension(:),   allocatable :: giom
+      Real    (Kind=Kind(0.d0)), Dimension(:),   allocatable :: gt0, At0
+      Real    (Kind=Kind(0.d0)), Dimension(:,:), allocatable :: covt0
 
       Integer ::   Nom, Ntau, Niom, Nt, Nw
 
@@ -1272,7 +1272,7 @@ Module  Fourier
       ! Local 
       Integer ::   LQ_c,   Norb
       Integer ::   nk, no1,no2
-      Complex (Kind=8) :: Zp
+      Complex (Kind=Kind(0.d0)) :: Zp
 
       Ntau = size(g_t0_mat,2)
       If (  Ntau.ne.size(xtau,1)  ) Then 
@@ -1331,12 +1331,12 @@ Module  Fourier
     implicit none
     
     integer, intent(in) :: nspl
-    real(kind=8), dimension(:), intent(in) :: xiom,xtau,grtau
-    complex(kind=8), dimension(size(xiom)), intent(out)  :: griom
+    real(Kind=Kind(0.d0)), dimension(:), intent(in) :: xiom,xtau,grtau
+    complex(Kind=Kind(0.d0)), dimension(size(xiom)), intent(out)  :: griom
 
     integer :: itau,iom,ntau,niom
-    real(kind=8) :: dx
-    real(kind=8), dimension(:), allocatable :: xtau_spl,grtau_spl
+    real(Kind=Kind(0.d0)) :: dx
+    real(Kind=Kind(0.d0)), dimension(:), allocatable :: xtau_spl,grtau_spl
     
     ntau = size(xtau)
     niom = size(xiom)
@@ -1380,10 +1380,10 @@ Module  Fourier
       integer :: nspl
       Type    (Mat_C),  Dimension(:,:) :: g_iom_mat
       Type    (Mat_R),  Dimension(:,:) :: g_t0_mat
-      Real    (Kind=8), Dimension(:)   :: xiom,  xtau
+      Real    (Kind=Kind(0.d0)), Dimension(:)   :: xiom,  xtau
 
-      Complex (Kind=8), Dimension(:),   allocatable :: giom
-      Real    (Kind=8), Dimension(:),   allocatable :: gt0
+      Complex (Kind=Kind(0.d0)), Dimension(:),   allocatable :: giom
+      Real    (Kind=Kind(0.d0)), Dimension(:),   allocatable :: gt0
 
       Integer ::   Ntau, Niom, Nt, Nw
 
@@ -1398,7 +1398,7 @@ Module  Fourier
       ! Local 
       Integer ::   LQ_c,   Norb
       Integer ::   nk, no1,no2
-      Complex (Kind=8) :: Zp
+      Complex (Kind=Kind(0.d0)) :: Zp
 
       Ntau = size(g_t0_mat,2)
       If (  Ntau.ne.size(xtau,1)  ) Then 
@@ -1451,12 +1451,12 @@ Module  Fourier
   subroutine aspline(x,y,x_new,y_new)
     implicit none
 
-    real(kind=8), dimension(:), intent(in) :: x,y,x_new
-    real(kind=8), dimension(:), intent(out) :: y_new
+    real(Kind=Kind(0.d0)), dimension(:), intent(in) :: x,y,x_new
+    real(Kind=Kind(0.d0)), dimension(:), intent(out) :: y_new
 
     integer :: i,j,n1,n2
-    real(kind=8), dimension(:), allocatable:: x_tmp,y_tmp,t
-    real(kind=8) :: dx,a,b,m1,m2,m3,m4
+    real(Kind=Kind(0.d0)), dimension(:), allocatable:: x_tmp,y_tmp,t
+    real(Kind=Kind(0.d0)) :: dx,a,b,m1,m2,m3,m4
     
     n1 = size(x)
     n2 = size(x_new)
@@ -1511,11 +1511,11 @@ Module  Fourier
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !----------------------------------------------------------------------
-  real(kind=8) function yup(n,x,y)
+  real(Kind=Kind(0.d0)) function yup(n,x,y)
     implicit none
     
     integer, intent(in) :: n
-    real(kind=8), dimension(:), intent(in) :: x,y
+    real(Kind=Kind(0.d0)), dimension(:), intent(in) :: x,y
     
     yup = (2.d0 &
          * (y(n-1)-y(n-2))/(x(n-1)-x(n-2)) - (y(n-2)-y(n-3))/(x(n-2)-x(n-3)))  &
@@ -1525,11 +1525,11 @@ Module  Fourier
   
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !----------------------------------------------------------------------
-  real(kind=8) function ydn(n,x,y)
+  real(Kind=Kind(0.d0)) function ydn(n,x,y)
     implicit none
    
     integer, intent(in) :: n
-    real(kind=8), dimension(:), intent(in) :: x,y
+    real(Kind=Kind(0.d0)), dimension(:), intent(in) :: x,y
     
     ydn = (-2.d0 &
          * (y(n+2)-y(n+1))/(x(n+2)-x(n+1)) + (y(n+3)-y(n+2))/(x(n+3)-x(n+2)))  &
@@ -1539,10 +1539,10 @@ Module  Fourier
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !----------------------------------------------------------------------
-  real(kind=8) function slope(dx,y_dn,y_up)
+  real(Kind=Kind(0.d0)) function slope(dx,y_dn,y_up)
     implicit none
    
-    real(kind=8), intent(in) :: dx,y_dn,y_up
+    real(Kind=Kind(0.d0)), intent(in) :: dx,y_dn,y_up
 
     slope = (y_up - y_dn) / dx
     
@@ -1550,11 +1550,11 @@ Module  Fourier
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !----------------------------------------------------------------------
-  real(kind=8) function poly(x1,x2,y1,y2,t1,t2,x)
+  real(Kind=Kind(0.d0)) function poly(x1,x2,y1,y2,t1,t2,x)
     implicit none
    
-    real(kind=8), intent(in) :: x1,x2,y1,y2,t1,t2,x
-    real(kind=8) :: p0,p1,p2,p3
+    real(Kind=Kind(0.d0)), intent(in) :: x1,x2,y1,y2,t1,t2,x
+    real(Kind=Kind(0.d0)) :: p0,p1,p2,p3
 
     p0 = y1
     p1 = t1

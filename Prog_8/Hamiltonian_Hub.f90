@@ -18,15 +18,19 @@
       Type (Operator), dimension(:,:), allocatable  :: Op_T
       Integer, allocatable :: nsigma(:,:)
       Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot
-      !Complex (Kind=8), dimension(:,:,:), allocatable :: Exp_T(:,:,:), Exp_T_M1(:,:,:)
+!>    Variables for updating scheme
+      Logical              :: Propose_S0, Global_moves
+      Integer              :: N_Global
+
+      !Complex (Kind=Kind(0.d0)), dimension(:,:,:), allocatable :: Exp_T(:,:,:), Exp_T_M1(:,:,:)
       
       ! ToDo.  Public and private subroutines. 
 
       ! What is below is  private 
       Type (Lattice),       private :: Latt
       Integer,              private :: L1, L2
-      real (Kind=8),        private :: ham_T , ham_U,  Ham_chem
-      real (Kind=8),        private :: Dtau, Beta
+      real (Kind=Kind(0.d0)),        private :: ham_T , ham_U,  Ham_chem
+      real (Kind=Kind(0.d0)),        private :: Dtau, Beta
       Character (len=64),   private :: Model, Lattice_type
       Logical,              private :: One_dimensional
       Integer,              private :: N_coord 
@@ -34,18 +38,18 @@
 
       ! Observables
       Integer,                       private :: Nobs, Norb
-      Complex (Kind=8), allocatable, private :: obs_scal(:)
-      Complex (Kind=8), allocatable, private :: Green_eq  (:,:,:), SpinZ_eq (:,:,:), SpinXY_eq (:,:,:), &
+      Complex (Kind=Kind(0.d0)), allocatable, private :: obs_scal(:)
+      Complex (Kind=Kind(0.d0)), allocatable, private :: Green_eq  (:,:,:), SpinZ_eq (:,:,:), SpinXY_eq (:,:,:), &
            &                                    Den_eq(:,:,:)
-      Complex (Kind=8), allocatable, private :: Green_eq0 (:), SpinZ_eq0(:), SpinXY_eq0(:), &
+      Complex (Kind=Kind(0.d0)), allocatable, private :: Green_eq0 (:), SpinZ_eq0(:), SpinXY_eq0(:), &
            &                                    Den_eq0(:)
       
       ! For time displaced
       Integer,                       private :: NobsT
-      Complex (Kind=8),              private :: Phase_tau
-      Complex (Kind=8), allocatable, private :: Green_tau(:,:,:,:), Den_tau(:,:,:,:), SpinZ_tau(:,:,:,:)
-      Complex (Kind=8), allocatable, private :: SpinXY_tau(:,:,:,:)
-      Complex (Kind=8), allocatable, private :: Green0_tau(:), Den0_tau(:), SpinZ0_tau(:), SpinXY0_tau(:)
+      Complex (Kind=Kind(0.d0)),              private :: Phase_tau
+      Complex (Kind=Kind(0.d0)), allocatable, private :: Green_tau(:,:,:,:), Den_tau(:,:,:,:), SpinZ_tau(:,:,:,:)
+      Complex (Kind=Kind(0.d0)), allocatable, private :: SpinXY_tau(:,:,:,:)
+      Complex (Kind=Kind(0.d0)), allocatable, private :: Green0_tau(:), Den0_tau(:), SpinZ0_tau(:), SpinXY0_tau(:)
       
     contains 
 
@@ -53,7 +57,6 @@
       Subroutine Ham_Set
 
           Implicit none
-#include "machine"
 #ifdef MPI
           include 'mpif.h'
 #endif   
@@ -97,6 +100,10 @@
           CALL MPI_BCAST(Lattice_type,64 ,MPI_CHARACTER, 0,MPI_COMM_WORLD,IERR)
 #endif
           Call Ham_latt
+
+          Propose_S0 = .false.
+          Global_moves =.false.
+          N_Global = 1
 
           If ( Model == "Hubbard_Mz") then
              N_FL = 2
@@ -148,7 +155,7 @@
         Subroutine Ham_Latt
           Implicit none
           !Set the lattice
-          Real (Kind=8)  :: a1_p(2), a2_p(2), L1_p(2), L2_p(2)
+          Real (Kind=Kind(0.d0))  :: a1_p(2), a2_p(2), L1_p(2), L2_p(2)
           If ( Lattice_type =="Square" ) then
              a1_p(1) =  1.0  ; a1_p(2) =  0.d0
              a2_p(1) =  0.0  ; a2_p(2) =  1.d0
@@ -235,7 +242,7 @@
           Implicit none 
           
           Integer :: nf, I, nc
-          Real (Kind=8) :: X
+          Real (Kind=Kind(0.d0)) :: X
 
           
           If (Model == "Hubbard_SU2")  then
@@ -291,7 +298,7 @@
         end Subroutine Ham_V
 
 !===================================================================================           
-        Real (Kind=8) function S0(n,nt)  
+        Real (Kind=Kind(0.d0)) function S0(n,nt)  
           Implicit none
           Integer, Intent(IN) :: n,nt 
           S0 = 1.d0
@@ -356,13 +363,13 @@
           
           Implicit none
           
-          Complex (Kind=8), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
-          Complex (Kind=8), Intent(IN) :: PHASE
+          Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
+          Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE
           Integer, INTENT(IN)          :: Ntau
           
           !Local 
-          Complex (Kind=8) :: GRC(Ndim,Ndim,N_FL), ZK
-          Complex (Kind=8) :: Zrho, Zkin, ZPot, Z, ZP,ZS
+          Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK
+          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP,ZS
           Integer :: I,J, imj, nf, dec
           
           Nobs = Nobs + 1
@@ -455,7 +462,6 @@
         Subroutine  Pr_obs(LTAU)
 
           Implicit none
-#include "machine"
 #ifdef MPI
           include 'mpif.h'
 #endif   
@@ -463,7 +469,7 @@
           Integer,  Intent(In) ::  Ltau
 
           Character (len=64) :: File_pr
-          Complex   (Kind=8) :: Phase_bin
+          Complex   (Kind=Kind(0.d0)) :: Phase_bin
 #ifdef MPI
           Integer        :: Isize, Irank, Ierr
           Integer        :: STATUS(MPI_STATUS_SIZE)
@@ -515,11 +521,11 @@
           Implicit none
           
           Integer         , INTENT(IN) :: NT
-          Complex (Kind=8), INTENT(IN) :: GT0(Ndim,Ndim,N_FL),G0T(Ndim,Ndim,N_FL),G00(Ndim,Ndim,N_FL),GTT(Ndim,Ndim,N_FL)
-          Complex (Kind=8), INTENT(IN) :: Phase
+          Complex (Kind=Kind(0.d0)), INTENT(IN) :: GT0(Ndim,Ndim,N_FL),G0T(Ndim,Ndim,N_FL),G00(Ndim,Ndim,N_FL),GTT(Ndim,Ndim,N_FL)
+          Complex (Kind=Kind(0.d0)), INTENT(IN) :: Phase
           
           !Locals
-          Complex (Kind=8) :: Z, ZP, ZS
+          Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS
           Integer :: IMJ, I, J
 
           ZP = PHASE/Real(Phase, kind(0.D0))
@@ -579,6 +585,29 @@
           endif
 
         end Subroutine OBSERT
+
+!========================================================================
+        ! Functions for Global moves.  These move are not implemented in this example.
+        Subroutine Global_move(T0_Proposal_ratio,nsigma_old)
+          
+          !>  The input is the field nsigma declared in this module. This routine generates a 
+          !>  global update with  and returns the propability  
+          !>  T0_Proposal_ratio  =  T0( sigma_out-> sigma_in ) /  T0( sigma_in -> sigma_out)  
+          !>   
+          Implicit none
+          Real (Kind=Kind(0.d0)), intent(out) :: T0_Proposal_ratio
+          Integer, dimension(:,:),  allocatable, intent(in)  :: nsigma_old
+        End Subroutine Global_move
+!========================================================================
+        Real (Kind=kind(0.d0)) Function Delta_S0_global(Nsigma_old)
+
+          !>  This function computes the ratio:  e^{-S0(nsigma)}/e^{-S0(nsigma_old)}
+          Implicit none 
+          
+          !> Arguments
+          Integer, dimension(:,:), allocatable, intent(IN) :: Nsigma_old
+        end Function Delta_S0_global
+!========================================================================
 
 
       end Module Hamiltonian

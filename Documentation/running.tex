@@ -1,0 +1,96 @@
+% Copyright (c) 2016 The ALF project.
+% This is a part of the ALF project documentation.
+% The ALF project documentation by the ALF contributors is licensed
+% under a Creative Commons Attribution-ShareAlike 4.0 International License.
+% For the licensing details of the documentation see license.CCBYSA.
+
+% !TEX root = Doc.tex
+%-------------------------------------------------------------------------------------
+\section{Running the code}\label{sec:running}
+%-------------------------------------------------------------------------------------
+
+In this section we describe the steps to compile and run the code and to perform the error analysis of the data.
+
+%-------------------------------------------------------------------------------------
+\subsection{Compilation}
+%-------------------------------------------------------------------------------------
+
+The environment variables are defined in the bash script \texttt{set\_env.sh} as follows:
+\lstset{style=custombash}
+\begin{lstlisting}
+
+# Description of PROGRAMMCONFIGURATION:
+# -DMPI selects MPI.
+# Setting nothing  compiles without mpi.
+# -DQRREF selects  a reference implementation of the QR decomposition. 
+# Setting nothing selects system lapack for the QR decomposition.
+# -DSTAB1 selects an alternative stabilization scheme.
+# Setting nothing selects the default stabilizatiion
+PROGRAMMCONFIGURATION=""
+f90="gfortran"
+export f90
+F90OPTFLAGS="-O3"
+export F90OPTFLAGS
+FL="-c ${F90OPTFLAGS} ${PROGRAMMCONFIGURATION}"
+export FL
+DIR=`pwd`
+export DIR
+Libs=${DIR}"/Libraries/"
+export Libs
+LIB_BLAS_LAPACK="-llapack -lblas"
+export LIB_BLAS_LAPACK
+
+\end{lstlisting}
+In the above, the GNU Fortan compiler \texttt{gfortran} is set.\footnote{A known issue with the alternative Intel Fortran compiler \texttt{ifort} is the handling of automatic, temporary arrays 
+which \texttt{ifort} allocates on the stack. For large system sizes and/or low temperatures this may lead to 
+a runtime error. One solution is to demand allocation of arrays above a certain size on the heap instead of the stack. 
+This is accomplished by the \texttt{ifort} compiler flag \texttt{-heap-arrays [n]} where \texttt{[n]} is the minimal size (in kilobytes, for example \texttt{n=1024}) of arrays 
+that are allocated on the heap.}
+The program can be compiled and ran either in single-thread mode (default) or 
+in multi-threading mode (define \texttt{-DMPI}) using the MPI standard for parallelization.
+To compile the libraries, the analysis programs and the quantum Monte Carlo program, the following steps should be executed:
+\begin{enumerate}
+\item Export  the environment variables:
+\begin{verbatim}
+source set_env.sh
+\end{verbatim}
+\item Compile the libraries and the error analysis routines
+\begin{verbatim}
+cd Libraries
+make
+cd ..
+cd Analysis
+make
+cd ..
+\end{verbatim}
+\item Compile the quantum Monte Carlo code
+\begin{verbatim}
+cd Prog
+make
+cd ..
+\end{verbatim}
+\end{enumerate}
+
+%-------------------------------------------------------------------------------------
+\subsection{Starting a simulation}
+%-------------------------------------------------------------------------------------
+
+To start a simulation from scratch, the following files have to be present: \texttt{parameters} and \texttt{seeds}. 
+To run a single-thread simulation for one of the  Hubbard model described in Sec.~\ref{sec:walk1} - \ref{sec:walk2}, issue the command
+\begin{verbatim}
+./Prog/Examples.out
+\end{verbatim}
+To restart the code using an existing simulation as a starting point, first run the script \texttt{out\_to\_in.sh} to set 
+the input configuration files.
+
+%-------------------------------------------------------------------------------------
+\subsection{Error analysis}
+%-------------------------------------------------------------------------------------
+
+To perform an error analysis, based on the jackknife scheme, of the Monte Carlo bins for all observables run the script \texttt{analysis.sh} 
+(see Sec.~\ref{sec:analysis}).
+
+ 
+
+
+

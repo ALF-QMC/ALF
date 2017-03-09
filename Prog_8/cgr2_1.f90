@@ -44,7 +44,6 @@
         !  Here you want to compute  G00, G0T, GT0 and GTT just by involving LQ x LQ matrix operations. 
         !  If NVAR == 1  then the  large scales are in D1 
         !  If NVAR == 2  then the  large scales are in D2
-        Use Precdef
         Use MyMats
         USe UDV_Wrap_mod
 
@@ -52,29 +51,29 @@
         
         Interface
            SUBROUTINE CGR(Z,NVAR, GRUP, URUP,DRUP,VRUP, ULUP,DLUP,VLUP)
-             COMPLEX(Kind=8), Dimension(:,:), Intent(In) ::  URUP, VRUP, ULUP, VLUP
-             COMPLEX(Kind=8), Dimension(:), Intent(In)   ::  DLUP, DRUP
-             COMPLEX(Kind=8), Dimension(:,:), Intent(INOUT) :: GRUP
+             COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(In) ::  URUP, VRUP, ULUP, VLUP
+             COMPLEX(Kind=Kind(0.d0)), Dimension(:), Intent(In)   ::  DLUP, DRUP
+             COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(INOUT) :: GRUP
         
-             COMPLEX(Kind=8) :: Z
+             COMPLEX(Kind=Kind(0.d0)) :: Z
            END SUBROUTINE CGR
         end Interface
 
 
         !  Arguments
         Integer,  intent(in) :: LQ, NVAR
-        Complex (Kind=double), intent(in)    :: U1(LQ,LQ), V1(LQ,LQ), U2(LQ,LQ), V2(LQ,LQ)
-        Complex (Kind=double), intent(in)    :: D2(LQ), D1(LQ)
-        Complex (Kind=double), intent(inout) :: GRT0(LQ,LQ), GR0T(LQ,LQ), GR00(LQ,LQ), GRTT(LQ,LQ)
+        Complex (Kind=Kind(0.d0)), intent(in)    :: U1(LQ,LQ), V1(LQ,LQ), U2(LQ,LQ), V2(LQ,LQ)
+        Complex (Kind=Kind(0.d0)), intent(in)    :: D2(LQ), D1(LQ)
+        Complex (Kind=Kind(0.d0)), intent(inout) :: GRT0(LQ,LQ), GR0T(LQ,LQ), GR00(LQ,LQ), GRTT(LQ,LQ)
 
 
         ! Local::
-        Complex  (Kind=double) :: HLP1(LQ,LQ), HLP2(LQ,LQ), U(LQ,LQ), D(LQ), V(LQ,LQ)
-        Complex  (Kind=double) :: Z, Z1, Z2
-        Real     (Kind=double) :: Xmax, Xmin, Xmax1, Xmax2, Xmean
+        Complex  (Kind=Kind(0.d0)) :: HLP1(LQ,LQ), HLP2(LQ,LQ), U(LQ,LQ), D(LQ), V(LQ,LQ)
+        Complex  (Kind=Kind(0.d0)) :: Z, Z1, Z2
+        Real     (Kind=Kind(0.d0)) :: Xmax, Xmin, Xmax1, Xmax2, Xmean
         Integer                :: I, J, NCON, NVAR1
 
-        Complex  (Kind=double) :: V2inv(LQ,LQ), V1inv(LQ,LQ), alpha, beta
+        Complex  (Kind=Kind(0.d0)) :: V2inv(LQ,LQ), V1inv(LQ,LQ), alpha, beta
         
 
         NCON = 0
@@ -230,8 +229,8 @@
         Write(6,*) 'Cgr2_1 T0, Xmin: ', Xmin
 
         !Compute GRTT
-        Z  = cmplx(1.d0,0.d0,kind=8)
-        Z1 = cmplx(1.d0,0.d0,kind=8)
+        Z  = cmplx(1.d0,0.d0,Kind=Kind(0.d0))
+        Z1 = cmplx(1.d0,0.d0,Kind=Kind(0.d0))
         CALL CGR(Z,NVAR,GRTT, U2,D2,V2, U1,D1,V1)
 
  
@@ -264,10 +263,10 @@
 !!$              HLP2(I,J) =   HLP2(I,J)  + HLP1(I,J)*D2(J)
 !!$           ENDDO
 !!$        ENDDO
-!!$        Xmax2 = dble(cmplx(1.d0,0.d0,Kind=8)/D1(1))
+!!$        Xmax2 = dble(cmplx(1.d0,0.d0,Kind=Kind(0.d0))/D1(1))
 !!$        Xmax1 = dble(D2(1))
 !!$        Do I = 2,LQ
-!!$           X2 = dble(cmplx(1.d0,0.d0,Kind=8)/D1(I))
+!!$           X2 = dble(cmplx(1.d0,0.d0,Kind=Kind(0.d0))/D1(I))
 !!$           X1 = dble(D2(I))
 !!$           If ( X2 > Xmax2 ) Xmax2 = X2
 !!$           If ( X1 > Xmax1 ) Xmax1 = X1

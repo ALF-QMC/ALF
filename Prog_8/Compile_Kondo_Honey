@@ -1,12 +1,14 @@
 TARGET= Kondo_Honey.out
-OBJS=  control_mod.o Operator.o print_bin_mod.o Hamiltonian_Kondo_Honey_mod.o Hop_mod.o  UDV_WRAP.o tau_m.o  main.o wrapul.o  cgr1.o wrapgrup.o wrapur.o upgrade.o \
-       nranf.o wrapgrdo.o outconfc.o  inconfc.o cgr2.o cgr2_2.o cgr2_1.o
+OBJS=  control_mod.o Operator.o observables_mod.o QDRP_decompose.o wrap_helpers.o \
+       print_bin_mod.o Hamiltonian_Kondo_Honey_mod.o Hop_mod.o  UDV_WRAP.o \
+       Global_mod.o tau_m.o  main.o wrapul.o  cgr1.o wrapgrup.o wrapur.o upgrade.o \
+       wrapgrdo.o outconfc.o  inconfc.o cgr2.o cgr2_2.o cgr2_1.o
 
 
   
 .SUFFIXES: .f90 .f
 .f.o .f90.o:
-	$(FC) -c -cpp -o $@ $(FLAGS) $<
+	$(FC) -c $(F90USEFULFLAGS) -o $@ $(FLAGS) $<
 
 $(TARGET): $(OBJS)
 	$(FC) $(LF) -o $(TARGET) $(OBJS) $(LIBS)

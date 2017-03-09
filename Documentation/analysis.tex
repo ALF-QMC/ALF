@@ -1,0 +1,98 @@
+% Copyright (c) 2016 The ALF project.
+% This is a part of the ALF project documentation.
+% The ALF project documentation by the ALF contributors is licensed
+% under a Creative Commons Attribution-ShareAlike 4.0 International License.
+% For the licensing details of the documentation see license.CCBYSA.
+
+% !TEX root = Doc.tex
+%-------------------------------------------------------------------------------------
+\section{ Analysis programs }\label{sec:analysis}
+%-------------------------------------------------------------------------------------
+%
+\begin{table}[h]
+  \begin{tabular}{@{} l l @{}}\toprule
+   Program & Description \\\midrule
+   \texttt{cov\_scal.f90}  &  In combination with the script \texttt{analysis.sh}, the bin files with suffix \texttt{\_scal} are read in, \\
+                           & and  corresponding file with suffix \texttt{\_scalJ} are produced. They  contain the  result of the \\
+                           & Jackknife resampling.  \\
+   \texttt{cov\_eq.f90}    &  In combination with the script \texttt{analysis.sh}, the bin files with suffix \texttt{\_eq} are read in, \\
+                           & and   corresponding files will suffix  \texttt{\_eqJR}  and  \texttt{\_eqJK}  are produced. They  correspond to\\
+                           & correlation functions in real and Fourier space, respectively.  \\
+   \texttt{cov\_tau.f90}   &  In combination with the script \texttt{analysis.sh}, the bin files  \texttt{X\_tau} are read in, \\
+                           & and the directories  \texttt{X\_kx\_ky} are produced  for all \texttt{kx} and \texttt{ky} greater or equal to zero. \\
+                           & Here \texttt{X}  is a place holder from \texttt{Green}, \texttt{SpinXY}, etc   as specified in \texttt{ Alloc\_obs(Ltau)} \\
+                           & (See section \ref{Alloc_obs_sec}). Each directory contains  a  file    \texttt{g\_kx\_ky}  containing the  \\
+                           & time displaced correlation function traced over the  orbitals.  It also contains the  \\
+                           & covariance matrix if \texttt{N\_cov} is set to unity in the parameter file  listed in Sec.~\ref{sec:input}. \\
+                           & Equally, a directory  \texttt{X\_R0}  for the local  time displaced  correlation function is generated. \\\bottomrule
+   \end{tabular}
+   \caption{ Overview of analysis programs that are called within the script \texttt{analysis.sh}. \label{table:analysis_programs}}
+\end{table}
+%
+Here we briefly discuss the analysis programs which read in bins and carry out the error analysis.  
+Error analysis   is based  on the central limit theorem,  which required bins to be statistically independent, and also the existence of a well-defined variance of the distribution. 
+The former will be the case if bins are  longer than the auto-correlation time.  The latter has to be checked by the user, since in general the distribution variance depends on the model and on the observable. 
+In the parameter file listed in Sec.~\ref{sec:input}, the user  can specify the how many initial bins should be omitted (variable \texttt{n\_skip}). 
+This  number should be comparable to the auto-correlation time.     
+The  re-binning  variable \texttt{N\_rebin} will merge \texttt{N\_rebin}  bins into a single one.  If the autocorrelation time  is smaller than the effective bin size, then the error should be independent on the bin size and thereby on the variable \texttt{N\_rebin}.  Our analysis is based on the Jackknife resampling.  As listed in Table,  \ref{table:analysis_programs}  we provide three programs to account for the three observable types. The programs can be found in the directory \texttt{Analysis}  and   are executed by running the  bash shell script 
+\texttt{analysis.sh}
+%
+\begin{table}[h]
+   \begin{tabular}{@{} l l @{}}\toprule
+   File & Description \\\midrule
+   \texttt{parameters}  &  Contains also variables for the error analysis:\\
+   & \texttt{n\_skip}, \texttt{N\_rebin} and \texttt{N\_Cov} (see Sec.~\ref{sec:input}) \\
+   \texttt{X\_scal}, \texttt{Y\_eq}, \texttt{Y\_tau} & Monte Carlo bins (see Table \ref{table:output}) \\\bottomrule
+    \end{tabular}
+   \caption{Standard input files for the error analysis. \label{table:analysis_input}}
+\end{table}
+%
+\begin{table}[h]
+   \begin{tabular}{@{} l l l @{}}\toprule
+   File & Description \\\midrule
+   \texttt{X\_scalJ} & Jackknife mean and error of \texttt{X}, where  \texttt{X} stands for \texttt{Kin, Pot, Part}, and \texttt{Ener}.\\
+   \texttt{Y\_eqJR} and \texttt{Y\_eqJK} & Jackknife mean and error of \texttt{Y}, where \texttt{Y} stands for \texttt{Green, SpinZ, SpinXY}, and \texttt{Den}.\\
+   & The suffixes \texttt{R} and \texttt{K} refers to real and reciprocal space, respectively.\\
+   \texttt{Y\_R0/g\_R0} & Time-resolved and spatially local Jackknife mean and error of \texttt{Y},\\
+   & where \texttt{Y} stands for \texttt{Green, SpinZ, SpinXY}, and \texttt{Den}.\\
+   \texttt{Y\_kx\_ky/g\_kx\_ky} & Time-resolved and $\vec{k}$-dependent Jackknife mean and error of \texttt{Y},\\
+   & where \texttt{Y} stands for \texttt{Green, SpinZ, SpinXY}, and \texttt{Den}.\\\bottomrule
+    \end{tabular}
+   \caption{ Standard output files of the error analysis. \label{table:analysis_output}}
+\end{table}
+%
+In the following, we describe the formatting of the output files mentioned in Table \ref{table:analysis_output}.
+\begin{itemize}
+\item For the scalar quantities \texttt{X}, the output files  \texttt{X\_scalJ} have the following formatting:
+\begin{alltt}
+Effective number of bins, and bins:           <N_bin - n_skip>          <N_bin>
+
+OBS :    1      <mean(X)>      <error(X)>
+
+OBS :    2      <mean(sign)>   <error(sign)>
+\end{alltt}
+
+\item For the equal-time correlation functions \texttt{Y}, the formatting of the output files \texttt{Y\_eqJR} and \texttt{Y\_eqJK} follows this structure:
+\begin{alltt}
+do i = 1, N_unit_cell
+   <k_x(i)>   <k_y(i)>
+   do alpha = 1, N_orbital
+   do beta  = 1, N_orbital
+      alpha   beta   Re<mean(Y)>   Re<error(Y)>   Im<mean(Y)>   Im<error(Y)>
+   enddo
+   enddo
+enddo
+\end{alltt}
+where \texttt{Re} and \texttt{Im} refer to the real and imaginary part, respectively.
+
+\item The time-displaced correlation functions \texttt{Y} are written to the output files \texttt{Y\_R0/g\_R0}, when measured locally in space, 
+and to the output files \texttt{Y\_kx\_ky/g\_kx\_ky} when they are measured $\vec{k}$-resolved. 
+Both output files have the following formatting:
+\begin{alltt}
+do i = 0, Ltau
+   tau(i)   <mean( Tr[Y] )>   <error( Tr[Y])>
+enddo
+\end{alltt}
+where \texttt{Tr} corresponds to the trace over the orbital degrees of freedom.
+
+\end{itemize}

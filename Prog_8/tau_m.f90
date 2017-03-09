@@ -1,8 +1,47 @@
-     Module Tau_m_mod
+!  Copyright (C) 2016 The ALF project
+! 
+!     The ALF project is free software: you can redistribute it and/or modify
+!     it under the terms of the GNU General Public License as published by
+!     the Free Software Foundation, either version 3 of the License, or
+!     (at your option) any later version.
+! 
+!     The ALF project is distributed in the hope that it will be useful,
+!     but WITHOUT ANY WARRANTY; without even the implied warranty of
+!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+!     GNU General Public License for more details.
+! 
+!     You should have received a copy of the GNU General Public License
+!     along with Foobar.  If not, see http://www.gnu.org/licenses/.
+!     
+!     Under Section 7 of GPL version 3 we require you to fulfill the following additional terms:
+!     
+!     - It is our hope that this program makes a contribution to the scientific community. Being
+!       part of that community we feel that it is reasonable to require you to give an attribution
+!       back to the original authors if you have benefitted from this program.
+!       Guidelines for a proper citation can be found on the project's homepage
+!       http://alf.physik.uni-wuerzburg.de .
+!       
+!     - We require the preservation of the above copyright notice and this license in all original files.
+!     
+!     - We prohibit the misrepresentation of the origin of the original source files. To obtain 
+!       the original source files please visit the homepage http://alf.physik.uni-wuerzburg.de .
+! 
+!     - If you make substantial changes to the program we require you to either consider contributing
+!       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
+     Module Tau_m_mod
+!--------------------------------------------------------------------
+!> @author 
+!> ALF-project
+!
+!> @brief 
+!> This routine  handles calculation of imagimary time displaced Green functions and  
+!> calls the routine ObserT.f90 in the Hamiltonian module,  so as to compute the user
+!> defined  correlations. 
+!
+!--------------------------------------------------------------------
        Use Hamiltonian 
        Use Operator_mod
-       Use Precdef
        Use Control
        Use Hop_mod
 
@@ -16,70 +55,37 @@
               SUBROUTINE WRAPUL(NTAU1, NTAU, UL ,DL, VL)
                 Use Hamiltonian
                 Implicit none
-                COMPLEX (KIND=8) :: UL(Ndim,Ndim,N_FL), VL(Ndim,Ndim,N_FL)
-                COMPLEX (KIND=8) :: DL(Ndim,N_FL)
+                COMPLEX (Kind=Kind(0.d0)) :: UL(Ndim,Ndim,N_FL), VL(Ndim,Ndim,N_FL)
+                COMPLEX (Kind=Kind(0.d0)) :: DL(Ndim,N_FL)
                 Integer :: NTAU1, NTAU
               END SUBROUTINE WRAPUL
               SUBROUTINE CGR2_2(GRT0, GR00, GRTT, GR0T, U2, D2, V2, U1, D1, V1, LQ)
-                Use Precdef
                 Use MyMats
                 Use UDV_WRAP_mod
                 Implicit none
-                
                 !  Arguments
                 Integer,  intent(in) :: LQ
-                Complex (Kind=double), intent(in)    :: U1(LQ,LQ), V1(LQ,LQ), U2(LQ,LQ), V2(LQ,LQ)
-                Complex (Kind=double), intent(in)    :: D2(LQ), D1(LQ)
-                Complex (Kind=double), intent(inout) :: GRT0(LQ,LQ), GR0T(LQ,LQ), GR00(LQ,LQ), GRTT(LQ,LQ)
+                Complex (Kind=Kind(0.d0)), intent(in)    :: U1(LQ,LQ), V1(LQ,LQ), U2(LQ,LQ), V2(LQ,LQ)
+                Complex (Kind=Kind(0.d0)), intent(in)    :: D2(LQ), D1(LQ)
+                Complex (Kind=Kind(0.d0)), intent(inout) :: GRT0(LQ,LQ), GR0T(LQ,LQ), GR00(LQ,LQ), GRTT(LQ,LQ)
               end SUBROUTINE CGR2_2
-              SUBROUTINE CGR2_1(GRT0, GR00, GRTT, GR0T, U2, D2, V2, U1, D1, V1, LQ, NVAR)
-                Use Precdef
-                Use MyMats
-                USe UDV_Wrap_mod
-                Implicit none
-                !  Arguments
-                Integer,  intent(in) :: LQ, NVAR
-                Complex (Kind=double), intent(in)    :: U1(LQ,LQ), V1(LQ,LQ), U2(LQ,LQ), V2(LQ,LQ)
-                Complex (Kind=double), intent(in)    :: D2(LQ), D1(LQ)
-                Complex (Kind=double), intent(inout) :: GRT0(LQ,LQ), GR0T(LQ,LQ), GR00(LQ,LQ), GRTT(LQ,LQ)
-              end SUBROUTINE CGR2_1
-              SUBROUTINE CGR2(GRT0, GR00, GRTT, GR0T, U2, D2, V2, U1, D1, V1, LQ)
-          
-                !       B2 = U2*D2*V2
-                !       B1 = V1*D1*U1
-                !Calc:      (  1   B1 )^-1   i.e. 2*LQ \times 2*LQ matrix
-                !           (-B2   1  )
-                
-                
-                Use Precdef
-                Use UDV_WRAP_mod
-                Use MyMats
-                
-                Implicit none
-                
-                !  Arguments
-                Integer :: LQ
-                Complex (Kind=double), intent(in)    :: U1(LQ,LQ), V1(LQ,LQ), U2(LQ,LQ), V2(LQ,LQ)
-                Complex (Kind=double), intent(in)    :: D2(LQ), D1(LQ)
-                Complex (Kind=double), intent(inout) :: GRT0(LQ,LQ), GR0T(LQ,LQ), GR00(LQ,LQ), GRTT(LQ,LQ)
-              end SUBROUTINE CGR2
            end Interface
      
            Integer, Intent(In) :: NSTM, NWRAP
-           Complex (Kind=double), Intent(in) :: UST(NDIM,NDIM,NSTM,N_FL), VST(NDIM,NDIM,NSTM,N_FL), DST(NDIM,NSTM,N_FL) 
-           Complex (Kind=double), Intent(in) :: GR(NDIM,NDIM,N_FL),  Phase
+           Complex (Kind=Kind(0.d0)), Intent(in) :: UST(NDIM,NDIM,NSTM,N_FL), VST(NDIM,NDIM,NSTM,N_FL), DST(NDIM,NSTM,N_FL) 
+           Complex (Kind=Kind(0.d0)), Intent(in) :: GR(NDIM,NDIM,N_FL),  Phase
            Integer, Intent(In) :: STAB_NT(0:NSTM)         
 
            
 
            ! Local 
            ! This could be placed as  private for the module 
-           Complex (Kind=double)  :: GT0(NDIM,NDIM,N_FL),  G00(NDIM,NDIM,N_FL), GTT(NDIM,NDIM,N_FL), G0T(NDIM,NDIM,N_FL)
-           Complex (Kind=double)  :: UL(Ndim,Ndim,N_FL), DL(Ndim,N_FL), VL(Ndim,Ndim,N_FL) 
-           Complex (Kind=double)  :: UR(Ndim,Ndim,N_FL), DR(Ndim,N_FL), VR(Ndim,Ndim,N_FL) 
-           Complex (Kind=double)  :: HLP4(Ndim,Ndim), HLP5(Ndim,Ndim), HLP6(Ndim,Ndim)
+           Complex (Kind=Kind(0.d0))  :: GT0(NDIM,NDIM,N_FL),  G00(NDIM,NDIM,N_FL), GTT(NDIM,NDIM,N_FL), G0T(NDIM,NDIM,N_FL)
+           Complex (Kind=Kind(0.d0))  :: UL(Ndim,Ndim,N_FL), DL(Ndim,N_FL), VL(Ndim,Ndim,N_FL) 
+           Complex (Kind=Kind(0.d0))  :: UR(Ndim,Ndim,N_FL), DR(Ndim,N_FL), VR(Ndim,Ndim,N_FL) 
+           Complex (Kind=Kind(0.d0))  :: HLP4(Ndim,Ndim), HLP5(Ndim,Ndim), HLP6(Ndim,Ndim)
            
-           Complex (Kind=double)  ::  Z
+           Complex (Kind=Kind(0.d0))  ::  Z
            Integer  ::  I, J, nf, NT, NT1, NTST, NST, NVAR
            
            !Tau = 0
@@ -87,7 +93,7 @@
               DO J = 1,Ndim 
                  DO I = 1,Ndim
                     Z = cmplx(0.d0, 0.d0, kind(0.D0))
-                    if (I == J ) Z = cone
+                    if (I == J ) Z = cmplx(1.d0,0.d0,kind(0.d0))
                     G00(I,J,nf) = GR(I,J,nf)
                     GT0(I,J,nf) = GR(I,J,nf)
                     GTT(I,J,nf) = GR(I,J,nf)
@@ -99,11 +105,12 @@
            ! In Module Hamiltonian
            CALL OBSERT(NT,  GT0,G0T,G00,GTT, PHASE)
            
+           Z = cmplx(1.d0,0.d0,kind(0.d0))
            Do nf = 1, N_FL
-              CALL INITD(UR(:,:,nf),cone)
-              CALL INITD(VR(:,:,nf),cone)
+              CALL INITD(UR(:,:,nf),Z)
+              CALL INITD(VR(:,:,nf),Z)
            enddo
-           DR = cone
+           DR = Z
               
            NST = 1
            DO NT = 0,LTROT - 1
@@ -128,36 +135,16 @@
                     DL(:  ,nf) = DST(:  ,NST,nf)
                  Enddo
                  Do nf = 1,N_FL
-                    Do J = 1,Ndim
-                       DO I = 1,Ndim
-                          HLP4(I,J) = GTT(I,J,nf)
-                          HLP5(I,J) = GT0(I,J,nf)
-                          HLP6(I,J) = G0T(I,J,nf)
-                       Enddo
-                    Enddo
+                    HLP4(:,:) = GTT(:,:,nf)
+                    HLP5(:,:) = GT0(:,:,nf)
+                    HLP6(:,:) = G0T(:,:,nf)
                     NVAR = 1
                     IF (NT1  >  LTROT/2) NVAR = 2
-                    !DO I = 1,Ndim
-                    !   Write(6,*) DL(I,nf)*DR(I,nf)
-                    !enddo
-                    !Write(6,*) 'Call CGR2'
                     Call CGR2_2(GT0(:,:,nf), G00(:,:,nf), GTT(:,:,nf), G0T(:,:,nf), &
                          &      UR(:,:,nf),DR(:,nf),VR(:,:,nf), UL(:,:,nf),DL(:,nf),VL(:,:,nf),NDIM)
-                    !Call CGR2   (GT0(:,:,nf), G00(:,:,nf), GTT(:,:,nf), G0T(:,:,nf), &
-                    !     &      UR(:,:,nf),DR(:,nf),VR(:,:,nf), UL(:,:,nf),DL(:,nf),VL(:,:,nf),NDIM)
-                    
-                    !Call CGR2_1(GT0(:,:,nf), G00(:,:,nf), GTT(:,:,nf), G0T(:,:,nf), &
-                    !      &    UR(:,:,nf),DR(:,nf),VR(:,:,nf), UL(:,:,nf),DL(:,nf),VL(:,:,nf),NDIM,NVAR)
-                    
-                    !Write(6,*) 'End Call CGR2'
-                    !Write(6,*) ' Tau ', NT1
-                    !Write(6,*) ' G00 '
                     Call Control_Precision_tau(GR(:,:,nf), G00(:,:,nf), Ndim)
-                    !Write(6,*) ' GTT '
                     Call Control_Precision_tau(HLP4      , GTT(:,:,nf), Ndim)
-                    !Write(6,*) ' GT0 '
                     Call Control_Precision_tau(HLP5      , GT0(:,:,nf), Ndim)
-                    !Write(6,*) ' G0T '
                     Call Control_Precision_tau(HLP6      , G0T(:,:,nf), Ndim)
                  Enddo
                  NST = NST + 1
@@ -165,8 +152,8 @@
            ENDDO
            
          END SUBROUTINE TAU_M
-            
-!==============================================================
+
+!--------------------------------------------------------------------
          
          SUBROUTINE PROPR(AIN,NT) 
 
@@ -185,7 +172,6 @@
            Allocate(HLP4(Ndim, Ndim))
 
            Do nf = 1,N_FL
-              !CALL MMULT(HLP4,Exp_T(:,:,nf) ,Ain(:,:,nf))
               Call Hop_mod_mmthr(Ain(:,:,nf),HLP4,nf)
               Do n = 1,Size(Op_V,1)
                  X = Phi(nsigma(n,nt),Op_V(n,nf)%type)
@@ -196,7 +182,9 @@
            Deallocate(HLP4)
            
          end SUBROUTINE PROPR
-!==============================================================
+
+!--------------------------------------------------------------------
+
          SUBROUTINE PROPRM1(AIN,NT)
 
            !Ain = B^{-1}(NT-1, NT1) 
@@ -228,5 +216,5 @@
            Deallocate(HLP4)
            
          END SUBROUTINE PROPRM1
-!==============================================================
+
        end Module Tau_m_mod

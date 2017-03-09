@@ -4,11 +4,11 @@
         Use ERRORS
         Implicit none
 
-        REAL    (KIND=8), DIMENSION(:,:), ALLOCATABLE :: OBS
-        REAL    (KIND=8), DIMENSION(:),   ALLOCATABLE :: EN, SIGN
-        REAL    (KIND=8) :: XM, XERR
+        REAL    (Kind=Kind(0.d0)), DIMENSION(:,:), ALLOCATABLE :: OBS
+        REAL    (Kind=Kind(0.d0)), DIMENSION(:),   ALLOCATABLE :: EN, SIGN
+        REAL    (Kind=Kind(0.d0)) :: XM, XERR
 
-        Complex (Kind=8) Z1,Z2,Z3,Z4,Z5
+        Complex (Kind=Kind(0.d0)) Z1,Z2,Z3,Z4,Z5
         Integer :: NST, NS, NS1, NS2, NSTEP, NC, NP, NOBS, Nbins, NP_EFF, ISEED, I, IOBS
         Integer :: N, NBIN
 

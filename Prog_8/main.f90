@@ -1,4 +1,46 @@
+!  Copyright (C) 2016 The ALF project
+! 
+!     The ALF project is free software: you can redistribute it and/or modify
+!     it under the terms of the GNU General Public License as published by
+!     the Free Software Foundation, either version 3 of the License, or
+!     (at your option) any later version.
+! 
+!     The ALF project is distributed in the hope that it will be useful,
+!     but WITHOUT ANY WARRANTY; without even the implied warranty of
+!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+!     GNU General Public License for more details.
+! 
+!     You should have received a copy of the GNU General Public License
+!     along with Foobar.  If not, see http://www.gnu.org/licenses/.
+!     
+!     Under Section 7 of GPL version 3 we require you to fulfill the following additional terms:
+!     
+!     - It is our hope that this program makes a contribution to the scientific community. Being
+!       part of that community we feel that it is reasonable to require you to give an attribution
+!       back to the original authors if you have benefitted from this program.
+!       Guidelines for a proper citation can be found on the project's homepage
+!       http://alf.physik.uni-wuerzburg.de .
+!       
+!     - We require the preservation of the above copyright notice and this license in all original files.
+!     
+!     - We prohibit the misrepresentation of the origin of the original source files. To obtain 
+!       the original source files please visit the homepage http://alf.physik.uni-wuerzburg.de .
+! 
+!     - If you make substantial changes to the program we require you to either consider contributing
+!       to the ALF project or to mark your material in a reasonable way as different from the original version.
+
+
 Program Main
+
+!--------------------------------------------------------------------
+!> @author 
+!> ALF-project
+!
+!> @brief 
+!> Main program. Reads in VAR_QMC  namelist.  Calls Ham_set. Carries 
+!> out the sweeps. 
+!
+!--------------------------------------------------------------------
 
   Use Operator_mod
   Use Lattices_v3 
@@ -7,10 +49,9 @@ Program Main
   Use Control
   Use Tau_m_mod
   Use Hop_mod
-  
+  Use Global_mod
  
   Implicit none
-#include "machine"
 #ifdef MPI
   include 'mpif.h'
 #endif   
@@ -20,94 +61,105 @@ Program Main
      SUBROUTINE WRAPUL(NTAU1, NTAU, UL ,DL, VL)
        Use Hamiltonian
        Implicit none
-       COMPLEX (KIND=8) :: UL(Ndim,Ndim,N_FL), VL(Ndim,Ndim,N_FL)
-       COMPLEX (KIND=8) :: DL(Ndim,N_FL)
+       COMPLEX (Kind=Kind(0.d0)) :: UL(Ndim,Ndim,N_FL), VL(Ndim,Ndim,N_FL)
+       COMPLEX (Kind=Kind(0.d0)) :: DL(Ndim,N_FL)
        Integer :: NTAU1, NTAU
      END SUBROUTINE WRAPUL
      SUBROUTINE CGR(PHASE,NVAR, GRUP, URUP,DRUP,VRUP, ULUP,DLUP,VLUP)
        Use UDV_Wrap_mod
        Implicit None
-       COMPLEX(Kind=8), Dimension(:,:), Intent(In)    :: URUP, VRUP, ULUP, VLUP
-       COMPLEX(Kind=8), Dimension(:), Intent(In)      :: DLUP, DRUP
-       COMPLEX(Kind=8), Dimension(:,:), Intent(Inout) :: GRUP
-       COMPLEX(Kind=8) :: PHASE
+       COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(In)    :: URUP, VRUP, ULUP, VLUP
+       COMPLEX(Kind=Kind(0.d0)), Dimension(:), Intent(In)      :: DLUP, DRUP
+       COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(Inout) :: GRUP
+       COMPLEX(Kind=Kind(0.d0)) :: PHASE
        INTEGER         :: NVAR
      END SUBROUTINE CGR
      SUBROUTINE WRAPGRUP(GR,NTAU,PHASE)
        Use Hamiltonian
        Implicit none
-       COMPLEX (Kind=8), INTENT(INOUT) ::  GR(Ndim,Ndim,N_FL)
-       COMPLEX (Kind=8), INTENT(INOUT) ::  PHASE
+       COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT) ::  GR(Ndim,Ndim,N_FL)
+       COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT) ::  PHASE
        INTEGER, INTENT(IN) :: NTAU
      END SUBROUTINE WRAPGRUP
      SUBROUTINE WRAPGRDO(GR,NTAU,PHASE)
        Use Hamiltonian 
        Implicit None
-       COMPLEX (Kind=8), INTENT(INOUT) :: GR(NDIM,NDIM,N_FL)
-       COMPLEX (Kind=8), INTENT(INOUT) :: PHASE
+       COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT) :: GR(NDIM,NDIM,N_FL)
+       COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT) :: PHASE
        Integer :: NTAU
      end SUBROUTINE WRAPGRDO
      SUBROUTINE WRAPUR(NTAU, NTAU1, UR, DR, VR)
        Use Hamiltonian
        Use UDV_Wrap_mod
        Implicit None
-       COMPLEX (KIND=8) :: UR(Ndim,Ndim,N_FL), VR(Ndim,Ndim,N_FL)
-       COMPLEX (KIND=8) :: DR(Ndim,N_FL)
+       COMPLEX (Kind=Kind(0.d0)) :: UR(Ndim,Ndim,N_FL), VR(Ndim,Ndim,N_FL)
+       COMPLEX (Kind=Kind(0.d0)) :: DR(Ndim,N_FL)
        Integer :: NTAU1, NTAU
      END SUBROUTINE WRAPUR
 
-     
   end Interface
 
-  COMPLEX (KIND=8), Dimension(:,:)  , Allocatable   ::  TEST
+  COMPLEX (Kind=Kind(0.d0)), Dimension(:,:)  , Allocatable   ::  TEST
 
-  COMPLEX (Kind=8), Dimension(:,:)  , Allocatable    :: DL, DR
-  COMPLEX (Kind=8), Dimension(:,:,:), Allocatable    :: UL, VL, UR, VR
-  COMPLEX (Kind=8), Dimension(:,:,:), Allocatable    :: GR
+  COMPLEX (Kind=Kind(0.d0)), Dimension(:,:)  , Allocatable    :: DL, DR
+  COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable    :: UL, VL, UR, VR
+  COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable    :: GR
   
 
   Integer :: Nwrap, NSweep, NBin, NBin_eff,Ltau, NSTM, NT, NT1, NVAR, LOBS_EN, LOBS_ST, NBC, NSW
   Integer :: NTAU, NTAU1
-  Real(Kind=8) :: CPU_MAX 
+  Real(Kind=Kind(0.d0)) :: CPU_MAX 
+  Character (len=64) :: file1
 
+  
+#if defined(TEMPERING)
+  Integer :: N_exchange_steps, N_Tempering_frequency
+  NAMELIST /VAR_TEMP/  N_exchange_steps, N_Tempering_frequency
+#endif
 
-  NAMELIST /VAR_QMC/   Nwrap, NSweep, NBin, Ltau, LOBS_EN, LOBS_ST, CPU_MAX
+  NAMELIST /VAR_QMC/   Nwrap, NSweep, NBin, Ltau, LOBS_EN, LOBS_ST, CPU_MAX 
+
 
   Integer :: Ierr, I,nf, nst, n
-  Complex (Kind=8) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Phase, Z, Z1
-  Real    (Kind=8) :: ZERO = 10D-8
+  Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Phase, Z, Z1
+  Real    (Kind=Kind(0.d0)) :: ZERO = 10D-8
   Integer, dimension(:), allocatable :: Stab_nt
   
   ! Space for storage.
-  COMPLEX (Kind=8), Dimension(:,:,:)  , Allocatable :: DST
-  COMPLEX (Kind=8), Dimension(:,:,:,:), Allocatable :: UST,  VST
+  COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:)  , Allocatable :: DST
+  COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:,:), Allocatable :: UST,  VST
 
   ! For tests
-  Integer, external :: nranf
-  Real (kind=8) :: Weight, Weight_tot
+  Real (Kind=Kind(0.d0)) :: Weight, Weight_tot
   Integer :: nr,nth, nth1
   Logical :: Log
   
   ! For the truncation of the program:
-  Logical        :: prog_truncation
-  Real(kind=8)   :: time_bin_start,time_bin_end
-    
-  
+  logical                   :: prog_truncation
+  integer (kind=kind(0.d0)) :: count_bin_start, count_bin_end
+
 #ifdef MPI
   Integer        ::  Isize, Irank
   INTEGER        :: STATUS(MPI_STATUS_SIZE)
+#endif
+
+
+#ifdef MPI
   CALL MPI_INIT(ierr)
   CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
   CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
 #endif
-  
-  ! Write(6,*) 'Call Ham_set'
-  Call Ham_set
-  ! Write(6,*) 'End Call Ham_set'
-  Call confin 
-  Call Hop_mod_init
-  !Call Hop_mod_test 
-  !stop
+
+#ifdef MPI
+  If (  Irank == 0 ) then
+#endif
+     write (*,*) "ALF Copyright (C) 2016 The ALF project contributors"
+     write (*,*) "This Program comes with ABSOLUTELY NO WARRANTY; for details see license.GPL"
+     write (*,*) "This is free software, and you are welcome to redistribute it under certain conditions."
+#ifdef MPI
+  endif
+#endif
+ 
 
 
 #ifdef MPI
@@ -122,17 +174,35 @@ Program Main
      READ(5,NML=VAR_QMC)
      CLOSE(5)
      NBin_eff = NBin
+#if defined(TEMPERING) 
+     OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
+     IF (ierr /= 0) THEN
+        WRITE(*,*) 'unable to open <parameters>',ierr
+        STOP
+     END IF
+     READ(5,NML=VAR_TEMP)
+     CLOSE(5)
+#endif     
 #ifdef MPI
   Endif
-  CALL MPI_BCAST(Nwrap   ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-  CALL MPI_BCAST(NSweep  ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-  CALL MPI_BCAST(NBin    ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-  CALL MPI_BCAST(Ltau    ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-  CALL MPI_BCAST(LOBS_EN ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-  CALL MPI_BCAST(LOBS_ST ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-  CALL MPI_BCAST(CPU_MAX ,1,MPI_REAL8,  0,MPI_COMM_WORLD,ierr)
+  CALL MPI_BCAST(Nwrap          ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+  CALL MPI_BCAST(NSweep         ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+  CALL MPI_BCAST(NBin           ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+  CALL MPI_BCAST(Ltau           ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+  CALL MPI_BCAST(LOBS_EN        ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+  CALL MPI_BCAST(LOBS_ST        ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+  CALL MPI_BCAST(CPU_MAX        ,1,MPI_REAL8,  0,MPI_COMM_WORLD,ierr)
+#if defined(TEMPERING) 
+   CALL MPI_BCAST(N_exchange_steps        ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+   CALL MPI_BCAST(N_Tempering_frequency   ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+#endif  
 #endif
+
  
+  Call Ham_set
+  Call confin 
+  Call Hop_mod_init
+
   IF (ABS(CPU_MAX) > Zero ) NBIN = 1000000
  
   Call control_init
@@ -155,20 +225,23 @@ Program Main
      Stab_nt(n) = nwrap*n
   enddo
   Stab_nt(Nstm) = Ltrot
-  !do n = 1,Nstm
-  !   Write(6,*) n,stab_nt(n)
-  !enddo
 
-#ifdef MPI
+#if defined(TEMPERING)
+           write(File1,'(A,I0,A)') "Temp_",Irank,"/info"
+#else
+           File1 = "info"
+#endif
+           
+#if defined(MPI) && !defined(TEMPERING)
   if ( Irank == 0 ) then
 #endif
-     Open (Unit = 50,file="info",status="unknown",position="append")
+     Open (Unit = 50,file=file1,status="unknown",position="append")
      Write(50,*) 'Sweeps             : ', Nsweep
      Write(50,*) 'Measure Int.       : ', LOBS_ST, LOBS_EN
      Write(50,*) 'Stabilization,Wrap : ', Nwrap
      Write(50,*) 'Nstm               : ', NSTM
-     Write(50,*) 'Ltau               : ', Ltau 
-#ifdef MPI
+     Write(50,*) 'Ltau               : ', Ltau     
+#if defined(MPI) && !defined(TEMPERING)
      Write(50,*) 'Number of  threads : ', ISIZE
 #endif   
      If ( abs(CPU_MAX) < ZERO ) then
@@ -177,10 +250,26 @@ Program Main
      else
         Write(50,'("Prog will stop after hours:",2x,F8.4)') CPU_MAX
      endif
+#if defined(STAB1) 
+     Write(50,*) 'STAB1 is defined '
+#endif
+#if defined(STAB2) 
+     Write(50,*) 'STAB2 is defined '
+#endif
+#if defined(QRREF) 
+     Write(50,*) 'QRREF is defined '
+#endif
+#if defined(TEMPERING) 
+     Write(50,*) '# of exchange steps  ',N_exchange_steps 
+     Write(50,*) 'Tempering frequency  ',N_Tempering_frequency
+#endif
      close(50)
-#ifdef MPI
+#if defined(MPI) && !defined(TEMPERING)
   endif
 #endif
+
+
+  !Call Test_Hamiltonian
 
   
   Allocate ( UST(NDIM,NDIM,NSTM,N_FL), VST(NDIM,NDIM,NSTM,N_FL), DST(NDIM,NSTM,N_FL) )
@@ -204,6 +293,7 @@ Program Main
   DO NST = NSTM-1,1,-1
      NT1 = Stab_nt(NST+1)
      NT  = Stab_nt(NST  )
+     !Write(6,*)'Hi', NT1,NT, NST
      CALL WRAPUL(NT1,NT,UL,DL, VL)
      Do nf = 1,N_FL
         UST(:,:,NST,nf) = UL(:,:,nf)
@@ -214,29 +304,6 @@ Program Main
   NT1 = stab_nt(1)
   CALL WRAPUL(NT1,0, UL ,DL, VL)
 
-!!$  DO NT = LTROT-NWRAP,NWRAP,-1
-!!$     IF ( MOD(NT,NWRAP)  == 0 ) THEN
-!!$        NT1 = NT + NWRAP
-!!$        !Write(6,*) 'Calling Wrapul:', NT1,NT 
-!!$        CALL WRAPUL(NT1,NT,UL,DL, VL)
-!!$        NST = NINT( DBLE(NT)/DBLE(NWRAP) )
-!!$        !Write(6,*) "Write UL ", NST
-!!$        Do nf = 1,N_FL
-!!$           DO I = 1,Ndim
-!!$              DO J = 1,Ndim
-!!$                 UST(I,J,NST,nf) = UL(I,J,nf)
-!!$                 VST(I,J,NST,nf) = VL(I,J,nf)
-!!$              ENDDO
-!!$           ENDDO
-!!$           DO I = 1,Ndim
-!!$              DST(I,NST,nf) = DL(I,nf)
-!!$           ENDDO
-!!$        ENDDO
-!!$     ENDIF
-!!$  ENDDO
-!!$  CALL WRAPUL(NWRAP,0, UL ,DL, VL)
-  !WRITE(6,*) 'Filling up storage'
-  !Write(6,*) 'Done wrapping'
   
 
   NVAR = 1
@@ -250,16 +317,9 @@ Program Main
   !WRITE(6,*) 'Phase is: ', Irank, PHASE, GR(1,1,1)
 #else
   !WRITE(6,*) 'Phase is: ',  PHASE
-!!$  if (N_FL == 1) then
-!!$     Do n = 1,Ndim
-!!$        Write(6,*) GR(1,n,1)
-!!$     enddo
-!!$  else
-!!$     Do n = 1,Ndim
-!!$        Write(6,*) GR(1,n,1), GR(1,n,2)
-!!$     enddo
-!!$  endif
 #endif
+
+
 
   Call Control_init
 
@@ -267,13 +327,23 @@ Program Main
      ! Here, you have the green functions on time slice 1.
      ! Set bin observables to zero.
 
-     Call cpu_time(time_bin_start) 
+     call system_clock(count_bin_start)
      
      Call Init_obs(Ltau)
+
      DO NSW = 1, NSWEEP
- 
-        !Propagation from 1 to Ltrot
-        !Set the right storage to 1
+
+#if defined(TEMPERING)
+        IF (MOD(NSW,N_Tempering_frequency) == 0) then
+           !Write(6,*) "Irank, Call tempering", Irank, NSW
+           CALL Exchange_Step(Phase,GR,UR,DR,VR, UL,DL,VL,Stab_nt, UST, VST, DST,N_exchange_steps)
+        endif
+#endif
+        ! Global updates
+        If (Global_moves) Call Global_Updates(Phase,GR,UR,DR,VR, UL,DL,VL,Stab_nt, UST, VST, DST)
+
+        ! Propagation from 1 to Ltrot
+        ! Set the right storage to 1
         
         do nf = 1,N_FL
            CALL INITD(UR(:,:,nf),Z_ONE)
@@ -286,33 +356,25 @@ Program Main
         NST = 1
         DO NTAU = 0, LTROT-1
            NTAU1 = NTAU + 1
-           !Write(6,*) "Hi"
            CALL WRAPGRUP(GR,NTAU,PHASE) 
-           !Write(6,*) "Hi1"
-!!$           IF ( MOD(NTAU1,NWRAP ) .EQ. 0 ) THEN
-!!$              NST = NINT( DBLE(NTAU1)/DBLE(NWRAP) )
-!!$              NT1 = NTAU1 - NWRAP
            If (NTAU1 == Stab_nt(NST) ) then 
               NT1 = Stab_nt(NST-1)
-              !Write(6,*) 'Wrapur : ', NT1, NTAU1
               CALL WRAPUR(NT1, NTAU1,UR, DR, VR)
               Z = cmplx(1.d0, 0.d0, kind(0.D0))
               Do nf = 1, N_FL
+                 ! Read from storage left propagation from LTROT to  NTAU1
                  UL(:,:,nf) = UST(:,:,NST,nf)
                  VL(:,:,nf) = VST(:,:,NST,nf)
                  DL(:,  nf) = DST(:  ,NST,nf)
-                 ! Write in store Right prop from 1 to LTROT/NWRAP
-                 ! Write(6,*)  'Write UR, read UL ', NTAU1, NST
+                 ! Write in storage right prop from 1 to NTAU1
                  UST(:,:,NST,nf) = UR(:,:,nf)
                  VST(:,:,NST,nf) = VR(:,:,nf)
                  DST(:  ,NST,nf) = DR(:  ,nf)
                  NVAR = 1
                  IF (NTAU1 .GT. LTROT/2) NVAR = 2
-                 !Write(6,*) ' Call Cgr'
                  TEST(:,:) = GR(:,:,nf)
                  CALL CGR(Z1, NVAR, GR(:,:,nf), UR(:,:,nf),DR(:,nf),VR(:,:,nf),UL(:,:,nf),DL(:,nf),VL(:,:,nf)  )
                  Z = Z*Z1
-                 !Write(6,*) 'Calling control ',NTAU1, Z1
                  Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
               ENDDO
               call Op_phase(Z,OP_V,Nsigma,N_SUN) 
@@ -322,11 +384,8 @@ Program Main
            ENDIF
 
            IF (NTAU1.GE. LOBS_ST .AND. NTAU1.LE. LOBS_EN ) THEN
-              !Write(6,*) 'Call obser ', Ntau1
               CALL Obser( GR, PHASE, Ntau1 )
-              !Write(6,*) 'Return obser'
            ENDIF
-           !Write(6,*) NTAU1
         ENDDO
         
         Do nf = 1,N_FL
@@ -342,10 +401,6 @@ Program Main
            IF (NTAU1.GE. LOBS_ST .AND. NTAU1.LE. LOBS_EN ) THEN
               CALL Obser( GR, PHASE, Ntau1 )
            ENDIF
-!!$           IF ( MOD(NTAU1,NWRAP).EQ.0 .AND. NTAU1.NE.0 ) THEN
-!!$              ! WRITE(50,*) 'Recalc at  :', NTAU1
-!!$              NST = NINT( DBLE(NTAU1)/DBLE(NWRAP) )
-!!$              NT1 = NTAU1 + NWRAP
            IF ( Stab_nt(NST) == NTAU1 .AND. NTAU1.NE.0 ) THEN
               NT1 = Stab_nt(NST+1)
               !Write(6,*) 'Wrapul : ', NT1, NTAU1
@@ -353,6 +408,7 @@ Program Main
               !Write(6,*)  'Write UL, read UR ', NTAU1, NST
               Z = cmplx(1.d0, 0.d0, kind(0.D0))
               do nf = 1,N_FL
+                 ! Read from store the right prop. from 1 to LTROT/NWRAP-1
                  UR(:,:,nf) = UST(:,:,NST,nf)
                  VR(:,:,nf) = VST(:,:,NST,nf)
                  DR(:  ,nf) = DST(:  ,NST,nf)
@@ -362,11 +418,9 @@ Program Main
                  DST(:  ,NST,nf) =  DL(:  ,nf)
                  NVAR = 1
                  IF (NTAU1 .GT. LTROT/2) NVAR = 2
-                 !Write(6,*) ' Call Cgr'
                  TEST(:,:) = GR(:,:,nf)
                  CALL CGR(Z1, NVAR, GR(:,:,nf), UR(:,:,nf),DR(:,nf),VR(:,:,nf),  UL(:,:,nf),DL(:,nf),VL(:,:,nf)  )
                  Z = Z*Z1
-                 !Write(6,*) 'Calling control: ', NTAU1, Z1
                  Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
               ENDDO
               call Op_phase(Z,OP_V,Nsigma,N_SUN) 
@@ -379,7 +433,6 @@ Program Main
         !Calculate and compare green functions on time slice 0.
         NT1 = Stab_nt(0)
         NT  = Stab_nt(1)
-        !Write(6,*) 'Wrapul : ', NT, NT1
         CALL WRAPUL(NT,NT1, UL, DL, VL )
         
         do nf = 1,N_FL
@@ -393,7 +446,6 @@ Program Main
            NVAR = 1
            CALL CGR(Z1, NVAR, GR(:,:,nf), UR(:,:,nf),DR(:,nf),VR(:,:,nf),  UL(:,:,nf),DL(:,nf),VL(:,:,nf)  )
            Z = Z*Z1
-           !Write(6,*) 'Calling control  0', Z1
            Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
         ENDDO
         call Op_phase(Z,OP_V,Nsigma,N_SUN) 
@@ -410,45 +462,41 @@ Program Main
            ENDDO
         enddo
         IF ( LTAU == 1 ) then
-!!$#ifdef MPI
-!!$           Write(6,*) Irank, 'Calling Tau_m', NWRAP, NSTM
-!!$#else
-!!$           Write(6,*)  'Calling Tau_m', NWRAP, NSTM
-!!$#endif
-
+           ! Call for imaginary time displaced  correlation fuctions. 
            Call TAU_M( UST,DST,VST, GR, PHASE, NSTM, NWRAP, STAB_NT ) 
-!!$#ifdef MPI
-!!$           Write(6,*) Irank, 'Back Calling Tau_m'
-!!$#else
-!!$           Write(6,*)  'Back Calling Tau_m'
-!!$#endif
         endif
            
      ENDDO
      Call Pr_obs(Ltau)
      Call confout
-          
-     Call cpu_time(time_bin_end)
+
+     call system_clock(count_bin_end)
      prog_truncation = .false.
      if ( abs(CPU_MAX) > Zero ) then
-        Call make_truncation(prog_truncation,CPU_MAX,time_bin_start,time_bin_end)
+        Call make_truncation(prog_truncation,CPU_MAX,count_bin_start,count_bin_end)        
      endif
      If (prog_truncation) then 
         Nbin_eff = nbc
         exit !exit the loop over the bin index, labelled NBC.
      Endif
   Enddo
+  DEALLOCATE(DL, DR, UL, UR, VR, VL, GR, UST, VST, DST, TEST, Stab_nt)
   Call Control_Print
 
-#ifdef MPI
+#if defined(MPI) && !defined(TEMPERING)
   If (Irank == 0 ) then
 #endif
      if ( abs(CPU_MAX) > Zero ) then
-        Open (Unit=50,file="info", status="unknown", position="append")
+#if defined(TEMPERING)
+        write(File1,'(A,I0,A)') "Temp_",Irank,"/info"
+#else
+        File1 = "info"
+#endif
+        Open (Unit=50,file=File1, status="unknown", position="append")
         Write(50,*)' Effective number of bins   : ', Nbin_eff
         Close(50)
      endif
-#ifdef MPI
+#if defined(MPI) && !defined(TEMPERING)
   endif
 #endif
  

@@ -1,0 +1,348 @@
+% Copyright (c) 2016 The ALF project.
+% This is a part of the ALF project documentation.
+% The ALF project documentation by the ALF contributors is licensed
+% under a Creative Commons Attribution-ShareAlike 4.0 International License.
+% For the licensing details of the documentation see license.CCBYSA.
+
+% !TEX root = Doc.tex
+%------------------------------------------------------------
+\section{Implementation of the model} \label{sec:imp}
+%------------------------------------------------------------
+
+In general, the module \path{Hamiltonian} defines the model Hamiltonian, the lattice under consideration and the desired observables (Table~\ref{table:hamiltonian}). 
+We have collected a number of example Hamiltonians, lattices and observables in the file  \path{Hamiltonian_Examples.f90}.  They are described in the Sec.~\ref{sec:walk1} - \ref{sec:walk2}.
+To implement a user-defined model, only the module \path{Hamiltonian} has to be set up. Accordingly, this documentation focusses almost entirely  on this module and the subprograms it includes. 
+The remaining parts of the code may be treated as as a black box.  
+
+To specify the Hamiltonian, one needs  an  \path{Operator} and \path{Lattice} type as well as a type for the observables. These three data structures will be described in the following. 
+
+%
+\begin{table}[h]
+    \begin{tabular}{@{} l l l @{}}\toprule
+    Subprogram & Description & Section \\\midrule
+    \hl{\texttt{Ham\_Set}}  & Reads in model and lattice parameters from the file \texttt{parameters}. \\
+                       & And it sets the Hamiltonian by calling \texttt{Ham\_latt}, \texttt{Ham\_hop}, and \texttt{Ham\_V}. & \\
+    \hl{\texttt{Ham\_hop}}  & Sets the hopping term  $\hat{\mathcal{H}}_{T}$ by calling \texttt{Op\_make} and \texttt{Op\_set}. & \ref{sec:op}, \ref{sec:specific}\\
+    \hl{\texttt{Ham\_V}}    & Sets the interaction terms  $\hat{\mathcal{H}}_{V}$ and $\hat{\mathcal{H}}_{I}$ 
+                         by calling \texttt{Op\_make} and \texttt{Op\_set}.& \ref{sec:op}, \ref{sec:specific}\\  
+    \hl{\texttt{Ham\_Latt}} & Sets the lattice by calling \texttt{Make\_Lattice}.& \ref{sec:latt}\\
+    \hl{\texttt{S0}}        & A function which returns an update ratio for the Ising term $\hat{\mathcal{H}}_{I,0}$. 
+    & \ref{sec:s0} \\
+    \hl{\texttt{Alloc\_obs}} & Asigns memory storage to the observables & \\
+    \hl{\texttt{Obser}}      & Computes the scalar observables and equal-time correlation functions. & \ref{sec:obs} \\
+    \hl{\texttt{ObserT}}     & Computes time-displaced correlation functions. & \ref{sec:obs}\\
+    \texttt{Init\_obs}  & Initializes the observables to zero. & \\    
+    \texttt{Pr\_obs}    & Writes the observables to the disk by calling \texttt{Print\_bin}. \\\bottomrule    
+   \end{tabular}
+   \caption{Overview of the subprograms of the  module \texttt{Hamiltonian} to define the Hamiltonian, the lattice and the observables. 
+   The highlighted subroutines have to be modified by the user.
+    \label{table:hamiltonian}}
+\end{table}
+%
+
+%------------------------------------------------------------
+\subsection{The \texttt{Operator} type}\label{sec:op}
+%------------------------------------------------------------
+
+The fundamental data structure in the code is the derived data type \path{Operator}. 
+This type is used to define the Hamiltonian (\ref{eqn:general_ham}).
+In general, the matrices ${\bf T}^{(ks)}$, ${\bf V}^{(ks)}$ and ${\bf I}^{(ks)}$ are sparse Hermitian matrices.
+Consider the  matrix   ${\bm X}$ of dimension  $N_{\mathrm{dim}} \times N_{\mathrm{dim}}$, as an representative of each of the above three matrices.  Let us  denote  with  $ \left\{z_{1},\cdots,  z_{N}  \right\}$  a subset  of $N$ indices,  
+for which
+\begin{equation}
+X_{x,y}  =
+\left\{\begin{matrix}  X_{x,y}  &  \text{ if }   x,  y  \in \left\{ z_1, \cdots z_N \right\}\\ 
+                                  0         &  \text{ otherwise } 
+      \end{matrix}\right.
+\end{equation}
+ We define the $N \times N_{\mathrm{dim}}$ matrices $\mathbf{P}$  as
+\begin{equation}
+P_{i,x}=\delta_{z_{i},x}\;,
+\end{equation}
+where $i \in [1,\cdots, N ]$ and $ x  \in [1,\cdots, N_{\mathrm{dim}}]$. The matrix  $\bm{P}$ picks out the non-vanishing entries of $\bm{X}$, 
+which are contained in the rank-$N$  matrix $\bm{O}$.  Thereby: 
+\begin{equation}\label{eqn:xeqpdop}
+\bm{X} =\bm{P}^{T} \bm{O} \bm{P}\;,
+\end{equation}
+such that:
+\begin{equation}
+X_{x,y} = \sum\limits_{i,j}^{N}  P_{i,x}  O_{i,j} P_{j,y}=\sum\limits_{i,j}^{N} \delta_{z_{i},x}  O_{ij} \delta_{z_{j},y} \;.
+\end{equation}
+Since  the  $\bm{P}$ matrices have only one non-vanishing entry per column,  they can be stored as a vector $\vec{P}$:
+\begin{equation}
+     P_i = z_i.
+\end{equation}  
+There are  many useful  identities which emerge from this  structure. For example: 
+\begin{equation}
+	e^{\bm{X}} =  e^{\bm{P}^{T} \bm{O} \bm{P}}   = \sum_{n=0}^{\infty}  \frac{\left( \bm{P}^{T} \bm{O} \bm{P} \right)^n}{n!} =  \bm{P}^{T} e^{ \bm{O} } \bm{P}
+\end{equation}
+since 
+\begin{equation} 
+	 \bm{P} \bm{P}^{T}= 1_{N\times N}.
+\end{equation}
+
+In the code, we define a structure called \path{Operator} to capture the above. 
+This type \path{Operator} bundles several components that are needed to define and use an operator matrix in the program.  
+
+%------------------------------------------------------------
+\subsubsection{Specification of the model}\label{sec:specific}
+%------------------------------------------------------------
+%
+\begin{table}[h]
+    \begin{tabular}{@{} l l l @{}}\toprule
+    Variable & Type & Description \\\midrule
+    \hl{\texttt{Op\_X\%N}}       & Integer     &  effective dimension $N$ \\
+    \hl{\texttt{Op\_X\%O}}       & Complex    &  matrix  $\mathbf{O}$  of dimension $N \times N$\\
+    \hl{\texttt{Op\_X\%P}}       & Integer   &  projection matrix $\mathbf{P}$  encoded as a vector of dimension $N$.\\
+    \hl{\texttt{Op\_X\%g}}       & Complex    &  coupling strength $g$ \\  
+    \hl{\texttt{Op\_X\%alpha}}   & Complex  &  constant $\alpha$ \\
+    \hl{\texttt{Op\_X\%type}}    & Integer   &  parameter to set the type of 
+                                             HS transformation\\
+                             &   &  (1 = Ising, 2 = Discrete HS, for perfect square)  \\ 
+    \texttt{Op\_X\%U}            & Complex &  matrix containing the eigenvectors of $\mathbf{O}$  \\
+    \texttt{Op\_X\%E}            & Real &  eigenvalues of $\mathbf{O}$ \\
+    \texttt{Op\_X\%N\_non\_zero} & Integer &  number of non-vanishing eigenvalues of $\mathbf{O}$ \\\bottomrule
+   \end{tabular}
+   \caption{Member Variables of the \texttt{Operator}  type. 
+   In the left column, the letter \texttt{X} is a placeholder for the letters \texttt{T} and \texttt{V}, 
+   indicating hopping and interaction operators, respectively.
+   The highlighted variables have to be specified by the user.
+  %  One will have to specify $N$, $O$, $P$, $g$, $\alpha$ and the type.  The other variables will be automatically generated in the routine \texttt{Op\_Set}.  
+    \label{table:operator}}
+\end{table}
+%
+In this section we show how to specify the  Hamiltonian (\ref{eqn:general_ham}) in the code. 
+More precisely, we specify the Hamiltonian by setting  the matrices 
+$ e^{-\Delta \tau {\bm T}^{(ks)}}$, $e^{  \sqrt{ \Delta \tau  U_k} \eta_{k\tau} {\bm V}^{(ks)} }$, and $e^{  -\Delta \tau s_{k\tau}  {\bm I}^{(ks)}}$ that appear in the 
+partition function (\ref{eqn:partition_2}). 
+To do so, we consider the general expression
+\begin{equation}\label{eqn:exponent_mat}
+e^{g \,\phi_{k\tau}(\texttt{type})\,\left(\mathbf{X} + \alpha\right)}\;,
+\end{equation}
+and store the following quantities in a variable of type \path{Operator} (see Table \ref{table:operator}):
+the matrix $\mathbf{X}$ [see Eq.~(\ref{eqn:xeqpdop})], the constants $g$ and $\alpha$, and, optionally, also 
+the type of the fields $\phi_{k\tau}(\text{type})$.  Either the fields
+stem from the Ising term (\path{type=1}: $\phi_{k\tau}=s_{k\tau}$), or they result from the discrete Hubbard-Stratonovich transformation (\texttt{type=2}: $\phi_{k\tau}=\eta_{k\tau}$)).
+ In general, we need  several arrays of variables of type \path{Operator}.
+Since the implementation exploits the $SU(N_{\mathrm{col}})$ invariance of the Hamiltonian, we have dropped the color index $\sigma$ in the following.
+\begin{itemize}
+\item For the hopping Hamiltonian (\ref{eqn:general_ham_t}), we have to set the exponentiated hopping matrices $ e^{-\Delta \tau {\bm T}^{(ks)}}$: 
+
+In this case $\mathbf{X}^{(ks)}=\mathbf{T}^{(ks)}$. Precisely, a single variable  \texttt{Op\_T}  describes the operator matrix
+\begin{equation}
+            \left( \sum_{x,y}^{N_{\mathrm{dim}}} \hat{c}^{\dagger}_x T_{xy}^{(ks)} \hat{c}^{\phantom{\dagger}}_{y}  \right)  \;,
+\end{equation} 
+where $k=[1, M_{T}]$ and $s=[1, N_{\mathrm{fl}}]$.  
+To make contact with the general expression (\ref{eqn:exponent_mat}) we set $g=-\Delta \tau$, $\alpha = 0$. 
+In case of the hopping matrix, the type variable $\texttt{Op\_T\%type}$  is neglected by the code. 
+All in all, the corresponding array of structure variables is  \texttt{Op\_T(M$_T$,N$_{fl}$)}.
+
+\item For the interaction Hamiltonian (\ref{eqn:general_ham_v}), which is of perfect-square type, we have to set the exponentiated matrices $e^{  \sqrt{ -  \Delta \tau  U_k} \eta_{k\tau} {\bm V}^{(ks)} }$:
+
+In this case, ${\mathbf X}  = \mathbf{V}^{(ks)}$. A single variable  \texttt{Op\_V}  describes the operator matrix:
+\begin{equation}
+             \left[ \left( \sum_{x,y}^{N_{\mathrm{dim}}} \hat{c}^{\dagger}_x V_{x,y}^{(ks)} \hat{c}^{\phantom{\dagger}}_{y}  \right)  + \alpha_{ks} \right]  \;,
+\end{equation} 
+where $k=[1, M_{V}]$ and $s=[1, N_{\mathrm{fl}}]$. 
+To make contact with the general expression (\ref{eqn:exponent_mat}), we set  $\alpha = \alpha_{ks}$ and $g = \sqrt{-\Delta \tau  U_k}$. 
+The discrete Hubbard-Stratonovich decomposition which is used for the perfect-square interaction, is selected by setting the type variable to $\texttt{Op\_V\%type}=2$.
+All in all, the required structure variables \texttt{Op\_V} are defined  using the array \texttt{Op\_V(M$_V$,N$_{fl}$)}.
+
+
+\item For the Ising interaction Hamiltonian (\ref{eqn:general_ham_i}), we have to set the exponentiated matrices $e^{  -\Delta \tau s_{k\tau}  {\bm I}^{(ks)}}$:
+
+In this case, $\bm{X}  = \bm{I}^{(k,s)} $.  
+A single variable  \texttt{Op\_V} then  describes the operator matrix:
+\begin{equation}
+            \left( \sum_{x,y}^{N_{\mathrm{dim}}} \hat{c}^{\dagger}_x I_{xy}^{(ks)} \hat{c}^{\phantom{\dagger}}_{y}  \right)  \;,
+\end{equation} 
+where $k=[1, M_{I}]$ and $s=[1, N_{\mathrm{fl}}]$. 
+To make contact with the general expression (\ref{eqn:exponent_mat}), we set $\alpha = 0$ and $g = -\Delta \tau$.
+The Ising interaction is specified by setting the type variable  $\texttt{Op\_V\%type=1}$. 
+All in all, the required structure variables are contained in the array \texttt{Op\_V(M$_{I}$,N$_{fl}$)}.
+
+\item In case of a full interaction [perfect-square term (\ref{eqn:general_ham_v}) and Ising term (\ref{eqn:general_ham_i})],
+we  define  the corresponding doubled array \texttt{Op\_V(M$_V$+M$_I$,N$_{fl}$) } and set the variables separately for both ranges of the array according to the above.  
+
+\end{itemize}
+
+%------------------------------------------------------------
+\subsection{The \texttt{Lattice} type}\label{sec:latt}
+%------------------------------------------------------------
+
+We have a lattice module  which can generate one and two dimensional Bravais lattices.
+Note that the orbital structure of each unit cell, has to be specified by the user in the Hamiltonian module. 
+ The user has to specify unit vectors $\vec{a}_1$ and $\vec{a}_2$ as well as the size of the  lattice. The size is  characterized by  two vectors $\vec{L}_1$ and $\vec{L}_2$   and  the lattice is placed on a torus: 
+\begin{equation}
+	\hat{c}_{\vec{i} + \vec{L}_1 }  = \hat{c}_{\vec{i} + \vec{L}_2 }  = \hat{c}_{\vec{i}}
+\end{equation}
+The function call 
+\begin{lstlisting} 
+Call Make_Lattice( L1, L2, a1,  a2, Latt )
+\end{lstlisting}
+will generate the lattice   \texttt{Latt} of type \texttt{Lattice}.   Note that  the structure of the unit cell has to be provided by the user.    The reciprocal lattice vectors are defined by: 
+\begin{equation}
+\label{Latt.G.eq}
+	\vec{a}_i  \cdot \vec{g}_i = 2 \pi \delta_{i,j}, 
+\end{equation}
+and the Brillouin zone corresponds to the Wigner Seitz cell of the lattice. 
+With $\vec{k} = \sum_{i} \alpha_i  \vec{g}_i $, the  k-space quantization follows from: 
+\begin{equation}
+\begin{bmatrix}
+	\vec{L}_1 \cdot \vec{g}_1  &  \vec{L}_1 \cdot \vec{g}_2  \\
+	\vec{L}_2  \cdot \vec{g_1} & \vec{L}_2 \cdot  \vec{g}_2  
+\end{bmatrix}
+\begin{bmatrix}
+   \alpha_1 \\
+   \alpha_2
+\end{bmatrix}
+=
+2 \pi 
+\begin{bmatrix}
+   n \\
+   m
+\end{bmatrix}
+\end{equation}
+such that 
+\begin{eqnarray}
+\label{k.quant.eq}
+     \vec{k} =  n \vec{b}_1  + m \vec{b}_2 \text{  with  }   & &   \vec{b}_1 = \frac{2 \pi}{ (\vec{L}_1 \cdot \vec{g}_1)  (\vec{L}_2 \cdot  \vec{g}_2 )  - (\vec{L}_1 \cdot \vec{g}_2) (\vec{L}_2  \cdot \vec{g_1} ) }   \left[  (\vec{L}_2 \cdot  \vec{g}_2) \vec{g}_1 -   (\vec{L}_2  \cdot \vec{g_1} ) \vec{g}_2 \right] \text{   and  } \nonumber \\ 
+        & & \vec{b}_2 = \frac{2 \pi}{ (\vec{L}_1 \cdot \vec{g}_1)  (\vec{L}_2 \cdot  \vec{g}_2 )  - (\vec{L}_1 \cdot \vec{g}_2) (\vec{L}_2  \cdot \vec{g_1} ) }   
+           \left[  (\vec{L}_1 \cdot  \vec{g}_1) \vec{g}_2 -   (\vec{L}_1  \cdot \vec{g_2} ) \vec{g}_1 \right] 
+\end{eqnarray}
+
+%
+\begin{table}[h]
+   \begin{tabular}{@{} l l l @{}}\toprule
+    Variable  & Type & Description \\\midrule
+     \hl{\texttt{Latt\%a1\_p}, \texttt{Latt\%a2\_p}}   & Real     & Unit vectors $\vec{a}_1$,  $\vec{a}_2$ \\ 
+     \hl{\texttt{Latt\%L1\_p}, \texttt{Latt\%L2\_p}}   & Real     & Vectors $\vec{L}_1$, $\vec{L}_2$ that define the topology of the  lattice. \\
+     									  &              &  Tilted lattices are  thereby possible to implement.  \\
+    \texttt{Latt\%N}                                                 &   Integer &  Number of lattice points, $N_{\text{unit cell}}$   \\
+    \texttt{Latt\%list}                                               & Integer &  maps each lattice point $i=1,\cdots, N_{\text{unit cell}}$ to a real space vector\\ 
+                                                                             &   &  denoting the position of the unit cell: \\
+                                                                             &   & $\vec{R}_i$ = \texttt{list(i,1)} $\vec{a}_1$ +  \texttt{list(i,2)} $\vec{a}_2$  $  \equiv i_1  \vec{a}_1 + i_2  \vec{a}_2 $ \\
+    \texttt{Latt\%invlist}                                        &  Integer &   \texttt{Invlist}$(i_1,i_2) = i $ \\
+    \texttt{Latt\%nnlist}                                         &  Integer &   $j = \texttt{nnlist} (i, n_1, n_2) $,  $n_1, n_2 \in [-1,1] $ \\
+                                                                           &              &    $\vec{R}_j = \vec{R}_i + n_1 \vec{a}_1  + n_2 \vec{a}_2 $ \\
+   \texttt{Latt\%imj}                                             &   Integer  &  $ \vec{R}_{imj(i,j)}  =  \vec{R}_i -  \vec{R}_j$.        $imj, i, j \in  1,\cdots, N_{\text{unit cell}}$\\
+    \texttt{Latt\%BZ1\_p}, \texttt{Latt\%BZ2\_p}  &   Real     & Reciprocal space vectors $\vec{g}_i$   (See Eq.~\ref{Latt.G.eq})\\
+    \texttt{Latt\%b1\_p}, \texttt{Latt\%b1\_p}       &   Real     &  k-quantization (See Eq.~\ref{k.quant.eq}) \\
+    \texttt{Latt\%listk}                                           &  Integer &  maps each reciprocal lattice point $k=1,\cdots, N_{\text{unit cell}}$\\
+                                                                          &    & to a reciprocal space vector\\
+                                                                          &     & $\vec{k}_k= \texttt{listk(k,1)} \vec{b}_1 +  \texttt{listk(k,2)} \vec{b}_2  \equiv k_1  \vec{b}_1 +   k_2  \vec{b}_2 $\\
+    \texttt{Latt\%invlistk}                                     &    Integer    &   \texttt{Invlistk}$(k_1,k_2) = k $ \\
+   \texttt{Latt\%b1\_perp\_p},  \\ 
+   \texttt{Latt\%b2\_perp\_p}                             &    Real         &  Orthonormal vectors to $\vec{b}_i$.  For internal use. \\\bottomrule
+   \end{tabular}
+   \caption{Components of the \texttt{Lattice} type for two-dimensional lattices using as example the default lattice name \texttt{Latt}.
+   The highlighted variables have to be specified by the user.  Other components of the Lattice will be generated  when calling: \texttt{ Call Make\_Lattice( L1, L2, a1,  a2, Latt )}. 
+    \label{table:lattice}}
+\end{table}
+%
+
+The \path{Lattice}  module equally handles  the Fourier transformation.  For example  the  subroutine  \path{Fourier_R_to_K}   carries out the  transformation: 
+\begin{equation}
+	S(\vec{k}, :,:,:) =  \frac{1}{N_{unit \,cell}}  \sum_{\vec{i},\vec{j}}   e^{-i \vec{k} \cdot \left( \vec{i}-\vec{j} \right)} S(\vec{i}  - \vec{j}, :,:,:)
+\end{equation}
+and  \path{Fourier_K_to_R}  the  inverse Fourier transform 
+ \begin{equation}
+	S(\vec{r}, :,:,:) =  \frac{1}{N_{unit \,cell}}  \sum_{\vec{k} \in BZ }   e^{ i \vec{k} \cdot \vec{r}} S(\vec{k}, :,:,:).
+\end{equation}
+In the above,   the unspecified dimensions of   structure factor can refer  to imaginary time,  and orbital indices. 
+
+%--------------------------------------------------------------------------------------------
+\subsection{The observable types \texttt{Obser\_Vec} and \texttt{Obser\_Latt}}\label{sec:obs}
+%--------------------------------------------------------------------------------------------
+
+Our definition  of the model includes observables [Eq.~(\ref{eqn:obs_rw})]. We have defined two observable types: \texttt{Obser\_vec}  for a array of scalar observables
+such as the energy and  \texttt{Obser\_Latt}   for correlation functions that have the lattice symmetry. In the latter case, translation symmetry can be used to provide improved estimators and to reduce the size of the I/O.   
+We also obtain improved estimators by taking measurements in the imaginary-time interval \texttt{[LOBS\_ST,LOBS\_EN]}  (see the parameter file in Sec.~\ref{sec:input}) thereby exploiting the invariance under translation in imaginary time.
+Note that the translation symmetries  in space and in time are broken for a given  configuration $C$ but restored by the Monte Carlo sampling. 
+In general, the user will define bins, each bins having a given amount of sweeps. Within a sweep we run sequentially trough the HS and Ising fields from   time slice 1 to $L_{\text{Trotter}}$ and back.  The results of each bin is written  in a file  and analyzed at the end of the run.     
+
+To accomplish the reweighting of observables (see Sec.~\ref{sec:reweight}), for each configuration the measurement of an observable has to be multiplied by the factors \texttt{ZS} and \texttt{ZP}:
+\begin{eqnarray}
+\texttt{ZS} &=& \text{sign}(C)\;\\
+\texttt{ZP} &=& \frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}\;,
+\end{eqnarray}
+They are computed from the Monte Carlo phase of a configuration,
+\begin{equation}\label{eqn:phase}
+	\texttt{phase}   =   \frac{e^{-S(C)}}{ \left| e^{-S(C) }\right| }\;,
+\end{equation}
+which is provided by the main program.
+
+
+Note that each observable structure also includes the average sign [Eq.~(\ref{eqn:sign_rw})].
+
+%---------------------------------
+\subsubsection{Scalar observables}
+%---------------------------------
+
+This data type  is described in Table  \ref{table:Obser_vec} and  is useful to compute an array of  scalar observables.   Consider  a variable \texttt{Obs} of type  \texttt{Obser\_vec}.  At the beginning of each bin,  a call to  \texttt{Obser\_Vec\_Init} in the module \texttt{observables\_mod.f90}  will  set   \texttt{Obs\%N=0},   \texttt{Obs\%Ave\_sign =0}  and  \texttt{Obs\%Obs\_vec(:)=0}.  Each time the main  program calls the routine \texttt{Obser}  in the  \texttt{Hamiltonian} module,  the counter \texttt{Obs\%N}   is incremented by unity,   the sign  (see Eq.~\ref{Sign.eq}) is cumulated in the  variable \texttt{Obs\%Ave\_sign},  and the desired  the observables (multiplied by the sign and   $\frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}$, see Sec.~\ref{Observables.General})  are cumulated in the vector \texttt{Obs\%Obs\_vec}.  
+%
+\begin{table}[h]
+   \begin{tabular}{@{} l l l l @{}}\toprule
+    Variable  &  Type      &  Description &  Contribution of  \\
+        &  & & configuration $C$ \\\midrule
+    \texttt{Obs\%N}                       &  Int.        &   Number of measurements &\\
+    \texttt{Obs\%Ave\_sign}               &  Real     &    Cumulated sign [Eq.~(\ref{eqn:sign_rw})] & $\text{sign}(C)$  \\
+    \texttt{Obs\%Obs\_vec(:)}        & Compl.      &    Cumulated vector of observables [Eq.~(\ref{eqn:obs_rw})] &
+           $ \langle \langle \hat{O}(:) \rangle \rangle_{C}\frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]} \text{ sign }(C) $ \\
+     \texttt{Obs\%File\_Vec}           &  Char.    &    Name of output file  &\\\bottomrule
+   \end{tabular}
+   \caption{Components of the \texttt{Obser\_vec}  type.  The table lists the data included in a variable  \texttt{Obs}  of type \texttt{Obser\_vec}.  
+   % \mycomment{MB $\texttt{Obs\%Phase}$ is not $phase(C)$ but $sign(C)$. And the type of sign could in principle be reduced to integer.   }
+         \label{table:Obser_vec}}
+\end{table}
+%
+At the end of the bin, a call to  \texttt{Print\_bin\_Vec}   in  module \texttt{observables\_mod.f90}  will  append the result of the bin in the file  \texttt{File\_Vec}\_scal.  Note that this subroutine will automatically append the suffix  \_scal 
+to the the filename \texttt{File\_Vec}.    This suffix  is important to allow automatic analysis of the data at the end of the run. 
+
+%------------------------------------------------------------
+\subsubsection{ Equal time and time-displaced correlation functions}
+%------------------------------------------------------------
+%
+\begin{table}[h]
+   \begin{tabular}{@{} l l l l @{}}\toprule
+        Variable  &  Type      &  Description &  Contribution of  \\
+        &  & & configuration $C$ \\\midrule
+    \texttt{Obs\%N}                       &  Int.        &   Number of measurements &  \\
+    \texttt{Obs\%Ave\_sign}  
+    &  Real  &    Cumulated sign [Eq.~(\ref{eqn:sign_rw})] & $\text{sign}(C)$  \\
+    \texttt{Obs\%Obs\_latt}        & Compl.      &    Cumul.  correl. fct. [Eq.~(\ref{eqn:obs_rw})] &  $ \langle \langle \hat{O}_{\vec{i},\alpha} (\tau) \hat{O}_{\vec{j},\beta} \rangle \rangle_{C} \; \frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}  \text{sign}(C) $ \\
+     $(\vec{i}-\vec{j},\tau,\alpha,\beta)$ & & & \\
+     \texttt{Obs\%Obs\_latt0($\alpha$)}        & Compl.      &    Cumul. expect. value [Eq.~(\ref{eqn:obs_rw})] &   $ \langle \langle \hat{O}_{\vec{i},\alpha} \rangle \rangle_{C}\frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}  \text{ sign }(C) $ \\
+     \texttt{Obs\%File\_Latt}           &  Char.    &    Name of output file  &\\\bottomrule
+   \end{tabular}
+   \caption{Components of the \texttt{Obser\_latt}  type.  The table lists the data included in a variable  \texttt{Obs}  of type \texttt{Obser\_latt}  
+      \label{table:Obser_latt}}
+\end{table}
+%
+
+This data type (see Table~\ref{table:Obser_latt}) is useful so as to deal with  imaginary time displaced as well as equal time correlation functions of the form: 
+\begin{equation}\label{eqn:s}
+	S_{\alpha,\beta}(\vec{k},\tau) =   \frac{1}{N_{\text{unit cell}}} \sum_{\vec{i},\vec{j}}  e^{- \vec{k} \cdot \left( \vec{i}-\vec{j}\right) } \left( \langle \hat{O}_{\vec{i},\alpha} (\tau) \hat{O}_{\vec{j},\beta} \rangle  - 
+	  \langle \hat{O}_{\vec{i},\alpha} \rangle \langle   \hat{O}_{\vec{i},\beta}  \rangle \right).
+\end{equation}
+Here,  translation symmetry of the Bravais lattice is explicitly taken into account. 
+The correlation function splits in a correlated part $S_{\alpha,\beta}^{\mathrm{(corr)}}(\vec{k},\tau)$ and a background part $S_{\alpha,\beta}^{\mathrm{(back)}}(\vec{k})$:
+\begin{eqnarray}
+  S_{\alpha,\beta}^{\mathrm{(corr)}}(\vec{k},\tau)
+  &=&
+   \frac{1}{N_{\text{unit cell}}} \sum_{\vec{i},\vec{j}}  e^{- i\vec{k} \cdot \left( \vec{i}-\vec{j}\right) }  \langle \hat{O}_{\vec{i},\alpha} (\tau) \hat{O}_{\vec{j},\beta} \rangle\label{eqn:s_corr}\;,\\
+         S_{\alpha,\beta}^{\mathrm{(back)}}(\vec{k})
+  &=&
+   \frac{1}{N_{\text{unit cell}}} \sum_{\vec{i},\vec{j}}  e^{- i\vec{k} \cdot \left( \vec{i}-\vec{j}\right) }  \langle \hat{O}_{\vec{i},\alpha} (\tau)\rangle \langle \hat{O}_{\vec{j},\beta} \rangle\nonumber\\
+  &=& 
+  N_{\text{unit cell}}\, \langle \hat{O}_{\alpha} \rangle \langle \hat{O}_{\beta} \rangle \, \delta(\vec{k})\label{eqn:s_back}\;,
+\end{eqnarray}
+where translation invariance in space and time has been exploited to obtain the last line. 
+The background part depends only on the expectation value $\langle \hat{O}_{\alpha} \rangle$, for which we use the following estimator 
+\begin{equation}\label{eqn:o}
+\langle \hat{O}_{\alpha} \rangle \equiv \frac{1}{N_{\text{unit\,cell}}} \sum\limits_{\vec{i}} \langle \hat{O}_{\vec{i},\alpha} \rangle\;.
+\end{equation}
+
+Consider a variable  \texttt{Obs} of type  \texttt{Obser\_latt}. At the beginning of each bin a call to  \texttt{Obser\_Latt\_Init} in the module \texttt{observables\_mod.f90}  will  initialize  the elements of \texttt{Obs} to zero.    Each time the main program calls the   \texttt{Obser} or  \texttt{ObserT} routines one  cumulates $ \langle \langle \hat{O}_{\vec{i},\alpha} (\tau) \hat{O}_{\vec{j},\beta} \rangle \rangle_{C} \; \frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}  \text{sign}(C) $    in  \texttt{Obs\%Obs\_latt($\vec{i}-\vec{j},\tau,\alpha,\beta$)}   
+and $ \langle \langle \hat{O}_{\vec{i},\alpha} \rangle \rangle_{C}\frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}  \text{ sign }(C) $  in \texttt{Obs\%Obs\_latt0($\alpha$)}.   At the end of each bin, a call to \texttt{Print\_bin\_Latt} in the module  \texttt{observables\_mod.f90}   will append the result of the bin in the specified  file \texttt{Obs\%File\_Latt}.   Note that the routine  \texttt{Print\_bin\_Latt}  carries out the Fourier transformation and prints the results in k-space. We have adopted the following name convention.  For    equal time observables , that is  the second  dimension  of the array  \texttt{Obs\%Obs\_latt($\vec{i}-\vec{j},\tau,\alpha,\beta$)}    is equal to unity,  the routine \texttt{Print\_bin\_Latt}  attaches the suffix \_eq to \texttt{Obs\%File\_Latt}.  For  time displaced correlation functions we use the suffix \_tau. 
+
