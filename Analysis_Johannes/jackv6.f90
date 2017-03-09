@@ -6,9 +6,9 @@
 
         REAL    (KIND=8), DIMENSION(:,:), ALLOCATABLE :: OBS
         REAL    (KIND=8), DIMENSION(:),   ALLOCATABLE :: EN, SIGN
-        REAL    (KIND=8) :: XM, XERR
+        REAL    (KIND=8) :: XM, XERR,x,x1,y,y1
 
-        Complex (Kind=8) Z1,Z2,Z3,Z4,Z5,Z6,Z7,Z8
+        Complex (Kind=8) Z1,Z2,Z3,Z4,Z5,Z6,Z7,Z8,Z9,Z10
         Integer :: NST, NS, NS1, NS2, NSTEP, NC, NP, NOBS, Nbins, NP_EFF, ISEED, I, IOBS
         Integer :: N, NBIN
 
@@ -17,7 +17,7 @@
         !Open (Unit=12, File="ener_hist", status="unknown") 
         nbins = 0
         do
-            read(10,*,End=10)  Z1, Z2, Z3, Z4, Z5, Z5, Z5, Z5
+            read(10,*,End=10)  Z1, Z2, Z3, Z4, Z5, Z5, Z5, Z5, Z5, Z5
             nbins = nbins + 1
          enddo
 10       continue
@@ -26,7 +26,7 @@
          !Close(12)
          
          NP = NBINS
-         NOBS = 8
+         NOBS = 10
          
          ALLOCATE(OBS(NP,NOBS))
          !	Error on energy
@@ -41,11 +41,14 @@
          !If ( L == 6  ) NST = 2 
          !If ( L == 3  ) NST = 2 
          OPEN (UNIT=20, FILE='ener', STATUS='old')
+         Open ( Unit=55, File="U1_timeline", status="unknown" )
+         x1=0.d0
+         y1=0.d0
          NC = 0
          DO N = 1,NP
             IF (N.GE.NST) THEN
                NC = NC + 1
-               READ(20,*) Z1,Z2,Z3, Z4, Z5, Z6, Z7, Z8
+               READ(20,*) Z1,Z2,Z3, Z4, Z5, Z6, Z7, Z8, Z9, Z10
                OBS(NC,1) = dble(Z1) 
                OBS(NC,2) = dble(Z2) 
                OBS(NC,3) = dble(Z3)
@@ -54,8 +57,15 @@
                OBS(NC,6) = dble(Z6)
                OBS(NC,7) = dble(Z7)
                OBS(NC,8) = dble(Z8)
+               OBS(NC,9) = dble(Z9)
+               OBS(NC,10) = dble(Z10)
+               X=real(Obs(nc,8))
+               X1=x1+X
+               y=real(Obs(nc,9))
+               y1=y1+y
+               write(55,*) X, x1/(nc), y, y1/(nc)
             ELSE
-               READ(20,*) Z1,Z2,Z3, Z4, Z5, Z6, Z5, Z6
+               READ(20,*) Z1,Z2,Z3, Z4, Z5, Z6, Z5, Z6, Z5, Z5
             ENDIF
          ENDDO
          CLOSE(20)
@@ -78,10 +88,12 @@
             IF (IOBS.EQ.5) WRITE(21,*) ' dF/dt         '
             IF (IOBS.EQ.6) WRITE(21,*) ' dF/dU        '
             IF (IOBS.EQ.7) WRITE(21,*) ' dF/dl         '
+            IF (IOBS.EQ.8) WRITE(21,*) ' U1            '
+            IF (IOBS.EQ.9) WRITE(21,*) ' U1xyG         '
             IF (IOBS.EQ.NOBS) WRITE(21,*) ' phase         '
             DO NBIN = NS1, NS2, NSTEP
                if (NBIN.gt.0) then
-                  IF (IOBS.EQ.NOBS .or. Iobs.eq.1 ) then 
+                  IF (IOBS.EQ.NOBS) then 
                      CALL ERRCALCJ(EN,XM,XERR,NBIN)
                   else
                      CALL ERRCALCJ(EN,SIGN,XM,XERR,NBIN)

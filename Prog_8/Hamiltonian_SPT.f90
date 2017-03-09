@@ -423,7 +423,7 @@
           Implicit none
           Integer, Intent(In) :: Ltau
           Integer :: I
-          Allocate ( Obs_scal(8) )
+          Allocate ( Obs_scal(10) )
           Allocate ( Den_eq(Latt%N,1,1), Den_eq0(1) ) 
           Allocate ( U1_eq(Latt%N,1,1), U1_eq0(1) )
           Allocate ( U1xy_eq(Latt%N,1,1), U1xy_eq0(1) )
@@ -546,7 +546,7 @@
           
           !Local 
           Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK
-          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, ZL, Z, ZP,ZS, weight, tmp
+          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, ZL, Z, ZP,ZS, weight, tmp, ZU1, ZU1xyG
           Integer :: I,J, no,no1, n, n1, imj, nf, I1, I2, J1, J2, Nc, Ix, Iy, Jx, Jy, Imx, Imy, Jmx, Jmy
           Integer :: a, b, c, d, signum, K, K1, L ,L1, nf1
           
@@ -612,14 +612,43 @@
           ZL = ZL*N_SUN!cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
 
           Zrho = 0.d0!cmplx(0.d0, 0.d0, kind(0.D0))
+          ZU1  = 0.d0
           Do nf = 1,N_FL
              Do I = 1,Ndim
-                Zrho = Zrho + Grc(i,i,nf) 
+                tmp=GRC(I,I,nf)
+                Zrho = Zrho + tmp
+                no = List(I,2)
+                signum = 1
+                if (((no-1)/4+1==2) .or. ((no-1)/4+1==4)) signum=-1
+                weight = cmplx(dble(signum),0.d0, kind(0.D0))
+                ZU1 = ZU1  +  weight*tmp*0.5d0
              enddo
           enddo
           Zrho = Zrho*N_SUN!cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
-          ZPot = 0.d0
+          ZU1 = ZU1*N_SUN!cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
 
+          ZU1xyG = 0.d0
+          do I=1,Latt%N
+            do no=1,8
+                if (no<=4) then
+                  I1 = Invlist(I,no)
+                  I2 = Invlist(I,no+4)
+                  J1 = Invlist(I,no+4)
+                  J2 = Invlist(I,no)
+                else
+                  I1= Invlist(I,no+4)
+                  I2 = Invlist(I,no+8)
+                  J1 = Invlist(I,no+8)
+                  J2 = Invlist(I,no+4)
+                endif
+                ZU1xyG = ZU1xyG   +  (-1)**(no/2+(no-1)/4)*0.5d0*(GRC(I1,I2,nf)+conjg(GRC(J1,J2,nf)))
+                
+            enddo
+          enddo
+          ZU1xyG = ZU1xyG*N_SUN!cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
+          ZU1xyG = cmplx( 0.5d0*(real(ZU1xyG) + aimag(ZU1xyG)), 0.d0 , kind(0.D0))
+
+          ZPot = 0.d0
           Nc = Size( Op_V,1)
           Do nf = 1,N_FL
 !$OMP parallel do default(shared) private(n,weight,J,J1,I,I1,K,K1,L,L1,tmp) reduction(+:ZPot)
@@ -657,7 +686,9 @@
           Obs_scal(5) = Obs_scal(5) + (zkin -  Zpot)*ZP*ZS
           Obs_scal(6) = Obs_scal(6) + (Zpot)*ZP*ZS
           Obs_scal(7) = Obs_scal(7) + (ZL)*ZP*ZS
-          Obs_scal(8) = Obs_scal(8) + ZS
+          Obs_scal(8) = Obs_scal(8) + (ZU1)*ZP*ZS
+          Obs_scal(9) = Obs_scal(9) + (ZU1xyG)*ZP*ZS
+          Obs_scal(10) = Obs_scal(10) + ZS
           ! You will have to allocate more space if you want to include more  scalar observables.
           
           
@@ -672,22 +703,30 @@
                 
                 tmp =  (   GRC(I1,J1,1) * GR (I1,J1,1)      +  &
                       &     GRC(I1,I1,1) * GRC(J1,J1,1)         ) *ZP*ZS
-
+                      
+!$OMP CRITICAL
                 DEN_Eq (imj,1,1) = DEN_Eq (imj,1,1)   +  tmp
+!$OMP END CRITICAL
                      
                 weight=cmplx(1.d0,0.d0, kind(0.D0))
                 if ( (no>=9 .and. no1<=8) .or. (no<=8 .and. no1>=9) ) weight=-weight
+!$OMP CRITICAL
                 Spinz_eq (imj,1,1) = Spinz_eq (imj,1,1)   +   weight * 0.25 * tmp
+!$OMP END CRITICAL
                 
                 signum = 1
                 if (((no-1)/4+1==2) .or. ((no-1)/4+1==4)) signum=-1
                 if (((no1-1)/4+1==2) .or. ((no1-1)/4+1 ==4)) signum=-signum
                 weight = cmplx(dble(signum),0.d0, kind(0.D0))
+!$OMP CRITICAL
                 U1_eq (imj,1,1) = U1_eq (imj,1,1)   +  weight*tmp*0.25
+!$OMP END CRITICAL
 
              enddo
              tmp=GRC(I1,I1,1)
+!$OMP CRITICAL
              Den_eq0(1) = Den_eq0(1) +   tmp*ZP*ZS 
+!$OMP END CRITICAL
                      
 !              weight=cmplx(1.d0,0.d0, kind(0.D0))
 !              if ( (no>=9) ) weight=-weight
@@ -757,7 +796,9 @@
                     
                     tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                         &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                     Spinxy_eq (imj,1,1) = Spinxy_eq (imj,1,1)   +  tmp
+!$OMP END CRITICAL
                   enddo
                 enddo
                 
@@ -788,8 +829,10 @@
                     
                     tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                         &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                     U1xy_eq (imj,1,1) = U1xy_eq (imj,1,1)   +  tmp
                     U1xyG_eq (imj,1,1) = U1xyG_eq (imj,1,1)   +  (-1)**(no/2+no1/2+(no-1)/4+(no1-1)/4)*tmp
+!$OMP END CRITICAL
                   enddo
                 enddo
                 
@@ -826,7 +869,9 @@
                             J2 = Invlist(J,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             R_eq (imj,1,1) = R_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     TR symmetry check
@@ -838,7 +883,9 @@
                             J2 = Invlist(Jx,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
                           weight = gamma_13(a,b)*Gamma_23(c,d)*0.25d0
@@ -849,7 +896,9 @@
                             J2 = Invlist(Jy,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
                           weight = -gamma_13(a,b)*Gamma_13(c,d)*0.25d0
@@ -860,7 +909,9 @@
                             J2 = Invlist(Jmx,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
                           weight = -gamma_13(a,b)*Gamma_23(c,d)*0.25d0
@@ -871,7 +922,9 @@
                             J2 = Invlist(Jmy,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
                           weight = gamma_23(a,b)*Gamma_13(c,d)*0.25d0
@@ -882,7 +935,9 @@
                             J2 = Invlist(Jx,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
                           weight = gamma_23(a,b)*Gamma_23(c,d)*0.25d0
@@ -893,7 +948,9 @@
                             J2 = Invlist(Jy,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
                           weight = -gamma_23(a,b)*Gamma_13(c,d)*0.25d0
@@ -904,7 +961,9 @@
                             J2 = Invlist(Jmx,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
                           weight = -gamma_23(a,b)*Gamma_23(c,d)*0.25d0
@@ -915,7 +974,9 @@
                             J2 = Invlist(Jmy,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
                           weight = -gamma_13(a,b)*Gamma_13(c,d)*0.25d0
@@ -926,7 +987,9 @@
                             J2 = Invlist(Jx,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
                           weight = -gamma_13(a,b)*Gamma_23(c,d)*0.25d0
@@ -937,7 +1000,9 @@
                             J2 = Invlist(Jy,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
                           weight = gamma_13(a,b)*Gamma_13(c,d)*0.25d0
@@ -948,7 +1013,9 @@
                             J2 = Invlist(Jmx,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
                           weight = gamma_13(a,b)*Gamma_23(c,d)*0.25d0
@@ -959,7 +1026,9 @@
                             J2 = Invlist(Jmy,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
                           weight = -gamma_23(a,b)*Gamma_13(c,d)*0.25d0
@@ -970,7 +1039,9 @@
                             J2 = Invlist(Jx,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
                           weight = -gamma_23(a,b)*Gamma_23(c,d)*0.25d0
@@ -981,7 +1052,9 @@
                             J2 = Invlist(Jy,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
                           weight = gamma_23(a,b)*Gamma_13(c,d)*0.25d0
@@ -992,7 +1065,9 @@
                             J2 = Invlist(Jmx,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
                           weight = gamma_23(a,b)*Gamma_23(c,d)*0.25d0
@@ -1003,7 +1078,9 @@
                             J2 = Invlist(Jmy,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             TRS_eq (imj,1,1) = TRS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     R symmetry check X°\dag gamma_4 X as correlation
@@ -1015,7 +1092,9 @@
                             J2 = Invlist(J,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             RS_eq (imj,1,1) = RS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     C4 symmetry check
@@ -1028,7 +1107,9 @@
                             J2 = Invlist(Jx,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     12
@@ -1040,7 +1121,9 @@
                             J2 = Invlist(Jy,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     13
@@ -1052,7 +1135,9 @@
                             J2 = Invlist(Jmx,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     14
@@ -1064,7 +1149,9 @@
                             J2 = Invlist(Jmy,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     21
@@ -1076,7 +1163,9 @@
                             J2 = Invlist(Jx,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     22
@@ -1088,7 +1177,9 @@
                             J2 = Invlist(Jy,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     23
@@ -1100,7 +1191,9 @@
                             J2 = Invlist(Jmx,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     24
@@ -1112,7 +1205,9 @@
                             J2 = Invlist(Jmy,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     31
@@ -1124,7 +1219,9 @@
                             J2 = Invlist(Jx,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     32
@@ -1136,7 +1233,9 @@
                             J2 = Invlist(Jy,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     33
@@ -1148,7 +1247,9 @@
                             J2 = Invlist(Jmx,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     34
@@ -1160,7 +1261,9 @@
                             J2 = Invlist(Jmy,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     41
@@ -1172,7 +1275,9 @@
                             J2 = Invlist(Jx,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     42
@@ -1184,7 +1289,9 @@
                             J2 = Invlist(Jy,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     43
@@ -1196,7 +1303,9 @@
                             J2 = Invlist(Jmx,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     44
@@ -1208,7 +1317,9 @@
                             J2 = Invlist(Jmy,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             C4S_eq (imj,1,1) = C4S_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     Px symmetry check
@@ -1221,7 +1332,9 @@
                             J2 = Invlist(Jy,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     12
@@ -1233,7 +1346,9 @@
                             J2 = Invlist(Jx,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     13
@@ -1245,7 +1360,9 @@
                             J2 = Invlist(Jmy,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     14
@@ -1257,7 +1374,9 @@
                             J2 = Invlist(Jmx,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     21
@@ -1269,7 +1388,9 @@
                             J2 = Invlist(Jy,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     22
@@ -1281,7 +1402,9 @@
                             J2 = Invlist(Jx,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     23
@@ -1293,7 +1416,9 @@
                             J2 = Invlist(Jmy,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     24
@@ -1305,7 +1430,9 @@
                             J2 = Invlist(Jmx,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     31
@@ -1317,7 +1444,9 @@
                             J2 = Invlist(Jy,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     32
@@ -1329,7 +1458,9 @@
                             J2 = Invlist(Jx,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     33
@@ -1341,7 +1472,9 @@
                             J2 = Invlist(Jmy,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     34
@@ -1353,7 +1486,9 @@
                             J2 = Invlist(Jmx,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     41
@@ -1365,7 +1500,9 @@
                             J2 = Invlist(Jy,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     42
@@ -1377,7 +1514,9 @@
                             J2 = Invlist(Jx,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     43
@@ -1389,7 +1528,9 @@
                             J2 = Invlist(Jmy,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     44
@@ -1401,7 +1542,9 @@
                             J2 = Invlist(Jmx,4*(no1-1)+d)
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             PxS_eq (imj,1,1) = PxS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     SU(2)_x symmetry check
@@ -1414,7 +1557,9 @@
                             if ((no>2 .and. no1<3) .or. (no<3 .and. no1>2)) weight = -weight
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             SxS_eq (imj,1,1) = SxS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     SU(2)_z symmetry check
@@ -1434,7 +1579,9 @@
                             endif
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             SzS_eq (imj,1,1) = SzS_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     U(1)_1 symmetry check
@@ -1449,7 +1596,9 @@
       !                       if ((no>2 .and. no1<3) .or. (no<3 .and. n1>2)) weight = -weight
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             U11S_eq (imj,1,1) = U11S_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
       !                     U(1)_2 symmetry check
@@ -1465,7 +1614,9 @@
       !                       if ((no>2 .and. no1<3) .or. (no<3 .and. n1>2)) weight = -weight
                             tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
                                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         ) * ZP*ZS
+!$OMP CRITICAL
                             U12S_eq (imj,1,1) = U12S_eq (imj,1,1)   +  weight*tmp
+!$OMP END CRITICAL
                           endif
                           
                         enddo
@@ -1626,7 +1777,9 @@
                      J1 = InvList(I,4*(no-1)+b)
                      DeltaI=0.d0
                      if (I1==J1) DeltaI=cmplx(1.d0,0.d0,kind(0.D0))
+!$OMP CRITICAL
                      L_eq0(1)  = L_eq0(1)  + Gamma_M(a,b,3)*(DeltaI - G00(j1,i1,1)) * ZP* ZS
+!$OMP END CRITICAL
                    enddo
                  endif
                enddo
@@ -1648,7 +1801,9 @@
                    J  = List(J1,1)
                    no1 = List(J1,2)
                    imj = latt%imj(I,J)
+!$OMP CRITICAL
                    Green_tau(imj,nt+1,no,no1) = green_tau(imj,nt+1,no,no1)  +  Z * GT0(I1,J1,1) * ZP* ZS
+!$OMP END CRITICAL
                    
                    I2=I1
                    J2=J1
@@ -1658,20 +1813,26 @@
                    if (J1==J2) DeltaJ=cmplx(1.d0,0.d0, kind(0.D0)) ! .and. nt==0
                    tmp =  Z * ( (DeltaI - GTT(I2,I1,1))*(DeltaJ - G00(J2,J1,1)) - GT0(I2,J1,1)*G0T(J2,I1,1)) * ZP* ZS  - 0.25d0
                    
+!$OMP CRITICAL
                    Den_tau  (imj,nt+1,1,1) = Den_tau  (imj,nt+1,1,1)  +  tmp
                    Den_sus  (imj,1,1) = Den_sus  (imj,1,1)  +  weightbeta*tmp
+!$OMP END CRITICAL
                      
                    weight=cmplx(1.d0,0.d0,kind(0.D0))
                    if ( (no>=9 .and. no1<=8) .or. (no<=8 .and. no1>=9) ) weight=-weight
+!$OMP CRITICAL
                    Spinz_tau (imj,nt+1,1,1) = Spinz_tau (imj,nt+1,1,1)   +   weight * 0.25 * tmp
                    Spinz_sus (imj,1,1) = Spinz_sus (imj,1,1)   +  weightbeta * weight * 0.25 * tmp
+!$OMP END CRITICAL
                     
                    signum = 1
                    if (((no-1)/4+1==2) .or. ((no-1)/4+1==4)) signum=-1
                    if (((no1-1)/4+1==2) .or. ((no1-1)/4+1 ==4)) signum=-signum
                    weight = cmplx(dble(signum),0.d0, kind(0.D0))
+!$OMP CRITICAL
                    U1_tau (imj,nt+1,1,1) = U1_tau (imj,nt+1,1,1)   +  weight*tmp*0.25
                    U1_sus (imj,1,1) = U1_sus (imj,1,1)   + weightbeta* weight*tmp*0.25
+!$OMP END CRITICAL
 
                 enddo
               enddo
@@ -1693,8 +1854,10 @@
                           DeltaJ=0.d0
                           if (J1==J2) DeltaJ=cmplx(1.d0,0.d0, kind(0.D0)) ! .and. nt==0
                           tmp =  Z * ((DeltaI - GTT(I2,I1,1))*(DeltaJ - G00(J2,J1,1)) - GT0(I2,J1,1)*G0T(J2,I1,1)) * ZP* ZS
+!$OMP CRITICAL
                           Spinxy_tau (imj,nt+1,1,1) = Spinxy_tau (imj,nt+1,1,1)   +  tmp
                           Spinxy_sus (imj,1,1) = Spinxy_sus (imj,1,1)   +   weightbeta*tmp
+!$OMP END CRITICAL
                           
                           if (no<=4) then
                             I1 = Invlist(I,no)
@@ -1716,10 +1879,12 @@
                           DeltaJ=0.d0
                           if (J1==J2) DeltaJ=cmplx(1.d0,0.d0, kind(0.D0)) ! .and. nt==0
                           tmp =  Z * ((DeltaI - GTT(I2,I1,1))*(DeltaJ - G00(J2,J1,1)) - GT0(I2,J1,1)*G0T(J2,I1,1)) * ZP* ZS
+!$OMP CRITICAL
                           U1xy_tau (imj,nt+1,1,1) = U1xy_tau (imj,nt+1,1,1)   +  tmp
                           U1xy_sus (imj,1,1) = U1xy_sus (imj,1,1)   +  weightbeta*tmp
                           U1xyG_tau (imj,nt+1,1,1) = U1xyG_tau (imj,nt+1,1,1)   +  (-1)**(no/2+no1/2+(no-1)/4+(no1-1)/4)*tmp
                           U1xyG_sus (imj,1,1) = U1xyG_sus (imj,1,1)   +  (-1)**(no/2+no1/2+(no-1)/4+(no1-1)/4)*weightbeta*tmp
+!$OMP END CRITICAL
                       enddo
                     enddo
                     
@@ -1751,7 +1916,9 @@
                             DeltaJ=0.d0
                             if (J1==J2) DeltaJ=cmplx(1.d0,0.d0, kind(0.D0)) ! .and. nt==0
                             tmp =  Z * ((DeltaI - GTT(I2,I1,1))*(DeltaJ - G00(J2,J1,1)) - GT0(I2,J1,1)*G0T(J2,I1,1)) * ZP* ZS
+!$OMP CRITICAL
                             L_eq (imj,1,1) = L_eq (imj,1,1)   +  weight*tmp*weightbeta 
+!$OMP END CRITICAL
                           enddo
                         enddo
                       endif
