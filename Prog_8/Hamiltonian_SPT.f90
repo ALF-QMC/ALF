@@ -624,8 +624,8 @@
                 weight = cmplx(dble(signum),0.d0, kind(0.D0))
                 ZU1 = ZU1  +  weight*tmp*0.5d0
              enddo
-          enddo
 !$OMP end parallel do
+          enddo
           Zrho = Zrho*N_SUN!cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
           ZU1 = ZU1*N_SUN!cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
 
