@@ -18,6 +18,7 @@ PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DMKL_DIRECT_CALL"
 F90OPTFLAGS="-O3 -fp-model fast=2 -xHost -unroll -finline-functions -ipo -ip -heap-arrays 1024 -no-wrap-margin"
 # uncomment the next line if you want to use additional openmp parallelization
 F90OPTFLAGS=${F90OPTFLAGS}" -parallel -qopenmp"
+#F90OPTFLAGS="-O0 -traceback -g -heap-arrays 1024"
 F90USEFULFLAGS="-cpp -std03"
 export F90USEFULFLAGS
 export F90OPTFLAGS

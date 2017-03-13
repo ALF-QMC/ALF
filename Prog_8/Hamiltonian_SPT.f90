@@ -614,6 +614,7 @@
           Zrho = 0.d0!cmplx(0.d0, 0.d0, kind(0.D0))
           ZU1  = 0.d0
           Do nf = 1,N_FL
+!$OMP parallel do default(shared) private(I,no,signum,tmp,weight) reduction(+:Zrho,ZU1)
              Do I = 1,Ndim
                 tmp=GRC(I,I,nf)
                 Zrho = Zrho + tmp
@@ -624,10 +625,12 @@
                 ZU1 = ZU1  +  weight*tmp*0.5d0
              enddo
           enddo
+!$OMP end parallel do
           Zrho = Zrho*N_SUN!cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
           ZU1 = ZU1*N_SUN!cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
 
           ZU1xyG = 0.d0
+!$OMP parallel do default(shared) private(I,no,I1,I2,J1,J2,tmp,weight) reduction(+:ZU1xyG)
           do I=1,Latt%N
             do no=1,8
                 if (no<=4) then
@@ -641,10 +644,14 @@
                   J1 = Invlist(I,no+8)
                   J2 = Invlist(I,no+4)
                 endif
-                ZU1xyG = ZU1xyG   +  (-1)**(no/2+(no-1)/4)*0.5d0*(GRC(I1,I2,nf)+conjg(GRC(J1,J2,nf)))
+!                 tmp = GRC(I1,I2,nf)
+                tmp = 0.5d0*(GRC(I1,I2,1)+conjg(GRC(J1,J2,1)))
+                weight = (-1)**(no/2+(no-1)/4)
+                ZU1xyG = ZU1xyG   +  weight*tmp
                 
             enddo
           enddo
+!$OMP end parallel do
           ZU1xyG = ZU1xyG*N_SUN!cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
           ZU1xyG = cmplx( 0.5d0*(real(ZU1xyG) + aimag(ZU1xyG)), 0.d0 , kind(0.D0))
 
