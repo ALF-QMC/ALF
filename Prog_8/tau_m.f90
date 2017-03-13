@@ -80,13 +80,15 @@
 
            ! Local 
            ! This could be placed as  private for the module 
-           Complex (Kind=Kind(0.d0))  :: GT0(NDIM,NDIM,N_FL),  G00(NDIM,NDIM,N_FL), GTT(NDIM,NDIM,N_FL), G0T(NDIM,NDIM,N_FL)
-           Complex (Kind=Kind(0.d0))  :: UL(Ndim,Ndim,N_FL), DL(Ndim,N_FL), VL(Ndim,Ndim,N_FL) 
-           Complex (Kind=Kind(0.d0))  :: UR(Ndim,Ndim,N_FL), DR(Ndim,N_FL), VR(Ndim,Ndim,N_FL) 
-           Complex (Kind=Kind(0.d0))  :: HLP4(Ndim,Ndim), HLP5(Ndim,Ndim), HLP6(Ndim,Ndim)
+           Complex (Kind=Kind(0.d0)), dimension(:,:,:), allocatable  :: GT0,  G00, GTT, G0T, UR, VR
+           Complex (Kind=Kind(0.d0)), dimension(:,:), allocatable  :: DR, HLP4, HLP5, HLP6
            
            Complex (Kind=Kind(0.d0))  ::  Z
            Integer  ::  I, J, nf, NT, NT1, NTST, NST, NVAR
+           
+           Allocate(GT0(NDIM,NDIM,N_FL),  G00(NDIM,NDIM,N_FL), GTT(NDIM,NDIM,N_FL), G0T(NDIM,NDIM,N_FL) )
+           Allocate(UR(Ndim,Ndim,N_FL), DR(Ndim,N_FL), VR(Ndim,Ndim,N_FL) )
+           Allocate(HLP4(Ndim,Ndim), HLP5(Ndim,Ndim), HLP6(Ndim,Ndim) )
            
            !Tau = 0
            G00=GR
@@ -98,20 +100,6 @@
                  G0T(J,J,nf) = G0T(J,J,nf) - cmplx(1.d0,0.d0,kind(0.d0))
               ENDDO
            Enddo
-!            Do nf = 1, N_FL
-! ! $OMP parallel do default(shared) private(J,I,Z)
-!               DO J = 1,Ndim 
-!                  DO I = 1,Ndim
-!                     Z = cmplx(0.d0, 0.d0, kind(0.D0))
-!                     if (I == J ) Z = cone
-!                     G00(I,J,nf) = GR(I,J,nf)
-!                     GT0(I,J,nf) = GR(I,J,nf)
-!                     GTT(I,J,nf) = GR(I,J,nf)
-!                     G0T(I,J,nf) = -(Z - GR(I,J,nf))
-!                  ENDDO
-!               ENDDO
-! ! $OMP end parallel do
-!            Enddo
            NT = 0
            ! In Module Hamiltonian
            CALL OBSERT(NT,  GT0,G0T,G00,GTT, PHASE)
@@ -140,11 +128,6 @@
                  NTST = Stab_nt(NST-1)
                  ! WRITE(6,*) 'NT1, NST: ', NT1,NST
                  CALL WRAPUR(NTST, NT1,UR, DR, VR)
-                 DO nf = 1,N_FL
-                    UL(:,:,nf) = UST(:,:,NST,nf)
-                    VL(:,:,nf) = VST(:,:,NST,nf)
-                    DL(:  ,nf) = DST(:  ,NST,nf)
-                 Enddo
                  Do nf = 1,N_FL
                     HLP4(:,:) = GTT(:,:,nf)
                     HLP5(:,:) = GT0(:,:,nf)
@@ -152,7 +135,7 @@
                     NVAR = 1
                     IF (NT1  >  LTROT/2) NVAR = 2
                     Call CGR2_2(GT0(:,:,nf), G00(:,:,nf), GTT(:,:,nf), G0T(:,:,nf), &
-                         &      UR(:,:,nf),DR(:,nf),VR(:,:,nf), UL(:,:,nf),DL(:,nf),VL(:,:,nf),NDIM)
+                         &      UR(:,:,nf),DR(:,nf),VR(:,:,nf), UST(:,:,NST,nf),DST(:  ,NST,nf),VST(:,:,NST,nf),NDIM)
                     Call Control_Precision_tau(GR(:,:,nf), G00(:,:,nf), Ndim)
                     Call Control_Precision_tau(HLP4      , GTT(:,:,nf), Ndim)
                     Call Control_Precision_tau(HLP5      , GT0(:,:,nf), Ndim)
@@ -161,6 +144,10 @@
                  NST = NST + 1
               Endif
            ENDDO
+           
+           Deallocate(G00, GTT, GT0, G0T)
+           Deallocate(UR, DR, VR )
+           Deallocate(HLP4, HLP5, HLP6 )
            
          END SUBROUTINE TAU_M
 
