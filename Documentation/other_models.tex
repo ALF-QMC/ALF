@@ -81,23 +81,3 @@ since in this case  $ \left[   \hat{\mathcal{H}_J}, \hat{\mathcal{H}}_U \right] 
 This provides a route to use the auxiliary field QMC algorithm  to simulate -- free of the sign problem -- $SU(2N)$ Heisenberg models in the self-adjoint antisymmetric representation  \footnote{ This corresponds to a Young tableau with single column and $N/2$ rows.}  
 For odd values of $N$ recent progress  in our understanding of the  origins of the sign problem \cite{Wei16}  allows us to simulate  a set of non-trivial Hamiltonians \cite{Li15,Assaad16},  without encountering the sign problem.
 
-%-------------------------------------------------------------------------------------
-\subsubsection{Hubbard  model in the canonical ensemble}
-%-------------------------------------------------------------------------------------
-
-To simulate the Hubbard model in the canonical ensemble  one can add the constraint: 
-\begin{equation}
-	\hat{\mathcal{H}}   = \hat{\mathcal{H}_{tU}}     + \underbrace{\lambda \left( \hat{N} -  N \right)^{2}}_{\equiv \hat{H}_\lambda }
-\end{equation}
-In the limit $\lambda \rightarrow \infty $, the uniform charge fluctuations,
-\begin{equation} 
-      S ( \vec{q} = 0)   =  \sum_{\vec{r}}   \left[ \langle \hat{n}_{\vec{r}}  \hat{n}_{\vec{0}} \rangle  - \langle \hat{n}_{\vec{r}}\rangle \langle  \hat{n}_{\vec{0}} \rangle  \right]
-\end{equation} 
-are suppressed and the grand-canonical simulation maps onto a canonical one.  
-To implement this in the QMC code of the ALF project,  we have adopted the following strategy.   Since  $ \left( \hat{N} -  N \right)^{2}  $ effectively corresponds to a long-range interaction one may   face the issue that the acceptance rate of a single  HS flip becomes very small on large lattices. To circumvent this problem we have  used the following decomposition: 
-\begin{equation}
-	e^{-\beta \hat{H}}  =   \prod_{\tau = 1}^{L_{\text{Trotter}}} \left[  e^{-\Delta \tau \hat{H}_t} e^{-\Delta \tau \hat{H}_U}  
-	\underbrace{e^{-\frac{\Delta \tau}{n_{\lambda}} \hat{H}_{\lambda} } \cdots e^{-\frac{\Delta \tau}{n_{\lambda}} \hat{H}_{\lambda} } }_{n_\lambda \text{-times } }\right].
-\end{equation}
-Thereby, we need $n_\lambda $ fields per time slice  to impose the constraint.  Since for each field the coupling  constant is suppressed by a factor $n_{\lambda}$, we can monitor the acceptance. 
-An implementation of this program can be found in  \path{Prog/Hamiltonian_Hub_Canonical.f90}  and a test run in the directory \path{Examples/Hubbard_Mz_Square_Can}
