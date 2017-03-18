@@ -28,8 +28,19 @@
 \usepackage{url}
 \usepackage{booktabs}
 \usepackage{hyperref} 
+\usepackage{float} 
 
-\lstset{language=Fortran,
+\makeatletter
+\renewcommand\paragraph{\@startsection{paragraph}{4}{\z@}%
+            {-2.5ex\@plus -1ex \@minus -.25ex}%
+            {1.25ex \@plus .25ex}%
+            {\normalfont\normalsize\bfseries}}
+\makeatother
+\setcounter{secnumdepth}{4} 
+\setcounter{tocdepth}{4}
+
+\lstdefinestyle{fortran}{
+  language=Fortran,
   basicstyle=\ttfamily,
   keywordstyle=\color{red},
   commentstyle=\color{blue},
@@ -40,8 +51,8 @@
   columns=flexible
 }
 
-\lstdefinestyle{custombash}{
-language=bash,
+\lstdefinestyle{bash}{
+  language=bash,
   basicstyle=\ttfamily,
   keywordstyle=\color{red},
   commentstyle=\color{blue},
@@ -56,22 +67,27 @@ language=bash,
 \def\Trf{\mathop{\mathrm{Tr}_{\mathrm{F}}}}
 \makesavenoteenv{tabular}
 \makesavenoteenv{table}
+
+% % only for the scrartcl class:
 \setkomafont{author}{\large}
 \setkomafont{date}{\large}
+% \RedeclareSectionCommand[style=section,indent=0pt]{part}
+% \renewcommand*\partformat{\thepart\autodot\enskip}
 
-\newcommand{\mycomment}[1]{{\color{blue} #1}}
+\newcommand{\mycomment}[1]{{\color{red} #1}}
 \newcommand{\FAcomment}[1]{{\color{red} #1}}
 
 \makeindex
 \begin{document}
 %---------------------------------------------------------------------------------------------------------
-\title{The \textit{ALF} (\textit{A}lgorithms for \textit{L}attice \textit{F}ermions) project release 0.5}
+\title{The \emph{ALF} (\emph{A}lgorithms for \emph{L}attice \emph{F}ermions) project release 0.5}
+
 \subtitle{Documentation for the  auxiliary field quantum Monte Carlo  code.}
 \author{Martin Bercx,  Florian Goth,  Johannes S. Hofmann, Fakher F. Assaad }
 %---------------------------------------------------------------------------------------------------------
 \maketitle
 
-Copyright \textcopyright ~2016, The \textit{ALF} Project.\\
+Copyright \textcopyright ~2016, 2017 The \textit{ALF} Project.\\
 This is the ALF Project Documentation by the ALF contributors.
 It is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License.
 You are free to share and benefit from this documentation as long as this license is preserved
@@ -79,22 +95,30 @@ and proper attribution to the authors is given. For details see the ALF project
 homepage \url{alf.physik.uni-wuerzburg.de}.
 \tableofcontents
 \clearpage
+\section{Introduction}\label{sec:intro}
 \input{intro}
+\section{Auxiliary Field Quantum Monte Carlo}\label{sec:def}
 \input{model}
-\input{implementation}
 \input{updating}
+\input{stabilization}
+\input{sampling}
+\section{Data Structures and Input/Output}\label{sec:imp}
+\input{implementation}
 \input{files}
-\input{walkthrough_hubbard}
-\input{other_models}
 \input{analysis}
 \input{running}
+\section{Examples}\label{sec:ex}
+\input{walkthrough_hubbard}
+\section{Miscellaneous}\label{sec:misc}
+\input{other_models}
 \input{performance}
+\section{Conclusions and Future Directions}\label{sec:con}
 \input{conclusion}
 \addcontentsline{toc}{section}{Acknowledgments}
 \input{acknowledgment}
 \addcontentsline{toc}{section}{References}
 \bibliographystyle{./prXsty} 
-\bibliography{./fassaad}
+\bibliography{./fassaad,./doc}
 \addcontentsline{toc}{section}{License}
 \input{license}
 
