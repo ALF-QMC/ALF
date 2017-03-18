@@ -153,7 +153,7 @@ Program Main
 #ifdef MPI
   If (  Irank == 0 ) then
 #endif
-     write (*,*) "ALF Copyright (C) 2016,2017 The ALF project contributors"
+     write (*,*) "ALF Copyright (C) 2016, 2017 The ALF project contributors"
      write (*,*) "This Program comes with ABSOLUTELY NO WARRANTY; for details see license.GPL"
      write (*,*) "This is free software, and you are welcome to redistribute it under certain conditions."
 #ifdef MPI
