@@ -232,10 +232,10 @@ GQMCT_jessie_valgrind:
       - make
       - cd ..
       - cd Prog
-      - make SPT
-      - cp SPT.out ../Test_SPT/Start/
-      - cd ../Test_SPT/Start/
-      - valgrind --leak-check=full --log-file=vglog.txt ./SPT.out
+      - make 
+      - cp Examples.out ../Examples/Hubbard_SU2_Square
+      - cd ../Examples/Hubbard_SU2_Square/
+      - valgrind --leak-check=full --log-file=vglog.txt ./Examples.out
       - cat vglog.txt
       - grep lost vglog.txt | cut -d":" -f 2 | cut -d " " -f 2 | f=$(cat); echo $(( ${f//$'\n'/+} ))
 
