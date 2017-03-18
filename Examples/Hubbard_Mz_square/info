@@ -9,15 +9,17 @@
  t             :    1.0000000000000000     
  Ham_U         :    4.0000000000000000     
  Ham_chem      :    0.0000000000000000     
+ No initial configuration, Seed_in      790789
  Sweeps             :          500
  Measure Int.       :            1         100
  Stabilization,Wrap :           10
  Nstm               :           10
  Ltau               :            1
-Prog will stop after hours:    0.1000
-  Precision Green  Mean, Max :    5.0823874429126405E-011   5.8621144596315844E-006
+ This executable represents commit f080f6d of branch ALF-1.0.
+ Prog will stop after hours:    0.1000
+  Precision Green  Mean, Max :    3.8624545453723990E-011   1.9065820477948137E-006
   Precision Phase, Max       :    0.0000000000000000     
-  Precision tau    Mean, Max :    1.5929357848647394E-011   1.0985132530727526E-005
-  Acceptance                 :   0.42513593750000001     
-  CPU Time                   :    317.23262299999999     
-  Effective number of bins   :           10
+  Precision tau    Mean, Max :    8.3772637559748628E-012   8.4170143116457652E-007
+  Acceptance                 :   0.42509888392857142     
+  CPU Time                   :    338.15460200000001     
+  Effective number of bins   :           14

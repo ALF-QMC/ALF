@@ -49,7 +49,6 @@ Program Main
   Use Control
   Use Tau_m_mod
   Use Hop_mod
-  Use Global_mod
  
   Implicit none
 #ifdef MPI
@@ -344,8 +343,6 @@ Program Main
            CALL Exchange_Step(Phase,GR,UR,DR,VR, UL,DL,VL,Stab_nt, UST, VST, DST,N_exchange_steps)
         endif
 #endif
-        ! Global updates
-        If (Global_moves) Call Global_Updates(Phase,GR,UR,DR,VR, UL,DL,VL,Stab_nt, UST, VST, DST)
 
         ! Propagation from 1 to Ltrot
         ! Set the right storage to 1

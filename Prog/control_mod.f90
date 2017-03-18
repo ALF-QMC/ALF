@@ -245,12 +245,7 @@
 #if defined(TEMPERING) 
            Write(50,*) ' Acceptance Tempering       : ', ACC_Temp
 #endif
-           !If (ACC_Glob > 1.D-200 ) then
-              Write(50,*) ' Acceptance_Glob            : ', ACC_Glob
-              Write(50,*) ' Mean Phase diff Glob       : ', XMEANP_Glob 
-              Write(50,*) ' Max  Phase diff Glob       : ', XMAXP_Glob
-           !endif
-              
+
 
            Write(50,*) ' CPU Time                   : ', Time
            Close(50)

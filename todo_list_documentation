@@ -1,3 +1,0 @@
-Abhängigkeiten: mitgelieferte Bibliotheken (eispack,nag) durch standard Systemsbibliotheken ersetzen (blas,lapack)
-- build system überarbeiten
-- Ham_obser.f90 ?? Was ist das?

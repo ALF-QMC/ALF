@@ -18,11 +18,10 @@
       Integer, allocatable :: nsigma(:,:)
       Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot
 !>    Variables for updating scheme
-      Logical              :: Propose_S0, Global_moves
-      Integer              :: N_Global
+      Logical              :: Propose_S0
       
 
-!>    Privat variables 
+!>    Private variables 
       Type (Lattice),       private :: Latt 
       Integer,              private :: L1, L2
       real (Kind=Kind(0.d0)),        private :: ham_T , ham_U,  Ham_chem, Ham_h, Ham_J, Ham_xi
@@ -34,7 +33,7 @@
 
 
 
-!>    Privat Observables
+!>    Private Observables
       Type (Obser_Vec ),  private, dimension(:), allocatable ::   Obs_scal
       Type (Obser_Latt),  private, dimension(:), allocatable ::   Obs_eq
       Type (Obser_Latt),  private, dimension(:), allocatable ::   Obs_tau
@@ -93,8 +92,6 @@
           Call Ham_latt
 
           Propose_S0 = .false.
-          Global_moves =.false.
-          N_Global = 1
           If ( Model == "Hubbard_Mz") then
              N_FL = 2
              N_SUN = 1
@@ -551,34 +548,6 @@
           endif
         end Subroutine Alloc_obs
 
-        
-!========================================================================
-        ! Functions for Global moves.  These move are not implemented in this example.
-        Subroutine Global_move(T0_Proposal_ratio,nsigma_old)
-          
-          !>  The input is the field nsigma declared in this module. This routine generates a 
-          !>  global update with  and returns the propability  
-          !>  T0_Proposal_ratio  =  T0( sigma_out-> sigma_in ) /  T0( sigma_in -> sigma_out)  
-          !>   
-          Implicit none
-          Real (Kind=Kind(0.d0)), intent(out) :: T0_Proposal_ratio
-          Integer, dimension(:,:),  allocatable, intent(in)  :: nsigma_old
-
-          T0_Proposal_ratio  = 0.d0
-
-        End Subroutine Global_move
-!========================================================================
-        Real (Kind=kind(0.d0)) Function Delta_S0_global(Nsigma_old)
-
-          !>  This function computes the ratio:  e^{-S0(nsigma)}/e^{-S0(nsigma_old)}
-          Implicit none 
-          
-          !> Arguments
-          Integer, dimension(:,:), allocatable, intent(IN) :: Nsigma_old
-
-          Delta_S0_global = 0.d0
-
-        end Function Delta_S0_global
 !========================================================================
         Subroutine Obser(GR,Phase,Ntau)
           
