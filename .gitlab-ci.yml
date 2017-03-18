@@ -13,7 +13,7 @@ stages:
     - gfortran -v
     - make
     - cd ..
-    - cd Prog_8
+    - cd Prog
     - make
     - make Ising
     - make Kondo_Honey
@@ -30,7 +30,7 @@ stages:
     - /opt/pgi/linux86-64/16.10/bin/pgfortran --version
     - make
     - cd ..
-    - cd Prog_8
+    - cd Prog
     - make
     - make Ising
     - make Kondo_Honey
@@ -45,7 +45,7 @@ stages:
     - gfortran -v
     - make
     - cd ..
-    - cd Prog_8
+    - cd Prog
     - make
     - make Ising
     - make Kondo_Honey
@@ -59,7 +59,7 @@ stages:
     - gfortran -v
     - make
     - cd ..
-    - cd Prog_8
+    - cd Prog
     - make
     - cd ..
     - cd testsuite
@@ -163,7 +163,7 @@ GQMCT_Wheezy-PGI_conv:
     - /opt/pgi/linux86-64/16.10/bin/pgfortran --version
     - make
     - cd ..
-    - cd Prog_8
+    - cd Prog
     - make
     - make Ising
     - make Kondo_Honey
@@ -217,7 +217,7 @@ GQMCT_Jessie-PGI_tests:
     - /opt/pgi/linux86-64/16.10/bin/pgfortran --version
     - make
     - cd ..
-    - cd Prog_8
+    - cd Prog
     - make
     - cd ..
     - cd testsuite
@@ -239,12 +239,11 @@ GQMCT_jessie_valgrind:
       - gfortran -v
       - make
       - cd ..
-      - cd Prog_8
+      - cd Prog
       - make SPT
       - cp SPT.out ../Test_SPT/Start/
       - cd ../Test_SPT/Start/
       - valgrind --leak-check=full --log-file=vglog.txt ./SPT.out
       - cat vglog.txt
       - grep lost vglog.txt | cut -d":" -f 2 | cut -d " " -f 2 | f=$(cat); echo $(( ${f//$'\n'/+} ))
-
 
