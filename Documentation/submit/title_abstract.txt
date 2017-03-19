@@ -1,0 +1,5 @@
+Title:
+Algorithms for Lattice Fermions (ALF): Documentation for the finite temperature auxiliary field quantum Monte Carlo code
+
+Abstract:
+The Algorithms for Lattice Fermions package provides a general code for the finite temperature auxiliary field quantum Monte Carlo algorithm.       The code  is engineered to  be able to simulate any model that can be written in terms of  sums of single-body operators, of squares of single-body operators and single-body operators coupled to an Ising field with  given dynamics. We  provide predefined types that allow  the user to specify the model, the  Bravais lattice  as well as equal time and time displaced observables.     The code supports an MPI implementation.   Examples such as the Hubbard model on the honeycomb lattice and  the Hubbard model  on the square lattice coupled to a transverse Ising field are  provided and discussed in the documentation.  We furthermore discuss  how to use the package  to implement  the Kondo lattice and  the SU(N)  Hubbard-Heisenberg models.    One can download the code from our Git instance: https://alf.physik.uni-wuerzburg.de and sign in to  file in issues. 
