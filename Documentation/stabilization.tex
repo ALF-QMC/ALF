@@ -1,0 +1,81 @@
+% !TEX root = doc.tex
+% Copyright (c) 2017 The ALF project.
+% This is a part of the ALF project documentation.
+% The ALF project documentation by the ALF contributors is licensed
+% under a Creative Commons Attribution-ShareAlike 4.0 International License.
+% For the licensing details of the documentation see license.CCBYSA.
+%
+%-----------------------------------------------------------------------------------
+\subsection{Stabilization - a peculiarity of the BSS algorithm}\label{sec:stable}
+%-----------------------------------------------------------------------------------
+%
+From \eqref{eqn:partition_2} it can be seen that for the calculation of the Monte Carlo weight
+and for the observables a long product of matrix exponentials has to be formed.
+On top of that we need to be able to extract the single-particle Green function  for a given flavor index at say time slice $\tau = 0$.  As  mentioned above in Eq.~(\ref{eqn:Green_eq}), this quantity is given by: 
+\begin{equation}
+\bm{G}= \left( \mathds{1} + \prod_{ \tau= 1}^{L_{\text{Trotter}}} \bm{B}_\tau \right)^{-1}.
+\end{equation}
+To boil this down to more familiar terms from linear algebra we remark that we can recast this problem as the question to the solution of the linear system
+\begin{equation}
+(\mathds{1} + \prod_\tau \bm{B}_\tau) x = b.
+\end{equation}
+The $\bm{B}_\tau \in \mathbb{C}^{n\times n}$ depend on the lattice size as well as other physical parameters that can be chosen such that a matrix norm of $\bm{B}_i$ can have any number.
+From standard perturbation theory for linear systems it is known that the computed solution $\tilde{x}$ would 
+contain a relative error of
+\begin{equation}
+\frac{|\tilde{x} - x|}{|x|} = \mathcal{O}\left(\epsilon \kappa_p\left(\mathds{1} + \prod_\tau \bm{B}_\tau\right)\right).
+\end{equation}
+Here $\epsilon$ denotes the machine precision which is $2^{-53}$ for IEEE double precision numbers
+and $\kappa_p(\bm{M})$ is the condition number of the matrix $\bm{M}$ with respect ot the matrix $p$-norm.
+The important fact that makes straight-forward inversion so badly suited  stems from the fact that $  \prod_ \tau \bm{B}_\tau $ contains exponentially large and small scales as can be seen in Eq.~\eqref{eqn:partition_2}.  Thereby, as a function of increasing inverse temperature, 
+the condition number will grow exponentially so that the computed solution $\tilde{x}$
+will often contain no correct digits at all.
+To circumvent this, more sophisticated methods have to be employed. We will first of all assume that the multiplication of \texttt{NWrap} $\bm{B}$ matrices has an acceptable condition number.
+Assuming for simplicity that \texttt{NWrap} is a multiple of $L_{\text{Trotter}}$, we can write:
+\begin{equation}
+\bm{G} = \left( \mathds{1} + \prod\limits_{ i = 0}^{\frac{L_{\text{Trotter}}} {\texttt{NWrap} -1}}       \underbrace{\prod_{\tau=1}^{\texttt{NWrap}} \bm{B}_{i  \cdot  \texttt{NWrap}+ \tau} }_{ \equiv \mathcal{\bm{B}}_i}\right)^{-1}.
+\end{equation}
+
+Within the auxiliary field QMC implementation of the ALF project, we are by default employing
+the strategy of forming a product of QR-decompositions which was proven to be weakly backwards stable in \cite{Bai2011}.
+The key idea is to efficiently separate the scales of a matrix from the orthogonal part of a matrix.
+This can be achieved using a QR decomposition of a matrix $\bm{A}$ in the form $\bm{A}_i = \bm{Q}_i \bm{R}_i$. The matrix $\bm{Q}_i$ is unitary and hence in the usual $2$-norm it holds that $\kappa_2(\bm{Q}_i) = 1$.
+To get a handle on the condition number of $\bm{R}_i$ we will form the
+diagonal matrix
+\begin{equation}
+(\bm{D}_i)_{n,n} = |(\bm{R}_i)_{n,n}|
+\label{eq:diagnorm}
+\end{equation}
+and set $\tilde{\bm{R}}_i = \bm{D}_i^{-1} \bm{R}_i$
+This gives the decomposition
+\begin{equation}
+\bm{A}_i = \bm{Q}_i \bm{D}_i \tilde{\bm{R}}_i.
+\end{equation}
+$\bm{D}_i$ now contains the row norms of the original $\bm{R}_i$ matrix and hence attempts to separate off the total scales of the problem from $\bm{R}_i$.
+This is similar in spirit to the so-called matrix equilibration which tries to improve the condition number of a matrix by suitably chosen column and row scalings.
+Due to a theorem by van der Sluis \cite{vanderSluis1969} we know that the choice in \eqref{eq:diagnorm} is almost optimal among all diagonal matrices $\bm{D}$ from the space of diagonal matrices 
+$\mathcal{D}$ in the sense that
+\begin{equation*}
+\kappa_p((\bm{D}_i)^{-1} \bm{R}_i ) \leq n^{1/p} \min_{\bm{D} \in \mathcal{D}} \kappa_p(\bm{D}^{-1} \bm{R}_i).
+\end{equation*}
+Now, given an initial decomposition of $\bm{A}_{j-1} = \prod_i \mathcal{\bm{B}}_i = \bm{Q}_{j-1} \bm{D}_{j-1} \bm{T}_{j-1}$ an update
+$\mathcal{\bm{B}}_j \bm{A}_{j-1}$ is formed in the following three steps:
+\begin{enumerate}
+\item Form $ \bm{M}_j = (\mathcal{\bm{B}}_j \bm{Q}_{j-1}) \bm{D}_{j-1}$. Note the parentheses.
+\item Do a QR decomposition of $\bm{M}_j = \bm{Q}_j \bm{D}_j \bm{R}_j$. This gives the final $\bm{Q}_j$ and $\bm{D}_j$.
+\item Form the updated $\bm{T}$ matrices $\bm{T}_j = \bm{R}_j \bm{T}_{j-1}$.
+\end{enumerate}
+%While this provides provides a stable method to calculate the involved matrix product
+%it can be pretty expensive. Therefore the user can specify to skip a certain number of 
+%QR Decompositions and perform plain multiplications instead. This is specified in the parameters file by the \path{NWrap} parameter.
+%\path{NWrap}~=~1 corresponds to always performing QR decompositions whereas larger integers give longer intervals where no QR decomposition will be performed.
+The effectiveness of the stabilization \emph{has} to be judged for every simulation from the output file \path{info} (Sec.~\ref{sec:output_prec}). For most simulations there are two values to look out for:
+\begin{itemize}
+\item \texttt{Precision Green}
+\item \texttt{Precision Phase}
+\end{itemize}
+The Green function as well as the average phase are usually numbers with a magnitude of $\mathcal{O} (1)$. 
+For that reason we recommend that \path{NWrap} is chosen such that the mean precision is of the order of $10^{-8}$ or better.  
+We have included typical values of \texttt{Precision Phase} and of the mean and the maximal values of \texttt{Precision Green} in the 
+discussion of example simulations, see Sec.~\ref{sec:prec_charge} and Sec.~\ref{sec:prec_spin}.
+

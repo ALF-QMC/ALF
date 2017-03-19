@@ -1,0 +1,28 @@
+% !TEX root = doc.tex
+% Copyright (c) 2016 The ALF project.
+% This is a part of the ALF project documentation.
+% The ALF project documentation by the ALF contributors is licensed
+% under a Creative Commons Attribution-ShareAlike 4.0 International License.
+% For the licensing details of the documentation see license.CCBYSA.
+%
+%------------------------------------------------------------
+\subsection{Monte Carlo sampling}\label{sec:sampling}
+%------------------------------------------------------------
+%
+The default updating scheme consists of local moves which change (upon acceptance) only one  entry of $L_{\mathrm{Trotter}}(M_I+M_V)$  fields (see Sec. \ref{sec:updating}). 
+To generate  an independent configuration $C$,   one has to visit at least each field  once.  Our unit of \textit{sweeps} is defined such that each field is visited twice in a sequential propagation from $\tau = 0$ to $\tau = L_{\text{ Trotter}}$  and back.  A single sweep will  generically not  suffice to produce an independent  configuration.
+% This is however only the lower bound as there can be a region in the spin space where the fields are correlated and it requires a larger or even global move to significantly change the configuration to an independent one. One might imagine a ferromagnet due to spontaneous symmetry breaking. All spins are parallel aligned and, let' say, point upwards. The configuration of only down spins is equally justified, but rotating one to the other requires a global operation. Flipping the spins individually one after another generates intermediate states of relative high energy which corresponds to a low probability in the QMC algorithm.
+In fact, the autocorrelation time $T_\mathrm{auto}$ characterizes the required time scale to generate an independent configuration or values $\langle\langle\hat{O}\rangle\rangle_C$ for the observable $O$.
+
+This has several consequences for the Monte Carlo simulation:
+\begin{itemize}
+	\item First of all, we start from a randomly chosen field configuration such that one has to invest \textit{at least} one $T_\mathrm{auto}$ to generate relevant, equilibrated configurations before reliable measurements are possible. This phase of the simulation is known as the warm-up. In order to keep the code as flexible as possible (different simulations might have different autocorrelation times), measurements are taken from the very beginning. Instead, we provide the parameter \path{n_skip} for the analysis to ignore the first \path{n_skip} bins.
+	\item Secondly, our implementation averages over a given amount of measurements   set by the variable \texttt{NSWEEPS}  before storing the results, known as one bin, on the disk.  A bin corresponds to \texttt{NSWEEPS}  sweeps. The  error analysis requires statistically  independent bins to generate reliable confidence estimates. If bins are to small (averaged over a period shorter then $T_\mathrm{auto}$), the error bars are then typically underestimated. Most of the time, the autocorrelation time is unknown before the simulation is started.  Sometimes the used compute cluster does not allow single runs long enough to generate appropriately sized bins. Therefore, we provide the \path{N_rebin} parameter that specifies how many bins are combined into a new bin during the error analysis. In general, one should check that a further increase of the bin size does not change the error estimate   (For an explicit example, the reader is referred to the Appendix of Ref.~\cite{Assaad02}).
+
+The \path{N_rebin} variable can be used to control a second issue. The distribution of the Monte Carlo estimates $\langle\langle\hat{O}\rangle\rangle_C$ are unknown. The result in the form $(\mathrm{mean}\pm \mathrm{error})$ assumes a Gaussian distribution. Luckily, every original distribution with a finite variance turns into a Gaussian one, once it is folded often enough (central limit theorem). Due to the internal averaging (folding) within one bin, many observables are already quite Gaussian. Otherwise one can increase \path{N_rebin} further, even if the bins are already independent~\cite{Bercx17}.
+	\item The third issue concerns time displaced correlation functions. Even if the configurations are independent, the fields within the configuration are still correlated. Hence, the data for $S_{\alpha,\beta}(\vec{k},\tau)$ (see Sec.~\ref{sec:obs}; Eqn.~\ref{eqn:s}) and $S_{\alpha,\beta}(\vec{k},\tau+\Delta\tau)$ are also correlated. Setting the switch \path{N_Cov = 1} triggers the calculation of the covariance matrix in addition to the usual error analysis. The covariance is defined by
+	\begin{equation}
+		COV_{\tau \tau'}=\frac{1}{N_{Bins}}\left\langle\left(S_{\alpha,\beta}(\vec{k},\tau)-\langle S_{\alpha,\beta}(\vec{k},\tau)\rangle\right)\left(S_{\alpha,\beta}(\vec{k},\tau')-\langle S_{\alpha,\beta}(\vec{k},\tau')\rangle\right)\right\rangle\,.
+	\end{equation}
+An example where this information is necessary is the  calculation of mass gaps extracted by fitting the  tail  of the time displaced correlation function.  Omitting  the covariance matrix will  underestimate the  error.
+\end{itemize}
