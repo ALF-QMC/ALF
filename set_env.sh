@@ -1,8 +1,7 @@
-# setting QRREF has the highest priority. Setting nothing selects System lapack for the QR decomposition.
-# Setting OLDNAG selects syntax of NAG Versions before NAG Mark 17 (roughly....).
-# In addition the NAG library has to be specified in LIB_BLAS_LAPACK.
 # -DMPI selects MPI.
-PROGRAMMCONFIGURATION="-DQRREF "
+# -DSTAB1    Singular value decomposition for stabilization
+# -DSTAB2    QR  with pivoting. Packed form of QR factoriztion  is not used.
+#  Default  stabilization QR with pivotting. Packed form of QR factoriztion  is used. 
 PROGRAMMCONFIGURATION="-DMPI"
 PROGRAMMCONFIGURATION=""
 f90="gfortran"
