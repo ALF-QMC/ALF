@@ -3,7 +3,7 @@
 # -DSTAB2    QR  with pivoting. Packed form of QR factoriztion  is not used.
 #  Default  stabilization QR with pivotting. Packed form of QR factoriztion  is used. 
 PROGRAMMCONFIGURATION = -DMPI 
-PROGRAMMCONFIGURATION =
+PROGRAMMCONFIGURATION = -DQRREF
 f90 = gfortran
 export f90
 F90OPTFLAGS = -O3 -Wconversion  -fcheck=all
@@ -31,6 +31,7 @@ lib:
 	cd Libraries && $(MAKE)
 ana:
 	cd Analysis && $(MAKE)
+clean: cleanall
 cleanall:
 	cd Libraries && $(MAKE) clean
 	cd Prog && $(MAKE)  clean
