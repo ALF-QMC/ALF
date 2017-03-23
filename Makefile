@@ -21,10 +21,7 @@ export Libs
 LIB_BLAS_LAPACK = -llapack -lblas
 export LIB_BLAS_LAPACK
 
-all:
-	cd Libraries && $(MAKE)
-	cd Prog && $(MAKE)
-	cd Analysis && $(MAKE)
+all: lib ana prog
 prog:
 	cd Prog && $(MAKE)
 lib:
@@ -32,10 +29,7 @@ lib:
 ana:
 	cd Analysis && $(MAKE)
 clean: cleanall
-cleanall:
-	cd Libraries && $(MAKE) clean
-	cd Prog && $(MAKE)  clean
-	cd Analysis && $(MAKE) clean
+cleanall: cleanprog cleanlib cleanana
 cleanprog:
 	cd Prog && $(MAKE) clean
 cleanlib:
