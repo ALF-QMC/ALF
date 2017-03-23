@@ -36,3 +36,6 @@ cleanlib:
 	cd Libraries && $(MAKE) clean
 cleanana:
 	cd Analysis && $(MAKE) clean
+help:
+	@echo "The following are some of the valid targets of this Makefile"
+	@echo "all, prog, lib, ana, clean, cleanall, cleanprog, cleanlib, cleanana"
