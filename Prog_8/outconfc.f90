@@ -58,11 +58,13 @@
          LOGICAL        :: LCONF 
          CHARACTER (LEN=64) :: FILE_SR, FILE_TG
 
-#ifdef MPI
+#if defined(MPI)
          INTEGER        :: STATUS(MPI_STATUS_SIZE)
          CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
          CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+#endif 
          
+#if defined(MPI) && !defined(TEMPERING)
          CALL GET_SEED_LEN(K)
          ALLOCATE(SEED_VEC(K))
          CALL RANGET(SEED_VEC)
@@ -83,6 +85,11 @@
          ALLOCATE(SEED_VEC(K))
          CALL RANGET(SEED_VEC)
          FILE_TG = "confout_0"
+#if defined(TEMPERING)
+         write(File_TG,'(A,I0,A)') "Temp_",Irank,"/confout_0"
+#else
+         FILE_TG = "confout_0"
+#endif
          OPEN (UNIT = 10, FILE=FILE_TG, STATUS='UNKNOWN', ACTION='WRITE')
          WRITE(10,*) SEED_VEC
          DO NT = 1,LTROT

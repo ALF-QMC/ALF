@@ -149,10 +149,11 @@
                  Allocate(syu(n), sxv(n))
                  call zgemv('T', NDim, n-1, alpha, y_v, Ndim, u(1,n), 1, beta , syu, 1)
                  call zgemv('T', NDim, n-1, alpha, x_v, Ndim, v(1,n), 1, beta , sxv, 1)
+                 alpha = 1.D0
+                 call zgemv('N', NDim, n-1, alpha, x_v, Ndim, syu, 1, alpha, x_v(1, n), 1)
+                 call zgemv('N', NDim, n-1, alpha, y_v, Ndim, sxv, 1, alpha, y_v(1, n), 1)
                  do m = 1,n-1
                     Z = Z - syu(m)*sxv(m)
-                    call zaxpy(Ndim, syu(m), x_v(1, m), 1, x_v(1, n), 1)
-                    call zaxpy(Ndim, sxv(m), y_v(1, m), 1, y_v(1, n), 1)
                  enddo
                  Z = 1.D0/Z
                  call zscal(Ndim, Z, x_v(1, n), 1)

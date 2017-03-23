@@ -1,7 +1,8 @@
 TARGET= SPT.out
-OBJS=  control_mod.o Operator.o print_bin_mod.o observables_mod.o Hamiltonian_SPT.o Hop_mod.o  UDV_WRAP.o  \
-       Global_mod.o tau_m.o QDRP_decompose.o wrap_helpers.o main.o wrapul.o  cgr1.o wrapgrup.o wrapur.o upgrade.o \
-        wrapgrdo.o outconfc.o  inconfc.o cgr2.o cgr2_2.o cgr2_1.o 
+OBJS=  control_mod.o Operator.o QDRP_decompose.o wrap_helpers.o \
+       observables_mod.o print_bin_mod.o Hamiltonian_SPT.o Hop_mod.o  UDV_WRAP.o  \
+       Global_mod.o tau_m.o  main.o wrapul.o  cgr1.o wrapgrup.o wrapur.o upgrade.o \
+        wrapgrdo.o outconfc.o  inconfc.o cgr2.o cgr2_2.o cgr2_1.o
 
 #block.o  block_obs.o Mol_Dyn.o  Hubb.o  inconfc.o  outconfc.o npbc.o  salph.o  sli.o \
 #       sthop.o  wrapul.o wrapur.o cgr1.o \

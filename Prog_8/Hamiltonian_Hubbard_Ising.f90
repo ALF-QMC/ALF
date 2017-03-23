@@ -49,18 +49,19 @@
 
           Implicit none
 
-#ifdef MPI
+#if defined (MPI) || defined(TEMPERING)
           include 'mpif.h'
 #endif   
 
           integer :: ierr
-
+          Character (len=64) :: file1
           
           NAMELIST /VAR_lattice/  L1, L2, Lattice_type, Model
 
           NAMELIST /VAR_Hubbard/  ham_T, ham_chem, ham_U, Dtau, Beta
 
-          NAMELIST /VAR_Ising/    Ham_h, Ham_J, Ham_xi, Ham_F, Propose_S0, Global_moves, N_Global
+          NAMELIST /VAR_Hub_Ising/  ham_T, ham_chem, ham_U, Dtau, Beta, &
+               &                    Ham_h, Ham_J, Ham_xi, Ham_F, Propose_S0, Global_moves, N_Global
 
 #ifdef MPI
           Integer        :: Isize, Irank
@@ -107,15 +108,28 @@
              Write(6,*) "Model not yet implemented!"
              Stop
           endif
-#ifdef MPI
+
+#if defined(TEMPERING) 
+          Propose_S0   = .false.
+          Global_moves = .false.
+          N_Global = 1
+          write(File1,'(A,I0,A)') "Temp_",Irank,"/parameters"
+          OPEN(UNIT=5,File=file1,STATUS='old',ACTION='read',IOSTAT=ierr)
+          If ( Model == "Hubbard_Mz"        )  READ(5,NML=VAR_Hubbard)
+          If ( Model == "Hubbard_SU2"       )  READ(5,NML=VAR_Hubbard)
+          If ( Model == "Hubbard_SU2_Ising" )  READ(5,NML=VAR_Hub_Ising)
+          CLOSE(5)
+#else
+#if defined(MPI) 
           If (Irank == 0 ) then
 #endif
              Propose_S0   = .false.
              Global_moves = .false.
              N_Global = 1
              OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
-             READ(5,NML=VAR_Hubbard)
-             If ( Model == "Hubbard_SU2_Ising" )  Read(5,NML=VAR_Ising)
+             If ( Model == "Hubbard_Mz"        )  READ(5,NML=VAR_Hubbard)
+             If ( Model == "Hubbard_SU2"       )  READ(5,NML=VAR_Hubbard)
+             If ( Model == "Hubbard_SU2_Ising" )  READ(5,NML=VAR_Hub_Ising)
              CLOSE(5)
              
 #ifdef MPI
@@ -135,49 +149,53 @@
              CALL MPI_BCAST(N_Global,     1,MPI_Integer,0,MPI_COMM_WORLD,ierr)
           Endif
 #endif
-          Call Ham_hop
-          Ltrot = nint(beta/dtau)
+#endif                
+           
+           Call Ham_hop
+           Ltrot = nint(beta/dtau)
+           
+           If  ( Model == "Hubbard_SU2_Ising" )  Call Setup_Ising_action
 
-          If  ( Model == "Hubbard_SU2_Ising" )  Call Setup_Ising_action
-#ifdef MPI
-          If (Irank == 0) then
+#if defined(TEMPERING)
+           write(File1,'(A,I0,A)') "Temp_",Irank,"/info"
+#else
+           File1 = "info"
 #endif
-             Open (Unit = 50,file="info",status="unknown",position="append")
-             Write(50,*) '====================================='
-             Write(50,*) 'Model is      : ', Model 
-             Write(50,*) 'Lattice is    : ', Lattice_type
-             Write(50,*) '# of orbitals : ', Ndim
-             Write(50,*) 'Beta          : ', Beta
-             Write(50,*) 'dtau,Ltrot    : ', dtau,Ltrot
-             Write(50,*) 'N_SUN         : ', N_SUN
-             Write(50,*) 'N_FL          : ', N_FL
-             Write(50,*) 't             : ', Ham_T
-             Write(50,*) 'Ham_U         : ', Ham_U
-             Write(50,*) 'Ham_chem      : ', Ham_chem
-             If ( Model == "Hubbard_SU2_Ising" ) then
-                Write(50,*) 'Ham_xi        : ', Ham_xi
-                Write(50,*) 'Ham_J         : ', Ham_J
-                Write(50,*) 'Ham_h         : ', Ham_h
-                Write(50,*) 'Ham_F         : ', Ham_F
-                If ( Propose_S0 )  Write(50,*) 'Propose Ising moves according to  bare Ising action'
-                If ( Global_moves ) Then
-                   Write(50,*) 'Global moves are enabled   '
-                   Write(50,*) '# of global moves / sweep :', N_Global
-                Endif
-             Endif
-#if defined(STAB1) 
-             Write(50,*) 'STAB1 is defined '
+           
+#if defined(MPI) && !defined(TEMPERING)
+           If (Irank == 0 ) then
 #endif
-#if defined(QRREF) 
-             Write(50,*) 'QRREF is defined '
+             
+              Open (Unit = 50,file=file1,status="unknown",position="append")
+              Write(50,*) '====================================='
+              Write(50,*) 'Model is      : ', Model 
+              Write(50,*) 'Lattice is    : ', Lattice_type
+              Write(50,*) '# of orbitals : ', Ndim
+              Write(50,*) 'Beta          : ', Beta
+              Write(50,*) 'dtau,Ltrot    : ', dtau,Ltrot
+              Write(50,*) 'N_SUN         : ', N_SUN
+              Write(50,*) 'N_FL          : ', N_FL
+              Write(50,*) 't             : ', Ham_T
+              Write(50,*) 'Ham_U         : ', Ham_U
+              Write(50,*) 'Ham_chem      : ', Ham_chem
+              If ( Model == "Hubbard_SU2_Ising" ) then
+                 Write(50,*) 'Ham_xi        : ', Ham_xi
+                 Write(50,*) 'Ham_J         : ', Ham_J
+                 Write(50,*) 'Ham_h         : ', Ham_h
+                 Write(50,*) 'Ham_F         : ', Ham_F
+                 If ( Propose_S0 )  Write(50,*) 'Propose Ising moves according to  bare Ising action'
+                 If ( Global_moves ) Then
+                    Write(50,*) 'Global moves are enabled   '
+                    Write(50,*) '# of global moves / sweep :', N_Global
+                 Endif
+              Endif
+              close(50)
+#if defined(MPI) && !defined(TEMPERING)
+           endif
 #endif
-             close(50)
-#ifdef MPI
-          endif
-#endif
-          call Ham_V
-
-        end Subroutine Ham_Set
+           call Ham_V
+           
+         end Subroutine Ham_Set
 !=============================================================================
         Subroutine Ham_Latt
           Implicit none

@@ -54,7 +54,7 @@
          INTEGER, DIMENSION(:), ALLOCATABLE :: SEED_VEC
          REAL (Kind=Kind(0.d0))  :: X
          LOGICAL ::   LCONF 
-         CHARACTER (LEN=64) :: FILE_SR, FILE_TG
+         CHARACTER (LEN=64) :: FILE_SR, FILE_TG, FILE_seeds, FILE_info
 
 #ifdef MPI
          INTEGER        :: STATUS(MPI_STATUS_SIZE)
@@ -64,7 +64,7 @@
 
          ALLOCATE (NSIGMA(SIZE(OP_V,1),LTROT))
          
-#ifdef MPI
+#if defined(MPI) && !defined(TEMPERING) 
          INQUIRE (FILE='confin_0', EXIST=LCONF)
          IF (LCONF) THEN
             FILE_SR = "confin"
@@ -112,9 +112,13 @@
          ENDIF
             
 #else   
-         INQUIRE (FILE='confin_0', EXIST=LCONF)
+#if defined(TEMPERING) 
+         write(FILE_TG,'(A,I0,A)') "Temp_",Irank,"/confin_0"
+#else
+         FILE_TG = "confin_0"
+#endif
+         INQUIRE (FILE=FILE_TG, EXIST=LCONF)
          IF (LCONF) THEN
-            FILE_TG = "confin_0"
             CALL GET_SEED_LEN(K)
             ALLOCATE(SEED_VEC(K))
             OPEN (UNIT = 10, FILE=FILE_TG, STATUS='OLD', ACTION='READ')
@@ -128,14 +132,33 @@
             CLOSE(10)
             DEALLOCATE(SEED_VEC)
          ELSE
-            WRITE(6,*) 'No initial configuration'
-            OPEN(UNIT=5,FILE='seeds',STATUS='OLD',ACTION='READ',IOSTAT=IERR)
+#if defined(TEMPERING) 
+            write(FILE_seeds,'(A,I0,A)') "Temp_",Irank,"/seeds"
+#else
+            FILE_seeds="seeds"
+#endif
+            OPEN(UNIT=5,FILE=FILE_seeds,STATUS='OLD',ACTION='READ',IOSTAT=IERR)
             IF (IERR /= 0) THEN
                WRITE(*,*) 'UNABLE TO OPEN <seeds>',IERR
                STOP
             END IF
-            READ (5,*) SEED_IN
+#if defined(TEMPERING) 
+            DO I = 0,IRANK
+#endif
+               READ (5,*) SEED_IN
+#if defined(TEMPERING) 
+            ENDDO
+#endif
             CLOSE(5)
+#if defined(TEMPERING) 
+            write(FILE_info,'(A,I0,A)') "Temp_",Irank,"/info"
+#else
+            FILE_info="info"
+#endif
+            Open (Unit = 50,file=FILE_info,status="unknown",position="append")
+            WRITE(50,*) 'No initial configuration, Seed_in', SEED_IN
+            Close(50)
+
             ALLOCATE(SEED_VEC(1))
             SEED_VEC(1) = SEED_IN
             CALL RANSET(SEED_VEC)

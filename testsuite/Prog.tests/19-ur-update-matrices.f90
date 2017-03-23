@@ -1,4 +1,5 @@
 Program TESTURUPDATEMATRICES
+Use Wrap_helpers
 implicit none
 interface
 SUBROUTINE ur_update_matrices_old(U, D, V, V1, TMP, TMP1, Ndim, NCON)
@@ -8,14 +9,6 @@ SUBROUTINE ur_update_matrices_old(U, D, V, V1, TMP, TMP1, Ndim, NCON)
         COMPLEX (Kind=Kind(0.d0)) :: U(Ndim,Ndim), V(Ndim,Ndim), V1(Ndim,Ndim), TMP(Ndim,Ndim),TMP1(Ndim,Ndim)
         COMPLEX (Kind=Kind(0.d0)) :: D(Ndim)
         end Subroutine
-        
-SUBROUTINE ur_update_matrices(U, D, V, TMP, TMP1, Ndim, NCON)
-        Use UDV_Wrap_mod
-        Implicit None
-        INTEGER, intent(in) :: Ndim, NCON
-        COMPLEX (Kind=Kind(0.d0)) :: U(Ndim,Ndim), V(Ndim,Ndim), TMP(Ndim,Ndim),TMP1(Ndim,Ndim)
-        COMPLEX (Kind=Kind(0.d0)) :: D(Ndim)
-end Subroutine
 end interface
 
         COMPLEX(Kind=Kind(0.D0)), Dimension(:,:), allocatable ::  U, V, V1, TMP, TMP1, Uold, Vold, TMPold

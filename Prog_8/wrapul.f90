@@ -28,7 +28,7 @@
 ! 
 !     - If you make substantial changes to the program we require you to either consider contributing
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
-
+      
       SUBROUTINE WRAPUL(NTAU1, NTAU, UL ,DL, VL)
 
 !--------------------------------------------------------------------
@@ -41,6 +41,59 @@
 !
 !--------------------------------------------------------------------
 
+#if defined(STAB2) ||  defined(STAB1) 
+        !NOTE:    NTAU1 > NTAU.
+        Use Operator_mod, only : Phi
+        Use Hamiltonian
+        Use Hop_mod
+        Use UDV_Wrap_mod
+
+        Implicit none
+
+        ! Arguments
+        COMPLEX (Kind=Kind(0.d0)) :: UL(Ndim,Ndim,N_FL), VL(Ndim,Ndim,N_FL)
+        COMPLEX (Kind=Kind(0.d0)) :: DL(Ndim,N_FL)
+        Integer :: NTAU1, NTAU
+
+
+        ! Working space.
+        COMPLEX (Kind=Kind(0.d0)) ::  U1(Ndim,Ndim), V1(Ndim,Ndim), TMP(Ndim,Ndim), TMP1(Ndim,Ndim)
+        COMPLEX (Kind=Kind(0.d0)) ::  D1(Ndim), Z_ONE, beta
+        Integer :: NT, NCON, n, nf
+        Real    (Kind=Kind(0.d0)) ::  X
+ 
+
+
+        NCON = 0  ! Test for UDV ::::  0: Off,  1: On.
+
+        Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
+        beta = 0.D0
+        Do nf = 1, N_FL
+           CALL INITD(TMP,Z_ONE)
+           DO NT = NTAU1, NTAU+1 , -1
+              Do n = Size(Op_V,1),1,-1
+                 X = Phi(nsigma(n,nt),Op_V(n,nf)%type)
+                 Call Op_mmultL(Tmp,Op_V(n,nf),X,Ndim)
+              enddo
+              !CALL MMULT( TMP1,Tmp,Exp_T(:,:,nf) )
+              Call  Hop_mod_mmthl (Tmp, Tmp1,nf)
+              Tmp = Tmp1
+           ENDDO
+           
+           !Carry out U,D,V decomposition.
+           CALL ZGEMM('C', 'C', Ndim, Ndim, Ndim, Z_ONE, TMP, Ndim, UL(1, 1, nf), Ndim, beta, TMP1, Ndim)
+           DO n = 1,NDim
+              TMP1(:, n) = TMP1(:, n) * DL(n, nf)
+           ENDDO
+           CALL UDV_WRAP_Pivot(TMP1,U1,D1,V1,NCON,Ndim,Ndim)
+           !CALL UDV(TMP,U1,D1,V1,NCON)
+           UL(:, :, nf) = CONJG(TRANSPOSE(U1))
+           CALL ZGEMM('N', 'C', Ndim, Ndim, Ndim, Z_ONE, VL(1, 1, nf), Ndim, V1, Ndim, beta, TMP1, Ndim)
+           VL(:, :, nf) = TMP1
+           DL(:, nf) = D1
+        ENDDO
+
+#else
         !NOTE:    NTAU1 > NTAU.
         Use Operator_mod, only : Phi
         Use Hop_mod
@@ -79,4 +132,6 @@
            UL(:, :, nf) = CONJG(TRANSPOSE(UL(:,:,nf)))
         ENDDO
         deallocate(TMP, TMP1)
+#endif
       END SUBROUTINE WRAPUL
+      

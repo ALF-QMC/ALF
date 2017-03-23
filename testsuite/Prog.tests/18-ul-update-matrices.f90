@@ -2,6 +2,7 @@
 ! gfortran -Wall -std=f2003 -I ../../Prog_8/  -I ../../Libraries/Modules/ -L ../../Libraries/Modules/ 18-ul-update-matrices.f90 ../../Prog_8/wrap_helpers.o ../../Prog_8/UDV_WRAP.o ../../Libraries/Modules/modules_90.a ../../../../lapack-3.6.1/liblapack.a -lblas
 
 Program TESTULUPDATEMATRICES
+        Use Wrap_helpers
 implicit none
 interface
 SUBROUTINE ul_update_matrices_old(U, D, V, V1, TMP, TMP1, Ndim, NCON)
@@ -9,14 +10,6 @@ SUBROUTINE ul_update_matrices_old(U, D, V, V1, TMP, TMP1, Ndim, NCON)
         Implicit None
         INTEGER, intent(in) :: Ndim, NCON
         COMPLEX (Kind=Kind(0.d0)) :: U(Ndim,Ndim), V(Ndim,Ndim), V1(Ndim,Ndim), TMP(Ndim,Ndim),TMP1(Ndim,Ndim)
-        COMPLEX (Kind=Kind(0.d0)) :: D(Ndim)
-        end Subroutine
-        
-SUBROUTINE ul_update_matrices(U, D, V, TMP, TMP1, Ndim, NCON)
-        Use UDV_Wrap_mod
-        Implicit None
-        INTEGER, intent(in) :: Ndim, NCON
-        COMPLEX (Kind=Kind(0.d0)) :: U(Ndim,Ndim), V(Ndim,Ndim), TMP(Ndim,Ndim),TMP1(Ndim,Ndim)
         COMPLEX (Kind=Kind(0.d0)) :: D(Ndim)
         end Subroutine
 end interface

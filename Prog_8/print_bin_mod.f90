@@ -271,7 +271,7 @@
            endif
 
            I = 1
-           Z = cmplx(0.d0,0d.0,kind(0.d0))
+           Z = cmplx(0.d0,0.d0,kind(0.d0))
            CALL MPI_REDUCE(Phase_mean,Z,I,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
            Phase_mean= Z/DBLE(ISIZE)
            If (Irank == 0 ) then
