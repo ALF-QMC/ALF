@@ -108,8 +108,8 @@
           Call Ham_latt
 
           Propose_S0 = .false.
-          Global_moves =.false.
-          N_Global = 1
+          Global_moves =.true.
+          N_Global = 10
 
           N_FL  = 1
           N_SUN = 1
@@ -624,8 +624,8 @@
                 weight = cmplx(dble(signum),0.d0, kind(0.D0))
                 ZU1 = ZU1  +  weight*tmp*0.5d0
              enddo
-          enddo
 !$OMP end parallel do
+          enddo
           Zrho = Zrho*N_SUN!cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
           ZU1 = ZU1*N_SUN!cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
 
@@ -1950,8 +1950,28 @@
           Implicit none
           Real (Kind=Kind(0.d0)), intent(out) :: T0_Proposal_ratio
           Integer, dimension(:,:),  allocatable, intent(in)  :: nsigma_old
+          Integer :: v, t, M_v, L_trot, kind_m
           
-          T0_Proposal_ratio=0.0
+          L_trot = size(nsigma,2)
+          M_v    = size(nsigma,1) 
+          kind_m = nranf(3)
+          
+          do t=1,L_trot
+            do v=1,M_v
+              if (v <= M_v/2 .and. kind_m .ne. 2 ) then
+                nsigma(v,t) = -nsigma_old(v,t)
+              else
+                nsigma(v,t) = nsigma_old(v,t)
+              endif
+              if (v > M_v/2 .and. kind_m .ne. 1 ) then
+                nsigma(v,t) = -nsigma_old(v,t)
+              else
+                nsigma(v,t) = nsigma_old(v,t)
+              endif
+            enddo
+          enddo
+          
+          T0_Proposal_ratio=1.d0
           
         End Subroutine Global_move
 !========================================================================
@@ -1963,7 +1983,7 @@
           !> Arguments
           Integer, dimension(:,:), allocatable, intent(IN) :: Nsigma_old
           
-          Delta_S0_global=0.0
+          Delta_S0_global=1.0
           
         end Function Delta_S0_global
 !========================================================================
