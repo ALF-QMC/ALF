@@ -1,9 +1,9 @@
 # -DMPI selects MPI.
-# -DSTAB1    Singular value decomposition for stabilization
-# -DSTAB2    QR  with pivoting. Packed form of QR factoriztion  is not used.
-#  Default  stabilization QR with pivotting. Packed form of QR factoriztion  is used. 
-PROGRAMMCONFIGURATION = -DMPI 
-PROGRAMMCONFIGURATION = -DQRREF
+# -DQRREF  Default  stabilization, using QR with pivoting. Packed form of QR factorization  is used. 
+# -DSTAB1  Alternative stabilization, using the  singular value decomposition.
+# -DSTAB2  Alternative stabilization, using QR  with pivoting. Packed form of QR factorization  is not used.
+PROGRAMCONFIGURATION = -DMPI 
+PROGRAMCONFIGURATION = -DQRREF
 f90 = gfortran
 export f90
 F90OPTFLAGS = -O3 -Wconversion  -fcheck=all
@@ -12,7 +12,7 @@ export F90OPTFLAGS
 F90USEFULFLAGS = -cpp -std=f2003
 F90USEFULFLAGS = -cpp
 export F90USEFULFLAGS
-FL = -c ${F90OPTFLAGS} ${PROGRAMMCONFIGURATION}
+FL = -c ${F90OPTFLAGS} ${PROGRAMCONFIGURATION}
 export FL
 DIR = ${CURDIR}
 export DIR
