@@ -22,7 +22,7 @@
       ! What is below is  private 
       
       Type (Lattice),       private :: Latt
-      Integer, parameter,   private :: Norb=16
+      Integer, parameter,   private :: Norb=16, Nobs_scal=10
       Integer, allocatable, private :: List(:,:), Invlist(:,:)
       Integer,              private :: L1, L2, FlagSym
       real (Kind=Kind(0.d0)),        private :: Ham_T, Ham_Vint,  Ham_Lam
@@ -423,7 +423,7 @@
           Implicit none
           Integer, Intent(In) :: Ltau
           Integer :: I
-          Allocate ( Obs_scal(10) )
+          Allocate ( Obs_scal(Nobs_scal) )
           Allocate ( Den_eq(Latt%N,1,1), Den_eq0(1) ) 
           Allocate ( U1_eq(Latt%N,1,1), U1_eq0(1) )
           Allocate ( U1xy_eq(Latt%N,1,1), U1xy_eq0(1) )
@@ -653,7 +653,7 @@
           enddo
 !$OMP end parallel do
           ZU1xyG = ZU1xyG*N_SUN!cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
-          ZU1xyG = cmplx( 0.5d0*(real(ZU1xyG) + aimag(ZU1xyG)), 0.d0 , kind(0.D0))
+!           ZU1xyG = cmplx( 0.5d0*(real(ZU1xyG) + aimag(ZU1xyG)), 0.d0 , kind(0.D0))
 
           ZPot = 0.d0
           Nc = Size( Op_V,1)
@@ -695,8 +695,10 @@
           Obs_scal(7) = Obs_scal(7) + (ZL)*ZP*ZS
           Obs_scal(8) = Obs_scal(8) + (ZU1)*ZP*ZS
           Obs_scal(9) = Obs_scal(9) + (ZU1xyG)*ZP*ZS
-          Obs_scal(10) = Obs_scal(10) + ZS
+!           Obs_scal(10) = Obs_scal(10) + ZU1xyG*ZP*ZS*cmplx(0.d0,-1.d0, kind(0.D0))
+          Obs_scal(Nobs_scal) = Obs_scal(Nobs_scal) + ZS
           ! You will have to allocate more space if you want to include more  scalar observables.
+          ! the last one has to be the phase!!!
           
           
 !$OMP parallel do default(shared) private(I1,I,no,J1,J,no1,imj,tmp,weight,signum)
@@ -1682,7 +1684,7 @@
           File_pr ="ener"
           Call Print_scal(Obs_scal, Nobs, file_pr)
           
-          Phase_bin = Obs_scal(8)/dble(Nobs)
+          Phase_bin = Obs_scal(Nobs_scal)/dble(Nobs)
           File_pr ="Den_eq"
           Call Print_bin(Den_eq, Den_eq0, Latt, Nobs, Phase_bin, file_pr)
           File_pr ="U1_eq"

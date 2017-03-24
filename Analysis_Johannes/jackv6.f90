@@ -4,11 +4,11 @@
         Use ERRORS
         Implicit none
 
-        REAL    (KIND=8), DIMENSION(:,:), ALLOCATABLE :: OBS
-        REAL    (KIND=8), DIMENSION(:),   ALLOCATABLE :: EN, SIGN
-        REAL    (KIND=8) :: XM, XERR,x,x1,y,y1
+        Complex (KIND=8), DIMENSION(:,:), ALLOCATABLE :: OBS
+        Complex (KIND=8), DIMENSION(:),   ALLOCATABLE :: EN, SIGN
+        Complex (KIND=8) :: XM, XERR,x,x1,y,y1
 
-        Complex (Kind=8) Z1,Z2,Z3,Z4,Z5,Z6,Z7,Z8,Z9,Z10
+        Complex (Kind=8) Z1,Z2,Z3,Z4,Z5,Z6,Z7,Z8,Z9,Z10, Z11
         Integer :: NST, NS, NS1, NS2, NSTEP, NC, NP, NOBS, Nbins, NP_EFF, ISEED, I, IOBS
         Integer :: N, NBIN
 
@@ -17,7 +17,7 @@
         !Open (Unit=12, File="ener_hist", status="unknown") 
         nbins = 0
         do
-            read(10,*,End=10)  Z1, Z2, Z3, Z4, Z5, Z5, Z5, Z5, Z5, Z5
+            read(10,*,End=10)  Z1, Z2, Z3, Z4, Z5, Z5, Z5, Z5, Z5, Z5!, Z11
             nbins = nbins + 1
          enddo
 10       continue
@@ -34,7 +34,7 @@
          !Open (Unit=25, File="statdat1", status="unknown") 
          !read(25,*) NST, NS1, NS2, NSTEP
          !Close(25)
-         NST = 1; NS1 = 1; NS2 = 2; NSTEP = 1
+         NST = 0; NS1 = 5; NS2 = 30; NSTEP = 5
          !If ( L == 15 ) NST = 10
          !If ( L == 12 ) NST = 8 
          !If ( L == 9  ) NST = 3 
@@ -48,24 +48,25 @@
          DO N = 1,NP
             IF (N.GE.NST) THEN
                NC = NC + 1
-               READ(20,*) Z1,Z2,Z3, Z4, Z5, Z6, Z7, Z8, Z9, Z10
-               OBS(NC,1) = dble(Z1) 
-               OBS(NC,2) = dble(Z2) 
-               OBS(NC,3) = dble(Z3)
-               OBS(NC,4) = dble(Z4) 
-               OBS(NC,5) = dble(Z5)
-               OBS(NC,6) = dble(Z6)
-               OBS(NC,7) = dble(Z7)
-               OBS(NC,8) = dble(Z8)
-               OBS(NC,9) = dble(Z9)
-               OBS(NC,10) = dble(Z10)
-               X=real(Obs(nc,8))
+               READ(20,*) Z1,Z2,Z3, Z4, Z5, Z6, Z7, Z8, Z9, Z10!, Z11
+               OBS(NC,1) = Z1 
+               OBS(NC,2) = Z2 
+               OBS(NC,3) = Z3
+               OBS(NC,4) = Z4 
+               OBS(NC,5) = Z5
+               OBS(NC,6) = Z6
+               OBS(NC,7) = Z7
+               OBS(NC,8) = Z8
+               OBS(NC,9) = Z9
+               OBS(NC,10) = Z10
+!                OBS(NC,11) = Z11
+               X=Obs(nc,8)
                X1=x1+X
-               y=real(Obs(nc,9))
+               y=Obs(nc,9)
                y1=y1+y
-               write(55,*) X, x1/(nc), y, y1/(nc)
+               write(55,*) dble(X), aimag(X), dble(x1/(nc)), aimag(x1/(nc)), dble(y), aimag(y), dble(y1/(nc)), aimag(y1/(nc))
             ELSE
-               READ(20,*) Z1,Z2,Z3, Z4, Z5, Z6, Z5, Z6, Z5, Z5
+               READ(20,*) Z1,Z2,Z3, Z4, Z5, Z6, Z5, Z6, Z5, Z5!, Z11
             ENDIF
          ENDDO
          CLOSE(20)
@@ -86,10 +87,11 @@
             IF (IOBS.EQ.3) WRITE(21,*) ' pot           '
             IF (IOBS.EQ.4) WRITE(21,*) ' Energy        '
             IF (IOBS.EQ.5) WRITE(21,*) ' dF/dt         '
-            IF (IOBS.EQ.6) WRITE(21,*) ' dF/dU        '
+            IF (IOBS.EQ.6) WRITE(21,*) ' dF/dU         '
             IF (IOBS.EQ.7) WRITE(21,*) ' dF/dl         '
             IF (IOBS.EQ.8) WRITE(21,*) ' U1            '
-            IF (IOBS.EQ.9) WRITE(21,*) ' U1xyG         '
+            IF (IOBS.EQ.9) WRITE(21,*) ' U1xG          '
+!             IF (IOBS.EQ.10) WRITE(21,*) ' U1yG          '
             IF (IOBS.EQ.NOBS) WRITE(21,*) ' phase         '
             DO NBIN = NS1, NS2, NSTEP
                if (NBIN.gt.0) then
@@ -98,7 +100,7 @@
                   else
                      CALL ERRCALCJ(EN,SIGN,XM,XERR,NBIN)
                   endif
-                  WRITE(21,2001) IOBS, XM,  XERR
+                  WRITE(21,2001) IOBS, dble(XM),  dble(XERR), aimag(XM),  aimag(XERR)
                   ! Test
                   ! NBOOT = 40
                   ! CALL BOOTSTRAP( EN,XM_BS,XERR_BS,NBOOT,ISEED)
@@ -108,7 +110,7 @@
             ENDDO
          ENDDO
          CLOSE(21)
-2001     FORMAT('OBS : ', I4,4x,F12.6,2X, F12.6)
+2001     FORMAT('OBS : ', I4,4x,F12.6,2X, F12.6,2x,F12.6,2X, F12.6)
          
          DEALLOCATE (EN,SIGN,OBS)
          
