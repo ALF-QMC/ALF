@@ -78,10 +78,14 @@
 \newcommand{\mycomment}[1]{{\color{red} #1}}
 \newcommand{\FAcomment}[1]{{\color{red} #1}}
 
+\makeatletter
+\DeclareOldFontCommand{\bf}{\normalfont\bfseries}{\mathbf}
+\makeatother
+
 \makeindex
 \begin{document}
 %---------------------------------------------------------------------------------------------------------
-\title{The \emph{ALF} (\emph{A}lgorithms for \emph{L}attice \emph{F}ermions) project release 0.5}
+\title{The \emph{ALF} (\emph{A}lgorithms for \emph{L}attice \emph{F}ermions) project release 1.0}
 
 \subtitle{Documentation for the  auxiliary field quantum Monte Carlo  code.}
 \author{Martin Bercx,  Florian Goth,  Johannes S. Hofmann, Fakher F. Assaad }
@@ -93,7 +97,7 @@ This is the ALF Project Documentation by the ALF contributors.
 It is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License.
 You are free to share and benefit from this documentation as long as this license is preserved
 and proper attribution to the authors is given. For details see the ALF project
-homepage \url{alf.physik.uni-wuerzburg.de}.
+homepage \url{alf.physik.uni-wuerzburg.de}. Contact address: \url{alf@physik.uni-wuerzburg.de} 
 \tableofcontents
 \clearpage
 %
@@ -1337,10 +1341,10 @@ The environment variables and the directives to compile the code are set in the 
 
 # -DMPI selects MPI.
 # -DQRREF  Default  stabilization, using QR with pivoting.
-           Packed form of QR factorization  is used. 
+#          Packed form of QR factorization  is used. 
 # -DSTAB1  Alternative stabilization, using the  singular value decomposition.
 # -DSTAB2  Alternative stabilization, using QR  with pivoting. 
-           Packed form of QR factorization  is not used.
+#          Packed form of QR factorization  is not used.
 PROGRAMCONFIGURATION = -DMPI 
 PROGRAMCONFIGURATION = -DQRREF
 f90 = gfortran
