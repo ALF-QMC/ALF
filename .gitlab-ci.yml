@@ -7,14 +7,8 @@ stages:
 .build_template: &build_definition
   stage: build
   script:
-    - . set_env.sh
-    - export f90="gfortran"
-    - cd Libraries
     - gfortran -v
-    - make
-    - cd ..
-    - cd Prog
-    - make
+    - make F90='gfortran' 
 
 .build_template_pgi: &build_definition_pgi
   stage: build
