@@ -2,9 +2,9 @@ TARGET= cov_eq.out
 OBJS=  cov_eq.o
 
   
-.SUFFIXES: .f90 .f
-.f.o .f90.o:
-	$(FC) -c -cpp -o $@ $(FLAGS) $<
+.SUFFIXES: .F90
+.F90.o:
+	$(FC) -c -o $@ $(FLAGS) $<
 
 $(TARGET): $(OBJS)
 	$(FC) $(LF) -o $(TARGET) $(OBJS) $(LIBS)
