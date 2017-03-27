@@ -8,13 +8,13 @@ stages:
   stage: build
   script:
     - gfortran -v
-    - make F90='gfortran' 
+    - make f90='gfortran' 
 
 .build_template_pgi: &build_definition_pgi
   stage: build
   script:
     - /opt/pgi/linux86-64/16.10/bin/pgfortran --version
-    - make F90='/opt/pgi/linux86-64/2016/bin/pgfortran' FL='-O3' LIB_BLAS_LAPACK='-L/opt/pgi/linux86-64/2016/lib -llapack -lblas' F90USEFULFLAGS='-Mpreprocess'
+    - make f90='/opt/pgi/linux86-64/2016/bin/pgfortran' FL='-O3' LIB_BLAS_LAPACK='-L/opt/pgi/linux86-64/2016/lib -llapack -lblas' F90USEFULFLAGS='-Mpreprocess'
 
 .warnconv_template: &warnconv_definition
   stage: warnconv
