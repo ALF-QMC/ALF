@@ -75,9 +75,6 @@
 \setkomafont{author}{\large}
 \setkomafont{date}{\large}
 
-\newcommand{\mycomment}[1]{{\color{red} #1}}
-\newcommand{\FAcomment}[1]{{\color{red} #1}}
-
 \makeindex
 
 \begin{document}
@@ -1324,13 +1321,17 @@ The environment variables and the directives to compile the code are set in the 
 \begin{lstlisting}
 
 # -DMPI selects MPI.
-# -DQRREF  Default  stabilization, using QR with pivoting.
-#          Packed form of QR factorization  is used. 
-# -DSTAB1  Alternative stabilization, using the  singular value decomposition.
-# -DSTAB2  Alternative stabilization, using QR  with pivoting. 
-#          Packed form of QR factorization  is not used.
+# -DSTAB1   Alternative stabilization, using the singular value decomposition.
+# -DSTAB2   Alternative stabilization, lapack QR with  manual pivoting.
+#           Packed form of QR factorization is not used.
+# (no flag) Default  stabilization, using lapack QR with pivoting. 
+#           Packed form of QR factorization  is used. 
+# -DQRREF   Enables reference lapack implementation of QR decomposition.
+# Recommendation:  just use the -DMPI flag if you want to run in parallel or 
+#                  leave it empy for serial jobs.  
+#                  The default stabilization, no flag, is generically the best. 
 PROGRAMCONFIGURATION = -DMPI 
-PROGRAMCONFIGURATION = -DQRREF
+PROGRAMCONFIGURATION = 
 f90 = gfortran
 export f90
 F90OPTFLAGS = -O3 -Wconversion  -fcheck=all
@@ -1348,13 +1349,16 @@ export Libs
 LIB_BLAS_LAPACK = -llapack -lblas
 export LIB_BLAS_LAPACK
 
-all: lib ana prog
-prog:
-	cd Prog && $(MAKE)
+all: lib ana program
+
 lib:
 	cd Libraries && $(MAKE)
 ana:
 	cd Analysis && $(MAKE)
+program:
+	cd Prog && $(MAKE)
+
+
 clean: cleanall
 cleanall: cleanprog cleanlib cleanana
 cleanprog:
@@ -1365,7 +1369,7 @@ cleanana:
 	cd Analysis && $(MAKE) clean
 help:
 	@echo "The following are some of the valid targets of this Makefile"
-	@echo "all, prog, lib, ana, clean, cleanall, cleanprog, cleanlib, cleanana"
+	@echo "all, program, lib, ana, clean, cleanall, cleanprog, cleanlib, cleanana"
 
 \end{lstlisting}
 In the above, the GNU Fortan compiler \texttt{gfortran} is set.\footnote{A known issue with the alternative Intel Fortran compiler \texttt{ifort} is the handling of automatic, temporary arrays 
@@ -2110,8 +2114,7 @@ In its present form, the  auxiliary field QMC code of the ALF project  allows to
 \section*{Acknowledgments} 
 %========================================================================================================================================
 %
-We are very grateful to  S.~Beyl, M.~Hohenadler,  F.~Parisen Toldin,  M.~Raczkowski, T.~Sato, J.~Schwab, Z.~Wang, and M.~Weber  for constant support during the development of this project. 
-\mycomment{MB: I think we should  acknowledge also RRZE Erlangen: We equally thank G.~Hager, M.~Wittmann, and G.~Wellein for useful discussions and support.}
+We are very grateful to  S.~Beyl, M.~Hohenadler,  F.~Parisen Toldin,  M.~Raczkowski, T.~Sato, J.~Schwab, Z.~Wang, and M.~Weber  for constant support during the development of this project. We equally thank G.~Hager, M.~Wittmann, and G.~Wellein for useful discussions and support.
 FFA would also like to thank T.~Lang   and Z.~Y.~Meng for  developments of the auxiliary field code as well as T.~Grover. 
 MB thanks the Bavarian Competence Network for Technical and Scientific High Performance Computing (KONWIHR) for financial support. FG  and JH thank the SFB-1170 for  financial support under projects Z03 and C01.  FFA thanks the DFG-funded FOR1807 and FOR1346 for partial financial support.
 Part of the optimization of the code was carried out during  the  Porting and Tuning Workshop 2016 offered by the Forschungszentrum J\"ulich.
