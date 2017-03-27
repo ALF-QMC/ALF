@@ -82,22 +82,25 @@
 
 \begin{document}
 
-\begin{titlepage}
 %---------------------------------------------------------------------------------------------------------
+\begin{titlepage}
 \title{The \emph{ALF} (\emph{A}lgorithms for \emph{L}attice \emph{F}ermions) project release 1.0}
-
 \subtitle{Documentation for the  auxiliary field quantum Monte Carlo  code.}
 \author{Martin Bercx,  Florian Goth,  Johannes S. Hofmann, Fakher F. Assaad }
-
-\address{Institut f\"ur Theoretische Physik und Astrophysik, Universit\"at W\"urzburg, 97074 W\"urzburg, Germany}
-%---------------------------------------------------------------------------------------------------------
-
+\date{Institut f\"ur Theoretische Physik und Astrophysik, Universit\"at W\"urzburg, 97074 W\"urzburg, Germany}
+\publishers{%
+    \normalfont\normalsize%
+    \parbox{0.8\linewidth}{%
+% \begin{abstract}
+\bigskip
+The Algorithms for Lattice Fermions package provides a general code for the finite temperature auxiliary field quantum Monte Carlo algorithm.       The code  is engineered to  be able to simulate any model that can be written in terms of  sums of single-body operators, of squares of single-body operators and single-body operators coupled to an Ising field with  given dynamics. We  provide predefined types that allow  the user to specify the model, the  Bravais lattice  as well as equal time and time displaced observables.     The code supports an MPI implementation.   Examples such as the Hubbard model on the honeycomb lattice and  the Hubbard model  on the square lattice coupled to a transverse Ising field are  provided and discussed in the documentation.  We furthermore discuss  how to use the package  to implement  the Kondo lattice model and  the $SU(N)$  Hubbard-Heisenberg model.   One can download the code from our Git instance at  \path{https://alf.physik.uni-wuerzburg.de} and sign in to  file in issues. 
+% \end{abstract}    
+    }
+}
 \maketitle
 \end{titlepage}
+%---------------------------------------------------------------------------------------------------------
 
-\begin{abstract}
-The Algorithms for Lattice Fermions package provides a general code for the finite temperature auxiliary field quantum Monte Carlo algorithm.       The code  is engineered to  be able to simulate any model that can be written in terms of  sums of single-body operators, of squares of single-body operators and single-body operators coupled to an Ising field with  given dynamics. We  provide predefined types that allow  the user to specify the model, the  Bravais lattice  as well as equal time and time displaced observables.     The code supports an MPI implementation.   Examples such as the Hubbard model on the honeycomb lattice and  the Hubbard model  on the square lattice coupled to a transverse Ising field are  provided and discussed in the documentation.  We furthermore discuss  how to use the package  to implement  the Kondo lattice and  the SU(N)  Hubbard-Heisenberg models.    One can download the code from our Git instance: https://alf.physik.uni-wuerzburg.de and sign in to  file in issues. 
-\end{abstract}
 
 Copyright \textcopyright ~2016, 2017 The \textit{ALF} Project.\\
 This is the ALF Project Documentation by the ALF contributors.
@@ -256,7 +259,7 @@ and define the space of configurations  $C$.
 Note that the chemical potential term is already included in the definition of the one-body term ${\mathcal{\hat{H}}_{T}}$, see eq. \eqref{eqn:general_ham_t}, of the general Hamiltonian.  
 
 The outline of this section is as follows. First, we derive the detailed form of the partition function and outline the computation of observables (Sec.~\ref{sec:part} - \ref{sec:reweight}). 
-Next, we present a number of update strategies, namely local updates and global updates (Sec.~\ref{sec:updating}). 
+Next, we present the present update strategy, namely local updates (Sec.~\ref{sec:updating}). 
 We equally discuss the measures we have implemented to make the code numerically stable (Sec.~\ref{sec:stable}). Finally, we discuss the autocorrelations and associated time scales during the 
 Monte Carlo sampling process (Sec.~\ref{sec:sampling}). 
 
@@ -468,12 +471,10 @@ so as to guarantee the stationarity condition.  Here, $ W(C) = \left| \Re \left[
    \begin{tabular}{@{} l l l @{}}\toprule
         Variable  &  Type                  &  Description   \\
          \\\midrule
-       \texttt{Propose\_S0}   &    Logical       &  If true, proposes local moves according to the probability $e^{-S_0}$. \\
-       \texttt{Global\_moves} & Logical       & If true, allows for global moves. \\
-        \texttt{N\_Global }       & Integer        &   Number of global moves per sweep of single spin flips.
+       \texttt{Propose\_S0}   &    Logical       &  If true, proposes local moves according to the probability $e^{-S_0}$. 
          \\\bottomrule
    \end{tabular}
-   \caption{Variables required to control the updating scheme. \label{table:Updating_schemes}}
+   \caption{Variable required to control the updating scheme. \label{table:Updating_schemes}}
 \end{table}
 % 
 %------------------------------------------------------------
@@ -501,28 +502,6 @@ Consider an Ising spin at space-time $i,\tau$ and the configuration $C$. Flippin
  P(C \rightarrow C') =  \text{min}  \left( 1,  \frac{e^{-S_0(C)}   W(C')}{ e^{-S_0(C')} W(C)} \right).
  \end{equation}
  With Eq.~\ref{eqn:partition_2}  one sees that the bare action $S_0(C)$  determining the  dynamics of the Ising spin  in the absence of coupling to the fermions  does not enter the Metropolis acceptance-rejection step. This sampling scheme is used if the logical variable \texttt{Propose\_S0} is set to \texttt{true}.
-% 
-%------------------------------------------------------------
-\subsubsection{Global updates}
-%------------------------------------------------------------
-%  
-The code equally allows for global updates.  The user will have to provide two other functions in the module \texttt{Hamiltonian\_Examples.f90}.   
-
-The subroutine  \texttt{Global\_move(T0\_Proposal\_ratio,nsigma\_old)}  proposes  a global move. 
-The two-dimensional array \texttt{nsigma\_old(M\_V+ M\_I, Ltrot)}  contains  the full  configuration $C$.  On output, the new configuration,   C', determined by the user,  is to be stored in the 
-array  \texttt{nsigma(M\_V+ M\_I, Ltrot)}.   The global variable \texttt{nsigma(M\_V+ M\_I, Ltrot)} is declared in the module \texttt{Hamiltonian}.  Equally, on output, the variable 
-\texttt{T0\_Proposal\_ratio} contains the proposal ratio 
-\begin{equation}
-	 \frac{T_0(C' \rightarrow C)}{T_0(C \rightarrow C') }  \;.
-\end{equation}
-Since we allow for a stochastic  generation of  the global move, it may very well be that no change is proposed. In this case, \texttt{T0\_Proposal\_ratio}   takes the value 0 upon exit, and  
-\texttt{nsigma=nsigma\_old}.   
-
-To compute the acceptance-rejection ratio,  the user  will equally have to provide the function \\
-\texttt{Delta\_S0\_global(Nsigma\_old)} that computes the ratio $e^{-S_0(C')}/e^{-S_0(C)}$. Again the configuration $C'$ is   given by the array \texttt{nsigma(M\_V+ M\_I, Ltrot)}  which is 
-a global variable declared in the module \texttt{Hamiltonian}.
-
-Note that global updates are expensive since they require a complete recalculation of the weight. We thereby  allow the user to set a variable \texttt{N\_Global} that allows to  determine how many global updates per sweeps will be carried out. 
 % 
 %-----------------------------------------------------------------------------------
 \subsection{Stabilization - a peculiarity of the BSS algorithm}\label{sec:stable}
