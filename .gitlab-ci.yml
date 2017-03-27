@@ -176,15 +176,8 @@ GQMCT_jessie_valgrind:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-blas-lapack-valgrind
   stage: memleaks
   script:
-      - . set_env.sh
-      - export f90="gfortran"
-      - export FL="${FL} -g"
-      - cd Libraries
       - gfortran -v
-      - make
-      - cd ..
-      - cd Prog
-      - make 
+      - make f90='gfortran' FL="-O3 -DQRREF -Wconversion -Werror -g"
       - cp Examples.out ../Examples/Hubbard_SU2_Square
       - cd ../Examples/Hubbard_SU2_Square/
       - valgrind --leak-check=full --log-file=vglog.txt ./Examples.out
