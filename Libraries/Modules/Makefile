@@ -8,4 +8,4 @@ all:
 
 clean:
 	(make -f Compile  clean ) ;\
- 	rm *.mod *~ \#* 
+ 	rm -f *.mod *~ \#* 

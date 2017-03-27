@@ -12,4 +12,4 @@ Examples:
 
 clean: 	
 	(make -f Compile_Examples   clean );\
-	rm *.mod *~ \#* 
+	rm -f *.mod *~ \#* 

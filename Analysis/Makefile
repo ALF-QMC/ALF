@@ -15,4 +15,4 @@ clean:
 	(make -f Compile_cov  clean );\
 	(make -f Compile_scal clean );\
 	(make -f Compile_eq  clean );\
-	rm *.mod *~ \#* *.out
+	rm -f *.mod *~ \#* *.out
