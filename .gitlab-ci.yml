@@ -19,15 +19,8 @@ stages:
 .warnconv_template: &warnconv_definition
   stage: warnconv
   script:
-    - . set_env.sh
-    - export f90="gfortran"
-    - export FL="$FL -Wconversion -Werror"
-    - cd Libraries
     - gfortran -v
-    - make
-    - cd ..
-    - cd Prog
-    - make
+    - make f90='gfortran' FL="-O3 -DQRREF -Wconversion -Werror"
 
 .test_template: &test_definition
   stage: test
