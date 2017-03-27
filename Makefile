@@ -1,9 +1,11 @@
 # -DMPI selects MPI.
-# -DQRREF  Default  stabilization, using QR with pivoting. Packed form of QR factorization  is used. 
-# -DSTAB1  Alternative stabilization, using the  singular value decomposition.
-# -DSTAB2  Alternative stabilization, using QR  with pivoting. Packed form of QR factorization  is not used.
+# -DSTAB1  Alternative stabilization, using the singular value decomposition.
+# -DSTAB2  Alternative stabilization, lapack QR with  manual pivoting. Packed form of QR factorization is not used.
+# (Noflag) Default  stabilization, using lapack QR with pivoting. Packed form of QR factorization  is used. 
+# -DQRREF  Enables reference lapack implementation of QR decomposition.
+# Recommendation:  just use the -DMPI flag if you want to run in parallel or leave it empy for serial jobs.
 PROGRAMCONFIGURATION = -DMPI 
-PROGRAMCONFIGURATION = -DQRREF
+PROGRAMCONFIGURATION = 
 f90 = gfortran
 export f90
 F90OPTFLAGS = -O3 -Wconversion  -fcheck=all
@@ -21,13 +23,16 @@ export Libs
 LIB_BLAS_LAPACK = -llapack -lblas
 export LIB_BLAS_LAPACK
 
-all: lib ana prog
-prog:
-	cd Prog && $(MAKE)
+all: lib ana program
+
 lib:
 	cd Libraries && $(MAKE)
 ana:
 	cd Analysis && $(MAKE)
+program:
+	cd Prog && $(MAKE)
+
+
 clean: cleanall
 cleanall: cleanprog cleanlib cleanana
 cleanprog:
@@ -38,4 +43,4 @@ cleanana:
 	cd Analysis && $(MAKE) clean
 help:
 	@echo "The following are some of the valid targets of this Makefile"
-	@echo "all, prog, lib, ana, clean, cleanall, cleanprog, cleanlib, cleanana"
+	@echo "all, program, lib, ana, clean, cleanall, cleanprog, cleanlib, cleanana"
