@@ -162,22 +162,12 @@ GQMCT_Jessie-PGI_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-pgi-cmake
   stage: test
   script:
-    - . set_env.sh
-    - export f90="/opt/pgi/linux86-64/2016/bin/pgfortran"
-    - export FL="-O3"
-    - export LIB_BLAS_LAPACK="-L/opt/pgi/linux86-64/2016/lib -llapack -lblas"
-    - export F90USEFULFLAGS="-Mpreprocess"
-    - cd Libraries
     - /opt/pgi/linux86-64/16.10/bin/pgfortran --version
-    - make
-    - cd ..
-    - cd Prog
-    - make
-    - cd ..
+    - make f90='/opt/pgi/linux86-64/2016/bin/pgfortran' FL='-O3' LIB_BLAS_LAPACK='-L/opt/pgi/linux86-64/2016/lib -llapack -lblas' F90USEFULFLAGS='-Mpreprocess'
     - cd testsuite
     - cmake -E make_directory tests
     - cd tests
-    - cmake -G "Unix Makefiles" -DCMAKE_Fortran_FLAGS_RELEASE="${F90OPTFLAGS} -noswitcherror -L/opt/pgi/linux86-64/2016/lib/ -llapack -lblas" -DCMAKE_Fortran_COMPILER="/opt/pgi/linux86-64/2016/bin/pgfortran" -DCMAKE_BUILD_TYPE=RELEASE -DLAPACK_LIBRARIES="/opt/pgi/linux86-64/2016/lib/liblapack.a" -DBLAS_LIBRARIES="/opt/pgi/linux86-64/2016/lib/libblas.a" ..
+    - cmake -G "Unix Makefiles" -DCMAKE_Fortran_FLAGS_RELEASE="-O3 -noswitcherror -L/opt/pgi/linux86-64/2016/lib/ -llapack -lblas" -DCMAKE_Fortran_COMPILER="/opt/pgi/linux86-64/2016/bin/pgfortran" -DCMAKE_BUILD_TYPE=RELEASE -DLAPACK_LIBRARIES="/opt/pgi/linux86-64/2016/lib/liblapack.a" -DBLAS_LIBRARIES="/opt/pgi/linux86-64/2016/lib/libblas.a" ..
     - cmake --build . --target all --config Release
     - ctest -O log.txt
     - cat log.txt | grep "tests passed" | cut -d " " -f 1
