@@ -25,15 +25,8 @@ stages:
 .test_template: &test_definition
   stage: test
   script:
-    - . set_env.sh
-    - export f90="gfortran"
-    - cd Libraries
     - gfortran -v
-    - make
-    - cd ..
-    - cd Prog
-    - make
-    - cd ..
+    - make f90='gfortran' 
     - cd testsuite
     - cmake -E make_directory tests
     - cd tests
