@@ -179,7 +179,7 @@ GQMCT_jessie_valgrind:
       - gfortran -v
       - make f90='gfortran' FL="-O3 -DQRREF -Wconversion -Werror -g"
       - cp Prog/Examples.out Examples/Hubbard_SU2_Square
-      - cd ../Examples/Hubbard_SU2_Square/
+      - cd Examples/Hubbard_SU2_Square/
       - valgrind --leak-check=full --log-file=vglog.txt ./Examples.out
       - cat vglog.txt
       - grep lost vglog.txt | cut -d":" -f 2 | cut -d " " -f 2 | f=$(cat); echo $(( ${f//$'\n'/+} ))
