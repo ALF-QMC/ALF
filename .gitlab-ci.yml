@@ -19,28 +19,14 @@ stages:
 .warnconv_template: &warnconv_definition
   stage: warnconv
   script:
-    - . set_env.sh
-    - export f90="gfortran"
-    - export FL="$FL -Wconversion -Werror"
-    - cd Libraries
     - gfortran -v
-    - make
-    - cd ..
-    - cd Prog
-    - make
+    - make f90='gfortran' FL="-O3 -DQRREF -Wconversion -Werror"
 
 .test_template: &test_definition
   stage: test
   script:
-    - . set_env.sh
-    - export f90="gfortran"
-    - cd Libraries
     - gfortran -v
-    - make
-    - cd ..
-    - cd Prog
-    - make
-    - cd ..
+    - make f90='gfortran' 
     - cd testsuite
     - cmake -E make_directory tests
     - cd tests
@@ -133,17 +119,8 @@ GQMCT_Wheezy-PGI_conv:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-wheezy-pgi
   stage: warnconv
   script:
-    - . set_env.sh
-    - export f90="/opt/pgi/linux86-64/2016/bin/pgfortran"
-    - export FL="-O3 -Minform=inform"
-    - export LIB_BLAS_LAPACK="-L/opt/pgi/linux86-64/2016/lib -llapack -lblas"
-    - export F90USEFULFLAGS="-Mpreprocess -Minform=inform"
-    - cd Libraries
     - /opt/pgi/linux86-64/16.10/bin/pgfortran --version
-    - make
-    - cd ..
-    - cd Prog
-    - make
+    - make f90='/opt/pgi/linux86-64/2016/bin/pgfortran' FL='-O3 -Minform=inform' LIB_BLAS_LAPACK='-L/opt/pgi/linux86-64/2016/lib -llapack -lblas' F90USEFULFLAGS='-Mpreprocess -Minform=inform'
   
 GQMCT_Wheezy_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-wheezy-gfortran-blas-lapack
@@ -185,22 +162,12 @@ GQMCT_Jessie-PGI_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-pgi-cmake
   stage: test
   script:
-    - . set_env.sh
-    - export f90="/opt/pgi/linux86-64/2016/bin/pgfortran"
-    - export FL="-O3"
-    - export LIB_BLAS_LAPACK="-L/opt/pgi/linux86-64/2016/lib -llapack -lblas"
-    - export F90USEFULFLAGS="-Mpreprocess"
-    - cd Libraries
     - /opt/pgi/linux86-64/16.10/bin/pgfortran --version
-    - make
-    - cd ..
-    - cd Prog
-    - make
-    - cd ..
+    - make f90='/opt/pgi/linux86-64/2016/bin/pgfortran' FL='-O3' LIB_BLAS_LAPACK='-L/opt/pgi/linux86-64/2016/lib -llapack -lblas' F90USEFULFLAGS='-Mpreprocess'
     - cd testsuite
     - cmake -E make_directory tests
     - cd tests
-    - cmake -G "Unix Makefiles" -DCMAKE_Fortran_FLAGS_RELEASE="${F90OPTFLAGS} -noswitcherror -L/opt/pgi/linux86-64/2016/lib/ -llapack -lblas" -DCMAKE_Fortran_COMPILER="/opt/pgi/linux86-64/2016/bin/pgfortran" -DCMAKE_BUILD_TYPE=RELEASE -DLAPACK_LIBRARIES="/opt/pgi/linux86-64/2016/lib/liblapack.a" -DBLAS_LIBRARIES="/opt/pgi/linux86-64/2016/lib/libblas.a" ..
+    - cmake -G "Unix Makefiles" -DCMAKE_Fortran_FLAGS_RELEASE="-O3 -noswitcherror -L/opt/pgi/linux86-64/2016/lib/ -llapack -lblas" -DCMAKE_Fortran_COMPILER="/opt/pgi/linux86-64/2016/bin/pgfortran" -DCMAKE_BUILD_TYPE=RELEASE -DLAPACK_LIBRARIES="/opt/pgi/linux86-64/2016/lib/liblapack.a" -DBLAS_LIBRARIES="/opt/pgi/linux86-64/2016/lib/libblas.a" ..
     - cmake --build . --target all --config Release
     - ctest -O log.txt
     - cat log.txt | grep "tests passed" | cut -d " " -f 1
@@ -209,17 +176,10 @@ GQMCT_jessie_valgrind:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-blas-lapack-valgrind
   stage: memleaks
   script:
-      - . set_env.sh
-      - export f90="gfortran"
-      - export FL="${FL} -g"
-      - cd Libraries
       - gfortran -v
-      - make
-      - cd ..
-      - cd Prog
-      - make 
-      - cp Examples.out ../Examples/Hubbard_SU2_Square
-      - cd ../Examples/Hubbard_SU2_Square/
+      - make f90='gfortran' FL="-O3 -DQRREF -Wconversion -Werror -g"
+      - cp Prog/Examples.out Examples/Hubbard_SU2_Square
+      - cd Examples/Hubbard_SU2_Square/
       - valgrind --leak-check=full --log-file=vglog.txt ./Examples.out
       - cat vglog.txt
       - grep lost vglog.txt | cut -d":" -f 2 | cut -d " " -f 2 | f=$(cat); echo $(( ${f//$'\n'/+} ))
