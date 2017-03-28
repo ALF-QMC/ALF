@@ -178,7 +178,7 @@ GQMCT_jessie_valgrind:
   script:
       - gfortran -v
       - make f90='gfortran' FL="-O3 -DQRREF -Wconversion -Werror -g"
-      - cp Examples.out ../Examples/Hubbard_SU2_Square
+      - cp Prog/Examples.out Examples/Hubbard_SU2_Square
       - cd ../Examples/Hubbard_SU2_Square/
       - valgrind --leak-check=full --log-file=vglog.txt ./Examples.out
       - cat vglog.txt
