@@ -4,7 +4,7 @@ OBJS=  cov_tau.o
   
 .SUFFIXES: .f90 .f
 .f.o .f90.o:
-	$(FC) -c -cpp -o $@ $(FLAGS) $<
+	$(FC) -c -o $@ $(FLAGS) $<
 
 $(TARGET): $(OBJS)
 	$(FC) $(LF) -o $(TARGET) $(OBJS) $(LIBS)

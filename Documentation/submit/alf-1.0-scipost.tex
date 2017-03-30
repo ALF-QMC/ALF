@@ -1,46 +1,37 @@
-% Copyright (c) 2016, 2017 The ALF project.
-% This is the ALF project documentation.
-% The ALF project documentation by the ALF contributors is licensed
-% under a Creative Commons Attribution-ShareAlike 4.0 International License.
-% For the licensing details of the documentation see license.CCBYSA.
+% =========================================================================
+% SciPost LaTeX template
+% Version 1a (2016/06/14)
+%
+% Submissions to SciPost Journals should make use of this template.
+%
+% INSTRUCTIONS: simply look for the `TODO:' tokens and adapt your file.
+%
+% - please enable line numbers (package: lineno)
+% - you should run LaTeX twice in order for the line numbers to appear
+% =========================================================================
 
-\documentclass[10pt,Arial]{scrartcl}
-\usepackage{graphicx}
-\usepackage[margin=2.5cm]{geometry}
-\usepackage[utf8]{inputenc}
-\usepackage{bbm}            
-\usepackage[fleqn]{amsmath} 
-\usepackage{amssymb}
-\usepackage{wasysym}
-\usepackage{color}
-\usepackage{soul}
-\usepackage{xspace}
+
+% TODO: uncommente ONE of the class declarations below
+% If you are submitting a paper to SciPost Physics: uncomment next line
+\documentclass{SciPost}
+% If you are submitting a paper to SciPost Physics Lecture Notes: uncomment next line
+% \documentclass[LectureNotes]{SciPost}
+
+% *** extra packages 
 \usepackage{bm}
-\usepackage{subfigure}
-\usepackage{tcolorbox}
 \usepackage{dsfont}
-\usepackage{footnote}
-\usepackage{alltt}
-\usepackage{xcolor}
-\usepackage{lmodern}
-\usepackage{listings}
-\usepackage{url}
-\usepackage{booktabs}
-\usepackage{hyperref} 
-\usepackage{float} 
 \usepackage[framemethod=default]{mdframed}
 \usepackage{showexpl}
+\usepackage{booktabs}
+\usepackage{soul}
+\usepackage{alltt}
+\usepackage{hyperref} 
 
-\makeatletter
-\renewcommand\paragraph{\@startsection{paragraph}{4}{\z@}%
-            {-2.5ex\@plus -1ex \@minus -.25ex}%
-            {1.25ex \@plus .25ex}%
-            {\normalfont\normalsize\bfseries}}
-\makeatother
-\setcounter{secnumdepth}{4} 
-\setcounter{tocdepth}{4}
+% *** extra definitions
+\def\Tr{\mathop{\mathrm{Tr}}}
+\def\Trf{\mathop{\mathrm{Tr}_{\mathrm{F}}}}
 \definecolor{light-gray}{gray}{0.95}
-
+\definecolor{dark-gray}{gray}{0.9}
 \lstdefinestyle{fortran}{
   language=Fortran,
   basicstyle=\ttfamily,
@@ -54,7 +45,6 @@
   backgroundcolor=\color{light-gray},
   frame=single
 }
-
 \lstdefinestyle{bash}{
   language=bash,
   basicstyle=\ttfamily,
@@ -66,50 +56,69 @@
   showstringspaces=false,
   columns=flexible
 }
-
-\def\Tr{\mathop{\mathrm{Tr}}}
-\def\Trf{\mathop{\mathrm{Tr}_{\mathrm{F}}}}
-\makesavenoteenv{tabular}
-\makesavenoteenv{table}
-
-\setkomafont{author}{\large}
-\setkomafont{date}{\large}
-
-\newcommand{\mycomment}[1]{{\color{red} #1}}
-\newcommand{\FAcomment}[1]{{\color{red} #1}}
-
-\makeindex
+\DeclareRobustCommand{\hlgray}[1]{{\sethlcolor{dark-gray}\hl{#1}}}
 
 \begin{document}
 
-%---------------------------------------------------------------------------------------------------------
-\begin{titlepage}
-\title{The \emph{ALF} (\emph{A}lgorithms for \emph{L}attice \emph{F}ermions) project release 1.0}
-\subtitle{Documentation for the  auxiliary field quantum Monte Carlo  code.}
-\author{Martin Bercx,  Florian Goth,  Johannes S. Hofmann, Fakher F. Assaad }
-\date{Institut f\"ur Theoretische Physik und Astrophysik, Universit\"at W\"urzburg, 97074 W\"urzburg, Germany}
-\publishers{%
-    \normalfont\normalsize%
-    \parbox{0.8\linewidth}{%
-% \begin{abstract}
-\bigskip
-The Algorithms for Lattice Fermions package provides a general code for the finite temperature auxiliary field quantum Monte Carlo algorithm.       The code  is engineered to  be able to simulate any model that can be written in terms of  sums of single-body operators, of squares of single-body operators and single-body operators coupled to an Ising field with  given dynamics. We  provide predefined types that allow  the user to specify the model, the  Bravais lattice  as well as equal time and time displaced observables.     The code supports an MPI implementation.   Examples such as the Hubbard model on the honeycomb lattice and  the Hubbard model  on the square lattice coupled to a transverse Ising field are  provided and discussed in the documentation.  We furthermore discuss  how to use the package  to implement  the Kondo lattice model and  the $SU(N)$  Hubbard-Heisenberg model.   One can download the code from our Git instance at  \path{https://alf.physik.uni-wuerzburg.de} and sign in to  file in issues. 
-% \end{abstract}    
-    }
+% TODO: write your article's title here. 
+% The article title is centered, Large boldface, and should fit in two lines
+\begin{center}{\Large \textbf{
+The \emph{ALF} (\emph{A}lgorithms for \emph{L}attice \emph{F}ermions) project release 1.0\\
+Documentation for the  auxiliary field quantum Monte Carlo  code
+}}\end{center}
+
+% TODO: write the author list here. Use initials + surname format.
+% Separate subsequent authors by a comma, omit comma at the end of the list.
+% Mark the corresponding author with a superscript *. 
+\begin{center}
+Martin Bercx,  Florian Goth,  Johannes S. Hofmann, Fakher F. Assaad 
+\end{center}
+
+% TODO: write all affiliations here. 
+% Format: institute, city, country
+\begin{center}
+Institut f\"ur Theoretische Physik und Astrophysik, Universit\"at W\"urzburg, 97074 W\"urzburg, Germany
+\\
+% TODO: provide email address of corresponding author
+alf@physik.uni-wuerzburg.de
+\end{center}
+
+\begin{center}
+\today
+\end{center}
+
+% For convenience during refereeing: line numbers
+%\linenumbers
+
+\section*{Abstract}
+{\bf 
+% TODO: write your abstract here.
+The Algorithms for Lattice Fermions package provides a general code for the finite temperature auxiliary field quantum Monte Carlo algorithm.       The code  is engineered to  be able to simulate any model that can be written in terms of  sums of single-body operators, of squares of single-body operators and single-body operators coupled to an Ising field with  given dynamics. We  provide predefined types that allow  the user to specify the model, the  Bravais lattice  as well as equal time and time displaced observables.     The code supports an MPI implementation.   Examples such as the Hubbard model on the honeycomb lattice and  the Hubbard model  on the square lattice coupled to a transverse Ising field are  provided and discussed in the documentation.  We furthermore discuss  how to use the package  to implement  the Kondo lattice model and  the $SU(N)$ Hubbard-Heisenberg model.   One can download the code from our Git instance at  \path{https://alf.physik.uni-wuerzburg.de} and sign in to  file issues. 
 }
-\maketitle
-\end{titlepage}
-%---------------------------------------------------------------------------------------------------------
 
-
+% *** extra section
+%\vspace{10pt}
+\vfill
 Copyright \textcopyright ~2016, 2017 The \textit{ALF} Project.\\
 This is the ALF Project Documentation by the ALF contributors.
 It is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License.
 You are free to share and benefit from this documentation as long as this license is preserved
 and proper attribution to the authors is given. For details see the ALF project
 homepage \url{alf.physik.uni-wuerzburg.de}. Contact address: \url{alf@physik.uni-wuerzburg.de} 
-\tableofcontents
+% ***
 \clearpage
+
+
+% TODO: include a table of contents (optional)
+% Guideline: if your paper is longer that 6 pages, include a TOC
+% To remove the TOC, simply cut the following block
+%\vspace{10pt}
+\noindent\rule{\textwidth}{1pt}
+\tableofcontents\thispagestyle{fancy}
+\noindent\rule{\textwidth}{1pt}
+%\vspace{10pt}
+\clearpage
+
 %
 %========================================================================================================================================
 \section{Introduction}\label{sec:intro}
@@ -240,6 +249,12 @@ In Sec.~\ref{sec:ex}, we  give explicit examples on how to use the code for  the
 Finally, in Sec.~\ref{sec:con} we list a number of features that are considered for  future releases of the ALF program package.
 
 %
+
+
+
+
+
+%
 %========================================================================================================================================
 \section{Auxiliary Field Quantum Monte Carlo}\label{sec:def}
 %========================================================================================================================================
@@ -332,20 +347,21 @@ At this point,  and  since for a given configuration $C$  we are dealing with a 
     \det\left(  \mathds{1} + 
      \prod_{\tau=1}^{L_{\mathrm{Trotter}}}   \prod_{k=1}^{M_T}   e^{-\Delta \tau \textbf{T}^{(ks)}}  
     \prod_{k=1}^{M_V}   e^{  \sqrt{ -\Delta \tau  U_k} \eta_{k,\tau} {\bm V}^{(ks)} }   \prod_{k=1}^{M_I}   e^{  -\Delta \tau s_{k,\tau}  {\bm I}^{(ks)}}  
-     \right) \right]^{N_{\mathrm{col}}}\;,
+     \right) \right]^{N_{\mathrm{col}}}
 \end{eqnarray}
 where the matrices $\textbf{T}^{(ks)}$,  $\textbf{V}^{(ks)}$, and  $\textbf{I}^{(ks)}$ define the Hamiltonian [Eq.~(\ref{eqn:general_ham}) - (\ref{eqn:general_ham_i})].
 All in all,   the partition function is given by:
 \begin{eqnarray}\label{eqn:partition_2}
-    Z  &=&   \sum_{C}   e^{-S_{0,I} \left( \left\{ s_{i,\tau} \right\}  \right) }     \left( \prod_{k=1}^{M_V} \prod_{\tau=1}^{L_{\mathrm{Trotter}}} \gamma_{k,\tau} \right)
+    Z  \hspace{-0.7em}&=&  \hspace{-0.7em}   \sum_{C}   e^{-S_{0,I} \left( \left\{ s_{i,\tau} \right\}  \right) }     \left( \prod_{k=1}^{M_V} \prod_{\tau=1}^{L_{\mathrm{Trotter}}} \gamma_{k,\tau} \right)
     e^{ N_{\mathrm{col}}\sum\limits_{s=1}^{N_{\mathrm{fl}}} \sum\limits_{k=1}^{M_V} \sum\limits_{\tau = 1}^{L_{\mathrm{Trotter}}}\sqrt{-\Delta \tau U_k}  \alpha_{k,s} \eta_{k,\tau} } 
   \times   \nonumber \\
-  &\quad&
+  \hspace{-0.7em}&\quad&  \hspace{-0.7em}
       \prod_{s=1}^{N_{\mathrm{fl}}}\left[\det\left(  \mathds{1} + 
      \prod_{\tau=1}^{L_{\mathrm{Trotter}}}   \prod_{k=1}^{M_T}   e^{-\Delta \tau {\bm T}^{(ks)}}  
     \prod_{k=1}^{M_V}   e^{  \sqrt{ -\Delta \tau  U_k} \eta_{k,\tau} {\bm V}^{(ks)} }   \prod_{k=1}^{M_I}   e^{  -\Delta \tau s_{k,\tau}  {\bm I}^{(ks)}}  
-     \right) \right]^{N_{\mathrm{col}}} + \mathcal{O}(\Delta\tau^{2}) \nonumber \\ 
-     & \equiv&  \sum_{C} e^{-S(C) } + \mathcal{O}(\Delta\tau^{2})\;.
+     \right) \right]^{N_{\mathrm{col}}} \hspace{-0.7em}+ \mathcal{O}(\Delta\tau^{2}) \nonumber\\
+    \hspace{-0.7em}&\equiv&  \hspace{-0.7em}   
+     \sum_{C} e^{-S(C) } + \mathcal{O}(\Delta\tau^{2})\;.
 \end{eqnarray}
 In the above, one notices that the weight factorizes in  the flavor index. The color index raises the determinant to the power $N_{\mathrm{col}}$. 
 This corresponds to  an explicit $SU(N_{\mathrm{col}})$ symmetry   for each  configuration. This symmetry is manifest in the fact that the single particle  Green functions are color independent, again for each given  configuration $C$.
@@ -493,11 +509,10 @@ The default updating scheme is a  sequential single  spin flip algorithm.   Cons
 % 
 Consider an Ising spin at space-time $i,\tau$ and the configuration $C$. Flipping this spin will generate the configuration $C'$ and we will propose the move according to 
   \begin{equation}
- T_0(C \rightarrow C')  =  \frac{e^{-S_0(C')}}{ e^{-S_0(C')} + e^{-S_0(C)} }   = 1 - \frac{1}{1 +  e^{-S_0(C')} /e^{-S_0(C)}}
+ T_0(C \rightarrow C')  =  \frac{e^{-S_0(C')}}{ e^{-S_0(C')} + e^{-S_0(C)} }   = 1 - \frac{1}{1 +  e^{-S_0(C')} /e^{-S_0(C)}}.
   \end{equation}
- Note that the function $\texttt{S0}$ in the  \texttt{Hamitonian\_example.f90}  module  computes precisely the ratio\\
- ${e^{-S_0(C')} /e^{-S_0(C)}}$ so that  $T_0(C \rightarrow C') $ does not require any further programming. 
- Thereby one will accept  the proposed move with the probability: 
+ Note that the function $\texttt{S0}$ in the  \texttt{Hamitonian\_example.f90}  module  computes precisely the ratio ${e^{-S_0(C')} /e^{-S_0(C)}}$ so that  $T_0(C \rightarrow C') $ does not require any further programming. 
+ Thereby one will accept the proposed move with the probability: 
  \begin{equation}
  P(C \rightarrow C') =  \text{min}  \left( 1,  \frac{e^{-S_0(C)}   W(C')}{ e^{-S_0(C')} W(C)} \right).
  \end{equation}
@@ -533,7 +548,6 @@ Assuming for simplicity that \texttt{NWrap} is a multiple of $L_{\text{Trotter}}
 \begin{equation}
 \bm{G} = \left( \mathds{1} + \prod\limits_{ i = 0}^{\frac{L_{\text{Trotter}}} {\texttt{NWrap} -1}}       \underbrace{\prod_{\tau=1}^{\texttt{NWrap}} \bm{B}_{i  \cdot  \texttt{NWrap}+ \tau} }_{ \equiv \mathcal{\bm{B}}_i}\right)^{-1}.
 \end{equation}
-
 Within the auxiliary field QMC implementation of the ALF project, we are by default employing
 the strategy of forming a product of QR-decompositions which was proven to be weakly backwards stable in \cite{Bai2011}.
 The key idea is to efficiently separate the scales of a matrix from the orthogonal part of a matrix.
@@ -615,8 +629,8 @@ This loop fills the storage, needed for the first actual Monte Carlo sweep:\\
  
 Loop over bins. The bin defines the unit of Monte Carlo time:\\
 \textbf{Do} \texttt{nbc} from  \texttt{1} to \texttt{nbin} \\
-\hspace*{1em} Loop over sweeps. Each sweep updates twice (sweeping upward and downward in time)\\
-\hspace*{1em} the whole space-time lattice of auxiliary fields:\\
+\hspace*{1em} Loop over sweeps. Each sweep updates twice (sweeping upward and downward\\
+\hspace*{1em} in time the whole space-time lattice of auxiliary fields:\\
 \hspace*{1em} \textbf{Do} \texttt{nsw} from  \texttt{1} to \texttt{nsweep}  \\
 \hspace*{2em} Upward sweep:\\
 \hspace*{2em} \textbf{Do} \texttt{ntau} from \texttt{1} to \texttt{ltrot}\\      
@@ -644,8 +658,8 @@ Loop over bins. The bin defines the unit of Monte Carlo time:\\
 
 \hspace*{2em} Downward sweep:\\
 \hspace*{2em} \textbf{Do} \texttt{ntau} from \texttt{ltrot} to \texttt{1}\\
-\hspace*{3em} Repeat the above steps (update, propagation, stabilization, equal time measurements) \\
-\hspace*{3em} for the downward direction in imaginary time\\
+\hspace*{3em} Repeat the above steps (update, propagation, stabilization, equal time\\
+\hspace*{3em} measurements) for the downward direction in imaginary time\\
 \hspace*{2em} \textbf{Enddo}\\
 
 \hspace*{2em} Measure the time displaced observables: \\
@@ -680,22 +694,20 @@ To specify the Hamiltonian, one needs  an  \path{Operator} and a \path{Lattice} 
 \begin{table}[h]
     \begin{tabular}{@{} l l l @{}}\toprule
     Subprogram & Description & Section \\\midrule
-    \hl{\texttt{Ham\_Set}}  & Reads in model and lattice parameters from the file \texttt{parameters}. \\
-                       & And it sets the Hamiltonian by calling \texttt{Ham\_latt}, \texttt{Ham\_hop}, and \texttt{Ham\_V}. & \\
-    \hl{\texttt{Ham\_hop}}  & Sets the hopping term  $\hat{\mathcal{H}}_{T}$ by calling \texttt{Op\_make} and \texttt{Op\_set}. & \ref{sec:op}, \ref{sec:specific}\\
-    \hl{\texttt{Ham\_V}}    & Sets the interaction terms  $\hat{\mathcal{H}}_{V}$ and $\hat{\mathcal{H}}_{I}$ 
-                         by calling \texttt{Op\_make} and \texttt{Op\_set}.& \ref{sec:op}, \ref{sec:specific}\\  
-    \hl{\texttt{Ham\_Latt}} & Sets the lattice by calling \texttt{Make\_Lattice}.& \ref{sec:latt}\\
-    \hl{\texttt{S0}}        & A function which returns an update ratio for the Ising term $\hat{\mathcal{H}}_{I,0}$. 
+    \hlgray{\texttt{Ham\_Set}}  & Reads in model and lattice parameters from the file \texttt{parameters}\\ & and it sets the Hamiltonian by calling \texttt{Ham\_latt}, \texttt{Ham\_hop},\\ & and \texttt{Ham\_V}. & \\
+    \hlgray{\texttt{Ham\_hop}}  & Sets the hopping term  $\hat{\mathcal{H}}_{T}$ by calling \texttt{Op\_make} and \texttt{Op\_set}. & \ref{sec:op}, \ref{sec:specific}\\
+    \hlgray{\texttt{Ham\_V}}    & Sets the interaction terms  $\hat{\mathcal{H}}_{V}$ and $\hat{\mathcal{H}}_{I}$  by calling \texttt{Op\_make}\\ & and \texttt{Op\_set}.& \ref{sec:op}, \ref{sec:specific}\\  
+    \hlgray{\texttt{Ham\_Latt}} & Sets the lattice by calling \texttt{Make\_Lattice}.& \ref{sec:latt}\\
+    \hlgray{\texttt{S0}}        & A function which returns an update ratio for the Ising term \\ & $\hat{\mathcal{H}}_{I,0}$. 
     & \ref{sec:s0} \\
-    \hl{\texttt{Alloc\_obs}} & Assigns memory storage to the observables & \\
-    \hl{\texttt{Obser}}      & Computes the scalar observables and equal-time correlation functions. & \ref{sec:obs} \\
-    \hl{\texttt{ObserT}}     & Computes time-displaced correlation functions. & \ref{sec:obs}\\
+    \hlgray{\texttt{Alloc\_obs}} & Assigns memory storage to the observables & \\
+    \hlgray{\texttt{Obser}}      & Computes the scalar observables and equal-time correlation\\ & functions. & \ref{sec:obs} \\
+    \hlgray{\texttt{ObserT}}     & Computes time-displaced correlation functions. & \ref{sec:obs}\\
     \texttt{Init\_obs}  & Initializes the observables to zero. & \\    
     \texttt{Pr\_obs}    & Writes the observables to the disk by calling \texttt{Print\_bin}. \\\bottomrule    
    \end{tabular}
    \caption{Overview of the subprograms of the  module \texttt{Hamiltonian} to define the Hamiltonian, the lattice and the observables. 
-   The \hl{highlighted} subroutines have to be modified by the user.
+   The \hlgray{highlighted} subroutines have to be modified by the user.
     \label{table:hamiltonian}}
 \end{table}
 %
@@ -752,12 +764,12 @@ This type \path{Operator} bundles several components that are needed to define a
 \begin{table}[h]
     \begin{tabular}{@{} l l l @{}}\toprule
     Variable & Type & Description \\\midrule
-    \hl{\texttt{Op\_X\%N}}       & Integer     &  Effective dimension $N$ \\
-    \hl{\texttt{Op\_X\%O}}       & Complex    &  Matrix  $\mathbf{O}$  of dimension $N \times N$\\
-    \hl{\texttt{Op\_X\%P}}       & Integer   &  Matrix $\mathbf{P}$  encoded as a vector of dimension $N$\\
-    \hl{\texttt{Op\_X\%g}}       & Complex    &  Coupling strength $g$ \\  
-    \hl{\texttt{Op\_X\%alpha}}   & Complex  &  Constant $\alpha$ \\
-    \hl{\texttt{Op\_X\%type}}    & Integer   &  Parameter to set the type of 
+    \hlgray{\texttt{Op\_X\%N}}       & Integer     &  Effective dimension $N$ \\
+    \hlgray{\texttt{Op\_X\%O}}       & Complex    &  Matrix  $\mathbf{O}$  of dimension $N \times N$\\
+    \hlgray{\texttt{Op\_X\%P}}       & Integer   &  Matrix $\mathbf{P}$  encoded as a vector of dimension $N$\\
+    \hlgray{\texttt{Op\_X\%g}}       & Complex    &  Coupling strength $g$ \\  
+    \hlgray{\texttt{Op\_X\%alpha}}   & Complex  &  Constant $\alpha$ \\
+    \hlgray{\texttt{Op\_X\%type}}    & Integer   &  Parameter to set the type of 
                                              HS transformation\\
                              &   &  (1 = Ising, 2 = discrete HS for perfect-square term)  \\ 
     \texttt{Op\_X\%U}            & Complex &  Matrix containing the eigenvectors of $\mathbf{O}$  \\
@@ -767,7 +779,7 @@ This type \path{Operator} bundles several components that are needed to define a
    \caption{Member variables of the \texttt{Operator}  type. 
    In the left column, the letter \texttt{X} is a placeholder for the letters \texttt{T} and \texttt{V}, 
    indicating hopping and interaction operators, respectively.
-   The \hl{highlighted} variables have to be specified by the user.
+   The \hlgray{highlighted} variables have to be specified by the user.
     \label{table:operator}}
 \end{table}
 %
@@ -842,7 +854,7 @@ Note that the orbital structure of each unit cell has to be specified by the use
  The user has to specify unit vectors $\vec{a}_1$ and $\vec{a}_2$ as well as the size of the  lattice. The size is  characterized by  two vectors $\vec{L}_1$ and $\vec{L}_2$   and  the lattice is placed on a torus 
  (periodic boundary conditions): 
 \begin{equation}
-	\hat{c}_{\vec{i} + \vec{L}_1 }  = \hat{c}_{\vec{i} + \vec{L}_2 }  = \hat{c}_{\vec{i}}
+	\hat{c}_{\vec{i} + \vec{L}_1 }  = \hat{c}_{\vec{i} + \vec{L}_2 }  = \hat{c}_{\vec{i}}.
 \end{equation}
 The function call 
 \lstset{style=fortran}
@@ -875,21 +887,22 @@ With $\vec{k} = \sum_{i} \alpha_i  \vec{g}_i $, the  k-space quantization follow
 such that 
 \begin{eqnarray}
 \label{k.quant.eq}
-     \vec{k} =  n \vec{b}_1  + m \vec{b}_2 \text{  with  }   & &   \vec{b}_1 = \frac{2 \pi}{ (\vec{L}_1 \cdot \vec{g}_1)  (\vec{L}_2 \cdot  \vec{g}_2 )  - (\vec{L}_1 \cdot \vec{g}_2) (\vec{L}_2  \cdot \vec{g_1} ) }   \left[  (\vec{L}_2 \cdot  \vec{g}_2) \vec{g}_1 -   (\vec{L}_2  \cdot \vec{g_1} ) \vec{g}_2 \right] \text{   and  } \nonumber \\ 
-        & & \vec{b}_2 = \frac{2 \pi}{ (\vec{L}_1 \cdot \vec{g}_1)  (\vec{L}_2 \cdot  \vec{g}_2 )  - (\vec{L}_1 \cdot \vec{g}_2) (\vec{L}_2  \cdot \vec{g_1} ) }   
-           \left[  (\vec{L}_1 \cdot  \vec{g}_1) \vec{g}_2 -   (\vec{L}_1  \cdot \vec{g_2} ) \vec{g}_1 \right] 
+     \vec{k} &=&  n \vec{b}_1  + m \vec{b}_2\;, \text{ with}\nonumber\\
+     \vec{b}_1 &=& \frac{2 \pi}{ (\vec{L}_1 \cdot \vec{g}_1)  (\vec{L}_2 \cdot  \vec{g}_2 )  - (\vec{L}_1 \cdot \vec{g}_2) (\vec{L}_2  \cdot \vec{g_1} ) }   \left[  (\vec{L}_2 \cdot  \vec{g}_2) \vec{g}_1 -   (\vec{L}_2  \cdot \vec{g_1} ) \vec{g}_2 \right]\;, \text{   and  } \nonumber \\ 
+      \vec{b}_2 &=& \frac{2 \pi}{ (\vec{L}_1 \cdot \vec{g}_1)  (\vec{L}_2 \cdot  \vec{g}_2 )  - (\vec{L}_1 \cdot \vec{g}_2) (\vec{L}_2  \cdot \vec{g_1} ) }   
+           \left[  (\vec{L}_1 \cdot  \vec{g}_1) \vec{g}_2 -   (\vec{L}_1  \cdot \vec{g_2} ) \vec{g}_1 \right] \;.
 \end{eqnarray}
 
 %
 \begin{table}[h]
    \begin{tabular}{@{} l l l @{}}\toprule
     Variable  & Type & Description \\\midrule
-     \hl{\texttt{Latt\%a1\_p}, \texttt{Latt\%a2\_p}}   & Real     & Unit vectors $\vec{a}_1$,  $\vec{a}_2$ \\ 
-     \hl{\texttt{Latt\%L1\_p}, \texttt{Latt\%L2\_p}}   & Real     & Vectors $\vec{L}_1$, $\vec{L}_2$ that define the topology of the  lattice. \\
+     \hlgray{\texttt{Latt\%a1\_p}, \texttt{Latt\%a2\_p}}   & Real     & Unit vectors $\vec{a}_1$,  $\vec{a}_2$ \\ 
+     \hlgray{\texttt{Latt\%L1\_p}, \texttt{Latt\%L2\_p}}   & Real     & Vectors $\vec{L}_1$, $\vec{L}_2$ that define the topology of the  lattice. \\
      									  &              &  Tilted lattices are  thereby possible to implement.  \\
     \texttt{Latt\%N}                                                 &   Integer &  Number of lattice points, $N_{\text{unit cell}}$   \\
-    \texttt{Latt\%list}                                               & Integer &  Maps each lattice point $i=1,\cdots, N_{\text{unit cell}}$ to a real space vector\\ 
-                                                                             &   &  denoting the position of the unit cell: \\
+    \texttt{Latt\%list}                                               & Integer &  Maps each lattice point $i=1,\cdots, N_{\text{unit cell}}$ to a real\\ 
+                                                                             &   & space vector denoting the position of the unit cell: \\
                                                                              &   & $\vec{R}_i$ = \texttt{list(i,1)} $\vec{a}_1$ +  \texttt{list(i,2)} $\vec{a}_2$  $  \equiv i_1  \vec{a}_1 + i_2  \vec{a}_2 $ \\
     \texttt{Latt\%invlist}                                        &  Integer &   \texttt{Invlist}$(i_1,i_2) = i $ \\
     \texttt{Latt\%nnlist}                                         &  Integer &   $j = \texttt{nnlist} (i, n_1, n_2) $,  $n_1, n_2 \in [-1,1] $ \\
@@ -905,7 +918,7 @@ such that
    \texttt{Latt\%b2\_perp\_p}                             &    Real         &  Orthonormal vectors to $\vec{b}_i$.  For internal use. \\\bottomrule
    \end{tabular}
    \caption{Components of the \texttt{Lattice} type for two-dimensional lattices using as example the default lattice name \texttt{Latt}.
-   The \hl{highlighted} variables have to be specified by the user.  Other components of the Lattice are generated upon calling: \texttt{ Call Make\_Lattice( L1, L2, a1,  a2, Latt )}. 
+   The \hlgray{highlighted} variables have to be specified by the user.  Other components of the \texttt{Lattice} are generated upon calling: \texttt{Call Make\_Lattice( L1, L2, a1,  a2, Latt )}. 
     \label{table:lattice}}
 \end{table}
 %
@@ -954,7 +967,8 @@ This data type  is described in Table  \ref{table:Obser_vec} and  is useful to c
         &  & & configuration $C$ \\\midrule
     \texttt{Obs\%N}                       &  Int.        &   Number of measurements &\\
     \texttt{Obs\%Ave\_sign}               &  Real     &    Cumulated sign [Eq.~(\ref{eqn:sign_rw})] & $\text{sign}(C)$  \\
-    \texttt{Obs\%Obs\_vec(:)}        & Compl.      &    Cumulated vector of observables [Eq.~(\ref{eqn:obs_rw})] &
+    \texttt{Obs\%Obs\_vec(:)}        & Compl.      &    Cumulated vector of & \\
+         &       &    observables [Eq.~(\ref{eqn:obs_rw})] &
            $ \langle \langle \hat{O}(:) \rangle \rangle_{C}\frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]} \text{ sign }(C) $ \\
      \texttt{Obs\%File\_Vec}           &  Char.    &    Name of output file  &\\\bottomrule
    \end{tabular}
@@ -977,16 +991,16 @@ This suffix  is important to allow automatic analysis of the data at the end of 
     \texttt{Obs\%N}                       &  Int.        &   Number of measurements &  \\
     \texttt{Obs\%Ave\_sign}  
     &  Real  &    Cumulated sign [Eq.~(\ref{eqn:sign_rw})] & $\text{sign}(C)$  \\
-    \texttt{Obs\%Obs\_latt}        & Compl.      &    Cumul.  correl. fct. [Eq.~(\ref{eqn:obs_rw})] &  $ \langle \langle \hat{O}_{\vec{i},\alpha} (\tau) \hat{O}_{\vec{j},\beta} \rangle \rangle_{C} \; \frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}  \text{sign}(C) $ \\
-     $(\vec{i}-\vec{j},\tau,\alpha,\beta)$ & & & \\
-     \texttt{Obs\%Obs\_latt0($\alpha$)}        & Compl.      &    Cumul. expect. value [Eq.~(\ref{eqn:obs_rw})] &   $ \langle \langle \hat{O}_{\vec{i},\alpha} \rangle \rangle_{C}\frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}  \text{ sign }(C) $ \\
+    \texttt{Obs\%Obs\_latt}        & Compl.      &    Cumululated  correlation & \\
+     $(\vec{i}-\vec{j},\tau,\alpha,\beta)$  &     &  function [Eq.~(\ref{eqn:obs_rw})] &  $ \langle \langle \hat{O}_{\vec{i},\alpha} (\tau) \hat{O}_{\vec{j},\beta} \rangle \rangle_{C} \; \frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}  \text{sign}(C) $ \\
+     \texttt{Obs\%Obs\_latt0($\alpha$)}        & Compl.      &    Cumulated expectation &   \\
+             &     &    value [Eq.~(\ref{eqn:obs_rw})] &   $ \langle \langle \hat{O}_{\vec{i},\alpha} \rangle \rangle_{C}\frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}  \text{ sign }(C) $ \\
      \texttt{Obs\%File\_Latt}           &  Char.    &    Name of output file  &\\\bottomrule
    \end{tabular}
    \caption{Components of the \texttt{Obser\_latt}  type.  The table lists the data included in a variable  \texttt{Obs}  of type \texttt{Obser\_latt}.
       \label{table:Obser_latt}}
 \end{table}
 %
-
 This data type (see Table~\ref{table:Obser_latt}) is useful so as to deal with  equal time as well as imaginary-time displaced correlation functions of the form: 
 \begin{equation}\label{eqn:s}
 	S_{\alpha,\beta}(\vec{k},\tau) =   \frac{1}{N_{\text{unit cell}}} \sum_{\vec{i},\vec{j}}  e^{- \vec{k} \cdot \left( \vec{i}-\vec{j}\right) } \left( \langle \hat{O}_{\vec{i},\alpha} (\tau) \hat{O}_{\vec{j},\beta} \rangle  - 
@@ -1009,12 +1023,10 @@ The background part depends only on the expectation value $\langle \hat{O}_{\alp
 \begin{equation}\label{eqn:o}
 \langle \hat{O}_{\alpha} \rangle \equiv \frac{1}{N_{\text{unit\,cell}}} \sum\limits_{\vec{i}} \langle \hat{O}_{\vec{i},\alpha} \rangle\;.
 \end{equation}
-
-Consider a variable  \texttt{Obs} of type  \texttt{Obser\_latt}. At the beginning of each bin a call to  \texttt{Obser\_Latt\_Init} in the module \texttt{observables\_mod.f90}  will  initialize  the elements of \texttt{Obs} to zero.    Each time the main program calls the   \texttt{Obser} or  \texttt{ObserT} routines one accumulates $ \langle \langle \hat{O}_{\vec{i},\alpha} (\tau) \hat{O}_{\vec{j},\beta} \rangle \rangle_{C} \; \frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}  \text{sign}(C) $    in  \texttt{Obs\%Obs\_latt($\vec{i}-\vec{j},\tau,\alpha,\beta$)}   
-and $ \langle \langle \hat{O}_{\vec{i},\alpha} \rangle \rangle_{C}\frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}  \text{ sign }(C) $  in \texttt{Obs\%Obs\_latt0($\alpha$)}.   At the end of each bin, a call to \texttt{Print\_bin\_Latt} in the module  \texttt{observables\_mod.f90}   will append the result of the bin in the specified  file \texttt{Obs\%File\_Latt}.   Note that the routine  \texttt{Print\_bin\_Latt}  carries out the Fourier transformation and prints the results in $k$-space. 
+Consider a variable \texttt{Obs} of type  \texttt{Obser\_latt}. At the beginning of each bin a call to the subroutine \texttt{Obser\_Latt\_Init} in the module \texttt{observables\_mod.f90}  will  initialize  the elements of \texttt{Obs} to zero.    Each time the main program calls the   \texttt{Obser} or  \texttt{ObserT} routines one accumulates the quantity $\langle \langle \hat{O}_{\vec{i},\alpha} (\tau) \hat{O}_{\vec{j},\beta} \rangle \rangle_{C} \; \frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}  \text{sign}(C) $    in  \texttt{Obs\%Obs\_latt($\vec{i}-\vec{j},\tau,\alpha,\beta$)} and $ \langle \langle \hat{O}_{\vec{i},\alpha} \rangle \rangle_{C}\frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}  \text{ sign }(C) $  in \texttt{Obs\%Obs\_latt0($\alpha$)}.   At the end of each bin, a call to \path{Print_bin_Latt} in the module  \texttt{observables\_mod.f90}   will append the result of the bin in the specified  file \texttt{Obs\%File\_Latt}.   Note that the routine  \texttt{Print\_bin\_Latt}  carries out the Fourier transformation and prints the results in $k$-space. 
 We have adopted the following naming conventions.
 For equal time observables,
-defined by having the second  dimension  of the array  \texttt{Obs\%Obs\_latt($\vec{i}-\vec{j},\tau,\alpha,\beta$)}   set to unity, 
+defined by having the second dimension  of the array  \texttt{Obs\%Obs\_latt($\vec{i}-\vec{j},\tau,\alpha,\beta$)} set to unity, 
 the routine \texttt{Print\_bin\_Latt}  attaches the suffix \emph{\_eq} to \texttt{Obs\%File\_Latt}.  For  time displaced correlation functions we use the suffix \emph{\_tau}.
 
 %
@@ -1034,8 +1046,6 @@ the routine \texttt{Print\_bin\_Latt}  attaches the suffix \emph{\_eq} to \textt
    \end{tabular}
    \caption{Overview of the directories.\label{table:files}}
 \end{table}
-%
-
 The code package consists of the program directories \path{Prog/}, \path{Libraries/} and \path{Analysis/}. 
 The example simulations corresponding to the walkthroughs of Sec.~\ref{sec:walk1} - \ref{sec:walk2} are included in \path{Examples/}. 
 The package content is summarized in Table~\ref{table:files}.
@@ -1047,7 +1057,7 @@ The package content is summarized in Table~\ref{table:files}.
 \begin{table}[h]
    \begin{tabular}{@{} l l @{}}\toprule
    File & Description \\\midrule
-  \path{parameters} &  Sets the parameters for lattice, model, QMC process, and the error analysis.\\
+  \path{parameters} &  This collects input data. We can set here the parameters for the lattice,\\ &  which model, variables of the QMC process, and the error analysis.\\
   \path{seeds} & List of integer numbers to initialize the random number generator and \\
    & to start a simulation from scratch.
   \\\bottomrule
@@ -1062,18 +1072,20 @@ using as an example  the $SU(2)$-symmetric Hubbard model on a square lattice (se
 \lstset{style=fortran}
 \begin{lstlisting} 
 
-!===============================================================================
+!============================================================================
 !  Variables for the Hubb program
-!-------------------------------------------------------------------------------
+!----------------------------------------------------------------------------
 &VAR_lattice
 L1 = 4                    ! Length in direction a_1
 L2 = 4                    ! Length in direction a_2
-Lattice_type = "Square"	  ! a_1 = (1,0),  a_2=(0,1),  Norb=1, N_coord=2
-!Lattice_type ="Honeycomb"! a_1 = (1,0),  a_2 =(1/2,sqrt(3)/2), Norb=2, N_coord=3
-Model = "Hubbard_SU2"     ! Sets Nf=1, N_sun=2. HS field couples to the density
+Lattice_type = "Square"	  ! a_1 = (1,0),a_2=(0,1),  Norb=1, N_coord=2
+!Lattice_type ="Honeycomb"! a_1 = (1,0),a_2 =(1/2,sqrt(3)/2),Norb=2,N_coord=3
+Model = "Hubbard_SU2"     ! Sets Nf=1, N_sun=2. HS field couples to the
+                          ! density
 !Model = "Hubbard_Mz"     ! Sets Nf=2, N_sun=1. HS field couples to the 
                           ! z-component of magnetization.  
-!Model="Hubbard_SU2_Ising"! Sets Nf_1, N_sun=2 and runs only for the square lattice
+!Model="Hubbard_SU2_Ising"! Sets Nf_1, N_sun=2 and runs only for the square
+                          ! lattice
                           ! Hubbard model  coupled to transverse Ising field
 /
 &VAR_Hubbard              ! Variables for the Hubbard model
@@ -1091,11 +1103,11 @@ Ham_h  = 2.d0
 /
 
 &VAR_QMC                  ! Variables for the QMC run
-Nwrap   = 10              ! Stabilization. Green functions will be computed from 
+Nwrap   = 10              ! Stabilization. Green functions is computed from
                           ! scratch after each time interval  Nwrap*Dtau
 NSweep  = 500             ! Number of sweeps
 NBin    = 2               ! Number of bins
-Ltau    = 1               ! 1 for calculation of time displaced Green functions;
+Ltau    = 1               ! 1 for calculation of time displ. Green functions;
                           ! 0 otherwise
 LOBS_ST = 1               ! Start measurements at time slice LOBS_ST
 LOBS_EN = 50              ! End   measurements at time slice LOBS_EN
@@ -1110,6 +1122,7 @@ N_Cov   = 0               ! If set to 1 covariance will be computed
 /            
 \end{lstlisting}
 %
+\clearpage
 %------------------------------------------------------------
 \subsubsection{Output: Observables} \label{sec:output_obs}
 %------------------------------------------------------------
@@ -1117,13 +1130,13 @@ N_Cov   = 0               ! If set to 1 covariance will be computed
 \begin{table}[h]
    \begin{tabular}{@{} l l @{}}\toprule
    File & Description \\\midrule
-   \path{info} & After completion of the simulation, this file documents parameters of the\\
-   & model, the QMC run and simulation metrics (precision, acceptance rate,\\
-   & wallclock time).\\
+   \path{info} & After completion of the simulation, this file documents para-\\
+   & meters of the model, the QMC run and simulation metrics\\
+   & (precision, acceptance rate, wallclock time).\\
    \path{X_scal} & Results of equal time measurements of scalar observables. \\
-   & The placeholder \path{X} stands for the observables \path{Kin, Pot, Part}, and \path{Ener}. \\
-   \path{Y_eq, Y_tau} & Results of equal time and time displaced measurements of correlation\\
-   & functions. The placeholder \path{Y} stands for \path{Green, SpinZ, SpinXY}, and \path{Den}. \\   
+   & The placeholder \path{X} stands for the observables \path{Kin, Pot, Part},\\ & and \path{Ener}. \\
+   \path{Y_eq, Y_tau} & Results of equal time and time displaced measurements of cor-\\
+   & relation functions. The placeholder \path{Y} stands for \path{Green, SpinZ,}\\ &  \path{SpinXY}, and \path{Den}. \\   
    \path{confout_<thread number>} & Output files for the HS and Ising configuration. \\\bottomrule
    \end{tabular}
    \caption{Overview of the standard output files. 
@@ -1140,7 +1153,7 @@ over the number of MPI threads. The formatting of the output for a single bin de
 For each additional bin, a single new line is added to the output file.
 In case of an observable with \path{N_size} components, the formatting is 
 \begin{verbatim}
-N_size + 1    <measured value, 1> ... <measured value, N_size>    <measured sign>
+N_size+1  <measured value,1> ... <measured value,N_size>  <measured sign>
 \end{verbatim}
 The counter variable \path{N_size+1} refers to the number of measurements per line, including the phase measurement. 
 This format is required by the error analysis routine (see Sec.~\ref{sec:analysis}). 
@@ -1189,7 +1202,7 @@ It is important to know that numerical stabilization is delicate and there is no
 If the numerical stabilization turns out to be bad, one option is to reduce the  value of the parameter \texttt{Nwrap} in the parameter file. 
 For performing the stabilization of the involved matrix multiplications we rely on routines from LAPACK. Hence it is very likely that your results may change significantly if you switch the LAPACK implementation.
 In order to offer a simple baseline to which people can quickly switch if they want to see whether their results depend on the library used for linear algebra routines we have included parts of the LAPACK-3.6.1 reference implementation from
-\url{http://www.netlib.org/lapack/}. You can switch to the QR decomposition related routines from the LAPACK reference implementation by including the switch \texttt{-DQRREF} into the PROGRAMMCONFIGURATION string.
+\url{http://www.netlib.org/lapack/}. You can switch to the QR decomposition related routines from the LAPACK reference implementation by including the switch \texttt{-DQRREF} into the PROGRAMCONFIGURATION string.
 To use these routines you need to link against a lapack library that implements at least the LAPACK-3.4.0 interface.\footnote{ We have encountered some compiling issues with this flag. In particular  the  older  intel  ifort  compiler version 10.1  fails for all optimization levels.}
 
 To provide further flexibility, we have  kept the history of different stabilization schemes.   Our default strategy is quick and generically works well but we have  encountered some  models where  it  fails.   If this applies to your model, you can use the switch 
@@ -1205,9 +1218,11 @@ Typical values for the numerical precision can be found in the examples of Sec.~
 \begin{table}[h]
    \begin{tabular}{@{} l l l @{}}\toprule
    Script & Description & Section\\\midrule
+   \path{setenv.sh} & Exports the path variable. &  \ref{sec:running} \\
+   \path{Start/analysis.sh} & Starts the error analysis. & \ref{sec:analysis}, \ref{sec:running} \\
    \path{Start/out_to_in.sh} & Copies the output configurations of HS and Ising spins &\\
    & to the respective input files. & \ref{sec:running} \\
-   \path{Start/analysis.sh} & Starts the error analysis. & \ref{sec:analysis}\\\bottomrule
+   \bottomrule
    \end{tabular}
    \caption{Overview of the bash script files. 
       \label{table:scripts}}
@@ -1215,25 +1230,28 @@ Typical values for the numerical precision can be found in the examples of Sec.~
 
 % 
 %-------------------------------------------------------------------------------------
-\subsection{ Analysis programs }\label{sec:analysis}
+\subsection{Analysis programs }\label{sec:analysis}
 %-------------------------------------------------------------------------------------
 %
 \begin{table}[h]
   \begin{tabular}{@{} l l @{}}\toprule
    Program & Description \\\midrule
-   \texttt{cov\_scal.f90}  &  In combination with the script \texttt{analysis.sh}, the bin files with suffix \texttt{\_scal} are read in, \\
-                           & and  the corresponding files with suffix \texttt{\_scalJ} are produced. They  contain the  result \\
-                           & of the Jackknife rebinning analysis  (see Sec.~\ref{sec:sampling}).  \\
-   \texttt{cov\_eq.f90}    &  In combination with the script \texttt{analysis.sh}, the bin files with suffix \texttt{\_eq} are read in, \\
-                           & and the corresponding files with suffix  \texttt{\_eqJR}  and  \texttt{\_eqJK}  are produced. They  correspond \\
-                           & to correlation functions in real and Fourier space, respectively.  \\
+   \texttt{cov\_scal.f90}  &  In combination with the script \texttt{analysis.sh}, the bin files with suffix \texttt{\_scal}\\
+                           & are read in, and  the corresponding files with suffix \texttt{\_scalJ} are produced.\\
+                           & They  contain the  result of the Jackknife rebinning analysis  (see Sec.~\ref{sec:sampling}).  \\
+   \texttt{cov\_eq.f90}    &  In combination with the script \texttt{analysis.sh}, the bin files with suffix \texttt{\_eq}\\
+                           & are read in, and the corresponding files with suffix  \texttt{\_eqJR}  and  \texttt{\_eqJK}  are\\
+                           & produced. They  correspond  to correlation functions in real and Fourier\\
+                           & space, respectively.  \\
    \texttt{cov\_tau.f90}   &  In combination with the script \texttt{analysis.sh}, the bin files  \texttt{X\_tau} are read in, \\
-                           & and the directories  \texttt{X\_kx\_ky} are produced  for all \texttt{kx} and \texttt{ky} greater or equal to zero. \\
-                           & Here \texttt{X}  is a place holder from \texttt{Green}, \texttt{SpinXY}, etc   as specified in \texttt{ Alloc\_obs(Ltau)} \\
-                           & (See section \ref{Alloc_obs_sec}). Each directory contains  a  file    \texttt{g\_kx\_ky}  containing the  \\
-                           & time displaced correlation function traced over the  orbitals.  It also contains the  \\
-                           & covariance matrix if \texttt{N\_cov} is set to unity in the parameter file  (see Sec.~\ref{sec:input}). \\
-                           & Equally, a directory  \texttt{X\_R0}  for the local  time displaced  correlation function is generated. \\\bottomrule
+                           & and the directories  \texttt{X\_kx\_ky} are produced  for all \texttt{kx} and \texttt{ky} greater or equal\\
+                           & to zero. Here \texttt{X}  is a place holder from \texttt{Green}, \texttt{SpinXY}, etc   as specified in\\
+                           & \texttt{Alloc\_obs(Ltau)} (See section \ref{Alloc_obs_sec}). Each directory contains  a  file\\
+                           & \texttt{g\_kx\_ky}  containing the  time displaced correlation function traced over the\\
+                           & orbitals. It also contains the   covariance matrix if \texttt{N\_cov} is set to unity in\\
+                           & the parameter file (see Sec.~\ref{sec:input}). \\
+                           & Equally, a directory  \texttt{X\_R0}  for the local  time displaced  correlation function\\
+                           & is generated. \\\bottomrule
    \end{tabular}
    \caption{ Overview of analysis programs that are called within the script \texttt{analysis.sh}. \label{table:analysis_programs}}
 \end{table}
@@ -1261,8 +1279,8 @@ As listed in Table  \ref{table:analysis_programs}  we provide three analysis pro
 \begin{table}[h]
    \begin{tabular}{@{} l l l @{}}\toprule
    File & Description \\\midrule
-   \texttt{X\_scalJ} & Jackknife mean and error of \texttt{X}, where  \texttt{X} stands for \texttt{Kin, Pot, Part}, and \texttt{Ener}.\\
-   \texttt{Y\_eqJR} and \texttt{Y\_eqJK} & Jackknife mean and error of \texttt{Y}, where \texttt{Y} stands for \texttt{Green, SpinZ, SpinXY}, and \texttt{Den}.\\
+   \texttt{X\_scalJ} & Jackknife mean and error of \texttt{X}, where  \texttt{X} stands for \texttt{Kin, Pot, Part},\\ & and \texttt{Ener}.\\
+   \texttt{Y\_eqJR} and \texttt{Y\_eqJK} & Jackknife mean and error of \texttt{Y}, where \texttt{Y} stands for \texttt{Green, SpinZ,}\\ & \path{SpinXY}, and \texttt{Den}.\\
    & The suffixes \texttt{R} and \texttt{K} refer to real and reciprocal space, respectively.\\
    \texttt{Y\_R0/g\_R0} & Time-resolved and spatially local Jackknife mean and error of \texttt{Y},\\
    & where \texttt{Y} stands for \texttt{Green, SpinZ, SpinXY}, and \texttt{Den}.\\
@@ -1276,7 +1294,7 @@ In the following, we describe the formatting of the output files mentioned in Ta
 \begin{itemize}
 \item For the scalar quantities \texttt{X}, the output files  \texttt{X\_scalJ} have the following formatting:
 \begin{alltt}
-Effective number of bins, and bins:           <N_bin - n_skip>          <N_bin>
+Effective number of bins, and bins:      <N_bin - n_skip>      <N_bin>
 
 OBS :    1      <mean(X)>      <error(X)>
 
@@ -1289,7 +1307,7 @@ do i = 1, N_unit_cell
    <k_x(i)>   <k_y(i)>
    do alpha = 1, N_orbital
    do beta  = 1, N_orbital
-      alpha   beta   Re<mean(Y)>   Re<error(Y)>   Im<mean(Y)>   Im<error(Y)>
+      alpha  beta  Re<mean(Y)>  Re<error(Y)>  Im<mean(Y)>  Im<error(Y)>
    enddo
    enddo
 enddo
@@ -1324,13 +1342,17 @@ The environment variables and the directives to compile the code are set in the 
 \begin{lstlisting}
 
 # -DMPI selects MPI.
-# -DQRREF  Default  stabilization, using QR with pivoting.
-#          Packed form of QR factorization  is used. 
-# -DSTAB1  Alternative stabilization, using the  singular value decomposition.
-# -DSTAB2  Alternative stabilization, using QR  with pivoting. 
-#          Packed form of QR factorization  is not used.
+# -DSTAB1   Alternative stabilization, using the singular value decomposition.
+# -DSTAB2   Alternative stabilization, lapack QR with  manual pivoting.
+#           Packed form of QR factorization is not used.
+# (no flag) Default  stabilization, using lapack QR with pivoting. 
+#           Packed form of QR factorization  is used. 
+# -DQRREF   Enables reference lapack implementation of QR decomposition.
+# Recommendation: just use the -DMPI flag if you want to run in parallel or 
+#                 leave it empty for serial jobs.  
+#                 The default stabilization, no flag, is generically the best. 
 PROGRAMCONFIGURATION = -DMPI 
-PROGRAMCONFIGURATION = -DQRREF
+PROGRAMCONFIGURATION = 
 f90 = gfortran
 export f90
 F90OPTFLAGS = -O3 -Wconversion  -fcheck=all
@@ -1348,13 +1370,16 @@ export Libs
 LIB_BLAS_LAPACK = -llapack -lblas
 export LIB_BLAS_LAPACK
 
-all: lib ana prog
-prog:
-	cd Prog && $(MAKE)
+all: lib ana program
+
 lib:
 	cd Libraries && $(MAKE)
 ana:
 	cd Analysis && $(MAKE)
+program:
+	cd Prog && $(MAKE)
+
+
 clean: cleanall
 cleanall: cleanprog cleanlib cleanana
 cleanprog:
@@ -1365,7 +1390,8 @@ cleanana:
 	cd Analysis && $(MAKE) clean
 help:
 	@echo "The following are some of the valid targets of this Makefile"
-	@echo "all, prog, lib, ana, clean, cleanall, cleanprog, cleanlib, cleanana"
+	@echo "all, program, lib, ana, clean, cleanall, cleanprog, cleanlib,
+	       cleanana"
 
 \end{lstlisting}
 In the above, the GNU Fortan compiler \texttt{gfortran} is set.\footnote{A known issue with the alternative Intel Fortran compiler \texttt{ifort} is the handling of automatic, temporary arrays 
@@ -1399,11 +1425,15 @@ the input configuration files.
 %-------------------------------------------------------------------------------------
 \subsubsection{Error analysis}
 %-------------------------------------------------------------------------------------
-%
+Note that the error analysis script requires the presence of the environment variable \path{DIR} which defines the path to the error analysis programs.
+So before starting the error analysis, one has to make this variable available which is done by the script \path{setenv.sh}. The command is
+\begin{verbatim}
+source ./setenv.sh
+\end{verbatim}
 To perform an error analysis (based on the jackknife scheme) of the Monte Carlo bins for all observables run the script \texttt{analysis.sh} 
 (see Sec.~\ref{sec:analysis}).
 
- %
+
 %========================================================================================================================================
 \section{Examples}\label{sec:ex}
 %========================================================================================================================================
@@ -1599,8 +1629,7 @@ The equal time  Green function,
 	 \texttt{GR(x,y},\sigma{\texttt)}  = \langle c^{\phantom{\dagger}}_{x,\sigma} c^{\dagger}_{y,\sigma}  \rangle,
 \end{equation}
 the  phase factor \texttt{phase} [Eq.~(\ref{eqn:phase})], and time slice \texttt{Ntau}   are provided by the main program.  
-
-Here,   $x$ and $y$ label  both unit cell as well as the orbital within the unit cell. For the Hubbard model described here, $x$ corresponds to the unit cell.  The Green function  does not depend on the color index, and is diagonal in flavor.  For the $SU(2)$ symmetric implementation  there is only one flavor, $\sigma = 1$ and the Green function is  independent on the spin index.  This renders the calculation of the observables particularly easy.   
+Here, $x$ and $y$ label  both unit cell as well as the orbital within the unit cell. For the Hubbard model described here, $x$ corresponds to the unit cell.  The Green function  does not depend on the color index, and is diagonal in flavor.  For the $SU(2)$ symmetric implementation  there is only one flavor, $\sigma = 1$ and the Green function is  independent on the spin index.  This renders the calculation of the observables particularly easy.   
 
 An explicit calculation of the   potential energy  $ \langle U \sum_{\vec{i}}  \hat{n}_{\vec{i},\uparrow}   \hat{n}_{\vec{i},\downarrow}  \rangle $ reads 
 
@@ -1609,13 +1638,11 @@ An explicit calculation of the   potential energy  $ \langle U \sum_{\vec{i}}  \
 Obs_scal(2)%N     = Obs_scal(2)%N + 1
 Obs_scal(2)%Ave_sign = Obs_scal(2)%Ave_sign + Real(ZS,kind(0.d0))
 Do i = 1,Ndim
-   Obs_scal(2)%Obs_vec(1) = Obs_scal(2)%Obs_vec(1) + (1-GR(i,i,1))**2 * Ham_U * ZS * ZP
+   Obs_scal(2)%Obs_vec(1)=Obs_scal(2)%Obs_vec(1)+(1-GR(i,i,1))**2*Ham_U*ZS*ZP
 Enddo
 
 \end{lstlisting} 
-Here  $ \texttt{ZS} = \text{ sign} (C) $  [see Eq.~(\ref{Sign.eq})],  $ \texttt{ZP} =   \frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}   $ [see Eq.~(\ref{eqn:phase})] and  \texttt{Ham\_U}  corresponds to the Hubbard-$U$ term.
-
-
+Here  $ \texttt{ZS} = \text{ sign} (C) $  [see Eq.~(\ref{Sign.eq})],  $ \texttt{ZP} =   \frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}   $ [see Eq.~(\ref{eqn:phase})] and  \texttt{Ham\_U}  corresponds to the Hubbard-$U$ term.\\
 Equal time correlations  are also computed in this routine. As an explicit example, we  consider the equal time density-density correlation:
 \begin{equation}
 	 \langle n_{\vec{i},\alpha}   n_{\vec{j},\beta} \rangle   -  \langle n_{\vec{i},\alpha} \rangle  \langle    n_{\vec{j},\beta}  \rangle \;.
@@ -1629,21 +1656,24 @@ such that \texttt{GRC(x,y,s)}    corresponds to  $ \langle \langle  \hat{c}_{x,s
 In the program code, the calculation of the equal time density-density correlation function looks as follows:
 \begin{lstlisting} 
 
-Obs_eq(4)%N     = Obs_eq(4)%N + 1       ! Even if it is redundant, each observable  
-                                        ! carries its own counter and sign.
+Obs_eq(4)%N     = Obs_eq(4)%N + 1  ! Even if it is redundant, each observable  
+                                   ! carries its own counter and sign.
 Obs_eq(4)%Ave_sign = Obs_eq(4)%Ave_sign + Real(ZS,kind(0.d0))  
 Do I1 = 1,Ndim
-   I    = List(I1,1)                    ! = I1  (The Hubbard model  on the square
-   no_I = List(I1,2)                    ! = 1   lattice has one orbital per unit-cell)
+   I    = List(I1,1)               ! = I1  (The Hubbard model  on the square
+   no_I = List(I1,2)               ! = 1   lattice has one orbital per unit
+                                   !       cell)
    Do J1 = 1,Ndim                       
       J    = List(J1,1)
       no_J = List(J1,2)
       imj = latt%imj(I,J)
-      Obs_eq(4)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(4)%Obs_Latt(imj,1,no_I,no_J) + &
-                     &     (    GRC(I1,I1,1) * GRC(J1,J1,1) * N_SUN * N_SUN      + &
-                     &          GRC(I1,J1,1) * GR(I1,J1,1) * N_SUN   ) * ZP * ZS 
+      Obs_eq(4)%Obs_Latt(imj,1,no_I,no_J) = &
+              & Obs_eq(4)%Obs_Latt(imj,1,no_I,no_J) + &
+              &     (    GRC(I1,I1,1) * GRC(J1,J1,1) * N_SUN * N_SUN      + &
+              &          GRC(I1,J1,1) * GR(I1,J1,1) * N_SUN   ) * ZP * ZS 
    Enddo
-   Obs_eq(4)%Obs_Latt0(no_I) = Obs_eq(4)%Obs_Latt0(no_I) + GRC(I1,I1,1) * N_SUN*ZP*ZS
+   Obs_eq(4)%Obs_Latt0(no_I) = &
+   & Obs_eq(4)%Obs_Latt0(no_I)+GRC(I1,I1,1) * N_SUN * ZP * ZS
 Enddo
 \end{lstlisting} 
 Note that we consider the  square lattice of the single site Hubbard model as a special case of a multiorbital problem as described in Sec.~\ref{sec:multi-orbital}
@@ -1677,9 +1707,9 @@ The handling of time displaced correlation functions is identical to that of equ
 The directory \path{Examples/Hubbard_SU2_Square}  contains an example simulation of the $4 \times 4$ Hubbard model at $U/t=4$ and $\beta t = 10$. 
 Information on the numerical stability is included in the following lines of the corresponding file \texttt{info}:
 \begin{alltt}
-Precision Green  Mean, Max :    1.2918865817224671E-014   4.0983018995027644E-011
-Precision Phase, Max       :    5.0272908791449966E-012
-Precision tau    Mean, Max :    8.4596701790588625E-015   3.5033530012121281E-011
+Precision Green  Mean, Max : 1.2918865817224671E-014  4.0983018995027644E-011
+Precision Phase, Max       : 5.0272908791449966E-012
+Precision tau    Mean, Max : 8.4596701790588625E-015  3.5033530012121281E-011
 \end{alltt}
 showing the mean and maximum difference between the \textit{wrapped}  and from scratched computed equal and time displaced  Green functions \cite{Assaad08_rev}.
 A stable code  should produce results where the mean difference is smaller than the  stochastic error. The above example  shows a very stable  simulation since the Green function  is of order one. 
@@ -1760,9 +1790,9 @@ Apart from these modifications, the program  will run in exactly the same manner
 The directory \path{Examples/Hubbard_Mz_Square}  contains an example simulation of the $4 \times 4$ Hubbard model at $U/t=4$ and $\beta t = 10$. 
 Information on the numerical stability is included in the following lines of the corresponding file \texttt{info}:
  \begin{alltt}
-Precision Green  Mean, Max :    5.0823874429126405E-011   5.8621144596315844E-006
-Precision Phase, Max       :    0.0000000000000000     
-Precision tau    Mean, Max :    1.5929357848647394E-011   1.0985132530727526E-005 
+Precision Green  Mean, Max : 5.0823874429126405E-011  5.8621144596315844E-006
+Precision Phase, Max       : 0.0000000000000000     
+Precision tau    Mean, Max : 1.5929357848647394E-011  1.0985132530727526E-005 
 \end{alltt}
 
 This is still an excellent precision but nevertheless choosing a 
@@ -1800,14 +1830,14 @@ and then  call \path{ Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt ) } so as to g
 
 Allocate (List(Ndim,2), Invlist(Latt%N,Norb))
 nc = 0
-Do I = 1,Latt%N                               ! Unit-cell index 
-   Do no = 1,Norb                             ! Orbital index
-      nc = nc + 1                             ! Super-index labeling unit cell
-                                              ! and orbital
-      List(nc,1) = I                          ! Unit-cell  of super index  nc
-      List(nc,2) = no                         ! Orbital of super index nc
-      Invlist(I,no) = nc                      ! Super-index for given  unit cell
-                                              ! and orbital
+Do I = 1,Latt%N                           ! Unit-cell index 
+   Do no = 1,Norb                         ! Orbital index
+      nc = nc + 1                         ! Super-index labeling unit cell
+                                          ! and orbital
+      List(nc,1) = I                      ! Unit-cell  of super index  nc
+      List(nc,2) = no                     ! Orbital of super index nc
+      Invlist(I,no) = nc                  ! Super-index for given  unit cell
+                                          ! and orbital
   Enddo
 Enddo
 
@@ -1823,21 +1853,21 @@ Some care has to be taken when setting the hopping matrix.    In the Hamilton mo
 
 \begin{lstlisting}
 
-DO I = 1, Latt%N                              ! Loop over unit cell 
-   do no = 1,Norb                             ! Runs over orbitals and 
-                                              ! sets the chemical potential
+DO I = 1, Latt%N                           ! Loop over unit cell 
+   do no = 1,Norb                          ! Runs over orbitals and 
+                                           ! sets the chemical potential
       I1 = invlist(I,no)  
       Op_T(nc,n)%O(I1 ,I1) = cmplx(-Ham_chem, 0.d0, kind(0.D0))
    enddo
-   I1 = Invlist(I,1)                          ! Orbital A of unit cell I
-   Do nc1 = 1,N_coord                         ! Loop over coordination  number
+   I1 = Invlist(I,1)                       ! Orbital A of unit cell I
+   Do nc1 = 1,N_coord                      ! Loop over coordination  number
       select case (nc1)
       case (1)
-         J1 = invlist(I,2)                    ! Orbital B of unit cell i
+         J1 = invlist(I,2)                 ! Orbital B of unit cell i
       case (2)
-         J1 = invlist(Latt%nnlist(I,1,-1),2)  ! Orbital B of unit cell i + a_1 - a_2
+         J1=invlist(Latt%nnlist(I,1,-1),2) ! Orbital B of unit cell i+a_1-a_2
       case (3)
-         J1 = invlist(Latt%nnlist(I,0,-1),2)  ! Orbital B of unit cell i - a_2 
+         J1=invlist(Latt%nnlist(I,0,-1),2) ! Orbital B of unit cell i-a_2 
       case default
          Write(6,*) ' Error in  Ham_Hop '  
       end select
@@ -1885,7 +1915,7 @@ A sample run for this model can be found in \path{Examples/Hubbard_SU2_Ising_Squ
 
 %
 %-------------------------------------------------------------------------------------
-\subsubsection{The Ising term.}
+\subsubsection{The Ising term}
 %-------------------------------------------------------------------------------------
 %
 Since the Ising field lives on bonds we have to provide a data structure defining this quantity.  A bond has an anchor site as well as an orientation. The routine \path{Setup_Ising_action}   initializes  the arrays \path{L_bond} and  \path{L_bond_inv} that contain this information. 
@@ -1903,7 +1933,7 @@ Do I = 1, Latt%N
 enddo
 enddo
 \end{lstlisting}
-The two legs of the bond are given by  the anchor $\vec{I}$ and $\vec{I}+ \vec{a}_{n_{orientation}}$
+The two legs of the bond are given by  the anchor $\vec{I}$ and $\vec{I}+ \vec{a}_{n_\text{orientation}}$.
 %
 %-------------------------------------------------------------------------------------
 \subsubsection{The interaction term: \texttt{Call Ham\_V}}
@@ -1915,10 +1945,10 @@ The dimension of   \texttt{Op\_V}  is now  $(M_I + M_V)\times N_{\mathrm{fl}}=((
 
 \begin{lstlisting}
 
-do i  = 1,N_coord*Ndim                     ! Runs over bonds for Ising interaction.
+do i  = 1,N_coord*Ndim                    ! Runs over bonds for Ising inter.
   call Op_make(Op_V(i,1),2)
 enddo
-do i  =  N_coord*Ndim+1, (N_coord+1)*Ndim  ! Runs over sites for Hubbard interaction.
+do i  =  N_coord*Ndim+1, (N_coord+1)*Ndim ! Runs over sites for Hubbard inter.
   call Op_make(Op_V(i,1),1)
 enddo
 
@@ -1927,13 +1957,13 @@ enddo
 The  first  \texttt{N\_coord*Ndim} operators run through the $2N$ bonds of the square lattice and   are given by:
 \begin{lstlisting}
 
-Do nc = 1,Ndim*N_coord                     ! Runs over bonds. Coordination number = 2.
-                                           ! For the square lattice Ndim = Latt%N
+Do nc = 1,Ndim*N_coord            ! Runs over bonds. Coordination number = 2.
+                                  ! For the square lattice Ndim = Latt%N
   
-   I1 = L_bond_inv(nc,1)                   ! Anchor of the bond
-	                                   ! L_bond_inv is setup in Setup_Ising_action
-   if ( L_bond_inv(nc,2)  == 1 ) I2 = Latt%nnlist(I1,1,0)  ! Second site of the bond 
-   if ( L_bond_inv(nc,2)  == 2 ) I2 = Latt%nnlist(I1,0,1) 
+   I1 = L_bond_inv(nc,1)          ! Anchor of the bond
+	                          ! L_bond_inv is setup in Setup_Ising_action
+   if ( L_bond_inv(nc,2)  == 1 ) I2 = Latt%nnlist(I1,1,0) ! Second site of
+   if ( L_bond_inv(nc,2)  == 2 ) I2 = Latt%nnlist(I1,0,1) ! the bond  
    Op_V(nc,1)%P(1) = I1
    Op_V(nc,1)%P(2) = I2
    Op_V(nc,1)%O(1,2) = cmplx(1.d0 ,0.d0, kind(0.D0))
@@ -1952,11 +1982,11 @@ As for the Hubbard case, the last \texttt{Ndim}  operators read:
 nc = N_coord*Ndim 
 Do i = 1, Ndim
     nc = nc + 1
-    Op_V(nc,1)%P(1)   = i 
-    Op_V(nc,1)%O(1,1) = cmplx(1.d0  ,0.d0, kind(0.D0))
-    Op_V(nc,1)%g      = sqrt(cmplx(-dtau*ham_U/(DBLE(N_SUN)), 0.D0, kind(0.D0)))
-    Op_V(nc,1)%alpha  = cmplx(-0.5d0,0.d0, kind(0.D0))
-    Op_V(nc,1)%type   = 2
+    Op_V(nc,1)%P(1)  = i 
+    Op_V(nc,1)%O(1,1)= cmplx(1.d0  ,0.d0, kind(0.D0))
+    Op_V(nc,1)%g     = sqrt(cmplx(-dtau*ham_U/(DBLE(N_SUN)),0.D0,kind(0.D0)))
+    Op_V(nc,1)%alpha = cmplx(-0.5d0,0.d0, kind(0.D0))
+    Op_V(nc,1)%type  = 2
 Enddo
 
 \end{lstlisting}
@@ -2053,7 +2083,7 @@ To use the QMC code of the ALF project  to simulate this model, one will rewrite
 so to manifestly bring it into the form of the general Hamiltonian(\ref{eqn:general_ham}). 
 It is amusing to note that setting the hopping $t=0$,    charge fluctuations  will be suppressed by the  Boltzmann factor $e^{-\beta U /N \left(  \vec{\hat{c}}^{\dagger}_{\vec{i}}  \vec{\hat{c}}^{\phantom\dagger}_{\vec{i}} -  {\frac{N}{2} } \right)^2 } $ 
 since in this case  $ \left[   \hat{\mathcal{H}_J}, \hat{\mathcal{H}}_U \right]  = 0 $.
-This provides a route to use the auxiliary field QMC algorithm  to simulate -- free of the sign problem -- $SU(2N)$ Heisenberg models in the self-adjoint antisymmetric representation  \footnote{ This corresponds to a Young tableau with single column and $N/2$ rows.}  
+This provides a route to use the auxiliary field QMC algorithm  to simulate -- free of the sign problem -- $SU(2N)$ Heisenberg models in the self-adjoint antisymmetric representation \footnote{ This corresponds to a Young tableau with single column and $N/2$ rows.}.
 For odd values of $N$ recent progress  in our understanding of the  origins of the sign problem \cite{Wei16}  allows us to simulate  a set of non-trivial Hamiltonians \cite{Li15,Assaad16},  without encountering the sign problem.
 %
 %-------------------------------------------------------------------------------------
@@ -2087,7 +2117,7 @@ For many problem sizes, 2~GB memory per MPI task (random walker) suffices such t
 
 We store the field configurations of the random walker as checkpoints, such that a long simulation can be easily split into several short simulations. This procedure allows us to take advantage of chained jobs using the dependency chains provided by the batch system.
 
-\begin{figure}[H]
+\begin{figure}[h]
 	\begin{center}
 		\includegraphics[scale=0.6]{fig2.pdf}
 		\includegraphics[scale=0.6]{fig3.pdf}
@@ -2096,7 +2126,7 @@ We store the field configurations of the random walker as checkpoints, such that
 		The MPI performance data was normalized to 28 cores and was obtained using a problem size of $N_{\text{dim}}=400$. This is a medium to small system size that is the least favorable in terms of MPI synchronization effects.
 		The OpenMP performance data was obtained using a problem size of $N_{\text{dim}}=1296$. Employing 2 and 4 OpenMP threads introduces some synchronization/management overhead such that the per-core performance is slightly reduced, compared to the single thread efficiency. Further increasing the amount of threads to 7 and 14 keeps the efficiency constant. The drop in performance of the 28 thread configuration is due to the architecture as the threads are now spread over both sockets of the node. To obtain the above results, it was crucial to pin the processes in a fashion that keeps the OpenMP threads as compact as possible.}
 \end{figure}
-
+\clearpage
 %
 %========================================================================================================================================
 \section{Conclusions and Future Directions}\label{sec:con}
@@ -2106,27 +2136,25 @@ In its present form, the  auxiliary field QMC code of the ALF project  allows to
 
 %
 %========================================================================================================================================
-\addcontentsline{toc}{section}{Acknowledgments}
+% \addcontentsline{toc}{section}{Acknowledgments}
 \section*{Acknowledgments} 
 %========================================================================================================================================
 %
-We are very grateful to  S.~Beyl, M.~Hohenadler,  F.~Parisen Toldin,  M.~Raczkowski, T.~Sato, J.~Schwab, Z.~Wang, and M.~Weber  for constant support during the development of this project. 
-\mycomment{MB: I think we should  acknowledge also RRZE Erlangen: We equally thank G.~Hager, M.~Wittmann, and G.~Wellein for useful discussions and support.}
+We are very grateful to  S.~Beyl, M.~Hohenadler,  F.~Parisen Toldin,  M.~Raczkowski, T.~Sato, J.~Schwab, Z.~Wang, and M.~Weber  for constant support during the development of this project. We equally thank G.~Hager, M.~Wittmann, and G.~Wellein for useful discussions and support.
 FFA would also like to thank T.~Lang   and Z.~Y.~Meng for  developments of the auxiliary field code as well as T.~Grover. 
+% TODO: include funding information
+\paragraph{Funding information}
 MB thanks the Bavarian Competence Network for Technical and Scientific High Performance Computing (KONWIHR) for financial support. FG  and JH thank the SFB-1170 for  financial support under projects Z03 and C01.  FFA thanks the DFG-funded FOR1807 and FOR1346 for partial financial support.
 Part of the optimization of the code was carried out during  the  Porting and Tuning Workshop 2016 offered by the Forschungszentrum J\"ulich.
 Calculations  to extensively test this package were carried out both on  SuperMUC at the  Leibniz Supercomputing Centre and on  JURECA  \cite{Jureca16} at the J\"ulich Supercomputing Centre.  We thank both institutions for generous allocation of computing time.
 
-%
+
+
+
+\begin{appendix}
 %========================================================================================================================================
-\addcontentsline{toc}{section}{References}
-%\bibliographystyle{./prXsty} 
-\bibliography{doc}
-%========================================================================================================================================
-%
-%========================================================================================================================================
-\addcontentsline{toc}{section}{License}
-\section*{License}
+% \addcontentsline{toc}{section}{License}
+\section{License}
 %========================================================================================================================================
 %
 The  ALF code  is provided as an open source software  such that it is  available  to all and we  hope that  it 
@@ -2163,6 +2191,24 @@ is licensed under a Creative Commons Attribution-ShareAlike 4.0 International Li
 You are free to share and benefit from this documentation as long as this license is preserved
 and proper attribution to the authors is given. For details see the ALF project
 homepage \url{alf.physik.uni-wuerzburg.de} and the file \texttt{license.CCBYSA}.
+\end{appendix}
 
+
+% TODO: 
+% Provide your bibliography here. You have two options:
+
+% FIRST OPTION - write your entries here directly, following the example below, including Author(s), Title, Journal Ref. with year in parentheses at the end, followed by the DOI number.
+%\begin{thebibliography}{99}
+%\bibitem{1931_Bethe_ZP_71} H. A. Bethe, {\it Zur Theorie der Metalle. i. Eigenwerte und Eigenfunktionen der linearen Atomkette}, Zeit. f{\"u}r Phys. {\bf 71}, 205 (1931), \doi{10.1007\%2FBF01341708}.
+%\bibitem{arXiv:1108.2700} P. Ginsparg, {\it It was twenty years ago today... }, \url{http://arxiv.org/abs/1108.2700}.
+%\end{thebibliography}
+
+% SECOND OPTION:
+% Use your bibtex library
+% \bibliographystyle{SciPost_bibstyle} % Include this style file here only if you are not using our template
+\clearpage
+\bibliography{alf-1.0-scipost}
+
+\nolinenumbers
 
 \end{document}

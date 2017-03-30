@@ -1,10 +1,10 @@
 # -DMPI selects MPI.
-# -DSTAB1  Alternative stabilization, using the singular value decomposition.
-# -DSTAB2  Alternative stabilization, lapack QR with  manual pivoting. Packed form of QR factorization is not used.
-# (Noflag) Default  stabilization, using lapack QR with pivoting. Packed form of QR factorization  is used. 
-# -DQRREF  Enables reference lapack implementation of QR decomposition.
-# Recommendation:  just use the -DMPI flag if you want to run in parallel or leave it empy for serial jobs.  
-# The default stabilization, no flag, is generically the best. 
+# -DSTAB1   Alternative stabilization, using the singular value decomposition.
+# -DSTAB2   Alternative stabilization, lapack QR with  manual pivoting. Packed form of QR factorization is not used.
+# (no flag) Default  stabilization, using lapack QR with pivoting. Packed form of QR factorization  is used. 
+# -DQRREF   Enables reference lapack implementation of QR decomposition.
+# Recommendation:  just use the -DMPI flag if you want to run in parallel or leave it empty for serial jobs.  
+#                  The default stabilization, no flag, is generically the best. 
 PROGRAMCONFIGURATION = -DMPI 
 PROGRAMCONFIGURATION = 
 f90 = gfortran
