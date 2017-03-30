@@ -141,7 +141,8 @@
                Open (Unit=10,File=File_out,status="unknown")
                do nt = 1, LT
                   Write(10,"(F14.7,2x,F16.8,2x,F16.8,2x,F16.8,2x,F16.8)") &
-                       & dble(nt-1)*dtau,  dble(Xmean(nt)), sqrt(abs(dble(Xcov(nt,nt)))),  aimag(Xmean(nt)), sqrt(abs(aimag(Xcov(nt,nt))))
+                       & dble(nt-1)*dtau,  dble(Xmean(nt)), sqrt(abs(dble(Xcov(nt,nt)))), &
+                       & aimag(Xmean(nt)), sqrt(abs(aimag(Xcov(nt,nt))))
                enddo
                close(10)
             endif
@@ -161,7 +162,8 @@
          Open (Unit=10,File=File_out,status="unknown")
          do nt = 1, LT
             Write(10,"(F14.7,2x,F16.8,2x,F16.8,2x,F16.8,2x,F16.8)") &
-                 & dble(nt-1)*dtau,  dble(Xmean(nt)), sqrt(abs(dble(Xcov(nt,nt)))),  aimag(Xmean(nt)), sqrt(abs(aimag(Xcov(nt,nt))))
+                 & dble(nt-1)*dtau,  dble(Xmean(nt)), sqrt(abs(dble(Xcov(nt,nt)))), &
+                 & aimag(Xmean(nt)), sqrt(abs(aimag(Xcov(nt,nt))))
          enddo
          close(10)
          
