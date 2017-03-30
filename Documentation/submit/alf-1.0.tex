@@ -1202,7 +1202,7 @@ Typical values for the numerical precision can be found in the examples of Sec.~
 \begin{table}[h]
    \begin{tabular}{@{} l l l @{}}\toprule
    Script & Description & Section\\\midrule
-   \path{set_env.sh} & Exports the path variable &  \ref{sec:running} \\
+   \path{setenv.sh} & Exports the path variable &  \ref{sec:running} \\
    \path{Start/analysis.sh} & Starts the error analysis. & \ref{sec:analysis}, \ref{sec:running} \\
    \path{Start/out_to_in.sh} & Copies the output configurations of HS and Ising spins &\\
    & to the respective input files. & \ref{sec:running} \\
@@ -1405,9 +1405,9 @@ the input configuration files.
 \subsubsection{Error analysis}
 %-------------------------------------------------------------------------------------
 Note that the error analysis script requires the presence of the environment variable \path{DIR} which defines the path to the error analysis programs.
-So before starting the error analysis, one has to make this variable available which is done by the script \path{set_env.sh}. The command is
+So before starting the error analysis, one has to make this variable available which is done by the script \path{setenv.sh}. The command is
 \begin{verbatim}
-source ./set_env.sh
+source ./setenv.sh
 \end{verbatim}
 To perform an error analysis (based on the jackknife scheme) of the Monte Carlo bins for all observables run the script \texttt{analysis.sh} 
 (see Sec.~\ref{sec:analysis}).
