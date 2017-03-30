@@ -97,7 +97,8 @@ The Algorithms for Lattice Fermions package provides a general code for the fini
 }
 
 % *** extra section
-\vspace{10pt}
+%\vspace{10pt}
+\vfill
 Copyright \textcopyright ~2016, 2017 The \textit{ALF} Project.\\
 This is the ALF Project Documentation by the ALF contributors.
 It is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License.
@@ -105,17 +106,18 @@ You are free to share and benefit from this documentation as long as this licens
 and proper attribution to the authors is given. For details see the ALF project
 homepage \url{alf.physik.uni-wuerzburg.de}. Contact address: \url{alf@physik.uni-wuerzburg.de} 
 % ***
-
+\clearpage
 
 
 % TODO: include a table of contents (optional)
 % Guideline: if your paper is longer that 6 pages, include a TOC
 % To remove the TOC, simply cut the following block
-\vspace{10pt}
+%\vspace{10pt}
 \noindent\rule{\textwidth}{1pt}
 \tableofcontents\thispagestyle{fancy}
 \noindent\rule{\textwidth}{1pt}
-\vspace{10pt}
+%\vspace{10pt}
+\clearpage
 
 %
 %========================================================================================================================================
@@ -507,11 +509,10 @@ The default updating scheme is a  sequential single  spin flip algorithm.   Cons
 % 
 Consider an Ising spin at space-time $i,\tau$ and the configuration $C$. Flipping this spin will generate the configuration $C'$ and we will propose the move according to 
   \begin{equation}
- T_0(C \rightarrow C')  =  \frac{e^{-S_0(C')}}{ e^{-S_0(C')} + e^{-S_0(C)} }   = 1 - \frac{1}{1 +  e^{-S_0(C')} /e^{-S_0(C)}}
+ T_0(C \rightarrow C')  =  \frac{e^{-S_0(C')}}{ e^{-S_0(C')} + e^{-S_0(C)} }   = 1 - \frac{1}{1 +  e^{-S_0(C')} /e^{-S_0(C)}}.
   \end{equation}
- Note that the function $\texttt{S0}$ in the  \texttt{Hamitonian\_example.f90}  module  computes precisely the ratio\\
- ${e^{-S_0(C')} /e^{-S_0(C)}}$ so that  $T_0(C \rightarrow C') $ does not require any further programming. 
- Thereby one will accept  the proposed move with the probability: 
+ Note that the function $\texttt{S0}$ in the  \texttt{Hamitonian\_example.f90}  module  computes precisely the ratio ${e^{-S_0(C')} /e^{-S_0(C)}}$ so that  $T_0(C \rightarrow C') $ does not require any further programming. 
+ Thereby one will accept the proposed move with the probability: 
  \begin{equation}
  P(C \rightarrow C') =  \text{min}  \left( 1,  \frac{e^{-S_0(C)}   W(C')}{ e^{-S_0(C')} W(C)} \right).
  \end{equation}
@@ -547,7 +548,6 @@ Assuming for simplicity that \texttt{NWrap} is a multiple of $L_{\text{Trotter}}
 \begin{equation}
 \bm{G} = \left( \mathds{1} + \prod\limits_{ i = 0}^{\frac{L_{\text{Trotter}}} {\texttt{NWrap} -1}}       \underbrace{\prod_{\tau=1}^{\texttt{NWrap}} \bm{B}_{i  \cdot  \texttt{NWrap}+ \tau} }_{ \equiv \mathcal{\bm{B}}_i}\right)^{-1}.
 \end{equation}
-
 Within the auxiliary field QMC implementation of the ALF project, we are by default employing
 the strategy of forming a product of QR-decompositions which was proven to be weakly backwards stable in \cite{Bai2011}.
 The key idea is to efficiently separate the scales of a matrix from the orthogonal part of a matrix.
@@ -854,7 +854,7 @@ Note that the orbital structure of each unit cell has to be specified by the use
  The user has to specify unit vectors $\vec{a}_1$ and $\vec{a}_2$ as well as the size of the  lattice. The size is  characterized by  two vectors $\vec{L}_1$ and $\vec{L}_2$   and  the lattice is placed on a torus 
  (periodic boundary conditions): 
 \begin{equation}
-	\hat{c}_{\vec{i} + \vec{L}_1 }  = \hat{c}_{\vec{i} + \vec{L}_2 }  = \hat{c}_{\vec{i}}
+	\hat{c}_{\vec{i} + \vec{L}_1 }  = \hat{c}_{\vec{i} + \vec{L}_2 }  = \hat{c}_{\vec{i}}.
 \end{equation}
 The function call 
 \lstset{style=fortran}
@@ -918,7 +918,7 @@ such that
    \texttt{Latt\%b2\_perp\_p}                             &    Real         &  Orthonormal vectors to $\vec{b}_i$.  For internal use. \\\bottomrule
    \end{tabular}
    \caption{Components of the \texttt{Lattice} type for two-dimensional lattices using as example the default lattice name \texttt{Latt}.
-   The \hlgray{highlighted} variables have to be specified by the user.  Other components of the Lattice are generated upon calling: \texttt{ Call Make\_Lattice( L1, L2, a1,  a2, Latt )}. 
+   The \hlgray{highlighted} variables have to be specified by the user.  Other components of the \texttt{Lattice} are generated upon calling: \texttt{Call Make\_Lattice( L1, L2, a1,  a2, Latt )}. 
     \label{table:lattice}}
 \end{table}
 %
@@ -1001,7 +1001,6 @@ This suffix  is important to allow automatic analysis of the data at the end of 
       \label{table:Obser_latt}}
 \end{table}
 %
-
 This data type (see Table~\ref{table:Obser_latt}) is useful so as to deal with  equal time as well as imaginary-time displaced correlation functions of the form: 
 \begin{equation}\label{eqn:s}
 	S_{\alpha,\beta}(\vec{k},\tau) =   \frac{1}{N_{\text{unit cell}}} \sum_{\vec{i},\vec{j}}  e^{- \vec{k} \cdot \left( \vec{i}-\vec{j}\right) } \left( \langle \hat{O}_{\vec{i},\alpha} (\tau) \hat{O}_{\vec{j},\beta} \rangle  - 
@@ -1024,12 +1023,10 @@ The background part depends only on the expectation value $\langle \hat{O}_{\alp
 \begin{equation}\label{eqn:o}
 \langle \hat{O}_{\alpha} \rangle \equiv \frac{1}{N_{\text{unit\,cell}}} \sum\limits_{\vec{i}} \langle \hat{O}_{\vec{i},\alpha} \rangle\;.
 \end{equation}
-
-Consider a variable  \texttt{Obs} of type  \texttt{Obser\_latt}. At the beginning of each bin a call to  \texttt{Obser\_Latt\_Init} in the module \texttt{observables\_mod.f90}  will  initialize  the elements of \texttt{Obs} to zero.    Each time the main program calls the   \texttt{Obser} or  \texttt{ObserT} routines one accumulates $ \langle \langle \hat{O}_{\vec{i},\alpha} (\tau) \hat{O}_{\vec{j},\beta} \rangle \rangle_{C} \; \frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}  \text{sign}(C) $    in  \texttt{Obs\%Obs\_latt($\vec{i}-\vec{j},\tau,\alpha,\beta$)}   
-and\\ $ \langle \langle \hat{O}_{\vec{i},\alpha} \rangle \rangle_{C}\frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}  \text{ sign }(C) $  in \texttt{Obs\%Obs\_latt0($\alpha$)}.   At the end of each bin, a call to \path{Print_bin_Latt} in the module  \texttt{observables\_mod.f90}   will append the result of the bin in the specified  file \texttt{Obs\%File\_Latt}.   Note that the routine  \texttt{Print\_bin\_Latt}  carries out the Fourier transformation and prints the results in $k$-space. 
+Consider a variable \texttt{Obs} of type  \texttt{Obser\_latt}. At the beginning of each bin a call to the subroutine \texttt{Obser\_Latt\_Init} in the module \texttt{observables\_mod.f90}  will  initialize  the elements of \texttt{Obs} to zero.    Each time the main program calls the   \texttt{Obser} or  \texttt{ObserT} routines one accumulates the quantity $\langle \langle \hat{O}_{\vec{i},\alpha} (\tau) \hat{O}_{\vec{j},\beta} \rangle \rangle_{C} \; \frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}  \text{sign}(C) $    in  \texttt{Obs\%Obs\_latt($\vec{i}-\vec{j},\tau,\alpha,\beta$)} and $ \langle \langle \hat{O}_{\vec{i},\alpha} \rangle \rangle_{C}\frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}  \text{ sign }(C) $  in \texttt{Obs\%Obs\_latt0($\alpha$)}.   At the end of each bin, a call to \path{Print_bin_Latt} in the module  \texttt{observables\_mod.f90}   will append the result of the bin in the specified  file \texttt{Obs\%File\_Latt}.   Note that the routine  \texttt{Print\_bin\_Latt}  carries out the Fourier transformation and prints the results in $k$-space. 
 We have adopted the following naming conventions.
 For equal time observables,
-defined by having the second  dimension  of the array  \texttt{Obs\%Obs\_latt($\vec{i}-\vec{j},\tau,\alpha,\beta$)}   set to unity, 
+defined by having the second dimension  of the array  \texttt{Obs\%Obs\_latt($\vec{i}-\vec{j},\tau,\alpha,\beta$)} set to unity, 
 the routine \texttt{Print\_bin\_Latt}  attaches the suffix \emph{\_eq} to \texttt{Obs\%File\_Latt}.  For  time displaced correlation functions we use the suffix \emph{\_tau}.
 
 %
@@ -1049,8 +1046,6 @@ the routine \texttt{Print\_bin\_Latt}  attaches the suffix \emph{\_eq} to \textt
    \end{tabular}
    \caption{Overview of the directories.\label{table:files}}
 \end{table}
-%
-
 The code package consists of the program directories \path{Prog/}, \path{Libraries/} and \path{Analysis/}. 
 The example simulations corresponding to the walkthroughs of Sec.~\ref{sec:walk1} - \ref{sec:walk2} are included in \path{Examples/}. 
 The package content is summarized in Table~\ref{table:files}.
@@ -1062,7 +1057,7 @@ The package content is summarized in Table~\ref{table:files}.
 \begin{table}[h]
    \begin{tabular}{@{} l l @{}}\toprule
    File & Description \\\midrule
-  \path{parameters} &  Sets the parameters for lattice, model, QMC process, and the error analysis.\\
+  \path{parameters} &  This collects input data. We can set here the parameters for the lattice,\\ &  which model, variables of the QMC process, and the error analysis.\\
   \path{seeds} & List of integer numbers to initialize the random number generator and \\
    & to start a simulation from scratch.
   \\\bottomrule
@@ -1127,6 +1122,7 @@ N_Cov   = 0               ! If set to 1 covariance will be computed
 /            
 \end{lstlisting}
 %
+\clearpage
 %------------------------------------------------------------
 \subsubsection{Output: Observables} \label{sec:output_obs}
 %------------------------------------------------------------
@@ -1222,7 +1218,7 @@ Typical values for the numerical precision can be found in the examples of Sec.~
 \begin{table}[h]
    \begin{tabular}{@{} l l l @{}}\toprule
    Script & Description & Section\\\midrule
-   \path{setenv.sh} & Exports the path variable &  \ref{sec:running} \\
+   \path{setenv.sh} & Exports the path variable. &  \ref{sec:running} \\
    \path{Start/analysis.sh} & Starts the error analysis. & \ref{sec:analysis}, \ref{sec:running} \\
    \path{Start/out_to_in.sh} & Copies the output configurations of HS and Ising spins &\\
    & to the respective input files. & \ref{sec:running} \\
@@ -1633,8 +1629,7 @@ The equal time  Green function,
 	 \texttt{GR(x,y},\sigma{\texttt)}  = \langle c^{\phantom{\dagger}}_{x,\sigma} c^{\dagger}_{y,\sigma}  \rangle,
 \end{equation}
 the  phase factor \texttt{phase} [Eq.~(\ref{eqn:phase})], and time slice \texttt{Ntau}   are provided by the main program.  
-
-Here,   $x$ and $y$ label  both unit cell as well as the orbital within the unit cell. For the Hubbard model described here, $x$ corresponds to the unit cell.  The Green function  does not depend on the color index, and is diagonal in flavor.  For the $SU(2)$ symmetric implementation  there is only one flavor, $\sigma = 1$ and the Green function is  independent on the spin index.  This renders the calculation of the observables particularly easy.   
+Here, $x$ and $y$ label  both unit cell as well as the orbital within the unit cell. For the Hubbard model described here, $x$ corresponds to the unit cell.  The Green function  does not depend on the color index, and is diagonal in flavor.  For the $SU(2)$ symmetric implementation  there is only one flavor, $\sigma = 1$ and the Green function is  independent on the spin index.  This renders the calculation of the observables particularly easy.   
 
 An explicit calculation of the   potential energy  $ \langle U \sum_{\vec{i}}  \hat{n}_{\vec{i},\uparrow}   \hat{n}_{\vec{i},\downarrow}  \rangle $ reads 
 
@@ -1647,9 +1642,7 @@ Do i = 1,Ndim
 Enddo
 
 \end{lstlisting} 
-Here  $ \texttt{ZS} = \text{ sign} (C) $  [see Eq.~(\ref{Sign.eq})],  $ \texttt{ZP} =   \frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}   $ [see Eq.~(\ref{eqn:phase})] and  \texttt{Ham\_U}  corresponds to the Hubbard-$U$ term.
-
-
+Here  $ \texttt{ZS} = \text{ sign} (C) $  [see Eq.~(\ref{Sign.eq})],  $ \texttt{ZP} =   \frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}   $ [see Eq.~(\ref{eqn:phase})] and  \texttt{Ham\_U}  corresponds to the Hubbard-$U$ term.\\
 Equal time correlations  are also computed in this routine. As an explicit example, we  consider the equal time density-density correlation:
 \begin{equation}
 	 \langle n_{\vec{i},\alpha}   n_{\vec{j},\beta} \rangle   -  \langle n_{\vec{i},\alpha} \rangle  \langle    n_{\vec{j},\beta}  \rangle \;.
@@ -1922,7 +1915,7 @@ A sample run for this model can be found in \path{Examples/Hubbard_SU2_Ising_Squ
 
 %
 %-------------------------------------------------------------------------------------
-\subsubsection{The Ising term.}
+\subsubsection{The Ising term}
 %-------------------------------------------------------------------------------------
 %
 Since the Ising field lives on bonds we have to provide a data structure defining this quantity.  A bond has an anchor site as well as an orientation. The routine \path{Setup_Ising_action}   initializes  the arrays \path{L_bond} and  \path{L_bond_inv} that contain this information. 
@@ -1940,7 +1933,7 @@ Do I = 1, Latt%N
 enddo
 enddo
 \end{lstlisting}
-The two legs of the bond are given by  the anchor $\vec{I}$ and $\vec{I}+ \vec{a}_{n_{orientation}}$
+The two legs of the bond are given by  the anchor $\vec{I}$ and $\vec{I}+ \vec{a}_{n_\text{orientation}}$.
 %
 %-------------------------------------------------------------------------------------
 \subsubsection{The interaction term: \texttt{Call Ham\_V}}
@@ -2090,7 +2083,7 @@ To use the QMC code of the ALF project  to simulate this model, one will rewrite
 so to manifestly bring it into the form of the general Hamiltonian(\ref{eqn:general_ham}). 
 It is amusing to note that setting the hopping $t=0$,    charge fluctuations  will be suppressed by the  Boltzmann factor $e^{-\beta U /N \left(  \vec{\hat{c}}^{\dagger}_{\vec{i}}  \vec{\hat{c}}^{\phantom\dagger}_{\vec{i}} -  {\frac{N}{2} } \right)^2 } $ 
 since in this case  $ \left[   \hat{\mathcal{H}_J}, \hat{\mathcal{H}}_U \right]  = 0 $.
-This provides a route to use the auxiliary field QMC algorithm  to simulate -- free of the sign problem -- $SU(2N)$ Heisenberg models in the self-adjoint antisymmetric representation  \footnote{ This corresponds to a Young tableau with single column and $N/2$ rows.}  
+This provides a route to use the auxiliary field QMC algorithm  to simulate -- free of the sign problem -- $SU(2N)$ Heisenberg models in the self-adjoint antisymmetric representation \footnote{ This corresponds to a Young tableau with single column and $N/2$ rows.}.
 For odd values of $N$ recent progress  in our understanding of the  origins of the sign problem \cite{Wei16}  allows us to simulate  a set of non-trivial Hamiltonians \cite{Li15,Assaad16},  without encountering the sign problem.
 %
 %-------------------------------------------------------------------------------------
@@ -2133,7 +2126,7 @@ We store the field configurations of the random walker as checkpoints, such that
 		The MPI performance data was normalized to 28 cores and was obtained using a problem size of $N_{\text{dim}}=400$. This is a medium to small system size that is the least favorable in terms of MPI synchronization effects.
 		The OpenMP performance data was obtained using a problem size of $N_{\text{dim}}=1296$. Employing 2 and 4 OpenMP threads introduces some synchronization/management overhead such that the per-core performance is slightly reduced, compared to the single thread efficiency. Further increasing the amount of threads to 7 and 14 keeps the efficiency constant. The drop in performance of the 28 thread configuration is due to the architecture as the threads are now spread over both sockets of the node. To obtain the above results, it was crucial to pin the processes in a fashion that keeps the OpenMP threads as compact as possible.}
 \end{figure}
-
+\clearpage
 %
 %========================================================================================================================================
 \section{Conclusions and Future Directions}\label{sec:con}
@@ -2213,6 +2206,7 @@ homepage \url{alf.physik.uni-wuerzburg.de} and the file \texttt{license.CCBYSA}.
 % SECOND OPTION:
 % Use your bibtex library
 % \bibliographystyle{SciPost_bibstyle} % Include this style file here only if you are not using our template
+\clearpage
 \bibliography{alf-1.0-scipost}
 
 \nolinenumbers
