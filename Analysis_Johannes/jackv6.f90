@@ -34,7 +34,7 @@
          !Open (Unit=25, File="statdat1", status="unknown") 
          !read(25,*) NST, NS1, NS2, NSTEP
          !Close(25)
-         NST = 0; NS1 = 5; NS2 = 30; NSTEP = 5
+         NST = 0; NS1 = 1; NS2 = 1; NSTEP = 5
          !If ( L == 15 ) NST = 10
          !If ( L == 12 ) NST = 8 
          !If ( L == 9  ) NST = 3 
