@@ -70,7 +70,7 @@
 
       end Subroutine
 
-#if defined(STAB2) || defined(STAB1) 
+#if defined(STAB2) || defined(STAB1)
 !--------------------------------------------------------------------
 !> @author
 !> Florian Goth

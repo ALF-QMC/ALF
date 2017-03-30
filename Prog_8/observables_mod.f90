@@ -158,7 +158,7 @@
            Obs%Obs_Latt0 =   Obs%Obs_Latt0/dble(Obs%N*Ns*Ntau)
            Obs%Ave_sign  =   Obs%Ave_Sign /dble(Obs%N   )
 
-#ifdef MPI
+#if defined(MPI) && !defined(TEMPERING)
            I = Ns*Ntau*Norb*Norb
            Tmp = cmplx(0.d0, 0.d0, kind(0.D0))
            CALL MPI_REDUCE(Obs%Obs_Latt,Tmp,I,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
@@ -176,6 +176,10 @@
 
            If (Irank == 0 ) then
 #endif
+#if defined(TEMPERING) 
+              write(File_pr,'(A,I0,A,A,A)') "Temp_",Irank,"/",trim(Obs%File_Latt),trim(File_suff)
+#endif
+
               do nt = 1,Ntau
                  do no = 1,Norb
                     do no1 = 1,Norb
@@ -204,7 +208,7 @@
                  enddo
               enddo
               close(10)
-#ifdef MPI
+#if defined(MPI) && !defined(TEMPERING)
            Endif
 #endif
               
@@ -246,7 +250,7 @@
            File_pr = file_add(Obs%File_Vec,File_suff)
 
 
-#ifdef MPI
+#if defined(MPI) && !defined(TEMPERING) 
            Allocate (Tmp(No) )
            Tmp = cmplx(0.d0,0.d0,kind(0.d0))
            CALL MPI_REDUCE(Obs%Obs_vec,Tmp,No,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
@@ -260,10 +264,13 @@
 
            if (Irank == 0 ) then
 #endif
+#if defined(TEMPERING) 
+              write(File_pr,'(A,I0,A,A,A)') "Temp_",Irank,"/",trim(Obs%File_Vec),trim(File_suff)
+#endif
               Open (Unit=10,File=File_pr, status="unknown",  position="append")
               WRITE(10,*) size(Obs%Obs_vec,1)+1, (Obs%Obs_vec(I), I=1,size(Obs%Obs_vec,1)), Obs%Ave_sign
               close(10)
-#ifdef MPI
+#if defined(MPI) && !defined(TEMPERING) 
            endif
 #endif
            

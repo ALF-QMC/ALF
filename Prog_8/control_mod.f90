@@ -52,6 +52,7 @@
     Integer          , private, save :: NCG, NCG_tau
     Integer (Kind=Kind(0.d0)) , private, save :: NC_up, ACC_up
     Integer (Kind=kind(0.d0)),  private, save :: NC_Glob_up, ACC_Glob_up
+    Integer (Kind=kind(0.d0)),  private, save :: NC_Temp_up, ACC_Temp_up 
     real    (Kind=Kind(0.d0)),  private, save :: XMAXP_Glob, XMEANP_Glob
     Integer (Kind=Kind(0.d0)),  private, save :: NC_Phase_GLob
 
@@ -76,6 +77,9 @@
         ACC_Glob_up  = 0
         NC_Phase_GLob= 0
 
+        NC_Temp_up   = 0
+        ACC_Temp_up  = 0
+
         call system_clock(count_CPU_start,count_rate,count_max)
       end subroutine control_init
       
@@ -86,12 +90,20 @@
         if (toggle) ACC_up = ACC_up + 1
       end Subroutine Control_upgrade
 
+      Subroutine Control_upgrade_Temp(toggle) 
+        Implicit none
+        Logical :: toggle
+        NC_Temp_up  =  NC_Temp_up    +  1
+        if (toggle)  ACC_Temp_up  = ACC_Temp_up + 1
+      end Subroutine Control_upgrade_Temp
+
       Subroutine Control_upgrade_Glob(toggle) 
         Implicit none
         Logical :: toggle
         NC_Glob_up = NC_Glob_up + 1
         if (toggle) ACC_Glob_up = ACC_Glob_up + 1
       end Subroutine Control_upgrade_Glob
+
 
       Subroutine Control_PrecisionG(A,B,Ndim)
         Implicit none
@@ -149,7 +161,8 @@
 #ifdef MPI
         include 'mpif.h'
 #endif
-        Real (Kind=Kind(0.d0)) :: Time, Acc, Acc_Glob
+        Character (len=64) :: file1 
+        Real (Kind=Kind(0.d0)) :: Time, Acc, Acc_Glob, Acc_Temp
 #ifdef MPI
         REAL (Kind=Kind(0.d0))  :: X
         Integer        :: Ierr, Isize, Irank
@@ -157,20 +170,20 @@
         CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
         CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
 #endif
-        
+       
         ACC = 0.d0
         IF (NC_up > 0 )  ACC = dble(ACC_up)/dble(NC_up)
         ACC_Glob = 0.d0
         IF (NC_Glob_up    > 0 )  ACC_Glob    = dble(ACC_Glob_up)/dble(NC_Glob_up)
+        ACC_TEMP = 0.d0
+        IF (NC_Temp_up    > 0 )  ACC_Temp    = dble(ACC_Temp_up)/dble(NC_Temp_up)
         IF (NC_Phase_GLob > 0 ) XMEANP_Glob  = XMEANP_Glob/dble(NC_Phase_GLob)
 
         call system_clock(count_CPU_end)
         time = (count_CPU_end-count_CPU_start)/dble(count_rate)
         if (count_CPU_end .lt. count_CPU_start) time = (count_max+count_CPU_end-count_CPU_start)/dble(count_rate)      
 
-#ifdef MPI
-
-
+#if defined(MPI)  && !defined(TEMPERING) 
         X = 0.d0
         CALL MPI_REDUCE(ACC,X,1,MPI_REAL8,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
         ACC = X/dble(Isize)
@@ -206,11 +219,19 @@
         CALL MPI_REDUCE(XMAXP_GLOB,X,1,MPI_REAL8,MPI_MAX, 0,MPI_COMM_WORLD,IERR)
         XMAXP_GLOB = X
         
+#endif
 
+#if defined(TEMPERING) 
+        write(File1,'(A,I0,A)') "Temp_",Irank,"/info"
+#else
+        File1 = "info"
+#endif
+
+#if defined(MPI)  && !defined(TEMPERING) 
         If (Irank == 0 ) then
 #endif
 
-           Open (Unit=50,file="info", status="unknown", position="append")
+           Open (Unit=50,file=file1, status="unknown", position="append")
            If (NCG > 0 ) then 
               XMEANG = XMEANG/dble(NCG)
               Write(50,*) ' Precision Green  Mean, Max : ', XMEANG, XMAXG
@@ -221,14 +242,19 @@
               Write(50,*) ' Precision tau    Mean, Max : ', XMEAN_tau, XMAX_tau
            endif
            Write(50,*) ' Acceptance                 : ', ACC
+#if defined(TEMPERING) 
+           Write(50,*) ' Acceptance Tempering       : ', ACC_Temp
+#endif
            !If (ACC_Glob > 1.D-200 ) then
               Write(50,*) ' Acceptance_Glob            : ', ACC_Glob
               Write(50,*) ' Mean Phase diff Glob       : ', XMEANP_Glob 
               Write(50,*) ' Max  Phase diff Glob       : ', XMAXP_Glob
            !endif
+              
+
            Write(50,*) ' CPU Time                   : ', Time
            Close(50)
-#ifdef MPI
+#if defined(MPI)  && !defined(TEMPERING) 
         endif
 #endif
       end Subroutine Control_Print

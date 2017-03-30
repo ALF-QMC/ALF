@@ -1,4 +1,3 @@
-FC= $(mpif90)
 FC= $(f90)
 FLAGS= $(FL)
 LF = $(Lflags)
@@ -7,30 +6,37 @@ LIBS= $(Libs)/Modules/modules_90.a \
       $(Libs)/libqrref/libqrref.a
 
 Examples:
+	./Git_config.sh; \
 	cp $(Libs)/Modules/*.mod . ;\
 	(make -f Compile_Examples  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" F90USEFULFLAGS="$(F90USEFULFLAGS)")
 
 Hub_Ising:
+	./Git_config.sh; \
 	cp $(Libs)/Modules/*.mod . ;\
 	(make -f Compile_Hub_Ising  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" F90USEFULFLAGS="$(F90USEFULFLAGS)")
 
 Hub:
+	./Git_config.sh; \
 	cp $(Libs)/Modules/*.mod . ;\
 	(make -f Compile_Hub  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" F90USEFULFLAGS="$(F90USEFULFLAGS)")
 
 Hub_Can:
+	./Git_config.sh; \
 	cp $(Libs)/Modules/*.mod . ;\
 	(make -f Compile_Hub_Can  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" F90USEFULFLAGS="$(F90USEFULFLAGS)")
 
 SPT:
+	./Git_config.sh; \
 	cp $(Libs)/Modules/*.mod . ;\
 	(make -f Compile_SPT  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" LF="$(LF)" F90USEFULFLAGS="$(F90USEFULFLAGS)")
 
 Ising:
+	./Git_config.sh; \
 	cp $(Libs)/Modules/*.mod . ;\
 	(make -f Compile_Ising  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" LF="$(LF)" F90USEFULFLAGS="$(F90USEFULFLAGS)")
 
 Kondo_Honey:
+	./Git_config.sh; \
 	cp $(Libs)/Modules/*.mod . ;\
 	(make -f Compile_Kondo_Honey  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" LF="$(LF)" F90USEFULFLAGS="$(F90USEFULFLAGS)")
 

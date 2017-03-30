@@ -1,8 +1,11 @@
-# General finite temperature auxiliary field code - ALF release 0.5#
-
 ## General information ##
-This version of the **A**lgorithms for **L**attice **F**ermions package provides a general code for the finite temperature auxiliary field Quantum Monte Carlo algorithm.       The code  is engineered to  be able simulate any model that can be written in terms of  sums of single body operators, of squares of single body operators and single body operators coupled to an Ising field with  given dynamics. We  provide predefined types that allow  the user to specify the model, the  Bravais lattice  as well as equal time and time displaced observables.     The code supports an MPI implementation.   Examples such as the Hubbard model on the Honeycomb lattice  as well as the Hubbard model  on the square lattice coupled to a transverse Ising field are  provided and discussed in the documentation.  
+This version of the **A**lgorithms for **L**attice **F**ermions package provides a general code for the finite temperature auxiliary field Quantum Monte Carlo algorithm.       The code  is engineered to  be able simulate any model that can be written in terms of  sums of single body operators, of squares of single body operators and single body operators coupled to an Ising field with  given dynamics. We  provide predefined types that allow  the user to specify the model, the  Bravais lattice  as well as equal time and time displaced observables.     The code supports an MPI implementation.   Examples such as the Hubbard model on the Honeycomb lattice  as well as the Hubbard model  on the square lattice coupled to a transverse Ising field are  provided and discussed in the [documentation](https://git.physik.uni-wuerzburg.de/fassaad/General_QMCT_code/raw/documentation_new/Documentation/doc.pdf).  
 
+The Hamiltonians we can consider read:
+![The Hamiltonian0](https://git.physik.uni-wuerzburg.de/fassaad/General_QMCT_code/raw/master/Images/Hamiltonian0.png)
+where
+![The Hamiltonian1](https://git.physik.uni-wuerzburg.de/fassaad/General_QMCT_code/raw/master/Images/Hamiltonian1.png)
+Here Z denotes an Ising spin variable with predefined dynamics. If your model can be written in this form then it will be amenable to the ALF. 
 ## PREREQUISITES ##
 
 Libraries: Lapack and Blas
