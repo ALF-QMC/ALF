@@ -214,7 +214,7 @@ where $N_{\text{unit cell}}$ is the number of unit cells of the underlying Brava
 \item The number of interaction terms  is labelled by $M_V$   and $M_I$.   $M_T> 1 $ would allow for a checkerboard decomposition.
 \item $\hat{c}^{\dagger}_{y \sigma s} $ is a second quantized operator that creates an electron in a Wannier state centered around lattice site $y$, with color $\sigma$, and  flavor index $s$.  The operators satisfy the anti-commutation relations: 
 \begin{equation}
-	\left\{ \hat{c}^{\dagger}_{y \sigma s},    \hat{c}^{\phantom\dagger}_{y' \sigma' s'}  \right\}   =   \delta_{x,x'}  \delta_{s,s'} \delta_{\sigma,\sigma'},   
+	\left\{ \hat{c}^{\dagger}_{y \sigma s},    \hat{c}^{\phantom\dagger}_{y' \sigma' s'}  \right\}   =   \delta_{y,y'}  \delta_{s,s'} \delta_{\sigma,\sigma'},   
 	\; \text{ and } \left\{ \hat{c}^{\phantom\dagger}_{y \sigma s},    \hat{c}^{\phantom\dagger}_{y' \sigma' s'}  \right\}   =0.
 \end{equation}
 
@@ -374,10 +374,10 @@ In the auxiliary field QMC approach, the single-particle Green function plays a 
 \begin{equation}\label{eqn:obs}
 \langle \hat{O}  \rangle  = \frac{ \text{Tr}   \left[ e^{- \beta \hat{H}}  \hat{O}   \right] }{ \text{Tr}   \left[ e^{- \beta \hat{H}}  \right] } =   \sum_{C}   P(C) 
    \langle \langle \hat{O}  \rangle \rangle_{(C)} , \text{   with   } 
-  P(C)   = \frac{ e^{-S(C)}}{\sum_C e^{-S(C)}}\;,
+  P(C)   = \frac{ e^{-S(C)}}{\sum_C e^{-S(C)}}\;.
 \end{equation}
-and $\langle \langle \hat{O}  \rangle \rangle_{(C)} $ denotes the observed value of $\hat{O}$ for a given configuration $C$.
-For a given configuration $C$  one can use Wick's theorem to compute $O (C) $   from the knowledge of the single-particle Green function: 
+$\langle \langle \hat{O}  \rangle \rangle_{(C)} $ corresponds to the expectation value of  $\hat{O}$ for a given configuration $C$.
+For a given configuration $C$  one can use Wick's theorem to compute $ \langle \langle \hat{O}  \rangle \rangle_{(C)}  $   from the knowledge of the single-particle Green function: 
 \begin{equation}
        G( x,\sigma,s, \tau |    x',\sigma',s', \tau')   =       \langle \langle \mathcal{T} \hat{c}^{\phantom\dagger}_{x \sigma s} (\tau)  \hat{c}^{\dagger}_{x' \sigma' s'} (\tau') \rangle \rangle_{C}
 \end{equation}
@@ -470,7 +470,7 @@ $\Delta $ is intensive positive quantity and $N \beta$ denotes the  Euclidean vo
 	T_{CPU}  \gg e^{2 \Delta N \beta}.
 \end{equation}   
 Two comments are in order. First, the presence of a sign problem invariably leads to an exponential increase of CPU time as a function of the Euclidean volume. And second,  $\Delta$ is formulation dependent.  
-For instance, at finite doping, the SU(2) invariant formulation of the Hubbard model presented in Sec.~\ref{sec:walk1}   has a much more severe sign problem than the formulation presented in Sec.~\ref{sec:walk1.1} where the HS field couples to the z-component of the magnetization. 
+For instance, at finite doping, the SU(2) invariant formulation of the Hubbard model presented in Sec.~\ref{sec:walk1}   has a much more severe sign problem than the formulation presented in Sec.~\ref{sec:walk1.1} where the HS field couples to the z-component of the magnetization.  Typically one can work with average signs  down to $ \langle \text{sign} \rangle_{\overline{P}} \simeq 0.1 $.
 
 %
 %------------------------------------------------------------
@@ -487,7 +487,7 @@ so as to guarantee the stationarity condition.  Here, $ W(C) = \left| \Re \left[
    \begin{tabular}{@{} l l l @{}}\toprule
         Variable  &  Type                  &  Description   \\
          \\\midrule
-       \texttt{Propose\_S0}   &    Logical       &  If true, proposes local moves according to the probability $e^{-S_0}$. 
+       \texttt{Propose\_S0}   &    Logical       &  If true, proposes local moves according to the probability $e^{-S_{0,I}}$. 
          \\\bottomrule
    \end{tabular}
    \caption{Variable required to control the updating scheme. \label{table:Updating_schemes}}
@@ -504,19 +504,19 @@ The default updating scheme is a  sequential single  spin flip algorithm.   Cons
  It is worth noting that this type of sequential spin flip updating does not satisfy detailed balance but the more fundamental stationarity condition \cite{Sokal89}. 
 % 
 %------------------------------------------------------------
-\subsubsection{Sampling of $e^{-S_0}$}
+\subsubsection{Sampling of $e^{-S_{0,I}}$}
 %------------------------------------------------------------
 % 
 Consider an Ising spin at space-time $i,\tau$ and the configuration $C$. Flipping this spin will generate the configuration $C'$ and we will propose the move according to 
   \begin{equation}
- T_0(C \rightarrow C')  =  \frac{e^{-S_0(C')}}{ e^{-S_0(C')} + e^{-S_0(C)} }   = 1 - \frac{1}{1 +  e^{-S_0(C')} /e^{-S_0(C)}}.
+ T_0(C \rightarrow C')  =  \frac{e^{-S_{0,I}(C')}}{ e^{-S_{0,I}(C')} + e^{-S_{0,I}(C)} }   = 1 - \frac{1}{1 +  e^{-S_{0,I}(C')} /e^{-S_{0,I}(C)}}.
   \end{equation}
- Note that the function $\texttt{S0}$ in the  \texttt{Hamitonian\_example.f90}  module  computes precisely the ratio ${e^{-S_0(C')} /e^{-S_0(C)}}$ so that  $T_0(C \rightarrow C') $ does not require any further programming. 
+ Note that the function $\texttt{S0}$ in the  \texttt{Hamitonian\_example.f90}  module  computes precisely the ratio ${e^{-S_{0,I}(C')} /e^{-S_{0,I}(C)}}$ so that  $T_0(C \rightarrow C') $ does not require any further programming. 
  Thereby one will accept the proposed move with the probability: 
  \begin{equation}
- P(C \rightarrow C') =  \text{min}  \left( 1,  \frac{e^{-S_0(C)}   W(C')}{ e^{-S_0(C')} W(C)} \right).
+ P(C \rightarrow C') =  \text{min}  \left( 1,  \frac{e^{-S_{0,I}(C)}   W(C')}{ e^{-S_{0,I}(C')} W(C)} \right).
  \end{equation}
- With Eq.~\ref{eqn:partition_2}  one sees that the bare action $S_0(C)$  determining the  dynamics of the Ising spin  in the absence of coupling to the fermions  does not enter the Metropolis acceptance-rejection step. This sampling scheme is used if the logical variable \texttt{Propose\_S0} is set to \texttt{true}.
+ With Eq.~\ref{eqn:partition_2}  one sees that the bare action $S_{0,I}(C)$  determining the  dynamics of the Ising spin  in the absence of coupling to the fermions  does not enter the Metropolis acceptance-rejection step. This sampling scheme is used if the logical variable \texttt{Propose\_S0} is set to \texttt{true}.
 % 
 %-----------------------------------------------------------------------------------
 \subsection{Stabilization - a peculiarity of the BSS algorithm}\label{sec:stable}
@@ -627,10 +627,11 @@ This loop fills the storage, needed for the first actual Monte Carlo sweep:\\
 \hspace*{1em} \textbf{Call} wrapul\\
 \textbf{Enddo}\\
  
-Loop over bins. The bin defines the unit of Monte Carlo time:\\
+Loop over bins:  \\
 \textbf{Do} \texttt{nbc} from  \texttt{1} to \texttt{nbin} \\
 \hspace*{1em} Loop over sweeps. Each sweep updates twice (sweeping upward and downward\\
-\hspace*{1em} in time the whole space-time lattice of auxiliary fields:\\
+\hspace*{1em} in time the whole space-time lattice of auxiliary fields.\\
+\hspace*{1em} The sweep defines the unit of Monte Carlo time:\\
 \hspace*{1em} \textbf{Do} \texttt{nsw} from  \texttt{1} to \texttt{nsweep}  \\
 \hspace*{2em} Upward sweep:\\
 \hspace*{2em} \textbf{Do} \texttt{ntau} from \texttt{1} to \texttt{ltrot}\\      
@@ -785,7 +786,7 @@ This type \path{Operator} bundles several components that are needed to define a
 %
 In this section we show how to specify the  Hamiltonian (\ref{eqn:general_ham}) in the code. 
 More precisely, we have to set the matrix representation of the imaginary-time propagators --
-$ e^{-\Delta \tau {\bm T}^{(ks)}}$, $e^{  \sqrt{ \Delta \tau  U_k} \eta_{k\tau} {\bm V}^{(ks)} }$, and $e^{  -\Delta \tau s_{k\tau}  {\bm I}^{(ks)}}$ -- that appear in the 
+$ e^{-\Delta \tau {\bm T}^{(ks)}}$, $e^{  \sqrt{ -\Delta \tau  U_k} \eta_{k\tau} {\bm V}^{(ks)} }$, and $e^{  -\Delta \tau s_{k\tau}  {\bm I}^{(ks)}}$ -- that appear in the 
 partition function (\ref{eqn:partition_2}).  For each pair of indices $(k,s)$, these terms have the general form
 \begin{equation}\label{eqn:exponent_mat}
 \text{Matrix Exponential}=
@@ -941,7 +942,7 @@ Our definition  of the model includes observables [Eq.~(\ref{eqn:obs_rw})]. We h
 such as the energy, and  \texttt{Obser\_Latt}   for correlation functions that have the lattice symmetry. In the latter case, translation symmetry can be used to provide improved estimators and to reduce the size of the output.   
 We also obtain improved estimators by taking measurements in the imaginary-time interval \texttt{[LOBS\_ST,LOBS\_EN]}  (see the parameter file in Sec.~\ref{sec:input}) thereby exploiting the invariance under translation in imaginary-time.
 Note that the translation symmetries  in space and in time are \textit{broken} for a given  configuration $C$ but restored by the Monte Carlo sampling. 
-In general, the user defines size and number of bins in the parameter file, each bin having a given amount of sweeps. Within a sweep we run sequentially through the HS and Ising fields, from time slice $1$ to time slice $L_{\text{Trotter}}$ and back.  The results of each bin are written to a file  and analyzed at the end of the run.     
+In general, the user defines the size and  the number of bins in the parameter file, each bin having a given amount of sweeps. Within a sweep we run sequentially through the HS and Ising fields, from time slice $1$ to time slice $L_{\text{Trotter}}$ and back.  The results of each bin are written to a file  and analyzed at the end of the run.     
 
 To accomplish the reweighting of observables (see Sec.~\ref{sec:reweight}), for each configuration the measured value of an observable is multiplied by the factors \texttt{ZS} and \texttt{ZP}:
 \begin{eqnarray}
@@ -1256,7 +1257,7 @@ Typical values for the numerical precision can be found in the examples of Sec.~
    \caption{ Overview of analysis programs that are called within the script \texttt{analysis.sh}. \label{table:analysis_programs}}
 \end{table}
 %
-Here we briefly   discuss the analysis programs which read in bins and carry out the error analysis. (See Sec.~\ref{sec:sampling}  for a more detailed discussion.)
+Here we briefly   discuss the analysis programs which read in bin/s and carry out the error analysis. (See Sec.~\ref{sec:sampling}  for a more detailed discussion.)
 Error analysis   is based  on the central limit theorem,  which requires bins to be statistically independent, and also the existence of a well-defined variance  for the observable under consideration. 
 The former will be the case if bins are  longer than the autocorrelation time.  The latter has to be checked by the user.  In the parameter file listed in Sec.~\ref{sec:input}, the user  can specify how many initial bins should be omitted (variable \texttt{n\_skip}). 
 This  number should be comparable to the autocorrelation time.     
@@ -1516,7 +1517,7 @@ DO I = 1, Latt%N
    Ix = Latt%nnlist(I,1,0)
    Iy = Latt%nnlist(I,0,1)
    Op_T(1,1)%O(I  ,Ix) = cmplx(-Ham_T,   0.d0,kind(0.D0))
-   Op_T(1,1)%O(Ix,I  ) = cmplx(-Ham_T,   0.d0,kind(0.D0))
+   Op_T(1,1)%O(Ix, I ) = cmplx(-Ham_T,   0.d0,kind(0.D0))
    Op_T(1,1)%O(I  ,Iy) = cmplx(-Ham_T,   0.d0,kind(0.D0))
    Op_T(1,1)%O(Iy, I ) = cmplx(-Ham_T,   0.d0,kind(0.D0))
    Op_T(1,1)%O(I  ,I ) = cmplx(-Ham_chem,0.d0,kind(0.D0))
@@ -1568,7 +1569,7 @@ so as to completely define the interaction term.
 At this point, all the information   for the simulation to  start has been provided.  The code will sequentially go through  the operator list  \texttt{Op\_V}  and update the  fields.   Between  time slices   \texttt{LOBS\_ST}  and  \texttt{LOBS\_EN}   the main program will call the routine  \texttt{Obser(GR,Phase,Ntau)}   which is provided by the user and handles equal time correlation functions. 
 If \texttt{Ltau=1} the main program will call the routine \texttt{ObserT(NT,  GT0,G0T,G00,GTT, PHASE) }   which is again  provided by the user and handles  imaginary-time displaced correlation functions. 
 
-The user will have to  implement the  observables  they  want to compute. Here  we  will describe how to  proceed. 
+The user will have to  implement the  observables  he/she  wants to compute. Here  we  will describe how to  proceed. 
 %
 %------------------------------------------------------------------------------------
 \paragraph{Allocating space for the observables: \texttt{Call Alloc\_obs(Ltau) }} \label{Alloc_obs_sec}
@@ -1635,7 +1636,7 @@ An explicit calculation of the   potential energy  $ \langle U \sum_{\vec{i}}  \
 
 \begin{lstlisting} 
 
-Obs_scal(2)%N     = Obs_scal(2)%N + 1
+Obs_scal(2)%N        = Obs_scal(2)%N + 1
 Obs_scal(2)%Ave_sign = Obs_scal(2)%Ave_sign + Real(ZS,kind(0.d0))
 Do i = 1,Ndim
    Obs_scal(2)%Obs_vec(1)=Obs_scal(2)%Obs_vec(1)+(1-GR(i,i,1))**2*Ham_U*ZS*ZP
