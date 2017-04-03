@@ -27,7 +27,7 @@
       Integer,              private :: L1, L2, FlagSym
       real (Kind=Kind(0.d0)),        private :: Ham_T, Ham_Vint,  Ham_Lam
       real (Kind=Kind(0.d0)),        private :: Dtau, Beta
-      Character (len=64),   private :: Model, Lattice_type
+      Character (len=64),   private :: Model, Lattice_type, File1
       Complex (Kind=Kind(0.d0)),     private :: Gamma_M(4,4,5), Sigma_M(2,2,0:3)
       Complex (Kind=Kind(0.d0)),     private :: Gamma_13(4,4), Gamma_23(4,4), Gamma_45(4,4)
 
@@ -109,19 +109,25 @@
 
           Propose_S0 = .false.
           Global_moves =.true.
-          N_Global = 10
+          N_Global = 1
 
           N_FL  = 1
           N_SUN = 1
           FlagSym = 0
           
-#ifdef MPI
+#if defined(MPI) && !defined(TEMPERING)
           If (Irank == 0 ) then
 #endif
+#if defined(TEMPERING)
+             write(File1,'(A,I0,A)') "Temp_",Irank,"/parameters"
+             OPEN(UNIT=5,FILE=File1,STATUS='old',ACTION='read',IOSTAT=ierr)
+!              Global_moves =.false.
+#else
              OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
+#endif
              READ(5,NML=VAR_SPT)
              CLOSE(5)
-#ifdef MPI
+#if defined(MPI) && !defined(TEMPERING)
           endif
 
           CALL MPI_BCAST(ham_T    ,1,MPI_REAL8,   0,MPI_COMM_WORLD,ierr)
@@ -134,10 +140,16 @@
 
           Call Ham_hop
           Ltrot = nint(beta/dtau)
-#ifdef MPI
-          If (Irank == 0) then
+          
+#if defined(MPI) && !defined(TEMPERING)
+          If (Irank == 0 ) then
 #endif
+#if defined(TEMPERING)
+             write(File1,'(A,I0,A)') "Temp_",Irank,"/info"
+             Open (Unit = 50,file=File1,status="unknown",position="append")
+#else
              Open (Unit = 50,file="info",status="unknown",position="append")
+#endif
              Write(50,*) '====================================='
              Write(50,*) 'Model is      : ', Model 
              Write(50,*) 'Lattice is    : ', Lattice_type
@@ -148,7 +160,7 @@
              Write(50,*) 'Lambda        : ', Ham_Lam
              Write(50,*) 'FlagSym       : ', FlagSym
              close(50)
-#ifdef MPI
+#if defined(MPI) && !defined(TEMPERING)
           endif
 #endif
           call Ham_V

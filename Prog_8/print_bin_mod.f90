@@ -22,6 +22,7 @@
            Integer,                            Intent(In)   :: Nobs
           
            ! Local
+           Character (len=64) :: File_tmp
            Integer :: Norb, I, no,no1
            Complex (Kind=Kind(0.d0)), allocatable :: Tmp(:,:,:), Tmp1(:)
            Real    (Kind=Kind(0.d0))              :: x_p(2) 
@@ -44,7 +45,7 @@
            Dat_eq = Dat_eq/dble(Nobs)
            Dat_eq0 = Dat_eq0/dble(Nobs*Latt%N)
            
-#ifdef MPI
+#if defined(MPI) && !defined(TEMPERING)
            I = Latt%N*Norb*Norb
            Tmp = cmplx(0.d0, 0.d0, kind(0.D0))
            CALL MPI_REDUCE(Dat_eq,Tmp,I,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
@@ -61,12 +62,17 @@
 
            If (Irank == 0 ) then
 #endif
+#if defined(TEMPERING)
+           write(File_tmp,'(A,I0,A,A)') "Temp_",Irank,"/",trim(ADJUSTL(File_pr))
+#else
+           File_tmp=File_pr
+#endif
               do no = 1,Norb
                  do no1 = 1,Norb
                     Call  Fourier_R_to_K(Dat_eq(:,no,no1), Tmp(:,no,no1), Latt)
                  enddo
               enddo
-              Open (Unit=10,File=File_pr, status="unknown",  position="append")
+              Open (Unit=10,File=File_tmp, status="unknown",  position="append")
               Write(10,*) dble(Phase_bin),Norb,Latt%N
               do no = 1,Norb
                  Write(10,*) Dat_eq0(no)
@@ -81,7 +87,7 @@
                  enddo
               enddo
               close(10)
-#ifdef MPI
+#if defined(MPI) && !defined(TEMPERING)
            Endif
 #endif
               
@@ -108,6 +114,7 @@
            Integer,                            Intent(In)    :: Nobs
            
            ! Local
+           Character (len=64) :: File_tmp
            Integer :: Norb, I, no,no1
            Real    (Kind=Kind(0.d0)), allocatable :: Tmp(:,:,:), Tmp1(:)
            Real    (Kind=Kind(0.d0))              :: x_p(2) 
@@ -129,7 +136,7 @@
            Allocate (Tmp(Latt%N,Norb,Norb), Tmp1(Norb) )
            Dat_eq  = Dat_eq/dble(Nobs)
            Dat_eq0 = Dat_eq0/(dble(Nobs)*dble(Latt%N))
-#ifdef MPI
+#if defined(MPI) && !defined(TEMPERING)
            I = Latt%N*Norb*Norb
            Tmp = 0.d0
            CALL MPI_REDUCE(Dat_eq,Tmp,I,MPI_REAL8,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
@@ -138,13 +145,18 @@
            Z = cmplx(0.d0,0.d0,kind(0.d0))
            CALL MPI_REDUCE(Phase_bin,Z,I,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
            Phase_bin= Z/DBLE(ISIZE)
-           If (Irank == 0 ) then
 
            I = Norb 
            Tmp1 = cmplx(0.d0,0.d0,kind(0.d0))
            CALL MPI_REDUCE(Dat_eq0,Tmp1,I,MPI_REAL8,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
            Dat_eq0 = Tmp1/DBLE(ISIZE)
 
+           If (Irank == 0 ) then
+#endif
+#if defined(TEMPERING)
+           write(File_tmp,'(A,I0,A,A)') "Temp_",Irank,"/",trim(ADJUSTL(File_pr))
+#else
+           File_tmp=File_pr
 #endif
            
               do no = 1,Norb
@@ -152,7 +164,7 @@
                     Call  Fourier_R_to_K(Dat_eq(:,no,no1), Tmp(:,no,no1), Latt)
                  enddo
               enddo
-              Open (Unit=10,File=File_pr, status="unknown",  position="append")
+              Open (Unit=10,File=File_tmp, status="unknown",  position="append")
               Write(10,*) dble(Phase_bin),Norb,Latt%N
               do no = 1,Norb
                  Write(10,*) Dat_eq0(no)
@@ -167,7 +179,7 @@
                  enddo
               enddo
               close(10)
-#ifdef MPI
+#if defined(MPI) && !defined(TEMPERING)
            endif
 #endif
            deallocate (Tmp )
@@ -186,6 +198,7 @@
            Integer,                          Intent(In)    :: Nobs
            
            ! Local
+           Character (len=64) :: File_tmp
            Integer :: Norb,I
            Complex  (Kind=Kind(0.d0)), allocatable :: Tmp(:)
 #ifdef MPI
@@ -198,16 +211,21 @@
            Norb = size(Obs,1)
            Allocate ( Tmp(Norb) )
            Obs = Obs/dble(Nobs)
-#ifdef MPI
+#if defined(MPI) && !defined(TEMPERING)
            Tmp = 0.d0
            CALL MPI_REDUCE(Obs,Tmp,Norb,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
            Obs = Tmp/DBLE(ISIZE)
            if (Irank == 0 ) then
 #endif
-              Open (Unit=10,File=File_pr, status="unknown",  position="append")
+#if defined(TEMPERING)
+           write(File_tmp,'(A,I0,A,A)') "Temp_",Irank,"/",trim(ADJUSTL(File_pr))
+#else
+           File_tmp=File_pr
+#endif
+              Open (Unit=10,File=File_tmp, status="unknown",  position="append")
               WRITE(10,*) (Obs(I), I=1,size(Obs,1))
               close(10)
-#ifdef MPI
+#if defined(MPI) && !defined(TEMPERING)
            endif
 #endif
            deallocate (Tmp )
@@ -236,13 +254,13 @@
            Real (Kind=Kind(0.d0)),                        Intent(In)   :: dtau
           
            ! Local
+           Character (len=64) :: File_tmp
            Integer :: Norb, I, no,no1, LT, nt,ios
            Complex (Kind=Kind(0.d0)), allocatable :: Tmp(:,:,:,:), Tmp0(:)
            Complex (Kind=Kind(0.d0)) :: Phase_mean 
            Real    (Kind=Kind(0.d0))              :: x_p(2) 
 #ifdef ZLIB
            TYPE(IOPORT) :: fd
-           Character (len=64) :: File_tmp
            CHARACTER(LEN=255), TARGET :: LINE
 #endif  
 #ifdef MPI
@@ -267,7 +285,7 @@
            Dat_tau  = Dat_tau/dble(Nobs)
            If (Present(Dat0_tau) ) Dat0_tau = Dat0_tau/dble(Nobs*Latt%N*LT)
            
-#ifdef MPI
+#if defined(MPI) && !defined(TEMPERING)
            I = Latt%N*Norb*Norb*LT
            Tmp = cmplx(0.d0, 0.d0, kind(0.D0))
            CALL MPI_REDUCE(Dat_tau,Tmp,I,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
@@ -286,6 +304,11 @@
            Phase_mean= Z/DBLE(ISIZE)
            If (Irank == 0 ) then
 #endif
+#if defined(TEMPERING)
+           write(File_tmp,'(A,I0,A,A)') "Temp_",Irank,"/",trim(ADJUSTL(File_pr))
+#else
+           File_tmp=File_pr
+#endif
               If (Present(Dat0_tau) ) Tmp0 = Dat0_tau
 !$OMP parallel do default(shared) private(nt,no,no1)
               do nt = 1,LT
@@ -302,7 +325,7 @@
               Write(Line,*) dble(Phase_mean),Norb,Latt%N, LT, dtau
               CALL FGZ_WRITE(fd,TRIM(LINE),'yes',IOS)
 #else
-              Open (Unit=10,File=File_pr, status="unknown",  position="append")
+              Open (Unit=10,File=File_tmp, status="unknown",  position="append")
               Write(10,*) dble(Phase_mean),Norb,Latt%N, LT, dtau
 #endif
               Do no = 1,Norb
@@ -339,7 +362,7 @@
 #else
               close(10)
 #endif
-#ifdef MPI
+#if defined(MPI) && !defined(TEMPERING)
            Endif
 #endif
               
