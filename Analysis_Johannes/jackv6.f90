@@ -8,7 +8,7 @@
         Complex (KIND=8), DIMENSION(:),   ALLOCATABLE :: EN, SIGN
         Complex (KIND=8) :: XM, XERR,x,x1,y,y1
 
-        Complex (Kind=8) Z1,Z2,Z3,Z4,Z5,Z6,Z7,Z8,Z9,Z10, Z11
+        Complex (Kind=8) Z1,Z2,Z3,Z4,Z5,Z6,Z7,Z8,Z9,Z10, Z11,z,zm
         Integer :: NST, NS, NS1, NS2, NSTEP, NC, NP, NOBS, Nbins, NP_EFF, ISEED, I, IOBS
         Integer :: N, NBIN
 
@@ -17,7 +17,7 @@
         !Open (Unit=12, File="ener_hist", status="unknown") 
         nbins = 0
         do
-            read(10,*,End=10)  Z1, Z2, Z3, Z4, Z5, Z5, Z5, Z5, Z5, Z5!, Z11
+            read(10,*,End=10)  Z1, Z2, Z3, Z4, Z5, Z5, Z5, Z5, Z5, Z5, Z11
             nbins = nbins + 1
          enddo
 10       continue
@@ -26,7 +26,7 @@
          !Close(12)
          
          NP = NBINS
-         NOBS = 10
+         NOBS = 11
          
          ALLOCATE(OBS(NP,NOBS))
          !	Error on energy
@@ -34,7 +34,7 @@
          !Open (Unit=25, File="statdat1", status="unknown") 
          !read(25,*) NST, NS1, NS2, NSTEP
          !Close(25)
-         NST = 0; NS1 = 1; NS2 = 1; NSTEP = 5
+         NST = 1; NS1 = 2; NS2 = 20; NSTEP = 4
          !If ( L == 15 ) NST = 10
          !If ( L == 12 ) NST = 8 
          !If ( L == 9  ) NST = 3 
@@ -44,11 +44,12 @@
          Open ( Unit=55, File="U1_timeline", status="unknown" )
          x1=0.d0
          y1=0.d0
+         zm=0.d0
          NC = 0
          DO N = 1,NP
             IF (N.GE.NST) THEN
                NC = NC + 1
-               READ(20,*) Z1,Z2,Z3, Z4, Z5, Z6, Z7, Z8, Z9, Z10!, Z11
+               READ(20,*) Z1,Z2,Z3, Z4, Z5, Z6, Z7, Z8, Z9, Z10, Z11
                OBS(NC,1) = Z1 
                OBS(NC,2) = Z2 
                OBS(NC,3) = Z3
@@ -59,14 +60,16 @@
                OBS(NC,8) = Z8
                OBS(NC,9) = Z9
                OBS(NC,10) = Z10
-!                OBS(NC,11) = Z11
+               OBS(NC,11) = Z11
                X=Obs(nc,8)
                X1=x1+X
                y=Obs(nc,9)
                y1=y1+y
-               write(55,*) dble(X), aimag(X), dble(x1/(nc)), aimag(x1/(nc)), dble(y), aimag(y), dble(y1/(nc)), aimag(y1/(nc))
+               z=Obs(nc,10)
+               zm=zm+z
+               write(55,*) aimag(X), aimag(x1/(nc)), dble(y), dble(y1/(nc)), dble(z), dble(zm/(nc))
             ELSE
-               READ(20,*) Z1,Z2,Z3, Z4, Z5, Z6, Z5, Z6, Z5, Z5!, Z11
+               READ(20,*) Z1,Z2,Z3, Z4, Z5, Z6, Z5, Z6, Z5, Z5, Z11
             ENDIF
          ENDDO
          CLOSE(20)
@@ -91,7 +94,7 @@
             IF (IOBS.EQ.7) WRITE(21,*) ' dF/dl         '
             IF (IOBS.EQ.8) WRITE(21,*) ' U1            '
             IF (IOBS.EQ.9) WRITE(21,*) ' U1xG          '
-!             IF (IOBS.EQ.10) WRITE(21,*) ' U1yG          '
+            IF (IOBS.EQ.10) WRITE(21,*) ' U1yG          '
             IF (IOBS.EQ.NOBS) WRITE(21,*) ' phase         '
             DO NBIN = NS1, NS2, NSTEP
                if (NBIN.gt.0) then

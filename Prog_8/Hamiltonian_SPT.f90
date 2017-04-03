@@ -14,7 +14,7 @@
       Integer, allocatable :: nsigma(:,:)
       Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot
 !>    Variables for updating scheme
-      Logical              :: Propose_S0, Global_moves
+      Logical              :: Propose_S0, Global_moves, Global_move_kind
       Integer              :: N_Global
 
 
@@ -22,7 +22,7 @@
       ! What is below is  private 
       
       Type (Lattice),       private :: Latt
-      Integer, parameter,   private :: Norb=16, Nobs_scal=10
+      Integer, parameter,   private :: Norb=16, Nobs_scal=11
       Integer, allocatable, private :: List(:,:), Invlist(:,:)
       Integer,              private :: L1, L2, FlagSym
       real (Kind=Kind(0.d0)),        private :: Ham_T, Ham_Vint,  Ham_Lam
@@ -108,7 +108,8 @@
           Call Ham_latt
 
           Propose_S0 = .false.
-          Global_moves =.true.
+          Global_moves = .true.!.false.
+          Global_move_kind = .true.
           N_Global = 1
 
           N_FL  = 1
@@ -397,6 +398,8 @@
                       if (npm == 2) Xpm = -1.d0
                       Do i = 1,Latt%N
                          nc = nc + 1 
+!                          if (nxy == 1) write(*,*) nc, ' is a x-type vertex.'
+!                          if (nxy == 2) write(*,*) nc, ' is a y-type vertex.' 
                          Do no = 1,Norb/2
                             Op_V(nc,nf)%P(no)   = Invlist(I,2*(no-1)+noff)  
                          enddo
@@ -558,7 +561,7 @@
           
           !Local 
           Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK
-          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, ZL, Z, ZP,ZS, weight, tmp, ZU1, ZU1xyG
+          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, ZL, Z, ZP,ZS, weight, tmp, ZU1, ZU1xG, ZU1yG, tmp1, tmp2
           Integer :: I,J, no,no1, n, n1, imj, nf, I1, I2, J1, J2, Nc, Ix, Iy, Jx, Jy, Imx, Imy, Jmx, Jmy
           Integer :: a, b, c, d, signum, K, K1, L ,L1, nf1
           
@@ -573,10 +576,9 @@
 !$OMP parallel do default(shared) private(I,J,ZK)
              Do I = 1,Ndim
                 Do J = 1,Ndim
-                   ZK = 0.d0!cmplx(0.d0, 0.d0, kind(0.D0))
-                   If ( I == J ) ZK = cmplx(1.d0, 0.d0, kind(0.D0))
-                   GRC(I,J,nf)  = ZK - GR(J,I,nf)
+                   GRC(I,J,nf)  = - GR(J,I,nf)
                 Enddo
+                GRC(I,I,nf)  = GRC(I,I,nf) + 1
              Enddo
 !$OMP end parallel do
           Enddo
@@ -641,8 +643,9 @@
           Zrho = Zrho*N_SUN!cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
           ZU1 = ZU1*N_SUN!cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
 
-          ZU1xyG = 0.d0
-!$OMP parallel do default(shared) private(I,no,I1,I2,J1,J2,tmp,weight) reduction(+:ZU1xyG)
+          ZU1xG = 0.d0
+          ZU1yG = 0.d0
+!$OMP parallel do default(shared) private(I,no,I1,I2,J1,J2,tmp,weight) reduction(+:ZU1xG,ZU1yG)
           do I=1,Latt%N
             do no=1,8
                 if (no<=4) then
@@ -657,14 +660,19 @@
                   J2 = Invlist(I,no+4)
                 endif
 !                 tmp = GRC(I1,I2,nf)
-                tmp = 0.5d0*(GRC(I1,I2,1)+conjg(GRC(J1,J2,1)))
+                tmp1 = GRC(I1,I2,1)
+                tmp2 = GRC(J1,J2,1)
+                tmp = tmp1+tmp2
                 weight = (-1)**(no/2+(no-1)/4)
-                ZU1xyG = ZU1xyG   +  weight*tmp
+                ZU1xG = ZU1xG   +  weight*tmp
+                tmp = cmplx(0.d0,1.d0,kind(1.d0))*(tmp1-tmp2)
+                ZU1yG = ZU1yG   +  weight*tmp
                 
             enddo
           enddo
 !$OMP end parallel do
-          ZU1xyG = ZU1xyG*N_SUN!cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
+          ZU1xG = ZU1xG*N_SUN!cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
+          ZU1yG = ZU1yG*N_SUN!cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
 !           ZU1xyG = cmplx( 0.5d0*(real(ZU1xyG) + aimag(ZU1xyG)), 0.d0 , kind(0.D0))
 
           ZPot = 0.d0
@@ -706,8 +714,8 @@
           Obs_scal(6) = Obs_scal(6) + (Zpot)*ZP*ZS
           Obs_scal(7) = Obs_scal(7) + (ZL)*ZP*ZS
           Obs_scal(8) = Obs_scal(8) + (ZU1)*ZP*ZS
-          Obs_scal(9) = Obs_scal(9) + (ZU1xyG)*ZP*ZS
-!           Obs_scal(10) = Obs_scal(10) + ZU1xyG*ZP*ZS*cmplx(0.d0,-1.d0, kind(0.D0))
+          Obs_scal(9) = Obs_scal(9) + (ZU1xG)*ZP*ZS
+          Obs_scal(10) = Obs_scal(10) + ZU1yG*ZP*ZS
           Obs_scal(Nobs_scal) = Obs_scal(Nobs_scal) + ZS
           ! You will have to allocate more space if you want to include more  scalar observables.
           ! the last one has to be the phase!!!
@@ -1966,24 +1974,69 @@
           Integer, dimension(:,:),  allocatable, intent(in)  :: nsigma_old
           Integer :: v, t, M_v, L_trot, kind_m
           
-          L_trot = size(nsigma,2)
-          M_v    = size(nsigma,1) 
-          kind_m = nranf(3)
+!           nsigma = -nsigma_old
+
+          kind_m = nranf(2)
+          if (kind_m == 1) then
+!             write(*,*) 'Flipping x-component'
+            nsigma(1:M_v/2,:)     = -nsigma_old(1:M_v/2,:)
+            nsigma(M_v/2+1:M_v,:) =  nsigma_old(M_v/2+1:M_v,:)
+!             Global_move_kind = .false.
+          else
+!             write(*,*) 'Flipping y-component'
+            nsigma(1:M_v/2,:)     =  nsigma_old(1:M_v/2,:)
+            nsigma(M_v/2+1:M_v,:) = -nsigma_old(M_v/2+1:M_v,:)
+!             Global_move_kind = .true.
+          endif
           
-          do t=1,L_trot
-            do v=1,M_v
-              if (v <= M_v/2 .and. kind_m .ne. 2 ) then
-                nsigma(v,t) = -nsigma_old(v,t)
-              else
-                nsigma(v,t) = nsigma_old(v,t)
-              endif
-              if (v > M_v/2 .and. kind_m .ne. 1 ) then
-                nsigma(v,t) = -nsigma_old(v,t)
-              else
-                nsigma(v,t) = nsigma_old(v,t)
-              endif
-            enddo
-          enddo
+!           do t=1,L_trot
+!             do v=1,M_v
+! !               nsigma(v,t) = -nsigma_old(v,t)
+!               if (abs(aimag(Op_V(v,1)%g))>0.00001d0 ) then
+!                 nsigma(v,t) =  nsigma_old(v,t)
+!               else
+!                 nsigma(v,t) = -nsigma_old(v,t)
+!               endif
+!             enddo
+!           enddo
+            
+            
+!           L_trot = size(nsigma,2)
+!           M_v    = size(nsigma,1) 
+!           nsigma(1:M_v/2,:) = -nsigma_old(M_v/2+1:M_v,:)
+!           nsigma(M_v/2+1:M_v,:) =  nsigma_old(1:M_v/2,:)
+          
+          
+!           kind_m = nranf(3)
+!           
+!           if (kind_m == 1 .or. kind_m == 3) then
+!             write(*,*) 'Flipping x-component'
+!             nsigma(1:M_v/2,:) = -nsigma_old(1:M_v/2,:)
+!           else
+!             nsigma(1:M_v/2,:) =  nsigma_old(1:M_v/2,:)
+!           endif
+!           if (kind_m == 2 .or. kind_m == 3) then
+!             write(*,*) 'Flipping y-component'
+!             nsigma(M_v/2+1:M_v,:) = -nsigma_old(M_v/2+1:M_v,:)
+!           else
+!             nsigma(M_v/2+1:M_v,:) =  nsigma_old(M_v/2+1:M_v,:)
+!           endif
+          
+!           do t=1,L_trot
+!             do v=1,M_v
+! !               nsigma(v,t) = -nsigma_old(v,t)
+!               if (v <= M_v/2 .and. kind_m .ne. 2 ) then
+!                 nsigma(v,t) = -nsigma_old(v,t)
+!               else
+!                 nsigma(v,t) = nsigma_old(v,t)
+!               endif
+!               if (v > M_v/2 .and. kind_m .ne. 1 ) then
+!                 nsigma(v,t) = -nsigma_old(v,t)
+!               else
+!                 nsigma(v,t) = nsigma_old(v,t)
+!               endif
+!             enddo
+!           enddo
           
           T0_Proposal_ratio=1.d0
           
