@@ -153,9 +153,9 @@
                  Allocate(syu(n), sxv(n))
                  !Use of ZGEMM should be possible, it might scale as N^2 instead of 2*N though
                  call ZGEMV('T', NDim, n-1, alpha, y_v, Ndim, u(1,n), 1, beta , syu, 1)
+                 call ZGEMV('T', NDim, n-1, alpha, x_v, Ndim, v(1,n), 1, beta , sxv, 1)
                  alpha = 1.D0
-                 call zgemv('N', NDim, n-1, alpha, x_v, Ndim, syu, 1, alpha, x_v(1, n), 1)
-                 call zgemv('N', NDim, n-1, alpha, y_v, Ndim, sxv, 1, alpha, y_v(1, n), 1)
+                 call ZGEMV('N', NDim, n-1, alpha, x_v, Ndim, syu, 1, alpha, x_v(1, n), 1)
                  call ZGEMV('N', NDim, n-1, alpha, y_v, Ndim, sxv, 1, alpha, y_v(1, n), 1)
                  do m = 1,n-1
                     Z = Z - syu(m)*sxv(m)
