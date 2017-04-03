@@ -14,7 +14,7 @@
       Integer, allocatable :: nsigma(:,:)
       Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot
 !>    Variables for updating scheme
-      Logical              :: Propose_S0, Global_moves
+      Logical              :: Propose_S0, Global_moves, Global_move_kind
       Integer              :: N_Global
 
 
@@ -109,6 +109,7 @@
 
           Propose_S0 = .false.
           Global_moves = .true.!.false.
+          Global_move_kind = .true.
           N_Global = 1
 
           N_FL  = 1
@@ -1961,7 +1962,31 @@
           Integer, dimension(:,:),  allocatable, intent(in)  :: nsigma_old
           Integer :: v, t, M_v, L_trot, kind_m
           
-          nsigma = -nsigma_old
+!           nsigma = -nsigma_old
+
+          kind_m = nranf(2)
+          if (kind_m == 1) then
+!             write(*,*) 'Flipping x-component'
+            nsigma(1:M_v/2,:)     = -nsigma_old(1:M_v/2,:)
+            nsigma(M_v/2+1:M_v,:) =  nsigma_old(M_v/2+1:M_v,:)
+!             Global_move_kind = .false.
+          else
+!             write(*,*) 'Flipping y-component'
+            nsigma(1:M_v/2,:)     =  nsigma_old(1:M_v/2,:)
+            nsigma(M_v/2+1:M_v,:) = -nsigma_old(M_v/2+1:M_v,:)
+!             Global_move_kind = .true.
+          endif
+          
+!           do t=1,L_trot
+!             do v=1,M_v
+! !               nsigma(v,t) = -nsigma_old(v,t)
+!               if (abs(aimag(Op_V(v,1)%g))>0.00001d0 ) then
+!                 nsigma(v,t) =  nsigma_old(v,t)
+!               else
+!                 nsigma(v,t) = -nsigma_old(v,t)
+!               endif
+!             enddo
+!           enddo
             
             
 !           L_trot = size(nsigma,2)
