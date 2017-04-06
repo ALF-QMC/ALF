@@ -76,7 +76,7 @@
 !> This functions constructs an extended matrix H1 from UCT and VINV for use as the rhs of
 !> an equation. Then the solution X of the System V3 * X = H1 is sought.
 !> Then a scaling by D3 and a multiplication by U3 is performed.
-!> usually the matrices U3, D3, V3 stem from a UDV decomposition.
+!> Usually the matrices U3, D3, V3 stem from a UDV decomposition.
 !
 !> The rationale for constructing this extended matrix is that Fakher says it's more stable.
 !>
@@ -141,7 +141,7 @@
 !> @param[in] A The input matrix that contains the Householder reflectors on its subdiagonal
 !>              and the upper triangular matrix R in its upper part as returned by ?GETRF
 !> @param[in] D A vector containing the scales.
-!> @param[in] TAU A vecto containing the scalar factors of the Householder decomposition
+!> @param[in] TAU A vector containing the scalar factors of the Householder decomposition
 !> @param[in] IPVT A permutation vector usable by ?LAPMR/?LAPMT
 !> @param[in] LQ The dimension of the matrices UCT and V1INV
 !> @param[in] WORK work space
@@ -188,7 +188,7 @@
 
 !--------------------------------------------------------------------
 
-      SUBROUTINE CGR2_2(GRT0, GR00, GRTT, GR0T, U2, D2, V2, U1, D1, V1, LQ)
+      SUBROUTINE CGR2_2(GRT0, GR00, GRTT, GR0T, udv2, udv1, LQ)
 
 !--------------------------------------------------------------------
 !> @author 
@@ -216,19 +216,17 @@
 !
 !--------------------------------------------------------------------
 
-   
+        Use MyMats
+        Use UDV_State_mod
 #if defined(STAB2) || defined(STAB1)   
 
-        Use MyMats
         Use UDV_WRAP_mod
         Implicit none
 
         !  Arguments
         Integer,  intent(in) :: LQ
-        Complex (Kind=Kind(0.d0)), intent(in)    :: U1(LQ,LQ), V1(LQ,LQ), U2(LQ,LQ), V2(LQ,LQ)
-        Complex (Kind=Kind(0.d0)), intent(in)    :: D2(LQ), D1(LQ)
+        CLASS(UDV_State), intent(in) :: udv1, udv2
         Complex (Kind=Kind(0.d0)), intent(inout) :: GRT0(LQ,LQ), GR0T(LQ,LQ), GR00(LQ,LQ), GRTT(LQ,LQ)
-
 
         ! Local::
         Complex  (Kind=Kind(0.d0)) :: V1INV(LQ,LQ)
@@ -242,16 +240,16 @@
         alpha = 1.D0
         beta = 0.D0
         ALLOCATE(MYU2(LQ, LQ), HLPB1(LQ2, LQ2), HLPB2(LQ2, LQ2), U3B(LQ2, LQ2), V3B(LQ2, LQ2))
-        MYU2 = CONJG(TRANSPOSE(U2))
-        CALL INV(V1,V1INV,Z)
-        If (dble(D1(1)) >  dble(D2(1)) ) Then 
+        MYU2 = CONJG(TRANSPOSE(udv2%U))
+        CALL INV(udv1%V,V1INV,Z)
+        If (dble(udv1%D(1)) >  dble(udv2%D(1)) ) Then 
            !Write(6,*) "D1(1) >  D2(1)", dble(D1(1)), dble(D2(1))
            DO J = 1,LQ
               DO I = 1,LQ
                  HLPB2(I   , J    ) =  V1INV(I,J)
-                 HLPB2(I   , J+LQ ) =  D1(I)*U1(I,J)
+                 HLPB2(I   , J+LQ ) =  udv1%D(I)*udv1%U(I,J)
                  HLPB2(I+LQ, J+LQ ) =  MYU2(I, J)
-                 HLPB2(I+LQ, J    ) = -D2(I)*V2(I,J)
+                 HLPB2(I+LQ, J    ) = -udv2%D(I)*udv2%V(I,J)
               ENDDO
            ENDDO
            HLPB1 = CT(HLPB2)
@@ -287,9 +285,9 @@
            DO J = 1,LQ
               DO I = 1,LQ
                  HLPB2(I   , J    ) =  MYU2(I, J)
-                 HLPB2(I   , J+LQ ) = -D2(I)*V2(I,J)
+                 HLPB2(I   , J+LQ ) = -udv2%D(I)*udv2%V(I,J)
                  HLPB2(I+LQ, J+LQ ) =  V1INV(I,J)
-                 HLPB2(I+LQ, J    ) =  D1(I)*U1(I,J)
+                 HLPB2(I+LQ, J    ) =  udv1%D(I)*udv1%U(I,J)
               ENDDO
            ENDDO
            HLPB1 = CT(HLPB2)
@@ -301,14 +299,12 @@
         Endif
         DEALLOCATE(MYU2, HLPB1, HLPB2, U3B, V3B)
 #else
-        Use MyMats
         Use QDRP_mod
         Implicit none
 
         !  Arguments
         Integer,  intent(in) :: LQ
-        Complex (Kind=Kind(0.d0)), intent(in)    :: U1(LQ,LQ), V1(LQ,LQ), U2(LQ,LQ), V2(LQ,LQ)
-        Complex (Kind=Kind(0.d0)), intent(in)    :: D2(LQ), D1(LQ)
+        CLASS(UDV_State), intent(in) :: udv1, udv2
         Complex (Kind=Kind(0.d0)), intent(inout) :: GRT0(LQ,LQ), GR0T(LQ,LQ), GR00(LQ,LQ), GRTT(LQ,LQ)
 
 
@@ -326,16 +322,16 @@
         ALLOCATE(MYU2(LQ, LQ), V1INV(LQ,LQ), HLPB1(LQ2, LQ2), HLPB2(LQ2, LQ2), D3(LQ2))
         Allocate(IPVT(LQ2), TAU(LQ2))
         IPVT = 0
-        MYU2 = CONJG(TRANSPOSE(U2))
-        CALL INV(V1,V1INV,Z)
-        If (dble(D1(1)) >  dble(D2(1)) ) Then 
+        MYU2 = CONJG(TRANSPOSE(udv2%U))
+        CALL INV(udv1%V, V1INV,Z)
+        If (dble(udv1%D(1)) >  dble(udv2%D(1)) ) Then 
            !Write(6,*) "D1(1) >  D2(1)", dble(D1(1)), dble(D2(1))
            DO J = 1,LQ
               DO I = 1,LQ
                  HLPB2(I   , J    ) =  V1INV(I,J)
-                 HLPB2(I   , J+LQ ) =  D1(I)*U1(I,J)
+                 HLPB2(I   , J+LQ ) =  udv1%D(I)*udv1%U(I,J)
                  HLPB2(I+LQ, J+LQ ) =  MYU2(I, J)
-                 HLPB2(I+LQ, J    ) = -D2(I)*V2(I,J)
+                 HLPB2(I+LQ, J    ) = -udv2%D(I)*udv2%V(I,J)
               ENDDO
            ENDDO
            HLPB1 = CT(HLPB2)
@@ -347,9 +343,9 @@
            DO J = 1,LQ
               DO I = 1,LQ
                  HLPB2(I   , J    ) =  MYU2(I, J)
-                 HLPB2(I   , J+LQ ) = -D2(I)*V2(I,J)
+                 HLPB2(I   , J+LQ ) = -udv2%D(I)*udv2%V(I,J)
                  HLPB2(I+LQ, J+LQ ) =  V1INV(I,J)
-                 HLPB2(I+LQ, J    ) =  D1(I)*U1(I,J)
+                 HLPB2(I+LQ, J    ) =  udv1%D(I)*udv1%U(I,J)
               ENDDO
            ENDDO
            HLPB1 = CT(HLPB2)

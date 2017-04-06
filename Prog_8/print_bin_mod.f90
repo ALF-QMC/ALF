@@ -141,7 +141,7 @@
            If (Irank == 0 ) then
 
            I = Norb 
-           Tmp1 = cmplx(0.d0,0.d0,kind(0.d0))
+           Tmp1 = 0.D0
            CALL MPI_REDUCE(Dat_eq0,Tmp1,I,MPI_REAL8,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
            Dat_eq0 = Tmp1/DBLE(ISIZE)
 

@@ -2,6 +2,7 @@
 ! gfortran -Wall -std=f2003 -I ../../../Prog_8/  -I ../../../Libraries/Modules/ -L ../../../Libraries/Modules/ main.f90 ../../../Prog_8/cgr1.o ../../../Prog_8/UDV_WRAP.o ../../../Libraries/Modules/modules_90.a -llapack -lblas ../../../Libraries/MyNag/libnag.a
 
 Program TESTCGR
+USE UDV_State_mod
 implicit none
 interface
       SUBROUTINE CGRold(PHASE,NVAR, GRUP, URUP,DRUP,VRUP, ULUP,DLUP,VLUP)
@@ -12,17 +13,16 @@ interface
         INTEGER, Intent(In)         :: NVAR
         end subroutine CGRold
         
-      SUBROUTINE CGR(PHASE,NVAR, GRUP, URUP,DRUP,VRUP, ULUP,DLUP,VLUP)
-        COMPLEX(Kind=8), Dimension(:,:), Intent(IN)   ::  URUP, VRUP, ULUP, VLUP
-        COMPLEX(Kind=8), Dimension(:),   Intent(In)   ::  DLUP, DRUP
+      SUBROUTINE CGR(PHASE,NVAR, GRUP, udvr, udvl)
+        USE UDV_State_mod
+        CLASS(UDV_State), INTENT(IN) :: udvr, udvl
         COMPLEX(Kind=8), Dimension(:,:), Intent(INOUT) :: GRUP
         COMPLEX(Kind=8) :: PHASE
         INTEGER, Intent(In)         :: NVAR
         end subroutine CGR
 end interface
 
-        COMPLEX(Kind=Kind(0.D0)), Dimension(:,:), allocatable ::  URUP, VRUP, ULUP, VLUP
-        COMPLEX(Kind=Kind(0.D0)), Dimension(:), allocatable ::  DLUP, DRUP
+        TYPE(UDV_State) :: udvr, udvl
         COMPLEX(Kind=Kind(0.D0)), Dimension(:,:), allocatable :: GRUPnew, GRUPold
         COMPLEX(Kind=Kind(0.D0)) :: PHASEnew, Phaseold, Zre, Zim
         INTEGER         :: NVAR, i, j, N_size
@@ -30,8 +30,9 @@ end interface
         N_size = 5
         
         do NVAR = 1,2
-        allocate(URUP(N_size, N_size), VRUP(N_size, N_size), ULUP(N_size, N_size), VLUP(N_size, N_size))
-        allocate(GRUPnew(N_size, N_size), GRUPold(N_size, N_size), DLUP(N_size), DRUP(N_size))
+        CALL udvl%alloc(N_size)
+        CALL udvr%alloc(N_size)
+        allocate(GRUPnew(N_size, N_size), GRUPold(N_size, N_size))
         ! set up test data
         Phasenew = 1.D0
         Phaseold = 1.D0
@@ -39,22 +40,22 @@ end interface
         GRUPold = 0.D0
         do i = 1, N_size
         do j = 1, N_size
-        URUP(i, j) = 0!i + j
-        ULUP(i, j) = 0!i + j
-        VRUP(i, j) = CMPLX(i,j, kind=kind(0.D0))
-        VLUP(i, j) = i + j
+        udvr%U(i, j) = 0!i + j
+        udvl%U(i, j) = 0!i + j
+        udvr%V(i, j) = CMPLX(i,j, kind=kind(0.D0))
+        udvl%V(i, j) = i + j
         enddo
-        DLUP(i) = 1
-        ULUP(i,i) = 1
-        URUP(i,i) = 1
-        VRUP(i, i) = CMPLX(1,1)
-        VLUP(i, i) = CMPLX(1,1)
-        DRUP(i) = i
+        udvL%D(i) = 1
+        udvl%U(i,i) = 1
+        udvr%U(i,i) = 1
+        udvr%V(i, i) = CMPLX(1,1)
+        udvl%V(i, i) = CMPLX(1,1)
+        udvr%D(i) = i
         enddo
-call CGR(PHASEnew, NVAR, GRUPnew, URUP, DRUP, VRUP, ULUP, DLUP, VLUP)
+call CGR(PHASEnew, NVAR, GRUPnew, udvr, udvl)
 ! run old code
 
-call CGRold(PHASEold, NVAR, GRUPold, URUP, DRUP, VRUP, ULUP, DLUP, VLUP)
+call CGRold(PHASEold, NVAR, GRUPold, udvr%U, udvr%D, udvr%V, udvl%U, udvl%D, udvl%V)
 
 ! compare GRUP results
 ! write (*,*) GRUPOLD
@@ -86,7 +87,9 @@ call CGRold(PHASEold, NVAR, GRUPold, URUP, DRUP, VRUP, ULUP, DLUP, VLUP)
     write (*,*) "ERROR in imag part", Phasenew, aimag(Phasenew), aimag(Phaseold)
     STOP 7
     endif
-deallocate(URUP, VRUP, ULUP, VLUP, GRUPnew, GRUPold, DLUP, DRUP)
+    CALL udvr%dealloc
+    CALL udvl%dealloc
+deallocate(GRUPnew, GRUPold)
 enddo
 write (*,*) "success"
 end Program TESTCGR

@@ -30,7 +30,7 @@
 !     - If you make substantial changes to the program we require you to either consider contributing
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
  
-     SUBROUTINE WRAPUR(NTAU, NTAU1, UR, DR, VR)
+     SUBROUTINE WRAPUR(NTAU, NTAU1, UDVR)
 
 !--------------------------------------------------------------------
 !> @author 
@@ -43,15 +43,15 @@
 !
 !-------------------------------------------------------------------
 
+        Use Hop_mod
+        Use UDV_State_mod
 #if defined(STAB2) || defined(STAB1)         
         Use Hamiltonian
         Use UDV_Wrap_mod
-        Use Hop_mod
         Implicit None
 
         ! Arguments
-        COMPLEX (Kind=Kind(0.d0)) :: UR(Ndim,Ndim,N_FL), VR(Ndim,Ndim,N_FL)
-        COMPLEX (Kind=Kind(0.d0)) :: DR(Ndim,N_FL)
+        CLASS(UDV_State), intent(inout) :: udvr(N_FL)
         Integer :: NTAU1, NTAU
 
 
@@ -75,25 +75,22 @@
                  Call Op_mmultR(Tmp,Op_V(n,nf),X,Ndim)
               ENDDO
            ENDDO
-           CALL MMULT(TMP1,TMP,UR(:,:,nf))
+           CALL MMULT(TMP1,TMP, udvr(nf)%U)
            DO J = 1,NDim
               DO I = 1,NDim
-                 TMP1(I,J) = TMP1(I,J)*DR(J,nf)
-                 TMP(I,J)  = VR(I,J,nf)
+                 TMP1(I,J) = TMP1(I,J)*udvr(nf)%D(J)
+                 TMP(I,J)  = udvr(nf)%V(I,J)
               ENDDO
            ENDDO
-           CALL UDV_WRAP_Pivot(TMP1,UR(:,:,nf),DR(:,nf),V1,NCON,Ndim,Ndim)
-           CALL MMULT(VR(:,:,nf),V1,TMP)
+           CALL UDV_WRAP_Pivot(TMP1, udvr(nf)%U, udvr(nf)%D, V1,NCON,Ndim,Ndim)
+           CALL MMULT(udvr(nf)%V, V1, TMP)
         ENDDO
 #else
         Use Operator_mod, only : Phi
-        Use Hop_mod
-        Use Wrap_helpers
         Implicit None
 
         ! Arguments
-        COMPLEX (Kind=Kind(0.d0)) :: UR(Ndim,Ndim,N_FL), VR(Ndim,Ndim,N_FL)
-        COMPLEX (Kind=Kind(0.d0)) :: DR(Ndim,N_FL)
+        CLASS(UDV_State), intent(inout) :: udvr(N_FL)
         Integer :: NTAU1, NTAU
 
 
@@ -118,7 +115,7 @@
               ENDDO
            ENDDO
 
-           CALL ur_update_matrices(UR(:,:,nf), DR(:, nf), VR(:,:,nf), TMP, TMP1, Ndim, NCON)
+           CALL UDVR(nf)%matmultleft(TMP, TMP1, NCON)
         ENDDO
         deallocate(TMP, TMP1)
 

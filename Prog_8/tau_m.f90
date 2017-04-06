@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 The ALF project
+!  Copyright (C) 2016, 2017 The ALF project
 ! 
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -44,35 +44,36 @@
        Use Operator_mod
        Use Control
        Use Hop_mod
+       Use UDV_State_mod
 
        Contains
 
-         SUBROUTINE TAU_M( UST,DST,VST, GR, PHASE, NSTM, NWRAP, STAB_NT  ) 
+         SUBROUTINE TAU_M(udvst, GR, PHASE, NSTM, NWRAP, STAB_NT  ) 
            
            Implicit none
 
            Interface
-              SUBROUTINE WRAPUL(NTAU1, NTAU, UL ,DL, VL)
+              SUBROUTINE WRAPUR(NTAU1, NTAU, udvr)
                 Use Hamiltonian
+                Use UDV_State_mod
                 Implicit none
-                COMPLEX (Kind=Kind(0.d0)) :: UL(Ndim,Ndim,N_FL), VL(Ndim,Ndim,N_FL)
-                COMPLEX (Kind=Kind(0.d0)) :: DL(Ndim,N_FL)
+                CLASS(UDV_State), intent(inout) :: UDVr(N_FL)
                 Integer :: NTAU1, NTAU
-              END SUBROUTINE WRAPUL
-              SUBROUTINE CGR2_2(GRT0, GR00, GRTT, GR0T, U2, D2, V2, U1, D1, V1, LQ)
+              END SUBROUTINE WRAPUR
+              SUBROUTINE CGR2_2(GRT0, GR00, GRTT, GR0T, udv2, udv1, LQ)
                 Use MyMats
                 Use UDV_WRAP_mod
+                Use UDV_State_mod
                 Implicit none
                 !  Arguments
                 Integer,  intent(in) :: LQ
-                Complex (Kind=Kind(0.d0)), intent(in)    :: U1(LQ,LQ), V1(LQ,LQ), U2(LQ,LQ), V2(LQ,LQ)
-                Complex (Kind=Kind(0.d0)), intent(in)    :: D2(LQ), D1(LQ)
+                CLASS(UDV_State), intent(in) :: udv1, udv2
                 Complex (Kind=Kind(0.d0)), intent(inout) :: GRT0(LQ,LQ), GR0T(LQ,LQ), GR00(LQ,LQ), GRTT(LQ,LQ)
               end SUBROUTINE CGR2_2
            end Interface
      
            Integer, Intent(In) :: NSTM, NWRAP
-           Complex (Kind=Kind(0.d0)), Intent(in) :: UST(NDIM,NDIM,NSTM,N_FL), VST(NDIM,NDIM,NSTM,N_FL), DST(NDIM,NSTM,N_FL) 
+           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(IN) :: udvst
            Complex (Kind=Kind(0.d0)), Intent(in) :: GR(NDIM,NDIM,N_FL),  Phase
            Integer, Intent(In) :: STAB_NT(0:NSTM)         
 
@@ -81,8 +82,7 @@
            ! Local 
            ! This could be placed as  private for the module 
            Complex (Kind=Kind(0.d0))  :: GT0(NDIM,NDIM,N_FL),  G00(NDIM,NDIM,N_FL), GTT(NDIM,NDIM,N_FL), G0T(NDIM,NDIM,N_FL)
-           Complex (Kind=Kind(0.d0))  :: UL(Ndim,Ndim,N_FL), DL(Ndim,N_FL), VL(Ndim,Ndim,N_FL) 
-           Complex (Kind=Kind(0.d0))  :: UR(Ndim,Ndim,N_FL), DR(Ndim,N_FL), VR(Ndim,Ndim,N_FL) 
+           CLASS(UDV_State), DIMENSION(:), ALLOCATABLE :: udvr
            Complex (Kind=Kind(0.d0))  :: HLP4(Ndim,Ndim), HLP5(Ndim,Ndim), HLP6(Ndim,Ndim)
            
            Complex (Kind=Kind(0.d0))  ::  Z
@@ -105,12 +105,11 @@
            ! In Module Hamiltonian
            CALL OBSERT(NT,  GT0,G0T,G00,GTT, PHASE)
            
+           ALLOCATE(udvr(N_FL))
            Z = cmplx(1.d0,0.d0,kind(0.d0))
            Do nf = 1, N_FL
-              CALL INITD(UR(:,:,nf),Z)
-              CALL INITD(VR(:,:,nf),Z)
+              CALL udvr(nf)%init(ndim)
            enddo
-           DR = Z
               
            NST = 1
            DO NT = 0,LTROT - 1
@@ -128,20 +127,15 @@
                  !NST  = NT1/(NWRAP)
                  NTST = Stab_nt(NST-1)
                  ! WRITE(6,*) 'NT1, NST: ', NT1,NST
-                 CALL WRAPUR(NTST, NT1,UR, DR, VR)
+                 CALL WRAPUR(NTST, NT1, udvr)
                  DO nf = 1,N_FL
-                    UL(:,:,nf) = UST(:,:,NST,nf)
-                    VL(:,:,nf) = VST(:,:,NST,nf)
-                    DL(:  ,nf) = DST(:  ,NST,nf)
-                 Enddo
-                 Do nf = 1,N_FL
                     HLP4(:,:) = GTT(:,:,nf)
                     HLP5(:,:) = GT0(:,:,nf)
                     HLP6(:,:) = G0T(:,:,nf)
                     NVAR = 1
                     IF (NT1  >  LTROT/2) NVAR = 2
                     Call CGR2_2(GT0(:,:,nf), G00(:,:,nf), GTT(:,:,nf), G0T(:,:,nf), &
-                         &      UR(:,:,nf),DR(:,nf),VR(:,:,nf), UL(:,:,nf),DL(:,nf),VL(:,:,nf),NDIM)
+                         & udvr(nf), udvst(NST, nf), NDIM)
                     Call Control_Precision_tau(GR(:,:,nf), G00(:,:,nf), Ndim)
                     Call Control_Precision_tau(HLP4      , GTT(:,:,nf), Ndim)
                     Call Control_Precision_tau(HLP5      , GT0(:,:,nf), Ndim)
@@ -151,6 +145,10 @@
               Endif
            ENDDO
            
+           DO nf = 1, N_Fl
+              CALL udvr(nf)%dealloc
+           ENDDO
+           DEALLOCATE(udvr)
          END SUBROUTINE TAU_M
 
 !--------------------------------------------------------------------

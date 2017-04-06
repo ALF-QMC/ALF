@@ -29,7 +29,7 @@
 !     - If you make substantial changes to the program we require you to either consider contributing
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
-      SUBROUTINE CGR(PHASE,NVAR, GRUP, URUP,DRUP,VRUP, ULUP,DLUP,VLUP)
+      SUBROUTINE CGR(PHASE,NVAR, GRUP, udvr, udvl)
 
 !--------------------------------------------------------------------
 !> @author 
@@ -46,7 +46,7 @@
 !
 !--------------------------------------------------------------------
 
-
+        Use UDV_State_mod
 
 #if defined(STAB2) || defined(STAB1)
         Use UDV_Wrap_mod
@@ -55,46 +55,45 @@
 
 
 	!Arguments.
-        COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(IN)   ::  URUP, VRUP, ULUP, VLUP
-        COMPLEX(Kind=Kind(0.d0)), Dimension(:),   Intent(In)   ::  DLUP, DRUP
+	CLASS(UDV_State), INTENT(IN) :: udvl, udvr
         COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(INOUT) :: GRUP
         COMPLEX(Kind=Kind(0.d0)) :: PHASE
         INTEGER         :: NVAR
  
         !Local
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  UUP, VUP, TPUP, TPUP1, TPUPM1
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:) , Allocatable ::  DUP
+        TYPE(UDV_State) :: udvlocal
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable :: TPUP, TPUP1, TPUPM1
         INTEGER, Dimension(:), Allocatable :: IPVT
         COMPLEX (Kind=Kind(0.d0)) ::  ZDUP1, ZDDO1, ZDUP2, ZDDO2, Z1, ZUP, ZDO, alpha, beta
         Integer :: I,J, N_size, NCON, info
         Real (Kind=Kind(0.D0)) :: X, Xmax, sv
         
-        N_size = SIZE(DLUP,1)
+        N_size = udvl%Ndim
         NCON = 0
         alpha = 1.D0
         beta = 0.D0
-        Allocate( UUP(N_size,N_size),  VUP(N_size,N_size), TPUP(N_size,N_size), TPUP1(N_size,N_size), &
-             & TPUPM1(N_size,N_size), DUP(N_size), IPVT(N_size) )
+        Allocate(TPUP(N_size,N_size), TPUP1(N_size,N_size), TPUPM1(N_size,N_size), IPVT(N_size) )
+        CALL udvlocal%alloc(N_size)
         !Write(6,*) 'In CGR', N_size
-        CALL MMULT(VUP,VRUP,VLUP)
+        CALL MMULT(udvlocal%V, udvr%V, udvl%V)
         DO J = 1,N_size
-            TPUP(:,J) = DRUP(:)*VUP(:,J)*DLUP(J)
+            TPUP(:,J) = udvr%D(:)*udvlocal%V(:,J)*udvl%D(J)
         ENDDO
-        CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, URUP(1,1), N_size, ULUP(1,1), N_size, alpha, TPUP, N_size)
+        CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, udvr%U(1,1), N_size, udvl%U(1,1), N_size, alpha, TPUP, N_size)
         !>  Syntax 
         !>  ZGEMM(TRANSA,TRANSB,M,N,K,ALPHA,A,LDA,B,LDB,BETA,C,LDC)
         !>  C := alpha*op( A )*op( B ) + beta*C
         !>  TPUP =  (URUP)^(dagger) ULUP^(dagger) + TPUP
         IF (NVAR.EQ.1) THEN
            !WRITE(6,*) 'UDV of U + DR * V * DL'
-           CALL UDV_WRAP_Pivot(TPUP,UUP,DUP,VUP,NCON,N_size,N_Size)
+           CALL UDV_WRAP_Pivot(TPUP,udvlocal%U,udvlocal%D,udvlocal%V,NCON,N_size,N_Size)
            !CALL UDV(TPUP,UUP,DUP,VUP,NCON)
-           CALL MMULT(TPUP,VUP,ULUP)
+           CALL MMULT(TPUP,udvlocal%V, udvl%U)
            !Do I = 1,N_size
            !   Write(6,*) DLUP(I)
            !enddo
            CALL INV  (TPUP,TPUPM1,ZDUP1)
-           CALL MMULT(TPUP1,URUP,UUP)
+           CALL MMULT(TPUP1, udvr%U, udvlocal%U)
            CALL ZGETRF(N_size, N_size, TPUP1, N_size, IPVT, info)
            !>  TPUP1 = P * L * U   LU-decomposition
            Z1 = ZDUP1
@@ -108,10 +107,10 @@
         ELSE
            !WRITE(6,*) 'UDV of (U + DR * V * DL)^{*}'
            TPUP1 = CT(TPUP)
-           CALL UDV_WRAP_Pivot(TPUP1,UUP,DUP,VUP,NCON,N_size,N_size)
+           CALL UDV_WRAP_Pivot(TPUP1, udvlocal%U, udvlocal%D, udvlocal%V, NCON,N_size,N_size)
            !CALL UDV(TPUP1,UUP,DUP,VUP,NCON)
-           CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, ULUP(1,1), N_size, UUP, N_size, beta, TPUPM1, N_size)
-           CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, URUP(1,1), N_size, VUP, N_size, beta, TPUP1, N_size)
+           CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, udvl%U(1,1), N_size, udvlocal%U, N_size, beta, TPUPM1, N_size)
+           CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, udvr%U(1,1), N_size, udvlocal%V, N_size, beta, TPUP1, N_size)
            CALL ZGETRF(N_size, N_size, TPUP1, N_size, IPVT, info)
            !>  TPUP1 = P * L * U   LU-decomposition
            ZDUP2 = 1.D0
@@ -126,23 +125,24 @@
            Z1 = ZDUP2/ZDUP1
         ENDIF
         DO J = 1, N_size
-           sv = DBLE(DUP(J))
+           sv = DBLE(udvlocal%D(J))
            X = ABS(sv)
            if (J == 1)  Xmax = X
            if ( X  < Xmax ) Xmax = X
            sv = 1.D0/sv
            DO I = 1, N_size
-              UUP(J, I) = TPUPM1(I, J) * sv
+              udvlocal%U(J, I) = TPUPM1(I, J) * sv
            ENDDO
         ENDDO
-        call ZGETRS('T', N_size, N_size, TPUP1, N_size, IPVT, UUP, N_size, info)
+        call ZGETRS('T', N_size, N_size, TPUP1, N_size, IPVT, udvlocal%U, N_size, info)
         !> Syntax
         !> ZGETRS( TRANS, N, NRHS, A, LDA, IPIV, B, LDB, INFO )
         !> Op(A) * X = B 
         !> On output  B = X
-        GRUP = TRANSPOSE(UUP)
+        GRUP = TRANSPOSE(udvlocal%U)
         PHASE = Z1/ABS(Z1)
-        Deallocate(UUP, VUP, TPUP,TPUP1,TPUPM1, DUP, IPVT )
+        CALL udvlocal%dealloc
+        Deallocate(TPUP,TPUP1,TPUPM1, IPVT )
 
 #else
 
@@ -150,8 +150,9 @@
         USE QDRP_mod
         Implicit None
 	!Arguments.
-        COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(IN)   ::  URUP, VRUP, ULUP, VLUP
-        COMPLEX(Kind=Kind(0.d0)), Dimension(:),   Intent(IN)   ::  DLUP, DRUP
+!         COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(IN)   ::  URUP, VRUP, ULUP, VLUP
+!         COMPLEX(Kind=Kind(0.d0)), Dimension(:),   Intent(IN)   ::  DLUP, DRUP
+        CLASS(UDV_State), INTENT(IN) :: udvl, udvr
         COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(INOUT) :: GRUP
         COMPLEX(Kind=Kind(0.d0)), Intent(INOUT) :: PHASE
         INTEGER         :: NVAR
@@ -167,19 +168,19 @@
         COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK
         LOGICAL :: FORWRD
         
-        N_size = SIZE(DLUP,1)
+        N_size = udvl%ndim
         NCON = 0
         alpha = 1.D0
         beta = 0.D0
         Allocate(TPUP(N_size,N_size), RHS(N_size, N_size), IPVT(N_size), TAU(N_size), DUP(N_size))
         !Write(6,*) 'In CGR', N_size
-        CALL MMULT(TPUP,VRUP,VLUP)
+        CALL MMULT(TPUP, udvr%V, udvl%V)
         DO J = 1,N_size
-            TPUP(:,J) = DRUP(:)*TPUP(:,J)*DLUP(J)
+            TPUP(:,J) = udvr%D(:) *TPUP(:,J)*udvl%D(J)
         ENDDO
         ! can be inserted again once we are sure that we may assume that UR and UL stem from householder reflectors
 !        CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, URUP, N_size, ULUP, N_size, alpha, TPUP, N_size)
-        CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, URUP, N_size, ULUP, N_size, beta, RHS(1, 1), N_size)
+        CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, udvr%U, N_size, udvl%U, N_size, beta, RHS(1, 1), N_size)
         TPUP = TPUP + RHS
         ! calculate determinant of UR*UL
         PHASE = CONJG(DET_C(RHS, N_size))
@@ -230,7 +231,7 @@
             ! This is supposed to solve the system 
             ! URUP U D V P^dagger ULUP G = 1
             ! initialize the rhs with CT(URUP)
-            RHS = CT(URUP)
+            RHS = CT(udvr%U)
             ! RHS = U^dagger * RHS
             CALL ZUNMQR('L', 'C', N_size, N_size, N_size, TPUP(1, 1), N_size, TAU(1), RHS(1,1), N_size, WORK(1), LWORK, INFO)
             DEALLOCATE(TAU, WORK)
@@ -252,12 +253,12 @@
             FORWRD = .false.
             CALL ZLAPMR(FORWRD, N_size, N_size, RHS(1,1), N_size, IPVT(1))
             ! perform multiplication with ULUP and store in GRUP
-            CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, ULUP(1,1), N_size, RHS(1,1), N_size, beta, GRUP(1,1), N_size)
+            CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, udvl%U(1, 1), N_size, RHS(1,1), N_size, beta, GRUP(1,1), N_size)
         ELSE
             ! This solves the system G * URUP * P * R^dagger * D * U^dagger * ULUP = 1
             
             ! RHS = ULUP * UUP
-            RHS = CT(ULUP)
+            RHS = CT(udvl%U)
             CALL ZUNMQR('R', 'N', N_size, N_size, N_size, TPUP(1, 1), N_size, TAU(1), RHS(1, 1), N_size, WORK(1), LWORK, INFO)
             DEALLOCATE(TAU, WORK)
             ! apply D^-1 to RHS from the right
@@ -280,10 +281,9 @@
             FORWRD = .false.
             CALL ZLAPMT(FORWRD, N_size, N_size, RHS(1, 1), N_size, IPVT(1))
             ! perform multiplication with URUP
-            CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, RHS(1, 1), N_size, URUP(1, 1), N_size, beta, GRUP(1, 1), N_size)
+            CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, RHS(1, 1), N_size, udvr%U(1,1), N_size, beta, GRUP(1, 1), N_size)
         ENDIF
         Deallocate(TPUP, DUP, IPVT, VISITED, RHS)
 #endif
         
-
       END SUBROUTINE CGR
