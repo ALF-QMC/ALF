@@ -158,7 +158,7 @@
         INTEGER         :: NVAR
  
         !Local
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  TPUP, RHS
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  TPUP, RHS, TMP2
         COMPLEX (Kind=Kind(0.d0)), Dimension(:) , Allocatable ::  DUP
         INTEGER, Dimension(:), Allocatable :: IPVT, VISITED
         COMPLEX (Kind=Kind(0.d0)) ::  alpha, beta, Z
@@ -172,7 +172,7 @@
         NCON = 0
         alpha = 1.D0
         beta = 0.D0
-        Allocate(TPUP(N_size,N_size), RHS(N_size, N_size), IPVT(N_size), TAU(N_size), DUP(N_size))
+        Allocate(TPUP(N_size,N_size), RHS(N_size, N_size), IPVT(N_size), TAU(N_size), DUP(N_size), TMP2(N_size, N_size))
         !Write(6,*) 'In CGR', N_size
         CALL MMULT(TPUP, udvr%V, udvl%V)
         DO J = 1,N_size
@@ -227,13 +227,22 @@
                 PHASE = PHASE * Z/ABS(Z)
             endif
         enddo
+        ! initialize the RHS with inverse(D)
+        RHS = 0.D0
+        DO j = 1, N_size
+           RHS(j, j) = 1.D0/DBLE(DUP(J))
+        ENDDO
         IF(NVAR .EQ. 1) then
             ! This is supposed to solve the system 
             ! URUP U D V P^dagger ULUP G = 1
+            CALL ZUNMQR('R', 'C', N_size, N_size, N_size, TPUP(1, 1), N_size, TAU(1), RHS(1,1), N_size, WORK(1), LWORK, INFO)
+            CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, RHS(1,1), N_size, udvr%U, N_size, beta, TMP2(1,1), N_size)
+            RHS = TMP2            
+            
             ! initialize the rhs with CT(URUP)
-            RHS = CT(udvr%U)
+!            RHS = CT(udvr%U)
             ! RHS = U^dagger * RHS
-            CALL ZUNMQR('L', 'C', N_size, N_size, N_size, TPUP(1, 1), N_size, TAU(1), RHS(1,1), N_size, WORK(1), LWORK, INFO)
+!            CALL ZUNMQR('L', 'C', N_size, N_size, N_size, TPUP(1, 1), N_size, TAU(1), RHS(1,1), N_size, WORK(1), LWORK, INFO)
             DEALLOCATE(TAU, WORK)
             !apply inverse of D to RHS from the left
             DO J = 1, N_size
@@ -241,9 +250,9 @@
                 X = ABS(sv)
                 if (J == 1)  Xmax = X
                 if ( X  < Xmax ) Xmax = X
-                DO I = 1, N_size
-                    RHS(I,J) = RHS(I, J) / DUP(I)
-                ENDDO
+ !               DO I = 1, N_size
+ !                   RHS(I,J) = RHS(I, J) / DUP(I)
+ !               ENDDO
             ENDDO
             ! We solve the equation
             !  A * G = RHS for G with A = R * P^dagger * ULUP
@@ -256,10 +265,12 @@
             CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, udvl%U(1, 1), N_size, RHS(1,1), N_size, beta, GRUP(1,1), N_size)
         ELSE
             ! This solves the system G * URUP * P * R^dagger * D * U^dagger * ULUP = 1
-            
+            CALL ZUNMQR('L', 'N', N_size, N_size, N_size, TPUP(1, 1), N_size, TAU(1), RHS(1, 1), N_size, WORK(1), LWORK, INFO)
+            CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, udvl%U, N_size, RHS(1,1), N_size, beta, TMP2(1,1), N_size)
+            RHS = TMP2
             ! RHS = ULUP * UUP
-            RHS = CT(udvl%U)
-            CALL ZUNMQR('R', 'N', N_size, N_size, N_size, TPUP(1, 1), N_size, TAU(1), RHS(1, 1), N_size, WORK(1), LWORK, INFO)
+  !          RHS = CT(udvl%U)
+  !          CALL ZUNMQR('R', 'N', N_size, N_size, N_size, TPUP(1, 1), N_size, TAU(1), RHS(1, 1), N_size, WORK(1), LWORK, INFO)
             DEALLOCATE(TAU, WORK)
             ! apply D^-1 to RHS from the right
             DO J = 1, N_size
@@ -267,10 +278,10 @@
                 X = ABS(sv)
                 if (J == 1)  Xmax = X
                 if ( X  < Xmax ) Xmax = X
-                sv = 1.D0/sv
-                DO I = 1, N_size
-                    RHS(I, J) = RHS(I, J) * sv
-                ENDDO
+!                 sv = 1.D0/sv
+!                 DO I = 1, N_size
+!                     RHS(I, J) = RHS(I, J) * sv
+!                 ENDDO
             ENDDO
         
             ! We solve the equation
@@ -283,7 +294,7 @@
             ! perform multiplication with URUP
             CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, RHS(1, 1), N_size, udvr%U(1,1), N_size, beta, GRUP(1, 1), N_size)
         ENDIF
-        Deallocate(TPUP, DUP, IPVT, VISITED, RHS)
+        Deallocate(TPUP, DUP, IPVT, VISITED, RHS, TMP2)
 #endif
         
       END SUBROUTINE CGR
