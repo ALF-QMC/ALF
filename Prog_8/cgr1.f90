@@ -261,12 +261,8 @@ DEALLOCATE(WORK)
             ! This is supposed to solve the system 
             ! URUP U D V P^dagger ULUP G = 1
             CALL ZUNMQR('R', 'C', N_size, N_size, N_size, TPUP(1, 1), N_size, TAU(1), RHS(1,1), N_size, WORK(1), LWORK, INFO)
-!            CALL ZUNMQR('R', con, N_size, N_size, N_size, udvr%U(1,1), N_size, udvr%Tau(1), RHS(1, 1), N_size, WORK(1), LWORK, INFO)
-      CALL ZGEMM('N', 'N', N_size, N_size, N_size, alpha, RHS(1,1), N_size, URUP, N_size, beta, TMP2(1,1), N_size)
+            CALL ZUNMQR('R', con, N_size, N_size, N_size, udvr%U(1,1), N_size, udvr%Tau(1), RHS(1, 1), N_size, WORK(1), LWORK, INFO)
 !!!!!!!            CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, RHS(1,1), N_size, URUP, N_size, beta, TMP2(1,1), N_size)
-            RHS = TMP2
-! write (*,*) REAL(RHS)
-! STOP 2
             ! initialize the rhs with CT(URUP)
 !            RHS = CT(URUP)
             ! RHS = U^dagger * RHS
