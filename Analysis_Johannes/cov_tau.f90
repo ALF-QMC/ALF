@@ -15,8 +15,8 @@
             end function Rot90
          end Interface
 
-         Integer :: Ndim, Norb
-         Integer :: no, no1, n, nbins, n_skip, nb, nT, Lt
+         Integer :: Ndim, Norb, N_cov
+         Integer :: no, no1, n, nbins, n_skip, nb, nT, Lt, nt1
          real (Kind=8):: X, Y,  dtau, X1, x2
          Complex (Kind=8), allocatable :: Xmean(:), Xcov(:,:)
          Complex (Kind=8) :: Z, X_diag
@@ -28,6 +28,7 @@
          Complex (Kind=8), allocatable :: V_help(:,:)
          Character (len=64) :: File_out
 
+         N_cov=0
 
          ! Determine the number of bins. 
          Open ( Unit=10, File="intau", status="unknown" ) 
@@ -139,11 +140,19 @@
                call COV(bins(n,:,:), phase, Xcov, Xmean )
                write(File_out,'("g_",F4.2,"_",F4.2)')  Xk_p(1,n), Xk_p(2,n)
                Open (Unit=10,File=File_out,status="unknown")
+               Write(10,*) LT
                do nt = 1, LT
                   Write(10,"(F14.7,2x,F16.8,2x,F16.8,2x,F16.8,2x,F16.8)") &
                        & dble(nt-1)*dtau,  dble(Xmean(nt)), sqrt(abs(dble(Xcov(nt,nt)))), &
                        & aimag(Xmean(nt)), sqrt(abs(aimag(Xcov(nt,nt))))
                enddo
+                If (N_cov == 1) Then ! Print  covariance
+                    Do nt = 1,LT
+                      Do nt1 = 1,LT
+                          Write(10,*) dble(Xcov(nt,nt1))
+                      Enddo
+                    Enddo
+                Endif
                close(10)
             endif
          enddo
@@ -160,11 +169,19 @@
          call COV(V_help, phase, Xcov, Xmean )
          write(File_out,'("g_R0")') 
          Open (Unit=10,File=File_out,status="unknown")
+         Write(10,*) LT
          do nt = 1, LT
             Write(10,"(F14.7,2x,F16.8,2x,F16.8,2x,F16.8,2x,F16.8)") &
                  & dble(nt-1)*dtau,  dble(Xmean(nt)), sqrt(abs(dble(Xcov(nt,nt)))), &
                  & aimag(Xmean(nt)), sqrt(abs(aimag(Xcov(nt,nt))))
          enddo
+         If (N_cov == 1) Then ! Print  covariance
+            Do nt = 1,LT
+               Do nt1 = 1,LT
+                  Write(10,*) dble(Xcov(nt,nt1))
+               Enddo
+            Enddo
+         Endif
          close(10)
          
 

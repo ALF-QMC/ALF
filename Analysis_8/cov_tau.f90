@@ -161,6 +161,7 @@
                call COV(bins(n,:,:), phase, Xcov, Xmean, N_rebin )
                write(File_out,'("g_",F4.2,"_",F4.2)')  Xk_p(1,n), Xk_p(2,n)
                Open (Unit=10,File=File_out,status="unknown")
+               Write(10,*) LT
                do nt = 1, LT
                   Write(10,"(F14.7,2x,F16.8,2x,F16.8)") &
                        & dble(nt-1)*dtau,  dble(Xmean(nt)), sqrt(abs(dble(Xcov(nt,nt))))
@@ -188,6 +189,7 @@
          call COV(V_help, phase, Xcov, Xmean, N_Rebin )
          write(File_out,'("g_R0")') 
          Open (Unit=10,File=File_out,status="unknown")
+         Write(10,*) LT
          do nt = 1, LT
             Write(10,"(F14.7,2x,F16.8,2x,F16.8)") &
                  & dble(nt-1)*dtau,  dble(Xmean(nt)), sqrt(abs(dble(Xcov(nt,nt))))
