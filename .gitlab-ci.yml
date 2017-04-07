@@ -7,13 +7,13 @@ stages:
 .build_template: &build_definition
   stage: build
   script:
-    - . set_env.sh
+    - . setenv.sh
     - export f90="gfortran"
     - cd Libraries
     - gfortran -v
     - make
     - cd ..
-    - cd Prog_8
+    - cd Prog
     - make
     - make SPT
     - make Ising
@@ -22,7 +22,7 @@ stages:
 .build_template_pgi: &build_definition_pgi
   stage: build
   script:
-    - . set_env.sh
+    - . setenv.sh
     - export f90="/opt/pgi/linux86-64/2016/bin/pgfortran"
     - export FL="-O3"
     - export LIB_BLAS_LAPACK="-L/opt/pgi/linux86-64/2016/lib -llapack -lblas"
@@ -31,7 +31,7 @@ stages:
     - /opt/pgi/linux86-64/16.10/bin/pgfortran --version
     - make
     - cd ..
-    - cd Prog_8
+    - cd Prog
     - make
     - make Ising
     - make Kondo_Honey
@@ -39,14 +39,14 @@ stages:
 .warnconv_template: &warnconv_definition
   stage: warnconv
   script:
-    - . set_env.sh
+    - . setenv.sh
     - export f90="gfortran"
     - export FL="$FL -Wconversion -Werror"
     - cd Libraries
     - gfortran -v
     - make
     - cd ..
-    - cd Prog_8
+    - cd Prog
     - make
     - make SPT
     - make Ising
@@ -55,13 +55,13 @@ stages:
 .test_template: &test_definition
   stage: test
   script:
-    - . set_env.sh
+    - . setenv.sh
     - export f90="gfortran"
     - cd Libraries
     - gfortran -v
     - make
     - cd ..
-    - cd Prog_8
+    - cd Prog
     - make
     - cd ..
     - cd testsuite
@@ -115,6 +115,14 @@ GQMCT_Wheezy-PGI:
 GQMCT_Jessie-PGI:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-pgi
   <<: *build_definition_pgi
+
+GQMCT_Ubuntu_Trusty:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:trusty-gfortran-lapack
+  <<: *build_definition
+
+GQMCT_Ubuntu_Xenial:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:xenial-gfortran-lapack
+  <<: *build_definition
   
 GQMCT_Wheezy_conv:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-wheezy-gfortran-blas-lapack
@@ -156,7 +164,7 @@ GQMCT_Wheezy-PGI_conv:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-wheezy-pgi
   stage: warnconv
   script:
-    - . set_env.sh
+    - . setenv.sh
     - export f90="/opt/pgi/linux86-64/2016/bin/pgfortran"
     - export FL="-O3 -Minform=inform"
     - export LIB_BLAS_LAPACK="-L/opt/pgi/linux86-64/2016/lib -llapack -lblas"
@@ -165,7 +173,7 @@ GQMCT_Wheezy-PGI_conv:
     - /opt/pgi/linux86-64/16.10/bin/pgfortran --version
     - make
     - cd ..
-    - cd Prog_8
+    - cd Prog
     - make
     - make Ising
     - make Kondo_Honey
@@ -206,11 +214,15 @@ GQMCT_OpenSuse-42.1_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:opensuse-42.1-gfortran-blas-lapack
   <<: *test_definition
 
+GQMCT_Ubuntu-trusty_tests:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:trusty-gfortran-lapack
+  <<: *test_definition
+
 GQMCT_Jessie-PGI_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-pgi-cmake
   stage: test
   script:
-    - . set_env.sh
+    - . setenv.sh
     - export f90="/opt/pgi/linux86-64/2016/bin/pgfortran"
     - export FL="-O3"
     - export LIB_BLAS_LAPACK="-L/opt/pgi/linux86-64/2016/lib -llapack -lblas"
@@ -219,7 +231,7 @@ GQMCT_Jessie-PGI_tests:
     - /opt/pgi/linux86-64/16.10/bin/pgfortran --version
     - make
     - cd ..
-    - cd Prog_8
+    - cd Prog
     - make
     - cd ..
     - cd testsuite
@@ -234,17 +246,17 @@ GQMCT_jessie_valgrind:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-blas-lapack-valgrind
   stage: memleaks
   script:
-      - . set_env.sh
+      - . setenv.sh
       - export f90="gfortran"
       - export FL="${FL} -g"
       - cd Libraries
       - gfortran -v
       - make
       - cd ..
-      - cd Prog_8
+      - cd Prog
       - make SPT
-      - cp SPT.out ../Test_SPT/Start/
-      - cd ../Test_SPT/Start/
+      - cp SPT.out ../Test_Runs/Test_SPT/Start/
+      - cd ../Test_Runs/Test_SPT/Start/
       - valgrind --leak-check=full --log-file=vglog.txt ./SPT.out
       - cat vglog.txt
       - grep lost vglog.txt | cut -d":" -f 2 | cut -d " " -f 2 | f=$(cat); echo $(( ${f//$'\n'/+} ))
