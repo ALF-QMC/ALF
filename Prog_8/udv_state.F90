@@ -37,6 +37,7 @@ MODULE UDV_State_mod
         COMPLEX (Kind=Kind(0.d0)), allocatable :: U(:, :), V(:, :)
         COMPLEX (Kind=Kind(0.d0)), allocatable :: D(:), TAU(:)
         INTEGER :: ndim
+        LOGICAL :: ctrans
 
         CONTAINS
             PROCEDURE :: alloc => alloc_UDV_state
@@ -67,6 +68,7 @@ SUBROUTINE alloc_UDV_state(this, t)
     INTEGER, INTENT(IN) :: t
 
     this%ndim = t
+    this%ctrans = .false.
     ALLOCATE(this%U(this%ndim, this%ndim), this%V(this%ndim, this%ndim), &
     & this%D(this%ndim), this%Tau(this%ndim))
 END SUBROUTINE alloc_UDV_state
@@ -127,6 +129,8 @@ SUBROUTINE reset_UDV_state(this)
     CALL ZLASET('A', this%ndim, this%ndim, alpha, beta, this%U(1, 1), this%ndim)
     CALL ZLASET('A', this%ndim, this%ndim, alpha, beta, this%V(1, 1), this%ndim)
     this%D = beta
+    this%Tau = 0.D0
+    this%ctrans = .false.
 END SUBROUTINE reset_UDV_state
 
 !--------------------------------------------------------------------
@@ -180,6 +184,7 @@ SUBROUTINE assign_UDV_state(this, src)
     END ASSOCIATE
     this%D = src%D
     this%Tau = src%Tau
+    this%ctrans = src%ctrans
 END SUBROUTINE assign_UDV_state
 
 !--------------------------------------------------------------------
@@ -213,7 +218,16 @@ END SUBROUTINE assign_UDV_state
         beta = 0.D0
         Ndim = UDVL%ndim
         ! TMP1 = TMP^dagger * U^dagger
-        CALL ZGEMM('C', 'C', Ndim, Ndim, Ndim, Z_ONE, TMP(1, 1), Ndim, UDVL%U, Ndim, beta, TMP1(1, 1), Ndim)
+        TMP1 = CONJG(TRANSPOSE(TMP))
+        LWORK=2*Ndim
+        ALLOCATE(WORK(LWORK))
+        IF(UDVL%ctrans) THEN
+            CALL ZUNMQR('R', 'N', Ndim, Ndim, Ndim, UDVL%U, Ndim, UDVL%Tau, TMP1, Ndim, WORK, LWORK, INFO)
+        ELSE
+            CALL ZUNMQR('R', 'C', Ndim, Ndim, Ndim, UDVL%U, Ndim, UDVL%Tau, TMP1, Ndim, WORK, LWORK, INFO)
+        ENDIF
+        DEALLOCATE(WORK)
+!        CALL ZGEMM('C', 'C', Ndim, Ndim, Ndim, Z_ONE, TMP(1, 1), Ndim, UDVL%U, Ndim, beta, TMP1(1, 1), Ndim)
         ! TMP1 = TMP1 * D
         DO i = 1,NDim
             UDVL%U(:, i) = TMP1(:, i) * UDVL%D(i)
@@ -227,8 +241,9 @@ END SUBROUTINE assign_UDV_state
         ! V = V * R^dagger
         CALL ZTRMM('R', 'U', 'C', 'N', Ndim, Ndim, Z_ONE, UDVL%U, Ndim, UDVL%V, Ndim)
         ! create explicitly U in the storage already present for it
-        CALL ZUNGQR(Ndim, Ndim, Ndim, UDVL%U, Ndim, UDVL%Tau, WORK, LWORK, INFO)
+!        CALL ZUNGQR(Ndim, Ndim, Ndim, UDVL%U, Ndim, UDVL%Tau, WORK, LWORK, INFO)
         DEALLOCATE(WORK, IPVT)
+        UDVL%ctrans = .false.
 END SUBROUTINE matmultright_UDV_state
 
 !--------------------------------------------------------------------
@@ -264,7 +279,16 @@ END SUBROUTINE matmultright_UDV_state
         Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
         beta = 0.D0
         Ndim = UDVR%ndim
-        CALL ZGEMM('N', 'N', Ndim, Ndim, Ndim, Z_ONE, TMP(1, 1), Ndim, UDVR%U, Ndim, beta, TMP1(1, 1), Ndim)
+        TMP1 = TMP
+        LWORK=2*Ndim
+        ALLOCATE(WORK(LWORK))
+        IF(UDVR%ctrans) THEN
+            CALL ZUNMQR('R', 'C', Ndim, Ndim, Ndim, UDVR%U, Ndim, UDVR%Tau, TMP1, Ndim, WORK, LWORK, INFO)
+        ELSE
+            CALL ZUNMQR('R', 'N', Ndim, Ndim, Ndim, UDVR%U, Ndim, UDVR%Tau, TMP1, Ndim, WORK, LWORK, INFO)
+        ENDIF
+!        CALL ZGEMM('N', 'N', Ndim, Ndim, Ndim, Z_ONE, TMP(1, 1), Ndim, UDVR%U, Ndim, beta, TMP1(1, 1), Ndim)
+DEALLOCATE(WORK)
         ! TMP1 = TMP1 * D
         DO i = 1,NDim
             UDVR%U(:, i) = TMP1(:, i)*UDVR%D(i)
@@ -279,7 +303,8 @@ END SUBROUTINE matmultright_UDV_state
         ! V = R * V
         CALL ZTRMM('L', 'U', 'N', 'N', Ndim, Ndim, Z_ONE, UDVR%U, Ndim, UDVR%V, Ndim)
         ! Generate explicitly U in the previously abused storage of U
-        CALL ZUNGQR(Ndim, Ndim, Ndim, UDVR%U, Ndim, UDVR%Tau, WORK, LWORK, INFO)
+!        CALL ZUNGQR(Ndim, Ndim, Ndim, UDVR%U, Ndim, UDVR%Tau, WORK, LWORK, INFO)
+        UDVR%ctrans = .false.
         DEALLOCATE(WORK, IPVT)
 END SUBROUTINE matmultleft_UDV_state
 
