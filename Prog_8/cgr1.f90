@@ -205,7 +205,6 @@ URUP = udvr%U
  CALL ZUNGQR(N_size, N_size, N_size, URUP(1, 1), N_size, udvr%Tau, WORK, LWORK, INFO)
  IF(.NOT. udvr%ctrans) URUP = CT(URUP)
 DEALLOCATE(WORK)
-!CALL ZGEMM('N', 'N', N_size, N_size, N_size, alpha, URUP, N_size, ULUP, N_size, beta, RHS(1, 1), N_size)
 !        CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, URUP, N_size, ULUP, N_size, beta, RHS(1, 1), N_size)
         TPUP = TPUP + RHS
         ! calculate determinant of UR*UL
