@@ -3,6 +3,7 @@
 /**/*.mod
 /**/*.a
 /**/*.out
+Prog/git.h
 
 # tex related files
 /**/*.aux
