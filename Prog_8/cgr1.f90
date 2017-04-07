@@ -195,15 +195,17 @@
 ULUP = udvl%U
  CALL ZUNGQR(N_size, N_size, N_size, ULUP(1, 1), N_size, udvl%Tau, WORK, LWORK, INFO)
  IF(.NOT. udvl%ctrans) ULUP = CT(ULUP)
-!     con = 'N'
-!     IF(.NOT. udvr%ctrans) con = 'C'
-!     CALL ZUNMQR('L', con, N_size, N_size, N_size, udvr%U(1,1), N_size, udvr%tau(1), ULUP(1, 1), N_size, WORK(1), LWORK, INFO)
-!     RHS = ULUP
+ 
+ RHS = ULUP
+    con = 'N'
+    IF(.NOT. udvr%ctrans) con = 'C'
+    CALL ZUNMQR('L', con, N_size, N_size, N_size, udvr%U(1,1), N_size, udvr%tau, RHS(1, 1), N_size, WORK(1), LWORK, INFO)
+
 URUP = udvr%U
  CALL ZUNGQR(N_size, N_size, N_size, URUP(1, 1), N_size, udvr%Tau, WORK, LWORK, INFO)
  IF(.NOT. udvr%ctrans) URUP = CT(URUP)
 DEALLOCATE(WORK)
-CALL ZGEMM('N', 'N', N_size, N_size, N_size, alpha, URUP, N_size, ULUP, N_size, beta, RHS(1, 1), N_size)
+!CALL ZGEMM('N', 'N', N_size, N_size, N_size, alpha, URUP, N_size, ULUP, N_size, beta, RHS(1, 1), N_size)
 !        CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, URUP, N_size, ULUP, N_size, beta, RHS(1, 1), N_size)
         TPUP = TPUP + RHS
         ! calculate determinant of UR*UL
