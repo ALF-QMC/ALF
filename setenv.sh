@@ -1,0 +1,1 @@
+export DIR=`pwd`
