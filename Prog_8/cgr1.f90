@@ -158,7 +158,7 @@
         INTEGER         :: NVAR
  
         !Local
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  TPUP, RHS, TMP2
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  RHS
         COMPLEX (Kind=Kind(0.d0)), Dimension(:) , Allocatable ::  DUP
         INTEGER, Dimension(:), Allocatable :: IPVT, VISITED
         COMPLEX (Kind=Kind(0.d0)) ::  alpha, beta, Z
@@ -173,45 +173,41 @@
         NCON = 0
         alpha = 1.D0
         beta = 0.D0
-        Allocate(TPUP(N_size,N_size), RHS(N_size, N_size), IPVT(N_size), TAU(N_size), DUP(N_size), TMP2(N_size, N_size))
+        Allocate(RHS(N_size, N_size), IPVT(N_size), TAU(N_size), DUP(N_size))
         !Write(6,*) 'In CGR', N_size
-        CALL MMULT(TPUP, udvr%V, udvl%V)
-        DO J = 1,N_size
-            TPUP(:,J) = udvr%D(:) *TPUP(:,J)*udvl%D(J)
-        ENDDO
-        LWORK=2*N_size
-        ALLOCATE(WORK(LWORK))
-        ! For later
-!         conl = 'N'
-!         conr = 'N'
-!         IF(udvl%ctrans) conl = 'C'
-!         IF(udvr%ctrans) conr = 'C'
-!         
-!         RHS = 0.D0
-!         DO J = 1, N_size
-!             RHS(J, J) = 1.D0/DBLE(udvr%D(J)) / DBLE(udvl%D(J))
-!         ENDDO
-!         CALL ZUNMQR('L', conr, N_size, N_size, N_size, UDVR%U(1, 1), N_size, UDVR%TAU(1), RHS(1, 1), N_size, WORK(1), LWORK, INFO)
-!         CALL ZUNMQR('R', conl, N_size, N_size, N_size, UDVL%U(1, 1), N_size, UDVL%TAU(1), RHS(1, 1), N_size, WORK(1), LWORK, INFO)
+        conl = 'N'
+        conr = 'N'
+        IF(.NOT. udvl%ctrans) conl = 'C'
+        IF(.NOT. udvr%ctrans) conr = 'C'
         
-        ! can be inserted again once we are sure that we may assume that UR and UL stem from householder reflectors
-!        CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, URUP, N_size, ULUP, N_size, alpha, TPUP, N_size)
-RHS = udvl%U
- CALL ZUNGQR(N_size, N_size, N_size, RHS(1, 1), N_size, udvl%Tau, WORK, LWORK, INFO)
- conl = 'N'
- IF(.NOT. udvl%ctrans) RHS = CT(RHS)
- IF(.NOT. udvl%ctrans) conl = 'C'
+        RHS = 0.D0
+        DO J = 1, N_size
+            RHS(J, J) = 1.D0/DBLE(udvl%D(J))
+        ENDDO
+        ! abuse GRUP
+        LWORK=2*N_size
+        CALL ZUNMQR('L', conl, N_size,N_size,N_size, UDVL%U(1, 1), N_size, UDVL%TAU(1), RHS(1, 1), N_size, GRUP(1,1), LWORK, INFO)
+        CALL ZUNMQR('L', conr, N_size,N_size,N_size, UDVR%U(1, 1), N_size, UDVR%TAU(1), RHS(1, 1), N_size, GRUP(1,1), LWORK, INFO)
+        DO I = 1, N_size
+        DO J = 1, N_size
+            RHS(I, J) = RHS(I, J)/DBLE(udvr%D(I))
+        ENDDO
+        ENDDO
+!       RHS = RHS + VR * VL
+        CALL ZGEMM('N', 'N', N_size, N_size, N_size, alpha, udvr%V, N_size, udvl%V, N_size, alpha, RHS, N_size)
+        
+! multiply in DL and DR again
+DO I = 1, N_size
+DO J = 1, N_size
+RHS(I, J) = DBLE(udvr%D(I))* RHS(I, J) * DBLE(udvl%D(J))
+ENDDO
+ENDDO
 
-    conr = 'N'
-    IF(.NOT. udvr%ctrans) conr = 'C'
-    CALL ZUNMQR('L', conr, N_size, N_size, N_size, udvr%U(1,1), N_size, udvr%tau, RHS(1, 1), N_size, WORK(1), LWORK, INFO)
-DEALLOCATE(WORK)
-        TPUP = TPUP + RHS
         IPVT = 0
         IF (NVAR .NE. 1) THEN
-            TPUP = CONJG(TRANSPOSE(TPUP))
+            RHS = CONJG(TRANSPOSE(RHS))
         ENDIF
-        call QDRP_decompose(N_size, TPUP, DUP, IPVT, TAU, WORK, LWORK)
+        call QDRP_decompose(N_size, RHS, DUP, IPVT, TAU, WORK, LWORK)
         ALLOCATE(VISITED(N_size))
         ! Calculate the sign of the permutation from the pivoting. Somehow the format used by the QR decomposition of lapack
         ! is different from that of the LU decomposition of lapack
@@ -235,10 +231,10 @@ DEALLOCATE(WORK)
         DO i = 1, N_size
             Z = TAU(i)
             IF(NVAR .EQ. 1) THEN
-                PHASE = PHASE * TPUP(i,i)/Abs(TPUP(i,i))
+                PHASE = PHASE * RHS(i,i)/Abs(RHS(i,i))
             ELSE
                 ! the diagonal should be real, but let's be safe....
-                PHASE = PHASE * CONJG(TPUP(i,i))/Abs(TPUP(i,i))
+                PHASE = PHASE * CONJG(RHS(i,i))/Abs(RHS(i,i))
                 Z = CONJG(Z) ! conjugate the elementary reflector
             ENDIF
             if (Z .ne. CMPLX(0.D0, 0.D0, Kind=Kind(0.D0))) then
@@ -265,16 +261,16 @@ DEALLOCATE(WORK)
                 PHASE = PHASE * Z/ABS(Z)
             ENDIF
         enddo
-        ! initialize the RHS with inverse(D)
-        RHS = 0.D0
+        ! initialize the GRUP with inverse(D)
+        GRUP = 0.D0
         DO j = 1, N_size
-           RHS(j, j) = 1.D0/DBLE(DUP(J))
+           GRUP(j, j) = 1.D0/DBLE(DUP(J))
         ENDDO
         IF(NVAR .EQ. 1) then
             ! This is supposed to solve the system 
             ! URUP U D V P^dagger ULUP G = 1
-            CALL ZUNMQR('R', 'C', N_size, N_size, N_size, TPUP(1, 1), N_size, TAU(1), RHS(1,1), N_size, WORK(1), LWORK, INFO)
-            CALL ZUNMQR('R', conr, N_size, N_size, N_size, udvr%U(1,1), N_size, udvr%Tau(1), RHS(1, 1), N_size, WORK(1),LWORK,INFO)
+            CALL ZUNMQR('R', 'C', N_size, N_size, N_size, RHS(1, 1), N_size, TAU(1), GRUP(1,1), N_size, WORK(1), LWORK, INFO)
+            CALL ZUNMQR('R', conr, N_size, N_size, N_size, udvr%U(1,1), N_size, udvr%Tau(1), GRUP(1, 1), N_size,WORK(1),LWORK,INFO)
             DEALLOCATE(TAU)
             !apply inverse of D to RHS from the left
             DO J = 1, N_size
@@ -282,24 +278,20 @@ DEALLOCATE(WORK)
                 X = ABS(sv)
                 if (J == 1)  Xmax = X
                 if ( X  < Xmax ) Xmax = X
-!                DO I = 1, N_size
-!                    RHS(I,J) = RHS(I, J) / DUP(I)
-!                ENDDO
             ENDDO
             ! We solve the equation
             !  A * G = RHS for G with A = R * P^dagger * ULUP
             ! first we solve R *y = RHS. The solution is afterwards in RHS
-            CALL ZTRSM('L', 'U', 'N', 'N', N_size, N_size, alpha, TPUP(1,1), N_size, RHS(1,1), N_size)
+            CALL ZTRSM('L', 'U', 'N', 'N', N_size, N_size, alpha, RHS(1,1), N_size, GRUP(1,1), N_size)
             ! apply permutation matrix
             FORWRD = .false.
-            CALL ZLAPMR(FORWRD, N_size, N_size, RHS(1,1), N_size, IPVT(1))
+            CALL ZLAPMR(FORWRD, N_size, N_size, GRUP(1,1), N_size, IPVT(1))
             ! perform multiplication with ULUP and store in GRUP
-            CALL ZUNMQR('L', conl,N_size,N_size, N_size, udvl%U(1, 1), N_size, udvl%Tau(1), RHS(1,1), N_size, WORK(1),LWORK, INFO)
-            GRUP = RHS
+            CALL ZUNMQR('L', conl,N_size,N_size, N_size, udvl%U(1, 1), N_size, udvl%Tau(1), GRUP(1,1), N_size, WORK(1),LWORK, INFO)
         ELSE
             ! This solves the system G * URUP * P * R^dagger * D * U^dagger * ULUP = 1
-            CALL ZUNMQR('L', 'N', N_size, N_size, N_size, TPUP(1, 1), N_size, TAU(1), RHS(1, 1), N_size, WORK(1), LWORK, INFO)
-            CALL ZUNMQR('L', conl, N_size, N_size, N_size, udvl%U(1, 1), N_size, udvl%Tau(1), RHS(1, 1), N_size, WORK(1),LWORK,INFO)
+            CALL ZUNMQR('L', 'N', N_size, N_size, N_size, RHS(1, 1), N_size, TAU(1), GRUP(1, 1), N_size, WORK(1), LWORK, INFO)
+            CALL ZUNMQR('L', conl, N_size, N_size, N_size, udvl%U(1, 1), N_size, udvl%Tau(1), GRUP(1, 1), N_size,WORK(1),LWORK,INFO)
             DEALLOCATE(TAU)
             ! apply D^-1 to RHS from the right
             DO J = 1, N_size
@@ -307,24 +299,18 @@ DEALLOCATE(WORK)
                 X = ABS(sv)
                 if (J == 1)  Xmax = X
                 if ( X  < Xmax ) Xmax = X
-!                 sv = 1.D0/sv
-!                 DO I = 1, N_size
-!                     RHS(I, J) = RHS(I, J) * sv
-!                 ENDDO
             ENDDO
         
             ! We solve the equation
             ! G * A = RHS for G with A = URUP * P * R^dagger
             ! first we solve y * R^dagger = RHS
-            CALL ZTRSM('R', 'U', 'C', 'N', N_size, N_size, alpha, TPUP(1, 1), N_size, RHS(1, 1), N_size)
+            CALL ZTRSM('R', 'U', 'C', 'N', N_size, N_size, alpha, RHS(1, 1), N_size, GRUP(1, 1), N_size)
             ! apply inverse permutation matrix
             FORWRD = .false.
-            CALL ZLAPMT(FORWRD, N_size, N_size, RHS(1, 1), N_size, IPVT(1))
+            CALL ZLAPMT(FORWRD, N_size, N_size, GRUP(1, 1), N_size, IPVT(1))
             ! perform multiplication with URUP
-           CALL ZUNMQR('R', conr, N_size, N_size, N_size, udvr%U(1, 1), N_size, udvr%Tau(1), RHS(1,1), N_size, WORK(1), LWORK, INFO)
-           GRUP = RHS
+           CALL ZUNMQR('R', conr, N_size, N_size, N_size, udvr%U(1, 1), N_size, udvr%Tau(1), GRUP(1,1), N_size, WORK(1),LWORK,INFO)
         ENDIF
-        Deallocate(TPUP, DUP, IPVT, VISITED, RHS, TMP2)
+        Deallocate(DUP, IPVT, VISITED, RHS, WORK)
 #endif
-        deallocate(WORK)
       END SUBROUTINE CGR
