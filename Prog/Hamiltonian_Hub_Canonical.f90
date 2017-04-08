@@ -691,6 +691,7 @@
           Implicit none
           Real (Kind=Kind(0.d0)), intent(out) :: T0_Proposal_ratio
           Integer, dimension(:,:),  allocatable, intent(in)  :: nsigma_old
+          T0_Proposal_ratio = 1.0d0
         End Subroutine Global_move
 !========================================================================
         Real (Kind=kind(0.d0)) Function Delta_S0_global(Nsigma_old)
@@ -700,6 +701,7 @@
           
           !> Arguments
           Integer, dimension(:,:), allocatable, intent(IN) :: Nsigma_old
+          Delta_S0_global = 1.0d0
         end Function Delta_S0_global
 !========================================================================
 

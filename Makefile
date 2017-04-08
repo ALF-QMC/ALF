@@ -36,6 +36,7 @@ lib:
 	cd Libraries && $(MAKE)
 ana: lib
 	cd Analysis && $(MAKE)
+	cd Analysis_Johannes && $(MAKE)
 program: lib
 	cd Prog && $(MAKE) Examples
 Hub_Ising: lib
