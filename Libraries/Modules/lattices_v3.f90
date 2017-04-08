@@ -192,6 +192,8 @@
 
 
            Allocate ( Latt%List(LQ,ndim), Latt%Invlist(-L:L, -L:L ) )
+           Latt%List = 0
+           Latt%Invlist = 0
            !Setting up real space lattice 
            nc = 0
            do i1 = -L,L
@@ -221,6 +223,8 @@
 
 
            Allocate ( Latt%Listk(LQ,ndim), Latt%Invlistk(-L:L, -L:L) )
+           Latt%Listk = 0
+           Latt%Invlistk = 0
            nc = 0
            do m = -L,L
               do n = -L,L

@@ -1,10 +1,11 @@
 ## General information ##
 This version of the **A**lgorithms for **L**attice **F**ermions package provides a general code for the finite temperature auxiliary field Quantum Monte Carlo algorithm.       The code  is engineered to  be able simulate any model that can be written in terms of  sums of single body operators, of squares of single body operators and single body operators coupled to an Ising field with  given dynamics. We  provide predefined types that allow  the user to specify the model, the  Bravais lattice  as well as equal time and time displaced observables.     The code supports an MPI implementation.   Examples such as the Hubbard model on the Honeycomb lattice  as well as the Hubbard model  on the square lattice coupled to a transverse Ising field are  provided and discussed in the [documentation](https://git.physik.uni-wuerzburg.de/fassaad/General_QMCT_code/raw/documentation_new/Documentation/doc.pdf).  
 
-The Hamiltonians we can consider read:
+The Hamiltonians we can consider readis:
 ![The Hamiltonian0](https://git.physik.uni-wuerzburg.de/fassaad/General_QMCT_code/raw/master/Images/Hamiltonian0.png)
 where
 ![The Hamiltonian1](https://git.physik.uni-wuerzburg.de/fassaad/General_QMCT_code/raw/master/Images/Hamiltonian1.png)
+
 Here Z denotes an Ising spin variable with predefined dynamics. If your model can be written in this form then it will be amenable to the ALF. 
 ## PREREQUISITES ##
 
@@ -14,21 +15,23 @@ Compiler: gfortran  or ifort
 
 
 ## CONFIGURATION FOR COMPILATION ##
-Edit **set_env.sh**   to provide compiler information and flags as well as  location of Lapack and Blas.
+**setenv.sh**   sets the default set of envorinment variables.  Do not change  this since this default set of  environment variables is required for the tests to run adequaltely.
+
+The full compilation is done from the **Makefile**.  Your compilation options should be inserted here. 
 
 ## FILES AND DIRECTORIES ##
 
 **Libraries**    Libraries. Once that the environment is set in the file set_env.sh  the Libraries can be compiled with the **make** command. 
 
-**Prog**   Main program and subroutines.   The command **make Examples** will  generate the **Examples.out** executable. 
+**Prog**   Main program and subroutines.  
 
-**Analysis** Analysis programs. The command **make** will generate three executables required  for the error analysis  of scalar, equal time and time displaced observables. 
+**Analysis** Analysis programs. 
 
 **Start**   This directory contain the files required to start a run. In particular it contains the parameter file   that specifies the model the lattice and various   parameters for the Monte Carlo run and  error analysis. 
 
 **Examples** This directory provides a set of short example runs.  
 
-**Documentation**  We have included in the file ALF-05.pdf an extensive documentation, 
+**Documentation**  We have included in the file  [doc.pdf](https://git.physik.uni-wuerzburg.de/fassaad/General_QMCT_code/raw/documentation_new/Documentation/doc.pdf)   an extensive documentation. The development of the doucmentation will take place **only** in the documentation_new branch. In this branch you all have permission to push things so that we can keep on improving  things. 
  
 
 ## TESTING ##
