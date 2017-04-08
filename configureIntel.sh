@@ -7,7 +7,7 @@ PROGRAMMCONFIGURATION=""
 # PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DQRREF"
 
 # uncomment the next line if you want an parallel tempering version
-PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DTEMPERING"
+# PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DTEMPERING"
 
 
 # uncomment the next line if you want an MPI parallel version
