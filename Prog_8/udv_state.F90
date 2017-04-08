@@ -201,36 +201,34 @@ END SUBROUTINE assign_UDV_state
 !> @param [in] TMP1
 !> @param [in] NCON wether we check.
 !-------------------------------------------------------------------
- SUBROUTINE matmultright_UDV_state(UDVL, TMP, TMP1, NCON)
+ SUBROUTINE matmultright_UDV_state(UDVL, TMP, NCON)
         Use QDRP_mod
         Implicit None
         INTEGER, intent(in) :: NCON
-        COMPLEX (Kind=Kind(0.d0)), intent(in), allocatable, Dimension(: ,:) :: TMP
-        COMPLEX (Kind=Kind(0.d0)), intent(inout), allocatable, Dimension(:, :) :: TMP1
+        COMPLEX (Kind=Kind(0.d0)), intent(inout), allocatable, Dimension(: ,:) :: TMP
         CLASS(UDV_State), intent(inout) :: UDVL
         COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: WORK
         COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta
         INTEGER, allocatable, Dimension(:) :: IPVT
         INTEGER :: INFO, i, j, LWORK, Ndim
         LOGICAL :: FORWRD
+        CHARACTER :: con
 
         Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
         beta = 0.D0
         Ndim = UDVL%ndim
         ! TMP1 = TMP^dagger * U^dagger
-        TMP1 = CONJG(TRANSPOSE(TMP))
+        TMP = CONJG(TRANSPOSE(TMP))
         LWORK=2*Ndim
         ALLOCATE(WORK(LWORK))
-        IF(UDVL%ctrans) THEN
-            CALL ZUNMQR('R', 'N', Ndim, Ndim, Ndim, UDVL%U, Ndim, UDVL%Tau, TMP1, Ndim, WORK, LWORK, INFO)
-        ELSE
-            CALL ZUNMQR('R', 'C', Ndim, Ndim, Ndim, UDVL%U, Ndim, UDVL%Tau, TMP1, Ndim, WORK, LWORK, INFO)
-        ENDIF
+        con = 'C'
+        IF (UDVL%ctrans) con = 'N'
+        CALL ZUNMQR('R', con, Ndim, Ndim, Ndim, UDVL%U, Ndim, UDVL%Tau, TMP, Ndim, WORK, LWORK, INFO)
         DEALLOCATE(WORK)
 !        CALL ZGEMM('C', 'C', Ndim, Ndim, Ndim, Z_ONE, TMP(1, 1), Ndim, UDVL%U, Ndim, beta, TMP1(1, 1), Ndim)
         ! TMP1 = TMP1 * D
         DO i = 1,NDim
-            UDVL%U(:, i) = TMP1(:, i) * UDVL%D(i)
+            UDVL%U(:, i) = TMP(:, i) * UDVL%D(i)
         ENDDO
         ALLOCATE(IPVT(Ndim))
         IPVT = 0
@@ -240,8 +238,6 @@ END SUBROUTINE assign_UDV_state
         CALL ZLAPMT(FORWRD, Ndim, Ndim, UDVL%V, Ndim, IPVT)
         ! V = V * R^dagger
         CALL ZTRMM('R', 'U', 'C', 'N', Ndim, Ndim, Z_ONE, UDVL%U, Ndim, UDVL%V, Ndim)
-        ! create explicitly U in the storage already present for it
-!        CALL ZUNGQR(Ndim, Ndim, Ndim, UDVL%U, Ndim, UDVL%Tau, WORK, LWORK, INFO)
         DEALLOCATE(WORK, IPVT)
         UDVL%ctrans = .false.
 END SUBROUTINE matmultright_UDV_state
@@ -259,39 +255,35 @@ END SUBROUTINE matmultright_UDV_state
 !> @param [inout] D The entries of a diagonal matrix.
 !> @param [inout] V A full matrix
 !> @param [in] TMP A full matrix
-!> @param [in] TMP1 temporary storage
 !> @param [in] NCON wether we check.(TODO: currently not used)
 !-------------------------------------------------------------------
- SUBROUTINE matmultleft_UDV_state(UDVR, TMP, TMP1, NCON)
+ SUBROUTINE matmultleft_UDV_state(UDVR, TMP, NCON)
         Use QDRP_mod
         Implicit None
         INTEGER, intent(in) :: NCON
-        COMPLEX (Kind=Kind(0.d0)), intent(in), allocatable, dimension(:, :) :: TMP
-        COMPLEX (Kind=Kind(0.d0)), intent(inout), allocatable, dimension(:, :) :: TMP1
+        COMPLEX (Kind=Kind(0.d0)), intent(inout), allocatable, dimension(:, :) :: TMP
         CLASS(UDV_State), intent(inout) :: UDVR
         COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: WORK
         COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta
         INTEGER :: INFO, i, j, LWORK, Ndim
         INTEGER, allocatable, Dimension(:) :: IPVT
         LOGICAL :: FORWRD
+        CHARACTER :: con
         
         ! QR(TMP * U * D) * V
         Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
         beta = 0.D0
         Ndim = UDVR%ndim
-        TMP1 = TMP
         LWORK=2*Ndim
         ALLOCATE(WORK(LWORK))
-        IF(UDVR%ctrans) THEN
-            CALL ZUNMQR('R', 'C', Ndim, Ndim, Ndim, UDVR%U, Ndim, UDVR%Tau, TMP1, Ndim, WORK, LWORK, INFO)
-        ELSE
-            CALL ZUNMQR('R', 'N', Ndim, Ndim, Ndim, UDVR%U, Ndim, UDVR%Tau, TMP1, Ndim, WORK, LWORK, INFO)
-        ENDIF
-!        CALL ZGEMM('N', 'N', Ndim, Ndim, Ndim, Z_ONE, TMP(1, 1), Ndim, UDVR%U, Ndim, beta, TMP1(1, 1), Ndim)
+        con = 'N'
+        if (UDVR%ctrans) con = 'C'
+        CALL ZUNMQR('R', con, Ndim, Ndim, Ndim, UDVR%U, Ndim, UDVR%Tau, TMP, Ndim, WORK, LWORK, INFO)
+
 DEALLOCATE(WORK)
         ! TMP1 = TMP1 * D
         DO i = 1,NDim
-            UDVR%U(:, i) = TMP1(:, i)*UDVR%D(i)
+            UDVR%U(:, i) = TMP(:, i)*UDVR%D(i)
         ENDDO
         ALLOCATE(IPVT(Ndim))
         IPVT = 0
@@ -302,8 +294,6 @@ DEALLOCATE(WORK)
         CALL ZLAPMR(FORWRD, Ndim, Ndim, UDVR%V, Ndim, IPVT(1)) ! lapack 3.3
         ! V = R * V
         CALL ZTRMM('L', 'U', 'N', 'N', Ndim, Ndim, Z_ONE, UDVR%U, Ndim, UDVR%V, Ndim)
-        ! Generate explicitly U in the previously abused storage of U
-!        CALL ZUNGQR(Ndim, Ndim, Ndim, UDVR%U, Ndim, UDVR%Tau, WORK, LWORK, INFO)
         UDVR%ctrans = .false.
         DEALLOCATE(WORK, IPVT)
 END SUBROUTINE matmultleft_UDV_state

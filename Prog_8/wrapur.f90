@@ -115,7 +115,7 @@
               ENDDO
            ENDDO
 
-           CALL UDVR(nf)%matmultleft(TMP, TMP1, NCON)
+           CALL UDVR(nf)%matmultleft(TMP, NCON)
         ENDDO
         deallocate(TMP, TMP1)
 
