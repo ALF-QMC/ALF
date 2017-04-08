@@ -316,20 +316,33 @@
         
         COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK
         INTEGER, Dimension(:), Allocatable :: IPVT
+        CHARACTER :: con
         
         LQ2 = LQ*2
         NCON = 0
         ALLOCATE(MYU2(LQ, LQ), V1INV(LQ,LQ), HLPB1(LQ2, LQ2), HLPB2(LQ2, LQ2), D3(LQ2))
         Allocate(IPVT(LQ2), TAU(LQ2))
         IPVT = 0
-        MYU2 = CONJG(TRANSPOSE(udv2%U))
+!        MYU2 = CONJG(TRANSPOSE(udv2%U))
+        MYU2 = udv2%U
+        CALL ZUNGQR(LQ, LQ, LQ, MYU2, LQ, udv2%tau, HLPB1(1, 1), LQ2, INFO)
+        IF(.NOT. udv2%ctrans) MYU2 = CONJG(TRANSPOSE(MYU2))
+        
+        con = 'N'
+        IF(udv1%ctrans) con = 'C'
         CALL INV(udv1%V, V1INV,Z)
+!        DEALLOCATE(WORK)
         If (dble(udv1%D(1)) >  dble(udv2%D(1)) ) Then 
            !Write(6,*) "D1(1) >  D2(1)", dble(D1(1)), dble(D2(1))
+           HLPB2 = 0.D0
+           DO i = 1, LQ
+           HLPB2(i, i + LQ) = udv1%D(i)
+           ENDDO
+           CALL ZUNMQR('R', con, LQ, LQ, LQ, udv1%U(1,1), LQ, udv1%Tau(1), HLPB2(1, LQ + 1), LQ2, HLPB1(1, 1), LQ2, INFO)
            DO J = 1,LQ
               DO I = 1,LQ
                  HLPB2(I   , J    ) =  V1INV(I,J)
-                 HLPB2(I   , J+LQ ) =  udv1%D(I)*udv1%U(I,J)
+!                 HLPB2(I   , J+LQ ) =  t3(i,j)!udv1%D(I)*t3(i, j)!udv1%U(I,J)
                  HLPB2(I+LQ, J+LQ ) =  MYU2(I, J)
                  HLPB2(I+LQ, J    ) = -udv2%D(I)*udv2%V(I,J)
               ENDDO
@@ -340,12 +353,17 @@
            call get_blocks(GR00, GR0T, GRT0, GRTT, HLPB2, LQ)
         Else
            !Write(6,*) "D1(1) <  D2(1)", dble(D1(1)), dble(D2(1))
+           HLPB2 = 0.D0
+           DO i = 1, LQ
+           HLPB2(i + LQ, i) = udv1%D(i)
+           ENDDO
+           CALL ZUNMQR('R', con, LQ, LQ, LQ, udv1%U(1,1), LQ, udv1%Tau(1), HLPB2(LQ+1, 1), LQ2, HLPB1(1, 1), LQ2, INFO)
            DO J = 1,LQ
               DO I = 1,LQ
                  HLPB2(I   , J    ) =  MYU2(I, J)
                  HLPB2(I   , J+LQ ) = -udv2%D(I)*udv2%V(I,J)
                  HLPB2(I+LQ, J+LQ ) =  V1INV(I,J)
-                 HLPB2(I+LQ, J    ) =  udv1%D(I)*udv1%U(I,J)
+!                 HLPB2(I+LQ, J    ) =  t3(i,j)!udv1%D(I)*t3(i,j)!udv1%U(I,J)
               ENDDO
            ENDDO
            HLPB1 = CT(HLPB2)
