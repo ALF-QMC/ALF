@@ -243,20 +243,20 @@ ENDDO
             ! In lapack the scalar tau and the vector v are scaled such that |tau|^2 |v|^2 = 2 Re(tau)
             ! The complete determinant det(Q) is the product of all reflectors. See http://www.netlib.org/lapack/lug/node128.html
                 ZC = CONJG(Z)
-                PHASE = PHASE * ZLADIV(ZC, Z)
+                PHASE = -PHASE * ZLADIV(ZC, Z)
             endif
             !!update with the data from ur  and ul
             if (udvl%TAU(i) .ne. CMPLX(0.D0, 0.D0, Kind=Kind(0.D0))) then
                 Z = udvl%TAU(i)
                 IF (.NOT. udvl%ctrans) Z = CONJG(Z)
                 ZC = CONJG(Z)
-                PHASE = PHASE *ZLADIV(ZC, Z)
+                PHASE = -PHASE *ZLADIV(ZC, Z)
             ENDIF
             if (udvr%TAU(i) .ne. CMPLX(0.D0, 0.D0, Kind=Kind(0.D0))) then
                 Z = udvr%TAU(i)
                 IF (.NOT. udvr%ctrans) Z = CONJG(Z)
                 ZC = CONJG(Z)
-                PHASE = PHASE * ZLADIV(ZC, Z)
+                PHASE = -PHASE * ZLADIV(ZC, Z)
             ENDIF
         enddo
         ! initialize the GRUP with inverse(D)
