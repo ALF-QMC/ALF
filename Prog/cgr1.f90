@@ -152,6 +152,7 @@
 	!Arguments.
 !         COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(IN)   ::  URUP, VRUP, ULUP, VLUP
 !         COMPLEX(Kind=Kind(0.d0)), Dimension(:),   Intent(IN)   ::  DLUP, DRUP
+        COMPLEX*16 ZLADIV
         CLASS(UDV_State), INTENT(IN) :: udvl, udvr
         COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(INOUT) :: GRUP
         COMPLEX(Kind=Kind(0.d0)), Intent(INOUT) :: PHASE
@@ -161,7 +162,7 @@
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  RHS
         COMPLEX (Kind=Kind(0.d0)), Dimension(:) , Allocatable ::  DUP
         INTEGER, Dimension(:), Allocatable :: IPVT, VISITED
-        COMPLEX (Kind=Kind(0.d0)) ::  alpha, beta, Z
+        COMPLEX (Kind=Kind(0.d0)) ::  alpha, beta, Z, ZC
         Integer :: I, J, N_size, NCON, info, LWORK, next, L
         Real (Kind=Kind(0.D0)) :: X, Xmax, sv
         CHARACTER :: conr, conl
@@ -241,24 +242,21 @@ ENDDO
             ! here we calculate the determinant of a single householder reflector: det(1 - tau * v v* ) = 1 - tau * v^* v
             ! In lapack the scalar tau and the vector v are scaled such that |tau|^2 |v|^2 = 2 Re(tau)
             ! The complete determinant det(Q) is the product of all reflectors. See http://www.netlib.org/lapack/lug/node128.html
-                X = ABS(Z)
-                Z = 1.D0 - 2.D0 * (Z/X) * (DBLE(Z)/X)
-                PHASE = PHASE * Z/ABS(Z)
+                ZC = CONJG(Z)
+                PHASE = PHASE * ZLADIV(ZC, Z)
             endif
             !!update with the data from ur  and ul
             if (udvl%TAU(i) .ne. CMPLX(0.D0, 0.D0, Kind=Kind(0.D0))) then
                 Z = udvl%TAU(i)
                 IF (.NOT. udvl%ctrans) Z = CONJG(Z)
-                X = ABS(Z)
-                Z = 1.D0 - 2.D0 * (Z/X) * (DBLE(Z)/X)
-                PHASE = PHASE * Z/ABS(Z)
+                ZC = CONJG(Z)
+                PHASE = PHASE *ZLADIV(ZC, Z)
             ENDIF
             if (udvr%TAU(i) .ne. CMPLX(0.D0, 0.D0, Kind=Kind(0.D0))) then
                 Z = udvr%TAU(i)
                 IF (.NOT. udvr%ctrans) Z = CONJG(Z)
-                X = ABS(Z)
-                Z = 1.D0 - 2.D0 * (Z/X) * (DBLE(Z)/X)
-                PHASE = PHASE * Z/ABS(Z)
+                ZC = CONJG(Z)
+                PHASE = PHASE * ZLADIV(ZC, Z)
             ENDIF
         enddo
         ! initialize the GRUP with inverse(D)
