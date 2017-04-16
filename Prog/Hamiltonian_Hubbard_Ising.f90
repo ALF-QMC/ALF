@@ -26,6 +26,7 @@
       Integer,              private :: L1, L2
       real (Kind=Kind(0.d0)),        private :: ham_T , ham_U,  Ham_chem, Ham_h, Ham_J, Ham_xi, Ham_F
       real (Kind=Kind(0.d0)),        private :: Dtau, Beta
+      Real(Kind=Kind(0.D0)), private :: logsinh, logcosh
       Character (len=64),   private :: Model, Lattice_type
       Logical,              private :: One_dimensional
       Integer,              private :: N_coord, Norb
@@ -190,6 +191,8 @@
                  Endif
               Endif
               close(50)
+             logcosh = log(cosh(Dtau * Ham_h))
+             logsinh = log(sinh(Dtau * Ham_h))
 #if defined(MPI) && !defined(TEMPERING)
            endif
 #endif
@@ -535,6 +538,7 @@
                 enddo
              Endif
              
+!             nsigma = nsigma_old
              Ratio = Delta_S0_global(Nsigma_old)
              Weight = 1.d0 - 1.d0/(1.d0+Ratio)
              If ( Weight < ranf_wrap() ) Then 
@@ -545,7 +549,7 @@
              endif
 
              !Write(6,*) i,nt,sx*dx, sy*dy, st*dt, Ratio, T0_Proposal_ratio
-             !Write(6,*)  Ratio, T0_Proposal_ratio
+             Write(6,*)  Ratio, T0_Proposal_ratio, Weight
 
           endif
 
@@ -613,7 +617,7 @@
                    
                    nc_J = nc_J + nsigma(n1,nt)*nsigma(n2,nt) + &
                         &        nsigma(n2,nt)*nsigma(n3,nt) + &
-                        &        nsigma(n3,nt)*nsigma(n3,nt) + &
+                        &        nsigma(n3,nt)*nsigma(n4,nt) + &
                         &        nsigma(n4,nt)*nsigma(n1,nt) - &
                         &        nsigma_old(n1,nt)*nsigma_old(n2,nt) - &
                         &        nsigma_old(n2,nt)*nsigma_old(n3,nt) - &
@@ -622,8 +626,7 @@
                    
                 enddo
              enddo
-             Delta_S0_global = ( sinh(Dtau*Ham_h)**nc_h_m ) * (cosh(Dtau*Ham_h)**nc_h_p) * &
-                  &            exp( -Dtau*(Ham_F*real(nc_F,kind(0.d0)) -  Ham_J*real(nc_J,kind(0.d0))))
+             Delta_S0_global= exp(-Dtau*(Ham_F*real(nc_F,kind(0.d0))- Ham_J*real(nc_J,kind(0.d0)))+ nc_h_m*logsinh+ nc_h_p*logcosh)
           endif
         end Function Delta_S0_global
 !===================================================================================           
