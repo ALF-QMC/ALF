@@ -2,7 +2,7 @@ FC= $(mpif90)
 FC= $(f90)
 FLAGS= $(FL) 
 LIBS= $(Libs)/Modules/modules_90.a \
-      $(Libs)/MyNag/libnag.a \
+      $(Libs)/libqrref/libqrref.a  \
       $(LIB_BLAS_LAPACK)
 
 all:
