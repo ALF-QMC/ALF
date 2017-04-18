@@ -2,31 +2,31 @@
 *
 *  =========== DOCUMENTATION ===========
 *
-* Online html documentation available at 
-*            http://www.netlib.org/lapack/explore-html/ 
+* Online html documentation available at
+*            http://www.netlib.org/lapack/explore-html/
 *
 *> \htmlonly
-*> Download ZGEQR2 + dependencies 
-*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/zgeqr2.f"> 
-*> [TGZ]</a> 
-*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.zip?format=zip&filename=/lapack/lapack_routine/zgeqr2.f"> 
-*> [ZIP]</a> 
-*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/zgeqr2.f"> 
+*> Download ZGEQR2 + dependencies
+*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/zgeqr2.f">
+*> [TGZ]</a>
+*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.zip?format=zip&filename=/lapack/lapack_routine/zgeqr2.f">
+*> [ZIP]</a>
+*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/zgeqr2.f">
 *> [TXT]</a>
-*> \endhtmlonly 
+*> \endhtmlonly
 *
 *  Definition:
 *  ===========
 *
 *       SUBROUTINE ZGEQR2( M, N, A, LDA, TAU, WORK, INFO )
-* 
+*
 *       .. Scalar Arguments ..
 *       INTEGER            INFO, LDA, M, N
 *       ..
 *       .. Array Arguments ..
 *       COMPLEX*16         A( LDA, * ), TAU( * ), WORK( * )
 *       ..
-*  
+*
 *
 *> \par Purpose:
 *  =============
@@ -91,12 +91,12 @@
 *  Authors:
 *  ========
 *
-*> \author Univ. of Tennessee 
-*> \author Univ. of California Berkeley 
-*> \author Univ. of Colorado Denver 
-*> \author NAG Ltd. 
+*> \author Univ. of Tennessee
+*> \author Univ. of California Berkeley
+*> \author Univ. of Colorado Denver
+*> \author NAG Ltd.
 *
-*> \date September 2012
+*> \date December 2016
 *
 *> \ingroup complex16GEcomputational
 *
@@ -121,10 +121,10 @@
 *  =====================================================================
       SUBROUTINE ZGEQR2_REF( M, N, A, LDA, TAU, WORK, INFO )
 *
-*  -- LAPACK computational routine (version 3.4.2) --
+*  -- LAPACK computational routine (version 3.7.0) --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     September 2012
+*     December 2016
 *
 *     .. Scalar Arguments ..
       INTEGER            INFO, LDA, M, N
@@ -144,7 +144,7 @@
       COMPLEX*16         ALPHA
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           XERBLA, ZLARF, ZLARFG
+      EXTERNAL           XERBLA, ZLARF_REF, ZLARFG_REF
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          DCONJG, MAX, MIN
@@ -172,7 +172,7 @@
 *
 *        Generate elementary reflector H(i) to annihilate A(i+1:m,i)
 *
-         CALL ZLARFG_REF( M-I+1, A( I, I ), A(MIN(I+1,M),I), 1,
+         CALL ZLARFG_REF( M-I+1, A( I, I ), A( MIN( I+1, M ), I ), 1,
      $                TAU( I ) )
          IF( I.LT.N ) THEN
 *
@@ -181,7 +181,7 @@
             ALPHA = A( I, I )
             A( I, I ) = ONE
             CALL ZLARF_REF( 'Left', M-I+1, N-I, A( I, I ), 1,
-     $                  DCONJG( TAU( I ) ), A( I, I+1 ),LDA,WORK)
+     $                  DCONJG( TAU( I ) ), A( I, I+1 ), LDA, WORK )
             A( I, I ) = ALPHA
          END IF
    10 CONTINUE
