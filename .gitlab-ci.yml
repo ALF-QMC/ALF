@@ -129,9 +129,10 @@ GQMCT_Jessie_MPI:
   stage: build
   script:
     - gfortran -v
-    - make f90='mpif90' PROGRAMCONFIGURATION='-DMPI -DTEMPERING'
+    - make f90='mpif90' PROGRAMCONFIGURATION='-DMPI -DTEMPERING' lib
     - make f90='mpif90' PROGRAMCONFIGURATION='-DMPI -DTEMPERING' Hub_Ising
     - make f90='mpif90' PROGRAMCONFIGURATION='-DMPI -DTEMPERING' Kondo_Honey
+    - make f90='mpif90' PROGRAMCONFIGURATION='-DMPI -DTEMPERING' SPT
 
 GQMCT_Wheezy_conv:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-wheezy-gfortran-blas-lapack
