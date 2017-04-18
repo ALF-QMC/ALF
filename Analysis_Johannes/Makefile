@@ -12,7 +12,7 @@ all:
 	(make -f Compile_Max  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" ) ;\
 	(make -f Compile_Max_ph  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" ) ;\
 	(make -f Compile_eq  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" ) ;\
-	cp *.out ../Analysis_8
+	cp *.out ../Analysis_8/.
 clean: 	
 	(make -f Compile_eq  clean );\
 	(make -f Compile_cov  clean );\
