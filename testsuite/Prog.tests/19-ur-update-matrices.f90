@@ -1,5 +1,5 @@
 Program TESTURUPDATEMATRICES
-Use Wrap_helpers
+Use UDV_State_mod
 implicit none
 interface
 SUBROUTINE ur_update_matrices_old(U, D, V, V1, TMP, TMP1, Ndim, NCON)
@@ -11,48 +11,50 @@ SUBROUTINE ur_update_matrices_old(U, D, V, V1, TMP, TMP1, Ndim, NCON)
         end Subroutine
 end interface
 
-        COMPLEX(Kind=Kind(0.D0)), Dimension(:,:), allocatable ::  U, V, V1, TMP, TMP1, Uold, Vold, TMPold
-        COMPLEX(Kind=Kind(0.D0)), Dimension(:), allocatable ::  D, Dold
+        COMPLEX(Kind=Kind(0.D0)), Dimension(:,:), allocatable :: V1, TMP, TMP1, Uold, Vold, TMPold
+        COMPLEX(Kind=Kind(0.D0)), Dimension(:), allocatable ::  Dold
         INTEGER         :: i, j, Ndim, NCON
+        TYPE(UDV_State) :: udvl 
         COMPLEX(Kind=Kind(0.D0)) :: Z
         
         do Ndim = 10, 200,10
-        Allocate (U(Ndim, Ndim), Uold(Ndim, Ndim), V(Ndim, Ndim), Vold(Ndim, Ndim))
-        ALLocate(TMP(Ndim, Ndim), TMPold(Ndim, Ndim), D(Ndim), Dold(Ndim), TMP1(Ndim, Ndim), V1(Ndim, Ndim))
-        U = 0.D0
-        V = 0.D0
+        CALL udvl%alloc(Ndim)
+        Allocate (Uold(Ndim, Ndim), Vold(Ndim, Ndim))
+        ALLocate(TMP(Ndim, Ndim), TMPold(Ndim, Ndim), Dold(Ndim), TMP1(Ndim, Ndim), V1(Ndim, Ndim))
+        Uold = 0.D0
+        Vold = 0.D0
         do i = 1, Ndim
         do j = 1, Ndim
         TMP(i, j) = 1.D0/(i+j)
         enddo
-        D(i) = i*i
-        U(i,i) = 1.D0
-        V(i,i) = 1.D0
+        Dold(i) = i*i
+        Uold(i,i) = 1.D0
+        Vold(i,i) = 1.D0
         enddo
-        Uold = U
-        Vold = V
-        Dold = D
+        udvl%U = Uold
+        udvl%V = Vold
+        udvl%D = Dold
         TMPold = TMP
         NCON = 1
-        call ur_update_matrices(U, D, V, TMP, TMP1, Ndim, NCON)
+        CALL UDVL%matmultleft(TMP, TMP1, NCON)
         call ur_update_matrices_old(Uold, Dold, Vold, V1, TMPold, TMP1, Ndim, NCON)
         
         ! compare
         do i = 1, Ndim
         do j = 1, Ndim
-        Z = V(i,j) - Vold(i,j)
+        Z = udvl%V(i,j) - Vold(i,j)
         
-        if (Abs(real(Z)) > MAX(ABS(REAL(V(i, j))), ABS(REAL(Vold(i, j))))*1D-15 ) then
+        if (Abs(real(Z)) > MAX(ABS(REAL(udvl%V(i, j))), ABS(REAL(Vold(i, j))))*1D-15 ) then
 !        write (*,*) "Error in V real part", V(i,j), Vold(i,j)
 !        STOP 2
         endif
-        if (Abs(AIMAG(Z)) > MAX(ABS(AIMAG(V(i, j))), ABS(AIMAG(Vold(i, j))))*1D-15 ) then
+        if (Abs(AIMAG(Z)) > MAX(ABS(AIMAG(udvl%V(i, j))), ABS(AIMAG(Vold(i, j))))*1D-15 ) then
 !        write (*,*) "Error in V imag part", V(i,j), Vold(i,j)
 !        STOP 3
         endif
         
-        Z = U(i,j) - Uold(i,j)
-        if (Abs(real(Z)) > MAX(ABS(REAL(U(i, j))), ABS(REAL(Uold(i, j))))*1D-15 ) then
+        Z = udvl%U(i,j) - Uold(i,j)
+        if (Abs(real(Z)) > MAX(ABS(REAL(udvl%U(i, j))), ABS(REAL(Uold(i, j))))*1D-15 ) then
 !        write (*,*) "Error in U real part", U(i,j), Uold(i,j)
 !        STOP 4
         endif
@@ -63,18 +65,19 @@ end interface
         
         enddo
         
-        Z = D(i) - Dold(i)
-        if (Abs(real(Z)) > MAX(ABS(REAL(D(i))), ABS(REAL(Dold(i))))*1D-15) then
+        Z = udvl%D(i) - Dold(i)
+        if (Abs(real(Z)) > MAX(ABS(REAL(udvl%D(i))), ABS(REAL(Dold(i))))*1D-15) then
 !        write (*,*) "Error in D real part", D(i), Dold(i)
 !        STOP 6
         endif
-        if (Abs(AIMAG(Z)) > MAX(ABS(AIMAG(D(i))), ABS(AIMAG(Dold(i))))*1D-15 ) then
+        if (Abs(AIMAG(Z)) > MAX(ABS(AIMAG(udvl%D(i))), ABS(AIMAG(Dold(i))))*1D-15 ) then
 !        write (*,*) "Error in D imag part", D(i), Dold(i)
 !        STOP 7
         endif
         
         enddo
-        Deallocate(U, V, D, Vold, Uold, Dold, TMP, TMPold, V1, TMP1)
+        CALL udvl%dealloc
+        Deallocate(Vold, Uold, Dold, TMP, TMPold, V1, TMP1)
         enddo
         
 write (*,*) "success"

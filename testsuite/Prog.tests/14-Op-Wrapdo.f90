@@ -67,14 +67,14 @@ Program OPMULTTEST
                   Zre = real (matnew(i, j)-matold(i, j))
                   Zim = aimag (matnew(i, j)-matold(i, j))
                   If (Abs(Zre) > Max(Abs(real(matnew(i, j))), &
-                 & Abs(real(matold(i, j))))*1D-15) Then
+                 & Abs(real(matold(i, j))))*1D-14) Then
                      Write (*,*) "opn: ", opn, "N_type", N_Type
                      Write (*,*) "ERROR in real part", real (matnew(i, &
                     & j)), real (matold(i, j))
                      Stop 2
                   End If
                   If (Abs(Zim) > Max(Abs(aimag(matnew(i, j))), &
-                 & Abs(aimag(matold(i, j))))*1D-15) Then
+                 & Abs(aimag(matold(i, j))))*1D-14) Then
                      Write (*,*) "ERROR in imag part", aimag (matnew(i, &
                     & j)), aimag (matold(i, j))
                      Stop 3

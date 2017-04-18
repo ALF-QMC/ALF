@@ -1,0 +1,36 @@
+ =====================================
+ Model is      : Hubbard_SU2_Ising                                               
+ Lattice is    : Square                                                          
+ # of orbitals :           16
+ Beta          :    10.000000000000000     
+ dtau,Ltrot    :   0.10000000000000001              100
+ N_SUN         :            2
+ N_FL          :            1
+ t             :    1.0000000000000000     
+ Ham_U         :    0.0000000000000000     
+ Ham_chem      :    0.0000000000000000     
+ Ham_xi        :    2.0000000000000000     
+ Ham_J         :    0.0000000000000000     
+ Ham_h         :    2.1000000000000001     
+ Ham_F         :    2.0000000000000000     
+ Propose Ising moves according to  bare Ising action
+ No initial configuration, Seed_in      452938
+ Sweeps             :          100
+ Measure Int.       :            1         100
+ Stabilization,Wrap :           10
+ Nstm               :           10
+ Ltau               :            1
+ This executable represents commit 551afdd of branch master.
+ Bin                :           10
+ No CPU-time limitation 
+ # of exchange steps             6
+ Tempering frequency            10
+  Precision Green  Mean, Max :    5.1732534417743045E-011   3.2734327679029285E-009
+  Precision Phase, Max       :    0.0000000000000000     
+  Precision tau    Mean, Max :    1.2429999219254571E-011   2.8477378233304762E-009
+  Acceptance                 :   0.86579749636800230     
+  Acceptance Tempering       :   0.28499999999999998     
+  Acceptance_Glob            :    0.0000000000000000     
+  Mean Phase diff Glob       :    0.0000000000000000     
+  Max  Phase diff Glob       :    0.0000000000000000     
+  CPU Time                   :    97.941671999999997     
