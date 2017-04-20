@@ -2,31 +2,31 @@
 *
 *  =========== DOCUMENTATION ===========
 *
-* Online html documentation available at 
-*            http://www.netlib.org/lapack/explore-html/ 
+* Online html documentation available at
+*            http://www.netlib.org/lapack/explore-html/
 *
 *> \htmlonly
-*> Download ZGEQRF + dependencies 
-*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/zgeqrf.f"> 
-*> [TGZ]</a> 
-*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.zip?format=zip&filename=/lapack/lapack_routine/zgeqrf.f"> 
-*> [ZIP]</a> 
-*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/zgeqrf.f"> 
+*> Download ZGEQRF + dependencies
+*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/zgeqrf.f">
+*> [TGZ]</a>
+*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.zip?format=zip&filename=/lapack/lapack_routine/zgeqrf.f">
+*> [ZIP]</a>
+*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/zgeqrf.f">
 *> [TXT]</a>
-*> \endhtmlonly 
+*> \endhtmlonly
 *
 *  Definition:
 *  ===========
 *
 *       SUBROUTINE ZGEQRF( M, N, A, LDA, TAU, WORK, LWORK, INFO )
-* 
+*
 *       .. Scalar Arguments ..
 *       INTEGER            INFO, LDA, LWORK, M, N
 *       ..
 *       .. Array Arguments ..
 *       COMPLEX*16         A( LDA, * ), TAU( * ), WORK( * )
 *       ..
-*  
+*
 *
 *> \par Purpose:
 *  =============
@@ -106,12 +106,12 @@
 *  Authors:
 *  ========
 *
-*> \author Univ. of Tennessee 
-*> \author Univ. of California Berkeley 
-*> \author Univ. of Colorado Denver 
-*> \author NAG Ltd. 
+*> \author Univ. of Tennessee
+*> \author Univ. of California Berkeley
+*> \author Univ. of Colorado Denver
+*> \author NAG Ltd.
 *
-*> \date November 2011
+*> \date December 2016
 *
 *> \ingroup complex16GEcomputational
 *
@@ -136,10 +136,10 @@
 *  =====================================================================
       SUBROUTINE ZGEQRF_REF( M, N, A, LDA, TAU, WORK, LWORK, INFO )
 *
-*  -- LAPACK computational routine (version 3.4.0) --
+*  -- LAPACK computational routine (version 3.7.0) --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     November 2011
+*     December 2016
 *
 *     .. Scalar Arguments ..
       INTEGER            INFO, LDA, LWORK, M, N
@@ -156,7 +156,7 @@
      $                   NBMIN, NX
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           XERBLA, ZGEQR2, ZLARFB, ZLARFT
+      EXTERNAL           XERBLA, ZGEQR2_REF, ZLARFB_REF, ZLARFT_REF
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          MAX, MIN
@@ -234,19 +234,19 @@
 *           Compute the QR factorization of the current block
 *           A(i:m,i:i+ib-1)
 *
-            CALL ZGEQR2_REF(M-I+1,IB,A(I,I),LDA,TAU(I),WORK,
+            CALL ZGEQR2_REF( M-I+1, IB, A( I, I ), LDA, TAU( I ), WORK,
      $                   IINFO )
             IF( I+IB.LE.N ) THEN
 *
 *              Form the triangular factor of the block reflector
 *              H = H(i) H(i+1) . . . H(i+ib-1)
 *
-               CALL ZLARFT_REF('Forward','Columnwise',M-I+1,IB,
+               CALL ZLARFT_REF( 'Forward', 'Columnwise', M-I+1, IB,
      $                      A( I, I ), LDA, TAU( I ), WORK, LDWORK )
 *
 *              Apply H**H to A(i:m,i+ib:n) from the left
 *
-               CALL ZLARFB_REF('Left','Conjugate transpose','Forward',
+               CALL ZLARFB_REF( 'Left','Conjugate transpose','Forward',
      $                      'Columnwise', M-I+1, N-I-IB+1, IB,
      $                      A( I, I ), LDA, WORK, LDWORK, A( I, I+IB ),
      $                      LDA, WORK( IB+1 ), LDWORK )
@@ -259,7 +259,7 @@
 *     Use unblocked code to factor the last or only block.
 *
       IF( I.LE.K )
-     $   CALL ZGEQR2_REF( M-I+1,N-I+1,A(I,I),LDA,TAU(I),WORK,
+     $   CALL ZGEQR2_REF( M-I+1, N-I+1, A( I, I ), LDA, TAU( I ), WORK,
      $                IINFO )
 *
       WORK( 1 ) = IWS
