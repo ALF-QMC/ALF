@@ -418,7 +418,7 @@ Contains
           Ratiotot = Compute_Ratio_Global(Phase_Det_old, Phase_Det_new, &
                &                               Det_vec_old, Det_vec_new, nsigma_old, T0_Proposal_ratio, Ratio) 
           
-          !Write(6,*) 'Ratio_global: ', Ratiotot
+          Write(6,*) 'Ratio_global: ', Ratiotot
           
           Weight = abs(  real(Phase_old * Ratiotot, kind=Kind(0.d0))/real(Phase_old,kind=Kind(0.d0)) )
           
@@ -429,15 +429,19 @@ Contains
           
           TOGGLE = .false. 
           if ( Weight > ranf_wrap() )  Then
+          write (*,*) "accepting global move"
              TOGGLE = .true.
              Phase_old     = Phase_new
              Phase_det_old = Phase_det_new
              nsigma_old    = nsigma
              Det_vec_old   = Det_vec_new
           else
+          write (*,*) "rejecting global move"
              nsigma = nsigma_old
           endif
           Call Control_upgrade_Glob(TOGGLE)
+        else
+        write (*,*) T0_Proposal_ratio, "-> move not considered."
        endif
     Enddo
 
