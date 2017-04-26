@@ -217,17 +217,28 @@ Contains
     Type (Operator), Intent(IN)  :: Op
     Complex (Kind=Kind(0.d0)), Dimension(:,:), INTENT(OUT) :: Mat
     Complex (Kind=Kind(0.d0)), INTENT(IN) :: g
-    Complex (Kind=Kind(0.d0)) :: Z, Z1
+    Complex (Kind=Kind(0.d0)) :: Z, Z1, y, t
+    Complex (Kind=Kind(0.d0)), allocatable, dimension(:,:) :: c
 
-    Integer :: n, j, iters
+    Integer :: n, j, I, iters
     
     iters = Op%N
     Mat = cmplx(0.d0, 0.d0, kind(0.D0))
+    Allocate (c(iters, iters))
+    c = 0.D0
     Do n = 1, iters
        Z = exp(g*Op%E(n))
        do J = 1, iters
           Z1 = Z*conjg(Op%U(J,n))
-          Mat(1:iters, J) = Mat(1:iters, J) + Z1 * Op%U(1:iters, n)
+          do I = 1, iters
+            y = Z1 * Op%U(I, n) - c(I, J)
+            t = Mat(I, J) + y
+            c(I, J) = (t - Mat(I,J)) - y
+            Mat(I, J) = t
+!            Mat(I, J) = Mat(I, J) + Z1 * Op%U(I, n)
+          enddo
+          
+!          Mat(1:iters, J) = Mat(1:iters, J) + Z1 * Op%U(1:iters, n)
        enddo
     enddo
   end subroutine Op_exp
@@ -324,7 +335,7 @@ Contains
     select case (opn)
     case (1)
         DO I = 1, Ndim
-            Mat(P(1), I) = U(1,1) * V(1, I)
+            Mat(P(1), I) = V(1, I)
         enddo
     case (2)
         DO I = 1, Ndim
@@ -372,7 +383,7 @@ Contains
     select case (opn)
     case (1)
         DO I = 1, Ndim
-            Mat(I, P(1)) = conjg(U(1,1)) * V(1, I)
+            Mat(I, P(1)) = V(1, I)
         enddo
     case (2)
         DO I = 1, Ndim
@@ -421,7 +432,7 @@ Contains
     select case (opn)
     case (1)
         DO I = 1, Ndim
-            Mat(I, P(1)) = Z(1) * U(1, 1) * V(1, I)
+            Mat(I, P(1)) = Z(1) * V(1, I)
         enddo
     case (2)
         DO I = 1, Ndim
@@ -468,7 +479,7 @@ Contains
     select case (opn)
     case (1)
         DO I = 1, Ndim
-            Mat(P(1), I) = Z(1) * conjg(U(1, 1)) * V(1, I)
+            Mat(P(1), I) = Z(1) * V(1, I)
         enddo
     case (2)
         DO I = 1, Ndim
@@ -644,6 +655,8 @@ Contains
     !!!!! N_Type == 2
     !    (Op%U^{dagger}) * Mat * Op%U
     !!!!!
+    
+    write(*,*) Op%N, Ndim
     Allocate(VH(Op%N,Ndim), ExpOp(Op%N), ExpMop(Op%N))
     If (N_type == 1) then
        call FillExpOps(ExpOp, ExpMop, Op, spin)
@@ -667,9 +680,11 @@ Contains
     select case (Op%N)
     case (1)
         DO I = 1, Ndim
-            Mat(I, Op%P(1)) = Op%U(1,1) * VH(1, I)
+            Mat(I, Op%P(1)) =  VH(1, I)
         enddo
     case (2)
+    write (*, *) DBLE(Op%U(1, 1)), DBLE(Op%U(1, 2))
+    write (*, *) DBLE(Op%U(2, 1)), DBLE(Op%U(2, 2))
         DO I = 1, Ndim
             Mat(I, Op%P(1)) = Op%U(1, 1) * VH(1, I) + Op%U(2, 1) * VH(2, I)
             Mat(I, Op%P(2)) = Op%U(1, 2) * VH(1, I) + Op%U(2, 2) * VH(2, I)
@@ -684,7 +699,7 @@ Contains
       select case (Op%N)
         case (1)
             DO I = 1, Ndim
-                Mat(Op%P(1), I) = conjg(Op%U(1,1)) * VH(1, I)
+                Mat(Op%P(1), I) =  VH(1, I)
             enddo
         case (2)
             DO I = 1, Ndim
