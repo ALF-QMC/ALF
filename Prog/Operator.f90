@@ -660,22 +660,19 @@ Contains
     If (N_type == 1) then
        call FillExpOps(ExpOp, ExpMop, Op, spin)
        
-       Do n = 1,Op%N
-          expHere=ExpOp(n)
-          VH(n, :) = ExpHere * Mat(:, Op%P(n))
-       Enddo
-
-       call opmultct(VH, Op%U, Op%P, Mat, Op%N, Ndim)
-
-!        Do n = 1,Op%N
-!           ExpHere=ExpMOp(n)
-!           VH(n, :) = ExpHere * Mat(Op%P(n), :)
-!        Enddo
        if (Op%N == 1) then
             DO I = 1, Ndim
-                Mat(Op%P(1), I) = ExpHere * Mat(Op%P(1), I)
+                Mat(I, Op%P(1)) = ExpOp(1) * Mat(I, Op%P(1))
+            enddo
+            DO I = 1, Ndim
+                Mat(Op%P(1), I) = ExpMOp(1) * Mat(Op%P(1), I)
             enddo
        else
+            Do n = 1,Op%N
+                expHere=ExpOp(n)
+                VH(n, :) = ExpHere * Mat(:, Op%P(n))
+            Enddo
+            call opmultct(VH, Op%U, Op%P, Mat, Op%N, Ndim)
             Do n = 1,Op%N
                 ExpHere=ExpMOp(n)
                 VH(n, :) = ExpHere * Mat(Op%P(n), :)
