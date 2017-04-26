@@ -656,7 +656,6 @@ Contains
     !    (Op%U^{dagger}) * Mat * Op%U
     !!!!!
     
-    write(*,*) Op%N, Ndim
     Allocate(VH(Op%N,Ndim), ExpOp(Op%N), ExpMop(Op%N))
     If (N_type == 1) then
        call FillExpOps(ExpOp, ExpMop, Op, spin)
@@ -668,12 +667,21 @@ Contains
 
        call opmultct(VH, Op%U, Op%P, Mat, Op%N, Ndim)
 
-       Do n = 1,Op%N
-          ExpHere=ExpMOp(n)
-          VH(n, :) = ExpHere * Mat(Op%P(n), :)
-       Enddo
-    
-       call opmult(VH, Op%U, Op%P, Mat, Op%N, Ndim)
+!        Do n = 1,Op%N
+!           ExpHere=ExpMOp(n)
+!           VH(n, :) = ExpHere * Mat(Op%P(n), :)
+!        Enddo
+       if (Op%N == 1) then
+            DO I = 1, Ndim
+                Mat(Op%P(1), I) = ExpHere * Mat(Op%P(1), I)
+            enddo
+       else
+            Do n = 1,Op%N
+                ExpHere=ExpMOp(n)
+                VH(n, :) = ExpHere * Mat(Op%P(n), :)
+            Enddo
+            call opmult(VH, Op%U, Op%P, Mat, Op%N, Ndim)
+       endif
     elseif (N_Type == 2) then
         if(Op%N > 1) then
             select case (Op%N)
