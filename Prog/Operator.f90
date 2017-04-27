@@ -175,14 +175,15 @@ Contains
     Implicit none
     Type (Operator), intent(INOUT) :: Op
 
-    Complex (Kind=Kind(0.d0)), allocatable :: U(:,:)
+    Complex (Kind=Kind(0.d0)), allocatable :: U(:,:), TMP(:,:)
     Real    (Kind=Kind(0.d0)), allocatable :: E(:)
     Real    (Kind=Kind(0.d0)) :: Zero = 1.E-9
-    Integer :: N, I, np,nz
+    Integer :: N, I, J, np,nz
+    Complex (Kind=Kind(0.d0)) :: Z
 
     If (Op%N > 1) then
        N = Op%N
-       Allocate (U(N,N), E(N))
+       Allocate (U(N,N), E(N), TMP(N,N))
        Call Diag(Op%O,U, E)  
        Np = 0
        Nz = 0
@@ -199,7 +200,18 @@ Contains
        enddo
        Op%N_non_zero = np
        !Write(6,*) "Op_set", np,N
-       deallocate (U, E)
+       TMP = Op%U ! that way we have the changes to the determinant due to the permutation
+       Z = Det(TMP, N)
+       Z = Z**(1.D0/N)
+       TMP = Op%U
+       ! Scale Op%U to be in SU(N)
+       Op%U = Op%U / Z
+!        DO I = 1, N
+!        DO J = 1, N
+!        Op%U(I, J) = Op%U(I,J) / Z
+!        ENDDO
+!        ENDDO
+       deallocate (U, E, TMP)
        ! Op%U,Op%E)
        !Write(6,*) 'Calling diag 1'
     else
