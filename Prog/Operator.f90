@@ -347,7 +347,7 @@ Contains
     case (2)
         DO I = 1, Ndim
             Mat(P(1), I) = U(1,1) * V(1, I) + U(1,2) * V(2, I)
-            Mat(P(2), I) = U(2,1) * V(1, I) + U(2,2) * V(2, I)
+            Mat(P(2), I) = -conjg(U(1,2)) * V(1, I) + conjg(U(1,1)) * V(2, I)
         enddo
     case default
         Allocate(tmp(opn, Ndim))
@@ -395,7 +395,7 @@ Contains
     case (2)
         DO I = 1, Ndim
             Mat(I, P(1)) = conjg(U(1,1)) * V(1, I) + conjg(U(1,2)) * V(2, I)
-            Mat(I, P(2)) = conjg(U(2,1)) * V(1, I) + conjg(U(2,2)) * V(2, I)
+            Mat(I, P(2)) = -U(1,2) * V(1, I) + U(1,1) * V(2, I)
         enddo
     case default
         Allocate(tmp(Ndim, opn))
@@ -443,8 +443,8 @@ Contains
         enddo
     case (2)
         DO I = 1, Ndim
-            Mat(I, P(1)) = Z(1) * (U(1, 1) * V(1, I) + U(2, 1) * V(2, I))
-            Mat(I, P(2)) = Z(2) * (U(1, 2) * V(1, I) + U(2, 2) * V(2, I))
+            Mat(I, P(1)) = Z(1) * (U(1, 1) * V(1, I) - conjg(U(1, 2)) * V(2, I))
+            Mat(I, P(2)) = Z(2) * (U(1, 2) * V(1, I) + conjg(U(1, 1)) * V(2, I))
         enddo
     case default
         do n = 1, opn
@@ -490,8 +490,8 @@ Contains
         enddo
     case (2)
         DO I = 1, Ndim
-            Mat(P(1), I) = Z(1) * (conjg(U(1, 1)) * V(1, I) + conjg(U(2, 1)) * V(2, I))
-            Mat(P(2), I) = Z(2) * (conjg(U(1, 2)) * V(1, I) + conjg(U(2, 2)) * V(2, I))
+            Mat(P(1), I) = Z(1) * (conjg(U(1, 1)) * V(1, I) - U(1, 2) * V(2, I))
+            Mat(P(2), I) = Z(2) * (conjg(U(1, 2)) * V(1, I) + U(1, 1) * V(2, I))
         enddo
     case default
         do n = 1, opn
@@ -692,15 +692,11 @@ Contains
             case (2)
                 call copy_select_rows(VH, Mat, Op%P, 2, Ndim)
                 DO I = 1, Ndim
-!                     Mat(I, Op%P(1)) = Op%U(1, 1) * VH(1, I) + Op%U(2, 1) * VH(2, I)
-!                     Mat(I, Op%P(2)) = Op%U(1, 2) * VH(1, I) + Op%U(2, 2) * VH(2, I)
                     Mat(I, Op%P(1)) = Op%U(1, 1) * VH(1, I) - conjg(Op%U(1, 2)) * VH(2, I)
                     Mat(I, Op%P(2)) = Op%U(1, 2) * VH(1, I) + conjg(Op%U(1, 1)) * VH(2, I)
                 enddo
                 call copy_select_columns(VH, Mat, Op%P, 2, Ndim)
                 DO I = 1, Ndim
-!                     Mat(Op%P(1), I) = conjg(Op%U(1,1)) * VH(1, I) + conjg(Op%U(2,1)) * VH(2, I)
-!                     Mat(Op%P(2), I) = conjg(Op%U(1,2)) * VH(1, I) + conjg(Op%U(2,2)) * VH(2, I)
                     Mat(Op%P(1), I) = conjg(Op%U(1,1)) * VH(1, I) - Op%U(1,2) * VH(2, I)
                     Mat(Op%P(2), I) = conjg(Op%U(1,2)) * VH(1, I) + Op%U(1,1) * VH(2, I)
                 enddo
