@@ -692,13 +692,17 @@ Contains
             case (2)
                 call copy_select_rows(VH, Mat, Op%P, 2, Ndim)
                 DO I = 1, Ndim
-                    Mat(I, Op%P(1)) = Op%U(1, 1) * VH(1, I) + Op%U(2, 1) * VH(2, I)
-                    Mat(I, Op%P(2)) = Op%U(1, 2) * VH(1, I) + Op%U(2, 2) * VH(2, I)
+!                     Mat(I, Op%P(1)) = Op%U(1, 1) * VH(1, I) + Op%U(2, 1) * VH(2, I)
+!                     Mat(I, Op%P(2)) = Op%U(1, 2) * VH(1, I) + Op%U(2, 2) * VH(2, I)
+                    Mat(I, Op%P(1)) = Op%U(1, 1) * VH(1, I) - conjg(Op%U(1, 2)) * VH(2, I)
+                    Mat(I, Op%P(2)) = Op%U(1, 2) * VH(1, I) + conjg(Op%U(1, 1)) * VH(2, I)
                 enddo
                 call copy_select_columns(VH, Mat, Op%P, 2, Ndim)
                 DO I = 1, Ndim
-                    Mat(Op%P(1), I) = conjg(Op%U(1,1)) * VH(1, I) + conjg(Op%U(2,1)) * VH(2, I)
-                    Mat(Op%P(2), I) = conjg(Op%U(1,2)) * VH(1, I) + conjg(Op%U(2,2)) * VH(2, I)
+!                     Mat(Op%P(1), I) = conjg(Op%U(1,1)) * VH(1, I) + conjg(Op%U(2,1)) * VH(2, I)
+!                     Mat(Op%P(2), I) = conjg(Op%U(1,2)) * VH(1, I) + conjg(Op%U(2,2)) * VH(2, I)
+                    Mat(Op%P(1), I) = conjg(Op%U(1,1)) * VH(1, I) - Op%U(1,2) * VH(2, I)
+                    Mat(Op%P(2), I) = conjg(Op%U(1,2)) * VH(1, I) + Op%U(1,1) * VH(2, I)
                 enddo
             case default
                 call copy_select_rows(VH, Mat, Op%P, Op%N, Ndim)
