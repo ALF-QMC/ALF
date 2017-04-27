@@ -206,11 +206,6 @@ Contains
        TMP = Op%U
        ! Scale Op%U to be in SU(N)
        Op%U = Op%U / Z
-!        DO I = 1, N
-!        DO J = 1, N
-!        Op%U(I, J) = Op%U(I,J) / Z
-!        ENDDO
-!        ENDDO
        deallocate (U, E, TMP)
        ! Op%U,Op%E)
        !Write(6,*) 'Calling diag 1'
