@@ -45,22 +45,31 @@ if(opn > 1) then
 
          else
          U(1, 1) = 1.D0
+         Uold(1, 1) = 1.D0
          endif
          if (opn > 1) then
          Z = Det_C(mytmp, opn)
-!          write (*,*) Z, Abs(Z)
+         write (*,*) Z, Abs(Z)
          
          DO I = 1, opn
             U(I, 1) = U(I, 1) / Z
          ENDDO
-!          if(opn > 2) then
-!             CALL ZGEQRF(opn, opn, U , opn, TAU, WORK, LWORK, INFO)
-!             DO I = 1, opn
-!                 U(I, opn) = TAU(I)
-!             ENDDO
-!         endif
-    endif
          Uold = U
+         TAU = 0.D0
+         if(opn > 2) then
+            CALL ZGEQRF(opn, opn, U , opn, TAU, WORK, LWORK, INFO)
+            DO I = 1, opn
+            write (*, *) U(I, :)
+            ENDDO
+            DO I = 1, opn
+            write (*,*) "U, TAU ", U(I, I), TAU(I)
+            enddo
+            DO I = 1, opn-1
+                U(I, opn) = TAU(I)
+            ENDDO
+            U(opn, opn) = 1.D0 - U(opn,opn)*(1.D0 - TAU(opn))! absorb last sign (stored in U(opn, opn)) into redefinition of tau
+        endif
+    endif
          Call opmult (V, U, P, matnew, opn, Ndim)
 !
 ! check against old version
@@ -74,9 +83,10 @@ if(opn > 1) then
                matold (P(n), i) = tmp
             End Do
          End Do
-!write (*, *) "opn = ", opn
-!write (*, *) DBLE(matold)
-!write (*, *) DBLE(matnew)
+write (*, *) "opn = ", opn
+write (*, *) (matold)
+write (*,*) "================================"
+write (*, *) (matnew)
          Do i = 1, Ndim
             Do j = 1, Ndim
                If (Abs(matold(i, j) - matnew(i, j)) > MAX(ABS(matold(i, j)), ABS(matnew(i, j)))*1D-14) Then
