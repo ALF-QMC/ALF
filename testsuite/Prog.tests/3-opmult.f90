@@ -60,9 +60,9 @@ if(opn > 1) then
 !             DO I = 1, opn
 !             write (*, *) U(I, :)
 !             ENDDO
-            DO I = 1, opn
-!            write (*,*) "U, TAU ", U(I, I), TAU(I)
-            enddo
+!             DO I = 1, opn
+!             write (*,*) "U, TAU ", U(I, I), TAU(I)
+!             enddo
             DO I = 1, opn-1
                 U(I, opn) = TAU(I)
             ENDDO

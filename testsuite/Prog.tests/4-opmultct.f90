@@ -75,10 +75,10 @@ Program OPMULTTEST
             End Do
          End Do
 !
-write (*, *) "opn = ", opn
-write (*, *) (matold)
-write (*,*) "================================"
-write (*, *) (matnew)
+! write (*, *) "opn = ", opn
+! write (*, *) (matold)
+! write (*,*) "================================"
+! write (*, *) (matnew)
          Do i = 1, Ndim
             Do j = 1, Ndim
                If (Abs(matold(i, j) - matnew(i, j)) > MAX(ABS(matold(i, j)), ABS(matnew(i, j)))*1D-14) Then
