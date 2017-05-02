@@ -49,7 +49,6 @@ if(opn > 1) then
          endif
          if (opn > 1) then
          Z = Det_C(mytmp, opn)
-         write (*,*) Z, Abs(Z)
          
          DO I = 1, opn
             U(I, 1) = U(I, 1) / Z
@@ -58,11 +57,11 @@ if(opn > 1) then
          TAU = 0.D0
          if(opn > 2) then
             CALL ZGEQRF(opn, opn, U , opn, TAU, WORK, LWORK, INFO)
+!             DO I = 1, opn
+!             write (*, *) U(I, :)
+!             ENDDO
             DO I = 1, opn
-            write (*, *) U(I, :)
-            ENDDO
-            DO I = 1, opn
-            write (*,*) "U, TAU ", U(I, I), TAU(I)
+!            write (*,*) "U, TAU ", U(I, I), TAU(I)
             enddo
             DO I = 1, opn-1
                 U(I, opn) = TAU(I)
@@ -83,10 +82,10 @@ if(opn > 1) then
                matold (P(n), i) = tmp
             End Do
          End Do
-write (*, *) "opn = ", opn
-write (*, *) (matold)
-write (*,*) "================================"
-write (*, *) (matnew)
+! write (*, *) "opn = ", opn
+! write (*, *) (matold)
+! write (*,*) "================================"
+! write (*, *) (matnew)
          Do i = 1, Ndim
             Do j = 1, Ndim
                If (Abs(matold(i, j) - matnew(i, j)) > MAX(ABS(matold(i, j)), ABS(matnew(i, j)))*1D-14) Then
