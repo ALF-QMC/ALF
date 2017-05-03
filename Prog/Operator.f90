@@ -491,7 +491,7 @@ Contains
             Mat(I, P(2)) = Z(2) * (U(1, 2) * V(1, I) + conjg(U(1, 1)) * V(2, I))
         enddo
     case default
-        lwork = 2 * opn
+        lwork = 2 * Ndim
         allocate(tmp(Ndim, opn), work(lwork))
         tmp = Transpose(V)
         ! multiply with Q
