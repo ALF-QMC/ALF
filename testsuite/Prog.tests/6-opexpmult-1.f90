@@ -10,10 +10,9 @@ Program OPEXPMULTTEST
       Use Operator_mod
 !
 !
-      Complex (Kind=Kind(0.D0)), Dimension (:, :), Allocatable :: U, Uold, mytmp
+      Complex (Kind=Kind(0.D0)), Dimension (:, :), Allocatable :: U, Uold, mytmp, matnew, matold
       Complex (Kind=Kind(0.D0)), Dimension (:, :), Allocatable :: V
       Complex (Kind=Kind(0.D0)), Dimension (:), Allocatable :: Z
-      Complex (Kind=Kind(0.D0)), Dimension (5, 5) :: matnew, matold
       Complex (Kind=Kind(0.D0)) :: tmp, lexp
       Real(Kind = Kind(0.D0)), Dimension(:), allocatable :: E
       Complex(Kind=Kind(0.D0)), allocatable, dimension(:) :: work, TAU
@@ -22,9 +21,10 @@ Program OPEXPMULTTEST
 !
 !
       Do opn = 1, 4
+      Do Ndim = opn+1, 15
          lwork = 2* opn
-         Allocate (U(opn, opn), V(opn, 5), P(opn), Z(opn), work(lwork), Tau(opn), Uold(opn, opn), E(opn), mytmp(opn, opn))
-         Ndim = 5
+         Allocate (U(opn, opn), V(opn, Ndim), P(opn), Z(opn), work(lwork), Tau(opn), Uold(opn, opn), E(opn), mytmp(opn, opn))
+         Allocate(matnew(Ndim, Ndim), matold(ndim, ndim))
          Do i = 1, Ndim
             Do j = 1, Ndim
                matnew (i, j) = CMPLX (i, j, kind(0.D0))
@@ -37,7 +37,6 @@ Program OPEXPMULTTEST
                V (i, j) = CMPLX (i, j, kind(0.D0))
             End Do
             P (i) = i
-            Z (i) = Exp (CMPLX(i, j, kind(0.D0)))
          End Do
         if(opn > 1) then
          Do i = 1, opn
@@ -46,10 +45,14 @@ Program OPEXPMULTTEST
             End Do
          End Do
          CALL DIAG(U, mytmp, E)
+         Do i = 1, opn
+                     Z (i) = Exp (CMPLX(E(i), i, kind(0.D0)))
+         enddo
          U = mytmp
          else
          U(1, 1) = 1.D0
          Uold(1, 1) = 1.D0
+         Z(1) = Exp (CMPLX(1, 1, kind(0.D0)))
          endif
          if(opn > 1) then
          lexp = DET_C(mytmp, opn)
@@ -80,7 +83,7 @@ Program OPEXPMULTTEST
                matold (i, P(n)) = lexp * tmp
             End Do
          End Do
-!
+
 !    write (*, *) "opn = ", opn
 !     DO I = 1, Ndim
 !         write (*, *) (matold(I, :))
@@ -92,13 +95,13 @@ Program OPEXPMULTTEST
          Do i = 1, Ndim
             Do j = 1, Ndim
                tmp = matold (i, j) - matnew (i, j)
-               if(Abs(AIMAG(TMP)) > 1.D-13) THEN
+               if(Abs(AIMAG(TMP)) > 1.D-14) THEN
                If (Abs(Aimag(tmp)) > Abs(Aimag(matnew(i, j)))*1.D-14) Then
                   Write (*,*) "ERROR in imag", matold (i, j), matnew (i, j)
                   Stop 2
                End If
                ENDIF
-               if(Abs(AIMAG(TMP)) > 1.D-13) THEN
+               if(Abs(AIMAG(TMP)) > 1.D-14) THEN
                If (Abs(Real(tmp)) > Abs(Real(matnew(i, j)))*1.D-14) Then
                   Write (*,*) "ERROR in real", matold (i, j), matnew (i, j)
                   Stop 3
@@ -106,7 +109,8 @@ Program OPEXPMULTTEST
                ENDIF
             End Do
          End Do
-         Deallocate (U, V, P, Z, work, uold, E, mytmp, tau)
+         Deallocate (U, V, P, Z, work, uold, E, mytmp, tau, matnew, matold)
       End Do
+      Enddo
       write (*,*) "success"
 End Program OPEXPMULTTEST
