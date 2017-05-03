@@ -16,13 +16,13 @@ Program Wrapup
          End Subroutine
       End Interface
 !
-      Complex (Kind=Kind(0.D0)) :: Z, Z1, Zre, Zim
+      Complex (Kind=Kind(0.D0)) :: Zre, Zim
       Real (Kind=Kind(0.D0)) :: spin
       Complex (Kind=Kind(0.D0)), Dimension (:, :), Allocatable :: VH, &
      & matnew, matold
       Complex (Kind=Kind(0.D0)), Dimension (:), Allocatable :: Expop, &
      & ExpMop
-      Integer :: i, n, m, j, Ndim, N_Type, opn
+      Integer :: i, n, j, Ndim, N_Type, opn
       Type (Operator) :: Op
 !
 ! setup some test data
@@ -38,7 +38,7 @@ Program Wrapup
             Do i = 1, Op%n
                Op%P (i) = i
                Do n = 1, Op%n
-                  Op%O (i, n) = CMPLX (n+i, 0.D0, kind(0.D0))
+                  Op%O (i, n) = CMPLX (n+i, n - i, kind(0.D0))
                End Do
             End Do
 !
@@ -69,7 +69,7 @@ Program Wrapup
                   Zim = aimag (matnew(i, j)-matold(i, j))
                   If (Abs(Zre) > Max(Abs(real(matnew(i, j))), &
                  & Abs(real(matold(i, j))))*1D-14) Then
-                     Write (*,*) "opn: ", opn, "N_type", N_Type
+                     Write (*,*) "opn: ", opn, "N_type", N_Type, "i = ", i, "j = ", j
                      Write (*,*) "ERROR in real part", real (matnew(i, &
                     & j)), real (matold(i, j))
                      Stop 2
@@ -103,7 +103,9 @@ Subroutine Op_WrapupFFA (Mat, Op, spin, Ndim, N_Type)
 !
     ! Local
       Complex (Kind=8) :: VH (Ndim, Op%n), Z, Z1
-      Integer :: n, i, m, m1
+      Integer :: n, i, m, lwork, info, j
+      Complex (Kind=Kind(0.D0)), Dimension (:, :), Allocatable :: Uold
+      Complex (Kind=Kind(0.D0)), Dimension (:), Allocatable :: R, WORK, TAU
 !
 !
 !
@@ -115,6 +117,23 @@ Subroutine Op_WrapupFFA (Mat, Op, spin, Ndim, N_Type)
     !!!!! N_Type == 2
     !    Op%U * Mat * (Op%U^{dagger})
     !!!!!
+    
+    lwork = 2* Op%N
+    Allocate (Uold(Op%n, Op%n), R(Op%n-1), TAU(Op%n), WORK(LWORK))
+    Uold = Op%U
+    if (Op%N > 2) then
+        TAU = Op%U(:, Op%N)
+        Do i = 1, Op%N - 1
+            R(i) = Op%U(i,i)
+        ENDDO
+        CALL ZUNGQR(Op%N, Op%N, Op%N, Uold, Op%N, TAU, WORK, LWORK, INFO)
+        DO i = 1, Op%N
+            Do j = 1, Op%N-1
+                Uold(i, j) = Uold(i,j) * R(j)
+            ENDDO
+        ENDDO
+    endif
+    
       If (N_Type == 1) Then
          VH = 0.D0
          Do n = 1, Op%n
@@ -122,7 +141,7 @@ Subroutine Op_WrapupFFA (Mat, Op, spin, Ndim, N_Type)
             If (n <= Op%N_non_Zero) Z = Exp (-Op%g*CMPLX(Op%E(n)*spin, &
            & 0.d0, kind(0.D0)))
             Do m = 1, Op%n
-               Z1 = Op%U (m, n) * Z
+               Z1 = Uold (m, n) * Z
                Do i = 1, Ndim
                   VH (i, n) = VH (i, n) + Mat (i, Op%P(m)) * Z1
                End Do
@@ -140,7 +159,7 @@ Subroutine Op_WrapupFFA (Mat, Op, spin, Ndim, N_Type)
             If (n <= Op%N_non_Zero) Z = Exp (Op%g*CMPLX(Op%E(n)*spin, &
            & 0.d0, kind(0.D0)))
             Do m = 1, Op%n
-               Z1 = Z * conjg (Op%U(m, n))
+               Z1 = Z * conjg (Uold(m, n))
                Do i = 1, Ndim
                   VH (i, n) = VH (i, n) + Z1 * Mat (Op%P(m), i)
                End Do
@@ -155,7 +174,7 @@ Subroutine Op_WrapupFFA (Mat, Op, spin, Ndim, N_Type)
          VH = 0.D0
          Do n = 1, Op%n
             Do m = 1, Op%n
-               Z1 = conjg (Op%U(n, m))
+               Z1 = conjg (Uold(n, m))
                Do i = 1, Ndim
                   VH (i, n) = VH (i, n) + Mat (i, Op%P(m)) * Z1
                End Do
@@ -170,7 +189,7 @@ Subroutine Op_WrapupFFA (Mat, Op, spin, Ndim, N_Type)
          VH = 0.D0
          Do n = 1, Op%n
             Do m = 1, Op%n
-               Z1 = Op%U (n, m)
+               Z1 = Uold (n, m)
                Do i = 1, Ndim
                   VH (i, n) = VH (i, n) + Z1 * Mat (Op%P(m), i)
                End Do
@@ -182,4 +201,5 @@ Subroutine Op_WrapupFFA (Mat, Op, spin, Ndim, N_Type)
             End Do
          End Do
       End If
+    Deallocate (Uold, R, TAU, WORK)
 End Subroutine Op_WrapupFFA
