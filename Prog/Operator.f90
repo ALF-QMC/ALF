@@ -180,7 +180,7 @@ Contains
     Real    (Kind=Kind(0.d0)) :: Zero = 1.E-9, nm
     Integer :: N, I, J, np,nz, LWORK, INFO
     Complex (Kind=Kind(0.d0)) :: Z
-    Complex(Kind=Kind(0.d0)) :: ZLADIV
+    Complex (Kind=Kind(0.d0)) :: ZLADIV
 
     If (Op%N > 1) then
        N = Op%N
@@ -216,17 +216,20 @@ Contains
        Op%U(I,1) = zladiv(Op%U(I,1),Z)
        TMP(I, 1) = zladiv(TMP(I, 1), Z)
        ENDDO
-              CALL ZGEQRF(N, N, TMP, N, TAU, WORK, LWORK, INFO)
-       write (*, *) TAU
-       Do I = 1, N
-       write (*, *) DBLE(TMP(I, :))
-       ENDDO
-!       CALL ZUNGQR(N, N, N, TMP, N, TAU, WORK, LWORK, INFO)
- DO I = 1, N-1
- TMP(I, N) = TAU(I)
- ENDDO
- TMP(N, N) = 1.D0 - TMP(N,N)*(1.D0 - TAU(N))! absorb last sign (stored in U(opn, opn)) into redefinition of tau
-       Op%U = TMP
+       
+       if(op%N > 2) then
+           CALL ZGEQRF(N, N, TMP, N, TAU, WORK, LWORK, INFO)
+    !        write (*, *) TAU
+    !        Do I = 1, N
+    !        write (*, *) DBLE(TMP(I, :))
+    !        ENDDO
+    !       CALL ZUNGQR(N, N, N, TMP, N, TAU, WORK, LWORK, INFO)
+            DO I = 1, N-1
+                TMP(I, N) = TAU(I)
+            ENDDO
+            TMP(N, N) = 1.D0 - TMP(N,N)*(1.D0 - TAU(N))! absorb last sign (stored in U(opn, opn)) into redefinition of tau
+            Op%U = TMP
+       endif
        deallocate (U, E, TMP, TAU, WORK)
        ! Op%U,Op%E)
        !Write(6,*) 'Calling diag 1'
@@ -372,7 +375,7 @@ Contains
             Mat(P(2), I) = -conjg(U(1,2)) * V(1, I) + conjg(U(1,1)) * V(2, I)
         enddo
     case default
-        lwork = 2*opn
+        lwork = 2*Ndim
         Allocate(tmp(opn, Ndim), work(lwork))
         tmp = V
 !        CALL ZGEMM('N','N', opn, Ndim, opn, alpha, U, opn, V, opn, beta, tmp, opn)
@@ -429,7 +432,7 @@ Contains
             Mat(I, P(2)) = -U(1,2) * V(1, I) + U(1,1) * V(2, I)
         enddo
     case default
-        lwork = 2*opn
+        lwork = 2*Ndim
         Allocate(tmp(Ndim, opn), work(lwork))
         DO I = 1, Ndim
         DO J = 1, opn - 1
@@ -440,7 +443,7 @@ Contains
         CALL ZUNMQR('R', 'C', Ndim, opn, opn, U, opn, U(1, opn), tmp, Ndim, work, lwork, info)
 !        CALL ZGEMM('T','C', Ndim, opn, opn, alpha, V, opn, U, opn, beta, tmp, Ndim)
         Mat(:, (P)) = tmp
-        Deallocate(tmp)
+        Deallocate(tmp, work)
     end select
         
   end subroutine
@@ -728,8 +731,8 @@ Contains
     Integer, INTENT(IN) :: N_Type
 
     ! Local 
-    Complex (Kind = Kind(0.D0)), Dimension(:), allocatable :: ExpOp, ExpMop
-    Integer :: n, i
+    Complex (Kind = Kind(0.D0)), Dimension(:), allocatable :: ExpOp, ExpMop, work
+    Integer :: n, i, lwork, info
     Complex (Kind = Kind(0.D0)) :: alpha, beta, ExpHere
     Complex (Kind = Kind(0.D0)), Dimension(:, :), allocatable :: VH, tmp, tmp2
 
@@ -759,11 +762,13 @@ Contains
                 expHere=ExpOp(n)
                 VH(n, :) = ExpHere * Mat(:, Op%P(n))
             Enddo
+            write(*, *) "opmultct"
             call opmultct(VH, Op%U, Op%P, Mat, Op%N, Ndim)
             Do n = 1,Op%N
                 ExpHere=ExpMOp(n)
                 VH(n, :) = ExpHere * Mat(Op%P(n), :)
             Enddo
+            write (*,*) "opmult"
             call opmult(VH, Op%U, Op%P, Mat, Op%N, Ndim)
        endif
     elseif (N_Type == 2) then
@@ -772,24 +777,28 @@ Contains
             case (2)
                 call copy_select_rows(VH, Mat, Op%P, 2, Ndim)
                 DO I = 1, Ndim
-                    Mat(I, Op%P(1)) = Op%U(1, 1) * VH(1, I) - conjg(Op%U(1, 2)) * VH(2, I)
-                    Mat(I, Op%P(2)) = Op%U(1, 2) * VH(1, I) + conjg(Op%U(1, 1)) * VH(2, I)
+                    Mat(I, Op%P(1)) = Op%U(1, 1) * VH(1, I) + Op%U(2, 1) * VH(2, I)
+                    Mat(I, Op%P(2)) = -conjg(Op%U(2, 1)) * VH(1, I) + conjg(Op%U(1, 1)) * VH(2, I)
                 enddo
                 call copy_select_columns(VH, Mat, Op%P, 2, Ndim)
                 DO I = 1, Ndim
-                    Mat(Op%P(1), I) = conjg(Op%U(1,1)) * VH(1, I) - Op%U(1,2) * VH(2, I)
-                    Mat(Op%P(2), I) = conjg(Op%U(1,2)) * VH(1, I) + Op%U(1,1) * VH(2, I)
+                    Mat(Op%P(1), I) = conjg(Op%U(1,1)) * VH(1, I) + conjg(Op%U(2,1)) * VH(2, I)
+                    Mat(Op%P(2), I) = -Op%U(2,1) * VH(1, I) + Op%U(1,1) * VH(2, I)
                 enddo
             case default
                 call copy_select_rows(VH, Mat, Op%P, Op%N, Ndim)
-                Allocate(tmp(Ndim, Op%N))
-!                CALL ZUNMQR('R', 'N', Ndim, Op%N, Op%N, VH, op%n, Op%U(1, op%N), VH, op%n, 
+                lwork = 2 * Ndim
+                Allocate(tmp(Ndim, Op%N), work(lwork))
+                tmp = TRANSPOSE(VH)
+                CALL ZUNMQR('R', 'N', Ndim, Op%N, Op%N, Op%U, op%n, Op%U(1, op%N), tmp, Ndim, work, lwork, info)
 !                CALL ZGEMM('T','N', Ndim, op%N, op%N, alpha, VH, op%n, Op%U, op%n, beta, tmp, Ndim)
                 Mat(:, (Op%P)) = tmp
                 Deallocate(tmp)
                 call copy_select_columns(VH, Mat, Op%P, Op%N, Ndim)
                 Allocate(tmp2(Op%N, Ndim))
-                CALL ZGEMM('C','N', op%N, Ndim, op%N, alpha, Op%U, op%n, VH, op%n, beta, tmp2, op%n)
+                tmp2 = VH
+                CALL ZUNMQR('L', 'C', Op%N, Ndim, op%N, Op%U, Op%n, Op%U(1, op%N), tmp2, Op%N, work, lwork, info)
+!                CALL ZGEMM('C','N', op%N, Ndim, op%N, alpha, Op%U, op%n, VH, op%n, beta, tmp2, op%n)
                 Mat(Op%P, :) = tmp2
                 Deallocate(tmp2)
             end select
