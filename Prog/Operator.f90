@@ -200,6 +200,7 @@ Contains
              nz = nz + 1
           endif
        enddo
+           write (*,*) N
        Op%N_non_zero = np
        !Write(6,*) "Op_set", np,N
        TMP = Op%U ! that way we have the changes to the determinant due to the permutation
@@ -208,16 +209,15 @@ Contains
 !        ENDDO
 !        STOP -2
        Z = Det_C(TMP, N)
-       TMP = Op%U
 !       write (*,*) Z, N, Z**N
 !       write (*,*) nm,  Abs(nm)**(1.D0/N), Abs(nm)**(1.D0/N)*CMPLX(Cos(4*ATan(1.D0)/Op%N), SIN(4*ATan(1.D0)/Op%N), Kind(0.D0))
        ! Scale Op%U to be in SU(N)
        DO I = 1, N
-       Op%U(I,1) = zladiv(Op%U(I,1),Z)
-       TMP(I, 1) = zladiv(TMP(I, 1), Z)
+            Op%U(I,1) = zladiv(Op%U(I,1),Z)
        ENDDO
        
        if(op%N > 2) then
+           TMP = Op%U
            CALL ZGEQRF(N, N, TMP, N, TAU, WORK, LWORK, INFO)
     !        write (*, *) TAU
     !        Do I = 1, N
@@ -558,16 +558,16 @@ Contains
             Mat(P(2), I) = Z(2) * (conjg(U(1, 2)) * V(1, I) + U(1, 1) * V(2, I))
         enddo
     case default
-            lwork = 2 * opn
+        lwork = 2 * Ndim
         allocate(tmp(opn, Ndim), work(lwork))
         tmp = V
         ! multiply with Q
         CALL ZUNMQR('L', 'C', opn, Ndim, opn, U, opn, U(1, opn), tmp, opn, work, lwork, info)
         ! multiply with R
         DO I = 1, opn -1
-        DO J = 1, Ndim
-        tmp(I, J) = tmp(I, J) * U(I, I)
-        ENDDO
+            DO J = 1, Ndim
+                tmp(I, J) = tmp(I, J) * U(I, I)
+            ENDDO
         ENDDO
         ! exponentials
         DO I = 1, opn
