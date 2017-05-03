@@ -98,5 +98,6 @@ VH = 0.D0
     endif
     enddo
     enddo
+    Deallocate(R, TAU, WORK, Uold)
 write (*,*) "success"
 end Program OPMULTTEST
