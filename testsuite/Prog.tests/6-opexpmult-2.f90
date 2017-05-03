@@ -83,14 +83,14 @@ Program OPEXPMULTTEST
             End Do
          End Do
 !
-    write (*, *) "opn = ", opn
-    DO I = 1, Ndim
-        write (*, *) (matold(I, :))
-    ENDDO
-write (*,*) "================================"
-    DO I = 1, Ndim
-        write (*, *) (matnew(I, :))
-    ENDDO
+!     write (*, *) "opn = ", opn
+!     DO I = 1, Ndim
+!         write (*, *) (matold(I, :))
+!     ENDDO
+! write (*,*) "================================"
+!     DO I = 1, Ndim
+!         write (*, *) (matnew(I, :))
+!     ENDDO
          Do i = 1, Ndim
             Do j = 1, Ndim
             if (ABS(matold(i, j) - matnew(i, j)) > 1.D-14) then
