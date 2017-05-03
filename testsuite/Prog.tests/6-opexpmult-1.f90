@@ -81,26 +81,29 @@ Program OPEXPMULTTEST
             End Do
          End Do
 !
-   write (*, *) "opn = ", opn
-    DO I = 1, Ndim
-        write (*, *) (matold(I, :))
-    ENDDO
-write (*,*) "================================"
-    DO I = 1, Ndim
-        write (*, *) (matnew(I, :))
-    ENDDO
+!    write (*, *) "opn = ", opn
+!     DO I = 1, Ndim
+!         write (*, *) (matold(I, :))
+!     ENDDO
+! write (*,*) "================================"
+!     DO I = 1, Ndim
+!         write (*, *) (matnew(I, :))
+!     ENDDO
          Do i = 1, Ndim
             Do j = 1, Ndim
                tmp = matold (i, j) - matnew (i, j)
+               if(Abs(AIMAG(TMP)) > 1.D-13) THEN
                If (Abs(Aimag(tmp)) > Abs(Aimag(matnew(i, j)))*1.D-14) Then
-                  Write (*,*) "ERROR", matold (i, j), matnew (i, j)
+                  Write (*,*) "ERROR in imag", matold (i, j), matnew (i, j)
                   Stop 2
                End If
+               ENDIF
+               if(Abs(AIMAG(TMP)) > 1.D-13) THEN
                If (Abs(Real(tmp)) > Abs(Real(matnew(i, j)))*1.D-14) Then
-                  Write (*,*) "ERROR", matold (i, j), matnew (i, j)
-                  Stop 2
+                  Write (*,*) "ERROR in real", matold (i, j), matnew (i, j)
+                  Stop 3
                End If
-!
+               ENDIF
             End Do
          End Do
          Deallocate (U, V, P, Z, work, uold, E, mytmp, tau)
