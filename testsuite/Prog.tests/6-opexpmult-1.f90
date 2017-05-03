@@ -81,18 +81,22 @@ Program OPEXPMULTTEST
             End Do
          End Do
 !
-write (*, *) "opn = ", opn
-write (*, *) (matold)
+   write (*, *) "opn = ", opn
+    DO I = 1, Ndim
+        write (*, *) (matold(I, :))
+    ENDDO
 write (*,*) "================================"
-write (*, *) (matnew)
+    DO I = 1, Ndim
+        write (*, *) (matnew(I, :))
+    ENDDO
          Do i = 1, Ndim
             Do j = 1, Ndim
                tmp = matold (i, j) - matnew (i, j)
-               If (Aimag(tmp) > Abs(Aimag(matnew(i, j)))*1.D-14) Then
+               If (Abs(Aimag(tmp)) > Abs(Aimag(matnew(i, j)))*1.D-14) Then
                   Write (*,*) "ERROR", matold (i, j), matnew (i, j)
                   Stop 2
                End If
-               If (Real(tmp) > Abs(Real(matnew(i, j)))*1.D-14) Then
+               If (Abs(Real(tmp)) > Abs(Real(matnew(i, j)))*1.D-14) Then
                   Write (*,*) "ERROR", matold (i, j), matnew (i, j)
                   Stop 2
                End If
