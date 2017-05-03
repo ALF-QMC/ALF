@@ -6,21 +6,20 @@ Program OPEXPMULTCTTEST
       Use Operator_mod
       Use MyMats
 
-      Complex (Kind=Kind(0.D0)), Dimension (:, :), Allocatable :: U, Uold, mytmp
+      Complex (Kind=Kind(0.D0)), Dimension (:, :), Allocatable :: U, Uold, mytmp, matnew, matold
       Complex (Kind=Kind(0.D0)), Dimension (:, :), Allocatable :: V
       Complex (Kind=Kind(0.D0)), Dimension (:), Allocatable :: Z
-      Complex (Kind=Kind(0.D0)), Dimension (5, 5) :: matnew, matold
       Complex (Kind=Kind(0.D0)) :: tmp, lexp
       Real(Kind = Kind(0.D0)), Dimension(:), allocatable :: E
       Complex(Kind=Kind(0.D0)), allocatable, dimension(:) :: work, TAU
       Integer, Dimension (:), Allocatable :: P
       Integer :: i, j, n, m, opn, Ndim, info, lwork
 
-      Ndim = 5
       Do opn = 1, 4
+      Do Ndim = opn +1, 15
          lwork = 2* opn
-         Allocate (U(opn, opn), V(opn, 5), P(opn), Z(opn), work(lwork), Tau(opn), Uold(opn, opn), E(opn), mytmp(opn, opn))
-         Ndim = 5
+         Allocate (U(opn, opn), V(opn, Ndim), P(opn), Z(opn), work(lwork), Tau(opn), Uold(opn, opn), E(opn), mytmp(opn, opn))
+         Allocate(matnew(Ndim, Ndim), matold(Ndim, Ndim))
          Do i = 1, Ndim
             Do j = 1, Ndim
                matnew (i, j) = CMPLX (i, j, kind(0.D0))
@@ -91,7 +90,7 @@ Program OPEXPMULTCTTEST
                   Stop 2
                End If
                ENDIF
-               IF(ABS(AIMAG(tmp)) > 1D-13) THEN
+               IF(ABS(AIMAG(tmp)) > 1D-14) THEN
                If (Abs(Real(tmp)) > Abs(Real(matnew(i, j)))*1D-13) Then
                   Write (*,*) "ERROR ", matold (i, j), matnew (i, j)
                   Stop 3
@@ -99,6 +98,7 @@ Program OPEXPMULTCTTEST
                ENDIF
             End Do
          End Do
-         Deallocate (U, V, P, Z, work, uold, E, mytmp, tau)
+         Deallocate (U, V, P, Z, work, uold, E, mytmp, tau, matnew, matold)
+         ENDDO
       End Do
 End Program OPEXPMULTCTTEST
