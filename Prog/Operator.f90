@@ -175,15 +175,17 @@ Contains
     Implicit none
     Type (Operator), intent(INOUT) :: Op
 
-    Complex (Kind=Kind(0.d0)), allocatable :: U(:,:), TMP(:,:)
+    Complex (Kind=Kind(0.d0)), allocatable :: U(:,:), TMP(:,:), TMP2(:, :), TAU(:), WORK(:)
     Real    (Kind=Kind(0.d0)), allocatable :: E(:)
-    Real    (Kind=Kind(0.d0)) :: Zero = 1.E-9
-    Integer :: N, I, J, np,nz
+    Real    (Kind=Kind(0.d0)) :: Zero = 1.E-9, nm
+    Integer :: N, I, J, np,nz, LWORK, INFO
     Complex (Kind=Kind(0.d0)) :: Z
+    Complex(Kind=Kind(0.d0)) :: ZLADIV
 
     If (Op%N > 1) then
        N = Op%N
-       Allocate (U(N,N), E(N), TMP(N,N))
+       LWORK= 2*N
+       Allocate (U(N,N), E(N), TMP(N,N), TMP2(N,N), WORK(LWORK), TAU(N))
        Call Diag(Op%O,U, E)  
        Np = 0
        Nz = 0
@@ -201,12 +203,31 @@ Contains
        Op%N_non_zero = np
        !Write(6,*) "Op_set", np,N
        TMP = Op%U ! that way we have the changes to the determinant due to the permutation
-       Z = Det(TMP, N)
-       Z = Z**(1.D0/N)
+!        DO I = 1, N
+!        write (*,*) DBLE(Op%U(I,:))
+!        ENDDO
+!        STOP -2
+       Z = Det_C(TMP, N)
        TMP = Op%U
+!       write (*,*) Z, N, Z**N
+!       write (*,*) nm,  Abs(nm)**(1.D0/N), Abs(nm)**(1.D0/N)*CMPLX(Cos(4*ATan(1.D0)/Op%N), SIN(4*ATan(1.D0)/Op%N), Kind(0.D0))
        ! Scale Op%U to be in SU(N)
-       Op%U = Op%U / Z
-       deallocate (U, E, TMP)
+       DO I = 1, N
+       Op%U(I,1) = zladiv(Op%U(I,1),Z)
+       TMP(I, 1) = zladiv(TMP(I, 1), Z)
+       ENDDO
+              CALL ZGEQRF(N, N, TMP, N, TAU, WORK, LWORK, INFO)
+       write (*, *) TAU
+       Do I = 1, N
+       write (*, *) DBLE(TMP(I, :))
+       ENDDO
+!       CALL ZUNGQR(N, N, N, TMP, N, TAU, WORK, LWORK, INFO)
+ DO I = 1, N-1
+ TMP(I, N) = TAU(I)
+ ENDDO
+ TMP(N, N) = 1.D0 - TMP(N,N)*(1.D0 - TAU(N))! absorb last sign (stored in U(opn, opn)) into redefinition of tau
+       Op%U = TMP
+       deallocate (U, E, TMP, TAU, WORK)
        ! Op%U,Op%E)
        !Write(6,*) 'Calling diag 1'
     else
@@ -333,9 +354,10 @@ Contains
     Complex (Kind = Kind(0.D0)), Dimension(:, :), INTENT(IN) :: U
     Complex (Kind = Kind(0.D0)), INTENT(INOUT) :: Mat (Ndim,Ndim)
     Integer, INTENT(IN) :: P(opn)
-    Integer :: n,i
+    Integer :: n,i, j, lwork, info
     Complex (Kind = Kind(0.D0)) :: alpha, beta
     Complex (Kind = Kind(0.D0)), Dimension(:,:), allocatable :: tmp
+    Complex (Kind = Kind(0.D0)), Dimension(:), allocatable :: work
 
     alpha = 1.D0
     beta = 0.D0
@@ -350,10 +372,18 @@ Contains
             Mat(P(2), I) = -conjg(U(1,2)) * V(1, I) + conjg(U(1,1)) * V(2, I)
         enddo
     case default
-        Allocate(tmp(opn, Ndim))
-        CALL ZGEMM('N','N', opn, Ndim, opn, alpha, U, opn, V, opn, beta, tmp, opn)
+        lwork = 2*opn
+        Allocate(tmp(opn, Ndim), work(lwork))
+        tmp = V
+!        CALL ZGEMM('N','N', opn, Ndim, opn, alpha, U, opn, V, opn, beta, tmp, opn)
+        DO I = 1, opn-1
+        DO J = 1, Ndim
+        tmp(I, J) = tmp(I, J) * U(I, I)
+        ENDDO
+        ENDDO
+        CALL ZUNMQR('L', 'N', opn, Ndim, opn, U, opn, U(1, opn), tmp, opn, work, lwork, info)
         Mat((P), :) = tmp
-        Deallocate(tmp)
+        Deallocate(tmp, work)
     end select
 
   end subroutine
@@ -381,9 +411,10 @@ Contains
     Complex (Kind = Kind(0.D0)), Dimension(:, :), INTENT(IN) :: U
     Complex (Kind = Kind(0.D0)), INTENT(INOUT) :: Mat (Ndim,Ndim)
     Integer, INTENT(IN) :: P(opn)
-    Integer :: n, i
+    Integer :: n, i, j, lwork, info
     Complex (Kind = Kind(0.D0)) :: alpha, beta
     Complex (Kind = Kind(0.D0)), Dimension(:,:), allocatable :: tmp
+    Complex (Kind = Kind(0.D0)), Dimension(:), allocatable :: work
 
     alpha = 1.D0
     beta = 0.D0
@@ -398,8 +429,16 @@ Contains
             Mat(I, P(2)) = -U(1,2) * V(1, I) + U(1,1) * V(2, I)
         enddo
     case default
-        Allocate(tmp(Ndim, opn))
-        CALL ZGEMM('T','C', Ndim, opn, opn, alpha, V, opn, U, opn, beta, tmp, Ndim)
+        lwork = 2*opn
+        Allocate(tmp(Ndim, opn), work(lwork))
+        DO I = 1, Ndim
+        DO J = 1, opn - 1
+        tmp(I, J) = V(J, I) * Conjg(U(J, J))
+        ENDDO
+        tmp(I, opn) = V(opn, I) 
+        ENDDO
+        CALL ZUNMQR('R', 'C', Ndim, opn, opn, U, opn, U(1, opn), tmp, Ndim, work, lwork, info)
+!        CALL ZGEMM('T','C', Ndim, opn, opn, alpha, V, opn, U, opn, beta, tmp, Ndim)
         Mat(:, (P)) = tmp
         Deallocate(tmp)
     end select
@@ -417,7 +456,7 @@ Contains
 !
 !> @param[in] V
 !> @param[in] U
-!> @param[in] P a vector wiht the rows that we write to
+!> @param[in] P a vector with the rows that we write to
 !> @param[inout] Mat The Matrix that we update
 !> @param[in] Z A vector that usually contains exponentials
 !> @param[in] opn The length of the vector P
@@ -432,8 +471,10 @@ Contains
     Complex (Kind = Kind(0.D0)), Dimension(:, :), INTENT(IN) :: U
     Complex (Kind = Kind(0.D0)), INTENT(INOUT) :: Mat (Ndim,Ndim)
     Integer, INTENT(IN) :: P(opn)
-    Integer :: n, i
+    Integer :: n, i, j, lwork, info
     Complex (Kind = Kind(0.D0)) :: beta
+    Complex (Kind = Kind(0.D0)), Dimension(:, :), allocatable :: tmp
+    Complex (Kind = Kind(0.D0)), Dimension(:), allocatable :: work
 
     beta = 0.D0
     select case (opn)
@@ -447,9 +488,27 @@ Contains
             Mat(I, P(2)) = Z(2) * (U(1, 2) * V(1, I) + conjg(U(1, 1)) * V(2, I))
         enddo
     case default
-        do n = 1, opn
-            call zgemv('T', opn, Ndim, Z(n), V, opn, U(:, n), 1, beta, Mat(:, P(n)), 1)
-        Enddo
+        lwork = 2 * opn
+        allocate(tmp(Ndim, opn), work(lwork))
+        tmp = Transpose(V)
+        ! multiply with Q
+        CALL ZUNMQR('R', 'N', Ndim ,opn, opn, U, opn, U(1, opn), tmp, Ndim, work, lwork, info)
+        ! multiply with R
+        DO I = 1, Ndim
+            DO J = 1, opn - 1
+                tmp(I, J) = tmp(I, J) * U(J, J)
+            ENDDO
+        ENDDO
+        DO I = 1, Ndim
+        DO J = 1, opn
+        tmp(I, J) = Z(J) * tmp(I, J)
+        ENDDO
+        ENDDO
+        Mat(:, P) = tmp
+!         do n = 1, opn
+!             call zgemv('T', opn, Ndim, Z(n), V, opn, U(:, n), 1, beta, Mat(:, P(n)), 1)
+!         Enddo
+        deallocate(tmp, work)
     end select
   end subroutine
 
@@ -479,8 +538,10 @@ Contains
     Complex (Kind = Kind(0.D0)), Dimension(:, :), INTENT(IN) :: U
     Complex (Kind = Kind(0.D0)), INTENT(INOUT) :: Mat (Ndim, Ndim)
     Integer, INTENT(IN) :: P(opn)
-    Integer :: n, i
+    Integer :: n, i, j, lwork, info
     Complex (Kind = Kind(0.D0)) :: beta
+    Complex (Kind = Kind(0.D0)), Dimension(:, :), allocatable :: tmp
+    Complex (Kind = Kind(0.D0)), Dimension(:), allocatable :: work
 
     beta = 0.D0
     select case (opn)
@@ -494,9 +555,28 @@ Contains
             Mat(P(2), I) = Z(2) * (conjg(U(1, 2)) * V(1, I) + U(1, 1) * V(2, I))
         enddo
     case default
-        do n = 1, opn
-            call zgemv('T', opn, Ndim, Z(n), V, opn, conjg(U(:, n)), 1, beta, Mat(P(n), 1), size(Mat, 1))
-        Enddo
+            lwork = 2 * opn
+        allocate(tmp(opn, Ndim), work(lwork))
+        tmp = V
+        ! multiply with Q
+        CALL ZUNMQR('L', 'C', opn, Ndim, opn, U, opn, U(1, opn), tmp, opn, work, lwork, info)
+        ! multiply with R
+        DO I = 1, opn -1
+        DO J = 1, Ndim
+        tmp(I, J) = tmp(I, J) * U(I, I)
+        ENDDO
+        ENDDO
+        ! exponentials
+        DO I = 1, opn
+        Do J = 1, Ndim
+        tmp(I, J) = tmp(I, J) * Z(I)
+        ENDDO
+        ENDDO
+        Mat(P, :) = tmp
+!         do n = 1, opn
+!             call zgemv('T', opn, Ndim, Z(n), V, opn, conjg(U(:, n)), 1, beta, Mat(P(n), 1), size(Mat, 1))
+!         Enddo
+        deallocate(tmp, work)
     end select
 
   end subroutine
@@ -703,7 +783,8 @@ Contains
             case default
                 call copy_select_rows(VH, Mat, Op%P, Op%N, Ndim)
                 Allocate(tmp(Ndim, Op%N))
-                CALL ZGEMM('T','N', Ndim, op%N, op%N, alpha, VH, op%n, Op%U, op%n, beta, tmp, Ndim)
+!                CALL ZUNMQR('R', 'N', Ndim, Op%N, Op%N, VH, op%n, Op%U(1, op%N), VH, op%n, 
+!                CALL ZGEMM('T','N', Ndim, op%N, op%N, alpha, VH, op%n, Op%U, op%n, beta, tmp, Ndim)
                 Mat(:, (Op%P)) = tmp
                 Deallocate(tmp)
                 call copy_select_columns(VH, Mat, Op%P, Op%N, Ndim)
