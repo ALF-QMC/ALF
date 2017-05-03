@@ -39,7 +39,7 @@ Program OPMULTTEST
             Do i = 1, Op%n
                Op%P (i) = i
                Do n = 1, Op%n
-                  Op%O (i, n) = CMPLX (n+i, n-i, kind(0.D0))
+                  Op%O (i, n) = CMPLX (i+n, n-i, kind(0.D0))
                End Do
             End Do
 !
@@ -71,20 +71,20 @@ write (*,*) "================================"
     ENDDO
             Do i = 1, Ndim
                Do j = 1, Ndim
-                  Zre = real (matnew(i, j)-matold(i, j))
+                  Zre = DBLE (matnew(i, j)-matold(i, j))
                   Zim = aimag (matnew(i, j)-matold(i, j))
                   If(Abs(Zre) > 1D-14) then
-                  If (Abs(Zre) > Max(Abs(real(matnew(i, j))), &
-                 & Abs(real(matold(i, j))))*1D-14) Then
+                  If (Abs(Zre) > Max(Abs(DBLE(matnew(i, j))), &
+                 & Abs(DBLE(matold(i, j))))*1D-13) Then
                      Write (*,*) "opn: ", opn, "N_type", N_Type, "i = ", i, "j = ", j
-                     Write (*,*) "ERROR in real part", real (matnew(i, &
-                    & j)), real (matold(i, j))
+                     Write (*,*) "ERROR in real part", DBLE (matnew(i, &
+                    & j)), DBLE (matold(i, j)), DBLE(Zre)
                      Stop 2
                   End If
                   endif
                   If(Abs(Zim) > 1D-14) then
                   If (Abs(Zim) > Max(Abs(aimag(matnew(i, j))), &
-                 & Abs(aimag(matold(i, j))))*1D-14) Then
+                 & Abs(aimag(matold(i, j))))*1D-13) Then
                      Write (*,*) "ERROR in imag part", aimag (matnew(i, &
                     & j)), aimag (matold(i, j))
                      Stop 3

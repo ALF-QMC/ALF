@@ -44,15 +44,14 @@ implicit none
         ENDDO
         CALL ZUNGQR(Op%N, Op%N, Op%N, Uold, Op%N, TAU, WORK, LWORK, INFO)
         DO i = 1, opn
-        Do j = 1, opn
+        Do j = 1, opn-1
             Uold(i, j) = Uold(i,j) * R(j)
         ENDDO
         ENDDO
         Call Op_mmultL(matnew, Op, spin, Ndim)
 
 ! check against old version from Operator_FFA.f90
-
-VH = 0.D0
+    VH = 0.D0
     do n = 1,Op%N
        Z = exp(Op%g*Op%E(n)*spin)! fixed in contrast to Fakhers old version
        Do m = 1,Op%N

@@ -38,7 +38,7 @@ Program Wrapup
             Do i = 1, Op%n
                Op%P (i) = i
                Do n = 1, Op%n
-                  Op%O (i, n) = CMPLX (n+i, n - i, kind(0.D0))
+                  Op%O (i, n) = CMPLX (i + n, n - i, kind(0.D0))
                End Do
             End Do
 !
@@ -62,6 +62,15 @@ Program Wrapup
 !
             Call Op_Wrapup (matnew, Op, spin, Ndim, N_Type)
 !
+
+   write (*, *) "opn = ", op%N
+    DO I = 1, Ndim
+        write (*, *) (matold(I, :))
+    ENDDO
+write (*,*) "================================"
+    DO I = 1, Ndim
+        write (*, *) (matnew(I, :))
+    ENDDO
 !
             Do i = 1, Ndim
                Do j = 1, Ndim

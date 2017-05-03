@@ -23,7 +23,7 @@ implicit none
         do i = 1, Op%N
             Op%P(i) = i
             do n = 1,Op%N
-            Op%U(i,n) = CMPLX(n + i, n - i, kind(0.D0))
+            Op%U(i,n) = CMPLX(i + n, n - i, kind(0.D0))
             enddo
         enddo
         CALL Op_Set(Op)
