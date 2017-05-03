@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 The ALF project
+!  Copyright (C) 2016, 2017 The ALF project
 ! 
 !  This file is part of the ALF project.
 ! 
@@ -732,7 +732,7 @@ Contains
 
     ! Local 
     Complex (Kind = Kind(0.D0)), Dimension(:), allocatable :: ExpOp, ExpMop, work
-    Integer :: n, i, lwork, info
+    Integer :: n, i, j, lwork, info
     Complex (Kind = Kind(0.D0)) :: alpha, beta, ExpHere
     Complex (Kind = Kind(0.D0)), Dimension(:, :), allocatable :: VH, tmp, tmp2
 
@@ -792,12 +792,22 @@ Contains
                 tmp = TRANSPOSE(VH)
                 CALL ZUNMQR('R', 'N', Ndim, Op%N, Op%N, Op%U, op%n, Op%U(1, op%N), tmp, Ndim, work, lwork, info)
 !                CALL ZGEMM('T','N', Ndim, op%N, op%N, alpha, VH, op%n, Op%U, op%n, beta, tmp, Ndim)
+                DO I = 1, Ndim
+                    DO J = 1, Op%N -1
+                        tmp(I, J) = tmp(I, J) * Op%U(J, J)
+                    ENDDO
+                ENDDO
                 Mat(:, (Op%P)) = tmp
                 Deallocate(tmp)
                 call copy_select_columns(VH, Mat, Op%P, Op%N, Ndim)
                 Allocate(tmp2(Op%N, Ndim))
                 tmp2 = VH
                 CALL ZUNMQR('L', 'C', Op%N, Ndim, op%N, Op%U, Op%n, Op%U(1, op%N), tmp2, Op%N, work, lwork, info)
+                DO I = 1, Op%N -1
+                    DO J = 1, Ndim
+                        tmp2(I, J) = tmp2(I, J) * conjg(Op%U(I, I))
+                    ENDDO
+                ENDDO
 !                CALL ZGEMM('C','N', op%N, Ndim, op%N, alpha, Op%U, op%n, VH, op%n, beta, tmp2, op%n)
                 Mat(Op%P, :) = tmp2
                 Deallocate(tmp2)
