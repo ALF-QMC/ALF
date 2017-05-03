@@ -73,7 +73,7 @@ write (*,*) "================================"
                Do j = 1, Ndim
                   Zre = DBLE (matnew(i, j)-matold(i, j))
                   Zim = aimag (matnew(i, j)-matold(i, j))
-                  If(Abs(Zre) > 1D-14) then
+                  If(Abs(Zre) > 1D-13) then
                   If (Abs(Zre) > Max(Abs(DBLE(matnew(i, j))), &
                  & Abs(DBLE(matold(i, j))))*1D-13) Then
                      Write (*,*) "opn: ", opn, "N_type", N_Type, "i = ", i, "j = ", j
@@ -82,7 +82,7 @@ write (*,*) "================================"
                      Stop 2
                   End If
                   endif
-                  If(Abs(Zim) > 1D-14) then
+                  If(Abs(Zim) > 1D-13) then
                   If (Abs(Zim) > Max(Abs(aimag(matnew(i, j))), &
                  & Abs(aimag(matold(i, j))))*1D-13) Then
                      Write (*,*) "ERROR in imag part", aimag (matnew(i, &
