@@ -83,16 +83,22 @@ Program OPEXPMULTTEST
             End Do
          End Do
 !
-! write (*, *) "opn = ", opn
-! write (*, *) (matold)
-! write (*,*) "================================"
-! write (*, *) (matnew)
+    write (*, *) "opn = ", opn
+    DO I = 1, Ndim
+        write (*, *) (matold(I, :))
+    ENDDO
+write (*,*) "================================"
+    DO I = 1, Ndim
+        write (*, *) (matnew(I, :))
+    ENDDO
          Do i = 1, Ndim
             Do j = 1, Ndim
+            if (ABS(matold(i, j) - matnew(i, j)) > 1.D-14) then
                If (ABS(matold(i, j) - matnew(i, j)) > ABS(matold(i, j))*1D-15) Then
                write (*,*) "ERROR", matold(i, j), matnew(i, j)
                   Stop 2
                End If
+               End if
             End Do
          End Do
          Deallocate (U, V, P, Z, work, uold, E, mytmp, tau)
