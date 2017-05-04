@@ -53,7 +53,7 @@ Module Operator_mod
 
   Type Operator
      Integer          :: N, N_non_zero
-     complex (Kind=Kind(0.d0)), pointer :: O(:,:), U (:,:)
+     complex (Kind=Kind(0.d0)), pointer :: O(:,:), U (:,:), Uplain(:,:)
      Real    (Kind=Kind(0.d0)), pointer :: E(:)
      Integer, pointer :: P(:)
      complex (Kind=Kind(0.d0)) :: g
@@ -149,7 +149,7 @@ Contains
     Implicit none
     Type (Operator), intent(INOUT) :: Op
     Integer, Intent(IN) :: N
-    Allocate (Op%O(N,N), Op%U(N,N), Op%E(N), Op%P(N))
+    Allocate (Op%O(N,N), Op%U(N,N), Op%E(N), Op%P(N), Op%Uplain(N,N))
     Op%O = cmplx(0.d0, 0.d0, kind(0.D0))
     Op%U = cmplx(0.d0, 0.d0, kind(0.D0))
     Op%E = 0.d0
@@ -166,7 +166,7 @@ Contains
     Implicit none
     Type (Operator), intent(INOUT) :: Op
     Integer, Intent(IN) :: N
-    Deallocate (Op%O, Op%U, Op%E, Op%P)
+    Deallocate (Op%O, Op%U, Op%E, Op%P, Op%Uplain)
   end subroutine Op_clear 
 
 !--------------------------------------------------------------------
@@ -217,6 +217,7 @@ Contains
        ENDDO
        
        if(op%N > 2) then
+           Op%Uplain = Op%U
            TMP = Op%U
            CALL ZGEQRF(N, N, TMP, N, TAU, WORK, LWORK, INFO)
     !        write (*, *) TAU
@@ -241,9 +242,19 @@ Contains
   end subroutine Op_set
 
 !--------------------------------------------------------------------
+!> @author
+!> The ALF Project contributors
+!
+!> @brief This calculates the exponentiated operator and returns a full matrix
+!<        representation: Mat = U exp(E) U^\dagger
+!
+!> @param[in] g 
+!> @param[in] Op 
+!> @param[out] Mat The full matrix of the exponentiated operator.
+!--------------------------------------------------------------------
 
 
-  Pure subroutine Op_exp(g,Op,Mat)
+Subroutine Op_exp(g,Op,Mat)
     Implicit none 
     Type (Operator), Intent(IN)  :: Op
     Complex (Kind=Kind(0.d0)), Dimension(:,:), INTENT(OUT) :: Mat
@@ -256,22 +267,24 @@ Contains
     iters = Op%N
     Mat = cmplx(0.d0, 0.d0, kind(0.D0))
     Allocate (c(iters, iters))
+    write(*,*) "Op_exp: ", Op%N
     c = 0.D0
     Do n = 1, iters
        Z = exp(g*Op%E(n))
        do J = 1, iters
           Z1 = Z*conjg(Op%U(J,n))
           do I = 1, iters
-            y = Z1 * Op%U(I, n) - c(I, J)
-            t = Mat(I, J) + y
-            c(I, J) = (t - Mat(I,J)) - y
-            Mat(I, J) = t
-!            Mat(I, J) = Mat(I, J) + Z1 * Op%U(I, n)
+!             y = Z1 * Op%U(I, n) - c(I, J)
+!             t = Mat(I, J) + y
+!             c(I, J) = (t - Mat(I,J)) - y
+!             Mat(I, J) = t
+            Mat(I, J) = Mat(I, J) + Z1 * Op%U(I, n)
           enddo
           
-!          Mat(1:iters, J) = Mat(1:iters, J) + Z1 * Op%U(1:iters, n)
+          Mat(1:iters, J) = Mat(1:iters, J) + Z1 * Op%U(1:iters, n)
        enddo
     enddo
+    Deallocate(c)
   end subroutine Op_exp
 
 !--------------------------------------------------------------------
