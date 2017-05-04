@@ -53,7 +53,7 @@ Module Operator_mod
 
   Type Operator
      Integer          :: N, N_non_zero
-     complex (Kind=Kind(0.d0)), pointer :: O(:,:), U (:,:), Uplain(:,:)
+     complex (Kind=Kind(0.d0)), pointer :: O(:,:), U (:,:)
      Real    (Kind=Kind(0.d0)), pointer :: E(:)
      Integer, pointer :: P(:)
      complex (Kind=Kind(0.d0)) :: g
@@ -149,7 +149,7 @@ Contains
     Implicit none
     Type (Operator), intent(INOUT) :: Op
     Integer, Intent(IN) :: N
-    Allocate (Op%O(N,N), Op%U(N,N), Op%E(N), Op%P(N), Op%Uplain(N,N))
+    Allocate (Op%O(N,N), Op%U(N,N), Op%E(N), Op%P(N))
     Op%O = cmplx(0.d0, 0.d0, kind(0.D0))
     Op%U = cmplx(0.d0, 0.d0, kind(0.D0))
     Op%E = 0.d0
@@ -166,7 +166,7 @@ Contains
     Implicit none
     Type (Operator), intent(INOUT) :: Op
     Integer, Intent(IN) :: N
-    Deallocate (Op%O, Op%U, Op%E, Op%P, Op%Uplain)
+    Deallocate (Op%O, Op%U, Op%E, Op%P)
   end subroutine Op_clear 
 
 !--------------------------------------------------------------------
@@ -175,7 +175,7 @@ Contains
     Implicit none
     Type (Operator), intent(INOUT) :: Op
 
-    Complex (Kind=Kind(0.d0)), allocatable :: U(:,:), TMP(:,:), TMP2(:, :), TAU(:), WORK(:)
+    Complex (Kind=Kind(0.d0)), allocatable :: U(:,:), TMP(:,:), TAU(:), WORK(:)
     Real    (Kind=Kind(0.d0)), allocatable :: E(:)
     Real    (Kind=Kind(0.d0)) :: Zero = 1.E-9, nm
     Integer :: N, I, J, np,nz, LWORK, INFO
@@ -185,7 +185,7 @@ Contains
     If (Op%N > 1) then
        N = Op%N
        LWORK= 2*N
-       Allocate (U(N,N), E(N), TMP(N,N), TMP2(N,N), WORK(LWORK), TAU(N))
+       Allocate (U(N,N), E(N), TMP(N,N), WORK(LWORK), TAU(N))
        Call Diag(Op%O,U, E)  
        Np = 0
        Nz = 0
@@ -204,27 +204,15 @@ Contains
        Op%N_non_zero = np
        !Write(6,*) "Op_set", np,N
        TMP = Op%U ! that way we have the changes to the determinant due to the permutation
-!        DO I = 1, N
-!        write (*,*) DBLE(Op%U(I,:))
-!        ENDDO
-!        STOP -2
        Z = Det_C(TMP, N)
-!       write (*,*) Z, N, Z**N
-!       write (*,*) nm,  Abs(nm)**(1.D0/N), Abs(nm)**(1.D0/N)*CMPLX(Cos(4*ATan(1.D0)/Op%N), SIN(4*ATan(1.D0)/Op%N), Kind(0.D0))
        ! Scale Op%U to be in SU(N)
        DO I = 1, N
             Op%U(I,1) = zladiv(Op%U(I,1),Z)
        ENDDO
        
        if(op%N > 2) then
-           Op%Uplain = Op%U
            TMP = Op%U
-           CALL ZGEQRF(N, N, TMP, N, TAU, WORK, LWORK, INFO)
-    !        write (*, *) TAU
-    !        Do I = 1, N
-    !        write (*, *) DBLE(TMP(I, :))
-    !        ENDDO
-    !       CALL ZUNGQR(N, N, N, TMP, N, TAU, WORK, LWORK, INFO)
+            CALL ZGEQRF(N, N, TMP, N, TAU, WORK, LWORK, INFO)
             DO I = 1, N-1
                 TMP(I, N) = TAU(I)
             ENDDO
@@ -782,13 +770,11 @@ Subroutine Op_exp(g,Op,Mat)
                 expHere=ExpOp(n)
                 VH(n, :) = ExpHere * Mat(:, Op%P(n))
             Enddo
-            write(*, *) "opmultct"
             call opmultct(VH, Op%U, Op%P, Mat, Op%N, Ndim)
             Do n = 1,Op%N
                 ExpHere=ExpMOp(n)
                 VH(n, :) = ExpHere * Mat(Op%P(n), :)
             Enddo
-            write (*,*) "opmult"
             call opmult(VH, Op%U, Op%P, Mat, Op%N, Ndim)
        endif
     elseif (N_Type == 2) then
