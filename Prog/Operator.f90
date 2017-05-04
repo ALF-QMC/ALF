@@ -259,32 +259,39 @@ Subroutine Op_exp(g,Op,Mat)
     Type (Operator), Intent(IN)  :: Op
     Complex (Kind=Kind(0.d0)), Dimension(:,:), INTENT(OUT) :: Mat
     Complex (Kind=Kind(0.d0)), INTENT(IN) :: g
-    Complex (Kind=Kind(0.d0)) :: Z, Z1, y, t
-    Complex (Kind=Kind(0.d0)), allocatable, dimension(:,:) :: c
-
-    Integer :: n, j, I, iters
+    Complex (Kind=Kind(0.d0)) :: Z
+    Complex (Kind=Kind(0.d0)), allocatable, dimension(:) :: work
+    Real (Kind=Kind(0.d0)) :: nrm
+    Integer :: I, lwork, info
     
-    iters = Op%N
-    Mat = cmplx(0.d0, 0.d0, kind(0.D0))
-    Allocate (c(iters, iters))
     write(*,*) "Op_exp: ", Op%N
-    c = 0.D0
-    Do n = 1, iters
-       Z = exp(g*Op%E(n))
-       do J = 1, iters
-          Z1 = Z*conjg(Op%U(J,n))
-          do I = 1, iters
-!             y = Z1 * Op%U(I, n) - c(I, J)
-!             t = Mat(I, J) + y
-!             c(I, J) = (t - Mat(I,J)) - y
-!             Mat(I, J) = t
-            Mat(I, J) = Mat(I, J) + Z1 * Op%U(I, n)
-          enddo
-          
-          Mat(1:iters, J) = Mat(1:iters, J) + Z1 * Op%U(1:iters, n)
-       enddo
-    enddo
-    Deallocate(c)
+    select case (Op%N)
+    case (1)
+        Mat(1,1) = exp(g*Op%E(1))
+    case (2)
+        Mat(1,1) = exp(g*Op%E(2))
+        Mat(2,2) = exp(g*Op%E(1))
+        Z = Mat(1,1) - Mat(2,2)
+        nrm = DBLE(Op%U(1, 1) * Conjg(Op%U(1, 1)))
+        Mat(1,2) = Op%U(1, 1) * Op%U(1, 2)
+        Mat(2,1) = Conjg(Mat(1, 2))
+        Mat(1,2) = Mat(1,2) * Z
+        Mat(2,1) = Mat(2,1) * Z ! if g is complex the resulting matrix is not hermitian.
+        Z = Z*nrm
+        Mat(1,1) = Mat(1,1) - Z
+        Mat(1,1) = Mat(1,1) + Z
+    case default
+        Mat = cmplx(0.d0, 0.d0, kind(0.D0))
+        lwork = 2 * Op%N
+        Allocate (work(lwork))
+        Do i = 1, Op%N
+            Mat(I, I) = exp(g*Op%E(I))
+        ENDDO
+        ! The phase factors do not matter in the similarity transform
+        CALL ZUNMQR('L', 'N', Op%N, Op%N, Op%N, Op%U, Op%n, Op%U(1, Op%N), Mat, Size(Mat, 1), work, lwork, info)
+        CALL ZUNMQR('R', 'C', Op%N, Op%N, Op%N, Op%U, Op%n, Op%U(1, Op%N), Mat, Size(Mat, 1), work, lwork, info)
+        Deallocate(work)
+    end select
   end subroutine Op_exp
 
 !--------------------------------------------------------------------
