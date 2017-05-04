@@ -200,7 +200,6 @@ Contains
              nz = nz + 1
           endif
        enddo
-           write (*,*) N
        Op%N_non_zero = np
        !Write(6,*) "Op_set", np,N
        TMP = Op%U ! that way we have the changes to the determinant due to the permutation
@@ -246,7 +245,7 @@ Contains
 !--------------------------------------------------------------------
 
 
-Subroutine Op_exp(g,Op,Mat)
+Pure Subroutine Op_exp(g,Op,Mat)
     Implicit none 
     Type (Operator), Intent(IN)  :: Op
     Complex (Kind=Kind(0.d0)), Dimension(:,:), INTENT(OUT) :: Mat
@@ -256,7 +255,6 @@ Subroutine Op_exp(g,Op,Mat)
     Real (Kind=Kind(0.d0)) :: nrm
     Integer :: I, lwork, info
     
-    write(*,*) "Op_exp: ", Op%N
     select case (Op%N)
     case (1)
         Mat(1,1) = exp(g*Op%E(1))
@@ -283,9 +281,6 @@ Subroutine Op_exp(g,Op,Mat)
         CALL ZUNMQR('L', 'N', Op%N, Op%N, Op%N, Op%U, Op%n, Op%U(1, Op%N), Mat, Size(Mat, 1), work, lwork, info)
         CALL ZUNMQR('R', 'C', Op%N, Op%N, Op%N, Op%U, Op%n, Op%U(1, Op%N), Mat, Size(Mat, 1), work, lwork, info)
         Deallocate(work)
-        DO I = 1, Op%N
-        write(*, *) Op%U(I, I)
-        ENDDO
     end select
   end subroutine Op_exp
 
@@ -394,10 +389,10 @@ Subroutine Op_exp(g,Op,Mat)
         Allocate(tmp(opn, Ndim), work(lwork))
         tmp = V
 !        CALL ZGEMM('N','N', opn, Ndim, opn, alpha, U, opn, V, opn, beta, tmp, opn)
-        DO J = 1, Ndim
-            DO I = 1, opn-1
-                tmp(I, J) = tmp(I, J) * DBLE(U(I, I))
-            ENDDO
+        DO I = 1, opn-1
+            IF(DBLE(U(I, I)) < 0.D0) THEN
+                tmp(I, :) = - tmp(I, :)
+            ENDIF
         ENDDO
 !        tmp(opn, :) = V(opn, :)
         CALL ZUNMQR('L', 'N', opn, Ndim, opn, U, opn, U(1, opn), tmp, opn, work, lwork, info)
@@ -450,12 +445,14 @@ Subroutine Op_exp(g,Op,Mat)
     case default
         lwork = 2*Ndim
         Allocate(tmp(Ndim, opn), work(lwork))
-        DO I = 1, Ndim
-            DO J = 1, opn - 1
-                tmp(I, J) = V(J, I) * DBLE(U(J, J))
-            ENDDO
-        tmp(I, opn) = V(opn, I) 
+        DO J = 1, opn - 1
+            IF (DBLE(U(J, J)) < 0.D0) THEN
+                tmp(:, J) = - V(J, :)
+            ELSE
+                tmp(:, J) = V(J, :)
+            ENDIF
         ENDDO
+        tmp(:, opn) = V(opn, :)
         CALL ZUNMQR('R', 'C', Ndim, opn, opn, U, opn, U(1, opn), tmp, Ndim, work, lwork, info)
 !        CALL ZGEMM('T','C', Ndim, opn, opn, alpha, V, opn, U, opn, beta, tmp, Ndim)
         Mat(:, (P)) = tmp
@@ -513,15 +510,13 @@ Subroutine Op_exp(g,Op,Mat)
         ! multiply with Q
         CALL ZUNMQR('R', 'N', Ndim ,opn, opn, U, opn, U(1, opn), tmp, Ndim, work, lwork, info)
         ! multiply with R
-        DO I = 1, Ndim
-            DO J = 1, opn - 1
-                tmp(I, J) = tmp(I, J) * DBLE(U(J, J))
-            ENDDO
+        DO J = 1, opn - 1
+            IF (DBLE(U(J, J)) < 0.D0) THEN
+                tmp(:, J) = - tmp(: , J)
+            ENDIF
         ENDDO
-        DO I = 1, Ndim
         DO J = 1, opn
-        tmp(I, J) = Z(J) * tmp(I, J)
-        ENDDO
+            tmp(:, J) = Z(J) * tmp(:, J)
         ENDDO
         Mat(:, P) = tmp
 !         do n = 1, opn
@@ -581,14 +576,14 @@ Subroutine Op_exp(g,Op,Mat)
         CALL ZUNMQR('L', 'C', opn, Ndim, opn, U, opn, U(1, opn), tmp, opn, work, lwork, info)
         ! multiply with R
         DO I = 1, opn -1
-            DO J = 1, Ndim
-                tmp(I, J) = tmp(I, J) * DBLE(U(I, I))
-            ENDDO
+            IF(DBLE(U(I, I)) < 0.D0) THEN
+                tmp(I, :) = -tmp(I, :)
+            ENDIF
         ENDDO
         ! exponentials
-        DO I = 1, opn
         Do J = 1, Ndim
-        tmp(I, J) = tmp(I, J) * Z(I)
+        DO I = 1, opn
+            tmp(I, J) = tmp(I, J) * Z(I)
         ENDDO
         ENDDO
         Mat(P, :) = tmp
