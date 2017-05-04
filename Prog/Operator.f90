@@ -205,7 +205,7 @@ Contains
        !Write(6,*) "Op_set", np,N
        TMP = Op%U ! that way we have the changes to the determinant due to the permutation
        Z = Det_C(TMP, N)
-       ! Scale Op%U to be in SU(N)
+       ! Scale Op%U to be in SU(N) -> R will be diagonal with +-1 on the diagonal
        DO I = 1, N
             Op%U(I,1) = zladiv(Op%U(I,1),Z)
        ENDDO
@@ -216,7 +216,11 @@ Contains
             DO I = 1, N-1
                 TMP(I, N) = TAU(I)
             ENDDO
-            TMP(N, N) = 1.D0 - TMP(N,N)*(1.D0 - TAU(N))! absorb last sign (stored in U(opn, opn)) into redefinition of tau
+            IF (DBLE(TMP(N,N)) < 0.D0) THEN
+                TMP(N, N) = 2.D0 - TAU(N)! absorb last sign (stored in U(opn, opn)) into redefinition of tau
+            ELSE
+                TMP(N, N) = TAU(N)
+            ENDIF
             Op%U = TMP
        endif
        deallocate (U, E, TMP, TAU, WORK)
@@ -279,6 +283,9 @@ Subroutine Op_exp(g,Op,Mat)
         CALL ZUNMQR('L', 'N', Op%N, Op%N, Op%N, Op%U, Op%n, Op%U(1, Op%N), Mat, Size(Mat, 1), work, lwork, info)
         CALL ZUNMQR('R', 'C', Op%N, Op%N, Op%N, Op%U, Op%n, Op%U(1, Op%N), Mat, Size(Mat, 1), work, lwork, info)
         Deallocate(work)
+        DO I = 1, Op%N
+        write(*, *) Op%U(I, I)
+        ENDDO
     end select
   end subroutine Op_exp
 
@@ -387,11 +394,12 @@ Subroutine Op_exp(g,Op,Mat)
         Allocate(tmp(opn, Ndim), work(lwork))
         tmp = V
 !        CALL ZGEMM('N','N', opn, Ndim, opn, alpha, U, opn, V, opn, beta, tmp, opn)
-        DO I = 1, opn-1
         DO J = 1, Ndim
-        tmp(I, J) = tmp(I, J) * U(I, I)
+            DO I = 1, opn-1
+                tmp(I, J) = tmp(I, J) * DBLE(U(I, I))
+            ENDDO
         ENDDO
-        ENDDO
+!        tmp(opn, :) = V(opn, :)
         CALL ZUNMQR('L', 'N', opn, Ndim, opn, U, opn, U(1, opn), tmp, opn, work, lwork, info)
         Mat((P), :) = tmp
         Deallocate(tmp, work)
@@ -443,9 +451,9 @@ Subroutine Op_exp(g,Op,Mat)
         lwork = 2*Ndim
         Allocate(tmp(Ndim, opn), work(lwork))
         DO I = 1, Ndim
-        DO J = 1, opn - 1
-        tmp(I, J) = V(J, I) * Conjg(U(J, J))
-        ENDDO
+            DO J = 1, opn - 1
+                tmp(I, J) = V(J, I) * DBLE(U(J, J))
+            ENDDO
         tmp(I, opn) = V(opn, I) 
         ENDDO
         CALL ZUNMQR('R', 'C', Ndim, opn, opn, U, opn, U(1, opn), tmp, Ndim, work, lwork, info)
@@ -507,7 +515,7 @@ Subroutine Op_exp(g,Op,Mat)
         ! multiply with R
         DO I = 1, Ndim
             DO J = 1, opn - 1
-                tmp(I, J) = tmp(I, J) * U(J, J)
+                tmp(I, J) = tmp(I, J) * DBLE(U(J, J))
             ENDDO
         ENDDO
         DO I = 1, Ndim
@@ -574,7 +582,7 @@ Subroutine Op_exp(g,Op,Mat)
         ! multiply with R
         DO I = 1, opn -1
             DO J = 1, Ndim
-                tmp(I, J) = tmp(I, J) * U(I, I)
+                tmp(I, J) = tmp(I, J) * DBLE(U(I, I))
             ENDDO
         ENDDO
         ! exponentials
@@ -800,7 +808,7 @@ Subroutine Op_exp(g,Op,Mat)
 !                CALL ZGEMM('T','N', Ndim, op%N, op%N, alpha, VH, op%n, Op%U, op%n, beta, tmp, Ndim)
                 DO I = 1, Ndim
                     DO J = 1, Op%N -1
-                        tmp(I, J) = tmp(I, J) * Op%U(J, J)
+                        tmp(I, J) = tmp(I, J) * DBLE(Op%U(J, J))
                     ENDDO
                 ENDDO
                 Mat(:, (Op%P)) = tmp
@@ -811,7 +819,7 @@ Subroutine Op_exp(g,Op,Mat)
                 CALL ZUNMQR('L', 'C', Op%N, Ndim, op%N, Op%U, Op%n, Op%U(1, op%N), tmp2, Op%N, work, lwork, info)
                 DO I = 1, Op%N -1
                     DO J = 1, Ndim
-                        tmp2(I, J) = tmp2(I, J) * conjg(Op%U(I, I))
+                        tmp2(I, J) = tmp2(I, J) * DBLE(Op%U(I, I))
                     ENDDO
                 ENDDO
 !                CALL ZGEMM('C','N', op%N, Ndim, op%N, alpha, Op%U, op%n, VH, op%n, beta, tmp2, op%n)
