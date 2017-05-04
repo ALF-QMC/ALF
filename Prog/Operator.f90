@@ -279,7 +279,7 @@ Subroutine Op_exp(g,Op,Mat)
         Mat(2,1) = Mat(2,1) * Z ! if g is complex the resulting matrix is not hermitian.
         Z = Z*nrm
         Mat(1,1) = Mat(1,1) - Z
-        Mat(1,1) = Mat(1,1) + Z
+        Mat(2,2) = Mat(2,2) + Z
     case default
         Mat = cmplx(0.d0, 0.d0, kind(0.D0))
         lwork = 2 * Op%N
