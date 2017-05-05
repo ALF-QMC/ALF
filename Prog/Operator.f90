@@ -517,10 +517,6 @@ Subroutine Op_exp(g,Op,Mat)
             ENDIF
         ENDDO
         Mat(:, P(opn)) = Z(opn) * tmp(:, opn)
-!         DO J = 1, opn
-!             Mat(:, P(j)) = Z(J) * tmp(:, J)
-!         ENDDO
-!        Mat(:, P) = tmp
 !         do n = 1, opn
 !             call zgemv('T', opn, Ndim, Z(n), V, opn, U(:, n), 1, beta, Mat(:, P(n)), 1)
 !         Enddo
@@ -772,9 +768,9 @@ Subroutine Op_exp(g,Op,Mat)
                 Mat(Op%P(1), I) = ExpMOp(1) * Mat(Op%P(1), I)
             enddo
        else
+            CALL ZLASET('A', Op%N, Ndim, beta, beta, VH, Op%N)
             Do n = 1,Op%N
-                expHere=ExpOp(n)
-                VH(n, :) = ExpHere * Mat(:, Op%P(n))
+                CALL ZAXPY(Ndim, ExpOp(n), Mat(1, Op%P(n)), 1, VH(n, 1), Op%N)
             Enddo
             call opmultct(VH, Op%U, Op%P, Mat, Op%N, Ndim)
             CALL ZLASET('A', Op%N, Ndim, beta, beta, VH, Op%N)
@@ -798,31 +794,34 @@ Subroutine Op_exp(g,Op,Mat)
                     Mat(Op%P(2), I) = -Op%U(2,1) * VH(1, I) + Op%U(1,1) * VH(2, I)
                 enddo
             case default
-                call copy_select_rows(VH, Mat, Op%P, Op%N, Ndim)
+!                call copy_select_rows(VH, Mat, Op%P, Op%N, Ndim)
                 lwork = 2 * Ndim
                 Allocate(tmp(Ndim, Op%N), work(lwork))
-                tmp = TRANSPOSE(VH)
+                    Do n = 1, op%n
+                        call zcopy(Ndim, Mat(1, Op%P(n)), 1, tmp(1,n), 1)
+                    Enddo
                 CALL ZUNMQR('R', 'N', Ndim, Op%N, Op%N, Op%U, op%n, Op%U(1, op%N), tmp, Ndim, work, lwork, info)
 !                CALL ZGEMM('T','N', Ndim, op%N, op%N, alpha, VH, op%n, Op%U, op%n, beta, tmp, Ndim)
                 DO J = 1, Op%N -1
                     IF(DBLE(Op%U(J, J)) < 0.D0) THEN
-                        tmp(:, J) = - tmp(:, J)
+                        Mat(:, Op%P(J)) = - tmp(:, J)
+                    ELSE
+                        CALL ZCOPY(Ndim, tmp(1, J), 1, Mat(:, Op%P(J)), 1)
                     ENDIF
                 ENDDO
-                Mat(:, (Op%P)) = tmp
+                CALL ZCOPY(Ndim, tmp(1, Op%N), 1, Mat(:, Op%P(Op%N)), 1)
                 Deallocate(tmp)
                 call copy_select_columns(VH, Mat, Op%P, Op%N, Ndim)
-                Allocate(tmp2(Op%N, Ndim))
-                tmp2 = VH
-                CALL ZUNMQR('L', 'C', Op%N, Ndim, op%N, Op%U, Op%n, Op%U(1, op%N), tmp2, Op%N, work, lwork, info)
+                CALL ZUNMQR('L', 'C', Op%N, Ndim, op%N, Op%U, Op%n, Op%U(1, op%N), VH, Op%N, work, lwork, info)
                 DO I = 1, Op%N -1
                     IF(DBLE(Op%U(I, I)) < 0.D0) THEN
-                        tmp2(I, :) = -tmp2 (I, :)
+                        Mat(Op%P(I), :) = -VH (I, :)
+                    ELSE
+                        Mat(Op%P(I), :) = VH (I, :)
                     ENDIF
                 ENDDO
+                Mat(Op%P(Op%N), :) = VH (Op%N, :)
 !                CALL ZGEMM('C','N', op%N, Ndim, op%N, alpha, Op%U, op%n, VH, op%n, beta, tmp2, op%n)
-                Mat(Op%P, :) = tmp2
-                Deallocate(tmp2)
             end select
         endif
     endif
