@@ -245,7 +245,7 @@ Contains
 !--------------------------------------------------------------------
 
 
-Pure Subroutine Op_exp(g,Op,Mat)
+Subroutine Op_exp(g,Op,Mat)
     Implicit none 
     Type (Operator), Intent(IN)  :: Op
     Complex (Kind=Kind(0.d0)), Dimension(:,:), INTENT(OUT) :: Mat
@@ -370,7 +370,7 @@ Pure Subroutine Op_exp(g,Op,Mat)
     Integer :: n,i, j, lwork, info
     Complex (Kind = Kind(0.D0)) :: alpha, beta
     Complex (Kind = Kind(0.D0)), Dimension(:,:), allocatable :: tmp
-    Complex (Kind = Kind(0.D0)), Dimension(:), allocatable :: work
+    Complex (Kind = Kind(0.D0)), Dimension(:), allocatable :: work, vec
 
     alpha = 1.D0
     beta = 0.D0
@@ -391,11 +391,10 @@ Pure Subroutine Op_exp(g,Op,Mat)
 !        CALL ZGEMM('N','N', opn, Ndim, opn, alpha, U, opn, V, opn, beta, tmp, opn)
         DO I = 1, opn-1
             IF(DBLE(U(I, I)) < 0.D0) THEN
-                tmp(I, :) = - tmp(I, :)
+               tmp(I, :) = - tmp(I, :)
             ENDIF
         ENDDO
-!        tmp(opn, :) = V(opn, :)
-        CALL ZUNMQR('L', 'N', opn, Ndim, opn, U, opn, U(1, opn), tmp, opn, work, lwork, info)
+        CALL ZUNMQR('L', 'N', opn, Ndim, opn, U(1,1), opn, U(1, opn), tmp(1,1), opn, work(1), lwork, info)
         Mat((P), :) = tmp
         Deallocate(tmp, work)
     end select
@@ -508,17 +507,20 @@ Pure Subroutine Op_exp(g,Op,Mat)
         allocate(tmp(Ndim, opn), work(lwork))
         tmp = Transpose(V)
         ! multiply with Q
-        CALL ZUNMQR('R', 'N', Ndim ,opn, opn, U, opn, U(1, opn), tmp, Ndim, work, lwork, info)
+        CALL ZUNMQR('R', 'N', Ndim ,opn, opn, U(1,1), opn, U(1, opn), tmp, Ndim, work, lwork, info)
         ! multiply with R
         DO J = 1, opn - 1
             IF (DBLE(U(J, J)) < 0.D0) THEN
-                tmp(:, J) = - tmp(: , J)
+                Mat(:, P(j)) = -Z(J) * tmp(:, J)
+            ELSE
+                Mat(:, P(j)) = Z(J) * tmp(:, J)
             ENDIF
         ENDDO
-        DO J = 1, opn
-            tmp(:, J) = Z(J) * tmp(:, J)
-        ENDDO
-        Mat(:, P) = tmp
+        Mat(:, P(opn)) = Z(opn) * tmp(:, opn)
+!         DO J = 1, opn
+!             Mat(:, P(j)) = Z(J) * tmp(:, J)
+!         ENDDO
+!        Mat(:, P) = tmp
 !         do n = 1, opn
 !             call zgemv('T', opn, Ndim, Z(n), V, opn, U(:, n), 1, beta, Mat(:, P(n)), 1)
 !         Enddo
@@ -573,7 +575,7 @@ Pure Subroutine Op_exp(g,Op,Mat)
         allocate(tmp(opn, Ndim), work(lwork))
         tmp = V
         ! multiply with Q
-        CALL ZUNMQR('L', 'C', opn, Ndim, opn, U, opn, U(1, opn), tmp, opn, work, lwork, info)
+        CALL ZUNMQR('L', 'C', opn, Ndim, opn, U(1,1), opn, U(1, opn), tmp, opn, work, lwork, info)
         ! multiply with R
         DO I = 1, opn -1
             IF(DBLE(U(I, I)) < 0.D0) THEN
@@ -581,10 +583,11 @@ Pure Subroutine Op_exp(g,Op,Mat)
             ENDIF
         ENDDO
         ! exponentials
-        Do J = 1, Ndim
         DO I = 1, opn
-            tmp(I, J) = tmp(I, J) * Z(I)
-        ENDDO
+            CALL ZSCAL(Ndim, Z(I), tmp(I, 1), size(tmp, 1))
+!         Do J = 1, Ndim
+!             tmp(I, J) = tmp(I, J) * Z(I)
+!         ENDDO
         ENDDO
         Mat(P, :) = tmp
 !         do n = 1, opn
@@ -774,9 +777,9 @@ Pure Subroutine Op_exp(g,Op,Mat)
                 VH(n, :) = ExpHere * Mat(:, Op%P(n))
             Enddo
             call opmultct(VH, Op%U, Op%P, Mat, Op%N, Ndim)
+            CALL ZLASET('A', Op%N, Ndim, beta, beta, VH, Op%N)
             Do n = 1,Op%N
-                ExpHere=ExpMOp(n)
-                VH(n, :) = ExpHere * Mat(Op%P(n), :)
+                CALL ZAXPY(Ndim, ExpMop(n), Mat(Op%P(n), 1), Ndim, VH(n, 1), Op%N)
             Enddo
             call opmult(VH, Op%U, Op%P, Mat, Op%N, Ndim)
        endif
@@ -801,10 +804,10 @@ Pure Subroutine Op_exp(g,Op,Mat)
                 tmp = TRANSPOSE(VH)
                 CALL ZUNMQR('R', 'N', Ndim, Op%N, Op%N, Op%U, op%n, Op%U(1, op%N), tmp, Ndim, work, lwork, info)
 !                CALL ZGEMM('T','N', Ndim, op%N, op%N, alpha, VH, op%n, Op%U, op%n, beta, tmp, Ndim)
-                DO I = 1, Ndim
-                    DO J = 1, Op%N -1
-                        tmp(I, J) = tmp(I, J) * DBLE(Op%U(J, J))
-                    ENDDO
+                DO J = 1, Op%N -1
+                    IF(DBLE(Op%U(J, J)) < 0.D0) THEN
+                        tmp(:, J) = - tmp(:, J)
+                    ENDIF
                 ENDDO
                 Mat(:, (Op%P)) = tmp
                 Deallocate(tmp)
@@ -813,9 +816,9 @@ Pure Subroutine Op_exp(g,Op,Mat)
                 tmp2 = VH
                 CALL ZUNMQR('L', 'C', Op%N, Ndim, op%N, Op%U, Op%n, Op%U(1, op%N), tmp2, Op%N, work, lwork, info)
                 DO I = 1, Op%N -1
-                    DO J = 1, Ndim
-                        tmp2(I, J) = tmp2(I, J) * DBLE(Op%U(I, I))
-                    ENDDO
+                    IF(DBLE(Op%U(I, I)) < 0.D0) THEN
+                        tmp2(I, :) = -tmp2 (I, :)
+                    ENDIF
                 ENDDO
 !                CALL ZGEMM('C','N', op%N, Ndim, op%N, alpha, Op%U, op%n, VH, op%n, beta, tmp2, op%n)
                 Mat(Op%P, :) = tmp2
