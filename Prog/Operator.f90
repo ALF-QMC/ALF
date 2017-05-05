@@ -575,17 +575,17 @@ Subroutine Op_exp(g,Op,Mat)
         ! multiply with R
         DO I = 1, opn -1
             IF(DBLE(U(I, I)) < 0.D0) THEN
-                tmp(I, :) = -tmp(I, :)
+!                tmp(I, :) = -tmp(I, :)
+                CALL ZSCAL(Ndim, - Z(I), tmp(I, 1), size(tmp, 1))
+            ELSE
+                CALL ZSCAL(Ndim, Z(I), tmp(I, 1), size(tmp, 1))
             ENDIF
+            Mat(P(I), : ) = tmp(I, :)
         ENDDO
+        CALL ZSCAL(Ndim, Z(opn), tmp(opn, 1), size(tmp, 1))
+        Mat(P(opn), :) = tmp(opn, :)
         ! exponentials
-        DO I = 1, opn
-            CALL ZSCAL(Ndim, Z(I), tmp(I, 1), size(tmp, 1))
-!         Do J = 1, Ndim
-!             tmp(I, J) = tmp(I, J) * Z(I)
-!         ENDDO
-        ENDDO
-        Mat(P, :) = tmp
+!        Mat(P, :) = tmp
 !         do n = 1, opn
 !             call zgemv('T', opn, Ndim, Z(n), V, opn, conjg(U(:, n)), 1, beta, Mat(P(n), 1), size(Mat, 1))
 !         Enddo
