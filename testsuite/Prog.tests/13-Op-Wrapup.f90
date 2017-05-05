@@ -29,7 +29,7 @@ Program Wrapup
       Ndim = 5
 !
       Do opn = 1, 4
-         Do N_Type = 1, 2
+         Do N_Type = 1,2
             Allocate (VH(opn, Ndim), matold(Ndim, Ndim), matnew(Ndim, &
            & Ndim), Expop(opn), ExpMop(opn))
             Call Op_seths ()
@@ -74,10 +74,10 @@ write (*,*) "================================"
 !
             Do i = 1, Ndim
                Do j = 1, Ndim
-                  Zre = real (matnew(i, j)-matold(i, j))
+                  Zre = dble (matnew(i, j)-matold(i, j))
                   Zim = aimag (matnew(i, j)-matold(i, j))
-                  If (Abs(Zre) > Max(Abs(real(matnew(i, j))), &
-                 & Abs(real(matold(i, j))))*1D-14) Then
+                  If (Abs(Zre) > Max(Abs(dble(matnew(i, j))), &
+                 & Abs(dble(matold(i, j))))*1D-14) Then
                      Write (*,*) "opn: ", opn, "N_type", N_Type, "i = ", i, "j = ", j
                      Write (*,*) "ERROR in real part", real (matnew(i, &
                     & j)), real (matold(i, j))
