@@ -163,7 +163,7 @@
               Zarr = x_v(Op_V(n_op,nf)%P, :)
               grarr = gr(:, Op_V(n_op,nf)%P, nf)
               alpha = 1.D0
-              CALL ZGEMM('N', 'N', NDim, Op_Dim, Op_Dim, alpha, grarr, size(grarr,1), Zarr, size(Zarr,1), beta, xp_v, size(xp_v,1))
+              CALL ZGEMM('N', 'N', NDim, Op_Dim, Op_Dim, alpha, grarr, NDim, Zarr, Op_dim, beta, xp_v, Ndim)
               Deallocate(Zarr, grarr)
               !do n = 1,Op_dim
               !   do j = 1,Ndim
@@ -176,7 +176,7 @@
               ! Replace by Zgemm 
               alpha = cmplx (-1.0d0, 0.0d0, kind(0.D0))
               beta  = cmplx ( 1.0d0, 0.0d0, kind(0.D0))
-              CALL ZGEMM('N','T',Ndim,Ndim,Op_dim,alpha,xp_v,size(xp_v,1),y_v,size(y_v,1),beta,gr(1,1,nf),size(gr,1))
+              CALL ZGEMM('N','T',Ndim,Ndim,Op_dim,alpha,xp_v, Ndim,y_v, Ndim,beta,gr(1,1,nf), Ndim)
 
 
 !!!!!         Requires additional space
