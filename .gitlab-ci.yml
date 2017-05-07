@@ -122,6 +122,15 @@ GQMCT_Ubuntu_Xenial:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:xenial-gfortran-lapack
   <<: *build_definition
   
+GQMCT_Jessie_MPI:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-gfortran-blas-lapack-fftw-scipy
+  stage: build
+  script:
+    - gfortran -v
+    - make f90='mpif90' PROGRAMCONFIGURATION='-DMPI -DTEMPERING'
+    - make f90='mpif90' PROGRAMCONFIGURATION='-DMPI -DTEMPERING' Hub_Ising
+    - make f90='mpif90' PROGRAMCONFIGURATION='-DMPI -DTEMPERING' Kondo_Honey
+
 GQMCT_Wheezy_conv:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-wheezy-gfortran-blas-lapack
   <<: *warnconv_definition

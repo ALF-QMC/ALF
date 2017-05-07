@@ -613,7 +613,7 @@
                    
                    nc_J = nc_J + nsigma(n1,nt)*nsigma(n2,nt) + &
                         &        nsigma(n2,nt)*nsigma(n3,nt) + &
-                        &        nsigma(n3,nt)*nsigma(n3,nt) + &
+                        &        nsigma(n3,nt)*nsigma(n4,nt) + &
                         &        nsigma(n4,nt)*nsigma(n1,nt) - &
                         &        nsigma_old(n1,nt)*nsigma_old(n2,nt) - &
                         &        nsigma_old(n2,nt)*nsigma_old(n3,nt) - &
