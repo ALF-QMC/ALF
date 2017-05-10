@@ -26,6 +26,10 @@
 \usepackage{soul}
 \usepackage{alltt}
 \usepackage{hyperref} 
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+% \usepackage{float}
+% \newfloat{algorithm}{t}{lop}
 
 % *** extra definitions
 \def\Tr{\mathop{\mathrm{Tr}}}
@@ -57,7 +61,13 @@
   columns=flexible
 }
 \DeclareRobustCommand{\hlgray}[1]{{\sethlcolor{dark-gray}\hl{#1}}}
-
+\algnewcommand{\LeftComment}[1]{\Statex \(\triangleright\) \textit{#1}}
+\algnewcommand{\OneIndentedLeftComment}[1]{\Statex \(\hspace\algorithmicindent\triangleright\) \textit{#1}}
+\algnewcommand{\TwoIndentedLeftComment}[1]{\Statex \(\hspace\algorithmicindent\hspace\algorithmicindent\triangleright\) \textit{#1}}
+\algnewcommand{\ThreeIndentedLeftComment}[1]{\Statex \(\hspace\algorithmicindent\hspace\algorithmicindent\hspace\algorithmicindent\triangleright\) \textit{#1}}
+\algnewcommand{\FourIndentedLeftComment}[1]{\Statex \(\hspace\algorithmicindent\hspace\algorithmicindent\hspace\algorithmicindent\hspace\algorithmicindent\triangleright\) \textit{#1}}
+\algnewcommand{\CustomComment}[1]{\Statex \(\hspace{11.7em}\triangleright\) \textit{#1}}
+\algnewcommand{\NewCustomComment}[1]{\Statex \(\hspace{13em}\triangleright\) \textit{#1}}
 \begin{document}
 
 % TODO: write your article's title here. 
@@ -465,9 +475,9 @@ The negative sign problem is an issue since the average sign is a ratio of two p
 \begin{equation}
  \langle \text{sign} \rangle_{\overline{P}}   \propto e^{-  \Delta N \beta}.
 \end{equation}
-$\Delta $ is intensive positive quantity and $N \beta$ denotes the  Euclidean volume.    In a Monte Carlo simulation, the  error scales as $ 1/\sqrt{T_{CPU}} $   where $T_{CPU}$ corresponds to the computational  time.  Since the error on the  average sign has to be much smaller than the average sign itself,   one sees that:
+$\Delta $ is intensive positive quantity and $N \beta$ denotes the  Euclidean volume.    In a Monte Carlo simulation, the  error scales as $ 1/\sqrt{T_{\text{CPU}}} $   where $T_{\text{CPU}}$ corresponds to the computational  time.  Since the error on the  average sign has to be much smaller than the average sign itself,   one sees that:
 \begin{equation}
-	T_{CPU}  \gg e^{2 \Delta N \beta}.
+	T_{\text{CPU}}  \gg e^{2 \Delta N \beta}.
 \end{equation}   
 Two comments are in order. First, the presence of a sign problem invariably leads to an exponential increase of CPU time as a function of the Euclidean volume. And second,  $\Delta$ is formulation dependent.  
 For instance, at finite doping, the SU(2) invariant formulation of the Hubbard model presented in Sec.~\ref{sec:walk1}   has a much more severe sign problem than the formulation presented in Sec.~\ref{sec:walk1.1} where the HS field couples to the z-component of the magnetization.  Typically one can work with average signs  down to $ \langle \text{sign} \rangle_{\overline{P}} \simeq 0.1 $.
@@ -604,7 +614,7 @@ This has several consequences for the Monte Carlo simulation:
 The \path{N_rebin} variable can be used to control a second issue. The distribution of the Monte Carlo estimates $\langle\langle\hat{O}\rangle\rangle_C$ is unknown. The result in the form $(\mathrm{mean}\pm \mathrm{error})$ assumes a Gaussian distribution. Luckily, every original distribution with a finite variance turns into a Gaussian one, once it is folded often enough (central limit theorem). Due to the internal averaging (folding) within one bin, many observables are already quite Gaussian. Otherwise one can increase \path{N_rebin} further, even if the bins are already independent~\cite{Bercx17}.
 	\item The third issue concerns time displaced correlation functions. Even if the configurations are independent, the fields within the configuration are still correlated. Hence, the data for $S_{\alpha,\beta}(\vec{k},\tau)$ (see Sec.~\ref{sec:obs}; Eqn.~\ref{eqn:s}) and $S_{\alpha,\beta}(\vec{k},\tau+\Delta\tau)$ are also correlated. Setting the switch \path{N_Cov = 1} triggers the calculation of the covariance matrix in addition to the usual error analysis. The covariance is defined by
 	\begin{equation}
-		COV_{\tau \tau'}=\frac{1}{N_{Bins}}\left\langle\left(S_{\alpha,\beta}(\vec{k},\tau)-\langle S_{\alpha,\beta}(\vec{k},\tau)\rangle\right)\left(S_{\alpha,\beta}(\vec{k},\tau')-\langle S_{\alpha,\beta}(\vec{k},\tau')\rangle\right)\right\rangle\,.
+		COV_{\tau \tau'}=\frac{1}{N_{\text{Bin}}}\left\langle\left(S_{\alpha,\beta}(\vec{k},\tau)-\langle S_{\alpha,\beta}(\vec{k},\tau)\rangle\right)\left(S_{\alpha,\beta}(\vec{k},\tau')-\langle S_{\alpha,\beta}(\vec{k},\tau')\rangle\right)\right\rangle\,.
 	\end{equation}
 An example where this information is necessary is the  calculation of mass gaps extracted by fitting the  tail  of the time displaced correlation function.  Omitting  the covariance matrix will  underestimate the  error.
 \end{itemize}
@@ -614,66 +624,146 @@ An example where this information is necessary is the  calculation of mass gaps 
 \subsection{Pseudo code description}\label{sec:pseudocode}
 %------------------------------------------------------------
 %
-\begin{mdframed}[frametitle={Basic structure of the auxiliary field QMC implementation (\path{Prog/main.f90}):}]
-{\setlength{\parindent}{0pt}
-Set the Hamiltonian and the lattice:\\
-\textbf{Call} ham\_set\\
-Read in an auxiliary-field configuration or generate it randomly:\\
-\textbf{Call} confin\\
+% \begin{mdframed}[frametitle={Basic structure of the auxiliary field QMC implementation (\path{Prog/main.f90}):}]
+% {\setlength{\parindent}{0pt}
+% Set the Hamiltonian and the lattice:\\
+% \textbf{Call} ham\_set\\
+% Read in an auxiliary-field configuration or generate it randomly:\\
+% \textbf{Call} confin\\
+% 
+% This loop fills the storage, needed for the first actual Monte Carlo sweep:\\
+% \textbf{Do} \texttt{ntau} from  \texttt{ltrot} to \texttt{1}\\
+% \hspace*{1em} Compute propagation matrices and store them at the stabilization points:\\
+% \hspace*{1em} \textbf{Call} wrapul\\
+% \textbf{Enddo}\\
+%  
+% Loop over bins:  \\
+% \textbf{Do} \texttt{nbc} from  \texttt{1} to \texttt{nbin} \\
+% \hspace*{1em} Loop over sweeps. Each sweep updates twice (sweeping upward and downward\\
+% \hspace*{1em} in time the whole space-time lattice of auxiliary fields.\\
+% \hspace*{1em} The sweep defines the unit of Monte Carlo time:\\
+% \hspace*{1em} \textbf{Do} \texttt{nsw} from  \texttt{1} to \texttt{nsweep}  \\
+% \hspace*{2em} Upward sweep:\\
+% \hspace*{2em} \textbf{Do} \texttt{ntau} from \texttt{1} to \texttt{ltrot}\\      
+% \hspace*{3em} Propagate the Green function from time \texttt{ntau -1} to \texttt{ntau}, and compute\\
+% \hspace*{3em} a new estimate (using sequential update scheme) of the Green function at \texttt{ntau}: \\
+% \hspace*{3em} \textbf{Call} wrapgrup\\
+%          
+% \hspace*{3em}  Stabilization: \\     
+% \hspace*{3em} \textbf{If} \texttt{ntau} equals stabilization point in imaginary time \textbf{then}\\
+% \hspace*{4em} Compute propagation matrix from previous stabilization point to \texttt{ntau}: \\
+% \hspace*{4em} \textbf{Call} wrapur\\
+% \hspace*{4em} Read from storage: propagation from \texttt{ltrot} to \texttt{ntau}\\
+% \hspace*{4em} Write to storage : the just computed propagation \\
+% \hspace*{4em} Recalculate the Green function at time \texttt{ntau} in a stable way:\\
+% \hspace*{4em} \textbf{Call} cgr\\            
+% \hspace*{4em} Check the precision between propagated and recalculated Green functions:\\
+% \hspace*{4em} \textbf{Call} control\_precisionG\\
+% \hspace*{3em} \textbf{Endif}\\
+%     
+% \hspace*{3em} Measure the equal time observables: \\
+% \hspace*{3em} \textbf{If} \texttt{ntau} is in the intervall \texttt{[LOBS\_ST, LOBS\_EN]} \textbf{then}\\
+% \hspace*{4em} \textbf{Call} obser\\
+% \hspace*{3em} \textbf{Endif}\\
+% \hspace*{2em} \textbf{Enddo}\\
+% 
+% \hspace*{2em} Downward sweep:\\
+% \hspace*{2em} \textbf{Do} \texttt{ntau} from \texttt{ltrot} to \texttt{1}\\
+% \hspace*{3em} Repeat the above steps (update, propagation, stabilization, equal time\\
+% \hspace*{3em} measurements) for the downward direction in imaginary time\\
+% \hspace*{2em} \textbf{Enddo}\\
+% 
+% \hspace*{2em} Measure the time displaced observables: \\
+% \hspace*{2em} \textbf{Call} tau\_m\\
+% \hspace*{1em} \textbf{Enddo} (loop over sweeps)\\
+%     
+% \hspace*{1em} Calculate measurement averages for current bin and write them to disk:\\
+% \hspace*{1em} \textbf{call} pr\_obs\\
+% \hspace*{1em} Write auxiliary-field configuration to disk: \\
+% \hspace*{1em} \textbf{call} confout\\
+% \textbf{Enddo} (loop over bins)
+% }
+% \end{mdframed}
 
-This loop fills the storage, needed for the first actual Monte Carlo sweep:\\
-\textbf{Do} \texttt{ntau} from  \texttt{ltrot} to \texttt{1}\\
-\hspace*{1em} Compute propagation matrices and store them at the stabilization points:\\
-\hspace*{1em} \textbf{Call} wrapul\\
-\textbf{Enddo}\\
- 
-Loop over bins:  \\
-\textbf{Do} \texttt{nbc} from  \texttt{1} to \texttt{nbin} \\
-\hspace*{1em} Loop over sweeps. Each sweep updates twice (sweeping upward and downward\\
-\hspace*{1em} in time the whole space-time lattice of auxiliary fields.\\
-\hspace*{1em} The sweep defines the unit of Monte Carlo time:\\
-\hspace*{1em} \textbf{Do} \texttt{nsw} from  \texttt{1} to \texttt{nsweep}  \\
-\hspace*{2em} Upward sweep:\\
-\hspace*{2em} \textbf{Do} \texttt{ntau} from \texttt{1} to \texttt{ltrot}\\      
-\hspace*{3em} Propagate the Green function from time \texttt{ntau -1} to \texttt{ntau}, and compute\\
-\hspace*{3em} a new estimate (using sequential update scheme) of the Green function at \texttt{ntau}: \\
-\hspace*{3em} \textbf{Call} wrapgrup\\
-         
-\hspace*{3em}  Stabilization: \\     
-\hspace*{3em} \textbf{If} \texttt{ntau} equals stabilization point in imaginary time \textbf{then}\\
-\hspace*{4em} Compute propagation matrix from previous stabilization point to \texttt{ntau}: \\
-\hspace*{4em} \textbf{Call} wrapur\\
-\hspace*{4em} Read from storage: propagation from \texttt{ltrot} to \texttt{ntau}\\
-\hspace*{4em} Write to storage : the just computed propagation \\
-\hspace*{4em} Recalculate the Green function at time \texttt{ntau} in a stable way:\\
-\hspace*{4em} \textbf{Call} cgr\\            
-\hspace*{4em} Check the precision between propagated and recalculated Green functions:\\
-\hspace*{4em} \textbf{Call} control\_precisionG\\
-\hspace*{3em} \textbf{Endif}\\
-    
-\hspace*{3em} Measure the equal time observables: \\
-\hspace*{3em} \textbf{If} \texttt{ntau} is in the intervall \texttt{[LOBS\_ST, LOBS\_EN]} \textbf{then}\\
-\hspace*{4em} \textbf{Call} obser\\
-\hspace*{3em} \textbf{Endif}\\
-\hspace*{2em} \textbf{Enddo}\\
 
-\hspace*{2em} Downward sweep:\\
-\hspace*{2em} \textbf{Do} \texttt{ntau} from \texttt{ltrot} to \texttt{1}\\
-\hspace*{3em} Repeat the above steps (update, propagation, stabilization, equal time\\
-\hspace*{3em} measurements) for the downward direction in imaginary time\\
-\hspace*{2em} \textbf{Enddo}\\
 
-\hspace*{2em} Measure the time displaced observables: \\
-\hspace*{2em} \textbf{Call} tau\_m\\
-\hspace*{1em} \textbf{Enddo} (loop over sweeps)\\
-    
-\hspace*{1em} Calculate measurement averages for current bin and write them to disk:\\
-\hspace*{1em} \textbf{call} pr\_obs\\
-\hspace*{1em} Write auxiliary-field configuration to disk: \\
-\hspace*{1em} \textbf{call} confout\\
-\textbf{Enddo} (loop over bins)
-}
-\end{mdframed}
+\begin{algorithm}[H]
+\caption{Basic structure of the auxiliary field QMC implementation in \texttt{Prog/main.f90}}
+\label{alg:1}
+\begin{algorithmic}[1]
+
+\State{\textbf{Call} ham\_set}\Comment{\textit{Set the Hamiltonian and the lattice}}
+
+\State{\textbf{Call} confin}\Comment{\textit{Read in an auxiliary-field configuration or generate it randomly}}
+\item[]
+
+% \LeftComment{This loop fills the storage, needed for the first actual Monte Carlo sweep:}
+\For{$n=L_{\text{Trotter}}$ to $1$} \Comment{\textit{Fill the storage, needed for the first actual Monte Carlo sweep}}
+\State{\textbf{Call} wrapul}\Comment{\textit{Compute propagation matrices and store them at stabilization points}}
+\EndFor
+\item[]
+
+
+% \LeftComment{Loop over bins. The bin defines the unit of Monte Carlo time:}
+\For{$n_{\text{bc}}=1$ to $N_{\text{bin}}$}\Comment{\textit{Loop over bins. The bin defines the unit of Monte Carlo time}}
+\item[]
+
+% \OneIndentedLeftComment{Loop over sweeps. Each sweep updates twice (sweeping upward and downward in}
+% \OneIndentedLeftComment{imaginary time) the whole space-time lattice of auxiliary fields:}
+\For{$n_{\text{sw}}=1$ to $N_{\text{sweep}}$}\Comment{\textit{Loop over sweeps. Each sweep updates twice}}
+\Statex\Comment{\textit{(upward and downward in imag. time) the space-time lattice of auxiliary fields}}
+\item[]
+
+% \TwoIndentedLeftComment{Upward sweep:}
+\For{$n_{\tau}$ to $L_{\text{Trotter}}$}\Comment{\textit{Upward sweep}}
+\State{\textbf{Call} wrapgrup}\Comment{\textit{Propagate Green fct. from $n_{tau}-1$ to $n_{\tau}$, and compute new}}
+\Statex\Comment{\textit{estimate of Green fct. at $n_{\tau}$, using sequential updates}}
+\item[]
+
+\ThreeIndentedLeftComment{Stabilization:}
+\If{$n_{\tau}$ = stabilization point in imaginary time}
+
+\State{\textbf{Call} wrapur}\Comment{\textit{Compute propagation from previous stabilization point to $n_{\tau}$}}
+
+\FourIndentedLeftComment{Storage management:}
+\FourIndentedLeftComment{Read from storage: propagation from $L_{\text{Trotter}}$ to $n_{\tau}$}
+\FourIndentedLeftComment{Write to storage : the just computed propagation}
+
+\State{\textbf{Call} cgr} \Comment{\textit{Recalculate the Green function at time $n_{\tau}$ in a stable way}}
+\State{\textbf{Call} control\_precisionG}\Comment{\textit{Compare propagated and recalculated Green fct.}}
+\EndIf
+\item[]
+
+% \ThreeIndentedLeftComment{Measure the equal time observables:}
+\If{$n_{\tau} \in [LOBS\_ST, LOBS\_EN]$}\Comment{\textit{Measure the equal time observables}}
+\State{\textbf{Call} obser}
+\EndIf
+\EndFor
+\item[]
+
+% \TwoIndentedLeftComment{Downward sweep}
+\For{$n_{\tau}=L_{\text{Trotter}}$ to $1$}\Comment{\textit{Downward sweep}}
+\ThreeIndentedLeftComment{Repeat the above steps (update, propagation, stabilization, equal time}
+\ThreeIndentedLeftComment{measurements) for the downward direction in imaginary time}
+\EndFor
+\item[]
+
+% \TwoIndentedLeftComment{Measure the time displaced observables:}
+\If{$n_{\tau} = 1$} \Comment{\textit{Measure the time displaced observables}}
+\State{\textbf{Call} tau\_m}
+\EndIf
+
+
+\EndFor
+
+\State{\textbf{call} pr\_obs} \Comment{\textit{Calculate measurement averages for current bin and write them to disk}}
+\State{\textbf{call} confout}\Comment{\textit{Write auxiliary-field configuration to disk}}
+
+\EndFor
+
+\end{algorithmic}
+\end{algorithm}
+
 
 %
 %========================================================================================================================================
