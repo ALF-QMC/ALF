@@ -1,0 +1,101 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% FIRST REPORT
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Anonymous Report 130 on 2017-5-8
+Strengths
+
+1) Highly useful tool, extremely valuable and helpful and welcome
+2) Very versatile, large class of models
+3) Very impressive complete package, documentation, and examples.
+4) Flexible re-binning tool for error analysis.
+Weaknesses
+
+Minor.
+1) Introduction could be more clear on which models can and cannot be simulated with the present software
+2) Autocorrelations: more guidance needed in a black box package
+3) Information sometimes a bit terse
+Report
+
+This software package for auxiliary field quantum Monte Carlo is an extremely valuable and helpful and welcome tool which had been sorely missing from the existing code packages. It is a very impressive complete package with software, documentation and examples, ready to simulate a very large class of Hamiltonians. This referee would like to thank the authors for providing such a big service to the community.
+
+The documentation is clearly written and complete. Some small additions would be welcome in order to improve accessibility and ease of use of the package, as explained below:
+
+The introduction first provides a quick but very wide review of existing techniques and some corresponding models. The switch to the present package is a bit fuzzy and may leave the reader wondering which aspects of the previous review are included. The subsequent definition of the Hamiltonian is technically complete, but it would be really helpful to have a brief discussion of some models which are or are not included.
+In the example section, some repeated information would help, escpecially about which files contain which kind of information (input, output).
+The present package can be used almost as a black box. Therefore, some guidance is necessary to prevent accidents. Guidance is nicely provided with respect to stabilization, but not enough with respect to autocorrelations (see below).
+
+Overall, with a few additions in the documentation, I highly recommend publication of this paper.
+Requested changes
+
+1) Chapter 1.2: mention some examples of which models can or cannot be simulated. Mention that "flavor" includes spin. Might mention that H_I formally includes the Hamiltonians of H_T.
+2) Example section: could repeat which files contain what kind of information.
+3) Autocorrelations: Need more discussion. There is no unique autocorrelation time T_auto. The autocorrelation time for convergence depends on the observable and can be very different for e.g. energies vs. long distance correlations. Thermalization usually needs much more than a single T_auto. Like expressed in the paper for the case of stabilization, the user needs to know that convergence ,,has to be judged for every simulation'', and indeed every observable (see for example the ALPS package). The possibility of re-binning is very nice. Some hint would be helpful on how fast to increase bin-sizes and on how many independent bins are necessary for a reliable jackknife error.
+4) Page 4: Re(sign) instead of |sign| ?
+5) Jackknife: might mention how the sign is handled (eq. 24).
+6) For stabilization: scaling with L and beta, timing ?
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% REPLY TO THE FIRST REPORT
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+We would like to thank the referee for the very positive evaluation and their constructive report.
+In the following we respond to the points raised by the referee:
+
+1)
+> "Chapter 1.2: mention some examples of which models can or cannot be simulated."
+
+We have included  the following paragraph to Chapter 1.2:
+"The scope of the present version 1.0 of ALF also encompasses many well-known fermionic models, for example Hubbard-type models, $SU(N)$ Kondo lattice models, and SU(N) Hubbard-Heisenberg models (see Sec. 4 and 5.1 for examples and implementation details). 
+In the present version, we have included a lattice module for one and two spatial dimensions.
+As discussed in Sec. 6, imaginary time dependent Hamiltonians and long-range Coulomb interactions are beyond the scope of the present version."
+
+> "Mention that "flavor" includes spin."
+
+We have included the following paragraph:
+"Both the color and the flavor index can describe the spin degree of freedom, the choice depending on the spin symmetry 
+of the simulated model and the HS transformation. This point is illustrated in the examples, see Sec. 4.1 and 4.2."
+
+> "Might mention that H_I formally includes the Hamiltonians of H_T."
+
+(comment by Martin: I do not understand what the point of this remark might be, since H_I and H_T could be totally different, right?) 
+
+
+
+2)
+> "Example section: could repeat which files contain what kind of information."
+
+"The input files are 'parameters' and 'seeds'. The output files are 'info', 'confout', and files with suffixes '_scal', '_eq', and '_tau' that 
+contain the raw measurements."
+
+
+
+3) 
+> "Autocorrelations: Need more discussion. There is no unique autocorrelation time T_auto. The autocorrelation time for convergence depends on the observable and can be very different for e.g. energies vs. long distance correlations. Thermalization usually needs much more than a single T_auto. Like expressed in the paper for the case of stabilization, the user needs to know that convergence ,,has to be judged for every simulation'', and indeed every observable (see for example the ALPS package). The possibility of re-binning is very nice. Some hint would be helpful on how fast to increase bin-sizes and on how many independent bins are necessary for a reliable jackknife error"
+
+(comment by Martin: We know that this is a delicate issue, especially for a "black-box" type of users. Would it be helpful to come up with an example, where autocorrelations are strong and well visible in a rebinning plot (error vs. bin size) and include this plot?)
+
+
+
+4) 
+>"Page 4: Re(sign) instead of |sign| ?" 
+
+"We have expressed the weight as  |exp[-S(C)]| to account for the in general complex phase."
+(comment by Martin: There is no mentionning of |sign| on page 4 ... (?) )
+
+
+
+5) 
+>"Jackknife: might mention how the sign is handled (eq. 24)."
+
+(comment by Martin: We could include a short discussion of the Jackknife method in Sec. 3.6.3) 
+
+
+
+6) 
+>"For stabilization: scaling with L and beta, timing ?"
+
+"The algorithm is stablized by re-computing the Green function matrix from scratch on a subset of time slice.
+Its time complexity per sweep is similar to the time complexity without stabilization, scaling linearly in number of time slices and cubic in the number of sites. Hence the stabilization will lead to an  increase of the prefactor in the time complexity."
+
+
