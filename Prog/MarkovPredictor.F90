@@ -140,7 +140,7 @@ INTEGER :: I
 write (*,*) "order: ", this%order, "Nr of states: ", this%nrstates, "states", this%states
 write (*, *) 0, this%states
 DO I = 1, this%nrstates
-write (*, *) this%states(I), this%Pint(I, :, 1)!/DBLE(this%sums(I,1))
+write (*, *) this%states(I), this%Pint(I, :, 1)/DBLE(this%sums(I,1))
 ENDDO
 
 END SUBROUTINE print_MarkovPredictor

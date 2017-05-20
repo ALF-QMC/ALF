@@ -7,6 +7,7 @@
       Use Files_mod
       Use Matrix
       Use Observables
+      Use MarkovPredictor_Mod
 
       
       Implicit none
@@ -23,13 +24,13 @@
 
 !>    Privat variables 
       Type (Lattice),       private :: Latt 
-      Integer,              private :: L1, L2
+      Integer,              private :: L1, L2, i,j 
       real (Kind=Kind(0.d0)),        private :: ham_T , ham_U,  Ham_chem, Ham_h, Ham_J, Ham_xi, Ham_F
       real (Kind=Kind(0.d0)),        private :: Dtau, Beta
       Real(Kind=Kind(0.D0)), private :: logsinh, logcosh
       Character (len=64),   private :: Model, Lattice_type
       Logical,              private :: One_dimensional
-      Integer,              private :: N_coord, Norb
+      Integer,              private :: N_coord, Norb, ctr
       Integer, allocatable, private :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
 
 
@@ -37,6 +38,8 @@
       Type (Obser_Vec ),  private, dimension(:), allocatable ::   Obs_scal
       Type (Obser_Latt),  private, dimension(:), allocatable ::   Obs_eq
       Type (Obser_Latt),  private, dimension(:), allocatable ::   Obs_tau
+      Type (MarkovPredictor), private, dimension(:, :), allocatable :: mpreds
+      Integer :: states(4)
       
 !>    Storage for the Ising action
       Real (Kind=Kind(0.d0)), private :: DW_Ising_tau(-1:1), DW_Ising_Space(-1:1), DW_Ising_Flux(-1:1,-1:1)
@@ -193,6 +196,17 @@
               close(50)
              logcosh = log(cosh(Dtau * Ham_h))
              logsinh = log(sinh(Dtau * Ham_h))
+             allocate(mpreds(Ndim, Ltrot))
+             states(1) = -2
+             states(2) = -1
+             states(3) = 1
+             states(4 ) = 2
+             DO I = 1, Ndim
+             Do j = 1,LTROT
+             CALL mpreds(I, j)%init(1, 4, states)
+             ENDDO
+             ENDDO
+             ctr = 0
 #if defined(MPI) && !defined(TEMPERING)
            endif
 #endif
@@ -493,52 +507,67 @@
              
              
              I = nranf(Latt%N)
-             I_st = I
-             If ( ranf_wrap() > 0.5 ) then 
-                nt= nranf(Ltrot )
-                dx = 0 ! nranf(L1/2)
-                sx = 1; 
-                if (nranf(2) == 2 ) sx = -1
-                dy = 0 !nranf(L2/2)
-                sy = 1
-                if ( nranf(2) == 2) sy = -1
-                dt = nranf(Ltrot/2)
-                st = 1
-                if ( nranf(2) == 2) st = -1 
-                
-                Do n = 1,dx
-                   I1 = Latt%nnlist(I,sx,0)
-                   nsigma(L_bond(I,2),nt) = - nsigma(L_bond(I,2),nt)
-                   I = I1
-                enddo
-                Do n = 1,dy
-                   I1 = Latt%nnlist(I,0,sy)
-                   nsigma(L_bond(I,1),nt) = - nsigma(L_bond(I,1),nt)
-                   I = I1
-                enddo
-                Do n = 1,dt
-                   nt1  = nt + st
-                   if (nt1 > Ltrot ) nt1 = nt1 - Ltrot
-                   if (nt1 < 1     ) nt1 = nt1 + Ltrot
-                   nsigma(L_bond(I,1),nt1) = - nsigma(L_bond(I,1),nt1)
-                   nt = nt1
-                enddo
-             else
-                !Write(6,*)  ' Flux tube '
-                I = I_st
-                n1  = L_bond(I,1)
-                n2  = L_bond(I,2)
-                n3  = L_bond(Latt%nnlist(I,-1,0),1)
-                n4  = L_bond(Latt%nnlist(I,0,-1),2)
-                do nt = 1,Ltrot
-                   nsigma(n1,nt) = -nsigma(n1,nt)
-                   nsigma(n2,nt) = -nsigma(n2,nt)
-                   nsigma(n3,nt) = -nsigma(n3,nt)
-                   nsigma(n4,nt) = -nsigma(n4,nt)
-                enddo
-             Endif
+!              I_st = I
+!              If ( ranf_wrap() > 0.5 ) then 
+!                 nt= nranf(Ltrot )
+!                 dx = 0 ! nranf(L1/2)
+!                 sx = 1; 
+!                 if (nranf(2) == 2 ) sx = -1
+!                 dy = 0 !nranf(L2/2)
+!                 sy = 1
+!                 if ( nranf(2) == 2) sy = -1
+!                 dt = nranf(Ltrot/2)
+!                 st = 1
+!                 if ( nranf(2) == 2) st = -1 
+!                 
+!                 Do n = 1,dx
+!                    I1 = Latt%nnlist(I,sx,0)
+!                    nsigma(L_bond(I,2),nt) = - nsigma(L_bond(I,2),nt)
+!                    I = I1
+!                 enddo
+!                 Do n = 1,dy
+!                    I1 = Latt%nnlist(I,0,sy)
+!                    nsigma(L_bond(I,1),nt) = - nsigma(L_bond(I,1),nt)
+!                    I = I1
+!                 enddo
+!                 Do n = 1,dt
+!                    nt1  = nt + st
+!                    if (nt1 > Ltrot ) nt1 = nt1 - Ltrot
+!                    if (nt1 < 1     ) nt1 = nt1 + Ltrot
+!                    nsigma(L_bond(I,1),nt1) = - nsigma(L_bond(I,1),nt1)
+!                    nt = nt1
+!                 enddo
+!              else
+!                 !Write(6,*)  ' Flux tube '
+!                 I = I_st
+!                 n1  = L_bond(I,1)
+!                 n2  = L_bond(I,2)
+!                 n3  = L_bond(Latt%nnlist(I,-1,0),1)
+!                 n4  = L_bond(Latt%nnlist(I,0,-1),2)
+!                 do nt = 1,Ltrot
+!                    nsigma(n1,nt) = -nsigma(n1,nt)
+!                    nsigma(n2,nt) = -nsigma(n2,nt)
+!                    nsigma(n3,nt) = -nsigma(n3,nt)
+!                    nsigma(n4,nt) = -nsigma(n4,nt)
+!                 enddo
+!              Endif
              
 !             nsigma = nsigma_old
+!write (*, *) nsigma(:, 1)
+DO I = 1, Ndim
+DO n = 1, Ltrot
+    CALL mpreds(I, n)%update(nsigma_old(I, n))
+    ENDDO
+ENDDO
+    ctr = ctr +1
+    IF(ctr > 1000) then
+DO I = 1, Ndim
+DO n = 1, Ltrot
+    CALL mpreds(I, n)%print
+    ENDDO
+ENDDO
+STOP 3
+    endif
              Ratio = Delta_S0_global(Nsigma_old)
              Weight = 1.d0 - 1.d0/(1.d0+Ratio)
              If ( Weight < ranf_wrap() ) Then 
