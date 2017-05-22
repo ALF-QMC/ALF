@@ -35,6 +35,44 @@ Requested changes
 5) Jackknife: might mention how the sign is handled (eq. 24).
 6) For stabilization: scaling with L and beta, timing ?
 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SECOND REPORT
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Anonymous Report 144 on 2017-5-22
+Strengths
+
+1) first open-source code for lattice fermion models
+2) impressively versatile framework
+3) broad applicability in terms of model Hamiltonians
+4) state-of-the-art implementation and documentation
+Weaknesses
+
+1) no compatibility with other similar open-source packages likes ALPS, iTensor
+2) no roadmap to include obvious extensions like projective zero-temperature QMC approach
+3) no community building effort
+Report
+
+The manuscript at hand accompanies an open-source project devoted to a state-of-the-art, parallelized implementation of auxiliary field quantum Monte Carlo approaches for lattice fermion models. Its primary purpose is to provide a documentation of this Fortran 90 code package and illustrate via a number of examples its impressive versatility that allows for the simulation of a broad variety of fermionic lattice models.
+
+This is an important contribution that complements related open-source projects such as the ALPS project or the iTensor package that have been widely utilized over the last decade and found broad appreciation beyond the numerical community. Nevertheless, there is no standardized approach to credit the original authors of such open-source codes in the scientific community and it is therefore of paramount importance to allow for the publication of an accompanying documentation such that scientific credit can be measured in terms of citations.
+
+I therefore strongly endorse the publication of the manuscript at hand in its current form with some minor revisions (see below).
+Requested changes
+
+While the manuscript is basically a documentation accompanying an open-source code, it is generally very well written. But I do want to urge the authors to expand the introduction to (i) include a broader introduction into the topic of open-source codes and community codes, and (ii) make a connection to similar efforts such as the ALPS project or the iTensor project (and probably motivate why there is no cross-compatibility with these codes).
+
+One minor point of revision regards the discussion of the sign problem. In particular, Equation (27) should not be credited to the Troyer&Wiese PRL (as done in the introduction), but should be credited to the Loh,Gubernatis, … PRB of 1990.
+
+When referring to introductory readings on fermionic QMC flavors, I suggest to add the very nice book of Gubernatis, Kawashima and Werner (Cambridge University Press, 2016).
+
+In the discussion at the end of the manuscript, I would have expected to find a roadmap for future releases and whether the ALF project is expected to turn into a community project (similar to the ALPS project) with contributors beyond the Würzburg group.
+
+
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % REPLY TO THE FIRST REPORT
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -97,5 +135,27 @@ contain the raw measurements."
 
 "The algorithm is stablized by re-computing the Green function matrix from scratch on a subset of time slice.
 Its time complexity per sweep is similar to the time complexity without stabilization, scaling linearly in number of time slices and cubic in the number of sites. Hence the stabilization will lead to an  increase of the prefactor in the time complexity."
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% REPLY TO THE SECOND REPORT
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+We would like to thank the referee for carefully reading our paper and for the very positive report.
+In the following we respond to the points raised by the referee:
+
+
+> "i) include a broader introduction into the topic of open-source codes and community codes, and (ii) make a connection to similar efforts such as the ALPS project or the iTensor project (and probably motivate why there is no cross-compatibility with these codes)."
+
+
+
+> "One minor point of revision regards the discussion of the sign problem. In particular, Equation (27) should not be credited to the Troyer&Wiese PRL (as done in the introduction), but should be credited to the Loh,Gubernatis, … PRB of 1990."
+
+
+
+> "When referring to introductory readings on fermionic QMC flavors, I suggest to add the very nice book of Gubernatis, Kawashima and Werner (Cambridge University Press, 2016)."
+
+
+> "In the discussion at the end of the manuscript, I would have expected to find a roadmap for future releases and whether the ALF project is expected to turn into a community project (similar to the ALPS project) with contributors beyond the Würzburg group."
 
 

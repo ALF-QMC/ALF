@@ -692,14 +692,14 @@ An example where this information is necessary is the  calculation of mass gaps 
 \label{alg:1}
 \begin{algorithmic}[1]
 
-\State{\textbf{Call} ham\_set}\Comment{\textit{Set the Hamiltonian and the lattice}}
+\State{\textbf{call} ham\_set}\Comment{\textit{Set the Hamiltonian and the lattice}}
 
-\State{\textbf{Call} confin}\Comment{\textit{Read in an auxiliary-field configuration or generate it randomly}}
+\State{\textbf{call} confin}\Comment{\textit{Read in an auxiliary-field configuration or generate it randomly}}
 \item[]
 
 % \LeftComment{This loop fills the storage, needed for the first actual Monte Carlo sweep:}
 \For{$n=L_{\text{Trotter}}$ to $1$} \Comment{\textit{Fill the storage, needed for the first actual Monte Carlo sweep}}
-\State{\textbf{Call} wrapul}\Comment{\textit{Compute propagation matrices and store them at stabilization points}}
+\State{\textbf{call} wrapul}\Comment{\textit{Compute propagation matrices and store them at stabilization points}}
 \EndFor
 \item[]
 
@@ -716,27 +716,27 @@ An example where this information is necessary is the  calculation of mass gaps 
 
 % \TwoIndentedLeftComment{Upward sweep:}
 \For{$n_{\tau}$ to $L_{\text{Trotter}}$}\Comment{\textit{Upward sweep}}
-\State{\textbf{Call} wrapgrup}\Comment{\textit{Propagate Green fct. from $n_{tau}-1$ to $n_{\tau}$, and compute new}}
+\State{\textbf{call} wrapgrup}\Comment{\textit{Propagate Green fct. from $n_{tau}-1$ to $n_{\tau}$, and compute new}}
 \Statex\Comment{\textit{estimate of Green fct. at $n_{\tau}$, using sequential updates}}
 \item[]
 
 \ThreeIndentedLeftComment{Stabilization:}
 \If{$n_{\tau}$ = stabilization point in imaginary time}
 
-\State{\textbf{Call} wrapur}\Comment{\textit{Compute propagation from previous stabilization point to $n_{\tau}$}}
+\State{\textbf{call} wrapur}\Comment{\textit{Compute propagation from previous stabilization point to $n_{\tau}$}}
 
 \FourIndentedLeftComment{Storage management:}
 \FourIndentedLeftComment{Read from storage: propagation from $L_{\text{Trotter}}$ to $n_{\tau}$}
 \FourIndentedLeftComment{Write to storage : the just computed propagation}
 
-\State{\textbf{Call} cgr} \Comment{\textit{Recalculate the Green function at time $n_{\tau}$ in a stable way}}
-\State{\textbf{Call} control\_precisionG}\Comment{\textit{Compare propagated and recalculated Green fct.}}
+\State{\textbf{call} cgr} \Comment{\textit{Recalculate the Green function at time $n_{\tau}$ in a stable way}}
+\State{\textbf{call} control\_precisionG}\Comment{\textit{Compare propagated and recalculated Green fct.}}
 \EndIf
 \item[]
 
 % \ThreeIndentedLeftComment{Measure the equal time observables:}
 \If{$n_{\tau} \in [LOBS\_ST, LOBS\_EN]$}\Comment{\textit{Measure the equal time observables}}
-\State{\textbf{Call} obser}
+\State{\textbf{call} obser}
 \EndIf
 \EndFor
 \item[]
@@ -750,7 +750,7 @@ An example where this information is necessary is the  calculation of mass gaps 
 
 % \TwoIndentedLeftComment{Measure the time displaced observables:}
 \If{$n_{\tau} = 1$} \Comment{\textit{Measure the time displaced observables}}
-\State{\textbf{Call} tau\_m}
+\State{\textbf{call} tau\_m}
 \EndIf
 
 
