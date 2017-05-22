@@ -61,13 +61,9 @@
   columns=flexible
 }
 \DeclareRobustCommand{\hlgray}[1]{{\sethlcolor{dark-gray}\hl{#1}}}
-\algnewcommand{\LeftComment}[1]{\Statex \(\triangleright\) \textit{#1}}
-\algnewcommand{\OneIndentedLeftComment}[1]{\Statex \(\hspace\algorithmicindent\triangleright\) \textit{#1}}
-\algnewcommand{\TwoIndentedLeftComment}[1]{\Statex \(\hspace\algorithmicindent\hspace\algorithmicindent\triangleright\) \textit{#1}}
 \algnewcommand{\ThreeIndentedLeftComment}[1]{\Statex \(\hspace\algorithmicindent\hspace\algorithmicindent\hspace\algorithmicindent\triangleright\) \textit{#1}}
 \algnewcommand{\FourIndentedLeftComment}[1]{\Statex \(\hspace\algorithmicindent\hspace\algorithmicindent\hspace\algorithmicindent\hspace\algorithmicindent\triangleright\) \textit{#1}}
-\algnewcommand{\CustomComment}[1]{\Statex \(\hspace{11.7em}\triangleright\) \textit{#1}}
-\algnewcommand{\NewCustomComment}[1]{\Statex \(\hspace{13em}\triangleright\) \textit{#1}}
+
 \begin{document}
 
 % TODO: write your article's title here. 
@@ -138,18 +134,18 @@ homepage \url{alf.physik.uni-wuerzburg.de}. Contact address: \url{alf@physik.uni
 \subsection{Motivation}
 %------------------------------------------------------------
 
-The auxiliary field quantum Monte Carlo (QMC) approach is the algorithm of choice to simulate  thermodynamic properties of a variety of correlated electron systems in the solid state and beyond \cite{Blankenbecler81,White89,Sugiyama86,Sorella89, Duane87, Assaad08_rev}.  
+The auxiliary field quantum Monte Carlo (QMC) approach is the algorithm of choice to simulate  thermodynamic properties of a variety of correlated electron systems in the solid state and beyond \cite{Blankenbecler81,White89,Sugiyama86,Sorella89, Duane87, Assaad08_rev, gubernatis_kawashima_werner_2016}.  
 Apart from the physics of the  canonical Hubbard model 
 \cite{Scalapino07,LeBlanc15},   the topics one can investigate in detail include correlation effects in the bulk and on surfaces of topological insulators \cite{Hohenadler10,Zheng11}, quantum phase transitions between  Dirac fermions  and insulators \cite{Assaad13,Toldin14,Otsuka16,Chandrasekharan13,Chandrasekharan15},  
-deconfined quantum critical points \cite{Li15a,Assaad16}, topologically ordered phases \cite{Assaad16}, heavy fermion systems \cite{Assaad99a,Capponi00}, nematic \cite{Schattner15} and magnetic  \cite{Xu16b} quantum phase transitions in metals, antiferromagnetism in metals \cite{Berg12},    superconductivity in spin-orbit split bands \cite{Tang14_1}, $SU(N)$ symmetric models \cite{Assaad04,Lang13},  long-ranged Coulomb interactions in graphene systems \cite{Hohenadler14,Tang15},  cold atomic gasses  \cite{Rigol03},  low energy nuclear physics \cite{Lee09},  entanglement entropies and spectra \cite{Grover13,Broecker14,Assaad13a,Assaad15},  etc. 
-This ever growing list of topics  is based on  algorithmic progress and on recent symmetry related insights  \cite{Wu04,Huffman14,Yao14a,Wei16} enabling one to  find  negative sign  problem  free formulations of a number of model systems  with very rich phase diagrams.    
+deconfined quantum critical points \cite{Li15a,Assaad16}, topologically ordered phases \cite{Assaad16}, heavy fermion systems \cite{Assaad99a,Capponi00}, nematic \cite{Schattner15} and magnetic  \cite{Xu16b} quantum phase transitions in metals, antiferromagnetism in metals \cite{Berg12},    superconductivity in spin-orbit split bands \cite{Tang14_1}, $SU(N)$ symmetric models \cite{Assaad04,Lang13},  long-ranged Coulomb interactions in graphene systems \cite{Hohenadler14,Tang15},  cold atomic gasses  \cite{Rigol03},  low energy nuclear physics \cite{Lee09},  entanglement entropies and spectra \cite{Grover13,Broecker14,Assaad13a,Assaad15, Broecker16},  etc. 
+This ever growing list of topics  is based on  algorithmic progress and on recent symmetry related insights  \cite{Wu04,Huffman14,Yao14a,Wei16,Li16} enabling one to  find  negative sign  problem  free formulations of a number of model systems  with very rich phase diagrams.    
 
 Auxiliary field methods  can be formulated in very different ways.  The fields define  the  configuration space $\mathcal{C}$. They can stem from the Hubbard-Stratonovich (HS)  \cite{Hubbard59} transformation required to decouple the  many-body interacting term into a sum of non-interacting problems,  or they can correspond to  bosonic modes with predefined dynamics such as phonons or gauge fields. In all cases, the result is that  the grand-canonical partition function  takes the form, 
 \begin{equation}
 	 Z = \text{Tr}\left( e^{-\beta \hat{\mathcal{H}}}\right)   =   \sum_{\mathcal{C}} e^{-S(\mathcal{C}) },
 \end{equation}
 where  $S$  is the action of non-interacting fermions subject to a  space-time fluctuating auxiliary field.    
-The high-dimensional  integration  over the fields is carried out stochastically.  In this formulation of many  body quantum systems, there is no reason for the action to be a real number.  Thereby $e^{-S(\mathcal{C})}$ cannot be interpreted as a weight. To circumvent this problem one can adopt   re-weighting schemes and sample $| e^{-S(\mathcal{C})}| $. This invariably leads to the so called negative sign problem with associated exponential computational scaling in system size and inverse temperature \cite{Troyer05}.    The  sign problem is formulation dependent, and as mentioned above there has been tremendous progress at identifying an ever growing class of  negative sign problem free models covering a  rich domain  of collective emergent  phenomena.  
+The high-dimensional  integration  over the fields is carried out stochastically.  In this formulation of many  body quantum systems, there is no reason for the action to be a real number.  Thereby $e^{-S(\mathcal{C})}$ cannot be interpreted as a weight. To circumvent this problem one can adopt   re-weighting schemes and sample $| e^{-S(\mathcal{C})}| $. This invariably leads to the so called negative sign problem with associated exponential computational scaling in system size and inverse temperature \cite{Loh90, Troyer05}.    The  sign problem is formulation dependent, and as mentioned above there has been tremendous progress at identifying an ever growing class of  negative sign problem free models covering a  rich domain  of collective emergent  phenomena.  
  For continuous fields, the stochastic integrations can  be carried out with Langevin  dynamics or hybrid methods \cite{Duane85}.   However, for many  problems one can get away with discrete fields \cite{Hirsch83}. In this case,  Monte Carlo importance sampling will often be put to use \cite{Sokal89}.  
 We note that  due to  the non-locality of the fermion determinant, see below, cluster updates,  such as in the loop or stochastic series expansion algorithms
  for quantum spin systems  \cite{Evertz93,Sandvik99b,Sandvik02}, are hard to formulate for this class of problems.  The search for efficient updating schemes that enable to move quickly within the configuration space defines ongoing challenges. 
@@ -2298,7 +2294,11 @@ homepage \url{alf.physik.uni-wuerzburg.de} and the file \texttt{license.CCBYSA}.
 % Use your bibtex library
 % \bibliographystyle{SciPost_bibstyle} % Include this style file here only if you are not using our template
 \clearpage
-\bibliography{alf-1.0-scipost}
+
+% \bibliography{alf-1.0-scipost}
+
+%  temporary change:
+\bibliography{../fassaad,../doc}
 
 \nolinenumbers
 

@@ -48,6 +48,12 @@ F.~Assaad and H.~Evertz,
 \newblock ISBN 978-3-540-74685-0,
 \newblock \doi{10.1007/978-3-540-74686-7_10} (2008).
 
+\bibitem{gubernatis_kawashima_werner_2016}
+J.~Gubernatis, N.~Kawashima and P.~Werner,
+\newblock \emph{Quantum Monte Carlo Methods: Algorithms for Lattice Models},
+\newblock Cambridge University Press,
+\newblock \doi{10.1017/CBO9780511902581} (2016).
+
 \bibitem{Scalapino07}
 D.~J. Scalapino,
 \newblock \emph{Numerical Studies of the 2D Hubbard Model}, pp. 495--526,
@@ -235,6 +241,14 @@ F.~F. Assaad,
 \newblock Phys. Rev. B \textbf{91}, 125146 (2015),
 \newblock \doi{10.1103/PhysRevB.91.125146}.
 
+\bibitem{Broecker16}
+P.~Broecker and S.~Trebst,
+\newblock \emph{Numerical stabilization of entanglement computation in
+  auxiliary-field quantum monte carlo simulations of interacting many-fermion
+  systems},
+\newblock Phys. Rev. E \textbf{94}, 063306 (2016),
+\newblock \doi{10.1103/PhysRevE.94.063306}.
+
 \bibitem{Wu04}
 C.~Wu and S.-C. Zhang,
 \newblock \emph{Sufficient condition for absence of the sign problem in the
@@ -263,11 +277,26 @@ Z.~C. Wei, C.~Wu, Y.~Li, S.~Zhang and T.~Xiang,
 \newblock Phys. Rev. Lett. \textbf{116}, 250601 (2016),
 \newblock \doi{10.1103/PhysRevLett.116.250601}.
 
+\bibitem{Li16}
+Z.-X. {Li}, Y.-F. {Jiang} and H.~{Yao},
+\newblock \emph{{Majorana-time-reversal symmetries: a fundamental principle for
+  sign-problem-free quantum Monte Carlo simulations}},
+\newblock ArXiv:1601.05780  (2016),
+\newblock \eprint{1601.05780}.
+
 \bibitem{Hubbard59}
 J.~Hubbard,
 \newblock \emph{Calculation of partition functions},
 \newblock Phys. Rev. Lett. \textbf{3}, 77 (1959),
 \newblock \doi{10.1103/PhysRevLett.3.77}.
+
+\bibitem{Loh90}
+E.~Y. Loh, J.~E. Gubernatis, R.~T. Scalettar, S.~R. White, D.~J. Scalapino and
+  R.~L. Sugar,
+\newblock \emph{Sign problem in the numerical simulation of many-electron
+  systems},
+\newblock Phys. Rev. B \textbf{41}, 9301 (1990),
+\newblock \doi{10.1103/PhysRevB.41.9301}.
 
 \bibitem{Troyer05}
 M.~Troyer and U.-J. Wiese,
@@ -379,11 +408,7 @@ Y.~Motome and M.~Imada,
 
 \bibitem{Assaad97}
 F.~F. Assaad, M.~Imada and D.~J. Scalapino,
-\newblock \emph{Charge and spin structures of a
-  ${d}_{{x}^{2}\ensuremath{-}{y}^{2}}$ superconductor in the proximity of an
-  antiferromagnetic mott insulator},
-\newblock Phys. Rev. B \textbf{56}, 15001 (1997),
-\newblock \doi{10.1103/PhysRevB.56.15001}.
+\newblock Phys. Rev. B \textbf{56}, 15001 (1997).
 
 \bibitem{Fye86}
 R.~M. Fye,
