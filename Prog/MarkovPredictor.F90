@@ -34,12 +34,12 @@ MODULE MarkovPredictor_Mod
     PRIVATE
     PUBLIC :: MarkovPredictor
     TYPE MarkovPredictor
-        REAL(Kind=Kind(0.d0)), allocatable, Dimension(:, :, :) :: P
-        INTEGER(Kind=Kind(0.d0)), allocatable, Dimension(:, :, :) :: Pint
-        INTEGER(Kind=Kind(0.d0)), allocatable, Dimension(:, :) :: sums
+        REAL(Kind=Kind(0.d0)), allocatable, Dimension(:, :) :: P
+        INTEGER(Kind=Kind(0.d0)), allocatable, Dimension(:, :) :: Pint
+        INTEGER(Kind=Kind(0.d0)), allocatable, Dimension(:) :: sums
         INTEGER, Dimension(:), allocatable :: previousMeasurements
         Integer, allocatable, Dimension(:) :: states
-        Integer :: order, nrstates, nrofpreviousmeasurements
+        Integer :: order, nrstates, nrofpreviousmeasurements, mcstates
         INTEGER :: nrofupdates
 
         CONTAINS
@@ -47,6 +47,7 @@ MODULE MarkovPredictor_Mod
             PROCEDURE :: init => init_MarkovPredictor
             PROCEDURE :: update => update_MarkovPredictor
             PROCEDURE :: predict => predict_MarkovPredictor
+            PROCEDURE :: mapstatetoindex => mapstatetoindex_MarkovPredictor
 !             PROCEDURE :: dealloc => dealloc_UDV_state
 !             PROCEDURE :: reset => reset_UDV_state
 !             PROCEDURE :: assign => assign_UDV_state
@@ -78,17 +79,29 @@ SUBROUTINE init_MarkovPredictor(this, order, nrstates, states)
     this%nrstates = nrstates
     this%nrofpreviousmeasurements = order
     this%states = states
+    this%mcstates = nrstates**order
 !     DO I = 1, nrstates
 !         this%statestoindex()
 !     ENDDO
-    ALLOCATE(this%P(nrstates, nrstates, order), this%previousMeasurements(order), this%Pint(nrstates, nrstates, order))
-    ALLOCATE(this%sums(nrstates, order))
+    ALLOCATE(this%P(nrstates, nrstates), this%previousMeasurements(order), this%Pint(nrstates, nrstates))
+    ALLOCATE(this%sums(mcstates))
     this%previousMeasurements(1) = 1
     this%nrofupdates = nrstates
     this%sums = nrstates
     
     this%Pint = 1 ! All states are equal
 END SUBROUTINE init_MarkovPredictor
+
+INTEGER FUNCTION mapstatetoindex_MarkovPredictor(this, state)
+IMPLICIT NONE
+    CLASS(MarkovPredictor), INTENT(INOUT) :: this
+INTEGER, INTENT(IN) :: state
+INTEGER :: I, stateidx
+DO I = 1, this%nrstates
+IF(this%states(I) == state) stateidx = I
+ENDDO
+mapstatetoindex_MarkovPredictor = stateidx
+END FUNCTION mapstatetoindex_MarkovPredictor
 
 ! update the transition matrix with new data
 SUBROUTINE update_MarkovPredictor(this, state)
@@ -99,11 +112,12 @@ INTEGER :: I
 INTEGER :: stateidx
 this%nrofupdates = this%nrofupdates + 1
 ! map state to index
-DO I = 1, this%nrstates
-IF(this%states(I) == state) stateidx = I
-ENDDO
-this%sums(this%previousMeasurements(1), 1) = this%sums(this%previousMeasurements(1), 1) + 1
-this%Pint(this%previousMeasurements(1), stateidx, 1) = this%Pint(this%previousMeasurements(1), stateidx, 1) + 1
+! DO I = 1, this%nrstates
+! IF(this%states(I) == state) stateidx = I
+! ENDDO
+stateidx = this%mapstatetoindex(state)
+this%sums(this%previousMeasurements(1)) = this%sums(this%previousMeasurements(1)) + 1
+this%Pint(this%previousMeasurements(1), stateidx) = this%Pint(this%previousMeasurements(1), stateidx) + 1
 this%previousMeasurements(1) = stateidx
 END SUBROUTINE update_MarkovPredictor
 
@@ -117,18 +131,19 @@ INTEGER :: myrand, stateidx, mysum, I
 REAL :: mynum
 !CALL RANDOM_NUMBER(mynum)
 mynum = rand()
-DO I = 1, this%nrstates
-IF(this%states(I) == curstate) stateidx = I
-ENDDO
+! DO I = 1, this%nrstates
+! IF(this%states(I) == curstate) stateidx = I
+! ENDDO
+stateidx = this%mapstatetoindex(curstate)
 !write (*,*) mynum
-myrand = mynum * this%sums(stateidx, 1)
+myrand = mynum * this%sums(stateidx)
 ! find out which state we will predict:
-mysum = this%Pint(stateidx, 1, 1)
+mysum = this%Pint(stateidx, 1)
 !write (*,*) myrand, stateidx
 I = 1
 DO WHILE (mysum < myrand)
 I = I + 1
-mysum = mysum + this%Pint(stateidx, I, 1)
+mysum = mysum + this%Pint(stateidx, I)
 ENDDO
 predict_MarkovPredictor = this%states(I)
 END FUNCTION predict_MarkovPredictor
