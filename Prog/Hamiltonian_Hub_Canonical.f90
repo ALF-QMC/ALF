@@ -12,9 +12,6 @@
       Type (Operator), dimension(:,:), allocatable  :: Op_T
       Integer, allocatable :: nsigma(:,:)
       Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot
-!>    Variables for updating scheme
-      Logical              :: Propose_S0, Global_moves
-      Integer              :: N_Global
       
 
       ! What is below is  private 
@@ -84,9 +81,6 @@
 #endif
           Call Ham_latt
 
-          Propose_S0 = .false.
-          Global_moves =.false.
-          N_Global = 1
           If ( Model == "Hubbard_Mz") then
              N_FL = 2
              N_SUN = 1
@@ -692,7 +686,7 @@
           Real (Kind=Kind(0.d0)), intent(out) :: T0_Proposal_ratio
           Integer, dimension(:,:),  allocatable, intent(in)  :: nsigma_old
         End Subroutine Global_move
-!========================================================================
+!---------------------------------------------------------------------
         Real (Kind=kind(0.d0)) Function Delta_S0_global(Nsigma_old)
 
           !>  This function computes the ratio:  e^{-S0(nsigma)}/e^{-S0(nsigma_old)}
@@ -701,7 +695,55 @@
           !> Arguments
           Integer, dimension(:,:), allocatable, intent(IN) :: Nsigma_old
         end Function Delta_S0_global
-!========================================================================
+!---------------------------------------------------------------------
+        Subroutine  Hamiltonian_set_random_nsigma
+          
+          ! The user can set the initial configuration
+          
+          Implicit none
+          
+          Integer :: I, nt
+          
+          Do nt = 1,Ltrot
+             Do I = 1,Size(OP_V,1)
+                nsigma(I,nt)  = 1
+                if ( ranf_wrap()  > 0.5D0 ) nsigma(I,nt)  = -1
+             enddo
+          enddo
+          
+        end Subroutine Hamiltonian_set_random_nsigma
+
+!---------------------------------------------------------------------
+        Subroutine Global_move_tau(T0_Proposal_ratio, S0_ratio, &
+             &                     Flip_list, Flip_length,Flip_value,ntau)
+
+!--------------------------------------------------------------------
+!> @author 
+!> ALF Collaboration
+!>
+!> @brief 
+!> On input: 
+!> GR(tau,m) as defined in  Global_tau_mod_PlaceGR and the direction of updating scheme
+!> direction=u --> You are visiting the time slices from tau = 1  to tau =Ltrot
+!> direction=d --> You are visiting the time slices from tau = Ltrot to tau = 1
+!> 
+!> On input the field configuration is in the array nsigma.
+!> On output: 
+!> Flip_list   ::  A list of spins that are to be fliped. Refers to the entires  in OP_V
+!> Flip_values ::  The values of the fliped spins
+!> Flip_length ::  The number of flips. The first Flip_length entries of Flip_list and Flip_values are relevant
+!> S0_ratio          = e^( S_0(sigma_new) ) / e^( S_0(sigma) )
+!> T0_Proposal_ratio = T0( sigma_new -> sigma ) /  T0( sigma -> sigma_new)  
+!> T0_proposal       = T0 ( sigma -> sigma_new )
+!--------------------------------------------------------------------
+          
+          Implicit none 
+          Real (Kind= kind(0.d0)), INTENT(INOUT) :: T0_Proposal_ratio,  S0_ratio
+          Integer,    allocatable, INTENT(INOUT) :: Flip_list(:), Flip_value(:)
+          Integer, INTENT(INOUT) :: Flip_length
+          Integer, INTENT(IN)    :: ntau
+
+        end Subroutine Global_move_tau
 
 
 

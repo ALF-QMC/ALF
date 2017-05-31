@@ -1,8 +1,8 @@
 TARGET= Kondo_Honey.out
 OBJS=  control_mod.o Operator.o observables_mod.o QDRP_decompose.o udv_state.o \
-       print_bin_mod.o Hamiltonian_Kondo_Honey_mod.o Hop_mod.o  UDV_WRAP.o \
-       Global_mod.o tau_m.o  main.o wrapul.o  cgr1.o wrapgrup.o wrapur.o upgrade.o \
-       wrapgrdo.o outconfc.o  inconfc.o cgr2.o cgr2_2.o cgr2_1.o
+       print_bin_mod.o Hamiltonian_Kondo_Honey_mod.o Hop_mod.o  UDV_WRAP.o Wrapgr_mod.o \
+       Global_mod.o tau_m.o  main.o wrapul.o  cgr1.o  wrapur.o upgrade.o \
+       outconfc.o  inconfc.o cgr2.o cgr2_2.o cgr2_1.o
 
 
   

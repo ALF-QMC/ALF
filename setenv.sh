@@ -2,6 +2,7 @@ export DIR=`pwd`
 f90="gfortran"
 export f90
 F90OPTFLAGS="-O3 -Wconversion  -fcheck=all"
+F90OPTFLAGS="-O3 -Wconversion "
 export F90OPTFLAGS
 F90USEFULFLAGS=" -cpp -std=f2003"
 F90USEFULFLAGS=" -cpp"

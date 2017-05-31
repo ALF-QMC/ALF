@@ -3,7 +3,7 @@ OBJS= Max_SAC.o
 
 .SUFFIXES: .f .f90
 .f.o .f90.o:
-	$(FC) $(SUFFIX) $(FLAGS) $<
+	$(FC) -c $(SUFFIX) $(FLAGS) $<
 
 $(TARGET): $(OBJS)
 	$(FC) $(LF) -o $(TARGET) $(OBJS) $(LIBS)

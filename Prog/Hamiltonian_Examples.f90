@@ -17,15 +17,13 @@
       Type (Operator), dimension(:,:), allocatable  :: Op_T
       Integer, allocatable :: nsigma(:,:)
       Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot
-!>    Variables for updating scheme
-      Logical              :: Propose_S0, Global_moves
-      Integer              :: N_Global
-      
+
 
 !>    Privat variables 
       Type (Lattice),       private :: Latt 
       Integer,              private :: L1, L2
       real (Kind=Kind(0.d0)),        private :: ham_T , ham_U,  Ham_chem, Ham_h, Ham_J, Ham_xi
+
       real (Kind=Kind(0.d0)),        private :: Dtau, Beta
       Character (len=64),   private :: Model, Lattice_type
       Logical,              private :: One_dimensional
@@ -92,9 +90,6 @@
 #endif
           Call Ham_latt
 
-          Propose_S0 = .false.
-          Global_moves =.false.
-          N_Global = 1
           If ( Model == "Hubbard_Mz") then
              N_FL = 2
              N_SUN = 1
@@ -168,6 +163,8 @@
           endif
 #endif
           call Ham_V
+          
+
 
         end Subroutine Ham_Set
 !=============================================================================
@@ -847,5 +844,82 @@
           Endif
 
         end Subroutine Init_obs
+!---------------------------------------------------------------------
+        Subroutine  Hamiltonian_set_random_nsigma
+          
+          ! The user can set the initial configuration
+          
+          Implicit none
+          
+          Integer :: I, nt
+          
+          Do nt = 1,Ltrot
+             Do I = 1,Size(OP_V,1)
+                nsigma(I,nt)  = 1
+                if ( ranf_wrap()  > 0.5D0 ) nsigma(I,nt)  = -1
+             enddo
+          enddo
+          
+        end Subroutine Hamiltonian_set_random_nsigma
+
+!---------------------------------------------------------------------
+        Subroutine Global_move_tau(T0_Proposal_ratio, S0_ratio, &
+             &                     Flip_list, Flip_length,Flip_value,ntau)
+
+!--------------------------------------------------------------------
+!> @author 
+!> ALF Collaboration
+!>
+!> @brief 
+!> On input: 
+!> GR(tau,m) as defined in  Global_tau_mod_PlaceGR and the direction of updating scheme
+!> direction=u --> You are visiting the time slices from tau = 1  to tau =Ltrot
+!> direction=d --> You are visiting the time slices from tau = Ltrot to tau = 1
+!> 
+!> On input the field configuration is in the array nsigma.
+!> On output: 
+!> Flip_list   ::  A list of spins that are to be fliped. Refers to the entires  in OP_V
+!> Flip_values ::  The values of the fliped spins
+!> Flip_length ::  The number of flips. The first Flip_length entries of Flip_list and Flip_values are relevant
+!> S0_ratio          = e^( S_0(sigma_new) ) / e^( S_0(sigma) )
+!> T0_Proposal_ratio = T0( sigma_new -> sigma ) /  T0( sigma -> sigma_new)  
+!> T0_proposal       = T0 ( sigma -> sigma_new )
+!--------------------------------------------------------------------
+          
+          Implicit none 
+          Real (Kind= kind(0.d0)), INTENT(INOUT) :: T0_Proposal_ratio,  S0_ratio
+          Integer,    allocatable, INTENT(INOUT) :: Flip_list(:), Flip_value(:)
+          Integer, INTENT(INOUT) :: Flip_length
+          Integer, INTENT(IN)    :: ntau
+
+
+          ! Local
+          Integer :: n_op, n, ns
+          Real (Kind=Kind(0.d0)) :: T0_proposal
+          Flip_length = nranf(1)
+          
+          do n = 1,flip_length 
+             n_op = nranf(size(OP_V,1))
+             Flip_list(n)  = n_op
+             ns            = nsigma(n_op,ntau)
+             If ( OP_V(n_op,1)%type == 1 ) then 
+                ns = nsigma(n_op,ntau)
+                T0_Proposal       =  1.d0 - 1.d0/(1.d0+S0(n_op,ntau)) ! No move prob
+                If ( T0_Proposal > Ranf_wrap() ) then
+                   T0_Proposal_ratio =  1.d0 / S0(n_op,ntau)
+                else
+                   T0_Proposal_ratio = 0.d0
+                endif
+                S0_ratio          =  S0(n_op,ntau)
+                Flip_value(n)     = - ns
+             else
+                Flip_value(n)     = NFLIPL(nsigma(n_op,ntau),nranf(3))
+                T0_Proposal_ratio = 1.d0
+                S0_ratio          = 1.d0
+             endif
+          Enddo
+
+
+        end Subroutine Global_move_tau
 
       end Module Hamiltonian

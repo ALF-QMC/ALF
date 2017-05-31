@@ -6,21 +6,28 @@
  dtau,Ltrot    :   0.10000000000000001              100
  N_SUN         :            2
  N_FL          :            1
- t             :    1.0000000000000000     
- Ham_U         :    4.0000000000000000     
+ t             :    0.0000000000000000     
+ Ham_U         :    2.0000000000000000     
  Ham_chem      :    0.0000000000000000     
- Ham_xi        :    1.0000000000000000     
- Ham_J         :   0.20000000000000001     
+ Ham_xi        :    2.0000000000000000     
+ Ham_J         :    0.0000000000000000     
  Ham_h         :    2.0000000000000000     
- Sweeps             :          500
- Measure Int.       :            1         100
- Stabilization,Wrap :           10
- Nstm               :           10
- Ltau               :            1
-Prog will stop after hours:    0.1000
-  Precision Green  Mean, Max :    3.3049783233252261E-013   3.8659444190972955E-010
-  Precision Phase, Max       :    1.9588296452505261E-010
-  Precision tau    Mean, Max :    2.6108442421067725E-013   6.4190087106117799E-009
-  Acceptance                 :   0.29300043749999999     
-  CPU Time                   :    329.80390399999999     
-  Effective number of bins   :           10
+ No initial configuration, Seed_in      790789
+ Sweeps                              :          500
+ Prog will stop after hours:    0.1000
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            1
+ # of interacting Ops per time slice :           48
+ Default sequential updating 
+ This executable represents commit c80902a of branch master.
+  Precision Green  Mean, Max :    2.1171646660605182E-013   3.1379493258393454E-010
+  Precision Phase, Max       :    3.8003128867694504E-011
+  Precision tau    Mean, Max :    4.1410766345147085E-014   1.4455801208968624E-011
+  Acceptance                 :   0.28633346590909092     
+  Acceptance_Glob            :    0.0000000000000000     
+  Mean Phase diff Glob       :    0.0000000000000000     
+  Max  Phase diff Glob       :    0.0000000000000000     
+  CPU Time                   :    331.39402799999999     
+  Effective number of bins   :           11

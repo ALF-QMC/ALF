@@ -1,0 +1,44 @@
+!===============================================================================
+!  Variables for the Hubb program
+!-------------------------------------------------------------------------------
+
+&VAR_lattice 
+L1    = 4 
+L2    = 4 
+Lattice_type = "Square"    ! Square
+Model        = "Z2_Slave"  ! Z2_Slave
+/
+
+&VAR_QMC
+Nwrap   = 10
+NSweep  = 500
+NBin    = 1
+Ltau    = 0
+LOBS_ST = 1
+LOBS_EN = 100
+Propose_S0   = .true.
+Global_moves = .true.
+N_Global     = 1
+Global_tau_moves = .true. 
+N_Global_tau      = 16
+CPU_MAX = 0.5
+/
+
+&VAR_Z2_Slave
+ham_T   = 0.0D0
+ham_chem= 0.0D0
+ham_U   = 0.0
+Beta    = 20.0
+dtau    = 0.05
+Ham_xi  = -1.d0
+Ham_J   = 0.d0
+Ham_h   = 1.d0
+Ham_F   = 0.d0
+/
+
+&VAR_errors 
+n_skip  = 2
+N_rebin = 1
+N_Cov   = 0
+/
+! slash terminates namelist statement - DO NOT REMOVE

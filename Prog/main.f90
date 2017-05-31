@@ -51,6 +51,7 @@ Program Main
   Use Hop_mod
   Use Global_mod
   Use UDV_State_mod
+  Use Wrapgr_mod
  
   Implicit none
 #ifdef MPI
@@ -76,20 +77,6 @@ Program Main
        COMPLEX(Kind=Kind(0.d0)) :: PHASE
        INTEGER         :: NVAR
      END SUBROUTINE CGR
-     SUBROUTINE WRAPGRUP(GR,NTAU,PHASE)
-       Use Hamiltonian
-       Implicit none
-       COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT) ::  GR(Ndim,Ndim,N_FL)
-       COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT) ::  PHASE
-       INTEGER, INTENT(IN) :: NTAU
-     END SUBROUTINE WRAPGRUP
-     SUBROUTINE WRAPGRDO(GR,NTAU,PHASE)
-       Use Hamiltonian 
-       Implicit None
-       COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT) :: GR(NDIM,NDIM,N_FL)
-       COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT) :: PHASE
-       Integer :: NTAU
-     end SUBROUTINE WRAPGRDO
      SUBROUTINE WRAPUR(NTAU, NTAU1, UDVR)
        Use Hamiltonian
        Use UDV_Wrap_mod
@@ -110,6 +97,13 @@ Program Main
   Integer :: NTAU, NTAU1
   Real(Kind=Kind(0.d0)) :: CPU_MAX 
   Character (len=64) :: file1
+  
+  ! Space for choosing sampling scheme
+  Logical :: Propose_S0
+  Logical :: Global_moves, Global_tau_moves
+  Integer :: N_Global 
+  Integer :: Nt_sequential_start, Nt_sequential_end
+  Integer :: N_Global_tau
 
   
 #if defined(TEMPERING)
@@ -117,7 +111,9 @@ Program Main
   NAMELIST /VAR_TEMP/  N_exchange_steps, N_Tempering_frequency
 #endif
 
-  NAMELIST /VAR_QMC/   Nwrap, NSweep, NBin, Ltau, LOBS_EN, LOBS_ST, CPU_MAX 
+  NAMELIST /VAR_QMC/   Nwrap, NSweep, NBin, Ltau, LOBS_EN, LOBS_ST, CPU_MAX, &
+       &               Propose_S0,Global_moves,  N_Global, Global_tau_moves, &
+       &               Nt_sequential_start, Nt_sequential_end, N_Global_tau
 
 
   Integer :: Ierr, I,nf, nst, n
@@ -165,6 +161,9 @@ Program Main
   If ( Irank == 0 ) then 
 #endif
      Nwrap=0;  NSweep=0; NBin=0; Ltau=0; LOBS_EN = 0;  LOBS_ST = 0;  CPU_MAX = 0.d0
+     Propose_S0 = .false. ;  Global_moves = .false. ; N_Global = 0
+     Global_tau_moves = .false. 
+     Nt_sequential_start = 0 ;  Nt_sequential_end  = 0;  N_Global_tau  = 0
      OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
      IF (ierr /= 0) THEN
         WRITE(*,*) 'unable to open <parameters>',ierr
@@ -191,6 +190,13 @@ Program Main
   CALL MPI_BCAST(LOBS_EN        ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
   CALL MPI_BCAST(LOBS_ST        ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
   CALL MPI_BCAST(CPU_MAX        ,1,MPI_REAL8,  0,MPI_COMM_WORLD,ierr)
+  CALL MPI_BCAST(Propose_S0     ,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
+  CALL MPI_BCAST(Global_moves   ,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
+  CALL MPI_BCAST(N_Global       ,1,MPI_Integer,0,MPI_COMM_WORLD,ierr)
+  CALL MPI_BCAST(Global_tau_moves   ,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
+  CALL MPI_BCAST(Nt_sequential_start,1,MPI_Integer,0,MPI_COMM_WORLD,ierr)
+  CALL MPI_BCAST(Nt_sequential_end  ,1,MPI_Integer,0,MPI_COMM_WORLD,ierr)
+  CALL MPI_BCAST(N_Global_tau       ,1,MPI_Integer,0,MPI_COMM_WORLD,ierr)
 #if defined(TEMPERING) 
    CALL MPI_BCAST(N_exchange_steps        ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
    CALL MPI_BCAST(N_Tempering_frequency   ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
@@ -199,10 +205,26 @@ Program Main
 
  
   Call Ham_set
+  If ( .not. Global_tau_moves )  then
+     ! This  corresponds to the default updating scheme
+     Nt_sequential_start = 1 
+     Nt_sequential_end   = Size(OP_V,1) 
+     N_Global_tau        = 0
+  endif
+  if  (Global_tau_moves .and.  Nt_sequential_start == 0   .and. Nt_sequential_end == 0 ) then 
+     ! In this case only random tau updates
+     Nt_sequential_start  = 1
+     Nt_sequential_end    = 0
+  endif
+
   Call confin 
   Call Hop_mod_init
 
   IF (ABS(CPU_MAX) > Zero ) NBIN = 1000000
+
+  If (N_Global_tau > 0) then
+     Call Wrapgr_alloc
+  endif
  
   Call control_init
   Call Alloc_obs(Ltau)
@@ -230,11 +252,32 @@ Program Main
   if ( Irank == 0 ) then
 #endif
      Open (Unit = 50,file=file1,status="unknown",position="append")
-     Write(50,*) 'Sweeps             : ', Nsweep
-     Write(50,*) 'Measure Int.       : ', LOBS_ST, LOBS_EN
-     Write(50,*) 'Stabilization,Wrap : ', Nwrap
-     Write(50,*) 'Nstm               : ', NSTM
-     Write(50,*) 'Ltau               : ', Ltau     
+     Write(50,*) 'Sweeps                              : ', Nsweep
+     If ( abs(CPU_MAX) < ZERO ) then
+     Write(50,*) 'Bins                                : ', NBin
+        Write(50,*) 'No CPU-time limitation '
+     else
+        Write(50,'(" Prog will stop after hours:",2x,F8.4)') CPU_MAX
+     endif
+     Write(50,*) 'Measure Int.                        : ', LOBS_ST, LOBS_EN
+     Write(50,*) 'Stabilization,Wrap                  : ', Nwrap
+     Write(50,*) 'Nstm                                : ', NSTM
+     Write(50,*) 'Ltau                                : ', Ltau     
+     Write(50,*) '# of interacting Ops per time slice : ', Size(OP_V,1)
+     If ( Propose_S0 ) &
+          &  Write(50,*) 'Propose Ising moves according to  bare Ising action'
+     If ( Global_moves ) Then
+        Write(50,*) 'Global moves are enabled   '
+        Write(50,*) '# of global moves / sweep :', N_Global
+     Endif
+     If ( Global_tau_moves ) Then
+        Write(50,*) 'Nt_sequential_start: ', Nt_sequential_start
+        Write(50,*) 'Nt_sequential_end  : ', Nt_sequential_end
+        Write(50,*) 'N_Global_tau       : ', N_Global_tau
+     else
+        Write(50,*) 'Default sequential updating '
+     endif
+     
 #if defined(MPI) && !defined(TEMPERING)
      Write(50,*) 'Number of  threads : ', ISIZE
 #endif   
@@ -242,12 +285,6 @@ Program Main
      Write(50,*) 'This executable represents commit '&
 &      , GIT_COMMIT_HASH , ' of branch ' , GIT_BRANCH , '.'
 #endif
-     If ( abs(CPU_MAX) < ZERO ) then
-        Write(50,*) 'Bin                : ', NBin
-        Write(50,*) 'No CPU-time limitation '
-     else
-        Write(50,'(" Prog will stop after hours:",2x,F8.4)') CPU_MAX
-     endif
 #if defined(STAB1) 
      Write(50,*) 'STAB1 is defined '
 #endif
@@ -323,11 +360,11 @@ Program Main
 #if defined(TEMPERING)
         IF (MOD(NSW,N_Tempering_frequency) == 0) then
            !Write(6,*) "Irank, Call tempering", Irank, NSW
-           CALL Exchange_Step(Phase,GR,udvr, udvl,Stab_nt, udvst,N_exchange_steps)
+           CALL Exchange_Step(Phase,GR,udvr, udvl,Stab_nt, udvst, N_exchange_steps)
         endif
 #endif
         ! Global updates
-      If (Global_moves) Call Global_Updates(Phase, GR, udvr, udvl, Stab_nt, udvst)
+        If (Global_moves) Call Global_Updates(Phase, GR, udvr, udvl, Stab_nt, udvst,N_Global)
 
         ! Propagation from 1 to Ltrot
         ! Set the right storage to 1
@@ -339,7 +376,8 @@ Program Main
         NST = 1
         DO NTAU = 0, LTROT-1
            NTAU1 = NTAU + 1
-           CALL WRAPGRUP(GR,NTAU,PHASE) 
+           CALL WRAPGRUP(GR,NTAU,PHASE,Propose_S0, Nt_sequential_start, Nt_sequential_end, N_Global_tau)
+
            If (NTAU1 == Stab_nt(NST) ) then 
               NT1 = Stab_nt(NST-1)
               CALL WRAPUR(NT1, NTAU1, udvr)
@@ -363,6 +401,8 @@ Program Main
            ENDIF
 
            IF (NTAU1.GE. LOBS_ST .AND. NTAU1.LE. LOBS_EN ) THEN
+              !Call  Global_tau_mod_Test(Gr,ntau1)
+              !Stop
               CALL Obser( GR, PHASE, Ntau1 )
            ENDIF
         ENDDO
@@ -374,7 +414,7 @@ Program Main
         NST = NSTM-1
         DO NTAU = LTROT,1,-1
            NTAU1 = NTAU - 1
-           CALL WRAPGRDO(GR,NTAU, PHASE)
+           CALL WRAPGRDO(GR,NTAU, PHASE,Propose_S0,Nt_sequential_start, Nt_sequential_end, N_Global_tau)
            IF (NTAU1.GE. LOBS_ST .AND. NTAU1.LE. LOBS_EN ) THEN
               CALL Obser( GR, PHASE, Ntau1 )
            ENDIF
@@ -446,6 +486,7 @@ Program Main
      Endif
   Enddo
 
+! Deallocate things
   DO nf = 1, N_FL
     CALL udvl(nf)%dealloc
     CALL udvr(nf)%dealloc
@@ -455,6 +496,10 @@ Program Main
   ENDDO
   DEALLOCATE(udvl, udvr, udvst)
   DEALLOCATE(GR, TEST, Stab_nt)
+  If (N_Global_tau > 0) then
+     Call Wrapgr_dealloc
+  endif
+  
   Call Control_Print
 
 #if defined(MPI) && !defined(TEMPERING)
@@ -474,6 +519,7 @@ Program Main
   endif
 #endif
  
+
 #ifdef MPI
    CALL MPI_FINALIZE(ierr)
 #endif
