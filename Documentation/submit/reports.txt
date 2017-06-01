@@ -79,17 +79,19 @@ In the discussion at the end of the manuscript, I would have expected to find a 
 
 We would like to thank the referee for the very positive evaluation and their constructive report.
 In the following we respond to the points raised by the referee:
-
+---------------------------------------------------------------------------------------------------------------
 1)
 > "Chapter 1.2: mention some examples of which models can or cannot be simulated."
 (Fakher)
+
 We have included  the following paragraph to Chapter 1.2:
 "The scope of the present version 1.0 of ALF also encompasses many well-known fermionic models, for example Hubbard-type models, $SU(N)$ Kondo lattice models, and SU(N) Hubbard-Heisenberg models (see Sec. 4 and 5.1 for examples and implementation details). 
 In the present version, we have included a lattice module for one and two spatial dimensions.
 As discussed in Sec. 6, imaginary time dependent Hamiltonians and long-range Coulomb interactions are beyond the scope of the present version."
 
-ideas (Fakher): only bilinear interactions, no retarted interactions, no phonons
+ideas: only bilinear interactions, no retarted interactions, no phonons
 
+---------------------------------------------------------------------------------------------------------------
 > "Mention that "flavor" includes spin."
 
 (Martin)
@@ -97,53 +99,51 @@ We have included the following paragraph:
 "Both the color and the flavor index can describe the spin degree of freedom, the choice depending on the spin symmetry 
 of the simulated model and the HS transformation. This point is illustrated in the examples, see Sec. 4.1 and 4.2."
 
+---------------------------------------------------------------------------------------------------------------
 > "Might mention that H_I formally includes the Hamiltonians of H_T."
 
-(comment by Martin: I do not understand what the point of this remark might be, since H_I and H_T could be totally different, right?) 
+Please note that the fermionic hopping term H_T and the term H_I describing  fermionic hopping coupled to Ising spins are in general independet terms.  
 
-
-
+---------------------------------------------------------------------------------------------------------------
 2)
 > "Example section: could repeat which files contain what kind of information."
 
-(Martin)
-"The input files are 'parameters' and 'seeds'. The output files are 'info', 'confout', and files with suffixes '_scal', '_eq', and '_tau' that 
-contain the raw measurements."
+We have added the following paragraph to the example section:
+"The input files are 'parameters' and 'seeds' (see Tab. 8). The output files are 'info', 'confout', and files with suffixes '_scal', '_eq', and '_tau' that 
+contain the raw measurements (see Tab. 9)."
 
-
-
+---------------------------------------------------------------------------------------------------------------
 3) 
 > "Autocorrelations: Need more discussion. There is no unique autocorrelation time T_auto. The autocorrelation time for convergence depends on the observable and can be very different for e.g. energies vs. long distance correlations. Thermalization usually needs much more than a single T_auto. Like expressed in the paper for the case of stabilization, the user needs to know that convergence ,,has to be judged for every simulation'', and indeed every observable (see for example the ALPS package). The possibility of re-binning is very nice. Some hint would be helpful on how fast to increase bin-sizes and on how many independent bins are necessary for a reliable jackknife error"
 
 (comment by Martin: We know that this is a delicate issue, especially for a "black-box" type of users. Would it be helpful to come up with an example, where autocorrelations are strong and well visible in a rebinning plot (error vs. bin size) and include this plot?)
 New plot based on ALF? Ideas to use the Hubbard-Ising model. The energy might have a smaller T_auto than spin-spin correlations
+(Johannes)
 
-
+---------------------------------------------------------------------------------------------------------------
 4) 
 >"Page 4: Re(sign) instead of |sign| ?" 
 
-(Martin)
-"We have expressed the weight as  |exp[-S(C)]| to account for the in general complex phase."
+Please not that we formulate the weight as  |exp[-S(C)]| to account for the in general complex phase.
+
 (comment by Martin: There is no mentionning of |sign| on page 4 ... (?) )
 
-
-
+---------------------------------------------------------------------------------------------------------------
 5) 
 >"Jackknife: might mention how the sign is handled (eq. 24)."
 
 (Martin)
 (comment by Martin: We could include a short discussion of the Jackknife method in Sec. 3.6.3) 
 
-
-
+---------------------------------------------------------------------------------------------------------------
 6) 
 >"For stabilization: scaling with L and beta, timing ?"
 
-"The algorithm is stablized by re-computing the Green function matrix from scratch on a subset of time slice.
-Its time complexity per sweep is similar to the time complexity without stabilization, scaling linearly in number of time slices and cubic in the number of sites. Hence the stabilization will lead to an  increase of the prefactor in the time complexity."
-
-L should be ok, it might even get better for larger sizes.
-With increasing beta the stabilizaition can get worse
+We have added the following paragraph to the end of section 2.3:
+"To summarize, the algorithm is stablized by re-computing the Green function matrix from scratch on a subset of time slices. 
+While the stabilization will increase the prefactor of the computational effort, it will not change its exponents. That is the time complexity of  $\mathcal{O}(\beta N^{3})$ of the algorithm remains.
+Note that for a given number of stabilization steps along the imaginary time axis [in the notation of Eq. (36) this number is $L_{\text{Trotter}}/\texttt{NWrap}$], the precision will be largely invariant of the system size $N$. 
+However, with increasing inverse temperature $\beta$ the number of stabilization steps often has to be increased to maintain a given precision."
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % REPLY TO THE SECOND REPORT
@@ -152,34 +152,36 @@ With increasing beta the stabilizaition can get worse
 We would like to thank the referee for carefully reading our paper and for the very positive report.
 In the following we respond to the points raised by the referee:
 
-
+---------------------------------------------------------------------------------------------------------------
 > "i) include a broader introduction into the topic of open-source codes and community codes, and (ii) make a connection to similar efforts such as the ALPS project or the iTensor project (and probably motivate why there is no cross-compatibility with these codes)."
 (Fakher, Flo)
 
 Ideas for QMC codes:
 
 1) QUEST (I think it has been initiated by R. Scalettar): implementation of the finite-temperature BSS QMC code
-------------------------------------------------------------------------------------------------------------------
 
 2) ALPS: CT-INT & CT-HYB impurity solvers; QMC codes for spin and boson models
 
 3) TRIQS (developped by O.Parcollet and M. Ferrero): CT-HYB impurity solver
 
 4) iQIST (Zi Yang Meng and Philipp Werner belong to the group of developers): CT-HYB impurity solver
-------------------------------------------------------------------------------------------------------------------
+
 5) QMCPACK (development lead by Jeongnim Kim); Variational and diffusion Monte Carlo
 
 
 Other codes: iTensor, DFT, Wien2k,w2dynamics
 
+---------------------------------------------------------------------------------------------------------------
 > "One minor point of revision regards the discussion of the sign problem. In particular, Equation (27) should not be credited to the Troyer&Wiese PRL (as done in the introduction), but should be credited to the Loh,Gubernatis, … PRB of 1990."
-done!
 
+We have included the above reference.
 
+---------------------------------------------------------------------------------------------------------------
 > "When referring to introductory readings on fermionic QMC flavors, I suggest to add the very nice book of Gubernatis, Kawashima and Werner (Cambridge University Press, 2016)."
 
-done!
+We have added the reference.
 
+---------------------------------------------------------------------------------------------------------------
 > "In the discussion at the end of the manuscript, I would have expected to find a roadmap for future releases and whether the ALF project is expected to turn into a community project (similar to the ALPS project) with contributors beyond the Würzburg group."
 
 (Fakher, Flo)

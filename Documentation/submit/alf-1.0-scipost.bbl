@@ -38,6 +38,12 @@ S.~Duane, A.~D. Kennedy, B.~J. Pendleton and D.~Roweth,
 \newblock Phys. Lett. \textbf{B195}, 216 (1987),
 \newblock \doi{10.1016/0370-2693(87)91197-X}.
 
+\bibitem{Kennedy06}
+A.~D. {Kennedy},
+\newblock \emph{{Algorithms for Dynamical Fermions}},
+\newblock ArXiv High Energy Physics - Lattice e-prints  (2006),
+\newblock \eprint{arXiv:hep-lat/0607038v2}.
+
 \bibitem{Assaad08_rev}
 F.~Assaad and H.~Evertz,
 \newblock \emph{World-line and determinantal quantum monte carlo methods for
