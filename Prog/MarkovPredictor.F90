@@ -40,7 +40,7 @@ MODULE MarkovPredictor_Mod
         INTEGER, Dimension(:), allocatable :: previousMeasurements
         Integer, allocatable, Dimension(:) :: states
         Integer :: order, nrstates, nrofpreviousmeasurements, mcstates
-        INTEGER :: nrofupdates
+        INTEGER :: nrofupdates, lastidx
 
         CONTAINS
 !            PROCEDURE :: alloc => alloc_UDV_state
@@ -48,13 +48,14 @@ MODULE MarkovPredictor_Mod
             PROCEDURE :: update => update_MarkovPredictor
             PROCEDURE :: predict => predict_MarkovPredictor
             PROCEDURE :: mapstatetoindex => mapstatetoindex_MarkovPredictor
+            PROCEDURE :: getcurrentidx => getcurrentidx_MarkovPredictor
 !             PROCEDURE :: dealloc => dealloc_UDV_state
 !             PROCEDURE :: reset => reset_UDV_state
 !             PROCEDURE :: assign => assign_UDV_state
             PROCEDURE :: print => print_MarkovPredictor
 !            GENERIC :: ASSIGNMENT(=) => assign
     END TYPE MarkovPredictor
-
+!Vector of state layout... : (a1, a2, a3, ..), (b1, b2, b3)
 CONTAINS
 !--------------------------------------------------------------------
 !> @author 
@@ -83,24 +84,38 @@ SUBROUTINE init_MarkovPredictor(this, order, nrstates, states)
 !     DO I = 1, nrstates
 !         this%statestoindex()
 !     ENDDO
-    ALLOCATE(this%P(nrstates, nrstates), this%previousMeasurements(order), this%Pint(nrstates, nrstates))
-    ALLOCATE(this%sums(mcstates))
+    ALLOCATE(this%P(this%mcstates, this%mcstates), this%previousMeasurements(order), this%Pint(this%mcstates, this%mcstates))
+    ALLOCATE(this%sums(this%mcstates))
     this%previousMeasurements(1) = 1
     this%nrofupdates = nrstates
-    this%sums = nrstates
-    
-    this%Pint = 1 ! All states are equal
+    this%sums = this%mcstates
+    this%lastidx = 1 ! some default value for initialization
+    this%Pint = 1 ! All states are equal initially
 END SUBROUTINE init_MarkovPredictor
+
+! This function determines th eindex given the previous state of the chain.
+INTEGER FUNCTION getcurrentidx_MarkovPredictor(this, state)
+IMPLICIT NONE
+    CLASS(MarkovPredictor), INTENT(INOUT) :: this
+INTEGER, INTENT(IN) :: state
+INTEGER :: I, stateidx
+stateidx = this%nrstates**(this%order-1) * this%mapstatetoindex(state)
+DO I = 1, this%order-1
+stateidx = stateidx + this%nrstates**(this%order - I - 1) * this%mapstatetoindex(this%previousMeasurements(I))
+ENDDO
+    getcurrentidx_MarkovPredictor = stateidx
+END FUNCTION getcurrentidx_MarkovPredictor
+
 
 INTEGER FUNCTION mapstatetoindex_MarkovPredictor(this, state)
 IMPLICIT NONE
     CLASS(MarkovPredictor), INTENT(INOUT) :: this
 INTEGER, INTENT(IN) :: state
 INTEGER :: I, stateidx
-DO I = 1, this%nrstates
-IF(this%states(I) == state) stateidx = I
-ENDDO
-mapstatetoindex_MarkovPredictor = stateidx
+    DO I = 1, this%nrstates
+    IF(this%states(I) == state) stateidx = I
+    ENDDO
+    mapstatetoindex_MarkovPredictor = stateidx
 END FUNCTION mapstatetoindex_MarkovPredictor
 
 ! update the transition matrix with new data
@@ -108,44 +123,45 @@ SUBROUTINE update_MarkovPredictor(this, state)
 IMPLICIT NONE
     CLASS(MarkovPredictor), INTENT(INOUT) :: this
     INTEGER, INTENT(IN) :: state
-INTEGER :: I
-INTEGER :: stateidx
-this%nrofupdates = this%nrofupdates + 1
-! map state to index
-! DO I = 1, this%nrstates
-! IF(this%states(I) == state) stateidx = I
-! ENDDO
-stateidx = this%mapstatetoindex(state)
-this%sums(this%previousMeasurements(1)) = this%sums(this%previousMeasurements(1)) + 1
-this%Pint(this%previousMeasurements(1), stateidx) = this%Pint(this%previousMeasurements(1), stateidx) + 1
-this%previousMeasurements(1) = stateidx
+    INTEGER :: I
+    INTEGER :: stateidx
+    this%nrofupdates = this%nrofupdates + 1
+    stateidx = this%getcurrentidx(state)
+    this%sums(this%lastidx) = this%sums(this%lastidx) + 1
+    this%Pint(this%lastidx, stateidx) = this%Pint(this%lastidx, stateidx) + 1
+    ! now let's update the vector of previously drawn samples
+    do i = 1, this%order -1
+        this%previousMeasurements(i+1) = this%previousMeasurements(i)
+    enddo
+    this%previousMeasurements(1) = state
+    this%lastidx = stateidx
 END SUBROUTINE update_MarkovPredictor
-
 
 ! Draw a realization from transition matrix given the current state
 INTEGER FUNCTION predict_MarkovPredictor(this, curstate)
 IMPLICIT NONE
     CLASS(MarkovPredictor), INTENT(INOUT) :: this
-INTEGER, INTENT(IN) :: curstate
-INTEGER :: myrand, stateidx, mysum, I
-REAL :: mynum
-!CALL RANDOM_NUMBER(mynum)
-mynum = rand()
-! DO I = 1, this%nrstates
-! IF(this%states(I) == curstate) stateidx = I
-! ENDDO
-stateidx = this%mapstatetoindex(curstate)
-!write (*,*) mynum
-myrand = mynum * this%sums(stateidx)
-! find out which state we will predict:
-mysum = this%Pint(stateidx, 1)
-!write (*,*) myrand, stateidx
-I = 1
-DO WHILE (mysum < myrand)
-I = I + 1
-mysum = mysum + this%Pint(stateidx, I)
-ENDDO
-predict_MarkovPredictor = this%states(I)
+    INTEGER, INTENT(IN) :: curstate
+    Integer(Kind=Kind(0.D0)) :: mysum, myrand
+    INTEGER :: stateidx, I
+    REAL :: mynum
+    !CALL RANDOM_NUMBER(mynum)
+    mynum = rand()
+    ! DO I = 1, this%nrstates
+    ! IF(this%states(I) == curstate) stateidx = I
+    ! ENDDO
+    stateidx = this%getcurrentidx(curstate)
+    !write (*,*) mynum
+    myrand = mynum * this%sums(stateidx)
+    ! find out which state we will predict:
+    mysum = this%Pint(stateidx, 1)
+    !write (*,*) myrand, stateidx
+    I = 1
+    DO WHILE (mysum < myrand)
+    I = I + 1
+    mysum = mysum + this%Pint(stateidx, I)
+    ENDDO
+    predict_MarkovPredictor = this%states(I)
 END FUNCTION predict_MarkovPredictor
 
 SUBROUTINE print_MarkovPredictor(this)
@@ -154,8 +170,11 @@ IMPLICIT NONE
 INTEGER :: I
 write (*,*) "order: ", this%order, "Nr of states: ", this%nrstates, "states", this%states
 write (*, *) 0, this%states
-DO I = 1, this%nrstates
-write (*, *) this%states(I), this%Pint(I, :, 1)/DBLE(this%sums(I,1))
+! DO I = 1, this%nrstates
+! write (*, *) this%states(I), this%Pint(I, :)/DBLE(this%sums(I))
+! ENDDO
+DO I = 1, this%mcstates
+write (*, *) this%Pint(I, :)/DBLE(this%sums(I))
 ENDDO
 
 END SUBROUTINE print_MarkovPredictor
