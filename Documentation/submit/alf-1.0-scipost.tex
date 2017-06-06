@@ -594,24 +594,32 @@ $\mathcal{\bm{B}}_j \bm{A}_{j-1}$ is formed in the following three steps:
 \item Do a QR decomposition of $\bm{M}_j = \bm{Q}_j \bm{D}_j \bm{R}_j$. This gives the final $\bm{Q}_j$ and $\bm{D}_j$.
 \item Form the updated $\bm{T}$ matrices $\bm{T}_j = \bm{R}_j \bm{T}_{j-1}$.
 \end{enumerate}
+While this might seem like quite an effort that has to be performed for every multiplication
+it has to be noted that even with this stabilization scheme the algorithm preserves the complexity class of $\mathcal{O}(\beta N^3)$ expressed in the physical parameters $\beta$ and the lattice size $N$.
+While there is no analytical expression for the dependence of the stability on the physical parameters
+our experience has been that
+%
+%Note that 
+for a given number of stabilization steps along the imaginary time axis [in the notation of Eq.~(\ref{eqn:green_stable}) this number is $L_{\text{Trotter}}/\texttt{NWrap}$], the precision will be largely invariant of the system size $N$,
+%However, 
+whereas
+with increasing inverse temperature $\beta$ the number of stabilization steps often has to be increased to maintain a given precision.
 The effectiveness of the stabilization \emph{has} to be judged for every simulation from the output file \path{info} (Sec.~\ref{sec:output_prec}). For most simulations there are two values to look out for:
 \begin{itemize}
 \item \texttt{Precision Green}
 \item \texttt{Precision Phase}
 \end{itemize}
-While this might seem like quite an effort that has to be performed for every multiplication
-it has to be noted that even with this stabilization scheme the algorithm preserves the complexity class of $\mathcal{O}(N^3)$.
 The Green function as well as the average phase are usually numbers with a magnitude of $\mathcal{O} (1)$. 
 For that reason we recommend that \path{NWrap} is chosen such that the mean precision is of the order of $10^{-8}$ or better.  
 We have included typical values of \texttt{Precision Phase} and of the mean and the maximal values of \texttt{Precision Green} in the 
 discussion of example simulations, see Sec.~\ref{sec:prec_charge} and Sec.~\ref{sec:prec_spin}.
-
-\mycomment{
-To summarize, the algorithm is stablized by re-computing the Green function matrix from scratch on a subset of time slices. 
-While the stabilization will increase the prefactor of the computational effort, it will not change its exponents. That is the time complexity of  $\mathcal{O}(\beta N^{3})$ of the algorithm remains.
-Note that for a given number of stabilization steps along the imaginary time axis [in the notation of Eq.~(\ref{eqn:green_stable}) this number is $L_{\text{Trotter}}/\texttt{NWrap}$], the precision will be largely invariant of the system size $N$. 
-However, with increasing inverse temperature $\beta$ the number of stabilization steps often has to be increased to maintain a given precision.
-}
+% 
+% \mycomment{
+% To summarize, the algorithm is stablized by re-computing the Green function matrix from scratch on a subset of time slices. 
+% While the stabilization will increase the prefactor of the computational effort, it will not change its exponents. That is the time complexity of  $\mathcal{O}(\beta N^{3})$ of the algorithm remains.
+% Note that for a given number of stabilization steps along the imaginary time axis [in the notation of Eq.~(\ref{eqn:green_stable}) this number is $L_{\text{Trotter}}/\texttt{NWrap}$], the precision will be largely invariant of the system size $N$. 
+% However, with increasing inverse temperature $\beta$ the number of stabilization steps often has to be increased to maintain a given precision.
+% }
 %
 %------------------------------------------------------------
 \subsection{Monte Carlo sampling}\label{sec:sampling}
