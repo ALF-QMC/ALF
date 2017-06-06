@@ -159,10 +159,19 @@ For a given field configuration, integrating out  fermionic degrees of freedom g
 The approach we will consider here lies between the  above two  \textit{extremes}.  We will keep the fermionic determinant, but formulate  the problem so as to  work only with $N\times N$ matrices.    This 
 Blankenbecler,  Scalapino, Sugar (BSS)  algorithm scales linearly in  imaginary time $\beta$, but remains cubic in the volume $N$.    Furthermore, the algorithm can be formulated either in a projective manner \cite{Sugiyama86,Sorella89},  adequate to obtain zero temperature properties in the  canonical ensemble,  or at finite temperatures in the  grand-canonical ensemble \cite{White89}.
 
-The aim of the ALF project is to introduce a general formulation of the finite temperature  auxiliary field QMC method with discrete  fields so as to quickly be able to play with different model Hamiltonians  at  minimal programming cost.   We have summarized  the essential aspects of the   auxiliary field QMC  approach  in this documentation,   and   refer  the reader  to  Refs.~\cite{Assaad08_rev,Assaad02} for  complete  reviews.    
+The aim of the ALF project is to introduce a general formulation of the finite temperature  auxiliary field QMC method with discrete  fields so as to quickly be able to play with different model Hamiltonians  at  minimal programming cost. We have summarized  the essential aspects of the   auxiliary field QMC  approach  in this documentation,   and   refer  the reader  to  Refs.~\cite{Assaad08_rev,Assaad02} for  complete  reviews.    
 We will show in  all details how to implement a variety of models, run the code, and produce  results for  equal time and time displaced correlation functions. 
 The program code is written in Fortran according to the 2003 standard and is able to natively utilize MPI for massively parallel runs on todays supercomputing systems.
-
+Of course the ALF package is not the first open source project that aims at the simulation of physical models from solid state physics and the most notable among thes projects is certainly the ALPS library. Other names that come to mind within the realm of the solid state physics
+are QUEST, TRIQS, w2dynamics, iQist and Wien2K.
+IQist, TRIQS and w2dynamics focus on approximate solutions via the CT-HYB algorithm within the DMFT approximation. Therefore they cannot cope with large scale lattice simulations in the sense that spatial collective fluctuations are truncated. 
+Wien2K is representative for all DFT based software packages. Systems with large unit cells are certainly amenable to DFT  in the local density approximation. The sheer amount of predictions done with 
+DFT methods is astonishing, but there is still a large class of correlated electron systems whose quantum phenomena are not described by the local density approximation. 
+The QUEST project implements the same algorithm as the ALF project does but it is lacking in two major categories. It is currently restricted to the simple Hubbard model
+and it does not allow to easily incorporate different models.
+Furthermore,  it does not seem to be actively maintained anymore; the last publication dates from 2013.
+An entirely different  approach is  the ALPS. It is actively maintained by an lively group of volunteers as well as paid staff and features a whole set 
+of algorithms for physics. Using the DMRG algorithms they are able to simulate large 1D Systems but they lack the tools for 2D  fermonic  systems offered in the ALF.
 %
 %------------------------------------------------------------
 \subsection{Definition of the Hamiltonian}
