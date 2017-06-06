@@ -543,7 +543,7 @@ On top of that we need to be able to extract the single-particle Green function 
 \begin{equation}
 \bm{G}= \left( \mathds{1} + \prod_{ \tau= 1}^{L_{\text{Trotter}}} \bm{B}_\tau \right)^{-1}.
 \end{equation}
-To boil this down to more familiar terms from linear algebra we remark that we can recast this problem as the question to the solution of the linear system
+To boil this down to more familiar terms from linear algebra we remark that we can recast this problem as the task to find the solution of the linear system
 \begin{equation}
 (\mathds{1} + \prod_\tau \bm{B}_\tau) x = b.
 \end{equation}
@@ -599,6 +599,8 @@ The effectiveness of the stabilization \emph{has} to be judged for every simulat
 \item \texttt{Precision Green}
 \item \texttt{Precision Phase}
 \end{itemize}
+While this might seem like quite an effort that has to be performed for every multiplication
+it has to be noted that even with this stabilization scheme the algorithm preserves the complexity class of $\mathcal{O}(N^3)$.
 The Green function as well as the average phase are usually numbers with a magnitude of $\mathcal{O} (1)$. 
 For that reason we recommend that \path{NWrap} is chosen such that the mean precision is of the order of $10^{-8}$ or better.  
 We have included typical values of \texttt{Precision Phase} and of the mean and the maximal values of \texttt{Precision Green} in the 

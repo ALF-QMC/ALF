@@ -572,10 +572,11 @@ On top of that we need to be able to extract the single-particle Green function 
 \begin{equation}
 \bm{G}= \left( \mathds{1} + \prod_{ \tau= 1}^{L_{\text{Trotter}}} \bm{B}_\tau \right)^{-1}.
 \end{equation}
-To boil this down to more familiar terms from linear algebra we remark that we can recast this problem as the question to the solution of the linear system
+To boil this down to more familiar terms from linear algebra we remark that we can recast this problem as the question of how to solve the linear system
 \begin{equation}
-(\mathds{1} + \prod_\tau \bm{B}_\tau) x = b.
+(\mathds{1} + \prod_\tau \bm{B}_\tau) x = b
 \end{equation}
+for the vector $x$.
 The $\bm{B}_\tau \in \mathbb{C}^{n\times n}$ depend on the lattice size as well as other physical parameters that can be chosen such that a matrix norm of $\bm{B}_\tau$ can be unbound in size.
 From standard perturbation theory for linear systems it is known that the computed solution $\tilde{x}$ would 
 contain a relative error of
@@ -622,6 +623,8 @@ $\mathcal{\bm{B}}_j \bm{A}_{j-1}$ is formed in the following three steps:
 \item Do a QR decomposition of $\bm{M}_j = \bm{Q}_j \bm{D}_j \bm{R}_j$. This gives the final $\bm{Q}_j$ and $\bm{D}_j$.
 \item Form the updated $\bm{T}$ matrices $\bm{T}_j = \bm{R}_j \bm{T}_{j-1}$.
 \end{enumerate}
+While this might look like quite some additional effort that has to be invested 
+for every product it has to be noted that even with this stabilization scheme the algorithm preserves the complexity class of $\mathcal{O}(N^3)$.
 The effectiveness of the stabilization \emph{has} to be judged for every simulation from the output file \path{info} (Sec.~\ref{sec:output_prec}). For most simulations there are two values to look out for:
 \begin{itemize}
 \item \texttt{Precision Green}
