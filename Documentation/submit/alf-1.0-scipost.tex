@@ -172,6 +172,31 @@ and it does not allow to easily incorporate different models.
 Furthermore,  it does not seem to be actively maintained anymore; the last publication dates from 2013.
 An entirely different  approach is  the ALPS. It is actively maintained by an lively group of volunteers as well as paid staff and features a whole set 
 of algorithms for physics. Using the DMRG algorithms they are able to simulate large 1D Systems but they lack the tools for 2D  fermonic  systems offered in the ALF.
+
+\subsection{Community outreach}
+We have decided to put the source code of this tool under the GNU GPL license, an established open source license.
+This should be our first, but very important step, towards building a community\cite{Budd2015} around this code.
+The goal of this community should be to work together to obtain the best BSS code that is usable for its users.
+The project is currently hosted on servers of the university of W\"urzburg and embedded within the research activities of the SFB1170.
+Here we have set up a gitlab instance that serves as a central meeting point on where to find the code.
+Everybody can sign up here and can receive space for his ALF related projects and share them with others.
+To foster the communication between the group members this site serves the gitlab issue tracker and we have a wiki
+so that members of our community can collect information they consider useful for the project.
+We have set up an E-Mail address for reaching the core developers at alf@physik.uni-wuerzburg.de
+and we have a public mailing list that is open to anyone to join the discussion.
+The organoizational structure of our project is simple. Anybody can use the code
+and propose changes to it, but the sole decision of which changes will get accepted into a release of the ALF code and
+which direction the project takes rests with Fakher Assaad.
+Nevertheless it is beneficial to be a part of our community. 
+We will try to connect users that try to tackle problems with the ALF package.
+We think that it is beneficial to users that they can benfit from the experience of others
+and that we hope to form a community of researchers from different fields working on different problems.
+To that end we plan to organize workshops and community meetings that everybody is able to attend.
+Using gitlab we have the technical means to trace the contributions of everybody,
+to make sure that every contributor is listed on our project website
+or in the case of greater contributions up to authorship on a relevant contribution.
+Organizing workshops, hosting the servers and investing the time takes some effort
+but we are committed to invest that to grow a community.
 %
 %------------------------------------------------------------
 \subsection{Definition of the Hamiltonian}
@@ -631,17 +656,46 @@ discussion of example simulations, see Sec.~\ref{sec:prec_charge} and Sec.~\ref{
 % }
 %
 %------------------------------------------------------------
+\mycomment{
+\subsection{Autocorrelation}\label{sec:autocorr}
+%------------------------------------------------------------
+%
+In general, one distinguishes local from global updates. As the name suggest, the local update is only a small change of the configuration, e.g. a single spin flip of one of the $L_{\mathrm{Trotter}}(M_I+M_V)$ field entries, whereas a global update changes a significant part of the configuration. The default update scheme of the implementation at hand are local updates such that a minimum amount of accepted update moves is required to generate a independent configuration. The associated time-scale is called autocorrelation time $T_\mathrm{auto}$.
+
+In the following we use one of our examples, the Hubbard model on a square lattice in the $M_z$ Hubbard-Stratonovic decoupling (see Sec.~\ref{sec:walk1.1}), to show explicitly that there is no unique autocorrelation time. Instead different observables within the same run can suffer from different time scales and of course, the time scale can also change for a different choice of parameters. Therefore the user has to check the autocorrelation of individual observables for each simulation! Typical region of the phase diagram that require special attention are critical points of phase transitions where length scales are diverging as well as deep inside the ordered regime where the configuration freezes.
+
+To determine the autocorrelation time, we calculate the correlation function
+\begin{equation}
+	Auto_O(t_{\textrm{QMC}})=\sum_{i=0}^{N_{\textrm{Bin}}-t_{\textrm{QMC}}}\frac{(O_i-\left\langle O\right\rangle )(O_{i+t_{\textrm{QMC}}}-\left\langle O\right\rangle )}{(O_i-\left\langle O\right\rangle )(O_{i}-\left\langle O\right\rangle )}\, ,
+\end{equation}
+where $O_i$ refers to the Monte Carlo estimate of the observable $O$ in the $i$th bin. This function typically shows an exponential decay and the decay rate defines the autocorrelation time.
+
+In Fig.~\ref{fig_autocorr} (left) we present the autocorrelation functions for the Spin-Spin-correlation at $(\pi,\pi)$ both in the $xy$-plane and the $z$ direction. The Hubbard model on a square lattice is $SU(2)$ symmetric. However, we chose the Hubbard-Stratonovic decoupling in the $M_z$ channel such that each configuration breaks the symmetry which is only restored on average. This model shows spontaneous symmetry by the formation of an anti-ferromagnet and the analyzed observable represent the square of the order parameter. Fig.~\ref{fig_autocorr} (left) clearly shows a very short autocorrelation time for the $xy$-plane whereas we detect a considerably longer time scale for the $z$-direction. This is a direct consequence of both the spontaneous symmetry breaking and the chose decoupling.
+
+A reliable error analysis requires independent bins, otherwise the error is typically underestimated. This can also be seen in Fig.~\ref{fig_autocorr} (right). Here we systematically increase the effective bin size by rebinning in which a given number of bins (\path{N_rebin}) are recombined into new bins. If the bin size is smaller than the autocorrelation time, the estimated error is to small, once the bin is larger than the autocorrelation time, the error converged to the correct estimate.
+
+For the analysis, the use can provide a finite value for \path{N_auto} to trigger the analysis of the autocorrelation time. The calculations are quite time consuming and require many Monte Carlo bins, hence the default value is 0 if unspecified. To produce Fig.~\ref{fig_autocorr}, we used $\textrm{\path{N_auto}}=500$ and a total of approximately 1 million bins.
+
+\begin{figure}[h]
+	\begin{center}
+		\includegraphics[width=0.49\textwidth]{AutoCorr.pdf}
+		\includegraphics[width=0.49\textwidth]{Error.pdf}
+	\end{center}
+	\caption{\label{fig_autocorr}
+	Autocorrelation (left) and scaling of the error with the bins size (right). We use a Hubbard model on the square lattice in the $M_z$ decoupling (see Sec.~\ref{sec:walk1.1}) with $LxL=6x6$, $U=4$ and $\beta = 6$. The original bin contains only one sweep and we calculated around 1 million bins on a single core. We analyze the Spin-Spin-Correlation at $(\pi,\pi)$, which also represents the order parameter of the anti-ferromagnet and clearly detect different autocorrelation times and therefore required bin sizes for the $xy$-plane compared to the $z$-direction.}
+\end{figure}
+}
+%
+%------------------------------------------------------------
 \subsection{Monte Carlo sampling}\label{sec:sampling}
 %------------------------------------------------------------
 %
-The default updating scheme consists of local moves which change (upon acceptance) only one  entry of $L_{\mathrm{Trotter}}(M_I+M_V)$  fields (see Sec. \ref{sec:updating}). 
+The default updating scheme consists of local moves which change (upon acceptance) only one  entry of $L_{\mathrm{Trotter}}(M_I+M_V)$  fields (see Sec.~\ref{sec:updating}).
 To generate  an independent configuration $C$,   one has to visit at least each field  once.  Our unit of \textit{sweeps} is defined such that each field is visited twice in a sequential propagation from $\tau = 0$ to $\tau = L_{\text{ Trotter}}$  and back.  A single sweep will  generically not  suffice to produce an independent  configuration.
-In fact, the autocorrelation time $T_\mathrm{auto}$ characterizes the required time scale to generate an independent configurationm, or values $\langle\langle\hat{O}\rangle\rangle_C$ for the observable $O$.
-
-This has several consequences for the Monte Carlo simulation:
+In fact, the autocorrelation time $T_\mathrm{auto}$ characterizes the required time scale to generate an independent configuration, or values $\langle\langle\hat{O}\rangle\rangle_C$ for the observable $O$. This has several consequences for the Monte Carlo simulation:
 \begin{itemize}
-	\item First of all, we start from a randomly chosen field configuration such that one has to invest \textit{at least} one $T_\mathrm{auto}$ to generate relevant, equilibrated configurations before reliable measurements are possible. This phase of the simulation is known as the warm-up or burn-in phase. In order to keep the code as flexible as possible (different simulations might have different autocorrelation times), measurements are taken from the very beginning. Instead, we provide the parameter \path{n_skip} for the analysis to ignore the first \path{n_skip} bins.
-	\item Secondly, our implementation averages over a given amount of measurements   set by the variable \texttt{NSWEEPS}  before storing the results, known as one bin, on the disk.  A bin corresponds to \texttt{NSWEEPS}  sweeps. The  error analysis requires statistically  independent bins to generate reliable confidence estimates. If bins are to small (averaged over a period shorter then $T_\mathrm{auto}$), the error bars are then typically underestimated. Most of the time, the autocorrelation time is unknown before the simulation is started.  Sometimes the used compute cluster does not allow single runs long enough to generate appropriately sized bins. Therefore, we provide the \path{N_rebin} parameter that specifies how many bins are combined into a new bin during the error analysis. In general, one should check that a further increase of the bin size does not change the error estimate   (For an explicit example, the reader is referred to the Appendix of Ref.~\cite{Assaad02}).
+	\item First of all, we start from a randomly chosen field configuration such that one has to invest \textit{at least} one\mycomment{, usually much more than one,} $T_\mathrm{auto}$ to generate relevant, equilibrated configurations before reliable measurements are possible. This phase of the simulation is known as the warm-up or burn-in phase. In order to keep the code as flexible as possible (different simulations might have different autocorrelation times), measurements are taken from the very beginning. Instead, we provide the parameter \path{n_skip} for the analysis to ignore the first \path{n_skip} bins.
+	\item Secondly, our implementation averages over a given amount of measurements   set by the variable \texttt{NSWEEPS}  before storing the results, known as one bin, on the disk.  A bin corresponds to \texttt{NSWEEPS}  sweeps. The  error analysis requires statistically  independent bins to generate reliable confidence estimates. If bins are to small (averaged over a period shorter then $T_\mathrm{auto}$), the error bars are then typically underestimated. Most of the time, the autocorrelation time is unknown before the simulation is started.  Sometimes the used compute cluster does not allow single runs long enough to generate appropriately sized bins. Therefore, we provide the \path{N_rebin} parameter that specifies how many bins are combined into a new bin during the error analysis. In general, one should check that a further increase of the bin size does not change the error estimate   (For an explicit example, the reader is referred to \mycomment{the previous section (Sec.~\ref{sec:autocorr}) and} the Appendix of Ref.~\cite{Assaad02}).
 
 The \path{N_rebin} variable can be used to control a second issue. The distribution of the Monte Carlo estimates $\langle\langle\hat{O}\rangle\rangle_C$ is unknown. The result in the form $(\mathrm{mean}\pm \mathrm{error})$ assumes a Gaussian distribution. Luckily, every original distribution with a finite variance turns into a Gaussian one, once it is folded often enough (central limit theorem). Due to the internal averaging (folding) within one bin, many observables are already quite Gaussian. Otherwise one can increase \path{N_rebin} further, even if the bins are already independent~\cite{Bercx17}.
 	\item The third issue concerns time displaced correlation functions. Even if the configurations are independent, the fields within the configuration are still correlated. Hence, the data for $S_{\alpha,\beta}(\vec{k},\tau)$ (see Sec.~\ref{sec:obs}; Eqn.~\ref{eqn:s}) and $S_{\alpha,\beta}(\vec{k},\tau+\Delta\tau)$ are also correlated. Setting the switch \path{N_Cov = 1} triggers the calculation of the covariance matrix in addition to the usual error analysis. The covariance is defined by
@@ -1178,7 +1232,10 @@ CPU_MAX = 0.1             ! Code will stop after CPU_MAX hours.
 n_skip  = 1               ! Number of bins that will be skipped. 
 N_rebin = 1               ! Rebinning  
 N_Cov   = 0               ! If set to 1 covariance will be computed
-                          ! for unequal time correlation functions.                   
+                          ! for unequal time correlation functions.   
+N_auto  = 100             ! If set to >0 autocorrelation function will be
+                          ! computed for scalar and equal time correlation
+                          ! functions.                  
 /            
 \end{lstlisting}
 %
@@ -1319,10 +1376,10 @@ Typical values for the numerical precision can be found in the examples of Sec.~
 Here we briefly   discuss the analysis programs which read in bin/s and carry out the error analysis. (See Sec.~\ref{sec:sampling}  for a more detailed discussion.)
 Error analysis   is based  on the central limit theorem,  which requires bins to be statistically independent, and also the existence of a well-defined variance  for the observable under consideration. 
 The former will be the case if bins are  longer than the autocorrelation time.  The latter has to be checked by the user.  In the parameter file listed in Sec.~\ref{sec:input}, the user  can specify how many initial bins should be omitted (variable \texttt{n\_skip}). 
-This  number should be comparable to the autocorrelation time.     
+This  number should be \mycomment{at least} comparable to\mycomment{, usually much lager then,} the autocorrelation time. \mycomment{Then analysis of the autocorrelation time is triggered by specifing a positive value for \path{N_auto} that is turned off be default ($\textrm{\path{N_auto}}=0$).}
 The  rebinning  variable \texttt{N\_rebin} will merge \texttt{N\_rebin}  bins into a single new bin. 
 If the autocorrelation time  is smaller than the effective bin size, the error should become independent of the bin size and thereby of the variable \texttt{N\_rebin}.  
-Our analysis is based on the Jackknife resampling\cite{efron1981}.
+Our analysis is based on the Jackknife resampling\cite{efron1981}\mycomment{, which includes proper treatment of the sign.}
 As listed in Table  \ref{table:analysis_programs}  we provide three analysis programs to account for the three observable types. The programs can be found in the directory \texttt{Analysis}  and   are executed by running the  bash shell script 
 \texttt{analysis.sh}.
 %
@@ -1330,7 +1387,7 @@ As listed in Table  \ref{table:analysis_programs}  we provide three analysis pro
    \begin{tabular}{@{} l l @{}}\toprule
    File & Description \\\midrule
    \texttt{parameters}  &  Contains also variables for the error analysis:\\
-   & \texttt{n\_skip}, \texttt{N\_rebin} and \texttt{N\_Cov} (see Sec.~\ref{sec:input}) \\
+   & \texttt{n\_skip}, \texttt{N\_rebin}, \texttt{N\_Cov} and \texttt{N\_auto} (see Sec.~\ref{sec:input}) \\
    \texttt{X\_scal}, \texttt{Y\_eq}, \texttt{Y\_tau} & Monte Carlo bins (see Table \ref{table:output}) \\\bottomrule
     \end{tabular}
    \caption{Standard input files for the error analysis. \label{table:analysis_input}}
@@ -1340,12 +1397,15 @@ As listed in Table  \ref{table:analysis_programs}  we provide three analysis pro
    \begin{tabular}{@{} l l l @{}}\toprule
    File & Description \\\midrule
    \texttt{X\_scalJ} & Jackknife mean and error of \texttt{X}, where  \texttt{X} stands for \texttt{Kin, Pot, Part},\\ & and \texttt{Ener}.\\
+   \texttt{X\_scal\_Auto\_N} & QMC-time resolved autocorrelation and rebinning analysis of \texttt{X},\\ & where  \texttt{X} stands for \texttt{Kin, Pot, Part}, and \texttt{Ener} and \texttt{N} labels the\\ & 
+   component if \texttt{X} is a vector.\\
    \texttt{Y\_eqJR} and \texttt{Y\_eqJK} & Jackknife mean and error of \texttt{Y}, where \texttt{Y} stands for \texttt{Green, SpinZ,}\\ & \path{SpinXY}, and \texttt{Den}.\\
    & The suffixes \texttt{R} and \texttt{K} refer to real and reciprocal space, respectively.\\
    \texttt{Y\_R0/g\_R0} & Time-resolved and spatially local Jackknife mean and error of \texttt{Y},\\
    & where \texttt{Y} stands for \texttt{Green, SpinZ, SpinXY}, and \texttt{Den}.\\
-   \texttt{Y\_kx\_ky/g\_kx\_ky} & Time resolved and $\vec{k}$-dependent Jackknife mean and error of \texttt{Y},\\
-   & where \texttt{Y} stands for \texttt{Green, SpinZ, SpinXY}, and \texttt{Den}.\\\bottomrule
+   \texttt{Y\_eq\_Auto\_Tr\_kx\_ky} & QMC-time resolved autocorrelation and rebinning analysis of \texttt{Y},\\
+   & where \texttt{Y} stands for \texttt{Green, SpinZ, SpinXY}, and \texttt{Den}.\\
+   \texttt{Y\_kx\_ky/g\_kx\_ky} & Time resolved and $\vec{k}$-dependent Jackknife mean and error of \texttt{Y},\\\bottomrule
     \end{tabular}
    \caption{ Standard output files of the error analysis. \label{table:analysis_output}}
 \end{table}
@@ -1361,6 +1421,13 @@ OBS :    1      <mean(X)>      <error(X)>
 OBS :    2      <mean(sign)>   <error(sign)>
 \end{alltt}
 
+\item For the autocorrelation analysis of scalar quantities \texttt{X}, the output files  \texttt{X\_scal\_Auto\_N} have the following formatting:
+\begin{alltt}
+	do i = 1, N_auto
+	   tau(i)/n_rebin   Auto_X=(tau)   <error( X )>
+	enddo
+\end{alltt}
+
 \item For the equal time correlation functions \texttt{Y}, the formatting of the output files \texttt{Y\_eqJR} and \texttt{Y\_eqJK} follows this structure:
 \begin{alltt}
 do i = 1, N_unit_cell
@@ -1373,6 +1440,13 @@ do i = 1, N_unit_cell
 enddo
 \end{alltt}
 where \texttt{Re} and \texttt{Im} refer to the real and imaginary part, respectively.
+
+\item For the autocorrelation analysis of scalar quantities \texttt{Y}, the output files  \texttt{Y\_eq\_Auto\_Tr\_kx\_ky} have the following formatting:
+\begin{alltt}
+	do i = 1, N_auto
+	   tau(i)/n_rebin   Auto_X=(tau)   <error( X )>
+	enddo
+\end{alltt}
 
 \item The imaginary-time displaced correlation functions \texttt{Y} are written to the output files \texttt{Y\_R0/g\_R0}, when measured locally in space, 
 and to the output files \texttt{Y\_kx\_ky/g\_kx\_ky} when they are measured $\vec{k}$-resolved. 
