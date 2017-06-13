@@ -1,4 +1,4 @@
-/*  Copyright (C) 2016, 2017 The ALF project
+/*  Copyright (C) 2017 The ALF project
  
   This file is part of the ALF project.
  
@@ -29,6 +29,80 @@
        the original source files please visit the homepage http://alf.physik.uni-wuerzburg.de .
  
      - If you make substantial changes to the program we require you to either consider contributing
-       to the ALF project or to mark your material in a reasonable way as different from the original version.*/
+       to the ALF project or to mark your material in a reasonable way as different from the original version.
+*/
 
+#include <inttypes.h>
+#include <stdio.h>
 #include <clBLAS.h>
+
+//some global state. funny things will happen in multithreading
+cl_context ctx = 0;
+cl_command_queue queue = 0;
+
+/** Initialize OpenCL and clBLAS.
+ * We also Initialize some global state variables.
+ */
+
+void initOpenCLandclBLas(int32_t* info)
+{
+    cl_int err;
+    cl_platform_id platform = 0;
+    cl_device_id device = 0;
+    cl_context_properties props[3] = { CL_CONTEXT_PLATFORM, 0, 0 };
+    /* Setup OpenCL environment. */
+    err = clGetPlatformIDs(1, &platform, NULL);
+    if (err != CL_SUCCESS) {
+        printf( "clGetPlatformIDs() failed with %d\n", err );
+        *info = 1;
+        return;
+    }
+
+    err = clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, 1, &device, NULL);
+    if (err != CL_SUCCESS) {
+        printf( "clGetDeviceIDs() failed with %d\n", err );
+        *info = 1;
+        return;
+    }
+
+    props[1] = (cl_context_properties)platform;
+    ctx = clCreateContext(props, 1, &device, NULL, NULL, &err);
+    if (err != CL_SUCCESS) {
+        printf( "clCreateContext() failed with %d\n", err );
+        *info = 1;
+        return;
+    }
+    queue = clCreateCommandQueue(ctx, device, 0, &err);
+    if (err != CL_SUCCESS) {
+        printf( "clCreateCommandQueue() failed with %d\n", err );
+        clReleaseContext(ctx);
+        *info = 1;
+        return;
+    }
+    
+    /* Setup clblas. */
+    err = clblasSetup();
+    if (err != CL_SUCCESS) {
+        printf("clblasSetup() failed with %d\n", err);
+        clReleaseCommandQueue(queue);
+        clReleaseContext(ctx);
+        *info = 1;
+        return;
+    }
+}
+
+void clalfzhemm(int32_t* info)
+{
+}
+
+/** Tidy and release our objects
+ */
+void teardown(int32_t* info)
+{
+    /* Finalize work with clblas. */
+    clblasTeardown();
+
+    /* Release OpenCL working objects. */
+    clReleaseCommandQueue(queue);
+    clReleaseContext(ctx);
+}

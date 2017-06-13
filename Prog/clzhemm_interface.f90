@@ -30,3 +30,32 @@
 ! 
 !     - If you make substantial changes to the program we require you to either consider contributing
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
+
+module clALF
+
+IMPLICIT NONE
+interface
+subroutine initopenclandclblas(info) bind(c)
+use iso_c_binding
+IMPLICIT NONE
+INTEGER(c_int32_t), intent(out) :: info 
+end subroutine
+end interface
+
+interface
+subroutine clalfzhemm(info) bind(c)
+use iso_c_binding
+IMPLICIT NONE
+INTEGER(c_int32_t), intent(out) :: info 
+end subroutine
+end interface
+
+interface
+subroutine teardown(info) bind(c)
+use iso_c_binding
+IMPLICIT NONE
+INTEGER(c_int32_t), intent(out) :: info 
+end subroutine
+end interface
+
+END MODULE clALF
