@@ -93,11 +93,45 @@ void initOpenCLandclBLas(int32_t* info)
 
 void clalfzhemm(int32_t* info)
 {
+        cl_event event = NULL;
+/* Prepare OpenCL memory objects and place matrices inside them. */
+    bufA = clCreateBuffer(ctx, CL_MEM_READ_ONLY, M * M * sizeof(*A),
+                          NULL, &err);
+    bufB = clCreateBuffer(ctx, CL_MEM_READ_ONLY, M * N * sizeof(*B),
+                          NULL, &err);
+    bufC = clCreateBuffer(ctx, CL_MEM_READ_WRITE, M * N * sizeof(*C),
+                          NULL, &err);
+
+    err = clEnqueueWriteBuffer(queue, bufA, CL_TRUE, 0,
+        M * M * sizeof(*A), A, 0, NULL, NULL);
+    err = clEnqueueWriteBuffer(queue, bufB, CL_TRUE, 0,
+        M * N * sizeof(*B), B, 0, NULL, NULL);
+    err = clEnqueueWriteBuffer(queue, bufC, CL_TRUE, 0,
+        M * N * sizeof(*C), C, 0, NULL, NULL);
+
+    /* Call clblas function. */
+    err = clblasChemm(order, side, uplo, M, N, alpha, bufA,
+                         0, lda, bufB, 0, ldb, beta, bufC, 0, ldc, 1, &queue,
+                         0, NULL, &event);
+    if (err != CL_SUCCESS) {
+        printf("clblasSsymm() failed with %d\n", err);
+        ret = 1;
+    }
+    else {
+        /* Wait for calculations to be finished. */
+        err = clWaitForEvents(1, &event);
+
+        /* Fetch results of calculations from GPU memory. */
+        err = clEnqueueReadBuffer(queue, bufC, CL_TRUE, 0, M * N * sizeof(*C),
+                                  C, 0, NULL, NULL);
+
+        /* At this point you will get the result of SYMM placed in C array. */
+    }
 }
 
 /** Tidy and release our objects
  */
-void teardown(int32_t* info)
+void teardown(int32_t*)
 {
     /* Finalize work with clblas. */
     clblasTeardown();
