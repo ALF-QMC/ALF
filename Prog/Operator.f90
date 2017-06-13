@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 The ALF project
+!  Copyright (C) 2016, 2017 The ALF project
 ! 
 !  This file is part of the ALF project.
 ! 
@@ -241,6 +241,7 @@ Contains
 !          Mat(1:iters, J) = Mat(1:iters, J) + Z1 * Op%U(1:iters, n)
        enddo
     enddo
+    Deallocate(c)
   end subroutine Op_exp
 
 !--------------------------------------------------------------------

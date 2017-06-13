@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 The ALF project
+!  Copyright (C) 2016, 2017 The ALF project
 ! 
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -122,7 +122,7 @@
         toggle = .false. 
         if ( Weight > ranf_wrap() )  Then
            toggle = .true.
-           Phase = Phase * Ratiotot/sqrt(Ratiotot*conjg(Ratiotot))
+           Phase = Phase * Ratiotot/abs(Ratiotot)
            !Write(6,*) 'Accepted : ', Ratiotot
 
            Do nf = 1,N_FL
