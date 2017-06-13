@@ -15,7 +15,6 @@ stages:
     - cd ..
     - cd Prog
     - make
-    - make Ising
     - make Kondo_Honey
 
 .build_template_pgi: &build_definition_pgi
@@ -32,7 +31,6 @@ stages:
     - cd ..
     - cd Prog
     - make
-    - make Ising
     - make Kondo_Honey
 
 .warnconv_template: &warnconv_definition
@@ -47,7 +45,6 @@ stages:
     - cd ..
     - cd Prog
     - make
-    - make Ising
     - make Kondo_Honey
 
 .test_template: &test_definition
@@ -182,7 +179,6 @@ GQMCT_Wheezy-PGI_conv:
     - cd ..
     - cd Prog
     - make
-    - make Ising
     - make Kondo_Honey
   
 GQMCT_Wheezy_tests:
