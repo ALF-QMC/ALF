@@ -161,12 +161,20 @@
                  call zscal(Ndim, Z, x_v(1, n), 1)
                  Deallocate(syu, sxv)
               enddo
-              Allocate (Zarr(Op_dim,Op_dim), grarr(NDim, Op_dim))
-              Zarr = x_v(Op_V(n_op,nf)%P, :)
-              grarr = gr(:, Op_V(n_op,nf)%P, nf)
-              alpha = 1.D0
-              CALL ZGEMM('N', 'N', NDim, Op_Dim, Op_Dim, alpha, grarr, size(grarr,1), Zarr, size(Zarr,1), beta, xp_v, size(xp_v,1))
-              Deallocate(Zarr, grarr)
+              IF (Op_dim == 1) THEN
+                CALL ZCOPY(Ndim, gr(1, Op_V(n_op,nf)%P(1), nf), 1, xp_v(1, 1), 1)
+                CALL ZGERU(Ndim, Ndim, -x_v(Op_V(n_op,nf)%P(1), 1), xp_v(1,1), 1, y_v(1, 1), 1, gr(1,1,nf), Ndim)
+              ELSE
+                Allocate (Zarr(Op_dim,Op_dim), grarr(NDim, Op_dim))
+                Zarr = x_v(Op_V(n_op,nf)%P, :)
+                grarr = gr(:, Op_V(n_op,nf)%P, nf)
+                alpha = 1.D0
+                CALL ZGEMM('N', 'N', NDim, Op_Dim, Op_Dim, alpha, grarr, size(grarr,1), Zarr, Op_Dim, beta, xp_v, size(xp_v,1))
+                Deallocate(Zarr, grarr)
+                    beta  = cmplx ( 1.0d0, 0.0d0, kind(0.D0))
+                    alpha = -1.D0
+                    CALL ZGEMM('N','T',Ndim,Ndim,Op_dim,alpha,xp_v, Ndim,y_v, Ndim,beta,gr(1,1,nf), Ndim)
+              ENDIF
               !do n = 1,Op_dim
               !   do j = 1,Ndim
               !      do i = 1,Ndimop
@@ -176,10 +184,6 @@
               !enddo
               ! gr(:,:,nf) -= xp_v(:,:) * y_v(:,:)^T
               ! Replace by Zgemm 
-              alpha = cmplx (-1.0d0, 0.0d0, kind(0.D0))
-              beta  = cmplx ( 1.0d0, 0.0d0, kind(0.D0))
-              CALL ZGEMM('N','T',Ndim,Ndim,Op_dim,alpha,xp_v,size(xp_v,1),y_v,size(y_v,1),beta,gr(1,1,nf),size(gr,1))
-
 
 !!!!!         Requires additional space
 !             Complex (Kind =Kind(0.d0)) ::  tmpMat(Ndim,Ndim), tmp
