@@ -6,17 +6,17 @@
 # -DTEMPERING  Complies program for parallel tempering. Requires MPI
 # Recommendation:  just use the -DMPI flag if you want to run in parallel or leave it empy for serial jobs.  
 # The default stabilization, no flag, is generically the best. 
-PROGRAMCONFIGURATION = -DMPI 
+#PROGRAMCONFIGURATION = -DMPI 
 PROGRAMCONFIGURATION = 
-PROGRAMCONFIGURATION = -DMPI  -DTEMPERING
+#PROGRAMCONFIGURATION = -DMPI  -DTEMPERING
 f90 = gfortran
-f90 = $(mpif90)
+#f90 = $(mpif90)
 export f90
 F90OPTFLAGS = -O3 -Wconversion  -fcheck=all
-F90OPTFLAGS = -O3
+#F90OPTFLAGS = -O3
 export F90OPTFLAGS
 F90USEFULFLAGS = -cpp -std=f2003
-F90USEFULFLAGS = -cpp
+#F90USEFULFLAGS = -cpp
 export F90USEFULFLAGS
 FL = -c ${F90OPTFLAGS} ${PROGRAMCONFIGURATION}
 export FL
@@ -24,10 +24,10 @@ DIR = ${CURDIR}
 export DIR
 Libs = ${DIR}/Libraries/
 export Libs
-LIB_BLAS_LAPACK = -llapack -lblas
+LIB_BLAS_LAPACK = -L/brokendisk/acml/gfortran64/lib -lacml
 export LIB_BLAS_LAPACK
 
-all: lib ana program  Hub_Ising SPT Hub Hub_Can Kondo_Honey
+all: lib ana program  Hub_Ising SPT Hub_Can Kondo_Honey
 
 lib:
 	cd Libraries && $(MAKE)
