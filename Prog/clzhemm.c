@@ -91,47 +91,54 @@ void initOpenCLandclBLas(int32_t* info)
     }
 }
 
-void clalfzhemm(int32_t* info)
+void clalfzhemm(char* side, char* uplo, int32_t m, int32_t n, double* alpha, double* A, int32_t lda, double* B, int32_t ldb, double* beta, double* C, int32_t ldc, int32_t* info)
 {
-        cl_event event = NULL;
+    *info = 0;
+    cl_int err;
+    //map some arguments to clBLAS types
+    const clblasOrder order = clblasColumnMajor;//FIXME: should be standard Fortran order
+    const clblasSide zhemmside = (side[0] == 'R' ? clblasRight:clblasLeft);
+    const clblasUplo zhemmuplo = (uplo[0] == 'U' ? clblasUpper:clblasLower);
+    int ka = (side[0] == 'R' ? n : m);
+    //FIXME: allow non-standard sizes of matrices...
+    cl_event event = NULL;
 /* Prepare OpenCL memory objects and place matrices inside them. */
-    bufA = clCreateBuffer(ctx, CL_MEM_READ_ONLY, M * M * sizeof(*A),
-                          NULL, &err);
-    bufB = clCreateBuffer(ctx, CL_MEM_READ_ONLY, M * N * sizeof(*B),
-                          NULL, &err);
-    bufC = clCreateBuffer(ctx, CL_MEM_READ_WRITE, M * N * sizeof(*C),
-                          NULL, &err);
-
+    cl_mem bufA = clCreateBuffer(ctx, CL_MEM_READ_ONLY, 2*ka * ka * sizeof(*A), NULL, &err);
+    cl_mem bufB = clCreateBuffer(ctx, CL_MEM_READ_ONLY, 2 * m * n * sizeof(*B), NULL, &err);
+    cl_mem bufC = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 2 * m * n * sizeof(*C), NULL, &err);
+    cl_double2 alp = {alpha[0], alpha[1]};
+    cl_double2 bet = {beta[0], beta[1]};
     err = clEnqueueWriteBuffer(queue, bufA, CL_TRUE, 0,
-        M * M * sizeof(*A), A, 0, NULL, NULL);
+        2 * ka * ka * sizeof(*A), A, 0, NULL, NULL);
     err = clEnqueueWriteBuffer(queue, bufB, CL_TRUE, 0,
-        M * N * sizeof(*B), B, 0, NULL, NULL);
+        2 * m * n * sizeof(*B), B, 0, NULL, NULL);
     err = clEnqueueWriteBuffer(queue, bufC, CL_TRUE, 0,
-        M * N * sizeof(*C), C, 0, NULL, NULL);
+        2 * m * n * sizeof(*C), C, 0, NULL, NULL);
 
     /* Call clblas function. */
-    err = clblasChemm(order, side, uplo, M, N, alpha, bufA,
-                         0, lda, bufB, 0, ldb, beta, bufC, 0, ldc, 1, &queue,
+    err = clblasZhemm(order, zhemmside, zhemmuplo, m, n, alp, bufA,
+                         0, lda, bufB, 0, ldb, bet, bufC, 0, ldc, 1, &queue,
                          0, NULL, &event);
     if (err != CL_SUCCESS) {
         printf("clblasSsymm() failed with %d\n", err);
-        ret = 1;
+        *info = 1;
     }
     else {
         /* Wait for calculations to be finished. */
         err = clWaitForEvents(1, &event);
 
         /* Fetch results of calculations from GPU memory. */
-        err = clEnqueueReadBuffer(queue, bufC, CL_TRUE, 0, M * N * sizeof(*C),
+        err = clEnqueueReadBuffer(queue, bufC, CL_TRUE, 0, 2*m * n * sizeof(*C),
                                   C, 0, NULL, NULL);
 
         /* At this point you will get the result of SYMM placed in C array. */
     }
+    *info += err;
 }
 
 /** Tidy and release our objects
  */
-void teardown(int32_t*)
+void teardown(int32_t* t)
 {
     /* Finalize work with clblas. */
     clblasTeardown();
