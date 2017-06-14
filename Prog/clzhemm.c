@@ -84,15 +84,14 @@ CLErrString(cl_int status) {
 }
 
 /*
- * PrintPlatform --
  *
  *      Dumps everything about the given platform ID.
  *
  * Results:
- *      void.
+ *      The last device that supports double
  */
 
-static void PrintandselectPlatformandDevice(cl_platform_id platform) {
+static cl_device_id PrintandselectPlatformandDevice(cl_platform_id platform) {
    static struct { cl_platform_info param; const char *name; } props[] = {
       { CL_PLATFORM_PROFILE, "profile" },
       { CL_PLATFORM_VERSION, "version" },
@@ -107,6 +106,7 @@ static void PrintandselectPlatformandDevice(cl_platform_id platform) {
    char buf[65536];
    size_t size;
    int ii;
+   cl_device_id retval;
 
    for (ii = 0; props[ii].name != NULL; ii++) {
       status = clGetPlatformInfo(platform, props[ii].param, sizeof buf, buf, &size);
@@ -167,11 +167,12 @@ static void PrintandselectPlatformandDevice(cl_platform_id platform) {
         printf("DOUBLE: WORKS!\n");
         printf("Preferred double vector width: %d\n", pwidth);
         printf("Native double vector width: %d\n", nwidth);
+    retval = deviceList[ii];
    }
 
    free(deviceList);
+   return retval;
 }
-
 
 /** Initialize OpenCL and clBLAS.
  * We also Initialize some global state variables.
@@ -199,26 +200,27 @@ void initOpenCLandclBlas(int32_t* info)
                CLErrString(err));
        exit(1);
     }
-
+    
     for (int ii = 0; ii < numPlatforms; ii++) {
-       PrintandselectPlatformandDevice(platformList[ii]);
+       device = PrintandselectPlatformandDevice(platformList[ii]);
     }
+    //The last double supoorting device of the last platform will be selected
 
     free(platformList);
-    /* Setup OpenCL environment. */
-    err = clGetPlatformIDs(1, &platform, NULL);
-    if (err != CL_SUCCESS) {
-        printf( "clGetPlatformIDs() failed with %d\n", err );
-        *info = 1;
-        return;
-    }
-
-    err = clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, 1, &device, NULL);
-    if (err != CL_SUCCESS) {
-        printf( "clGetDeviceIDs() failed with %d\n", err );
-        *info = 1;
-        return;
-    }
+//     /* Setup OpenCL environment. */
+//     err = clGetPlatformIDs(1, &platform, NULL);
+//     if (err != CL_SUCCESS) {
+//         printf( "clGetPlatformIDs() failed with %d\n", err );
+//         *info = 1;
+//         return;
+//     }
+// 
+//     err = clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, 1, &device, NULL);
+//     if (err != CL_SUCCESS) {
+//         printf( "clGetDeviceIDs() failed with %d\n", err );
+//         *info = 1;
+//         return;
+//     }
 
     props[1] = (cl_context_properties)platform;
     ctx = clCreateContext(props, 1, &device, NULL, NULL, &err);
