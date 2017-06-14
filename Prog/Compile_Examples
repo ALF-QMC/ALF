@@ -1,8 +1,9 @@
 TARGET= Examples.out
 OBJS=  control_mod.o Operator.o observables_mod.o Hamiltonian_Examples.o QDRP_decompose.o udv_state.o \
+       clzhemm.o clzhemm_interface.o \
        Hop_mod.o  UDV_WRAP.o Global_mod.o Wrapgr_mod.o \
        tau_m.o  main.o wrapul.o  cgr1.o  wrapur.o upgrade.o \
-       outconfc.o  inconfc.o  cgr2_2.o clzhemm_interface.o clzhemm.o
+       outconfc.o  inconfc.o  cgr2_2.o
 
 
   
@@ -12,7 +13,7 @@ OBJS=  control_mod.o Operator.o observables_mod.o Hamiltonian_Examples.o QDRP_de
 
 .SUFFIXES: .c
 .c.o:
-	gcc -O3 -I /brokendisk/lib/clBLAS/include/  -c -o $@ $<
+	gcc -O3 -std=c99 -I /brokendisk/lib/clBLAS/include/  -c -o $@ $<
 
 $(TARGET): $(OBJS)
 	$(FC) $(LF) -o $(TARGET) $(OBJS) $(LIBS) -L /brokendisk/lib/clBLAS/lib64/ -lclBLAS -lOpenCL 
