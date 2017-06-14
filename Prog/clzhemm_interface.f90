@@ -32,35 +32,29 @@
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
 module clALF
+    interface
+    subroutine initopenclandclblas(info) bind(c)
+    use iso_c_binding
+    IMPLICIT NONE
+    INTEGER(c_int32_t), intent(out) :: info 
+    end subroutine
 
-IMPLICIT NONE
-interface
-subroutine initopenclandclblas(info) bind(c)
-use iso_c_binding
-IMPLICIT NONE
-INTEGER(c_int32_t), intent(out) :: info 
-end subroutine
-end interface
+    subroutine clalfzhemm(side, uplo, m, n, alpha, A, lda, B, ldb, beta, C, ldc, info) bind(c)
+    use iso_c_binding
+    IMPLICIT NONE
+    INTEGER(c_int32_t), intent(out) :: info 
+    CHARACTER, intent(in) :: side, uplo
+    integer(c_int32_t), intent(in) :: m,n, lda, ldb, ldc
+    complex (Kind=Kind(0.d0)), intent(in) :: alpha, beta
+    COMPLEX(kind = kind(0.D0)), intent(in) :: A(LDA,*),B(LDB,*)
+    COMPLEX(kind = kind(0.D0)), intent(inout) ::C(LDC,*)
+    end subroutine
 
-interface
-subroutine clalfzhemm(side, uplo, m, n, alpha, A, lda, B, ldb, beta, C, ldc, info) bind(c)
-use iso_c_binding
-IMPLICIT NONE
-INTEGER(c_int32_t), intent(out) :: info 
-CHARACTER, intent(in) :: side, uplo
-integer(c_int32_t), intent(in) :: m,n, lda, ldb, ldc
-complex (Kind=Kind(0.d0)), intent(in) :: alpha, beta
-DOUBLE COMPLEX, intent(in) :: A(LDA,*),B(LDB,*)
-DOUBLE COMPLEX, intent(inout) ::C(LDC,*)
-end subroutine
-end interface
-
-interface
-subroutine teardown(info) bind(c)
-use iso_c_binding
-IMPLICIT NONE
-INTEGER(c_int32_t), intent(out) :: info 
-end subroutine
-end interface
+    subroutine teardown(info) bind(c)
+    use iso_c_binding
+    IMPLICIT NONE
+    INTEGER(c_int32_t), intent(out) :: info 
+    end subroutine
+    end interface
 
 END MODULE clALF

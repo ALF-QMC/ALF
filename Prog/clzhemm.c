@@ -179,7 +179,7 @@ static void PrintandselectPlatformandDevice(cl_platform_id platform, cl_device_i
  * Heavily based on various examples from AMD.
  */
 
-void initOpenCLandclBlas(int32_t* info)
+void initopenclandclblas(int32_t* info)
 {
     cl_uint numPlatforms;
     cl_uint err;
