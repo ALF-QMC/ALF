@@ -162,16 +162,17 @@ Blankenbecler,  Scalapino, Sugar (BSS)  algorithm scales linearly in  imaginary 
 The aim of the ALF project is to introduce a general formulation of the finite temperature  auxiliary field QMC method with discrete  fields so as to quickly be able to play with different model Hamiltonians  at  minimal programming cost. We have summarized  the essential aspects of the   auxiliary field QMC  approach  in this documentation,   and   refer  the reader  to  Refs.~\cite{Assaad08_rev,Assaad02} for  complete  reviews.    
 We will show in  all details how to implement a variety of models, run the code, and produce  results for  equal time and time displaced correlation functions. 
 The program code is written in Fortran according to the 2003 standard and is able to natively utilize MPI for massively parallel runs on todays supercomputing systems.
-Of course the ALF package is not the first open source project that aims at the simulation of physical models from solid state physics and the most notable among thes projects is certainly the ALPS library. Other names that come to mind within the realm of the solid state physics
-are QUEST, TRIQS, w2dynamics, iQist and Wien2K.
-IQist, TRIQS and w2dynamics focus on approximate solutions via the CT-HYB algorithm within the DMFT approximation. Therefore they cannot cope with large scale lattice simulations in the sense that spatial collective fluctuations are truncated. 
-Wien2K is representative for all DFT based software packages. Systems with large unit cells are certainly amenable to DFT  in the local density approximation. The sheer amount of predictions done with 
-DFT methods is astonishing, but there is still a large class of correlated electron systems whose quantum phenomena are not described by the local density approximation. 
-The QUEST project implements the same algorithm as the ALF project does but it is lacking in two major categories. It is currently restricted to the simple Hubbard model
-and it does not allow to easily incorporate different models.
-Furthermore,  it does not seem to be actively maintained anymore; the last publication dates from 2013.
-An entirely different  approach is  the ALPS. It is actively maintained by an lively group of volunteers as well as paid staff and features a whole set 
-of algorithms for physics. Using the DMRG algorithms they are able to simulate large 1D Systems but they lack the tools for 2D  fermonic  systems offered in the ALF.
+
+Of course the ALF package is not the first open source project that aims at the simulation of physical models from solid state physics and the most notable among these projects is certainly the ALPS library \cite{ALPS_2.0}. Other names that come to mind within the realm of the solid state physics
+are QUEST \cite{QUEST}, TRIQS \cite{TRIQS}, w2dynamics, iQist \cite{iQIST} and Wien2K.
+IQist, TRIQS and w2dynamics focus on approximate solutions via the CT-HYB algorithm within the dynamical mean field approximation. Therefore they cannot cope with large scale lattice simulations in the sense that spatial collective fluctuations are truncated. 
+Wien2K is representative for all density functional theory (DFT) based software packages. Systems with large unit cells are certainly amenable to DFT  in the local density approximation. The sheer amount of predictions done with 
+DFT methods is astonishing, but there is still a large class of correlated electron systems whose quantum phenomena are not described by the local density approximation.
+\mycomment{\textit{M: I think that the following list of deficits of QUEST is too much thrashing. I suggest to abolish the crossed out parts. Maybe we can in the future even win them over to our project ...}}
+The QUEST project implements the same algorithm as the ALF project  but \mycomment{\st{it is lacking in two major categories.}} it is currently restricted to the simple Hubbard model
+and it does not allow to easily incorporate different models. 
+\mycomment{\st{Furthermore,  it does not seem to be actively maintained anymore; the last publication dates from 2013.}} 
+\mycomment{\st{An entirely different  approach is}} \mycomment{Finally,} the ALPS library \mycomment{\st{. It}} is actively maintained \mycomment{\st{by a lively group of volunteers as well as paid staff and}} features a whole set of algorithms for \mycomment{strongly correlated quantum lattice models including Monte Carlo, exact diagonalization, and density matrix renormalization group codes} \mycomment{\st{Using the DMRG algorithms they are able to simulate large 1D Systems but they}} but lacks the tools for two dimensional  fermonic  systems offered by the ALF package.
 
 \subsection{Community outreach}
 We have decided to put the source code of this tool under the GNU GPL license, an established open source license.
@@ -184,12 +185,12 @@ To foster the communication between the group members this site serves the gitla
 so that members of our community can collect information they consider useful for the project.
 We have set up an E-Mail address for reaching the core developers at alf@physik.uni-wuerzburg.de
 and we have a public mailing list that is open to anyone to join the discussion.
-The organoizational structure of our project is simple. Anybody can use the code
+The organizational structure of our project is simple. Anybody can use the code
 and propose changes to it, but the sole decision of which changes will get accepted into a release of the ALF code and
 which direction the project takes rests with Fakher Assaad.
 Nevertheless it is beneficial to be a part of our community. 
 We will try to connect users that try to tackle problems with the ALF package.
-We think that it is beneficial to users that they can benfit from the experience of others
+We think that it is beneficial to users that they can benefit from the experience of others
 and that we hope to form a community of researchers from different fields working on different problems.
 To that end we plan to organize workshops and community meetings that everybody is able to attend.
 Using gitlab we have the technical means to trace the contributions of everybody,

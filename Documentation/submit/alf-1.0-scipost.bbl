@@ -404,6 +404,41 @@ F.~F. Assaad,
   Systems: From Theory to Algorithms.}, vol.~10, pp. 99--155. Publication
   Series of the John von Neumann Institute for Computing, J\"ulich (2002).
 
+\bibitem{ALPS_2.0}
+B.~Bauer, L.~D. Carr, H.~G. Evertz, A.~Feiguin, J.~Freire, S.~Fuchs, L.~Gamper,
+  J.~Gukelberger, E.~Gull, S.~Guertler, A.~Hehn, R.~Igarashi \emph{et~al.},
+\newblock \emph{The alps project release 2.0: open source software for strongly
+  correlated systems},
+\newblock Journal of Statistical Mechanics: Theory and Experiment
+  \textbf{2011}(05), P05001 (2011).
+
+\bibitem{QUEST}
+\emph{Quest: Quantum electron simulation toolbox},
+\newblock \url{http://quest.ucdavis.edu},
+\newblock Accessed: 2017-06-14.
+
+\bibitem{TRIQS}
+O.~Parcollet, M.~Ferrero, T.~Ayral, H.~Hafermann, I.~Krivenko, L.~Messio and
+  P.~Seth,
+\newblock \emph{Triqs: A toolbox for research on interacting quantum systems},
+\newblock Computer Physics Communications \textbf{196}, 398  (2015),
+\newblock \doi{http://dx.doi.org/10.1016/j.cpc.2015.04.023}.
+
+\bibitem{iQIST}
+L.~Huang, Y.~Wang, Z.~Y. Meng, L.~Du, P.~Werner and X.~Dai,
+\newblock \emph{iqist: An open source continuous-time quantum monte carlo
+  impurity solver toolkit},
+\newblock Computer Physics Communications \textbf{195}, 140  (2015),
+\newblock \doi{http://dx.doi.org/10.1016/j.cpc.2015.04.020}.
+
+\bibitem{Budd2015}
+A.~Budd, M.~Corpas, M.~D. Brazas, J.~C. Fuller, J.~Goecks, N.~J. Mulder,
+  M.~Michaut, B.~F.~F. Ouellette, A.~Pawlik and N.~Blomberg,
+\newblock \emph{A quick guide for building a successful bioinformatics
+  community},
+\newblock PLOS Computational Biology \textbf{11}(2), 1 (2015),
+\newblock \doi{10.1371/journal.pcbi.1003972}.
+
 \bibitem{Motome97}
 Y.~Motome and M.~Imada,
 \newblock \emph{A quantum monte carlo method and its applications to
@@ -482,6 +517,27 @@ A.~van~der Sluis,
 \newblock \emph{Condition numbers and equilibration of matrices},
 \newblock Numerische Mathematik \textbf{14}(1), 14 (1969),
 \newblock \doi{10.1007/BF02165096}.
+
+\bibitem{Krauth2006}
+W.~Krauth,
+\newblock \emph{Statistical Mechanics: Algorithms and Computations},
+\newblock Oxford University Press (2006).
+
+\bibitem{Geyer1992}
+C.~J. Geyer,
+\newblock \emph{Practical markov chain monte carlo},
+\newblock Statistical Science \textbf{7}(4), 473 (1992).
+
+\bibitem{neal1993}
+R.~M. Neal,
+\newblock \emph{Probabilistic inference using markov chain monte carlo methods}
+   (1993).
+
+\bibitem{Thompson2010}
+M.~B. {Thompson},
+\newblock \emph{{A Comparison of Methods for Computing Autocorrelation Time}},
+\newblock ArXiv e-prints  (2010),
+\newblock \eprint{1011.0175}.
 
 \bibitem{Bercx17}
 M.~Bercx, J.~S. Hofmann, F.~F. Assaad and T.~C. Lang,
