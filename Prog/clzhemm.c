@@ -288,11 +288,12 @@ void clalfzhemm(char* side, char* uplo, int32_t* m, int32_t* n, double* alpha, d
     else {
         /* Wait for calculations to be finished. */
         err = clWaitForEvents(1, &event);
-
+        clReleaseMemObject(bufA);
+        clReleaseMemObject(bufB);
         /* Fetch results of calculations from GPU memory. */
         err = clEnqueueReadBuffer(queue, bufC, CL_TRUE, 0, 2* *m * *n * sizeof(*C),
                                   C, 0, NULL, NULL);
-
+        clReleaseMemObject(bufC);
         /* At this point you will get the result of SYMM placed in C array. */
     }
     *info += err;
