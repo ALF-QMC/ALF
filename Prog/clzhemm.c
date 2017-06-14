@@ -91,7 +91,7 @@ CLErrString(cl_int status) {
  *      The last device that supports double
  */
 
-static cl_device_id PrintandselectPlatformandDevice(cl_platform_id platform) {
+static void PrintandselectPlatformandDevice(cl_platform_id platform, cl_device_id* retval) {
    static struct { cl_platform_info param; const char *name; } props[] = {
       { CL_PLATFORM_PROFILE, "profile" },
       { CL_PLATFORM_VERSION, "version" },
@@ -106,7 +106,6 @@ static cl_device_id PrintandselectPlatformandDevice(cl_platform_id platform) {
    char buf[65536];
    size_t size;
    int ii;
-   cl_device_id retval;
 
    for (ii = 0; props[ii].name != NULL; ii++) {
       status = clGetPlatformInfo(platform, props[ii].param, sizeof buf, buf, &size);
@@ -164,14 +163,15 @@ static cl_device_id PrintandselectPlatformandDevice(cl_platform_id platform) {
     if((pwidth == 0) && (nwidth == 0))
         printf("DOUBLE: BROKEN!!!\n");
     else
+    {
         printf("DOUBLE: WORKS!\n");
         printf("Preferred double vector width: %d\n", pwidth);
         printf("Native double vector width: %d\n", nwidth);
-    retval = deviceList[ii];
+        *retval = deviceList[ii];
+    }
    }
 
    free(deviceList);
-   return retval;
 }
 
 /** Initialize OpenCL and clBLAS.
@@ -184,7 +184,7 @@ void initOpenCLandclBlas(int32_t* info)
     cl_uint numPlatforms;
     cl_uint err;
     cl_platform_id platform = 0;
-    cl_device_id device = 0;
+    cl_device_id device = -1;
     cl_context_properties props[3] = { CL_CONTEXT_PLATFORM, 0, 0 };
     /*Query the number of available platforms*/
     if (clGetPlatformIDs(0, NULL, &numPlatforms) != CL_SUCCESS) {
@@ -202,9 +202,14 @@ void initOpenCLandclBlas(int32_t* info)
     }
     
     for (int ii = 0; ii < numPlatforms; ii++) {
-       device = PrintandselectPlatformandDevice(platformList[ii]);
+       PrintandselectPlatformandDevice(platformList[ii], &device);
     }
-    //The last double supoorting device of the last platform will be selected
+    if(device == -1)
+    {
+        printf("No suitable device found! Aborting.\n");
+        exit(-1);
+    }
+    //The last double supporting device of the last platform will be selected
 
     free(platformList);
 //     /* Setup OpenCL environment. */
