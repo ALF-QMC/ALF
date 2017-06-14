@@ -92,8 +92,7 @@ CLErrString(cl_int status) {
  *      void.
  */
 
-static void
-PrintPlatform(cl_platform_id platform) {
+static void PrintandselectPlatformandDevice(cl_platform_id platform) {
    static struct { cl_platform_info param; const char *name; } props[] = {
       { CL_PLATFORM_PROFILE, "profile" },
       { CL_PLATFORM_VERSION, "version" },
@@ -140,9 +139,35 @@ PrintPlatform(cl_platform_id platform) {
       return;
    }
 
-//    for (ii = 0; ii < numDevices; ii++) {
-//       PrintDevice(deviceList[ii]);
-//    }
+   for (ii = 0; ii < numDevices; ii++) {
+       cl_device_type devtype;
+       clGetDeviceInfo(deviceList[ii], CL_DEVICE_TYPE, sizeof(cl_device_type), &devtype, NULL);
+       switch(devtype)
+       {
+           case CL_DEVICE_TYPE_CPU:
+               printf("This is a CPU.\n");
+               break;
+           case CL_DEVICE_TYPE_GPU:
+               printf("This is a GPU.\n");
+               break;
+           default:
+               printf("unknown type.\n");
+               break;
+       }
+    char devname[1024];
+    clGetDeviceInfo(deviceList[ii], CL_DEVICE_NAME, 1024, devname, NULL);
+    printf("My Name is... %s\n", devname);
+    //Let's check for double precision...
+    cl_uint pwidth, nwidth;
+    clGetDeviceInfo(deviceList[ii], CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE, sizeof(cl_uint), &pwidth, NULL);
+    clGetDeviceInfo(deviceList[ii], CL_DEVICE_NATIVE_VECTOR_WIDTH_DOUBLE, sizeof(cl_uint), &nwidth, NULL);
+    if((pwidth == 0) && (nwidth == 0))
+        printf("DOUBLE: BROKEN!!!\n");
+    else
+        printf("DOUBLE: WORKS!\n");
+        printf("Preferred double vector width: %d\n", pwidth);
+        printf("Native double vector width: %d\n", nwidth);
+   }
 
    free(deviceList);
 }
@@ -150,18 +175,23 @@ PrintPlatform(cl_platform_id platform) {
 
 /** Initialize OpenCL and clBLAS.
  * We also Initialize some global state variables.
+ * Heavily based on various examples from AMD.
  */
 
 void initOpenCLandclBlas(int32_t* info)
 {
-    cl_int err;
     cl_uint numPlatforms;
+    cl_uint err;
     cl_platform_id platform = 0;
     cl_device_id device = 0;
     cl_context_properties props[3] = { CL_CONTEXT_PLATFORM, 0, 0 };
     /*Query the number of available platforms*/
-    err = clGetPlatformIDs(0, NULL, &numPlatforms);
+    if (clGetPlatformIDs(0, NULL, &numPlatforms) != CL_SUCCESS) {
+        printf("Unable to get platform IDs\n");
+        *info = 1;
+    }
     printf("Found %d platform(s).\n", numPlatforms);
+    
 
     cl_platform_id* platformList = (cl_platform_id*) malloc(sizeof(cl_platform_id) * numPlatforms);
     if ((err = clGetPlatformIDs(numPlatforms, platformList, NULL)) != CL_SUCCESS) {
@@ -171,7 +201,7 @@ void initOpenCLandclBlas(int32_t* info)
     }
 
     for (int ii = 0; ii < numPlatforms; ii++) {
-       PrintPlatform(platformList[ii]);
+       PrintandselectPlatformandDevice(platformList[ii]);
     }
 
     free(platformList);
@@ -221,7 +251,7 @@ void clalfzhemm(char* side, char* uplo, int32_t* m, int32_t* n, double* alpha, d
     *info = 0;
     cl_int err;
     //map some arguments to clBLAS types
-    const clblasOrder order = clblasColumnMajor;//FIXME: should be standard Fortran order
+    const clblasOrder order = clblasRowMajor;//FIXME: should be standard Fortran order
     const clblasSide zhemmside = (*side == 'R' ? clblasRight:clblasLeft);
     const clblasUplo zhemmuplo = (*uplo == 'U' ? clblasUpper:clblasLower);
     int ka = (*side == 'R' ? *n : *m);
