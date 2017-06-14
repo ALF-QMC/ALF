@@ -43,10 +43,15 @@ end subroutine
 end interface
 
 interface
-subroutine clalfzhemm(info) bind(c)
+subroutine clalfzhemm(side, uplo, m, n, alpha, A, lda, B, ldb, beta, C, ldc, info) bind(c)
 use iso_c_binding
 IMPLICIT NONE
 INTEGER(c_int32_t), intent(out) :: info 
+CHARACTER, intent(in) :: side, uplo
+integer(c_int32_t), intent(in) :: m,n, lda, ldb, ldc
+complex (Kind=Kind(0.d0)), intent(in) :: alpha, beta
+DOUBLE COMPLEX, intent(in) :: A(LDA,*),B(LDB,*)
+DOUBLE COMPLEX, intent(inout) ::C(LDC,*)
 end subroutine
 end interface
 
