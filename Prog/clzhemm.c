@@ -258,7 +258,7 @@ void clalfzhemm(char* side, char* uplo, int32_t* m, int32_t* n, double* alpha, d
     *info = 0;
     cl_int err;
     //map some arguments to clBLAS types
-    const clblasOrder order = clblasRowMajor;//FIXME: should be standard Fortran order
+    const clblasOrder order = clblasColumnMajor;//FIXME: should be standard Fortran order
     const clblasSide zhemmside = (*side == 'R' ? clblasRight:clblasLeft);
     const clblasUplo zhemmuplo = (*uplo == 'U' ? clblasUpper:clblasLower);
     int ka = (*side == 'R' ? *n : *m);
