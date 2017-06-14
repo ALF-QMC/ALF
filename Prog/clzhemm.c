@@ -91,7 +91,7 @@ CLErrString(cl_int status) {
  *      The last device that supports double
  */
 
-static void PrintandselectPlatformandDevice(cl_platform_id platform, cl_device_id* retval) {
+static void PrintandselectPlatformandDevice(cl_platform_id platform, cl_device_id* retval, cl_platform_id* plat) {
    static struct { cl_platform_info param; const char *name; } props[] = {
       { CL_PLATFORM_PROFILE, "profile" },
       { CL_PLATFORM_VERSION, "version" },
@@ -168,6 +168,7 @@ static void PrintandselectPlatformandDevice(cl_platform_id platform, cl_device_i
         printf("Preferred double vector width: %d\n", pwidth);
         printf("Native double vector width: %d\n", nwidth);
         *retval = deviceList[ii];
+        *plat = platform;
     }
    }
 
@@ -202,7 +203,7 @@ void initopenclandclblas(int32_t* info)
     }
     
     for (int ii = 0; ii < numPlatforms; ii++) {
-       PrintandselectPlatformandDevice(platformList[ii], &device);
+       PrintandselectPlatformandDevice(platformList[ii], &device, &platform);
     }
     if(device == -1)
     {
@@ -258,7 +259,7 @@ void clalfzhemm(char* side, char* uplo, int32_t* m, int32_t* n, double* alpha, d
     *info = 0;
     cl_int err;
     //map some arguments to clBLAS types
-    const clblasOrder order = clblasColumnMajor;//FIXME: should be standard Fortran order
+    const clblasOrder order = clblasRowMajor;//FIXME: should be standard Fortran order
     const clblasSide zhemmside = (*side == 'R' ? clblasRight:clblasLeft);
     const clblasUplo zhemmuplo = (*uplo == 'U' ? clblasUpper:clblasLower);
     int ka = (*side == 'R' ? *n : *m);
