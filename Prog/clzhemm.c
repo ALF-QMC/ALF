@@ -102,7 +102,7 @@ PrintPlatform(cl_platform_id platform) {
       { CL_PLATFORM_EXTENSIONS, "extensions" },
       { 0, NULL },
    };
-   cl_device_id *deviceList;
+   cl_device_id* deviceList;
    cl_uint numDevices;
    cl_int status;
    char buf[65536];
@@ -131,7 +131,7 @@ PrintPlatform(cl_platform_id platform) {
    }
    printf("platform[%p]: Found %d device(s).\n", platform, numDevices);
 
-   deviceList = malloc(numDevices * sizeof(cl_device_id));
+   deviceList = (cl_device_id*) malloc(numDevices * sizeof(cl_device_id));
    if ((status = clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL,
                                 numDevices, deviceList, NULL)) != CL_SUCCESS) {
       fprintf(stderr, "platform[%p]: Unable to enumerate the devices: %s\n",
@@ -163,7 +163,7 @@ void initOpenCLandclBlas(int32_t* info)
     err = clGetPlatformIDs(0, NULL, &numPlatforms);
     printf("Found %d platform(s).\n", numPlatforms);
 
-    cl_platform_id* platformList = malloc(sizeof(cl_platform_id) * numPlatforms);
+    cl_platform_id* platformList = (cl_platform_id*) malloc(sizeof(cl_platform_id) * numPlatforms);
     if ((err = clGetPlatformIDs(numPlatforms, platformList, NULL)) != CL_SUCCESS) {
        fprintf(stderr, "Unable to enumerate the platforms: %s\n",
                CLErrString(err));
@@ -221,10 +221,10 @@ void clalfzhemm(char* side, char* uplo, int32_t* m, int32_t* n, double* alpha, d
     *info = 0;
     cl_int err;
     //map some arguments to clBLAS types
-    const clblasOrder order = clblasRowMajor;//FIXME: should be standard Fortran order
-    const clblasSide zhemmside = (side[0] == 'R' ? clblasRight:clblasLeft);
-    const clblasUplo zhemmuplo = (uplo[0] == 'U' ? clblasUpper:clblasLower);
-    int ka = (side[0] == 'R' ? *n : *m);
+    const clblasOrder order = clblasColumnMajor;//FIXME: should be standard Fortran order
+    const clblasSide zhemmside = (*side == 'R' ? clblasRight:clblasLeft);
+    const clblasUplo zhemmuplo = (*uplo == 'U' ? clblasUpper:clblasLower);
+    int ka = (*side == 'R' ? *n : *m);
     //FIXME: allow non-standard sizes of matrices...
     cl_event event = NULL;
 /* Prepare OpenCL memory objects and place matrices inside them. */
