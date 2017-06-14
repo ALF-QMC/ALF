@@ -137,7 +137,7 @@
           !Local 
           Complex (Kind=Kind(0.D0)) :: alpha, beta
           Complex(Kind = Kind(0.D0)), allocatable, dimension(:,:) :: tmp
-          Integer :: nc, n
+          Integer :: nc, n, status
           
           Out = In
           alpha = 1.D0
@@ -148,7 +148,9 @@
                 do n = 1,Ndim_hop
                     call ZCOPY(Ndim, Out(Op_T(nc,nf)%P(n),1), NDim, V_Hlp(n, 1), Ndim_hop)
                 enddo
-                CALL ZHEMM('L', 'U', Ndim_hop, Ndim, alpha, Exp_T(:,:,nc,nf),Ndim_hop,V_hlp(1,1),NDim_hop,beta,V_HLP1(1,1),Ndim_hop)
+                CALL clalfzhemm('L', 'U', Ndim_hop, Ndim, alpha, Exp_T(:,:,nc,nf),Ndim_hop,V_hlp(1,1),NDim_hop,beta, &
+                & V_HLP1(1,1),Ndim_hop, status)
+!                 CALL ZHEMM('L', 'U', Ndim_hop, Ndim, alpha, Exp_T(:,:,nc,nf),Ndim_hop,V_hlp(1,1),NDim_hop,beta,V_HLP1(1,1),Ndim_hop)
                 do n = 1,Ndim_hop
                     call ZCOPY(Ndim, V_hlp1(n,1), Ndim_hop, OUT(OP_T(nc,nf)%P(n),1), Ndim)
                 Enddo
@@ -171,7 +173,7 @@
           Integer :: nf
           
           !Local 
-          Integer :: nc, I, n 
+          Integer :: nc, I, n, status
           Complex (Kind=Kind(0.D0)) :: a, b
           a = 1.D0
           b = 0.D0
@@ -184,7 +186,9 @@
                       V_Hlp(n,I) = Out(Op_T(nc,nf)%P(n),I)
                    enddo
                 enddo
-                CALL ZHEMM('L','U', Ndim_hop, Ndim, a, Exp_T_m1(:, :,nc,nf),Ndim_hop, V_hlp(1,1), NDim_hop, b, V_HLP1(1,1),Ndim_hop)
+                call clalfzhemm('L', 'U', Ndim_hop, Ndim, a, Exp_T_m1(:, :,nc,nf),Ndim_hop, V_hlp(1,1), &
+                & NDim_hop, b, V_HLP1(1,1),Ndim_hop, status)
+!                 CALL ZHEMM('L','U', Ndim_hop, Ndim, a, Exp_T_m1(:, :,nc,nf),Ndim_hop, V_hlp(1,1), NDim_hop, b, V_HLP1(1,1),Ndim_hop)
                 DO I = 1,Ndim
                    do n = 1,Ndim_hop
                       OUT(OP_T(nc,nf)%P(n),I) = V_hlp1(n,I)
@@ -209,7 +213,7 @@
           Integer :: nf
           
           !Local 
-          Integer :: nc, n
+          Integer :: nc, n, status
           Complex (Kind=Kind(0.D0)) :: alpha, beta
           
           alpha = 1.D0
@@ -220,7 +224,9 @@
                 do n = 1,Ndim_hop
                   call zcopy(Ndim, Out(1, Op_T(nc,nf)%P(n)), 1, U_Hlp(1, n), 1)
                 enddo
-                CALL ZHEMM('R', 'U', Ndim, Ndim_hop, alpha, Exp_T(:, :, nc, nf), Ndim_hop, U_hlp(1,1), NDim, beta, U_HLP1(1,1),Ndim)
+                call clalfzhemm('R', 'U', Ndim, Ndim_hop, alpha, Exp_T(:, :, nc, nf), Ndim_hop, U_hlp(1,1),&
+                & NDim, beta, U_HLP1(1,1),Ndim, status)
+!                 CALL ZHEMM('R', 'U', Ndim, Ndim_hop, alpha, Exp_T(:, :, nc, nf), Ndim_hop, U_hlp(1,1), NDim, beta, U_HLP1(1,1),Ndim)
                 do n = 1,Ndim_hop
                   call zcopy(Ndim, U_hlp1(1, n), 1, OUT(1,OP_T(nc,nf)%P(n)), 1)
                 Enddo
@@ -243,7 +249,7 @@
           Integer :: nf
           
           !Local 
-          Integer :: nc, n
+          Integer :: nc, n, status
           Complex (Kind=Kind(0.D0)) :: a, b
           a = 1.D0
           b = 0.D0
@@ -254,7 +260,9 @@
                 do n = 1,Ndim_hop
                    call zcopy(Ndim, Out(1, Op_T(nc,nf)%P(n)), 1, U_Hlp(1, n), 1)
                 enddo
-                CALL ZHEMM('R','U', Ndim, Ndim_hop, a, Exp_T_m1(:, :,nc,nf),Ndim_hop, U_hlp(1,1), NDim, b, U_HLP1(1,1),Ndim)
+                call clalfzhemm('R','U', Ndim, Ndim_hop, a, Exp_T_m1(:, :,nc,nf),Ndim_hop, U_hlp(1,1) &
+                & , NDim, b, U_HLP1(1,1),Ndim, status)
+!                 CALL ZHEMM('R','U', Ndim, Ndim_hop, a, Exp_T_m1(:, :,nc,nf),Ndim_hop, U_hlp(1,1), NDim, b, U_HLP1(1,1),Ndim)
                 do n = 1,Ndim_hop
                    call zcopy(Ndim, U_Hlp1(1, n), 1, Out(1, Op_T(nc,nf)%P(n)), 1)
                 Enddo
