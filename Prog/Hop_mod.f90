@@ -44,6 +44,7 @@
 
       Use Hamiltonian
       Use Random_wrap
+      Use clALF
       
       ! Private variables
       Complex (Kind=Kind(0.d0)), allocatable, private :: Exp_T(:,:,:,:), Exp_T_M1(:,:,:,:)
@@ -110,9 +111,16 @@
           enddo
           
           Zero = 1.E-12
+          call initopenclandclblas(nf)
           
         end subroutine Hop_mod_init
-
+        
+    subroutine Hop_mod_destroy
+        Implicit none
+        Integer :: temp
+        call teardown(temp)
+        deallocate(Exp_t, Exp_T_M1, V_Hlp, V_hlp1, U_hlp, U_hlp1)
+    end subroutine Hop_mod_destroy
 !--------------------------------------------------------------------
 
         Subroutine Hop_mod_mmthr(In, Out,nf)

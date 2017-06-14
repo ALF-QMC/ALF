@@ -519,7 +519,8 @@ Program Main
   endif
 #endif
  
-
+ CALL Hop_Mod_destroy
+ 
 #ifdef MPI
    CALL MPI_FINALIZE(ierr)
 #endif
