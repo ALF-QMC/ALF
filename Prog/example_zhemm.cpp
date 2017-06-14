@@ -1,7 +1,7 @@
 //compile using:
 /*
  * gcc -std=c99 -O -I /brokendisk/lib/clBLAS/include/ -c clzhemm.c  -L /brokendisk/lib/clBLAS/lib64/ -lclBLAS -lOpenCL
- * $ g++ -O -I /brokendisk/lib/clBLAS/include/ example_chemm.cpp clzhemm.o -L /brokendisk/lib/clBLAS/lib64/ -lclBLAS -lOpenCL -o out.exe
+ * $ g++ -O -I /brokendisk/lib/clBLAS/include/ example_zhemm.cpp clzhemm.o -L /brokendisk/lib/clBLAS/lib64/ -lclBLAS -lOpenCL -o out.exe
  * */
 
 
@@ -70,7 +70,7 @@ printResult(void)
 }
 
 extern "C" {
-void initOpenCLandclBlas(int32_t* info);
+void initopenclandclblas(int32_t* info);
 void clalfzhemm(char* side, char* uplo, int32_t* m, int32_t* n, double* alpha, double* A, int32_t* lda, double* B, int32_t* ldb, double* beta, double* C, int32_t* ldc, int32_t* info);
 void teardown(int32_t* t);
 }
@@ -78,7 +78,7 @@ void teardown(int32_t* t);
 int main(void)
 {
     int32_t res;
-    initOpenCLandclBlas(&res);
+    initopenclandclblas(&res);
     char side = 'L';
     char uplo = 'L';
     int m = M;
