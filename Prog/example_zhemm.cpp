@@ -10,23 +10,17 @@
 #include <stdio.h>
 #include <string.h>
 
-/* Include CLBLAS header. It automatically includes needed OpenCL header,
- * so we can drop out explicit inclusion of cl.h header.
- */
-#include <clBLAS.h>
+#include <CL/cl.h>
 
 /* This example uses predefined matrices and their characteristics for
  * simplicity purpose.
  */
-static const clblasOrder order = clblasRowMajor;
 
 #define M  4
 #define N  3
 
 static const cl_double2 alpha = {{10, 10}};
 
-static const clblasSide side = clblasLeft;
-static const clblasUplo uplo = clblasLower;
 static const cl_double2 A[M*M] = {
     {{11, 12}}, {{-1, -1}}, {{-1, -1}}, {{-1, -1}},
     {{21, 22}}, {{22, 23}}, {{-1, -1}}, {{-1, -1}},
@@ -63,7 +57,7 @@ printResult(void)
     nrows = (sizeof(C) / sizeof(cl_double2)) / ldc;
     for (i = 0; i < nrows; i++) {
         for (j = 0; j < ldc; j++) {
-            printf("<%9.2f, %-9.2f> ", CREAL(C[i * ldc + j]), CIMAG(C[i*ldc + j]));
+            printf("<%9.2f, %-9.2f> ", *((double*)(C + i * ldc + j)), *(((double*)(C + i * ldc + j)) + 1));
         }
         printf("\n");
     }

@@ -13,10 +13,11 @@ OBJS=  control_mod.o Operator.o observables_mod.o Hamiltonian_Examples.o QDRP_de
 
 .SUFFIXES: .c
 .c.o:
-	gcc -O3 -std=c99 -I /brokendisk/lib/clBLAS/include/  -c -o $@ $<
-
+	gcc -DBLAST -O3 -std=c99 -I /tmp/lib/clblast/include/  -c -o $@ $<
+##	gcc -O3 -std=c99 -I /tmp/lib/include/  -c -o $@ $<
 $(TARGET): $(OBJS)
-	$(FC) $(LF) -o $(TARGET) $(OBJS) $(LIBS) -L /brokendisk/lib/clBLAS/lib64/ -lclBLAS -lOpenCL 
+	$(FC) $(LF) -o $(TARGET) $(OBJS) $(LIBS) -L /tmp/lib/clblast/lib -lclblast -lOpenCL
+##	$(FC) $(LF) -o $(TARGET) $(OBJS) $(LIBS) -L /tmp/lib/lib64/ -lclBLAS -lOpenCL 
 
 clean:
 	rm -f $(OBJS)

@@ -34,7 +34,11 @@
 
 #include <inttypes.h>
 #include <stdio.h>
+#ifndef BLAST
 #include <clBLAS.h>
+#else
+#include <clblast_c.h>//include C interface of CLBlast
+#endif
 
 //some global state. funny things will happen in multithreading
 cl_context ctx = 0;
@@ -243,6 +247,7 @@ void initopenclandclblas(int32_t* info)
         return;
     }
     
+#ifndef BLAST
     /* Setup clblas. */
     err = clblasSetup();
     if (err != CL_SUCCESS) {
@@ -252,16 +257,13 @@ void initopenclandclblas(int32_t* info)
         *info = 1;
         return;
     }
+#endif
 }
 
 void clalfzhemm(char* side, char* uplo, int32_t* m, int32_t* n, double* alpha, double* A, int32_t* lda, double* B, int32_t* ldb, double* beta, double* C, int32_t* ldc, int32_t* info)
 {
     *info = 0;
     cl_int err;
-    //map some arguments to clBLAS types
-    const clblasOrder order = clblasRowMajor;//FIXME: should be standard Fortran order
-    const clblasSide zhemmside = (*side == 'R' ? clblasRight:clblasLeft);
-    const clblasUplo zhemmuplo = (*uplo == 'U' ? clblasUpper:clblasLower);
     int ka = (*side == 'R' ? *n : *m);
     //FIXME: allow non-standard sizes of matrices...
     cl_event event = NULL;
@@ -278,10 +280,27 @@ void clalfzhemm(char* side, char* uplo, int32_t* m, int32_t* n, double* alpha, d
     err = clEnqueueWriteBuffer(queue, bufC, CL_TRUE, 0,
         2 * *m * *n * sizeof(*C), C, 0, NULL, NULL);
 
+#ifndef BLAST
+    //map some arguments to clBLAS types
+    const clblasOrder order = clblasColumnMajor;//FIXME: should be standard Fortran order
+    const clblasSide zhemmside = (*side == 'R' ? clblasRight:clblasLeft);
+    const clblasUplo zhemmuplo = (*uplo == 'U' ? clblasUpper:clblasLower);
     /* Call clblas function. */
     err = clblasZhemm(order, zhemmside, zhemmuplo, *m, *n, alp, bufA,
                          0, *lda, bufB, 0, *ldb, bet, bufC, 0, *ldc, 1, &queue,
                          0, NULL, &event);
+#else
+        //map some arguments to clBLAS types
+    const CLBlastLayout order = CLBlastLayoutColMajor;//FIXME: should be standard Fortran order
+    const CLBlastSide zhemmside = (*side == 'R' ? CLBlastSideRight:CLBlastSideLeft);
+    const CLBlastTriangle zhemmuplo = (*uplo == 'U' ? CLBlastTriangleUpper : CLBlastTriangleLower);
+    CLBlastStatusCode status = CLBlastZhemm( order,  zhemmside, zhemmuplo, *m, *n, alp, bufA, 0, *lda,
+                                             bufB, 0, *ldb, bet, bufC, 0, *ldc, &queue, &event);
+    if (status == CLBlastSuccess)
+        err = CL_SUCCESS;
+    else
+        err = -1;
+#endif
     if (err != CL_SUCCESS) {
         printf("clblasSsymm() failed with %d\n", err);
         *info = 1;
@@ -304,9 +323,10 @@ void clalfzhemm(char* side, char* uplo, int32_t* m, int32_t* n, double* alpha, d
  */
 void teardown(int32_t* t)
 {
+#ifndef BLAST
     /* Finalize work with clblas. */
     clblasTeardown();
-
+#endif
     /* Release OpenCL working objects. */
     clReleaseCommandQueue(queue);
     clReleaseContext(ctx);
