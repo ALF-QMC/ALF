@@ -82,7 +82,7 @@ In the following we respond to the points raised by the referee:
 ---------------------------------------------------------------------------------------------------------------
 1)
 > "Chapter 1.2: mention some examples of which models can or cannot be simulated."
-(Fakher)
+
 
 We have included  the following paragraph to Chapter 1.2:
 "The scope of the present version 1.0 of ALF also encompasses many well-known fermionic models, for example Hubbard-type models, $SU(N)$ Kondo lattice models, and SU(N) Hubbard-Heisenberg models (see Sec. 4 and 5.1 for examples and implementation details). 

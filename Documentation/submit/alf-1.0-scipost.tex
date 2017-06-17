@@ -161,32 +161,26 @@ For a given field configuration, integrating out  fermionic degrees of freedom g
 The algorithm implemented in the ALF project  lies between the  above two  \textit{extremes}.  We will keep the fermionic determinant, but formulate  the problem so as to  work only with $N\times N$ matrices.    This 
 Blankenbecler,  Scalapino, Sugar (BSS)  algorithm scales linearly in  imaginary time $\beta$, but remains cubic in the volume $N$.    Furthermore, the algorithm can be formulated either in a projective manner \cite{Sugiyama86,Sorella89},  adequate to obtain zero temperature properties in the  canonical ensemble,  or at finite temperatures in the  grand-canonical ensemble \cite{White89}.
 
-The aim of the ALF project is to introduce a general formulation of the finite temperature  auxiliary field QMC method with discrete  fields so as to quickly be able to play with different model Hamiltonians  at  minimal programming cost. We have summarized  the essential aspects of the   auxiliary field QMC  approach  in this documentation,   and   refer  the reader  to  Refs.~\cite{Assaad08_rev,Assaad02} for  complete  reviews.    
+The aim of the ALF project is to introduce a general formulation of the \textit{ finite } temperature  auxiliary field QMC method with discrete  fields so as to quickly be able to play with different model Hamiltonians  at  minimal programming cost. We have summarized  the essential aspects of the   auxiliary field QMC  approach  in this documentation,   and   refer  the reader  to  Refs.~\cite{Assaad08_rev,Assaad02} for  complete  reviews.    
 We will show in  all details how to implement a variety of models, run the code, and produce  results for  equal time and time displaced correlation functions. 
 The program code is written in Fortran according to the 2003 standard and is able to natively utilize MPI for massively parallel runs on todays supercomputing systems.
 
-Of course the ALF package is not the first open source project that aims at the simulation of physical models from solid state physics and the most notable among these projects is certainly the ALPS library \cite{ALPS_2.0}. Other names that come to mind within the realm of the solid state physics
-are QUEST \cite{QUEST}, TRIQS \cite{TRIQS}, w2dynamics, iQist \cite{iQIST} and Wien2K.
-IQist, TRIQS and w2dynamics focus on approximate solutions via the CT-HYB algorithm within the dynamical mean field approximation. Therefore they cannot cope with large scale lattice simulations in the sense that spatial collective fluctuations are truncated. 
-Wien2K is representative for all density functional theory (DFT) based software packages. Systems with large unit cells are certainly amenable to DFT  in the local density approximation. The sheer amount of predictions done with 
-DFT methods is astonishing, but there is still a large class of correlated electron systems whose quantum phenomena are not described by the local density approximation.
-\mycomment{\textit{M: I think that the following list of deficits of QUEST is too much thrashing. I suggest to abolish the crossed out parts. Maybe we can in the future even win them over to our project ...}}
-The QUEST project implements the same algorithm as the ALF project  but \mycomment{\st{it is lacking in two major categories.}} it is currently restricted to the simple Hubbard model
-and it does not allow to easily incorporate different models. 
-\mycomment{\st{Furthermore,  it does not seem to be actively maintained anymore; the last publication dates from 2013.}} 
-\mycomment{\st{An entirely different  approach is}} \mycomment{Finally,} the ALPS library \mycomment{\st{. It}} is actively maintained \mycomment{\st{by a lively group of volunteers as well as paid staff}} and features a whole set of algorithms for \mycomment{strongly correlated quantum lattice models including Monte Carlo, exact diagonalization, and density matrix renormalization group codes} \mycomment{\st{Using the DMRG algorithms they are able to simulate large 1D Systems but they}} but lacks the tools for two dimensional  fermonic  systems offered by the ALF package.
+The ALF package is  not the first open source project  aimed at providing simulation tools for correlated quantum matter.  The most  notable package is  certainly the ALPS library \cite{ALPS_2.0}.  It  is actively maintained and features a whole set of algorithms for strongly correlated quantum lattice models including Monte Carlo, exact diagonalization, and density matrix renormalization group codes. It however does not include the auxiliary field  QMC algorithm   offered by the ALF package.
+ Other projects  include
+are QUEST \cite{QUEST}, TRIQS \cite{TRIQS}, w2dynamics and  iQist \cite{iQIST}.
+IQist, TRIQS and w2dynamics focus on approximate solutions via the CT-HYB \cite{Gull_rev} algorithm within the dynamical mean field approximation.  
+The QUEST project implements the same algorithm as in the ALF project  but  is currently restricted to the  Hubbard model
+and it does not allow to easily incorporate different Hamiltonians. 
 
-\subsection{Community outreach}
-We have decided to put the source code of this tool under the GNU GPL license, an established open source license.
-This should be our first, but very important step, towards building a community\cite{Budd2015} around this code.
-The goal of this community should be to work together to obtain the best BSS code that is usable for its users.
-The project is currently hosted on servers of the university of W\"urzburg and embedded within the research activities of the SFB1170.
-Here we have set up a gitlab instance that serves as a central meeting point on where to find the code.
-Everybody can sign up here and can receive space for his ALF related projects and share them with others.
-To foster the communication between the group members this site serves the gitlab issue tracker and we have a wiki
-so that members of our community can collect information they consider useful for the project.
-We have set up an E-Mail address for reaching the core developers at alf@physik.uni-wuerzburg.de
-and we have a public mailing list that is open to anyone to join the discussion.
+
+The ALF source code  is placed  under the GNU GPL license.  The project is currently hosted on servers of the university of W\"urzburg  where 
+ we have set up a gitlab instance (\url{https://alf.physik.uni-wuerzburg.de}) aimed at encouraging  community outreach. 
+ Each  potential user can sign in, receive space for his ALF related projects and share them with others. This site serves the gitlab issue tracker  as well as  a wiki
+so that members can collect information they consider useful for the project.
+We have set up an E-Mail address for reaching the core developers at alf@physik.uni-wuerzburg.de.
+\mycomment{ FFA What follows is too much information for the purpose of the documentation}
+
+\st{We have a public mailing list that is open to anyone to join the discussion.
 The organizational structure of our project is simple. Anybody can use the code
 and propose changes to it, but the sole decision of which changes will get accepted into a release of the ALF code and
 which direction the project takes rests with Fakher Assaad.
@@ -199,7 +193,7 @@ Using gitlab we have the technical means to trace the contributions of everybody
 to make sure that every contributor is listed on our project website
 or in the case of greater contributions up to authorship on a relevant contribution.
 Organizing workshops, hosting the servers and investing the time takes some effort
-but we are committed to invest that to grow a community.
+but we are committed to invest that to grow a community.}
 %
 %------------------------------------------------------------
 \subsection{Definition of the Hamiltonian}
@@ -280,6 +274,8 @@ it has to be specified by the user and becomes relevant when the Monte Carlo upd
 Note that the matrices  $\bm{T}^{(ks)}$,  $\bm{V}^{(ks)}$ and  $\bm{I}^{(ks)}$ explicitly depend on the flavor index $s$ but not on the color index $\sigma$. 
 The color index $\sigma$ only appears in  the  second quantized operators such that the Hamiltonian is manifestly $SU(N_{\mathrm{col}})$    symmetric.  We also require
 the matrices $\bm{T}^{(ks)}$,  $\bm{V}^{(ks)}$ and  $\bm{I}^{(ks)}$  to be  Hermitian.
+
+\mycomment{FFA:  As we will detail below, the definition of the above Hamiltonian allows  to tackle  non-trivial models and phenomena.  There are however a number of model Hamiltonians that cannot be simulated with the ALF. Since we have opted for discrete  fields,   the electron-phonon interaction is not included. Furthermore, continuous HS transformations, that turn out to be extremely useful to include long ranged Coulomb interactions \cite{Brower12,Ulybyshev2013,Hohenadler14},   are not accessible  in the present form of the package. \footnote{Note however that  one can readily add  short ranged interactions  by including terms such as $ (\hat{n}_i + \hat{n}_j - 2 )^2$. } In many cases such as in $^3$He,  three  or more  body interactions  should be included to capture  exchange mechanisms \cite{Roger83,JWerner14a}. These higher order processes are   not captured in the ALF since it is \textit{limited}  to two-body interactions.  One should also mention that auxiliary field QMC simulations are Hamiltonian based such that retarded interactions  are not included in the ALF.   Finally, the formulation of the Hamiltonian, has an  explicit global $U(1)$ symmetry reflecting that particle number conservation.  Hence using the ALF for  a given model Hamiltonian implies the existence of a canonical transformation where  a particle number is conserved. }
 %
 %------------------------------------------------------------
 \subsection{Outline}
