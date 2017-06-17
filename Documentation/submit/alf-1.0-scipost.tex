@@ -172,7 +172,7 @@ DFT methods is astonishing, but there is still a large class of correlated elect
 The QUEST project implements the same algorithm as the ALF project  but \mycomment{\st{it is lacking in two major categories.}} it is currently restricted to the simple Hubbard model
 and it does not allow to easily incorporate different models. 
 \mycomment{\st{Furthermore,  it does not seem to be actively maintained anymore; the last publication dates from 2013.}} 
-\mycomment{\st{An entirely different  approach is}} \mycomment{Finally,} the ALPS library \mycomment{\st{. It}} is actively maintained \mycomment{\st{by a lively group of volunteers as well as paid staff and}} features a whole set of algorithms for \mycomment{strongly correlated quantum lattice models including Monte Carlo, exact diagonalization, and density matrix renormalization group codes} \mycomment{\st{Using the DMRG algorithms they are able to simulate large 1D Systems but they}} but lacks the tools for two dimensional  fermonic  systems offered by the ALF package.
+\mycomment{\st{An entirely different  approach is}} \mycomment{Finally,} the ALPS library \mycomment{\st{. It}} is actively maintained \mycomment{\st{by a lively group of volunteers as well as paid staff}} and features a whole set of algorithms for \mycomment{strongly correlated quantum lattice models including Monte Carlo, exact diagonalization, and density matrix renormalization group codes} \mycomment{\st{Using the DMRG algorithms they are able to simulate large 1D Systems but they}} but lacks the tools for two dimensional  fermonic  systems offered by the ALF package.
 
 \subsection{Community outreach}
 We have decided to put the source code of this tool under the GNU GPL license, an established open source license.
@@ -594,11 +594,9 @@ The important property that makes straight-forward inversion so badly suited  st
 the condition number will grow exponentially so that the computed solution $\tilde{x}$
 will often contain no correct digits at all.
 To circumvent this, more sophisticated methods have to be employed. We will first of all assume that the multiplication of \texttt{NWrap} $\bm{B}$ matrices has an acceptable condition number.
-Assuming for simplicity that \texttt{NWrap} is a multiple of $L_{\text{Trotter}}$ 
-\mycomment{The other way round, right?}
-, we can write:
+Assuming for simplicity that $L_{\text{Trotter}}$ is an integer multiple of \texttt{NWrap}, we can write:
 \begin{equation}\label{eqn:green_stable}
-\bm{G} = \left( \mathds{1} + \prod\limits_{ i = 0}^{\frac{L_{\text{Trotter}}} {\texttt{NWrap} -1}}       \underbrace{\prod_{\tau=1}^{\texttt{NWrap}} \bm{B}_{i  \cdot  \texttt{NWrap}+ \tau} }_{ \equiv \mathcal{\bm{B}}_i}\right)^{-1}.
+\bm{G} = \left( \mathds{1} + \prod\limits_{ i = 0}^{\frac{L_{\text{Trotter}}} {\texttt{NWrap}}-1}       \underbrace{\prod_{\tau=1}^{\texttt{NWrap}} \bm{B}_{i  \cdot  \texttt{NWrap}+ \tau} }_{ \equiv \mathcal{\bm{B}}_i}\right)^{-1}.
 \end{equation}
 Within the auxiliary field QMC implementation of the ALF project, we are by default employing
 the strategy of forming a product of QR-decompositions which was proven to be weakly backwards stable in \cite{Bai2011}.
@@ -630,7 +628,7 @@ $\mathcal{\bm{B}}_j \bm{A}_{j-1}$ is formed in the following three steps:
 \item Form the updated $\bm{T}$ matrices $\bm{T}_j = \bm{R}_j \bm{T}_{j-1}$.
 \end{enumerate}
 While this might seem like quite an effort that has to be performed for every multiplication
-it has to be noted that even with this stabilization scheme the algorithm preserves the complexity class of $\mathcal{O}(\beta N^3)$ expressed in the physical parameters $\beta$ and the lattice size $N$.
+it has to be noted that even with this stabilization scheme the algorithm preserves the time complexity class of $\mathcal{O}(\beta N^3)$ expressed in the physical parameters inverse temperature $\beta$ and lattice size $N$.
 While there is no analytical expression for the dependence of the stability on the physical parameters
 our experience has been that
 %
