@@ -66,6 +66,7 @@
 \algnewcommand{\FourIndentedLeftComment}[1]{\Statex \(\hspace\algorithmicindent\hspace\algorithmicindent\hspace\algorithmicindent\hspace\algorithmicindent\triangleright\) \textit{#1}}
 
 \newcommand{\mycomment}[1]{{\color{blue} #1}}
+\newcommand{\FFAcomment}[1]{{\color{red} #1}}
 
 \begin{document}
 
@@ -156,38 +157,44 @@ We note that  due to  the non-locality of the fermion determinant, see below, cl
  Formulations do not differ  only  by the choice of the fields, continuous or discrete,  and the sampling strategy, but also by the  formulation of the action itself.
 For a given field configuration, integrating out  fermionic degrees of freedom generically leads to a fermionic determinant of dimension $\beta N$ where $\beta $  corresponds to the inverse temperature and $N$ to the volume of the system.  Working  with this determinant leads to the  Hirsch-Fye approach \cite{HirschFye86}  and its \mycomment{time complexity which quantifies the computational effort} is given by  $\mathcal{O}\left( \beta N \right)^3$. \footnote{Here we implicitly assume the absence of negative sign problem}  The Hirsch-Fye  algorithm is the method of choice for impurity problems, but has  generically been outperformed by a class of so-called continuous-time quantum Monte Carlo approaches  
 \cite{Gull_rev,Assaad14_rev, Assaad07}.    One key point of continuous-time methods  is that they are action based  and thereby allow to handle retarded interactions obtained when integrating out fermion or boson baths.  In high dimensions and/or at low temperatures, the cubic scaling originating from the fermionic determinant is expensive. To circumvent this, the hybrid Monte-Carlo approach  \cite{Duane87,Scalettar86}  expresses the fermionic determinant in terms of a Gaussian integral thereby introducing a new variable in the Monte Carlo integration.    The resulting algorithm is the method of choice for lattice gauge theories in 3+1 dimensions   and has been used to provide ab-inito  estimates of light hadron masses starting from quantum chromo dynamics \cite{Durr08}.
-The approach we will consider here lies between the  above two  \textit{extremes}.  We will keep the fermionic determinant, but formulate  the problem so as to  work only with $N\times N$ matrices.    This 
+
+
+The algorithm implemented in the ALF project  lies between the  above two  \textit{extremes}.  We will keep the fermionic determinant, but formulate  the problem so as to  work only with $N\times N$ matrices.    This 
 Blankenbecler,  Scalapino, Sugar (BSS)  algorithm scales linearly in  imaginary time $\beta$, but remains cubic in the volume $N$.    Furthermore, the algorithm can be formulated either in a projective manner \cite{Sugiyama86,Sorella89},  adequate to obtain zero temperature properties in the  canonical ensemble,  or at finite temperatures in the  grand-canonical ensemble \cite{White89}.
 
-The aim of the ALF project is to introduce a general formulation of the finite temperature  auxiliary field QMC method with discrete  fields so as to quickly be able to play with different model Hamiltonians  at  minimal programming cost.   We have summarized  the essential aspects of the   auxiliary field QMC  approach  in this documentation,   and   refer  the reader  to  Refs.~\cite{Assaad08_rev,Assaad02} for  complete  reviews.    
+The aim of the ALF project is to introduce a general formulation of the \textit{ finite } temperature  auxiliary field QMC method with discrete  fields so as to quickly be able to play with different model Hamiltonians  at  minimal programming cost. We have summarized  the essential aspects of the   auxiliary field QMC  approach  in this documentation,   and   refer  the reader  to  Refs.~\cite{Assaad08_rev,Assaad02} for  complete  reviews.    
 We will show in  all details how to implement a variety of models, run the code, and produce  results for  equal time and time displaced correlation functions. 
 The program code is written in Fortran according to the 2003 standard and is able to natively utilize MPI for massively parallel runs on todays supercomputing systems.
 
-\subsection{Community outreach}
-We have decided to put the source code of this tool under the GNU GPL license, an established open source license.
-This should be our first, but very important step, towards building a community\cite{Budd2015} around this code.
-The goal of this community should be to work together to obtain the best BSS code that is usable for its users.
-The project is currently hosted on servers of the university of W\"urzburg and embedded within the research activities of the SFB1170.
-Here we have set up a gitlab instance that serves as a central meeting point on where to find the code.
-Everybody can sign up here and can receive space for his ALF related projects and share them with others.
-To foster the communication between the group members this site serves the gitlab issue tracker and we have a wiki
-so that members of our community can collect information they consider useful for the project.
-We have set up an E-Mail address for reaching the core developers at alf@physik.uni-wuerzburg.de
-and we have a public mailing list that is open to anyone to join the discussion.
-The organoizational structure of our project is simple. Anybody can use the code
+The ALF package is  not the first open source project  aimed at providing simulation tools for correlated quantum matter.  The most  notable package is  certainly the ALPS library \cite{ALPS_2.0}.  It  is actively maintained and features a whole set of algorithms for strongly correlated quantum lattice models including Monte Carlo, exact diagonalization, and density matrix renormalization group codes. It however does not include the auxiliary field  QMC algorithm   offered by the ALF package.
+ Other projects  include
+are QUEST \cite{QUEST}, TRIQS \cite{TRIQS}, w2dynamics and  iQist \cite{iQIST}.
+IQist, TRIQS and w2dynamics focus on approximate solutions via the CT-HYB \cite{Gull_rev} algorithm within the dynamical mean field approximation.  
+The QUEST project implements the same algorithm as in the ALF project  but  is currently restricted to the  Hubbard model
+and it does not allow to easily incorporate different Hamiltonians. 
+
+
+The ALF source code  is placed  under the GNU GPL license.  The project is currently hosted on servers of the university of W\"urzburg  where 
+ we have set up a gitlab instance (\url{https://alf.physik.uni-wuerzburg.de}) aimed at encouraging  community outreach. 
+ Each  potential user can sign in, receive space for his ALF related projects and share them with others. This site serves the gitlab issue tracker  as well as  a wiki
+so that members can collect information they consider useful for the project.
+We have set up an E-Mail address for reaching the core developers at alf@physik.uni-wuerzburg.de.
+\mycomment{ FFA What follows is too much information for the purpose of the documentation. I hence propose to leave it as is.}
+
+\st{We have a public mailing list that is open to anyone to join the discussion.
+The organizational structure of our project is simple. Anybody can use the code
 and propose changes to it, but the sole decision of which changes will get accepted into a release of the ALF code and
 which direction the project takes rests with Fakher Assaad.
 Nevertheless it is beneficial to be a part of our community. 
 We will try to connect users that try to tackle problems with the ALF package.
-We think that it is beneficial to users that they can benfit from the experience of others
+We think that it is beneficial to users that they can benefit from the experience of others
 and that we hope to form a community of researchers from different fields working on different problems.
 To that end we plan to organize workshops and community meetings that everybody is able to attend.
 Using gitlab we have the technical means to trace the contributions of everybody,
 to make sure that every contributor is listed on our project website
 or in the case of greater contributions up to authorship on a relevant contribution.
 Organizing workshops, hosting the servers and investing the time takes some effort
-but we are committed to invest that to grow a community.
-
+but we are committed to invest that to grow a community.}
 %
 %------------------------------------------------------------
 \subsection{Definition of the Hamiltonian}
@@ -268,6 +275,8 @@ it has to be specified by the user and becomes relevant when the Monte Carlo upd
 Note that the matrices  $\bm{T}^{(ks)}$,  $\bm{V}^{(ks)}$ and  $\bm{I}^{(ks)}$ explicitly depend on the flavor index $s$ but not on the color index $\sigma$. 
 The color index $\sigma$ only appears in  the  second quantized operators such that the Hamiltonian is manifestly $SU(N_{\mathrm{col}})$    symmetric.  We also require
 the matrices $\bm{T}^{(ks)}$,  $\bm{V}^{(ks)}$ and  $\bm{I}^{(ks)}$  to be  Hermitian.
+
+\mycomment{FFA:  As we will detail below, the definition of the above Hamiltonian allows  to tackle  several  non-trivial models and phenomena.  There are however a number of model Hamiltonians that cannot be simulated with the ALF.  Since we have opted for discrete  fields,   the electron-phonon interaction is not included. Furthermore, continuous HS transformations, that turn out to be extremely useful to include long ranged Coulomb interactions \cite{Brower12,Ulybyshev2013,Hohenadler14},   are not accessible  in the present form of the package. \footnote{Note however that  one can readily add  short ranged interactions  by including terms such as $ (\hat{n}_i + \hat{n}_j - 2 )^2$. } In many cases such as in $^3$He,  three  or more  body interactions  should be included to capture  relevant   exchange mechanisms \cite{Roger83,JWerner14a}. These higher order processes are   not captured in the ALF since it is \textit{limited}  to two-body interactions.  Finally, the formulation of the Hamiltonian, has an  explicit global $U(1)$ symmetry reflecting that particle number conservation.  Hence using the ALF for  a given model implies the existence of a canonical transformation where  a particle number is conserved.    Imaginary time dependent Hamiltonians, required to compute Rennyi entropies and entanglement spectra   \cite{Broecker14,Assaad15, Broecker16} are not yet  included the ALF.   One should also mention that auxiliary field QMC simulations are Hamiltonian based such that retarded interactions  are not included in the ALF.    For this set of problems, CT-INT type approaches are the method of choice \cite{Assaad07,Werner07,Assaad14_rev}.     The above {\it short comings }  define a set of  future directions that will be discussed in the concluding part of this documentation.  }
 %
 %------------------------------------------------------------
 \subsection{Outline}
@@ -364,29 +373,32 @@ Here, the Ising spins take the values  $s_{i,\tau} = \pm 1$ and  the HS fields t
 With the above, the partition function of the model (\ref{eqn:general_ham}) can be written as follows.
 \begin{eqnarray}\label{eqn:partition_1}
 Z &=& \Tr{\left(e^{-\beta \hat{\mathcal{H}} }\right)}\nonumber\\
-  &=&   \Tr{  \left[ e^{-\Delta \tau \hat{\mathcal{H}}_{0,I}}   \prod_{k=1}^{M_T}   e^{-\Delta \tau \hat{T}^{(k)}}  
+  &=&   \Tr{  \left[ e^{-\Delta \tau \hat{\mathcal{H}}_{0,I}}   
     \prod_{k=1}^{M_V}   e^{ - \Delta \tau  U_k \left(  \hat{V}^{(k)} \right)^2}   \prod_{k=1}^{M_I}   e^{  -\Delta \tau  \hat{\sigma}_{k}  \hat{I}^{(k)}} 
+    \prod_{k=1}^{M_T}   e^{-\Delta \tau \hat{T}^{(k)}}  
    \right]^{L_{\text{Trotter}}}}  + \mathcal{O}(\Delta\tau^{2})\nonumber \\
    &=&
    \sum_{C} \left( \prod_{k=1}^{M_V} \prod_{\tau=1}^{L_{\mathrm{Trotter}}} \gamma_{k,\tau} \right) e^{-S_{0,I} \left( \left\{ s_{i,\tau} \right\}  \right) }\times \nonumber\\
    &\quad&
-    \Trf{ \left\{  \prod_{\tau=1}^{L_{\mathrm{Trotter}}} \left[   \prod_{k=1}^{M_T}   e^{-\Delta \tau \hat{T}^{(k)}}  
-    \prod_{k=1}^{M_V}   e^{  \sqrt{ -\Delta \tau  U_k} \eta_{k,\tau} \hat{V}^{(k)} }   \prod_{k=1}^{M_I}   e^{  -\Delta \tau s_{k,\tau}  \hat{I}^{(k)}}  \right]\right\} }+ \mathcal{O}(\Delta\tau^{2})\;.
+    \Trf{ \left\{  \prod_{\tau=1}^{L_{\mathrm{Trotter}}} \left[   
+    \prod_{k=1}^{M_V}   e^{  \sqrt{ -\Delta \tau  U_k} \eta_{k,\tau} \hat{V}^{(k)} }   \prod_{k=1}^{M_I}   e^{  -\Delta \tau s_{k,\tau}  \hat{I}^{(k)}} 
+    \prod_{k=1}^{M_T}   e^{-\Delta \tau \hat{T}^{(k)}}    \right]\right\} }+ \mathcal{O}(\Delta\tau^{2})\;.
 \end{eqnarray}
 In the above,  the trace $\mathrm{Tr} $  runs over the Ising spins as well as over the fermionic degrees of freedom, and $ \mathrm{Tr}_{\mathrm{F}}  $ only over the  fermionic Fock space. 
 $S_{0,I} \left( \left\{ s_{i,\tau} \right\}  \right)  $ is the action  corresponding to the Ising Hamiltonian,  and is only dependent on the Ising spins so that  it can be pulled out of the fermionic trace.  We have adopted the short hand notation $\eta_{k,\tau}  = \eta(l_{k,\tau})$   and $\gamma_{k,\tau}  = \gamma(l_{k,\tau})$.
 At this point,  and  since for a given configuration $C$  we are dealing with a free propagation, we can integrate out the fermions to obtain a determinant: 
 \begin{eqnarray}
- &\quad&\Trf{ \left\{  \prod_{\tau=1}^{L_{\mathrm{Trotter}}} \left[   \prod_{k=1}^{M_T}   e^{-\Delta \tau \hat{T}^{(k)}}  
-    \prod_{k=1}^{M_V}   e^{  \sqrt{ - \Delta \tau  U_k} \eta_{k,\tau} \hat{V}^{(k)} }   \prod_{k=1}^{M_I}   e^{  -\Delta \tau s_{k,\tau}  \hat{I}^{(k)}}  \right] \right\}} = \nonumber\\
+ &\quad&\Trf{ \left\{  \prod_{\tau=1}^{L_{\mathrm{Trotter}}} \left[   
+    \prod_{k=1}^{M_V}   e^{  \sqrt{ - \Delta \tau  U_k} \eta_{k,\tau} \hat{V}^{(k)} }   \prod_{k=1}^{M_I}   e^{  -\Delta \tau s_{k,\tau}  \hat{I}^{(k)}}  
+    \prod_{k=1}^{M_T}   e^{-\Delta \tau \hat{T}^{(k)}}   \right] \right\}} = \nonumber\\
 &\quad& \quad\prod\limits_{s=1}^{N_{\mathrm{fl}}} \left[  e^{\sum\limits_{k=1}^{M_V} \sum\limits_{\tau = 1}^{L_{\mathrm{Trotter}}}\sqrt{-\Delta \tau U_k}  \alpha_{k,s} \eta_{k,\tau} }
    \right]^{N_{\mathrm{col}}}\times
 \nonumber\\
 &\quad&\quad   \prod\limits_{s=1}^{N_{\mathrm{fl}}} 
    \left[
     \det\left(  \mathds{1} + 
-     \prod_{\tau=1}^{L_{\mathrm{Trotter}}}   \prod_{k=1}^{M_T}   e^{-\Delta \tau \textbf{T}^{(ks)}}  
-    \prod_{k=1}^{M_V}   e^{  \sqrt{ -\Delta \tau  U_k} \eta_{k,\tau} {\bm V}^{(ks)} }   \prod_{k=1}^{M_I}   e^{  -\Delta \tau s_{k,\tau}  {\bm I}^{(ks)}}  
+     \prod_{\tau=1}^{L_{\mathrm{Trotter}}}  
+    \prod_{k=1}^{M_V}   e^{  \sqrt{ -\Delta \tau  U_k} \eta_{k,\tau} {\bm V}^{(ks)} }   \prod_{k=1}^{M_I}   e^{  -\Delta \tau s_{k,\tau}  {\bm I}^{(ks)}}   \prod_{k=1}^{M_T}   e^{-\Delta \tau \textbf{T}^{(ks)}}  
      \right) \right]^{N_{\mathrm{col}}}
 \end{eqnarray}
 where the matrices $\textbf{T}^{(ks)}$,  $\textbf{V}^{(ks)}$, and  $\textbf{I}^{(ks)}$ define the Hamiltonian [Eq.~(\ref{eqn:general_ham}) - (\ref{eqn:general_ham_i})].
@@ -397,8 +409,9 @@ All in all,   the partition function is given by:
   \times   \nonumber \\
   \hspace{-0.7em}&\quad&  \hspace{-0.7em}
       \prod_{s=1}^{N_{\mathrm{fl}}}\left[\det\left(  \mathds{1} + 
-     \prod_{\tau=1}^{L_{\mathrm{Trotter}}}   \prod_{k=1}^{M_T}   e^{-\Delta \tau {\bm T}^{(ks)}}  
+     \prod_{\tau=1}^{L_{\mathrm{Trotter}}}   
     \prod_{k=1}^{M_V}   e^{  \sqrt{ -\Delta \tau  U_k} \eta_{k,\tau} {\bm V}^{(ks)} }   \prod_{k=1}^{M_I}   e^{  -\Delta \tau s_{k,\tau}  {\bm I}^{(ks)}}  
+      \prod_{k=1}^{M_T}   e^{-\Delta \tau {\bm T}^{(ks)}}  
      \right) \right]^{N_{\mathrm{col}}} \hspace{-0.7em}+ \mathcal{O}(\Delta\tau^{2}) \nonumber\\
     \hspace{-0.7em}&\equiv&  \hspace{-0.7em}   
      \sum_{C} e^{-S(C) } + \mathcal{O}(\Delta\tau^{2})\;.
@@ -584,11 +597,9 @@ The important property that makes straight-forward inversion so badly suited  st
 the condition number will grow exponentially so that the computed solution $\tilde{x}$
 will often contain no correct digits at all.
 To circumvent this, more sophisticated methods have to be employed. We will first of all assume that the multiplication of \texttt{NWrap} $\bm{B}$ matrices has an acceptable condition number.
-Assuming for simplicity that \texttt{NWrap} is a multiple of $L_{\text{Trotter}}$ 
-\mycomment{The other way round, right?}
-, we can write:
+Assuming for simplicity that $L_{\text{Trotter}}$ is an integer multiple of \texttt{NWrap}, we can write:
 \begin{equation}\label{eqn:green_stable}
-\bm{G} = \left( \mathds{1} + \prod\limits_{ i = 0}^{\frac{L_{\text{Trotter}}} {\texttt{NWrap} -1}}       \underbrace{\prod_{\tau=1}^{\texttt{NWrap}} \bm{B}_{i  \cdot  \texttt{NWrap}+ \tau} }_{ \equiv \mathcal{\bm{B}}_i}\right)^{-1}.
+\bm{G} = \left( \mathds{1} + \prod\limits_{ i = 0}^{\frac{L_{\text{Trotter}}} {\texttt{NWrap}}-1}       \underbrace{\prod_{\tau=1}^{\texttt{NWrap}} \bm{B}_{i  \cdot  \texttt{NWrap}+ \tau} }_{ \equiv \mathcal{\bm{B}}_i}\right)^{-1}.
 \end{equation}
 Within the auxiliary field QMC implementation of the ALF project, we are by default employing
 the strategy of forming a product of QR-decompositions which was proven to be weakly backwards stable in \cite{Bai2011}.
@@ -619,45 +630,95 @@ $\mathcal{\bm{B}}_j \bm{A}_{j-1}$ is formed in the following three steps:
 \item Do a QR decomposition of $\bm{M}_j = \bm{Q}_j \bm{D}_j \bm{R}_j$. This gives the final $\bm{Q}_j$ and $\bm{D}_j$.
 \item Form the updated $\bm{T}$ matrices $\bm{T}_j = \bm{R}_j \bm{T}_{j-1}$.
 \end{enumerate}
+While this might seem like quite an effort that has to be performed for every multiplication
+it has to be noted that even with this stabilization scheme the algorithm preserves the time complexity class of $\mathcal{O}(\beta N^3)$ expressed in the physical parameters inverse temperature $\beta$ and lattice size $N$.
+While there is no analytical expression for the dependence of the stability on the physical parameters
+our experience has been that
+%
+%Note that 
+for a given number of stabilization steps along the imaginary time axis [in the notation of Eq.~(\ref{eqn:green_stable}) this number is $L_{\text{Trotter}}/\texttt{NWrap}$], the precision will be largely invariant of the system size $N$,
+%However, 
+whereas
+with increasing inverse temperature $\beta$ the number of stabilization steps often has to be increased to maintain a given precision.
 The effectiveness of the stabilization \emph{has} to be judged for every simulation from the output file \path{info} (Sec.~\ref{sec:output_prec}). For most simulations there are two values to look out for:
 \begin{itemize}
 \item \texttt{Precision Green}
 \item \texttt{Precision Phase}
 \end{itemize}
-While this might seem like quite an effort that has to be performed for every multiplication
-it has to be noted that even with this stabilization scheme the algorithm preserves the complexity class of $\mathcal{O}(N^3)$.
 The Green function as well as the average phase are usually numbers with a magnitude of $\mathcal{O} (1)$. 
 For that reason we recommend that \path{NWrap} is chosen such that the mean precision is of the order of $10^{-8}$ or better.  
 We have included typical values of \texttt{Precision Phase} and of the mean and the maximal values of \texttt{Precision Green} in the 
 discussion of example simulations, see Sec.~\ref{sec:prec_charge} and Sec.~\ref{sec:prec_spin}.
+% 
+% \mycomment{
+% To summarize, the algorithm is stablized by re-computing the Green function matrix from scratch on a subset of time slices. 
+% While the stabilization will increase the prefactor of the computational effort, it will not change its exponents. That is the time complexity of  $\mathcal{O}(\beta N^{3})$ of the algorithm remains.
+% Note that for a given number of stabilization steps along the imaginary time axis [in the notation of Eq.~(\ref{eqn:green_stable}) this number is $L_{\text{Trotter}}/\texttt{NWrap}$], the precision will be largely invariant of the system size $N$. 
+% However, with increasing inverse temperature $\beta$ the number of stabilization steps often has to be increased to maintain a given precision.
+% }
+%
+%In this subsection we will give examples of the issues that a user will have to look out for while 
+%using a Monte Carlo code. Those effects are part of the common lore of the field
+%and we can only touch on them briefly  in this text.
+%For a deeper understanding of the inherent issues of Markov chain Monte Carlo methods 
+%we refer the reader to the pedagogical introduction in chapter 1.3.5 of Krauth\cite{Krauth2006}
+%and the more specialized literature by Geyer\cite{Geyer1992} and chapter 6.3 of Neal\cite{neal1993}.
 
-\mycomment{
-To summarize, the algorithm is stablized by re-computing the Green function matrix from scratch on a subset of time slices. 
-While the stabilization will increase the prefactor of the computational effort, it will not change its exponents. That is the time complexity of  $\mathcal{O}(\beta N^{3})$ of the algorithm remains.
-Note that for a given number of stabilization steps along the imaginary time axis [in the notation of Eq.~(\ref{eqn:green_stable}) this number is $L_{\text{Trotter}}/\texttt{NWrap}$], the precision will be largely invariant of the system size $N$. 
-However, with increasing inverse temperature $\beta$ the number of stabilization steps often has to be increased to maintain a given precision.
-}
+
 %
 %------------------------------------------------------------
-\mycomment{
-\subsection{Autocorrelation}\label{sec:autocorr}
+\subsection{Monte Carlo sampling}\label{sec:sampling}
 %------------------------------------------------------------
 %
-In general, one distinguishes local from global updates. As the name suggest, the local update is only a small change of the configuration, e.g. a single spin flip of one of the $L_{\mathrm{Trotter}}(M_I+M_V)$ field entries, whereas a global update changes a significant part of the configuration. The default update scheme of the implementation at hand are local updates such that a minimum amount of accepted update moves is required to generate a independent configuration. The associated time-scale is called autocorrelation time $T_\mathrm{auto}$.
+Error estimates  in Monte Carlo simulations  can be  delicate and are based on the central limit theorem \cite{Negele}. This theorem requires independent 
+measurements and  a finite variance.  \mycomment{
+In this subsection we will give examples of the issues that a user will have to look out for while 
+using a Monte Carlo code. Those effects are part of the common lore of the field
+and we can only touch on them briefly  in this text.
+For a deeper understanding of the inherent issues of Markov chain Monte Carlo methods 
+we refer the reader to the pedagogical introduction in chapter 1.3.5 of Krauth\cite{Krauth2006}
+and the more specialized literature by Geyer\cite{Geyer1992} and chapter 6.3 of Neal\cite{neal1993}. 
+In general, one distinguishes local from global updates. As the name suggest, the local update is only a small change of the configuration, e.g. a single spin flip on one of the $L_{\mathrm{Trotter}}(M_I+M_V)$ field entries (see Sec.~\ref{sec:updating}), whereas a global update changes a significant part of the configuration. The default update scheme of the implementation at hand are local updates such that a minimum amount of moves is required to generate a independent configuration. The associated time-scale is called autocorrelation time $T_\mathrm{auto}$, and is generically dependent upon the choice of the observables. }
+%The default updating scheme consists of local moves which change (upon acceptance) only one  entry of $L_{\mathrm{Trotter}}(M_I+M_V)$  fields 
+%To generate  an independent configuration $C$,   one has to visit at least each field  once. 
 
-In the following we use one of our examples, the Hubbard model on a square lattice in the $M_z$ Hubbard-Stratonovic decoupling (see Sec.~\ref{sec:walk1.1}), to show explicitly that there is no unique autocorrelation time. Instead different observables within the same run can suffer from different time scales and of course, the time scale can also change for a different choice of parameters. Therefore the user has to check the autocorrelation of individual observables for each simulation! Typical region of the phase diagram that require special attention are critical points of phase transitions where length scales are diverging as well as deep inside the ordered regime where the configuration freezes.
+ Our unit of \textit{sweeps} is defined such that each field is visited twice in a sequential propagation from $\tau = 0$ to $\tau = L_{\text{ Trotter}}$  and back.  A single sweep will  generically not  suffice to produce an independent  configuration.
+In fact, the autocorrelation time $T_\mathrm{auto}$ characterizes the required time scale to generate an independent  values of $\langle\langle\hat{O}\rangle\rangle_C$ for the observable $O$. This has several consequences for the Monte Carlo simulation:
+\begin{itemize}
+	\item First of all, we start from a randomly chosen field configuration such that one has to invest \textit{at least}  one, \mycomment{but generically much more} $T_\mathrm{auto}$ to generate relevant, equilibrated configurations before reliable measurements are possible. This phase of the simulation is known as the warm-up or burn-in phase. In order to keep the code as flexible as possible (different simulations might have different autocorrelation times), measurements are taken from the very beginning. Instead, we provide the parameter \path{n_skip} for the analysis to ignore the first \path{n_skip} bins.
+	\item Secondly, our implementation averages over a given amount of measurements   set by the variable \texttt{NSWEEPS}  before storing the results, known as one bin, on the disk.  A bin corresponds to \texttt{NSWEEPS}  sweeps. The  error analysis requires statistically  independent bins to generate reliable confidence estimates. If bins are to small (averaged over a period shorter then $T_\mathrm{auto}$), the error bars are then typically underestimated. Most of the time, the autocorrelation time is unknown before the simulation is started.  Sometimes the used compute cluster does not allow single runs long enough to generate appropriately sized bins. Therefore, we provide the \path{N_rebin} parameter that specifies how many bins are combined into a new bin during the error analysis. In general, one should check that a further increase of the bin size does not change the error estimate   (For an explicit example, the reader is referred to \mycomment{the next section (Sec.~\ref{sec:autocorr}) and} the Appendix of Ref.~\cite{Assaad02}).
+
+The \path{N_rebin} variable can be used to control a second issue. The distribution of the Monte Carlo estimates $\langle\langle\hat{O}\rangle\rangle_C$ is unknown. The result in the form $(\mathrm{mean}\pm \mathrm{error})$ assumes a Gaussian distribution. Every original distribution with a finite variance turns into a Gaussian one, once it is folded often enough (central limit theorem). Due to the internal averaging (folding) within one bin, many observables are already quite Gaussian. Otherwise one can increase \path{N_rebin} further, even if the bins are already independent~\cite{Bercx17}.
+	\item The third issue concerns time displaced correlation functions. Even if the configurations are independent, the fields within the configuration are still correlated. Hence, the data for $S_{\alpha,\beta}(\vec{k},\tau)$ (see Sec.~\ref{sec:obs}; Eqn.~\ref{eqn:s}) and $S_{\alpha,\beta}(\vec{k},\tau+\Delta\tau)$ are also correlated. Setting the switch \path{N_Cov = 1} triggers the calculation of the covariance matrix in addition to the usual error analysis. The covariance is defined by
+	\begin{equation}
+		COV_{\tau \tau'}=\frac{1}{N_{\text{Bin}}}\left\langle\left(S_{\alpha,\beta}(\vec{k},\tau)-\langle S_{\alpha,\beta}(\vec{k},\tau)\rangle\right)\left(S_{\alpha,\beta}(\vec{k},\tau')-\langle S_{\alpha,\beta}(\vec{k},\tau')\rangle\right)\right\rangle\,.
+	\end{equation}
+An example where this information is necessary is the  calculation of mass gaps extracted by fitting the  tail  of the time displaced correlation function.  Omitting  the covariance matrix will  underestimate the  error.
+\end{itemize}
+
+\subsubsection{An explicit example of error estimate}
+\label{sec:autocorr}
+\mycomment{
+In the following we use one of our examples, the Hubbard model on a square lattice in the $M_z$ Hubbard-Stratonovich decoupling (see Sec.~\ref{sec:walk1.1}), to show explicitly how to estimate errors.  We will equally show that  there is no unique autocorrelation time. In fact, different observables within the same run can have different autocorrelation times  and of course, this time scale depends on the  parameter choice.  Hence, the user has to check the autocorrelation of individual observables for each simulation!  Typical regions of the phase diagram that require special attention are critical points  where length scales diverge.  
 
 To determine the autocorrelation time, we calculate the correlation function
 \begin{equation}
 	Auto_O(t_{\textrm{QMC}})=\sum_{i=0}^{N_{\textrm{Bin}}-t_{\textrm{QMC}}}\frac{(O_i-\left\langle O\right\rangle )(O_{i+t_{\textrm{QMC}}}-\left\langle O\right\rangle )}{(O_i-\left\langle O\right\rangle )(O_{i}-\left\langle O\right\rangle )}\, ,
 \end{equation}
-where $O_i$ refers to the Monte Carlo estimate of the observable $O$ in the $i$th bin. This function typically shows an exponential decay and the decay rate defines the autocorrelation time.
+where $O_i$ refers to the Monte Carlo estimate of the observable $O$ in the $i^{\text{th}}$ bin. This function typically shows an exponential decay and the decay rate defines the autocorrelation time.
 
-In Fig.~\ref{fig_autocorr} (left) we present the autocorrelation functions for the Spin-Spin-correlation at $(\pi,\pi)$ both in the $xy$-plane and the $z$ direction. The Hubbard model on a square lattice is $SU(2)$ symmetric. However, we chose the Hubbard-Stratonovic decoupling in the $M_z$ channel such that each configuration breaks the symmetry which is only restored on average. This model shows spontaneous symmetry by the formation of an anti-ferromagnet and the analyzed observable represent the square of the order parameter. Fig.~\ref{fig_autocorr} (left) clearly shows a very short autocorrelation time for the $xy$-plane whereas we detect a considerably longer time scale for the $z$-direction. This is a direct consequence of both the spontaneous symmetry breaking and the chose decoupling.
-
+In Fig.~\ref{fig_autocorr} (left) we present the autocorrelation functions for the spin-spin-correlation at $(\pi,\pi)$ both in the $xy$ and the $z$  spin-directions. The Hubbard model on a square lattice is $SU(2)$ symmetric. However, we chose a HS field that couples to the z-component of the magnetization,  $M_z$,  such that each configuration breaks the symmetry. Of course after Monte Carlo averaging one expects restoration of this symmetry. This model shows spontaneous symmetry symmetry breaking at $T=0$ and in the thermodynamic limit.  At finite temperatures, and within the so-called renormalized classical regime,  quantum antiferromagnetics have a length scale  that  diverges  exponentially  with decreasing temperatures \cite{Chakravarty88}.  The parameter set chosen in Fig.~\ref{fig_autocorr}  is non-trivial in the sense that it places the Hubbard model in this renormalized classical regime.   Fig.~\ref{fig_autocorr} (left) clearly shows a very short autocorrelation time for the $xy$-plane whereas we detect a considerably longer  autocorrelation times  for the $z$-direction.  This is a direct consequence {\it long} magnetic length scale and the chosen decoupling.
+From the obtained time series of Monte Carlo samples we need to obtain estimates on the mean and the variance of the data.
+A simple method that we will describe in this tutorial is the rebinning method, also known in the literature as rebatching. For a comparison to other methods of estimating the autocorrelation time we refer the reader to the literature \cite{Thompson2010, Geyer1992, neal1993}.
 A reliable error analysis requires independent bins, otherwise the error is typically underestimated. This can also be seen in Fig.~\ref{fig_autocorr} (right). Here we systematically increase the effective bin size by rebinning in which a given number of bins (\path{N_rebin}) are recombined into new bins. If the bin size is smaller than the autocorrelation time, the estimated error is to small, once the bin is larger than the autocorrelation time, the error converged to the correct estimate.
 
-For the analysis, the use can provide a finite value for \path{N_auto} to trigger the analysis of the autocorrelation time. The calculations are quite time consuming and require many Monte Carlo bins, hence the default value is 0 if unspecified. To produce Fig.~\ref{fig_autocorr}, we used $\textrm{\path{N_auto}}=500$ and a total of approximately 1 million bins.
+For the analysis, the user can provide a finite value for \path{N_auto} to trigger the analysis of the autocorrelation time. The calculations are quite time consuming and require many Monte Carlo bins, hence the default value is 0 if unspecified. To produce Fig.~\ref{fig_autocorr}, we used $\textrm{\path{N_auto}}=500$ and a total of approximately 1 million bins. \\ 
+\FFAcomment{@Johannes: In which branch did you include this $N_{Auto}$ tag? Do we want to include it in this release or in another release.} \\
+\FFAcomment{@Johannes:  Do you get the same numbers for the XY and ZZ correlations? Can you analyze the autocorrelation time of 
+$XX + YY + ZZ$} \\
+\FFAcomment{@Johannes:  This is really a very tricky example.  If you go to lower temperatures and large lattices, then you will never be able to  show that 
+$XX = ZZ$. Hence one has to define improved estimators such as $XX + YY + ZZ$  that are explicitly $SU(2)$ invariant} \\ 
+\FFAcomment{ @ Martin: Will you work on the figures as for the optimization. }
 
 \begin{figure}[h]
 	\begin{center}
@@ -665,28 +726,9 @@ For the analysis, the use can provide a finite value for \path{N_auto} to trigge
 		\includegraphics[width=0.49\textwidth]{Error.pdf}
 	\end{center}
 	\caption{\label{fig_autocorr}
-	Autocorrelation (left) and scaling of the error with the bins size (right). We use a Hubbard model on the square lattice in the $M_z$ decoupling (see Sec.~\ref{sec:walk1.1}) with $LxL=6x6$, $U=4$ and $\beta = 6$. The original bin contains only one sweep and we calculated around 1 million bins on a single core. We analyze the Spin-Spin-Correlation at $(\pi,\pi)$, which also represents the order parameter of the anti-ferromagnet and clearly detect different autocorrelation times and therefore required bin sizes for the $xy$-plane compared to the $z$-direction.}
+	Autocorrelation (left) and scaling of the error with the bin size (right). We use a Hubbard model on the square lattice in the $M_z$ decoupling (see Sec.~\ref{sec:walk1.1})  $U/t=4$, $\beta t = 6$ on a $ 6 \times 6$ lattice.  The original bin contains only one sweep and we calculated around 1 million bins on a single core. We analyze the spin-spin-correlation at $(\pi,\pi)$  and clearly detect different autocorrelation times and therefore required bin sizes for the $xy$-plane compared to the $z$-direction.}
 \end{figure}
 }
-%
-%------------------------------------------------------------
-\subsection{Monte Carlo sampling}\label{sec:sampling}
-%------------------------------------------------------------
-%
-The default updating scheme consists of local moves which change (upon acceptance) only one  entry of $L_{\mathrm{Trotter}}(M_I+M_V)$  fields (see Sec.~\ref{sec:updating}).
-To generate  an independent configuration $C$,   one has to visit at least each field  once.  Our unit of \textit{sweeps} is defined such that each field is visited twice in a sequential propagation from $\tau = 0$ to $\tau = L_{\text{ Trotter}}$  and back.  A single sweep will  generically not  suffice to produce an independent  configuration.
-In fact, the autocorrelation time $T_\mathrm{auto}$ characterizes the required time scale to generate an independent configuration, or values $\langle\langle\hat{O}\rangle\rangle_C$ for the observable $O$. This has several consequences for the Monte Carlo simulation:
-\begin{itemize}
-	\item First of all, we start from a randomly chosen field configuration such that one has to invest \textit{at least} one\mycomment{, usually much more than one,} $T_\mathrm{auto}$ to generate relevant, equilibrated configurations before reliable measurements are possible. This phase of the simulation is known as the warm-up or burn-in phase. In order to keep the code as flexible as possible (different simulations might have different autocorrelation times), measurements are taken from the very beginning. Instead, we provide the parameter \path{n_skip} for the analysis to ignore the first \path{n_skip} bins.
-	\item Secondly, our implementation averages over a given amount of measurements   set by the variable \texttt{NSWEEPS}  before storing the results, known as one bin, on the disk.  A bin corresponds to \texttt{NSWEEPS}  sweeps. The  error analysis requires statistically  independent bins to generate reliable confidence estimates. If bins are to small (averaged over a period shorter then $T_\mathrm{auto}$), the error bars are then typically underestimated. Most of the time, the autocorrelation time is unknown before the simulation is started.  Sometimes the used compute cluster does not allow single runs long enough to generate appropriately sized bins. Therefore, we provide the \path{N_rebin} parameter that specifies how many bins are combined into a new bin during the error analysis. In general, one should check that a further increase of the bin size does not change the error estimate   (For an explicit example, the reader is referred to \mycomment{the previous section (Sec.~\ref{sec:autocorr}) and} the Appendix of Ref.~\cite{Assaad02}).
-
-The \path{N_rebin} variable can be used to control a second issue. The distribution of the Monte Carlo estimates $\langle\langle\hat{O}\rangle\rangle_C$ is unknown. The result in the form $(\mathrm{mean}\pm \mathrm{error})$ assumes a Gaussian distribution. Luckily, every original distribution with a finite variance turns into a Gaussian one, once it is folded often enough (central limit theorem). Due to the internal averaging (folding) within one bin, many observables are already quite Gaussian. Otherwise one can increase \path{N_rebin} further, even if the bins are already independent~\cite{Bercx17}.
-	\item The third issue concerns time displaced correlation functions. Even if the configurations are independent, the fields within the configuration are still correlated. Hence, the data for $S_{\alpha,\beta}(\vec{k},\tau)$ (see Sec.~\ref{sec:obs}; Eqn.~\ref{eqn:s}) and $S_{\alpha,\beta}(\vec{k},\tau+\Delta\tau)$ are also correlated. Setting the switch \path{N_Cov = 1} triggers the calculation of the covariance matrix in addition to the usual error analysis. The covariance is defined by
-	\begin{equation}
-		COV_{\tau \tau'}=\frac{1}{N_{\text{Bin}}}\left\langle\left(S_{\alpha,\beta}(\vec{k},\tau)-\langle S_{\alpha,\beta}(\vec{k},\tau)\rangle\right)\left(S_{\alpha,\beta}(\vec{k},\tau')-\langle S_{\alpha,\beta}(\vec{k},\tau')\rangle\right)\right\rangle\,.
-	\end{equation}
-An example where this information is necessary is the  calculation of mass gaps extracted by fitting the  tail  of the time displaced correlation function.  Omitting  the covariance matrix will  underestimate the  error.
-\end{itemize}
 
 %
 %------------------------------------------------------------
@@ -1359,10 +1401,10 @@ Typical values for the numerical precision can be found in the examples of Sec.~
 Here we briefly   discuss the analysis programs which read in bin/s and carry out the error analysis. (See Sec.~\ref{sec:sampling}  for a more detailed discussion.)
 Error analysis   is based  on the central limit theorem,  which requires bins to be statistically independent, and also the existence of a well-defined variance  for the observable under consideration. 
 The former will be the case if bins are  longer than the autocorrelation time.  The latter has to be checked by the user.  In the parameter file listed in Sec.~\ref{sec:input}, the user  can specify how many initial bins should be omitted (variable \texttt{n\_skip}). 
-This  number should be \mycomment{at least} comparable to\mycomment{, usually much lager then,} the autocorrelation time. \mycomment{Then analysis of the autocorrelation time is triggered by specifing a positive value for \path{N_auto} that is turned off be default ($\textrm{\path{N_auto}}=0$).}
+This  number should be \mycomment{at least} comparable \mycomment{or  lager than} the autocorrelation time. \mycomment{The analysis of the autocorrelation time is triggered by specifying a positive value for \path{N_auto} that is turned off be default ($\textrm{\path{N_auto}}=0$).}
 The  rebinning  variable \texttt{N\_rebin} will merge \texttt{N\_rebin}  bins into a single new bin. 
 If the autocorrelation time  is smaller than the effective bin size, the error should become independent of the bin size and thereby of the variable \texttt{N\_rebin}.  
-Our analysis is based on the Jackknife resampling\cite{efron1981}\mycomment{, which includes proper treatment of the sign.}
+Our analysis is based on the Jackknife resampling\cite{efron1981,Assaad02}\mycomment{, which includes proper treatment of the sign.}
 As listed in Table  \ref{table:analysis_programs}  we provide three analysis programs to account for the three observable types. The programs can be found in the directory \texttt{Analysis}  and   are executed by running the  bash shell script 
 \texttt{analysis.sh}.
 %
@@ -2259,11 +2301,15 @@ We store the field configurations of the random walker as checkpoints, such that
 \clearpage
 %
 %========================================================================================================================================
-\section{Conclusions and Future Directions}\label{sec:con}
+\section{Conclusions and Future Releases}\label{sec:con}
 %========================================================================================================================================
 %
-In its present form, the  auxiliary field QMC code of the ALF project  allows to simulate a large class of non-trivial models, both efficiently and at minimal  programming cost.  There are many possible extensions which deserve to be considered in future releases.    The model Hamiltonians we have presented so far are imaginary-time independent. This however can be easily generalized  to imaginary-time dependent model Hamiltonians thus allowing, for example, to access  entanglement properties of interacting fermionic systems \cite{Broecker14,Assaad14,Assaad13a,Assaad15}. Generalizations to include global moves are equally desirable. This is a prerequisite to  play with recent ideas of self-learning algorithms  \cite{Xu16a} so as to  possibly avoid the issue of critical slowing down.  At present, the QMC code of this package is  restricted to discrete HS fields such that  implementations  of  the long-range Coulomb repulsion -- as introduced in \cite{Hohenadler14,Ulybyshev2013,Brower12} -- are not yet included.   Extensions  to  continuous HS fields are certainly possible, but require an efficient upgrading scheme. Finally,  an implementation of the  ground state projective QMC method   is equally desirable.
+In its present form, the  auxiliary field QMC code of the ALF project  allows to simulate a large class of non-trivial models, both efficiently and at minimal  programming cost.  There are many possible extensions which deserve to be considered in future releases.    The model Hamiltonians we have presented so far are imaginary-time independent. This however can be easily generalized  to imaginary-time dependent model Hamiltonians thus allowing, for example, to access  entanglement properties of interacting fermionic systems \cite{Broecker14,Assaad14,Assaad13a,Assaad15}. Generalizations to include global moves are equally desirable. This is a prerequisite to  play with recent ideas of self-learning algorithms  \cite{Xu16a} so as to  possibly avoid the issue of critical slowing down.  Parallel tempering schemes are equally desirable, so as to possibly alleviate   long autocorrelation times.     Most of the above,  has already been tested  and will  be available in the next  major release of the ALF-code. 
 
+On the longer term, we foresee further possible developments.  At present, the QMC code of this package is  restricted to discrete HS fields such that  implementations  of  the long-range Coulomb repulsion -- as introduced in \cite{Hohenadler14,Ulybyshev2013,Brower12} -- are not yet included.   Extensions  to  continuous HS fields are certainly possible, but require an efficient upgrading scheme such as hybrid  molecular dynamics \cite{Duane85}.    An  implementation of the  ground state projective QMC method  within the same package is equally desirable.  Efforts in  the above directions will be pursued on the longer term.  
+
+\FFAcomment{
+As it stands, programming a new model  certainly requires some  detailed knowledge of the  algorithm. To facilitate access we hope  maintain an increasing number of  model Hamiltonians in  the ALF  repository.    A further  step is to assure cross compatibility with other  major projects, especially ALPS. }
 %
 %========================================================================================================================================
 % \addcontentsline{toc}{section}{Acknowledgments}
@@ -2271,12 +2317,14 @@ In its present form, the  auxiliary field QMC code of the ALF project  allows to
 %========================================================================================================================================
 %
 We are very grateful to  S.~Beyl, M.~Hohenadler,  F.~Parisen Toldin,  M.~Raczkowski, T.~Sato, J.~Schwab, Z.~Wang, and M.~Weber  for constant support during the development of this project. We equally thank G.~Hager, M.~Wittmann, and G.~Wellein for useful discussions and support.
-FFA would also like to thank T.~Lang   and Z.~Y.~Meng for  developments of the auxiliary field code as well as T.~Grover. 
+FFA would also like to thank T.~Lang   and Z.~Y.~Meng for  developments of the auxiliary field code as well as T.~Grover for many discussions. 
 % TODO: include funding information
 \paragraph{Funding information}
 MB thanks the Bavarian Competence Network for Technical and Scientific High Performance Computing (KONWIHR) for financial support. FG  and JH thank the SFB-1170 for  financial support under projects Z03 and C01.  FFA thanks the DFG-funded FOR1807 and FOR1346 for partial financial support.
 Part of the optimization of the code was carried out during  the  Porting and Tuning Workshop 2016 offered by the Forschungszentrum J\"ulich.
-Calculations  to extensively test this package were carried out both on  SuperMUC at the  Leibniz Supercomputing Centre and on  JURECA  \cite{Jureca16} at the J\"ulich Supercomputing Centre.  We thank both institutions for generous allocation of computing time.
+Calculations  to extensively test this package were carried out both on  SuperMUC at the  Leibniz Supercomputing Centre and on  JURECA  \cite{Jureca16} at the J\"ulich Supercomputing Centre.  We thank both institutions for generous allocation of computing time. 
+
+
 
 
 
@@ -2335,11 +2383,10 @@ homepage \url{alf.physik.uni-wuerzburg.de} and the file \texttt{license.CCBYSA}.
 
 % SECOND OPTION:
 % Use your bibtex library
-% \bibliographystyle{SciPost_bibstyle} % Include this style file here only if you are not using our template
+%\bibliographystyle{SciPost_bibstyle} % Include this style file here only if you are not using our template
 \clearpage
 
-% \bibliography{alf-1.0-scipost}
-
+%\bibliography{alf-1.0-scipost}
 %  temporary change:
 \bibliography{../fassaad,../doc}
 
