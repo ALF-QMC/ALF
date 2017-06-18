@@ -83,11 +83,11 @@ SUBROUTINE init_MarkovPredictor(this, order, nrstates, states)
 !     DO I = 1, nrstates
 !         this%statestoindex()
 !     ENDDO
-Allocate (this%P(nrstates, this%mcstates), this%previousMeasurements(order), this%Pint(nrstates, this%mcstates))
-    ALLOCATE(this%sums(nrstates))
+Allocate (this%P(this%mcstates, nrstates), this%previousMeasurements(order), this%Pint(this%mcstates, nrstates))
+    ALLOCATE(this%sums(this%mcstates))
     this%previousMeasurements(1) = 1
     this%nrofupdates = nrstates
-    this%sums = this%mcstates
+    this%sums = nrstates
     this%historyidx = 1! some intial value
     this%Pint = 1 ! All states are equal initially
 END SUBROUTINE init_MarkovPredictor
@@ -102,15 +102,15 @@ SUBROUTINE updatehistory_MarkovPredictor(this, state)
     ! now let's update the vector of previously drawn samples
     do i = 1, this%order - 1
         this%previousMeasurements(i+1) = this%previousMeasurements(i)
-        this%historyidx = this%historyidx + this%nrstates**(this%order - I - 1) * this%mapstatetoindex(this%previousMeasurements(I))
     enddo
     this%previousMeasurements(1) = state
-    
+    this%historyidx = 1
+    do i = 1, this%order
+!    write (*,*) this%previousMeasurements(I), "-------> ", this%mapstatetoindex(this%previousMeasurements(I))
+        this%historyidx=this%historyidx + this%nrstates**(this%order - I) * (this%mapstatetoindex(this%previousMeasurements(I))-1)
+    enddo
 !     ! mapping essentially coresponds to number conversion...
-!     DO I = 1, this%order-1
-!         stateidx = stateidx + this%nrstates**(this%order - I - 1) * this%mapstatetoindex(this%previousMeasurements(I))
-!     ENDDO
-!     gethistoryidx_MarkovPredictor = stateidx
+!write (*,*) this%previousMeasurements, "->", this%historyidx
 END SUBROUTINE updatehistory_MarkovPredictor
 
 INTEGER FUNCTION mapstatetoindex_MarkovPredictor(this, state)
@@ -136,8 +136,11 @@ IMPLICIT NONE
     stateidx = this%mapstatetoindex(state) ! get the idx of the current state. Will correspond to column.
     ! lastidx contains the row that corresponds to the state that is stored in previous measurements.
     this%sums(this%historyidx) = this%sums(this%historyidx) + 1 ! normalization changes
+!    write (*,*) this%historyidx, stateidx
     this%Pint(this%historyidx, stateidx) = this%Pint(this%historyidx, stateidx) + 1 ! a new transition has occured
     ! now let's update the vector of previously drawn samples
+!     write (*,*) "state: ", state
+!     write (*,*) "hist: ", this%previousMeasurements
     CALL this%updatehistory(state)
 !     do i = 1, this%order - 1
 !         this%previousMeasurements(i+1) = this%previousMeasurements(i)
@@ -178,9 +181,9 @@ IMPLICIT NONE
     CLASS(MarkovPredictor), INTENT(INOUT) :: this
     INTEGER :: I
     write (*,*) "order: ", this%order, "Nr of states: ", this%nrstates, "states", this%states
-    write (*, *) 0, this%states
+    write (*, *) 0, this%states, "occurences"
     DO I = 1, this%mcstates
-        write (*, *) this%states(MOD(I, this%nrstates)), this%Pint(I, :)/DBLE(this%sums(I))
+        write (*, *) this%states(MOD(I, this%nrstates)), this%Pint(I, :)/DBLE(this%sums(I)), this%sums(I)
     ENDDO
 END SUBROUTINE print_MarkovPredictor
 
