@@ -470,6 +470,13 @@ J.~Werner and F.~F. Assaad,
 \newblock Phys. Rev. B \textbf{90}, 205122 (2014),
 \newblock \doi{10.1103/PhysRevB.90.205122}.
 
+\bibitem{Werner07}
+P.~Werner and A.~J. Millis,
+\newblock \emph{Efficient dynamical mean field simulation of the
+  holstein-hubbard model},
+\newblock Phys. Rev. Lett. \textbf{99}(14), 146404 (2007),
+\newblock \doi{10.1103/PhysRevLett.99.146404}.
+
 \bibitem{Fye86}
 R.~M. Fye,
 \newblock \emph{New results on trotter-like approximations},
@@ -537,6 +544,12 @@ A.~van~der Sluis,
 \newblock Numerische Mathematik \textbf{14}(1), 14 (1969),
 \newblock \doi{10.1007/BF02165096}.
 
+\bibitem{Negele}
+J.~W. Negele and H.~Orland,
+\newblock \emph{Quantum Many body systems},
+\newblock Frontiers in physics. Addison-Wesley, Redwood City, Calif. u.a.
+  (1988).
+
 \bibitem{Krauth2006}
 W.~Krauth,
 \newblock \emph{Statistical Mechanics: Algorithms and Computations},
@@ -552,18 +565,25 @@ R.~M. Neal,
 \newblock \emph{Probabilistic inference using markov chain monte carlo methods}
    (1993).
 
-\bibitem{Thompson2010}
-M.~B. {Thompson},
-\newblock \emph{{A Comparison of Methods for Computing Autocorrelation Time}},
-\newblock ArXiv e-prints  (2010),
-\newblock \eprint{1011.0175}.
-
 \bibitem{Bercx17}
 M.~Bercx, J.~S. Hofmann, F.~F. Assaad and T.~C. Lang,
 \newblock \emph{Spontaneous particle-hole symmetry breaking of correlated
   fermions on the lieb lattice},
 \newblock Phys. Rev. B \textbf{95}, 035108 (2017),
 \newblock \doi{10.1103/PhysRevB.95.035108}.
+
+\bibitem{Chakravarty88}
+S.~Chakravarty, B.~I. Halperin and D.~R. Nelson,
+\newblock \emph{Low-temperature behavior of two-dimensional quantum
+  antiferromagnets},
+\newblock Phys. Rev. Lett. \textbf{60}, 1057 (1988),
+\newblock \doi{10.1103/PhysRevLett.60.1057}.
+
+\bibitem{Thompson2010}
+M.~B. {Thompson},
+\newblock \emph{{A Comparison of Methods for Computing Autocorrelation Time}},
+\newblock ArXiv e-prints  (2010),
+\newblock \eprint{1011.0175}.
 
 \bibitem{efron1981}
 B.~Efron and C.~Stein,
