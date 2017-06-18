@@ -1407,7 +1407,7 @@ OBS :    2      <mean(sign)>   <error(sign)>
 \item For the autocorrelation analysis of scalar quantities \texttt{X}, the output files  \texttt{X\_scal\_Auto\_N} have the following formatting:
 \begin{alltt}
 	do i = 1, N_auto
-	   tau(i)/n_rebin   Auto_X=(tau)   <error( X )>
+	   tau(i)/n_rebin   Auto_X(tau)   <error( X )>
 	enddo
 \end{alltt}
 
@@ -1424,10 +1424,10 @@ enddo
 \end{alltt}
 where \texttt{Re} and \texttt{Im} refer to the real and imaginary part, respectively.
 
-\item For the autocorrelation analysis of scalar quantities \texttt{Y}, the output files  \texttt{Y\_eq\_Auto\_Tr\_kx\_ky} have the following formatting:
+\item For the autocorrelation analysis of equal time quantities \texttt{Y}, the output files  \texttt{Y\_eq\_Auto\_Tr\_kx\_ky} have the following formatting:
 \begin{alltt}
 	do i = 1, N_auto
-	   tau(i)/n_rebin   Auto_X=(tau)   <error( X )>
+	   tau(i)/n_rebin   Auto_Tr[Y](tau)   <error( Tr[Y] )>
 	enddo
 \end{alltt}
 
