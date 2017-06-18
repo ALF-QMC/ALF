@@ -85,7 +85,7 @@ SUBROUTINE init_MarkovPredictor(this, order, nrstates, states)
 !     ENDDO
 Allocate (this%P(this%mcstates, nrstates), this%previousMeasurements(order), this%Pint(this%mcstates, nrstates))
     ALLOCATE(this%sums(this%mcstates))
-    this%previousMeasurements(1) = 1
+    this%previousMeasurements = states(1) ! arbitrary starting point
     this%nrofupdates = nrstates
     this%sums = nrstates
     this%historyidx = 1! some intial value
@@ -100,13 +100,14 @@ SUBROUTINE updatehistory_MarkovPredictor(this, state)
     INTEGER :: I, stateidx
     this%historyidx = this%nrstates**(this%order-1) * this%mapstatetoindex(state)
     ! now let's update the vector of previously drawn samples
-    do i = 1, this%order - 1
-        this%previousMeasurements(i+1) = this%previousMeasurements(i)
+    do i = this%order, 2, -1
+!     write(*,*) i, i-1, this%previousMeasurements(i-1)
+        this%previousMeasurements(i) = this%previousMeasurements(i-1)
     enddo
     this%previousMeasurements(1) = state
     this%historyidx = 1
     do i = 1, this%order
-!    write (*,*) this%previousMeasurements(I), "-------> ", this%mapstatetoindex(this%previousMeasurements(I))
+!     write (*,*) I, this%previousMeasurements(I), "-------> ", this%mapstatetoindex(this%previousMeasurements(I))
         this%historyidx=this%historyidx + this%nrstates**(this%order - I) * (this%mapstatetoindex(this%previousMeasurements(I))-1)
     enddo
 !     ! mapping essentially coresponds to number conversion...
@@ -136,7 +137,7 @@ IMPLICIT NONE
     stateidx = this%mapstatetoindex(state) ! get the idx of the current state. Will correspond to column.
     ! lastidx contains the row that corresponds to the state that is stored in previous measurements.
     this%sums(this%historyidx) = this%sums(this%historyidx) + 1 ! normalization changes
-!    write (*,*) this%historyidx, stateidx
+!     write (*,*) this%historyidx, stateidx
     this%Pint(this%historyidx, stateidx) = this%Pint(this%historyidx, stateidx) + 1 ! a new transition has occured
     ! now let's update the vector of previously drawn samples
 !     write (*,*) "state: ", state
