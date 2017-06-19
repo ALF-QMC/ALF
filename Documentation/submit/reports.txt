@@ -82,7 +82,7 @@ In the following we respond to the points raised by the referee:
 ---------------------------------------------------------------------------------------------------------------
 1)
 > "Chapter 1.2: mention some examples of which models can or cannot be simulated."
-At the end of Section 1.2, we have added a paragraph mentioning  a class of models that  cannot be simulated with the ALF.  The set of shortcomings listed in this paragraph will actually define future directions for the development of our package. 
+At the end of Section 1.2, we have added a paragraph mentioning  a class of models that  cannot be simulated with the ALF package. The set of shortcomings listed in this paragraph will actually define future directions for the development of our package. 
 
 
 

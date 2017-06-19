@@ -168,7 +168,7 @@ The program code is written in Fortran according to the 2003 standard and is abl
 
 The ALF package is  not the first open source project  aimed at providing simulation tools for correlated quantum matter.  The most  notable package is  certainly the ALPS library \cite{ALPS_2.0}.  It  is actively maintained and features a whole set of algorithms for strongly correlated quantum lattice models including Monte Carlo, exact diagonalization, and density matrix renormalization group codes. It however does not include the auxiliary field  QMC algorithm   offered by the ALF package.
  Other projects  include
-are QUEST \cite{QUEST}, TRIQS \cite{TRIQS}, w2dynamics and  iQist \cite{iQIST}.
+are QUEST \cite{QUEST}, TRIQS \cite{TRIQS}, w2dynamics \mycomment{Citation?} and  iQist \cite{iQIST}.
 IQist, TRIQS and w2dynamics focus on approximate solutions via the CT-HYB \cite{Gull_rev} algorithm within the dynamical mean field approximation.  
 The QUEST project implements the same algorithm as in the ALF project  but  is currently restricted to the  Hubbard model
 and it does not allow to easily incorporate different Hamiltonians. 
@@ -704,7 +704,7 @@ An example where this information is necessary is the  calculation of mass gaps 
 For each observable $\hat{A}, \hat{B},\hat{C} \cdots$ the Monte Carlo program computes a data set of $N_{\text{Bin}}$ (ideally) independent values where for each observable the measurements belong to the same but usually unknown statistical distribution. This calls for a numerical statistical analysis. In the general case, we would like to evaluate a function of expectation values, $f(\langle \hat{A} \rangle, \langle \hat{B} \rangle, \langle \hat{C} \rangle  \cdots)$ --
 see for example the expression (\ref{eqn:obs_rw}) for the observable including reweighting --
 and are interested in the statistical estimates of its mean value  and the standard error of the mean.
-A method for the statistical analysis of a given function $f$ which properly handles error propagation and correlations among the observables is the Jackknife method, which is, like the related Bootstrap method, a resampling scheme \cite{efron1981}.
+A numerical method for the statistical analysis of a given function $f$ which properly handles error propagation and correlations among the observables is the Jackknife method, which is, like the related Bootstrap method, a resampling scheme \cite{efron1981}.
 Here we briefly review the \textit{delete-1 Jackknife} scheme which is based on the idea to generate $N_{\text{bin}}$ new data sets of size $N_{\text{bin}}-1$ by consecutively removing one data value from the original set. By $A_{(i)}$ we denote the arithmetic mean for the observable $\hat{A}$, without the $i$-th data value $A_{i}$, namely
 \begin{equation}
 A_{(i)} \equiv \frac{1}{N_{\text{Bin}}-1} \sum\limits_{k=1,\,k\neq i}^{N_{\text{Bin}}} A_{k}\;.
@@ -1263,13 +1263,14 @@ The package content is summarized in Table~\ref{table:files}.
    File & Description \\\midrule
   \path{parameters} &  This collects input data. We can set here the parameters for the lattice,\\ &  which model, variables of the QMC process, and the error analysis.\\
   \path{seeds} & List of integer numbers to initialize the random number generator and \\
-   & to start a simulation from scratch.
+   & to start a simulation from scratch.\\
+   (\path{confin_<threadnumber>}) & (Optionally, a HS and Ising field configuration can be provided as input.)
   \\\bottomrule
    \end{tabular}
    \caption{Overview of the input files in \texttt{Start/} required for a simulation. \label{table:input}}
 \end{table}
 %
-The input files are listed in Table~\ref{table:input}. 
+The input files are listed in Table~\ref{table:input}. To enable restarting a previous simulation (see Table~\ref{table:scripts}) or to use a given HS and Ising field configuration as input for a new simulation, the program reads in the files \path{confin_<threadnumber>} in case they are present. It goes without saying that the dimensions of the thereby defined field configuration (number of threads, lattices size, and number of time slices) have to match the corresponding values of the parameter file.
 The parameter file \path{Start/parameters} has the following form --
 using as an example  the $SU(2)$-symmetric Hubbard model on a square lattice (see Sec.~\ref{sec:walk1} for a detailed walkthrough):
 %
@@ -1344,7 +1345,7 @@ N_auto  = 100             ! If set to >0 autocorrelation function will be
    & The placeholder \path{X} stands for the observables \path{Kin, Pot, Part},\\ & and \path{Ener}. \\
    \path{Y_eq, Y_tau} & Results of equal time and time displaced measurements of cor-\\
    & relation functions. The placeholder \path{Y} stands for \path{Green, SpinZ,}\\ &  \path{SpinXY}, and \path{Den}. \\   
-   \path{confout_<thread number>} & Output files for the HS and Ising configuration. \\\bottomrule
+   \path{confout_<thread number>} & Output files for the HS and Ising field configuration. \\\bottomrule
    \end{tabular}
    \caption{Overview of the standard output files. 
   See Sec.~\ref{sec:obs} for the definitions of observables and correlation functions. \label{table:output}}
