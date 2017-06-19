@@ -572,6 +572,12 @@ M.~Bercx, J.~S. Hofmann, F.~F. Assaad and T.~C. Lang,
 \newblock Phys. Rev. B \textbf{95}, 035108 (2017),
 \newblock \doi{10.1103/PhysRevB.95.035108}.
 
+\bibitem{efron1981}
+B.~Efron and C.~Stein,
+\newblock \emph{The jackknife estimate of variance},
+\newblock Ann. Statist. \textbf{9}(3), 586 (1981),
+\newblock \doi{10.1214/aos/1176345462}.
+
 \bibitem{Chakravarty88}
 S.~Chakravarty, B.~I. Halperin and D.~R. Nelson,
 \newblock \emph{Low-temperature behavior of two-dimensional quantum
@@ -584,12 +590,6 @@ M.~B. {Thompson},
 \newblock \emph{{A Comparison of Methods for Computing Autocorrelation Time}},
 \newblock ArXiv e-prints  (2010),
 \newblock \eprint{1011.0175}.
-
-\bibitem{efron1981}
-B.~Efron and C.~Stein,
-\newblock \emph{The jackknife estimate of variance},
-\newblock Ann. Statist. \textbf{9}(3), 586 (1981),
-\newblock \doi{10.1214/aos/1176345462}.
 
 \bibitem{Milat04}
 I.~Milat, F.~Assaad and M.~Sigrist,

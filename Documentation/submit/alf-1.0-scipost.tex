@@ -696,7 +696,43 @@ The \path{N_rebin} variable can be used to control a second issue. The distribut
 An example where this information is necessary is the  calculation of mass gaps extracted by fitting the  tail  of the time displaced correlation function.  Omitting  the covariance matrix will  underestimate the  error.
 \end{itemize}
 
-\subsubsection{An explicit example of error estimate}
+
+\mycomment{
+%------------------------------------------------------------
+\subsubsection{The Jackknife resampling method}
+%------------------------------------------------------------
+For each observable $\hat{A}, \hat{B},\hat{C} \cdots$ the Monte Carlo program computes a data set of $N_{\text{Bin}}$ (ideally) independent values where for each observable the measurements belong to the same but usually unknown statistical distribution. This calls for a numerical statistical analysis. In the general case, we would like to evaluate a function of expectation values, $f(\langle \hat{A} \rangle, \langle \hat{B} \rangle, \langle \hat{C} \rangle  \cdots)$ --
+see for example the expression (\ref{eqn:obs_rw}) for the observable including reweighting --
+and are interested in the statistical estimates of its mean value  and the standard error of the mean.
+A method for the statistical analysis of a given function $f$ which properly handles error propagation and correlations among the observables is the Jackknife method, which is, like the related Bootstrap method, a resampling scheme \cite{efron1981}.
+Here we briefly review the \textit{delete-1 Jackknife} scheme which is based on the idea to generate $N_{\text{bin}}$ new data sets of size $N_{\text{bin}}-1$ by consecutively removing one data value from the original set. By $A_{(i)}$ we denote the arithmetic mean for the observable $\hat{A}$, without the $i$-th data value $A_{i}$, namely
+\begin{equation}
+A_{(i)} \equiv \frac{1}{N_{\text{Bin}}-1} \sum\limits_{k=1,\,k\neq i}^{N_{\text{Bin}}} A_{k}\;.
+\end{equation}
+As the corresponding quantity for  the function $f(\langle \hat{A} \rangle, \langle \hat{B} \rangle, \langle \hat{C} \rangle  \cdots)$, we define 
+\begin{equation}
+f_{(i)}(\langle \hat{A} \rangle, \langle \hat{B} \rangle, \langle \hat{C} \rangle  \cdots) \equiv
+f( A_{(i)}, B_{(i)},C_{(i)}\cdots)\;.
+\end{equation}
+Following the convention in the literature, we will denote the final Jackknife estimate of the mean by $f_{(\cdot)}$ and its standard error by $\Delta f$. The Jackknife mean is  given by
+\begin{equation}
+\label{eqn:jack_mean}
+f_{(\cdot)}(\langle \hat{A} \rangle, \langle \hat{B} \rangle, \langle \hat{C} \rangle  \cdots) =
+\frac{1}{N_{\text{Bin}}}\sum\limits_{i=1}^{N_{\text{Bin}}} f_{(i)}(\langle \hat{A} \rangle, \langle \hat{B} \rangle, \langle \hat{C} \rangle  \cdots)\;,
+\end{equation}
+and the standard error, including bias correction, is given by
+\begin{equation}
+\label{eqn:jack_error}
+(\Delta f)^{2} = 
+\frac{N_{\text{Bin}}-1}{N_{\text{Bin}}} \sum\limits_{i=1}^{N_{\text{Bin}}}
+\left[f_{(i)}(\langle \hat{A} \rangle, \langle \hat{B} \rangle, \langle \hat{C} \rangle  \cdots)
+- f_{(\cdot)}(\langle \hat{A} \rangle, \langle \hat{B} \rangle, \langle \hat{C} \rangle  \cdots)\right]^{2}\;.
+\end{equation}
+In case of $f=\langle\hat A\rangle$, the results (\ref{eqn:jack_mean}) and (\ref{eqn:jack_error}) reduce to the plain sample average and the standard, bias corrected, estimate of the error.
+}
+
+
+\subsubsection{An explicit example of error estimation}
 \label{sec:autocorr}
 \mycomment{
 In the following we use one of our examples, the Hubbard model on a square lattice in the $M_z$ Hubbard-Stratonovich decoupling (see Sec.~\ref{sec:walk1.1}), to show explicitly how to estimate errors.  We will equally show that  there is no unique autocorrelation time. In fact, different observables within the same run can have different autocorrelation times  and of course, this time scale depends on the  parameter choice.  Hence, the user has to check the autocorrelation of individual observables for each simulation!  Typical regions of the phase diagram that require special attention are critical points  where length scales diverge.  
@@ -747,6 +783,7 @@ I will analyze the $XX+YY+ZZ$ autocorrelation, I am combining the two correlatio
 $XX = ZZ$. Hence one has to define improved estimators such as $XX + YY + ZZ$  that are explicitly $SU(2)$ invariant} \\ 
 I agree. This also means, that we effectively lost ergodicity due to critical slowing down (extremely long autocorrelations in z spin-directions), doesn't it?\\
 \FFAcomment{ @ Martin: Will you work on the figures as for the optimization. }
+No problem, I would just need the data. I suggest to put them in Documentation/Figures/, like the MPI scaling data.
 
 \begin{figure}[h]
 	\begin{center}
