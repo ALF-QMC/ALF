@@ -728,56 +728,58 @@ To determine the autocorrelation time, we calculate the correlation function
 \end{equation}
 where $O_i$ refers to the Monte Carlo estimate of the observable $O$ in the $i^{\text{th}}$ bin. This function typically shows an exponential decay and the decay rate defines the autocorrelation time.
 
-In Fig.~\ref{fig_autocorr} (left) we present the autocorrelation functions for the spin-spin-correlation at $(\pi,\pi)$ both in the $xy$ and the $z$  spin-directions. The Hubbard model on a square lattice is $SU(2)$ symmetric. However, we chose a HS field that couples to the z-component of the magnetization,  $M_z$,  such that each configuration breaks the symmetry. Of course after Monte Carlo averaging one expects restoration of this symmetry. This model shows spontaneous symmetry breaking at $T=0$ and in the thermodynamic limit.  At finite temperatures, and within the so-called renormalized classical regime,  quantum antiferromagnetics have a length scale  that  diverges  exponentially  with decreasing temperatures \cite{Chakravarty88}.  The parameter set chosen in Fig.~\ref{fig_autocorr}  is non-trivial in the sense that it places the Hubbard model in this renormalized classical regime.   Fig.~\ref{fig_autocorr} (left) clearly shows a very short autocorrelation time for the $xy$-plane whereas we detect a considerably longer  autocorrelation times  for the $z$-direction.  This is a direct consequence {\it long} magnetic length scale and the chosen decoupling.
-From the obtained time series of Monte Carlo samples we need to obtain estimates on the mean and the variance of the data.
-A simple method that we will describe in this tutorial is the rebinning method, also known in the literature as rebatching. For a comparison to other methods of estimating the autocorrelation time we refer the reader to the literature \cite{Thompson2010, Geyer1992, neal1993}.
-A reliable error analysis requires independent bins, otherwise the error is typically underestimated. This can also be seen in Fig.~\ref{fig_autocorr} (right). Here we systematically increase the effective bin size by rebinning in which a given number of bins (\path{N_rebin}) are recombined into new bins. If the bin size is smaller than the autocorrelation time, the estimated error is to small, once the bin is larger than the autocorrelation time, the error converged to the correct estimate.
-
-For the analysis, the user can provide a finite value for \path{N_auto} to trigger the analysis of the autocorrelation time. The calculations are quite time consuming and require many Monte Carlo bins, hence the default value is 0 if unspecified. To produce Fig.~\ref{fig_autocorr}, we used $\textrm{\path{N_auto}}=500$ and a total of approximately 1 million bins. \\ 
-\FFAcomment{@Johannes: In which branch did you include this $N_{Auto}$ tag? Do we want to include it in this release or in another release.} \\
-I have uploaded the autocorrelation analysis in branch 63-analysis-of-autocorrelation\\
-\FFAcomment{@Johannes:  Do you get the same numbers for the XY and ZZ correlations? Can you analyze the autocorrelation time of 
-$XX + YY + ZZ$} \\
-Yes I do:\\
-==> SpinXY\_eqJK <==\\
-3.141593     -1.047198\\
-1    1        0.70946572        0.00484769       -0.00000000        0.00000000\\
-3.141593      0.000000\\
-1    1        0.60622624        0.00636953       -0.00000000        0.00000000\\
-3.141593      1.047198\\
-1    1        0.70946572        0.00484769        0.00000000        0.00000000\\
-3.141593      2.094395\\
-1    1        1.08323975        0.00596128       -0.00000000        0.00000000\\
-3.141593      3.141593 \\
-1    1        5.09627233        0.02130724        0.00000000        0.00000000\\
-\\
-==> SpinZ\_eqJK <==\\
-3.141593     -1.047198\\
-1    1        0.71069472        0.00071066       -0.00000000        0.00000000\\
-3.141593      0.000000\\
-1    1        0.60690740        0.00079118        0.00000000        0.00000000\\
-3.141593      1.047198\\
-1    1        0.71069472        0.00071066        0.00000000        0.00000000\\
-3.141593      2.094395\\
-1    1        1.08468545        0.00168634       -0.00000000        0.00000000\\
-3.141593      3.141593\\
-1    1        5.08432433        0.02350014        0.00000000        0.00000000\\
-\\
-I will analyze the $XX+YY+ZZ$ autocorrelation, I am combining the two correlation functions manually (additional program). I don't know how reasonable this is as we clearly see two very distinct time scales. I expect the new correlation function to be dominated by the longer time scale and we will hopefully have the addition data by the end of the day.\\
-\FFAcomment{@Johannes:  This is really a very tricky example.  If you go to lower temperatures and large lattices, then you will never be able to  show that 
-$XX = ZZ$. Hence one has to define improved estimators such as $XX + YY + ZZ$  that are explicitly $SU(2)$ invariant} \\ 
-I agree. This also means, that we effectively lost ergodicity due to critical slowing down (extremely long autocorrelations in z spin-directions), doesn't it?\\
-\FFAcomment{ @ Martin: Will you work on the figures as for the optimization. }
-No problem, I would just need the data. I suggest to put them in Documentation/Figures/, like the MPI scaling data.
-
-\begin{figure}[h]
+\begin{figure}
 	\begin{center}
 		\includegraphics[width=0.49\textwidth]{AutoCorr.pdf}
 		\includegraphics[width=0.49\textwidth]{Error.pdf}
 	\end{center}
 	\caption{\label{fig_autocorr}
-	Autocorrelation (left) and scaling of the error with the bin size (right). We use a Hubbard model on the square lattice in the $M_z$ decoupling (see Sec.~\ref{sec:walk1.1})  $U/t=4$, $\beta t = 6$ on a $ 6 \times 6$ lattice.  The original bin contains only one sweep and we calculated around 1 million bins on a single core. We analyze the spin-spin-correlation at $(\pi,\pi)$  and clearly detect different autocorrelation times and therefore required bin sizes for the $xy$-plane compared to the $z$-direction.}
+		Autocorrelation (left) and scaling of the error with the bin size (right). We use a Hubbard model on the square lattice in the $M_z$ decoupling (see Sec.~\ref{sec:walk1.1})  $U/t=4$, $\beta t = 6$ on a $ 6 \times 6$ lattice.  The original bin contains only one sweep and we calculated around 1 million bins on a single core. We analyze the spin-spin-correlation at $(\pi,\pi)$  and clearly detect different autocorrelation times and therefore required bin sizes for the $xy$-plane compared to the $z$-direction.}
 \end{figure}
+
+In Fig.~\ref{fig_autocorr} (left) we present the autocorrelation functions for the spin-spin-correlation at $(\pi,\pi)$ both in the $xy$ and the $z$  spin-directions. The Hubbard model on a square lattice is $SU(2)$ symmetric. However, we chose a HS field that couples to the z-component of the magnetization,  $M_z$,  such that each configuration breaks the symmetry. Of course after Monte Carlo averaging one expects restoration of this symmetry. This model shows spontaneous symmetry breaking at $T=0$ and in the thermodynamic limit.  At finite temperatures, and within the so-called renormalized classical regime,  quantum antiferromagnetics have a length scale  that  diverges  exponentially  with decreasing temperatures \cite{Chakravarty88}.  The parameter set chosen in Fig.~\ref{fig_autocorr}  is non-trivial in the sense that it places the Hubbard model in this renormalized classical regime.   Fig.~\ref{fig_autocorr} (left) clearly shows a very short autocorrelation time for the $xy$-plane whereas we detect a considerably longer  autocorrelation times  for the $z$-direction.  This is a direct consequence {\it long} magnetic length scale and the chosen decoupling.
+\footnote{The physical reason of the autocorrelation times can be used to define an improved estimated for the spin correlation function that restores the $SU(2)$ symmetry explicitly. This way, global spin rotations are no longer an issue such that this observable shows the shortest autocorrelation time. Other ways to tackle large autocorrelation can be global updates or parallel tempering.}
+
+From the obtained time series of Monte Carlo samples we need to obtain estimates on the mean and the variance of the data.
+A simple method that we will describe in this tutorial is the rebinning method, also known in the literature as rebatching. For a comparison to other methods of estimating the autocorrelation time we refer the reader to the literature \cite{Thompson2010, Geyer1992, neal1993}.
+A reliable error analysis requires independent bins, otherwise the error is typically underestimated. This can also be seen in Fig.~\ref{fig_autocorr} (right). Here we systematically increase the effective bin size by rebinning in which a given number of bins (\path{N_rebin}) are recombined into new bins. If the bin size is smaller than the autocorrelation time, the estimated error is to small, once the bin is larger than the autocorrelation time, the error converged to the correct estimate.
+
+For the analysis, the user can provide a finite value for \path{N_auto} to trigger the analysis of the autocorrelation time. The calculations are quite time consuming and require many Monte Carlo bins, hence the default value is 0 if unspecified. To produce Fig.~\ref{fig_autocorr}, we used $\textrm{\path{N_auto}}=500$ and a total of approximately 1 million bins. \\ 
+%\FFAcomment{@Johannes: In which branch did you include this $N_{Auto}$ tag? Do we want to include it in this release or in another release.} \\
+%I have uploaded the autocorrelation analysis in branch 63-analysis-of-autocorrelation\\
+%\FFAcomment{@Johannes:  Do you get the same numbers for the XY and ZZ correlations? Can you analyze the autocorrelation time of 
+%$XX + YY + ZZ$} \\
+%Yes I do:\\
+%==> SpinXY\_eqJK <==\\
+%3.141593     -1.047198\\
+%1    1        0.70946572        0.00484769       -0.00000000        0.00000000\\
+%3.141593      0.000000\\
+%1    1        0.60622624        0.00636953       -0.00000000        0.00000000\\
+%3.141593      1.047198\\
+%1    1        0.70946572        0.00484769        0.00000000        0.00000000\\
+%3.141593      2.094395\\
+%1    1        1.08323975        0.00596128       -0.00000000        0.00000000\\
+%3.141593      3.141593 \\
+%1    1        5.09627233        0.02130724        0.00000000        0.00000000\\
+%\\
+%==> SpinZ\_eqJK <==\\
+%3.141593     -1.047198\\
+%1    1        0.71069472        0.00071066       -0.00000000        0.00000000\\
+%3.141593      0.000000\\
+%1    1        0.60690740        0.00079118        0.00000000        0.00000000\\
+%3.141593      1.047198\\
+%1    1        0.71069472        0.00071066        0.00000000        0.00000000\\
+%3.141593      2.094395\\
+%1    1        1.08468545        0.00168634       -0.00000000        0.00000000\\
+%3.141593      3.141593\\
+%1    1        5.08432433        0.02350014        0.00000000        0.00000000\\
+%\\
+%I will analyze the $XX+YY+ZZ$ autocorrelation, I am combining the two correlation functions manually (additional program). I don't know how reasonable this is as we clearly see two very distinct time scales. I expect the new correlation function to be dominated by the longer time scale and we will hopefully have the addition data by the end of the day.\\
+%\FFAcomment{@Johannes:  This is really a very tricky example.  If you go to lower temperatures and large lattices, then you will never be able to  show that 
+%$XX = ZZ$. Hence one has to define improved estimators such as $XX + YY + ZZ$  that are explicitly $SU(2)$ invariant} \\ 
+%I agree. This also means, that we effectively lost ergodicity due to critical slowing down (extremely long autocorrelations in z spin-directions), doesn't it?\\
+%\FFAcomment{ @ Martin: Will you work on the figures as for the optimization. }
+%No problem, I would just need the data. I suggest to put them in Documentation/Figures/, like the MPI scaling data.
 }
 
 %
