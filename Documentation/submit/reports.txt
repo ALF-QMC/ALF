@@ -97,7 +97,7 @@ of the simulated model and the HS transformation. This point is illustrated in t
 ---------------------------------------------------------------------------------------------------------------
 > "Might mention that H_I formally includes the Hamiltonians of H_T."
 
-Please note that the fermionic hopping term H_T and the term H_I describing  fermionic hopping coupled to Ising spins are in general independet terms.  
+Please note that the fermionic hopping term H_T and the term H_I describing  fermionic hopping coupled to Ising spins are in general independent terms.  
 
 ---------------------------------------------------------------------------------------------------------------
 2)
@@ -129,7 +129,7 @@ the interested reader can look up  the method.
 
 (Martin)
 (comment by Martin: We could include a short discussion of the Jackknife method in Sec. 3.6.3) 
-FFA. This is just too much!  We have to refer to the literature-
+
 
 ---------------------------------------------------------------------------------------------------------------
 6) 
