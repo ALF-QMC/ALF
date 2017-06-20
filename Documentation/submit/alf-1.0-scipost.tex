@@ -719,40 +719,41 @@ In case of $f=\langle\hat A\rangle$, the results (\ref{eqn:jack_mean}) and (\ref
 \subsubsection{An explicit example of error estimation}
 \label{sec:autocorr}
 \mycomment{
-In the following we use one of our examples, the Hubbard model on a square lattice in the $M_z$ Hubbard-Stratonovich decoupling (see Sec.~\ref{sec:walk1.1}), to show explicitly how to estimate errors.  We will equally show that the  autocorrelation time is dependent upon the  choice of the observable.  In fact, different observables within the same run can have different autocorrelation times  and of course, this time scale depends on the  parameter choice.  Hence, the user has to check the autocorrelation of individual observables for each simulation!  Typical regions of the phase diagram that require special attention are critical points  where length scales diverge.  
+In the following we use one of our examples, the Hubbard model on a square lattice in the $M_z$ Hubbard-Stratonovich decoupling (see Sec.~\ref{sec:walk1.1}), to show explicitly how to estimate errors.  We will equally show that the  autocorrelation time is dependent upon the  choice of the observable.  In fact, different observables within the same run can have different autocorrelation times  and of course, this time scale depends on the  parameter choice.  Hence, the user has to check  autocorrelations of individual observables for each simulation!  Typical regions of the phase diagram that require special attention are critical points  where length scales diverge.  
 
 To determine the autocorrelation time, we calculate the correlation function
 \begin{equation}
-	Auto_O(t_{\textrm{QMC}})=\sum_{i=0}^{N_{\textrm{Bin}}-t_{\textrm{QMC}}}\frac{(O_i-\left\langle O\right\rangle )(O_{i+t_{\textrm{QMC}}}-\left\langle O\right\rangle )}{(O_i-\left\langle O\right\rangle )(O_{i}-\left\langle O\right\rangle )}\, ,
+\label{eqn:autocorrel}
+	Auto_{\hat{O}}(t_{\textrm{QMC}})=\sum_{i=0}^{N_{\textrm{Bin}}-t_{\textrm{QMC}}}\frac{\left(O_i-\left\langle \hat{O}\right\rangle \right)\left(O_{i+t_{\textrm{QMC}}}-\left\langle \hat{O}\right\rangle \right)}{\left(O_i-\left\langle \hat{O}\right\rangle \right)\left(O_{i}-\left\langle \hat{O}\right\rangle \right)}\, ,
 \end{equation}
-where $O_i$ refers to the Monte Carlo estimate of the observable $O$ in the $i^{\text{th}}$ bin. This function typically shows an exponential decay and the decay rate defines the autocorrelation time.
+where $O_i$ refers to the Monte Carlo estimate of the observable $\hat{O}$ in the $i^{\text{th}}$ bin. This function typically shows an exponential decay and the decay rate defines the autocorrelation time.
 
 \begin{figure}
-%	\begin{center}
-%		\includegraphics[width=0.49\textwidth]{AutoCorr.pdf}
-%		\includegraphics[width=0.49\textwidth]{Error.pdf}
-%	\end{center}
 \includegraphics[width=1.0\textwidth]{Autocorrel_Error.pdf}
 	\caption{\label{fig_autocorr}
-		Autocorrelation (left) and scaling of the error with the bin size (right). We use a Hubbard model on the square lattice in the $M_z$ decoupling (see Sec.~\ref{sec:walk1.1})  $U/t=4$, $\beta t = 6$ on a $ 6 \times 6$ lattice.  The original bin contains only one sweep and we calculated around 1 million bins on a single core. We analyze the spin-spin-correlation at $(\pi,\pi)$  and clearly detect different autocorrelation times and therefore required bin sizes for the $xy$-plane compared to the $z$-direction.  The  improved estimator, corresponds to the sum of the spin correlations in the $x$,$y$, and $z$-directions, and as apparent as argued in the text, has very much smaller  autocorrelation times. 
-\FFAcomment{Figures need updating.  Labels (a) and (b) etc.... } }
+	        The autocorrelation function (a) and the scaling of the error with effective bin size (b) of three equal time spin-spin correlation functions $S_{\hat{O}}(\vec{k}=(\pi,\pi))$ of the Hubbard model in the $M_z$ decoupling (see Sec.~\ref{sec:walk1.1}). Simulations were done on a $ 6 \times 6$ square lattice, with  $U/t=4$ and $\beta t = 6$.  The original bin contained only one sweep and we calculated around one million bins on a single core. The different  autocorrelation times for the $xy$-plane compared to the $z$-direction can be detected from the decay rate of the autocorrelation function (a) and from the point where saturation of the error sets in (b), which defines the required effective bin size for independent measurements. Apparently and as argued in the text, the  improved estimator $S_{\hat{O}}(\vec{k}=(\pi,\pi))$ with $\hat{O}=(\hat{S}^{x}+\hat{S}^{y} + \hat{S}^{z})/3$  has the smallest autocorrelation time.
+ }
 \end{figure}
 
-In Fig.~\ref{fig_autocorr} (left) we present the autocorrelation functions for the spin-spin-correlation at $(\pi,\pi)$ both in the $xy$ and the $z$  spin-directions. The Hubbard model  has an $SU(2)$-spin symmetry. However, we chose a HS field that couples to the z-component of the magnetization,  $M_z$,  such that each configuration breaks the symmetry. Of course after Monte Carlo averaging one expects restoration of this symmetry. The model, on bipartite  lattices,  shows spontaneous spin-symmetry breaking at $T=0$ and in the thermodynamic limit.  At finite temperatures, and within the so-called renormalized classical regime,  quantum antiferromagnetics have a length scale  that  diverges  exponentially  with decreasing temperatures \cite{Chakravarty88}.     
-The parameter set chosen in Fig.~\ref{fig_autocorr}  is non-trivial in the sense that it places the Hubbard model in this renormalized classical regime where the correlation length is substantial.  Fig.~\ref{fig_autocorr} (left) clearly shows a very short autocorrelation time for the $xy$-plane whereas we detect a considerably longer  autocorrelation times  for the $z$-direction.  This is a direct consequence {\it long} magnetic length scale and the chosen decoupling.
-The physical reason for the long autocorrelation time  corresponds to  the restoration of the SU(2) spin symmetry.    This insight can be used to define an improved estimator for the spin correlation function  that is  $SU(2)$ symmetric. Thereby, global spin rotations are no longer an issue and this improved estimator  shows the shortest autocorrelation time as seen in Fig.~\ref{fig_autocorr} (b). Other ways to tackle large autocorrelation can be global updates or parallel tempering.
+Figure~\ref{fig_autocorr} (a) shows the autocorrelation functions $Auto_{S_{\hat{O}}(\vec{k}=(\pi,\pi))}(t_{\textrm{QMC}})$ for the equal time spin-spin-correlation functions $S_{\hat{O}}(\vec{k}=(\pi,\pi))$ [see Eq.~(\ref{eqn:s})], both in the $z$ spin direction and in the $xy$ plane, that is $\hat{O}=\hat{S}^{z}$ and $\hat{O}=(\hat{S}^{x}+\hat{S}^{y})/2$, respectively.
+ The Hubbard model  has a $SU(2)$ spin symmetry. However, we chose a HS field which couples to the $z$-component of the magnetization,  $M_z$,  such that each configuration breaks this symmetry. Of course, after Monte Carlo averaging one expects restoration of the symmetry. The model, on bipartite  lattices,  shows spontaneous spin-symmetry breaking at $T=0$ and in the thermodynamic limit.  At finite temperatures, and within the so-called renormalized classical regime,  quantum antiferromagnets have a length scale  that  diverges  exponentially  with decreasing temperatures \cite{Chakravarty88}.     
+The parameter set chosen for Fig.~\ref{fig_autocorr}  is non-trivial in the sense that it places the Hubbard model in this renormalized classical regime where the correlation length is substantial.  Figure~\ref{fig_autocorr}  clearly shows a very short autocorrelation time for the $xy$-plane whereas we detect a considerably longer  autocorrelation times  for the $z$-direction.  This is a direct consequence of the {\it long} magnetic length scale and the chosen decoupling.
+The physical reason for the long autocorrelation time  corresponds to  the restoration of the $SU(2)$ spin symmetry.    This insight can be used to define an improved, $SU(2)$ symmetric estimator for the spin-spin correlation function, namely  $S_{\hat{O}}(\vec{k}=(\pi,\pi))$ with $\hat{O}=(\hat{S}^{x}+\hat{S}^{y} + \hat{S}^{z})/3$. Thereby, global spin rotations are no longer an issue and this improved estimator  shows the shortest autocorrelation time as seen clearly in Fig.~\ref{fig_autocorr} (b). Other ways to tackle large autocorrelation can be global updates or parallel tempering.
 
-From the obtained time series of Monte Carlo samples we need to obtain estimates on the mean and the variance of the data.
-A simple method that we will describe in this tutorial is the rebinning method, also known in the literature as rebatching. For a comparison to other methods of estimating the autocorrelation time we refer the reader to the literature \cite{Thompson2010, Geyer1992, neal1993}.
-A reliable error analysis requires independent bins, otherwise the error is typically underestimated. This can also be seen in Fig.~\ref{fig_autocorr} (right). Here we systematically increase the effective bin size by rebinning in which a given number of bins (\path{N_rebin}) are recombined into new bins. If the bin size is smaller than the autocorrelation time, the estimated error is to small, once the bin is larger than the autocorrelation time, the error converged to the correct estimate.
+Using the time series of Monte Carlo samples we would like to obtain estimates of the mean and the standard error of the mean.
+A simple method which we will describe in this tutorial is the rebinning method, also known in the literature as rebatching, where a fixed number (denoted by \path{N_rebin}) of adjacent original bins are aggregated to form a new effective bin.
+In addition to measuring the decay rate of the autocorrelation function (\ref{eqn:autocorrel}), the rebinning method also gives a measure of the autocorrelation time.
+For a comparison to other methods of estimating the autocorrelation time we refer the reader to the literature \cite{Thompson2010, Geyer1992, neal1993}.
+A reliable error analysis requires independent bins, otherwise the error is typically underestimated. This behavior is observed in Fig.~\ref{fig_autocorr} (b), where the effective bin size has been systematically increased by rebinning. If the effective bin size is smaller than the autocorrelation time the error will be underestimated. When the effective bin size becomes  larger than the autocorrelation time converging behavior sets in and in this region the error estimate will be correct.
 
-For the analysis, the user can provide a finite value for \path{N_auto} to trigger the analysis of the autocorrelation time. The calculations are quite time consuming and require many Monte Carlo bins, hence the default value is 0 if unspecified. To produce Fig.~\ref{fig_autocorr}, we used $\textrm{\path{N_auto}}=500$ and a total of approximately 1 million bins. \\ 
+For the analysis of the Monte Carlo data (see Sec.~\ref{sec:analysis}), the user can provide a finite value for \path{N_auto} to trigger the computation of  autocorrelation functions $Auto_{\hat{O}}(t_{\textrm{QMC}})$ in the range $t_{\text{QMC}}=[0,\textrm{\path{N_auto}}]$. 
+Since these computations are quite time consuming and require many Monte Carlo bins the default value is  \path{N_auto=0} if unspecified. To produce Fig.~\ref{fig_autocorr}, we set $\textrm{\path{N_auto}}=500$ and used a total of approximately one million bins. \\ 
 %\FFAcomment{@Johannes: In which branch did you include this $N_{Auto}$ tag? Do we want to include it in this release or in another release.} \\
 %I have uploaded the autocorrelation analysis in branch 63-analysis-of-autocorrelation\\
 %\FFAcomment{@Johannes:  Do you get the same numbers for the XY and ZZ correlations? Can you analyze the autocorrelation time of 
 %$XX + YY + ZZ$} \\
 %Yes I do:\\
-%==> SpinXY\_eqJK <==\\
+%==> SpinXY\_eqJK <==\\_
 %3.141593     -1.047198\\
 %1    1        0.70946572        0.00484769       -0.00000000        0.00000000\\
 %3.141593      0.000000\\
@@ -1196,16 +1197,16 @@ This suffix  is important to allow automatic analysis of the data at the end of 
 %
 This data type (see Table~\ref{table:Obser_latt}) is useful so as to deal with  equal time as well as imaginary-time displaced correlation functions of the form: 
 \begin{equation}\label{eqn:s}
-	S_{\alpha,\beta}(\vec{k},\tau) =   \frac{1}{N_{\text{unit cell}}} \sum_{\vec{i},\vec{j}}  e^{- \vec{k} \cdot \left( \vec{i}-\vec{j}\right) } \left( \langle \hat{O}_{\vec{i},\alpha} (\tau) \hat{O}_{\vec{j},\beta} \rangle  - 
+	S_{\hat{O},\alpha,\beta}(\vec{k},\tau) =   \frac{1}{N_{\text{unit cell}}} \sum_{\vec{i},\vec{j}}  e^{- \vec{k} \cdot \left( \vec{i}-\vec{j}\right) } \left( \langle \hat{O}_{\vec{i},\alpha} (\tau) \hat{O}_{\vec{j},\beta} \rangle  - 
 	  \langle \hat{O}_{\vec{i},\alpha} \rangle \langle   \hat{O}_{\vec{j},\beta}  \rangle \right).
 \end{equation}
 Here,  translation symmetry of the Bravais lattice is explicitly taken into account. 
-The correlation function splits in a correlated part $S_{\alpha,\beta}^{\mathrm{(corr)}}(\vec{k},\tau)$ and a background part $S_{\alpha,\beta}^{\mathrm{(back)}}(\vec{k})$:
+The correlation function splits in a correlated part $S_{\hat{O},\alpha,\beta}^{\mathrm{(corr)}}(\vec{k},\tau)$ and a background part $S_{\hat{O},\alpha,\beta}^{\mathrm{(back)}}(\vec{k})$:
 \begin{eqnarray}
-  S_{\alpha,\beta}^{\mathrm{(corr)}}(\vec{k},\tau)
+  S_{\hat{O},\alpha,\beta}^{\mathrm{(corr)}}(\vec{k},\tau)
   &=&
    \frac{1}{N_{\text{unit cell}}} \sum_{\vec{i},\vec{j}}  e^{- i\vec{k} \cdot \left( \vec{i}-\vec{j}\right) }  \langle \hat{O}_{\vec{i},\alpha} (\tau) \hat{O}_{\vec{j},\beta} \rangle\label{eqn:s_corr}\;,\\
-         S_{\alpha,\beta}^{\mathrm{(back)}}(\vec{k})
+         S_{\hat{O},\alpha,\beta}^{\mathrm{(back)}}(\vec{k})
   &=&
    \frac{1}{N_{\text{unit cell}}} \sum_{\vec{i},\vec{j}}  e^{- i\vec{k} \cdot \left( \vec{i}-\vec{j}\right) }  \langle \hat{O}_{\vec{i},\alpha} (\tau)\rangle \langle \hat{O}_{\vec{j},\beta} \rangle\nonumber\\
   &=& 
@@ -1372,7 +1373,7 @@ do i = 1, N_unit_cell
    do tau = 1, N_time_slices
       do alpha = 1, N_orbital
          do beta = 1, N_orbital
-            \(\langle\,S\sb{\alpha,\beta}\sp{(corr)}(k(i),\tau)\rangle\)
+            \(\langle\,S\sb{\hat{O},\alpha,\beta}\sp{(corr)}(k(i),\tau)\rangle\)
          enddo
       enddo
    enddo
@@ -1381,7 +1382,7 @@ enddo
 The same block structure is used for equal time correlation functions, except for the entries  \path{<N_time_slices>} and \path{<dtau>} 
 which are not present in the latter.
 Using this structure for the bins as input,
-the full correlation function $S_{\alpha,\beta}(\vec{k},\tau)$ [Eq.~(\ref{eqn:s})] is then calculated by calling the error analysis routine (see Sec.~\ref{sec:analysis}).
+the full correlation function $S_{\hat{O},\alpha,\beta}(\vec{k},\tau)$ [Eq.~(\ref{eqn:s})] is then calculated by calling the error analysis routine (see Sec.~\ref{sec:analysis}).
 \end{itemize}
 
 %
