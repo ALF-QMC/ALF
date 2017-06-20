@@ -82,15 +82,14 @@ In the following we respond to the points raised by the referee:
 ---------------------------------------------------------------------------------------------------------------
 1)
 > "Chapter 1.2: mention some examples of which models can or cannot be simulated."
-At the end of Section 1.2, we have added a paragraph mentioning  a class of models that  cannot be simulated with the ALF package. The set of shortcomings listed in this paragraph will actually define future directions for the development of our package. 
+At the end of Section 1.2, we have added a paragraph mentioning  a class of models that  cannot be simulated with ALF. The set of shortcomings listed in this paragraph will actually define future directions for the development of our package. 
 
 
 
 ---------------------------------------------------------------------------------------------------------------
 > "Mention that "flavor" includes spin."
 
-(Martin)
-We have included the following paragraph:
+We have included the following paragraph (Section 1.2):
 "Both the color and the flavor index can describe the spin degree of freedom, the choice depending on the spin symmetry 
 of the simulated model and the HS transformation. This point is illustrated in the examples, see Sec. 4.1 and 4.2."
 
@@ -111,35 +110,32 @@ contain the raw measurements (see Tab. 9)."
 3) 
 > "Autocorrelations: Need more discussion. There is no unique autocorrelation time T_auto. The autocorrelation time for convergence depends on the observable and can be very different for e.g. energies vs. long distance correlations. Thermalization usually needs much more than a single T_auto. Like expressed in the paper for the case of stabilization, the user needs to know that convergence ,,has to be judged for every simulation'', and indeed every observable (see for example the ALPS package). The possibility of re-binning is very nice. Some hint would be helpful on how fast to increase bin-sizes and on how many independent bins are necessary for a reliable jackknife error"
 
-We agree with the referee that there  is no unique autocorrelation time. In the revised version of the manuscript, we have included a longer version of the discussion of how to determine error bars. We have also, included a highly non-trivial example such that the user can appreciate  the intricacies of  determining  autocorrelation times and  reliable error-bars.
+We agree with the referee that there  is no unique autocorrelation time. In the revised version of the manuscript, we have included a longer version of the discussion of how to determine error bars (see Sec. 2.4). We have also included a highly non-trivial example such that the user can appreciate  the intricacies of  determining  autocorrelation times and  reliable error bars.
 
 ---------------------------------------------------------------------------------------------------------------
 >"Page 4: Re(sign) instead of |sign| ?" 
 
 Please not that we formulate the weight as  |exp[-S(C)]| to account for the in general complex phase.
 
-(comment by Martin: There is no mentionning of |sign| on page 4 ... (?) )
 
 ---------------------------------------------------------------------------------------------------------------
 5) 
 >"Jackknife: might mention how the sign is handled (eq. 24)."
 
-The sign is properly  handled with the Jackknife  method. In the revised version of the manuscript, we have included a reference such that 
-the interested reader can look up  the method.
-
-(Martin)
-(comment by Martin: We could include a short discussion of the Jackknife method in Sec. 3.6.3) 
-
+The sign is properly  handled with the Jackknife  method. In the revised version of the manuscript, we have included a paragraph on the Jackknife resampling method (Sec. 2.4.1).
 
 ---------------------------------------------------------------------------------------------------------------
 6) 
 >"For stabilization: scaling with L and beta, timing ?"
 
-We have added the following paragraph to the end of section 2.3:
-"To summarize, the algorithm is stablized by re-computing the Green function matrix from scratch on a subset of time slices. 
-While the stabilization will increase the prefactor of the computational effort, it will not change its exponents. That is the time complexity of  $\mathcal{O}(\beta N^{3})$ of the algorithm remains.
-Note that for a given number of stabilization steps along the imaginary time axis [in the notation of Eq. (36) this number is $L_{\text{Trotter}}/\texttt{NWrap}$], the precision will be largely invariant of the system size $N$. 
-However, with increasing inverse temperature $\beta$ the number of stabilization steps often has to be increased to maintain a given precision."
+We have added the following paragraph to the end of Sec. 2.3, which discusses the stabilization:
+"While this might seem like quite an effort that has to be performed for every multiplication
+it has to be noted that even with this stabilization scheme the algorithm preserves the time complexity class of $\mathcal{O}(\beta N^3)$ expressed in the physical parameters inverse temperature $\beta$ and lattice size $N$.
+While there is no analytical expression for the dependence of the stability on the physical parameters
+our experience has been that for a given number of stabilization steps along the imaginary time axis [in the notation of Eq.~(\ref{eqn:green_stable}) this number is $L_{\text{Trotter}}/\texttt{NWrap}$], the precision will be largely invariant of the system size $N$, whereas
+with increasing inverse temperature $\beta$ the number of stabilization steps often has to be increased to maintain a given precision.
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % REPLY TO THE SECOND REPORT
@@ -166,4 +162,4 @@ We have added the reference.
 ---------------------------------------------------------------------------------------------------------------
 > "In the discussion at the end of the manuscript, I would have expected to find a roadmap for future releases and whether the ALF project is expected to turn into a community project (similar to the ALPS project) with contributors beyond the Würzburg group."
 
-At the end of the manuscript, we have added a roadmap for future releases and new features we plan to add in the ALF-package. In the introduction, we have mentioned the efforts we are following to establish  a community beyond the  Würzburg group.
+At the end of the manuscript, we have added a road map for future releases and new features we plan to add in the ALF package. In the introduction, we have mentioned the efforts we are following to establish  a community beyond the  Würzburg group.
