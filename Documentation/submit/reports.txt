@@ -110,12 +110,12 @@ contain the raw measurements (see Tab. 9)."
 3) 
 > "Autocorrelations: Need more discussion. There is no unique autocorrelation time T_auto. The autocorrelation time for convergence depends on the observable and can be very different for e.g. energies vs. long distance correlations. Thermalization usually needs much more than a single T_auto. Like expressed in the paper for the case of stabilization, the user needs to know that convergence ,,has to be judged for every simulation'', and indeed every observable (see for example the ALPS package). The possibility of re-binning is very nice. Some hint would be helpful on how fast to increase bin-sizes and on how many independent bins are necessary for a reliable jackknife error"
 
-We agree with the referee that there  is no unique autocorrelation time. In the revised version of the manuscript, we have included a longer version of the discussion of how to determine error bars (see Sec. 2.4). We have also included a highly non-trivial example such that the user can appreciate  the intricacies of  determining  autocorrelation times and  reliable error bars.
+We agree with the referee that there  is no unique autocorrelation time. In the revised version of the manuscript, we have included a much longer version of the discussion of how to determine error bars (see Sec. 2.4). We have also included a highly non-trivial example such that the user can appreciate  the intricacies  involved in determining  autocorrelation times and reliable error bars.
 
 ---------------------------------------------------------------------------------------------------------------
 >"Page 4: Re(sign) instead of |sign| ?" 
 
-Please not that we formulate the weight as  |exp[-S(C)]| to account for the in general complex phase.
+Please note that we formulate the weight as  |exp[-S(C)]| to account for the, in general, complex phase.
 
 
 ---------------------------------------------------------------------------------------------------------------
