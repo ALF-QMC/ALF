@@ -1,4 +1,4 @@
-!  Copyright (C) 2016, 2017 The ALF project
+!  Copyright (C) 2016 The ALF project
 ! 
 !  This file is part of the ALF project.
 ! 
@@ -102,13 +102,14 @@
             SEED_VEC(1) = SEED_IN
             CALL RANSET(SEED_VEC)
             DEALLOCATE(SEED_VEC)
-            DO NT = 1,LTROT
-               DO I = 1,SIZE(OP_V,1)
-                  X = RANF_WRAP()
-                  NSIGMA(I,NT) = 1
-                  IF (X.GT.0.5) NSIGMA(I,NT) = -1
-               ENDDO
-            ENDDO
+            Call Hamiltonian_set_random_nsigma
+!!$            DO NT = 1,LTROT
+!!$               DO I = 1,SIZE(OP_V,1)
+!!$                  X = RANF_WRAP()
+!!$                  NSIGMA(I,NT) = 1
+!!$                  IF (X.GT.0.5) NSIGMA(I,NT) = -1
+!!$               ENDDO
+!!$            ENDDO
          ENDIF
             
 #else   
@@ -163,13 +164,15 @@
             SEED_VEC(1) = SEED_IN
             CALL RANSET(SEED_VEC)
             DEALLOCATE(SEED_VEC)
-            DO NT = 1,LTROT
-               DO I = 1,SIZE(OP_V,1)
-                  X = RANF_WRAP()
-                  NSIGMA(I,NT) = 1
-                  IF (X.GT.0.5) NSIGMA(I,NT) = -1
-               ENDDO
-            ENDDO
+            Call Hamiltonian_set_random_nsigma
+!!$            DO NT = 1,LTROT
+!!$               DO I = 1,SIZE(OP_V,1)
+!!$                  X = RANF_WRAP()
+!!$                  NSIGMA(I,NT) = 1
+!!$                  IF (X.GT.0.5) NSIGMA(I,NT) = -1
+!!$               ENDDO
+!!$            ENDDO
+            
          ENDIF
 #endif
          

@@ -42,12 +42,11 @@
          Use Errors
          Use MyMats
          Use Matrix
-         Use Precdef
 
          Implicit none
 
 
-         Integer :: Nunit, Norb
+         Integer :: Nunit, Norb, N_auto
          Integer :: no, no1, n, nbins, n_skip, nb, NT, NT1, Lt, N_rebin, N_cov, ierr, N_Back
          real    (Kind=Kind(0.d0)):: X, Y,  dtau, X_diag
          Complex (Kind=Kind(0.d0)), allocatable :: Xmean(:), Xcov(:,:)
@@ -60,12 +59,13 @@
          Real    (Kind=Kind(0.d0)), allocatable :: Xk_p(:,:)
          Character (len=64) :: File_out
 
-         NAMELIST /VAR_errors/   n_skip, N_rebin, N_Cov, N_Back
+         NAMELIST /VAR_errors/   n_skip, N_rebin, N_Cov, N_Back, N_auto
  
 
 
          
          N_Back = 1
+         N_auto = 0
          OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
          IF (ierr /= 0) THEN
             WRITE(*,*) 'unable to open <parameters>',ierr

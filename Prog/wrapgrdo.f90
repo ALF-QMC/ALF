@@ -60,7 +60,7 @@
         ! Given GREEN at time NTAU => GREEN at time NTAU - 1,
         ! Upgrade NTAU  [LTROT:1]
         
-        COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT) :: GR(Ndim,Ndim,N_FL)
+        COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT), allocatable :: GR(:,:,:)
         COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT) :: PHASE
         Integer :: NTAU
 
@@ -69,7 +69,7 @@
         Integer :: nf, N_Type, n
         real (Kind=Kind(0.d0)) :: spin
 
-        Do n = size(Op_V,1), 1, -1
+        Do n =  size(OP_V,1), 1, -1 
            N_type = 2
            nf = 1
            spin = Phi(nsigma(n,ntau),Op_V(n,nf)%type)

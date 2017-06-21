@@ -16,8 +16,6 @@ stages:
     - cd Prog
     - make
     - make SPT
-    - make Ising
-    - make Kondo_Honey
 
 .build_template_pgi: &build_definition_pgi
   stage: build
@@ -33,8 +31,6 @@ stages:
     - cd ..
     - cd Prog
     - make
-    - make Ising
-    - make Kondo_Honey
 
 .warnconv_template: &warnconv_definition
   stage: warnconv
@@ -49,8 +45,6 @@ stages:
     - cd Prog
     - make
     - make SPT
-    - make Ising
-    - make Kondo_Honey
 
 .test_template: &test_definition
   stage: test
@@ -130,8 +124,6 @@ GQMCT_Jessie_MPI:
   script:
     - gfortran -v
     - make f90='mpif90' PROGRAMCONFIGURATION='-DMPI -DTEMPERING' lib
-    - make f90='mpif90' PROGRAMCONFIGURATION='-DMPI -DTEMPERING' Hub_Ising
-    - make f90='mpif90' PROGRAMCONFIGURATION='-DMPI -DTEMPERING' Kondo_Honey
     - make f90='mpif90' PROGRAMCONFIGURATION='-DMPI -DTEMPERING' SPT
 
 GQMCT_Wheezy_conv:
@@ -185,8 +177,6 @@ GQMCT_Wheezy-PGI_conv:
     - cd ..
     - cd Prog
     - make
-    - make Ising
-    - make Kondo_Honey
   
 GQMCT_Wheezy_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-wheezy-gfortran-blas-lapack

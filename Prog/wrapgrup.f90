@@ -44,6 +44,7 @@
 
         Use Hamiltonian
         Use Hop_mod
+        Use Wrapgr_mod
         Implicit none
 
         Interface
@@ -59,14 +60,15 @@
         
 
         ! Arguments
-        COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT) ::  GR(Ndim,Ndim,N_FL)
+        COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT), allocatable ::  GR(:,:,:)
         COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT) ::  PHASE
         INTEGER, INTENT(IN) :: NTAU
         
         !Local 
-        Integer :: nf, N_Type, NTAU1,n 
+        Integer :: nf, N_Type, NTAU1,n, m
         Complex (Kind=Kind(0.d0)) :: Mat_TMP(Ndim,Ndim)
         Real    (Kind=Kind(0.d0)) :: X
+        Character (Len=1)  :: Direction
 
         ! Wrap up, upgrade ntau1.  with B^{1}(tau1) 
         NTAU1 = NTAU + 1
@@ -76,7 +78,8 @@
            !CALL MMULT ( MAT_TMP,    Exp_T(:,:,nf), GR(:,:,nf)        )
            !CALL MMULT ( GR(:,:,nf), MAT_TMP      , Exp_T_M1(:,:,nf)  )
         Enddo
-        Do n = 1,Size(Op_V,1)
+        Do n = Nt_sequential_start,Nt_sequential_end
+           ! Write(6,*) 'Hi'
            Do nf = 1, N_FL
               X = Phi(nsigma(n,ntau1),Op_V(n,nf)%type)
               N_type = 1
@@ -89,5 +92,14 @@
               Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),X,Ndim,N_Type)
            enddo
         Enddo
+        If ( N_Global_tau > 0 ) then 
+           direction = "u"
+           m         = Nt_sequential_end 
+           !Write(6,*) "Calling  Global_tau_mod_Random_update:", m,direction, Size(OP_V,1)
+           Call Wrapgr_Random_update(GR,m,ntau1,direction, PHASE )
+        Endif
         
+        
+
+
       END SUBROUTINE WRAPGRUP
