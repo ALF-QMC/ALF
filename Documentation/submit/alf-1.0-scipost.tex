@@ -731,14 +731,23 @@ where $O_i$ refers to the Monte Carlo estimate of the observable $\hat{O}$ in th
 \begin{figure}
 \includegraphics[width=1.0\textwidth]{Autocorrel_Error.pdf}
 	\caption{\label{fig_autocorr}
-	        The autocorrelation function (a) and the scaling of the error with effective bin size (b) of three equal time spin-spin correlation functions $S_{\hat{O}}(\vec{k}=(\pi,\pi))$ of the Hubbard model in the $M_z$ decoupling (see Sec.~\ref{sec:walk1.1}). Simulations were done on a $ 6 \times 6$ square lattice, with  $U/t=4$ and $\beta t = 6$.  The original bin contained only one sweep and we calculated around one million bins on a single core. The different  autocorrelation times for the $xy$-plane compared to the $z$-direction can be detected from the decay rate of the autocorrelation function (a) and from the point where saturation of the error sets in (b), which defines the required effective bin size for independent measurements. Apparently and as argued in the text, the  improved estimator $S_{\hat{O}}(\vec{k}=(\pi,\pi))$ with $\hat{O}=(\hat{S}^{x}+\hat{S}^{y} + \hat{S}^{z})/3$  has the smallest autocorrelation time.
+	        The autocorrelation function $Auto_{\hat{O}}(t_{\textrm{QMC}})$ (a) and the scaling of the error with effective bin size (b) of three equal time spin-spin correlation functions $\hat{O}$ of the Hubbard model in the $M_z$ decoupling (see Sec.~\ref{sec:walk1.1}). Simulations were done on a $ 6 \times 6$ square lattice, with  $U/t=4$ and $\beta t = 6$.  The original bin contained only one sweep and we calculated around one million bins on a single core. The different  autocorrelation times for the $xy$-plane compared to the $z$-direction can be detected from the decay rate of the autocorrelation function (a) and from the point where saturation of the error sets in (b), which defines the required effective bin size for independent measurements. Apparently and as argued in the text, the  improved estimator $(S_{\hat{S}^{x}} + S_{\hat{S}^{y}}+ S_{\hat{S}^{z}})/3$  has the smallest autocorrelation time.
  }
 \end{figure}
 
-Figure~\ref{fig_autocorr} (a) shows the autocorrelation functions $Auto_{S_{\hat{O}}(\vec{k}=(\pi,\pi))}(t_{\textrm{QMC}})$ for the equal time spin-spin-correlation functions $S_{\hat{O}}(\vec{k}=(\pi,\pi))$ [see Eq.~(\ref{eqn:s})], both in the $z$ spin direction and in the $xy$ plane, that is $\hat{O}=\hat{S}^{z}$ and $\hat{O}=(\hat{S}^{x}+\hat{S}^{y})/2$, respectively.
+Figure~\ref{fig_autocorr} (a) shows the autocorrelation functions $Auto_{\hat{O}}(t_{\textrm{QMC}})$ for three spin-spin-correlation functions [Eq.~(\ref{eqn:s})] at momentum $\vec{k}=(\pi,\pi)$ and at $\tau=0$: 
+
+$\hat{O} = S_{\hat{S}^{z}}$ for the $z$ spin direction, 
+$\hat{O} =(S_{\hat{S}^{x}} + S_{\hat{S}^{y}})/2$ for the $xy$ plane, and
+$\hat{O} =(S_{\hat{S}^{x}} + S_{\hat{S}^{y}}+ S_{\hat{S}^{z}})/3$ for the total spin.
+% $Auto_{S_{\hat{S}^{z}}}(t_{\textrm{QMC}})$ for the $z$ spin direction, 
+% $Auto_{(S_{\hat{S}^{x}} + S_{\hat{S}^{y}})/2}(t_{\textrm{QMC}})$ for the $xy$ plane, and
+% $Auto_{(S_{\hat{S}^{x}} + S_{\hat{S}^{y}}+ S_{\hat{S}^{z}})/3}(t_{\textrm{QMC}})$ for the total spin.
  The Hubbard model  has a $SU(2)$ spin symmetry. However, we chose a HS field which couples to the $z$-component of the magnetization,  $M_z$,  such that each configuration breaks this symmetry. Of course, after Monte Carlo averaging one expects restoration of the symmetry. The model, on bipartite  lattices,  shows spontaneous spin-symmetry breaking at $T=0$ and in the thermodynamic limit.  At finite temperatures, and within the so-called renormalized classical regime,  quantum antiferromagnets have a length scale  that  diverges  exponentially  with decreasing temperatures \cite{Chakravarty88}.     
 The parameter set chosen for Fig.~\ref{fig_autocorr}  is non-trivial in the sense that it places the Hubbard model in this renormalized classical regime where the correlation length is substantial.  Figure~\ref{fig_autocorr}  clearly shows a very short autocorrelation time for the $xy$-plane whereas we detect a considerably longer  autocorrelation time  for the $z$-direction.  This is a direct consequence of the {\it long} magnetic length scale and the chosen decoupling.
-The physical reason for the long autocorrelation time  corresponds to  the restoration of the $SU(2)$ spin symmetry.    This insight can be used to define an improved, $SU(2)$ symmetric estimator for the spin-spin correlation function, namely  $S_{\hat{O}}(\vec{k}=(\pi,\pi))$ with $\hat{O}=(\hat{S}^{x}+\hat{S}^{y} + \hat{S}^{z})/3$. Thereby, global spin rotations are no longer an issue and this improved estimator  shows the shortest autocorrelation time as seen clearly in Fig.~\ref{fig_autocorr} (b). Other ways to tackle large autocorrelation can be global updates or parallel tempering.
+The physical reason for the long autocorrelation time  corresponds to  the restoration of the $SU(2)$ spin symmetry.    This insight can be used to define an improved, $SU(2)$ symmetric estimator for the spin-spin correlation function, namely
+$(S_{\hat{S}^{x}} + S_{\hat{S}^{y}} + S_{\hat{S}^{z}})/3$. 
+ Thereby, global spin rotations are no longer an issue and this improved estimator  shows the shortest autocorrelation time as seen clearly in Fig.~\ref{fig_autocorr} (b). Other ways to tackle large autocorrelation can be global updates or parallel tempering.
 
 Using the time series of Monte Carlo samples we would like to obtain estimates of the mean and the standard error of the mean.
 A simple method which we will describe in this tutorial is the rebinning method, also known in the literature as rebatching, where a fixed number (denoted by \path{N_rebin}) of adjacent original bins are aggregated to form a new effective bin.
@@ -2340,9 +2349,9 @@ T  =  \frac{T_\text{auto}}{N_\text{OMP}} \left( 1   +    \frac{N_\text{meas}}{N_
 As we typically have $ N_\text{meas}/N_\text{MPI} \gg 1 $, 
 the speedup is expected to be almost perfect, in accordance with
 the performance test results for the auxiliary field
-QMC code  on SuperMUC (see Fig.~\ref{fig_scaling} (left)).
+QMC code  on SuperMUC [see Fig.~\ref{fig_scaling} (a)].
 
-For many problem sizes, 2~GB memory per MPI task (random walker) suffices such that we typically start as many MPI tasks as there are physical cores per node. Due to the large amount of CPU time spent in MKL routines, we do not profit from the hyper-threading option. For large systems, the memory requirement increases and this is tackled by increasing the amount of OpenMP threads to decrease the stress on the memory system and to simultaneously reduce the equilibration overhead (see Fig.~\ref{fig_scaling} (right)). For the displayed speedup, it was crucial to pin the MPI tasks as well as the OpenMP threads in a pattern which keeps the threads as compact as possible to profit from a shared cache. This also explains the drop in efficiency from 14 to 28 threads where the OpenMP threads are spread over both sockets. 
+For many problem sizes, 2~GB memory per MPI task (random walker) suffices such that we typically start as many MPI tasks as there are physical cores per node. Due to the large amount of CPU time spent in MKL routines, we do not profit from the hyper-threading option. For large systems, the memory requirement increases and this is tackled by increasing the amount of OpenMP threads to decrease the stress on the memory system and to simultaneously reduce the equilibration overhead [see Fig.~\ref{fig_scaling} (b)]. For the displayed speedup, it was crucial to pin the MPI tasks as well as the OpenMP threads in a pattern which keeps the threads as compact as possible to profit from a shared cache. This also explains the drop in efficiency from 14 to 28 threads where the OpenMP threads are spread over both sockets. 
 
 We store the field configurations of the random walker as checkpoints, such that a long simulation can be easily split into several short simulations. This procedure allows us to take advantage of chained jobs using the dependency chains provided by the batch system.
 
@@ -2351,7 +2360,7 @@ We store the field configurations of the random walker as checkpoints, such that
 		\includegraphics[scale=0.6]{fig2.pdf}
 		\includegraphics[scale=0.6]{fig3.pdf}
 	\end{center}
-	\caption{\label{fig_scaling} MPI (left) and OpenMP (right) scaling behavior of the auxiliary field QMC code of the ALF project on SuperMUC (phase 2/Haswell nodes) at the LRZ in Munich.
+	\caption{\label{fig_scaling} MPI (a) and OpenMP (b) scaling behavior of the auxiliary field QMC code of the ALF project on SuperMUC (phase 2/Haswell nodes) at the LRZ in Munich.
 		The MPI performance data was normalized to 28 cores and was obtained using a problem size of $N_{\text{dim}}=400$. This is a medium to small system size that is the least favorable in terms of MPI synchronization effects.
 		The OpenMP performance data was obtained using a problem size of $N_{\text{dim}}=1296$. Employing 2 and 4 OpenMP threads introduces some synchronization/management overhead such that the per-core performance is slightly reduced, compared to the single thread efficiency. Further increasing the amount of threads to 7 and 14 keeps the efficiency constant. The drop in performance of the 28 thread configuration is due to the architecture as the threads are now spread over both sockets of the node. To obtain the above results, it was crucial to pin the processes in a fashion that keeps the OpenMP threads as compact as possible.}
 \end{figure}
