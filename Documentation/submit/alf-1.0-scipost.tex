@@ -261,7 +261,7 @@ Note that the matrices  $\bm{T}^{(ks)}$,  $\bm{V}^{(ks)}$ and  $\bm{I}^{(ks)}$ e
 The color index $\sigma$ only appears in  the  second quantized operators such that the Hamiltonian is manifestly $SU(N_{\mathrm{col}})$    symmetric.  We also require
 the matrices $\bm{T}^{(ks)}$,  $\bm{V}^{(ks)}$ and  $\bm{I}^{(ks)}$  to be  Hermitian.
 
-\mycomment{ As we will detail below, the definition of the above Hamiltonian allows  to tackle  several  non-trivial models and phenomenon.  There are however a number of model Hamiltonians that cannot be simulated with the ALF.  Since we have opted for discrete  fields,   the electron-phonon interaction is not included. Furthermore, continuous HS transformations, that turn out to be extremely useful to include long ranged Coulomb interactions \cite{Brower12,Ulybyshev2013,Hohenadler14},   are not accessible  in the present form of the package. \footnote{Note however that  one can readily add  short ranged interactions  by including terms such as $ (\hat{n}_i + \hat{n}_j - 2 )^2$. } In many cases such as in $^3$He,  three  or more  body interactions  should be included to capture  relevant   exchange mechanisms \cite{Roger83,JWerner14a}. These higher order processes are   not captured in the ALF since it is \textit{limited}  to two-body interactions.  The formulation of the Hamiltonian, has an  explicit global $U(1)$ symmetry  corresponding to  particle number conservation.  Hence using the ALF for  a given model implies the existence of a canonical transformation where  a particle number is conserved.    Imaginary time dependent Hamiltonians, required to compute Rennyi entropies and entanglement spectra   \cite{Broecker14,Assaad15, Broecker16} are not yet  included the ALF.  Finally, one should also mention that auxiliary field QMC simulations are Hamiltonian based such that retarded interactions  are not included in the ALF.    For this set of problems, CT-INT type approaches are the method of choice \cite{Assaad07,Werner07,Assaad14_rev}.     The above {\it short comings }  partially define a set of  future directions that will be discussed in the concluding part of this documentation.  }
+\mycomment{ As we will detail below, the definition of the above Hamiltonian allows  to tackle  several  non-trivial models and phenomena.  There are however a number of model Hamiltonians that cannot be simulated with ALF.  Since we have opted for discrete  fields,   the electron-phonon interaction is not included. Furthermore, continuous HS transformations, that turn out to be extremely useful to include long-range Coulomb interactions \cite{Brower12,Ulybyshev2013,Hohenadler14},   are not accessible  in the present form of the package. \footnote{Note however that  one can readily add  short ranged interactions  by including terms such as $ (\hat{n}_i + \hat{n}_j - 2 )^2$. } In many cases such as in $^3$He,  three -  or more  body interactions  should be included to capture  relevant   exchange mechanisms \cite{Roger83,JWerner14a}. These higher order processes are   not captured in the ALF since it is \textit{limited}  to two-body interactions.  The formulation of the Hamiltonian, has an  explicit global $U(1)$ symmetry  corresponding to  particle number conservation.  Hence using the ALF for  a given model implies the existence of a canonical transformation where  a particle number is conserved.    Imaginary time dependent Hamiltonians, required to compute Renyi entropies and entanglement spectra   \cite{Broecker14,Assaad15, Broecker16} are not yet in the scope of ALF.  Finally, one should also mention that auxiliary field QMC simulations are Hamiltonian based such that retarded interactions  are not included in the ALF.    For this set of problems, CT-INT type approaches are the method of choice \cite{Assaad07,Werner07,Assaad14_rev}.     The above {\it short comings }  partially define a set of  future directions that will be discussed in the concluding part of this documentation.  }
 %
 %------------------------------------------------------------
 \subsection{Outline}
@@ -682,9 +682,9 @@ An example where this information is necessary is the  calculation of mass gaps 
 
 
 \mycomment{
-%------------------------------------------------------------
-\subsubsection{The Jackknife resampling method}
-%------------------------------------------------------------
+%--------------------------------------------------------------
+\subsubsection{The Jackknife resampling method}\label{sec:jack}
+%--------------------------------------------------------------
 For each observable $\hat{A}, \hat{B},\hat{C} \cdots$ the Monte Carlo program computes a data set of $N_{\text{Bin}}$ (ideally) independent values where for each observable the measurements belong to the same  statistical distribution.  In the general case, we would like to evaluate a function of expectation values, $f(\langle \hat{A} \rangle, \langle \hat{B} \rangle, \langle \hat{C} \rangle  \cdots)$ --
 see for example the expression (\ref{eqn:obs_rw}) for the observable including reweighting --
 and are interested in the statistical estimates of its mean value  and the standard error of the mean.
@@ -715,9 +715,9 @@ and the standard error, including bias correction, is given by
 In case of $f=\langle\hat A\rangle$, the results (\ref{eqn:jack_mean}) and (\ref{eqn:jack_error}) reduce to the plain sample average and the standard, bias corrected, estimate of the error.
 }
 
-
-\subsubsection{An explicit example of error estimation}
-\label{sec:autocorr}
+%--------------------------------------------------------------------------
+\subsubsection{An explicit example of error estimation}\label{sec:autocorr}
+%---------------------------------------------------------------------------
 \mycomment{
 In the following we use one of our examples, the Hubbard model on a square lattice in the $M_z$ Hubbard-Stratonovich decoupling (see Sec.~\ref{sec:walk1.1}), to show explicitly how to estimate errors.  We will equally show that the  autocorrelation time is dependent upon the  choice of the observable.  In fact, different observables within the same run can have different autocorrelation times  and of course, this time scale depends on the  parameter choice.  Hence, the user has to check  autocorrelations of individual observables for each simulation!  Typical regions of the phase diagram that require special attention are critical points  where length scales diverge.  
 
@@ -1645,9 +1645,10 @@ So before starting the error analysis, one has to make this variable available w
 \begin{verbatim}
 source ./setenv.sh
 \end{verbatim}
-To perform an error analysis (based on the jackknife scheme) of the Monte Carlo bins for all observables run the script \texttt{analysis.sh} 
-(see Sec.~\ref{sec:analysis}).
-
+\mycomment{
+To perform an error analysis based on the Jackknife resampling method (Sec.~\ref{sec:jack})  of the Monte Carlo bins for all observables run the script \texttt{analysis.sh} 
+(see Sec.~\ref{sec:analysis}). In case that the parameter \path{N_auto} is set to a finite value the script will also trigger the computation of autocorrelation functions (Sec.~\ref{sec:autocorr}).
+}
 
 %========================================================================================================================================
 \section{Examples}\label{sec:ex}
@@ -2360,12 +2361,12 @@ We store the field configurations of the random walker as checkpoints, such that
 \section{Conclusions and Future Releases}\label{sec:con}
 %========================================================================================================================================
 %
-In its present form, the  auxiliary field QMC code of the ALF project  allows to simulate a large class of non-trivial models, both efficiently and at minimal  programming cost.  There are many possible extensions which deserve to be considered in future releases.    The model Hamiltonians we have presented so far are imaginary-time independent. This however can be easily generalized  to imaginary-time dependent model Hamiltonians thus allowing, for example, to access  entanglement properties of interacting fermionic systems \cite{Broecker14,Assaad14,Assaad13a,Assaad15}. Generalizations to include global moves are equally desirable. This is a prerequisite to  play with recent ideas of self-learning algorithms  \cite{Xu16a} so as to  possibly avoid the issue of critical slowing down.  Parallel tempering schemes are equally desirable, so as to possibly alleviate   long autocorrelation times.     Most of the above,  has already been tested  and will  be available in the next  major release of the ALF-code. 
+In its present form, the  auxiliary field QMC code of the ALF project  allows to simulate a large class of non-trivial models, both efficiently and at minimal  programming cost.  There are many possible extensions which deserve to be considered in future releases.    The model Hamiltonians we have presented so far are imaginary-time independent. This however can be easily generalized  to imaginary-time dependent model Hamiltonians thus allowing, for example, to access  entanglement properties of interacting fermionic systems \cite{Broecker14,Assaad14,Assaad13a,Assaad15}. Generalizations to include global moves are equally desirable. This is a prerequisite to  play with recent ideas of self-learning algorithms  \cite{Xu16a} so as to  possibly avoid the issue of critical slowing down.  Parallel tempering schemes are equally desirable, so as to possibly alleviate   long autocorrelation times.     Most of the above has already been tested  and will  be available in the next  major release of the ALF package.
 
-On the longer term, we foresee further possible developments.  At present, the QMC code of this package is  restricted to discrete HS fields such that  implementations  of  the long-range Coulomb repulsion -- as introduced in \cite{Hohenadler14,Ulybyshev2013,Brower12} -- are not yet included.   Extensions  to  continuous HS fields are certainly possible, but require an efficient upgrading scheme such as hybrid  molecular dynamics \cite{Duane85}.    An  implementation of the  ground state projective QMC method  within the same package is equally desirable.  Efforts in  the above directions will be pursued on the longer term.  
+On the longer term, we foresee further possible developments.  At present, the QMC code of this package is  restricted to discrete HS fields such that  implementations  of  the long-range Coulomb repulsion -- as introduced in \cite{Hohenadler14,Ulybyshev2013,Brower12} -- are not yet included.   Extensions  to  continuous HS fields are certainly possible, but require an efficient upgrading scheme such as hybrid  molecular dynamics \cite{Duane85}.    An  implementation of the  ground state projective QMC method  within ALF is equally desirable.  Efforts in  the above directions will be pursued on the longer term.  
 
 \FFAcomment{
-As it stands, programming a new model  certainly requires some  detailed knowledge of the  algorithm. To facilitate access we hope  maintain an increasing number of  model Hamiltonians in  the ALF  repository.    A further  step is to aim at  cross compatibility with other  major projects, especially the ALPS-project.}
+As it stands, programming a new model  certainly requires some  detailed knowledge of the  algorithm. To facilitate access we hope  to maintain an increasing number of  model Hamiltonians in  the ALF  repository.    A further  step is to aim at  cross compatibility with other  major projects, especially the ALPS project.}
 %
 %========================================================================================================================================
 % \addcontentsline{toc}{section}{Acknowledgments}
