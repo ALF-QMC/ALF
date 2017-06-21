@@ -425,6 +425,12 @@ O.~Parcollet, M.~Ferrero, T.~Ayral, H.~Hafermann, I.~Krivenko, L.~Messio and
 \newblock Computer Physics Communications \textbf{196}, 398  (2015),
 \newblock \doi{http://dx.doi.org/10.1016/j.cpc.2015.04.023}.
 
+\bibitem{w2dyn}
+\emph{w2dynamics},
+\newblock
+  \url{https://w2dynamics.physik.uni-wuerzburg.de/W2Dynamics/W2Dynamics},
+\newblock Accessed: 2017-06-14.
+
 \bibitem{iQIST}
 L.~Huang, Y.~Wang, Z.~Y. Meng, L.~Du, P.~Werner and X.~Dai,
 \newblock \emph{iqist: An open source continuous-time quantum monte carlo
