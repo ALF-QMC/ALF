@@ -13,7 +13,6 @@
       Type (Operator), dimension(:,:), allocatable  :: Op_T
       Integer, allocatable :: nsigma(:,:)
       Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot
-      Logical              :: Global_move_kind
 
 
       
@@ -104,9 +103,6 @@
           CALL MPI_BCAST(Lattice_type,64 ,MPI_CHARACTER, 0,MPI_COMM_WORLD,IERR)
 #endif
           Call Ham_latt
-
-          Global_moves = .true.!.false.
-          Global_move_kind = .true.
 
           N_FL  = 1
           N_SUN = 1
@@ -1977,12 +1973,10 @@
 !             write(*,*) 'Flipping x-component'
             nsigma(1:M_v/2,:)     = -nsigma_old(1:M_v/2,:)
             nsigma(M_v/2+1:M_v,:) =  nsigma_old(M_v/2+1:M_v,:)
-!             Global_move_kind = .false.
           else
 !             write(*,*) 'Flipping y-component'
             nsigma(1:M_v/2,:)     =  nsigma_old(1:M_v/2,:)
             nsigma(M_v/2+1:M_v,:) = -nsigma_old(M_v/2+1:M_v,:)
-!             Global_move_kind = .true.
           endif
           
 !           do t=1,L_trot
