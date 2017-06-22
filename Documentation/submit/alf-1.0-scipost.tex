@@ -168,7 +168,7 @@ The program code is written in Fortran according to the 2003 standard and is abl
 
 The ALF package is  not the first open source project  aimed at providing simulation tools for correlated quantum matter.  The most  notable package is  certainly the ALPS library \cite{ALPS_2.0}.  It  is actively maintained and features a whole set of algorithms for strongly correlated quantum lattice models including Monte Carlo, exact diagonalization, and density matrix renormalization group codes. It however does not include the auxiliary field  QMC algorithm   offered by the ALF package.
  Other projects  include
-are QUEST \cite{QUEST}, TRIQS \cite{TRIQS}, w2dynamics \cite{w2dyn} and  iQist \cite{iQIST}.
+QUEST \cite{QUEST}, TRIQS \cite{TRIQS}, w2dynamics \cite{w2dyn} and  iQist \cite{iQIST}.
 IQist, TRIQS and w2dynamics focus on approximate solutions via the CT-HYB \cite{Gull_rev} algorithm within the dynamical mean field approximation.  
 The QUEST project implements the same algorithm as in the ALF project  but  is currently restricted to the  Hubbard model
 and it does not allow to easily incorporate different Hamiltonians. 
@@ -587,7 +587,7 @@ Assuming for simplicity that $L_{\text{Trotter}}$ is an integer multiple of \tex
 \bm{G} = \left( \mathds{1} + \prod\limits_{ i = 0}^{\frac{L_{\text{Trotter}}} {\texttt{NWrap}}-1}       \underbrace{\prod_{\tau=1}^{\texttt{NWrap}} \bm{B}_{i  \cdot  \texttt{NWrap}+ \tau} }_{ \equiv \mathcal{\bm{B}}_i}\right)^{-1}.
 \end{equation}
 Within the auxiliary field QMC implementation of the ALF project, we are by default employing
-the strategy of forming a product of QR-decompositions which was proven to be weakly backwards stable in \cite{Bai2011}.
+the strategy of forming a product of QR-decompositions which was proven to be weakly backwards stable in \mycomment{Ref.} \cite{Bai2011}.
 The key idea is to efficiently separate the scales of a matrix from the orthogonal part of a matrix.
 This can be achieved using a QR decomposition of a matrix $\bm{A}$ in the form $\bm{A}_i = \bm{Q}_i \bm{R}_i$. The matrix $\bm{Q}_i$ is unitary and hence in the usual $2$-norm it holds that $\kappa_2(\bm{Q}_i) = 1$.
 To get a handle on the condition number of $\bm{R}_i$ we will form the
@@ -603,7 +603,7 @@ This gives the decomposition
 \end{equation}
 $\bm{D}_i$ now contains the row norms of the original $\bm{R}_i$ matrix and hence attempts to separate off the total scales of the problem from $\bm{R}_i$.
 This is similar in spirit to the so-called matrix equilibration which tries to improve the condition number of a matrix by suitably chosen column and row scalings.
-Due to a theorem by van der Sluis \cite{vanderSluis1969} we know that the choice in \eqref{eq:diagnorm} is almost optimal among all diagonal matrices $\bm{D}$ from the space of diagonal matrices 
+Due to a theorem by van der Sluis \cite{vanderSluis1969} we know that the choice in \mycomment{Eq.} \eqref{eq:diagnorm} is almost optimal among all diagonal matrices $\bm{D}$ from the space of diagonal matrices 
 $\mathcal{D}$ in the sense that
 \begin{equation*}
 \kappa_p((\bm{D}_i)^{-1} \bm{R}_i ) \leq n^{1/p} \min_{\bm{D} \in \mathcal{D}} \kappa_p(\bm{D}^{-1} \bm{R}_i).
@@ -662,6 +662,7 @@ using a Monte Carlo code. Those effects are part of the common lore of the field
 and we can only touch on them briefly  in this text.
 For a deeper understanding of the inherent issues of Markov chain Monte Carlo methods 
 we refer the reader to the pedagogical introduction in chapter 1.3.5 of Krauth\cite{Krauth2006}, the overview article of Sokal~\cite{Sokal89},  the more specialized literature by Geyer~\cite{Geyer1992} and chapter 6.3 of Neal~\cite{neal1993}. 
+
 In general, one distinguishes local from global updates. As the name suggest, the local update corresponds to a small change of the configuration, e.g. a single spin flip of one of the $L_{\mathrm{Trotter}}(M_I+M_V)$ field entries (see Sec.~\ref{sec:updating}), whereas a global update changes a significant part of the configuration. The default update scheme of the implementation at hand are local updates such that a minimum amount of moves is required to generate a independent configuration. The associated time-scale is called  the autocorrelation time, $T_\mathrm{auto}$, and is generically dependent upon the choice of the observables. }
 %The default updating scheme consists of local moves which change (upon acceptance) only one  entry of $L_{\mathrm{Trotter}}(M_I+M_V)$  fields 
 %To generate  an independent configuration $C$,   one has to visit at least each field  once. 
@@ -827,7 +828,7 @@ Since these computations are quite time consuming and require many Monte Carlo b
 \item[]
 
 % \TwoIndentedLeftComment{Upward sweep:}
-\For{$n_{\tau}$ to $L_{\text{Trotter}}$}\Comment{\textit{Upward sweep}}
+\For{$n_{\tau}=1$ to $L_{\text{Trotter}}$}\Comment{\textit{Upward sweep}}
 \State{\textbf{call} wrapgrup}\Comment{\textit{Propagate Green fct. from $n_{tau}-1$ to $n_{\tau}$, and compute new}}
 \Statex\Comment{\textit{estimate of Green fct. at $n_{\tau}$, using sequential updates}}
 \item[]
@@ -1260,10 +1261,10 @@ The package content is summarized in Table~\ref{table:files}.
 \begin{table}[h]
    \begin{tabular}{@{} l l @{}}\toprule
    File & Description \\\midrule
-  \path{parameters} &  This collects input data. We can set here the parameters for the lattice,\\ &  which model, variables of the QMC process, and the error analysis.\\
-  \path{seeds} & List of integer numbers to initialize the random number generator and \\
-   & to start a simulation from scratch.\\
-   (\path{confin_<threadnumber>}) & (Optionally, a HS and Ising field configuration can be provided as input.)
+  \path{parameters} &  This collects input data. We can set here the parameters for\\ & the lattice,  which model, variables of the QMC process, and\\ & the error analysis.\\
+  \path{seeds} & List of integer numbers to initialize the random number\\
+  &  generator and to start a simulation from scratch.\\
+   (\path{confin_<threadnumber>}) & (Optionally, a HS and Ising field configuration can be \\ & provided as input.)
   \\\bottomrule
    \end{tabular}
    \caption{Overview of the input files in \texttt{Start/} required for a simulation. \label{table:input}}
@@ -1324,8 +1325,7 @@ N_rebin = 1               ! Rebinning
 N_Cov   = 0               ! If set to 1 covariance will be computed
                           ! for unequal time correlation functions.   
 N_auto  = 100             ! If set to >0 autocorrelation function will be
-                          ! computed for scalar and equal time correlation
-                          ! functions.                  
+                          ! computed for scalar and equal time observables.                  
 /            
 \end{lstlisting}
 %
@@ -1495,7 +1495,8 @@ As listed in Table  \ref{table:analysis_programs}  we provide three analysis pro
    & where \texttt{Y} stands for \texttt{Green, SpinZ, SpinXY}, and \texttt{Den}.\\
    \texttt{Y\_eq\_Auto\_Tr\_kx\_ky} & QMC-time resolved autocorrelation and rebinning analysis of \texttt{Y},\\
    & where \texttt{Y} stands for \texttt{Green, SpinZ, SpinXY}, and \texttt{Den}.\\
-   \texttt{Y\_kx\_ky/g\_kx\_ky} & Time resolved and $\vec{k}$-dependent Jackknife mean and error of \texttt{Y},\\\bottomrule
+   \texttt{Y\_kx\_ky/g\_kx\_ky} & Time resolved and $\vec{k}$-dependent Jackknife mean and error of \texttt{Y},\\
+   & where \texttt{Y} stands for \texttt{Green, SpinZ, SpinXY}, and \texttt{Den}.\\\bottomrule
     \end{tabular}
    \caption{ Standard output files of the error analysis. \label{table:analysis_output}}
 \end{table}
