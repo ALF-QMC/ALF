@@ -730,7 +730,7 @@ To determine the autocorrelation time, we calculate the correlation function
 where $O_i$ refers to the Monte Carlo estimate of the observable $\hat{O}$ in the $i^{\text{th}}$ bin. This function typically shows an exponential decay and the decay rate defines the autocorrelation time.
 
 \begin{figure}
-\includegraphics[width=1.0\textwidth]{Autocorrel_Error.pdf}
+\includegraphics[width=1.0\textwidth]{fig1.pdf}
 	\caption{\label{fig_autocorr}
 	        The autocorrelation function $Auto_{\hat{O}}(t_{\textrm{QMC}})$ (a) and the scaling of the error with effective bin size (b) of three equal time spin-spin correlation functions $\hat{O}$ of the Hubbard model in the $M_z$ decoupling (see Sec.~\ref{sec:walk1.1}). Simulations were done on a $ 6 \times 6$ square lattice, with  $U/t=4$ and $\beta t = 6$.  The original bin contained only one sweep and we calculated around one million bins on a single core. The different  autocorrelation times for the $xy$-plane compared to the $z$-direction can be detected from the decay rate of the autocorrelation function (a) and from the point where saturation of the error sets in (b), which defines the required effective bin size for independent measurements. Apparently and as argued in the text, the  improved estimator $(S_{\hat{S}^{x}} + S_{\hat{S}^{y}}+ S_{\hat{S}^{z}})/3$  has the smallest autocorrelation time.
  }
@@ -1264,13 +1264,13 @@ The package content is summarized in Table~\ref{table:files}.
   \path{parameters} &  This collects input data. We can set here the parameters for\\ & the lattice,  which model, variables of the QMC process, and\\ & the error analysis.\\
   \path{seeds} & List of integer numbers to initialize the random number\\
   &  generator and to start a simulation from scratch.\\
-   (\path{confin_<threadnumber>}) & (Optionally, a HS and Ising field configuration can be \\ & provided as input.)
+   \mycomment{(\path{confin_<threadnumber>})} & \mycomment{(Optionally, a HS and Ising field configuration can be} \\ & \mycomment{provided as input.)}
   \\\bottomrule
    \end{tabular}
    \caption{Overview of the input files in \texttt{Start/} required for a simulation. \label{table:input}}
 \end{table}
 %
-The input files are listed in Table~\ref{table:input}. To enable restarting a previous simulation (see Table~\ref{table:scripts}) or to use a given HS and Ising field configuration as input for a new simulation, the program reads in the files \path{confin_<threadnumber>} in case they are present. It goes without saying that the dimensions of the thereby defined field configuration (number of threads, lattices size, and number of time slices) have to match the corresponding values of the parameter file.
+The input files are listed in Table~\ref{table:input}. \mycomment{To enable restarting a previous simulation (see Table~\ref{table:scripts}) or to use a given HS and Ising field configuration as input for a new simulation, the program reads in the files \path{confin_<threadnumber>} in case they are present. It goes without saying that the dimensions of the thereby defined field configuration (number of threads, lattices size, and number of time slices) have to match the corresponding values of the parameter file.}
 The parameter file \path{Start/parameters} has the following form --
 using as an example  the $SU(2)$-symmetric Hubbard model on a square lattice (see Sec.~\ref{sec:walk1} for a detailed walkthrough):
 %
@@ -2333,7 +2333,7 @@ As mentioned in the  introduction, the auxiliary field QMC algorithm scales line
 
 \begin{figure}[h]
 	\begin{center}
-		\includegraphics[scale=.8]{fig1.pdf}
+		\includegraphics[scale=.8]{fig2.pdf}
 	\end{center}
 	\caption{\label{fig_scaling_size}Volume scaling behavior of the auxiliary field QMC code of the ALF project on SuperMUC (phase 2/Haswell nodes) at the LRZ in Munich. The number of sites $N_{\text{dim}}$ corresponds to the system volume.
 	The plot confirms that the leading scaling order is due to matrix multiplications such that the runtime is dominated by calls to ZGEMM. }
@@ -2358,8 +2358,7 @@ We store the field configurations of the random walker as checkpoints, such that
 
 \begin{figure}[h]
 	\begin{center}
-		\includegraphics[scale=0.6]{fig2.pdf}
-		\includegraphics[scale=0.6]{fig3.pdf}
+		\includegraphics[width=0.9\textwidth]{fig3.pdf}
 	\end{center}
 	\caption{\label{fig_scaling} MPI (a) and OpenMP (b) scaling behavior of the auxiliary field QMC code of the ALF project on SuperMUC (phase 2/Haswell nodes) at the LRZ in Munich.
 		The MPI performance data was normalized to 28 cores and was obtained using a problem size of $N_{\text{dim}}=400$. This is a medium to small system size that is the least favorable in terms of MPI synchronization effects.
