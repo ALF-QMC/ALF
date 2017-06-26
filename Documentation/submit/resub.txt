@@ -1,0 +1,18 @@
+Author comments: Your resubmission letter (will be viewable online)
+
+ In the second version of the documentation of the ALF package, we have addressed the points raised by the referees.
+
+List of changes: Give a point-by-point list of changes (will be viewable online)
+
+ 1) Section 1.1: We have included a paragraph on  similar open-source program packages for correlated quantum matter.
+ 2) Section 1.2: We have extended the discussion on the properties of the general Hamiltonian and we have included a description of the scope and the limitations of ALF.
+ 3) Section 2.3: We have extended the discussion on numerical stabilization.
+ 4) Section 2.4: We have largely extended the section on Monte Carlo sampling and autocorrelations, including a detailed example of error estimation.
+ 5) We have added the computation of autocorrelation functions to the error analysis.
+ 6) Section 6: We have extended the discussion on future developments of ALF. 
+
+
+
+
+Remarks for the editor: Any private remarks (for the editors only)
+
