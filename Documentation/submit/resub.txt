@@ -1,9 +1,8 @@
 Author comments: Your resubmission letter (will be viewable online)
 
-We would like to thank the referees for their pertinent comments, and their appreciation of  providing such an open source package to the community. In the second version of the documentation of the ALF package, we have addressed the points raised by the referees,  and detailed them below. We hope that the manuscript  is now in a form that can be published in SciPost. With best regards,
+We would like to thank the referees for their pertinent comments, and their appreciation of  providing such an open source package to the community. In the second version of the documentation of the ALF package, we have addressed the points raised by the referees,  and detailed them in the replies to the referees (see version 1 of the manuscript). We hope that the manuscript  is now in a form that can be published in SciPost. With best regards,
 
-
-M. Bercx
+M. Bercx, F. Goth, J.S. Hofmann, and F.F. Assaad.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % REPLY TO THE FIRST REPORT
