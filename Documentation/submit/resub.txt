@@ -18,7 +18,7 @@ At the end of Section 1.2, we have added a paragraph mentioning  a class of mode
 
 
 ---------------------------------------------------------------------------------------------------------------
-> "Mention that "flavor" includes spin."
+> "Mention that 'flavor' includes spin."
 
 We have included the following paragraph (Section 1.2):
 "Both the color and the flavor index can describe the spin degree of freedom, the choice depending on the spin symmetry
@@ -59,8 +59,8 @@ The sign is properly  handled with the Jackknife  method. In the revised version
 >"For stabilization: scaling with L and beta, timing ?"
 
 We have added the following paragraph to the end of Sec. 2.3, which discusses the stabilization:
-"While this might seem like quite an effort that has to be performed for every multiplication
-it has to be noted that even with this stabilization scheme the algorithm preserves the time complexity class of $\mathcal{O}(\beta N^3)$ expressed in the physical parameters inverse temperature $\beta$ and lattice size $N$.
+"While this might seem like quite an effort that has to be performed for every multiplication,
+it has to be noted that, even with this stabilization scheme, the algorithm preserves the time complexity class of $\mathcal{O}(\beta N^3)$ expressed in the physical parameters of inverse temperature $\beta$ and of lattice size $N$.
 While there is no analytical expression for the dependence of the stability on the physical parameters
 our experience has been that for a given number of stabilization steps along the imaginary time axis [in the notation of Eq.~(\ref{eqn:green_stable}) this number is $L_{\text{Trotter}}/\texttt{NWrap}$], the precision will be largely invariant of the system size $N$, whereas
 with increasing inverse temperature $\beta$ the number of stabilization steps often has to be increased to maintain a given precision.
