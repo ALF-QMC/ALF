@@ -1,6 +1,8 @@
 Author comments: Your resubmission letter (will be viewable online)
 
- In the second version of the documentation of the ALF package, we have addressed the points raised by the referees.
+We would like to thank the referees for their pertinent comments, and their appreciation of  providing such an open source package to the community. In the second version of the documentation of the ALF package, we have addressed the points raised by the referees,  and detailed them below. We hope that the manuscript  is now in a form that can be published in SciPost. With best regards,
+
+M. Bercx
 
 List of changes: Give a point-by-point list of changes (will be viewable online)
 
