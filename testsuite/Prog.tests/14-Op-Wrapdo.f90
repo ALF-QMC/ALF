@@ -18,13 +18,13 @@ Program OPMULTTEST
          End Subroutine
       End Interface
 !
-      Complex (Kind=Kind(0.D0)) :: Z, Z1, Zre, Zim, tmp, exphere
+      Complex (Kind=Kind(0.D0)) :: Zre, Zim
       Real (Kind=Kind(0.D0)) :: spin
       Complex (Kind=Kind(0.D0)), Dimension (:, :), Allocatable :: VH, &
      & matnew, matold
       Complex (Kind=Kind(0.D0)), Dimension (:), Allocatable :: Expop, &
      & ExpMop
-      Integer :: i, n, m, j, Ndim, N_Type, opn
+      Integer :: i, n, j, Ndim, N_Type, opn
       Type (Operator) :: Op
 !
 ! setup some test data
@@ -101,7 +101,7 @@ Subroutine Op_WrapdoFFA (Mat, Op, spin, Ndim, N_Type)
 !
     ! Local
       Complex (Kind=8) :: VH (Ndim, Op%n), Z, Z1
-      Integer :: n, i, m, m1
+      Integer :: n, i, m
 !
     !!!!! N_Type == 1
     !    Op%U*exp(-Op%g*spin*Op%E)*Mat*exp(Op%g*spin*Op%E)*(Op%U^{dagger})
@@ -111,7 +111,7 @@ Subroutine Op_WrapdoFFA (Mat, Op, spin, Ndim, N_Type)
     !    (Op%U^{dagger}) * Mat * Op%U
     !!!!!
       If (N_Type == 1) Then
-         VH = CMPLX (0.d0, 0.d0)
+         VH = CMPLX (0.d0, 0.d0, kind(0.D0))
          Do m = 1, Op%n
             Z = CMPLX (1.d0, 0.d0, kind(0.D0))
             If (m <= Op%N_non_Zero) Z = Exp (Op%g*CMPLX(Op%E(m)*spin, &
@@ -129,7 +129,7 @@ Subroutine Op_WrapdoFFA (Mat, Op, spin, Ndim, N_Type)
             End Do
          End Do
 !
-         VH = CMPLX (0.d0, 0.d0)
+         VH = CMPLX (0.d0, 0.d0, kind(0.D0))
          Do m = 1, Op%n
             Z = CMPLX (1.d0, 0.d0, kind(0.D0))
             If (m <= Op%N_non_Zero) Z = Exp (-Op%g*CMPLX(Op%E(m)*spin, &

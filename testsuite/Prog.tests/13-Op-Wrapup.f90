@@ -16,13 +16,13 @@ Program Wrapup
          End Subroutine
       End Interface
 !
-      Complex (Kind=Kind(0.D0)) :: Z, Z1, Zre, Zim
+      Complex (Kind=Kind(0.D0)) :: Zre, Zim
       Real (Kind=Kind(0.D0)) :: spin
       Complex (Kind=Kind(0.D0)), Dimension (:, :), Allocatable :: VH, &
      & matnew, matold
       Complex (Kind=Kind(0.D0)), Dimension (:), Allocatable :: Expop, &
      & ExpMop
-      Integer :: i, n, m, j, Ndim, N_Type, opn
+      Integer :: i, n, j, Ndim, N_Type, opn
       Type (Operator) :: Op
 !
 ! setup some test data
@@ -103,7 +103,7 @@ Subroutine Op_WrapupFFA (Mat, Op, spin, Ndim, N_Type)
 !
     ! Local
       Complex (Kind=8) :: VH (Ndim, Op%n), Z, Z1
-      Integer :: n, i, m, m1
+      Integer :: n, i, m
 !
 !
 !

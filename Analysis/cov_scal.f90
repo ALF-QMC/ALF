@@ -50,14 +50,17 @@
 
         ! Complex (Kind=Kind(0.d0)) Z1,Z2,Z3,Z4,Z5
         Complex (Kind=Kind(0.d0)), Allocatable  :: Tmp(:)
+        REAL    (Kind=Kind(0.d0)), Allocatable  :: AutoCorr(:)
         Integer :: Nobs 
         Integer :: Nbins, Nbins_eff, I, IOBS, N_Back
         Integer :: N,N1 !, NBIN
 
-        Integer :: n_skip, N_rebin, N_Cov, ierr
-        NAMELIST /VAR_errors/   n_skip, N_rebin, N_Cov, N_Back
+        Integer :: n_skip, N_rebin, N_Cov, ierr, N_auto
+        Character (len=64) :: File_out
+        NAMELIST /VAR_errors/   n_skip, N_rebin, N_Cov, N_Back, N_auto
 
 
+        N_auto=0
         OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
         IF (ierr /= 0) THEN
            WRITE(*,*) 'unable to open <parameters>',ierr
@@ -98,6 +101,7 @@
         ENDDO
         CLOSE(20)
 2100    FORMAT(I6,2X,F16.8)
+        N_auto=min(N_auto,Nbins_eff/3)
          
         OPEN (UNIT=21, FILE='Var_scalJ', STATUS='unknown')
         WRITE(21,*) 'Effective number of bins, and bins: ', Nbins_eff, Nbins
@@ -117,6 +121,25 @@
         ENDDO
         CLOSE(21)
 2001    FORMAT('OBS : ', I4,4x,F12.6,2X, F12.6)
+        
+        if(N_auto>0) then
+            ALLOCATE(AutoCorr(N_auto))
+            DO IOBS = 1,NOBS-1
+              write(File_out,'("Var_scal_Auto_",I1.1)')  iobs
+              write(*,*) File_out
+              OPEN (UNIT=21, FILE=File_out, STATUS='unknown')
+              WRITE(21,*)
+              DO I = 1,Nbins_eff
+                  EN  (I) = Real(OBS(I,IOBS), kind(0.d0))
+              ENDDO
+              Call AUTO_COR(EN,AutoCorr)
+              do i = 1,N_auto
+                CALL ERRCALCJ(EN,XM,XERR,i)
+                write(21,*) i, AutoCorr(i), Xerr
+              enddo
+              CLOSE(21)
+            ENDDO
+        endif
          
         DEALLOCATE (EN,SIGN,OBS)
          

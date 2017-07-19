@@ -13,6 +13,8 @@
       Type (Operator), dimension(:,:), allocatable  :: Op_T
       Integer, allocatable :: nsigma(:,:)
       Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot
+!>    Defines MPI communicator 
+      Integer              :: Group_Comm
 
 
       

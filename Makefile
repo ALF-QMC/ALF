@@ -27,26 +27,25 @@ export Libs
 LIB_BLAS_LAPACK = -llapack -lblas
 export LIB_BLAS_LAPACK
 
-all: lib ana program  Hub_Ising SPT Hub Hub_Can Kondo_Honey
+.PHONY : all lib ana program  Hub_Ising SPT Hub_Can Kondo_Honey
+all: lib ana program  Hub_Ising SPT Hub_Can Kondo_Honey
 
 lib:
 	cd Libraries && $(MAKE)
-ana:
+ana: lib
 	cd Analysis && $(MAKE)
-program:
+program: lib
 	cd Prog && $(MAKE) Examples
-Hub_Ising:
+Hub_Ising: lib
 	cd Prog && $(MAKE) Hub_Ising
-SPT:
+SPT: lib
 	cd Prog && $(MAKE) SPT
-Hub:
-	cd Prog && $(MAKE) Hub
-Hub_Can:
+Hub_Can: lib
 	cd Prog && $(MAKE) Hub_Can
-Kondo_Honey:
+Kondo_Honey: lib
 	cd Prog && $(MAKE) Kondo_Honey
 
-
+.PHONY : clean cleanall cleanprog cleanlib cleanana help
 clean: cleanall
 cleanall: cleanprog cleanlib cleanana  
 cleanprog:

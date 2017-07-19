@@ -89,14 +89,16 @@
            NP = SIZE(EN)
            
            XM  = 0.D0
-           XSQ = 0.D0
            DO NT = 1,NP
               XM  = XM  + EN(NT)
-              XSQ = XSQ + EN(NT)**2
            ENDDO
            XM    = XM /DBLE(NP)
+           XSQ = 0.D0
+           DO NT = 1,NP
+              XSQ = XSQ + (EN(NT)-XM)**2
+           ENDDO
            XSQ   = XSQ/DBLE(NP)
-           XERR  = (XSQ - XM**2)/DBLE(NP)
+           XERR  = XSQ/DBLE(NP)
            IF (XERR.GT.0.D0) THEN
               XERR = SQRT(XERR)
            ELSE
@@ -146,7 +148,7 @@
            IMPLICIT NONE
 
            REAL (Kind=Kind(0.d0)), DIMENSION(:) ::  EN
-           REAL (Kind=Kind(0.d0))               ::  XM, XERR, X
+           REAL (Kind=Kind(0.d0))               ::  XM, XERR, X, Xhelp
            REAL (Kind=Kind(0.d0)), DIMENSION(:), ALLOCATABLE ::  EN1
            INTEGER     :: NP, N, N1
 
@@ -155,11 +157,13 @@
            
            ! Build the jackknife averages and send to errcalc.
 
+           Xhelp = 0.D0
+           DO N1 = 1,NP
+              Xhelp = Xhelp + EN(N1)
+           ENDDO
+              
            DO N = 1,NP
-              X = 0.D0
-              DO N1 = 1,NP
-                 IF (N1.NE.N) X = X + EN(N1)
-              ENDDO
+              X = Xhelp - EN(N)
               EN1(N) = X / DBLE(NP -1)
            ENDDO
            CALL ERRCALC(EN1,XM,XERR)
@@ -177,7 +181,7 @@
            IMPLICIT NONE
 
            COMPLEX (Kind=Kind(0.d0)), DIMENSION(:) ::  EN
-           COMPLEX (Kind=Kind(0.d0))               ::  ZM, ZERR, Z
+           COMPLEX (Kind=Kind(0.d0))               ::  ZM, ZERR, Z, Zhelp
            COMPLEX (Kind=Kind(0.d0)), DIMENSION(:), ALLOCATABLE ::  EN1
            INTEGER     :: NP, N, N1
 
@@ -186,11 +190,13 @@
            
            ! Build the jackknife averages and send to errcalc.
 
+           Zhelp = CMPLX(0.D0, 0.D0, kind(0.D0))
+           DO N1 = 1,NP
+              Zhelp = Zhelp + EN(N1)
+           ENDDO
+              
            DO N = 1,NP
-              Z = CMPLX(0.D0, 0.D0, kind(0.D0))
-              DO N1 = 1,NP
-                 IF (N1.NE.N) Z = Z + EN(N1)
-              ENDDO
+              Z =  Zhelp - EN(N)
               EN1(N) = Z / DBLE(NP -1)
            ENDDO
            CALL ERRCALC(EN1,ZM,ZERR)
@@ -273,7 +279,7 @@
            IMPLICIT NONE
 
            REAL (Kind=Kind(0.d0)), DIMENSION(:) ::  EN, SI
-           REAL (Kind=Kind(0.d0))               ::  XM, XERR, X,XS
+           REAL (Kind=Kind(0.d0))               ::  XM, XERR, X,XS, Xhelp, XShelp
            REAL (Kind=Kind(0.d0)), DIMENSION(:), ALLOCATABLE :: EN1
            INTEGER                     ::  N, N1, NP, NP1
 
@@ -287,13 +293,16 @@
            
            ! Build the jackknife averages and send to errcalc
 
+           Xhelp  = 0.D0
+           XShelp = 0.D0
+           DO N1 = 1,NP
+              Xhelp  = Xhelp  + EN(N1)
+              XShelp = XShelp + SI(N1)
+           ENDDO
+
            DO N = 1,NP
-              X  = 0.D0
-              XS = 0.D0
-              DO N1 = 1,NP
-                 IF (N1.NE.N)  X  = X  + EN(N1)
-                 IF (N1.NE.N)  XS = XS + SI(N1)
-              ENDDO
+              X  = Xhelp  - EN(N)
+              XS = XShelp - SI(N)
               EN1(N) = X / XS
            ENDDO
            CALL ERRCALC(EN1,XM,XERR)
@@ -311,7 +320,7 @@
            IMPLICIT NONE
 
            COMPLEX (Kind=Kind(0.d0)), DIMENSION(:) ::  EN, SI
-           COMPLEX (Kind=Kind(0.d0))               ::  XM, XERR, X,XS
+           COMPLEX (Kind=Kind(0.d0))               ::  XM, XERR, X,XS, Xhelp, XShelp
            COMPLEX (Kind=Kind(0.d0)), DIMENSION(:), ALLOCATABLE :: EN1
            INTEGER                     ::  N, N1, NP, NP1
 
@@ -325,13 +334,16 @@
            
            ! Build the jackknife averages and send to errcalc
 
+           Xhelp  = CMPLX(0.D0, 0.D0, kind(0.D0))
+           XShelp = CMPLX(0.D0, 0.D0, kind(0.D0))
+           DO N1 = 1,NP
+              Xhelp  = Xhelp  + EN(N1)
+              XShelp = XShelp + SI(N1)
+           ENDDO
+
            DO N = 1,NP
-              X  = CMPLX(0.D0, 0.D0, kind(0.D0))
-              XS = CMPLX(0.D0, 0.D0, kind(0.D0))
-              DO N1 = 1,NP
-                 IF (N1.NE.N)  X  = X  + EN(N1)
-                 IF (N1.NE.N)  XS = XS + SI(N1)
-              ENDDO
+              X  = Xhelp  - EN(N)
+              XS = XShelp - SI(N)
               EN1(N) = X / XS
            ENDDO
            CALL ERRCALC(EN1,XM,XERR)
@@ -432,7 +444,7 @@
            !Local
            REAL (Kind=Kind(0.d0)), DIMENSION(:  ), ALLOCATABLE  ::  HLP
            REAL (Kind=Kind(0.d0)), DIMENSION(:,:), ALLOCATABLE  ::  HLP1
-           REAL (Kind=Kind(0.d0))                 ::  X, Y, Err, Res, DTAU
+           REAL (Kind=Kind(0.d0))                 ::  X, Y, Err, Res, DTAU, Xhelp, Yhelp
            INTEGER :: NT, NB, NB1, NTDM, NDATA
            
            NTDM  = SIZE(GR,1)
@@ -441,15 +453,15 @@
 
            ALLOCATE( HLP(NDATA), HLP1(NTDM,NDATA) )
            DO NT = 1,NTDM
+              Xhelp = 0.d0
+              Yhelp = 0.d0
+              DO NB1 = 1,NDATA
+                  Xhelp = Xhelp + GR(NT,NB1)
+                  Yhelp = Yhelp + SIGN1(NB1)
+              ENDDO
               DO NB= 1, NDATA
-                 X = 0.D0
-                 Y = 0.D0
-                 DO NB1 = 1,NDATA
-                    IF (NB1.NE.NB) THEN
-                       X = X + GR(NT,NB1)
-                       Y = Y + SIGN1(NB1)
-                    ENDIF
-                 ENDDO
+                 X = Xhelp - GR(NT,NB)
+                 Y = Yhelp - SIGN1(NB)
                  HLP1(NT,NB) = X/Y
               ENDDO
            ENDDO
@@ -582,7 +594,7 @@
            !Local
            REAL (Kind=Kind(0.d0)), DIMENSION(:  ), ALLOCATABLE  ::  HLP
            REAL (Kind=Kind(0.d0)), DIMENSION(:,:), ALLOCATABLE  ::  HLP1
-           REAL (Kind=Kind(0.d0))                 ::  X, XM, XERR
+           REAL (Kind=Kind(0.d0))                 ::  X, XM, XERR, Xhelp
            INTEGER :: NT, NT1, NB, NB1, NTDM, NDATA
            
            NTDM  = SIZE(GR,1)
@@ -595,13 +607,12 @@
 
            ALLOCATE( HLP(NDATA), HLP1(NTDM,NDATA) )
            DO NT = 1,NTDM
+              Xhelp = 0.0
+              DO NB1 = 1,NDATA
+                 Xhelp = Xhelp + GR(NT,NB1)
+              ENDDO
               DO NB= 1, NDATA
-                 X = 0.0
-                 DO NB1 = 1,NDATA
-                    IF (NB1.NE.NB) THEN
-                       X = X + GR(NT,NB1)
-                    ENDIF
-                 ENDDO
+                 X = Xhelp - GR(NT,NB)
                  HLP1(NT,NB) = X/DBLE(NDATA-1)
                  HLP (NB   ) = X/DBLE(NDATA-1)
               ENDDO
@@ -614,10 +625,10 @@
               DO NT1= 1,NTDM
                  X = 0.0
                  DO NB = 1,NDATA
-                    X = X +  HLP1(NT,NB)*HLP1(NT1,NB)
+                    X = X + (HLP1(NT,NB)-XMEAN(NT))*(HLP1(NT1,NB)-XMEAN(NT1))
                  ENDDO
                  X = X/DBLE(NDATA)
-                 XCOV(NT,NT1)  = ( X - XMEAN(NT)*XMEAN(NT1) )*DBLE(NDATA)
+                 XCOV(NT,NT1)  = X*DBLE(NDATA)! ( X - XMEAN(NT)*XMEAN(NT1) )*DBLE(NDATA)
               ENDDO
            ENDDO
            
@@ -639,7 +650,7 @@
            !Local
            REAL (Kind=Kind(0.d0)), DIMENSION(:  ), ALLOCATABLE  ::  HLP
            REAL (Kind=Kind(0.d0)), DIMENSION(:,:), ALLOCATABLE  ::  HLP1
-           REAL (Kind=Kind(0.d0))                 ::  X, XM, XERR, Y
+           REAL (Kind=Kind(0.d0))                 ::  X, XM, XERR, Y, Xhelp, Yhelp
            INTEGER :: NT, NT1, NB, NB1, NTDM, NDATA
            
            NTDM  = SIZE(GR,1)
@@ -652,15 +663,15 @@
 
            ALLOCATE( HLP(NDATA), HLP1(NTDM,NDATA) )
            DO NT = 1,NTDM
+              Xhelp=0.d0
+              Yhelp=0.d0
               DO NB= 1, NDATA
-                 X = 0.D0
-                 Y = 0.D0
-                 DO NB1 = 1,NDATA
-                    IF (NB1.NE.NB) THEN
-                       X = X + GR(NT,NB1)
-                       Y = Y + SIGN1(NB1)
-                    ENDIF
-                 ENDDO
+                 Xhelp=Xhelp+GR(NT,NB)
+                 Yhelp=Yhelp+SIGN1(NB)
+              ENDDO
+              DO NB= 1, NDATA
+                 X = Xhelp - GR(NT,NB)
+                 Y = Yhelp - SIGN1(NB)
                  HLP1(NT,NB) = X/Y
                  HLP (NB   ) = X/Y
               ENDDO
@@ -673,10 +684,10 @@
               DO NT1= 1,NTDM
                  X = 0.0
                  DO NB = 1,NDATA
-                    X = X +  HLP1(NT,NB)*HLP1(NT1,NB)
+                    X = X +  (HLP1(NT,NB)-XMEAN(NT))*(HLP1(NT1,NB)-XMEAN(NT1))
                  ENDDO
                  X = X/DBLE(NDATA)
-                 XCOV(NT,NT1)  = ( X - XMEAN(NT)*XMEAN(NT1) )*DBLE(NDATA)
+                 XCOV(NT,NT1)  = X*DBLE(NDATA)
               ENDDO
            ENDDO
            
@@ -702,7 +713,7 @@
            !Local
            REAL (Kind=Kind(0.d0)), DIMENSION(:  ), ALLOCATABLE  ::  HLP, XMEAN_R
            REAL (Kind=Kind(0.d0)), DIMENSION(:,:), ALLOCATABLE  ::  HLP1
-           REAL (Kind=Kind(0.d0))                 ::  X, XM, XERR, Y
+           REAL (Kind=Kind(0.d0))                 ::  X, XM, XERR, Y, Xhelp, Yhelp
            INTEGER :: NT, NT1, NB, NB1, NTDM, NDATA, Nth
            COMPLEX (Kind=Kind(0.d0)) :: Z
 
@@ -726,15 +737,15 @@
               Z = CMPLX(1.D0, 0.D0, kind(0.D0))
               IF (NTH .EQ. 2 ) Z = CMPLX( 0.D0, -1.D0, kind(0.D0))
               DO NT = 1,NTDM
+                 Xhelp=0.d0
+                 Yhelp=0.d0
                  DO NB= 1, NDATA
-                    X = 0.D0
-                    Y = 0.D0
-                    DO NB1 = 1,NDATA
-                       IF (NB1.NE.NB) THEN
-                          X = X + DBLE ( Z*GR(NT,NB1) ) 
-                          Y = Y + SIGN1(NB1)
-                       ENDIF
-                    ENDDO
+                    Xhelp = Xhelp + DBLE ( Z*GR(NT,NB) )
+                    Yhelp = Yhelp + SIGN1(NB)
+                 ENDDO
+                 DO NB= 1, NDATA
+                    X = Xhelp - DBLE ( Z*GR(NT,NB) )
+                    Y = Yhelp - SIGN1(NB)
                     HLP1(NT,NB) = X/Y
                     HLP (NB   ) = X/Y
                  ENDDO
@@ -747,12 +758,12 @@
               
               DO NT = 1,NTDM
                  DO NT1= 1,NTDM
-                    X = 0.0
+                    X = 0.d0
                     DO NB = 1,NDATA
-                       X = X +  HLP1(NT,NB)*HLP1(NT1,NB)
+                       X = X +  (HLP1(NT,NB)-XMEAN_R(NT))*(HLP1(NT1,NB)-XMEAN_R(NT1))
                     ENDDO
                     X = X/DBLE(NDATA)
-                    XCOV(NT,NT1)  = XCOV(NT,NT1) + CONJG(Z)* ( X - XMEAN_R(NT)*XMEAN_R(NT1) )*DBLE(NDATA)
+                    XCOV(NT,NT1)  = XCOV(NT,NT1) + CONJG(Z)* X *DBLE(NDATA)
                  ENDDO
               ENDDO
            ENDDO
@@ -886,15 +897,18 @@
               X2 = 0.0
               X3 = 0.0
               DO nt1 = 1, nb - ntau
-                 X1 = X1 + DATA(nt1)*DATA(nt1 + ntau) 
-                 X2 = X2 + DATA(nt1)*DATA(nt1)
                  X3 = X3 + DATA(nt1)
+              ENDDO
+              X3 = X3 / dble(nb - ntau)
+
+              DO nt1 = 1, nb - ntau
+                 X1 = X1 + (DATA(nt1)-x3)*(DATA(nt1 + ntau)-x3) 
+                 X2 = X2 + (DATA(nt1)-x3)*(DATA(nt1)-x3)
               ENDDO
               X1 = X1 / dble(nb - ntau)
               X2 = X2 / dble(nb - ntau)
-              X3 = X3 / dble(nb - ntau)
               
-              Res(ntau)  = ( X1 - X3**2)/(X2 - X3**2)
+              Res(ntau)  = X1/X2
               
            ENDDO
            

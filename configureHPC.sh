@@ -4,7 +4,7 @@ PROGRAMMCONFIGURATION=""
 # PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DQRREF"
 
 # uncomment the next line if you want an parallel tempering version
-# PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DTEMPERING"
+#PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DTEMPERING"
 
 # uncomment the next line if you want an MPI parallel version
 #PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DMPI"
@@ -48,11 +48,14 @@ echo "usage 'source configureHPC.sh MACHINE'"
 echo 
 echo "Activating fallback option with gfortran for SERIAL JOB."
 
-PROGRAMMCONFIGURATION=""
-F90OPTFLAGS="-O3 -ffree-line-length-none"
+#PROGRAMMCONFIGURATION=""
+F90OPTFLAGS="-O3 -ffree-line-length-none  -fcheck=all"
+F90OPTFLAGS="-O3 -ffree-line-length-none  -Wconversion"
 F90USEFULFLAGS="-cpp"
 
-export f90=gfortran
+export f90="gfortran"
+# $mpif90
+# "gfortran"
 export LIB_BLAS_LAPACK="-llapack -lblas"
 ;;
 

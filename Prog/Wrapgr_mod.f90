@@ -129,7 +129,6 @@ Contains
        !CALL MMULT ( GR(:,:,nf), MAT_TMP      , Exp_T_M1(:,:,nf)  )
     Enddo
     Do n = Nt_sequential_start,Nt_sequential_end
-       ! Write(6,*) 'Hi'
        Do nf = 1, N_FL
           X = Phi(nsigma(n,ntau1),Op_V(n,nf)%type)
           N_type = 1
@@ -149,6 +148,7 @@ Contains
           if  (Op_V(n,nf)%type == 1 ) Flip_value(1)  = -nsigma(n,ntau1)
           if  (Op_V(n,nf)%type == 2 ) Flip_value(1)  =  NFLIPL(nsigma(n,ntau1),nranf(3))
           mode = "Final"
+          !Write(6,*) 'Hi', n, Op_V(n,nf)%type, T0_Proposal_ratio, S0_ratio  
           Prev_Ratiotot = cmplx(1.d0,0.d0,kind(0.d0))
           Call Upgrade2(GR,n,ntau1,PHASE,Op_V(n,nf)%N_non_Zero,Flip_value(1), Prev_Ratiotot, S0_ratio,T0_Proposal_ratio, Acc, mode ) 
        Endif

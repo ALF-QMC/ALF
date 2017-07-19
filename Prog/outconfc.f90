@@ -59,17 +59,24 @@
          CHARACTER (LEN=64) :: FILE_SR, FILE_TG
 
 #if defined(MPI)
-         INTEGER        :: STATUS(MPI_STATUS_SIZE)
+         INTEGER        :: STATUS(MPI_STATUS_SIZE), irank_g, isize_g, igroup
          CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
          CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+         call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+         call MPI_Comm_size(Group_Comm, isize_g, ierr)
+         igroup           = irank/isize_g
+         !Write(6,*) "Group, rank :", igroup, irank_g
 #endif 
          
-#if defined(MPI) && !defined(TEMPERING)
+#if defined(MPI) 
          CALL GET_SEED_LEN(K)
          ALLOCATE(SEED_VEC(K))
          CALL RANGET(SEED_VEC)
-         FILE_SR = "confout"
-         FILE_TG = FILE_I(FILE_SR,IRANK)
+#if defined(TEMPERING) 
+         write(FILE_TG,'(A,I0,A,I0)') "Temp_",igroup,"/confout_",irank_g
+#else
+         write(FILE_TG,'(A,I0)') "confout_",irank_g
+#endif
          OPEN (UNIT = 10, FILE=FILE_TG, STATUS='UNKNOWN', ACTION='WRITE')
          WRITE(10,*) SEED_VEC
          DO NT = 1,LTROT
@@ -85,11 +92,6 @@
          ALLOCATE(SEED_VEC(K))
          CALL RANGET(SEED_VEC)
          FILE_TG = "confout_0"
-#if defined(TEMPERING)
-         write(File_TG,'(A,I0,A)') "Temp_",Irank,"/confout_0"
-#else
-         FILE_TG = "confout_0"
-#endif
          OPEN (UNIT = 10, FILE=FILE_TG, STATUS='UNKNOWN', ACTION='WRITE')
          WRITE(10,*) SEED_VEC
          DO NT = 1,LTROT
