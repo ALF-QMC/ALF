@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 The ALF project
+!  Copyright (C) 2016 2017 The ALF project
 ! 
 !  This file is part of the ALF project.
 ! 
@@ -156,8 +156,10 @@
       End Subroutine Control_PrecisionP_Glob
       
       
-      Subroutine control_Print
+      Subroutine Control_Print(Group_Comm)
         Implicit none
+
+        Integer, Intent(IN) :: Group_Comm
 #ifdef MPI
         include 'mpif.h'
 #endif
@@ -165,10 +167,13 @@
         Real (Kind=Kind(0.d0)) :: Time, Acc, Acc_Glob, Acc_Temp
 #ifdef MPI
         REAL (Kind=Kind(0.d0))  :: X
-        Integer        :: Ierr, Isize, Irank
+        Integer        :: Ierr, Isize, Irank, irank_g, isize_g, igroup
         INTEGER        :: STATUS(MPI_STATUS_SIZE)
         CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
         CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+        call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+        call MPI_Comm_size(Group_Comm, isize_g, ierr)
+        igroup           = irank/isize_g
 #endif
        
         ACC = 0.d0
@@ -183,52 +188,55 @@
         time = (count_CPU_end-count_CPU_start)/dble(count_rate)
         if (count_CPU_end .lt. count_CPU_start) time = (count_max+count_CPU_end-count_CPU_start)/dble(count_rate)      
 
-#if defined(MPI)  && !defined(TEMPERING) 
+#if defined(MPI)  
         X = 0.d0
-        CALL MPI_REDUCE(ACC,X,1,MPI_REAL8,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
-        ACC = X/dble(Isize)
+        CALL MPI_REDUCE(ACC,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
+        ACC = X/dble(Isize_g)
         X = 0.d0
-        CALL MPI_REDUCE(ACC_Glob,X,1,MPI_REAL8,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
-        ACC_Glob = X/dble(Isize)
+        CALL MPI_REDUCE(ACC_Glob,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
+        ACC_Glob = X/dble(Isize_g)
+        X = 0.d0
+        CALL MPI_REDUCE(ACC_Temp ,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
+        ACC_Temp  = X/dble(Isize_g)
 
 
         X = 0.d0
-        CALL MPI_REDUCE(XMEANG,X,1,MPI_REAL8,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
-        XMEANG = X/dble(Isize)
+        CALL MPI_REDUCE(XMEANG,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
+        XMEANG = X/dble(Isize_g)
         X = 0.d0
-        CALL MPI_REDUCE(XMEAN_tau,X,1,MPI_REAL8,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
-        XMEAN_tau = X/dble(Isize)
+        CALL MPI_REDUCE(XMEAN_tau,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
+        XMEAN_tau = X/dble(Isize_g)
 
         X = 0.d0
-        CALL MPI_REDUCE(XMEANP_Glob,X,1,MPI_REAL8,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
-        XMEANP_Glob = X/dble(Isize)
+        CALL MPI_REDUCE(XMEANP_Glob,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
+        XMEANP_Glob = X/dble(Isize_g)
 
         X = 0.d0
-        CALL MPI_REDUCE(Time,X,1,MPI_REAL8,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
-        Time = X/dble(Isize)
+        CALL MPI_REDUCE(Time,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
+        Time = X/dble(Isize_g)
 
         
-        CALL MPI_REDUCE(XMAXG,X,1,MPI_REAL8,MPI_MAX, 0,MPI_COMM_WORLD,IERR)
+        CALL MPI_REDUCE(XMAXG,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
         XMAXG = X
-        CALL MPI_REDUCE(XMAX_tau,X,1,MPI_REAL8,MPI_MAX, 0,MPI_COMM_WORLD,IERR)
+        CALL MPI_REDUCE(XMAX_tau,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
         XMAX_tau= X
 
-        CALL MPI_REDUCE(XMAXP,X,1,MPI_REAL8,MPI_MAX, 0,MPI_COMM_WORLD,IERR)
+        CALL MPI_REDUCE(XMAXP,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
         XMAXP = X
 
-        CALL MPI_REDUCE(XMAXP_GLOB,X,1,MPI_REAL8,MPI_MAX, 0,MPI_COMM_WORLD,IERR)
+        CALL MPI_REDUCE(XMAXP_GLOB,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
         XMAXP_GLOB = X
         
 #endif
 
 #if defined(TEMPERING) 
-        write(File1,'(A,I0,A)') "Temp_",Irank,"/info"
+        write(File1,'(A,I0,A)') "Temp_",igroup,"/info"
 #else
         File1 = "info"
 #endif
 
-#if defined(MPI)  && !defined(TEMPERING) 
-        If (Irank == 0 ) then
+#if defined(MPI) 
+        If (Irank_g == 0 ) then
 #endif
 
            Open (Unit=50,file=file1, status="unknown", position="append")
@@ -254,9 +262,10 @@
 
            Write(50,*) ' CPU Time                   : ', Time
            Close(50)
-#if defined(MPI)  && !defined(TEMPERING) 
+#if defined(MPI)  
         endif
 #endif
+
       end Subroutine Control_Print
       
      

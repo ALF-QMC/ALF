@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 The ALF project
+!  Copyright (C) 2016 2017 The ALF project
 ! 
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -113,7 +113,7 @@
 
 !--------------------------------------------------------------------
          
-         Subroutine  Print_bin_Latt(Obs,Latt,dtau)
+         Subroutine  Print_bin_Latt(Obs,Latt,dtau,Group_Comm)
            Use Lattices_v3
            Implicit none
 
@@ -123,7 +123,8 @@
 
            Type (Obser_Latt),        Intent(Inout)   :: Obs
            Type (Lattice),           Intent(In)      :: Latt
-           Real (Kind=Kind(0.d0)),            Intent(In)      :: dtau
+           Real (Kind=Kind(0.d0)),   Intent(In)      :: dtau
+           Integer,                  Intent(In)      :: Group_Comm
 
            ! Local
            Integer :: Ns,Nt, Norb, no, no1, I , Ntau
@@ -135,9 +136,12 @@
            Complex (Kind=Kind(0.d0)):: Z
            Real    (Kind=Kind(0.d0)):: X
            Integer         :: Ierr, Isize, Irank
-           INTEGER         :: STATUS(MPI_STATUS_SIZE)
+           INTEGER         :: STATUS(MPI_STATUS_SIZE),irank_g, isize_g, igroup
            CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
            CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+           call MPI_Comm_size(Group_Comm, isize_g, ierr)
+           igroup           = irank/isize_g
 #endif
 
            Ns    = Size(Obs%Obs_Latt,1)
@@ -158,26 +162,26 @@
            Obs%Obs_Latt0 =   Obs%Obs_Latt0/dble(Obs%N*Ns*Ntau)
            Obs%Ave_sign  =   Obs%Ave_Sign /dble(Obs%N   )
 
-#if defined(MPI) && !defined(TEMPERING)
+#if defined(MPI) 
            I = Ns*Ntau*Norb*Norb
            Tmp = cmplx(0.d0, 0.d0, kind(0.D0))
-           CALL MPI_REDUCE(Obs%Obs_Latt,Tmp,I,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
-           Obs%Obs_Latt = Tmp/DBLE(ISIZE)
+           CALL MPI_REDUCE(Obs%Obs_Latt,Tmp,I,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
+           Obs%Obs_Latt = Tmp/DBLE(ISIZE_g)
 
            I = 1
            X = 0.d0
-           CALL MPI_REDUCE(Obs%Ave_sign,X,I,MPI_REAL8,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
-           Obs%Ave_sign = X/DBLE(ISIZE)
+           CALL MPI_REDUCE(Obs%Ave_sign,X,I,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
+           Obs%Ave_sign = X/DBLE(ISIZE_g)
 
            I = Norb
            Tmp1 = cmplx(0.d0,0.d0,kind(0.d0))
-           CALL MPI_REDUCE(Obs%Obs_Latt0,Tmp1,I,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
-           Obs%Obs_Latt0 = Tmp1/DBLE(ISIZE)
+           CALL MPI_REDUCE(Obs%Obs_Latt0,Tmp1,I,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
+           Obs%Obs_Latt0 = Tmp1/DBLE(ISIZE_g)
 
-           If (Irank == 0 ) then
+           If (Irank_g == 0 ) then
 #endif
 #if defined(TEMPERING) 
-              write(File_pr,'(A,I0,A,A,A)') "Temp_",Irank,"/",trim(Obs%File_Latt),trim(File_suff)
+              write(File_pr,'(A,I0,A,A,A)') "Temp_",igroup,"/",trim(Obs%File_Latt),trim(File_suff)
 #endif
 
               do nt = 1,Ntau
@@ -208,7 +212,7 @@
                  enddo
               enddo
               close(10)
-#if defined(MPI) && !defined(TEMPERING)
+#if defined(MPI) 
            Endif
 #endif
               
@@ -219,7 +223,7 @@
          
 !--------------------------------------------------------------------
 
-         Subroutine  Print_bin_Vec(Obs)
+         Subroutine  Print_bin_Vec(Obs,Group_Comm)
            
            Implicit none
 
@@ -228,6 +232,7 @@
 #endif   
            
            Type (Obser_vec), intent(Inout) :: Obs
+           Integer, INTENT(IN)  :: Group_Comm
            
            ! Local
            Integer :: No,I
@@ -236,11 +241,14 @@
            
 #ifdef MPI
            Integer        :: Ierr, Isize, Irank
-           INTEGER        :: STATUS(MPI_STATUS_SIZE)
+           INTEGER        :: STATUS(MPI_STATUS_SIZE),irank_g, isize_g, igroup
            Complex  (Kind=Kind(0.d0)), allocatable :: Tmp(:)
            Real     (Kind=Kind(0.d0)) :: X
            CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
            CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+           call MPI_Comm_size(Group_Comm, isize_g, ierr)
+           igroup           = irank/isize_g
 #endif
            
            No = size(Obs%Obs_vec,1)
@@ -250,27 +258,27 @@
            File_pr = file_add(Obs%File_Vec,File_suff)
 
 
-#if defined(MPI) && !defined(TEMPERING) 
+#if defined(MPI) 
            Allocate (Tmp(No) )
            Tmp = cmplx(0.d0,0.d0,kind(0.d0))
-           CALL MPI_REDUCE(Obs%Obs_vec,Tmp,No,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
-           Obs%Obs_vec = Tmp/DBLE(ISIZE)
+           CALL MPI_REDUCE(Obs%Obs_vec,Tmp,No,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
+           Obs%Obs_vec = Tmp/DBLE(ISIZE_g)
            deallocate (Tmp )
 
            I = 1
            X = 0.d0
-           CALL MPI_REDUCE(Obs%Ave_sign,X,I,MPI_REAL8,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
-           Obs%Ave_sign = X/DBLE(ISIZE)
+           CALL MPI_REDUCE(Obs%Ave_sign,X,I,MPI_REAL8,MPI_SUM, 0,Group_comm,IERR)
+           Obs%Ave_sign = X/DBLE(ISIZE_g)
 
-           if (Irank == 0 ) then
+           if (Irank_g == 0 ) then
 #endif
 #if defined(TEMPERING) 
-              write(File_pr,'(A,I0,A,A,A)') "Temp_",Irank,"/",trim(Obs%File_Vec),trim(File_suff)
+              write(File_pr,'(A,I0,A,A,A)') "Temp_",igroup,"/",trim(Obs%File_Vec),trim(File_suff)
 #endif
               Open (Unit=10,File=File_pr, status="unknown",  position="append")
               WRITE(10,*) size(Obs%Obs_vec,1)+1, (Obs%Obs_vec(I), I=1,size(Obs%Obs_vec,1)), Obs%Ave_sign
               close(10)
-#if defined(MPI) && !defined(TEMPERING) 
+#if defined(MPI) 
            endif
 #endif
            

@@ -50,7 +50,6 @@ Kondo_Honey: lib
 	cd Prog && $(MAKE) Kondo_Honey
 
 .PHONY : clean cleanall cleanprog cleanlib cleanana help
-.PHONY : clean cleanall cleanprog cleanlib cleanana help
 clean: cleanall
 cleanall: cleanprog cleanlib cleanana  
 cleanprog:

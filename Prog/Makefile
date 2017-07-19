@@ -13,7 +13,7 @@ Examples:
 Z2_Slave:
 	./Git_config.sh; \
 	cp $(Libs)/Modules/*.mod . ;\
-	(make -f Compile_Z2_Slave  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" F90USEFULFLAGS="$(F90USEFULFLAGS)")
+	(make -f Compile_Z2_slave  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" F90USEFULFLAGS="$(F90USEFULFLAGS)")
 
 Hub_Ising:
 	./Git_config.sh; \
@@ -42,5 +42,5 @@ clean:
 	(make -f Compile_Hub_Ising   clean );\
 	(make -f Compile_SPT   clean );\
 	(make -f Compile_Kondo_Honey clean );\
-	(make -f Compile_Z2_Slave clean );\
+	(make -f Compile_Z2_slave clean );\
 	rm -f *.mod *~ \#* 

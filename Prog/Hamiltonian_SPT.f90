@@ -13,6 +13,8 @@
       Type (Operator), dimension(:,:), allocatable  :: Op_T
       Integer, allocatable :: nsigma(:,:)
       Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot
+!>    Defines MPI communicator 
+      Integer              :: Group_Comm
 
 
       
@@ -81,10 +83,13 @@
 
 
 #ifdef MPI
-          Integer        :: Isize, Irank
+          Integer        :: Isize, Irank, irank_g, isize_g, igroup
           Integer        :: STATUS(MPI_STATUS_SIZE)
           CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
           CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+          call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+          call MPI_Comm_size(Group_Comm, isize_g, ierr)
+          igroup           = irank/isize_g
           If (Irank == 0 ) then
 #endif
              OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
@@ -108,40 +113,57 @@
           N_SUN = 1
           FlagSym = 0
           
-#if defined(MPI) && !defined(TEMPERING)
-          If (Irank == 0 ) then
+! #if defined(MPI) && !defined(TEMPERING)
+!           If (Irank == 0 ) then
+! #endif
+! #if defined(TEMPERING)
+!              write(File1,'(A,I0,A)') "Temp_",Irank,"/parameters"
+!              OPEN(UNIT=5,FILE=File1,STATUS='old',ACTION='read',IOSTAT=ierr)
+! !              Global_moves =.false.
+! #else
+!              OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
+! #endif
+#if defined(MPI) 
+          If (Irank_g == 0 ) then
 #endif
-#if defined(TEMPERING)
-             write(File1,'(A,I0,A)') "Temp_",Irank,"/parameters"
+             File1 = "parameters"
+#if defined(TEMPERING) 
+             write(File1,'(A,I0,A)') "Temp_",igroup,"/parameters"
+#endif
              OPEN(UNIT=5,FILE=File1,STATUS='old',ACTION='read',IOSTAT=ierr)
-!              Global_moves =.false.
-#else
-             OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
-#endif
              READ(5,NML=VAR_SPT)
              CLOSE(5)
-#if defined(MPI) && !defined(TEMPERING)
+#if defined(MPI)
           endif
 
-          CALL MPI_BCAST(ham_T    ,1,MPI_REAL8,   0,MPI_COMM_WORLD,ierr)
-          CALL MPI_BCAST(ham_Vint ,1,MPI_REAL8,   0,MPI_COMM_WORLD,ierr)
-          CALL MPI_BCAST(ham_Lam  ,1,MPI_REAL8,   0,MPI_COMM_WORLD,ierr)
-          CALL MPI_BCAST(Dtau     ,1,MPI_REAL8,   0,MPI_COMM_WORLD,ierr)
-          CALL MPI_BCAST(Beta     ,1,MPI_REAL8,   0,MPI_COMM_WORLD,ierr)
-          CALL MPI_BCAST(FlagSym  ,1,MPI_INTEGER, 0,MPI_COMM_WORLD,ierr)
+          CALL MPI_BCAST(ham_T    ,1,MPI_REAL8,   0,Group_Comm,ierr)
+          CALL MPI_BCAST(ham_Vint ,1,MPI_REAL8,   0,Group_Comm,ierr)
+          CALL MPI_BCAST(ham_Lam  ,1,MPI_REAL8,   0,Group_Comm,ierr)
+          CALL MPI_BCAST(Dtau     ,1,MPI_REAL8,   0,Group_Comm,ierr)
+          CALL MPI_BCAST(Beta     ,1,MPI_REAL8,   0,Group_Comm,ierr)
+          CALL MPI_BCAST(FlagSym  ,1,MPI_INTEGER, 0,Group_Comm,ierr)
 #endif
 
           Call Ham_hop
           Ltrot = nint(beta/dtau)
           
-#if defined(MPI) && !defined(TEMPERING)
-          If (Irank == 0 ) then
-#endif
+! #if defined(MPI) && !defined(TEMPERING)
+!           If (Irank == 0 ) then
+! #endif
+! #if defined(TEMPERING)
+!              write(File1,'(A,I0,A)') "Temp_",Irank,"/info"
+!              Open (Unit = 50,file=File1,status="unknown",position="append")
+! #else
+!              Open (Unit = 50,file="info",status="unknown",position="append")
+! #endif
 #if defined(TEMPERING)
-             write(File1,'(A,I0,A)') "Temp_",Irank,"/info"
-             Open (Unit = 50,file=File1,status="unknown",position="append")
+           write(File1,'(A,I0,A)') "Temp_",igroup,"/info"
 #else
-             Open (Unit = 50,file="info",status="unknown",position="append")
+           write(File1,'(A,I0)') "info"
+#endif
+           
+#if defined(MPI) 
+           If (Irank_g == 0)  then
 #endif
              Write(50,*) '====================================='
              Write(50,*) 'Model is      : ', Model 
@@ -153,7 +175,7 @@
              Write(50,*) 'Lambda        : ', Ham_Lam
              Write(50,*) 'FlagSym       : ', FlagSym
              close(50)
-#if defined(MPI) && !defined(TEMPERING)
+#if defined(MPI)
           endif
 #endif
           call Ham_V

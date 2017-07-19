@@ -17,12 +17,14 @@
       Type (Operator), dimension(:,:), allocatable  :: Op_T
       Integer, allocatable :: nsigma(:,:)
       Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot
+!>    Defines MPI communicator 
+      Integer              :: Group_Comm
 
 
 !>    Privat variables 
       Type (Lattice),       private :: Latt 
       Integer,              private :: L1, L2
-      real (Kind=Kind(0.d0)),        private :: ham_T , ham_U,  Ham_chem, Ham_h, Ham_J, Ham_xi
+      real (Kind=Kind(0.d0)),        private :: ham_T , ham_U,  Ham_chem, Ham_h, Ham_J, Ham_xi, XB_X, Phi_X
 
       real (Kind=Kind(0.d0)),        private :: Dtau, Beta
       Character (len=64),   private :: Model, Lattice_type
@@ -58,7 +60,7 @@
           
           NAMELIST /VAR_lattice/  L1, L2, Lattice_type, Model
 
-          NAMELIST /VAR_Hubbard/  ham_T, ham_chem, ham_U, Dtau, Beta
+          NAMELIST /VAR_Hubbard/  ham_T, ham_chem, ham_U, Dtau, Beta, XB_X, Phi_X
 
           NAMELIST /VAR_Ising/    Ham_h, Ham_J, Ham_xi
 
@@ -110,6 +112,8 @@
 #ifdef MPI
           If (Irank == 0 ) then
 #endif
+             XB_X  = 1.D0
+             Phi_X = 0.D0
              OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
              READ(5,NML=VAR_Hubbard)
              If ( Model == "Hubbard_SU2_Ising" )  Read(5,NML=VAR_Ising)
@@ -122,6 +126,8 @@
           CALL MPI_BCAST(ham_U    ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
           CALL MPI_BCAST(Dtau     ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
           CALL MPI_BCAST(Beta     ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
+          CALL MPI_BCAST(XB_X     ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
+          CALL MPI_BCAST(Phi_X    ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
           If ( Model == "Hubbard_SU2_Ising" ) then
              CALL MPI_BCAST(Ham_xi   ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
              CALL MPI_BCAST(Ham_J    ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
@@ -147,6 +153,10 @@
              Write(50,*) 't             : ', Ham_T
              Write(50,*) 'Ham_U         : ', Ham_U
              Write(50,*) 'Ham_chem      : ', Ham_chem
+             If (Lattice_type == "Square" ) then
+                Write(50,*) 'X_boundary    : ', XB_X
+                Write(50,*) 'Flux_X        : ', Phi_X
+             Endif
              If ( Model == "Hubbard_SU2_Ising" ) then
                 Write(50,*) 'Ham_xi        : ', Ham_xi
                 Write(50,*) 'Ham_J         : ', Ham_J
@@ -234,26 +244,39 @@
           !  e^{-dtau H_t}  =    Prod_{n=1}^{Ncheck} e^{-dtau_n H_{n,t}}
 
           Integer :: I, I1, J1, I2, n, Ncheck,nc, nc1, no
-
+          Complex (Kind=Kind(0.d0)) :: Z
+          
           Ncheck = 1
           allocate(Op_T(Ncheck,N_FL))
           do n = 1,N_FL
              Do nc = 1,Ncheck
                 Call Op_make(Op_T(nc,n),Ndim)
                 If ( Lattice_type =="Square" ) then
+                   Z  =  exp( cmplx(0.d0, 2.d0 * acos(-1.d0)*Phi_X/dble(L1), kind=kind(0.d0) ) )
                    If (One_dimensional ) then 
                       DO I = 1, Latt%N
                          I1 = Latt%nnlist(I, 1, 0)
-                         Op_T(nc,n)%O(I,I1) = cmplx(-Ham_T, 0.d0, kind(0.D0))
-                         Op_T(nc,n)%O(I1,I) = cmplx(-Ham_T, 0.d0, kind(0.D0))
+                         If ( Latt%list(I,1) == 0 ) then
+                            Op_T(nc,n)%O(I,I1) = cmplx(-Ham_T*XB_X, 0.d0, kind(0.D0))*Z
+                            Op_T(nc,n)%O(I1,I) = cmplx(-Ham_T*XB_X, 0.d0, kind(0.D0))*conjg(Z)
+                         else
+                            Op_T(nc,n)%O(I,I1) = cmplx(-Ham_T, 0.d0, kind(0.D0))*Z
+                            Op_T(nc,n)%O(I1,I) = cmplx(-Ham_T, 0.d0, kind(0.D0))*conjg(Z)
+                         endif
                          Op_T(nc,n)%O(I ,I) = cmplx(-Ham_chem, 0.d0, kind(0.D0))
+                         
                       ENDDO
                    else
                       DO I = 1, Latt%N
                          I1 = Latt%nnlist(I,1,0)
                          I2 = Latt%nnlist(I,0,1)
-                         Op_T(nc,n)%O(I,I1) = cmplx(-Ham_T,    0.d0, kind(0.D0))
-                         Op_T(nc,n)%O(I1,I) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+                         If ( Latt%list(I,1) == 0 ) then
+                            Op_T(nc,n)%O(I,I1) = cmplx(-Ham_T*XB_X, 0.d0, kind(0.D0))*Z
+                            Op_T(nc,n)%O(I1,I) = cmplx(-Ham_T*XB_X, 0.d0, kind(0.D0))*conjg(Z)
+                         else
+                            Op_T(nc,n)%O(I,I1) = cmplx(-Ham_T, 0.d0, kind(0.D0))*Z
+                            Op_T(nc,n)%O(I1,I) = cmplx(-Ham_T, 0.d0, kind(0.D0))*conjg(Z)
+                         endif
                          Op_T(nc,n)%O(I,I2) = cmplx(-Ham_T,    0.d0, kind(0.D0))
                          Op_T(nc,n)%O(I2,I) = cmplx(-Ham_T,    0.d0, kind(0.D0))
                          Op_T(nc,n)%O(I ,I) = cmplx(-Ham_chem, 0.d0, kind(0.D0))
@@ -815,14 +838,14 @@
 
 
           Do I = 1,Size(Obs_scal,1)
-             Call  Print_bin_Vec(Obs_scal(I))
+             Call  Print_bin_Vec(Obs_scal(I),Group_Comm)
           enddo
           Do I = 1,Size(Obs_eq,1)
-             Call  Print_bin_Latt(Obs_eq(I),Latt,dtau)
+             Call  Print_bin_Latt(Obs_eq(I),Latt,dtau,Group_Comm)
           enddo
           If (Ltau  == 1 ) then
              Do I = 1,Size(Obs_tau,1)
-                Call  Print_bin_Latt(Obs_tau(I),Latt,dtau)
+                Call  Print_bin_Latt(Obs_tau(I),Latt,dtau,Group_Comm)
              enddo
           endif
 
