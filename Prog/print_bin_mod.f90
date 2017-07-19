@@ -7,7 +7,7 @@
 
        Contains
          
-         Subroutine  Print_bin_C(Dat_eq,Dat_eq0,Latt, Nobs, Phase_bin_tmp, file_pr)
+         Subroutine  Print_bin_C(Dat_eq,Dat_eq0,Latt, Nobs, Phase_bin_tmp, file_pr, Group_Comm)
            Use Lattices_v3
            Implicit none
 #ifdef MPI
@@ -20,6 +20,7 @@
            Complex (Kind=Kind(0.d0)),                   Intent(In)   :: Phase_bin_tmp
            Character (len=64),                 Intent(In)   :: File_pr
            Integer,                            Intent(In)   :: Nobs
+           Integer,                  Intent(In)      :: Group_Comm
           
            ! Local
            Character (len=64) :: File_tmp
@@ -29,10 +30,13 @@
            Complex (Kind=Kind(0.d0))              :: Phase_bin
 #ifdef MPI
            Complex (Kind=Kind(0.d0)):: Z
-           Integer         :: Ierr, Isize, Irank
+           Integer         :: Ierr, Isize, Irank,irank_g, isize_g, igroup
            INTEGER         :: STATUS(MPI_STATUS_SIZE)
            CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
            CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+           call MPI_Comm_size(Group_Comm, isize_g, ierr)
+           igroup           = irank/isize_g
 #endif
 
            Phase_bin = Phase_bin_tmp
@@ -45,25 +49,25 @@
            Dat_eq = Dat_eq/dble(Nobs)
            Dat_eq0 = Dat_eq0/dble(Nobs*Latt%N)
            
-#if defined(MPI) && !defined(TEMPERING)
+#if defined(MPI)
            I = Latt%N*Norb*Norb
            Tmp = cmplx(0.d0, 0.d0, kind(0.D0))
-           CALL MPI_REDUCE(Dat_eq,Tmp,I,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
-           Dat_eq = Tmp/DBLE(ISIZE)
+           CALL MPI_REDUCE(Dat_eq,Tmp,I,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
+           Dat_eq = Tmp/DBLE(isize_g)
            I = 1
            Z = cmplx(0.d0,0.d0,kind(0.d0))
-           CALL MPI_REDUCE(Phase_bin,Z,I,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
-           Phase_bin= Z/DBLE(ISIZE)
+           CALL MPI_REDUCE(Phase_bin,Z,I,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
+           Phase_bin= Z/DBLE(isize_g)
 
            I = Norb
            Tmp1 = cmplx(0.d0,0.d0,kind(0.d0))
-           CALL MPI_REDUCE(Dat_eq0,Tmp1,I,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
-           Dat_eq0 = Tmp1/DBLE(ISIZE)
+           CALL MPI_REDUCE(Dat_eq0,Tmp1,I,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
+           Dat_eq0 = Tmp1/DBLE(isize_g)
 
-           If (Irank == 0 ) then
+           If (Irank_g == 0 ) then
 #endif
 #if defined(TEMPERING)
-           write(File_tmp,'(A,I0,A,A)') "Temp_",Irank,"/",trim(ADJUSTL(File_pr))
+           write(File_tmp,'(A,I0,A,A)') "Temp_",igroup,"/",trim(ADJUSTL(File_pr))
 #else
            File_tmp=File_pr
 #endif
@@ -87,7 +91,7 @@
                  enddo
               enddo
               close(10)
-#if defined(MPI) && !defined(TEMPERING)
+#if defined(MPI)
            Endif
 #endif
               
@@ -99,7 +103,7 @@
 
 !=========================================================
 
-         Subroutine  Print_bin_R(Dat_eq,Dat_eq0,Latt, Nobs, Phase_bin_tmp, file_pr)
+         Subroutine  Print_bin_R(Dat_eq,Dat_eq0,Latt, Nobs, Phase_bin_tmp, file_pr, Group_Comm)
            Use Lattices_v3
            Implicit none
 #ifdef MPI
@@ -112,6 +116,7 @@
            Complex (Kind=Kind(0.d0)),                   Intent(In)    :: Phase_bin_tmp
            Character (len=64),                 Intent(In)    :: File_pr
            Integer,                            Intent(In)    :: Nobs
+           Integer,                  Intent(In)      :: Group_Comm
            
            ! Local
            Character (len=64) :: File_tmp
@@ -120,11 +125,14 @@
            Real    (Kind=Kind(0.d0))              :: x_p(2) 
            Complex (Kind=Kind(0.d0))              :: Phase_bin
 #ifdef MPI
-           Integer        :: Ierr, Isize, Irank
-           Complex (Kind=Kind(0.d0))              :: Z
-           INTEGER        :: STATUS(MPI_STATUS_SIZE)
+           Complex (Kind=Kind(0.d0)):: Z
+           Integer         :: Ierr, Isize, Irank,irank_g, isize_g, igroup
+           INTEGER         :: STATUS(MPI_STATUS_SIZE)
            CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
            CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+           call MPI_Comm_size(Group_Comm, isize_g, ierr)
+           igroup           = irank/isize_g
 #endif
            
            Phase_bin = Phase_bin_tmp
@@ -136,25 +144,25 @@
            Allocate (Tmp(Latt%N,Norb,Norb), Tmp1(Norb) )
            Dat_eq  = Dat_eq/dble(Nobs)
            Dat_eq0 = Dat_eq0/(dble(Nobs)*dble(Latt%N))
-#if defined(MPI) && !defined(TEMPERING)
+#if defined(MPI)
            I = Latt%N*Norb*Norb
            Tmp = 0.d0
-           CALL MPI_REDUCE(Dat_eq,Tmp,I,MPI_REAL8,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
-           Dat_eq = Tmp/DBLE(ISIZE)
+           CALL MPI_REDUCE(Dat_eq,Tmp,I,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
+           Dat_eq = Tmp/DBLE(isize_g)
            I = 1
            Z = cmplx(0.d0,0.d0,kind(0.d0))
-           CALL MPI_REDUCE(Phase_bin,Z,I,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
-           Phase_bin= Z/DBLE(ISIZE)
+           CALL MPI_REDUCE(Phase_bin,Z,I,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
+           Phase_bin= Z/DBLE(isize_g)
 
            I = Norb 
            Tmp1 = 0.D0
-           CALL MPI_REDUCE(Dat_eq0,Tmp1,I,MPI_REAL8,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
-           Dat_eq0 = Tmp1/DBLE(ISIZE)
+           CALL MPI_REDUCE(Dat_eq0,Tmp1,I,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
+           Dat_eq0 = Tmp1/DBLE(isize_g)
 
-           If (Irank == 0 ) then
+           If (Irank_g == 0 ) then
 #endif
 #if defined(TEMPERING)
-           write(File_tmp,'(A,I0,A,A)') "Temp_",Irank,"/",trim(ADJUSTL(File_pr))
+           write(File_tmp,'(A,I0,A,A)') "Temp_",igroup,"/",trim(ADJUSTL(File_pr))
 #else
            File_tmp=File_pr
 #endif
@@ -179,14 +187,14 @@
                  enddo
               enddo
               close(10)
-#if defined(MPI) && !defined(TEMPERING)
+#if defined(MPI)
            endif
 #endif
            deallocate (Tmp )
            
          End Subroutine Print_bin_R
 !============================================================
-         Subroutine  Print_scal(Obs, Nobs, file_pr)
+         Subroutine  Print_scal(Obs, Nobs, file_pr, Group_Comm)
            
            Implicit none
 #ifdef MPI
@@ -196,36 +204,40 @@
            Complex   (Kind=Kind(0.d0)), Dimension(:), Intent(inout) :: Obs
            Character (len=64),               Intent(In)    :: File_pr
            Integer,                          Intent(In)    :: Nobs
+           Integer,                  Intent(In)      :: Group_Comm
            
            ! Local
            Character (len=64) :: File_tmp
            Integer :: Norb,I
            Complex  (Kind=Kind(0.d0)), allocatable :: Tmp(:)
 #ifdef MPI
-           Integer        :: Ierr, Isize, Irank
-           INTEGER        :: STATUS(MPI_STATUS_SIZE)
+           Integer         :: Ierr, Isize, Irank,irank_g, isize_g, igroup
+           INTEGER         :: STATUS(MPI_STATUS_SIZE)
            CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
            CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+           call MPI_Comm_size(Group_Comm, isize_g, ierr)
+           igroup           = irank/isize_g
 #endif
            
            Norb = size(Obs,1)
            Allocate ( Tmp(Norb) )
            Obs = Obs/dble(Nobs)
-#if defined(MPI) && !defined(TEMPERING)
+#if defined(MPI)
            Tmp = 0.d0
-           CALL MPI_REDUCE(Obs,Tmp,Norb,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
-           Obs = Tmp/DBLE(ISIZE)
-           if (Irank == 0 ) then
+           CALL MPI_REDUCE(Obs,Tmp,Norb,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
+           Obs = Tmp/DBLE(isize_g)
+           if (Irank_g == 0 ) then
 #endif
 #if defined(TEMPERING)
-           write(File_tmp,'(A,I0,A,A)') "Temp_",Irank,"/",trim(ADJUSTL(File_pr))
+           write(File_tmp,'(A,I0,A,A)') "Temp_",igroup,"/",trim(ADJUSTL(File_pr))
 #else
            File_tmp=File_pr
 #endif
               Open (Unit=10,File=File_tmp, status="unknown",  position="append")
               WRITE(10,*) (Obs(I), I=1,size(Obs,1))
               close(10)
-#if defined(MPI) && !defined(TEMPERING)
+#if defined(MPI)
            endif
 #endif
            deallocate (Tmp )
@@ -233,7 +245,7 @@
          End Subroutine Print_scal
 
 !==============================================================
-         Subroutine  Print_bin_tau(Dat_tau, Latt, Nobs, Phase_bin, file_pr, dtau, Dat0_tau)
+         Subroutine  Print_bin_tau(Dat_tau, Latt, Nobs, Phase_bin, file_pr, dtau, Group_Comm, Dat0_tau)
            Use Lattices_v3
 #ifdef ZLIB
            USE F95ZLIB
@@ -252,6 +264,7 @@
            Character (len=64),                   Intent(In)   :: File_pr
            Integer,                              Intent(In)   :: Nobs
            Real (Kind=Kind(0.d0)),                        Intent(In)   :: dtau
+           Integer,                  Intent(In)      :: Group_Comm
           
            ! Local
            Character (len=64) :: File_tmp
@@ -265,10 +278,13 @@
 #endif  
 #ifdef MPI
            Complex (Kind=Kind(0.d0)):: Z
-           Integer         :: Ierr, Isize, Irank
+           Integer         :: Ierr, Isize, Irank,irank_g, isize_g, igroup
            INTEGER         :: STATUS(MPI_STATUS_SIZE)
            CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
            CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+           call MPI_Comm_size(Group_Comm, isize_g, ierr)
+           igroup           = irank/isize_g
 #endif
 
            Phase_mean = Phase_bin
@@ -285,27 +301,27 @@
            Dat_tau  = Dat_tau/dble(Nobs)
            If (Present(Dat0_tau) ) Dat0_tau = Dat0_tau/dble(Nobs*Latt%N*LT)
            
-#if defined(MPI) && !defined(TEMPERING)
+#if defined(MPI)
            I = Latt%N*Norb*Norb*LT
            Tmp = cmplx(0.d0, 0.d0, kind(0.D0))
-           CALL MPI_REDUCE(Dat_tau,Tmp,I,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
-           Dat_tau = Tmp/DBLE(ISIZE)
+           CALL MPI_REDUCE(Dat_tau,Tmp,I,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
+           Dat_tau = Tmp/DBLE(isize_g)
            
            If (Present(Dat0_tau) ) then
               I = Norb
               Tmp0 = cmplx(0.d0, 0.d0, kind(0.D0))
-              CALL MPI_REDUCE(Dat0_tau,Tmp0,I,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
-              Dat0_tau = Tmp0/DBLE(ISIZE)
+              CALL MPI_REDUCE(Dat0_tau,Tmp0,I,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
+              Dat0_tau = Tmp0/DBLE(isize_g)
            endif
 
            I = 1
            Z = cmplx(0.d0,0.d0,kind(0.d0))
-           CALL MPI_REDUCE(Phase_mean,Z,I,MPI_COMPLEX16,MPI_SUM, 0,MPI_COMM_WORLD,IERR)
-           Phase_mean= Z/DBLE(ISIZE)
-           If (Irank == 0 ) then
+           CALL MPI_REDUCE(Phase_mean,Z,I,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
+           Phase_mean= Z/DBLE(isize_g)
+           If (Irank_g == 0 ) then
 #endif
 #if defined(TEMPERING)
-           write(File_tmp,'(A,I0,A,A)') "Temp_",Irank,"/",trim(ADJUSTL(File_pr))
+           write(File_tmp,'(A,I0,A,A)') "Temp_",igroup,"/",trim(ADJUSTL(File_pr))
 #else
            File_tmp=File_pr
 #endif
@@ -362,7 +378,7 @@
 #else
               close(10)
 #endif
-#if defined(MPI) && !defined(TEMPERING)
+#if defined(MPI)
            Endif
 #endif
               

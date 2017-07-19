@@ -590,29 +590,29 @@
           Phase_bin = Obs_scal(5)/cmplx(dble(Nobs),0.d0,Kind(0.d0))
 
           File_pr ="SpinZ_eq"
-          Call Print_bin(SpinZ_eq ,SpinZ_eq0, Latt, Nobs, Phase_bin, file_pr)
+          Call Print_bin(SpinZ_eq ,SpinZ_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
 
           File_pr ="SpinXY_eq"
-          Call Print_bin(Spinxy_eq, Spinxy_eq0,Latt, Nobs, Phase_bin, file_pr)
+          Call Print_bin(Spinxy_eq, Spinxy_eq0,Latt, Nobs, Phase_bin, file_pr, Group_Comm)
 
           File_pr ="Den_eq"
-          Call Print_bin(Den_eq   , Den_eq0, Latt, Nobs, Phase_bin, file_pr)
+          Call Print_bin(Den_eq   , Den_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
 
 !-------------add-----------------------------------------------------------------
           File_pr ="Greenu_eq"
-          Call Print_bin(Greenu_eq   , Greenu_eq0, Latt, Nobs, Phase_bin, file_pr)
+          Call Print_bin(Greenu_eq   , Greenu_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
           File_pr ="Greend_eq"
-          Call Print_bin(Greend_eq   , Greend_eq0, Latt, Nobs, Phase_bin, file_pr)
+          Call Print_bin(Greend_eq   , Greend_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
 !---------------------------------------------------------------------------------
 
           File_pr ="ener"
-          Call Print_scal(Obs_scal, Nobs, file_pr)
+          Call Print_scal(Obs_scal, Nobs, file_pr, Group_Comm)
           If (Ltau == 1) then
              Phase_tau = Phase_tau/cmplx(dble(NobsT),0.d0,Kind(0.d0))
              File_pr = "Green_tau"
-             Call Print_bin_tau(Green_tau,Latt,NobsT,Phase_tau, file_pr,dtau)
+             Call Print_bin_tau(Green_tau,Latt,NobsT,Phase_tau, file_pr,dtau, Group_Comm)
              File_pr = "Den_tau"
-             Call Print_bin_tau(Den_tau,Latt,NobsT,Phase_tau, file_pr,dtau)
+             Call Print_bin_tau(Den_tau,Latt,NobsT,Phase_tau, file_pr,dtau, Group_Comm)
           endif
 !!$#ifdef MPI
 !!$          Write(6,*)  Irank, 'out Pr_obs', LTAU

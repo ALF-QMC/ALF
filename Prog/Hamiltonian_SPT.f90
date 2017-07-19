@@ -165,6 +165,7 @@
 #if defined(MPI) 
            If (Irank_g == 0)  then
 #endif
+             Open (Unit = 50,file=File1,status="unknown",position="append")
              Write(50,*) '====================================='
              Write(50,*) 'Model is      : ', Model 
              Write(50,*) 'Lattice is    : ', Lattice_type
@@ -1716,74 +1717,74 @@
 !!$#endif
     
           File_pr ="ener"
-          Call Print_scal(Obs_scal, Nobs, file_pr)
+          Call Print_scal(Obs_scal, Nobs, file_pr, Group_Comm)
           
           Phase_bin = Obs_scal(Nobs_scal)/dble(Nobs)
           File_pr ="Den_eq"
-          Call Print_bin(Den_eq, Den_eq0, Latt, Nobs, Phase_bin, file_pr)
+          Call Print_bin(Den_eq, Den_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
           File_pr ="U1_eq"
-          Call Print_bin(U1_eq, U1_eq0, Latt, Nobs, Phase_bin, file_pr)
+          Call Print_bin(U1_eq, U1_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
           File_pr ="U1xy_eq"
-          Call Print_bin(U1xy_eq, U1xy_eq0, Latt, Nobs, Phase_bin, file_pr)
+          Call Print_bin(U1xy_eq, U1xy_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
           File_pr ="U1xyG_eq"
-          Call Print_bin(U1xyG_eq, U1xyG_eq0, Latt, Nobs, Phase_bin, file_pr)
+          Call Print_bin(U1xyG_eq, U1xyG_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
           File_pr ="Spinz_eq"
-          Call Print_bin(Spinz_eq, Spinz_eq0, Latt, Nobs, Phase_bin, file_pr)
+          Call Print_bin(Spinz_eq, Spinz_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
           File_pr ="Spinxy_eq"
-          Call Print_bin(Spinxy_eq, Spinxy_eq0, Latt, Nobs, Phase_bin, file_pr)
+          Call Print_bin(Spinxy_eq, Spinxy_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
           
           if (FlagSym == 1) then
             File_pr ="R_eq"
-            Call Print_bin(R_eq, R_eq0, Latt, Nobs, Phase_bin, file_pr)
+            Call Print_bin(R_eq, R_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
             File_pr ="SymCheckTR_eq"
-            Call Print_bin(TRS_eq, TRS_eq0, Latt, Nobs, Phase_bin, file_pr)
+            Call Print_bin(TRS_eq, TRS_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
             File_pr ="SymCheckR_eq"
-            Call Print_bin(RS_eq, RS_eq0, Latt, Nobs, Phase_bin, file_pr)
+            Call Print_bin(RS_eq, RS_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
             File_pr ="SymCheckC4_eq"
-            Call Print_bin(C4S_eq, C4S_eq0, Latt, Nobs, Phase_bin, file_pr)
+            Call Print_bin(C4S_eq, C4S_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
             File_pr ="SymCheckPx_eq"
-            Call Print_bin(PxS_eq, PxS_eq0, Latt, Nobs, Phase_bin, file_pr)
+            Call Print_bin(PxS_eq, PxS_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
             File_pr ="SymCheckSx_eq"
-            Call Print_bin(SxS_eq, SxS_eq0, Latt, Nobs, Phase_bin, file_pr)
+            Call Print_bin(SxS_eq, SxS_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
             File_pr ="SymCheckSz_eq"
-            Call Print_bin(SzS_eq, SzS_eq0, Latt, Nobs, Phase_bin, file_pr)
+            Call Print_bin(SzS_eq, SzS_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
             File_pr ="SymCheck1U1_eq"
-            Call Print_bin(U11S_eq, U11S_eq0, Latt, Nobs, Phase_bin, file_pr)
+            Call Print_bin(U11S_eq, U11S_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
             File_pr ="SymCheck2U1_eq"
-            Call Print_bin(U12S_eq, U12S_eq0, Latt, Nobs, Phase_bin, file_pr)
+            Call Print_bin(U12S_eq, U12S_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
           endif
           
           If (Ltau == 1) then
              Phase_tau = Phase_tau/dble(NobsT)
              File_pr = "Green_tau"
-             Call Print_bin_tau(Green_tau,Latt,NobsT,Phase_tau, file_pr,dtau)
+             Call Print_bin_tau(Green_tau,Latt,NobsT,Phase_tau, file_pr,dtau, Group_Comm)
              File_pr = "Den_tau"
-             Call Print_bin_tau(Den_tau,Latt,NobsT,Phase_tau, file_pr,dtau)
+             Call Print_bin_tau(Den_tau,Latt,NobsT,Phase_tau, file_pr,dtau, Group_Comm)
              File_pr = "U1_tau"
-             Call Print_bin_tau(U1_tau,Latt,NobsT,Phase_tau, file_pr,dtau)
+             Call Print_bin_tau(U1_tau,Latt,NobsT,Phase_tau, file_pr,dtau, Group_Comm)
              File_pr = "U1xy_tau"
-             Call Print_bin_tau(U1xy_tau,Latt,NobsT,Phase_tau, file_pr,dtau)
+             Call Print_bin_tau(U1xy_tau,Latt,NobsT,Phase_tau, file_pr,dtau, Group_Comm)
              File_pr = "U1xyG_tau"
-             Call Print_bin_tau(U1xyG_tau,Latt,NobsT,Phase_tau, file_pr,dtau)
+             Call Print_bin_tau(U1xyG_tau,Latt,NobsT,Phase_tau, file_pr,dtau, Group_Comm)
              File_pr = "Spinz_tau"
-             Call Print_bin_tau(Spinz_tau,Latt,NobsT,Phase_tau, file_pr,dtau)
+             Call Print_bin_tau(Spinz_tau,Latt,NobsT,Phase_tau, file_pr,dtau, Group_Comm)
              File_pr = "Spinxy_tau"
-             Call Print_bin_tau(Spinxy_tau,Latt,NobsT,Phase_tau, file_pr,dtau)
+             Call Print_bin_tau(Spinxy_tau,Latt,NobsT,Phase_tau, file_pr,dtau, Group_Comm)
              File_pr ="Den_sus"
-             Call Print_bin(Den_sus, Den_sus0, Latt, NobsT, Phase_tau, file_pr)
+             Call Print_bin(Den_sus, Den_sus0, Latt, NobsT, Phase_tau, file_pr, Group_Comm)
              File_pr ="U1_sus"
-             Call Print_bin(U1_sus, U1_sus0, Latt, NobsT, Phase_tau, file_pr)
+             Call Print_bin(U1_sus, U1_sus0, Latt, NobsT, Phase_tau, file_pr, Group_Comm)
              File_pr ="U1xy_sus"
-             Call Print_bin(U1xy_sus, U1xy_sus0, Latt, NobsT, Phase_tau, file_pr)
+             Call Print_bin(U1xy_sus, U1xy_sus0, Latt, NobsT, Phase_tau, file_pr, Group_Comm)
              File_pr ="U1xyG_sus"
-             Call Print_bin(U1xyG_sus, U1xyG_sus0, Latt, NobsT, Phase_tau, file_pr)
+             Call Print_bin(U1xyG_sus, U1xyG_sus0, Latt, NobsT, Phase_tau, file_pr, Group_Comm)
              File_pr ="Spinz_sus"
-             Call Print_bin(Spinz_sus, Spinz_sus0, Latt, NobsT, Phase_tau, file_pr)
+             Call Print_bin(Spinz_sus, Spinz_sus0, Latt, NobsT, Phase_tau, file_pr, Group_Comm)
              File_pr ="Spinxy_sus"
-             Call Print_bin(Spinxy_sus, Spinxy_sus0, Latt, NobsT, Phase_tau, file_pr)
+             Call Print_bin(Spinxy_sus, Spinxy_sus0, Latt, NobsT, Phase_tau, file_pr, Group_Comm)
              L_eq0=L_eq0*sqrt(beta)
              File_pr ="L_eq"
-             Call Print_bin(L_eq, L_eq0, Latt, NobsT, Phase_tau, file_pr)
+             Call Print_bin(L_eq, L_eq0, Latt, NobsT, Phase_tau, file_pr, Group_Comm)
           endif
 !!$#ifdef MPI
 !!$          Write(6,*)  Irank, 'out Pr_obs', LTAU
