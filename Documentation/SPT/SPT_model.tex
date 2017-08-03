@@ -274,21 +274,58 @@ $\sum_\bk \chi_\bk^\dag 1 \otimes \sigma_y  \chi_\bk $ & + & + & + & + & + & + &
 \end{tabular} 
 Remark: I first thought that the pseudo-spin-spin would already signal a breaking of the SU(2) symmetry, but a magnetic instability is also forbidden by PHS.
 
-\section{First Results}
-
-I have composed a summary of the results so far in \fig{Fig:FirstRes}. I believe the path trivial insulator to the only interacting state is pretty safe. I do not detect a jump in the derivative of the free energy signally a first order transition. This is also backed up the the large gaps in the density and spin sector.
-
-The second path connecting the top. insulator with the strongly interacting regime is more settle though. I still cannot positively detect a jump in the dF/dt, but there might be one in its second derivative due to a second order phase transition. This is also suggested by the gaps in the two sectors. The gap clearly decreases with system size around $t \sim 0.35 - 0.40$, it is unclear so far, whether they might remain finite or whether the gap closes which would be visible as a divergence in $\frac{1}{\Delta}$.
+\section{Results so far}
 
 \begin{figure}
-\includegraphics[width=0.45\textwidth]{../../../Results/SPT/Plots/{InfPath_l-1.0_b10.0}.png}\hfill
-\includegraphics[width=0.45\textwidth]{../../../Results/SPT/Plots/{InfPath_l1.0_b10.0}.png} \\
-\includegraphics[width=0.45\textwidth]{../../../Results/SPT/Plots/{DenGap_l-1.0}.png}\hfill
-\includegraphics[width=0.45\textwidth]{../../../Results/SPT/Plots/{DenGap_l1.0}.png} \\
-\includegraphics[width=0.45\textwidth]{../../../Results/SPT/Plots/{SpinzGap_l-1.0}.png}\hfill
-\includegraphics[width=0.45\textwidth]{../../../Results/SPT/Plots/{SpinzGap_l1.0}.png} \\
-\caption{\label{Fig:FirstRes}First Results: This figure visualizes the paths top. Insulator ($t=1.0$) $\rightarrow$ purely interacting ($t=0.0$) ($lambda=-1.0$) on the left and trivial Insulator ($t=1.0$) $\rightarrow$ purely interacting ($t=0.0$) ($lambda=1.0$) on the right. The top row displays the derivative of the free energy along this path, the middle and lower row show the inverse gap $\Delta^{-1}$ in the density and spin ($z$-component), respectively. The gap of a channel was extracted by fitting the susceptibility $\chi(T)$ as $\sim c \exp(-\frac{\Delta}{T})$.}
+	\centering
+	\includegraphics[width=0.7\linewidth]{overview}
+	\caption{Overview of instability with Mean-Field expectation values for $\left\langle S^{1,x/y} - S^{1,x/y} \right \rangle$}
+	\label{fig:overview}
 \end{figure}
+
+In the following, I repeat the results we have already discussed during the last Skype call on April, 10th. In \fig{fig:overview} the ratio $R = 1 - \frac{S(\mathbf{q}=\delta\mathbf{q})}{S(\mathbf{q}=\mathbf{0})}$, where $S(\mathbf{q}) = \left\langle \left( S^{1,x}_{-\mathbf{q}} - S^{2,x}_{-\mathbf{q}} \right)  \left( S^{1,x}_{\mathbf{q}} - S^{2,x}_{\mathbf{q}} \right)   \right\rangle$. In the disordered phase, $S(\mathbf{q})$ is a smooth function such that for the thermodynamic limit ($L\rightarrow\infty$) $R$ scales to $0$. In contrast, $S(\mathbf{q})$ develops a peak in the symmetry broken phase such that $R$ scales to $1$. Although we start with a relative small system with $L\times L= 4\times 4$, we already detect values of almost $1$ roughly centered around $U=2$ for all chosen $lambda$ between $-2.00$ and $0.00$.
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.7\linewidth]{scaling}
+	\caption{scaling of the instability with system size $L$ at $\lambda=-1.00$}
+	\label{fig:scaling}
+\end{figure}
+
+In \fig{fig:scaling} we have tested the proper scaling behavior with the system size according to which there is a symmetry broken phase between $U=1.5$ and $U=2.8$. This is consistent with the exactly solvable limit $U\rightarrow\infty$ featuring a symmetric insulator.
+
+In the non-interacting model, a semi-metallic Dirac Cone is separating the two topological phases. For a metallic phase, the density susceptibility is proportional to $\beta$. In \fig{fig:den} the susceptibility is presented and shows a linear behavior for $\lambda=0.0$ and small $U<0.50$. For larger interactions strength, the curves start to bend down signaling an insulator. In this model, there is no symmetry forcing the Dirac cone to $\lambda=0$, hence it is most likely renormalized such that the semi-metallic line can continue a finite values of $\lambda$. For $\lambda=-0.25$, however, we detect an insulating phase for all calculated interaction strengths.
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.49\linewidth]{den_l000}
+	\includegraphics[width=0.49\linewidth]{den_l-025}
+	\caption{Density susceptibilities to track the semi-metal around $\lambda=0.00$ and $U=0$}
+	\label{fig:den}
+\end{figure}
+
+\section{Comments on Zi Yangs paper ArXiv:1603.08376}
+
+In this paper, the authors consider four copies of spinless graphene which can be considered a $SU(4)$ spinful model. This model is symmetric, even with the interaction included. Here are the key arguments:
+
+\begin{itemize}
+	\item The interaction is given as $\sum_r c^\dagger_{r1} c^{\phantom{\dagger}}_{r2} c^\dagger_{r3} c^{\phantom{\dagger}}_{r4}$, where $1$, $2$, $3$ and $4$ refer the the $SU(4)$-degrees of freedom and $r$ label the lattice sites.
+	\item To show the invariance of the interaction, we need to perform a particle-hole transformation for $c^{\phantom{\dagger}}_{rs} \rightarrow c^\dagger_{rs}$ such that $\sum_r c^\dagger_{r1} c^{\phantom{\dagger}}_{r2} c^\dagger_{r3} c^{\phantom{\dagger}}_{r4} \rightarrow \sum_r c^\dagger_{r1} c^\dagger_{r2} c^\dagger_{r3} c^\dagger_{r4}$
+	\item In this new basis, the symmetry under the trafo $c^\dagger_{rs} \rightarrow \sum_{s'} U_{ss'} c^\dagger_{rs'}$ is more explicit.
+	\begin{eqnarray}
+		c^\dagger_{r1} c^\dagger_{r2} c^\dagger_{r3} c^\dagger_{r4} & \rightarrow & \sum_{p,q,s,t}U_{1p}U_{2q}U_{3s}U_{4t}c^\dagger_{rp} c^\dagger_{rq} c^\dagger_{rs} c^\dagger_{rt} \label{before} \\
+		& = & \sum_{\sigma\in S_4} \sgn(\sigma)U_{1\sigma(1)}U_{2\sigma(2)}U_{3\sigma(3)}U_{4\sigma(4)}c^\dagger_{r1} c^\dagger_{r2} c^\dagger_{r3} c^\dagger_{r4} \label{after} \\
+		& = & \det(U)c^\dagger_{r1} c^\dagger_{r2} c^\dagger_{r3} c^\dagger_{r4} \\
+		& = & c^\dagger_{r1} c^\dagger_{r2} c^\dagger_{r3} c^\dagger_{r4}
+	\end{eqnarray}
+	\item Going from \eq{before} to \eq{after} it is crucial that $c^\dagger_{r1} c^\dagger_{r2} c^\dagger_{r3} c^\dagger_{r4}$ is the only possible local term up to a minus sign, no other combinations of the internal DOF (non-spacial DOF labeled by $r$) are allowed.
+	\item The PH-trafo required the $(-1)^\alpha$ for the non-interacting part such that it is trivially invariant after the PH-trafo.
+\end{itemize}
+
+Going back to our model, we have more than $4$ local DOF such that more than one $\Psi^\dagger_{rp} \Psi^\dagger_{rq} \Psi^\dagger_{rs} \Psi^\dagger_{rt}$ is possible. Hence we were to quick by saying that the spinor DOFs are independent of the $SU(4)$ DOFs. So even upon introducing the alternating signs in the non-interacting part, I do not see a chance to reconstruct a symmetric model in the same way as Zi Yang did.
+
+As a comment: The alternating sign interchanges conduction and valence bands such that the topology is also picking up the minus sign. There are two remarks in order. First, Fakher told me, that this matrix of minus signs is a Casimir of the $SU(4)$ so we could add another charge to the topological invariant. Second, I don't see a reason, why we can't add the usual $(-1)^r$ sign in the PH-trafo (they cancel in the interaction) such that the free part stays invariant.
+
 
 %(Raquel)
 %The above Hamiltonian is composed of four disconnected sectors, each describing a lattice Dirac Hamiltonian of winding number 1. The symmetries that rotate within this space is not particularly relevent for the topology, but you are welcome to use them to simplify the diagrams.

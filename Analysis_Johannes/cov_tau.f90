@@ -15,19 +15,20 @@
             end function Rot90
          end Interface
 
-         Integer :: Ndim, Norb
-         Integer :: no, no1, n, nbins, n_skip, nb, nT, Lt
-         real (Kind=8):: X, Y,  dtau, X_diag, X1, x2
-         real (Kind=8), allocatable :: Xmean(:), Xcov(:,:)
-         Complex (Kind=8) :: Z
+         Integer :: Ndim, Norb, N_cov
+         Integer :: no, no1, n, nbins, n_skip, nb, nT, Lt, nt1
+         real (Kind=8):: X, Y,  dtau, X1, x2
+         Complex (Kind=8), allocatable :: Xmean(:), Xcov(:,:)
+         Complex (Kind=8) :: Z, X_diag
          Real (Kind=8) :: Zero=1.D-8
          Real (Kind=8), allocatable :: Phase(:)
-         Real    (Kind=8), allocatable :: Bins(:,:,:)
+         Complex (Kind=8), allocatable :: Bins(:,:,:)
          Complex (Kind=8), allocatable :: Bins0(:,:)
          Real (Kind=8), allocatable :: Xk_p(:,:)
-         Real (Kind=8), allocatable :: V_help(:,:)
+         Complex (Kind=8), allocatable :: V_help(:,:)
          Character (len=64) :: File_out
 
+         N_cov=0
 
          ! Determine the number of bins. 
          Open ( Unit=10, File="intau", status="unknown" ) 
@@ -75,7 +76,7 @@
                X_diag = 0.d0
                Do no = 1,Norb
                   Read(10,*)  bins0(nb-n_skip,no)
-                  X_diag =  X_diag + real(bins0(nb-n_skip,no)*bins0(nb-n_skip,no),kind=8)
+                  X_diag =  X_diag + bins0(nb-n_skip,no)*bins0(nb-n_skip,no)
                Enddo
                do n = 1,Ndim
                   Read(10,*) Xk_p(1,n), Xk_p(2,n)
@@ -83,7 +84,7 @@
                      do no = 1,norb
                         do no1 = 1,Norb
                            read(10,*) Z
-                           if (no == no1) bins(n,nt,nb-n_skip) = bins(n,nt,nb-n_skip) +  real(Z,Kind=8) 
+                           if (no == no1) bins(n,nt,nb-n_skip) = bins(n,nt,nb-n_skip) +  Z
                         enddo
                      enddo
                   enddo
@@ -139,10 +140,19 @@
                call COV(bins(n,:,:), phase, Xcov, Xmean )
                write(File_out,'("g_",F4.2,"_",F4.2)')  Xk_p(1,n), Xk_p(2,n)
                Open (Unit=10,File=File_out,status="unknown")
+               Write(10,*) LT
                do nt = 1, LT
-                  Write(10,"(F14.7,2x,F16.8,2x,F16.8)") &
-                       & dble(nt-1)*dtau,  Xmean(nt), sqrt(abs(dble(Xcov(nt,nt))))
+                  Write(10,"(F14.7,2x,F16.8,2x,F16.8,2x,F16.8,2x,F16.8)") &
+                       & dble(nt-1)*dtau,  dble(Xmean(nt)), sqrt(abs(dble(Xcov(nt,nt)))), &
+                       & aimag(Xmean(nt)), sqrt(abs(aimag(Xcov(nt,nt))))
                enddo
+                If (N_cov == 1) Then ! Print  covariance
+                    Do nt = 1,LT
+                      Do nt1 = 1,LT
+                          Write(10,*) dble(Xcov(nt,nt1))
+                      Enddo
+                    Enddo
+                Endif
                close(10)
             endif
          enddo
@@ -159,10 +169,19 @@
          call COV(V_help, phase, Xcov, Xmean )
          write(File_out,'("g_R0")') 
          Open (Unit=10,File=File_out,status="unknown")
+         Write(10,*) LT
          do nt = 1, LT
-            Write(10,"(F14.7,2x,F16.8,2x,F16.8)") &
-                 & dble(nt-1)*dtau,  Xmean(nt), sqrt(abs(dble(Xcov(nt,nt))))
+            Write(10,"(F14.7,2x,F16.8,2x,F16.8,2x,F16.8,2x,F16.8)") &
+                 & dble(nt-1)*dtau,  dble(Xmean(nt)), sqrt(abs(dble(Xcov(nt,nt)))), &
+                 & aimag(Xmean(nt)), sqrt(abs(aimag(Xcov(nt,nt))))
          enddo
+         If (N_cov == 1) Then ! Print  covariance
+            Do nt = 1,LT
+               Do nt1 = 1,LT
+                  Write(10,*) dble(Xcov(nt,nt1))
+               Enddo
+            Enddo
+         Endif
          close(10)
          
 

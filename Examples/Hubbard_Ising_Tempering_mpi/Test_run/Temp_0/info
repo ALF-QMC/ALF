@@ -1,0 +1,41 @@
+ =====================================
+ Model is      : Hubbard_SU2_Ising                                               
+ Lattice is    : Square                                                          
+ # of orbitals :           16
+ Beta          :    10.000000000000000     
+ dtau,Ltrot    :   0.10000000000000001              100
+ N_SUN         :            2
+ N_FL          :            1
+ t             :    1.0000000000000000     
+ Ham_U         :    0.0000000000000000     
+ Ham_chem      :    0.0000000000000000     
+ Ham_xi        :    2.0000000000000000     
+ Ham_J         :    0.0000000000000000     
+ Ham_h         :    2.0000000000000000     
+ Ham_F         :    2.0000000000000000     
+ No initial configuration, Seed_in      402600
+ Sweeps                              :           50
+ Prog will stop after hours:    0.0500
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            1
+ # of interacting Ops per time slice :           32
+ Propose Ising moves according to  bare Ising action
+ Global moves are enabled   
+ # of global moves / sweep :           1
+ Default sequential updating 
+ Number of mpi-processes :            2
+ This executable represents commit 08c0b67 of branch master.
+ # of exchange steps             6
+ Tempering frequency            10
+  Precision Green  Mean, Max :    4.6421276237064548E-011   2.9521592948000830E-009
+  Precision Phase, Max       :    0.0000000000000000     
+  Precision tau    Mean, Max :    1.1428799457887000E-011   1.8496620624031124E-009
+  Acceptance                 :   0.86712659501317024     
+  Acceptance Tempering       :   0.42499999999999993     
+  Acceptance_Glob            :    2.2212371946414497E-002
+  Mean Phase diff Glob       :    0.0000000000000000     
+  Max  Phase diff Glob       :    0.0000000000000000     
+  CPU Time                   :    159.82208100000000     
+  Effective number of bins   :            8

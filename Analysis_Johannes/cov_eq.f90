@@ -22,7 +22,7 @@
          Integer :: Ndim, Norb, ierr
          Integer :: no, no1, n, n1,m,  nbins, n_skip, nb, N_rebin
          real (Kind=8):: X, Y 
-         Real (Kind=8), allocatable :: Phase(:)
+         Complex (Kind=8), allocatable :: Phase(:)
          Type  (Mat_C), allocatable :: Bins(:,:), Bins_R(:,:)
          Complex (Kind=8), allocatable :: Bins0(:,:)
          Complex (Kind=8) :: Z, Xmean,Xerr, Xmean_r,Xerr_r, weight1, weight2
@@ -109,13 +109,15 @@
             do nb = 1,nbins
                Call Make_Mat(bins  (n,nb),Norb)
                Call Make_Mat(bins_r(n,nb),Norb)
-               bins_r(n,nb)%el = 0.d0
+               bins_r(n,nb)%el = cmplx(0.d0,0.d0,kind(0.d0))
+               bins  (n,nb)%el = cmplx(0.d0,0.d0,kind(0.d0))
             Enddo
          Enddo
          Open ( Unit=10, File="ineq", status="unknown" ) 
          do nb = 1, nbins + n_skip
             if (nb > n_skip ) then
-               Read(10,*,End=10) Phase(nb-n_skip),no,no1
+               Read(10,*,End=10) X,no,no1
+               Phase(nb-n_skip) = cmplx(1.d0,0.d0,kind(0.d0))
                Do no = 1,Norb
                   Read(10,*) Bins0(nb-n_skip,no)
                enddo
@@ -170,6 +172,7 @@
          enddo
 #endif
          Open (Unit=33,File="equalJ"       ,status="unknown")
+         Open (Unit=34,File="equalJR"       ,status="unknown")
          N_rebin = 1
          Do n1 = 1,Ndim
             n = n1
@@ -182,67 +185,78 @@
                   enddo
                enddo
                V_help = V_help/dble(Norb)
-               call ERRCALCJ(V_help,   XMean, XERR, N_rebin ) 
+               call ERRCALCJ(V_help, Phase,  XMean, XERR, N_rebin )
+               do nb = 1,Nbins 
+                  do no = 1,Norb
+                     V_help  (nb) = V_help  (nb) + bins_r(n,nb)%el(no,no)
+                  enddo
+               enddo
+               V_help = V_help/dble(Norb)
+               call ERRCALCJ( V_help,Phase, XMean_r, XERR_r, N_rebin ) 
+               Xr_p = dble(Latt%list (n,1))*Latt%a1_p + dble(Latt%list (n,2))*Latt%a2_p  
                Xk_p = dble(Latt%listk(n1,1))*Latt%b1_p + dble(Latt%listk(n1,2))*Latt%b2_p 
-               Write(33,"(F12.6,2x,F12.6,2x,F12.6,2x,F12.6)") &
-                    & Xk_p(1), Xk_p(2), dble(Xmean  ), dble(Xerr  )
+               Write(33,"(F12.6,2x,F12.6,2x,F12.6,2x,F12.6,2x,F12.6,2x,F12.6)") &
+                    & Xk_p(1), Xk_p(2), dble(Xmean  ), dble(Xerr  ), aimag(Xmean  ), aimag(Xerr  )
+               Write(34,"(F12.6,2x,F12.6,2x,F12.6,2x,F12.6,2x,F12.6,2x,F12.6)") &
+                    & Xr_p(1), Xr_p(2), dble(Xmean_r  ), dble(Xerr_r  ), aimag(Xmean_r  ), aimag(Xerr_r  )
             enddo
          enddo
-         If (Norb > 0 ) then 
-            !Compute susecptibility 
-            Xk_p = 0.d0
-            n = Inv_K(Xk_p,Latt)
-            V_help   = 0.d0
-            do nb = 1,Nbins 
-               do no = 1,Norb
-                  Do no1 = 1,Norb
-                     V_help  (nb) = V_help  (nb) + bins(n,nb)%el(no,no1)
-                  enddo
-               enddo
-            enddo
-            call ERRCALCJ(V_help,   XMean, XERR, N_rebin ) 
-            Write(33,"('# Suscpetibility: ', F12.6,2x,F12.6)")  dble(Xmean  ), dble(Xerr  )
-            V_help   = 0.d0
-            do nb = 1,Nbins 
-               do no = 1,Norb
-		  weight1= cmplx((-1.d0)**((no-1)/4),0.d0)
-! 		  if (nb==1) write(*,*) no, weight1
-                  Do no1 = 1,Norb
-		     weight2= cmplx((-1.d0)**((no1-1)/4),0.d0)
-! 		     if (nb==1) write(*,*) no1, weight2
-                     V_help  (nb) = V_help  (nb) + 0.25*weight1*weight2* bins(n,nb)%el(no,no1)
-                  enddo
-               enddo
-            enddo
-            call ERRCALCJ(V_help,   XMean, XERR, N_rebin ) 
-            Write(33,"('# Suscpetibility U1: ', F12.6,2x,F12.6)")  dble(Xmean  ), dble(Xerr  )
-            V_help   = 0.d0
-            do nb = 1,Nbins 
-               do no = 1,Norb
-		  weight1= cmplx(1.d0,0.d0)
-		  if (no>8) weight1=-weight1
-! 		  if (nb==1) write(*,*) no, weight1
-                  Do no1 = 1,Norb
-		     weight2= cmplx(1.d0,0.d0)
-		     if (no1>8) weight2=-weight2
-! 		     if (nb==1) write(*,*) no1, weight2
-                     V_help  (nb) = V_help  (nb) + 0.25*weight1*weight2* bins(n,nb)%el(no,no1)
-                  enddo
-               enddo
-            enddo
-            call ERRCALCJ(V_help,   XMean, XERR, N_rebin ) 
-            Write(33,"('# Suscpetibility Sz: ', F12.6,2x,F12.6)")  dble(Xmean  ), dble(Xerr  )
-	    do no = 1,Norb
-               V_help   = 0.d0
-               !n = Rot90(n, Xk_p, Ndim)
-               do nb = 1,Nbins 
-                     V_help  (nb) = V_help  (nb) + Bins0(nb,no)
-               enddo
-               call ERRCALCJ(V_help,   XMean, XERR, N_rebin ) 
-	       Write(33,"('# Background: ', F12.6,2x,F12.6)")  dble(Xmean  ), dble(Xerr  )
-	    enddo
-         endif
+!          If (Norb > 0 ) then 
+!             !Compute susecptibility 
+!             Xk_p = 0.d0
+!             n = Inv_K(Xk_p,Latt)
+!             V_help   = 0.d0
+!             do nb = 1,Nbins 
+!                do no = 1,Norb
+!                   Do no1 = 1,Norb
+!                      V_help  (nb) = V_help  (nb) + bins(n,nb)%el(no,no1)
+!                   enddo
+!                enddo
+!             enddo
+!             call ERRCALCJ(V_help, Phase,  XMean, XERR, N_rebin ) 
+!             Write(33,"('# Suscpetibility: ', F12.6,2x,F12.6)")  dble(Xmean  ), dble(Xerr  )
+!             V_help   = 0.d0
+!             do nb = 1,Nbins 
+!                do no = 1,Norb
+! 		  weight1= cmplx((-1.d0)**((no-1)/4),0.d0)
+! ! 		  if (nb==1) write(*,*) no, weight1
+!                   Do no1 = 1,Norb
+! 		     weight2= cmplx((-1.d0)**((no1-1)/4),0.d0)
+! ! 		     if (nb==1) write(*,*) no1, weight2
+!                      V_help  (nb) = V_help  (nb) + 0.25*weight1*weight2* bins(n,nb)%el(no,no1)
+!                   enddo
+!                enddo
+!             enddo
+!             call ERRCALCJ(V_help, Phase,  XMean, XERR, N_rebin ) 
+!             Write(33,"('# Suscpetibility U1: ', F12.6,2x,F12.6)")  dble(Xmean  ), dble(Xerr  )
+!             V_help   = 0.d0
+!             do nb = 1,Nbins 
+!                do no = 1,Norb
+! 		  weight1= cmplx(1.d0,0.d0)
+! 		  if (no>8) weight1=-weight1
+! ! 		  if (nb==1) write(*,*) no, weight1
+!                   Do no1 = 1,Norb
+! 		     weight2= cmplx(1.d0,0.d0)
+! 		     if (no1>8) weight2=-weight2
+! ! 		     if (nb==1) write(*,*) no1, weight2
+!                      V_help  (nb) = V_help  (nb) + 0.25*weight1*weight2* bins(n,nb)%el(no,no1)
+!                   enddo
+!                enddo
+!             enddo
+!             call ERRCALCJ(V_help, Phase,  XMean, XERR, N_rebin ) 
+!             Write(33,"('# Suscpetibility Sz: ', F12.6,2x,F12.6)")  dble(Xmean  ), dble(Xerr  )
+! 	    do no = 1,Norb
+!                V_help   = 0.d0
+!                !n = Rot90(n, Xk_p, Ndim)
+!                do nb = 1,Nbins 
+!                      V_help  (nb) = V_help  (nb) + Bins0(nb,no)
+!                enddo
+!                call ERRCALCJ(V_help, Phase,  XMean, XERR, N_rebin ) 
+! 	       Write(33,"('# Background: ', F12.6,2x,F12.6)")  dble(Xmean  ), dble(Xerr  )
+! 	    enddo
+!          endif
          Close(33)
+         Close(34)
 
 
       

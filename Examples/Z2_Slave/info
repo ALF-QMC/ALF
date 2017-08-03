@@ -1,0 +1,37 @@
+ =====================================
+ Model is      : Z2_Slave                                                        
+ Lattice is    : Square                                                          
+ # of orbitals :           16
+ Beta          :    20.000000000000000     
+ dtau,Ltrot    :    5.0000000000000003E-002         400
+ N_SUN         :            2
+ N_FL          :            1
+ t             :    0.0000000000000000     
+ Ham_U         :    0.0000000000000000     
+ Ham_chem      :    0.0000000000000000     
+ Ham_xi        :   -1.0000000000000000     
+ Ham_J         :    0.0000000000000000     
+ Ham_h         :    1.0000000000000000     
+ Ham_F         :    0.0000000000000000     
+ Sweeps                              :          500
+ Prog will stop after hours:    0.5000
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           40
+ Ltau                                :            0
+ # of interacting Ops per time slice :           33
+ Propose Ising moves according to  bare Ising action
+ Global moves are enabled   
+ # of global moves / sweep :           1
+ Nt_sequential_start:            1
+ Nt_sequential_end  :            0
+ N_Global_tau       :           16
+ This executable represents commit c80902a of branch master.
+  Precision Green  Mean, Max :    3.0714263304645497E-015   2.3056556663902938E-012
+  Precision Phase, Max       :    0.0000000000000000     
+  Acceptance                 :   0.89439918971358245     
+  Acceptance_Glob            :    1.0000000000000000     
+  Mean Phase diff Glob       :    0.0000000000000000     
+  Max  Phase diff Glob       :    0.0000000000000000     
+  CPU Time                   :    1766.0296149999999     
+  Effective number of bins   :           34

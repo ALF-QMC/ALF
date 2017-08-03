@@ -2,7 +2,7 @@
 ! gfortran -Wall -std=f2003 -I ../../Prog_8/  -I ../../Libraries/Modules/ -L ../../Libraries/Modules/ 18-ul-update-matrices.f90 ../../Prog_8/wrap_helpers.o ../../Prog_8/UDV_WRAP.o ../../Libraries/Modules/modules_90.a ../../../../lapack-3.6.1/liblapack.a -lblas
 
 Program TESTULUPDATEMATRICES
-        Use Wrap_helpers
+        Use UDV_State_mod
 implicit none
 interface
 SUBROUTINE ul_update_matrices_old(U, D, V, V1, TMP, TMP1, Ndim, NCON)
@@ -14,32 +14,34 @@ SUBROUTINE ul_update_matrices_old(U, D, V, V1, TMP, TMP1, Ndim, NCON)
         end Subroutine
 end interface
 
-        COMPLEX(Kind=Kind(0.D0)), Dimension(:,:), allocatable ::  U, V, V1, TMP, TMP1, Uold, Vold, TMPold
-        COMPLEX(Kind=Kind(0.D0)), Dimension(:), allocatable ::  D, Dold
+        COMPLEX(Kind=Kind(0.D0)), Dimension(:,:), allocatable :: V1, TMP, TMP1, Uold, Vold, TMPold
+        COMPLEX(Kind=Kind(0.D0)), Dimension(:), allocatable ::  Dold
         INTEGER         :: i, j, Ndim, NCON
         COMPLEX(Kind=Kind(0.D0)) :: Z
+        TYPE(UDV_State) :: UDVL
         
         do Ndim = 5, 200,5
-        Allocate (U(Ndim, Ndim), Uold(Ndim, Ndim), V(Ndim, Ndim), Vold(Ndim, Ndim))
-        ALLocate(TMP(Ndim, Ndim), TMPold(Ndim, Ndim), D(Ndim), Dold(Ndim), TMP1(Ndim, Ndim), V1(Ndim, Ndim))
-        U = 0.D0
-        V = 0.D0
+        CALL UDVL%alloc(Ndim)
+        Allocate (Uold(Ndim, Ndim), Vold(Ndim, Ndim))
+        ALLocate(TMP(Ndim, Ndim), TMPold(Ndim, Ndim), Dold(Ndim), TMP1(Ndim, Ndim), V1(Ndim, Ndim))
+        Uold = 0.D0
+        Vold = 0.D0
         do i = 1, Ndim
         do j = 1, Ndim
         TMP(i, j) = 1.D0/(i+j)
         enddo
-        D(i) = 1.D0!i*i
-        U(i,i) = 1.D0
-        V(i,i) = 1.D0
-        V(1,i) = 1.D0
-        V(i,1) = 1.D0
+        Dold(i) = 1.D0!i*i
+        Uold(i,i) = 1.D0
+        Vold(i,i) = 1.D0
+        Vold(1,i) = 1.D0
+        Vold(i,1) = 1.D0
         enddo
-        Uold = U
-        Vold = V
-        Dold = D
+        UDVL%U = Uold
+        UDVL%V = Vold
+        UDVL%D = Dold
         TMPold = TMP
         NCON = 1
-        call ul_update_matrices(U, D, V, TMP, TMP1, Ndim, NCON)
+        CALL UDVL%matmultright(TMP, TMP1, NCON)
         call ul_update_matrices_old(Uold, Dold, Vold, V1, TMPold, TMP1, Ndim, NCON)
         
      ! compare
@@ -68,18 +70,19 @@ end interface
 !         
 !     enddo
 
-         Z = D(i) - Dold(i)
-         if (Abs(real(Z)) > MAX(ABS(REAL(D(i))), ABS(REAL(Dold(i))))*1D-15 ) then
+         Z = UDVL%D(i) - Dold(i)
+         if (Abs(real(Z)) > MAX(ABS(REAL(UDVL%D(i))), ABS(REAL(Dold(i))))*1D-15 ) then
 !         write (*,*) "Error in D real part", D(i), Dold(i)
 !         STOP 6
          endif
-         if (Abs(AIMAG(Z)) > MAX(ABS(AIMAG(D(i))), ABS(AIMAG(Dold(i))))*1D-15 ) then
+         if (Abs(AIMAG(Z)) > MAX(ABS(AIMAG(UDVL%D(i))), ABS(AIMAG(Dold(i))))*1D-15 ) then
 !         write (*,*) "Error in D imag part", D(i), Dold(i)
 !         STOP 7
          endif
 
         enddo
-        Deallocate(U, V, D, Vold, Uold, Dold, TMP, TMPold, V1, TMP1)
+        CALL UDVL%dealloc
+        Deallocate(Vold, Uold, Dold, TMP, TMPold, V1, TMP1)
         enddo
         
 write (*,*) "success"

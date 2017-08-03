@@ -1,31 +1,65 @@
-Examples:
-	(cd Libraries; make );\
-	(cd Prog_8; make Examples )
+# -DMPI selects MPI.
+# -DSTAB1  Alternative stabilization, using the singular value decomposition.
+# -DSTAB2  Alternative stabilization, lapack QR with  manual pivoting. Packed form of QR factorization is not used.
+# (Noflag) Default  stabilization, using lapack QR with pivoting. Packed form of QR factorization  is used. 
+# -DQRREF  Enables reference lapack implementation of QR decomposition.
+# -DTEMPERING  Complies program for parallel tempering. Requires MPI
+# Recommendation:  just use the -DMPI flag if you want to run in parallel or leave it empy for serial jobs.  
+# The default stabilization, no flag, is generically the best. 
+PROGRAMCONFIGURATION = -DMPI 
+PROGRAMCONFIGURATION = 
+# PROGRAMCONFIGURATION = -DMPI  -DTEMPERING
+f90 = gfortran
+# f90 = mpiifort
+export f90
+F90OPTFLAGS = -O3 -Wconversion  -fcheck=all
+F90OPTFLAGS = -O3
+# F90OPTFLAGS = -O3 -fp-model fast=2 -xHost -unroll -finline-functions -ipo -ip -heap-arrays 1024 -no-wrap-margin -parallel -qopenmp
+export F90OPTFLAGS
+F90USEFULFLAGS = -cpp -std=f2003
+F90USEFULFLAGS = -cpp
+# F90USEFULFLAGS = -cpp -std03
+export F90USEFULFLAGS
+FL = ${F90OPTFLAGS} ${PROGRAMCONFIGURATION}
+export FL
+DIR = ${CURDIR}
+export DIR
+Libs = ${DIR}/Libraries/
+export Libs
+LIB_BLAS_LAPACK = -llapack -lblas
+# LIB_BLAS_LAPACK = -mkl
+export LIB_BLAS_LAPACK
 
-Hub_Ising:
-	(cd Libraries; make );\
-	(cd Prog_8; make Hub_Ising )
+.PHONY : all lib ana program  Hub_Ising SPT Hub_Can Kondo_Honey
+all: lib ana program  Hub_Ising SPT Hub_Can Kondo_Honey
 
-Hub:
-	(cd Libraries; make );\
-	(cd Prog_8; make Hub )
+lib:
+	cd Libraries && $(MAKE)
+ana: lib
+	cd Analysis && $(MAKE)
+	cd Analysis_Johannes && $(MAKE)
+program: lib
+	cd Prog && $(MAKE) Examples
+Hub_Ising: lib
+	cd Prog && $(MAKE) Hub_Ising
+SPT: lib
+	cd Prog && $(MAKE) SPT
+Hub_Can: lib
+	cd Prog && $(MAKE) Hub_Can
+Kondo_Honey: lib
+	cd Prog && $(MAKE) Kondo_Honey
 
-Hub_Can:
-	(cd Libraries; make );\
-	(cd Prog_8; make Hub_Can )
-
-SPT:
-	(cd Libraries; make );\
-	(cd Prog_8; make SPT )
-
-Ising:
-	(cd Libraries; make );\
-	(cd Prog_8; make Ising )
-
-Kondo_Honey:
-	(cd Libraries; make );\
-	(cd Prog_8; make Kondo_Honey )
-
-clean: 	
-	(cd Prog_8; make clean );\
-	(cd Libraries; make clean )
+.PHONY : clean cleanall cleanprog cleanlib cleanana help
+clean: cleanall
+cleanall: cleanprog cleanlib cleanana  
+cleanprog:
+	cd Prog && $(MAKE) clean 
+cleanlib:
+	cd Libraries && $(MAKE) clean
+cleanana:
+	cd Analysis && $(MAKE) clean
+	cd Analysis_Johannes && $(MAKE) clean
+help:
+	@echo "The following are some of the valid targets of this Makefile"
+	@echo "all, program, lib, ana, clean, cleanall, cleanprog, cleanlib, cleanana"
+	@echo "Hub_Ising SPT Hub Hub_Can Kondo_Honey"

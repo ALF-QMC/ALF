@@ -14,6 +14,7 @@
        Character (len=1)  :: Fermion_type
        Complex (Kind=8) :: Z
        Character (Len=64) :: command
+       Integer ::  L_cov
        
 
 
@@ -24,6 +25,7 @@
           write(50,*) 'Reading in from paramSAC'
           read(30,*)  Ngamma, OM_st, OM_en, Ndis,  NBins, NSweeps, Nwarm
           read(30,*)  N_alpha, alpha_st, R
+          read(30,*) L_cov
        else
           write(6,*) 'No file paramSAC! ' 
           stop
@@ -42,6 +44,13 @@
           endif
           xcov(nt,nt) = err*err
        enddo
+       if (L_cov.eq.1) then
+          do nt = 1,ntau
+             do nt1 = 1,ntau
+                read(10,*) xcov(nt,nt1)
+             enddo
+          enddo
+       endif
        close(10)
        xqmc_st = xqmc
        dtau = Xtau(2) - Xtau(1)
@@ -57,7 +66,7 @@
           
           
        Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER, Back_Trans_Aom, Beta, &
-            &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm) 
+            &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, L_cov) 
        
        
        N_alpha_1 = N_alpha - 10  

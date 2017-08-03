@@ -76,7 +76,7 @@ Module MaxEnt_stoch_mod
            cov  = cov / ((XMOM1)**2)
            ! Diagonalize the covariance
            Allocate( U(ntau,ntau), Sigma(ntau), xqmc1(Ntau) )
-           If ( Present(L_cov) ) then
+           If ( Present(L_cov) .and. L_cov==1 ) then
               Call Diag(cov,U,sigma)
               ! Write(6,*) " Cov Used"
            else

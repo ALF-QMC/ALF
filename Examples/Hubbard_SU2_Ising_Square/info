@@ -1,0 +1,33 @@
+ =====================================
+ Model is      : Hubbard_SU2_Ising                                               
+ Lattice is    : Square                                                          
+ # of orbitals :           16
+ Beta          :    10.000000000000000     
+ dtau,Ltrot    :   0.10000000000000001              100
+ N_SUN         :            2
+ N_FL          :            1
+ t             :    0.0000000000000000     
+ Ham_U         :    2.0000000000000000     
+ Ham_chem      :    0.0000000000000000     
+ Ham_xi        :    2.0000000000000000     
+ Ham_J         :    0.0000000000000000     
+ Ham_h         :    2.0000000000000000     
+ No initial configuration, Seed_in      790789
+ Sweeps                              :          500
+ Prog will stop after hours:    0.1000
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            1
+ # of interacting Ops per time slice :           48
+ Default sequential updating 
+ This executable represents commit c80902a of branch master.
+  Precision Green  Mean, Max :    2.1171646660605182E-013   3.1379493258393454E-010
+  Precision Phase, Max       :    3.8003128867694504E-011
+  Precision tau    Mean, Max :    4.1410766345147085E-014   1.4455801208968624E-011
+  Acceptance                 :   0.28633346590909092     
+  Acceptance_Glob            :    0.0000000000000000     
+  Mean Phase diff Glob       :    0.0000000000000000     
+  Max  Phase diff Glob       :    0.0000000000000000     
+  CPU Time                   :    331.39402799999999     
+  Effective number of bins   :           11
