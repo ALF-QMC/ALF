@@ -74,7 +74,10 @@
         If ( Op_V(n_op,nf)%type == 1) then
            if ( Propose_S0 ) then
               Weight = 1.d0 - 1.d0/(1.d0+S0(n_op,nt))
-              If ( Weight < ranf_wrap() ) Return
+              If ( Weight < ranf_wrap() ) then
+                 Call Control_upgrade_eff(.false.)
+                 Return
+              endif
            endif
            ns_new = -ns_old
         else
@@ -212,6 +215,7 @@
         endif
 
         Call Control_upgrade(toggle)
+        Call Control_upgrade_eff(toggle)
 
       End Subroutine Upgrade
 
@@ -375,6 +379,9 @@
            nsigma(n_op,nt) = ns_new
         endif
 
-        If ( mode == "Final" )  Call Control_upgrade(toggle)
+        If ( mode == "Final" )  then
+           Call Control_upgrade(toggle)
+           Call Control_upgrade_eff(toggle)
+        endif
 
       End Subroutine Upgrade2

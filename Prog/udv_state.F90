@@ -47,6 +47,9 @@ MODULE UDV_State_mod
             PROCEDURE :: matmultleft => matmultleft_UDV_state
             PROCEDURE :: matmultright => matmultright_UDV_state
             PROCEDURE :: print => print_UDV_state
+#if defined(MPI)
+            PROCEDURE :: MPI_Sendrecv => MPI_Sendrecv_UDV_state
+#endif
             GENERIC :: ASSIGNMENT(=) => assign
     END TYPE UDV_State
 
@@ -276,5 +279,54 @@ END SUBROUTINE matmultright_UDV_state
         CALL ZUNGQR(Ndim, Ndim, Ndim, UDVR%U, Ndim, TAU, WORK, LWORK, INFO)
         DEALLOCATE(TAU, WORK, IPVT)
 END SUBROUTINE matmultleft_UDV_state
+
+!--------------------------------------------------------------------
+!> @author 
+!> ALF-project
+!
+!> @brief 
+!> This function sends the UDV-State to MPI-process of rank dest
+!> and replaces the state with the one it receives from MPI-process of rank source 
+!
+!> @param [inout] this The object to be modified.
+!> @param [in] dest MPI-rank of process where this will be sent
+!> @param [in] sendtag
+!> @param [in] source MPI-rank of process from which the new state will be received
+!> @param [in] recvtag
+!> @param [out] STATUS
+!> @param [out] IERR
+!-------------------------------------------------------------------
+#if defined(MPI) 
+ SUBROUTINE MPI_Sendrecv_UDV_state(this, dest, sendtag, source, recvtag, STATUS, IERR)
+        Implicit None
+        include 'mpif.h'
+        CLASS(UDV_State), INTENT(INOUT) :: this
+        INTEGER, intent(in)  :: dest, sendtag, source, recvtag
+        Integer, intent(out) :: STATUS(MPI_STATUS_SIZE), IERR
+        
+        COMPLEX (Kind=Kind(0.d0)), allocatable :: U_temp(:, :), V_temp(:, :)
+        COMPLEX (Kind=Kind(0.d0)), allocatable :: D_temp(:)
+        INTEGER :: n
+        !INTEGER :: ndim_temp
+        
+        n = this%ndim * this%ndim
+        
+        ALLOCATE(U_temp(this%ndim, this%ndim))
+        CALL MPI_Sendrecv(this%U, n, MPI_COMPLEX16, dest,   sendtag, &
+                 &        U_temp, n, MPI_COMPLEX16, source, recvtag, MPI_COMM_WORLD,STATUS,IERR)
+        this%U = U_temp
+        DEALLOCATE(U_temp)
+        ALLOCATE(V_temp(this%ndim, this%ndim))
+        CALL MPI_Sendrecv(this%V, n, MPI_COMPLEX16, dest,   sendtag, &
+                 &        V_temp, n, MPI_COMPLEX16, source, recvtag, MPI_COMM_WORLD,STATUS,IERR)
+        this%V = V_temp
+        DEALLOCATE(V_temp)
+        ALLOCATE(D_temp(this%ndim))
+        CALL MPI_Sendrecv(this%D, this%ndim, MPI_COMPLEX16, dest,   sendtag, &
+                 &        D_temp, this%ndim, MPI_COMPLEX16, source, recvtag, MPI_COMM_WORLD,STATUS,IERR)
+        this%D = D_temp
+        DEALLOCATE(D_temp)
+END SUBROUTINE MPI_Sendrecv_UDV_state
+#endif
 
 END MODULE UDV_State_mod

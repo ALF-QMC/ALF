@@ -151,6 +151,8 @@ Contains
           !Write(6,*) 'Hi', n, Op_V(n,nf)%type, T0_Proposal_ratio, S0_ratio  
           Prev_Ratiotot = cmplx(1.d0,0.d0,kind(0.d0))
           Call Upgrade2(GR,n,ntau1,PHASE,Op_V(n,nf)%N_non_Zero,Flip_value(1), Prev_Ratiotot, S0_ratio,T0_Proposal_ratio, Acc, mode ) 
+       else
+          Call Control_upgrade_eff(.false.)
        Endif
        do nf = 1,N_FL
           N_type =  2
@@ -251,6 +253,8 @@ Contains
           mode = "Final"
           Prev_Ratiotot = cmplx(1.d0,0.d0,kind(0.d0))
           Call Upgrade2(GR,n,ntau,PHASE,Op_V(n,nf)%N_non_Zero,Flip_value(1), Prev_Ratiotot, S0_ratio,T0_Proposal_ratio, Acc, mode ) 
+       else
+          Call Control_upgrade_eff(.false.)
        Endif
      
        !Call Upgrade(GR,n,ntau,PHASE,Op_V(n,1)%N_non_zero) 

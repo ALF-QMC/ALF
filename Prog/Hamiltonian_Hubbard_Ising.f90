@@ -457,14 +457,14 @@
         end function S0
 
 !===================================================================================           
-        Subroutine Global_move(T0_Proposal_ratio,nsigma_old)
+        Subroutine Global_move(T0_Proposal_ratio,nsigma_old,size_clust)
           !>  The input is the field nsigma declared in this module. This routine generates a 
           !>  global update with  and returns the propability  
           !>  T0_Proposal_ratio  =  T0( sigma_out-> sigma_in ) /  T0( sigma_in -> sigma_out)  
           !>   
           
           Implicit none
-          Real (Kind=Kind(0.d0)), intent(out) :: T0_Proposal_ratio
+          Real (Kind=Kind(0.d0)), intent(out) :: T0_Proposal_ratio, size_clust
           Integer, dimension(:,:),  allocatable, intent(in)  :: nsigma_old
           !> nsigma_old contains a copy of nsigma upon entry
           
@@ -1540,7 +1540,7 @@
         
         Integer :: n,  nc, n_op, nt
         Integer, allocatable :: nsigma_old(:,:)
-        Real (Kind=kind(0.d0)) :: X, X1
+        Real (Kind=kind(0.d0)) :: X, X1, size_clust
         
         n = size(Op_V,1)
         allocate (nsigma_old(n,Ltrot))
@@ -1555,7 +1555,7 @@
            !   Write(6,*) nc, X, X1
            !endif
            nsigma_old = nsigma
-           Call Global_move(X,nsigma_old)
+           Call Global_move(X,nsigma_old,size_clust)
            X1 = Delta_S0_global(Nsigma_old) 
            Write(6,*) nc, X, X1
         enddo

@@ -99,7 +99,7 @@ Program Main
         Character (len=64) :: file1
   
         ! Space for choosing sampling scheme
-        Logical :: Propose_S0
+        Logical :: Propose_S0, Tempering_calc_det
         Logical :: Global_moves, Global_tau_moves
         Integer :: N_Global 
         Integer :: Nt_sequential_start, Nt_sequential_end, mpi_per_parameter_set
@@ -108,7 +108,7 @@ Program Main
         
 #if defined(TEMPERING)
         Integer :: N_exchange_steps, N_Tempering_frequency
-        NAMELIST /VAR_TEMP/  N_exchange_steps, N_Tempering_frequency, mpi_per_parameter_set
+        NAMELIST /VAR_TEMP/  N_exchange_steps, N_Tempering_frequency, mpi_per_parameter_set, Tempering_calc_det
 #endif
         
         NAMELIST /VAR_QMC/   Nwrap, NSweep, NBin, Ltau, LOBS_EN, LOBS_ST, CPU_MAX, &
@@ -146,7 +146,8 @@ Program Main
 #endif
         
 #if defined(TEMPERING) && defined(MPI)
-        mpi_per_parameter_set = 1  ! Default value
+        mpi_per_parameter_set = 1   ! Default value
+        Tempering_calc_det = .true. ! Default value
         OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
         IF (ierr /= 0) THEN
            WRITE(*,*) 'unable to open <parameters>',ierr
@@ -157,6 +158,7 @@ Program Main
         CALL MPI_BCAST(N_exchange_steps        ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
         CALL MPI_BCAST(N_Tempering_frequency   ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
         CALL MPI_BCAST(mpi_per_parameter_set   ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+        CALL MPI_BCAST(Tempering_calc_det      ,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
         if ( mod(ISIZE,mpi_per_parameter_set) .ne. 0 ) then
            Write (6,*) "mpi_per_parameter_set is not a multiple of total mpi processes"
            stop
@@ -311,6 +313,7 @@ Program Main
 #if defined(TEMPERING) 
            Write(50,*) '# of exchange steps  ',N_exchange_steps 
            Write(50,*) 'Tempering frequency  ',N_Tempering_frequency
+           Write(50,*) 'Tempering Calc_det   ',Tempering_calc_det
 #endif
            close(50)
 #if defined(MPI) 
@@ -377,7 +380,7 @@ Program Main
 #if defined(TEMPERING)
               IF (MOD(NSW,N_Tempering_frequency) == 0) then
                  !Write(6,*) "Irank, Call tempering", Irank, NSW
-                 CALL Exchange_Step(Phase,GR,udvr, udvl,Stab_nt, udvst, N_exchange_steps)
+                 CALL Exchange_Step(Phase,GR,udvr, udvl,Stab_nt, udvst, N_exchange_steps, Tempering_calc_det)
               endif
 #endif
               ! Global updates

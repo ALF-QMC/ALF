@@ -51,10 +51,13 @@
     Integer (Kind=Kind(0.d0)), private, save :: count_CPU_start,count_CPU_end,count_rate,count_max
     Integer          , private, save :: NCG, NCG_tau
     Integer (Kind=Kind(0.d0)) , private, save :: NC_up, ACC_up
+    Integer (Kind=Kind(0.d0)) , private, save :: NC_eff_up, ACC_eff_up
     Integer (Kind=kind(0.d0)),  private, save :: NC_Glob_up, ACC_Glob_up
     Integer (Kind=kind(0.d0)),  private, save :: NC_Temp_up, ACC_Temp_up 
     real    (Kind=Kind(0.d0)),  private, save :: XMAXP_Glob, XMEANP_Glob
     Integer (Kind=Kind(0.d0)),  private, save :: NC_Phase_GLob
+    
+    real    (Kind=Kind(0.d0)),  private, save :: size_clust_Glob_up, size_clust_Glob_ACC_up
 
     
     Contains
@@ -73,12 +76,17 @@
         NCG_tau      = 0
         NC_up        = 0
         ACC_up       = 0
+        NC_eff_up    = 0
+        ACC_eff_up   = 0
         NC_Glob_up   = 0
         ACC_Glob_up  = 0
         NC_Phase_GLob= 0
 
         NC_Temp_up   = 0
         ACC_Temp_up  = 0
+        
+        size_clust_Glob_up    = 0.d0
+        size_clust_Glob_ACC_up= 0.d0
 
         call system_clock(count_CPU_start,count_rate,count_max)
       end subroutine control_init
@@ -89,6 +97,13 @@
         NC_up = NC_up + 1
         if (toggle) ACC_up = ACC_up + 1
       end Subroutine Control_upgrade
+      
+      Subroutine Control_upgrade_eff(toggle) 
+        Implicit none
+        Logical :: toggle
+        NC_eff_up = NC_eff_up + 1
+        if (toggle) ACC_eff_up = ACC_eff_up + 1
+      end Subroutine Control_upgrade_eff
 
       Subroutine Control_upgrade_Temp(toggle) 
         Implicit none
@@ -97,11 +112,16 @@
         if (toggle)  ACC_Temp_up  = ACC_Temp_up + 1
       end Subroutine Control_upgrade_Temp
 
-      Subroutine Control_upgrade_Glob(toggle) 
+      Subroutine Control_upgrade_Glob(toggle,size_clust) 
         Implicit none
         Logical :: toggle
+        Real (Kind=Kind(0.d0)) :: size_clust
         NC_Glob_up = NC_Glob_up + 1
-        if (toggle) ACC_Glob_up = ACC_Glob_up + 1
+        size_clust_Glob_up = size_clust_Glob_up + size_clust
+        if (toggle) then 
+          ACC_Glob_up = ACC_Glob_up + 1
+          size_clust_Glob_ACC_up = size_clust_Glob_ACC_up + size_clust
+        endif
       end Subroutine Control_upgrade_Glob
 
 
@@ -164,7 +184,7 @@
         include 'mpif.h'
 #endif
         Character (len=64) :: file1 
-        Real (Kind=Kind(0.d0)) :: Time, Acc, Acc_Glob, Acc_Temp
+        Real (Kind=Kind(0.d0)) :: Time, Acc, Acc_eff, Acc_Glob, Acc_Temp, size_clust_Glob, size_clust_Glob_ACC
 #ifdef MPI
         REAL (Kind=Kind(0.d0))  :: X
         Integer        :: Ierr, Isize, Irank, irank_g, isize_g, igroup
@@ -178,8 +198,16 @@
        
         ACC = 0.d0
         IF (NC_up > 0 )  ACC = dble(ACC_up)/dble(NC_up)
+        ACC_eff = 0.d0
+        IF (NC_eff_up > 0 )  ACC_eff = dble(ACC_eff_up)/dble(NC_eff_up)
         ACC_Glob = 0.d0
-        IF (NC_Glob_up    > 0 )  ACC_Glob    = dble(ACC_Glob_up)/dble(NC_Glob_up)
+        size_clust_Glob = 0.d0
+        size_clust_Glob_ACC = 0.d0
+        IF (NC_Glob_up    > 0 )  then
+          ACC_Glob    = dble(ACC_Glob_up)/dble(NC_Glob_up)
+          size_clust_Glob     = size_clust_Glob_up     / dble( NC_Glob_up)
+          size_clust_Glob_ACC = size_clust_Glob_ACC_up / dble(ACC_Glob_up)
+        endif
         ACC_TEMP = 0.d0
         IF (NC_Temp_up    > 0 )  ACC_Temp    = dble(ACC_Temp_up)/dble(NC_Temp_up)
         IF (NC_Phase_GLob > 0 ) XMEANP_Glob  = XMEANP_Glob/dble(NC_Phase_GLob)
@@ -193,11 +221,21 @@
         CALL MPI_REDUCE(ACC,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
         ACC = X/dble(Isize_g)
         X = 0.d0
+        CALL MPI_REDUCE(ACC_eff,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
+        ACC_eff = X/dble(Isize_g)
+        X = 0.d0
         CALL MPI_REDUCE(ACC_Glob,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
         ACC_Glob = X/dble(Isize_g)
         X = 0.d0
         CALL MPI_REDUCE(ACC_Temp ,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
         ACC_Temp  = X/dble(Isize_g)
+        
+        X = 0.d0
+        CALL MPI_REDUCE(size_clust_Glob,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
+        size_clust_Glob = X/dble(Isize_g)
+        X = 0.d0
+        CALL MPI_REDUCE(size_clust_Glob_ACC,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
+        size_clust_Glob_ACC = X/dble(Isize_g)
 
 
         X = 0.d0
@@ -250,13 +288,16 @@
               Write(50,*) ' Precision tau    Mean, Max : ', XMEAN_tau, XMAX_tau
            endif
            Write(50,*) ' Acceptance                 : ', ACC
+           Write(50,*) ' Effective Acceptance       : ', ACC_eff
 #if defined(TEMPERING) 
            Write(50,*) ' Acceptance Tempering       : ', ACC_Temp
 #endif
            !If (ACC_Glob > 1.D-200 ) then
-              Write(50,*) ' Acceptance_Glob            : ', ACC_Glob
-              Write(50,*) ' Mean Phase diff Glob       : ', XMEANP_Glob 
-              Write(50,*) ' Max  Phase diff Glob       : ', XMAXP_Glob
+              Write(50,*) ' Acceptance_Glob              : ', ACC_Glob
+              Write(50,*) ' Mean Phase diff Glob         : ', XMEANP_Glob 
+              Write(50,*) ' Max  Phase diff Glob         : ', XMAXP_Glob
+              Write(50,*) ' Average cluster size         : ', size_clust_Glob
+              Write(50,*) ' Average accepted cluster size: ', size_clust_Glob_ACC
            !endif
               
 

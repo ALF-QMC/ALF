@@ -4,10 +4,10 @@ PROGRAMMCONFIGURATION=""
 # PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DQRREF"
 
 # uncomment the next line if you want an parallel tempering version
-#PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DTEMPERING"
+PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DTEMPERING"
 
 # uncomment the next line if you want an MPI parallel version
-#PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DMPI"
+PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DMPI"
 
 F90OPTFLAGS="-O3 -fp-model fast=2 -xHost -unroll -finline-functions -ipo -ip -heap-arrays 1024 -no-wrap-margin"
 # uncomment the next line if you want to use additional openmp parallelization
@@ -53,8 +53,8 @@ F90OPTFLAGS="-O3 -ffree-line-length-none  -fcheck=all"
 F90OPTFLAGS="-O3 -ffree-line-length-none  -Wconversion"
 F90USEFULFLAGS="-cpp"
 
-export f90="gfortran"
-# $mpif90
+export f90=$mpif90
+#"gfortran"
 # "gfortran"
 export LIB_BLAS_LAPACK="-llapack -lblas"
 ;;
