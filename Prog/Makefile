@@ -30,6 +30,11 @@ SPT:
 	cp $(Libs)/Modules/*.mod . ;\
 	(make -f Compile_SPT  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" LF="$(LF)" F90USEFULFLAGS="$(F90USEFULFLAGS)")
 
+Z2-FLstar:
+	./Git_config.sh; \
+	cp $(Libs)/Modules/*.mod . ;\
+	(make -f Compile_Z2-FLstar  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" LF="$(LF)" F90USEFULFLAGS="$(F90USEFULFLAGS)")
+
 
 Kondo_Honey:
 	./Git_config.sh; \
@@ -41,6 +46,7 @@ clean:
 	(make -f Compile_Hub_Can   clean );\
 	(make -f Compile_Hub_Ising   clean );\
 	(make -f Compile_SPT   clean );\
+	(make -f Compile_Z2-FLstar   clean );\
 	(make -f Compile_Kondo_Honey clean );\
 	(make -f Compile_Z2_Slave clean );\
 	rm -f *.mod *~ \#* 

@@ -28,8 +28,8 @@ export Libs
 LIB_BLAS_LAPACK = -llapack -lblas
 export LIB_BLAS_LAPACK
 
-.PHONY : all lib ana program  Hub_Ising SPT Hub_Can Kondo_Honey
-all: lib ana program  Hub_Ising SPT Hub_Can Kondo_Honey
+.PHONY : all lib ana program  Hub_Ising SPT Hub_Can Kondo_Honey Z2-FLstar
+all: lib ana program  Hub_Ising SPT Hub_Can Kondo_Honey Z2-FLstar
 
 lib:
 	cd Libraries && $(MAKE)
@@ -41,6 +41,8 @@ Hub_Ising: lib
 	cd Prog && $(MAKE) Hub_Ising
 SPT: lib
 	cd Prog && $(MAKE) SPT
+Z2-FLstar: lib
+	cd Prog && $(MAKE) Z2-FLstar
 Hub_Can: lib
 	cd Prog && $(MAKE) Hub_Can
 Kondo_Honey: lib
