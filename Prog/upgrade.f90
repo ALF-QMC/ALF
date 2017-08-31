@@ -358,15 +358,16 @@
                  call zscal(Ndim, Z, x_v(1, n), 1)
                  Deallocate(syu, sxv)
               enddo
-              IF (Op_dim == 1) THEN
+              IF (size(Op_V(n_op,nf)%P, 1) == 1) THEN
                 CALL ZCOPY(Ndim, gr(1, Op_V(n_op,nf)%P(1), nf), 1, xp_v(1, 1), 1)
-                CALL ZGERU(Ndim, Ndim, -x_v(Op_V(n_op,nf)%P(1), 1), xp_v(1,1), 1, y_v(1, 1), 1, gr(1,1,nf), Ndim)
+                Z = -x_v(Op_V(n_op,nf)%P(1), 1)
+                CALL ZGERU(Ndim, Ndim, Z, xp_v(1,1), 1, y_v(1, 1), 1, gr(1,1,nf), Ndim)
               ELSE
-                Allocate (Zarr(Op_dim,Op_dim), grarr(NDim, Op_dim))
+                Allocate (Zarr(size(Op_V(n_op,nf)%P, 1), Op_dim), grarr(NDim, Op_dim))
                 Zarr = x_v(Op_V(n_op,nf)%P, :)
                 grarr = gr(:, Op_V(n_op,nf)%P, nf)
                 alpha = 1.D0
-                CALL ZGEMM('N', 'N', NDim, Op_Dim, Op_Dim, alpha, grarr, size(grarr,1), Zarr, Op_Dim, beta, xp_v, size(xp_v,1))
+                CALL ZGEMM('N', 'N', NDim, Op_Dim, Op_Dim, alpha, grarr, Ndim, Zarr, size(Op_V(n_op,nf)%P, 1), beta, xp_v, Ndim)
                 Deallocate(Zarr, grarr)
                 beta  = cmplx ( 1.0d0, 0.0d0, kind(0.D0))
                 alpha = -1.D0
