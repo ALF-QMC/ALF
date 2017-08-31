@@ -1,5 +1,17 @@
-*.o
-*.mod
-*.out
-*.a
+# compilation related files
+/**/*.o
+/**/*.mod
+/**/*.a
+/**/*.out
 Prog/git.h
+
+# tex related files
+/**/*.aux
+/**/*.log
+/**/*.gz
+/**/*Notes.bib
+
+# hidden folders
+.*
+/**/.*
+/**/Test*

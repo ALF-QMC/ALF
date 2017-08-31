@@ -137,6 +137,12 @@
         XMAX  = 0.d0
         CALL COMPARE(A, B, XMAX, XMEAN)
         IF (XMAX  >  XMAXG) XMAXG = XMAX
+        IF (XMAX  >  1.d0 ) then
+          write(*,*)
+          write(*,*) "This calculation is unstable and therefore aborted!!!"
+          write(*,*)
+          stop
+        endif
         XMEANG = XMEANG + XMEAN
       End Subroutine Control_PrecisionG
 
@@ -152,6 +158,12 @@
         XMAX  = 0.d0
         CALL COMPARE(A, B, XMAX, XMEAN)
         IF (XMAX  >  XMAX_tau) XMAX_tau = XMAX
+        IF (XMAX  >  10.d0 ) then
+          write(*,*)
+          write(*,*) "This calculation is unstable and therefore aborted!!!"
+          write(*,*)
+          stop
+        endif
         XMEAN_tau = XMEAN_tau + XMEAN
       End Subroutine Control_Precision_tau
 
@@ -162,6 +174,12 @@
         Real    (Kind=Kind(0.D0)) :: X
         X = ABS(Z-Z1)
         if ( X > XMAXP ) XMAXP = X
+        IF (X  >  1.d0 ) then
+          write(*,*)
+          write(*,*) "This calculation is unstable and therefore aborted!!!"
+          write(*,*)
+          stop
+        endif
       End Subroutine Control_PrecisionP
 
 
@@ -171,6 +189,12 @@
         Real    (Kind=Kind(0.D0)) :: X
         X = ABS(Z-Z1)
         if ( X > XMAXP_Glob ) XMAXP_Glob = X
+        IF (X  >  1.d0 ) then
+          write(*,*)
+          write(*,*) "This calculation is unstable and therefore aborted!!!"
+          write(*,*)
+          stop
+        endif
         XMEANP_Glob = XMEANP_Glob + X
         NC_Phase_GLob = NC_Phase_GLob + 1
       End Subroutine Control_PrecisionP_Glob

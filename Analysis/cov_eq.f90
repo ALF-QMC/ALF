@@ -58,7 +58,7 @@
          Complex (Kind=Kind(0.d0)) :: Z, Xmean,Xerr, Xmean_r, Xerr_r
          Real (Kind=Kind(0.d0)) :: Xm,Xe
          Real    (Kind=Kind(0.d0)) :: Xk_p(2), XR_p(2) , XR1_p(2)
-         Complex (Kind=Kind(0.d0)), allocatable :: V_help(:), V_help_R(:)
+         Complex (Kind=Kind(0.d0)), allocatable :: V_help(:), V_help_TR(:)
          Real (Kind=Kind(0.d0)) :: Pi, a1_p(2), a2_p(2), L1_p(2), L2_p(2), del_p(2)
          Real (Kind=Kind(0.d0)), allocatable :: AutoCorr(:),En(:)
 
@@ -91,7 +91,7 @@
             L1_p    =  dble(L1)*a1_p
             L2_p    =  dble(L2)*a2_p
             Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
-         elseif ( Lattice_type=="Honeycomb" ) then
+         elseif ( Lattice_type=="Honeycomb" .or. Lattice_type=="Kagome" ) then
             a1_p(1) =  1.d0   ; a1_p(2) =  0.d0
             a2_p(1) =  0.5d0  ; a2_p(2) =  sqrt(3.d0)/2.d0
             del_p   =  (a2_p - 0.5*a1_p ) * 2.0/3.0
@@ -144,7 +144,7 @@
          N_auto=min(N_auto,Nbins/3)
 
          ! Allocate  space
-         Allocate ( bins(Nunit,Nbins), bins_r(Nunit,Nbins), Phase(Nbins),  V_help(Nbins), V_help_R(Nbins), Bins0(Nbins,Norb))
+         Allocate ( bins(Nunit,Nbins), bins_r(Nunit,Nbins), Phase(Nbins),  V_help(Nbins), V_help_TR(Nbins), Bins0(Nbins,Norb))
          Do n = 1,Nunit
             do nb = 1,nbins
                Call Make_Mat(bins  (n,nb),Norb)
@@ -221,7 +221,9 @@
             Xr_p = dble(Latt%list (n,1))*Latt%a1_p + dble(Latt%list (n,2))*Latt%a2_p 
             Write(33,"(F12.6,2x,F12.6)")  Xk_p(1), Xk_p(2)
             Write(34,"(F12.6,2x,F12.6)")  Xr_p(1), Xr_p(2)
+            V_help_TR = 0.d0
             Do no = 1,Norb
+               V_help_TR(:) = V_help_TR(:) + bins  (n,:)%el(no,no)
                do no1 = 1,Norb
                   do nb = 1,Nbins
                      V_help(nb) = bins  (n,nb)%el(no,no1)
@@ -237,6 +239,9 @@
                        &  no,no1, dble(XMean_r), dble(XERR_r), aimag(XMean_r), aimag(XERR_r)
                enddo
             enddo
+            call ERRCALCJ( V_help_TR,Phase, XMean_r, XERR_r, N_rebin ) 
+            Write(33,"('TR',2x,F16.8,2x,F16.8,2x,F16.8,2x,F16.8)") &
+                  &  dble(XMean_r), dble(XERR_r), aimag(XMean_r), aimag(XERR_r)
          enddo
 !!$         If (Norb > 1 ) then 
 !!$            !Compute susecptibility 
