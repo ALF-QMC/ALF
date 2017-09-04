@@ -117,6 +117,8 @@
              Write(50,*) '====================================='
              Write(50,*) 'Model is      : ', Model 
              Write(50,*) 'Lattice is    : ', Lattice_type
+             Write(50,*) 'L1            : ', L1
+             Write(50,*) 'L2            : ', L2
              Write(50,*) 'Beta          : ', Beta
              Write(50,*) 'dtau,Ltrot    : ', dtau,Ltrot
              Write(50,*) 't             : ', Ham_T
@@ -144,6 +146,10 @@
              L1_p    =  dble(L1) * a1_p
              L2_p    =  dble(L2) * a2_p
              Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
+!              do I=1,L1*L2
+!                 write(*,*) I, Latt%list(I,1), Latt%list(I,2), Latt%list(I,1)*a1_p+ Latt%list(I,2)*a2_p
+!              enddo
+!              write(*,*)
           else
              Write(6,*) "Lattice not yet implemented!"
              Stop
@@ -177,8 +183,7 @@
           !  Per flavor, the  hopping is given by: 
           !  e^{-dtau H_t}  =    Prod_{n=1}^{Ncheck} e^{-dtau_n H_{n,t}}
 
-          Integer :: I, I1, I2 ,no, no1, n, Ncheck, nc
-          Complex (Kind=Kind(0.d0)) :: Z
+          Integer :: n, Ncheck, nc
 
 
           Ncheck = 1
@@ -187,57 +192,8 @@
              Do nc = 1,NCheck
                 Call Op_make(Op_T(nc,n),1)
                 Op_T(nc,n)%P(1) = 1
-                Op_T(nc,n)%O( 1 , 1 )  =  0.d0
-!                 I1 = 0
-!                 DO I = 1, Ndim
-!                   Op_T(nc,n)%P(I) = I
-!                 enddo
-!                 Do I = 1,Latt%N
-!                    Z=-Ham_T
-!                    
-!                    ! t1
-!                    I1=Invlist(I,1)
-!                    I2=Invlist(I,2)
-! !                    write(*,*) I1, I2
-!                    Op_T(nc,n)%O( I1 , I2 )  =  Z
-!                    Op_T(nc,n)%O( I2 , I1 )  =  conjg(Z)
-!                    
-!                    ! t2
-!                    I1=Invlist(I,2)
-!                    I2=Invlist(I,3)
-! !                    write(*,*) I1, I2
-!                    Op_T(nc,n)%O( I1 , I2 )  =  Z
-!                    Op_T(nc,n)%O( I2 , I1 )  =  conjg(Z)
-!                    
-!                    ! t3
-!                    I1=Invlist(I,3)
-!                    I2=Invlist(Latt%nnlist(I,0,1),1)
-! !                    write(*,*) I1, I2
-!                    Op_T(nc,n)%O( I1 , I2 )  =  Z
-!                    Op_T(nc,n)%O( I2 , I1 )  =  conjg(Z)
-!                    
-!                    ! t4
-!                    I1=Invlist(I,1)
-!                    I2=Invlist(Latt%nnlist(I,-1,0),2)
-! !                    write(*,*) I1, I2
-!                    Op_T(nc,n)%O( I1 , I2 )  =  Z
-!                    Op_T(nc,n)%O( I2 , I1 )  =  conjg(Z)
-!                    
-!                    ! t5
-!                    I1=Invlist(I,3)
-!                    I2=Invlist(Latt%nnlist(I,-1,1),2)
-! !                    write(*,*) I1, I2
-!                    Op_T(nc,n)%O( I1 , I2 )  =  Z
-!                    Op_T(nc,n)%O( I2 , I1 )  =  conjg(Z)
-!                    
-!                    ! t6
-!                    I1=Invlist(I,3)
-!                    I2=Invlist(I,1)
-! !                    write(*,*) I1, I2
-!                    Op_T(nc,n)%O( I1 , I2 )  =  Z
-!                    Op_T(nc,n)%O( I2 , I1 )  =  conjg(Z)
-!                 enddo
-                Op_T(nc,n)%g=cmplx(-Dtau*0.d0,0.d0, kind(0.D0))
+                Op_T(nc,n)%O( 1 , 1 )  =  1.d0
+                Op_T(nc,n)%g=cmplx(0.d0,0.d0, kind(0.D0))
                 Call Op_set(Op_T(nc,n)) 
              enddo
           enddo
@@ -250,15 +206,15 @@
           Implicit none 
           
           Integer :: nf, I, I1, I2, nc, no
-          Integer :: nxy, noff, Ibond(2,6), Ihex(6)
+          Integer :: Ibond(2,6), Ihex(6)
 
-          Complex (Kind=Kind(0.d0)) :: Z
+          Complex (Kind=Kind(0.d0)) :: Zone
 
 
           ! Number of opertors 8 per unit cell
           Allocate( Op_V((6+6+3+15)*Latt%N,N_FL) )
           nc = 0
-          Z=cmplx(1.d0  ,0.d0, kind(0.D0))
+          Zone=cmplx(1.d0  ,0.d0, kind(0.D0))
           Do nf = 1,N_FL
             Do I = 1,Latt%N
               ! interaction on the bonds representing hopping of hard core bosons
@@ -281,12 +237,13 @@
               Ibond(1,6)=Invlist(I,3)
               Ibond(2,6)=Invlist(I,1)
               Do no = 1,6
+!                 write(*,*) Ibond(1,no), Ibond(2,no)
                 nc = nc + 1
                 Call Op_make(Op_V(nc,nf),2) 
                 Op_V(nc,nf)%P(1) = Ibond(1,no)
                 Op_V(nc,nf)%P(2) = Ibond(2,no)
-                Op_V(nc,nf)%O( 1 , 2 )  =  Z
-                Op_V(nc,nf)%O( 2 , 1 )  =  conjg(Z)
+                Op_V(nc,nf)%O( 1 , 2 )  =  Zone
+                Op_V(nc,nf)%O( 2 , 1 )  =  Zone
                 Op_V(nc,nf)%g=sqrt(cmplx(Dtau*Ham_T*0.5d0,0.d0, kind(0.D0)))
                 Op_V(nc,nf)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
                 Op_V(nc,nf)%type   = 2
@@ -296,8 +253,8 @@
                 Call Op_make(Op_V(nc,nf),2) 
                 Op_V(nc,nf)%P(1) = Ibond(1,no)
                 Op_V(nc,nf)%P(2) = Ibond(2,no)
-                Op_V(nc,nf)%O( 1 , 1 )  =  Z
-                Op_V(nc,nf)%O( 2 , 2 )  =  Z
+                Op_V(nc,nf)%O( 1 , 1 )  =  Zone
+                Op_V(nc,nf)%O( 2 , 2 )  =  Zone
                 Op_V(nc,nf)%g=sqrt(cmplx(Dtau*Ham_T*0.25d0,0.d0, kind(0.D0)))
                 Op_V(nc,nf)%alpha  = cmplx(-1.d0, 0.d0, kind(0.D0))
                 Op_V(nc,nf)%type   = 2
@@ -307,18 +264,19 @@
               ! "true" interaction of the total density per hexagon of the kagome lattice
               Ihex(1) = Invlist(I,3)
               Ihex(2) = Invlist(I,2)
-              Ihex(3) = Invlist(Latt%nnlist(I,0,1),1)
-              Ihex(4) = Invlist(Latt%nnlist(I,0,1),3)
-              Ihex(5) = Invlist(Latt%nnlist(I,1,0),2)
-              Ihex(6) = Invlist(Latt%nnlist(I,1,0),1)
+              Ihex(3) = Invlist(Latt%nnlist(I,1,0),1)
+              Ihex(4) = Invlist(Latt%nnlist(I,1,0),3)
+              Ihex(5) = Invlist(Latt%nnlist(I,0,1),2)
+              Ihex(6) = Invlist(Latt%nnlist(I,0,1),1)
+!               write(*,*) Ihex(1), Ihex(2), Ihex(3), Ihex(4), Ihex(5), Ihex(6)
               do I1=1,5
                 do I2=I1+1,6
                   nc = nc + 1
                   Call Op_make(Op_V(nc,nf),2) 
                   Op_V(nc,nf)%P(1) = Ihex(I1)
                   Op_V(nc,nf)%P(2) = Ihex(I2)
-                  Op_V(nc,nf)%O( 1 , 1 )  =  Z
-                  Op_V(nc,nf)%O( 2 , 2 )  =  -Z
+                  Op_V(nc,nf)%O( 1 , 1 )  =  Zone
+                  Op_V(nc,nf)%O( 2 , 2 )  =  -Zone
                   Op_V(nc,nf)%g=sqrt(cmplx(Dtau*Ham_Vint*0.25d0,0.d0, kind(0.D0)))
                   Op_V(nc,nf)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
                   Op_V(nc,nf)%type   = 2
@@ -329,165 +287,16 @@
               ! auxiliary interaction to project out spin fluctuations reducing spinful fermions to effective hardcore bosons
               do no=1,3
                 nc = nc + 1
+!                 write(*,*) Invlist(I,no)
                 Call Op_make(Op_V(nc,nf),1) 
                 Op_V(nc,nf)%P(1) = Invlist(I,no)
-                Op_V(nc,nf)%O( 1 , 1 )  =  Z
+                Op_V(nc,nf)%O( 1 , 1 )  =  Zone
                 Op_V(nc,nf)%g=sqrt(cmplx(Dtau*Ham_U,0.d0, kind(0.D0)))
                 Op_V(nc,nf)%alpha  = cmplx(-0.5d0, 0.d0, kind(0.D0))
                 Op_V(nc,nf)%type   = 2
                 Call Op_set( Op_V(nc,nf) )
               enddo
               
-              
-!               ! t1
-!               I1=Invlist(I,1)
-!               I2=Invlist(I,2)
-!               nc = nc + 1
-!               Call Op_make(Op_V(nc,nf),2) 
-!               Op_V(nc,nf)%P(1) = I1
-!               Op_V(nc,nf)%P(2) = I2
-!               Op_V(nc,nf)%O( 1 , 2 )  =  Z
-!               Op_V(nc,nf)%O( 2 , 1 )  =  conjg(Z)
-!               Op_V(nc,nf)%g=sqrt(cmplx(Dtau*Ham_T*0.5d0,0.d0, kind(0.D0)))
-!               Op_V(nc,nf)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
-!               Op_V(nc,nf)%type   = 2
-!               Call Op_set( Op_V(nc,nf) )
-!               
-!               nc = nc + 1
-!               Call Op_make(Op_V(nc,nf),2) 
-!               Op_V(nc,nf)%P(1) = I1
-!               Op_V(nc,nf)%P(2) = I2
-!               Op_V(nc,nf)%O( 1 , 1 )  =  Z
-!               Op_V(nc,nf)%O( 2 , 2 )  =  Z
-!               Op_V(nc,nf)%g=sqrt(cmplx(Dtau*Ham_T*0.25d0,0.d0, kind(0.D0)))
-!               Op_V(nc,nf)%alpha  = cmplx(-2.d0, 0.d0, kind(0.D0))
-!               Op_V(nc,nf)%type   = 2
-!               Call Op_set( Op_V(nc,nf) )
-!               
-!                ! t2
-!               I1=Invlist(I,2)
-!               I2=Invlist(I,3)
-!               nc = nc + 1
-!               Call Op_make(Op_V(nc,nf),2) 
-!               Op_V(nc,nf)%P(1) = I1
-!               Op_V(nc,nf)%P(2) = I2
-!               Op_V(nc,nf)%O( 1 , 2 )  =  Z
-!               Op_V(nc,nf)%O( 2 , 1 )  =  conjg(Z)
-!               Op_V(nc,nf)%g=sqrt(cmplx(Dtau*Ham_T*0.5d0,0.d0, kind(0.D0)))
-!               Op_V(nc,nf)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
-!               Op_V(nc,nf)%type   = 2
-!               Call Op_set( Op_V(nc,nf) )
-!               
-!               nc = nc + 1
-!               Call Op_make(Op_V(nc,nf),2) 
-!               Op_V(nc,nf)%P(1) = I1
-!               Op_V(nc,nf)%P(2) = I2
-!               Op_V(nc,nf)%O( 1 , 1 )  =  Z
-!               Op_V(nc,nf)%O( 2 , 2 )  =  Z
-!               Op_V(nc,nf)%g=sqrt(cmplx(Dtau*Ham_T*0.25d0,0.d0, kind(0.D0)))
-!               Op_V(nc,nf)%alpha  = cmplx(-2.d0, 0.d0, kind(0.D0))
-!               Op_V(nc,nf)%type   = 2
-!               Call Op_set( Op_V(nc,nf) )
-!               
-!               ! t3
-!               I1=Invlist(I,3)
-!               I2=Invlist(Latt%nnlist(I,0,1),1)
-!               nc = nc + 1
-!               Call Op_make(Op_V(nc,nf),2) 
-!               Op_V(nc,nf)%P(1) = I1
-!               Op_V(nc,nf)%P(2) = I2
-!               Op_V(nc,nf)%O( 1 , 2 )  =  Z
-!               Op_V(nc,nf)%O( 2 , 1 )  =  conjg(Z)
-!               Op_V(nc,nf)%g=sqrt(cmplx(Dtau*Ham_T*0.5d0,0.d0, kind(0.D0)))
-!               Op_V(nc,nf)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
-!               Op_V(nc,nf)%type   = 2
-!               Call Op_set( Op_V(nc,nf) )
-!               
-!               nc = nc + 1
-!               Call Op_make(Op_V(nc,nf),2) 
-!               Op_V(nc,nf)%P(1) = I1
-!               Op_V(nc,nf)%P(2) = I2
-!               Op_V(nc,nf)%O( 1 , 1 )  =  Z
-!               Op_V(nc,nf)%O( 2 , 2 )  =  Z
-!               Op_V(nc,nf)%g=sqrt(cmplx(Dtau*Ham_T*0.25d0,0.d0, kind(0.D0)))
-!               Op_V(nc,nf)%alpha  = cmplx(-2.d0, 0.d0, kind(0.D0))
-!               Op_V(nc,nf)%type   = 2
-!               Call Op_set( Op_V(nc,nf) )
-!               
-!               ! t4
-!               I1=Invlist(I,1)
-!               I2=Invlist(Latt%nnlist(I,-1,0),2)
-!               nc = nc + 1
-!               Call Op_make(Op_V(nc,nf),2) 
-!               Op_V(nc,nf)%P(1) = I1
-!               Op_V(nc,nf)%P(2) = I2
-!               Op_V(nc,nf)%O( 1 , 2 )  =  Z
-!               Op_V(nc,nf)%O( 2 , 1 )  =  conjg(Z)
-!               Op_V(nc,nf)%g=sqrt(cmplx(Dtau*Ham_T*0.5d0,0.d0, kind(0.D0)))
-!               Op_V(nc,nf)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
-!               Op_V(nc,nf)%type   = 2
-!               Call Op_set( Op_V(nc,nf) )
-!               
-!               nc = nc + 1
-!               Call Op_make(Op_V(nc,nf),2) 
-!               Op_V(nc,nf)%P(1) = I1
-!               Op_V(nc,nf)%P(2) = I2
-!               Op_V(nc,nf)%O( 1 , 1 )  =  Z
-!               Op_V(nc,nf)%O( 2 , 2 )  =  Z
-!               Op_V(nc,nf)%g=sqrt(cmplx(Dtau*Ham_T*0.25d0,0.d0, kind(0.D0)))
-!               Op_V(nc,nf)%alpha  = cmplx(-2.d0, 0.d0, kind(0.D0))
-!               Op_V(nc,nf)%type   = 2
-!               Call Op_set( Op_V(nc,nf) )
-!               
-!               ! t5
-!               I1=Invlist(I,3)
-!               I2=Invlist(Latt%nnlist(I,-1,1),2)
-!               nc = nc + 1
-!               Call Op_make(Op_V(nc,nf),2) 
-!               Op_V(nc,nf)%P(1) = I1
-!               Op_V(nc,nf)%P(2) = I2
-!               Op_V(nc,nf)%O( 1 , 2 )  =  Z
-!               Op_V(nc,nf)%O( 2 , 1 )  =  conjg(Z)
-!               Op_V(nc,nf)%g=sqrt(cmplx(Dtau*Ham_T*0.5d0,0.d0, kind(0.D0)))
-!               Op_V(nc,nf)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
-!               Op_V(nc,nf)%type   = 2
-!               Call Op_set( Op_V(nc,nf) )
-!               
-!               nc = nc + 1
-!               Call Op_make(Op_V(nc,nf),2) 
-!               Op_V(nc,nf)%P(1) = I1
-!               Op_V(nc,nf)%P(2) = I2
-!               Op_V(nc,nf)%O( 1 , 1 )  =  Z
-!               Op_V(nc,nf)%O( 2 , 2 )  =  Z
-!               Op_V(nc,nf)%g=sqrt(cmplx(Dtau*Ham_T*0.25d0,0.d0, kind(0.D0)))
-!               Op_V(nc,nf)%alpha  = cmplx(-2.d0, 0.d0, kind(0.D0))
-!               Op_V(nc,nf)%type   = 2
-!               Call Op_set( Op_V(nc,nf) )
-!               
-!               ! t6
-!               I1=Invlist(I,3)
-!               I2=Invlist(I,1)
-!               nc = nc + 1
-!               Call Op_make(Op_V(nc,nf),2) 
-!               Op_V(nc,nf)%P(1) = I1
-!               Op_V(nc,nf)%P(2) = I2
-!               Op_V(nc,nf)%O( 1 , 2 )  =  Z
-!               Op_V(nc,nf)%O( 2 , 1 )  =  conjg(Z)
-!               Op_V(nc,nf)%g=sqrt(cmplx(Dtau*Ham_T*0.5d0,0.d0, kind(0.D0)))
-!               Op_V(nc,nf)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
-!               Op_V(nc,nf)%type   = 2
-!               Call Op_set( Op_V(nc,nf) )
-!               
-!               nc = nc + 1
-!               Call Op_make(Op_V(nc,nf),2) 
-!               Op_V(nc,nf)%P(1) = I1
-!               Op_V(nc,nf)%P(2) = I2
-!               Op_V(nc,nf)%O( 1 , 1 )  =  Z
-!               Op_V(nc,nf)%O( 2 , 2 )  =  Z
-!               Op_V(nc,nf)%g=sqrt(cmplx(Dtau*Ham_T*0.25d0,0.d0, kind(0.D0)))
-!               Op_V(nc,nf)%alpha  = cmplx(-1.d0, 0.d0, kind(0.D0))
-!               Op_V(nc,nf)%type   = 2
-!               Call Op_set( Op_V(nc,nf) )
             enddo
           Enddo
           
@@ -610,7 +419,7 @@
           
           !Local 
           Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK
-          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Zocc, Z, ZP,ZS, weight, tmp
+          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Zocc, Z, ZP,ZS, weight, tmp, alpha1, alpha2
           Integer :: I,J, no,no1, n, n1, imj, nf, I1, I2, J1, J2, Nc, Ix, Iy, Jx, Jy, Imx, Imy, Jmx, Jmy
           Integer :: a, b, c, d, signum, K, K1, L ,L1, nf1, no_I, no_J
           
@@ -660,19 +469,21 @@
           Nc = Size( Op_V,1)
           Do nf = 1,N_FL
              Do n = 1,Nc
-                weight=Op_V(nc,nf)%g**2 /dtau !(-1)**((n-1)/Latt%N)/8.d0
+                weight=-Op_V(n,nf)%g**2.d0 /dtau !(-1)**((n-1)/Latt%N)/8.d0
+!                 write(0,*) Op_V(n,nf)%g, weight
                 Do J = 1,Op_V(n,nf)%N
                    J1 = Op_V(n,nf)%P(J)
                    DO I = 1,Op_V(n,nf)%N
                       if (abs(Op_V(n,nf)%O(i,j)) >= 0.00001) then
                       I1 = Op_V(n,nf)%P(I)
+                      ZPot  = ZPot  + 2*Op_V(n,nf)%alpha*weight*Op_V(n,nf)%O(i,j)*GRC(I1,J1,1)
                       Do K = 1,Op_V(n,nf)%N
                         K1 = Op_V(n,nf)%P(K)
                         DO L = 1,Op_V(n,nf)%N
                           if (abs(Op_V(n,nf)%O(k,l)) >= 0.00001) then
                           L1 = Op_V(n,nf)%P(L)
                           tmp =  (   GRC(I1,L1,1) * GR (J1,K1,1)      +  &
-                                &     GRC(I1,J1,1) * GRC(K1,L1,1)         )
+                                &    cmplx( dble(N_SUN), 0.d0 , kind(0.D0)) * GRC(I1,J1,1) * GRC(K1,L1,1)         )
                           ZPot  = ZPot  + weight*Op_V(n,nf)%O(i,j)*Op_V(n,nf)%O(k,l)*tmp
                           endif
                         Enddo
@@ -680,10 +491,11 @@
                       endif
                    Enddo
                 ENddo
+                ZPot  = ZPot  + weight*(Op_V(n,nf)%alpha**2.d0)/cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
 !           write(*,*) Zpot
              Enddo
           Enddo
-          ZPot = ZPot*cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
+          ZPot = ZPot*cmplx( dble(N_SUN), 0.d0 , kind(0.D0)) + 9.d0*Latt%N*Ham_Vint
           Obs_scal(2)%Obs_vec(1)  =  Obs_scal(2)%Obs_vec(1) + Zpot * ZP*ZS
           Obs_scal(4)%Obs_vec(1)  =    Obs_scal(4)%Obs_vec(1) + (Zkin + Zpot)*ZP*ZS
 

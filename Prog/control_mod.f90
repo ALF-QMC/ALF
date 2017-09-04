@@ -137,8 +137,10 @@
         XMAX  = 0.d0
         CALL COMPARE(A, B, XMAX, XMEAN)
         IF (XMAX  >  XMAXG) XMAXG = XMAX
-        IF (XMAX  >  1.d0 ) then
+        IF (XMAX  >  10.d0 ) then
           write(*,*)
+          write(*,*) XMAX, " is exceeding the threshold of 10 for G difference!"
+          write(*,*) (XmeanG+Xmean)/ncg, " is the average deviation!"
           write(*,*) "This calculation is unstable and therefore aborted!!!"
           write(*,*)
           stop
@@ -160,6 +162,8 @@
         IF (XMAX  >  XMAX_tau) XMAX_tau = XMAX
         IF (XMAX  >  10.d0 ) then
           write(*,*)
+          write(*,*) XMAX, " is exceeding the threshold of 10 for G_tau difference!"
+          write(*,*) (Xmean_tau+Xmean)/ncg_tau, " is the average deviation!"
           write(*,*) "This calculation is unstable and therefore aborted!!!"
           write(*,*)
           stop
@@ -176,6 +180,7 @@
         if ( X > XMAXP ) XMAXP = X
         IF (X  >  1.d0 ) then
           write(*,*)
+          write(*,*) X, " is exceeding the threshold of 1 for phase difference!"
           write(*,*) "This calculation is unstable and therefore aborted!!!"
           write(*,*)
           stop
@@ -191,6 +196,7 @@
         if ( X > XMAXP_Glob ) XMAXP_Glob = X
         IF (X  >  1.d0 ) then
           write(*,*)
+          write(*,*) X, " is exceeding the threshold of 1 for global phase difference!"
           write(*,*) "This calculation is unstable and therefore aborted!!!"
           write(*,*)
           stop
