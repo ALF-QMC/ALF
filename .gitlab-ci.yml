@@ -15,7 +15,7 @@ stages:
     - cd ..
     - cd Prog
     - make
-    - make SPT
+    - make Z2-FLstar
 
 .build_template_pgi: &build_definition_pgi
   stage: build
@@ -31,7 +31,7 @@ stages:
     - cd ..
     - cd Prog
     - make
-    - make Kondo_Honey
+    - make Z2-FLstar
 
 .warnconv_template: &warnconv_definition
   stage: warnconv
@@ -45,7 +45,7 @@ stages:
     - cd ..
     - cd Prog
     - make
-    - make SPT
+    - make Z2-FLstar
 
 .test_template: &test_definition
   stage: test
@@ -125,7 +125,7 @@ GQMCT_Jessie_MPI:
   script:
     - gfortran -v
     - make f90='mpif90' PROGRAMCONFIGURATION='-DMPI -DTEMPERING' lib
-    - make f90='mpif90' PROGRAMCONFIGURATION='-DMPI -DTEMPERING' SPT
+    - make f90='mpif90' PROGRAMCONFIGURATION='-DMPI -DTEMPERING' Z2-FLstar
 
 GQMCT_Wheezy_conv:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-wheezy-gfortran-blas-lapack
@@ -178,7 +178,7 @@ GQMCT_Wheezy-PGI_conv:
     - cd ..
     - cd Prog
     - make
-    - make Kondo_Honey
+    - make Z2-FLstar
   
 GQMCT_Wheezy_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-wheezy-gfortran-blas-lapack
