@@ -281,7 +281,10 @@
             Call AUTO_COR(En,AutoCorr)
             do i = 1,N_auto
               CALL ERRCALCJ(En,XM, XE,i)
-              write(21,*) i, AutoCorr(i), Xe
+              write(21,*) i, AutoCorr(i), Xe, En(i)
+            enddo
+            do i = N_auto+1,Nbins
+              write(21,*) i, 0.d0, 0.d0, En(i)
             enddo
             CLOSE(21)
             endif

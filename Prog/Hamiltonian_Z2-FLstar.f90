@@ -319,7 +319,7 @@
           Character (len=64) ::  Filename
 
           ! Scalar observables
-          Allocate ( Obs_scal(5) )
+          Allocate ( Obs_scal(6) )
           Do I = 1,Size(Obs_scal,1)
              select case (I)
              case (1)
@@ -332,6 +332,8 @@
                 N = 1;   Filename ="Ener"
              case (5)
                 N = 1;   Filename ="DoubleOcc"
+             case (6)
+                N = 1;   Filename ="SC"
              case default
                 Write(6,*) ' Error in Alloc_obs '  
              end select
@@ -476,7 +478,7 @@
                    DO I = 1,Op_V(n,nf)%N
                       if (abs(Op_V(n,nf)%O(i,j)) >= 0.00001) then
                       I1 = Op_V(n,nf)%P(I)
-                      ZPot  = ZPot  + 2*Op_V(n,nf)%alpha*weight*Op_V(n,nf)%O(i,j)*GRC(I1,J1,1)
+                      ZPot  = ZPot  + 2.d0*Op_V(n,nf)%alpha*weight*Op_V(n,nf)%O(i,j)*GRC(I1,J1,1)
                       Do K = 1,Op_V(n,nf)%N
                         K1 = Op_V(n,nf)%P(K)
                         DO L = 1,Op_V(n,nf)%N
@@ -511,7 +513,7 @@
           Zrho = Zrho* dble(N_SUN)
           Obs_scal(3)%Obs_vec(1)  =    Obs_scal(3)%Obs_vec(1) + Zrho * ZP*ZS
           Obs_scal(5)%Obs_vec(1)  =    Obs_scal(5)%Obs_vec(1) - 2.d0*(Zocc - 0.5d0*Zrho) * ZP*ZS
-
+          
           
           DO I = 1,Size(Obs_eq,1)
              Obs_eq(I)%N        = Obs_eq(I)%N + 1
@@ -543,6 +545,7 @@
                 ! SC
                 Obs_eq(5)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(5)%Obs_Latt(imj,1,no_I,no_J) + &
                     &               GRC(I1,J1,1)**2 *  ZP*ZS 
+                Obs_scal(6)%Obs_vec(1) = Obs_scal(6)%Obs_vec(1) + GRC(I1,J1,1)**2/ 3.d0 /dble(Latt%N) * ZP*ZS
             ENDDO
             Obs_eq(4)%Obs_Latt0(no_I) =  Obs_eq(4)%Obs_Latt0(no_I) +  Z * GRC(I1,I1,1) * ZP * ZS
           ENDDO
