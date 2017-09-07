@@ -3,7 +3,8 @@ FLAGS= $(FL)
 LF = $(Lflags)
 LIBS= $(Libs)/Modules/modules_90.a \
       $(LIB_BLAS_LAPACK) \
-      $(Libs)/libqrref/libqrref.a
+      $(Libs)/libqrref/libqrref.a \
+      -lz
 
 Examples:
 	./Git_config.sh; \
