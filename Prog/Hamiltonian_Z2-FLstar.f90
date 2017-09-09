@@ -291,7 +291,7 @@
                 Call Op_make(Op_V(nc,nf),1) 
                 Op_V(nc,nf)%P(1) = Invlist(I,no)
                 Op_V(nc,nf)%O( 1 , 1 )  =  Zone
-                Op_V(nc,nf)%g=sqrt(cmplx(Dtau*Ham_U,0.d0, kind(0.D0)))
+                Op_V(nc,nf)%g=sqrt(cmplx(Dtau*Ham_U/beta,0.d0, kind(0.D0)))
                 Op_V(nc,nf)%alpha  = cmplx(-0.5d0, 0.d0, kind(0.D0))
                 Op_V(nc,nf)%type   = 2
                 Call Op_set( Op_V(nc,nf) )
@@ -420,13 +420,14 @@
           Integer, INTENT(IN)          :: Ntau
           
           !Local 
-          Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK
-          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Zocc, Z, ZP,ZS, weight, tmp, alpha1, alpha2
+          Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK, ZkinF
+          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Zocc, Z, ZP,ZS, weight, tmp, alpha1, alpha2, Zn
           Integer :: I,J, no,no1, n, n1, imj, nf, I1, I2, J1, J2, Nc, Ix, Iy, Jx, Jy, Imx, Imy, Jmx, Jmy
-          Integer :: a, b, c, d, signum, K, K1, L ,L1, nf1, no_I, no_J
+          Integer :: a, b, c, d, signum, K, K1, L ,L1, nf1, no_I, no_J, Ibond(2,6), Ihex(6)
           
           Real (Kind=Kind(0.d0)) :: G(4,4), X, FI, FJ
           
+          Zn=cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
 
           Do nf = 1,N_FL
              Do I = 1,Ndim
@@ -451,53 +452,101 @@
              
 
           Zkin = cmplx(0.d0,0.d0, kind(0.D0))
-          Nc = Size( Op_T,1)
-          Do nf = 1,N_FL
-             Do n = 1,Nc
-                Do J = 1,Op_T(n,nf)%N
-                   J1 = Op_T(n,nf)%P(J)
-                   DO I = 1,Op_T(n,nf)%N
-                      I1 = Op_T(n,nf)%P(I)
-                      Zkin  = Zkin  + Op_T(n,nf)%O(i,j)*Grc(i1,j1,nf) 
-                   Enddo
-                ENddo
-             Enddo
-          Enddo
-          Zkin = Zkin*cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
-          Obs_scal(1)%Obs_vec(1)  =    Obs_scal(1)%Obs_vec(1) + Zkin *ZP* ZS
-
-
+          ZkinF = cmplx(0.d0,0.d0, kind(0.D0))
           ZPot = cmplx(0.d0, 0.d0, kind(0.D0))
           Nc = Size( Op_V,1)
+          weight=Ham_Vint*0.25d0
           Do nf = 1,N_FL
-             Do n = 1,Nc
-                weight=-Op_V(n,nf)%g**2.d0 /dtau !(-1)**((n-1)/Latt%N)/8.d0
-!                 write(0,*) Op_V(n,nf)%g, weight
-                Do J = 1,Op_V(n,nf)%N
-                   J1 = Op_V(n,nf)%P(J)
-                   DO I = 1,Op_V(n,nf)%N
-                      if (abs(Op_V(n,nf)%O(i,j)) >= 0.00001) then
-                      I1 = Op_V(n,nf)%P(I)
-                      ZPot  = ZPot  + 2.d0*Op_V(n,nf)%alpha*weight*Op_V(n,nf)%O(i,j)*GRC(I1,J1,1)
-                      Do K = 1,Op_V(n,nf)%N
-                        K1 = Op_V(n,nf)%P(K)
-                        DO L = 1,Op_V(n,nf)%N
-                          if (abs(Op_V(n,nf)%O(k,l)) >= 0.00001) then
-                          L1 = Op_V(n,nf)%P(L)
-                          tmp =  (   GRC(I1,L1,1) * GR (J1,K1,1)      +  &
-                                &    cmplx( dble(N_SUN), 0.d0 , kind(0.D0)) * GRC(I1,J1,1) * GRC(K1,L1,1)         )
-                          ZPot  = ZPot  + weight*Op_V(n,nf)%O(i,j)*Op_V(n,nf)%O(k,l)*tmp
-                          endif
-                        Enddo
-                      ENddo
-                      endif
-                   Enddo
+             Do I = 1,Latt%N
+                ! interaction on the bonds representing hopping of hard core bosons
+                ! t1
+                Ibond(1,1)=Invlist(I,1)
+                Ibond(2,1)=Invlist(I,2)
+                ! t2
+                Ibond(1,2)=Invlist(I,2)
+                Ibond(2,2)=Invlist(I,3)
+                ! t3
+                Ibond(1,3)=Invlist(I,3)
+                Ibond(2,3)=Invlist(Latt%nnlist(I,0,1),1)
+                ! t4
+                Ibond(1,4)=Invlist(I,1)
+                Ibond(2,4)=Invlist(Latt%nnlist(I,-1,0),2)
+                ! t5
+                Ibond(1,5)=Invlist(I,3)
+                Ibond(2,5)=Invlist(Latt%nnlist(I,-1,1),2)
+                ! t6
+                Ibond(1,6)=Invlist(I,3)
+                Ibond(2,6)=Invlist(I,1)
+                
+                Do J = 1,6
+                  I1=Ibond(1,J)
+                  J1=Ibond(2,J)
+                  Zkin = Zkin - Ham_T*(GRC(I1,J1,1)**2.d0+GRC(J1,I1,1)**2.d0)
+!                   ZkinF= ZkinF+ Ham_T*( 3.d0*Grc(I1,J1,1)*Gr(I1,J1,1) &
+!                       & -0.5d0*Grc(I1,I1,1)*(Grc(I1,I1,1)-1.d0) &
+!                       & -0.5d0*Grc(J1,J1,1)*(Grc(J1,J1,1)-1.d0) - 1.d0 )
+                enddo
+                
+                
+                Ihex(1) = Invlist(I,3)
+                Ihex(2) = Invlist(I,2)
+                Ihex(3) = Invlist(Latt%nnlist(I,1,0),1)
+                Ihex(4) = Invlist(Latt%nnlist(I,1,0),3)
+                Ihex(5) = Invlist(Latt%nnlist(I,0,1),2)
+                Ihex(6) = Invlist(Latt%nnlist(I,0,1),1)
+                tmp=0.d0
+                Do J = 1,6
+                  J1 = Ihex(J)
+                  tmp = tmp + GRC(J1,J1,1)
+                enddo
+                Zpot = Zpot + (Zn*tmp)**2.d0
+                Zpot = Zpot - 6.d0*(Zn**2.d0)*tmp
+                Zpot = Zpot + 9.d0*(Zn**2.d0)
+                Do J = 1,6
+                  J1 = Ihex(J)
+                  I1 = J1
+                  Do K = 1,6
+                    K1 = Ihex(K)
+                    L1 = K1
+                    tmp =  GRC(I1,L1,1) * GR (J1,K1,1)
+                    ZPot  = ZPot  + tmp*Zn
+                  Enddo
                 ENddo
-                ZPot  = ZPot  + weight*(Op_V(n,nf)%alpha**2.d0)/cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
-!           write(*,*) Zpot
              Enddo
           Enddo
-          ZPot = ZPot*cmplx( dble(N_SUN), 0.d0 , kind(0.D0)) + 9.d0*Latt%N*Ham_Vint
+          ZPot = Ham_Vint*0.25d0*ZPot
+! !           Zkin=Zn*Zkin
+!           ZPot = cmplx(0.d0, 0.d0, kind(0.D0))
+!           Do nf = 1,N_FL
+!              Do n = 1,Nc
+!                 weight=-Op_V(n,nf)%g**2.d0 /dtau !(-1)**((n-1)/Latt%N)/8.d0
+! !                 write(0,*) Op_V(n,nf)%g, weight
+!                 Do J = 1,Op_V(n,nf)%N
+!                    J1 = Op_V(n,nf)%P(J)
+!                    DO I = 1,Op_V(n,nf)%N
+!                       if (abs(Op_V(n,nf)%O(i,j)) >= 0.00001) then
+!                       I1 = Op_V(n,nf)%P(I)
+!                       ZPot  = ZPot  + 2.d0*Zn*Op_V(n,nf)%alpha*weight*Op_V(n,nf)%O(i,j)*GRC(I1,J1,1)
+!                       Do K = 1,Op_V(n,nf)%N
+!                         K1 = Op_V(n,nf)%P(K)
+!                         DO L = 1,Op_V(n,nf)%N
+!                           if (abs(Op_V(n,nf)%O(k,l)) >= 0.00001) then
+!                           L1 = Op_V(n,nf)%P(L)
+!                           tmp =  (   GRC(I1,L1,1) * GR (J1,K1,1)      +  &
+!                                 &    Zn * GRC(I1,J1,1) * GRC(K1,L1,1)         )
+!                           ZPot  = ZPot  + weight*Op_V(n,nf)%O(i,j)*Op_V(n,nf)%O(k,l)*tmp
+!                           endif
+!                         Enddo
+!                       ENddo
+!                       endif
+!                    Enddo
+!                 ENddo
+!                 ZPot  = ZPot  + weight*(Op_V(n,nf)%alpha**2.d0)*Zn
+! !           write(*,*) Zpot
+!              Enddo
+!           Enddo
+!           ZPot = ZPot*Zn + 9.d0*Latt%N*Ham_Vint
+          Obs_scal(1)%Obs_vec(1)  =  Obs_scal(1)%Obs_vec(1) + Zkin * ZP*ZS
           Obs_scal(2)%Obs_vec(1)  =  Obs_scal(2)%Obs_vec(1) + Zpot * ZP*ZS
           Obs_scal(4)%Obs_vec(1)  =    Obs_scal(4)%Obs_vec(1) + (Zkin + Zpot)*ZP*ZS
 
