@@ -53,7 +53,6 @@ Module Operator_mod
 
   Type Operator
      Integer          :: N, N_non_zero
-     logical          :: diag
      complex (Kind=Kind(0.d0)), pointer :: O(:,:), U (:,:)
      Real    (Kind=Kind(0.d0)), pointer :: E(:)
      Integer, pointer :: P(:)
@@ -159,7 +158,6 @@ Contains
     Op%N_non_zero = N
     Op%g     = cmplx(0.d0,0.d0, kind(0.D0))
     Op%alpha = cmplx(0.d0,0.d0, kind(0.D0))
-    Op%diag  = .true.
   end subroutine Op_make
 
 !--------------------------------------------------------------------
@@ -176,129 +174,74 @@ Contains
   subroutine Op_set(Op)
     Implicit none
     Type (Operator), intent(INOUT) :: Op
-    Complex (Kind=Kind(0.d0)), allocatable :: U(:,:), TMP(:,:), TAU(:), WORK(:)
+
+    Complex (Kind=Kind(0.d0)), allocatable :: U(:,:)
     Real    (Kind=Kind(0.d0)), allocatable :: E(:)
-    Real    (Kind=Kind(0.d0)) :: Zero = 1.E-9, nm
-    Integer :: N, I, J, np,nz, LWORK, INFO
-    Complex (Kind=Kind(0.d0)) :: Z
-    Complex (Kind=Kind(0.d0)) :: ZLADIV
+    Real    (Kind=Kind(0.d0)) :: Zero = 1.E-9
+    Integer :: N, I, np,nz
 
     If (Op%N > 1) then
        N = Op%N
-       LWORK= 2*N
-       Allocate (U(N,N), E(N), TMP(N,N), WORK(LWORK), TAU(N))
-       do I=1,N
-          do J=i+1,N
-             if (Op%O(i,j) .ne. cmplx(0.d0,0.d0, kind(0.D0)) .or. Op%O(j,i) .ne. cmplx(0.d0,0.d0, kind(0.D0))) Op%diag=.false.
-          enddo
+       Allocate (U(N,N), E(N))
+       Call Diag(Op%O,U, E)  
+       Np = 0
+       Nz = 0
+       do I = 1,N
+          if ( abs(E(I)) > Zero ) then
+             np = np + 1
+             Op%U(:, np) = U(:, i)
+             Op%E(np)   = E(I)
+          else
+             Op%U(:, N-nz) = U(:, i)
+             Op%E(N-nz)   = E(I)
+             nz = nz + 1
+          endif
        enddo
-       if (Op%diag) then
-          U=cmplx(0.d0,0.d0, kind(0.D0))
-          do I=1,N
-             E(I)=REAL(Op%O(I,I))
-             U(I,I)=cmplx(1.d0,0.d0, kind(0.D0))
-          enddo
-          Op%N_non_zero = n
-       else
-          Call Diag(Op%O,U, E) 
-          Np = 0
-          Nz = 0
-          do I = 1,N
-              if ( abs(E(I)) > Zero ) then
-                np = np + 1
-                Op%U(:, np) = U(:, i)
-                Op%E(np)   = E(I)
-              else
-                Op%U(:, N-nz) = U(:, i)
-                Op%E(N-nz)   = E(I)
-                nz = nz + 1
-              endif
-          enddo
-          Op%N_non_zero = np 
-       endif
+       Op%N_non_zero = np
        !Write(6,*) "Op_set", np,N
-       TMP = Op%U ! that way we have the changes to the determinant due to the permutation
-       Z = Det_C(TMP, N)
-       ! Scale Op%U to be in SU(N) -> R will be diagonal with +-1 on the diagonal
-       DO I = 1, N
-            Op%U(I,1) = zladiv(Op%U(I,1),Z)
-       ENDDO
-       
-       if(op%N > 2) then
-           TMP = Op%U
-            CALL ZGEQRF(N, N, TMP, N, TAU, WORK, LWORK, INFO)
-            DO I = 1, N-1
-                TMP(I, N) = TAU(I)
-            ENDDO
-            IF (DBLE(TMP(N,N)) < 0.D0) THEN
-                TMP(N, N) = 2.D0 - TAU(N)! absorb last sign (stored in U(opn, opn)) into redefinition of tau
-            ELSE
-                TMP(N, N) = TAU(N)
-            ENDIF
-            Op%U = TMP
-       endif
-       deallocate (U, E, TMP, TAU, WORK)
+       deallocate (U, E)
        ! Op%U,Op%E)
        !Write(6,*) 'Calling diag 1'
     else
        Op%E(1)   = REAL(Op%O(1,1), kind(0.D0))
        Op%U(1,1) = cmplx(1.d0, 0.d0 , kind(0.D0))
        Op%N_non_zero = 1
-       Op%diag = .true.
     endif
   end subroutine Op_set
 
 !--------------------------------------------------------------------
-!> @author
-!> The ALF Project contributors
-!
-!> @brief This calculates the exponentiated operator and returns a full matrix
-!<        representation: Mat = U exp(E) U^\dagger
-!
-!> @param[in] g 
-!> @param[in] Op 
-!> @param[out] Mat The full matrix of the exponentiated operator.
-!--------------------------------------------------------------------
 
 
-Subroutine Op_exp(g,Op,Mat)
+  Pure subroutine Op_exp(g,Op,Mat)
     Implicit none 
     Type (Operator), Intent(IN)  :: Op
     Complex (Kind=Kind(0.d0)), Dimension(:,:), INTENT(OUT) :: Mat
     Complex (Kind=Kind(0.d0)), INTENT(IN) :: g
-    Complex (Kind=Kind(0.d0)) :: Z
-    Complex (Kind=Kind(0.d0)), allocatable, dimension(:) :: work
-    Real (Kind=Kind(0.d0)) :: nrm
-    Integer :: I, lwork, info
+    Complex (Kind=Kind(0.d0)) :: Z, Z1, y, t
+    Complex (Kind=Kind(0.d0)), allocatable, dimension(:,:) :: c
+
+    Integer :: n, j, I, iters
     
-    select case (Op%N)
-    case (1)
-        Mat(1,1) = exp(g*Op%E(1))
-    case (2)
-        Mat(1,1) = exp(g*Op%E(2))
-        Mat(2,2) = exp(g*Op%E(1))
-        Z = Mat(1,1) - Mat(2,2)
-        nrm = DBLE(Op%U(1, 1) * Conjg(Op%U(1, 1)))
-        Mat(1,2) = Op%U(1, 1) * Op%U(1, 2)
-        Mat(2,1) = Conjg(Mat(1, 2))
-        Mat(1,2) = Mat(1,2) * Z
-        Mat(2,1) = Mat(2,1) * Z ! if g is complex the resulting matrix is not hermitian.
-        Z = Z*nrm
-        Mat(1,1) = Mat(1,1) - Z
-        Mat(2,2) = Mat(2,2) + Z
-    case default
-        Mat = cmplx(0.d0, 0.d0, kind(0.D0))
-        lwork = 2 * Op%N
-        Allocate (work(lwork))
-        Do i = 1, Op%N
-            Mat(I, I) = exp(g*Op%E(I))
-        ENDDO
-        ! The phase factors do not matter in the similarity transform
-        CALL ZUNMQR('L', 'N', Op%N, Op%N, Op%N, Op%U, Op%n, Op%U(1, Op%N), Mat, Size(Mat, 1), work, lwork, info)
-        CALL ZUNMQR('R', 'C', Op%N, Op%N, Op%N, Op%U, Op%n, Op%U(1, Op%N), Mat, Size(Mat, 1), work, lwork, info)
-        Deallocate(work)
-    end select
-! >>>>>>> 59-work-better-with-unitary-matrices
+    iters = Op%N
+    Mat = cmplx(0.d0, 0.d0, kind(0.D0))
+    Allocate (c(iters, iters))
+    c = 0.D0
+    Do n = 1, iters
+       Z = exp(g*Op%E(n))
+       do J = 1, iters
+          Z1 = Z*conjg(Op%U(J,n))
+          do I = 1, iters
+            y = Z1 * Op%U(I, n) - c(I, J)
+            t = Mat(I, J) + y
+            c(I, J) = (t - Mat(I,J)) - y
+            Mat(I, J) = t
+!            Mat(I, J) = Mat(I, J) + Z1 * Op%U(I, n)
+          enddo
+          
+!          Mat(1:iters, J) = Mat(1:iters, J) + Z1 * Op%U(1:iters, n)
+       enddo
+    enddo
+    Deallocate(c)
   end subroutine Op_exp
 
 !--------------------------------------------------------------------
@@ -384,36 +327,27 @@ Subroutine Op_exp(g,Op,Mat)
     Complex (Kind = Kind(0.D0)), Dimension(:, :), INTENT(IN) :: U
     Complex (Kind = Kind(0.D0)), INTENT(INOUT) :: Mat (Ndim,Ndim)
     Integer, INTENT(IN) :: P(opn)
-    Integer :: n,i, j, lwork, info
+    Integer :: n,i
     Complex (Kind = Kind(0.D0)) :: alpha, beta
     Complex (Kind = Kind(0.D0)), Dimension(:,:), allocatable :: tmp
-    Complex (Kind = Kind(0.D0)), Dimension(:), allocatable :: work, vec
 
     alpha = 1.D0
     beta = 0.D0
     select case (opn)
     case (1)
         DO I = 1, Ndim
-            Mat(P(1), I) = V(1, I)
+            Mat(P(1), I) = U(1,1) * V(1, I)
         enddo
     case (2)
         DO I = 1, Ndim
             Mat(P(1), I) = U(1,1) * V(1, I) + U(1,2) * V(2, I)
-            Mat(P(2), I) = -conjg(U(1,2)) * V(1, I) + conjg(U(1,1)) * V(2, I)
+            Mat(P(2), I) = U(2,1) * V(1, I) + U(2,2) * V(2, I)
         enddo
     case default
-        lwork = 2*Ndim
-        Allocate(tmp(opn, Ndim), work(lwork))
-        tmp = V
-!        CALL ZGEMM('N','N', opn, Ndim, opn, alpha, U, opn, V, opn, beta, tmp, opn)
-        DO I = 1, opn-1
-            IF(DBLE(U(I, I)) < 0.D0) THEN
-               tmp(I, :) = - tmp(I, :)
-            ENDIF
-        ENDDO
-        CALL ZUNMQR('L', 'N', opn, Ndim, opn, U(1,1), opn, U(1, opn), tmp(1,1), opn, work(1), lwork, info)
+        Allocate(tmp(opn, Ndim))
+        CALL ZGEMM('N','N', opn, Ndim, opn, alpha, U, opn, V, opn, beta, tmp, opn)
         Mat((P), :) = tmp
-        Deallocate(tmp, work)
+        Deallocate(tmp)
     end select
 
   end subroutine
@@ -441,38 +375,27 @@ Subroutine Op_exp(g,Op,Mat)
     Complex (Kind = Kind(0.D0)), Dimension(:, :), INTENT(IN) :: U
     Complex (Kind = Kind(0.D0)), INTENT(INOUT) :: Mat (Ndim,Ndim)
     Integer, INTENT(IN) :: P(opn)
-    Integer :: n, i, j, lwork, info
+    Integer :: n, i
     Complex (Kind = Kind(0.D0)) :: alpha, beta
     Complex (Kind = Kind(0.D0)), Dimension(:,:), allocatable :: tmp
-    Complex (Kind = Kind(0.D0)), Dimension(:), allocatable :: work
 
     alpha = 1.D0
     beta = 0.D0
     select case (opn)
     case (1)
         DO I = 1, Ndim
-            Mat(I, P(1)) = V(1, I)
+            Mat(I, P(1)) = conjg(U(1,1)) * V(1, I)
         enddo
     case (2)
         DO I = 1, Ndim
             Mat(I, P(1)) = conjg(U(1,1)) * V(1, I) + conjg(U(1,2)) * V(2, I)
-            Mat(I, P(2)) = -U(1,2) * V(1, I) + U(1,1) * V(2, I)
+            Mat(I, P(2)) = conjg(U(2,1)) * V(1, I) + conjg(U(2,2)) * V(2, I)
         enddo
     case default
-        lwork = 2*Ndim
-        Allocate(tmp(Ndim, opn), work(lwork))
-        DO J = 1, opn - 1
-            IF (DBLE(U(J, J)) < 0.D0) THEN
-                tmp(:, J) = - V(J, :)
-            ELSE
-                tmp(:, J) = V(J, :)
-            ENDIF
-        ENDDO
-        tmp(:, opn) = V(opn, :)
-        CALL ZUNMQR('R', 'C', Ndim, opn, opn, U, opn, U(1, opn), tmp, Ndim, work, lwork, info)
-!        CALL ZGEMM('T','C', Ndim, opn, opn, alpha, V, opn, U, opn, beta, tmp, Ndim)
+        Allocate(tmp(Ndim, opn))
+        CALL ZGEMM('T','C', Ndim, opn, opn, alpha, V, opn, U, opn, beta, tmp, Ndim)
         Mat(:, (P)) = tmp
-        Deallocate(tmp, work)
+        Deallocate(tmp)
     end select
         
   end subroutine
@@ -488,7 +411,7 @@ Subroutine Op_exp(g,Op,Mat)
 !
 !> @param[in] V
 !> @param[in] U
-!> @param[in] P a vector with the rows that we write to
+!> @param[in] P a vector wiht the rows that we write to
 !> @param[inout] Mat The Matrix that we update
 !> @param[in] Z A vector that usually contains exponentials
 !> @param[in] opn The length of the vector P
@@ -503,41 +426,24 @@ Subroutine Op_exp(g,Op,Mat)
     Complex (Kind = Kind(0.D0)), Dimension(:, :), INTENT(IN) :: U
     Complex (Kind = Kind(0.D0)), INTENT(INOUT) :: Mat (Ndim,Ndim)
     Integer, INTENT(IN) :: P(opn)
-    Integer :: n, i, j, lwork, info
+    Integer :: n, i
     Complex (Kind = Kind(0.D0)) :: beta
-    Complex (Kind = Kind(0.D0)), Dimension(:, :), allocatable :: tmp
-    Complex (Kind = Kind(0.D0)), Dimension(:), allocatable :: work
 
     beta = 0.D0
     select case (opn)
     case (1)
         DO I = 1, Ndim
-            Mat(I, P(1)) = Z(1) * V(1, I)
+            Mat(I, P(1)) = Z(1) * U(1, 1) * V(1, I)
         enddo
     case (2)
         DO I = 1, Ndim
-            Mat(I, P(1)) = Z(1) * (U(1, 1) * V(1, I) - conjg(U(1, 2)) * V(2, I))
-            Mat(I, P(2)) = Z(2) * (U(1, 2) * V(1, I) + conjg(U(1, 1)) * V(2, I))
+            Mat(I, P(1)) = Z(1) * (U(1, 1) * V(1, I) + U(2, 1) * V(2, I))
+            Mat(I, P(2)) = Z(2) * (U(1, 2) * V(1, I) + U(2, 2) * V(2, I))
         enddo
     case default
-        lwork = 2 * Ndim
-        allocate(tmp(Ndim, opn), work(lwork))
-        tmp = Transpose(V)
-        ! multiply with Q
-        CALL ZUNMQR('R', 'N', Ndim ,opn, opn, U(1,1), opn, U(1, opn), tmp, Ndim, work, lwork, info)
-        ! multiply with R
-        DO J = 1, opn - 1
-            IF (DBLE(U(J, J)) < 0.D0) THEN
-                Mat(:, P(j)) = -Z(J) * tmp(:, J)
-            ELSE
-                Mat(:, P(j)) = Z(J) * tmp(:, J)
-            ENDIF
-        ENDDO
-        Mat(:, P(opn)) = Z(opn) * tmp(:, opn)
-!         do n = 1, opn
-!             call zgemv('T', opn, Ndim, Z(n), V, opn, U(:, n), 1, beta, Mat(:, P(n)), 1)
-!         Enddo
-        deallocate(tmp, work)
+        do n = 1, opn
+            call zgemv('T', opn, Ndim, Z(n), V, opn, U(:, n), 1, beta, Mat(:, P(n)), 1)
+        Enddo
     end select
   end subroutine
 
@@ -567,46 +473,24 @@ Subroutine Op_exp(g,Op,Mat)
     Complex (Kind = Kind(0.D0)), Dimension(:, :), INTENT(IN) :: U
     Complex (Kind = Kind(0.D0)), INTENT(INOUT) :: Mat (Ndim, Ndim)
     Integer, INTENT(IN) :: P(opn)
-    Integer :: n, i, j, lwork, info
+    Integer :: n, i
     Complex (Kind = Kind(0.D0)) :: beta
-    Complex (Kind = Kind(0.D0)), Dimension(:, :), allocatable :: tmp
-    Complex (Kind = Kind(0.D0)), Dimension(:), allocatable :: work
 
     beta = 0.D0
     select case (opn)
     case (1)
         DO I = 1, Ndim
-            Mat(P(1), I) = Z(1) * V(1, I)
+            Mat(P(1), I) = Z(1) * conjg(U(1, 1)) * V(1, I)
         enddo
     case (2)
         DO I = 1, Ndim
-            Mat(P(1), I) = Z(1) * (conjg(U(1, 1)) * V(1, I) - U(1, 2) * V(2, I))
-            Mat(P(2), I) = Z(2) * (conjg(U(1, 2)) * V(1, I) + U(1, 1) * V(2, I))
+            Mat(P(1), I) = Z(1) * (conjg(U(1, 1)) * V(1, I) + conjg(U(2, 1)) * V(2, I))
+            Mat(P(2), I) = Z(2) * (conjg(U(1, 2)) * V(1, I) + conjg(U(2, 2)) * V(2, I))
         enddo
     case default
-        lwork = 2 * Ndim
-        allocate(tmp(opn, Ndim), work(lwork))
-        tmp = V
-        ! multiply with Q
-        CALL ZUNMQR('L', 'C', opn, Ndim, opn, U(1,1), opn, U(1, opn), tmp, opn, work, lwork, info)
-        ! multiply with R
-        DO I = 1, opn -1
-            IF(DBLE(U(I, I)) < 0.D0) THEN
-!                tmp(I, :) = -tmp(I, :)
-                CALL ZSCAL(Ndim, - Z(I), tmp(I, 1), size(tmp, 1))
-            ELSE
-                CALL ZSCAL(Ndim, Z(I), tmp(I, 1), size(tmp, 1))
-            ENDIF
-            Mat(P(I), : ) = tmp(I, :)
-        ENDDO
-        CALL ZSCAL(Ndim, Z(opn), tmp(opn, 1), size(tmp, 1))
-        Mat(P(opn), :) = tmp(opn, :)
-        ! exponentials
-!        Mat(P, :) = tmp
-!         do n = 1, opn
-!             call zgemv('T', opn, Ndim, Z(n), V, opn, conjg(U(:, n)), 1, beta, Mat(P(n), 1), size(Mat, 1))
-!         Enddo
-        deallocate(tmp, work)
+        do n = 1, opn
+            call zgemv('T', opn, Ndim, Z(n), V, opn, conjg(U(:, n)), 1, beta, Mat(P(n), 1), size(Mat, 1))
+        Enddo
     end select
 
   end subroutine
@@ -631,35 +515,18 @@ Subroutine Op_exp(g,Op,Mat)
     Real    (Kind=Kind(0.d0)), INTENT(IN)   :: spin
 
     ! Local 
-    Complex (Kind=Kind(0.d0)), Dimension(:, :), allocatable :: VH, TmpExp, tmp
-    Complex (Kind=Kind(0.d0)) :: alpha,beta
-    Integer :: I
+    Complex (Kind=Kind(0.d0)), Dimension(:, :), allocatable :: VH
+    Complex (Kind=Kind(0.d0)), Dimension(:), allocatable :: Z
 
     ! In  Mat
     ! Out Mat = Mat*exp(spin*Op)
-    if ( Op%diag ) then
-      do I=1,Op%N
-        ! Mat*exp(spin*Op) scales the colums P(:) of Mat with alpha=exp(g*spin*E(:))
-        alpha=exp(Op%g * spin * Op%E(I))
-        call ZSCAL(Ndim,alpha,Mat(1,Op%P(I)),1)
-      enddo
-    else
-      allocate(VH(Op%N,Ndim), TMP(ndim,Op%N), TmpExp(Op%N,Op%N))
-      call copy_select_rows(VH, Mat, Op%P, Op%N, Ndim)
-      call Op_exp(Op%g*spin,Op,TmpExp)
-      alpha=cmplx(1.d0,0.d0,kind(0.d0))
-      beta=cmplx(0.d0,0.d0,kind(0.d0))
-      CALL ZGEMM('T','N', Ndim, Op%N, Op%N, alpha, VH, Op%N, TmpExp, Op%N, beta, tmp, ndim)
-      Mat(:,(Op%P))=TMP
-      deallocate(VH, TmpExp, TMP)
-    endif
-!     allocate(VH(Op%N,Ndim), Z(Op%N))
-!     call copy_select_rows(VH, Mat, Op%P, Op%N, Ndim)
-!     Z = exp(Op%g * spin * Op%E)
-!     call opexpmult(VH, Op%U, Op%P, Mat, Z, Op%N, Ndim)
-!     call copy_select_rows(VH, Mat, Op%P, Op%N, Ndim)
-!     call opmultct(VH, Op%U, Op%P, Mat, Op%N, Ndim)
-!     deallocate(VH, Z)
+    allocate(VH(Op%N,Ndim), Z(Op%N))
+    call copy_select_rows(VH, Mat, Op%P, Op%N, Ndim)
+    Z = exp(Op%g * spin * Op%E)
+    call opexpmult(VH, Op%U, Op%P, Mat, Z, Op%N, Ndim)
+    call copy_select_rows(VH, Mat, Op%P, Op%N, Ndim)
+    call opmultct(VH, Op%U, Op%P, Mat, Op%N, Ndim)
+    deallocate(VH, Z)
   end subroutine Op_mmultL
 
 !--------------------------------------------------------------------
@@ -682,36 +549,18 @@ Subroutine Op_exp(g,Op,Mat)
     Real    (Kind=Kind(0.d0)), INTENT(IN )   :: spin
 
     ! Local 
-    Complex (Kind=Kind(0.d0)), Dimension(:, :), allocatable :: VH, TmpExp, tmp
-    Complex (Kind=Kind(0.d0)) :: alpha,beta
-    Integer :: I
+    Complex (Kind=Kind(0.d0)), Dimension(:, :), allocatable :: VH
+    Complex (Kind=Kind(0.d0)), Dimension(:), allocatable :: Z
     
     ! In  Mat
     ! Out Mat = exp(spin*Op)*Mat
-    if ( Op%diag ) then
-      do I=1,Op%N
-        !exp(spin*Op)*Mat scales the rows P(:) of Mat with alpha=exp(g*spin*E(:))
-        alpha=exp(Op%g * spin * Op%E(I))
-        call ZSCAL(Ndim,alpha,Mat(Op%P(I),1),Ndim)
-      enddo
-    else
-      allocate(VH(Op%N,Ndim), TMP(Op%N,Ndim), TmpExp(Op%N,Op%N))
-      call copy_select_columns(VH, Mat, Op%P, Op%N, Ndim)
-      call Op_exp(Op%g*spin,Op,TmpExp)
-      alpha=cmplx(1.d0,0.d0,kind(0.d0))
-      beta=cmplx(0.d0,0.d0,kind(0.d0))
-      CALL ZGEMM('N','N', Op%N, Ndim, Op%N, alpha, TmpExp, Op%N, VH, Op%N, beta, tmp, Op%N)
-      Mat((Op%P),:)=TMP
-      deallocate(VH, TmpExp, TMP)
-    endif
-    
-!     allocate(VH(Op%N,Ndim), Z(Op%N))
-!     call copy_select_columns(VH, Mat, Op%P, Op%N, Ndim)
-!     Z = exp(Op%g * spin * Op%E)
-!     call opexpmultct(VH, Op%U, Op%P, Mat, Z, Op%N, Ndim)    
-!     call copy_select_columns(VH, Mat, Op%P, Op%N, Ndim)
-!     call opmult(VH, Op%U, Op%P, Mat, Op%N, Ndim)
-!     deallocate(VH, Z)
+    allocate(VH(Op%N,Ndim), Z(Op%N))
+    call copy_select_columns(VH, Mat, Op%P, Op%N, Ndim)
+    Z = exp(Op%g * spin * Op%E)
+    call opexpmultct(VH, Op%U, Op%P, Mat, Z, Op%N, Ndim)    
+    call copy_select_columns(VH, Mat, Op%P, Op%N, Ndim)
+    call opmult(VH, Op%U, Op%P, Mat, Op%N, Ndim)
+    deallocate(VH, Z)
   end subroutine Op_mmultR
 
 !--------------------------------------------------------------------
@@ -757,8 +606,7 @@ Subroutine Op_exp(g,Op,Mat)
     Integer, INTENT(IN) :: N_Type
 
     ! Local 
-    Complex (Kind=Kind(0.d0)) :: ExpOp(Op%N), ExpMop(Op%N), VH(Op%N,Ndim), alpha
-    Integer :: I
+    Complex (Kind=Kind(0.d0)) :: ExpOp(Op%N), ExpMop(Op%N), VH(Op%N,Ndim)
     
     !     nop=size(Op%U,1)
     !!!!! N_Type ==1
@@ -769,23 +617,12 @@ Subroutine Op_exp(g,Op,Mat)
     !    Op%U * Mat * (Op%U^{dagger})
     !!!!!
     If (N_type == 1) then
-      if(Op%diag) then
-        do I=1,Op%N
-          alpha=exp(Op%g * spin * Op%E(I))
-          call ZSCAL(Ndim,alpha,Mat(Op%P(I),1),Ndim)
-        enddo
-        do I=1,Op%N
-          alpha=exp(-Op%g * spin * Op%E(I))
-          call ZSCAL(Ndim,alpha,Mat(1,Op%P(I)),1)
-        enddo
-      else
         call FillExpOps(ExpOp, ExpMop, Op, spin)
         call copy_select_rows(VH, Mat, Op%P, Op%N, Ndim)
         call opexpmult(VH, Op%U, Op%P, Mat, ExpMOp, Op%N, Ndim)
         call copy_select_columns(VH, Mat, Op%P, Op%N, Ndim)
         call opexpmultct(VH, Op%U, Op%P, Mat, ExpOp, Op%N, Ndim)
-      endif
-    elseif (N_Type == 2 .and. .not. Op%diag) then
+    elseif (N_Type == 2) then
         call copy_select_rows(VH, Mat, Op%P, Op%N, Ndim)
         call opmultct(VH, Op%U, Op%P, Mat, Op%N, Ndim)
         call copy_select_columns(VH, Mat, Op%P, Op%N, Ndim)
@@ -805,8 +642,8 @@ Subroutine Op_exp(g,Op,Mat)
     Integer, INTENT(IN) :: N_Type
 
     ! Local 
-    Complex (Kind = Kind(0.D0)), Dimension(:), allocatable :: ExpOp, ExpMop, work
-    Integer :: n, i, j, lwork, info
+    Complex (Kind = Kind(0.D0)), Dimension(:), allocatable :: ExpOp, ExpMop
+    Integer :: n, i
     Complex (Kind = Kind(0.D0)) :: alpha, beta, ExpHere
     Complex (Kind = Kind(0.D0)), Dimension(:, :), allocatable :: VH, tmp, tmp2
 
@@ -819,86 +656,59 @@ Subroutine Op_exp(g,Op,Mat)
     !!!!! N_Type == 2
     !    (Op%U^{dagger}) * Mat * Op%U
     !!!!!
-    
     Allocate(VH(Op%N,Ndim), ExpOp(Op%N), ExpMop(Op%N))
     If (N_type == 1) then
-      if(Op%diag) then
-        do I=1,Op%N
-          alpha=exp(-Op%g * spin * Op%E(I))
-          call ZSCAL(Ndim,alpha,Mat(Op%P(I),1),Ndim)
-        enddo
-        do I=1,Op%N
-          alpha=exp(Op%g * spin * Op%E(I))
-          call ZSCAL(Ndim,alpha,Mat(1,Op%P(I)),1)
-        enddo
-      else
        call FillExpOps(ExpOp, ExpMop, Op, spin)
        
-       if (Op%N == 1) then
+       Do n = 1,Op%N
+          expHere=ExpOp(n)
+          VH(n, :) = ExpHere * Mat(:, Op%P(n))
+       Enddo
+
+       call opmultct(VH, Op%U, Op%P, Mat, Op%N, Ndim)
+
+       Do n = 1,Op%N
+          ExpHere=ExpMOp(n)
+          VH(n, :) = ExpHere * Mat(Op%P(n), :)
+       Enddo
+    
+       call opmult(VH, Op%U, Op%P, Mat, Op%N, Ndim)
+    elseif (N_Type == 2) then
+    call copy_select_rows(VH, Mat, Op%P, Op%N, Ndim)
+
+    select case (Op%N)
+    case (1)
+        DO I = 1, Ndim
+            Mat(I, Op%P(1)) = Op%U(1,1) * VH(1, I)
+        enddo
+    case (2)
+        DO I = 1, Ndim
+            Mat(I, Op%P(1)) = Op%U(1, 1) * VH(1, I) + Op%U(2, 1) * VH(2, I)
+            Mat(I, Op%P(2)) = Op%U(1, 2) * VH(1, I) + Op%U(2, 2) * VH(2, I)
+        enddo
+    case default
+        Allocate(tmp(Ndim, Op%N))
+        CALL ZGEMM('T','N', Ndim, op%N, op%N, alpha, VH, op%n, Op%U, op%n, beta, tmp, Ndim)
+        Mat(:, (Op%P)) = tmp
+        Deallocate(tmp)
+    end select
+      call copy_select_columns(VH, Mat, Op%P, Op%N, Ndim)
+      select case (Op%N)
+        case (1)
             DO I = 1, Ndim
-                Mat(I, Op%P(1)) = ExpOp(1) * Mat(I, Op%P(1))
+                Mat(Op%P(1), I) = conjg(Op%U(1,1)) * VH(1, I)
             enddo
+        case (2)
             DO I = 1, Ndim
-                Mat(Op%P(1), I) = ExpMOp(1) * Mat(Op%P(1), I)
+                Mat(Op%P(1), I) = conjg(Op%U(1,1)) * VH(1, I) + conjg(Op%U(2,1)) * VH(2, I)
+                Mat(Op%P(2), I) = conjg(Op%U(1,2)) * VH(1, I) + conjg(Op%U(2,2)) * VH(2, I)
             enddo
-       else
-            CALL ZLASET('A', Op%N, Ndim, beta, beta, VH, Op%N)
-            Do n = 1,Op%N
-                CALL ZAXPY(Ndim, ExpOp(n), Mat(1, Op%P(n)), 1, VH(n, 1), Op%N)
-            Enddo
-            call opmultct(VH, Op%U, Op%P, Mat, Op%N, Ndim)
-            CALL ZLASET('A', Op%N, Ndim, beta, beta, VH, Op%N)
-            Do n = 1,Op%N
-                CALL ZAXPY(Ndim, ExpMop(n), Mat(Op%P(n), 1), Ndim, VH(n, 1), Op%N)
-            Enddo
-            call opmult(VH, Op%U, Op%P, Mat, Op%N, Ndim)
-       endif
-      endif
-    elseif (N_Type == 2 .and. .not. Op%diag) then
-        if(Op%N > 1) then
-            select case (Op%N)
-            case (2)
-                call copy_select_rows(VH, Mat, Op%P, 2, Ndim)
-                DO I = 1, Ndim
-                    Mat(I, Op%P(1)) = Op%U(1, 1) * VH(1, I) + Op%U(2, 1) * VH(2, I)
-                    Mat(I, Op%P(2)) = -conjg(Op%U(2, 1)) * VH(1, I) + conjg(Op%U(1, 1)) * VH(2, I)
-                enddo
-                call copy_select_columns(VH, Mat, Op%P, 2, Ndim)
-                DO I = 1, Ndim
-                    Mat(Op%P(1), I) = conjg(Op%U(1,1)) * VH(1, I) + conjg(Op%U(2,1)) * VH(2, I)
-                    Mat(Op%P(2), I) = -Op%U(2,1) * VH(1, I) + Op%U(1,1) * VH(2, I)
-                enddo
-            case default
-!                call copy_select_rows(VH, Mat, Op%P, Op%N, Ndim)
-                lwork = 2 * Ndim
-                Allocate(tmp(Ndim, Op%N), work(lwork))
-                    Do n = 1, op%n
-                        call zcopy(Ndim, Mat(1, Op%P(n)), 1, tmp(1,n), 1)
-                    Enddo
-                CALL ZUNMQR('R', 'N', Ndim, Op%N, Op%N, Op%U, op%n, Op%U(1, op%N), tmp, Ndim, work, lwork, info)
-!                CALL ZGEMM('T','N', Ndim, op%N, op%N, alpha, VH, op%n, Op%U, op%n, beta, tmp, Ndim)
-                DO J = 1, Op%N -1
-                    IF(DBLE(Op%U(J, J)) < 0.D0) THEN
-                        Mat(:, Op%P(J)) = - tmp(:, J)
-                    ELSE
-                        CALL ZCOPY(Ndim, tmp(1, J), 1, Mat(:, Op%P(J)), 1)
-                    ENDIF
-                ENDDO
-                CALL ZCOPY(Ndim, tmp(1, Op%N), 1, Mat(:, Op%P(Op%N)), 1)
-                Deallocate(tmp)
-                call copy_select_columns(VH, Mat, Op%P, Op%N, Ndim)
-                CALL ZUNMQR('L', 'C', Op%N, Ndim, op%N, Op%U, Op%n, Op%U(1, op%N), VH, Op%N, work, lwork, info)
-                DO I = 1, Op%N -1
-                    IF(DBLE(Op%U(I, I)) < 0.D0) THEN
-                        Mat(Op%P(I), :) = -VH (I, :)
-                    ELSE
-                        Mat(Op%P(I), :) = VH (I, :)
-                    ENDIF
-                ENDDO
-                Mat(Op%P(Op%N), :) = VH (Op%N, :)
-!                CALL ZGEMM('C','N', op%N, Ndim, op%N, alpha, Op%U, op%n, VH, op%n, beta, tmp2, op%n)
-            end select
-        endif
+        case default
+            Allocate(tmp2(Op%N, Ndim))
+            CALL ZGEMM('C','N', op%N, Ndim, op%N, alpha, Op%U, op%n, VH, op%n, beta, tmp2, op%n)
+            Mat(Op%P, :) = tmp2
+            Deallocate(tmp2)
+        end select
     endif
   end Subroutine Op_Wrapdo
 
