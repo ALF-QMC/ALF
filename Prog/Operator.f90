@@ -195,7 +195,7 @@ Contains
        if (Op%diag) then
           U=cmplx(0.d0,0.d0, kind(0.D0))
           do I=1,N
-             E(I)=Op%O(I,I)
+             E(I)=REAL(Op%O(I,I))
              U(I,I)=cmplx(1.d0,0.d0, kind(0.D0))
           enddo
           Op%N_non_zero = n
@@ -266,33 +266,6 @@ Subroutine Op_exp(g,Op,Mat)
     Type (Operator), Intent(IN)  :: Op
     Complex (Kind=Kind(0.d0)), Dimension(:,:), INTENT(OUT) :: Mat
     Complex (Kind=Kind(0.d0)), INTENT(IN) :: g
-! <<<<<<< HEAD
-!     Complex (Kind=Kind(0.d0)) :: Z, Z1, y, t
-!     Complex (Kind=Kind(0.d0)), allocatable, dimension(:,:) :: c
-! 
-!     Integer :: n, j, I, iters
-!     
-!     iters = Op%N
-!     Mat = cmplx(0.d0, 0.d0, kind(0.D0))
-!     Allocate (c(iters, iters))
-!     c = 0.D0
-!     Do n = 1, iters
-!        Z = exp(g*Op%E(n))
-!        do J = 1, iters
-!           Z1 = Z*conjg(Op%U(J,n))
-!           do I = 1, iters
-!             y = Z1 * Op%U(I, n) - c(I, J)
-!             t = Mat(I, J) + y
-!             c(I, J) = (t - Mat(I,J)) - y
-!             Mat(I, J) = t
-! !            Mat(I, J) = Mat(I, J) + Z1 * Op%U(I, n)
-!           enddo
-!           
-! !          Mat(1:iters, J) = Mat(1:iters, J) + Z1 * Op%U(1:iters, n)
-!        enddo
-!     enddo
-!     Deallocate(c)
-! =======
     Complex (Kind=Kind(0.d0)) :: Z
     Complex (Kind=Kind(0.d0)), allocatable, dimension(:) :: work
     Real (Kind=Kind(0.d0)) :: nrm
