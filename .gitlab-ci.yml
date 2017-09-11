@@ -7,7 +7,7 @@ stages:
 .build_template: &build_definition
   stage: build
   script:
-    - apt install -y zlib1g-dev
+    - apt install -y zlib-dev
     - . setenv.sh
     - export f90="gfortran"
     - cd Libraries
@@ -38,7 +38,7 @@ stages:
 .warnconv_template: &warnconv_definition
   stage: warnconv
   script:
-    - apt install -y zlib1g-dev
+    - apt install -y zlib-dev
     - . setenv.sh
     - export f90="gfortran"
     - export FL="$FL -Wconversion -Werror"
@@ -53,7 +53,7 @@ stages:
 .test_template: &test_definition
   stage: test
   script:
-    - apt install -y zlib1g-dev
+    - apt install -y zlib-dev
     - . setenv.sh
     - export f90="gfortran"
     - cd Libraries
@@ -170,7 +170,7 @@ GQMCT_Wheezy-PGI_conv:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-wheezy-pgi
   stage: warnconv
   script:
-    - apt install -y zlib1g-dev
+    - apt install -y zlib-dev
     - . setenv.sh
     - export f90="/opt/pgi/linux86-64/2016/bin/pgfortran"
     - export FL="-O3 -Minform=inform"
@@ -228,7 +228,7 @@ GQMCT_Jessie-PGI_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-pgi-cmake
   stage: test
   script:
-    - apt install -y zlib1g-dev
+    - apt install -y zlib-dev
     - . setenv.sh
     - export f90="/opt/pgi/linux86-64/2016/bin/pgfortran"
     - export FL="-O3"
@@ -253,7 +253,7 @@ GQMCT_jessie_valgrind:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-blas-lapack-valgrind
   stage: memleaks
   script:
-      - apt install -y zlib1g-dev
+      - apt install -y zlib
       - . setenv.sh
       - export f90="gfortran"
       - export FL="${FL} -g"
