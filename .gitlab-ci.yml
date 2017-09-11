@@ -7,7 +7,7 @@ stages:
 .build_template: &build_definition
   stage: build
   script:
-    - apt-get install -Y zlib1g-dev
+    - apt install -Y zlib1g-dev
     - . setenv.sh
     - export f90="gfortran"
     - cd Libraries
