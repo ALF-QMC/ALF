@@ -164,6 +164,7 @@
                  call zscal(Ndim, Z, x_v(1, n), 1)
                  Deallocate(syu, sxv)
               enddo
+! <<<<<<< HEAD
               IF (Op_dim == 1) THEN
                 CALL ZCOPY(Ndim, gr(1, Op_V(n_op,nf)%P(1), nf), 1, xp_v(1, 1), 1)
                 CALL ZGERU(Ndim, Ndim, -x_v(Op_V(n_op,nf)%P(1), 1), xp_v(1,1), 1, y_v(1, 1), 1, gr(1,1,nf), Ndim)
@@ -172,21 +173,24 @@
                 Zarr = x_v(Op_V(n_op,nf)%P, :)
                 grarr = gr(:, Op_V(n_op,nf)%P, nf)
                 alpha = 1.D0
-                CALL ZGEMM('N', 'N', NDim, Op_Dim, Op_Dim, alpha, grarr, size(grarr,1), Zarr, Op_Dim, beta, xp_v, size(xp_v,1))
+                CALL ZGEMM('N', 'N', NDim, Op_Dim, Op_Dim, alpha, grarr, NDim, Zarr, Op_Dim, beta, xp_v, Ndim)
                 Deallocate(Zarr, grarr)
                 beta  = cmplx ( 1.0d0, 0.0d0, kind(0.D0))
                 alpha = -1.D0
                 CALL ZGEMM('N','T',Ndim,Ndim,Op_dim,alpha,xp_v, Ndim,y_v, Ndim,beta,gr(1,1,nf), Ndim)
               ENDIF
-              !do n = 1,Op_dim
-              !   do j = 1,Ndim
-              !      do i = 1,Ndimop
-              !         gr(i,j,nf) = gr(i,j,nf) - xp_v(i,n)*y_v(j,n)
-              !      enddo
-              !   enddo
-              !enddo
-              ! gr(:,:,nf) -= xp_v(:,:) * y_v(:,:)^T
-              ! Replace by Zgemm 
+! =======
+!               Allocate (Zarr(Op_dim,Op_dim), grarr(NDim, Op_dim))
+!               Zarr = x_v(Op_V(n_op,nf)%P, :)
+!               grarr = gr(:, Op_V(n_op,nf)%P, nf)
+!               alpha = 1.D0
+!               CALL ZGEMM('N', 'N', NDim, Op_Dim, Op_Dim, alpha, grarr, NDim, Zarr, Op_Dim, beta, xp_v, Ndim)
+!               Deallocate(Zarr, grarr)
+!               alpha = cmplx (-1.0d0, 0.0d0, kind(0.D0))
+!               beta  = cmplx ( 1.0d0, 0.0d0, kind(0.D0))
+!               CALL ZGEMM('N','T',Ndim,Ndim,Op_dim,alpha,xp_v, Ndim,y_v, Ndim,beta,gr(1,1,nf), Ndim)
+! 
+! >>>>>>> 59-work-better-with-unitary-matrices
 
 !!!!!         Requires additional space
 !             Complex (Kind =Kind(0.d0)) ::  tmpMat(Ndim,Ndim), tmp
