@@ -421,11 +421,9 @@
           
           !Local 
           Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK
-          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Zocc, Z, ZP,ZS, weight, tmp, alpha1, alpha2
-          Integer :: I,J, no,no1, n, n1, imj, nf, I1, I2, J1, J2, Nc, Ix, Iy, Jx, Jy, Imx, Imy, Jmx, Jmy
-          Integer :: a, b, c, d, signum, K, K1, L ,L1, nf1, no_I, no_J
-          
-          Real (Kind=Kind(0.d0)) :: G(4,4), X, FI, FJ
+          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Zocc, Z, ZP,ZS, weight, tmp
+          Integer :: I,J, n, imj, nf, I1, J1, Nc
+          Integer :: K, K1, L ,L1, no_I, no_J
           
 
           Do nf = 1,N_FL
@@ -586,8 +584,8 @@
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: Phase
           
           !Locals
-          Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS, tmp, DeltaI, DeltaJ, weight, weightbeta
-          Integer :: IMJ, I1, I, no, J1, J, no1, I2, J2, signum,a,b,c,d, no_I, no_J
+          Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS
+          Integer :: IMJ, I1, I, J1, J, no_I, no_J
 
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
