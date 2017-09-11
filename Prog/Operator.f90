@@ -53,6 +53,7 @@ Module Operator_mod
 
   Type Operator
      Integer          :: N, N_non_zero
+     logical          :: diag
      complex (Kind=Kind(0.d0)), pointer :: O(:,:), U (:,:)
      Real    (Kind=Kind(0.d0)), pointer :: E(:)
      Integer, pointer :: P(:)
@@ -158,6 +159,7 @@ Contains
     Op%N_non_zero = N
     Op%g     = cmplx(0.d0,0.d0, kind(0.D0))
     Op%alpha = cmplx(0.d0,0.d0, kind(0.D0))
+    Op%diag  = .true.
   end subroutine Op_make
 
 !--------------------------------------------------------------------
@@ -174,7 +176,6 @@ Contains
   subroutine Op_set(Op)
     Implicit none
     Type (Operator), intent(INOUT) :: Op
-
     Complex (Kind=Kind(0.d0)), allocatable :: U(:,:), TMP(:,:), TAU(:), WORK(:)
     Real    (Kind=Kind(0.d0)), allocatable :: E(:)
     Real    (Kind=Kind(0.d0)) :: Zero = 1.E-9, nm
@@ -186,21 +187,35 @@ Contains
        N = Op%N
        LWORK= 2*N
        Allocate (U(N,N), E(N), TMP(N,N), WORK(LWORK), TAU(N))
-       Call Diag(Op%O,U, E)  
-       Np = 0
-       Nz = 0
-       do I = 1,N
-          if ( abs(E(I)) > Zero ) then
-             np = np + 1
-             Op%U(:, np) = U(:, i)
-             Op%E(np)   = E(I)
-          else
-             Op%U(:, N-nz) = U(:, i)
-             Op%E(N-nz)   = E(I)
-             nz = nz + 1
-          endif
+       do I=1,N
+          do J=i+1,N
+             if (Op%O(i,j) .ne. cmplx(0.d0,0.d0, kind(0.D0)) .or. Op%O(j,i) .ne. cmplx(0.d0,0.d0, kind(0.D0))) Op%diag=.false.
+          enddo
        enddo
-       Op%N_non_zero = np
+       if (Op%diag) then
+          U=cmplx(0.d0,0.d0, kind(0.D0))
+          do I=1,N
+             E(I)=Op%O(I,I)
+             U(I,I)=cmplx(1.d0,0.d0, kind(0.D0))
+          enddo
+          Op%N_non_zero = n
+       else
+          Call Diag(Op%O,U, E) 
+          Np = 0
+          Nz = 0
+          do I = 1,N
+              if ( abs(E(I)) > Zero ) then
+                np = np + 1
+                Op%U(:, np) = U(:, i)
+                Op%E(np)   = E(I)
+              else
+                Op%U(:, N-nz) = U(:, i)
+                Op%E(N-nz)   = E(I)
+                nz = nz + 1
+              endif
+          enddo
+          Op%N_non_zero = np 
+       endif
        !Write(6,*) "Op_set", np,N
        TMP = Op%U ! that way we have the changes to the determinant due to the permutation
        Z = Det_C(TMP, N)
@@ -229,6 +244,7 @@ Contains
        Op%E(1)   = REAL(Op%O(1,1), kind(0.D0))
        Op%U(1,1) = cmplx(1.d0, 0.d0 , kind(0.D0))
        Op%N_non_zero = 1
+       Op%diag = .true.
     endif
   end subroutine Op_set
 
@@ -614,18 +630,35 @@ Subroutine Op_exp(g,Op,Mat)
     Real    (Kind=Kind(0.d0)), INTENT(IN)   :: spin
 
     ! Local 
-    Complex (Kind=Kind(0.d0)), Dimension(:, :), allocatable :: VH
-    Complex (Kind=Kind(0.d0)), Dimension(:), allocatable :: Z
+    Complex (Kind=Kind(0.d0)), Dimension(:, :), allocatable :: VH, TmpExp, tmp
+    Complex (Kind=Kind(0.d0)) :: alpha,beta
+    Integer :: I
 
     ! In  Mat
     ! Out Mat = Mat*exp(spin*Op)
-    allocate(VH(Op%N,Ndim), Z(Op%N))
-    call copy_select_rows(VH, Mat, Op%P, Op%N, Ndim)
-    Z = exp(Op%g * spin * Op%E)
-    call opexpmult(VH, Op%U, Op%P, Mat, Z, Op%N, Ndim)
-    call copy_select_rows(VH, Mat, Op%P, Op%N, Ndim)
-    call opmultct(VH, Op%U, Op%P, Mat, Op%N, Ndim)
-    deallocate(VH, Z)
+    if ( Op%diag ) then
+      do I=1,Op%N
+        ! Mat*exp(spin*Op) scales the colums P(:) of Mat with alpha=exp(g*spin*E(:))
+        alpha=exp(Op%g * spin * Op%E(I))
+        call ZSCAL(Ndim,alpha,Mat(1,Op%P(I)),1)
+      enddo
+    else
+      allocate(VH(Op%N,Ndim), TMP(ndim,Op%N), TmpExp(Op%N,Op%N))
+      call copy_select_rows(VH, Mat, Op%P, Op%N, Ndim)
+      call Op_exp(Op%g*spin,Op,TmpExp)
+      alpha=cmplx(1.d0,0.d0,kind(0.d0))
+      beta=cmplx(0.d0,0.d0,kind(0.d0))
+      CALL ZGEMM('T','N', Ndim, Op%N, Op%N, alpha, VH, Op%N, TmpExp, Op%N, beta, tmp, ndim)
+      Mat(:,(Op%P))=TMP
+      deallocate(VH, TmpExp, TMP)
+    endif
+!     allocate(VH(Op%N,Ndim), Z(Op%N))
+!     call copy_select_rows(VH, Mat, Op%P, Op%N, Ndim)
+!     Z = exp(Op%g * spin * Op%E)
+!     call opexpmult(VH, Op%U, Op%P, Mat, Z, Op%N, Ndim)
+!     call copy_select_rows(VH, Mat, Op%P, Op%N, Ndim)
+!     call opmultct(VH, Op%U, Op%P, Mat, Op%N, Ndim)
+!     deallocate(VH, Z)
   end subroutine Op_mmultL
 
 !--------------------------------------------------------------------
@@ -648,18 +681,36 @@ Subroutine Op_exp(g,Op,Mat)
     Real    (Kind=Kind(0.d0)), INTENT(IN )   :: spin
 
     ! Local 
-    Complex (Kind=Kind(0.d0)), Dimension(:, :), allocatable :: VH
-    Complex (Kind=Kind(0.d0)), Dimension(:), allocatable :: Z
+    Complex (Kind=Kind(0.d0)), Dimension(:, :), allocatable :: VH, TmpExp, tmp
+    Complex (Kind=Kind(0.d0)) :: alpha,beta
+    Integer :: I
     
     ! In  Mat
     ! Out Mat = exp(spin*Op)*Mat
-    allocate(VH(Op%N,Ndim), Z(Op%N))
-    call copy_select_columns(VH, Mat, Op%P, Op%N, Ndim)
-    Z = exp(Op%g * spin * Op%E)
-    call opexpmultct(VH, Op%U, Op%P, Mat, Z, Op%N, Ndim)    
-    call copy_select_columns(VH, Mat, Op%P, Op%N, Ndim)
-    call opmult(VH, Op%U, Op%P, Mat, Op%N, Ndim)
-    deallocate(VH, Z)
+    if ( Op%diag ) then
+      do I=1,Op%N
+        !exp(spin*Op)*Mat scales the rows P(:) of Mat with alpha=exp(g*spin*E(:))
+        alpha=exp(Op%g * spin * Op%E(I))
+        call ZSCAL(Ndim,alpha,Mat(Op%P(I),1),Ndim)
+      enddo
+    else
+      allocate(VH(Op%N,Ndim), TMP(Op%N,Ndim), TmpExp(Op%N,Op%N))
+      call copy_select_columns(VH, Mat, Op%P, Op%N, Ndim)
+      call Op_exp(Op%g*spin,Op,TmpExp)
+      alpha=cmplx(1.d0,0.d0,kind(0.d0))
+      beta=cmplx(0.d0,0.d0,kind(0.d0))
+      CALL ZGEMM('N','N', Op%N, Ndim, Op%N, alpha, TmpExp, Op%N, VH, Op%N, beta, tmp, Op%N)
+      Mat((Op%P),:)=TMP
+      deallocate(VH, TmpExp, TMP)
+    endif
+    
+!     allocate(VH(Op%N,Ndim), Z(Op%N))
+!     call copy_select_columns(VH, Mat, Op%P, Op%N, Ndim)
+!     Z = exp(Op%g * spin * Op%E)
+!     call opexpmultct(VH, Op%U, Op%P, Mat, Z, Op%N, Ndim)    
+!     call copy_select_columns(VH, Mat, Op%P, Op%N, Ndim)
+!     call opmult(VH, Op%U, Op%P, Mat, Op%N, Ndim)
+!     deallocate(VH, Z)
   end subroutine Op_mmultR
 
 !--------------------------------------------------------------------
@@ -705,7 +756,8 @@ Subroutine Op_exp(g,Op,Mat)
     Integer, INTENT(IN) :: N_Type
 
     ! Local 
-    Complex (Kind=Kind(0.d0)) :: ExpOp(Op%N), ExpMop(Op%N), VH(Op%N,Ndim)
+    Complex (Kind=Kind(0.d0)) :: ExpOp(Op%N), ExpMop(Op%N), VH(Op%N,Ndim), alpha
+    Integer :: I
     
     !     nop=size(Op%U,1)
     !!!!! N_Type ==1
@@ -716,12 +768,23 @@ Subroutine Op_exp(g,Op,Mat)
     !    Op%U * Mat * (Op%U^{dagger})
     !!!!!
     If (N_type == 1) then
+      if(Op%diag) then
+        do I=1,Op%N
+          alpha=exp(Op%g * spin * Op%E(I))
+          call ZSCAL(Ndim,alpha,Mat(Op%P(I),1),Ndim)
+        enddo
+        do I=1,Op%N
+          alpha=exp(-Op%g * spin * Op%E(I))
+          call ZSCAL(Ndim,alpha,Mat(1,Op%P(I)),1)
+        enddo
+      else
         call FillExpOps(ExpOp, ExpMop, Op, spin)
         call copy_select_rows(VH, Mat, Op%P, Op%N, Ndim)
         call opexpmult(VH, Op%U, Op%P, Mat, ExpMOp, Op%N, Ndim)
         call copy_select_columns(VH, Mat, Op%P, Op%N, Ndim)
         call opexpmultct(VH, Op%U, Op%P, Mat, ExpOp, Op%N, Ndim)
-    elseif (N_Type == 2) then
+      endif
+    elseif (N_Type == 2 .and. .not. Op%diag) then
         call copy_select_rows(VH, Mat, Op%P, Op%N, Ndim)
         call opmultct(VH, Op%U, Op%P, Mat, Op%N, Ndim)
         call copy_select_columns(VH, Mat, Op%P, Op%N, Ndim)
@@ -758,6 +821,16 @@ Subroutine Op_exp(g,Op,Mat)
     
     Allocate(VH(Op%N,Ndim), ExpOp(Op%N), ExpMop(Op%N))
     If (N_type == 1) then
+      if(Op%diag) then
+        do I=1,Op%N
+          alpha=exp(-Op%g * spin * Op%E(I))
+          call ZSCAL(Ndim,alpha,Mat(Op%P(I),1),Ndim)
+        enddo
+        do I=1,Op%N
+          alpha=exp(Op%g * spin * Op%E(I))
+          call ZSCAL(Ndim,alpha,Mat(1,Op%P(I)),1)
+        enddo
+      else
        call FillExpOps(ExpOp, ExpMop, Op, spin)
        
        if (Op%N == 1) then
@@ -779,7 +852,8 @@ Subroutine Op_exp(g,Op,Mat)
             Enddo
             call opmult(VH, Op%U, Op%P, Mat, Op%N, Ndim)
        endif
-    elseif (N_Type == 2) then
+      endif
+    elseif (N_Type == 2 .and. .not. Op%diag) then
         if(Op%N > 1) then
             select case (Op%N)
             case (2)
