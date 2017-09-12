@@ -194,7 +194,7 @@ Contains
        enddo
        if (Op%diag) then
           do I=1,N
-             Op%E(I)=Op%O(I,I)
+             Op%E(I)=DBLE(Op%O(I,I))
              Op%U(I,I)=cmplx(1.d0,0.d0, kind(0.D0))
           enddo
           Op%N_non_zero = n
