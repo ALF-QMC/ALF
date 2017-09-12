@@ -189,6 +189,7 @@ Contains
        Op%diag = .true.
        do I=1,N
           do J=i+1,N
+             !Binary comparison is OK here as Op%O was initialized to zero during Op_make.
              if (Op%O(i,j) .ne. cmplx(0.d0,0.d0, kind(0.D0)) .or. Op%O(j,i) .ne. cmplx(0.d0,0.d0, kind(0.D0))) Op%diag=.false.
           enddo
        enddo
@@ -576,7 +577,7 @@ Contains
       beta=cmplx(0.d0,0.d0,kind(0.d0))
       CALL ZGEMM('T','N', Ndim, Op%N, Op%N, alpha, VH, Op%N, TmpExp, Op%N, beta, tmp, ndim)
       Mat(:,(Op%P))=TMP
-    deallocate(VH, TmpExp, TMP)
+      deallocate(VH, TmpExp, TMP)
     endif
   end subroutine Op_mmultL
 
@@ -720,7 +721,7 @@ Contains
     ! Local 
     Complex (Kind = Kind(0.D0)), Dimension(:), allocatable :: ExpOp, ExpMop
     Integer :: n, i
-    Complex (Kind = Kind(0.D0)) :: alpha, beta
+    Complex (Kind = Kind(0.D0)) :: alpha, beta, Z(2)
     Complex (Kind = Kind(0.D0)), Dimension(:, :), allocatable :: VH, tmp
 
     alpha = 1.D0
@@ -744,64 +745,51 @@ Contains
           call ZSCAL(Ndim,alpha,Mat(1,Op%P(I)),1)
         enddo
       else
-       Allocate(ExpOp(Op%N), ExpMop(Op%N))
-       call FillExpOps(ExpOp, ExpMop, Op, spin)
-       
-       if (Op%N == 1) then
-            DO I = 1, Ndim
-                Mat(I, Op%P(1)) = ExpOp(1) * Mat(I, Op%P(1))
-            enddo
-            DO I = 1, Ndim
-                Mat(Op%P(1), I) = ExpMOp(1) * Mat(Op%P(1), I)
-            enddo
-       else
-            Allocate(VH(Op%N,Ndim))
-            CALL ZLASET('A', Op%N, Ndim, beta, beta, VH, Op%N)
-            Do n = 1,Op%N
-                CALL ZAXPY(Ndim, ExpOp(n), Mat(1, Op%P(n)), 1, VH(n, 1), Op%N)
-            Enddo
-            call opmultct(VH, Op%U, Op%P, Mat, Op%N, Ndim)
-            CALL ZLASET('A', Op%N, Ndim, beta, beta, VH, Op%N)
-            Do n = 1,Op%N
-                CALL ZAXPY(Ndim, ExpMop(n), Mat(Op%P(n), 1), Ndim, VH(n, 1), Op%N)
-            Enddo
-            call opmult(VH, Op%U, Op%P, Mat, Op%N, Ndim)
-            Deallocate(VH)
-        endif
+        Allocate(ExpOp(Op%N), ExpMop(Op%N))
+        call FillExpOps(ExpOp, ExpMop, Op, spin)
+        Allocate(VH(Op%N,Ndim))
+        CALL ZLASET('A', Op%N, Ndim, beta, beta, VH, Op%N)
+        Do n = 1,Op%N
+          CALL ZAXPY(Ndim, ExpOp(n), Mat(1, Op%P(n)), 1, VH(n, 1), Op%N)
+        Enddo
+        call opmultct(VH, Op%U, Op%P, Mat, Op%N, Ndim)
+        CALL ZLASET('A', Op%N, Ndim, beta, beta, VH, Op%N)
+        Do n = 1,Op%N
+          CALL ZAXPY(Ndim, ExpMop(n), Mat(Op%P(n), 1), Ndim, VH(n, 1), Op%N)
+        Enddo
+        call opmult(VH, Op%U, Op%P, Mat, Op%N, Ndim)
+        Deallocate(VH)
         Deallocate(ExpOp, ExpMop)
       endif
     elseif (N_Type == 2 .and. .not. Op%diag) then
-        if (Op%N > 1) then
-            Allocate(VH(Op%N,Ndim))
-            call copy_select_rows(VH, Mat, Op%P, Op%N, Ndim)
-
-            select case (Op%N)
-            case (2)
-                DO I = 1, Ndim
-                    Mat(I, Op%P(1)) = Op%U(1, 1) * VH(1, I) + Op%U(2, 1) * VH(2, I)
-                    Mat(I, Op%P(2)) = -conjg(Op%U(2, 1)) * VH(1, I) + conjg(Op%U(1, 1)) * VH(2, I)
-                enddo
-            case default
-                Allocate(tmp(Ndim, Op%N))
-                CALL ZGEMM('T','N', Ndim, op%N, op%N, alpha, VH(1,1), op%n, Op%U(1,1), op%n, beta, tmp(1,1), Ndim)
-                Mat(:, (Op%P)) = tmp
-                Deallocate(tmp)
-            end select
-            call copy_select_columns(VH, Mat, Op%P, Op%N, Ndim)
-            select case (Op%N)
-                case (2)
-                    DO I = 1, Ndim
-                        Mat(Op%P(1), I) = conjg(Op%U(1, 1)) * VH(1, I) + conjg(Op%U(2, 1)) * VH(2, I)
-                        Mat(Op%P(2), I) = - Op%U(2, 1) * VH(1, I) + Op%U(1, 1) * VH(2, I)
-                    enddo
-                case default
-                    Allocate(tmp(Op%N, Ndim))
-                    CALL ZGEMM('C','N', op%N, Ndim, op%N, alpha, Op%U(1, 1), op%n, VH(1,1), op%n, beta, tmp(1, 1), op%n)
-                    Mat(Op%P, :) = tmp
-                    Deallocate(tmp)
-            end select
-            deallocate(VH)
-        endif
+      select case (Op%N)
+      case (2)
+          DO I = 1, Ndim
+              Z(1)=Mat(I, Op%P(1))
+              Z(2)=Mat(I, Op%P(2))
+              Mat(I, Op%P(1)) = Op%U(1, 1) * Z(1) + Op%U(2, 1) * Z(2)
+              Mat(I, Op%P(2)) = -conjg(Op%U(2, 1)) * Z(1) + conjg(Op%U(1, 1)) * Z(2)
+          enddo
+          DO I = 1, Ndim
+              Z(1)=Mat(Op%P(1), I)
+              Z(2)=Mat(Op%P(2), I)
+              Mat(Op%P(1), I) = conjg(Op%U(1, 1)) * Z(1) + conjg(Op%U(2, 1)) * Z(2)
+              Mat(Op%P(2), I) = - Op%U(2, 1) * Z(1) + Op%U(1, 1) * Z(2)
+          enddo
+      case default
+          Allocate(VH(Op%N,Ndim))
+          call copy_select_rows(VH, Mat, Op%P, Op%N, Ndim)
+          Allocate(tmp(Ndim, Op%N))
+          CALL ZGEMM('T','N', Ndim, op%N, op%N, alpha, VH(1,1), op%n, Op%U(1,1), op%n, beta, tmp(1,1), Ndim)
+          Mat(:, (Op%P)) = tmp
+          Deallocate(tmp)
+          call copy_select_columns(VH, Mat, Op%P, Op%N, Ndim)
+          Allocate(tmp(Op%N, Ndim))
+          CALL ZGEMM('C','N', op%N, Ndim, op%N, alpha, Op%U(1, 1), op%n, VH(1,1), op%n, beta, tmp(1, 1), op%n)
+          Mat(Op%P, :) = tmp
+          Deallocate(tmp)
+          deallocate(VH)
+      end select
     endif
   end Subroutine Op_Wrapdo
 
