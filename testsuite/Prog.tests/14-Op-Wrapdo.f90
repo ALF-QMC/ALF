@@ -1,9 +1,9 @@
 ! compile with
-!gfortran  -Wall -std=f2003 -I ../../../Prog_8/  -I ../../../Libraries/Modules/ -L ../../../Libraries/Modules/ main.f90 ../../../Prog_8/Operator.o ../../../Prog_8/UDV_WRAP.o ../../../Libraries/Modules/modules_90.a -llapack -lblas ../../../Libraries/MyNag/libnag.a
+!gfortran  -Wall -std=f2003 -I ../../../Prog/  -I ../../../Libraries/Modules/ -L ../../../Libraries/Modules/ main.f90 ../../../Prog/Operator.o ../../../Prog/UDV_WRAP.o ../../../Libraries/Modules/modules_90.a -llapack -lblas
 
 !
 !
-Program OPMULTTEST
+Program OPWRAPDO
 !
       Use Operator_mod
       Implicit None
@@ -66,15 +66,15 @@ Program OPMULTTEST
                Do j = 1, 3
                   Zre = real (matnew(i, j)-matold(i, j))
                   Zim = aimag (matnew(i, j)-matold(i, j))
-                  If (Abs(Zre) > Max(Abs(real(matnew(i, j))), &
-                 & Abs(real(matold(i, j))))*1D-14) Then
+                  If (Abs(Zre) > Max(Abs(DBLE(matnew(i, j))), &
+                 & Abs(real(matold(i, j))))*1D-12) Then
                      Write (*,*) "opn: ", opn, "N_type", N_Type
-                     Write (*,*) "ERROR in real part", real (matnew(i, &
-                    & j)), real (matold(i, j))
+                     Write (*,*) "ERROR in real part", DBLE(matnew(i, &
+                    & j)), DBLE (matold(i, j))
                      Stop 2
                   End If
                   If (Abs(Zim) > Max(Abs(aimag(matnew(i, j))), &
-                 & Abs(aimag(matold(i, j))))*1D-14) Then
+                 & Abs(aimag(matold(i, j))))*1D-12) Then
                      Write (*,*) "ERROR in imag part", aimag (matnew(i, &
                     & j)), aimag (matold(i, j))
                      Stop 3
@@ -86,7 +86,7 @@ Program OPMULTTEST
          End Do
       End Do
       write (*,*) "success"
-End Program OPMULTTEST
+End Program OPWRAPDO
 !
 Subroutine Op_WrapdoFFA (Mat, Op, spin, Ndim, N_Type)
 !

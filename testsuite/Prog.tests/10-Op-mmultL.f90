@@ -74,11 +74,11 @@ VH = 0.D0
     do j=1,3
     Zre = real(matnew(i,j)-matold(i,j))
     Zim = aimag(matnew(i,j)-matold(i,j))
-    if (Abs(Zre) > MAX(ABS(real(matnew(i,j))), ABS(real(matold(i,j))) )*1D-15) then
+    if (Abs(Zre) > MAX(ABS(real(matnew(i,j))), ABS(real(matold(i,j))) )*1D-14) then
     write (*,*) "ERROR in real part", real(matnew(i,j)), real(matold(i,j))
     STOP 2
     endif
-    if (Abs(Zim) > MAX(ABS(aimag(matnew(i,j))), ABS(aimag(matold(i,j))) )*1D-15) then
+    if (Abs(Zim) > MAX(ABS(aimag(matnew(i,j))), ABS(aimag(matold(i,j))) )*1D-14) then
     write (*,*) "ERROR in imag part", aimag(matnew(i,j)), aimag(matold(i,j))
     STOP 3
     endif
