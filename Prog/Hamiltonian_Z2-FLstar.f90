@@ -319,7 +319,7 @@
           Character (len=64) ::  Filename
 
           ! Scalar observables
-          Allocate ( Obs_scal(6) )
+          Allocate ( Obs_scal(7) )
           Do I = 1,Size(Obs_scal,1)
              select case (I)
              case (1)
@@ -334,6 +334,8 @@
                 N = 1;   Filename ="DoubleOcc"
              case (6)
                 N = 1;   Filename ="SC"
+             case (7)
+                N = 1;   Filename ="EnerFermion"
              case default
                 Write(6,*) ' Error in Alloc_obs '  
              end select
@@ -420,19 +422,10 @@
           Integer, INTENT(IN)          :: Ntau
           
           !Local 
-! <<<<<<< HEAD
-          Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK
+          Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK, Ztot
           Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZkinF, ZPot, Zocc, Z, ZP,ZS, weight, tmp,Zn
           Integer :: I,J, n, imj, nf, I1, J1, Nc
           Integer :: K, K1, L ,L1, no_I, no_J, Ibond(2,6), Ihex(6)
-! =======
-!           Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK, ZkinF
-!           Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Zocc, Z, ZP,ZS, weight, tmp, alpha1, alpha2, Zn
-!           Integer :: I,J, no,no1, n, n1, imj, nf, I1, I2, J1, J2, Nc, Ix, Iy, Jx, Jy, Imx, Imy, Jmx, Jmy
-!           Integer :: a, b, c, d, signum, K, K1, L ,L1, nf1, no_I, no_J, Ibond(2,6), Ihex(6)
-!           
-!           Real (Kind=Kind(0.d0)) :: G(4,4), X, FI, FJ
-! >>>>>>> 4104e55fe99e7a828dc61225a2dee9772cf62be9
           
           Zn=cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
 
@@ -489,9 +482,13 @@
                   I1=Ibond(1,J)
                   J1=Ibond(2,J)
                   Zkin = Zkin - Ham_T*(GRC(I1,J1,1)**2.d0+GRC(J1,I1,1)**2.d0)
-!                   ZkinF= ZkinF+ Ham_T*( 3.d0*Grc(I1,J1,1)*Gr(I1,J1,1) &
-!                       & -0.5d0*Grc(I1,I1,1)*(Grc(I1,I1,1)-1.d0) &
-!                       & -0.5d0*Grc(J1,J1,1)*(Grc(J1,J1,1)-1.d0) - 1.d0 )
+                  ZkinF= ZkinF+ Ham_T*( 3.d0*Grc(I1,J1,1)*Gr(I1,J1,1) &
+                      & -0.5d0*Grc(I1,I1,1)*(Grc(I1,I1,1)-1.d0) &
+                      & -0.5d0*Grc(J1,J1,1)*(Grc(J1,J1,1)-1.d0) - 1.d0 )
+                enddo
+                do J=1,3
+                  I1=Invlist(I,J)
+                  ZkinF=ZkinF-Ham_U/beta*(2.d0*Grc(I1,I1,1)*(Grc(I1,I1,1)-1.d0)+1.d0)
                 enddo
                 
                 
@@ -522,40 +519,43 @@
              Enddo
           Enddo
           ZPot = Ham_Vint*0.25d0*ZPot
-! !           Zkin=Zn*Zkin
-!           ZPot = cmplx(0.d0, 0.d0, kind(0.D0))
-!           Do nf = 1,N_FL
-!              Do n = 1,Nc
-!                 weight=-Op_V(n,nf)%g**2.d0 /dtau !(-1)**((n-1)/Latt%N)/8.d0
-! !                 write(0,*) Op_V(n,nf)%g, weight
-!                 Do J = 1,Op_V(n,nf)%N
-!                    J1 = Op_V(n,nf)%P(J)
-!                    DO I = 1,Op_V(n,nf)%N
-!                       if (abs(Op_V(n,nf)%O(i,j)) >= 0.00001) then
-!                       I1 = Op_V(n,nf)%P(I)
-!                       ZPot  = ZPot  + 2.d0*Zn*Op_V(n,nf)%alpha*weight*Op_V(n,nf)%O(i,j)*GRC(I1,J1,1)
-!                       Do K = 1,Op_V(n,nf)%N
-!                         K1 = Op_V(n,nf)%P(K)
-!                         DO L = 1,Op_V(n,nf)%N
-!                           if (abs(Op_V(n,nf)%O(k,l)) >= 0.00001) then
-!                           L1 = Op_V(n,nf)%P(L)
-!                           tmp =  (   GRC(I1,L1,1) * GR (J1,K1,1)      +  &
-!                                 &    Zn * GRC(I1,J1,1) * GRC(K1,L1,1)         )
-!                           ZPot  = ZPot  + weight*Op_V(n,nf)%O(i,j)*Op_V(n,nf)%O(k,l)*tmp
-!                           endif
-!                         Enddo
-!                       ENddo
-!                       endif
-!                    Enddo
-!                 ENddo
-!                 ZPot  = ZPot  + weight*(Op_V(n,nf)%alpha**2.d0)*Zn
-! !           write(*,*) Zpot
-!              Enddo
-!           Enddo
-!           ZPot = ZPot*Zn + 9.d0*Latt%N*Ham_Vint
+          ZkinF = ZkinF + 3.d0*Latt%N*(2.d0*Ham_T+Ham_U/beta)
+          
+          ! Here I use the fact, that there is no Op_T
+          ZTot = cmplx(0.d0, 0.d0, kind(0.D0))
+          Do nf = 1,N_FL
+             Do n = 1,Nc
+                weight=-Op_V(n,nf)%g**2.d0 /dtau !(-1)**((n-1)/Latt%N)/8.d0
+!                 write(0,*) Op_V(n,nf)%g, weight
+                Do J = 1,Op_V(n,nf)%N
+                   J1 = Op_V(n,nf)%P(J)
+                   DO I = 1,Op_V(n,nf)%N
+                      if (abs(Op_V(n,nf)%O(i,j)) >= 0.00001) then
+                      I1 = Op_V(n,nf)%P(I)
+                      ZTot  = ZTot  + 2.d0*Zn*Op_V(n,nf)%alpha*weight*Op_V(n,nf)%O(i,j)*GRC(I1,J1,1)
+                      Do K = 1,Op_V(n,nf)%N
+                        K1 = Op_V(n,nf)%P(K)
+                        DO L = 1,Op_V(n,nf)%N
+                          if (abs(Op_V(n,nf)%O(k,l)) >= 0.00001) then
+                          L1 = Op_V(n,nf)%P(L)
+                          tmp =  (   GRC(I1,L1,1) * GR (J1,K1,1)      +  &
+                                &    Zn * GRC(I1,J1,1) * GRC(K1,L1,1)         )
+                          ZTot  = ZTot  + weight*Op_V(n,nf)%O(i,j)*Op_V(n,nf)%O(k,l)*tmp
+                          endif
+                        Enddo
+                      ENddo
+                      endif
+                   Enddo
+                ENddo
+                ZTot  = ZTot  + weight*(Op_V(n,nf)%alpha**2.d0)*Zn
+!           write(*,*) Zpot
+             Enddo
+          Enddo
+          ZTot = ZTot*Zn + 9.d0*Latt%N*Ham_Vint
           Obs_scal(1)%Obs_vec(1)  =  Obs_scal(1)%Obs_vec(1) + Zkin * ZP*ZS
+          Obs_scal(7)%Obs_vec(1)  =  Obs_scal(7)%Obs_vec(1) + ZkinF * ZP*ZS
           Obs_scal(2)%Obs_vec(1)  =  Obs_scal(2)%Obs_vec(1) + Zpot * ZP*ZS
-          Obs_scal(4)%Obs_vec(1)  =    Obs_scal(4)%Obs_vec(1) + (Zkin + Zpot)*ZP*ZS
+          Obs_scal(4)%Obs_vec(1)  =    Obs_scal(4)%Obs_vec(1) + ZTot*ZP*ZS
 
 
           Zrho = cmplx(0.d0,0.d0, kind(0.D0))
