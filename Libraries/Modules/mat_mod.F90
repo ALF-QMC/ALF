@@ -1179,7 +1179,7 @@
              &        WORK, -1, RWORK, INFO )
         LWORK = INT(DBLE(WORK(1)))
         DEALLOCATE(WORK)
-	ALLOCATE(WORK(LWORK))
+        ALLOCATE(WORK(LWORK))
         CALL ZGESVD( JOBU, JOBVT, M, N, A1, LDA, S, U, LDU, V, LDVT,&
              &        WORK, LWORK, RWORK, INFO )
         DO I = 1,N

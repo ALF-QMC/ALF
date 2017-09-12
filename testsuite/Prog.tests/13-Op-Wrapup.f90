@@ -20,8 +20,6 @@ Program Wrapup
       Real (Kind=Kind(0.D0)) :: spin
       Complex (Kind=Kind(0.D0)), Dimension (:, :), Allocatable :: VH, &
      & matnew, matold
-      Complex (Kind=Kind(0.D0)), Dimension (:), Allocatable :: Expop, &
-     & ExpMop
       Integer :: i, n, j, Ndim, N_Type, opn
       Type (Operator) :: Op
 !
@@ -30,8 +28,7 @@ Program Wrapup
 !
       Do opn = 1, 4
          Do N_Type = 1, 2
-            Allocate (VH(opn, Ndim), matold(Ndim, Ndim), matnew(Ndim, &
-           & Ndim), Expop(opn), ExpMop(opn))
+            Allocate (VH(opn, Ndim), matold(Ndim, Ndim), matnew(Ndim,  Ndim))
             Call Op_seths ()
             Call Op_make (Op, opn)
 !
@@ -83,7 +80,7 @@ Program Wrapup
                End Do
             End Do
 !
-            Deallocate (VH, matnew, matold, Expop, ExpMop)
+            Deallocate (VH, matnew, matold)
             call Op_clear(Op, opn)
          End Do
       End Do

@@ -479,7 +479,7 @@
 
           Test = .false.
           If (Model == "Hubbard_SU2_Ising" ) then
-             if ( ranf_wrap() > 1.5d0 ) then
+             if ( ranf_wrap() > 0.5d0 ) then
                 ! Move kinks along the imaginary time axis.
                 if (Test) write(6,*) '********Global *******'
                 Allocate ( Kinks(Ltrot), W(0:Ltrot), Pos(0:Ltrot), W1(0:Ltrot) )
@@ -1294,7 +1294,7 @@
                          if ( no1 == 2) J1 = Latt%nnlist(J,0,1)
                          G(1,1) = ZKRON(I,I ) - GTT(I ,I ,1)
                          G(1,2) = ZKRON(I,I1) - GTT(I1,I ,1)
-                         G(1,3) = -G0T (I ,J,1)
+                         G(1,3) = -G0T (J ,I,1)
                          G(1,4) = -G0T (J1,I,1)
                          G(2,1) = -GTT(I,I1 ,1)
                          G(2,2) =  ZKRON(I1,I1) -GTT(I1,I1,1)
@@ -1322,7 +1322,8 @@
 #include "Bid_N2.f90"
                          endif
                          Obs_tau(7)%Obs_Latt(imj,nt+1,no,no1)  = Obs_tau(7)%Obs_Latt(imj,nt+1,no,no1)   +  Z * ZP*ZS
-                         
+
+                         !Kin-Kin correlations
                          Z =  (  (GTT(I,I1,1) +  GTT(I1,I,1)) * (G00(J,J1,1)  +  G00(J1,J,1)) * ZN  - &
                               &   G0T(J1,I ,1)*GT0(I1,J ,1) - &
                               &   G0T(J ,I ,1)*GT0(I1,J1,1) - &
