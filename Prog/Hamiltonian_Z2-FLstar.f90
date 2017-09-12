@@ -238,7 +238,7 @@
               Ibond(2,6)=Invlist(I,1)
               Do no = 1,6
 !                 write(*,*) Ibond(1,no), Ibond(2,no)
-                nc = nc + 1
+                nc = Latt%N*(no-1)+I
                 Call Op_make(Op_V(nc,nf),2) 
                 Op_V(nc,nf)%P(1) = Ibond(1,no)
                 Op_V(nc,nf)%P(2) = Ibond(2,no)
@@ -249,7 +249,7 @@
                 Op_V(nc,nf)%type   = 2
                 Call Op_set( Op_V(nc,nf) )
                 
-                nc = nc + 1
+                nc = Latt%N*(no-1+6)+I
                 Call Op_make(Op_V(nc,nf),2) 
                 Op_V(nc,nf)%P(1) = Ibond(1,no)
                 Op_V(nc,nf)%P(2) = Ibond(2,no)
@@ -269,9 +269,10 @@
               Ihex(5) = Invlist(Latt%nnlist(I,0,1),2)
               Ihex(6) = Invlist(Latt%nnlist(I,0,1),1)
 !               write(*,*) Ihex(1), Ihex(2), Ihex(3), Ihex(4), Ihex(5), Ihex(6)
+              no=12
               do I1=1,5
                 do I2=I1+1,6
-                  nc = nc + 1
+                  nc = Latt%N*no+I
                   Call Op_make(Op_V(nc,nf),2) 
                   Op_V(nc,nf)%P(1) = Ihex(I1)
                   Op_V(nc,nf)%P(2) = Ihex(I2)
@@ -281,12 +282,13 @@
                   Op_V(nc,nf)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
                   Op_V(nc,nf)%type   = 2
                   Call Op_set( Op_V(nc,nf) )
+                  no = no+1
                 enddo
               enddo
               
               ! auxiliary interaction to project out spin fluctuations reducing spinful fermions to effective hardcore bosons
               do no=1,3
-                nc = nc + 1
+                nc = Latt%N*(no+26)+I
 !                 write(*,*) Invlist(I,no)
                 Call Op_make(Op_V(nc,nf),1) 
                 Op_V(nc,nf)%P(1) = Invlist(I,no)
