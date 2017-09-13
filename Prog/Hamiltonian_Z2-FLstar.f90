@@ -321,7 +321,7 @@
           Character (len=64) ::  Filename
 
           ! Scalar observables
-          Allocate ( Obs_scal(7) )
+          Allocate ( Obs_scal(8) )
           Do I = 1,Size(Obs_scal,1)
              select case (I)
              case (1)
@@ -338,6 +338,8 @@
                 N = 1;   Filename ="SC"
              case (7)
                 N = 1;   Filename ="EnerFermion"
+             case (8)
+                N = 1;   Filename ="EnerBoson"
              case default
                 Write(6,*) ' Error in Alloc_obs '  
              end select
@@ -556,6 +558,7 @@
           ZTot = ZTot*Zn + 9.d0*Latt%N*Ham_Vint
           Obs_scal(1)%Obs_vec(1)  =  Obs_scal(1)%Obs_vec(1) + Zkin * ZP*ZS
           Obs_scal(7)%Obs_vec(1)  =  Obs_scal(7)%Obs_vec(1) + ZkinF * ZP*ZS
+          Obs_scal(8)%Obs_vec(1)  =  Obs_scal(8)%Obs_vec(1) + (Zkin + Zpot) * ZP*ZS
           Obs_scal(2)%Obs_vec(1)  =  Obs_scal(2)%Obs_vec(1) + Zpot * ZP*ZS
           Obs_scal(4)%Obs_vec(1)  =    Obs_scal(4)%Obs_vec(1) + ZTot*ZP*ZS
 
