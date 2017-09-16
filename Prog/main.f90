@@ -237,7 +237,7 @@ Program Main
         Call confin 
         Call Hop_mod_init
 
-        IF (ABS(CPU_MAX) > Zero ) NBIN = 10000000
+!         IF (ABS(CPU_MAX) > Zero ) NBIN = 10000000
         If (N_Global_tau > 0) then
            Call Wrapgr_alloc
         endif
