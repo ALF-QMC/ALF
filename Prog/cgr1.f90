@@ -173,8 +173,8 @@
 !         write(*,*) "CGR1"
 !         write(*,*) UDVL%L
 !         write(*,*) UDVR%L
-        write(*,*) "Old G:"
-        write(*,*) sum(GRUP)
+!         write(*,*) "Old G:"
+!         write(*,*) sum(GRUP)
             
         N_size = udvl%ndim
         NCON = 0
@@ -356,10 +356,10 @@
             ! perform multiplication with URUP
             CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, RHS(1, 1), N_size, udvr%U(1,1), N_size, beta, GRUP(1, 1), N_size)
         ENDIF
-        write(*,*) "new G"
-        write(*,*) sum(GRUP)
-        write(*,*) "phase"
-        write(*,*) PHASE
+!         write(*,*) "new G"
+!         write(*,*) sum(GRUP)
+!         write(*,*) "phase"
+!         write(*,*) PHASE
         Deallocate(TPUP, DUP, IPVT, VISITED, RHS)
 #endif
         
