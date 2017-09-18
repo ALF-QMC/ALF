@@ -77,7 +77,9 @@
         !Write(6,*) 'In CGR', N_size
         CALL MMULT(udvlocal%V, udvr%V, udvl%V)
         DO J = 1,N_size
-            TPUP(:,J) = udvr%D(:)*udvlocal%V(:,J)*udvl%D(J)
+        DO I = 1,N_size
+            TPUP(I,J) = exp(udvr%L(I)+udvl%L(J)) *udvlocal%V(I,J)
+        ENDDO
         ENDDO
         CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, udvr%U(1,1), N_size, udvl%U(1,1), N_size, alpha, TPUP, N_size)
         !>  Syntax 
@@ -168,20 +170,75 @@
         COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK
         LOGICAL :: FORWRD
         
+!         write(*,*) "CGR1"
+!         write(*,*) UDVL%L
+!         write(*,*) UDVR%L
+        write(*,*) "Old G:"
+        write(*,*) sum(GRUP)
+            
         N_size = udvl%ndim
         NCON = 0
         alpha = 1.D0
         beta = 0.D0
         Allocate(TPUP(N_size,N_size), RHS(N_size, N_size), IPVT(N_size), TAU(N_size), DUP(N_size))
         !Write(6,*) 'In CGR', N_size
-        CALL MMULT(TPUP, udvr%V, udvl%V)
-        DO J = 1,N_size
-            TPUP(:,J) = udvr%D(:) *TPUP(:,J)*udvl%D(J)
-        ENDDO
         ! can be inserted again once we are sure that we may assume that UR and UL stem from householder reflectors
 !        CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, URUP, N_size, ULUP, N_size, alpha, TPUP, N_size)
         CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, udvr%U, N_size, udvl%U, N_size, beta, RHS(1, 1), N_size)
-        TPUP = TPUP + RHS
+        
+        CALL MMULT(TPUP, udvr%V, udvl%V)
+        DO J = 1,N_size
+          If(DBLE(udvl%L(J))<=0.d0) then
+            DO I = 1,N_size
+              If( DBLE(udvr%L(I))<=0.d0 ) then
+                If( abs(udvr%L(I)+udvl%L(J)) < 650  ) then
+                  TPUP(I,J) = RHS(I,J)+exp(udvr%L(I)+udvl%L(J))*TPUP(I,J)
+                else
+                  !exp(udvr%L(I)+udvl%L(J)) < exp(-650) so not representable in double precision
+                  TPUP(i,J) = RHS(I,J)!CMPLX(0.d0,0.d0,kind(0.d0))
+                endif
+              else
+                If( abs(udvl%L(J)) < 650 ) then
+                  TPUP(I,J) = exp(udvl%L(J))*TPUP(I,J)
+                else
+                  !exp(udvl%L(J)) < exp(-650) so not representable in double precision
+                  TPUP(i,J) = CMPLX(0.d0,0.d0,kind(0.d0))
+                endif
+                If( abs(udvr%L(I)) < 650 ) then
+                  TPUP(I,J) = exp(-udvr%L(I))*RHS(I,J) + TPUP(I,J)
+!                 else
+                  !exp(-udvr%L(I)) < exp(-650) so not representable in double precision
+!                   RHS(i,J) = CMPLX(0.d0,0.d0,kind(0.d0))
+                endif
+              endif
+            ENDDO
+          else
+            DO I = 1,N_size
+              If( DBLE(udvr%L(I))<=0.d0 ) then
+                If( abs(udvr%L(I)) < 650 ) then
+                  TPUP(I,J) = exp(udvr%L(I))*TPUP(I,J)
+                else
+                  !exp(udvr%L(I)) < exp(-650) so not representable in double precision
+                  TPUP(i,J) = CMPLX(0.d0,0.d0,kind(0.d0))
+                endif
+                If( abs(udvl%L(J)) < 650 ) then
+                  TPUP(I,J) = exp(-udvl%L(J))*RHS(I,J)+TPUP(I,J)
+!                 else
+                  !exp(-udvl%L(J)) < exp(-650) so not representable in double precision
+!                   RHS(i,J) = CMPLX(0.d0,0.d0,kind(0.d0))
+                endif
+              else
+                If( abs(udvr%L(I)+udvl%L(J)) < 650 ) then
+                  TPUP(I,J) = exp(-udvr%L(I)-udvl%L(J))*RHS(I,J)+TPUP(I,J)
+!                 else
+                  !exp(-udvr%L(I)-udvl%L(J)) < exp(-650) so not representable in double precision
+!                   RHS(i,J) = CMPLX(0.d0,0.d0,kind(0.d0))
+                endif
+              endif
+            ENDDO
+          endif
+        ENDDO
+!         TPUP = TPUP + RHS
         ! calculate determinant of UR*UL
         PHASE = CONJG(DET_C(RHS, N_size))
         PHASE = PHASE/ABS(PHASE)
@@ -232,6 +289,10 @@
             ! URUP U D V P^dagger ULUP G = 1
             ! initialize the rhs with CT(URUP)
             RHS = CT(udvr%U)
+            !scale RHS=R_+^-1*RHS
+            do J=1,N_size
+              if( DBLE(UDVR%L(J)) > 0.d0 ) call ZSCAL(N_size,exp(-UDVR%L(J)),RHS(J,1),N_size)
+            enddo
             ! RHS = U^dagger * RHS
             CALL ZUNMQR('L', 'C', N_size, N_size, N_size, TPUP(1, 1), N_size, TAU(1), RHS(1,1), N_size, WORK(1), LWORK, INFO)
             DEALLOCATE(TAU, WORK)
@@ -252,6 +313,10 @@
             ! apply permutation matrix
             FORWRD = .false.
             CALL ZLAPMR(FORWRD, N_size, N_size, RHS(1,1), N_size, IPVT(1))
+            !scale RHS=L_+^-1*RHS
+            do J=1,N_size
+              if( DBLE(UDVL%L(J)) > 0.d0 ) call ZSCAL(N_size,exp(-UDVL%L(J)),RHS(J,1),N_size)
+            enddo
             ! perform multiplication with ULUP and store in GRUP
             CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, udvl%U(1, 1), N_size, RHS(1,1), N_size, beta, GRUP(1,1), N_size)
         ELSE
@@ -259,6 +324,10 @@
             
             ! RHS = ULUP * UUP
             RHS = CT(udvl%U)
+            !scale RHS=RHS*L_+^-1
+            do J=1,N_size
+              if( DBLE(UDVL%L(J)) > 0.d0 ) call ZSCAL(N_size,exp(-UDVL%L(J)),RHS(1,J),1)
+            enddo
             CALL ZUNMQR('R', 'N', N_size, N_size, N_size, TPUP(1, 1), N_size, TAU(1), RHS(1, 1), N_size, WORK(1), LWORK, INFO)
             DEALLOCATE(TAU, WORK)
             ! apply D^-1 to RHS from the right
@@ -280,9 +349,17 @@
             ! apply inverse permutation matrix
             FORWRD = .false.
             CALL ZLAPMT(FORWRD, N_size, N_size, RHS(1, 1), N_size, IPVT(1))
+            ! first scale RHS=RHS*R_+^-1
+            do J=1,N_size
+              if( DBLE(UDVR%L(J)) > 0.d0 ) call ZSCAL(N_size,exp(-UDVR%L(J)),RHS(1,J),1)
+            enddo
             ! perform multiplication with URUP
             CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, RHS(1, 1), N_size, udvr%U(1,1), N_size, beta, GRUP(1, 1), N_size)
         ENDIF
+        write(*,*) "new G"
+        write(*,*) sum(GRUP)
+        write(*,*) "phase"
+        write(*,*) PHASE
         Deallocate(TPUP, DUP, IPVT, VISITED, RHS)
 #endif
         

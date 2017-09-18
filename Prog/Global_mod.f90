@@ -702,7 +702,7 @@ Module Global_mod
         Allocate (TP(N_Size,N_Size))
         TP = CT(udvl%U)
         DO J = 1,N_size
-           TP(:,J) = TP(:,J) +  udvl%V(:,J)*udvl%D(J)
+           TP(:,J) = TP(:,J) +  udvl%V(:,J)*exp(udvl%L(J))
         ENDDO
         CALL udvlocal%alloc(N_size)
         Call  UDV_WRAP_Pivot(TP,udvlocal%U, udvlocal%D, udvlocal%V, NCON,N_size,N_Size)

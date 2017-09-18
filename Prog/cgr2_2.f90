@@ -242,14 +242,14 @@
         ALLOCATE(MYU2(LQ, LQ), HLPB1(LQ2, LQ2), HLPB2(LQ2, LQ2), U3B(LQ2, LQ2), V3B(LQ2, LQ2))
         MYU2 = CONJG(TRANSPOSE(udv2%U))
         CALL INV(udv1%V,V1INV,Z)
-        If (dble(udv1%D(1)) >  dble(udv2%D(1)) ) Then 
+        If (dble(udv1%L(1)) >  dble(udv2%L(1)) ) Then 
            !Write(6,*) "D1(1) >  D2(1)", dble(D1(1)), dble(D2(1))
            DO J = 1,LQ
               DO I = 1,LQ
                  HLPB2(I   , J    ) =  V1INV(I,J)
-                 HLPB2(I   , J+LQ ) =  udv1%D(I)*udv1%U(I,J)
+                 HLPB2(I   , J+LQ ) =  exp(udv1%L(I))*udv1%U(I,J)
                  HLPB2(I+LQ, J+LQ ) =  MYU2(I, J)
-                 HLPB2(I+LQ, J    ) = -udv2%D(I)*udv2%V(I,J)
+                 HLPB2(I+LQ, J    ) = -exp(udv2%L(I))*udv2%V(I,J)
               ENDDO
            ENDDO
            HLPB1 = CT(HLPB2)
@@ -285,9 +285,9 @@
            DO J = 1,LQ
               DO I = 1,LQ
                  HLPB2(I   , J    ) =  MYU2(I, J)
-                 HLPB2(I   , J+LQ ) = -udv2%D(I)*udv2%V(I,J)
+                 HLPB2(I   , J+LQ ) = -exp(udv2%L(I)*udv2%V(I,J)
                  HLPB2(I+LQ, J+LQ ) =  V1INV(I,J)
-                 HLPB2(I+LQ, J    ) =  udv1%D(I)*udv1%U(I,J)
+                 HLPB2(I+LQ, J    ) =  exp(udv1%L(I))*udv1%U(I,J)
               ENDDO
            ENDDO
            HLPB1 = CT(HLPB2)
@@ -324,14 +324,14 @@
         IPVT = 0
         MYU2 = CONJG(TRANSPOSE(udv2%U))
         CALL INV(udv1%V, V1INV,Z)
-        If (dble(udv1%D(1)) >  dble(udv2%D(1)) ) Then 
+        If (dble(udv1%L(1)) >  dble(udv2%L(1)) ) Then 
            !Write(6,*) "D1(1) >  D2(1)", dble(D1(1)), dble(D2(1))
            DO J = 1,LQ
               DO I = 1,LQ
                  HLPB2(I   , J    ) =  V1INV(I,J)
-                 HLPB2(I   , J+LQ ) =  udv1%D(I)*udv1%U(I,J)
+                 HLPB2(I   , J+LQ ) =  exp(udv1%L(I))*udv1%U(I,J)
                  HLPB2(I+LQ, J+LQ ) =  MYU2(I, J)
-                 HLPB2(I+LQ, J    ) = -udv2%D(I)*udv2%V(I,J)
+                 HLPB2(I+LQ, J    ) = -exp(udv2%L(I))*udv2%V(I,J)
               ENDDO
            ENDDO
            HLPB1 = CT(HLPB2)
@@ -343,9 +343,9 @@
            DO J = 1,LQ
               DO I = 1,LQ
                  HLPB2(I   , J    ) =  MYU2(I, J)
-                 HLPB2(I   , J+LQ ) = -udv2%D(I)*udv2%V(I,J)
+                 HLPB2(I   , J+LQ ) = -exp(udv2%L(I))*udv2%V(I,J)
                  HLPB2(I+LQ, J+LQ ) =  V1INV(I,J)
-                 HLPB2(I+LQ, J    ) =  udv1%D(I)*udv1%U(I,J)
+                 HLPB2(I+LQ, J    ) =  exp(udv1%L(I))*udv1%U(I,J)
               ENDDO
            ENDDO
            HLPB1 = CT(HLPB2)
