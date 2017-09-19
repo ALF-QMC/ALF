@@ -46,11 +46,13 @@ end interface
         udvl%V(i, j) = i + j
         enddo
         udvL%D(i) = 1
+        udvL%L(i) = 0
         udvl%U(i,i) = 1
         udvr%U(i,i) = 1
         udvr%V(i, i) = CMPLX(1,1)
         udvl%V(i, i) = CMPLX(1,1)
         udvr%D(i) = i
+        udvr%L(i) = log(dble(i))
         enddo
 call CGR(PHASEnew, NVAR, GRUPnew, udvr, udvl)
 ! run old code
