@@ -246,10 +246,22 @@
            !Write(6,*) "D1(1) >  D2(1)", dble(D1(1)), dble(D2(1))
            DO J = 1,LQ
               DO I = 1,LQ
+                If(dble(udv1%L(I)) <=0.d0) then
                  HLPB2(I   , J    ) =  V1INV(I,J)
                  HLPB2(I   , J+LQ ) =  exp(udv1%L(I))*udv1%U(I,J)
+                else
+                 V1INV(I   , J    ) =  exp(-udv1%L(I))*V1INV(I,J)
+                 HLPB2(I   , J    ) =  V1INV(I,J)
+                 HLPB2(I   , J+LQ ) =  udv1%U(I,J)
+                endif
+                if(dble(udv2%L(I)) <= 0.d0) then
                  HLPB2(I+LQ, J+LQ ) =  MYU2(I, J)
                  HLPB2(I+LQ, J    ) = -exp(udv2%L(I))*udv2%V(I,J)
+                else
+                 MYU2 (I   , J    ) =  exp(-udv2%L(I))*MYU2(I, J)
+                 HLPB2(I+LQ, J+LQ ) =  MYU2(I, J)
+                 HLPB2(I+LQ, J    ) = -udv2%V(I,J)
+                endif
               ENDDO
            ENDDO
            HLPB1 = CT(HLPB2)
@@ -284,10 +296,22 @@
            !Write(6,*) "D1(1) <  D2(1)", dble(D1(1)), dble(D2(1))
            DO J = 1,LQ
               DO I = 1,LQ
+                if(dble(udv2%L(I)) <= 0.d0) then
                  HLPB2(I   , J    ) =  MYU2(I, J)
-                 HLPB2(I   , J+LQ ) = -exp(udv2%L(I)*udv2%V(I,J)
+                 HLPB2(I   , J+LQ ) = -exp(udv2%L(I))*udv2%V(I,J)
+                else
+                 MYU2 (I   , J    ) =  exp(-udv2%L(I))*MYU2(I, J)
+                 HLPB2(I   , J    ) =  MYU2(I, J)
+                 HLPB2(I   , J+LQ ) = -udv2%V(I,J)
+                endif
+                if(dble(udv1%L(I)) <= 0.d0) then
                  HLPB2(I+LQ, J+LQ ) =  V1INV(I,J)
                  HLPB2(I+LQ, J    ) =  exp(udv1%L(I))*udv1%U(I,J)
+                else
+                 V1INV(I   , J    ) =  exp(-udv1%L(I))*V1INV(I,J)
+                 HLPB2(I+LQ, J+LQ ) =  V1INV(I,J)
+                 HLPB2(I+LQ, J    ) =  udv1%U(I,J)
+                endif
               ENDDO
            ENDDO
            HLPB1 = CT(HLPB2)
@@ -326,12 +350,29 @@
         CALL INV(udv1%V, V1INV,Z)
         If (dble(udv1%L(1)) >  dble(udv2%L(1)) ) Then 
            !Write(6,*) "D1(1) >  D2(1)", dble(D1(1)), dble(D2(1))
+           !Possible block copying using lapack routines, here we will have to modify almost every matrixelement again to scale of change sign
+!            call zlacpy('A',LQ,LQ,V1INV(1,1) ,LQ,HLPB2(1   ,1   ),LQ2)
+!            call zlacpy('A',LQ,LQ,udv1%U(1,1),LQ,HLPB2(1   ,1+LQ),LQ2)
+!            call zlacpy('A',LQ,LQ,udv2%V(1,1),LQ,HLPB2(1+LQ,1   ),LQ2)
+!            call zlacpy('A',LQ,LQ,MYU2(1,1)  ,LQ,HLPB2(1+LQ,1+LQ),LQ2)
            DO J = 1,LQ
               DO I = 1,LQ
+                If(dble(udv1%L(I)) <=0.d0) then
                  HLPB2(I   , J    ) =  V1INV(I,J)
                  HLPB2(I   , J+LQ ) =  exp(udv1%L(I))*udv1%U(I,J)
+                else
+                 V1INV(I   , J    ) =  exp(-udv1%L(I))*V1INV(I,J)
+                 HLPB2(I   , J    ) =  V1INV(I,J)
+                 HLPB2(I   , J+LQ ) =  udv1%U(I,J)
+                endif
+                if(dble(udv2%L(I)) <= 0.d0) then
                  HLPB2(I+LQ, J+LQ ) =  MYU2(I, J)
                  HLPB2(I+LQ, J    ) = -exp(udv2%L(I))*udv2%V(I,J)
+                else
+                 MYU2 (I   , J    ) =  exp(-udv2%L(I))*MYU2(I, J)
+                 HLPB2(I+LQ, J+LQ ) =  MYU2(I, J)
+                 HLPB2(I+LQ, J    ) = -udv2%V(I,J)
+                endif
               ENDDO
            ENDDO
            HLPB1 = CT(HLPB2)
@@ -342,10 +383,22 @@
            !Write(6,*) "D1(1) <  D2(1)", dble(D1(1)), dble(D2(1))
            DO J = 1,LQ
               DO I = 1,LQ
+                if(dble(udv2%L(I)) <= 0.d0) then
                  HLPB2(I   , J    ) =  MYU2(I, J)
                  HLPB2(I   , J+LQ ) = -exp(udv2%L(I))*udv2%V(I,J)
+                else
+                 MYU2 (I   , J    ) =  exp(-udv2%L(I))*MYU2(I, J)
+                 HLPB2(I   , J    ) =  MYU2(I, J)
+                 HLPB2(I   , J+LQ ) = -udv2%V(I,J)
+                endif
+                if(dble(udv1%L(I)) <= 0.d0) then
                  HLPB2(I+LQ, J+LQ ) =  V1INV(I,J)
                  HLPB2(I+LQ, J    ) =  exp(udv1%L(I))*udv1%U(I,J)
+                else
+                 V1INV(I   , J    ) =  exp(-udv1%L(I))*V1INV(I,J)
+                 HLPB2(I+LQ, J+LQ ) =  V1INV(I,J)
+                 HLPB2(I+LQ, J    ) =  udv1%U(I,J)
+                endif
               ENDDO
            ENDDO
            HLPB1 = CT(HLPB2)
