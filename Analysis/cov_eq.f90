@@ -98,7 +98,9 @@
             L1_p    =  dble(L1) * a1_p
             L2_p    =  dble(L2) * a2_p
             Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
-            qinst=1
+            XK_P(1) = 0.d0
+            XK_P(2) = 0.d0
+            qinst=Inv_K(XK_p,Latt)
             XK_p =  dble(Latt%listk(qinst,1))*Latt%b1_p + dble(Latt%listk(qinst,2))*Latt%b2_p
 !             write (*,*) "q_inst = ", XK_p
             qmin_norm = sqrt(Latt%b1_p(1)**2.d0+Latt%b1_p(2)**2.d0)
