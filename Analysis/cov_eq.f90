@@ -49,15 +49,15 @@
          Implicit none
 
 
-         Integer      :: Nunit, Norb, ierr
+         Integer      :: Nunit, Norb, ierr, qmin(6), qinst, nmin
          Integer      :: no, no1, n, n1,m,  nbins, n_skip, nb, N_rebin, N_cov, N_Back
-         real (Kind=Kind(0.d0)):: X, Y 
-         Complex (Kind=Kind(0.d0)), allocatable :: Phase(:)
+         real (Kind=Kind(0.d0)):: X, Y , qmin_norm
+         Complex (Kind=Kind(0.d0)), allocatable :: Phase(:), Ratio1(:), Ratio2(:)
          Type  (Mat_C), allocatable :: Bins (:,:), Bins_R(:,:)
          Complex (Kind=Kind(0.d0)), allocatable :: Bins0(:,:)
-         Complex (Kind=Kind(0.d0)) :: Z, Xmean,Xerr, Xmean_r, Xerr_r
+         Complex (Kind=Kind(0.d0)) :: Z, Z1, Z2, Xmean,Xerr, Xmean_r, Xerr_r
          Real (Kind=Kind(0.d0)) :: Xm,Xe
-         Real    (Kind=Kind(0.d0)) :: Xk_p(2), XR_p(2) , XR1_p(2)
+         Real    (Kind=Kind(0.d0)) :: Xk_p(2), XR_p(2) , XR1_p(2), XK_p_norm
          Complex (Kind=Kind(0.d0)), allocatable :: V_help(:), V_help_TR(:)
          Real (Kind=Kind(0.d0)) :: Pi, a1_p(2), a2_p(2), L1_p(2), L2_p(2), del_p(2)
          Real (Kind=Kind(0.d0)), allocatable :: AutoCorr(:),En(:)
@@ -98,20 +98,39 @@
             L1_p    =  dble(L1) * a1_p
             L2_p    =  dble(L2) * a2_p
             Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
-            !  This will print the  honeycomb lattice. 
-            Open (Unit=10,File="Lattice", status="unknown")
-            do I = 1,Latt%N
-               Xr_p = dble(Latt%list (I,1))*Latt%a1_p + dble(Latt%list (I,2))*Latt%a2_p
-               Do n = 1,3
-                  if (n==1) Xr1_p = Xr_p - del_p
-                  if (n==2) Xr1_p = Xr_p - del_p - a1_p + a2_p 
-                  if (n==3) Xr1_p = Xr_p + a2_p  - del_p
-                  Write(10,"(F14.7,2x,F14.7)") Xr_p (1), Xr_p (2)
-                  Write(10,"(F14.7,2x,F14.7)") Xr1_p(1), Xr1_p(2)
-                  Write(10,*)
-               enddo
+            qinst=1
+            XK_p =  dble(Latt%listk(qinst,1))*Latt%b1_p + dble(Latt%listk(qinst,2))*Latt%b2_p
+!             write (*,*) "q_inst = ", XK_p
+            qmin_norm = sqrt(Latt%b1_p(1)**2.d0+Latt%b1_p(2)**2.d0)
+!             write(*,*) "Norm of qmin ", qmin_norm
+            n=0
+            do I=1,Latt%N
+              XK_p =  dble(Latt%listk(I,1))*Latt%b1_p + dble(Latt%listk(I,2))*Latt%b2_p
+              XK_p_norm = sqrt(XK_p(1)**2.d0+XK_p(2)**2.d0)
+              if (0.5d0*qmin_norm < XK_p_norm .and. XK_p_norm < 1.2d0*qmin_norm ) then
+                n=n+1
+                qmin(n)=I
+!                 write(*,*) "accepted: ",I, XK_p_norm, XK_p
+!               else
+!                 write(*,*) "refuseded: ",I, XK_p_norm, XK_p
+              endif
             enddo
-            close(10)
+            nmin=n
+            
+!             !  This will print the  honeycomb lattice. 
+!             Open (Unit=10,File="Lattice", status="unknown")
+!             do I = 1,Latt%N
+!                Xr_p = dble(Latt%list (I,1))*Latt%a1_p + dble(Latt%list (I,2))*Latt%a2_p
+!                Do n = 1,3
+!                   if (n==1) Xr1_p = Xr_p - del_p
+!                   if (n==2) Xr1_p = Xr_p - del_p - a1_p + a2_p 
+!                   if (n==3) Xr1_p = Xr_p + a2_p  - del_p
+!                   Write(10,"(F14.7,2x,F14.7)") Xr_p (1), Xr_p (2)
+!                   Write(10,"(F14.7,2x,F14.7)") Xr1_p(1), Xr1_p(2)
+!                   Write(10,*)
+!                enddo
+!             enddo
+!             close(10)
          else
             Write(6,*) "Lattice not yet implemented!"
             Stop
@@ -144,7 +163,7 @@
          N_auto=min(N_auto,Nbins/3)
 
          ! Allocate  space
-         Allocate ( bins(Nunit,Nbins), bins_r(Nunit,Nbins), Phase(Nbins),  V_help(Nbins), V_help_TR(Nbins), Bins0(Nbins,Norb))
+         Allocate ( bins(Nunit,Nbins), bins_r(Nunit,Nbins), Phase(Nbins), Ratio1(Nbins), Ratio2(Nbins), V_help(Nbins), V_help_TR(Nbins), Bins0(Nbins,Norb))
          Do n = 1,Nunit
             do nb = 1,nbins
                Call Make_Mat(bins  (n,nb),Norb)
@@ -157,6 +176,8 @@
          Open ( Unit=10, File="ineq", status="unknown" ) 
          do nb = 1, nbins + n_skip
             if (nb > n_skip ) then
+               Z1=cmplx(0.d0,0.d0,kind(0.d0))
+               Z2=cmplx(0.d0,0.d0,kind(0.d0))
                Read(10,*,End=10) X,no,no1
                Phase(nb-n_skip) = cmplx(X,0.d0,kind(0.d0))
                Do no = 1,Norb
@@ -180,6 +201,24 @@
                         enddo
                      enddo
                   endif
+                  if (m==qinst) then
+                    do no = 1,norb
+                      do no1 = 1,Norb
+                          Z1 = Z1 + bins(m,nb-n_skip)%el(no,no1) 
+                      enddo
+                    enddo
+                  endif
+                  do n1=1,nmin
+                    if (m==qmin(n1)) then
+                      do no = 1,norb
+                        do no1 = 1,Norb
+                            Z2 = Z2 + bins(m,nb-n_skip)%el(no,no1) 
+                        enddo
+                      enddo
+                    endif
+                  enddo
+                  Ratio1(nb-n_skip) = Z2/dble(nmin)
+                  Ratio2(nb-n_skip) = Z1 
                enddo
             else
                Read(10,*,End=10) X,no,no1
@@ -216,6 +255,8 @@
 #endif
          Open (Unit=33,File="equalJ"        ,status="unknown")
          Open (Unit=34,File="equalJR"       ,status="unknown")
+         call ERRCALCJ( Ratio1, Ratio2, XMean, XERR, N_rebin ) 
+         write(33,*) "Ratio: ", 1.d0 - dble(XMean), dble(XERR), -aimag(XMean), aimag(XERR)
          Do n = 1,Nunit
             Xk_p = dble(Latt%listk(n,1))*Latt%b1_p + dble(Latt%listk(n,2))*Latt%b2_p 
             Xr_p = dble(Latt%list (n,1))*Latt%a1_p + dble(Latt%list (n,2))*Latt%a2_p 
