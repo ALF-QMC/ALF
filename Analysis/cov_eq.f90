@@ -306,6 +306,21 @@
         if(N_auto>0) then
          ALLOCATE(AutoCorr(N_auto))
          ALLOCATE(EN(Nbins))
+          write(File_out,'("Var_eq_Auto_Ratio")')
+          OPEN (UNIT=21, FILE=File_out, STATUS='unknown')
+          WRITE(21,*)
+          do nb = 1,Nbins
+            En(nb)=dble(1-Ratio1(nb)/Ratio2(nb))
+          enddo
+          Call AUTO_COR(En,AutoCorr)
+          do i = 1,N_auto
+            call ERRCALCJ( Ratio1, Ratio2, XMean, XERR, i )
+            write(21,*) i, AutoCorr(i), dble(Xerr), En(i)
+          enddo
+          do i = N_auto+1,Nbins
+            write(21,*) i, 0.d0, 0.d0, En(i)
+          enddo
+          CLOSE(21)
          Do n = 1,Nunit
             Xk_p = dble(Latt%listk(n,1))*Latt%b1_p + dble(Latt%listk(n,2))*Latt%b2_p
             if (Xk_p(1) >= -1.d-8 .and. XK_p(2) >= -1.d-8) then
