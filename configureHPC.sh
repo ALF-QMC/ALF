@@ -1,13 +1,20 @@
 PROGRAMMCONFIGURATION=""
-# PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DSTAB1"
-# PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DSTAB2"
-# PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DQRREF"
+STABCONFIGURATION=""
+# STABCONFIGURATION=${STABCONFIGURATION}" -DSTAB1"
+# STABCONFIGURATION=${STABCONFIGURATION}" -DSTAB2"
+# STABCONFIGURATION=${STABCONFIGURATION}" -DQRREF"
 
 # default optimization flags for Intel compiler
-F90OPTFLAGS="-O3 -fp-model fast=2 -xHost -unroll -finline-functions -ipo -ip -heap-arrays 1024 -no-wrap-margin"
+INTELOPTFLAGS="-O3 -fp-model fast=2 -xHost -unroll -finline-functions -ipo -ip -heap-arrays 1024 -no-wrap-margin"
 # uncomment the next line if you want to use additional openmp parallelization
-F90OPTFLAGS=${F90OPTFLAGS}" -parallel -qopenmp"
-F90USEFULFLAGS="-cpp"
+INTELOPTFLAGS=${INTELOPTFLAGS}" -parallel -qopenmp"
+INTELUSEFULFLAGS="-cpp -std03"
+
+# default optimization flags for GNU compiler
+GNUOPTFLAGS="-O3 -ffree-line-length-none -ffast-math"
+# uncomment the next line if you want to use additional openmp parallelization
+GNUOPTFLAGS=${GNUOPTFLAGS}" -fopenmp"
+GNUUSEFULFLAGS="-cpp -std=f2003"
 
 export DIR=`pwd`
 
@@ -15,18 +22,29 @@ case $2 in
 
 noMPI)
 echo "seriell job."
+INTELCOMPILER="ifort"
+GNUCOMPILER="gfortran"
 ;;
 
 Tempering)
 echo "Activating parallel tempering."
 echo "This requires also MPI parallization which is set as well."
 PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DMPI -DTEMPERING"
+INTELCOMPILER="mpiifort"
+INTELUSEFULFLAGS="-cpp"
+GNUCOMPILER="mpifort"
+GNUUSEFULFLAGS="-cpp"
 ;;
 
 MPI|*)
 echo "Activating MPI parallization (default)."
 echo "To turn MPI off, pass noMPI as the second argument."
+echo "To turn use parallel tempering, pass Tempering as the second argument."
 PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DMPI"
+INTELCOMPILER="mpiifort"
+INTELUSEFULFLAGS="-cpp"
+GNUCOMPILER="mpifort"
+GNUUSEFULFLAGS="-cpp"
 ;;
 
 esac
@@ -38,11 +56,10 @@ case $1 in
 #Development
 Devel)
 
-PROGRAMMCONFIGURATION=""
-F90OPTFLAGS="-O3 -ffree-line-length-none -Wconversion -Werror"
-F90USEFULFLAGS="-cpp"
+F90OPTFLAGS=$GNUOPTFLAGS" -Wconversion -Werror"
+F90USEFULFLAGS=$GNUUSEFULFLAGS
 
-export f90=gfortran
+export f90=$GNUCOMPILER
 export LIB_BLAS_LAPACK="-llapack -lblas"
 ;;
 
@@ -52,6 +69,8 @@ module switch mpi.ibm mpi.intel
 module switch intel intel/17.0
 module switch mkl mkl/2017
 
+F90OPTFLAGS=$INTELOPTFLAGS
+F90USEFULFLAGS=$INTELUSEFULFLAGS
 export f90=mpif90
 export LIB_BLAS_LAPACK=$MKL_LIB
 ;;
@@ -62,14 +81,26 @@ module load Intel
 module load IntelMPI
 module load imkl
 
+F90OPTFLAGS=$INTELOPTFLAGS
+F90USEFULFLAGS=$INTELUSEFULFLAGS
 export f90=mpiifort
 export LIB_BLAS_LAPACK="-mkl"
 ;;
 
 #Intel (as Hybrid code)
 Intel)
-export f90=mpiifort
+F90OPTFLAGS=$INTELOPTFLAGS
+F90USEFULFLAGS=$INTELUSEFULFLAGS
+export f90=$INTELCOMPILER
 export LIB_BLAS_LAPACK="-mkl"
+;;
+
+#GNU (as Hybrid code)
+GNU)
+F90OPTFLAGS=$GNUOPTFLAGS
+F90USEFULFLAGS=$GNUUSEFULFLAGS
+export f90=$GNUCOMPILER
+export LIB_BLAS_LAPACK="-llapack -lblas"
 ;;
 
 #Matrix23 PGI
@@ -82,23 +113,31 @@ F90USEFULFLAGS="-Mpreprocess -Minform=inform"
 
 #Default (unknown machine)
 *)
-echo "Please choose one of the following machines:"
-echo "SuperMUC"
-echo "JURECA"
-echo
-echo "usage 'source configureHPC.sh MACHINE'"
+echo "usage 'source configureHPC.sh MACHINE MODE'"
 echo 
+echo "Please choose one of the following machines:"
+echo "  SuperMUC"
+echo "  JURECA"
+echo "  Devel"
+echo "  Intel"
+echo "  GNU"
+echo
+echo "Possible modes are MPI (default), noMPI and Tempering"
+echo
+echo "Please choose one of the following machines:"
 echo "Activating fallback option with gfortran for SERIAL JOB."
 
 PROGRAMMCONFIGURATION=""
-F90OPTFLAGS="-O3 -ffree-line-length-none"
-F90USEFULFLAGS="-cpp"
+F90OPTFLAGS=$GNUOPTFLAGS
+F90USEFULFLAGS=$GNUUSEFULFLAGS
 
 export f90=gfortran
 export LIB_BLAS_LAPACK="-llapack -lblas"
 ;;
 
 esac
+
+PROGRAMMCONFIGURATION=$STABCONFIGURATION" "$PROGRAMMCONFIGURATION
 
 export F90USEFULFLAGS
 export F90OPTFLAGS
@@ -109,7 +148,7 @@ export FL
 export Libs=${DIR}"/Libraries/"
 
 echo
-echo "To compile your program use:    'make -f MakefileHPC TARGET'"
+echo "To compile your program use:    'make TARGET'"
 
 
 

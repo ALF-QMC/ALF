@@ -7,7 +7,7 @@ stages:
 .build_template: &build_definition
   stage: build
   script:
-    - . setenv.sh
+    - . configureHPC.sh GNU noMPI
     - export f90="gfortran"
     - cd Libraries
     - gfortran -v
@@ -20,7 +20,7 @@ stages:
 .build_template_pgi: &build_definition_pgi
   stage: build
   script:
-    - . setenv.sh
+    - . configureHPC.sh GNU noMPI
     - export f90="/opt/pgi/linux86-64/2016/bin/pgfortran"
     - export FL="-O3"
     - export LIB_BLAS_LAPACK="-L/opt/pgi/linux86-64/2016/lib -llapack -lblas"
@@ -36,7 +36,7 @@ stages:
 .warnconv_template: &warnconv_definition
   stage: warnconv
   script:
-    - . setenv.sh
+    - . configureHPC.sh GNU noMPI
     - export f90="gfortran"
     - export FL="$FL -Wconversion -Werror"
     - cd Libraries
@@ -50,7 +50,7 @@ stages:
 .test_template: &test_definition
   stage: test
   script:
-    - . setenv.sh
+    - . configureHPC.sh GNU noMPI
     - export f90="gfortran"
     - cd Libraries
     - gfortran -v
@@ -167,7 +167,7 @@ GQMCT_Wheezy-PGI_conv:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-wheezy-pgi
   stage: warnconv
   script:
-    - . setenv.sh
+    - . configureHPC.sh GNU noMPI
     - export f90="/opt/pgi/linux86-64/2016/bin/pgfortran"
     - export FL="-O3 -Minform=inform"
     - export LIB_BLAS_LAPACK="-L/opt/pgi/linux86-64/2016/lib -llapack -lblas"
@@ -224,7 +224,7 @@ GQMCT_Jessie-PGI_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-pgi-cmake
   stage: test
   script:
-    - . setenv.sh
+    - . configureHPC.sh GNU noMPI
     - export f90="/opt/pgi/linux86-64/2016/bin/pgfortran"
     - export FL="-O3"
     - export LIB_BLAS_LAPACK="-L/opt/pgi/linux86-64/2016/lib -llapack -lblas"
@@ -248,7 +248,7 @@ GQMCT_jessie_valgrind:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-blas-lapack-valgrind
   stage: memleaks
   script:
-      - . setenv.sh
+      - . configureHPC.sh GNU noMPI
       - export f90="gfortran"
       - export FL="${FL} -g"
       - cd Libraries

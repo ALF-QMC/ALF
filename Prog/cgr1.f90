@@ -56,8 +56,8 @@
         Implicit None
 
 
-	!Arguments.
-	CLASS(UDV_State), INTENT(IN) :: udvl, udvr
+        !Arguments.
+        CLASS(UDV_State), INTENT(IN) :: udvl, udvr
         COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(INOUT) :: GRUP
         COMPLEX(Kind=Kind(0.d0)) :: PHASE
         INTEGER         :: NVAR
