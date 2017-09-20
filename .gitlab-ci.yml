@@ -351,7 +351,7 @@ GQMCT_jessie_valgrind:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-blas-lapack-valgrind
   stage: memleaks
   script:
-    - apt-get update
+      - apt-get update
       - apt-get install -y zlib1g zlib1g-dev
       - . setenv.sh
       - export f90="gfortran"
