@@ -266,7 +266,9 @@
             Write(34,"(F12.6,2x,F12.6)")  Xr_p(1), Xr_p(2)
             V_help_TR = 0.d0
             Do no = 1,Norb
-               V_help_TR(:) = V_help_TR(:) + bins  (n,:)%el(no,no)
+               do nb = 1,Nbins
+                 V_help_TR(nb) = V_help_TR(nb) + bins  (n,nb)%el(no,no)
+               enddo
                do no1 = 1,Norb
                   do nb = 1,Nbins
                      V_help(nb) = bins  (n,nb)%el(no,no1)
