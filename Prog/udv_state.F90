@@ -351,40 +351,24 @@ END SUBROUTINE matmultleft_UDV_state
 !-------------------------------------------------------------------
 #if defined(MPI) 
  SUBROUTINE MPI_Sendrecv_UDV_state(this, dest, sendtag, source, recvtag, STATUS, IERR)
+        Use mpi
         Implicit None
-        include 'mpif.h'
+
         CLASS(UDV_State), INTENT(INOUT) :: this
         INTEGER, intent(in)  :: dest, sendtag, source, recvtag
         Integer, intent(out) :: STATUS(MPI_STATUS_SIZE), IERR
-        
-        COMPLEX (Kind=Kind(0.d0)), allocatable :: U_temp(:, :), V_temp(:, :)
-        COMPLEX (Kind=Kind(0.d0)), allocatable :: D_temp(:)
-        REAL    (Kind=Kind(0.d0)), allocatable :: L_temp(:)
         INTEGER :: n
-        !INTEGER :: ndim_temp
-        
+
         n = this%ndim * this%ndim
-        
-        ALLOCATE(U_temp(this%ndim, this%ndim))
-        CALL MPI_Sendrecv(this%U, n, MPI_COMPLEX16, dest,   sendtag, &
-                 &        U_temp, n, MPI_COMPLEX16, source, recvtag, MPI_COMM_WORLD,STATUS,IERR)
-        this%U = U_temp
-        DEALLOCATE(U_temp)
-        ALLOCATE(V_temp(this%ndim, this%ndim))
-        CALL MPI_Sendrecv(this%V, n, MPI_COMPLEX16, dest,   sendtag, &
-                 &        V_temp, n, MPI_COMPLEX16, source, recvtag, MPI_COMM_WORLD,STATUS,IERR)
-        this%V = V_temp
-        DEALLOCATE(V_temp)
-        ALLOCATE(D_temp(this%ndim))
-        CALL MPI_Sendrecv(this%D, this%ndim, MPI_COMPLEX16, dest,   sendtag, &
-                 &        D_temp, this%ndim, MPI_COMPLEX16, source, recvtag, MPI_COMM_WORLD,STATUS,IERR)
-        this%D = D_temp
-        DEALLOCATE(D_temp)
-        ALLOCATE(L_temp(this%ndim))
-        CALL MPI_Sendrecv(this%L, this%ndim, MPI_REAL8, dest,   sendtag, &
-                 &        L_temp, this%ndim, MPI_REAL8, source, recvtag, MPI_COMM_WORLD,STATUS,IERR)
-        this%L = L_temp
-        DEALLOCATE(L_temp)
+
+        CALL MPI_Sendrecv_replace(this%U, n, MPI_COMPLEX16, dest, sendtag, &
+                 &                source, recvtag, MPI_COMM_WORLD, STATUS, IERR)
+        CALL MPI_Sendrecv_replace(this%V, n, MPI_COMPLEX16, dest, sendtag, &
+                 &                source, recvtag, MPI_COMM_WORLD, STATUS, IERR)
+        CALL MPI_Sendrecv_replace(this%D, this%ndim, MPI_COMPLEX16, dest, sendtag, &
+                 &                source, recvtag, MPI_COMM_WORLD, STATUS, IERR)
+        CALL MPI_Sendrecv_replace(this%L, this%ndim, MPI_REAL8, dest, sendtag, &
+                 &                source, recvtag, MPI_COMM_WORLD, STATUS, IERR)
 END SUBROUTINE MPI_Sendrecv_UDV_state
 #endif
 

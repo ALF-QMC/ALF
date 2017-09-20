@@ -43,13 +43,12 @@
 !
 !--------------------------------------------------------------------
          USE HAMILTONIAN
-         IMPLICIT NONE
-   
 #ifdef MPI
-         INCLUDE 'mpif.h'
+         USE mpi
+#endif
+         IMPLICIT NONE
+
          ! LOCAL
-#endif   
-         
          INTEGER        :: I, IERR, ISIZE, IRANK, SEED_IN, K, ISEED, NT
          INTEGER, DIMENSION(:), ALLOCATABLE :: SEED_VEC
          REAL (Kind=Kind(0.d0))  :: X

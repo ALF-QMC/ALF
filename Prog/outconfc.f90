@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 The ALF project
+!  Copyright (C) 2016, 2017 The ALF project
 ! 
 !  This file is part of the ALF project.
 ! 
@@ -43,32 +43,25 @@
 !--------------------------------------------------------------------
 
          USE HAMILTONIAN
-
+#ifdef MPI
+         Use mpi
+#endif
          IMPLICIT NONE
 
-         
-
-#ifdef MPI
-         INCLUDE 'mpif.h'
-#endif
          ! LOCAL
-         INTEGER        :: I, IERR, ISIZE, IRANK, SEED_IN, K, ISEED, NT, NR
+         INTEGER        :: I, IERR, ISIZE, IRANK, K, NT
          INTEGER, DIMENSION(:), ALLOCATABLE :: SEED_VEC
-         REAL (Kind=Kind(0.d0))  :: X
-         LOGICAL        :: LCONF 
-         CHARACTER (LEN=64) :: FILE_SR, FILE_TG
+         CHARACTER (LEN=64) :: FILE_TG
 
 #if defined(MPI)
-         INTEGER        :: STATUS(MPI_STATUS_SIZE), irank_g, isize_g, igroup
+         INTEGER        :: irank_g, isize_g, igroup
          CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
          CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
          call MPI_Comm_rank(Group_Comm, irank_g, ierr)
          call MPI_Comm_size(Group_Comm, isize_g, ierr)
          igroup           = irank/isize_g
          !Write(6,*) "Group, rank :", igroup, irank_g
-#endif 
-         
-#if defined(MPI) 
+
          CALL GET_SEED_LEN(K)
          ALLOCATE(SEED_VEC(K))
          CALL RANGET(SEED_VEC)
@@ -86,8 +79,7 @@
          ENDDO
          CLOSE(10)
          DEALLOCATE(SEED_VEC)
-            
-#else   
+#else
          CALL GET_SEED_LEN(K)
          ALLOCATE(SEED_VEC(K))
          CALL RANGET(SEED_VEC)
@@ -102,5 +94,5 @@
          CLOSE(10)
          DEALLOCATE(SEED_VEC)
 #endif
-         
+
        END SUBROUTINE CONFOUT

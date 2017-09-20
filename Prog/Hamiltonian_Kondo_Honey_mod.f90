@@ -54,11 +54,11 @@
       contains 
 
         Subroutine Ham_Set
-
-          Implicit none
 #ifdef MPI
-          include 'mpif.h'
-#endif   
+          Use mpi
+#endif
+          Implicit none
+
 
           integer :: ierr
 
@@ -73,8 +73,6 @@
           CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
           CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
 #endif
-          
-          
           !          NAMELIST /VAR_Model/  N_FL,  N_SUN,  ham_T , ham_xi, ham_h, ham_J,  ham_U, Ham_Vint, &
           !               &         Dtau, Beta
 
@@ -83,7 +81,6 @@
 #ifdef MPI
           If (Irank == 0 ) Then 
 #endif
-             
              OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
              IF (ierr /= 0) THEN
                 WRITE(*,*) 'unable to open <parameters>',ierr
@@ -562,14 +559,11 @@
         end Subroutine Obser
 !==========================================================        
         Subroutine  Pr_obs(LTAU)
-
-
           Use Print_bin_mod
-          Implicit none
 #ifdef MPI
-          include 'mpif.h'
-#endif   
-
+          Use mpi
+#endif
+          Implicit none
 
           Integer,  Intent(In) ::  Ltau
 
@@ -580,7 +574,7 @@
           Integer        :: STATUS(MPI_STATUS_SIZE)
           CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
           CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-#endif          
+#endif
 !!$#ifdef MPI
 !!$          Write(6,*)  Irank, 'In Pr_obs', LTAU
 !!$#else

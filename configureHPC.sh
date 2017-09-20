@@ -31,9 +31,9 @@ echo "Activating parallel tempering."
 echo "This requires also MPI parallization which is set as well."
 PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DMPI -DTEMPERING"
 INTELCOMPILER="mpiifort"
-INTELUSEFULFLAGS="-cpp"
+# INTELUSEFULFLAGS="-cpp"
 GNUCOMPILER="mpifort"
-GNUUSEFULFLAGS="-cpp"
+# GNUUSEFULFLAGS="-cpp"
 ;;
 
 MPI|*)
@@ -42,9 +42,9 @@ echo "To turn MPI off, pass noMPI as the second argument."
 echo "To turn use parallel tempering, pass Tempering as the second argument."
 PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DMPI"
 INTELCOMPILER="mpiifort"
-INTELUSEFULFLAGS="-cpp"
+# INTELUSEFULFLAGS="-cpp"
 GNUCOMPILER="mpifort"
-GNUUSEFULFLAGS="-cpp"
+# GNUUSEFULFLAGS="-cpp"
 ;;
 
 esac
@@ -56,7 +56,7 @@ case $1 in
 #Development
 Devel)
 
-F90OPTFLAGS=$GNUOPTFLAGS" -Wconversion -Werror"
+F90OPTFLAGS=$GNUOPTFLAGS" -Wconversion -Werror -fcheck=all"
 F90USEFULFLAGS=$GNUUSEFULFLAGS
 
 export f90=$GNUCOMPILER

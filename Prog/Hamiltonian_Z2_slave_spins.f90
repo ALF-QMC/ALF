@@ -45,16 +45,15 @@
 
 
       Subroutine Ham_Set
-
+#if defined (MPI) || defined(TEMPERING)
+          Use mpi
+#endif
           Implicit none
 
-#if defined (MPI) || defined(TEMPERING)
-          include 'mpif.h'
-#endif   
+
 
           integer :: ierr
           Character (len=64) :: file1
-          
           NAMELIST /VAR_lattice/  L1, L2, Lattice_type, Model
 
 
@@ -66,10 +65,6 @@
           Integer        :: STATUS(MPI_STATUS_SIZE)
           CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
           CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-#endif
-          
-
-#ifdef MPI
           If (Irank == 0 ) then
 #endif
              OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
@@ -87,7 +82,6 @@
           CALL MPI_BCAST(Lattice_type,64 ,MPI_CHARACTER, 0,MPI_COMM_WORLD,IERR)
 #endif
           Call Ham_latt
-          
           if ( Model == "Z2_Slave" ) then
              N_FL = 1
              N_SUN = 2
@@ -503,15 +497,16 @@
           
         end Subroutine Global_move_tau
 !===================================================================================           
-        Subroutine Global_move(T0_Proposal_ratio,nsigma_old)
+        Subroutine Global_move(T0_Proposal_ratio,nsigma_old,size_clust)
           !>  The input is the field nsigma declared in this module. This routine generates a 
           !>  global update with  and returns the propability  
           !>  T0_Proposal_ratio  =  T0( sigma_out-> sigma_in ) /  T0( sigma_in -> sigma_out)  
           !>   
           
           Implicit none
-          Real (Kind=Kind(0.d0)), intent(out) :: T0_Proposal_ratio
+          Real (Kind=Kind(0.d0)), intent(out) :: T0_Proposal_ratio, size_clust
           Integer, dimension(:,:),  allocatable, intent(in)  :: nsigma_old
+          
           !> nsigma_old contains a copy of nsigma upon entry
           
           !> Local
@@ -813,17 +808,15 @@
 
 !========================================================================
         Subroutine Obser(GR,Phase,Ntau)
-          
+#if defined(Machine_Learning)
+          Use mpi
+#endif
           Implicit none
 
-#if defined(Machine_Learning)
-          include 'mpif.h'
-#endif   
-          
+
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
           Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE
           Integer, INTENT(IN)          :: Ntau
-          
           !Local 
           Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK
           Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP,ZS, Z1, Z2
@@ -1230,18 +1223,14 @@
 !===================================================================================
 
       Subroutine Print_fluxes
-
-        Implicit none
-
 #if defined (MPI) || defined(TEMPERING)
-        include 'mpif.h'
-#endif   
-        
+        Use mpi
+#endif
+        Implicit none
 
         ! Local 
         Integer :: I,nt,ix, iy, n
         Character (len=64) :: File1
-
 
 #ifdef MPI
         Integer        :: Isize, Irank, IERR
@@ -1255,7 +1244,6 @@
 #else
         File1="Fluxes"
 #endif
-        
         Open (Unit=10,File=File1, status="unknown")
         Do nt = 1,Ltrot
            Do i  = 1,Ndim
@@ -1277,9 +1265,9 @@
         
         Implicit none
         
-        Integer :: n,  nc, n_op, nt
+        Integer :: n,  nc, n_op, nt 
         Integer, allocatable :: nsigma_old(:,:)
-        Real (Kind=kind(0.d0)) :: X, X1
+        Real (Kind=kind(0.d0)) :: X, X1, size_clust
         
         n = size(Op_V,1)
         allocate (nsigma_old(n,Ltrot))
@@ -1294,7 +1282,7 @@
            !   Write(6,*) nc, X, X1
            !endif
            nsigma_old = nsigma
-           Call Global_move(X,nsigma_old)
+           Call Global_move(X,nsigma_old,size_clust)
            X1 = Delta_S0_global(Nsigma_old) 
            Write(6,*) nc, X, X1
         enddo

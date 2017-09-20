@@ -70,10 +70,9 @@ Module Global_mod
 !--------------------------------------------------------------------
       Subroutine Exchange_Step(Phase,GR, udvr, udvl, Stab_nt, udvst, N_exchange_steps, Tempering_calc_det)
         Use UDV_State_mod
+        Use mpi
         Implicit none
-        
-        include 'mpif.h'
-        
+
         Interface
            SUBROUTINE WRAPUL(NTAU1, NTAU, udvl)
              Use Hamiltonian
@@ -110,28 +109,26 @@ Module Global_mod
         Complex (Kind=Kind(0.d0)), allocatable :: Det_vec_old(:,:), Det_vec_new(:,:), Phase_Det_new(:), Phase_Det_old(:)
         Complex (Kind=Kind(0.d0)) :: Ratio(2), Ratio_p(2)
         Logical :: TOGGLE, L_Test
-        
         Integer, allocatable :: List_partner(:), List_masters(:)
-        
+
         !> Additional variables for running without Fermion weight
         Logical :: Tempering_calc_det
         Integer        :: nsigma_irank, nsigma_old_irank, nsigma_irank_temp ! Keeps track of where the configuration originally comes from
         Integer        :: n_GR
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:), allocatable :: GR_new
+
         !Integer, Dimension(:,:),  allocatable :: nsigma_orig, nsigma_test
         !Integer :: I1, I2
-        
+
         Integer        :: Isize, Irank, Ierr, irank_g, isize_g, igroup
         Integer        :: STATUS(MPI_STATUS_SIZE)
+
         CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
         CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
         call MPI_Comm_rank(Group_Comm, irank_g, ierr)
         call MPI_Comm_size(Group_Comm, isize_g, ierr)
         igroup           = irank/isize_g
         nsigma_irank = irank
-        
-        
-        
+
         n1 = size(nsigma,1)
         n2 = size(nsigma,2)
         NSTM = Size(udvst, 1)
@@ -362,19 +359,15 @@ Module Global_mod
            CALL MPI_SEND(nsigma_irank     , 1, MPI_INTEGER, 0, 0, MPI_COMM_WORLD,IERR)
            CALL MPI_RECV(nsigma_old_irank , 1, MPI_INTEGER, 0, 0, MPI_COMM_WORLD,STATUS,IERR)
         endif
-        
+
         if ( nsigma_irank /= irank ) then
-           CALL MPI_Sendrecv(Phase,     1, MPI_COMPLEX16, nsigma_old_irank, 0, &
-                    &        Phase_new, 1, MPI_COMPLEX16, nsigma_irank    , 0, MPI_COMM_WORLD,STATUS,IERR)
-           Phase = Phase_new
-           
+           CALL MPI_Sendrecv_Replace(Phase, 1, MPI_COMPLEX16, nsigma_old_irank, 0, &
+                    &        nsigma_irank, 0, MPI_COMM_WORLD, STATUS, IERR)
+
            n_GR = size(GR,1)*size(GR,2)*size(GR,3)
-           Allocate ( GR_new(size(GR,1),size(GR,2),size(GR,3)) )
-           CALL MPI_Sendrecv(GR,     n_GR, MPI_COMPLEX16, nsigma_old_irank, 0, &
-                    &        GR_new, n_GR, MPI_COMPLEX16, nsigma_irank    , 0, MPI_COMM_WORLD,STATUS,IERR)
-           GR = GR_new
-           Deallocate ( GR_new )
-           
+           CALL MPI_Sendrecv_Replace(GR, n_GR, MPI_COMPLEX16, nsigma_old_irank, 0, &
+                    &        nsigma_irank, 0, MPI_COMM_WORLD, STATUS, IERR)
+
            do nf = 1,N_Fl
               CALL udvr(nf)%MPI_Sendrecv(nsigma_old_irank, 0, nsigma_irank, 0, STATUS, IERR)
            enddo

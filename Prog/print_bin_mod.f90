@@ -9,10 +9,11 @@
          
          Subroutine  Print_bin_C(Dat_eq,Dat_eq0,Latt, Nobs, Phase_bin_tmp, file_pr, Group_Comm)
            Use Lattices_v3
-           Implicit none
 #ifdef MPI
-           include 'mpif.h'
-#endif   
+           Use mpi
+#endif
+           Implicit none
+
 
            Complex (Kind=Kind(0.d0)), Dimension(:,:,:), Intent(inout):: Dat_eq
            Complex (Kind=Kind(0.d0)), Dimension(:)    , Intent(inout):: Dat_eq0
@@ -38,7 +39,6 @@
            call MPI_Comm_size(Group_Comm, isize_g, ierr)
            igroup           = irank/isize_g
 #endif
-
            Phase_bin = Phase_bin_tmp
            Norb = size(Dat_eq,3)
            if ( .not. (Latt%N  == Size(Dat_eq,1) ) ) then 
@@ -94,22 +94,20 @@
 #if defined(MPI)
            Endif
 #endif
-              
+
            deallocate (Tmp, tmp1 )
-          
 
          End Subroutine Print_bin_C
-          
 
 !=========================================================
 
          Subroutine  Print_bin_R(Dat_eq,Dat_eq0,Latt, Nobs, Phase_bin_tmp, file_pr, Group_Comm)
            Use Lattices_v3
-           Implicit none
 #ifdef MPI
-           include 'mpif.h'
-#endif   
-           
+           Use mpi
+#endif
+           Implicit none
+
            Real    (Kind=Kind(0.d0)), Dimension(:,:,:), Intent(inout) :: Dat_eq
            Real    (Kind=Kind(0.d0)), Dimension(:)    , Intent(inout) :: Dat_eq0
            Type (Lattice),                     Intent(In)    :: Latt
@@ -166,7 +164,6 @@
 #else
            File_tmp=File_pr
 #endif
-           
               do no = 1,Norb
                  do no1 = 1,Norb
                     Call  Fourier_R_to_K(Dat_eq(:,no,no1), Tmp(:,no,no1), Latt)
@@ -198,9 +195,10 @@
            
            Implicit none
 #ifdef MPI
-           include 'mpif.h'
-#endif   
-           
+           Use mpi
+#endif
+           Implicit none
+
            Complex   (Kind=Kind(0.d0)), Dimension(:), Intent(inout) :: Obs
            Character (len=64),               Intent(In)    :: File_pr
            Integer,                          Intent(In)    :: Nobs
@@ -219,7 +217,7 @@
            call MPI_Comm_size(Group_Comm, isize_g, ierr)
            igroup           = irank/isize_g
 #endif
-           
+
            Norb = size(Obs,1)
            Allocate ( Tmp(Norb) )
            Obs = Obs/dble(Nobs)
@@ -252,10 +250,10 @@
            USE IOPORTS
            USE ISO_C_BINDING
 #endif  
-           Implicit none
 #ifdef MPI
-           include 'mpif.h'
-#endif   
+           Use mpi
+#endif
+           Implicit none
 
            Complex (Kind=Kind(0.d0)), Dimension(:,:,:,:), Intent(inout):: Dat_tau   ! (Latt%N, Ltau,Norb, Norb)
            Complex (Kind=Kind(0.d0)), Dimension(:      ), Intent(inout), optional :: Dat0_tau  ! (Norb)
@@ -265,7 +263,7 @@
            Integer,                              Intent(In)   :: Nobs
            Real (Kind=Kind(0.d0)),                        Intent(In)   :: dtau
            Integer,                  Intent(In)      :: Group_Comm
-          
+
            ! Local
            Character (len=64) :: File_tmp
            Integer :: Norb, I, no,no1, LT, nt,ios

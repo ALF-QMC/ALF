@@ -11,7 +11,7 @@ Model        = "Z2_Slave"  ! Z2_Slave
 
 &VAR_QMC
 Nwrap   = 10
-NSweep  = 500
+NSweep  = 200
 NBin    = 1
 Ltau    = 0
 LOBS_ST = 1
@@ -20,8 +20,10 @@ Propose_S0   = .true.
 Global_moves = .true.
 N_Global     = 1
 Global_tau_moves = .true. 
-N_Global_tau      = 16
-CPU_MAX = 0.5
+N_Global_tau      = 16   ! This should scale as L1*L2
+Nt_sequential_start  = 1
+Nt_sequential_end    = 0 
+CPU_MAX = 0.1
 /
 
 &VAR_Z2_Slave

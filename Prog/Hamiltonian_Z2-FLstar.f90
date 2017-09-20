@@ -39,10 +39,10 @@
 
         Subroutine Ham_Set
 
-          Implicit none
 #if defined(MPI)
-          include 'mpif.h'
+          USE mpi
 #endif   
+          implicit none
 
           integer :: ierr
 

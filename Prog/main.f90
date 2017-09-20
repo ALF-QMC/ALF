@@ -52,14 +52,13 @@ Program Main
         Use Global_mod
         Use UDV_State_mod
         Use Wrapgr_mod
-        
-        Implicit none
 #ifdef MPI
-        include 'mpif.h'
-#endif   
+        Use mpi
+#endif
+        Implicit none
+
 #include "git.h"
-        
-        
+
         Interface
            SUBROUTINE WRAPUL(NTAU1, NTAU, UDVL)
              Use Hamiltonian
@@ -85,9 +84,9 @@ Program Main
              CLASS(UDV_State), intent(inout) :: UDVR(N_FL)
              Integer :: NTAU1, NTAU
            END SUBROUTINE WRAPUR
-           
+
         end Interface
-        
+
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:)  , Allocatable   ::  TEST
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable    :: GR
         CLASS(UDV_State), DIMENSION(:), ALLOCATABLE :: udvl, udvr
@@ -104,42 +103,38 @@ Program Main
         Integer :: N_Global 
         Integer :: Nt_sequential_start, Nt_sequential_end, mpi_per_parameter_set
         Integer :: N_Global_tau
-        
-        
+
+
 #if defined(TEMPERING)
         Integer :: N_exchange_steps, N_Tempering_frequency
         NAMELIST /VAR_TEMP/  N_exchange_steps, N_Tempering_frequency, mpi_per_parameter_set, Tempering_calc_det
 #endif
-        
+
         NAMELIST /VAR_QMC/   Nwrap, NSweep, NBin, Ltau, LOBS_EN, LOBS_ST, CPU_MAX, &
              &               Propose_S0,Global_moves,  N_Global, Global_tau_moves, &
              &               Nt_sequential_start, Nt_sequential_end, N_Global_tau
-        
-        
+
+
         Integer :: Ierr, I,nf, nst, n
         Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Phase, Z, Z1
         Real    (Kind=Kind(0.d0)) :: ZERO = 10D-8
         Integer, dimension(:), allocatable :: Stab_nt
-  
+
         ! Space for storage.
         CLASS(UDV_State), Dimension(:,:), ALLOCATABLE :: udvst
-        
+
         ! For tests
         Real (Kind=Kind(0.d0)) :: Weight, Weight_tot
         Integer :: nr,nth, nth1
         Logical :: Log
-        
+
         ! For the truncation of the program:
         logical                   :: prog_truncation
         integer (kind=kind(0.d0)) :: count_bin_start, count_bin_end
-        
+
 #ifdef MPI
         Integer        :: Isize, Irank, Irank_g, Isize_g, color, key, igroup
-        INTEGER        :: STATUS(MPI_STATUS_SIZE)
-#endif
-        
-        
-#ifdef MPI
+
         CALL MPI_INIT(ierr)
         CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
         CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)

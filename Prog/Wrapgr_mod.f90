@@ -162,7 +162,7 @@ Contains
 
     If ( N_Global_tau > 0 ) then 
        m         = Nt_sequential_end
-       !if ( Nt_sequential_start >  Nt_sequential_end ) m = Nt_sequential_start 
+       !if ( Nt_sequential_start >  Nt_sequential_end ) m = Nt_sequential_start
        Call Wrapgr_Random_update(GR,m,ntau1, PHASE, N_Global_tau )
        Call Wrapgr_PlaceGR(GR,m, Size(OP_V,1), ntau1)
     Endif
@@ -284,7 +284,7 @@ Contains
 !
 !> @brief 
 !> The Green function on a given time slice reads
-!> G(tau) = (  1 + B(tau) B(tau-1,0)  B(beta,tau))^(-1) with B(tau) =   U_n e^(d_n) U_n^(dag) .... U_1 e^(V_1) U_1^(dag)  e^(-dtau H_t)
+!> G(tau) = (  1 + B(tau) B(tau-1,0) B(beta,tau))^(-1) with B(tau) = U_n e^(d_n) U_n^(dag) .... U_1 e^(V_1) U_1^(dag) e^(-dtau H_t)
 !> On input you have 
 !> G(tau,m)  = [ 1 + U_m e^(d_m) U_m^(dag) U_m^(dag) ... U_1 e^(V_1) U_1^(dag) e^(-dtau H_t) B(tau-1,0) 
 !>                   B(Beta,tau)  U_n e^(d_n) U_n^(dag) ...U_(m+1) e^(d_(m+1)) U_(m+1)^(dag) U_(m+1) ] 

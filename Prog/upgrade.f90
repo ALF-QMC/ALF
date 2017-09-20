@@ -228,8 +228,8 @@
 !> @brief 
 !> This routine updates the field associated to the operator N_op on time 
 !> slice NT to the value ns_new
-!> if mode = final  the move is  accepted according to T0_proposal_ratio*S0_ratio*Prev_Ratiotot*ratio  and the Green function is updated
-!> if mode = intermediate the move is carried our deterministically  and the Green function updated.  Also Prev_Ratio = Prev_Ration*ratio
+!> if mode=final the move is accepted according to T0_proposal_ratio*S0_ratio*Prev_Ratiotot*ratio and the Green function is updated
+!> if mode=intermediate the move is carried our deterministically and the Green function updated. Also Prev_Ratio=Prev_Ration*ratio
 !> The ratio is computed in the routine.
 !--------------------------------------------------------------------
        

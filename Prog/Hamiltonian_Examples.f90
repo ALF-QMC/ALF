@@ -48,16 +48,14 @@
 
 
       Subroutine Ham_Set
-
-          Implicit none
-
 #ifdef MPI
-          include 'mpif.h'
-#endif   
+          Use mpi
+#endif
+          Implicit none
 
           integer :: ierr
 
-          
+
           NAMELIST /VAR_lattice/  L1, L2, Lattice_type, Model
 
           NAMELIST /VAR_Hubbard/  ham_T, ham_chem, ham_U, Dtau, Beta, XB_X, Phi_X
@@ -66,13 +64,9 @@
 
 #ifdef MPI
           Integer        :: Isize, Irank
-          Integer        :: STATUS(MPI_STATUS_SIZE)
           CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
           CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-#endif
-          
 
-#ifdef MPI
           If (Irank == 0 ) then
 #endif
              OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
@@ -118,7 +112,6 @@
              READ(5,NML=VAR_Hubbard)
              If ( Model == "Hubbard_SU2_Ising" )  Read(5,NML=VAR_Ising)
              CLOSE(5)
-             
 #ifdef MPI
           endif
           CALL MPI_BCAST(ham_T    ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
@@ -173,7 +166,6 @@
           endif
 #endif
           call Ham_V
-          
 
 
         end Subroutine Ham_Set
