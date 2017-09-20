@@ -22,7 +22,8 @@ stages:
 .build_template: &build_definitionOS
   stage: build
   script:
-    - zypper -i in libz1 zlib-devel
+    - zypper -v ref
+    - zypper in libz1 zlib-devel
     - . setenv.sh
     - export f90="gfortran"
     - cd Libraries
