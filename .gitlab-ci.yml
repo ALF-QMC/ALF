@@ -22,8 +22,7 @@ stages:
 .build_template: &build_definitionOS
   stage: build
   script:
-    - zypper -v ref
-    - zypper in libz1 zlib-devel
+    - zypper ref && zypper -n in libz1 zlib-devel
     - . setenv.sh
     - export f90="gfortran"
     - cd Libraries
@@ -153,8 +152,7 @@ GQMCT_Stretch_OpenBlas:
 GQMCT_CentOS:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:centos-7-gfortran-blas-lapack
   script:
-    - yum list zlib-devel
-    - yum install -y zlib-devel
+    - yum -y install zlib-devel
     - . setenv.sh
     - export f90="gfortran"
     - cd Libraries
