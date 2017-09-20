@@ -153,7 +153,7 @@ GQMCT_CentOS:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:centos-7-gfortran-blas-lapack
   stage: build
   script:
-    - yum install -y zlib-devel
+    - yum install -y python-hashlib zlib-devel
     - . setenv.sh
     - export f90="gfortran"
     - cd Libraries
@@ -227,7 +227,7 @@ GQMCT_CentOS_conv:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:centos-7-gfortran-blas-lapack
   stage: warnconv
   script:
-    - yum install -y zlib-devel
+    - yum install -y python-hashlib zlib-devel
     - . setenv.sh
     - export f90="gfortran"
     - export FL="$FL -Wconversion -Werror"
@@ -294,7 +294,7 @@ GQMCT_CentOS_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:centos-7-gfortran-blas-lapack
   stage: test
   script:
-    - yum install -y zlib-devel
+    - yum install -y python-hashlib zlib-devel
     - . setenv.sh
     - export f90="gfortran"
     - cd Libraries
