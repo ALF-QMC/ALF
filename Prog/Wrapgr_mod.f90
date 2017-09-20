@@ -162,7 +162,7 @@ Contains
 
     If ( N_Global_tau > 0 ) then 
        m         = Nt_sequential_end
-       !if ( Nt_sequential_start >  Nt_sequential_end ) m = Nt_sequential_start 
+       !if ( Nt_sequential_start >  Nt_sequential_end ) m = Nt_sequential_start
        Call Wrapgr_Random_update(GR,m,ntau1, PHASE, N_Global_tau )
        Call Wrapgr_PlaceGR(GR,m, Size(OP_V,1), ntau1)
     Endif
