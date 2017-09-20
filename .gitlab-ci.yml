@@ -151,6 +151,7 @@ GQMCT_Stretch_OpenBlas:
 
 GQMCT_CentOS:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:centos-7-gfortran-blas-lapack
+  stage: build
   script:
     - yum -y install zlib-devel
     - . setenv.sh
@@ -224,6 +225,7 @@ GQMCT_Stretch_OpenBlas_conv:
 
 GQMCT_CentOS_conv:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:centos-7-gfortran-blas-lapack
+  stage: warnconv
   script:
     - yum -y install zlib-devel
     - . setenv.sh
@@ -290,6 +292,7 @@ GQMCT_Stretch_OpenBlas_tests:
 
 GQMCT_CentOS_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:centos-7-gfortran-blas-lapack
+  stage: test
   script:
     - yum -y install zlib-devel
     - . setenv.sh
