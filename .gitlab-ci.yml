@@ -22,7 +22,7 @@ stages:
 .build_template: &build_definitionOS
   stage: build
   script:
-    - yum install -y zlib-devel
+    - zypper in libz1 zlib-devel
     - . setenv.sh
     - export f90="gfortran"
     - cd Libraries
@@ -151,7 +151,18 @@ GQMCT_Stretch_OpenBlas:
 
 GQMCT_CentOS:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:centos-7-gfortran-blas-lapack
-  <<: *build_definitionOS
+  script:
+    - yum list zlib-devel
+    - yum install -y zlib-devel
+    - . setenv.sh
+    - export f90="gfortran"
+    - cd Libraries
+    - gfortran -v
+    - make
+    - cd ..
+    - cd Prog
+    - make
+    - make Kondo_Honey
 
 GQMCT_OpenSuse-13.2:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:opensuse-13.2-gfortran-blas-lapack
