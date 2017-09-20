@@ -70,7 +70,7 @@ stages:
 .warnconv_template: &warnconv_definitionOS
   stage: warnconv
   script:
-    - yum install zlib-devel
+    - zypper --no-refresh -n install zlib-devel
     - . setenv.sh
     - export f90="gfortran"
     - export FL="$FL -Wconversion -Werror"
@@ -107,7 +107,7 @@ stages:
 .test_template: &test_definitionOS
   stage: test
   script:
-    - yum install zlib-devel
+    - zypper --no-refresh -n install zlib-devel
     - . setenv.sh
     - export f90="gfortran"
     - cd Libraries
@@ -224,7 +224,18 @@ GQMCT_Stretch_OpenBlas_conv:
 
 GQMCT_CentOS_conv:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:centos-7-gfortran-blas-lapack
-  <<: *warnconv_definitionOS
+  script:
+    - yum -y install zlib-devel
+    - . setenv.sh
+    - export f90="gfortran"
+    - export FL="$FL -Wconversion -Werror"
+    - cd Libraries
+    - gfortran -v
+    - make
+    - cd ..
+    - cd Prog
+    - make
+    - make Kondo_Honey
 
 GQMCT_OpenSuse-13.2_conv:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:opensuse-13.2-gfortran-blas-lapack
@@ -279,7 +290,24 @@ GQMCT_Stretch_OpenBlas_tests:
 
 GQMCT_CentOS_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:centos-7-gfortran-blas-lapack
-  <<: *test_definitionOS
+  script:
+    - yum -y install zlib-devel
+    - . setenv.sh
+    - export f90="gfortran"
+    - cd Libraries
+    - gfortran -v
+    - make
+    - cd ..
+    - cd Prog
+    - make
+    - cd ..
+    - cd testsuite
+    - cmake -E make_directory tests
+    - cd tests
+    - cmake -G "Unix Makefiles" -DCMAKE_Fortran_FLAGS_RELEASE=${F90OPTFLAGS} -DCMAKE_BUILD_TYPE=RELEASE ..
+    - cmake --build . --target all --config Release
+    - ctest -O log.txt
+    - cat log.txt | grep "tests passed" | cut -d " " -f 1
 
 GQMCT_OpenSuse-13.2_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:opensuse-13.2-gfortran-blas-lapack
