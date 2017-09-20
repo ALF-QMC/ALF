@@ -150,10 +150,9 @@ GQMCT_Stretch_OpenBlas:
   <<: *build_definitionDeb
 
 GQMCT_CentOS:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:centos-7-gfortran-blas-lapack
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:centos-7-gcc-blas-lapack-fftw-scipy-mpich
   stage: build
   script:
-    - yum install -y python-hashlib zlib-devel
     - . setenv.sh
     - export f90="gfortran"
     - cd Libraries
@@ -224,10 +223,9 @@ GQMCT_Stretch_OpenBlas_conv:
   <<: *warnconv_definition
 
 GQMCT_CentOS_conv:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:centos-7-gfortran-blas-lapack
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:centos-7-gcc-blas-lapack-fftw-scipy-mpich
   stage: warnconv
   script:
-    - yum install -y python-hashlib zlib-devel
     - . setenv.sh
     - export f90="gfortran"
     - export FL="$FL -Wconversion -Werror"
@@ -291,10 +289,9 @@ GQMCT_Stretch_OpenBlas_tests:
   <<: *test_definition
 
 GQMCT_CentOS_tests:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:centos-7-gfortran-blas-lapack
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:centos-7-gcc-blas-lapack-fftw-scipy-mpich
   stage: test
   script:
-    - yum install -y python-hashlib zlib-devel
     - . setenv.sh
     - export f90="gfortran"
     - cd Libraries
