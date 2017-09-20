@@ -193,7 +193,6 @@
 !============================================================
          Subroutine  Print_scal(Obs, Nobs, file_pr, Group_Comm)
            
-           Implicit none
 #ifdef MPI
            Use mpi
 #endif
