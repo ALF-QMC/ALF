@@ -17,7 +17,7 @@ for filename in *_scal; do
 #    fi
 done
 
-for filename in Spin*_eq; do
+for filename in *_eq; do
     echo $filename
     export filename1=$filename"J"
 #    if [ "$filename1" -ot "$filename" ]; then

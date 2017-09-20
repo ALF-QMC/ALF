@@ -13,8 +13,8 @@
  Ham_J         :    0.0000000000000000     
  Ham_h         :    1.0000000000000000     
  Ham_F         :    0.0000000000000000     
- Sweeps                              :          500
- Prog will stop after hours:    0.5000
+ Sweeps                              :          200
+ Prog will stop after hours:    0.1000
  Measure Int.                        :            1         100
  Stabilization,Wrap                  :           10
  Nstm                                :           40
@@ -26,12 +26,15 @@
  Nt_sequential_start:            1
  Nt_sequential_end  :            0
  N_Global_tau       :           16
- This executable represents commit c80902a of branch master.
-  Precision Green  Mean, Max :    3.0714263304645497E-015   2.3056556663902938E-012
+ This executable represents commit 5abe78b of branch master.
+  Precision Green  Mean, Max :    3.1508289700359367E-015   1.8469670237664104E-012
   Precision Phase, Max       :    0.0000000000000000     
-  Acceptance                 :   0.89439918971358245     
-  Acceptance_Glob            :    1.0000000000000000     
-  Mean Phase diff Glob       :    0.0000000000000000     
-  Max  Phase diff Glob       :    0.0000000000000000     
-  CPU Time                   :    1766.0296149999999     
-  Effective number of bins   :           34
+  Acceptance                 :   0.89370420207658896     
+  Effective Acceptance       :   0.89370420207658896     
+  Acceptance_Glob              :    1.0000000000000000     
+  Mean Phase diff Glob         :    0.0000000000000000     
+  Max  Phase diff Glob         :    0.0000000000000000     
+  Average cluster size         :    6.9498232440405469E-310
+  Average accepted cluster size:    6.9498232440405469E-310
+  CPU Time                   :    336.97160900000000     
+  Effective number of bins   :           20

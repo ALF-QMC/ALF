@@ -131,7 +131,7 @@
            Complex (Kind=Kind(0.d0)), allocatable :: Tmp(:,:,:,:), Tmp1(:)
            Real    (Kind=Kind(0.d0))              :: x_p(2) 
            Complex (Kind=Kind(0.d0))              :: Sign_bin
-           Character (len=64)            :: File_pr, File_suff
+           Character (len=64)            :: File_pr,  File_suff
 #ifdef MPI
            Complex (Kind=Kind(0.d0)):: Z
            Real    (Kind=Kind(0.d0)):: X
@@ -154,9 +154,9 @@
            If (Ntau == 1) then
               File_suff ="_eq"
            else
-              File_suff ="_tau"
+              File_suff  ="_tau"
            endif
-           File_pr = file_add(Obs%File_Latt,File_suff)
+           File_pr  = file_add(Obs%File_Latt,File_suff )
            Allocate (Tmp(Ns,Ntau,Norb,Norb), Tmp1(Norb) )
            Obs%Obs_Latt  =   Obs%Obs_Latt /dble(Obs%N   )
            Obs%Obs_Latt0 =   Obs%Obs_Latt0/dble(Obs%N*Ns*Ntau)
@@ -181,7 +181,7 @@
            If (Irank_g == 0 ) then
 #endif
 #if defined(TEMPERING) 
-              write(File_pr,'(A,I0,A,A,A)') "Temp_",igroup,"/",trim(Obs%File_Latt),trim(File_suff)
+              write(File_pr ,'(A,I0,A,A,A)') "Temp_",igroup,"/",trim(Obs%File_Latt),trim(File_suff )
 #endif
 
               do nt = 1,Ntau

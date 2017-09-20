@@ -78,7 +78,10 @@
         If ( Op_V(n_op,nf)%type == 1) then
            if ( Propose_S0 ) then
               Weight = 1.d0 - 1.d0/(1.d0+S0(n_op,nt))
-              If ( Weight < ranf_wrap() ) Return
+              If ( Weight < ranf_wrap() ) then
+                 Call Control_upgrade_eff(.false.)
+                 Return
+              endif
            endif
            ns_new = -ns_old
         else
@@ -217,6 +220,7 @@
         endif
 
         Call Control_upgrade(toggle)
+        Call Control_upgrade_eff(toggle)
 
       End Subroutine Upgrade
 
@@ -359,15 +363,16 @@
                  call zscal(Ndim, Z, x_v(1, n), 1)
                  Deallocate(syu, sxv)
               enddo
-              IF (Op_dim == 1) THEN
+              IF (size(Op_V(n_op,nf)%P, 1) == 1) THEN
                 CALL ZCOPY(Ndim, gr(1, Op_V(n_op,nf)%P(1), nf), 1, xp_v(1, 1), 1)
-                CALL ZGERU(Ndim, Ndim, -x_v(Op_V(n_op,nf)%P(1), 1), xp_v(1,1), 1, y_v(1, 1), 1, gr(1,1,nf), Ndim)
+                Z = -x_v(Op_V(n_op,nf)%P(1), 1)
+                CALL ZGERU(Ndim, Ndim, Z, xp_v(1,1), 1, y_v(1, 1), 1, gr(1,1,nf), Ndim)
               ELSE
-                Allocate (Zarr(Op_dim,Op_dim), grarr(NDim, Op_dim))
+                Allocate (Zarr(size(Op_V(n_op,nf)%P, 1), Op_dim), grarr(NDim, Op_dim))
                 Zarr = x_v(Op_V(n_op,nf)%P, :)
                 grarr = gr(:, Op_V(n_op,nf)%P, nf)
                 alpha = 1.D0
-                CALL ZGEMM('N', 'N', NDim, Op_Dim, Op_Dim, alpha, grarr, size(grarr,1), Zarr, Op_Dim, beta, xp_v, size(xp_v,1))
+                CALL ZGEMM('N', 'N', NDim, Op_Dim, Op_Dim, alpha, grarr, Ndim, Zarr, size(Op_V(n_op,nf)%P, 1), beta, xp_v, Ndim)
                 Deallocate(Zarr, grarr)
                 beta  = cmplx ( 1.0d0, 0.0d0, kind(0.D0))
                 alpha = -1.D0
@@ -380,6 +385,9 @@
            nsigma(n_op,nt) = ns_new
         endif
 
-        If ( mode == "Final" )  Call Control_upgrade(toggle)
+        If ( mode == "Final" )  then
+           Call Control_upgrade(toggle)
+           Call Control_upgrade_eff(toggle)
+        endif
 
       End Subroutine Upgrade2

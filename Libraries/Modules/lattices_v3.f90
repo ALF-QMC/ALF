@@ -316,7 +316,7 @@
            Real (Kind=Kind(0.d0)) :: Zero, X
            Integer :: Ndim, i
 
-           Zero = 1.E-5
+           Zero = 1.D-8
            nr_p = n_p 
            ndim = size(nr_p)
 
@@ -328,9 +328,9 @@
               if (i.eq.3) x_p = L2_p - L1_p
               if (i.eq.4) x_p = L2_p + L1_p
 
-              X = dble(Iscalar(nr_p,x_p))/(Xnorm(x_p)**2)
-              if (X .ge.   0.5+Zero  ) nr_p = nr_p - x_p
-              if (X .le.  -0.5+Zero  ) nr_p = nr_p + x_p   
+              X = real(Iscalar(nr_p,x_p),kind(0.d0))/(Xnorm(x_p)**2)
+              if (X .ge.   0.5D0 + Zero  ) nr_p = nr_p - x_p
+              if (X .le.  -0.5D0 + Zero  ) nr_p = nr_p + x_p   
            enddo
 
            deallocate(x_p)
@@ -350,7 +350,7 @@
            ndim = size(nr_p)
 
            allocate (x_p(ndim))
-           Zero = 1.E-5
+           Zero = 1.D-8
            nr_p = n_p 
            do i = 1,4
               if (i.eq.1) x_p = L2_p
@@ -358,8 +358,8 @@
               if (i.eq.3) x_p = L2_p - L1_p
               if (i.eq.4) x_p = L2_p + L1_p
               X =  Iscalar(nr_p,x_p)/(Xnorm(x_p)**2)
-              if (X .ge.   0.5+Zero  ) nr_p = nr_p - x_p
-              if (X .le.  -0.5+Zero  ) nr_p = nr_p + x_p   
+              if (X .ge.   0.5D0 + Zero  ) nr_p = nr_p - x_p
+              if (X .le.  -0.5D0 + Zero  ) nr_p = nr_p + x_p   
            enddo
 
            deallocate(x_p)

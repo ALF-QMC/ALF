@@ -175,7 +175,8 @@
                      do no = 1,norb
                         do no1 = 1,Norb
                            bins(m,nb-n_skip)%el(no,no1)  =  bins(m,nb-n_skip)%el(no,no1) -  &
-                                &        cmplx(dble(Latt%N),0.d0,kind(0.d0))*Bins0(nb-n_skip,no)*Bins0(nb-n_skip,no1)
+                                &        cmplx(dble(Latt%N),0.d0,kind(0.d0))*Bins0(nb-n_skip,no)*Bins0(nb-n_skip,no1) &
+                                &        /Phase(nb-n_skip)
                         enddo
                      enddo
                   endif
