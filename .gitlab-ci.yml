@@ -4,6 +4,20 @@ stages:
   - test
   - memleaks
 
+.build_template: &build_definitionDeb
+  stage: build
+  script:
+    - apt-get install -y zlib1g zlib1g-dev
+    - . setenv.sh
+    - export f90="gfortran"
+    - cd Libraries
+    - gfortran -v
+    - make
+    - cd ..
+    - cd Prog
+    - make
+    - make Kondo_Honey
+
 .build_template: &build_definition
   stage: build
   script:
@@ -20,6 +34,7 @@ stages:
 .build_template_pgi: &build_definition_pgi
   stage: build
   script:
+    - apt-get install -y zlib1g zlib1g-dev
     - . setenv.sh
     - export f90="/opt/pgi/linux86-64/2016/bin/pgfortran"
     - export FL="-O3"
@@ -69,39 +84,27 @@ stages:
 
 GQMCT_Wheezy:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-wheezy-gfortran-blas-lapack
-  script:
-    - apt-get install -y zlib1g zlib1g-dev
-  <<: *build_definition
+  <<: *build_definitionDeb
 
 GQMCT_Jessie:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-gfortran-blas-lapack
-  script:
-    - apt-get install -y zlib1g zlib1g-dev
-  <<: *build_definition
+  <<: *build_definitionDeb
 
 GQMCT_Stretch:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-stretch-gfortran-blas-lapack
-  script:
-    - apt-get install -y zlib1g zlib1g-dev
-  <<: *build_definition
+  <<: *build_definitionDeb
 
 GQMCT_Wheezy_OpenBlas:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-wheezy-gfortran-openblas-lapack
-  script:
-    - apt-get install -y zlib1g zlib1g-dev
-  <<: *build_definition
+  <<: *build_definitionDeb
 
 GQMCT_Jessie_OpenBlas:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-gfortran-openblas-lapack
-  script:
-    - apt-get install -y zlib1g zlib1g-dev
-  <<: *build_definition
+  <<: *build_definitionDeb
 
 GQMCT_Stretch_OpenBlas:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-stretch-gfortran-openblas-lapack
-  script:
-    - apt-get install -y zlib1g zlib1g-dev
-  <<: *build_definition
+  <<: *build_definitionDeb
 
 GQMCT_CentOS:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:centos-7-gfortran-blas-lapack
@@ -117,27 +120,19 @@ GQMCT_OpenSuse-42.1:
 
 GQMCT_Wheezy-PGI:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-wheezy-pgi
-  script:
-    - apt-get install -y zlib1g zlib1g-dev
   <<: *build_definition_pgi
 
 GQMCT_Jessie-PGI:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-pgi
-  script:
-    - apt-get install -y zlib1g zlib1g-dev
   <<: *build_definition_pgi
 
 GQMCT_Ubuntu_Trusty:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:trusty-gfortran-lapack
-  script:
-    - apt-get install -y zlib1g zlib1g-dev
-  <<: *build_definition
+  <<: *build_definitionDeb
 
 GQMCT_Ubuntu_Xenial:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:xenial-gfortran-lapack
-  script:
-    - apt-get install -y zlib1g zlib1g-dev
-  <<: *build_definition
+  <<: *build_definitionDeb
   
 GQMCT_Jessie_MPI:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-gfortran-blas-lapack-fftw-scipy
