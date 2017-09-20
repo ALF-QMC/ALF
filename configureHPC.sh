@@ -128,8 +128,8 @@ echo "Please choose one of the following machines:"
 echo "Activating fallback option with gfortran for SERIAL JOB."
 
 PROGRAMMCONFIGURATION=""
-F90OPTFLAGS=$GNUOPTFLAGS
-F90USEFULFLAGS=$GNUUSEFULFLAGS
+F90OPTFLAGS="-O3 -ffree-line-length-none -ffast-math"
+F90USEFULFLAGS="-cpp"
 
 export f90=gfortran
 export LIB_BLAS_LAPACK="-llapack -lblas"

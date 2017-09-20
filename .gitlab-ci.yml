@@ -249,7 +249,7 @@ GQMCT_jessie_valgrind:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-blas-lapack-valgrind
   stage: memleaks
   script:
-      - . configureHPC.sh GNU noMPI
+      - . configureHPC.sh 
       - export f90="gfortran"
       - export FL="${FL} -g"
       - cd Libraries
