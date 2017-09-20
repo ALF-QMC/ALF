@@ -43,6 +43,8 @@
 !> Implementation note: we calculate the Phase as:
 !> NVAR = 1 : Phase = det(URUP * ULUP)/ |det(URUP * ULUP)| * det(P) * det(R) *det(Q)/ |det(R) det(Q)| 
 !> NVAR = 2 : Phase = det(URUP * ULUP)/ |det(URUP * ULUP)| * det(P) * det^*(R) *det^*(Q)/ |det(R) det(Q)| 
+!> We seperate D as D^+ * D^- where D^+ (D^-) contains the scales larger (smaller) then 1.0
+!> Also, we use (DR^+^-1 UR^* UL^* DL^+^-1 + DR^- VR VL DL^- )^-1 = UL^* DL^+^-1 GRUP Dr^+^-1 UR^* .
 !
 !--------------------------------------------------------------------
 
@@ -78,7 +80,7 @@
         CALL MMULT(udvlocal%V, udvr%V, udvl%V)
         DO J = 1,N_size
         DO I = 1,N_size
-            TPUP(I,J) = exp(udvr%L(I)+udvl%L(J)) *udvlocal%V(I,J)
+            TPUP(I,J) = cmplx(exp(udvr%L(I)+udvl%L(J)),0.d0,kind(0.d0)) *udvlocal%V(I,J)
         ENDDO
         ENDDO
         CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, udvr%U(1,1), N_size, udvl%U(1,1), N_size, alpha, TPUP, N_size)
@@ -163,18 +165,12 @@
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  TPUP, RHS
         COMPLEX (Kind=Kind(0.d0)), Dimension(:) , Allocatable ::  DUP
         INTEGER, Dimension(:), Allocatable :: IPVT, VISITED
-        COMPLEX (Kind=Kind(0.d0)) ::  alpha, beta, Z
+        COMPLEX (Kind=Kind(0.d0)) ::  alpha, beta, Z, DLJ
         Integer :: I, J, N_size, NCON, info, LWORK, next, L
         Real (Kind=Kind(0.D0)) :: X, Xmax, sv
         
         COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK
         LOGICAL :: FORWRD
-        
-!         write(*,*) "CGR1"
-!         write(*,*) UDVL%L
-!         write(*,*) UDVR%L
-!         write(*,*) "Old G:"
-!         write(*,*) sum(GRUP)
             
         N_size = udvl%ndim
         NCON = 0
@@ -187,59 +183,37 @@
         CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, udvr%U, N_size, udvl%U, N_size, beta, RHS(1, 1), N_size)
         
         CALL MMULT(TPUP, udvr%V, udvl%V)
+        !missuse DUP(I) as DR(I) for temporary storage
+        DO I = 1,N_size
+          If( udvr%L(I)<=0.d0 ) then
+            DUP(I)=cmplx(exp(udvr%L(I)),0.d0,kind(0.d0))
+          else
+            DUP(I)=cmplx(exp(-udvr%L(I)),0.d0,kind(0.d0))
+          endif
+        ENDDO
         DO J = 1,N_size
-          If(DBLE(udvl%L(J))<=0.d0) then
+          If(udvl%L(J)<=0.d0) then
+            DLJ=cmplx(exp(udvl%L(J)),0.d0,kind(0.d0))
             DO I = 1,N_size
-              If( DBLE(udvr%L(I))<=0.d0 ) then
-                If( abs(udvr%L(I)+udvl%L(J)) < 650  ) then
-                  TPUP(I,J) = RHS(I,J)+exp(udvr%L(I)+udvl%L(J))*TPUP(I,J)
-                else
-                  !exp(udvr%L(I)+udvl%L(J)) < exp(-650) so not representable in double precision
-                  TPUP(i,J) = RHS(I,J)!CMPLX(0.d0,0.d0,kind(0.d0))
-                endif
+              If( udvr%L(I)<=0.d0 ) then
+                TPUP(I,J) = RHS(I,J)+cmplx(exp(udvr%L(I)+udvl%L(J)),0.d0,kind(0.d0))*TPUP(I,J)
               else
-                If( abs(udvl%L(J)) < 650 ) then
-                  TPUP(I,J) = exp(udvl%L(J))*TPUP(I,J)
-                else
-                  !exp(udvl%L(J)) < exp(-650) so not representable in double precision
-                  TPUP(i,J) = CMPLX(0.d0,0.d0,kind(0.d0))
-                endif
-                If( abs(udvr%L(I)) < 650 ) then
-                  TPUP(I,J) = exp(-udvr%L(I))*RHS(I,J) + TPUP(I,J)
-!                 else
-                  !exp(-udvr%L(I)) < exp(-650) so not representable in double precision
-!                   RHS(i,J) = CMPLX(0.d0,0.d0,kind(0.d0))
-                endif
+                TPUP(I,J) = DUP(I)*RHS(I,J) + DLJ*TPUP(I,J)
               endif
             ENDDO
           else
+            DLJ=cmplx(exp(-udvl%L(J)),0.d0,kind(0.d0))
             DO I = 1,N_size
-              If( DBLE(udvr%L(I))<=0.d0 ) then
-                If( abs(udvr%L(I)) < 650 ) then
-                  TPUP(I,J) = exp(udvr%L(I))*TPUP(I,J)
-                else
-                  !exp(udvr%L(I)) < exp(-650) so not representable in double precision
-                  TPUP(i,J) = CMPLX(0.d0,0.d0,kind(0.d0))
-                endif
-                If( abs(udvl%L(J)) < 650 ) then
-                  TPUP(I,J) = exp(-udvl%L(J))*RHS(I,J)+TPUP(I,J)
-!                 else
-                  !exp(-udvl%L(J)) < exp(-650) so not representable in double precision
-!                   RHS(i,J) = CMPLX(0.d0,0.d0,kind(0.d0))
-                endif
+              If( udvr%L(I)<=0.d0 ) then
+                TPUP(I,J) = DLJ*RHS(I,J)+DUP(I)*TPUP(I,J)
               else
-                If( abs(udvr%L(I)+udvl%L(J)) < 650 ) then
-                  TPUP(I,J) = exp(-udvr%L(I)-udvl%L(J))*RHS(I,J)+TPUP(I,J)
-!                 else
-                  !exp(-udvr%L(I)-udvl%L(J)) < exp(-650) so not representable in double precision
-!                   RHS(i,J) = CMPLX(0.d0,0.d0,kind(0.d0))
-                endif
+                TPUP(I,J) = cmplx(exp(-udvr%L(I)-udvl%L(J)),0.d0,kind(0.d0))*RHS(I,J)+TPUP(I,J)
               endif
             ENDDO
           endif
         ENDDO
-!         TPUP = TPUP + RHS
         ! calculate determinant of UR*UL
+        ! as the D's are real and positive, they do not contribute the the phase of det so they can be ignored
         PHASE = CONJG(DET_C(RHS, N_size))
         PHASE = PHASE/ABS(PHASE)
         IPVT = 0
@@ -291,7 +265,7 @@
             RHS = CT(udvr%U)
             !scale RHS=R_+^-1*RHS
             do J=1,N_size
-              if( DBLE(UDVR%L(J)) > 0.d0 ) call ZSCAL(N_size,exp(-UDVR%L(J)),RHS(J,1),N_size)
+              if( UDVR%L(J) > 0.d0 ) call ZSCAL(N_size,cmplx(exp(-UDVR%L(J)),0.d0,kind(0.d0)),RHS(J,1),N_size)
             enddo
             ! RHS = U^dagger * RHS
             CALL ZUNMQR('L', 'C', N_size, N_size, N_size, TPUP(1, 1), N_size, TAU(1), RHS(1,1), N_size, WORK(1), LWORK, INFO)
@@ -315,7 +289,7 @@
             CALL ZLAPMR(FORWRD, N_size, N_size, RHS(1,1), N_size, IPVT(1))
             !scale RHS=L_+^-1*RHS
             do J=1,N_size
-              if( DBLE(UDVL%L(J)) > 0.d0 ) call ZSCAL(N_size,exp(-UDVL%L(J)),RHS(J,1),N_size)
+              if( UDVL%L(J) > 0.d0 ) call ZSCAL(N_size,cmplx(exp(-UDVL%L(J)),0.d0,kind(0.d0)),RHS(J,1),N_size)
             enddo
             ! perform multiplication with ULUP and store in GRUP
             CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, udvl%U(1, 1), N_size, RHS(1,1), N_size, beta, GRUP(1,1), N_size)
@@ -326,7 +300,7 @@
             RHS = CT(udvl%U)
             !scale RHS=RHS*L_+^-1
             do J=1,N_size
-              if( DBLE(UDVL%L(J)) > 0.d0 ) call ZSCAL(N_size,exp(-UDVL%L(J)),RHS(1,J),1)
+              if( UDVL%L(J) > 0.d0 ) call ZSCAL(N_size,cmplx(exp(-UDVL%L(J)),0.d0,kind(0.d0)),RHS(1,J),1)
             enddo
             CALL ZUNMQR('R', 'N', N_size, N_size, N_size, TPUP(1, 1), N_size, TAU(1), RHS(1, 1), N_size, WORK(1), LWORK, INFO)
             DEALLOCATE(TAU, WORK)
@@ -351,15 +325,11 @@
             CALL ZLAPMT(FORWRD, N_size, N_size, RHS(1, 1), N_size, IPVT(1))
             ! first scale RHS=RHS*R_+^-1
             do J=1,N_size
-              if( DBLE(UDVR%L(J)) > 0.d0 ) call ZSCAL(N_size,exp(-UDVR%L(J)),RHS(1,J),1)
+              if( UDVR%L(J) > 0.d0 ) call ZSCAL(N_size,cmplx(exp(-UDVR%L(J)),0.d0,kind(0.d0)),RHS(1,J),1)
             enddo
             ! perform multiplication with URUP
             CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, RHS(1, 1), N_size, udvr%U(1,1), N_size, beta, GRUP(1, 1), N_size)
         ENDIF
-!         write(*,*) "new G"
-!         write(*,*) sum(GRUP)
-!         write(*,*) "phase"
-!         write(*,*) PHASE
         Deallocate(TPUP, DUP, IPVT, VISITED, RHS)
 #endif
         
