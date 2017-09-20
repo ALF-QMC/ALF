@@ -19,9 +19,10 @@ stages:
     - make
     - make Kondo_Honey
 
-.build_template: &build_definition
+.build_template: &build_definitionOS
   stage: build
   script:
+    - yum install zlib-devel
     - . setenv.sh
     - export f90="gfortran"
     - cd Libraries
