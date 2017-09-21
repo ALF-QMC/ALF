@@ -61,6 +61,10 @@
           igroup           = irank/isize_g
           If (Irank == 0 ) then
 #endif
+             File1 = "parameters"
+#if defined(TEMPERING) 
+             write(File1,'(A,I0,A)') "Temp_",igroup,"/parameters"
+#endif
              OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
              IF (ierr /= 0) THEN
                 WRITE(*,*) 'unable to open <parameters>',ierr
@@ -113,7 +117,7 @@
 #if defined(MPI) 
            If (Irank_g == 0)  then
 #endif
-             Open (Unit = 50,file="info",status="unknown",position="append")
+             Open (Unit = 50,file=File1,status="unknown",position="append")
              Write(50,*) '====================================='
              Write(50,*) 'Model is      : ', Model 
              Write(50,*) 'Lattice is    : ', Lattice_type
@@ -703,6 +707,8 @@
           Implicit none
           Real (Kind=Kind(0.d0)), intent(out) :: T0_Proposal_ratio, size_clust
           Integer, dimension(:,:),  allocatable, intent(in)  :: nsigma_old
+          T0_Proposal_ratio=1.d0
+          size_clust=0.d0
         End Subroutine Global_move
 !========================================================================
 
@@ -714,6 +720,7 @@
           
           !> Arguments
           Integer, dimension(:,:), allocatable, intent(IN) :: Nsigma_old
+          Delta_S0_global=1.d0
         end Function Delta_S0_global
 
 !---------------------------------------------------------------------

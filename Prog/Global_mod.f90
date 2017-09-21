@@ -68,7 +68,7 @@ Module Global_mod
 !> case the MPI flag is also switched on. 
 !> 
 !--------------------------------------------------------------------
-      Subroutine Exchange_Step(Phase,GR, udvr, udvl, Stab_nt, udvst, N_exchange_steps, Tempering_calc_det)
+      Subroutine Exchange_Step(Phase,GR, udvr, udvl, Stab_nt, udvst, N_exchange_steps, Tempering_calc_det, NSTM)
         Use UDV_State_mod
         Use mpi
         Implicit none
@@ -98,11 +98,12 @@ Module Global_mod
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:), INTENT(INOUT), allocatable :: GR
         CLASS(UDV_State), intent(inout), allocatable, Dimension(:, :) :: udvst
         INTEGER, dimension(:),     INTENT   (IN), allocatable      :: Stab_nt
+        INTEGER, INTENT(IN)                                        :: NSTM
         !>  On entry and on exit the left storage is full, and the Green function is on time slice 0 and the phase is set.
         
         
         !>  Local variables.
-        Integer :: NST, NSTM, NF, NT, NT1, NVAR,N, N1,N2, I, NC, I_Partner, n_step, N_exchange_steps, N_count
+        Integer :: NST, NF, NT, NT1, NVAR,N, N1,N2, I, NC, I_Partner, n_step, N_exchange_steps, N_count
         Integer, Dimension(:,:),  allocatable :: nsigma_old
         Real    (Kind=Kind(0.d0)) :: T0_Proposal_ratio, Weight, Weight1
         Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Z, Ratiotot, Ratiotot_p, Phase_old, Phase_new
@@ -113,7 +114,7 @@ Module Global_mod
 
         !> Additional variables for running without Fermion weight
         Logical :: Tempering_calc_det
-        Integer        :: nsigma_irank, nsigma_old_irank, nsigma_irank_temp ! Keeps track of where the configuration originally comes from
+        Integer        :: nsigma_irank, nsigma_old_irank, nsigma_irank_temp !Keeps track of where the configuration comes from
         Integer        :: n_GR
 
         !Integer, Dimension(:,:),  allocatable :: nsigma_orig, nsigma_test
@@ -131,7 +132,7 @@ Module Global_mod
 
         n1 = size(nsigma,1)
         n2 = size(nsigma,2)
-        NSTM = Size(udvst, 1)
+!        NSTM = Size(udvst, 1)
         Allocate ( nsigma_old(n1,n2) )
         if (Tempering_calc_det) then
            Allocate ( Det_vec_old(NDIM,N_FL), Det_vec_new(NDIM,N_FL) ) 
@@ -340,7 +341,8 @@ Module Global_mod
         call Op_phase(Phase,OP_V,Nsigma,N_SUN)     
     else
         !> Send >>Phase, GR, udvr, udvl, udvst<< to new node 
-        !  First step: Each node sends to IRANK=0 its value nsigma_irank, which is the node where its new Phase, GR, udvr, udvl, udvst is stored
+        !  First step: Each node sends to IRANK=0 its value nsigma_irank, which is the node where its new Phase,
+        !              GR, udvr, udvl, udvst is stored
         !              This node then tells each node where to send its now old Phase, GR, udvr, udvl, udvst
         !              Finally, the variables get submitted
         If (Irank == 0) then

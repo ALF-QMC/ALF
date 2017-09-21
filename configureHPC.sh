@@ -24,6 +24,7 @@ noMPI)
 echo "seriell job."
 INTELCOMPILER="ifort"
 GNUCOMPILER="gfortran"
+FAKHERCOMPILER="gfortran"
 ;;
 
 Tempering)
@@ -34,6 +35,7 @@ INTELCOMPILER="mpiifort"
 # INTELUSEFULFLAGS="-cpp"
 GNUCOMPILER="mpifort"
 # GNUUSEFULFLAGS="-cpp"
+FAKHERCOMPILER=$(mpif90)
 ;;
 
 MPI|*)
@@ -45,6 +47,7 @@ INTELCOMPILER="mpiifort"
 # INTELUSEFULFLAGS="-cpp"
 GNUCOMPILER="mpifort"
 # GNUUSEFULFLAGS="-cpp"
+FAKHERCOMPILER=$(mpif90)
 ;;
 
 esac
@@ -52,6 +55,16 @@ esac
 echo ""
 
 case $1 in
+
+#Fakhers MacBook
+FakhersMAC)
+
+F90OPTFLAGS=$GNUOPTFLAGS
+F90USEFULFLAGS=$GNUUSEFULFLAGS
+
+export f90=$FAKHERCOMPILER
+export LIB_BLAS_LAPACK="-llapack -lblas"
+;;
 
 #Development
 Devel)
