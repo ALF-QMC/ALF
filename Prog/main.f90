@@ -350,13 +350,9 @@ Program Main
 !         File1 = "Warmup_0"
 ! #endif
 !         INQUIRE (FILE=File1, EXIST=LCONF)
-!         IF (LCONF) THEN
-!            Open (Unit = 50,file=file1,status="unknown",action="read")
-!            read(50,*) dump, lastk
-!            close(50)
-!         else
-!            lastk=kstart
-!         endif
+        IF (lastk < 0) THEN
+           lastk=kstart
+        endif
         
         if (Int(rate**dble(lastk)) < NSTM .and. annealing) then
         !store true ltrot
