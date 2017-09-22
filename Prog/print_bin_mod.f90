@@ -21,7 +21,7 @@
            Complex (Kind=Kind(0.d0)),                   Intent(In)   :: Phase_bin_tmp
            Character (len=64),                 Intent(In)   :: File_pr
            Integer,                            Intent(In)   :: Nobs
-           Integer,                  Intent(In)      :: Group_Comm
+           Integer,                  Intent(In), optional      :: Group_Comm
           
            ! Local
            Character (len=64) :: File_tmp
@@ -35,9 +35,19 @@
            INTEGER         :: STATUS(MPI_STATUS_SIZE)
            CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
            CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-           call MPI_Comm_size(Group_Comm, isize_g, ierr)
-           igroup           = irank/isize_g
+           if(Present(Group_Comm)) then
+            call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+            call MPI_Comm_size(Group_Comm, isize_g, ierr)
+            igroup           = irank/isize_g
+           else
+            irank_g = irank
+            isize_g = isize
+            igroup = 0
+#ifdef Tempering
+            write(*,*) "Inproper call of Print_bin! Missing Group_Comm argument"
+            stop
+#endif
+           endif
 #endif
            Phase_bin = Phase_bin_tmp
            Norb = size(Dat_eq,3)
@@ -114,7 +124,7 @@
            Complex (Kind=Kind(0.d0)),                   Intent(In)    :: Phase_bin_tmp
            Character (len=64),                 Intent(In)    :: File_pr
            Integer,                            Intent(In)    :: Nobs
-           Integer,                  Intent(In)      :: Group_Comm
+           Integer,                  Intent(In), optional      :: Group_Comm
            
            ! Local
            Character (len=64) :: File_tmp
@@ -128,9 +138,19 @@
            INTEGER         :: STATUS(MPI_STATUS_SIZE)
            CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
            CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-           call MPI_Comm_size(Group_Comm, isize_g, ierr)
-           igroup           = irank/isize_g
+           if(Present(Group_Comm)) then
+            call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+            call MPI_Comm_size(Group_Comm, isize_g, ierr)
+            igroup           = irank/isize_g
+           else
+            irank_g = irank
+            isize_g = isize
+            igroup = 0
+#ifdef Tempering
+            write(*,*) "Inproper call of Print_bin! Missing Group_Comm argument"
+            stop
+#endif
+           endif
 #endif
            
            Phase_bin = Phase_bin_tmp
@@ -201,7 +221,7 @@
            Complex   (Kind=Kind(0.d0)), Dimension(:), Intent(inout) :: Obs
            Character (len=64),               Intent(In)    :: File_pr
            Integer,                          Intent(In)    :: Nobs
-           Integer,                  Intent(In)      :: Group_Comm
+           Integer,                  Intent(In), optional      :: Group_Comm
            
            ! Local
            Character (len=64) :: File_tmp
@@ -212,9 +232,19 @@
            INTEGER         :: STATUS(MPI_STATUS_SIZE)
            CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
            CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-           call MPI_Comm_size(Group_Comm, isize_g, ierr)
-           igroup           = irank/isize_g
+           if(Present(Group_Comm)) then
+            call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+            call MPI_Comm_size(Group_Comm, isize_g, ierr)
+            igroup           = irank/isize_g
+           else
+            irank_g = irank
+            isize_g = isize
+            igroup = 0
+#ifdef Tempering
+            write(*,*) "Inproper call of Print_scal! Missing Group_Comm argument"
+            stop
+#endif
+           endif
 #endif
 
            Norb = size(Obs,1)
@@ -261,7 +291,7 @@
            Character (len=64),                   Intent(In)   :: File_pr
            Integer,                              Intent(In)   :: Nobs
            Real (Kind=Kind(0.d0)),                        Intent(In)   :: dtau
-           Integer,                  Intent(In)      :: Group_Comm
+           Integer,                  Intent(In), optional      :: Group_Comm
 
            ! Local
            Character (len=64) :: File_tmp
@@ -279,9 +309,19 @@
            INTEGER         :: STATUS(MPI_STATUS_SIZE)
            CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
            CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-           call MPI_Comm_size(Group_Comm, isize_g, ierr)
-           igroup           = irank/isize_g
+           if(Present(Group_Comm)) then
+            call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+            call MPI_Comm_size(Group_Comm, isize_g, ierr)
+            igroup           = irank/isize_g
+           else
+            irank_g = irank
+            isize_g = isize
+            igroup = 0
+#ifdef Tempering
+            write(*,*) "Inproper call of Print_bin_tau! Missing Group_Comm argument"
+            stop
+#endif
+           endif
 #endif
 
            Phase_mean = Phase_bin

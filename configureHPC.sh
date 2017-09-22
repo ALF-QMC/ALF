@@ -15,6 +15,7 @@ GNUOPTFLAGS="-O3 -ffree-line-length-none -ffast-math"
 # uncomment the next line if you want to use additional openmp parallelization
 GNUOPTFLAGS=${GNUOPTFLAGS}" -fopenmp"
 GNUUSEFULFLAGS="-cpp -std=f2003"
+MPICOMP=0
 
 export DIR=`pwd`
 
@@ -35,7 +36,7 @@ INTELCOMPILER="mpiifort"
 # INTELUSEFULFLAGS="-cpp"
 GNUCOMPILER="mpifort"
 # GNUUSEFULFLAGS="-cpp"
-FAKHERCOMPILER=$(mpif90)
+MPICOMP=1
 ;;
 
 MPI|*)
@@ -47,7 +48,7 @@ INTELCOMPILER="mpiifort"
 # INTELUSEFULFLAGS="-cpp"
 GNUCOMPILER="mpifort"
 # GNUUSEFULFLAGS="-cpp"
-FAKHERCOMPILER=$(mpif90)
+MPICOMP=1
 ;;
 
 esac
@@ -61,9 +62,12 @@ FakhersMAC)
 
 F90OPTFLAGS=$GNUOPTFLAGS
 F90USEFULFLAGS=$GNUUSEFULFLAGS
-
-export f90=$FAKHERCOMPILER
-export LIB_BLAS_LAPACK="-llapack -lblas"
+if [ "$MPICOMP" -eq "0" ]; then
+export f90="gfortran"
+else
+export f90=$(mpif90)
+fi
+export LIB_BLAS_LAPACK="-llapack -lblas -fopenmp"
 ;;
 
 #Development
@@ -73,7 +77,7 @@ F90OPTFLAGS=$GNUOPTFLAGS" -Wconversion -Werror -fcheck=all"
 F90USEFULFLAGS=$GNUUSEFULFLAGS
 
 export f90=$GNUCOMPILER
-export LIB_BLAS_LAPACK="-llapack -lblas"
+export LIB_BLAS_LAPACK="-llapack -lblas -fopenmp"
 ;;
 
 #LRZ enviroment
@@ -113,7 +117,7 @@ GNU)
 F90OPTFLAGS=$GNUOPTFLAGS
 F90USEFULFLAGS=$GNUUSEFULFLAGS
 export f90=$GNUCOMPILER
-export LIB_BLAS_LAPACK="-llapack -lblas"
+export LIB_BLAS_LAPACK="-llapack -lblas -fopenmp"
 ;;
 
 #Matrix23 PGI
