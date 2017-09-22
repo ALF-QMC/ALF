@@ -1,0 +1,50 @@
+!===============================================================================
+!  Variables for the Hubb program
+!-------------------------------------------------------------------------------
+
+&VAR_lattice 
+L1    = 2   
+L2    = 2  
+Lattice_type = "Kagome"
+Model = "Z2-FLstar"  ! Ising, Hubbard_SU2, Hubbard_Mz, tV
+/
+
+
+&VAR_Z2_FLstar 
+ham_T    = 1.0
+ham_Vint = H_R
+ham_U    = 5.0
+Beta     = 2.0
+dtau     = 0.01
+/
+
+&VAR_QMC
+Nwrap   = 1
+NSweep  = 50 
+NBin    = 10
+Ltau    = 0
+LOBS_ST = 1
+LOBS_EN = 1000
+CPU_MAX = 0
+annealing = .true.
+/
+
+&VAR_ANNEALING
+NbinWarmup = 5
+kstart = 2
+rate = 1.3
+/
+
+&VAR_TEMP
+N_exchange_steps = 6
+N_Tempering_frequency = 2
+mpi_per_parameter_set = 2
+/
+
+&VAR_errors
+n_skip = 0
+N_rebin = 1
+N_Cov   = 0
+N_auto  = 100000
+/
+! slash terminates namelist statement - DO NOT REMOVE
