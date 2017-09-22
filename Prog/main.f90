@@ -222,6 +222,7 @@ Program Main
         CALL MPI_BCAST(Nt_sequential_start,1,MPI_Integer,0,MPI_COMM_WORLD,ierr)
         CALL MPI_BCAST(Nt_sequential_end  ,1,MPI_Integer,0,MPI_COMM_WORLD,ierr)
         CALL MPI_BCAST(N_Global_tau       ,1,MPI_Integer,0,MPI_COMM_WORLD,ierr)
+        CALL MPI_BCAST(annealing          ,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
         CALL MPI_BCAST(Nbinwarmup         ,1,MPI_Integer,0,MPI_COMM_WORLD,ierr)
         CALL MPI_BCAST(kstart             ,1,MPI_Integer,0,MPI_COMM_WORLD,ierr)
         CALL MPI_BCAST(rate               ,1,MPI_REAL8  ,0,MPI_COMM_WORLD,ierr)
@@ -238,6 +239,10 @@ Program Main
 
         
         Call confin(lastk) 
+        IF (lastk < 0) THEN
+           lastk=kstart
+        endif
+!         write(*,*) "Rank ",irank_g," of group ",igroup," has lastk ",lastk," and says hi!"
         Call Hop_mod_init
 
 !         IF (ABS(CPU_MAX) > Zero ) NBIN = 10000000
@@ -350,17 +355,17 @@ Program Main
 !         File1 = "Warmup_0"
 ! #endif
 !         INQUIRE (FILE=File1, EXIST=LCONF)
-        IF (lastk < 0) THEN
-           lastk=kstart
-        endif
         
+!         write(*,*) "Rank ",irank_g," of group ",igroup," says hi before if!"
         if (Int(rate**dble(lastk)) < NSTM .and. annealing) then
+!         write(*,*) "Rank ",irank_g," of group ",igroup," says hi within if!"
         !store true ltrot
         LTROTstore=Ltrot
         Do k=lastk,NSTM-1
         NSTMwarmup=int(rate**dble(k))
         if(NSTMwarmup>NSTM) NSTMwarmup=NSTM
         Ltrot=Stab_nt(NSTMwarmup)
+!         write(*,*) "Perfoming warmup Step",Ltrot," of ", Ltrotstore
        
 ! #if defined(MPI)        
 ! #if defined(TEMPERING)
@@ -574,7 +579,7 @@ Program Main
         
         !restore Ltrot
         Ltrot=Ltrotstore
-       
+!         write(*,*) "Warmup done."
 ! #if defined(MPI)        
 ! #if defined(TEMPERING)
 !         write(File1,'(A,I0,A,I0)') "Temp_",igroup,"/Warmup_",Irank_g
