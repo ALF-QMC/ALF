@@ -237,7 +237,7 @@ Program Main
         endif
 
         
-        Call confin 
+        Call confin(lastk) 
         Call Hop_mod_init
 
 !         IF (ABS(CPU_MAX) > Zero ) NBIN = 10000000
@@ -340,23 +340,23 @@ Program Main
         
 ! Introduce Simulated annealing
 
-#if defined(MPI)        
-#if defined(TEMPERING)
-        write(File1,'(A,I0,A,I0)') "Temp_",igroup,"/Warmup",Irank_g
-#else
-        write(File1,'(A,I0)') "Warmup",irank_g
-#endif
-#else
-        File1 = "Warmup_0"
-#endif
-        INQUIRE (FILE=File1, EXIST=LCONF)
-        IF (LCONF) THEN
-           Open (Unit = 50,file=file1,status="unknown",action="read")
-           read(50,*) dump, lastk
-           close(50)
-        else
-           lastk=kstart
-        endif
+! #if defined(MPI)        
+! #if defined(TEMPERING)
+!         write(File1,'(A,I0,A,I0)') "Temp_",igroup,"/Warmup_",Irank_g
+! #else
+!         write(File1,'(A,I0)') "Warmup_",irank_g
+! #endif
+! #else
+!         File1 = "Warmup_0"
+! #endif
+!         INQUIRE (FILE=File1, EXIST=LCONF)
+!         IF (LCONF) THEN
+!            Open (Unit = 50,file=file1,status="unknown",action="read")
+!            read(50,*) dump, lastk
+!            close(50)
+!         else
+!            lastk=kstart
+!         endif
         
         if (Int(rate**dble(lastk)) < NSTM .and. annealing) then
         !store true ltrot
@@ -366,18 +366,18 @@ Program Main
         if(NSTMwarmup>NSTM) NSTMwarmup=NSTM
         Ltrot=Stab_nt(NSTMwarmup)
        
-#if defined(MPI)        
-#if defined(TEMPERING)
-        write(File1,'(A,I0,A,I0)') "Temp_",igroup,"/Warmup",Irank_g
-#else
-        write(File1,'(A,I0)') "Warmup",irank_g
-#endif
-#else
-        File1 = "Warmup_0"
-#endif 
-        Open (Unit = 50,file=file1,status="unknown",action="WRITE")
-        Write(50,*) 'lastk= ', k
-        close(50)
+! #if defined(MPI)        
+! #if defined(TEMPERING)
+!         write(File1,'(A,I0,A,I0)') "Temp_",igroup,"/Warmup_",Irank_g
+! #else
+!         write(File1,'(A,I0)') "Warmup_",irank_g
+! #endif
+! #else
+!         File1 = "Warmup_0"
+! #endif 
+!         Open (Unit = 50,file=file1,status="unknown",action="WRITE")
+!         Write(50,*) 'lastk= ', k
+!         close(50)
         
         do nf = 1, N_FL
            CALL udvl(nf)%reset
@@ -426,12 +426,12 @@ Program Main
            
            DO NSW = 1, NSWEEP
               
-#if defined(TEMPERING)
-              IF (MOD(NSW,N_Tempering_frequency) == 0) then
-                 !Write(6,*) "Irank, Call tempering", Irank, NSW
-                 CALL Exchange_Step(Phase,GR,udvr, udvl,Stab_nt, udvst, N_exchange_steps, Tempering_calc_det, NSTMwarmup)
-              endif
-#endif
+! #if defined(TEMPERING)
+!               IF (MOD(NSW,N_Tempering_frequency) == 0) then
+!                  !Write(6,*) "Irank, Call tempering", Irank, NSW
+!                  CALL Exchange_Step(Phase,GR,udvr, udvl,Stab_nt, udvst, N_exchange_steps, Tempering_calc_det, NSTMwarmup)
+!               endif
+! #endif
               ! Global updates
               If (Global_moves) Call Global_Updates(Phase, GR, udvr, udvl, Stab_nt, udvst,N_Global)
               
@@ -549,7 +549,7 @@ Program Main
            Call Global_Tempering_Pr
 #endif           
 
-           Call confout
+           Call confout(lastk)
            
            call system_clock(count_bin_end)
            prog_truncation = .false.
@@ -579,19 +579,18 @@ Program Main
         !restore Ltrot
         Ltrot=Ltrotstore
        
-#if defined(MPI)        
-#if defined(TEMPERING)
-        write(File1,'(A,I0,A,I0)') "Temp_",igroup,"/Warmup",Irank_g
-#else
-        write(File1,'(A,I0)') "Warmup",irank_g
-#endif
-#else
-        File1 = "Warmup_0"
-#endif 
-        write(*,*) "Warmup Done"
-        Open (Unit = 50,file=file1,status="unknown",action="WRITE")
-        Write(50,*) 'lastk= ', k
-        close(50)
+! #if defined(MPI)        
+! #if defined(TEMPERING)
+!         write(File1,'(A,I0,A,I0)') "Temp_",igroup,"/Warmup_",Irank_g
+! #else
+!         write(File1,'(A,I0)') "Warmup_",irank_g
+! #endif
+! #else
+!         File1 = "Warmup_0"
+! #endif 
+!         Open (Unit = 50,file=file1,status="unknown",action="WRITE")
+!         Write(50,*) 'lastk= ', k
+!         close(50)
         endif
 ! End of Simulated annealing
         
@@ -766,7 +765,7 @@ Program Main
            Call Global_Tempering_Pr
 #endif           
 
-           Call confout
+           Call confout(lastk)
            
            call system_clock(count_bin_end)
            prog_truncation = .false.

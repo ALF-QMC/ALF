@@ -32,7 +32,7 @@
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
 
-       SUBROUTINE CONFOUT
+       SUBROUTINE CONFOUT(lastk)
 
 !--------------------------------------------------------------------
 !
@@ -47,6 +47,7 @@
          Use mpi
 #endif
          IMPLICIT NONE
+         INTEGER, intent(in)        :: lastk
 
          ! LOCAL
          INTEGER        :: I, IERR, ISIZE, IRANK, K, NT
@@ -71,6 +72,7 @@
          write(FILE_TG,'(A,I0)') "confout_",irank_g
 #endif
          OPEN (UNIT = 10, FILE=FILE_TG, STATUS='UNKNOWN', ACTION='WRITE')
+         write(10,*) lastk
          WRITE(10,*) SEED_VEC
          DO NT = 1,LTROT
             DO I = 1,SIZE(NSIGMA,1)
@@ -85,6 +87,7 @@
          CALL RANGET(SEED_VEC)
          FILE_TG = "confout_0"
          OPEN (UNIT = 10, FILE=FILE_TG, STATUS='UNKNOWN', ACTION='WRITE')
+         write(10,*) lastk
          WRITE(10,*) SEED_VEC
          DO NT = 1,LTROT
             DO I = 1,SIZE(NSIGMA,1)

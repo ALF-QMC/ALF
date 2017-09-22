@@ -31,7 +31,7 @@
 !     - If you make substantial changes to the program we require you to either consider contributing
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
-        SUBROUTINE CONFIN
+        SUBROUTINE CONFIN(lastk)
 
 !--------------------------------------------------------------------
 !
@@ -47,6 +47,8 @@
          USE mpi
 #endif
          IMPLICIT NONE
+         
+         INTEGER, Intent(out)        :: lastk
 
          ! LOCAL
          INTEGER        :: I, IERR, ISIZE, IRANK, SEED_IN, K, ISEED, NT
@@ -83,6 +85,7 @@
                CALL GET_SEED_LEN(K)
                ALLOCATE(SEED_VEC(K))
                OPEN (UNIT = 10, FILE=FILE_TG, STATUS='OLD', ACTION='READ')
+               read(10,*) lastk
                READ(10,*) SEED_VEC
                CALL RANSET(SEED_VEC)
                DO NT = 1,LTROT
@@ -109,6 +112,7 @@
                ELSE
                   CALL MPI_RECV(SEED_IN, 1, MPI_INTEGER,0,  IRANK + 1024,  MPI_COMM_WORLD,STATUS,IERR)
                ENDIF
+               lastk=-1
                ALLOCATE (SEED_VEC(1))
                SEED_VEC(1) = SEED_IN
                CALL RANSET(SEED_VEC)
@@ -140,6 +144,7 @@
             CALL GET_SEED_LEN(K)
             ALLOCATE(SEED_VEC(K))
             OPEN (UNIT = 10, FILE=FILE_TG, STATUS='OLD', ACTION='READ')
+            read(10,*) lastk
             READ(10,*) SEED_VEC
             CALL RANSET(SEED_VEC)
             DO NT = 1,LTROT
@@ -164,6 +169,7 @@
             WRITE(50,*) 'No initial configuration, Seed_in', SEED_IN
             Close(50)
 
+            lastk=-1
             ALLOCATE(SEED_VEC(1))
             SEED_VEC(1) = SEED_IN
             CALL RANSET (SEED_VEC)
