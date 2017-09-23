@@ -72,13 +72,13 @@
          write(FILE_TG,'(A,I0)') "confout_",irank_g
 #endif
          OPEN (UNIT = 10, FILE=FILE_TG, STATUS='UNKNOWN', ACTION='WRITE')
-         write(10,*) lastk
          WRITE(10,*) SEED_VEC
          DO NT = 1,LTROT
             DO I = 1,SIZE(NSIGMA,1)
                WRITE(10,*) NSIGMA(I,NT) 
             ENDDO
          ENDDO
+         write(10,*) lastk
          CLOSE(10)
          DEALLOCATE(SEED_VEC)
 #else
@@ -87,13 +87,13 @@
          CALL RANGET(SEED_VEC)
          FILE_TG = "confout_0"
          OPEN (UNIT = 10, FILE=FILE_TG, STATUS='UNKNOWN', ACTION='WRITE')
-         write(10,*) lastk
          WRITE(10,*) SEED_VEC
          DO NT = 1,LTROT
             DO I = 1,SIZE(NSIGMA,1)
                WRITE(10,*) NSIGMA(I,NT) 
             ENDDO
          ENDDO
+         write(10,*) lastk
          CLOSE(10)
          DEALLOCATE(SEED_VEC)
 #endif

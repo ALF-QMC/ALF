@@ -117,7 +117,7 @@ Program Main
         NAMELIST /VAR_ANNEALING/   Nbinwarmup, kstart, rate
 
 
-        Integer :: Ierr, I,nf, nst, n,j,k, lastk
+        Integer :: Ierr, I,nf, nst, n,j,k, lastk,nwarmupbin
         Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Phase, Z, Z1
         Real    (Kind=Kind(0.d0)) :: ZERO = 10D-8
         Integer, dimension(:), allocatable :: Stab_nt
@@ -344,41 +344,17 @@ Program Main
         Call Control_init
         
 ! Introduce Simulated annealing
-
-! #if defined(MPI)        
-! #if defined(TEMPERING)
-!         write(File1,'(A,I0,A,I0)') "Temp_",igroup,"/Warmup_",Irank_g
-! #else
-!         write(File1,'(A,I0)') "Warmup_",irank_g
-! #endif
-! #else
-!         File1 = "Warmup_0"
-! #endif
-!         INQUIRE (FILE=File1, EXIST=LCONF)
         
-!         write(*,*) "Rank ",irank_g," of group ",igroup," says hi before if!"
         if (Int(rate**dble(lastk)) < NSTM .and. annealing) then
-!         write(*,*) "Rank ",irank_g," of group ",igroup," says hi within if!"
         !store true ltrot
         LTROTstore=Ltrot
+        nwarmupbin=0
         Do k=lastk,NSTM-1
         NSTMwarmup=int(rate**dble(k))
         if(NSTMwarmup>NSTM) NSTMwarmup=NSTM
         Ltrot=Stab_nt(NSTMwarmup)
 !         write(*,*) "Perfoming warmup Step",Ltrot," of ", Ltrotstore
        
-! #if defined(MPI)        
-! #if defined(TEMPERING)
-!         write(File1,'(A,I0,A,I0)') "Temp_",igroup,"/Warmup_",Irank_g
-! #else
-!         write(File1,'(A,I0)') "Warmup_",irank_g
-! #endif
-! #else
-!         File1 = "Warmup_0"
-! #endif 
-!         Open (Unit = 50,file=file1,status="unknown",action="WRITE")
-!         Write(50,*) 'lastk= ', k
-!         close(50)
         
         do nf = 1, N_FL
            CALL udvl(nf)%reset
@@ -389,7 +365,6 @@ Program Main
         DO NST = NSTMwarmup-1,1,-1
            NT1 = Stab_nt(NST+1)
            NT  = Stab_nt(NST  )
-           !Write(6,*)'Hi', NT1,NT, NST
            CALL WRAPUL(NT1, NT, UDVL)
            Do nf = 1,N_FL
               UDVST(NST, nf) = UDVL(nf)
@@ -407,11 +382,6 @@ Program Main
            Phase = Phase*Z
         Enddo
         call Op_phase(Phase,OP_V,Nsigma,N_SUN)
-! #ifdef MPI 
-        !WRITE(6,*) 'Phase is: ', Irank, PHASE, GR(1,1,1)
-! #else
-        !WRITE(6,*) 'Phase is: ',  PHASE
-! #endif
 
 
         
@@ -427,12 +397,12 @@ Program Main
            
            DO NSW = 1, NSWEEP
               
-! #if defined(TEMPERING)
-!               IF (MOD(NSW,N_Tempering_frequency) == 0) then
-!                  !Write(6,*) "Irank, Call tempering", Irank, NSW
-!                  CALL Exchange_Step(Phase,GR,udvr, udvl,Stab_nt, udvst, N_exchange_steps, Tempering_calc_det, NSTMwarmup)
-!               endif
-! #endif
+#if defined(TEMPERING)
+              IF (MOD(NSW,N_Tempering_frequency) == 0) then
+                 !Write(6,*) "Irank, Call tempering", Irank, NSW
+                 CALL Exchange_Step(Phase,GR,udvr, udvl,Stab_nt, udvst, N_exchange_steps, Tempering_calc_det, NSTMwarmup)
+              endif
+#endif
               ! Global updates
               If (Global_moves) Call Global_Updates(Phase, GR, udvr, udvl, Stab_nt, udvst,N_Global)
               
@@ -472,8 +442,6 @@ Program Main
                  IF (NTAU1.GE. LOBS_ST .AND. NTAU1.LE. LOBS_EN ) THEN
                     !Call  Global_tau_mod_Test(Gr,ntau1)
                     !Stop
-!                     write(*,*) "GR before obser sum: ",sum(GR(:,:,1))
-!                     write(*,*) "Phase before obser : ",phase
                     CALL Obser( GR, PHASE, Ntau1 )
                  ENDIF
               ENDDO
@@ -489,15 +457,11 @@ Program Main
                  IF (NTAU1.GE. LOBS_ST .AND. NTAU1.LE. LOBS_EN ) THEN
                     !Call  Global_tau_mod_Test(Gr,ntau1)
                     !Stop
-!                     write(*,*) "GR before obser sum: ",sum(GR(:,:,1))
-!                     write(*,*) "Phase before obser : ",phase
                     CALL Obser( GR, PHASE, Ntau1 )
                  ENDIF
                  IF ( Stab_nt(NST) == NTAU1 .AND. NTAU1.NE.0 ) THEN
                     NT1 = Stab_nt(NST+1)
-                    !Write(6,*) 'Wrapul : ', NT1, NTAU1
                     CALL WRAPUL(NT1, NTAU1, udvl)
-                    !Write(6,*)  'Write UL, read UR ', NTAU1, NST
                     Z = cmplx(1.d0, 0.d0, kind(0.D0))
                     do nf = 1,N_FL
                        ! Read from store the right prop. from 1 to LTROT/NWRAP-1
@@ -545,12 +509,13 @@ Program Main
            ENDDO 
    
            Call Pr_obs(Ltau)
+           nwarmupbin=nwarmupbin+1
 
 #if defined(TEMPERING)
            Call Global_Tempering_Pr
 #endif           
 
-           Call confout(lastk)
+           Call confout(k)
            
            call system_clock(count_bin_end)
            prog_truncation = .false.
@@ -579,19 +544,25 @@ Program Main
         
         !restore Ltrot
         Ltrot=Ltrotstore
-!         write(*,*) "Warmup done."
-! #if defined(MPI)        
-! #if defined(TEMPERING)
-!         write(File1,'(A,I0,A,I0)') "Temp_",igroup,"/Warmup_",Irank_g
-! #else
-!         write(File1,'(A,I0)') "Warmup_",irank_g
-! #endif
-! #else
-!         File1 = "Warmup_0"
-! #endif 
-!         Open (Unit = 50,file=file1,status="unknown",action="WRITE")
-!         Write(50,*) 'lastk= ', k
-!         close(50)
+        lastk=k
+
+#if defined(TEMPERING)
+        write(File1,'(A,I0,A)') "Temp_",igroup,"/info"
+#else
+        File1 = "info"
+#endif
+           
+#if defined(MPI) 
+        if ( Irank_g == 0 ) then
+#endif
+          Open (Unit = 50,file=file1,status="unknown",position="append")
+          write(50,*) "Calculated ",nwarmupbin," bins during warmup"
+          write(50,*) "nskip of analysis should be at least ",nwarmupbin
+          close(50)
+#if defined(MPI)
+        endif
+#endif
+
         endif
 ! End of Simulated annealing
         
@@ -622,16 +593,11 @@ Program Main
            Phase = Phase*Z
         Enddo
         call Op_phase(Phase,OP_V,Nsigma,N_SUN)
-#ifdef MPI 
-        !WRITE(6,*) 'Phase is: ', Irank, PHASE, GR(1,1,1)
-#else
-        !WRITE(6,*) 'Phase is: ',  PHASE
-#endif
 
         
         DO  NBC = 1, NBIN
            ! Here, you have the green functions on time slice 1.
-           ! Set bin observables to zero.
+           ! Set bin observables to zero.udvl
            
            call system_clock(count_bin_start)
            

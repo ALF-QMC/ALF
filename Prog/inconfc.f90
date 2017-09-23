@@ -67,6 +67,7 @@
 #endif
 
          ALLOCATE (NSIGMA(SIZE(OP_V,1),LTROT))
+         lastk=Ltrot
          
 #if defined(MPI)
 
@@ -85,7 +86,6 @@
                CALL GET_SEED_LEN(K)
                ALLOCATE(SEED_VEC(K))
                OPEN (UNIT = 10, FILE=FILE_TG, STATUS='OLD', ACTION='READ')
-               read(10,*) lastk
                READ(10,*) SEED_VEC
                CALL RANSET(SEED_VEC)
                DO NT = 1,LTROT
@@ -93,7 +93,8 @@
                      READ(10,*) NSIGMA(I,NT) 
                   ENDDO
                ENDDO
-               CLOSE(10)
+               read(10,*, end=10) lastk
+10             CLOSE(10)
                DEALLOCATE(SEED_VEC)
             ELSE
                IF (IRANK == 0) THEN
@@ -144,7 +145,6 @@
             CALL GET_SEED_LEN(K)
             ALLOCATE(SEED_VEC(K))
             OPEN (UNIT = 10, FILE=FILE_TG, STATUS='OLD', ACTION='READ')
-            read(10,*) lastk
             READ(10,*) SEED_VEC
             CALL RANSET(SEED_VEC)
             DO NT = 1,LTROT
@@ -152,7 +152,8 @@
                   READ(10,*) NSIGMA(I,NT) 
                ENDDO
             ENDDO
-            CLOSE(10)
+            read(10,*, end=20) lastk
+20          CLOSE(10)
             DEALLOCATE(SEED_VEC)
          ELSE
             WRITE(6,*) 'No initial configuration'
