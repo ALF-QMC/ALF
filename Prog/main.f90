@@ -353,7 +353,22 @@ Program Main
         NSTMwarmup=int(rate**dble(k))
         if(NSTMwarmup>NSTM) NSTMwarmup=NSTM
         Ltrot=Stab_nt(NSTMwarmup)
-!         write(*,*) "Perfoming warmup Step",Ltrot," of ", Ltrotstore
+
+#if defined(TEMPERING)
+        write(File1,'(A,I0,A)') "Temp_",igroup,"/info"
+#else
+        File1 = "info"
+#endif
+           
+#if defined(MPI) 
+        if ( Irank_g == 0 ) then
+#endif
+          Open (Unit = 50,file=file1,status="unknown",position="append")
+          write(50,*) "Perfoming warmup Step",Ltrot," of ", Ltrotstore
+          close(50)
+#if defined(MPI)
+        endif
+#endif
        
         
         do nf = 1, N_FL
@@ -536,6 +551,7 @@ Program Main
         enddo
         
         If (prog_truncation) then 
+          Nbin_eff=0
           exit !exit the loop over the bin index, labelled NBC.
         Endif
         If (Ltrot==Ltrotstore)  exit
@@ -562,6 +578,7 @@ Program Main
 #if defined(MPI)
         endif
 #endif
+        if (prog_truncation) goto 1234
 
         endif
 ! End of Simulated annealing
@@ -746,7 +763,7 @@ Program Main
         Enddo
         
         ! Deallocate things
-        DO nf = 1, N_FL
+1234    DO nf = 1, N_FL
            CALL udvl(nf)%dealloc
            CALL udvr(nf)%dealloc
            do n = 1, NSTM
