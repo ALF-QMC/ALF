@@ -49,7 +49,7 @@
          Implicit none
 
 
-         Integer      :: Nunit, Norb, ierr, qmin(6), qinst, nmin
+         Integer      :: Nunit, Norb, ierr, qmin(6), qinst, nmin, avmin, avmax, avdiff
          Integer      :: no, no1, n, n1,m,  nbins, n_skip, nb, N_rebin, N_cov, N_Back
          real (Kind=Kind(0.d0)):: X, Y , qmin_norm
          Complex (Kind=Kind(0.d0)), allocatable :: Phase(:), Ratio1(:), Ratio2(:)
@@ -318,11 +318,17 @@
           enddo
           Call AUTO_COR(En,AutoCorr)
           do i = 1,N_auto
+            avmin=max(1,i-10)
+            avmax=min(Nbins,i+10)
+            avdiff= avmax-avmin
             call ERRCALCJ( Ratio1, Ratio2, XMean, XERR, i )
-            write(21,*) i, AutoCorr(i), dble(Xerr), En(i)
+            write(21,*) i, AutoCorr(i), dble(Xerr), En(i), sum(En(avmin:avmax))/dble(avdiff)
           enddo
           do i = N_auto+1,Nbins
-            write(21,*) i, 0.d0, 0.d0, En(i)
+            avmin=max(1,i-10)
+            avmax=min(Nbins,i+10)
+            avdiff= avmax-avmin
+            write(21,*) i, 0.d0, 0.d0, En(i), sum(En(avmin:avmax))/dble(avdiff)
           enddo
           CLOSE(21)
          Do n = 1,Nunit
@@ -340,11 +346,17 @@
             enddo
             Call AUTO_COR(En,AutoCorr)
             do i = 1,N_auto
+              avmin=max(1,i-10)
+              avmax=min(Nbins,i+10)
+              avdiff= avmax-avmin
               CALL ERRCALCJ(En,XM, XE,i)
-              write(21,*) i, AutoCorr(i), Xe, En(i)
+              write(21,*) i, AutoCorr(i), Xe, En(i), sum(En(avmin:avmax))/dble(avdiff)
             enddo
             do i = N_auto+1,Nbins
-              write(21,*) i, 0.d0, 0.d0, En(i)
+              avmin=max(1,i-10)
+              avmax=min(Nbins,i+10)
+              avdiff= avmax-avmin
+              write(21,*) i, 0.d0, 0.d0, En(i), sum(En(avmin:avmax))/dble(avdiff)
             enddo
             CLOSE(21)
             endif
