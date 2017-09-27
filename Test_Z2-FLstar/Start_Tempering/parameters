@@ -25,7 +25,7 @@ NBin    = 10
 Ltau    = 0
 LOBS_ST = 1
 LOBS_EN = 1000
-CPU_MAX = 0
+CPU_MAX = 23.80
 annealing = .true.
 /
 
