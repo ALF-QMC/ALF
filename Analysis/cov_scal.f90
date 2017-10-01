@@ -138,7 +138,7 @@
                 avmax=min(Nbins,i+10)
                 avdiff= avmax-avmin+1
                 CALL ERRCALCJ(EN,XM,XERR,i)
-                write(21,*) i, AutoCorr(i), Xerr, En(i), sum(En(avmin:avmax))/dble(avdiff)
+                write(21,*) i, sum(AutoCorr(avmin:avmax))/dble(avdiff), Xerr, En(i), sum(En(avmin:avmax))/dble(avdiff)
               enddo
               do i = N_auto+1,Nbins_eff
                 avmin=max(1,i-10)
