@@ -101,7 +101,7 @@
         ENDDO
         CLOSE(20)
 2100    FORMAT(I6,2X,F16.8)
-        N_auto=min(N_auto,Nbins_eff/3)
+        N_auto=min(N_auto,Nbins_eff-3)
          
         OPEN (UNIT=21, FILE='Var_scalJ', STATUS='unknown')
         WRITE(21,*) 'Effective number of bins, and bins: ', Nbins_eff, Nbins

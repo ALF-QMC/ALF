@@ -238,7 +238,7 @@
             endif
          enddo
          close(10)
-        N_auto=min(N_auto,Nbins/3)
+        N_auto=min(N_auto,Nbins-3)
          
 
          Call Fourier_K_to_R(bins,bins_r,Latt)
