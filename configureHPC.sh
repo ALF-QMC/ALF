@@ -19,13 +19,14 @@ MPICOMP=0
 
 export DIR=`pwd`
 
+echo ""
+
 case $2 in
 
 noMPI)
 echo "seriell job."
 INTELCOMPILER="ifort"
 GNUCOMPILER="gfortran"
-FAKHERCOMPILER="gfortran"
 ;;
 
 Tempering)
@@ -42,7 +43,7 @@ MPICOMP=1
 MPI|*)
 echo "Activating MPI parallization (default)."
 echo "To turn MPI off, pass noMPI as the second argument."
-echo "To turn use parallel tempering, pass Tempering as the second argument."
+echo "To turn on parallel tempering, pass Tempering as the second argument."
 PROGRAMMCONFIGURATION=${PROGRAMMCONFIGURATION}" -DMPI"
 INTELCOMPILER="mpiifort"
 # INTELUSEFULFLAGS="-cpp"
@@ -52,8 +53,6 @@ MPICOMP=1
 ;;
 
 esac
-
-echo ""
 
 case $1 in
 
@@ -130,19 +129,24 @@ F90USEFULFLAGS="-Mpreprocess -Minform=inform"
 
 #Default (unknown machine)
 *)
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+echo
+echo -e ${RED}"UNKNOW MACHINE"${NC}
+echo -e ${RED}"IGNORING PARALLEL SETTINGS"${NC}
+echo 
+echo "Activating fallback option with gfortran for SERIAL JOB."
+echo 
 echo "usage 'source configureHPC.sh MACHINE MODE'"
 echo 
 echo "Please choose one of the following machines:"
-echo "  SuperMUC"
-echo "  JURECA"
-echo "  Devel"
-echo "  Intel"
-echo "  GNU"
-echo
+echo " * SuperMUC"
+echo " * JURECA"
+echo " * Devel"
+echo " * Intel"
+echo " * GNU"
+echo " * FakhersMAC"
 echo "Possible modes are MPI (default), noMPI and Tempering"
-echo
-echo "Please choose one of the following machines:"
-echo "Activating fallback option with gfortran for SERIAL JOB."
 
 PROGRAMMCONFIGURATION=""
 F90OPTFLAGS="-O3 -ffree-line-length-none -ffast-math"
@@ -166,6 +170,6 @@ export Libs=${DIR}"/Libraries/"
 
 echo
 echo "To compile your program use:    'make TARGET'"
-
+echo
 
 
