@@ -88,7 +88,7 @@
                OPEN (UNIT = 10, FILE=FILE_TG, STATUS='OLD', ACTION='READ')
                READ(10,*) SEED_VEC
                CALL RANSET(SEED_VEC)
-               DO NT = 1,LTROT
+               DO NT = 1,SIZE(NSIGMA,2)
                   DO I = 1,SIZE(OP_V,1)
                      READ(10,*) NSIGMA(I,NT) 
                   ENDDO
@@ -147,7 +147,7 @@
             OPEN (UNIT = 10, FILE=FILE_TG, STATUS='OLD', ACTION='READ')
             READ(10,*) SEED_VEC
             CALL RANSET(SEED_VEC)
-            DO NT = 1,LTROT
+            DO NT = 1,SIZE(NSIGMA,2)
                DO I = 1,SIZE(OP_V,1)
                   READ(10,*) NSIGMA(I,NT) 
                ENDDO
