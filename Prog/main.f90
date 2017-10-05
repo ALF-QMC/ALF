@@ -238,7 +238,11 @@ Program Main
         endif
 
         
+        LTROTstore=Ltrot
+        NSTMwarmup=int(rate**dble(45))
+        Ltrot=nwrap*NSTMwarmup
         Call confin(lastk) 
+        Ltrot=Ltrotstore
         IF (lastk < 0) THEN
            lastk=kstart
         endif

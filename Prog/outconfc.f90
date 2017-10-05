@@ -73,7 +73,7 @@
 #endif
          OPEN (UNIT = 10, FILE=FILE_TG, STATUS='UNKNOWN', ACTION='WRITE')
          WRITE(10,*) SEED_VEC
-         DO NT = 1,LTROT
+         DO NT = 1,SIZE(NSIGMA,2)
             DO I = 1,SIZE(NSIGMA,1)
                WRITE(10,*) NSIGMA(I,NT) 
             ENDDO
@@ -88,7 +88,7 @@
          FILE_TG = "confout_0"
          OPEN (UNIT = 10, FILE=FILE_TG, STATUS='UNKNOWN', ACTION='WRITE')
          WRITE(10,*) SEED_VEC
-         DO NT = 1,LTROT
+         DO NT = 1,SIZE(NSIGMA,2)
             DO I = 1,SIZE(NSIGMA,1)
                WRITE(10,*) NSIGMA(I,NT) 
             ENDDO
