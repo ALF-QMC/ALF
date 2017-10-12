@@ -40,7 +40,7 @@ Program OPWRAPDO
             Do i = 1, Op%n
                Op%P (i) = i
                Do n = 1, Op%n
-                  Op%O (i, n) = CMPLX (n+i, 0.D0, kind(0.D0))
+                  Op%O (i, n) = CMPLX (0.25d0*(n+i), 0.d0, kind(0.D0))
                End Do
             End Do
 !
@@ -66,6 +66,7 @@ Program OPWRAPDO
                Do j = 1, 3
                   Zre = real (matnew(i, j)-matold(i, j))
                   Zim = aimag (matnew(i, j)-matold(i, j))
+                  if(Abs(Zre)+Abs(Zim) > 1.D-14) THEN
                   If (Abs(Zre) > Max(Abs(DBLE(matnew(i, j))), &
                  & Abs(real(matold(i, j))))*1D-12) Then
                      Write (*,*) "opn: ", opn, "N_type", N_Type
@@ -79,6 +80,7 @@ Program OPWRAPDO
                     & j)), aimag (matold(i, j))
                      Stop 3
                   End If
+                  endif
                End Do
             End Do
 !

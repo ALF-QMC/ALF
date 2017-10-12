@@ -137,13 +137,14 @@
           Allocate(tmp(Ndim_hop, Ndim_hop))
           do nc =  Ncheck,1,-1
              If ( dble( Op_T(nc,nf)%g*conjg(Op_T(nc,nf)%g) ) > Zero ) then
-                do n = 1,Ndim_hop
-                    call ZCOPY(Ndim, Out(Op_T(nc,nf)%P(n),1), NDim, V_Hlp(n, 1), Ndim_hop)
-                enddo
-                CALL ZHEMM('L', 'U', Ndim_hop, Ndim, alpha, Exp_T(:,:,nc,nf),Ndim_hop,V_hlp(1,1),NDim_hop,beta,V_HLP1(1,1),Ndim_hop)
-                do n = 1,Ndim_hop
-                    call ZCOPY(Ndim, V_hlp1(n,1), Ndim_hop, OUT(OP_T(nc,nf)%P(n),1), Ndim)
-                Enddo
+                call ZSLHEMM('L','U',Ndim_hop,Ndim,Ndim,Exp_T(:,:,nc,nf),Op_T(nc,nf)%P,Out)
+!                 do n = 1,Ndim_hop
+!                     call ZCOPY(Ndim, Out(Op_T(nc,nf)%P(n),1), NDim, V_Hlp(n, 1), Ndim_hop)
+!                 enddo
+!                 CALL ZHEMM('L', 'U', Ndim_hop, Ndim, alpha, Exp_T(:,:,nc,nf),Ndim_hop,V_hlp(1,1),NDim_hop,beta,V_HLP1(1,1),Ndim_hop)
+!                 do n = 1,Ndim_hop
+!                     call ZCOPY(Ndim, V_hlp1(n,1), Ndim_hop, OUT(OP_T(nc,nf)%P(n),1), Ndim)
+!                 Enddo
              Endif
           Enddo
           deallocate(tmp)
@@ -171,17 +172,18 @@
           Out = In
           do nc =  1,Ncheck
              If ( dble( Op_T(nc,nf)%g*conjg(Op_T(nc,nf)%g) ) > Zero ) then
-                do I = 1,Ndim
-                   do n = 1,Ndim_hop
-                      V_Hlp(n,I) = Out(Op_T(nc,nf)%P(n),I)
-                   enddo
-                enddo
-                CALL ZHEMM('L','U', Ndim_hop, Ndim, a, Exp_T_m1(:, :,nc,nf),Ndim_hop, V_hlp(1,1), NDim_hop, b, V_HLP1(1,1),Ndim_hop)
-                DO I = 1,Ndim
-                   do n = 1,Ndim_hop
-                      OUT(OP_T(nc,nf)%P(n),I) = V_hlp1(n,I)
-                   Enddo
-                Enddo
+                call ZSLHEMM('L','U',Ndim_hop,Ndim,Ndim,Exp_T_m1(:,:,nc,nf),Op_T(nc,nf)%P,Out)
+!                 do I = 1,Ndim
+!                    do n = 1,Ndim_hop
+!                       V_Hlp(n,I) = Out(Op_T(nc,nf)%P(n),I)
+!                    enddo
+!                 enddo
+!                 CALL ZHEMM('L','U', Ndim_hop, Ndim, a, Exp_T_m1(:, :,nc,nf),Ndim_hop, V_hlp(1,1), NDim_hop, b, V_HLP1(1,1),Ndim_hop)
+!                 DO I = 1,Ndim
+!                    do n = 1,Ndim_hop
+!                       OUT(OP_T(nc,nf)%P(n),I) = V_hlp1(n,I)
+!                    Enddo
+!                 Enddo
              Endif
           Enddo
           
@@ -209,13 +211,14 @@
           Out = In
           do nc =  1, Ncheck
              If ( dble( Op_T(nc,nf)%g*conjg(Op_T(nc,nf)%g) ) > Zero ) then
-                do n = 1,Ndim_hop
-                  call zcopy(Ndim, Out(1, Op_T(nc,nf)%P(n)), 1, U_Hlp(1, n), 1)
-                enddo
-                CALL ZHEMM('R', 'U', Ndim, Ndim_hop, alpha, Exp_T(:, :, nc, nf), Ndim_hop, U_hlp(1,1), NDim, beta, U_HLP1(1,1),Ndim)
-                do n = 1,Ndim_hop
-                  call zcopy(Ndim, U_hlp1(1, n), 1, OUT(1,OP_T(nc,nf)%P(n)), 1)
-                Enddo
+                call ZSLHEMM('R','U',Ndim_hop,Ndim,Ndim,Exp_T(:,:,nc,nf),Op_T(nc,nf)%P,Out)
+!                 do n = 1,Ndim_hop
+!                   call zcopy(Ndim, Out(1, Op_T(nc,nf)%P(n)), 1, U_Hlp(1, n), 1)
+!                 enddo
+!                 CALL ZHEMM('R', 'U', Ndim, Ndim_hop, alpha, Exp_T(:, :, nc, nf), Ndim_hop, U_hlp(1,1), NDim, beta, U_HLP1(1,1),Ndim)
+!                 do n = 1,Ndim_hop
+!                   call zcopy(Ndim, U_hlp1(1, n), 1, OUT(1,OP_T(nc,nf)%P(n)), 1)
+!                 Enddo
              Endif
           Enddo
           
@@ -243,13 +246,14 @@
           Out = In
           do nc =  Ncheck,1,-1
              If ( dble( Op_T(nc,nf)%g*conjg(Op_T(nc,nf)%g) ) > Zero ) then
-                do n = 1,Ndim_hop
-                   call zcopy(Ndim, Out(1, Op_T(nc,nf)%P(n)), 1, U_Hlp(1, n), 1)
-                enddo
-                CALL ZHEMM('R','U', Ndim, Ndim_hop, a, Exp_T_m1(:, :,nc,nf),Ndim_hop, U_hlp(1,1), NDim, b, U_HLP1(1,1),Ndim)
-                do n = 1,Ndim_hop
-                   call zcopy(Ndim, U_Hlp1(1, n), 1, Out(1, Op_T(nc,nf)%P(n)), 1)
-                Enddo
+                call ZSLHEMM('R','U',Ndim_hop,Ndim,Ndim,Exp_T_m1(:,:,nc,nf),Op_T(nc,nf)%P,Out)
+!                 do n = 1,Ndim_hop
+!                    call zcopy(Ndim, Out(1, Op_T(nc,nf)%P(n)), 1, U_Hlp(1, n), 1)
+!                 enddo
+!                 CALL ZHEMM('R','U', Ndim, Ndim_hop, a, Exp_T_m1(:, :,nc,nf),Ndim_hop, U_hlp(1,1), NDim, b, U_HLP1(1,1),Ndim)
+!                 do n = 1,Ndim_hop
+!                    call zcopy(Ndim, U_Hlp1(1, n), 1, Out(1, Op_T(nc,nf)%P(n)), 1)
+!                 Enddo
              Endif
           Enddo
           
