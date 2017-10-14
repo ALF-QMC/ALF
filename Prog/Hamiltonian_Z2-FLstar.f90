@@ -206,21 +206,20 @@
 
           Integer :: n, Ncheck, nc, ncoord, I, I1, I2
 
-          Ncheck = 3*Latt%N
-          allocate(Op_T(Ncheck,N_FL))
-          do n = 1,N_FL
-            nc = 0
-            Do ncoord = 1,3
+          If (checkerboard) then
+            Ncheck = 3*Latt%N
+            allocate(Op_T(Ncheck,N_FL))
+            do n = 1,N_FL
+              nc = 0
+              Do ncoord = 1,3
                 Do I = 1,Latt%N
                   nc = nc + 1
+                  I1 = invlist(I,4)
                   if      ( ncoord == 1 ) then 
-                      I1 = invlist(I,4)
                       I2 = invlist(I,5)
                   elseif  ( ncoord == 2 ) then
-                      I1 = invlist(I,4) 
                       I2 = Invlist( Latt%nnlist(I,1,-1),5 )
                   elseif  ( ncoord == 3 ) then
-                      I1 = invlist(I,4) 
                       I2 = invlist( Latt%nnlist(I,0,-1),5 )
                   endif
                   Call Op_make(Op_T(nc,n),2)
@@ -236,8 +235,37 @@
                   !   Write(6,*) Op_T(nc,n)%E(i)
                   !enddo
                 enddo
+              enddo
             enddo
-          enddo
+          else
+            Ncheck=1
+            allocate(Op_T(Ncheck,N_FL))
+            do n = 1,N_FL
+              nc = 1
+              Call Op_make(Op_T(nc,n),2*Latt%N)
+              Do I = 1,2*Latt%N
+                 Op(nc,n)%P(I)=3*Latt%N+I
+              Enddo
+              Do ncoord = 1,3
+                Do I = 1,Latt%N
+                  I1 = invlist(I,4)
+                  if      ( ncoord == 1 ) then 
+                      I2 = invlist(I,5)
+                  elseif  ( ncoord == 2 ) then
+                      I2 = Invlist( Latt%nnlist(I,1,-1),5 )
+                  elseif  ( ncoord == 3 ) then
+                      I2 = invlist( Latt%nnlist(I,0,-1),5 )
+                  endif
+                  I1 = I1 - 3*Latt%N
+                  I2 = I2 - 3*Latt%N
+                  Op_T(nc,n)%O( I1 , I2 ) = cmplx(-Ham_T,   0.d0,Kind(0.d0))
+                  Op_T(nc,n)%O( I2 , I1 ) = cmplx(-Ham_T,   0.d0,Kind(0.d0))
+                enddo
+              enddo
+              Op_T(nc,n)%g=cmplx(-Dtau,0.d0,Kind(0.d0))
+              Call Op_set(Op_T(nc,n)) 
+            enddo
+          endif
 
         end Subroutine Ham_hop
 !===================================================================================   
