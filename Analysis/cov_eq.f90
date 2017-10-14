@@ -257,6 +257,7 @@
 #endif
          Open (Unit=33,File="equalJ"        ,status="unknown")
          Open (Unit=34,File="equalJR"       ,status="unknown")
+         Open (Unit=35,File="equalTrPlot"   ,status="unknown")
          call ERRCALCJ( Ratio1, Ratio2, XMean, XERR, N_rebin ) 
          write(33,*) "Ratio: ", 1.d0 - dble(XMean), dble(XERR), -aimag(XMean), aimag(XERR)
          Do n = 1,Nunit
@@ -287,6 +288,8 @@
             call ERRCALCJ( V_help_TR,Phase, XMean_r, XERR_r, N_rebin ) 
             Write(33,"('TR',2x,F16.8,2x,F16.8,2x,F16.8,2x,F16.8)") &
                   &  dble(XMean_r), dble(XERR_r), aimag(XMean_r), aimag(XERR_r)
+            Write(35,"(F12.6,2x,F12.6,2x,F16.8,2x,F16.8,2x,F16.8,2x,F16.8)") Xr_p(1), Xr_p(2), &
+                  &  dble(XMean_r), dble(XERR_r), aimag(XMean_r), aimag(XERR_r)
          enddo
 !!$         If (Norb > 1 ) then 
 !!$            !Compute susecptibility 
@@ -306,6 +309,7 @@
 
          Close(33)
          Close(34)
+         Close(35)
          
         if(N_auto>0) then
          ALLOCATE(AutoCorr(N_auto))
