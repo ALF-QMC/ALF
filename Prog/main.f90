@@ -419,7 +419,7 @@ Program Main
               endif
 #endif
               ! Global updates
-              If (Global_moves) Call Global_Updates(Phase, GR, udvr, udvl, Stab_nt, udvst,N_Global)
+              If (Global_moves) Call Global_Updates(Phase, GR, udvr, udvl, Stab_nt, udvst,N_Global, NSTMwarmup)
               
               ! Propagation from 1 to Ltrot
               ! Set the right storage to 1
@@ -544,9 +544,13 @@ Program Main
         Enddo
         
         !fill next nwrap spins
-        do j=1,Stab_nt(min(int(rate*dble(Ltrot)),NSTM))-Ltrot
+!         write(*,*) "Current Ltrot",Ltrot
+!         write(*,*) "Next Ltrot",Stab_nt(min(int(rate**dble(k+1)),NSTM))
+!         write(*,*) "Number of slices to be filled",Stab_nt(min(int(rate**dble(k+1)),NSTM))-Ltrot
+        do j=1,Stab_nt(min(int(rate**dble(k+1)),NSTM))-Ltrot
+!         write(*,*) "Filling slice ",Ltrot+j," from ",Ltrot-j
         do i=1,SIZE(OP_V,1)
-          Nsigma(i,Ltrot+j)=Nsigma(i,j)
+          Nsigma(i,Ltrot+j)=Nsigma(i,Ltrot-j)
         enddo
         enddo
         
@@ -632,7 +636,7 @@ Program Main
               endif
 #endif
               ! Global updates
-              If (Global_moves) Call Global_Updates(Phase, GR, udvr, udvl, Stab_nt, udvst,N_Global)
+              If (Global_moves) Call Global_Updates(Phase, GR, udvr, udvl, Stab_nt, udvst,N_Global, NSTM)
               
               ! Propagation from 1 to Ltrot
               ! Set the right storage to 1
