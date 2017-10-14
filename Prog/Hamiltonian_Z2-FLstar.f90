@@ -28,7 +28,7 @@
       real (Kind=Kind(0.d0)), private :: Ham_T, Ham_Vint,  Ham_U, Ham_JK
       real (Kind=Kind(0.d0)), private :: Dtau, Beta
       Character (len=64),     private :: Model, Lattice_type, File1
-      logical                 private :: checkerboard
+      logical,                private :: checkerboard
 
 
 !>    Privat Observables
@@ -244,7 +244,7 @@
               nc = 1
               Call Op_make(Op_T(nc,n),2*Latt%N)
               Do I = 1,2*Latt%N
-                 Op(nc,n)%P(I)=3*Latt%N+I
+                 Op_T(nc,n)%P(I)=3*Latt%N+I
               Enddo
               Do ncoord = 1,3
                 Do I = 1,Latt%N
