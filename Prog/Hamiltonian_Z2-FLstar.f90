@@ -240,8 +240,8 @@
           else
             Ncheck=1
             allocate(Op_T(Ncheck,N_FL))
+            nc = 1
             do n = 1,N_FL
-              nc = 1
               Call Op_make(Op_T(nc,n),2*Latt%N)
               Do I = 1,2*Latt%N
                  Op_T(nc,n)%P(I)=3*Latt%N+I
