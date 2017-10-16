@@ -51,7 +51,7 @@
         ! Complex (Kind=Kind(0.d0)) Z1,Z2,Z3,Z4,Z5
         Complex (Kind=Kind(0.d0)), Allocatable  :: Tmp(:)
         REAL    (Kind=Kind(0.d0)), Allocatable  :: AutoCorr(:)
-        Integer :: Nobs , avmin, avmax, avdiff
+        Integer :: Nobs , avmin, avmax, avdiff, avmax2, avdiff2
         Integer :: Nbins, Nbins_eff, I, IOBS, N_Back
         Integer :: N,N1 !, NBIN
 
@@ -135,14 +135,16 @@
               Call AUTO_COR(EN,AutoCorr)
               do i = 1,N_auto
                 avmin=max(1,i-10)
-                avmax=min(Nbins,i+10)
+                avmax=min(Nbins_eff,i+10)
+                avmax2=min(N_auto,i+10)
                 avdiff= avmax-avmin+1
+                avdiff2= avmax2-avmin+1
                 CALL ERRCALCJ(EN,XM,XERR,i)
-                write(21,*) i, sum(AutoCorr(avmin:avmax))/dble(avdiff), Xerr, En(i), sum(En(avmin:avmax))/dble(avdiff)
+                write(21,*) i, sum(AutoCorr(avmin:avmax2))/dble(avdiff2), Xerr, En(i), sum(En(avmin:avmax))/dble(avdiff)
               enddo
               do i = N_auto+1,Nbins_eff
                 avmin=max(1,i-10)
-                avmax=min(Nbins,i+10)
+                avmax=min(Nbins_eff,i+10)
                 avdiff= avmax-avmin+1
                 write(21,*) i, 0.d0, 0.d0, En(i), sum(En(avmin:avmax))/dble(avdiff)
               enddo

@@ -49,7 +49,7 @@
          Implicit none
 
 
-         Integer      :: Nunit, Norb, ierr, qmin(6), qinst, nmin, avmin, avmax, avdiff
+         Integer      :: Nunit, Norb, ierr, qmin(6), qinst, nmin, avmin, avmax, avdiff, avmax2, avdiff2
          Integer      :: no, no1, n, n1,m,  nbins, n_skip, nb, N_rebin, N_cov, N_Back
          real (Kind=Kind(0.d0)):: X, Y , qmin_norm
          Complex (Kind=Kind(0.d0)), allocatable :: Phase(:), Ratio1(:), Ratio2(:)
@@ -324,14 +324,18 @@
           do i = 1,N_auto
             avmin=max(1,i-10)
             avmax=min(Nbins,i+10)
+            avmax2=min(N_auto,i+10)
             avdiff= avmax-avmin+1
+            avdiff2= avmax2-avmin+1
             call ERRCALCJ( Ratio1, Ratio2, XMean, XERR, i )
-            write(21,*) i, sum(AutoCorr(avmin:avmax))/dble(avdiff), dble(Xerr), En(i), sum(En(avmin:avmax))/dble(avdiff)
+            write(21,*) i, sum(AutoCorr(avmin:avmax2))/dble(avdiff2), dble(Xerr), En(i), sum(En(avmin:avmax))/dble(avdiff)
           enddo
           do i = N_auto+1,Nbins
             avmin=max(1,i-10)
             avmax=min(Nbins,i+10)
+            avmax2=min(N_auto,i+10)
             avdiff= avmax-avmin+1
+            avdiff2= avmax2-avmin+1
             write(21,*) i, 0.d0, 0.d0, En(i), sum(En(avmin:avmax))/dble(avdiff)
           enddo
           CLOSE(21)
@@ -352,14 +356,18 @@
             do i = 1,N_auto
               avmin=max(1,i-10)
               avmax=min(Nbins,i+10)
+              avmax2=min(N_auto,i+10)
               avdiff= avmax-avmin+1
+              avdiff2= avmax2-avmin+1
               CALL ERRCALCJ(En,XM, XE,i)
-              write(21,*) i, sum(AutoCorr(avmin:avmax))/dble(avdiff), Xe, En(i), sum(En(avmin:avmax))/dble(avdiff)
+              write(21,*) i, sum(AutoCorr(avmin:avmax2))/dble(avdiff2), Xe, En(i), sum(En(avmin:avmax))/dble(avdiff)
             enddo
             do i = N_auto+1,Nbins
               avmin=max(1,i-10)
               avmax=min(Nbins,i+10)
+              avmax2=min(N_auto,i+10)
               avdiff= avmax-avmin+1
+              avdiff2= avmax2-avmin+1
               write(21,*) i, 0.d0, 0.d0, En(i), sum(En(avmin:avmax))/dble(avdiff)
             enddo
             CLOSE(21)

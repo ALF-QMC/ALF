@@ -1029,6 +1029,15 @@
           Integer,    allocatable, INTENT(INOUT) :: Flip_list(:), Flip_value(:)
           Integer, INTENT(INOUT) :: Flip_length
           Integer, INTENT(IN)    :: ntau
+          Integer                :: I
+          
+          Flip_length=15*Latt%N
+          Do I = 1,Flip_length
+            Flip_list(I)=I+12*Latt%N
+            Flip_value(I)=-nsigma(I+12*Latt%N,ntau)
+          Enddo
+          T0_Proposal_ratio=1.d0
+          S0_ratio=1.d0
 
         end Subroutine Global_move_tau
 

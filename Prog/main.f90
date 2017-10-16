@@ -230,10 +230,10 @@ Program Main
         
  
         Call Ham_set
+        Nt_sequential_start = 1 
+        Nt_sequential_end   = Size(OP_V,1) 
         If ( .not. Global_tau_moves )  then
            ! This  corresponds to the default updating scheme
-           Nt_sequential_start = 1 
-           Nt_sequential_end   = Size(OP_V,1) 
            N_Global_tau        = 0
         endif
 
@@ -550,7 +550,7 @@ Program Main
         do j=1,Stab_nt(min(int(rate**dble(k+1)),NSTM))-Ltrot
 !         write(*,*) "Filling slice ",Ltrot+j," from ",Ltrot-j
         do i=1,SIZE(OP_V,1)
-          Nsigma(i,Ltrot+j)=Nsigma(i,Ltrot-j)
+          Nsigma(i,Ltrot+j)=Nsigma(i,j)
         enddo
         enddo
         
