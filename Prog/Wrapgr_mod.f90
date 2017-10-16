@@ -464,6 +464,7 @@ Contains
                 nsigma( Flip_list(Flip_count), ntau  ) = Flip_value_st(Flip_count)  
              Enddo
           Endif
+          Call Control_upgrade_Glob_tau(ACC,dble(Flip_length))
           !If (Acc) Call Hamiltonian_Print(Ntau)
        endif
     Enddo
