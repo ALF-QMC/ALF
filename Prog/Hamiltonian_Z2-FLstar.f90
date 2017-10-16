@@ -512,7 +512,7 @@
                 case (9)
                    Ns = Latt%N; No = 2;  Filename ="ConductionDen"
                 case (10)
-                   Ns = Latt%N; No = 3;  Filename ="ConductionSC"
+                   Ns = Latt%N; No = 2;  Filename ="ConductionSC"
                 case default
                    Write(6,*) ' Error in Alloc_obs '  
                 end select
@@ -893,7 +893,7 @@
                 
                 ! SC
                 Obs_tau(5)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(5)%Obs_Latt(imj,nt+1,no_I,no_J)  &
-                    & + (    GT0(I1,J1,1)**2                                ) * ZP * ZS
+                    & + (    G0T(J1,I1,1)**2.d0                                ) * ZP * ZS
             Enddo
             Obs_tau(4)%Obs_Latt0(no_I) = Obs_tau(4)%Obs_Latt0(no_I) + &
                   &         Z*(cmplx(1.d0,0.d0,kind(0.d0)) - GTT(I1,I1,1)) * ZP * ZS
@@ -925,7 +925,7 @@
                 
                 ! SC
                 Obs_tau(10)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(10)%Obs_Latt(imj,nt+1,no_I,no_J)  &
-                    & + (    GT0(I1,J1,1)**2                                ) * ZP * ZS
+                    & + (    G0T(J1,I1,1)**2.d0                                ) * ZP * ZS
             Enddo
             Obs_tau(9)%Obs_Latt0(no_I) = Obs_tau(9)%Obs_Latt0(no_I) + &
                   &         Z*(cmplx(1.d0,0.d0,kind(0.d0)) - GTT(I1,I1,1)) * ZP * ZS
