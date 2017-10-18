@@ -67,7 +67,7 @@
 
       end Subroutine
 
-#if defined(STAB2) || defined(STAB1)
+#if (defined(STAB2) || defined(STAB1)) && !defined(LOG)
 !--------------------------------------------------------------------
 !> @author
 !> Florian Goth
@@ -218,7 +218,7 @@
 
         Use MyMats
         Use UDV_State_mod
-#if defined(STAB2) || defined(STAB1)   
+#if (defined(STAB2) || defined(STAB1)) && !defined(LOG)   
 
         Use UDV_WRAP_mod
         Implicit none
@@ -233,40 +233,23 @@
         Complex  (Kind=Kind(0.d0)) :: D3B(2*LQ)
         Complex  (Kind=Kind(0.d0)) :: Z, alpha, beta
         Complex(Kind = Kind(0.D0)), allocatable, Dimension(:, :) :: MYU2, HLPB1, HLPB2, U3B, V3B
-        Complex(Kind = Kind(0.D0)), allocatable, Dimension(:)    :: D1m, D2m
         Integer :: LQ2, I,J, NCON
         
         LQ2 = LQ*2
         NCON = 0
         alpha = 1.D0
         beta = 0.D0
-        ALLOCATE(MYU2(LQ, LQ), HLPB1(LQ2, LQ2), HLPB2(LQ2, LQ2), U3B(LQ2, LQ2), V3B(LQ2, LQ2), D1m(LQ), D2m(LQ))
+        ALLOCATE(MYU2(LQ, LQ), HLPB1(LQ2, LQ2), HLPB2(LQ2, LQ2), U3B(LQ2, LQ2), V3B(LQ2, LQ2))
         MYU2 = CONJG(TRANSPOSE(udv2%U))
         CALL INV(udv1%V,V1INV,Z)
-        DO J=1,LQ
-          !keep scales smaller than 1.0 in D1*U1 and D2*V2
-          !bring scales larger that 1.0 with V1^-1 and U2^-1
-          If(udv1%L(J) <=0.d0) then
-            D1m(J)=cmplx(exp(udv1%L(J)),0.d0,kind(0.d0))
-          else
-            D1m(J)=cmplx(1.d0,0.d0,kind(0.d0))
-            call zscal(LQ,cmplx(exp(-udv1%L(J)),0.d0,kind(0.d0)),V1INV(J,1),LQ)
-          endif
-          If(udv2%L(J) <=0.d0) then
-            D2m(J)=cmplx(exp(udv2%L(J)),0.d0,kind(0.d0))
-          else
-            D2m(J)=cmplx(1.d0,0.d0,kind(0.d0))
-            call zscal(LQ,cmplx(exp(-udv2%L(J)),0.d0,kind(0.d0)),MYU2(J,1),LQ)
-          endif
-        ENDDO
-        If (udv1%L(1) >  udv2%L(1) ) Then 
+        If (dble(udv1%D(1)) >  dble(udv2%D(1)) ) Then 
            !Write(6,*) "D1(1) >  D2(1)", dble(D1(1)), dble(D2(1))
            call zlacpy('A',LQ,LQ,V1INV(1,1) ,LQ,HLPB2(1   ,1   ),LQ2)
            call zlacpy('A',LQ,LQ,MYU2(1,1)  ,LQ,HLPB2(1+LQ,1+LQ),LQ2)
            DO J = 1,LQ
               DO I = 1,LQ
-                 HLPB2(I   , J+LQ ) =  D1m(I)*udv1%U(I,J)
-                 HLPB2(I+LQ, J    ) = -D2m(I)*udv2%V(I,J)
+                 HLPB2(I   , J+LQ ) =  udv1%D(I)*udv1%U(I,J)
+                 HLPB2(I+LQ, J    ) = -udv2%D(I)*udv2%V(I,J)
               ENDDO
            ENDDO
            HLPB1 = CT(HLPB2)
@@ -303,8 +286,8 @@
            call zlacpy('A',LQ,LQ,V1INV(1,1),LQ,HLPB2(1+LQ,1+LQ),LQ2)
            DO J = 1,LQ
               DO I = 1,LQ
-                 HLPB2(I   , J+LQ ) = -D2m(I)*udv2%V(I,J)
-                 HLPB2(I+LQ, J    ) =  D1m(I)*udv1%U(I,J)
+                 HLPB2(I   , J+LQ ) = -udv2%D(I)*udv2%V(I,J)
+                 HLPB2(I+LQ, J    ) =  udv1%D(I)*udv1%U(I,J)
               ENDDO
            ENDDO
            HLPB1 = CT(HLPB2)
@@ -314,7 +297,7 @@
            call solve_extended_System(HLPB1, MYU2, V1INV, U3B, D3B, V3B, LQ)
            call get_blocks(GRTT, GRT0, GR0T, GR00, HLPB1, LQ)
         Endif
-        DEALLOCATE(MYU2, HLPB1, HLPB2, U3B, V3B, D1m, D2m)
+        DEALLOCATE(MYU2, HLPB1, HLPB2, U3B, V3B)
 #else
         Use QDRP_mod
         Implicit none
@@ -341,6 +324,8 @@
         IPVT = 0
         MYU2 = CONJG(TRANSPOSE(udv2%U))
         CALL INV(udv1%V, V1INV,Z)
+#if defined(STAB3) || defined(LOG)
+#if defined(LOG)
         DO J=1,LQ
           !keep scales smaller than 1.0 in D1*U1 and D2*V2
           !bring scales larger that 1.0 with V1^-1 and U2^-1
@@ -357,7 +342,33 @@
             call zscal(LQ,cmplx(exp(-udv2%L(J)),0.d0,kind(0.d0)),MYU2(J,1),LQ)
           endif
         ENDDO
-        If (udv1%L(1) >  udv2%L(1) ) Then 
+#else
+        DO J=1,LQ
+          !keep scales smaller than 1.0 in D1*U1 and D2*V2
+          !bring scales larger that 1.0 with V1^-1 and U2^-1
+          If(dble(udv1%D(J)) <=1.d0) then
+            D1m(J)=udv1%D(J)
+          else
+            D1m(J)=cmplx(1.d0,0.d0,kind(0.d0))
+            call zscal(LQ,1.d0/udv1%D(J),V1INV(J,1),LQ)
+          endif
+          If(dble(udv2%D(J)) <=1.d0) then
+            D2m(J)=udv2%D(J)
+          else
+            D2m(J)=cmplx(1.d0,0.d0,kind(0.d0))
+            call zscal(LQ,1.d0/udv2%D(J),MYU2(J,1),LQ)
+          endif
+        ENDDO
+#endif
+#else
+        D1m=udv1%D
+        D2m=udv2%D
+#endif
+#if defined(LOG)
+        If (udv1%L(1) >  udv2%L(1) ) Then
+#else 
+        If (dble(udv1%D(1)) >  dble(udv2%D(1)) ) Then
+#endif
            !Write(6,*) "D1(1) >  D2(1)", dble(D1(1)), dble(D2(1))
            call zlacpy('A',LQ,LQ,V1INV(1,1) ,LQ,HLPB2(1   ,1   ),LQ2)
            call zlacpy('A',LQ,LQ,MYU2(1,1)  ,LQ,HLPB2(1+LQ,1+LQ),LQ2)

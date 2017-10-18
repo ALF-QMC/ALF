@@ -15,7 +15,7 @@ end interface
         COMPLEX(Kind=Kind(0.D0)), Dimension(:), allocatable ::  Dold
         INTEGER         :: i, j, Ndim, NCON
         TYPE(UDV_State) :: udvl 
-        COMPLEX(Kind=Kind(0.D0)) :: Z
+        COMPLEX(Kind=Kind(0.D0)) :: Z, dnew
         
         do Ndim = 10, 200,10
         CALL udvl%alloc(Ndim)
@@ -30,10 +30,10 @@ end interface
         Dold(i) = i*i
         Uold(i,i) = 1.D0
         Vold(i,i) = 1.D0
+        call udvl%setscale(Dold(i),i)
         enddo
         udvl%U = Uold
         udvl%V = Vold
-        udvl%D = Dold
         TMPold = TMP
         NCON = 1
         CALL UDVL%matmultleft(TMP, TMP1, NCON)
@@ -65,12 +65,13 @@ end interface
         
         enddo
         
-        Z = udvl%D(i) - Dold(i)
-        if (Abs(real(Z)) > MAX(ABS(REAL(udvl%D(i))), ABS(REAL(Dold(i))))*1D-15) then
+        call udvl%getscale(dnew,i)
+        Z = dnew - Dold(i)
+        if (Abs(real(Z)) > MAX(ABS(REAL(dnew)), ABS(REAL(Dold(i))))*1D-15) then
 !        write (*,*) "Error in D real part", D(i), Dold(i)
 !        STOP 6
         endif
-        if (Abs(AIMAG(Z)) > MAX(ABS(AIMAG(udvl%D(i))), ABS(AIMAG(Dold(i))))*1D-15 ) then
+        if (Abs(AIMAG(Z)) > MAX(ABS(AIMAG(dnew)), ABS(AIMAG(Dold(i))))*1D-15 ) then
 !        write (*,*) "Error in D imag part", D(i), Dold(i)
 !        STOP 7
         endif

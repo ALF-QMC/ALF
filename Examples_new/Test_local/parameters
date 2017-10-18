@@ -1,0 +1,56 @@
+!===============================================================================
+!  Variables for the Hubb program
+!-------------------------------------------------------------------------------
+
+&VAR_lattice 
+Checkerboard =.false.
+N_SUN = 1
+L1    = 24
+L2    = 24
+Lattice_type = "Pi_Flux"   ! Square, Honeycomb,  Pi_Flux
+Model        = "t_V"      ! Hubbard_SU2, Hubbard_Mz, Hubbard_SU2_Ising, t_V
+/
+
+&VAR_Hubbard
+ham_T   = 1.0D0
+ham_chem= 0.0D0
+ham_U   = 4.0
+Beta    = 10.0
+dtau    = 0.1
+/
+
+&VAR_t_V
+ham_T   =  1.0D0
+ham_chem=  0.0D0
+ham_tV  = -0.6
+Beta    = 24.0
+dtau    = 0.1 
+/
+
+&VAR_QMC
+Nwrap   = 10
+NSweep  = 1  
+NBin    = 1 
+Ltau    = 0
+LOBS_ST = 1
+LOBS_EN = 100
+/
+CPU_MAX = 0.1
+
+&VAR_Ising
+ham_T   = 1.0D0
+ham_chem= 0.0D0
+ham_U   = 4.0
+Beta    = 10.0
+dtau    = 0.1 
+Ham_xi = 2.d0
+Ham_J  = 0.d0
+Ham_h  = 2.d0
+/
+
+&VAR_errors 
+n_skip  = 0
+N_rebin = 1
+N_Cov   = 0
+/
+! slash terminates namelist statement - DO NOT REMOVE
