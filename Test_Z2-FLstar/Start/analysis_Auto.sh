@@ -26,6 +26,7 @@ for filename in *_eq; do
        $ANNAL/cov_eq.out
        mv "equalJ"  $filename"JK"
        mv "equalJR" $filename"JR"
+       mv "equalTrPlot" $filename"TrPlot"
        mv "Var_eq_Auto_Ratio"  $filename"_Auto_Ratio"
        for filename2 in Var_eq_Auto_Tr*; do
 	   NewName=`echo ${filename2} | sed s/Var_eq/${filename}/`

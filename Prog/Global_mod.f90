@@ -395,7 +395,7 @@ Module Global_mod
       end Subroutine Exchange_Step
 #endif
 !---------------------------------------------------------------------
-      Subroutine Global_Updates(Phase,GR, udvr, udvl, Stab_nt, udvst,N_Global)
+      Subroutine Global_Updates(Phase,GR, udvr, udvl, Stab_nt, udvst,N_Global,Nstm)
         Use UDV_State_mod
         Implicit none
         
@@ -425,11 +425,12 @@ Module Global_mod
         CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: udvst
         INTEGER, dimension(:),     INTENT   (IN), allocatable      :: Stab_nt
         Integer, INTENT(IN) :: N_Global
+        Integer, INTENT(IN) :: NSTM
         !>  On entry and on exit the left storage is full, and the Green function is on time slice 0 and the phase is set.
         
         
         !>  Local variables.
-        Integer :: NST, NSTM, NF, NT, NT1, NVAR,N, N1,N2, I, NC
+        Integer :: NST, NF, NT, NT1, NVAR,N, N1,N2, I, NC
         Integer, Dimension(:,:),  allocatable :: nsigma_old
         Real    (Kind=Kind(0.d0)) :: T0_Proposal_ratio, Weight
         Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Z, Ratiotot, Phase_old, Phase_new
@@ -445,7 +446,7 @@ Module Global_mod
         
         n1 = size(nsigma,1)
         n2 = size(nsigma,2)
-        NSTM = Size(udvst, 1)
+!         write(*,*) "NSTM", NSTM
         Allocate ( nsigma_old(n1,n2) )
         Allocate ( Det_vec_old(NDIM,N_FL), Det_vec_new(NDIM,N_FL), Det_vec_test(NDIM,N_FL) ) 
         Allocate ( Phase_Det_new(N_FL), Phase_Det_old(N_FL) )
@@ -532,6 +533,7 @@ Module Global_mod
               !Write(6,*) 'Ratio_global: ', Ratiotot
               
               Weight = abs(  real(Phase_old * Ratiotot, kind=Kind(0.d0))/real(Phase_old,kind=Kind(0.d0)) )
+              !Write(6,*) 'Weight: ', Weight
               
               Z = Phase_old * Ratiotot/ABS(Ratiotot)
               Call Control_PrecisionP_Glob(Z,Phase_new)

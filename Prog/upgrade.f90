@@ -262,7 +262,8 @@
         Complex (Kind=Kind(0.D0)), Dimension(:), Allocatable :: sxv, syu
 
         toggle = .false.
-        ! if ( abs(OP_V(n_op,1)%g) < 1.D-12 )   return
+        !quick return in single spinflip mode if possible (OP%g=0) this disables their update, but they do not matter anyway
+        if ( abs(OP_V(n_op,1)%g) < 1.D-12 .and. mode=="Single")   return
 
         ! Compute the ratio
         nf = 1
@@ -311,6 +312,10 @@
            Weight = 1.5
            !Write(6,*) "Up_I: ", Ratiotot
            Prev_Ratiotot = Prev_Ratiotot*Ratiotot
+        elseif      (mode  == "Single"       ) Then
+           !Write(6,*) "Up_s: ", Ratiotot
+           Weight = S0_ratio * T0_proposal_ratio * abs(  real(Phase * Ratiotot, kind=Kind(0.d0))/real(Phase,kind=Kind(0.d0)) )
+           !Write(6,*) Phase, Prev_Ratiotot, S0_ratio, T0_proposal_ratio, ns_old,ns_new
         else
            Write(6,*) 'Error'
            stop
@@ -319,7 +324,7 @@
         toggle = .false. 
         if ( Weight > ranf_wrap() )  Then
            toggle = .true.
-           If (mode == "Final"  )  Phase = Phase * Ratiotot/sqrt(Ratiotot*conjg(Ratiotot))
+           If (mode == "Final" .or. mode=="Single" )  Phase = Phase * Ratiotot/sqrt(Ratiotot*conjg(Ratiotot))
            !Write(6,*) 'Accepted : ', Ratiotot
 
            Do nf = 1,N_FL
@@ -380,7 +385,7 @@
            nsigma(n_op,nt) = ns_new
         endif
 
-        If ( mode == "Final" )  then
+        If ( mode == "Final" .or. mode=="Single" )  then
            Call Control_upgrade(toggle)
            Call Control_upgrade_eff(toggle)
         endif
