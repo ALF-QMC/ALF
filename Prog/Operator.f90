@@ -562,6 +562,10 @@ Contains
 
     ! In  Mat
     ! Out Mat = Mat*exp(spin*Op)
+    
+    ! quick return if possible
+    if ( abs(OP%g) < 1.D-12 ) return
+        
     if ( Op%diag ) then
       do I=1,Op%N
         alpha=exp(Op%g * spin * Op%E(I))
@@ -601,6 +605,10 @@ Contains
     
     ! In  Mat
     ! Out Mat = exp(spin*Op)*Mat
+    
+    ! quick return if possible
+    if ( abs(OP%g) < 1.D-12 ) return
+        
     if ( Op%diag ) then
       do I=1,Op%N
         alpha=exp(Op%g * spin * Op%E(I))
