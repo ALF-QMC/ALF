@@ -162,7 +162,7 @@
          Write(6,*) "# of bins: ", Nbins
          nbins  = Nbins - n_skip
          Write(6,*) "Effective # of bins: ", Nbins
-         N_auto=min(N_auto,Nbins/3)
+         N_auto=min(N_auto,Nbins-3)
 
          ! Allocate  space
          Allocate ( bins(Nunit,Nbins), bins_r(Nunit,Nbins), Phase(Nbins), Ratio1(Nbins), Ratio2(Nbins), V_help(Nbins), V_help_TR(Nbins), Bins0(Nbins,Norb))
