@@ -221,10 +221,14 @@ END SUBROUTINE assign_UDV_state
         CALL ZGEMM('C', 'C', Ndim, Ndim, Ndim, Z_ONE, TMP(1, 1), Ndim, UDVL%U, Ndim, beta, TMP1(1, 1), Ndim)
         ALLOCATE(tmpnorm(Ndim),D(Ndim))
         Do i=1,Ndim
-            tmpnorm(i) = DZNRM2( Ndim, TMP1( 1, I ), 1 )*exp(UDVL%L(I))
+            tmpnorm(i) = log(DZNRM2( Ndim, TMP1( 1, I ), 1 ))+UDVL%L(I)
         enddo
         do i=1,Ndim
-            PVT = ( I-1 ) + IDAMAX( Ndim-I+1, tmpnorm( I ), 1 )
+            PVT = I
+            Do J=I+1,Ndim
+              if(tmpnorm(J)>tmpnorm(PVT)) PVT=J
+            enddo
+!             PVT = ( I-1 ) + MAXLOC( tmpnorm( I:Ndim ) )
             IF( PVT.NE.I ) THEN
                 CALL ZCOPY( ndim, TMP1( 1, PVT ), 1, UDVL%U( 1, I ), 1 )
                 CALL ZCOPY( ndim, TMP1( 1, I   ), 1, TMP1( 1, PVT ), 1 )
@@ -294,10 +298,14 @@ END SUBROUTINE matmultright_UDV_state
         CALL ZGEMM('N', 'N', Ndim, Ndim, Ndim, Z_ONE, TMP(1, 1), Ndim, UDVR%U, Ndim, beta, TMP1(1, 1), Ndim)
         ALLOCATE(tmpnorm(Ndim),D(Ndim))
         Do i=1,Ndim
-            tmpnorm(i) = DZNRM2( Ndim, TMP1( 1, I ), 1 )*exp(UDVR%L(I))
+            tmpnorm(i) = log(DZNRM2( Ndim, TMP1( 1, I ), 1 ))+UDVR%L(I)
         enddo
         do i=1,Ndim
-            PVT = ( I-1 ) + IDAMAX( Ndim-I+1, tmpnorm( I ), 1 )
+            PVT = I
+            Do J=I+1,Ndim
+              if(tmpnorm(J)>tmpnorm(PVT)) PVT=J
+            enddo
+!             PVT = ( I-1 ) + IDAMAX( Ndim-I+1, tmpnorm( I ), 1 )
             IF( PVT.NE.I ) THEN
                 CALL ZCOPY( ndim, TMP1( 1, PVT ), 1, UDVR%U( 1, I ), 1 )
                 CALL ZCOPY( ndim, TMP1( 1, I   ), 1, TMP1( 1, PVT ), 1 )
