@@ -25,7 +25,7 @@
       Integer, parameter,     private :: Norb=5
       Integer, allocatable,   private :: List(:,:), Invlist(:,:)
       Integer,                private :: L1, L2
-      real (Kind=Kind(0.d0)), private :: Ham_T, Ham_Vint,  Ham_U, Ham_JK
+      real (Kind=Kind(0.d0)), private :: Ham_T, Ham_Vint,  Ham_U, Ham_JKA, Ham_JKB
       real (Kind=Kind(0.d0)), private :: Dtau, Beta
       Character (len=64),     private :: Model, Lattice_type, File1
       logical,                private :: checkerboard
@@ -49,7 +49,7 @@
 
           NAMELIST /VAR_lattice/  L1, L2, Lattice_type, Model
 
-          NAMELIST /VAR_Z2_FLstar/  ham_T, Ham_Vint,  Ham_U,  Dtau, Beta, Ham_JK, checkerboard
+          NAMELIST /VAR_Z2_FLstar/  ham_T, Ham_Vint,  Ham_U,  Dtau, Beta, Ham_JKA, Ham_JKB, checkerboard
 
 
 #if defined(MPI)
@@ -94,7 +94,8 @@
 #if defined(TEMPERING) 
              write(File1,'(A,I0,A)') "Temp_",igroup,"/parameters"
 #endif
-             Ham_JK=0.d0
+             Ham_JKA=0.d0
+             Ham_JKB=0.d0
              checkerboard=.true.
              OPEN(UNIT=5,FILE=File1,STATUS='old',ACTION='read',IOSTAT=ierr)
              READ(5,NML=VAR_Z2_FLstar)
@@ -105,7 +106,8 @@
           CALL MPI_BCAST(ham_T        ,1,MPI_REAL8,     0,Group_Comm,ierr)
           CALL MPI_BCAST(ham_Vint     ,1,MPI_REAL8,     0,Group_Comm,ierr)
           CALL MPI_BCAST(ham_U        ,1,MPI_REAL8,     0,Group_Comm,ierr)
-          CALL MPI_BCAST(ham_JK       ,1,MPI_REAL8,     0,Group_Comm,ierr)
+          CALL MPI_BCAST(ham_JKA      ,1,MPI_REAL8,     0,Group_Comm,ierr)
+          CALL MPI_BCAST(ham_JKB      ,1,MPI_REAL8,     0,Group_Comm,ierr)
           CALL MPI_BCAST(Dtau         ,1,MPI_REAL8,     0,Group_Comm,ierr)
           CALL MPI_BCAST(Beta         ,1,MPI_REAL8,     0,Group_Comm,ierr)
           CALL MPI_BCAST(checkerboard ,1,MPI_LOGICAL,   0,Group_Comm,ierr)
@@ -133,7 +135,8 @@
              Write(50,*) 't             : ', Ham_T
              Write(50,*) 'V             : ', Ham_Vint
              Write(50,*) 'U             : ', Ham_U
-             Write(50,*) 'JK            : ', Ham_JK
+             Write(50,*) 'JK A sublatt  : ', Ham_JKA
+             Write(50,*) 'JK B sublatt  : ', Ham_JKB
              If(checkerboard) Write(50,*) 'Using checkerboard decomposition for Ham_T'
              close(50)
 #if defined(MPI)
@@ -281,7 +284,7 @@
 
 
           ! Number of opertors 8 per unit cell
-          Allocate( Op_V((6+6+3+15+3)*Latt%N,N_FL) )
+          Allocate( Op_V((6+6+3+15+3+3)*Latt%N,N_FL) )
           nc = 0
           Zone=cmplx(1.d0  ,0.d0, kind(0.D0))
           Do nf = 1,N_FL
@@ -376,30 +379,30 @@
                 Op_V(nc,nf)%P(2) = Invlist(I,4)
                 Op_V(nc,nf)%O( 1 , 2 )  =  Zone
                 Op_V(nc,nf)%O( 2 , 1 )  =  Zone
-                Op_V(nc,nf)%g=sqrt(cmplx(Dtau*Ham_JK/4.d0,0.d0, kind(0.D0)))
+                Op_V(nc,nf)%g=sqrt(cmplx(Dtau*Ham_JKA/4.d0,0.d0, kind(0.D0)))
                 Op_V(nc,nf)%alpha  = cmplx(0.0d0, 0.d0, kind(0.D0))
                 Op_V(nc,nf)%type   = 2
                 Call Op_set( Op_V(nc,nf) )
               enddo
               
-!               do no=1,3
-!                 nc = Latt%N*(no+32)+I
-!                 Call Op_make(Op_V(nc,nf),2) 
-!                 if (no == 1) then
-!                   Op_V(nc,nf)%P(1) = Invlist(Latt%nnlist(I,0,1),1)
-!                 elseif (no == 2 ) then
-!                   Op_V(nc,nf)%P(1) = Invlist(Latt%nnlist(I,-1,1),2)
-!                 else
-!                   Op_V(nc,nf)%P(1) = Invlist(I,3)
-!                 endif
-!                 Op_V(nc,nf)%P(2) = Invlist(I,5)
-!                 Op_V(nc,nf)%O( 1 , 2 )  =  Zone
-!                 Op_V(nc,nf)%O( 2 , 1 )  =  Zone
-!                 Op_V(nc,nf)%g=sqrt(cmplx(Dtau*Ham_JK/4.d0,0.d0, kind(0.D0)))
-!                 Op_V(nc,nf)%alpha  = cmplx(0.0d0, 0.d0, kind(0.D0))
-!                 Op_V(nc,nf)%type   = 2
-!                 Call Op_set( Op_V(nc,nf) )
-!               enddo
+              do no=1,3
+                nc = Latt%N*(no+32)+I
+                Call Op_make(Op_V(nc,nf),2) 
+                if (no == 1) then
+                  Op_V(nc,nf)%P(1) = Invlist(Latt%nnlist(I,0,1),1)
+                elseif (no == 2 ) then
+                  Op_V(nc,nf)%P(1) = Invlist(Latt%nnlist(I,-1,1),2)
+                else
+                  Op_V(nc,nf)%P(1) = Invlist(I,3)
+                endif
+                Op_V(nc,nf)%P(2) = Invlist(I,5)
+                Op_V(nc,nf)%O( 1 , 2 )  =  Zone
+                Op_V(nc,nf)%O( 2 , 1 )  =  Zone
+                Op_V(nc,nf)%g=sqrt(cmplx(Dtau*Ham_JKB/4.d0,0.d0, kind(0.D0)))
+                Op_V(nc,nf)%alpha  = cmplx(0.0d0, 0.d0, kind(0.D0))
+                Op_V(nc,nf)%type   = 2
+                Call Op_set( Op_V(nc,nf) )
+              enddo
               
             enddo
           Enddo
@@ -749,7 +752,27 @@
                enddo
              Enddo
           Enddo
-          Zpot = - ZPot*cmplx( Ham_JK*dble(N_SUN), 0.d0,Kind(0.d0) )
+          Zpot = - ZPot*cmplx( Ham_JKA*dble(N_SUN), 0.d0,Kind(0.d0) )
+          Obs_scal(11)%Obs_vec(1)  =    Obs_scal(11)%Obs_vec(1) + ZPot * ZP*ZS
+          ZPot = cmplx(0.d0,0.d0,Kind(0.d0))
+          Do nf = 1,N_FL
+             Do I = 1,Latt%N
+               Do J = 1,3
+                I0 = invlist(I,4)
+                if (J == 1) then
+                  I1 = Invlist(Latt%nnlist(I,0,1),1)
+                elseif (J == 2 ) then
+                  I1 = Invlist(Latt%nnlist(I,-1,1),2)
+                else
+                  I1 = Invlist(I,3)
+                endif  
+                Zpot = ZPot + Grc(I0,I1,nf)**2 +  Grc(I1,I0,nf)**2  + &
+                     &        Grc(I0,I0,nf) +  Grc(I1,I1,nf)   &
+                     &        -2.d0*Grc(I0,I0,nf)*Grc(I1,I1,nf) +  zn*Grc(I0,I1,nf)*Gr(I0,I1,nf)
+               enddo
+             Enddo
+          Enddo
+          Zpot = - ZPot*cmplx( Ham_JKB*dble(N_SUN), 0.d0,Kind(0.d0) )
           Obs_scal(11)%Obs_vec(1)  =    Obs_scal(11)%Obs_vec(1) + ZPot * ZP*ZS
           
           

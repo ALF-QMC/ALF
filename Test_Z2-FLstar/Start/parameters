@@ -14,6 +14,8 @@ Model = "Z2-FLstar"  ! Ising, Hubbard_SU2, Hubbard_Mz, tV
 ham_T    = 1.0
 ham_Vint = 4.0
 ham_U    = 5.0
+ham_JKA  = 0.0
+ham_JKB  = 0.0
 Beta     = 2.0
 dtau     = 0.01
 /
