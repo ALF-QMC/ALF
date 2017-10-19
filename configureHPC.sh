@@ -1,10 +1,6 @@
 PROGRAMMCONFIGURATION=""
 STABCONFIGURATION=""
-# STABCONFIGURATION=${STABCONFIGURATION}" -DSTAB1"
-# STABCONFIGURATION=${STABCONFIGURATION}" -DSTAB2"
-# STABCONFIGURATION=${STABCONFIGURATION}" -DSTAB3"
 # STABCONFIGURATION=${STABCONFIGURATION}" -DQRREF"
-STABCONFIGURATION=${STABCONFIGURATION}" -DLOG"
 
 # default optimization flags for Intel compiler
 INTELOPTFLAGS="-O3 -fp-model fast=2 -xHost -unroll -finline-functions -ipo -ip -heap-arrays 1024 -no-wrap-margin"
@@ -22,6 +18,39 @@ MPICOMP=0
 export DIR=`pwd`
 
 echo ""
+
+case $3 in
+
+STAB1)
+STABCONFIGURATION=${STABCONFIGURATION}" -DSTAB1"
+echo "Using older stabilization with UDV decompositions"
+echo
+;;
+
+STAB2)
+STABCONFIGURATION=${STABCONFIGURATION}" -DSTAB2"
+echo "Using older stabilization with UDV decompositions and additional normalizations"
+echo
+;;
+
+STAB3)
+STABCONFIGURATION=${STABCONFIGURATION}" -DSTAB3"
+echo "Using newest stabilization which seperates large and small scales"
+echo
+;;
+
+LOG)
+STABCONFIGURATION=${STABCONFIGURATION}" -DLOG"
+echo "Using log storage for internal scales"
+echo
+;;
+
+*)
+echo "Using default stabilization"
+echo
+;;
+
+esac
 
 case $2 in
 
