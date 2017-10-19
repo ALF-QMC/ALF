@@ -96,7 +96,7 @@
 #endif
              Ham_JKA=0.d0
              Ham_JKB=0.d0
-             checkerboard=.true.
+             checkerboard=.false.
              OPEN(UNIT=5,FILE=File1,STATUS='old',ACTION='read',IOSTAT=ierr)
              READ(5,NML=VAR_Z2_FLstar)
              CLOSE(5)
