@@ -62,18 +62,19 @@
          Real (Kind=Kind(0.d0)) :: Pi, a1_p(2), a2_p(2), L1_p(2), L2_p(2), del_p(2)
          Real (Kind=Kind(0.d0)), allocatable :: AutoCorr(:),En(:)
 
-         Integer             :: L1, L2, I, N_auto
+         Integer             :: L1, L2, I, N_auto, N_SUN
          Character (len=64)  :: Model, Lattice_type
          Type (Lattice)      :: Latt
-         Character (len=64) :: File_out
-         
+         Character (len=64)  :: File_out
+         Logical             :: Checkerboard	 
 
-         NAMELIST /VAR_lattice/  L1, L2, Lattice_type, Model
+         NAMELIST /VAR_lattice/  L1, L2, Lattice_type, Model, N_SUN, Checkerboard
          NAMELIST /VAR_errors/   n_skip, N_rebin, N_Cov, N_Back, N_auto
 
 
 
-         
+         Checkerboard = .false.
+         N_SUN  = 1
          N_Back = 1
          N_auto = 0
          OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
@@ -118,21 +119,13 @@
               endif
             enddo
             nmin=n
-            
-!             !  This will print the  honeycomb lattice. 
-!             Open (Unit=10,File="Lattice", status="unknown")
-!             do I = 1,Latt%N
-!                Xr_p = dble(Latt%list (I,1))*Latt%a1_p + dble(Latt%list (I,2))*Latt%a2_p
-!                Do n = 1,3
-!                   if (n==1) Xr1_p = Xr_p - del_p
-!                   if (n==2) Xr1_p = Xr_p - del_p - a1_p + a2_p 
-!                   if (n==3) Xr1_p = Xr_p + a2_p  - del_p
-!                   Write(10,"(F14.7,2x,F14.7)") Xr_p (1), Xr_p (2)
-!                   Write(10,"(F14.7,2x,F14.7)") Xr1_p(1), Xr1_p(2)
-!                   Write(10,*)
-!                enddo
-!             enddo
-!             close(10)
+         elseif ( Lattice_type == "Pi_Flux" ) then 
+             a1_p(1) =  1.D0   ; a1_p(2) =   1.d0
+             a2_p(1) =  1.D0   ; a2_p(2) =  -1.d0
+             !del_p   =  (a2_p - 0.5*a1_p ) * 2.0/3.0
+             L1_p    =  dble(L1) * (a1_p - a2_p)/2.d0
+             L2_p    =  dble(L2) * (a1_p + a2_p)/2.d0
+             Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
          else
             Write(6,*) "Lattice not yet implemented!"
             Stop
@@ -162,7 +155,7 @@
          Write(6,*) "# of bins: ", Nbins
          nbins  = Nbins - n_skip
          Write(6,*) "Effective # of bins: ", Nbins
-         N_auto=min(N_auto,Nbins/3)
+         N_auto=min(N_auto,Nbins-3)
 
          ! Allocate  space
          Allocate ( bins(Nunit,Nbins), bins_r(Nunit,Nbins), Phase(Nbins), Ratio1(Nbins), Ratio2(Nbins), V_help(Nbins), V_help_TR(Nbins), Bins0(Nbins,Norb))

@@ -17,7 +17,7 @@ end interface
         COMPLEX(Kind=Kind(0.D0)), Dimension(:,:), allocatable :: V1, TMP, TMP1, Uold, Vold, TMPold
         COMPLEX(Kind=Kind(0.D0)), Dimension(:), allocatable ::  Dold
         INTEGER         :: i, j, Ndim, NCON
-        COMPLEX(Kind=Kind(0.D0)) :: Z
+        COMPLEX(Kind=Kind(0.D0)) :: Z, dnew
         TYPE(UDV_State) :: UDVL
         
         do Ndim = 5, 200,5
@@ -35,10 +35,10 @@ end interface
         Vold(i,i) = 1.D0
         Vold(1,i) = 1.D0
         Vold(i,1) = 1.D0
+        call udvl%setscale(Dold(i),i)
         enddo
         UDVL%U = Uold
         UDVL%V = Vold
-        UDVL%D = Dold
         TMPold = TMP
         NCON = 1
         CALL UDVL%matmultright(TMP, TMP1, NCON)
@@ -70,12 +70,13 @@ end interface
 !         
 !     enddo
 
-         Z = UDVL%D(i) - Dold(i)
-         if (Abs(real(Z)) > MAX(ABS(REAL(UDVL%D(i))), ABS(REAL(Dold(i))))*1D-15 ) then
+         call udvl%getscale(dnew,i)
+         Z = dnew - Dold(i)
+         if (Abs(real(Z)) > MAX(ABS(REAL(dnew)), ABS(REAL(Dold(i))))*1D-15 ) then
 !         write (*,*) "Error in D real part", D(i), Dold(i)
 !         STOP 6
          endif
-         if (Abs(AIMAG(Z)) > MAX(ABS(AIMAG(UDVL%D(i))), ABS(AIMAG(Dold(i))))*1D-15 ) then
+         if (Abs(AIMAG(Z)) > MAX(ABS(AIMAG(dnew)), ABS(AIMAG(Dold(i))))*1D-15 ) then
 !         write (*,*) "Error in D imag part", D(i), Dold(i)
 !         STOP 7
          endif

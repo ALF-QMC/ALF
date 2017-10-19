@@ -315,6 +315,12 @@ Program Main
 #if defined(STAB2) 
            Write(50,*) 'STAB2 is defined '
 #endif
+#if defined(STAB3) 
+           Write(50,*) 'STAB3 is defined '
+#endif
+#if defined(LOG) 
+           Write(50,*) 'LOG is defined '
+#endif
 #if defined(QRREF) 
            Write(50,*) 'QRREF is defined '
 #endif

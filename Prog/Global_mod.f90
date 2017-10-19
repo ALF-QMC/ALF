@@ -695,17 +695,30 @@ Module Global_mod
         COMPLEX (Kind=Kind(0.d0)) :: alpha,beta, Z, Z1
         TYPE(UDV_State) :: udvlocal
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  TP!, U, V
-        !    COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable :: D
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable :: D
         
         !    N_size = SIZE(DL,1)
         N_size = udvl%ndim
         NCON  = 0
         alpha = cmplx(1.d0,0.d0,kind(0.d0))
         beta  = cmplx(0.d0,0.d0,kind(0.d0))
-        Allocate (TP(N_Size,N_Size))
+        Allocate (TP(N_Size,N_Size),D(N_size))
         TP = CT(udvl%U)
-        !!! ATTENTION THIS COULD POSSIBLY CREATE NAN'S
-        !!! CONSIDER TO DEF D=D^+ * D^- to shift the scales around !!!
+#if !defined(LOG)
+#if !defined(STAB3)
+        DO J = 1,N_size
+           TP(:,J) = TP(:,J) +  udvl%V(:,J)*udvl%D(J)
+        ENDDO
+#else
+        DO J = 1,N_size
+           if ( dble(udvl%D(J)) <= 1.d0 ) then
+              TP(:,J) = TP(:,J) +  udvl%V(:,J)*udvl%D(J)
+           else
+              TP(:,J) = TP(:,J)/udvl%D(J) +  udvl%V(:,J)
+           endif
+        ENDDO
+#endif
+#else
         DO J = 1,N_size
            if ( udvl%L(J) <= 0.d0 ) then
               TP(:,J) = TP(:,J) +  udvl%V(:,J)*cmplx(exp(udvl%L(J)),0.d0,kind(0.d0))
@@ -713,22 +726,40 @@ Module Global_mod
               TP(:,J) = TP(:,J)*cmplx(exp(-udvl%L(J)),0.d0,kind(0.d0)) +  udvl%V(:,J)
            endif
         ENDDO
+#endif
         CALL udvlocal%alloc(N_size)
-        Call  UDV_WRAP_Pivot(TP,udvlocal%U, udvlocal%D, udvlocal%V, NCON,N_size,N_Size)
+        Call  UDV_WRAP_Pivot(TP,udvlocal%U, D, udvlocal%V, NCON,N_size,N_Size)
         Z  = DET_C(udvlocal%V, N_size) ! Det destroys its argument
         Call MMULT(TP, udvl%U, udvlocal%U)
         Z1 = Det_C(TP, N_size) 
         Deallocate (TP)
         Phase   = Z*Z1/ABS(Z*Z1)
-        Det_vec(1) = log(real(udvlocal%D(1))*ABS(Z*Z1))
+#if !defined(LOG)
+#if !defined(STAB3)
+        Det_vec = log(real(D))
+        Det_vec(1) = log(real(D(1))*ABS(Z*Z1))
+#else
+        Det_vec(1) = log(real(D(1))*ABS(Z*Z1))
+        if (dble(udvl%D(1)) > 1.d0) Det_vec(1)=Det_Vec(1)+log(dble(udvl%D(1)))
+        Do J=2,Ndim
+           if (dble(udvl%D(J))<=1.d0) then
+              Det_vec(J) = log(real(D(J)))
+           else
+              Det_vec(J) = log(real(D(J)))+log(dble(udvl%D(J)))
+           endif
+        enddo
+#endif
+#else
+        Det_vec(1) = log(real(D(1))*ABS(Z*Z1))
         if (udvl%L(1) > 0.d0) Det_vec(1)=Det_Vec(1)+udvl%L(1)
         Do J=2,Ndim
            if (udvl%L(J)<=0.d0) then
-              Det_vec(J) = log(real(udvlocal%D(J)))
+              Det_vec(J) = log(real(D(J)))
            else
-              Det_vec(J) = log(real(udvlocal%D(J)))+udvl%L(J)
+              Det_vec(J) = log(real(D(J)))+udvl%L(J)
            endif
         enddo
+#endif
         
         CALL udvlocal%dealloc
         
