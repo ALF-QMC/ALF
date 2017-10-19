@@ -145,11 +145,17 @@
 
 
       Subroutine Control_PrecisionG(A,B,Ndim)
+#ifdef MPI
+        Use mpi
+#endif
         Implicit none
         
         Integer :: Ndim
         Complex (Kind=Kind(0.d0)) :: A(Ndim,Ndim), B(Ndim,Ndim) 
         Real    (Kind=Kind(0.d0)) :: XMAX, XMEAN
+#ifdef MPI
+        Integer:: ierr, merr
+#endif
 
         NCG = NCG + 1
         XMEAN = 0.d0
@@ -162,17 +168,28 @@
           write(*,*) (XmeanG+Xmean)/ncg, " is the average deviation!"
           write(*,*) "This calculation is unstable and therefore aborted!!!"
           write(*,*)
-          stop
+#if !defined(MPI)
+          stop 911
+#else
+          merr=911
+          call MPI_ABORT(MPI_COMM_WORLD,merr,ierr)
+#endif
         endif
         XMEANG = XMEANG + XMEAN
       End Subroutine Control_PrecisionG
 
       Subroutine Control_Precision_tau(A,B,Ndim)
+#ifdef MPI
+        Use mpi
+#endif
         Implicit none
         
         Integer :: Ndim
         Complex (Kind=Kind(0.d0)) :: A(Ndim,Ndim), B(Ndim,Ndim) 
         Real    (Kind=Kind(0.d0)) :: XMAX, XMEAN
+#ifdef MPI
+        Integer:: ierr, merr
+#endif
 
         NCG_tau = NCG_tau + 1
         XMEAN = 0.d0
@@ -185,16 +202,27 @@
           write(*,*) (Xmean_tau+Xmean)/ncg_tau, " is the average deviation!"
           write(*,*) "This calculation is unstable and therefore aborted!!!"
           write(*,*)
-          stop
+#if !defined(MPI)
+          stop 911
+#else
+          merr=911
+          call MPI_ABORT(MPI_COMM_WORLD,merr,ierr)
+#endif
         endif
         XMEAN_tau = XMEAN_tau + XMEAN
       End Subroutine Control_Precision_tau
 
 
       Subroutine Control_PrecisionP(Z,Z1)
+#ifdef MPI
+        Use mpi
+#endif
         Implicit none
         Complex (Kind=Kind(0.D0)), INTENT(IN) :: Z,Z1
         Real    (Kind=Kind(0.D0)) :: X
+#ifdef MPI
+        Integer:: ierr, merr
+#endif
         X = ABS(Z-Z1)
         if ( X > XMAXP ) XMAXP = X
         IF (X  >  1.d0 ) then
@@ -202,15 +230,26 @@
           write(*,*) X, " is exceeding the threshold of 1 for phase difference!"
           write(*,*) "This calculation is unstable and therefore aborted!!!"
           write(*,*)
-          stop
+#if !defined(MPI)
+          stop 911
+#else
+          merr=911
+          call MPI_ABORT(MPI_COMM_WORLD,merr,ierr)
+#endif
         endif
       End Subroutine Control_PrecisionP
 
 
       Subroutine Control_PrecisionP_Glob(Z,Z1)
+#ifdef MPI
+        Use mpi
+#endif
         Implicit none
         Complex (Kind=Kind(0.D0)), INTENT(IN) :: Z,Z1
         Real    (Kind=Kind(0.D0)) :: X
+#ifdef MPI
+        Integer:: ierr, merr
+#endif
         X = ABS(Z-Z1)
         if ( X > XMAXP_Glob ) XMAXP_Glob = X
         IF (X  >  1.d0 ) then
@@ -218,7 +257,12 @@
           write(*,*) X, " is exceeding the threshold of 1 for global phase difference!"
           write(*,*) "This calculation is unstable and therefore aborted!!!"
           write(*,*)
-          stop
+#if !defined(MPI)
+          stop 911
+#else
+          merr=911
+          call MPI_ABORT(MPI_COMM_WORLD,merr,ierr)
+#endif
         endif
         XMEANP_Glob = XMEANP_Glob + X
         NC_Phase_GLob = NC_Phase_GLob + 1
