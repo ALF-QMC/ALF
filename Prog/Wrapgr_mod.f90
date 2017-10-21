@@ -118,7 +118,7 @@ Contains
     Complex (Kind=Kind(0.d0)) :: Mat_TMP(Ndim,Ndim),  Prev_Ratiotot
     Real    (Kind=Kind(0.d0)) :: X, T0_proposal,  T0_Proposal_ratio,  S0_ratio
     Character (Len=64)        :: Mode
-    Logical                   :: Acc
+    Logical                   :: Acc, toggle1
     
     ! Wrap up, upgrade ntau1.  with B^{1}(tau1) 
     NTAU1 = NTAU + 1
@@ -152,7 +152,8 @@ Contains
           Prev_Ratiotot = cmplx(1.d0,0.d0,kind(0.d0))
           Call Upgrade2(GR,n,ntau1,PHASE,Op_V(n,nf)%N_non_Zero,Flip_value(1), Prev_Ratiotot, S0_ratio,T0_Proposal_ratio, Acc, mode ) 
        else
-          Call Control_upgrade_eff(.false.)
+          toggle1 = .false.
+          Call Control_upgrade_eff(toggle1)
        Endif
        do nf = 1,N_FL
           N_type =  2
@@ -218,7 +219,7 @@ Contains
     Complex (Kind=Kind(0.d0)) :: Mat_TMP(Ndim,Ndim),  Prev_Ratiotot
     Real    (Kind=Kind(0.d0)) :: spin, T0_proposal,  T0_Proposal_ratio,  S0_ratio
     Character (Len=64)        :: Mode
-    Logical                   :: Acc
+    Logical                   :: Acc, toggle1
 
 
     If ( N_Global_tau > 0 ) then 
@@ -254,7 +255,8 @@ Contains
           Prev_Ratiotot = cmplx(1.d0,0.d0,kind(0.d0))
           Call Upgrade2(GR,n,ntau,PHASE,Op_V(n,nf)%N_non_Zero,Flip_value(1), Prev_Ratiotot, S0_ratio,T0_Proposal_ratio, Acc, mode ) 
        else
-          Call Control_upgrade_eff(.false.)
+          toggle1 = .false.
+          Call Control_upgrade_eff(toggle1)
        Endif
      
        !Call Upgrade(GR,n,ntau,PHASE,Op_V(n,1)%N_non_zero) 
