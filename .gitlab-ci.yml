@@ -22,7 +22,7 @@ stages:
   script:
     - . configureHPC.sh GNU noMPI log
     - export f90="/opt/pgi/linux86-64/2016/bin/pgfortran"
-    - export FL="-O3"
+    - export FL="-O3 -DLOG"
     - export LIB_BLAS_LAPACK="-L/opt/pgi/linux86-64/2016/lib -llapack -lblas"
     - export F90USEFULFLAGS="-Mpreprocess"
     - cd Libraries
@@ -170,7 +170,7 @@ GQMCT_Wheezy-PGI_conv:
   script:
     - . configureHPC.sh GNU noMPI log
     - export f90="/opt/pgi/linux86-64/2016/bin/pgfortran"
-    - export FL="-O3 -Minform=inform"
+    - export FL="-O3 -Minform=inform -DLOG"
     - export LIB_BLAS_LAPACK="-L/opt/pgi/linux86-64/2016/lib -llapack -lblas"
     - export F90USEFULFLAGS="-Mpreprocess -Minform=inform"
     - cd Libraries
@@ -227,7 +227,7 @@ GQMCT_Jessie-PGI_tests:
   script:
     - . configureHPC.sh GNU noMPI log
     - export f90="/opt/pgi/linux86-64/2016/bin/pgfortran"
-    - export FL="-O3"
+    - export FL="-O3 -DLOG"
     - export LIB_BLAS_LAPACK="-L/opt/pgi/linux86-64/2016/lib -llapack -lblas"
     - export F90USEFULFLAGS="-Mpreprocess"
     - cd Libraries
