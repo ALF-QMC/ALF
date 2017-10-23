@@ -51,6 +51,9 @@
 
           NAMELIST /VAR_Z2_FLstar/  ham_T, Ham_Vint,  Ham_U,  Dtau, Beta, Ham_JKA, Ham_JKB, checkerboard
 
+#if !defined(LOG)
+          a=1 ! this line should cause a compiler error (undeclared variable a) if LOG has not been defined as required by this model
+#endif
 
 #if defined(MPI)
           Integer        :: Isize, Irank, irank_g, isize_g, igroup
@@ -967,29 +970,232 @@
           Implicit none
           Real (Kind=Kind(0.d0)), intent(out) :: T0_Proposal_ratio, size_clust
           Integer, dimension(:,:),  allocatable, intent(in)  :: nsigma_old
-          Integer :: I, length, start, t, n
+          Integer :: I, length, start, t, n, stop1, start2, stop2
+          Integer :: no, nc,I1, I2, next_nc, looplength,eff_start, sn, ndimloc
+          Real (Kind=Kind(0.d0))  :: abs_av_cmp, tmpreal
+          Integer :: Norbloc=3, Ihex(6),idamax, stop_site, next_hex, next_site, next_idx
+          Real (Kind=Kind(0.d0)), allocatable :: sigma_av(:)
+          Integer, allocatable :: SitesVisited(:,:),tmpsig(:)
+          Integer, allocatable :: HexList(:,:),Counter(:),Bondlist(:,:),BondInvlist(:,:)
+          Logical:: LoopOpen
+        
           T0_Proposal_ratio=1.d0
+        
+
+          Ndimloc = Latt%N*Norbloc
+          Allocate (HexList(4,Ndimloc), Counter(Ndimloc), BondList(6,6), BondInvList(2,-15:15))
+          Allocate (sigma_av(15*Latt%N),SitesVisited(4,Ndimloc),tmpsig(Ltrot))
           
-          I=nranf(Latt%N)
+          start=1
+          length=Ltrot
+          stop1=Ltrot
+!           start=nranf(Ltrot)
+!           length=nranf(Ltrot)
+!           stop1=start+length-1
+          start2=1
+          stop2=0
+!           if (stop1>Ltrot) then
+!             stop2=stop1-Ltrot
+!             stop1=Ltrot
+!           endif
+          
+          Counter=0
+          Bondlist=0
+          no=0
+          do I1=1,5
+            do I2=I1+1,6
+              no = no+1
+              Bondlist(I1,I2)=no
+              Bondlist(I2,I1)=-no
+              BondInvlist(1,no)=I1
+              BondInvlist(2,no)=I2
+              BondInvlist(1,-no)=I2
+              BondInvlist(2,-no)=I1
+            enddo
+          enddo
+                
+          Do I = 1,Latt%N
+            ! "true" interaction of the total density per hexagon of the kagome lattice
+            Ihex(1) = Invlist(I,3)
+            Ihex(2) = Invlist(I,2)
+            Ihex(3) = Invlist(Latt%nnlist(I,1,0),1)
+            Ihex(4) = Invlist(Latt%nnlist(I,1,0),3)
+            Ihex(5) = Invlist(Latt%nnlist(I,0,1),2)
+            Ihex(6) = Invlist(Latt%nnlist(I,0,1),1)
+            
+            Do I1=1,6
+              HexList(2*Counter(Ihex(I1))+1,Ihex(I1))=I
+              HexList(2*Counter(Ihex(I1))+2,Ihex(I1))=I1
+              Counter(Ihex(I1))=Counter(Ihex(I1))+1
+  !             write(*,*) I, Ihex(I1)
+            Enddo
+  !           write(*,*) 
+            
+            no=0
+            do I1=1,5
+              do I2=I1+1,6
+                nc = Latt%N*no+I
+                sigma_av(nc)=dble(sum(nsigma_old( Latt%N*(13+no)+I,start:stop1)))/dble(length)
+                if(stop2>0) sigma_av(nc)=sigma_av(nc)+dble(sum(nsigma_old( Latt%N*(13+no)+I,start2:stop2)))/dble(length)
+                no = no+1
+              enddo
+            enddo
+          enddo
           start=nranf(Ltrot)
-          length=nranf(Ltrot)
-!           write(*,*) I, start, length
+          stop1=start
+        
+        
+!         Do I = 1,15*Latt%N
+!           write(*,*) sigma_av(I)
+!         enddo
+          I=nranf(Latt%N)
+          Ihex(1) = Invlist(I,3)
+          Ihex(2) = Invlist(I,2)
+          Ihex(3) = Invlist(Latt%nnlist(I,1,0),1)
+          Ihex(4) = Invlist(Latt%nnlist(I,1,0),3)
+          Ihex(5) = Invlist(Latt%nnlist(I,0,1),2)
+          Ihex(6) = Invlist(Latt%nnlist(I,0,1),1)
+          nc=idamax(15,sigma_av(I),Latt%N)
+          if(sigma_av(Latt%N*(nc-1)+I) < 0.d0) nc=-nc
+          stop_site=Ihex(BondInvlist(1,nc))
+          next_site=Ihex(BondInvlist(2,nc))
+          loopopen=.true.
+          SitesVisited(1,1)=stop_site
+          SitesVisited(2,1)=I
+          SitesVisited(3,1)=BondInvList(1,nc)
+          SitesVisited(4,1)=BondInvList(2,nc)
+!          write(*,*) "storing bond", SitesVisited(:,1)
+          looplength=1
+!           write(*,*)
+!           write(*,*) "start hex:", I
+!           write(*,*) "largest b:", nc
+!           write(*,*) "start    :", stop_site
+!           write(*,*) "current  :", next_site
+          next_hex=HexList(1,next_site)
+          next_idx=HexList(2,next_site)
+          if (next_hex==i) then 
+            next_hex=HexList(3,next_site)
+            next_idx=HexList(4,next_site)
+          endif
+!           write(*,*) "next hex :", next_hex
+!           write(*,*) "next idx :", next_idx
+!           do no=0,14
+!             write(*,*) sigma_av(Latt%N*no+I)
+!           enddo
           
-          nsigma=nsigma_old
-          do t=start,min(Ltrot,start+length-1)
-!           write(*,*) t
-          do n=1,15
-            nsigma(Latt%N*(12+n)+I,t)=-nsigma_old(Latt%N*(12+n)+I,t)
+          do while ( loopopen )
+            I=next_hex
+            Ihex(1) = Invlist(I,3)
+            Ihex(2) = Invlist(I,2)
+            Ihex(3) = Invlist(Latt%nnlist(I,1,0),1)
+            Ihex(4) = Invlist(Latt%nnlist(I,1,0),3)
+            Ihex(5) = Invlist(Latt%nnlist(I,0,1),2)
+            Ihex(6) = Invlist(Latt%nnlist(I,0,1),1)
+!             no=nranf(5)
+!             if(no==next_idx) no=no+1
+!             nc=Bondlist(next_idx,no)
+            if(next_idx==1) then
+              next_nc=Bondlist(next_idx,2)
+            else
+              next_nc=Bondlist(next_idx,1)
+            endif
+            abs_av_cmp=abs(sigma_av(Latt%N*(abs(next_nc)-1)+I))
+            no=1
+!             if (no .ne. next_idx) write(*,*) abs(Bondlist(next_idx,no)), sigma_av(Latt%N*(abs(Bondlist(next_idx,no))-1)+I)
+            do no=2,6
+              if (no .ne. next_idx) then
+                if(abs_av_cmp<abs(sigma_av(Latt%N*(abs(Bondlist(next_idx,no))-1)+I)) ) then
+                  next_nc=Bondlist(next_idx,no)
+                  abs_av_cmp=abs(sigma_av(Latt%N*(abs(next_nc)-1)+I))
+                endif
+              endif
+!               if (no .ne. next_idx) write(*,*) abs(Bondlist(next_idx,no)), sigma_av(Latt%N*(abs(Bondlist(next_idx,no))-1)+I)
+            enddo
+            nc=next_nc
+            looplength=looplength+1
+            SitesVisited(1,looplength)=next_site
+            SitesVisited(2,looplength)=I
+            SitesVisited(3,looplength)=BondInvList(1,nc)
+            SitesVisited(4,looplength)=BondInvList(2,nc)
+             do no = 1,6
+               if (.not.(no == BondInvList(1,nc)) .and. .not. (no == BondInvList(2,nc))) then 
+                 tmpreal=sigma_av(Latt%N*(abs(BondList(BondInvList(1,nc),no))-1)+I)
+                 sigma_av(Latt%N*(abs(BondList(BondInvList(1,nc),no))-1)+I)=sigma_av(Latt%N*(abs(BondList(BondInvList(2,nc),no))-1)+I)
+                 sigma_av(Latt%N*(abs(BondList(BondInvList(2,nc),no))-1)+I)=tmpreal
+               endif
+             enddo
+!            write(*,*) "storing bond", SitesVisited(:,1)
+  !           write(*,*)
+!             write(*,*) "next b  :", nc
+            next_site=Ihex(BondInvlist(2,nc))
+!             write(*,*) "current  :", next_site
+            Do no=1,looplength
+!               write(*,*) "testing",SitesVisited(1,no), next_site
+               if ( SitesVisited(1,no) == next_site ) then
+                  LoopOpen = .false.
+                  eff_start = no
+!                   write(*,*) "length",looplength-eff_start+1
+!                   if (I == SitesVisited(2,no)) write(*,*) "Not ideal loop topology"
+               endif
+            enddo
+            next_hex=HexList(1,next_site)
+            next_idx=HexList(2,next_site)
+            if (next_hex==i) then 
+              next_hex=HexList(3,next_site)
+              next_idx=HexList(4,next_site)
+            endif
+!             write(*,*) "next hex :", next_hex
+!             write(*,*) "next idx :", next_idx
           enddo
-          enddo
-          do t=1,length-(Ltrot-start+1)
-!           write(*,*) t
-          do n=1,15
-            nsigma(Latt%N*(12+n)+I,t)=-nsigma_old(Latt%N*(12+n)+I,t)
-          enddo
+!           write(*,*)
+!           nsigma=nsigma_old
+          do no=eff_start,looplength
+!              write(*,*) SitesVisited(:,no)
+             do I = 1,6
+               if (.not.(I == SitesVisited(3,no))) then ! .and. .not. (I == SitesVisited(4,no))
+                 nc=BondList(SitesVisited(3,no),I)
+                 next_nc=BondList(SitesVisited(4,no),I)
+                 next_hex=SitesVisited(2,no)
+!                  write(*,*) "swapping: ",nc,next_nc
+                 sn = 1
+                 if (next_nc*nc<0) sn=-1
+                 tmpsig(start:stop1)=nsigma(Latt%N*(abs(nc)+11)+next_hex,start:stop1)
+                 nsigma(Latt%N*(abs(nc)+11)+next_hex,start:stop1)=sn*nsigma(Latt%N*(abs(next_nc)+11)+next_hex,start:stop1)
+                 nsigma(Latt%N*(abs(next_nc)+11)+next_hex,start:stop1)=sn*tmpsig(start:stop1)
+                 if (stop2>0) then
+                  tmpsig(start2:stop2)=nsigma(Latt%N*(abs(nc)+11)+next_hex,start2:stop2)
+                  nsigma(Latt%N*(abs(nc)+11)+next_hex,start2:stop2)=sn*nsigma(Latt%N*(abs(next_nc)+11)+next_hex,start2:stop2)
+                  nsigma(Latt%N*(abs(next_nc)+11)+next_hex,start2:stop2)=sn*tmpsig(start2:stop2)
+                 endif
+               endif
+             enddo
+             nc=BondList(SitesVisited(3,no),SitesVisited(4,no))
+!              write(*,*) "inverting: ",nc
+             nsigma(Latt%N*(abs(nc)+11)+next_hex,start:stop1)=-nsigma(Latt%N*(abs(nc)+11)+next_hex,start:stop1)
+             if (stop2>0) nsigma(Latt%N*(abs(nc)+11)+next_hex,start2:stop2)=-nsigma(Latt%N*(abs(nc)+11)+next_hex,start2:stop2)
           enddo
           
-          size_clust=dble(length)/dble(Ltrot)
+          
+!           I=nranf(Latt%N)
+!           start=nranf(Ltrot)
+!           length=nranf(Ltrot)
+! !           write(*,*) I, start, length
+!           
+!           nsigma=nsigma_old
+!           do t=start,min(Ltrot,start+length-1)
+! !           write(*,*) t
+!           do n=1,15
+!             nsigma(Latt%N*(12+n)+I,t)=-nsigma_old(Latt%N*(12+n)+I,t)
+!           enddo
+!           enddo
+!           do t=1,length-(Ltrot-start+1)
+! !           write(*,*) t
+!           do n=1,15
+!             nsigma(Latt%N*(12+n)+I,t)=-nsigma_old(Latt%N*(12+n)+I,t)
+!           enddo
+!           enddo
+          
+          size_clust=dble(looplength-eff_start+1)/dble(Latt%N)*dble(length)/dble(Ltrot)
           
         End Subroutine Global_move
 !========================================================================
@@ -1052,13 +1258,228 @@
           Integer,    allocatable, INTENT(INOUT) :: Flip_list(:), Flip_value(:)
           Integer, INTENT(INOUT) :: Flip_length
           Integer, INTENT(IN)    :: ntau
-          Integer                :: I
+!           Integer                :: I
+          Integer :: I, length, start, t, n, stop1, start2, stop2, tmpi
+          Integer :: no, nc,I1, I2, next_nc, looplength,eff_start, sn, ndimloc
+          Real (Kind=Kind(0.d0))  :: abs_av_cmp, tmpreal
+          Integer :: Norbloc=3, Ihex(6),idamax, stop_site, next_hex, next_site, next_idx
+          Real (Kind=Kind(0.d0)), allocatable :: sigma_av(:)
+          Integer, allocatable :: SitesVisited(:,:),tmpsig(:)
+          Integer, allocatable :: HexList(:,:),Counter(:),Bondlist(:,:),BondInvlist(:,:)
+          Logical:: LoopOpen
+        
+          T0_Proposal_ratio=1.d0
+        
+
+          Ndimloc = Latt%N*Norbloc
+          Allocate (HexList(4,Ndimloc), Counter(Ndimloc), BondList(6,6), BondInvList(2,-15:15))
+          Allocate (sigma_av(15*Latt%N),SitesVisited(4,10*Ndimloc),tmpsig(size(nsigma,1)))
           
-          Flip_length=15*Latt%N
-          Do I = 1,Flip_length
-            Flip_list(I)=I+12*Latt%N
-            Flip_value(I)=-nsigma(I+12*Latt%N,ntau)
-          Enddo
+          start=ntau
+          length=10
+          stop1=start+length-1
+          start2=1
+          stop2=0
+          if (stop1>Ltrot) then
+            stop2=stop1-Ltrot
+            stop1=Ltrot
+          endif
+          
+          Counter=0
+          Bondlist=0
+          no=0
+          do I1=1,5
+            do I2=I1+1,6
+              no = no+1
+              Bondlist(I1,I2)=no
+              Bondlist(I2,I1)=-no
+              BondInvlist(1,no)=I1
+              BondInvlist(2,no)=I2
+              BondInvlist(1,-no)=I2
+              BondInvlist(2,-no)=I1
+            enddo
+          enddo
+                
+          Do I = 1,Latt%N
+            ! "true" interaction of the total density per hexagon of the kagome lattice
+            Ihex(1) = Invlist(I,3)
+            Ihex(2) = Invlist(I,2)
+            Ihex(3) = Invlist(Latt%nnlist(I,1,0),1)
+            Ihex(4) = Invlist(Latt%nnlist(I,1,0),3)
+            Ihex(5) = Invlist(Latt%nnlist(I,0,1),2)
+            Ihex(6) = Invlist(Latt%nnlist(I,0,1),1)
+            
+            Do I1=1,6
+              HexList(2*Counter(Ihex(I1))+1,Ihex(I1))=I
+              HexList(2*Counter(Ihex(I1))+2,Ihex(I1))=I1
+              Counter(Ihex(I1))=Counter(Ihex(I1))+1
+  !             write(*,*) I, Ihex(I1)
+            Enddo
+  !           write(*,*) 
+            
+!             no=0
+!             do I1=1,5
+!               do I2=I1+1,6
+!                 nc = Latt%N*no+I
+!                 sigma_av(nc)=dble(sum(nsigma( Latt%N*(13+no)+I,start:stop1)))/dble(length)
+!                 if(stop2>0) sigma_av(nc)=sigma_av(nc)+dble(sum(nsigma( Latt%N*(13+no)+I,start2:stop2)))/dble(length)
+!                 no = no+1
+!               enddo
+!             enddo
+          enddo
+          start=nranf(Ltrot)
+          stop1=start
+        
+        
+!         Do I = 1,15*Latt%N
+!           write(*,*) sigma_av(I)
+!         enddo
+          I=nranf(Latt%N)
+          Ihex(1) = Invlist(I,3)
+          Ihex(2) = Invlist(I,2)
+          Ihex(3) = Invlist(Latt%nnlist(I,1,0),1)
+          Ihex(4) = Invlist(Latt%nnlist(I,1,0),3)
+          Ihex(5) = Invlist(Latt%nnlist(I,0,1),2)
+          Ihex(6) = Invlist(Latt%nnlist(I,0,1),1)
+          nc=nranf(15)!idamax(15,sigma_av(I),Latt%N)
+          if(sigma_av(Latt%N*(nc-1)+I) < 0.d0) nc=-nc
+          stop_site=Ihex(BondInvlist(1,nc))
+          next_site=Ihex(BondInvlist(2,nc))
+          loopopen=.true.
+          SitesVisited(1,1)=stop_site
+          SitesVisited(2,1)=I
+          SitesVisited(3,1)=BondInvList(1,nc)
+          SitesVisited(4,1)=BondInvList(2,nc)
+!          write(*,*) "storing bond", SitesVisited(:,1)
+          looplength=1
+          eff_start=1
+!           write(*,*)
+!           write(*,*) "start hex:", I
+!           write(*,*) "largest b:", nc
+!           write(*,*) "start    :", stop_site
+!           write(*,*) "current  :", next_site
+          next_hex=HexList(1,next_site)
+          next_idx=HexList(2,next_site)
+          if (next_hex==i) then 
+            next_hex=HexList(3,next_site)
+            next_idx=HexList(4,next_site)
+          endif
+!           write(*,*) "next hex :", next_hex
+!           write(*,*) "next idx :", next_idx
+!           do no=0,14
+!             write(*,*) sigma_av(Latt%N*no+I)
+!           enddo
+!           
+!           do while ( loopopen )
+!             I=next_hex
+!             Ihex(1) = Invlist(I,3)
+!             Ihex(2) = Invlist(I,2)
+!             Ihex(3) = Invlist(Latt%nnlist(I,1,0),1)
+!             Ihex(4) = Invlist(Latt%nnlist(I,1,0),3)
+!             Ihex(5) = Invlist(Latt%nnlist(I,0,1),2)
+!             Ihex(6) = Invlist(Latt%nnlist(I,0,1),1)
+!             no=nranf(5)
+!             if(no==next_idx) no=no+1
+!             nc=Bondlist(next_idx,no)
+! !             if(next_idx==1) then
+! !               next_nc=Bondlist(next_idx,2)
+! !             else
+! !               next_nc=Bondlist(next_idx,1)
+! !             endif
+! !             abs_av_cmp=abs(sigma_av(Latt%N*(abs(next_nc)-1)+I))
+! !             no=1
+! ! !             if (no .ne. next_idx) write(*,*) abs(Bondlist(next_idx,no)), sigma_av(Latt%N*(abs(Bondlist(next_idx,no))-1)+I)
+! !             do no=2,6
+! !               if (no .ne. next_idx) then
+! !                 if(abs_av_cmp<abs(sigma_av(Latt%N*(abs(Bondlist(next_idx,no))-1)+I)) ) then
+! !                   next_nc=Bondlist(next_idx,no)
+! !                   abs_av_cmp=abs(sigma_av(Latt%N*(abs(next_nc)-1)+I))
+! !                 endif
+! !               endif
+! ! !               if (no .ne. next_idx) write(*,*) abs(Bondlist(next_idx,no)), sigma_av(Latt%N*(abs(Bondlist(next_idx,no))-1)+I)
+! !             enddo
+! !             nc=next_nc
+!             looplength=looplength+1
+!             SitesVisited(1,looplength)=next_site
+!             SitesVisited(2,looplength)=I
+!             SitesVisited(3,looplength)=BondInvList(1,nc)
+!             SitesVisited(4,looplength)=BondInvList(2,nc)
+! !              do no = 1,6
+! !                if (.not.(no == BondInvList(1,nc)) .and. .not. (no == BondInvList(2,nc))) then
+! !                  tmpreal=sigma_av(Latt%N*(abs(BondList(BondInvList(1,nc),no))-1)+I)
+! !                  sigma_av(Latt%N*(abs(BondList(BondInvList(1,nc),no))-1)+I)=sigma_av(Latt%N*(abs(BondList(BondInvList(2,nc),no))-1)+I)
+! !                  sigma_av(Latt%N*(abs(BondList(BondInvList(2,nc),no))-1)+I)=tmpreal
+! !                endif
+! !              enddo
+! !              write(*,*) "inverting: ",nc
+! !            write(*,*) "storing bond", SitesVisited(:,1)
+!   !           write(*,*)
+! !             write(*,*) "next b  :", nc
+!             next_site=Ihex(BondInvlist(2,nc))
+! !             write(*,*) "current  :", next_site
+!             Do no=1,looplength
+! !               write(*,*) "testing",SitesVisited(1,no), next_site
+!                if ( SitesVisited(1,no) == next_site ) then ! .and. SitesVisited(2,no) /= I
+!                   LoopOpen = .false.
+!                   eff_start = no
+!                   write(*,*) "length",looplength-eff_start+1
+!                   if (I == SitesVisited(2,no)) write(*,*) "Not ideal loop topology"
+!                endif
+!             enddo
+!             next_hex=HexList(1,next_site)
+!             next_idx=HexList(2,next_site)
+!             if (next_hex==i) then 
+!               next_hex=HexList(3,next_site)
+!               next_idx=HexList(4,next_site)
+!             endif
+! !             write(*,*) "next hex :", next_hex
+! !             write(*,*) "next idx :", next_idx
+!           enddo
+!           write(*,*)
+!           nsigma=nsigma_old
+
+          Flip_length=9*(looplength-eff_start+1)
+          I1=1
+          tmpsig=nsigma(:,ntau)
+          do no=eff_start,looplength
+!              write(*,*) SitesVisited(:,no)
+             do I = 1,6
+               if (.not.(I == SitesVisited(3,no)) .and. .not. (I == SitesVisited(4,no))) then
+                 nc=BondList(SitesVisited(3,no),I)
+                 next_nc=BondList(SitesVisited(4,no),I)
+                 next_hex=SitesVisited(2,no)
+!                  write(*,*) "swapping: ",nc,next_nc,Latt%N*(abs(nc)+11)+next_hex,Latt%N*(abs(next_nc)+11)+next_hex
+                 sn = 1
+                 if (next_nc*nc<0) sn=-1
+                 tmpi=tmpsig(Latt%N*(abs(nc)+11)+next_hex)
+                 tmpsig(Latt%N*(abs(nc)+11)+next_hex)=sn*tmpsig(Latt%N*(abs(next_nc)+11)+next_hex)
+                 tmpsig(Latt%N*(abs(next_nc)+11)+next_hex)=sn*tmpi
+                 Flip_list(I1)=Latt%N*(abs(nc)+11)+next_hex
+                 Flip_value(I1)=tmpsig(Latt%N*(abs(nc)+11)+next_hex)
+                 Flip_list(I1+1)=Latt%N*(abs(next_nc)+11)+next_hex
+                 Flip_value(I1+1)=tmpsig(Latt%N*(abs(next_nc)+11)+next_hex)
+                 I1=I1+2
+               endif
+             enddo
+             nc=BondList(SitesVisited(3,no),SitesVisited(4,no))
+!              write(*,*) "inverting: ",nc
+             tmpsig(Latt%N*(abs(nc)+11)+next_hex)=-tmpsig(Latt%N*(abs(nc)+11)+next_hex)
+             Flip_list(I1)=Latt%N*(abs(nc)+11)+next_hex
+             Flip_value(I1)=tmpsig(Latt%N*(abs(nc)+11)+next_hex)
+             I1=I1+1
+!              nsigma(Latt%N*(abs(nc)+11)+next_hex,start:stop1)=-nsigma(Latt%N*(abs(nc)+11)+next_hex,start:stop1)
+!              if (stop2>0) nsigma(Latt%N*(abs(nc)+11)+next_hex,start2:stop2)=-nsigma(Latt%N*(abs(nc)+11)+next_hex,start2:stop2)
+          enddo
+          
+!           Do I = 1,Flip_length
+!             write(*,*)"Flip", Flip_list(I), Flip_value(I)
+!           Enddo
+          
+!           Flip_length=15*Latt%N
+!           Do I = 1,Flip_length
+!             Flip_list(I)=I+12*Latt%N
+!             Flip_value(I)=-nsigma(I+12*Latt%N,ntau)
+!           Enddo
           T0_Proposal_ratio=1.d0
           S0_ratio=1.d0
 
