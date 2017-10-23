@@ -7,7 +7,7 @@ stages:
 .build_template: &build_definition
   stage: build
   script:
-    - . configureHPC.sh GNU noMPI
+    - . configureHPC.sh GNU noMPI log
     - export f90="gfortran"
     - cd Libraries
     - gfortran -v
@@ -20,7 +20,7 @@ stages:
 .build_template_pgi: &build_definition_pgi
   stage: build
   script:
-    - . configureHPC.sh GNU noMPI
+    - . configureHPC.sh GNU noMPI log
     - export f90="/opt/pgi/linux86-64/2016/bin/pgfortran"
     - export FL="-O3"
     - export LIB_BLAS_LAPACK="-L/opt/pgi/linux86-64/2016/lib -llapack -lblas"
@@ -36,7 +36,7 @@ stages:
 .warnconv_template: &warnconv_definition
   stage: warnconv
   script:
-    - . configureHPC.sh GNU noMPI
+    - . configureHPC.sh GNU noMPI log
     - export f90="gfortran"
     - export FL="$FL -Wconversion -Werror"
     - cd Libraries
@@ -50,7 +50,7 @@ stages:
 .test_template: &test_definition
   stage: test
   script:
-    - . configureHPC.sh GNU noMPI
+    - . configureHPC.sh GNU noMPI log
     - export f90="gfortran"
     - cd Libraries
     - gfortran -v
@@ -124,7 +124,7 @@ GQMCT_Jessie_MPI:
   stage: build
   script:
     - gfortran -v
-    - . configureHPC.sh GNU Tempering
+    - . configureHPC.sh GNU Tempering log
     - make f90='mpif90' lib
     - make f90='mpif90' Z2-FLstar
 
@@ -168,7 +168,7 @@ GQMCT_Wheezy-PGI_conv:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-wheezy-pgi
   stage: warnconv
   script:
-    - . configureHPC.sh GNU noMPI
+    - . configureHPC.sh GNU noMPI log
     - export f90="/opt/pgi/linux86-64/2016/bin/pgfortran"
     - export FL="-O3 -Minform=inform"
     - export LIB_BLAS_LAPACK="-L/opt/pgi/linux86-64/2016/lib -llapack -lblas"
@@ -225,7 +225,7 @@ GQMCT_Jessie-PGI_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-pgi-cmake
   stage: test
   script:
-    - . configureHPC.sh GNU noMPI
+    - . configureHPC.sh GNU noMPI log
     - export f90="/opt/pgi/linux86-64/2016/bin/pgfortran"
     - export FL="-O3"
     - export LIB_BLAS_LAPACK="-L/opt/pgi/linux86-64/2016/lib -llapack -lblas"
@@ -249,7 +249,7 @@ GQMCT_jessie_valgrind:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-blas-lapack-valgrind
   stage: memleaks
   script:
-      - . configureHPC.sh 
+      - . configureHPC.sh
       - export f90="gfortran"
       - export FL="${FL} -g"
       - cd Libraries
