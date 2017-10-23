@@ -86,7 +86,13 @@
          READ(5,NML=VAR_errors)
          CLOSE(5)
 
-         If ( Lattice_type =="Square" ) then
+         If ( Lattice_type =="BipartiteSquare" ) then
+            a1_p(1) =  1.D0/sqrt(2.D0)  ; a1_p(2) =  1.D0/sqrt(2.D0)
+            a2_p(1) =  1.D0/sqrt(2.D0)  ; a2_p(2) = -1.D0/sqrt(2.D0)
+            L1_p    =  dble(L1)*a1_p
+            L2_p    =  dble(L2)*a2_p
+            Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
+         elseif ( Lattice_type =="Square" ) then
             a1_p(1) =  1.0  ; a1_p(2) =  0.d0
             a2_p(1) =  0.0  ; a2_p(2) =  1.d0
             L1_p    =  dble(L1)*a1_p

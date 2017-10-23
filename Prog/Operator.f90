@@ -182,7 +182,6 @@ Contains
     Real    (Kind=Kind(0.d0)) :: Zero = 1.E-9
     Integer :: N, I, J, np,nz
     Complex (Kind=Kind(0.d0)) :: Z
-    Complex (Kind=Kind(0.d0)) :: ZLADIV
 
     If (Op%N > 1) then
        N = Op%N
@@ -221,7 +220,7 @@ Contains
           Z = Det_C(TMP, N)
           ! Scale Op%U to be in SU(N)
           DO I = 1, N
-                Op%U(I,1) = zladiv(Op%U(I, 1), Z)
+             Op%U(I,1) = Op%U(I, 1)/Z 
           ENDDO
           deallocate (U, E, TMP)
           ! Op%U,Op%E)
