@@ -37,7 +37,7 @@ stages:
     - . configureHPC.sh GNU noMPI log
     - export f90="gfortran"
     - gfortran -v
-    - make programm
+    - make program
     - cd testsuite
     - cmake -E make_directory tests
     - cd tests
