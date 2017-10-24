@@ -8,13 +8,7 @@ stages:
   stage: build
   script:
     - . configureHPC.sh GNU noMPI log
-    - export f90="gfortran"
-    - cd Libraries
     - gfortran -v
-    - make
-    - cd ..
-    - cd Prog
-    - make
     - make Z2-FLstar
 
 .build_template_pgi: &build_definition_pgi
@@ -25,12 +19,7 @@ stages:
     - export FL="-O3 -DLOG"
     - export LIB_BLAS_LAPACK="-L/opt/pgi/linux86-64/2016/lib -llapack -lblas"
     - export F90USEFULFLAGS="-Mpreprocess"
-    - cd Libraries
     - /opt/pgi/linux86-64/16.10/bin/pgfortran --version
-    - make
-    - cd ..
-    - cd Prog
-    - make
     - make Z2-FLstar
 
 .warnconv_template: &warnconv_definition
@@ -39,12 +28,7 @@ stages:
     - . configureHPC.sh GNU noMPI log
     - export f90="gfortran"
     - export FL="$FL -Wconversion -Werror"
-    - cd Libraries
     - gfortran -v
-    - make
-    - cd ..
-    - cd Prog
-    - make
     - make Z2-FLstar
 
 .test_template: &test_definition
@@ -52,13 +36,8 @@ stages:
   script:
     - . configureHPC.sh GNU noMPI log
     - export f90="gfortran"
-    - cd Libraries
     - gfortran -v
-    - make
-    - cd ..
-    - cd Prog
-    - make
-    - cd ..
+    - make programm
     - cd testsuite
     - cmake -E make_directory tests
     - cd tests
@@ -173,12 +152,7 @@ GQMCT_Wheezy-PGI_conv:
     - export FL="-O3 -Minform=inform -DLOG"
     - export LIB_BLAS_LAPACK="-L/opt/pgi/linux86-64/2016/lib -llapack -lblas"
     - export F90USEFULFLAGS="-Mpreprocess -Minform=inform"
-    - cd Libraries
     - /opt/pgi/linux86-64/16.10/bin/pgfortran --version
-    - make
-    - cd ..
-    - cd Prog
-    - make
     - make Z2-FLstar
   
 GQMCT_Wheezy_tests:
@@ -230,13 +204,8 @@ GQMCT_Jessie-PGI_tests:
     - export FL="-O3 -DLOG"
     - export LIB_BLAS_LAPACK="-L/opt/pgi/linux86-64/2016/lib -llapack -lblas"
     - export F90USEFULFLAGS="-Mpreprocess"
-    - cd Libraries
     - /opt/pgi/linux86-64/16.10/bin/pgfortran --version
-    - make
-    - cd ..
-    - cd Prog
-    - make
-    - cd ..
+    - make program
     - cd testsuite
     - cmake -E make_directory tests
     - cd tests
@@ -252,14 +221,10 @@ GQMCT_jessie_valgrind:
       - . configureHPC.sh
       - export f90="gfortran"
       - export FL="${FL} -g"
-      - cd Libraries
       - gfortran -v
-      - make
-      - cd ..
-      - cd Prog
       - make SPT
-      - cp SPT.out ../Test_Runs/Test_SPT/Start/
-      - cd ../Test_Runs/Test_SPT/Start/
+      - cp Prog/SPT.out Test_Runs/Test_SPT/Start/
+      - cd Test_Runs/Test_SPT/Start/
       - valgrind --leak-check=full --log-file=vglog.txt ./SPT.out
       - cat vglog.txt
       - grep lost vglog.txt | cut -d":" -f 2 | cut -d " " -f 2 | f=$(cat); echo $(( ${f//$'\n'/+} ))
