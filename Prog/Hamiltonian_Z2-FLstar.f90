@@ -1196,6 +1196,8 @@
 !           enddo
           
           size_clust=dble(looplength-eff_start+1)/dble(Latt%N)*dble(length)/dble(Ltrot)
+          Deallocate (HexList, Counter, BondList, BondInvList)
+          Deallocate (sigma_av,SitesVisited,tmpsig)
           
         End Subroutine Global_move
 !========================================================================
@@ -1482,6 +1484,8 @@
 !           Enddo
           T0_Proposal_ratio=1.d0
           S0_ratio=1.d0
+          Deallocate (HexList, Counter, BondList, BondInvList)
+          Deallocate (sigma_av,SitesVisited,tmpsig)
 
         end Subroutine Global_move_tau
 
