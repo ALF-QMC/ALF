@@ -250,7 +250,7 @@ Program Main
            Call Wrapgr_alloc
         endif
  
-        Call control_init
+        Call control_init(Group_Comm)
         Call Alloc_obs(Ltau)
         Call Op_SetHS
 
@@ -347,7 +347,7 @@ Program Main
            CALL udvst(NSTM, nf)%reset
         enddo
 
-        Call Control_init
+        Call Control_init(Group_Comm)
         
 ! Introduce Simulated annealing
         

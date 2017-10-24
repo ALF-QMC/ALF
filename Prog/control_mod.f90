@@ -60,12 +60,20 @@
     
     real    (Kind=Kind(0.d0)),  private, save :: size_clust_Glob_up, size_clust_Glob_ACC_up
     real    (Kind=Kind(0.d0)),  private, save :: size_clust_Glob_tau_up, size_clust_Glob_tau_ACC_up
+#ifdef MPI
+    Integer                  ,  private, save :: Ierr, Isize, Irank, irank_g, isize_g, igroup
+#endif
 
     
     Contains
 
-      subroutine control_init
+      subroutine control_init(Group_Comm)
+#ifdef MPI
+        Use mpi
+#endif
         Implicit none
+        Integer, Intent(IN) :: Group_Comm
+        
         XMEANG     = 0.d0
         XMEAN_tau  = 0.d0
         XMAXG      = 0.d0
@@ -94,6 +102,14 @@
         
         size_clust_Glob_tau_up    = 0.d0
         size_clust_Glob_tau_ACC_up= 0.d0
+        
+#ifdef MPI
+        CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
+        CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+        call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+        call MPI_Comm_size(Group_Comm, isize_g, ierr)
+        igroup           = irank/isize_g
+#endif
 
         call system_clock(count_CPU_start,count_rate,count_max)
       end subroutine control_init
@@ -153,6 +169,7 @@
         Integer :: Ndim
         Complex (Kind=Kind(0.d0)) :: A(Ndim,Ndim), B(Ndim,Ndim) 
         Real    (Kind=Kind(0.d0)) :: XMAX, XMEAN
+        Character (len=64) :: file1 
 #ifdef MPI
         Integer:: ierr, merr
 #endif
@@ -163,7 +180,26 @@
         CALL COMPARE(A, B, XMAX, XMEAN)
         IF (XMAX  >  XMAXG) XMAXG = XMAX
         IF (XMAX  >  10.d0 ) then
+
+#if defined(TEMPERING) 
+          write(File1,'(A,I0,A)') "Temp_",igroup,"/info"
+#else
+          File1 = "info"
+#endif
+          Open (Unit=50,file=file1, status="unknown", position="append")
+          write(50,*)
+#ifdef MPI
+          write(50,*) "Task", Irank_g, "of group", igroup, "reports:"
+#endif
+          write(50,*) XMAX, " is exceeding the threshold of 10 for G difference!"
+          write(50,*) (XmeanG+Xmean)/ncg, " is the average deviation!"
+          write(50,*) "This calculation is unstable and therefore aborted!!!"
+          write(50,*)
+          close(50)
           write(*,*)
+#ifdef MPI
+          write(*,*) "Task", Irank_g, "of group", igroup, "reports:"
+#endif
           write(*,*) XMAX, " is exceeding the threshold of 10 for G difference!"
           write(*,*) (XmeanG+Xmean)/ncg, " is the average deviation!"
           write(*,*) "This calculation is unstable and therefore aborted!!!"
@@ -187,6 +223,7 @@
         Integer :: Ndim
         Complex (Kind=Kind(0.d0)) :: A(Ndim,Ndim), B(Ndim,Ndim) 
         Real    (Kind=Kind(0.d0)) :: XMAX, XMEAN
+        Character (len=64) :: file1 
 #ifdef MPI
         Integer:: ierr, merr
 #endif
@@ -197,7 +234,26 @@
         CALL COMPARE(A, B, XMAX, XMEAN)
         IF (XMAX  >  XMAX_tau) XMAX_tau = XMAX
         IF (XMAX  >  10.d0 ) then
+
+#if defined(TEMPERING) 
+          write(File1,'(A,I0,A)') "Temp_",igroup,"/info"
+#else
+          File1 = "info"
+#endif
+          Open (Unit=50,file=file1, status="unknown", position="append")
+          write(50,*)
+#ifdef MPI
+          write(50,*) "Task", Irank_g, "of group", igroup, "reports:"
+#endif
+          write(50,*) XMAX, " is exceeding the threshold of 10 for G_tau difference!"
+          write(50,*) (Xmean_tau+Xmean)/ncg_tau, " is the average deviation!"
+          write(50,*) "This calculation is unstable and therefore aborted!!!"
+          write(50,*)
+          close(50)
           write(*,*)
+#ifdef MPI
+          write(*,*) "Task", Irank_g, "of group", igroup, "reports:"
+#endif
           write(*,*) XMAX, " is exceeding the threshold of 10 for G_tau difference!"
           write(*,*) (Xmean_tau+Xmean)/ncg_tau, " is the average deviation!"
           write(*,*) "This calculation is unstable and therefore aborted!!!"
@@ -220,13 +276,32 @@
         Implicit none
         Complex (Kind=Kind(0.D0)), INTENT(IN) :: Z,Z1
         Real    (Kind=Kind(0.D0)) :: X
+        Character (len=64) :: file1 
 #ifdef MPI
         Integer:: ierr, merr
 #endif
         X = ABS(Z-Z1)
         if ( X > XMAXP ) XMAXP = X
         IF (X  >  1.d0 ) then
+
+#if defined(TEMPERING) 
+          write(File1,'(A,I0,A)') "Temp_",igroup,"/info"
+#else
+          File1 = "info"
+#endif
+          Open (Unit=50,file=file1, status="unknown", position="append")
+          write(50,*)
+#ifdef MPI
+          write(50,*) "Task", Irank_g, "of group", igroup, "reports:"
+#endif
+          write(50,*) X, " is exceeding the threshold of 1 for phase difference!"
+          write(50,*) "This calculation is unstable and therefore aborted!!!"
+          write(50,*)
+          close(50)
           write(*,*)
+#ifdef MPI
+          write(*,*) "Task", Irank_g, "of group", igroup, "reports:"
+#endif
           write(*,*) X, " is exceeding the threshold of 1 for phase difference!"
           write(*,*) "This calculation is unstable and therefore aborted!!!"
           write(*,*)
@@ -247,13 +322,31 @@
         Implicit none
         Complex (Kind=Kind(0.D0)), INTENT(IN) :: Z,Z1
         Real    (Kind=Kind(0.D0)) :: X
+        Character (len=64) :: file1 
 #ifdef MPI
         Integer:: ierr, merr
 #endif
         X = ABS(Z-Z1)
         if ( X > XMAXP_Glob ) XMAXP_Glob = X
         IF (X  >  1.d0 ) then
+#if defined(TEMPERING) 
+          write(File1,'(A,I0,A)') "Temp_",igroup,"/info"
+#else
+          File1 = "info"
+#endif
+          Open (Unit=50,file=file1, status="unknown", position="append")
+          write(50,*)
+#ifdef MPI
+          write(50,*) "Task", Irank_g, "of group", igroup, "reports:"
+#endif
+          write(50,*) X, " is exceeding the threshold of 1 for global phase difference!"
+          write(50,*) "This calculation is unstable and therefore aborted!!!"
+          write(50,*)
+          close(50)
           write(*,*)
+#ifdef MPI
+          write(*,*) "Task", Irank_g, "of group", igroup, "reports:"
+#endif
           write(*,*) X, " is exceeding the threshold of 1 for global phase difference!"
           write(*,*) "This calculation is unstable and therefore aborted!!!"
           write(*,*)
@@ -282,13 +375,6 @@
         Real (Kind=Kind(0.d0)) :: Acc_Glob_tau, size_clust_Glob_tau, size_clust_Glob_tau_ACC
 #ifdef MPI
         REAL (Kind=Kind(0.d0))  :: X
-        Integer        :: Ierr, Isize, Irank, irank_g, isize_g, igroup
-
-        CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-        CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-        call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-        call MPI_Comm_size(Group_Comm, isize_g, ierr)
-        igroup           = irank/isize_g
 #endif
        
         ACC = 0.d0
