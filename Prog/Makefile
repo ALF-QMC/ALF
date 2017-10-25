@@ -40,6 +40,11 @@ Z2-FLstar:
 	cp $(Libs)/Modules/*.mod . ;\
 	(make -f Compile_Z2-FLstar  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" LF="$(LF)" F90USEFULFLAGS="$(F90USEFULFLAGS)")
 
+QSH:
+	./Git_config.sh; \
+	cp $(Libs)/Modules/*.mod . ;\
+	(make -f Compile_QSH  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" LF="$(LF)" F90USEFULFLAGS="$(F90USEFULFLAGS)")
+
 
 Kondo_Honey:
 	./Git_config.sh; \
@@ -55,4 +60,5 @@ clean:
 	(make -f Compile_Kondo_Honey clean );\
 	(make -f Compile_Z2_Slave clean );\
 	(make -f Compile_NematicDirac clean );\
+	(make -f Compile_QSH clean );\
 	rm -f *.mod *~ \#* 

@@ -19,6 +19,8 @@ Kondo_Honey: lib
 	cd Prog && $(MAKE) Kondo_Honey
 Z2_Slave: lib
 	cd Prog && $(MAKE) Z2_Slave
+QSH: lib
+	cd Prog && $(MAKE) QSH
 
 .PHONY : clean cleanall cleanprog cleanlib cleanana help
 clean: cleanall
