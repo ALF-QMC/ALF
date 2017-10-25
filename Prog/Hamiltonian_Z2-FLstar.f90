@@ -29,6 +29,7 @@
       real (Kind=Kind(0.d0)), private :: Dtau, Beta
       Character (len=64),     private :: Model, Lattice_type, File1
       logical,                private :: checkerboard
+      Integer, allocatable,   private :: HexList(:,:),Bondlist(:,:),BondInvlist(:,:)
 
 
 !>    Privat Observables
@@ -152,8 +153,10 @@
         Subroutine Ham_Latt
           Implicit none
           !Set the lattice
-          Integer :: no, I, nc
+          Integer :: no, I, nc, ndimloc, Ihex(6), I1, I2
           Real (Kind=Kind(0.d0))  :: a1_p(2), a2_p(2), L1_p(2), L2_p(2)
+          Integer, allocatable :: Counter(:)
+          
           
           If  ( Lattice_type == "Kagome" ) then
              a1_p(1) =  1.D0   ; a1_p(2) =  0.d0
@@ -180,6 +183,9 @@
 
           Ndim = Latt%N*Norb
           Allocate (List(Ndim,Norb), Invlist(Latt%N,Norb))
+          Ndimloc = Latt%N*3
+          Allocate (HexList(4,Ndimloc), Counter(Ndimloc), BondList(6,6), BondInvList(2,-15:15))
+          
           nc = 0
           ! "compact" f-electron Lattice supporting the Z2 spinliquid phase
           Do I = 1,Latt%N
@@ -199,6 +205,39 @@
                 Invlist(I,no) = nc 
              Enddo
           Enddo
+          
+          Bondlist=0
+          BondInvlist=0
+          no=0
+          do I1=1,5
+            do I2=I1+1,6
+              no = no+1
+              Bondlist(I1,I2)=no
+              Bondlist(I2,I1)=-no
+              BondInvlist(1,no)=I1
+              BondInvlist(2,no)=I2
+              BondInvlist(1,-no)=I2
+              BondInvlist(2,-no)=I1
+            enddo
+          enddo
+                
+          Counter=0
+          Do I = 1,Latt%N
+            ! "true" interaction of the total density per hexagon of the kagome lattice
+            Ihex(1) = Invlist(I,3)
+            Ihex(2) = Invlist(I,2)
+            Ihex(3) = Invlist(Latt%nnlist(I,1,0),1)
+            Ihex(4) = Invlist(Latt%nnlist(I,1,0),3)
+            Ihex(5) = Invlist(Latt%nnlist(I,0,1),2)
+            Ihex(6) = Invlist(Latt%nnlist(I,0,1),1)
+            
+            Do I1=1,6
+              HexList(2*Counter(Ihex(I1))+1,Ihex(I1))=I
+              HexList(2*Counter(Ihex(I1))+2,Ihex(I1))=I1
+              Counter(Ihex(I1))=Counter(Ihex(I1))+1
+            Enddo
+          enddo
+          Deallocate(Counter)
 
         end Subroutine Ham_Latt
 
@@ -976,14 +1015,11 @@
           Integer :: Norbloc=3, Ihex(6),idamax, stop_site, next_hex, next_site, next_idx
           Real (Kind=Kind(0.d0)), allocatable :: sigma_av(:)
           Integer, allocatable :: SitesVisited(:,:),tmpsig(:)
-          Integer, allocatable :: HexList(:,:),Counter(:),Bondlist(:,:),BondInvlist(:,:)
           Logical:: LoopOpen
         
           T0_Proposal_ratio=1.d0
         
-
-          Ndimloc = Latt%N*Norbloc
-          Allocate (HexList(4,Ndimloc), Counter(Ndimloc), BondList(6,6), BondInvList(2,-15:15))
+          ndimloc=3*Latt%N
           Allocate (sigma_av(15*Latt%N),SitesVisited(4,Ndimloc),tmpsig(Ltrot))
           
           start=1
@@ -998,39 +1034,8 @@
 !             stop2=stop1-Ltrot
 !             stop1=Ltrot
 !           endif
-          
-          Counter=0
-          Bondlist=0
-          no=0
-          do I1=1,5
-            do I2=I1+1,6
-              no = no+1
-              Bondlist(I1,I2)=no
-              Bondlist(I2,I1)=-no
-              BondInvlist(1,no)=I1
-              BondInvlist(2,no)=I2
-              BondInvlist(1,-no)=I2
-              BondInvlist(2,-no)=I1
-            enddo
-          enddo
                 
           Do I = 1,Latt%N
-            ! "true" interaction of the total density per hexagon of the kagome lattice
-            Ihex(1) = Invlist(I,3)
-            Ihex(2) = Invlist(I,2)
-            Ihex(3) = Invlist(Latt%nnlist(I,1,0),1)
-            Ihex(4) = Invlist(Latt%nnlist(I,1,0),3)
-            Ihex(5) = Invlist(Latt%nnlist(I,0,1),2)
-            Ihex(6) = Invlist(Latt%nnlist(I,0,1),1)
-            
-            Do I1=1,6
-              HexList(2*Counter(Ihex(I1))+1,Ihex(I1))=I
-              HexList(2*Counter(Ihex(I1))+2,Ihex(I1))=I1
-              Counter(Ihex(I1))=Counter(Ihex(I1))+1
-  !             write(*,*) I, Ihex(I1)
-            Enddo
-  !           write(*,*) 
-            
             no=0
             do I1=1,5
               do I2=I1+1,6
@@ -1120,7 +1125,8 @@
              do no = 1,6
                if (.not.(no == BondInvList(1,nc)) .and. .not. (no == BondInvList(2,nc))) then 
                  tmpreal=sigma_av(Latt%N*(abs(BondList(BondInvList(1,nc),no))-1)+I)
-                 sigma_av(Latt%N*(abs(BondList(BondInvList(1,nc),no))-1)+I)=sigma_av(Latt%N*(abs(BondList(BondInvList(2,nc),no))-1)+I)
+                 sigma_av(Latt%N*(abs(BondList(BondInvList(1,nc),no))-1)+I)=&
+                    & sigma_av(Latt%N*(abs(BondList(BondInvList(2,nc),no))-1)+I)
                  sigma_av(Latt%N*(abs(BondList(BondInvList(2,nc),no))-1)+I)=tmpreal
                endif
              enddo
@@ -1196,7 +1202,7 @@
 !           enddo
           
           size_clust=dble(looplength-eff_start+1)/dble(Latt%N)*dble(length)/dble(Ltrot)
-          Deallocate (HexList, Counter, BondList, BondInvList)
+          
           Deallocate (sigma_av,SitesVisited,tmpsig)
           
         End Subroutine Global_move
@@ -1267,15 +1273,13 @@
           Integer :: Norbloc=3, Ihex(6),idamax, stop_site, next_hex, next_site, next_idx
           Real (Kind=Kind(0.d0)), allocatable :: sigma_av(:)
           Integer, allocatable :: SitesVisited(:,:),tmpsig(:)
-          Integer, allocatable :: HexList(:,:),Counter(:),Bondlist(:,:),BondInvlist(:,:)
           Logical:: LoopOpen
         
           T0_Proposal_ratio=1.d0
         
 
           Ndimloc = Latt%N*Norbloc
-          Allocate (HexList(4,Ndimloc), Counter(Ndimloc), BondList(6,6), BondInvList(2,-15:15))
-          Allocate (sigma_av(15*Latt%N),SitesVisited(4,10*Ndimloc),tmpsig(size(nsigma,1)))
+          Allocate (SitesVisited(4,10*Ndimloc),tmpsig(size(nsigma,1)))
           
           start=ntau
           length=10
@@ -1287,48 +1291,6 @@
             stop1=Ltrot
           endif
           
-          Counter=0
-          Bondlist=0
-          no=0
-          do I1=1,5
-            do I2=I1+1,6
-              no = no+1
-              Bondlist(I1,I2)=no
-              Bondlist(I2,I1)=-no
-              BondInvlist(1,no)=I1
-              BondInvlist(2,no)=I2
-              BondInvlist(1,-no)=I2
-              BondInvlist(2,-no)=I1
-            enddo
-          enddo
-                
-          Do I = 1,Latt%N
-            ! "true" interaction of the total density per hexagon of the kagome lattice
-            Ihex(1) = Invlist(I,3)
-            Ihex(2) = Invlist(I,2)
-            Ihex(3) = Invlist(Latt%nnlist(I,1,0),1)
-            Ihex(4) = Invlist(Latt%nnlist(I,1,0),3)
-            Ihex(5) = Invlist(Latt%nnlist(I,0,1),2)
-            Ihex(6) = Invlist(Latt%nnlist(I,0,1),1)
-            
-            Do I1=1,6
-              HexList(2*Counter(Ihex(I1))+1,Ihex(I1))=I
-              HexList(2*Counter(Ihex(I1))+2,Ihex(I1))=I1
-              Counter(Ihex(I1))=Counter(Ihex(I1))+1
-  !             write(*,*) I, Ihex(I1)
-            Enddo
-  !           write(*,*) 
-            
-!             no=0
-!             do I1=1,5
-!               do I2=I1+1,6
-!                 nc = Latt%N*no+I
-!                 sigma_av(nc)=dble(sum(nsigma( Latt%N*(13+no)+I,start:stop1)))/dble(length)
-!                 if(stop2>0) sigma_av(nc)=sigma_av(nc)+dble(sum(nsigma( Latt%N*(13+no)+I,start2:stop2)))/dble(length)
-!                 no = no+1
-!               enddo
-!             enddo
-          enddo
           start=nranf(Ltrot)
           stop1=start
         
@@ -1343,8 +1305,7 @@
           Ihex(4) = Invlist(Latt%nnlist(I,1,0),3)
           Ihex(5) = Invlist(Latt%nnlist(I,0,1),2)
           Ihex(6) = Invlist(Latt%nnlist(I,0,1),1)
-          nc=nranf(15)!idamax(15,sigma_av(I),Latt%N)
-          if(sigma_av(Latt%N*(nc-1)+I) < 0.d0) nc=-nc
+          nc=nranf(15)
           stop_site=Ihex(BondInvlist(1,nc))
           next_site=Ihex(BondInvlist(2,nc))
           loopopen=.true.
@@ -1383,37 +1344,11 @@
 !             no=nranf(5)
 !             if(no==next_idx) no=no+1
 !             nc=Bondlist(next_idx,no)
-! !             if(next_idx==1) then
-! !               next_nc=Bondlist(next_idx,2)
-! !             else
-! !               next_nc=Bondlist(next_idx,1)
-! !             endif
-! !             abs_av_cmp=abs(sigma_av(Latt%N*(abs(next_nc)-1)+I))
-! !             no=1
-! ! !             if (no .ne. next_idx) write(*,*) abs(Bondlist(next_idx,no)), sigma_av(Latt%N*(abs(Bondlist(next_idx,no))-1)+I)
-! !             do no=2,6
-! !               if (no .ne. next_idx) then
-! !                 if(abs_av_cmp<abs(sigma_av(Latt%N*(abs(Bondlist(next_idx,no))-1)+I)) ) then
-! !                   next_nc=Bondlist(next_idx,no)
-! !                   abs_av_cmp=abs(sigma_av(Latt%N*(abs(next_nc)-1)+I))
-! !                 endif
-! !               endif
-! ! !               if (no .ne. next_idx) write(*,*) abs(Bondlist(next_idx,no)), sigma_av(Latt%N*(abs(Bondlist(next_idx,no))-1)+I)
-! !             enddo
-! !             nc=next_nc
 !             looplength=looplength+1
 !             SitesVisited(1,looplength)=next_site
 !             SitesVisited(2,looplength)=I
 !             SitesVisited(3,looplength)=BondInvList(1,nc)
 !             SitesVisited(4,looplength)=BondInvList(2,nc)
-! !              do no = 1,6
-! !                if (.not.(no == BondInvList(1,nc)) .and. .not. (no == BondInvList(2,nc))) then
-! !                  tmpreal=sigma_av(Latt%N*(abs(BondList(BondInvList(1,nc),no))-1)+I)
-! !                  sigma_av(Latt%N*(abs(BondList(BondInvList(1,nc),no))-1)+I)=sigma_av(Latt%N*(abs(BondList(BondInvList(2,nc),no))-1)+I)
-! !                  sigma_av(Latt%N*(abs(BondList(BondInvList(2,nc),no))-1)+I)=tmpreal
-! !                endif
-! !              enddo
-! !              write(*,*) "inverting: ",nc
 ! !            write(*,*) "storing bond", SitesVisited(:,1)
 !   !           write(*,*)
 ! !             write(*,*) "next b  :", nc
@@ -1438,7 +1373,6 @@
 ! !             write(*,*) "next idx :", next_idx
 !           enddo
 !           write(*,*)
-!           nsigma=nsigma_old
 
           Flip_length=9*(looplength-eff_start+1)
           I1=1
@@ -1484,8 +1418,7 @@
 !           Enddo
           T0_Proposal_ratio=1.d0
           S0_ratio=1.d0
-          Deallocate (HexList, Counter, BondList, BondInvList)
-          Deallocate (sigma_av,SitesVisited,tmpsig)
+          Deallocate (SitesVisited,tmpsig)
 
         end Subroutine Global_move_tau
 
