@@ -535,8 +535,11 @@ Program Main
 #if defined(TEMPERING)
            Call Global_Tempering_Pr
 #endif           
-
-           Call confout(k)
+           if(nbc==nbinwarmup) then
+            Call confout(k+1)
+           else
+            Call confout(k)
+           ENDIF
            
            call system_clock(count_bin_end)
            prog_truncation = .false.
