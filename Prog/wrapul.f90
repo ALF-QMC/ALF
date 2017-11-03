@@ -58,7 +58,7 @@
 
         ! Working space.
         COMPLEX (Kind=Kind(0.d0)) ::  U1(Ndim,Ndim), V1(Ndim,Ndim), TMP(Ndim,Ndim), TMP1(Ndim,Ndim)
-        COMPLEX (Kind=Kind(0.d0)) ::  D1(Ndim), Z_ONE, beta
+        COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta
         Integer :: NT, NCON, n, nf
         Real    (Kind=Kind(0.d0)) ::  X
  
@@ -71,25 +71,26 @@
            CALL INITD(TMP,Z_ONE)
            DO NT = NTAU1, NTAU+1 , -1
               Do n = Size(Op_V,1),1,-1
-                 X = Phi(nsigma(n,nt),Op_V(n,nf)%type)
-                 Call Op_mmultL(Tmp,Op_V(n,nf),X,Ndim)
+!                  X = Phi(nsigma(n,nt),Op_V(n,nf)%type)
+                 Call Op_mmultL(Tmp,Op_V(n,nf),nsigma(n,nt),Ndim,'n')
               enddo
               !CALL MMULT( TMP1,Tmp,Exp_T(:,:,nf) )
-              Call  Hop_mod_mmthl (Tmp, Tmp1,nf)
-              Tmp = Tmp1
+              Call  Hop_mod_mmthl (Tmp,nf)
+!               Tmp = Tmp1
            ENDDO
            
            !Carry out U,D,V decomposition.
-           CALL ZGEMM('C', 'C', Ndim, Ndim, Ndim, Z_ONE, TMP, Ndim, udvl(nf)%U(1, 1), Ndim, beta, TMP1, Ndim)
-           DO n = 1,NDim
-              TMP1(:, n) = TMP1(:, n) * udvl(nf)%D(n)
-           ENDDO
-           CALL UDV_WRAP_Pivot(TMP1,U1,D1,V1,NCON,Ndim,Ndim)
-           !CALL UDV(TMP,U1,D1,V1,NCON)
-           udvl(nf)%U = CONJG(TRANSPOSE(U1))
-           CALL ZGEMM('N', 'C', Ndim, Ndim, Ndim, Z_ONE, udvl(nf)%V(1,1), Ndim, V1, Ndim, beta, TMP1, Ndim)
-           udvl(nf)%V = TMP1
-           udvl(nf)%D = D1
+           CALL ZGEMM('C', 'N', Ndim, UDVL(nf)%N_part, Ndim, Z_ONE, TMP, Ndim, udvl(nf)%U(1, 1), Ndim, beta, TMP1, Ndim)
+           if( ALLOCATED(UDVL(nf)%V) ) then
+              DO n = 1,UDVL(nf)%N_part
+                  TMP1(:, n) = TMP1(:, n) * udvl(nf)%D(n)
+              ENDDO
+              CALL UDV_WRAP_Pivot(TMP1,udvl(nf)%U,udvl(nf)%D,V1,NCON,Ndim,Ndim)
+              CALL ZGEMM('N', 'C', Ndim, Ndim, Ndim, Z_ONE, udvl(nf)%V(1,1), Ndim, V1, Ndim, beta, TMP1, Ndim)
+              udvl(nf)%V = TMP1
+           else
+              CALL UDV_WRAP_Pivot(TMP1(:,1:UDVL(nf)%N_part),udvl(nf)%U,udvl(nf)%D,V1,NCON,Ndim,UDVL(nf)%N_part)
+           endif
         ENDDO
 
 #else
@@ -102,31 +103,24 @@
 
 
         ! Working space.
-        COMPLEX (Kind=Kind(0.d0)), allocatable, dimension(:, :) :: TMP, TMP1
-        COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE
+!         TYPE(UDV_State) :: udvlocal
+!         COMPLEX (Kind=Kind(0.d0)), allocatable, dimension(:, :) :: TMP, TMP1
+!         COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE
         Integer :: NT, NCON, n, nf
-        Real    (Kind=Kind(0.d0)) ::  X
+!         Real    (Kind=Kind(0.d0)) ::  X, XMAX, XMEAN
  
         NCON = 0  ! Test for UDV ::::  0: Off,  1: On.
-        Allocate (TMP(Ndim,Ndim), TMP1(Ndim,Ndim))
-        Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
         Do nf = 1, N_FL
-           CALL INITD(TMP,Z_ONE)
            DO NT = NTAU1, NTAU+1 , -1
               Do n = Size(Op_V,1),1,-1
-                 X = Phi(nsigma(n,nt),Op_V(n,nf)%type)
-                 Call Op_mmultL(TMP,Op_V(n,nf),X,Ndim)
+                 Call Op_mmultR(udvl(nf)%U,Op_V(n,nf),nsigma(n,nt),Ndim,'c')
               enddo
-              !CALL MMULT( TMP1,Tmp,Exp_T(:,:,nf) )
-              Call  Hop_mod_mmthl (TMP, TMP1,nf)
-              TMP = TMP1
+              Call  Hop_mod_mmthlc (udvl(nf)%U,nf)
            ENDDO
            
            !Carry out U,D,V decomposition.
-           CALL UDVL(nf)%matmultright(TMP, TMP1, NCON)
-           UDVL(nf)%U = CONJG(TRANSPOSE(UDVL(nf)%U ))
+           CALL UDVL(nf)%decompose
         ENDDO
-        deallocate(TMP, TMP1)
 #endif
       END SUBROUTINE WRAPUL
       

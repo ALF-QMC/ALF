@@ -17,11 +17,12 @@ end interface
         COMPLEX(Kind=Kind(0.D0)), Dimension(:,:), allocatable :: V1, TMP, TMP1, Uold, Vold, TMPold
         COMPLEX(Kind=Kind(0.D0)), Dimension(:), allocatable ::  Dold
         INTEGER         :: i, j, Ndim, NCON
-        COMPLEX(Kind=Kind(0.D0)) :: Z, dnew
+        COMPLEX(Kind=Kind(0.D0)) :: Z, dnew, beta
         TYPE(UDV_State) :: UDVL
         
         do Ndim = 5, 200,5
         CALL UDVL%alloc(Ndim)
+        udvl%side='l'
         Allocate (Uold(Ndim, Ndim), Vold(Ndim, Ndim))
         ALLocate(TMP(Ndim, Ndim), TMPold(Ndim, Ndim), Dold(Ndim), TMP1(Ndim, Ndim), V1(Ndim, Ndim))
         Uold = 0.D0
@@ -41,7 +42,11 @@ end interface
         UDVL%V = Vold
         TMPold = TMP
         NCON = 1
-        CALL UDVL%matmultright(TMP, TMP1, NCON)
+        Z=cmplx(1.d0,0.d0,kind(0.d0))
+        beta=0.d0
+        CALL ZGEMM('C', 'C', Ndim, Ndim, Ndim, Z, TMP(1, 1), Ndim, UDVL%U, Ndim, beta, TMP1(1, 1), Ndim)
+        UDVL%U=TMP1
+        CALL UDVL%decompose!(TMP, TMP1, NCON)
         call ul_update_matrices_old(Uold, Dold, Vold, V1, TMPold, TMP1, Ndim, NCON)
         
      ! compare

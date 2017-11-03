@@ -1,6 +1,7 @@
       Module Hamiltonian
 
       Use Operator_mod
+      Use WaveFunction_mod
       Use Lattices_v3 
       Use MyMats 
       Use Random_Wrap
@@ -15,8 +16,11 @@
 !>    Public variables. Have to be set by user 
       Type (Operator), dimension(:,:), allocatable  :: Op_V
       Type (Operator), dimension(:,:), allocatable  :: Op_T
+      Type (WaveFunction), dimension(:),   allocatable  :: WF_L
+      Type (WaveFunction), dimension(:),   allocatable  :: WF_R
       Integer, allocatable :: nsigma(:,:)
-      Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot
+      Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot, Thtrot
+      Logical              :: Projector
 !>    Defines MPI communicator 
       Integer              :: Group_Comm
 
@@ -29,7 +33,7 @@
       Type (Lattice),       private :: Latt 
       Integer,              private :: L1, L2
       real (Kind=Kind(0.d0)),        private :: ham_T , ham_U,  Ham_chem, Ham_h, Ham_J, Ham_xi, Ham_xi2
-      real (Kind=Kind(0.d0)),        private :: Dtau, Beta, Model_sign
+      real (Kind=Kind(0.d0)),        private :: Dtau, Beta, Model_sign, Theta
       Character (len=64),   private :: Model, Lattice_type
       Logical,              private :: One_dimensional
       Integer,              private :: N_coord, Norb, Model_vers
@@ -176,6 +180,9 @@
   
           Call Ham_hop
           Ltrot = nint(beta/dtau)
+          Projector = .false.
+          Theta = 0.d0
+          Thtrot = 0
 
           If  ( Model == "NematicDirac"  ) Call Setup_Ising_action
           If  ( Model == "NematicDirac2" ) Call Setup_Ising_action

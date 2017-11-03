@@ -62,6 +62,15 @@
         COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(INOUT) :: GRUP
         COMPLEX(Kind=Kind(0.d0)) :: PHASE
         INTEGER         :: NVAR
+        
+        interface
+          subroutine cgrp(PHASE, GRUP, udvr, udvl)
+            Use UDV_State_mod
+            CLASS(UDV_State), INTENT(IN) :: udvl, udvr
+            COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Intent(INOUT) :: GRUP
+            COMPLEX (Kind=Kind(0.d0)), Intent(INOUT) :: PHASE
+          end subroutine cgrp
+        end interface
  
         !Local
         TYPE(UDV_State) :: udvlocal
@@ -70,6 +79,19 @@
         COMPLEX (Kind=Kind(0.d0)) ::  ZDUP1, ZDDO1, ZDUP2, ZDDO2, Z1, ZUP, ZDO, alpha, beta
         Integer :: I,J, N_size, NCON, info
         Real (Kind=Kind(0.D0)) :: X, Xmax, sv
+            
+        if( .not. allocated(UDVL%V) ) then
+          !call projector cgr
+          call cgrp(phase, grup, udvr, udvl)
+          return
+        endif
+        
+        if(udvl%side .ne. "L" .and. udvl%side .ne. "l" ) then
+          write(*,*) "calling wrong decompose"
+        endif
+        if(udvr%side .ne. "R" .and. udvr%side .ne. "r" ) then
+          write(*,*) "calling wrong decompose"
+        endif
         
         N_size = udvl%Ndim
         NCON = 0
@@ -82,7 +104,7 @@
         DO J = 1,N_size
             TPUP(:,J) = udvr%D(:)*udvlocal%V(:,J)*udvl%D(J)
         ENDDO
-        CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, udvr%U(1,1), N_size, udvl%U(1,1), N_size, alpha, TPUP, N_size)
+        CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, udvr%U(1,1), N_size, udvl%U(1,1), N_size, alpha, TPUP, N_size)
         !>  Syntax 
         !>  ZGEMM(TRANSA,TRANSB,M,N,K,ALPHA,A,LDA,B,LDB,BETA,C,LDC)
         !>  C := alpha*op( A )*op( B ) + beta*C
@@ -91,7 +113,8 @@
            !WRITE(6,*) 'UDV of U + DR * V * DL'
            CALL UDV_WRAP_Pivot(TPUP,udvlocal%U,udvlocal%D,udvlocal%V,NCON,N_size,N_Size)
            !CALL UDV(TPUP,UUP,DUP,VUP,NCON)
-           CALL MMULT(TPUP,udvlocal%V, udvl%U)
+!            CALL MMULT(TPUP,udvlocal%V, udvl%U)
+           CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, udvlocal%V(1,1), N_size, udvl%U(1,1), N_size, beta, TPUP, N_size)
            !Do I = 1,N_size
            !   Write(6,*) DLUP(I)
            !enddo
@@ -112,7 +135,7 @@
            TPUP1 = CT(TPUP)
            CALL UDV_WRAP_Pivot(TPUP1, udvlocal%U, udvlocal%D, udvlocal%V, NCON,N_size,N_size)
            !CALL UDV(TPUP1,UUP,DUP,VUP,NCON)
-           CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, udvl%U(1,1), N_size, udvlocal%U, N_size, beta, TPUPM1, N_size)
+           CALL ZGEMM('N', 'N', N_size, N_size, N_size, alpha, udvl%U(1,1), N_size, udvlocal%U, N_size, beta, TPUPM1, N_size)
            CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, udvr%U(1,1), N_size, udvlocal%V, N_size, beta, TPUP1, N_size)
            CALL ZGETRF(N_size, N_size, TPUP1, N_size, IPVT, info)
            !>  TPUP1 = P * L * U   LU-decomposition
@@ -151,6 +174,7 @@
 
         USE MyMats
         USE QDRP_mod
+        
         Implicit None
 	!Arguments.
 !         COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(IN)   ::  URUP, VRUP, ULUP, VLUP
@@ -159,6 +183,15 @@
         COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(INOUT) :: GRUP
         COMPLEX(Kind=Kind(0.d0)), Intent(INOUT) :: PHASE
         INTEGER         :: NVAR
+        
+        interface
+          subroutine cgrp(PHASE, GRUP, udvr, udvl)
+            Use UDV_State_mod
+            CLASS(UDV_State), INTENT(IN) :: udvl, udvr
+            COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Intent(INOUT) :: GRUP
+            COMPLEX (Kind=Kind(0.d0)), Intent(INOUT) :: PHASE
+          end subroutine cgrp
+        end interface
  
         !Local
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  TPUP, RHS
@@ -170,6 +203,19 @@
         
         COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK
         LOGICAL :: FORWRD
+        
+        if(udvl%side .ne. "L" .and. udvl%side .ne. "l" ) then
+          write(*,*) "calling wrong decompose"
+        endif
+        if(udvr%side .ne. "R" .and. udvr%side .ne. "r" ) then
+          write(*,*) "calling wrong decompose"
+        endif
+            
+        if( .not. allocated(UDVL%V) ) then
+          !call projector cgr
+          call cgrp(phase, grup,udvr, udvl)
+          return
+        endif
             
         N_size = udvl%ndim
         NCON = 0
@@ -179,7 +225,7 @@
         !Write(6,*) 'In CGR', N_size
         ! can be inserted again once we are sure that we may assume that UR and UL stem from householder reflectors
 !        CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, URUP, N_size, ULUP, N_size, alpha, TPUP, N_size)
-        CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, udvr%U, N_size, udvl%U, N_size, beta, RHS(1, 1), N_size)
+        CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, udvr%U, N_size, udvl%U, N_size, beta, RHS(1, 1), N_size)
         
         CALL MMULT(TPUP, udvr%V, udvl%V)
 #if !(defined(STAB3) || defined(LOG))
@@ -259,7 +305,7 @@
         IF (NVAR .NE. 1) THEN
             TPUP = CONJG(TRANSPOSE(TPUP))
         ENDIF
-        call QDRP_decompose(N_size, TPUP, DUP, IPVT, TAU, WORK, LWORK)
+        call QDRP_decompose(N_size, udvl%N_part, TPUP, DUP, IPVT, TAU, WORK, LWORK)
         ALLOCATE(VISITED(N_size))
         ! Calculate the sign of the permutation from the pivoting. Somehow the format used by the QR decomposition of lapack
         ! is different from that of the LU decomposition of lapack
@@ -343,12 +389,12 @@
             enddo
 #endif
             ! perform multiplication with ULUP and store in GRUP
-            CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, udvl%U(1, 1), N_size, RHS(1,1), N_size, beta, GRUP(1,1), N_size)
+            CALL ZGEMM('N', 'N', N_size, N_size, N_size, alpha, udvl%U(1, 1), N_size, RHS(1,1), N_size, beta, GRUP(1,1), N_size)
         ELSE
             ! This solves the system G * URUP * P * R^dagger * D * U^dagger * ULUP = 1
             
             ! RHS = ULUP * UUP
-            RHS = CT(udvl%U)
+            RHS = udvl%U !CT(udvl%U)
 #if (defined(STAB3) || defined(LOG))
             !scale RHS=RHS*L_+^-1
             do J=1,N_size
@@ -397,3 +443,63 @@
 #endif
         
       END SUBROUTINE CGR
+      
+      
+      SUBROUTINE CGRP(PHASE, GRUP, udvr, udvl)
+        Use UDV_State_mod
+        use MyMats
+        CLASS(UDV_State), INTENT(IN) :: udvl, udvr
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Intent(INOUT) :: GRUP
+        COMPLEX (Kind=Kind(0.d0)), Intent(INOUT) :: PHASE
+        
+        COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:,:) :: sMat, sMatInv, rMat
+        COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: work 
+        INTEGER, allocatable :: ipiv(:)
+        COMPLEX (Kind=Kind(0.d0)) :: alpha, beta
+        INTEGER :: Ndim, N_part, info, n
+        
+        if((udvl%side .ne. "L") .and. (udvl%side .ne. "l") ) then
+          write(*,*) "cgrp: udvl is not of type left"
+          write(*,*) "cgrp: actual side is ",udvl%side
+        endif
+        if((udvr%side .ne. "R") .and. (udvr%side .ne. "r") ) then
+          write(*,*) "cgrp: udvr is not of type right"
+          write(*,*) "cgrp: actual side is ",udvr%side
+        endif
+        
+        Ndim = udvl%ndim
+        N_part = udvl%n_part
+        Allocate(sMat(N_part,N_part),rMat(Ndim,N_part), ipiv(N_part), work(N_part))
+        
+        ! Gr = Ur (Ul Ur)^-1 Ul
+        ! Phase = 1 + Ur (Ul Ur)^-1 Ul
+        ! Ul = udvl%U ^dag
+        alpha=1.d0
+        beta=0.d0
+        call ZGEMM('C','N',N_part,N_part,Ndim,alpha,udvl%U(1,1),Ndim,udvr%U(1,1),Ndim,beta,sMat(1,1),N_part)
+
+        ! ZGETRF computes an LU factorization of a general M-by-N matrix A
+        ! using partial pivoting with row interchanges.
+        call ZGETRF(N_part, N_part, sMat, N_part, ipiv, info)
+        phase=1.d0
+        Do n=1,N_part
+          if (ipiv(n).ne.n) then
+            phase = -phase * sMat(n,n)/abs(sMat(n,n))
+          else
+            phase =  phase * sMat(n,n)/abs(sMat(n,n))
+          endif
+        enddo
+        ! ZGETRI computes the inverse of a matrix using the LU factorization
+        ! computed by DGETRF.do 10,i=1,n
+        call ZGETRI(N_part, sMat, N_part, ipiv, work, N_part, info)
+        
+        call ZGEMM('N','N',Ndim,N_part,N_part,alpha,udvr%U(1,1),Ndim,sMat(1,1),N_part,beta,rMat(1,1),Ndim)
+!         call initd(Grup,alpha)
+        alpha=-1.d0
+        call ZGEMM('N','C',Ndim,Ndim,N_part,alpha,rMat(1,1),Ndim,udvl%U(1,1),Ndim,beta,GRUP(1,1),Ndim)
+        do n=1,Ndim
+          Grup(n,n)=Grup(n,n)+cmplx(1.d0, 0.d0, kind(0.d0))
+        enddo
+        Deallocate(sMat,rMat, ipiv, work)
+      
+      END SUBROUTINE CGRP

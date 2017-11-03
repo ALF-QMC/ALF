@@ -43,7 +43,7 @@ stages:
     - cd tests
     - cmake -G "Unix Makefiles" -DCMAKE_Fortran_FLAGS_RELEASE=${F90OPTFLAGS} -DCMAKE_BUILD_TYPE=RELEASE ..
     - cmake --build . --target all --config Release
-    - ctest -O log.txt
+    - ctest -VV -O log.txt
     - cat log.txt | grep "tests passed" | cut -d " " -f 1
 
 GQMCT_Wheezy:
@@ -211,7 +211,7 @@ GQMCT_Jessie-PGI_tests:
     - cd tests
     - cmake -G "Unix Makefiles" -DCMAKE_Fortran_FLAGS_RELEASE="${F90OPTFLAGS} -noswitcherror -L/opt/pgi/linux86-64/2016/lib/ -llapack -lblas" -DCMAKE_Fortran_COMPILER="/opt/pgi/linux86-64/2016/bin/pgfortran" -DCMAKE_BUILD_TYPE=RELEASE -DLAPACK_LIBRARIES="/opt/pgi/linux86-64/2016/lib/liblapack.a" -DBLAS_LIBRARIES="/opt/pgi/linux86-64/2016/lib/libblas.a" ..
     - cmake --build . --target all --config Release
-    - ctest -O log.txt
+    - ctest -VV -O log.txt
     - cat log.txt | grep "tests passed" | cut -d " " -f 1
 
 GQMCT_jessie_valgrind:

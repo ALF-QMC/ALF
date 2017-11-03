@@ -2,6 +2,7 @@
     Module Hamiltonian
 
       Use Operator_mod
+      Use WaveFunction_mod
       Use Lattices_v3 
       Use MyMats 
       Use Random_Wrap
@@ -11,8 +12,11 @@
 
       Type (Operator), dimension(:,:), allocatable  :: Op_V
       Type (Operator), dimension(:,:), allocatable  :: Op_T
+      Type (WaveFunction), dimension(:),   allocatable  :: WF_L
+      Type (WaveFunction), dimension(:),   allocatable  :: WF_R
       Integer, allocatable :: nsigma(:,:)
-      Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot
+      Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot, Thtrot
+      Logical              :: Projector
 !>    Defines MPI communicator 
       Integer              :: Group_Comm
 
@@ -25,7 +29,7 @@
       Integer, allocatable, private :: List(:,:), Invlist(:,:)
       Integer,              private :: L1, L2, FlagSym
       real (Kind=Kind(0.d0)),        private :: Ham_T, Ham_Vint,  Ham_Lam
-      real (Kind=Kind(0.d0)),        private :: Dtau, Beta
+      real (Kind=Kind(0.d0)),        private :: Dtau, Beta, Theta
       Character (len=64),   private :: Model, Lattice_type, File1
       Complex (Kind=Kind(0.d0)),     private :: Gamma_M(4,4,5), Sigma_M(2,2,0:3)
       Complex (Kind=Kind(0.d0)),     private :: Gamma_13(4,4), Gamma_23(4,4), Gamma_45(4,4)
@@ -149,6 +153,9 @@
 
           Call Ham_hop
           Ltrot = nint(beta/dtau)
+          Projector = .false.
+          Theta = 0.d0
+          Thtrot = 0
           
 ! #if defined(MPI) && !defined(TEMPERING)
 !           If (Irank == 0 ) then
@@ -479,9 +486,10 @@
           endif
           
           If (Ltau == 1) then 
-             Allocate ( Green_tau(Latt%N,Ltrot+1,Norb,Norb), Den_tau(Latt%N,Ltrot+1,1,1) )
-             Allocate ( U1_tau(Latt%N,Ltrot+1,1,1), U1xy_tau(Latt%N,Ltrot+1,1,1), U1xyG_tau(Latt%N,Ltrot+1,1,1) )
-             Allocate ( Spinz_tau(Latt%N,Ltrot+1,1,1), Spinxy_tau(Latt%N,Ltrot+1,1,1) )
+             Allocate ( Green_tau(Latt%N,Ltrot+1-2*Thtrot,Norb,Norb), Den_tau(Latt%N,Ltrot+1-2*Thtrot,1,1) )
+             Allocate ( U1_tau(Latt%N,Ltrot+1-2*Thtrot,1,1))
+             Allocate ( U1xy_tau(Latt%N,Ltrot+1-2*Thtrot,1,1), U1xyG_tau(Latt%N,Ltrot+1-2*Thtrot,1,1) )
+             Allocate ( Spinz_tau(Latt%N,Ltrot+1-2*Thtrot,1,1), Spinxy_tau(Latt%N,Ltrot+1-2*Thtrot,1,1) )
              Allocate ( Den_sus(Latt%N,1,1), Den_sus0(1) ) 
              Allocate ( U1_sus(Latt%N,1,1), U1_sus0(1) )
              Allocate ( U1xy_sus(Latt%N,1,1), U1xy_sus0(1) )

@@ -1,7 +1,7 @@
 TARGET= Hamiltonian_Z2_slave_spins.out
-OBJS=  control_mod.o Operator.o observables_mod.o QDRP_decompose.o  udv_state.o \
+OBJS=  control_mod.o Operator.o WaveFunction.o observables_mod.o QDRP_decompose.o  udv_state.o \
        Hamiltonian_Z2_slave_spins.o Hop_mod.o  UDV_WRAP.o  Global_mod.o  Wrapgr_mod.o \
-       tau_m.o   main.o wrapul.o  cgr1.o wrapur.o upgrade.o \
+       tau_m.o   tau_p.o  main.o wrapul.o  cgr1.o wrapur.o upgrade.o \
         outconfc.o  inconfc.o  cgr2_2.o 
 
 

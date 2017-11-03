@@ -50,6 +50,7 @@
 
 #if defined(STAB1) 
      Subroutine UDV_Wrap_Pivot(A,U,D,V,NCON,N1,N2)
+        Use QDRP_mod
        
        Implicit NONE
        COMPLEX (Kind=Kind(0.d0)), INTENT(IN),    DIMENSION(:,:) :: A
@@ -61,7 +62,7 @@
        ! Locals
        REAL (Kind=Kind(0.d0)) :: VHELP(N2), XNORM(N2), XMAX, XMEAN
        INTEGER :: IVPT(N2), IVPTM1(N2), I, J, K, IMAX
-       COMPLEX (Kind=Kind(0.d0))  :: A1(N1,N2), A2(N1,N2), V1(N2,N2)
+       COMPLEX (Kind=Kind(0.d0))  :: A1(N1,N2), A2(N1,N2), V1(N2,N2), phase, beta
        
        DO I = 1,N2
           XNORM(I) = 0.D0
@@ -90,6 +91,14 @@
        ENDDO
        
        CALL UDV_Wrap(A1,U,D,V,NCON)
+       V1 = V
+       Phase=Det_C(V1,N2)
+       Call Pivot_Phase(phase,IVPT,size(D,1))
+       beta=1/Phase
+       !scale first row of R with 1/phase to set Det(R)=1 [=Det(V)]
+       call ZSCAL(size(V,2),beta,V(1,1),size(V,1))
+       ! scale first column of U to correct the scaling in V such that UDV is not changed
+       call ZSCAL(size(U,1),phase,U(1,1),1)
        
        V1 = V
        DO I = 1,N2
@@ -112,6 +121,7 @@
      End Subroutine UDV_Wrap_Pivot
 #else
      Subroutine UDV_Wrap_Pivot(A,U,D,V,NCON,N1,N2)
+        Use QDRP_mod
 
        Implicit NONE
        COMPLEX (Kind=Kind(0.d0)), INTENT(IN),    DIMENSION(:,:) :: A
@@ -123,7 +133,7 @@
        ! Locals
        REAL (Kind=Kind(0.d0)) :: VHELP(N2), XNORM(N2), XMAX, XMEAN
        INTEGER :: IVPT(N2), IVPTM1(N2), I, J, K, IMAX
-       COMPLEX (Kind=Kind(0.d0))  :: A1(N1,N2), A2(N1,N2), V1(N2,N2), U1(N2,N2), Z
+       COMPLEX (Kind=Kind(0.d0))  :: A1(N1,N2), A2(N1,N2), V1(N2,N2), U1(N2,N2), Z, phase, beta
 
        DO I = 1,N2
           XNORM(I) = 0.D0
@@ -152,6 +162,16 @@
        ENDDO
 
        CALL UDV(A1,U,D,V1,NCON)
+       Phase=cmplx(1.d0,0.d0,kind(0.d0))
+       do i=1,size(D,1)
+         Phase=Phase*V1(i,i)
+       enddo
+       Call Pivot_Phase(phase,IVPT,size(D,1))
+       beta=1/Phase
+       !scale first row of R with 1/phase to set Det(R)=1 [=Det(V)]
+       call ZSCAL(size(V1,2),beta,V1(1,1),size(V1,1))
+       ! scale first column of U to correct the scaling in V such that UDV is not changed
+       call ZSCAL(size(U,1),phase,U(1,1),1)
 
        ! Finish the pivotting.
        DO I = 1,N2

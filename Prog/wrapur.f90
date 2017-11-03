@@ -68,22 +68,24 @@
            CALL INITD(TMP,Z_ONE)
            DO NT = NTAU + 1, NTAU1
               !CALL MMULT(TMP1,Exp_T(:,:,nf) ,TMP)
-              Call Hop_mod_mmthr(TMP,TMP1,nf)
-              TMP = TMP1
+              Call Hop_mod_mmthr(TMP,nf)
+!               TMP = TMP1
               Do n = 1,Size(Op_V,1)
-                 X = Phi(nsigma(n,nt),Op_V(n,nf)%type)
-                 Call Op_mmultR(Tmp,Op_V(n,nf),X,Ndim)
+!                  X = Phi(nsigma(n,nt),Op_V(n,nf)%type)
+                 Call Op_mmultR(Tmp,Op_V(n,nf),nsigma(n,nt),Ndim,'n')
               ENDDO
            ENDDO
            CALL MMULT(TMP1,TMP, udvr(nf)%U)
-           DO J = 1,NDim
-              DO I = 1,NDim
-                 TMP1(I,J) = TMP1(I,J)*udvr(nf)%D(J)
-                 TMP(I,J)  = udvr(nf)%V(I,J)
+           if(allocated(udvr(nf)%V)) then
+              DO J = 1,NDim
+                  DO I = 1,NDim
+                    TMP1(I,J) = TMP1(I,J)*udvr(nf)%D(J)
+                  ENDDO
               ENDDO
-           ENDDO
-           CALL UDV_WRAP_Pivot(TMP1, udvr(nf)%U, udvr(nf)%D, V1,NCON,Ndim,Ndim)
-           CALL MMULT(udvr(nf)%V, V1, TMP)
+              TMP = udvr(nf)%V
+           endif
+           CALL UDV_WRAP_Pivot(TMP1(:,1:UDVR(nf)%N_part), udvr(nf)%U, udvr(nf)%D, V1,NCON,Ndim,UDVR(nf)%N_part)
+           if(allocated(udvr(nf)%V)) CALL MMULT(udvr(nf)%V, V1, TMP)
         ENDDO
 #else
         Use Operator_mod, only : Phi
@@ -95,29 +97,19 @@
 
 
         ! Working space.
-        Complex (Kind=Kind(0.d0)) :: Z_ONE
-        COMPLEX (Kind=Kind(0.d0)), allocatable, dimension(:, :) :: TMP, TMP1
         Integer :: NT, NCON, n, nf
-        Real (Kind=Kind(0.d0)) :: X
 
         NCON = 0  ! Test for UDV ::::  0: Off,  1: On.
-        Allocate (TMP(Ndim,Ndim), TMP1(Ndim,Ndim))
-        Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
         Do nf = 1,N_FL
-           CALL INITD(TMP,Z_ONE)
            DO NT = NTAU + 1, NTAU1
-              !CALL MMULT(TMP1,Exp_T(:,:,nf) ,TMP)
-              Call Hop_mod_mmthr(TMP,TMP1,nf)
-              TMP = TMP1
+              Call Hop_mod_mmthR(UDVR(nf)%U,nf)
               Do n = 1,Size(Op_V,1)
-                 X = Phi(nsigma(n,nt),Op_V(n,nf)%type)
-                 Call Op_mmultR(TMP,Op_V(n,nf),X,Ndim)
+                 Call Op_mmultR(UDVR(nf)%U,Op_V(n,nf),nsigma(n,nt),Ndim,'n')
               ENDDO
            ENDDO
 
-           CALL UDVR(nf)%matmultleft(TMP, TMP1, NCON)
+           CALL UDVR(nf)%decompose
         ENDDO
-        deallocate(TMP, TMP1)
 
 #endif
       END SUBROUTINE WRAPUR

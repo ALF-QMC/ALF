@@ -10,7 +10,7 @@ PROGRAM SLMATMULTS
         INTEGER                  , DIMENSION(:)  , ALLOCATABLE :: P
         COMPLEX (KIND=KIND(0.D0)) :: Z
         
-        M=400
+        M=8
         M2=600
         
         ALLOCATE(Mat(M,M2),MatL(M,M2),MatR(M,M2))
