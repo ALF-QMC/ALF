@@ -154,14 +154,22 @@ Module Global_mod
                 N_part=udvst(1,nf)%N_part
                 do i=1,NSTM-1
                   do n=1,N_part
+#if !defined(LOG)
                     Det_Vec_old(n,nf)=Det_Vec_old(n,nf)+log(dble(udvst(i,nf)%D(n)))
+#else
+                    Det_Vec_old(n,nf)=Det_Vec_old(n,nf)+udvst(i,nf)%L(n)
+#endif
                   enddo
                 enddo
               enddo
               Do nf = 1,N_FL
                 N_part=udvl(nf)%N_part
                 do n=1,N_part
+#if !defined(LOG)
                     Det_Vec_new(n,nf)=Det_Vec_new(n,nf)+log(dble(udvl(nf)%D(n)))
+#else
+                    Det_Vec_new(n,nf)=Det_Vec_new(n,nf)+udvl(nf)%L(n)
+#endif
                 enddo
               ENDDO
            endif
@@ -269,7 +277,11 @@ Module Global_mod
                  if (Projector) then
                     N_part=udvl(nf)%N_part
                     do n=1,N_part
+#if !defined(LOG)
                         Det_Vec_new(n,nf)=Det_Vec_new(n,nf)+log(dble(udvl(nf)%D(n)))
+#else
+                        Det_Vec_new(n,nf)=Det_Vec_new(n,nf)+udvl(nf)%L(n)
+#endif
                     enddo
                  endif
               ENDDO
@@ -280,7 +292,11 @@ Module Global_mod
               Do nf = 1,N_FL
                 N_part=udvl(nf)%N_part
                 do n=1,N_part
+#if !defined(LOG)
                     Det_Vec_new(n,nf)=Det_Vec_new(n,nf)+log(dble(udvl(nf)%D(n)))
+#else
+                    Det_Vec_new(n,nf)=Det_Vec_new(n,nf)+udvl(nf)%L(n)
+#endif
                 enddo
               ENDDO
            endif
@@ -501,11 +517,19 @@ Module Global_mod
             N_part=udvst(1,nf)%N_part
             do i=1,NSTM-1
               do n=1,N_part
+#if !defined(LOG)
                 Det_Vec_old(n,nf)=Det_Vec_old(n,nf)+log(dble(udvst(i,nf)%D(n)))
+#else
+                Det_Vec_old(n,nf)=Det_Vec_old(n,nf)+udvst(i,nf)%L(n)
+#endif
               enddo
             enddo
             do n=1,N_part
+#if !defined(LOG)
               Det_Vec_old(n,nf)=Det_Vec_old(n,nf)+log(dble(udvl(nf)%D(n)))
+#else
+              Det_Vec_old(n,nf)=Det_Vec_old(n,nf)+udvl(nf)%L(n)
+#endif
             enddo
           enddo
         endif
@@ -580,7 +604,11 @@ Module Global_mod
                     udvst(NST, nf) = udvl(nf)
                     N_part=udvl(nf)%N_part
                     do j=1,N_part
+#if !defined(LOG)
                         Det_Vec_new(j,nf)=Det_Vec_new(j,nf)+log(dble(udvl(nf)%D(j)))
+#else
+                        Det_Vec_new(j,nf)=Det_Vec_new(j,nf)+udvl(nf)%L(j)
+#endif
                     enddo
                  ENDDO
               ENDDO
@@ -589,7 +617,11 @@ Module Global_mod
               Do nf = 1,N_FL
                 N_part=udvl(nf)%N_part
                 do j=1,N_part
+#if !defined(LOG)
                     Det_Vec_new(j,nf)=Det_Vec_new(j,nf)+log(dble(udvl(nf)%D(j)))
+#else
+                    Det_Vec_new(j,nf)=Det_Vec_new(j,nf)+udvl(nf)%L(j)
+#endif
                 enddo
               ENDDO
               !You could now compute the det directly here.
