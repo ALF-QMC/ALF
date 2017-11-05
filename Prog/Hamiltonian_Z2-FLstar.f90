@@ -2,6 +2,7 @@
     Module Hamiltonian
 
       Use Operator_mod
+      Use WaveFunction_mod
       Use Lattices_v3 
       Use MyMats 
       Use Random_Wrap
@@ -12,8 +13,12 @@
 
       Type (Operator), dimension(:,:), allocatable  :: Op_V
       Type (Operator), dimension(:,:), allocatable  :: Op_T
+      Type (WaveFunction), dimension(:),   allocatable  :: WF_L
+      Type (WaveFunction), dimension(:),   allocatable  :: WF_R
       Integer, allocatable :: nsigma(:,:)
-      Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot
+      Integer              :: Ndim,  Ltrot, Thtrot
+      Integer, parameter   :: N_FL=1,  N_SUN=2
+      Logical              :: Projector
 !>    Defines MPI communicator 
       Integer              :: Group_Comm
 
@@ -26,7 +31,7 @@
       Integer, allocatable,   private :: List(:,:), Invlist(:,:)
       Integer,                private :: L1, L2
       real (Kind=Kind(0.d0)), private :: Ham_T, Ham_Vint,  Ham_U, Ham_JKA, Ham_JKB
-      real (Kind=Kind(0.d0)), private :: Dtau, Beta
+      real (Kind=Kind(0.d0)), private :: Dtau, Beta, Theta
       Character (len=64),     private :: Model, Lattice_type, File1
       logical,                private :: checkerboard
       Integer, allocatable,   private :: HexList(:,:),Bondlist(:,:),BondInvlist(:,:)
@@ -50,7 +55,7 @@
 
           NAMELIST /VAR_lattice/  L1, L2, Lattice_type, Model
 
-          NAMELIST /VAR_Z2_FLstar/  ham_T, Ham_Vint,  Ham_U,  Dtau, Beta, Ham_JKA, Ham_JKB, checkerboard
+          NAMELIST /VAR_Z2_FLstar/  ham_T, Ham_Vint,  Ham_U,  Dtau, Beta, Ham_JKA, Ham_JKB, checkerboard, Theta, Projector
 
 #if !defined(LOG)
           a=1 ! this line should cause a compiler error (undeclared variable a) if LOG has not been defined as required by this model
@@ -88,8 +93,9 @@
           Call Ham_latt
 
 
-          N_FL  = 1
-          N_SUN = 2
+          Projector = .false.
+          Theta = 0.d0
+          Thtrot = 0
           
 #if defined(MPI) 
           If (Irank_g == 0 ) then
@@ -114,11 +120,19 @@
           CALL MPI_BCAST(ham_JKB      ,1,MPI_REAL8,     0,Group_Comm,ierr)
           CALL MPI_BCAST(Dtau         ,1,MPI_REAL8,     0,Group_Comm,ierr)
           CALL MPI_BCAST(Beta         ,1,MPI_REAL8,     0,Group_Comm,ierr)
+          CALL MPI_BCAST(Thtrot       ,1,MPI_INTEGER,   0,Group_Comm,ierr)
+          CALL MPI_BCAST(Projector     ,1,MPI_LOGICAL,  0,Group_Comm,ierr)
           CALL MPI_BCAST(checkerboard ,1,MPI_LOGICAL,   0,Group_Comm,ierr)
 #endif
 
           Call Ham_hop
+          
+          if (Projector) Call Ham_TrialWaveFunction
+          
           Ltrot = nint(beta/dtau)
+          if (Projector) Thtrot = nint(theta/dtau)
+          Ltrot = Ltrot+2*Thtrot
+          
 #if defined(TEMPERING)
            write(File1,'(A,I0,A)') "Temp_",igroup,"/info"
 #else
@@ -313,6 +327,99 @@
           endif
 
         end Subroutine Ham_hop
+
+!===================================================================================           
+        Subroutine Ham_TrialWaveFunction
+        
+          Implicit none
+          COMPLEX(Kind=Kind(0.d0)), allocatable :: H0(:,:), U(:,:)
+          Real(Kind=Kind(0.d0)), allocatable :: En(:)
+          
+          COMPLEX(Kind=Kind(0.d0)) :: Z
+          Integer :: n, n_part, i, I1, I2, J1, no, nc1
+          
+          N_part=Ndim/2
+          
+          Allocate(WF_L(N_FL),WF_R(N_FL))
+          do n=1,N_FL
+            Call WF_alloc(WF_L(n),Ndim,N_part)
+            Call WF_alloc(WF_R(n),Ndim,N_part)
+          enddo
+          
+          Allocate(H0(Latt%N,Latt%N),U(Latt%N,Latt%N),En(Latt%N))
+          H0=0.d0
+          DO I = 1, Latt%N
+            I1 = Latt%nnlist(I,1,0)
+            I2 = Latt%nnlist(I,0,1)
+            If ( Latt%list(I,1) == 0 ) then
+                H0(I,I1) = cmplx( Ham_T, 0.d0, kind(0.D0))
+                H0(I1,I) = cmplx( Ham_T, 0.d0, kind(0.D0))
+            else
+                H0(I,I1) = cmplx(-Ham_T, 0.d0, kind(0.D0))
+                H0(I1,I) = cmplx(-Ham_T, 0.d0, kind(0.D0))
+            endif
+            H0(I,I2) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+            H0(I2,I) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+          Enddo
+          
+          Call Diag(H0,U,En)
+          
+          do I2=1,Latt%N/2
+          do I=1,Latt%N
+            WF_L(1)%P(invlist(I,1),3*(I2-1)+1)=U(I,I2)
+            WF_R(1)%P(invlist(I,1),3*(I2-1)+1)=U(I,I2)
+            WF_L(1)%P(invlist(I,2),3*(I2-1)+2)=U(I,I2)
+            WF_R(1)%P(invlist(I,2),3*(I2-1)+2)=U(I,I2)
+            WF_L(1)%P(invlist(I,3),3*(I2-1)+3)=U(I,I2)
+            WF_R(1)%P(invlist(I,3),3*(I2-1)+3)=U(I,I2)
+          enddo
+          enddo
+          
+          Deallocate(H0, U, En)
+          
+          Allocate(H0(2*Latt%N,2*Latt%N),U(2*Latt%N,2*Latt%N),En(2*Latt%N))
+          H0=0.d0
+          DO I = 1, Latt%N
+            I1 = Invlist(I,4)-3*Latt%N
+            J1 = I1
+            Do nc1 = 1,3
+              select case (nc1)
+              case (1)
+                J1 = invlist(I,5)-3*Latt%N
+              case (2)
+                J1 = invlist(Latt%nnlist(I,1,-1),5)-3*Latt%N 
+              case (3)
+                J1 = invlist(Latt%nnlist(I,0,-1),5)-3*Latt%N
+              case default
+                Write(6,*) ' Error in  Ham_Hop '  
+                Stop
+              end select
+              If ( Latt%list(J1,1) == 0 .and. nc1==2 ) then
+                H0(I1,J1) = cmplx( Ham_T,    0.d0, kind(0.D0))
+                H0(J1,I1) = cmplx( Ham_T,    0.d0, kind(0.D0))
+              else
+                H0(I1,J1) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+                H0(J1,I1) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+              endif
+            Enddo
+          enddo
+          
+          Call Diag(H0,U,En)
+          
+          do I2=1,Latt%N
+          do I1=1,2*Latt%N
+            WF_L(1)%P(I1+3*Latt%N,I2+3*Latt%N/2)=U(I1,I2)
+            WF_R(1)%P(I1+3*Latt%N,I2+3*Latt%N/2)=U(I1,I2)
+          enddo
+          enddo
+          
+!           do I2=1,N_part
+!             write(*,*) sum(abs(WF_L(1)%P(:,I2))), sum(abs(WF_R(1)%P(:,I2)))
+!           enddo
+          
+          Deallocate(H0, U, En)
+          
+        end Subroutine Ham_TrialWaveFunction
 !===================================================================================   
 
         Subroutine Ham_V
@@ -407,7 +514,7 @@
                 Call Op_make(Op_V(nc,nf),1) 
                 Op_V(nc,nf)%P(1) = Invlist(I,no)
                 Op_V(nc,nf)%O( 1 , 1 )  =  Zone
-                Op_V(nc,nf)%g=sqrt(cmplx(Dtau*Ham_U/beta,0.d0, kind(0.D0)))
+                Op_V(nc,nf)%g=sqrt(cmplx(Dtau*Ham_U/(beta+2*theta),0.d0, kind(0.D0)))
                 Op_V(nc,nf)%alpha  = cmplx(-0.5d0, 0.d0, kind(0.D0))
                 Op_V(nc,nf)%type   = 2
                 Call Op_set( Op_V(nc,nf) )
@@ -561,7 +668,7 @@
                 case default
                    Write(6,*) ' Error in Alloc_obs '  
                 end select
-                Nt = Ltrot+1
+                Nt = Ltrot+1-2*Thtrot
                 Call Obser_Latt_make(Obs_tau(I),Ns,Nt,No,Filename)
              enddo
           endif
@@ -668,7 +775,7 @@
                 enddo
                 do J=1,3
                   I1=Invlist(I,J)
-                  ZkinF=ZkinF-Ham_U/beta*(2.d0*Grc(I1,I1,1)*(Grc(I1,I1,1)-1.d0)+1.d0)
+                  ZkinF=ZkinF-Ham_U/(beta+2*Theta)*(2.d0*Grc(I1,I1,1)*(Grc(I1,I1,1)-1.d0)+1.d0)
                 enddo
                 
                 
@@ -699,7 +806,7 @@
              Enddo
           Enddo
           ZPot = Ham_Vint*0.25d0*ZPot
-          ZkinF = ZkinF + 3.d0*Latt%N*(2.d0*Ham_T+Ham_U/beta)
+          ZkinF = ZkinF + 3.d0*Latt%N*(2.d0*Ham_T+Ham_U/(beta+2*Theta))
           
           ! Total energy (the kinetic part of con electrons is missing
           Nc = Size( Op_V,1)
