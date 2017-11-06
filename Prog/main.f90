@@ -827,7 +827,6 @@ Program Main
                     endif
                     NST = NST -1
                  ENDIF
-!                  IF( LTAU == 1 .and. Projector .and. Ntau1==THTROT+1) Call tau_p(udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, NST )
               ENDDO
               
               !Calculate and compare green functions on time slice 0.
