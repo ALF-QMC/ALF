@@ -332,11 +332,11 @@
         Subroutine Ham_TrialWaveFunction
         
           Implicit none
-          COMPLEX(Kind=Kind(0.d0)), allocatable :: H0(:,:), U(:,:)
+          COMPLEX(Kind=Kind(0.d0)), allocatable :: H0(:,:), U(:,:), Test(:,:)
           Real(Kind=Kind(0.d0)), allocatable :: En(:)
           
-          COMPLEX(Kind=Kind(0.d0)) :: Z
-          Integer :: n, n_part, i, I1, I2, J1, no, nc1
+          COMPLEX(Kind=Kind(0.d0)) :: Z, alpha, beta
+          Integer :: n, n_part, i, I1, I2, J1, no, nc1, DI1, DI2, nc
           
           N_part=Ndim/2
           
@@ -346,36 +346,99 @@
             Call WF_alloc(WF_R(n),Ndim,N_part)
           enddo
           
-          Allocate(H0(Latt%N,Latt%N),U(Latt%N,Latt%N),En(Latt%N))
-          H0=0.d0
-          DO I = 1, Latt%N
-            I1 = Latt%nnlist(I,1,0)
-            I2 = Latt%nnlist(I,0,1)
-            If ( Latt%list(I,1) == 0 ) then
-                H0(I,I1) = cmplx( Ham_T, 0.d0, kind(0.D0))
-                H0(I1,I) = cmplx( Ham_T, 0.d0, kind(0.D0))
-            else
-                H0(I,I1) = cmplx(-Ham_T, 0.d0, kind(0.D0))
-                H0(I1,I) = cmplx(-Ham_T, 0.d0, kind(0.D0))
+!           Allocate(H0(Latt%N,Latt%N),U(Latt%N,Latt%N),En(Latt%N))
+!           H0=0.d0
+!           DO I = 1, Latt%N
+!             I1 = Latt%nnlist(I,1,0)
+!             I2 = Latt%nnlist(I,0,1)
+!             If ( Latt%list(I,1) == 0 ) then
+!                 H0(I,I1) = cmplx( 1.d0, 0.d0, kind(0.D0))
+!                 H0(I1,I) = cmplx( 1.d0, 0.d0, kind(0.D0))
+!             else
+!                 H0(I,I1) = cmplx(-1.d0, 0.d0, kind(0.D0))
+!                 H0(I1,I) = cmplx(-1.d0, 0.d0, kind(0.D0))
+!             endif
+!             H0(I,I2) = cmplx(-1.d0,    0.d0, kind(0.D0))
+!             H0(I2,I) = cmplx(-1.d0,    0.d0, kind(0.D0))
+!           Enddo
+!           
+!           Call Diag(H0,U,En)
+!           
+!           do I2=1,Latt%N/2
+!           do I=1,Latt%N
+!             WF_L(1)%P(invlist(I,1),3*(I2-1)+1)=U(I,I2)
+!             WF_R(1)%P(invlist(I,1),3*(I2-1)+1)=U(I,I2)
+!             WF_L(1)%P(invlist(I,2),3*(I2-1)+2)=U(I,I2)
+!             WF_R(1)%P(invlist(I,2),3*(I2-1)+2)=U(I,I2)
+!             WF_L(1)%P(invlist(I,3),3*(I2-1)+3)=U(I,I2)
+!             WF_R(1)%P(invlist(I,3),3*(I2-1)+3)=U(I,I2)
+!           enddo
+!           enddo
+!           
+!           Deallocate(H0, U, En)
+          if(mod(L1,2) == 0) then
+            DI1=1
+          elseif(mod(L2,2) == 0) then
+            DI1=2
+          else
+            write(*,*) "At least one dimension has to be of even size!"
+            stop
+          endif
+          nc=0
+          DO I1 = 1,Latt%N
+            if(mod(Latt%List(I1,DI1),2)==0) then
+              nc=nc+1
+              I=I1
+              
+              WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),1),nc) = cmplx(1.d0,0.d0,kind(0.d0))
+              nc=nc+1
+              WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),2),nc) = cmplx(0.5d0**0.5d0,0.d0,kind(0.d0))
+              WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),3),nc) = cmplx(0.5d0**0.5d0,0.d0,kind(0.d0))
+              nc=nc+1
+              if (DI1==1) then
+                I=Latt%nnlist(I, 1, 0)
+              else
+                I=Latt%nnlist(I, 0, 1)
+              endif
+              WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),2),nc) = cmplx(0.5d0**0.5d0,0.d0,kind(0.d0))
+              WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),3),nc) = cmplx(0.5d0**0.5d0,0.d0,kind(0.d0))
+              
+!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),1),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
+!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),2),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
+!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),3),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
+!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0,-1),3),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
+!               WF_L(1)%P(Invlist(Latt%nnlist(I,-1, 0),2),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
+!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 1),1),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
+!               WF_L(1)%P(Invlist(Latt%nnlist(I,-1, 1),2),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
+!               nc=nc+1
+!               if (DI1==1) then
+!                 I=Latt%nnlist(I, 1, 0)
+!               else
+!                 I=Latt%nnlist(I, 0, 1)
+!               endif
+!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),1),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
+!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),2),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
+!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),3),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
+!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0,-1),3),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
+!               WF_L(1)%P(Invlist(Latt%nnlist(I,-1, 0),2),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
+!               WF_L(1)%P(Invlist(Latt%nnlist(I,-1, 0),1),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
+!               WF_L(1)%P(Invlist(Latt%nnlist(I,-1, 0),3),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
+!               nc=nc+1
+!               if (DI1==1) then
+!                 I=Latt%nnlist(I, 1, 0)
+!               else
+!                 I=Latt%nnlist(I, 0, 1)
+!               endif
+!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),1),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
+!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),2),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
+!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),3),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
+!               WF_L(1)%P(Invlist(Latt%nnlist(I, 1, 0),1),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
+!               WF_L(1)%P(Invlist(Latt%nnlist(I, 1,-1),3),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
+!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 1),1),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
+!               WF_L(1)%P(Invlist(Latt%nnlist(I,-1, 1),2),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
             endif
-            H0(I,I2) = cmplx(-Ham_T,    0.d0, kind(0.D0))
-            H0(I2,I) = cmplx(-Ham_T,    0.d0, kind(0.D0))
-          Enddo
-          
-          Call Diag(H0,U,En)
-          
-          do I2=1,Latt%N/2
-          do I=1,Latt%N
-            WF_L(1)%P(invlist(I,1),3*(I2-1)+1)=U(I,I2)
-            WF_R(1)%P(invlist(I,1),3*(I2-1)+1)=U(I,I2)
-            WF_L(1)%P(invlist(I,2),3*(I2-1)+2)=U(I,I2)
-            WF_R(1)%P(invlist(I,2),3*(I2-1)+2)=U(I,I2)
-            WF_L(1)%P(invlist(I,3),3*(I2-1)+3)=U(I,I2)
-            WF_R(1)%P(invlist(I,3),3*(I2-1)+3)=U(I,I2)
           enddo
-          enddo
-          
-          Deallocate(H0, U, En)
+          WF_R(1)%P=WF_L(1)%P
           
           Allocate(H0(2*Latt%N,2*Latt%N),U(2*Latt%N,2*Latt%N),En(2*Latt%N))
           H0=0.d0
@@ -395,11 +458,11 @@
                 Stop
               end select
               If ( Latt%list(J1,1) == 0 .and. nc1==2 ) then
-                H0(I1,J1) = cmplx( Ham_T,    0.d0, kind(0.D0))
-                H0(J1,I1) = cmplx( Ham_T,    0.d0, kind(0.D0))
+                H0(I1,J1) = cmplx( 1.d0,    0.d0, kind(0.D0))
+                H0(J1,I1) = cmplx( 1.d0,    0.d0, kind(0.D0))
               else
-                H0(I1,J1) = cmplx(-Ham_T,    0.d0, kind(0.D0))
-                H0(J1,I1) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+                H0(I1,J1) = cmplx(-1.d0,    0.d0, kind(0.D0))
+                H0(J1,I1) = cmplx(-1.d0,    0.d0, kind(0.D0))
               endif
             Enddo
           enddo
@@ -413,9 +476,16 @@
           enddo
           enddo
           
-!           do I2=1,N_part
-!             write(*,*) sum(abs(WF_L(1)%P(:,I2))), sum(abs(WF_R(1)%P(:,I2)))
-!           enddo
+          Allocate(Test(N_part,N_part))
+          alpha=1.d0
+          beta=0.d0
+          CALL ZGEMM('C','N',N_part,N_part,ndim,alpha,WF_L(1)%P(1,1),Ndim,WF_R(1)%P(1,1),Ndim,beta,Test(1,1),N_part)
+          Z = Det_C(Test,n_part)
+          write(*,*) Z
+          
+          do I2=1,N_part
+            write(*,*) sum(abs(WF_L(1)%P(:,I2))), sum(abs(WF_R(1)%P(:,I2)))
+          enddo
           
           Deallocate(H0, U, En)
           
