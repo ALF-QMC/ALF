@@ -817,7 +817,9 @@ Module Global_mod
           N_part=udvl%N_part
           N_size=udvl%ndim
           Allocate (TP(N_part,N_part), ipiv(N_part))
-          CALL ZGEMM('C','N',N_part,N_part,N_size,udvl%U(1,1),N_size,WF_R(nf)%P(1,1),N_size,TP(1,1),N_part)
+          alpha=1.d0
+          beta=0.d0
+          CALL ZGEMM('C','N',N_part,N_part,N_size,alpha,udvl%U(1,1),N_size,WF_R(nf)%P(1,1),N_size,beta,TP(1,1),N_part)
           ! ZGETRF computes an LU factorization of a general M-by-N matrix A
           ! using partial pivoting with row interchanges.
           call ZGETRF(N_part, N_part, TP(1,1), N_part, ipiv, info)
