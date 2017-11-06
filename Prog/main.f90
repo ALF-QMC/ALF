@@ -409,9 +409,15 @@ Program Main
        
         
         do nf = 1, N_FL
-           CALL udvl(nf)%reset
-           CALL udvr(nf)%reset
-           CALL udvst(NSTMwarmup, nf)%reset
+           if (Projector) then
+              CALL udvl(nf)%reset('l',WF_L(nf)%P)
+              CALL udvr(nf)%reset('r',WF_R(nf)%P)
+              CALL udvst(NSTMwarmup, nf)%reset('l',WF_L(nf)%P)
+           else
+              CALL udvl(nf)%reset('l')
+              CALL udvr(nf)%reset('r')
+              CALL udvst(NSTMwarmup, nf)%reset('l')
+           endif
         enddo
         
         DO NST = NSTMwarmup-1,1,-1
@@ -431,6 +437,9 @@ Program Main
         Phase = cmplx(1.d0, 0.d0, kind(0.D0))
         do nf = 1,N_Fl
            CALL CGR(Z, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
+!            do i=1,ndim
+!              write(*,*) "init",sum(Gr(:,:,nf)), Z
+!            enddo
            Phase = Phase*Z
         Enddo
         call Op_phase(Phase,OP_V,Nsigma,N_SUN)
@@ -462,7 +471,11 @@ Program Main
               ! Set the right storage to 1
               
               do nf = 1,N_FL
-                 CALL udvr(nf)%reset
+                if (Projector) then
+                    CALL udvr(nf)%reset('r',WF_R(nf)%P)
+                else
+                    CALL udvr(nf)%reset('r')
+                endif
               Enddo
               
               NST = 1
@@ -483,6 +496,9 @@ Program Main
                        IF (NTAU1 .GT. LTROT/2) NVAR = 2
                        TEST(:,:) = GR(:,:,nf)
                        CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
+!            do i=1,ndim
+!              write(*,*) "sweep up",sum(Gr(:,:,nf)), Z
+!            enddo
                        Z = Z*Z1
                        Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
                     ENDDO
@@ -491,24 +507,34 @@ Program Main
                     Phase = Z
                     NST = NST + 1
                  ENDIF
-                 IF (NTAU1.GE. LOBS_ST .AND. NTAU1.LE. LOBS_EN ) THEN
+                 IF (NTAU1.GE. LOBS_ST/LTROTstore*LTROT .AND. NTAU1.LE. LOBS_EN/LTROTstore*LTROT ) THEN
                     !Call  Global_tau_mod_Test(Gr,ntau1)
                     !Stop
+!            do n=1,N_FL
+!              write(*,*) "obser",sum(Gr(:,:,nf)),phase
+!            enddo
                     CALL Obser( GR, PHASE, Ntau1 )
                  ENDIF
               ENDDO
               
               Do nf = 1,N_FL
-                 CALL udvl(nf)%reset
+                if (Projector) then
+                    CALL udvl(nf)%reset('l',WF_L(nf)%P)
+                else
+                    CALL udvl(nf)%reset('l')
+                endif
               ENDDO
               
               NST = NSTMwarmup-1
               DO NTAU = LTROT,1,-1
                  NTAU1 = NTAU - 1
                  CALL WRAPGRDO(GR,NTAU, PHASE,Propose_S0,Nt_sequential_start, Nt_sequential_end, N_Global_tau)
-                 IF (NTAU1.GE. LOBS_ST .AND. NTAU1.LE. LOBS_EN ) THEN
+                 IF (NTAU1.GE. LOBS_ST/LTROTstore*LTROT .AND. NTAU1.LE. LOBS_EN/LTROTstore*LTROT ) THEN
                     !Call  Global_tau_mod_Test(Gr,ntau1)
                     !Stop
+!            do n=1,N_FL
+!              write(*,*) "obser",sum(Gr(:,:,nf)),phase
+!            enddo
                     CALL Obser( GR, PHASE, Ntau1 )
                  ENDIF
                  IF ( Stab_nt(NST) == NTAU1 .AND. NTAU1.NE.0 ) THEN
@@ -524,6 +550,9 @@ Program Main
                        IF (NTAU1 .GT. LTROT/2) NVAR = 2
                        TEST(:,:) = GR(:,:,nf)
                        CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
+!            do i=1,ndim
+!              write(*,*) "sweep down",sum(Gr(:,:,nf)), Z
+!            enddo
                        Z = Z*Z1
                        Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
                     ENDDO
@@ -540,13 +569,20 @@ Program Main
               CALL WRAPUL(NT, NT1, udvl)
         
               do nf = 1,N_FL
-                 CALL udvr(nf)%reset
+                if (Projector) then
+                    CALL udvr(nf)%reset('r',WF_R(nf)%P)
+                else
+                    CALL udvr(nf)%reset('r')
+                endif
               ENDDO
               Z = cmplx(1.d0, 0.d0, kind(0.D0))
               do nf = 1,N_FL
                  TEST(:,:) = GR(:,:,nf)
                  NVAR = 1
                  CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
+!            do i=1,ndim
+!              write(*,*) "sweep end",sum(Gr(:,:,nf)), Z
+!            enddo
                  Z = Z*Z1
                  Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
               ENDDO
@@ -555,7 +591,11 @@ Program Main
               Phase = Z
               NST =  NSTMwarmup
               Do nf = 1,N_FL
-                 CALL udvst(NST, nf)%reset
+                if (Projector) then
+                    CALL udvst(NST, nf)%reset('l',WF_L(nf)%P)
+                else
+                    CALL udvst(NST, nf)%reset('l')
+                endif
               enddo
               
            ENDDO 
@@ -587,12 +627,24 @@ Program Main
 !         write(*,*) "Current Ltrot",Ltrot
 !         write(*,*) "Next Ltrot",Stab_nt(min(int(rate**dble(k+1)),NSTM))
 !         write(*,*) "Number of slices to be filled",Stab_nt(min(int(rate**dble(k+1)),NSTM))-Ltrot
-        do j=1,Stab_nt(min(int(rate**dble(k+1)),NSTM))-Ltrot
-!         write(*,*) "Filling slice ",Ltrot+j," from ",Ltrot-j
-        do i=1,SIZE(OP_V,1)
-          Nsigma(i,Ltrot+j)=Nsigma(i,j)
-        enddo
-        enddo
+        nbc=Stab_nt(min(int(rate**dble(k+1)),NSTM)) !next ltrot
+        if (Projector) then
+          do j=0,Ltrot/2-1
+!           write(*,*) "Moving slice ",Ltrot-j," to ",nbc-j
+          do i=1,SIZE(OP_V,1)
+            nf=Nsigma(i,nbc-j)
+            Nsigma(i,nbc-j)=Nsigma(i,Ltrot-j)
+            Nsigma(i,Ltrot-j)=nf
+          enddo
+          enddo
+        else
+          do j=1,Stab_nt(min(int(rate**dble(k+1)),NSTM))-Ltrot
+!           write(*,*) "Filling slice ",Ltrot+j," from ",Ltrot-j
+          do i=1,SIZE(OP_V,1)
+            Nsigma(i,Ltrot+j)=Nsigma(i,j)
+          enddo
+          enddo
+        endif
         
         If (prog_truncation) then 
           Nbin_eff=0
@@ -628,9 +680,15 @@ Program Main
 ! End of Simulated annealing
         
         do nf = 1, N_FL
-           CALL udvl(nf)%reset
-           CALL udvr(nf)%reset
-           CALL udvst(NSTM, nf)%reset
+           if (Projector) then
+              CALL udvl(nf)%reset('l',WF_L(nf)%P)
+              CALL udvr(nf)%reset('r',WF_R(nf)%P)
+              CALL udvst(NSTM, nf)%reset('l',WF_L(nf)%P)
+           else
+              CALL udvl(nf)%reset('l')
+              CALL udvr(nf)%reset('r')
+              CALL udvst(NSTM, nf)%reset('l')
+           endif
         enddo
         
         DO NST = NSTM-1,1,-1
@@ -651,6 +709,7 @@ Program Main
         Phase = cmplx(1.d0, 0.d0, kind(0.D0))
         do nf = 1,N_Fl
            CALL CGR(Z, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
+           
            Phase = Phase*Z
         Enddo
         call Op_phase(Phase,OP_V,Nsigma,N_SUN)
