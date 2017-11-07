@@ -390,52 +390,52 @@
               nc=nc+1
               I=I1
               
-              WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),1),nc) = cmplx(1.d0,0.d0,kind(0.d0))
-              nc=nc+1
-              WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),2),nc) = cmplx(0.5d0**0.5d0,0.d0,kind(0.d0))
-              WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),3),nc) = cmplx(0.5d0**0.5d0,0.d0,kind(0.d0))
+!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),1),nc) = cmplx(1.d0,0.d0,kind(0.d0))
+!               nc=nc+1
+!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),2),nc) = cmplx(0.5d0**0.5d0,0.d0,kind(0.d0))
+!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),3),nc) = cmplx(0.5d0**0.5d0,0.d0,kind(0.d0))
+!               nc=nc+1
+!               if (DI1==1) then
+!                 I=Latt%nnlist(I, 1, 0)
+!               else
+!                 I=Latt%nnlist(I, 0, 1)
+!               endif
+!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),2),nc) = cmplx(0.5d0**0.5d0,0.d0,kind(0.d0))
+!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),3),nc) = cmplx(0.5d0**0.5d0,0.d0,kind(0.d0))
+              
+              WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),1),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
+              WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),2),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
+              WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),3),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
+              WF_L(1)%P(Invlist(Latt%nnlist(I, 0,-1),3),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
+              WF_L(1)%P(Invlist(Latt%nnlist(I,-1, 0),2),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
+              WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 1),1),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
+              WF_L(1)%P(Invlist(Latt%nnlist(I,-1, 1),2),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
               nc=nc+1
               if (DI1==1) then
                 I=Latt%nnlist(I, 1, 0)
               else
                 I=Latt%nnlist(I, 0, 1)
               endif
-              WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),2),nc) = cmplx(0.5d0**0.5d0,0.d0,kind(0.d0))
-              WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),3),nc) = cmplx(0.5d0**0.5d0,0.d0,kind(0.d0))
-              
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),1),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),2),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),3),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0,-1),3),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I,-1, 0),2),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 1),1),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I,-1, 1),2),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
-!               nc=nc+1
-!               if (DI1==1) then
-!                 I=Latt%nnlist(I, 1, 0)
-!               else
-!                 I=Latt%nnlist(I, 0, 1)
-!               endif
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),1),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),2),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),3),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0,-1),3),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I,-1, 0),2),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I,-1, 0),1),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I,-1, 0),3),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
-!               nc=nc+1
-!               if (DI1==1) then
-!                 I=Latt%nnlist(I, 1, 0)
-!               else
-!                 I=Latt%nnlist(I, 0, 1)
-!               endif
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),1),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),2),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),3),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 1, 0),1),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 1,-1),3),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 1),1),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I,-1, 1),2),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
+              WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),1),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
+              WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),2),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
+              WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),3),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
+              WF_L(1)%P(Invlist(Latt%nnlist(I, 0,-1),3),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
+              WF_L(1)%P(Invlist(Latt%nnlist(I,-1, 0),2),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
+              WF_L(1)%P(Invlist(Latt%nnlist(I,-1, 0),1),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
+              WF_L(1)%P(Invlist(Latt%nnlist(I,-1, 0),3),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
+              nc=nc+1
+              if (DI1==1) then
+                I=Latt%nnlist(I, 1, 0)
+              else
+                I=Latt%nnlist(I, 0, 1)
+              endif
+              WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),1),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
+              WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),2),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
+              WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),3),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
+              WF_L(1)%P(Invlist(Latt%nnlist(I, 1, 0),1),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
+              WF_L(1)%P(Invlist(Latt%nnlist(I, 1,-1),3),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
+              WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 1),1),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
+              WF_L(1)%P(Invlist(Latt%nnlist(I,-1, 1),2),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
             endif
           enddo
           WF_R(1)%P=WF_L(1)%P
@@ -1223,8 +1223,8 @@
               enddo
             enddo
           enddo
-          start=nranf(Ltrot)
-          stop1=start
+!           start=nranf(Ltrot)
+!           stop1=start
         
         
 !         Do I = 1,15*Latt%N
