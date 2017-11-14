@@ -1234,23 +1234,27 @@
           start=1
           length=Ltrot
           stop1=Ltrot
-!           start=nranf(Ltrot)
-!           length=nranf(Ltrot)
-!           stop1=start+length-1
+          start=nranf(Ltrot)
+!           if (.not. projector) then
+            length=nranf(Ltrot)
+!           else
+!             length=nranf(Ltrot-start)
+!           endif
+          stop1=start+length-1
           start2=1
           stop2=0
-!           if (stop1>Ltrot) then
-!             stop2=stop1-Ltrot
-!             stop1=Ltrot
-!           endif
+          if (stop1>Ltrot) then
+            stop2=stop1-Ltrot
+            stop1=Ltrot
+          endif
                 
           Do I = 1,Latt%N
             no=0
             do I1=1,5
               do I2=I1+1,6
                 nc = Latt%N*no+I
-                sigma_av(nc)=dble(sum(nsigma_old( Latt%N*(13+no)+I,start:stop1)))/dble(length)
-                if(stop2>0) sigma_av(nc)=sigma_av(nc)+dble(sum(nsigma_old( Latt%N*(13+no)+I,start2:stop2)))/dble(length)
+                sigma_av(nc)=dble(sum(nsigma_old( Latt%N*(12+no)+I,start:stop1)))/dble(length)
+                if(stop2>0) sigma_av(nc)=sigma_av(nc)+dble(sum(nsigma_old( Latt%N*(12+no)+I,start2:stop2)))/dble(length)
                 no = no+1
               enddo
             enddo
@@ -1262,132 +1266,146 @@
 !         Do I = 1,15*Latt%N
 !           write(*,*) sigma_av(I)
 !         enddo
-          I=nranf(Latt%N)
-          Ihex(1) = Invlist(I,3)
-          Ihex(2) = Invlist(I,2)
-          Ihex(3) = Invlist(Latt%nnlist(I,1,0),1)
-          Ihex(4) = Invlist(Latt%nnlist(I,1,0),3)
-          Ihex(5) = Invlist(Latt%nnlist(I,0,1),2)
-          Ihex(6) = Invlist(Latt%nnlist(I,0,1),1)
-          nc=idamax(15,sigma_av(I),Latt%N)
-          if(sigma_av(Latt%N*(nc-1)+I) < 0.d0) nc=-nc
-          stop_site=Ihex(BondInvlist(1,nc))
-          next_site=Ihex(BondInvlist(2,nc))
-          loopopen=.true.
-          SitesVisited(1,1)=stop_site
-          SitesVisited(2,1)=I
-          SitesVisited(3,1)=BondInvList(1,nc)
-          SitesVisited(4,1)=BondInvList(2,nc)
-!          write(*,*) "storing bond", SitesVisited(:,1)
-          looplength=1
-!           write(*,*)
-!           write(*,*) "start hex:", I
-!           write(*,*) "largest b:", nc
-!           write(*,*) "start    :", stop_site
-!           write(*,*) "current  :", next_site
-          next_hex=HexList(1,next_site)
-          next_idx=HexList(2,next_site)
-          if (next_hex==i) then 
-            next_hex=HexList(3,next_site)
-            next_idx=HexList(4,next_site)
-          endif
-!           write(*,*) "next hex :", next_hex
-!           write(*,*) "next idx :", next_idx
-!           do no=0,14
-!             write(*,*) sigma_av(Latt%N*no+I)
-!           enddo
-          
-          do while ( loopopen )
-            I=next_hex
-            Ihex(1) = Invlist(I,3)
-            Ihex(2) = Invlist(I,2)
-            Ihex(3) = Invlist(Latt%nnlist(I,1,0),1)
-            Ihex(4) = Invlist(Latt%nnlist(I,1,0),3)
-            Ihex(5) = Invlist(Latt%nnlist(I,0,1),2)
-            Ihex(6) = Invlist(Latt%nnlist(I,0,1),1)
-!             no=nranf(5)
-!             if(no==next_idx) no=no+1
-!             nc=Bondlist(next_idx,no)
-            if(next_idx==1) then
-              next_nc=Bondlist(next_idx,2)
-            else
-              next_nc=Bondlist(next_idx,1)
-            endif
-            abs_av_cmp=abs(sigma_av(Latt%N*(abs(next_nc)-1)+I))
-            no=1
-!             if (no .ne. next_idx) write(*,*) abs(Bondlist(next_idx,no)), sigma_av(Latt%N*(abs(Bondlist(next_idx,no))-1)+I)
-            do no=2,6
-              if (no .ne. next_idx) then
-                if(abs_av_cmp<abs(sigma_av(Latt%N*(abs(Bondlist(next_idx,no))-1)+I)) ) then
-                  next_nc=Bondlist(next_idx,no)
-                  abs_av_cmp=abs(sigma_av(Latt%N*(abs(next_nc)-1)+I))
-                endif
-              endif
-!               if (no .ne. next_idx) write(*,*) abs(Bondlist(next_idx,no)), sigma_av(Latt%N*(abs(Bondlist(next_idx,no))-1)+I)
-            enddo
-            nc=next_nc
-            looplength=looplength+1
-            SitesVisited(1,looplength)=next_site
-            SitesVisited(2,looplength)=I
-            SitesVisited(3,looplength)=BondInvList(1,nc)
-            SitesVisited(4,looplength)=BondInvList(2,nc)
-             do no = 1,6
-               if (.not.(no == BondInvList(1,nc)) .and. .not. (no == BondInvList(2,nc))) then 
-                 tmpreal=sigma_av(Latt%N*(abs(BondList(BondInvList(1,nc),no))-1)+I)
-                 sigma_av(Latt%N*(abs(BondList(BondInvList(1,nc),no))-1)+I)=&
-                    & sigma_av(Latt%N*(abs(BondList(BondInvList(2,nc),no))-1)+I)
-                 sigma_av(Latt%N*(abs(BondList(BondInvList(2,nc),no))-1)+I)=tmpreal
-               endif
-             enddo
-!            write(*,*) "storing bond", SitesVisited(:,1)
-  !           write(*,*)
-!             write(*,*) "next b  :", nc
-            next_site=Ihex(BondInvlist(2,nc))
-!             write(*,*) "current  :", next_site
-            Do no=1,looplength
-!               write(*,*) "testing",SitesVisited(1,no), next_site
-               if ( SitesVisited(1,no) == next_site ) then
-                  LoopOpen = .false.
-                  eff_start = no
-!                   write(*,*) "length",looplength-eff_start+1
+! 4231      I=nranf(Latt%N)
+!           Ihex(1) = Invlist(I,3)
+!           Ihex(2) = Invlist(I,2)
+!           Ihex(3) = Invlist(Latt%nnlist(I,1,0),1)
+!           Ihex(4) = Invlist(Latt%nnlist(I,1,0),3)
+!           Ihex(5) = Invlist(Latt%nnlist(I,0,1),2)
+!           Ihex(6) = Invlist(Latt%nnlist(I,0,1),1)
+!           nc=idamax(15,sigma_av(I),Latt%N)
+!           if(sigma_av(Latt%N*(nc-1)+I) < 0.d0) nc=-nc
+!           stop_site=Ihex(BondInvlist(1,nc))
+!           next_site=Ihex(BondInvlist(2,nc))
+!           loopopen=.true.
+!           SitesVisited(1,1)=stop_site
+!           SitesVisited(2,1)=I
+!           SitesVisited(3,1)=BondInvList(1,nc)
+!           SitesVisited(4,1)=BondInvList(2,nc)
+! !          write(*,*) "storing bond", SitesVisited(:,1)
+!           looplength=1
+! !           write(*,*)
+! !           write(*,*) "start hex:", I
+! !           write(*,*) "largest b:", nc
+! !           write(*,*) "start    :", stop_site
+! !           write(*,*) "current  :", next_site
+!           next_hex=HexList(1,next_site)
+!           next_idx=HexList(2,next_site)
+!           if (next_hex==i) then 
+!             next_hex=HexList(3,next_site)
+!             next_idx=HexList(4,next_site)
+!           endif
+! !           write(*,*) "next hex :", next_hex
+! !           write(*,*) "next idx :", next_idx
+! !           do no=0,14
+! !             write(*,*) sigma_av(Latt%N*no+I)
+! !           enddo
+!           
+!           do while ( loopopen )
+!             I=next_hex
+!             Ihex(1) = Invlist(I,3)
+!             Ihex(2) = Invlist(I,2)
+!             Ihex(3) = Invlist(Latt%nnlist(I,1,0),1)
+!             Ihex(4) = Invlist(Latt%nnlist(I,1,0),3)
+!             Ihex(5) = Invlist(Latt%nnlist(I,0,1),2)
+!             Ihex(6) = Invlist(Latt%nnlist(I,0,1),1)
+! !             no=nranf(5)
+! !             if(no==next_idx) no=no+1
+! !             nc=Bondlist(next_idx,no)
+!             if(next_idx==1) then
+!               next_nc=Bondlist(next_idx,2)
+!             else
+!               next_nc=Bondlist(next_idx,1)
+!             endif
+!             abs_av_cmp=abs(sigma_av(Latt%N*(abs(next_nc)-1)+I))
+!             no=1
+! !             if (no .ne. next_idx) write(*,*) abs(Bondlist(next_idx,no)), sigma_av(Latt%N*(abs(Bondlist(next_idx,no))-1)+I)
+!             do no=2,6
+!               if (no .ne. next_idx) then
+!                 if(abs_av_cmp<abs(sigma_av(Latt%N*(abs(Bondlist(next_idx,no))-1)+I)) ) then
+!                   next_nc=Bondlist(next_idx,no)
+!                   abs_av_cmp=abs(sigma_av(Latt%N*(abs(next_nc)-1)+I))
+!                 endif
+!               endif
+! !               if (no .ne. next_idx) write(*,*) abs(Bondlist(next_idx,no)), sigma_av(Latt%N*(abs(Bondlist(next_idx,no))-1)+I)
+!             enddo
+!             nc=next_nc
+!             looplength=looplength+1
+!             SitesVisited(1,looplength)=next_site
+!             SitesVisited(2,looplength)=I
+!             SitesVisited(3,looplength)=BondInvList(1,nc)
+!             SitesVisited(4,looplength)=BondInvList(2,nc)
+! !              do no = 1,6
+! !                if (.not.(no == BondInvList(1,nc)) .and. .not. (no == BondInvList(2,nc))) then 
+! !                  tmpreal=sigma_av(Latt%N*(abs(BondList(BondInvList(1,nc),no))-1)+I)
+! !                  sigma_av(Latt%N*(abs(BondList(BondInvList(1,nc),no))-1)+I)=&
+! !                     & sigma_av(Latt%N*(abs(BondList(BondInvList(2,nc),no))-1)+I)
+! !                  sigma_av(Latt%N*(abs(BondList(BondInvList(2,nc),no))-1)+I)=tmpreal
+! !                endif
+! !              enddo
+! !            write(*,*) "storing bond", SitesVisited(:,looplength)
+! !             write(*,*)
+! !             write(*,*) "next b  :", nc
+!             next_site=Ihex(BondInvlist(2,nc))
+! !             write(*,*) "current  :", next_site
+!             Do no=1,looplength
+! !               write(*,*) "testing",SitesVisited(1,no), next_site
+!                if ( SitesVisited(1,no) == next_site ) then
+!                   LoopOpen = .false.
+!                   eff_start = no
+! !                   write(*,*) "length",looplength-eff_start+1
 !                   if (I == SitesVisited(2,no)) write(*,*) "Not ideal loop topology"
-               endif
-            enddo
-            next_hex=HexList(1,next_site)
-            next_idx=HexList(2,next_site)
-            if (next_hex==i) then 
-              next_hex=HexList(3,next_site)
-              next_idx=HexList(4,next_site)
-            endif
-!             write(*,*) "next hex :", next_hex
-!             write(*,*) "next idx :", next_idx
-          enddo
+!                endif
+!             enddo
+!             next_hex=HexList(1,next_site)
+!             next_idx=HexList(2,next_site)
+!             if (next_hex==i) then 
+!               next_hex=HexList(3,next_site)
+!               next_idx=HexList(4,next_site)
+!             endif
+! !             write(*,*) "next hex :", next_hex
+! !             write(*,*) "next idx :", next_idx
+!           enddo
+          I=nranf(Latt%N)
+          nc=nranf(3)
+          Call Bowtie(SitesVisited,I,nc)
+          eff_start=1
+          looplength=4
+
 !           write(*,*)
 !           nsigma=nsigma_old
+          size_clust=0.d0
           do no=eff_start,looplength
-!              write(*,*) SitesVisited(:,no)
-             do I = 1,6
-               if (.not.(I == SitesVisited(3,no))) then ! .and. .not. (I == SitesVisited(4,no))
-                 nc=BondList(SitesVisited(3,no),I)
-                 next_nc=BondList(SitesVisited(4,no),I)
-                 next_hex=SitesVisited(2,no)
-!                  write(*,*) "swapping: ",nc,next_nc
-                 sn = 1
-                 if (next_nc*nc<0) sn=-1
-                 tmpsig(start:stop1)=nsigma(Latt%N*(abs(nc)+11)+next_hex,start:stop1)
-                 nsigma(Latt%N*(abs(nc)+11)+next_hex,start:stop1)=sn*nsigma(Latt%N*(abs(next_nc)+11)+next_hex,start:stop1)
-                 nsigma(Latt%N*(abs(next_nc)+11)+next_hex,start:stop1)=sn*tmpsig(start:stop1)
-                 if (stop2>0) then
-                  tmpsig(start2:stop2)=nsigma(Latt%N*(abs(nc)+11)+next_hex,start2:stop2)
-                  nsigma(Latt%N*(abs(nc)+11)+next_hex,start2:stop2)=sn*nsigma(Latt%N*(abs(next_nc)+11)+next_hex,start2:stop2)
-                  nsigma(Latt%N*(abs(next_nc)+11)+next_hex,start2:stop2)=sn*tmpsig(start2:stop2)
-                 endif
-               endif
-             enddo
+             write(*,*) SitesVisited(:,no)
+             next_hex=SitesVisited(2,no)
+!              do I = 1,6
+!                if (.not.(I == SitesVisited(3,no)) .and. .not. (I == SitesVisited(4,no))) then !
+!                  nc=BondList(SitesVisited(3,no),I)
+!                  next_nc=BondList(SitesVisited(4,no),I)
+! !                  write(*,*) "swapping: ",nc,next_nc,Latt%N*(abs(nc)+11)+next_hex,Latt%N*(abs(next_nc)+11)+next_hex
+! !                  write(*,*) "old av:", sum(nsigma(Latt%N*(abs(nc)+11)+next_hex,:)), &
+! !                   &sum(nsigma(Latt%N*(abs(next_nc)+11)+next_hex,:))
+!                  sn = 1
+!                  if (next_nc*nc<0) sn=-1
+!                  tmpsig(start:stop1)=nsigma(Latt%N*(abs(nc)+11)+next_hex,start:stop1)
+!                  nsigma(Latt%N*(abs(nc)+11)+next_hex,start:stop1)=sn*nsigma(Latt%N*(abs(next_nc)+11)+next_hex,start:stop1)
+!                  nsigma(Latt%N*(abs(next_nc)+11)+next_hex,start:stop1)=sn*tmpsig(start:stop1)
+!                  if (stop2>0) then
+!                   tmpsig(start2:stop2)=nsigma(Latt%N*(abs(nc)+11)+next_hex,start2:stop2)
+!                   nsigma(Latt%N*(abs(nc)+11)+next_hex,start2:stop2)=sn*nsigma(Latt%N*(abs(next_nc)+11)+next_hex,start2:stop2)
+!                   nsigma(Latt%N*(abs(next_nc)+11)+next_hex,start2:stop2)=sn*tmpsig(start2:stop2)
+!                  endif
+! !                  write(*,*) "new av:", sum(nsigma(Latt%N*(abs(nc)+11)+next_hex,:)), &
+! !                    & sum(nsigma(Latt%N*(abs(next_nc)+11)+next_hex,:))
+!                endif
+!              enddo
              nc=BondList(SitesVisited(3,no),SitesVisited(4,no))
-!              write(*,*) "inverting: ",nc
+             size_clust=size_clust+abs(sigma_av(Latt%N*(abs(nc)-1)+next_hex))
+!              write(*,*) "inverting: ",next_hex,nc,Latt%N*(abs(nc)+11)+next_hex
+!                  write(*,*) "old av:", sum(nsigma(Latt%N*(abs(nc)+11)+next_hex,:))
              nsigma(Latt%N*(abs(nc)+11)+next_hex,start:stop1)=-nsigma(Latt%N*(abs(nc)+11)+next_hex,start:stop1)
              if (stop2>0) nsigma(Latt%N*(abs(nc)+11)+next_hex,start2:stop2)=-nsigma(Latt%N*(abs(nc)+11)+next_hex,start2:stop2)
+!                  write(*,*) "old av:", sum(nsigma(Latt%N*(abs(nc)+11)+next_hex,:))
           enddo
           
           
@@ -1410,12 +1428,91 @@
 !           enddo
 !           enddo
           
-          size_clust=dble(looplength-eff_start+1)/dble(Latt%N)*dble(length)/dble(Ltrot)
+          size_clust=size_clust*dble(looplength-eff_start+1)/dble(Latt%N)*dble(length)/dble(Ltrot)
+          write(*,*) size_clust
           
           Deallocate (sigma_av,SitesVisited,tmpsig)
           
         End Subroutine Global_move
 !========================================================================
+
+!---------------------------------------------------------------------
+        Subroutine  Bowtie(SitesVisited, I, idx)
+          
+          ! The user can set the initial configuration
+          
+          Implicit none
+          
+          Integer, INTENT(INOUT) :: SitesVisited(:,:)
+          Integer, INTENT(IN) :: idx, I
+          Integer :: I2,I3,I4, Itmp
+          
+          select case (idx)
+            case (1)
+              I2=Latt%nnlist(I,-1,1)
+              I3=Latt%nnlist(I,-1,0)
+              I4=Latt%nnlist(I,0,-1)
+              Itmp=Latt%nnlist(I,0,1)
+              SitesVisited(1,1) = Invlist(I,2)
+              SitesVisited(1,2) = Invlist(Itmp,1)
+              SitesVisited(1,3) = Invlist(I2,2)
+              SitesVisited(1,4) = Invlist(I,1)
+              SitesVisited(2,1) = I
+              SitesVisited(2,2) = I2
+              SitesVisited(2,3) = I3
+              SitesVisited(2,4) = I4
+              SitesVisited(3,1) = 2
+              SitesVisited(3,2) = 3
+              SitesVisited(3,3) = 5
+              SitesVisited(3,4) = 6
+              SitesVisited(4,1) = 6
+              SitesVisited(4,2) = 2
+              SitesVisited(4,3) = 3
+              SitesVisited(4,4) = 5
+            case (2)
+              I2=Latt%nnlist(I,-1,0)
+              I3=Latt%nnlist(I,-1,-1)
+              I4=Latt%nnlist(I,0,-1)
+              SitesVisited(1,1) = Invlist(I,2)
+              SitesVisited(1,2) = Invlist(I,3)
+              SitesVisited(1,3) = Invlist(I2,2)
+              SitesVisited(1,4) = Invlist(I4,3)
+              SitesVisited(2,1) = I
+              SitesVisited(2,2) = I2
+              SitesVisited(2,3) = I3
+              SitesVisited(2,4) = I4
+              SitesVisited(3,1) = 2
+              SitesVisited(3,2) = 4
+              SitesVisited(3,3) = 5
+              SitesVisited(3,4) = 1
+              SitesVisited(4,1) = 1
+              SitesVisited(4,2) = 2
+              SitesVisited(4,3) = 4
+              SitesVisited(4,4) = 5
+            case (3)
+              I2=Latt%nnlist(I,-1,0)
+              I3=Latt%nnlist(I,0,-1)
+              I4=Latt%nnlist(I,1,-1)
+              Itmp=Latt%nnlist(I,1,0)
+              SitesVisited(1,1) = Invlist(Itmp,1)
+              SitesVisited(1,2) = Invlist(I,3)
+              SitesVisited(1,3) = Invlist(I,1)
+              SitesVisited(1,4) = Invlist(I4,3)
+              SitesVisited(2,1) = I
+              SitesVisited(2,2) = I2
+              SitesVisited(2,3) = I3
+              SitesVisited(2,4) = I4
+              SitesVisited(3,1) = 3
+              SitesVisited(3,2) = 4
+              SitesVisited(3,3) = 6
+              SitesVisited(3,4) = 1
+              SitesVisited(4,1) = 1
+              SitesVisited(4,2) = 3
+              SitesVisited(4,3) = 4
+              SitesVisited(4,4) = 6
+          end select
+          
+        end Subroutine Bowtie
 
 !---------------------------------------------------------------------
         Real (Kind=kind(0.d0)) Function Delta_S0_global(Nsigma_old)
@@ -1490,98 +1587,104 @@
           Ndimloc = Latt%N*Norbloc
           Allocate (SitesVisited(4,10*Ndimloc),tmpsig(size(nsigma,1)))
           
-          start=ntau
-          length=10
-          stop1=start+length-1
-          start2=1
-          stop2=0
-          if (stop1>Ltrot) then
-            stop2=stop1-Ltrot
-            stop1=Ltrot
-          endif
-          
-          start=nranf(Ltrot)
-          stop1=start
-        
-        
-!         Do I = 1,15*Latt%N
-!           write(*,*) sigma_av(I)
-!         enddo
-          I=nranf(Latt%N)
-          Ihex(1) = Invlist(I,3)
-          Ihex(2) = Invlist(I,2)
-          Ihex(3) = Invlist(Latt%nnlist(I,1,0),1)
-          Ihex(4) = Invlist(Latt%nnlist(I,1,0),3)
-          Ihex(5) = Invlist(Latt%nnlist(I,0,1),2)
-          Ihex(6) = Invlist(Latt%nnlist(I,0,1),1)
-          nc=nranf(15)
-          stop_site=Ihex(BondInvlist(1,nc))
-          next_site=Ihex(BondInvlist(2,nc))
-          loopopen=.true.
-          SitesVisited(1,1)=stop_site
-          SitesVisited(2,1)=I
-          SitesVisited(3,1)=BondInvList(1,nc)
-          SitesVisited(4,1)=BondInvList(2,nc)
-!          write(*,*) "storing bond", SitesVisited(:,1)
-          looplength=1
-          eff_start=1
-!           write(*,*)
-!           write(*,*) "start hex:", I
-!           write(*,*) "largest b:", nc
-!           write(*,*) "start    :", stop_site
-!           write(*,*) "current  :", next_site
-          next_hex=HexList(1,next_site)
-          next_idx=HexList(2,next_site)
-          if (next_hex==i) then 
-            next_hex=HexList(3,next_site)
-            next_idx=HexList(4,next_site)
-          endif
-!           write(*,*) "next hex :", next_hex
-!           write(*,*) "next idx :", next_idx
-!           do no=0,14
-!             write(*,*) sigma_av(Latt%N*no+I)
-!           enddo
+!           start=ntau
+!           length=10
+!           stop1=start+length-1
+!           start2=1
+!           stop2=0
+!           if (stop1>Ltrot) then
+!             stop2=stop1-Ltrot
+!             stop1=Ltrot
+!           endif
 !           
-!           do while ( loopopen )
-!             I=next_hex
-!             Ihex(1) = Invlist(I,3)
-!             Ihex(2) = Invlist(I,2)
-!             Ihex(3) = Invlist(Latt%nnlist(I,1,0),1)
-!             Ihex(4) = Invlist(Latt%nnlist(I,1,0),3)
-!             Ihex(5) = Invlist(Latt%nnlist(I,0,1),2)
-!             Ihex(6) = Invlist(Latt%nnlist(I,0,1),1)
-!             no=nranf(5)
-!             if(no==next_idx) no=no+1
-!             nc=Bondlist(next_idx,no)
-!             looplength=looplength+1
-!             SitesVisited(1,looplength)=next_site
-!             SitesVisited(2,looplength)=I
-!             SitesVisited(3,looplength)=BondInvList(1,nc)
-!             SitesVisited(4,looplength)=BondInvList(2,nc)
-! !            write(*,*) "storing bond", SitesVisited(:,1)
-!   !           write(*,*)
-! !             write(*,*) "next b  :", nc
-!             next_site=Ihex(BondInvlist(2,nc))
-! !             write(*,*) "current  :", next_site
-!             Do no=1,looplength
-! !               write(*,*) "testing",SitesVisited(1,no), next_site
-!                if ( SitesVisited(1,no) == next_site ) then ! .and. SitesVisited(2,no) /= I
-!                   LoopOpen = .false.
-!                   eff_start = no
-!                   write(*,*) "length",looplength-eff_start+1
-!                   if (I == SitesVisited(2,no)) write(*,*) "Not ideal loop topology"
-!                endif
-!             enddo
-!             next_hex=HexList(1,next_site)
-!             next_idx=HexList(2,next_site)
-!             if (next_hex==i) then 
-!               next_hex=HexList(3,next_site)
-!               next_idx=HexList(4,next_site)
-!             endif
-! !             write(*,*) "next hex :", next_hex
-! !             write(*,*) "next idx :", next_idx
-!           enddo
-!           write(*,*)
+!           start=nranf(Ltrot)
+!           stop1=start
+!         
+!         
+! !         Do I = 1,15*Latt%N
+! !           write(*,*) sigma_av(I)
+! !         enddo
+!           I=nranf(Latt%N)
+!           Ihex(1) = Invlist(I,3)
+!           Ihex(2) = Invlist(I,2)
+!           Ihex(3) = Invlist(Latt%nnlist(I,1,0),1)
+!           Ihex(4) = Invlist(Latt%nnlist(I,1,0),3)
+!           Ihex(5) = Invlist(Latt%nnlist(I,0,1),2)
+!           Ihex(6) = Invlist(Latt%nnlist(I,0,1),1)
+!           nc=nranf(15)
+!           stop_site=Ihex(BondInvlist(1,nc))
+!           next_site=Ihex(BondInvlist(2,nc))
+!           loopopen=.true.
+!           SitesVisited(1,1)=stop_site
+!           SitesVisited(2,1)=I
+!           SitesVisited(3,1)=BondInvList(1,nc)
+!           SitesVisited(4,1)=BondInvList(2,nc)
+! !          write(*,*) "storing bond", SitesVisited(:,1)
+!           looplength=1
+!           eff_start=1
+! !           write(*,*)
+! !           write(*,*) "start hex:", I
+! !           write(*,*) "largest b:", nc
+! !           write(*,*) "start    :", stop_site
+! !           write(*,*) "current  :", next_site
+!           next_hex=HexList(1,next_site)
+!           next_idx=HexList(2,next_site)
+!           if (next_hex==i) then 
+!             next_hex=HexList(3,next_site)
+!             next_idx=HexList(4,next_site)
+!           endif
+! !           write(*,*) "next hex :", next_hex
+! !           write(*,*) "next idx :", next_idx
+! !           do no=0,14
+! !             write(*,*) sigma_av(Latt%N*no+I)
+! !           enddo
+! !           
+! !           do while ( loopopen )
+! !             I=next_hex
+! !             Ihex(1) = Invlist(I,3)
+! !             Ihex(2) = Invlist(I,2)
+! !             Ihex(3) = Invlist(Latt%nnlist(I,1,0),1)
+! !             Ihex(4) = Invlist(Latt%nnlist(I,1,0),3)
+! !             Ihex(5) = Invlist(Latt%nnlist(I,0,1),2)
+! !             Ihex(6) = Invlist(Latt%nnlist(I,0,1),1)
+! !             no=nranf(5)
+! !             if(no==next_idx) no=no+1
+! !             nc=Bondlist(next_idx,no)
+! !             looplength=looplength+1
+! !             SitesVisited(1,looplength)=next_site
+! !             SitesVisited(2,looplength)=I
+! !             SitesVisited(3,looplength)=BondInvList(1,nc)
+! !             SitesVisited(4,looplength)=BondInvList(2,nc)
+! ! !            write(*,*) "storing bond", SitesVisited(:,1)
+! !   !           write(*,*)
+! ! !             write(*,*) "next b  :", nc
+! !             next_site=Ihex(BondInvlist(2,nc))
+! ! !             write(*,*) "current  :", next_site
+! !             Do no=1,looplength
+! ! !               write(*,*) "testing",SitesVisited(1,no), next_site
+! !                if ( SitesVisited(1,no) == next_site ) then ! .and. SitesVisited(2,no) /= I
+! !                   LoopOpen = .false.
+! !                   eff_start = no
+! !                   write(*,*) "length",looplength-eff_start+1
+! !                   if (I == SitesVisited(2,no)) write(*,*) "Not ideal loop topology"
+! !                endif
+! !             enddo
+! !             next_hex=HexList(1,next_site)
+! !             next_idx=HexList(2,next_site)
+! !             if (next_hex==i) then 
+! !               next_hex=HexList(3,next_site)
+! !               next_idx=HexList(4,next_site)
+! !             endif
+! ! !             write(*,*) "next hex :", next_hex
+! ! !             write(*,*) "next idx :", next_idx
+! !           enddo
+! !           write(*,*)
+          
+          I=nranf(Latt%N)
+          nc=nranf(3)
+          Call Bowtie(SitesVisited,I,nc)
+          eff_start=1
+          looplength=4
 
           Flip_length=9*(looplength-eff_start+1)
           I1=1
