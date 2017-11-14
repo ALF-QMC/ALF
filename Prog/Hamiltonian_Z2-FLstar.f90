@@ -1235,11 +1235,11 @@
           length=Ltrot
           stop1=Ltrot
           start=nranf(Ltrot)
-!           if (.not. projector) then
+          if (.not. projector) then
             length=nranf(Ltrot)
-!           else
-!             length=nranf(Ltrot-start)
-!           endif
+          else
+            length=nranf(Ltrot-start)
+          endif
           stop1=start+length-1
           start2=1
           stop2=0
@@ -1376,7 +1376,7 @@
 !           nsigma=nsigma_old
           size_clust=0.d0
           do no=eff_start,looplength
-             write(*,*) SitesVisited(:,no)
+!              write(*,*) SitesVisited(:,no)
              next_hex=SitesVisited(2,no)
 !              do I = 1,6
 !                if (.not.(I == SitesVisited(3,no)) .and. .not. (I == SitesVisited(4,no))) then !
@@ -1429,7 +1429,7 @@
 !           enddo
           
           size_clust=size_clust*dble(looplength-eff_start+1)/dble(Latt%N)*dble(length)/dble(Ltrot)
-          write(*,*) size_clust
+!           write(*,*) size_clust
           
           Deallocate (sigma_av,SitesVisited,tmpsig)
           
