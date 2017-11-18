@@ -67,13 +67,8 @@
          call MPI_Comm_size(Group_Comm, isize_g, ierr)
          igroup           = irank/isize_g
          !Write(6,*) "Group, rank :", igroup, irank_g
-
-         CALL GET_SEED_LEN(K)
-         ALLOCATE(SEED_VEC(K))
-         CALL RANGET(SEED_VEC)
           
        
-#if defined(MPI)
 #if defined(TEMPERING) 
          write(FILE_TG,'(A,I0,A,I0,A)') "Temp_",igroup,"/confout_",irank_g,".gz"
 #else
@@ -82,6 +77,10 @@
 #else
          FILE_TG = "confout_0.gz"
 #endif
+
+         CALL GET_SEED_LEN(K)
+         ALLOCATE(SEED_VEC(K))
+         CALL RANGET(SEED_VEC)
 
          CALL FGZ_OPEN(TRIM(ADJUSTL(FILE_TG)),'w6',fd,ios)
          WRITE(line,*) SEED_VEC
