@@ -68,11 +68,10 @@
       contains 
 
         Subroutine Ham_Set
-
-          Implicit none
 #ifdef MPI
-          include 'mpif.h'
-#endif   
+          Use mpi
+#endif
+          Implicit none
 
           integer :: ierr
 
@@ -1453,11 +1452,10 @@
         Subroutine  Pr_obs(LTAU)
 
           Use Print_bin_mod
-          Implicit none
 #ifdef MPI
-          include 'mpif.h'
-#endif   
-
+          Use mpi
+#endif
+          Implicit none
 
           Integer,  Intent(In) ::  Ltau
 
@@ -1468,16 +1466,16 @@
           Integer        :: STATUS(MPI_STATUS_SIZE)
           CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
           CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-#endif          
+#endif
 !!$#ifdef MPI
 !!$          Write(6,*)  Irank, 'In Pr_obs', LTAU
 !!$#else
 !!$          Write(6,*)  'In Pr_obs', LTAU
 !!$#endif
-    
+
           File_pr ="ener"
           Call Print_scal(Obs_scal, Nobs, file_pr)
-          
+
           Phase_bin = Obs_scal(8)/dble(Nobs)
           File_pr ="Den_eq"
           Call Print_bin(Den_eq, Den_eq0, Latt, Nobs, Phase_bin, file_pr)
@@ -1485,7 +1483,7 @@
           Call Print_bin(U1_eq, U1_eq0, Latt, Nobs, Phase_bin, file_pr)
           File_pr ="Spinz_eq"
           Call Print_bin(Spinz_eq, Spinz_eq0, Latt, Nobs, Phase_bin, file_pr)
-          
+
           if (FlagSym == 1) then
          File_pr ="R_eq"
          Call Print_bin(R_eq, R_eq0, Latt, Nobs, Phase_bin, file_pr)

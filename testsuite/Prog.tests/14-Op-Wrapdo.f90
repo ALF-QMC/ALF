@@ -1,9 +1,9 @@
 ! compile with
-!gfortran  -Wall -std=f2003 -I ../../../Prog_8/  -I ../../../Libraries/Modules/ -L ../../../Libraries/Modules/ main.f90 ../../../Prog_8/Operator.o ../../../Prog_8/UDV_WRAP.o ../../../Libraries/Modules/modules_90.a -llapack -lblas ../../../Libraries/MyNag/libnag.a
+!gfortran  -Wall -std=f2003 -I ../../../Prog/  -I ../../../Libraries/Modules/ -L ../../../Libraries/Modules/ main.f90 ../../../Prog/Operator.o ../../../Prog/UDV_WRAP.o ../../../Libraries/Modules/modules_90.a -llapack -lblas
 
 !
 !
-Program OPMULTTEST
+Program OPWRAPDO
 !
       Use Operator_mod
       Implicit None
@@ -24,7 +24,7 @@ Program OPMULTTEST
      & matnew, matold
       Complex (Kind=Kind(0.D0)), Dimension (:), Allocatable :: Expop, &
      & ExpMop
-      Integer :: i, n, j, Ndim, N_Type, opn
+      Integer :: i, n, j, Ndim, N_Type, opn, nspin
       Type (Operator) :: Op
 !
 ! setup some test data
@@ -40,15 +40,17 @@ Program OPMULTTEST
             Do i = 1, Op%n
                Op%P (i) = i
                Do n = 1, Op%n
-                  Op%O (i, n) = CMPLX (n+i, 0.D0, kind(0.D0))
+                  Op%O (i, n) = CMPLX (0.25d0*(n+i), 0.25d0*(n-i), kind(0.D0))
                End Do
             End Do
 !
+            Op%type=1
             Op%g = 2.D0
             Op%alpha = 0.D0
             Call Op_set (Op)
 !
-            spin = - 1.0
+            nspin = -1
+            spin = Phi(nspin,Op%type)
 !
             Do i = 1, Ndim
                Do n = 1, Ndim
@@ -57,7 +59,7 @@ Program OPMULTTEST
                End Do
             End Do
 !
-            Call Op_Wrapdo (matnew, Op, spin, Ndim, N_Type)
+            Call Op_Wrapdo (matnew, Op, nspin, Ndim, N_Type)
 !
 ! check against old version from Operator_FFA.f90
             Call Op_WrapdoFFA (matold, Op, spin, Ndim, N_Type)
@@ -66,19 +68,21 @@ Program OPMULTTEST
                Do j = 1, 3
                   Zre = real (matnew(i, j)-matold(i, j))
                   Zim = aimag (matnew(i, j)-matold(i, j))
-                  If (Abs(Zre) > Max(Abs(real(matnew(i, j))), &
-                 & Abs(real(matold(i, j))))*1D-14) Then
+                  if(Abs(Zre)+Abs(Zim) > 1.D-14) THEN
+                  If (Abs(Zre) > Max(Abs(DBLE(matnew(i, j))), &
+                 & Abs(real(matold(i, j))))*1D-12 .and. abs(Zre) > 1D-15) Then
                      Write (*,*) "opn: ", opn, "N_type", N_Type
-                     Write (*,*) "ERROR in real part", real (matnew(i, &
-                    & j)), real (matold(i, j))
+                     Write (*,*) "ERROR in real part", DBLE(matnew(i, &
+                    & j)), DBLE (matold(i, j))
                      Stop 2
                   End If
                   If (Abs(Zim) > Max(Abs(aimag(matnew(i, j))), &
-                 & Abs(aimag(matold(i, j))))*1D-14) Then
+                 & Abs(aimag(matold(i, j))))*1D-12 .and. abs(Zim) > 1D-15) Then
                      Write (*,*) "ERROR in imag part", aimag (matnew(i, &
                     & j)), aimag (matold(i, j))
                      Stop 3
                   End If
+                  endif
                End Do
             End Do
 !
@@ -86,7 +90,7 @@ Program OPMULTTEST
          End Do
       End Do
       write (*,*) "success"
-End Program OPMULTTEST
+End Program OPWRAPDO
 !
 Subroutine Op_WrapdoFFA (Mat, Op, spin, Ndim, N_Type)
 !

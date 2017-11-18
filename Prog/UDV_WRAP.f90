@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 The ALF project
+!  Copyright (C) 2016, 2017 The ALF project
 ! 
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -50,6 +50,7 @@
 
 #if defined(STAB1) 
      Subroutine UDV_Wrap_Pivot(A,U,D,V,NCON,N1,N2)
+        Use QDRP_mod
        
        Implicit NONE
        COMPLEX (Kind=Kind(0.d0)), INTENT(IN),    DIMENSION(:,:) :: A
@@ -61,7 +62,7 @@
        ! Locals
        REAL (Kind=Kind(0.d0)) :: VHELP(N2), XNORM(N2), XMAX, XMEAN
        INTEGER :: IVPT(N2), IVPTM1(N2), I, J, K, IMAX
-       COMPLEX (Kind=Kind(0.d0))  :: A1(N1,N2), A2(N1,N2), V1(N2,N2)
+       COMPLEX (Kind=Kind(0.d0))  :: A1(N1,N2), A2(N1,N2), V1(N2,N2), phase, beta
        
        DO I = 1,N2
           XNORM(I) = 0.D0
@@ -90,6 +91,16 @@
        ENDDO
        
        CALL UDV_Wrap(A1,U,D,V,NCON)
+!       Phase=cmplx(1.d0,0.d0,kind(0.d0))
+!       do i=1,size(D,1)
+!         Phase=Phase*V1(i,i)
+!       enddo
+!       Call Pivot_Phase(phase,IVPT,size(D,1))
+!       beta=1/Phase
+!       !scale first row of R with 1/phase to set Det(R)=1 [=Det(V)]
+!       call ZSCAL(size(V1,2),beta,V1(1,1),size(V1,1))
+!       ! scale first column of U to correct the scaling in V such that UDV is not changed
+!       call ZSCAL(size(U,1),phase,U(1,1),1)
        
        V1 = V
        DO I = 1,N2
@@ -112,19 +123,20 @@
      End Subroutine UDV_Wrap_Pivot
 #else
      Subroutine UDV_Wrap_Pivot(A,U,D,V,NCON,N1,N2)
-       
+        Use QDRP_mod
+
        Implicit NONE
        COMPLEX (Kind=Kind(0.d0)), INTENT(IN),    DIMENSION(:,:) :: A
        COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT), DIMENSION(:,:) :: U,V
        COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT), DIMENSION(:) :: D
        INTEGER, INTENT(IN) :: NCON
        INTEGER, INTENT(IN) :: N1,N2
-       
+
        ! Locals
        REAL (Kind=Kind(0.d0)) :: VHELP(N2), XNORM(N2), XMAX, XMEAN
        INTEGER :: IVPT(N2), IVPTM1(N2), I, J, K, IMAX
-       COMPLEX (Kind=Kind(0.d0))  :: A1(N1,N2), A2(N1,N2), V1(N2,N2), U1(N2,N2), Z
-       
+       COMPLEX (Kind=Kind(0.d0))  :: A1(N1,N2), A2(N1,N2), V1(N2,N2), U1(N2,N2), Z, phase, beta
+
        DO I = 1,N2
           XNORM(I) = 0.D0
           DO J = 1,N1
@@ -132,7 +144,7 @@
           ENDDO
        ENDDO
        VHELP = XNORM
-      
+
        DO I = 1,N2
           XMAX = VHELP(1)
           IMAX = 1
@@ -150,9 +162,18 @@
           K = IVPT(I)
           A1(:, I) = A(:, K)/CMPLX(XNORM(K),0.d0,Kind(0.d0))
        ENDDO
-       
+
        CALL UDV(A1,U,D,V1,NCON)
-       
+       Phase=cmplx(1.d0,0.d0,kind(0.d0))
+       do i=1,size(D,1)
+         Phase=Phase*V1(i,i)
+       enddo
+       Call Pivot_Phase(phase,IVPT,size(D,1))
+       beta=1/Phase
+       !scale first row of R with 1/phase to set Det(R)=1 [=Det(V)]
+       call ZSCAL(size(V1,2),beta,V1(1,1),size(V1,1))
+       ! scale first column of U to correct the scaling in V such that UDV is not changed
+       call ZSCAL(size(U,1),phase,U(1,1),1)
 
        ! Finish the pivotting.
        DO I = 1,N2
@@ -184,36 +205,33 @@
           Write (6,*) 'Check afer  Pivoting', XMAX
        ENDIF
 
-       
-       
      End Subroutine UDV_Wrap_Pivot
 #endif
 
 !***************************************************************
      Subroutine UDV_Wrap(A,U,D,V,NCON)
-
+#ifdef MPI
+       USE mpi
+#endif
 
        Implicit None
-#ifdef MPI            
-       INCLUDE 'mpif.h'
-#endif
+
        COMPLEX (Kind=Kind(0.d0)), INTENT(IN),    DIMENSION(:,:) :: A
        COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT), DIMENSION(:,:) :: U,V
        COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT), DIMENSION(:) :: D
        INTEGER, INTENT(IN) :: NCON
-       
-       !Local 
+
+       !Local
        Complex (Kind=Kind(0.d0)), Allocatable ::  A1(:,:),U1(:,:)
        Integer :: N,I,J
        character (len=64) :: file_sr, File
-#ifdef MPI  
-       INTEGER :: STATUS(MPI_STATUS_SIZE)
+#ifdef MPI
        INTEGER :: Isize, Irank,Ierr
-            
+
        CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
        CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
 #endif
-   
+
        File_sr = "SDV"
 #ifdef MPI 
        File = File_i(File_sr, Irank)
@@ -232,8 +250,7 @@
        CALL SVD(A1,U1,D,V,NCON)
        Call MMULT(A1,U,U1)
        U = A1
-       
+
      End Subroutine UDV_Wrap
-     
+
    End Module UDV_Wrap_mod
-   

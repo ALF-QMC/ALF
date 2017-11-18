@@ -65,14 +65,13 @@
         Integer :: NTAU
 
         ! Local
-        Complex (Kind=Kind(0.d0)) :: Mat_TMP(Ndim,Ndim)
-        Integer :: nf, N_Type, n
-        real (Kind=Kind(0.d0)) :: spin
+        Integer :: nf, N_Type, n,spin
+!         real (Kind=Kind(0.d0)) :: spin
 
         Do n =  size(OP_V,1), 1, -1 
            N_type = 2
            nf = 1
-           spin = Phi(nsigma(n,ntau),Op_V(n,nf)%type)
+           spin = nsigma(n,ntau)!Phi(nsigma(n,ntau),Op_V(n,nf)%type)
            do nf = 1,N_FL
               Call Op_Wrapdo( Gr(:,:,nf), Op_V(n,nf), spin, Ndim, N_Type)
            enddo
@@ -80,15 +79,15 @@
            Call Upgrade(GR,n,ntau,PHASE,Op_V(n,1)%N_non_zero) 
            ! The spin has changed after the upgrade!
            nf = 1
-           spin = Phi(nsigma(n,ntau),Op_V(n,nf)%type)
+           spin = nsigma(n,ntau)!Phi(nsigma(n,ntau),Op_V(n,nf)%type)
            N_type = 1
            do nf = 1,N_FL
               Call Op_Wrapdo( Gr(:,:,nf), Op_V(n,nf), spin, Ndim, N_Type )
            enddo
         enddo
         DO nf = 1,N_FL
-           Call Hop_mod_mmthl   (GR(:,:,nf), MAT_TMP, nf)
-           Call Hop_mod_mmthr_m1(MAT_TMP, GR(:,:,nf), nf)
+           Call Hop_mod_mmthl   (GR(:,:,nf), nf)
+           Call Hop_mod_mmthr_m1(GR(:,:,nf), nf)
            !CALL MMULT(MAT_TMP   , GR(:,:,nf)      , Exp_T(:,:,nf) )
            !CALL MMULT(GR(:,:,nf), Exp_T_M1(:,:,nf), MAT_TMP       )
         enddo

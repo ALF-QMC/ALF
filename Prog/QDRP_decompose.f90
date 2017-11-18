@@ -91,4 +91,29 @@ Real(Kind=Kind(0.d0)) :: X
         enddo
 END SUBROUTINE
 
+SUBROUTINE Pivot_phase(Phase, IPVT, N_size)
+        Implicit none
+        COMPLEX(kind=kind(0.d0)), Intent(INOUT) :: Phase
+        Integer, Dimension(:), Intent(IN)       :: IPVT
+        Integer,               Intent(IN)       :: N_size
+        
+        Integer:: i, next, L, VISITED(N_size)
+        
+        VISITED=0
+        do i = 1, N_size
+            if (VISITED(i) .eq. 0) then
+                next = i
+                L = 0
+                do while (VISITED(next) .eq. 0)
+                 L = L + 1
+                 VISITED(next) = 1
+                 next = IPVT(next)
+                enddo
+                if(MOD(L, 2) .eq. 0) then
+                    PHASE = -PHASE
+                endif
+            endif
+        enddo
+END SUBROUTINE
+
 End Module QDRP_mod

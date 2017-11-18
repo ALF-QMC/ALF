@@ -45,16 +45,15 @@
 
 
       Subroutine Ham_Set
-
+#if defined (MPI) || defined(TEMPERING)
+          Use mpi
+#endif
           Implicit none
 
-#if defined (MPI) || defined(TEMPERING)
-          include 'mpif.h'
-#endif   
+
 
           integer :: ierr
           Character (len=64) :: file1
-          
           NAMELIST /VAR_lattice/  L1, L2, Lattice_type, Model
 
 
@@ -66,10 +65,6 @@
           Integer        :: STATUS(MPI_STATUS_SIZE)
           CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
           CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-#endif
-          
-
-#ifdef MPI
           If (Irank == 0 ) then
 #endif
              OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
@@ -87,7 +82,6 @@
           CALL MPI_BCAST(Lattice_type,64 ,MPI_CHARACTER, 0,MPI_COMM_WORLD,IERR)
 #endif
           Call Ham_latt
-          
           if ( Model == "Z2_Slave" ) then
              N_FL = 1
              N_SUN = 2
@@ -814,17 +808,15 @@
 
 !========================================================================
         Subroutine Obser(GR,Phase,Ntau)
-          
+#if defined(Machine_Learning)
+          Use mpi
+#endif
           Implicit none
 
-#if defined(Machine_Learning)
-          include 'mpif.h'
-#endif   
-          
+
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
           Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE
           Integer, INTENT(IN)          :: Ntau
-          
           !Local 
           Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK
           Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP,ZS, Z1, Z2
@@ -1231,18 +1223,14 @@
 !===================================================================================
 
       Subroutine Print_fluxes
-
-        Implicit none
-
 #if defined (MPI) || defined(TEMPERING)
-        include 'mpif.h'
-#endif   
-        
+        Use mpi
+#endif
+        Implicit none
 
         ! Local 
         Integer :: I,nt,ix, iy, n
         Character (len=64) :: File1
-
 
 #ifdef MPI
         Integer        :: Isize, Irank, IERR
@@ -1256,7 +1244,6 @@
 #else
         File1="Fluxes"
 #endif
-        
         Open (Unit=10,File=File1, status="unknown")
         Do nt = 1,Ltrot
            Do i  = 1,Ndim

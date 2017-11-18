@@ -24,13 +24,14 @@
 !>    Privat variables 
       Type (Lattice),       private :: Latt 
       Integer,              private :: L1, L2
-      real (Kind=Kind(0.d0)),        private :: ham_T , ham_U,  Ham_chem, Ham_h, Ham_J, Ham_xi, XB_X, Phi_X
+      real (Kind=Kind(0.d0)),        private :: ham_T , ham_U,  Ham_chem, Ham_h, Ham_J, Ham_xi, XB_X, Phi_X, Ham_tV
 
       real (Kind=Kind(0.d0)),        private :: Dtau, Beta
       Character (len=64),   private :: Model, Lattice_type
-      Logical,              private :: One_dimensional
+      Logical,              private :: One_dimensional, Checkerboard
       Integer,              private :: N_coord, Norb
       Integer, allocatable, private :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
+      
 
 
 
@@ -48,33 +49,33 @@
 
 
       Subroutine Ham_Set
-
-          Implicit none
-
 #ifdef MPI
-          include 'mpif.h'
-#endif   
+          Use mpi
+#endif
+          Implicit none
 
           integer :: ierr
 
           
-          NAMELIST /VAR_lattice/  L1, L2, Lattice_type, Model
+          NAMELIST /VAR_Lattice/  L1, L2, Lattice_type, Model,  Checkerboard, N_SUN, Phi_X, XB_X
 
-          NAMELIST /VAR_Hubbard/  ham_T, ham_chem, ham_U, Dtau, Beta, XB_X, Phi_X
+          NAMELIST /VAR_Hubbard/  ham_T, ham_chem, ham_U,  Dtau, Beta
 
-          NAMELIST /VAR_Ising/    Ham_h, Ham_J, Ham_xi
+          NAMELIST /VAR_Ising/    ham_T, ham_chem, ham_U, Ham_h, Ham_J, Ham_xi, Dtau, Beta
+
+          NAMELIST /VAR_t_V/      ham_T, ham_chem, ham_tV, Dtau, Beta
 
 #ifdef MPI
           Integer        :: Isize, Irank
-          Integer        :: STATUS(MPI_STATUS_SIZE)
           CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
           CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-#endif
-          
 
-#ifdef MPI
           If (Irank == 0 ) then
 #endif
+             N_SUN        = 1
+             Checkerboard = .false.
+             Phi_X        = 0.d0
+             XB_X         = 1.d0
              OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
              IF (ierr /= 0) THEN
                 WRITE(*,*) 'unable to open <parameters>',ierr
@@ -87,57 +88,15 @@
           Endif
           CALL MPI_BCAST(L1          ,1  ,MPI_INTEGER,   0,MPI_COMM_WORLD,ierr)
           CALL MPI_BCAST(L2          ,1  ,MPI_INTEGER,   0,MPI_COMM_WORLD,ierr)
+          CALL MPI_BCAST(N_SUN       ,1  ,MPI_INTEGER,   0,MPI_COMM_WORLD,ierr)
+          CALL MPI_BCAST(Phi_X       ,1  ,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
+          CALL MPI_BCAST(XB_X        ,1  ,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
           CALL MPI_BCAST(Model       ,64 ,MPI_CHARACTER, 0,MPI_COMM_WORLD,IERR)
+          CALL MPI_BCAST(Checkerboard,1  ,MPI_LOGICAL  , 0,MPI_COMM_WORLD,IERR)
           CALL MPI_BCAST(Lattice_type,64 ,MPI_CHARACTER, 0,MPI_COMM_WORLD,IERR)
 #endif
           Call Ham_latt
 
-          If ( Model == "Hubbard_Mz") then
-             N_FL = 2
-             N_SUN = 1
-          elseif  ( Model == "Hubbard_SU2" ) then
-             N_FL = 1
-             N_SUN = 2
-          elseif  ( Model == "Hubbard_SU2_Ising" ) then
-             N_FL = 1
-             N_SUN = 2
-             If ( Lattice_type == "Honeycomb" ) then 
-                Write(6,*) "Hubbard_SU2_Ising is only implemented for a square lattice"
-                Stop
-             Endif
-          else
-             Write(6,*) "Model not yet implemented!"
-             Stop
-          endif
-#ifdef MPI
-          If (Irank == 0 ) then
-#endif
-             XB_X  = 1.D0
-             Phi_X = 0.D0
-             OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
-             READ(5,NML=VAR_Hubbard)
-             If ( Model == "Hubbard_SU2_Ising" )  Read(5,NML=VAR_Ising)
-             CLOSE(5)
-             
-#ifdef MPI
-          endif
-          CALL MPI_BCAST(ham_T    ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
-          CALL MPI_BCAST(ham_chem ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
-          CALL MPI_BCAST(ham_U    ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
-          CALL MPI_BCAST(Dtau     ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
-          CALL MPI_BCAST(Beta     ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
-          CALL MPI_BCAST(XB_X     ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
-          CALL MPI_BCAST(Phi_X    ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
-          If ( Model == "Hubbard_SU2_Ising" ) then
-             CALL MPI_BCAST(Ham_xi   ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
-             CALL MPI_BCAST(Ham_J    ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
-             CALL MPI_BCAST(Ham_h    ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
-          Endif
-#endif
-          Call Ham_hop
-          Ltrot = nint(beta/dtau)
-
-          If  ( Model == "Hubbard_SU2_Ising" )  Call Setup_Ising_action
 #ifdef MPI
           If (Irank == 0) then
 #endif
@@ -146,34 +105,166 @@
              Write(50,*) 'Model is      : ', Model 
              Write(50,*) 'Lattice is    : ', Lattice_type
              Write(50,*) '# of orbitals : ', Ndim
-             Write(50,*) 'Beta          : ', Beta
-             Write(50,*) 'dtau,Ltrot    : ', dtau,Ltrot
-             Write(50,*) 'N_SUN         : ', N_SUN
-             Write(50,*) 'N_FL          : ', N_FL
-             Write(50,*) 't             : ', Ham_T
-             Write(50,*) 'Ham_U         : ', Ham_U
-             Write(50,*) 'Ham_chem      : ', Ham_chem
-             If (Lattice_type == "Square" ) then
+             If (Lattice_type == "Square" .or. Lattice_type == "One_dimensional" ) then
                 Write(50,*) 'X_boundary    : ', XB_X
                 Write(50,*) 'Flux_X        : ', Phi_X
              Endif
-             If ( Model == "Hubbard_SU2_Ising" ) then
+             Write(50,*) 'Checkerboard  : ', Checkerboard
+             Close(50)
+#ifdef MPI
+          Endif
+#endif
+
+
+          
+#ifdef MPI
+          If (Irank == 0 ) then
+#endif
+             OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
+             OPEN(Unit = 50,file="info",status="unknown",position="append")
+#ifdef MPI
+          Endif
+#endif
+
+          Select Case (Model)
+          Case ("Hubbard_Mz")
+             N_FL  = 2
+             N_SUN = 1
+#ifdef MPI
+             If (Irank == 0 ) then
+#endif
+                READ(5,NML=VAR_Hubbard)
+                Ltrot = nint(beta/dtau)
+                Write(50,*) 'Beta          : ', Beta
+                Write(50,*) 'dtau,Ltrot    : ', dtau,Ltrot
+                Write(50,*) 'N_SUN         : ', N_SUN
+                Write(50,*) 'N_FL          : ', N_FL
+                Write(50,*) 't             : ', Ham_T
+                Write(50,*) 'Ham_U         : ', Ham_U
+                Write(50,*) 'Ham_chem      : ', Ham_chem
+#ifdef MPI
+             Endif
+#endif
+#ifdef MPI
+             CALL MPI_BCAST(Ltrot    ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(ham_T    ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(ham_chem ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(ham_U    ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(Dtau     ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(Beta     ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
+#endif
+          Case ("Hubbard_SU2")
+             N_FL = 1
+             N_SUN = 2
+#ifdef MPI
+             If (Irank == 0 ) then
+#endif
+                READ(5,NML=VAR_Hubbard)
+                Ltrot = nint(beta/dtau)
+                Write(50,*) 'Beta          : ', Beta
+                Write(50,*) 'dtau,Ltrot    : ', dtau,Ltrot
+                Write(50,*) 'N_SUN         : ', N_SUN
+                Write(50,*) 'N_FL          : ', N_FL
+                Write(50,*) 't             : ', Ham_T
+                Write(50,*) 'Ham_U         : ', Ham_U
+                Write(50,*) 'Ham_chem      : ', Ham_chem
+#ifdef MPI
+             Endif
+#endif
+#ifdef MPI
+             CALL MPI_BCAST(Ltrot    ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(ham_T    ,1,MPI_REAL8  ,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(ham_chem ,1,MPI_REAL8  ,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(ham_U    ,1,MPI_REAL8  ,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(Dtau     ,1,MPI_REAL8  ,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(Beta     ,1,MPI_REAL8  ,0,MPI_COMM_WORLD,ierr)
+#endif
+          Case ("Hubbard_SU2_Ising")
+             N_FL = 1
+             N_SUN = 2
+#ifdef MPI
+             If (Irank == 0 ) then
+#endif
+                READ(5,NML=VAR_Ising)
+                Ltrot = nint(beta/dtau)
+                Write(50,*) 'Beta          : ', Beta
+                Write(50,*) 'dtau,Ltrot    : ', dtau,Ltrot
+                Write(50,*) 'N_SUN         : ', N_SUN
+                Write(50,*) 'N_FL          : ', N_FL
+                Write(50,*) 't             : ', Ham_T
+                Write(50,*) 'Ham_U         : ', Ham_U
+                Write(50,*) 'Ham_chem      : ', Ham_chem
                 Write(50,*) 'Ham_xi        : ', Ham_xi
                 Write(50,*) 'Ham_J         : ', Ham_J
                 Write(50,*) 'Ham_h         : ', Ham_h
+#ifdef MPI
              Endif
+#endif
+             If ( Lattice_type == "Honeycomb" .or. Lattice_type == "Pi_Flux" ) then 
+                Write(6,*) "Hubbard_SU2_Ising is only implemented for a square lattice"
+                Stop
+             Endif
+#ifdef MPI
+             CALL MPI_BCAST(Ltrot    ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(ham_T    ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(ham_chem ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(ham_U    ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(Dtau     ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(Beta     ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(Ham_xi   ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(Ham_J    ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(Ham_h    ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
+#endif
+             Call Setup_Ising_action
+          Case ("t_V")
+             N_FL  = 1
+#ifdef MPI
+             If (Irank == 0 ) then
+#endif
+                READ(5,NML=VAR_t_V )
+                Ltrot = nint(beta/dtau)
+                Write(50,*) 'Beta          : ', Beta
+                Write(50,*) 'dtau,Ltrot    : ', dtau,Ltrot
+                Write(50,*) 'N_SUN         : ', N_SUN
+                Write(50,*) 'N_FL          : ', N_FL
+                Write(50,*) 't             : ', Ham_T
+                Write(50,*) 'Ham_chem      : ', Ham_chem
+                Write(50,*) 'Ham_tV         : ', Ham_tV
+#ifdef MPI
+             Endif
+#endif
+#ifdef MPI
+             CALL MPI_BCAST(Ltrot    ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(ham_T    ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(ham_chem ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(ham_tV   ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(Dtau     ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(Beta     ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
+#endif
+          Case default 
+             Write(6,*) "Model not yet implemented!"
+             Stop
+          end Select
+          Call Ham_hop
+
+
+#ifdef MPI
+          If (Irank == 0 )  then
+#endif
 #if defined(STAB1) 
              Write(50,*) 'STAB1 is defined '
 #endif
+
 #if defined(QRREF) 
              Write(50,*) 'QRREF is defined '
 #endif
              close(50)
+             Close(5)
 #ifdef MPI
           endif
 #endif
+
           call Ham_V
-          
 
 
         end Subroutine Ham_Set
@@ -184,25 +275,38 @@
           
           Real (Kind=Kind(0.d0))  :: a1_p(2), a2_p(2), L1_p(2), L2_p(2)
           Integer :: I, nc, no
-
-          If ( Lattice_type =="Square" ) then
-             Norb = 1
+          
+          select case (Lattice_type)
+          case("Square")
+             If (L1==1 .or. L2==1 ) then
+                Write(6,*) 'For one-dimensional lattices set : L2 = 1'
+                stop
+             endif
+             Norb      = 1
              N_coord   = 2
-             One_dimensional = .false.
              a1_p(1) =  1.0  ; a1_p(2) =  0.d0
              a2_p(1) =  0.0  ; a2_p(2) =  1.d0
              L1_p    =  dble(L1)*a1_p
              L2_p    =  dble(L2)*a2_p
              Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
-             If ( L1 == 1 .or. L2 == 1 ) then 
-                One_dimensional = .true.
-                N_coord   = 1
-                If (L1 == 1 ) then 
-                   Write(6,*) ' For one dimensional systems set  L2 = 1 ' 
-                   Stop
-                endif
+          case("One_dimensional")
+             If (L1 == 1 ) then 
+                Write(6,*) ' For one dimensional systems set  L2 = 1 ' 
+                Stop
              endif
-          elseif ( Lattice_type=="Honeycomb" ) then
+             Norb      = 1
+             N_coord   = 1
+             N_coord   = 1
+             a1_p(1) =  1.0  ; a1_p(2) =  0.d0
+             a2_p(1) =  0.0  ; a2_p(2) =  1.d0
+             L1_p    =  dble(L1)*a1_p
+             L2_p    =  dble(L2)*a2_p
+             Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
+          case("Honeycomb")
+             If (L1==1 .or. L2==1 ) then
+                Write(6,*) 'For one-dimensional lattices set : L2 = 1'
+                stop
+             endif
              Norb    = 2
              N_coord = 3
              a1_p(1) =  1.D0   ; a1_p(2) =  0.d0
@@ -212,20 +316,33 @@
              L1_p    =  dble(L1) * a1_p
              L2_p    =  dble(L2) * a2_p
              Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
+          case("Pi_Flux")
+             If (L1==1 .or. L2==1 ) then
+                Write(6,*) 'For one-dimensional lattices set : L2 = 1'
+                stop
+             endif
+             Norb    = 2
+             N_coord = 4
+             a1_p(1) =  1.D0   ; a1_p(2) =   1.d0
+             a2_p(1) =  1.D0   ; a2_p(2) =  -1.d0
 
-          else
+             !del_p   =  (a2_p - 0.5*a1_p ) * 2.0/3.0
+             L1_p    =  dble(L1) * (a1_p - a2_p)/2.d0
+             L2_p    =  dble(L2) * (a1_p + a2_p)/2.d0
+             Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
+          case default 
              Write(6,*) "Lattice not yet implemented!"
              Stop
-          endif
-
-
+          end select
+          !Call Print_latt(Latt)
           ! This is for the orbital structure.
+
           Ndim = Latt%N*Norb
           Allocate (List(Ndim,2), Invlist(Latt%N,Norb))
           nc = 0
           Do I = 1,Latt%N
              Do no = 1,Norb
-                ! For the Honeycomb lattice no = 1,2 corresponds to the A,and B sublattices.
+                ! For the Honeycomb and pi-flux lattices no = 1,2 corresponds to the A,and B sublattice.
                 nc = nc + 1
                 List(nc,1) = I
                 List(nc,2) = no
@@ -245,44 +362,43 @@
 
           Integer :: I, I1, J1, I2, n, Ncheck,nc, nc1, no
           Complex (Kind=Kind(0.d0)) :: Z
-          
-          Ncheck = 1
-          allocate(Op_T(Ncheck,N_FL))
-          do n = 1,N_FL
-             Do nc = 1,Ncheck
-                Call Op_make(Op_T(nc,n),Ndim)
-                If ( Lattice_type =="Square" ) then
+
+          If ( .not. Checkerboard) then
+             allocate(Op_T(1,N_FL))
+             do n = 1,N_FL
+                Call Op_make(Op_T(1,n),Ndim)
+                nc = 1
+                Select case (Lattice_type)
+                Case ("Square")
                    Z  =  exp( cmplx(0.d0, 2.d0 * acos(-1.d0)*Phi_X/dble(L1), kind=kind(0.d0) ) )
-                   If (One_dimensional ) then 
-                      DO I = 1, Latt%N
-                         I1 = Latt%nnlist(I, 1, 0)
-                         If ( Latt%list(I,1) == 0 ) then
-                            Op_T(nc,n)%O(I,I1) = cmplx(-Ham_T*XB_X, 0.d0, kind(0.D0))*Z
-                            Op_T(nc,n)%O(I1,I) = cmplx(-Ham_T*XB_X, 0.d0, kind(0.D0))*conjg(Z)
-                         else
-                            Op_T(nc,n)%O(I,I1) = cmplx(-Ham_T, 0.d0, kind(0.D0))*Z
-                            Op_T(nc,n)%O(I1,I) = cmplx(-Ham_T, 0.d0, kind(0.D0))*conjg(Z)
-                         endif
-                         Op_T(nc,n)%O(I ,I) = cmplx(-Ham_chem, 0.d0, kind(0.D0))
-                         
-                      ENDDO
-                   else
-                      DO I = 1, Latt%N
-                         I1 = Latt%nnlist(I,1,0)
-                         I2 = Latt%nnlist(I,0,1)
-                         If ( Latt%list(I,1) == 0 ) then
-                            Op_T(nc,n)%O(I,I1) = cmplx(-Ham_T*XB_X, 0.d0, kind(0.D0))*Z
-                            Op_T(nc,n)%O(I1,I) = cmplx(-Ham_T*XB_X, 0.d0, kind(0.D0))*conjg(Z)
-                         else
-                            Op_T(nc,n)%O(I,I1) = cmplx(-Ham_T, 0.d0, kind(0.D0))*Z
-                            Op_T(nc,n)%O(I1,I) = cmplx(-Ham_T, 0.d0, kind(0.D0))*conjg(Z)
-                         endif
-                         Op_T(nc,n)%O(I,I2) = cmplx(-Ham_T,    0.d0, kind(0.D0))
-                         Op_T(nc,n)%O(I2,I) = cmplx(-Ham_T,    0.d0, kind(0.D0))
-                         Op_T(nc,n)%O(I ,I) = cmplx(-Ham_chem, 0.d0, kind(0.D0))
-                      ENDDO
-                   endif
-                elseif ( Lattice_type=="Honeycomb" ) then
+                   DO I = 1, Latt%N
+                      I1 = Latt%nnlist(I,1,0)
+                      I2 = Latt%nnlist(I,0,1)
+                      If ( Latt%list(I,1) == 0 ) then
+                         Op_T(nc,n)%O(I,I1) = cmplx(-Ham_T*XB_X, 0.d0, kind(0.D0))*Z
+                         Op_T(nc,n)%O(I1,I) = cmplx(-Ham_T*XB_X, 0.d0, kind(0.D0))*conjg(Z)
+                      else
+                         Op_T(nc,n)%O(I,I1) = cmplx(-Ham_T, 0.d0, kind(0.D0))*Z
+                         Op_T(nc,n)%O(I1,I) = cmplx(-Ham_T, 0.d0, kind(0.D0))*conjg(Z)
+                      endif
+                      Op_T(nc,n)%O(I,I2) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+                      Op_T(nc,n)%O(I2,I) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+                      Op_T(nc,n)%O(I ,I) = cmplx(-Ham_chem, 0.d0, kind(0.D0))
+                   Enddo
+                Case ("One_dimensional")
+                   Z  =  exp( cmplx(0.d0, 2.d0 * acos(-1.d0)*Phi_X/dble(L1), kind=kind(0.d0) ) )
+                   DO I = 1, Latt%N
+                      I1 = Latt%nnlist(I,1,0)
+                      If ( Latt%list(I,1) == 0 ) then
+                         Op_T(nc,n)%O(I,I1) = cmplx(-Ham_T*XB_X, 0.d0, kind(0.D0))*Z
+                         Op_T(nc,n)%O(I1,I) = cmplx(-Ham_T*XB_X, 0.d0, kind(0.D0))*conjg(Z)
+                      else
+                         Op_T(nc,n)%O(I,I1) = cmplx(-Ham_T, 0.d0, kind(0.D0))*Z
+                         Op_T(nc,n)%O(I1,I) = cmplx(-Ham_T, 0.d0, kind(0.D0))*conjg(Z)
+                      endif
+                      Op_T(nc,n)%O(I ,I) = cmplx(-Ham_chem, 0.d0, kind(0.D0))
+                   Enddo
+                Case ("Honeycomb")
                    DO I = 1, Latt%N
                       do no = 1,Norb
                          I1 = Invlist(I,no)
@@ -306,20 +422,129 @@
                          Op_T(nc,n)%O(J1,I1) = cmplx(-Ham_T,    0.d0, kind(0.D0))
                       Enddo
                    Enddo
-                endif
-
+                case("Pi_Flux")
+                   DO I = 1, Latt%N
+                      do no = 1,Norb
+                         I1 = Invlist(I,no)
+                         Op_T(nc,n)%O(I1 ,I1) = cmplx(-Ham_chem, 0.d0, kind(0.D0))
+                      enddo
+                      I1 = Invlist(I,1)
+                      J1 = I1
+                      Do nc1 = 1,N_coord
+                         select case (nc1)
+                         case (1)
+                            J1 = invlist(I,2) 
+                         case (2)
+                            J1 = invlist(Latt%nnlist(I,0, 1),2) 
+                         case (3)
+                            J1 = invlist(Latt%nnlist(I,-1,1),2) 
+                         case (4)
+                            J1 = invlist(Latt%nnlist(I,-1,0),2) 
+                         case default
+                            Write(6,*) ' Error in  Ham_Hop '  
+                            Stop
+                         end select
+                         if (nc1 == 1 ) then
+                            Op_T(nc,n)%O(I1,J1) = cmplx( Ham_T,    0.d0, kind(0.D0))
+                            Op_T(nc,n)%O(J1,I1) = cmplx( Ham_T,    0.d0, kind(0.D0))
+                         Else
+                            Op_T(nc,n)%O(I1,J1) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+                            Op_T(nc,n)%O(J1,I1) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+                         endif
+                      Enddo
+                   Enddo
+                case default 
+                   Write(6,*) "Lattice not yet implemented!"
+                   Stop
+                end select
                 Do I = 1,Ndim
                    Op_T(nc,n)%P(i) = i 
                 Enddo
-                if ( abs(Ham_T) < 1.E-6 .and.  abs(Ham_chem) < 1.E-6 ) then 
+                if ( abs(Ham_T) < 1.E-6  .and.  abs(Ham_chem) < 1.E-6 ) then 
                    Op_T(nc,n)%g = 0.d0
                 else
                    Op_T(nc,n)%g = -Dtau
                 endif
                 Op_T(nc,n)%alpha=cmplx(0.d0,0.d0, kind(0.D0))
-                Call Op_set(Op_T(nc,n)) 
-             enddo
-          enddo
+                Call Op_set(Op_T(nc,n))
+                !Do I = 1,Size(Op_T(nc,n)%E,1)
+                !   Write(6,*) Op_T(nc,n)%E(I)
+                !Enddo
+             Enddo
+          else
+             select case (Lattice_type)
+             case ("Square")
+                Allocate(Op_T(N_coord*Latt%N,N_FL))
+                do n = 1,N_FL
+                   do i  =  1, N_coord*Latt%N
+                      call Op_make(Op_T(i,n),2)
+                   enddo
+                   nc = 0
+                   do I = 1,Latt%N
+                      I1 = I
+                      do nc1 = 1,N_coord
+                         nc = nc + 1
+                         if (nc1 == 1 ) I2 = latt%nnlist(I,1,0) 
+                         if (nc1 == 2 ) I2 = latt%nnlist(I,0,1)
+                         Op_T(nc,n)%P(1) = I1
+                         Op_T(nc,n)%P(2) = I2
+                         Op_T(nc,n)%O(1,2) = cmplx(-Ham_T ,0.d0, kind(0.D0)) 
+                         Op_T(nc,n)%O(2,1) = cmplx(-Ham_T ,0.d0, kind(0.D0))
+                         Op_T(nc,n)%O(1,1) = cmplx(-Ham_Chem/4.d0 ,0.d0, kind(0.D0)) 
+                         Op_T(nc,n)%O(2,2) = cmplx(-Ham_Chem/4.d0 ,0.d0, kind(0.D0))
+                         if ( abs(Ham_T) < 1.E-6  .and.  abs(Ham_chem) < 1.E-6 ) then 
+                            Op_T(nc,n)%g = 0.d0
+                         else
+                            Op_T(nc,n)%g = -Dtau
+                         endif
+                         Op_T(nc,n)%alpha  = cmplx( 0.d0, 0.d0, kind(0.D0) )
+                         Call Op_set( Op_T(nc,n) )
+                      Enddo
+                   Enddo
+                Enddo
+             case ("Pi_Flux")
+                Allocate(Op_T(N_coord*Latt%N,N_FL))
+                do n = 1,N_FL
+                   !Write(6,*) 'N_coord, Latt%N ',  N_coord, Latt%N
+                   do i  =  1, N_coord*Latt%N
+                      call Op_make(Op_T(i,n),2)
+                   enddo
+                   nc = 0
+                   do I = 1,Latt%N
+                      I1 = Invlist(I,1)
+                      do nc1 = 1,N_coord
+                         nc = nc + 1
+                         If (nc1 == 1 )  I2 = invlist(I,2)
+                         If (nc1 == 2 )  I2 = invlist(Latt%nnlist(I,0, 1),2) 
+                         If (nc1 == 3 )  I2 = invlist(Latt%nnlist(I,-1,1),2)
+                         If (nc1 == 4 )  I2 = invlist(Latt%nnlist(I,-1,0),2) 
+                         Op_T(nc,n)%P(1) = I1
+                         Op_T(nc,n)%P(2) = I2
+                         if (nc1 == 1 ) then
+                            Op_T(nc,n)%O(1,2) = cmplx( Ham_T,    0.d0, kind(0.D0))
+                            Op_T(nc,n)%O(2,1) = cmplx( Ham_T,    0.d0, kind(0.D0))
+                         Else
+                            Op_T(nc,n)%O(1,2) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+                            Op_T(nc,n)%O(2,1) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+                         endif
+                         Op_T(nc,n)%O(1,1) = cmplx(-Ham_Chem/4.d0 ,0.d0, kind(0.D0)) 
+                         Op_T(nc,n)%O(2,2) = cmplx(-Ham_Chem/4.d0 ,0.d0, kind(0.D0))
+                         if ( abs(Ham_T) < 1.E-6  .and.  abs(Ham_chem) < 1.E-6 ) then 
+                            Op_T(nc,n)%g = 0.d0
+                         else
+                            Op_T(nc,n)%g = -Dtau
+                         endif
+                         Op_T(nc,n)%alpha  = cmplx( 0.d0, 0.d0, kind(0.D0) )
+                         Call Op_set( Op_T(nc,n) )
+                      Enddo
+                   Enddo
+                Enddo
+             case default
+                Write(6,*) "Checkeboard is not implemented for this lattice"
+                Stop
+             End select
+          endif
+          
         end Subroutine Ham_hop
 
 !===================================================================================           
@@ -331,7 +556,8 @@
           Real (Kind=Kind(0.d0)) :: X
 
           
-          If (Model == "Hubbard_SU2")  then
+          Select case (Model)
+          Case ("Hubbard_SU2")  
              !Write(50,*) 'Model is ', Model
              Allocate(Op_V(Ndim,N_FL))
              do nf = 1,N_FL
@@ -351,7 +577,7 @@
                    Call Op_set( Op_V(nc,nf) )
                 Enddo
              Enddo
-          Elseif (Model == "Hubbard_Mz")  then
+          Case ("Hubbard_Mz") 
              Allocate(Op_V(Ndim,N_FL))
              do nf = 1,N_FL
                 do i  = 1, Ndim
@@ -372,7 +598,7 @@
                    Call Op_set( Op_V(nc,nf) )
                 Enddo
              Enddo
-          Elseif  ( Model == "Hubbard_SU2_Ising" ) then
+          Case ("Hubbard_SU2_Ising") 
              Allocate(Op_V(3*Ndim,N_FL))
              do nf = 1,N_FL
                 do i  =  1, N_coord*Ndim
@@ -383,7 +609,7 @@
                 enddo
              enddo
              Do nc = 1,Ndim*N_coord   ! Runs over bonds.  Coordination number = 2.
-                                      ! For the square lattice Ndim = Latt%N
+                ! For the square lattice Ndim = Latt%N
                 I1 = L_bond_inv(nc,1)
                 I2 = I1
                 if ( L_bond_inv(nc,2)  == 1 ) I2 = Latt%nnlist(I1,1,0)
@@ -397,7 +623,7 @@
                 Op_V(nc,1)%type =1
                 Call Op_set( Op_V(nc,1) )
              Enddo
-
+             
              Do i = 1,Ndim
                 nc1 = N_coord*Ndim + i
                 Op_V(nc1,1)%P(1)   = i
@@ -407,8 +633,60 @@
                 Op_V(nc1,1)%type   = 2
                 Call Op_set( Op_V(nc1,1) )
              Enddo
-
-          Endif
+          case ("t_V")
+             Allocate(Op_V(N_coord*Latt%N,1))
+             do i  =  1, N_coord*Latt%N
+                call Op_make(Op_V(i,1),2)
+             enddo
+             select case (Lattice_type)
+             case ("Square")
+                !Write(6,*) "N_coord, Latt%N", N_coord, Latt%N, Dtau, ham_tV
+                nc = 0
+                do I = 1,Latt%N
+                   I1 = I
+                   do nc1 = 1,N_coord
+                      nc = nc + 1
+                      if (nc1 == 1 ) I2 = latt%nnlist(I,1,0) 
+                      if (nc1 == 2 ) I2 = latt%nnlist(I,0,1)
+                      Op_V(nc,1)%P(1) = I1
+                      Op_V(nc,1)%P(2) = I2
+                      Op_V(nc,1)%O(1,2) = cmplx(1.d0 ,0.d0, kind(0.D0)) 
+                      Op_V(nc,1)%O(2,1) = cmplx(1.d0 ,0.d0, kind(0.D0))
+                      Op_V(nc,1)%g      = SQRT(CMPLX(-DTAU*ham_tV, 0.D0, kind(0.D0))) 
+                      Op_V(nc,1)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
+                      Op_V(nc,1)%type   = 2
+                      Call Op_set( Op_V(nc,1) )
+                   Enddo
+                Enddo
+             case ("Pi_Flux")
+                nc = 0
+                do I = 1,Latt%N
+                   I1 = Invlist(I,1)
+                   do nc1 = 1,N_coord
+                      nc = nc + 1
+                      If (nc1 == 1 )  I2 = invlist(I,2)
+                      If (nc1 == 2 )  I2 = invlist(Latt%nnlist(I,0, 1),2) 
+                      If (nc1 == 3 )  I2 = invlist(Latt%nnlist(I,-1,1),2)
+                      If (nc1 == 4 )  I2 = invlist(Latt%nnlist(I,-1,0),2) 
+                      Op_V(nc,1)%P(1) = I1
+                      Op_V(nc,1)%P(2) = I2
+                      Op_V(nc,1)%O(1,2) = cmplx(1.d0 ,0.d0, kind(0.D0)) 
+                      Op_V(nc,1)%O(2,1) = cmplx(1.d0 ,0.d0, kind(0.D0))
+                      Op_V(nc,1)%g     = SQRT(CMPLX(-DTAU*ham_tV, 0.D0, kind(0.D0))) 
+                      Op_V(nc,1)%alpha = cmplx(0.d0, 0.d0, kind(0.D0))
+                      Op_V(nc,1)%type  = 2
+                      Call Op_set( Op_V(nc,1) )
+                   Enddo
+                Enddo
+             case default
+                Write(6,*) "Lattice for t-V  not implemented"
+                Stop
+             End select
+          case default
+             Write(6,*) "Model not yet implemented!"
+             Stop
+          end Select
+          
         end Subroutine Ham_V
 
 !===================================================================================           
@@ -613,7 +891,7 @@
           !Local 
           Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK
           Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP,ZS, ZZ, ZXY
-          Integer :: I,J, imj, nf, dec, I1, J1, no_I, no_J
+          Integer :: I,J, imj, nf, dec, I1, J1, no_I, no_J,n
           
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
@@ -637,19 +915,24 @@
              
 
           Zkin = cmplx(0.d0, 0.d0, kind(0.D0))
-          Do nf = 1,N_FL
-             Do J = 1,Ndim
-                Zkin = Zkin + sum(Op_T(1,nf)%O(:, j)*Grc(:, j, nf))
-             ENddo
+          Do n  = 1,Size(Op_T,1)
+             Do nf = 1,N_FL
+                Do I = 1,Size(Op_T(n,nf)%O,1)
+                   Do J = 1,Size(Op_T(n,nf)%O,2)
+                      Zkin = Zkin +  Op_T(n,nf)%O(i, j)*Grc( Op_T(n,nf)%P(I), Op_T(n,nf)%P(J), nf )
+                   ENddo
+                Enddo
+             Enddo
           Enddo
           Zkin = Zkin * dble(N_SUN)
           Obs_scal(1)%Obs_vec(1)  =    Obs_scal(1)%Obs_vec(1) + Zkin *ZP* ZS
 
 
+          dec = 1
           ZPot = cmplx(0.d0, 0.d0, kind(0.D0))
           If ( Model == "Hubbard_SU2" .or. Model == "Hubbard_SU2_Ising" ) then
             dec = 1
-          else
+          elseif (Model == "Hubbard_MZ") then
             dec = 2
           endif
           Do I = 1,Ndim
@@ -677,7 +960,7 @@
              Obs_eq(I)%N        = Obs_eq(I)%N + 1
              Obs_eq(I)%Ave_sign = Obs_eq(I)%Ave_sign + real(ZS,kind(0.d0))
           ENDDO
-          If ( Model == "Hubbard_SU2" .or. Model == "Hubbard_SU2_Ising"  ) then 
+          If ( Model == "Hubbard_SU2" .or. Model == "Hubbard_SU2_Ising" .or. Model == "t_V"  ) then 
              Z =  cmplx(dble(N_SUN), 0.d0, kind(0.D0))
              Do I1 = 1,Ndim
                 I    = List(I1,1)

@@ -70,10 +70,9 @@ Module Global_mod
 !--------------------------------------------------------------------
       Subroutine Exchange_Step(Phase,GR, udvr, udvl, Stab_nt, udvst, N_exchange_steps, Tempering_calc_det)
         Use UDV_State_mod
+        Use mpi
         Implicit none
-        
-        include 'mpif.h'
-        
+
         Interface
            SUBROUTINE WRAPUL(NTAU1, NTAU, udvl)
              Use Hamiltonian
@@ -107,31 +106,30 @@ Module Global_mod
         Integer, Dimension(:,:),  allocatable :: nsigma_old
         Real    (Kind=Kind(0.d0)) :: T0_Proposal_ratio, Weight, Weight1
         Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Z, Ratiotot, Ratiotot_p, Phase_old, Phase_new
-        Complex (Kind=Kind(0.d0)), allocatable :: Det_vec_old(:,:), Det_vec_new(:,:), Phase_Det_new(:), Phase_Det_old(:)
+        Real    (Kind=Kind(0.d0)), allocatable :: Det_vec_old(:,:), Det_vec_new(:,:)
+        Complex (Kind=Kind(0.d0)), allocatable :: Phase_Det_new(:), Phase_Det_old(:)
         Complex (Kind=Kind(0.d0)) :: Ratio(2), Ratio_p(2)
         Logical :: TOGGLE, L_Test
-        
         Integer, allocatable :: List_partner(:), List_masters(:)
-        
+
         !> Additional variables for running without Fermion weight
         Logical :: Tempering_calc_det
         Integer        :: nsigma_irank, nsigma_old_irank, nsigma_irank_temp ! Keeps track of where the configuration originally comes from
         Integer        :: n_GR
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:), allocatable :: GR_new
+
         !Integer, Dimension(:,:),  allocatable :: nsigma_orig, nsigma_test
         !Integer :: I1, I2
-        
+
         Integer        :: Isize, Irank, Ierr, irank_g, isize_g, igroup
         Integer        :: STATUS(MPI_STATUS_SIZE)
+
         CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
         CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
         call MPI_Comm_rank(Group_Comm, irank_g, ierr)
         call MPI_Comm_size(Group_Comm, isize_g, ierr)
         igroup           = irank/isize_g
         nsigma_irank = irank
-        
-        
-        
+
         n1 = size(nsigma,1)
         n2 = size(nsigma,2)
         NSTM = Size(udvst, 1)
@@ -362,19 +360,15 @@ Module Global_mod
            CALL MPI_SEND(nsigma_irank     , 1, MPI_INTEGER, 0, 0, MPI_COMM_WORLD,IERR)
            CALL MPI_RECV(nsigma_old_irank , 1, MPI_INTEGER, 0, 0, MPI_COMM_WORLD,STATUS,IERR)
         endif
-        
+
         if ( nsigma_irank /= irank ) then
-           CALL MPI_Sendrecv(Phase,     1, MPI_COMPLEX16, nsigma_old_irank, 0, &
-                    &        Phase_new, 1, MPI_COMPLEX16, nsigma_irank    , 0, MPI_COMM_WORLD,STATUS,IERR)
-           Phase = Phase_new
-           
+           CALL MPI_Sendrecv_Replace(Phase, 1, MPI_COMPLEX16, nsigma_old_irank, 0, &
+                    &        nsigma_irank, 0, MPI_COMM_WORLD, STATUS, IERR)
+
            n_GR = size(GR,1)*size(GR,2)*size(GR,3)
-           Allocate ( GR_new(size(GR,1),size(GR,2),size(GR,3)) )
-           CALL MPI_Sendrecv(GR,     n_GR, MPI_COMPLEX16, nsigma_old_irank, 0, &
-                    &        GR_new, n_GR, MPI_COMPLEX16, nsigma_irank    , 0, MPI_COMM_WORLD,STATUS,IERR)
-           GR = GR_new
-           Deallocate ( GR_new )
-           
+           CALL MPI_Sendrecv_Replace(GR, n_GR, MPI_COMPLEX16, nsigma_old_irank, 0, &
+                    &        nsigma_irank, 0, MPI_COMM_WORLD, STATUS, IERR)
+
            do nf = 1,N_Fl
               CALL udvr(nf)%MPI_Sendrecv(nsigma_old_irank, 0, nsigma_irank, 0, STATUS, IERR)
            enddo
@@ -437,10 +431,11 @@ Module Global_mod
         Integer, Dimension(:,:),  allocatable :: nsigma_old
         Real    (Kind=Kind(0.d0)) :: T0_Proposal_ratio, Weight
         Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Z, Ratiotot, Phase_old, Phase_new
-        Complex (Kind=Kind(0.d0)), allocatable :: Det_vec_old(:,:), Det_vec_new(:,:), Phase_Det_new(:), Phase_Det_old(:)
+        Complex (Kind=Kind(0.d0)), allocatable :: Det_vec_test(:,:), Phase_Det_new(:), Phase_Det_old(:)
+        Real    (Kind=Kind(0.d0)), allocatable :: Det_vec_old(:,:), Det_vec_new(:,:)
         Complex (Kind=Kind(0.d0)) :: Ratio(2)
         Logical :: TOGGLE, L_Test
-        Real    (Kind=Kind(0.d0)) :: size_clust
+        Real    (Kind=Kind(0.d0)) :: size_clust, ratio_2_test
         
         
         
@@ -450,7 +445,7 @@ Module Global_mod
         n2 = size(nsigma,2)
         NSTM = Size(udvst, 1)
         Allocate ( nsigma_old(n1,n2) )
-        Allocate ( Det_vec_old(NDIM,N_FL), Det_vec_new(NDIM,N_FL) ) 
+        Allocate ( Det_vec_old(NDIM,N_FL), Det_vec_new(NDIM,N_FL), Det_vec_test(NDIM,N_FL) ) 
         Allocate ( Phase_Det_new(N_FL), Phase_Det_old(N_FL) )
         
         
@@ -482,12 +477,16 @@ Module Global_mod
            Enddo
            call Op_phase(Phase,OP_V,Nsigma,N_SUN) 
            Do Nf = 1,N_FL
-              Call DET_C_LU(GR(:,:,nf),Det_vec_new(:,nf),Ndim)
+              Call DET_C_LU(GR(:,:,nf),Det_vec_test(:,nf),Ndim)
               Z = Phase_det_old(nf)
+              ratio_2_test=0.d0
               DO I = 1,Ndim
-                 Z = Z*Det_vec_new(I,nf)*Det_vec_old(I,nf)
+                 Z = Z*Det_vec_test(I,nf)/ABS(Det_vec_test(I,nf))
+                 ratio_2_test=ratio_2_test+log(ABS(Det_vec_test(I,nf)))+Det_vec_old(I,nf)
               Enddo
+              Z=Z*cmplx(exp(ratio_2_test),0.d0,kind(0.d0))
               Write(6,*) 'Testing weight: ', Z
+              if(abs(ratio_2_test)>650) write(6,*) "Weight is about to reach double underflow!"
            Enddo
         Endif
         
@@ -580,7 +579,7 @@ Module Global_mod
         
         
         Deallocate ( nsigma_old)
-        Deallocate ( Det_vec_old  , Det_vec_new  ) 
+        Deallocate ( Det_vec_old  , Det_vec_new, Det_vec_test  ) 
         Deallocate ( Phase_Det_new, Phase_Det_old )
         
         
@@ -609,8 +608,8 @@ Module Global_mod
         Implicit none
         
         !> Arguments
-        Complex (Kind=Kind(0.d0)), allocatable, INTENT(IN) :: Phase_Det_old(:), Phase_Det_new(:), &
-             &                                                Det_vec_old(:,:), Det_vec_new(:,:)
+        Complex (Kind=Kind(0.d0)), allocatable, INTENT(IN) :: Phase_Det_old(:), Phase_Det_new(:)
+        REAL (Kind=Kind(0.d0)), allocatable, INTENT(IN) :: Det_vec_old(:,:), Det_vec_new(:,:)
         Real    (Kind=Kind(0.d0)) :: T0_proposal_ratio 
         Integer, allocatable      :: nsigma_old(:,:)
         Complex (Kind=Kind(0.d0)), INTENT(out) :: Ratio(2)
@@ -626,7 +625,7 @@ Module Global_mod
         Do nf = 1,N_Fl
            DO I = 1,Ndim
               !X= X*real(Det_vec_new(I,nf),kind(0.d0)) / Real(Det_vec_old(I,nf),kind(0.d0) )
-              Ratio_2 = Ratio_2 +  log(real(Det_vec_new(I,nf),kind(0.d0))) - log( Real(Det_vec_old(I,nf),kind(0.d0) ) )
+              Ratio_2 = Ratio_2 +  Det_vec_new(I,nf) - Det_vec_old(I,nf)
            enddo
         enddo
         !Z = cmplx(X,0.d0,kind(0.d0))
@@ -684,7 +683,7 @@ Module Global_mod
         Implicit none
         
         CLASS(UDV_State), INTENT(INOUT) :: udvl
-        Complex (Kind=Kind(0.d0)), Dimension(:), Intent(OUT)  ::  Det_Vec
+        REAL (Kind=Kind(0.d0)), Dimension(:), Intent(OUT)  ::  Det_Vec
         Complex (Kind=Kind(0.d0)) :: Phase
         
         !> Local variables
@@ -692,27 +691,71 @@ Module Global_mod
         COMPLEX (Kind=Kind(0.d0)) :: alpha,beta, Z, Z1
         TYPE(UDV_State) :: udvlocal
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  TP!, U, V
-        !    COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable :: D
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable :: D
         
         !    N_size = SIZE(DL,1)
         N_size = udvl%ndim
         NCON  = 0
         alpha = cmplx(1.d0,0.d0,kind(0.d0))
         beta  = cmplx(0.d0,0.d0,kind(0.d0))
-        Allocate (TP(N_Size,N_Size))
+        Allocate (TP(N_Size,N_Size),D(N_size))
         TP = CT(udvl%U)
+#if !defined(LOG)
+#if !defined(STAB3)
         DO J = 1,N_size
            TP(:,J) = TP(:,J) +  udvl%V(:,J)*udvl%D(J)
         ENDDO
+#else
+        DO J = 1,N_size
+           if ( dble(udvl%D(J)) <= 1.d0 ) then
+              TP(:,J) = TP(:,J) +  udvl%V(:,J)*udvl%D(J)
+           else
+              TP(:,J) = TP(:,J)/udvl%D(J) +  udvl%V(:,J)
+           endif
+        ENDDO
+#endif
+#else
+        DO J = 1,N_size
+           if ( udvl%L(J) <= 0.d0 ) then
+              TP(:,J) = TP(:,J) +  udvl%V(:,J)*cmplx(exp(udvl%L(J)),0.d0,kind(0.d0))
+           else
+              TP(:,J) = TP(:,J)*cmplx(exp(-udvl%L(J)),0.d0,kind(0.d0)) +  udvl%V(:,J)
+           endif
+        ENDDO
+#endif
         CALL udvlocal%alloc(N_size)
-        Call  UDV_WRAP_Pivot(TP,udvlocal%U, udvlocal%D, udvlocal%V, NCON,N_size,N_Size)
+        Call  UDV_WRAP_Pivot(TP,udvlocal%U, D, udvlocal%V, NCON,N_size,N_Size)
         Z  = DET_C(udvlocal%V, N_size) ! Det destroys its argument
         Call MMULT(TP, udvl%U, udvlocal%U)
         Z1 = Det_C(TP, N_size) 
         Deallocate (TP)
         Phase   = Z*Z1/ABS(Z*Z1)
-        Det_vec = udvlocal%D
-        Det_vec(1) = Det_vec(1)*ABS(Z*Z1)
+#if !defined(LOG)
+#if !defined(STAB3)
+        Det_vec = log(real(D))
+        Det_vec(1) = log(real(D(1))*ABS(Z*Z1))
+#else
+        Det_vec(1) = log(real(D(1))*ABS(Z*Z1))
+        if (dble(udvl%D(1)) > 1.d0) Det_vec(1)=Det_Vec(1)+log(dble(udvl%D(1)))
+        Do J=2,Ndim
+           if (dble(udvl%D(J))<=1.d0) then
+              Det_vec(J) = log(real(D(J)))
+           else
+              Det_vec(J) = log(real(D(J)))+log(dble(udvl%D(J)))
+           endif
+        enddo
+#endif
+#else
+        Det_vec(1) = log(real(D(1))*ABS(Z*Z1))
+        if (udvl%L(1) > 0.d0) Det_vec(1)=Det_Vec(1)+udvl%L(1)
+        Do J=2,Ndim
+           if (udvl%L(J)<=0.d0) then
+              Det_vec(J) = log(real(D(J)))
+           else
+              Det_vec(J) = log(real(D(J)))+udvl%L(J)
+           endif
+        enddo
+#endif
         
         CALL udvlocal%dealloc
         

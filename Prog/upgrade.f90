@@ -62,7 +62,7 @@
         Complex (Kind=Kind(0.d0)) :: u(Ndim,Op_dim), v(Ndim,Op_dim) ,alpha, beta
         Complex (Kind=Kind(0.d0)) :: y_v(Ndim,Op_dim), xp_v(Ndim,Op_dim)
         Complex (Kind=Kind(0.d0)) :: x_v(Ndim,Op_dim)
-        Logical :: toggle
+        Logical :: toggle, toggle1
         Complex (Kind=Kind(0.D0)), Dimension(:, :), Allocatable :: Zarr, grarr
         Complex (Kind=Kind(0.D0)), Dimension(:), Allocatable :: sxv, syu
 
@@ -75,7 +75,8 @@
            if ( Propose_S0 ) then
               Weight = 1.d0 - 1.d0/(1.d0+S0(n_op,nt))
               If ( Weight < ranf_wrap() ) then
-                 Call Control_upgrade_eff(.false.)
+                 toggle1=.false.
+                 Call Control_upgrade_eff(toggle1)
                  Return
               endif
            endif
@@ -249,6 +250,7 @@
 
         
         ! Local ::
+        
         Complex (Kind=Kind(0.d0)) :: Mat(Op_dim,Op_Dim), Delta(Op_dim,N_FL)
         Complex (Kind=Kind(0.d0)) :: Ratio(N_FL), Ratiotot, Z1 
         Integer :: ns_old, n,m,nf, i,j
@@ -371,7 +373,7 @@
                 Deallocate(Zarr, grarr)
                 beta  = cmplx ( 1.0d0, 0.0d0, kind(0.D0))
                 alpha = -1.D0
-                CALL ZGEMM('N','T',Ndim,Ndim,Op_dim,alpha,xp_v, Ndim,y_v, Ndim,beta,gr(1,1,nf), Ndim)
+                CALL ZGEMM('N','T',Ndim,Ndim,Op_dim,alpha,xp_v, Ndim, y_v, Ndim,beta,gr(1,1,nf), Ndim)
               ENDIF
 
            enddo

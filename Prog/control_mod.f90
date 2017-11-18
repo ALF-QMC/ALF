@@ -174,21 +174,22 @@
         XMEANP_Glob = XMEANP_Glob + X
         NC_Phase_GLob = NC_Phase_GLob + 1
       End Subroutine Control_PrecisionP_Glob
-      
-      
+
+
       Subroutine Control_Print(Group_Comm)
+#ifdef MPI
+        Use mpi
+#endif
         Implicit none
 
         Integer, Intent(IN) :: Group_Comm
-#ifdef MPI
-        include 'mpif.h'
-#endif
+
         Character (len=64) :: file1 
         Real (Kind=Kind(0.d0)) :: Time, Acc, Acc_eff, Acc_Glob, Acc_Temp, size_clust_Glob, size_clust_Glob_ACC
 #ifdef MPI
         REAL (Kind=Kind(0.d0))  :: X
         Integer        :: Ierr, Isize, Irank, irank_g, isize_g, igroup
-        INTEGER        :: STATUS(MPI_STATUS_SIZE)
+
         CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
         CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
         call MPI_Comm_rank(Group_Comm, irank_g, ierr)
@@ -237,7 +238,6 @@
         CALL MPI_REDUCE(size_clust_Glob_ACC,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
         size_clust_Glob_ACC = X/dble(Isize_g)
 
-
         X = 0.d0
         CALL MPI_REDUCE(XMEANG,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
         XMEANG = X/dble(Isize_g)
@@ -264,7 +264,7 @@
 
         CALL MPI_REDUCE(XMAXP_GLOB,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
         XMAXP_GLOB = X
-        
+
 #endif
 
 #if defined(TEMPERING) 
@@ -299,7 +299,6 @@
               Write(50,*) ' Average cluster size         : ', size_clust_Glob
               Write(50,*) ' Average accepted cluster size: ', size_clust_Glob_ACC
            !endif
-              
 
            Write(50,*) ' CPU Time                   : ', Time
            Close(50)
@@ -308,8 +307,8 @@
 #endif
 
       end Subroutine Control_Print
-      
-     
+
+
       subroutine make_truncation(prog_truncation,cpu_max,count_bin_start,count_bin_end)
       !!!!!!! Written by M. Bercx
       ! This subroutine checks if the conditions for a controlled termination of the program are met.
@@ -317,9 +316,9 @@
       ! if time_remain/time_bin_duration < threshold the program terminates.
 
 #ifdef MPI
-  include 'mpif.h'
-#endif  
-    
+      Use mpi
+#endif
+
       logical, intent(out)                 :: prog_truncation
       real(kind=kind(0.d0)), intent(in)    :: cpu_max
       integer(kind=kind(0.d0)), intent(in) :: count_bin_start, count_bin_end
