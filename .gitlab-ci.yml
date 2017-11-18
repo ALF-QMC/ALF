@@ -28,7 +28,7 @@ stages:
     - apt-get install -y zlib1g zlib1g-dev
     - . configureHPC.sh GNU noMPI log
     - export f90="/opt/pgi/linux86-64/2016/bin/pgfortran"
-    - export FL="-O3"
+    - export FL="-O3 -DLOGSCALE"
     - export LIB_BLAS_LAPACK="-L/opt/pgi/linux86-64/2016/lib -llapack -lblas"
     - export F90USEFULFLAGS="-Mpreprocess"
     - /opt/pgi/linux86-64/16.10/bin/pgfortran --version
@@ -199,7 +199,7 @@ GQMCT_Wheezy-PGI_conv:
     - apt-get install -y zlib1g zlib1g-dev
     - . configureHPC.sh GNU noMPI log
     - export f90="/opt/pgi/linux86-64/2016/bin/pgfortran"
-    - export FL="-O3 -Minform=inform -DLOG"
+    - export FL="-O3 -Minform=inform -DLOGSCALE"
     - export LIB_BLAS_LAPACK="-L/opt/pgi/linux86-64/2016/lib -llapack -lblas"
     - export F90USEFULFLAGS="-Mpreprocess -Minform=inform"
     - /opt/pgi/linux86-64/16.10/bin/pgfortran --version
@@ -264,7 +264,7 @@ GQMCT_Jessie-PGI_tests:
     - apt-get install -y zlib1g zlib1g-dev
     - . configureHPC.sh GNU noMPI log
     - export f90="/opt/pgi/linux86-64/2016/bin/pgfortran"
-    - export FL="-O3 -DLOG"
+    - export FL="-O3"
     - export LIB_BLAS_LAPACK="-L/opt/pgi/linux86-64/2016/lib -llapack -lblas"
     - export F90USEFULFLAGS="-Mpreprocess"
     - /opt/pgi/linux86-64/16.10/bin/pgfortran --version
