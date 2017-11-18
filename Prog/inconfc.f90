@@ -102,8 +102,8 @@
                   ENDDO
                ENDDO
                call FGZ_READ(fd, line, 'yes', ios)
-               if (ios==0) read(line,*, end=10) lastk
-10             CALL FGZ_CLOSE(fd,IOS)
+               if (ios==0) read(line,*) lastk
+               CALL FGZ_CLOSE(fd,IOS)
                DEALLOCATE(SEED_VEC)
             ELSE
                IF (IRANK == 0) THEN
@@ -164,7 +164,7 @@
                ENDDO
             ENDDO
             call FGZ_READ(fd, line, 'yes', ios)
-            if (ios==0) read(line,*, end=20) lastk
+            if (ios==0) read(line,*) lastk
             CALL FGZ_CLOSE(fd,IOS)
             DEALLOCATE(SEED_VEC)
          ELSE

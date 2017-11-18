@@ -57,7 +57,7 @@
 
           NAMELIST /VAR_Z2_FLstar/  ham_T, Ham_Vint,  Ham_U,  Dtau, Beta, Ham_JKA, Ham_JKB, checkerboard, Theta, Projector
 
-#if !defined(LOG)
+#if !defined(LOGSCALE)
           a=1 ! this line should cause a compiler error (undeclared variable a) if LOG has not been defined as required by this model
 #endif
 

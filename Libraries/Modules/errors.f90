@@ -583,7 +583,7 @@
            DEALLOCATE (B)
            
          END SUBROUTINE FIT
-	
+
          SUBROUTINE COVJ(GR, XCOV, XMEAN) 
            
            IMPLICIT NONE
@@ -619,7 +619,7 @@
               CALL ERRCALC(HLP,XM ,XERR)
               XMEAN(NT) = XM
            ENDDO
-	
+
            
            DO NT = 1,NTDM
               DO NT1= 1,NTDM
@@ -678,7 +678,7 @@
               CALL ERRCALC(HLP,XM ,XERR)
               XMEAN(NT) = XM
            ENDDO
-	
+
            
            DO NT = 1,NTDM
               DO NT1= 1,NTDM
