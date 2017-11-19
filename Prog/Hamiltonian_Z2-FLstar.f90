@@ -1136,7 +1136,6 @@
                 Call  Print_bin_Latt(Obs_tau(I),Latt,dtau,Group_Comm)
              enddo
           endif
-            no_J = List(J1,2)-3
           
         end Subroutine Pr_obs
 !==========================================================        
