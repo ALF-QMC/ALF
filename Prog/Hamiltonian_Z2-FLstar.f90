@@ -121,7 +121,7 @@
           CALL MPI_BCAST(Dtau         ,1,MPI_REAL8,     0,Group_Comm,ierr)
           CALL MPI_BCAST(Beta         ,1,MPI_REAL8,     0,Group_Comm,ierr)
           CALL MPI_BCAST(Thtrot       ,1,MPI_INTEGER,   0,Group_Comm,ierr)
-          CALL MPI_BCAST(Projector     ,1,MPI_LOGICAL,  0,Group_Comm,ierr)
+          CALL MPI_BCAST(Projector    ,1,MPI_LOGICAL,   0,Group_Comm,ierr)
           CALL MPI_BCAST(checkerboard ,1,MPI_LOGICAL,   0,Group_Comm,ierr)
 #endif
 
@@ -744,31 +744,36 @@
              Call Obser_Latt_make(Obs_eq(I),Ns,Nt,No,Filename)
           enddo
 
-          If (Ltau == 1) then 
-             ! Equal time correlators
-             Allocate ( Obs_tau(10) )
+          If (Ltau > 0) then 
+             If (Ltau == 1) then
+               Allocate ( Obs_tau(1) )
+             elseif (Ltau == 2) then
+               Allocate ( Obs_tau(5) )
+             elseif (Ltau == 3) then
+               Allocate ( Obs_tau(10) )
+             endif
              Do I = 1,Size(Obs_tau,1)
                 select case (I)
                 case (1)
-                   Ns = Latt%N; No = 3;  Filename ="Green"
-                case (2)
-                   Ns = Latt%N; No = 3;  Filename ="SpinZ"
-                case (3)
-                   Ns = Latt%N; No = 3;  Filename ="SpinXY"
-                case (4)
-                   Ns = Latt%N; No = 3;  Filename ="Den"
-                case (5)
-                   Ns = Latt%N; No = 3;  Filename ="SC"
-                case (6)
                    Ns = Latt%N; No = 2;  Filename ="ConductionGreen"
-                case (7)
-                   Ns = Latt%N; No = 2;  Filename ="ConductionSpinZ"
-                case (8)
-                   Ns = Latt%N; No = 2;  Filename ="ConductionSpinXY"
-                case (9)
+                case (2)
+                   Ns = Latt%N; No = 3;  Filename ="Den"
+                case (3)
+                   Ns = Latt%N; No = 3;  Filename ="SC"
+                case (4)
                    Ns = Latt%N; No = 2;  Filename ="ConductionDen"
-                case (10)
+                case (5)
                    Ns = Latt%N; No = 2;  Filename ="ConductionSC"
+                case (6)
+                   Ns = Latt%N; No = 3;  Filename ="Green"
+                case (7)
+                   Ns = Latt%N; No = 3;  Filename ="SpinZ"
+                case (8)
+                   Ns = Latt%N; No = 3;  Filename ="SpinXY"
+                case (9)
+                   Ns = Latt%N; No = 2;  Filename ="ConductionSpinZ"
+                case (10)
+                   Ns = Latt%N; No = 2;  Filename ="ConductionSpinXY"
                 case default
                    Write(6,*) ' Error in Alloc_obs '  
                 end select
@@ -1170,15 +1175,47 @@
                 no_J = List(J1,2)
                 imj = latt%imj(I,J)
                 ! Green
+                Obs_tau(6)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(6)%Obs_Latt(imj,nt+1,no_I,no_J)  &
+                    & +  Z * GT0(I1,J1,1) * ZP* ZS
+                
+                ! SpinZ
+                Obs_tau(7)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(7)%Obs_Latt(imj,nt+1,no_I,no_J)  &
+                    &      - Z*G0T(J1,I1,1) * GT0(I1,J1,1) *ZP*ZS
+                
+                ! SpinXY
+                Obs_tau(8)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(8)%Obs_Latt(imj,nt+1,no_I,no_J)  &
+                    &      - Z*G0T(J1,I1,1) * GT0(I1,J1,1) *ZP*ZS
+                
+                ! Den
+                Obs_tau(2)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(2)%Obs_Latt(imj,nt+1,no_I,no_J)  &
+                    & + ( Z*Z*(cmplx(1.d0,0.d0,kind(0.d0)) - GTT(I1,I1,1))*       &
+                    &         (cmplx(1.d0,0.d0,kind(0.d0)) - G00(J1,J1,1))  -     &
+                    &     Z * GT0(I1,J1,1)*G0T(J1,I1,1)                                ) * ZP * ZS
+                
+                ! SC
+                Obs_tau(3)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(3)%Obs_Latt(imj,nt+1,no_I,no_J)  &
+                    & + (    G0T(J1,I1,1)**2.d0                                ) * ZP * ZS
+            Enddo
+            Obs_tau(2)%Obs_Latt0(no_I) = Obs_tau(2)%Obs_Latt0(no_I) + &
+                  &         Z*(cmplx(1.d0,0.d0,kind(0.d0)) - GTT(I1,I1,1)) * ZP * ZS
+          Enddo
+          Do I1 = 3*Latt%N+1,5*Latt%N
+            I    = List(I1,1)
+            no_I = List(I1,2)-3
+            Do J1 = 3*Latt%N+1,5*Latt%N
+                J    = List(J1,1)
+                no_J = List(J1,2)-3
+                imj = latt%imj(I,J)
+                ! Green
                 Obs_tau(1)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(1)%Obs_Latt(imj,nt+1,no_I,no_J)  &
                     & +  Z * GT0(I1,J1,1) * ZP* ZS
                 
                 ! SpinZ
-                Obs_tau(2)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(2)%Obs_Latt(imj,nt+1,no_I,no_J)  &
+                Obs_tau(9)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(9)%Obs_Latt(imj,nt+1,no_I,no_J)  &
                     &      - Z*G0T(J1,I1,1) * GT0(I1,J1,1) *ZP*ZS
                 
                 ! SpinXY
-                Obs_tau(3)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(3)%Obs_Latt(imj,nt+1,no_I,no_J)  &
+                Obs_tau(10)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(10)%Obs_Latt(imj,nt+1,no_I,no_J)  &
                     &      - Z*G0T(J1,I1,1) * GT0(I1,J1,1) *ZP*ZS
                 
                 ! Den
@@ -1192,38 +1229,6 @@
                     & + (    G0T(J1,I1,1)**2.d0                                ) * ZP * ZS
             Enddo
             Obs_tau(4)%Obs_Latt0(no_I) = Obs_tau(4)%Obs_Latt0(no_I) + &
-                  &         Z*(cmplx(1.d0,0.d0,kind(0.d0)) - GTT(I1,I1,1)) * ZP * ZS
-          Enddo
-          Do I1 = 3*Latt%N+1,5*Latt%N
-            I    = List(I1,1)
-            no_I = List(I1,2)-3
-            Do J1 = 3*Latt%N+1,5*Latt%N
-                J    = List(J1,1)
-                no_J = List(J1,2)-3
-                imj = latt%imj(I,J)
-                ! Green
-                Obs_tau(6)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(6)%Obs_Latt(imj,nt+1,no_I,no_J)  &
-                    & +  Z * GT0(I1,J1,1) * ZP* ZS
-                
-                ! SpinZ
-                Obs_tau(7)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(7)%Obs_Latt(imj,nt+1,no_I,no_J)  &
-                    &      - Z*G0T(J1,I1,1) * GT0(I1,J1,1) *ZP*ZS
-                
-                ! SpinXY
-                Obs_tau(8)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(8)%Obs_Latt(imj,nt+1,no_I,no_J)  &
-                    &      - Z*G0T(J1,I1,1) * GT0(I1,J1,1) *ZP*ZS
-                
-                ! Den
-                Obs_tau(9)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(9)%Obs_Latt(imj,nt+1,no_I,no_J)  &
-                    & + ( Z*Z*(cmplx(1.d0,0.d0,kind(0.d0)) - GTT(I1,I1,1))*       &
-                    &         (cmplx(1.d0,0.d0,kind(0.d0)) - G00(J1,J1,1))  -     &
-                    &     Z * GT0(I1,J1,1)*G0T(J1,I1,1)                                ) * ZP * ZS
-                
-                ! SC
-                Obs_tau(10)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(10)%Obs_Latt(imj,nt+1,no_I,no_J)  &
-                    & + (    G0T(J1,I1,1)**2.d0                                ) * ZP * ZS
-            Enddo
-            Obs_tau(9)%Obs_Latt0(no_I) = Obs_tau(9)%Obs_Latt0(no_I) + &
                   &         Z*(cmplx(1.d0,0.d0,kind(0.d0)) - GTT(I1,I1,1)) * ZP * ZS
           Enddo
           
