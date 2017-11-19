@@ -52,7 +52,7 @@
         Complex (Kind=Kind(0.d0)), Allocatable  :: Tmp(:)
         REAL    (Kind=Kind(0.d0)), Allocatable  :: AutoCorr(:)
         Integer :: Nobs , avmin, avmax, avdiff, avmax2, avdiff2
-        Integer :: Nbins, Nbins_eff, I, IOBS, N_Back
+        Integer :: Nbins, Nbins_eff, I, IOBS, N_Back, nav=2
         Integer :: N,N1 !, NBIN
 
         Integer :: n_skip, N_rebin, N_Cov, ierr, N_auto
@@ -138,17 +138,17 @@
               ENDDO
               Call AUTO_COR(EN,AutoCorr)
               do i = 1,N_auto
-                avmin=max(1,i-10)
-                avmax=min(Nbins_eff,i+10)
-                avmax2=min(N_auto,i+10)
+                avmin=max(1,i-nav)
+                avmax=min(Nbins_eff,i+nav)
+                avmax2=min(N_auto,i+nav)
                 avdiff= avmax-avmin+1
                 avdiff2= avmax2-avmin+1
                 CALL ERRCALCJ(EN,XM,XERR,i)
                 write(21,*) i, sum(AutoCorr(avmin:avmax2))/dble(avdiff2), Xerr, En(i), sum(En(avmin:avmax))/dble(avdiff)
               enddo
               do i = N_auto+1,Nbins_eff
-                avmin=max(1,i-10)
-                avmax=min(Nbins_eff,i+10)
+                avmin=max(1,i-nav)
+                avmax=min(Nbins_eff,i+nav)
                 avdiff= avmax-avmin+1
                 write(21,*) i, 0.d0, 0.d0, En(i), sum(En(avmin:avmax))/dble(avdiff)
               enddo

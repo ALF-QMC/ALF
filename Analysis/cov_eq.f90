@@ -62,7 +62,7 @@
          Real (Kind=Kind(0.d0)) :: Pi, a1_p(2), a2_p(2), L1_p(2), L2_p(2), del_p(2)
          Real (Kind=Kind(0.d0)), allocatable :: AutoCorr(:),En(:)
 
-         Integer             :: L1, L2, I, N_auto, N_SUN
+         Integer             :: L1, L2, I, N_auto, N_SUN, nav=2
          Character (len=64)  :: Model, Lattice_type
          Type (Lattice)      :: Latt
          Character (len=64)  :: File_out
@@ -325,18 +325,18 @@
           enddo
           Call AUTO_COR(En,AutoCorr)
           do i = 1,N_auto
-            avmin=max(1,i-10)
-            avmax=min(Nbins,i+10)
-            avmax2=min(N_auto,i+10)
+            avmin=max(1,i-nav)
+            avmax=min(Nbins,i+nav)
+            avmax2=min(N_auto,i+nav)
             avdiff= avmax-avmin+1
             avdiff2= avmax2-avmin+1
             call ERRCALCJ( Ratio1, Ratio2, XMean, XERR, i )
             write(21,*) i, sum(AutoCorr(avmin:avmax2))/dble(avdiff2), dble(Xerr), En(i), sum(En(avmin:avmax))/dble(avdiff)
           enddo
           do i = N_auto+1,Nbins
-            avmin=max(1,i-10)
-            avmax=min(Nbins,i+10)
-            avmax2=min(N_auto,i+10)
+            avmin=max(1,i-nav)
+            avmax=min(Nbins,i+nav)
+            avmax2=min(N_auto,i+nav)
             avdiff= avmax-avmin+1
             avdiff2= avmax2-avmin+1
             write(21,*) i, 0.d0, 0.d0, En(i), sum(En(avmin:avmax))/dble(avdiff)
@@ -357,18 +357,18 @@
             enddo
             Call AUTO_COR(En,AutoCorr)
             do i = 1,N_auto
-              avmin=max(1,i-10)
-              avmax=min(Nbins,i+10)
-              avmax2=min(N_auto,i+10)
+              avmin=max(1,i-nav)
+              avmax=min(Nbins,i+nav)
+              avmax2=min(N_auto,i+nav)
               avdiff= avmax-avmin+1
               avdiff2= avmax2-avmin+1
               CALL ERRCALCJ(En,XM, XE,i)
               write(21,*) i, sum(AutoCorr(avmin:avmax2))/dble(avdiff2), Xe, En(i), sum(En(avmin:avmax))/dble(avdiff)
             enddo
             do i = N_auto+1,Nbins
-              avmin=max(1,i-10)
-              avmax=min(Nbins,i+10)
-              avmax2=min(N_auto,i+10)
+              avmin=max(1,i-nav)
+              avmax=min(Nbins,i+nav)
+              avmax2=min(N_auto,i+nav)
               avdiff= avmax-avmin+1
               avdiff2= avmax2-avmin+1
               write(21,*) i, 0.d0, 0.d0, En(i), sum(En(avmin:avmax))/dble(avdiff)
