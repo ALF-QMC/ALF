@@ -1167,6 +1167,7 @@
           endif
           
           Z =  cmplx(dble(N_SUN),0.d0, kind(0.D0))
+          IF( size(Obs_tau,1) > 1) then
           Do I1 = 1,3*Latt%N
             I    = List(I1,1)
             no_I = List(I1,2)
@@ -1174,6 +1175,7 @@
                 J    = List(J1,1)
                 no_J = List(J1,2)
                 imj = latt%imj(I,J)
+                if (size(Obs_tau,1) > 5) then
                 ! Green
                 Obs_tau(6)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(6)%Obs_Latt(imj,nt+1,no_I,no_J)  &
                     & +  Z * GT0(I1,J1,1) * ZP* ZS
@@ -1185,6 +1187,7 @@
                 ! SpinXY
                 Obs_tau(8)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(8)%Obs_Latt(imj,nt+1,no_I,no_J)  &
                     &      - Z*G0T(J1,I1,1) * GT0(I1,J1,1) *ZP*ZS
+                endif
                 
                 ! Den
                 Obs_tau(2)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(2)%Obs_Latt(imj,nt+1,no_I,no_J)  &
@@ -1199,6 +1202,7 @@
             Obs_tau(2)%Obs_Latt0(no_I) = Obs_tau(2)%Obs_Latt0(no_I) + &
                   &         Z*(cmplx(1.d0,0.d0,kind(0.d0)) - GTT(I1,I1,1)) * ZP * ZS
           Enddo
+          endif
           Do I1 = 3*Latt%N+1,5*Latt%N
             I    = List(I1,1)
             no_I = List(I1,2)-3
@@ -1210,6 +1214,7 @@
                 Obs_tau(1)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(1)%Obs_Latt(imj,nt+1,no_I,no_J)  &
                     & +  Z * GT0(I1,J1,1) * ZP* ZS
                 
+                if (size(Obs_tau,1) > 5) then
                 ! SpinZ
                 Obs_tau(9)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(9)%Obs_Latt(imj,nt+1,no_I,no_J)  &
                     &      - Z*G0T(J1,I1,1) * GT0(I1,J1,1) *ZP*ZS
@@ -1217,7 +1222,9 @@
                 ! SpinXY
                 Obs_tau(10)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(10)%Obs_Latt(imj,nt+1,no_I,no_J)  &
                     &      - Z*G0T(J1,I1,1) * GT0(I1,J1,1) *ZP*ZS
+                endif
                 
+                if (size(Obs_tau,1) > 1) then
                 ! Den
                 Obs_tau(4)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(4)%Obs_Latt(imj,nt+1,no_I,no_J)  &
                     & + ( Z*Z*(cmplx(1.d0,0.d0,kind(0.d0)) - GTT(I1,I1,1))*       &
@@ -1227,9 +1234,12 @@
                 ! SC
                 Obs_tau(5)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(5)%Obs_Latt(imj,nt+1,no_I,no_J)  &
                     & + (    G0T(J1,I1,1)**2.d0                                ) * ZP * ZS
+                endif
             Enddo
+            if (size(Obs_tau,1) > 1) then
             Obs_tau(4)%Obs_Latt0(no_I) = Obs_tau(4)%Obs_Latt0(no_I) + &
                   &         Z*(cmplx(1.d0,0.d0,kind(0.d0)) - GTT(I1,I1,1)) * ZP * ZS
+            endif
           Enddo
           
         end Subroutine OBSERT
