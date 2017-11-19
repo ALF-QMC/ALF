@@ -67,7 +67,7 @@
 
       end Subroutine
 
-#if (defined(STAB2) || defined(STAB1)) && !defined(LOG)
+#if (defined(STAB2) || defined(STAB1)) && !defined(LOGSCALE)
 !--------------------------------------------------------------------
 !> @author
 !> Florian Goth
@@ -218,7 +218,7 @@
 
         Use MyMats
         Use UDV_State_mod
-#if (defined(STAB2) || defined(STAB1)) && !defined(LOG)   
+#if (defined(STAB2) || defined(STAB1)) && !defined(LOGSCALE)   
 
         Use UDV_WRAP_mod
         Implicit none
@@ -338,8 +338,8 @@
         IPVT = 0
         MYU2 = CONJG(TRANSPOSE(udv2%U))
         CALL INV(udv1%V, V1INV,Z)
-#if defined(STAB3) || defined(LOG)
-#if defined(LOG)
+#if defined(STAB3) || defined(LOGSCALE)
+#if defined(LOGSCALE)
         DO J=1,LQ
           !keep scales smaller than 1.0 in D1*U1 and D2*V2
           !bring scales larger that 1.0 with V1^-1 and U2^-1
@@ -378,7 +378,7 @@
         D1m=udv1%D
         D2m=udv2%D
 #endif
-#if defined(LOG)
+#if defined(LOGSCALE)
         If (udv1%L(1) >  udv2%L(1) ) Then
 #else 
         If (dble(udv1%D(1)) >  dble(udv2%D(1)) ) Then

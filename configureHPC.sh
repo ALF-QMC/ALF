@@ -129,7 +129,7 @@ echo "Using newest stabilization which seperates large and small scales"
 ;;
 
 LOG)
-STABCONFIGURATION=${STABCONFIGURATION}" -DLOG"
+STABCONFIGURATION=${STABCONFIGURATION}" -DLOGSCALE"
 echo "Using log storage for internal scales"
 ;;
 

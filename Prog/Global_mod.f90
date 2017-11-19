@@ -154,7 +154,7 @@ Module Global_mod
                 N_part=udvst(1,nf)%N_part
                 do i=1,NSTM-1
                   do n=1,N_part
-#if !defined(LOG)
+#if !defined(LOGSCALE)
                     Det_Vec_old(n,nf)=Det_Vec_old(n,nf)+log(dble(udvst(i,nf)%D(n)))
 #else
                     Det_Vec_old(n,nf)=Det_Vec_old(n,nf)+udvst(i,nf)%L(n)
@@ -165,7 +165,7 @@ Module Global_mod
               Do nf = 1,N_FL
                 N_part=udvl(nf)%N_part
                 do n=1,N_part
-#if !defined(LOG)
+#if !defined(LOGSCALE)
                     Det_Vec_new(n,nf)=Det_Vec_new(n,nf)+log(dble(udvl(nf)%D(n)))
 #else
                     Det_Vec_new(n,nf)=Det_Vec_new(n,nf)+udvl(nf)%L(n)
@@ -277,7 +277,7 @@ Module Global_mod
                  if (Projector) then
                     N_part=udvl(nf)%N_part
                     do n=1,N_part
-#if !defined(LOG)
+#if !defined(LOGSCALE)
                         Det_Vec_new(n,nf)=Det_Vec_new(n,nf)+log(dble(udvl(nf)%D(n)))
 #else
                         Det_Vec_new(n,nf)=Det_Vec_new(n,nf)+udvl(nf)%L(n)
@@ -292,7 +292,7 @@ Module Global_mod
               Do nf = 1,N_FL
                 N_part=udvl(nf)%N_part
                 do n=1,N_part
-#if !defined(LOG)
+#if !defined(LOGSCALE)
                     Det_Vec_new(n,nf)=Det_Vec_new(n,nf)+log(dble(udvl(nf)%D(n)))
 #else
                     Det_Vec_new(n,nf)=Det_Vec_new(n,nf)+udvl(nf)%L(n)
@@ -517,7 +517,7 @@ Module Global_mod
             N_part=udvst(1,nf)%N_part
             do i=1,NSTM-1
               do n=1,N_part
-#if !defined(LOG)
+#if !defined(LOGSCALE)
                 Det_Vec_old(n,nf)=Det_Vec_old(n,nf)+log(dble(udvst(i,nf)%D(n)))
 #else
                 Det_Vec_old(n,nf)=Det_Vec_old(n,nf)+udvst(i,nf)%L(n)
@@ -525,7 +525,7 @@ Module Global_mod
               enddo
             enddo
             do n=1,N_part
-#if !defined(LOG)
+#if !defined(LOGSCALE)
               Det_Vec_old(n,nf)=Det_Vec_old(n,nf)+log(dble(udvl(nf)%D(n)))
 #else
               Det_Vec_old(n,nf)=Det_Vec_old(n,nf)+udvl(nf)%L(n)
@@ -604,7 +604,7 @@ Module Global_mod
                     udvst(NST, nf) = udvl(nf)
                     N_part=udvl(nf)%N_part
                     do j=1,N_part
-#if !defined(LOG)
+#if !defined(LOGSCALE)
                         Det_Vec_new(j,nf)=Det_Vec_new(j,nf)+log(dble(udvl(nf)%D(j)))
 #else
                         Det_Vec_new(j,nf)=Det_Vec_new(j,nf)+udvl(nf)%L(j)
@@ -617,7 +617,7 @@ Module Global_mod
               Do nf = 1,N_FL
                 N_part=udvl(nf)%N_part
                 do j=1,N_part
-#if !defined(LOG)
+#if !defined(LOGSCALE)
                     Det_Vec_new(j,nf)=Det_Vec_new(j,nf)+log(dble(udvl(nf)%D(j)))
 #else
                     Det_Vec_new(j,nf)=Det_Vec_new(j,nf)+udvl(nf)%L(j)
@@ -843,7 +843,7 @@ Module Global_mod
         beta  = cmplx(0.d0,0.d0,kind(0.d0))
         Allocate (TP(N_Size,N_Size),D(N_size))
         TP = udvl%U !udvl stores U^dag instead of U !CT(udvl%U)
-#if !defined(LOG)
+#if !defined(LOGSCALE)
 #if !defined(STAB3)
         DO J = 1,N_size
            TP(:,J) = TP(:,J) +  udvl%V(:,J)*udvl%D(J)
@@ -874,7 +874,7 @@ Module Global_mod
         Z1 = Det_C(TP, N_size) 
         Deallocate (TP)
         Phase   = Z*Z1/ABS(Z*Z1)
-#if !defined(LOG)
+#if !defined(LOGSCALE)
 #if !defined(STAB3)
         Det_vec = log(real(D))
         Det_vec(1) = log(real(D(1))*ABS(Z*Z1))

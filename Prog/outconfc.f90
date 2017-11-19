@@ -43,6 +43,9 @@
 !--------------------------------------------------------------------
 
          USE HAMILTONIAN
+         USE F95ZLIB
+         USE IOPORTS
+         USE ISO_C_BINDING
 #ifdef MPI
          Use mpi
 #endif
@@ -53,6 +56,9 @@
          INTEGER        :: I, IERR, ISIZE, IRANK, K, NT
          INTEGER, DIMENSION(:), ALLOCATABLE :: SEED_VEC
          CHARACTER (LEN=64) :: FILE_TG
+         TYPE(IOPORT) :: fd
+         CHARACTER(LEN=255), TARGET :: LINE
+         INTEGER        :: IOS
 
 #if defined(MPI)
          INTEGER        :: irank_g, isize_g, igroup
@@ -62,40 +68,34 @@
          call MPI_Comm_size(Group_Comm, isize_g, ierr)
          igroup           = irank/isize_g
          !Write(6,*) "Group, rank :", igroup, irank_g
+          
+       
+#if defined(TEMPERING) 
+         write(FILE_TG,'(A,I0,A,I0,A)') "Temp_",igroup,"/confout_",irank_g,".gz"
+#else
+         write(FILE_TG,'(A,I0,A)') "confout_",irank_g,".gz"
+#endif
+#else
+         FILE_TG = "confout_0.gz"
+#endif
 
          CALL GET_SEED_LEN(K)
          ALLOCATE(SEED_VEC(K))
          CALL RANGET(SEED_VEC)
-#if defined(TEMPERING) 
-         write(FILE_TG,'(A,I0,A,I0)') "Temp_",igroup,"/confout_",irank_g
-#else
-         write(FILE_TG,'(A,I0)') "confout_",irank_g
-#endif
-         OPEN (UNIT = 10, FILE=FILE_TG, STATUS='UNKNOWN', ACTION='WRITE')
-         WRITE(10,*) SEED_VEC
+
+         CALL FGZ_OPEN(TRIM(ADJUSTL(FILE_TG)),'w6',fd,ios)
+         WRITE(line,*) SEED_VEC
+         CALL FGZ_WRITE(fd,TRIM(LINE),'yes',IOS)
          DO NT = 1,SIZE(NSIGMA,2)
             DO I = 1,SIZE(NSIGMA,1)
-               WRITE(10,*) NSIGMA(I,NT) 
+               WRITE(line,*) NSIGMA(I,NT)
+               CALL FGZ_WRITE(fd,TRIM(LINE),'yes',IOS)
             ENDDO
          ENDDO
-         write(10,*) lastk
-         CLOSE(10)
+         write(line,*) lastk
+         CALL FGZ_WRITE(fd,TRIM(LINE),'yes',IOS)
+         CALL FGZ_CLOSE(fd,IOS)
+         
          DEALLOCATE(SEED_VEC)
-#else
-         CALL GET_SEED_LEN(K)
-         ALLOCATE(SEED_VEC(K))
-         CALL RANGET(SEED_VEC)
-         FILE_TG = "confout_0"
-         OPEN (UNIT = 10, FILE=FILE_TG, STATUS='UNKNOWN', ACTION='WRITE')
-         WRITE(10,*) SEED_VEC
-         DO NT = 1,SIZE(NSIGMA,2)
-            DO I = 1,SIZE(NSIGMA,1)
-               WRITE(10,*) NSIGMA(I,NT) 
-            ENDDO
-         ENDDO
-         write(10,*) lastk
-         CLOSE(10)
-         DEALLOCATE(SEED_VEC)
-#endif
 
        END SUBROUTINE CONFOUT

@@ -4,19 +4,31 @@ stages:
   - test
   - memleaks
 
-.build_template: &build_definition
+.build_template: &build_definitionDeb
   stage: build
   script:
-    - . configureHPC.sh GNU noMPI log
+    - apt-get update
+    - apt-get install -y zlib1g zlib1g-dev
     - gfortran -v
+    - . configureHPC.sh GNU noMPI log
+    - make Z2-FLstar
+
+.build_template: &build_definitionOS
+  stage: build
+  script:
+    - zypper --no-refresh -n install zlib-devel
+    - gfortran -v
+    - . configureHPC.sh GNU noMPI log
     - make Z2-FLstar
 
 .build_template_pgi: &build_definition_pgi
   stage: build
   script:
+    - apt-get update
+    - apt-get install -y zlib1g zlib1g-dev
     - . configureHPC.sh GNU noMPI log
     - export f90="/opt/pgi/linux86-64/2016/bin/pgfortran"
-    - export FL="-O3 -DLOG"
+    - export FL="-O3 -DLOGSCALE"
     - export LIB_BLAS_LAPACK="-L/opt/pgi/linux86-64/2016/lib -llapack -lblas"
     - export F90USEFULFLAGS="-Mpreprocess"
     - /opt/pgi/linux86-64/16.10/bin/pgfortran --version
@@ -25,8 +37,18 @@ stages:
 .warnconv_template: &warnconv_definition
   stage: warnconv
   script:
+    - apt-get update
+    - apt-get install -y zlib1g zlib1g-dev
     - . configureHPC.sh GNU noMPI log
-    - export f90="gfortran"
+    - export FL="$FL -Wconversion -Werror"
+    - gfortran -v
+    - make Z2-FLstar
+
+.warnconv_template: &warnconv_definitionOS
+  stage: warnconv
+  script:
+    - zypper --no-refresh -n install zlib-devel
+    - . configureHPC.sh GNU noMPI log
     - export FL="$FL -Wconversion -Werror"
     - gfortran -v
     - make Z2-FLstar
@@ -34,8 +56,24 @@ stages:
 .test_template: &test_definition
   stage: test
   script:
+    - apt-get update
+    - apt-get install -y zlib1g zlib1g-dev
     - . configureHPC.sh GNU noMPI log
-    - export f90="gfortran"
+    - gfortran -v
+    - make program
+    - cd testsuite
+    - cmake -E make_directory tests
+    - cd tests
+    - cmake -G "Unix Makefiles" -DCMAKE_Fortran_FLAGS_RELEASE=${F90OPTFLAGS} -DCMAKE_BUILD_TYPE=RELEASE ..
+    - cmake --build . --target all --config Release
+    - ctest -O log.txt
+    - cat log.txt | grep "tests passed" | cut -d " " -f 1
+
+.test_template: &test_definitionOS
+  stage: test
+  script:
+    - zypper --no-refresh -n install zlib-devel
+    - . configureHPC.sh GNU noMPI log
     - gfortran -v
     - make program
     - cd testsuite
@@ -48,39 +86,42 @@ stages:
 
 GQMCT_Wheezy:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-wheezy-gfortran-blas-lapack
-  <<: *build_definition
+  <<: *build_definitionDeb
 
 GQMCT_Jessie:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-gfortran-blas-lapack
-  <<: *build_definition
+  <<: *build_definitionDeb
 
 GQMCT_Stretch:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-stretch-gfortran-blas-lapack
-  <<: *build_definition
+  <<: *build_definitionDeb
 
 GQMCT_Wheezy_OpenBlas:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-wheezy-gfortran-openblas-lapack
-  <<: *build_definition
+  <<: *build_definitionDeb
 
 GQMCT_Jessie_OpenBlas:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-gfortran-openblas-lapack
-  <<: *build_definition
+  <<: *build_definitionDeb
 
 GQMCT_Stretch_OpenBlas:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-stretch-gfortran-openblas-lapack
-  <<: *build_definition
+  <<: *build_definitionDeb
 
 GQMCT_CentOS:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:centos-7-gfortran-blas-lapack
-  <<: *build_definition
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:centos-7-gcc-blas-lapack-fftw-scipy-mpich
+  stage: build
+  script:
+    - . configureHPC.sh GNU noMPI log
+    - make Z2-FLstar
 
 GQMCT_OpenSuse-13.2:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:opensuse-13.2-gfortran-blas-lapack
-  <<: *build_definition
+  <<: *build_definitionOS
 
 GQMCT_OpenSuse-42.1:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:opensuse-42.1-gfortran-blas-lapack
-  <<: *build_definition
+  <<: *build_definitionOS
 
 GQMCT_Wheezy-PGI:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-wheezy-pgi
@@ -92,19 +133,20 @@ GQMCT_Jessie-PGI:
 
 GQMCT_Ubuntu_Trusty:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:trusty-gfortran-lapack
-  <<: *build_definition
+  <<: *build_definitionDeb
 
 GQMCT_Ubuntu_Xenial:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:xenial-gfortran-lapack
-  <<: *build_definition
+  <<: *build_definitionDeb
   
 GQMCT_Jessie_MPI:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-gfortran-blas-lapack-fftw-scipy
   stage: build
   script:
+    - apt-get update
+    - apt-get install -y zlib1g zlib1g-dev
     - gfortran -v
     - . configureHPC.sh GNU Tempering log
-    - make f90='mpif90' lib
     - make f90='mpif90' Z2-FLstar
 
 GQMCT_Wheezy_conv:
@@ -117,6 +159,8 @@ GQMCT_Jessie_conv:
 
 GQMCT_Stretch_conv:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-stretch-gfortran-blas-lapack
+  script:
+    - apt-get install -y zlib1g zlib1g-dev
   <<: *warnconv_definition
 
 GQMCT_Wheezy_OpenBlas_conv:
@@ -132,24 +176,30 @@ GQMCT_Stretch_OpenBlas_conv:
   <<: *warnconv_definition
 
 GQMCT_CentOS_conv:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:centos-7-gfortran-blas-lapack
-  <<: *warnconv_definition
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:centos-7-gcc-blas-lapack-fftw-scipy-mpich
+  stage: warnconv
+  script:
+    - . configureHPC.sh GNU noMPI log
+    - export FL="$FL -Wconversion -Werror"
+    - make Z2-FLstar
 
 GQMCT_OpenSuse-13.2_conv:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:opensuse-13.2-gfortran-blas-lapack
-  <<: *warnconv_definition
+  <<: *warnconv_definitionOS
 
 GQMCT_OpenSuse-42.1_conv:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:opensuse-42.1-gfortran-blas-lapack
-  <<: *warnconv_definition
+  <<: *warnconv_definitionOS
   
 GQMCT_Wheezy-PGI_conv:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-wheezy-pgi
   stage: warnconv
   script:
+    - apt-get update
+    - apt-get install -y zlib1g zlib1g-dev
     - . configureHPC.sh GNU noMPI log
     - export f90="/opt/pgi/linux86-64/2016/bin/pgfortran"
-    - export FL="-O3 -Minform=inform -DLOG"
+    - export FL="-O3 -Minform=inform -DLOGSCALE"
     - export LIB_BLAS_LAPACK="-L/opt/pgi/linux86-64/2016/lib -llapack -lblas"
     - export F90USEFULFLAGS="-Mpreprocess -Minform=inform"
     - /opt/pgi/linux86-64/16.10/bin/pgfortran --version
@@ -180,16 +230,27 @@ GQMCT_Stretch_OpenBlas_tests:
   <<: *test_definition
 
 GQMCT_CentOS_tests:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:centos-7-gfortran-blas-lapack
-  <<: *test_definition
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:centos-7-gcc-blas-lapack-fftw-scipy-mpich
+  stage: test
+  script:
+    - . configureHPC.sh GNU noMPI log
+    - gfortran -v
+    - make program
+    - cd testsuite
+    - cmake -E make_directory tests
+    - cd tests
+    - cmake -G "Unix Makefiles" -DCMAKE_Fortran_FLAGS_RELEASE=${F90OPTFLAGS} -DCMAKE_BUILD_TYPE=RELEASE ..
+    - cmake --build . --target all --config Release
+    - ctest -O log.txt
+    - cat log.txt | grep "tests passed" | cut -d " " -f 1
 
 GQMCT_OpenSuse-13.2_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:opensuse-13.2-gfortran-blas-lapack
-  <<: *test_definition
+  <<: *test_definitionOS
 
 GQMCT_OpenSuse-42.1_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:opensuse-42.1-gfortran-blas-lapack
-  <<: *test_definition
+  <<: *test_definitionOS
 
 GQMCT_Ubuntu-trusty_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:trusty-gfortran-lapack
@@ -199,9 +260,11 @@ GQMCT_Jessie-PGI_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-pgi-cmake
   stage: test
   script:
+    - apt-get update
+    - apt-get install -y zlib1g zlib1g-dev
     - . configureHPC.sh GNU noMPI log
     - export f90="/opt/pgi/linux86-64/2016/bin/pgfortran"
-    - export FL="-O3 -DLOG"
+    - export FL="-O3"
     - export LIB_BLAS_LAPACK="-L/opt/pgi/linux86-64/2016/lib -llapack -lblas"
     - export F90USEFULFLAGS="-Mpreprocess"
     - /opt/pgi/linux86-64/16.10/bin/pgfortran --version
@@ -218,8 +281,9 @@ GQMCT_jessie_valgrind:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-blas-lapack-valgrind
   stage: memleaks
   script:
-      - . configureHPC.sh
-      - export f90="gfortran"
+      - apt-get update
+      - apt-get install -y zlib1g zlib1g-dev
+      - . configureHPC.sh GNU noMPI
       - export FL="${FL} -g"
       - gfortran -v
       - make SPT
