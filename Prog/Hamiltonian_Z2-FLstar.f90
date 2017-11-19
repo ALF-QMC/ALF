@@ -712,7 +712,7 @@
 
 
           ! Equal time correlators
-          Allocate ( Obs_eq(10) )
+          Allocate ( Obs_eq(11) )
           Do I = 1,Size(Obs_eq,1)
              select case (I)
              case (1)
@@ -735,6 +735,8 @@
                 Ns = Latt%N;  No = 2;  Filename ="ConductionDen"
              case (10)
                 Ns = Latt%N;  No = 2;  Filename ="ConductionSC"
+             case (11)
+                Ns = Latt%N;  No = 1;  Filename ="TotalSC"
              case default
                 Write(6,*) ' Error in Alloc_obs '  
              end select
@@ -1057,6 +1059,9 @@
                 ! SC
                 Obs_eq(5)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(5)%Obs_Latt(imj,1,no_I,no_J) + &
                     &               GRC(I1,J1,1)**2 *  ZP*ZS 
+                ! TotalSC
+                Obs_eq(11)%Obs_Latt(imj,1,1,1) =  Obs_eq(11)%Obs_Latt(imj,1,1,1) + &
+                    &               GRC(I1,J1,1)**2 *  ZP*ZS 
                 Obs_scal(6)%Obs_vec(1) = Obs_scal(6)%Obs_vec(1) + GRC(I1,J1,1)**2/ 3.d0 /dble(Latt%N) * ZP*ZS
             ENDDO
             Obs_eq(4)%Obs_Latt0(no_J) =  Obs_eq(4)%Obs_Latt0(no_J) +  Z * GRC(J1,J1,1) * ZP * ZS
@@ -1085,9 +1090,26 @@
                 ! SC
                 Obs_eq(10)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(10)%Obs_Latt(imj,1,no_I,no_J) + &
                     &               GRC(I1,J1,1)**2 *  ZP*ZS 
+                ! TotalSC
+                Obs_eq(11)%Obs_Latt(imj,1,1,1) =  Obs_eq(11)%Obs_Latt(imj,1,1,1) + &
+                    &               GRC(I1,J1,1)**2 *  ZP*ZS 
 !                 Obs_scal(6)%Obs_vec(1) = Obs_scal(6)%Obs_vec(1) + GRC(I1,J1,1)**2/ 3.d0 /dble(Latt%N) * ZP*ZS
             ENDDO
             Obs_eq(9)%Obs_Latt0(no_J) =  Obs_eq(9)%Obs_Latt0(no_J) +  Z * GRC(J1,J1,1) * ZP * ZS
+          ENDDO
+          Do J1 = 3*Latt%N+1,5*Latt%N
+            J    = List(J1,1)
+            Do I1 = 1,3*Latt%N
+                I    = List(I1,1)
+                imj = latt%imj(I,J)
+                ! TotalSC
+                Obs_eq(11)%Obs_Latt(imj,1,1,1) =  Obs_eq(11)%Obs_Latt(imj,1,1,1) + &
+                    &               GRC(I1,J1,1)**2 *  ZP*ZS 
+                imj = latt%imj(J,I)
+                ! TotalSC
+                Obs_eq(11)%Obs_Latt(imj,1,1,1) =  Obs_eq(11)%Obs_Latt(imj,1,1,1) + &
+                    &               GRC(J1,I1,1)**2 *  ZP*ZS 
+            ENDDO
           ENDDO
 
         end Subroutine Obser
@@ -1114,6 +1136,7 @@
                 Call  Print_bin_Latt(Obs_tau(I),Latt,dtau,Group_Comm)
              enddo
           endif
+            no_J = List(J1,2)-3
           
         end Subroutine Pr_obs
 !==========================================================        
