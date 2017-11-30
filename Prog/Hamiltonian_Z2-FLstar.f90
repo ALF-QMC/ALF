@@ -30,7 +30,7 @@
       Integer, parameter,     private :: Norb=5
       Integer, allocatable,   private :: List(:,:), Invlist(:,:)
       Integer,                private :: L1, L2
-      real (Kind=Kind(0.d0)), private :: Ham_T, Ham_Vint,  Ham_U, Ham_JKA, Ham_JKB
+      real (Kind=Kind(0.d0)), private :: Ham_T, Ham_T2, Ham_Vint,  Ham_U, Ham_JKA, Ham_JKB
       real (Kind=Kind(0.d0)), private :: Dtau, Beta, Theta
       Character (len=64),     private :: Model, Lattice_type, File1
       logical,                private :: checkerboard
@@ -55,7 +55,7 @@
 
           NAMELIST /VAR_lattice/  L1, L2, Lattice_type, Model
 
-          NAMELIST /VAR_Z2_FLstar/  ham_T, Ham_Vint,  Ham_U,  Dtau, Beta, Ham_JKA, Ham_JKB, checkerboard, Theta, Projector
+          NAMELIST /VAR_Z2_FLstar/  ham_T, ham_T2, Ham_Vint,  Ham_U,  Dtau, Beta, Ham_JKA, Ham_JKB, checkerboard, Theta, Projector
 
 #if !defined(LOGSCALE)
           a=1 ! this line should cause a compiler error (undeclared variable a) if LOG has not been defined as required by this model
@@ -106,20 +106,24 @@
 #endif
              Ham_JKA=0.d0
              Ham_JKB=0.d0
+             Ham_T2=1.d0/0.d0
              checkerboard=.false.
              OPEN(UNIT=5,FILE=File1,STATUS='old',ACTION='read',IOSTAT=ierr)
              READ(5,NML=VAR_Z2_FLstar)
              CLOSE(5)
+             if (Ham_T2==1.d0/0.d0) Ham_T2=Ham_T
 #if defined(MPI)
           endif
 
           CALL MPI_BCAST(ham_T        ,1,MPI_REAL8,     0,Group_Comm,ierr)
+          CALL MPI_BCAST(ham_T2       ,1,MPI_REAL8,     0,Group_Comm,ierr)
           CALL MPI_BCAST(ham_Vint     ,1,MPI_REAL8,     0,Group_Comm,ierr)
           CALL MPI_BCAST(ham_U        ,1,MPI_REAL8,     0,Group_Comm,ierr)
           CALL MPI_BCAST(ham_JKA      ,1,MPI_REAL8,     0,Group_Comm,ierr)
           CALL MPI_BCAST(ham_JKB      ,1,MPI_REAL8,     0,Group_Comm,ierr)
           CALL MPI_BCAST(Dtau         ,1,MPI_REAL8,     0,Group_Comm,ierr)
           CALL MPI_BCAST(Beta         ,1,MPI_REAL8,     0,Group_Comm,ierr)
+          CALL MPI_BCAST(Theta        ,1,MPI_REAL8,     0,Group_Comm,ierr)
           CALL MPI_BCAST(Thtrot       ,1,MPI_INTEGER,   0,Group_Comm,ierr)
           CALL MPI_BCAST(Projector    ,1,MPI_LOGICAL,   0,Group_Comm,ierr)
           CALL MPI_BCAST(checkerboard ,1,MPI_LOGICAL,   0,Group_Comm,ierr)
@@ -151,6 +155,7 @@
              Write(50,*) 'Beta          : ', Beta
              Write(50,*) 'dtau,Ltrot    : ', dtau,Ltrot
              Write(50,*) 't             : ', Ham_T
+             Write(50,*) 't`            : ', Ham_T2
              Write(50,*) 'V             : ', Ham_Vint
              Write(50,*) 'U             : ', Ham_U
              Write(50,*) 'JK A sublatt  : ', Ham_JKA
