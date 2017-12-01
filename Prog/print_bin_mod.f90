@@ -373,7 +373,7 @@
               enddo
 !$OMP end parallel do
 #ifdef ZLIB
-              write(File_tmp,*) TRIM(ADJUSTL(File_pr)),".gz"
+              write(File_tmp,*) TRIM(ADJUSTL(File_tmp)),".gz"
               CALL FGZ_OPEN(TRIM(ADJUSTL(File_tmp)),'a6',fd,ios)
               Write(Line,*) dble(Phase_mean),Norb,Latt%N, LT, dtau
               CALL FGZ_WRITE(fd,TRIM(LINE),'yes',IOS)
