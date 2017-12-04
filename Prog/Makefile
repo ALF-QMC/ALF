@@ -41,6 +41,11 @@ Z2-FLstar:
 	cp $(Libs)/Modules/*.mod . ;\
 	(make -f Compile_Z2-FLstar  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" LF="$(LF)" F90USEFULFLAGS="$(F90USEFULFLAGS)")
 
+Deconf-Kondo:
+	./Git_config.sh; \
+	cp $(Libs)/Modules/*.mod . ;\
+	(make -f Compile_deconf-Kondo  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" LF="$(LF)" F90USEFULFLAGS="$(F90USEFULFLAGS)")
+
 QSH:
 	./Git_config.sh; \
 	cp $(Libs)/Modules/*.mod . ;\

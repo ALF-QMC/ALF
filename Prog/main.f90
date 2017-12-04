@@ -94,7 +94,7 @@ Program Main
   
         
         Integer :: Nwrap, NSweep, NBin, NBin_eff,Ltau, NSTM, NT, NT1, NVAR, LOBS_EN, LOBS_ST, NBC, NSW
-        Integer :: NTAU, NTAU1, Ltrotstore, Nstmwarmup, nbinwarmup, kstart
+        Integer :: NTAU, NTAU1, Ltrotstore, Nstmwarmup, nbinwarmup, kstart, Lobs_st_warmup, LOBS_EN_warmup
         Real(Kind=Kind(0.d0)) :: CPU_MAX , rate
         Character (len=64) :: file1, dump
   
@@ -390,6 +390,8 @@ Program Main
         NSTMwarmup=int(rate**dble(k))
         if(NSTMwarmup>NSTM) NSTMwarmup=NSTM
         Ltrot=Stab_nt(NSTMwarmup)
+        Lobs_st_warmup=nint(dble(LOBS_ST*LTROT)/dble(LTROTstore))
+        LOBS_EN_warmup=nint(dble(LOBS_EN*LTROT)/dble(LTROTstore))
 
 #if defined(TEMPERING)
         write(File1,'(A,I0,A)') "Temp_",igroup,"/info"
@@ -507,9 +509,12 @@ Program Main
                     Phase = Z
                     NST = NST + 1
                  ENDIF
-                 IF (NTAU1.GE. LOBS_ST/LTROTstore*LTROT .AND. NTAU1.LE. LOBS_EN/LTROTstore*LTROT ) THEN
+                 IF (NTAU1.GE. Lobs_st_warmup .AND. NTAU1.LE. LOBS_EN_warmup ) THEN
                     !Call  Global_tau_mod_Test(Gr,ntau1)
                     !Stop
+!                     write(*,*) 'Up'
+!                     write(*,*) 'Measure on slice ',Ntau1,' of ',Ltrot
+!                     write(*,*) 'should be larger then ',nint(dble(LOBS_ST*LTROT)/dble(LTROTstore)),' and smaller ',nint(dble(LOBS_EN*LTROT)/dble(LTROTstore))
 !            do n=1,N_FL
 !              write(*,*) "obser",sum(Gr(:,:,nf)),phase
 !            enddo
@@ -529,12 +534,15 @@ Program Main
               DO NTAU = LTROT,1,-1
                  NTAU1 = NTAU - 1
                  CALL WRAPGRDO(GR,NTAU, PHASE,Propose_S0,Nt_sequential_start, Nt_sequential_end, N_Global_tau)
-                 IF (NTAU1.GE. LOBS_ST/LTROTstore*LTROT .AND. NTAU1.LE. LOBS_EN/LTROTstore*LTROT ) THEN
+                 IF (NTAU1.GE. Lobs_st_warmup .AND. NTAU1.LE. LOBS_EN_warmup ) THEN
                     !Call  Global_tau_mod_Test(Gr,ntau1)
                     !Stop
 !            do n=1,N_FL
 !              write(*,*) "obser",sum(Gr(:,:,nf)),phase
 !            enddo
+!                     write(*,*) 'Down'
+!                     write(*,*) 'Measure on slice ',Ntau1,' of ',Ltrot
+!                     write(*,*) 'should be larger then ',nint(dble(LOBS_ST*LTROT)/dble(LTROTstore)),' and smaller ',nint(dble(LOBS_EN*LTROT)/dble(LTROTstore))
                     CALL Obser( GR, PHASE, Ntau1 )
                  ENDIF
                  IF ( Stab_nt(NST) == NTAU1 .AND. NTAU1.NE.0 ) THEN
@@ -780,6 +788,7 @@ Program Main
                     !Stop
 !                     write(*,*) "GR before obser sum: ",sum(GR(:,:,1))
 !                     write(*,*) "Phase before obser : ",phase
+!                     write(*,*) 'Measure on slice ',Ntau1,' of ',Ltrot
                     CALL Obser( GR, PHASE, Ntau1 )
                  ENDIF
               ENDDO
@@ -799,6 +808,7 @@ Program Main
                  IF (NTAU1.GE. LOBS_ST .AND. NTAU1.LE. LOBS_EN ) THEN
 !                     write(*,*) "GR before obser sum: ",sum(GR(:,:,1))
 !                     write(*,*) "Phase before obser : ",phase
+!                     write(*,*) 'Measure on slice ',Ntau1,' of ',Ltrot
                     CALL Obser( GR, PHASE, Ntau1 )
                  ENDIF
                  IF ( Stab_nt(NST) == NTAU1 .AND. NTAU1.NE.0 ) THEN

@@ -1,5 +1,5 @@
-.PHONY : all lib ana program  Hub_Ising SPT Hub Hub_Can Kondo_Honey Z2_Slave Z2-FLstar
-all: lib ana program  Hub_Ising SPT  Hub_Can Kondo_Honey Z2_Slave Z2-FLstar
+.PHONY : all lib ana program  Hub_Ising SPT Hub Hub_Can Kondo_Honey Z2_Slave Z2-FLstar Deconf-Kondo
+all: lib ana program  Hub_Ising SPT  Hub_Can Kondo_Honey Z2_Slave Z2-FLstar Deconf-Kondo
 
 lib:
 	cd Libraries && $(MAKE)
@@ -13,6 +13,8 @@ SPT: lib
 	cd Prog && $(MAKE) SPT
 Z2-FLstar: lib
 	cd Prog && $(MAKE) Z2-FLstar
+Deconf-Kondo: lib
+	cd Prog && $(MAKE) Deconf-Kondo
 Hub_Can: lib
 	cd Prog && $(MAKE) Hub_Can
 Kondo_Honey: lib

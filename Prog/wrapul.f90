@@ -116,10 +116,10 @@
                  Call Op_mmultR(udvl(nf)%U,Op_V(n,nf),nsigma(n,nt),Ndim,'c')
               enddo
               Call  Hop_mod_mmthlc (udvl(nf)%U,nf)
+              !Carry out U,D,V decomposition.
+              CALL UDVL(nf)%decompose
            ENDDO
            
-           !Carry out U,D,V decomposition.
-           CALL UDVL(nf)%decompose
         ENDDO
 #endif
       END SUBROUTINE WRAPUL
