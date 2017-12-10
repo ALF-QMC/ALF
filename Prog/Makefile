@@ -63,6 +63,7 @@ clean:
 	(make -f Compile_Hub_Ising   clean );\
 	(make -f Compile_SPT   clean );\
 	(make -f Compile_Z2-FLstar   clean );\
+	(make -f Compile_deconf-Kondo   clean );\
 	(make -f Compile_Kondo_Honey clean );\
 	(make -f Compile_Z2_Slave clean );\
 	(make -f Compile_NematicDirac clean );\

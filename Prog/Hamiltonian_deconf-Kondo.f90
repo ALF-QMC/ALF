@@ -241,7 +241,7 @@
               T=cmplx(ham_t,0.d0,kind(0.d0))
               if (o==1) T=cmplx(ham_t2,0.d0,kind(0.d0))
               do n = 1,N_FL
-                nc = 3*Latt%N*o
+                nc = 2*Latt%N*o
                 Do ncoord = 1,3
                   Do I = 1,Latt%N
                     nc = nc + 1
@@ -311,7 +311,8 @@
           COMPLEX(Kind=Kind(0.d0)), allocatable :: H0(:,:), U(:,:), Test(:,:)
           Real(Kind=Kind(0.d0)), allocatable :: En(:)
           
-          COMPLEX(Kind=Kind(0.d0)) :: Z, alpha, beta
+          Real(Kind=Kind(0.d0)), parameter :: phi=0.0
+          COMPLEX(Kind=Kind(0.d0)) :: Z, alpha, beta, kek=cmplx(0.01d0,0.0d0,kind(0.d0))
           Integer :: n, n_part, i, I1, I2, J1, no, nc1, DI1, DI2, nc, Ihex(6)
           
           N_part=Ndim/2
@@ -340,8 +341,8 @@
                 Stop
               end select
               If ( Latt%list(J1,1) == 0 .and. nc1==2 ) then
-                H0(I1,J1) = cmplx( 1.d0,    0.d0, kind(0.D0))
-                H0(J1,I1) = cmplx( 1.d0,    0.d0, kind(0.D0))
+                H0(I1,J1) = cmplx( -cos(phi),    -sin(phi), kind(0.D0))
+                H0(J1,I1) = cmplx( -cos(phi),     sin(phi), kind(0.D0))
               else
                 H0(I1,J1) = cmplx(-1.d0,    0.d0, kind(0.D0))
                 H0(J1,I1) = cmplx(-1.d0,    0.d0, kind(0.D0))
@@ -349,8 +350,32 @@
             Enddo
           enddo
           
+          Do I1=1,L1,3
+            do J1=1,L2,3
+              I=Latt%invlist(I1,J1)
+              do nc=1,3
+              H0(invlist(I,1),invlist(I,2)) = H0(invlist(I,1),invlist(I,2)) + kek
+              H0(invlist(I,2),invlist(I,1)) = H0(invlist(I,2),invlist(I,1)) + kek
+              
+              H0(invlist(Latt%nnlist(I,1,0),1),invlist(Latt%nnlist(I,-1,1),2)) = &
+                & H0(invlist(Latt%nnlist(I,1,0),1),invlist(Latt%nnlist(I,-1,1),2)) + kek
+              H0(invlist(Latt%nnlist(I,-1,1),2),invlist(Latt%nnlist(I,1,0),1)) = &
+                & H0(invlist(Latt%nnlist(I,-1,1),2),invlist(Latt%nnlist(I,1,0),1)) + kek
+              
+              H0(invlist(Latt%nnlist(I,1,0),2),invlist(Latt%nnlist(I,0,1),1)) = &
+                & H0(invlist(Latt%nnlist(I,1,0),2),invlist(Latt%nnlist(I,0,1),1)) + kek
+              H0(invlist(Latt%nnlist(I,0,1),1),invlist(Latt%nnlist(I,1,0),2)) = &
+                & H0(invlist(Latt%nnlist(I,0,1),1),invlist(Latt%nnlist(I,1,0),2)) + kek
+              
+              I=Latt%nnlist(I,1,1)
+              enddo
+            enddo
+          enddo
+          
           Call Diag(H0,U,En)
           
+          write(*,*) N_part, Ndim/2, 2*Latt%N
+          write(*,*) 'Gap is', En(Latt%N+1)-En(Latt%N)
           do I2=1,Latt%N
           do I1=1,2*Latt%N
             WF_L(1)%P(I1,I2)=U(I1,I2)
@@ -496,7 +521,7 @@
 
 
           ! Equal time correlators
-          Allocate ( Obs_eq(6) )
+          Allocate ( Obs_eq(7) )
           Do I = 1,Size(Obs_eq,1)
              select case (I)
              case (1)
@@ -511,6 +536,8 @@
                 Ns = Latt%N;  No = 4;  Filename ="SC"
              case (6)
                 Ns = Latt%N;  No = 6;  Filename ="Hop"
+             case (7)
+                Ns = Latt%N;  No = 4;  Filename ="SuperSpin"
              case default
                 Write(6,*) ' Error in Alloc_obs '  
              end select
@@ -679,7 +706,7 @@
           Zrho = cmplx(0.d0,0.d0, kind(0.D0))
           Zocc = cmplx(0.d0,0.d0, kind(0.D0))
           Do nf = 1,N_FL
-             Do I = 1,3*Latt%N
+             Do I = 1,2*Latt%N
                 Zrho = Zrho + Grc(i,i,nf) 
                 Zocc = Zocc + Grc(i,i,nf)**2
              enddo
@@ -750,21 +777,25 @@
                 Obs_eq(1)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(1)%Obs_Latt(imj,1,no_I,no_J) + &
                     &               Z * GRC(I1,J1,1) *  ZP*ZS 
                 ! SpinZ
-                Obs_eq(2)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(2)%Obs_Latt(imj,1,no_I,no_J) + &
-                    &               Z * GRC(I1,J1,1) * GR(I1,J1,1) * ZP*ZS
+                tmp=Z * GRC(I1,J1,1) * GR(I1,J1,1) * ZP*ZS
+                Obs_eq(2)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(2)%Obs_Latt(imj,1,no_I,no_J) + tmp
+                Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) + tmp
                 ! SpinXY
-                Obs_eq(3)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(3)%Obs_Latt(imj,1,no_I,no_J) + &
-                    &               Z * GRC(I1,J1,1) * GR(I1,J1,1) * ZP*ZS
+                Obs_eq(3)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(3)%Obs_Latt(imj,1,no_I,no_J) + tmp
+                Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) + tmp
                 ! Den
-                Obs_eq(4)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(4)%Obs_Latt(imj,1,no_I,no_J)  +  &
-                    &     Corr(GR,GRC,I1,I1,J1,J1)* ZP*ZS
+                tmp=Corr(GR,GRC,I1,I1,J1,J1)* ZP*ZS
+                Obs_eq(4)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(4)%Obs_Latt(imj,1,no_I,no_J) + tmp
+                Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) + tmp
                 ! SC
-                Obs_eq(5)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(5)%Obs_Latt(imj,1,no_I,no_J) + &
-                    &               GRC(I1,J1,1)**2 *  ZP*ZS 
+                tmp=2.d0*GRC(I1,J1,1)**2 *  ZP*ZS
+                Obs_eq(5)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(5)%Obs_Latt(imj,1,no_I,no_J) + tmp
+                Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) + tmp
                     
                 Obs_scal(6)%Obs_vec(1) = Obs_scal(6)%Obs_vec(1) + GRC(I1,J1,1)**2/ 3.d0 /dble(Latt%N) * ZP*ZS
             ENDDO
             Obs_eq(4)%Obs_Latt0(no_J) =  Obs_eq(4)%Obs_Latt0(no_J) +  Z * GRC(J1,J1,1) * ZP * ZS
+            Obs_eq(7)%Obs_Latt0(no_J) =  Obs_eq(7)%Obs_Latt0(no_J) +  Z * 0.5d0 * ZP * ZS
           ENDDO
           Do J = 1,Latt%N
             Do no_J=1,6
