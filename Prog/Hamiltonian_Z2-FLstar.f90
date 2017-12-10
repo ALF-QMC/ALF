@@ -106,12 +106,12 @@
 #endif
              Ham_JKA=0.d0
              Ham_JKB=0.d0
-             Ham_T2=1.d0/0.d0
+             Ham_T2=-100000000.d0
              checkerboard=.false.
              OPEN(UNIT=5,FILE=File1,STATUS='old',ACTION='read',IOSTAT=ierr)
              READ(5,NML=VAR_Z2_FLstar)
              CLOSE(5)
-             if (Ham_T2==1.d0/0.d0) Ham_T2=Ham_T
+             if (Ham_T2==-100000000.d0) Ham_T2=Ham_T
 #if defined(MPI)
           endif
 
