@@ -56,9 +56,9 @@
 
           NAMELIST /VAR_Z2_FLstar/  ham_T, ham_T2, Ham_Vint,  Ham_U,  Dtau, Beta, Ham_J, checkerboard, Theta, Projector
 
-#if !defined(LOGSCALE)
-          a=1 ! this line should cause a compiler error (undeclared variable a) if LOG has not been defined as required by this model
-#endif
+! #if !defined(LOGSCALE)
+!           a=1 ! this line should cause a compiler error (undeclared variable a) if LOG has not been defined as required by this model
+! #endif
 
 #if defined(MPI)
           Integer        :: Isize, Irank, irank_g, isize_g, igroup
@@ -604,10 +604,11 @@
           Integer, INTENT(IN)          :: Ntau
           
           !Local 
-          Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK, Ztot
+          Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK, Ztot, Phii, Phij
           Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZkinF, ZPot, Zocc, Z, ZP,ZS, weight, tmp,Zn
           Integer :: I,J, n, imj, nf, I1, J1, Nc, I0, I2, I3
           Integer :: K, K1, L ,L1, no_I, no_J, Ibond(2,6), Ihex(6)
+          real(kind=kind(0.d0)), parameter :: pi = 4 * atan(1.d0)
           
           Zn=cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
 
@@ -803,21 +804,27 @@
                 case (1)
                   K1=invlist(J,1)
                   L1=invlist(J,2)
+                  phij=cmplx(1.d0,0.d0, kind(0.d0))
                 case (2)
                   K1=invlist(J,1)
                   L1=Invlist( Latt%nnlist(J,1,-1),2 )
+                  phij=cmplx(cos(2.d0*Pi/3.d0),sin(2.d0*Pi/3.d0), kind(0.d0))
                 case (3)
                   K1=invlist(J,1)
                   L1=Invlist( Latt%nnlist(J,0,-1),2 )  
+                  phij=cmplx(cos(4.d0*Pi/3.d0),sin(4.d0*Pi/3.d0), kind(0.d0))
                 case (4)
                   K1=invlist(J,3)
                   L1=invlist(J,4)
+                  phij=cmplx(1.d0,0.d0, kind(0.d0))
                 case (5)
                   K1=invlist(J,3)
                   L1=Invlist( Latt%nnlist(J,1,-1),4 )
+                  phij=cmplx(cos(2.d0*Pi/3.d0),sin(2.d0*Pi/3.d0), kind(0.d0))
                 case (6)
                   K1=invlist(J,3)
                   L1=Invlist( Latt%nnlist(J,0,-1),4 )  
+                  phij=cmplx(cos(4.d0*Pi/3.d0),sin(4.d0*Pi/3.d0), kind(0.d0))
               end select
               Do I = 1,Latt%N
                 imj = latt%imj(I,J)
@@ -826,25 +833,34 @@
                     case (1)
                       I1=invlist(I,1)
                       J1=invlist(I,2)
+                      phii=cmplx(1.d0,0.d0, kind(0.d0))
                     case (2)
                       I1=invlist(I,1)
                       J1=Invlist( Latt%nnlist(I,1,-1),2 )
+                      phii=cmplx(cos(2.d0*Pi/3.d0),sin(2.d0*Pi/3.d0), kind(0.d0))
                     case (3)
                       I1=invlist(I,1)
                       J1=Invlist( Latt%nnlist(I,0,-1),2 )  
+                      phii=cmplx(cos(4.d0*Pi/3.d0),sin(4.d0*Pi/3.d0), kind(0.d0))
                     case (4)
                       I1=invlist(I,3)
                       J1=invlist(I,4)
+                      phii=cmplx(1.d0,0.d0, kind(0.d0))
                     case (5)
                       I1=invlist(I,3)
                       J1=Invlist( Latt%nnlist(I,1,-1),4 )
+                      phii=cmplx(cos(2.d0*Pi/3.d0),sin(2.d0*Pi/3.d0), kind(0.d0))
                     case (6)
                       I1=invlist(I,3)
                       J1=Invlist( Latt%nnlist(I,0,-1),4 )  
+                      phii=cmplx(cos(4.d0*Pi/3.d0),sin(4.d0*Pi/3.d0), kind(0.d0))
                   end select
                   ! Hop
                   Obs_eq(6)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(6)%Obs_Latt(imj,1,no_I,no_J)  +  ZP*ZS* &
-                      & (Corr(GR,GRC,I1,J1,K1,L1)+Corr(GR,GRC,I1,J1,L1,K1)+Corr(GR,GRC,J1,I1,K1,L1)+Corr(GR,GRC,J1,I1,L1,K1))
+                      & (Phii*Phij       *Corr(GR,GRC,I1,J1,K1,L1)&
+                      & +Phii*conjg(Phij)*Corr(GR,GRC,I1,J1,L1,K1)&
+                      & +conjg(Phii)*Phij*Corr(GR,GRC,J1,I1,K1,L1)&
+                      & +conjg(Phii*Phij)*Corr(GR,GRC,J1,I1,L1,K1))
                 enddo
               ENDDO
               Obs_eq(6)%Obs_Latt0(no_J) =  Obs_eq(6)%Obs_Latt0(no_J) +  Z * (GRC(k1,L1,1)+GRC(L1,K1,1)) * ZP * ZS
