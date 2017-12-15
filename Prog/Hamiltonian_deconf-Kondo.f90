@@ -17,7 +17,7 @@
       Type (WaveFunction), dimension(:),   allocatable  :: WF_R
       Integer, allocatable :: nsigma(:,:)
       Integer              :: Ndim,  Ltrot, Thtrot
-      Integer, parameter   :: N_FL=1,  N_SUN=2
+      Integer, parameter   :: N_FL=1,  N_SUN=1
       Logical              :: Projector
 !>    Defines MPI communicator 
       Integer              :: Group_Comm
@@ -27,7 +27,7 @@
       ! What is below is  private 
       
       Type (Lattice),         private :: Latt
-      Integer, parameter,     private :: Norb=4
+      Integer,                private :: Norb=4
       Integer, allocatable,   private :: List(:,:), Invlist(:,:)
       Integer,                private :: L1, L2
       real (Kind=Kind(0.d0)), private :: Ham_T, Ham_T2, Ham_Vint,  Ham_U, Ham_J
@@ -89,12 +89,13 @@
           CALL MPI_BCAST(Model       ,64 ,MPI_CHARACTER, 0,MPI_COMM_WORLD,IERR)
           CALL MPI_BCAST(Lattice_type,64 ,MPI_CHARACTER, 0,MPI_COMM_WORLD,IERR)
 #endif
-          Call Ham_latt
-
 
           Projector = .false.
           Theta = 0.d0
           Thtrot = 0
+          Ham_J=0.d0
+          Ham_T2=-1000000.d0
+          checkerboard=.false.
           
 #if defined(MPI) 
           If (Irank_g == 0 ) then
@@ -103,13 +104,10 @@
 #if defined(TEMPERING) 
              write(File1,'(A,I0,A)') "Temp_",igroup,"/parameters"
 #endif
-             Ham_J=0.d0
-             Ham_T2=1.d0/0.d0
-             checkerboard=.false.
              OPEN(UNIT=5,FILE=File1,STATUS='old',ACTION='read',IOSTAT=ierr)
              READ(5,NML=VAR_Z2_FLstar)
              CLOSE(5)
-             if (Ham_T2==1.d0/0.d0) Ham_T2=Ham_T
+             if (Ham_T2==-1000000.d0) Ham_T2=Ham_T
 #if defined(MPI)
           endif
 
@@ -125,6 +123,9 @@
           CALL MPI_BCAST(Projector    ,1,MPI_LOGICAL,   0,Group_Comm,ierr)
           CALL MPI_BCAST(checkerboard ,1,MPI_LOGICAL,   0,Group_Comm,ierr)
 #endif
+          if(ham_j==0.d0) Norb=2
+
+          Call Ham_latt
 
           Call Ham_hop
           
@@ -133,6 +134,7 @@
           Ltrot = nint(beta/dtau)
           if (Projector) Thtrot = nint(theta/dtau)
           Ltrot = Ltrot+2*Thtrot
+          
           
 #if defined(TEMPERING)
            write(File1,'(A,I0,A)') "Temp_",igroup,"/info"
@@ -210,14 +212,16 @@
              Enddo
           Enddo
           ! compact c-electrons
-          Do I = 1,Latt%N
-             Do no = 3,4
-                nc = nc + 1
-                List(nc,1) = I
-                List(nc,2) = no
-                Invlist(I,no) = nc 
-             Enddo
-          Enddo
+          if (norb==4) then
+            Do I = 1,Latt%N
+              Do no = 3,4
+                  nc = nc + 1
+                  List(nc,1) = I
+                  List(nc,2) = no
+                  Invlist(I,no) = nc 
+              Enddo
+            Enddo
+          endif
           
 !           call Print_latt(Latt)
 
@@ -235,9 +239,9 @@
           Complex(kind=kind(0.d0)) :: T
           
           If (checkerboard) then
-            Ncheck = 6*Latt%N
+            Ncheck = 3*(Norb/2)*Latt%N
             allocate(Op_T(Ncheck,N_FL))
-            Do o=0,1
+            Do o=0,(Norb/2)-1
               T=cmplx(ham_t,0.d0,kind(0.d0))
               if (o==1) T=cmplx(ham_t2,0.d0,kind(0.d0))
               do n = 1,N_FL
@@ -270,14 +274,14 @@
               enddo
             enddo
           else
-            Ncheck=2
+            Ncheck=(Norb/2)
             allocate(Op_T(Ncheck,N_FL))
             do n = 1,N_FL
               Call Op_make(Op_T(1,n),2*Latt%N)
-              Call Op_make(Op_T(2,n),2*Latt%N)
+              if(norb==4) Call Op_make(Op_T(2,n),2*Latt%N)
               Do I = 1,2*Latt%N
                 Op_T(1,n)%P(I)=I
-                Op_T(2,n)%P(I)=2*Latt%N+I
+                if(norb==4) Op_T(2,n)%P(I)=2*Latt%N+I
               Enddo
               Do ncoord = 1,3
                 Do I = 1,Latt%N
@@ -291,14 +295,14 @@
                   endif
                   Op_T(1,n)%O( I1 , I2 ) = -cmplx(ham_t,0.d0,kind(0.d0))
                   Op_T(1,n)%O( I2 , I1 ) = -cmplx(ham_t,0.d0,kind(0.d0))
-                  Op_T(2,n)%O( I1 , I2 ) = -cmplx(ham_t2,0.d0,kind(0.d0))
-                  Op_T(2,n)%O( I2 , I1 ) = -cmplx(ham_t2,0.d0,kind(0.d0))
+                  if(norb==4) Op_T(2,n)%O( I1 , I2 ) = -cmplx(ham_t2,0.d0,kind(0.d0))
+                  if(norb==4) Op_T(2,n)%O( I2 , I1 ) = -cmplx(ham_t2,0.d0,kind(0.d0))
                 enddo
               enddo
               Op_T(1,n)%g=cmplx(-Dtau,0.d0,Kind(0.d0))
-              Op_T(2,n)%g=cmplx(-Dtau,0.d0,Kind(0.d0))
+              if(norb==4) Op_T(2,n)%g=cmplx(-Dtau,0.d0,Kind(0.d0))
               Call Op_set(Op_T(1,n)) 
-              Call Op_set(Op_T(2,n)) 
+              if(norb==4) Call Op_set(Op_T(2,n)) 
             enddo
           endif
 
@@ -374,14 +378,14 @@
           
           Call Diag(H0,U,En)
           
-          write(*,*) N_part, Ndim/2, 2*Latt%N
+          write(*,*) N_part, Ndim/2, (norb/2)*Latt%N
           write(*,*) 'Gap is', En(Latt%N+1)-En(Latt%N)
           do I2=1,Latt%N
           do I1=1,2*Latt%N
             WF_L(1)%P(I1,I2)=U(I1,I2)
             WF_R(1)%P(I1,I2)=U(I1,I2)
-            WF_L(1)%P(I1+2*Latt%N,I2+Latt%N)=U(I1,I2)
-            WF_R(1)%P(I1+2*Latt%N,I2+Latt%N)=U(I1,I2)
+            if(norb==4) WF_L(1)%P(I1+2*Latt%N,I2+Latt%N)=U(I1,I2)
+            if(norb==4) WF_R(1)%P(I1+2*Latt%N,I2+Latt%N)=U(I1,I2)
           enddo
           enddo
           
@@ -412,7 +416,7 @@
 
 
           ! Number of opertors 8 per unit cell
-          Allocate( Op_V(7*Latt%N,N_FL) )
+          Allocate( Op_V((3+(4/norb)*2)*Latt%N,N_FL) )
           nc = 0
           nf = 1
           Zone=cmplx(1.d0  ,0.d0, kind(0.D0))
@@ -432,38 +436,40 @@
               Op_V(nc,nf)%P(2) = I2
               Op_V(nc,nf)%O( 1 , 2 ) = Zone
               Op_V(nc,nf)%O( 2 , 1 ) = Zone
-              Op_V(nc,nf)%g=sqrt(cmplx(Dtau*Ham_Vint*0.25d0,0.d0, kind(0.D0)))
+              Op_V(nc,nf)%g=sqrt(cmplx(Dtau*Ham_Vint/dble(2*N_SUN),0.d0, kind(0.D0)))
               Op_V(nc,nf)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
               Op_V(nc,nf)%type   = 2
               Call Op_set( Op_V(nc,nf) )
             enddo
             
             ! auxiliary interaction to project out spin fluctuations reducing spinful fermions to effective hardcore bosons
-            do no=1,2
-              nc = nc+1
-!                 write(*,*) Invlist(I,no)
-              Call Op_make(Op_V(nc,nf),1) 
-              Op_V(nc,nf)%P(1) = Invlist(I,no)
-              Op_V(nc,nf)%O( 1 , 1 )  =  Zone
-              Op_V(nc,nf)%g=sqrt(cmplx(Dtau*Ham_U/(beta+2*theta),0.d0, kind(0.D0)))
-              Op_V(nc,nf)%alpha  = cmplx(-0.5d0, 0.d0, kind(0.D0))
-              Op_V(nc,nf)%type   = 2
-              Call Op_set( Op_V(nc,nf) )
-            enddo
+!             do no=1,2
+!               nc = nc+1
+! !                 write(*,*) Invlist(I,no)
+!               Call Op_make(Op_V(nc,nf),1) 
+!               Op_V(nc,nf)%P(1) = Invlist(I,no)
+!               Op_V(nc,nf)%O( 1 , 1 )  =  Zone
+!               Op_V(nc,nf)%g=sqrt(cmplx(Dtau*Ham_U/(beta+2*theta),0.d0, kind(0.D0)))
+!               Op_V(nc,nf)%alpha  = cmplx(-0.5d0, 0.d0, kind(0.D0))
+!               Op_V(nc,nf)%type   = 2
+!               Call Op_set( Op_V(nc,nf) )
+!             enddo
             
             ! Kondo coupling of f- and c-electrons
-            do no=1,2
-              nc = nc+1
-              Call Op_make(Op_V(nc,nf),2) 
-              Op_V(nc,nf)%P(1) = Invlist(I,no)
-              Op_V(nc,nf)%P(2) = Invlist(I,2+no)
-              Op_V(nc,nf)%O( 1 , 2 )  =  Zone
-              Op_V(nc,nf)%O( 2 , 1 )  =  Zone
-              Op_V(nc,nf)%g=sqrt(cmplx(Dtau*Ham_J*0.25d0,0.d0, kind(0.D0)))
-              Op_V(nc,nf)%alpha  = cmplx(0.0d0, 0.d0, kind(0.D0))
-              Op_V(nc,nf)%type   = 2
-              Call Op_set( Op_V(nc,nf) )
-            enddo
+            if(norb==4) then
+              do no=1,2
+                nc = nc+1
+                Call Op_make(Op_V(nc,nf),2) 
+                Op_V(nc,nf)%P(1) = Invlist(I,no)
+                Op_V(nc,nf)%P(2) = Invlist(I,2+no)
+                Op_V(nc,nf)%O( 1 , 2 )  =  Zone
+                Op_V(nc,nf)%O( 2 , 1 )  =  Zone
+                Op_V(nc,nf)%g=sqrt(cmplx(Dtau*Ham_J*0.25d0,0.d0, kind(0.D0)))
+                Op_V(nc,nf)%alpha  = cmplx(0.0d0, 0.d0, kind(0.D0))
+                Op_V(nc,nf)%type   = 2
+                Call Op_set( Op_V(nc,nf) )
+              enddo
+            endif
             
           enddo
           
@@ -525,19 +531,19 @@
           Do I = 1,Size(Obs_eq,1)
              select case (I)
              case (1)
-                Ns = Latt%N;  No = 4;  Filename ="Green"
+                Ns = Latt%N;  No = Norb;  Filename ="Green"
              case (2)
-                Ns = Latt%N;  No = 4;  Filename ="SpinZ"
+                Ns = Latt%N;  No = Norb;  Filename ="SpinZ"
              case (3)
-                Ns = Latt%N;  No = 4;  Filename ="SpinXY"
+                Ns = Latt%N;  No = Norb;  Filename ="SpinXY"
              case (4)
-                Ns = Latt%N;  No = 4;  Filename ="Den"
+                Ns = Latt%N;  No = Norb;  Filename ="Den"
              case (5)
-                Ns = Latt%N;  No = 4;  Filename ="SC"
+                Ns = Latt%N;  No = Norb;  Filename ="SC"
              case (6)
-                Ns = Latt%N;  No = 6;  Filename ="Hop"
+                Ns = Latt%N;  No = 3*(Norb/2);  Filename ="Hop"
              case (7)
-                Ns = Latt%N;  No = 4;  Filename ="SuperSpin"
+                Ns = Latt%N;  No = Norb;  Filename ="SuperSpin"
              case default
                 Write(6,*) ' Error in Alloc_obs '  
              end select
@@ -550,15 +556,15 @@
              Do I = 1,Size(Obs_tau,1)
                 select case (I)
                 case (1)
-                   Ns = Latt%N; No = 4;  Filename ="Green"
+                   Ns = Latt%N; No = Norb;  Filename ="Green"
                 case (2)
-                   Ns = Latt%N; No = 4;  Filename ="Den"
+                   Ns = Latt%N; No = Norb;  Filename ="Den"
                 case (3)
-                   Ns = Latt%N; No = 4;  Filename ="SC"
+                   Ns = Latt%N; No = Norb;  Filename ="SC"
                 case (4)
-                   Ns = Latt%N; No = 4;  Filename ="SpinZ"
+                   Ns = Latt%N; No = Norb;  Filename ="SpinZ"
                 case (5)
-                   Ns = Latt%N; No = 4;  Filename ="SpinXY"
+                   Ns = Latt%N; No = Norb;  Filename ="SpinXY"
                 case default
                    Write(6,*) ' Error in Alloc_obs '  
                 end select
@@ -664,7 +670,7 @@
                        &  + Corr(Gr,Grc,I1,I0,I0,I1) + Corr(Gr,Grc,I1,I0,I1,I0)
              Enddo
           Enddo
-          ZPot = -Ham_Vint*0.25d0*ZPot
+          ZPot = -Ham_Vint/dble(2*N_SUN)*ZPot
           
           ! Total energy (the kinetic part of con electrons is missing
           Nc = Size( Op_V,1)
@@ -717,49 +723,50 @@
           Obs_scal(5)%Obs_vec(1)  =    Obs_scal(5)%Obs_vec(1) - 2.d0*(Zocc - 0.5d0*Zrho) * ZP*ZS
           
           ! conduction fermions
-          Zrho = cmplx(0.d0,0.d0, kind(0.D0))
-          Zocc = cmplx(0.d0,0.d0, kind(0.D0))
-          Do nf = 1,N_FL
-             Do I = 2*Latt%N+1,4*Latt%N
-                Zrho = Zrho + Grc(i,i,nf) 
-                Zocc = Zocc + Grc(i,i,nf)**2
-             enddo
-          enddo
-          Zrho = Zrho* dble(N_SUN)
-          Obs_scal(10)%Obs_vec(1)  =    Obs_scal(10)%Obs_vec(1) + Zrho * ZP*ZS
-          Obs_scal(12)%Obs_vec(1)  =    Obs_scal(12)%Obs_vec(1) - 2.d0*(Zocc - 0.5d0*Zrho) * ZP*ZS
-          
-          Zkin = cmplx(0.d0,0.d0,Kind(0.d0))
-          Do nf = 1,N_FL
-             Do I = 1,Latt%N
-                I0 = invlist(I,3)
-                I1 = invlist(I,4)
-                I2 = Invlist( Latt%nnlist(I,1,-1),4 )
-                I3 = invlist( Latt%nnlist(I,0,-1),4 )  
-                Zkin = Zkin + Grc(I0,I1,nf) +  Grc(I1,I0,nf)  + &
-                     &        Grc(I0,I2,nf) +  Grc(I2,I0,nf)  + &
-                     &        Grc(I0,I3,nf) +  Grc(I3,I0,nf)
-             Enddo
-          Enddo
-          Zkin = - Zkin*cmplx( Ham_T2*dble(N_SUN), 0.d0,Kind(0.d0) )
-          Obs_scal(9)%Obs_vec(1)  =    Obs_scal(9)%Obs_vec(1) + Zkin * ZP*ZS
-          !add kin part of conduction electrons to total energy
-          Obs_scal(4)%Obs_vec(1)  =  Obs_scal(4)%Obs_vec(1) + Zkin*ZP*ZS
-          
-          ZPot = cmplx(0.d0,0.d0,Kind(0.d0))
-          Do nf = 1,N_FL
-             Do I = 1,Latt%N
-               Do J = 1,2
-                I0 = invlist(I,2+J)
-                I1 = invlist(I,J)  
-                Zpot = ZPot + Corr(Gr,Grc,I0,I1,I0,I1) + Corr(Gr,Grc,I0,I1,I1,I0) &
-                       &  + Corr(Gr,Grc,I1,I0,I0,I1) + Corr(Gr,Grc,I1,I0,I1,I0)
-               enddo
-             Enddo
-          Enddo
-          Zpot = - ZPot*cmplx( Ham_J*0.25d0, 0.d0,Kind(0.d0) )
-          Obs_scal(11)%Obs_vec(1)  =    Obs_scal(11)%Obs_vec(1) + ZPot * ZP*ZS
-          
+          if (norb==4) then
+            Zrho = cmplx(0.d0,0.d0, kind(0.D0))
+            Zocc = cmplx(0.d0,0.d0, kind(0.D0))
+            Do nf = 1,N_FL
+              Do I = 2*Latt%N+1,4*Latt%N
+                  Zrho = Zrho + Grc(i,i,nf) 
+                  Zocc = Zocc + Grc(i,i,nf)**2
+              enddo
+            enddo
+            Zrho = Zrho* dble(N_SUN)
+            Obs_scal(10)%Obs_vec(1)  =    Obs_scal(10)%Obs_vec(1) + Zrho * ZP*ZS
+            Obs_scal(12)%Obs_vec(1)  =    Obs_scal(12)%Obs_vec(1) - 2.d0*(Zocc - 0.5d0*Zrho) * ZP*ZS
+            
+            Zkin = cmplx(0.d0,0.d0,Kind(0.d0))
+            Do nf = 1,N_FL
+              Do I = 1,Latt%N
+                  I0 = invlist(I,3)
+                  I1 = invlist(I,4)
+                  I2 = Invlist( Latt%nnlist(I,1,-1),4 )
+                  I3 = invlist( Latt%nnlist(I,0,-1),4 )  
+                  Zkin = Zkin + Grc(I0,I1,nf) +  Grc(I1,I0,nf)  + &
+                      &        Grc(I0,I2,nf) +  Grc(I2,I0,nf)  + &
+                      &        Grc(I0,I3,nf) +  Grc(I3,I0,nf)
+              Enddo
+            Enddo
+            Zkin = - Zkin*cmplx( Ham_T2*dble(N_SUN), 0.d0,Kind(0.d0) )
+            Obs_scal(9)%Obs_vec(1)  =    Obs_scal(9)%Obs_vec(1) + Zkin * ZP*ZS
+            !add kin part of conduction electrons to total energy
+            Obs_scal(4)%Obs_vec(1)  =  Obs_scal(4)%Obs_vec(1) + Zkin*ZP*ZS
+            
+            ZPot = cmplx(0.d0,0.d0,Kind(0.d0))
+            Do nf = 1,N_FL
+              Do I = 1,Latt%N
+                Do J = 1,2
+                  I0 = invlist(I,2+J)
+                  I1 = invlist(I,J)  
+                  Zpot = ZPot + Corr(Gr,Grc,I0,I1,I0,I1) + Corr(Gr,Grc,I0,I1,I1,I0) &
+                        &  + Corr(Gr,Grc,I1,I0,I0,I1) + Corr(Gr,Grc,I1,I0,I1,I0)
+                enddo
+              Enddo
+            Enddo
+            Zpot = - ZPot*cmplx( Ham_J*0.25d0, 0.d0,Kind(0.d0) )
+            Obs_scal(11)%Obs_vec(1)  =    Obs_scal(11)%Obs_vec(1) + ZPot * ZP*ZS
+          endif
           
           DO I = 1,Size(Obs_eq,1)
              Obs_eq(I)%N        = Obs_eq(I)%N + 1
@@ -799,7 +806,7 @@
             Obs_eq(7)%Obs_Latt0(no_J) =  Obs_eq(7)%Obs_Latt0(no_J) +  Z * 0.5d0 * ZP * ZS
           ENDDO
           Do J = 1,Latt%N
-            Do no_J=1,6
+            Do no_J=1,3*(norb/2)
               select case (no_J)
                 case (1)
                   K1=invlist(J,1)
@@ -828,7 +835,7 @@
               end select
               Do I = 1,Latt%N
                 imj = latt%imj(I,J)
-                Do no_i=1,6
+                Do no_i=1,3*(norb/2)
                   select case (no_I)
                     case (1)
                       I1=invlist(I,1)
@@ -863,7 +870,7 @@
                       & +conjg(Phii*Phij)*Corr(GR,GRC,J1,I1,L1,K1))
                 enddo
               ENDDO
-              Obs_eq(6)%Obs_Latt0(no_J) =  Obs_eq(6)%Obs_Latt0(no_J) +  Z * (GRC(k1,L1,1)+GRC(L1,K1,1)) * ZP * ZS
+              Obs_eq(6)%Obs_Latt0(no_J) = Obs_eq(6)%Obs_Latt0(no_J)+Z*(Phij*GRC(k1,L1,1)+conjg(phij)*GRC(L1,K1,1))*ZP*ZS
             enddo
           ENDDO
 
