@@ -56,10 +56,6 @@
 
           NAMELIST /VAR_Z2_FLstar/  ham_T, ham_T2, Ham_Vint,  Ham_U,  Dtau, Beta, Ham_J, checkerboard, Theta, Projector
 
-! #if !defined(LOGSCALE)
-!           a=1 ! this line should cause a compiler error (undeclared variable a) if LOG has not been defined as required by this model
-! #endif
-
 #if defined(MPI)
           Integer        :: Isize, Irank, irank_g, isize_g, igroup
           Integer        :: STATUS(MPI_STATUS_SIZE)
@@ -416,7 +412,7 @@
 
 
           ! Number of opertors 8 per unit cell
-          Allocate( Op_V((3+(4/norb)*2)*Latt%N,N_FL) )
+          Allocate( Op_V((3+(norb/4)*2)*Latt%N,N_FL) )
           nc = 0
           nf = 1
           Zone=cmplx(1.d0  ,0.d0, kind(0.D0))
@@ -699,7 +695,7 @@
                       endif
                    Enddo
                 ENddo
-                ZTot  = ZTot  + weight*(Op_V(n,nf)%alpha**2.d0)*Zn
+                ZTot  = ZTot  + weight*(Op_V(n,nf)%alpha**2)*Zn
 !           write(*,*) Zpot
              Enddo
           Enddo

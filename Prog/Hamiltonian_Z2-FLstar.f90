@@ -438,132 +438,6 @@
           
           Deallocate(H0, U, En)
           
-!           ! three square lattices
-!           Allocate(H0(Latt%N,Latt%N),U(Latt%N,Latt%N),En(Latt%N))
-!           H0=0.d0
-!           DO I = 1, Latt%N
-!             I1 = Latt%nnlist(I,1,0)
-!             I2 = Latt%nnlist(I,0,1)
-!             If ( Latt%list(I,1) == 0 ) then
-!                 H0(I,I1) = cmplx( 1.d0, 0.d0, kind(0.D0))
-!                 H0(I1,I) = cmplx( 1.d0, 0.d0, kind(0.D0))
-!             else
-!                 H0(I,I1) = cmplx(-1.d0, 0.d0, kind(0.D0))
-!                 H0(I1,I) = cmplx(-1.d0, 0.d0, kind(0.D0))
-!             endif
-!             H0(I,I2) = cmplx(-1.d0,    0.d0, kind(0.D0))
-!             H0(I2,I) = cmplx(-1.d0,    0.d0, kind(0.D0))
-!           Enddo
-!           
-!           Call Diag(H0,U,En)
-!           
-!           do I2=1,Latt%N/2
-!           do I=1,Latt%N
-!             WF_L(1)%P(invlist(I,1),3*(I2-1)+1)=U(I,I2)
-!             WF_R(1)%P(invlist(I,1),3*(I2-1)+1)=U(I,I2)
-!             WF_L(1)%P(invlist(I,2),3*(I2-1)+2)=U(I,I2)
-!             WF_R(1)%P(invlist(I,2),3*(I2-1)+2)=U(I,I2)
-!             WF_L(1)%P(invlist(I,3),3*(I2-1)+3)=U(I,I2)
-!             WF_R(1)%P(invlist(I,3),3*(I2-1)+3)=U(I,I2)
-!           enddo
-!           enddo
-!           
-!           Deallocate(H0, U, En)
-!           
-!           if(mod(L1,2) == 0) then
-!             DI1=1
-!           elseif(mod(L2,2) == 0) then
-!             DI1=2
-!           else
-!             write(*,*) "At least one dimension has to be of even size!"
-!             stop
-!           endif
-!           nc=0
-!           DO I1 = 1,Latt%N
-!               ! dimer cover TODO
-!             if (DI1==1 .and. mod(Latt%List(I1,DI1),1)==0) then
-!               nc=nc+1
-!               I=I1
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),2),nc) = cmplx(0.5d0**0.5d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),3),nc) = cmplx(-0.5d0**0.5d0,0.d0,kind(0.d0))
-!               nc=nc+1
-!               I=Latt%nnlist(I, 1, 0)
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),1),nc) = cmplx(0.5d0**0.5d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),3),nc) = cmplx(-0.5d0**0.5d0,0.d0,kind(0.d0))
-!               nc=nc+1
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),2),nc) = cmplx(0.5d0**0.5d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 1, 0),1),nc) = cmplx(-0.5d0**0.5d0,0.d0,kind(0.d0))
-!             elseif (mod(Latt%List(I1,DI1),2)==0) then
-!               nc=nc+1
-!               I=I1
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),2),nc) = cmplx(0.5d0**0.5d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),3),nc) = cmplx(-0.5d0**0.5d0,0.d0,kind(0.d0))
-!               nc=nc+1
-!               I=Latt%nnlist(I, 0, 1)
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),1),nc) = cmplx(0.5d0**0.5d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),2),nc) = cmplx(-0.5d0**0.5d0,0.d0,kind(0.d0))
-!               nc=nc+1
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),3),nc) = cmplx(0.5d0**0.5d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 1),1),nc) = cmplx(-0.5d0**0.5d0,0.d0,kind(0.d0))
-!             endif
-!               
-!             if(mod(Latt%List(I1,DI1),2)==0) then
-!               ! site-bond-bond, biased towards CDW
-!               nc=nc+1
-!               I=I1
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),1),nc) = cmplx(1.d0,0.d0,kind(0.d0))
-!               nc=nc+1
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),2),nc) = cmplx(0.5d0**0.5d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),3),nc) = cmplx(-0.5d0**0.5d0,0.d0,kind(0.d0))
-!               nc=nc+1
-!               if (DI1==1) then
-!                 I=Latt%nnlist(I, 1, 0)
-!               else
-!                 I=Latt%nnlist(I, 0, 1)
-!               endif
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),2),nc) = cmplx(0.5d0**0.5d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),3),nc) = cmplx(-0.5d0**0.5d0,0.d0,kind(0.d0))
-!               
-!               !three bowties, biased towards CDW
-!               nc=nc+1
-!               I=I1
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),1),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),2),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),3),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0,-1),3),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I,-1, 0),2),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 1),1),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I,-1, 1),2),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
-!               nc=nc+1
-!               if (DI1==1) then
-!                 I=Latt%nnlist(I, 1, 0)
-!               else
-!                 I=Latt%nnlist(I, 0, 1)
-!               endif
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),1),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),2),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),3),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0,-1),3),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I,-1, 0),2),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I,-1, 0),1),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I,-1, 0),3),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
-!               nc=nc+1
-!               if (DI1==1) then
-!                 I=Latt%nnlist(I, 1, 0)
-!               else
-!                 I=Latt%nnlist(I, 0, 1)
-!               endif
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),1),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),2),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 0),3),nc) = cmplx(0.5d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 1, 0),1),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 1,-1),3),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I, 0, 1),1),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
-!               WF_L(1)%P(Invlist(Latt%nnlist(I,-1, 1),2),nc) = cmplx(0.25d0,0.d0,kind(0.d0))
-!             endif
-!           enddo
-!           WF_R(1)%P=WF_L(1)%P
-          
           Allocate(H0(2*Latt%N,2*Latt%N),U(2*Latt%N,2*Latt%N),En(2*Latt%N))
           H0=0.d0
           DO I = 1, Latt%N
@@ -969,7 +843,7 @@
                 Do J = 1,6
                   I1=Ibond(1,J)
                   J1=Ibond(2,J)
-                  Zkin = Zkin - Ham_T*(GRC(I1,J1,1)**2.d0+GRC(J1,I1,1)**2.d0)
+                  Zkin = Zkin - Ham_T*(GRC(I1,J1,1)**2+GRC(J1,I1,1)**2)
                   ZkinF= ZkinF+ Ham_T*( 3.d0*Grc(I1,J1,1)*Gr(I1,J1,1) &
                       & -0.5d0*Grc(I1,I1,1)*(Grc(I1,I1,1)-1.d0) &
                       & -0.5d0*Grc(J1,J1,1)*(Grc(J1,J1,1)-1.d0) - 1.d0 )
@@ -991,9 +865,9 @@
                   J1 = Ihex(J)
                   tmp = tmp + GRC(J1,J1,1)
                 enddo
-                Zpot = Zpot + (Zn*tmp)**2.d0
-                Zpot = Zpot - 6.d0*(Zn**2.d0)*tmp
-                Zpot = Zpot + 9.d0*(Zn**2.d0)
+                Zpot = Zpot + (Zn*tmp)**2
+                Zpot = Zpot - 6.d0*(Zn**2)*tmp
+                Zpot = Zpot + 9.d0*(Zn**2)
                 Do J = 1,6
                   J1 = Ihex(J)
                   I1 = J1
@@ -1014,7 +888,7 @@
           ZTot = cmplx(0.d0, 0.d0, kind(0.D0))
           Do nf = 1,N_FL
              Do n = 1,Nc
-                weight=-Op_V(n,nf)%g**2.d0 /dtau !(-1)**((n-1)/Latt%N)/8.d0
+                weight=-Op_V(n,nf)%g**2 /dtau !(-1)**((n-1)/Latt%N)/8.d0
 !                 write(0,*) Op_V(n,nf)%g, weight
                 Do J = 1,Op_V(n,nf)%N
                    J1 = Op_V(n,nf)%P(J)
@@ -1036,7 +910,7 @@
                       endif
                    Enddo
                 ENddo
-                ZTot  = ZTot  + weight*(Op_V(n,nf)%alpha**2.d0)*Zn
+                ZTot  = ZTot  + weight*(Op_V(n,nf)%alpha**2)*Zn
 !           write(*,*) Zpot
              Enddo
           Enddo
@@ -1289,7 +1163,7 @@
                 
                 ! SC
                 Obs_tau(3)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(3)%Obs_Latt(imj,nt+1,no_I,no_J)  &
-                    & + (    G0T(J1,I1,1)**2.d0                                ) * ZP * ZS
+                    & + (    G0T(J1,I1,1)**2                                ) * ZP * ZS
             Enddo
             Obs_tau(2)%Obs_Latt0(no_I) = Obs_tau(2)%Obs_Latt0(no_I) + &
                   &         Z*(cmplx(1.d0,0.d0,kind(0.d0)) - GTT(I1,I1,1)) * ZP * ZS
@@ -1325,7 +1199,7 @@
                 
                 ! SC
                 Obs_tau(5)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(5)%Obs_Latt(imj,nt+1,no_I,no_J)  &
-                    & + (    G0T(J1,I1,1)**2.d0                                ) * ZP * ZS
+                    & + (    G0T(J1,I1,1)**2                                ) * ZP * ZS
                 endif
             Enddo
             if (size(Obs_tau,1) > 1) then
