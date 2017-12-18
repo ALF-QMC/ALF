@@ -17,7 +17,7 @@
       Type (WaveFunction), dimension(:),   allocatable  :: WF_R
       Integer, allocatable :: nsigma(:,:)
       Integer              :: Ndim,  Ltrot, Thtrot
-      Integer, parameter   :: N_FL=1,  N_SUN=1
+      Integer, parameter   :: N_FL=1,  N_SUN=2
       Logical              :: Projector
 !>    Defines MPI communicator 
       Integer              :: Group_Comm
@@ -219,7 +219,7 @@
             Enddo
           endif
           
-!           call Print_latt(Latt)
+          call Print_latt(Latt)
 
         end Subroutine Ham_Latt
 
@@ -296,8 +296,8 @@
                 enddo
               enddo
               Op_T(1,n)%g=cmplx(-Dtau,0.d0,Kind(0.d0))
-              if(norb==4) Op_T(2,n)%g=cmplx(-Dtau,0.d0,Kind(0.d0))
               Call Op_set(Op_T(1,n)) 
+              if(norb==4) Op_T(2,n)%g=cmplx(-Dtau,0.d0,Kind(0.d0))
               if(norb==4) Call Op_set(Op_T(2,n)) 
             enddo
           endif
@@ -312,8 +312,8 @@
           Real(Kind=Kind(0.d0)), allocatable :: En(:)
           
           Real(Kind=Kind(0.d0)), parameter :: phi=0.0
-          COMPLEX(Kind=Kind(0.d0)) :: Z, alpha, beta, kek=cmplx(0.01d0,0.0d0,kind(0.d0))
-          Integer :: n, n_part, i, I1, I2, J1, no, nc1, DI1, DI2, nc, Ihex(6)
+          COMPLEX(Kind=Kind(0.d0)) :: Z, alpha, beta, kek=cmplx(-0.01d0,0.0d0,kind(0.d0))
+          Integer :: n, n_part, i, I1, I2, J1, J2, no, nc1, DI1, DI2, nc, Ihex(6)
           
           N_part=Ndim/2
           
@@ -354,23 +354,29 @@
             do J1=1,L2,3
               I=Latt%invlist(I1,J1)
               do nc=1,3
-              H0(invlist(I,1),invlist(I,2)) = H0(invlist(I,1),invlist(I,2)) + kek
-              H0(invlist(I,2),invlist(I,1)) = H0(invlist(I,2),invlist(I,1)) + kek
-              
-              H0(invlist(Latt%nnlist(I,1,0),1),invlist(Latt%nnlist(I,-1,1),2)) = &
-                & H0(invlist(Latt%nnlist(I,1,0),1),invlist(Latt%nnlist(I,-1,1),2)) + kek
-              H0(invlist(Latt%nnlist(I,-1,1),2),invlist(Latt%nnlist(I,1,0),1)) = &
-                & H0(invlist(Latt%nnlist(I,-1,1),2),invlist(Latt%nnlist(I,1,0),1)) + kek
-              
-              H0(invlist(Latt%nnlist(I,1,0),2),invlist(Latt%nnlist(I,0,1),1)) = &
-                & H0(invlist(Latt%nnlist(I,1,0),2),invlist(Latt%nnlist(I,0,1),1)) + kek
-              H0(invlist(Latt%nnlist(I,0,1),1),invlist(Latt%nnlist(I,1,0),2)) = &
-                & H0(invlist(Latt%nnlist(I,0,1),1),invlist(Latt%nnlist(I,1,0),2)) + kek
-              
-              I=Latt%nnlist(I,1,1)
+                I2=invlist(I,1)
+                J2=invlist(I,2)
+                H0(I2,J2) = H0(I2,J2) + kek
+                H0(J2,I2) = H0(J2,I2) + kek
+                
+                I2=invlist(Latt%nnlist(I,1,-1),2)
+                J2=invlist(Latt%nnlist(I,1,0),1)
+                H0(I2,J2) = H0(I2,J2) + kek
+                H0(J2,I2) = H0(J2,I2) + kek
+                
+                I2=invlist(Latt%nnlist(I,1,0),2)
+                J2=invlist(Latt%nnlist(I,0,1),1)
+                H0(I2,J2) = H0(I2,J2) + kek
+                H0(J2,I2) = H0(J2,I2) + kek
+                
+                I=Latt%nnlist(I,1,1)
               enddo
             enddo
           enddo
+          
+!           do I2=1,size(H0,1)
+!             write(*,*) nint(dble(H0(I2,:)))
+!           enddo
           
           Call Diag(H0,U,En)
           
@@ -392,9 +398,9 @@
           Z = Det_C(Test,n_part)
           write(*,*) Z
           
-          do I2=1,N_part
-            write(*,*) sum(abs(WF_L(1)%P(:,I2))), sum(abs(WF_R(1)%P(:,I2)))
-          enddo
+!           do I2=1,N_part
+!             write(*,*) sum(abs(WF_L(1)%P(:,I2))), sum(abs(WF_R(1)%P(:,I2)))
+!           enddo
           
           Deallocate(H0, U, En)
           
@@ -412,6 +418,7 @@
 
 
           ! Number of opertors 8 per unit cell
+          write(*,*) Ham_Vint, Ham_Vint/dble(2*N_SUN)
           Allocate( Op_V((3+(norb/4)*2)*Latt%N,N_FL) )
           nc = 0
           nf = 1
@@ -829,6 +836,7 @@
                   L1=Invlist( Latt%nnlist(J,0,-1),4 )  
                   phij=cmplx(cos(4.d0*Pi/3.d0),sin(4.d0*Pi/3.d0), kind(0.d0))
               end select
+                  phij=cmplx(1.d0,0.d0, kind(0.d0))
               Do I = 1,Latt%N
                 imj = latt%imj(I,J)
                 Do no_i=1,3*(norb/2)
@@ -858,6 +866,7 @@
                       J1=Invlist( Latt%nnlist(I,0,-1),4 )  
                       phii=cmplx(cos(4.d0*Pi/3.d0),sin(4.d0*Pi/3.d0), kind(0.d0))
                   end select
+                      phii=cmplx(1.d0,0.d0, kind(0.d0))
                   ! Hop
                   Obs_eq(6)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(6)%Obs_Latt(imj,1,no_I,no_J)  +  ZP*ZS* &
                       & (Phii*Phij       *Corr(GR,GRC,I1,J1,K1,L1)&
