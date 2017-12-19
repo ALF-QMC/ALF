@@ -113,18 +113,49 @@
             qmin_norm = sqrt(Latt%b1_p(1)**2.d0+Latt%b1_p(2)**2.d0)
 !             write(*,*) "Norm of qmin ", qmin_norm
             n=0
-            do I=1,Latt%N
-              XK_p =  dble(Latt%listk(I,1))*Latt%b1_p + dble(Latt%listk(I,2))*Latt%b2_p
-              XK_p_norm = sqrt(XK_p(1)**2.d0+XK_p(2)**2.d0)
-              if (0.5d0*qmin_norm < XK_p_norm .and. XK_p_norm < 1.2d0*qmin_norm ) then
-                n=n+1
-                qmin(n)=I
-!                 write(*,*) "accepted: ",I, XK_p_norm, XK_p
+            if (sqrt(Latt%b1_p(1)**2.d0+Latt%b1_p(2)**2.d0) <= sqrt(Latt%b2_p(1)**2.d0+Latt%b2_p(2)**2.d0)*1.2d0 ) then
+              n=n+1
+              qmin(n)=Latt%nnlistk(qinst,1,0)
+              n=n+1
+              qmin(n)=Latt%nnlistk(qinst,-1,0)
+            endif
+            if (sqrt(Latt%b2_p(1)**2.d0+Latt%b2_p(2)**2.d0) <= sqrt(Latt%b1_p(1)**2.d0+Latt%b1_p(2)**2.d0)*1.2d0 ) then
+              n=n+1
+              qmin(n)=Latt%nnlistk(qinst,0,1)
+              n=n+1
+              qmin(n)=Latt%nnlistk(qinst,0,-1)
+            endif
+            if (L1 == L2 ) then
+              n=n+1
+              qmin(n)=Latt%nnlistk(qinst,1,1)
+              n=n+1
+              qmin(n)=Latt%nnlistk(qinst,-1,-1)
+            endif
+!	write(*,*) I,  dble(Latt%listk(I,1))*Latt%b1_p + dble(Latt%listk(I,2))*Latt%b2_p
+!         I= Latt%nnlistk(qinst,0,1)
+!         write(*,*) I,  dble(Latt%listk(I,1))*Latt%b1_p + dble(Latt%listk(I,2))*Latt%b2_p
+!         I= Latt%nnlistk(qinst,1,1)
+!         write(*,*) I,  dble(Latt%listk(I,1))*Latt%b1_p + dble(Latt%listk(I,2))*Latt%b2_p
+!         I= Latt%nnlistk(qinst,-1,0)
+!         write(*,*) I,  dble(Latt%listk(I,1))*Latt%b1_p + dble(Latt%listk(I,2))*Latt%b2_p
+!         I= Latt%nnlistk(qinst,0,-1)
+!         write(*,*) I,  dble(Latt%listk(I,1))*Latt%b1_p + dble(Latt%listk(I,2))*Latt%b2_p
+!         I= Latt%nnlistk(qinst,-1,-1)
+!         write(*,*) I,  dble(Latt%listk(I,1))*Latt%b1_p + dble(Latt%listk(I,2))*Latt%b2_p
+
+!            do I=1,Latt%N
+!              XK_p =  dble(Latt%listk(I,1))*Latt%b1_p + dble(Latt%listk(I,2))*Latt%b2_p
+!              XK_p_norm = sqrt(XK_p(1)**2.d0+XK_p(2)**2.d0)
+!              if (0.5d0*qmin_norm < XK_p_norm .and. XK_p_norm < 1.2d0*qmin_norm ) then
+!                n=n+1
+!                qmin(n)=I
+!                write(*,*) "accepted: ",I, XK_p_norm, XK_p
 !               else
 !                 write(*,*) "refuseded: ",I, XK_p_norm, XK_p
-              endif
-            enddo
+!              endif
+!            enddo
             nmin=n
+            write(*,*) 'Number of NN k points', nmin
          elseif ( Lattice_type == "Pi_Flux" ) then 
              a1_p(1) =  1.D0   ; a1_p(2) =   1.d0
              a2_p(1) =  1.D0   ; a2_p(2) =  -1.d0
@@ -136,6 +167,22 @@
             Write(6,*) "Lattice not yet implemented!"
             Stop
          endif
+         
+!          write(*,*)  Latt%invlistk
+!          write(*,*)  Latt%nnlistk
+!         write(*,*) '(0,0)', qinst, Latt%invlistk(0,0)
+!         I=Latt%nnlistk(qinst,1,0)
+!         write(*,*) I,  dble(Latt%listk(I,1))*Latt%b1_p + dble(Latt%listk(I,2))*Latt%b2_p
+!         I= Latt%nnlistk(qinst,0,1)
+!         write(*,*) I,  dble(Latt%listk(I,1))*Latt%b1_p + dble(Latt%listk(I,2))*Latt%b2_p
+!         I= Latt%nnlistk(qinst,1,1)
+!         write(*,*) I,  dble(Latt%listk(I,1))*Latt%b1_p + dble(Latt%listk(I,2))*Latt%b2_p
+!         I= Latt%nnlistk(qinst,-1,0)
+!         write(*,*) I,  dble(Latt%listk(I,1))*Latt%b1_p + dble(Latt%listk(I,2))*Latt%b2_p
+!         I= Latt%nnlistk(qinst,0,-1)
+!         write(*,*) I,  dble(Latt%listk(I,1))*Latt%b1_p + dble(Latt%listk(I,2))*Latt%b2_p
+!         I= Latt%nnlistk(qinst,-1,-1)
+!         write(*,*) I,  dble(Latt%listk(I,1))*Latt%b1_p + dble(Latt%listk(I,2))*Latt%b2_p
          
          ! Determine the number of bins. 
          Pi = acos(-1.d0)
