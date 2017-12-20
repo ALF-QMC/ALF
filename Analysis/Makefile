@@ -7,7 +7,8 @@ LIBS= $(Libs)/Modules/modules_90.a \
 
 all:
 	cp $(Libs)/Modules/*.mod . ;\
-	(make -f Compile_en  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" ) 
+	(make -f Compile_en  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" )
+	(make -f Compile_ratio  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" ) ;\
 	(make -f Compile_cov  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" ) ;\
 	(make -f Compile_scal FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" ) ;\
 	(make -f Compile_Max  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" ) ;\
@@ -17,6 +18,7 @@ all:
 clean: 	
 	(make -f Compile_en  clean );\
 	(make -f Compile_cov  clean );\
+	(make -f Compile_ratio  clean );\
 	(make -f Compile_scal clean );\
 	(make -f Compile_Max  clean );\
 	(make -f Compile_Max_ph  clean );\
