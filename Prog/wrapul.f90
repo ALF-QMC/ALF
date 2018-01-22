@@ -117,9 +117,9 @@
               enddo
               Call  Hop_mod_mmthlc (udvl(nf)%U,nf)
               !Carry out U,D,V decomposition.
-              CALL UDVL(nf)%decompose
+              !CALL UDVL(nf)%decompose
            ENDDO
-           
+           CALL UDVL(nf)%decompose
         ENDDO
 #endif
       END SUBROUTINE WRAPUL

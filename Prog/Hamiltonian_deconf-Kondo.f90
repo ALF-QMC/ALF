@@ -530,20 +530,20 @@
 
 
           ! Equal time correlators
-          Allocate ( Obs_eq(7) )
+          Allocate ( Obs_eq(3) )
           Do I = 1,Size(Obs_eq,1)
              select case (I)
              case (1)
                 Ns = Latt%N;  No = Norb;  Filename ="Green"
-             case (2)
-                Ns = Latt%N;  No = Norb;  Filename ="SpinZ"
-             case (3)
-                Ns = Latt%N;  No = Norb;  Filename ="SpinXY"
              case (4)
+                Ns = Latt%N;  No = Norb;  Filename ="SpinZ"
+             case (6)
+                Ns = Latt%N;  No = Norb;  Filename ="SpinXY"
+             case (2)
                 Ns = Latt%N;  No = Norb;  Filename ="Den"
              case (5)
                 Ns = Latt%N;  No = Norb;  Filename ="SC"
-             case (6)
+             case (3)
                 Ns = Latt%N;  No = 3*(Norb/2);  Filename ="Hop"
              case (7)
                 Ns = Latt%N;  No = Norb;  Filename ="SuperSpin"
@@ -555,7 +555,7 @@
           enddo
 
           If (Ltau > 0) then
-             Allocate(Obs_tau(5))
+             Allocate(Obs_tau(2))
              Do I = 1,Size(Obs_tau,1)
                 select case (I)
                 case (1)
@@ -787,26 +787,27 @@
                 ! Green
                 Obs_eq(1)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(1)%Obs_Latt(imj,1,no_I,no_J) + &
                     &               Z * GRC(I1,J1,1) *  ZP*ZS 
-                ! SpinZ
-                tmp=Z * GRC(I1,J1,1) * GR(I1,J1,1) * ZP*ZS
-                Obs_eq(2)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(2)%Obs_Latt(imj,1,no_I,no_J) + tmp
-                Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) + tmp
-                ! SpinXY
-                Obs_eq(3)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(3)%Obs_Latt(imj,1,no_I,no_J) + tmp
-                Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) + tmp
                 ! Den
                 tmp=Corr(GR,GRC,I1,I1,J1,J1)* ZP*ZS
-                Obs_eq(4)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(4)%Obs_Latt(imj,1,no_I,no_J) + tmp
-                Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) + tmp
-                ! SC
-                tmp=2.d0*GRC(I1,J1,1)**2 *  ZP*ZS
-                Obs_eq(5)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(5)%Obs_Latt(imj,1,no_I,no_J) + tmp
-                Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) + tmp
+                Obs_eq(2)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(2)%Obs_Latt(imj,1,no_I,no_J) + tmp
+!                 Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) + tmp
+!                 ! SpinZ
+!                 tmp=Z * GRC(I1,J1,1) * GR(I1,J1,1) * ZP*ZS
+!                 Obs_eq(4)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(4)%Obs_Latt(imj,1,no_I,no_J) + tmp
+!                 Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) + tmp
+!                 ! SpinXY
+!                 Obs_eq(6)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(6)%Obs_Latt(imj,1,no_I,no_J) + tmp
+!                 Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) + tmp
+!                 ! SC
+!                 tmp=2.d0*GRC(I1,J1,1)**2 *  ZP*ZS
+!                 Obs_eq(5)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(5)%Obs_Latt(imj,1,no_I,no_J) + tmp
+!                 Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) + tmp
                     
+                tmp=2.d0*GRC(I1,J1,1)**2 *  ZP*ZS
                 Obs_scal(6)%Obs_vec(1) = Obs_scal(6)%Obs_vec(1) + GRC(I1,J1,1)**2/ 3.d0 /dble(Latt%N) * ZP*ZS
             ENDDO
-            Obs_eq(4)%Obs_Latt0(no_J) =  Obs_eq(4)%Obs_Latt0(no_J) +  Z * GRC(J1,J1,1) * ZP * ZS
-            Obs_eq(7)%Obs_Latt0(no_J) =  Obs_eq(7)%Obs_Latt0(no_J) +  Z * 0.5d0 * ZP * ZS
+            Obs_eq(2)%Obs_Latt0(no_J) =  Obs_eq(2)%Obs_Latt0(no_J) +  Z * cmplx(0.5d0,0.d0,kind(0.d0)) * ZP * ZS
+!             Obs_eq(7)%Obs_Latt0(no_J) =  Obs_eq(7)%Obs_Latt0(no_J) +  Z * 0.5d0 * ZP * ZS
           ENDDO
           Do J = 1,Latt%N
             Do no_J=1,3*(norb/2)
@@ -868,14 +869,14 @@
                   end select
                       phii=cmplx(1.d0,0.d0, kind(0.d0))
                   ! Hop
-                  Obs_eq(6)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(6)%Obs_Latt(imj,1,no_I,no_J)  +  ZP*ZS* &
+                  Obs_eq(3)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(3)%Obs_Latt(imj,1,no_I,no_J)  +  ZP*ZS* &
                       & (Phii*Phij       *Corr(GR,GRC,I1,J1,K1,L1)&
                       & +Phii*conjg(Phij)*Corr(GR,GRC,I1,J1,L1,K1)&
                       & +conjg(Phii)*Phij*Corr(GR,GRC,J1,I1,K1,L1)&
                       & +conjg(Phii*Phij)*Corr(GR,GRC,J1,I1,L1,K1))
                 enddo
               ENDDO
-              Obs_eq(6)%Obs_Latt0(no_J) = Obs_eq(6)%Obs_Latt0(no_J)+Z*(Phij*GRC(k1,L1,1)+conjg(phij)*GRC(L1,K1,1))*ZP*ZS
+              Obs_eq(3)%Obs_Latt0(no_J) = Obs_eq(3)%Obs_Latt0(no_J)+Z*(Phij*GRC(k1,L1,1)+conjg(phij)*GRC(L1,K1,1))*ZP*ZS
             enddo
           ENDDO
 
@@ -953,13 +954,13 @@
                 Obs_tau(1)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(1)%Obs_Latt(imj,nt+1,no_I,no_J)  &
                     & +  Z * GT0(I1,J1,1) * ZP* ZS
                 
-                ! SpinZ
-                Obs_tau(4)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(4)%Obs_Latt(imj,nt+1,no_I,no_J)  &
-                    &      - Z*G0T(J1,I1,1) * GT0(I1,J1,1) *ZP*ZS
-                
-                ! SpinXY
-                Obs_tau(5)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(5)%Obs_Latt(imj,nt+1,no_I,no_J)  &
-                    &      - Z*G0T(J1,I1,1) * GT0(I1,J1,1) *ZP*ZS
+!                 ! SpinZ
+!                 Obs_tau(4)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(4)%Obs_Latt(imj,nt+1,no_I,no_J)  &
+!                     &      - Z*G0T(J1,I1,1) * GT0(I1,J1,1) *ZP*ZS
+!                 
+!                 ! SpinXY
+!                 Obs_tau(5)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(5)%Obs_Latt(imj,nt+1,no_I,no_J)  &
+!                     &      - Z*G0T(J1,I1,1) * GT0(I1,J1,1) *ZP*ZS
                 
                 ! Den
                 Obs_tau(2)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(2)%Obs_Latt(imj,nt+1,no_I,no_J)  &
@@ -967,12 +968,12 @@
                     &         (cmplx(1.d0,0.d0,kind(0.d0)) - G00(J1,J1,1))  -     &
                     &     Z * GT0(I1,J1,1)*G0T(J1,I1,1)                                ) * ZP * ZS
                 
-                ! SC
-                Obs_tau(3)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(3)%Obs_Latt(imj,nt+1,no_I,no_J)  &
-                    & + (    G0T(J1,I1,1)**2.d0                                ) * ZP * ZS
+!                 ! SC
+!                 Obs_tau(3)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(3)%Obs_Latt(imj,nt+1,no_I,no_J)  &
+!                     & + (    G0T(J1,I1,1)**2.d0                                ) * ZP * ZS
             Enddo
             Obs_tau(2)%Obs_Latt0(no_I) = Obs_tau(2)%Obs_Latt0(no_I) + &
-                  &         Z*(cmplx(1.d0,0.d0,kind(0.d0)) - GTT(I1,I1,1)) * ZP * ZS
+                  &         Z*(cmplx(0.5d0,0.d0,kind(0.d0))) * ZP * ZS
           Enddo
           
         end Subroutine OBSERT
