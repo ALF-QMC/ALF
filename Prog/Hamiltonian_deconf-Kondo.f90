@@ -530,12 +530,12 @@
 
 
           ! Equal time correlators
-          Allocate ( Obs_eq(3) )
+          Allocate ( Obs_eq(3+Norb/4) )
           Do I = 1,Size(Obs_eq,1)
              select case (I)
              case (1)
                 Ns = Latt%N;  No = Norb;  Filename ="Green"
-             case (4)
+             case (8)
                 Ns = Latt%N;  No = Norb;  Filename ="SpinZ"
              case (6)
                 Ns = Latt%N;  No = Norb;  Filename ="SpinXY"
@@ -545,6 +545,8 @@
                 Ns = Latt%N;  No = Norb;  Filename ="SC"
              case (3)
                 Ns = Latt%N;  No = 3*(Norb/2);  Filename ="Hop"
+             case (4)
+                Ns = Latt%N;  No = 2;  Filename ="Hyb"
              case (7)
                 Ns = Latt%N;  No = Norb;  Filename ="SuperSpin"
              case default
@@ -793,7 +795,7 @@
 !                 Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) + tmp
 !                 ! SpinZ
 !                 tmp=Z * GRC(I1,J1,1) * GR(I1,J1,1) * ZP*ZS
-!                 Obs_eq(4)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(4)%Obs_Latt(imj,1,no_I,no_J) + tmp
+!                 Obs_eq(8)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(8)%Obs_Latt(imj,1,no_I,no_J) + tmp
 !                 Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) + tmp
 !                 ! SpinXY
 !                 Obs_eq(6)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(6)%Obs_Latt(imj,1,no_I,no_J) + tmp
@@ -879,6 +881,28 @@
               Obs_eq(3)%Obs_Latt0(no_J) = Obs_eq(3)%Obs_Latt0(no_J)+Z*(Phij*GRC(k1,L1,1)+conjg(phij)*GRC(L1,K1,1))*ZP*ZS
             enddo
           ENDDO
+          if (abs(ham_J) > 0.d0) then
+          Do J = 1,Latt%N
+            Do no_J=1,2
+              K1=invlist(J,no_J)
+              L1=invlist(J,no_J+2)
+              Do I = 1,Latt%N
+                imj = latt%imj(I,J)
+                Do no_i=1,2
+                  I1=invlist(I,no_i)
+                  J1=invlist(I,no_i+2)
+                  ! Hyb
+                  Obs_eq(4)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(4)%Obs_Latt(imj,1,no_I,no_J)  +  ZP*ZS* &
+                      & (Corr(GR,GRC,I1,J1,K1,L1)&
+                      & +Corr(GR,GRC,I1,J1,L1,K1)&
+                      & +Corr(GR,GRC,J1,I1,K1,L1)&
+                      & +Corr(GR,GRC,J1,I1,L1,K1))
+                enddo
+              ENDDO
+              Obs_eq(4)%Obs_Latt0(no_J) = Obs_eq(4)%Obs_Latt0(no_J)+Z*(GRC(k1,L1,1)+GRC(L1,K1,1))*ZP*ZS
+            enddo
+          ENDDO
+          endif
 
         end Subroutine Obser
 !==========================================================   
