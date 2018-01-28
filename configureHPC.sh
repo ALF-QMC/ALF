@@ -164,7 +164,8 @@ export LIB_BLAS_LAPACK="-llapack -lblas -fopenmp"
 #Development
 Devel|Development)
 
-F90OPTFLAGS=$GNUOPTFLAGS" -Wconversion -Werror -g -fbacktrace -fcheck=all -ffpe-trap=invalid,zero,overflow,underflow,denormal"
+F90OPTFLAGS=$GNUOPTFLAGS" -Wconversion -Werror -g -fbacktrace -fcheck=all"
+# -ffpe-trap=invalid,zero,overflow,underflow,denormal"
 F90USEFULFLAGS=$GNUUSEFULFLAGS
 
 export f90=$GNUCOMPILER
