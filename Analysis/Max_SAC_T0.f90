@@ -37,8 +37,8 @@
        xcov = 0.d0
        do nt = 1,ntau
           read(10,*) Xtau(nt), Xqmc(nt), err
-          if (nt == 1 .or. nt == ntau) then  
-             if (err < 10.0D-3) err = 10.0D-3      
+          if (nt == 1) then  
+             if (err < 10.0D-10) err = 10.0D-10      
           endif
           xcov(nt,nt) = err*err
        enddo
@@ -48,7 +48,7 @@
        Beta = Xtau(Ntau)
        beta=0
           
-       xmom1 = xqmc(1) + xqmc(Ntau)
+       xmom1 = xqmc(1)
        Allocate (Alpha_tot(N_alpha) )
        do nt = 1,N_alpha
           alpha_tot(nt) = alpha_st*(R**(nt-1))
