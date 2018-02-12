@@ -90,6 +90,7 @@
           Theta = 0.d0
           Thtrot = 0
           Ham_J=0.d0
+          Ham_U=0.d0
           Ham_T2=-1000000.d0
           checkerboard=.false.
           
@@ -419,7 +420,9 @@
 
           ! Number of opertors 8 per unit cell
           write(*,*) Ham_Vint, Ham_Vint/dble(2*N_SUN)
-          Allocate( Op_V((3+(norb/4)*2)*Latt%N,N_FL) )
+          I=2
+          If (Ham_U==0.d0) I=0
+          Allocate( Op_V((3+(norb/4)*2+I)*Latt%N,N_FL) )
           nc = 0
           nf = 1
           Zone=cmplx(1.d0  ,0.d0, kind(0.D0))
@@ -446,17 +449,19 @@
             enddo
             
             ! auxiliary interaction to project out spin fluctuations reducing spinful fermions to effective hardcore bosons
-!             do no=1,2
-!               nc = nc+1
-! !                 write(*,*) Invlist(I,no)
-!               Call Op_make(Op_V(nc,nf),1) 
-!               Op_V(nc,nf)%P(1) = Invlist(I,no)
-!               Op_V(nc,nf)%O( 1 , 1 )  =  Zone
-!               Op_V(nc,nf)%g=sqrt(cmplx(Dtau*Ham_U/(beta+2*theta),0.d0, kind(0.D0)))
-!               Op_V(nc,nf)%alpha  = cmplx(-0.5d0, 0.d0, kind(0.D0))
-!               Op_V(nc,nf)%type   = 2
-!               Call Op_set( Op_V(nc,nf) )
-!             enddo
+            if (ham_U/=0.d0) then
+              do no=1,2
+                nc = nc+1
+  !                 write(*,*) Invlist(I,no)
+                Call Op_make(Op_V(nc,nf),1) 
+                Op_V(nc,nf)%P(1) = Invlist(I,no)
+                Op_V(nc,nf)%O( 1 , 1 )  =  Zone
+                Op_V(nc,nf)%g=sqrt(cmplx(Dtau*Ham_U,0.d0, kind(0.D0)))
+                Op_V(nc,nf)%alpha  = cmplx(-0.5d0, 0.d0, kind(0.D0))
+                Op_V(nc,nf)%type   = 2
+                Call Op_set( Op_V(nc,nf) )
+              enddo
+            endif
             
             ! Kondo coupling of f- and c-electrons
             if(norb==4) then
@@ -530,25 +535,25 @@
 
 
           ! Equal time correlators
-          Allocate ( Obs_eq(3+Norb/4) )
+          Allocate ( Obs_eq(4+Norb/4) )
           Do I = 1,Size(Obs_eq,1)
              select case (I)
              case (1)
                 Ns = Latt%N;  No = Norb;  Filename ="Green"
-             case (8)
-                Ns = Latt%N;  No = Norb;  Filename ="SpinZ"
-             case (6)
-                Ns = Latt%N;  No = Norb;  Filename ="SpinXY"
              case (2)
                 Ns = Latt%N;  No = Norb;  Filename ="Den"
-             case (5)
-                Ns = Latt%N;  No = Norb;  Filename ="SC"
-             case (3)
+             case (3) !6
+                Ns = Latt%N;  No = Norb;  Filename ="Spin"
+             case (4) !3
                 Ns = Latt%N;  No = 3*(Norb/2);  Filename ="Hop"
-             case (4)
+             case (5) !4
                 Ns = Latt%N;  No = 2;  Filename ="Hyb"
+             case (6) !5
+                Ns = Latt%N;  No = Norb;  Filename ="SC"
              case (7)
                 Ns = Latt%N;  No = Norb;  Filename ="SuperSpin"
+             case (8)
+                Ns = Latt%N;  No = Norb;  Filename ="SpinZ"
              case default
                 Write(6,*) ' Error in Alloc_obs '  
              end select
@@ -794,17 +799,19 @@
                 Obs_eq(2)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(2)%Obs_Latt(imj,1,no_I,no_J) + tmp
 !                 Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) + tmp
 !                 ! SpinZ
-!                 tmp=Z * GRC(I1,J1,1) * GR(I1,J1,1) * ZP*ZS
+                tmp=Z * GRC(I1,J1,1) * GR(I1,J1,1) * ZP*ZS
 !                 Obs_eq(8)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(8)%Obs_Latt(imj,1,no_I,no_J) + tmp
 !                 Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) + tmp
-!                 ! SpinXY
-!                 Obs_eq(6)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(6)%Obs_Latt(imj,1,no_I,no_J) + tmp
+                ! SpinXY
+                Obs_eq(3)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(3)%Obs_Latt(imj,1,no_I,no_J) + tmp
 !                 Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) + tmp
-!                 ! SC
-!                 tmp=2.d0*GRC(I1,J1,1)**2 *  ZP*ZS
-!                 Obs_eq(5)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(5)%Obs_Latt(imj,1,no_I,no_J) + tmp
+                ! SC
+!                 if (Ham_U/=0.d0) then
+                  tmp=2.d0*GRC(I1,J1,1)**2 *  ZP*ZS
+                  Obs_eq(2)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(2)%Obs_Latt(imj,1,no_I,no_J) + tmp
 !                 Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) + tmp
-                    
+!                 endif
+                
                 tmp=2.d0*GRC(I1,J1,1)**2 *  ZP*ZS
                 Obs_scal(6)%Obs_vec(1) = Obs_scal(6)%Obs_vec(1) + GRC(I1,J1,1)**2/ 3.d0 /dble(Latt%N) * ZP*ZS
             ENDDO
@@ -871,14 +878,14 @@
                   end select
                       phii=cmplx(1.d0,0.d0, kind(0.d0))
                   ! Hop
-                  Obs_eq(3)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(3)%Obs_Latt(imj,1,no_I,no_J)  +  ZP*ZS* &
+                  Obs_eq(4)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(4)%Obs_Latt(imj,1,no_I,no_J)  +  ZP*ZS* &
                       & (Phii*Phij       *Corr(GR,GRC,I1,J1,K1,L1)&
                       & +Phii*conjg(Phij)*Corr(GR,GRC,I1,J1,L1,K1)&
                       & +conjg(Phii)*Phij*Corr(GR,GRC,J1,I1,K1,L1)&
                       & +conjg(Phii*Phij)*Corr(GR,GRC,J1,I1,L1,K1))
                 enddo
               ENDDO
-              Obs_eq(3)%Obs_Latt0(no_J) = Obs_eq(3)%Obs_Latt0(no_J)+Z*(Phij*GRC(k1,L1,1)+conjg(phij)*GRC(L1,K1,1))*ZP*ZS
+              Obs_eq(4)%Obs_Latt0(no_J) = Obs_eq(4)%Obs_Latt0(no_J)+Z*(Phij*GRC(k1,L1,1)+conjg(phij)*GRC(L1,K1,1))*ZP*ZS
             enddo
           ENDDO
           if (abs(ham_J) > 0.d0) then
@@ -892,14 +899,14 @@
                   I1=invlist(I,no_i)
                   J1=invlist(I,no_i+2)
                   ! Hyb
-                  Obs_eq(4)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(4)%Obs_Latt(imj,1,no_I,no_J)  +  ZP*ZS* &
+                  Obs_eq(5)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(5)%Obs_Latt(imj,1,no_I,no_J)  +  ZP*ZS* &
                       & (Corr(GR,GRC,I1,J1,K1,L1)&
                       & +Corr(GR,GRC,I1,J1,L1,K1)&
                       & +Corr(GR,GRC,J1,I1,K1,L1)&
                       & +Corr(GR,GRC,J1,I1,L1,K1))
                 enddo
               ENDDO
-              Obs_eq(4)%Obs_Latt0(no_J) = Obs_eq(4)%Obs_Latt0(no_J)+Z*(GRC(k1,L1,1)+GRC(L1,K1,1))*ZP*ZS
+              Obs_eq(5)%Obs_Latt0(no_J) = Obs_eq(5)%Obs_Latt0(no_J)+Z*(GRC(k1,L1,1)+GRC(L1,K1,1))*ZP*ZS
             enddo
           ENDDO
           endif
