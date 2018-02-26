@@ -1,4 +1,4 @@
-!  Copyright (C) 2017 The ALF project
+!  Copyright (C) 2017, 2018 The ALF project
 ! 
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -11,7 +11,7 @@
 !     GNU General Public License for more details.
 ! 
 !     You should have received a copy of the GNU General Public License
-!     along with Foobar.  If not, see http://www.gnu.org/licenses/.
+!     along with ALF.  If not, see http://www.gnu.org/licenses/.
 !     
 !     Under Section 7 of GPL version 3 we require you to fulfill the following additional terms:
 !     
@@ -88,6 +88,31 @@ Real(Kind=Kind(0.d0)) :: X
             do j = i, Ndim
                 Mat(i, j) = Mat(i, j) / X
             enddo
+        enddo
+END SUBROUTINE
+
+SUBROUTINE Pivot_phase(Phase, IPVT, N_size)
+        Implicit none
+        COMPLEX(kind=kind(0.d0)), Intent(INOUT) :: Phase
+        Integer, Dimension(:), Intent(IN)       :: IPVT
+        Integer,               Intent(IN)       :: N_size
+        
+        Integer:: i, next, L, VISITED(N_size)
+        
+        VISITED=0
+        do i = 1, N_size
+            if (VISITED(i) .eq. 0) then
+                next = i
+                L = 0
+                do while (VISITED(next) .eq. 0)
+                 L = L + 1
+                 VISITED(next) = 1
+                 next = IPVT(next)
+                enddo
+                if(MOD(L, 2) .eq. 0) then
+                    PHASE = -PHASE
+                endif
+            endif
         enddo
 END SUBROUTINE
 

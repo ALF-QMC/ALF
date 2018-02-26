@@ -1179,7 +1179,7 @@
              &        WORK, -1, RWORK, INFO )
         LWORK = INT(DBLE(WORK(1)))
         DEALLOCATE(WORK)
-	ALLOCATE(WORK(LWORK))
+        ALLOCATE(WORK(LWORK))
         CALL ZGESVD( JOBU, JOBVT, M, N, A1(1,1), LDA, S, U(1,1), LDU, V(1,1), LDVT,&
              &        WORK, LWORK, RWORK, INFO )
 !$OMP parallel do default(shared) private(I)
@@ -1229,7 +1229,7 @@
         REAL (KIND=KIND(0.D0)), INTENT(INOUT), DIMENSION(:) :: W
 
 
-        INTEGER ND1,ND2,IERR
+        INTEGER ND1, ND2, IERR, DN
         REAL (KIND=KIND(0.D0)), DIMENSION(:), ALLOCATABLE :: WORK
 
          ND1 = SIZE(A,1)
@@ -1244,8 +1244,9 @@
          U=A
          W=0
          ! let's just give lapack enough memory
-         ALLOCATE(WORK(3*ND1))
-         CALL DSYEV('V', 'U', ND1, U, ND1, W, WORK, 3*ND1, IERR)
+         DN = 3*ND1
+         ALLOCATE(WORK(DN))
+         CALL DSYEV('V', 'U', ND1, U, ND1, W, WORK, DN, IERR)
          DEALLOCATE(WORK)
 
       END SUBROUTINE DIAG_R

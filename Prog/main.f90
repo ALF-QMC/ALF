@@ -1,4 +1,4 @@
-!  Copyright (C) 2016, 2017 The ALF project
+!  Copyright (C) 2016 - 2018 The ALF project
 ! 
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -11,7 +11,7 @@
 !     GNU General Public License for more details.
 ! 
 !     You should have received a copy of the GNU General Public License
-!     along with Foobar.  If not, see http://www.gnu.org/licenses/.
+!     along with ALF.  If not, see http://www.gnu.org/licenses/.
 !     
 !     Under Section 7 of GPL version 3 we require you to fulfill the following additional terms:
 !     
@@ -55,14 +55,13 @@ Program Main
         Use Global_mod
         Use UDV_State_mod
         Use Wrapgr_mod
-        
-        Implicit none
 #ifdef MPI
-        include 'mpif.h'
-#endif   
+        Use mpi
+#endif
+        Implicit none
+
 #include "git.h"
-        
-        
+
         Interface
            SUBROUTINE WRAPUL(NTAU1, NTAU, UDVL)
              Use Hamiltonian
@@ -88,9 +87,9 @@ Program Main
              CLASS(UDV_State), intent(inout) :: UDVR(N_FL)
              Integer :: NTAU1, NTAU
            END SUBROUTINE WRAPUR
-           
+
         end Interface
-        
+
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:)  , Allocatable   ::  TEST
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable    :: GR
         CLASS(UDV_State), DIMENSION(:), ALLOCATABLE :: udvl, udvr
@@ -107,42 +106,38 @@ Program Main
         Integer :: N_Global 
         Integer :: Nt_sequential_start, Nt_sequential_end, mpi_per_parameter_set
         Integer :: N_Global_tau
-        
-        
+
+
 #if defined(TEMPERING)
         Integer :: N_exchange_steps, N_Tempering_frequency
         NAMELIST /VAR_TEMP/  N_exchange_steps, N_Tempering_frequency, mpi_per_parameter_set, Tempering_calc_det
 #endif
-        
+
         NAMELIST /VAR_QMC/   Nwrap, NSweep, NBin, Ltau, LOBS_EN, LOBS_ST, CPU_MAX, &
              &               Propose_S0,Global_moves,  N_Global, Global_tau_moves, &
              &               Nt_sequential_start, Nt_sequential_end, N_Global_tau
-        
-        
+
+
         Integer :: Ierr, I,nf, nst, n
         Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Phase, Z, Z1
         Real    (Kind=Kind(0.d0)) :: ZERO = 10D-8
         Integer, dimension(:), allocatable :: Stab_nt
-  
+
         ! Space for storage.
         CLASS(UDV_State), Dimension(:,:), ALLOCATABLE :: udvst
-        
+
         ! For tests
         Real (Kind=Kind(0.d0)) :: Weight, Weight_tot
         Integer :: nr,nth, nth1
         Logical :: Log
-        
+
         ! For the truncation of the program:
         logical                   :: prog_truncation
         integer (kind=kind(0.d0)) :: count_bin_start, count_bin_end
-        
+
 #ifdef MPI
         Integer        :: Isize, Irank, Irank_g, Isize_g, color, key, igroup
-        INTEGER        :: STATUS(MPI_STATUS_SIZE)
-#endif
-        
-        
-#ifdef MPI
+
         CALL MPI_INIT(ierr)
         CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
         CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
@@ -228,6 +223,7 @@ Program Main
 #endif
         
 !   IF (ABS(CPU_MAX) > Zero ) NBIN = 1000000
+        Call Op_SetHS
         Call Ham_set
         If ( .not. Global_tau_moves )  then
            ! This  corresponds to the default updating scheme
@@ -246,7 +242,6 @@ Program Main
  
         Call control_init
         Call Alloc_obs(Ltau)
-        Call Op_SetHS
 
         If ( mod(Ltrot,nwrap) == 0  ) then 
            Nstm = Ltrot/nwrap
@@ -308,6 +303,12 @@ Program Main
 #endif
 #if defined(STAB2) 
            Write(50,*) 'STAB2 is defined '
+#endif
+#if defined(STAB3) 
+           Write(50,*) 'STAB3 is defined '
+#endif
+#if defined(LOG) 
+           Write(50,*) 'LOG is defined '
 #endif
 #if defined(QRREF) 
            Write(50,*) 'QRREF is defined '

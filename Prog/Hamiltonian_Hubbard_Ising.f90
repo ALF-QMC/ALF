@@ -46,16 +46,15 @@
 
 
       Subroutine Ham_Set
-
+#if defined (MPI) || defined(TEMPERING)
+          Use mpi
+#endif
           Implicit none
 
-#if defined (MPI) || defined(TEMPERING)
-          include 'mpif.h'
-#endif   
+
 
           integer :: ierr
           Character (len=64) :: file1
-          
           NAMELIST /VAR_lattice/  L1, L2, Lattice_type, Model
 
           NAMELIST /VAR_Hubbard/  ham_T, ham_chem, ham_U, Dtau, Beta
@@ -1489,14 +1488,12 @@
 !===================================================================================
 
       Subroutine Print_fluxes
-
+#if defined (MPI) || defined(TEMPERING)
+        Use mpi
+#endif
         Implicit none
 
-#if defined (MPI) || defined(TEMPERING)
-        include 'mpif.h'
 
-#endif   
-        
 
         ! Local 
         Integer :: I,nt,ix, iy, n

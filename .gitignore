@@ -4,6 +4,7 @@
 /**/*.a
 /**/*.out
 Prog/git.h
+Test_*
 
 # tex related files
 /**/*.aux

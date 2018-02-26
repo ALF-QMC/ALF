@@ -18,7 +18,7 @@
  Measure Int.                        :            1         100
  Stabilization,Wrap                  :           10
  Nstm                                :           40
- Ltau                                :            0
+ Ltau                                :            1
  # of interacting Ops per time slice :           33
  Propose Ising moves according to  bare Ising action
  Global moves are enabled   
@@ -26,15 +26,16 @@
  Nt_sequential_start:            1
  Nt_sequential_end  :            0
  N_Global_tau       :           16
- This executable represents commit 5abe78b of branch master.
-  Precision Green  Mean, Max :    3.1508289700359367E-015   1.8469670237664104E-012
+ This executable represents commit 49107e5 of branch master.
+  Precision Green  Mean, Max :    2.5329436667673121E-015   9.9984465151692348E-012
   Precision Phase, Max       :    0.0000000000000000     
-  Acceptance                 :   0.89370420207658896     
-  Effective Acceptance       :   0.89370420207658896     
+  Precision tau    Mean, Max :    9.6466212472072213E-016   2.4302782009044677E-013
+  Acceptance                 :   0.89470034177681590     
+  Effective Acceptance       :   0.89470034177681590     
   Acceptance_Glob              :    1.0000000000000000     
   Mean Phase diff Glob         :    0.0000000000000000     
   Max  Phase diff Glob         :    0.0000000000000000     
-  Average cluster size         :    6.9498232440405469E-310
-  Average accepted cluster size:    6.9498232440405469E-310
-  CPU Time                   :    336.97160900000000     
-  Effective number of bins   :           20
+  Average cluster size         :    6.9358492122407347E-310
+  Average accepted cluster size:    6.9358492122407347E-310
+  CPU Time                   :    334.20800400000002     
+  Effective number of bins   :           14

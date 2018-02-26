@@ -24,6 +24,7 @@ end interface
 
         TYPE(UDV_State) :: udvr, udvl
         COMPLEX(Kind=Kind(0.D0)), Dimension(:,:), allocatable :: GRUPnew, GRUPold
+        COMPLEX(Kind=Kind(0.D0)), Dimension(:), allocatable :: DL, DR
         COMPLEX(Kind=Kind(0.D0)) :: PHASEnew, Phaseold, Zre, Zim
         INTEGER         :: NVAR, i, j, N_size
         
@@ -32,7 +33,7 @@ end interface
         do NVAR = 1,2
         CALL udvl%alloc(N_size)
         CALL udvr%alloc(N_size)
-        allocate(GRUPnew(N_size, N_size), GRUPold(N_size, N_size))
+        allocate(GRUPnew(N_size, N_size), GRUPold(N_size, N_size), DL(n_size), DR(n_size))
         ! set up test data
         Phasenew = 1.D0
         Phaseold = 1.D0
@@ -45,19 +46,19 @@ end interface
         udvr%V(i, j) = CMPLX(i,j, kind=kind(0.D0))
         udvl%V(i, j) = i + j
         enddo
-        udvL%D(i) = 1
-        udvL%L(i) = 0
+        DL(i) = 1
+        call udvL%setscale(DL(i),i)
         udvl%U(i,i) = 1
         udvr%U(i,i) = 1
         udvr%V(i, i) = CMPLX(1,1)
         udvl%V(i, i) = CMPLX(1,1)
-        udvr%D(i) = i
-        udvr%L(i) = log(dble(i))
+        DR(i) = i
+        call udvr%setscale(Dr(i),i)
         enddo
 call CGR(PHASEnew, NVAR, GRUPnew, udvr, udvl)
 ! run old code
 
-call CGRold(PHASEold, NVAR, GRUPold, udvr%U, udvr%D, udvr%V, udvl%U, udvl%D, udvl%V)
+call CGRold(PHASEold, NVAR, GRUPold, udvr%U, DR, udvr%V, udvl%U, DL, udvl%V)
 
 ! compare GRUP results
 ! write (*,*) GRUPOLD
@@ -91,7 +92,7 @@ call CGRold(PHASEold, NVAR, GRUPold, udvr%U, udvr%D, udvr%V, udvl%U, udvl%D, udv
     endif
     CALL udvr%dealloc
     CALL udvl%dealloc
-deallocate(GRUPnew, GRUPold)
+deallocate(GRUPnew, GRUPold, Dr, DL)
 enddo
 write (*,*) "success"
 end Program TESTCGR

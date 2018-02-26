@@ -1,0 +1,188 @@
+ =====================================
+ Model is      : t_V                                                             
+ Lattice is    : Pi_Flux                                                         
+ # of orbitals :           64
+ Beta          :    10.000000000000000     
+ dtau,Ltrot    :   0.10000000000000001              100
+ N_SUN         :            1
+ N_FL          :            1
+ t             :    1.0000000000000000     
+ Ham_chem      :    0.0000000000000000     
+ Ham_tV         :   -1.0000000000000000     
+ No initial configuration, Seed_in      790789
+ Sweeps                              :            2
+ Bins                                :            2
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :          128
+ Default sequential updating 
+ This executable represents commit 6ff21b4 of branch New_Example_Hamiltonian.
+  Precision Green  Mean, Max :    1.0573935925493363E-005   2.6354410686516561E-003
+  Precision Phase, Max       :    0.0000000000000000     
+  Acceptance                 :   0.41911132812500002     
+  Effective Acceptance       :   0.41911132812500002     
+  Acceptance_Glob              :    0.0000000000000000     
+  Mean Phase diff Glob         :    0.0000000000000000     
+  Max  Phase diff Glob         :    0.0000000000000000     
+  Average cluster size         :    0.0000000000000000     
+  Average accepted cluster size:    0.0000000000000000     
+  CPU Time                   :    3.6556992280000000     
+ =====================================
+ Model is      : t_V                                                             
+ Lattice is    : Pi_Flux                                                         
+ # of orbitals :           64
+ Beta          :    10.000000000000000     
+ dtau,Ltrot    :   0.10000000000000001              100
+ N_SUN         :            1
+ N_FL          :            1
+ t             :    1.0000000000000000     
+ Ham_chem      :    0.0000000000000000     
+ Ham_tV         :  -0.75000000000000000     
+ Sweeps                              :            2
+ Bins                                :            2
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :          128
+ Default sequential updating 
+ This executable represents commit 6ff21b4 of branch New_Example_Hamiltonian.
+  Precision Green  Mean, Max :    2.0183137596797686E-008   3.5871228898365359E-006
+  Precision Phase, Max       :    0.0000000000000000     
+  Acceptance                 :   0.42712890625000000     
+  Effective Acceptance       :   0.42712890625000000     
+  Acceptance_Glob              :    0.0000000000000000     
+  Mean Phase diff Glob         :    0.0000000000000000     
+  Max  Phase diff Glob         :    0.0000000000000000     
+  Average cluster size         :    0.0000000000000000     
+  Average accepted cluster size:    0.0000000000000000     
+  CPU Time                   :    3.6703852029999999     
+ =====================================
+ Model is      : t_V                                                             
+ Lattice is    : Pi_Flux                                                         
+ # of orbitals :           64
+ Beta          :    10.000000000000000     
+ dtau,Ltrot    :   0.10000000000000001              100
+ N_SUN         :            1
+ N_FL          :            1
+ t             :    1.0000000000000000     
+ Ham_chem      :    0.0000000000000000     
+ Ham_tV         :  -0.75000000000000000     
+ Sweeps                              :           20
+ Bins                                :            2
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :          128
+ Default sequential updating 
+ This executable represents commit 6ff21b4 of branch New_Example_Hamiltonian.
+  Precision Green  Mean, Max :    3.5483569000951801E-008   2.4173654224801666E-005
+  Precision Phase, Max       :    0.0000000000000000     
+  Acceptance                 :   0.42733105468749999     
+  Effective Acceptance       :   0.42733105468749999     
+  Acceptance_Glob              :    0.0000000000000000     
+  Mean Phase diff Glob         :    0.0000000000000000     
+  Max  Phase diff Glob         :    0.0000000000000000     
+  Average cluster size         :    0.0000000000000000     
+  Average accepted cluster size:    0.0000000000000000     
+  CPU Time                   :    31.867672818999999     
+ =====================================
+ Model is      : t_V                                                             
+ Lattice is    : Pi_Flux                                                         
+ # of orbitals :           64
+ Beta          :    10.000000000000000     
+ dtau,Ltrot    :   0.10000000000000001              100
+ N_SUN         :            1
+ N_FL          :            1
+ t             :    1.0000000000000000     
+ Ham_chem      :    0.0000000000000000     
+ Ham_tV         :  -0.75000000000000000     
+ Sweeps                              :           20
+ Bins                                :            2
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :          128
+ Default sequential updating 
+ This executable represents commit 6ff21b4 of branch New_Example_Hamiltonian.
+  Precision Green  Mean, Max :    4.7019719021523637E-008   1.2157912342608546E-004
+  Precision Phase, Max       :    0.0000000000000000     
+  Acceptance                 :   0.42754492187499998     
+  Effective Acceptance       :   0.42754492187499998     
+  Acceptance_Glob              :    0.0000000000000000     
+  Mean Phase diff Glob         :    0.0000000000000000     
+  Max  Phase diff Glob         :    0.0000000000000000     
+  Average cluster size         :    0.0000000000000000     
+  Average accepted cluster size:    0.0000000000000000     
+  CPU Time                   :    31.879280272999999     
+ =====================================
+ Model is      : t_V                                                             
+ Lattice is    : Pi_Flux                                                         
+ # of orbitals :           64
+ Beta          :    10.000000000000000     
+ dtau,Ltrot    :   0.10000000000000001              100
+ N_SUN         :            1
+ N_FL          :            1
+ t             :    1.0000000000000000     
+ Ham_chem      :    0.0000000000000000     
+ Ham_tV         :  -0.59999999999999998     
+ No initial configuration, Seed_in      790789
+ Sweeps                              :           20
+ Bins                                :            2
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :          128
+ Default sequential updating 
+ This executable represents commit 6ff21b4 of branch New_Example_Hamiltonian.
+  Precision Green  Mean, Max :    6.2786306967885981E-010   9.9642726870963205E-007
+  Precision Phase, Max       :    0.0000000000000000     
+  Acceptance                 :   0.42830664062500001     
+  Effective Acceptance       :   0.42830664062500001     
+  Acceptance_Glob              :    0.0000000000000000     
+  Mean Phase diff Glob         :    0.0000000000000000     
+  Max  Phase diff Glob         :    0.0000000000000000     
+  Average cluster size         :    0.0000000000000000     
+  Average accepted cluster size:    0.0000000000000000     
+  CPU Time                   :    31.816299685000001     
+ =====================================
+ Model is      : t_V                                                             
+ Lattice is    : Pi_Flux                                                         
+ # of orbitals :           64
+ Beta          :    10.000000000000000     
+ dtau,Ltrot    :   0.10000000000000001              100
+ N_SUN         :            1
+ N_FL          :            1
+ t             :    1.0000000000000000     
+ Ham_chem      :    0.0000000000000000     
+ Ham_tV         :  -0.59999999999999998     
+ Sweeps                              :          100
+ Prog will stop after hours:    2.0000
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :          128
+ Default sequential updating 
+ This executable represents commit 6ff21b4 of branch New_Example_Hamiltonian.
+  Precision Green  Mean, Max :    8.0896968292888046E-010   7.7757643126785680E-005
+  Precision Phase, Max       :    0.0000000000000000     
+  Acceptance                 :   0.42872438680959302     
+  Effective Acceptance       :   0.42872438680959302     
+  Acceptance_Glob              :    0.0000000000000000     
+  Mean Phase diff Glob         :    0.0000000000000000     
+  Max  Phase diff Glob         :    0.0000000000000000     
+  Average cluster size         :    0.0000000000000000     
+  Average accepted cluster size:    0.0000000000000000     
+  CPU Time                   :    7129.2832707930002     
+  Effective number of bins   :           86

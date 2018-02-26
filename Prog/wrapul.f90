@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 The ALF project
+!  Copyright (C) 2016 - 2018 The ALF project
 ! 
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -11,7 +11,7 @@
 !     GNU General Public License for more details.
 ! 
 !     You should have received a copy of the GNU General Public License
-!     along with Foobar.  If not, see http://www.gnu.org/licenses/.
+!     along with ALF.  If not, see http://www.gnu.org/licenses/.
 !     
 !     Under Section 7 of GPL version 3 we require you to fulfill the following additional terms:
 !     
@@ -71,12 +71,12 @@
            CALL INITD(TMP,Z_ONE)
            DO NT = NTAU1, NTAU+1 , -1
               Do n = Size(Op_V,1),1,-1
-                 X = Phi(nsigma(n,nt),Op_V(n,nf)%type)
-                 Call Op_mmultL(Tmp,Op_V(n,nf),X,Ndim)
+!                  X = Phi(nsigma(n,nt),Op_V(n,nf)%type)
+                 Call Op_mmultL(Tmp,Op_V(n,nf),nsigma(n,nt),Ndim,'n')
               enddo
               !CALL MMULT( TMP1,Tmp,Exp_T(:,:,nf) )
-              Call  Hop_mod_mmthl (Tmp, Tmp1,nf)
-              Tmp = Tmp1
+              Call  Hop_mod_mmthl (Tmp,nf)
+!               Tmp = Tmp1
            ENDDO
            
            !Carry out U,D,V decomposition.
@@ -102,31 +102,27 @@
 
 
         ! Working space.
-        COMPLEX (Kind=Kind(0.d0)), allocatable, dimension(:, :) :: TMP, TMP1
-        COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE
+!         COMPLEX (Kind=Kind(0.d0)), allocatable, dimension(:, :) :: TMP, TMP1
+!         COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE
         Integer :: NT, NCON, n, nf
         Real    (Kind=Kind(0.d0)) ::  X
  
         NCON = 0  ! Test for UDV ::::  0: Off,  1: On.
-        Allocate (TMP(Ndim,Ndim), TMP1(Ndim,Ndim))
-        Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
+!         Allocate (TMP(Ndim,Ndim), TMP1(Ndim,Ndim))
+!         Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
         Do nf = 1, N_FL
-           CALL INITD(TMP,Z_ONE)
            DO NT = NTAU1, NTAU+1 , -1
               Do n = Size(Op_V,1),1,-1
-                 X = Phi(nsigma(n,nt),Op_V(n,nf)%type)
-                 Call Op_mmultL(TMP,Op_V(n,nf),X,Ndim)
+                 Call Op_mmultL(udvl(nf)%U,Op_V(n,nf),nsigma(n,nt),Ndim,'n')
               enddo
-              !CALL MMULT( TMP1,Tmp,Exp_T(:,:,nf) )
-              Call  Hop_mod_mmthl (TMP, TMP1,nf)
-              TMP = TMP1
+              Call  Hop_mod_mmthl (udvl(nf)%U,nf)
            ENDDO
+           udvl(nf)%U = CONJG(TRANSPOSE(udvl(nf)%U))
            
            !Carry out U,D,V decomposition.
-           CALL UDVL(nf)%matmultright(TMP, TMP1, NCON)
-           UDVL(nf)%U = CONJG(TRANSPOSE(UDVL(nf)%U ))
+           CALL UDVL(nf)%right_decompose !(udvl(nf)%U, TMP1, NCON)
         ENDDO
-        deallocate(TMP, TMP1)
+!         deallocate(TMP, TMP1)
 #endif
       END SUBROUTINE WRAPUL
       

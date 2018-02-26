@@ -1,5 +1,5 @@
 
-!  Copyright (C) 2016 2017 The ALF project
+!  Copyright (C) 2016 - 2018 The ALF project
 ! 
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -12,7 +12,7 @@
 !     GNU General Public License for more details.
 ! 
 !     You should have received a copy of the GNU General Public License
-!     along with Foobar.  If not, see http://www.gnu.org/licenses/.
+!     along with ALF.  If not, see http://www.gnu.org/licenses/.
 !     
 !     Under Section 7 of GPL version 3 we require you to fulfill the following additional terms:
 !     
@@ -68,11 +68,11 @@
            CALL INITD(TMP,Z_ONE)
            DO NT = NTAU + 1, NTAU1
               !CALL MMULT(TMP1,Exp_T(:,:,nf) ,TMP)
-              Call Hop_mod_mmthr(TMP,TMP1,nf)
-              TMP = TMP1
+              Call Hop_mod_mmthr(TMP,nf)
+!               TMP = TMP1
               Do n = 1,Size(Op_V,1)
-                 X = Phi(nsigma(n,nt),Op_V(n,nf)%type)
-                 Call Op_mmultR(Tmp,Op_V(n,nf),X,Ndim)
+!                  X = Phi(nsigma(n,nt),Op_V(n,nf)%type)
+                 Call Op_mmultR(Tmp,Op_V(n,nf),nsigma(n,nt),Ndim,'n')
               ENDDO
            ENDDO
            CALL MMULT(TMP1,TMP, udvr(nf)%U)
@@ -95,29 +95,24 @@
 
 
         ! Working space.
-        Complex (Kind=Kind(0.d0)) :: Z_ONE
-        COMPLEX (Kind=Kind(0.d0)), allocatable, dimension(:, :) :: TMP, TMP1
+!         Complex (Kind=Kind(0.d0)) :: Z_ONE
+!         COMPLEX (Kind=Kind(0.d0)), allocatable, dimension(:, :) :: TMP, TMP1
         Integer :: NT, NCON, n, nf
         Real (Kind=Kind(0.d0)) :: X
 
         NCON = 0  ! Test for UDV ::::  0: Off,  1: On.
-        Allocate (TMP(Ndim,Ndim), TMP1(Ndim,Ndim))
-        Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
+!         Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
         Do nf = 1,N_FL
-           CALL INITD(TMP,Z_ONE)
            DO NT = NTAU + 1, NTAU1
-              !CALL MMULT(TMP1,Exp_T(:,:,nf) ,TMP)
-              Call Hop_mod_mmthr(TMP,TMP1,nf)
-              TMP = TMP1
+              Call Hop_mod_mmthR(UDVR(nf)%U,nf)
               Do n = 1,Size(Op_V,1)
-                 X = Phi(nsigma(n,nt),Op_V(n,nf)%type)
-                 Call Op_mmultR(TMP,Op_V(n,nf),X,Ndim)
+                 Call Op_mmultR(UDVR(nf)%U,Op_V(n,nf),nsigma(n,nt),Ndim,'n')
               ENDDO
            ENDDO
 
-           CALL UDVR(nf)%matmultleft(TMP, TMP1, NCON)
+           CALL UDVR(nf)%left_decompose !(UDVR(nf)%U, TMP1, NCON)
         ENDDO
-        deallocate(TMP, TMP1)
+!         deallocate(TMP, TMP1)
 
 #endif
       END SUBROUTINE WRAPUR
