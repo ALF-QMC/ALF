@@ -795,27 +795,25 @@
                 Obs_eq(1)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(1)%Obs_Latt(imj,1,no_I,no_J) + &
                     &               Z * GRC(I1,J1,1) *  ZP*ZS 
                 ! Den
-                tmp=Corr(GR,GRC,I1,I1,J1,J1)* ZP*ZS
+                tmp=Corr(GR,GRC,I1,I1,J1,J1)/3.d0* ZP*ZS
                 Obs_eq(2)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(2)%Obs_Latt(imj,1,no_I,no_J) + tmp
 !                 Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) + tmp
-!                 ! SpinZ
+                ! SpinZ
                 tmp=Z * GRC(I1,J1,1) * GR(I1,J1,1) * ZP*ZS
+                Obs_eq(3)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(3)%Obs_Latt(imj,1,no_I,no_J) + tmp
 !                 Obs_eq(8)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(8)%Obs_Latt(imj,1,no_I,no_J) + tmp
 !                 Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) + tmp
                 ! SpinXY
-                Obs_eq(3)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(3)%Obs_Latt(imj,1,no_I,no_J) + tmp
 !                 Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) + tmp
                 ! SC
-!                 if (Ham_U/=0.d0) then
-                  tmp=2.d0*GRC(I1,J1,1)**2 *  ZP*ZS
-                  Obs_eq(2)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(2)%Obs_Latt(imj,1,no_I,no_J) + tmp
+                tmp=2.0d0*(GRC(I1,J1,1)**2 + GR(I1,J1,1)**2)/3.d0*  ZP*ZS
+                Obs_eq(2)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(2)%Obs_Latt(imj,1,no_I,no_J) + tmp
 !                 Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(7)%Obs_Latt(imj,1,no_I,no_J) + tmp
-!                 endif
                 
                 tmp=2.d0*GRC(I1,J1,1)**2 *  ZP*ZS
                 Obs_scal(6)%Obs_vec(1) = Obs_scal(6)%Obs_vec(1) + GRC(I1,J1,1)**2/ 3.d0 /dble(Latt%N) * ZP*ZS
             ENDDO
-            Obs_eq(2)%Obs_Latt0(no_J) =  Obs_eq(2)%Obs_Latt0(no_J) +  Z * cmplx(0.5d0,0.d0,kind(0.d0)) * ZP * ZS
+            Obs_eq(2)%Obs_Latt0(no_J) =  Obs_eq(2)%Obs_Latt0(no_J) +  Z * cmplx(0.5d0/3.d0,0.d0,kind(0.d0)) * ZP * ZS
 !             Obs_eq(7)%Obs_Latt0(no_J) =  Obs_eq(7)%Obs_Latt0(no_J) +  Z * 0.5d0 * ZP * ZS
           ENDDO
           Do J = 1,Latt%N
