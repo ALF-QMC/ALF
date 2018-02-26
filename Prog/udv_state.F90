@@ -36,6 +36,7 @@ MODULE UDV_State_mod
     TYPE UDV_State
         COMPLEX (Kind=Kind(0.d0)), allocatable :: U(:, :), V(:, :)
         COMPLEX (Kind=Kind(0.d0)), allocatable :: D(:)
+        REAL    (Kind=Kind(0.d0)), allocatable :: L(:)
         INTEGER :: ndim
 
         CONTAINS
@@ -70,7 +71,7 @@ SUBROUTINE alloc_UDV_state(this, t)
     INTEGER, INTENT(IN) :: t
 
     this%ndim = t
-    ALLOCATE(this%U(this%ndim, this%ndim), this%V(this%ndim, this%ndim), this%D(this%ndim))
+    ALLOCATE(this%U(this%ndim, this%ndim), this%V(this%ndim, this%ndim), this%D(this%ndim), this%L(this%ndim))
 END SUBROUTINE alloc_UDV_state
 
 !--------------------------------------------------------------------
@@ -106,7 +107,7 @@ SUBROUTINE dealloc_UDV_state(this)
     IMPLICIT NONE
     CLASS(UDV_State), INTENT(INOUT) :: this
 
-    DEALLOCATE(this%U, this%V, this%D)
+    DEALLOCATE(this%U, this%V, this%D, this%L)
 END SUBROUTINE dealloc_UDV_state
 
 !--------------------------------------------------------------------
@@ -129,6 +130,7 @@ SUBROUTINE reset_UDV_state(this)
     CALL ZLASET('A', this%ndim, this%ndim, alpha, beta, this%U(1, 1), this%ndim)
     CALL ZLASET('A', this%ndim, this%ndim, alpha, beta, this%V(1, 1), this%ndim)
     this%D = beta
+    this%L = 0.d0
 END SUBROUTINE reset_UDV_state
 
 !--------------------------------------------------------------------
@@ -155,6 +157,7 @@ SUBROUTINE print_UDV_state(this)
     ENDDO
     WRITE(*,*) "======================"
     WRITE(*,*) this%D(:)
+    WRITE(*,*) this%L(:)
 END SUBROUTINE print_UDV_state
 
 !--------------------------------------------------------------------
@@ -181,6 +184,7 @@ SUBROUTINE assign_UDV_state(this, src)
         CALL ZLACPY('A', ndim, ndim, src%V(1, 1), ndim, this%V(1, 1), ndim)
     END ASSOCIATE
     this%D = src%D
+    this%L = src%L
 END SUBROUTINE assign_UDV_state
 
 !--------------------------------------------------------------------
@@ -202,10 +206,12 @@ END SUBROUTINE assign_UDV_state
         COMPLEX (Kind=Kind(0.d0)), intent(in), allocatable, Dimension(: ,:) :: TMP
         COMPLEX (Kind=Kind(0.d0)), intent(inout), allocatable, Dimension(:, :) :: TMP1
         CLASS(UDV_State), intent(inout) :: UDVL
-        COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK
+        COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK, D
+        REAL (Kind=Kind(0.d0)), allocatable, Dimension(:) :: tmpnorm
+        REAL (Kind=Kind(0.d0)) :: DZNRM2, tmpL
         COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta
         INTEGER, allocatable, Dimension(:) :: IPVT
-        INTEGER :: INFO, i, j, LWORK, Ndim
+        INTEGER :: INFO, i, j, LWORK, Ndim, PVT, IDAMAX
         LOGICAL :: FORWRD
 
         Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
@@ -213,21 +219,43 @@ END SUBROUTINE assign_UDV_state
         Ndim = UDVL%ndim
         ! TMP1 = TMP^dagger * U^dagger
         CALL ZGEMM('C', 'C', Ndim, Ndim, Ndim, Z_ONE, TMP(1, 1), Ndim, UDVL%U, Ndim, beta, TMP1(1, 1), Ndim)
-        ! TMP1 = TMP1 * D
-        DO i = 1,NDim
-            UDVL%U(:, i) = TMP1(:, i) * UDVL%D(i)
-        ENDDO
+        ALLOCATE(tmpnorm(Ndim),D(Ndim))
+        Do i=1,Ndim
+            tmpnorm(i) = DZNRM2( Ndim, TMP1( 1, I ), 1 )*exp(UDVL%L(I))
+        enddo
+        do i=1,Ndim
+            PVT = ( I-1 ) + IDAMAX( Ndim-I+1, tmpnorm( I ), 1 )
+            IF( PVT.NE.I ) THEN
+                CALL ZCOPY( ndim, TMP1( 1, PVT ), 1, UDVL%U( 1, I ), 1 )
+                CALL ZCOPY( ndim, TMP1( 1, I   ), 1, TMP1( 1, PVT ), 1 )
+                CALL ZSWAP( ndim, UDVL%V( 1, PVT ), 1, UDVL%V( 1, I ), 1 )
+                D( I ) = UDVL%D( PVT )
+                tmpL=UDVL%L(I)
+                UDVL%L(I)=UDVL%L(PVT)
+                UDVL%L(PVT)=tmpL
+                UDVL%D( PVT ) = UDVL%D( I )
+                tmpnorm( PVT ) = tmpnorm( I )
+            ELSE
+                CALL ZCOPY( ndim, TMP1( 1, I ), 1, UDVL%U( 1, I ), 1 )
+                D( I ) = UDVL%D( I )
+            END IF
+        enddo
         ALLOCATE(TAU(Ndim), IPVT(Ndim))
-        IPVT = 0
+        IPVT = 1
         call QDRP_decompose(Ndim, UDVL%U, UDVL%D, IPVT, TAU, WORK, LWORK)
-        ! Permute V, since we multiply with V from the left we have to permute its columns
-        FORWRD = .true.
-        CALL ZLAPMT(FORWRD, Ndim, Ndim, UDVL%V, Ndim, IPVT)
+        do i=1,Ndim
+          do j=i+1,Ndim
+            UDVL%U(i,j)=UDVL%U(i,j)*cmplx(exp(UDVL%L(j)-UDVL%L(I)),0.d0,kind(0.d0))
+          enddo
+          !D contains absolute values, hence imag. part is zero
+          UDVL%L(I)=log(DBLE(UDVL%D(I))) + UDVL%L(I)
+          UDVL%D(I)=UDVL%D(I)*D(I)
+        enddo
         ! V = V * R^dagger
         CALL ZTRMM('R', 'U', 'C', 'N', Ndim, Ndim, Z_ONE, UDVL%U, Ndim, UDVL%V, Ndim)
         ! create explicitly U in the storage already present for it
         CALL ZUNGQR(Ndim, Ndim, Ndim, UDVL%U, Ndim, TAU, WORK, LWORK, INFO)
-        DEALLOCATE(TAU, WORK, IPVT)
+        DEALLOCATE(TAU, WORK, IPVT, D, tmpnorm)
 END SUBROUTINE matmultright_UDV_state
 
 !--------------------------------------------------------------------
@@ -251,9 +279,11 @@ END SUBROUTINE matmultright_UDV_state
         COMPLEX (Kind=Kind(0.d0)), intent(in), allocatable, dimension(:, :) :: TMP
         COMPLEX (Kind=Kind(0.d0)), intent(inout), allocatable, dimension(:, :) :: TMP1
         CLASS(UDV_State), intent(inout) :: UDVR
-        COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK
+        COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK, D
+        REAL (Kind=Kind(0.d0)), allocatable, Dimension(:) :: tmpnorm
+        REAL (Kind=Kind(0.d0)) :: DZNRM2,tmpL
         COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta
-        INTEGER :: INFO, i, j, LWORK, Ndim
+        INTEGER :: INFO, i, j, LWORK, Ndim, PVT, IDAMAX
         INTEGER, allocatable, Dimension(:) :: IPVT
         LOGICAL :: FORWRD
         
@@ -262,22 +292,45 @@ END SUBROUTINE matmultright_UDV_state
         beta = 0.D0
         Ndim = UDVR%ndim
         CALL ZGEMM('N', 'N', Ndim, Ndim, Ndim, Z_ONE, TMP(1, 1), Ndim, UDVR%U, Ndim, beta, TMP1(1, 1), Ndim)
-        ! TMP1 = TMP1 * D
-        DO i = 1,NDim
-            UDVR%U(:, i) = TMP1(:, i)*UDVR%D(i)
-        ENDDO
+        ALLOCATE(tmpnorm(Ndim),D(Ndim))
+        Do i=1,Ndim
+            tmpnorm(i) = DZNRM2( Ndim, TMP1( 1, I ), 1 )*exp(UDVR%L(I))
+        enddo
+        do i=1,Ndim
+            PVT = ( I-1 ) + IDAMAX( Ndim-I+1, tmpnorm( I ), 1 )
+            IF( PVT.NE.I ) THEN
+                CALL ZCOPY( ndim, TMP1( 1, PVT ), 1, UDVR%U( 1, I ), 1 )
+                CALL ZCOPY( ndim, TMP1( 1, I   ), 1, TMP1( 1, PVT ), 1 )
+                CALL ZSWAP( ndim, UDVR%V( PVT, 1 ), Ndim, UDVR%V( I, 1 ), Ndim )
+                D( I ) = UDVR%D( PVT )
+                tmpL=UDVR%L(I)
+                UDVR%L(I)=UDVR%L(PVT)
+                UDVR%L(PVT)=tmpL
+                UDVR%D( PVT ) = UDVR%D( I )
+                tmpnorm( PVT ) = tmpnorm( I )
+            ELSE
+                CALL ZCOPY( ndim, TMP1( 1, I ), 1, UDVR%U( 1, I ), 1 )
+                D( I ) = UDVR%D( I )
+            END IF
+        enddo
         ALLOCATE(TAU(Ndim), IPVT(Ndim))
-        IPVT = 0
+        IPVT = 1
         call QDRP_decompose(Ndim, UDVR%U, UDVR%D, IPVT, TAU, WORK, LWORK)
-        ! Permute V. Since we multiply with V from the right we have to permute the rows.
-        ! A V = A P P^-1 V = Q R P^-1 V
-        FORWRD = .true.
-        CALL ZLAPMR(FORWRD, Ndim, Ndim, UDVR%V, Ndim, IPVT(1)) ! lapack 3.3
+        do i=1,Ndim
+          do j=i+1,Ndim
+            UDVR%U(i,j)=UDVR%U(i,j)*cmplx(exp(UDVR%L(j)-UDVR%L(I)),0.d0,kind(0.d0))
+          enddo
+!         enddo
+!         
+!         do i=1,Ndim
+          UDVR%L(I)=log(dble(UDVR%D(I))) + UDVR%L(I)
+          UDVR%D(I)=UDVR%D(I)*D(I)
+        enddo
         ! V = R * V
         CALL ZTRMM('L', 'U', 'N', 'N', Ndim, Ndim, Z_ONE, UDVR%U, Ndim, UDVR%V, Ndim)
         ! Generate explicitly U in the previously abused storage of U
         CALL ZUNGQR(Ndim, Ndim, Ndim, UDVR%U, Ndim, TAU, WORK, LWORK, INFO)
-        DEALLOCATE(TAU, WORK, IPVT)
+        DEALLOCATE(TAU, WORK, IPVT, D, tmpnorm)
 END SUBROUTINE matmultleft_UDV_state
 
 !--------------------------------------------------------------------
@@ -306,6 +359,7 @@ END SUBROUTINE matmultleft_UDV_state
         
         COMPLEX (Kind=Kind(0.d0)), allocatable :: U_temp(:, :), V_temp(:, :)
         COMPLEX (Kind=Kind(0.d0)), allocatable :: D_temp(:)
+        REAL    (Kind=Kind(0.d0)), allocatable :: L_temp(:)
         INTEGER :: n
         !INTEGER :: ndim_temp
         
@@ -326,6 +380,11 @@ END SUBROUTINE matmultleft_UDV_state
                  &        D_temp, this%ndim, MPI_COMPLEX16, source, recvtag, MPI_COMM_WORLD,STATUS,IERR)
         this%D = D_temp
         DEALLOCATE(D_temp)
+        ALLOCATE(L_temp(this%ndim))
+        CALL MPI_Sendrecv(this%L, this%ndim, MPI_REAL8, dest,   sendtag, &
+                 &        L_temp, this%ndim, MPI_REAL8, source, recvtag, MPI_COMM_WORLD,STATUS,IERR)
+        this%L = L_temp
+        DEALLOCATE(L_temp)
 END SUBROUTINE MPI_Sendrecv_UDV_state
 #endif
 
