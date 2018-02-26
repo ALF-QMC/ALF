@@ -2,6 +2,7 @@
     Module Hamiltonian
 
       Use Operator_mod
+      Use WaveFunction_mod
       Use Lattices_v3 
       Use MyMats 
       Use Random_Wrap
@@ -11,8 +12,11 @@
 
       Type (Operator), dimension(:,:), allocatable  :: Op_V
       Type (Operator), dimension(:,:), allocatable  :: Op_T
+      Type (WaveFunction), dimension(:),   allocatable  :: WF_L
+      Type (WaveFunction), dimension(:),   allocatable  :: WF_R
       Integer, allocatable :: nsigma(:,:)
-      Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot
+      Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot, Thtrot
+      Logical              :: Projector
 !>    Defines MPI communicator 
       Integer              :: Group_Comm
 
