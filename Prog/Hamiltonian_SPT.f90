@@ -79,7 +79,7 @@
 
           NAMELIST /VAR_lattice/  L1, L2, Lattice_type, Model
 
-          NAMELIST /VAR_SPT/  ham_T, Ham_Vint,  Ham_Lam,  Dtau, Beta, FlagSym
+          NAMELIST /VAR_SPT/  ham_T, Ham_Vint,  Ham_Lam,  Dtau, Beta, FlagSym, projector, Theta
 
 
 #ifdef MPI
@@ -112,6 +112,10 @@
           N_FL  = 1
           N_SUN = 1
           FlagSym = 0
+          Ltrot = nint(beta/dtau)
+          Projector = .false.
+          Theta = 0.d0
+          Thtrot = 0
           
 ! #if defined(MPI) && !defined(TEMPERING)
 !           If (Irank == 0 ) then
@@ -141,21 +145,20 @@
           CALL MPI_BCAST(ham_Lam  ,1,MPI_REAL8,   0,Group_Comm,ierr)
           CALL MPI_BCAST(Dtau     ,1,MPI_REAL8,   0,Group_Comm,ierr)
           CALL MPI_BCAST(Beta     ,1,MPI_REAL8,   0,Group_Comm,ierr)
+          CALL MPI_BCAST(Theta    ,1,MPI_REAL8,     0,Group_Comm,ierr)
+          CALL MPI_BCAST(Thtrot   ,1,MPI_INTEGER,   0,Group_Comm,ierr)
+          CALL MPI_BCAST(Projector,1,MPI_LOGICAL,   0,Group_Comm,ierr)
           CALL MPI_BCAST(FlagSym  ,1,MPI_INTEGER, 0,Group_Comm,ierr)
 #endif
 
           Call Ham_hop
-          Ltrot = nint(beta/dtau)
           
-! #if defined(MPI) && !defined(TEMPERING)
-!           If (Irank == 0 ) then
-! #endif
-! #if defined(TEMPERING)
-!              write(File1,'(A,I0,A)') "Temp_",Irank,"/info"
-!              Open (Unit = 50,file=File1,status="unknown",position="append")
-! #else
-!              Open (Unit = 50,file="info",status="unknown",position="append")
-! #endif
+          if (Projector) Call Ham_TrialWaveFunction
+          
+          Ltrot = nint(beta/dtau)
+          if (Projector) Thtrot = nint(theta/dtau)
+          Ltrot = Ltrot+2*Thtrot
+          
 #if defined(TEMPERING)
            write(File1,'(A,I0,A)') "Temp_",igroup,"/info"
 #else
@@ -318,6 +321,56 @@
           deallocate (Invlist_1) 
 
         end Subroutine Ham_hop
+        
+!===================================================================================           
+        Subroutine Ham_TrialWaveFunction
+        
+          Implicit none
+          COMPLEX(Kind=Kind(0.d0)), allocatable :: H0(:,:), U(:,:), Test(:,:)
+          Real(Kind=Kind(0.d0)), allocatable :: En(:)
+          
+          Real(Kind=Kind(0.d0)), parameter :: phi=0.0
+          COMPLEX(Kind=Kind(0.d0)) :: Z, alpha, beta, kek=cmplx(-0.01d0,0.0d0,kind(0.d0))
+          Integer :: n, n_part, i, I1, I2, J1, J2, no, nc1, DI1, DI2, nc, Ihex(6)
+          
+          N_part=Ndim/2
+          
+          Allocate(WF_L(N_FL),WF_R(N_FL))
+          do n=1,N_FL
+            Call WF_alloc(WF_L(n),Ndim,N_part)
+            Call WF_alloc(WF_R(n),Ndim,N_part)
+          enddo
+          
+          Allocate(H0(Ndim/4,Ndim/4),U(Ndim/4,Ndim/4),En(Ndim/4))
+          H0=Op_T(1,1)%O
+          Call Diag(H0,U,En)
+          
+!           write(*,*) N_part, Ndim/2, (norb/2)*Latt%N
+          write(*,*) 'Gap is', En(N_part/4+1)-En(N_part/4)
+          do nc=1,4
+            do I2=1,Ndim/8
+            do I1=1,Ndim/4
+              WF_L(1)%P(Op_T(nc,1)%P(I1),(nc-1)*Ndim/8+I2)=U(I1,I2)
+            enddo
+            enddo
+          enddo
+          WF_R(1)%P=WF_L(1)%P
+          
+          Allocate(Test(N_part,N_part))
+          alpha=1.d0
+          beta=0.d0
+          CALL ZGEMM('C','N',N_part,N_part,ndim,alpha,WF_L(1)%P(1,1),Ndim,WF_R(1)%P(1,1),Ndim,beta,Test(1,1),N_part)
+          Z = Det_C(Test,n_part)
+          write(*,*) Z
+          
+!           do I2=1,N_part
+!             write(*,*) sum(abs(WF_L(1)%P(:,I2))), sum(abs(WF_R(1)%P(:,I2)))
+!           enddo
+          
+          Deallocate(H0, U, En)
+          
+        end Subroutine Ham_TrialWaveFunction
+        
 !===================================================================================           
         Subroutine Ham_V
           
