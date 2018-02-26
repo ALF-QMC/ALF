@@ -51,6 +51,7 @@ Program Main
         Use Hamiltonian
         Use Control
         Use Tau_m_mod
+        Use Tau_p_mod
         Use Hop_mod
         Use Global_mod
         Use UDV_State_mod
@@ -225,6 +226,29 @@ Program Main
 !   IF (ABS(CPU_MAX) > Zero ) NBIN = 1000000
         Call Op_SetHS
         Call Ham_set
+        log=.false.
+        if(Projector) then
+          if (.not. allocated(WF_R) .or. .not. allocated(WF_L)) log=.true.
+          do nf=1,N_fl
+            if (.not. allocated(WF_R(nf)%P) .or. .not. allocated(WF_L(nf)%P)) log=.true.
+          enddo
+        endif
+!         ! ATTENTION TEMPORARY DISABLE TAU_RES OBS FOR PORJECTOR
+!         if(Projector) then
+!           Ltau=0
+!         endif
+        ! by default the whole beta intervall (up to Theta at the beginning and end for Projector)
+        ! is used to calculate observables
+        if ( LOBS_ST < 1 ) then 
+          LOBS_ST=Thtrot+1
+        else
+          LOBS_ST=LOBS_ST+Thtrot
+        endif
+        if ( LOBS_EN > Ltrot-2*Thtrot .or. LOBS_EN == 0) then 
+          LOBS_EN=Ltrot-Thtrot
+        else
+          LOBS_EN=LOBS_EN+Thtrot
+        endif
         If ( .not. Global_tau_moves )  then
            ! This  corresponds to the default updating scheme
            Nt_sequential_start = 1 
@@ -265,6 +289,7 @@ Program Main
         if ( Irank_g == 0 ) then
 #endif
            Open (Unit = 50,file=file1,status="unknown",position="append")
+           if(log) Write(50,*) "Projector is selected by there are no trial wave functions!"
            Write(50,*) 'Sweeps                              : ', Nsweep
            If ( abs(CPU_MAX) < ZERO ) then
               Write(50,*) 'Bins                                : ', NBin
@@ -322,18 +347,24 @@ Program Main
 #if defined(MPI) 
         endif
 #endif
-
+        if (log) stop
 
         !Call Test_Hamiltonian
         Allocate ( Test(Ndim,Ndim), GR(NDIM,NDIM,N_FL ) )
         ALLOCATE(udvl(N_FL), udvr(N_FL), udvst(NSTM, N_FL))
         do nf = 1, N_FL
-           CALL udvl(nf)%init(ndim)
-           CALL udvr(nf)%init(ndim)
            do n = 1, NSTM
               CALL udvst(n,nf)%alloc(ndim)
            ENDDO
-           CALL udvst(NSTM, nf)%reset
+           if (Projector) then
+              CALL udvl(nf)%init(ndim,'l',WF_L(nf)%P)
+              CALL udvr(nf)%init(ndim,'r',WF_R(nf)%P)
+              CALL udvst(NSTM, nf)%reset('l',WF_L(nf)%P)
+           else
+              CALL udvl(nf)%init(ndim,'l')
+              CALL udvr(nf)%init(ndim,'r')
+              CALL udvst(NSTM, nf)%reset('l')
+           endif
         enddo
         
         DO NST = NSTM-1,1,-1
@@ -393,7 +424,11 @@ Program Main
               ! Set the right storage to 1
               
               do nf = 1,N_FL
-                 CALL udvr(nf)%reset
+                if (Projector) then
+                    CALL udvr(nf)%reset('r',WF_R(nf)%P)
+                else
+                    CALL udvr(nf)%reset('r')
+                endif
               Enddo
               
               NST = 1
@@ -433,7 +468,11 @@ Program Main
               ENDDO
               
               Do nf = 1,N_FL
-                 CALL udvl(nf)%reset
+                if (Projector) then
+                    CALL udvl(nf)%reset('l',WF_L(nf)%P)
+                else
+                    CALL udvl(nf)%reset('l')
+                endif
               ENDDO
               
               NST = NSTM-1
@@ -466,8 +505,12 @@ Program Main
                     call Op_phase(Z,OP_V,Nsigma,N_SUN) 
                     Call Control_PrecisionP(Z,Phase)
                     Phase = Z
+                    IF( LTAU == 1 .and. Projector .and. Stab_nt(NST)<=THTROT+1 .and. THTROT+1<Stab_nt(NST+1) ) then
+                      Call tau_p ( udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, NST )
+                    endif
                     NST = NST -1
                  ENDIF
+!                  IF( LTAU == 1 .and. Projector .and. Ntau1==THTROT+1) Call tau_p(udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, NST )
               ENDDO
               
               !Calculate and compare green functions on time slice 0.
@@ -476,7 +519,11 @@ Program Main
               CALL WRAPUL(NT, NT1, udvl)
         
               do nf = 1,N_FL
-                 CALL udvr(nf)%reset
+                if (Projector) then
+                    CALL udvr(nf)%reset('r',WF_R(nf)%P)
+                else
+                    CALL udvr(nf)%reset('r')
+                endif
               ENDDO
               Z = cmplx(1.d0, 0.d0, kind(0.D0))
               do nf = 1,N_FL
@@ -491,9 +538,13 @@ Program Main
               Phase = Z
               NST =  NSTM
               Do nf = 1,N_FL
-                 CALL udvst(NST, nf)%reset
+                if (Projector) then
+                    CALL udvst(NST, nf)%reset('l',WF_L(nf)%P)
+                else
+                    CALL udvst(NST, nf)%reset('l')
+                endif
               enddo
-              IF ( LTAU == 1 ) then
+              IF ( LTAU == 1 .and. .not. Projector ) then
                  ! Call for imaginary time displaced  correlation fuctions. 
                  Call TAU_M( udvst, GR, PHASE, NSTM, NWRAP, STAB_NT ) 
               endif
@@ -524,9 +575,14 @@ Program Main
            do n = 1, NSTM
               CALL udvst(n,nf)%dealloc
            ENDDO
+           if (Projector) then 
+              CALL WF_clear(WF_R(nf))
+              CALL WF_clear(WF_L(nf))
+           endif
         ENDDO
         DEALLOCATE(udvl, udvr, udvst)
         DEALLOCATE(GR, TEST, Stab_nt)
+        if (Projector) DEALLOCATE(WF_R, WF_L)
         If (N_Global_tau > 0) then
            Call Wrapgr_dealloc
         endif

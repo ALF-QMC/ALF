@@ -6,7 +6,7 @@
 L1    = 4 
 L2    = 4 
 Lattice_type = "Square"
-Model = "Hubbard_SU2"  ! Hubbard_SU2, Hubbard_Mz
+Model = "Hubbard_Mz"  ! Hubbard_SU2, Hubbard_Mz
 /
 
 &VAR_Hubbard
@@ -14,17 +14,19 @@ ham_T   = 1.0D0
 ham_chem= 0.0D0
 ham_U   = 4.0
 Beta    = 10.0
-dtau    = 0.1 
+dtau    = 0.1
+Projector = .true.
+Theta   = 20.0 
 /
 
 &VAR_QMC
 Nwrap   = 10
 NSweep  = 500
 NBin    = 10
-Ltau    = 1
+Ltau    = 0
 LOBS_ST = 1
 LOBS_EN = 100
-CPU_MAX = 0.1
+CPU_MAX = 0.0
 /
 
 

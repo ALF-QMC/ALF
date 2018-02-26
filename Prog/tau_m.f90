@@ -108,7 +108,11 @@
            ALLOCATE(udvr(N_FL))
            Z = cmplx(1.d0,0.d0,kind(0.d0))
            Do nf = 1, N_FL
-              CALL udvr(nf)%init(ndim)
+              if (Projector) then
+                CALL udvr(nf)%init(ndim,'r',WF_R(nf)%P)
+              else
+                CALL udvr(nf)%init(ndim,'r')
+              endif
            enddo
               
            NST = 1

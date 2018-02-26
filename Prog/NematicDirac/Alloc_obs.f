@@ -89,7 +89,7 @@
                 case default
                    Write(6,*) ' Error in Alloc_obs '  
                 end select
-                Nt = Ltrot+1
+                Nt = Ltrot+1-2*Thtrot
                 Call Obser_Latt_make(Obs_tau(I),Ns,Nt,No,Filename)
              enddo
           endif

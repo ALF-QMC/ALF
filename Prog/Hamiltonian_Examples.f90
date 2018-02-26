@@ -1,6 +1,7 @@
       Module Hamiltonian
 
       Use Operator_mod
+      Use WaveFunction_mod
       Use Lattices_v3 
       Use MyMats 
       Use Random_Wrap
@@ -13,10 +14,13 @@
 
 
 !>    Public variables. Have to be set by user 
-      Type (Operator), dimension(:,:), allocatable  :: Op_V
-      Type (Operator), dimension(:,:), allocatable  :: Op_T
+      Type (Operator),     dimension(:,:), allocatable  :: Op_V
+      Type (Operator),     dimension(:,:), allocatable  :: Op_T
+      Type (WaveFunction), dimension(:),   allocatable  :: WF_L
+      Type (WaveFunction), dimension(:),   allocatable  :: WF_R
       Integer, allocatable :: nsigma(:,:)
-      Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot
+      Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot, Thtrot ! Effective projection.  In units of Delta-tau.  
+      Logical              :: Projector
 !>    Defines MPI communicator 
       Integer              :: Group_Comm
 
@@ -25,8 +29,7 @@
       Type (Lattice),       private :: Latt 
       Integer,              private :: L1, L2
       real (Kind=Kind(0.d0)),        private :: ham_T , ham_U,  Ham_chem, Ham_h, Ham_J, Ham_xi, XB_X, Phi_X, Ham_tV
-
-      real (Kind=Kind(0.d0)),        private :: Dtau, Beta
+      real (Kind=Kind(0.d0)),        private :: Dtau, Beta, Theta
       Character (len=64),   private :: Model, Lattice_type
       Logical,              private :: One_dimensional, Checkerboard
       Integer,              private :: N_coord, Norb
@@ -55,15 +58,14 @@
           Implicit none
 
           integer :: ierr
-
           
           NAMELIST /VAR_Lattice/  L1, L2, Lattice_type, Model,  Checkerboard, N_SUN, Phi_X, XB_X
 
-          NAMELIST /VAR_Hubbard/  ham_T, ham_chem, ham_U,  Dtau, Beta
+          NAMELIST /VAR_Hubbard/  ham_T, ham_chem, ham_U,  Dtau, Beta, Theta, Projector
 
-          NAMELIST /VAR_Ising/    ham_T, ham_chem, ham_U, Ham_h, Ham_J, Ham_xi, Dtau, Beta
+          NAMELIST /VAR_Ising/    ham_T, ham_chem, ham_U, Ham_h, Ham_J, Ham_xi, Dtau, Beta, Theta, Projector
 
-          NAMELIST /VAR_t_V/      ham_T, ham_chem, ham_tV, Dtau, Beta
+          NAMELIST /VAR_t_V/      ham_T, ham_chem, ham_tV, Dtau, Beta, Theta, Projector
 
 #ifdef MPI
           Integer        :: Isize, Irank
@@ -126,6 +128,9 @@
           Endif
 #endif
 
+          Projector = .false.
+          Theta = 0.d0
+          Thtrot = 0
           Select Case (Model)
           Case ("Hubbard_Mz")
              N_FL  = 2
@@ -135,8 +140,17 @@
 #endif
                 READ(5,NML=VAR_Hubbard)
                 Ltrot = nint(beta/dtau)
-                Write(50,*) 'Beta          : ', Beta
-                Write(50,*) 'dtau,Ltrot    : ', dtau,Ltrot
+                if (Projector) Thtrot = nint(theta/dtau)
+                Ltrot = Ltrot+2*Thtrot
+                if (Projector) then
+                  Write(50,*) 'Projective version'
+                  Write(50,*) 'Theta         : ', Theta
+                  Write(50,*) 'Tau_max       : ', beta
+                else
+                  Write(50,*) 'Finite temperture version'
+                  Write(50,*) 'Beta          : ', Beta
+                endif
+                Write(50,*) 'dtau,Ltrot_eff: ', dtau,Ltrot
                 Write(50,*) 'N_SUN         : ', N_SUN
                 Write(50,*) 'N_FL          : ', N_FL
                 Write(50,*) 't             : ', Ham_T
@@ -147,6 +161,8 @@
 #endif
 #ifdef MPI
              CALL MPI_BCAST(Ltrot    ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(Thtrot   ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(Projector,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
              CALL MPI_BCAST(ham_T    ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
              CALL MPI_BCAST(ham_chem ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
              CALL MPI_BCAST(ham_U    ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
@@ -161,8 +177,17 @@
 #endif
                 READ(5,NML=VAR_Hubbard)
                 Ltrot = nint(beta/dtau)
-                Write(50,*) 'Beta          : ', Beta
-                Write(50,*) 'dtau,Ltrot    : ', dtau,Ltrot
+                if (Projector) Thtrot = nint(theta/dtau)
+                Ltrot = Ltrot+2*Thtrot
+                if (Projector) then
+                  Write(50,*) 'Projective version'
+                  Write(50,*) 'Theta         : ', Theta
+                  Write(50,*) 'Tau_max       : ', beta
+                else
+                  Write(50,*) 'Finite temperture version'
+                  Write(50,*) 'Beta          : ', Beta
+                endif
+                Write(50,*) 'dtau,Ltrot_eff: ', dtau,Ltrot
                 Write(50,*) 'N_SUN         : ', N_SUN
                 Write(50,*) 'N_FL          : ', N_FL
                 Write(50,*) 't             : ', Ham_T
@@ -173,6 +198,8 @@
 #endif
 #ifdef MPI
              CALL MPI_BCAST(Ltrot    ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(Thtrot   ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(Projector,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
              CALL MPI_BCAST(ham_T    ,1,MPI_REAL8  ,0,MPI_COMM_WORLD,ierr)
              CALL MPI_BCAST(ham_chem ,1,MPI_REAL8  ,0,MPI_COMM_WORLD,ierr)
              CALL MPI_BCAST(ham_U    ,1,MPI_REAL8  ,0,MPI_COMM_WORLD,ierr)
@@ -187,8 +214,17 @@
 #endif
                 READ(5,NML=VAR_Ising)
                 Ltrot = nint(beta/dtau)
-                Write(50,*) 'Beta          : ', Beta
-                Write(50,*) 'dtau,Ltrot    : ', dtau,Ltrot
+                if (Projector) Thtrot = nint(theta/dtau)
+                Ltrot = Ltrot+2*Thtrot
+                if (Projector) then
+                  Write(50,*) 'Projective version'
+                  Write(50,*) 'Theta         : ', Theta
+                  Write(50,*) 'Tau_max       : ', beta
+                else
+                  Write(50,*) 'Finite temperture version'
+                  Write(50,*) 'Beta          : ', Beta
+                endif
+                Write(50,*) 'dtau,Ltrot_eff: ', dtau,Ltrot
                 Write(50,*) 'N_SUN         : ', N_SUN
                 Write(50,*) 'N_FL          : ', N_FL
                 Write(50,*) 't             : ', Ham_T
@@ -206,6 +242,8 @@
              Endif
 #ifdef MPI
              CALL MPI_BCAST(Ltrot    ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(Thtrot   ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(Projector,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
              CALL MPI_BCAST(ham_T    ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
              CALL MPI_BCAST(ham_chem ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
              CALL MPI_BCAST(ham_U    ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
@@ -223,8 +261,17 @@
 #endif
                 READ(5,NML=VAR_t_V )
                 Ltrot = nint(beta/dtau)
-                Write(50,*) 'Beta          : ', Beta
-                Write(50,*) 'dtau,Ltrot    : ', dtau,Ltrot
+                if (Projector) Thtrot = nint(theta/dtau)
+                Ltrot = Ltrot+2*Thtrot
+                if (Projector) then
+                  Write(50,*) 'Projective version'
+                  Write(50,*) 'Theta         : ', Theta
+                  Write(50,*) 'Tau_max       : ', beta
+                else
+                  Write(50,*) 'Finite temperture version'
+                  Write(50,*) 'Beta          : ', Beta
+                endif
+                Write(50,*) 'dtau,Ltrot_eff: ', dtau,Ltrot
                 Write(50,*) 'N_SUN         : ', N_SUN
                 Write(50,*) 'N_FL          : ', N_FL
                 Write(50,*) 't             : ', Ham_T
@@ -235,6 +282,8 @@
 #endif
 #ifdef MPI
              CALL MPI_BCAST(Ltrot    ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(Thtrot   ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+             CALL MPI_BCAST(Projector,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
              CALL MPI_BCAST(ham_T    ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
              CALL MPI_BCAST(ham_chem ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
              CALL MPI_BCAST(ham_tV   ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
@@ -246,23 +295,25 @@
              Stop
           end Select
           Call Ham_hop
+          
+          if (Projector) Call Ham_TrialWaveFunction
 
 
-#ifdef MPI
-          If (Irank == 0 )  then
-#endif
-#if defined(STAB1) 
-             Write(50,*) 'STAB1 is defined '
-#endif
-
-#if defined(QRREF) 
-             Write(50,*) 'QRREF is defined '
-#endif
-             close(50)
-             Close(5)
-#ifdef MPI
-          endif
-#endif
+! #ifdef MPI
+!           If (Irank == 0 )  then
+! #endif
+! #if defined(STAB1) 
+!              Write(50,*) 'STAB1 is defined '
+! #endif
+! 
+! #if defined(QRREF) 
+!              Write(50,*) 'QRREF is defined '
+! #endif
+!              close(50)
+!              Close(5)
+! #ifdef MPI
+!           endif
+! #endif
 
           call Ham_V
 
@@ -546,6 +597,134 @@
           endif
           
         end Subroutine Ham_hop
+
+!===================================================================================           
+        Subroutine Ham_TrialWaveFunction
+        
+          Implicit none
+          COMPLEX(Kind=Kind(0.d0)), allocatable :: H0(:,:), U(:,:)
+          Real(Kind=Kind(0.d0)), allocatable :: En(:)
+          
+          COMPLEX(Kind=Kind(0.d0)) :: Z
+          Integer :: n, n_part, i, I1, I2, J1, no, nc1
+          
+          N_part=Ndim/2
+          
+          Allocate(WF_L(N_FL),WF_R(N_FL))
+          do n=1,N_FL
+            Call WF_alloc(WF_L(n),Ndim,N_part)
+            Call WF_alloc(WF_R(n),Ndim,N_part)
+          enddo
+          
+          Allocate(H0(Ndim,Ndim),U(Ndim,Ndim),En(Ndim))
+          do n = 1,N_FL
+            H0=0.d0
+            Select case (Lattice_type)
+            Case ("Square")
+                Z  =  exp( cmplx(0.d0, 2.d0 * acos(-1.d0)*Phi_X/dble(L1), kind=kind(0.d0) ) )
+                DO I = 1, Latt%N
+                  I1 = Latt%nnlist(I,1,0)
+                  I2 = Latt%nnlist(I,0,1)
+                  If ( Latt%list(I,1) == 0 ) then
+                      H0(I,I1) = cmplx( Ham_T, 0.d0, kind(0.D0))*Z
+                      H0(I1,I) = cmplx( Ham_T, 0.d0, kind(0.D0))*conjg(Z)
+                  else
+                      H0(I,I1) = cmplx(-Ham_T, 0.d0, kind(0.D0))*Z
+                      H0(I1,I) = cmplx(-Ham_T, 0.d0, kind(0.D0))*conjg(Z)
+                  endif
+                  H0(I,I2) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+                  H0(I2,I) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+                  H0(I ,I) = cmplx(-Ham_chem, 0.d0, kind(0.D0))
+                Enddo
+            Case ("One_dimensional")
+                Z  =  exp( cmplx(0.d0, 2.d0 * acos(-1.d0)*Phi_X/dble(L1), kind=kind(0.d0) ) )
+                DO I = 1, Latt%N
+                  I1 = Latt%nnlist(I,1,0)
+                  If ( Latt%list(I,1) == 0 ) then
+                      H0(I,I1) = cmplx( Ham_T, 0.d0, kind(0.D0))*Z
+                      H0(I1,I) = cmplx( Ham_T, 0.d0, kind(0.D0))*conjg(Z)
+                  else
+                      H0(I,I1) = cmplx(-Ham_T, 0.d0, kind(0.D0))*Z
+                      H0(I1,I) = cmplx(-Ham_T, 0.d0, kind(0.D0))*conjg(Z)
+                  endif
+                  H0(I ,I) = cmplx(-Ham_chem, 0.d0, kind(0.D0))
+                Enddo
+            Case ("Honeycomb")
+                DO I = 1, Latt%N
+                  do no = 1,Norb
+                      I1 = Invlist(I,no)
+                      H0(I1 ,I1) = cmplx(-Ham_chem, 0.d0, kind(0.D0))
+                  enddo
+                  I1 = Invlist(I,1)
+                  J1 = I1
+                  Do nc1 = 1,N_coord
+                      select case (nc1)
+                      case (1)
+                        J1 = invlist(I,2) 
+                      case (2)
+                        J1 = invlist(Latt%nnlist(I,1,-1),2) 
+                      case (3)
+                        J1 = invlist(Latt%nnlist(I,0,-1),2) 
+                      case default
+                        Write(6,*) ' Error in  Ham_Hop '  
+                        Stop
+                      end select
+                      If ( Latt%list(J1,1) == 0 .and. nc1==2 ) then
+                        H0(I1,J1) = cmplx( Ham_T,    0.d0, kind(0.D0))
+                        H0(J1,I1) = cmplx( Ham_T,    0.d0, kind(0.D0))
+                      else
+                        H0(I1,J1) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+                        H0(J1,I1) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+                      endif
+                  Enddo
+                Enddo
+!             case("Pi_Flux")
+!                 DO I = 1, Latt%N
+!                   do no = 1,Norb
+!                       I1 = Invlist(I,no)
+!                       H0(I1 ,I1) = cmplx(-Ham_chem, 0.d0, kind(0.D0))
+!                   enddo
+!                   I1 = Invlist(I,1)
+!                   J1 = I1
+!                   Do nc1 = 1,N_coord
+!                       select case (nc1)
+!                       case (1)
+!                         J1 = invlist(I,2) 
+!                       case (2)
+!                         J1 = invlist(Latt%nnlist(I,0, 1),2) 
+!                       case (3)
+!                         J1 = invlist(Latt%nnlist(I,-1,1),2) 
+!                       case (4)
+!                         J1 = invlist(Latt%nnlist(I,-1,0),2) 
+!                       case default
+!                         Write(6,*) ' Error in  Ham_Hop '  
+!                         Stop
+!                       end select
+!                       if (nc1 == 1 ) then
+!                         H0(I1,J1) = cmplx( Ham_T,    0.d0, kind(0.D0))
+!                         H0(J1,I1) = cmplx( Ham_T,    0.d0, kind(0.D0))
+!                       Else
+!                         H0(I1,J1) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+!                         H0(J1,I1) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+!                       endif
+!                   Enddo
+!                 Enddo
+            case default 
+                Write(6,*) "Projector not yet implemented!"
+                Stop
+            end select
+          
+            Call Diag(H0,U,En)
+            
+            do I2=1,N_part
+               do I1=1,Ndim
+                  WF_L(n)%P(I1,I2)=U(I1,I2)
+                  WF_R(n)%P(I1,I2)=U(I1,I2)
+               enddo
+            enddo
+         enddo
+          
+        end Subroutine Ham_TrialWaveFunction
 
 !===================================================================================           
         Subroutine Ham_V
@@ -845,7 +1024,7 @@
                 case default
                    Write(6,*) ' Error in Alloc_obs '  
                 end select
-                Nt = Ltrot+1
+                Nt = Ltrot+1-2*Thtrot
                 Call Obser_Latt_make(Obs_tau(I),Ns,Nt,No,Filename)
              enddo
           endif

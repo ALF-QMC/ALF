@@ -49,9 +49,10 @@ Contains
 !> @param WORK[inout] work memory. We query and allocate it in this routine. Needs to be deallocated outside.
 !> @param LWORK[inout] optimal size of the work memory.
 !--------------------------------------------------------------------
-SUBROUTINE QDRP_decompose(Ndim, Mat, D, IPVT, TAU, WORK, LWORK)
+SUBROUTINE QDRP_decompose(Ndim, N_part, Mat, D, IPVT, TAU, WORK, LWORK)
 Implicit None
 Integer, intent(in) :: Ndim
+Integer, intent(in) :: N_part
 Integer, intent(inout) :: LWORK
 Integer, Dimension(:), intent(inout), Allocatable :: IPVT
 COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(inout) :: Mat
@@ -66,14 +67,14 @@ Real(Kind=Kind(0.d0)) :: X
 
         ALLOCATE(RWORK(2*Ndim))
         ! Query optimal amount of memory
-        call ZGEQP3(Ndim, Ndim, Mat, Ndim, IPVT, TAU(1), Z, -1, RWORK(1), INFO)
+        call ZGEQP3(Ndim, N_part, Mat, Ndim, IPVT, TAU(1), Z, -1, RWORK(1), INFO)
         LWORK = INT(DBLE(Z))
         ALLOCATE(WORK(LWORK))
         ! QR decomposition of Mat with full column pivoting, Mat * P = Q * R
-        call ZGEQP3(Ndim, Ndim, Mat, Ndim, IPVT, TAU(1), WORK(1), LWORK, RWORK(1), INFO)
+        call ZGEQP3(Ndim, N_part, Mat, Ndim, IPVT, TAU(1), WORK(1), LWORK, RWORK(1), INFO)
         DEALLOCATE(RWORK)
         ! separate off D
-        do i = 1, Ndim
+        do i = 1, N_part
         ! plain diagonal entry
             X = ABS(Mat(i, i))
 !             ! a inf-norm
@@ -85,7 +86,7 @@ Real(Kind=Kind(0.d0)) :: X
             ! 2-norm
 !            X = DZNRM2(N_size+1-i, TPUP(i, i), N_size)
             D(i) = X
-            do j = i, Ndim
+            do j = i, N_part
                 Mat(i, j) = Mat(i, j) / X
             enddo
         enddo

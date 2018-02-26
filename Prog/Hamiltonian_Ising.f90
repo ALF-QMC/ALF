@@ -1,6 +1,7 @@
     Module Hamiltonian
 
       Use Operator_mod
+      Use WaveFunction_mod
       Use Lattices_v3 
       Use MyMats 
       Use Random_Wrap
@@ -10,8 +11,11 @@
 
       Type (Operator), dimension(:,:), allocatable  :: Op_V
       Type (Operator), dimension(:,:), allocatable  :: Op_T
+      Type (WaveFunction), dimension(:),   allocatable  :: WF_L
+      Type (WaveFunction), dimension(:),   allocatable  :: WF_R
       Integer, allocatable :: nsigma(:,:)
-      Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot
+      Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot, Thtrot
+      Logical              :: Projector
       !Complex (Kind=Kind(0.d0)), dimension(:,:,:), allocatable :: Exp_T(:,:,:), Exp_T_M1(:,:,:)
 !>    Variables for updating scheme
       Logical              :: Propose_S0, Global_moves
@@ -24,7 +28,7 @@
       Type (Lattice),       private :: Latt
       Integer,              private :: L1, L2
       real (Kind=Kind(0.d0)),        private :: ham_T , ham_xi, ham_h, ham_J, ham_U, Ham_Vint, Ham_chem
-      real (Kind=Kind(0.d0)),        private :: Dtau, Beta
+      real (Kind=Kind(0.d0)),        private :: Dtau, Beta, Theta
       Character (len=64),   private :: Model, Lattice_type
       Integer, allocatable, private :: L_bond(:,:), Ising_nnlist(:,:)
       Real (Kind=Kind(0.d0)),        private :: DW_Ising_tau  (-1:1), DW_Ising_Space(-1:1)
@@ -114,6 +118,9 @@
           endif
           Call Ham_hop
           Ltrot = nint(beta/dtau)
+          Projector = .false.
+          Theta = 0.d0
+          Thtrot = 0
 #ifdef MPI
           If (Irank == 0) then
 #endif
@@ -362,7 +369,7 @@
           Allocate ( Green_eq(Latt%N,1,1), Spin_eq(Latt%N,1,1), Den_eq(Latt%N,1,1)  )
           Allocate ( Ising_cor0(Norb), Green_eq0(1), Spin_eq0(1), Den_eq0(1) )
           If (Ltau == 1) then 
-             Allocate ( Green_tau(Latt%N,Ltrot+1,1,1), Den_tau(Latt%N,Ltrot+1,1,1) )
+             Allocate ( Green_tau(Latt%N,Ltrot+1-2*Thtrot,1,1), Den_tau(Latt%N,Ltrot+1-2*Thtrot,1,1) )
           endif
 
 

@@ -39,7 +39,7 @@ allocate(HLPB1(LQ2, LQ2), TMPVEC(LQ2), V3t(LQ2, LQ2), IPVT(LQ2), testn(LQ2, LQ2)
             enddo
         enddo        
 IPVT = 0
-call QDRP_decompose(LQ2, input, D3, IPVT, TAU, WORK, LWORK)
+call QDRP_decompose(LQ2, LQ2, input, D3, IPVT, TAU, WORK, LWORK)
 U3 = input
 CALL ZUNGQR(LQ2, LQ2, LQ2, U3, LQ2, TAU, WORK, LWORK, INFO)
 call ZLACPY('U', LQ2, LQ2, input, LQ2, V3, LQ2)

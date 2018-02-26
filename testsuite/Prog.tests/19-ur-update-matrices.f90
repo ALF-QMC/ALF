@@ -19,6 +19,7 @@ end interface
         
         do Ndim = 10, 200,10
         CALL udvl%alloc(Ndim)
+        udvl%side='r'
         Allocate (Uold(Ndim, Ndim), Vold(Ndim, Ndim))
         ALLocate(TMP(Ndim, Ndim), TMPold(Ndim, Ndim), Dold(Ndim), TMP1(Ndim, Ndim), V1(Ndim, Ndim))
         Uold = 0.D0
@@ -40,7 +41,7 @@ end interface
         beta=0.d0
         CALL ZGEMM('C', 'C', Ndim, Ndim, Ndim, Z, TMP(1, 1), Ndim, UDVL%U, Ndim, beta, TMP1(1, 1), Ndim)
         UDVL%U=TMP1
-        CALL UDVL%left_decompose!(TMP, TMP1, NCON)
+        CALL UDVL%decompose!(TMP, TMP1, NCON)
         call ur_update_matrices_old(Uold, Dold, Vold, V1, TMPold, TMP1, Ndim, NCON)
         
         ! compare

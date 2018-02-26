@@ -96,16 +96,14 @@
        ENDDO
        
        CALL UDV_Wrap(A1,U,D,V,NCON)
-!       Phase=cmplx(1.d0,0.d0,kind(0.d0))
-!       do i=1,size(D,1)
-!         Phase=Phase*V1(i,i)
-!       enddo
-!       Call Pivot_Phase(phase,IVPT,size(D,1))
-!       beta=1/Phase
-!       !scale first row of R with 1/phase to set Det(R)=1 [=Det(V)]
-!       call ZSCAL(size(V1,2),beta,V1(1,1),size(V1,1))
-!       ! scale first column of U to correct the scaling in V such that UDV is not changed
-!       call ZSCAL(size(U,1),phase,U(1,1),1)
+       V1 = V
+       Phase=Det_C(V1,N2)
+       Call Pivot_Phase(phase,IVPT,size(D,1))
+       beta=1/Phase
+       !scale first row of R with 1/phase to set Det(R)=1 [=Det(V)]
+       call ZSCAL(size(V,2),beta,V(1,1),size(V,1))
+       ! scale first column of U to correct the scaling in V such that UDV is not changed
+       call ZSCAL(size(U,1),phase,U(1,1),1)
        
        V1 = V
        DO I = 1,N2
