@@ -1,4 +1,5 @@
 OBJS=mat_mod.o Random_Wrap.o errors.o Files_mod.o maxent.o  matrix.o  maxent_stoch.o  fourier.o \
+         clzhemm.o clzhemm_interface.o \
          Histogram.o  lattices_v3.o  Natural_constants.o log_mesh.o  precdef.mod.o \
          Histogram_v2.o Mat_subroutines.o
 
@@ -11,6 +12,12 @@ $(LIB): $(OBJS)
 
 %.o: %.F90
 	$(FC) $(FLAGS) -c $<
+
+## .SUFFIXES: .c
+.c.o:
+        gcc -DBLAST -O3 -std=c99 -I /tmp/lib/clblast/include/  -c -o $@ $<
+##      gcc -O3 -std=c99 -I /tmp/lib/include/  -c -o $@ $<
+
 
 errors.o: mat_mod.o
 
