@@ -2,3 +2,5 @@
 *.mod
 *.out
 *.a
+Prog/git.h
+Test_*

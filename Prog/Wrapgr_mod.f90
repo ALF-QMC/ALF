@@ -1,4 +1,4 @@
-!  Copyright (C) 2016, 2017 The ALF project
+!  Copyright (C) 2016 - 2018 The ALF project
 ! 
 !  This file is part of the ALF project.
 ! 
@@ -13,7 +13,7 @@
 !     GNU General Public License for more details.
 ! 
 !     You should have received a copy of the GNU General Public License
-!     along with Foobar.  If not, see http://www.gnu.org/licenses/.
+!     along with ALF.  If not, see http://www.gnu.org/licenses/.
 !     
 !     Under Section 7 of GPL version 3 we require you to fulfill the following additional terms:
 !     
@@ -114,24 +114,21 @@ Contains
     INTEGER, INTENT(IN) :: Nt_sequential_start, Nt_sequential_end, N_Global_tau
 
     !Local 
-    Integer :: nf, N_Type, NTAU1,n, m, Flip_value(1)
-    Complex (Kind=Kind(0.d0)) :: Mat_TMP(Ndim,Ndim),  Prev_Ratiotot
-    Real    (Kind=Kind(0.d0)) :: X, T0_proposal,  T0_Proposal_ratio,  S0_ratio
+    Integer :: nf, N_Type, NTAU1,X,n, m, Flip_value(1)
+    Complex (Kind=Kind(0.d0)) :: Prev_Ratiotot
+    Real    (Kind=Kind(0.d0)) :: T0_proposal,  T0_Proposal_ratio,  S0_ratio
     Character (Len=64)        :: Mode
-    Logical                   :: Acc
+    Logical                   :: Acc, toggle1
     
     ! Wrap up, upgrade ntau1.  with B^{1}(tau1) 
     NTAU1 = NTAU + 1
     Do nf = 1,N_FL
-       CALL HOP_MOD_mmthr( GR(:,:,nf),  MAT_TMP,nf)
-       CALL HOP_MOD_mmthl_m1(MAT_TMP,GR(:,:,nf), nf )
-       !CALL MMULT ( MAT_TMP,    Exp_T(:,:,nf), GR(:,:,nf)        )
-       !CALL MMULT ( GR(:,:,nf), MAT_TMP      , Exp_T_M1(:,:,nf)  )
+       CALL HOP_MOD_mmthr   (GR(:,:,nf), nf )
+       CALL HOP_MOD_mmthl_m1(GR(:,:,nf), nf )
     Enddo
     Do n = Nt_sequential_start,Nt_sequential_end
-       ! Write(6,*) 'Hi'
        Do nf = 1, N_FL
-          X = Phi(nsigma(n,ntau1),Op_V(n,nf)%type)
+          X = nsigma(n,ntau1)!Phi(nsigma(n,ntau1),Op_V(n,nf)%type)
           N_type = 1
           Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),X,Ndim,N_Type)
        enddo
@@ -149,8 +146,12 @@ Contains
           if  (Op_V(n,nf)%type == 1 ) Flip_value(1)  = -nsigma(n,ntau1)
           if  (Op_V(n,nf)%type == 2 ) Flip_value(1)  =  NFLIPL(nsigma(n,ntau1),nranf(3))
           mode = "Final"
+          !Write(6,*) 'Hi', n, Op_V(n,nf)%type, T0_Proposal_ratio, S0_ratio  
           Prev_Ratiotot = cmplx(1.d0,0.d0,kind(0.d0))
           Call Upgrade2(GR,n,ntau1,PHASE,Op_V(n,nf)%N_non_Zero,Flip_value(1), Prev_Ratiotot, S0_ratio,T0_Proposal_ratio, Acc, mode ) 
+       else
+          toggle1 = .false.
+          Call Control_upgrade_eff(toggle1)
        Endif
        do nf = 1,N_FL
           N_type =  2
@@ -160,7 +161,7 @@ Contains
 
     If ( N_Global_tau > 0 ) then 
        m         = Nt_sequential_end
-       !if ( Nt_sequential_start >  Nt_sequential_end ) m = Nt_sequential_start 
+       !if ( Nt_sequential_start >  Nt_sequential_end ) m = Nt_sequential_start
        Call Wrapgr_Random_update(GR,m,ntau1, PHASE, N_Global_tau )
        Call Wrapgr_PlaceGR(GR,m, Size(OP_V,1), ntau1)
     Endif
@@ -212,11 +213,11 @@ Contains
     INTEGER, INTENT(IN) :: Nt_sequential_start, Nt_sequential_end, N_Global_tau
     
     ! Local
-    Integer :: nf, N_Type, n, m, Flip_value(1)
-    Complex (Kind=Kind(0.d0)) :: Mat_TMP(Ndim,Ndim),  Prev_Ratiotot
-    Real    (Kind=Kind(0.d0)) :: spin, T0_proposal,  T0_Proposal_ratio,  S0_ratio
+    Integer :: nf, N_Type, n, spin, m, Flip_value(1)
+    Complex (Kind=Kind(0.d0)) :: Prev_Ratiotot
+    Real    (Kind=Kind(0.d0)) :: T0_proposal,  T0_Proposal_ratio,  S0_ratio
     Character (Len=64)        :: Mode
-    Logical                   :: Acc
+    Logical                   :: Acc, toggle1
 
 
     If ( N_Global_tau > 0 ) then 
@@ -230,7 +231,7 @@ Contains
     Do n =  Nt_sequential_end, Nt_sequential_start, -1
        N_type = 2
        nf = 1
-       spin = Phi(nsigma(n,ntau),Op_V(n,nf)%type)
+       spin = nsigma(n,ntau)!Phi(nsigma(n,ntau),Op_V(n,nf)%type)
        do nf = 1,N_FL
           Call Op_Wrapdo( Gr(:,:,nf), Op_V(n,nf), spin, Ndim, N_Type)
        enddo
@@ -251,22 +252,23 @@ Contains
           mode = "Final"
           Prev_Ratiotot = cmplx(1.d0,0.d0,kind(0.d0))
           Call Upgrade2(GR,n,ntau,PHASE,Op_V(n,nf)%N_non_Zero,Flip_value(1), Prev_Ratiotot, S0_ratio,T0_Proposal_ratio, Acc, mode ) 
+       else
+          toggle1 = .false.
+          Call Control_upgrade_eff(toggle1)
        Endif
      
        !Call Upgrade(GR,n,ntau,PHASE,Op_V(n,1)%N_non_zero) 
        ! The spin has changed after the upgrade!
        nf = 1
-       spin = Phi(nsigma(n,ntau),Op_V(n,nf)%type)
+       spin = nsigma(n,ntau)!Phi(nsigma(n,ntau),Op_V(n,nf)%type)
        N_type = 1
        do nf = 1,N_FL
           Call Op_Wrapdo( Gr(:,:,nf), Op_V(n,nf), spin, Ndim, N_Type )
        enddo
     enddo
     DO nf = 1,N_FL
-       Call Hop_mod_mmthl   (GR(:,:,nf), MAT_TMP, nf)
-       Call Hop_mod_mmthr_m1(MAT_TMP, GR(:,:,nf), nf)
-       !CALL MMULT(MAT_TMP   , GR(:,:,nf)      , Exp_T(:,:,nf) )
-       !CALL MMULT(GR(:,:,nf), Exp_T_M1(:,:,nf), MAT_TMP       )
+       Call Hop_mod_mmthl   (GR(:,:,nf), nf)
+       Call Hop_mod_mmthr_m1(GR(:,:,nf), nf)
     enddo
     
   end SUBROUTINE WRAPGRDO
@@ -297,8 +299,8 @@ Contains
     Integer, INTENT(IN) :: m,m1, ntau
 
     !Local 
-    Integer :: n, nf, N_Type
-    Real (Kind=Kind(0.d0)) :: X
+    Integer :: n, nf, N_Type,  X
+!     Real (Kind=Kind(0.d0)) ::
 
     If (m == m1)  then 
        return
@@ -306,7 +308,7 @@ Contains
        !Write(6,*) "Wrapup from ",  m + 1, "to",  m1, " on tau=",  ntau
        Do n = m+1,m1
           Do nf = 1, N_FL
-             X = Phi(nsigma(n,ntau),Op_V(n,nf)%type)
+             X = nsigma(n,ntau)!Phi(nsigma(n,ntau),Op_V(n,nf)%type)
              N_type = 1
              Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),X,Ndim,N_Type)
           enddo
@@ -320,13 +322,13 @@ Contains
        Do n =  m, m1+1 ,-1 
           N_type = 2
           nf = 1
-          X = Phi(nsigma(n,ntau),Op_V(n,nf)%type)
+          X = nsigma(n,ntau)!Phi(nsigma(n,ntau),Op_V(n,nf)%type)
           do nf = 1,N_FL
              Call Op_Wrapdo( Gr(:,:,nf), Op_V(n,nf), X, Ndim, N_Type)
           enddo
           !Write(6,*) 'Upgrade : ', ntau,n 
           nf = 1
-          X = Phi(nsigma(n,ntau),Op_V(n,nf)%type)
+          X = nsigma(n,ntau)!Phi(nsigma(n,ntau),Op_V(n,nf)%type)
           N_type = 1
           do nf = 1,N_FL
              Call Op_Wrapdo( Gr(:,:,nf), Op_V(n,nf), X, Ndim, N_Type )
@@ -395,8 +397,8 @@ Contains
 
 
     ! Space for local varaibles
-    Integer                   :: n, Flip_length, nf, N_Type, ng_c, Flip_count
-    Real    (Kind=Kind(0.d0)) :: T0_Proposal_ratio, T0_proposal, X,S0_ratio
+    Integer                   :: n, Flip_length, nf, N_Type, ng_c, Flip_count, X
+    Real    (Kind=Kind(0.d0)) :: T0_Proposal_ratio, T0_proposal,S0_ratio
     COMPLEX (Kind=Kind(0.d0)) :: Prev_Ratiotot 
     Logical                   :: Acc
     Character (Len=64)        :: Mode
@@ -426,7 +428,7 @@ Contains
              !Write(6,*)  "Back from PlaceGR",  m, n-1,ntau
              If ( Flip_count == 1 .and. Flip_length > 1 ) GR_st = Gr
              Do nf = 1, N_FL
-                X = Phi(nsigma(n,ntau),Op_V(n,nf)%type)
+                X = nsigma(n,ntau)!Phi(nsigma(n,ntau),Op_V(n,nf)%type)
                 N_type = 1
                 Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),X,Ndim,N_Type)
              enddo

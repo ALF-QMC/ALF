@@ -36,7 +36,7 @@ implicit none
 !        do i = 1, ndim
 !        write (*,*) DBLE(TEST(i, :))
 !        enddo
-        call QDRP_decompose(ndim, A, D, IPVT, TAU, WORK, LWORK)
+        call QDRP_decompose(ndim, ndim, A, D, IPVT, TAU, WORK, LWORK)
         TMP = A
         CALL ZUNGQR(ndim, ndim, ndim, A, ndim, tau, work, lwork, info)
         do i = 1, ndim

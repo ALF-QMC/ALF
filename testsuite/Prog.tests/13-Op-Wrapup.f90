@@ -16,13 +16,11 @@ Program Wrapup
          End Subroutine
       End Interface
 !
-      Complex (Kind=Kind(0.D0)) :: Z, Z1, Zre, Zim
+      Complex (Kind=Kind(0.D0)) :: Zre, Zim
       Real (Kind=Kind(0.D0)) :: spin
       Complex (Kind=Kind(0.D0)), Dimension (:, :), Allocatable :: VH, &
      & matnew, matold
-      Complex (Kind=Kind(0.D0)), Dimension (:), Allocatable :: Expop, &
-     & ExpMop
-      Integer :: i, n, m, j, Ndim, N_Type, opn
+      Integer :: i, n, j, Ndim, N_Type, opn, nspin
       Type (Operator) :: Op
 !
 ! setup some test data
@@ -30,23 +28,24 @@ Program Wrapup
 !
       Do opn = 1, 4
          Do N_Type = 1, 2
-            Allocate (VH(opn, Ndim), matold(Ndim, Ndim), matnew(Ndim, &
-           & Ndim), Expop(opn), ExpMop(opn))
+            Allocate (VH(opn, Ndim), matold(Ndim, Ndim), matnew(Ndim,  Ndim))
             Call Op_seths ()
             Call Op_make (Op, opn)
 !
             Do i = 1, Op%n
                Op%P (i) = i
                Do n = 1, Op%n
-                  Op%O (i, n) = CMPLX (n+i, 0.D0, kind(0.D0))
+                 Op%O (i, n) = CMPLX (0.d1*dble(n+i), 0.d1*dble(n-i), kind(0.D0))
                End Do
             End Do
 !
+            Op%type = 1
             Op%g = 2.D0
             Op%alpha = 0.D0
             Call Op_set (Op)
 !
-            spin = - 1.0
+            nspin=-1
+            spin = Phi(nspin,Op%type)
 !
             Do i = 1, Ndim
                Do n = 1, Ndim
@@ -60,7 +59,7 @@ Program Wrapup
 !
             Call Op_WrapupFFA (matold, Op, spin, Ndim, N_Type)
 !
-            Call Op_Wrapup (matnew, Op, spin, Ndim, N_Type)
+            Call Op_Wrapup (matnew, Op, nspin, Ndim, N_Type)
 !
 !
             Do i = 1, Ndim
@@ -68,14 +67,14 @@ Program Wrapup
                   Zre = real (matnew(i, j)-matold(i, j))
                   Zim = aimag (matnew(i, j)-matold(i, j))
                   If (Abs(Zre) > Max(Abs(real(matnew(i, j))), &
-                 & Abs(real(matold(i, j))))*1D-14) Then
+                 & Abs(real(matold(i, j))))*5D-14 .and. abs(Zre) > 1D-15) Then
                      Write (*,*) "opn: ", opn, "N_type", N_Type
                      Write (*,*) "ERROR in real part", real (matnew(i, &
                     & j)), real (matold(i, j))
                      Stop 2
                   End If
                   If (Abs(Zim) > Max(Abs(aimag(matnew(i, j))), &
-                 & Abs(aimag(matold(i, j))))*1D-14) Then
+                 & Abs(aimag(matold(i, j))))*5D-14 .and. abs(Zim) > 1D-15) Then
                      Write (*,*) "ERROR in imag part", aimag (matnew(i, &
                     & j)), aimag (matold(i, j))
                      Stop 3
@@ -83,11 +82,11 @@ Program Wrapup
                End Do
             End Do
 !
-            Deallocate (VH, matnew, matold, Expop, ExpMop)
+            Deallocate (VH, matnew, matold)
             call Op_clear(Op, opn)
          End Do
       End Do
-
+      write (*,*) "SUCCESS"
 End Program Wrapup
 !
 Subroutine Op_WrapupFFA (Mat, Op, spin, Ndim, N_Type)
@@ -103,7 +102,7 @@ Subroutine Op_WrapupFFA (Mat, Op, spin, Ndim, N_Type)
 !
     ! Local
       Complex (Kind=8) :: VH (Ndim, Op%n), Z, Z1
-      Integer :: n, i, m, m1
+      Integer :: n, i, m
 !
 !
 !

@@ -1,5 +1,6 @@
 export DIR=`pwd`
-f90="gfortran"
+f90=$mpif90
+f90=gfortran
 export f90
 F90OPTFLAGS="-O3 -Wconversion  -fcheck=all"
 F90OPTFLAGS="-O3 -Wconversion "

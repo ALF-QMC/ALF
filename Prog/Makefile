@@ -25,6 +25,11 @@ Hub_Can:
 	cp $(Libs)/Modules/*.mod . ;\
 	(make -f Compile_Hub_Can  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" F90USEFULFLAGS="$(F90USEFULFLAGS)")
 
+Nematic_Dirac:
+	./Git_config.sh; \
+	cp $(Libs)/Modules/*.mod . ;\
+	(make -f Compile_NematicDirac  FC="$(FC)" FLAGS="$(FLAGS)"  LIBS="$(LIBS)" F90USEFULFLAGS="$(F90USEFULFLAGS)")
+
 SPT:
 	./Git_config.sh; \
 	cp $(Libs)/Modules/*.mod . ;\
@@ -43,4 +48,5 @@ clean:
 	(make -f Compile_SPT   clean );\
 	(make -f Compile_Kondo_Honey clean );\
 	(make -f Compile_Z2_Slave clean );\
+	(make -f Compile_NematicDirac clean );\
 	rm -f *.mod *~ \#* 

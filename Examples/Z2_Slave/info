@@ -13,12 +13,12 @@
  Ham_J         :    0.0000000000000000     
  Ham_h         :    1.0000000000000000     
  Ham_F         :    0.0000000000000000     
- Sweeps                              :          500
- Prog will stop after hours:    0.5000
+ Sweeps                              :          200
+ Prog will stop after hours:    0.1000
  Measure Int.                        :            1         100
  Stabilization,Wrap                  :           10
  Nstm                                :           40
- Ltau                                :            0
+ Ltau                                :            1
  # of interacting Ops per time slice :           33
  Propose Ising moves according to  bare Ising action
  Global moves are enabled   
@@ -26,12 +26,16 @@
  Nt_sequential_start:            1
  Nt_sequential_end  :            0
  N_Global_tau       :           16
- This executable represents commit c80902a of branch master.
-  Precision Green  Mean, Max :    3.0714263304645497E-015   2.3056556663902938E-012
+ This executable represents commit 49107e5 of branch master.
+  Precision Green  Mean, Max :    2.5329436667673121E-015   9.9984465151692348E-012
   Precision Phase, Max       :    0.0000000000000000     
-  Acceptance                 :   0.89439918971358245     
-  Acceptance_Glob            :    1.0000000000000000     
-  Mean Phase diff Glob       :    0.0000000000000000     
-  Max  Phase diff Glob       :    0.0000000000000000     
-  CPU Time                   :    1766.0296149999999     
-  Effective number of bins   :           34
+  Precision tau    Mean, Max :    9.6466212472072213E-016   2.4302782009044677E-013
+  Acceptance                 :   0.89470034177681590     
+  Effective Acceptance       :   0.89470034177681590     
+  Acceptance_Glob              :    1.0000000000000000     
+  Mean Phase diff Glob         :    0.0000000000000000     
+  Max  Phase diff Glob         :    0.0000000000000000     
+  Average cluster size         :    6.9358492122407347E-310
+  Average accepted cluster size:    6.9358492122407347E-310
+  CPU Time                   :    334.20800400000002     
+  Effective number of bins   :           14

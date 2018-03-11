@@ -56,22 +56,27 @@
          Type  (Mat_C), allocatable :: Bins (:,:), Bins_R(:,:)
          Complex (Kind=Kind(0.d0)), allocatable :: Bins0(:,:)
          Complex (Kind=Kind(0.d0)) :: Z, Xmean,Xerr, Xmean_r, Xerr_r
+         Real (Kind=Kind(0.d0)) :: Xm,Xe
          Real    (Kind=Kind(0.d0)) :: Xk_p(2), XR_p(2) , XR1_p(2)
          Complex (Kind=Kind(0.d0)), allocatable :: V_help(:), V_help_R(:)
          Real (Kind=Kind(0.d0)) :: Pi, a1_p(2), a2_p(2), L1_p(2), L2_p(2), del_p(2)
+         Real (Kind=Kind(0.d0)), allocatable :: AutoCorr(:),En(:)
 
-         Integer             :: L1, L2, I
+         Integer             :: L1, L2, I, N_auto, N_SUN
          Character (len=64)  :: Model, Lattice_type
          Type (Lattice)      :: Latt
-         
+         Character (len=64)  :: File_out
+         Logical             :: Checkerboard	 
 
-         NAMELIST /VAR_lattice/  L1, L2, Lattice_type, Model
-         NAMELIST /VAR_errors/   n_skip, N_rebin, N_Cov, N_Back
+         NAMELIST /VAR_lattice/  L1, L2, Lattice_type, Model, N_SUN, Checkerboard
+         NAMELIST /VAR_errors/   n_skip, N_rebin, N_Cov, N_Back, N_auto
 
 
 
-         
+         Checkerboard = .false.
+         N_SUN  = 1
          N_Back = 1
+         N_auto = 0
          OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
          IF (ierr /= 0) THEN
             WRITE(*,*) 'unable to open <parameters>',ierr
@@ -81,7 +86,13 @@
          READ(5,NML=VAR_errors)
          CLOSE(5)
 
-         If ( Lattice_type =="Square" ) then
+         If ( Lattice_type =="BipartiteSquare" ) then
+            a1_p(1) =  1.D0/sqrt(2.D0)  ; a1_p(2) =  1.D0/sqrt(2.D0)
+            a2_p(1) =  1.D0/sqrt(2.D0)  ; a2_p(2) = -1.D0/sqrt(2.D0)
+            L1_p    =  dble(L1)*a1_p
+            L2_p    =  dble(L2)*a2_p
+            Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
+         elseif ( Lattice_type =="Square" ) then
             a1_p(1) =  1.0  ; a1_p(2) =  0.d0
             a2_p(1) =  0.0  ; a2_p(2) =  1.d0
             L1_p    =  dble(L1)*a1_p
@@ -108,6 +119,13 @@
                enddo
             enddo
             close(10)
+         elseif ( Lattice_type == "Pi_Flux" ) then 
+             a1_p(1) =  1.D0   ; a1_p(2) =   1.d0
+             a2_p(1) =  1.D0   ; a2_p(2) =  -1.d0
+             !del_p   =  (a2_p - 0.5*a1_p ) * 2.0/3.0
+             L1_p    =  dble(L1) * (a1_p - a2_p)/2.d0
+             L2_p    =  dble(L2) * (a1_p + a2_p)/2.d0
+             Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
          else
             Write(6,*) "Lattice not yet implemented!"
             Stop
@@ -137,7 +155,11 @@
          Write(6,*) "# of bins: ", Nbins
          nbins  = Nbins - n_skip
          Write(6,*) "Effective # of bins: ", Nbins
-
+         N_auto=min(N_auto,Nbins/3)
+         if(Nbins <= 1) then
+           write (*,*) "Effective # of bins smaller then 2. Analysis impossible!"
+           stop 1
+         endif
 
          ! Allocate  space
          Allocate ( bins(Nunit,Nbins), bins_r(Nunit,Nbins), Phase(Nbins),  V_help(Nbins), V_help_R(Nbins), Bins0(Nbins,Norb))
@@ -171,7 +193,8 @@
                      do no = 1,norb
                         do no1 = 1,Norb
                            bins(m,nb-n_skip)%el(no,no1)  =  bins(m,nb-n_skip)%el(no,no1) -  &
-                                &        cmplx(dble(Latt%N),0.d0,kind(0.d0))*Bins0(nb-n_skip,no)*Bins0(nb-n_skip,no1)
+                                &        cmplx(dble(Latt%N),0.d0,kind(0.d0))*Bins0(nb-n_skip,no)*Bins0(nb-n_skip,no1) &
+                                &        /Phase(nb-n_skip)
                         enddo
                      enddo
                   endif
@@ -192,6 +215,7 @@
             endif
          enddo
          close(10)
+        N_auto=min(N_auto,Nbins/3)
          
 
          Call Fourier_K_to_R(bins,bins_r,Latt)
@@ -250,6 +274,33 @@
 
          Close(33)
          Close(34)
+         
+        if(N_auto>0) then
+         ALLOCATE(AutoCorr(N_auto))
+         ALLOCATE(EN(Nbins))
+         Do n = 1,Nunit
+            Xk_p = dble(Latt%listk(n,1))*Latt%b1_p + dble(Latt%listk(n,2))*Latt%b2_p
+            if (Xk_p(1) >= -1.d-8 .and. XK_p(2) >= -1.d-8) then
+            write(File_out,'("Var_eq_Auto_Tr_",F4.2,"_",F4.2)')  Xk_p(1), Xk_p(2)
+            OPEN (UNIT=21, FILE=File_out, STATUS='unknown')
+            WRITE(21,*)
+            do nb = 1,Nbins
+              Z=0
+              do no = 1,Norb
+                  Z = Z+bins  (n,nb)%el(no,no)
+              enddo
+              En(nb)=dble(Z)
+            enddo
+            Call AUTO_COR(En,AutoCorr)
+            do i = 1,N_auto
+              CALL ERRCALCJ(En,XM, XE,i)
+              write(21,*) i, AutoCorr(i), Xe
+            enddo
+            CLOSE(21)
+            endif
+         enddo
+        DEALLOCATE(AutoCorr)
+        endif
 
 
       

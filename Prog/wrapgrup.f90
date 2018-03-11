@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 The ALF project
+!  Copyright (C) 2016 - 2018 The ALF project
 ! 
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -11,7 +11,7 @@
 !     GNU General Public License for more details.
 ! 
 !     You should have received a copy of the GNU General Public License
-!     along with Foobar.  If not, see http://www.gnu.org/licenses/.
+!     along with ALF.  If not, see http://www.gnu.org/licenses/.
 !     
 !     Under Section 7 of GPL version 3 we require you to fulfill the following additional terms:
 !     
@@ -65,23 +65,23 @@
         INTEGER, INTENT(IN) :: NTAU
         
         !Local 
-        Integer :: nf, N_Type, NTAU1,n, m
+        Integer :: nf, N_Type, NTAU1,n, m, X
         Complex (Kind=Kind(0.d0)) :: Mat_TMP(Ndim,Ndim)
-        Real    (Kind=Kind(0.d0)) :: X
+!         Real    (Kind=Kind(0.d0)) :: X
         Character (Len=1)  :: Direction
 
         ! Wrap up, upgrade ntau1.  with B^{1}(tau1) 
         NTAU1 = NTAU + 1
         Do nf = 1,N_FL
-           CALL HOP_MOD_mmthr( GR(:,:,nf),  MAT_TMP,nf)
-           CALL HOP_MOD_mmthl_m1(MAT_TMP,GR(:,:,nf), nf )
+           CALL HOP_MOD_mmthr   (GR(:,:,nf), nf )
+           CALL HOP_MOD_mmthl_m1(GR(:,:,nf), nf )
            !CALL MMULT ( MAT_TMP,    Exp_T(:,:,nf), GR(:,:,nf)        )
            !CALL MMULT ( GR(:,:,nf), MAT_TMP      , Exp_T_M1(:,:,nf)  )
         Enddo
         Do n = Nt_sequential_start,Nt_sequential_end
            ! Write(6,*) 'Hi'
            Do nf = 1, N_FL
-              X = Phi(nsigma(n,ntau1),Op_V(n,nf)%type)
+              X = nsigma(n,ntau1)!Phi(nsigma(n,ntau1),Op_V(n,nf)%type)
               N_type = 1
               Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),X,Ndim,N_Type)
            enddo

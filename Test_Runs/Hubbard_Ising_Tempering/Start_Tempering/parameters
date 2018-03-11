@@ -19,17 +19,21 @@ dtau    = 0.1
 
 &VAR_QMC
 Nwrap   = 10
-NSweep  = 100
-NBin    = 10 
+NSweep  = 50
+NBin    = 1
 Ltau    = 1
 LOBS_ST = 1
 LOBS_EN = 100
+Propose_S0   = .true.
+Global_moves = .true.
+N_Global = 1
 /
 CPU_MAX = 0.1
 
 &VAR_TEMP
-N_exchange_steps = 6
+N_exchange_steps      = 6
 N_Tempering_frequency = 10
+mpi_per_parameter_set = 2
 /
 
 &VAR_Hub_Ising
@@ -42,9 +46,6 @@ Ham_xi  = 2.d0
 Ham_J   = 0.d0
 Ham_h   = H_R
 Ham_F   = 2.d0
-Propose_S0   = .true.
-Global_moves = .false.
-N_Global = 1
 /
 
 &VAR_errors 

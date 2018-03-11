@@ -1,6 +1,7 @@
     Module Hamiltonian
 
       Use Operator_mod
+      Use WaveFunction_mod
       Use Lattices_v3 
       Use MyMats 
       Use Random_Wrap
@@ -10,15 +11,20 @@
 
       Type (Operator), dimension(:,:), allocatable  :: Op_V
       Type (Operator), dimension(:,:), allocatable  :: Op_T
+      Type (WaveFunction), dimension(:),   allocatable  :: WF_L
+      Type (WaveFunction), dimension(:),   allocatable  :: WF_R
       Integer, allocatable :: nsigma(:,:)
-      Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot
-      
+      Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot, Thtrot
+      Logical              :: Projector
+!>    Defines MPI communicator 
+      Integer              :: Group_Comm
+
 
       ! What is below is  private 
       Type (Lattice),       private :: Latt
       Integer,              private :: L1, L2, n_Lambda
-      real (Kind=8),        private :: ham_T , ham_U,  Ham_chem, Lambda
-      real (Kind=8),        private :: Dtau, Beta, Phi_x
+      real (Kind=8),        private :: ham_T , ham_U,  Ham_chem, Lambda, RhoD
+      real (Kind=8),        private :: Dtau, Beta, Phi_x, Theta
       Character (len=64),   private :: Model, Lattice_type
       Logical,              private :: One_dimensional
       Integer,              private :: N_coord, Norb 
@@ -34,19 +40,18 @@
 
 
       Subroutine Ham_Set
-
+#ifdef MPI
+          Use mpi
+#endif
           Implicit none
 
-#ifdef MPI
-          include 'mpif.h'
-#endif   
+
 
           integer :: ierr
 
-          
           NAMELIST /VAR_lattice/  L1, L2, Lattice_type, Model, Phi_x
 
-          NAMELIST /VAR_Hubbard/  ham_T, ham_chem, ham_U, Dtau, Beta, Lambda, n_Lambda
+          NAMELIST /VAR_Hubbard/  ham_T, ham_chem, ham_U, Dtau, Beta, Lambda, n_Lambda, RhoD
 
 
 #ifdef MPI
@@ -94,6 +99,7 @@
 #ifdef MPI
           If (Irank == 0 ) then
 #endif
+             RhoD = 1.d0
              OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
              READ(5,NML=VAR_Hubbard)
              CLOSE(5)
@@ -106,10 +112,14 @@
           CALL MPI_BCAST(Beta     ,1,MPI_REAL8  ,0,MPI_COMM_WORLD,ierr)
           CALL MPI_BCAST(Lambda   ,1,MPI_REAL8  ,0,MPI_COMM_WORLD,ierr)
           CALL MPI_BCAST(n_Lambda ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+          CALL MPI_BCAST(RhoD     ,1,MPI_REAL8  ,0,MPI_COMM_WORLD,ierr)
 #endif
           Call Ham_hop
 
           Ltrot = nint(beta/dtau)
+          Projector = .false.
+          Theta = 0.d0
+          Thtrot = 0
 #ifdef MPI
           If (Irank == 0) then
 #endif
@@ -125,6 +135,7 @@
              Write(50,*) 't             : ', Ham_T
              Write(50,*) 'Ham_U         : ', Ham_U
              Write(50,*) 'Ham_chem      : ', Ham_chem
+             Write(50,*) 'Desired Den   : ', RhoD
              Write(50,*) 'Lambda        : ', Lambda
              Write(50,*) 'n_Lambda      : ', n_Lambda
              close(50)
@@ -321,7 +332,7 @@
                       Op_V(nc,nf)%O(I,I) = cmplx(1.d0  ,0.d0, kind(0.D0))
                    enddo
                    Op_V(nc,nf)%g      = SQRT(CMPLX(-DTAU*Lambda/dble(n_lambda), 0.D0, kind(0.D0))) 
-                   Op_V(nc,nf)%alpha  = cmplx(-DBLE(Latt%N)*0.5d0,0.d0, kind(0.D0))
+                   Op_V(nc,nf)%alpha  = cmplx(-DBLE(Latt%N)*RhoD*0.5d0,0.d0, kind(0.D0))
                    Op_V(nc,nf)%type   = 2
                    Call Op_set( Op_V(nc,nf) )
                 enddo
@@ -398,7 +409,7 @@
                 case default
                    Write(6,*) ' Error in Alloc_obs '  
                 end select
-                Nt = Ltrot+1
+                Nt = Ltrot+1-2*Thtrot
                 Call Obser_Latt_make(Obs_tau(I),Ns,Nt,No,Filename)
              enddo
           endif
@@ -507,7 +518,7 @@
                 ENDDO
                 Obs_eq(4)%Obs_Latt0(no_I) =  Obs_eq(4)%Obs_Latt0(no_I) +  Z * GRC(I1,I1,1) * ZP * ZS
              ENDDO
-          elseif (Model == "Hubbard_Mz" ) Then
+          elseif (Model == "Hubard_Mz" ) Then
              Do I1 = 1,Ndim
                 I    = List(I1,1)
                 no_I = List(I1,2)
@@ -637,14 +648,14 @@
 
 
           Do I = 1,Size(Obs_scal,1)
-             Call  Print_bin_Vec(Obs_scal(I))
+             Call  Print_bin_Vec(Obs_scal(I),Group_Comm)
           enddo
           Do I = 1,Size(Obs_eq,1)
-             Call  Print_bin_Latt(Obs_eq(I),Latt,dtau)
+             Call  Print_bin_Latt(Obs_eq(I),Latt,dtau,Group_Comm)
           enddo
           If (Ltau  == 1 ) then
              Do I = 1,Size(Obs_tau,1)
-                Call  Print_bin_Latt(Obs_tau(I),Latt,dtau)
+                Call  Print_bin_Latt(Obs_tau(I),Latt,dtau,Group_Comm)
              enddo
           endif
 
@@ -676,14 +687,14 @@
 
 !========================================================================
         ! Functions for Global moves.  These move are not implemented in this example.
-        Subroutine Global_move(T0_Proposal_ratio,nsigma_old)
+        Subroutine Global_move(T0_Proposal_ratio,nsigma_old,size_clust)
           
           !>  The input is the field nsigma declared in this module. This routine generates a 
           !>  global update with  and returns the propability  
           !>  T0_Proposal_ratio  =  T0( sigma_out-> sigma_in ) /  T0( sigma_in -> sigma_out)  
           !>   
           Implicit none
-          Real (Kind=Kind(0.d0)), intent(out) :: T0_Proposal_ratio
+          Real (Kind=Kind(0.d0)), intent(out) :: T0_Proposal_ratio, size_clust
           Integer, dimension(:,:),  allocatable, intent(in)  :: nsigma_old
         End Subroutine Global_move
 !---------------------------------------------------------------------

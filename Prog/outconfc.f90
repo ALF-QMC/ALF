@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 The ALF project
+!  Copyright (C) 2016 - 2018 The ALF project
 ! 
 !  This file is part of the ALF project.
 ! 
@@ -13,7 +13,7 @@
 !     GNU General Public License for more details.
 ! 
 !     You should have received a copy of the GNU General Public License
-!     along with Foobar.  If not, see http://www.gnu.org/licenses/.
+!     along with ALF.  If not, see http://www.gnu.org/licenses/.
 !     
 !     Under Section 7 of GPL version 3 we require you to fulfill the following additional terms:
 !     
@@ -43,52 +43,32 @@
 !--------------------------------------------------------------------
 
          USE HAMILTONIAN
-
+#ifdef MPI
+         Use mpi
+#endif
          IMPLICIT NONE
 
-         
-
-#ifdef MPI
-         INCLUDE 'mpif.h'
-#endif
          ! LOCAL
-         INTEGER        :: I, IERR, ISIZE, IRANK, SEED_IN, K, ISEED, NT, NR
+         INTEGER        :: I, IERR, ISIZE, IRANK, K, NT
          INTEGER, DIMENSION(:), ALLOCATABLE :: SEED_VEC
-         REAL (Kind=Kind(0.d0))  :: X
-         LOGICAL        :: LCONF 
-         CHARACTER (LEN=64) :: FILE_SR, FILE_TG
+         CHARACTER (LEN=64) :: FILE_TG
 
 #if defined(MPI)
-         INTEGER        :: STATUS(MPI_STATUS_SIZE)
+         INTEGER        :: irank_g, isize_g, igroup
          CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
          CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-#endif 
-         
-#if defined(MPI) && !defined(TEMPERING)
+         call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+         call MPI_Comm_size(Group_Comm, isize_g, ierr)
+         igroup           = irank/isize_g
+         !Write(6,*) "Group, rank :", igroup, irank_g
+
          CALL GET_SEED_LEN(K)
          ALLOCATE(SEED_VEC(K))
          CALL RANGET(SEED_VEC)
-         FILE_SR = "confout"
-         FILE_TG = FILE_I(FILE_SR,IRANK)
-         OPEN (UNIT = 10, FILE=FILE_TG, STATUS='UNKNOWN', ACTION='WRITE')
-         WRITE(10,*) SEED_VEC
-         DO NT = 1,LTROT
-            DO I = 1,SIZE(NSIGMA,1)
-               WRITE(10,*) NSIGMA(I,NT) 
-            ENDDO
-         ENDDO
-         CLOSE(10)
-         DEALLOCATE(SEED_VEC)
-            
-#else   
-         CALL GET_SEED_LEN(K)
-         ALLOCATE(SEED_VEC(K))
-         CALL RANGET(SEED_VEC)
-         FILE_TG = "confout_0"
-#if defined(TEMPERING)
-         write(File_TG,'(A,I0,A)') "Temp_",Irank,"/confout_0"
+#if defined(TEMPERING) 
+         write(FILE_TG,'(A,I0,A,I0)') "Temp_",igroup,"/confout_",irank_g
 #else
-         FILE_TG = "confout_0"
+         write(FILE_TG,'(A,I0)') "confout_",irank_g
 #endif
          OPEN (UNIT = 10, FILE=FILE_TG, STATUS='UNKNOWN', ACTION='WRITE')
          WRITE(10,*) SEED_VEC
@@ -99,6 +79,20 @@
          ENDDO
          CLOSE(10)
          DEALLOCATE(SEED_VEC)
+#else
+         CALL GET_SEED_LEN(K)
+         ALLOCATE(SEED_VEC(K))
+         CALL RANGET(SEED_VEC)
+         FILE_TG = "confout_0"
+         OPEN (UNIT = 10, FILE=FILE_TG, STATUS='UNKNOWN', ACTION='WRITE')
+         WRITE(10,*) SEED_VEC
+         DO NT = 1,LTROT
+            DO I = 1,SIZE(NSIGMA,1)
+               WRITE(10,*) NSIGMA(I,NT) 
+            ENDDO
+         ENDDO
+         CLOSE(10)
+         DEALLOCATE(SEED_VEC)
 #endif
-         
+
        END SUBROUTINE CONFOUT

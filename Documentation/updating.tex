@@ -46,7 +46,7 @@ so as to guarantee the stationarity condition.  Here, $ W(C) = \left| \Re \left[
  \subsection{Global updates}
 The code equally allows for global updates.  The user will have to provide two other functions in the module \texttt{Hamiltonian\_Examples.f90}.   
 
-The subroutine  \texttt{Global\_move(T0\_Proposal\_ratio,nsigma\_old)}  proposes  a global move. \\
+The subroutine  \texttt{Global\_move(T0\_Proposal\_ratio,nsigma\_old,size\_clust)}  proposes  a global move. \\
 \texttt{nsigma\_old(M\_V+ M\_I, Ltrot)} is a two dimensional  array containing  the full  configuration $C$.  On output, the new configuration, C',-- determined by the user -- is to be stored in the 
 array  \texttt{nsigma(M\_V+ M\_I, Ltrot)}.    \texttt{nsigma(M\_V+ M\_I, Ltrot)} is a global variable declared in the module, \texttt{Hamiltonian}.  Equally, on output, the variable 
 \texttt{T0\_Proposal\_ratio} contains the proposal ratio 
@@ -54,7 +54,8 @@ array  \texttt{nsigma(M\_V+ M\_I, Ltrot)}.    \texttt{nsigma(M\_V+ M\_I, Ltrot)}
 	 \frac{T_0(C' \rightarrow C)}{T_0(C \rightarrow C') }  
 \end{equation}
 Since we allow for a stochastic  generation of  the global move, it may very well be that no change is proposed. In this case, \texttt{T0\_Proposal\_ratio}   takes the value 0 upon exit, and  
-\texttt{nsigma=nsigma\_old}.   
+\texttt{nsigma=nsigma\_old}.  
+Furthermore, the real-valued \texttt{size\_clust} should give the size of the proposed move (e.g. $\tfrac{\text{Number of flipped spins}}{\text{Total number of spins}}$). This will be used to calculate the average sizes of proposed and of accepted moves which will be printed in the \texttt{info} file.
 
 To compute the acceptance rejection ratio,  the user  will equally have to provide the function \\
 \texttt{Delta\_S0\_global(Nsigma\_old)} that computes the ratio $e^{-S_0(C')}/e^{-S_0(C)}$. Again the configuration $C'$ is   given by the array \texttt{nsigma(M\_V+ M\_I, Ltrot)}  which is 

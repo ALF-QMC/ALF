@@ -1,4 +1,4 @@
-!  Copyright (C) 2016, 2017 The ALF project
+!  Copyright (C) 2016 - 2018 The ALF project
 ! 
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -11,7 +11,7 @@
 !     GNU General Public License for more details.
 ! 
 !     You should have received a copy of the GNU General Public License
-!     along with Foobar.  If not, see http://www.gnu.org/licenses/.
+!     along with ALF.  If not, see http://www.gnu.org/licenses/.
 !     
 !     Under Section 7 of GPL version 3 we require you to fulfill the following additional terms:
 !     
@@ -108,7 +108,11 @@
            ALLOCATE(udvr(N_FL))
            Z = cmplx(1.d0,0.d0,kind(0.d0))
            Do nf = 1, N_FL
-              CALL udvr(nf)%init(ndim)
+              if (Projector) then
+                CALL udvr(nf)%init(ndim,'r',WF_R(nf)%P)
+              else
+                CALL udvr(nf)%init(ndim,'r')
+              endif
            enddo
               
            NST = 1
@@ -164,20 +168,16 @@
 
            !Locals
            Integer :: J,I,nf,n 
-           Complex (Kind=Kind(0.D0)), allocatable, Dimension(:, :) :: HLP4
            Real    (Kind=Kind(0.D0)) :: X
            
-           Allocate(HLP4(Ndim, Ndim))
 
            Do nf = 1,N_FL
-              Call Hop_mod_mmthr(Ain(:,:,nf),HLP4,nf)
+              Call Hop_mod_mmthr(Ain(:,:,nf),nf)
               Do n = 1,Size(Op_V,1)
-                 X = Phi(nsigma(n,nt),Op_V(n,nf)%type)
-                 Call Op_mmultR(HLP4,Op_V(n,nf),X,Ndim)
+!                  X = Phi(nsigma(n,nt),Op_V(n,nf)%type)
+                 Call Op_mmultR(Ain(:,:,nf),Op_V(n,nf),nsigma(n,nt),Ndim,'n')
               ENDDO
-              Call ZLACPY('A', Ndim, Ndim, HLP4, Ndim, Ain(1,1, nf), Ndim)
            Enddo
-           Deallocate(HLP4)
            
          end SUBROUTINE PROPR
 
@@ -197,21 +197,17 @@
            
            ! Locals 
            Integer :: J,I,nf,n 
-           Complex (Kind=Kind(0.D0)), allocatable, Dimension(:, :) :: HLP4
            Real    (Kind=Kind(0.D0)) :: X
            
-           Allocate(HLP4(Ndim, Ndim))
            
            do nf = 1,N_FL
               !Call MMULT(HLP4,Ain(:,:,nf),Exp_T_M1(:,:,nf) )
-              Call Hop_mod_mmthl_m1(Ain(:,:,nf),HLP4,nf)
+              Call Hop_mod_mmthl_m1(Ain(:,:,nf),nf)
               Do n =1,Size(Op_V,1)
-                 X = -Phi(nsigma(n,nt),Op_V(n,nf)%type)
-                 Call Op_mmultL(HLP4,Op_V(n,nf),X,Ndim)
+!                  X = -Phi(nsigma(n,nt),Op_V(n,nf)%type)
+                 Call Op_mmultL(Ain(:,:,nf),Op_V(n,nf),-nsigma(n,nt),Ndim,'n')
               Enddo
-              Call ZLACPY('A', Ndim, Ndim, HLP4, Ndim, Ain(1,1, nf), Ndim)
            enddo
-           Deallocate(HLP4)
            
          END SUBROUTINE PROPRM1
 

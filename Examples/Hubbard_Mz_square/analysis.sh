@@ -1,4 +1,4 @@
-export ANNAL=${DIR}"/Analysis_8/"
+export ANNAL=${DIR}"/Analysis/"
 
 for filename in *_scal; do
     echo $filename
@@ -7,18 +7,30 @@ for filename in *_scal; do
        cp $filename Var_scal
        $ANNAL/cov_scal.out
        mv "Var_scalJ"  $filename"J"
+       for filename2 in Var_scal_Auto_*; do
+	   if [ -e "${filename2}" ]; then
+               NewName=`echo ${filename2} | sed s/Var_scal/${filename}/`
+	       mv $filename2 $NewName
+	   fi
+       done
        rm Var_scal
 #    fi
 done
 
-for filename in *_eq; do
+for filename in Spin*_eq; do
     echo $filename
     export filename1=$filename"J"
 #    if [ "$filename1" -ot "$filename" ]; then
-       cp $filename ineq
+       ln $filename ineq
        $ANNAL/cov_eq.out
        mv "equalJ"  $filename"JK"
        mv "equalJR" $filename"JR"
+       for filename2 in Var_eq_Auto_Tr*; do
+	   if [ -e "${filename2}" ]; then
+	      NewName=`echo ${filename2} | sed s/Var_eq/${filename}/`
+	      mv $filename2 $NewName
+	   fi
+       done
        rm ineq
 #    fi
 done
@@ -26,7 +38,7 @@ done
 
 for filename in *_tau; do
     echo $filename
-    cp $filename intau
+    ln $filename intau
     $ANNAL/cov_tau.out
     rm intau
     for filename1 in g_*; do

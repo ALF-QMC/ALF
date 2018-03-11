@@ -6,13 +6,14 @@
 
 
        Contains
-         
+
          Subroutine  Print_bin_C(Dat_eq,Dat_eq0,Latt, Nobs, Phase_bin_tmp, file_pr)
            Use Lattices_v3
-           Implicit none
 #ifdef MPI
-           include 'mpif.h'
-#endif   
+           Use mpi
+#endif
+           Implicit none
+
 
            Complex (Kind=Kind(0.d0)), Dimension(:,:,:), Intent(inout):: Dat_eq
            Complex (Kind=Kind(0.d0)), Dimension(:)    , Intent(inout):: Dat_eq0
@@ -20,7 +21,7 @@
            Complex (Kind=Kind(0.d0)),                   Intent(In)   :: Phase_bin_tmp
            Character (len=64),                 Intent(In)   :: File_pr
            Integer,                            Intent(In)   :: Nobs
-          
+
            ! Local
            Integer :: Norb, I, no,no1
            Complex (Kind=Kind(0.d0)), allocatable :: Tmp(:,:,:), Tmp1(:)
@@ -33,7 +34,6 @@
            CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
            CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
 #endif
-
            Phase_bin = Phase_bin_tmp
            Norb = size(Dat_eq,3)
            if ( .not. (Latt%N  == Size(Dat_eq,1) ) ) then 
@@ -43,7 +43,7 @@
            Allocate (Tmp(Latt%N,Norb,Norb), Tmp1(Norb) )
            Dat_eq = Dat_eq/dble(Nobs)
            Dat_eq0 = Dat_eq0/dble(Nobs*Latt%N)
-           
+
 #ifdef MPI
            I = Latt%N*Norb*Norb
            Tmp = cmplx(0.d0, 0.d0, kind(0.D0))
@@ -84,22 +84,20 @@
 #ifdef MPI
            Endif
 #endif
-              
+
            deallocate (Tmp, tmp1 )
-          
 
          End Subroutine Print_bin_C
-          
 
 !=========================================================
 
          Subroutine  Print_bin_R(Dat_eq,Dat_eq0,Latt, Nobs, Phase_bin_tmp, file_pr)
            Use Lattices_v3
-           Implicit none
 #ifdef MPI
-           include 'mpif.h'
-#endif   
-           
+           Use mpi
+#endif
+           Implicit none
+
            Real    (Kind=Kind(0.d0)), Dimension(:,:,:), Intent(inout) :: Dat_eq
            Real    (Kind=Kind(0.d0)), Dimension(:)    , Intent(inout) :: Dat_eq0
            Type (Lattice),                     Intent(In)    :: Latt
@@ -146,7 +144,6 @@
            Dat_eq0 = Tmp1/DBLE(ISIZE)
 
 #endif
-           
               do no = 1,Norb
                  do no1 = 1,Norb
                     Call  Fourier_R_to_K(Dat_eq(:,no,no1), Tmp(:,no,no1), Latt)
@@ -175,16 +172,15 @@
          End Subroutine Print_bin_R
 !============================================================
          Subroutine  Print_scal(Obs, Nobs, file_pr)
-           
-           Implicit none
 #ifdef MPI
-           include 'mpif.h'
-#endif   
-           
+           Use mpi
+#endif
+           Implicit none
+
            Complex   (Kind=Kind(0.d0)), Dimension(:), Intent(inout) :: Obs
            Character (len=64),               Intent(In)    :: File_pr
            Integer,                          Intent(In)    :: Nobs
-           
+
            ! Local
            Integer :: Norb,I
            Complex  (Kind=Kind(0.d0)), allocatable :: Tmp(:)
@@ -194,7 +190,7 @@
            CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
            CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
 #endif
-           
+
            Norb = size(Obs,1)
            Allocate ( Tmp(Norb) )
            Obs = Obs/dble(Nobs)
@@ -217,10 +213,10 @@
 !==============================================================
          Subroutine  Print_bin_tau(Dat_tau, Latt, Nobs, Phase_bin, file_pr, dtau, Dat0_tau)
            Use Lattices_v3
-           Implicit none
 #ifdef MPI
-           include 'mpif.h'
-#endif   
+           Use mpi
+#endif
+           Implicit none
 
            Complex (Kind=Kind(0.d0)), Dimension(:,:,:,:), Intent(inout):: Dat_tau   ! (Latt%N, Ltau,Norb, Norb)
            Complex (Kind=Kind(0.d0)), Dimension(:      ), Intent(inout), optional :: Dat0_tau  ! (Norb)
@@ -229,7 +225,7 @@
            Character (len=64),                   Intent(In)   :: File_pr
            Integer,                              Intent(In)   :: Nobs
            Real (Kind=Kind(0.d0)),                        Intent(In)   :: dtau
-          
+
            ! Local
            Integer :: Norb, I, no,no1, LT, nt
            Complex (Kind=Kind(0.d0)), allocatable :: Tmp(:,:,:,:), Tmp0(:)

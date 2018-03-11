@@ -1,4 +1,4 @@
-!  Copyright (C) 2017 The ALF project
+!  Copyright (C) 2017, 2018 The ALF project
 ! 
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -11,7 +11,7 @@
 !     GNU General Public License for more details.
 ! 
 !     You should have received a copy of the GNU General Public License
-!     along with Foobar.  If not, see http://www.gnu.org/licenses/.
+!     along with ALF.  If not, see http://www.gnu.org/licenses/.
 !     
 !     Under Section 7 of GPL version 3 we require you to fulfill the following additional terms:
 !     
@@ -49,9 +49,10 @@ Contains
 !> @param WORK[inout] work memory. We query and allocate it in this routine. Needs to be deallocated outside.
 !> @param LWORK[inout] optimal size of the work memory.
 !--------------------------------------------------------------------
-SUBROUTINE QDRP_decompose(Ndim, Mat, D, IPVT, TAU, WORK, LWORK)
+SUBROUTINE QDRP_decompose(Ndim, N_part, Mat, D, IPVT, TAU, WORK, LWORK)
 Implicit None
 Integer, intent(in) :: Ndim
+Integer, intent(in) :: N_part
 Integer, intent(inout) :: LWORK
 Integer, Dimension(:), intent(inout), Allocatable :: IPVT
 COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(inout) :: Mat
@@ -66,14 +67,14 @@ Real(Kind=Kind(0.d0)) :: X
 
         ALLOCATE(RWORK(2*Ndim))
         ! Query optimal amount of memory
-        call ZGEQP3(Ndim, Ndim, Mat, Ndim, IPVT, TAU(1), Z, -1, RWORK(1), INFO)
+        call ZGEQP3(Ndim, N_part, Mat, Ndim, IPVT, TAU(1), Z, -1, RWORK(1), INFO)
         LWORK = INT(DBLE(Z))
         ALLOCATE(WORK(LWORK))
         ! QR decomposition of Mat with full column pivoting, Mat * P = Q * R
-        call ZGEQP3(Ndim, Ndim, Mat, Ndim, IPVT, TAU(1), WORK(1), LWORK, RWORK(1), INFO)
+        call ZGEQP3(Ndim, N_part, Mat, Ndim, IPVT, TAU(1), WORK(1), LWORK, RWORK(1), INFO)
         DEALLOCATE(RWORK)
         ! separate off D
-        do i = 1, Ndim
+        do i = 1, N_part
         ! plain diagonal entry
             X = ABS(Mat(i, i))
 !             ! a inf-norm
@@ -85,9 +86,34 @@ Real(Kind=Kind(0.d0)) :: X
             ! 2-norm
 !            X = DZNRM2(N_size+1-i, TPUP(i, i), N_size)
             D(i) = X
-            do j = i, Ndim
+            do j = i, N_part
                 Mat(i, j) = Mat(i, j) / X
             enddo
+        enddo
+END SUBROUTINE
+
+SUBROUTINE Pivot_phase(Phase, IPVT, N_size)
+        Implicit none
+        COMPLEX(kind=kind(0.d0)), Intent(INOUT) :: Phase
+        Integer, Dimension(:), Intent(IN)       :: IPVT
+        Integer,               Intent(IN)       :: N_size
+        
+        Integer:: i, next, L, VISITED(N_size)
+        
+        VISITED=0
+        do i = 1, N_size
+            if (VISITED(i) .eq. 0) then
+                next = i
+                L = 0
+                do while (VISITED(next) .eq. 0)
+                 L = L + 1
+                 VISITED(next) = 1
+                 next = IPVT(next)
+                enddo
+                if(MOD(L, 2) .eq. 0) then
+                    PHASE = -PHASE
+                endif
+            endif
         enddo
 END SUBROUTINE
 

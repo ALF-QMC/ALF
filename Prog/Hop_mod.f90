@@ -1,4 +1,4 @@
-!  Copyright (C) 2016, 2017 The ALF project
+!  Copyright (C) 2016 - 2018 The ALF project
 ! 
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -11,7 +11,7 @@
 !     GNU General Public License for more details.
 ! 
 !     You should have received a copy of the GNU General Public License
-!     along with Foobar.  If not, see http://www.gnu.org/licenses/.
+!     along with ALF.  If not, see http://www.gnu.org/licenses/.
 !     
 !     Under Section 7 of GPL version 3 we require you to fulfill the following additional terms:
 !     
@@ -123,113 +123,72 @@
     end subroutine Hop_mod_destroy
 !--------------------------------------------------------------------
 
-        Subroutine Hop_mod_mmthr(In, Out,nf)
+        Subroutine Hop_mod_mmthr(In,nf)
           
 
-          ! In:   IN
-          ! Out:  OUT = e^{ -dtau T }.IN
+          ! InOut:  In = e^{ -dtau T }.IN
           Implicit none
           
-          Complex (Kind=Kind(0.d0)), intent(IN)  :: IN(Ndim,Ndim)
-          Complex (Kind=Kind(0.d0)), intent(INOUT) :: OUT(Ndim,Ndim)
+          Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
           Integer, intent(IN) :: nf
           
           !Local 
-          Complex (Kind=Kind(0.D0)) :: alpha, beta
-          Complex(Kind = Kind(0.D0)), allocatable, dimension(:,:) :: tmp
-          Integer :: nc, n, status
+          Integer :: nc, N1, N2
           
-          Out = In
-          alpha = 1.D0
-          beta = 0.D0
-          Allocate(tmp(Ndim_hop, Ndim_hop))
+          N1=size(In,1)
+          N2=size(In,2)
+          
           do nc =  Ncheck,1,-1
              If ( dble( Op_T(nc,nf)%g*conjg(Op_T(nc,nf)%g) ) > Zero ) then
-                do n = 1,Ndim_hop
-                    call ZCOPY(Ndim, Out(Op_T(nc,nf)%P(n),1), NDim, V_Hlp(n, 1), Ndim_hop)
-                enddo
-                CALL clalfzhemm('L', 'U', Ndim_hop, Ndim, alpha, Exp_T(:,:,nc,nf),Ndim_hop,V_hlp(1,1),NDim_hop,beta, &
-                & V_HLP1(1,1),Ndim_hop, status)
-!                 CALL ZHEMM('L', 'U', Ndim_hop, Ndim, alpha, Exp_T(:,:,nc,nf),Ndim_hop,V_hlp(1,1),NDim_hop,beta,V_HLP1(1,1),Ndim_hop)
-                do n = 1,Ndim_hop
-                    call ZCOPY(Ndim, V_hlp1(n,1), Ndim_hop, OUT(OP_T(nc,nf)%P(n),1), Ndim)
-                Enddo
+                call ZSLHEMM('L','U',Ndim_hop,N1,N2,Exp_T(:,:,nc,nf),Op_T(nc,nf)%P,In)
              Endif
           Enddo
-          deallocate(tmp)
         end Subroutine Hop_mod_mmthr
 
 !--------------------------------------------------------------------
 
-        Subroutine Hop_mod_mmthr_m1(In, Out,nf)
+        Subroutine Hop_mod_mmthr_m1(In,nf)
           
 
-          ! In:   IN
-          ! Out:  OUT = e^{  dtau T }.IN
+          ! InOut:  In = e^{  dtau T }.IN
           Implicit none
           
-          Complex (Kind=Kind(0.d0)), intent(IN)  :: IN(Ndim,Ndim)
-          Complex (Kind=Kind(0.d0)), intent(INOUT) :: OUT(Ndim,Ndim)
+          Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
           Integer :: nf
           
           !Local 
-          Integer :: nc, I, n, status
-          Complex (Kind=Kind(0.D0)) :: a, b
-          a = 1.D0
-          b = 0.D0
+          Integer :: nc , N1, N2
           
-          Out = In
+          N1=size(In,1)
+          N2=size(In,2)
+
           do nc =  1,Ncheck
              If ( dble( Op_T(nc,nf)%g*conjg(Op_T(nc,nf)%g) ) > Zero ) then
-                do I = 1,Ndim
-                   do n = 1,Ndim_hop
-                      V_Hlp(n,I) = Out(Op_T(nc,nf)%P(n),I)
-                   enddo
-                enddo
-                call clalfzhemm('L', 'U', Ndim_hop, Ndim, a, Exp_T_m1(:, :,nc,nf),Ndim_hop, V_hlp(1,1), &
-                & NDim_hop, b, V_HLP1(1,1),Ndim_hop, status)
-!                 CALL ZHEMM('L','U', Ndim_hop, Ndim, a, Exp_T_m1(:, :,nc,nf),Ndim_hop, V_hlp(1,1), NDim_hop, b, V_HLP1(1,1),Ndim_hop)
-                DO I = 1,Ndim
-                   do n = 1,Ndim_hop
-                      OUT(OP_T(nc,nf)%P(n),I) = V_hlp1(n,I)
-                   Enddo
-                Enddo
+                call ZSLHEMM('L','U',Ndim_hop,N1,N2,Exp_T_m1(:,:,nc,nf),Op_T(nc,nf)%P,In)
              Endif
           Enddo
-          
         end Subroutine Hop_mod_mmthr_m1
 
 !--------------------------------------------------------------------
 
-        Subroutine Hop_mod_mmthl (In, Out,nf)
+        Subroutine Hop_mod_mmthl (In,nf)
           
 
-          ! In:   IN
-          ! Out:  OUT = IN * e^{ -dtau T }
+          ! InOut:  In = IN * e^{ -dtau T }
           Implicit none
           
-          Complex (Kind=Kind(0.d0)), intent(IN)  :: IN(Ndim,Ndim)
-          Complex (Kind=Kind(0.d0)), intent(INOUT) :: OUT(Ndim,Ndim)
+          Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
           Integer :: nf
           
           !Local 
-          Integer :: nc, n, status
-          Complex (Kind=Kind(0.D0)) :: alpha, beta
+          Integer :: nc, N1, N2
           
-          alpha = 1.D0
-          beta = 0.D0
-          Out = In
+          N1=size(In,1)
+          N2=size(In,2)
+
           do nc =  1, Ncheck
              If ( dble( Op_T(nc,nf)%g*conjg(Op_T(nc,nf)%g) ) > Zero ) then
-                do n = 1,Ndim_hop
-                  call zcopy(Ndim, Out(1, Op_T(nc,nf)%P(n)), 1, U_Hlp(1, n), 1)
-                enddo
-                call clalfzhemm('R', 'U', Ndim, Ndim_hop, alpha, Exp_T(:, :, nc, nf), Ndim_hop, U_hlp(1,1),&
-                & NDim, beta, U_HLP1(1,1),Ndim, status)
-!                 CALL ZHEMM('R', 'U', Ndim, Ndim_hop, alpha, Exp_T(:, :, nc, nf), Ndim_hop, U_hlp(1,1), NDim, beta, U_HLP1(1,1),Ndim)
-                do n = 1,Ndim_hop
-                  call zcopy(Ndim, U_hlp1(1, n), 1, OUT(1,OP_T(nc,nf)%P(n)), 1)
-                Enddo
+                call ZSLHEMM('R','U',Ndim_hop,N1,N2,Exp_T(:,:,nc,nf),Op_T(nc,nf)%P,In)
              Endif
           Enddo
           
@@ -237,35 +196,49 @@
 
 !--------------------------------------------------------------------
 
-        Subroutine Hop_mod_mmthl_m1 (In, Out, nf)
+        Subroutine Hop_mod_mmthlc (In,nf)
           
 
-          ! In:   IN
-          ! Out:  OUT = IN * e^{ dtau T }
+          ! InOut:  In = IN * e^{ -dtau T }
           Implicit none
           
-          Complex (Kind=Kind(0.d0)), intent(IN)  :: IN(Ndim,Ndim)
-          Complex (Kind=Kind(0.d0)), intent(INOUT) :: OUT(Ndim,Ndim)
+          Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
           Integer :: nf
           
           !Local 
-          Integer :: nc, n, status
-          Complex (Kind=Kind(0.D0)) :: a, b
-          a = 1.D0
-          b = 0.D0
+          Integer :: nc, N1, N2
           
-          Out = In
+          N1=size(In,1)
+          N2=size(In,2)
+          
+          do nc =  1, Ncheck
+             If ( dble( Op_T(nc,nf)%g*conjg(Op_T(nc,nf)%g) ) > Zero ) then
+                call ZSLHEMM('L','U',Ndim_hop,N1,N2,Exp_T(:,:,nc,nf),Op_T(nc,nf)%P,In)
+             Endif
+          Enddo
+          
+        end Subroutine Hop_mod_mmthlc
+
+!--------------------------------------------------------------------
+
+        Subroutine Hop_mod_mmthl_m1 (In, nf)
+          
+
+          ! InOut:  In = IN * e^{ dtau T }
+          Implicit none
+          
+          Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
+          Integer :: nf
+          
+          !Local 
+          Integer :: nc, N1, N2
+          
+          N1=size(In,1)
+          N2=size(In,2)
+          
           do nc =  Ncheck,1,-1
              If ( dble( Op_T(nc,nf)%g*conjg(Op_T(nc,nf)%g) ) > Zero ) then
-                do n = 1,Ndim_hop
-                   call zcopy(Ndim, Out(1, Op_T(nc,nf)%P(n)), 1, U_Hlp(1, n), 1)
-                enddo
-                call clalfzhemm('R','U', Ndim, Ndim_hop, a, Exp_T_m1(:, :,nc,nf),Ndim_hop, U_hlp(1,1) &
-                & , NDim, b, U_HLP1(1,1),Ndim, status)
-!                 CALL ZHEMM('R','U', Ndim, Ndim_hop, a, Exp_T_m1(:, :,nc,nf),Ndim_hop, U_hlp(1,1), NDim, b, U_HLP1(1,1),Ndim)
-                do n = 1,Ndim_hop
-                   call zcopy(Ndim, U_Hlp1(1, n), 1, Out(1, Op_T(nc,nf)%P(n)), 1)
-                Enddo
+                call ZSLHEMM('R','U',Ndim_hop,N1,N2,Exp_T_m1(:,:,nc,nf),Op_T(nc,nf)%P,In)
              Endif
           Enddo
           

@@ -2,6 +2,7 @@
     Module Hamiltonian
 
       Use Operator_mod
+      Use WaveFunction_mod
       Use Lattices_v3 
       Use MyMats 
       Use Random_Wrap
@@ -11,8 +12,13 @@
 
       Type (Operator), dimension(:,:), allocatable  :: Op_V
       Type (Operator), dimension(:,:), allocatable  :: Op_T
+      Type (WaveFunction), dimension(:),   allocatable  :: WF_L
+      Type (WaveFunction), dimension(:),   allocatable  :: WF_R
       Integer, allocatable :: nsigma(:,:)
-      Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot
+      Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot, Thtrot
+      Logical              :: Projector
+!>    Defines MPI communicator 
+      Integer              :: Group_Comm
 
 
       
@@ -23,7 +29,7 @@
       Integer, allocatable, private :: List(:,:), Invlist(:,:)
       Integer,              private :: L1, L2, FlagSym
       real (Kind=Kind(0.d0)),        private :: Ham_T, Ham_Vint,  Ham_Lam
-      real (Kind=Kind(0.d0)),        private :: Dtau, Beta
+      real (Kind=Kind(0.d0)),        private :: Dtau, Beta, Theta
       Character (len=64),   private :: Model, Lattice_type
       Complex (Kind=Kind(0.d0)),     private :: Gamma_M(4,4,5), Sigma_M(2,2,0:3)
       Complex (Kind=Kind(0.d0)),     private :: Gamma_13(4,4), Gamma_23(4,4), Gamma_45(4,4)
@@ -66,11 +72,10 @@
       contains 
 
         Subroutine Ham_Set
-
-          Implicit none
 #ifdef MPI
-          include 'mpif.h'
-#endif   
+          Use mpi
+#endif
+          Implicit none
 
           integer :: ierr
 
@@ -126,6 +131,9 @@
 
           Call Ham_hop
           Ltrot = nint(beta/dtau)
+          Projector = .false.
+          Theta = 0.d0
+          Thtrot = 0
 #ifdef MPI
           If (Irank == 0) then
 #endif
@@ -437,9 +445,10 @@
        endif
           
           If (Ltau == 1) then 
-             Allocate ( Green_tau(Latt%N,Ltrot+1,Norb,Norb), Den_tau(Latt%N,Ltrot+1,1,1) )
-             Allocate ( U1_tau(Latt%N,Ltrot+1,1,1), U1xy_tau(Latt%N,Ltrot+1,1,1), U1xyG_tau(Latt%N,Ltrot+1,1,1) )
-             Allocate ( Spinz_tau(Latt%N,Ltrot+1,1,1), Spinxy_tau(Latt%N,Ltrot+1,1,1) )
+             Allocate ( Green_tau(Latt%N,Ltrot+1-2*Thtrot,Norb,Norb), Den_tau(Latt%N,Ltrot+1-2*Thtrot,1,1) )
+             Allocate ( U1_tau(Latt%N,Ltrot+1-2*Thtrot,1,1))
+             Allocate ( U1xy_tau(Latt%N,Ltrot+1-2*Thtrot,1,1), U1xyG_tau(Latt%N,Ltrot+1-2*Thtrot,1,1) )
+             Allocate ( Spinz_tau(Latt%N,Ltrot+1-2*Thtrot,1,1), Spinxy_tau(Latt%N,Ltrot+1-2*Thtrot,1,1) )
           Allocate ( Den_sus(Latt%N,1,1), Den_sus0(1) ) 
           Allocate ( U1_sus(Latt%N,1,1), U1_sus0(1) )
           Allocate ( U1xy_sus(Latt%N,1,1), U1xy_sus0(1) )
@@ -1451,11 +1460,10 @@
         Subroutine  Pr_obs(LTAU)
 
           Use Print_bin_mod
-          Implicit none
 #ifdef MPI
-          include 'mpif.h'
-#endif   
-
+          Use mpi
+#endif
+          Implicit none
 
           Integer,  Intent(In) ::  Ltau
 
@@ -1466,16 +1474,16 @@
           Integer        :: STATUS(MPI_STATUS_SIZE)
           CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
           CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-#endif          
+#endif
 !!$#ifdef MPI
 !!$          Write(6,*)  Irank, 'In Pr_obs', LTAU
 !!$#else
 !!$          Write(6,*)  'In Pr_obs', LTAU
 !!$#endif
-    
+
           File_pr ="ener"
           Call Print_scal(Obs_scal, Nobs, file_pr)
-          
+
           Phase_bin = Obs_scal(8)/dble(Nobs)
           File_pr ="Den_eq"
           Call Print_bin(Den_eq, Den_eq0, Latt, Nobs, Phase_bin, file_pr)
@@ -1483,7 +1491,7 @@
           Call Print_bin(U1_eq, U1_eq0, Latt, Nobs, Phase_bin, file_pr)
           File_pr ="Spinz_eq"
           Call Print_bin(Spinz_eq, Spinz_eq0, Latt, Nobs, Phase_bin, file_pr)
-          
+
           if (FlagSym == 1) then
          File_pr ="R_eq"
          Call Print_bin(R_eq, R_eq0, Latt, Nobs, Phase_bin, file_pr)
@@ -1709,14 +1717,14 @@
         end Subroutine OBSERT
 !========================================================================
         ! Functions for Global moves.  These move are not implemented in this example.
-        Subroutine Global_move(T0_Proposal_ratio,nsigma_old)
+        Subroutine Global_move(T0_Proposal_ratio,nsigma_old,size_clust)
           
           !>  The input is the field nsigma declared in this module. This routine generates a 
           !>  global update with  and returns the propability  
           !>  T0_Proposal_ratio  =  T0( sigma_out-> sigma_in ) /  T0( sigma_in -> sigma_out)  
           !>   
           Implicit none
-          Real (Kind=Kind(0.d0)), intent(out) :: T0_Proposal_ratio
+          Real (Kind=Kind(0.d0)), intent(out) :: T0_Proposal_ratio, size_clust
           Integer, dimension(:,:),  allocatable, intent(in)  :: nsigma_old
         End Subroutine Global_move
 !========================================================================

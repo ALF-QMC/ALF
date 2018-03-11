@@ -9,8 +9,8 @@ stages:
   script:
     - . setenv.sh
     - export f90="gfortran"
-    - cd Libraries
     - gfortran -v
+    - cd Libraries
     - make
     - cd ..
     - cd Prog
@@ -64,7 +64,7 @@ stages:
     - cd tests
     - cmake -G "Unix Makefiles" -DCMAKE_Fortran_FLAGS_RELEASE=${F90OPTFLAGS} -DCMAKE_BUILD_TYPE=RELEASE ..
     - cmake --build . --target all --config Release
-    - ctest -O log.txt
+    - ctest -VV -O log.txt
     - cat log.txt | grep "tests passed" | cut -d " " -f 1
 
 GQMCT_Wheezy:
@@ -118,15 +118,17 @@ GQMCT_Ubuntu_Trusty:
 GQMCT_Ubuntu_Xenial:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:xenial-gfortran-lapack
   <<: *build_definition
-  
+
+GQMCT_Ubuntu_Bionic:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/ubuntu:bionic-beaver-gfortran-lapack
+  <<: *build_definition
+
 GQMCT_Jessie_MPI:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-gfortran-blas-lapack-fftw-scipy
   stage: build
   script:
     - gfortran -v
-    - make f90='mpif90' PROGRAMCONFIGURATION='-DMPI -DTEMPERING'
     - make f90='mpif90' PROGRAMCONFIGURATION='-DMPI -DTEMPERING' Hub_Ising
-    - make f90='mpif90' PROGRAMCONFIGURATION='-DMPI -DTEMPERING' Kondo_Honey
 
 GQMCT_Wheezy_conv:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-wheezy-gfortran-blas-lapack
@@ -221,6 +223,10 @@ GQMCT_Ubuntu-trusty_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:trusty-gfortran-lapack
   <<: *test_definition
 
+GQMCT_Ubuntu-bionic_tests:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/ubuntu:bionic-beaver-gfortran-lapack
+  <<: *test_definition
+
 GQMCT_Jessie-PGI_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-pgi-cmake
   stage: test
@@ -242,7 +248,7 @@ GQMCT_Jessie-PGI_tests:
     - cd tests
     - cmake -G "Unix Makefiles" -DCMAKE_Fortran_FLAGS_RELEASE="${F90OPTFLAGS} -noswitcherror -L/opt/pgi/linux86-64/2016/lib/ -llapack -lblas" -DCMAKE_Fortran_COMPILER="/opt/pgi/linux86-64/2016/bin/pgfortran" -DCMAKE_BUILD_TYPE=RELEASE -DLAPACK_LIBRARIES="/opt/pgi/linux86-64/2016/lib/liblapack.a" -DBLAS_LIBRARIES="/opt/pgi/linux86-64/2016/lib/libblas.a" ..
     - cmake --build . --target all --config Release
-    - ctest -O log.txt
+    - ctest -VV -O log.txt
     - cat log.txt | grep "tests passed" | cut -d " " -f 1
 
 GQMCT_jessie_valgrind:
