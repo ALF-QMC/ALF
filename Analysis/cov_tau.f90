@@ -178,7 +178,7 @@
                Open (Unit=10,File=File_out,status="unknown")
                Write(10,*) LT
                do nt = 1, LT
-                  Write(10,"(F14.7,2x,F16.8,2x,F16.8)") &
+                  Write(10,"(F14.7,2x,E16.8,2x,E16.8)") &
                        & dble(nt-1)*dtau,  dble(Xmean(nt)), sqrt(abs(dble(Xcov(nt,nt))))
                enddo
                If (N_cov == 1) Then ! print covarariance
@@ -206,7 +206,7 @@
          Open (Unit=10,File=File_out,status="unknown")
          Write(10,*) LT
          do nt = 1, LT
-            Write(10,"(F14.7,2x,F16.8,2x,F16.8)") &
+            Write(10,"(F14.7,2x,E16.8,2x,E16.8)") &
                  & dble(nt-1)*dtau,  dble(Xmean(nt)), sqrt(abs(dble(Xcov(nt,nt))))
          enddo
          If (N_cov == 1) Then ! Print  covariance

@@ -7,8 +7,8 @@
        Implicit Integer (H-N)
        
        Real (Kind=Kind(0.d0)), Dimension(:), allocatable :: XQMC, XTAU, Alpha_tot, xom, A, &
-            &    ERROR, ARES, XQMC_ST
-       Real (Kind=Kind(0.d0)), Dimension(:,:), allocatable :: XCOV, Cov_st
+            &    ERROR, ARES, XQMC_ST, XQMC_eff, XTAU_eff
+       Real (Kind=Kind(0.d0)), Dimension(:,:), allocatable :: XCOV, Cov_st, XCOV_eff
        Real (Kind=Kind(0.d0)), External :: XKER, Back_trans_Aom, F_Fit
        Character (len=64) :: File1, File2
        Character (len=1)  :: Fermion_type
@@ -35,10 +35,12 @@
        read(10,*) ntau
        Allocate ( XCOV(NTAU,NTAU), XQMC(NTAU), XQMC_ST(NTAU), XTAU(NTAU) )
        xcov = 0.d0
+       ntau_eff=0
        do nt = 1,ntau
           read(10,*) Xtau(nt), Xqmc(nt), err
+          if ( err/Xqmc(nt) < 0.5 ) ntau_eff=ntau_eff+1
           if (nt == 1 .or. nt == ntau) then  
-             if (err < 10.0D-3) err = 10.0D-3      
+             if (err < 10.0D-9) err = 10.0D-9      
           endif
           xcov(nt,nt) = err*err
        enddo
@@ -55,8 +57,22 @@
        write(50,*) 'First Moment, Beta  ', Xmom1, Beta
        close(50)
           
+       Allocate ( XCOV_eff(NTAU_eff,NTAU_eff), XQMC_eff(NTAU_eff), XTAU_eff(NTAU_eff) )
+       nt_eff=0
+       XCOV_eff=0.d0
+       do nt=1,ntau
+          if ( sqrt(xcov(nt,nt))/Xqmc(nt) < 0.5 ) then
+            nt_eff=nt_eff+1
+            Xqmc_eff(nt_eff)=xqmc(nt)
+            Xtau_eff(nt_eff)=xtau(nt)
+            Xcov_eff(nt_eff,nt_eff)=xcov(nt,nt)
+            write(*,*) "Using: ", xtau(nt), xqmc(nt), sqrt(xcov(nt,nt)), sqrt(xcov(nt,nt))/Xqmc(nt)
+          else
+            write(*,*) "Ignoring: ", xtau(nt), xqmc(nt), sqrt(xcov(nt,nt)), sqrt(xcov(nt,nt))/Xqmc(nt)
+          endif
+       enddo
           
-       Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER, Back_Trans_Aom, Beta, &
+       Call MaxEnt_stoch(XQMC_eff, Xtau_eff, Xcov_eff, Xmom1, XKER, Back_Trans_Aom, Beta, &
             &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm) 
        
        

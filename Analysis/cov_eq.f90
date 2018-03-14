@@ -49,20 +49,20 @@
          Implicit none
 
 
-         Integer      :: Nunit, Norb, ierr
+         Integer      :: Nunit, Norb, ierr, qmin(6), qinst, nmin, avmin, avmax, avdiff, avmax2, avdiff2
          Integer      :: no, no1, n, n1,m,  nbins, n_skip, nb, N_rebin, N_cov, N_Back
-         real (Kind=Kind(0.d0)):: X, Y 
-         Complex (Kind=Kind(0.d0)), allocatable :: Phase(:)
+         real (Kind=Kind(0.d0)):: X, Y , qmin_norm
+         Complex (Kind=Kind(0.d0)), allocatable :: Phase(:), Ratio1(:), Ratio2(:)
          Type  (Mat_C), allocatable :: Bins (:,:), Bins_R(:,:)
          Complex (Kind=Kind(0.d0)), allocatable :: Bins0(:,:)
-         Complex (Kind=Kind(0.d0)) :: Z, Xmean,Xerr, Xmean_r, Xerr_r
+         Complex (Kind=Kind(0.d0)) :: Z, Z1, Z2, Xmean,Xerr, Xmean_r, Xerr_r
          Real (Kind=Kind(0.d0)) :: Xm,Xe
-         Real    (Kind=Kind(0.d0)) :: Xk_p(2), XR_p(2) , XR1_p(2)
-         Complex (Kind=Kind(0.d0)), allocatable :: V_help(:), V_help_R(:)
+         Real    (Kind=Kind(0.d0)) :: Xk_p(2), XR_p(2) , XR1_p(2), XK_p_norm
+         Complex (Kind=Kind(0.d0)), allocatable :: V_help(:), V_help_TR(:)
          Real (Kind=Kind(0.d0)) :: Pi, a1_p(2), a2_p(2), L1_p(2), L2_p(2), del_p(2)
          Real (Kind=Kind(0.d0)), allocatable :: AutoCorr(:),En(:)
 
-         Integer             :: L1, L2, I, N_auto, N_SUN
+         Integer             :: L1, L2, I, N_auto, N_SUN, nav=2
          Character (len=64)  :: Model, Lattice_type
          Type (Lattice)      :: Latt
          Character (len=64)  :: File_out
@@ -98,27 +98,64 @@
             L1_p    =  dble(L1)*a1_p
             L2_p    =  dble(L2)*a2_p
             Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
-         elseif ( Lattice_type=="Honeycomb" ) then
+         elseif ( Lattice_type=="Honeycomb" .or. Lattice_type=="Kagome" ) then
             a1_p(1) =  1.d0   ; a1_p(2) =  0.d0
             a2_p(1) =  0.5d0  ; a2_p(2) =  sqrt(3.d0)/2.d0
             del_p   =  (a2_p - 0.5*a1_p ) * 2.0/3.0
             L1_p    =  dble(L1) * a1_p
             L2_p    =  dble(L2) * a2_p
             Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
-            !  This will print the  honeycomb lattice. 
-            Open (Unit=10,File="Lattice", status="unknown")
-            do I = 1,Latt%N
-               Xr_p = dble(Latt%list (I,1))*Latt%a1_p + dble(Latt%list (I,2))*Latt%a2_p
-               Do n = 1,3
-                  if (n==1) Xr1_p = Xr_p - del_p
-                  if (n==2) Xr1_p = Xr_p - del_p - a1_p + a2_p 
-                  if (n==3) Xr1_p = Xr_p + a2_p  - del_p
-                  Write(10,"(F14.7,2x,F14.7)") Xr_p (1), Xr_p (2)
-                  Write(10,"(F14.7,2x,F14.7)") Xr1_p(1), Xr1_p(2)
-                  Write(10,*)
-               enddo
-            enddo
-            close(10)
+            XK_P(1) = 0.d0
+            XK_P(2) = 0.d0
+            qinst=Inv_K(XK_p,Latt)
+            XK_p =  dble(Latt%listk(qinst,1))*Latt%b1_p + dble(Latt%listk(qinst,2))*Latt%b2_p
+!             write (*,*) "q_inst = ", XK_p
+            qmin_norm = sqrt(Latt%b1_p(1)**2.d0+Latt%b1_p(2)**2.d0)
+!             write(*,*) "Norm of qmin ", qmin_norm
+            n=0
+            if (sqrt(Latt%b1_p(1)**2.d0+Latt%b1_p(2)**2.d0) <= sqrt(Latt%b2_p(1)**2.d0+Latt%b2_p(2)**2.d0)*1.2d0 ) then
+              n=n+1
+              qmin(n)=Latt%nnlistk(qinst,1,0)
+              n=n+1
+              qmin(n)=Latt%nnlistk(qinst,-1,0)
+            endif
+            if (sqrt(Latt%b2_p(1)**2.d0+Latt%b2_p(2)**2.d0) <= sqrt(Latt%b1_p(1)**2.d0+Latt%b1_p(2)**2.d0)*1.2d0 ) then
+              n=n+1
+              qmin(n)=Latt%nnlistk(qinst,0,1)
+              n=n+1
+              qmin(n)=Latt%nnlistk(qinst,0,-1)
+            endif
+            if (L1 == L2 ) then
+              n=n+1
+              qmin(n)=Latt%nnlistk(qinst,1,1)
+              n=n+1
+              qmin(n)=Latt%nnlistk(qinst,-1,-1)
+            endif
+!	write(*,*) I,  dble(Latt%listk(I,1))*Latt%b1_p + dble(Latt%listk(I,2))*Latt%b2_p
+!         I= Latt%nnlistk(qinst,0,1)
+!         write(*,*) I,  dble(Latt%listk(I,1))*Latt%b1_p + dble(Latt%listk(I,2))*Latt%b2_p
+!         I= Latt%nnlistk(qinst,1,1)
+!         write(*,*) I,  dble(Latt%listk(I,1))*Latt%b1_p + dble(Latt%listk(I,2))*Latt%b2_p
+!         I= Latt%nnlistk(qinst,-1,0)
+!         write(*,*) I,  dble(Latt%listk(I,1))*Latt%b1_p + dble(Latt%listk(I,2))*Latt%b2_p
+!         I= Latt%nnlistk(qinst,0,-1)
+!         write(*,*) I,  dble(Latt%listk(I,1))*Latt%b1_p + dble(Latt%listk(I,2))*Latt%b2_p
+!         I= Latt%nnlistk(qinst,-1,-1)
+!         write(*,*) I,  dble(Latt%listk(I,1))*Latt%b1_p + dble(Latt%listk(I,2))*Latt%b2_p
+
+!            do I=1,Latt%N
+!              XK_p =  dble(Latt%listk(I,1))*Latt%b1_p + dble(Latt%listk(I,2))*Latt%b2_p
+!              XK_p_norm = sqrt(XK_p(1)**2.d0+XK_p(2)**2.d0)
+!              if (0.5d0*qmin_norm < XK_p_norm .and. XK_p_norm < 1.2d0*qmin_norm ) then
+!                n=n+1
+!                qmin(n)=I
+!                write(*,*) "accepted: ",I, XK_p_norm, XK_p
+!               else
+!                 write(*,*) "refuseded: ",I, XK_p_norm, XK_p
+!              endif
+!            enddo
+            nmin=n
+            write(*,*) 'Number of NN k points', nmin
          elseif ( Lattice_type == "Pi_Flux" ) then 
              a1_p(1) =  1.D0   ; a1_p(2) =   1.d0
              a2_p(1) =  1.D0   ; a2_p(2) =  -1.d0
@@ -130,6 +167,22 @@
             Write(6,*) "Lattice not yet implemented!"
             Stop
          endif
+         
+!          write(*,*)  Latt%invlistk
+!          write(*,*)  Latt%nnlistk
+!         write(*,*) '(0,0)', qinst, Latt%invlistk(0,0)
+!         I=Latt%nnlistk(qinst,1,0)
+!         write(*,*) I,  dble(Latt%listk(I,1))*Latt%b1_p + dble(Latt%listk(I,2))*Latt%b2_p
+!         I= Latt%nnlistk(qinst,0,1)
+!         write(*,*) I,  dble(Latt%listk(I,1))*Latt%b1_p + dble(Latt%listk(I,2))*Latt%b2_p
+!         I= Latt%nnlistk(qinst,1,1)
+!         write(*,*) I,  dble(Latt%listk(I,1))*Latt%b1_p + dble(Latt%listk(I,2))*Latt%b2_p
+!         I= Latt%nnlistk(qinst,-1,0)
+!         write(*,*) I,  dble(Latt%listk(I,1))*Latt%b1_p + dble(Latt%listk(I,2))*Latt%b2_p
+!         I= Latt%nnlistk(qinst,0,-1)
+!         write(*,*) I,  dble(Latt%listk(I,1))*Latt%b1_p + dble(Latt%listk(I,2))*Latt%b2_p
+!         I= Latt%nnlistk(qinst,-1,-1)
+!         write(*,*) I,  dble(Latt%listk(I,1))*Latt%b1_p + dble(Latt%listk(I,2))*Latt%b2_p
          
          ! Determine the number of bins. 
          Pi = acos(-1.d0)
@@ -155,14 +208,14 @@
          Write(6,*) "# of bins: ", Nbins
          nbins  = Nbins - n_skip
          Write(6,*) "Effective # of bins: ", Nbins
-         N_auto=min(N_auto,Nbins/3)
+         N_auto=min(N_auto,Nbins-3)
          if(Nbins <= 1) then
            write (*,*) "Effective # of bins smaller then 2. Analysis impossible!"
            stop 1
          endif
 
          ! Allocate  space
-         Allocate ( bins(Nunit,Nbins), bins_r(Nunit,Nbins), Phase(Nbins),  V_help(Nbins), V_help_R(Nbins), Bins0(Nbins,Norb))
+         Allocate ( bins(Nunit,Nbins), bins_r(Nunit,Nbins), Phase(Nbins), Ratio1(Nbins), Ratio2(Nbins), V_help(Nbins), V_help_TR(Nbins), Bins0(Nbins,Norb))
          Do n = 1,Nunit
             do nb = 1,nbins
                Call Make_Mat(bins  (n,nb),Norb)
@@ -175,6 +228,8 @@
          Open ( Unit=10, File="ineq", status="unknown" ) 
          do nb = 1, nbins + n_skip
             if (nb > n_skip ) then
+               Z1=cmplx(0.d0,0.d0,kind(0.d0))
+               Z2=cmplx(0.d0,0.d0,kind(0.d0))
                Read(10,*,End=10) X,no,no1
                Phase(nb-n_skip) = cmplx(X,0.d0,kind(0.d0))
                Do no = 1,Norb
@@ -198,6 +253,24 @@
                         enddo
                      enddo
                   endif
+                  if (m==qinst) then
+                    do no = 1,norb
+                      do no1 = 1,Norb
+                          Z1 = Z1 + bins(m,nb-n_skip)%el(no,no1) 
+                      enddo
+                    enddo
+                  endif
+                  do n1=1,nmin
+                    if (m==qmin(n1)) then
+                      do no = 1,norb
+                        do no1 = 1,Norb
+                            Z2 = Z2 + bins(m,nb-n_skip)%el(no,no1) 
+                        enddo
+                      enddo
+                    endif
+                  enddo
+                  Ratio1(nb-n_skip) = Z2/dble(nmin)
+                  Ratio2(nb-n_skip) = Z1 
                enddo
             else
                Read(10,*,End=10) X,no,no1
@@ -215,7 +288,7 @@
             endif
          enddo
          close(10)
-        N_auto=min(N_auto,Nbins/3)
+        N_auto=min(N_auto,Nbins-3)
          
 
          Call Fourier_K_to_R(bins,bins_r,Latt)
@@ -234,12 +307,19 @@
 #endif
          Open (Unit=33,File="equalJ"        ,status="unknown")
          Open (Unit=34,File="equalJR"       ,status="unknown")
+         Open (Unit=35,File="equalTrPlot"   ,status="unknown")
+         call ERRCALCJ( Ratio1, Ratio2, XMean, XERR, N_rebin ) 
+         write(33,*) "Ratio: ", 1.d0 - dble(XMean), dble(XERR), -aimag(XMean), aimag(XERR)
          Do n = 1,Nunit
             Xk_p = dble(Latt%listk(n,1))*Latt%b1_p + dble(Latt%listk(n,2))*Latt%b2_p 
             Xr_p = dble(Latt%list (n,1))*Latt%a1_p + dble(Latt%list (n,2))*Latt%a2_p 
             Write(33,"(F12.6,2x,F12.6)")  Xk_p(1), Xk_p(2)
             Write(34,"(F12.6,2x,F12.6)")  Xr_p(1), Xr_p(2)
+            V_help_TR = 0.d0
             Do no = 1,Norb
+               do nb = 1,Nbins
+                 V_help_TR(nb) = V_help_TR(nb) + bins  (n,nb)%el(no,no)
+               enddo
                do no1 = 1,Norb
                   do nb = 1,Nbins
                      V_help(nb) = bins  (n,nb)%el(no,no1)
@@ -255,6 +335,11 @@
                        &  no,no1, dble(XMean_r), dble(XERR_r), aimag(XMean_r), aimag(XERR_r)
                enddo
             enddo
+            call ERRCALCJ( V_help_TR,Phase, XMean_r, XERR_r, N_rebin ) 
+            Write(33,"('TR',2x,F16.8,2x,F16.8,2x,F16.8,2x,F16.8)") &
+                  &  dble(XMean_r), dble(XERR_r), aimag(XMean_r), aimag(XERR_r)
+            Write(35,"(F12.6,2x,F12.6,2x,F16.8,2x,F16.8,2x,F16.8,2x,F16.8)") Xr_p(1), Xr_p(2), &
+                  &  dble(XMean_r), dble(XERR_r), aimag(XMean_r), aimag(XERR_r)
          enddo
 !!$         If (Norb > 1 ) then 
 !!$            !Compute susecptibility 
@@ -274,10 +359,36 @@
 
          Close(33)
          Close(34)
+         Close(35)
          
         if(N_auto>0) then
          ALLOCATE(AutoCorr(N_auto))
          ALLOCATE(EN(Nbins))
+          write(File_out,'("Var_eq_Auto_Ratio")')
+          OPEN (UNIT=21, FILE=File_out, STATUS='unknown')
+          WRITE(21,*)
+          do nb = 1,Nbins
+            En(nb)=dble(1-Ratio1(nb)/Ratio2(nb))
+          enddo
+          Call AUTO_COR(En,AutoCorr)
+          do i = 1,N_auto
+            avmin=max(1,i-nav)
+            avmax=min(Nbins,i+nav)
+            avmax2=min(N_auto,i+nav)
+            avdiff= avmax-avmin+1
+            avdiff2= avmax2-avmin+1
+            call ERRCALCJ( Ratio1, Ratio2, XMean, XERR, i )
+            write(21,*) i, sum(AutoCorr(avmin:avmax2))/dble(avdiff2), dble(Xerr), En(i), sum(En(avmin:avmax))/dble(avdiff)
+          enddo
+          do i = N_auto+1,Nbins
+            avmin=max(1,i-nav)
+            avmax=min(Nbins,i+nav)
+            avmax2=min(N_auto,i+nav)
+            avdiff= avmax-avmin+1
+            avdiff2= avmax2-avmin+1
+            write(21,*) i, 0.d0, 0.d0, En(i), sum(En(avmin:avmax))/dble(avdiff)
+          enddo
+          CLOSE(21)
          Do n = 1,Nunit
             Xk_p = dble(Latt%listk(n,1))*Latt%b1_p + dble(Latt%listk(n,2))*Latt%b2_p
             if (Xk_p(1) >= -1.d-8 .and. XK_p(2) >= -1.d-8) then
@@ -293,8 +404,21 @@
             enddo
             Call AUTO_COR(En,AutoCorr)
             do i = 1,N_auto
+              avmin=max(1,i-nav)
+              avmax=min(Nbins,i+nav)
+              avmax2=min(N_auto,i+nav)
+              avdiff= avmax-avmin+1
+              avdiff2= avmax2-avmin+1
               CALL ERRCALCJ(En,XM, XE,i)
-              write(21,*) i, AutoCorr(i), Xe
+              write(21,*) i, sum(AutoCorr(avmin:avmax2))/dble(avdiff2), Xe, En(i), sum(En(avmin:avmax))/dble(avdiff)
+            enddo
+            do i = N_auto+1,Nbins
+              avmin=max(1,i-nav)
+              avmax=min(Nbins,i+nav)
+              avmax2=min(N_auto,i+nav)
+              avdiff= avmax-avmin+1
+              avdiff2= avmax2-avmin+1
+              write(21,*) i, 0.d0, 0.d0, En(i), sum(En(avmin:avmax))/dble(avdiff)
             enddo
             CLOSE(21)
             endif

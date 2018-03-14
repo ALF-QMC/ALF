@@ -866,7 +866,7 @@ subroutine ZSLHEMM(side, uplo, N, M1, M2, A, P, Mat)
           
         ELSE
           write(*,*) 'Illegal argument for side: It is not one of [R,r,L,l] !'
-          call EXIT(1)
+          stop 1
         ENDIF
 
 end subroutine ZSLHEMM

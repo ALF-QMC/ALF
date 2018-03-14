@@ -35,7 +35,7 @@ MODULE UDV_State_mod
     PUBLIC :: UDV_State
     TYPE UDV_State
         COMPLEX (Kind=Kind(0.d0)), allocatable :: U(:, :), V(:, :)
-#if !defined(LOG)
+#if !defined(LOGSCALE)
         COMPLEX (Kind=Kind(0.d0)), allocatable :: D(:)
 #else
         REAL    (Kind=Kind(0.d0)), allocatable :: L(:)
@@ -85,7 +85,7 @@ SUBROUTINE alloc_UDV_state(this, t, t_part)
       this%N_part=t
       ALLOCATE(this%U(this%ndim, this%N_part), this%V(this%N_part, this%N_part))
     endif
-#if !defined(LOG)
+#if !defined(LOGSCALE)
     ALLOCATE(this%D(this%N_part))
 #else
     ALLOCATE(this%L(this%N_part))
@@ -144,7 +144,7 @@ SUBROUTINE setscale_UDV_state(this, scale_val, scale_idx)
     COMPLEX (Kind=Kind(0.d0)), INTENT(IN) :: scale_val
     INTEGER, INTENT(IN) :: scale_idx
 
-#if !defined(LOG)
+#if !defined(LOGSCALE)
     this%D(scale_idx)=scale_val
 #else
     this%L(scale_idx)=log(dble(scale_val))
@@ -167,7 +167,7 @@ SUBROUTINE getscale_UDV_state(this, scale_val, scale_idx)
     COMPLEX (Kind=Kind(0.d0)), INTENT(out) :: scale_val
     INTEGER, INTENT(IN) :: scale_idx
 
-#if !defined(LOG)
+#if !defined(LOGSCALE)
     scale_val=this%D(scale_idx)
 #else
     scale_val=cmplx(exp(this%L(scale_idx)),0.d0,kind(0.d0))
@@ -190,7 +190,7 @@ SUBROUTINE dealloc_UDV_state(this)
     !V is only allocated in finite temperature version
     IF(ALLOCATED(this%V)) DEALLOCATE(this%V)
     DEALLOCATE(this%U)
-#if !defined(LOG)
+#if !defined(LOGSCALE)
     DEALLOCATE(this%D)
 #else
     DEALLOCATE(this%L)
@@ -227,7 +227,7 @@ SUBROUTINE reset_UDV_state(this, side, P)
       CALL ZLASET('A', this%ndim, this%ndim, alpha, beta, this%U(1, 1), this%ndim)
       CALL ZLASET('A', this%ndim, this%ndim, alpha, beta, this%V(1, 1), this%ndim)
     endif
-#if !defined(LOG)
+#if !defined(LOGSCALE)
     this%D = beta
 #else
     this%L = 0.d0
@@ -263,7 +263,7 @@ SUBROUTINE print_UDV_state(this)
       WRITE(*,*) "V is only stored in finite temperature version"
     endif
     WRITE(*,*) "======================"
-#if !defined(LOG)
+#if !defined(LOGSCALE)
     WRITE(*,*) this%D(:)
 #else
     WRITE(*,*) this%L(:)
@@ -298,7 +298,7 @@ SUBROUTINE assign_UDV_state(this, src)
         if (ALLOCATED(src%V)) CALL ZLACPY('A', this%n_part, this%n_part, src%V(1, 1), &
             & this%n_part, this%V(1, 1), this%n_part)
     END ASSOCIATE
-#if !defined(LOG)
+#if !defined(LOGSCALE)
     IF(.not. ALLOCATED(this%D)) ALLOCATE(this%D(this%n_part))
     this%D = src%D
 #else
@@ -344,7 +344,7 @@ END SUBROUTINE assign_UDV_state
 !         Ndim = UDV%ndim
 !         N_part = UDV%n_part
 !         ALLOCATE(TAU(N_part), IPVT(N_part))
-! #if !defined(LOG)
+! #if !defined(LOGSCALE)
 !         ! TMP1 = TMP1 * D
 !         DO i = 1,NDim
 !             UDV%U(:, i) = UDV%U(:, i) * UDV%D(i)
@@ -458,7 +458,7 @@ END SUBROUTINE assign_UDV_state
         Ndim = UDVR%ndim
         N_part = UDVR%n_part
         ALLOCATE(TAU(N_part), IPVT(N_part))
-#if !defined(LOG)
+#if !defined(LOGSCALE)
         ! TMP1 = TMP1 * D
         If( ALLOCATED(UDVR%V) ) then
           DO i = 1,N_part
@@ -600,7 +600,7 @@ END SUBROUTINE decompose_UDV_state
                  &                source, recvtag, MPI_COMM_WORLD, STATUS, IERR)
         CALL MPI_Sendrecv_replace(this%V, n, MPI_COMPLEX16, dest, sendtag, &
                  &                source, recvtag, MPI_COMM_WORLD, STATUS, IERR)
-#if !defined(LOG)
+#if !defined(LOGSCALE)
         CALL MPI_Sendrecv_replace(this%D, this%ndim, MPI_COMPLEX16, dest, sendtag, &
                  &                source, recvtag, MPI_COMM_WORLD, STATUS, IERR)
 #else

@@ -97,13 +97,13 @@ Program Main
   
         
         Integer :: Nwrap, NSweep, NBin, NBin_eff,Ltau, NSTM, NT, NT1, NVAR, LOBS_EN, LOBS_ST, NBC, NSW
-        Integer :: NTAU, NTAU1
-        Real(Kind=Kind(0.d0)) :: CPU_MAX 
-        Character (len=64) :: file1
+        Integer :: NTAU, NTAU1, Ltrotstore, Nstmwarmup, nbinwarmup, kstart, Lobs_st_warmup, LOBS_EN_warmup
+        Real(Kind=Kind(0.d0)) :: CPU_MAX , rate
+        Character (len=64) :: file1, dump
   
         ! Space for choosing sampling scheme
         Logical :: Propose_S0, Tempering_calc_det
-        Logical :: Global_moves, Global_tau_moves
+        Logical :: Global_moves, Global_tau_moves, annealing
         Integer :: N_Global 
         Integer :: Nt_sequential_start, Nt_sequential_end, mpi_per_parameter_set
         Integer :: N_Global_tau
@@ -116,10 +116,12 @@ Program Main
 
         NAMELIST /VAR_QMC/   Nwrap, NSweep, NBin, Ltau, LOBS_EN, LOBS_ST, CPU_MAX, &
              &               Propose_S0,Global_moves,  N_Global, Global_tau_moves, &
-             &               Nt_sequential_start, Nt_sequential_end, N_Global_tau
+             &               Nt_sequential_start, Nt_sequential_end, N_Global_tau, annealing
+             
+        NAMELIST /VAR_ANNEALING/   Nbinwarmup, kstart, rate
 
 
-        Integer :: Ierr, I,nf, nst, n
+        Integer :: Ierr, I,nf, nst, n,j,k, lastk,nwarmupbin
         Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Phase, Z, Z1
         Real    (Kind=Kind(0.d0)) :: ZERO = 10D-8
         Integer, dimension(:), allocatable :: Stab_nt
@@ -130,7 +132,7 @@ Program Main
         ! For tests
         Real (Kind=Kind(0.d0)) :: Weight, Weight_tot
         Integer :: nr,nth, nth1
-        Logical :: Log
+        Logical :: Log, LCONF
 
         ! For the truncation of the program:
         logical                   :: prog_truncation
@@ -195,14 +197,17 @@ Program Main
            ! This is a set of variables that  identical for each simulation.
            Nwrap=0;  NSweep=0; NBin=0; Ltau=0; LOBS_EN = 0;  LOBS_ST = 0;  CPU_MAX = 0.d0
            Propose_S0 = .false. ;  Global_moves = .false. ; N_Global = 0
-           Global_tau_moves = .false. 
+           Global_tau_moves = .false. ; annealing = .false.
            Nt_sequential_start = 0 ;  Nt_sequential_end  = 0;  N_Global_tau  = 0
+           Nbinwarmup=10; kstart = 0; rate=1.5d0
            OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
            IF (ierr /= 0) THEN
               WRITE(*,*) 'unable to open <parameters>',ierr
               STOP
            END IF
            READ(5,NML=VAR_QMC)
+           REWIND(5)
+           if (annealing) READ(5,NML=VAR_ANNEALING)
            CLOSE(5)
            NBin_eff = NBin
 #ifdef MPI
@@ -221,9 +226,13 @@ Program Main
         CALL MPI_BCAST(Nt_sequential_start,1,MPI_Integer,0,MPI_COMM_WORLD,ierr)
         CALL MPI_BCAST(Nt_sequential_end  ,1,MPI_Integer,0,MPI_COMM_WORLD,ierr)
         CALL MPI_BCAST(N_Global_tau       ,1,MPI_Integer,0,MPI_COMM_WORLD,ierr)
+        CALL MPI_BCAST(annealing          ,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
+        CALL MPI_BCAST(Nbinwarmup         ,1,MPI_Integer,0,MPI_COMM_WORLD,ierr)
+        CALL MPI_BCAST(kstart             ,1,MPI_Integer,0,MPI_COMM_WORLD,ierr)
+        CALL MPI_BCAST(rate               ,1,MPI_REAL8  ,0,MPI_COMM_WORLD,ierr)
 #endif
         
-!   IF (ABS(CPU_MAX) > Zero ) NBIN = 1000000
+ 
         Call Op_SetHS
         Call Ham_set
         log=.false.
@@ -249,22 +258,27 @@ Program Main
         else
           LOBS_EN=LOBS_EN+Thtrot
         endif
+        Nt_sequential_start = 1 
+        Nt_sequential_end   = Size(OP_V,1) 
         If ( .not. Global_tau_moves )  then
            ! This  corresponds to the default updating scheme
-           Nt_sequential_start = 1 
-           Nt_sequential_end   = Size(OP_V,1) 
            N_Global_tau        = 0
         endif
 
         
-        Call confin 
+        Call confin(lastk) 
+        IF (lastk < 0) THEN
+           lastk=kstart
+        endif
+!         write(*,*) "Rank ",irank_g," of group ",igroup," has lastk ",lastk," and says hi!"
         Call Hop_mod_init
 
+!         IF (ABS(CPU_MAX) > Zero ) NBIN = 10000000
         If (N_Global_tau > 0) then
            Call Wrapgr_alloc
         endif
  
-        Call control_init
+        Call control_init(Group_Comm)
         Call Alloc_obs(Ltau)
 
         If ( mod(Ltrot,nwrap) == 0  ) then 
@@ -332,7 +346,7 @@ Program Main
 #if defined(STAB3) 
            Write(50,*) 'STAB3 is defined '
 #endif
-#if defined(LOG) 
+#if defined(LOGSCALE) 
            Write(50,*) 'LOG is defined '
 #endif
 #if defined(QRREF) 
@@ -366,6 +380,311 @@ Program Main
               CALL udvst(NSTM, nf)%reset('l')
            endif
         enddo
+
+        Call Control_init(Group_Comm)
+        
+! Introduce Simulated annealing
+        
+        if (Int(rate**dble(lastk)) < NSTM .and. annealing) then
+        !store true ltrot
+        LTROTstore=Ltrot
+        nwarmupbin=0
+        Do k=lastk,NSTM-1
+        NSTMwarmup=int(rate**dble(k))
+        if(NSTMwarmup>NSTM) NSTMwarmup=NSTM
+        Ltrot=Stab_nt(NSTMwarmup)
+        Lobs_st_warmup=nint(dble(LOBS_ST*LTROT)/dble(LTROTstore))
+        LOBS_EN_warmup=nint(dble(LOBS_EN*LTROT)/dble(LTROTstore))
+
+#if defined(TEMPERING)
+        write(File1,'(A,I0,A)') "Temp_",igroup,"/info"
+#else
+        File1 = "info"
+#endif
+           
+#if defined(MPI) 
+        if ( Irank_g == 0 ) then
+#endif
+          Open (Unit = 50,file=file1,status="unknown",position="append")
+          write(50,*) "Perfoming warmup Step",Ltrot," of ", Ltrotstore
+          close(50)
+#if defined(MPI)
+        endif
+#endif
+       
+        
+        do nf = 1, N_FL
+           if (Projector) then
+              CALL udvl(nf)%reset('l',WF_L(nf)%P)
+              CALL udvr(nf)%reset('r',WF_R(nf)%P)
+              CALL udvst(NSTMwarmup, nf)%reset('l',WF_L(nf)%P)
+           else
+              CALL udvl(nf)%reset('l')
+              CALL udvr(nf)%reset('r')
+              CALL udvst(NSTMwarmup, nf)%reset('l')
+           endif
+        enddo
+        
+        DO NST = NSTMwarmup-1,1,-1
+           NT1 = Stab_nt(NST+1)
+           NT  = Stab_nt(NST  )
+           CALL WRAPUL(NT1, NT, UDVL)
+           Do nf = 1,N_FL
+              UDVST(NST, nf) = UDVL(nf)
+           ENDDO
+        ENDDO
+        NT1 = stab_nt(1)
+        CALL WRAPUL(NT1, 0, UDVL)
+        
+        
+        
+        NVAR = 1
+        Phase = cmplx(1.d0, 0.d0, kind(0.D0))
+        do nf = 1,N_Fl
+           CALL CGR(Z, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
+!            do i=1,ndim
+!              write(*,*) "init",sum(Gr(:,:,nf)), Z
+!            enddo
+           Phase = Phase*Z
+        Enddo
+        call Op_phase(Phase,OP_V,Nsigma,N_SUN)
+
+
+        
+        DO  NBC = 1, Nbinwarmup
+           ! Here, you have the green functions on time slice 1.
+           ! Set bin observables to zero.
+           
+           call system_clock(count_bin_start)
+           Call Init_obs(Ltau)                 
+#if defined(TEMPERING)
+           Call Global_Tempering_init_obs
+#endif           
+           
+           DO NSW = 1, NSWEEP
+              
+#if defined(TEMPERING)
+              IF (MOD(NSW,N_Tempering_frequency) == 0) then
+                 !Write(6,*) "Irank, Call tempering", Irank, NSW
+                 CALL Exchange_Step(Phase,GR,udvr, udvl,Stab_nt, udvst, N_exchange_steps, Tempering_calc_det, NSTMwarmup)
+              endif
+#endif
+              ! Global updates
+              If (Global_moves) Call Global_Updates(Phase, GR, udvr, udvl, Stab_nt, udvst,N_Global, NSTMwarmup)
+              
+              ! Propagation from 1 to Ltrot
+              ! Set the right storage to 1
+              
+              do nf = 1,N_FL
+                if (Projector) then
+                    CALL udvr(nf)%reset('r',WF_R(nf)%P)
+                else
+                    CALL udvr(nf)%reset('r')
+                endif
+              Enddo
+              
+              NST = 1
+              DO NTAU = 0, LTROT-1
+                 NTAU1 = NTAU + 1
+                 CALL WRAPGRUP(GR,NTAU,PHASE,Propose_S0, Nt_sequential_start, Nt_sequential_end, N_Global_tau)
+                 
+                 If (NTAU1 == Stab_nt(NST) ) then 
+                    NT1 = Stab_nt(NST-1)
+                    CALL WRAPUR(NT1, NTAU1, udvr)
+                    Z = cmplx(1.d0, 0.d0, kind(0.D0))
+                    Do nf = 1, N_FL
+                       ! Read from storage left propagation from LTROT to  NTAU1
+                       udvl(nf) = udvst(NST, nf)
+                       ! Write in storage right prop from 1 to NTAU1
+                       udvst(NST, nf) = udvr(nf)
+                       NVAR = 1
+                       IF (NTAU1 .GT. LTROT/2) NVAR = 2
+                       TEST(:,:) = GR(:,:,nf)
+                       CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
+!            do i=1,ndim
+!              write(*,*) "sweep up",sum(Gr(:,:,nf)), Z
+!            enddo
+                       Z = Z*Z1
+                       Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
+                    ENDDO
+                    call Op_phase(Z,OP_V,Nsigma,N_SUN) 
+                    Call Control_PrecisionP(Z,Phase)
+                    Phase = Z
+                    NST = NST + 1
+                 ENDIF
+                 IF (NTAU1.GE. Lobs_st_warmup .AND. NTAU1.LE. LOBS_EN_warmup ) THEN
+                    CALL Obser( GR, PHASE, Ntau1 )
+                 ENDIF
+              ENDDO
+              
+              Do nf = 1,N_FL
+                if (Projector) then
+                    CALL udvl(nf)%reset('l',WF_L(nf)%P)
+                else
+                    CALL udvl(nf)%reset('l')
+                endif
+              ENDDO
+              
+              NST = NSTMwarmup-1
+              DO NTAU = LTROT,1,-1
+                 NTAU1 = NTAU - 1
+                 CALL WRAPGRDO(GR,NTAU, PHASE,Propose_S0,Nt_sequential_start, Nt_sequential_end, N_Global_tau)
+                 IF (NTAU1.GE. Lobs_st_warmup .AND. NTAU1.LE. LOBS_EN_warmup ) THEN
+                    CALL Obser( GR, PHASE, Ntau1 )
+                 ENDIF
+                 IF ( Stab_nt(NST) == NTAU1 .AND. NTAU1.NE.0 ) THEN
+                    NT1 = Stab_nt(NST+1)
+                    CALL WRAPUL(NT1, NTAU1, udvl)
+                    Z = cmplx(1.d0, 0.d0, kind(0.D0))
+                    do nf = 1,N_FL
+                       ! Read from store the right prop. from 1 to LTROT/NWRAP-1
+                       udvr(nf) = udvst(NST, nf)
+                       ! WRITE in store the left prop. from LTROT/NWRAP-1 to 1
+                       udvst(NST, nf) = udvl(nf)
+                       NVAR = 1
+                       IF (NTAU1 .GT. LTROT/2) NVAR = 2
+                       TEST(:,:) = GR(:,:,nf)
+                       CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
+!            do i=1,ndim
+!              write(*,*) "sweep down",sum(Gr(:,:,nf)), Z
+!            enddo
+                       Z = Z*Z1
+                       Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
+                    ENDDO
+                    call Op_phase(Z,OP_V,Nsigma,N_SUN) 
+                    Call Control_PrecisionP(Z,Phase)
+                    Phase = Z
+                    NST = NST -1
+                 ENDIF
+              ENDDO
+              
+              !Calculate and compare green functions on time slice 0.
+              NT1 = Stab_nt(0)
+              NT  = Stab_nt(1)
+              CALL WRAPUL(NT, NT1, udvl)
+        
+              do nf = 1,N_FL
+                if (Projector) then
+                    CALL udvr(nf)%reset('r',WF_R(nf)%P)
+                else
+                    CALL udvr(nf)%reset('r')
+                endif
+              ENDDO
+              Z = cmplx(1.d0, 0.d0, kind(0.D0))
+              do nf = 1,N_FL
+                 TEST(:,:) = GR(:,:,nf)
+                 NVAR = 1
+                 CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
+!            do i=1,ndim
+!              write(*,*) "sweep end",sum(Gr(:,:,nf)), Z
+!            enddo
+                 Z = Z*Z1
+                 Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
+              ENDDO
+              call Op_phase(Z,OP_V,Nsigma,N_SUN) 
+              Call Control_PrecisionP(Z,Phase)
+              Phase = Z
+              NST =  NSTMwarmup
+              Do nf = 1,N_FL
+                if (Projector) then
+                    CALL udvst(NST, nf)%reset('l',WF_L(nf)%P)
+                else
+                    CALL udvst(NST, nf)%reset('l')
+                endif
+              enddo
+              
+           ENDDO 
+   
+           Call Pr_obs(Ltau)
+           nwarmupbin=nwarmupbin+1
+
+#if defined(TEMPERING)
+           Call Global_Tempering_Pr
+#endif           
+           if(nbc==nbinwarmup) then
+            Call confout(k+1)
+           else
+            Call confout(k)
+           ENDIF
+           
+           call system_clock(count_bin_end)
+           prog_truncation = .false.
+           if ( abs(CPU_MAX) > Zero ) then
+              Call make_truncation(prog_truncation,CPU_MAX,count_bin_start,count_bin_end)        
+           endif
+           If (prog_truncation) then 
+              Nbin_eff = 0
+              exit !exit the loop over the bin index, labelled NBC.
+           Endif
+        Enddo
+        
+        !fill next nwrap spins
+!         write(*,*) "Current Ltrot",Ltrot
+!         write(*,*) "Next Ltrot",Stab_nt(min(int(rate**dble(k+1)),NSTM))
+!         write(*,*) "Number of slices to be filled",Stab_nt(min(int(rate**dble(k+1)),NSTM))-Ltrot
+        nbc=Stab_nt(min(int(rate**dble(k+1)),NSTM)) !next ltrot
+        if (Projector) then
+          do j=0,Ltrot/2-1
+!           write(*,*) "Moving slice ",Ltrot-j," to ",nbc-j
+          do i=1,SIZE(OP_V,1)
+            nf=Nsigma(i,nbc-j)
+            Nsigma(i,nbc-j)=Nsigma(i,Ltrot-j)
+            Nsigma(i,Ltrot-j)=nf
+          enddo
+          enddo
+        else
+          do j=1,Stab_nt(min(int(rate**dble(k+1)),NSTM))-Ltrot
+!           write(*,*) "Filling slice ",Ltrot+j," from ",Ltrot-j
+          do i=1,SIZE(OP_V,1)
+            Nsigma(i,Ltrot+j)=Nsigma(i,j)
+          enddo
+          enddo
+        endif
+        
+        If (prog_truncation) then 
+          Nbin_eff=0
+          exit !exit the loop over the bin index, labelled NBC.
+        Endif
+        If (Ltrot==Ltrotstore)  exit
+        
+        Enddo
+        
+        !restore Ltrot
+        Ltrot=Ltrotstore
+        lastk=k
+
+#if defined(TEMPERING)
+        write(File1,'(A,I0,A)') "Temp_",igroup,"/info"
+#else
+        File1 = "info"
+#endif
+           
+#if defined(MPI) 
+        if ( Irank_g == 0 ) then
+#endif
+          Open (Unit = 50,file=file1,status="unknown",position="append")
+          write(50,*) "Calculated ",nwarmupbin," bins during warmup"
+          write(50,*) "nskip of analysis should be at least ",nwarmupbin
+          close(50)
+#if defined(MPI)
+        endif
+#endif
+        if (prog_truncation) goto 1234
+
+        endif
+! End of Simulated annealing
+        
+        do nf = 1, N_FL
+           if (Projector) then
+              CALL udvl(nf)%reset('l',WF_L(nf)%P)
+              CALL udvr(nf)%reset('r',WF_R(nf)%P)
+              CALL udvst(NSTM, nf)%reset('l',WF_L(nf)%P)
+           else
+              CALL udvl(nf)%reset('l')
+              CALL udvr(nf)%reset('r')
+              CALL udvst(NSTM, nf)%reset('l')
+           endif
+        enddo
         
         DO NST = NSTM-1,1,-1
            NT1 = Stab_nt(NST+1)
@@ -385,22 +704,15 @@ Program Main
         Phase = cmplx(1.d0, 0.d0, kind(0.D0))
         do nf = 1,N_Fl
            CALL CGR(Z, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
+           
            Phase = Phase*Z
         Enddo
         call Op_phase(Phase,OP_V,Nsigma,N_SUN)
-#ifdef MPI 
-        !WRITE(6,*) 'Phase is: ', Irank, PHASE, GR(1,1,1)
-#else
-        !WRITE(6,*) 'Phase is: ',  PHASE
-#endif
 
-
-
-        Call Control_init
         
         DO  NBC = 1, NBIN
            ! Here, you have the green functions on time slice 1.
-           ! Set bin observables to zero.
+           ! Set bin observables to zero.udvl
            
            call system_clock(count_bin_start)
            
@@ -414,11 +726,11 @@ Program Main
 #if defined(TEMPERING)
               IF (MOD(NSW,N_Tempering_frequency) == 0) then
                  !Write(6,*) "Irank, Call tempering", Irank, NSW
-                 CALL Exchange_Step(Phase,GR,udvr, udvl,Stab_nt, udvst, N_exchange_steps, Tempering_calc_det)
+                 CALL Exchange_Step(Phase,GR,udvr, udvl,Stab_nt, udvst, N_exchange_steps, Tempering_calc_det, NSTM)
               endif
 #endif
               ! Global updates
-              If (Global_moves) Call Global_Updates(Phase, GR, udvr, udvl, Stab_nt, udvst,N_Global)
+              If (Global_moves) Call Global_Updates(Phase, GR, udvr, udvl, Stab_nt, udvst,N_Global, NSTM)
               
               ! Propagation from 1 to Ltrot
               ! Set the right storage to 1
@@ -463,6 +775,7 @@ Program Main
                     !Stop
 !                     write(*,*) "GR before obser sum: ",sum(GR(:,:,1))
 !                     write(*,*) "Phase before obser : ",phase
+!                     write(*,*) 'Measure on slice ',Ntau1,' of ',Ltrot
                     CALL Obser( GR, PHASE, Ntau1 )
                  ENDIF
               ENDDO
@@ -482,6 +795,7 @@ Program Main
                  IF (NTAU1.GE. LOBS_ST .AND. NTAU1.LE. LOBS_EN ) THEN
 !                     write(*,*) "GR before obser sum: ",sum(GR(:,:,1))
 !                     write(*,*) "Phase before obser : ",phase
+!                     write(*,*) 'Measure on slice ',Ntau1,' of ',Ltrot
                     CALL Obser( GR, PHASE, Ntau1 )
                  ENDIF
                  IF ( Stab_nt(NST) == NTAU1 .AND. NTAU1.NE.0 ) THEN
@@ -510,7 +824,6 @@ Program Main
                     endif
                     NST = NST -1
                  ENDIF
-!                  IF( LTAU == 1 .and. Projector .and. Ntau1==THTROT+1) Call tau_p(udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, NST )
               ENDDO
               
               !Calculate and compare green functions on time slice 0.
@@ -555,7 +868,7 @@ Program Main
            Call Global_Tempering_Pr
 #endif           
 
-           Call confout
+           Call confout(lastk)
            
            call system_clock(count_bin_end)
            prog_truncation = .false.
@@ -569,7 +882,7 @@ Program Main
         Enddo
         
         ! Deallocate things
-        DO nf = 1, N_FL
+1234    DO nf = 1, N_FL
            CALL udvl(nf)%dealloc
            CALL udvr(nf)%dealloc
            do n = 1, NSTM

@@ -145,7 +145,7 @@ Contains
        If ( T0_proposal > ranf_wrap() ) Then
           if  (Op_V(n,nf)%type == 1 ) Flip_value(1)  = -nsigma(n,ntau1)
           if  (Op_V(n,nf)%type == 2 ) Flip_value(1)  =  NFLIPL(nsigma(n,ntau1),nranf(3))
-          mode = "Final"
+          mode = "Single"
           !Write(6,*) 'Hi', n, Op_V(n,nf)%type, T0_Proposal_ratio, S0_ratio  
           Prev_Ratiotot = cmplx(1.d0,0.d0,kind(0.d0))
           Call Upgrade2(GR,n,ntau1,PHASE,Op_V(n,nf)%N_non_Zero,Flip_value(1), Prev_Ratiotot, S0_ratio,T0_Proposal_ratio, Acc, mode ) 
@@ -249,7 +249,7 @@ Contains
        If ( T0_proposal > ranf_wrap() ) Then
           if  (Op_V(n,nf)%type == 1 ) Flip_value(1)  = -nsigma(n,ntau)
           if  (Op_V(n,nf)%type == 2 ) Flip_value(1)  =  NFLIPL(nsigma(n,ntau),nranf(3))
-          mode = "Final"
+          mode = "Single"
           Prev_Ratiotot = cmplx(1.d0,0.d0,kind(0.d0))
           Call Upgrade2(GR,n,ntau,PHASE,Op_V(n,nf)%N_non_Zero,Flip_value(1), Prev_Ratiotot, S0_ratio,T0_Proposal_ratio, Acc, mode ) 
        else
@@ -282,7 +282,7 @@ Contains
 !
 !> @brief 
 !> The Green function on a given time slice reads
-!> G(tau) = (  1 + B(tau) B(tau-1,0)  B(beta,tau))^(-1) with B(tau) =   U_n e^(d_n) U_n^(dag) .... U_1 e^(V_1) U_1^(dag)  e^(-dtau H_t)
+!> G(tau) = (  1 + B(tau) B(tau-1,0) B(beta,tau))^(-1) with B(tau) = U_n e^(d_n) U_n^(dag) .... U_1 e^(V_1) U_1^(dag) e^(-dtau H_t)
 !> On input you have 
 !> G(tau,m)  = [ 1 + U_m e^(d_m) U_m^(dag) U_m^(dag) ... U_1 e^(V_1) U_1^(dag) e^(-dtau H_t) B(tau-1,0) 
 !>                   B(Beta,tau)  U_n e^(d_n) U_n^(dag) ...U_(m+1) e^(d_(m+1)) U_(m+1)^(dag) U_(m+1) ] 
@@ -462,6 +462,7 @@ Contains
                 nsigma( Flip_list(Flip_count), ntau  ) = Flip_value_st(Flip_count)  
              Enddo
           Endif
+          Call Control_upgrade_Glob_tau(ACC,dble(Flip_length))
           !If (Acc) Call Hamiltonian_Print(Ntau)
        endif
     Enddo

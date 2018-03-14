@@ -68,7 +68,7 @@ Module Global_mod
 !> case the MPI flag is also switched on. 
 !> 
 !--------------------------------------------------------------------
-      Subroutine Exchange_Step(Phase,GR, udvr, udvl, Stab_nt, udvst, N_exchange_steps, Tempering_calc_det)
+      Subroutine Exchange_Step(Phase,GR, udvr, udvl, Stab_nt, udvst, N_exchange_steps, Tempering_calc_det, NSTM)
         Use UDV_State_mod
         Use mpi
         Implicit none
@@ -98,11 +98,12 @@ Module Global_mod
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:), INTENT(INOUT), allocatable :: GR
         CLASS(UDV_State), intent(inout), allocatable, Dimension(:, :) :: udvst
         INTEGER, dimension(:),     INTENT   (IN), allocatable      :: Stab_nt
+        INTEGER, INTENT(IN)                                        :: NSTM
         !>  On entry and on exit the left storage is full, and the Green function is on time slice 0 and the phase is set.
         
         
         !>  Local variables.
-        Integer :: NST, NSTM, NF, NT, NT1, NVAR,N, N1,N2, I, NC, I_Partner, n_step, N_exchange_steps, N_count, N_part
+        Integer :: NST, NF, NT, NT1, NVAR,N, N1,N2, I, NC, I_Partner, n_step, N_exchange_steps, N_count, N_part
         Integer, Dimension(:,:),  allocatable :: nsigma_old
         Real    (Kind=Kind(0.d0)) :: T0_Proposal_ratio, Weight, Weight1
         Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Z, Ratiotot, Ratiotot_p, Phase_old, Phase_new
@@ -114,7 +115,7 @@ Module Global_mod
 
         !> Additional variables for running without Fermion weight
         Logical :: Tempering_calc_det
-        Integer        :: nsigma_irank, nsigma_old_irank, nsigma_irank_temp ! Keeps track of where the configuration originally comes from
+        Integer        :: nsigma_irank, nsigma_old_irank, nsigma_irank_temp !Keeps track of where the configuration comes from
         Integer        :: n_GR
 
         !Integer, Dimension(:,:),  allocatable :: nsigma_orig, nsigma_test
@@ -132,7 +133,7 @@ Module Global_mod
 
         n1 = size(nsigma,1)
         n2 = size(nsigma,2)
-        NSTM = Size(udvst, 1)
+!        NSTM = Size(udvst, 1)
         Allocate ( nsigma_old(n1,n2) )
         if (Tempering_calc_det) then
            Allocate ( Det_vec_old(NDIM,N_FL), Det_vec_new(NDIM,N_FL) ) 
@@ -153,7 +154,7 @@ Module Global_mod
                 N_part=udvst(1,nf)%N_part
                 do i=1,NSTM-1
                   do n=1,N_part
-#if !defined(LOG)
+#if !defined(LOGSCALE)
                     Det_Vec_old(n,nf)=Det_Vec_old(n,nf)+log(dble(udvst(i,nf)%D(n)))
 #else
                     Det_Vec_old(n,nf)=Det_Vec_old(n,nf)+udvst(i,nf)%L(n)
@@ -164,7 +165,7 @@ Module Global_mod
               Do nf = 1,N_FL
                 N_part=udvl(nf)%N_part
                 do n=1,N_part
-#if !defined(LOG)
+#if !defined(LOGSCALE)
                     Det_Vec_new(n,nf)=Det_Vec_new(n,nf)+log(dble(udvl(nf)%D(n)))
 #else
                     Det_Vec_new(n,nf)=Det_Vec_new(n,nf)+udvl(nf)%L(n)
@@ -276,7 +277,7 @@ Module Global_mod
                  if (Projector) then
                     N_part=udvl(nf)%N_part
                     do n=1,N_part
-#if !defined(LOG)
+#if !defined(LOGSCALE)
                         Det_Vec_new(n,nf)=Det_Vec_new(n,nf)+log(dble(udvl(nf)%D(n)))
 #else
                         Det_Vec_new(n,nf)=Det_Vec_new(n,nf)+udvl(nf)%L(n)
@@ -291,7 +292,7 @@ Module Global_mod
               Do nf = 1,N_FL
                 N_part=udvl(nf)%N_part
                 do n=1,N_part
-#if !defined(LOG)
+#if !defined(LOGSCALE)
                     Det_Vec_new(n,nf)=Det_Vec_new(n,nf)+log(dble(udvl(nf)%D(n)))
 #else
                     Det_Vec_new(n,nf)=Det_Vec_new(n,nf)+udvl(nf)%L(n)
@@ -398,7 +399,8 @@ Module Global_mod
         call Op_phase(Phase,OP_V,Nsigma,N_SUN)     
     else
         !> Send >>Phase, GR, udvr, udvl, udvst<< to new node 
-        !  First step: Each node sends to IRANK=0 its value nsigma_irank, which is the node where its new Phase, GR, udvr, udvl, udvst is stored
+        !  First step: Each node sends to IRANK=0 its value nsigma_irank, which is the node where its new Phase,
+        !              GR, udvr, udvl, udvst is stored
         !              This node then tells each node where to send its now old Phase, GR, udvr, udvl, udvst
         !              Finally, the variables get submitted
         If (Irank == 0) then
@@ -450,7 +452,7 @@ Module Global_mod
       end Subroutine Exchange_Step
 #endif
 !---------------------------------------------------------------------
-      Subroutine Global_Updates(Phase,GR, udvr, udvl, Stab_nt, udvst,N_Global)
+      Subroutine Global_Updates(Phase,GR, udvr, udvl, Stab_nt, udvst,N_Global,Nstm)
         Use UDV_State_mod
         Implicit none
         
@@ -480,11 +482,12 @@ Module Global_mod
         CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: udvst
         INTEGER, dimension(:),     INTENT   (IN), allocatable      :: Stab_nt
         Integer, INTENT(IN) :: N_Global
+        Integer, INTENT(IN) :: NSTM
         !>  On entry and on exit the left storage is full, and the Green function is on time slice 0 and the phase is set.
         
         
         !>  Local variables.
-        Integer :: NST, NSTM, NF, NT, NT1, NVAR,N, N1,N2, I, NC, N_part,j
+        Integer :: NST, NF, NT, NT1, NVAR,N, N1,N2, I, NC, N_part,j
         Integer, Dimension(:,:),  allocatable :: nsigma_old
         Real    (Kind=Kind(0.d0)) :: T0_Proposal_ratio, Weight
         Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Z, Ratiotot, Phase_old, Phase_new
@@ -500,7 +503,7 @@ Module Global_mod
         
         n1 = size(nsigma,1)
         n2 = size(nsigma,2)
-        NSTM = Size(udvst, 1)
+!         write(*,*) "NSTM", NSTM
         Allocate ( nsigma_old(n1,n2) )
         Allocate ( Det_vec_old(NDIM,N_FL), Det_vec_new(NDIM,N_FL), Det_vec_test(NDIM,N_FL) ) 
         Allocate ( Phase_Det_new(N_FL), Phase_Det_old(N_FL) )
@@ -514,7 +517,7 @@ Module Global_mod
             N_part=udvst(1,nf)%N_part
             do i=1,NSTM-1
               do n=1,N_part
-#if !defined(LOG)
+#if !defined(LOGSCALE)
                 Det_Vec_old(n,nf)=Det_Vec_old(n,nf)+log(dble(udvst(i,nf)%D(n)))
 #else
                 Det_Vec_old(n,nf)=Det_Vec_old(n,nf)+udvst(i,nf)%L(n)
@@ -522,7 +525,7 @@ Module Global_mod
               enddo
             enddo
             do n=1,N_part
-#if !defined(LOG)
+#if !defined(LOGSCALE)
               Det_Vec_old(n,nf)=Det_Vec_old(n,nf)+log(dble(udvl(nf)%D(n)))
 #else
               Det_Vec_old(n,nf)=Det_Vec_old(n,nf)+udvl(nf)%L(n)
@@ -601,7 +604,7 @@ Module Global_mod
                     udvst(NST, nf) = udvl(nf)
                     N_part=udvl(nf)%N_part
                     do j=1,N_part
-#if !defined(LOG)
+#if !defined(LOGSCALE)
                         Det_Vec_new(j,nf)=Det_Vec_new(j,nf)+log(dble(udvl(nf)%D(j)))
 #else
                         Det_Vec_new(j,nf)=Det_Vec_new(j,nf)+udvl(nf)%L(j)
@@ -614,7 +617,7 @@ Module Global_mod
               Do nf = 1,N_FL
                 N_part=udvl(nf)%N_part
                 do j=1,N_part
-#if !defined(LOG)
+#if !defined(LOGSCALE)
                     Det_Vec_new(j,nf)=Det_Vec_new(j,nf)+log(dble(udvl(nf)%D(j)))
 #else
                     Det_Vec_new(j,nf)=Det_Vec_new(j,nf)+udvl(nf)%L(j)
@@ -636,6 +639,7 @@ Module Global_mod
               !Write(6,*) 'Ratio_global: ', Ratiotot
               
               Weight = abs(  real(Phase_old * Ratiotot, kind=Kind(0.d0))/real(Phase_old,kind=Kind(0.d0)) )
+              !Write(6,*) 'Weight: ', Weight
               
               Z = Phase_old * Ratiotot/ABS(Ratiotot)
               Call Control_PrecisionP_Glob(Z,Phase_new)
@@ -839,7 +843,7 @@ Module Global_mod
         beta  = cmplx(0.d0,0.d0,kind(0.d0))
         Allocate (TP(N_Size,N_Size),D(N_size))
         TP = udvl%U !udvl stores U^dag instead of U !CT(udvl%U)
-#if !defined(LOG)
+#if !defined(LOGSCALE)
 #if !defined(STAB3)
         DO J = 1,N_size
            TP(:,J) = TP(:,J) +  udvl%V(:,J)*udvl%D(J)
@@ -870,7 +874,7 @@ Module Global_mod
         Z1 = Det_C(TP, N_size) 
         Deallocate (TP)
         Phase   = Z*Z1/ABS(Z*Z1)
-#if !defined(LOG)
+#if !defined(LOGSCALE)
 #if !defined(STAB3)
         Det_vec = log(real(D))
         Det_vec(1) = log(real(D(1))*ABS(Z*Z1))

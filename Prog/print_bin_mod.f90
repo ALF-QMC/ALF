@@ -6,7 +6,7 @@
 
 
        Contains
-
+         
          Subroutine  Print_bin_C(Dat_eq,Dat_eq0,Latt, Nobs, Phase_bin_tmp, file_pr, Group_Comm)
            Use Lattices_v3
 #ifdef MPI
@@ -21,8 +21,8 @@
            Complex (Kind=Kind(0.d0)),                   Intent(In)   :: Phase_bin_tmp
            Character (len=64),                 Intent(In)   :: File_pr
            Integer,                            Intent(In)   :: Nobs
-           Integer,                  Intent(In)      :: Group_Comm
-
+           Integer,                  Intent(In), optional      :: Group_Comm
+          
            ! Local
            Character (len=64) :: File_tmp
            Integer :: Norb, I, no,no1
@@ -35,9 +35,19 @@
            INTEGER         :: STATUS(MPI_STATUS_SIZE)
            CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
            CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-           call MPI_Comm_size(Group_Comm, isize_g, ierr)
-           igroup           = irank/isize_g
+           if(Present(Group_Comm)) then
+            call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+            call MPI_Comm_size(Group_Comm, isize_g, ierr)
+            igroup           = irank/isize_g
+           else
+            irank_g = irank
+            isize_g = isize
+            igroup = 0
+#ifdef Tempering
+            write(*,*) "Inproper call of Print_bin! Missing Group_Comm argument"
+            stop
+#endif
+           endif
 #endif
            Phase_bin = Phase_bin_tmp
            Norb = size(Dat_eq,3)
@@ -48,7 +58,7 @@
            Allocate (Tmp(Latt%N,Norb,Norb), Tmp1(Norb) )
            Dat_eq = Dat_eq/dble(Nobs)
            Dat_eq0 = Dat_eq0/dble(Nobs*Latt%N)
-
+           
 #if defined(MPI)
            I = Latt%N*Norb*Norb
            Tmp = cmplx(0.d0, 0.d0, kind(0.D0))
@@ -114,7 +124,7 @@
            Complex (Kind=Kind(0.d0)),                   Intent(In)    :: Phase_bin_tmp
            Character (len=64),                 Intent(In)    :: File_pr
            Integer,                            Intent(In)    :: Nobs
-           Integer,                  Intent(In)      :: Group_Comm
+           Integer,                  Intent(In), optional      :: Group_Comm
            
            ! Local
            Character (len=64) :: File_tmp
@@ -128,9 +138,19 @@
            INTEGER         :: STATUS(MPI_STATUS_SIZE)
            CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
            CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-           call MPI_Comm_size(Group_Comm, isize_g, ierr)
-           igroup           = irank/isize_g
+           if(Present(Group_Comm)) then
+            call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+            call MPI_Comm_size(Group_Comm, isize_g, ierr)
+            igroup           = irank/isize_g
+           else
+            irank_g = irank
+            isize_g = isize
+            igroup = 0
+#ifdef Tempering
+            write(*,*) "Inproper call of Print_bin! Missing Group_Comm argument"
+            stop
+#endif
+           endif
 #endif
            
            Phase_bin = Phase_bin_tmp
@@ -192,6 +212,7 @@
          End Subroutine Print_bin_R
 !============================================================
          Subroutine  Print_scal(Obs, Nobs, file_pr, Group_Comm)
+           
 #ifdef MPI
            Use mpi
 #endif
@@ -200,8 +221,8 @@
            Complex   (Kind=Kind(0.d0)), Dimension(:), Intent(inout) :: Obs
            Character (len=64),               Intent(In)    :: File_pr
            Integer,                          Intent(In)    :: Nobs
-           Integer,                  Intent(In)      :: Group_Comm
-
+           Integer,                  Intent(In), optional      :: Group_Comm
+           
            ! Local
            Character (len=64) :: File_tmp
            Integer :: Norb,I
@@ -211,9 +232,19 @@
            INTEGER         :: STATUS(MPI_STATUS_SIZE)
            CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
            CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-           call MPI_Comm_size(Group_Comm, isize_g, ierr)
-           igroup           = irank/isize_g
+           if(Present(Group_Comm)) then
+            call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+            call MPI_Comm_size(Group_Comm, isize_g, ierr)
+            igroup           = irank/isize_g
+           else
+            irank_g = irank
+            isize_g = isize
+            igroup = 0
+#ifdef Tempering
+            write(*,*) "Inproper call of Print_scal! Missing Group_Comm argument"
+            stop
+#endif
+           endif
 #endif
 
            Norb = size(Obs,1)
@@ -260,7 +291,7 @@
            Character (len=64),                   Intent(In)   :: File_pr
            Integer,                              Intent(In)   :: Nobs
            Real (Kind=Kind(0.d0)),                        Intent(In)   :: dtau
-           Integer,                  Intent(In)      :: Group_Comm
+           Integer,                  Intent(In), optional      :: Group_Comm
 
            ! Local
            Character (len=64) :: File_tmp
@@ -278,9 +309,19 @@
            INTEGER         :: STATUS(MPI_STATUS_SIZE)
            CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
            CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-           call MPI_Comm_size(Group_Comm, isize_g, ierr)
-           igroup           = irank/isize_g
+           if(Present(Group_Comm)) then
+            call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+            call MPI_Comm_size(Group_Comm, isize_g, ierr)
+            igroup           = irank/isize_g
+           else
+            irank_g = irank
+            isize_g = isize
+            igroup = 0
+#ifdef Tempering
+            write(*,*) "Inproper call of Print_bin_tau! Missing Group_Comm argument"
+            stop
+#endif
+           endif
 #endif
 
            Phase_mean = Phase_bin
@@ -332,7 +373,7 @@
               enddo
 !$OMP end parallel do
 #ifdef ZLIB
-              write(File_tmp,*) TRIM(ADJUSTL(File_pr)),".gz"
+              write(File_tmp,*) TRIM(ADJUSTL(File_tmp)),".gz"
               CALL FGZ_OPEN(TRIM(ADJUSTL(File_tmp)),'a6',fd,ios)
               Write(Line,*) dble(Phase_mean),Norb,Latt%N, LT, dtau
               CALL FGZ_WRITE(fd,TRIM(LINE),'yes',IOS)

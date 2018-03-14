@@ -31,7 +31,7 @@
 !     - If you make substantial changes to the program we require you to either consider contributing
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
-        SUBROUTINE CONFIN
+        SUBROUTINE CONFIN(lastk)
 
 !--------------------------------------------------------------------
 !
@@ -43,10 +43,15 @@
 !
 !--------------------------------------------------------------------
          USE HAMILTONIAN
+         USE F95ZLIB
+         USE IOPORTS
+         USE ISO_C_BINDING
 #ifdef MPI
          USE mpi
 #endif
          IMPLICIT NONE
+         
+         INTEGER, Intent(out)        :: lastk
 
          ! LOCAL
          INTEGER        :: I, IERR, ISIZE, IRANK, SEED_IN, K, ISEED, NT
@@ -54,6 +59,9 @@
          REAL (Kind=Kind(0.d0))  :: X
          LOGICAL ::   LCONF 
          CHARACTER (LEN=64) :: FILE_SR, FILE_TG, FILE_seeds, FILE_info, File1
+         TYPE(IOPORT) :: fd
+         CHARACTER(LEN=255), TARGET :: LINE
+         INTEGER        :: IOS
 
 #ifdef MPI
          INTEGER        :: STATUS(MPI_STATUS_SIZE), irank_g, isize_g, igroup
@@ -65,32 +73,37 @@
 #endif
 
          ALLOCATE (NSIGMA(SIZE(OP_V,1),LTROT))
+         lastk=Ltrot
          
 #if defined(MPI)
 
 #if defined(TEMPERING) 
-            write(FILE1,'(A,I0,A)') "Temp_",igroup,"/confin_0"
+            write(FILE1,'(A,I0,A)') "Temp_",igroup,"/confin_0.gz"
 #else
-            File1 = "confin_0"
+            File1 = "confin_0.gz"
 #endif
             INQUIRE (FILE=File1, EXIST=LCONF)
             IF (LCONF) THEN
 #if defined(TEMPERING) 
-               write(FILE_TG,'(A,I0,A,I0)') "Temp_",igroup,"/confin_",irank_g
+               write(FILE_TG,'(A,I0,A,I0,A)') "Temp_",igroup,"/confin_",irank_g,".gz"
 #else
-               write(FILE_TG,'(A,I0)') "confin_",irank_g
+               write(FILE_TG,'(A,I0,A)') "confin_",irank_g,".gz"
 #endif
                CALL GET_SEED_LEN(K)
                ALLOCATE(SEED_VEC(K))
-               OPEN (UNIT = 10, FILE=FILE_TG, STATUS='OLD', ACTION='READ')
-               READ(10,*) SEED_VEC
+               CALL FGZ_OPEN(TRIM(ADJUSTL(FILE_TG)),'r6',fd,ios)
+               call FGZ_READ(fd, line, 'yes', ios)
+               READ(line,*) SEED_VEC
                CALL RANSET(SEED_VEC)
-               DO NT = 1,LTROT
+               DO NT = 1,SIZE(NSIGMA,2)
                   DO I = 1,SIZE(OP_V,1)
-                     READ(10,*) NSIGMA(I,NT) 
+                     call FGZ_READ(fd, line, 'yes', ios)
+                     READ(line,*) NSIGMA(I,NT) 
                   ENDDO
                ENDDO
-               CLOSE(10)
+               call FGZ_READ(fd, line, 'yes', ios)
+               if (ios==0) read(line,*) lastk
+               CALL FGZ_CLOSE(fd,IOS)
                DEALLOCATE(SEED_VEC)
             ELSE
                IF (IRANK == 0) THEN
@@ -109,6 +122,7 @@
                ELSE
                   CALL MPI_RECV(SEED_IN, 1, MPI_INTEGER,0,  IRANK + 1024,  MPI_COMM_WORLD,STATUS,IERR)
                ENDIF
+               lastk=-1
                ALLOCATE (SEED_VEC(1))
                SEED_VEC(1) = SEED_IN
                CALL RANSET(SEED_VEC)
@@ -134,22 +148,27 @@
          ENDIF
             
 #else   
-         FILE_TG = "confin_0"
+         FILE_TG = "confin_0.gz"
          INQUIRE (FILE=FILE_TG, EXIST=LCONF)
          IF (LCONF) THEN
             CALL GET_SEED_LEN(K)
             ALLOCATE(SEED_VEC(K))
-            OPEN (UNIT = 10, FILE=FILE_TG, STATUS='OLD', ACTION='READ')
-            READ(10,*) SEED_VEC
+            CALL FGZ_OPEN(TRIM(ADJUSTL(FILE_TG)),'r6',fd,ios)
+            call FGZ_READ(fd, line, 'yes', ios)
+            READ(line,*) SEED_VEC
             CALL RANSET(SEED_VEC)
-            DO NT = 1,LTROT
+            DO NT = 1,SIZE(NSIGMA,2)
                DO I = 1,SIZE(OP_V,1)
-                  READ(10,*) NSIGMA(I,NT) 
+                  call FGZ_READ(fd, line, 'yes', ios)
+                  READ(line,*) NSIGMA(I,NT) 
                ENDDO
             ENDDO
-            CLOSE(10)
+            call FGZ_READ(fd, line, 'yes', ios)
+            if (ios==0) read(line,*) lastk
+            CALL FGZ_CLOSE(fd,IOS)
             DEALLOCATE(SEED_VEC)
          ELSE
+            WRITE(6,*) 'No initial configuration'
             FILE_seeds="seeds"
             OPEN(UNIT=5,FILE=FILE_seeds,STATUS='OLD',ACTION='READ',IOSTAT=IERR)
             IF (IERR /= 0) THEN
@@ -163,6 +182,7 @@
             WRITE(50,*) 'No initial configuration, Seed_in', SEED_IN
             Close(50)
 
+            lastk=-1
             ALLOCATE(SEED_VEC(1))
             SEED_VEC(1) = SEED_IN
             CALL RANSET (SEED_VEC)

@@ -25,7 +25,7 @@
       ! What is below is  private 
       
       Type (Lattice),       private :: Latt
-      Integer, parameter,   private :: Norb=16, Nobs_scal=11
+      Integer, parameter,   private :: Norb=16, Nobs_scal=12
       Integer, allocatable, private :: List(:,:), Invlist(:,:)
       Integer,              private :: L1, L2, FlagSym
       real (Kind=Kind(0.d0)),        private :: Ham_T, Ham_Vint, Ham_V2int, Ham_Lam
@@ -98,7 +98,11 @@
           igroup           = irank/isize_g
           If (Irank == 0 ) then
 #endif
-             OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
+             File1 = "parameters"
+#if defined(TEMPERING) 
+             write(File1,'(A,I0,A)') "Temp_",igroup,"/parameters"
+#endif
+             OPEN(UNIT=5,FILE=File1,STATUS='old',ACTION='read',IOSTAT=ierr)
              IF (ierr /= 0) THEN
                 WRITE(*,*) 'unable to open <parameters>',ierr
                 STOP
@@ -547,7 +551,7 @@
           Integer, Intent(In) :: Ltau
           Integer :: I
           Allocate ( Obs_scal(Nobs_scal) )
-          Allocate ( Local_eq(Latt%N,1,1), Local_eq0(Norb*Norb) )
+!           Allocate ( Local_eq(Latt%N,1,1), Local_eq0(Norb*Norb) )
           Allocate ( Den_eq(Latt%N,1,1), Den_eq0(1) ) 
           Allocate ( U1_eq(Latt%N,1,1), U1_eq0(1) )
           Allocate ( U1G_eq(Latt%N,1,1) )
@@ -596,8 +600,8 @@
           Nobs = 0
           Obs_scal  = 0.d0
           
-          Local_eq    = 0.d0
-          Local_eq0   = 0.d0
+!           Local_eq    = 0.d0
+!           Local_eq0   = 0.d0
           Den_eq    = 0.d0
           Den_eq0   = 0.d0
           Spinz_eq    = 0.d0
@@ -677,7 +681,7 @@
           
           !Local 
           Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK
-          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, ZL, Z, ZP,ZS, weight, tmp, ZU1, ZU1xG, ZU1yG, tmp1, tmp2
+          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, ZL, Z, ZP,ZS, weight, tmp, ZU1, ZU1xG, ZU1yG, tmp1, tmp2, FdU
           Integer :: I,J, no,no1, n, n1, imj, nf, I1, I2, J1, J2, Nc, Ix, Iy, Jx, Jy, Imx, Imy, Jmx, Jmy
           Integer :: a, b, c, d, signum, K, K1, L ,L1, nf1
           
@@ -792,10 +796,11 @@
 !           ZU1xyG = cmplx( 0.5d0*(real(ZU1xyG) + aimag(ZU1xyG)), 0.d0 , kind(0.D0))
 
           ZPot = 0.d0
+          FdU=0.d0
           Nc = Size( Op_V,1)
           Do nf = 1,N_FL
 !$OMP parallel do default(shared) private(n,weight,J,J1,I,I1,K,K1,L,L1,tmp) reduction(+:ZPot)
-             Do n = 1,Nc
+             Do n = 1,8*Latt%N!Nc
                 weight=(-1)**((n-1)/Latt%N)/8.d0
                 Do J = 1,Op_V(n,nf)%N
                    J1 = Op_V(n,nf)%P(J)
@@ -819,7 +824,33 @@
 !                 write(*,*) Zpot
              Enddo
 !$OMP end parallel do
+!$OMP parallel do default(shared) private(n,weight,J,J1,I,I1,K,K1,L,L1,tmp) reduction(+:FdU)
+             Do n = 8*Latt%N+1,Nc
+                weight=1.d0
+                Do J = 1,Op_V(n,nf)%N
+                   J1 = Op_V(n,nf)%P(J)
+                   DO I = 1,Op_V(n,nf)%N
+                      if (abs(Op_V(n,nf)%O(i,j)) >= 0.00001) then
+                          I1 = Op_V(n,nf)%P(I)
+                          Do K = 1,Op_V(n,nf)%N
+                            K1 = Op_V(n,nf)%P(K)
+                            DO L = 1,Op_V(n,nf)%N
+                              if (abs(Op_V(n,nf)%O(k,l)) >= 0.00001) then
+                                L1 = Op_V(n,nf)%P(L)
+                                tmp =  (   GRC(I1,L1,1) * GR (J1,K1,1)      +  &
+                                      &     GRC(I1,J1,1) * GRC(K1,L1,1)         )
+                                FdU  = FdU  + weight*Op_V(n,nf)%O(i,j)*Op_V(n,nf)%O(k,l)*tmp
+                              endif
+                            Enddo
+                          ENddo
+                      endif
+                   Enddo
+                ENddo
+!                 write(*,*) Zpot
+             Enddo
+!$OMP end parallel do
           Enddo
+          FdU = FdU*N_SUN!cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
           ZPot = ZPot*N_SUN!cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
 
           Obs_scal(1) = Obs_scal(1) + zrho * ZP*ZS
@@ -832,35 +863,36 @@
           Obs_scal(8) = Obs_scal(8) + (ZU1)*ZP*ZS
           Obs_scal(9) = Obs_scal(9) + (ZU1xG)*ZP*ZS
           Obs_scal(10) = Obs_scal(10) + ZU1yG*ZP*ZS
+          Obs_scal(11) = Obs_scal(11) + FdU*ZP*ZS
           Obs_scal(Nobs_scal) = Obs_scal(Nobs_scal) + ZS
           ! You will have to allocate more space if you want to include more  scalar observables.
           ! the last one has to be the phase!!!
           
-          Do I = 1, Latt%N
-            do J = 1, Latt%N
-                imj = latt%imj(I,J)
-                do no = 1, Norb
-                do no1 = 1, Norb
-                  I1=Invlist(I,no)
-                  j1=Invlist(I,no1)
-                  k1=Invlist(j,no1)
-                  l1=Invlist(j,no)
-                  tmp =  (   GRC(I1,L1,1) * GR (J1,K1,1)      +  &
-                      &     GRC(I1,J1,1) * GRC(K1,L1,1)         )
-                  Local_eq (imj,1,1) = Local_eq (imj,1,1)   +   tmp*ZP*ZS
-                enddo
-                enddo
-            enddo
-            tmp=0.d0
-            do no = 1, Norb
-            do no1 = 1, Norb
-              I1=Invlist(I,no)
-              j1=Invlist(I,no1)
-              tmp = tmp +   GRC(I1,j1,1)*ZP*ZS
-              Local_eq0(Norb*(no-1)+no1)=Local_eq0(Norb*(no-1)+no1)+tmp
-            enddo
-            enddo
-          enddo
+!           Do I = 1, Latt%N
+!             do J = 1, Latt%N
+!                 imj = latt%imj(I,J)
+!                 do no = 1, Norb
+!                 do no1 = 1, Norb
+!                   I1=Invlist(I,no)
+!                   j1=Invlist(I,no1)
+!                   k1=Invlist(j,no1)
+!                   l1=Invlist(j,no)
+!                   tmp =  (   GRC(I1,L1,1) * GR (J1,K1,1)      +  &
+!                       &     GRC(I1,J1,1) * GRC(K1,L1,1)         )
+!                   Local_eq (imj,1,1) = Local_eq (imj,1,1)   +   tmp*ZP*ZS
+!                 enddo
+!                 enddo
+!             enddo
+!             tmp=0.d0
+!             do no = 1, Norb
+!             do no1 = 1, Norb
+!               I1=Invlist(I,no)
+!               j1=Invlist(I,no1)
+!               tmp = GRC(I1,j1,1)*ZP*ZS
+!               Local_eq0(Norb*(no-1)+no1)=Local_eq0(Norb*(no-1)+no1)+tmp
+!             enddo
+!             enddo
+!           enddo
           
 !$OMP parallel do default(shared) private(I1,I,no,J1,J,no1,imj,tmp,weight,signum)
           DO I1 = 1,Ndim
@@ -1847,24 +1879,24 @@
           File_pr ="ener"
           Call Print_scal(Obs_scal, Nobs, file_pr, Group_Comm)
 
-          do no=1,Norb
-          do no1=1,Norb
-            if(no>1 .or. no1>1) then
-              if (no==no1) then
-                Local_eq0(1)=Local_eq0(1)+Local_eq0((no-1)*Norb+no1)**2
-              else
-                Local_eq0(1)=Local_eq0(1)+0.5d0*(Local_eq0((no-1)*Norb+no1)+Local_eq0((no1-1)*Norb+no))**2
-                Local_eq0(1)=Local_eq0(1)-0.5d0*(Local_eq0((no-1)*Norb+no1)-Local_eq0((no1-1)*Norb+no))**2
-              endif
-            else
-              Local_eq0(1)=Local_eq0(1)**2
-            endif
-          enddo
-          enddo
-          Local_eq0(1)=sqrt(Local_eq0(1))
-          Phase_bin = Obs_scal(Nobs_scal)/dble(Nobs)
-          File_pr ="Local_eq"
-          Call Print_bin(Local_eq, Local_eq0(1:1), Latt, Nobs, Phase_bin, file_pr, Group_Comm)
+!           do no=1,Norb
+!           do no1=no,Norb
+!             if(no>1 .or. no1>1) then
+!               if (no==no1) then
+!                 Local_eq0(1)=Local_eq0(1)+Local_eq0((no-1)*Norb+no1)**2
+!               else
+!                 Local_eq0(1)=Local_eq0(1)+0.5d0*(Local_eq0((no-1)*Norb+no1)+Local_eq0((no1-1)*Norb+no))**2
+!                 Local_eq0(1)=Local_eq0(1)-0.5d0*(Local_eq0((no-1)*Norb+no1)-Local_eq0((no1-1)*Norb+no))**2
+!               endif
+!             else
+!               Local_eq0(1)=Local_eq0(1)**2
+!             endif
+!           enddo
+!           enddo
+!           Local_eq0(1)=sqrt(Local_eq0(1))
+!           Phase_bin = Obs_scal(Nobs_scal)/dble(Nobs)
+!           File_pr ="Local_eq"
+!           Call Print_bin(Local_eq, Local_eq0(1:1), Latt, Nobs, Phase_bin, file_pr, Group_Comm)
           File_pr ="Den_eq"
           Call Print_bin(Den_eq, Den_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
           File_pr ="U1_eq"

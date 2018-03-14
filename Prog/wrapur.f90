@@ -106,8 +106,8 @@
               Do n = 1,Size(Op_V,1)
                  Call Op_mmultR(UDVR(nf)%U,Op_V(n,nf),nsigma(n,nt),Ndim,'n')
               ENDDO
+              !CALL UDVR(nf)%decompose
            ENDDO
-
            CALL UDVR(nf)%decompose
         ENDDO
 

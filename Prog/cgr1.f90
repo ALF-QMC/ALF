@@ -55,14 +55,14 @@
 
         Use UDV_State_mod
 
-#if (defined(STAB2) || defined(STAB1)) && !defined(LOG)
+#if (defined(STAB2) || defined(STAB1)) && !defined(LOGSCALE)
         Use UDV_Wrap_mod
 
         Implicit None
 
 
-	!Arguments.
-	CLASS(UDV_State), INTENT(IN) :: udvl, udvr
+        !Arguments.
+        CLASS(UDV_State), INTENT(IN) :: udvl, udvr
         COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(INOUT) :: GRUP
         COMPLEX(Kind=Kind(0.d0)) :: PHASE
         INTEGER         :: NVAR
@@ -232,13 +232,13 @@
         CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, udvr%U, N_size, udvl%U, N_size, beta, RHS(1, 1), N_size)
         
         CALL MMULT(TPUP, udvr%V, udvl%V)
-#if !(defined(STAB3) || defined(LOG))
+#if !(defined(STAB3) || defined(LOGSCALE))
         DO J = 1,N_size
             TPUP(:,J) = udvr%D(:) *TPUP(:,J)*udvl%D(J)
         ENDDO
         TPUP = TPUP + RHS
 #else
-#if ! defined(LOG)
+#if ! defined(LOGSCALE)
         !missuse DUP(I) as DR(I) for temporary storage
         !scales in D are assumed to be real an positive
         DO I = 1,N_size
@@ -352,10 +352,10 @@
             ! URUP U D V P^dagger ULUP G = 1
             ! initialize the rhs with CT(URUP)
             RHS = CT(udvr%U)
-#if (defined(STAB3) || defined(LOG))
+#if (defined(STAB3) || defined(LOGSCALE))
             !scale RHS=R_+^-1*RHS
             do J=1,N_size
-#if !defined(LOG)
+#if !defined(LOGSCALE)
               if( dble(UDVR%D(J)) > 1.d0 ) call ZSCAL(N_size,1.d0/UDVR%D(J),RHS(J,1),N_size)
 #else
               if( UDVR%L(J) > 0.d0 ) call ZSCAL(N_size,cmplx(exp(-UDVR%L(J)),0.d0,kind(0.d0)),RHS(J,1),N_size)
@@ -382,10 +382,10 @@
             ! apply permutation matrix
             FORWRD = .false.
             CALL ZLAPMR(FORWRD, N_size, N_size, RHS(1,1), N_size, IPVT(1))
-#if (defined(STAB3) || defined(LOG))
+#if (defined(STAB3) || defined(LOGSCALE))
             !scale RHS=L_+^-1*RHS
             do J=1,N_size
-#if !defined(LOG)
+#if !defined(LOGSCALE)
               if( dble(UDVL%D(J)) > 1.d0 ) call ZSCAL(N_size,1.d0/UDVL%D(J),RHS(J,1),N_size)
 #else
               if( UDVL%L(J) > 0.d0 ) call ZSCAL(N_size,cmplx(exp(-UDVL%L(J)),0.d0,kind(0.d0)),RHS(J,1),N_size)
@@ -399,10 +399,10 @@
             
             ! RHS = ULUP * UUP
             RHS = udvl%U !CT(udvl%U)
-#if (defined(STAB3) || defined(LOG))
+#if (defined(STAB3) || defined(LOGSCALE))
             !scale RHS=RHS*L_+^-1
             do J=1,N_size
-#if !defined(LOG)
+#if !defined(LOGSCALE)
               if( dble(UDVL%D(J)) > 1.d0 ) call ZSCAL(N_size,1.d0/UDVL%D(J),RHS(1,J),1)
 #else
               if( UDVL%L(J) > 0.d0 ) call ZSCAL(N_size,cmplx(exp(-UDVL%L(J)),0.d0,kind(0.d0)),RHS(1,J),1)
@@ -430,10 +430,10 @@
             ! apply inverse permutation matrix
             FORWRD = .false.
             CALL ZLAPMT(FORWRD, N_size, N_size, RHS(1, 1), N_size, IPVT(1))
-#if (defined(STAB3) || defined(LOG))
+#if (defined(STAB3) || defined(LOGSCALE))
             ! first scale RHS=RHS*R_+^-1
             do J=1,N_size
-#if !defined(LOG)
+#if !defined(LOGSCALE)
               if( dble(UDVR%D(J)) > 1.d0 ) call ZSCAL(N_size,1.d0/UDVR%D(J),RHS(1,J),1)
 #else
               if( UDVR%L(J) > 0.d0 ) call ZSCAL(N_size,cmplx(exp(-UDVR%L(J)),0.d0,kind(0.d0)),RHS(1,J),1)

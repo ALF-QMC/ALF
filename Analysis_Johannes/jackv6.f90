@@ -8,7 +8,7 @@
         Complex (KIND=8), DIMENSION(:),   ALLOCATABLE :: EN, SIGN
         Complex (KIND=8) :: XM, XERR,x,x1,y,y1
 
-        Complex (Kind=8) Z1,Z2,Z3,Z4,Z5,Z6,Z7,Z8,Z9,Z10, Z11,z,zm
+        Complex (Kind=8) Z1,Z2,Z3,Z4,Z5,Z6,Z7,Z8,Z9,Z10,Z11, Z12,z,zm
         Integer :: NST, NS, NS1, NS2, NSTEP, NC, NP, NOBS, Nbins, NP_EFF, ISEED, I, IOBS
         Integer :: N, NBIN
 
@@ -17,7 +17,7 @@
         !Open (Unit=12, File="ener_hist", status="unknown") 
         nbins = 0
         do
-            read(10,*,End=10)  Z1, Z2, Z3, Z4, Z5, Z5, Z5, Z5, Z5, Z5, Z11
+            read(10,*,End=10)  Z1, Z2, Z3, Z4, Z5, Z5, Z5, Z5, Z5, Z5, Z5, Z11
             nbins = nbins + 1
          enddo
 10       continue
@@ -26,7 +26,7 @@
          !Close(12)
          
          NP = NBINS
-         NOBS = 11
+         NOBS = 12
          
          ALLOCATE(OBS(NP,NOBS))
          !	Error on energy
@@ -49,7 +49,7 @@
          DO N = 1,NP
             IF (N.GE.NST) THEN
                NC = NC + 1
-               READ(20,*) Z1,Z2,Z3, Z4, Z5, Z6, Z7, Z8, Z9, Z10, Z11
+               READ(20,*) Z1,Z2,Z3, Z4, Z5, Z6, Z7, Z8, Z9, Z10, Z11, Z12
                OBS(NC,1) = Z1 
                OBS(NC,2) = Z2 
                OBS(NC,3) = Z3
@@ -61,6 +61,7 @@
                OBS(NC,9) = Z9
                OBS(NC,10) = Z10
                OBS(NC,11) = Z11
+               OBS(NC,12) = Z12
                X=Obs(nc,8)
                X1=x1+X
                y=Obs(nc,9)
@@ -69,7 +70,7 @@
                zm=zm+z
                write(55,*) aimag(X), aimag(x1/(nc)), dble(y), dble(y1/(nc)), dble(z), dble(zm/(nc))
             ELSE
-               READ(20,*) Z1,Z2,Z3, Z4, Z5, Z6, Z5, Z6, Z5, Z5, Z11
+               READ(20,*) Z1,Z2,Z3, Z4, Z5, Z6, Z5, Z6, Z5, Z5, Z5, Z11
             ENDIF
          ENDDO
          CLOSE(20)
@@ -95,6 +96,7 @@
             IF (IOBS.EQ.8) WRITE(21,*) ' U1            '
             IF (IOBS.EQ.9) WRITE(21,*) ' U1xG          '
             IF (IOBS.EQ.10) WRITE(21,*) ' U1yG          '
+            IF (IOBS.EQ.11) WRITE(21,*) ' dF/dV         '
             IF (IOBS.EQ.NOBS) WRITE(21,*) ' phase         '
             DO NBIN = NS1, NS2, NSTEP
                if (NBIN.gt.0) then
