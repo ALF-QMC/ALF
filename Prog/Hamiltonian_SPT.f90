@@ -423,6 +423,7 @@
              Enddo
           Enddo
           
+          ! In this basis we have Ps_G5(:,:,1)=diag(0,-1,0,1) and  Ps_G5(:,:,2)=diag(1,0,-1,0)
           Do ns = 1,2
              Call mmult ( Ps_G5(:,:,ns), Ps(:,:,ns), Gamma_M(:,:,5) )
           enddo
@@ -551,7 +552,7 @@
           Integer, Intent(In) :: Ltau
           Integer :: I
           Allocate ( Obs_scal(Nobs_scal) )
-!           Allocate ( Local_eq(Latt%N,1,1), Local_eq0(Norb*Norb) )
+          Allocate ( Local_eq(Latt%N,Norb,Norb), Local_eq0(Norb) )
           Allocate ( Den_eq(Latt%N,1,1), Den_eq0(1) ) 
           Allocate ( U1_eq(Latt%N,1,1), U1_eq0(1) )
           Allocate ( U1G_eq(Latt%N,1,1) )
@@ -600,8 +601,8 @@
           Nobs = 0
           Obs_scal  = 0.d0
           
-!           Local_eq    = 0.d0
-!           Local_eq0   = 0.d0
+          Local_eq    = 0.d0
+          Local_eq0   = 0.d0
           Den_eq    = 0.d0
           Den_eq0   = 0.d0
           Spinz_eq    = 0.d0
@@ -868,31 +869,27 @@
           ! You will have to allocate more space if you want to include more  scalar observables.
           ! the last one has to be the phase!!!
           
-!           Do I = 1, Latt%N
-!             do J = 1, Latt%N
-!                 imj = latt%imj(I,J)
-!                 do no = 1, Norb
-!                 do no1 = 1, Norb
-!                   I1=Invlist(I,no)
-!                   j1=Invlist(I,no1)
-!                   k1=Invlist(j,no1)
-!                   l1=Invlist(j,no)
-!                   tmp =  (   GRC(I1,L1,1) * GR (J1,K1,1)      +  &
-!                       &     GRC(I1,J1,1) * GRC(K1,L1,1)         )
-!                   Local_eq (imj,1,1) = Local_eq (imj,1,1)   +   tmp*ZP*ZS
-!                 enddo
-!                 enddo
-!             enddo
-!             tmp=0.d0
-!             do no = 1, Norb
-!             do no1 = 1, Norb
-!               I1=Invlist(I,no)
-!               j1=Invlist(I,no1)
-!               tmp = GRC(I1,j1,1)*ZP*ZS
-!               Local_eq0(Norb*(no-1)+no1)=Local_eq0(Norb*(no-1)+no1)+tmp
-!             enddo
-!             enddo
-!           enddo
+          Do I = 1, Latt%N
+            do J = 1, Latt%N
+                imj = latt%imj(I,J)
+                do no = 1, Norb
+                do no1 = 1, Norb
+                  I1=Invlist(I,no)
+                  j1=Invlist(I,no)
+                  k1=Invlist(j,no1)
+                  l1=Invlist(j,no1)
+                  tmp =  (   GRC(I1,L1,1) * GR (J1,K1,1)      +  &
+                      &     GRC(I1,J1,1) * GRC(K1,L1,1)         )
+                  Local_eq (imj,no,no1) = Local_eq (imj,no,no1)   +   tmp*ZP*ZS
+                enddo
+                enddo
+            enddo
+            do no = 1, Norb
+              I1=Invlist(I,no)
+              tmp = GRC(I1,I1,1)*ZP*ZS
+              Local_eq0(no)=Local_eq0(no)+tmp
+            enddo
+          enddo
           
 !$OMP parallel do default(shared) private(I1,I,no,J1,J,no1,imj,tmp,weight,signum)
           DO I1 = 1,Ndim
@@ -1876,6 +1873,8 @@
 !!$          Write(6,*)  'In Pr_obs', LTAU
 !!$#endif
 
+          Phase_bin = Obs_scal(Nobs_scal)/dble(Nobs)
+          
           File_pr ="ener"
           Call Print_scal(Obs_scal, Nobs, file_pr, Group_Comm)
 
@@ -1894,9 +1893,8 @@
 !           enddo
 !           enddo
 !           Local_eq0(1)=sqrt(Local_eq0(1))
-!           Phase_bin = Obs_scal(Nobs_scal)/dble(Nobs)
-!           File_pr ="Local_eq"
-!           Call Print_bin(Local_eq, Local_eq0(1:1), Latt, Nobs, Phase_bin, file_pr, Group_Comm)
+          File_pr ="Local_eq"
+          Call Print_bin(Local_eq, Local_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
           File_pr ="Den_eq"
           Call Print_bin(Den_eq, Den_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
           File_pr ="U1_eq"
