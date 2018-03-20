@@ -15,7 +15,7 @@ INTELUSEFULFLAGS="-cpp -std03"
 # default optimization flags for GNU compiler
 GNUOPTFLAGS="-O3 -ffree-line-length-none -ffast-math"
 # uncomment the next line if you want to use additional openmp parallelization
-GNUOPTFLAGS=${GNUOPTFLAGS}" -fopenmp"
+#GNUOPTFLAGS=${GNUOPTFLAGS}" -fopenmp"
 GNUUSEFULFLAGS="-cpp -std=f2003"
 
 MACHINE=""
