@@ -29,7 +29,7 @@ Module MaxEnt_mod
             Real (Kind=Kind(0.d0)) :: X, XENT, XQ, PR_ALP, XTRACE, DIFF1, DIFF , Tol_chi_def
 
 
-	    Tol_chi_def = 1000000000000.0
+            Tol_chi_def = 1000000000000.0
             NTAU = SIZE(XQMC,1)
             NOM  = SIZE(A, 1)
             !WRITE(6,*) 'NTAU, Nom: ', NTAU,NOM
@@ -193,7 +193,7 @@ Module MaxEnt_mod
                !Write(6,*) ' Back From SetA '
                CALL SETAH(AH, A,XKER,COV)
                !Write(6,*) ' Back From SetAH '
-               CALL SETF (F, COV, XKER, A, XQMC)		
+               CALL SETF (F, COV, XKER, A, XQMC)
                !Write(6,*) ' Back From SetF '
                Write(6,*) 'Calling INV'
                CALL INV(AH, AHINV, DET1)
@@ -353,10 +353,10 @@ Module MaxEnt_mod
                   AH(NT,NT1) =  COV(NT,NT1)*ALPHA + X
                ENDDO
             ENDDO
-	
+
           End Subroutine SETAH
 
-          Subroutine SETF (F,COV,XKER,A,XQMC)	
+          Subroutine SETF (F,COV,XKER,A,XQMC)
             Implicit None
 
             !Given XLAM,  A, and alpha,  calcluates F
@@ -409,7 +409,7 @@ Module MaxEnt_mod
                IF (A(NW).LT.ZERO) X  = ZERO
                XENT = XENT + X-DEF(NW) - X*LOG(X/DEF(NW))
             ENDDO
-	
+
             DO NT = 1,NTAU
                X  = 0.D0
                DO NW = 1,NOM
@@ -473,7 +473,6 @@ Module MaxEnt_mod
                      XMAT(NW,NW1) =  SQRT(A(NW))*XMAT(NW,NW1) 
                   ENDDO
                ENDDO
-	
                
                DO NW = 1,NOM
                   XMAT(NW,NW) = XMAT(NW,NW) + ALPHA
@@ -491,7 +490,6 @@ Module MaxEnt_mod
 
                PR_ALP = XQ  + 0.5*LOG(ALPHA)*DBLE(NOM) - 0.5*XLDET
 
-	
                XTRACE = 0.D0
                DO NW = 1,NOM
                   DO NW1 = 1,NOM
@@ -545,7 +543,7 @@ Module MaxEnt_mod
             Real (Kind=Kind(0.d0)) :: X
 
             ntau = size(xqmc,1) 
-	    Nom  = Size(A,1) 
+            Nom  = Size(A,1) 
             ntau_eff = 0
             nt = 0
             do  
@@ -652,7 +650,7 @@ Module MaxEnt_mod
 
             Real (Kind=Kind(0.d0)), Dimension(:), allocatable   :: A_ME
 
-	    Tol_chi_def = 100000000000000.0
+            Tol_chi_def = 100000000000000.0
             NTAU = SIZE(XQMC,1)
             NOM  = SIZE(A, 1)
             ALLOCATE(A_ME(NOM))
@@ -793,7 +791,7 @@ Module MaxEnt_mod
            Close(55)
            Close(57)
            CLOSE(50)
-           
+
 
 2006       FORMAT('Res: Alpha, XQ,S,CHI: ', F14.7,2x,F14.7,2x,F14.7,2x,F14.7)
 

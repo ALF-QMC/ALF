@@ -1179,7 +1179,7 @@
              &        WORK, -1, RWORK, INFO )
         LWORK = INT(DBLE(WORK(1)))
         DEALLOCATE(WORK)
-	ALLOCATE(WORK(LWORK))
+        ALLOCATE(WORK(LWORK))
         CALL ZGESVD( JOBU, JOBVT, M, N, A1(1,1), LDA, S, U(1,1), LDU, V(1,1), LDVT,&
              &        WORK, LWORK, RWORK, INFO )
 !$OMP parallel do default(shared) private(I)
@@ -1229,7 +1229,7 @@
         REAL (KIND=KIND(0.D0)), INTENT(INOUT), DIMENSION(:) :: W
 
 
-        INTEGER ND1,ND2,IERR
+        INTEGER ND1, ND2, IERR, DN
         REAL (KIND=KIND(0.D0)), DIMENSION(:), ALLOCATABLE :: WORK
 
          ND1 = SIZE(A,1)
@@ -1244,8 +1244,9 @@
          U=A
          W=0
          ! let's just give lapack enough memory
-         ALLOCATE(WORK(3*ND1))
-         CALL DSYEV('V', 'U', ND1, U, ND1, W, WORK, 3*ND1, IERR)
+         DN = 3*ND1
+         ALLOCATE(WORK(DN))
+         CALL DSYEV('V', 'U', ND1, U, ND1, W, WORK, DN, IERR)
          DEALLOCATE(WORK)
 
       END SUBROUTINE DIAG_R
@@ -1274,8 +1275,8 @@
         LWORK = 2*N -1
         Allocate ( WORK(LWORK) )
         Allocate (  RWORK(3*N-2))
-	
-	!Write(6,*) 'In Diag'
+        
+        !Write(6,*) 'In Diag'
 
         Call ZHEEV (JOBZ, UPLO, N, U(1,1), N, W(1), WORK, LWORK, RWORK(1), INFO)
 
@@ -1311,10 +1312,13 @@
         ! date: skalare, normale Zeichenvariable von wenigstens 8 Zeichen. 
         ! Die linken 8 Zeichen bekommen einen Wert der Form JJJJMMTT . JJJJ Jahr, MM Monat, TT Tag im Monat.
         ! time: skalare, normale Zeichenvariable von wenigstens 10 Zeichen. 
-        ! Die linken 10 Zeichen bekommen einen Wert der Form hhmmss.sss , wobei hh die Stunde des Tages ist, mm die Minute innerhalb der Stunde, und ss.sss die Sekunde mit Bruchteilen.
-        ! zone: skalare, normale Zeichenvariable von wenigstens 5 Zeichen. Die linken 5 Zeichen bekommen einen Wert der Form hhmm . hh Stunden, mm Minuten Zeitdifferenz gegenueber der UTC-Weltzeit.
-        !values: Eindimensionales Integer-Feld. Laenge wenigstens 8. 
-        !1 : Jahr, z.B. 1993. 2: Monat. 3: Monatstag. 4: Zeitdifferenz zur Weltzeit in Minuten. 5: Stunde des Tages. 6: Minute innerhalb der Stunde. 7: Sekunden 8. Millisekunden.
+        ! Die linken 10 Zeichen bekommen einen Wert der Form hhmmss.sss , wobei hh die Stunde des Tages ist,
+        ! mm die Minute innerhalb der Stunde, und ss.sss die Sekunde mit Bruchteilen.
+        ! zone: skalare, normale Zeichenvariable von wenigstens 5 Zeichen. 
+        ! Die linken 5 Zeichen bekommen einen Wert der Form hhmm . hh Stunden, mm Minuten Zeitdifferenz gegenueber der UTC-Weltzeit.
+        ! values: Eindimensionales Integer-Feld. Laenge wenigstens 8. 
+        ! 1 : Jahr, z.B. 1993. 2: Monat. 3: Monatstag. 4: Zeitdifferenz zur Weltzeit in Minuten. 5: Stunde des Tages.
+        ! 6: Minute innerhalb der Stunde. 7: Sekunden 8. Millisekunden.
 
         !character(len=10) :: d,t
         integer,dimension(8) :: V

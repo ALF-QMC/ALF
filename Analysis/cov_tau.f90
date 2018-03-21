@@ -50,10 +50,12 @@
          Integer :: no, no1, n, nbins, n_skip, nb, NT, NT1, Lt, N_rebin, N_cov, ierr, N_Back
          real    (Kind=Kind(0.d0)):: X, Y,  dtau, X_diag
          Complex (Kind=Kind(0.d0)), allocatable :: Xmean(:), Xcov(:,:)
+         Complex (Kind=Kind(0.d0)) :: Zmean, Zerr
          Complex (Kind=Kind(0.d0)) :: Z, Z_diag
          Real    (Kind=Kind(0.d0)) :: Zero=1.D-8
          Real    (Kind=Kind(0.d0)), allocatable :: Phase(:)
-         Complex (Kind=Kind(0.d0)), allocatable :: Bins(:,:,:)
+         Complex (Kind=Kind(0.d0)), allocatable :: PhaseI(:)
+         Complex (Kind=Kind(0.d0)), allocatable :: Bins(:,:,:), Bins_chi(:,:)
          Complex (Kind=Kind(0.d0)), allocatable :: Bins0(:,:)
          Complex (Kind=Kind(0.d0)), allocatable :: V_help(:,:)
          Real    (Kind=Kind(0.d0)), allocatable :: Xk_p(:,:)
@@ -100,10 +102,16 @@
          Write(6,*) "# of bins: ", Nbins
          nbins  = Nbins - n_skip
          Write(6,*) "Effective # of bins: ", Nbins
+         if(Nbins <= 1) then
+           write (*,*) "Effective # of bins smaller then 2. Analysis impossible!"
+           stop 1
+         endif
 
 
          ! Allocate  space
-         Allocate ( bins(Nunit,Lt,Nbins), Phase(Nbins), Xk_p(2,Nunit), V_help(lt,Nbins), bins0(Nbins,Norb))
+         Allocate ( bins(Nunit,Lt,Nbins), Phase(Nbins),PhaseI(Nbins), Xk_p(2,Nunit), &
+              &     V_help(lt,Nbins), bins0(Nbins,Norb))
+         Allocate ( Bins_chi(Nunit,Nbins) )
          
          Allocate (Xmean(Lt), Xcov(Lt,Lt))
          bins  = 0.d0
@@ -112,11 +120,12 @@
          do nb = 1, nbins + n_skip
             if (nb > n_skip ) then
                Read(10,*,End=10) Phase(nb-n_skip),no,no1,n, X
+               PhaseI(nb-n_skip) = cmplx(Phase(nb-n_skip),0.d0,Kind(0.d0))
                Z_diag = cmplx(0.d0,0.d0,kind(0.d0))
                Do no = 1,Norb
                   Read(10,*)   Z 
-                  If ( N_back == 1 )   bins0(nb-n_skip,no) = Z
-                  Z_diag =  Z_diag + bins0(nb-n_skip,no)*bins0(nb-n_skip,no)
+                  If ( N_Back == 1 )   bins0(nb-n_skip,no) = Z
+                  Z_diag =  Z_diag + bins0(nb-n_skip,no)*bins0(nb-n_skip,no)/Phase(nb-n_skip)
                Enddo
                do n = 1,Nunit
                   Read(10,*) Xk_p(1,n), Xk_p(2,n)
@@ -133,7 +142,13 @@
                         bins(n,nt,nb-n_skip) =   bins(n,nt,nb-n_skip) - Z_diag*cmplx(dble(Nunit),0.d0,kind(0.d0))
                      enddo
                   endif
+                  Z = cmplx(0.d0,0.d0,kind(0.d0))
+                  Do nt = 1,Lt -1
+                     Z = Z + cmplx(0.5d0,0.d0,Kind(0.d0)) * ( bins(n,nt,nb-n_skip) + bins(n,nt+1,nb-n_skip) )
+                  enddo
+                  Bins_chi(N,Nb-n_skip)   = Z 
                enddo
+               
             else
                Read(10,*,End=10) X,no,no1,n,Y
                do no = 1,Norb
@@ -163,7 +178,7 @@
                Open (Unit=10,File=File_out,status="unknown")
                Write(10,*) LT
                do nt = 1, LT
-                  Write(10,"(F14.7,2x,F16.8,2x,F16.8)") &
+                  Write(10,"(F14.7,2x,E16.8,2x,E16.8)") &
                        & dble(nt-1)*dtau,  dble(Xmean(nt)), sqrt(abs(dble(Xcov(nt,nt))))
                enddo
                If (N_cov == 1) Then ! print covarariance
@@ -191,7 +206,7 @@
          Open (Unit=10,File=File_out,status="unknown")
          Write(10,*) LT
          do nt = 1, LT
-            Write(10,"(F14.7,2x,F16.8,2x,F16.8)") &
+            Write(10,"(F14.7,2x,E16.8,2x,E16.8)") &
                  & dble(nt-1)*dtau,  dble(Xmean(nt)), sqrt(abs(dble(Xcov(nt,nt))))
          enddo
          If (N_cov == 1) Then ! Print  covariance
@@ -202,6 +217,23 @@
             Enddo
          Endif
          close(10)
+
+         ! Print  susceptibilities
+         Open (Unit=33,File="SuscepJ"        ,status="unknown")
+         
+         Do n = 1,Nunit
+            call ERRCALCJ(Bins_chi(n,:), PhaseI, ZMean, ZERR, N_rebin )
+            Zmean = Zmean*dtau
+            Zerr = Zerr*dtau
+            Write(33,"(F12.6,2x,F12.6,2x,F16.8,2x,F16.8,2x,F16.8,2x,F16.8)") &
+                 &   Xk_p(1,n), Xk_p(2,n), dble(ZMean), dble(ZERR), aimag(ZMean), aimag(ZERR)
+         enddo
+         Close(33)
+
+         ! Deallocate  space
+         Deallocate ( bins, Phase,PhaseI, Xk_p, V_help, bins0)
+         Deallocate ( Bins_chi )
+         
          
 
        end Program Cov_tau

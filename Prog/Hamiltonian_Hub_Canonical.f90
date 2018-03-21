@@ -1,6 +1,7 @@
     Module Hamiltonian
 
       Use Operator_mod
+      Use WaveFunction_mod
       Use Lattices_v3 
       Use MyMats 
       Use Random_Wrap
@@ -10,8 +11,11 @@
 
       Type (Operator), dimension(:,:), allocatable  :: Op_V
       Type (Operator), dimension(:,:), allocatable  :: Op_T
+      Type (WaveFunction), dimension(:),   allocatable  :: WF_L
+      Type (WaveFunction), dimension(:),   allocatable  :: WF_R
       Integer, allocatable :: nsigma(:,:)
-      Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot
+      Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot, Thtrot
+      Logical              :: Projector
 !>    Defines MPI communicator 
       Integer              :: Group_Comm
 
@@ -20,7 +24,7 @@
       Type (Lattice),       private :: Latt
       Integer,              private :: L1, L2, n_Lambda
       real (Kind=8),        private :: ham_T , ham_U,  Ham_chem, Lambda, RhoD
-      real (Kind=8),        private :: Dtau, Beta, Phi_x
+      real (Kind=8),        private :: Dtau, Beta, Phi_x, Theta
       Character (len=64),   private :: Model, Lattice_type
       Logical,              private :: One_dimensional
       Integer,              private :: N_coord, Norb 
@@ -36,16 +40,15 @@
 
 
       Subroutine Ham_Set
-
+#ifdef MPI
+          Use mpi
+#endif
           Implicit none
 
-#ifdef MPI
-          include 'mpif.h'
-#endif   
+
 
           integer :: ierr
 
-          
           NAMELIST /VAR_lattice/  L1, L2, Lattice_type, Model, Phi_x
 
           NAMELIST /VAR_Hubbard/  ham_T, ham_chem, ham_U, Dtau, Beta, Lambda, n_Lambda, RhoD
@@ -114,6 +117,9 @@
           Call Ham_hop
 
           Ltrot = nint(beta/dtau)
+          Projector = .false.
+          Theta = 0.d0
+          Thtrot = 0
 #ifdef MPI
           If (Irank == 0) then
 #endif
@@ -403,7 +409,7 @@
                 case default
                    Write(6,*) ' Error in Alloc_obs '  
                 end select
-                Nt = Ltrot+1
+                Nt = Ltrot+1-2*Thtrot
                 Call Obser_Latt_make(Obs_tau(I),Ns,Nt,No,Filename)
              enddo
           endif
@@ -681,14 +687,14 @@
 
 !========================================================================
         ! Functions for Global moves.  These move are not implemented in this example.
-        Subroutine Global_move(T0_Proposal_ratio,nsigma_old)
+        Subroutine Global_move(T0_Proposal_ratio,nsigma_old,size_clust)
           
           !>  The input is the field nsigma declared in this module. This routine generates a 
           !>  global update with  and returns the propability  
           !>  T0_Proposal_ratio  =  T0( sigma_out-> sigma_in ) /  T0( sigma_in -> sigma_out)  
           !>   
           Implicit none
-          Real (Kind=Kind(0.d0)), intent(out) :: T0_Proposal_ratio
+          Real (Kind=Kind(0.d0)), intent(out) :: T0_Proposal_ratio, size_clust
           Integer, dimension(:,:),  allocatable, intent(in)  :: nsigma_old
           T0_Proposal_ratio = 1.0d0
         End Subroutine Global_move

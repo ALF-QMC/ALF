@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 2017 The ALF project
+!  Copyright (C) 2016 - 2018 The ALF project
 ! 
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -11,7 +11,7 @@
 !     GNU General Public License for more details.
 ! 
 !     You should have received a copy of the GNU General Public License
-!     along with Foobar.  If not, see http://www.gnu.org/licenses/.
+!     along with ALF.  If not, see http://www.gnu.org/licenses/.
 !     
 !     Under Section 7 of GPL version 3 we require you to fulfill the following additional terms:
 !     
@@ -115,11 +115,10 @@
          
          Subroutine  Print_bin_Latt(Obs,Latt,dtau,Group_Comm)
            Use Lattices_v3
-           Implicit none
-
 #ifdef MPI
-           include 'mpif.h'
-#endif   
+           Use mpi
+#endif
+           Implicit none
 
            Type (Obser_Latt),        Intent(Inout)   :: Obs
            Type (Lattice),           Intent(In)      :: Latt
@@ -131,12 +130,13 @@
            Complex (Kind=Kind(0.d0)), allocatable :: Tmp(:,:,:,:), Tmp1(:)
            Real    (Kind=Kind(0.d0))              :: x_p(2) 
            Complex (Kind=Kind(0.d0))              :: Sign_bin
-           Character (len=64)            :: File_pr, File_suff
+           Character (len=64)            :: File_pr,  File_suff
 #ifdef MPI
            Complex (Kind=Kind(0.d0)):: Z
            Real    (Kind=Kind(0.d0)):: X
            Integer         :: Ierr, Isize, Irank
-           INTEGER         :: STATUS(MPI_STATUS_SIZE),irank_g, isize_g, igroup
+           INTEGER         :: irank_g, isize_g, igroup
+
            CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
            CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
            call MPI_Comm_rank(Group_Comm, irank_g, ierr)
@@ -154,9 +154,9 @@
            If (Ntau == 1) then
               File_suff ="_eq"
            else
-              File_suff ="_tau"
+              File_suff  ="_tau"
            endif
-           File_pr = file_add(Obs%File_Latt,File_suff)
+           File_pr  = file_add(Obs%File_Latt,File_suff )
            Allocate (Tmp(Ns,Ntau,Norb,Norb), Tmp1(Norb) )
            Obs%Obs_Latt  =   Obs%Obs_Latt /dble(Obs%N   )
            Obs%Obs_Latt0 =   Obs%Obs_Latt0/dble(Obs%N*Ns*Ntau)
@@ -181,7 +181,7 @@
            If (Irank_g == 0 ) then
 #endif
 #if defined(TEMPERING) 
-              write(File_pr,'(A,I0,A,A,A)') "Temp_",igroup,"/",trim(Obs%File_Latt),trim(File_suff)
+              write(File_pr ,'(A,I0,A,A,A)') "Temp_",igroup,"/",trim(Obs%File_Latt),trim(File_suff )
 #endif
 
               do nt = 1,Ntau
@@ -215,48 +215,42 @@
 #if defined(MPI) 
            Endif
 #endif
-              
+
            deallocate (Tmp, tmp1 )
-          
 
          End Subroutine Print_bin_Latt
-         
+
 !--------------------------------------------------------------------
 
          Subroutine  Print_bin_Vec(Obs,Group_Comm)
-           
+#ifdef MPI
+           Use mpi
+#endif
            Implicit none
 
-#ifdef MPI
-           include 'mpif.h'
-#endif   
-           
            Type (Obser_vec), intent(Inout) :: Obs
            Integer, INTENT(IN)  :: Group_Comm
-           
+
            ! Local
            Integer :: No,I
            Character (len=64)             :: File_pr, File_suff
-           
-           
 #ifdef MPI
            Integer        :: Ierr, Isize, Irank
-           INTEGER        :: STATUS(MPI_STATUS_SIZE),irank_g, isize_g, igroup
+           INTEGER        :: irank_g, isize_g, igroup
            Complex  (Kind=Kind(0.d0)), allocatable :: Tmp(:)
            Real     (Kind=Kind(0.d0)) :: X
+
            CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
            CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
            call MPI_Comm_rank(Group_Comm, irank_g, ierr)
            call MPI_Comm_size(Group_Comm, isize_g, ierr)
            igroup           = irank/isize_g
 #endif
-           
            No = size(Obs%Obs_vec,1)
            Obs%Obs_vec  = Obs%Obs_vec /dble(Obs%N)
            Obs%Ave_sign = Obs%Ave_sign/dble(Obs%N)
            File_suff ="_scal"
            File_pr = file_add(Obs%File_Vec,File_suff)
-
 
 #if defined(MPI) 
            Allocate (Tmp(No) )
@@ -281,8 +275,7 @@
 #if defined(MPI) 
            endif
 #endif
-           
+
          End Subroutine Print_bin_Vec
 
-         
        end Module Observables

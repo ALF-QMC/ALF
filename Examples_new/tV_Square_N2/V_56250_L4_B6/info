@@ -1,0 +1,261 @@
+ =====================================
+ Model is      : t_V                                                             
+ Lattice is    : Square                                                          
+ # of orbitals :           16
+ X_boundary    :    1.0000000000000000     
+ Flux_X        :    0.0000000000000000     
+ Beta          :    6.0000000000000000     
+ dtau,Ltrot    :   0.10000000000000001               60
+ N_SUN         :            2
+ N_FL          :            1
+ t             :    1.0000000000000000     
+ Ham_chem      :    0.0000000000000000     
+ Ham_tV         :  -0.56250000000000000     
+ No initial configuration, Seed_in      790789
+ Sweeps                              :          500
+ Prog will stop after hours:    2.0000
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :            6
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 6ff21b4 of branch New_Example_Hamiltonian.
+  Precision Green  Mean, Max :    1.2740624069474419E-008   1.0653925583755108E-003
+  Precision Phase, Max       :    0.0000000000000000     
+  Acceptance                 :   0.42990952394005849     
+  Effective Acceptance       :   0.42990952394005849     
+  Acceptance_Glob              :    0.0000000000000000     
+  Mean Phase diff Glob         :    0.0000000000000000     
+  Max  Phase diff Glob         :    0.0000000000000000     
+  Average cluster size         :    0.0000000000000000     
+  Average accepted cluster size:    0.0000000000000000     
+  CPU Time                   :    7189.9222763210000     
+  Effective number of bins   :          570
+ =====================================
+ Model is      : t_V                                                             
+ Lattice is    : Square                                                          
+ # of orbitals :           16
+ X_boundary    :    1.0000000000000000     
+ Flux_X        :    0.0000000000000000     
+ Checkerboard  :  F
+ Beta          :    6.0000000000000000     
+ dtau,Ltrot    :   0.10000000000000001               60
+ N_SUN         :            2
+ N_FL          :            1
+ t             :    1.0000000000000000     
+ Ham_chem      :    0.0000000000000000     
+ Ham_tV         :  -0.56250000000000000     
+ =====================================
+ Model is      : t_V                                                             
+ Lattice is    : Square                                                          
+ # of orbitals :           16
+ X_boundary    :    1.0000000000000000     
+ Flux_X        :    0.0000000000000000     
+ Checkerboard  :  F
+ Beta          :    6.0000000000000000     
+ dtau,Ltrot    :   0.10000000000000001               60
+ N_SUN         :            2
+ N_FL          :            1
+ t             :    1.0000000000000000     
+ Ham_chem      :    0.0000000000000000     
+ Ham_tV         :  -0.56250000000000000     
+ No initial configuration, Seed_in      790789
+ Sweeps                              :          250
+ Bins                                :            2
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :            6
+ Ltau                                :            1
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ Number of mpi-processes :            1
+ This executable represents commit 721267c of branch master.
+  Precision Green  Mean, Max :    1.1328219305757770E-008   6.9165340675914067E-006
+  Precision Phase, Max       :    0.0000000000000000     
+  Precision tau    Mean, Max :    2.4274153234653881E-009   8.1869338606210817E-006
+  Acceptance                 :   0.42977239583333332     
+  Effective Acceptance       :   0.42977239583333332     
+  Acceptance_Glob              :    0.0000000000000000     
+  Mean Phase diff Glob         :    0.0000000000000000     
+  Max  Phase diff Glob         :    0.0000000000000000     
+  Average cluster size         :    0.0000000000000000     
+  Average accepted cluster size:    0.0000000000000000     
+  CPU Time                   :    12.273241000000001     
+ =====================================
+ Model is      : t_V                                                             
+ Lattice is    : Square                                                          
+ # of orbitals :           16
+ X_boundary    :    1.0000000000000000     
+ Flux_X        :    0.0000000000000000     
+ Checkerboard  :  F
+ Beta          :    6.0000000000000000     
+ dtau,Ltrot    :   0.10000000000000001               60
+ N_SUN         :            2
+ N_FL          :            1
+ t             :    1.0000000000000000     
+ Ham_chem      :    0.0000000000000000     
+ Ham_tV         :  -0.56250000000000000     
+ Sweeps                              :          250
+ Bins                                :            2
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :            6
+ Ltau                                :            1
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ Number of mpi-processes :            1
+ This executable represents commit 721267c of branch master.
+  Precision Green  Mean, Max :    1.2474363680542480E-008   1.6191404361209916E-005
+  Precision Phase, Max       :    0.0000000000000000     
+  Precision tau    Mean, Max :    2.7688126821749776E-009   2.5023170834859165E-005
+  Acceptance                 :   0.43046875000000001     
+  Effective Acceptance       :   0.43046875000000001     
+  Acceptance_Glob              :    0.0000000000000000     
+  Mean Phase diff Glob         :    0.0000000000000000     
+  Max  Phase diff Glob         :    0.0000000000000000     
+  Average cluster size         :    0.0000000000000000     
+  Average accepted cluster size:    0.0000000000000000     
+  CPU Time                   :    11.754496000000000     
+ =====================================
+ Model is      : t_V                                                             
+ Lattice is    : Square                                                          
+ # of orbitals :           16
+ X_boundary    :    1.0000000000000000     
+ Flux_X        :    0.0000000000000000     
+ Checkerboard  :  F
+ Beta          :    6.0000000000000000     
+ dtau,Ltrot    :   0.10000000000000001               60
+ N_SUN         :            2
+ N_FL          :            1
+ t             :    1.0000000000000000     
+ Ham_chem      :    0.0000000000000000     
+ Ham_tV         :  -0.56250000000000000     
+ Sweeps                              :          250
+ Bins                                :            2
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :            6
+ Ltau                                :            1
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit d01b840 of branch master.
+  Precision Green  Mean, Max :    1.2146632101173448E-008   2.7310987885664773E-005
+  Precision Phase, Max       :    0.0000000000000000     
+  Precision tau    Mean, Max :    2.8325328115960146E-009   1.8696867539913509E-005
+  Acceptance                 :   0.42986927083333332     
+  Effective Acceptance       :   0.42986927083333332     
+  Acceptance_Glob              :    0.0000000000000000     
+  Mean Phase diff Glob         :    0.0000000000000000     
+  Max  Phase diff Glob         :    0.0000000000000000     
+  Average cluster size         :    0.0000000000000000     
+  Average accepted cluster size:    0.0000000000000000     
+  CPU Time                   :    10.776979000000001     
+ =====================================
+ Model is      : t_V                                                             
+ Lattice is    : Square                                                          
+ # of orbitals :           16
+ X_boundary    :    1.0000000000000000     
+ Flux_X        :    0.0000000000000000     
+ Checkerboard  :  F
+ Beta          :    6.0000000000000000     
+ dtau,Ltrot    :   0.10000000000000001               60
+ N_SUN         :            2
+ N_FL          :            1
+ t             :    1.0000000000000000     
+ Ham_chem      :    0.0000000000000000     
+ Ham_tV         :  -0.56250000000000000     
+ Sweeps                              :          250
+ Bins                                :            2
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :            6
+ Ltau                                :            1
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit d01b840 of branch master.
+  Precision Green  Mean, Max :    1.0958996966814169E-008   1.2884655356870667E-005
+  Precision Phase, Max       :    0.0000000000000000     
+  Precision tau    Mean, Max :    2.4874765105817108E-009   5.9531360594444749E-006
+  Acceptance                 :   0.43037968750000000     
+  Effective Acceptance       :   0.43037968750000000     
+  Acceptance_Glob              :    0.0000000000000000     
+  Mean Phase diff Glob         :    0.0000000000000000     
+  Max  Phase diff Glob         :    0.0000000000000000     
+  Average cluster size         :    0.0000000000000000     
+  Average accepted cluster size:    0.0000000000000000     
+  CPU Time                   :    11.377216000000001     
+ =====================================
+ Model is      : t_V                                                             
+ Lattice is    : Square                                                          
+ # of orbitals :           16
+ X_boundary    :    1.0000000000000000     
+ Flux_X        :    0.0000000000000000     
+ Checkerboard  :  F
+ Beta          :    6.0000000000000000     
+ dtau,Ltrot    :   0.10000000000000001               60
+ N_SUN         :            2
+ N_FL          :            1
+ t             :    1.0000000000000000     
+ Ham_chem      :    0.0000000000000000     
+ Ham_tV         :  -0.56250000000000000     
+ Sweeps                              :          250
+ Bins                                :            2
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :            6
+ Ltau                                :            1
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 607b6b0 of branch master.
+  Precision Green  Mean, Max :    1.0571250199195654E-008   1.3332376986308070E-005
+  Precision Phase, Max       :    0.0000000000000000     
+  Precision tau    Mean, Max :    2.2347553397432611E-009   5.9531360594444749E-006
+  Acceptance                 :   0.42994270833333331     
+  Effective Acceptance       :   0.42994270833333331     
+  Acceptance_Glob              :    0.0000000000000000     
+  Mean Phase diff Glob         :    0.0000000000000000     
+  Max  Phase diff Glob         :    0.0000000000000000     
+  Average cluster size         :    0.0000000000000000     
+  Average accepted cluster size:    0.0000000000000000     
+  CPU Time                   :    11.074517999999999     
+ =====================================
+ Model is      : t_V                                                             
+ Lattice is    : Square                                                          
+ # of orbitals :           16
+ X_boundary    :    1.0000000000000000     
+ Flux_X        :    0.0000000000000000     
+ Checkerboard  :  F
+ Beta          :    6.0000000000000000     
+ dtau,Ltrot    :   0.10000000000000001               60
+ N_SUN         :            2
+ N_FL          :            1
+ t             :    1.0000000000000000     
+ Ham_chem      :    0.0000000000000000     
+ Ham_tV         :  -0.56250000000000000     
+ Sweeps                              :          250
+ Bins                                :            2
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :            6
+ Ltau                                :            1
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 607b6b0 of branch master.
+  Precision Green  Mean, Max :    1.0835475513445968E-008   9.8760042141488036E-006
+  Precision Phase, Max       :    0.0000000000000000     
+  Precision tau    Mean, Max :    2.4519322700419068E-009   4.8062342581922657E-006
+  Acceptance                 :   0.43046666666666666     
+  Effective Acceptance       :   0.43046666666666666     
+  Acceptance_Glob              :    0.0000000000000000     
+  Mean Phase diff Glob         :    0.0000000000000000     
+  Max  Phase diff Glob         :    0.0000000000000000     
+  Average cluster size         :    0.0000000000000000     
+  Average accepted cluster size:    0.0000000000000000     
+  CPU Time                   :    11.489713000000000     

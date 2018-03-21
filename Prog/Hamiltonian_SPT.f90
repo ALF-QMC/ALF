@@ -2,6 +2,7 @@
     Module Hamiltonian
 
       Use Operator_mod
+      Use WaveFunction_mod
       Use Lattices_v3 
       Use MyMats 
       Use Random_Wrap
@@ -11,8 +12,11 @@
 
       Type (Operator), dimension(:,:), allocatable  :: Op_V
       Type (Operator), dimension(:,:), allocatable  :: Op_T
+      Type (WaveFunction), dimension(:),   allocatable  :: WF_L
+      Type (WaveFunction), dimension(:),   allocatable  :: WF_R
       Integer, allocatable :: nsigma(:,:)
-      Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot
+      Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot, Thtrot
+      Logical              :: Projector
 !>    Defines MPI communicator 
       Integer              :: Group_Comm
 
@@ -21,11 +25,11 @@
       ! What is below is  private 
       
       Type (Lattice),       private :: Latt
-      Integer, parameter,   private :: Norb=16, Nobs_scal=11
+      Integer, parameter,   private :: Norb=16, Nobs_scal=12
       Integer, allocatable, private :: List(:,:), Invlist(:,:)
       Integer,              private :: L1, L2, FlagSym
-      real (Kind=Kind(0.d0)),        private :: Ham_T, Ham_Vint,  Ham_Lam
-      real (Kind=Kind(0.d0)),        private :: Dtau, Beta
+      real (Kind=Kind(0.d0)),        private :: Ham_T, Ham_Vint, Ham_V2int, Ham_Lam
+      real (Kind=Kind(0.d0)),        private :: Dtau, Beta, Theta
       Character (len=64),   private :: Model, Lattice_type, File1
       Complex (Kind=Kind(0.d0)),     private :: Gamma_M(4,4,5), Sigma_M(2,2,0:3)
       Complex (Kind=Kind(0.d0)),     private :: Gamma_13(4,4), Gamma_23(4,4), Gamma_45(4,4)
@@ -34,13 +38,16 @@
       ! Observables
       Integer,                       private :: Nobs
       Complex (Kind=Kind(0.d0)), allocatable, private :: obs_scal(:)
+      Complex (Kind=Kind(0.d0)), allocatable, private ::  Local_eq(:,:,:), Local_eq0(:)
       Complex (Kind=Kind(0.d0)), allocatable, private ::  Den_eq(:,:,:), Den_eq0(:)
       Complex (Kind=Kind(0.d0)), allocatable, private ::  R_eq(:,:,:), R_eq0(:)
       Complex (Kind=Kind(0.d0)), allocatable, private ::  U1_eq(:,:,:), U1_eq0(:)
+      Complex (Kind=Kind(0.d0)), allocatable, private ::  U1G_eq(:,:,:)
       Complex (Kind=Kind(0.d0)), allocatable, private ::  L_eq(:,:,:), L_eq0(:)
       Complex (Kind=Kind(0.d0)), allocatable, private ::  U1xy_eq(:,:,:), U1xy_eq0(:)
       Complex (Kind=Kind(0.d0)), allocatable, private ::  U1xyG_eq(:,:,:), U1xyG_eq0(:)
       Complex (Kind=Kind(0.d0)), allocatable, private ::  Spinz_eq(:,:,:), Spinz_eq0(:)
+      Complex (Kind=Kind(0.d0)), allocatable, private ::  SpinzG_eq(:,:,:)
       Complex (Kind=Kind(0.d0)), allocatable, private ::  Spinxy_eq(:,:,:), Spinxy_eq0(:)
       Complex (Kind=Kind(0.d0)), allocatable, private ::  TRS_eq(:,:,:), TRS_eq0(:)
       Complex (Kind=Kind(0.d0)), allocatable, private ::  PHS_eq(:,:,:), PHS_eq0(:)
@@ -69,17 +76,16 @@
       contains 
 
         Subroutine Ham_Set
-
-          Implicit none
 #ifdef MPI
-          include 'mpif.h'
-#endif   
+          Use mpi
+#endif
+          Implicit none
 
           integer :: ierr
 
           NAMELIST /VAR_lattice/  L1, L2, Lattice_type, Model
 
-          NAMELIST /VAR_SPT/  ham_T, Ham_Vint,  Ham_Lam,  Dtau, Beta, FlagSym
+          NAMELIST /VAR_SPT/  ham_T, Ham_Vint,  Ham_V2int, Ham_Lam,  Dtau, Beta, FlagSym, projector, Theta
 
 
 #ifdef MPI
@@ -92,7 +98,11 @@
           igroup           = irank/isize_g
           If (Irank == 0 ) then
 #endif
-             OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
+             File1 = "parameters"
+#if defined(TEMPERING) 
+             write(File1,'(A,I0,A)') "Temp_",igroup,"/parameters"
+#endif
+             OPEN(UNIT=5,FILE=File1,STATUS='old',ACTION='read',IOSTAT=ierr)
              IF (ierr /= 0) THEN
                 WRITE(*,*) 'unable to open <parameters>',ierr
                 STOP
@@ -112,6 +122,11 @@
           N_FL  = 1
           N_SUN = 1
           FlagSym = 0
+          Ltrot = nint(beta/dtau)
+          Projector = .false.
+          Theta = 0.d0
+          Thtrot = 0
+          ham_V2int=0.d0
           
 ! #if defined(MPI) && !defined(TEMPERING)
 !           If (Irank == 0 ) then
@@ -138,24 +153,24 @@
 
           CALL MPI_BCAST(ham_T    ,1,MPI_REAL8,   0,Group_Comm,ierr)
           CALL MPI_BCAST(ham_Vint ,1,MPI_REAL8,   0,Group_Comm,ierr)
+          CALL MPI_BCAST(ham_V2int ,1,MPI_REAL8,   0,Group_Comm,ierr)
           CALL MPI_BCAST(ham_Lam  ,1,MPI_REAL8,   0,Group_Comm,ierr)
           CALL MPI_BCAST(Dtau     ,1,MPI_REAL8,   0,Group_Comm,ierr)
           CALL MPI_BCAST(Beta     ,1,MPI_REAL8,   0,Group_Comm,ierr)
+          CALL MPI_BCAST(Theta    ,1,MPI_REAL8,     0,Group_Comm,ierr)
+          CALL MPI_BCAST(Thtrot   ,1,MPI_INTEGER,   0,Group_Comm,ierr)
+          CALL MPI_BCAST(Projector,1,MPI_LOGICAL,   0,Group_Comm,ierr)
           CALL MPI_BCAST(FlagSym  ,1,MPI_INTEGER, 0,Group_Comm,ierr)
 #endif
 
           Call Ham_hop
-          Ltrot = nint(beta/dtau)
           
-! #if defined(MPI) && !defined(TEMPERING)
-!           If (Irank == 0 ) then
-! #endif
-! #if defined(TEMPERING)
-!              write(File1,'(A,I0,A)') "Temp_",Irank,"/info"
-!              Open (Unit = 50,file=File1,status="unknown",position="append")
-! #else
-!              Open (Unit = 50,file="info",status="unknown",position="append")
-! #endif
+          if (Projector) Call Ham_TrialWaveFunction
+          
+          Ltrot = nint(beta/dtau)
+          if (Projector) Thtrot = nint(theta/dtau)
+          Ltrot = Ltrot+2*Thtrot
+          
 #if defined(TEMPERING)
            write(File1,'(A,I0,A)') "Temp_",igroup,"/info"
 #else
@@ -173,6 +188,7 @@
              Write(50,*) 'dtau,Ltrot    : ', dtau,Ltrot
              Write(50,*) 't             : ', Ham_T
              Write(50,*) 'V             : ', Ham_Vint
+             Write(50,*) 'V2            : ', Ham_V2int
              Write(50,*) 'Lambda        : ', Ham_Lam
              Write(50,*) 'FlagSym       : ', FlagSym
              close(50)
@@ -318,6 +334,56 @@
           deallocate (Invlist_1) 
 
         end Subroutine Ham_hop
+        
+!===================================================================================           
+        Subroutine Ham_TrialWaveFunction
+        
+          Implicit none
+          COMPLEX(Kind=Kind(0.d0)), allocatable :: H0(:,:), U(:,:), Test(:,:)
+          Real(Kind=Kind(0.d0)), allocatable :: En(:)
+          
+          Real(Kind=Kind(0.d0)), parameter :: phi=0.0
+          COMPLEX(Kind=Kind(0.d0)) :: Z, alpha, beta, kek=cmplx(-0.01d0,0.0d0,kind(0.d0))
+          Integer :: n, n_part, i, I1, I2, J1, J2, no, nc1, DI1, DI2, nc, Ihex(6)
+          
+          N_part=Ndim/2
+          
+          Allocate(WF_L(N_FL),WF_R(N_FL))
+          do n=1,N_FL
+            Call WF_alloc(WF_L(n),Ndim,N_part)
+            Call WF_alloc(WF_R(n),Ndim,N_part)
+          enddo
+          
+          Allocate(H0(Ndim/4,Ndim/4),U(Ndim/4,Ndim/4),En(Ndim/4))
+          H0=Op_T(1,1)%O
+          Call Diag(H0,U,En)
+          
+!           write(*,*) N_part, Ndim/2, (norb/2)*Latt%N
+          write(*,*) 'Gap is', En(N_part/4+1)-En(N_part/4)
+          do nc=1,4
+            do I2=1,Ndim/8
+            do I1=1,Ndim/4
+              WF_L(1)%P(Op_T(nc,1)%P(I1),(nc-1)*Ndim/8+I2)=U(I1,I2)
+            enddo
+            enddo
+          enddo
+          WF_R(1)%P=WF_L(1)%P
+          
+          Allocate(Test(N_part,N_part))
+          alpha=1.d0
+          beta=0.d0
+          CALL ZGEMM('C','N',N_part,N_part,ndim,alpha,WF_L(1)%P(1,1),Ndim,WF_R(1)%P(1,1),Ndim,beta,Test(1,1),N_part)
+          Z = Det_C(Test,n_part)
+          write(*,*) Z
+          
+!           do I2=1,N_part
+!             write(*,*) sum(abs(WF_L(1)%P(:,I2))), sum(abs(WF_R(1)%P(:,I2)))
+!           enddo
+          
+          Deallocate(H0, U, En)
+          
+        end Subroutine Ham_TrialWaveFunction
+        
 !===================================================================================           
         Subroutine Ham_V
           
@@ -328,7 +394,7 @@
           Real (Kind=Kind(0.d0)) :: X_p(2), X1_p(2), X2_p(2), X, XJ, Xpm
 
           Complex (Kind=Kind(0.d0)) :: Ps(4,4,2), Ps_G5(4,4,2), Tmp(4,4), Z
-          Complex (Kind=Kind(0.d0)) :: Sx(16,16,2,2), Sy(16,16,2,2)
+          Complex (Kind=Kind(0.d0)) :: Sx(16,16,2,2), Sy(16,16,2,2), Sz(16,16,2)
 
 
           Ps = cmplx(0.d0, 0.d0, kind(0.D0))
@@ -357,6 +423,7 @@
              Enddo
           Enddo
           
+          ! In this basis we have Ps_G5(:,:,1)=diag(0,-1,0,1) and  Ps_G5(:,:,2)=diag(1,0,-1,0)
           Do ns = 1,2
              Call mmult ( Ps_G5(:,:,ns), Ps(:,:,ns), Gamma_M(:,:,5) )
           enddo
@@ -374,6 +441,7 @@
       
           Sx = 0.d0
           Sy = 0.d0
+          Sz = 0.d0
           Do ns = 1,2
              Do npm = 1,2
                 if (npm == 1) Xpm =  1.0
@@ -392,13 +460,21 @@
                    enddo
                 enddo
              enddo
+             Do no = 1,4
+                do no1 = 1,4
+                  Sz(no    , no1     ,ns) =  Ps_G5(no,no1,ns)
+                  Sz(no +4 , no1 + 4 ,ns) =  -Ps_G5(no,no1,ns)
+                  Sz(no +8 , no1 + 8 ,ns) =  Ps_G5(no,no1,ns)
+                  Sz(no+12 , no1 + 12,ns) =  -Ps_G5(no,no1,ns)
+                enddo
+             enddo
           enddo
 
 
           ! Number of opertors 8 per unit cell
-          Allocate( Op_V(8*Latt%N,N_FL) )
+          Allocate( Op_V(10*Latt%N,N_FL) )
           do nf = 1,N_FL
-             do i  = 1, 8*Latt%N
+             do i  = 1, 10*Latt%N
                 Call Op_make(Op_V(i,nf),Norb/2) 
              enddo
           enddo
@@ -435,6 +511,28 @@
                    Enddo
                 Enddo
              Enddo
+             do ns = 1,2
+                noff=2
+                if (ns==2) noff=1
+                  Do i = 1,Latt%N
+                      nc = nc + 1 
+                      Do no = 1,Norb/2
+                        Op_V(nc,nf)%P(no)   = Invlist(I,2*(no-1)+noff)  
+                      enddo
+                      Do no = 1,Norb/2
+                        Do no1 = 1,Norb/2
+                            Op_V(nc,nf)%O(no,no1) = Sz(2*(no-1)+noff,2*(no1-1)+noff,ns)
+                        Enddo
+                      Enddo
+                      Op_V(nc,nf)%g = SQRT(CMPLX(-DTAU*Ham_V2int, 0.D0, kind(0.D0))) 
+                      Op_V(nc,nf)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
+                      Op_V(nc,nf)%type   = 2
+                      Call Op_set( Op_V(nc,nf) )
+                      ! The operator reads: 
+                      ! g*s*( c^{dagger} O c   - alpha ))
+                      ! with s the HS field.
+                  Enddo
+             Enddo
           Enddo
           
         end Subroutine Ham_V
@@ -454,12 +552,15 @@
           Integer, Intent(In) :: Ltau
           Integer :: I
           Allocate ( Obs_scal(Nobs_scal) )
+          Allocate ( Local_eq(Latt%N,Norb,Norb), Local_eq0(Norb) )
           Allocate ( Den_eq(Latt%N,1,1), Den_eq0(1) ) 
           Allocate ( U1_eq(Latt%N,1,1), U1_eq0(1) )
+          Allocate ( U1G_eq(Latt%N,1,1) )
           Allocate ( U1xy_eq(Latt%N,1,1), U1xy_eq0(1) )
           Allocate ( U1xyG_eq(Latt%N,1,1), U1xyG_eq0(1) )
           Allocate ( L_eq(Latt%N,1,1), L_eq0(1) )
           Allocate ( Spinz_eq(Latt%N,1,1), spinz_eq0(1) )
+          Allocate ( SpinzG_eq(Latt%N,1,1) )
           Allocate ( Spinxy_eq(Latt%N,1,1), spinxy_eq0(1) ) 
           
           if (FlagSym ==1) then
@@ -476,9 +577,10 @@
           endif
           
           If (Ltau == 1) then 
-             Allocate ( Green_tau(Latt%N,Ltrot+1,Norb,Norb), Den_tau(Latt%N,Ltrot+1,1,1) )
-             Allocate ( U1_tau(Latt%N,Ltrot+1,1,1), U1xy_tau(Latt%N,Ltrot+1,1,1), U1xyG_tau(Latt%N,Ltrot+1,1,1) )
-             Allocate ( Spinz_tau(Latt%N,Ltrot+1,1,1), Spinxy_tau(Latt%N,Ltrot+1,1,1) )
+             Allocate ( Green_tau(Latt%N,Ltrot+1-2*Thtrot,Norb,Norb), Den_tau(Latt%N,Ltrot+1-2*Thtrot,1,1) )
+             Allocate ( U1_tau(Latt%N,Ltrot+1-2*Thtrot,1,1))
+             Allocate ( U1xy_tau(Latt%N,Ltrot+1-2*Thtrot,1,1), U1xyG_tau(Latt%N,Ltrot+1-2*Thtrot,1,1) )
+             Allocate ( Spinz_tau(Latt%N,Ltrot+1-2*Thtrot,1,1), Spinxy_tau(Latt%N,Ltrot+1-2*Thtrot,1,1) )
              Allocate ( Den_sus(Latt%N,1,1), Den_sus0(1) ) 
              Allocate ( U1_sus(Latt%N,1,1), U1_sus0(1) )
              Allocate ( U1xy_sus(Latt%N,1,1), U1xy_sus0(1) )
@@ -499,11 +601,15 @@
           Nobs = 0
           Obs_scal  = 0.d0
           
+          Local_eq    = 0.d0
+          Local_eq0   = 0.d0
           Den_eq    = 0.d0
           Den_eq0   = 0.d0
           Spinz_eq    = 0.d0
+          SpinzG_eq    = 0.d0
           Spinz_eq0   = 0.d0
           U1_eq    = 0.d0
+          U1G_eq    = 0.d0
           U1_eq0   = 0.d0
           U1xy_eq    = 0.d0
           U1xy_eq0   = 0.d0
@@ -576,7 +682,7 @@
           
           !Local 
           Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK
-          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, ZL, Z, ZP,ZS, weight, tmp, ZU1, ZU1xG, ZU1yG, tmp1, tmp2
+          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, ZL, Z, ZP,ZS, weight, tmp, ZU1, ZU1xG, ZU1yG, tmp1, tmp2, FdU
           Integer :: I,J, no,no1, n, n1, imj, nf, I1, I2, J1, J2, Nc, Ix, Iy, Jx, Jy, Imx, Imy, Jmx, Jmy
           Integer :: a, b, c, d, signum, K, K1, L ,L1, nf1
           
@@ -691,10 +797,11 @@
 !           ZU1xyG = cmplx( 0.5d0*(real(ZU1xyG) + aimag(ZU1xyG)), 0.d0 , kind(0.D0))
 
           ZPot = 0.d0
+          FdU=0.d0
           Nc = Size( Op_V,1)
           Do nf = 1,N_FL
 !$OMP parallel do default(shared) private(n,weight,J,J1,I,I1,K,K1,L,L1,tmp) reduction(+:ZPot)
-             Do n = 1,Nc
+             Do n = 1,8*Latt%N!Nc
                 weight=(-1)**((n-1)/Latt%N)/8.d0
                 Do J = 1,Op_V(n,nf)%N
                    J1 = Op_V(n,nf)%P(J)
@@ -718,7 +825,33 @@
 !                 write(*,*) Zpot
              Enddo
 !$OMP end parallel do
+!$OMP parallel do default(shared) private(n,weight,J,J1,I,I1,K,K1,L,L1,tmp) reduction(+:FdU)
+             Do n = 8*Latt%N+1,Nc
+                weight=1.d0
+                Do J = 1,Op_V(n,nf)%N
+                   J1 = Op_V(n,nf)%P(J)
+                   DO I = 1,Op_V(n,nf)%N
+                      if (abs(Op_V(n,nf)%O(i,j)) >= 0.00001) then
+                          I1 = Op_V(n,nf)%P(I)
+                          Do K = 1,Op_V(n,nf)%N
+                            K1 = Op_V(n,nf)%P(K)
+                            DO L = 1,Op_V(n,nf)%N
+                              if (abs(Op_V(n,nf)%O(k,l)) >= 0.00001) then
+                                L1 = Op_V(n,nf)%P(L)
+                                tmp =  (   GRC(I1,L1,1) * GR (J1,K1,1)      +  &
+                                      &     GRC(I1,J1,1) * GRC(K1,L1,1)         )
+                                FdU  = FdU  + weight*Op_V(n,nf)%O(i,j)*Op_V(n,nf)%O(k,l)*tmp
+                              endif
+                            Enddo
+                          ENddo
+                      endif
+                   Enddo
+                ENddo
+!                 write(*,*) Zpot
+             Enddo
+!$OMP end parallel do
           Enddo
+          FdU = FdU*N_SUN!cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
           ZPot = ZPot*N_SUN!cmplx( dble(N_SUN), 0.d0 , kind(0.D0))
 
           Obs_scal(1) = Obs_scal(1) + zrho * ZP*ZS
@@ -731,10 +864,32 @@
           Obs_scal(8) = Obs_scal(8) + (ZU1)*ZP*ZS
           Obs_scal(9) = Obs_scal(9) + (ZU1xG)*ZP*ZS
           Obs_scal(10) = Obs_scal(10) + ZU1yG*ZP*ZS
+          Obs_scal(11) = Obs_scal(11) + FdU*ZP*ZS
           Obs_scal(Nobs_scal) = Obs_scal(Nobs_scal) + ZS
           ! You will have to allocate more space if you want to include more  scalar observables.
           ! the last one has to be the phase!!!
           
+          Do I = 1, Latt%N
+            do J = 1, Latt%N
+                imj = latt%imj(I,J)
+                do no = 1, Norb
+                do no1 = 1, Norb
+                  I1=Invlist(I,no)
+                  j1=Invlist(I,no)
+                  k1=Invlist(j,no1)
+                  l1=Invlist(j,no1)
+                  tmp =  (   GRC(I1,L1,1) * GR (J1,K1,1)      +  &
+                      &     GRC(I1,J1,1) * GRC(K1,L1,1)         )
+                  Local_eq (imj,no,no1) = Local_eq (imj,no,no1)   +   tmp*ZP*ZS
+                enddo
+                enddo
+            enddo
+            do no = 1, Norb
+              I1=Invlist(I,no)
+              tmp = GRC(I1,I1,1)*ZP*ZS
+              Local_eq0(no)=Local_eq0(no)+tmp
+            enddo
+          enddo
           
 !$OMP parallel do default(shared) private(I1,I,no,J1,J,no1,imj,tmp,weight,signum)
           DO I1 = 1,Ndim
@@ -756,6 +911,7 @@
                 if ( (no>=9 .and. no1<=8) .or. (no<=8 .and. no1>=9) ) weight=-weight
 !$OMP CRITICAL
                 Spinz_eq (imj,1,1) = Spinz_eq (imj,1,1)   +   weight * 0.25 * tmp
+                SpinzG_eq (imj,1,1) = SpinzG_eq (imj,1,1)   +   weight * 0.25 * tmp*(-1)**(no/2+no1/2)
 !$OMP END CRITICAL
                 
                 signum = 1
@@ -764,6 +920,7 @@
                 weight = cmplx(dble(signum),0.d0, kind(0.D0))
 !$OMP CRITICAL
                 U1_eq (imj,1,1) = U1_eq (imj,1,1)   +  weight*tmp*0.25
+                U1G_eq (imj,1,1) = U1G_eq (imj,1,1)   +  weight*tmp*0.25*(-1)**(no/2+no1/2)
 !$OMP END CRITICAL
 
              enddo
@@ -1694,45 +1851,67 @@
         Subroutine  Pr_obs(LTAU)
 
           Use Print_bin_mod
-          Implicit none
 #ifdef MPI
-          include 'mpif.h'
-#endif   
-
+          Use mpi
+#endif
+          Implicit none
 
           Integer,  Intent(In) ::  Ltau
 
           Character (len=64) :: File_pr
           Complex   (Kind=Kind(0.d0)) :: Phase_bin
+          Integer ::  no, no1
 #ifdef MPI
           Integer        :: Isize, Irank, Ierr
           Integer        :: STATUS(MPI_STATUS_SIZE)
           CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
           CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-#endif          
+#endif
 !!$#ifdef MPI
 !!$          Write(6,*)  Irank, 'In Pr_obs', LTAU
 !!$#else
 !!$          Write(6,*)  'In Pr_obs', LTAU
 !!$#endif
-    
+
+          Phase_bin = Obs_scal(Nobs_scal)/dble(Nobs)
+          
           File_pr ="ener"
           Call Print_scal(Obs_scal, Nobs, file_pr, Group_Comm)
-          
-          Phase_bin = Obs_scal(Nobs_scal)/dble(Nobs)
+
+!           do no=1,Norb
+!           do no1=no,Norb
+!             if(no>1 .or. no1>1) then
+!               if (no==no1) then
+!                 Local_eq0(1)=Local_eq0(1)+Local_eq0((no-1)*Norb+no1)**2
+!               else
+!                 Local_eq0(1)=Local_eq0(1)+0.5d0*(Local_eq0((no-1)*Norb+no1)+Local_eq0((no1-1)*Norb+no))**2
+!                 Local_eq0(1)=Local_eq0(1)-0.5d0*(Local_eq0((no-1)*Norb+no1)-Local_eq0((no1-1)*Norb+no))**2
+!               endif
+!             else
+!               Local_eq0(1)=Local_eq0(1)**2
+!             endif
+!           enddo
+!           enddo
+!           Local_eq0(1)=sqrt(Local_eq0(1))
+          File_pr ="Local_eq"
+          Call Print_bin(Local_eq, Local_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
           File_pr ="Den_eq"
           Call Print_bin(Den_eq, Den_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
           File_pr ="U1_eq"
           Call Print_bin(U1_eq, U1_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
+          File_pr ="U1G_eq"
+          Call Print_bin(U1G_eq, U1_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
           File_pr ="U1xy_eq"
           Call Print_bin(U1xy_eq, U1xy_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
           File_pr ="U1xyG_eq"
           Call Print_bin(U1xyG_eq, U1xyG_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
           File_pr ="Spinz_eq"
           Call Print_bin(Spinz_eq, Spinz_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
+          File_pr ="SpinzG_eq"
+          Call Print_bin(SpinzG_eq, Spinz_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
           File_pr ="Spinxy_eq"
           Call Print_bin(Spinxy_eq, Spinxy_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
-          
+
           if (FlagSym == 1) then
             File_pr ="R_eq"
             Call Print_bin(R_eq, R_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
@@ -1978,14 +2157,14 @@
         end Subroutine OBSERT
 !========================================================================
         ! Functions for Global moves.  These move are not implemented in this example.
-        Subroutine Global_move(T0_Proposal_ratio,nsigma_old)
+        Subroutine Global_move(T0_Proposal_ratio,nsigma_old,size_clust)
           
           !>  The input is the field nsigma declared in this module. This routine generates a 
           !>  global update with  and returns the propability  
           !>  T0_Proposal_ratio  =  T0( sigma_out-> sigma_in ) /  T0( sigma_in -> sigma_out)  
           !>   
           Implicit none
-          Real (Kind=Kind(0.d0)), intent(out) :: T0_Proposal_ratio
+          Real (Kind=Kind(0.d0)), intent(out) :: T0_Proposal_ratio, size_clust
           Integer, dimension(:,:),  allocatable, intent(in)  :: nsigma_old
           Integer :: v, t, M_v, L_trot, kind_m
           

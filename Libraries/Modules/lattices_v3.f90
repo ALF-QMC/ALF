@@ -42,7 +42,7 @@
          Use Matrix
          Type Lattice
             Integer          :: N, Ns
-            Integer, pointer :: list(:,:), invlist(:,:), nnlist(:,:,:), listk(:,:), &
+            Integer, pointer :: list(:,:), invlist(:,:), nnlist(:,:,:), nnlistk(:,:,:), listk(:,:), &
                  &              invlistk(:,:),  imj(:,:)
             Real (Kind=Kind(0.d0)), pointer :: a1_p(:), a2_p(:), b1_p(:), b2_p(:), BZ1_p(:), BZ2_p(:), &
                  &                    L1_p(:), L2_p(:), b1_perp_p(:), b2_perp_p(:)
@@ -283,6 +283,33 @@
               enddo
            enddo
 
+           !Setup nnlistk
+           Allocate ( Latt%nnlistk(LQ,-1:1,-1:1) )
+
+           do nr = 1, Latt%N
+              do nd1 = -1,1
+                 do nd2 = -1,1
+                    d_p = dble(nd1)*b1_p + dble(nd2)*b2_p
+                    x_p  = dble(Latt%listk(nr,1))*Latt%b1_p + dble(Latt%listk(nr,2))*Latt%b2_p  + d_p
+                    call npbc(x1_p, x_p , Latt%BZ1_p, Latt%BZ2_p)
+                    call npbc(x_p , x1_p, Latt%BZ1_p, Latt%BZ2_p)
+                    call npbc(x1_p, x_p , Latt%BZ1_p, Latt%BZ2_p)
+                    call npbc(x_p , x1_p, Latt%BZ1_p, Latt%BZ2_p)
+                    nnr1 =  nint ( Iscalar(Latt%L1_p,x_p) / (2.d0*pi) )
+                    nnr2 =  nint ( Iscalar(Latt%L2_p,x_p) / (2.d0*pi) )
+                    nnr  = Latt%invlistk(nnr1,nnr2)
+                    Latt%nnlistk(nr,nd1,nd2) = nnr
+                    if ( nnr < 1  .or.  nnr > Latt%N ) then 
+                        write(6,*) "Error in nnlistk ", nnr 
+                        x1_p =  dble(Latt%listk(nr,1))*Latt%b1_p + dble(Latt%listk(nr,2))*Latt%b2_p
+                        !Write(91,"(F14.7,2x,F14.7,2x,F14.7,2x,F14.7)") x1_p(1), x1_p(2), d_p(1), d_p(2)
+                        Write(91,"(F14.7,2x,F14.7)") x1_p(1) , x1_p(2)
+                        Write(91,*) 
+                     endif
+                 enddo
+              enddo
+           enddo
+
            !Setup imj 
            Allocate ( Latt%imj(LQ,LQ) )
            do nr = 1, Latt%N
@@ -316,7 +343,7 @@
            Real (Kind=Kind(0.d0)) :: Zero, X
            Integer :: Ndim, i
 
-           Zero = 1.E-5
+           Zero = 1.D-8
            nr_p = n_p 
            ndim = size(nr_p)
 
@@ -328,9 +355,9 @@
               if (i.eq.3) x_p = L2_p - L1_p
               if (i.eq.4) x_p = L2_p + L1_p
 
-              X = dble(Iscalar(nr_p,x_p))/(Xnorm(x_p)**2)
-              if (X .ge.   0.5+Zero  ) nr_p = nr_p - x_p
-              if (X .le.  -0.5+Zero  ) nr_p = nr_p + x_p   
+              X = real(Iscalar(nr_p,x_p),kind(0.d0))/(Xnorm(x_p)**2)
+              if (X .ge.   0.5D0 + Zero  ) nr_p = nr_p - x_p
+              if (X .le.  -0.5D0 + Zero  ) nr_p = nr_p + x_p   
            enddo
 
            deallocate(x_p)
@@ -350,7 +377,7 @@
            ndim = size(nr_p)
 
            allocate (x_p(ndim))
-           Zero = 1.E-5
+           Zero = 1.D-8
            nr_p = n_p 
            do i = 1,4
               if (i.eq.1) x_p = L2_p
@@ -358,8 +385,8 @@
               if (i.eq.3) x_p = L2_p - L1_p
               if (i.eq.4) x_p = L2_p + L1_p
               X =  Iscalar(nr_p,x_p)/(Xnorm(x_p)**2)
-              if (X .ge.   0.5+Zero  ) nr_p = nr_p - x_p
-              if (X .le.  -0.5+Zero  ) nr_p = nr_p + x_p   
+              if (X .ge.   0.5D0 + Zero  ) nr_p = nr_p - x_p
+              if (X .le.  -0.5D0 + Zero  ) nr_p = nr_p + x_p   
            enddo
 
            deallocate(x_p)

@@ -9,10 +9,11 @@
          
          Subroutine  Print_bin_C(Dat_eq,Dat_eq0,Latt, Nobs, Phase_bin_tmp, file_pr, Group_Comm)
            Use Lattices_v3
-           Implicit none
 #ifdef MPI
-           include 'mpif.h'
-#endif   
+           Use mpi
+#endif
+           Implicit none
+
 
            Complex (Kind=Kind(0.d0)), Dimension(:,:,:), Intent(inout):: Dat_eq
            Complex (Kind=Kind(0.d0)), Dimension(:)    , Intent(inout):: Dat_eq0
@@ -20,7 +21,7 @@
            Complex (Kind=Kind(0.d0)),                   Intent(In)   :: Phase_bin_tmp
            Character (len=64),                 Intent(In)   :: File_pr
            Integer,                            Intent(In)   :: Nobs
-           Integer,                  Intent(In)      :: Group_Comm
+           Integer,                  Intent(In), optional      :: Group_Comm
           
            ! Local
            Character (len=64) :: File_tmp
@@ -34,11 +35,20 @@
            INTEGER         :: STATUS(MPI_STATUS_SIZE)
            CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
            CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-           call MPI_Comm_size(Group_Comm, isize_g, ierr)
-           igroup           = irank/isize_g
+           if(Present(Group_Comm)) then
+            call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+            call MPI_Comm_size(Group_Comm, isize_g, ierr)
+            igroup           = irank/isize_g
+           else
+            irank_g = irank
+            isize_g = isize
+            igroup = 0
+#ifdef Tempering
+            write(*,*) "Inproper call of Print_bin! Missing Group_Comm argument"
+            stop
 #endif
-
+           endif
+#endif
            Phase_bin = Phase_bin_tmp
            Norb = size(Dat_eq,3)
            if ( .not. (Latt%N  == Size(Dat_eq,1) ) ) then 
@@ -94,29 +104,27 @@
 #if defined(MPI)
            Endif
 #endif
-              
+
            deallocate (Tmp, tmp1 )
-          
 
          End Subroutine Print_bin_C
-          
 
 !=========================================================
 
          Subroutine  Print_bin_R(Dat_eq,Dat_eq0,Latt, Nobs, Phase_bin_tmp, file_pr, Group_Comm)
            Use Lattices_v3
-           Implicit none
 #ifdef MPI
-           include 'mpif.h'
-#endif   
-           
+           Use mpi
+#endif
+           Implicit none
+
            Real    (Kind=Kind(0.d0)), Dimension(:,:,:), Intent(inout) :: Dat_eq
            Real    (Kind=Kind(0.d0)), Dimension(:)    , Intent(inout) :: Dat_eq0
            Type (Lattice),                     Intent(In)    :: Latt
            Complex (Kind=Kind(0.d0)),                   Intent(In)    :: Phase_bin_tmp
            Character (len=64),                 Intent(In)    :: File_pr
            Integer,                            Intent(In)    :: Nobs
-           Integer,                  Intent(In)      :: Group_Comm
+           Integer,                  Intent(In), optional      :: Group_Comm
            
            ! Local
            Character (len=64) :: File_tmp
@@ -130,9 +138,19 @@
            INTEGER         :: STATUS(MPI_STATUS_SIZE)
            CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
            CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-           call MPI_Comm_size(Group_Comm, isize_g, ierr)
-           igroup           = irank/isize_g
+           if(Present(Group_Comm)) then
+            call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+            call MPI_Comm_size(Group_Comm, isize_g, ierr)
+            igroup           = irank/isize_g
+           else
+            irank_g = irank
+            isize_g = isize
+            igroup = 0
+#ifdef Tempering
+            write(*,*) "Inproper call of Print_bin! Missing Group_Comm argument"
+            stop
+#endif
+           endif
 #endif
            
            Phase_bin = Phase_bin_tmp
@@ -166,7 +184,6 @@
 #else
            File_tmp=File_pr
 #endif
-           
               do no = 1,Norb
                  do no1 = 1,Norb
                     Call  Fourier_R_to_K(Dat_eq(:,no,no1), Tmp(:,no,no1), Latt)
@@ -196,15 +213,15 @@
 !============================================================
          Subroutine  Print_scal(Obs, Nobs, file_pr, Group_Comm)
            
-           Implicit none
 #ifdef MPI
-           include 'mpif.h'
-#endif   
-           
+           Use mpi
+#endif
+           Implicit none
+
            Complex   (Kind=Kind(0.d0)), Dimension(:), Intent(inout) :: Obs
            Character (len=64),               Intent(In)    :: File_pr
            Integer,                          Intent(In)    :: Nobs
-           Integer,                  Intent(In)      :: Group_Comm
+           Integer,                  Intent(In), optional      :: Group_Comm
            
            ! Local
            Character (len=64) :: File_tmp
@@ -215,11 +232,21 @@
            INTEGER         :: STATUS(MPI_STATUS_SIZE)
            CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
            CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-           call MPI_Comm_size(Group_Comm, isize_g, ierr)
-           igroup           = irank/isize_g
+           if(Present(Group_Comm)) then
+            call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+            call MPI_Comm_size(Group_Comm, isize_g, ierr)
+            igroup           = irank/isize_g
+           else
+            irank_g = irank
+            isize_g = isize
+            igroup = 0
+#ifdef Tempering
+            write(*,*) "Inproper call of Print_scal! Missing Group_Comm argument"
+            stop
 #endif
-           
+           endif
+#endif
+
            Norb = size(Obs,1)
            Allocate ( Tmp(Norb) )
            Obs = Obs/dble(Nobs)
@@ -252,10 +279,10 @@
            USE IOPORTS
            USE ISO_C_BINDING
 #endif  
-           Implicit none
 #ifdef MPI
-           include 'mpif.h'
-#endif   
+           Use mpi
+#endif
+           Implicit none
 
            Complex (Kind=Kind(0.d0)), Dimension(:,:,:,:), Intent(inout):: Dat_tau   ! (Latt%N, Ltau,Norb, Norb)
            Complex (Kind=Kind(0.d0)), Dimension(:      ), Intent(inout), optional :: Dat0_tau  ! (Norb)
@@ -264,8 +291,8 @@
            Character (len=64),                   Intent(In)   :: File_pr
            Integer,                              Intent(In)   :: Nobs
            Real (Kind=Kind(0.d0)),                        Intent(In)   :: dtau
-           Integer,                  Intent(In)      :: Group_Comm
-          
+           Integer,                  Intent(In), optional      :: Group_Comm
+
            ! Local
            Character (len=64) :: File_tmp
            Integer :: Norb, I, no,no1, LT, nt,ios
@@ -282,9 +309,19 @@
            INTEGER         :: STATUS(MPI_STATUS_SIZE)
            CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
            CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-           call MPI_Comm_size(Group_Comm, isize_g, ierr)
-           igroup           = irank/isize_g
+           if(Present(Group_Comm)) then
+            call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+            call MPI_Comm_size(Group_Comm, isize_g, ierr)
+            igroup           = irank/isize_g
+           else
+            irank_g = irank
+            isize_g = isize
+            igroup = 0
+#ifdef Tempering
+            write(*,*) "Inproper call of Print_bin_tau! Missing Group_Comm argument"
+            stop
+#endif
+           endif
 #endif
 
            Phase_mean = Phase_bin
@@ -336,7 +373,7 @@
               enddo
 !$OMP end parallel do
 #ifdef ZLIB
-              write(File_tmp,*) TRIM(ADJUSTL(File_pr)),".gz"
+              write(File_tmp,*) TRIM(ADJUSTL(File_tmp)),".gz"
               CALL FGZ_OPEN(TRIM(ADJUSTL(File_tmp)),'a6',fd,ios)
               Write(Line,*) dble(Phase_mean),Norb,Latt%N, LT, dtau
               CALL FGZ_WRITE(fd,TRIM(LINE),'yes',IOS)

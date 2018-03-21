@@ -124,7 +124,7 @@ Module Random_Wrap
        res = seed ! convert type
        res = 62089911*res + 4349
        norm = 2147483648_8 !specify 8 byte integer
-       lcg = DBLE(MODULO(res, 2147483647))/DBLE(norm)
+       lcg = DBLE(MODULO(res, norm))/DBLE(norm)
        seed = Int(res,kind(0)) ! convert back
      end function lcg
 

@@ -1,0 +1,33 @@
+ =====================================
+ Model is      : t_V                                                             
+ Lattice is    : Pi_Flux                                                         
+ # of orbitals :          256
+ Checkerboard  :  T
+ Beta          :    16.000000000000000     
+ dtau,Ltrot    :   0.10000000000000001              160
+ N_SUN         :            1
+ N_FL          :            1
+ t             :    1.0000000000000000     
+ Ham_chem      :    0.0000000000000000     
+ Ham_tV         :  -0.59999999999999998     
+ No initial configuration, Seed_in      790789
+ Sweeps                              :            2
+ Bins                                :            1
+ No CPU-time limitation 
+ Measure Int.                        :           50          50
+ Stabilization,Wrap                  :           10
+ Nstm                                :           16
+ Ltau                                :            0
+ # of interacting Ops per time slice :          512
+ Default sequential updating 
+ This executable represents commit c3d4cec of branch New_Example_Hamiltonian.
+  Precision Green  Mean, Max :    7.6928477418913814E-010   4.5914317053918907E-007
+  Precision Phase, Max       :    0.0000000000000000     
+  Acceptance                 :   0.41364440917968748     
+  Effective Acceptance       :   0.41364440917968748     
+  Acceptance_Glob              :    0.0000000000000000     
+  Mean Phase diff Glob         :    0.0000000000000000     
+  Max  Phase diff Glob         :    0.0000000000000000     
+  Average cluster size         :    0.0000000000000000     
+  Average accepted cluster size:    0.0000000000000000     
+  CPU Time                   :    91.943283119000000     

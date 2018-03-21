@@ -1,6 +1,7 @@
       Module Hamiltonian
 
       Use Operator_mod
+      Use WaveFunction_mod
       Use Lattices_v3 
       Use MyMats 
       Use Random_Wrap
@@ -14,8 +15,11 @@
 !>    Public variables. Have to be set by user 
       Type (Operator), dimension(:,:), allocatable  :: Op_V
       Type (Operator), dimension(:,:), allocatable  :: Op_T
+      Type (WaveFunction), dimension(:),   allocatable  :: WF_L
+      Type (WaveFunction), dimension(:),   allocatable  :: WF_R
       Integer, allocatable :: nsigma(:,:)
-      Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot
+      Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot, Thtrot
+      Logical              :: Projector
 !>    Defines MPI communicator 
       Integer              :: Group_Comm
 
@@ -24,7 +28,7 @@
       Type (Lattice),       private :: Latt 
       Integer,              private :: L1, L2
       real (Kind=Kind(0.d0)),        private :: ham_T , ham_U,  Ham_chem, Ham_h, Ham_J, Ham_xi, Ham_F
-      real (Kind=Kind(0.d0)),        private :: Dtau, Beta
+      real (Kind=Kind(0.d0)),        private :: Dtau, Beta, Theta
       Character (len=64),   private :: Model, Lattice_type
       Logical,              private :: One_dimensional
       Integer,              private :: N_coord, Norb
@@ -46,16 +50,15 @@
 
 
       Subroutine Ham_Set
-
+#if defined (MPI) || defined(TEMPERING)
+          Use mpi
+#endif
           Implicit none
 
-#if defined (MPI) || defined(TEMPERING)
-          include 'mpif.h'
-#endif   
+
 
           integer :: ierr
           Character (len=64) :: file1
-          
           NAMELIST /VAR_lattice/  L1, L2, Lattice_type, Model
 
           NAMELIST /VAR_Hubbard/  ham_T, ham_chem, ham_U, Dtau, Beta
@@ -143,6 +146,9 @@
            
            Call Ham_hop
            Ltrot = nint(beta/dtau)
+           Projector = .false.
+           Theta = 0.d0
+           Thtrot = 0
            
            If  ( Model == "Hubbard_SU2_Ising" )  Call Setup_Ising_action
 
@@ -457,14 +463,14 @@
         end function S0
 
 !===================================================================================           
-        Subroutine Global_move(T0_Proposal_ratio,nsigma_old)
+        Subroutine Global_move(T0_Proposal_ratio,nsigma_old,size_clust)
           !>  The input is the field nsigma declared in this module. This routine generates a 
           !>  global update with  and returns the propability  
           !>  T0_Proposal_ratio  =  T0( sigma_out-> sigma_in ) /  T0( sigma_in -> sigma_out)  
           !>   
           
           Implicit none
-          Real (Kind=Kind(0.d0)), intent(out) :: T0_Proposal_ratio
+          Real (Kind=Kind(0.d0)), intent(out) :: T0_Proposal_ratio, size_clust
           Integer, dimension(:,:),  allocatable, intent(in)  :: nsigma_old
           !> nsigma_old contains a copy of nsigma upon entry
           
@@ -479,7 +485,7 @@
 
           Test = .false.
           If (Model == "Hubbard_SU2_Ising" ) then
-             if ( ranf_wrap() > 1.5d0 ) then
+             if ( ranf_wrap() > 0.5d0 ) then
                 ! Move kinks along the imaginary time axis.
                 if (Test) write(6,*) '********Global *******'
                 Allocate ( Kinks(Ltrot), W(0:Ltrot), Pos(0:Ltrot), W1(0:Ltrot) )
@@ -880,7 +886,7 @@
                 case default
                    Write(6,*) ' Error in Alloc_obs '  
                 end select
-                Nt = Ltrot+1
+                Nt = Ltrot+1-2*Thtrot
                 Call Obser_Latt_make(Obs_tau(I),Ns,Nt,No,Filename)
              enddo
           endif
@@ -1294,7 +1300,7 @@
                          if ( no1 == 2) J1 = Latt%nnlist(J,0,1)
                          G(1,1) = ZKRON(I,I ) - GTT(I ,I ,1)
                          G(1,2) = ZKRON(I,I1) - GTT(I1,I ,1)
-                         G(1,3) = -G0T (I ,J,1)
+                         G(1,3) = -G0T (J ,I,1)
                          G(1,4) = -G0T (J1,I,1)
                          G(2,1) = -GTT(I,I1 ,1)
                          G(2,2) =  ZKRON(I1,I1) -GTT(I1,I1,1)
@@ -1322,7 +1328,8 @@
 #include "Bid_N2.f90"
                          endif
                          Obs_tau(7)%Obs_Latt(imj,nt+1,no,no1)  = Obs_tau(7)%Obs_Latt(imj,nt+1,no,no1)   +  Z * ZP*ZS
-                         
+
+                         !Kin-Kin correlations
                          Z =  (  (GTT(I,I1,1) +  GTT(I1,I,1)) * (G00(J,J1,1)  +  G00(J1,J,1)) * ZN  - &
                               &   G0T(J1,I ,1)*GT0(I1,J ,1) - &
                               &   G0T(J ,I ,1)*GT0(I1,J1,1) - &
@@ -1488,14 +1495,12 @@
 !===================================================================================
 
       Subroutine Print_fluxes
-
+#if defined (MPI) || defined(TEMPERING)
+        Use mpi
+#endif
         Implicit none
 
-#if defined (MPI) || defined(TEMPERING)
-        include 'mpif.h'
 
-#endif   
-        
 
         ! Local 
         Integer :: I,nt,ix, iy, n
@@ -1540,7 +1545,7 @@
         
         Integer :: n,  nc, n_op, nt
         Integer, allocatable :: nsigma_old(:,:)
-        Real (Kind=kind(0.d0)) :: X, X1
+        Real (Kind=kind(0.d0)) :: X, X1, size_clust
         
         n = size(Op_V,1)
         allocate (nsigma_old(n,Ltrot))
@@ -1555,7 +1560,7 @@
            !   Write(6,*) nc, X, X1
            !endif
            nsigma_old = nsigma
-           Call Global_move(X,nsigma_old)
+           Call Global_move(X,nsigma_old,size_clust)
            X1 = Delta_S0_global(Nsigma_old) 
            Write(6,*) nc, X, X1
         enddo
