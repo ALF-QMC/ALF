@@ -856,7 +856,7 @@
 
           Obs_scal(1) = Obs_scal(1) + zrho * ZP*ZS
           Obs_scal(2) = Obs_scal(2) + zkin*Ham_T * ZP*ZS
-          Obs_scal(3) = Obs_scal(3) + Zpot*Ham_Vint * ZP*ZS
+          Obs_scal(3) = Obs_scal(3) + (Zpot*Ham_Vint + FdU*Ham_V2int) * ZP*ZS
           Obs_scal(4) = Obs_scal(4) + (zkin*Ham_T +  Zpot*Ham_Vint + FdU*Ham_V2int)*ZP*ZS
           Obs_scal(5) = Obs_scal(5) + (zkin -  Zpot)*ZP*ZS
           Obs_scal(6) = Obs_scal(6) + (Zpot)*ZP*ZS
