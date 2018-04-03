@@ -39,6 +39,13 @@
       Integer,                       private :: Nobs
       Complex (Kind=Kind(0.d0)), allocatable, private :: obs_scal(:)
       Complex (Kind=Kind(0.d0)), allocatable, private ::  Local_eq(:,:,:), Local_eq0(:)
+      Complex (Kind=Kind(0.d0)), allocatable, private ::  Local1_eq(:,:,:,:,:), Local1_eq0(:,:,:)
+      Complex (Kind=Kind(0.d0)), allocatable, private ::  Local2_eq(:,:,:,:,:), Local2_eq0(:,:,:)
+      Complex (Kind=Kind(0.d0)), allocatable, private ::  Local3_eq(:,:,:,:,:), Local3_eq0(:,:,:)
+      Complex (Kind=Kind(0.d0)), allocatable, private ::  Local4_eq(:,:,:,:,:), Local4_eq0(:,:,:)
+      Complex (Kind=Kind(0.d0)), allocatable, private ::  Local5_eq(:,:,:,:,:), Local5_eq0(:,:,:)
+      Complex (Kind=Kind(0.d0)), allocatable, private ::  Local6_eq(:,:,:,:,:), Local6_eq0(:,:,:)
+      Complex (Kind=Kind(0.d0)), allocatable, private ::  Local7_eq(:,:,:,:,:), Local7_eq0(:,:,:)
       Complex (Kind=Kind(0.d0)), allocatable, private ::  Den_eq(:,:,:), Den_eq0(:)
       Complex (Kind=Kind(0.d0)), allocatable, private ::  R_eq(:,:,:), R_eq0(:)
       Complex (Kind=Kind(0.d0)), allocatable, private ::  U1_eq(:,:,:), U1_eq0(:)
@@ -72,6 +79,9 @@
       Complex (Kind=Kind(0.d0)), allocatable, private ::  U1xyG_sus(:,:,:), U1xyG_sus0(:)
       Complex (Kind=Kind(0.d0)), allocatable, private ::  Spinz_sus(:,:,:), Spinz_sus0(:)
       Complex (Kind=Kind(0.d0)), allocatable, private ::  Spinxy_sus(:,:,:), Spinxy_sus0(:)
+      
+      Integer, private :: Idx(4,4), OpKind(16)
+      Complex (Kind=Kind(0.d0)), private :: OpWeight(4,16)
 
       contains 
 
@@ -196,6 +206,89 @@
           endif
 #endif
           call Ham_V
+          
+          Idx(1,1) = 1
+          Idx(2,1) = 2
+          Idx(3,1) = 3
+          Idx(4,1) = 4
+          
+          Idx(1,2) = 4
+          Idx(2,2) = 3
+          Idx(3,2) = 2
+          Idx(4,2) = 1
+          
+          Idx(1,3) = 2
+          Idx(2,3) = 1
+          Idx(3,3) = 4
+          Idx(4,3) = 3
+          
+          Idx(1,4) = 3
+          Idx(2,4) = 4
+          Idx(3,4) = 1
+          Idx(4,4) = 2
+          
+          OpWeight = cmplx(1.d0,0.d0,kind(0.d0))
+          
+          OpWeight(1,3) = cmplx(-1.d0,0.d0,kind(0.d0))
+          OpWeight(2,3) = cmplx(-1.d0,0.d0,kind(0.d0))
+          
+          OpWeight(3,4) = cmplx(-1.d0,0.d0,kind(0.d0))
+          OpWeight(4,4) = cmplx(-1.d0,0.d0,kind(0.d0))
+          
+          OpWeight(3,5) = cmplx(-1.d0,0.d0,kind(0.d0))
+          OpWeight(4,5) = cmplx(-1.d0,0.d0,kind(0.d0))
+          
+          OpWeight(1,7) = cmplx(-1.d0,0.d0,kind(0.d0))
+          OpWeight(2,7) = cmplx(-1.d0,0.d0,kind(0.d0))
+          
+          OpWeight(1,9) = cmplx(-1.d0,0.d0,kind(0.d0))
+          OpWeight(3,9) = cmplx(-1.d0,0.d0,kind(0.d0))
+          
+          OpWeight(2,10) = cmplx(-1.d0,0.d0,kind(0.d0))
+          OpWeight(4,10) = cmplx(-1.d0,0.d0,kind(0.d0))
+          
+          OpWeight(1,11) = cmplx(-1.d0,0.d0,kind(0.d0))
+          OpWeight(4,11) = cmplx(-1.d0,0.d0,kind(0.d0))
+          
+          OpWeight(2,12) = cmplx(-1.d0,0.d0,kind(0.d0))
+          OpWeight(3,12) = cmplx(-1.d0,0.d0,kind(0.d0))
+          
+          OpWeight(2,13) = cmplx(-1.d0,0.d0,kind(0.d0))
+          OpWeight(4,13) = cmplx(-1.d0,0.d0,kind(0.d0))
+          
+          OpWeight(1,14) = cmplx(-1.d0,0.d0,kind(0.d0))
+          OpWeight(3,14) = cmplx(-1.d0,0.d0,kind(0.d0))
+          
+          OpWeight(1,15) = cmplx(-1.d0,0.d0,kind(0.d0))
+          OpWeight(4,15) = cmplx(-1.d0,0.d0,kind(0.d0))
+          
+          OpWeight(1,16) = cmplx(-1.d0,0.d0,kind(0.d0))
+          OpWeight(4,16) = cmplx(-1.d0,0.d0,kind(0.d0))
+          
+          OpWeight(:,3) = OpWeight(:,3)*cmplx(0.d0,1.d0,kind(0.d0))
+          OpWeight(:,7) = OpWeight(:,7)*cmplx(0.d0,1.d0,kind(0.d0))
+          OpWeight(:,9) = OpWeight(:,9)*cmplx(0.d0,1.d0,kind(0.d0))
+          OpWeight(:,11) = OpWeight(:,11)*cmplx(0.d0,1.d0,kind(0.d0))
+          OpWeight(:,14) = OpWeight(:,14)*cmplx(0.d0,1.d0,kind(0.d0))
+          OpWeight(:,16) = OpWeight(:,16)*cmplx(0.d0,1.d0,kind(0.d0))
+          
+          OpKind(1)=1
+          OpKind(2)=2
+          OpKind(3)=2
+          OpKind(4)=1
+          OpKind(5)=3
+          OpKind(6)=4
+          OpKind(7)=4
+          OpKind(8)=3
+          OpKind(9)=3
+          OpKind(10)=1
+          OpKind(11)=3
+          OpKind(12)=1
+          OpKind(13)=4
+          OpKind(14)=2
+          OpKind(15)=2
+          OpKind(16)=4
+          
         end Subroutine Ham_Set
 !=============================================================================
 
@@ -553,6 +646,15 @@
           Integer :: I
           Allocate ( Obs_scal(Nobs_scal) )
           Allocate ( Local_eq(Latt%N,Norb,Norb), Local_eq0(Norb) )
+          
+          Allocate ( Local1_eq(Latt%N,3,3,3,3), Local1_eq0(3,3,3) )
+          Allocate ( Local2_eq(Latt%N,1,1,3,3), Local2_eq0(1,3,3) )
+          Allocate ( Local3_eq(Latt%N,1,1,3,3), Local3_eq0(1,3,3) )
+          Allocate ( Local4_eq(Latt%N,3,3,3,3), Local4_eq0(3,3,3) )
+          Allocate ( Local5_eq(Latt%N,1,1,3,3), Local5_eq0(1,3,3) )
+          Allocate ( Local6_eq(Latt%N,1,1,3,3), Local6_eq0(1,3,3) )
+          Allocate ( Local7_eq(Latt%N,2,2,3,3), Local7_eq0(2,3,3) )
+          
           Allocate ( Den_eq(Latt%N,1,1), Den_eq0(1) ) 
           Allocate ( U1_eq(Latt%N,1,1), U1_eq0(1) )
           Allocate ( U1G_eq(Latt%N,1,1) )
@@ -603,6 +705,22 @@
           
           Local_eq    = 0.d0
           Local_eq0   = 0.d0
+          
+          Local1_eq    = 0.d0
+          Local1_eq0   = 0.d0
+          Local2_eq    = 0.d0
+          Local2_eq0   = 0.d0
+          Local3_eq    = 0.d0
+          Local3_eq0   = 0.d0
+          Local4_eq    = 0.d0
+          Local4_eq0   = 0.d0
+          Local5_eq    = 0.d0
+          Local5_eq0   = 0.d0
+          Local6_eq    = 0.d0
+          Local6_eq0   = 0.d0
+          Local7_eq    = 0.d0
+          Local7_eq0   = 0.d0
+          
           Den_eq    = 0.d0
           Den_eq0   = 0.d0
           Spinz_eq    = 0.d0
@@ -671,6 +789,90 @@
 
         end Subroutine Init_obs
         
+        pure Subroutine U1Structure(I,J,a,b,c,d,res,GR,GRC)
+          Implicit None
+          Complex (Kind=Kind(0.d0)), Intent(INOUT) :: res(3)
+          Complex (Kind=Kind(0.d0)), Intent(IN) :: GR(:,:,:),GRC(:,:,:)
+          Integer, INTENT(IN)          :: I,J,a,b,c,d
+          
+          Integer :: no1, no2, I1, I2, J1, J2
+          Complex (Kind=Kind(0.d0)) :: tmp
+          
+          res=0.d0
+          
+          do no1=0,4,4
+            do no2=0,4,4
+              I1 = InvList(I,no1+a)
+              I2 = InvList(I,no1+b)
+              J1 = InvList(J,no2+c)
+              J2 = InvList(J,no2+d)
+              
+              tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+                   &     GRC(I1,I2,1) * GRC(J1,J2,1)         )
+              
+              res(1)=res(1)+tmp
+              if (no1==no2) then
+                res(2)=res(2)+tmp
+              else
+                res(2)=res(2)-tmp
+              endif
+            enddo
+          enddo
+          
+          do no1=0,4,4
+            no2=4-no1
+            I1 = InvList(I,no1+a)
+            I2 = InvList(I,no2+b)
+            J1 = InvList(J,no2+c)
+            J2 = InvList(J,no1+d)
+            
+            tmp =  (   GRC(I1,J2,1) * GR (I2,J1,1)      +  &
+                  &     GRC(I1,I2,1) * GRC(J1,J2,1)         )
+            
+            res(3)=res(3)+tmp
+          enddo
+          
+        end Subroutine U1Structure
+        
+        pure Subroutine SzStructure(I,J,a,b,c,d,res,GR,GRC)
+          Implicit None
+          Complex (Kind=Kind(0.d0)), Intent(INOUT) :: res(3,3)
+          Complex (Kind=Kind(0.d0)), Intent(IN) :: GR(:,:,:),GRC(:,:,:)
+          Integer, INTENT(IN)          :: I,J,a,b,c,d
+          
+          Integer :: no1, no2, no
+          Complex (Kind=Kind(0.d0)) :: tmp(3)
+          
+          res=0.d0
+          
+          do no1=0,8,8
+            do no2=0,8,8
+              
+              call U1Structure(i,j,no1+a,no1+b,no2+c,no2+d,tmp,GR,GRC)
+                
+              do no=1,3
+                res(1,no)=res(1,no)+tmp(no)
+                if (no1==no2) then
+                  res(2,no)=res(2,no)+tmp(no)
+                else
+                  res(2,no)=res(2,no)-tmp(no)
+                endif
+              enddo
+            enddo
+          enddo
+          
+          do no1=0,8,8
+            no2=8-no1
+            
+            call U1Structure(I,J,no1+a,no2+b,no2+c,no1+d,tmp,GR,GRC)
+            
+            do no=1,3
+              res(3,no)=res(3,no)+tmp(no)
+            enddo
+          enddo
+          
+        end Subroutine SzStructure
+        
 !========================================================================
         Subroutine Obser(GR,Phase,Ntau)
           
@@ -681,10 +883,10 @@
           Integer, INTENT(IN)          :: Ntau
           
           !Local 
-          Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK
+          Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK, Res1(3,3,4,4)
           Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, ZL, Z, ZP,ZS, weight, tmp, ZU1, ZU1xG, ZU1yG, tmp1, tmp2, FdU
           Integer :: I,J, no,no1, n, n1, imj, nf, I1, I2, J1, J2, Nc, Ix, Iy, Jx, Jy, Imx, Imy, Jmx, Jmy
-          Integer :: a, b, c, d, signum, K, K1, L ,L1, nf1
+          Integer :: a, b, c, d, signum, K, K1, L ,L1, nf1,id1 ,id2
           
           Real (Kind=Kind(0.d0)) :: G(4,4), X, FI, FJ
           
@@ -869,9 +1071,67 @@
           ! You will have to allocate more space if you want to include more  scalar observables.
           ! the last one has to be the phase!!!
           
+          res1=0.d0
           Do I = 1, Latt%N
             do J = 1, Latt%N
                 imj = latt%imj(I,J)
+                
+                do no = 1, 4
+                do no1 = 1, 4
+                  Call SzStructure(I,J,no,Idx(no,1),no1,Idx(no1,1),res1(:,:,1,1),GR,GRC)
+                  Call SzStructure(I,J,no,Idx(no,1),no1,Idx(no1,2),res1(:,:,1,2),GR,GRC)
+                  Call SzStructure(I,J,no,Idx(no,2),no1,Idx(no1,1),res1(:,:,2,1),GR,GRC)
+                  Call SzStructure(I,J,no,Idx(no,2),no1,Idx(no1,2),res1(:,:,2,2),GR,GRC)
+                  
+                  Call SzStructure(I,J,no,Idx(no,3),no1,Idx(no1,3),res1(:,:,3,3),GR,GRC)
+                  Call SzStructure(I,J,no,Idx(no,3),no1,Idx(no1,4),res1(:,:,3,4),GR,GRC)
+                  Call SzStructure(I,J,no,Idx(no,4),no1,Idx(no1,3),res1(:,:,4,3),GR,GRC)
+                  Call SzStructure(I,J,no,Idx(no,4),no1,Idx(no1,4),res1(:,:,4,4),GR,GRC)
+                  
+                  res1=res1*ZP*ZS
+                  
+                  do id1=1,3
+                  do id2=1,3
+                    do a=1,3
+                    do b=1,3
+                      Local1_eq(imj,a,b,id1,id2)=Local1_eq(imj,a,b,id1,id2)+OpWeight(no,a)*OpWeight(no1,b)&
+                          &*res1(id1,id2,OpKind(a),OpKind(b))
+                      Local4_eq(imj,a,b,id1,id2)=Local4_eq(imj,a,b,id1,id2)+OpWeight(no,5+a)*OpWeight(no1,5+b)&
+                          &*res1(id1,id2,OpKind(5+a),OpKind(5+b))
+                    enddo
+                    enddo
+                    
+                    Local2_eq(imj,1,1,id1,id2)=Local2_eq(imj,1,1,id1,id2)+OpWeight(no,4)*OpWeight(no1,4)&
+                          &*res1(id1,id2,OpKind(4),OpKind(4))
+                    
+                    Local3_eq(imj,1,1,id1,id2)=Local3_eq(imj,1,1,id1,id2)+OpWeight(no,5)*OpWeight(no1,5)&
+                          &*res1(id1,id2,OpKind(5),OpKind(5))
+                    
+                    Local5_eq(imj,1,1,id1,id2)=Local5_eq(imj,1,1,id1,id2)+OpWeight(no,9 )*OpWeight(no1,9 )&
+                          &*res1(id1,id2,OpKind(9 ),OpKind(9 ))
+                    Local5_eq(imj,1,1,id1,id2)=Local5_eq(imj,1,1,id1,id2)+OpWeight(no,10)*OpWeight(no1,10)&
+                          &*res1(id1,id2,OpKind(10),OpKind(10))
+                    
+                    Local6_eq(imj,1,1,id1,id2)=Local6_eq(imj,1,1,id1,id2)+OpWeight(no,11)*OpWeight(no1,11)&
+                          &*res1(id1,id2,OpKind(11),OpKind(11))
+                    Local6_eq(imj,1,1,id1,id2)=Local6_eq(imj,1,1,id1,id2)+OpWeight(no,12)*OpWeight(no1,12)&
+                          &*res1(id1,id2,OpKind(12),OpKind(12))
+                    
+                    do a=1,2
+                    do b=1,2
+                      Local7_eq(imj,a,b,id1,id2)=Local7_eq(imj,a,b,id1,id2)+OpWeight(no,13+a)*OpWeight(no1,13+b)&
+                          &*res1(id1,id2,OpKind(13+a),OpKind(13+b))
+                      Local7_eq(imj,a,b,id1,id2)=Local7_eq(imj,a,b,id1,id2)+OpWeight(no,13+3*(a-1))*OpWeight(no1,13+3*(b-1))&
+                          &*res1(id1,id2,OpKind(13+3*(a-1)),OpKind(13+3*(b-1)))
+                    enddo
+                    enddo
+                  enddo
+                  enddo
+                  
+                  
+                enddo
+                enddo
+                
                 do no = 1, Norb
                 do no1 = 1, Norb
                   I1=Invlist(I,no)
@@ -883,6 +1143,15 @@
                   Local_eq (imj,no,no1) = Local_eq (imj,no,no1)   +   tmp*ZP*ZS
                 enddo
                 enddo
+            enddo
+            Local1_eq0(1,1,1)=Local1_eq0(1,1,1)+8.d0
+            do no1=0,12,4
+              do no=1,4
+                I1=Invlist(I,no+no1)
+                I2=Invlist(I,idx(no,OpKind(5))+no1)
+                tmp = GRC(I1,I2,1)*ZP*ZS
+                Local3_eq0(1,1,1)=Local3_eq0(1,1,1)+tmp*OpWeight(no,5)
+              enddo
             enddo
             do no = 1, Norb
               I1=Invlist(I,no)
@@ -1860,7 +2129,8 @@
 
           Character (len=64) :: File_pr
           Complex   (Kind=Kind(0.d0)) :: Phase_bin
-          Integer ::  no, no1
+          Integer ::  no, no1, a,b,c
+          Character (len=4) :: prefix1, prefix2
 #ifdef MPI
           Integer        :: Isize, Irank, Ierr
           Integer        :: STATUS(MPI_STATUS_SIZE)
@@ -1911,6 +2181,41 @@
           Call Print_bin(SpinzG_eq, Spinz_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
           File_pr ="Spinxy_eq"
           Call Print_bin(Spinxy_eq, Spinxy_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
+          
+!           write(*,*) "Hi"
+          do a=1,3
+            if (a==1) then
+              prefix1="T1_"
+            elseif (a==2) then
+              prefix1="Tz_"
+            elseif (a==3) then
+              prefix1="Txy_"
+            endif
+            do b=1,3
+              if (b==1) then
+                prefix2="S1_"
+              elseif (b==2) then
+                prefix2="Sz_"
+              elseif (b==3) then
+                prefix2="Sxy_"
+              endif
+              write(File_pr,'(A,A,A)') trim(ADJUSTL(prefix1)),trim(ADJUSTL(prefix2)),"1_eq"
+              Call Print_bin(Local1_eq(:,:,:,a,b), Local1_eq0(:,a,b), Latt, Nobs, Phase_bin, file_pr, Group_Comm)
+              write(File_pr,'(A,A,A)') trim(ADJUSTL(prefix1)),trim(ADJUSTL(prefix2)),"2_eq"
+              Call Print_bin(Local2_eq(:,:,:,a,b), Local2_eq0(:,a,b), Latt, Nobs, Phase_bin, file_pr, Group_Comm)
+              write(File_pr,'(A,A,A)') trim(ADJUSTL(prefix1)),trim(ADJUSTL(prefix2)),"3_eq"
+              Call Print_bin(Local3_eq(:,:,:,a,b), Local3_eq0(:,a,b), Latt, Nobs, Phase_bin, file_pr, Group_Comm)
+              write(File_pr,'(A,A,A)') trim(ADJUSTL(prefix1)),trim(ADJUSTL(prefix2)),"4_eq"
+              Call Print_bin(Local4_eq(:,:,:,a,b), Local4_eq0(:,a,b), Latt, Nobs, Phase_bin, file_pr, Group_Comm)
+              write(File_pr,'(A,A,A)') trim(ADJUSTL(prefix1)),trim(ADJUSTL(prefix2)),"5_eq"
+              Call Print_bin(Local5_eq(:,:,:,a,b), Local5_eq0(:,a,b), Latt, Nobs, Phase_bin, file_pr, Group_Comm)
+              write(File_pr,'(A,A,A)') trim(ADJUSTL(prefix1)),trim(ADJUSTL(prefix2)),"6_eq"
+              Call Print_bin(Local6_eq(:,:,:,a,b), Local6_eq0(:,a,b), Latt, Nobs, Phase_bin, file_pr, Group_Comm)
+              write(File_pr,'(A,A,A)') trim(ADJUSTL(prefix1)),trim(ADJUSTL(prefix2)),"7_eq"
+              Call Print_bin(Local7_eq(:,:,:,a,b), Local7_eq0(:,a,b), Latt, Nobs, Phase_bin, file_pr, Group_Comm)
+            enddo
+          enddo
+!           write(*,*) "Done"
 
           if (FlagSym == 1) then
             File_pr ="R_eq"
