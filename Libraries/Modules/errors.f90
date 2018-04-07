@@ -606,6 +606,7 @@
            ENDIF
 
            ALLOCATE( HLP(NDATA), HLP1(NTDM,NDATA) )
+           !$omp parallel do private(hlp,xhelp,x,xm,xerr) default(shared)
            DO NT = 1,NTDM
               Xhelp = 0.0
               DO NB1 = 1,NDATA
@@ -619,8 +620,10 @@
               CALL ERRCALC(HLP,XM ,XERR)
               XMEAN(NT) = XM
            ENDDO
+           !$omp end parallel do
 
            
+           !$omp parallel do private(x) default(shared)
            DO NT = 1,NTDM
               DO NT1= 1,NTDM
                  X = 0.0
@@ -631,6 +634,7 @@
                  XCOV(NT,NT1)  = X*DBLE(NDATA)! ( X - XMEAN(NT)*XMEAN(NT1) )*DBLE(NDATA)
               ENDDO
            ENDDO
+           !$omp end parallel do
            
 
            DEALLOCATE( HLP, HLP1 )
@@ -662,6 +666,7 @@
            ENDIF
 
            ALLOCATE( HLP(NDATA), HLP1(NTDM,NDATA) )
+           !$omp parallel do private(hlp,xhelp,yhelp,x,y,xm,xerr) default(shared)
            DO NT = 1,NTDM
               Xhelp=0.d0
               Yhelp=0.d0
@@ -678,8 +683,10 @@
               CALL ERRCALC(HLP,XM ,XERR)
               XMEAN(NT) = XM
            ENDDO
+           !$omp end parallel do
 
            
+           !$omp parallel do private(x) default(shared)
            DO NT = 1,NTDM
               DO NT1= 1,NTDM
                  X = 0.0
@@ -690,6 +697,7 @@
                  XCOV(NT,NT1)  = X*DBLE(NDATA)
               ENDDO
            ENDDO
+           !$omp end parallel do
            
 
            DEALLOCATE( HLP, HLP1 )
@@ -736,6 +744,7 @@
            DO NTH = 1,2
               Z = CMPLX(1.D0, 0.D0, kind(0.D0))
               IF (NTH .EQ. 2 ) Z = CMPLX( 0.D0, -1.D0, kind(0.D0))
+              !$omp parallel do private(hlp,xhelp,yhelp,x,y,xm,xerr) default(shared)
               DO NT = 1,NTDM
                  Xhelp=0.d0
                  Yhelp=0.d0
@@ -754,8 +763,10 @@
                  XMEAN_R(NT) = XM
                  !if (Nth.eq.2) write(6,*) XM
               ENDDO
+              !$omp end parallel do
               
               
+              !$omp parallel do private(x) default(shared)
               DO NT = 1,NTDM
                  DO NT1= 1,NTDM
                     X = 0.d0
@@ -766,6 +777,7 @@
                     XCOV(NT,NT1)  = XCOV(NT,NT1) + CONJG(Z)* X *DBLE(NDATA)
                  ENDDO
               ENDDO
+              !$omp end parallel do
            ENDDO
 
            DEALLOCATE( HLP, HLP1, XMEAN_R )
