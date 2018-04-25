@@ -555,10 +555,10 @@
              enddo
              Do no = 1,4
                 do no1 = 1,4
-                  Sz(no    , no1     ,ns) =  Ps_G5(no,no1,ns)
-                  Sz(no +4 , no1 + 4 ,ns) =  -Ps_G5(no,no1,ns)
-                  Sz(no +8 , no1 + 8 ,ns) =  Ps_G5(no,no1,ns)
-                  Sz(no+12 , no1 + 12,ns) =  -Ps_G5(no,no1,ns)
+                  Sz(no    , no1     ,ns) =  Ps(no,no1,ns)
+                  Sz(no +4 , no1 + 4 ,ns) =  -Ps(no,no1,ns)
+                  Sz(no +8 , no1 + 8 ,ns) =  Ps(no,no1,ns)
+                  Sz(no+12 , no1 + 12,ns) =  -Ps(no,no1,ns)
                 enddo
              enddo
           enddo
