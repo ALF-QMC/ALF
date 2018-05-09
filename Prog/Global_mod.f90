@@ -115,7 +115,7 @@ Module Global_mod
         !> Additional variables for running without Fermion weight
         Logical :: Tempering_calc_det
         Integer        :: nsigma_irank, nsigma_old_irank, nsigma_irank_temp ! Keeps track of where the configuration originally comes from
-        Integer        :: n_GR
+        Integer        :: n_GR, nsigma_checksum, nsigma_old_checksum
 
         !Integer, Dimension(:,:),  allocatable :: nsigma_orig, nsigma_test
         !Integer :: I1, I2
@@ -242,10 +242,17 @@ Module Global_mod
 
            !>  Exchange configurations
            n = size(nsigma_old,1)*size(nsigma_old,2)
+           nsigma_old_checksum = sum(abs(nsigma_old))
            CALL MPI_Sendrecv(nsigma_old      , n, MPI_INTEGER, List_partner(IRANK), 0, &
                     &        nsigma          , n, MPI_INTEGER, List_partner(IRANK), 0, MPI_COMM_WORLD,STATUS,IERR)
            CALL MPI_Sendrecv(nsigma_old_irank, 1, MPI_INTEGER, List_partner(IRANK), 0, &
                     &        nsigma_irank    , 1, MPI_INTEGER, List_partner(IRANK), 0, MPI_COMM_WORLD,STATUS,IERR)
+           CALL MPI_Sendrecv(nsigma_old_checksum, 1, MPI_INTEGER, List_partner(IRANK), 0, &
+                    &        nsigma_checksum    , 1, MPI_INTEGER, List_partner(IRANK), 0, MPI_COMM_WORLD,STATUS,IERR)
+           if(sum(abs(nsigma)) /= nsigma_checksum ) then
+             write(*,*) "configuration transfere in tempering move failed!"
+             stop
+           endif
            
            !>  Each node now has a new configuration nsigma
            

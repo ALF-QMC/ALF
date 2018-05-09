@@ -128,8 +128,8 @@
            ! Local
            Integer :: Ns,Nt, Norb, no, no1, I , Ntau
            Complex (Kind=Kind(0.d0)), allocatable :: Tmp(:,:,:,:), Tmp1(:)
-           Real    (Kind=Kind(0.d0))              :: x_p(2) 
-           Complex (Kind=Kind(0.d0))              :: Sign_bin
+           Real    (Kind=Kind(0.d0))              :: x_p(2) , pres
+           Complex (Kind=Kind(0.d0))              :: Sign_bin, checksum_old, checksum
            Character (len=64)            :: File_pr,  File_suff
 #ifdef MPI
            Complex (Kind=Kind(0.d0)):: Z
@@ -165,13 +165,19 @@
 #if defined(MPI) 
            I = Ns*Ntau*Norb*Norb
            Tmp = cmplx(0.d0, 0.d0, kind(0.D0))
+           checksum_old=sum(Obs%Obs_Latt)
+           pres = 100.d0*sqrt(dble(no+ISIZE_g))*epsilon(pres)
            CALL MPI_REDUCE(Obs%Obs_Latt,Tmp,I,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
            Obs%Obs_Latt = Tmp/DBLE(ISIZE_g)
+!            Obs%Obs_Latt(1,1,1,1)=0
 
            I = 1
            X = 0.d0
            CALL MPI_REDUCE(Obs%Ave_sign,X,I,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
            Obs%Ave_sign = X/DBLE(ISIZE_g)
+           checksum = 0.d0
+           CALL MPI_REDUCE(checksum_old,checksum,I,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
+           checksum = checksum/DBLE(ISIZE_g)
 
            I = Norb
            Tmp1 = cmplx(0.d0,0.d0,kind(0.d0))
@@ -179,6 +185,10 @@
            Obs%Obs_Latt0 = Tmp1/DBLE(ISIZE_g)
 
            If (Irank_g == 0 ) then
+              if(abs(sum(Obs%Obs_Latt)-checksum) > pres*abs(checksum) ) then
+                write(*,*) "observable data transfere in print_bin_latt failed!"
+                stop
+              endif
 #endif
 #if defined(TEMPERING) 
               write(File_pr ,'(A,I0,A,A,A)') "Temp_",igroup,"/",trim(Obs%File_Latt),trim(File_suff )
@@ -238,7 +248,8 @@
            Integer        :: Ierr, Isize, Irank
            INTEGER        :: irank_g, isize_g, igroup
            Complex  (Kind=Kind(0.d0)), allocatable :: Tmp(:)
-           Real     (Kind=Kind(0.d0)) :: X
+           Real     (Kind=Kind(0.d0)) :: X, pres
+           Complex  (Kind=Kind(0.d0)) :: checksum_old, checksum
 
            CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
            CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
@@ -255,16 +266,26 @@
 #if defined(MPI) 
            Allocate (Tmp(No) )
            Tmp = cmplx(0.d0,0.d0,kind(0.d0))
+           checksum_old=sum(Obs%Obs_vec)
+           pres = 100.d0*sqrt(dble(no+ISIZE_g))*epsilon(pres)
            CALL MPI_REDUCE(Obs%Obs_vec,Tmp,No,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
            Obs%Obs_vec = Tmp/DBLE(ISIZE_g)
+           
            deallocate (Tmp )
 
            I = 1
            X = 0.d0
            CALL MPI_REDUCE(Obs%Ave_sign,X,I,MPI_REAL8,MPI_SUM, 0,Group_comm,IERR)
            Obs%Ave_sign = X/DBLE(ISIZE_g)
+           checksum = 0.d0
+           CALL MPI_REDUCE(checksum_old,checksum,I,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
+           checksum = checksum/DBLE(ISIZE_g)
 
            if (Irank_g == 0 ) then
+              if(abs(sum(Obs%Obs_vec) - checksum) > pres*abs(checksum) ) then
+                write(*,*) "observable data transfere in print_bin_vec failed!"
+                stop
+              endif
 #endif
 #if defined(TEMPERING) 
               write(File_pr,'(A,I0,A,A,A)') "Temp_",igroup,"/",trim(Obs%File_Vec),trim(File_suff)
