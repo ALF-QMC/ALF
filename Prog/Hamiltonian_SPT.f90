@@ -337,8 +337,9 @@
 
           Integer :: I, I1, I2 ,no, no1, n, Ncheck, nc
           Integer, allocatable :: Invlist_1(:,:)
-          Complex (Kind=Kind(0.d0)) :: Z
+          Complex (Kind=Kind(0.d0)) :: Z, E0
 
+          E0=0.25d0
 
           ! Setup Gamma matrices
           Gamma_M = cmplx(0.d0, 0.d0, kind(0.D0))
@@ -391,8 +392,11 @@
                          Z =  cmplx(2.d0 + Ham_Lam, 0.d0, kind(0.D0))*Gamma_M(no,no1,3)
                          Op_T(nc,n)%O( Invlist_1(I,no) ,Invlist_1(I,no1) )  =  Z
                       enddo
+                      no1=Invlist_1(I,no)
+                      Op_T(nc,n)%O( no1 , no1 )  =  Op_T(nc,n)%O( no1 , no1 ) + E0
                    enddo
                    I1 =  Latt%nnlist(I,1,0)
+                   I2 =  Latt%nnlist(I1,1,0)
                    do no = 1,4
                       do no1 = 1,4
                          Z = (cmplx(0.d0,1.d0, kind(0.D0))*Gamma_M(no,no1,1) &
@@ -402,8 +406,13 @@
                          Op_T(nc,n)%O( invlist_1(I1,no1 ), invlist_1(I ,no   ) )  = &
                                 & Op_T(nc,n)%O( invlist_1(I1,no1 ), invlist_1(I ,no   ) ) + conjg(Z)
                       enddo
+                      Op_T(nc,n)%O( invlist_1(I ,no  ), invlist_1(I2,no  ) )  = &
+                            & Op_T(nc,n)%O( invlist_1(I ,no  ), invlist_1(I2,no  ) ) - 0.25d0*E0
+                      Op_T(nc,n)%O( invlist_1(I2,no ), invlist_1(I ,no   ) )  = &
+                            & Op_T(nc,n)%O( invlist_1(I2,no ), invlist_1(I ,no   ) ) - 0.25d0*E0
                    enddo
                    I2   = Latt%nnlist(I,0,1)
+                   I1   = Latt%nnlist(I2,0,1)
                    do no = 1,4
                       do no1 = 1,4
                          Z =   ( cmplx(0.d0,1.d0, kind(0.D0)) * Gamma_M(no,no1,2) &
@@ -413,6 +422,10 @@
                          Op_T(nc,n)%O( invlist_1(I2,no1), invlist_1(I ,no   ) )  = &
                                 & Op_T(nc,n)%O( invlist_1(I2,no1), invlist_1(I ,no   ) ) + conjg(Z)
                       enddo
+                      Op_T(nc,n)%O( invlist_1(I ,no  ), invlist_1(I1,no  ) )  = &
+                            & Op_T(nc,n)%O( invlist_1(I ,no  ), invlist_1(I1,no  ) ) - 0.25d0*E0
+                      Op_T(nc,n)%O( invlist_1(I1,no ), invlist_1(I ,no   ) )  = &
+                            & Op_T(nc,n)%O( invlist_1(I1,no ), invlist_1(I ,no   ) ) - 0.25d0*E0
                    enddo
                 enddo
                 Op_T(nc,n)%g=cmplx(-Dtau*Ham_T,0.d0, kind(0.D0))
