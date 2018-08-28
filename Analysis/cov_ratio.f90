@@ -289,6 +289,7 @@
             endif
             Ratio1r=1.d0-Ratio2r/Ratio1r/n1
             call ERRCALC(Ratio1r,x,y)
+            y = y*DBLE(size(Ratio1r))
             Write(33,"(F12.6,2x,F12.6,2x,F16.8,2x,F16.8)")  Xk_p(1), Xk_p(2), x, y
 !             Write(*,*)  n, x, y
          Enddo
