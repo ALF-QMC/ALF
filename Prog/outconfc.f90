@@ -57,7 +57,7 @@
          INTEGER, DIMENSION(:), ALLOCATABLE :: SEED_VEC
          CHARACTER (LEN=64) :: FILE_TG
          TYPE(IOPORT) :: fd
-         CHARACTER(LEN=255), TARGET :: LINE
+         CHARACTER(LEN=2550), TARGET :: LINE
          INTEGER        :: IOS
 
 #if defined(MPI)
