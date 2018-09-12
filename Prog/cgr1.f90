@@ -225,7 +225,6 @@
         ENDDO
         TPUP = TPUP + RHS
 #else
-#if ! defined(LOG)
         !missuse DUP(I) as DR(I) for temporary storage
         !scales in D are assumed to be real and positive
         DO I = 1,N_size
@@ -256,37 +255,7 @@
             ENDDO
           endif
         ENDDO
-#else
-        !missuse DUP(I) as DR(I) for temporary storage
-        DO I = 1,N_size
-          If( udvr%L(I)<=0.d0 ) then
-            DUP(I)=cmplx(exp(udvr%L(I)),0.d0,kind(0.d0))
-          else
-            DUP(I)=cmplx(exp(-udvr%L(I)),0.d0,kind(0.d0))
-          endif
-        ENDDO
-        DO J = 1,N_size
-          If(udvl%L(J)<=0.d0) then
-            DLJ=cmplx(exp(udvl%L(J)),0.d0,kind(0.d0))
-            DO I = 1,N_size
-              If( udvr%L(I)<=0.d0 ) then
-                TPUP(I,J) = RHS(I,J)+cmplx(exp(udvr%L(I)+udvl%L(J)),0.d0,kind(0.d0))*TPUP(I,J)
-              else
-                TPUP(I,J) = DUP(I)*RHS(I,J) + DLJ*TPUP(I,J)
-              endif
-            ENDDO
-          else
-            DLJ=cmplx(exp(-udvl%L(J)),0.d0,kind(0.d0))
-            DO I = 1,N_size
-              If( udvr%L(I)<=0.d0 ) then
-                TPUP(I,J) = DLJ*RHS(I,J)+DUP(I)*TPUP(I,J)
-              else
-                TPUP(I,J) = cmplx(exp(-udvr%L(I)-udvl%L(J)),0.d0,kind(0.d0))*RHS(I,J)+TPUP(I,J)
-              endif
-            ENDDO
-          endif
-        ENDDO
-#endif
+
 #endif
         ! calculate determinant of UR*UL
         ! as the D's are real and positive, they do not contribute the the phase of det so they can be ignored
@@ -342,11 +311,7 @@
 #if (defined(STAB3) || defined(LOG))
             !scale RHS=R_+^-1*RHS
             do J=1,N_size
-#if !defined(LOG)
               if( dble(UDVR%D(J)) > 1.d0 ) call ZSCAL(N_size,1.d0/UDVR%D(J),RHS(J,1),N_size)
-#else
-              if( UDVR%L(J) > 0.d0 ) call ZSCAL(N_size,cmplx(exp(-UDVR%L(J)),0.d0,kind(0.d0)),RHS(J,1),N_size)
-#endif
             enddo
 #endif
             ! RHS = U^dagger * RHS
@@ -372,11 +337,7 @@
 #if (defined(STAB3) || defined(LOG))
             !scale RHS=L_+^-1*RHS
             do J=1,N_size
-#if !defined(LOG)
               if( dble(UDVL%D(J)) > 1.d0 ) call ZSCAL(N_size,1.d0/UDVL%D(J),RHS(J,1),N_size)
-#else
-              if( UDVL%L(J) > 0.d0 ) call ZSCAL(N_size,cmplx(exp(-UDVL%L(J)),0.d0,kind(0.d0)),RHS(J,1),N_size)
-#endif
             enddo
 #endif
             ! perform multiplication with ULUP and store in GRUP
