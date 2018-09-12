@@ -255,7 +255,6 @@
             ENDDO
           endif
         ENDDO
-
 #endif
         ! calculate determinant of UR*UL
         ! as the D's are real and positive, they do not contribute the the phase of det so they can be ignored
@@ -350,11 +349,7 @@
 #if (defined(STAB3) || defined(LOG))
             !scale RHS=RHS*L_+^-1
             do J=1,N_size
-#if !defined(LOG)
               if( dble(UDVL%D(J)) > 1.d0 ) call ZSCAL(N_size,1.d0/UDVL%D(J),RHS(1,J),1)
-#else
-              if( UDVL%L(J) > 0.d0 ) call ZSCAL(N_size,cmplx(exp(-UDVL%L(J)),0.d0,kind(0.d0)),RHS(1,J),1)
-#endif
             enddo
 #endif
             CALL ZUNMQR('R', 'N', N_size, N_size, N_size, TPUP(1, 1), N_size, TAU(1), RHS(1, 1), N_size, WORK(1), LWORK, INFO)
@@ -381,11 +376,7 @@
 #if (defined(STAB3) || defined(LOG))
             ! first scale RHS=RHS*R_+^-1
             do J=1,N_size
-#if !defined(LOG)
               if( dble(UDVR%D(J)) > 1.d0 ) call ZSCAL(N_size,1.d0/UDVR%D(J),RHS(1,J),1)
-#else
-              if( UDVR%L(J) > 0.d0 ) call ZSCAL(N_size,cmplx(exp(-UDVR%L(J)),0.d0,kind(0.d0)),RHS(1,J),1)
-#endif
             enddo
 #endif
             ! perform multiplication with URUP
