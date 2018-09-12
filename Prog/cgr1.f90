@@ -277,7 +277,7 @@
             X = ABS(TPUP(i, i))
             DUP(i) = X
             do j = i, udvl%N_part
-                Mat(i, j) = TPUP(i, j) / X
+                TPUP(i, j) = TPUP(i, j) / X
             enddo
         enddo
         
