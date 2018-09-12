@@ -202,14 +202,7 @@
         
         COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK
         LOGICAL :: FORWRD
-        
-        if(udvl%side .ne. "L" .and. udvl%side .ne. "l" ) then
-          write(*,*) "calling wrong decompose"
-        endif
-        if(udvr%side .ne. "R" .and. udvr%side .ne. "r" ) then
-          write(*,*) "calling wrong decompose"
-        endif
-            
+
         if( .not. allocated(UDVL%V) ) then
           !call projector cgr
           call cgrp(phase, grup,udvr, udvl)
