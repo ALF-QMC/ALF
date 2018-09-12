@@ -219,12 +219,7 @@
         CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, udvr%U, N_size, udvl%U, N_size, beta, RHS(1, 1), N_size)
         
         CALL MMULT(TPUP, udvr%V, udvl%V)
-#if !(defined(STAB3) || defined(LOG))
-        DO J = 1,N_size
-            TPUP(:,J) = udvr%D(:) *TPUP(:,J)*udvl%D(J)
-        ENDDO
-        TPUP = TPUP + RHS
-#else
+
         !missuse DUP(I) as DR(I) for temporary storage
         !scales in D are assumed to be real and positive
         DO I = 1,N_size
@@ -255,7 +250,7 @@
             ENDDO
           endif
         ENDDO
-#endif
+
         ! calculate determinant of UR*UL
         ! as the D's are real and positive, they do not contribute the the phase of det so they can be ignored
         PHASE = CONJG(DET_C(RHS, N_size))
@@ -307,12 +302,12 @@
             ! URUP U D V P^dagger ULUP G = 1
             ! initialize the rhs with CT(URUP)
             RHS = CT(udvr%U)
-#if (defined(STAB3) || defined(LOG))
+
             !scale RHS=R_+^-1*RHS
             do J=1,N_size
               if( dble(UDVR%D(J)) > 1.d0 ) call ZSCAL(N_size,1.d0/UDVR%D(J),RHS(J,1),N_size)
             enddo
-#endif
+
             ! RHS = U^dagger * RHS
             CALL ZUNMQR('L', 'C', N_size, N_size, N_size, TPUP(1, 1), N_size, TAU(1), RHS(1,1), N_size, WORK(1), LWORK, INFO)
             DEALLOCATE(TAU, WORK)
@@ -333,12 +328,12 @@
             ! apply permutation matrix
             FORWRD = .false.
             CALL ZLAPMR(FORWRD, N_size, N_size, RHS(1,1), N_size, IPVT(1))
-#if (defined(STAB3) || defined(LOG))
+
             !scale RHS=L_+^-1*RHS
             do J=1,N_size
               if( dble(UDVL%D(J)) > 1.d0 ) call ZSCAL(N_size,1.d0/UDVL%D(J),RHS(J,1),N_size)
             enddo
-#endif
+
             ! perform multiplication with ULUP and store in GRUP
             CALL ZGEMM('N', 'N', N_size, N_size, N_size, alpha, udvl%U(1, 1), N_size, RHS(1,1), N_size, beta, GRUP(1,1), N_size)
         ELSE
@@ -346,12 +341,12 @@
             
             ! RHS = ULUP * UUP
             RHS = udvl%U !CT(udvl%U)
-#if (defined(STAB3) || defined(LOG))
+
             !scale RHS=RHS*L_+^-1
             do J=1,N_size
               if( dble(UDVL%D(J)) > 1.d0 ) call ZSCAL(N_size,1.d0/UDVL%D(J),RHS(1,J),1)
             enddo
-#endif
+
             CALL ZUNMQR('R', 'N', N_size, N_size, N_size, TPUP(1, 1), N_size, TAU(1), RHS(1, 1), N_size, WORK(1), LWORK, INFO)
             DEALLOCATE(TAU, WORK)
             ! apply D^-1 to RHS from the right
@@ -373,12 +368,12 @@
             ! apply inverse permutation matrix
             FORWRD = .false.
             CALL ZLAPMT(FORWRD, N_size, N_size, RHS(1, 1), N_size, IPVT(1))
-#if (defined(STAB3) || defined(LOG))
+
             ! first scale RHS=RHS*R_+^-1
             do J=1,N_size
               if( dble(UDVR%D(J)) > 1.d0 ) call ZSCAL(N_size,1.d0/UDVR%D(J),RHS(1,J),1)
             enddo
-#endif
+
             ! perform multiplication with URUP
             CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, RHS(1, 1), N_size, udvr%U(1,1), N_size, beta, GRUP(1, 1), N_size)
         ENDIF
