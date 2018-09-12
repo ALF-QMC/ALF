@@ -456,25 +456,14 @@ END SUBROUTINE assign_UDV_state
         COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta, phase
         INTEGER :: INFO, i, LWORK, Ndim, N_part
         INTEGER, allocatable, Dimension(:) :: IPVT
-#ifdef LOG
-        REAL (Kind=Kind(0.d0)), allocatable, Dimension(:) :: tmpnorm
-        REAL (Kind=Kind(0.d0)) :: tmpL, DZNRM2
-        INTEGER :: J, PVT
-        COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: D
-#else
         LOGICAL :: FORWRD
-#endif
-        
-!         if(udvr%side .ne. "R" .and. udvr%side .ne. "r" ) then
-!           write(*,*) "calling wrong decompose"
-!         endif
         
         ! QR(TMP * U * D) * V
         Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
         Ndim = UDVR%ndim
         N_part = UDVR%n_part
         ALLOCATE(TAU(N_part), IPVT(N_part))
-#if !defined(LOG)
+
         ! TMP1 = TMP1 * D
         If( ALLOCATED(UDVR%V) ) then
           DO i = 1,N_part
@@ -505,70 +494,7 @@ END SUBROUTINE assign_UDV_state
             CALL ZLAPMT(FORWRD, N_part, N_part, UDVR%V, N_part, IPVT(1))
           endif
         endif
-#else
-        !manually perform pivoting (using the logscale if LOG is defined)
-        ALLOCATE(tmpnorm(N_part),D(N_part))
-        if ( ALLOCATED(UDVR%V) ) then
-          Do i=1,N_part
-              tmpnorm(i) = log(DZNRM2( Ndim, UDVR%U( 1, I ), 1 ))+UDVR%L(I)
-          enddo
-        else
-          Do i=1,N_part
-              tmpnorm(i) = log(DZNRM2( Ndim, UDVR%U( 1, I ), 1 ))
-          enddo
-        endif
-!         TmpMat=UDVr%V
-!         phase=det_c(tmpmat,ndim)
-!         write(*,*) "Phase in:",phase
-        Phase=cmplx(1.d0,0.d0,kind(0.d0))
-        do i=1,N_part
-            PVT = I
-            do j=I+1,N_part
-              if( tmpnorm(J)>tmpnorm(PVT) ) PVT=J
-            enddo
-            IPVT(I)=PVT
-            IF( PVT.NE.I ) THEN
-                CALL ZSWAP( ndim, UDVR%U( 1, PVT ), 1, UDVR%U( 1, I ), 1 )
-                If( ALLOCATED(UDVR%V) ) then
-                  if(udvr%side == "R" .or. udvr%side == "r" ) then
-                    CALL ZSWAP( N_part, UDVR%V( PVT, 1 ), N_part, UDVR%V( I, 1 ), N_part )
-                  else
-                    CALL ZSWAP( N_part, UDVR%V( 1, PVT ), 1, UDVR%V( 1, I ), 1 )
-                  endif
-                endif
-                tmpL=UDVR%L(I)
-                UDVR%L(I)=UDVR%L(PVT)
-                UDVR%L(PVT)=tmpL
-                tmpnorm( PVT ) = tmpnorm( I )
-                phase=-phase
-            END IF
-        enddo
-        !disable lapack internal pivoting
-        IPVT = 1
-        call QDRP_decompose(Ndim, N_part, UDVR%U, D, IPVT, TAU, WORK, LWORK)
-        do i=1,N_part
-          Phase=Phase*UDVR%U(i,i)
-        enddo
-        if(udvr%side == "L" .or. udvr%side == "l" ) then
-          Phase=CONJG(Phase)
-        endif
-        beta=1/Phase
-        If( ALLOCATED(UDVR%V) ) then
-          !scale first row of R with 1/phase to set Det(R)=1 [=Det(V)]
-          call ZSCAL(N_part,beta,UDVR%U(1,1),Ndim)
-          do i=1,N_part
-            do j=i+1,N_part
-              UDVR%U(i,j)=UDVR%U(i,j)*cmplx(exp(UDVR%L(j)-UDVR%L(I)),0.d0,kind(0.d0))
-            enddo
-            UDVR%L(I)=log(dble(D(I))) + UDVR%L(I)
-          enddo
-        else
-          do i=1,N_part
-            UDVR%L(I)=log(dble(D(I)))
-          enddo
-        endif
-        DEALLOCATE(D, tmpnorm)
-#endif
+
         If( ALLOCATED(UDVR%V) ) then
           if(UDVR%side == "R" .or. UDVR%side == "r" ) then
             ! V = R * V
