@@ -195,6 +195,7 @@
         !Local
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  TPUP, RHS
         COMPLEX (Kind=Kind(0.d0)), Dimension(:) , Allocatable ::  DUP
+        COMPLEX(Kind=Kind(0.d0)), Dimension(:), Allocatable :: RWORK
         INTEGER, Dimension(:), Allocatable :: IPVT, VISITED
         COMPLEX (Kind=Kind(0.d0)) ::  alpha, beta, Z, DLJ
         Integer :: I, J, N_size, info, LWORK, next, L
@@ -259,7 +260,28 @@
         IF (NVAR .NE. 1) THEN
             TPUP = CONJG(TRANSPOSE(TPUP))
         ENDIF
-        call QDRP_decompose(N_size, udvl%N_part, TPUP, DUP, IPVT, TAU, WORK, LWORK)
+!        call QDRP_decompose(N_size, udvl%N_part, TPUP, DUP, IPVT, TAU, WORK, LWORK)
+        
+        
+        ALLOCATE(RWORK(2*N_size))
+        ! Query optimal amount of memory
+        call ZGEQP3(N_size, udvl%N_part, TPUP(1,1), N_size, IPVT, TAU(1), Z, -1, RWORK(1), INFO)
+        LWORK = INT(DBLE(Z))
+        ALLOCATE(WORK(LWORK))
+        ! QR decomposition of Mat with full column pivoting, Mat * P = Q * R
+        call ZGEQP3(N_size, udvl%N_part, TPUP(1,1), N_size, IPVT, TAU(1), WORK(1), LWORK, RWORK(1), INFO)
+        DEALLOCATE(RWORK)
+        ! separate off D
+        do i = 1, udvl%N_part
+        ! plain diagonal entry
+            X = ABS(TPUP(i, i))
+            DUP(i) = X
+            do j = i, udvl%N_part
+                Mat(i, j) = TPUP(i, j) / X
+            enddo
+        enddo
+        
+        
         ALLOCATE(VISITED(N_size))
         ! Calculate the sign of the permutation from the pivoting. Somehow the format used by the QR decomposition of lapack
         ! is different from that of the LU decomposition of lapack
