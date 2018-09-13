@@ -253,7 +253,7 @@
         ENDDO
 
         ! calculate determinant of UR*UL
-        ! as the D's are real and positive, they do not contribute the the phase of det so they can be ignored
+        ! as the D's are real and positive, they do not contribute to the phase of det so they can be ignored
         PHASE = CONJG(DET_C(RHS, N_size))
         PHASE = PHASE/ABS(PHASE)
         IPVT = 0
@@ -266,10 +266,12 @@
         ALLOCATE(RWORK(2*N_size))
         ! Query optimal amount of memory
         call ZGEQP3(N_size, udvl%N_part, TPUP(1,1), N_size, IPVT, TAU(1), Z, -1, RWORK(1), INFO)
+        call ZGEQRF(N_size, udvl%N_part, TPUP(1,1), N_size, TAU(1), Z, -1, INFO)
         LWORK = INT(DBLE(Z))
         ALLOCATE(WORK(LWORK))
         ! QR decomposition of Mat with full column pivoting, Mat * P = Q * R
-        call ZGEQP3(N_size, udvl%N_part, TPUP(1,1), N_size, IPVT, TAU(1), WORK(1), LWORK, RWORK(1), INFO)
+!        call ZGEQP3(N_size, udvl%N_part, TPUP(1,1), N_size, IPVT, TAU(1), WORK(1), LWORK, RWORK(1), INFO)
+        call ZGEQRF(N_size, udvl%N_part, TPUP(1,1), N_size, TAU(1), WORK, LWORK, INFO)
         DEALLOCATE(RWORK)
         ! separate off D
         do i = 1, udvl%N_part
@@ -282,24 +284,24 @@
         enddo
         
         
-        ALLOCATE(VISITED(N_size))
-        ! Calculate the sign of the permutation from the pivoting. Somehow the format used by the QR decomposition of lapack
-        ! is different from that of the LU decomposition of lapack
-        VISITED = 0
-        do i = 1, N_size
-            if (VISITED(i) .eq. 0) then
-                next = i
-                L = 0
-                do while (VISITED(next) .eq. 0)
-                 L = L + 1
-                 VISITED(next) = 1
-                 next = IPVT(next)
-                enddo
-                if(MOD(L, 2) .eq. 0) then
-                    PHASE = -PHASE
-                endif
-            endif
-        enddo
+!        ALLOCATE(VISITED(N_size))
+!        ! Calculate the sign of the permutation from the pivoting. Somehow the format used by the QR decomposition of lapack
+!        ! is different from that of the LU decomposition of lapack
+!        VISITED = 0
+!        do i = 1, N_size
+!            if (VISITED(i) .eq. 0) then
+!                next = i
+!                L = 0
+!                do while (VISITED(next) .eq. 0)
+!                 L = L + 1
+!                 VISITED(next) = 1
+!                 next = IPVT(next)
+!                enddo
+!                if(MOD(L, 2) .eq. 0) then
+!                    PHASE = -PHASE
+!                endif
+!            endif
+!        enddo
         !calculate the determinant of the unitary matrix Q and the upper triangular matrix R
         DO i = 1, N_size
             Z = TAU(i)
@@ -348,8 +350,8 @@
             ! first we solve R *y = RHS. The solution is afterwards in RHS
             CALL ZTRSM('L', 'U', 'N', 'N', N_size, N_size, alpha, TPUP(1,1), N_size, RHS(1,1), N_size)
             ! apply permutation matrix
-            FORWRD = .false.
-            CALL ZLAPMR(FORWRD, N_size, N_size, RHS(1,1), N_size, IPVT(1))
+!            FORWRD = .false.
+!            CALL ZLAPMR(FORWRD, N_size, N_size, RHS(1,1), N_size, IPVT(1))
 
             !scale RHS=L_+^-1*RHS
             do J=1,N_size
@@ -388,8 +390,8 @@
             ! first we solve y * R^dagger = RHS
             CALL ZTRSM('R', 'U', 'C', 'N', N_size, N_size, alpha, TPUP(1, 1), N_size, RHS(1, 1), N_size)
             ! apply inverse permutation matrix
-            FORWRD = .false.
-            CALL ZLAPMT(FORWRD, N_size, N_size, RHS(1, 1), N_size, IPVT(1))
+!            FORWRD = .false.
+!            CALL ZLAPMT(FORWRD, N_size, N_size, RHS(1, 1), N_size, IPVT(1))
 
             ! first scale RHS=RHS*R_+^-1
             do J=1,N_size
@@ -399,7 +401,7 @@
             ! perform multiplication with URUP
             CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, RHS(1, 1), N_size, udvr%U(1,1), N_size, beta, GRUP(1, 1), N_size)
         ENDIF
-        Deallocate(TPUP, DUP, IPVT, VISITED, RHS)
+        Deallocate(TPUP, DUP, IPVT, RHS) ! VISITED!!!!
 #endif
         
       END SUBROUTINE CGR

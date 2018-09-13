@@ -478,11 +478,13 @@ END SUBROUTINE assign_UDV_state
         
         ALLOCATE(RWORK(2*Ndim))
         ! Query optimal amount of memory
-        call ZGEQP3(Ndim, N_part, UDVR%U(1,1), Ndim, IPVT, TAU(1), Z, -1, RWORK(1), INFO)
+!        call ZGEQP3(Ndim, N_part, UDVR%U(1,1), Ndim, IPVT, TAU(1), Z, -1, RWORK(1), INFO)
+        call ZGEQRF(Ndim, N_part, UDVR%U(1,1), Ndim, TAU(1), Z, -1, INFO)
         LWORK = INT(DBLE(Z))
         ALLOCATE(WORK(LWORK))
         ! QR decomposition of Mat with full column pivoting, Mat * P = Q * R
-        call ZGEQP3(Ndim, N_part, UDVR%U(1,1), Ndim, IPVT, TAU(1), WORK(1), LWORK, RWORK(1), INFO)
+!        call ZGEQP3(Ndim, N_part, UDVR%U(1,1), Ndim, IPVT, TAU(1), WORK(1), LWORK, RWORK(1), INFO)
+        call ZGEQRF(Ndim, N_part, UDVR%U(1,1), Ndim, TAU(1), WORK, LWORK, INFO)
         DEALLOCATE(RWORK)
         ! separate off D
         do i = 1, N_part
@@ -498,7 +500,7 @@ END SUBROUTINE assign_UDV_state
         do i=1,N_part
           Phase=Phase*UDVR%U(i,i)
         enddo
-        Call Pivot_Phase(phase,IPVT,N_part)
+!        Call Pivot_Phase(phase,IPVT,N_part)
         if(udvr%side == "L" .or. udvr%side == "l" ) then
           Phase=CONJG(Phase)
         endif
@@ -508,12 +510,12 @@ END SUBROUTINE assign_UDV_state
           call ZSCAL(N_part,beta,UDVR%U(1,1),Ndim)
           ! Permute V. Since we multiply with V from the right we have to permute the rows.
           ! A V = A P P^-1 V = Q R P^-1 V
-          FORWRD = .true.
-          if(udvr%side == "R" .or. udvr%side == "r" ) then
-            CALL ZLAPMR(FORWRD, N_part, N_part, UDVR%V, N_part, IPVT(1)) ! lapack 3.3
-          else
-            CALL ZLAPMT(FORWRD, N_part, N_part, UDVR%V, N_part, IPVT(1))
-          endif
+!          FORWRD = .true.
+!          if(udvr%side == "R" .or. udvr%side == "r" ) then
+!            CALL ZLAPMR(FORWRD, N_part, N_part, UDVR%V, N_part, IPVT(1)) ! lapack 3.3
+!          else
+!            CALL ZLAPMT(FORWRD, N_part, N_part, UDVR%V, N_part, IPVT(1))
+!          endif
         endif
 
         If( ALLOCATED(UDVR%V) ) then
