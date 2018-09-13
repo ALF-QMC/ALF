@@ -1,0 +1,1 @@
+Examples.ref contains a binary that is plain ALF with the QDRP calls inlined.
