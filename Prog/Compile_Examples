@@ -8,10 +8,10 @@ OBJS=  control_mod.o Operator.o WaveFunction.o observables_mod.o Predefined_stru
   
 .SUFFIXES: .f90 .f .F90
 .f.o .f90.o .F90.o:
-	$(FC) -c $(F90USEFULFLAGS) -o $@ $(FLAGS) $<
+	$(FC) -I../plasma/include/  -c $(F90USEFULFLAGS) -o $@ $(FLAGS) $<
 
 $(TARGET): $(OBJS)
-	$(FC) $(LF) -o $(TARGET) $(OBJS) $(LIBS)
+	$(FC) $(LF) -o $(TARGET) $(OBJS) -Wl,-rpath,../plasma/lib -L../plasma/lib -lplasma -lcoreblas $(LIBS)
 
 clean:
 	rm -f $(OBJS)

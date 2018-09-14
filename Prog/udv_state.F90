@@ -447,21 +447,27 @@ END SUBROUTINE assign_UDV_state
  SUBROUTINE decompose_UDV_state(UDVR)!, TMP, TMP1, NCON)
         Use QDRP_mod
         Use MyMats
+        Use, intrinsic :: iso_fortran_env
+        
+        Use plasma
         Implicit None
 !         INTEGER, intent(in) :: NCON
 !         COMPLEX (Kind=Kind(0.d0)), intent(in), allocatable, dimension(:, :) :: TMP
 !         COMPLEX (Kind=Kind(0.d0)), intent(inout), allocatable, dimension(:, :) :: TMP1
+        integer, parameter :: dp = REAL64
         CLASS(UDV_State), intent(inout) :: UDVR
         COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK
         COMPLEX(Kind=Kind(0.d0)), Dimension(:), Allocatable :: RWORK
-        COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta, phase, Z
+        COMPLEX (Kind=Kind(0.d0)) ::  beta, phase, Z
+        COMPLEX(dp), parameter :: Z_ONE = 1.0
         Real(Kind=Kind(0.d0)) :: X
         INTEGER :: INFO, i, LWORK, Ndim, N_part, j
         INTEGER, allocatable, Dimension(:) :: IPVT
         LOGICAL :: FORWRD
         
+        call plasma_init(info)
+        
         ! QR(TMP * U * D) * V
-        Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
         Ndim = UDVR%ndim
         N_part = UDVR%n_part
         ALLOCATE(TAU(N_part), IPVT(N_part))
@@ -532,6 +538,7 @@ END SUBROUTINE assign_UDV_state
         ! scale first column of U to correct the scaling in V such that UDV is not changed
         call ZSCAL(Ndim,phase,UDVR%U(1,1),1)
         DEALLOCATE(TAU, WORK, IPVT)
+        call plasma_finalize(info)
 END SUBROUTINE decompose_UDV_state
 
 !--------------------------------------------------------------------
