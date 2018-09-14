@@ -430,6 +430,18 @@ END SUBROUTINE assign_UDV_state
 !         DEALLOCATE(TAU, WORK, IPVT)
 ! END SUBROUTINE right_decompose_UDV_state
 
+ subroutine check_error(routine_name, code)
+        use plasma
+        implicit none
+        character(len=*) :: routine_name
+        integer :: code
+
+        if (code /= PlasmaSuccess) then
+            write(*,'(a, i2, a, a)') "Error ", code, "in a call to ", &
+                trim(routine_name)
+        end if
+    end subroutine
+
 !--------------------------------------------------------------------
 !> @author 
 !> ALF-project
@@ -452,7 +464,7 @@ END SUBROUTINE assign_UDV_state
         Use plasma
         Implicit None
 !         INTEGER, intent(in) :: NCON
-!         COMPLEX (Kind=Kind(0.d0)), intent(in), allocatable, dimension(:, :) :: TMP
+        COMPLEX (Kind=Kind(0.d0)), allocatable, dimension(:, :) :: TMP
 !         COMPLEX (Kind=Kind(0.d0)), intent(inout), allocatable, dimension(:, :) :: TMP1
         integer, parameter :: dp = REAL64
         CLASS(UDV_State), intent(inout) :: UDVR
@@ -464,13 +476,43 @@ END SUBROUTINE assign_UDV_state
         INTEGER :: INFO, i, LWORK, Ndim, N_part, j
         INTEGER, allocatable, Dimension(:) :: IPVT
         LOGICAL :: FORWRD
+        integer :: householder_mode, nb, ib
+        
+        ! matrix descriptor for storing coefficients of the Householder reflectors
+    ! generalization of TAU array known from LAPACK
+    type(plasma_desc_t) :: descT
+        
+    nb   = 16!256  ! tile size (square tiles)
+    ib   = 8!64   ! inner blocking size within a tile
+    householder_mode = PlasmaFlatHouseholder ! or: PlasmaTreeHouseholder
         
         call plasma_init(info)
+        call check_error('1', info)
+!        write (*,*) "Hi"
+! Set some parameters of plasma:
+
+call plasma_set(PlasmaTuning, PlasmaDisabled, info)
+call check_error('2', info)
+
+
+    ! set tile size
+    call plasma_set(PlasmaNb, nb, info)
+    call check_error('3', info)
+
+    ! set inner blocking size
+    call plasma_set(PlasmaIb, ib, info)
+    call check_error('4', info)
+
+    ! set Householder mode
+    call plasma_set(PlasmaHouseholderMode, householder_mode, info)
+    call check_error('5', info)
+        
+        
         
         ! QR(TMP * U * D) * V
         Ndim = UDVR%ndim
         N_part = UDVR%n_part
-        ALLOCATE(TAU(N_part), IPVT(N_part))
+        ALLOCATE(TAU(N_part), IPVT(N_part), TMP(Ndim , N_part))
 
         ! TMP1 = TMP1 * D
         If( ALLOCATED(UDVR%V) ) then
@@ -482,16 +524,18 @@ END SUBROUTINE assign_UDV_state
         IPVT = 0
 !        call QDRP_decompose(Ndim, N_part, UDVR%U, UDVR%D, IPVT, TAU, WORK, LWORK)
         
-        ALLOCATE(RWORK(2*Ndim))
-        ! Query optimal amount of memory
-!        call ZGEQP3(Ndim, N_part, UDVR%U(1,1), Ndim, IPVT, TAU(1), Z, -1, RWORK(1), INFO)
-        call ZGEQRF(Ndim, N_part, UDVR%U(1,1), Ndim, TAU(1), Z, -1, INFO)
-        LWORK = INT(DBLE(Z))
-        ALLOCATE(WORK(LWORK))
-        ! QR decomposition of Mat with full column pivoting, Mat * P = Q * R
-!        call ZGEQP3(Ndim, N_part, UDVR%U(1,1), Ndim, IPVT, TAU(1), WORK(1), LWORK, RWORK(1), INFO)
-        call ZGEQRF(Ndim, N_part, UDVR%U(1,1), Ndim, TAU(1), WORK, LWORK, INFO)
-        DEALLOCATE(RWORK)
+! !         ALLOCATE(RWORK(2*Ndim))
+! !         ! Query optimal amount of memory
+! ! !        call ZGEQP3(Ndim, N_part, UDVR%U(1,1), Ndim, IPVT, TAU(1), Z, -1, RWORK(1), INFO)
+! !         call ZGEQRF(Ndim, N_part, UDVR%U(1,1), Ndim, TAU(1), Z, -1, INFO)
+! !         LWORK = INT(DBLE(Z))
+! !         ALLOCATE(WORK(LWORK))
+! !         ! QR decomposition of Mat with full column pivoting, Mat * P = Q * R
+! ! !        call ZGEQP3(Ndim, N_part, UDVR%U(1,1), Ndim, IPVT, TAU(1), WORK(1), LWORK, RWORK(1), INFO)
+! !         call ZGEQRF(Ndim, N_part, UDVR%U(1,1), Ndim, TAU(1), WORK, LWORK, INFO)
+! !         DEALLOCATE(RWORK)
+        call plasma_zgeqrf(Ndim, N_part, UDVR%U(1,1), Ndim, descT, info)
+        call check_error('6', info)
         ! separate off D
         do i = 1, N_part
         ! plain diagonal entry
@@ -533,11 +577,14 @@ END SUBROUTINE assign_UDV_state
             CALL ZTRMM('R', 'U', 'C', 'N', N_part, N_part, Z_ONE, UDVR%U, Ndim, UDVR%V, N_part)
           endif
         endif
+        call plasma_zungqr(Ndim, N_part, N_part, UDVR%U(1, 1), Ndim, descT, TMP, Ndim, info)
+        UDVR%U = TMP
         ! Generate explicitly U in the previously abused storage of U
-        CALL ZUNGQR(Ndim, N_part, N_part, UDVR%U, Ndim, TAU, WORK, LWORK, INFO)
+!        CALL ZUNGQR(Ndim, N_part, N_part, UDVR%U, Ndim, TAU, WORK, LWORK, INFO)
         ! scale first column of U to correct the scaling in V such that UDV is not changed
         call ZSCAL(Ndim,phase,UDVR%U(1,1),1)
-        DEALLOCATE(TAU, WORK, IPVT)
+        DEALLOCATE(TMP)
+        call plasma_desc_destroy(descT, info)
         call plasma_finalize(info)
 END SUBROUTINE decompose_UDV_state
 
