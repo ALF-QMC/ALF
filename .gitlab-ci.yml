@@ -14,9 +14,9 @@ stages:
     - make
     - cd ..
     - cd Prog
-    - make
-    - make clean
-    - make Kondo_Honey
+#    - make
+#    - make clean
+#    - make Kondo_Honey
 
 .build_template_pgi: &build_definition_pgi
   stage: build
@@ -28,12 +28,12 @@ stages:
     - export F90USEFULFLAGS="-Mpreprocess"
     - cd Libraries
     - /opt/pgi/linux86-64/16.10/bin/pgfortran --version
-    - make
+#    - make
     - cd ..
     - cd Prog
-    - make Examples
-    - make clean
-    - make Kondo_Honey
+#    - make Examples
+#    - make clean
+#    - make Kondo_Honey
 
 .warnconv_template: &warnconv_definition
   stage: warnconv
@@ -43,11 +43,11 @@ stages:
     - export FL="$FL -Wconversion -Werror"
     - cd Libraries
     - gfortran -v
-    - make
+#    - make
     - cd ..
     - cd Prog
-    - make
-    - make Kondo_Honey
+#    - make
+#    - make Kondo_Honey
 
 .test_template: &test_definition
   stage: test
@@ -56,18 +56,18 @@ stages:
     - export f90="gfortran"
     - cd Libraries
     - gfortran -v
-    - make
+#    - make
     - cd ..
     - cd Prog
-    - make
+#    - make
     - cd ..
     - cd testsuite
     - cmake -E make_directory tests
     - cd tests
-    - cmake -G "Unix Makefiles" -DCMAKE_Fortran_FLAGS_RELEASE=${F90OPTFLAGS} -DCMAKE_BUILD_TYPE=RELEASE ..
-    - cmake --build . --target all --config Release
-    - ctest -VV -O log.txt
-    - cat log.txt | grep "tests passed" | cut -d " " -f 1
+#    - cmake -G "Unix Makefiles" -DCMAKE_Fortran_FLAGS_RELEASE=${F90OPTFLAGS} -DCMAKE_BUILD_TYPE=RELEASE ..
+#    - cmake --build . --target all --config Release
+#    - ctest -VV -O log.txt
+#    - cat log.txt | grep "tests passed" | cut -d " " -f 1
 
 GQMCT_Wheezy:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-wheezy-gfortran-blas-lapack
@@ -179,12 +179,12 @@ GQMCT_Wheezy-PGI_conv:
     - export F90USEFULFLAGS="-Mpreprocess -Minform=inform"
     - cd Libraries
     - /opt/pgi/linux86-64/16.10/bin/pgfortran --version
-    - make
+#    - make
     - cd ..
     - cd Prog
-    - make Examples
-    - make clean
-    - make Kondo_Honey
+#    - make Examples
+#    - make clean
+#    - make Kondo_Honey
   
 GQMCT_Wheezy_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-wheezy-gfortran-blas-lapack
@@ -244,15 +244,15 @@ GQMCT_Jessie-PGI_tests:
     - make
     - cd ..
     - cd Prog
-    - make
+#    - make
     - cd ..
     - cd testsuite
-    - cmake -E make_directory tests
+#    - cmake -E make_directory tests
     - cd tests
-    - cmake -G "Unix Makefiles" -DCMAKE_Fortran_FLAGS_RELEASE="${F90OPTFLAGS} -noswitcherror -L/opt/pgi/linux86-64/2016/lib/ -llapack -lblas" -DCMAKE_Fortran_COMPILER="/opt/pgi/linux86-64/2016/bin/pgfortran" -DCMAKE_BUILD_TYPE=RELEASE -DLAPACK_LIBRARIES="/opt/pgi/linux86-64/2016/lib/liblapack.a" -DBLAS_LIBRARIES="/opt/pgi/linux86-64/2016/lib/libblas.a" ..
-    - cmake --build . --target all --config Release
-    - ctest -VV -O log.txt
-    - cat log.txt | grep "tests passed" | cut -d " " -f 1
+#    - cmake -G "Unix Makefiles" -DCMAKE_Fortran_FLAGS_RELEASE="${F90OPTFLAGS} -noswitcherror -L/opt/pgi/linux86-64/2016/lib/ -llapack -lblas" -DCMAKE_Fortran_COMPILER="/opt/pgi/linux86-64/2016/bin/pgfortran" -DCMAKE_BUILD_TYPE=RELEASE -DLAPACK_LIBRARIES="/opt/pgi/linux86-64/2016/lib/liblapack.a" -DBLAS_LIBRARIES="/opt/pgi/linux86-64/2016/lib/libblas.a" ..
+#    - cmake --build . --target all --config Release
+#    - ctest -VV -O log.txt
+#    - cat log.txt | grep "tests passed" | cut -d " " -f 1
 
 GQMCT_jessie_valgrind:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-blas-lapack-valgrind
@@ -263,13 +263,13 @@ GQMCT_jessie_valgrind:
       - export FL="${FL} -g"
       - cd Libraries
       - gfortran -v
-      - make
+#      - make
       - cd ..
       - cd Prog
-      - make SPT
+#      - make SPT
       - cp SPT.out ../Test_Runs/Test_SPT/Start/
       - cd ../Test_Runs/Test_SPT/Start/
-      - valgrind --leak-check=full --log-file=vglog.txt ./SPT.out
+#      - valgrind --leak-check=full --log-file=vglog.txt ./SPT.out
       - cat vglog.txt
       - grep lost vglog.txt | cut -d":" -f 2 | cut -d " " -f 2 | f=$(cat); echo $(( ${f//$'\n'/+} ))
 
