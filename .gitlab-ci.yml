@@ -10,10 +10,10 @@ stages:
     - . setenv.sh
     - export f90="gfortran"
     - gfortran -v
-    - cd Libraries
-    - make
-    - cd ..
-    - cd Prog
+#    - cd Libraries
+#    - make
+#    - cd ..
+#    - cd Prog
 #    - make
 #    - make clean
 #    - make Kondo_Honey
@@ -44,8 +44,8 @@ stages:
     - cd Libraries
     - gfortran -v
 #    - make
-    - cd ..
-    - cd Prog
+#    - cd ..
+#    - cd Prog
 #    - make
 #    - make Kondo_Honey
 
@@ -62,8 +62,8 @@ stages:
 #    - make
     - cd ..
     - cd testsuite
-    - cmake -E make_directory tests
-    - cd tests
+#    - cmake -E make_directory tests
+#    - cd tests
 #    - cmake -G "Unix Makefiles" -DCMAKE_Fortran_FLAGS_RELEASE=${F90OPTFLAGS} -DCMAKE_BUILD_TYPE=RELEASE ..
 #    - cmake --build . --target all --config Release
 #    - ctest -VV -O log.txt
@@ -130,7 +130,7 @@ GQMCT_Jessie_MPI:
   stage: build
   script:
     - gfortran -v
-    - make f90='mpif90' PROGRAMCONFIGURATION='-DMPI -DTEMPERING' Hub_Ising
+#    - make f90='mpif90' PROGRAMCONFIGURATION='-DMPI -DTEMPERING' Hub_Ising
 
 GQMCT_Wheezy_conv:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-wheezy-gfortran-blas-lapack
@@ -241,14 +241,14 @@ GQMCT_Jessie-PGI_tests:
     - export F90USEFULFLAGS="-Mpreprocess"
     - cd Libraries
     - /opt/pgi/linux86-64/16.10/bin/pgfortran --version
-    - make
+#    - make
     - cd ..
     - cd Prog
 #    - make
-    - cd ..
-    - cd testsuite
+#    - cd ..
+#    - cd testsuite
 #    - cmake -E make_directory tests
-    - cd tests
+#    - cd tests
 #    - cmake -G "Unix Makefiles" -DCMAKE_Fortran_FLAGS_RELEASE="${F90OPTFLAGS} -noswitcherror -L/opt/pgi/linux86-64/2016/lib/ -llapack -lblas" -DCMAKE_Fortran_COMPILER="/opt/pgi/linux86-64/2016/bin/pgfortran" -DCMAKE_BUILD_TYPE=RELEASE -DLAPACK_LIBRARIES="/opt/pgi/linux86-64/2016/lib/liblapack.a" -DBLAS_LIBRARIES="/opt/pgi/linux86-64/2016/lib/libblas.a" ..
 #    - cmake --build . --target all --config Release
 #    - ctest -VV -O log.txt
@@ -267,10 +267,10 @@ GQMCT_jessie_valgrind:
       - cd ..
       - cd Prog
 #      - make SPT
-      - cp SPT.out ../Test_Runs/Test_SPT/Start/
-      - cd ../Test_Runs/Test_SPT/Start/
+#      - cp SPT.out ../Test_Runs/Test_SPT/Start/
+#      - cd ../Test_Runs/Test_SPT/Start/
 #      - valgrind --leak-check=full --log-file=vglog.txt ./SPT.out
-      - cat vglog.txt
-      - grep lost vglog.txt | cut -d":" -f 2 | cut -d " " -f 2 | f=$(cat); echo $(( ${f//$'\n'/+} ))
+#      - cat vglog.txt
+#      - grep lost vglog.txt | cut -d":" -f 2 | cut -d " " -f 2 | f=$(cat); echo $(( ${f//$'\n'/+} ))
 
 
