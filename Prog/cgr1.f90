@@ -172,8 +172,9 @@
 #else
 
         USE MyMats
-        USE QDRP_mod
-        
+!        USE QDRP_mod
+        Use, intrinsic :: iso_fortran_env
+        Use plasma
         Implicit None
         !Arguments.
 !         COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(IN)   ::  URUP, VRUP, ULUP, VLUP
@@ -198,18 +199,27 @@
         COMPLEX(Kind=Kind(0.d0)), Dimension(:), Allocatable :: RWORK
         INTEGER, Dimension(:), Allocatable :: IPVT, VISITED
         COMPLEX (Kind=Kind(0.d0)) ::  alpha, beta, Z, DLJ
-        Integer :: I, J, N_size, info, LWORK, next, L
+        Integer :: I, J, N_size, info, LWORK, next, L, nb, ib, householder_mode
         Real (Kind=Kind(0.D0)) :: X, Xmax, sv
         
         COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK
         LOGICAL :: FORWRD
+        type(plasma_desc_t) :: descT
 
         if( .not. allocated(UDVL%V) ) then
           !call projector cgr
           call cgrp(phase, grup,udvr, udvl)
           return
         endif
-            
+        
+        call plasma_init(info)
+        call plasma_set(PlasmaTuning, PlasmaDisabled, info)
+        nb = 256
+        ib = 64
+        householder_mode = PlasmaFlatHouseholder
+        call plasma_set(PlasmaNb, nb, info)
+        call plasma_set(PlasmaIb, ib, info)
+        call plasma_set(PlasmaHouseholderMode, householder_mode, info)
         N_size = udvl%ndim
         alpha = 1.D0
         beta = 0.D0
@@ -265,7 +275,7 @@
         
         ALLOCATE(RWORK(2*N_size))
         ! Query optimal amount of memory
-        call ZGEQP3(N_size, udvl%N_part, TPUP(1,1), N_size, IPVT, TAU(1), Z, -1, RWORK(1), INFO)
+!        call ZGEQP3(N_size, udvl%N_part, TPUP(1,1), N_size, IPVT, TAU(1), Z, -1, RWORK(1), INFO)
         call ZGEQRF(N_size, udvl%N_part, TPUP(1,1), N_size, TAU(1), Z, -1, INFO)
         LWORK = INT(DBLE(Z))
         ALLOCATE(WORK(LWORK))
@@ -401,9 +411,10 @@
             ! perform multiplication with URUP
             CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, RHS(1, 1), N_size, udvr%U(1,1), N_size, beta, GRUP(1, 1), N_size)
         ENDIF
+        call plasma_finalize(info)
         Deallocate(TPUP, DUP, IPVT, RHS) ! VISITED!!!!
 #endif
-        
+
       END SUBROUTINE CGR
       
 !--------------------------------------------------------------------
@@ -421,7 +432,11 @@
 !--------------------------------------------------------------------
       SUBROUTINE CGRP(phase, GRUP, udvr, udvl)
         Use UDV_State_mod
+        Use, intrinsic :: iso_fortran_env
+        Use plasma
+        
         CLASS(UDV_State), INTENT(IN) :: udvl, udvr
+        integer, parameter :: dp =REAL64
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Intent(OUT) :: GRUP
         COMPLEX (Kind=Kind(0.d0)), Intent(OUT) :: phase
 
@@ -429,6 +444,7 @@
         INTEGER, allocatable :: ipiv(:)
         COMPLEX (Kind=Kind(0.d0)) :: alpha, beta
         INTEGER :: Ndim, N_part, info, n
+        integer :: householder_mode, nb, ib
 
         if((udvl%side .ne. "L") .and. (udvl%side .ne. "l") ) then
           write(*,*) "cgrp: udvl is not of type left"
@@ -442,6 +458,14 @@
         Ndim = udvl%ndim
         N_part = udvl%n_part
         Allocate(sMat(N_part,N_part), ipiv(N_part), rMat(N_part, Ndim))
+        call plasma_init(info)
+        call plasma_set(PlasmaTuning, PlasmaDisabled, info)
+        nb = 256
+        ib = 64
+        
+        call plasma_set(PlasmaNb, nb, info)
+        call plasma_set(PlasmaIb, ib, info)
+        call plasma_set(PlasmaHouseholderMode, householder_mode, info)
         
         ! Gr = Ur (Ul Ur)^-1 Ul
         ! Phase = 1 + Ur (Ul Ur)^-1 Ul
@@ -468,6 +492,7 @@
         do n=1,Ndim
           GRUP(n,n)=GRUP(n,n)+cmplx(1.d0, 0.d0, kind(0.d0))
         enddo
+        call plasma_finalize(info)
         Deallocate(sMat, rMat, ipiv)
       
       END SUBROUTINE CGRP
