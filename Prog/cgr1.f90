@@ -191,14 +191,23 @@
             COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Intent(OUT) :: GRUP
             COMPLEX (Kind=Kind(0.d0)), Intent(OUT) :: PHASE
           end subroutine cgrp
+          
+          subroutine hhdet(descT, p, nvar) bind(c)
+            use iso_c_binding
+            use plasma
+            implicit none
+            type(plasma_desc_t), intent(in) :: descT
+            complex(kind=c_double_complex), intent(inout) :: p
+            integer(c_int), intent(in) :: nvar
+          end subroutine
         end interface
  
         !Local
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  TPUP, RHS
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  TPUP, RHS, TMP, TMP1
         COMPLEX (Kind=Kind(0.d0)), Dimension(:) , Allocatable ::  DUP
         COMPLEX(Kind=Kind(0.d0)), Dimension(:), Allocatable :: RWORK
         INTEGER, Dimension(:), Allocatable :: IPVT, VISITED
-        COMPLEX (Kind=Kind(0.d0)) ::  alpha, beta, Z, DLJ
+        COMPLEX (Kind=Kind(0.d0)) ::  alpha, beta, Z, DLJ, ZTMP, PHASETMP
         Integer :: I, J, N_size, info, LWORK, next, L, nb, ib, householder_mode
         Real (Kind=Kind(0.D0)) :: X, Xmax, sv
         
@@ -224,6 +233,7 @@
         alpha = 1.D0
         beta = 0.D0
         Allocate(TPUP(N_size,N_size), RHS(N_size, N_size), IPVT(N_size), TAU(N_size), DUP(N_size))
+        Allocate(TMP(N_size, N_size), TMP1(N_size, N_size))
         !Write(6,*) 'In CGR', N_size
         ! can be inserted again once we are sure that we may assume that UR and UL stem from householder reflectors
 !        CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, URUP, N_size, ULUP, N_size, alpha, TPUP, N_size)
@@ -281,7 +291,9 @@
         ALLOCATE(WORK(LWORK))
         ! QR decomposition of Mat with full column pivoting, Mat * P = Q * R
 !        call ZGEQP3(N_size, udvl%N_part, TPUP(1,1), N_size, IPVT, TAU(1), WORK(1), LWORK, RWORK(1), INFO)
+TMP = TPUP ! Since TPUP will be destroyed
         call ZGEQRF(N_size, udvl%N_part, TPUP(1,1), N_size, TAU(1), WORK, LWORK, INFO)
+call plasma_zgeqrf(N_size, udvl%N_part, TMP, N_size, descT, info)
         DEALLOCATE(RWORK)
         ! separate off D
         do i = 1, udvl%N_part
@@ -290,10 +302,11 @@
             DUP(i) = X
             do j = i, udvl%N_part
                 TPUP(i, j) = TPUP(i, j) / X
+TMP(i, j) = TMP(i, j) / TMP(i, i)
             enddo
         enddo
-        
-        
+write (*,*)   descT%mb, descT% nb, descT%gm, descT%gn, descT%gmt, descT%gnt
+write(*,*) descT%i, descT%j, descT%m, descT%n, descT%mt, descT%nt
 !        ALLOCATE(VISITED(N_size))
 !        ! Calculate the sign of the permutation from the pivoting. Somehow the format used by the QR decomposition of lapack
 !        ! is different from that of the LU decomposition of lapack
@@ -313,8 +326,13 @@
 !            endif
 !        enddo
         !calculate the determinant of the unitary matrix Q and the upper triangular matrix R
+        PHASETMP = PHASE
+        call hhdet(descT, PHASETMP, NVAR)
+
+        write(*,*) N_size
         DO i = 1, N_size
             Z = TAU(i)
+            write (*,*) "(F90)", Z
             IF(NVAR .EQ. 1) THEN
                 PHASE = PHASE * TPUP(i,i)/Abs(TPUP(i,i))
             ELSE
@@ -331,6 +349,9 @@
                 PHASE = PHASE * Z/ABS(Z)
             endif
         enddo
+        
+        write(*,*) PHASE, PHASETMP
+        STOP
         IF(NVAR .EQ. 1) then
             ! This is supposed to solve the system 
             ! URUP U D V P^dagger ULUP G = 1
