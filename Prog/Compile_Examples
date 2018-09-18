@@ -2,13 +2,17 @@ TARGET= Examples.out
 OBJS=  control_mod.o Operator.o WaveFunction.o observables_mod.o Predefined_structures.o Hamiltonian_Examples.o QDRP_decompose.o udv_state.o \
        Hop_mod.o  UDV_WRAP.o Global_mod.o Wrapgr_mod.o \
        tau_m.o tau_p.o  main.o wrapul.o  cgr1.o  wrapur.o upgrade.o \
-       outconfc.o  inconfc.o  cgr2_2.o 
+       outconfc.o  inconfc.o  cgr2_2.o hhdet.o
 
 
   
 .SUFFIXES: .f90 .f .F90
 .f.o .f90.o .F90.o:
 	$(FC) -fopenmp -I../plasma/include/  -c $(F90USEFULFLAGS) -o $@ $(FLAGS) $<
+
+.SUFFIXES: .c .C
+.c.o .D.o:
+	gcc -fopenmp -I../plasma/include/  -c $(F90USEFULFLAGS) -o $@ $(FLAGS) $<
 
 $(TARGET): $(OBJS)
 	$(FC) -fopenmp $(LF) -o $(TARGET) $(OBJS) -Wl,-rpath,../plasma/lib -L../plasma/lib -lplasma -lcoreblas $(LIBS)
