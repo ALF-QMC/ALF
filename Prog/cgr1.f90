@@ -291,9 +291,9 @@
         ALLOCATE(WORK(LWORK))
         ! QR decomposition of Mat with full column pivoting, Mat * P = Q * R
 !        call ZGEQP3(N_size, udvl%N_part, TPUP(1,1), N_size, IPVT, TAU(1), WORK(1), LWORK, RWORK(1), INFO)
-TMP = TPUP ! Since TPUP will be destroyed
-        call ZGEQRF(N_size, udvl%N_part, TPUP(1,1), N_size, TAU(1), WORK, LWORK, INFO)
-call plasma_zgeqrf(N_size, udvl%N_part, TMP, N_size, descT, info)
+!TMP = TPUP ! Since TPUP will be destroyed
+!!        call ZGEQRF(N_size, udvl%N_part, TPUP(1,1), N_size, TAU(1), WORK, LWORK, INFO)
+call plasma_zgeqrf(N_size, udvl%N_part, TPUP, N_size, descT, info)
         DEALLOCATE(RWORK)
         ! separate off D
         do i = 1, udvl%N_part
@@ -302,11 +302,11 @@ call plasma_zgeqrf(N_size, udvl%N_part, TMP, N_size, descT, info)
             DUP(i) = X
             do j = i, udvl%N_part
                 TPUP(i, j) = TPUP(i, j) / X
-TMP(i, j) = TMP(i, j) / TMP(i, i)
+!!                 TMP(i, j) = TMP(i, j) / ABS(TMP(i, i))
             enddo
         enddo
-write (*,*)   descT%mb, descT% nb, descT%gm, descT%gn, descT%gmt, descT%gnt
-write(*,*) descT%i, descT%j, descT%m, descT%n, descT%mt, descT%nt
+! write (*,*)   descT%mb, descT% nb, descT%gm, descT%gn, descT%gmt, descT%gnt
+! write(*,*) descT%i, descT%j, descT%m, descT%n, descT%mt, descT%nt
 !        ALLOCATE(VISITED(N_size))
 !        ! Calculate the sign of the permutation from the pivoting. Somehow the format used by the QR decomposition of lapack
 !        ! is different from that of the LU decomposition of lapack
@@ -326,35 +326,37 @@ write(*,*) descT%i, descT%j, descT%m, descT%n, descT%mt, descT%nt
 !            endif
 !        enddo
         !calculate the determinant of the unitary matrix Q and the upper triangular matrix R
-        PHASETMP = PHASE
-        
-        call hhdet(descT, PHASETMP, NVAR, N_size)
-        ZTMP = 1.0
-        write(*,*) N_size
-        DO i = 1, N_size
-            Z = TAU(i)
-            write (*,*) "(F90)", Z
-            IF(NVAR .EQ. 1) THEN
+!        PHASETMP = PHASE
+! calculate the phase due to the householder factor        
+        call hhdet(descT, PHASE, NVAR, N_size)
+! ! !         DO i = 1, N_size
+! ! !             Z = TAU(i)
+! ! ! !            write (*,*) "(F90)", Z
+! ! !             IF(NVAR .EQ. 1) THEN
+! ! !                 PHASE = PHASE * TPUP(i,i)/Abs(TPUP(i,i))
+! ! !             ELSE
+! ! !                 ! the diagonal should be real, but let's be safe....
+! ! !                 PHASE = PHASE * CONJG(TPUP(i,i))/Abs(TPUP(i,i))
+! ! !                 Z = CONJG(Z) ! conjugate the elementary reflector
+! ! !             ENDIF
+! ! !             if (Z .ne. CMPLX(0.D0, 0.D0, Kind=Kind(0.D0))) then
+! ! !             ! here we calculate the determinant of a single householder reflector: det(1 - tau * v v* ) = 1 - tau * v^* v
+! ! !             ! In lapack the scalar tau and the vector v are scaled such that |tau|^2 |v|^2 = 2 Re(tau)
+! ! !             ! The complete determinant det(Q) is the product of all reflectors. See http://www.netlib.org/lapack/lug/node128.html
+! ! !                 X = ABS(Z)
+! ! !                 Z = 1.D0 - 2.D0 * (Z/X) * (DBLE(Z)/X)
+! ! !                 PHASE = PHASE * Z/ABS(Z)
+! ! !             endif
+! ! !         enddo
+ DO i = 1, N_size
+             IF(NVAR .EQ. 1) THEN
                 PHASE = PHASE * TPUP(i,i)/Abs(TPUP(i,i))
             ELSE
                 ! the diagonal should be real, but let's be safe....
                 PHASE = PHASE * CONJG(TPUP(i,i))/Abs(TPUP(i,i))
-                Z = CONJG(Z) ! conjugate the elementary reflector
             ENDIF
-            if (Z .ne. CMPLX(0.D0, 0.D0, Kind=Kind(0.D0))) then
-            ! here we calculate the determinant of a single householder reflector: det(1 - tau * v v* ) = 1 - tau * v^* v
-            ! In lapack the scalar tau and the vector v are scaled such that |tau|^2 |v|^2 = 2 Re(tau)
-            ! The complete determinant det(Q) is the product of all reflectors. See http://www.netlib.org/lapack/lug/node128.html
-                ZTMP = ZTMP* Z
-                X = ABS(Z)
-                Z = 1.D0 - 2.D0 * (Z/X) * (DBLE(Z)/X)
-                PHASE = PHASE * Z/ABS(Z)
-            endif
-        enddo
-        
-        write (*,*) "(F90-Prod)", ZTMP
-        write(*,*) PHASE, PHASETMP
-        STOP
+ enddo
+ 
         IF(NVAR .EQ. 1) then
             ! This is supposed to solve the system 
             ! URUP U D V P^dagger ULUP G = 1
@@ -367,8 +369,11 @@ write(*,*) descT%i, descT%j, descT%m, descT%n, descT%mt, descT%nt
             enddo
 
             ! RHS = U^dagger * RHS
-            CALL ZUNMQR('L', 'C', N_size, N_size, N_size, TPUP(1, 1), N_size, TAU(1), RHS(1,1), N_size, WORK(1), LWORK, INFO)
+!!!            CALL ZUNMQR('L', 'C', N_size, N_size, N_size, TPUP(1, 1), N_size, TAU(1), RHS(1,1), N_size, WORK(1), LWORK, INFO)
+            call plasma_zunmqr(PlasmaLeft,PlasmaConjTrans, N_size, N_size, N_size, TPUP(1,1), N_size, descT, RHS(1,1), N_size, info)
             DEALLOCATE(TAU, WORK)
+            call plasma_desc_destroy(descT, info)
+
             !apply inverse of D to RHS from the left
             DO J = 1, N_size
                 sv = DBLE(DUP(J))
@@ -382,7 +387,9 @@ write(*,*) descT%i, descT%j, descT%m, descT%n, descT%mt, descT%nt
             ! We solve the equation
             !  A * G = RHS for G with A = R * P^dagger * ULUP
             ! first we solve R *y = RHS. The solution is afterwards in RHS
-            CALL ZTRSM('L', 'U', 'N', 'N', N_size, N_size, alpha, TPUP(1,1), N_size, RHS(1,1), N_size)
+!!!            CALL ZTRSM('L', 'U', 'N', 'N', N_size, N_size, alpha, TPUP(1,1), N_size, RHS(1,1), N_size)
+            call plasma_ztrsm(PlasmaLeft, PlasmaUpper, PlasmaNoTrans, PlasmaNonUnit, N_size, N_size, alpha, TPUP(1,1), N_size, &
+            & RHS(1,1), N_size, info)
             ! apply permutation matrix
 !            FORWRD = .false.
 !            CALL ZLAPMR(FORWRD, N_size, N_size, RHS(1,1), N_size, IPVT(1))
@@ -405,7 +412,9 @@ write(*,*) descT%i, descT%j, descT%m, descT%n, descT%mt, descT%nt
               if( dble(UDVL%D(J)) > 1.d0 ) call ZSCAL(N_size,1.d0/UDVL%D(J),RHS(1,J),1)
             enddo
 
-            CALL ZUNMQR('R', 'N', N_size, N_size, N_size, TPUP(1, 1), N_size, TAU(1), RHS(1, 1), N_size, WORK(1), LWORK, INFO)
+!!!            CALL ZUNMQR('R', 'N', N_size, N_size, N_size, TPUP(1, 1), N_size, TAU(1), RHS(1, 1), N_size, WORK(1), LWORK, INFO)
+            call plasma_zunmqr(PlasmaRight, PlasmaNoTrans, N_size, N_size, N_size, TPUP(1,1), N_size, descT, RHS(1,1), N_size, info)
+            call plasma_desc_destroy(descT, info)
             DEALLOCATE(TAU, WORK)
             ! apply D^-1 to RHS from the right
             DO J = 1, N_size
@@ -422,7 +431,10 @@ write(*,*) descT%i, descT%j, descT%m, descT%n, descT%mt, descT%nt
             ! We solve the equation
             ! G * A = RHS for G with A = URUP * P * R^dagger
             ! first we solve y * R^dagger = RHS
-            CALL ZTRSM('R', 'U', 'C', 'N', N_size, N_size, alpha, TPUP(1, 1), N_size, RHS(1, 1), N_size)
+! ! !             CALL ZTRSM('R', 'U', 'C', 'N', N_size, N_size, alpha, TPUP(1, 1), N_size, RHS(1, 1), N_size)
+            call plasma_ztrsm(PlasmaRight, PlasmaUpper, PlasmaConjTrans, PlasmaNonUnit, N_size, N_size, alpha, TPUP(1,1), N_size, &
+            & RHS(1,1), N_size, info)
+            
             ! apply inverse permutation matrix
 !            FORWRD = .false.
 !            CALL ZLAPMT(FORWRD, N_size, N_size, RHS(1, 1), N_size, IPVT(1))

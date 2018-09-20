@@ -482,13 +482,12 @@ END SUBROUTINE assign_UDV_state
     ! generalization of TAU array known from LAPACK
     type(plasma_desc_t) :: descT
         
-    nb   = 16!256  ! tile size (square tiles)
-    ib   = 8!64   ! inner blocking size within a tile
+    nb   = 256  ! tile size (square tiles)
+    ib   = 64   ! inner blocking size within a tile
     householder_mode = PlasmaFlatHouseholder ! or: PlasmaTreeHouseholder
         
         call plasma_init(info)
         call check_error('1', info)
-!        write (*,*) "Hi"
 ! Set some parameters of plasma:
 
 call plasma_set(PlasmaTuning, PlasmaDisabled, info)
