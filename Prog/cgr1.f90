@@ -192,13 +192,13 @@
             COMPLEX (Kind=Kind(0.d0)), Intent(OUT) :: PHASE
           end subroutine cgrp
           
-          subroutine hhdet(descT, p, nvar) bind(c)
+          subroutine hhdet(descT, p, nvar, N_size) bind(c)
             use iso_c_binding
             use plasma
             implicit none
             type(plasma_desc_t), intent(in) :: descT
             complex(kind=c_double_complex), intent(inout) :: p
-            integer(c_int), intent(in) :: nvar
+            integer(c_int), intent(in) :: nvar, N_size
           end subroutine
         end interface
  
@@ -327,8 +327,9 @@ write(*,*) descT%i, descT%j, descT%m, descT%n, descT%mt, descT%nt
 !        enddo
         !calculate the determinant of the unitary matrix Q and the upper triangular matrix R
         PHASETMP = PHASE
-        call hhdet(descT, PHASETMP, NVAR)
-
+        
+        call hhdet(descT, PHASETMP, NVAR, N_size)
+        ZTMP = 1.0
         write(*,*) N_size
         DO i = 1, N_size
             Z = TAU(i)
@@ -344,12 +345,14 @@ write(*,*) descT%i, descT%j, descT%m, descT%n, descT%mt, descT%nt
             ! here we calculate the determinant of a single householder reflector: det(1 - tau * v v* ) = 1 - tau * v^* v
             ! In lapack the scalar tau and the vector v are scaled such that |tau|^2 |v|^2 = 2 Re(tau)
             ! The complete determinant det(Q) is the product of all reflectors. See http://www.netlib.org/lapack/lug/node128.html
+                ZTMP = ZTMP* Z
                 X = ABS(Z)
                 Z = 1.D0 - 2.D0 * (Z/X) * (DBLE(Z)/X)
                 PHASE = PHASE * Z/ABS(Z)
             endif
         enddo
         
+        write (*,*) "(F90-Prod)", ZTMP
         write(*,*) PHASE, PHASETMP
         STOP
         IF(NVAR .EQ. 1) then
