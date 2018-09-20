@@ -480,7 +480,12 @@ END SUBROUTINE assign_UDV_state
         
         ! matrix descriptor for storing coefficients of the Householder reflectors
     ! generalization of TAU array known from LAPACK
-    type(plasma_desc_t) :: descT
+    type(plasma_desc_t) :: descT, descA
+    type(plasma_workspace_t) :: workspace
+    type(plasma_context_t), pointer :: plasma_context
+    type(plasma_sequence_t) :: plasma_sequence
+    type(plasma_request_t) :: plasma_request
+    integer(kind=c_size_t) :: lworkspace
         
     nb   = 256  ! tile size (square tiles)
     ib   = 64   ! inner blocking size within a tile
@@ -533,8 +538,41 @@ call check_error('2', info)
 ! ! !        call ZGEQP3(Ndim, N_part, UDVR%U(1,1), Ndim, IPVT, TAU(1), WORK(1), LWORK, RWORK(1), INFO)
 ! !         call ZGEQRF(Ndim, N_part, UDVR%U(1,1), Ndim, TAU(1), WORK, LWORK, INFO)
 ! !         DEALLOCATE(RWORK)
-        call plasma_zgeqrf(Ndim, N_part, UDVR%U(1,1), Ndim, descT, info)
-        call check_error('6', info)
+
+        call plasma_context_self(plasma_context)
+! create tiled A
+        call plasma_desc_general_create(PlasmaComplexDouble, nb, nb, &
+        Ndim, N_part, 0, 0, Ndim, N_part, descA, info)
+! create tiled T
+        call plasma_descT_create(descA, ib, householder_mode, descT, info)
+! create workspace
+        lworkspace = nb + ib*nb
+        call plasma_workspace_create(workspace, lworkspace, PlasmaComplexDouble, info)
+        
+        call plasma_sequence_init(plasma_sequence, info)
+        call plasma_request_init(plasma_request, info)
+        
+! Call QR decomposition in OMP blocking
+! open an asynchrous block
+!$omp parallel
+!$omp master
+        ! Translate our input matrix to tile layout
+        call plasma_omp_zge2desc(UDVR%U(1,1), Ndim, descA, plasma_sequence, plasma_request)
+        
+        ! call the async QR decomposition
+        call plasma_omp_zgeqrf(descA, descT, workspace, plasma_sequence, plasma_request)
+        
+        ! Translate back to lapack layout
+        call plasma_omp_zdesc2ge(descA, UDVR%U(1,1), Ndim, plasma_sequence, plasma_request)
+        
+!        call plasma_zgeqrf(Ndim, N_part, UDVR%U(1,1), Ndim, descT, info)
+!        call check_error('6', info)
+!$omp end master
+!$omp end parallel
+!omp forces a synchronization point here
+
+        call plasma_workspace_destroy(workspace, info)
+        call plasma_desc_destroy(descA, info)
         ! separate off D
         do i = 1, N_part
         ! plain diagonal entry
