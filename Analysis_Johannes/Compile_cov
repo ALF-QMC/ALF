@@ -17,5 +17,5 @@ $(TARGET2): $(OBJS2)
 	$(FC) $(LF) -o $(TARGET2) $(OBJS2) $(LIBS)
 
 clean:
-	rm -f $(OBJS)
+	rm -f $(OBJS) $(OBJS2)
 

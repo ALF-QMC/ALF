@@ -21,7 +21,7 @@
         READ(55,*) Nred
         READ(55,*) NSETS
         CLOSE(55)
-        print*,'Nred=',Nred
+!        print*,'Nred=',Nred
 
         OPEN (UNIT=20,FILE='g_dat',STATUS='unknown')
         READ(20,*) NTDM
@@ -98,7 +98,7 @@
         AME1(1) = ARES(1)
         AME1(2) = ARES(2)
         WRITE(25,2012)  ARES(1),ARES(2)
-2012    FORMAT('# Mean of fit:', F16.8,2x,F16.8)
+2012    FORMAT(' # Mean of fit:', F16.8,2x,F16.8)
         !Calculate errors.
         ISEED = 73288979
         ASQ = 0.D0; AME = 0.D0
@@ -135,7 +135,7 @@
               
            ARES(1) = EXP(ARES(1))
            DO I = 1,NBASIS
-           print*,I,'ARES',ARES(I)
+!           print*,I,'ARES',ARES(I)
               ASQ(I) = ASQ(I) + ARES(I)*ARES(I)
               AME(I) = AME(I) + ARES(I)
            ENDDO
@@ -146,11 +146,11 @@
            AME(I) = AME(I)/FLOAT(NSETS)
            ERRA(I)= 0.D0
            TMP = ASQ(I) - AME(I)*AME(I)
-           print*,'TMP=',TMP
+!           print*,'TMP=',TMP
            IF (TMP.GT.0) ERRA(I) = SQRT( TMP )
         ENDDO
 
-        WRITE(25,*) '#', CHSQ1
+        WRITE(25,*) '# Chisquare: ', CHSQ1
         WRITE(25,2006)  AME1(1) ,ERRA(1)
         WRITE(25,2006) -AME1(2) ,ERRA(2)
         
