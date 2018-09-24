@@ -69,6 +69,7 @@
       ! For time displaced
       Integer,                       private :: NobsT
       Complex (Kind=Kind(0.d0)),              private :: Phase_tau
+      Complex (Kind=Kind(0.d0)), allocatable, private :: G0Ttr_tau(:,:,:,:), GT0tr_tau(:,:,:,:)
       Complex (Kind=Kind(0.d0)), allocatable, private :: Green_tau(:,:,:,:), Den_tau(:,:,:,:)
       Complex (Kind=Kind(0.d0)), allocatable, private :: U1_tau(:,:,:,:), U1xy_tau(:,:,:,:), U1xyG_tau(:,:,:,:)
       Complex (Kind=Kind(0.d0)), allocatable, private :: Spinz_tau(:,:,:,:), Spinxy_tau(:,:,:,:)
@@ -337,8 +338,9 @@
 
           Integer :: I, I1, I2 ,no, no1, n, Ncheck, nc
           Integer, allocatable :: Invlist_1(:,:)
-          Complex (Kind=Kind(0.d0)) :: Z
+          Complex (Kind=Kind(0.d0)) :: Z, E0
 
+          E0=0.25d0
 
           ! Setup Gamma matrices
           Gamma_M = cmplx(0.d0, 0.d0, kind(0.D0))
@@ -391,8 +393,11 @@
                          Z =  cmplx(2.d0 + Ham_Lam, 0.d0, kind(0.D0))*Gamma_M(no,no1,3)
                          Op_T(nc,n)%O( Invlist_1(I,no) ,Invlist_1(I,no1) )  =  Z
                       enddo
+                      no1=Invlist_1(I,no)
+                      Op_T(nc,n)%O( no1 , no1 )  =  Op_T(nc,n)%O( no1 , no1 ) + E0
                    enddo
                    I1 =  Latt%nnlist(I,1,0)
+                   I2 =  Latt%nnlist(I1,1,0)
                    do no = 1,4
                       do no1 = 1,4
                          Z = (cmplx(0.d0,1.d0, kind(0.D0))*Gamma_M(no,no1,1) &
@@ -402,8 +407,13 @@
                          Op_T(nc,n)%O( invlist_1(I1,no1 ), invlist_1(I ,no   ) )  = &
                                 & Op_T(nc,n)%O( invlist_1(I1,no1 ), invlist_1(I ,no   ) ) + conjg(Z)
                       enddo
+                      Op_T(nc,n)%O( invlist_1(I ,no  ), invlist_1(I2,no  ) )  = &
+                            & Op_T(nc,n)%O( invlist_1(I ,no  ), invlist_1(I2,no  ) ) - 0.25d0*E0
+                      Op_T(nc,n)%O( invlist_1(I2,no ), invlist_1(I ,no   ) )  = &
+                            & Op_T(nc,n)%O( invlist_1(I2,no ), invlist_1(I ,no   ) ) - 0.25d0*E0
                    enddo
                    I2   = Latt%nnlist(I,0,1)
+                   I1   = Latt%nnlist(I2,0,1)
                    do no = 1,4
                       do no1 = 1,4
                          Z =   ( cmplx(0.d0,1.d0, kind(0.D0)) * Gamma_M(no,no1,2) &
@@ -413,6 +423,10 @@
                          Op_T(nc,n)%O( invlist_1(I2,no1), invlist_1(I ,no   ) )  = &
                                 & Op_T(nc,n)%O( invlist_1(I2,no1), invlist_1(I ,no   ) ) + conjg(Z)
                       enddo
+                      Op_T(nc,n)%O( invlist_1(I ,no  ), invlist_1(I1,no  ) )  = &
+                            & Op_T(nc,n)%O( invlist_1(I ,no  ), invlist_1(I1,no  ) ) - 0.25d0*E0
+                      Op_T(nc,n)%O( invlist_1(I1,no ), invlist_1(I ,no   ) )  = &
+                            & Op_T(nc,n)%O( invlist_1(I1,no ), invlist_1(I ,no   ) ) - 0.25d0*E0
                    enddo
                 enddo
                 Op_T(nc,n)%g=cmplx(-Dtau*Ham_T,0.d0, kind(0.D0))
@@ -555,10 +569,10 @@
              enddo
              Do no = 1,4
                 do no1 = 1,4
-                  Sz(no    , no1     ,ns) =  Ps_G5(no,no1,ns)
-                  Sz(no +4 , no1 + 4 ,ns) =  -Ps_G5(no,no1,ns)
-                  Sz(no +8 , no1 + 8 ,ns) =  Ps_G5(no,no1,ns)
-                  Sz(no+12 , no1 + 12,ns) =  -Ps_G5(no,no1,ns)
+                  Sz(no    , no1     ,ns) =  Ps(no,no1,ns)
+                  Sz(no +4 , no1 + 4 ,ns) =  -Ps(no,no1,ns)
+                  Sz(no +8 , no1 + 8 ,ns) =  Ps(no,no1,ns)
+                  Sz(no+12 , no1 + 12,ns) =  -Ps(no,no1,ns)
                 enddo
              enddo
           enddo
@@ -678,8 +692,13 @@
               Allocate ( U12S_eq(Latt%N,1,1), U12S_eq0(1) )
           endif
           
-          If (Ltau == 1) then 
-             Allocate ( Green_tau(Latt%N,Ltrot+1-2*Thtrot,Norb,Norb), Den_tau(Latt%N,Ltrot+1-2*Thtrot,1,1) )
+          If (Ltau >= 1) then 
+             Allocate ( G0Ttr_tau(Latt%N,Ltrot+1-2*Thtrot,1,1) )
+             Allocate ( GT0tr_tau(Latt%N,Ltrot+1-2*Thtrot,1,1) )
+          endif
+          if (Ltau > 1) then
+             Allocate ( Green_tau(Latt%N,Ltrot+1-2*Thtrot,Norb,Norb) )
+             Allocate ( Den_tau(Latt%N,Ltrot+1-2*Thtrot,1,1) )
              Allocate ( U1_tau(Latt%N,Ltrot+1-2*Thtrot,1,1))
              Allocate ( U1xy_tau(Latt%N,Ltrot+1-2*Thtrot,1,1), U1xyG_tau(Latt%N,Ltrot+1-2*Thtrot,1,1) )
              Allocate ( Spinz_tau(Latt%N,Ltrot+1-2*Thtrot,1,1), Spinxy_tau(Latt%N,Ltrot+1-2*Thtrot,1,1) )
@@ -762,9 +781,13 @@
               U12S_eq0   = 0.d0
           endif
 
-          If (Ltau == 1) then
+          If (Ltau >= 1) then
              NobsT = 0
              Phase_tau = 0.d0
+             G0Ttr_tau = 0.d0
+             GT0tr_tau = 0.d0
+          endif
+          if (Ltau > 1) then
              Green_tau = 0.d0
              Den_tau = 0.d0
              U1_tau = 0.d0
@@ -2238,8 +2261,14 @@
             Call Print_bin(U12S_eq, U12S_eq0, Latt, Nobs, Phase_bin, file_pr, Group_Comm)
           endif
           
-          If (Ltau == 1) then
+          If (Ltau >= 1) then
              Phase_tau = Phase_tau/dble(NobsT)
+             File_pr = "GT0tr_tau"
+             Call Print_bin_tau(GT0tr_tau,Latt,NobsT,Phase_tau, file_pr,dtau, Group_Comm)
+             File_pr = "G0Ttr_tau"
+             Call Print_bin_tau(G0Ttr_tau,Latt,NobsT,Phase_tau, file_pr,dtau, Group_Comm)
+          endif
+          if (Ltau > 1) then
              File_pr = "Green_tau"
              Call Print_bin_tau(Green_tau,Latt,NobsT,Phase_tau, file_pr,dtau, Group_Comm)
              File_pr = "Den_tau"
@@ -2320,6 +2349,26 @@
           If (NT == 0 .or. NT==Ltrot) weightbeta=0.5*weightbeta 
           
           If ( N_FL == 1 ) then 
+             Z =  cmplx(dble(N_SUN),0.d0, kind(0.D0))
+!$OMP parallel do default(shared) private(I,I1,I2,no,J,J1,J2,no1,imj,a,b,c,d,tmp,weight,weightbeta,signum,DeltaI,DeltaJ)
+             Do I1 = 1,Ndim
+                I  = List(I1,1)
+                no = List(I1,2)
+                Do J1 = 1,Ndim
+                   J  = List(J1,1)
+                   no1 = List(J1,2)
+                   imj = latt%imj(I,J)
+                   if (no==no1) then
+!$OMP CRITICAL
+                      GT0tr_tau(imj,nt+1,1,1) = GT0tr_tau(imj,nt+1,1,1)  +  Z * GT0(I1,J1,1) * ZP* ZS
+                      G0Ttr_tau(imj,nt+1,1,1) = G0Ttr_tau(imj,nt+1,1,1)  -  Z * G0T(I1,J1,1) * ZP* ZS
+!$OMP END CRITICAL
+                   endif
+                enddo
+             enddo
+!$OMP end parallel do
+             if ( .not. allocated(Den_tau)) return
+            
              Z =  cmplx(dble(N_SUN),0.d0, kind(0.D0))
 !$OMP parallel do default(shared) private(I,I1,I2,no,J,J1,J2,no1,imj,a,b,c,d,tmp,weight,weightbeta,signum,DeltaI,DeltaJ)
              Do I1 = 1,Ndim

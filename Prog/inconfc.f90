@@ -60,7 +60,7 @@
          LOGICAL ::   LCONF 
          CHARACTER (LEN=64) :: FILE_SR, FILE_TG, FILE_seeds, FILE_info, File1
          TYPE(IOPORT) :: fd
-         CHARACTER(LEN=255), TARGET :: LINE
+         CHARACTER(LEN=2550), TARGET :: LINE
          INTEGER        :: IOS
 
 #ifdef MPI
