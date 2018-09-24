@@ -71,7 +71,10 @@
         ENDDO
         IF (NCOV.EQ.1) THEN
            print*, 'Cov taken into account'
+           UC1=0.d0
+           SIG1=0.d0
            CALL DIAG(COV1,UC1,SIG1)
+           SIG1=ABS(SIG1)
         ELSE
            print*, 'Cov not taken into account'
            UC1 = 0.D0

@@ -28,7 +28,7 @@
          Complex (Kind=8), allocatable :: V_help(:,:)
          Character (len=64) :: File_out
 
-         N_cov=0
+         N_cov=1
 
          ! Determine the number of bins. 
          Open ( Unit=10, File="intau", status="unknown" ) 
