@@ -179,7 +179,7 @@
         !Arguments.
 !         COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(IN)   ::  URUP, VRUP, ULUP, VLUP
 !         COMPLEX(Kind=Kind(0.d0)), Dimension(:),   Intent(IN)   ::  DLUP, DRUP
-        CLASS(UDV_State), INTENT(IN) :: udvl, udvr
+        CLASS(UDV_State), INTENT(IN), pointer :: udvl, udvr ! For unknown reasons the arrays to plasma_zgemm are inout
         COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(INOUT) :: GRUP
         COMPLEX(Kind=Kind(0.d0)), Intent(INOUT) :: PHASE
         INTEGER         :: NVAR
@@ -200,11 +200,23 @@
             complex(kind=c_double_complex), intent(inout) :: p
             integer(c_int), intent(in) :: nvar, N_size
           end subroutine
+          
+          subroutine applylrscales(dl, dr, dup, tpup, rhs, nsize) bind(c)
+            use iso_c_binding
+            use plasma
+            implicit none
+            integer(c_int), value :: nsize
+            type(plasma_desc_t), intent(in) :: rhs
+            type(plasma_desc_t), intent(inout) :: tpup
+            type(c_ptr), intent(in), value :: dl, dr
+            type(c_ptr), intent(in), value :: dup
+          end subroutine
+          
         end interface
  
         !Local
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  TPUP, RHS, TMP, TMP1
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:) , Allocatable ::  DUP
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:) , Allocatable,target ::  DUP
         COMPLEX(Kind=Kind(0.d0)), Dimension(:), Allocatable :: RWORK
         INTEGER, Dimension(:), Allocatable :: IPVT, VISITED
         COMPLEX (Kind=Kind(0.d0)) ::  alpha, beta, Z, DLJ, ZTMP, PHASETMP
@@ -213,7 +225,10 @@
         
         COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK
         LOGICAL :: FORWRD
-        type(plasma_desc_t) :: descT
+        type(plasma_desc_t) :: descT, descA, descB, descA1, descB1, descC, descC1
+        type(plasma_sequence_t) :: seq
+        type(plasma_request_t) :: req
+        type(plasma_context_t), pointer :: ctx
 
         if( .not. allocated(UDVL%V) ) then
           !call projector cgr
@@ -234,13 +249,73 @@
         beta = 0.D0
         Allocate(TPUP(N_size,N_size), RHS(N_size, N_size), IPVT(N_size), TAU(N_size), DUP(N_size))
         Allocate(TMP(N_size, N_size), TMP1(N_size, N_size))
-        !Write(6,*) 'In CGR', N_size
-        ! can be inserted again once we are sure that we may assume that UR and UL stem from householder reflectors
-!        CALL ZGEMM('C', 'C', N_size, N_size, N_size, alpha, URUP, N_size, ULUP, N_size, alpha, TPUP, N_size)
-        CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, udvr%U, N_size, udvl%U, N_size, beta, RHS(1, 1), N_size)
-        
-        CALL MMULT(TPUP, udvr%V, udvl%V)
 
+        !CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, udvr%U, N_size, udvl%U, N_size, beta, RHS(1, 1), N_size)
+!         call plasma_zgemm(PlasmaConjTrans, PlasmaNoTrans, N_size, N_size, N_size, alpha, udvr%U(1,1),&
+!         & N_size, udvl%U(1,1), N_size, beta, RHS(1, 1), N_size, info)
+
+        
+        
+
+        call plasma_context_self(ctx)
+        nb = ctx%nb
+        ! create tile storage
+        call plasma_desc_general_create(PlasmaComplexDouble, nb,nb, N_size, N_size,0,0,N_size, N_size, descA, info)
+        call plasma_desc_general_create(PlasmaComplexDouble, nb,nb, N_size, N_size,0,0,N_size, N_size, descB, info)
+        call plasma_desc_general_create(PlasmaComplexDouble, nb,nb, N_size, N_size,0,0,N_size, N_size, descA1, info)
+        call plasma_desc_general_create(PlasmaComplexDouble, nb,nb, N_size, N_size,0,0,N_size, N_size, descB1, info)
+        call plasma_desc_general_create(PlasmaComplexDouble, nb,nb, N_size, N_size,0,0,N_size, N_size, descC, info)
+        call plasma_desc_general_create(PlasmaComplexDouble, nb,nb, N_size, N_size,0,0,N_size, N_size, descC1, info)
+        
+        ! init sequence and requests
+        call plasma_sequence_init(seq, info)
+        call plasma_request_init(req, info)
+!$omp parallel
+!$omp master
+
+! translate to tile layout
+
+call plasma_omp_zge2desc(udvr%U(1,1), N_size, descA, seq, req)
+call plasma_omp_zge2desc(udvl%U(1,1), N_size, descB, seq, req)
+
+call plasma_omp_zgemm(PlasmaConjTrans, PlasmaNoTrans, alpha, descA, descB, beta, descC, seq, req)
+
+! ! ! ! ! ! ! ! translate back
+! ! ! ! ! ! ! call plasma_omp_zdesc2ge(descC, RHS(1,1), N_size, seq, req)
+
+
+! ! ! ! ! ! !$omp end master
+! ! ! ! ! ! !$omp end parallel
+
+! ! call plasma_desc_destroy(descC, info)
+! ! call plasma_desc_destroy(descB, info)
+! ! call plasma_desc_destroy(descA, info)
+        
+        
+        
+        !CALL ZGEMM('N','N', N_size, N_size, N_size, alpha, udvr%V, N_size, udvl%V, N_size, beta, TPUP(1,1),N_size)
+!         call plasma_zgemm(PlasmaNoTrans, PlasmaNoTrans, N_size, N_size, N_size, alpha, udvr%V, N_size,&
+!         & udvl%V, N_size, beta, TPUP(1,1),N_size, info)
+
+        ! create tile storage
+! !         call plasma_desc_general_create(PlasmaComplexDouble, nb,nb, N_size, N_size,0,0,N_size, N_size, descA, info)
+! !         call plasma_desc_general_create(PlasmaComplexDouble, nb,nb, N_size, N_size,0,0,N_size, N_size, descB, info)
+! !         call plasma_desc_general_create(PlasmaComplexDouble, nb,nb, N_size, N_size,0,0,N_size, N_size, descC, info)
+        
+        ! init sequence and requests
+!         call plasma_sequence_init(seq, info)
+!         call plasma_request_init(req, info)
+! ! ! ! ! ! ! $omp parallel
+! ! ! ! ! ! ! $omp master
+
+! translate to tile layout
+
+call plasma_omp_zge2desc(udvr%V(1,1), N_size, descA1, seq, req)
+call plasma_omp_zge2desc(udvl%V(1,1), N_size, descB1, seq, req)
+
+call plasma_omp_zgemm(PlasmaNoTrans, PlasmaNoTrans, alpha, descA1, descB1, beta, descC1, seq, req)
+
+!$omp task depend(out:DUP(0:N_size) )
         !missuse DUP(I) as DR(I) for temporary storage
         !scales in D are assumed to be real and positive
         DO I = 1,N_size
@@ -250,28 +325,58 @@
             DUP(I)=1.d0/udvr%D(I)
           endif
         ENDDO
-        DO J = 1,N_size
-          If( dble(udvl%D(J))<=1.d0) then
-            DLJ=udvl%D(J)
-            DO I = 1,N_size
-              If( dble(udvr%D(I))<=1.d0 ) then
-                TPUP(I,J) = RHS(I,J)+udvr%D(I)*udvl%D(J)*TPUP(I,J)
-              else
-                TPUP(I,J) = DUP(I)*RHS(I,J) + DLJ*TPUP(I,J)
-              endif
-            ENDDO
-          else
-            DLJ=1.d0/udvl%D(J)
-            DO I = 1,N_size
-              If( dble(udvr%D(I))<=1.d0 ) then
-                TPUP(I,J) = DLJ*RHS(I,J)+DUP(I)*TPUP(I,J)
-              else
-                TPUP(I,J) = RHS(I,J)/udvr%D(I)/udvl%D(J)+TPUP(I,J)
-              endif
-            ENDDO
-          endif
-        ENDDO
+!$omp end task
 
+call applylrscales(c_loc(udvl%D), c_loc(udvr%D), c_loc(DUP), descC1, descC, n_size)
+
+! translate back
+! translate back
+call plasma_omp_zdesc2ge(descC, RHS(1,1), N_size, seq, req)
+
+call plasma_omp_zdesc2ge(descC1, TPUP(1,1), N_size, seq, req)
+        
+!$omp end master
+!$omp end parallel
+
+! write (*,*) udvl%D(1), udvr%D(1), DUP(1)
+        
+
+!         DO J = 1,N_size
+!           If( dble(udvl%D(J))<=1.d0) then
+!             DLJ=udvl%D(J)
+!             DO I = 1,N_size
+!               If( dble(udvr%D(I))<=1.d0 ) then
+!                 TPUP(I,J) = RHS(I,J)+udvr%D(I)*udvl%D(J)*TPUP(I,J)
+!               else
+!                 TPUP(I,J) = DUP(I)*RHS(I,J) + DLJ*TPUP(I,J)
+!               endif
+!             ENDDO
+!           else
+!             DLJ=1.d0/udvl%D(J)
+!             DO I = 1,N_size
+!               If( dble(udvr%D(I))<=1.d0 ) then
+!                 TPUP(I,J) = DLJ*RHS(I,J)+DUP(I)*TPUP(I,J)
+!               else
+!                 TPUP(I,J) = RHS(I,J)/udvr%D(I)/udvl%D(J)+TPUP(I,J)
+!               endif
+!             ENDDO
+!           endif
+!         ENDDO
+
+write (*,*) TPUP(1,:)
+write (*,*) TPUP(:,1)
+write (*,*) "============================="
+
+
+STOP
+        call plasma_desc_destroy(descC, info)
+call plasma_desc_destroy(descB, info)
+call plasma_desc_destroy(descA, info)
+call plasma_desc_destroy(descC1, info)
+call plasma_desc_destroy(descB1, info)
+call plasma_desc_destroy(descA1, info)
+        
+        
         ! calculate determinant of UR*UL
         ! as the D's are real and positive, they do not contribute to the phase of det so they can be ignored
         PHASE = CONJG(DET_C(RHS, N_size))
@@ -283,10 +388,10 @@
 !        call QDRP_decompose(N_size, udvl%N_part, TPUP, DUP, IPVT, TAU, WORK, LWORK)
         
         
-        ALLOCATE(RWORK(2*N_size))
+!        ALLOCATE(RWORK(2*N_size))
         ! Query optimal amount of memory
 !        call ZGEQP3(N_size, udvl%N_part, TPUP(1,1), N_size, IPVT, TAU(1), Z, -1, RWORK(1), INFO)
-        call ZGEQRF(N_size, udvl%N_part, TPUP(1,1), N_size, TAU(1), Z, -1, INFO)
+!        call ZGEQRF(N_size, udvl%N_part, TPUP(1,1), N_size, TAU(1), Z, -1, INFO)
         LWORK = INT(DBLE(Z))
         ALLOCATE(WORK(LWORK))
         ! QR decomposition of Mat with full column pivoting, Mat * P = Q * R
@@ -294,7 +399,7 @@
 !TMP = TPUP ! Since TPUP will be destroyed
 !!        call ZGEQRF(N_size, udvl%N_part, TPUP(1,1), N_size, TAU(1), WORK, LWORK, INFO)
 call plasma_zgeqrf(N_size, udvl%N_part, TPUP, N_size, descT, info)
-        DEALLOCATE(RWORK)
+!        DEALLOCATE(RWORK)
         ! separate off D
         do i = 1, udvl%N_part
         ! plain diagonal entry
