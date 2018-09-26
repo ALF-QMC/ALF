@@ -198,6 +198,7 @@
               do nf=1,N_FL
 !                   write(*,*) "udvl side:",udvst(nt_st,nf)%side
                 CALL CGRP(DetZ, GRUP(:,:,nf), udvr_local(nf), udvst(nt_st,nf))
+                Call Control_Precision_tau(GTTUP(:,:,nf), GRUP(:,:,nf), Ndim)
               enddo
               Call Wrapur(STAB_NT(NT_ST), STAB_NT(NT_ST+1), UDVR_local)
               NT_ST=NT_ST+1
@@ -223,8 +224,10 @@
 
                  do nf=1,N_FL
                     CALL MMULT(TEMP,GRUP(:,:,nf),GT0UP(:,:,nf))
+                    Call Control_Precision_tau(GT0UP(:,:,nf), TEMP, Ndim)
                     GT0UP(:,:,nf) = TEMP
                     CALL MMULT(TEMP,G0TUP(:,:,nf),GRUPB(:,:,nf))
+                    Call Control_Precision_tau(G0TUP(:,:,nf), TEMP, Ndim)
                     G0TUP(:,:,nf) = TEMP
                  enddo
            ENDIF                ! Ortho.

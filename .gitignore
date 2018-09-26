@@ -15,3 +15,5 @@ Prog/git.h
 .*
 /**/.*
 /**/Test*
+/**/*__genmod.f90
+/**/*.orig
