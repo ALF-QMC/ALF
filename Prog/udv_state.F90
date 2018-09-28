@@ -444,11 +444,14 @@ END SUBROUTINE assign_UDV_state
         REAL (Kind=Kind(0.d0)), allocatable, Dimension(:) :: tmpnorm
         REAL (Kind=Kind(0.d0)) :: tmpL, DZNRM2
         COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta, tmpD, phase, TmpMat(udvr%ndim,udvr%ndim),Z
-        INTEGER :: INFO, i, j, LWORK, Ndim, PVT, N_part
+        INTEGER :: INFO, i, j, LWORK, Ndim, PVT, N_part, nb
         INTEGER, allocatable, Dimension(:) :: IPVT
         COMPLEX(Kind=Kind(0.d0)), Dimension(:), Allocatable :: RWORK
+        COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Allocatable :: descT
         Real(Kind=Kind(0.d0)) :: X
         LOGICAL :: FORWRD
+        INTEGER            ilaenv
+        EXTERNAL ilaenv
         
 !         if(udvr%side .ne. "R" .and. udvr%side .ne. "r" ) then
 !           write(*,*) "calling wrong decompose"
@@ -529,16 +532,11 @@ END SUBROUTINE assign_UDV_state
                 phase=-phase
             END IF
         enddo
-        !disable lapack internal pivoting
         
-        ALLOCATE(RWORK(2*Ndim))
-        ! Query optimal amount of memory
-        call ZGEQP3(Ndim, N_part, UDVR%U, Ndim, IPVT, TAU(1), Z, -1, RWORK(1), INFO)
-        LWORK = INT(DBLE(Z))
-        ALLOCATE(WORK(LWORK))
-        ! QR decomposition of Mat with full column pivoting, Mat * P = Q * R
-        call ZGEQP3(Ndim, N_part, UDVR%U, Ndim, IPVT, TAU(1), WORK(1), LWORK, RWORK(1), INFO)
-        DEALLOCATE(RWORK)
+        nb = ilaenv( 1, 'ZGEQR ', ' ', Ndim, N_part, 2, -1 ) ! Lapack does this in ZGEQR
+        ALLOCATE(descT(NB, Min(Ndim,N_part)), WORK(NB*N_part))
+        
+        call ZGEQRT(Ndim, N_part, nb, UDVR%U, Ndim, descT, nb, WORK, INFO) ! calculates a decomposition that is best suited for almost square matrices
         ! separate off D
         do i = 1, N_part
         ! plain diagonal entry
@@ -583,7 +581,15 @@ END SUBROUTINE assign_UDV_state
           endif
         endif
         ! Generate explicitly U in the previously abused storage of U
+#ifndef LOGSCALE
         CALL ZUNGQR(Ndim, N_part, N_part, UDVR%U, Ndim, TAU, WORK, LWORK, INFO)
+#else
+        ! Forwhatever reason there is no GQR equivalent that I could find....
+        call ZLASET('All', Ndim, N_part, Z_ONE, beta, TMPMAT, NDIM)
+        ! FIXME: consider the fifth argument in ZGEMQRT for the projector
+        CALL ZGEMQRT('L', 'N', Ndim, N_part, Ndim, nb, UDVR%U, Ndim, descT, TMPMAT, Ndim, WORK, INFO)
+        DEALLOCATE(descT)
+#endif
         ! scale first column of U to correct the scaling in V such that UDV is not changed
         call ZSCAL(Ndim,phase,UDVR%U(1,1),1)
         DEALLOCATE(TAU, WORK, IPVT)
