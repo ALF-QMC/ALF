@@ -587,7 +587,8 @@ END SUBROUTINE assign_UDV_state
         ! Forwhatever reason there is no GQR equivalent that I could find....
         call ZLASET('All', Ndim, N_part, Z_ONE, beta, TMPMAT, NDIM)
         ! FIXME: consider the fifth argument in ZGEMQRT for the projector
-        CALL ZGEMQRT('L', 'N', Ndim, N_part, Ndim, nb, UDVR%U, Ndim, descT, TMPMAT, Ndim, WORK, INFO)
+        CALL ZGEMQRT('L', 'N', Ndim, N_part, N_part, nb, UDVR%U, Ndim, descT, NB, TMPMAT, Ndim, WORK, INFO)
+        UDVR%U = TMPMAT
         DEALLOCATE(descT)
 #endif
         ! scale first column of U to correct the scaling in V such that UDV is not changed
