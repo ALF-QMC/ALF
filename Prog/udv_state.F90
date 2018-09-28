@@ -443,9 +443,11 @@ END SUBROUTINE assign_UDV_state
         COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK, D
         REAL (Kind=Kind(0.d0)), allocatable, Dimension(:) :: tmpnorm
         REAL (Kind=Kind(0.d0)) :: tmpL, DZNRM2
-        COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta, tmpD, phase, TmpMat(udvr%ndim,udvr%ndim)
+        COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta, tmpD, phase, TmpMat(udvr%ndim,udvr%ndim),Z
         INTEGER :: INFO, i, j, LWORK, Ndim, PVT, N_part
         INTEGER, allocatable, Dimension(:) :: IPVT
+        COMPLEX(Kind=Kind(0.d0)), Dimension(:), Allocatable :: RWORK
+        Real(Kind=Kind(0.d0)) :: X
         LOGICAL :: FORWRD
         
 !         if(udvr%side .ne. "R" .and. udvr%side .ne. "r" ) then
@@ -528,8 +530,26 @@ END SUBROUTINE assign_UDV_state
             END IF
         enddo
         !disable lapack internal pivoting
-        IPVT = 1
-        call QDRP_decompose(Ndim, N_part, UDVR%U, D, IPVT, TAU, WORK, LWORK)
+        
+        ALLOCATE(RWORK(2*Ndim))
+        ! Query optimal amount of memory
+        call ZGEQP3(Ndim, N_part, UDVR%U, Ndim, IPVT, TAU(1), Z, -1, RWORK(1), INFO)
+        LWORK = INT(DBLE(Z))
+        ALLOCATE(WORK(LWORK))
+        ! QR decomposition of Mat with full column pivoting, Mat * P = Q * R
+        call ZGEQP3(Ndim, N_part, UDVR%U, Ndim, IPVT, TAU(1), WORK(1), LWORK, RWORK(1), INFO)
+        DEALLOCATE(RWORK)
+        ! separate off D
+        do i = 1, N_part
+        ! plain diagonal entry
+            X = ABS(UDVR%U(i, i))
+            D(i) = X
+            do j = i, N_part
+                UDVR%U(i, j) = UDVR%U(i, j) / X
+            enddo
+        enddo
+!         IPVT = 1
+!         call QDRP_decompose(Ndim, N_part, UDVR%U, D, IPVT, TAU, WORK, LWORK)
         do i=1,N_part
           Phase=Phase*UDVR%U(i,i)
         enddo
