@@ -444,14 +444,12 @@ END SUBROUTINE assign_UDV_state
         REAL (Kind=Kind(0.d0)), allocatable, Dimension(:) :: tmpnorm
         REAL (Kind=Kind(0.d0)) :: tmpL, DZNRM2
         COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta, tmpD, phase, TmpMat(udvr%ndim,udvr%ndim),Z
-        INTEGER :: INFO, i, j, LWORK, Ndim, PVT, N_part, nb
+        INTEGER :: INFO, i, j, LWORK, Ndim, PVT, N_part, nb, tsize
         INTEGER, allocatable, Dimension(:) :: IPVT
         COMPLEX(Kind=Kind(0.d0)), Dimension(:), Allocatable :: RWORK
-        COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Allocatable :: descT
+        COMPLEX(Kind=Kind(0.d0)), Dimension(:), Allocatable :: descT
         Real(Kind=Kind(0.d0)) :: X
         LOGICAL :: FORWRD
-        INTEGER            ilaenv
-        EXTERNAL ilaenv
         
 !         if(udvr%side .ne. "R" .and. udvr%side .ne. "r" ) then
 !           write(*,*) "calling wrong decompose"
@@ -532,11 +530,19 @@ END SUBROUTINE assign_UDV_state
                 phase=-phase
             END IF
         enddo
-        
-        nb = ilaenv( 1, 'ZGEQR ', ' ', Ndim, N_part, 2, -1 ) ! Lapack does this in ZGEQR
-        ALLOCATE(descT(NB, Min(Ndim,N_part)), WORK(NB*N_part))
-        
-        call ZGEQRT(Ndim, N_part, nb, UDVR%U, Ndim, descT, nb, WORK, INFO) ! calculates a decomposition that is best suited for almost square matrices
+
+
+        ! inquire required work and T memory
+        lwork = -1
+        tsize = -1
+        ALLOCATE(descT(6), WORK(2))
+        call ZGEQR(Ndim, N_part, UDVR%U, Ndim, descT, tsize, WORK, lwork, info)
+        tsize = descT(1)
+        lwork = work(1)
+        deallocate(descT, work)
+        allocate(descT(tsize), work(lwork))
+        call ZGEQR(Ndim, N_part, UDVR%U, Ndim, descT, tsize, WORK, lwork, info)! dynamically switches between the versions for square-like and tall-skinny matrices
+
         ! separate off D
         do i = 1, N_part
         ! plain diagonal entry
@@ -587,7 +593,7 @@ END SUBROUTINE assign_UDV_state
         ! Forwhatever reason there is no GQR equivalent that I could find....
         call ZLASET('All', Ndim, N_part, Z_ONE, beta, TMPMAT, NDIM)
         ! FIXME: consider the fifth argument in ZGEMQRT for the projector
-        CALL ZGEMQRT('L', 'N', Ndim, N_part, N_part, nb, UDVR%U, Ndim, descT, NB, TMPMAT, Ndim, WORK, INFO)
+        call ZGEMQR('L', 'N', Ndim, N_part, N_part, UDVR%U, Ndim, descT, TSIZE, TMPMAT, Ndim, WORK, LWORK, INFO)
         UDVR%U = TMPMAT
         DEALLOCATE(descT)
 #endif
