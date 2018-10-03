@@ -537,8 +537,8 @@ END SUBROUTINE assign_UDV_state
         tsize = -1
         ALLOCATE(descT(6), WORK(2))
         call ZGEQR(Ndim, N_part, UDVR%U, Ndim, descT, tsize, WORK, lwork, info)
-        tsize = descT(1)
-        lwork = work(1)
+        tsize = INT(DBLE(descT(1)))
+        lwork = INT(DBLE(work(1)))
         deallocate(descT, work)
         allocate(descT(tsize), work(lwork))
         call ZGEQR(Ndim, N_part, UDVR%U, Ndim, descT, tsize, WORK, lwork, info)! dynamically switches between the versions for square-like and tall-skinny matrices
