@@ -536,12 +536,15 @@ END SUBROUTINE assign_UDV_state
         lwork = -1
         tsize = -1
         ALLOCATE(descT(6), WORK(2))
-        call ZGEQR(Ndim, N_part, UDVR%U, Ndim, descT, tsize, WORK, lwork, info)
-        tsize = INT(DBLE(descT(1)))
+!        call ZGEQR(Ndim, N_part, UDVR%U, Ndim, descT, tsize, WORK, lwork, info)
+        call ZGEQRF(Ndim, N_part, UDVR%U, Ndim, TAU, WORK, LWORK, INFO)
+!        tsize = INT(DBLE(descT(1)))
+tsize = 6
         lwork = INT(DBLE(work(1)))
         deallocate(descT, work)
         allocate(descT(tsize), work(lwork))
-        call ZGEQR(Ndim, N_part, UDVR%U, Ndim, descT, tsize, WORK, lwork, info)! dynamically switches between the versions for square-like and tall-skinny matrices
+        call ZGEQRF(Ndim, N_part, UDVR%U, Ndim, TAU, WORK, LWORK, INFO)
+!        call ZGEQR(Ndim, N_part, UDVR%U, Ndim, descT, tsize, WORK, lwork, info)! dynamically switches between the versions for square-like and tall-skinny matrices
 
         ! separate off D
         do i = 1, N_part
@@ -594,7 +597,8 @@ END SUBROUTINE assign_UDV_state
         beta = 0.D0
         call ZLASET('All', Ndim, N_part, Z_ONE, beta, TMPMAT, NDIM)
         ! FIXME: consider the fifth argument in ZGEMQRT for the projector
-        call ZGEMQR('L', 'N', Ndim, N_part, N_part, UDVR%U, Ndim, descT, TSIZE, TMPMAT, Ndim, WORK, LWORK, INFO)
+!        call ZGEMQR('L', 'N', Ndim, N_part, N_part, UDVR%U, Ndim, descT, TSIZE, TMPMAT, Ndim, WORK, LWORK, INFO)
+call ZUNMQR('L', 'N', Ndim, N_part, N_part, UDVR%U, Ndim, TAU, TMPMAT, Ndim, WORK, LWORK, INFO)
         UDVR%U = TMPMAT
         DEALLOCATE(descT)
 #endif
