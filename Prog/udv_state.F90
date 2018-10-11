@@ -591,6 +591,7 @@ END SUBROUTINE assign_UDV_state
         CALL ZUNGQR(Ndim, N_part, N_part, UDVR%U, Ndim, TAU, WORK, LWORK, INFO)
 #else
         ! Forwhatever reason there is no GQR equivalent that I could find....
+        beta = 0.D0
         call ZLASET('All', Ndim, N_part, Z_ONE, beta, TMPMAT, NDIM)
         ! FIXME: consider the fifth argument in ZGEMQRT for the projector
         call ZGEMQR('L', 'N', Ndim, N_part, N_part, UDVR%U, Ndim, descT, TSIZE, TMPMAT, Ndim, WORK, LWORK, INFO)
