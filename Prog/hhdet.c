@@ -56,200 +56,212 @@ void hhdet(plasma_desc_t* T, plasma_complex64_t* phase, int* nvar, int* N_size)
 void applylrscales(plasma_complex64_t* dl, plasma_complex64_t* dr, plasma_complex64_t* dup, plasma_desc_t* tpup, plasma_desc_t* rhs, int nsize)
 {
     /* Original Fortran Code as reference
-     * DO J = 1,N_size
+     *  DO J = 1,N_size
+        DO I = 1,N_size
           If( dble(udvl%D(J))<=1.d0) then
             DLJ=udvl%D(J)
-            DO I = 1,N_size
               If( dble(udvr%D(I))<=1.d0 ) then
                 TPUP(I,J) = RHS(I,J)+udvr%D(I)*udvl%D(J)*TPUP(I,J)
               else
                 TPUP(I,J) = DUP(I)*RHS(I,J) + DLJ*TPUP(I,J)
               endif
-            ENDDO
           else
             DLJ=1.d0/udvl%D(J)
-            DO I = 1,N_size
               If( dble(udvr%D(I))<=1.d0 ) then
                 TPUP(I,J) = DLJ*RHS(I,J)+DUP(I)*TPUP(I,J)
               else
                 TPUP(I,J) = RHS(I,J)/udvr%D(I)/udvl%D(J)+TPUP(I,J)
               endif
-            ENDDO
           endif
+        ENDDO
         ENDDO
      */
 
 const int nb = tpup->nb;
 int fb = nsize/nb;
+plasma_complex64_t* tpupptr = tpup->matrix;
+plasma_complex64_t* rhsptr = rhs->matrix;
+const int nt = nsize/nb;
+#pragma omp task depend(in:dup[0:nsize]) depend(inout:tpupptr[0:nsize*nsize]) depend(inout:rhsptr[0:nsize*nsize])
+{
+    for(int jt = 0; jt < nt; ++jt)
+    {
+        for(int it = 0; it < nt; ++it)
+        {
+            plasma_complex64_t* trhs = (RHS(jt, it));
+            plasma_complex64_t* ttpup = (TPUP(jt, it));
+        }
+    }
 
-for(int jt = 0; jt < nsize/nb; ++jt )
-{
-    for(int ji = 0; ji < nb; ++ji)
-    {
-        if(creal(dl[jt*nb + ji]) <= 1.0 )
-        {
-            for(int it = 0; it < fb; ++it)
-            {
-                plasma_complex64_t* trhs = (RHS(jt, it));
-                plasma_complex64_t* ttpup = (TPUP(jt, it));
+}
+}
+
+// for(int jt = 0; jt < nsize/nb; ++jt )
+// {
+//     for(int ji = 0; ji < nb; ++ji)
+//     {
+//         if(creal(dl[jt*nb + ji]) <= 1.0 )
+//         {
+//             for(int it = 0; it < fb; ++it)
+//             {
+//                 plasma_complex64_t* trhs = (RHS(jt, it));
+//                 plasma_complex64_t* ttpup = (TPUP(jt, it));
+// // #pragma omp task depend(in:trhs[ji*nb:ji*nb+nb]) \
+// //                  depend(in:dup[it*nb:(it*nb+nb)]) \
+// //                  depend(inout:ttpup[ji*nb:ji*nb+nb])
+//                  {
+//             plasma_complex64_t dlj = dl[jt*nb + ji]; // move it here for easier dependencies
+//                 for(int ii = 0; ii < nb; ++ii)
+//                 {
+//                     if ( creal( dr[it*nb + ii] ) <= 1.0)
+//                         (TPUP(jt, it))[ji*nb + ii] = (RHS(jt, it))[ji*nb + ii] + dr[it*nb + ii] * dl[jt*nb + ji] * (TPUP(jt, it))[ji*nb + ii];
+//                     else
+//                         (TPUP(jt, it))[ji*nb + ii] = dup[it*nb + ii] * (RHS(jt, it))[ji*nb + ii] + dlj * (TPUP(jt, it))[ji*nb + ii];
+//                         
+//                 }
+//                  }
+//             }
+//             //REMAINDER
+//                 plasma_complex64_t* trhs = (RHS(jt, fb));
+//                 plasma_complex64_t* ttpup = (TPUP(jt, fb));
+//                 int ld = nsize - fb*nb;
+// // #pragma omp task depend(in:trhs[ji*ld:ji*ld + ld]) \
+// //                  depend(in:dup[fb*nb:(fb*nb+ld)]) \
+// //                  depend(inout:ttpup[ji*ld:ji*ld + ld])
+//             {
+//                 plasma_complex64_t dlj = dl[jt*nb + ji]; // move it here for easier dependencies
+//                 for(int ii = 0; ii < ld; ++ii)
+//                 {
+//                     if ( creal( dr[fb*nb + ii] ) <= 1.0)
+//                         (TPUP(jt, fb))[ji*ld + ii] = (RHS(jt, fb))[ji*ld + ii] + dr[fb*nb + ii] * dl[jt*nb + ji] * (TPUP(jt, fb))[ji*ld + ii];
+//                     else
+//                         (TPUP(jt, fb))[ji*ld + ii] = dup[fb*nb + ii] * (RHS(jt, fb))[ji*ld + ii] + dlj * (TPUP(jt, fb))[ji*ld + ii];
+//                         
+//                 }
+//             }
+//         }
+//         else
+//         {
+//             for(int it = 0; it < fb; ++it)
+//             {
+//                 plasma_complex64_t* trhs = (RHS(jt, it));
+//                 plasma_complex64_t* ttpup = (TPUP(jt, it));
 // #pragma omp task depend(in:trhs[ji*nb:ji*nb+nb]) \
 //                  depend(in:dup[it*nb:(it*nb+nb)]) \
 //                  depend(inout:ttpup[ji*nb:ji*nb+nb])
-                 {
-            plasma_complex64_t dlj = dl[jt*nb + ji]; // move it here for easier dependencies
-                for(int ii = 0; ii < nb; ++ii)
-                {
-                    if ( creal( dr[it*nb + ii] ) <= 1.0)
-                        (TPUP(jt, it))[ji*nb + ii] = (RHS(jt, it))[ji*nb + ii] + dr[it*nb + ii] * dl[jt*nb + ji] * (TPUP(jt, it))[ji*nb + ii];
-                    else
-                        (TPUP(jt, it))[ji*nb + ii] = dup[it*nb + ii] * (RHS(jt, it))[ji*nb + ii] + dlj * (TPUP(jt, it))[ji*nb + ii];
-                        
-                }
-                 }
-            }
-            //REMAINDER
-                plasma_complex64_t* trhs = (RHS(jt, fb));
-                plasma_complex64_t* ttpup = (TPUP(jt, fb));
-                int ld = nsize - fb*nb;
-// #pragma omp task depend(in:trhs[ji*ld:ji*ld + ld]) \
-//                  depend(in:dup[fb*nb:(fb*nb+ld)]) \
-//                  depend(inout:ttpup[ji*ld:ji*ld + ld])
-            {
-                plasma_complex64_t dlj = dl[jt*nb + ji]; // move it here for easier dependencies
-                for(int ii = 0; ii < ld; ++ii)
-                {
-                    if ( creal( dr[fb*nb + ii] ) <= 1.0)
-                        (TPUP(jt, fb))[ji*ld + ii] = (RHS(jt, fb))[ji*ld + ii] + dr[fb*nb + ii] * dl[jt*nb + ji] * (TPUP(jt, fb))[ji*ld + ii];
-                    else
-                        (TPUP(jt, fb))[ji*ld + ii] = dup[fb*nb + ii] * (RHS(jt, fb))[ji*ld + ii] + dlj * (TPUP(jt, fb))[ji*ld + ii];
-                        
-                }
-            }
-        }
-        else
-        {
-            for(int it = 0; it < fb; ++it)
-            {
-                plasma_complex64_t* trhs = (RHS(jt, it));
-                plasma_complex64_t* ttpup = (TPUP(jt, it));
-#pragma omp task depend(in:trhs[ji*nb:ji*nb+nb]) \
-                 depend(in:dup[it*nb:(it*nb+nb)]) \
-                 depend(inout:ttpup[ji*nb:ji*nb+nb])
-                 {
-            plasma_complex64_t dlj = 1.0/dl[jt*nb + ji];
-                for(int ii = 0; ii < tpup->nb; ++ii)
-                {
-                    if ( creal( dr[it*nb + ii] ) <= 1.0)
-                        (TPUP(jt, it))[ji*nb + ii] = dlj * (RHS(jt, it))[ji*nb + ii] + dup[it*nb + ii] * (TPUP(jt, it))[ji*nb + ii];
-                    else
-                        (TPUP(jt, it))[ji*nb + ii] = (RHS(jt, it))[ji*nb + ii]/dr[it*nb + ii]/dl[jt*nb + ji] + (TPUP(jt, it))[ji*nb + ii];
-                }
-                 }
-            }
-            //REMAINDER
-                plasma_complex64_t* trhs = (RHS(jt, fb));
-                plasma_complex64_t* ttpup = (TPUP(jt, fb));
-                int ld = nsize - fb*nb;
-// #pragma omp task depend(in:trhs[ji*ld:ji*ld + ld]) \
-//                  depend(in:dup[fb*nb:(fb*nb+ld)]) \
-//                  depend(inout:ttpup[ji*ld:ji*ld + ld])
-            {
-            plasma_complex64_t dlj = 1.0/dl[jt*nb + ji];
-                int ld = nsize - fb*nb;
-                for(int ii = 0; ii < ld; ++ii)
-                {
-                    if ( creal( dr[fb*nb + ii] ) <= 1.0)
-                        (TPUP(jt, fb))[ji*ld + ii] = dlj * (RHS(jt, fb))[ji*ld + ii] + dup[fb*nb + ii] * (TPUP(jt, fb))[ji*ld + ii];
-                    else
-                        (TPUP(jt, fb))[ji*ld + ii] = (RHS(jt, fb))[ji*ld + ii]/dr[fb*nb + ii]/dl[jt*nb + ji] + (TPUP(jt, fb))[ji*ld + ii];
-                }
-            }
-        }
-    }
-}
-//Loop remainder
-{
-    for(int ji = 0; ji < nsize - fb*nb; ++ji)
-    {
-        if(creal(dl[fb*nb + ji]) <= 1.0 )
-        {
-            for(int it = 0; it < fb; ++it)
-            {
-                plasma_complex64_t* trhs = (RHS(fb, it));
-                plasma_complex64_t* ttpup = (TPUP(fb, it));
-// #pragma omp task depend(in:trhs[ji*nb:ji*nb+nb]) \
-//                  depend(in:dup[it*nb:(it*nb+nb)]) \
-//                  depend(inout:ttpup[ji*nb:ji*nb+nb])
-                 {
-            plasma_complex64_t dlj = dl[fb*nb + ji];
-                for(int ii = 0; ii < nb; ++ii)
-                {
-                    if ( creal( dr[it*nb + ii] ) <= 1.0)
-                        (TPUP(fb, it))[ji*nb + ii] = (RHS(fb, it))[ji*nb + ii] + dr[it*nb + ii] * dl[fb*nb + ji] * (TPUP(fb, it))[ji*nb + ii];
-                    else
-                        (TPUP(fb, it))[ji*nb + ii] = dup[it*nb + ii] * (RHS(fb, it))[ji*nb + ii] + dlj * (TPUP(fb, it))[ji*nb + ii];
-                        
-                }
-                 }
-            }
-            //REMAINDER
-             plasma_complex64_t* trhs = (RHS(fb, fb));
-                plasma_complex64_t* ttpup = (TPUP(fb, fb));
-                int ld = nsize - fb*nb;
-// #pragma omp task depend(in:trhs[ji*ld:ji*ld + ld]) \
-//                  depend(in:dup[fb*nb:(fb*nb+ld)]) \
-//                  depend(inout:ttpup[ji*ld:ji*ld + ld])
-            {
-            plasma_complex64_t dlj = dl[fb*nb + ji];
-                for(int ii = 0; ii < nsize - fb*nb; ++ii)
-                {
-                    if ( creal( dr[fb*nb + ii] ) <= 1.0)
-                        (TPUP(fb, fb))[ji*ld + ii] = (RHS(fb, fb))[ji*ld + ii] + dr[fb*nb + ii] * dl[fb*nb + ji] * (TPUP(fb, fb))[ji*ld + ii];
-                    else
-                        (TPUP(fb, fb))[ji*ld + ii] = dup[fb*nb + ii] * (RHS(fb, fb))[ji*ld + ii] + dlj * (TPUP(fb, fb))[ji*ld + ii];
-                        
-                }
-            }
-        }
-        else
-        {
-            for(int it = 0; it < fb; ++it)
-            {
-                plasma_complex64_t* trhs = (RHS(fb, it));
-                plasma_complex64_t* ttpup = (TPUP(fb, it));
-// #pragma omp task depend(in:trhs[ji*nb:ji*nb+nb]) \
-//                  depend(in:dup[it*nb:(it*nb+nb)]) \
-//                  depend(inout:ttpup[ji*nb:ji*nb+nb])
-                 {
-            plasma_complex64_t dlj = 1.0/dl[fb*nb + ji];
-                for(int ii = 0; ii < tpup->nb; ++ii)
-                {
-                    if ( creal( dr[it*nb + ii] ) <= 1.0)
-                        (TPUP(fb, it))[ji*nb + ii] = dlj * (RHS(fb, it))[ji*nb + ii] + dup[it*nb + ii] * (TPUP(fb, it))[ji*nb + ii];
-                    else
-                        (TPUP(fb, it))[ji*nb + ii] = (RHS(fb, it))[ji*nb + ii]/dr[it*nb + ii]/dl[fb*nb + ji] + (TPUP(fb, it))[ji*nb + ii];
-                }
-                 }
-            }
-            //REMAINDER
-                plasma_complex64_t* trhs = (RHS(fb, fb));
-                plasma_complex64_t* ttpup = (TPUP(fb, fb));
-                int ld = nsize - fb*nb;
-// #pragma omp task depend(in:trhs[ji*ld:ji*ld + ld]) \
-//                  depend(in:dup[fb*nb:(fb*nb+ld)]) \
-//                  depend(inout:ttpup[ji*ld:ji*ld + ld])
-            {
-                plasma_complex64_t dlj = 1.0/dl[fb*nb + ji];
-                for(int ii = 0; ii < ld; ++ii)
-                {
-                    if ( creal( dr[fb*nb + ii] ) <= 1.0)
-                        (TPUP(fb, fb))[ji*ld + ii] = dlj * (RHS(fb, fb))[ji*ld + ii] + dup[fb*nb + ii] * (TPUP(fb, fb))[ji*ld + ii];
-                    else
-                        (TPUP(fb, fb))[ji*ld + ii] = (RHS(fb, fb))[ji*ld + ii]/dr[fb*nb + ii]/dl[fb*nb + ji] + (TPUP(fb, fb))[ji*ld + ii];
-                }
-            }
-        }
-    }
-}
-    
-}
+//                  {
+//             plasma_complex64_t dlj = 1.0/dl[jt*nb + ji];
+//                 for(int ii = 0; ii < tpup->nb; ++ii)
+//                 {
+//                     if ( creal( dr[it*nb + ii] ) <= 1.0)
+//                         (TPUP(jt, it))[ji*nb + ii] = dlj * (RHS(jt, it))[ji*nb + ii] + dup[it*nb + ii] * (TPUP(jt, it))[ji*nb + ii];
+//                     else
+//                         (TPUP(jt, it))[ji*nb + ii] = (RHS(jt, it))[ji*nb + ii]/dr[it*nb + ii]/dl[jt*nb + ji] + (TPUP(jt, it))[ji*nb + ii];
+//                 }
+//                  }
+//             }
+//             //REMAINDER
+//                 plasma_complex64_t* trhs = (RHS(jt, fb));
+//                 plasma_complex64_t* ttpup = (TPUP(jt, fb));
+//                 int ld = nsize - fb*nb;
+// // #pragma omp task depend(in:trhs[ji*ld:ji*ld + ld]) \
+// //                  depend(in:dup[fb*nb:(fb*nb+ld)]) \
+// //                  depend(inout:ttpup[ji*ld:ji*ld + ld])
+//             {
+//             plasma_complex64_t dlj = 1.0/dl[jt*nb + ji];
+//                 int ld = nsize - fb*nb;
+//                 for(int ii = 0; ii < ld; ++ii)
+//                 {
+//                     if ( creal( dr[fb*nb + ii] ) <= 1.0)
+//                         (TPUP(jt, fb))[ji*ld + ii] = dlj * (RHS(jt, fb))[ji*ld + ii] + dup[fb*nb + ii] * (TPUP(jt, fb))[ji*ld + ii];
+//                     else
+//                         (TPUP(jt, fb))[ji*ld + ii] = (RHS(jt, fb))[ji*ld + ii]/dr[fb*nb + ii]/dl[jt*nb + ji] + (TPUP(jt, fb))[ji*ld + ii];
+//                 }
+//             }
+//         }
+//     }
+// }
+// //Loop remainder
+// {
+//     for(int ji = 0; ji < nsize - fb*nb; ++ji)
+//     {
+//         if(creal(dl[fb*nb + ji]) <= 1.0 )
+//         {
+//             for(int it = 0; it < fb; ++it)
+//             {
+//                 plasma_complex64_t* trhs = (RHS(fb, it));
+//                 plasma_complex64_t* ttpup = (TPUP(fb, it));
+// // #pragma omp task depend(in:trhs[ji*nb:ji*nb+nb]) \
+// //                  depend(in:dup[it*nb:(it*nb+nb)]) \
+// //                  depend(inout:ttpup[ji*nb:ji*nb+nb])
+//                  {
+//             plasma_complex64_t dlj = dl[fb*nb + ji];
+//                 for(int ii = 0; ii < nb; ++ii)
+//                 {
+//                     if ( creal( dr[it*nb + ii] ) <= 1.0)
+//                         (TPUP(fb, it))[ji*nb + ii] = (RHS(fb, it))[ji*nb + ii] + dr[it*nb + ii] * dl[fb*nb + ji] * (TPUP(fb, it))[ji*nb + ii];
+//                     else
+//                         (TPUP(fb, it))[ji*nb + ii] = dup[it*nb + ii] * (RHS(fb, it))[ji*nb + ii] + dlj * (TPUP(fb, it))[ji*nb + ii];
+//                         
+//                 }
+//                  }
+//             }
+//             //REMAINDER
+//              plasma_complex64_t* trhs = (RHS(fb, fb));
+//                 plasma_complex64_t* ttpup = (TPUP(fb, fb));
+//                 int ld = nsize - fb*nb;
+// // #pragma omp task depend(in:trhs[ji*ld:ji*ld + ld]) \
+// //                  depend(in:dup[fb*nb:(fb*nb+ld)]) \
+// //                  depend(inout:ttpup[ji*ld:ji*ld + ld])
+//             {
+//             plasma_complex64_t dlj = dl[fb*nb + ji];
+//                 for(int ii = 0; ii < nsize - fb*nb; ++ii)
+//                 {
+//                     if ( creal( dr[fb*nb + ii] ) <= 1.0)
+//                         (TPUP(fb, fb))[ji*ld + ii] = (RHS(fb, fb))[ji*ld + ii] + dr[fb*nb + ii] * dl[fb*nb + ji] * (TPUP(fb, fb))[ji*ld + ii];
+//                     else
+//                         (TPUP(fb, fb))[ji*ld + ii] = dup[fb*nb + ii] * (RHS(fb, fb))[ji*ld + ii] + dlj * (TPUP(fb, fb))[ji*ld + ii];
+//                         
+//                 }
+//             }
+//         }
+//         else
+//         {
+//             for(int it = 0; it < fb; ++it)
+//             {
+//                 plasma_complex64_t* trhs = (RHS(fb, it));
+//                 plasma_complex64_t* ttpup = (TPUP(fb, it));
+// // #pragma omp task depend(in:trhs[ji*nb:ji*nb+nb]) \
+// //                  depend(in:dup[it*nb:(it*nb+nb)]) \
+// //                  depend(inout:ttpup[ji*nb:ji*nb+nb])
+//                  {
+//             plasma_complex64_t dlj = 1.0/dl[fb*nb + ji];
+//                 for(int ii = 0; ii < tpup->nb; ++ii)
+//                 {
+//                     if ( creal( dr[it*nb + ii] ) <= 1.0)
+//                         (TPUP(fb, it))[ji*nb + ii] = dlj * (RHS(fb, it))[ji*nb + ii] + dup[it*nb + ii] * (TPUP(fb, it))[ji*nb + ii];
+//                     else
+//                         (TPUP(fb, it))[ji*nb + ii] = (RHS(fb, it))[ji*nb + ii]/dr[it*nb + ii]/dl[fb*nb + ji] + (TPUP(fb, it))[ji*nb + ii];
+//                 }
+//                  }
+//             }
+//             //REMAINDER
+//                 plasma_complex64_t* trhs = (RHS(fb, fb));
+//                 plasma_complex64_t* ttpup = (TPUP(fb, fb));
+//                 int ld = nsize - fb*nb;
+// // #pragma omp task depend(in:trhs[ji*ld:ji*ld + ld]) \
+// //                  depend(in:dup[fb*nb:(fb*nb+ld)]) \
+// //                  depend(inout:ttpup[ji*ld:ji*ld + ld])
+//             {
+//                 plasma_complex64_t dlj = 1.0/dl[fb*nb + ji];
+//                 for(int ii = 0; ii < ld; ++ii)
+//                 {
+//                     if ( creal( dr[fb*nb + ii] ) <= 1.0)
+//                         (TPUP(fb, fb))[ji*ld + ii] = dlj * (RHS(fb, fb))[ji*ld + ii] + dup[fb*nb + ii] * (TPUP(fb, fb))[ji*ld + ii];
+//                     else
+//                         (TPUP(fb, fb))[ji*ld + ii] = (RHS(fb, fb))[ji*ld + ii]/dr[fb*nb + ii]/dl[fb*nb + ji] + (TPUP(fb, fb))[ji*ld + ii];
+//                 }
+//             }
+//         }
+//     }
+// }

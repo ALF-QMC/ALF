@@ -315,7 +315,7 @@ call plasma_omp_zge2desc(udvl%V(1,1), N_size, descB1, seq, req)
 
 call plasma_omp_zgemm(PlasmaNoTrans, PlasmaNoTrans, alpha, descA1, descB1, beta, descC1, seq, req)
 
-!$omp task depend(out:DUP(0:N_size) )
+!!!$omp task depend(out:DUP(0:N_size) )
         !missuse DUP(I) as DR(I) for temporary storage
         !scales in D are assumed to be real and positive
         DO I = 1,N_size
@@ -325,43 +325,63 @@ call plasma_omp_zgemm(PlasmaNoTrans, PlasmaNoTrans, alpha, descA1, descB1, beta,
             DUP(I)=1.d0/udvr%D(I)
           endif
         ENDDO
-!$omp end task
-
-call applylrscales(c_loc(udvl%D), c_loc(udvr%D), c_loc(DUP), descC1, descC, n_size)
+!!!$omp end task
 
 ! translate back
 ! translate back
 call plasma_omp_zdesc2ge(descC, RHS(1,1), N_size, seq, req)
 
 call plasma_omp_zdesc2ge(descC1, TPUP(1,1), N_size, seq, req)
-        
+
 !$omp end master
 !$omp end parallel
+! ! 
+! ! 
+! ! 
+! ! !$omp parallel
+! ! !$omp master
 
+!!!$omp taskwait
+
+! ! call applylrscales(c_loc(udvl%D), c_loc(udvr%D), c_loc(DUP), descC1, descC, n_size)
+! ! 
+! ! call plasma_omp_zdesc2ge(descC, RHS(1,1), N_size, seq, req)
+! ! 
+! ! call plasma_omp_zdesc2ge(descC1, TPUP(1,1), N_size, seq, req)
+! ! 
+! ! !$omp end master
+! ! !$omp end parallel
+
+! ! write (*,*) TPUP(1,:)
+! ! write (*,*) TPUP(:,1)
+! ! write (*,*) "============================="
+! ! 
+! ! TPUP = TMP1
+! ! RHS = TMP
 ! write (*,*) udvl%D(1), udvr%D(1), DUP(1)
         
 
-!         DO J = 1,N_size
-!           If( dble(udvl%D(J))<=1.d0) then
-!             DLJ=udvl%D(J)
-!             DO I = 1,N_size
-!               If( dble(udvr%D(I))<=1.d0 ) then
-!                 TPUP(I,J) = RHS(I,J)+udvr%D(I)*udvl%D(J)*TPUP(I,J)
-!               else
-!                 TPUP(I,J) = DUP(I)*RHS(I,J) + DLJ*TPUP(I,J)
-!               endif
-!             ENDDO
-!           else
-!             DLJ=1.d0/udvl%D(J)
-!             DO I = 1,N_size
-!               If( dble(udvr%D(I))<=1.d0 ) then
-!                 TPUP(I,J) = DLJ*RHS(I,J)+DUP(I)*TPUP(I,J)
-!               else
-!                 TPUP(I,J) = RHS(I,J)/udvr%D(I)/udvl%D(J)+TPUP(I,J)
-!               endif
-!             ENDDO
-!           endif
-!         ENDDO
+        DO J = 1,N_size
+          If( dble(udvl%D(J))<=1.d0) then
+            DLJ=udvl%D(J)
+            DO I = 1,N_size
+              If( dble(udvr%D(I))<=1.d0 ) then
+                TPUP(I,J) = RHS(I,J)+udvr%D(I)*udvl%D(J)*TPUP(I,J)
+              else
+                TPUP(I,J) = DUP(I)*RHS(I,J) + DLJ*TPUP(I,J)
+              endif
+            ENDDO
+          else
+            DLJ=1.d0/udvl%D(J)
+            DO I = 1,N_size
+              If( dble(udvr%D(I))<=1.d0 ) then
+                TPUP(I,J) = DLJ*RHS(I,J)+DUP(I)*TPUP(I,J)
+              else
+                TPUP(I,J) = RHS(I,J)/udvr%D(I)/udvl%D(J)+TPUP(I,J)
+              endif
+            ENDDO
+          endif
+        ENDDO
 
 write (*,*) TPUP(1,:)
 write (*,*) TPUP(:,1)
