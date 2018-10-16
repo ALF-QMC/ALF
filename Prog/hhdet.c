@@ -46,6 +46,37 @@ void hhdet(plasma_desc_t* T, plasma_complex64_t* phase, int* nvar, int* N_size)
 }
 
 #include <stdio.h>
+/**
+ * 
+ * @param maxj
+ * @param maxi
+ * @param nb corresponds to the leading dimension of the tile is either the tile block width for full tiles or the remainder for border tiles
+ * */
+void tile_kernel(plasma_complex64_t* tpup, plasma_complex64_t* rhs, plasma_complex64_t* dl, plasma_complex64_t* dr, plasma_complex64_t* dup, int maxj, int maxi, const int nb)
+{
+    for(int ji = 0; ji < maxj; ++ji)
+            {
+                for(int ii = 0; ii < maxi; ++ii)
+                {
+                    if (creal(dl[ji]) <= 1.0)
+                    {
+                        plasma_complex64_t dlj = dl[ji];
+                        if (creal( dr[ii] ) <= 1.0)
+                            tpup[ji*nb + ii] = rhs[ji*nb + ii] + dr[ii] * dl[ji] * tpup[ji*nb + ii];
+                        else
+                            tpup[ji*nb + ii] = dup[ii] * rhs[ji*nb + ii] + dlj * tpup[ji*nb + ii];
+                    }
+                    else
+                    {
+                        plasma_complex64_t dlj = 1.0/dl[ji];
+                        if (creal( dr[ii] ) <= 1.0)
+                            tpup[ji*nb + ii] = dlj * rhs[ji*nb + ii] + dup[ii] * tpup[ji*nb + ii];
+                        else
+                            tpup[ji*nb + ii] = rhs[ji*nb + ii]/dr[ii]/dl[ji] + tpup[ji*nb + ii];
+                    }
+                }
+            }
+}
 
 #define TPUP(m, n) (plasma_complex64_t*)plasma_tile_addr_general(*tpup, m, n)
 #define RHS(m, n) (plasma_complex64_t*)plasma_tile_addr_general(*rhs, m, n)
@@ -53,7 +84,7 @@ void hhdet(plasma_desc_t* T, plasma_complex64_t* phase, int* nvar, int* N_size)
 /* Apply left and right scales.
  * tpup are assumed to be identical square matrices
  */
-void applylrscales(plasma_complex64_t* dl, plasma_complex64_t* dr, plasma_complex64_t* dup, plasma_desc_t* tpup, plasma_desc_t* rhs, int nsize)
+void applylrscales(plasma_complex64_t* dl, plasma_complex64_t* dr, plasma_complex64_t* dup, plasma_desc_t* tpup, plasma_desc_t* rhs, const int nsize)
 {
     /* Original Fortran Code as reference
      *  DO J = 1,N_size
@@ -82,17 +113,52 @@ int fb = nsize/nb;
 plasma_complex64_t* tpupptr = tpup->matrix;
 plasma_complex64_t* rhsptr = rhs->matrix;
 const int nt = nsize/nb;
-#pragma omp task depend(in:dup[0:nsize]) depend(inout:tpupptr[0:nsize*nsize]) depend(inout:rhsptr[0:nsize*nsize])
+const int ld = nsize - fb*nb;
+printf("ndim = %i, block size %i\n", nsize, nb);
+// #pragma omp task depend(in:dup[0:nsize]) depend(inout:tpupptr[0:nsize*nsize]) depend(inout:rhsptr[0:nsize*nsize])
 {
-    for(int jt = 0; jt < nt; ++jt)
+    for(int jt = 0; jt < nt; ++jt) // jt:= j-tile, it := i-tile, ji: = j-inner, ii := i-inner
     {
         for(int it = 0; it < nt; ++it)
         {
             plasma_complex64_t* trhs = (RHS(jt, it));
             plasma_complex64_t* ttpup = (TPUP(jt, it));
+            printf("IJ jt = %i, it = %i\n", jt, it);
+            printf("IJ maxjdim = %i\n", jt*nb + nb);
+            printf("IJ maxidim = %i\n", it*nb + nb);
+            tile_kernel(ttpup, trhs, dl + jt*nb, dr + it*nb, dup + it*nb, nb, nb, nb);
+        }
+        //remainder loop along the i-axis
+        if(ld > 0)
+        {
+            plasma_complex64_t* trhs = (RHS(jt, fb));
+            plasma_complex64_t* ttpup = (TPUP(jt, fb));
+            printf("iJ jt = %i, it = %i\n", jt, fb);
+            printf("iJ maxjdim = %i\n", jt*nb + nb);
+            printf("iJ maxidim = %i\n", fb*nb + ld);
+            tile_kernel(ttpup, trhs, dl + jt*nb, dr + fb*nb, dup + fb*nb, nb, ld, ld);
         }
     }
-
+    //remainder loop along the j axis
+    if(ld > 0)
+    {
+        for(int it = 0; it < nt; ++it)
+        {
+            plasma_complex64_t* trhs = (RHS(fb, it));
+            plasma_complex64_t* ttpup = (TPUP(fb, it));
+            printf("Ji jt = %i, it = %i\n", fb, it);
+            printf("Ji maxjdim = %i\n", fb*nb + ld);
+            printf("Ji maxidim = %i\n", it*nb + nb);
+            tile_kernel(ttpup, trhs, dl + fb*nb, dr + it*nb, dup + it*nb, nb, ld, ld);
+        }
+        //remainder loop along the i and j axis
+        plasma_complex64_t* trhs = (RHS(fb, fb));
+        plasma_complex64_t* ttpup = (TPUP(fb, fb));
+                printf("ji jt = %i, it = %i\n", fb, fb);
+            printf("ji maxjdim = %i\n", fb*nb + ld);
+            printf("ji maxidim = %i\n", fb*nb + ld);
+        tile_kernel(ttpup, trhs, dl + fb*nb, dr + fb*nb, dup + fb*nb, ld, ld, ld);
+    }
 }
 }
 
