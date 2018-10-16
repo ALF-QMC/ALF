@@ -121,8 +121,8 @@ printf("ndim = %i, block size %i\n", nsize, nb);
     {
         for(int it = 0; it < nt; ++it)
         {
-            plasma_complex64_t* trhs = (RHS(jt, it));
-            plasma_complex64_t* ttpup = (TPUP(jt, it));
+            plasma_complex64_t* trhs = (RHS(it, jt));
+            plasma_complex64_t* ttpup = (TPUP(it, jt));
             printf("IJ jt = %i, it = %i\n", jt, it);
             printf("IJ maxjdim = %i\n", jt*nb + nb);
             printf("IJ maxidim = %i\n", it*nb + nb);
@@ -131,8 +131,8 @@ printf("ndim = %i, block size %i\n", nsize, nb);
         //remainder loop along the i-axis
         if(ld > 0)
         {
-            plasma_complex64_t* trhs = (RHS(jt, fb));
-            plasma_complex64_t* ttpup = (TPUP(jt, fb));
+            plasma_complex64_t* trhs = (RHS(fb, jt));
+            plasma_complex64_t* ttpup = (TPUP(fb, jt));
             printf("iJ jt = %i, it = %i\n", jt, fb);
             printf("iJ maxjdim = %i\n", jt*nb + nb);
             printf("iJ maxidim = %i\n", fb*nb + ld);
@@ -144,8 +144,8 @@ printf("ndim = %i, block size %i\n", nsize, nb);
     {
         for(int it = 0; it < nt; ++it)
         {
-            plasma_complex64_t* trhs = (RHS(fb, it));
-            plasma_complex64_t* ttpup = (TPUP(fb, it));
+            plasma_complex64_t* trhs = (RHS(it, fb));
+            plasma_complex64_t* ttpup = (TPUP(it, fb));
             printf("Ji jt = %i, it = %i\n", fb, it);
             printf("Ji maxjdim = %i\n", fb*nb + ld);
             printf("Ji maxidim = %i\n", it*nb + nb);
