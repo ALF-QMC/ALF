@@ -179,7 +179,7 @@
         !Arguments.
 !         COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(IN)   ::  URUP, VRUP, ULUP, VLUP
 !         COMPLEX(Kind=Kind(0.d0)), Dimension(:),   Intent(IN)   ::  DLUP, DRUP
-        CLASS(UDV_State), INTENT(IN), pointer :: udvl, udvr ! For unknown reasons the arrays to plasma_zgemm are inout
+        CLASS(UDV_State), INTENT(IN), pointer :: udvl, udvr
         COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(INOUT) :: GRUP
         COMPLEX(Kind=Kind(0.d0)), Intent(INOUT) :: PHASE
         INTEGER         :: NVAR
@@ -226,6 +226,8 @@
         COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK
         LOGICAL :: FORWRD
         type(plasma_desc_t) :: descT, descA, descB, descA1, descB1, descC, descC1
+        type(c_ptr) :: cptr, c1ptr
+        COMPLEX(Kind=Kind(0.d0)), Dimension(:), POINTER :: rhsptr, tpupptr
         type(plasma_sequence_t) :: seq
         type(plasma_request_t) :: req
         type(plasma_context_t), pointer :: ctx
@@ -249,6 +251,12 @@
         beta = 0.D0
         Allocate(TPUP(N_size,N_size), RHS(N_size, N_size), IPVT(N_size), TAU(N_size), DUP(N_size))
         Allocate(TMP(N_size, N_size), TMP1(N_size, N_size))
+        
+        write (*,*) udvr%U(1,:)
+        write (*,*) udvl%U(1,:)
+        write (*,*) udvr%V(1,:)
+        write (*,*) udvl%V(1,:)
+        write  (*,*) "=================="
 
         !CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, udvr%U, N_size, udvl%U, N_size, beta, RHS(1, 1), N_size)
 !         call plasma_zgemm(PlasmaConjTrans, PlasmaNoTrans, N_size, N_size, N_size, alpha, udvr%U(1,1),&
@@ -270,13 +278,14 @@
         ! init sequence and requests
         call plasma_sequence_init(seq, info)
         call plasma_request_init(req, info)
+        call flush
 !$omp parallel
 !$omp master
 
 ! translate to tile layout
 
-call plasma_omp_zge2desc(udvr%U(1,1), N_size, descA, seq, req)
-call plasma_omp_zge2desc(udvl%U(1,1), N_size, descB, seq, req)
+call plasma_omp_zge2desc(udvr%U, N_size, descA, seq, req)
+call plasma_omp_zge2desc(udvl%U, N_size, descB, seq, req)
 
 call plasma_omp_zgemm(PlasmaConjTrans, PlasmaNoTrans, alpha, descA, descB, beta, descC, seq, req)
 
@@ -310,14 +319,14 @@ call plasma_omp_zgemm(PlasmaConjTrans, PlasmaNoTrans, alpha, descA, descB, beta,
 
 ! translate to tile layout
 
-call plasma_omp_zge2desc(udvr%V(1,1), N_size, descA1, seq, req)
-call plasma_omp_zge2desc(udvl%V(1,1), N_size, descB1, seq, req)
+call plasma_omp_zge2desc(udvr%V, N_size, descA1, seq, req)
+call plasma_omp_zge2desc(udvl%V, N_size, descB1, seq, req)
 
 call plasma_omp_zgemm(PlasmaNoTrans, PlasmaNoTrans, alpha, descA1, descB1, beta, descC1, seq, req)
 
-!!!$omp task depend(out:DUP(0:N_size) )
-        !missuse DUP(I) as DR(I) for temporary storage
-        !scales in D are assumed to be real and positive
+! ! !$omp task depend(out:DUP(0:N_size) )
+        ! missuse DUP(I) as DR(I) for temporary storage
+        ! scales in D are assumed to be real and positive
         DO I = 1,N_size
           If( dble(udvr%D(I))<=1.d0 ) then
             DUP(I)=udvr%D(I)
@@ -325,67 +334,67 @@ call plasma_omp_zgemm(PlasmaNoTrans, PlasmaNoTrans, alpha, descA1, descB1, beta,
             DUP(I)=1.d0/udvr%D(I)
           endif
         ENDDO
-!!!$omp end task
+write(*,*) "task for DUP finished"
+call flush
+! ! !$omp end task
 
-! translate back
-! translate back
-call plasma_omp_zdesc2ge(descC, RHS(1,1), N_size, seq, req)
+! ! !$omp taskwait
 
-call plasma_omp_zdesc2ge(descC1, TPUP(1,1), N_size, seq, req)
+! !   cptr = descC%matrix
+! !   c1ptr = descC1%matrix
+! !   call c_f_pointer(cptr, rhsptr, [N_size*N_Size])
+! !   call c_f_pointer(c1ptr, tpupptr, [N_size*N_Size])
+
+!$omp taskwait
+! ! !$omp task depend(inout:rhsptr(0:N_size*N_Size)) depend(inout:tpupptr(0:N_size*N_size))
+call applylrscales(c_loc(udvl%D), c_loc(udvr%D), c_loc(DUP), descC1, descC, n_size)
+! ! !$omp end task
+
+call plasma_omp_zdesc2ge(descC, RHS, N_size, seq, req)
+
+call plasma_omp_zdesc2ge(descC1, TPUP, N_size, seq, req)
 
 !$omp end master
 !$omp end parallel
-! ! 
-! ! 
-! ! 
-! ! !$omp parallel
-! ! !$omp master
 
-!!!$omp taskwait
+write (*,*) TPUP(1,:)
+write(*,*) TPUP(2,:)
+write (*,*) TPUP(:,1)
+write (*,*) "============================="
 
-! ! call applylrscales(c_loc(udvl%D), c_loc(udvr%D), c_loc(DUP), descC1, descC, n_size)
-! ! 
-! ! call plasma_omp_zdesc2ge(descC, RHS(1,1), N_size, seq, req)
-! ! 
-! ! call plasma_omp_zdesc2ge(descC1, TPUP(1,1), N_size, seq, req)
-! ! 
-! ! !$omp end master
-! ! !$omp end parallel
-
-! ! write (*,*) TPUP(1,:)
-! ! write (*,*) TPUP(:,1)
-! ! write (*,*) "============================="
+write (*,*) TPUP(n_size, :)
+write (*,*) TPUP(:, N_size)
 ! ! 
 ! ! TPUP = TMP1
 ! ! RHS = TMP
 ! write (*,*) udvl%D(1), udvr%D(1), DUP(1)
         
 
-        DO J = 1,N_size
-          If( dble(udvl%D(J))<=1.d0) then
-            DLJ=udvl%D(J)
-            DO I = 1,N_size
-              If( dble(udvr%D(I))<=1.d0 ) then
-                TPUP(I,J) = RHS(I,J)+udvr%D(I)*udvl%D(J)*TPUP(I,J)
-              else
-                TPUP(I,J) = DUP(I)*RHS(I,J) + DLJ*TPUP(I,J)
-              endif
-            ENDDO
-          else
-            DLJ=1.d0/udvl%D(J)
-            DO I = 1,N_size
-              If( dble(udvr%D(I))<=1.d0 ) then
-                TPUP(I,J) = DLJ*RHS(I,J)+DUP(I)*TPUP(I,J)
-              else
-                TPUP(I,J) = RHS(I,J)/udvr%D(I)/udvl%D(J)+TPUP(I,J)
-              endif
-            ENDDO
-          endif
-        ENDDO
-
-write (*,*) TPUP(1,:)
-write (*,*) TPUP(:,1)
-write (*,*) "============================="
+!         DO J = 1,N_size
+!           If( dble(udvl%D(J))<=1.d0) then
+!             DLJ=udvl%D(J)
+!             DO I = 1,N_size
+!               If( dble(udvr%D(I))<=1.d0 ) then
+!                 TPUP(I,J) = RHS(I,J)+udvr%D(I)*udvl%D(J)*TPUP(I,J)
+!               else
+!                 TPUP(I,J) = DUP(I)*RHS(I,J) + DLJ*TPUP(I,J)
+!               endif
+!             ENDDO
+!           else
+!             DLJ=1.d0/udvl%D(J)
+!             DO I = 1,N_size
+!               If( dble(udvr%D(I))<=1.d0 ) then
+!                 TPUP(I,J) = DLJ*RHS(I,J)+DUP(I)*TPUP(I,J)
+!               else
+!                 TPUP(I,J) = RHS(I,J)/udvr%D(I)/udvl%D(J)+TPUP(I,J)
+!               endif
+!             ENDDO
+!           endif
+!         ENDDO
+! 
+! write (*,*) TPUP(1,:)
+! write (*,*) TPUP(:,1)
+! write (*,*) "============================="
 
 
 STOP
