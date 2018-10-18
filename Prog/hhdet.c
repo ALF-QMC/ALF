@@ -109,72 +109,54 @@ void applylrscales(plasma_complex64_t* dl, plasma_complex64_t* dr, plasma_comple
         ENDDO
         ENDDO
      */
-
 const int nb = tpup->nb;
 int fb = nsize/nb;
-plasma_complex64_t* tpupptr = (TPUP(0, 0));
-plasma_complex64_t* rhsptr = (RHS(0, 0));
 const int nt = nsize/nb;
 const int ld = nsize - fb*nb;
-printf("ndim = %i, block size %i\n", nsize, nb);
-// #pragma omp taskwait
-// #pragma omp task depend(in:dup[0:nsize]) depend(inout:tpupptr[:nsize*nsize]) depend(inout:rhsptr[:nsize*nsize])
-{
     for(int jt = 0; jt < nt; ++jt) // jt:= j-tile, it := i-tile, ji: = j-inner, ii := i-inner
     {
         for(int it = 0; it < nt; ++it)
         {
             plasma_complex64_t* trhs = (RHS(it, jt));
             plasma_complex64_t* ttpup = (TPUP(it, jt));
-            plasma_complex64_t* dlptr = dl + jt*nb;
-            plasma_complex64_t* drptr = dr + it*nb;
             plasma_complex64_t* dupptr = dup + it*nb;
-            printf("IJ jt = %i, it = %i\n", jt, it);
-            printf("IJ maxjdim = %i\n", jt*nb + nb);
-            printf("IJ maxidim = %i\n", it*nb + nb);
-// // #pragma omp task depend(in:dupptr[0:nb]) depend(inout:ttpup[0:nb*nb]) depend(inout:trhs[0:nb*nb])
+#pragma omp task depend(in:dupptr[0:nb]) depend(inout:ttpup[0:nb*nb]) depend(inout:trhs[0:nb*nb])
             {
-                printf("Hi, I'm %i", omp_get_thread_num());
-            tile_kernel(ttpup, trhs, dl + jt*nb, dr + it*nb, dup + it*nb, nb, nb, nb);
+                tile_kernel(ttpup, trhs, dl + jt*nb, dr + it*nb, dup + it*nb, nb, nb, nb);
             }
         }
-        //remainder loop along the i-axis
+        //remainder loop along the i-axis... lower left?
         if(ld > 0)
         {
             plasma_complex64_t* trhs = (RHS(fb, jt));
             plasma_complex64_t* ttpup = (TPUP(fb, jt));
-            plasma_complex64_t* dlptr = dl + jt*nb;
-            plasma_complex64_t* drptr = dr + fb*nb;
             plasma_complex64_t* dupptr = dup + fb*nb;
-            printf("iJ jt = %i, it = %i\n", jt, fb);
-            printf("iJ maxjdim = %i\n", jt*nb + nb);
-            printf("iJ maxidim = %i\n", fb*nb + ld);
-//#pragma omp task depend(in:dupptr[0:ld]) depend(inout:ttpup[0:ld*nb]) depend(inout:trhs[0:ld*nb])
+#pragma omp task depend(in:dupptr[0:nb]) depend(inout:ttpup[0:ld*nb]) depend(inout:trhs[0:ld*nb])
             {
-                printf("Hi, I'm %i", omp_get_thread_num());   
-            tile_kernel(ttpup, trhs, dl + jt*nb, dr + fb*nb, dup + fb*nb, nb, ld, ld);
+                tile_kernel(ttpup, trhs, dl + jt*nb, dr + fb*nb, dup + fb*nb, ld, nb, nb);
             }
         }
     }
-    //remainder loop along the j axis
+    //remainder loop along the j axis ... upper right?
     if(ld > 0)
     {
         for(int it = 0; it < nt; ++it)
         {
             plasma_complex64_t* trhs = (RHS(it, fb));
             plasma_complex64_t* ttpup = (TPUP(it, fb));
-            printf("Ji jt = %i, it = %i\n", fb, it);
-            printf("Ji maxjdim = %i\n", fb*nb + ld);
-            printf("Ji maxidim = %i\n", it*nb + nb);
-            tile_kernel(ttpup, trhs, dl + fb*nb, dr + it*nb, dup + it*nb, nb, ld, ld);
+            plasma_complex64_t* dupptr = dup + it*nb;
+#pragma omp task depend(in:dupptr[0:ld]) depend(inout:ttpup[0:ld*nb]) depend(inout:trhs[0:ld*nb])
+            {
+                tile_kernel(ttpup, trhs, dl + fb*nb, dr + it*nb, dup + it*nb, nb, ld, ld);
+            }
         }
         //remainder loop along the i and j axis
         plasma_complex64_t* trhs = (RHS(fb, fb));
         plasma_complex64_t* ttpup = (TPUP(fb, fb));
-                printf("ji jt = %i, it = %i\n", fb, fb);
-            printf("ji maxjdim = %i\n", fb*nb + ld);
-            printf("ji maxidim = %i\n", fb*nb + ld);
-        tile_kernel(ttpup, trhs, dl + fb*nb, dr + fb*nb, dup + fb*nb, ld, ld, ld);
+        plasma_complex64_t* dupptr = dup + fb*nb;
+#pragma omp task depend(in:dupptr[0:ld]) depend(inout:ttpup[0:ld*ld]) depend(inout:trhs[0:ld*ld])
+        {
+            tile_kernel(ttpup, trhs, dl + fb*nb, dr + fb*nb, dup + fb*nb, ld, ld, ld);
+        }
     }
-}
 }
