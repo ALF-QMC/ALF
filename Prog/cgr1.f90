@@ -226,8 +226,6 @@
         COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK
         LOGICAL :: FORWRD
         type(plasma_desc_t) :: descT, descA, descB, descA1, descB1, descC, descC1
-        type(c_ptr) :: cptr, c1ptr
-        COMPLEX(Kind=Kind(0.d0)), Dimension(:), POINTER :: rhsptr, tpupptr
         type(plasma_sequence_t) :: seq
         type(plasma_request_t) :: req
         type(plasma_context_t), pointer :: ctx
@@ -287,44 +285,19 @@
 call plasma_omp_zge2desc(udvr%U, N_size, descA, seq, req)
 call plasma_omp_zge2desc(udvl%U, N_size, descB, seq, req)
 
+! schedule first multiplication
 call plasma_omp_zgemm(PlasmaConjTrans, PlasmaNoTrans, alpha, descA, descB, beta, descC, seq, req)
-
-! ! ! ! ! ! ! ! translate back
-! ! ! ! ! ! ! call plasma_omp_zdesc2ge(descC, RHS(1,1), N_size, seq, req)
-
-
-! ! ! ! ! ! !$omp end master
-! ! ! ! ! ! !$omp end parallel
-
-! ! call plasma_desc_destroy(descC, info)
-! ! call plasma_desc_destroy(descB, info)
-! ! call plasma_desc_destroy(descA, info)
-        
-        
-        
-        !CALL ZGEMM('N','N', N_size, N_size, N_size, alpha, udvr%V, N_size, udvl%V, N_size, beta, TPUP(1,1),N_size)
-!         call plasma_zgemm(PlasmaNoTrans, PlasmaNoTrans, N_size, N_size, N_size, alpha, udvr%V, N_size,&
-!         & udvl%V, N_size, beta, TPUP(1,1),N_size, info)
-
-        ! create tile storage
-! !         call plasma_desc_general_create(PlasmaComplexDouble, nb,nb, N_size, N_size,0,0,N_size, N_size, descA, info)
-! !         call plasma_desc_general_create(PlasmaComplexDouble, nb,nb, N_size, N_size,0,0,N_size, N_size, descB, info)
-! !         call plasma_desc_general_create(PlasmaComplexDouble, nb,nb, N_size, N_size,0,0,N_size, N_size, descC, info)
-        
-        ! init sequence and requests
-!         call plasma_sequence_init(seq, info)
-!         call plasma_request_init(req, info)
-! ! ! ! ! ! ! $omp parallel
-! ! ! ! ! ! ! $omp master
 
 ! translate to tile layout
 
 call plasma_omp_zge2desc(udvr%V, N_size, descA1, seq, req)
 call plasma_omp_zge2desc(udvl%V, N_size, descB1, seq, req)
 
+! schedule second product
 call plasma_omp_zgemm(PlasmaNoTrans, PlasmaNoTrans, alpha, descA1, descB1, beta, descC1, seq, req)
 
-! ! !$omp task depend(out:DUP(0:N_size) )
+! calculate the scales
+!$omp task depend(out:DUP(0:N_size) )
         ! missuse DUP(I) as DR(I) for temporary storage
         ! scales in D are assumed to be real and positive
         DO I = 1,N_size
@@ -334,22 +307,12 @@ call plasma_omp_zgemm(PlasmaNoTrans, PlasmaNoTrans, alpha, descA1, descB1, beta,
             DUP(I)=1.d0/udvr%D(I)
           endif
         ENDDO
-write(*,*) "task for DUP finished"
-call flush
-! ! !$omp end task
+!$omp end task
 
-! ! !$omp taskwait
-
-! !   cptr = descC%matrix
-! !   c1ptr = descC1%matrix
-! !   call c_f_pointer(cptr, rhsptr, [N_size*N_Size])
-! !   call c_f_pointer(c1ptr, tpupptr, [N_size*N_Size])
-
-!$omp taskwait
-! ! !$omp task depend(inout:rhsptr(0:N_size*N_Size)) depend(inout:tpupptr(0:N_size*N_size))
+! apply the scales in a stable manner
 call applylrscales(c_loc(udvl%D), c_loc(udvr%D), c_loc(DUP), descC1, descC, n_size)
-! ! !$omp end task
 
+! transform back to standard Lapack layout
 call plasma_omp_zdesc2ge(descC, RHS, N_size, seq, req)
 
 call plasma_omp_zdesc2ge(descC1, TPUP, N_size, seq, req)
