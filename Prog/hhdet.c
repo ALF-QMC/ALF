@@ -52,7 +52,7 @@ void hhdet(plasma_desc_t* T, plasma_complex64_t* phase, int* nvar, int* N_size)
  * @param maxi
  * @param nb corresponds to the leading dimension of the tile is either the tile block width for full tiles or the remainder for border tiles
  * */
-void tile_kernel(plasma_complex64_t* tpup, plasma_complex64_t* rhs, plasma_complex64_t* dl, plasma_complex64_t* dr, plasma_complex64_t* dup, int maxj, int maxi, const int nb)
+void tile_kernel(plasma_complex64_t* tpup, const plasma_complex64_t *const rhs, plasma_complex64_t* dl, plasma_complex64_t* dr, plasma_complex64_t* dup, int maxj, int maxi, const int nb)
 {
     for(int ji = 0; ji < maxj; ++ji)
             {
@@ -120,8 +120,9 @@ const int ld = nsize - fb*nb;
             plasma_complex64_t* trhs = (RHS(it, jt));
             plasma_complex64_t* ttpup = (TPUP(it, jt));
             plasma_complex64_t* dupptr = dup + it*nb;
-#pragma omp task depend(in:dupptr[0:nb]) depend(inout:ttpup[0:nb*nb]) depend(inout:trhs[0:nb*nb])
+#pragma omp task depend(in:dupptr[0:nb]) depend(inout:ttpup[0:nb*nb]) depend(in:trhs[0:nb*nb])
             {
+                printf("Hi, I'm %i\n", omp_get_thread_num());
                 tile_kernel(ttpup, trhs, dl + jt*nb, dr + it*nb, dup + it*nb, nb, nb, nb);
             }
         }
@@ -131,8 +132,9 @@ const int ld = nsize - fb*nb;
             plasma_complex64_t* trhs = (RHS(fb, jt));
             plasma_complex64_t* ttpup = (TPUP(fb, jt));
             plasma_complex64_t* dupptr = dup + fb*nb;
-#pragma omp task depend(in:dupptr[0:nb]) depend(inout:ttpup[0:ld*nb]) depend(inout:trhs[0:ld*nb])
+#pragma omp task depend(in:dupptr[0:nb]) depend(inout:ttpup[0:ld*nb]) depend(in:trhs[0:ld*nb])
             {
+                printf("Hi, I'm %i\n", omp_get_thread_num());
                 tile_kernel(ttpup, trhs, dl + jt*nb, dr + fb*nb, dup + fb*nb, ld, nb, nb);
             }
         }
@@ -145,8 +147,9 @@ const int ld = nsize - fb*nb;
             plasma_complex64_t* trhs = (RHS(it, fb));
             plasma_complex64_t* ttpup = (TPUP(it, fb));
             plasma_complex64_t* dupptr = dup + it*nb;
-#pragma omp task depend(in:dupptr[0:ld]) depend(inout:ttpup[0:ld*nb]) depend(inout:trhs[0:ld*nb])
+#pragma omp task depend(in:dupptr[0:ld]) depend(inout:ttpup[0:ld*nb]) depend(in:trhs[0:ld*nb])
             {
+                printf("Hi, I'm %i\n", omp_get_thread_num());
                 tile_kernel(ttpup, trhs, dl + fb*nb, dr + it*nb, dup + it*nb, nb, ld, ld);
             }
         }
@@ -154,9 +157,15 @@ const int ld = nsize - fb*nb;
         plasma_complex64_t* trhs = (RHS(fb, fb));
         plasma_complex64_t* ttpup = (TPUP(fb, fb));
         plasma_complex64_t* dupptr = dup + fb*nb;
-#pragma omp task depend(in:dupptr[0:ld]) depend(inout:ttpup[0:ld*ld]) depend(inout:trhs[0:ld*ld])
+#pragma omp task depend(in:dupptr[0:ld]) depend(inout:ttpup[0:ld*ld]) depend(in:trhs[0:ld*ld])
         {
+            printf("Hi, I'm %i\n", omp_get_thread_num());
             tile_kernel(ttpup, trhs, dl + fb*nb, dr + fb*nb, dup + fb*nb, ld, ld, ld);
         }
     }
+}
+
+void ludet(plasma_desc_t* rhs, const int nsize, plasma_complex64_t phase)
+{
+    phase = 1.0;
 }

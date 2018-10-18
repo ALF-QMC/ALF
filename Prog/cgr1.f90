@@ -212,6 +212,15 @@
             type(c_ptr), intent(in), value :: dup
           end subroutine
           
+          subroutine ludet(rhs, nsize, phase) bind(c)
+            use iso_c_binding
+            use plasma
+            implicit none
+            integer(c_int), value :: nsize
+            type(plasma_desc_t), intent(in) :: rhs
+            complex(kind=c_double_complex), value :: phase
+          end subroutine
+          
         end interface
  
         !Local
@@ -249,19 +258,7 @@
         beta = 0.D0
         Allocate(TPUP(N_size,N_size), RHS(N_size, N_size), IPVT(N_size), TAU(N_size), DUP(N_size))
         Allocate(TMP(N_size, N_size), TMP1(N_size, N_size))
-        
-        write (*,*) udvr%U(1,:)
-        write (*,*) udvl%U(1,:)
-        write (*,*) udvr%V(1,:)
-        write (*,*) udvl%V(1,:)
-        write  (*,*) "=================="
 
-        !CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, udvr%U, N_size, udvl%U, N_size, beta, RHS(1, 1), N_size)
-!         call plasma_zgemm(PlasmaConjTrans, PlasmaNoTrans, N_size, N_size, N_size, alpha, udvr%U(1,1),&
-!         & N_size, udvl%U(1,1), N_size, beta, RHS(1, 1), N_size, info)
-
-        
-        
 
         call plasma_context_self(ctx)
         nb = ctx%nb
@@ -320,47 +317,6 @@ call plasma_omp_zdesc2ge(descC1, TPUP, N_size, seq, req)
 !$omp end master
 !$omp end parallel
 
-write (*,*) TPUP(1,:)
-write(*,*) TPUP(2,:)
-write (*,*) TPUP(:,1)
-write (*,*) "============================="
-
-write (*,*) TPUP(n_size, :)
-write (*,*) TPUP(:, N_size)
-! ! 
-! ! TPUP = TMP1
-! ! RHS = TMP
-! write (*,*) udvl%D(1), udvr%D(1), DUP(1)
-        
-
-!         DO J = 1,N_size
-!           If( dble(udvl%D(J))<=1.d0) then
-!             DLJ=udvl%D(J)
-!             DO I = 1,N_size
-!               If( dble(udvr%D(I))<=1.d0 ) then
-!                 TPUP(I,J) = RHS(I,J)+udvr%D(I)*udvl%D(J)*TPUP(I,J)
-!               else
-!                 TPUP(I,J) = DUP(I)*RHS(I,J) + DLJ*TPUP(I,J)
-!               endif
-!             ENDDO
-!           else
-!             DLJ=1.d0/udvl%D(J)
-!             DO I = 1,N_size
-!               If( dble(udvr%D(I))<=1.d0 ) then
-!                 TPUP(I,J) = DLJ*RHS(I,J)+DUP(I)*TPUP(I,J)
-!               else
-!                 TPUP(I,J) = RHS(I,J)/udvr%D(I)/udvl%D(J)+TPUP(I,J)
-!               endif
-!             ENDDO
-!           endif
-!         ENDDO
-! 
-! write (*,*) TPUP(1,:)
-! write (*,*) TPUP(:,1)
-! write (*,*) "============================="
-
-
-STOP
         call plasma_desc_destroy(descC, info)
 call plasma_desc_destroy(descB, info)
 call plasma_desc_destroy(descA, info)
@@ -372,7 +328,11 @@ call plasma_desc_destroy(descA1, info)
         ! calculate determinant of UR*UL
         ! as the D's are real and positive, they do not contribute to the phase of det so they can be ignored
         PHASE = CONJG(DET_C(RHS, N_size))
+write (*,*) Phase
+STOP
         PHASE = PHASE/ABS(PHASE)
+        
+        
         IPVT = 0
         IF (NVAR .NE. 1) THEN
             TPUP = CONJG(TRANSPOSE(TPUP))
