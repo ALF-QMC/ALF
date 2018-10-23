@@ -1,6 +1,7 @@
 #include <plasma.h>
 #include <plasma_descriptor.h>
 #include <plasma_types.h>
+#include <stdlib.h>
 
 #define T(m, n) (plasma_complex64_t*)plasma_tile_addr(*T, m, n)
 
@@ -165,7 +166,66 @@ const int ld = nsize - fb*nb;
     }
 }
 
-void ludet(plasma_desc_t* rhs, const int nsize, plasma_complex64_t phase)
+//Note that we calculate the determinant of the product of two unitary matrices.
+//We could already calculate their respective determinants at the point of creation(in udv_state)
+//and just calculate the product of the respective scalars.
+void ludet(plasma_desc_t* rhs, const int nsize, plasma_complex64_t* phase, plasma_sequence_t *seq, plasma_request_t* req)
 {
-    phase = 1.0;
+    int* ipiv = malloc(sizeof(int)*nsize);
+    // plasma LU factorization
+    plasma_omp_zgetrf(*rhs, ipiv, seq, req);
+    //now we need to calculate the determinant
+    //let's start with the pivoting
+    // We need to wrap that into a task so that the dependencies by plasma are honored
+    int sgn = 1;
+    const int nb = rhs->nb;
+    const int nt = nsize/nb;
+    plasma_complex64_t myphase = 1.0;
+    plasma_complex64_t partp[omp_get_max_threads()];
+    for (int i = 0; i < omp_get_max_threads(); ++i)
+        partp[i] = 1.0;
+#pragma omp taskgroup
+{
+#pragma omp task depend(in:ipiv[0:nsize])
+    {
+    for(int i = 0; i < nsize; ++i)
+        if(ipiv[i] != (i+1)) sgn = -sgn;//It seems, that the columns are still labeled the Fortran way.
+    }
+
+    // next come the diagonal entries
+    for(int it = 0; it < nt; ++it)
+    {
+        plasma_complex64_t* trhs = (RHS(it, it));
+#pragma omp task depend(in:trhs[0:nb*nb]) shared(partp)
+        {
+            plasma_complex64_t temp = 1.0;
+            for(int ii = 0; ii < nb; ++ii)
+            {
+                temp *= trhs[ii*nb + ii];
+            }
+            partp[omp_get_thread_num()] *= temp;
+        }
+    }
+    if((nsize - nt*nb) > 0)
+    {
+        plasma_complex64_t* trhs = (RHS(nt, nt));
+#pragma omp task depend(in:trhs[0:(nsize - nt*nb)*(nsize - nt*nb)]) shared(partp)
+        {
+            plasma_complex64_t temp = 1.0;
+            for(int ii = 0; ii < nsize - nt*nb; ++ii)
+            {
+                temp *= trhs[ii*(nsize - nt*nb) + ii];
+            }
+            partp[omp_get_thread_num()] *= temp;
+        }
+    }
+}//effectively synchronizes access
+*phase = 1.0;
+for (int i = 0; i < omp_get_max_threads(); ++i)
+{
+    *phase *= partp[i];
+}
+    if (sgn == -1) *phase = -(*phase);
+    free(ipiv);
+    return;
 }
