@@ -16,12 +16,9 @@ void hhdet(plasma_desc_t* T, plasma_complex64_t* phase, int* nvar, int* N_size)
      */
     int upper = (T->gnt < T->gmt) ? T->gnt : T->gmt; //min(T->gnt, T->gmt)
     int ntausleft = *N_size;
-    plasma_complex64_t* t = T(0, 0);
     plasma_complex64_t mp = 1.0;
-//#pragma omp taskwait
     for (int i = 0; i < upper; ++i)//loop over the diagonal tiles
     {
-        printf("%i\n", i);
         plasma_complex64_t* tmat = T(i, i);
 #pragma omp task depend(in:tmat[0:(T->nb / T->mb) * T->mb*T->mb]) shared(mp)
 {
@@ -33,7 +30,6 @@ void hhdet(plasma_desc_t* T, plasma_complex64_t* phase, int* nvar, int* N_size)
                 for (int k = 0; k < ul; ++k)
                 {
                     plasma_complex64_t tau = tmat[b*T->mb*T->mb + k * T->mb + k];
-                    printf("%e.10\n", creal(tau));
                     if (creal(tau) != 0.0 || cimag(tau) != 0.0)
                     {
                     /*here we calculate the determinant of a single householder reflector:
@@ -49,7 +45,6 @@ void hhdet(plasma_desc_t* T, plasma_complex64_t* phase, int* nvar, int* N_size)
                         {
                         mp *= (z / cabs(z));
                         }
-//                        printf("%e.10\n", creal(z/ cabs(z)));
                     }
                 }
                 ntausleft -= T->mb;//ntausleft now can become negative
