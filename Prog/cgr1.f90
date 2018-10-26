@@ -212,13 +212,15 @@
             type(c_ptr), intent(in), value :: dup
           end subroutine
           
-          subroutine ludet(rhs, nsize, phase) bind(c)
+          subroutine ludet(rhs, nsize, phase, seq, req) bind(c)
             use iso_c_binding
             use plasma
             implicit none
             integer(c_int), value :: nsize
             type(plasma_desc_t), intent(in) :: rhs
-            complex(kind=c_double_complex), value :: phase
+            complex(kind=c_double_complex), intent(out) :: phase
+            type(plasma_sequence_t) :: seq
+            type(plasma_request_t) :: req
           end subroutine
           
         end interface
@@ -234,10 +236,12 @@
         
         COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK
         LOGICAL :: FORWRD
-        type(plasma_desc_t) :: descT, descA, descB, descA1, descB1, descC, descC1
+        type(plasma_desc_t) :: descT, descA, descB, descA1, descB1, descRHS, descTPUP
         type(plasma_sequence_t) :: seq
         type(plasma_request_t) :: req
         type(plasma_context_t), pointer :: ctx
+        integer(kind=c_size_t) :: lworkspace
+        type(plasma_workspace_t) :: workspace
 
         if( .not. allocated(UDVL%V) ) then
           !call projector cgr
@@ -267,8 +271,14 @@
         call plasma_desc_general_create(PlasmaComplexDouble, nb,nb, N_size, N_size,0,0,N_size, N_size, descB, info)
         call plasma_desc_general_create(PlasmaComplexDouble, nb,nb, N_size, N_size,0,0,N_size, N_size, descA1, info)
         call plasma_desc_general_create(PlasmaComplexDouble, nb,nb, N_size, N_size,0,0,N_size, N_size, descB1, info)
-        call plasma_desc_general_create(PlasmaComplexDouble, nb,nb, N_size, N_size,0,0,N_size, N_size, descC, info)
-        call plasma_desc_general_create(PlasmaComplexDouble, nb,nb, N_size, N_size,0,0,N_size, N_size, descC1, info)
+        call plasma_desc_general_create(PlasmaComplexDouble, nb,nb, N_size, N_size,0,0,N_size, N_size, descRHS, info)
+        call plasma_desc_general_create(PlasmaComplexDouble, nb,nb, N_size, N_size,0,0,N_size, N_size, descTPUP, info)
+        
+        call plasma_descT_create(descTPUP, ib, householder_mode, descT, info)
+! create workspace
+        lworkspace = nb + ib*nb
+        call plasma_workspace_create(workspace, lworkspace, PlasmaComplexDouble, info)
+
         
         ! init sequence and requests
         call plasma_sequence_init(seq, info)
@@ -283,7 +293,7 @@ call plasma_omp_zge2desc(udvr%U, N_size, descA, seq, req)
 call plasma_omp_zge2desc(udvl%U, N_size, descB, seq, req)
 
 ! schedule first multiplication
-call plasma_omp_zgemm(PlasmaConjTrans, PlasmaNoTrans, alpha, descA, descB, beta, descC, seq, req)
+call plasma_omp_zgemm(PlasmaConjTrans, PlasmaNoTrans, alpha, descA, descB, beta, descRHS, seq, req)
 
 ! translate to tile layout
 
@@ -291,7 +301,7 @@ call plasma_omp_zge2desc(udvr%V, N_size, descA1, seq, req)
 call plasma_omp_zge2desc(udvl%V, N_size, descB1, seq, req)
 
 ! schedule second product
-call plasma_omp_zgemm(PlasmaNoTrans, PlasmaNoTrans, alpha, descA1, descB1, beta, descC1, seq, req)
+call plasma_omp_zgemm(PlasmaNoTrans, PlasmaNoTrans, alpha, descA1, descB1, beta, descTPUP, seq, req)
 
 ! calculate the scales
 !$omp task depend(out:DUP(0:N_size) )
@@ -307,112 +317,58 @@ call plasma_omp_zgemm(PlasmaNoTrans, PlasmaNoTrans, alpha, descA1, descB1, beta,
 !$omp end task
 
 ! apply the scales in a stable manner
-call applylrscales(c_loc(udvl%D), c_loc(udvr%D), c_loc(DUP), descC1, descC, n_size)
+call applylrscales(c_loc(udvl%D), c_loc(udvr%D), c_loc(DUP), descTPUP, descRHS, n_size)
 
-! transform back to standard Lapack layout
-call plasma_omp_zdesc2ge(descC, RHS, N_size, seq, req)
+call ludet(descRHS, N_size, phase, seq, req)
+PHASE = CONJG(PHASE)
+PHASE = PHASE/ABS(PHASE)
+! descRHS is now not needed anymore
 
-call plasma_omp_zdesc2ge(descC1, TPUP, N_size, seq, req)
+    IF (NVAR .NE. 1) THEN
+            call plasma_omp_zdesc2ge(descTPUP, TPUP, N_size, seq, req)
+!$pragma omp taskwait
+WRITE(*,*) nvar
+            TPUP = CONJG(TRANSPOSE(TPUP))
+            call plasma_omp_zge2desc(TPUP, N_size, descTPUP, seq, req)
+        ENDIF
+
+call plasma_omp_zgeqrf(descTPUP, descT, workspace, seq, req)
+
+call plasma_omp_zdesc2ge(descTPUP, TPUP, N_size, seq, req)
+! calculate the phase due to the householder factor
+        call hhdet(descT, PHASE, NVAR, N_size)
 
 !$omp end master
 !$omp end parallel
 
-        call plasma_desc_destroy(descC, info)
-call plasma_desc_destroy(descB, info)
-call plasma_desc_destroy(descA, info)
-call plasma_desc_destroy(descC1, info)
-call plasma_desc_destroy(descB1, info)
-call plasma_desc_destroy(descA1, info)
-        
-        
-        ! calculate determinant of UR*UL
-        ! as the D's are real and positive, they do not contribute to the phase of det so they can be ignored
-        PHASE = CONJG(DET_C(RHS, N_size))
-write (*,*) Phase
-STOP
-        PHASE = PHASE/ABS(PHASE)
-        
-        
-        IPVT = 0
-        IF (NVAR .NE. 1) THEN
-            TPUP = CONJG(TRANSPOSE(TPUP))
-        ENDIF
-!        call QDRP_decompose(N_size, udvl%N_part, TPUP, DUP, IPVT, TAU, WORK, LWORK)
-        
-        
-!        ALLOCATE(RWORK(2*N_size))
-        ! Query optimal amount of memory
-!        call ZGEQP3(N_size, udvl%N_part, TPUP(1,1), N_size, IPVT, TAU(1), Z, -1, RWORK(1), INFO)
-!        call ZGEQRF(N_size, udvl%N_part, TPUP(1,1), N_size, TAU(1), Z, -1, INFO)
-        LWORK = INT(DBLE(Z))
-        ALLOCATE(WORK(LWORK))
-        ! QR decomposition of Mat with full column pivoting, Mat * P = Q * R
-!        call ZGEQP3(N_size, udvl%N_part, TPUP(1,1), N_size, IPVT, TAU(1), WORK(1), LWORK, RWORK(1), INFO)
-!TMP = TPUP ! Since TPUP will be destroyed
-!!        call ZGEQRF(N_size, udvl%N_part, TPUP(1,1), N_size, TAU(1), WORK, LWORK, INFO)
-call plasma_zgeqrf(N_size, udvl%N_part, TPUP, N_size, descT, info)
-!        DEALLOCATE(RWORK)
+call plasma_desc_destroy(descTPUP, info)
         ! separate off D
-        do i = 1, udvl%N_part
+        do i = 1, udvl%N_part ! or N_size ? that's what the other loop had here
         ! plain diagonal entry
             X = ABS(TPUP(i, i))
             DUP(i) = X
             do j = i, udvl%N_part
                 TPUP(i, j) = TPUP(i, j) / X
-!!                 TMP(i, j) = TMP(i, j) / ABS(TMP(i, i))
             enddo
-        enddo
-! write (*,*)   descT%mb, descT% nb, descT%gm, descT%gn, descT%gmt, descT%gnt
-! write(*,*) descT%i, descT%j, descT%m, descT%n, descT%mt, descT%nt
-!        ALLOCATE(VISITED(N_size))
-!        ! Calculate the sign of the permutation from the pivoting. Somehow the format used by the QR decomposition of lapack
-!        ! is different from that of the LU decomposition of lapack
-!        VISITED = 0
-!        do i = 1, N_size
-!            if (VISITED(i) .eq. 0) then
-!                next = i
-!                L = 0
-!                do while (VISITED(next) .eq. 0)
-!                 L = L + 1
-!                 VISITED(next) = 1
-!                 next = IPVT(next)
-!                enddo
-!                if(MOD(L, 2) .eq. 0) then
-!                    PHASE = -PHASE
-!                endif
-!            endif
-!        enddo
-        !calculate the determinant of the unitary matrix Q and the upper triangular matrix R
-!        PHASETMP = PHASE
-! calculate the phase due to the householder factor        
-        call hhdet(descT, PHASE, NVAR, N_size)
-! ! !         DO i = 1, N_size
-! ! !             Z = TAU(i)
-! ! ! !            write (*,*) "(F90)", Z
-! ! !             IF(NVAR .EQ. 1) THEN
-! ! !                 PHASE = PHASE * TPUP(i,i)/Abs(TPUP(i,i))
-! ! !             ELSE
-! ! !                 ! the diagonal should be real, but let's be safe....
-! ! !                 PHASE = PHASE * CONJG(TPUP(i,i))/Abs(TPUP(i,i))
-! ! !                 Z = CONJG(Z) ! conjugate the elementary reflector
-! ! !             ENDIF
-! ! !             if (Z .ne. CMPLX(0.D0, 0.D0, Kind=Kind(0.D0))) then
-! ! !             ! here we calculate the determinant of a single householder reflector: det(1 - tau * v v* ) = 1 - tau * v^* v
-! ! !             ! In lapack the scalar tau and the vector v are scaled such that |tau|^2 |v|^2 = 2 Re(tau)
-! ! !             ! The complete determinant det(Q) is the product of all reflectors. See http://www.netlib.org/lapack/lug/node128.html
-! ! !                 X = ABS(Z)
-! ! !                 Z = 1.D0 - 2.D0 * (Z/X) * (DBLE(Z)/X)
-! ! !                 PHASE = PHASE * Z/ABS(Z)
-! ! !             endif
-! ! !         enddo
- DO i = 1, N_size
-             IF(NVAR .EQ. 1) THEN
-                PHASE = PHASE * TPUP(i,i)/Abs(TPUP(i,i))
+            IF(NVAR .EQ. 1) THEN
+                PHASE = PHASE * (TPUP(i,i)/ABS(TPUP(i,i)))
             ELSE
                 ! the diagonal should be real, but let's be safe....
-                PHASE = PHASE * CONJG(TPUP(i,i))/Abs(TPUP(i,i))
+                PHASE = PHASE * (CONJG(TPUP(i,i))/ABS(TPUP(i,i)))
             ENDIF
- enddo
+enddo
+
+write (*,*) PHASE
+
+write (*,*) TPUP(1,:)
+write (*,*) TPUP(:,1)
+STOP
+ 
+call plasma_desc_destroy(descRHS, info)
+call plasma_desc_destroy(descB, info)
+call plasma_desc_destroy(descA, info)
+call plasma_desc_destroy(descB1, info)
+call plasma_desc_destroy(descA1, info)
  
         IF(NVAR .EQ. 1) then
             ! This is supposed to solve the system 
