@@ -16,8 +16,15 @@ void hhdet(plasma_desc_t* T, plasma_complex64_t* phase, int* nvar, int* N_size)
      */
     int upper = (T->gnt < T->gmt) ? T->gnt : T->gmt; //min(T->gnt, T->gmt)
     int ntausleft = *N_size;
+    plasma_complex64_t* t = T(0, 0);
+    plasma_complex64_t mp = 1.0;
+//#pragma omp taskwait
     for (int i = 0; i < upper; ++i)//loop over the diagonal tiles
     {
+        printf("%i\n", i);
+        plasma_complex64_t* tmat = T(i, i);
+#pragma omp task depend(in:tmat[0:(T->nb / T->mb) * T->mb*T->mb]) shared(mp)
+{
         for (int b = 0; b < (T->nb / T->mb); ++b )//loop over the blocks used by the QR decomposition
         {//Obviously we also assume that a tile has dimensions that are multiples of the inner block size...
             int ul = (T->mb < ntausleft)? T->mb : ntausleft; // min(T->mb, ntausleft)
@@ -25,7 +32,8 @@ void hhdet(plasma_desc_t* T, plasma_complex64_t* phase, int* nvar, int* N_size)
             {
                 for (int k = 0; k < ul; ++k)
                 {
-                    plasma_complex64_t tau = ( T(i, i) )[b*T->mb*T->mb + k * T->mb + k];
+                    plasma_complex64_t tau = tmat[b*T->mb*T->mb + k * T->mb + k];
+                    printf("%e.10\n", creal(tau));
                     if (creal(tau) != 0.0 || cimag(tau) != 0.0)
                     {
                     /*here we calculate the determinant of a single householder reflector:
@@ -37,13 +45,19 @@ void hhdet(plasma_desc_t* T, plasma_complex64_t* phase, int* nvar, int* N_size)
                         if(*nvar == 1) tau = conj(tau);
                         double x = cabs(tau);
                         plasma_complex64_t z = 1.0 - 2.0*(tau/x) * (creal(tau)/x);
-                        (*phase) *= z/ cabs(z) ;
+                        #pragma omp critical
+                        {
+                        mp *= (z / cabs(z));
+                        }
+//                        printf("%e.10\n", creal(z/ cabs(z)));
                     }
                 }
                 ntausleft -= T->mb;//ntausleft now can become negative
             }
         }
+}
     }
+    *phase *= mp;
 }
 
 #include <stdio.h>
@@ -53,7 +67,7 @@ void hhdet(plasma_desc_t* T, plasma_complex64_t* phase, int* nvar, int* N_size)
  * @param maxi
  * @param nb corresponds to the leading dimension of the tile is either the tile block width for full tiles or the remainder for border tiles
  * */
-void tile_kernel(plasma_complex64_t* tpup, const plasma_complex64_t *const rhs, plasma_complex64_t* dl, plasma_complex64_t* dr, plasma_complex64_t* dup, int maxj, int maxi, const int nb)
+void tile_kernel_scales(plasma_complex64_t* tpup, const plasma_complex64_t *const rhs, plasma_complex64_t* dl, plasma_complex64_t* dr, plasma_complex64_t* dup, int maxj, int maxi, const int nb)
 {
     for(int ji = 0; ji < maxj; ++ji)
             {
@@ -124,7 +138,7 @@ const int ld = nsize - fb*nb;
 #pragma omp task depend(in:dupptr[0:nb]) depend(inout:ttpup[0:nb*nb]) depend(in:trhs[0:nb*nb])
             {
                 printf("Hi, I'm %i\n", omp_get_thread_num());
-                tile_kernel(ttpup, trhs, dl + jt*nb, dr + it*nb, dup + it*nb, nb, nb, nb);
+                tile_kernel_scales(ttpup, trhs, dl + jt*nb, dr + it*nb, dup + it*nb, nb, nb, nb);
             }
         }
         //remainder loop along the i-axis... lower left?
@@ -136,7 +150,7 @@ const int ld = nsize - fb*nb;
 #pragma omp task depend(in:dupptr[0:nb]) depend(inout:ttpup[0:ld*nb]) depend(in:trhs[0:ld*nb])
             {
                 printf("Hi, I'm %i\n", omp_get_thread_num());
-                tile_kernel(ttpup, trhs, dl + jt*nb, dr + fb*nb, dup + fb*nb, ld, nb, nb);
+                tile_kernel_scales(ttpup, trhs, dl + jt*nb, dr + fb*nb, dup + fb*nb, ld, nb, nb);
             }
         }
     }
@@ -151,7 +165,7 @@ const int ld = nsize - fb*nb;
 #pragma omp task depend(in:dupptr[0:ld]) depend(inout:ttpup[0:ld*nb]) depend(in:trhs[0:ld*nb])
             {
                 printf("Hi, I'm %i\n", omp_get_thread_num());
-                tile_kernel(ttpup, trhs, dl + fb*nb, dr + it*nb, dup + it*nb, nb, ld, ld);
+                tile_kernel_scales(ttpup, trhs, dl + fb*nb, dr + it*nb, dup + it*nb, nb, ld, ld);
             }
         }
         //remainder loop along the i and j axis
@@ -161,7 +175,7 @@ const int ld = nsize - fb*nb;
 #pragma omp task depend(in:dupptr[0:ld]) depend(inout:ttpup[0:ld*ld]) depend(in:trhs[0:ld*ld])
         {
             printf("Hi, I'm %i\n", omp_get_thread_num());
-            tile_kernel(ttpup, trhs, dl + fb*nb, dr + fb*nb, dup + fb*nb, ld, ld, ld);
+            tile_kernel_scales(ttpup, trhs, dl + fb*nb, dr + fb*nb, dup + fb*nb, ld, ld, ld);
         }
     }
 }
@@ -184,6 +198,8 @@ void ludet(plasma_desc_t* rhs, const int nsize, plasma_complex64_t* phase, plasm
     plasma_complex64_t partp[omp_get_max_threads()];
     for (int i = 0; i < omp_get_max_threads(); ++i)
         partp[i] = 1.0;
+#pragma omp taskwait
+//the above taskwait is supposed to wait for the threads from zgetrf. crashes less...
 #pragma omp taskgroup
 {
 #pragma omp task depend(in:ipiv[0:nsize])
@@ -228,4 +244,20 @@ for (int i = 0; i < omp_get_max_threads(); ++i)
     if (sgn == -1) *phase = -(*phase);
     free(ipiv);
     return;
+}
+
+void kernel_extractd(plasma_complex64_t* tpup, plasma_complex64_t* dup, const int len)
+{
+}
+
+void extractd(plasma_desc_t * tpup, plasma_complex64_t* dup, const int nsize)
+{
+    const int nb = tpup->nb;
+    const int nt = nsize/nb;
+    const int rd = nsize - nt*nb;
+    for (int i = 0; i < nt; ++i)//loop over the diagonal tiles
+    {
+    }
+    if (rd > 0) //remainder part
+    {}
 }
