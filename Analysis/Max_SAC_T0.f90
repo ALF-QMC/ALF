@@ -23,6 +23,7 @@
        Real (Kind=Kind(0.d0)) :: alpha_st, R, Xmom1, X,  X1, X2, om, omp, pi, Om_st, Om_en, err
        Real (Kind=Kind(0.d0)) :: Dom, delta, beta, dtau
 
+       !$ Call omp_set_num_threads(1)
 
        
        open(unit=30,file='paramSAC',status='old',action='read', iostat=io_error) 

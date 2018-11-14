@@ -63,7 +63,7 @@
 
          NAMELIST /VAR_errors/   n_skip, N_rebin, N_Cov, N_Back, N_auto
  
-
+         !$ Call omp_set_num_threads(1)
 
          
          N_Back = 1

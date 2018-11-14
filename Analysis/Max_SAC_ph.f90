@@ -11,6 +11,7 @@
        Real (Kind=Kind(0.d0)), External :: XKER, Back_trans_Aom
        Character (Len=64) :: command
 
+       !$ Call omp_set_num_threads(1)
 
        Open(unit=50,File='Info',Status="unknown")
        

@@ -59,6 +59,7 @@
         Character (len=64) :: File_out
         NAMELIST /VAR_errors/   n_skip, N_rebin, N_Cov, N_Back, N_auto
 
+        !$ Call omp_set_num_threads(1)
 
         N_auto=0
         OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)

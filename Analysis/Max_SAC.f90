@@ -16,6 +16,7 @@
        Character (Len=64) :: command
        
 
+       !$ Call omp_set_num_threads(1)
 
        
        open(unit=30,file='paramSAC',status='old',action='read', iostat=io_error) 

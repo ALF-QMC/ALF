@@ -12,6 +12,8 @@
         Integer :: NST, NS, NS1, NS2, NSTEP, NC, NP, NOBS, Nbins, NP_EFF, ISEED, I, IOBS
         Integer :: N, NBIN
 
+        !$ Call omp_set_num_threads(1)
+        
         ! Count the number of bins
         Open (Unit=10, File="ener", status="unknown") 
         !Open (Unit=12, File="ener_hist", status="unknown") 
