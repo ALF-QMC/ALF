@@ -16,6 +16,10 @@
        Character (Len=64) :: command
        
 
+       ! Manually set number of OpenMM threads to 1
+       ! !$ essentially asks the compiler, if OpenMP is available/activated
+       !    -> if yes, then call function
+       !    -> if no,  then no need to call function (linker issue if still called)
        !$ Call omp_set_num_threads(1)
 
        

@@ -23,6 +23,10 @@
        Real (Kind=Kind(0.d0)) :: alpha_st, R, Xmom1, X,  X1, X2, om, omp, pi, Om_st, Om_en, err
        Real (Kind=Kind(0.d0)) :: Dom, delta, beta, dtau
 
+       ! Manually set number of OpenMM threads to 1
+       ! !$ essentially asks the compiler, if OpenMP is available/activated
+       !    -> if yes, then call function
+       !    -> if no,  then no need to call function (linker issue if still called)
        !$ Call omp_set_num_threads(1)
 
        

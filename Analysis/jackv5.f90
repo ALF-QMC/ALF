@@ -12,6 +12,10 @@
         Integer :: NST, NS, NS1, NS2, NSTEP, NC, NP, NOBS, Nbins, NP_EFF, ISEED, I, IOBS
         Integer :: N, NBIN
 
+        ! Manually set number of OpenMM threads to 1
+        ! !$ essentially asks the compiler, if OpenMP is available/activated
+        !    -> if yes, then call function
+        !    -> if no,  then no need to call function (linker issue if still called)
         !$ Call omp_set_num_threads(1)
         
         ! Count the number of bins

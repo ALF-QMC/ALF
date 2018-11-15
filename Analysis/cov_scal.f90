@@ -59,6 +59,10 @@
         Character (len=64) :: File_out
         NAMELIST /VAR_errors/   n_skip, N_rebin, N_Cov, N_Back, N_auto
 
+        ! Manually set number of OpenMM threads to 1
+        ! !$ essentially asks the compiler, if OpenMP is available/activated
+        !    -> if yes, then call function
+        !    -> if no,  then no need to call function (linker issue if still called)
         !$ Call omp_set_num_threads(1)
 
         N_auto=0
