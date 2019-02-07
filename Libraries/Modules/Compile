@@ -6,6 +6,9 @@ OBJS=mat_mod.o Random_Wrap.o errors.o Files_mod.o maxent.o  matrix.o  maxent_sto
 $(LIB): $(OBJS)
 	ar  -r $(LIB) $(OBJS)
 
+Mat_subroutines.f90:
+	./create_Mat_subroutines.sh
+
 %.o: %.f90
 	$(FC) $(FLAGS) -c $<
 
