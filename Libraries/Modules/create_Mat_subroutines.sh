@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 sub_ZSLGEMM_LEFT()
 {
     N=$1
@@ -21,9 +21,12 @@ ABC
     for i in $(seq $N); do
         s="      Mat(P(${i}),I)=WORK(${i},1)*Z(1)"
         for j in $(seq 2 $N); do
+            if (( $j % 4 == 1 )); then
+                s="${s}&\n                &"
+            fi
             s="${s}+WORK(${i},${j})*Z(${j})"
         done
-        echo "${s}"
+        echo -e "${s}"
     done
     echo "    ENDDO"
     echo "end subroutine ZSLGEMM_LEFT_${N}"
@@ -52,59 +55,16 @@ ABC
     for i in $(seq $N); do
         s="      Mat(I,P(${i}))=WORK(1,${i})*Z(1)"
         for j in $(seq 2 $N); do
+            if (( $j % 4 == 1 )); then
+                s="${s}&\n                &"
+            fi
             s="${s}+WORK(${j},${i})*Z(${j})"
         done
-        echo "${s}"
+        echo -e "${s}"
     done
     echo "    ENDDO"
     echo "end subroutine ZSLGEMM_RIGHT_${N}"
     echo ""
-}
-
-ZSLGEMM_LEFT()
-{
-    N=$1
-    cat <<ABC
-          CASE (${N})
-            ! perform inplace matmult
-            DO I=1,M2
-ABC
-    for i in $(seq $N); do
-        echo "              Z(${i})=Mat(P(${i}),I)"
-    done
-
-    for i in $(seq $N); do
-        s="              Mat(P(${i}),I)=WORK(${i},1)*Z(1)"
-        for j in $(seq 2 $N); do
-            s="${s}+WORK(${i},${j})*Z(${j})"
-        done
-        echo "${s}"
-    done
-    echo "            ENDDO"
-    echo "            DEALLOCATE(WORK)"
-}
-
-ZSLGEMM_RIGHT()
-{
-    N=$1
-    cat <<ABC
-          CASE (${N})
-            ! perform inplace matmult
-            DO I=1,M1
-ABC
-    for i in $(seq $N); do
-        echo "              Z(${i})=Mat(I,P(${i}))"
-    done
-
-    for i in $(seq $N); do
-        s="              Mat(I,P(${i}))=WORK(1,${i})*Z(1)"
-        for j in $(seq 2 $N); do
-            s="${s}+WORK(${j},${i})*Z(${j})"
-        done
-        echo "${s}"
-    done
-    echo "            ENDDO"
-    echo "            DEALLOCATE(WORK)"
 }
 
 N_max="12"
@@ -185,7 +145,7 @@ subroutine ZSLGEMM(side, op, N, M1, M2, A, P, Mat)
         INTEGER                  , INTENT(IN)   , DIMENSION(N)   :: P
         
         COMPLEX (KIND=KIND(0.D0)), DIMENSION(:,:), ALLOCATABLE :: WORK, WORK2
-        Complex (Kind = Kind(0.D0)) :: alpha, beta !, Z(${N_max})
+        Complex (Kind = Kind(0.D0)) :: alpha, beta
         INTEGER :: I, L, IDX, NUMBLOCKS, op_id
         INTEGER, DIMENSION(:), ALLOCATABLE :: IDXLIST, DIMLIST
         LOGICAL :: COMPACT, LEFT
@@ -272,7 +232,6 @@ subroutine ZSLGEMM(side, op, N, M1, M2, A, P, Mat)
 ABC
 
 for N in $(seq 2 ${N_max}); do
-#     ZSLGEMM_LEFT $N >> $filename
     cat <<ABC >> $filename
           CASE (${N})
             call ZSLGEMM_LEFT_${N}(M1, M2, P, WORK, Mat)
@@ -321,7 +280,6 @@ cat <<ABC >> $filename
 ABC
 
 for N in $(seq 2 ${N_max}); do
-#     ZSLGEMM_RIGHT $N >> $filename
     cat <<ABC >> $filename
           CASE (${N})
             call ZSLGEMM_RIGHT_${N}(M1, M2, P, WORK, Mat)
@@ -359,10 +317,7 @@ cat <<ABC >> $filename
         ENDIF
 
 end subroutine ZSLGEMM
-ABC
 
-
-cat <<ABC >> $filename
 subroutine ZSLHEMM(side, uplo, N, M1, M2, A, P, Mat)
 ! Small Large  hermitian matrix multiplication
 
@@ -460,7 +415,6 @@ subroutine ZSLHEMM(side, uplo, N, M1, M2, A, P, Mat)
 ABC
 
 for N in $(seq 2 ${N_max}); do
-#     ZSLGEMM_LEFT $N >> $filename
     cat <<ABC >> $filename
           CASE (${N})
             call ZSLGEMM_LEFT_${N}(M1, M2, P, WORK, Mat)
@@ -506,7 +460,6 @@ cat <<ABC >> $filename
 ABC
 
 for N in $(seq 2 ${N_max}); do
-#     ZSLGEMM_RIGHT $N >> $filename
     cat <<ABC >> $filename
           CASE (${N})
             call ZSLGEMM_RIGHT_${N}(M1, M2, P, WORK, Mat)
@@ -548,6 +501,7 @@ cat <<ABC >> $filename
         ENDIF
 
 end subroutine ZSLHEMM
+
 ABC
 
 
