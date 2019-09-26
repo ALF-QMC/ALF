@@ -79,6 +79,12 @@ Module MaxEnt_stoch_mod
            If ( Present(L_cov) ) then
               U = cov
               Call dpotrf('U', ntau, U, ntau, info) ! cov = U^T U
+if (info < 0) then 
+write (*,*) "Argument wrong: ", info
+endif
+if (info > 0) then
+write(*,*) "negative subminor found at ", info
+endif
 !              Call Diag(cov,U,sigma)
               Write(6,*) " Cov Used"
               alpha = 1.0
