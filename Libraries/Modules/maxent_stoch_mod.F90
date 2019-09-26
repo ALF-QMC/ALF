@@ -23,7 +23,7 @@ Module MaxEnt_stoch_mod
            Implicit None
 
            Real (Kind=Kind(0.d0)), Dimension(:) :: XQMC, Xtau, Alpha_tot
-           Real (Kind=Kind(0.d0)), Dimension(:,:) :: COV
+           Real (Kind=Kind(0.d0)), Dimension(:,:), intent(in) :: COV
            Real (Kind=Kind(0.d0)), External :: XKER, Back_trans_Aom
            Real (Kind=Kind(0.d0)) :: CHISQ, OM_ST, OM_EN, Beta_1, Xmom1, Err
            Integer :: Nsweeps, NBins, Ngamma_1, Ndis_1, nw, nt1
@@ -34,11 +34,11 @@ Module MaxEnt_stoch_mod
                 & io_error, io_error1, i, n, nc1
            Real (Kind=Kind(0.d0)), Allocatable :: Xn_M_tot(:,:), En_M_tot(:), Xn_E_tot(:,:), En_E_tot(:), &
                 & Xn_tot(:,:,:), En_tot(:)
-           Real (Kind=Kind(0.d0)), Allocatable :: G_Mean(:), Xn_m(:), Xn_e(:), Xn(:,:), Vhelp(:)
+           Real (Kind=Kind(0.d0)), Allocatable :: G_Mean(:), Xn_m(:), Xn_e(:), Xn(:,:)
            Real (Kind=Kind(0.d0)) :: En_M, X, Alpha, Acc_1, Acc_2, En, DeltaE, Ratio, D
            Real (Kind=Kind(0.d0)) :: Aom, om, XMAX, tau
            Real (Kind=Kind(0.d0)) :: CPUT, CPUTM
-           Integer :: ICPU_1, ICPU_2, N_P_SEC
+           Integer :: ICPU_1, ICPU_2, N_P_SEC, info
            Character (64) :: File_root, File1, File_conf, File_Aom
            Real (Kind=Kind(0.d0)), allocatable :: Xker_table(:,:), U(:,:), sigma(:)
            ! Space for moments.
@@ -63,7 +63,7 @@ Module MaxEnt_stoch_mod
            ! Setup table for the Kernel
            Ndis_table = 50000
            Dom = (OM_EN_1 - OM_ST_1)/dble(Ndis_table-1)
-           Allocate ( Xker_table(Ntau, Ndis_table) )
+           Allocate ( Xker_table(Ntau, Ndis_table), xqmc1(Ntau) )
            do nt = 1,Ntau
               do nw = 1,Ndis_table
                  tau = xtau(nt)
@@ -72,40 +72,56 @@ Module MaxEnt_stoch_mod
               enddo
            enddo
            ! Normalize data to have zeroth moment of unity.
-           xqmc = xqmc / XMOM1
+           xqmc1 = xqmc / XMOM1! xqmc1 is passed via a global variable to MC()
            cov  = cov / ((XMOM1)**2)
            ! Diagonalize the covariance
-           Allocate( U(ntau,ntau), Sigma(ntau), xqmc1(Ntau) )
+           Allocate( U(ntau,ntau), Sigma(ntau) )
            If ( Present(L_cov) ) then
-              Call Diag(cov,U,sigma)
-              ! Write(6,*) " Cov Used"
+              U = cov
+              Call dpotrf('U', ntau, U, ntau, info) ! cov = U^T U
+!              Call Diag(cov,U,sigma)
+              Write(6,*) " Cov Used"
+              alpha = 1.0
+              call dtrsm('L', 'U', 'T', 'N', ntau, 1, alpha, U, ntau, xqmc1, ntau)
+              call dtrsm('L', 'U', 'T', 'N', ntau, Ndis_table, alpha, U, ntau, xker_table, ntau)
            else
               Write(6,*) "No Cov Used"
-              U = 0.d0
               do nt = 1,ntau
-                 U(nt,nt) = 1.d0
                  sigma(nt) = cov(nt,nt)
               enddo
-           endif
-           do nt = 1,ntau
-              sigma(nt) = sqrt(sigma(nt))
-           enddo
-           xqmc1 = 0.d0
-           do nt1 = 1,ntau
+
               do nt = 1,ntau
-                 xqmc1(nt1) = xqmc1(nt1) + xqmc(nt)*U(nt,nt1)
+                 sigma(nt) = sqrt(sigma(nt))
               enddo
-              xqmc1(nt1) = xqmc1(nt1)/sigma(nt1)
-           enddo
-           ! Transform the Kernel
-           allocate ( Vhelp(Ntau) )
-           do nw = 1,Ndis_table
-              Vhelp = 0.d0
-              do nt1 = 1,Ntau
-                 Vhelp(nt1) = Vhelp(nt1) + dot_product(Xker_table(:, nw), U(:,nt1))
+              ! xqmc1 = 1/sigma * U^T * xqmc
+              do nt1 = 1,ntau
+                 xqmc1(nt1) = xqmc1(nt1)/sigma(nt1)
               enddo
-              Xker_table(:, nw) = Vhelp/sigma
-           enddo
+              ! Transform the Kernel
+              do nw = 1,Ndis_table
+                 Xker_table(:, nw) = Xker_table(:, nw)/sigma
+              enddo
+           endif
+!           do nt = 1,ntau
+!              sigma(nt) = sqrt(sigma(nt))
+!           enddo
+!           ! xqmc1 = 1/sigma * U^T * xqmc
+!           xqmc1 = 0.d0
+!           do nt1 = 1,ntau
+!              do nt = 1,ntau ! x_i = x_i + sum_j U^T_{i, j} x_j
+!                 xqmc1(nt1) = xqmc1(nt1) + xqmc(nt)*U(nt,nt1)
+!              enddo
+!              xqmc1(nt1) = xqmc1(nt1)/sigma(nt1)
+!           enddo
+!           ! Transform the Kernel
+!           allocate ( Vhelp(Ntau) )
+!           do nw = 1,Ndis_table
+!              Vhelp = 0.d0
+!              do nt1 = 1,Ntau
+!                 Vhelp(nt1) = Vhelp(nt1) + dot_product(Xker_table(:, nw), U(:,nt1))
+!              enddo
+!              Xker_table(:, nw) = Vhelp/sigma
+!           enddo
            deallocate( U, Sigma )
            Allocate ( G_Mean(Ntau) )
            G_mean = 0.d0
