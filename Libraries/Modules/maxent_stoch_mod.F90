@@ -23,7 +23,7 @@ Module MaxEnt_stoch_mod
            Implicit None
 
            Real (Kind=Kind(0.d0)), Dimension(:) :: XQMC, Xtau, Alpha_tot
-           Real (Kind=Kind(0.d0)), Dimension(:,:), intent(in) :: COV
+           Real (Kind=Kind(0.d0)), Dimension(:,:), intent(inout) :: COV
            Real (Kind=Kind(0.d0)), External :: XKER, Back_trans_Aom
            Real (Kind=Kind(0.d0)) :: CHISQ, OM_ST, OM_EN, Beta_1, Xmom1, Err
            Integer :: Nsweeps, NBins, Ngamma_1, Ndis_1, nw, nt1
