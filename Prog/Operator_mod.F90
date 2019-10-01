@@ -50,11 +50,12 @@ Module Operator_mod
   
 
   Type Operator
-     Integer          :: N, N_non_zero
+     Integer          :: N, NBlock
+     Integer, pointer :: N_non_zero(:)
      logical          :: diag
-     complex (Kind=Kind(0.d0)), pointer :: O(:,:), U (:,:), M_exp(:,:,:), E_exp(:,:)
-     Real    (Kind=Kind(0.d0)), pointer :: E(:)
-     Integer, pointer :: P(:)
+     complex (Kind=Kind(0.d0)), pointer :: O(:,:,:), U (:,:,:), M_exp(:,:,:,:), E_exp(:,:,:)
+     Real    (Kind=Kind(0.d0)), pointer :: E(:,:)
+     Integer, pointer :: P(:,:)
      complex (Kind=Kind(0.d0)) :: g
      complex (Kind=Kind(0.d0)) :: alpha
      Integer          :: Type 
@@ -180,11 +181,19 @@ Contains
 !> @param[in] N 
 !--------------------------------------------------------------------
 
-  Pure subroutine Op_make(Op,N)
+  Pure subroutine Op_make(Op,N,Nb)
     Implicit none
     Type (Operator), intent(INOUT) :: Op
     Integer, Intent(IN) :: N
-    Allocate (Op%O(N,N), Op%P(N) )
+    Integer, Intent(IN), optional :: Nb
+    
+    if ( .not. present(nb) ) then
+      Op%Nblock = 1
+    else
+      OP%Nblock = nb
+    endif
+    
+    Allocate (Op%O(N,N,OP%Nblock), Op%P(N,OP%Nblock), Op%N_non_zero(OP%Nblock) )
     ! F.F.A  Op%M_exp and Op%E_exp are allocated  in Op_set once the type is available.
     
     Op%O = cmplx(0.d0, 0.d0, kind(0.D0))
@@ -211,7 +220,7 @@ Contains
     Implicit none
     Type (Operator), intent(INOUT) :: Op
     Integer, Intent(IN) :: N
-    Deallocate (Op%O, Op%P )
+    Deallocate (Op%O, Op%P, Op%N_non_zero )
 
     If ( Op%Type >= 1)   deallocate(OP%M_exp,OP%E_exp,  OP%U, OP%E)
 
@@ -233,7 +242,7 @@ Contains
     Complex (Kind=Kind(0.d0)), allocatable :: U(:,:), TMP(:, :)
     Real    (Kind=Kind(0.d0)), allocatable :: E(:)
     Real    (Kind=Kind(0.d0)) :: Zero = 1.D-9 !, Phi(-2:2)
-    Integer :: N, I, J, np,nz
+    Integer :: N, I, J, np,nz, block
     Complex (Kind=Kind(0.d0)) :: Z
     Type  (Fields)   :: nsigma_single
     
@@ -241,99 +250,105 @@ Contains
     Call nsigma_single%make(1,1)
 
     N = OP%N
-    Allocate ( Op%U(N,N), Op%E(N) )
+    Allocate ( Op%U(N,N,Op%N_non_zero), Op%E(N,Op%N_non_zero) )
     Op%U = cmplx(0.d0, 0.d0, kind(0.D0))
     Op%E = 0.d0
     
-    If (Op%N > 1) then
-       N = Op%N
-       Op%diag = .true.
-       do I=1,N
-          do J=i+1,N
-             ! Binary comparison is OK here as Op%O was initialized to zero during Op_make.
-             if (Op%O(i,j) .ne. cmplx(0.d0,0.d0, kind(0.D0)) .or. Op%O(j,i) .ne. cmplx(0.d0,0.d0, kind(0.D0))) Op%diag=.false.
-          enddo
-       enddo
-       if (Op%diag) then
-          do I=1,N
-             Op%E(I)=DBLE(Op%O(I,I))
-             Op%U(I,I)=cmplx(1.d0,0.d0, kind(0.D0))
-          enddo
-          Op%N_non_zero = N
-          ! FFA Why do we assume that Op%N_non_zero = N for a diagonal operator? 
-       else
-          Allocate (U(N,N), E(N), TMP(N, N))
-          Call Diag(Op%O,U, E)  
-          Np = 0
-          Nz = 0
-          do I = 1,N
-              if ( abs(E(I)) > Zero ) then
-                np = np + 1
-                Op%U(:, np) = U(:, i)
-                Op%E(np)   = E(I)
-              else
-                Op%U(:, N-nz) = U(:, i)
-                Op%E(N-nz)   = E(I)
-                nz = nz + 1
-              endif
-          enddo
-          Op%N_non_zero = np
-          ! Write(6,*) "Op_set", np,N
-          TMP = Op%U ! that way we have the changes to the determinant due to the permutation
-          Z = Det_C(TMP, N)
-          ! Scale Op%U to be in SU(N) 
-          DO I = 1, N
-             Op%U(I,1) = Op%U(I, 1)/Z 
-          ENDDO
-          deallocate (U, E, TMP)
-          ! Op%U,Op%E)
-          ! Write(6,*) 'Calling diag 1'
-       endif
-    else
-       Op%E(1)   = REAL(Op%O(1,1), kind(0.D0))
-       Op%U(1,1) = cmplx(1.d0, 0.d0 , kind(0.D0))
-       Op%N_non_zero = 1
-       Op%diag = .true.
-    endif
+    do block=1,Op%Nblock
+      If (Op%N > 1) then
+        N = Op%N
+        Op%diag = .true.
+        do I=1,N
+            do J=i+1,N
+              ! Binary comparison is OK here as Op%O was initialized to zero during Op_make.
+              if (Op%O(i,j,block) .ne. cmplx(0.d0,0.d0, kind(0.D0)) .or. Op%O(j,i,block) .ne. cmplx(0.d0,0.d0, kind(0.D0))) Op%diag=.false.
+            enddo
+        enddo
+        if (Op%diag) then
+            do I=1,N
+              Op%E(I,block)=DBLE(Op%O(I,I,block))
+              Op%U(I,I,block)=cmplx(1.d0,0.d0, kind(0.D0))
+            enddo
+            Op%N_non_zero(block) = N
+            ! FFA Why do we assume that Op%N_non_zero = N for a diagonal operator? 
+        else
+            Allocate (U(N,N), E(N), TMP(N, N))
+            Call Diag(Op%O(:,:,block),U, E)  
+            Np = 0
+            Nz = 0
+            do I = 1,N
+                if ( abs(E(I)) > Zero ) then
+                  np = np + 1
+                  Op%U(:, np,block) = U(:, i)
+                  Op%E(np,block)   = E(I)
+                else
+                  Op%U(:, N-nz,block) = U(:, i)
+                  Op%E(N-nz,block)   = E(I)
+                  nz = nz + 1
+                endif
+            enddo
+            Op%N_non_zero(block) = np
+            ! Write(6,*) "Op_set", np,N
+            TMP = Op%U(:,:,block) ! that way we have the changes to the determinant due to the permutation
+            Z = Det_C(TMP, N)
+            ! Scale Op%U to be in SU(N) 
+            DO I = 1, N
+              Op%U(I,1,block) = Op%U(I, 1,block)/Z 
+            ENDDO
+            deallocate (U, E, TMP)
+            ! Op%U,Op%E)
+            ! Write(6,*) 'Calling diag 1'
+        endif
+      else
+        Op%E(1,block)   = REAL(Op%O(1,1,block), kind(0.D0))
+        Op%U(1,1,block) = cmplx(1.d0, 0.d0 , kind(0.D0))
+        Op%N_non_zero(block) = 1
+        Op%diag = .true.
+      endif
+    enddo
     select case(OP%type)
     case(1)
-       Allocate(Op%E_exp(Op%N, -Op%type : Op%type), Op%M_exp(Op%N, Op%N, -Op%type : Op%type))
-       nsigma_single%t(1) = 1
-       Do I=1,Op%type
-          nsigma_single%f(1,1) = real(I,kind=kind(0.d0))
-          do n = 1, Op%N
-             Op%E_exp(n,I) = cmplx(1.d0, 0.d0, kind(0.D0))
-             Op%E_exp(n,-I) = cmplx(1.d0, 0.d0, kind(0.D0))
-             if ( n <= Op%N_non_Zero) then
-                !Op%E_exp(n,I) = exp(Op%g*Op%E(n)*Phi_st(I,1))
-                Op%E_exp(n,I) = exp(Op%g*Op%E(n)*nsigma_single%Phi(1,1))
-                Op%E_exp(n,-I) = 1.D0/Op%E_exp(n,I)
-             endif
-          enddo
-          !call Op_exp(Op%g*Phi_st( I,1),Op,Op%M_exp(:,:,I))
-          !call Op_exp(Op%g*Phi_st(-I,1),Op,Op%M_exp(:,:,-I))
-          call Op_exp( Op%g*nsigma_single%Phi(1,1),Op,Op%M_exp(:,:,I))
-          call Op_exp(-Op%g*nsigma_single%Phi(1,1),Op,Op%M_exp(:,:,-I))
-       enddo
+      Allocate(Op%E_exp(Op%N, -Op%type : Op%type,Op%Nblock), Op%M_exp(Op%N, Op%N, -Op%type : Op%type,Op%Nblock))
+      nsigma_single%t(1) = 1
+      do block=1,Op%Nblock
+        Do I=1,Op%type
+            nsigma_single%f(1,1) = real(I,kind=kind(0.d0))
+            do n = 1, Op%N
+              Op%E_exp(n,I,block) = cmplx(1.d0, 0.d0, kind(0.D0))
+              Op%E_exp(n,-I,block) = cmplx(1.d0, 0.d0, kind(0.D0))
+              if ( n <= Op%N_non_Zero(block)) then
+                  !Op%E_exp(n,I) = exp(Op%g*Op%E(n)*Phi_st(I,1))
+                  Op%E_exp(n,I,block) = exp(Op%g*Op%E(n,block)*nsigma_single%Phi(1,1))
+                  Op%E_exp(n,-I,block) = 1.D0/Op%E_exp(n,I,block)
+              endif
+            enddo
+            !call Op_exp(Op%g*Phi_st( I,1),Op,Op%M_exp(:,:,I))
+            !call Op_exp(Op%g*Phi_st(-I,1),Op,Op%M_exp(:,:,-I))
+            call Op_exp( Op%g*nsigma_single%Phi(1,1),Op,Op%M_exp(:,:,I,block))
+            call Op_exp(-Op%g*nsigma_single%Phi(1,1),Op,Op%M_exp(:,:,-I,block))
+        enddo
+      enddo
     case(2)
-       Allocate(Op%E_exp(Op%N, -Op%type : Op%type), Op%M_exp(Op%N, Op%N, -Op%type : Op%type))
-       nsigma_single%t(1) = 2
-       Do I=1,Op%type
-          nsigma_single%f(1,1) = real(I,kind=kind(0.d0))
-          do n = 1, Op%N
-             Op%E_exp(n,I) = cmplx(1.d0, 0.d0, kind(0.D0))
-             Op%E_exp(n,-I) = cmplx(1.d0, 0.d0, kind(0.D0))
-             if ( n <= Op%N_non_Zero) then
-                !Op%E_exp(n,I)  = exp(Op%g*Op%E(n)*Phi_st(I,2))
-                Op%E_exp(n,I) = exp(Op%g*Op%E(n)*nsigma_single%Phi(1,1))
-                Op%E_exp(n,-I) = 1.D0/Op%E_exp(n,I)
-             endif
-          enddo
-          call Op_exp( Op%g*nsigma_single%Phi(1,1),Op,Op%M_exp(:,:,I))
-          call Op_exp(-Op%g*nsigma_single%Phi(1,1),Op,Op%M_exp(:,:,-I))
-          !call Op_exp(Op%g*Phi_st( I,2),Op,Op%M_exp(:,:,I))
-          !call Op_exp(Op%g*Phi_st(-I,2),Op,Op%M_exp(:,:,-I))
-       enddo
+      Allocate(Op%E_exp(Op%N, -Op%type : Op%type,Op%Nblock), Op%M_exp(Op%N, Op%N, -Op%type : Op%type,Op%Nblock))
+      nsigma_single%t(1) = 2
+      do block=1,Op%Nblock
+        Do I=1,Op%type
+            nsigma_single%f(1,1) = real(I,kind=kind(0.d0))
+            do n = 1, Op%N
+              Op%E_exp(n,I,block) = cmplx(1.d0, 0.d0, kind(0.D0))
+              Op%E_exp(n,-I,block) = cmplx(1.d0, 0.d0, kind(0.D0))
+              if ( n <= Op%N_non_Zero(block)) then
+                  !Op%E_exp(n,I)  = exp(Op%g*Op%E(n)*Phi_st(I,2))
+                  Op%E_exp(n,I,block) = exp(Op%g*Op%E(n)*nsigma_single%Phi(1,1))
+                  Op%E_exp(n,-I,block) = 1.D0/Op%E_exp(n,I,block)
+              endif
+            enddo
+            call Op_exp( Op%g*nsigma_single%Phi(1,1),Op,Op%M_exp(:,:,I,block))
+            call Op_exp(-Op%g*nsigma_single%Phi(1,1),Op,Op%M_exp(:,:,-I,block))
+            !call Op_exp(Op%g*Phi_st( I,2),Op,Op%M_exp(:,:,I))
+            !call Op_exp(Op%g*Phi_st(-I,2),Op,Op%M_exp(:,:,-I))
+        enddo
+      enddo
     case default
     end select
 
