@@ -155,7 +155,7 @@
           Stop
        end Select
        Ntau_old = Ntau
-       Call Rescale ( XCOV, XQMC,XTAU, Ntau_st, Ntau_en, Tolerance, NTAU)
+      ! Call Rescale ( XCOV, XQMC,XTAU, Ntau_st, Ntau_en, Tolerance, NTAU)
        Write(50,"('Data has been rescaled from Ntau  ',  I4,' to ', I4)")  NTAU_old, Ntau
        If ( Ntau <= 4 ) then
           write(6,*) 'Not enough data!'
@@ -171,7 +171,9 @@
        XQMC_st = XQMC
        XTAU_st = XTAU
        
-       
+       do i = 1, ntau
+       xcov(i,i) = xcov(i,i) + 1.0
+       enddo
        Allocate (Alpha_tot(N_alpha) )
        do nt = 1,N_alpha
           alpha_tot(nt) = alpha_st*(R**(nt-1))
@@ -187,7 +189,7 @@
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_ph, Back_Trans_ph, Beta, &
                   &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm)
           endif
-          ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
+          ! Beware: cov is modified in the MaxEnt_stoch call.
        Case ("PP")
           If (N_cov == 1 ) then
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_pp, Back_Trans_pp, Beta, &
@@ -196,7 +198,7 @@
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_pp, Back_Trans_pp, Beta, &
                   &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm)
           endif
-          ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
+          ! Beware: cov is modified in the MaxEnt_stoch call.
        Case ("P")
           If (N_cov == 1 ) then
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_p, Back_Trans_p, Beta, &
@@ -205,7 +207,7 @@
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_p, Back_Trans_p, Beta, &
                   &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm)
           endif
-          ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
+          ! Beware: cov is modified in the MaxEnt_stoch call.
        Case ("T0")
           If (N_cov == 1 ) then
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_T0, Back_Trans_T0, Beta, &
@@ -214,7 +216,7 @@
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_T0, Back_Trans_T0, Beta, &
                   &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm)
           endif
-          ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
+          ! Beware: cov is modified in the MaxEnt_stoch call.
        Case default 
           Write(6,*) "Channel not yet implemented"
           Stop

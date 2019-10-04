@@ -21,8 +21,8 @@ Module MaxEnt_stoch_mod
               & Ngamma_1, OM_ST, OM_EN, Ndis_1, Nsweeps, NBins, NWarm, L_cov)
 
            Implicit None
-
-           Real (Kind=Kind(0.d0)), Dimension(:) :: XQMC, Xtau, Alpha_tot
+           
+           Real (Kind=Kind(0.d0)), Dimension(:), intent(in) :: XQMC, Xtau, Alpha_tot
            Real (Kind=Kind(0.d0)), Dimension(:,:), intent(inout) :: COV
            Real (Kind=Kind(0.d0)), External :: XKER, Back_trans_Aom
            Real (Kind=Kind(0.d0)) :: CHISQ, OM_ST, OM_EN, Beta_1, Xmom1, Err
@@ -75,22 +75,24 @@ Module MaxEnt_stoch_mod
            xqmc1 = xqmc / XMOM1! xqmc1 is passed via a global variable to MC()
            cov  = cov / ((XMOM1)**2)
            ! Diagonalize the covariance
+
            Allocate( U(ntau,ntau), Sigma(ntau) )
            If ( Present(L_cov) ) then
               U = cov
               Call dpotrf('U', ntau, U, ntau, info) ! cov = U^T U
-if (info < 0) then 
-write (*,*) "Argument wrong: ", info
-endif
-if (info > 0) then
-write(*,*) "negative subminor found at ", info
-endif
+              if (info < 0) then 
+                write (*,*) "Argument wrong: ", info
+              endif
+              if (info > 0) then
+                write(*,*) "negative subminor found at ", info
+              endif
 !              Call Diag(cov,U,sigma)
-              Write(6,*) " Cov Used"
+              Write(6,*) " Cov Used in chol - v2"
               alpha = 1.0
+
               call dtrsm('L', 'U', 'T', 'N', ntau, 1, alpha, U, ntau, xqmc1, ntau)
               call dtrsm('L', 'U', 'T', 'N', ntau, Ndis_table, alpha, U, ntau, xker_table, ntau)
-           else
+           else! branch tested
               Write(6,*) "No Cov Used"
               do nt = 1,ntau
                  sigma(nt) = cov(nt,nt)
@@ -666,7 +668,8 @@ endif
            !Implicit Integer (H-N)
            Implicit None
            Real (Kind=Kind(0.d0)), Dimension(:,:) :: Xn, Xker_table
-           Real (Kind=Kind(0.d0)), Dimension(:) :: Xtau, Xn_m
+           Real (Kind=Kind(0.d0)), Dimension(:), intent(in) :: Xtau
+           Real (Kind=Kind(0.d0)), Dimension(:) :: Xn_m
            Real (Kind=Kind(0.d0)) :: Alpha, En_m, s, ratio, A_gamma, Z_gamma, Acc_1, Acc_2
            Integer :: NSweeps, nl, Lambda_max, ng1, ng2
            !Local
