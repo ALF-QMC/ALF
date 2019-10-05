@@ -155,7 +155,7 @@
           Stop
        end Select
        Ntau_old = Ntau
-      ! Call Rescale ( XCOV, XQMC,XTAU, Ntau_st, Ntau_en, Tolerance, NTAU)
+       Call Rescale ( XCOV, XQMC,XTAU, Ntau_st, Ntau_en, Tolerance, NTAU)
        Write(50,"('Data has been rescaled from Ntau  ',  I4,' to ', I4)")  NTAU_old, Ntau
        If ( Ntau <= 4 ) then
           write(6,*) 'Not enough data!'
@@ -163,17 +163,14 @@
        Endif
        If (  nbin_qmc > 2*Ntau .and. N_cov == 0  )   Write(50,*) 'Consider using the covariance. You seem to have enough bins'
        If (  nbin_qmc < 2*Ntau .and. N_cov == 1  )   Write(50,*) 'You do not seem to have enough bins for a reliable estimate of the covariance '
-          
-        
+
+
        ! Store
        Allocate ( XCOV_st(NTAU,NTAU), XQMC_st(NTAU),XTAU_st(NTAU) )
        XCOV_st = XCOV
        XQMC_st = XQMC
        XTAU_st = XTAU
-       
-       do i = 1, ntau
-       xcov(i,i) = xcov(i,i) + 1.0
-       enddo
+
        Allocate (Alpha_tot(N_alpha) )
        do nt = 1,N_alpha
           alpha_tot(nt) = alpha_st*(R**(nt-1))
@@ -412,9 +409,8 @@
        Integer, allocatable :: List(:)
        Real (Kind=Kind(0.d0)), dimension(:,:), allocatable  ::  XCOV_st
        Real (Kind=Kind(0.d0)), dimension(:)  , allocatable  ::  XQMC_st, XTAU_st
-       
-       
-       
+
+
        ! Count the number of elements
        ntau_new = 0
        Do nt = ntau_st,ntau_en
@@ -446,9 +442,6 @@
        XQMC = XQMC_st
        XTAU = XTAU_st
        Deallocate (XCOV_st, XQMC_st,XTAU_st, List )
-       
-       
-       
+
 
        end Subroutine Rescale
-     
