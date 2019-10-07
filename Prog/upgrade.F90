@@ -122,7 +122,7 @@
         Type   (Fields)   ::  nsigma_new
         Complex (Kind=Kind(0.d0)), Allocatable :: Mat(:,:), Delta(:,:) !Mat(Op_dim(1),Op_Dim(1)), Delta(Op_dim(1),N_FL)
         Complex (Kind=Kind(0.d0)) :: Ratio(N_FL), Ratiotot, Z1 
-        Integer ::  n,m,nf, i,nblock, p_dim_sum, op_dim_sum, n_eff, m_eff, bn, bm
+        Integer ::  n,m,nf, i,nblock, op_dim_sum, n_eff, m_eff, bn, bm
         Complex (Kind=Kind(0.d0)) :: Z, D_Mat, myexp, s1, s2
         
         Real    (Kind=Kind(0.d0)) :: Weight
@@ -140,14 +140,12 @@
         
         ! Compute the ratio
         nblock = size(Op_dim,1)
-        p_dim_sum=0
         op_dim_sum=0
         do n=1,nblock
-          p_dim_sum  = p_dim_sim  + Op_V(n_op,nf)% !real dimension of op
           op_dim_sum = op_dim_sum + Op_dim(n)
         enddo
         
-        Allocate(Mat(Op_dim_sum,Op_Dim_max), Delta(Op_dim_sum,N_FL))
+        Allocate(Mat(Op_dim_sum,Op_Dim_sum), Delta(Op_dim_sum,N_FL))
         Allocate(u(Ndim,Op_dim_sum), v(Ndim,Op_dim_sum))
         Allocate(y_v(Ndim,Op_dim_sum), xp_v(Ndim,Op_dim_sum))
         Allocate(x_v(Ndim,Op_dim_sum))
