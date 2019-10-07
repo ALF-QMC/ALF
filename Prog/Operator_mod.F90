@@ -261,7 +261,8 @@ Contains
         do I=1,N
             do J=i+1,N
               ! Binary comparison is OK here as Op%O was initialized to zero during Op_make.
-              if (Op%O(i,j,block) .ne. cmplx(0.d0,0.d0, kind(0.D0)) .or. Op%O(j,i,block) .ne. cmplx(0.d0,0.d0, kind(0.D0))) Op%diag(block)=.false.
+               if (Op%O(i,j,block) .ne. cmplx(0.d0,0.d0, kind(0.D0)) .or. Op%O(j,i,block) .ne. &
+                    & cmplx(0.d0,0.d0, kind(0.D0))) Op%diag(block)=.false.
             enddo
         enddo
         if (Op%diag(block)) then

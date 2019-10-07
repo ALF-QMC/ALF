@@ -244,7 +244,8 @@
                 Zarr = x_v(Op_V(n_op,nf)%P(:,1), :)
                 grarr = gr(:, Op_V(n_op,nf)%P(:,1), nf)
                 alpha = 1.D0
-                CALL ZGEMM('N', 'N', NDim, Op_Dim(1), Op_Dim(1), alpha, grarr, Ndim, Zarr, size(Op_V(n_op,nf)%P, 1), beta, xp_v, Ndim)
+                CALL ZGEMM('N', 'N', NDim, Op_Dim(1), Op_Dim(1), alpha, grarr, Ndim, Zarr, size(Op_V(n_op,nf)%P, 1),&
+                & beta, xp_v, Ndim)
                 Deallocate(Zarr, grarr)
                 beta  = cmplx ( 1.0d0, 0.0d0, kind(0.D0))
                 alpha = -1.D0
