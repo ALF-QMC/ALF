@@ -384,28 +384,36 @@ Contains
     Complex (Kind=Kind(0.d0)) :: Z, Z1, y, t
     Complex (Kind=Kind(0.d0)), allocatable, dimension(:,:) :: c
 
-    Integer :: n, j, I, iters, block
+    Integer :: n, j, I, iters, block, n_eff, i_eff, j_eff, block_begin
 
+    n_eff = 0
     do block=1,Op%Nblock
        iters = Op%N
        Mat = cmplx(0.d0, 0.d0, kind(0.D0))
        if (Op%diag(block)) then
           Do n = 1, iters
-             Mat(n,n)=exp(g*Op%E(n,block))
+             n_eff = n_eff + 1
+             Mat(n_eff,n_eff)=exp(g*Op%E(n,block))
           enddo
        else
           Allocate (c(iters, iters))
           c = 0.D0
+          block_begin = n_eff
           Do n = 1, iters
+             n_eff = n_eff + 1
              Z = exp(g*Op%E(n,block))
+             j_eff = block_begin
+             i_eff = block_begin
              do J = 1, iters
+                j_eff = j_eff + 1
                 Z1 = Z*conjg(Op%U(J,n, block))
                 do I = 1, iters
+                   i_eff = i_eff + 1
                    ! This performs Kahan summation so as to improve precision.
                    y = Z1 * Op%U(I, n, block) - c(I, J)
-                   t = Mat(I, J) + y
-                   c(I, J) = (t - Mat(I,J)) - y
-                   Mat(I, J) = t
+                   t = Mat(I_eff, J_eff) + y
+                   c(I, J) = (t - Mat(I_eff,J_eff)) - y
+                   Mat(I_eff, J_eff) = t
                    !  Mat(I, J) = Mat(I, J) + Z1 * Op%U(I, n)
                 enddo
                 ! Mat(1:iters, J) = Mat(1:iters, J) + Z1 * Op%U(1:iters, n)
