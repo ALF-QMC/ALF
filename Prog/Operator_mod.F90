@@ -193,7 +193,7 @@ Contains
       OP%Nblock = nb
     endif
     
-    Allocate (Op%O(N,N,OP%Nblock), Op%P(N,OP%Nblock), Op%N_non_zero(OP%Nblock) )
+    Allocate (Op%O(N,N,OP%Nblock), Op%P(N,OP%Nblock), Op%N_non_zero(OP%Nblock), Op%diag(OP%Nblock) )
     ! F.F.A  Op%M_exp and Op%E_exp are allocated  in Op_set once the type is available.
     
     Op%O = cmplx(0.d0, 0.d0, kind(0.D0))
@@ -220,7 +220,7 @@ Contains
     Implicit none
     Type (Operator), intent(INOUT) :: Op
     Integer, Intent(IN) :: N
-    Deallocate (Op%O, Op%P, Op%N_non_zero )
+    Deallocate (Op%O, Op%P, Op%N_non_zero, Op%diag )
 
     If ( Op%Type >= 1)   deallocate(OP%M_exp,OP%E_exp,  OP%U, OP%E)
 
