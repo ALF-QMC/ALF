@@ -1,0 +1,39 @@
+% Copyright (c) 2016-2019 The ALF project.
+% This is a part of the ALF project documentation.
+% The ALF project documentation by the ALF contributors is licensed
+% under a Creative Commons Attribution-ShareAlike 4.0 International License.
+% For the licensing details of the documentation see license.CCBYSA.
+% !TEX root = Doc.tex
+\subsection{  Model Classes }
+
+I suggest the following for the organization of the models.    Five independent Hamiltonian   files would suffice.
+
+
+\subsubsection{Hubbard models   \texttt{tU\_mod.F90}}
+
+\begin{equation}
+    \sum_{\vec{i},\vec{j},\sigma=1}^{N}  \hat{c}^{\dagger}_{\vec{i},\sigma } T_{\vec{i},\vec{j}} \hat{c}^{\phantom\dagger}_{\vec{i},\sigma }     +  \frac{U}{N} \sum_{\vec{i}} \left(\sum_{\sigma=1}^{N}  \left[   \hat{c}^{\dagger}_{\vec{i},\sigma } 
+    \hat{c}^{\phantom\dagger}_{\vec{i},\sigma }  - 1/2  \right] \right)^2 
+\end{equation}
+This Hamiltonian would
+\begin{itemize} 
+\item support   square,  honeycomb,  $\pi$-flux.  It would be very nice to have bilayer versions of these lattices as well. 
+\item Breakdown of the $U(2N)$ symmetry to $U(N) \times U(N)$ so as to accommodate magnetic fields and pinning fields.  
+\end{itemize}
+
+
+\subsubsection{Hubbard models   \texttt{tV\_mod.F90}}
+
+This would include the $SU(N)$  $t-V$ models on various lattices.  The defining property of this set of Hamiltonians would be the enlarged O(2N) symmetry.  Again  this   module should support our standard bipartitie lattices. 
+
+
+\subsubsection{Hubbard models   \texttt{LRC\_mod.F90}}
+
+This is the long range Coulomb. See above.    Again we should include the   standard lattices. 
+
+\subsubsection{Hubbard models   \texttt{Z2\_mod.F90}}
+I suggest to work on the  Hamiltonian of Ref.~\ref{Z2.Sec} since this is the most general  model I can think of.   Would be nice to add a Hubbard-$U$ term.  It is actually not so easy to generalize this model to 
+arbitrary lattices, so that for the moment, I would concentrate only on the square lattice. 
+
+\subsubsection{Hubbard models   \texttt{Kondo\_mod.F90}}
+Kondo lattice model on various lattices.  I still have to think about the best way of doing things here. 
