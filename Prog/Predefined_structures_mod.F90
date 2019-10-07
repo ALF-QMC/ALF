@@ -313,20 +313,20 @@
                        I1 = Latt%nnlist(I,1,0)
                        I2 = Latt%nnlist(I,0,1)
                        If ( Latt%list(I,1) == 0 ) then
-                          Op_T(nc,n)%O(I,I1) = cmplx(-Ham_T*XB_X, 0.d0, kind(0.D0))*ZX
-                          Op_T(nc,n)%O(I1,I) = cmplx(-Ham_T*XB_X, 0.d0, kind(0.D0))*conjg(ZX)
+                          Op_T(nc,n)%O(I,I1,1) = cmplx(-Ham_T*XB_X, 0.d0, kind(0.D0))*ZX
+                          Op_T(nc,n)%O(I1,I,1) = cmplx(-Ham_T*XB_X, 0.d0, kind(0.D0))*conjg(ZX)
                        else
-                          Op_T(nc,n)%O(I,I1) = cmplx(-Ham_T, 0.d0, kind(0.D0))*ZX
-                          Op_T(nc,n)%O(I1,I) = cmplx(-Ham_T, 0.d0, kind(0.D0))*conjg(ZX)
+                          Op_T(nc,n)%O(I,I1,1) = cmplx(-Ham_T, 0.d0, kind(0.D0))*ZX
+                          Op_T(nc,n)%O(I1,I,1) = cmplx(-Ham_T, 0.d0, kind(0.D0))*conjg(ZX)
                        endif
                        If ( Latt%list(I,2) == 0 ) then
-                          Op_T(nc,n)%O(I,I2) = cmplx(-Ham_T*XB_Y,    0.d0, kind(0.D0))*ZY
-                          Op_T(nc,n)%O(I2,I) = cmplx(-Ham_T*XB_Y,    0.d0, kind(0.D0))*conjg(ZY)
+                          Op_T(nc,n)%O(I,I2,1) = cmplx(-Ham_T*XB_Y,    0.d0, kind(0.D0))*ZY
+                          Op_T(nc,n)%O(I2,I,1) = cmplx(-Ham_T*XB_Y,    0.d0, kind(0.D0))*conjg(ZY)
                        else
-                          Op_T(nc,n)%O(I,I2) = cmplx(-Ham_T     ,    0.d0, kind(0.D0))*ZY
-                          Op_T(nc,n)%O(I2,I) = cmplx(-Ham_T     ,    0.d0, kind(0.D0))*conjg(ZY)
+                          Op_T(nc,n)%O(I,I2,1) = cmplx(-Ham_T     ,    0.d0, kind(0.D0))*ZY
+                          Op_T(nc,n)%O(I2,I,1) = cmplx(-Ham_T     ,    0.d0, kind(0.D0))*conjg(ZY)
                        endif
-                       Op_T(nc,n)%O(I ,I) = cmplx(-Ham_chem, 0.d0, kind(0.D0))
+                       Op_T(nc,n)%O(I ,I,1) = cmplx(-Ham_chem, 0.d0, kind(0.D0))
                     Enddo
                     if (Present(Dimer)) then
                        Do I = 1, Latt%N
@@ -334,8 +334,8 @@
                           If ( mod(Ix + Iy,2)  == 0 ) then
                              I1 = I
                              I2 = Latt%nnlist(I,1,0)
-                             Op_T(nc,n)%O(I1,I2)  = Op_T(nc,n)%O(I1,I2) + Dimer
-                             Op_T(nc,n)%O(I2,I1)  = Op_T(nc,n)%O(I2,I1) + Dimer
+                             Op_T(nc,n)%O(I1,I2,1)  = Op_T(nc,n)%O(I1,I2,1) + Dimer
+                             Op_T(nc,n)%O(I2,I1,1)  = Op_T(nc,n)%O(I2,I1,1) + Dimer
                           endif
                        enddo
                     endif
@@ -344,13 +344,13 @@
                     DO I = 1, Latt%N
                        I1 = Latt%nnlist(I,1,0)
                        If ( Latt%list(I,1) == 0 ) then
-                          Op_T(nc,n)%O(I,I1) = cmplx(-Ham_T*XB_X, 0.d0, kind(0.D0))*ZX
-                          Op_T(nc,n)%O(I1,I) = cmplx(-Ham_T*XB_X, 0.d0, kind(0.D0))*conjg(ZX)
+                          Op_T(nc,n)%O(I,I1,1) = cmplx(-Ham_T*XB_X, 0.d0, kind(0.D0))*ZX
+                          Op_T(nc,n)%O(I1,I,1) = cmplx(-Ham_T*XB_X, 0.d0, kind(0.D0))*conjg(ZX)
                        else
-                          Op_T(nc,n)%O(I,I1) = cmplx(-Ham_T, 0.d0, kind(0.D0))*ZX
-                          Op_T(nc,n)%O(I1,I) = cmplx(-Ham_T, 0.d0, kind(0.D0))*conjg(ZX)
+                          Op_T(nc,n)%O(I,I1,1) = cmplx(-Ham_T, 0.d0, kind(0.D0))*ZX
+                          Op_T(nc,n)%O(I1,I,1) = cmplx(-Ham_T, 0.d0, kind(0.D0))*conjg(ZX)
                        endif
-                       Op_T(nc,n)%O(I ,I) = cmplx(-Ham_chem, 0.d0, kind(0.D0))
+                       Op_T(nc,n)%O(I,I,1) = cmplx(-Ham_chem, 0.d0, kind(0.D0))
                     Enddo
                     if (Present(Dimer)) then
                        Do I = 1, Latt%N
@@ -358,8 +358,8 @@
                           If ( mod(Ix + Iy,2)  == 0 ) then
                              I1 = I
                              I2 = Latt%nnlist(I,1,0)
-                             Op_T(nc,n)%O(I1,I2)  = Op_T(nc,n)%O(I1,I2) + Dimer
-                             Op_T(nc,n)%O(I2,I1)  = Op_T(nc,n)%O(I2,I1) + Dimer
+                             Op_T(nc,n)%O(I1,I2,1)  = Op_T(nc,n)%O(I1,I2,1) + Dimer
+                             Op_T(nc,n)%O(I2,I1,1)  = Op_T(nc,n)%O(I2,I1,1) + Dimer
                           endif
                        enddo
                     endif
@@ -369,7 +369,7 @@
                  DO I = 1, Latt%N
                     do no = 1,Latt_unit%Norb
                        I1 = Invlist(I,no)
-                       Op_T(nc,n)%O(I1 ,I1) = cmplx(-Ham_chem, 0.d0, kind(0.D0))
+                       Op_T(nc,n)%O(I1 ,I1, 1) = cmplx(-Ham_chem, 0.d0, kind(0.D0))
                     enddo
                     I1 = Invlist(I,1)
                     J1 = I1
@@ -389,15 +389,15 @@
                           Stop
                        end select
                        ZX = exp( cmplx(0.d0, X*Iscalar(Latt%a1_p,del_p), kind(0.D0) ) )
-                       Op_T(nc,n)%O(I1,J1) = cmplx(-Ham_T,    0.d0, kind(0.D0)) * ZX
-                       Op_T(nc,n)%O(J1,I1) = cmplx(-Ham_T,    0.d0, kind(0.D0)) * CONJG(ZX) 
+                       Op_T(nc,n)%O(I1,J1,1) = cmplx(-Ham_T,    0.d0, kind(0.D0)) * ZX
+                       Op_T(nc,n)%O(J1,I1,1) = cmplx(-Ham_T,    0.d0, kind(0.D0)) * CONJG(ZX) 
                     Enddo
                  Enddo
               case("Pi_Flux")
                  DO I = 1, Latt%N
                     do no = 1,Latt_unit%Norb
                        I1 = Invlist(I,no)
-                       Op_T(nc,n)%O(I1 ,I1) = cmplx(-Ham_chem, 0.d0, kind(0.D0))
+                       Op_T(nc,n)%O(I1 ,I1, 1) = cmplx(-Ham_chem, 0.d0, kind(0.D0))
                     enddo
                     I1 = Invlist(I,1)
                     J1 = I1
@@ -416,11 +416,11 @@
                           Stop
                        end select
                        if (nc1 == 1 ) then
-                          Op_T(nc,n)%O(I1,J1) = cmplx( Ham_T,    0.d0, kind(0.D0))
-                          Op_T(nc,n)%O(J1,I1) = cmplx( Ham_T,    0.d0, kind(0.D0))
+                          Op_T(nc,n)%O(I1,J1,1) = cmplx( Ham_T,    0.d0, kind(0.D0))
+                          Op_T(nc,n)%O(J1,I1,1) = cmplx( Ham_T,    0.d0, kind(0.D0))
                        Else
-                          Op_T(nc,n)%O(I1,J1) = cmplx(-Ham_T,    0.d0, kind(0.D0))
-                          Op_T(nc,n)%O(J1,I1) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+                          Op_T(nc,n)%O(I1,J1,1) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+                          Op_T(nc,n)%O(J1,I1,1) = cmplx(-Ham_T,    0.d0, kind(0.D0))
                        endif
                     Enddo
                  Enddo
@@ -429,7 +429,7 @@
                  Stop
               end select
               Do I = 1,Ndim
-                 Op_T(nc,n)%P(i) = i 
+                 Op_T(nc,n)%P(i,1) = i 
               Enddo
               if ( abs(Ham_T) < 1.E-6  .and.  abs(Ham_chem) < 1.E-6 ) then 
                  Op_T(nc,n)%g = 0.d0
@@ -483,12 +483,12 @@
                                 g = -Dtau/2.d0
                              end select
                              !Write(6,*) nc,nc1, Latt%List(I1,1), Latt%List(I1,2),Latt%List(I2,1), Latt%List(I2,2), I1, I2
-                             Op_T(nc,n)%P(1) = I1
-                             Op_T(nc,n)%P(2) = I2
-                             Op_T(nc,n)%O(1,2) = cmplx(-Ham_T ,0.d0, kind(0.D0)) 
-                             Op_T(nc,n)%O(2,1) = cmplx(-Ham_T ,0.d0, kind(0.D0))
-                             Op_T(nc,n)%O(1,1) = cmplx(-Ham_Chem/4.d0 ,0.d0, kind(0.D0)) 
-                             Op_T(nc,n)%O(2,2) = cmplx(-Ham_Chem/4.d0 ,0.d0, kind(0.D0))
+                             Op_T(nc,n)%P(1,1) = I1
+                             Op_T(nc,n)%P(2,1) = I2
+                             Op_T(nc,n)%O(1,2,1) = cmplx(-Ham_T ,0.d0, kind(0.D0)) 
+                             Op_T(nc,n)%O(2,1,1) = cmplx(-Ham_T ,0.d0, kind(0.D0))
+                             Op_T(nc,n)%O(1,1,1) = cmplx(-Ham_Chem/4.d0 ,0.d0, kind(0.D0)) 
+                             Op_T(nc,n)%O(2,2,1) = cmplx(-Ham_Chem/4.d0 ,0.d0, kind(0.D0))
                              if ( abs(Ham_T) < 1.E-6  .and.  abs(Ham_chem) < 1.E-6 ) then 
                                 Op_T(nc,n)%g = 0.d0
                              else
@@ -519,12 +519,12 @@
                              if (nc1 == 3 ) I2 = latt%nnlist(I1,-1, 0)
                              if (nc1 == 4 ) I2 = latt%nnlist(I1, 0,-1)
                              !Write(6,*) nc,nc1, Latt%List(I1,1), Latt%List(I1,2),Latt%List(I2,1), Latt%List(I2,2), I1, I2
-                             Op_T(nc,n)%P(1) = I1
-                             Op_T(nc,n)%P(2) = I2
-                             Op_T(nc,n)%O(1,2) = cmplx(-Ham_T ,0.d0, kind(0.D0)) 
-                             Op_T(nc,n)%O(2,1) = cmplx(-Ham_T ,0.d0, kind(0.D0))
-                             Op_T(nc,n)%O(1,1) = cmplx(-Ham_Chem/4.d0 ,0.d0, kind(0.D0)) 
-                             Op_T(nc,n)%O(2,2) = cmplx(-Ham_Chem/4.d0 ,0.d0, kind(0.D0))
+                             Op_T(nc,n)%P(1,1) = I1
+                             Op_T(nc,n)%P(2,1) = I2
+                             Op_T(nc,n)%O(1,2,1) = cmplx(-Ham_T ,0.d0, kind(0.D0)) 
+                             Op_T(nc,n)%O(2,1,1) = cmplx(-Ham_T ,0.d0, kind(0.D0))
+                             Op_T(nc,n)%O(1,1,1) = cmplx(-Ham_Chem/4.d0 ,0.d0, kind(0.D0)) 
+                             Op_T(nc,n)%O(2,2,1) = cmplx(-Ham_Chem/4.d0 ,0.d0, kind(0.D0))
                              if ( abs(Ham_T) < 1.E-6  .and.  abs(Ham_chem) < 1.E-6 ) then 
                                 Op_T(nc,n)%g = 0.d0
                              else
@@ -557,17 +557,17 @@
                           If (nc1 == 2 )  I2 = invlist(Latt%nnlist(I,0, 1),2) 
                           If (nc1 == 3 )  I2 = invlist(Latt%nnlist(I,-1,1),2)
                           If (nc1 == 4 )  I2 = invlist(Latt%nnlist(I,-1,0),2) 
-                          Op_T(nc,n)%P(1) = I1
-                          Op_T(nc,n)%P(2) = I2
+                          Op_T(nc,n)%P(1,1) = I1
+                          Op_T(nc,n)%P(2,1) = I2
                           if (nc1 == 1 ) then
-                             Op_T(nc,n)%O(1,2) = cmplx( Ham_T,    0.d0, kind(0.D0))
-                             Op_T(nc,n)%O(2,1) = cmplx( Ham_T,    0.d0, kind(0.D0))
+                             Op_T(nc,n)%O(1,2,1) = cmplx( Ham_T,    0.d0, kind(0.D0))
+                             Op_T(nc,n)%O(2,1,1) = cmplx( Ham_T,    0.d0, kind(0.D0))
                           Else
-                             Op_T(nc,n)%O(1,2) = cmplx(-Ham_T,    0.d0, kind(0.D0))
-                             Op_T(nc,n)%O(2,1) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+                             Op_T(nc,n)%O(1,2,1) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+                             Op_T(nc,n)%O(2,1,1) = cmplx(-Ham_T,    0.d0, kind(0.D0))
                           endif
-                          Op_T(nc,n)%O(1,1) = cmplx(-Ham_Chem/4.d0 ,0.d0, kind(0.D0)) 
-                          Op_T(nc,n)%O(2,2) = cmplx(-Ham_Chem/4.d0 ,0.d0, kind(0.D0))
+                          Op_T(nc,n)%O(1,1,1) = cmplx(-Ham_Chem/4.d0 ,0.d0, kind(0.D0)) 
+                          Op_T(nc,n)%O(2,2,1) = cmplx(-Ham_Chem/4.d0 ,0.d0, kind(0.D0))
                           if ( abs(Ham_T) < 1.E-6  .and.  abs(Ham_chem) < 1.E-6 ) then 
                              Op_T(nc,n)%g = 0.d0
                           else
@@ -608,12 +608,12 @@
                              I2 = invlist(I,2)
                              g = -Dtau/2.d0
                           end select
-                          Op_T(nc,n)%P(1) = I1
-                          Op_T(nc,n)%P(2) = I2
-                          Op_T(nc,n)%O(1,2) = cmplx(-Ham_T ,0.d0, kind(0.D0)) 
-                          Op_T(nc,n)%O(2,1) = cmplx(-Ham_T ,0.d0, kind(0.D0))
-                          Op_T(nc,n)%O(1,1) = cmplx(-Ham_Chem/3.d0 ,0.d0, kind(0.D0)) 
-                          Op_T(nc,n)%O(2,2) = cmplx(-Ham_Chem/3.d0 ,0.d0, kind(0.D0))
+                          Op_T(nc,n)%P(1,1) = I1
+                          Op_T(nc,n)%P(2,1) = I2
+                          Op_T(nc,n)%O(1,2,1) = cmplx(-Ham_T ,0.d0, kind(0.D0)) 
+                          Op_T(nc,n)%O(2,1,1) = cmplx(-Ham_T ,0.d0, kind(0.D0))
+                          Op_T(nc,n)%O(1,1,1) = cmplx(-Ham_Chem/3.d0 ,0.d0, kind(0.D0)) 
+                          Op_T(nc,n)%O(2,2,1) = cmplx(-Ham_Chem/3.d0 ,0.d0, kind(0.D0))
                           if ( abs(Ham_T) < 1.E-6  .and.  abs(Ham_chem) < 1.E-6 ) then 
                              Op_T(nc,n)%g = 0.d0
                           else
@@ -638,12 +638,12 @@
                           if (nc1 == 1 ) I2 = invlist(I,2)
                           if (nc1 == 2 ) I2 = invlist(latt%nnlist(I,1,-1),2)
                           if (nc1 == 3 ) I2 = invlist(latt%nnlist(I,0,-1),2)
-                          Op_T(nc,n)%P(1) = I1
-                          Op_T(nc,n)%P(2) = I2
-                          Op_T(nc,n)%O(1,2) = cmplx(-Ham_T ,0.d0, kind(0.D0)) 
-                          Op_T(nc,n)%O(2,1) = cmplx(-Ham_T ,0.d0, kind(0.D0))
-                          Op_T(nc,n)%O(1,1) = cmplx(-Ham_Chem/3.d0 ,0.d0, kind(0.D0)) 
-                          Op_T(nc,n)%O(2,2) = cmplx(-Ham_Chem/3.d0 ,0.d0, kind(0.D0))
+                          Op_T(nc,n)%P(1,1) = I1
+                          Op_T(nc,n)%P(2,1) = I2
+                          Op_T(nc,n)%O(1,2,1) = cmplx(-Ham_T ,0.d0, kind(0.D0)) 
+                          Op_T(nc,n)%O(2,1,1) = cmplx(-Ham_T ,0.d0, kind(0.D0))
+                          Op_T(nc,n)%O(1,1,1) = cmplx(-Ham_Chem/3.d0 ,0.d0, kind(0.D0)) 
+                          Op_T(nc,n)%O(2,2,1) = cmplx(-Ham_Chem/3.d0 ,0.d0, kind(0.D0))
                           if ( abs(Ham_T) < 1.E-6  .and.  abs(Ham_chem) < 1.E-6 ) then 
                              Op_T(nc,n)%g = 0.d0
                           else
@@ -817,15 +817,15 @@
                        Write(lp,*)
                     endif
                     do n = 1,N_FL
-                       Op_Tmp(1,n)%O(I1,J1) =   cmplx( - hop(nc1),    0.d0, kind(0.D0))
-                       Op_Tmp(1,n)%O(J1,I1) =   cmplx( - hop(nc1),    0.d0, kind(0.D0))
+                       Op_Tmp(1,n)%O(I1,J1,1) =   cmplx( - hop(nc1),    0.d0, kind(0.D0))
+                       Op_Tmp(1,n)%O(J1,I1,1) =   cmplx( - hop(nc1),    0.d0, kind(0.D0))
                     enddo
                  enddo
               enddo
            Enddo
            do n = 1,N_FL
               Do I = 1,Ndim
-                 Op_Tmp(1,n)%P(i) = i 
+                 Op_Tmp(1,n)%P(i,1) = i 
               Enddo
               Op_Tmp(1,n)%g    = cmplx(1.d0, 0.d0,kind(0.d0))
               Op_Tmp(1,n)%alpha= cmplx(0.d0,0.d0, kind(0.D0))
@@ -867,21 +867,21 @@
            Call Diag(Op_tmp(1,nf)%O,Op_tmp(1,nf)%U,Op_tmp(1,nf)%E)
            do I2=1,N_part
               do I1=1,Ndim
-                 WF_L(nf)%P(I1,I2)=Op_tmp(1,nf)%U(I1,I2)
-                 WF_R(nf)%P(I1,I2)=Op_tmp(1,nf)%U(I1,I2)
+                 WF_L(nf)%P(I1,I2)=Op_tmp(1,nf)%U(I1,I2,1)
+                 WF_R(nf)%P(I1,I2)=Op_tmp(1,nf)%U(I1,I2,1)
               enddo
            enddo
-           WF_L(nf)%Degen = Op_tmp(1,nf)%E(N_part+1) - Op_tmp(1,nf)%E(N_part)
-           WF_R(nf)%Degen = Op_tmp(1,nf)%E(N_part+1) - Op_tmp(1,nf)%E(N_part)
+           WF_L(nf)%Degen = Op_tmp(1,nf)%E(N_part+1,1) - Op_tmp(1,nf)%E(N_part,1)
+           WF_R(nf)%Degen = Op_tmp(1,nf)%E(N_part+1,1) - Op_tmp(1,nf)%E(N_part,1)
         enddo
 
         If (test) then
            DO  I = 1,NDim
-              Write(6,*) Op_tmp(1,1)%E(I)
+              Write(6,*) Op_tmp(1,1)%E(I,1)
            enddo
            Do I = 1,Ndim
               do J = 1,Ndim
-                 Write(6,*) Op_tmp(1,1)%O(I,J)
+                 Write(6,*) Op_tmp(1,1)%O(I,J,1)
               enddo
            enddo
         endif
