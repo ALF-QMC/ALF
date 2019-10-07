@@ -469,7 +469,7 @@ Contains
                 endif
              enddo
           else
-             call ZSLGEMM('r',cop,Op%N,N1,N2,Op%M_exp(:,:,sp,block),Op%P,Mat)
+             call ZSLGEMM('r',cop,Op%N,N1,N2,Op%M_exp(:,:,sp,block),Op%P(:,block),Mat)
           endif
        else
           if ( Op%diag(block) ) then
@@ -482,7 +482,7 @@ Contains
              enddo
           else
              call Op_exp(Op%g*spin,Op,expmat)
-             call ZSLGEMM('r',cop,Op%N,N1,N2,expmat,Op%P,Mat)
+             call ZSLGEMM('r',cop,Op%N,N1,N2,expmat,Op%P(:,block),Mat)
           endif
        endif
     enddo
@@ -539,7 +539,7 @@ Contains
                 endif
              enddo
           else
-             call ZSLGEMM('L',cop,Op%N,N1,N2,Op%M_exp(:,:,sp,block),Op%P,Mat)
+             call ZSLGEMM('L',cop,Op%N,N1,N2,Op%M_exp(:,:,sp,block),Op%P(:,block),Mat)
           endif
        else
           if ( Op%diag(block) ) then
@@ -552,7 +552,7 @@ Contains
              enddo
           else
              call Op_exp(Op%g*spin,Op,expmat)
-             call ZSLGEMM('L',cop,Op%N,N1,N2,expmat,Op%P,Mat)
+             call ZSLGEMM('L',cop,Op%N,N1,N2,expmat,Op%P(:,block),Mat)
           endif
        endif
     enddo
@@ -612,15 +612,15 @@ Contains
                 Do i = 1,Op%N
                    VH1(:,i)=Op%U(:,i,block)*Op%E_Exp(I,-sp,block)
                 Enddo
-                call ZSLGEMM('r','n',Op%n,Ndim,Ndim,VH1,Op%P,Mat)
+                call ZSLGEMM('r','n',Op%n,Ndim,Ndim,VH1,Op%P(:,block),Mat)
                 Do i = 1,Op%N
                    VH1(:,i)=Op%E_Exp(I, sp, block)*conjg(Op%U(:,i,block))
                 Enddo
-                call ZSLGEMM('l','T',Op%n,Ndim,Ndim,VH1,Op%P,Mat)
+                call ZSLGEMM('l','T',Op%n,Ndim,Ndim,VH1,Op%P(:,block),Mat)
              endif
           elseif (N_Type == 2 .and. .not. Op%diag(block)) then
-             call ZSLGEMM('l','n',Op%n,Ndim,Ndim,Op%U,Op%P,Mat)
-             call ZSLGEMM('r','c',Op%n,Ndim,Ndim,Op%U,Op%P,Mat)
+             call ZSLGEMM('l','n',Op%n,Ndim,Ndim,Op%U(:,:,block),Op%P(:,block),Mat)
+             call ZSLGEMM('r','c',Op%n,Ndim,Ndim,Op%U(:,:,block),Op%P(:,block),Mat)
           endif
        else
           If (N_type == 1) then
@@ -635,15 +635,15 @@ Contains
                 Do i = 1,Op%N
                    VH1(:,i)=Op%U(:,i,block)*exp(-spin*Op%g*Op%E(I,block)) 
                 Enddo
-                call ZSLGEMM('r','n',Op%n,Ndim,Ndim,VH1,Op%P,Mat)
+                call ZSLGEMM('r','n',Op%n,Ndim,Ndim,VH1,Op%P(:,block),Mat)
                 Do i = 1,Op%N
                    VH1(:,i)=exp(spin*Op%g*Op%E(I,block))*conjg(Op%U(:,i,block))
                 Enddo
-                call ZSLGEMM('l','T',Op%n,Ndim,Ndim,VH1,Op%P,Mat)
+                call ZSLGEMM('l','T',Op%n,Ndim,Ndim,VH1,Op%P(:,block),Mat)
              endif
           elseif (N_Type == 2 .and. .not. Op%diag(block)) then
-             call ZSLGEMM('l','n',Op%n,Ndim,Ndim,Op%U,Op%P,Mat)
-             call ZSLGEMM('r','c',Op%n,Ndim,Ndim,Op%U,Op%P,Mat)
+             call ZSLGEMM('l','n',Op%n,Ndim,Ndim,Op%U(:,:,block),Op%P(:,block),Mat)
+             call ZSLGEMM('r','c',Op%n,Ndim,Ndim,Op%U(:,:,block),Op%P(:,block),Mat)
           endif
        endif
     enddo
@@ -702,15 +702,15 @@ Contains
                 Do n = 1,Op%N
                    VH1(:,n)=Op%U(:,n,block)*Op%E_Exp(n,-sp,block)
                 Enddo
-                call ZSLGEMM('l','n',Op%n,Ndim,Ndim,VH1,Op%P,Mat)
+                call ZSLGEMM('l','n',Op%n,Ndim,Ndim,VH1,Op%P(:,block),Mat)
                 Do n = 1,Op%N
                    VH1(:,n)=Op%E_Exp(n, sp, block)*conjg(Op%U(:,n,block))
                 Enddo
-                call ZSLGEMM('r','T',Op%n,Ndim,Ndim,VH1,Op%P,Mat)
+                call ZSLGEMM('r','T',Op%n,Ndim,Ndim,VH1,Op%P(:,block),Mat)
              endif
           elseif (N_Type == 2 .and. .not. Op%diag(block)) then
-             call ZSLGEMM('r','n',Op%n,Ndim,Ndim,Op%U,Op%P,Mat)
-             call ZSLGEMM('l','c',Op%n,Ndim,Ndim,Op%U,Op%P,Mat)
+             call ZSLGEMM('r','n',Op%n,Ndim,Ndim,Op%U(:,:,block),Op%P(:,block),Mat)
+             call ZSLGEMM('l','c',Op%n,Ndim,Ndim,Op%U(:,:,block),Op%P(:,block),Mat)
           endif
        else
           If (N_type == 1) then
@@ -725,15 +725,15 @@ Contains
                 Do n = 1,Op%N
                    VH1(:,n)=Op%U(:,n,block)*exp(-spin*Op%g*Op%E(n,block)) 
                 Enddo
-                call ZSLGEMM('l','n',Op%n,Ndim,Ndim,VH1,Op%P,Mat)
+                call ZSLGEMM('l','n',Op%n,Ndim,Ndim,VH1,Op%P(:,block),Mat)
                 Do n = 1,Op%N
                    VH1(:,n)=exp(spin*Op%g*Op%E(n,block))*conjg(Op%U(:,n,block))
                 Enddo
-                call ZSLGEMM('r','T',Op%n,Ndim,Ndim,VH1,Op%P,Mat)
+                call ZSLGEMM('r','T',Op%n,Ndim,Ndim,VH1,Op%P(:,block),Mat)
              endif
           elseif (N_Type == 2 .and. .not. Op%diag(block)) then
-             call ZSLGEMM('r','n',Op%n,Ndim,Ndim,Op%U,Op%P,Mat)
-             call ZSLGEMM('l','c',Op%n,Ndim,Ndim,Op%U,Op%P,Mat)
+             call ZSLGEMM('r','n',Op%n,Ndim,Ndim,Op%U(:,:,block),Op%P(:,block),Mat)
+             call ZSLGEMM('l','c',Op%n,Ndim,Ndim,Op%U(:,:,block),Op%P(:,block),Mat)
           endif
        endif
     enddo
