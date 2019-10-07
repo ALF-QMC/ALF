@@ -8,7 +8,7 @@ MPICOMP=1
 
 # default optimization flags for Intel compiler
 INTELOPTFLAGS="-cpp -O3 -fp-model fast=2 -xHost -unroll -finline-functions -ipo -ip -heap-arrays 1024 -no-wrap-margin"
-INTELOPTFLAGS="-cpp -O3 "
+#INTELOPTFLAGS="-cpp -O3 "
 # uncomment the next line if you want to use additional openmp parallelization
 INTELOPTFLAGS="${INTELOPTFLAGS} -parallel -qopenmp"
 INTELUSEFULFLAGS="-std03"
