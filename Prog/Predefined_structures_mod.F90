@@ -864,7 +864,7 @@
         
         
         Do nf = 1,N_FL
-           Call Diag(Op_tmp(1,nf)%O,Op_tmp(1,nf)%U,Op_tmp(1,nf)%E)
+           Call Diag(Op_tmp(1,nf)%O(:,:,1),Op_tmp(1,nf)%U(:,:,1),Op_tmp(1,nf)%E(:,1))
            do I2=1,N_part
               do I1=1,Ndim
                  WF_L(nf)%P(I1,I2)=Op_tmp(1,nf)%U(I1,I2,1)

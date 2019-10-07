@@ -102,7 +102,8 @@ Contains
          
          Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: GR(Ndim,Ndim, N_FL)
          Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Prev_Ratiotot
-         Integer                  , INTENT(IN)    :: N_op, Nt, Op_dim
+         Integer                  , INTENT(IN)    :: N_op, Nt
+         Integer , Dimension(:)   , INTENT(IN)    :: Op_dim
          Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Phase
          Real    (Kind=Kind(0.d0)), INTENT(IN)    :: Hs_new
          Real    (Kind=Kind(0.d0)), INTENT(IN)    :: S0_ratio, T0_proposal_ratio
@@ -201,7 +202,8 @@ Contains
          
          Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: GR(Ndim,Ndim, N_FL)
          Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Prev_Ratiotot
-         Integer                  , INTENT(IN)    :: N_op, Nt, Op_dim
+         Integer                  , INTENT(IN)    :: N_op, Nt
+         Integer , Dimension(:)   , INTENT(IN)    :: Op_dim
          Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Phase
          Real    (Kind=Kind(0.d0)), INTENT(IN)    :: Hs_new
          Real    (Kind=Kind(0.d0)), INTENT(IN)    :: S0_ratio, T0_proposal_ratio
@@ -388,7 +390,8 @@ Contains
          
          Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: GR(Ndim,Ndim, N_FL)
          Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Prev_Ratiotot
-         Integer                  , INTENT(IN)    :: N_op, Nt, Op_dim
+         Integer                  , INTENT(IN)    :: N_op, Nt
+         Integer , Dimension(:)   , INTENT(IN)    :: Op_dim
          Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Phase
          Real    (Kind=Kind(0.d0)), INTENT(IN)    :: Hs_new
          Real    (Kind=Kind(0.d0)), INTENT(IN)    :: S0_ratio, T0_proposal_ratio
@@ -457,7 +460,7 @@ Contains
                 !Write(6,*)  "Call Up mode final", n,ntau
                 mode = "Final"
                 HS_new = Flip_value(Flip_count)
-                Call Upgrade2(GR,n,ntau,PHASE,Op_V(n,nf)%N_non_Zero,HS_new, &
+                Call Upgrade2(GR,n,ntau,PHASE,Op_V(n,nf)%N_non_Zero, HS_new, &
                      &        Prev_Ratiotot, S0_ratio, T0_Proposal_ratio, Acc, mode ) 
                 !Write(6,*)  "Back from up mode final", n,ntau
                 !Write(6,*)  "Acceptance", Acc

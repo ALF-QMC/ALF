@@ -581,8 +581,8 @@
                 nc = 0
                 Do i = 1,Ndim
                    nc = nc + 1
-                   Op_V(nc,nf)%P(1) = I
-                   Op_V(nc,nf)%O(1,1) = cmplx(1.d0  ,0.d0, kind(0.D0))
+                   Op_V(nc,nf)%P(1,1) = I
+                   Op_V(nc,nf)%O(1,1,1) = cmplx(1.d0  ,0.d0, kind(0.D0))
                    Op_V(nc,nf)%alpha  = cmplx(-0.5d0,0.d0, kind(0.D0))
                    Op_V(nc,nf)%g      = cmplx(0.d0  ,Dtau, kind(0.D0)) 
                    Op_V(nc,nf)%type   = 3
@@ -601,8 +601,8 @@
                 nc = 0
                 Do i = 1,Ndim
                    nc = nc + 1
-                   Op_V(nc,nf)%P(1) = I
-                   Op_V(nc,nf)%O(1,1) = cmplx(1.d0  ,0.d0, kind(0.D0))
+                   Op_V(nc,nf)%P(1,1) = I
+                   Op_V(nc,nf)%O(1,1,1) = cmplx(1.d0  ,0.d0, kind(0.D0))
                    Op_V(nc,nf)%alpha  = cmplx(-0.5d0,0.d0, kind(0.D0))
                    !! Three fields
                    Op_V(nc,nf)%g      = SQRT(CMPLX(-DTAU*ham_U/(DBLE(N_SUN)), 0.D0, kind(0.D0))) 
@@ -626,8 +626,8 @@
                 if (nf == 2) X = -1.d0
                 Do i = 1,Ndim
                    nc = nc + 1
-                   Op_V(nc,nf)%P(1) = I
-                   Op_V(nc,nf)%O(1,1) = cmplx(1.d0, 0.d0, kind(0.D0))
+                   Op_V(nc,nf)%P(1,1) = I
+                   Op_V(nc,nf)%O(1,1,1) = cmplx(1.d0, 0.d0, kind(0.D0))
                    Op_V(nc,nf)%g      = X*SQRT(CMPLX(DTAU*ham_U/2.d0, 0.D0, kind(0.D0))) 
                    Op_V(nc,nf)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
                    Op_V(nc,nf)%type   = 2
@@ -650,10 +650,10 @@
                 I2 = I1
                 if ( L_bond_inv(nc,2)  == 1 ) I2 = Latt%nnlist(I1,1,0)
                 if ( L_bond_inv(nc,2)  == 2 ) I2 = Latt%nnlist(I1,0,1)
-                Op_V(nc,1)%P(1) = I1
-                Op_V(nc,1)%P(2) = I2
-                Op_V(nc,1)%O(1,2) = cmplx(1.d0 ,0.d0, kind(0.D0)) 
-                Op_V(nc,1)%O(2,1) = cmplx(1.d0 ,0.d0, kind(0.D0)) 
+                Op_V(nc,1)%P(1,1) = I1
+                Op_V(nc,1)%P(2,1) = I2
+                Op_V(nc,1)%O(1,2,1) = cmplx(1.d0 ,0.d0, kind(0.D0)) 
+                Op_V(nc,1)%O(2,1,1) = cmplx(1.d0 ,0.d0, kind(0.D0)) 
                 Op_V(nc,1)%g = cmplx(-dtau*Ham_xi,0.D0,kind(0.D0))
                 Op_V(nc,1)%alpha = cmplx(0d0,0.d0, kind(0.D0)) 
                 Op_V(nc,1)%type =1
@@ -662,8 +662,8 @@
              
              Do i = 1,Ndim
                 nc1 = Latt_unit%N_coord*Ndim + i
-                Op_V(nc1,1)%P(1)   = i
-                Op_V(nc1,1)%O(1,1) = cmplx(1.d0  ,0.d0, kind(0.D0))
+                Op_V(nc1,1)%P(1,1)   = i
+                Op_V(nc1,1)%O(1,1,1) = cmplx(1.d0  ,0.d0, kind(0.D0))
                 Op_V(nc1,1)%g      = sqrt(cmplx(-dtau*ham_U/(DBLE(N_SUN)), 0.D0, kind(0.D0)))
                 Op_V(nc1,1)%alpha  = cmplx(-0.5d0,0.d0, kind(0.d0))
                 Op_V(nc1,1)%type   = 2
@@ -687,10 +687,10 @@
                       nc = nc + 1
                       if (nc1 == 1 ) I2 = latt%nnlist(I,1,0) 
                       if (nc1 == 2 ) I2 = latt%nnlist(I,0,1)
-                      Op_V(nc,1)%P(1) = I1
-                      Op_V(nc,1)%P(2) = I2
-                      Op_V(nc,1)%O(1,2) = cmplx(1.d0 ,0.d0, kind(0.D0)) 
-                      Op_V(nc,1)%O(2,1) = cmplx(1.d0 ,0.d0, kind(0.D0))
+                      Op_V(nc,1)%P(1,1) = I1
+                      Op_V(nc,1)%P(2,1) = I2
+                      Op_V(nc,1)%O(1,2,1) = cmplx(1.d0 ,0.d0, kind(0.D0)) 
+                      Op_V(nc,1)%O(2,1,1) = cmplx(1.d0 ,0.d0, kind(0.D0))
                       Op_V(nc,1)%g      = SQRT(CMPLX(DTAU*ham_tV/real(N_SUN,kind(0.d0)), 0.D0, kind(0.D0))) 
                       Op_V(nc,1)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
                       Op_V(nc,1)%type   = 2
@@ -707,10 +707,10 @@
                       If (nc1 == 2 )  I2 = invlist(Latt%nnlist(I,0, 1),2) 
                       If (nc1 == 3 )  I2 = invlist(Latt%nnlist(I,-1,1),2)
                       If (nc1 == 4 )  I2 = invlist(Latt%nnlist(I,-1,0),2) 
-                      Op_V(nc,1)%P(1) = I1
-                      Op_V(nc,1)%P(2) = I2
-                      Op_V(nc,1)%O(1,2) = cmplx(1.d0 ,0.d0, kind(0.D0)) 
-                      Op_V(nc,1)%O(2,1) = cmplx(1.d0 ,0.d0, kind(0.D0))
+                      Op_V(nc,1)%P(1,1) = I1
+                      Op_V(nc,1)%P(2,1) = I2
+                      Op_V(nc,1)%O(1,2,1) = cmplx(1.d0 ,0.d0, kind(0.D0)) 
+                      Op_V(nc,1)%O(2,1,1) = cmplx(1.d0 ,0.d0, kind(0.D0))
                       Op_V(nc,1)%g     = SQRT(CMPLX(DTAU*ham_tV/real(N_SUN,kind(0.d0)), 0.D0, kind(0.D0))) 
                       Op_V(nc,1)%alpha = cmplx(0.d0, 0.d0, kind(0.D0))
                       Op_V(nc,1)%type  = 2

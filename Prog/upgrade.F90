@@ -108,7 +108,8 @@
         
         Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: GR(Ndim,Ndim, N_FL)
         Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Prev_Ratiotot
-        Integer                  , INTENT(IN)    :: N_op, Nt, Op_dim
+        Integer                  , INTENT(IN)    :: N_op, Nt
+        Integer , Dimension(:)   , INTENT(IN)    :: Op_dim
         Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Phase
         Real    (Kind=Kind(0.d0)), INTENT(IN)    :: Hs_new
         Real    (Kind=Kind(0.d0)), INTENT(IN)    :: S0_ratio, T0_proposal_ratio
@@ -119,15 +120,15 @@
         
         ! Local ::
         Type   (Fields)   ::  nsigma_new
-        Complex (Kind=Kind(0.d0)) :: Mat(Op_dim,Op_Dim), Delta(Op_dim,N_FL)
+        Complex (Kind=Kind(0.d0)) :: Mat(Op_dim(1),Op_Dim(1)), Delta(Op_dim(1),N_FL)
         Complex (Kind=Kind(0.d0)) :: Ratio(N_FL), Ratiotot, Z1 
-        Integer ::  n,m,nf, i
+        Integer ::  n,m,nf, i,nblock
         Complex (Kind=Kind(0.d0)) :: Z, D_Mat, myexp, s1, s2
         
         Real    (Kind=Kind(0.d0)) :: Weight
-        Complex (Kind=Kind(0.d0)) :: u(Ndim,Op_dim), v(Ndim,Op_dim) ,alpha, beta
-        Complex (Kind=Kind(0.d0)) :: y_v(Ndim,Op_dim), xp_v(Ndim,Op_dim)
-        Complex (Kind=Kind(0.d0)) :: x_v(Ndim,Op_dim)
+        Complex (Kind=Kind(0.d0)) :: u(Ndim,Op_dim(1)), v(Ndim,Op_dim(1)) ,alpha, beta
+        Complex (Kind=Kind(0.d0)) :: y_v(Ndim,Op_dim(1)), xp_v(Ndim,Op_dim(1))
+        Complex (Kind=Kind(0.d0)) :: x_v(Ndim,Op_dim(1))
         Complex (Kind=Kind(0.D0)), Dimension(:, :), Allocatable :: Zarr, grarr
         Complex (Kind=Kind(0.D0)), Dimension(:), Allocatable :: sxv, syu
 
@@ -137,18 +138,19 @@
         Call nsigma_new%make(1,1)
         
         ! Compute the ratio
+        nblock = size(Op_dim,1)
         nf = 1
         nsigma_new%f(1,1)  = Hs_new !real(ns_new,kind=kind(0.d0)) 
         nsigma_new%t(1)    = Op_V(n_op,nf)%Type
         Do nf = 1,N_FL
            !Z1 = Op_V(n_op,nf)%g * ( Phi_st(ns_new,Op_V(n_op,nf)%type) -  Phi_st(ns_old,Op_V(n_op,nf)%type))
            Z1 = Op_V(n_op,nf)%g * ( nsigma_new%Phi(1,1) -  nsigma%Phi(n_op,nt) )
-           Do m = 1,Op_V(n_op,nf)%N_non_zero
-              myexp = exp( Z1* Op_V(n_op,nf)%E(m) )
+           Do m = 1,Op_V(n_op,nf)%N_non_zero(1)
+              myexp = exp( Z1* Op_V(n_op,nf)%E(m,1) )
               Z = myexp - 1.d0
               Delta(m,nf) = Z
-              do n = 1,Op_V(n_op,nf)%N_non_zero
-                 Mat(n,m) = - Z * GR( Op_V(n_op,nf)%P(n), Op_V(n_op,nf)%P(m),nf )
+              do n = 1,Op_V(n_op,nf)%N_non_zero(1)
+                 Mat(n,m) = - Z * GR( Op_V(n_op,nf)%P(n,1), Op_V(n_op,nf)%P(m,1),nf )
               Enddo
               Mat(m,m) = myexp + Mat(m,m)
            Enddo
@@ -200,25 +202,25 @@
            Do nf = 1,N_FL
               ! Setup u(i,n), v(n,i) 
               beta = 0.D0
-              call zlaset('N', Ndim, Op_dim, beta, beta, u, size(u, 1))
-              call zlaset('N', Ndim, Op_dim, beta, beta, v, size(v, 1))
-              do n = 1,Op_V(n_op,nf)%N_non_zero
-                 u( Op_V(n_op,nf)%P(n), n) = Delta(n,nf)
+              call zlaset('N', Ndim, Op_dim(1), beta, beta, u, size(u, 1))
+              call zlaset('N', Ndim, Op_dim(1), beta, beta, v, size(v, 1))
+              do n = 1,Op_V(n_op,nf)%N_non_zero(1)
+                 u( Op_V(n_op,nf)%P(n,1), n) = Delta(n,nf)
                  do i = 1,Ndim
-                    v(i,n) = - GR( Op_V(n_op,nf)%P(n), i, nf )
+                    v(i,n) = - GR( Op_V(n_op,nf)%P(n,1), i, nf )
                  enddo
-                 v(Op_V(n_op,nf)%P(n), n)  = 1.d0 - GR( Op_V(n_op,nf)%P(n),  Op_V(n_op,nf)%P(n), nf)
+                 v(Op_V(n_op,nf)%P(n,1), n)  = 1.d0 - GR( Op_V(n_op,nf)%P(n,1),  Op_V(n_op,nf)%P(n,1), nf)
               enddo
 
-              call zlaset('N', Ndim, Op_dim, beta, beta, x_v, size(x_v, 1))
-              call zlaset('N', Ndim, Op_dim, beta, beta, y_v, size(y_v, 1))
-              i = Op_V(n_op,nf)%P(1)
+              call zlaset('N', Ndim, Op_dim(1), beta, beta, x_v, size(x_v, 1))
+              call zlaset('N', Ndim, Op_dim(1), beta, beta, y_v, size(y_v, 1))
+              i = Op_V(n_op,nf)%P(1,1)
               x_v(i, 1) = u(i, 1)/(1.d0 + v(i,1)*u(i,1) )
               call zcopy(Ndim, v(:, 1), 1, y_v(:, 1), 1)
-              do n = 2,Op_V(n_op,nf)%N_non_zero
+              do n = 2,Op_V(n_op,nf)%N_non_zero(1)
                  call zcopy(Ndim, u(:, n), 1, x_v(:, n), 1)
                  call zcopy(Ndim, v(:, n), 1, y_v(:, n), 1)
-                 Z = 1.d0 + u( Op_V(n_op,nf)%P(n), n)*v(Op_V(n_op,nf)%P(n),n)
+                 Z = 1.d0 + u( Op_V(n_op,nf)%P(n,1), n)*v(Op_V(n_op,nf)%P(n,1),n)
                  alpha = -1.D0
                  Allocate(syu(n), sxv(n))
                  call zgemv('T', NDim, n-1, alpha, y_v, Ndim, u(1,n), 1, beta , syu, 1)
@@ -234,19 +236,19 @@
                  Deallocate(syu, sxv)
               enddo
               IF (size(Op_V(n_op,nf)%P, 1) == 1) THEN
-                CALL ZCOPY(Ndim, gr(1, Op_V(n_op,nf)%P(1), nf), 1, xp_v(1, 1), 1)
-                Z = -x_v(Op_V(n_op,nf)%P(1), 1)
+                CALL ZCOPY(Ndim, gr(1, Op_V(n_op,nf)%P(1,1), nf), 1, xp_v(1, 1), 1)
+                Z = -x_v(Op_V(n_op,nf)%P(1,1), 1)
                 CALL ZGERU(Ndim, Ndim, Z, xp_v(1,1), 1, y_v(1, 1), 1, gr(1,1,nf), Ndim)
               ELSE
-                Allocate (Zarr(size(Op_V(n_op,nf)%P, 1), Op_dim), grarr(NDim, Op_dim))
-                Zarr = x_v(Op_V(n_op,nf)%P, :)
-                grarr = gr(:, Op_V(n_op,nf)%P, nf)
+                Allocate (Zarr(size(Op_V(n_op,nf)%P, 1), Op_dim(1)), grarr(NDim, Op_dim(1)))
+                Zarr = x_v(Op_V(n_op,nf)%P(:,1), :)
+                grarr = gr(:, Op_V(n_op,nf)%P(:,1), nf)
                 alpha = 1.D0
-                CALL ZGEMM('N', 'N', NDim, Op_Dim, Op_Dim, alpha, grarr, Ndim, Zarr, size(Op_V(n_op,nf)%P, 1), beta, xp_v, Ndim)
+                CALL ZGEMM('N', 'N', NDim, Op_Dim(1), Op_Dim(1), alpha, grarr, Ndim, Zarr, size(Op_V(n_op,nf)%P, 1), beta, xp_v, Ndim)
                 Deallocate(Zarr, grarr)
                 beta  = cmplx ( 1.0d0, 0.0d0, kind(0.D0))
                 alpha = -1.D0
-                CALL ZGEMM('N','T',Ndim,Ndim,Op_dim,alpha,xp_v, Ndim, y_v, Ndim,beta,gr(1,1,nf), Ndim)
+                CALL ZGEMM('N','T',Ndim,Ndim,Op_dim(1),alpha,xp_v, Ndim, y_v, Ndim,beta,gr(1,1,nf), Ndim)
               ENDIF
 
            enddo
