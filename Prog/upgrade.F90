@@ -212,6 +212,8 @@
            stop
         endif
 
+!         Uncommenting the next line disables any updates
+!         weight=-1.0d0
         toggle = .false. 
         if ( Weight > ranf_wrap() )  Then
            toggle = .true.

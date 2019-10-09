@@ -104,13 +104,13 @@
           do nf = 1,N_FL
              do nc = 1,Ncheck
                 g = Op_T(nc,nf)%g
-                Call  Op_exp(g,Op_T(nc,nf),Exp_T(:,:,nc,nf))
+                Call  Op_exp(g,Op_T(nc,nf),Exp_T(:,:,nc,nf),1)
                 g = -Op_T(nc,nf)%g
-                Call  Op_exp(g,Op_T(nc,nf),Exp_T_M1(:,:,nc,nf))
+                Call  Op_exp(g,Op_T(nc,nf),Exp_T_M1(:,:,nc,nf),1)
                 g = Op_T(nc,nf)%g/2.d0
-                Call  Op_exp(g,Op_T(nc,nf),Exp_T_1D2(:,:,nc,nf))
+                Call  Op_exp(g,Op_T(nc,nf),Exp_T_1D2(:,:,nc,nf),1)
                 g = -Op_T(nc,nf)%g/2.d0
-                Call  Op_exp(g,Op_T(nc,nf),Exp_T_M1_1D2(:,:,nc,nf))
+                Call  Op_exp(g,Op_T(nc,nf),Exp_T_M1_1D2(:,:,nc,nf),1)
                 ! symmetrize the upper part of Exp_T and Exp_T_M1
                 DO i = 1, Ndim_hop
                    DO j = i, Ndim_hop
