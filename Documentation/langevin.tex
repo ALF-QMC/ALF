@@ -81,4 +81,4 @@ and at $ \delta \tl = 0.01$
 \begin{equation}
  \langle  \hat{H} \rangle  = -3.470860    \pm  0.009976. 
 \end{equation} 
-At apparent our  precision is not sufficient to detect the systematic $ \delta \tl  $ error and within  our error-bars the data agree.    We have used the same amount of CPU time for the simulations and it is to be noted that the statistical uncertainty for the Langevin dynamics code is an order of magnitude larger. 
+At apparent our  precision is not sufficient to detect the systematic $ \delta \tl  $ error and within  our error-bars the data agree.    We have used the same amount of CPU time for the simulations and it is to be noted that the statistical uncertainty for the Langevin dynamics code is an order of magnitude larger.   Note that if the  Langevin time step gets too large, then the program crashes. I think that this is because the forces get big for some configurations such that the fields get big and the stabilization fails. It may be a good idea to formulate an adaptive step size scheme to circumvent this issue. 
