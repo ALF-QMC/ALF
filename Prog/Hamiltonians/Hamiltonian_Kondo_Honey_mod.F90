@@ -52,6 +52,7 @@
 !>    Defines MPI communicator 
       Integer              :: Group_Comm
       Logical              :: Symm =.false.
+      Logical              :: Langevin =.false.
       
       ! What is below is  private 
       
@@ -826,5 +827,22 @@
         Real (Kind=Kind(0.d0)), allocatable, dimension(:,:), Intent(OUT) :: Initial_field
 
       end Subroutine Hamiltonian_set_nsigma
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Langevin dynamics  update.
+!> On inpur the fermion forces are given. On output the field nsigma is updated.
+!-------------------------------------------------------------------
+        Subroutine Ham_Langevin_update( Forces )
+
+          Implicit none
+
+          Complex (Kind=Kind(0.d0)), Intent(in),  dimension(:,:) :: Forces
+
+        end Subroutine Ham_Langevin_update
+
+!--------------------------------------------------------------------
       
     end Module Hamiltonian

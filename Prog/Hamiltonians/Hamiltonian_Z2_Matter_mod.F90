@@ -27,7 +27,7 @@
       Logical              :: Projector
       Integer              :: Group_Comm
       Logical              :: Symm
-
+      Logical              :: Langevin =.false.
 
 !>    Privat variables 
       Type (Lattice),        private :: Latt 
@@ -1314,6 +1314,24 @@
         N_Global_tau        = Latt%N/4
         
       end Subroutine Overide_global_tau_sampling_parameters
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Langevin dynamics  update.
+!> On inpur the fermion forces are given. On output the field nsigma is updated.
+!-------------------------------------------------------------------
+        Subroutine Ham_Langevin_update( Forces )
+
+          Implicit none
+
+          Complex (Kind=Kind(0.d0)), Intent(in),  dimension(:,:) :: Forces
+
+        end Subroutine Ham_Langevin_update
+
+!--------------------------------------------------------------------
+
 !===================================================================================
 !!$      Subroutine Test_Hamiltonian
 !!$        

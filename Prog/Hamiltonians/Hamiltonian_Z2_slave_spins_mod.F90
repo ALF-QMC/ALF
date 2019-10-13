@@ -24,6 +24,7 @@
 !>    Defines MPI communicator 
       Integer              :: Group_Comm
       Logical              :: Symm =.false.
+      Logical              :: Langevin =.false.
       
 
 !>    Privat variables 
@@ -1189,6 +1190,23 @@
       end Subroutine Overide_global_tau_sampling_parameters
 
 
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Langevin dynamics  update.
+!> On inpur the fermion forces are given. On output the field nsigma is updated.
+!-------------------------------------------------------------------
+        Subroutine Ham_Langevin_update( Forces )
+
+          Implicit none
+
+          Complex (Kind=Kind(0.d0)), Intent(in),  dimension(:,:) :: Forces
+
+        end Subroutine Ham_Langevin_update
+
+!--------------------------------------------------------------------
 
       
 !--------------------------------------------------------------------
