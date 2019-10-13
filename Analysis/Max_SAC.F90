@@ -370,7 +370,7 @@
        if ( abs(om) < zero ) then
           Back_trans_pp = beta * Aom/2.d0
        else
-          Back_trans_pp = Aom * (1.d0 + exp(-beta*om) ) / (om *( 1.d0 + exp(-beta*om) ) )
+          Back_trans_pp = Aom * (1.d0 - exp(-beta*om) ) / (om *( 1.d0 + exp(-beta*om) ) )
        endif
        ! This gives  = chi(q,om)/omega
 

@@ -146,12 +146,13 @@
       Logical              :: Projector
       Integer              :: Group_Comm
       Logical              :: Symm
+      Logical              :: Langevin
 
 
       Type (Lattice),       private :: Latt
       Type (Unit_cell),     private :: Latt_unit
       Integer,              private :: L1, L2
-      real (Kind=Kind(0.d0)),        private :: ham_T , ham_U,  Ham_chem, Ham_h, Ham_J, Ham_xi, XB_X, Phi_X, Ham_tV
+      real (Kind=Kind(0.d0)),        private :: ham_T , ham_U,  Ham_chem, Ham_h, Ham_J, Ham_xi, XB_X, Phi_X, Ham_tV, Delta_tau_Langevin
       real (Kind=Kind(0.d0)),        private :: ham_alpha, Percent_change
       real (Kind=Kind(0.d0)),        private :: XB_Y, Phi_Y
       real (Kind=Kind(0.d0)),        private :: Dtau, Beta, Theta
@@ -198,7 +199,7 @@
           
           NAMELIST /VAR_Lattice/  L1, L2, Lattice_type, Model,  Checkerboard, N_SUN, Phi_X, XB_X, Symm
 
-          NAMELIST /VAR_Hubbard/  ham_T, ham_chem, ham_U,  Dtau, Beta, Theta, Projector
+          NAMELIST /VAR_Hubbard/  ham_T, ham_chem, ham_U,  Dtau, Beta, Theta, Projector, Langevin, Delta_tau_Langevin
           
           NAMELIST /VAR_LRC/      ham_T, ham_chem, ham_U, ham_alpha, Percent_change, Dtau, Beta, Theta, Projector
 
@@ -214,6 +215,7 @@
           N_SUN        = 1
           Checkerboard = .false.
           Symm         = .false.
+          Langevin     = .false.
           Phi_X        = 0.d0
           XB_X         = 1.d0
           Phi_Y        = 0.d0
@@ -324,6 +326,7 @@
 #endif
              
           Case ("Hubbard_Mz")
+             Langevin =.false.
              N_FL  = 2
              N_SUN = 1
 #ifdef MPI
@@ -347,6 +350,11 @@
                 Write(50,*) 't             : ', Ham_T
                 Write(50,*) 'Ham_U         : ', Ham_U
                 Write(50,*) 'Ham_chem      : ', Ham_chem
+                If (Langevin) then
+                Write(50,*) 'Langevin del_t: ', Delta_tau_Langevin
+                   
+                endif
+                
 #ifdef MPI
              Endif
 #endif
@@ -354,11 +362,13 @@
              CALL MPI_BCAST(Ltrot    ,1,MPI_INTEGER,0,Group_Comm,ierr)
              CALL MPI_BCAST(Thtrot   ,1,MPI_INTEGER,0,Group_Comm,ierr)
              CALL MPI_BCAST(Projector,1,MPI_LOGICAL,0,Group_Comm,ierr)
+             CALL MPI_BCAST(Lamgevin ,1,MPI_LOGICAL,0,Group_Comm,ierr)
              CALL MPI_BCAST(ham_T    ,1,MPI_REAL8  ,0,Group_Comm,ierr)
              CALL MPI_BCAST(ham_chem ,1,MPI_REAL8  ,0,Group_Comm,ierr)
              CALL MPI_BCAST(ham_U    ,1,MPI_REAL8  ,0,Group_Comm,ierr)
              CALL MPI_BCAST(Dtau     ,1,MPI_REAL8  ,0,Group_Comm,ierr)
              CALL MPI_BCAST(Beta     ,1,MPI_REAL8  ,0,Group_Comm,ierr)
+             CALL MPI_BCAST(Delta_tau_Langevin,1,MPI_REAL8  ,0,Group_Comm,ierr)
 #endif
           Case ("Hubbard_SU2")
              N_FL = 1
@@ -628,9 +638,15 @@
                    nc = nc + 1
                    Op_V(nc,nf)%P(1) = I
                    Op_V(nc,nf)%O(1,1) = cmplx(1.d0, 0.d0, kind(0.D0))
-                   Op_V(nc,nf)%g      = X*SQRT(CMPLX(DTAU*ham_U/2.d0, 0.D0, kind(0.D0))) 
-                   Op_V(nc,nf)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
-                   Op_V(nc,nf)%type   = 2
+                   If (Langevin)  then
+                      Op_V(nc,nf)%g      = X*SQRT(CMPLX(DTAU*ham_U, 0.D0, kind(0.D0))) 
+                      Op_V(nc,nf)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
+                      Op_V(nc,nf)%type   = 3
+                   else
+                      Op_V(nc,nf)%g      = X*SQRT(CMPLX(DTAU*ham_U/2.d0, 0.D0, kind(0.D0))) 
+                      Op_V(nc,nf)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
+                      Op_V(nc,nf)%type   = 2
+                   endif
                    Call Op_set( Op_V(nc,nf) )
                 Enddo
              Enddo
@@ -764,7 +780,9 @@
              S0 = S0*DW_Ising_tau(nsigma%i(n,nt)*nsigma%i(n,nt1))
              If (S0 < 0.d0) Write(6,*) 'S0 : ', S0
           endif
-
+          If ( Op_V(n,1)%type == 3 ) then
+             S0 = exp( - Hs_new**2/2.d0 + nsigma%f(n,nt)**2/2.d0 )
+          endif
           If (model == "LRC" ) then
              !Write(6,*) "Hi2"
              S0 = LRC_S0(n,dtau,nsigma%f(:,nt),Hs_new,N_SUN)
@@ -1231,7 +1249,7 @@
                 ZPot = ZPot + Grc(i,i,1) * Grc(i,i, dec)
              Enddo
              Zpot = Zpot*ham_U
-          elseif (Model == "Hubbard_MZ") then
+          elseif (Model == "Hubbard_Mz") then
              dec = 2
              Do I = 1,Ndim
                 ZPot = ZPot + Grc(i,i,1) * Grc(i,i, dec)
@@ -1525,6 +1543,33 @@
           Endif
 
         end Subroutine Init_obs
+
+!--------------------------------------------------------------------
+!> @author 
+!> ALF Collaboration
+!>
+!> @brief 
+!> Langevin dynamics  update.   
+!> On inpur the fermion forces are given. On output the field nsigma is updated.
+!-------------------------------------------------------------------
+        Subroutine Ham_Langevin_update( Forces )
+
+          Implicit none
+
+          Complex (Kind=Kind(0.d0)), Intent(in),  dimension(:,:) :: Forces
+
+          Integer :: N_op, n, nt
+
+          N_op =  size(nsigma%f,1)
+          do n = 1,N_op
+             do nt = 1,Ltrot
+                nsigma%f(n,nt)   = nsigma%f(n,nt)  -   ( nsigma%f(n,nt) +  real(Forces(n,nt),kind(0.d0)) )*Delta_tau_Langevin + &
+                     & sqrt(2.d0*Delta_tau_Langevin )* rang_wrap()
+             enddo
+          enddo
+          
+          
+        end Subroutine Ham_Langevin_update
 
 !--------------------------------------------------------------------
 !> @author 
