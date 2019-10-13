@@ -4,7 +4,7 @@
 % under a Creative Commons Attribution-ShareAlike 4.0 International License.
 % For the licensing details of the documentation see license.CCBYSA.
 
-% !TEX root = Doc.tex
+% !TEX root = doc.tex
 %------------------------------------------------------------
 \subsection{Implementation of the Hamiltonian and the lattice} 
 %------------------------------------------------------------
@@ -84,7 +84,7 @@ since
 \end{equation}
 
 In the code, we define a structure called \path{Operator} to capture the above. 
-This type \path{Operator} bundles several components that are needed to define and use an operator matrix in the program.  
+This type \path{Operator} bundles several components, listed in Table \ref{table:operator}, that are needed to define and use an operator matrix in the program.  
 
 %------------------------------------------------------------
 \subsubsection{Specification of the model}\label{sec:specific}
@@ -98,9 +98,8 @@ This type \path{Operator} bundles several components that are needed to define a
     \hl{\texttt{Op\_X\%P}}       & Integer   &  Matrix $\mathbf{P}$  encoded as a vector of dimension $N$\\
     \hl{\texttt{Op\_X\%g}}       & Complex    &  Coupling strength $g$ \\  
     \hl{\texttt{Op\_X\%alpha}}   & Complex  &  Constant $\alpha$ \\
-    \hl{\texttt{Op\_X\%type}}    & Integer   &  Param	 set the type of 
-                                             HS transformation\\
-                             &   &  (1 = Ising, 2 = discrete HS for perfect-square term)  \\ 
+    \hl{\texttt{Op\_X\%type}}    & Integer   &  Sets the type of HS transformation (1: Ising; 2: discrete HS for\\
+             &   &   perfect-square term; 3: continuous real field.)  \\ 
     \texttt{Op\_X\%diag}  & Logical & True if   $\mathbf{O}$  is  diagonal  \\
     \texttt{Op\_X\%U}            & Complex &  Matrix containing the eigenvectors of $\mathbf{O}$  \\
     \texttt{Op\_X\%E}            & Real &  Eigenvalues of $\mathbf{O}$ \\
@@ -133,8 +132,8 @@ For each pair of indices $(k,s)$, we store the following parameters in an \path{
 \item the constants $g$, $\alpha$
 \item optionally: the type \texttt{type} of the discrete fields $\phi$
 \end{itemize}
-In case of the Ising term,  we store \path{type=1} which sets $\phi_{k\tau}=s_{k\tau}$. 
-In case of the perfect-square term, the field results from the discrete HS transformation (\ref{HS_squares}) and we store \texttt{type=2} which sets $\phi_{k\tau}=\eta_{k\tau}$. 
+In case of the Ising term, we store \path{type=1} which sets $\phi_{k\tau}=s_{k\tau}$. 
+In case of the perfect-square term, the field results from the discrete HS transformation (\ref{HS_squares}) and we store \texttt{type=2} which sets $\phi_{k\tau}=\eta_{k\tau}$. For continuous real fields $f$ we store \path{type=3} which sets $\phi_{k\tau}(f)=f$.
 Note that we have dropped the color index $\sigma$, since the implementation uses the $SU(N_{\mathrm{col}})$ invariance of the Hamiltonian. 
 
 Accordingly, the following data structures fully describe the  Hamiltonian (\ref{eqn:general_ham}):

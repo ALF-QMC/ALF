@@ -3,7 +3,9 @@
 % The ALF project documentation by the ALF contributors is licensed
 % under a Creative Commons Attribution-ShareAlike 4.0 International License.
 % For the licensing details of the documentation see license.CCBYSA.
-% !TEX root = Doc.tex
+
+% !TEX root = doc.tex
+
 \newpage
 \subsubsection{$Z_2$ slave spin formualtion of the Hubbard model }
 In this subsection, we  demonstrate that the code can be used to  simulate the attractive Hubbard model in the  $Z_2$-slave spin formulation \cite{Ruegg10}.    
@@ -57,7 +59,7 @@ The fermion part has formally the same from  as in the Hubbard model coupled to 
 \begin{itemize}
 \item The moves have to respect the constraint of Eq.~\ref{Z_constraint.Eq}. Thereby single spin flip terms are prohibited and the minimal move one can carry out on  a given time slice is the following. We randomly choose a site $\vec{i} $ and  propose a move where: 
 $ Z_{\vec{i},\vec{i} +  \vec{a}_x} \rightarrow - Z_{\vec{i},\vec{i} +  \vec{a}_x} $,  $ Z_{\vec{i},\vec{i} -  \vec{a}_x} \rightarrow - Z_{\vec{i},\vec{i} -  \vec{a}_x} $,
-$ Z_{\vec{i},\vec{i} +  \vec{a}_y} \rightarrow - Z_{\vec{i},\vec{i} +  \vec{a}_y} $ and $ Z_{\vec{i},\vec{i} -  \vec{a}_y} \rightarrow - Z_{\vec{i},\vec{i} -  \vec{a}_y} $.  One can carry out such moves by using the global move in real space option presented in Secs.~\ref{Global_space.sec} and \ref{sec:input}.
+$ Z_{\vec{i},\vec{i} +  \vec{a}_y} \rightarrow - Z_{\vec{i},\vec{i} +  \vec{a}_y} $ and $ Z_{\vec{i},\vec{i} -  \vec{a}_y} \rightarrow - Z_{\vec{i},\vec{i} -  \vec{a}_y} $.  One can carry out such moves by using the global move in real space option presented in Secs.~\ref{sec:global_space} and \ref{sec:input}.
 \item The map from  $ \left\{ \tau^{z}_{\vec{i}}  \right\} $ to $ \left\{ Z_{\langle \vec{i}, \vec{j} \rangle } \right\} $  is unique.  The reverse however  is valid only up to  to a global sign.  To pin down this sign  (and thereby   the  relative signs between different time slices)  we  store per time slice the $  Z_{\langle \vec{i},\vec{j} \rangle } $ fields as well as the value of the Ising field  at  a reference site $\tau^{z}_{\vec{i} = 1} $. Within the ALF, this can be done by adding a dummy operator in the \texttt{Op\_V}  list which will carry this degree of freedom.    With this extra degree of freedom we can switch  between the two representations, without loosing any information.   To compute the Ising part of the action it is certainly more transparent to work  with the $ \left\{ \tau^{z}_{\vec{i}}  \right\} $  variables. For the  fermion determinant,  the $ \left\{ Z_{\langle \vec{i}, \vec{j} \rangle } \right\} $   are more convenient. 
  \end{itemize}
  

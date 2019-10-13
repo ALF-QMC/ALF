@@ -4,7 +4,7 @@
 % under a Creative Commons Attribution-ShareAlike 4.0 International License.
 % For the licensing details of the documentation see license.CCBYSA.
 
-% !TEX root = Doc.tex
+% !TEX root = doc.tex
 %------------------------------------------------------------
 \subsection{The $SU(2)$-Hubbard model on a square lattice}\label{sec:walk1}
 %------------------------------------------------------------
@@ -252,9 +252,9 @@ At the end of each bin  the main program will call the routine \texttt{ Pr\_obs(
 %
 This subroutine is called by the main program at the beginning of each sweep, provided that \texttt{LTAU}  is set to unity.  \texttt{NT} runs from \texttt{0}  to \texttt{Ltrot} and denotes the   imaginary time difference.   For a given time  displacement, the main program provides:
 \begin{eqnarray}
-\texttt{GT0(x,y,s) }  &=&   \phantom{+} \langle \langle \hat{c}^{\phantom\dagger}_{x,s} (Nt \Delta \tau)   \hat{c}^{\dagger}_{y,s} (0)   \rangle \rangle = \langle \langle {\cal T} \hat{c}^{\phantom\dagger}_{x,s} (Nt \Delta \tau)   \hat{c}^{\dagger}_{y,s} (0)   \rangle \rangle  \nonumber \\
+\texttt{GT0(x,y,s) }  &=&   \phantom{+} \langle \langle \hat{c}^{\phantom\dagger}_{x,s} (Nt \Delta \tau)   \hat{c}^{\dagger}_{y,s} (0)   \rangle \rangle = \langle \langle \mathcal{T} \hat{c}^{\phantom\dagger}_{x,s} (Nt \Delta \tau)   \hat{c}^{\dagger}_{y,s} (0)   \rangle \rangle  \nonumber \\
 \texttt{G0T(x,y,s) }   &=&  -   \langle \langle   \hat{c}^{\dagger}_{y,s} (Nt \Delta \tau)    \hat{c}^{\phantom\dagger}_{x,s} (0)    \rangle \rangle =
-    \langle \langle {\cal T} \hat{c}^{\phantom\dagger}_{x,s} (0)    \hat{c}^{\dagger}_{y,s} (Nt \Delta \tau)   \rangle \rangle  \nonumber  \\
+    \langle \langle \mathcal{T} \hat{c}^{\phantom\dagger}_{x,s} (0)    \hat{c}^{\dagger}_{y,s} (Nt \Delta \tau)   \rangle \rangle  \nonumber  \\
   \texttt{G00(x,y,s) }  &=&    \phantom{+} \langle \langle \hat{c}^{\phantom\dagger}_{x,s} (0)   \hat{c}^{\dagger}_{y,s} (0)   \rangle \rangle    \nonumber \\
     \texttt{GTT(x,y,s) }  &=&   \phantom{+} \langle \langle \hat{c}^{\phantom\dagger}_{x,s} (Nt \Delta \tau)   \hat{c}^{\dagger}_{y,s} (Nt \Delta \tau)   \rangle \rangle    
 \end{eqnarray}

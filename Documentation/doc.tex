@@ -27,7 +27,9 @@
 \usepackage{listings}
 \usepackage{url}
 \usepackage{booktabs}
-\usepackage{hyperref} 
+%\usepackage{hyperref} 
+\usepackage[breaklinks=true,colorlinks,pdfborder={0 0 0}]{hyperref} 
+\hypersetup{linkcolor={blue!80!black},citecolor={blue!80!black},urlcolor={blue!99!black}}
 \usepackage{float} 
 
 \usepackage[framemethod=default]{mdframed}
@@ -98,12 +100,15 @@
 \newcommand{\mycomment}[1]{{\color{red} #1}}
 \newcommand{\FAcomment}[1]{{\color{red} #1}}
 
+\renewcommand{\Re}{\operatorname{Re}}
+\renewcommand{\Im}{\operatorname{Im}}
+
 \makeindex
 \begin{document}
 %---------------------------------------------------------------------------------------------------------
 \title{The \emph{ALF} (\emph{A}lgorithms for \emph{L}attice \emph{F}ermions) project release 1.2}
 
-\subtitle{Documentation for the  auxiliary field quantum Monte Carlo  code.}
+\subtitle{Documentation for the  auxiliary-field quantum Monte Carlo code.}
 \author{Martin Bercx,  Florian Goth,  Johannes S. Hofmann, Fakher F. Assaad }
 %---------------------------------------------------------------------------------------------------------
 \maketitle
