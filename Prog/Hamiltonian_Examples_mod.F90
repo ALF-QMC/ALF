@@ -1231,7 +1231,7 @@
                 ZPot = ZPot + Grc(i,i,1) * Grc(i,i, dec)
              Enddo
              Zpot = Zpot*ham_U
-          elseif (Model == "Hubbard_MZ") then
+          elseif (Model == "Hubbard_Mz") then
              dec = 2
              Do I = 1,Ndim
                 ZPot = ZPot + Grc(i,i,1) * Grc(i,i, dec)
