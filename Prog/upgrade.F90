@@ -271,12 +271,17 @@
                 Z = -x_v(Op_V(n_op,nf)%P(1,1), 1)
                 CALL ZGERU(Ndim, Ndim, Z, xp_v(1,1), 1, y_v(1, 1), 1, gr(1,1,nf), Ndim)
               ELSE
-                Allocate (Zarr(size(Op_V(n_op,nf)%P, 1)*nblock, Op_dim_sum), grarr(NDim, Op_dim_sum))
-                Zarr = x_v(Op_V(n_op,nf)%P(:,1), :)
-                grarr = gr(:, Op_V(n_op,nf)%P(:,1), nf)
+                Allocate (Zarr(Op_dim_sum, Op_dim_sum), grarr(NDim, Op_dim_sum))
+                n=1
+                do bn=1,nblock
+                  m = Op_dim(bn)
+                  Zarr(n:n+m-1,:) = x_v(Op_V(n_op,nf)%P(1:m,bn), :)
+                  grarr(:,n:n+m-1) = gr(:, Op_V(n_op,nf)%P(1:m,bn), nf)
+                  n = n + m
+                enddo
                 alpha = 1.D0
                 CALL ZGEMM('N', 'N', NDim, Op_Dim_sum, Op_Dim_sum, alpha, grarr, Ndim, Zarr, &
-                & size(Op_V(n_op,nf)%P, 1)*nblock, beta, xp_v, Ndim)
+                & Op_dim_sum, beta, xp_v, Ndim)
                 Deallocate(Zarr, grarr)
                 beta  = cmplx ( 1.0d0, 0.0d0, kind(0.D0))
                 alpha = -1.D0
