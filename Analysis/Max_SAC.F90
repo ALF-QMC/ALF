@@ -35,7 +35,7 @@
 !> ALF-project
 !
 !> @brief 
-!> General wrapper for maxent.  Handles particle, partile-hole, particle-particle,
+!> General wrapper for maxent. Handles particle, particle-hole, particle-particle,
 !> channels as well as zero temperature.  See documentation for details.       
 !> 
 !
