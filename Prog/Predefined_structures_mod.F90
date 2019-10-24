@@ -740,6 +740,7 @@
         
         Integer :: N, nf, I, I1, I2, nc, nc1, IK_u, I_u, J1, lp, J
         Logical :: Test=.false.
+        Complex (Kind=Kind(0.d0)) :: Z_norm
         
         
         Allocate(WF_L(N_FL),WF_R(N_FL))
@@ -875,6 +876,11 @@
            WF_R(nf)%Degen = Op_tmp(1,nf)%E(N_part+1) - Op_tmp(1,nf)%E(N_part)
         enddo
 
+        Do nf = 1,N_FL
+           Call WF_overlap(WF_L(nf), WF_R(nf), Z_norm)
+           Write(6,*) " Z_norm ", Z_norm
+        enddo
+        
         If (test) then
            DO  I = 1,NDim
               Write(6,*) Op_tmp(1,1)%E(I)
