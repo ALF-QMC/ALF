@@ -98,11 +98,12 @@ module Control
       end subroutine control_init
       
 
-      Subroutine Control_Langevin(Forces)
+      Subroutine Control_Langevin(Forces, Group_Comm)
 
         Use ieee_arithmetic
         Implicit none
         Complex (Kind=Kind(0.d0)),  allocatable, Intent(In)  :: Forces(:,:)
+        Integer, Intent(IN) :: Group_Comm
         
         Integer :: n1,n2, n, nt 
         Real (Kind = Kind(0.d0) ) :: X
@@ -133,12 +134,13 @@ module Control
         
       end Subroutine Control_Langevin
 
-      Subroutine Print_Control_Langevin
+      Subroutine Print_Control_Langevin(Group_Comm)
 #ifdef MPI
         Use mpi
 #endif
         Implicit none
 
+        Integer, Intent(In) :: Group_Comm
         
 #ifdef MPI
         REAL (Kind=Kind(0.d0))  :: X
