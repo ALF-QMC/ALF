@@ -186,7 +186,7 @@
            endif
         enddo
 
-        Call Control_Langevin(Forces)
+        Call Control_Langevin(Forces,Group_Comm)
         Call Ham_Langevin_update( Forces )
         !DO NTAU1 = 1, LTROT
         !   Do n = 1, size(OP_V,1)
