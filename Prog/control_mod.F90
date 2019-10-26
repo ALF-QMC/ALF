@@ -115,7 +115,7 @@ module Control
            do nt =1,n2
               if ( ieee_is_nan(real(Forces(n,nt),kind(0.d0))) )  then
                  Write(6,*) 'The forces are not defined ',  Forces(n,nt)
-                 Call Print_Control_Langevin()
+                 Call Print_Control_Langevin(Group_Comm)
                  stop
               endif
            enddo
@@ -164,7 +164,7 @@ module Control
 #if defined(MPI) 
         If (Irank_g == 0 ) then
 #endif
-           Open (Unit=50,file=file1, status="unknown", position="append")
+           Open (Unit=50,file="info", status="unknown", position="append")
            Write(50,*) ' Langevin         Mean, Max : ', Force_mean,  Force_max
            Close(50)
 #if defined(MPI) 
