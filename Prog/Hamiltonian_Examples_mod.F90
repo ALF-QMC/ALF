@@ -1561,6 +1561,7 @@
                     
           Integer :: N_op, n, nt
 
+          N_op = size(nsigma%f,1)
           do n = 1,N_op
              do nt = 1,Ltrot
                 nsigma%f(n,nt)   = nsigma%f(n,nt)  -   ( nsigma%f(n,nt) +  real(Forces(n,nt),kind(0.d0)) )*Delta_tau_Langevin + &
