@@ -161,7 +161,16 @@ module Control
         CALL MPI_REDUCE(Force_max,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
         Force_max= X
 #endif
-        Write(50,*) ' Langevin         Mean, Max : ', Force_mean,  Force_max
+#if defined(MPI) 
+        If (Irank_g == 0 ) then
+#endif
+           Open (Unit=50,file=file1, status="unknown", position="append")
+           Write(50,*) ' Langevin         Mean, Max : ', Force_mean,  Force_max
+           Close(50)
+#if defined(MPI) 
+        Endif
+#endif
+           
         
       end Subroutine Print_Control_Langevin
 
