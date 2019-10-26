@@ -1550,7 +1550,7 @@
 !>
 !> @brief 
 !> Langevin dynamics  update.   
-!> On inpur the fermion forces are given. On output the field nsigma is updated.
+!> On input the fermion forces are given. On output the field nsigma is updated.
 !-------------------------------------------------------------------
         Subroutine Ham_Langevin_update( Forces )
 
@@ -1558,9 +1558,9 @@
 
           Complex (Kind=Kind(0.d0)), Intent(in),  dimension(:,:) :: Forces
 
+                    
           Integer :: N_op, n, nt
 
-          N_op =  size(nsigma%f,1)
           do n = 1,N_op
              do nt = 1,Ltrot
                 nsigma%f(n,nt)   = nsigma%f(n,nt)  -   ( nsigma%f(n,nt) +  real(Forces(n,nt),kind(0.d0)) )*Delta_tau_Langevin + &

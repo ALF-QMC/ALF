@@ -59,6 +59,8 @@ module Control
     
     real    (Kind=Kind(0.d0)),  private, save :: size_clust_Glob_up, size_clust_Glob_ACC_up
 
+    real    (Kind=Kind(0.d0)),  private, save :: Force_max, Force_mean
+    Integer, private, save  :: Force_Count
     
     Contains
 
@@ -88,15 +90,89 @@ module Control
         size_clust_Glob_up    = 0.d0
         size_clust_Glob_ACC_up= 0.d0
 
+        Force_max  = 0.d0
+        Force_mean = 0.d0
+        Force_count = 0
+        
         call system_clock(count_CPU_start,count_rate,count_max)
       end subroutine control_init
       
+
+      Subroutine Control_Langevin(Forces)
+
+        Use ieee_arithmetic
+        Implicit none
+        Complex (Kind=Kind(0.d0)),  allocatable, Intent(In)  :: Forces(:,:)
+        
+        Integer :: n1,n2, n, nt 
+        Real (Kind = Kind(0.d0) ) :: X
+
+        ! Test for not a  number
+        n1 =  size(Forces,1)
+        n2 =  size(Forces,2)
+        do  n = 1,n1
+           do nt =1,n2
+              if ( ieee_is_nan(real(Forces(n,nt),kind(0.d0))) )  then
+                 Write(6,*) 'The forces are not defined ',  Forces(n,nt)
+                 Call Print_Control_Langevin()
+                 stop
+              endif
+           enddo
+        enddo
+        Force_count =  Force_count  + 1
+
+        X = 0.d0
+        do  n = 1,n1
+           do nt =1,n2
+              If ( abs( Real(Forces(n,nt),kind(0.d0))) >=  Force_max  ) &
+                   &  Force_max = abs( Real(Forces(n,nt),kind(0.d0)))
+              X  = X + abs( Real(Forces(n,nt),kind(0.d0)) )
+           enddo
+        enddo
+        Force_mean = Force_mean  +  X/Real(n1*n2,Kind(0.d0)) 
+        
+      end Subroutine Control_Langevin
+
+      Subroutine Print_Control_Langevin
+#ifdef MPI
+        Use mpi
+#endif
+        Implicit none
+
+        
+#ifdef MPI
+        REAL (Kind=Kind(0.d0))  :: X
+        Integer        :: Ierr, Isize, Irank, irank_g, isize_g, igroup
+
+        CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
+        CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+        call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+        call MPI_Comm_size(Group_Comm, isize_g, ierr)
+        igroup           = irank/isize_g
+#endif
+
+        Force_mean =  Force_mean/real(Force_count,kind(0.d0)) 
+#if defined(MPI)  
+        X = 0.d0
+        CALL MPI_REDUCE(Force_mean,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
+        Force_mean= X/dble(Isize_g)
+        CALL MPI_REDUCE(Force_max,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
+        Force_max= X
+#endif
+        Write(50,*) ' Langevin         Mean, Max : ', Force_mean,  Force_max
+        
+      end Subroutine Print_Control_Langevin
+
+      
+
       Subroutine Control_upgrade(toggle) 
         Implicit none
         Logical :: toggle
         NC_up = NC_up + 1
         if (toggle) ACC_up = ACC_up + 1
       end Subroutine Control_upgrade
+
+
       
       Subroutine Control_upgrade_eff(toggle) 
         Implicit none
