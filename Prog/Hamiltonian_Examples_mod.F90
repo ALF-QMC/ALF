@@ -156,10 +156,12 @@
       real (Kind=Kind(0.d0)),        private :: ham_alpha, Percent_change
       real (Kind=Kind(0.d0)),        private :: XB_Y, Phi_Y
       real (Kind=Kind(0.d0)),        private :: Dtau, Beta, Theta
+      Real (Kind=Kind(0.d0)),        private :: Running_Delta_tau_Langevin, Max_Force 
       Character (len=64),   private :: Model, Lattice_type
       Logical,              private :: Checkerboard
       Integer, allocatable, private :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
       Integer, allocatable, private :: Bipartition(:)
+      
 
 
 !>    Privat Observables
@@ -199,7 +201,7 @@
           
           NAMELIST /VAR_Lattice/  L1, L2, Lattice_type, Model,  Checkerboard, N_SUN, Phi_X, XB_X, Symm
 
-          NAMELIST /VAR_Hubbard/  ham_T, ham_chem, ham_U,  Dtau, Beta, Theta, Projector, Langevin, Delta_tau_Langevin
+          NAMELIST /VAR_Hubbard/  ham_T, ham_chem, ham_U,  Dtau, Beta, Theta, Projector, Langevin, Delta_tau_Langevin, Max_Force
           
           NAMELIST /VAR_LRC/      ham_T, ham_chem, ham_U, ham_alpha, Percent_change, Dtau, Beta, Theta, Projector
 
@@ -351,8 +353,8 @@
                 Write(50,*) 'Ham_U         : ', Ham_U
                 Write(50,*) 'Ham_chem      : ', Ham_chem
                 If (Langevin) then
-                Write(50,*) 'Langevin del_t: ', Delta_tau_Langevin
-                   
+                   Write(50,*) 'Langevin del_t: ', Delta_tau_Langevin
+                   Write(50,*) 'Max Force     : ', Max_Force
                 endif
                 
 #ifdef MPI
@@ -362,13 +364,14 @@
              CALL MPI_BCAST(Ltrot    ,1,MPI_INTEGER,0,Group_Comm,ierr)
              CALL MPI_BCAST(Thtrot   ,1,MPI_INTEGER,0,Group_Comm,ierr)
              CALL MPI_BCAST(Projector,1,MPI_LOGICAL,0,Group_Comm,ierr)
-             CALL MPI_BCAST(Lamgevin ,1,MPI_LOGICAL,0,Group_Comm,ierr)
+             CALL MPI_BCAST(Langevin ,1,MPI_LOGICAL,0,Group_Comm,ierr)
              CALL MPI_BCAST(ham_T    ,1,MPI_REAL8  ,0,Group_Comm,ierr)
              CALL MPI_BCAST(ham_chem ,1,MPI_REAL8  ,0,Group_Comm,ierr)
              CALL MPI_BCAST(ham_U    ,1,MPI_REAL8  ,0,Group_Comm,ierr)
              CALL MPI_BCAST(Dtau     ,1,MPI_REAL8  ,0,Group_Comm,ierr)
              CALL MPI_BCAST(Beta     ,1,MPI_REAL8  ,0,Group_Comm,ierr)
              CALL MPI_BCAST(Delta_tau_Langevin,1,MPI_REAL8  ,0,Group_Comm,ierr)
+             CALL MPI_BCAST(Max_Force         ,1,MPI_REAL8  ,0,Group_Comm,ierr)
 #endif
           Case ("Hubbard_SU2")
              N_FL = 1
@@ -1191,7 +1194,7 @@
           
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
-          
+          If (Langevin )  ZS = ZS*Running_Delta_tau_Langevin
           
           Do nf = 1,N_FL
              Do I = 1,Ndim
@@ -1558,14 +1561,25 @@
 
           Complex (Kind=Kind(0.d0)), Intent(in),  dimension(:,:) :: Forces
 
-                    
-          Integer :: N_op, n, nt
-
+          !Local
+          Real    (Kind=Kind(0.d0))  :: Xmax, X
+          Integer                    :: N_op, n, nt
           N_op = size(nsigma%f,1)
+
+          Xmax = 0.d0
           do n = 1,N_op
              do nt = 1,Ltrot
-                nsigma%f(n,nt)   = nsigma%f(n,nt)  -   ( nsigma%f(n,nt) +  real(Forces(n,nt),kind(0.d0)) )*Delta_tau_Langevin + &
-                     & sqrt(2.d0*Delta_tau_Langevin )* rang_wrap()
+                X = abs(Real(Forces(n,nt), Kind(0.d0)))
+                if (X > Xmax) Xmax = X
+             enddo
+          enddo
+          Running_Delta_tau_Langevin =   Delta_tau_Langevin
+          If ( Xmax >  Max_Force ) &
+               &  Running_Delta_tau_Langevin  = Max_Force *  Delta_tau_Langevin / Xmax
+          do n = 1,N_op
+             do nt = 1,Ltrot
+                nsigma%f(n,nt)   = nsigma%f(n,nt)  -   ( nsigma%f(n,nt) +  real(Forces(n,nt),kind(0.d0)) )*Running_Delta_tau_Langevin + &
+                     & sqrt(2.d0*Running_Delta_tau_Langevin )* rang_wrap()
              enddo
           enddo
           
