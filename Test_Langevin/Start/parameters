@@ -22,8 +22,8 @@ Delta_tau_Langevin = 0.01
 
 &VAR_QMC
 Nwrap   = 10
-NSweep  = 200
-NBin    = 10
+NSweep  = 5000
+NBin    = 500
 Ltau    = 0
 LOBS_ST = 1
 LOBS_EN = 100
