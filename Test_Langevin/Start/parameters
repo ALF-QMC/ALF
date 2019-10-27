@@ -3,7 +3,7 @@
 !-------------------------------------------------------------------------------
 
 &VAR_lattice 
-L1    = 4 
+L1    = 6 
 L2    = 1 
 Lattice_type = "Square"
 Model = "Hubbard_Mz"  ! Hubbard_SU2, Hubbard_Mz
@@ -17,13 +17,14 @@ ham_U   = 4.0
 Beta    = 4.0
 dtau    = 0.1 
 Langevin= .true.
-Delta_tau_Langevin = 0.01
+Delta_tau_Langevin = 0.05
+Max_Force = 10.0
 /
 
 &VAR_QMC
 Nwrap   = 10
 NSweep  = 5000
-NBin    = 500
+NBin    = 10
 Ltau    = 0
 LOBS_ST = 1
 LOBS_EN = 100

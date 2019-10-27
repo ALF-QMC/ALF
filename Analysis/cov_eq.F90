@@ -55,7 +55,7 @@
          Type  (Mat_C), allocatable :: Bins (:,:), Bins_R(:,:)
          Complex (Kind=Kind(0.d0)), allocatable :: Bins0(:,:)
          Complex (Kind=Kind(0.d0)) :: Z, Xmean,Xerr, Xmean_r, Xerr_r
-         Real (Kind=Kind(0.d0)) :: Xm,Xe
+         Real (Kind=Kind(0.d0)) :: Xm,Xe, XB_X
          Real    (Kind=Kind(0.d0)) :: Xk_p(2), XR_p(2) , XR1_p(2)
          Complex (Kind=Kind(0.d0)), allocatable :: V_help(:), V_help_R(:)
          Real (Kind=Kind(0.d0)) :: Pi, a1_p(2), a2_p(2), L1_p(2), L2_p(2), del_p(2)
@@ -67,7 +67,7 @@
          Character (len=64)  :: File_out
          Logical             :: Checkerboard	 , Symm
 
-         NAMELIST /VAR_lattice/  L1, L2, Lattice_type, Model, N_SUN, Checkerboard, Symm
+         NAMELIST /VAR_lattice/  L1, L2, Lattice_type, Model, N_SUN, Checkerboard, Symm, XB_X
          NAMELIST /VAR_errors/   n_skip, N_rebin, N_Cov, N_Back, N_auto
 
 
