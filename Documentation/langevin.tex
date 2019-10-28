@@ -67,18 +67,43 @@ As mentioned above, Langevin dynamics will work well  provided that  the forces 
 \item   Langevin dynamics will be carried out at a finite  Langevin time step and thereby we have introduced a further source of systematic error.
 \item   The factor $\sqrt{2 \delta \tl} $   multiplying the stochastic variable makes the  noise dominant  on short time scales.  On these times scales  Langevin dynamics essentially  corresponds to a random walk. This has the advantage that one can circumvent potential barriers, but  may render the updating scheme less  efficient than the hybrid molecular  dynamics approach.
 \end{itemize}
+In the code, we have adopted a  variable time step strategy. This is important since   the determinant has zeros and the forces  are unbounded.    The user   provides an upper bound to the force, \texttt{Max\_Force},  and  if the maximal force in a configuration \texttt{Max\_Force\_Conf}, is large than \texttt{Max\_Force} the time step  is rescaled as 
+\begin{equation}
+     \tilde{\delta \tl}   =  \frac{ \texttt{Max\_Force} *  \delta \tl }{\texttt{Max\_Force\_Conf}}.
+\end{equation}
+With the adaptive time  step,  averages are computed as: 
+\begin{equation}
+   \langle \hat{O} \rangle = \frac{ \sum_n (\delta \tl )_n \langle \langle \hat{O} \rangle   \rangle_{(C_n)}} {\sum_n (\delta \tl )_n } 
+\end{equation}
 
 
-We have tested the code for a 6-site Hubbard chain at half-filling and at $U/t = 4$ and at $\beta t = 4$   The discrete  variable code gives
+We have tested the code for a 6-site Hubbard chain at half-filling  at $U/t = 4$,  $\beta t = 4$    and with periodic boundary conditions.   One can show that for this choice of boundary conditions the   forces are not bounded 
+and to make sure that the program does not   crash we have  set \texttt{Max\_Force = 1.5}  
+
+
+ The discrete  variable code gives
 \begin{equation}
  \langle  \hat{H} \rangle  =  -3.468429   \pm     0.000726.
 \end{equation} 
 The Langevin code at $ \delta \tl = 0.001$  yields 
 \begin{equation}
- \langle  \hat{H} \rangle  =  -3.457871  \pm   0.009982 
+ \langle  \hat{H} \rangle  =  -3.456968   \pm   0.009886 
 \end{equation} 
 and at $ \delta \tl = 0.01$ 
 \begin{equation}
- \langle  \hat{H} \rangle  = -3.470860    \pm  0.009976. 
+ \langle  \hat{H} \rangle  = -3.495365    \pm  0.007281 
 \end{equation} 
-At apparent our  precision is not sufficient to detect the systematic $ \delta \tl  $ error and within  our error-bars the data agree.    We have used the same amount of CPU time for the simulations and it is to be noted that the statistical uncertainty for the Langevin dynamics code is an order of magnitude larger.   Note that if the  Langevin time step gets too large, then the program crashes. I think that this is because the forces get big for some configurations such that the fields get big and the stabilization fails. It may be a good idea to formulate an adaptive step size scheme to circumvent this issue. 
+ At $ \delta \tl = 0.001$   the maximal force that occurred during the run was 
+$ 112$, whereas at $ \delta \tl = 0.01$ it grew to $524$.    In both cases the average force was given by $0.45$.   For larger values of  $ \delta \tl $ the maximal force grows and the fluctuations on the energy become  larger.  
+( $ \langle  \hat{H} \rangle  =  -3.718439    \pm   0.206469 $  at $ \delta \tl = 0.02$. For this parameter set  the maximal force we encountered during the run was of $1658$.)
+
+Controlling Langevin dynamics when the action has logarithmic divergences is a challenge, and it is not clear  that the results will be satisfying.  For our specific problem we can solve this issue by considering open boundary conditions. Following an argument put forward in \cite{Assaad07}, we can show, using world lines, that the determinant is always positive.   In this case the  action does not  have logarithmic divergences and the Langevin dynamics works beautifully well, see Fig.~\ref{Langevin.fig}. 
+
+\begin{figure}[H]
+        \begin{center}
+                \includegraphics[scale=0.9]{Figures/Langevin.pdf}
+            \end{center}
+        \caption{\label{Langevin.fig}   Total energy for the 6-sites Hubbard chain at $U/t=4$, $\beta t = 4$ and with open boundary conditions.   Here one can show that the determinant is always positive such that  no   singularities occur in the action, and consequently the Langevin dynamics works very well.  The data point at $\delta \tl =0$ stems from running the  discrete  field code with coupling  of the field to the z-component of the magnetization.  The extrapolated value of the energy reads  $-2.87104   \pm 0.001144$ and the reference result from the discrete code is $  -2.871124   \pm  0.000389 $.  Throughout the runs the maximal force was always less than the threshold of 1.5.   }
+\end{figure}
+
+
