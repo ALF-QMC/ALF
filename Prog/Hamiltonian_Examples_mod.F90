@@ -156,7 +156,7 @@
       real (Kind=Kind(0.d0)),        private :: ham_alpha, Percent_change
       real (Kind=Kind(0.d0)),        private :: XB_Y, Phi_Y
       real (Kind=Kind(0.d0)),        private :: Dtau, Beta, Theta
-      Real (Kind=Kind(0.d0)),        private :: Running_Delta_tau_Langevin, Max_Force 
+      Real (Kind=Kind(0.d0)),        private :: Running_Delta_tau_Langevin, Max_Force
       Character (len=64),   private :: Model, Lattice_type
       Logical,              private :: Checkerboard
       Integer, allocatable, private :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
@@ -207,7 +207,7 @@
 
           NAMELIST /VAR_Ising/    ham_T, ham_chem, ham_U, Ham_h, Ham_J, Ham_xi, Dtau, Beta, Theta, Projector
 
-          NAMELIST /VAR_t_V/      Ham_T, ham_chem, ham_tV, Dtau, Beta, Theta, Projector
+          NAMELIST /VAR_t_V/      Ham_T, ham_chem, ham_tV, Dtau, Beta, Theta, Projector, Langevin, Delta_tau_Langevin, Max_Force
 
 #ifdef MPI
           Integer        :: Isize, Irank, irank_g, isize_g, igroup
@@ -481,6 +481,10 @@
                 Write(50,*) 't             : ', Ham_T
                 Write(50,*) 'Ham_chem      : ', Ham_chem
                 Write(50,*) 'Ham_tV         : ', Ham_tV
+                If (Langevin) then
+                        Write(50,*) 'Langevin del_t: ', Delta_tau_Langevin
+                        Write(50,*) 'Maximal Force: ', Max_Force
+                endif
 #ifdef MPI
              Endif
 #endif
@@ -488,11 +492,14 @@
              CALL MPI_BCAST(Ltrot    ,1,MPI_INTEGER,0,Group_Comm,ierr)
              CALL MPI_BCAST(Thtrot   ,1,MPI_INTEGER,0,Group_Comm,ierr)
              CALL MPI_BCAST(Projector,1,MPI_LOGICAL,0,Group_Comm,ierr)
+             CALL MPI_BCAST(Langevin ,1,MPI_LOGICAL,0,Group_Comm,ierr)
              CALL MPI_BCAST(ham_T    ,1,MPI_REAL8,0,Group_Comm,ierr)
              CALL MPI_BCAST(ham_chem ,1,MPI_REAL8,0,Group_Comm,ierr)
              CALL MPI_BCAST(ham_tV   ,1,MPI_REAL8,0,Group_Comm,ierr)
              CALL MPI_BCAST(Dtau     ,1,MPI_REAL8,0,Group_Comm,ierr)
              CALL MPI_BCAST(Beta     ,1,MPI_REAL8,0,Group_Comm,ierr)
+             CALL MPI_BCAST(Delta_tau_Langevin,1,MPI_REAL8  ,0,Group_Comm,ierr)
+             CALL MPI_BCAST(Max_Force,1,MPI_REAL8  ,0,Group_Comm,ierr)
 #endif
           Case default 
              Write(6,*) "Model not yet implemented!"
@@ -710,9 +717,15 @@
                       Op_V(nc,1)%P(2) = I2
                       Op_V(nc,1)%O(1,2) = cmplx(1.d0 ,0.d0, kind(0.D0)) 
                       Op_V(nc,1)%O(2,1) = cmplx(1.d0 ,0.d0, kind(0.D0))
+                    if (langevin) then
+                      Op_V(nc,1)%g      = -SQRT(CMPLX(2.d0*DTAU*ham_tV/real(N_SUN,kind(0.d0)), 0.D0, kind(0.D0)))
+                      Op_V(nc,1)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
+                      Op_V(nc,1)%type   = 3
+                    else
                       Op_V(nc,1)%g      = SQRT(CMPLX(DTAU*ham_tV/real(N_SUN,kind(0.d0)), 0.D0, kind(0.D0))) 
                       Op_V(nc,1)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
                       Op_V(nc,1)%type   = 2
+                    endif
                       Call Op_set( Op_V(nc,1) )
                    Enddo
                 Enddo
