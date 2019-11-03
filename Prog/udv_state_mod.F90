@@ -341,8 +341,8 @@ CONTAINS
 !> @param [inout] this  Class(UDV_state) 
 !> @param [in] src Class(UDV_state) 
 !-------------------------------------------------------------------
-#if __INTEL_COMPILER_BUILD_DATE == 20190206 || __INTEL_COMPILER_BUILD_DATE == 20190416
-     ! Handle bug in ifort 19.3, that breaks ASSIGNMENT(=), IMPURE is an Intel keyword.
+#if __INTEL_COMPILER_BUILD_DATE == 20190206 || __INTEL_COMPILER_BUILD_DATE == 20190416 || __INTEL_COMPILER_BUILD_DATE == 20190815
+     ! Handle bug in ifort 19.3, 19.4 and 19.5, that breaks ASSIGNMENT(=), IMPURE is an Intel keyword.
      IMPURE ELEMENTAL SUBROUTINE assign_UDV_state(this, src)
 #else
      SUBROUTINE assign_UDV_state(this, src)
