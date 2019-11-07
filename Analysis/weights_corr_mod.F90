@@ -40,58 +40,74 @@ contains
        write(error_unit, '(A)') 'unable to open <parameters>'
        stop
     end if
-    read(unit, nml=VAR_weights_corr)
+    read(unit, nml=VAR_weights_corr, iostat=ierr)
     close(unit)
 
-    nread = 0
-    do i = 1, Norb
-       if (weights(i) /= SENTINEL) then
-          nread = nread + 1
-       end if
-    end do
-    if ((nread > 0).and.(nread < Norb)) then
-       write(error_unit, '(A,I3,A,I3)') 'Error: read ', nread, ' values for weights, expected ', Norb
-       stop
-    end if
 
-    nread_corr = 0
-    do i = 1, Norb
-       do j = 1, Norb
-          if (weights_corr(j, i) /= SENTINEL) then
-             nread_corr = nread_corr + 1
+    if (ierr == 0) then
+       nread = 0
+       do i = 1, Norb
+          if (weights(i) /= SENTINEL) then
+             nread = nread + 1
           end if
        end do
-    end do
-    if ((nread_corr > 0).and.(nread_corr < (Norb**2))) then
-       write(error_unit, '(A,I3,A,I3)') 'Error: read ', nread_corr, ' values for weights_corr, expected ', Norb**2
-       stop
-    end if
-
-    if (nread > 0) then
-       ! weights_corr cannot be given if weights is present
-       if (nread_corr > 0) then
-          write(error_unit, '(A)') 'Error: weights and weights_corr cannot be provided at the same time'
+       if ((nread > 0).and.(nread < Norb)) then
+          write(error_unit, '(A,I3,A,I3)') 'Error: read ', nread, ' values for weights, expected ', Norb
           stop
-       else
-          ! Here weights is given and we construct weights_corr from weights
-          do i = 1, Norb
-             do j = 1, Norb
-                w(j, i) = weights(i) * weights(j)
-             end do
+       end if
+
+       nread_corr = 0
+       do i = 1, Norb
+          do j = 1, Norb
+             if (weights_corr(j, i) /= SENTINEL) then
+                nread_corr = nread_corr + 1
+             end if
           end do
-       end if ! if (nread_corr > 0)
-    else if (nread_corr > 0) then
-       ! Here weights_corr is given
-       w = weights_corr
-    else
-       ! Here neither weights nor weights_corr is given
-       ! By default, the result is the identity matrix
+       end do
+       if ((nread_corr > 0).and.(nread_corr < (Norb**2))) then
+          write(error_unit, '(A,I3,A,I3)') 'Error: read ', nread_corr, ' values for weights_corr, expected ', Norb**2
+          stop
+       end if
+       
+       if (nread > 0) then
+          ! weights_corr cannot be given if weights is present
+          if (nread_corr > 0) then
+             write(error_unit, '(A)') 'Error: weights and weights_corr cannot be provided at the same time'
+             stop
+          else
+             ! Here weights is given and we construct weights_corr from weights
+             do i = 1, Norb
+                do j = 1, Norb
+                   w(j, i) = weights(i) * weights(j)
+                end do
+             end do
+          end if ! if (nread_corr > 0)
+       else if (nread_corr > 0) then
+          ! Here weights_corr is given
+          w = weights_corr
+       else
+          ! Here neither weights nor weights_corr is given
+          ! By default, the result is the identity matrix
+          w = 0.d0
+          do i = 1, Norb
+             w(i, i) = 1.d0
+          end do
+       end if ! if (nread > 0)
+
+    else if (ierr == iostat_end) then
+       ! In case of end-of-file we assume that there is no namelist VAR_weights_corr
+       ! and return the default identity matrix
        w = 0.d0
        do i = 1, Norb
           w(i, i) = 1.d0
        end do
-    end if ! if (nread > 0)
-    
+
+    else
+       ! Only no errors or end-of-file status are accepted
+       write(error_unit, '(A,I3,A)') 'Error ', ierr, ' while reading namelist VAR_weights_corr'
+       stop
+
+    end if ! if (ierr == 0)
     deallocate(weights, weights_corr)
   end function get_weights_corr
 end Module Weights_corr
