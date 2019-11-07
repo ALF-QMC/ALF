@@ -67,20 +67,31 @@ contains
        stop
     end if
 
-    if ((nread > 0).and.(nread_corr > 0)) then
-       write(error_unit, '(A)') 'Error: weights and weights_corr cannot be provided at the same time'
-       stop
-    end if
-
     if (nread > 0) then
-       do i = 1, Norb
-          do j = 1, Norb
-             weights_corr(j, i) = weights(i) * weights(j)
+       ! weights_corr cannot be given if weights is present
+       if (nread_corr > 0) then
+          write(error_unit, '(A)') 'Error: weights and weights_corr cannot be provided at the same time'
+          stop
+       else
+          ! Here weights is given and we construct weights_corr from weights
+          do i = 1, Norb
+             do j = 1, Norb
+                w(j, i) = weights(i) * weights(j)
+             end do
           end do
+       end if ! if (nread_corr > 0)
+    else if (nread_corr > 0) then
+       ! Here weights_corr is given
+       w = weights_corr
+    else
+       ! Here neither weights nor weights_corr is given
+       ! By default, the result is the identity matrix
+       w = 0.d0
+       do i = 1, Norb
+          w(i, i) = 1.d0
        end do
-    end if
-
-    w = weights_corr
+    end if ! if (nread > 0)
+    
     deallocate(weights, weights_corr)
   end function get_weights_corr
 end Module Weights_corr
