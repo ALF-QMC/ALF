@@ -44,7 +44,8 @@
          Use MyMats
          Use Matrix
          Use Lattices_v3 
-
+         Use Weights_corr
+         
          Implicit none
 
 
@@ -66,6 +67,7 @@
          Type (Lattice)      :: Latt
          Character (len=64)  :: File_out
          Logical             :: Checkerboard	 , Symm
+         real(kind=kind(0.d0)), allocatable :: w(:,:)
 
          NAMELIST /VAR_lattice/  L1, L2, Lattice_type, Model, N_SUN, Checkerboard, Symm
          NAMELIST /VAR_errors/   n_skip, N_rebin, N_Cov, N_Back, N_auto
@@ -231,6 +233,7 @@
             Write(6,*)
          enddo
 #endif
+         w = get_weights_corr(Norb)
          Open (Unit=33,File="equalJ"        ,status="unknown")
          Open (Unit=34,File="equalJR"       ,status="unknown")
          Do n = 1,Nunit
@@ -254,7 +257,26 @@
                        &  no,no1, dble(XMean_r), dble(XERR_r), aimag(XMean_r), aimag(XERR_r)
                enddo
             enddo
+
+            ! Weighted sum of correlations
+            do nb = 1, Nbins
+               V_help(nb) = cmplx(0.d0,0.d0,kind(0.d0))
+               V_help_r(nb) = cmplx(0.d0,0.d0,kind(0.d0))
+               do no = 1, Norb
+                  do no1 = 1, Norb
+                     V_help(nb) = V_help(nb) + w(no, no1) * bins(n,nb)%el(no,no1)
+                     V_help_r(nb) = V_help_r(nb) + w(no, no1) * bins_r(n,nb)%el(no,no1)
+                  end do
+               end do
+            end do
+            call ERRCALCJ(V_help, Phase, XMean, XERR, N_rebin) 
+            write(33, '(A,F16.8,2x,F16.8,2x,F16.8,2x,F16.8)') 'Weighted sum ', &
+                 &  dble(XMean), dble(XERR), aimag(XMean), aimag(XERR)
+            call ERRCALCJ(V_help_r, Phase, XMean_r, XERR_r, N_rebin)
+            write(34, '(A,F16.8,2x,F16.8,2x,F16.8,2x,F16.8)') 'Weighted sum ', &
+                 &  dble(XMean_r), dble(XERR_r), aimag(XMean_r), aimag(XERR_r)
          enddo
+         deallocate(w)
 !!$         If (Norb > 1 ) then 
 !!$            !Compute susecptibility 
 !!$            Xk_p = 0.d0
