@@ -42,6 +42,7 @@
          Use Errors
          Use MyMats
          Use Matrix
+         Use Weights_corr
 
          Implicit none
 
@@ -61,6 +62,7 @@
          Complex (Kind=Kind(0.d0)), allocatable :: V_help(:,:)
          Real    (Kind=Kind(0.d0)), allocatable :: Xk_p(:,:)
          Character (len=64) :: File_out
+         real(kind=kind(0.d0)), allocatable :: w(:,:)
 
          NAMELIST /VAR_errors/   n_skip, N_rebin, N_Cov, N_Back, N_auto
  
@@ -129,6 +131,7 @@
          Allocate (Xmean(Lt_eff), Xcov(Lt_eff,Lt_eff))
          bins  = 0.d0
          bins0 = cmplx(0.d0,0.d0,Kind(0.d0))
+         w = get_weights_corr(Norb)
          Open ( Unit=10, File="intau", status="unknown" ) 
          do nb = 1, nbins + n_skip
             if (nb > n_skip ) then
@@ -168,14 +171,18 @@
                   ! --> g(nt + 1 )  = g(lt -1 -nt +1) -->  g(nt + 1 )  = g(lt -nt ) --> g(nt )  = g(lt -nt +1 )
                   do nt = 1,Lt_eff
                      do no = 1,Norb
-                        bins(n,nt,nb-n_skip) = bins(n,nt,nb-n_skip) + &
-                             & ( OneBin(nt,no,no) +  OneBin(Lt - nt + 1,no,no) ) / cmplx(2.d0,0.d0,Kind(0.d0))
+                        do no1 = 1, Norb
+                           bins(n,nt,nb-n_skip) = bins(n,nt,nb-n_skip) + &
+                             & w(no, no1) * ( OneBin(nt,no,no1) +  OneBin(Lt - nt + 1,no,no1) ) / cmplx(2.d0,0.d0,Kind(0.d0))
+                        end do
                      enddo
                   enddo
 #else
                   do nt = 1,Lt_eff
                      do no = 1,Norb
-                        bins(n,nt,nb-n_skip) = bins(n,nt,nb-n_skip) + OneBin(nt,no,no)
+                        do no1 = 1, Norb
+                           bins(n,nt,nb-n_skip) = bins(n,nt,nb-n_skip) + w(no, no1) * OneBin(nt,no,no1)
+                        end do
                      enddo
                   enddo
 #endif
@@ -185,7 +192,7 @@
                   Do nt = 1,Lt_eff -1
                      do no = 1,Norb
                         do no1 = 1,Norb
-                           Z = Z + cmplx(0.5d0,0.d0,Kind(0.d0)) * ( OneBin(nt,no,no1) + Onebin(nt+1,no,no1) )
+                           Z = Z + cmplx(0.5d0,0.d0,Kind(0.d0)) * w(no, no1) * ( OneBin(nt,no,no1) + Onebin(nt+1,no,no1) )
                         enddo
                      enddo
                   enddo
@@ -277,6 +284,7 @@
          Close(33)
 
          ! Deallocate  space
+         deallocate(w)
          Deallocate ( bins, Phase,PhaseI, Xk_p, V_help, bins0)
          Deallocate ( Bins_chi )
          
