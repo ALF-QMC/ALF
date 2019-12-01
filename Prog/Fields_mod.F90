@@ -62,6 +62,7 @@
        Real (Kind=Kind(0.d0))  :: Phi_st(-2:2,2),  Gama_st(-2:2,2)
        Real (Kind=Kind(0.d0))  :: Del, FLIP_st(-2:2,3)
        Real (Kind=Kind(0.d0))  :: Amplitude=5.d0
+       Integer :: maxgh ! the maximum number of gauss-hemite quadrature nodes divided by two
        
        Type Fields
           Real    (Kind=Kind(0.d0)), allocatable    :: f(:,:)
@@ -80,6 +81,17 @@
     
     Contains
 
+      function randomnewnode(oldnode) result(newnode)
+        Use Random_Wrap
+        Implicit none
+        Integer, Intent(IN) :: oldnode
+        Integer :: newnode
+
+        newnode = nranf(2*maxgh - 1) - maxgh - 1! creates values from [-maxgh:maxgh-2] including zero
+        if (newnode .eq. 0) newnode = maxgh ! map zero to maxgh
+        if (newnode .eq. oldnode) newnode = maxgh-1 !map the integer of the oldspin to maxgh-1
+  end function randomnewnode
+    
 !--------------------------------------------------------------------
 !> @author 
 !> ALF-project
