@@ -59,8 +59,8 @@
        Public Fields_init
        
        Private
-       Real (Kind=Kind(0.d0))  :: Phi_st(-2:2,2),  Gama_st(-2:2,2)
-       Real (Kind=Kind(0.d0))  :: Del, FLIP_st(-2:2,3)
+       Real (Kind=Kind(0.d0)), allocatable, dimension(:,:)  :: Phi_st,  Gama_st
+       Real (Kind=Kind(0.d0))  :: Del
        Real (Kind=Kind(0.d0))  :: Amplitude=5.d0
        Integer :: maxgh ! the maximum number of gauss-hemite quadrature nodes divided by two
        
@@ -214,51 +214,86 @@
         deallocate (this%f, this%t )
       end Subroutine Fields_clear
 
-      Subroutine Fields_init(Delta_X)
+      Subroutine Fields_init(nrnodes, Delta_X)
 
         Implicit none
         
         Real  (Kind=Kind(0.d0)), Optional, Intent(IN) :: Delta_X
+        Integer, intent(in), optional :: nrnodes
 
         !Local
         Integer :: n
-        
+    
         Del = 0.d0
+        If ( .not. Present(nrnodes)) then
+            maxgh = 2 ! default 4 Integration nodes
+        else
+            maxgh = nrnodes/2
+        endif
         If (Present(Delta_X)) Del = Delta_X
-
+        
+        Allocate(Phi_st(-maxgh:maxgh, 2), gama_st(-maxgh:maxgh, 2))
+        
         Phi_st = 0.d0
         do n = -2,2
            Phi_st(n,1) = real(n,Kind=Kind(0.d0))
-        enddo
-        Phi_st(-2,2) = - SQRT(2.D0 * ( 3.D0 + SQRT(6.D0) ) )
-        Phi_st(-1,2) = - SQRT(2.D0 * ( 3.D0 - SQRT(6.D0) ) )
-        Phi_st( 1,2) =   SQRT(2.D0 * ( 3.D0 - SQRT(6.D0) ) )
-        Phi_st( 2,2) =   SQRT(2.D0 * ( 3.D0 + SQRT(6.D0) ) )
-        
-        Do n = -2,2
            gama_st(n,1) = 1.d0
-        Enddo
-        GAMA_st(-2,2) = 1.D0 - SQRT(6.D0)/3.D0
-        GAMA_st( 2,2) = 1.D0 - SQRT(6.D0)/3.D0
-        GAMA_st(-1,2) = 1.D0 + SQRT(6.D0)/3.D0
-        GAMA_st( 1,2) = 1.D0 + SQRT(6.D0)/3.D0
-        
-        FLIP_st(-2,1) = -1.d0
-        FLIP_st(-2,2) =  1.d0
-        FLIP_st(-2,3) =  2.d0
-        
-        FLIP_st(-1,1) =  1.d0
-        FLIP_st(-1,2) =  2.d0
-        FLIP_st(-1,3) = -2.d0
-        
-        FLIP_st( 1,1) =  2.d0
-        FLIP_st( 1,2) = -2.d0
-        FLIP_st( 1,3) = -1.d0
-        
-        FLIP_st( 2,1) = -2.d0
-        FLIP_st( 2,2) = -1.d0
-        FLIP_st( 2,3) =  1.d0
+        enddo
 
+    select case(maxgh) ! weights calculated from here: https://keisan.casio.com/exec/system/1281195844
+        case (2)
+            Phi_st(1,2) = 0.5246476232752903178841
+            Phi_st(2,2) = 1.650680123885784555883
+
+            gama_st(1,2) = 0.8049140900055128365061
+            gama_st(2,2) = 0.081312835447245177143
+        case (3)
+            Phi_st(1,2) = 0.436077411927616508679
+            gama_st(1,2) = 0.724629595224392524092
+            
+            Phi_st(2,2) = 1.335849074013696949715
+            gama_st(2,2) = 0.1570673203228566439163
+            
+            Phi_st(3,2) = 2.350604973674492222834
+            gama_st(3,2) = 0.004530009905508845640858
+        
+        case(4)
+            Phi_st(1,2) = 0.3811869902073221168547
+            gama_st(1,2) = 0.6611470125582412910304
+            
+            Phi_st(2,2) = 1.157193712446780194721
+            gama_st(2,2) = 0.2078023258148918795433
+            
+            Phi_st(3,2) = 1.981656756695842925855
+            gama_st(3,2) = 0.0170779830074134754562
+
+            Phi_st(4,2) = 2.930637420257244019224
+            gama_st(4,2) = 1.996040722113676192061E-4
+            
+        case(5)
+            Phi_st(1,2) = 0.3429013272237046087892
+            gama_st(1,2) = 0.6108626337353257987836
+            
+            Phi_st(2,2) = 1.036610829789513654178
+            gama_st(2,2) = 0.2401386110823146864165
+            
+            Phi_st(3,2) = 1.756683649299881773451
+            gama_st(3,2) = 0.03387439445548106313617
+
+            Phi_st(4,2) = 2.532731674232789796409
+            gama_st(4,2) = 0.001343645746781232692202
+            
+            Phi_st(5,2) = 3.436159118837737603327
+            gama_st(5,2) = 7.64043285523262062916E-6
+        case default
+            write (*,*) "Not implemented"
+    end select
+
+    do n = 1, maxgh
+        phi_st(n, 2) = 2*phi_st(n, 2) ! the factor of two due to the Gaussian integral from the HST
+        gama_st(-n, 2) = gama_st(n, 2) ! weights are symmetric around zero
+        phi_st(-n, 2) = -phi_st(n, 2) ! The zeroes of the Hermite Polynomials are symmetric
+    enddo
       end Subroutine Fields_init
 
 
