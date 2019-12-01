@@ -168,7 +168,7 @@
         case(1)
            Fields_flip = - this%f(n_op,n_tau)
         case (2)
-           Fields_flip =   Flip_st( nint(this%f(n_op,n_tau)),nranf(3))
+           Fields_flip = randomnewnode(nint(this%f(n_op,n_tau)))
         case (3)
            Fields_flip =   this%f(n_op,n_tau) + Amplitude*( ranf_wrap() - 0.5D0)
         case default
