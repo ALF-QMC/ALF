@@ -24,6 +24,7 @@ Nwrap   = 10
 NSweep  = 500
 NBin    = 2 
 Ltau    = 1
+nodes   = 4
 LOBS_ST = 1
 LOBS_EN = 100
 CPU_MAX = 48.0

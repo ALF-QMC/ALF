@@ -164,7 +164,7 @@ Program Main
         CLASS(UDV_State), DIMENSION(:), ALLOCATABLE :: udvl, udvr
   
         
-        Integer :: Nwrap, NSweep, NBin, NBin_eff,Ltau, NSTM, NT, NT1, NVAR, LOBS_EN, LOBS_ST, NBC, NSW
+        Integer :: Nwrap, NSweep, NBin, NBin_eff,Ltau, nodes, NSTM, NT, NT1, NVAR, LOBS_EN, LOBS_ST, NBC, NSW
         Integer :: NTAU, NTAU1
         Real(Kind=Kind(0.d0)) :: CPU_MAX 
         Character (len=64) :: file1
@@ -183,7 +183,7 @@ Program Main
         NAMELIST /VAR_TEMP/  N_exchange_steps, N_Tempering_frequency, mpi_per_parameter_set, Tempering_calc_det
 #endif
 
-        NAMELIST /VAR_QMC/   Nwrap, NSweep, NBin, Ltau, LOBS_EN, LOBS_ST, CPU_MAX, &
+        NAMELIST /VAR_QMC/   Nwrap, NSweep, NBin, nodes, Ltau, LOBS_EN, LOBS_ST, CPU_MAX, &
              &               Propose_S0,Global_moves,  N_Global, Global_tau_moves, &
              &               Nt_sequential_start, Nt_sequential_end, N_Global_tau
 
@@ -279,6 +279,7 @@ Program Main
         CALL MPI_BCAST(NSweep             ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
         CALL MPI_BCAST(NBin               ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
         CALL MPI_BCAST(Ltau               ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+        CALL MPI_BCAST(nodes              ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
         CALL MPI_BCAST(LOBS_EN            ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
         CALL MPI_BCAST(LOBS_ST            ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
         CALL MPI_BCAST(CPU_MAX            ,1,MPI_REAL8,  0,MPI_COMM_WORLD,ierr)
@@ -290,7 +291,7 @@ Program Main
         CALL MPI_BCAST(Nt_sequential_end  ,1,MPI_Integer,0,MPI_COMM_WORLD,ierr)
         CALL MPI_BCAST(N_Global_tau       ,1,MPI_Integer,0,MPI_COMM_WORLD,ierr)
 #endif
-        Call Fields_init()
+        Call Fields_init(nodes)
         Call Ham_set
         log=.false.
         if(Projector) then
