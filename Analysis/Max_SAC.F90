@@ -67,7 +67,7 @@
        
 
        Integer                :: Ngamma, Ndis,  NBins, NSweeps, Nwarm, N_alpha, N_cov
-       Integer                :: N_skip, N_rebin
+       Integer                :: N_skip, N_rebin, Norb
        Real (Kind=Kind(0.d0)) :: OM_st, OM_en,  alpha_st, R, Tolerance
        Logical                :: Checkpoint
        Character (Len=2)      :: Channel
@@ -111,7 +111,7 @@
        
 
        open (unit=10,File="g_dat", status="unknown") 
-       read(10,*)  ntau, nbin_qmc, Beta
+       read(10,*)  ntau, nbin_qmc, Beta, Norb
        Allocate ( XCOV(NTAU,NTAU), XQMC(NTAU),XTAU(NTAU) )
        XCOV  = 0.d0
        Do nt = 1,NTAU
@@ -138,7 +138,7 @@
        Case ("PP")
           xmom1 = 2.d0* pi * xqmc(1)
        Case ("P")
-          xmom1 =  pi
+          xmom1 =  pi * real(norb,Kind(0.d0))
           !  Remove the tau = beta point from the data since it is  correlated
           !  due to the sum rule with  the tau=0 data point. Also if the tau = 0
           !  data point has no fluctations (due to particle-hole symmetry for instance)

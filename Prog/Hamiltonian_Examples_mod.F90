@@ -67,10 +67,10 @@
 !> \verbatim Type (WaveFunction), dimension(:),   allocatable
 !> Right trial wave function.   For both wave functions the index runs over the flavor index. \endverbatim
 !>
-!> @param [public]  nsigma(:,:) 
+!> @param [public]  nsigma
 !> \verbatim Type(Fields)
-!> Array containing all auxiliary fields. The first index runs through the operator sequence. The second
-!> through the time slies.   \endverbatim
+!> Contains all auxiliary fields in the variable f(:,:). The first index runs through the operator
+!> sequence. The second through the time slices.   \endverbatim
 !
 !> @param [public]  Ndim
 !> \verbatim Integer
@@ -1231,7 +1231,7 @@
                 ZPot = ZPot + Grc(i,i,1) * Grc(i,i, dec)
              Enddo
              Zpot = Zpot*ham_U
-          elseif (Model == "Hubbard_MZ") then
+          elseif (Model == "Hubbard_Mz") then
              dec = 2
              Do I = 1,Ndim
                 ZPot = ZPot + Grc(i,i,1) * Grc(i,i, dec)
