@@ -72,18 +72,18 @@
 \contentsline {subsubsection}{\numberline {6.1.1}Kondo lattice model}{46}{subsubsection.6.1.1}
 \contentsline {subsubsection}{\numberline {6.1.2}$SU(N)$ Hubbard-Heisenberg models}{47}{subsubsection.6.1.2}
 \contentsline {subsubsection}{\numberline {6.1.3}Hubbard model in the canonical ensemble}{47}{subsubsection.6.1.3}
-\contentsline {subsubsection}{\numberline {6.1.4}$Z_2$ slave spin formualtion of the Hubbard model}{49}{subsubsection.6.1.4}
-\contentsline {subsubsection}{\numberline {6.1.5}$Z_2$ gauge theory coupled to $Z_2$ matter.}{51}{subsubsection.6.1.5}
-\contentsline {subsubsection}{\numberline {6.1.6}Generalized t-V model}{51}{subsubsection.6.1.6}
-\contentsline {subsubsection}{\numberline {6.1.7}Long range Coulomb}{51}{subsubsection.6.1.7}
-\contentsline {subsection}{\numberline {6.2}Model Classes}{52}{subsection.6.2}
-\contentsline {subsubsection}{\numberline {6.2.1}Hubbard models \texttt {tU\_mod.F90}}{52}{subsubsection.6.2.1}
-\contentsline {subsubsection}{\numberline {6.2.2}Hubbard models \texttt {tV\_mod.F90}}{52}{subsubsection.6.2.2}
-\contentsline {subsubsection}{\numberline {6.2.3}Hubbard models \texttt {LRC\_mod.F90}}{52}{subsubsection.6.2.3}
-\contentsline {subsubsection}{\numberline {6.2.4}Hubbard models \texttt {Z2\_mod.F90}}{52}{subsubsection.6.2.4}
-\contentsline {subsubsection}{\numberline {6.2.5}Hubbard models \texttt {Kondo\_mod.F90}}{52}{subsubsection.6.2.5}
-\contentsline {subsection}{\numberline {6.3}Performance, memory requirements and parallelization}{53}{subsection.6.3}
-\contentsline {section}{\numberline {7}Conclusions and Future Directions}{54}{section.7}
-\contentsline {section}{Acknowledgments}{54}{section.7}
-\contentsline {section}{References}{54}{section*.2}
-\contentsline {section}{License}{57}{section*.3}
+\contentsline {subsubsection}{\numberline {6.1.4}$Z_2$ slave spin formualtion of the Hubbard model}{48}{subsubsection.6.1.4}
+\contentsline {subsubsection}{\numberline {6.1.5}$Z_2$ gauge theory coupled to $Z_2$ matter.}{50}{subsubsection.6.1.5}
+\contentsline {subsubsection}{\numberline {6.1.6}Generalized t-V model}{50}{subsubsection.6.1.6}
+\contentsline {subsubsection}{\numberline {6.1.7}Long range Coulomb}{50}{subsubsection.6.1.7}
+\contentsline {subsection}{\numberline {6.2}Model Classes}{51}{subsection.6.2}
+\contentsline {subsubsection}{\numberline {6.2.1}Hubbard models \texttt {tU\_mod.F90}}{51}{subsubsection.6.2.1}
+\contentsline {subsubsection}{\numberline {6.2.2}Hubbard models \texttt {tV\_mod.F90}}{51}{subsubsection.6.2.2}
+\contentsline {subsubsection}{\numberline {6.2.3}Hubbard models \texttt {LRC\_mod.F90}}{51}{subsubsection.6.2.3}
+\contentsline {subsubsection}{\numberline {6.2.4}Hubbard models \texttt {Z2\_mod.F90}}{51}{subsubsection.6.2.4}
+\contentsline {subsubsection}{\numberline {6.2.5}Hubbard models \texttt {Kondo\_mod.F90}}{51}{subsubsection.6.2.5}
+\contentsline {subsection}{\numberline {6.3}Performance, memory requirements and parallelization}{52}{subsection.6.3}
+\contentsline {section}{\numberline {7}Conclusions and Future Directions}{53}{section.7}
+\contentsline {section}{Acknowledgments}{53}{section.7}
+\contentsline {section}{References}{53}{section*.2}
+\contentsline {section}{License}{56}{section*.3}
