@@ -7,8 +7,8 @@ MODS= control.mod fields_mod.mod global_mod.mod hop_mod.mod lrc_mod.mod observab
       operator_mod.mod predefined_structures.mod qdrp_mod.mod tau_m_mod.mod tau_p_mod.mod \
       udv_state_mod.mod udv_wrap_mod.mod wavefunction_mod.mod wrapgr_mod.mod hamiltonian.mod
 OHAM= Hamiltonian_Examples_mod.o Hamiltonians/Hamiltonian_Z2_slave_spins_mod.o Hamiltonians/Hamiltonian_Z2_Matter_mod.o \
-      Hamiltonians/Hamiltonian_Hub_Canonical_mod.o Hamiltonians/Hamiltonian_Kondo_Honey_mod.o
-BINS= Examples.out Z2_slave_spins.out Z2_Matter.out Hubb_Can.out Kondo_Honey.out
+      Hamiltonians/Hamiltonian_Hub_Canonical_mod.o Hamiltonians/Hamiltonian_Kondo_Honey_mod.o Hamiltonians/Hamiltonian_KN_Kondo_chain.o
+BINS= Examples.out Z2_slave_spins.out Z2_Matter.out Hubb_Can.out Kondo_Honey.out KN_Kondo.out
       
 all:
 	(make tidy Examples)
@@ -16,10 +16,15 @@ all:
 	(make tidy Z2_Matter)
 	(make tidy Hub_Can)
 	(make tidy Kondo_Honey)
+	(make tidy Kondo_KN)
 
 Examples:
 	./Git_config.sh
 	(make Compile TARGET="Examples.out" HAMILTONIAN="Hamiltonian_Examples_mod.o")
+
+Kondo_KN:
+	./Git_config.sh
+	(make Compile TARGET="KN_Kondo.out" HAMILTONIAN="Hamiltonians/Hamiltonian_KN_Kondo_chain.o")
 
 Z2_Slave:
 	./Git_config.sh
