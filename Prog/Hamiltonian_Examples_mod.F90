@@ -128,6 +128,9 @@
       Use Fields_mod
       Use Predefined_Hoppings
       Use LRC_Mod
+#ifdef ED
+      Use ed_mod
+#endif
 
       
       Implicit none
@@ -146,6 +149,10 @@
       Logical              :: Projector
       Integer              :: Group_Comm
       Logical              :: Symm
+      
+#ifdef ED
+        type(ed_ham) :: ham_ed
+#endif
 
 
       Type (Lattice),       private :: Latt
@@ -514,6 +521,7 @@
           
           call Ham_V
           
+          call ham_ed%build_h(ndim, OP_T, OP_V, dtau)
 
         end Subroutine Ham_Set
         
