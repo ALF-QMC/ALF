@@ -521,7 +521,9 @@
           
           call Ham_V
           
+#ifdef ED
           call ham_ed%build_h(ndim, OP_T, OP_V, dtau)
+#endif
 
         end Subroutine Ham_Set
         

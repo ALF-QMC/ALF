@@ -175,7 +175,7 @@ F90OPTFLAGS=$GNUOPTFLAGS" -Wconversion -Werror -fcheck=all -g -fbacktrace "
 # F90OPTFLAGS=$GNUOPTFLAGS" -Wconversion -Wcompare-reals -fcheck=all -g -fbacktrace "
 F90USEFULFLAGS=$GNUUSEFULFLAGS
 
-f90=$GNUCOMPILER
+f90="gfortran"
 LIB_BLAS_LAPACK="-llapack -lblas -fopenmp"
 ;;
 
