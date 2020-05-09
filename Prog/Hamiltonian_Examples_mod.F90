@@ -522,6 +522,7 @@
           call Ham_V
           
 #ifdef ED
+          print*, "Ndim", ndim
           call ham_ed%build_h(ndim, OP_T, OP_V, dtau)
 #endif
 

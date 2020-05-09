@@ -46,6 +46,7 @@ MODULE ed_mod
     
     IMPLICIT NONE
     PRIVATE
+    PUBLIC :: ed_state
     PUBLIC :: ed_ham
 
 
@@ -63,6 +64,7 @@ MODULE ed_mod
         
         CONTAINS
             PROCEDURE :: N_fermions => ed_state_N_fermions
+            PROCEDURE :: print => ed_state_print
             PROCEDURE :: annihil_e => ed_state_annihil_e
             PROCEDURE :: create_e  => ed_state_create_e
             
@@ -115,6 +117,27 @@ CONTAINS
     end function ed_state_N_fermions
     
 
+    subroutine ed_state_print(this)
+        IMPLICIT NONE
+        class(ed_state), INTENT(INOUT) :: this
+        integer :: i
+        character (len=32) :: str
+        
+        str = ''
+        
+        print*, this%factor
+        do i=0, 31
+            if ( btest(this%i, i) ) then
+                write(str,'(A,A)') trim(str), '1'
+            else
+                write(str,'(A,A)') trim(str), '0'
+            endif
+        enddo
+        print *, str
+    
+    end subroutine ed_state_print
+    
+
     subroutine ed_state_annihil_e(this, i_e)
         IMPLICIT NONE
         class(ed_state), INTENT(INOUT) :: this
@@ -125,7 +148,7 @@ CONTAINS
             return
         endif
         
-        if( mod( N_fermions(ibits(this%i,0,i_e-1)), 2) == 1 ) then
+        if( mod( N_fermions(ibits(this%i,0,i_e)), 2) == 1 ) then
             this%factor = this%factor * cmplx(-1.d0, 0.d0, kind=kind(0.d0))
         endif
         
@@ -144,7 +167,7 @@ CONTAINS
             return
         endif
         
-        if( mod( N_fermions(ibits(this%i,0,i_e-1)), 2) == 1 ) then
+        if( mod( N_fermions(ibits(this%i,0,i_e)), 2) == 1 ) then
             this%factor = this%factor * cmplx(-1.d0, 0.d0, kind=kind(0.d0))
         endif
         
@@ -160,7 +183,7 @@ CONTAINS
         
         this%N_orbitals = N_orbitals
         this%N_states   = 2**N_orbitals
-        allocate( this%H(N_orbitals, N_orbitals) )
+        allocate( this%H(this%N_states, this%N_states) )
         this%H(:,:) = cmplx(0.d0, 0.d0, kind=kind(0.d0))
     
     end subroutine ed_ham_init
@@ -242,7 +265,7 @@ CONTAINS
         
         INTEGER :: nf, n
         print*, "Building ED-Hamiltonian"
-        call this%init(2**ndim)
+        call this%init(ndim)
         do nf=1,1
             do n=1, Size(OP_T,1)
                 call this%add_op_t( OP_T(n,nf), dtau )
@@ -251,8 +274,63 @@ CONTAINS
                 call this%add_op_v( OP_V(n,nf), dtau )
             enddo
         enddo
+        print*, "done Building ED-Hamiltonian"
+        call ed_ham_test_hermitian(this)
+        call ed_ham_diagonalize(this)
     
     end subroutine ed_ham_build_h
+    
+          
+    subroutine ed_ham_test_hermitian(this)
+        !Test if H is hermitian
+        IMPLICIT NONE
+        class(ed_ham)  , intent(inout) :: this
+        
+        integer :: i, j
+        real(Kind=Kind(0.d0)) :: zero = 1.d-10
+        
+        print*, "Test hermiticity"
+        do i=1, size(this%H, 1)
+            print*, this%H(:,i)
+        enddo
+        do i=1, size(this%H, 1)
+            do j=i, size(this%H, 1)
+                if( abs( this%H(i,j)- conjg(this%H(j,i)) ) > zero ) then
+                    print*, "H", i, j, "not hermitian",  this%H(i,j)- conjg(this%H(j,i))
+                endif
+            enddo
+        enddo
+        print*, "Hermiticity test concluded"
+
+    
+    end subroutine ed_ham_test_hermitian
+    
+          
+    subroutine ed_ham_diagonalize(this)
+        IMPLICIT NONE
+        class(ed_ham)  , intent(inout) :: this
+        
+        !ZHETRD - reduce a complex Hermitian matrix A to real symmetric tridiagonal
+        !         form T by a unitary similarity transformation: Q**H *	A * Q =	T
+        !SUBROUTINE ZHETRD( UPLO, N, A, LDA, D, E, TAU, WORK, LWORK, INFO )
+        INTEGER               :: INFO, LDA, LWORK, N
+        real(kind=kind(0.d0)), allocatable :: D(:), E(:)
+        complex(kind=kind(0.d0)), allocatable :: TAU(:), WORK(:)
+        
+        print*, 'bla', this%N_states
+        
+        LWORK = this%N_states * this%N_states
+        
+        allocate( D(this%N_states), E(this%N_states-1) )
+        allocate( TAU(this%N_states-1), WORK(LWORK) )
+        
+        !CALL ZHETRD( 'U', this%N_states, this%H, this%N_states, D, E, TAU, WORK, LWORK, INFO )
+        
+        print*, this%N_states, WORK(1)
+
+
+    
+    end subroutine ed_ham_diagonalize
           
      
    END MODULE ed_mod
@@ -264,19 +342,15 @@ CONTAINS
 !     integer :: N_orbitals, N_fermions, N_states
 !     type(ed_state) :: state
 !     
-!     N_orbitals = 20
-!     N_fermions = 5
 !     
-!     N_states = 0
-!     
-!     do i=0, 2**N_orbitals-1
+!     do i=0, 10
+!         state%factor = 1
 !         state%i = i
-!         !print*, i, state%N_fermions()
-!         if (state%N_fermions() == N_fermions) N_states = N_states + 1
-! !         do n=0, 31
-! !             print*,n, BTEST(i,n)
-! !         enddo
+!         print*, i
+!         call state%print()
+!         !print*, N_fermions( ibits(state%i,0,1) )
+!         call state%annihil_e(1)
+!         call state%print()
 !     enddo
-!     print*, N_states
 ! 
 ! end program

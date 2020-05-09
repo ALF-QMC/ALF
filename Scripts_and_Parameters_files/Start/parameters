@@ -1,54 +1,78 @@
-!===============================================================================
-!  Variables for the Hubb program
-!-------------------------------------------------------------------------------
-
-&VAR_lattice 
-L1    = 46
-L2    = 1 
-Lattice_type = "One_dimensional"
-Model = "Hubbard_Mz"  ! Hubbard_SU2, Hubbard_Mz
+&VAR_Lattice
+L1 = 2
+L2 = 1
+Lattice_type = "Square"
+Model = "Hubbard"
 /
 
-&VAR_Hubbard
-ham_T   = 1.0D0
-ham_chem= 0.0D0
-ham_U   = 4.0
-Beta    = 10.0
-dtau    = 0.1
-Projector = .false.
-Theta   = 20.0 
+&VAR_Model_Generic
+Checkerboard = .T.
+Symm = .T.
+N_SUN = 2
+N_FL = 1
+Phi_X = 0.0
+Phi_Y = 0.0
+Bulk = .T.
+N_Phi = 0
+Dtau = 0.1
+Beta = 5.0
+Projector = .F.
+Theta = 10.0
 /
 
 &VAR_QMC
-Nwrap   = 10
-NSweep  = 500
-NBin    = 2 
-Ltau    = 1
-LOBS_ST = 1
-LOBS_EN = 100
-CPU_MAX = 48.0
+Nwrap = 10
+NSweep = 20
+NBin = 5
+Ltau = 1
+LOBS_ST = 0
+LOBS_EN = 0
+CPU_MAX = 0.0
+Propose_S0 = .F.
+Global_moves = .F.
+N_Global = 1
+Global_tau_moves = .F.
+N_Global_tau = 1
+Nt_sequential_start = 0
+Nt_sequential_end = -1
 /
 
-
 &VAR_errors
-n_skip  = 2
+n_skip = 1
 N_rebin = 1
-N_Cov   = 1
+N_Cov = 0
+/
+
+&VAR_TEMP
+N_exchange_steps = 6
+N_Tempering_frequency = 10
+mpi_per_parameter_set = 2
+Tempering_calc_det = .T.
 /
 
 &VAR_Max_Stoch
-NGamma   = 400
-Om_st    = R_Om_st
-Om_en    = R_Om_en
-Ndis     = 2000
-NBins    = 250
-NSweeps  = 70
-NWarm    = 20
-N_alpha  = 14
-alpha_st = 1.d0
-R        = 1.2
-Channel  = "R_Channel"
-Checkpoint = .false.
-Tolerance  = 0.1
+NGamma = 400
+Om_st = -10.0
+Om_en = 10.0
+Ndis = 2000
+NBins = 250
+NSweeps = 70
+NWarm = 20
+N_alpha = 14
+alpha_st = 1.0
+R = 1.2
+Channel = "P"
+Checkpoint = .F.
+Tolerance = 0.1
 /
-! slash terminates namelist statement - DO NOT REMOVE
+
+&VAR_Hubbard
+HS = "Mz"
+ham_T = 1.0
+ham_chem = 0.0
+ham_U = 4.0
+ham_T2 = 0.0
+ham_U2 = 0.0
+ham_Tperp = 0.0
+/
+
