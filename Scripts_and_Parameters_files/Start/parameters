@@ -1,6 +1,6 @@
 &VAR_Lattice
 L1 = 2
-L2 = 1
+L2 = 2
 Lattice_type = "Square"
 Model = "Hubbard"
 /

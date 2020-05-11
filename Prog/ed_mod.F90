@@ -80,8 +80,9 @@ MODULE ed_mod
 !> @brief 
 !> Defines a basis spanning the Fock space, for exact diagonalisation. 
         private
-        INTEGER   :: N_orbitals, N_states
+        INTEGER :: N_orbitals, N_states
         complex(kind=kind(0.d0)), allocatable :: H(:,:)
+        real(kind=kind(0.d0))   , allocatable :: eigenval(:)
         CONTAINS
             PROCEDURE :: init => ed_ham_init
             PROCEDURE :: add_op_t => ed_ham_add_op_t
@@ -276,7 +277,7 @@ CONTAINS
         enddo
         print*, "done Building ED-Hamiltonian"
         call ed_ham_test_hermitian(this)
-        call ed_ham_diagonalize(this)
+        call ed_ham_eigenvalues(this)
     
     end subroutine ed_ham_build_h
     
@@ -290,9 +291,9 @@ CONTAINS
         real(Kind=Kind(0.d0)) :: zero = 1.d-10
         
         print*, "Test hermiticity"
-        do i=1, size(this%H, 1)
-            print*, this%H(:,i)
-        enddo
+        !do i=1, size(this%H, 1)
+        !    print*, this%H(:,i)
+        !enddo
         do i=1, size(this%H, 1)
             do j=i, size(this%H, 1)
                 if( abs( this%H(i,j)- conjg(this%H(j,i)) ) > zero ) then
@@ -306,31 +307,47 @@ CONTAINS
     end subroutine ed_ham_test_hermitian
     
           
-    subroutine ed_ham_diagonalize(this)
+    subroutine ed_ham_eigenvalues(this)
         IMPLICIT NONE
         class(ed_ham)  , intent(inout) :: this
         
-        !ZHETRD - reduce a complex Hermitian matrix A to real symmetric tridiagonal
-        !         form T by a unitary similarity transformation: Q**H *	A * Q =	T
-        !SUBROUTINE ZHETRD( UPLO, N, A, LDA, D, E, TAU, WORK, LWORK, INFO )
         INTEGER               :: INFO, LDA, LWORK, N
-        real(kind=kind(0.d0)), allocatable :: D(:), E(:)
+        real(kind=kind(0.d0)), allocatable :: E(:)
         complex(kind=kind(0.d0)), allocatable :: TAU(:), WORK(:)
         
-        print*, 'bla', this%N_states
+        !TODO: LWORK can probably be chosen in a more intelligent way
+        LWORK = 32 * this%N_states 
         
-        LWORK = this%N_states * this%N_states
-        
-        allocate( D(this%N_states), E(this%N_states-1) )
+        allocate( this%eigenval(this%N_states), E(this%N_states-1) )
         allocate( TAU(this%N_states-1), WORK(LWORK) )
         
-        !CALL ZHETRD( 'U', this%N_states, this%H, this%N_states, D, E, TAU, WORK, LWORK, INFO )
+        !ZHETRD - reduce a complex Hermitian matrix A to real symmetric tridiagonal
+        !         form T by a unitary similarity transformation: Q**H * A * Q = T
+        !SUBROUTINE ZHETRD( UPLO, N, A, LDA, D, E, TAU, WORK, LWORK, INFO )
+        CALL ZHETRD( 'U', this%N_states, this%H, this%N_states, this%eigenval, E, TAU, WORK, LWORK, INFO )
+        if ( INFO .ne. 0 ) then
+            print*, "Error with ZHETRD in ed_ham_eigenvalues", INFO
+            stop 
+        endif
         
-        print*, this%N_states, WORK(1)
-
-
-    
-    end subroutine ed_ham_diagonalize
+        !print*, LWORK, WORK(1)
+        
+        deallocate( this%H, TAU, WORK )
+        
+        !DSTERF -  computes all eigenvalues of a symmetric tridiagonal matrix using the
+        !          Pal-Walker-Kahan variant of the QL or QR algorithm.
+        !SUBROUTINE DSTERF( N, D, E, INFO )
+        CALL DSTERF( this%N_states, this%eigenval, E, INFO )
+        if ( INFO .ne. 0 ) then
+            print*, "Error with DSTERF in ed_ham_eigenvalues", INFO
+            stop 
+        endif
+        
+        deallocate( E )
+        
+        print*, "Ground state energy:", this%eigenval(1)
+        
+    end subroutine ed_ham_eigenvalues
           
      
    END MODULE ed_mod
