@@ -1,12 +1,12 @@
 &VAR_Lattice
 L1 = 2
-L2 = 2
+L2 = 1
 Lattice_type = "Square"
 Model = "Hubbard"
 /
 
 &VAR_Model_Generic
-Checkerboard = .T.
+Checkerboard = .F.
 Symm = .T.
 N_SUN = 2
 N_FL = 1

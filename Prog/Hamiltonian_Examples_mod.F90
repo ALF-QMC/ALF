@@ -129,7 +129,7 @@
       Use Predefined_Hoppings
       Use LRC_Mod
 #ifdef ED
-      Use ed_mod
+      Use ed_ham_mod
 #endif
 
       
@@ -151,7 +151,7 @@
       Logical              :: Symm
       
 #ifdef ED
-        type(ed_ham) :: ham_ed
+      type(ed_ham) :: ham_ed
 #endif
 
 
@@ -523,7 +523,7 @@
           
 #ifdef ED
           print*, "Ndim", ndim
-          call ham_ed%build_h(ndim, OP_T, OP_V, dtau)
+          call ham_ed%build_h(ndim, N_SUN, OP_T, OP_V, dtau)
 #endif
 
         end Subroutine Ham_Set
