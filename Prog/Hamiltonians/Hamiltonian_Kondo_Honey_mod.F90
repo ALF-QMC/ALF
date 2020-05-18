@@ -1,4 +1,4 @@
-!  Copyright (C) 2016-2019 The ALF project
+!  Copyright (C) 2016-2020 The ALF project
 ! 
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -326,6 +326,8 @@
         
         Subroutine Ham_V
           
+          Use Predefined_Int
+
           Implicit none 
           
           Integer :: nf, nth, n, n1, n2, n3, n4, I, I1, I2, J,  Ix, Iy, nc, no
@@ -339,70 +341,39 @@
           ! Total of Latt%N * 10
           
           Allocate( Op_V(10*Latt%N,N_FL) )
-          do nf = 1,N_FL
-             do i  = 1, 2*Latt%N
-                Call Op_make(Op_V(i,nf),1)  ! For the Hubbard. 
-             enddo
-          enddo
+
           do nf = 1,N_fl
-             do i = 2*Latt%N +1, 10*Latt%N
+             do i = 4*Latt%N +1, 10*Latt%N
                 Call Op_make(Op_V(i,nf),2)  !  For the Kondo and  Ising. 
              enddo
           enddo
           
-          Do nf = 1,N_FL
-             X = 1.d0
-             if (nf == 2) X = -1.d0
-             nc = 0
-             !  Hubbard
-             Do i = 1,Latt%N
-                Do no = 3,4
-                   nc = nc + 1 
-                   Op_V(nc,nf)%P(1)   = Invlist(I,no)  ! f-site
-                   Op_V(nc,nf)%O(1,1) = cmplx(1.d0  ,0.d0,Kind(0.d0))
-                   Op_V(nc,nf)%g      = SQRT(CMPLX(-DTAU*ham_U/2.d0,0.D0,Kind(0.d0))) 
-                   Op_V(nc,nf)%alpha  = cmplx(-0.5d0,0.d0,Kind(0.d0))
-                   Op_V(nc,nf)%type   = 2
-                   Call Op_set( Op_V(nc,nf) )
-                   ! The operator reads:  
-                   !  g*s*( c^{dagger} O c   - alpha ))
-                   ! with s the HS field.
-                Enddo
+          nc = 0
+          !  Hubbard
+          Do i = 1,Latt%N
+             Do no = 3,4
+                nc = nc + 1
+                Call Predefined_Int_U_SUN( OP_V(nc,1), Invlist(I,no), 2 , DTAU, Ham_U  )
+                Call Predefined_Int_U_SUN( OP_V(nc,2), Invlist(I,no), 2 , DTAU, Ham_U  )
              Enddo
-             !  Kondo
-             DO i = 1,Latt%N
-                Do no = 1,2
-                   nc = nc + 1 
-                   Op_V(nc,nf)%P(1) = Invlist(I,no  )
-                   Op_V(nc,nf)%P(2) = Invlist(I,no+2)
-                   Op_V(nc,nf)%O(1,2) = cmplx(1.d0  ,0.d0,Kind(0.d0))
-                   Op_V(nc,nf)%O(2,1) = cmplx(1.d0  ,0.d0,Kind(0.d0))
-                   Op_V(nc,nf)%g      = SQRT(CMPLX(DTAU*Ham_J/4.d0,0.D0,Kind(0.d0))) 
-                   Op_V(nc,nf)%alpha  = cmplx(0.d0,0.d0,Kind(0.d0))
-                   Op_V(nc,nf)%type   = 2
-                   Call Op_set( Op_V(nc,nf) )
-                Enddo
+          Enddo
+          !  Kondo
+          DO i = 1,Latt%N
+             Do no = 1,2
+                nc = nc + 1
+                Call Predefined_Int_V_SUN( OP_V(nc,1), Invlist(I,no  ), Invlist(I,no+2), 4, DTAU, Ham_J  ) 
+                Call Predefined_Int_V_SUN( OP_V(nc,2), Invlist(I,no  ), Invlist(I,no+2), 4, DTAU, Ham_J  ) 
              Enddo
-             ! Sz-Sz Coupling
-             Do i = 1,Latt%N
-                do no = 3,4
-                   do nth = 1,3
-                      If ( nth == 1 ) J = latt%nnlist(I, 1,0)
-                      If ( nth == 2 ) J = latt%nnlist(I, 0,1)
-                      If ( nth == 3 ) J = latt%nnlist(I,-1,1)
-                      nc = nc + 1 
-                      Op_V(nc,nf)%P(1) = Invlist(I,no)
-                      Op_V(nc,nf)%P(2) = Invlist(J,no)
-                      Op_V(nc,nf)%O(1,1) = cmplx( 1.d0  ,0.d0,Kind(0.d0))
-                      Op_V(nc,nf)%O(2,2) = cmplx(-1.d0  ,0.d0,Kind(0.d0))
-                      Op_V(nc,nf)%g      = X*SQRT(CMPLX(DTAU*Ham_Jz/8.d0,0.D0,Kind(0.d0))) 
-                      Op_V(nc,nf)%alpha  = cmplx(0.d0,0.d0,Kind(0.d0))
-                      Op_V(nc,nf)%type   = 2
-                      Call Op_set( Op_V(nc,nf) )
-                      ! The operator reads:  
-                      !  g*s*( c^{dagger} O c   - alpha ))
-                      ! with s the HS field.
-                   Enddo
+          Enddo
+          ! Sz-Sz Coupling
+          Do i = 1,Latt%N
+             do no = 3,4
+                do nth = 1,3
+                   If ( nth == 1 ) J = latt%nnlist(I, 1,0)
+                   If ( nth == 2 ) J = latt%nnlist(I, 0,1)
+                   If ( nth == 3 ) J = latt%nnlist(I,-1,1)
+                   nc = nc + 1
+                   Call Predefined_Int_Jz (  Op_V(nc,1),Op_V(nc,2), Invlist(I,no), Invlist(J,no),  DTAU, Ham_Jz  ) 
                 Enddo
              Enddo
           Enddo

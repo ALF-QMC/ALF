@@ -35,7 +35,7 @@
 !> ALF-project
 !
 !> @brief 
-!> Reads in the VAR_QMC namelist fro the file parameters, calls Ham_set and  carries out the sweeps. If the
+!> Reads in the VAR_QMC namelist from the file parameters, calls Ham_set and  carries out the sweeps. If the
 !> program is compiled with the Tempering flag on, then the VAR_TEMP namelist will also be read in.
 !> 
 !> @details
@@ -250,7 +250,7 @@ Program Main
 #ifdef MPI
         If (  Irank == 0 ) then
 #endif
-           write (*,*) "ALF Copyright (C) 2016 - 2018 The ALF project contributors"
+           write (*,*) "ALF Copyright (C) 2016 - 2020 The ALF project contributors"
            write (*,*) "This Program comes with ABSOLUTELY NO WARRANTY; for details see license.GPL"
            write (*,*) "This is free software, and you are welcome to redistribute it under certain conditions."
 #ifdef MPI
@@ -295,16 +295,36 @@ Program Main
         Call Ham_set
         log=.false.
         if(Projector) then
-          if (.not. allocated(WF_R) .or. .not. allocated(WF_L)) log=.true.
-          do nf=1,N_fl
-            if (.not. allocated(WF_R(nf)%P) .or. .not. allocated(WF_L(nf)%P)) log=.true.
-          enddo
+           if (.not. allocated(WF_R) .or. .not. allocated(WF_L)) log=.true.
+           do nf=1,N_fl
+              if (.not. allocated(WF_R(nf)%P) .or. .not. allocated(WF_L(nf)%P)) log=.true.
+           enddo
         endif
-        if ( LOBS_ST == 0  ) then 
-          LOBS_ST = Thtrot+1
-        endif
-        if ( LOBS_EN == 0) then 
-           LOBS_EN = Ltrot-Thtrot
+        !  Default values of  measuring interval.
+        if (Projector)  then
+           if ( LOBS_ST == 0  ) then 
+              LOBS_ST = Thtrot+1
+           else
+              If (LOBS_ST < Thtrot+1 ) then
+                 Write(6,*) ' Measuring out of dedicating interval '
+                 stop
+              endif
+           endif
+           if ( LOBS_EN == 0) then 
+              LOBS_EN = Ltrot-Thtrot
+           else
+              If (LOBS_EN > Ltrot-Thtrot ) then
+                 Write(6,*) ' Measuring out of dedicating interval '
+                 stop
+              endif
+           endif
+        else
+           if ( LOBS_ST == 0  ) then 
+              LOBS_ST = 1
+           endif
+           if ( LOBS_EN == 0) then 
+              LOBS_EN =  Ltrot
+           endif
         endif
         If ( .not. Global_tau_moves )  then
            ! This  corresponds to the default updating scheme

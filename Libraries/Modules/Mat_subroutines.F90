@@ -59,7 +59,7 @@ subroutine ZSLGEMM(side, op, N, M1, M2, A, P, Mat)
 !>   op = N  -->  None
 !>   op = T  -->  Transposed  
 !>   op = C  -->  Transposed + Complex conjugation 
-!> !!!!! Mat has dimensions M1,M2
+!> !!!!! Mat has dimensions M1,M2, N is dimension of A
 !>
 !--------------------------------------------------------------------
   
@@ -341,7 +341,7 @@ subroutine ZSLGEMM(side, op, N, M1, M2, A, P, Mat)
             DEALLOCATE(WORK,IDXLIST,DIMLIST)
           END SELECT
           
-        ELSE
+       ELSE
           ! multiply op(A) from the right [ Mat = Mat*op(A) ]
           
           SELECT CASE(N)

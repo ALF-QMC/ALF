@@ -125,7 +125,6 @@
       Use Files_mod
       Use Matrix
       Use Observables
-      Use Predefined_structures
       Use Fields_mod
       Use LRC_Mod
 
@@ -368,8 +367,6 @@
           
           
           if (Projector) then
-             !Call Predefined_TrialWaveFunction(Lattice_type ,Ndim,  List,Invlist,Latt, Latt_unit, &
-             !     &                            N_part, N_FL,  WF_L, WF_R)
              Call Ham_Trial
 
 #ifdef MPI

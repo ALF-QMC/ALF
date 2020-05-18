@@ -62,7 +62,7 @@
             module procedure Iscalar_II, Iscalar_IR, Iscalar_RR
          end Interface
          Interface npbc
-            module procedure npbc_I, npbc_R
+            module procedure npbc_I, npbc_R, npbc_R_B
          end Interface
          Interface Xnorm
             module procedure Xnorm_I, Xnorm_R
@@ -377,6 +377,55 @@
            deallocate(x_p)
 
          end subroutine npbc_R
+
+!********
+         subroutine npbc_R_B(nr_p, n_p, L1_p, L2_p, N1, N2 ) 
+
+           !n_p = nr_p + N1* L1_p  + N2 * L2_p
+           
+           Implicit none
+           Real (Kind=Kind(0.d0)), dimension(:), intent(in) :: n_p, L1_p, L2_p
+           Real (Kind=Kind(0.d0)), dimension(:), intent(out) :: nr_p
+           Integer, intent(inout) :: N1, N2
+           
+           Real (Kind=Kind(0.d0)), dimension(:), allocatable :: x_p
+
+           Real (Kind=Kind(0.d0)) :: Zero, X
+           Integer :: ndim, i,  Del_N1, Del_N2
+
+           Zero = 1.D-8
+           nr_p = n_p
+           ndim = size(n_p)
+           allocate(x_p(ndim))
+           do i = 1,4
+              Del_N2 = 0;  Del_N1 = 0 
+              if (i.eq.1) Del_N2 =1 
+              if (i.eq.2) Del_N1 =1 
+              if (i.eq.3) then
+                 Del_N1 = -1
+                 Del_N2 =  1
+              endif
+              if (i.eq.4) then
+                 Del_N1 =  1
+                 Del_N2 =  1
+              endif
+              x_p = real(Del_N2,kind(0.d0)) * L2_p   + real(Del_N1,kind(0.d0))*L1_p
+              X =  Iscalar(nr_p,x_p)/(Xnorm(x_p)**2)
+              if (X .ge.   0.5D0 + Zero  ) then
+                 nr_p = nr_p - x_p
+                 N2 = N2 + Del_N2
+                 N1 = N1 + Del_N1
+              endif
+              if (X .le.  -0.5D0 + Zero  ) then
+                 nr_p = nr_p + x_p
+                 N2 = N2 - Del_N2
+                 N1 = N1 - Del_N1
+              endif
+           enddo
+
+           deallocate(x_p)
+
+         end subroutine npbc_R_B
 
  !********
          integer Function Inv_K(XK_P,Latt) 
