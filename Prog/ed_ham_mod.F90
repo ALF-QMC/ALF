@@ -19,11 +19,13 @@ MODULE ed_ham_mod
         complex(kind=kind(0.d0)), allocatable :: H(:,:)
         real(kind=kind(0.d0))   , allocatable :: eigenval(:)
         CONTAINS
+            private
             PROCEDURE :: init => ed_ham_init
             PROCEDURE :: add_op_t => ed_ham_add_op_t
             PROCEDURE :: add_op_v => ed_ham_add_op_v
-            PROCEDURE :: build_h => ed_ham_build_h
-            PROCEDURE :: energy => ed_ham_energy
+            
+            PROCEDURE, public :: build_h => ed_ham_build_h
+            PROCEDURE, public :: energy => ed_ham_energy
     END TYPE ed_ham
 
 CONTAINS
@@ -53,10 +55,6 @@ CONTAINS
         type(ed_state) :: state
         
         call state%init(this%N_orbitals)
-        
-        !print*, 'op_t', this%N_SUN, op_t%g / (-dtau)
-        !print*, op_t%p
-        !print*, op_t%o
         
         do i=0, this%N_states-1
             do s=0, this%N_SUN-1
@@ -127,45 +125,6 @@ CONTAINS
     
     end subroutine ed_ham_add_op_v
     
-    
-!     subroutine ed_ham_add_op_v(this, op_v, dtau)
-!         IMPLICIT NONE
-!         class(ed_ham)  , intent(inout) :: this
-!         type(Operator), intent(in)    :: op_v
-!         real(Kind=Kind(0.d0)), intent(in) :: dtau
-!         
-!         integer :: i, n1, n2, m1, m2
-!         type(ed_state) :: state
-!         
-!         do i=0, this%N_states-1
-!             this%H(i+1, i+1) = this%H(i+1, i+1) + op_v%g**2 * op_v%alpha**2 / (-dtau)
-!             do n1=1, op_v%N
-!                 do n2=1, op_v%N
-!                     call state%set(i)
-!                     call state%annihil_e( op_v%p(n1)-1, 0 )
-!                     call state%create_e ( op_v%p(n2)-1, 0 )
-!                     
-!                     this%H(state%get_i()+1, i+1) = this%H(state%get_i()+1, i+1) + state%get_factor() * op_v%O(n2,n1) * op_v%g**2 * op_v%alpha * 2.d0 / (-dtau)
-!                     
-!                     do m1=1, op_v%N
-!                         do m2=1, op_v%N
-!                             call state%set(i)
-!                             call state%annihil_e( op_v%p(m1)-1, 0 )
-!                             call state%create_e ( op_v%p(m2)-1, 0 )
-!                             call state%annihil_e( op_v%p(n1)-1, 0 )
-!                             call state%create_e ( op_v%p(n2)-1, 0 )
-!                             
-!                             this%H(state%get_i()+1, i+1) = this%H(state%get_i()+1, i+1) + state%get_factor() * op_v%O(n2,n1) * op_v%O(m2,m1) * op_v%g**2 / (-dtau)
-!                         enddo
-!                     enddo
-!                 enddo
-!             enddo
-!         enddo
-!     
-!     end subroutine ed_ham_add_op_v
-
-    
-    
           
     subroutine ed_ham_build_h(this, ndim, N_SUN, OP_T, OP_V, dtau)
         IMPLICIT NONE
@@ -210,6 +169,7 @@ CONTAINS
             do j=i, size(this%H, 1)
                 if( abs( this%H(i,j)- conjg(this%H(j,i)) ) > zero ) then
                     print*, "H", i, j, "not hermitian",  this%H(i,j)- conjg(this%H(j,i))
+                    stop 1
                 endif
             enddo
         enddo
@@ -280,28 +240,6 @@ CONTAINS
         
         ed_ham_energy = E / Z
         
-        
     end function ed_ham_energy
     
 end MODULE ed_ham_mod
-
-   
-! program test
-!     use ed_mod
-!     IMPLICIT NONE
-!     integer :: i
-!     integer :: N_orbitals, N_fermions, N_states
-!     type(ed_state) :: state
-!     
-!     
-!     do i=0, 10
-!         state%factor = 1
-!         state%i = i
-!         print*, i
-!         call state%print()
-!         !print*, N_fermions( ibits(state%i,0,1) )
-!         call state%annihil_e(1)
-!         call state%print()
-!     enddo
-! 
-! end program
