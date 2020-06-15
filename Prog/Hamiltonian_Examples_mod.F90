@@ -524,6 +524,7 @@
 #ifdef ED
           print*, "Ndim", ndim
           call ham_ed%build_h(ndim, N_SUN, OP_T, OP_V, dtau)
+          print*, ham_ed%energy(beta)
 #endif
 
         end Subroutine Ham_Set

@@ -1,5 +1,5 @@
 &VAR_Lattice
-L1 = 2
+L1 = 4
 L2 = 1
 Lattice_type = "Square"
 Model = "Hubbard"
@@ -15,7 +15,7 @@ Phi_Y = 0.0
 Bulk = .T.
 N_Phi = 0
 Dtau = 0.1
-Beta = 5.0
+Beta = 2.0
 Projector = .F.
 Theta = 10.0
 /

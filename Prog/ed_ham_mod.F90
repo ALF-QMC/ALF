@@ -23,6 +23,7 @@ MODULE ed_ham_mod
             PROCEDURE :: add_op_t => ed_ham_add_op_t
             PROCEDURE :: add_op_v => ed_ham_add_op_v
             PROCEDURE :: build_h => ed_ham_build_h
+            PROCEDURE :: energy => ed_ham_energy
     END TYPE ed_ham
 
 CONTAINS
@@ -259,6 +260,28 @@ CONTAINS
         print*, "Ground state energy:", this%eigenval(1)
         
     end subroutine ed_ham_eigenvalues
+    
+          
+    function ed_ham_energy(this, beta)
+        IMPLICIT NONE
+        class(ed_ham)  , intent(inout) :: this
+        real(kind=kind(0.d0)), intent(in) :: beta
+        
+        INTEGER               :: i
+        real(kind=kind(0.d0)) :: Z, E, ed_ham_energy
+        
+        Z = 0.d0
+        E = 0.d0
+        
+        do i=1, this%N_states
+            Z = Z + exp(-beta * this%eigenval(i))
+            E = E + exp(-beta * this%eigenval(i)) * this%eigenval(i)
+        enddo
+        
+        ed_ham_energy = E / Z
+        
+        
+    end function ed_ham_energy
     
 end MODULE ed_ham_mod
 
