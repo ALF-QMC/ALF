@@ -26,6 +26,7 @@ MODULE ed_ham_mod
             
             PROCEDURE, public :: build_h => ed_ham_build_h
             PROCEDURE, public :: energy => ed_ham_energy
+            PROCEDURE, public :: get_eigenvalues => ed_ham_get_eigenvalues
     END TYPE ed_ham
 
 CONTAINS
@@ -183,9 +184,11 @@ CONTAINS
         IMPLICIT NONE
         class(ed_ham)  , intent(inout) :: this
         
-        INTEGER               :: INFO, LDA, LWORK, N
+        INTEGER               :: INFO, LDA, LWORK, i
         real(kind=kind(0.d0)), allocatable :: E(:)
         complex(kind=kind(0.d0)), allocatable :: TAU(:), WORK(:)
+        
+        print*, "Calculating eigenvalues"
         
         !TODO: LWORK can probably be chosen in a more intelligent way
         LWORK = 32 * this%N_states 
@@ -217,7 +220,14 @@ CONTAINS
         
         deallocate( E )
         
+        print*, "Done calculating eigenvalues"
         print*, "Ground state energy:", this%eigenval(1)
+          
+        OPEN(Unit = 50,file="ED_Eigenvalues",status="replace")
+        do i=1, this%N_states
+            write(50,*) this%eigenval(i)
+        enddo
+        close(50)
         
     end subroutine ed_ham_eigenvalues
     
@@ -241,5 +251,18 @@ CONTAINS
         ed_ham_energy = E / Z
         
     end function ed_ham_energy
+    
+          
+    subroutine ed_ham_get_eigenvalues(this, eigenvalues)
+        IMPLICIT NONE
+        class(ed_ham)  , intent(inout) :: this
+        
+        real(kind=kind(0.d0)), allocatable, intent(out) :: eigenvalues(:)
+        
+        allocate( eigenvalues(this%N_states) )
+        
+        eigenvalues = this%eigenval
+        
+    end subroutine ed_ham_get_eigenvalues
     
 end MODULE ed_ham_mod

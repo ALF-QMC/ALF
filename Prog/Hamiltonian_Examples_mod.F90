@@ -524,7 +524,11 @@
 #ifdef ED
           print*, "Ndim", ndim
           call ham_ed%build_h(ndim, N_SUN, OP_T, OP_V, dtau)
-          print*, ham_ed%energy(beta)
+          print*, "Finite temperature energy:", ham_ed%energy(beta)
+          
+          OPEN(Unit = 50,file="ED_Energy",status="replace")
+          write(50,*) ham_ed%energy(beta)
+          close(50)
 #endif
 
         end Subroutine Ham_Set
