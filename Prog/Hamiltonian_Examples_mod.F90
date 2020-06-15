@@ -130,6 +130,7 @@
       Use LRC_Mod
 #ifdef ED
       Use ed_ham_mod
+      Use ed_ham2_mod
 #endif
 
       
@@ -152,6 +153,7 @@
       
 #ifdef ED
       type(ed_ham) :: ham_ed
+      type(ed_ham2), save :: ham_ed2
 #endif
 
 
@@ -522,12 +524,20 @@
           call Ham_V
           
 #ifdef ED
-          print*, "Ndim", ndim
-          call ham_ed%build_h(ndim, N_SUN, OP_T, OP_V, dtau)
-          print*, "Finite temperature energy:", ham_ed%energy(beta)
+!           print*, "Ndim", ndim
+!           call ham_ed%build_h(ndim, N_SUN, OP_T, OP_V, dtau)
+!           print*, "Finite temperature energy:", ham_ed%energy(beta)
+!           
+!           OPEN(Unit = 50,file="ED_Energy",status="replace")
+!           write(50,*) ham_ed%energy(beta)
+!           close(50)
           
-          OPEN(Unit = 50,file="ED_Energy",status="replace")
-          write(50,*) ham_ed%energy(beta)
+          print*, "Ndim", ndim
+          call ham_ed2%build_h(ndim, N_SUN, OP_T, OP_V, dtau)
+          print*, "Finite temperature energy:", ham_ed2%energy(beta)
+          
+          OPEN(Unit = 50,file="ED_Energy2",status="replace")
+          write(50,*) ham_ed2%energy(beta)
           close(50)
 #endif
 

@@ -45,7 +45,7 @@ MODULE ed_state_mod
     
     IMPLICIT NONE
     PRIVATE
-    PUBLIC :: ed_state
+    PUBLIC :: ed_state, N_fermions
 
 
     TYPE ed_state
