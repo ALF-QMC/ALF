@@ -13,19 +13,11 @@ MODULE ed_ham_mod
 !> ALF-project
 !>   
 !> @brief 
-!> Defines a basis spanning the Fock space, for exact diagonalisation. 
+!> A block of the Hamiltonian with constant particle number, for exact diagonalisation. 
         private
         INTEGER :: N_particles, N_states
         complex(kind=kind(0.d0)), allocatable :: H(:,:)
         real(kind=kind(0.d0))   , allocatable :: eigenval(:)
-        !CONTAINS
-            !private
-            !PROCEDURE :: add_op_t => ed_ham_add_op_t
-            !PROCEDURE :: add_op_v => ed_ham_add_op_v
-            
-            !PROCEDURE, public :: build_h => ed_ham_build_h
-            !PROCEDURE, public :: energy => ed_ham_energy
-            !PROCEDURE, public :: get_eigenvalues => ed_ham_get_eigenvalues
     END TYPE ed_ham_part
 
 
@@ -35,29 +27,113 @@ MODULE ed_ham_mod
 !> ALF-project
 !>   
 !> @brief 
-!> Defines a basis spanning the Fock space, for exact diagonalisation. 
+!> Defines a Hamiltonian for exact diagonalisation. 
         private
         INTEGER :: N_orbitals, N_SUN, N_states
         type(ed_ham_part), allocatable :: H_part(:)
         real(kind=kind(0.d0)), allocatable :: eigenval(:)
-        integer, allocatable :: list(:,:) ! list(i,1) = N_particles, list(i,2) = 
+        integer, allocatable :: list(:,:) ! list(i,1) = N_particles
+                                          ! list(i,2) = index in subhamiltonian
         CONTAINS
             private
             PROCEDURE :: init => ed_ham_init
+            PROCEDURE :: add_matrixelement => ed_ham_add_matrixelement
             PROCEDURE :: add_op_t => ed_ham_add_op_t
             PROCEDURE :: add_op_v => ed_ham_add_op_v
             
-            PROCEDURE, public :: add_matrixelement => ed_ham_add_matrixelement
-            
-            PROCEDURE, public :: build_h => ed_ham_build_h
+            PROCEDURE, public :: build_ham => ed_ham_build_ham
             PROCEDURE, public :: energy => ed_ham_energy
-            !PROCEDURE, public :: get_eigenvalues => ed_ham_get_eigenvalues
+            PROCEDURE, public :: get_eigenvalues => ed_ham_get_eigenvalues
     END TYPE ed_ham
 
 CONTAINS
+          
+    subroutine ed_ham_build_ham(this, ndim, N_SUN, OP_T, OP_V, dtau)
+!--------------------------------------------------------------------
+!> @author 
+!> ALF-project
+!>   
+!> @brief 
+!> Builds Hamiltonian. Inculdes initialisation and calculation of eigenvalues. 
+        IMPLICIT NONE
+        class(ed_ham), intent(inout) :: this
+        integer, intent(in) :: ndim, N_SUN
+        Type (Operator), intent(in) :: Op_V(:,:)
+        Type (Operator), intent(in) :: Op_T(:,:)
+        real(Kind=Kind(0.d0)), intent(in) :: dtau
+        
+        
+        INTEGER :: nf, n
+        print*, "Building ED-Hamiltonian"
+        call this%init(ndim, N_SUN)
+        do nf=1,1
+            do n=1, Size(OP_T,1)
+                call this%add_op_t( OP_T(n,nf), dtau )
+            enddo
+            do n=1, Size(OP_V,1)
+                call this%add_op_v( OP_V(n,nf), dtau )
+            enddo
+        enddo
+        print*, "done Building ED-Hamiltonian"
+        call ed_ham_test_hermitian(this)
+        call ed_ham_eigenvalues(this)
+    
+    end subroutine ed_ham_build_ham
+    
+          
+    function ed_ham_energy(this, beta)
+!--------------------------------------------------------------------
+!> @author 
+!> ALF-project
+!>   
+!> @brief 
+!> Calculates system energy at given reciprocal temperature beta
+        IMPLICIT NONE
+        class(ed_ham)  , intent(inout) :: this
+        real(kind=kind(0.d0)), intent(in) :: beta
+        
+        INTEGER               :: i
+        real(kind=kind(0.d0)) :: Z, E, ed_ham_energy
+        
+        Z = 0.d0
+        E = 0.d0
+        
+        do i=1, this%N_states
+            Z = Z + exp(-beta * this%eigenval(i))
+            E = E + exp(-beta * this%eigenval(i)) * this%eigenval(i)
+        enddo
+        
+        ed_ham_energy = E / Z
+        
+    end function ed_ham_energy
+    
+          
+    subroutine ed_ham_get_eigenvalues(this, eigenvalues)
+!--------------------------------------------------------------------
+!> @author 
+!> ALF-project
+!>   
+!> @brief 
+!> Returns eigenvalues of the Hamiltonian.
+        IMPLICIT NONE
+        class(ed_ham)  , intent(inout) :: this
+        
+        real(kind=kind(0.d0)), allocatable, intent(out) :: eigenvalues(:)
+        
+        allocate( eigenvalues(this%N_states) )
+        
+        eigenvalues = this%eigenval
+        
+    end subroutine ed_ham_get_eigenvalues
 
 
     subroutine ed_ham_init(this, N_orbitals, N_SUN)
+!--------------------------------------------------------------------
+!> @author 
+!> ALF-project
+!>   
+!> @brief 
+!> Initialises Hamiltonian 
         IMPLICIT NONE
         class(ed_ham), INTENT(INOUT) :: this
         integer, intent(in) :: N_orbitals, N_SUN
@@ -90,28 +166,39 @@ CONTAINS
     
     end subroutine ed_ham_init
     
-    subroutine ed_ham_add_matrixelement(this, i, j, f)
+    
+    subroutine ed_ham_add_matrixelement(this, i, j, val)
+!--------------------------------------------------------------------
+!> @author 
+!> ALF-project
+!>   
+!> @brief 
+!> Adds value val to Hamiltonian matrix element with indices i and j
         IMPLICIT NONE
         class(ed_ham), intent(inout) :: this
         integer, intent(in) :: i, j
-        complex(kind=kind(0.d0)), intent(in) :: f
+        complex(kind=kind(0.d0)), intent(in) :: val
         
-        if( abs(f) < 1e-11 ) return
+        if( abs(val) < 1e-11 ) return
         
         if ( this%list(i,1) .ne. this%list(j,1) ) then
-            print*, "Error in ed_ham_add_matrixelement", this%list(i,1), this%list(j,1), f
+            print*, "Error in ed_ham_add_matrixelement", this%list(i,1), this%list(j,1), val
             stop 1
         endif
         
-        !print*, i,j, this%list(i,2), this%list(j,2), f 
-        
         this%H_part(this%list(i,1))%H(this%list(i,2), this%list(j,2)) = &
-         & this%H_part(this%list(i,1))%H(this%list(i,2), this%list(j,2)) + f
+         & this%H_part(this%list(i,1))%H(this%list(i,2), this%list(j,2)) + val
         
     end subroutine ed_ham_add_matrixelement
     
 
     subroutine ed_ham_add_op_t(this, op_t, dtau)
+!--------------------------------------------------------------------
+!> @author 
+!> ALF-project
+!>   
+!> @brief 
+!> Adds single-particle opertator op_t to Hamiltonian
         IMPLICIT NONE
         class(ed_ham)  , intent(inout) :: this
         type(Operator), intent(in)    :: Op_T
@@ -141,6 +228,12 @@ CONTAINS
     
 
     subroutine ed_ham_add_op_v(this, op_v, dtau)
+!--------------------------------------------------------------------
+!> @author 
+!> ALF-project
+!>   
+!> @brief 
+!> Adds type 2 operator op_v to Hamiltonian
         IMPLICIT NONE
         class(ed_ham)  , intent(inout) :: this
         type(Operator), intent(in)    :: op_v
@@ -192,35 +285,13 @@ CONTAINS
     end subroutine ed_ham_add_op_v
     
           
-    subroutine ed_ham_build_h(this, ndim, N_SUN, OP_T, OP_V, dtau)
-        IMPLICIT NONE
-        class(ed_ham), intent(inout) :: this
-        integer, intent(in) :: ndim, N_SUN
-        Type (Operator), intent(in) :: Op_V(:,:)
-        Type (Operator), intent(in) :: Op_T(:,:)
-        real(Kind=Kind(0.d0)), intent(in) :: dtau
-        
-        
-        INTEGER :: nf, n
-        print*, "Building ED-Hamiltonian"
-        call this%init(ndim, N_SUN)
-        do nf=1,1
-            do n=1, Size(OP_T,1)
-                call this%add_op_t( OP_T(n,nf), dtau )
-            enddo
-            do n=1, Size(OP_V,1)
-                call this%add_op_v( OP_V(n,nf), dtau )
-            enddo
-        enddo
-        print*, "done Building ED-Hamiltonian"
-        call ed_ham_test_hermitian(this)
-        call ed_ham_eigenvalues(this)
-    
-    end subroutine ed_ham_build_h
-    
-          
     subroutine ed_ham_test_hermitian(this)
-        !Test if H is hermitian
+!--------------------------------------------------------------------
+!> @author 
+!> ALF-project
+!>   
+!> @brief 
+!> Test if H is hermitian
         IMPLICIT NONE
         class(ed_ham), intent(inout) :: this
         
@@ -245,6 +316,12 @@ CONTAINS
     
           
     subroutine ed_ham_part_eigenvalues(this)
+!--------------------------------------------------------------------
+!> @author 
+!> ALF-project
+!>   
+!> @brief 
+!> Calculates eigenvalues of Hamiltonian block
         IMPLICIT NONE
         class(ed_ham_part)  , intent(inout) :: this
         
@@ -286,6 +363,12 @@ CONTAINS
     
     
     subroutine ed_ham_eigenvalues(this)
+!--------------------------------------------------------------------
+!> @author 
+!> ALF-project
+!>   
+!> @brief 
+!> Calculates eigenvalues of Hamiltonian
         IMPLICIT NONE
         class(ed_ham)  , intent(inout) :: this
         
@@ -324,39 +407,5 @@ CONTAINS
         
         
     end subroutine ed_ham_eigenvalues
-    
-          
-    function ed_ham_energy(this, beta)
-        IMPLICIT NONE
-        class(ed_ham)  , intent(inout) :: this
-        real(kind=kind(0.d0)), intent(in) :: beta
-        
-        INTEGER               :: i
-        real(kind=kind(0.d0)) :: Z, E, ed_ham_energy
-        
-        Z = 0.d0
-        E = 0.d0
-        
-        do i=1, this%N_states
-            Z = Z + exp(-beta * this%eigenval(i))
-            E = E + exp(-beta * this%eigenval(i)) * this%eigenval(i)
-        enddo
-        
-        ed_ham_energy = E / Z
-        
-    end function ed_ham_energy
-!     
-!           
-!     subroutine ed_ham_get_eigenvalues(this, eigenvalues)
-!         IMPLICIT NONE
-!         class(ed_ham)  , intent(inout) :: this
-!         
-!         real(kind=kind(0.d0)), allocatable, intent(out) :: eigenvalues(:)
-!         
-!         allocate( eigenvalues(this%N_states) )
-!         
-!         eigenvalues = this%eigenval
-!         
-!     end subroutine ed_ham_get_eigenvalues
     
 end MODULE ed_ham_mod

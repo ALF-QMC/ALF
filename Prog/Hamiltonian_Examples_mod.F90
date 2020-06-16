@@ -523,7 +523,7 @@
           call Ham_V
           
 #ifdef ED
-          call ham_ed%build_h(ndim, N_SUN, OP_T, OP_V, dtau)
+          call ham_ed%build_ham(ndim, N_SUN, OP_T, OP_V, dtau)
           print*, "Finite temperature energy:", ham_ed%energy(beta)
           
           OPEN(Unit = 50,file="ED_Energy",status="replace")

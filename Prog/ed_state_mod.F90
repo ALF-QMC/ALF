@@ -68,8 +68,6 @@ MODULE ed_state_mod
             PROCEDURE :: print => ed_state_print
             PROCEDURE :: annihil_e => ed_state_annihil_e
             PROCEDURE :: create_e  => ed_state_create_e
-            
-            !GENERIC :: ASSIGNMENT(=) => assign
     END TYPE ed_state
 
 CONTAINS
@@ -121,18 +119,6 @@ CONTAINS
         ed_state_get_factor = this%factor
     
     end function ed_state_get_factor
-    
-
-!     function ed_state_test(this, i0, s)
-!         IMPLICIT NONE
-!         class(ed_state), INTENT(INOUT) :: this
-!         integer, intent(in) :: i0, s
-!         logical :: ed_state_test
-!         integer :: i_e
-!         
-!         ed_state_test = btest(this%i, this%N_orbitals*s + i0)
-!     
-!     end function ed_state_test
 
     
     function N_fermions(i)
