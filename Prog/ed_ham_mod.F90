@@ -7,6 +7,28 @@ MODULE ed_ham_mod
     PRIVATE
     PUBLIC :: ed_ham
 
+    TYPE ed_ham_part
+!--------------------------------------------------------------------
+!> @author 
+!> ALF-project
+!>   
+!> @brief 
+!> Defines a basis spanning the Fock space, for exact diagonalisation. 
+        private
+        INTEGER :: N_particles, N_states
+        complex(kind=kind(0.d0)), allocatable :: H(:,:)
+        real(kind=kind(0.d0))   , allocatable :: eigenval(:)
+        !CONTAINS
+            !private
+            !PROCEDURE :: add_op_t => ed_ham_add_op_t
+            !PROCEDURE :: add_op_v => ed_ham_add_op_v
+            
+            !PROCEDURE, public :: build_h => ed_ham_build_h
+            !PROCEDURE, public :: energy => ed_ham_energy
+            !PROCEDURE, public :: get_eigenvalues => ed_ham_get_eigenvalues
+    END TYPE ed_ham_part
+
+
     TYPE ed_ham
 !--------------------------------------------------------------------
 !> @author 
@@ -16,17 +38,20 @@ MODULE ed_ham_mod
 !> Defines a basis spanning the Fock space, for exact diagonalisation. 
         private
         INTEGER :: N_orbitals, N_SUN, N_states
-        complex(kind=kind(0.d0)), allocatable :: H(:,:)
-        real(kind=kind(0.d0))   , allocatable :: eigenval(:)
+        type(ed_ham_part), allocatable :: H_part(:)
+        real(kind=kind(0.d0)), allocatable :: eigenval(:)
+        integer, allocatable :: list(:,:) ! list(i,1) = N_particles, list(i,2) = 
         CONTAINS
             private
             PROCEDURE :: init => ed_ham_init
             PROCEDURE :: add_op_t => ed_ham_add_op_t
             PROCEDURE :: add_op_v => ed_ham_add_op_v
             
+            PROCEDURE, public :: add_matrixelement => ed_ham_add_matrixelement
+            
             PROCEDURE, public :: build_h => ed_ham_build_h
             PROCEDURE, public :: energy => ed_ham_energy
-            PROCEDURE, public :: get_eigenvalues => ed_ham_get_eigenvalues
+            !PROCEDURE, public :: get_eigenvalues => ed_ham_get_eigenvalues
     END TYPE ed_ham
 
 CONTAINS
@@ -37,13 +62,53 @@ CONTAINS
         class(ed_ham), INTENT(INOUT) :: this
         integer, intent(in) :: N_orbitals, N_SUN
         
+        integer              :: i, N_particles
+        integer, allocatable :: sizes(:)
+        
         this%N_orbitals = N_orbitals
         this%N_SUN      = N_SUN
         this%N_states   = 2**(N_orbitals*N_SUN)
-        allocate( this%H(this%N_states, this%N_states) )
-        this%H(:,:) = cmplx(0.d0, 0.d0, kind=kind(0.d0))
+        
+        allocate( this%H_part(0:N_orbitals*N_SUN), this%list(0:this%N_states-1,2) )
+        
+        do i=0, N_orbitals*N_SUN
+            this%H_part(i)%N_particles = i
+            this%H_part(i)%N_states    = 0
+        enddo
+        
+        do i=0, this%N_states-1
+            N_particles = N_fermions(i)
+            this%H_part(N_particles)%N_states = this%H_part(N_particles)%N_states + 1
+            this%list(i,1) = N_particles
+            this%list(i,2) = this%H_part(N_particles)%N_states
+        enddo
+        
+        do i=0, N_orbitals*N_SUN
+            allocate( this%H_part(i)%H(this%H_part(i)%N_states, this%H_part(i)%N_states) )
+            this%H_part(i)%H(:,:) = cmplx(0.d0, 0.d0, kind=kind(0.d0))
+        enddo
     
     end subroutine ed_ham_init
+    
+    subroutine ed_ham_add_matrixelement(this, i, j, f)
+        IMPLICIT NONE
+        class(ed_ham), intent(inout) :: this
+        integer, intent(in) :: i, j
+        complex(kind=kind(0.d0)), intent(in) :: f
+        
+        if( abs(f) < 1e-11 ) return
+        
+        if ( this%list(i,1) .ne. this%list(j,1) ) then
+            print*, "Error in ed_ham_add_matrixelement", this%list(i,1), this%list(j,1), f
+            stop 1
+        endif
+        
+        !print*, i,j, this%list(i,2), this%list(j,2), f 
+        
+        this%H_part(this%list(i,1))%H(this%list(i,2), this%list(j,2)) = &
+         & this%H_part(this%list(i,1))%H(this%list(i,2), this%list(j,2)) + f
+        
+    end subroutine ed_ham_add_matrixelement
     
 
     subroutine ed_ham_add_op_t(this, op_t, dtau)
@@ -65,8 +130,8 @@ CONTAINS
                         call state%annihil_e( op_t%p(n1)-1, s )
                         call state%create_e ( op_t%p(n2)-1, s )
                         
-                        this%H(state%get_i()+1, i+1) = this%H(state%get_i()+1, i+1) &
-                            & + state%get_factor() * op_t%O(n2,n1) * op_t%g / (-dtau)
+                        call this%add_matrixelement(state%get_i(), i, &
+                            & state%get_factor() * op_t%O(n2,n1) * op_t%g / (-dtau) )
                     enddo
                 enddo
             enddo
@@ -92,9 +157,9 @@ CONTAINS
         call state%init(this%N_orbitals)
         
         do i=0, this%N_states-1
-            this%H(i+1, i+1) = this%H(i+1, i+1) &
+            call this%add_matrixelement(i, i, &
             & + op_v%g**2 * op_v%alpha**2 * &
-            &   cmplx( - real(this%N_SUN**2,kind=kind(0.d0)) / dtau, 0.d0, kind=kind(0.d0) )
+            &   cmplx( - real(this%N_SUN**2,kind=kind(0.d0)) / dtau, 0.d0, kind=kind(0.d0) ) )
             do s=0, this%N_SUN-1
                 do n1=1, op_v%N
                     do n2=1, op_v%N
@@ -102,8 +167,8 @@ CONTAINS
                         call state%annihil_e( op_v%p(n1)-1, s )
                         call state%create_e ( op_v%p(n2)-1, s )
                         
-                        this%H(state%get_i()+1, i+1) = this%H(state%get_i()+1, i+1) + state%get_factor() * &
-                        & op_v%O(n2,n1) * op_v%g**2 * op_v%alpha * cmplx( - real(2*this%N_SUN,kind=kind(0.d0)) / dtau, 0.d0, kind=kind(0.d0) )
+                        call this%add_matrixelement(state%get_i(), i, state%get_factor() * &
+                        & op_v%O(n2,n1) * op_v%g**2 * op_v%alpha * cmplx( - real(2*this%N_SUN,kind=kind(0.d0)) / dtau, 0.d0, kind=kind(0.d0) ) )
                         
                         do s2=0, this%N_SUN-1
                             do m1=1, op_v%N
@@ -114,8 +179,8 @@ CONTAINS
                                     call state%annihil_e( op_v%p(n1)-1, s  )
                                     call state%create_e ( op_v%p(n2)-1, s  )
                                     
-                                    this%H(state%get_i()+1, i+1) = this%H(state%get_i()+1, i+1) &
-                                    & + state%get_factor() * op_v%O(n2,n1) * op_v%O(m2,m1) * op_v%g**2 / (-dtau)
+                                    call this%add_matrixelement(state%get_i(), i, &
+                                    & state%get_factor() * op_v%O(n2,n1) * op_v%O(m2,m1) * op_v%g**2 / (-dtau) )
                                 enddo
                             enddo
                         enddo
@@ -129,7 +194,7 @@ CONTAINS
           
     subroutine ed_ham_build_h(this, ndim, N_SUN, OP_T, OP_V, dtau)
         IMPLICIT NONE
-        class(ed_ham)  , intent(inout) :: this
+        class(ed_ham), intent(inout) :: this
         integer, intent(in) :: ndim, N_SUN
         Type (Operator), intent(in) :: Op_V(:,:)
         Type (Operator), intent(in) :: Op_T(:,:)
@@ -157,21 +222,20 @@ CONTAINS
     subroutine ed_ham_test_hermitian(this)
         !Test if H is hermitian
         IMPLICIT NONE
-        class(ed_ham)  , intent(inout) :: this
+        class(ed_ham), intent(inout) :: this
         
-        integer :: i, j
+        integer :: n, i, j
         real(Kind=Kind(0.d0)) :: zero = 1.d-10
         
         print*, "Test hermiticity"
-        !do i=1, size(this%H, 1)
-        !    print*, this%H(:,i)
-        !enddo
-        do i=1, size(this%H, 1)
-            do j=i, size(this%H, 1)
-                if( abs( this%H(i,j)- conjg(this%H(j,i)) ) > zero ) then
-                    print*, "H", i, j, "not hermitian",  this%H(i,j)- conjg(this%H(j,i))
-                    stop 1
-                endif
+        do n=0, this%N_orbitals*this%N_SUN
+            do i=1, size(this%H_part(n)%H, 1)
+                do j=i, size(this%H_part(n)%H, 1)
+                    if( abs( this%H_part(n)%H(i,j)- conjg(this%H_part(n)%H(j,i)) ) > zero ) then
+                        print*, "H", n, i, j, "not hermitian",  this%H_part(n)%H(i,j)- conjg(this%H_part(n)%H(j,i))
+                        stop 1
+                    endif
+                enddo
             enddo
         enddo
         print*, "Hermiticity test concluded"
@@ -180,15 +244,13 @@ CONTAINS
     end subroutine ed_ham_test_hermitian
     
           
-    subroutine ed_ham_eigenvalues(this)
+    subroutine ed_ham_part_eigenvalues(this)
         IMPLICIT NONE
-        class(ed_ham)  , intent(inout) :: this
+        class(ed_ham_part)  , intent(inout) :: this
         
         INTEGER               :: INFO, LDA, LWORK, i
         real(kind=kind(0.d0)), allocatable :: E(:)
         complex(kind=kind(0.d0)), allocatable :: TAU(:), WORK(:)
-        
-        print*, "Calculating eigenvalues"
         
         !TODO: LWORK can probably be chosen in a more intelligent way
         LWORK = 32 * this%N_states 
@@ -220,14 +282,46 @@ CONTAINS
         
         deallocate( E )
         
+    end subroutine ed_ham_part_eigenvalues
+    
+    
+    subroutine ed_ham_eigenvalues(this)
+        IMPLICIT NONE
+        class(ed_ham)  , intent(inout) :: this
+        
+        integer :: n, n_temp
+        real(Kind=Kind(0.d0)) :: buff
+        
+        print*, "Calculating eigenvalues"
+        
+        allocate( this%eigenval(this%N_states) )
+        n_temp = 1
+        
+        do n=0, this%N_orbitals*this%N_SUN
+            print "(I0,' out of ',I0)", n, this%N_orbitals*this%N_SUN
+            call ed_ham_part_eigenvalues(this%H_part(n))
+            this%eigenval(n_temp:n_temp+this%H_part(n)%N_states-1) = this%H_part(n)%eigenval(:)
+            n_temp = n_temp + this%H_part(n)%N_states
+        enddo
+        
+        !Sort this%eigenval
+        do n=1, this%N_states
+            n_temp = minloc( this%eigenval(n:this%N_states), dim=1 ) + n - 1
+            
+            buff = this%eigenval(n)
+            this%eigenval(n)      = this%eigenval(n_temp)
+            this%eigenval(n_temp) = buff
+        enddo
+        
         print*, "Done calculating eigenvalues"
         print*, "Ground state energy:", this%eigenval(1)
           
-        OPEN(Unit = 50,file="ED_Eigenvalues",status="replace")
-        do i=1, this%N_states
-            write(50,*) this%eigenval(i)
+        OPEN(Unit = 50,file="ED_Eigenvalues2",status="replace")
+        do n=1, this%N_states
+            write(50,*) this%eigenval(n)
         enddo
         close(50)
+        
         
     end subroutine ed_ham_eigenvalues
     
@@ -251,18 +345,18 @@ CONTAINS
         ed_ham_energy = E / Z
         
     end function ed_ham_energy
-    
-          
-    subroutine ed_ham_get_eigenvalues(this, eigenvalues)
-        IMPLICIT NONE
-        class(ed_ham)  , intent(inout) :: this
-        
-        real(kind=kind(0.d0)), allocatable, intent(out) :: eigenvalues(:)
-        
-        allocate( eigenvalues(this%N_states) )
-        
-        eigenvalues = this%eigenval
-        
-    end subroutine ed_ham_get_eigenvalues
+!     
+!           
+!     subroutine ed_ham_get_eigenvalues(this, eigenvalues)
+!         IMPLICIT NONE
+!         class(ed_ham)  , intent(inout) :: this
+!         
+!         real(kind=kind(0.d0)), allocatable, intent(out) :: eigenvalues(:)
+!         
+!         allocate( eigenvalues(this%N_states) )
+!         
+!         eigenvalues = this%eigenval
+!         
+!     end subroutine ed_ham_get_eigenvalues
     
 end MODULE ed_ham_mod
