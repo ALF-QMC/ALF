@@ -130,7 +130,6 @@
       Use LRC_Mod
 #ifdef ED
       Use ed_ham_mod
-      Use ed_ham2_mod
 #endif
 
       
@@ -362,7 +361,7 @@
                   Write(50,*) 'Beta          : ', Beta
                 endif
                 Write(50,*) 'dtau,Ltrot_eff: ', dtau,Ltrot
-                If ( "HS" == "Mz" ) then
+                If ( HS == "Mz" ) then
                    N_FL=2
                 Endif
                 Write(50,*) 'N_SUN         : ', N_SUN

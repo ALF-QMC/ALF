@@ -29,7 +29,7 @@ MODULE ed_ham_mod
 !> @brief 
 !> Defines a Hamiltonian for exact diagonalisation. 
         private
-        INTEGER :: N_orbitals, N_SUN, N_states
+        INTEGER :: N_orbitals, N_SUN, N_FL, N_states
         type(ed_ham_part), allocatable :: H_part(:)
         real(kind=kind(0.d0)), allocatable :: eigenval(:)
         integer, allocatable :: list(:,:) ! list(i,1) = N_particles
@@ -63,16 +63,15 @@ CONTAINS
         real(Kind=Kind(0.d0)), intent(in) :: dtau
         
         
-        INTEGER :: nf, n
+        INTEGER :: n, N_FL
         print*, "Building ED-Hamiltonian"
-        call this%init(ndim, N_SUN)
-        do nf=1,1
-            do n=1, Size(OP_T,1)
-                call this%add_op_t( OP_T(n,nf), dtau )
-            enddo
-            do n=1, Size(OP_V,1)
-                call this%add_op_v( OP_V(n,nf), dtau )
-            enddo
+        N_FL = Size(OP_T,2)
+        call this%init(ndim, N_SUN, N_FL)
+        do n=1, Size(OP_T,1)
+            call this%add_op_t( OP_T(n,:), dtau )
+        enddo
+        do n=1, Size(OP_V,1)
+            call this%add_op_v( OP_V(n,:), dtau )
         enddo
         print*, "done Building ED-Hamiltonian"
         call ed_ham_test_hermitian(this)
@@ -127,7 +126,7 @@ CONTAINS
     end subroutine ed_ham_get_eigenvalues
 
 
-    subroutine ed_ham_init(this, N_orbitals, N_SUN)
+    subroutine ed_ham_init(this, N_orbitals, N_SUN, N_FL)
 !--------------------------------------------------------------------
 !> @author 
 !> ALF-project
@@ -136,18 +135,19 @@ CONTAINS
 !> Initialises Hamiltonian 
         IMPLICIT NONE
         class(ed_ham), INTENT(INOUT) :: this
-        integer, intent(in) :: N_orbitals, N_SUN
+        integer, intent(in) :: N_orbitals, N_SUN, N_FL
         
         integer              :: i, N_particles
         integer, allocatable :: sizes(:)
         
         this%N_orbitals = N_orbitals
         this%N_SUN      = N_SUN
-        this%N_states   = 2**(N_orbitals*N_SUN)
+        this%N_FL       = N_FL
+        this%N_states   = 2**(N_orbitals*N_SUN*N_FL)
         
-        allocate( this%H_part(0:N_orbitals*N_SUN), this%list(0:this%N_states-1,2) )
+        allocate( this%H_part(0:N_orbitals*N_SUN*N_FL), this%list(0:this%N_states-1,2) )
         
-        do i=0, N_orbitals*N_SUN
+        do i=0, N_orbitals*N_SUN*N_FL
             this%H_part(i)%N_particles = i
             this%H_part(i)%N_states    = 0
         enddo
@@ -159,7 +159,7 @@ CONTAINS
             this%list(i,2) = this%H_part(N_particles)%N_states
         enddo
         
-        do i=0, N_orbitals*N_SUN
+        do i=0, N_orbitals*N_SUN*N_FL
             allocate( this%H_part(i)%H(this%H_part(i)%N_states, this%H_part(i)%N_states) )
             this%H_part(i)%H(:,:) = cmplx(0.d0, 0.d0, kind=kind(0.d0))
         enddo
@@ -201,24 +201,26 @@ CONTAINS
 !> Adds single-particle opertator op_t to Hamiltonian
         IMPLICIT NONE
         class(ed_ham)  , intent(inout) :: this
-        type(Operator), intent(in)    :: Op_T
+        type(Operator), intent(in)    :: Op_T(:)
         real(Kind=Kind(0.d0)), intent(in) :: dtau
         
-        integer :: i, n1, n2, s
+        integer :: i, n1, n2, sigma, s
         type(ed_state) :: state
         
-        call state%init(this%N_orbitals)
+        call state%init(this%N_orbitals, this%N_SUN)
         
         do i=0, this%N_states-1
-            do s=0, this%N_SUN-1
-                do n1=1, op_t%N
-                    do n2=1, op_t%N
-                        call state%set(i)
-                        call state%annihil_e( op_t%p(n1)-1, s )
-                        call state%create_e ( op_t%p(n2)-1, s )
-                        
-                        call this%add_matrixelement(state%get_i(), i, &
-                            & state%get_factor() * op_t%O(n2,n1) * op_t%g / (-dtau) )
+            do s=0, this%N_FL-1
+                do sigma=0, this%N_SUN-1
+                    do n1=1, op_t(s+1)%N
+                        do n2=1, op_t(s+1)%N
+                            call state%set(i)
+                            call state%annihil_e( op_t(s+1)%p(n1)-1, sigma, s )
+                            call state%create_e ( op_t(s+1)%p(n2)-1, sigma, s )
+                            
+                            call this%add_matrixelement(state%get_i(), i, &
+                                & state%get_factor() * op_t(s+1)%O(n2,n1) * op_t(s+1)%g / (-dtau) )
+                        enddo
                     enddo
                 enddo
             enddo
@@ -236,44 +238,53 @@ CONTAINS
 !> Adds type 2 operator op_v to Hamiltonian
         IMPLICIT NONE
         class(ed_ham)  , intent(inout) :: this
-        type(Operator), intent(in)    :: op_v
+        type(Operator), intent(in)    :: op_v(:)
         real(Kind=Kind(0.d0)), intent(in) :: dtau
         
-        integer :: i, n1, n2, m1, m2, s, s2
+        integer :: i, n1, n2, m1, m2, s, s2, sigma, sigma2
+        complex (Kind=Kind(0.d0)) :: temp
         type(ed_state) :: state
         
-        if( op_v%type .ne. 2 ) then
+        if( op_v(1)%type .ne. 2 ) then
             print*, "ED only implemented for OP_V type 2"
             stop
         endif
         
-        call state%init(this%N_orbitals)
+        call state%init(this%N_orbitals, this%N_SUN)
+        
+        temp = cmplx(0.d0, 0.d0, kind=kind(0.d0))
+        do s=1, this%N_FL
+            temp = temp + op_v(s)%g * op_v(s)%alpha
+        enddo
+        temp = temp**2 * cmplx( - real(this%N_SUN**2,kind=kind(0.d0)) / dtau, 0.d0, kind=kind(0.d0) )
         
         do i=0, this%N_states-1
-            call this%add_matrixelement(i, i, &
-            & + op_v%g**2 * op_v%alpha**2 * &
-            &   cmplx( - real(this%N_SUN**2,kind=kind(0.d0)) / dtau, 0.d0, kind=kind(0.d0) ) )
-            do s=0, this%N_SUN-1
-                do n1=1, op_v%N
-                    do n2=1, op_v%N
-                        call state%set(i)
-                        call state%annihil_e( op_v%p(n1)-1, s )
-                        call state%create_e ( op_v%p(n2)-1, s )
-                        
-                        call this%add_matrixelement(state%get_i(), i, state%get_factor() * &
-                        & op_v%O(n2,n1) * op_v%g**2 * op_v%alpha * cmplx( - real(2*this%N_SUN,kind=kind(0.d0)) / dtau, 0.d0, kind=kind(0.d0) ) )
-                        
-                        do s2=0, this%N_SUN-1
-                            do m1=1, op_v%N
-                                do m2=1, op_v%N
-                                    call state%set(i)
-                                    call state%annihil_e( op_v%p(m1)-1, s2 )
-                                    call state%create_e ( op_v%p(m2)-1, s2 )
-                                    call state%annihil_e( op_v%p(n1)-1, s  )
-                                    call state%create_e ( op_v%p(n2)-1, s  )
-                                    
-                                    call this%add_matrixelement(state%get_i(), i, &
-                                    & state%get_factor() * op_v%O(n2,n1) * op_v%O(m2,m1) * op_v%g**2 / (-dtau) )
+            call this%add_matrixelement(i, i, temp )
+            do s=0, this%N_FL-1
+                do s2=0, this%N_FL-1
+                    do sigma=0, this%N_SUN-1
+                        do n1=1, op_v(s+1)%N
+                            do n2=1, op_v(s+1)%N
+                                call state%set(i)
+                                call state%annihil_e( op_v(s+1)%p(n1)-1, sigma, s )
+                                call state%create_e ( op_v(s+1)%p(n2)-1, sigma, s )
+                                
+                                call this%add_matrixelement(state%get_i(), i, state%get_factor() * &
+                                & op_v(s+1)%O(n2,n1) * op_v(s+1)%g * op_v(s2+1)%g * op_v(s2+1)%alpha * cmplx( - real(2*this%N_SUN,kind=kind(0.d0)) / dtau, 0.d0, kind=kind(0.d0) ) )
+                            
+                                do sigma2=0, this%N_SUN-1
+                                    do m1=1, op_v(s+1)%N
+                                        do m2=1, op_v(s+1)%N
+                                            call state%set(i)
+                                            call state%annihil_e( op_v(s+1)%p(m1)-1, sigma2, s2 )
+                                            call state%create_e ( op_v(s+1)%p(m2)-1, sigma2, s2 )
+                                            call state%annihil_e( op_v(s+1)%p(n1)-1, sigma , s  )
+                                            call state%create_e ( op_v(s+1)%p(n2)-1, sigma , s  )
+                                            
+                                            call this%add_matrixelement(state%get_i(), i, &
+                                            & state%get_factor() * op_v(s+1)%O(n2,n1) * op_v(s2+1)%O(m2,m1) * op_v(s+1)%g * op_v(s2+1)%g / (-dtau) )
+                                        enddo
+                                    enddo
                                 enddo
                             enddo
                         enddo
@@ -380,8 +391,8 @@ CONTAINS
         allocate( this%eigenval(this%N_states) )
         n_temp = 1
         
-        do n=0, this%N_orbitals*this%N_SUN
-            print "(I0,' out of ',I0)", n, this%N_orbitals*this%N_SUN
+        do n=0, this%N_orbitals*this%N_SUN*this%N_FL
+            print "(I0,' out of ',I0)", n, this%N_orbitals*this%N_SUN*this%N_FL
             call ed_ham_part_eigenvalues(this%H_part(n))
             this%eigenval(n_temp:n_temp+this%H_part(n)%N_states-1) = this%H_part(n)%eigenval(:)
             n_temp = n_temp + this%H_part(n)%N_states

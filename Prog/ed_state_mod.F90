@@ -57,7 +57,7 @@ MODULE ed_state_mod
 !> Defines a state in the Fock space, for exact diagonalisation.  
         private
         complex(kind=kind(0.d0)) :: factor
-        integer :: N_orbitals, i
+        integer :: N_orbitals, N_SUN, i
         
         CONTAINS
             PROCEDURE :: init => ed_state_init
@@ -72,28 +72,24 @@ MODULE ed_state_mod
 
 CONTAINS
 
-    subroutine ed_state_init(this, N_orbitals)
+    subroutine ed_state_init(this, N_orbitals, N_SUN)
         IMPLICIT NONE
         class(ed_state), INTENT(INOUT) :: this
-        integer, intent(in) :: N_orbitals
+        integer, intent(in) :: N_orbitals, N_SUN
         
         this%N_orbitals = N_orbitals
+        this%N_SUN = N_SUN
         this%i = 0
     
     end subroutine ed_state_init
     
 
-    subroutine ed_state_set(this, i0, s)
+    subroutine ed_state_set(this, i)
         IMPLICIT NONE
         class(ed_state), INTENT(INOUT) :: this
-        integer, intent(in) :: i0
-        integer, intent(in), optional :: s
+        integer, intent(in) :: i
         
-        if( present(s) ) then
-            this%i = 2**(this%N_orbitals * s) + i0
-        else
-            this%i = i0
-        endif
+        this%i = i
         this%factor = cmplx( 1.d0, 0.d0, kind=kind(0.d0) )
     
     end subroutine ed_state_set
@@ -168,14 +164,14 @@ CONTAINS
     end subroutine ed_state_print
     
 
-    subroutine ed_state_annihil_e(this, i0, s)
+    subroutine ed_state_annihil_e(this, i0, sigma, s)
         IMPLICIT NONE
         class(ed_state), INTENT(INOUT) :: this
-        integer, intent(in) :: i0, s
+        integer, intent(in) :: i0, sigma, s
         
         integer :: i_e
         
-        i_e = this%N_orbitals*s + i0
+        i_e = this%N_orbitals * (this%N_SUN*s + sigma) + i0
         
         if( .not. btest(this%i, i_e) ) then
             this%factor = cmplx(0.d0, 0.d0, kind=kind(0.d0))
@@ -191,14 +187,14 @@ CONTAINS
     end subroutine ed_state_annihil_e
     
 
-    subroutine ed_state_create_e(this, i0, s)
+    subroutine ed_state_create_e(this, i0, sigma, s)
         IMPLICIT NONE
         class(ed_state), INTENT(INOUT) :: this
-        integer, intent(in) :: i0, s
+        integer, intent(in) :: i0, sigma, s
         
         integer :: i_e
         
-        i_e = this%N_orbitals*s + i0
+        i_e = this%N_orbitals * (this%N_SUN*s + sigma) + i0
         
         if( btest(this%i,i_e) ) then
             this%factor = cmplx(0.d0, 0.d0, kind=kind(0.d0))
