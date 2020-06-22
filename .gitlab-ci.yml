@@ -16,7 +16,7 @@ stages:
   stage: build
   <<: *exemptfiles_definition
   script:
-    - . configureHPC.sh GNU serial
+    - . configureHPC.sh GNU serial ed
     - gfortran -v
     - make all
 
@@ -26,7 +26,7 @@ stages:
   script:
     - export PATH="/opt/pgi/linux86-64/2016/bin:$PATH"
     - pgfortran --version
-    - . configureHPC.sh PGI serial
+    - . configureHPC.sh PGI serial ed
     - make all
 
 .warnconv_template: &warnconv_definition
@@ -41,7 +41,7 @@ stages:
   stage: test
   <<: *exemptfiles_definition
   script:
-    - . configureHPC.sh Devel serial
+    - . configureHPC.sh Devel serial ed
     - gfortran -v
     - make lib
     - make ana
@@ -113,7 +113,7 @@ GQMCT_Stretch_MPI:
       - license.*
   script:
     - gfortran -v
-    - . configureHPC.sh Devel Tempering
+    - . configureHPC.sh Devel Tempering ed
     - export ALF_FC="mpif90"
     - make all
 
@@ -161,7 +161,7 @@ GQMCT_Jessie-PGI_conv:
   script:
     - export PATH="/opt/pgi/linux86-64/2017/bin:$PATH"
     - pgfortran --version
-    - . configureHPC.sh PGI serial
+    - . configureHPC.sh PGI serial ed
     - make all
   
 GQMCT_Jessie_tests:
@@ -216,7 +216,7 @@ GQMCT_Jessie-PGI_tests:
   script:
     - export PATH="/opt/pgi/linux86-64/2016/bin:$PATH"
     - pgfortran --version
-    - . configureHPC.sh PGI serial
+    - . configureHPC.sh PGI serial ed
     - make lib
     - make ana
     - make Examples
@@ -237,7 +237,7 @@ GQMCT_Stretch_valgrind:
       - Libraries/Modules/*.(f|F)90
   script:
       - export ALF_FLAGS_EXT="-g"
-      - . configureHPC.sh Devel serial
+      - . configureHPC.sh Devel serial ed
       - gfortran -v
       - make lib
       - make Examples
