@@ -124,6 +124,7 @@ Program Main
         Use UDV_State_mod
         Use Wrapgr_mod
         Use Fields_mod
+        Use ed_ham_mod
 #ifdef MPI
         Use mpi
 #endif
@@ -170,6 +171,11 @@ Program Main
         Character (len=64) :: file1
         Real (Kind=Kind(0.d0)) , allocatable, dimension(:,:) :: Initial_field
         
+        
+        ! For exact diagonalization
+        type(ed_ham), save :: ham_ed
+        Logical :: do_ED
+        
         ! Space for choosing sampling scheme
         Logical :: Propose_S0, Tempering_calc_det
         Logical :: Global_moves, Global_tau_moves
@@ -185,7 +191,7 @@ Program Main
 
         NAMELIST /VAR_QMC/   Nwrap, NSweep, NBin, Ltau, LOBS_EN, LOBS_ST, CPU_MAX, &
              &               Propose_S0,Global_moves,  N_Global, Global_tau_moves, &
-             &               Nt_sequential_start, Nt_sequential_end, N_Global_tau
+             &               Nt_sequential_start, Nt_sequential_end, N_Global_tau, do_ED
 
 
         Integer :: Ierr, I,nf, nst, n, N_op
@@ -264,6 +270,7 @@ Program Main
            Nwrap=0;  NSweep=0; NBin=0; Ltau=0; LOBS_EN = 0;  LOBS_ST = 0;  CPU_MAX = 0.d0
            Propose_S0 = .false. ;  Global_moves = .false. ; N_Global = 0
            Global_tau_moves = .false. 
+           do_ED = .false.
            Nt_sequential_start = 1 ;  Nt_sequential_end  = 0;  N_Global_tau  = 0
            OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
            IF (ierr /= 0) THEN
@@ -292,6 +299,23 @@ Program Main
 #endif
         Call Fields_init()
         Call Ham_set
+        
+#if defined(MPI) 
+        if ( Irank_g == 0 ) then
+#endif
+           if (do_ED) then
+              call ham_ed%build_ham(ndim, N_SUN, OP_T, OP_V, get_dtau() )
+              print*, "Finite temperature energy:", ham_ed%energy( get_beta() )
+              
+              OPEN(Unit = 50,file="ED_Energy",status="replace")
+              write(50,*) ham_ed%energy( get_beta() )
+              close(50)
+           endif
+#if defined(MPI) 
+           call MPI_BARRIER( Group_Comm, ierr ) 
+        endif
+#endif
+        
         log=.false.
         if(Projector) then
            if (.not. allocated(WF_R) .or. .not. allocated(WF_L)) log=.true.

@@ -35,6 +35,7 @@ Global_tau_moves = .F.
 N_Global_tau = 1
 Nt_sequential_start = 0
 Nt_sequential_end = -1
+do_ED = .T.
 /
 
 &VAR_errors

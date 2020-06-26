@@ -128,9 +128,6 @@
       Use Fields_mod
       Use Predefined_Hoppings
       Use LRC_Mod
-#ifdef ED
-      Use ed_ham_mod
-#endif
 
       
       Implicit none
@@ -149,10 +146,6 @@
       Logical              :: Projector
       Integer              :: Group_Comm
       Logical              :: Symm
-      
-#ifdef ED
-      type(ed_ham), save :: ham_ed
-#endif
 
 
       Type (Lattice),       private :: Latt
@@ -521,14 +514,6 @@
           
           call Ham_V
           
-#ifdef ED
-          call ham_ed%build_ham(ndim, N_SUN, OP_T, OP_V, dtau)
-          print*, "Finite temperature energy:", ham_ed%energy(beta)
-          
-          OPEN(Unit = 50,file="ED_Energy",status="replace")
-          write(50,*) ham_ed%energy(beta)
-          close(50)
-#endif
 
         end Subroutine Ham_Set
         
@@ -1467,5 +1452,39 @@
         Implicit none
         Integer, Intent(INOUT) :: Nt_sequential_start,Nt_sequential_end, N_Global_tau
       end Subroutine Overide_global_tau_sampling_parameters
+      
+      
+      function get_dtau()
+!--------------------------------------------------------------------
+!> @author 
+!> ALF Collaboration
+!>
+!> @brief
+!> Returns dtau, for use outside of Hamiltonian.
+!>      
+!> @details
+!> \endverbatim
+!----------------------------------------------
+        Implicit none
+        real (Kind=Kind(0.d0)) :: get_dtau
+        get_dtau = dtau
+      end function get_dtau
+      
+      
+      function get_beta()
+!--------------------------------------------------------------------
+!> @author 
+!> ALF Collaboration
+!>
+!> @brief
+!> Returns dtau, for use outside of Hamiltonian.
+!>      
+!> @details
+!> \endverbatim
+!----------------------------------------------
+        Implicit none
+        real (Kind=Kind(0.d0)) :: get_beta
+        get_beta = beta
+      end function get_beta
         
       end Module Hamiltonian

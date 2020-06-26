@@ -25,7 +25,6 @@ MODE=""
 modev=0
 STAB=""
 stabv=0
-ED_ENABLED=""
 
 RED='\033[0;31m'
 NC='\033[0m' # No Color
@@ -48,10 +47,6 @@ while [ "$#" -gt "0" ]; do
       fi
       MODE="$1"
       modev="1"
-      shift 1
-    ;;
-    ED)
-      ED_ENABLED="1"
       shift 1
     ;;
     *)
@@ -298,10 +293,6 @@ ALF_FLAGS_QRREF="${F90OPTFLAGS} ${ALF_FLAGS_EXT}"
 ALF_FLAGS_MODULES="${F90OPTFLAGS} ${ALF_FLAGS_EXT}"
 ALF_FLAGS_ANA="${F90OPTFLAGS} ${ALF_INC} ${ALF_FLAGS_EXT}"
 ALF_FLAGS_PROG="${F90USEFULFLAGS} ${F90OPTFLAGS} ${PROGRAMMCONFIGURATION} ${ALF_INC} ${ALF_FLAGS_EXT}"
-if [ "${ED_ENABLED}" = "1" ]; then
-  echo; echo "Exact diagonalisation enabled"
-  ALF_FLAGS_PROG="${ALF_FLAGS_PROG} -DED"
-fi
 export ALF_FLAGS_QRREF
 export ALF_FLAGS_MODULES
 export ALF_FLAGS_ANA
