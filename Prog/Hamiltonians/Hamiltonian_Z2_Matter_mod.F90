@@ -1345,6 +1345,40 @@
 !!$        stop
 !!$
 !!$      end Subroutine Test_Hamiltonian
+      
+      
+      function get_dtau()
+!--------------------------------------------------------------------
+!> @author 
+!> ALF Collaboration
+!>
+!> @brief
+!> Returns dtau, for use outside of Hamiltonian.
+!>      
+!> @details
+!> \endverbatim
+!----------------------------------------------
+        Implicit none
+        real (Kind=Kind(0.d0)) :: get_dtau
+        get_dtau = dtau
+      end function get_dtau
+      
+      
+      function get_beta()
+!--------------------------------------------------------------------
+!> @author 
+!> ALF Collaboration
+!>
+!> @brief
+!> Returns dtau, for use outside of Hamiltonian.
+!>      
+!> @details
+!> \endverbatim
+!----------------------------------------------
+        Implicit none
+        real (Kind=Kind(0.d0)) :: get_beta
+        get_beta = beta
+      end function get_beta
 
       end Module Hamiltonian
 

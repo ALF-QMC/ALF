@@ -312,8 +312,8 @@ Program Main
               close(50)
            endif
 #if defined(MPI) 
-           call MPI_BARRIER( Group_Comm, ierr ) 
         endif
+        call MPI_BARRIER( Group_Comm, ierr ) 
 #endif
         
         log=.false.
