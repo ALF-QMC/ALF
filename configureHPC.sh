@@ -34,31 +34,31 @@ shopt -s nocasematch
 while [ "$#" -gt "0" ]; do
   case "$1" in
     STAB1|STAB2|STAB3|LOG)
-      if [ "$stabv" == "1" ]; then
-         echo -e "Additional STAB configuration found. Overwriting "$STAB" with" $1 "."
+      if [ "$stabv" = "1" ]; then
+         echo -e "Additional STAB configuration found. Overwriting $STAB with $1 ."
       fi
       STAB="$1"
       stabv="1"
       shift 1
     ;;
     noMPI|MPI|Tempering|serial)
-      if [ "$modev" == "1" ]; then
-         echo -e "Additional MODE configuration found. Overwriting "$MODE" with" $1 "."
+      if [ "$modev" = "1" ]; then
+         echo -e "Additional MODE configuration found. Overwriting $MODE with $1 ."
       fi
       MODE="$1"
       modev="1"
       shift 1
     ;;
     *)
-      if [ "$Machinev" == "1" ]; then
-         echo -e "Additional MACHINE / unrecognized configuration found. Overwriting "$MACHINE" with" $1 "."
+      if [ "$Machinev" = "1" ]; then
+         echo -e "Additional MACHINE / unrecognized configuration found. Overwriting $MACHINE with $1 ."
       fi
       MACHINE="$1"
       Machinev="1"
       shift 1
-    ;;  
+    ;;
   esac
-done 
+done
 
 
 echo ""
@@ -98,7 +98,7 @@ MPICOMP=1
 ;;
 
 *)
-echo -e "Activating "${RED}"MPI parallization (default)"${NC}"."
+echo -e "Activating ${RED}MPI parallization (default)${NC}."
 echo "To turn MPI off, pass noMPI as the second argument."
 echo "To turn on parallel tempering, pass Tempering as the second argument."
 PROGRAMMCONFIGURATION="-DMPI"
@@ -140,7 +140,7 @@ echo "Using log storage for internal scales"
 #;;
 
 *)
-echo -e "Using "${RED}"default stabilization"${NC}
+echo -e "Using ${RED}default stabilization${NC}"
 echo "Possible alternative options are STAB1, STAB2, STAB3 and LOG"
 ;;
 
@@ -153,7 +153,7 @@ FakhersMAC)
 
 # F90OPTFLAGS=$GNUOPTFLAGS
 F90OPTFLAGS="$GNUOPTFLAGS -Wconversion -fcheck=all -g -fbacktrace"
-F90USEFULFLAGS=$GNUUSEFULFLAGS 
+F90USEFULFLAGS=$GNUUSEFULFLAGS
 if [ "$MPICOMP" -eq "0" ]; then
 f90="gfortran"
 else
@@ -234,7 +234,7 @@ PGI)
 if [ "$MPICOMP" -eq "0" ]; then
 f90="pgfortran"
 else
-f90="$(dirname $(dirname $(command -v pgfortran)))/mpi/openmpi/bin/mpifort"
+f90="$(dirname "$(dirname "$(command -v pgfortran)")")/mpi/openmpi/bin/mpifort"
 fi
 LIB_BLAS_LAPACK="-llapack -lblas"
 F90OPTFLAGS="-Mpreprocess -O3 -mp"
@@ -248,11 +248,11 @@ echo -e ${RED}"   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"${NC}
 echo -e ${RED}"   !!               UNKNOW MACHINE               !!"${NC}
 echo -e ${RED}"   !!         IGNORING PARALLEL SETTINGS         !!"${NC}
 echo -e ${RED}"   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"${NC}
-echo 
+echo
 echo "Activating fallback option with gfortran for SERIAL JOB."
-echo 
+echo
 echo "usage 'source configureHPC.sh MACHINE MODE STAB'"
-echo 
+echo
 echo "Please choose one of the following machines:"
 echo " * SuperMUC"
 echo " * SuperMUC-NG"
@@ -277,15 +277,15 @@ esac
 
 PROGRAMMCONFIGURATION="$STABCONFIGURATION $PROGRAMMCONFIGURATION"
 
-Libs="$(pwd)/Libraries"
+Libs="$PWD/Libraries"
 ALF_INC="-I${Libs}/Modules"
 ALF_LIB="${Libs}/Modules/modules_90.a ${Libs}/libqrref/libqrref.a ${LIB_BLAS_LAPACK}"
 export ALF_LIB
 
-export ALF_DIR="$(pwd)"
+export ALF_DIR="$PWD"
 export ALF_FC=$f90
 
-if [ ! -z ${ALF_FLAGS_EXT+x} ]; then 
+if [ ! -z ${ALF_FLAGS_EXT+x} ]; then
   echo; echo "Appending additional compiler flag '${ALF_FLAGS_EXT}'"
 fi
 
