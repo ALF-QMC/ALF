@@ -7,6 +7,9 @@ MODULE ed_ham_mod
     PRIVATE
     PUBLIC :: ed_ham
 
+    integer, parameter :: dp=kind(0.d0)  ! double precision
+
+
     TYPE ed_ham_part
 !--------------------------------------------------------------------
 !> @author
@@ -16,8 +19,8 @@ MODULE ed_ham_mod
 !> A block of the Hamiltonian with constant particle number, for exact diagonalisation.
         private
         INTEGER :: N_particles, N_states
-        complex(kind=kind(0.d0)), allocatable :: H(:,:)
-        real(kind=kind(0.d0))   , allocatable :: eigenval(:)
+        complex(dp), allocatable :: H(:,:)
+        real(dp)   , allocatable :: eigenval(:)
     END TYPE ed_ham_part
 
 
@@ -31,7 +34,7 @@ MODULE ed_ham_mod
         private
         INTEGER :: N_orbitals, N_SUN, N_FL, N_states
         type(ed_ham_part), allocatable :: H_part(:)
-        real(kind=kind(0.d0)), allocatable :: eigenval(:)
+        real(dp), allocatable :: eigenval(:)
         integer, allocatable :: list(:,:) ! list(i,1) = N_particles
                                           ! list(i,2) = index in subhamiltonian
         CONTAINS
@@ -60,7 +63,7 @@ CONTAINS
         integer, intent(in) :: ndim, N_SUN
         Type (Operator), intent(in) :: Op_V(:,:)
         Type (Operator), intent(in) :: Op_T(:,:)
-        real(Kind=Kind(0.d0)), intent(in) :: dtau
+        real(dp), intent(in) :: dtau
 
 
         INTEGER :: n, N_FL
@@ -89,10 +92,10 @@ CONTAINS
 !> Calculates system energy at given reciprocal temperature beta
         IMPLICIT NONE
         class(ed_ham)  , intent(inout) :: this
-        real(kind=kind(0.d0)), intent(in) :: beta
+        real(dp), intent(in) :: beta
 
         INTEGER               :: i
-        real(kind=kind(0.d0)) :: Z, E, ed_ham_energy
+        real(dp) :: Z, E, ed_ham_energy
 
         Z = 0.d0
         E = 0.d0
@@ -117,7 +120,7 @@ CONTAINS
         IMPLICIT NONE
         class(ed_ham)  , intent(inout) :: this
 
-        real(kind=kind(0.d0)), allocatable, intent(out) :: eigenvalues(:)
+        real(dp), allocatable, intent(out) :: eigenvalues(:)
 
         allocate( eigenvalues(this%N_states) )
 
@@ -161,7 +164,7 @@ CONTAINS
 
         do i=0, N_orbitals*N_SUN*N_FL
             allocate( this%H_part(i)%H(this%H_part(i)%N_states, this%H_part(i)%N_states) )
-            this%H_part(i)%H(:,:) = cmplx(0.d0, 0.d0, kind=kind(0.d0))
+            this%H_part(i)%H(:,:) = cmplx(0.d0, 0.d0, dp)
         enddo
 
     end subroutine ed_ham_init
@@ -177,7 +180,7 @@ CONTAINS
         IMPLICIT NONE
         class(ed_ham), intent(inout) :: this
         integer, intent(in) :: i, j
-        complex(kind=kind(0.d0)), intent(in) :: val
+        complex(dp), intent(in) :: val
 
         if( abs(val) < 1e-11 ) return
 
@@ -202,7 +205,7 @@ CONTAINS
         IMPLICIT NONE
         class(ed_ham)  , intent(inout) :: this
         type(Operator), intent(in)    :: Op_T(:)
-        real(Kind=Kind(0.d0)), intent(in) :: dtau
+        real(dp), intent(in) :: dtau
 
         integer :: i, n1, n2, sigma, s
         type(ed_state) :: state
@@ -239,24 +242,24 @@ CONTAINS
         IMPLICIT NONE
         class(ed_ham)  , intent(inout) :: this
         type(Operator), intent(in)    :: op_v(:)
-        real(Kind=Kind(0.d0)), intent(in) :: dtau
+        real(dp), intent(in) :: dtau
 
         integer :: i, n1, n2, m1, m2, s, s2, sigma, sigma2
-        complex (Kind=Kind(0.d0)) :: temp
+        complex (dp) :: temp
         type(ed_state) :: state
 
         if( op_v(1)%type .ne. 2 ) then
             print*, "ED only implemented for OP_V type 2"
-            stop
+            stop 1
         endif
 
         call state%init(this%N_orbitals, this%N_SUN)
 
-        temp = cmplx(0.d0, 0.d0, kind=kind(0.d0))
+        temp = cmplx(0.d0, 0.d0, dp)
         do s=1, this%N_FL
             temp = temp + op_v(s)%g * op_v(s)%alpha
         enddo
-        temp = temp**2 * cmplx( - real(this%N_SUN**2,kind=kind(0.d0)) / dtau, 0.d0, kind=kind(0.d0) )
+        temp = temp**2 * cmplx( real(this%N_SUN**2,dp) / (-dtau), 0.d0, dp )
 
         do i=0, this%N_states-1
             call this%add_matrixelement(i, i, temp )
@@ -270,7 +273,8 @@ CONTAINS
                                 call state%create_e ( op_v(s+1)%p(n2)-1, sigma, s )
 
                                 call this%add_matrixelement(state%get_i(), i, state%get_factor() * &
-                                & op_v(s+1)%O(n2,n1) * op_v(s+1)%g * op_v(s2+1)%g * op_v(s2+1)%alpha * cmplx( - real(2*this%N_SUN,kind=kind(0.d0)) / dtau, 0.d0, kind=kind(0.d0) ) )
+                                & op_v(s+1)%O(n2,n1) * op_v(s+1)%g * op_v(s2+1)%g * op_v(s2+1)%alpha * &
+                                & cmplx( real(2*this%N_SUN,dp) / (-dtau), 0.d0, dp ) )
 
                                 do sigma2=0, this%N_SUN-1
                                     do m1=1, op_v(s+1)%N
@@ -282,7 +286,8 @@ CONTAINS
                                             call state%create_e ( op_v(s+1)%p(n2)-1, sigma , s  )
 
                                             call this%add_matrixelement(state%get_i(), i, &
-                                            & state%get_factor() * op_v(s+1)%O(n2,n1) * op_v(s2+1)%O(m2,m1) * op_v(s+1)%g * op_v(s2+1)%g / (-dtau) )
+                                            & state%get_factor() * op_v(s+1)%O(n2,n1) * op_v(s2+1)%O(m2,m1) * &
+                                            & op_v(s+1)%g * op_v(s2+1)%g / (-dtau) )
                                         enddo
                                     enddo
                                 enddo
@@ -307,7 +312,7 @@ CONTAINS
         class(ed_ham), intent(inout) :: this
 
         integer :: n, i, j
-        real(Kind=Kind(0.d0)) :: zero = 1.d-10
+        real(dp) :: zero = 1.d-10
 
         print*, "Test hermiticity"
         do n=0, this%N_orbitals*this%N_SUN
@@ -337,8 +342,8 @@ CONTAINS
         class(ed_ham_part)  , intent(inout) :: this
 
         INTEGER               :: INFO, LDA, LWORK, i
-        real(kind=kind(0.d0)), allocatable :: E(:)
-        complex(kind=kind(0.d0)), allocatable :: TAU(:), WORK(:)
+        real(dp), allocatable :: E(:)
+        complex(dp), allocatable :: TAU(:), WORK(:)
 
         !TODO: LWORK can probably be chosen in a more intelligent way
         LWORK = 32 * this%N_states
@@ -385,7 +390,7 @@ CONTAINS
         class(ed_ham)  , intent(inout) :: this
 
         integer :: n, n_temp
-        real(Kind=Kind(0.d0)) :: buff
+        real(dp) :: buff
 
         print*, "Calculating eigenvalues"
 
