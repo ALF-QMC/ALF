@@ -16,7 +16,7 @@ stages:
   stage: build
   <<: *exemptfiles_definition
   script:
-    - . configureHPC.sh GNU serial
+    - . configure.sh GNU serial
     - gfortran -v
     - make all
 
@@ -26,14 +26,14 @@ stages:
   script:
     - export PATH="/opt/pgi/linux86-64/2016/bin:$PATH"
     - pgfortran --version
-    - . configureHPC.sh PGI serial
+    - . configure.sh PGI serial
     - make all
 
 .warnconv_template: &warnconv_definition
   stage: warnconv
   <<: *exemptfiles_definition
   script:
-    - . configureHPC.sh Devel serial
+    - . configure.sh Devel serial
     - gfortran -v
     - make all
 
@@ -41,7 +41,7 @@ stages:
   stage: test
   <<: *exemptfiles_definition
   script:
-    - . configureHPC.sh Devel serial
+    - . configure.sh Devel serial
     - gfortran -v
     - make lib
     - make ana
@@ -113,7 +113,7 @@ GQMCT_Stretch_MPI:
       - license.*
   script:
     - gfortran -v
-    - . configureHPC.sh Devel Tempering
+    - . configure.sh Devel Tempering
     - export ALF_FC="mpif90"
     - make all
 
@@ -148,7 +148,7 @@ GQMCT_OpenSuse-13.2_conv:
 GQMCT_OpenSuse-42.1_conv:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:opensuse-42.1-gfortran-blas-lapack
   <<: *warnconv_definition
-  
+
 GQMCT_Jessie-PGI_conv:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:stretch-pgi1710
   stage: warnconv
@@ -161,9 +161,9 @@ GQMCT_Jessie-PGI_conv:
   script:
     - export PATH="/opt/pgi/linux86-64/2017/bin:$PATH"
     - pgfortran --version
-    - . configureHPC.sh PGI serial
+    - . configure.sh PGI serial
     - make all
-  
+
 GQMCT_Jessie_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:jessie-gfortran-blas-lapack
   <<: *test_definition
@@ -216,7 +216,7 @@ GQMCT_Jessie-PGI_tests:
   script:
     - export PATH="/opt/pgi/linux86-64/2016/bin:$PATH"
     - pgfortran --version
-    - . configureHPC.sh PGI serial
+    - . configure.sh PGI serial
     - make lib
     - make ana
     - make Examples
@@ -237,11 +237,11 @@ GQMCT_Stretch_valgrind:
       - Libraries/Modules/*.(f|F)90
   script:
       - export ALF_FLAGS_EXT="-g"
-      - . configureHPC.sh Devel serial
+      - . configure.sh Devel serial
       - gfortran -v
       - make lib
       - make Examples
-      - cp Prog/Examples.out Examples/LRC_Test/Start 
+      - cp Prog/Examples.out Examples/LRC_Test/Start
       - cd Examples/LRC_Test/Start
       - valgrind --leak-check=full --log-file=vglog.txt ./Examples.out
       - cat vglog.txt
@@ -261,5 +261,3 @@ create_doc:
   script:
     - cd Documentation
     - latexmk -pdf doc.tex
-
-
