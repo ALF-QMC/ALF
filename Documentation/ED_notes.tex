@@ -1,0 +1,43 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{lmodern}
+
+\title{Notes for exact diagonalization}
+\author{Jonas Schwab}
+
+\begin{document}
+\maketitle
+\begin{align*}
+M &= P^\text{T} \cdot O \cdot P 
+\end{align*}
+
+\begin{align*}
+\text{Op}_\text{T} &= \sum_{s=1}^{N_\text{FL}} g_s \sum_{\sigma=1}^{N_\text{SUN}} 
+\sum_{i,j} M^s_{i,j} c^\dag_{i\sigma s} c_{j\sigma s}
+\end{align*}
+
+\begin{align*}
+\text{Op}_\text{V} &= \left[ \sum_{s=1}^{N_\text{FL}} g_s \sum_{\sigma=1}^{N_\text{SUN}} 
+\left( \sum_{i,j} M^s_{i,j} c^\dag_{i\sigma s} c_{j\sigma s} + \alpha_s \right) 
+\right]^2
+\\
+&=
+\sum_{s \sigma s' \sigma'} \sum_{ijkl}
+g_s g_{s'} M^s_{i,j} M^{s'}_{k,l} c^\dag_{i\sigma s} c_{j\sigma s} c^\dag_{k\sigma' s'} c_{l\sigma' s'}
+\\ &\phantom{0} +
+\sum_{s \sigma s'} \sum_{ij}
+2 N_\text{SUN} g_s g_{s'} \alpha_{s'} M^s_{i,j} c^\dag_{i\sigma s} c_{j\sigma s}
+\\ &\phantom{0} +
+N_\text{SUN}^2 \left(\sum g_s \alpha_s \right)^2
+\end{align*}
+
+\begin{align*}
+H &= \frac{1}{-\Delta\tau} \left( \sum \text{Op}_\text{T} + \sum \text{Op}_\text{V} \right)
+\end{align*}
+
+\end{document}
