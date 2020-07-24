@@ -364,7 +364,7 @@
         Integer :: nf,N_Bonds, nc, I, I1, n, no
         Real (Kind=Kind(0.d0)) :: Zero = 1.0E-8, Ham_Lambda_Max
 
-        Write(6,*) Ham_T_vec, Ham_Chem_vec
+        !Write(6,*) Ham_T_vec, Ham_Chem_vec
         Ham_Lambda_Max = 0.d0
         do nf = 1,N_FL
            if ( Abs(Ham_Lambda_vec(nf)) > Ham_Lambda_Max ) Ham_Lambda_Max =  Abs(Ham_Lambda_vec(nf))
@@ -882,7 +882,7 @@
               n_f_max = n
            endif
         enddo
-        Write(6,*) 'N_f_max' , n_f_max
+        !Write(6,*) 'N_f_max' , n_f_max
         Allocate( list_Fam_tmp(this(1)%N_FAM) )
         nc = 0
         Do n = 1, N_FAM_C   
@@ -912,9 +912,9 @@
         ! Clean
         Deallocate( L_FAM_C, List_Fam_C, Prop_Fam_C, List_Fam_tmp )
 
-        Write(6,*)  this(1)%N_FAM
-        Write(6,*)  this(1)%L_FAM
-        Write(6,*)  this(1)%Prop_Fam
+        !Write(6,*)  this(1)%N_FAM
+        !Write(6,*)  this(1)%L_FAM
+        !Write(6,*)  this(1)%Prop_Fam
         
       end Subroutine Symmetrize_Families
       
@@ -956,7 +956,7 @@
         If ( .not. Checkerboard) then
            allocate(Op_T(1,N_FL))
            do nf = 1,N_FL
-              Write(6,*)
+              !Write(6,*)
               Call Op_make(Op_T(1,nf),Ndim)   ! This is too restrictive for the  Kondo type models. The hopping only occurs on one  subsystem. 
               N_Phi     = this(nf)%N_Phi
               Phi_X     = this(nf)%Phi_X  

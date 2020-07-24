@@ -158,8 +158,8 @@
       real (Kind=Kind(0.d0)),        private :: Phi_Y, Phi_X
       Integer               ,        private :: N_Phi
       real (Kind=Kind(0.d0)),        private :: Dtau, Beta, Theta
-      Character (len=64),   private :: Model, Lattice_type,  HS
-      Logical,              private :: Checkerboard,  Bulk
+      Character (len=64),   private :: Model, Lattice_type
+      Logical,              private :: Checkerboard,  Bulk,  Mz
       Integer, allocatable, private :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
 
 
@@ -202,7 +202,7 @@
 
           NAMELIST /VAR_Model_Generic/  Checkerboard, N_SUN, N_FL, Phi_X, Phi_Y, Symm, Bulk, N_Phi, Dtau, Beta, Theta, Projector
 
-          NAMELIST /VAR_Hubbard/  ham_T, ham_chem, ham_U, ham_T2, ham_U2, ham_Tperp,  Hs
+          NAMELIST /VAR_Hubbard/  ham_T, ham_chem, ham_U, ham_T2, ham_U2, ham_Tperp,  Mz
 
           Namelist /VAR_LRC/      ham_T, ham_chem, ham_U, ham_alpha, Percent_change
 
@@ -251,6 +251,11 @@
              END IF
              READ(5,NML=VAR_lattice)
              READ(5,NML=VAR_Model_Generic)
+             Ltrot = nint(beta/dtau)
+             Thtrot = 0
+             if (Projector) Thtrot = nint(theta/dtau)
+             Ltrot = Ltrot+2*Thtrot
+
 
 #ifdef MPI
           Endif
@@ -293,6 +298,15 @@
              endif
              Write(50,*) 'Checkerboard  : ', Checkerboard
              Write(50,*) 'Symm. decomp  : ', Symm
+             if (Projector) then
+                Write(50,*) 'Projective version'
+                Write(50,*) 'Theta         : ', Theta
+                Write(50,*) 'Tau_max       : ', beta
+             else
+                Write(50,*) 'Finite temperture version'
+                Write(50,*) 'Beta          : ', Beta
+             endif
+             Write(50,*) 'dtau,Ltrot_eff: ', dtau,Ltrot
 #ifdef MPI
           Endif
 #endif
@@ -308,18 +322,6 @@
              If (Irank_g == 0 ) then
 #endif
                 READ(5,NML=VAR_LRC)
-                Ltrot = nint(beta/dtau)
-                if (Projector) Thtrot = nint(theta/dtau)
-                Ltrot = Ltrot+2*Thtrot
-                if (Projector) then
-                  Write(50,*) 'Projective version'
-                  Write(50,*) 'Theta         : ', Theta
-                  Write(50,*) 'Tau_max       : ', beta
-                else
-                  Write(50,*) 'Finite temperture version'
-                  Write(50,*) 'Beta          : ', Beta
-                endif
-                Write(50,*) 'dtau,Ltrot_eff: ', dtau,Ltrot
                 Write(50,*) 'N_SUN         : ', N_SUN
                 Write(50,*) 'N_FL          : ', N_FL
                 Write(50,*) 't             : ', Ham_T
@@ -343,40 +345,31 @@
              If (Irank_g == 0 ) then
 #endif
                 READ(5,NML=VAR_Hubbard)
-                Ltrot = nint(beta/dtau)
-                if (Projector) Thtrot = nint(theta/dtau)
-                Ltrot = Ltrot+2*Thtrot
-                if (Projector) then
-                  Write(50,*) 'Projective version'
-                  Write(50,*) 'Theta         : ', Theta
-                  Write(50,*) 'Tau_max       : ', beta
-                else
-                  Write(50,*) 'Finite temperture version'
-                  Write(50,*) 'Beta          : ', Beta
-                endif
-                Write(50,*) 'dtau,Ltrot_eff: ', dtau,Ltrot
-                If ( HS == "Mz" ) then
+                If ( Mz ) then
                    N_FL  = 2
                    N_SUN = 1
+                Else
+                   N_FL=1
                 Endif
                 Write(50,*) 'N_SUN         : ', N_SUN
                 Write(50,*) 'N_FL          : ', N_FL
                 Write(50,*) 't             : ', Ham_T
                 Write(50,*) 'Ham_U         : ', Ham_U
                 Write(50,*) 'Ham_chem      : ', Ham_chem
+                Write(50,*) 'Mz            : ', Mz
 #ifdef MPI
              Endif
 #endif
 #ifdef MPI
-             CALL MPI_BCAST(N_SUN       ,1  ,MPI_INTEGER,   0,Group_Comm,ierr)
-             CALL MPI_BCAST(N_FL        ,1  ,MPI_INTEGER,   0,Group_Comm,ierr)
-             CALL MPI_BCAST(ham_T    ,1 ,MPI_REAL8  ,0,Group_Comm,ierr)
-             CALL MPI_BCAST(ham_chem ,1 ,MPI_REAL8  ,0,Group_Comm,ierr)
-             CALL MPI_BCAST(ham_U    ,1 ,MPI_REAL8  ,0,Group_Comm,ierr)
-             CALL MPI_BCAST(ham_T2   ,1 ,MPI_REAL8  ,0,Group_Comm,ierr)
-             CALL MPI_BCAST(ham_U2   ,1 ,MPI_REAL8  ,0,Group_Comm,ierr)
-             CALL MPI_BCAST(ham_Tperp,1 ,MPI_REAL8  ,0,Group_Comm,ierr)
-             CALL MPI_BCAST(HS       ,64,MPI_CHARACTER, 0,Group_Comm,IERR)
+             CALL MPI_BCAST(N_SUN    ,1  ,MPI_INTEGER,   0,Group_Comm,ierr)
+             CALL MPI_BCAST(N_FL     ,1  ,MPI_INTEGER,   0,Group_Comm,ierr)
+             CALL MPI_BCAST(ham_T    ,1 ,MPI_REAL8   ,   0,Group_Comm,ierr)
+             CALL MPI_BCAST(ham_chem ,1 ,MPI_REAL8   ,   0,Group_Comm,ierr)
+             CALL MPI_BCAST(ham_U    ,1 ,MPI_REAL8   ,   0,Group_Comm,ierr)
+             CALL MPI_BCAST(ham_T2   ,1 ,MPI_REAL8   ,   0,Group_Comm,ierr)
+             CALL MPI_BCAST(ham_U2   ,1 ,MPI_REAL8   ,   0,Group_Comm,ierr)
+             CALL MPI_BCAST(ham_Tperp,1 ,MPI_REAL8   ,   0,Group_Comm,ierr)
+             CALL MPI_BCAST(Mz       ,1 ,MPI_LOGICAL ,   0,Group_Comm,IERR)
 
 #endif
           Case ("Hubbard_SU2_Ising")
@@ -386,18 +379,6 @@
              If (Irank_g == 0 ) then
 #endif
                 READ(5,NML=VAR_Ising)
-                Ltrot = nint(beta/dtau)
-                if (Projector) Thtrot = nint(theta/dtau)
-                Ltrot = Ltrot+2*Thtrot
-                if (Projector) then
-                  Write(50,*) 'Projective version'
-                  Write(50,*) 'Theta         : ', Theta
-                  Write(50,*) 'Tau_max       : ', beta
-                else
-                  Write(50,*) 'Finite temperture version'
-                  Write(50,*) 'Beta          : ', Beta
-                endif
-                Write(50,*) 'dtau,Ltrot_eff: ', dtau,Ltrot
                 Write(50,*) 'N_SUN         : ', N_SUN
                 Write(50,*) 'N_FL          : ', N_FL
                 Write(50,*) 't             : ', Ham_T
@@ -428,18 +409,6 @@
              If (Irank_g == 0 ) then
 #endif
                 READ(5,NML=VAR_t_V )
-                Ltrot = nint(beta/dtau)
-                if (Projector) Thtrot = nint(theta/dtau)
-                Ltrot = Ltrot+2*Thtrot
-                if (Projector) then
-                  Write(50,*) 'Projective version'
-                  Write(50,*) 'Theta         : ', Theta
-                  Write(50,*) 'Tau_max       : ', beta
-                else
-                  Write(50,*) 'Finite temperture version'
-                  Write(50,*) 'Beta          : ', Beta
-                endif
-                Write(50,*) 'dtau,Ltrot_eff: ', dtau,Ltrot
                 Write(50,*) 'N_SUN         : ', N_SUN
                 Write(50,*) 'N_FL          : ', N_FL
                 Write(50,*) 't             : ', Ham_T
@@ -459,7 +428,7 @@
           end Select
 
           If (Model == "Hubbard" )  then
-             If (HS == "Mz" )  then
+             If ( Mz )  then
                 Model = "Hubbard_Mz"
              else
                 Model = "Hubbard_SU2"
@@ -649,8 +618,17 @@
           Use Predefined_Int
           Implicit none
 
-          Integer :: nf, I, I1, I2,  nc, nc1,  J
+          Integer :: nf, I, I1, I2,  nc, nc1,  J, no
           Real (Kind=Kind(0.d0)) :: X
+          Real (Kind=Kind(0.d0)), allocatable :: Ham_U_vec(:)
+
+
+          Allocate (Ham_U_vec(Latt_unit%Norb))
+          Ham_U_vec(:)  = Ham_U
+          if ( Lattice_type == "Bilayer_square" .or. Lattice_type =="Bilayer_honeycomb" ) then
+             Ham_U_vec(1) = Ham_U
+             Ham_U_vec(2) = Ham_U2
+          endif
 
 
           Select case (Model)
@@ -664,16 +642,22 @@
           Case ("Hubbard_SU2")
              !Write(50,*) 'Model is ', Model
              Allocate(Op_V(Ndim,N_FL))
-             Do I = 1,Ndim
-                Call Predefined_Int_U_SUN(  OP_V(I,1), I, N_SUN, DTAU, Ham_U  )
-             Enddo
+             Do I1 = 1,Latt%N
+                do no = 1, Latt_unit%Norb
+                   I = invlist(I1,no)
+                   Call Predefined_Int_U_SUN(  OP_V(I,1), I, N_SUN, DTAU, Ham_U_vec(no)  )
+                enddo
+             enddo
           Case ("Hubbard_Mz")
              Allocate(Op_V(Ndim,N_FL))
-             do i  = 1, Ndim
-                Call Predefined_Int_U_MZ ( OP_V(I,1), OP_V(I,2), I,  DTAU, Ham_U )
-             enddo
-          Case ("Hubbard_SU2_Ising")
-             Allocate(Op_V(3*Ndim,N_FL))
+             Do I1 = 1,Latt%N
+                do no = 1, Latt_unit%Norb
+                    I = invlist(I1,no)
+                    Call Predefined_Int_U_MZ ( OP_V(I,1), OP_V(I,2), I,  DTAU, Ham_U_vec(no) )
+                 enddo
+              enddo
+           Case ("Hubbard_SU2_Ising")
+              Allocate(Op_V(3*Ndim,N_FL))
 
              Do nc = 1,Ndim*Latt_unit%N_coord   ! Runs over bonds.  Coordination number = 2.
                 ! For the square lattice Ndim = Latt%N
@@ -724,6 +708,8 @@
              Write(6,*) "Model not yet implemented!"
              Stop
           end Select
+
+          Deallocate (Ham_U_vec)
 
         end Subroutine Ham_V
 

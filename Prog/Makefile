@@ -1,4 +1,4 @@
-.PHONY : Compile tidy clean Examples Z2_Slave Z2_Matter Hub_Can Kondo_Honey
+.PHONY : Compile tidy clean Examples Z2_Slave Z2_Matter Hub_Can Kondo_Honey Hubbard
 
 OBJS= LRC_mod.o control_mod.o Fields_mod.o Operator_mod.o WaveFunction_mod.o observables_mod.o \
       Predefined_Int_mod.o Predefined_Obs_mod.o Predefined_Latt_mod.o Predefined_Hop_mod.o  Predefined_Trial_mod.o \
@@ -11,12 +11,14 @@ MODS= control.mod fields_mod.mod global_mod.mod hop_mod.mod lrc_mod.mod observab
       ed_state_mod.mod ed_ham_mod.mod \
       udv_state_mod.mod udv_wrap_mod.mod wavefunction_mod.mod wrapgr_mod.mod hamiltonian.mod
 OHAM= Hamiltonian_Examples_mod.o Hamiltonians/Hamiltonian_Z2_slave_spins_mod.o Hamiltonians/Hamiltonian_Z2_Matter_mod.o \
-      Hamiltonians/Hamiltonian_Hub_Canonical_mod.o Hamiltonians/Hamiltonian_Kondo_Honey_mod.o Hamiltonians/Hamiltonian_KN_Kondo_chain.o
-BINS= Examples.out Z2_slave_spins.out Z2_Matter.out Hubb_Can.out Kondo_Honey.out KN_Kondo.out
+      Hamiltonians/Hamiltonian_Hub_Canonical_mod.o Hamiltonians/Hamiltonian_Kondo_Honey_mod.o Hamiltonians/Hamiltonian_KN_Kondo_chain.o \
+	  Hamiltonians/Hamiltonian_Hubbard_mod.o
+BINS= Examples.out Z2_slave_spins.out Z2_Matter.out Hubb_Can.out Kondo_Honey.out KN_Kondo.out   Hubbard.out
 
       
 all:
 	(make tidy Examples)
+	(make tidy Hubbard)
 	(make tidy Z2_Slave)
 	(make tidy Z2_Matter)
 	(make tidy Hub_Can)
@@ -26,6 +28,10 @@ all:
 Examples:
 	./Git_config.sh
 	(make Compile TARGET="Examples.out" HAMILTONIAN="Hamiltonian_Examples_mod.o")
+
+Hubbard:
+	./Git_config.sh
+	(make Compile TARGET="Hubbard.out" HAMILTONIAN="Hamiltonians/Hamiltonian_Hubbard_mod.o")
 
 Kondo_KN:
 	./Git_config.sh

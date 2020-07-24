@@ -370,7 +370,7 @@
 
         Do nf = 1,N_FL
            Call WF_overlap(WF_L(nf), WF_R(nf), Z_norm)
-           Write(6,*) " Z_norm ", Z_norm
+           !Write(6,*) " Z_norm ", Z_norm
         enddo
         
         If (test) then
