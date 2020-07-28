@@ -477,8 +477,8 @@ export ALF_FLAGS_ANA
 export ALF_FLAGS_PROG
 
 env | awk '{print "export " $0}' > Makefile
-sed -i '/BASH_FUNC.*%%=()/d' Makefile
-sed -i '/}$/d' Makefile
+sed -i '/^export BASH_FUNC.*%%=()/d' Makefile
+sed -i '/^export }$/d' Makefile
 printf "\n" >> Makefile
 cat MakefileTemplate >> Makefile
 
