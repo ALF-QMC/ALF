@@ -476,4 +476,10 @@ export ALF_FLAGS_MODULES
 export ALF_FLAGS_ANA
 export ALF_FLAGS_PROG
 
+env | awk '{print "export " $0}' > Makefile
+sed -i '/BASH_FUNC.*%%=()/d' Makefile
+sed -i '/}$/d' Makefile
+printf "\n" >> Makefile
+cat MakefileTemplate >> Makefile
+
 printf "\nTo compile your program use:    'make'\n\n"
