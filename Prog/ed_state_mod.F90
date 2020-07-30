@@ -61,15 +61,15 @@ MODULE ed_state_mod
         complex(dp) :: factor
         integer :: N_orbitals, N_SUN, i
 
-        CONTAINS
-            PROCEDURE :: init => ed_state_init
-            PROCEDURE :: set => ed_state_set
-            PROCEDURE :: get_i => ed_state_get_i
-            PROCEDURE :: get_factor => ed_state_get_factor
-            PROCEDURE :: N_fermions => ed_state_N_fermions
-            PROCEDURE :: print => ed_state_print
-            PROCEDURE :: annihil_e => ed_state_annihil_e
-            PROCEDURE :: create_e  => ed_state_create_e
+      CONTAINS
+        PROCEDURE :: init => ed_state_init
+        PROCEDURE :: set => ed_state_set
+        PROCEDURE :: get_i => ed_state_get_i
+        PROCEDURE :: get_factor => ed_state_get_factor
+        PROCEDURE :: N_fermions => ed_state_N_fermions
+        PROCEDURE :: print => ed_state_print
+        PROCEDURE :: annihil_e => ed_state_annihil_e
+        PROCEDURE :: create_e  => ed_state_create_e
     END TYPE ed_state
 
 CONTAINS
@@ -82,7 +82,6 @@ CONTAINS
         this%N_orbitals = N_orbitals
         this%N_SUN = N_SUN
         this%i = 0
-
     end subroutine ed_state_init
 
 
@@ -93,7 +92,6 @@ CONTAINS
 
         this%i = i
         this%factor = cmplx( 1.d0, 0.d0, dp )
-
     end subroutine ed_state_set
 
 
@@ -104,7 +102,6 @@ CONTAINS
         integer :: ed_state_get_i
 
         ed_state_get_i = this%i
-
     end function ed_state_get_i
 
 
@@ -115,7 +112,6 @@ CONTAINS
         complex(dp) :: ed_state_get_factor
 
         ed_state_get_factor = this%factor
-
     end function ed_state_get_factor
 
 
@@ -130,7 +126,6 @@ CONTAINS
         do n = 0, 31
             if( btest(i, n) ) N_fermions = N_fermions + 1
         enddo
-
     end function N_fermions
 
 
@@ -141,7 +136,6 @@ CONTAINS
         integer :: ed_state_N_fermions
 
         ed_state_N_fermions = N_fermions(this%i)
-
     end function ed_state_N_fermions
 
 
@@ -152,7 +146,6 @@ CONTAINS
         character (len=32) :: str
 
         str = ''
-
         print*, this%factor
         do i=0, 31
             if ( btest(this%i, i) ) then
@@ -162,7 +155,6 @@ CONTAINS
             endif
         enddo
         print *, str
-
     end subroutine ed_state_print
 
 
@@ -185,7 +177,6 @@ CONTAINS
         endif
 
         this%i = IBCLR(this%i,i_e)
-
     end subroutine ed_state_annihil_e
 
 
@@ -208,7 +199,6 @@ CONTAINS
         endif
 
         this%i = IBSET(this%i,i_e)
-
     end subroutine ed_state_create_e
 
    END MODULE ed_state_mod

@@ -36,6 +36,7 @@ N_Global_tau = 1
 Nt_sequential_start = 0
 Nt_sequential_end = -1
 do_ED = .T.
+ED_N_Part = -1
 /
 
 &VAR_errors
