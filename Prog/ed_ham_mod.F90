@@ -344,7 +344,7 @@ CONTAINS
       IMPLICIT NONE
       class(ed_ham_part)  , intent(inout) :: this
 
-      INTEGER               :: INFO, LDA, LWORK, i
+      INTEGER               :: INFO, LDA, LWORK
       real(dp), allocatable :: E(:)
       complex(dp), allocatable :: TAU(:), WORK(:)
 
@@ -371,7 +371,7 @@ CONTAINS
       !SUBROUTINE DSTERF( N, D, E, INFO )
       CALL DSTERF( this%N_states, this%eigenval, E, INFO )
       if ( INFO .ne. 0 ) then
-        print*, "Error with DSTERF in ed_ham_eigenvalues", INFO
+        print*, "Error with DSTERF in ed_ham_part_eigenvalues", INFO
         stop 1
       endif
 
