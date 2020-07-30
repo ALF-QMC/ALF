@@ -1221,9 +1221,4 @@
         
       End SUBROUTINE DIAG_I
 
-      SUBROUTINE SECONDS(X)
-        IMPLICIT NONE
-        REAL (Kind=Kind(0.d0)), INTENT(INOUT) :: X
-
-        !DATE_AND_TIME(date, time, zone, values)
-        !date_and_time([date][,time][,zone][,values])
+END MODULE MYMATS
