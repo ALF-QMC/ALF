@@ -106,6 +106,49 @@
 !> ALF-project
 !>
 !> @brief 
+!>  Checks if the Hopping is
+!>  zero     -->  inquire_hop = 0
+!>  diagonal -->  inquire_hop = 1
+!>  full     -->  inquire_hop = 2
+!     
+!--------------------------------------------------------------------      
+      Integer function  inquire_hop(this)
+
+        Implicit none 
+        Type  (Hopping_Matrix_type), Intent(In)  :: this(:)
+
+        Real (Kind=Kind(0.d0)) :: Xmax_loc, Xmax_hop, Zero, X 
+        Integer :: nc, nf
+
+        Zero     =  1.D-10
+        Xmax_loc =  0.d0
+        Xmax_hop =  0.d0
+        
+        do nf = 1,size(this,1)
+           do nc = 1, size(this(1)%T_Loc,1)
+              X = sqrt(Real(this(nf)%T_Loc(nc)*conjg(this(nf)%T_Loc(nc)),kind(0.d0))) 
+              If ( X  > Xmax_loc)   Xmax_loc =  X
+           enddo
+           do nc = 1,this(1)%N_bonds
+              X = sqrt( Real(this(nf)%T(nc)*conjg( this(nf)%T(nc)),kind(0.d0) )  )
+              If ( X  > Xmax_hop )   Xmax_hop =  X
+           enddo
+        enddo
+
+        If (     Xmax_loc < Zero  .and.  Xmax_hop < Zero )  then
+           inquire_hop = 0     !  Zero
+        elseif ( Xmax_loc > Zero  .and.  Xmax_hop < Zero )  then
+           inquire_hop = 1     !  Diagonal
+        else
+           inquire_hop = 2     !  Full
+        endif
+        
+      end function inquire_hop
+!--------------------------------------------------------------------
+!> @author 
+!> ALF-project
+!>
+!> @brief 
 !> Default hopping for the square lattice.  Ham_T is the nearest neighbour hopping and Ham_Chem the chemical potention.
 !> 
 !     
@@ -139,7 +182,6 @@
            Deallocate ( Ham_T_perp_vec ) 
         else
            Allocate( this(N_FL) )
-
            
            Ham_T_max = 0.d0
            Do nf = 1,N_FL
@@ -178,34 +220,36 @@
            enddo
 
            !Set Checkerboard
-           this(1)%N_FAM  = 4
-           Allocate (this(1)%L_Fam(this(1)%N_FAM),  this(1)%Prop_Fam(this(1)%N_FAM), this(1)%Multiplicity(Latt_unit%Norb) )
-           this(1)%L_FAM  = Latt%N/2
-           this(1)%Prop_Fam= 1.d0
-           Allocate (this(1)%List_Fam(this(1)%N_FAM,this(1)%L_Fam(1),2))
-           this(1)%Multiplicity = 4
-           this(1)%L_FAM  = 0
-           do I = 1,Latt%N
-              if ( mod(Latt%List(I,1) + Latt%List(I,2),2) == 0 ) then
-                 Nf = 1
-                 this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I ! Unit cell
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 1 ! The bond (See above)
-                 Nf = 2
-                 this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 2 
-              else
-                 Nf = 3
-                 this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 1  
-                 Nf = 4
-                 this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 2  
-              endif
-           enddo
+           if ( Ham_T_max   > Zero ) then
+              this(1)%N_FAM  = 4
+              Allocate (this(1)%L_Fam(this(1)%N_FAM),  this(1)%Prop_Fam(this(1)%N_FAM), this(1)%Multiplicity(Latt_unit%Norb) )
+              this(1)%L_FAM  = Latt%N/2
+              this(1)%Prop_Fam= 1.d0
+              Allocate (this(1)%List_Fam(this(1)%N_FAM,this(1)%L_Fam(1),2))
+              this(1)%Multiplicity = 4
+              this(1)%L_FAM  = 0
+              do I = 1,Latt%N
+                 if ( mod(Latt%List(I,1) + Latt%List(I,2),2) == 0 ) then
+                    Nf = 1
+                    this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I ! Unit cell
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 1 ! The bond (See above)
+                    Nf = 2
+                    this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 2 
+                 else
+                    Nf = 3
+                    this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 1  
+                    Nf = 4
+                    this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 2  
+                 endif
+              enddo
+           endif
         endif
       end Subroutine Set_Default_hopping_parameters_square
 
@@ -274,7 +318,7 @@
            this(nf)%Bulk =   Bulk
         enddo
 
-        !Write(6,*) Latt_unit%Norb
+        ! Write(6,*) Latt_unit%Norb
         ! Set Checkerboard
         Allocate ( this(1)%Multiplicity(Latt_unit%Norb) )
         If     ( Latt_Unit%Norb  == 1 ) then
@@ -468,37 +512,35 @@
            if (abs(Ham_Tperp_vec(nf)) > Ham_Tperp_max ) Ham_Tperp_max = abs(Ham_Tperp_vec(nf))
         enddo
 
-        If (abs(Ham_T1_max) < Zero ) Then
-           Write(6,*) 'At least Ham_T1 has to be bigger than zero'
-           Stop
-        endif
+!!$        If (abs(Ham_T1_max) < Zero ) Then
+!!$           Write(6,*) 'At least Ham_T1 has to be bigger than zero'
+!!$           Stop
+!!$        endif
 
         
         Allocate( this(N_FL) )
         do nf = 1,N_FL
            N_bonds = 0
-           if (abs(Ham_T1_max)    > Zero )  N_bonds = N_bonds + 2
+           N_bonds = N_bonds + 2
            if (abs(Ham_Tperp_max) > Zero )  N_bonds = N_bonds + 1
            if (abs(Ham_T2_max)    > Zero )  N_bonds = N_bonds + 2
            this(nf)%N_bonds = N_bonds
            Allocate (this(nf)%List(this(nf)%N_bonds,4), &
                 &    this(nf)%T(this(nf)%N_bonds) )
            nc = 0
-           If (abs(Ham_T1_max) > Zero ) Then
-              nc = nc + 1
-              this(nf)%T(nc)    = cmplx(-Ham_T1_vec(nf),0.d0,kind(0.d0))
-              this(nf)%List(nc,1) = 1
-              this(nf)%List(nc,2) = 1
-              this(nf)%List(nc,3) = 0
-              this(nf)%List(nc,4) = 1
-              
-              nc = nc + 1
-              this(nf)%T(nc)    = cmplx(-Ham_T1_vec(nf),0.d0,kind(0.d0))
-              this(nf)%List(nc,1) = 1
-              this(nf)%List(nc,2) = 1
-              this(nf)%List(nc,3) = 1
-              this(nf)%List(nc,4) = 0
-           endif
+           nc = nc + 1
+           this(nf)%T(nc)    = cmplx(-Ham_T1_vec(nf),0.d0,kind(0.d0))
+           this(nf)%List(nc,1) = 1
+           this(nf)%List(nc,2) = 1
+           this(nf)%List(nc,3) = 0
+           this(nf)%List(nc,4) = 1
+           
+           nc = nc + 1
+           this(nf)%T(nc)    = cmplx(-Ham_T1_vec(nf),0.d0,kind(0.d0))
+           this(nf)%List(nc,1) = 1
+           this(nf)%List(nc,2) = 1
+           this(nf)%List(nc,3) = 1
+           this(nf)%List(nc,4) = 0
            
            If (abs(Ham_Tperp_max) > Zero ) Then
               nc = nc + 1
@@ -674,16 +716,17 @@
            if (abs(Ham_T2_vec   (nf)) > Ham_T2_max    ) Ham_T2_max    = abs(Ham_T2_vec(nf)   )
            if (abs(Ham_Tperp_vec(nf)) > Ham_Tperp_max ) Ham_Tperp_max = abs(Ham_Tperp_vec(nf))
         enddo
-        If (abs(Ham_T1_max) < Zero ) Then
-           Write(6,*) 'At least Ham_T1 has to be bigger than zero'
-           Stop
-        endif
+        
+!!$        If (abs(Ham_T1_max) < Zero ) Then
+!!$           Write(6,*) 'At least Ham_T1 has to be bigger than zero'
+!!$           Stop
+!!$        endif
 
 
         Allocate( this(N_FL) )
         do nf = 1,N_FL
            N_bonds = 0
-           if (abs(Ham_T1_max)    > Zero )  N_bonds = N_bonds + 3
+           N_bonds = N_bonds + 3
            if (abs(Ham_Tperp_max) > Zero )  N_bonds = N_bonds + 2
            if (abs(Ham_T2_max)    > Zero )  N_bonds = N_bonds + 3
            this(nf)%N_bonds =  N_Bonds
@@ -953,97 +996,119 @@
         !Write(6,*)  'N_FL ', N_FL
         Ndim =  Latt%N * Latt_Unit%Norb
         
-        If ( .not. Checkerboard) then
+
+        select case (inquire_hop(this))
+        case(0)  !  Zero
            allocate(Op_T(1,N_FL))
            do nf = 1,N_FL
-              !Write(6,*)
-              Call Op_make(Op_T(1,nf),Ndim)   ! This is too restrictive for the  Kondo type models. The hopping only occurs on one  subsystem. 
-              N_Phi     = this(nf)%N_Phi
-              Phi_X     = this(nf)%Phi_X  
-              Phi_Y     = this(nf)%Phi_Y 
-              Bulk      = this(nf)%Bulk
-              !Write(6,*) N_Phi, Phi_X,Phi_Y, Bulk
-              !Write(6,*) This(nf)%list
-              DO I = 1, Latt%N
-                 do Nb = 1, this(nf)%N_bonds
-                    no_I = this(nf)%list(Nb,1)
-                    no_J = this(nf)%list(Nb,2)
-                    n_1  = this(nf)%list(Nb,3)
-                    n_2  = this(nf)%list(Nb,4)
-                    J    = Latt%nnlist(I,n_1,n_2)
-                    Z    = Generic_hopping(I,no_I, n_1, n_2, no_J, N_Phi, Phi_x,Phi_y, Bulk, Latt, Latt_Unit)
-                    I1   = Invlist(I,no_I)
-                    J1   = Invlist(J,no_J)
-                    Op_T(1,nf)%O(I1,J1) = this(nf)%T(Nb)*Z
-                    Op_T(1,nf)%O(J1,I1) = Conjg(this(nf)%T(Nb)*Z)
-                 enddo
-                 ! T(N_b=1..N_bonds)
-                 ! List(N_b,1) = no_1
-                 ! List(N_b,2) = no_2
-                 ! List(N_b,3) = n_1
-                 ! List(N_b,4) = n_2
-                 ! H_[(i,no_1),(i + n_1 a_1 + n_2 a_2,no_2)] = T(N_b)
-                 Do no_I = 1, Latt_Unit%Norb
-                    I1   = Invlist(I,no_I)
-                    Op_T(1,nf)%O(I1,I1) = this(nf)%T_Loc(no_I)
-                 Enddo
-              enddo
-              Do I = 1,Ndim
-                 Op_T(1,nf)%P(i) = i 
-              Enddo
-              if ( this(nf)%N_bonds == 0 ) then 
-                 Op_T(1,nf)%g = 0.d0
-              else
-                 Op_T(1,nf)%g = -Dtau
-              endif
-              Op_T(1,nf)%alpha=cmplx(0.d0,0.d0, kind(0.D0))
+              Call Op_make(Op_T(1,nf),1)
+              Op_T(1,nf)%P(1)   = 1
+              Op_T(1,nf)%O(1,1) = cmplx(0.d0,0.d0, kind(0.d0)) 
+              Op_T(1,nf)%g      = 0.d0 
+              Op_T(1,nf)%alpha  = cmplx(0.d0,0.d0, kind(0.D0))
               Call Op_set(Op_T(1,nf))
-              !Do I = 1,Size(Op_T(1,nf)%E,1)
-              !   Write(6,*) Op_T(1,nf)%E(I)
-              !Enddo
-           Enddo
-        Elseif (Checkerboard) then
-           If (Symm) Call Symmetrize_families(this)
-           N = 0
-           do n_f = 1,this(1)%N_FAM
-              N = N +  this(1)%L_Fam(n_f)
            enddo
-           allocate(Op_T(N,N_FL))
+        case(1)  ! Diagonal 
+           allocate(Op_T(Ndim,N_FL))
            do nf = 1,N_FL
-              N_Phi     = this(nf)%N_Phi
-              Phi_X     = this(nf)%Phi_X  
-              Phi_Y     = this(nf)%Phi_Y 
-              Bulk      = this(nf)%Bulk 
-              do nc = 1, Size(Op_T,1)
-                 Call Op_make(Op_T(nc,nf),2)
+              do n = 1,ndim
+                 Call Op_make(Op_T(n,nf),1)
+                 Op_T(n,nf)%P(1)   = n
+                 Op_T(n,nf)%O(1,1) =  this(nf)%T_Loc(list(n,2))
+                 Op_T(n,nf)%g      = -Dtau
+                 Op_T(n,nf)%alpha  =  cmplx(0.d0,0.d0, kind(0.D0))
+                 Call Op_set(Op_T(n,nf))
               enddo
-              nc = 0
-              Do n_f = 1, this(1)%N_FAM
-                 Do l_f = 1, this(1)%L_Fam(n_f)
-                    I  = this(1)%List_Fam(n_f,l_f,1)
-                    nb = this(1)%List_Fam(n_f,l_f,2)
-                    no_I = this(nf)%list(Nb,1)
-                    no_J = this(nf)%list(Nb,2)
-                    n_1  = this(nf)%list(Nb,3)
-                    n_2  = this(nf)%list(Nb,4)
-                    J    = Latt%nnlist(I,n_1,n_2)
-                    Z    = Generic_hopping(I,no_I, n_1, n_2, no_J, N_Phi, Phi_x,Phi_y, Bulk, Latt, Latt_Unit)
-                    I1   = Invlist(I,no_I)
-                    J1   = Invlist(J,no_J)
-                    nc = nc + 1
-                    Op_T(nc,nf)%P(1) = I1 
-                    Op_T(nc,nf)%P(2) = J1 
-                    Op_T(nc,nf)%O(1,2) = this(nf)%T(Nb)*Z
-                    Op_T(nc,nf)%O(2,1) = Conjg(this(nf)%T(Nb)*Z)
-                    Op_T(nc,nf)%O(1,1) = this(nf)%T_loc(no_I)/this(1)%Multiplicity(no_I)
-                    Op_T(nc,nf)%O(2,2) = this(nf)%T_loc(no_J)/this(1)%Multiplicity(no_J)
-                    Op_T(nc,nf)%g = -Dtau*this(1)%Prop_Fam(n_f)
-                    Op_T(nc,nf)%alpha=cmplx(0.d0,0.d0, kind(0.D0))
-                    Call Op_set(Op_T(nc,nf))
+           enddo
+        case default
+           If ( .not. Checkerboard) then
+              allocate(Op_T(1,N_FL))
+              do nf = 1,N_FL
+                 !Write(6,*)
+                 Call Op_make(Op_T(1,nf),Ndim)   ! This is too restrictive for the  Kondo type models. The hopping only occurs on one  subsystem. 
+                 N_Phi     = this(nf)%N_Phi
+                 Phi_X     = this(nf)%Phi_X  
+                 Phi_Y     = this(nf)%Phi_Y 
+                 Bulk      = this(nf)%Bulk
+                 !Write(6,*) N_Phi, Phi_X,Phi_Y, Bulk
+                 !Write(6,*) This(nf)%list
+                 DO I = 1, Latt%N
+                    do Nb = 1, this(nf)%N_bonds
+                       no_I = this(nf)%list(Nb,1)
+                       no_J = this(nf)%list(Nb,2)
+                       n_1  = this(nf)%list(Nb,3)
+                       n_2  = this(nf)%list(Nb,4)
+                       J    = Latt%nnlist(I,n_1,n_2)
+                       Z    = Generic_hopping(I,no_I, n_1, n_2, no_J, N_Phi, Phi_x,Phi_y, Bulk, Latt, Latt_Unit)
+                       I1   = Invlist(I,no_I)
+                       J1   = Invlist(J,no_J)
+                       Op_T(1,nf)%O(I1,J1) = this(nf)%T(Nb)*Z
+                       Op_T(1,nf)%O(J1,I1) = Conjg(this(nf)%T(Nb)*Z)
+                    enddo
+                    ! T(N_b=1..N_bonds)
+                    ! List(N_b,1) = no_1
+                    ! List(N_b,2) = no_2
+                    ! List(N_b,3) = n_1
+                    ! List(N_b,4) = n_2
+                    ! H_[(i,no_1),(i + n_1 a_1 + n_2 a_2,no_2)] = T(N_b)
+                    Do no_I = 1, Latt_Unit%Norb
+                       I1   = Invlist(I,no_I)
+                       Op_T(1,nf)%O(I1,I1) = this(nf)%T_Loc(no_I)
+                    Enddo
+                 enddo
+                 Do I = 1,Ndim
+                    Op_T(1,nf)%P(i) = i 
+                 Enddo
+                 Op_T(1,nf)%g = -Dtau
+                 Op_T(1,nf)%alpha=cmplx(0.d0,0.d0, kind(0.D0))
+                 Call Op_set(Op_T(1,nf))
+                 !Do I = 1,Size(Op_T(1,nf)%E,1)
+                 !   Write(6,*) Op_T(1,nf)%E(I)
+                 !Enddo
+              Enddo
+           Elseif (Checkerboard) then
+              If (Symm) Call Symmetrize_families(this)
+              N = 0
+              do n_f = 1,this(1)%N_FAM
+                 N = N +  this(1)%L_Fam(n_f)
+              enddo
+              allocate(Op_T(N,N_FL))
+              do nf = 1,N_FL
+                 N_Phi     = this(nf)%N_Phi
+                 Phi_X     = this(nf)%Phi_X  
+                 Phi_Y     = this(nf)%Phi_Y 
+                 Bulk      = this(nf)%Bulk 
+                 do nc = 1, Size(Op_T,1)
+                    Call Op_make(Op_T(nc,nf),2)
+                 enddo
+                 nc = 0
+                 Do n_f = 1, this(1)%N_FAM
+                    Do l_f = 1, this(1)%L_Fam(n_f)
+                       I  = this(1)%List_Fam(n_f,l_f,1)
+                       nb = this(1)%List_Fam(n_f,l_f,2)
+                       no_I = this(nf)%list(Nb,1)
+                       no_J = this(nf)%list(Nb,2)
+                       n_1  = this(nf)%list(Nb,3)
+                       n_2  = this(nf)%list(Nb,4)
+                       J    = Latt%nnlist(I,n_1,n_2)
+                       Z    = Generic_hopping(I,no_I, n_1, n_2, no_J, N_Phi, Phi_x,Phi_y, Bulk, Latt, Latt_Unit)
+                       I1   = Invlist(I,no_I)
+                       J1   = Invlist(J,no_J)
+                       nc = nc + 1
+                       Op_T(nc,nf)%P(1) = I1 
+                       Op_T(nc,nf)%P(2) = J1 
+                       Op_T(nc,nf)%O(1,2) = this(nf)%T(Nb)*Z
+                       Op_T(nc,nf)%O(2,1) = Conjg(this(nf)%T(Nb)*Z)
+                       Op_T(nc,nf)%O(1,1) = this(nf)%T_loc(no_I)/this(1)%Multiplicity(no_I)
+                       Op_T(nc,nf)%O(2,2) = this(nf)%T_loc(no_J)/this(1)%Multiplicity(no_J)
+                       Op_T(nc,nf)%g = -Dtau*this(1)%Prop_Fam(n_f)
+                       Op_T(nc,nf)%alpha=cmplx(0.d0,0.d0, kind(0.D0))
+                       Call Op_set(Op_T(nc,nf))
+                    Enddo
                  enddo
               enddo
-           enddo
-        endif
+           endif
+        end select
         
       end Subroutine Predefined_Hoppings_set_OPT
 
@@ -1074,33 +1139,49 @@
         Logical                           :: Bulk
         Complex(Kind=Kind(0.d0))          :: Z 
 
-        N_FL  =  Size(GRC,3)
 
-        Z_Kin = cmplx(0.d0,0.d0,Kind(0.d0))
-        do nf = 1,N_FL
-           N_Phi     = this(nf)%N_Phi
-           Phi_X     = this(nf)%Phi_X  
-           Phi_Y     = this(nf)%Phi_Y 
-           Bulk      = this(nf)%Bulk 
-           DO I = 1, Latt%N
-              do Nb = 1, this(nf)%N_bonds
-                 no_I = this(nf)%list(Nb,1)
-                 no_J = this(nf)%list(Nb,2)
-                 n_1  = this(nf)%list(Nb,3)
-                 n_2  = this(nf)%list(Nb,4)
-                 J    = Latt%nnlist(I,n_1,n_2)
-                 Z    = Generic_hopping(I,no_I, n_1, n_2, no_J, N_Phi, Phi_x,Phi_y, Bulk, Latt, Latt_Unit)
-                 I1   = Invlist(I,no_I)
-                 J1   = Invlist(J,no_J)
-                 Z_Kin = Z_Kin + this(nf)%T(Nb)*Z * GRC(I1,J1,nf) + conjg(this(nf)%T(Nb)*Z)*GRC(J1,I1,nf)
+        select case (inquire_hop(this))
+        case(0)  !  Zero
+           Z_Kin = cmplx(0.d0,0.d0,Kind(0.d0))
+        case(1)
+           Z_Kin = cmplx(0.d0,0.d0,Kind(0.d0))
+           N_FL  =  Size(GRC,3)
+           do nf = 1,N_FL
+              do I = 1, Latt%N
+                 Do no_I = 1, Latt_Unit%Norb
+                    I1   = Invlist(I,no_I)
+                    Z_Kin = Z_Kin   +  this(nf)%T_Loc(no_I)*GRC(I1,I1,nf)
+                 Enddo
               enddo
-              Do no_I = 1, Latt_Unit%Norb
-                 I1   = Invlist(I,no_I)
-                 Z_Kin = Z_Kin   +  this(nf)%T_Loc(no_I)*GRC(I1,I1,nf)
-              Enddo
            enddo
-        enddo
-           
+        case default
+           N_FL  =  Size(GRC,3)
+           Z_Kin = cmplx(0.d0,0.d0,Kind(0.d0))
+           do nf = 1,N_FL
+              N_Phi     = this(nf)%N_Phi
+              Phi_X     = this(nf)%Phi_X  
+              Phi_Y     = this(nf)%Phi_Y 
+              Bulk      = this(nf)%Bulk 
+              DO I = 1, Latt%N
+                 do Nb = 1, this(nf)%N_bonds
+                    no_I = this(nf)%list(Nb,1)
+                    no_J = this(nf)%list(Nb,2)
+                    n_1  = this(nf)%list(Nb,3)
+                    n_2  = this(nf)%list(Nb,4)
+                    J    = Latt%nnlist(I,n_1,n_2)
+                    Z    = Generic_hopping(I,no_I, n_1, n_2, no_J, N_Phi, Phi_x,Phi_y, Bulk, Latt, Latt_Unit)
+                    I1   = Invlist(I,no_I)
+                    J1   = Invlist(J,no_J)
+                    Z_Kin = Z_Kin + this(nf)%T(Nb)*Z * GRC(I1,J1,nf) + conjg(this(nf)%T(Nb)*Z)*GRC(J1,I1,nf)
+                 enddo
+                 Do no_I = 1, Latt_Unit%Norb
+                    I1   = Invlist(I,no_I)
+                    Z_Kin = Z_Kin   +  this(nf)%T_Loc(no_I)*GRC(I1,I1,nf)
+                 Enddo
+              enddo
+           enddo
+        end select
+        
       end Subroutine Predefined_Hoppings_Compute_Kin
 !--------------------------------------------------------------------
 !> @author 

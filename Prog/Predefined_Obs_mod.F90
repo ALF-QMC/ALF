@@ -428,8 +428,8 @@
               no_J = List(J1,2)
               imj  = latt%imj(I,J)
               ZZ   =      (GTT(I1,I1,1) -  GTT(I1,I1,2) ) * ( G00(J1,J1,1)  -  G00(J1,J1,2) )   &
-                   &    - (G0T(J1,I1,1) * GT0(I1,J1,1)  +  G0T(J1,I1,2) * GT0(I1,J1,2) )
-              ZXY  =    - (G0T(J1,I1,1) * GT0(I1,J1,2)  +  G0T(J1,I1,2) * GT0(I1,J1,1) )
+                   &    -  G0T(J1,I1,1) * GT0(I1,J1,1)  -  G0T(J1,I1,2) * GT0(I1,J1,2) 
+              ZXY  =    -  G0T(J1,I1,1) * GT0(I1,J1,2)  -  G0T(J1,I1,2) * GT0(I1,J1,1) 
               ObsZ  %Obs_Latt(imj,NT+1,no_I,no_J) =  ObsZ %Obs_Latt(imj,NT+1,no_I,no_J)  +  ZZ*ZP*ZS
               ObsXY %Obs_Latt(imj,NT+1,no_I,no_J) =  ObsXY%Obs_Latt(imj,NT+1,no_I,no_J)  +  ZXY*ZP*ZS
               ObsXYZ%Obs_Latt(imj,NT+1,no_I,no_J) =  ObsXYZ%Obs_Latt(imj,NT+1,no_I,no_J) + (2.d0*ZXY + ZZ)*ZP*ZS/3.d0
