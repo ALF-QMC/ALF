@@ -69,7 +69,7 @@ Tolerance = 0.1
 /
 
 &VAR_Hubbard
-!HS = "Mz"
+Mz = .true.
 ham_T = 1.0
 ham_chem = 0.0
 ham_U = 4.0

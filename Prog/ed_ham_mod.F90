@@ -211,7 +211,7 @@ CONTAINS
       integer :: i, n1, n2, sigma, s
       type(ed_state) :: state
 
-      call state%init(this%N_orbitals, this%N_SUN)
+      call state%init(this%N_orbitals, this%N_SUN, this%N_FL)
 
       do i=0, this%N_states-1
         if( .not.this%restrict_N_part .or. N_fermions(i) == this%N_part ) then
@@ -255,7 +255,7 @@ CONTAINS
           stop 1
       endif
 
-      call state%init(this%N_orbitals, this%N_SUN)
+      call state%init(this%N_orbitals, this%N_SUN, this%N_FL)
 
       temp = cmplx(0.d0, 0.d0, dp)
       do s=1, this%N_FL

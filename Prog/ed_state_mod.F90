@@ -59,7 +59,7 @@ MODULE ed_state_mod
 !> Defines a state in the Fock space, for exact diagonalisation.
         private
         complex(dp) :: factor
-        integer :: N_orbitals, N_SUN, i
+        integer :: N_orbitals, N_SUN, N_FL, i
 
       CONTAINS
         PROCEDURE :: init => ed_state_init
@@ -74,13 +74,14 @@ MODULE ed_state_mod
 
 CONTAINS
 
-    subroutine ed_state_init(this, N_orbitals, N_SUN)
+    subroutine ed_state_init(this, N_orbitals, N_SUN, N_FL)
         IMPLICIT NONE
         class(ed_state), INTENT(INOUT) :: this
-        integer, intent(in) :: N_orbitals, N_SUN
+        integer, intent(in) :: N_orbitals, N_SUN, N_FL
 
         this%N_orbitals = N_orbitals
         this%N_SUN = N_SUN
+        this%N_FL = N_FL
         this%i = 0
     end subroutine ed_state_init
 
@@ -166,6 +167,7 @@ CONTAINS
         integer :: i_e
 
         i_e = this%N_orbitals * (this%N_SUN*s + sigma) + i0
+        ! i_e = (i0 + sigma*this%N_orbitals) * this%N_FL + s
 
         if( .not. btest(this%i, i_e) ) then
             this%factor = cmplx(0.d0, 0.d0, dp)
@@ -188,6 +190,7 @@ CONTAINS
         integer :: i_e
 
         i_e = this%N_orbitals * (this%N_SUN*s + sigma) + i0
+        ! i_e = (i0 + sigma*this%N_orbitals) * this%N_FL + s
 
         if( btest(this%i,i_e) ) then
             this%factor = cmplx(0.d0, 0.d0, dp)
