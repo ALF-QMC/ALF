@@ -1,40 +1,40 @@
 !  Copyright (C) 2017, 2018 The ALF project
-! 
+!
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
-! 
+!
 !     The ALF project is distributed in the hope that it will be useful,
 !     but WITHOUT ANY WARRANTY; without even the implied warranty of
 !     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 !     GNU General Public License for more details.
-! 
+!
 !     You should have received a copy of the GNU General Public License
 !     along with ALF.  If not, see http://www.gnu.org/licenses/.
-!     
+!
 !     Under Section 7 of GPL version 3 we require you to fulfill the following additional terms:
-!     
+!
 !     - It is our hope that this program makes a contribution to the scientific community. Being
 !       part of that community we feel that it is reasonable to require you to give an attribution
 !       back to the original authors if you have benefitted from this program.
 !       Guidelines for a proper citation can be found on the project's homepage
 !       https://alf.physik.uni-wuerzburg.de .
-!       
+!
 !     - We require the preservation of the above copyright notice and this license in all original files.
-!     
-!     - We prohibit the misrepresentation of the origin of the original source files. To obtain 
+!
+!     - We prohibit the misrepresentation of the origin of the original source files. To obtain
 !       the original source files please visit the homepage https://alf.physik.uni-wuerzburg.de .
-! 
+!
 !     - If you make substantial changes to the program we require you to either consider contributing
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !
-!> @brief 
+!> @brief
 !> Handles UDV decompositions
 !>
 !>
@@ -42,15 +42,17 @@
 
 
 MODULE UDV_State_mod
+    use iso_fortran_env, only: output_unit, error_unit
+
     IMPLICIT NONE
     PRIVATE
     PUBLIC :: UDV_State
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
-!>   
-!> @brief 
+!>
+!> @brief
 !> Handles UDV decompositions
 !>
 !> @details
@@ -86,9 +88,9 @@ MODULE UDV_State_mod
 #else
         REAL    (Kind=Kind(0.d0)), allocatable :: L(:)
 #endif
-        INTEGER   :: ndim, n_part  ! ndim: number of orbitals per flavor. n_part: number of particles per flavor 
-        CHARACTER :: side          ! side = R  for right propagation :   B       * P_R = U d v 
-                                   ! side = L  for lesft propagation :   (P_L B)^{dag} = U d v^{dag} 
+        INTEGER   :: ndim, n_part  ! ndim: number of orbitals per flavor. n_part: number of particles per flavor
+        CHARACTER :: side          ! side = R  for right propagation :   B       * P_R = U d v
+                                   ! side = L  for lesft propagation :   (P_L B)^{dag} = U d v^{dag}
         CONTAINS
             PROCEDURE :: alloc => alloc_UDV_state
             PROCEDURE :: init => init_UDV_state
@@ -107,19 +109,19 @@ MODULE UDV_State_mod
 
 CONTAINS
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !
-!> @brief 
+!> @brief
 !> This function initializes the memory of an object.
 !>
 !> @param [inout] this class(UDV_state)
 !> \verbatim The object to be  allocated \endverbatim
 !> @param [in] t Integer
-!> \verbatim Number of orbitals \endverbatim 
+!> \verbatim Number of orbitals \endverbatim
 !> @param [in]  t_part optional   Integer
 !> \verbatim Number of particles (projective code)  or number of orbitals (finite temperature code).
-!>If not present then t_part is set to t \endverbatim 
+!>If not present then t_part is set to t \endverbatim
 !>
 !-------------------------------------------------------------------
      SUBROUTINE alloc_UDV_state(this, t, t_part)
@@ -127,7 +129,7 @@ CONTAINS
        CLASS(UDV_State), INTENT(INOUT) :: this
        INTEGER, INTENT(IN) :: t
        INTEGER, INTENT(IN), OPTIONAL :: t_part
-       
+
        this%ndim = t
        if( present(t_part) ) then
           this%N_part=t_part
@@ -142,12 +144,12 @@ CONTAINS
        ALLOCATE(this%L(this%N_part))
 #endif
      END SUBROUTINE alloc_UDV_state
-     
+
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !
-!> @brief 
+!> @brief
 !> This function allocates  the memory of an object and initializes
 !> the U=P and V=1 and D=1.
 !>
@@ -165,16 +167,16 @@ CONTAINS
        INTEGER,   INTENT(IN) :: t
        CHARACTER, INTENT(IN) :: side
        COMPLEX(kind=kind(0.d0)), INTENT(IN), OPTIONAL :: P(:,:)
-       
+
        this%side=side
        if( present(P)) then
           if ( t .ne. size(P,1) ) then
-             write(*,*) "Mismatching Ndim between explicitly provided argument and implicitly provided size(P,1)"
-             stop 1
+             write(error_unit,*) "Mismatching Ndim between explicitly provided argument and implicitly provided size(P,1)"
+             error stop 1
           endif
           if ( t < size(P,2) .or. size(P,2) < 0 ) then
-             write(*,*) "Illegal number of particles provided as size(P,2) (0 <= N_part <= Ndim)"
-             stop 1
+             write(error_unit,*) "Illegal number of particles provided as size(P,2) (0 <= N_part <= Ndim)"
+             error stop 1
           endif
           CALL this%alloc(t,size(P,2))
           CALL this%reset(side,P)
@@ -183,12 +185,12 @@ CONTAINS
           CALL this%reset(side)
        endif
      END SUBROUTINE init_UDV_state
-     
+
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !
-!> @brief 
+!> @brief
 !> This function initializes the scales of an object: this%%D(scale_idx)=scale_val
 !>
 !> @param [inout] this Class(UDV_State)
@@ -201,19 +203,19 @@ CONTAINS
        CLASS(UDV_State), INTENT(INOUT) :: this
        COMPLEX (Kind=Kind(0.d0)), INTENT(IN) :: scale_val
        INTEGER, INTENT(IN) :: scale_idx
-       
+
 #if !defined(LOG)
        this%D(scale_idx)=scale_val
 #else
        this%L(scale_idx)=log(dble(scale_val))
 #endif
      END SUBROUTINE setscale_UDV_state
-     
+
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !
-!> @brief 
+!> @brief
 !> This function returns the scales of an object. scale_val=this%D(scale_idx)
 !>
 !> @param [in] this Class(UDV_state)
@@ -225,19 +227,19 @@ CONTAINS
        CLASS(UDV_State), INTENT(IN) :: this
        COMPLEX (Kind=Kind(0.d0)), INTENT(out) :: scale_val
        INTEGER, INTENT(IN) :: scale_idx
-       
+
 #if !defined(LOG)
        scale_val=this%D(scale_idx)
 #else
        scale_val=cmplx(exp(this%L(scale_idx)),0.d0,kind(0.d0))
 #endif
      END SUBROUTINE getscale_UDV_state
-     
+
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !
-!> @brief 
+!> @brief
 !> This function deallocates the occupied memory.
 !>
 !> @param [inout] this Class(UDV_State)
@@ -245,7 +247,7 @@ CONTAINS
      SUBROUTINE dealloc_UDV_state(this)
        IMPLICIT NONE
        CLASS(UDV_State), INTENT(INOUT) :: this
-       
+
        !V is only allocated in finite temperature version
        IF(ALLOCATED(this%V)) DEALLOCATE(this%V)
        DEALLOCATE(this%U)
@@ -255,17 +257,17 @@ CONTAINS
        DEALLOCATE(this%L)
 #endif
      END SUBROUTINE dealloc_UDV_state
-     
+
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !
-!> @brief 
-!> This function reinitializes the opject to 
+!> @brief
+!> This function reinitializes the opject to
 !> U=P, V=1 and D=1.  If P is not present then U=1.
 !>
 !> @param [inout] this Class(UDV_state)
-!> @param [IN] side Character 
+!> @param [IN] side Character
 !> @param [IN] P(:,:), optional   Complex
 !-------------------------------------------------------------------
      SUBROUTINE reset_UDV_state(this, side, P)
@@ -274,7 +276,7 @@ CONTAINS
        CHARACTER, INTENT(IN) ::side
        COMPLEX (Kind=Kind(0.d0)), OPTIONAL :: P(:,:)
        COMPLEX (Kind=Kind(0.d0)) :: alpha, beta
-       
+
        alpha = 0.D0
        beta = 1.D0
        this%side=side
@@ -296,10 +298,10 @@ CONTAINS
      END SUBROUTINE reset_UDV_state
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !
-!> @brief 
+!> @brief
 !> A helper function to print the state.
 !>
 !> @param [inout] this Class(UVD_state)
@@ -308,7 +310,7 @@ CONTAINS
        IMPLICIT NONE
        CLASS(UDV_State), INTENT(IN) :: this
        INTEGER :: i
-       
+
        WRITE(*,*) "Side = ", this%side
        WRITE(*,*) "NDim = ", this%ndim
        WRITE(*,*) "N_part = ", this%N_part
@@ -330,16 +332,16 @@ CONTAINS
        WRITE(*,*) this%L(:)
 #endif
      END SUBROUTINE print_UDV_state
-     
+
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !
-!> @brief 
+!> @brief
 !> Assign this=src
 !>
-!> @param [inout] this  Class(UDV_state) 
-!> @param [in] src Class(UDV_state) 
+!> @param [inout] this  Class(UDV_state)
+!> @param [in] src Class(UDV_state)
 !-------------------------------------------------------------------
 #if __INTEL_COMPILER_BUILD_DATE == 20190206 || __INTEL_COMPILER_BUILD_DATE == 20190416 || __INTEL_COMPILER_BUILD_DATE == 20190815
      ! Handle bug in ifort 19.3, 19.4 and 19.5, that breaks ASSIGNMENT(=), IMPURE is an Intel keyword.
@@ -350,12 +352,12 @@ CONTAINS
        IMPLICIT NONE
        CLASS(UDV_State), INTENT(INOUT) :: this
        CLASS(UDV_State), INTENT(IN) :: src
-       
+
        IF(this%ndim .ne. src%ndim .or. this%n_part .ne. src%n_part) call this%dealloc
        this%ndim = src%ndim
        this%n_part = src%n_part
        this%side = src%side
-       
+
        IF(.not. ALLOCATED(this%U)) ALLOCATE(this%U(this%ndim, this%n_part))
        IF(.not. ALLOCATED(this%V) .and. ALLOCATED(src%V)) ALLOCATE(this%V(this%n_part, this%n_part))
        ASSOCIATE(ndim => src%ndim)
@@ -371,9 +373,9 @@ CONTAINS
        this%L = src%L
 #endif
      END SUBROUTINE assign_UDV_state
-     
+
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !
 !> @brief
@@ -384,19 +386,19 @@ CONTAINS
      !> \verbatim
      !>  if UDV%side = r then
      !>  On input  IN  = A * UDV%D * UDV%V  and A is  an arbitrary matrix stored in UDV%U.
-     !>                  UDV%D  and  UDV%V stem from previous calls to this routine. 
+     !>                  UDV%D  and  UDV%V stem from previous calls to this routine.
      !>  On outut  IN  = UDV%U * UDV%D * UDV%V
      !>                  Here Det(V) = 1,  D is a real diagonal matrix, and U column orthornormal
      !>
      !>  if UDV%side = l then
      !>  On input  IN  = A * UDV%D * (UDV%V)^{dag}  and A is  an arbitrary matrix stored in UDV%U.
-     !>                  UDV%D and  UDV%V stem from previous calls to this routine. 
+     !>                  UDV%D and  UDV%V stem from previous calls to this routine.
      !>  On outut  IN  = UDV%U * UDV%D * (UDV%V)^{dag}
      !>                  Here Det(V) = 1,  D is a real diagonal matrix, and U column orthornormal
      !> \endverbatim
 !>
 !-------------------------------------------------------------------
-     SUBROUTINE decompose_UDV_state(UDVR) 
+     SUBROUTINE decompose_UDV_state(UDVR)
        Use QDRP_mod
        Use MyMats
        Implicit None
@@ -413,7 +415,7 @@ CONTAINS
 #else
        LOGICAL :: FORWRD
 #endif
-       
+
        ! QR(TMP * U * D) * V
        Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
        Ndim = UDVR%ndim
@@ -527,18 +529,18 @@ CONTAINS
        CALL ZUNGQR(Ndim, N_part, N_part, UDVR%U, Ndim, TAU, WORK, LWORK, INFO)
        ! scale first column of U to correct the scaling in V such that UDV is not changed
        call ZSCAL(Ndim,phase,UDVR%U(1,1),1)
-       
+
        DEALLOCATE(TAU, WORK, IPVT)
-       
+
      END SUBROUTINE decompose_UDV_state
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !
-!> @brief 
+!> @brief
 !> This function sends the UDV-State to MPI-process of rank dest
-!> and replaces the state with the one it receives from MPI-process of rank source 
+!> and replaces the state with the one it receives from MPI-process of rank source
 !
 !> @param [inout] this The Class(UDV_state)
 !> @param [in] dest MPI-rank of process where this will be sent
@@ -549,16 +551,16 @@ CONTAINS
 !> @param [out] IERR
  !-------------------------------------------------------------------
 
-#if defined(MPI) 
+#if defined(MPI)
      SUBROUTINE MPI_Sendrecv_UDV_state(this, dest, sendtag, source, recvtag, STATUS, IERR)
        Use mpi
        Implicit None
-       
+
        CLASS(UDV_State), INTENT(INOUT) :: this
        INTEGER, intent(in)  :: dest, sendtag, source, recvtag
        Integer, intent(out) :: STATUS(MPI_STATUS_SIZE), IERR
        INTEGER :: n
-       
+
        n = this%ndim * this%ndim
        CALL MPI_Sendrecv_replace(this%U, n, MPI_COMPLEX16, dest, sendtag, &
             &                source, recvtag, MPI_COMM_WORLD, STATUS, IERR)
@@ -573,5 +575,5 @@ CONTAINS
 #endif
      END SUBROUTINE MPI_Sendrecv_UDV_state
 #endif
-      
+
    END MODULE UDV_State_mod

@@ -1,4 +1,5 @@
       Module Log_Mesh
+        use iso_fortran_env, only: output_unit, error_unit
 
         Type logmesh
            Real (Kind=Kind(0.d0))  :: Lambda, Center, Log_Lambda
@@ -14,11 +15,11 @@
            module procedure Lookup_log_mesh_R, Lookup_log_mesh_C
         end Interface
         Interface Inter_log_mesh
-           module procedure Inter_log_mesh_R, Inter_log_mesh_C 
+           module procedure Inter_log_mesh_R, Inter_log_mesh_C
         end Interface
 
       Contains
-        
+
         !< Rng The Range
 
         subroutine Make_log_mesh ( Mesh,  Lambda, Center, Rng, Type, Nw_1 )
@@ -27,22 +28,22 @@
 
           Type (logmesh)      :: Mesh
           Real (Kind=Kind(0.d0))       :: Lambda, Center, Rng
-          Integer, Optional   :: Nw_1 
-          Integer             :: N, Nw 
+          Integer, Optional   :: Nw_1
+          Integer             :: N, Nw
           Character(len=10)   :: Type
 
           Real (Kind=Kind(0.d0))  :: Dom, Om_st, Om_en
 
           Mesh%Center     = Center
           Mesh%Range      = Rng
-          If (Type == "Log" ) Then 
+          If (Type == "Log" ) Then
              OM_st = Center - Rng
              OM_en = Center + Rng
              Mesh%Om_st = Om_st
              Mesh%Om_en = Om_en
              Mesh%Lambda     = Lambda
              Mesh%Type       = "Log"
-             if (Present(Nw_1) ) then 
+             if (Present(Nw_1) ) then
                 Nw = Nw_1
              else
                 Nw = NINT(10.D0*log(10.D0)/log(Lambda))
@@ -50,7 +51,7 @@
              Mesh%Nw         = Nw
              Mesh%Nom        = 2*Nw + 3
              Mesh%Log_Lambda = Log(Lambda)
-             Allocate   ( Mesh%Xom(2*Nw + 3), Mesh%DXom(2*Nw+3) ) 
+             Allocate   ( Mesh%Xom(2*Nw + 3), Mesh%DXom(2*Nw+3) )
              Do n = 0,Nw
                 Mesh%xom (n+1          ) =  Center  -   Rng * (Lambda**(-n))
              enddo
@@ -64,12 +65,12 @@
              If ( Present(Nw_1)  ) then
                 Nw   = Nw_1
                 Mesh%Nw   = Nw
-                Mesh%Nom  = 2*Nw + 1  
+                Mesh%Nom  = 2*Nw + 1
                 Mesh%Type = "Lin"
-                Allocate   ( Mesh%Xom(2*Nw + 1), Mesh%DXom(2*Nw+1) ) 
+                Allocate   ( Mesh%Xom(2*Nw + 1), Mesh%DXom(2*Nw+1) )
                 OM_st = Center - Rng
                 OM_en = Center + Rng
-                Dom = Rng/dble(Nw_1) 
+                Dom = Rng/dble(Nw_1)
                 Mesh%Dom   = Dom
                 Mesh%Om_st = Om_st
                 Mesh%Om_en = Om_en
@@ -77,60 +78,60 @@
                    Mesh%xom(n)  = Om_st + dble(n-1)*dom
                 enddo
              else
-                Write(6,*) ' You need to include Nw  for the Lin Mesh '
-                stop
+                Write(error_unit,*) 'Make_log_mesh: You need to include Nw for the Lin Mesh'
+                error stop 1
              endif
           else
-             Write(6,*) 'Mesh has no type!! '
-             stop
+             Write(error_unit,*) 'Make_log_mesh: Mesh has no type!!'
+             error stop 1
           endif
           do n = 1,Mesh%Nom-1
-             Mesh%DXom(n) = Mesh%xom (n+1) - Mesh%xom (n ) 
+             Mesh%DXom(n) = Mesh%xom (n+1) - Mesh%xom (n )
           enddo
-             
+
         end subroutine Make_log_mesh
 
         subroutine Clear_log_mesh ( Mesh )
           Implicit None
 
           Type (logmesh)      :: Mesh
-          
-          deallocate   ( Mesh%Xom,  Mesh%DXom  ) 
-          
+
+          deallocate   ( Mesh%Xom,  Mesh%DXom  )
+
         end subroutine Clear_log_mesh
 
-        Integer  Function m_find(X,Mesh) 
+        Integer  Function m_find(X,Mesh)
 
           Implicit None
 
           Type (logmesh) :: Mesh
           Real (Kind=Kind(0.d0))  :: X
           Integer        :: m
-          
-          if ( Mesh%Type  == "Log" ) then 
+
+          if ( Mesh%Type  == "Log" ) then
              if ( X >  (Mesh%OM_en) .or.  X < (Mesh%Om_st) ) then
                 m = 0
              else
-                if      ( X < Mesh%Xom(Mesh%Nw+1) ) then 
+                if      ( X < Mesh%Xom(Mesh%Nw+1) ) then
                    m = 2 - Int( log ( (Mesh%Center - X)/Mesh%Range )  / Mesh%Log_Lambda )
                    !Write(6,*) 'Hi 1', X
-                elseif  ( X >  Mesh%Xom(Mesh%Nw+3) ) then 
+                elseif  ( X >  Mesh%Xom(Mesh%Nw+3) ) then
                    m = 2*Mesh%Nw + 3 + Int( log ( (X- Mesh%Center) /Mesh%Range )  / Mesh%Log_Lambda )
                    !Write(6,*) 'Hi 2', X, Mesh%Center +  Mesh%Range
                 elseif  ( X >  Mesh%Center )      then
                    m = Mesh%Nw+3
-                else 
+                else
                    m = Mesh%Nw+2
                 endif
              endif
              m_find = m
-          else 
+          else
              m_find = int((x - Mesh%Om_st)/Mesh%dom) + 2
              if (m_find > Mesh%Nom) m_find=Mesh%Nom
              if (m_find < 2 ) m_find=2
           endif
 
-          
+
           !Write(6,*)
           !Write(6,*) 'Point: ', X
           !if (  m > 0 ) then
@@ -138,7 +139,7 @@
           !else
           !   Write(6,*) 'Out of range '
           !endif
-          
+
         end Function m_find
 !*******
         Real(Kind=Kind(0.d0)) Function  Lookup_log_mesh_R(f, x,Mesh,m_1)
@@ -151,7 +152,7 @@
           Integer      , Optional     :: m_1
 
           Integer ::  m
-          Real (Kind=Kind(0.d0)) :: X1,X2,Y1,Y2,a,b 
+          Real (Kind=Kind(0.d0)) :: X1,X2,Y1,Y2,a,b
 
           m = m_find(X,Mesh)
           if (m == 0 ) then
@@ -160,16 +161,16 @@
              x1 = Mesh%xom(m-1)
              x2 = Mesh%xom(m  )
              y1 = f(m-1)
-             y2 = f(m) 
+             y2 = f(m)
              a = (y1-y2)/(x1-x2)
              b = (x1*y2 - x2*y1)/(x1-x2)
              Lookup_log_mesh_R = a*x + b
           endif
-          
+
           If  ( Present(m_1) )  m_1 = m
 
         end Function Lookup_log_mesh_R
-        
+
 
 
 !*******
@@ -184,7 +185,7 @@
 !!$
 !!$
 !!$          Integer  ::  n, m
-!!$          Complex  (Kind=Kind(0.d0)) :: X1,X2,Y1,Y2,a,b 
+!!$          Complex  (Kind=Kind(0.d0)) :: X1,X2,Y1,Y2,a,b
 !!$
 !!$          m = m_find(X,Mesh)
 !!$          if (m == 0 ) then
@@ -193,12 +194,12 @@
 !!$             x1 = cmplx( Mesh%xom(m-1),0.d0 )
 !!$             x2 = cmplx( Mesh%xom(m  ),0.d0 )
 !!$             y1 = f(m-1)
-!!$             y2 = f(m  )  
+!!$             y2 = f(m  )
 !!$             a = (y1-y2)/(x1-x2)
 !!$             b = (x1*y2 - x2*y1)/(x1-x2)
 !!$             Lookup_log_mesh_C = a*cmplx( x , 0.d0 ) + b
 !!$          endif
-!!$          
+!!$
 !!$          If  ( Present(m_1) )  m_1 = m
 !!$
 !!$        end Function Lookup_log_mesh_C
@@ -225,11 +226,11 @@
              x2 =  Mesh%xom(m  )
              t  = (x1 - X)/(x2-x1)
              Z1 = f(m-1)
-             Z2 = f(m  )  
+             Z2 = f(m  )
              Z  = Z1 + (Z1-Z2)*t
              Lookup_log_mesh_C = Z
           endif
-          
+
           If  ( Present(m_1) )  m_1 = m
 
         end Function Lookup_log_mesh_C
@@ -250,7 +251,7 @@
              X = X + Mesh%DXom(n) * (f(n+1) + f(n) )
           enddo
           Inter_log_mesh_R = X / 2.d0
-          
+
         end Function Inter_log_mesh_R
 
 !******
@@ -268,7 +269,7 @@
              Z = Z + Mesh%DXom(n) * ( f(n+1) + f(n) )
           enddo
           Inter_log_mesh_C = Z /2.d0
-          
+
         end Function Inter_log_mesh_C
 
 
@@ -278,7 +279,7 @@
           Implicit None
 
           Type (logmesh) :: Mesh
-          
+
           Integer :: n
 
           If (Mesh%Type == "Log" ) Then
@@ -311,8 +312,6 @@
 
 
         end subroutine Print_log_mesh
-        
-        
-      end Module Log_Mesh
 
-      
+
+      end Module Log_Mesh

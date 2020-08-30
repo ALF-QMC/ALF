@@ -24,7 +24,7 @@ stages:
   stage: build
   <<: *exemptfiles_definition
   script:
-    - export PATH="/opt/pgi/linux86-64/2016/bin:$PATH"
+    - export PATH="/opt/pgi/linux86-64/2019/bin:$PATH"
     - pgfortran --version
     - . configure.sh PGI serial
     - make all
@@ -86,8 +86,8 @@ GQMCT_OpenSuse-42.1:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:opensuse-42.1-gfortran-blas-lapack
   <<: *build_definition
 
-GQMCT_Jessie-PGI:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-pgi
+GQMCT_Buster-PGI:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:buster-pgi1910
   <<: *build_definition_pgi
 
 GQMCT_Ubuntu_Trusty:
@@ -149,8 +149,8 @@ GQMCT_OpenSuse-42.1_conv:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi:opensuse-42.1-gfortran-blas-lapack
   <<: *warnconv_definition
 
-GQMCT_Jessie-PGI_conv:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:stretch-pgi1710
+GQMCT_Buster-PGI_conv:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:buster-pgi1910
   stage: warnconv
   except:
     changes:
@@ -159,7 +159,7 @@ GQMCT_Jessie-PGI_conv:
       - README.md
       - license.*
   script:
-    - export PATH="/opt/pgi/linux86-64/2017/bin:$PATH"
+    - export PATH="/opt/pgi/linux86-64/2019/bin:$PATH"
     - pgfortran --version
     - . configure.sh PGI serial
     - make all
@@ -204,8 +204,8 @@ GQMCT_Ubuntu-bionic_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/ubuntu:bionic-beaver-gfortran-lapack
   <<: *test_definition
 
-GQMCT_Jessie-PGI_tests:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:debian-jessie-pgi-cmake
+GQMCT_Buster-PGI_tests:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:buster-pgi1910-cmake
   stage: test
   except:
     changes:
@@ -214,7 +214,7 @@ GQMCT_Jessie-PGI_tests:
       - README.md
       - license.*
   script:
-    - export PATH="/opt/pgi/linux86-64/2016/bin:$PATH"
+    - export PATH="/opt/pgi/linux86-64/2019/bin:$PATH"
     - pgfortran --version
     - . configure.sh PGI serial
     - make lib
@@ -223,7 +223,7 @@ GQMCT_Jessie-PGI_tests:
     - cd testsuite
     - cmake -E make_directory tests
     - cd tests
-    - cmake -G "Unix Makefiles" -DCMAKE_Fortran_FLAGS_RELEASE="${F90OPTFLAGS} -noswitcherror -L/opt/pgi/linux86-64/2016/lib/ -llapack -lblas" -DCMAKE_Fortran_COMPILER="/opt/pgi/linux86-64/2016/bin/pgfortran" -DCMAKE_BUILD_TYPE=RELEASE -DLAPACK_LIBRARIES="/opt/pgi/linux86-64/2016/lib/liblapack.a" -DBLAS_LIBRARIES="/opt/pgi/linux86-64/2016/lib/libblas.a" ..
+    - cmake -G "Unix Makefiles" -DCMAKE_Fortran_FLAGS_RELEASE="${F90OPTFLAGS} -noswitcherror -L/opt/pgi/linux86-64/2019/lib/ -llapack -lblas" -DCMAKE_Fortran_COMPILER="/opt/pgi/linux86-64/2019/bin/pgfortran" -DCMAKE_BUILD_TYPE=RELEASE -DLAPACK_LIBRARIES="/opt/pgi/linux86-64/2019/lib/liblapack.a" -DBLAS_LIBRARIES="/opt/pgi/linux86-64/2019/lib/libblas.a" ..
     - cmake --build . --target all --config Release
     - ctest -VV -O log.txt
     - cat log.txt | grep "tests passed" | cut -d " " -f 1
@@ -261,3 +261,15 @@ create_doc:
   script:
     - cd Documentation
     - latexmk -pdf doc.tex
+
+create_doxygen:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:buster-clang
+  stage: build
+  artifacts:
+    expire_in: 120 days
+    paths:
+      - doxygen/*
+      - Images/*
+  script:
+      - apt-get update && apt install -y doxygen graphviz
+      - doxygen doxygen/Doxyfile

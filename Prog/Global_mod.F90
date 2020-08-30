@@ -49,6 +49,7 @@ Module Global_mod
       Use Control
       Use Observables
       Use Fields_mod
+      use iso_fortran_env, only: output_unit, error_unit
 
       Implicit none
 
@@ -792,8 +793,8 @@ Module Global_mod
 
 
         if(udvl(1)%side .ne. "L" .and. udvl(1)%side .ne. "l" ) then
-           write(*,*) "calling wrong decompose"
-           Stop
+           write(error_unit,*) "Compute_Fermion_Det: calling wrong decompose"
+           error stop 1
         endif
 
         NSTM = Size(udvst, 1)

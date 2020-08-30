@@ -40,7 +40,7 @@
 !--------------------------------------------------------------------
      Module Observables
 
-       Use Files_mod
+       use iso_fortran_env, only: output_unit, error_unit
 
        Type :: Obser_Vec
 !>  Data structure for
@@ -182,15 +182,15 @@
            Ntau  = Size(Obs%Obs_Latt,2)
            Norb  = Size(Obs%Obs_Latt,3)
            if ( .not. (Latt%N  == Ns ) ) then
-              Write(6,*) 'Error in Print_bin'
-              Stop
+              Write(error_unit,*) 'Error in Print_bin'
+              error stop 1
            endif
            If (Ntau == 1) then
-              File_suff ="_eq"
+              File_suff = "_eq"
            else
-              File_suff  ="_tau"
+              File_suff = "_tau"
            endif
-           File_pr  = file_add(Obs%File_Latt,File_suff )
+           write(File_pr, '(A,A)') trim(Obs%File_Latt), Trim(File_suff)
            Allocate (Tmp(Ns,Ntau,Norb,Norb))
            Obs%Obs_Latt  =   Obs%Obs_Latt /dble(Obs%N   )
            Obs%Obs_Latt0 =   Obs%Obs_Latt0/dble(Obs%N*Ns*Ntau)
@@ -227,7 +227,7 @@
                     enddo
                  enddo
               enddo
-              Open (Unit=10,File=File_pr, status="unknown",  position="append")
+              Open (Unit=10,File=File_pr, status="unknown", position="append")
               If ( Ntau == 1 ) then
                  Write(10,*) Obs%Ave_sign,Norb,Latt%N
               else
@@ -284,8 +284,8 @@
 #endif
            Obs%Obs_vec  = Obs%Obs_vec /dble(Obs%N)
            Obs%Ave_sign = Obs%Ave_sign/dble(Obs%N)
-           File_suff ="_scal"
-           File_pr = file_add(Obs%name,File_suff)
+           File_suff = "_scal"
+           write(File_pr, '(A,A)') trim(Obs%name), Trim(File_suff)
 
 #if defined(MPI)
            No = size(Obs%Obs_vec, 1)

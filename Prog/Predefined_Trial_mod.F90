@@ -1,5 +1,5 @@
 !  Copyright (C) 2016 - 2020 The ALF project
-! 
+!
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
 !     the Free Software Foundation, either version 3 of the License, or
@@ -30,36 +30,37 @@
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !>
-!> @brief 
+!> @brief
 !> This module provides a set of predefined trial wave functions.
-!>       
+!>
 !
 !--------------------------------------------------------------------
 
     Module Predefined_Trial
-      
+
       Use Lattices_v3
       Use Operator_mod
       Use WaveFunction_mod
       Use MyMats
       Use Predefined_Hoppings
-      
+      use iso_fortran_env, only: output_unit, error_unit
+
       Implicit none
-      
-      
+
+
     contains
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !>
-!> @brief 
+!> @brief
 !>    Sets the trial wave function corresponding to the solution of the non-interacting
 !>    tight binding Hamiltonian on the given lattice. Twisted boundary conditions (Phi_X=0.01)
-!>    are implemented so as to generate a non-degenerate trial wave functions. 
+!>    are implemented so as to generate a non-degenerate trial wave functions.
 !> @param [in]  Lattice_type
 !>    Character(64)
 !> \verbatim
@@ -78,9 +79,9 @@
 !> @param [in]  List, Invlist
 !>    Integer(:,:)
 !> \verbatim
-!>    List(I=1.. Ndim,1)    =   Unit cell of site I    
-!>    List(I=1.. Ndim,2)    =   Orbital index  of site I    
-!>    Invlist(Unit_cell,Orbital) = site I    
+!>    List(I=1.. Ndim,1)    =   Unit cell of site I
+!>    List(I=1.. Ndim,2)    =   Orbital index  of site I
+!>    Invlist(Unit_cell,Orbital) = site I
 !> \endverbatim
 !> @param [in]    Latt
 !>    Type(Lattice)
@@ -103,10 +104,10 @@
 !>    Wavefunction
 !>    Also sets the degeneracy:  E(N_part + 1) - E(N_part). Energy eigenvalues are ordered in ascending order.
 !> \endverbatim
-!>       
-!------------------------------------------------------------------       
+!>
+!------------------------------------------------------------------
       Subroutine Predefined_TrialWaveFunction(Lattice_type, Ndim,  List,Invlist,Latt, Latt_unit, &
-           &                                  N_part, N_FL,  WF_L, WF_R) 
+           &                                  N_part, N_FL,  WF_L, WF_R)
 
 
 
@@ -118,7 +119,7 @@
         Type(Unit_cell), Intent(in)                   :: Latt_Unit
         Type(WaveFunction), Intent(out), Dimension(:), allocatable :: WF_L, WF_R
 
-        
+
         Type(Operator),  dimension(:,:), allocatable  :: OP_tmp
         Type (Hopping_Matrix_type), allocatable       :: Hopping_Matrix_tmp(:)
         Real (Kind=Kind(0.d0))                        :: Dtau, Ham_T, Ham_Chem, XB_X, XB_Y, Phi_X, Phi_Y, Dimer
@@ -127,17 +128,17 @@
         Type (Lattice)                                :: Latt_Kekule
         Real (Kind=Kind(0.d0))  :: A1_p(2), A2_p(2), L1_p(2), L2_p(2), x_p(2),x1_p(2), hop(3), del_p(2)
         Real (Kind=Kind(0.d0))  :: delta = 0.01, Ham_T1, Ham_T2, Ham_Tperp
-        
+
         Integer :: N, nf, I, I1, I2, nc, nc1, IK_u, I_u, J1, lp, J, N_Phi
-        Logical :: Test=.false. ,  Bulk =.true. 
+        Logical :: Test=.false. ,  Bulk =.true.
         Complex (Kind=Kind(0.d0)) :: Z_norm
 
         Real (Kind=Kind(0.d0) ), allocatable :: Ham_T_vec(:), Ham_Tperp_vec(:), Ham_Chem_vec(:), Phi_X_vec(:), Phi_Y_vec(:),&
                &                                Ham_T2_vec(:)
         Integer, allocatable ::   N_Phi_vec(:)
 
-        
-        
+
+
         Allocate(WF_L(N_FL),WF_R(N_FL))
         do n=1,N_FL
            Call WF_alloc(WF_L(n),Ndim,N_part)
@@ -145,7 +146,7 @@
         enddo
 
 
-        
+
         Allocate (Ham_T_vec(N_FL), Ham_T2_vec(N_FL), Ham_Tperp_vec(N_FL), Ham_Chem_vec(N_FL), Phi_X_vec(N_FL), Phi_Y_vec(N_FL),&
              &                                    N_Phi_vec(N_FL) )
 
@@ -153,7 +154,7 @@
         Checkerboard  = .false.
         Kekule_Trial  = .false.
         Symm          = .false.
-        
+
 
         N_Phi       = 0
         Phi_X       = 0.d0
@@ -164,7 +165,7 @@
         Ham_Tperp   = 0.d0
         Ham_Chem    = 0.d0
         Dtau        = 1.d0
-        
+
         N_Phi_vec      = N_Phi
         Phi_X_vec      = Phi_X
         Phi_Y_vec      = Phi_Y
@@ -172,10 +173,10 @@
         Ham_Tperp_vec  = Ham_Tperp
         Ham_T2_vec     = Ham_T2
         Ham_Chem_vec   = Ham_Chem
-        
+
 
         Select case (Lattice_type)
-           
+
         case ("Honeycomb")
            If (Kekule_Trial) then
               !  Kekule Mass term to avoid  degeneracy at half-filling.
@@ -183,10 +184,10 @@
               do n = 1,N_FL
                  Call Op_make(Op_Tmp(1,n),Ndim)
               enddo
-              
+
               If (test) then
-                 Open (Unit=31,status="Unknown", file="Tmp1_latt") 
-                 Open (Unit=32,status="Unknown", file="Tmp2_latt") 
+                 Open (Unit=31,status="Unknown", file="Tmp1_latt")
+                 Open (Unit=32,status="Unknown", file="Tmp2_latt")
                  Open (Unit=33,status="Unknown", file="Tmp3_latt")
               endif
               A1_p = 2.d0 * Latt%a1_p  - Latt%a2_p
@@ -195,26 +196,26 @@
               L2_p = Latt%L2_p
               Call Make_Lattice( L1_p, L2_p, A1_p,  A2_p, Latt_Kekule)
               Call Print_latt(Latt_Kekule)
-              
+
               DO I = 1, Latt_Kekule%N
                  x_p = dble(Latt_Kekule%list(I,1))*Latt_Kekule%a1_p + dble(Latt_Kekule%list(I,2))*Latt_Kekule%a2_p
                  IK_u   = Inv_R(x_p,Latt)
                  do nc  = 1, 3
                     select case (nc)
                     case (1)
-                       I_u    =  IK_u 
+                       I_u    =  IK_u
                        hop(1) =  1.d0 + delta
                        hop(2) =  1.d0 - delta
                        hop(3) =  1.d0
                     case (2)
-                       I_u    = Latt%nnlist(IK_u,0,1) 
-                       hop(1) =  1.d0 
+                       I_u    = Latt%nnlist(IK_u,0,1)
+                       hop(1) =  1.d0
                        hop(2) =  1.d0 + delta
                        hop(3) =  1.d0 - delta
                     case (3)
-                       I_u     = Latt%nnlist(IK_u,1,0) 
+                       I_u     = Latt%nnlist(IK_u,1,0)
                        hop(1) =  1.d0 - delta
-                       hop(2) =  1.d0 
+                       hop(2) =  1.d0
                        hop(3) =  1.d0 + delta
                     end select
                     x_p = dble(Latt%list(I_u,1))*Latt%a1_p + dble(Latt%list(I_u,2))*Latt%a2_p
@@ -223,15 +224,15 @@
                        select case (nc1)
                        case (1)
                           J1 = invlist(I_u,2)
-                          del_p(:)  =  Latt_unit%Orb_pos_p(2,:) 
+                          del_p(:)  =  Latt_unit%Orb_pos_p(2,:)
                        case (2)
                           J1 = invlist(Latt%nnlist(I_u,1,-1),2)
                           del_p(:)   =  Latt%a1_p(:) - Latt%a2_p(:)  + Latt_unit%Orb_pos_p(2,:)
                        case (3)
-                          J1 = invlist(Latt%nnlist(I_u,0,-1),2) 
-                          del_p(:)   =  - Latt%a2_p(:) +  Latt_unit%Orb_pos_p(2,:) 
+                          J1 = invlist(Latt%nnlist(I_u,0,-1),2)
+                          del_p(:)   =  - Latt%a2_p(:) +  Latt_unit%Orb_pos_p(2,:)
                        end select
-                       
+
                        x1_p = X_p + del_p
                        lp = 32
                        if (hop(nc1) > 1.d0 ) lp = 33
@@ -250,7 +251,7 @@
               Enddo
               do n = 1,N_FL
                  Do I = 1,Ndim
-                    Op_Tmp(1,n)%P(i) = i 
+                    Op_Tmp(1,n)%P(i) = i
                  Enddo
                  Op_Tmp(1,n)%g    = cmplx(1.d0, 0.d0,kind(0.d0))
                  Op_Tmp(1,n)%alpha= cmplx(0.d0,0.d0, kind(0.D0))
@@ -276,21 +277,21 @@
                        case (2)
                           J1 = invlist(Latt%nnlist(I,1,-1),2)
                        case (3)
-                          J1 = invlist(Latt%nnlist(I,0,-1),2) 
+                          J1 = invlist(Latt%nnlist(I,0,-1),2)
                        case default
-                          Write(6,*) ' Error in  Ham_Hop '  
-                          Stop
+                          Write(error_unit,*) 'Error in  Predefined_TrialWaveFunction'
+                          error stop 1
                        end select
-                       Op_Tmp(1,n)%O(I1,J1) = cmplx(-Ham_T,    0.d0, kind(0.D0)) 
-                       Op_Tmp(1,n)%O(J1,I1) = cmplx(-Ham_T,    0.d0, kind(0.D0)) 
+                       Op_Tmp(1,n)%O(I1,J1) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+                       Op_Tmp(1,n)%O(J1,I1) = cmplx(-Ham_T,    0.d0, kind(0.D0))
                     Enddo
                     I1 = invlist(Latt%nnlist(I,1,-1),2)
                     J1 = invlist(Latt%nnlist(I,0, 1),1)
-                    Op_Tmp(1,n)%O(I1,J1) = cmplx(-Ham_T1,    0.d0, kind(0.D0)) 
+                    Op_Tmp(1,n)%O(I1,J1) = cmplx(-Ham_T1,    0.d0, kind(0.D0))
                     Op_Tmp(1,n)%O(J1,I1) = cmplx(-Ham_T1,    0.d0, kind(0.D0))
                  enddo
                  do I = 1,Ndim
-                    Op_Tmp(1,n)%P(i) = i 
+                    Op_Tmp(1,n)%P(i) = i
                  Enddo
                  Op_Tmp(1,n)%g    = cmplx(1.d0, 0.d0,kind(0.d0))
                  Op_Tmp(1,n)%alpha= cmplx(0.d0,0.d0, kind(0.D0))
@@ -329,33 +330,33 @@
            Call  Set_Default_hopping_parameters_Bilayer_honeycomb(Hopping_Matrix_tmp,Ham_T_vec,Ham_T2_vec,Ham_Tperp_vec, Ham_Chem_vec, Phi_X_vec, &
                 &                                                 Phi_Y_vec, Bulk,  N_Phi_vec, N_FL,&
                 &                                                 List, Invlist, Latt, Latt_unit )
-           
+
         case default
-           Write(6,*) 'No predefined trial wave function '
-           stop
+           Write(error_unit,*) 'No predefined trial wave function for this lattice.'
+           error stop 1
         end Select
 
-           
+
         If (Lattice_type .ne. "Honeycomb" )   &
              &     Call  Predefined_Hoppings_set_OPT(Hopping_Matrix_tmp,List,Invlist,Latt,  Latt_unit,  Dtau, Checkerboard, Symm, OP_tmp )
 
-        
+
 !!$           Symm          = .false.
-!!$           !If (Lattice_type == "Square"  ) then 
+!!$           !If (Lattice_type == "Square"  ) then
 !!$           !   Dimer    = 0.001d0
 !!$           !else
 !!$           Phi_X    = 0.01
 !!$           !endif
-!!$           
+!!$
 !!$           Call Predefined_Hopping(Lattice_type ,Ndim, List,Invlist,Latt, Latt_Unit, &
 !!$                &                    Dtau, Ham_T, Ham_Chem,  Phi_X, Phi_Y,  Bulk, N_Phi,&
 !!$                &                    N_FL,  Checkerboard, Symm,  OP_tmp, Dimer )
-!!$           
-!!$           
-!!$           
+!!$
+!!$
+!!$
 !!$        end Select
-        
-        
+
+
         Do nf = 1,N_FL
            Call Diag(Op_tmp(1,nf)%O,Op_tmp(1,nf)%U,Op_tmp(1,nf)%E)
            do I2=1,N_part
@@ -372,7 +373,7 @@
            Call WF_overlap(WF_L(nf), WF_R(nf), Z_norm)
            !Write(6,*) " Z_norm ", Z_norm
         enddo
-        
+
         If (test) then
            DO  I = 1,NDim
               Write(6,*) Op_tmp(1,1)%E(I)
@@ -393,6 +394,6 @@
 
       end Subroutine Predefined_TrialWaveFunction
 
-      
-      
+
+
      end Module Predefined_Trial
