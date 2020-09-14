@@ -4,171 +4,252 @@
 % under a Creative Commons Attribution-ShareAlike 4.0 International License.
 % For the licensing details of the documentation see license.CCBYSA.
 
-% !TEX root = Doc.tex
+% !TEX root = doc.tex
 %------------------------------------------------------------
 \subsection{File structure}\label{sec:files}
 %------------------------------------------------------------
 %
 \begin{table}[h]
-   \begin{tabular}{@{} l l @{}}\toprule
-   Directory & Description \\\midrule
-   \path{Prog/} & Main program and subroutines  \\
-  \path{Libraries/} & Collection of mathematical routines \\  
-  \path{Analysis/} & Routines for error analysis \\
-  \path{Examples/} & Example simulations for Hubbard-type models\\
-  \path{Start/}   & Parameter files and scripts  \\
-  \path{Documentation/} & Documentation of the QMC code.\\\bottomrule
-  \hline
-%   \path{configure.sh} & sets the global variables for compilation \\
-   \end{tabular}
-   \caption{Overview of the directories.\label{table:files}}
+	\begin{center}
+	\begin{tabular}{@{} l l @{}}\toprule
+   	Directory                             & Description \\\midrule
+   	\path{Prog/}                          & Main program and subroutines  \\
+   	\path{Libraries/}                     & Collection of mathematical routines \\  
+  	\path{Analysis/}                      & Routines for error analysis \\
+  	\path{Scripts_and_Parameters_files/}  & Helper scripts and the \path{Start/} directory, which contains \\ 
+  	                                      & the files required to start a run \\
+  	\path{Documentation/}                 & This documentation\\
+  	\path{testsuite/}                     & A suite for automatic testing various parts of the code\\ \bottomrule
+  	\hline
+	\end{tabular}
+   	\caption{Overview of the directories included in the ALF package.\label{table:files}}
+   \end{center}
 \end{table}
 %
 
-The code package consists of the program directories \path{Prog/}, \path{Libraries/} and \path{Analysis/}. 
-The example simulations corresponding to the walkthroughs of Sec.~\ref{sec:walk1} - \ref{sec:walk2} are included in \path{Examples/}. 
-The package content is summarized in Table~\ref{table:files}.
+The code package, summarized in Table~\ref{table:files}, consists of the program directories \path{Prog/}, \path{Libraries/}, and \path{Analysis/}, as well as the directory \path{Scripts_and_Parameters_files/}, which contains supporting scripts and, in its subdirectory \path{Start}, the input files necessary for a run, described in the Sec.~\ref{sec:input}.
+The routines available in the directory \path{Analysis/} are described in Sec.~\ref{sec:analysis}, and the testsuite in Sec.~\ref{sec:compilation}. 
+
+Below we describe the structure of the input and output files of the QMC. Notice that the input/output files for the Analysis routines are described in Sec.~\ref{sec:analysis}.
 
 %------------------------------------------------------------
 \subsubsection{Input files}\label{sec:input}
 %------------------------------------------------------------
 %
-\begin{table}[h]
-   \begin{tabular}{@{} l l @{}}\toprule
-   File & Description \\\midrule
-  \path{parameters} &  Sets the parameters for lattice, model, QMC process, and the error analysis.\\
-  \path{seeds} & List of integer numbers to initialize the random number generator and \\
-   & to start a simulation from scratch.
-   %\\
- %  \path{confin_<thread number>} & Input files for the HS and Ising configuration, used to continue a simulation.
-  \\\bottomrule
-   \end{tabular}
-   \caption{Overview of the input files in \texttt{Start/} required for a simulation. \label{table:input}}
-\end{table}
-%
+
 The input files are listed in Table~\ref{table:input}. 
 The parameter file \path{Start/parameters} has the following form --
-using as an example  the $SU(2)$-symmetric Hubbard model on a square lattice (see Sec.~\ref{sec:walk1} for a detailed walkthrough):
+using as an example the Hubbard model on a square lattice (see Sec.~\ref{sec:hubbard} for the general SU(N) Hubbard and Sec.~\ref{sec:vanilla} for a detailed walk-through on its plain vanilla version):
 %
-\lstset{style=fortran}
-\begin{lstlisting} 
+\begin{lstlisting}[style=fortran,escapechar=\#,breaklines=true]
+!=======================================================================================
+!  Input variables for a general ALF run
+!---------------------------------------------------------------------------------------
 
-===============================================================================
-!  Variables for the Hubb program
-!-------------------------------------------------------------------------------
-&VAR_lattice
-L1 = 4                    ! Length in direction a_1
-L2 = 4                    ! Length in direction a_2
-Lattice_type = "Square"	  ! a_1 = (1,0),  a_2=(0,1),  Norb=1, N_coord=2
-!Lattice_type ="Honeycomb"! a_1 = (1,0),  a_2 =(1/2,sqrt(3)/2), Norb=2, N_coord=3
-Model = "Hubbard_SU2"     ! Sets Nf=1, N_sun=2. HS field couples to the density
-!Model = "Hubbard_Mz"     ! Sets Nf=2, N_sun=1. HS field couples to the 
-                          ! z-component of magnetization.  
-!Model="Hubbard_SU2_Ising"! Sets Nf_1, N_sun=2 and runs only for the square lattice
-                          ! Hubbard model  coupled to transverse Ising field
-/
-&VAR_Hubbard              ! Variables for the Hubbard model
-ham_T   = 1.D0            ! Hopping parameter
-ham_chem= 0.D0            ! chemical potential
-ham_U   = 4.D0            ! Hubbard interaction
-Beta    = 5.D0            ! inverse temperature
-dtau    = 0.1D0           ! Thereby Ltrot=Beta/dtau
+&VAR_lattice               !! Parameters defining the specific lattice and base model
+L1           = 6            ! Length in direction a_1
+L2           = 6            ! Length in direction a_2
+Lattice_type = "Square"     ! Sets a_1 = (1,0), a_2=(0,1), Norb=1, N_coord=2
+Model        = "Hubbard"    ! Sets the Hubbard model, to be specified in &VAR_Hubbard
 /
 
-&VAR_Ising                ! Model parameters for the Ising code
-Ham_xi = 1.d0             ! Only needed if Model="Hubbard_SU2_Ising"
-Ham_J  = 0.2d0
-Ham_h  = 2.d0
+&VAR_Model_Generic         !! Common model parameters
+Checkerboard = .T.          ! Whether checkerboard decomposition is used
+Symm         = .T.          ! Whether symmetrization takes place
+N_SUN        = 2            ! Number of colors
+N_FL         = 1            ! Number of flavors
+Phi_X        = 0.d0         ! Twist along the L_1 direction, in units of the flux quanta
+Phi_Y        = 0.d0         ! Twist along the L_2 direction, in units of the flux quanta
+Bulk         = .T.          ! Twist as a vector potential (.T.), or at the boundary (.F.)
+N_Phi        = 0            ! Total number of flux quanta traversing the lattice
+Dtau         = 0.1d0        ! Thereby Ltrot=Beta/dtau
+Beta         = 5.d0         ! Inverse temperature
+Projector    = .F.          ! Whether the projective algorithm is used
+Theta        = 10.d0        ! Projection parameter
 /
 
-&VAR_QMC                  ! Variables for the QMC run
-Nwrap   = 10              ! Stabilization. Green functions will be computed from 
-                          ! scratch after each time interval  Nwrap*Dtau
-NSweep  = 500             ! Number of sweeps
-NBin    = 2               ! Number of bins
-Ltau    = 1               ! 1 for calculation of time displaced Green functions;
-                          ! 0 otherwise
-LOBS_ST = 1               ! Start measurements at time slice LOBS_ST
-LOBS_EN = 50              ! End   measurements at time slice LOBS_EN
-CPU_MAX = 0.1             ! Code will stop after CPU_MAX hours. 
-                          ! If not specified, code will stop after Nbin bins.
-/                          
-&VAR_errors               ! Variables for analysis programs
-n_skip  = 1               ! Number of bins that will be skipped. 
-N_rebin = 1               ! Rebinning  
-N_Cov   = 0               ! If set to 1 covariance will be computed
-                          ! for unequal time correlation functions.                   
-/            
+&VAR_QMC                   !! Variables for the QMC run
+Nwrap               = 10    ! Stabilization. Green functions will be computed from 
+                            ! scratch after each time interval Nwrap*Dtau
+NSweep              = 20    ! Number of sweeps
+NBin                = 5     ! Number of bins
+Ltau                = 1     ! 1 to calculate time-displaced Green functions; 0 otherwise
+LOBS_ST             = 0     ! Start measurements at time slice LOBS_ST
+LOBS_EN             = 0     ! End measurements at time slice LOBS_EN
+CPU_MAX             = 0.0   ! Code stops after CPU_MAX hours, if 0 or not
+                            ! specified, the code stops after Nbin bins
+Propose_S0          = .F.   ! Proposes single spin flip moves with probability exp(-S0) 
+Global_moves        = .F.   ! Allows for global moves in space and time 
+N_Global            = 1     ! Number of global moves per sweep 
+Global_tau_moves    = .F.   ! Allows for global moves on a single time slice.  
+N_Global_tau        = 1     ! Number of global moves that will be carried out on a 
+                            ! single time slice
+Nt_sequential_start = 0     ! One can combine sequential and global moves on a time slice
+Nt_sequential_end   = -1    ! The program then carries out sequential local moves in the
+                            ! range [Nt_sequential_start, Nt_sequential_end] followed by
+                            ! N_Global_tau global moves
+/
+
+&VAR_errors                !! Variables for analysis programs
+n_skip  = 1                 ! Number of bins that to be skipped.
+N_rebin = 1                 ! Rebinning  
+N_Cov   = 0                 ! If set to 1 covariance computed for non-equal-time
+                            ! correlation functions
+/  
+
+&VAR_TEMP                  !! Variables for parallel tempering
+N_exchange_steps      = 6   ! Number of exchange moves #[see Eq.~\eqref{eq:exchangestep}]#
+N_Tempering_frequency = 10  ! The frequency in units of sweeps at which the
+                            ! exchange moves are carried out
+mpi_per_parameter_set = 2   ! Number of mpi-processes per parameter set
+Tempering_calc_det    = .T. ! Specifies whether the fermion weight has to be taken
+                            ! into account while tempering. The default is .true.,
+                            ! and it can be set to .F. if the parameters that
+                            ! get varied only enter the Ising action S_0
+/
+
+&VAR_Max_Stoch             !! Variables for Stochastic Maximum entropy
+Ngamma     = 400            ! Number of Dirac delta-functions for parametrization
+Om_st      = -10.d0         ! Frequency range lower bound
+Om_en      = 10.d0          ! Frequency range upper bound
+NDis       = 2000           ! Number of boxes for histogram
+Nbins      = 250            ! Number of bins for Monte Carlo
+Nsweeps    = 70             ! Number of sweeps per bin
+NWarm      = 20             ! The Nwarm first bins will be ommitted
+N_alpha    = 14             ! Number of temperatures
+alpha_st   = 1.d0           ! Smallest inverse temperature increment for inverse
+R          = 1.2d0          ! temperature (see above) 
+Channel    = "P"            ! Options: zero temperature (T0), and finite temperature
+                            ! particle (P), particle-hole (PH), or particle-particle (PP)
+Checkpoint = .F.            ! Whether to produce dump files, allowing the simulation
+                            ! to be resumed later on
+Tolerance  = 0.1d0          ! Data points for which the relative error exceeds the
+                            ! tolerance threshold will be omitted.
+/
+
+&VAR_Hubbard               !! Variables for the specific model
+Mz        = .T.             ! When true, sets the M_z-Hubbard model: Nf=2, N_sun=1, HS field
+                            ! couples to the z-component of magnetization; otherwise, HS field
+                            ! couples to the density
+ham_T     = 1.d0            ! Hopping parameter
+ham_chem  = 0.d0            ! Chemical potential
+ham_U     = 4.d0            ! Hubbard interaction
+ham_T2    = 1.d0            ! For bilayer systems
+ham_U2    = 4.d0            ! For bilayer systems
+ham_Tperp = 1.d0            ! For bilayer systems
+/
+               
 \end{lstlisting}
 %
-
-The program allows for a number of different  updating schemes.  If no other variables are specified in the \texttt{VAR\_QMC} name space, then the program will run in its default mode, namely the sequential single spin-flip mode.   The additional optional variables in   \texttt{VAR\_QMC}   include the following: 
-\lstset{style=fortran}
-\begin{lstlisting} 
-
-&VAR_QMC                ! Variables for the QMC run 
-..........
-Propose_S0      =.true. ! Proposes single spin flip moves  with probability exp(-S0) 
-Global_moves    =.true. ! Allows for global moves in space and time 
-N_Global        =1      ! Number of global moves  per sweep 
-Global_tau_moves=.true. ! Allows for global moves on a single time slice.  
-N_Global_tau    =10     ! Number of global moves that will be carried out on a 
-                        ! single time slice
-Nt_sequential_start= 1  ! One can combine sequential and global moves on 
-                        ! a time slice.  
-Nt_sequential_end  =    ! The program will carry our sequential local moves  
-                        ! in the range  [Nt_sequential_start, Nt_sequential_end] 
-                        ! and then N_Global_tau  global moves
-/   
-\end{lstlisting}
-Note that if \texttt{Nt\_sequential\_start}  and \texttt{Nt\_sequential\_end}  are not specified and that the variable \texttt{Global\_tau\_moves}  is set to true, then  the program will  carry out only global moves, by setting  \\  \texttt{Nt\_sequential\_start=1}  and \texttt{Nt\_sequential\_end=0}. 
+%!Model = "Hubbard_Mz"     ! Sets Nf=2, N_sun=1. HS field couples to the 
+%! z-component of magnetization.  
+%!Model="Hubbard_SU2_Ising"! Sets Nf_1, N_sun=2 and runs only for the square lattice
+%! Hubbard model coupled to transverse Ising field
+%&VAR_Ising                ! Model parameters for the Ising code
+%Ham_xi = 1.d0             ! Only needed if Model="Hubbard_SU2_Ising"
+%Ham_J  = 0.2d0
+%Ham_h  = 2.d0
+%/
 
 
-If the program is compiled with the parallel tempering flag, then the additional name space \texttt{VAR\_TEMP}   has to be included in the parameter file.
-\lstset{style=fortran}
-\begin{lstlisting} 
+\begin{table}[h]
+	\begin{center}
+	\begin{tabular}{@{} l l @{}}\toprule
+		File & Description \\\midrule
+		\path{parameters} &  Sets the parameters for lattice, model, QMC process, and the error analysis.\\
+		\path{seeds} & List of integer numbers to initialize the random number generator and \\
+		& to start a simulation from scratch.
+		%\\
+		%  \path{confin_<thread number>} & Input files for the HS and Ising configuration, used to continue a simulation.
+		\\\bottomrule
+	\end{tabular}
+	\caption{\red{[To be removed, at least after the files seeds is no longer necessary.]} Overview of the input files required for a simulation, which can be found in the subdirectory \texttt{Scripts\_and\_Parameters\_files/Start/}. \label{table:input}}
+\end{center}
+\end{table}
+%
+\FloatBarrier
 
-&VAR_TEMP                    ! Variables for  parallel tempering
-N_exchange_steps     =6      ! Number of exchange moves (be more precise)
-N_Tempering_frequency=10     ! The frequency in units of sweeps at which  
-                             ! the exchange moves will be carried 
-mpi_per_parameter_set=2      ! Number of mpi-processes per parameter set
-Tempering_calc_det   =.true. ! Specifies whether the fermion weight has to
-                             ! be taken into account while tempering. The
-                             ! default is .true., can be set to .false. if
-                             ! the parameters that get varied only enter 
-                             ! the Ising action S_0
-/
-\end{lstlisting}
+The program allows for a number of different  updating schemes.  If no other variables are specified in the \texttt{VAR\_QMC} name space, then the program will run in its default mode, namely the sequential single spin-flip mode.
+%The additional, optional variables in   \texttt{VAR\_QMC}   include the following: 
+%\begin{lstlisting}[style=fortran]
+%&VAR_QMC                 ! Variables for the QMC run 
+%Propose_S0      = .true. ! Proposes single spin flip moves with probability exp(-S0) 
+%Global_moves    = .true. ! Allows for global moves in space and time 
+%N_Global        = 1      ! Number of global moves  per sweep 
+%Global_tau_moves= .true. ! Allows for global moves on a single time slice.  
+%N_Global_tau    = 10     ! Number of global moves that will be carried out on a 
+%                         ! single time slice
+%Nt_sequential_start = 1  ! One can combine sequential and global moves on 
+%                         ! a time slice.  
+%Nt_sequential_end =      ! The program will carry our sequential local moves in the
+%                         ! range [Nt_sequential_start, Nt_sequential_end] and then
+%                         ! N_Global_tau global moves
+%/   
+%\end{lstlisting}
+In particular, note that if \texttt{Nt\_sequential\_start}  and \texttt{Nt\_sequential\_end}  are not specified and that the variable \texttt{Global\_tau\_moves}  is set to true, then  the program will  carry out only global moves, by setting \texttt{Nt\_sequential\_start=1}  and \texttt{Nt\_sequential\_end=0}. 
 
+If the program is not compiled with the parallel tempering flag, then the \texttt{VAR\_TEMP} name space can be omitted from the parameter file.
+%\begin{lstlisting}[style=fortran,escapechar=\#]
+%&VAR_TEMP                      ! Variables for parallel tempering
+%N_exchange_steps      = 6      ! Number of exchange moves #[see Eq.~\eqref{eq:exchangestep}]#
+%N_Tempering_frequency = 10     ! The frequency in units of sweeps at which the
+%                               ! exchange moves will be carried 
+%mpi_per_parameter_set = 2      ! Number of mpi-processes per parameter set
+%Tempering_calc_det    = .true. ! Specifies whether the fermion weight has to be taken
+%                               ! into account while tempering. The default is .true.,
+%                               ! and it can be set to .false. if the parameters that
+%                               ! get varied only enter the Ising action S_0
+%/
+%\end{lstlisting}
 
+%Additionally, in order for the maximum entropy code, described in Sec.~\ref{sec:maxent}, to be used, the namelist \texttt{VAR\_Max\_Stoch} should also be defined:
+%\begin{lstlisting}[style=fortran]
+%&VAR_Max_Stoch               ! Variables for Stochastic Maximum entropy
+%Ngamma     = 400             ! # of Dirac delta-functions for parametrization
+%Om_st      = 0               ! Frequency range lower bound
+%Om_en      = 8               ! Frequency range upper bound
+%NDis       = 2000            ! # of boxes for histogram
+%Nbins      = 250             ! # of bins for Monte Carlo
+%Nsweeps    = 70              ! # of sweeps per bin
+%NWarm      = 20              ! The Nwarm first bins will be ommitted
+%N_alpha    = 14              ! # of temperatures
+%alpha_st   = 1.d0            ! smallest inverse temperature
+%R          = 1.2d0           ! increment for inverse temperature (see above) 
+%Channel    = "P"             ! T0       : Zero temperature
+%                             ! P        : Finite temperarure particle 
+%                             ! PH       : Finite temperarure particle-hole
+%                             ! PP       : Finite temperarure particle-particle 
+%Checkpoint = .false.         !.true.    : dump files will be produced so as to be able
+%                             !            to restart the simulation
+%                             !.false.   : dump files will not be produced 
+%Tolerance  = 0.1d0           ! Data points for which the relative error exceeds the
+%                             ! tolerance threshold will be omitted.
+%/
+%\end{lstlisting}
 
 
 %------------------------------------------------------------
-\subsubsection{Output: Observables} \label{sec:output_obs}
+\subsubsection{Output files -- observables} \label{sec:output_obs}
 %------------------------------------------------------------
 %
 \begin{table}[h]
-   \begin{tabular}{@{} l l @{}}\toprule
-   File & Description \\\midrule
-   \path{info} & After completion of the simulation, this file documents parameters of the\\
-   & model, the QMC run and simulation metrics (precision, acceptance rate,\\
-   & wallclock time).\\
-   \path{X_scal} & Results of equal time measurements of scalar observables. \\
-   & The placeholder \path{X} stands for the observables \path{Kin, Pot, Part}, and \path{Ener}. \\
-   \path{Y_eq, Y_tau} & Results of equal time and time displaced measurements of correlation\\
-   & functions. The placeholder \path{Y} stands for \path{Green, SpinZ, SpinXY}, and \path{Den}. \\   
-   \path{confout_<thread number>} & Output files for the HS and Ising configuration. \\\bottomrule
+	\begin{center}
+   \begin{tabular}{@{} p{0.26\columnwidth}p{0.7\columnwidth} @{}}\toprule
+   File               & Description \\\midrule
+   \path{info}        & After completion of the simulation, this file documents the parameters of the model, as well as the QMC run and simulation metrics (precision, acceptance rate, wallclock time)\\
+   \path{X_scal}      & Results of equal-time measurements of scalar observables \\
+   & The placeholder \path{X} stands for the observables \path{Kin}, \path{Pot}, \path{Part}, and \path{Ener} \\
+   \path{Y_eq, Y_tau} & Results of equal-time and time-displaced measurements of correlation functions. The placeholder \path{Y} stands for \path{Green}, \path{SpinZ}, \path{SpinXY}, and \path{Den} \\   
+   \path{confout_<thread number>} & Output files (one per MPI instance) for the HS and Ising configuration \\\bottomrule
    \end{tabular}
-   \caption{Overview of the standard output files. 
-  See Sec.~\ref{sec:obs} for the definitions of observables and correlation functions. \label{table:output}}
+   \caption{Overview of the standard output files. See Sec.~\ref{sec:obs} for the definitions of observables and correlation functions. \label{table:output}}
+\end{center}
 \end{table}
 %
 The standard output files are listed in Table~\ref{table:output}. 
 The output of the measured data is organized in bins. One bin corresponds to the arithmetic average 
 over a fixed number of individual measurements which depends 
-on the chosen measurement interval \path{[LOBS_ST,LOBS_EN]} on the imaginary-time axis and on the number \path{NSweep} of Monte Carlo sweeps. If the user runs an MPI parallelized version of the code, the average also extends 
-over the number of MPI threads. The formatting of the output for a single bin depends on the observable type,  \path{Obs_vec} or \path{Obs_Latt}:
+on the chosen measurement interval \path{[LOBS_ST,LOBS_EN]} on the imaginary-time axis and on the number \path{NSweep} of Monte Carlo sweeps. If the user runs an MPI parallelized version of the code, the average also extends over the number of MPI threads. The formatting of a single bin's output depends on the observable type, \path{Obs_vec} or \path{Obs_Latt}:
 \begin{itemize}
 \item Observables of type \path{Obs_vec}:
 For each additional bin, a single new line is added to the output file.
@@ -185,9 +266,9 @@ of size \path{N_size=1}.
 For each additional bin, a new data block is added to the output file. 
 The block consists of the expectation values [Eq.~(\ref{eqn:o})] contributing to the background part [Eq.~(\ref{eqn:s_back})] of the correlation function,
 and the correlated part [Eq.~(\ref{eqn:s_corr})] of the correlation function.
-For imaginary-time displaced correlation functions, the formatting of the block follows this scheme:
+For imaginary-time displaced correlation functions, the formatting of the block is given by:
 \begin{alltt}
-<measured sign>  <N_orbital>  <N_unit_cell> <N_time_slices> <dtau>
+<measured sign>  <N_orbital>  <N_unit_cell>  <N_time_slices>  <dtau>
 do alpha = 1, N_orbital
     \(\langle\hat{O}\sb{\alpha}\rangle \)
 enddo
@@ -196,56 +277,29 @@ do i = 1, N_unit_cell
    do tau = 1, N_time_slices
       do alpha = 1, N_orbital
          do beta = 1, N_orbital
-            \(\langle\,S\sb{\alpha,\beta}\sp{(corr)}(k(i),\tau)\rangle\)
+            \(\langle{S}\sb{\alpha,\beta}\sp{(\mathrm{corr})}(k(i),\tau)\rangle\)
          enddo
       enddo
    enddo
 enddo
 \end{alltt}
-The same block structure is used for equal time correlation functions, except for the entries  \path{<N_time_slices>} and \path{<dtau>} 
-which are not present in the latter.
-Using this structure for the bins as input,
-the full correlation function $S_{\alpha,\beta}(\vec{k},\tau)$ [Eq.~(\ref{eqn:s})] is then calculated by calling the error analysis routine (see Sec.~\ref{sec:analysis}).
+The same block structure is used for equal-time correlation functions, except for the entries  \path{<N_time_slices>} and \path{<dtau>}, which are then omitted.
+Using this structure for the bins as input, the full correlation function $S_{\alpha,\beta}(\vec{k},\tau)$ [Eq.~(\ref{eqn:s})] is then calculated by calling the error analysis routine (see Sec.~\ref{sec:analysis}).
 \end{itemize}
 
-%
-%------------------------------------------------------------
-\subsubsection{Output: Precision} \label{sec:output_prec}
-%------------------------------------------------------------
-%
-The finite temperature  auxiliary field QMC algorithm is known to be numerically  unstable, as discussed in Sec.~\ref{sec:stable}.
-The origin the numerical instabilities arises  from the imaginary-time propagation which invariably leads to exponentially small and exponentially large scales.
-Numerical stabilization of the code is delicate and has been pioneered in Ref.~\cite{White89}  for the finite-temperature algorithm and in Refs.~\cite{Sugiyama86,Sorella89} for the zero temperature projective algorithm.
-As shown in Ref.~\cite{Assaad08_rev}  scales can be omitted in the ground state algorithm -- thus rendering it very stable --  but have to be taken into account in the  finite-temperature code. Apart from runtime information, the file \texttt{info} contains important information concerning the stability of the code.
-It is important to know that numerical stabilization is delicate and there is no guarantee  that it will work for all models.
-
-
-
-
-If the numerical stabilization turns out to be bad, one option is to reduce the  value of the parameter \texttt{Nwrap} in the parameter file. 
-For performing the stabilization of the involved matrix multiplications we rely on routines from LAPACK. Hence it is very likely that your results may change significantly if you switch the LAPACK implementation.
-In order to offer a simple baseline to which people can quickly switch if they want to see whether their results depend on the library used for linear algebra routines we have included parts of the LAPACK-3.6.1 reference implementation from
-\url{http://www.netlib.org/lapack/}. You can switch to the QR decomposition related routines from the LAPACK reference implementation by including the switch \texttt{-DQRREF} into the PROGRAMMCONFIGURATION string.
-To use these routines you need to link against a lapack library that implements at least the LAPACK-3.4.0 interface.\footnote{ We have encountered some compiling issues with this flag. In particular  the  older  intel  ifort  compiler version 10.1  fails for all optimization levels.}
-
-To provide further flexibility, we have  kept the history of different stabilization schemes.   Our default strategy is quick and generically works well but we have  encountered some  models where  it  fails.   If this applies to your model, you can use the switch 
-\texttt{-DSTAB2} (stabilization scheme based on the QR decomposition, but not using the LAPACK reference implementation) or  
-\texttt{-DSTAB1} (stabilization scheme based on singular value decomposition)   in the header of the file \texttt{Makefile} and recompile the code.  
-
-Typical values for the numerical precision can be found in the examples of Sec.~\ref{sec:ex} (see Sec.~\ref{sec:prec_charge} and \ref{sec:prec_spin}).
 
 %------------------------------------------------------------
-\subsection{Scripts}\label{sec:scripts}
+%\subsection{Scripts}\label{sec:scripts}
 %------------------------------------------------------------
 %
-\begin{table}[h]
-   \begin{tabular}{@{} l l l @{}}\toprule
-   Script & Description & Section\\\midrule
-   \path{Start/out_to_in.sh} & Copies the output configurations of HS and Ising spins &\\
-   & to the respective input files. & \ref{sec:running} \\
-   \path{Start/analysis.sh} & Starts the error analysis. & \ref{sec:analysis}\\\bottomrule
-   \end{tabular}
-   \caption{Overview of the bash script files. 
-      \label{table:scripts}}
-\end{table}
+
+%\begin{table}[h]
+%   \begin{tabular}{@{} l l l @{}}\toprule
+%   Script & Description & Section\\\midrule
+%   \path{Start/analysis.sh} & Starts the error analysis. & \ref{sec:analysis}\\
+%   \path{Start/out_to_in.sh} & Copies outputted field configurations into input files for further runs. & \ref{sec:running} \\\bottomrule
+%   \end{tabular}
+%   \caption{Overview of the bash script files and the corresponding reference sections. 
+%      \label{table:scripts}}
+%\end{table}
 %

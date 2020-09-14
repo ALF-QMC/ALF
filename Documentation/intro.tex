@@ -5,36 +5,41 @@
 % For the licensing details of the documentation see license.CCBYSA.
 
 % !TEX root = doc.tex
+
+
+\red{To be summarized and slightly changed in order to reduce overlap with ALF 1.0 paper.}//
+
+
 %-----------------------------------------
 \subsection{Motivation}
 %-----------------------------------------
 
-The auxiliary field quantum Monte Carlo (QMC) approach is the algorithm of choice to simulate  thermodynamic properties of a variety of correlated electron systems in the solid state and beyond \cite{Blankenbecler81,White89,Sugiyama86,Sorella89, Duane87, Assaad08_rev}.  
+The auxiliary-field quantum Monte Carlo (QMC) approach is the algorithm of choice to simulate  thermodynamic properties of a variety of correlated electron systems in the solid state and beyond \cite{Blankenbecler81,White89,Sugiyama86,Sorella89, Duane87, Assaad08_rev}.  
 Apart from the physics of the  canonical Hubbard model 
 \cite{Scalapino07,LeBlanc15},   the topics one can investigate in detail include correlation effects in the bulk and on surfaces of topological insulators \cite{Hohenadler10,Zheng11}, quantum phase transitions between  Dirac fermions  and insulators \cite{Assaad13,Toldin14,Otsuka16,Chandrasekharan13,Chandrasekharan15},  
-deconfined quantum critical points \cite{Li15a,Assaad16}, topologically ordered phases \cite{Assaad16}, heavy fermion systems \cite{Assaad99a,Capponi00}, nematic \cite{Schattner15} and magnetic  \cite{Xu16b} quantum phase transitions in metals, antiferromagnetism in metals \cite{Berg12},    superconductivity in spin-orbit split bands \cite{Tang14_1}, $SU(N)$ symmetric models \cite{Assaad04,Lang13},  long-ranged Coulomb interactions in graphene systems \cite{Hohenadler14,Tang15},  cold atomic gasses  \cite{Rigol03},  low energy nuclear physics \cite{Lee09},  entanglement entropies and spectra \cite{Grover13,Broecker14,Assaad13a,Assaad15},  etc. 
-This ever growing list of topics  is based on  algorithmic progress and on recent symmetry related insights  \cite{Wu04,Huffman14,Yao14a,Wei16} enabling one to  find  negative sign  problem  free formulations of a number of model systems  with very rich phase diagrams.    
+deconfined quantum critical points \cite{Li15a,Assaad16}, topologically ordered phases \cite{Assaad16}, heavy fermion systems \cite{Assaad99a,Capponi00}, nematic \cite{Schattner15} and magnetic  \cite{Xu16c} quantum phase transitions in metals, antiferromagnetism in metals \cite{Berg12},    superconductivity in spin-orbit split bands \cite{Tang14_1}, $SU(N)$ symmetric models \cite{Assaad04,Lang13},  long-ranged Coulomb interactions in graphene systems \cite{Hohenadler14,Tang15},  cold atomic gases  \cite{Rigol03},  low energy nuclear physics \cite{Lee09},  entanglement entropies and spectra \cite{Grover13,Broecker14,Assaad13a,Assaad15},  etc. 
+This ever-growing list of topics is based on algorithmic progress and on recent symmetry-related insights  \cite{Wu04,Huffman14,Yao14a,Wei16} that lead to formulations free of the negative sign problem for a number of model systems with very rich phase diagrams.
 
-Auxiliary field methods  can be formulated in very different ways.  The fields define  the  configuration space $\mathcal{C}$. They can stem from the Hubbard-Stratonovich (HS)  \cite{Hubbard59} transformation required to decouple the  many-body interacting term into a sum of non-interacting problems,  or they can correspond to  bosonic modes with predefined dynamics such as phonons or gauge fields. In all cases, the result is that  the grand-canonical partition function  takes the form, 
+Auxiliary-field methods  can be formulated in very different ways.  The fields define  the  configuration space $\mathcal{C}$. They can stem from the Hubbard-Stratonovich (HS)  \cite{Hubbard59} transformation required to decouple the  many-body interacting term into a sum of non-interacting problems,  or they can correspond to  bosonic modes with predefined dynamics such as phonons or gauge fields. In all cases, the result is that  the grand-canonical partition function  takes the form, 
 \begin{equation}
 	 Z = \text{Tr}\left( e^{-\beta \hat{\mathcal{H}}}\right)   =   \sum_{\mathcal{C}} e^{-S(\mathcal{C}) },
 %\mycomment{\text{MB: more general } \int\limits_{\phi\in\mathcal{C}}\mathrm{d}\phi\; e^{-S[\phi]}}
 \end{equation}
-where  $S$  is the action of non-interacting fermions subject to a  space-time fluctuating auxiliary field.    
-The high-dimensional  integration  over the fields is carried out stochastically.  In this formulation of many  body quantum systems, there is no reason for the action to be a real number.  Thereby $e^{-S(\mathcal{C})}$ cannot be interpreted as a weight. To circumvent this problem one can adopt   re-weighting schemes and sample $| e^{-S(\mathcal{C})}| $. This invariably leads to the so called negative sign problem with associated exponential computational scaling in system size and inverse temperature \cite{Troyer05}.    The  sign problem is formulation dependent, and as mentioned above there has been tremendous progress at identifying an ever growing class of  negative sign problem free models covering a  rich domain  of collective emergent  phenomena.  
+where $\beta $ corresponds to the inverse temperature and $S$  is the action of non-interacting fermions subject to a  space-time fluctuating auxiliary field.    
+The high-dimensional  integration  over the fields is carried out stochastically.  In this formulation of many  body quantum systems, there is no reason for the action to be a real number.  Thereby $e^{-S(\mathcal{C})}$ cannot be interpreted as a weight. To circumvent this problem one can adopt   re-weighting schemes and sample $| e^{-S(\mathcal{C})}| $. This invariably leads to the so-called \emph{negative sign problem}, with the associated exponential computational scaling in system size and inverse temperature \cite{Troyer05}.  The sign problem is formulation dependent and, as mentioned above, there has been tremendous progress at identifying an increasing number of models not affected by the negative sign problem which cover a rich domain of collective emergent phenomena.  
  For continuous fields, the stochastic integrations can  be carried out with Langevin  dynamics or hybrid methods \cite{Duane85}.   However, for many  problems one can get away with discrete fields \cite{Hirsch83}. In this case,  Monte Carlo importance sampling will often be put to use \cite{Sokal89}.  
 We note that  due to  the non-locality of the fermion determinant, see below, cluster updates,  such as in the loop or stochastic series expansion algorithms
  for quantum spin systems  \cite{Evertz93,Sandvik99b,Sandvik02}, are hard to formulate for this class of problems.  The search for efficient updating schemes that enable to move quickly within the configuration space, defines ongoing challenges. 
 
  Formulations do not differ  only  by the choice of the fields, continuous or discrete,  and the sampling strategy, but also by the  formulation of the action itself.
-For a given field configuration, integrating out  fermionic degrees of freedom generically leads to a fermionic determinant of dimension $\beta N$ where $\beta $  corresponds to the inverse temperature and $N$ to the volume of the system.  Working  with this determinant leads to the  Hirsch-Fye approach \cite{HirschFye86}  and the computational effort scales as $\mathcal{O}\left( \beta N \right)^3$. \footnote{Here we implicitly assume the absence of negative sign problem}  The Hirsch-Fye  algorithm is the method of choice for impurity problems, but has  generically been outperformed by a class of so-called continuous-time quantum Monte Carlo approaches  
-\cite{Gull_rev,Assaad14_rev, Assaad07}.    One key point of continuous-time methods  is that they are action based  and thereby allow to handle retarded interactions obtained when integrating out fermion or boson baths.  In high dimensions and/or at low temperatures, the cubic scaling originating from the fermionic determinant is expensive. To circumvent this, the hybrid Monte-Carlo approach  \cite{Scalettar86,Duane87}  expresses the fermionic determinant in terms of a Gaussian integral thereby introducing a new variable in the Monte Carlo integration.    The resulting algorithm is the method of choice for lattice gauge theories in 3+1 dimensions   and has been used to provide ab-inito  estimates of light hadron masses starting from quantum chromo dynamics \cite{Durr08}.
-The approach we will consider here lies between the  above two  \textit{extremes}.  We will keep the fermionic determinant, but formulate  the problem so as to  work only with $N\times N$ matrices.    This 
+For a given field configuration, integrating out fermionic degrees of freedom generically leads to a fermionic determinant of dimension $\beta N$ where $N$ is the volume of the system.  Working  with this determinant leads to the  Hirsch-Fye approach \cite{HirschFye86}  and the computational effort scales\footnote{Here we implicitly assume the absence of negative sign problem} as $\mathcal{O}\left( \beta N \right)^3$. The Hirsch-Fye  algorithm is the method of choice for impurity problems, but has  generically been outperformed by a class of so-called continuous-time quantum Monte Carlo approaches  
+\cite{Gull_rev,Assaad14_rev, Assaad07}.  One key point of continuous-time methods is that they are action based and thereby allow one to handle the retarded interactions obtained when integrating out fermion or boson baths.  In high dimensions and/or at low temperatures, the cubic scaling originating from the fermionic determinant is expensive. To circumvent this, the hybrid Monte-Carlo approach  \cite{Scalettar86,Duane87}  expresses the fermionic determinant in terms of a Gaussian integral thereby introducing a new variable in the Monte Carlo integration.    The resulting algorithm is the method of choice for lattice gauge theories in 3+1 dimensions   and has been used to provide \emph{ab initio} estimates of light hadron masses starting from quantum chromodynamics \cite{Durr08}.
+The approach we consider here lies between the  above two  \emph{extremes}.  We keep the fermionic determinant, but formulate  the problem so as to  work only with $N\times N$ matrices.    This 
 Blankenbecler,  Scalapino, Sugar (BSS)  algorithm scales linearly in  imaginary time $\beta$, but remains cubic in the volume $N$.    Furthermore, the algorithm can be formulated either in a projective manner \cite{Sugiyama86,Sorella89},  adequate to obtain zero temperature properties in the  canonical ensemble,  or at finite temperatures in the  grand-canonical ensemble \cite{White89}.
 
-The aim of the ALF project is to introduce a general formulation of the finite temperature  auxiliary field QMC method with discrete  fields so as to quickly be able to play with different model Hamiltonians  at  minimal programming cost.   We have summarized  the essential aspects of the   auxiliary field QMC  approach  in this documentation,   and   refer  the reader  to  Refs.~\cite{Assaad02,Assaad08_rev} for  complete  reviews.    
-We will show in  all details how to implement a variety of models, run the code, and produce  results for  equal time and time displaced correlation functions. 
-The program code is written in Fortran according to the 2003 standard and is able to natively utilize MPI for massively parallel runs on todays supercomputing systems.
+The aim of the ALF project is to introduce a general formulation of the finite-temperature auxiliary-field QMC method with discrete  fields so as enable one to promptly play with different model Hamiltonians  at  minimal programming cost. In this documentation, we summarize the essential aspects of the auxiliary-field QMC approach,   and refer the reader to Refs.~\cite{Assaad02,Assaad08_rev} for complete reviews.    
+In the following we show in all details how to implement a variety of models, run the code, and produce results for  equal-time and time-displaced correlation functions. 
+The program code is written in Fortran according to the 2003 standard and is able to natively utilize MPI for massively parallel runs on today's supercomputing systems.
 
 
 %------------------------------------------------------------
@@ -43,24 +48,26 @@ The program code is written in Fortran according to the 2003 standard and is abl
 
 The first and most fundamental part of the project  is to define a general Hamiltonian which  can  accommodate a large class of models. 
 Our approach is to express the model as a sum of one-body terms, a sum of two-body terms each written as a perfect square of a one body term, as well as a one-body term coupled to an Ising field with  dynamics to be specified by the user. 
-The form of the interaction in terms of sums of perfect squares allows us to use generic forms of  discrete  approximations to the  HS  transformation \cite{Motome97,Assaad97}.
-Symmetry considerations  are  imperative to enhance the speed of the code.  
-We therefore include a \textit{color} index  reflecting  an underlying  $SU(N)$ color symmetry as  well as a flavor index  reflecting  the fact that  after  the HS  transformation,  the  fermionic determinant is block diagonal in this index.
+Writing the interaction in terms of sums of perfect squares allows us to use generic forms of  discrete  approximations to the  HS  transformation \cite{Motome97,Assaad97}.
+Symmetry considerations  are  imperative to increase the speed of the code.  
+We therefore include a \emph{color} index  reflecting  an underlying  $SU(N)$ color symmetry as  well as a \emph{flavor} index  reflecting  the fact that  after  the HS  transformation,  the  fermionic determinant is block diagonal in this index.
 
 The class of solvable models includes  Hamiltonians $\hat{\mathcal{H}}$ that have the following general form:
-\begin{eqnarray}
-\hat{\mathcal{H}}&=&\hat{\mathcal{H}}_{T}+\hat{\mathcal{H}}_{V} +  \hat{\mathcal{H}}_{I} +   \hat{\mathcal{H}}_{0,I}\;,\mathrm{where}
+\begin{align}
+\hat{\mathcal{H}}
+&=
+\hat{\mathcal{H}}_{T}+\hat{\mathcal{H}}_{V} +  \hat{\mathcal{H}}_{I} +   \hat{\mathcal{H}}_{0,I}\,,\;\text{where}
 \label{eqn:general_ham}\\
 \hat{\mathcal{H}}_{T}
-&=&
+&=
 \sum\limits_{k=1}^{M_T}
 \sum\limits_{\sigma=1}^{N_{\mathrm{col}}}
 \sum\limits_{s=1}^{N_{\mathrm{fl}}}
 \sum\limits_{x,y}^{N_{\mathrm{dim}}}
 \hat{c}^{\dagger}_{x \sigma   s}T_{xy}^{(k s)} \hat{c}^{\phantom\dagger}_{y \sigma s}  \equiv  \sum\limits_{k=1}^{M_T} \hat{T}^{(k)}
-\label{eqn:general_ham_t}\\
+\label{eqn:general_ham_t}\,,\\
 \hat{\mathcal{H}}_{V}
-&=&
+&=
 \sum\limits_{k=1}^{M_V}U_{k}
 \left\{
 \sum\limits_{\sigma=1}^{N_{\mathrm{col}}}
@@ -74,8 +81,9 @@ The class of solvable models includes  Hamiltonians $\hat{\mathcal{H}}$ that hav
 \right]
 \right\}^{2}  \equiv   
 \sum\limits_{k=1}^{M_V}U_{k}   \left(\hat{V}^{(k)} \right)^2
-\label{eqn:general_ham_v}\\
-\hat{\mathcal{H}}_{I}  & = &
+\label{eqn:general_ham_v}\,,\\
+\hat{\mathcal{H}}_{I}
+& = 
 \sum\limits_{k=1}^{M_I} \hat{Z}_{k} 
 \left(
 \sum\limits_{\sigma=1}^{N_{\mathrm{col}}}
@@ -83,49 +91,63 @@ The class of solvable models includes  Hamiltonians $\hat{\mathcal{H}}$ that hav
 \sum\limits_{x,y}^{N_{\mathrm{dim}}}
 \hat{c}^{\dagger}_{x \sigma s} I_{xy}^{(k s)}\hat{c}^{\phantom\dagger}_{y \sigma s}
 \right) \equiv \sum\limits_{k=1}^{M_I} \hat{Z}_{k}    \hat{I}^{(k)} 
-\;.\label{eqn:general_ham_i}
-\end{eqnarray}
-The indices and symbols have the following meaning:
+\,.\label{eqn:general_ham_i}
+\end{align}
+The indices and symbols used above have the following meaning:
 \begin{itemize}
-\item The number of fermion \textit{flavors} is set by $N_{\mathrm{fl}}$.  After the HS transformation, the action will be block diagonal in the flavor index. 
-\item The number of fermion \textit{colors} is set by $N_{\mathrm{col}}$.    The Hamiltonian is invariant under  $SU(N_{\mathrm{col}})$  rotations.~\footnote{Note that  in the code $ N_{\mathrm{col}} \equiv \texttt{N\_{SUN}} $.} 
-\item $N_{\mathrm{dim}}$ is the total number of spacial vertices: $N_{\mathrm{dim}}=N_{\text{unit cell}} N_{\mathrm{orbital}}$, 
-where $N_{\text{unit cell}}$ is the number of unit cells of the underlying Bravais lattice and $N_{\mathrm{orbital}}$ is the number of (spacial) orbitals per unit cell.
+\item The number of fermion \emph{flavors} is set by $N_{\mathrm{fl}}$.  After the HS transformation, the action will be block diagonal in the flavor index. 
+\item The number of fermion \emph{colors} is set\footnote{Note that  in the code $ N_{\mathrm{col}} \equiv \texttt{N\_{SUN}} $.} by $N_{\mathrm{col}}$.    The Hamiltonian is invariant under  $SU(N_{\mathrm{col}})$  rotations.
+\item $N_{\mathrm{dim}}$ is the total number of spacial vertices: $N_{\mathrm{dim}}=N_{\text{unit-cell}} N_{\mathrm{orbital}}$, where $N_{\text{unit-cell}}$ is the number of unit cells of the underlying Bravais lattice and $N_{\mathrm{orbital}}$ is the number of (spacial) orbitals per unit cell.
 \item The indices $x$ and $y$ label lattice sites where $x,y=1,\cdots, N_{\mathrm{dim}}$. 
 \item Therefore, the  matrices $\bm{T}^{(k s)}$, $\bm{V}^{(ks)}$  and $\bm{I}^{(ks)}$ are  of dimension $N_{\mathrm{dim}}\times N_{\mathrm{dim}}$.
-\item The number of interaction terms  is labelled by $M_V$   and $M_I$.   $M_T> 1 $ would allow for a checkerboard decomposition.
-\item $\hat{c}^{\dagger}_{y \sigma s} $ is a second quantized operator that creates an electron in a Wannier state centered around lattice site $y$, with color $\sigma$, and  flavor index $s$.  The operators satisfy the anti-commutation relations: 
+\item The number of interaction terms  is labeled by $M_V$   and $M_I$.   $M_T> 1 $ would allow for a checkerboard decomposition.
+\item $\hat{c}^{\dagger}_{y \sigma s} $ is a second-quantized operator that creates an electron in a Wannier state centered around lattice site $y$, with color $\sigma$, and  flavor index $s$.  The operators satisfy the anti-commutation relations: 
 \begin{equation}
-	\left\{ \hat{c}^{\dagger}_{y \sigma s},    \hat{c}^{\phantom\dagger}_{y' \sigma' s'}  \right\}   =   \delta_{x,x'}  \delta_{s,s'} \delta_{\sigma,\sigma'},   
+	\left\{ \hat{c}^{\dagger}_{y \sigma s},    \hat{c}^{\phantom\dagger}_{y' \sigma' s'}  \right\}   =   \delta_{xx'}  \delta_{ss'} \delta_{\sigma\sigma'},   
 	\; \text{ and } \left\{ \hat{c}^{\phantom\dagger}_{y \sigma s},    \hat{c}^{\phantom\dagger}_{y' \sigma' s'}  \right\}   =0.
 \end{equation}
 
 \end{itemize}
 The Ising part of the general Hamiltonian (\ref{eqn:general_ham}) is $\hat{\mathcal{H}}_{0,I}+ \hat{\mathcal{H}}_{I}$ and  has the following properties:
 \begin{itemize}
-\item $\hat{Z}_k$ is an Ising spin operator which corresponds to the Pauli matrix $\hat{\sigma}_{z}$. It couples to a general one-body term. 
+\item $\hat{Z}_k$ couples to a general one-body term. It is a general operator, such as the Ising spin operator corresponding to the Pauli matrix $\hat{\sigma}_{z}$ or the position operator.
 \item  The dynamics of the Ising spins is given by $\hat{\mathcal{H}}_{0,I}$. This term is not specified here; 
 it has to be specified by the user and becomes relevant when the Monte Carlo update probability is computed in the code (see Sec.~\ref{sec:walk2} for an example).
 \end{itemize}
 Note that the matrices  $\bm{T}^{(ks)}$,  $\bm{V}^{(ks)}$ and  $\bm{I}^{(ks)}$ explicitly depend on the flavor index $s$ but not on the color index $\sigma$. 
 The color index $\sigma$ only appears in  the  second quantized operators such that the Hamiltonian is manifestly $SU(N_{\mathrm{col}})$    symmetric.  We also require
-the matrices $\bm{T}^{(ks)}$,  $\bm{V}^{(ks)}$ and  $\bm{I}^{(ks)}$  to be  Hermitian.
+the matrices $\bm{T}^{(ks)}$,  $\bm{V}^{(ks)}$ and  $\bm{I}^{(ks)}$  to be  Hermitian, see Sec.~\ref{sec:hermitian}.
 
 %------------------------------------------------------------
-\subsection{Outline}
+\subsection{Outline and What is new \red{(to be written)}}
 %------------------------------------------------------------
 
-To use the code, a minimal understanding of the algorithm is necessary. 
-In Sec.~\ref{sec:def}, we go very briefly through  the steps required  to formulate the many-body imaginary-time propagation in terms of a sum  over HS and Ising fields  of one-body  imaginary-time propagators.   
-The user has to provide this one-body imaginary-time propagator for a given configuration of   HS and  Ising fields. 
-We equally discuss the Monte Carlo updates, the strategies for numerical stabilization of the code, as well as the Monte Carlo sampling.
+\red{Later on update, and add a paragraph highlighting the changes/new features with respect to ALF 1.0}\\
+
+What's new:\\
+- Parallel tempering\\
+- Global updates / global tau\\
+- Projective approaches\\
+- Continuous fields\\
+- Langevin\\
+- Maxent\\
+- More models\\
+- Trotter symmetric\\
+- Predefined structures\\
+- Python interface.\\ \\
+
+In order to use the code, a minimal understanding of the algorithm is necessary. 
+In Sec.~\ref{sec:def}, we summarize the steps required to formulate the many-body, imaginary-time propagation in terms of a sum over HS and Ising fields of one-body, imaginary-time propagators.   
+The user has to provide this one-body, imaginary-time propagator for a given configuration of HS and  Ising fields. We also discuss the Monte Carlo updates, the strategies for numerical stabilization of the code, as well as the Monte Carlo sampling.
+In Sec.~\ref{sec:defT0} we go very briefly through the projective method, used for obtaining ground-state properties.
+And, finally, we describe how the QMC data can be used to obtain spectral information using ALF's implementation of the stochastic maximum entropy method, in Sec.~\ref{sec:maxent}.
 
 Section \ref{sec:imp} is devoted to the data structures that are needed to implement the model, as well as to the input and output file structure.   
-The data structure includes  an \texttt{Operator} type to  optimally work with sparse Hermitian matrices, a \texttt{Lattice} type  to define one- and two-dimensional Bravais lattices, and   two   \texttt{Observable} types to handle  scalar observables  (e.g. total energy)   and   equal time or time displaced two- point correlation functions (e.g. spin-spin correlations).
+The data structure includes an \texttt{Operator} type to optimally work with sparse Hermitian matrices, a \texttt{Lattice} type  to define one- and two-dimensional Bravais lattices, a generic \texttt{Fields} type, and two \texttt{Observable} types to handle scalar observables (e.g., total energy) and equal-time or time-displaced two-point correlation functions (e.g., spin-spin correlations).
 
-The Monte Carlo run and the  data analysis  are separated: the QMC run  dumps the results of \textit{bins}  sequentially into files  which are then analyzed by  analysis programs. In Sec.~\ref{sec:analysis}, we provide a brief description of the analysis programs  for our  observable types.  The analysis programs allow for omitting a given number of initial bins in order to account for warmup times. Also, a rebinning analysis is included  to a posteriori take  account of long autocorrelation times.  Finally, Sec.~\ref{sec:running} provides all the necessary details  to compile and run the code. 
+Detailed instructions on how to compile and run the code are provided in Sec.~\ref{sec:running}.
+It is important to notice that the Monte Carlo simulation and the associated data analysis are separated processes: the QMC run dumps the results of \emph{bins} sequentially into files which are then analyzed by analysis programs. In Sec.~\ref{sec:analysis}, we provide a brief description of the analysis programs for our observable types. The analysis programs allow for omitting a given number of initial bins in order to account for warm-up times. Also, a rebinning analysis is included  to account for, \emph{a posteriori}, long autocorrelation times.
 
+In Sec.~\ref{sec:ex}, we give explicit examples on how to use the code for  the  Hubbard model on square and honeycomb lattices,  for different choices of the HS transformation  (see Secs.~\ref{sec:walk1},~\ref{sec:walk1.1} and ~\ref{sec:walk1.2}), as well as for the Hubbard model on a square lattice coupled to a transverse Ising field (see Sec.~\ref{sec:walk2} ).   Our implementation is rather general, allowing for a variety of other models to be simulated and, in Sec.~\ref{sec:misc}, further examples are given, such as the Kondo lattice and the $SU(N)$ symmetric Hubbard-Heisenberg models.
 
-In Sec.~\ref{sec:ex}, we  give explicit examples on how to use the code for  the  Hubbard model on square and honeycomb lattices,  for different choices of the Hubbard-Stratonovich transformation  (see Secs.~\ref{sec:walk1},~\ref{sec:walk1.1} and ~\ref{sec:walk1.2})  as well as for the Hubbard model on a square lattice coupled to a transverse Ising field (see Sec.~\ref{sec:walk2} ).   Our implementation is rather general such that  a variety of other models can be simulated. In Sec.~\ref{sec:misc}   we provide  some information on how to simulate the Kondo lattice model as well as the $SU(N)$ symmetric Hubbard-Heisenberg model. 
-
-Finally, in Sec.~\ref{sec:con} we list a number of features that are considered for  future releases of the ALF program package.
+Finally, in Sec.~\ref{sec:con} we list a number of features being considered for  future releases of the ALF program package.

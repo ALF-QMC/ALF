@@ -223,7 +223,7 @@ Module UDV_Wrap_mod
 
        !Local
        Complex (Kind=Kind(0.d0)), Allocatable ::  A1(:,:),U1(:,:)
-       Integer :: N,I,J
+       Integer :: N
        character (len=64) :: file_sr, File
 #ifdef MPI
        INTEGER :: Isize, Irank,Ierr

@@ -1,42 +1,114 @@
-% Copyright (c) 2016-2019 The ALF project.
+% Copyright (c) 2016-2020 The ALF project.
 % This is a part of the ALF project documentation.
 % The ALF project documentation by the ALF contributors is licensed
 % under a Creative Commons Attribution-ShareAlike 4.0 International License.
 % For the licensing details of the documentation see license.CCBYSA.
-% !TEX root = Doc.tex
-\subsubsection{  Long range Coulomb }
+% !TEX root = Model_classes.tex 
 
-The model we consider here reads: 
+The model we consider  here is  defined  for \texttt{N\_FL=1},  arbitrary values of \texttt{N\_SUN}  and  supports all the predefined lattices.  It  reads: 
 \begin{equation}
-	\hat{H}  = -t \sum_{\vec{i},\vec{j},\sigma=1}^{N}   \hat{c}^{\dagger}_{\vec{i},\sigma}  T_{\vec{i},\vec{j}} \hat{c}^{}_{\vec{j},\sigma}   +     
-	\frac{1} { N } \sum_{\vec{i},\vec{j}}  \left(  \hat{n}_{\vec{i}} -  \frac{N}{2}  \right)  V_{\vec{i},\vec{j}} \left(  \hat{n}_{\vec{j}} -  \frac{N}{2}  \right) \; \; 
-	\text{ with }  \hat{n}_{\vec{i}} = \sum_{\sigma=1}^{N}  \hat{c}^{\dagger}_{\vec{i},\sigma}  \hat{c}^{}_{\vec{i},\sigma}
+\hat{H}=  \sum_{i,j}  \sum_{\sigma =1}^{N}  T_{i, j}    \hat{c}^{\dagger}_{i, \sigma }   e^{\frac{2 \pi i}{\Phi_0} \int_{i}^{j}  
+     \vec{A}(\ve{l})  d \ve{l}} \hat{c}^{}_{j,\sigma}   +
+     \frac{1} { N } \sum_{i,j}  \left(  \hat{n}_{i} -  \frac{N}{2}  \right)  V_{i,j} \left(  \hat{n}_{j} -  \frac{N}{2}  \right)
+      - \mu \sum_{i} \hat{n}_{i} 
 \end{equation}
-The interaction is specified in the following way: 
+In the above,  $i = (\ve{i}, \ve{\delta}_i) $  and $j = (\ve{j}, \ve{\delta}_j) $  are super-indices encoding the unit-cell and orbital and 
+$  \hat{n}_{i} = \sum_{\sigma =1}^{N} \hat{c}^{\dagger}_{i,\sigma } \hat{c}^{\phantom\dagger}_{i,\sigma} $ For simplicity, the interaction is specified by  two  parameters, $U$ and $\alpha$ that monitor the  strength of the onsite interaction and the magnitude of the Coulomb tail  respectively.  
 \begin{equation}
-	V_{\vec{i}, \vec{j}}   =   U \left\{
+	V_{i, j}     \equiv V(\vec{i}  + \vec{\delta}_i ,  \vec{j}  + \vec{\delta}_j  )  =   U \left\{
 	\begin{array}{ll}  
-	1          &   \text{ if } \vec{i} - \vec{j}    = 0 \\
-	\frac{\alpha   \;   d_{min}}{ |   \vec{i} - \vec{j} | } &     \text{ otherwise }
+	1          &   \text{ if }  i = j    \\
+	\frac{\alpha   \;   d_\mathrm{min}}{  {  || \vec{i} - \vec{j} + \vec{\delta}_i - \vec{\delta}_j  ||}   } &     \text{ otherwise }
 	\end{array}
 \right.
 \end{equation}
-Here $d_{min}$ is the minimal distance between two orbitals.     The code uses the following  HS decomposition:
+Here $d_\mathrm{min}$ is the minimal distance between two orbitals.      On a  torus, some care  has be taken in  defining the distance. Let the lattice size be given by the vectors $\ve{L}_1$  and  $\ve{L}_2$  (see Sec.~\ref{sec:predefined_lattices}).  Then 
 \begin{equation}
-e^{-\Delta \tau \hat{H}_V }  =  \int \prod_{\vec{i}} d \phi_{\vec{i}}   e^{ - \frac{N \Delta \tau} {4} \phi_{\pmb{i}} V^{-1}_{\pmb{i},\pmb{j}}  \phi_{\pmb{j}} - \sum_{\pmb{i}}  i \Delta \tau \phi_i \left( n_{i} - \frac{N}{2} \right) } 
+	|| \ve{i} || = \min_{n_1,n_2 \in \mathbb{Z} }  | \ve{i} - n_1 \ve{L}_1 -  n_2 \ve{L}_2 | 
+\end{equation}
+The implementation follows Ref.~\cite{Hohenadler14}  but now supports various lattice geometries.  We use  the following  HS decomposition:
+\begin{equation}
+e^{-\Delta \tau \hat{H}_V }  \propto \int \prod_{i} d \phi_{i}   e^{ - \frac{N \Delta \tau} {4} \sum_{i,j} \phi_{i} V^{-1}_{i,j}  \phi_{j} - \sum_{i}  i \Delta \tau \phi_i \left( \hat{n}_{i} - \frac{N}{2} \right) } 
+\end{equation}
+where $\phi_i $ is a  real  variable, $V$ is symmetric, and importantly has to be  positive definite  for the Gaussian integration to be defined. 
+The partition function  reads:
+\begin{equation}
+	Z \propto \int \prod_{i} d \phi_{i, \tau} \overbrace{e^{ - \frac{N \Delta \tau} {4} \sum_{i,j} \phi_{i,\tau} V^{-1}_{i,j}  \phi_{j,\tau}} }^{W_B(\phi)}\underbrace{\text{Tr} \left[   \prod_{\tau}   
+	 e^{-\Delta \tau \hat{H}_T}  e^{- \sum_{i}  i \Delta \tau \phi_{i,\tau} \left( \hat{n}_{i} - \frac{N}{2} \right) }\right]}_{W_F(\phi)}.
+\end{equation}
+such that the weight splits into a bosonic and fermionic parts. 
+ 
+%In the above, the field has acquired time index. 
+%{\color{red}   There is a constant to be fixed in the above equation}
+ 
+For the update, it is convenient to  work in a basis where  $V$   is diagonal: 
+\begin{equation}
+	\text{ Diag}  \left( \lambda_1, \cdots ,\lambda_{\texttt{Ndim}} \right)    =  O^{T} V O 
+\end{equation}
+ with $O^T O = 1$  and define:
+ \begin{equation}
+ 	  \eta_{i,\tau}^{\phantom\dagger}   =  \sum_{j} O^{T}_{i,j} \phi_{j,\tau}^{\phantom\dagger}.
+ \end{equation}
+ On a given time slice, $\tau_u$, we propose a  new field configuration with the probability: 
+ \begin{equation}
+ 	T^{0} ( \eta  \rightarrow  \eta' ) = 
+	\left\{ 
+	\begin{array}{ll} 
+	  \prod_{i} \left[  P P_B(\eta'_{i,\tau_u})  + (1-P) \delta( \eta_{i,\tau_u} - \eta'_{i,\tau_u})   \right]  & \text{  for  } \tau = \tau_u \\
+	  \delta( \eta_{i,\tau} - \eta'_{i,\tau})   & \text{  for  } \tau \neq \tau_u 
+	  \end{array}
+	  \right.
+ \end{equation}
+ where 
+ \begin{equation}
+ 	 P_B(\eta_{i,\tau})   \propto e^{ - \frac{N \Delta \tau} {4 \lambda_i}  \eta_{i,\tau}^2 },
+ \end{equation}
+$ P \in \left[0,1 \right] $ and $\delta $  corresponds to  the Dirac $\delta$-function.    That is, we  carry out  simple sampling of the field with probability $P$  and leave the field unchanged with probability 
+$(1-P)$.  $P$ is a free parameter that   does not change the final result but that allows to adjust the acceptance.    We then use  the Metropolis-Hasting    acceptance-rejection  scheme   and accept the move  with probability 
+\begin{equation}
+   \text{min} \left(     \frac{T^{0} ( \eta'  \rightarrow \eta ) W_B(\eta') W_F(\eta')  }{ T^{0} ( \eta \rightarrow \eta' ) W_B(\eta) W_F(\eta) } , 1 \right)     = \text{min} \left(     \frac{W_F(\eta')  }{ W_F(\eta) } , 1 \right) . 
+\end{equation}
+where 
+\begin{equation}
+  W_B(\eta)  = e^{ - \frac{N \Delta \tau} {4 } \sum_{i,\tau} \eta_{i,\tau}^2/\lambda_i } 
+  \text{   and   } 
+  W_F(\eta)  = \text{Tr} \left[   \prod_{\tau}   
+     e^{-\Delta \tau \hat{H}_T}  e^{- \sum_{i,j}  i \Delta \tau O_{i,j}\eta_{j,\tau} \left( \hat{n}_{i} - \frac{N}{2} \right) }\right]
 \end{equation}
 
-The implementation follows Ref.~\cite{Hohenadler14}  but now supports various lattice geometries.    The definition of  the Coulomb repulsion is as follows. 
-A general lattice site  \texttt{I,n}   where \texttt{I: 1...Latt\%N} is the unit cell and \texttt{ n = 1 ...Latt\_unit\%NORB}  the orbital  is given by: 
-\begin{lstlisting}
-X_p(:) = Latt%list(I,1)*latt%a1_p(:)  + Latt%list(I,2)*latt%a2_p(:) 
-          +   Latt_unit%Orb_pos_p(no_j,:)
+
+Since a local change on  a single time slice in the $\eta$ basis corresponds to a non-local in space update  in the $\phi$ basis, we  use the global update in  space routine to carry out the update (see Sec.~\ref{sec:global_space}). 
+
+\subsubsection*{ QMC implementation } 
+
+The name space for this model class  reads: 
+
+\begin{lstlisting}[style=fortran,escapechar=\#,breaklines=true]
+&VAR_LRC                   !! Variables for the  Long Range Coulomb class
+ham_T          = 1.0       ! Specifies the hopping and chemical potential
+ham_T2         = 1.0       ! For bilayer systems
+ham_Tperp      = 1.0       ! For bilayer systems
+ham_chem       = 1.0       ! Chemical potential
+ham_U          = 4.0       ! On-site interaction
+ham_alpha      = 0.1       ! Coulomb tail magnitude
+Percent_change = 0.1       ! Parameter P 
+/
 \end{lstlisting}
-or in more compact notation $ \vec{i}  + \vec{\delta}_i $.   By definition \texttt{Latt\_unit\%Orb\_pos\_p(1,:)=0}.
-The Coulomb repulsion between points   $ \vec{i}  + \vec{\delta}_i $   and $ \vec{j}  + \vec{\delta}_j $   reads: 
-\begin{equation}
-	V(\vec{i}  + \vec{\delta}_i ,  \vec{j}  + \vec{\delta}_j  )  =  \frac{U d_{min} \alpha}{  |  \overline{\vec{i} - \vec{j}} + \vec{\delta}_i - \vec{\delta}_j  |}  
-\end{equation}
-Here  we use periodic boundary conditions such that  $\overline{\vec{i} - \vec{j}}$  is an element of the real space lattice. Note that this is encoded in the array \texttt{Latt\%imj(I,J)}.
+
+By setting $\alpha$ to zero we can test this code against the Hubbard code.   For a   $ 4 \times 4 $ square  lattice at $ \beta t = 5$, $U/t = 4$, and half-band filling,     \texttt{Hamiltonian\_Hubbard\_mod.F90}    gives $ E = -13.188896      \pm  0.001698 $  and
+  \texttt{Hamiltonian\_LRC\_mod.F90}  $ E =  -13.198512    \pm  0.040029 $.    Note that for the  Hubbard code we have used  the default \texttt{Mz = True}.   This  option   breaks SU(2) spin symmetry for a given HS configuration but produces very precise values of the energy. On the other hand,  the LRC code  is an SU(2) invariant code ( as would be  choosing \texttt{Mz = False}  )  and  produces  more  fluctuations in the double occupancy.   This  partly explains the difference in  error  bars between the two codes. 
+  
+% The definition of  the Coulomb repulsion is as follows. 
+%A general lattice site  \texttt{I,n}   where \texttt{I: 1...Latt\%N} is the unit cell and \texttt{ n = 1 ...Latt\_unit\%NORB}  the orbital  is given by: 
+%\begin{lstlisting}[style=fortran]
+%X_p(:) = Latt%list(I,1)*latt%a1_p(:)  + Latt%list(I,2)*latt%a2_p(:) 
+%          +   Latt_unit%Orb_pos_p(no_j,:)
+%\end{lstlisting}
+%or in more compact notation $ \vec{i}  + \vec{\delta}_i $.   By definition \texttt{Latt\_unit\%Orb\_pos\_p(1,:)=0}.
+%The Coulomb repulsion between points   $ \vec{i}  + \vec{\delta}_i $   and $ \vec{j}  + \vec{\delta}_j $   reads: 
+%\begin{equation}
+%	V(\vec{i}  + \vec{\delta}_i ,  \vec{j}  + \vec{\delta}_j  )  =  \frac{U d_\mathrm{min} \alpha}{  |  \overline{\vec{i} - \vec{j}} + \vec{\delta}_i - \vec{\delta}_j  |}  
+%\end{equation}
+
 
 

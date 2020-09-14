@@ -78,6 +78,10 @@ S. Capponi and F.~F. Assaad, Phys. Rev. B \textbf{ 63},  155114  (2001).
 Y. Schattner, S. Lederer, S.~A. Kivelson, and E. Berg, Phys. Rev. X \textbf{
   6},  031028  (2016).
 
+\bibitem{Xu16c}
+X.~Y. Xu, K. Sun, Y. Schattner, E. Berg, and Z.~Y. Meng, Phys. Rev. X \textbf{
+  7},  031058  (2017).
+
 \bibitem{Berg12}
 E. Berg, M.~A. Metlitski, and S. Sachdev, Science \textbf{ 338},  1606  (2012).
 
@@ -241,12 +245,29 @@ C.~J. Geyer,  in {\em Computing Science and Statistics: Proceedings of the 23rd
   Symposium on the Interface} (American Statistical Association, New York,
   1991), pp.\ 156--163.
 
+\bibitem{Gardiner}
+C.~W. Gardiner, {\em Handbook of Stochastic Methods} (Springer, ADDRESS, 1985).
+
+\bibitem{Beyl_thesis}
+S. Beyl, Doctoral thesis, Universit{\"a}t W{\"u}rzburg, 2020.
+
+\bibitem{WangZ20}
+Z. Wang, R.~S.~K. Mong, and F.~F. Zaletel, Michael P. and.~Assaad, arXiv:20****
+   .
+
 \bibitem{Bai2011}
 Z. Bai, C. Lee, R.-C. Li, and S. Xu, Linear Algebra and its Applications
   \textbf{ 435},  659  (2011).
 
 \bibitem{vanderSluis1969}
 A. van~der Sluis, Numerische Mathematik \textbf{ 14},  14  (1969).
+
+\bibitem{Feldbach00}
+M. Feldbacher and F.~F. Assaad, Phys. Rev. B \textbf{ 63},  073105  (2001).
+
+\bibitem{Ixert14}
+D. Ixert, F.~F. Assaad, and K.~P. Schmidt, Phys. Rev. B \textbf{ 90},  195133
+  (2014).
 
 \bibitem{Negele}
 J.~W. Negele and H. Orland, {\em Quantum Many body systems}, {\em Frontiers in
@@ -276,9 +297,6 @@ S. Chakravarty, B.~I. Halperin, and D.~R. Nelson, Phys. Rev. Lett. \textbf{
 \bibitem{Thompson2010}
 M.~B. {Thompson}, ArXiv e-prints  (2010).
 
-\bibitem{Beach04a}
-K.~S.~D. {Beach}, eprint arXiv:cond-mat/0403055  (2004).
-
 \bibitem{Milat04}
 I. Milat, F. Assaad, and M. Sigrist, Eur. Phys. J. B \textbf{ 38},  571
   (2004), http://xxx.lanl.gov/cond-mat/0312450.
@@ -287,32 +305,42 @@ I. Milat, F. Assaad, and M. Sigrist, Eur. Phys. J. B \textbf{ 38},  571
 M. Bercx, T.~C. Lang, and F.~F. Assaad, Phys. Rev. B \textbf{ 80},  045412
   (2009).
 
-\bibitem{Xu16}
-X.~Y. {Xu}, K.~S.~D. {Beach}, K. {Sun}, F.~F. {Assaad}, and Z.~Y. {Meng},
-  ArXiv:1602.07150  (2016).
+\bibitem{Parola91}
+A. Parola, S. Sorella, M. Parrinello, and E. Tosatti, Phys. Rev. B \textbf{
+  43},  6190  (1991).
+
+\bibitem{Raczkowski20}
+M. Raczkowski and F.~F. Assaad, Phys. Rev. Research \textbf{ 2},  013276
+  (2020).
 
 \bibitem{Beach04}
 K.~S.~D. Beach, P.~A. Lee, and P. Monthoux, Phys. Rev. Lett. \textbf{ 92},
   026401  (2004).
 
-\bibitem{SatoT17_1}
-T. Sato, F.~F. Assaad, and T. Grover, Phys. Rev. Lett. \textbf{ 120},  107201
+\bibitem{Gazit16}
+S. Gazit, M. Randeria, and A. Vishwanath, Nat Phys \textbf{ 13},  484  (2017).
+
+\bibitem{Gazit18}
+S. Gazit, F.~F. Assaad, S. Sachdev, A. Vishwanath, and C. Wang, Proceedings of
+  the National Academy of Sciences  (2018).
+
+\bibitem{Gazit19}
+S. {Gazit}, F.~F. {Assaad}, and S. {Sachdev}, arXiv:1906.11250
+  arXiv:1906.11250  (2019).
+
+\bibitem{Hohenadler18}
+M. Hohenadler and F.~F. Assaad, Phys. Rev. Lett. \textbf{ 121},  086601
   (2018).
 
-\bibitem{Li15}
-Z.-X. Li, Y.-F. Jiang, and H. Yao, New Journal of Physics \textbf{ 17},  085003
-   (2015).
+\bibitem{Hohenadler19}
+M. Hohenadler and F.~F. Assaad, Phys. Rev. B \textbf{ 100},  125133  (2019).
 
 \bibitem{Ruegg10}
 A. R\"uegg, S.~D. Huber, and M. Sigrist, Phys. Rev. B \textbf{ 81},  155118
   (2010).
 
-\bibitem{Hohenadler19}
-M. {Hohenadler} and F.~F. {Assaad}, arXiv:1906.11937  arXiv:1906.11937  (2019).
-
-\bibitem{Gazit19}
-S. {Gazit}, F.~F. {Assaad}, and S. {Sachdev}, arXiv:1906.11250
-  arXiv:1906.11250  (2019).
+\bibitem{Beach04a}
+K.~S.~D. {Beach}, eprint arXiv:cond-mat/0403055  (2004).
 
 \bibitem{Assaad14}
 F.~F. Assaad, Nat Phys \textbf{ 10},  905  (2014).
