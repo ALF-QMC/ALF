@@ -1,46 +1,47 @@
 !  Copyright (C) 2016 The ALF project
-! 
+!
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
-! 
+!
 !     The ALF project is distributed in the hope that it will be useful,
 !     but WITHOUT ANY WARRANTY; without even the implied warranty of
 !     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 !     GNU General Public License for more details.
-! 
+!
 !     You should have received a copy of the GNU General Public License
 !     along with Foobar.  If not, see http://www.gnu.org/licenses/.
-!     
+!
 !     Under Section 7 of GPL version 3 we require you to fulfill the following additional terms:
-!     
+!
 !     - It is our hope that this program makes a contribution to the scientific community. Being
 !       part of that community we feel that it is reasonable to require you to give an attribution
 !       back to the original authors if you have benefitted from this program.
 !       Guidelines for a proper citation can be found on the project's homepage
 !       http://alf.physik.uni-wuerzburg.de .
-!       
+!
 !     - We require the preservation of the above copyright notice and this license in all original files.
-!     
-!     - We prohibit the misrepresentation of the origin of the original source files. To obtain 
+!
+!     - We prohibit the misrepresentation of the origin of the original source files. To obtain
 !       the original source files please visit the homepage http://alf.physik.uni-wuerzburg.de .
-! 
+!
 !     - If you make substantial changes to the program we require you to either consider contributing
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
 
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !
-!> @brief 
+!> @brief
 !> Wrappers for linear algebra.
-!> 
+!>
 !
 !--------------------------------------------------------------------
     MODULE MyMats
+      use iso_fortran_env, only: output_unit, error_unit
 
        INTERFACE MMULT
           !C = A*B MMULT(C, A, B)
@@ -60,7 +61,7 @@
        END INTERFACE CT
        INTERFACE INV
           MODULE PROCEDURE INV_R0, INV_R_Variable, INV_R_VARIABLE_1, INV_R1, INV_R2, INV_C, INV_C1, &
-               &        INV_C_Variable  
+               &        INV_C_Variable
        END INTERFACE
        INTERFACE UDV
           MODULE PROCEDURE UDV1_R, UDV_C
@@ -94,7 +95,7 @@
          !!!! Uses Lapack !!!
          ! LR = L  then         U*A   = W*U   Left  eigenvectors
          ! LR = R  then         A*U   = W*U   Right eigenvectors
-         
+
 
          !  Local space
          INTEGER :: N, LDA, LDVL, LDVR, INFO, LWORK, I, J, M
@@ -102,10 +103,10 @@
          COMPLEX (Kind=Kind(0.d0)), ALLOCATABLE, DIMENSION(:,:) :: A, VL, VR
          REAL (Kind=Kind(0.d0))   , ALLOCATABLE, DIMENSION(:) :: RWORK
          COMPLEX (Kind=Kind(0.d0)), ALLOCATABLE, DIMENSION(:) :: WORK
-         
+
          REAL    (Kind=Kind(0.d0)) :: XMAX, X
          COMPLEX (Kind=Kind(0.d0)) :: Z
-         
+
          N = SIZE(Z_MAT,1)
          ALLOCATE(A(N,N))
          A = Z_MAT
@@ -115,15 +116,15 @@
          JOBVL  = "N"
          LDVL = 1
          LDVR = 1
-         IF (LR =="L") THEN 
+         IF (LR =="L") THEN
             JOBVL ="V"
             LDVL  = N
          ELSEIF (LR =="R") THEN
             JOBVR ="V"
             LDVR = N
          ELSE
-            WRITE(6,*) 'Error in DIAG_GEN' 
-            STOP
+            WRITE(error_unit,*) 'Error in DIAG_GEN'
+            error stop 1
          ENDIF
          ALLOCATE(VL(LDVL,N),  VR(LDVR,N) )
          LWORK = 2*N
@@ -131,7 +132,7 @@
 
          CALL ZGEEV( JOBVL, JOBVR, N, A, LDA, W, VL, LDVL, VR, LDVR, &
               &      WORK, LWORK, RWORK, INFO )
-         
+
          IF (LR=="R")  THEN
             DO I = 1,N
                DO J = 1,N
@@ -140,14 +141,14 @@
             ENDDO
          ELSE
             DO I = 1,N
-               DO J = 1,N 
+               DO J = 1,N
                   U(I,J) = CONJG(VL(J,I))
                ENDDO
             ENDDO
          ENDIF
-         
-         IF (ICON == 1 ) THEN 
-            !Test 
+
+         IF (ICON == 1 ) THEN
+            !Test
             XMAX = 0.d0
             DO I = 1,N
                DO J = 1,N
@@ -159,8 +160,8 @@
                   ELSE
                      Z = -W(I)*U(I,J)
                      DO M = 1,N
-                        Z = Z + U(I,M)*Z_MAT(M,J) 
-                     ENDDO 
+                        Z = Z + U(I,M)*Z_MAT(M,J)
+                     ENDDO
                   ENDIF
                   X = ABS(Z)
                   IF ( X > XMAX ) XMAX = X
@@ -173,7 +174,7 @@
          DEALLOCATE(VL, VR)
          DEALLOCATE(WORK, RWORK)
          DEALLOCATE(A)
-         
+
 
        END SUBROUTINE DIAG_GEN
 !--------------------------------------------------------------------
@@ -232,7 +233,7 @@
          ! C(I,J) = X
          ! ENDDO
          ! ENDDO
-         
+
        END SUBROUTINE MMULT_C
 
 !*********
@@ -260,7 +261,7 @@
 !> @author
 !> Fakher Assaad and  Florian Goth
 !
-!> @brief 
+!> @brief
 !> This functions sets the matrix to a diagonal matrix with identical
 !> entries on the diagonal.
 !
@@ -272,7 +273,7 @@
          COMPLEX (KIND=KIND(0.D0)), DIMENSION(:,:), INTENT(INOUT) :: A
          COMPLEX (KIND=KIND(0.D0)), INTENT(IN) :: X
          INTEGER I, N
-         
+
          A = (0.D0, 0.D0)
          N = SIZE(A,1)
          DO I = 1,N
@@ -284,7 +285,7 @@
 !> @author
 !> Fakher Assaad and  Florian Goth
 !
-!> @brief 
+!> @brief
 !> This function calculates the LU decomposition and the determinant
 !> of the input matrix.
 !
@@ -309,7 +310,7 @@
 ! Working space.
          ALLOCATE ( IPVT(LDA) )
          ALLOCATE ( WORK(LDA) )
-         
+
          AINV = A
          CALL DGETRF(LDA, LDA, AINV, LDA, IPVT, INFO)
          DET = 1.D0
@@ -332,7 +333,7 @@
 !> @author
 !> Fakher Assaad and  Florian Goth
 !
-!> @brief 
+!> @brief
 !> This function calculates the LU decomposition and the determinant
 !> in a subpart of the input matrix.
 !
@@ -358,7 +359,7 @@
 ! Working space.
          ALLOCATE ( IPVT(Ndim) )
          ALLOCATE ( WORK(LDA) )
-         
+
          AINV = A
          CALL DGETRF(Ndim, Ndim, AINV, LDA, IPVT, INFO)
          DET = 1.D0
@@ -380,7 +381,7 @@
 !> @author
 !> Fakher Assaad and  Florian Goth
 !
-!> @brief 
+!> @brief
 !> This function calculates the LU decomposition and the determinant
 !> in a subpart of the input matrix.
 !
@@ -413,7 +414,7 @@
 ! Working space.
          ALLOCATE ( IPVT(Ndim) )
          ALLOCATE ( WORK(LDA) )
-         
+
          AINV = A
          CALL DGETRF(Ndim, Ndim, AINV, LDA, IPVT, INFO)
          DET(1) = 1.D0
@@ -427,7 +428,7 @@
          IF (IPVT(i) .ne. i) THEN
             DET(1) = -DET(1)
          ENDIF
-         ENDDO         
+         ENDDO
          CALL DGETRI(Ndim, AINV, LDA, IPVT, WORK, LDA, INFO)
 
          DEALLOCATE (IPVT)
@@ -438,7 +439,7 @@
 !> @author
 !> Fakher Assaad and  Florian Goth
 !
-!> @brief 
+!> @brief
 !> This function calculates the LU decomposition and the determinant
 !> of the input matrix.
 !
@@ -465,7 +466,7 @@
 ! Working space.
          ALLOCATE ( IPVT(LDA) )
          ALLOCATE ( WORK(LDA) )
-         
+
          AINV = A
          CALL DGETRF(LDA, LDA, AINV, LDA, IPVT, INFO)
          DET(1) = 1.D0
@@ -479,7 +480,7 @@
          IF (IPVT(i) .ne. i) THEN
             DET(1) = -DET(1)
          ENDIF
-         ENDDO         
+         ENDDO
          CALL DGETRI(LDA, AINV, LDA, IPVT, WORK, LDA, INFO)
          DEALLOCATE (IPVT)
          DEALLOCATE (WORK)
@@ -530,7 +531,7 @@
 !> @author
 !> Fakher Assaad and  Florian Goth
 !
-!> @brief 
+!> @brief
 !> This function calculates the LU decomposition and the determinant
 !> of a complex input matrix.
 !
@@ -556,7 +557,7 @@
 ! Working space.
          ALLOCATE ( IPVT(LDA) )
          ALLOCATE ( WORK(LDA) )
-         
+
          AINV = A
          CALL ZGETRF(LDA, LDA, AINV, LDA, IPVT, INFO)
          DET = (1.D0, 0.D0)
@@ -578,7 +579,7 @@
 !> @author
 !> Fakher Assaad and  Florian Goth
 !
-!> @brief 
+!> @brief
 !> This function calculates the LU decomposition and the determinant
 !> in a subpart of the complex input matrix.
 !
@@ -604,7 +605,7 @@
 ! Working space.
          ALLOCATE ( IPVT(Ndim) )
          ALLOCATE ( WORK(LDA) )
-         
+
          AINV = A
          CALL ZGETRF(Ndim, Ndim, AINV, LDA, IPVT, INFO)
          DET = 1.D0
@@ -626,7 +627,7 @@
 !> @author
 !> Fakher Assaad and  Florian Goth
 !
-!> @brief 
+!> @brief
 !> This function calculates the LU decomposition and the determinant
 !> of the complex input matrix.
 !
@@ -654,7 +655,7 @@
 ! Working space.
          ALLOCATE ( IPVT(LDA) )
          ALLOCATE ( WORK(LDA) )
-         
+
          AINV = A
          CALL ZGETRF(LDA, LDA, AINV, LDA, IPVT, INFO)
          DET(1) = (1.D0, 0.D0)
@@ -726,8 +727,8 @@
 !> @author
 !> Fakher Assaad and Florian Goth
 !
-!> @brief 
-!> This function calculates the UDV decomposition using the standard 
+!> @brief
+!> This function calculates the UDV decomposition using the standard
 !> QR algorithm of LaPack.
 !
 !> @param[in] A a 2D array constituting the input matrix.
@@ -743,7 +744,7 @@
          REAL (KIND=KIND(0.D0)), INTENT(INOUT), DIMENSION(:) :: D
          INTEGER, INTENT(IN) :: NCON
 
-!        The Det of V is not equal to unity. 
+!        The Det of V is not equal to unity.
 ! Locals:
          INTEGER, DIMENSION(:), ALLOCATABLE :: IVPT, IVPTM1
          REAL (KIND=KIND(0.D0)), DIMENSION(:), ALLOCATABLE :: XNORM, VHELP,&
@@ -762,16 +763,16 @@
 ! WRITE(6,*) 'Udv V: ',size(V,1), size(V,2)
 ! You should now check corresponding sizes for U,V,D.
          IF (SIZE(U,1).NE.ND1 .OR. SIZE(U,2).NE.ND2) THEN
-            WRITE(6,*) 'UDV dim mistake: U'
-            STOP
+            WRITE(error_unit,*) 'UDV1_R: UDV dim mistake: U'
+            error stop 1
          ENDIF
          IF (SIZE(D,1).NE.ND2 ) THEN
-            WRITE(6,*) 'UDV dim mistake: D'
-            STOP
+            WRITE(error_unit,*) 'UDV1_R: UDV dim mistake: D'
+            error stop 1
          ENDIF
          IF (SIZE(V,1).NE.ND2 .OR. SIZE(V,2).NE.ND2) THEN
-            WRITE(6,*) 'UDV dim mistake: V'
-            STOP
+            WRITE(error_unit,*) 'UDV1_R: UDV dim mistake: V'
+            error stop 1
          ENDIF
 
          ALLOCATE(XNORM (ND2))
@@ -825,7 +826,7 @@
         ALLOCATE(WORK(LWORK))
         CALL DGEQRF(ND1, ND2, TMP, ND1, TAU, WORK, LWORK, INFO)
 !         CALL F01QCF(ND1,ND2,TMP,ND1,THETA,INFO)
-         
+
 
          !Scale V1 to a unit triangluar matrix.
          DO I = 1,ND2
@@ -837,14 +838,14 @@
                V1(I,J) = TMP(I,J)*Z
             ENDDO
          ENDDO
-         
+
 ! Compute U
          INFO = 0
         CALL DORGQR(ND1, ND2, ND2, TMP, ND1, TAU, WORK, LWORK, INFO)
 !         CALL F01QEF('Separate', ND1,ND2, ND2, TMP,&
 !              & ND1, THETA, WORK, INFO)
         CALL DLACPY('A', ND1, ND2, TMP, ND1, U, Size(U,1))
-! 
+!
 !          DO I = 1,ND1
 !             DO J = 1,ND2
 !                U(I,J) = TMP(I,J)
@@ -916,8 +917,8 @@
 !> @author
 !> Fakher Assaad and Florian Goth
 !
-!> @brief 
-!> This function calculates a UDV decomposition using the standard 
+!> @brief
+!> This function calculates a UDV decomposition using the standard
 !> QR algorithm of LaPack.
 !
 !> @param[in] A a 2D array constituting the input matrix.
@@ -968,7 +969,7 @@
 #elif !defined(OLDNAG)
         CALL ZGEQRF(LQ, NE, TMP, LQ, TAU, WORK, LWORK, INFO)
 #else
-        CALL F01RCF(LQ,NE,TMP,LQ,TAU,INFO)  
+        CALL F01RCF(LQ,NE,TMP,LQ,TAU,INFO)
 #endif
         CALL ZLACPY('U', NE, NE, TMP, LQ, V, Size(V,1))
 
@@ -1080,7 +1081,7 @@
 #elif !defined(OLDNAG)
         CALL ZGEQRF(LQ, NE, TMP, LQ, TAU, WORK, LWORK, INFO)
 #else
-        CALL F01RCF(LQ,NE,TMP,LQ,TAU,INFO)  
+        CALL F01RCF(LQ,NE,TMP,LQ,TAU,INFO)
 #endif
         call ZLACPY('U', NE, NE, TMP, LQ, V, LDV)
         DETV = 1.D0
@@ -1130,11 +1131,11 @@
 !> @author
 !> Fakher Assaad and Florian Goth
 !
-!> @brief 
+!> @brief
 !> This function calculates the SVD using the standard QR algorithm
 !> of LaPack.
 !
-!> @note Using the Divide & Conquer algorithm would not yield 
+!> @note Using the Divide & Conquer algorithm would not yield
 !> enough accuracy for using within an auxiliary field type algorithm.
 !
 !> @param[in] A a 2D array constituting the input matrix.
@@ -1145,7 +1146,7 @@
 !--------------------------------------------------------------------
 
       SUBROUTINE SVD_C(A,U,D,V,NCON)
-        !Uses LaPack Routine 
+        !Uses LaPack Routine
         !#include "machine"
 
         IMPLICIT NONE
@@ -1161,7 +1162,7 @@
         INTEGER          :: M,N, LDA, LDVT, LDU, LWORK, I, J, I1, INFO
         REAL    (Kind=Kind(0.D0)) :: X, Xmax
         COMPLEX (Kind=Kind(0.D0)) :: Z
-        
+
         JOBU = "A"
         JOBVT= "A"
         M = SIZE(A,1)
@@ -1200,9 +1201,9 @@
            WRITE(6,*) "Success (0), PRE ", INFO, Xmax
         ENDIF
 
-        
+
         Deallocate (WORK,RWORK,A1,S)
-        
+
 
       END SUBROUTINE SVD_C
 
@@ -1210,7 +1211,7 @@
 !> @author
 !> Fakher Assaad and  Florian Goth
 !
-!> @brief 
+!> @brief
 !> This function diagonalizes the input matrix A and returns
 !> eigenvalues and vectors using the lapack routine DSYEV.
 !
@@ -1232,8 +1233,8 @@
          ND2 = SIZE(A,2)
 
          IF (ND1.NE.ND2) THEN
-            WRITE(6,*) 'Error in matrix dimension DIAG_R'
-            STOP
+            WRITE(error_unit,*) 'DIAG_R: Error in matrix dimension'
+            error stop 1
          ENDIF
 
          IERR = 0
@@ -1261,12 +1262,12 @@
         REAL    (Kind=Kind(0.d0)), allocatable :: RWORK(:)
         Logical :: Test
         Integer :: I,J,m
-        Complex (Kind=Kind(0.d0)) :: Z 
+        Complex (Kind=Kind(0.d0)) :: Z
         Real (Kind=Kind(0.d0)) :: X, XMAX
 
         JOBZ = "V"
         UPLO = "U"
-        N = size(A,1) 
+        N = size(A,1)
         U = A
         LWORK = 2*N -1
         Allocate ( WORK(LWORK) )
@@ -1294,7 +1295,7 @@
            ENDDO
            write(6,*) ' Test Diag_I: ', XMAX
         endif
-        
+
       End SUBROUTINE DIAG_I
 
       SUBROUTINE SECONDS(X)
@@ -1305,14 +1306,14 @@
         !date_and_time([date][,time][,zone][,values])
         !Subroutine. Die Parameter haben das Attribut intent(out), geben also Werte zurueck.
 
-        ! date: skalare, normale Zeichenvariable von wenigstens 8 Zeichen. 
+        ! date: skalare, normale Zeichenvariable von wenigstens 8 Zeichen.
         ! Die linken 8 Zeichen bekommen einen Wert der Form JJJJMMTT . JJJJ Jahr, MM Monat, TT Tag im Monat.
-        ! time: skalare, normale Zeichenvariable von wenigstens 10 Zeichen. 
+        ! time: skalare, normale Zeichenvariable von wenigstens 10 Zeichen.
         ! Die linken 10 Zeichen bekommen einen Wert der Form hhmmss.sss , wobei hh die Stunde des Tages ist,
         ! mm die Minute innerhalb der Stunde, und ss.sss die Sekunde mit Bruchteilen.
-        ! zone: skalare, normale Zeichenvariable von wenigstens 5 Zeichen. Die linken 5 Zeichen bekommen 
+        ! zone: skalare, normale Zeichenvariable von wenigstens 5 Zeichen. Die linken 5 Zeichen bekommen
         ! einen Wert der Form hhmm . hh Stunden, mm Minuten Zeitdifferenz gegenueber der UTC-Weltzeit.
-        ! values: Eindimensionales Integer-Feld. Laenge wenigstens 8. 
+        ! values: Eindimensionales Integer-Feld. Laenge wenigstens 8.
         ! 1 : Jahr, z.B. 1993. 2: Monat. 3: Monatstag. 4: Zeitdifferenz zur Weltzeit in Minuten.
         ! 5: Stunde des Tages. 6: Minute innerhalb der Stunde. 7: Sekunden 8. Millisekunden.
 
@@ -1330,11 +1331,11 @@
       Complex (Kind=Kind(0.d0)) Function DET_C(Mat,N)
 
         Implicit none
-        
+
         ! Arguments
-        Integer, intent(in) :: N 
+        Integer, intent(in) :: N
         Complex(Kind=Kind(0.d0)), intent(inout) :: mat(N,N)
-        
+
         integer :: i, info
         integer :: ipiv(N)
 
@@ -1344,17 +1345,17 @@
 
         !Lapack LU decomposition
         call zgetrf(N, N, mat, N, ipiv, info)
-        
+
         det_C = cmplx(1.d0, 0.d0, kind(0.d0) )
         do i = 1, N
            det_C = det_C*mat(i, i)
         enddo
-        
+
         sgn =  1
         do i = 1, N
            if(ipiv(i) /= i)  sgn = -sgn
         enddo
-        if (sgn == -1 ) det_C = - det_C 
+        if (sgn == -1 ) det_C = - det_C
 
       end function DET_C
 
@@ -1362,35 +1363,35 @@
 !> @author
 !> F.Assaad
 !
-!> @brief 
-!> Returns the determinant as det = \prod_i=1^N d(i). 
+!> @brief
+!> Returns the determinant as det = \prod_i=1^N d(i).
 !> Uses Lapack LU decomposition
-!> 
+!>
 !====================================================
       Subroutine DET_C_LU(Mat1,D,N)
 
         Implicit none
-        
+
         ! Arguments
-        Integer, intent(in) :: N 
+        Integer, intent(in) :: N
         Complex(Kind=Kind(0.d0)), intent(in)  :: mat1(N,N)
         Complex(Kind=Kind(0.d0)), intent(out) :: D(N)
-        
-        
+
+
         Complex(Kind=Kind(0.d0)) :: mat(N,N)
 
         integer :: i, info
         integer :: ipiv(N)
 
         integer :: sgn
-        
+
         mat = mat1
         ipiv = 0
 
         !Lapack LU decomposition
         call zgetrf(N, N, mat, N, ipiv, info)
-        
-        do i = 1,N 
+
+        do i = 1,N
            D(i) = mat(i,i)
         enddo
         sgn =  1
@@ -1405,11 +1406,11 @@
 !> @author
 !> Florian Goth
 !
-!> @brief 
+!> @brief
 !> This function returns the Conjugate Transpose, hence the name CT,
 !> of a complex input matrix.
 !
-!> @note The employed variant of chaining a transposition and a conjugation 
+!> @note The employed variant of chaining a transposition and a conjugation
 !> is well optimized by gcc in the sense that it generates a tight inner loop.
 !> The original double loop generates quite some additional integer operations.
 !

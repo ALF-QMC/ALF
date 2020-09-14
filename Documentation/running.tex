@@ -4,119 +4,230 @@
 % under a Creative Commons Attribution-ShareAlike 4.0 International License.
 % For the licensing details of the documentation see license.CCBYSA.
 
-% !TEX root = Doc.tex
-%
+% !TEX root = doc.tex
+
+
+In this section we describe the steps for compiling and running the code from the shell, and describe how to search for optimal parameter values as well as how to perform the error analysis of the data.
+
+A Python interface, \textbf{pyALF}, is also available and can be found, together with a number of Jupyter notebooks exploring the interface's capabilities, at \url{https://git.physik.uni-wuerzburg.de/ALF/pyALF}. This interface facilitates setting up simple runs and is ideal for setting benchmarks and getting acquainted with ALF. Some of pyALF's notebooks form the core of the introductory part of the \href{https://git.physik.uni-wuerzburg.de/ALF/ALF_Tutorial}{ALF Tutorial}, where pyALF's usage is described in more detail.
+
 %-------------------------------------------------------------------------------------
-\subsection{Running the code}\label{sec:running}
+\subsection{Compiling and running}
+\label{sec:compilation}
 %-------------------------------------------------------------------------------------
-%
-In this section we describe the steps how to compile and run the code, as well as how to perform the error analysis of the data.
-%
-%-------------------------------------------------------------------------------------
-\subsubsection{Compilation}
-%-------------------------------------------------------------------------------------
-%
-The environment variables and the directives to compile the code are set in the following makefile \texttt{Makefile}:
-\lstset{style=bash}
-\begin{lstlisting}
 
-# -DMPI selects MPI.
-# -DTEMPERING selects tempering mode.  MPI has to be switched on.
-# -DSTAB1   Alternative stabilization, using the singular value decomposition.
-# -DSTAB2   Alternative stabilization, lapack QR with  manual pivoting.
-#           Packed form of QR factorization is not used.
-# -DSTAB3   Alternative stabilization, using QR  with pivoting.
-#           Internally, scales larger and smaller one are distinguished.
-# -DLOG     Alternative stabilization, using QR  with pivoting.
-#           Internally, scales are stored on log axsis to allow larger beta and
-#           larger and smaller have to be distinguished.
-# (no flag) Default  stabilization, using lapack QR with pivoting. 
-#           Packed form of QR factorization  is used. 
-# -DQRREF   Enables reference lapack implementation of QR decomposition.
-# Recommendation: just use the -DMPI flag if you want to run in parallel or 
-#                 leave it empty for serial jobs.  
-#                 The default stabilization, no flag, is generically the best. 
-#                 Consider using -DLOG if you run into overflows
-PROGRAMCONFIGURATION = -DMPI 
-PROGRAMCONFIGURATION = 
-f90 = gfortran
-export f90
-F90OPTFLAGS = -O3 -Wconversion  -fcheck=all
-F90OPTFLAGS = -O3
-export F90OPTFLAGS
-F90USEFULFLAGS = -cpp -std=f2003
-F90USEFULFLAGS = -cpp
-export F90USEFULFLAGS
-FL = -c ${F90OPTFLAGS} ${PROGRAMCONFIGURATION}
-export FL
-DIR = ${CURDIR}
-export DIR
-Libs = ${DIR}/Libraries/
-export Libs
-LIB_BLAS_LAPACK = -llapack -lblas
-export LIB_BLAS_LAPACK
-
-all: lib ana program
-
-lib:
-	cd Libraries && $(MAKE)
-ana:
-	cd Analysis && $(MAKE)
-program:
-	cd Prog && $(MAKE)
-
-
-clean: cleanall
-cleanall: cleanprog cleanlib cleanana
-cleanprog:
-	cd Prog && $(MAKE) clean
-cleanlib:
-	cd Libraries && $(MAKE) clean
-cleanana:
-	cd Analysis && $(MAKE) clean
-help:
-	@echo "The following are some of the valid targets of this Makefile"
-	@echo "all, program, lib, ana, clean, cleanall, cleanprog, cleanlib,
-	       cleanana"
-
+The necessary environment variables and the directives for compiling the code are set by the script \texttt{configure.sh}:
+\begin{lstlisting}[style=bash]
+source configure.sh [MACHINE] [MODE] [STAB]
 \end{lstlisting}
-In the above, the GNU Fortan compiler \texttt{gfortran} is set.\footnote{A known issue with the alternative Intel Fortran compiler \texttt{ifort} is the handling of automatic, temporary arrays 
-which \texttt{ifort} allocates on the stack. For large system sizes and/or low temperatures this may lead to 
-a runtime error. One solution is to demand allocation of arrays above a certain size on the heap instead of the stack. 
-This is accomplished by the \texttt{ifort} compiler flag \texttt{-heap-arrays [n]} where \texttt{[n]} is the minimal size (in kilobytes, for example \texttt{n=1024}) of arrays 
-that are allocated on the heap.}
-We provide a set of options for compilation of the QMC code. The present options are \texttt{-DMPI}, \texttt{-DQRREF}, \texttt{-DSTAB1}, and \texttt{-DSTAB2}. 
-They can be included in the string variable \texttt{PROGRAMCONFIGURATION} by the user, as shown above.
-The program can be compiled and ran either in single-thread mode (default) or 
-in multi-threading mode (define \texttt{-DMPI}) using the MPI standard for parallelization. The remaining three compiler options select a particular stabilization scheme for the matrix multiplications (see Sec.~\ref{sec:output_prec}).
-To compile the libraries, the analysis routines and the QMC program at once, just execute the single command:
-\begin{verbatim}
+If run with no arguments, it lists the available options and sets a generic, serial GNU compiler with minimal flags \texttt{-cpp -O3 -ffree-line-length-none -ffast-math}. The predefined machine configurations and parallelization modes available, as well as the options for stabilization schemes for the matrix multiplications (see Sec.~\ref{sec:stable}) are shown Table~\ref{table:configureHPC}. The stabilization scheme choice, in particular, is critical for performance and is discussed further in Sec.~\ref{sec:optimize}.
+
+\begin{table}[h]
+	\begin{center}
+		\begin{tabular}{@{} l l @{}}\toprule
+			Argument & Selected feature \\\midrule
+			\textbf{\texttt{MACHINE}} &  \\\midrule
+			\texttt{Intel}  &   Intel compiler for a generic machine\footnote{A known issue with the alternative Intel Fortran compiler \texttt{ifort} is the handling of automatic, temporary arrays 
+				which \texttt{ifort} allocates on the stack. For large system sizes and/or low temperatures this may lead to a runtime error. One solution is to demand allocation of arrays above a certain size on the heap instead of the stack. This is accomplished by the \texttt{ifort} compiler flag \texttt{-heap-arrays [n]} where \texttt{[n]} is the minimal size (in kilobytes, for example \texttt{n=1024}) of arrays that are allocated on the heap.}. \\
+			\texttt{GNU}  &   GNU compiler for a generic machine (\emph{default}). \\
+			\texttt{PGI}  &   PGI compiler for a generic machine. \\
+			\texttt{MAC}  &   GNU compiler for a generic MAC computer. \\
+			\texttt{SuperMUC-NG}  &  Intel compiler and loading the necessary modules for SuperMUC-NG\footnote{Supercomputer at the Leibniz Supercomputing Centre.}. \\
+			\texttt{JUWELS}  &  Intel compiler and loading the necessary modules for JUWELS\footnote{Supercomputer at the J\"ulich Supercomputing Centre.}. \\
+			\texttt{Devel|Development}  &  GNU compiler, and flags appropriate for debugging.  \vspace{5pt}\\
+
+			\textbf{\texttt{MODE}} &  \\\midrule
+			\texttt{noMPI|serial}  &  No parallelization. \\
+			\texttt{MPI}  &  MPI parallelization (\emph{default} -- if a machine is selected). \\
+			\texttt{Tempering}  &  Parallel tempering (Sec.~\ref{Parallel_tempering.sec}) and the required MPI as well. \vspace{5pt}\\ 
+
+			\textbf{\texttt{STAB}} &  \\\midrule
+			\texttt{STAB1}  &  Simplest stabilization, with UDV (QR-, not SVD-based) decompositions.\\
+			\texttt{STAB2}  &  QR-based UDV decompositions with additional normalizations.\\
+			\texttt{STAB3}  &  Newest stabilization, additionally separates large and small scales (\emph{default}).\\
+			\texttt{LOG}  &  Log storage for internal scales, increases accessible ranges.\\\bottomrule
+		\end{tabular}
+		\caption{Available arguments for the script \texttt{configure.sh}, called before compilation of the package: predefined machines, parallelization modes, and stabilization schemes (see also Sec.~\ref{sec:optimize}).} \label{table:configureHPC}
+	\end{center}
+\end{table}
+
+In order to compile the libraries, the analysis routines and the QMC program at once, just execute the single command:%\lstinline[style=bash,morekeywords={make}]{make}.
+\begin{lstlisting}[style=bash,morekeywords={make}]
 make
-\end{verbatim}
-To clean up all directories and remove the object files and executables, execute the command \texttt{make clean}. As can be seen in the above makefile, there exist also rules to compile/clean up the library, the analysis routines and the QMC program separately.  
+\end{lstlisting}
+Related directories, object files and executables can be removed by executing the command \lstinline[style=bash,morekeywords={make}]{make clean}. The accompanying \texttt{Makefile} also provides rules for compiling and cleaning up the library, the analysis routines and the QMC program separately.  
+
+A suite of tests for individual parts of the code (subroutines, functions, operations, etc.) is available at the directory \path{testsuite}. The tests can be run by executing the following sequence of commands (the script \path{configure.sh} sets environment variables as described above.):
+\begin{lstlisting}[style=bash,morekeywords={make,cmake,ctest}]
+
+source configure.sh Devel serial
+gfortran -v
+make lib
+make ana
+make Examples
+cd testsuite
+cmake -E make_directory tests
+cd tests
+cmake -G "Unix Makefiles" -DCMAKE_Fortran_FLAGS_RELEASE=${F90OPTFLAGS} \
+-DCMAKE_BUILD_TYPE=RELEASE ..
+cmake --build . --target all --config Release
+ctest -VV -O log.txt
+\end{lstlisting}
+which will output test results and total success rate.
 
 %
 %-------------------------------------------------------------------------------------
-\subsubsection{Starting a simulation}
+\subsection*{Starting a simulation}
 %-------------------------------------------------------------------------------------
 %
-To start a simulation from scratch, the following files have to be present: \texttt{parameters} and \texttt{seeds}. 
-To run a single-thread simulation, for example by using the parameters of one of the  Hubbard models described in Sec.~\ref{sec:ex}, issue the command
-\begin{verbatim}
-./Prog/Examples.out
-\end{verbatim}
-To restart the code using an existing simulation as a starting point, first run the script \texttt{out\_to\_in.sh} to set 
-the input configuration files.
+
+In order to start a simulation from scratch, the following files have to be present: \texttt{parameters} and \texttt{seeds} (see Sec.~\ref{sec:input}). 
+To run serially the simulation for a given model, for instance one of the plain vanilla Hubbard model included in \texttt{Hamiltonian\_Hubbard\_Plain\_Vanilla\_mod.F90}, described in Sec.~\ref{sec:hubbard}, issue the command
+\begin{lstlisting}[style=bash]
+./Prog/Hubbard_Plain_Vanilla.out
+\end{lstlisting}
+In order to run a different model, the corresponding executable should be used and, for running with parallelization, the appropriate MPI execution command should be called. For instance, a GNU-compiled Kondo model (Sec.~\ref{sec:kondo}) can be run in parallel by issuing  
+  \begin{lstlisting}[style=bash]
+orterun -np <number of processes> ./Prog/Kondo_Honey.out
+\end{lstlisting}
+
+
+To restart the code using the configuration from a previous simulation as a starting point, first run the script \texttt{out\_to\_in.sh}, which copies outputted field configurations into input files, before calling the ALF executable.
+
 %
 %-------------------------------------------------------------------------------------
-\subsubsection{Error analysis}
+\subsection{Error analysis}\label{sec:analysis}
 %-------------------------------------------------------------------------------------
 %
-Note that the error analysis script requires the presence of the environment variable \path{DIR} which defines the path to the error analysis programs.
-So before starting the error analysis, one has to make this variable available which is done by the script \path{setenv.sh}. The command is
-\begin{verbatim}
-source ./setenv.sh
-\end{verbatim}
-To perform an error analysis based on the Jackknife resampling method (Sec.~\ref{sec:jack})  of the Monte Carlo bins for all observables run the script \texttt{analysis.sh} 
-(see Sec.~\ref{sec:analysis}). In case that the parameter \path{N_auto} is set to a finite value the script will also trigger the computation of autocorrelation functions (Sec.~\ref{sec:autocorr}).
+
+The ALF package includes a few bash scripts for performing simple error analysis and correlation function calculations, as listed in Table~\ref{table:analysis_programs}. 
+To perform an error analysis based on the Jackknife resampling method~\cite{efron1981} (Sec.~\ref{sec:jack}) of the Monte Carlo bins for all observables run
+\begin{lstlisting}[style=bash]
+./analysis.sh
+\end{lstlisting}
+In case that the parameter \path{N_auto} is set to a finite value the script will also trigger the computation of autocorrelation functions (Sec.~\ref{sec:autocorr}).
+
+Note that the error analysis script requires the presence of the environment variable \texttt{ALF\_DIR}, which stores the package's path and can be set by running \texttt{source configure.sh}. The files taken by \texttt{analysis.sh} as input, as well as its output files are listed in Table~\ref{table:analysis_files}.
+
+\begin{table}[h]
+	\begin{center}
+	\begin{tabular}{@{} p{0.15\linewidth} p{0.8\linewidth} @{}}\toprule
+		Program & Description \\\midrule
+		\texttt{cov\_scal.F90}  &  In combination with the script \texttt{analysis.sh}, the bin files with suffix \texttt{\_scal} are read in, and  the corresponding files with suffix \texttt{\_scalJ} are produced. They  contain the  result of the Jackknife rebinning analysis  (see Sec.~\ref{sec:sampling})  \\
+		\texttt{cov\_eq.F90}    &  In combination with the script \texttt{analysis.sh}, the bin files with suffix \texttt{\_eq} are read in, and the corresponding files with suffix  \texttt{\_eqJR}  and  \texttt{\_eqJK}  are produced. They  correspond to correlation functions in real and Fourier space, respectively  \\
+		\texttt{cov\_tau.F90}   &  In combination with the script \texttt{analysis.sh}, the bin files  \texttt{X\_tau} are read in, and the directories  \texttt{X\_kx\_ky} are produced  for all \texttt{kx} and \texttt{ky} greater or equal to zero \\
+		& Here \texttt{X}  is a place holder from \texttt{Green}, \texttt{SpinXY}, etc., as specified in \texttt{ Alloc\_obs(Ltau)} (See section \ref{Alloc_obs_sec}). Each directory contains  a  file    \texttt{g\_kx\_ky}  containing the  time-displaced correlation function traced over the  orbitals.  It also contains the covariance matrix if \texttt{N\_cov} is set to unity in the parameter file  (see Sec.~\ref{sec:input}). Also, a directory  \texttt{X\_R0}  for the local  time displaced  correlation function is generated  \\                         
+		\texttt{cov\_tau\_ph.F90} & At compilation time  the file \texttt{cov\_tau\_ph.F90} is generated, and  should be used to compute particle-hole, imaginary-time correlation functions such as Spin and Charge. Here we use the fact that these  correlation functions  are symmetric around $\tau = \beta/2$ so that we can define an improved estimator by averaging over $\tau$ and $\beta - \tau$  
+		\\\bottomrule
+	\end{tabular}
+	\caption{ Overview of analysis programs that are called within the script \texttt{analysis.sh}. \label{table:analysis_programs}}
+\end{center}
+\end{table}
+%
+%Here we briefly describe the analysis programs, which read in bins and carry out the error analysis. (See Sec.~\ref{sec:sampling}  for a more detailed discussion.)
+The error analysis is based on the central limit theorem, which requires bins to be statistically independent, and also the existence of a well-defined variance for the observable under consideration (see Sec.~\ref{sec:sampling}).
+The former will be the case if bins are  longer than the autocorrelation time.  The latter has to be checked by the user.  In the parameter file described in Sec.~\ref{sec:input}, the user  can specify how many initial bins should be omitted (variable \texttt{n\_skip}). 
+This  number should be comparable to the autocorrelation time.     
+The  rebinning  variable \texttt{N\_rebin} will merge \texttt{N\_rebin}  bins into a single new bin. 
+If the autocorrelation time  is smaller than the effective bin size, the error should become independent of the bin size and thereby of the variable \texttt{N\_rebin}.
+%
+\begin{table}[h]
+	\begin{center}
+		\begin{tabular}{@{} p{0.2\linewidth} p{0.75\linewidth} @{}}\toprule
+		File & Description  \\ \midrule
+		Input &  \\\midrule %\cmidrule{1-1}
+		\texttt{parameters}  &  Includes error analysis variables \texttt{n\_skip}, \texttt{N\_rebin}, and \texttt{N\_Cov} (see Sec.~\ref{sec:input}) \\
+		\texttt{X\_scal}, \texttt{Y\_eq}, \texttt{Y\_tau} & Monte Carlo bins (see Table \ref{table:output}) \vspace{5pt} \\
+
+		Output &  \\\midrule
+		\texttt{X\_scalJ} & Jackknife mean and error of \texttt{X}, where  \texttt{X} stands for \texttt{Kin, Pot, Part}, or \texttt{Ener}\\
+		\texttt{Y\_eqJR} and \texttt{Y\_eqJK} & Jackknife mean and error of \texttt{Y}, which stands for \texttt{Green, SpinZ, SpinXY}, or \texttt{Den}. The suffixes \texttt{R} and \texttt{K} refer to real and reciprocal space, respectively\\
+		\texttt{Y\_R0/g\_R0} & Time-resolved and spatially local Jackknife mean and error of \texttt{Y}, where \texttt{Y} stands for \texttt{Green, SpinZ, SpinXY}, and \texttt{Den}\\
+		\texttt{Y\_kx\_ky/g\_kx\_ky} & Time resolved and $\vec{k}$-dependent Jackknife mean and error of \texttt{Y}, where \texttt{Y} stands for \texttt{Green, SpinZ, SpinXY}, and \texttt{Den}\\\bottomrule
+	\end{tabular}
+	\caption{ Standard input and output files of the error analysis script \texttt{analysis.sh}. \label{table:analysis_files}}
+\end{center}
+\end{table}
+%
+The analysis output files listed in Table \ref{table:analysis_files} and are formatted in the following way:
+\begin{itemize}
+	\item For the scalar quantities \texttt{X}, the output files  \texttt{X\_scalJ} have the following formatting:
+	\begin{alltt}
+		Effective number of bins, and bins:           <N_bin - n_skip>          <N_bin>	
+		OBS :    1      <mean(X)>      <error(X)>	
+		OBS :    2      <mean(sign)>   <error(sign)>
+	\end{alltt}
+	
+	\item For the equal-time correlation functions \texttt{Y}, the formatting of the output files \texttt{Y\_eqJR} and \texttt{Y\_eqJK} follows the structure:
+	\begin{alltt}
+		do i = 1, N_unit_cell
+		   <k_x(i)>   <k_y(i)>
+		   do alpha = 1, N_orbital
+		      do beta  = 1, N_orbital
+		         alpha   beta   Re<mean(Y)>   Re<error(Y)>   Im<mean(Y)>   Im<error(Y)>
+		      enddo
+		   enddo
+		enddo
+	\end{alltt}
+	where \texttt{Re} and \texttt{Im} refer to the real and imaginary part, respectively.
+	
+	\item The imaginary-time displaced correlation functions \texttt{Y} are written to the output files \texttt{g\_R0} inside folders \texttt{Y\_R0}, when measured locally in space; 
+	and to the output files \texttt{g\_kx\_ky} inside folders \texttt{Y\_kx\_ky} when they are measured $\vec{k}$-resolved (where $\vec{k}=(\texttt{kx}, \texttt{ky})$). The first line of the file prints the number of time slices, 
+	the number of bins and the inverse temperature. 
+	Both output files have the following formatting:
+	\begin{alltt}
+		do i = 0, Ltau
+		   tau(i)   <mean( Tr[Y] )>   <error( Tr[Y])>
+		enddo
+	\end{alltt}
+	where \texttt{Tr} corresponds to the trace over the orbital degrees of freedom.   For particle-hole quantities at finite temperature,  $\tau$ runs from 
+	$0$ to $\beta/2$.   In all other cases it runs from $0$ to $\beta$. 
+	
+	
+\end{itemize}
+
+
+
+%
+%-------------------------------------------------------------------------------------
+\subsection{Performance \& parameter optimization} \label{sec:optimize}
+%-------------------------------------------------------------------------------------
+%
+
+
+The finite-temperature, auxiliary-field QMC algorithm is known to be numerically unstable, as discussed in Sec.~\ref{sec:stable}.
+The numerical instabilities arise from the imaginary-time propagation, which invariably leads to exponentially small and exponentially large scales.
+As shown in Ref.~\cite{Assaad08_rev}, scales can be omitted in the ground state algorithm -- thus rendering it very stable --  but have to be taken into account in the  finite-temperature code.
+
+Numerical stabilization of the code is a delicate procedure that has been pioneered in Ref.~\cite{White89}  for the finite-temperature algorithm and in Refs.~\cite{Sugiyama86,Sorella89} for the zero-temperature, projective algorithm.
+It is important to be aware of the fragility of the numerical stabilization and that there is no guarantee that it will work for a given model. It is therefore crucial to always check the file \texttt{info}, which, apart from runtime data, contains important information concerning the stability of the code, in particular \texttt{Precision Green}.
+If the numerical stabilization fails, one possible measure is to reduce the value of the parameter \texttt{Nwrap} in the parameter file, which will however also impact performance -- see Table.~\ref{table:tips} for further optimization tips for the Monte Carlo algorithm (Sec.~\ref{sec:sampling}). Typical values for the numerical precision ALF can achieve can be found in Sec.~\ref{sec:hubbard}.
+
+\begin{table}[h!]
+	\begin{center}
+		\begin{tabular}{@{} p{0.18\linewidth} p{0.75\linewidth} @{}}\toprule
+			Element & Suggestion  \\ \midrule
+			\texttt{Precision Green}, \texttt{Precision Phase}  &  \multirow{2}{*}{Should be found to be \emph{small}, of order $< 10^{-8}$ (see Sec.~\ref{sec:stable})}\\
+			\texttt{theta}       & Should be \emph{large} enough to guarantee convergence to ground state \\
+			\texttt{dtau}        & Should be set \emph{small} enough to limit Trotter errors\\
+			\texttt{Nwrap}       & Should be set \emph{small} enough to keep \texttt{Precision}s small\\
+			\texttt{Nsweep}      & Should be set \emph{large} enough for bins to be of the order of the auto-correlation time\\
+			\texttt{Nbin}        & Should be set \emph{large} enough to provide desired statistics \\
+			\texttt{nskip}       & Should be set \emph{large} enough to allow for equilibration ($\sim$ autocorrelation time) \\
+			\texttt{Nrebin}      & Can be set to 1 when \texttt{Nsweep} is large enough; otherwise, and for testing, larger values can be used\\
+			Stabilization scheme & Use the default \texttt{STAB3} -- newest and fastest, if it works for your model; alternatives are: \texttt{STAB1} -- simplest, for reference only; \texttt{STAB2} -- with additional normalizations; and \texttt{LOG} -- for dealing with more extreme scales (see also Tab.~\ref{table:configureHPC}) \\
+			Parallelism          & For some models and systems, restricting parallelism in OpenBLAS can improve performance: try setting \texttt{OPENBLAS\_NUM\_THREADS=1} in the shell \\\bottomrule
+		\end{tabular}
+		\caption{Rules of thumb for obtaining best results and performance from ALF. It is important to fine tune the parameters to the specific model under consideration and perform sanity checks throughout. Most suggestions can severely impact performance and numerical stability if overdone. \label{table:tips}}
+	\end{center}
+\end{table}
+
+
+In particular, for the stabilization of the involved matrix multiplications we rely on routines from LAPACK. Notice that results are very likely to change
+%significantly
+depending on the specific implementation of the library used\footnote{The linked library should implement at least the LAPACK-3.4.0 interface.}. In order to deal with this possibility, we offer a simple baseline which can be used as a quick check as tho whether results depend on the library used for linear algebra routines. Namely, we have included QR-decomposition related routines of the LAPACK-3.6.1 reference implementation from \url{http://www.netlib.org/lapack/}, which you can use by running the script \path{configure.sh}, (described in Sec.~\ref{sec:running}), with the flag \texttt{STAB1} and recompiling ALF\footnote{This flag may trigger compiling issues, in particular, the Intel ifort compiler version 10.1 fails for all optimization levels.}. The stabilization flags available are described in Tables~\ref{table:configureHPC} and~\ref{table:tips}. The performance of the package is further discussed in Sec.~\ref{sec:performance}.
+
+
+
+
 

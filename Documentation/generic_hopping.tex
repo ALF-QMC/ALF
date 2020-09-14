@@ -1,0 +1,92 @@
+% !TEX root = doc.tex
+% Copyright (c) 2017-2020 The ALF project.
+% This is a part of the ALF project documentation.
+% The ALF project documentation by the ALF contributors is licensed
+% under a Creative Commons Attribution-ShareAlike 4.0 International License.
+% For the licensing details of the documentation see license.CCBYSA.
+%
+%-----------------------------------------------------------------------------------
+
+
+%-----------------------------------------------------------------------------------
+\subsection{Generic hopping  matrices on bravais lattices} \label{sec:predefined_hopping}
+%-----------------------------------------------------------------------------------
+
+
+\input{hopping.tex}
+
+
+\subsubsection{ Predefined hoppings}
+
+The  module provides hopping   and  checkerboard decompositions, defining a  \path{Hopping_Matrix} (an array of length \path{N_FL} of type  \path{Hopping_Matrix_type}, see Sec.~\ref{sec:hopping_type}) for each of the following predefined lattices.
+
+\subsubsection*{Square}
+The call:
+\begin{lstlisting}[style=fortran]
+ Call Set_Default_hopping_parameters_square(Hopping_Matrix, T_vec, Chem_vec, Phi_X_vec,  
+          Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
+\end{lstlisting}
+defines  the  \path{Hopping_Matrix} for the square  lattice: 
+\begin{equation}
+\hat{H}_T  =   \sum_{\ve{i}, \sigma, s}  \left( \left[ \sum_{ \ve{\delta} = \left\{ \ve{a}_1, \ve{a}_2\right\} }    - t^{(s)} \hat{c}^{\dagger}_{\ve{i},s,\sigma}   e^{\frac{2 \pi i}{\Phi_0} \int_{\ve{i}}^{\ve{i}+ \ve{\delta}}  \vec{A}^{(s)}(\vec{l})  d \vec{l}}   \hat{c}^{}_{\ve{i} + \ve{\delta},s,\sigma} +  H.c.   \right]    -  \mu^{(s)} \hat{c}^{\dagger}_{\ve{i},s,\sigma} \hat{c}^{}_{\ve{i},s,\sigma}  \right).
+\end{equation}
+The vectors  \path{T_vec} and \path{Chem_vec} have  length \texttt{N\_FL} and specify the hopping and the chemical potentials, while the  vectors \path{Phi_X_vec},  \path{Phi_Y_vec} and \path{N_Phi_vec},  also of  length  \texttt{N\_FL},    define the vector potential. 
+
+
+\subsubsection*{Honeycomb}
+The call: 
+ \begin{lstlisting}[style=fortran]
+ Call Set_Default_hopping_parameters_honeycomb(Hopping_Matrix,T_vec, Chem_vec, Phi_X_vec,
+          Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
+\end{lstlisting}
+defines  the  \path{Hopping_Matrix} for the  honeycomb lattice: 
+\begin{align}
+\hat{H}_T  =   &  \sum_{\ve{i}, \sigma, s}  \left(  \sum_{ \ve{\delta} = \left\{ \ve{\delta}_1, \ve{\delta}_2, \ve{\delta}_3\right\} }    - t^{(s)} \hat{c}^{\dagger}_{\ve{i},s,\sigma}   e^{\frac{2 \pi i}{\Phi_0} \int_{\ve{i}}^{\ve{i}+ \ve{\delta}}  \vec{A}^{(s)}(\vec{l})  d \vec{l}}   \hat{c}^{}_{\ve{i} + \ve{\delta},s,\sigma} +  H.c. \right)   \nonumber \\   
+    &  \sum_{\ve{i}, \sigma, s}   -  \mu^{(s)} \left( \hat{c}^{\dagger}_{\ve{i},s,\sigma} \hat{c}^{}_{\ve{i},s,\sigma}   +  \hat{c}^{\dagger}_{\ve{i} + \ve{\delta}_1,s,\sigma} \hat{c}^{}_{\ve{i} + \ve{\delta}_1,s,\sigma}   \right),
+\end{align}
+where the \path{T_vec} and \path{Chem_vec} have  length \texttt{N\_FL} and specify the hopping and the chemical potentials, while the  vectors \path{Phi_X_vec},  \path{Phi_Y_vec} and \path{N_Phi_vec},  also of  length  \texttt{N\_FL}, define the vector potential.  Here $\ve{i}$  runs over  sublattice  A, and $\ve{i} + \ve{\delta}$  over the three nearest neighbors of site $\ve{i}$
+
+
+\subsubsection*{Square bilayer}
+The call:
+ \begin{lstlisting}[style=fortran]
+Call Set_Default_hopping_parameters_Bilayer_square(Hopping_Matrix, T1_vec, T2_vec, Tperp_vec, 
+         Chem_vec, Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
+\end{lstlisting}  
+defines  the  \path{Hopping_Matrix} for the  bilayer  square  lattice:                 
+\begin{align}
+\hat{H}_T  =  &   \sum_{\ve{i}, \sigma, s,n } \left(    \left[  \sum_{ \ve{\delta} = \left\{ \ve{a}_1, \ve{a}_2\right\} }  - t_n^{(s)} \hat{c}^{\dagger}_{\ve{i},s,\sigma,n}   e^{\frac{2 \pi i}{\Phi_0} \int_{\ve{i}}^{\ve{i}+ \ve{\delta}}  \vec{A}^{(s)}(\vec{l})  d \vec{l}}   \hat{c}^{}_{\ve{i} + \ve{\delta},s,\sigma,n} +  H.c. \right]       -  \mu^{(s)} \hat{c}^{\dagger}_{\ve{i},s,\sigma,n} \hat{c}^{}_{\ve{i},s,\sigma,n}  \right)  +  \nonumber \\
+      &    \sum_{\ve{i}, \sigma, s } -  t_{\perp}^{(s)}  \left( \hat{c}^{\dagger}_{\ve{i},s,\sigma,1} \hat{c}^{}_{\ve{i},s,\sigma,2}    + H.c.  \right), 
+\end{align}
+where the additional  index  $n$  labels the layers.
+
+
+\subsubsection*{Honeycomb  bilayer}
+The call:
+ \begin{lstlisting}[style=fortran]
+Call Set_Default_hopping_parameters_Bilayer_honeycomb(Hopping_Matrix, T1_vec, T2_vec, Tperp_vec, 
+         Chem_vec, Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
+\end{lstlisting}  
+defines  the  \path{Hopping_Matrix} for the  bilayer  honeycomb  lattice:                 
+\begin{align}
+\hat{H}_T  =  &   \sum_{\ve{i}, \sigma, s,n } \left(  \sum_{ \ve{\delta} = \left\{ \ve{\delta}_1, \ve{\delta}_2, \ve{\delta}_3 \right\} }  - t_n^{(s)} \hat{c}^{\dagger}_{\ve{i},s,\sigma,n}   e^{\frac{2 \pi i}{\Phi_0} \int_{\ve{i}}^{\ve{i}+ \ve{\delta}}  \vec{A}^{(s)}(\vec{l})  d \vec{l}}   \hat{c}^{}_{\ve{i} + \ve{\delta},s,\sigma,n} +  H.c. \right)        + \nonumber \\
+      &    \sum_{\ve{i}, \sigma, s } -  t_{\perp}^{(s)}  \left( \hat{c}^{\dagger}_{\ve{i},s,\sigma,1} \hat{c}^{}_{\ve{i},s,\sigma,2}   +
+                   \hat{c}^{\dagger}_{\ve{i} + \ve{\delta}_1,s,\sigma,1} \hat{c}^{}_{\ve{i} + \ve{\delta}_1,s,\sigma,2}  + H.c.  \right) +  \nonumber \\
+      &    \sum_{\ve{i}, \sigma, s, n }  -  \mu^{(s)}  \left(\hat{c}^{\dagger}_{\ve{i},s,\sigma,n} \hat{c}^{}_{\ve{i},s,\sigma,n}  +  \hat{c}^{\dagger}_{\ve{i} + \ve{\delta}_1,s,\sigma,n} \hat{c}^{}_{\ve{i} + \ve{\delta}_1 ,s,\sigma,n}  \right)  
+\end{align}
+Here, the additional  index  $n$  labels the layer.   $\ve{i} $   runs over the unit cells  and   $\ve{\delta} = \left\{ \ve{\delta}_1, \ve{\delta}_2, \ve{\delta}_3 \right\} $  over the three nearest neighbors. 
+
+
+\subsubsection*{N-leg ladder}
+The call:
+ \begin{lstlisting}[style=fortran]
+Call Set_Default_hopping_parameters_n_lag_ladder(Hopping_Matrix, T_vec, Tperp_vec, Chem_vec,
+         Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
+\end{lstlisting}  
+defines  the  \path{Hopping_Matrix} for the  the  N-leg ladder lattice:                 
+\begin{align}
+\hat{H}_T  =  & \sum_{\ve{i}, \sigma, s }  \sum_{n=1}^{\texttt{Norb}} \left(      - t^{(s)} \hat{c}^{\dagger}_{\ve{i},s,\sigma,n}   e^{\frac{2 \pi i}{\Phi_0} \int_{\ve{i}}^{\ve{i}+ \ve{a}_1}  \vec{A}^{(s)}(\vec{l})  d \vec{l}}   \hat{c}^{}_{\ve{i} + \ve{a}_1,s,\sigma,n} +  H.c.       -  \mu^{(s)} \hat{c}^{\dagger}_{\ve{i},s,\sigma,n} \hat{c}^{}_{\ve{i},s,\sigma,n}  \right)  +  \nonumber \\
+      &  \sum_{\ve{i}, \sigma, s } \sum_{n=1}^{\texttt{Norb}-1}  -  t_{\perp}^{(s)}  \left( 
+                   \hat{c}^{\dagger}_{\ve{i} + \ve{\delta}_1,s,\sigma,n}  e^{\frac{2 \pi i}{\Phi_0} \int_{(n-1)\ve{a}_2}^{(n)\ve{a}_2}  \vec{A}^{(s)}(\vec{l})  d \vec{l}}    \hat{c}^{}_{\ve{i} + \ve{\delta}_1,s,\sigma,n+1}  + H.c.  \right). 
+\end{align}
+Here, the additional  index  $n$  defines  the orbital.  Note that this lattice  has open boundary conditions in the $\vec{a}_2$  direction. 

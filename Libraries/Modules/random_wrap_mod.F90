@@ -41,6 +41,7 @@ Module Random_Wrap
 !--------------------------------------------------------------------
    contains
 
+     
      Subroutine Get_seed_Len(K)
        Implicit none
        Integer :: K

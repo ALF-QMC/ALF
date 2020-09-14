@@ -9,9 +9,6 @@ all: $(OBJS1) $(BINS)
 cov_tau_ph.F90 : cov_tau.F90
 	cpp -w -P -DPartHole cov_tau.F90 -o cov_tau_ph.F90
 
-Predefined_Latt_mod.F90 : ../Prog/Predefined_Latt_mod.F90
-	cp ../Prog/Predefined_Latt_mod.F90 .
-
 %.o: %.F90
 	$(ALF_FC) -c $*.F90 $(ALF_FLAGS_ANA) 
 
@@ -20,7 +17,7 @@ Predefined_Latt_mod.F90 : ../Prog/Predefined_Latt_mod.F90
 	$(ALF_FC) -o $@ $*.o $(OBJS1) $(ALF_LIB)
 
 tidy:
-	rm -f $(OBJS) $(OBJS1) $(MODS) cov_tau_ph.F90  Predefined_Latt_mod.F90
+	rm -f $(OBJS) $(OBJS1) $(MODS) cov_tau_ph.F90
 
 clean: tidy
 	rm -f $(BINS)

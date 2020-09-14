@@ -1,44 +1,44 @@
 !  Copyright (C) 2016 - 2018 The ALF project
-! 
+!
 !  This file is part of the ALF project.
-! 
+!
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
-! 
+!
 !     The ALF project is distributed in the hope that it will be useful,
 !     but WITHOUT ANY WARRANTY; without even the implied warranty of
 !     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 !     GNU General Public License for more details.
-! 
+!
 !     You should have received a copy of the GNU General Public License
 !     along with ALF.  If not, see http://www.gnu.org/licenses/.
-!     
+!
 !     Under Section 7 of GPL version 3 we require you to fulfill the following additional terms:
-!     
+!
 !     - It is our hope that this program makes a contribution to the scientific community. Being
 !       part of that community we feel that it is reasonable to require you to give an attribution
 !       back to the original authors if you have benefitted from this program.
 !       Guidelines for a proper citation can be found on the project's homepage
 !       http://alf.physik.uni-wuerzburg.de .
-!       
+!
 !     - We require the preservation of the above copyright notice and this license in all original files.
-!     
-!     - We prohibit the misrepresentation of the origin of the original source files. To obtain 
+!
+!     - We prohibit the misrepresentation of the origin of the original source files. To obtain
 !       the original source files please visit the homepage http://alf.physik.uni-wuerzburg.de .
-! 
+!
 !     - If you make substantial changes to the program we require you to either consider contributing
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !
-!> @brief 
-!> Matrix operations for operator type.   
-!> type. 
+!> @brief
+!> Matrix operations for operator type.
+!> type.
 !
 !--------------------------------------------------------------------
 
@@ -46,45 +46,46 @@ subroutine ZSLGEMM(side, op, N, M1, M2, A, P, Mat)
 ! Small Large general matrix multiplication
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !
-!> @brief 
+!> @brief
 !> !!!!!  Side = L
-!>   M = op( P^T A P) * M 
+!>   M = op( P^T A P) * M
 !>   Side = R
 !>   M =  M * op( P^T A P)
-!>   On input: P =  Op%P and A = Op%O  
-!> !!!!!   type 
+!>   On input: P =  Op%P and A = Op%O
+!> !!!!!   type
 !>   op = N  -->  None
-!>   op = T  -->  Transposed  
-!>   op = C  -->  Transposed + Complex conjugation 
+!>   op = T  -->  Transposed
+!>   op = C  -->  Transposed + Complex conjugation
 !> !!!!! Mat has dimensions M1,M2, N is dimension of A
 !>
 !--------------------------------------------------------------------
-  
+        use iso_fortran_env, only: output_unit, error_unit
+
         IMPLICIT NONE
         CHARACTER (1)            , INTENT(IN) :: side, op
         INTEGER                  , INTENT(IN) :: N, M1, M2
         COMPLEX (KIND=KIND(0.D0)), INTENT(IN)   , DIMENSION(N,N) :: A
         COMPLEX (KIND=KIND(0.D0)), INTENT(INOUT), DIMENSION(M1,M2) :: Mat
         INTEGER                  , INTENT(IN)   , DIMENSION(N)   :: P
-        
+
         COMPLEX (KIND=KIND(0.D0)), DIMENSION(:,:), ALLOCATABLE :: WORK, WORK2
         Complex (Kind = Kind(0.D0)) :: alpha, beta, Z(8)
         INTEGER :: I, L, IDX, NUMBLOCKS, op_id
         INTEGER, DIMENSION(:), ALLOCATABLE :: IDXLIST, DIMLIST
         LOGICAL :: COMPACT, LEFT
-        
+
         IF ( side == 'L' .or. side == 'l' ) THEN
           LEFT=.true.
         ELSEIF ( side == 'R' .or. side == 'r' ) THEN
           LEFT=.false.
         ELSE
-          write(*,*) 'Illegal argument for side=',side,': It is not one of [R,r,L,l] !'
-          stop 2
+          write(error_unit,*) 'ZSLGEMM: Illegal argument for side=',side,': It is not one of [R,r,L,l] !'
+          error stop 2
         ENDIF
-        
+
         IF ( op == 'N' .or. op == 'n' ) THEN
           op_id=0
         ELSEIF ( op == 'T' .or. op == 't' ) THEN
@@ -92,13 +93,13 @@ subroutine ZSLGEMM(side, op, N, M1, M2, A, P, Mat)
         ELSEIF ( op == 'C' .or. op == 'c' ) THEN
           op_id=2
         ELSE
-          write(*,*) 'Illegal argument for op=',op,': It is not one of [N,n,T,t,C,c] !'
-          stop 2
+          write(error_unit,*) 'ZSLGEMM: Illegal argument for op=',op,': It is not one of [N,n,T,t,C,c] !'
+          error stop 2
         ENDIF
-        
+
         alpha = 1.D0
         beta = 0.D0
-        
+
         !identify possible block structure
         !only used in default case for n>4
         IF(N > 8) THEN
@@ -143,10 +144,10 @@ subroutine ZSLGEMM(side, op, N, M1, M2, A, P, Mat)
             ENDDO
           ENDIF
         ENDIF
-        
+
         IF ( LEFT ) THEN
           ! multiply op(A) from the left  [ Mat = op(A)*Mat ]
-          
+
           SELECT CASE(N)
           CASE (1)
             ! Here only one row is rescaled
@@ -321,7 +322,7 @@ subroutine ZSLGEMM(side, op, N, M1, M2, A, P, Mat)
             DO I=1,NUMBLOCKS
               CALL ZLACPY('A', DIMLIST(I), M2, Mat(P(IDXLIST(I)),1), M1, WORK(IDXLIST(I),1), N)
             ENDDO
-            
+
             ! Perform Mat multiplication
             IF(COMPACT) THEN
               !write result directly into mat
@@ -340,10 +341,10 @@ subroutine ZSLGEMM(side, op, N, M1, M2, A, P, Mat)
             !free memory of first mat copy
             DEALLOCATE(WORK,IDXLIST,DIMLIST)
           END SELECT
-          
+
        ELSE
           ! multiply op(A) from the right [ Mat = Mat*op(A) ]
-          
+
           SELECT CASE(N)
           CASE (1)
             ! Here only one column is rescaled
@@ -484,7 +485,7 @@ subroutine ZSLGEMM(side, op, N, M1, M2, A, P, Mat)
             DO I=1,NUMBLOCKS
               CALL ZLACPY('A', M1, DIMLIST(I), Mat(1,P(IDXLIST(I))), M1, WORK(1,IDXLIST(I)), M1)
             ENDDO
-            
+
             ! Perform Mat multiplication
             IF(COMPACT) THEN
               !write result directly into mat
@@ -499,11 +500,11 @@ subroutine ZSLGEMM(side, op, N, M1, M2, A, P, Mat)
               ENDDO
               !free result memory
               DEALLOCATE(WORK2)
-            ENDIF 
+            ENDIF
             !free memory of first mat copy
             DEALLOCATE(WORK,IDXLIST,DIMLIST)
           END SELECT
-          
+
         ENDIF
 
 end subroutine ZSLGEMM
@@ -513,42 +514,43 @@ subroutine ZSLHEMM(side, uplo, N, M1, M2, A, P, Mat)
 ! Small Large  hermitian matrix multiplication
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
-!  
+!
 !> @brief
 !> P^T A P is hermitian
 !> !!!!!  Side = L
-!>   M = op( P^T A P) * M 
+!>   M = op( P^T A P) * M
 !>   Side = R
 !>   M =  M * op( P^T A P)
-!>   On input: P =  Op%P and A = Op%O  
-!> !!!!!   type 
+!>   On input: P =  Op%P and A = Op%O
+!> !!!!!   type
 !>   op = N  -->  None
-!>   op = T  -->  Transposed  
+!>   op = T  -->  Transposed
 !>   op = C  -->  Transposed + Complex conjugation. Same as N.
 !> !!!!! Mat has dimensions M1,M2
 !>
 !--------------------------------------------------------------------
-  
+        use iso_fortran_env, only: output_unit, error_unit
 
-  
+
+
         IMPLICIT NONE
         CHARACTER (1)            , INTENT(IN) :: side, uplo
         INTEGER                  , INTENT(IN) :: N, M1, M2
         COMPLEX (KIND=KIND(0.D0)), INTENT(IN)   , DIMENSION(N,N) :: A
         COMPLEX (KIND=KIND(0.D0)), INTENT(INOUT), DIMENSION(M1,M2) :: Mat
         INTEGER                  , INTENT(IN)   , DIMENSION(N)   :: P
-        
+
         COMPLEX (KIND=KIND(0.D0)), DIMENSION(:,:), ALLOCATABLE :: WORK, WORK2
         Complex (Kind = Kind(0.D0)) :: alpha, beta, Z(8)
         INTEGER :: I,L,IDX, NUMBLOCKS
         INTEGER, DIMENSION(:), ALLOCATABLE :: IDXLIST, DIMLIST
         LOGICAL :: COMPACT, ALLOC
-        
+
         alpha = 1.D0
         beta = 0.D0
-        
+
         !identify possible block structure
         !only used in default case for n>4
         IF(N > 8) THEN
@@ -594,10 +596,10 @@ subroutine ZSLHEMM(side, uplo, N, M1, M2, A, P, Mat)
             ENDDO
           ENDIF
         ENDIF
-        
+
         IF ( side == 'L' .or. side == 'l' ) THEN
           ! multiply op(A) from the left  [ Mat = op(A)*Mat ]
-          
+
           SELECT CASE(N)
           CASE (1)
             ! Here only one row is rescaled
@@ -769,7 +771,7 @@ subroutine ZSLHEMM(side, uplo, N, M1, M2, A, P, Mat)
             DO I=1,NUMBLOCKS
               CALL ZLACPY('A', DIMLIST(I), M2, Mat(P(IDXLIST(I)),1), M1, WORK(IDXLIST(I),1), N)
             ENDDO
-            
+
             ! Perform Mat multiplication
             IF(COMPACT) THEN
               !write result directly into mat
@@ -788,10 +790,10 @@ subroutine ZSLHEMM(side, uplo, N, M1, M2, A, P, Mat)
             !free memory of first mat copy
             DEALLOCATE(WORK,IDXLIST,DIMLIST)
           END SELECT
-          
+
         ELSEIF ( side == 'R' .or. side == 'r' ) THEN
           ! multiply op(A) from the right [ Mat = Mat*op(A) ]
-          
+
           SELECT CASE(N)
           CASE (1)
             ! Here only one column is rescaled
@@ -929,7 +931,7 @@ subroutine ZSLHEMM(side, uplo, N, M1, M2, A, P, Mat)
             DO I=1,NUMBLOCKS
               CALL ZLACPY('A', M1, DIMLIST(I), Mat(1,P(IDXLIST(I))), M1, WORK(1,IDXLIST(I)), M1)
             ENDDO
-            
+
             ! Perform Mat multiplication
             IF(COMPACT) THEN
               !write result directly into mat
@@ -944,14 +946,14 @@ subroutine ZSLHEMM(side, uplo, N, M1, M2, A, P, Mat)
               ENDDO
               !free result memory
               DEALLOCATE(WORK2)
-            ENDIF 
+            ENDIF
             !free memory of first mat copy
             DEALLOCATE(WORK,IDXLIST,DIMLIST)
           END SELECT
-          
+
         ELSE
-          write(*,*) 'Illegal argument for side: It is not one of [R,r,L,l] !'
-          stop 1
+          write(error_unit,*) 'ZSLHEMM: Illegal argument for side: It is not one of [R,r,L,l] !'
+          error stop 1
         ENDIF
 
 end subroutine ZSLHEMM

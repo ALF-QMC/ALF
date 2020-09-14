@@ -1,31 +1,31 @@
 !  Copyright (C) 2016 - 2020 The ALF project
-! 
+!
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
-! 
+!
 !     The ALF project is distributed in the hope that it will be useful,
 !     but WITHOUT ANY WARRANTY; without even the implied warranty of
 !     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 !     GNU General Public License for more details.
-! 
+!
 !     You should have received a copy of the GNU General Public License
 !     along with ALF.  If not, see http://www.gnu.org/licenses/.
-!     
+!
 !     Under Section 7 of GPL version 3 we require you to fulfill the following additional terms:
-!     
+!
 !     - It is our hope that this program makes a contribution to the scientific community. Being
 !       part of that community we feel that it is reasonable to require you to give an attribution
 !       back to the original authors if you have benefitted from this program.
 !       Guidelines for a proper citation can be found on the project's homepage
 !       http://alf.physik.uni-wuerzburg.de .
-!       
+!
 !     - We require the preservation of the above copyright notice and this license in all original files.
-!     
-!     - We prohibit the misrepresentation of the origin of the original source files. To obtain 
+!
+!     - We prohibit the misrepresentation of the origin of the original source files. To obtain
 !       the original source files please visit the homepage http://alf.physik.uni-wuerzburg.de .
-! 
+!
 !     - If you make substantial changes to the program we require you to either consider contributing
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
@@ -33,40 +33,40 @@
 !> @author
 !> ALF-project
 !
-!> @brief 
-!> This module defines the Obser_Vec and Obser_Latt types and provides  
+!> @brief
+!> This module defines the Obser_Vec and Obser_Latt types and provides
 !> routine to initialize them and to print out the bins
 !
 !--------------------------------------------------------------------
      Module Observables
 
-       Use Files_mod
-    
+       use iso_fortran_env, only: output_unit, error_unit
+
        Type Obser_Vec
-!>  Data structure for 
-!>  < O_n >  n : =1, size(Obs,1)  
+!>  Data structure for
+!>  < O_n >  n : =1, size(Obs,1)
           Integer            :: N                    ! Number of measurements
           real      (Kind=Kind(0.d0)) :: Ave_Sign             ! Averarge sign
           complex   (Kind=Kind(0.d0)), pointer :: Obs_vec(:)  ! Vector of observables
           Character (len=64) :: File_Vec             ! Name of file in which the bins will be written out
        end type Obser_Vec
-       
+
 
        Type Obser_Latt
-!>  Data structure for 
-!>  < O^{dagger}(i,tau)_n O(j,0)_m>  - < O_n> <O_m> 
-!>  where it is assumed that translation symmetry as specified by the lattice Latt is present.  
-!>  Obs_Latt(i-j,tau,n,m) = < O^{dagger}(i,tau)_n O(j,0)_m>  
+!>  Data structure for
+!>  < O^{dagger}(i,tau)_n O(j,0)_m>  - < O_n> <O_m>
+!>  where it is assumed that translation symmetry as specified by the lattice Latt is present.
+!>  Obs_Latt(i-j,tau,n,m) = < O^{dagger}(i,tau)_n O(j,0)_m>
 !>  Obs_Latt0(n) = < O_n>
-!>  For equal   time correlation functions, tau runs from 1,1 
-!>  For unequal time correlation functions, tau runs from 1,Ltrot+1  
+!>  For equal   time correlation functions, tau runs from 1,1
+!>  For unequal time correlation functions, tau runs from 1,Ltrot+1
           Integer            :: N                           ! Number of measurements
           Real      (Kind=Kind(0.d0)) :: Ave_Sign                    ! Averarge sign
-          complex   (Kind=Kind(0.d0)), pointer :: Obs_Latt (:,:,:,:) ! i-j, tau, norb, norb  
-          complex   (Kind=Kind(0.d0)), pointer :: Obs_Latt0(:)       ! norb 
+          complex   (Kind=Kind(0.d0)), pointer :: Obs_Latt (:,:,:,:) ! i-j, tau, norb, norb
+          complex   (Kind=Kind(0.d0)), pointer :: Obs_Latt0(:)       ! norb
           Character (len=64) :: File_Latt                   ! Name of file in which the bins will be written out
        end type Obser_Latt
-       
+
 
 
        Contains
@@ -75,7 +75,7 @@
            Implicit none
            Type (Obser_Latt), intent(INOUT) :: Obs
            Integer, Intent(IN)             :: Ns,Nt,No
-           Character (len=64), Intent(IN)  :: Filename 
+           Character (len=64), Intent(IN)  :: Filename
            Allocate (Obs%Obs_Latt (Ns,Nt,No,No))
            Allocate (Obs%Obs_Latt0(No)         )
            Obs%File_Latt = Filename
@@ -90,19 +90,19 @@
            Obs%N         = 0
            Obs%Ave_Sign  = 0.d0
          end subroutine Obser_Latt_Init
-         
+
 !--------------------------------------------------------------------
 
          Subroutine Obser_Vec_make(Obs,N,Filename)
            Implicit none
            Type (Obser_vec), intent(INOUT) :: Obs
            Integer, Intent(IN)             :: N
-           Character (len=64), Intent(IN)  :: Filename 
+           Character (len=64), Intent(IN)  :: Filename
            Allocate (Obs%Obs_vec(N))
            Obs%File_Vec = Filename
          end subroutine Obser_Vec_make
 !--------------------------------------------------------------------
-         
+
          Subroutine Obser_Vec_Init(Obs)
            Implicit none
            Type (Obser_vec), intent(INOUT) :: Obs
@@ -112,7 +112,7 @@
          end subroutine Obser_Vec_Init
 
 !--------------------------------------------------------------------
-         
+
          Subroutine  Print_bin_Latt(Obs,Latt,dtau,Group_Comm)
            Use Lattices_v3
 #ifdef MPI
@@ -128,7 +128,7 @@
            ! Local
            Integer :: Ns,Nt, Norb, no, no1, I , Ntau
            Complex (Kind=Kind(0.d0)), allocatable :: Tmp(:,:,:,:)
-           Real    (Kind=Kind(0.d0))              :: x_p(2) 
+           Real    (Kind=Kind(0.d0))              :: x_p(2)
            Complex (Kind=Kind(0.d0))              :: Sign_bin
            Character (len=64)            :: File_pr,  File_suff
 #ifdef MPI
@@ -148,22 +148,22 @@
            Ns    = Size(Obs%Obs_Latt,1)
            Ntau  = Size(Obs%Obs_Latt,2)
            Norb  = Size(Obs%Obs_Latt,3)
-           if ( .not. (Latt%N  == Ns ) ) then 
-              Write(6,*) 'Error in Print_bin' 
-              Stop
+           if ( .not. (Latt%N  == Ns ) ) then
+              Write(error_unit,*) 'Error in Print_bin'
+              error stop 1
            endif
            If (Ntau == 1) then
-              File_suff ="_eq"
+              File_suff = "_eq"
            else
-              File_suff  ="_tau"
+              File_suff = "_tau"
            endif
-           File_pr  = file_add(Obs%File_Latt,File_suff )
+           write(File_pr, '(A,A)') trim(Obs%File_Latt), Trim(File_suff)
            Allocate (Tmp(Ns,Ntau,Norb,Norb))
            Obs%Obs_Latt  =   Obs%Obs_Latt /dble(Obs%N   )
            Obs%Obs_Latt0 =   Obs%Obs_Latt0/dble(Obs%N*Ns*Ntau)
            Obs%Ave_sign  =   Obs%Ave_Sign /dble(Obs%N   )
 
-#if defined(MPI) 
+#if defined(MPI)
            I = Ns*Ntau*Norb*Norb
            Tmp = cmplx(0.d0, 0.d0, kind(0.D0))
            CALL MPI_REDUCE(Obs%Obs_Latt,Tmp,I,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
@@ -183,7 +183,7 @@
 
            If (Irank_g == 0 ) then
 #endif
-#if defined(TEMPERING) 
+#if defined(TEMPERING)
               write(File_pr ,'(A,I0,A,A,A)') "Temp_",igroup,"/",trim(Obs%File_Latt),trim(File_suff )
 #endif
 
@@ -194,7 +194,7 @@
                     enddo
                  enddo
               enddo
-              Open (Unit=10,File=File_pr, status="unknown",  position="append")
+              Open (Unit=10,File=File_pr, status="unknown", position="append")
               If ( Ntau == 1 ) then
                  Write(10,*) Obs%Ave_sign,Norb,Latt%N
               else
@@ -204,7 +204,7 @@
                  Write(10,*)  Obs%Obs_Latt0(no)
               enddo
               do I = 1,Latt%N
-                 x_p = dble(Latt%listk(i,1))*Latt%b1_p + dble(Latt%listk(i,2))*Latt%b2_p  
+                 x_p = dble(Latt%listk(i,1))*Latt%b1_p + dble(Latt%listk(i,2))*Latt%b2_p
                  Write(10,*) X_p(1), X_p(2)
                  Do nt = 1,Ntau
                     do no = 1,Norb
@@ -215,7 +215,7 @@
                  enddo
               enddo
               close(10)
-#if defined(MPI) 
+#if defined(MPI)
            Endif
 #endif
 
@@ -251,11 +251,11 @@
 #endif
            Obs%Obs_vec  = Obs%Obs_vec /dble(Obs%N)
            Obs%Ave_sign = Obs%Ave_sign/dble(Obs%N)
-           File_suff ="_scal"
-           File_pr = file_add(Obs%File_Vec,File_suff)
+           File_suff = "_scal"
+           write(File_pr, '(A,A)') trim(Obs%File_Vec), Trim(File_suff)
 
 #if defined(MPI)
-           No = size(Obs%Obs_vec, 1) 
+           No = size(Obs%Obs_vec, 1)
            Allocate (Tmp(No) )
            Tmp = cmplx(0.d0,0.d0,kind(0.d0))
            CALL MPI_REDUCE(Obs%Obs_vec,Tmp,No,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
@@ -269,13 +269,13 @@
 
            if (Irank_g == 0 ) then
 #endif
-#if defined(TEMPERING) 
+#if defined(TEMPERING)
               write(File_pr,'(A,I0,A,A,A)') "Temp_",igroup,"/",trim(Obs%File_Vec),trim(File_suff)
 #endif
               Open (Unit=10,File=File_pr, status="unknown",  position="append")
               WRITE(10,*) size(Obs%Obs_vec,1)+1, (Obs%Obs_vec(I), I=1,size(Obs%Obs_vec,1)), Obs%Ave_sign
               close(10)
-#if defined(MPI) 
+#if defined(MPI)
            endif
 #endif
 

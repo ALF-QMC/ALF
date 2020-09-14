@@ -1,46 +1,47 @@
 !  Copyright (C) 2018 The ALF project
-! 
+!
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
-! 
+!
 !     The ALF project is distributed in the hope that it will be useful,
 !     but WITHOUT ANY WARRANTY; without even the implied warranty of
 !     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 !     GNU General Public License for more details.
-! 
+!
 !     You should have received a copy of the GNU General Public License
 !     along with Foobar.  If not, see http://www.gnu.org/licenses/.
-!     
+!
 !     Under Section 7 of GPL version 3 we require you to fulfill the following additional terms:
-!     
+!
 !     - It is our hope that this program makes a contribution to the scientific community. Being
 !       part of that community we feel that it is reasonable to require you to give an attribution
 !       back to the original authors if you have benefitted from this program.
 !       Guidelines for a proper citation can be found on the project's homepage
 !       http://alf.physik.uni-wuerzburg.de .
-!       
+!
 !     - We require the preservation of the above copyright notice and this license in all original files.
-!     
-!     - We prohibit the misrepresentation of the origin of the original source files. To obtain 
+!
+!     - We prohibit the misrepresentation of the origin of the original source files. To obtain
 !       the original source files please visit the homepage http://alf.physik.uni-wuerzburg.de .
-! 
+!
 !     - If you make substantial changes to the program we require you to either consider contributing
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
      MODULE ERRORS
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !
-!> @brief 
-!> Collection of routines for error analysis 
+!> @brief
+!> Collection of routines for error analysis
 !
 !--------------------------------------------------------------------
 
        Use MyMats
        Use Random_Wrap
+       use iso_fortran_env, only: output_unit, error_unit
 
        INTERFACE ERRCALC
           MODULE PROCEDURE ERRCALC, ERRCALC_C
@@ -74,7 +75,7 @@
           MODULE PROCEDURE  BootstrapC_fluc
        END INTERFACE
 
-       CONTAINS 
+       CONTAINS
 !***********
          SUBROUTINE ERRCALC(EN,XM,XERR)
 !          Calculates error on the input vector EN.  Just the standard deviation.
@@ -83,9 +84,9 @@
            REAL (Kind=Kind(0.d0)), DIMENSION(:) ::  EN
            REAL (Kind=Kind(0.d0))               ::  XM, XERR, XSQ
            INTEGER                     ::  NP, NT
- 
+
            NP = SIZE(EN)
-           
+
            XM  = 0.D0
            DO NT = 1,NP
               XM  = XM  + EN(NT)
@@ -100,9 +101,9 @@
            IF (XERR.GT.0.D0) THEN
               XERR = SQRT(XERR)
            ELSE
-              XERR = 0.D0 
+              XERR = 0.D0
            ENDIF
-           
+
            RETURN
          END SUBROUTINE ERRCALC
 
@@ -113,14 +114,14 @@
            Complex (Kind=Kind(0.d0)), DIMENSION(:) ::  EN
            Complex (Kind=Kind(0.d0))               ::  ZM, ZERR
            INTEGER                     ::  NP, NT
- 
-           ! Local 
+
+           ! Local
            Real (Kind=Kind(0.d0)), dimension(:), allocatable :: Rhelp
            real (Kind=Kind(0.d0)) :: XM, XERR
 
            NP = SIZE(EN)
            Allocate (Rhelp(NP))
-           
+
            do nt = 1,np
               Rhelp(nt) = dble(en(nt))
            enddo
@@ -141,7 +142,7 @@
          SUBROUTINE ERRCALC_J(EN,XM,XERR)
 !          Calculates jacknife error on the input vector EN.  Mean and  variance.
 !          The input are the bins.
-           
+
            IMPLICIT NONE
 
            REAL (Kind=Kind(0.d0)), DIMENSION(:) ::  EN
@@ -151,14 +152,14 @@
 
            NP = SIZE(EN)
            ALLOCATE (EN1(NP))
-           
+
            ! Build the jackknife averages and send to errcalc.
 
            Xhelp = 0.D0
            DO N1 = 1,NP
               Xhelp = Xhelp + EN(N1)
            ENDDO
-              
+
            DO N = 1,NP
               X = Xhelp - EN(N)
               EN1(N) = X / DBLE(NP -1)
@@ -173,7 +174,7 @@
          SUBROUTINE ERRCALC_J_C(EN,ZM,ZERR)
 !          Calculates jacknife error on the input vector EN.  Mean and  variance.
 !          The input are the bins.
-           
+
            IMPLICIT NONE
 
            COMPLEX (Kind=Kind(0.d0)), DIMENSION(:) ::  EN
@@ -183,14 +184,14 @@
 
            NP = SIZE(EN)
            ALLOCATE (EN1(NP))
-           
+
            ! Build the jackknife averages and send to errcalc.
 
            Zhelp = CMPLX(0.D0, 0.D0, kind(0.D0))
            DO N1 = 1,NP
               Zhelp = Zhelp + EN(N1)
            ENDDO
-              
+
            DO N = 1,NP
               Z =  Zhelp - EN(N)
               EN1(N) = Z / DBLE(NP -1)
@@ -206,7 +207,7 @@
          SUBROUTINE ERRCALC_J_C_REBIN(EN,ZM,ZERR,NREBIN)
 !          Calculates jacknife error on the input vector EN.  Mean and  variance.
 !          The input are the bins.
-           
+
            IMPLICIT NONE
 
            COMPLEX (Kind=Kind(0.d0)), DIMENSION(:) ::  EN
@@ -229,9 +230,9 @@
               EN1(N) = Z
            ENDDO
            CALL ERRCALC_J_C(EN1,ZM,ZERR)
-           
+
            DEALLOCATE(EN1)
-           
+
          END SUBROUTINE ERRCALC_J_C_REBIN
 
 !******************
@@ -245,11 +246,11 @@
            REAL (Kind=Kind(0.d0))               ::  XM, XERR, X
            REAL (Kind=Kind(0.d0)), DIMENSION(:), ALLOCATABLE ::  EN1
            INTEGER :: NREBIN, NC, N, NB, NP1, NP
- 
+
            NP = SIZE(EN)
            NP1 = NP/NREBIN
            ALLOCATE (EN1(NP1))
-           
+
            ! Rebin
            NC = 0
            DO N = 1,NP1
@@ -281,11 +282,11 @@
            NP = SIZE(EN)
            NP1= SIZE(SI)
            IF (NP1.NE.NP) THEN
-              WRITE(6,*) 'Error in Errcalc_JS'
-              STOP
+              WRITE(error_unit,*) 'Error in Errcalc_JS'
+              error stop 1
            ENDIF
            ALLOCATE (EN1(NP))
-           
+
            ! Build the jackknife averages and send to errcalc
 
            Xhelp  = 0.D0
@@ -321,11 +322,11 @@
            NP = SIZE(EN)
            NP1= SIZE(SI)
            IF (NP1.NE.NP) THEN
-              WRITE(6,*) 'Error in Errcalc_JS'
-              STOP
+              WRITE(error_unit,*) 'Error in Errcalc_JS'
+              error stop 1
            ENDIF
            ALLOCATE (EN1(NP))
-           
+
            ! Build the jackknife averages and send to errcalc
 
            Xhelp  = CMPLX(0.D0, 0.D0, kind(0.D0))
@@ -353,19 +354,19 @@
          SUBROUTINE ERRCALC_JS_REBIN(EN,SI,XM,XERR,NREBIN)
 !          Calculates jacknife error on the input vector EN with rebinning.  Mean and  variance.
 !          The input are the bins.
-           
+
            IMPLICIT NONE
 
            REAL (Kind=Kind(0.d0)), DIMENSION(:) ::  EN, SI
            REAL (Kind=Kind(0.d0))               ::  XM, XERR, X, Y
            REAL (Kind=Kind(0.d0)), DIMENSION(:), ALLOCATABLE ::  EN1, SI1
            INTEGER :: NREBIN, NC, N, NB, NP, NP1
- 
+
            NP = SIZE(EN)
            NP1 = NP/NREBIN
            ALLOCATE (EN1(NP1))
            ALLOCATE (SI1(NP1))
-           
+
            ! Rebin
            NC = 0
            DO N = 1,NP1
@@ -397,12 +398,12 @@
            COMPLEX (Kind=Kind(0.d0))               ::  XM, XERR, X, Y
            COMPLEX (Kind=Kind(0.d0)), DIMENSION(:), ALLOCATABLE ::  EN1, SI1
            INTEGER :: NREBIN, NC, N, NB, NP, NP1
- 
+
            NP = SIZE(EN)
            NP1 = NP/NREBIN
            ALLOCATE (EN1(NP1))
            ALLOCATE (SI1(NP1))
-           
+
            ! Rebin
            NC = 0
            DO N = 1,NP1
@@ -426,8 +427,8 @@
 
 !******************
 
-         SUBROUTINE INTER_QMC(GR, SIGN1, DTAU, RES, ERR) 
-           
+         SUBROUTINE INTER_QMC(GR, SIGN1, DTAU, RES, ERR)
+
            IMPLICIT NONE
            ! Given GR(Times, Bins)  and Sign1(Bins) calculates the integral and error
            ! The sign is the same for all Times.
@@ -439,7 +440,7 @@
            REAL (Kind=Kind(0.d0)), DIMENSION(:,:), ALLOCATABLE  ::  HLP1
            REAL (Kind=Kind(0.d0))                 ::  X, Y, Err, Res, DTAU, Xhelp, Yhelp
            INTEGER :: NT, NB, NB1, NTDM, NDATA
-           
+
            NTDM  = SIZE(GR,1)
            NDATA = SIZE(GR,2)
 
@@ -458,7 +459,7 @@
                  HLP1(NT,NB) = X/Y
               ENDDO
            ENDDO
-           
+
            DO NB = 1,NDATA
               X = 0.D0
               DO NT = 1,NTDM-1
@@ -466,19 +467,19 @@
               ENDDO
               HLP (NB   )  = X * DTAU
            ENDDO
-           
-           CALL ERRCALC(HLP, RES, ERR) 
+
+           CALL ERRCALC(HLP, RES, ERR)
            ERR = ERR*DBLE(NDATA)
 
            DEALLOCATE( HLP, HLP1 )
 
            RETURN
          END SUBROUTINE INTER_QMC
-         
+
 !******************
          REAL (Kind=Kind(0.d0)) FUNCTION INTER_F(A,B,N,F)
            ! integrates the function F from A to B  using N points.
-           
+
            IMPLICIT NONE
 
            INTEGER  :: N, I
@@ -491,8 +492,8 @@
            INTER_F = 0.D0
            DO I = 0, N-1
               X  = A + DBLE(I  )*DEL
-              X1 = A + DBLE(I+1)*DEL 
-              INTER_F = INTER_F + ( F(X) + F(X1) )*0.5D0  
+              X1 = A + DBLE(I+1)*DEL
+              INTER_F = INTER_F + ( F(X) + F(X1) )*0.5D0
            ENDDO
            INTER_F = INTER_F*DEL
          END FUNCTION INTER_F
@@ -512,7 +513,7 @@
            NDATA = SIZE(XDATA)
            NBASIS= SIZE(ARES)
 
-           !WRITE(6,*) 'NDATA, NBASIS: ',NDATA, NBASIS 
+           !WRITE(6,*) 'NDATA, NBASIS: ',NDATA, NBASIS
            ALLOCATE (A(NDATA,NBASIS))
            ALLOCATE (U(NDATA,NBASIS))
            ALLOCATE (D(NBASIS))
@@ -520,7 +521,7 @@
            ALLOCATE (V1  (NBASIS,NBASIS))
            ALLOCATE (VINV(NBASIS,NBASIS))
            ALLOCATE (B(NDATA))
-           
+
            A = 0.D0
            U = 0.D0
            D = 0.D0
@@ -565,7 +566,7 @@
               CHSQ = CHSQ + (FDATA(N) - X)**2/ERROR(N)**2
            ENDDO
            CHSQ = CHSQ/DBLE(NDATA)
-           
+
            DEALLOCATE (A)
            DEALLOCATE (U)
            DEALLOCATE (D)
@@ -573,11 +574,11 @@
            DEALLOCATE (V1)
            DEALLOCATE (VINV)
            DEALLOCATE (B)
-           
+
          END SUBROUTINE FIT
 
-         SUBROUTINE COVJ(GR, XCOV, XMEAN) 
-           
+         SUBROUTINE COVJ(GR, XCOV, XMEAN)
+
            IMPLICIT NONE
            !Given GR(Times, Bins)  calculates the mean and the covariance.
            REAL (Kind=Kind(0.d0)), DIMENSION(:,:) ::  GR, XCOV
@@ -588,13 +589,13 @@
            REAL (Kind=Kind(0.d0)), DIMENSION(:,:), ALLOCATABLE  ::  HLP1
            REAL (Kind=Kind(0.d0))                 ::  X, XM, XERR, Xhelp
            INTEGER :: NT, NT1, NB, NB1, NTDM, NDATA
-           
+
            NTDM  = SIZE(GR,1)
            NDATA = SIZE(GR,2)
 
            IF ( (SIZE(XCOV,1).NE.SIZE(XCOV,2) ) .OR. (SIZE(XCOV,1).NE.NTDM) ) THEN
-              WRITE(6,*) 'Error in COV'
-              STOP
+              WRITE(error_unit,*) 'Error in COVJ'
+              error stop 1
            ENDIF
 
            ALLOCATE( HLP(NDATA), HLP1(NTDM,NDATA) )
@@ -623,7 +624,7 @@
                  XCOV(NT,NT1)  = X*DBLE(NDATA)! ( X - XMEAN(NT)*XMEAN(NT1) )*DBLE(NDATA)
               ENDDO
            ENDDO
-           
+
 
            DEALLOCATE( HLP, HLP1 )
 
@@ -631,8 +632,8 @@
          END SUBROUTINE COVJ
 
 
-         SUBROUTINE COVJS(GR, SIGN1, XCOV, XMEAN) 
-           
+         SUBROUTINE COVJS(GR, SIGN1, XCOV, XMEAN)
+
            IMPLICIT NONE
            ! Given GR(Times, Bins)  and Sign1(Bins) calculates the mean and the covariance.
            ! The sign is the same for all Times.
@@ -644,13 +645,13 @@
            REAL (Kind=Kind(0.d0)), DIMENSION(:,:), ALLOCATABLE  ::  HLP1
            REAL (Kind=Kind(0.d0))                 ::  X, XM, XERR, Y, Xhelp, Yhelp
            INTEGER :: NT, NT1, NB, NTDM, NDATA
-           
+
            NTDM  = SIZE(GR,1)
            NDATA = SIZE(GR,2)
 
            IF ( (SIZE(XCOV,1).NE.SIZE(XCOV,2) ) .OR. (SIZE(XCOV,1).NE.NTDM) ) THEN
-              WRITE(6,*) 'Error in COV'
-              STOP
+              WRITE(error_unit,*) 'Error in COVJS'
+              error stop 1
            ENDIF
 
            ALLOCATE( HLP(NDATA), HLP1(NTDM,NDATA) )
@@ -682,7 +683,7 @@
                  XCOV(NT,NT1)  = X*DBLE(NDATA)
               ENDDO
            ENDDO
-           
+
 
            DEALLOCATE( HLP, HLP1 )
 
@@ -692,11 +693,11 @@
 
 
 
-         SUBROUTINE COVJS_C(GR, SIGN1, XCOV, XMEAN) 
-           
+         SUBROUTINE COVJS_C(GR, SIGN1, XCOV, XMEAN)
+
            IMPLICIT NONE
            ! Given GR(Times, Bins)  and Sign1(Bins) calculates the mean and the covariance.
-           ! The sign is the same for all Times. 
+           ! The sign is the same for all Times.
            Complex (Kind=Kind(0.d0)), DIMENSION(:,:) ::  GR, XCOV
            Complex (Kind=Kind(0.d0)), DIMENSION(:)   ::  XMEAN
            Real    (Kind=Kind(0.d0)), DIMENSION(:)   ::  SIGN1
@@ -715,16 +716,16 @@
 
            !Write(6,*) 'Errors.F90 ', NTDM, NDATA
            IF ( (SIZE(XCOV,1).NE.SIZE(XCOV,2) ) .OR. (SIZE(XCOV,1).NE.NTDM) ) THEN
-              WRITE(6,*) 'Error in COV'
-              STOP
+              WRITE(error_unit,*) 'Error in COVJS_C'
+              error stop 1
            ENDIF
 
 
-           
+
            ALLOCATE( HLP(NDATA), HLP1(NTDM,NDATA), XMEAN_R(NTDM) )
            XMEAN = CMPLX(0.d0, 0.d0, kind(0.D0))
            XCOV  = CMPLX(0.d0, 0.d0, kind(0.D0))
-           
+
            DO NTH = 1,2
               Z = CMPLX(1.D0, 0.D0, kind(0.D0))
               IF (NTH .EQ. 2 ) Z = CMPLX( 0.D0, -1.D0, kind(0.D0))
@@ -746,8 +747,8 @@
                  XMEAN_R(NT) = XM
                  !if (Nth.eq.2) write(6,*) XM
               ENDDO
-              
-              
+
+
               DO NT = 1,NTDM
                  DO NT1= 1,NTDM
                     X = 0.d0
@@ -761,18 +762,18 @@
            ENDDO
 
            DEALLOCATE( HLP, HLP1, XMEAN_R )
-           
+
            RETURN
          END SUBROUTINE COVJS_C
-         
+
 
 !========================
 
-         SUBROUTINE COVJS_C_REBIN(GR, SIGN2, XCOV, XMEAN,NREBIN) 
-           
+         SUBROUTINE COVJS_C_REBIN(GR, SIGN2, XCOV, XMEAN,NREBIN)
+
            IMPLICIT NONE
            ! Given GR(Times, Bins)  and Sign1(Bins) calculates the mean and the covariance.
-           ! The sign is the same for all Times. 
+           ! The sign is the same for all Times.
            Complex (Kind=Kind(0.d0)), DIMENSION(:,:) ::  GR, XCOV
            Complex (Kind=Kind(0.d0)), DIMENSION(:)   ::  XMEAN
            Real    (Kind=Kind(0.d0)), DIMENSION(:)   ::  SIGN2
@@ -781,15 +782,15 @@
 
            COMPLEX (Kind=Kind(0.d0)), DIMENSION(:,:), ALLOCATABLE ::  GR1
            REAL    (Kind=Kind(0.d0)), DIMENSION(:), ALLOCATABLE ::  SIGN1
-           
+
            INTEGER :: NTDM, NDATA, NDATA1, N, NB, NC, NT
-           
+
            NTDM  = SIZE(GR,1)
            NDATA = SIZE(GR,2)
 
            NDATA1 = NDATA/NREBIN
            ALLOCATE ( GR1(NTDM,NDATA1), SIGN1(NDATA1) )
-           
+
            SIGN1 = 0.d0
            GR1   = CMPLX(0.d0,0.d0,kind(0.d0))
            ! Rebin
@@ -806,36 +807,36 @@
            SIGN1 = SIGN1/DBLE (NREBIN)
            GR1   = GR1  /CMPLX(DBLE(NREBIN),0.d0,KIND(0.d0))
 
-           CALL COVJS_C(GR1, SIGN1, XCOV, XMEAN) 
-           
+           CALL COVJS_C(GR1, SIGN1, XCOV, XMEAN)
+
            DEALLOCATE ( GR1, SIGN1 )
 
          END SUBROUTINE COVJS_C_REBIN
 
 
-         Subroutine COV_ERR(XMEAN, XCOV, ISEED) 
-           !  Given Mean and Cov, diagonalizes the COV and produces a new data set within 
+         Subroutine COV_ERR(XMEAN, XCOV, ISEED)
+           !  Given Mean and Cov, diagonalizes the COV and produces a new data set within
            !  the errorbars
-           
+
            Implicit None
            ! Parameters
            REAL (Kind=Kind(0.d0)), DIMENSION(:,:) :: XCOV
-           REAL (Kind=Kind(0.d0)), DIMENSION(:)   :: XMEAN 
-           
+           REAL (Kind=Kind(0.d0)), DIMENSION(:)   :: XMEAN
+
            Integer :: ntau, I, M, ISeed, ISEED_VEC(1)
            Real (Kind=Kind(0.d0)) :: X
 
            Real (Kind=Kind(0.d0)), Dimension(:,:),  allocatable ::  UC
            Real (Kind=Kind(0.d0)), Dimension(:),    allocatable ::  XMEAN_1, SIG_1
 
-           ntau = size(Xmean,1) 
-           Allocate (UC(ntau,ntau), XMEAN_1(ntau), SIG_1(ntau) ) 
+           ntau = size(Xmean,1)
+           Allocate (UC(ntau,ntau), XMEAN_1(ntau), SIG_1(ntau) )
 
            ISEED_VEC(1) = ISEED
            CALL RANSET(ISEED_VEC)
 
            CALL DIAG(XCOV,UC,SIG_1)
-           
+
            DO I = 1,NTAU
               X = 0.D0
               DO M = 1,NTAU
@@ -844,7 +845,7 @@
               XMEAN_1(I) = X
            ENDDO
            DO I = 1,NTAU
-              IF (SIG_1(I).LT.0.d0) Then 
+              IF (SIG_1(I).LT.0.d0) Then
                   write(6,*) 'Error in Cov_err', SIG_1(I)
               Endif
               XMEAN_1(I) = XMEAN_1(I) + SQRT(ABS(SIG_1(I)))*RANG_WRAP()
@@ -860,28 +861,28 @@
            CALL RANGET(ISEED_VEC)
            ISEED  = ISEED_VEC(1)
 
-           Deallocate (UC, XMEAN_1, SIG_1) 
+           Deallocate (UC, XMEAN_1, SIG_1)
 
 
          END Subroutine COV_ERR
-         
+
          SUBROUTINE  AUTO_COR(DATA,RES)
 
            Implicit none
-           
+
            REAL (Kind=Kind(0.d0)),  DIMENSION(:)  :: DATA,RES
 
-           !Local 
+           !Local
            Integer  :: nb, nt, ntau, nt1
            Real (Kind=Kind(0.d0)) :: X1, X2, X3
-          
+
            nb = SIZE(DATA)
-           nt = SIZE(RES) 
+           nt = SIZE(RES)
            if (nb.lt.nt) then
-              write(6,*) 'Error in autocor'
-              stop
+              write(error_unit,*) 'Error in auto_cor'
+              error stop 1
            end if
-           
+
            DO ntau = 1,  nt
               X1 = 0.0
               X2 = 0.0
@@ -892,16 +893,16 @@
               X3 = X3 / dble(nb - ntau)
 
               DO nt1 = 1, nb - ntau
-                 X1 = X1 + (DATA(nt1)-x3)*(DATA(nt1 + ntau)-x3) 
+                 X1 = X1 + (DATA(nt1)-x3)*(DATA(nt1 + ntau)-x3)
                  X2 = X2 + (DATA(nt1)-x3)*(DATA(nt1)-x3)
               ENDDO
               X1 = X1 / dble(nb - ntau)
               X2 = X2 / dble(nb - ntau)
-              
+
               Res(ntau)  = X1/X2
-              
+
            ENDDO
-           
+
          END SUBROUTINE AUTO_COR
 
          SUBROUTINE BOOTSTRAPC_FLUC(A,B,AB,NBOOT,ISEED,ZM,ZERR)
@@ -911,16 +912,16 @@
            INTEGER, INTENT(IN)    :: NBOOT
            INTEGER, INTENT(INOUT) :: ISEED
            COMPLEX (Kind=Kind(0.d0)), INTENT(OUT) :: ZM,ZERR
-           
+
 
            !Local
            INTEGER :: NP, NB, I, J, ISEED_VEC(1)
            COMPLEX (Kind=Kind(0.d0)) :: Z,  Z1,Z2,Z12
-           
+
 
            ISEED_VEC(1) = ISEED
            CALL RANSET(Iseed_vec)
-           NP = SIZE(A,1) 
+           NP = SIZE(A,1)
            ZM   = CMPLX(0.d0,0.d0,Kind=Kind(0.d0))
            ZERR = CMPLX(0.d0,0.d0,Kind=Kind(0.d0))
            DO NB = 1, NBOOT
@@ -936,7 +937,7 @@
                  Z12 =Z12 + AB(J)
               ENDDO
               Z1 = Z1 /CMPLX(DBLE(NP),0.d0,Kind=Kind(0.d0))
-              Z2 = Z2 /CMPLX(DBLE(NP),0.d0,Kind=Kind(0.d0)) 
+              Z2 = Z2 /CMPLX(DBLE(NP),0.d0,Kind=Kind(0.d0))
               Z12 =Z12/CMPLX(DBLE(NP),0.d0,Kind=Kind(0.d0))
 
               Z    = Z12 - Z1*Z2
@@ -945,10 +946,10 @@
            ENDDO
            ZM   = ZM  /CMPLX(DBLE(NBOOT),0.d0,Kind=Kind(0.d0))
            ZERR = ZERR/CMPLX(DBLE(NBOOT),0.d0,Kind=Kind(0.d0))
-           
+
            Z = ZERR -  ZM*ZM
            ZERR = SQRT(Z)
-           
+
            CALL RANGET(Iseed_vec)
            ISEED = ISEED_VEC(1)
 
@@ -961,17 +962,17 @@
            REAL (Kind=Kind(0.d0)), DIMENSION(:) ::  EN
            REAL (Kind=Kind(0.d0))               ::  XM, XERR,  X
            INTEGER                     ::  NP, NT, NBOOT, NB, I, ISEED
-           
-           ! Local 
+
+           ! Local
            INTEGER :: ISEED_VEC(1)
- 
+
            NP = SIZE(EN)
            ISEED_VEC(1) = ISEED
            CALL RANSET(Iseed_vec)
-           
-           
+
+
            ! Build the Bootstrap samples
-           
+
            XM   = 0.D0
            XERR = 0.D0
            DO NB = 1,NBOOT
@@ -979,8 +980,8 @@
               DO NT = 1, NP
                  I = NINT( DBLE(NP)* RANF_WRAP() + 0.5D0 )
                  IF (I.EQ.0 .OR. I.GT.NP ) THEN
-                    WRITE(6,*) 'ERROR IN BOOTSTRAP'
-                    STOP
+                    WRITE(error_unit,*) 'ERROR IN BOOTSTRAP'
+                    error stop 1
                  ENDIF
                  X = X + EN(I)
               ENDDO
@@ -997,10 +998,8 @@
            IF (X.GT.0.d0) XERR = SQRT(X)
 
            CALL RANGET(Iseed_vec)
-           ISEED = ISEED_VEC(1) 
+           ISEED = ISEED_VEC(1)
 
          END SUBROUTINE BOOTSTRAP
 
        END MODULE ERRORS
-
-

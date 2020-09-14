@@ -1,5 +1,5 @@
 !  Copyright (C) 2016 - 2020 The ALF project
-! 
+!
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
 !     the Free Software Foundation, either version 3 of the License, or
@@ -30,25 +30,26 @@
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !>
-!> @brief 
-!> This module provides a set of predefined hoppings as well as a 
-!> general framework to specify the hopping matrix for translation invariant      
+!> @brief
+!> This module provides a set of predefined hoppings as well as a
+!> general framework to specify the hopping matrix for translation invariant
 !> multi-orbital systems.
-!> 
+!>
 !--------------------------------------------------------------------
 
     Module Predefined_Hoppings
-      
+
       Use Lattices_v3
       Use Operator_mod
       Use WaveFunction_mod
       Use MyMats
+      use iso_fortran_env, only: output_unit, error_unit
       Implicit none
 
-      
+
       Type Hopping_Matrix_type
          Integer                   :: N_bonds
          Complex (Kind=Kind(0.d0)), pointer :: T    (:)    !  This does not include  local terms.
@@ -59,13 +60,13 @@
          ! List(N_b,2) = no_2
          ! List(N_b,3) = n_1
          ! List(N_b,4) = n_2
-         ! H_[(i,no_1),(i + n_1 a_1 + n_2 a_2,no_2)] = T(N_b) 
-         Integer                   :: N_Phi   
+         ! H_[(i,no_1),(i + n_1 a_1 + n_2 a_2,no_2)] = T(N_b)
+         Integer                   :: N_Phi
          Real    (Kind=Kind(0.d0)) :: Phi_X, Phi_Y
          Logical                   :: Bulk
          ! N_Phi         = #  of flux quanta  piercieng the lattice
          ! Phi_X, Phi_Y  =  Twist
-         ! Bulk          =  Twist as boundary condtion (Bulk=.F.) 
+         ! Bulk          =  Twist as boundary condtion (Bulk=.F.)
          !               =  Twist as vector potential  (Bulk=.T.)
 
          ! For Checkerboard decomposition
@@ -75,18 +76,18 @@
 
       End type Hopping_Matrix_Type
 
-      
-      
+
+
     contains
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !>
-!> @brief 
+!> @brief
 !> Deallocates this
-!> 
-!     
-!--------------------------------------------------------------------      
+!>
+!
+!--------------------------------------------------------------------
       Subroutine Predefined_hoppings_clear(this)
 
         Implicit none
@@ -99,20 +100,63 @@
            enddo
            deallocate (this(1)%L_Fam, this(1)%List_Fam, this(1)%Multiplicity, this(1)%Prop_Fam )
         endif
-        
+
       end Subroutine Predefined_hoppings_clear
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !>
-!> @brief 
+!> @brief
+!>  Checks if the Hopping is
+!>  zero     -->  inquire_hop = 0
+!>  diagonal -->  inquire_hop = 1
+!>  full     -->  inquire_hop = 2
+!
+!--------------------------------------------------------------------
+      Integer function  inquire_hop(this)
+
+        Implicit none
+        Type  (Hopping_Matrix_type), Intent(In)  :: this(:)
+
+        Real (Kind=Kind(0.d0)) :: Xmax_loc, Xmax_hop, Zero, X
+        Integer :: nc, nf
+
+        Zero     =  1.D-10
+        Xmax_loc =  0.d0
+        Xmax_hop =  0.d0
+
+        do nf = 1,size(this,1)
+           do nc = 1, size(this(1)%T_Loc,1)
+              X = sqrt(Real(this(nf)%T_Loc(nc)*conjg(this(nf)%T_Loc(nc)),kind(0.d0)))
+              If ( X  > Xmax_loc)   Xmax_loc =  X
+           enddo
+           do nc = 1,this(1)%N_bonds
+              X = sqrt( Real(this(nf)%T(nc)*conjg( this(nf)%T(nc)),kind(0.d0) )  )
+              If ( X  > Xmax_hop )   Xmax_hop =  X
+           enddo
+        enddo
+
+        If (     Xmax_loc < Zero  .and.  Xmax_hop < Zero )  then
+           inquire_hop = 0     !  Zero
+        elseif ( Xmax_loc > Zero  .and.  Xmax_hop < Zero )  then
+           inquire_hop = 1     !  Diagonal
+        else
+           inquire_hop = 2     !  Full
+        endif
+
+      end function inquire_hop
+!--------------------------------------------------------------------
+!> @author
+!> ALF-project
+!>
+!> @brief
 !> Default hopping for the square lattice.  Ham_T is the nearest neighbour hopping and Ham_Chem the chemical potention.
-!> 
-!     
-!--------------------------------------------------------------------      
+!>
+!
+!--------------------------------------------------------------------
       Subroutine Set_Default_hopping_parameters_square(this, Ham_T_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL, &
            &                                           List, Invlist, Latt, Latt_unit )
- 
+
         Implicit none
 
         Type  (Hopping_Matrix_type), allocatable     :: this(:)
@@ -136,16 +180,15 @@
            Call Set_Default_hopping_parameters_N_Leg_Ladder(this,Ham_T_vec, Ham_T_perp_vec, Ham_Chem_vec, Phi_X_vec, &
                 &                                           Phi_Y_vec, Bulk,  N_Phi_vec, N_FL, &
                 &                                           List, Invlist, Latt, Latt_unit )
-           Deallocate ( Ham_T_perp_vec ) 
+           Deallocate ( Ham_T_perp_vec )
         else
            Allocate( this(N_FL) )
 
-           
            Ham_T_max = 0.d0
            Do nf = 1,N_FL
               If ( Abs(Ham_T_vec(nf))   >  Ham_T_max )  Ham_T_max = Abs(Ham_T_vec(nf))
            Enddo
-           
+
            do nf = 1,N_FL
               this(nf)%N_bonds = 0
               if ( abs(Ham_T_max) > Zero)  then
@@ -159,7 +202,7 @@
                  this(nf)%List(nc,2) = 1
                  this(nf)%List(nc,3) = 0
                  this(nf)%List(nc,4) = 1
-                 
+
                  nc = nc + 1
                  this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
                  this(nf)%List(nc,1) = 1
@@ -178,53 +221,55 @@
            enddo
 
            !Set Checkerboard
-           this(1)%N_FAM  = 4
-           Allocate (this(1)%L_Fam(this(1)%N_FAM),  this(1)%Prop_Fam(this(1)%N_FAM), this(1)%Multiplicity(Latt_unit%Norb) )
-           this(1)%L_FAM  = Latt%N/2
-           this(1)%Prop_Fam= 1.d0
-           Allocate (this(1)%List_Fam(this(1)%N_FAM,this(1)%L_Fam(1),2))
-           this(1)%Multiplicity = 4
-           this(1)%L_FAM  = 0
-           do I = 1,Latt%N
-              if ( mod(Latt%List(I,1) + Latt%List(I,2),2) == 0 ) then
-                 Nf = 1
-                 this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I ! Unit cell
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 1 ! The bond (See above)
-                 Nf = 2
-                 this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 2 
-              else
-                 Nf = 3
-                 this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 1  
-                 Nf = 4
-                 this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 2  
-              endif
-           enddo
+           if ( Ham_T_max   > Zero ) then
+              this(1)%N_FAM  = 4
+              Allocate (this(1)%L_Fam(this(1)%N_FAM),  this(1)%Prop_Fam(this(1)%N_FAM), this(1)%Multiplicity(Latt_unit%Norb) )
+              this(1)%L_FAM  = Latt%N/2
+              this(1)%Prop_Fam= 1.d0
+              Allocate (this(1)%List_Fam(this(1)%N_FAM,this(1)%L_Fam(1),2))
+              this(1)%Multiplicity = 4
+              this(1)%L_FAM  = 0
+              do I = 1,Latt%N
+                 if ( mod(Latt%List(I,1) + Latt%List(I,2),2) == 0 ) then
+                    Nf = 1
+                    this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I ! Unit cell
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 1 ! The bond (See above)
+                    Nf = 2
+                    this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 2
+                 else
+                    Nf = 3
+                    this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 1
+                    Nf = 4
+                    this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 2
+                 endif
+              enddo
+           endif
         endif
       end Subroutine Set_Default_hopping_parameters_square
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !>
-!> @brief 
-!> Default hopping for n-leg-ladder.  Ham_T is the nearest neighbour hopping along the chain,  Ham_T_perp  the 
+!> @brief
+!> Default hopping for n-leg-ladder.  Ham_T is the nearest neighbour hopping along the chain,  Ham_T_perp  the
 !> interrung hopping and H_chem the chemical potential.
-!> 
-!     
-!--------------------------------------------------------------------      
+!>
+!
+!--------------------------------------------------------------------
       Subroutine Set_Default_hopping_parameters_N_Leg_Ladder(this,Ham_T_vec, Ham_T_perp_vec,  Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, Bulk, &
            &                                                 N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
- 
+
 
         Implicit none
-        
+
         type   (Hopping_Matrix_type), allocatable :: this(:)
         Integer, Intent(IN)                   :: N_FL
         Real (Kind=Kind(0.d0)), Intent(IN), Dimension(:)    :: Ham_T_vec, Ham_T_perp_vec, Ham_Chem_vec, Phi_x_vec, Phi_y_vec
@@ -254,8 +299,8 @@
               this(nf)%List(nc,3) = 1
               this(nf)%List(nc,4) = 0
            enddo
-           
-           do n = 1,Latt_unit%Norb -1 
+
+           do n = 1,Latt_unit%Norb -1
               nc = nc + 1
               this(nf)%T(nc)    = cmplx(-Ham_T_perp_vec(nf),0.d0,kind(0.d0))
               this(nf)%List(nc,1) = n
@@ -263,7 +308,7 @@
               this(nf)%List(nc,3) = 0
               this(nf)%List(nc,4) = 0
            enddo
-           
+
            Allocate ( this(nf)%T_Loc(Latt_Unit%Norb) )
            do nc = 1,Latt_Unit%Norb
               this(nf)%T_Loc(nc)  = cmplx(-Ham_Chem_vec(nf),0.d0,kind(0.d0))
@@ -274,7 +319,7 @@
            this(nf)%Bulk =   Bulk
         enddo
 
-        !Write(6,*) Latt_unit%Norb
+        ! Write(6,*) Latt_unit%Norb
         ! Set Checkerboard
         Allocate ( this(1)%Multiplicity(Latt_unit%Norb) )
         If     ( Latt_Unit%Norb  == 1 ) then
@@ -293,8 +338,8 @@
         this(1)%L_Fam    = Latt%N*Latt_unit%Norb/2
         this(1)%Prop_Fam= 1.d0
         Allocate ( this(1)%List_Fam(this(1)%N_FAM,this(1)%L_Fam(1),2) )
-        
-        
+
+
         this(1)%L_FAM  = 0
         do I = 1,Latt%N
            if ( mod(Latt%List(I,1),2) == 0 ) then
@@ -304,7 +349,7 @@
                  this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I ! Unit cell
                  this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = no ! The bond (See above)
               enddo
-           else 
+           else
               Nf = 2
               do no = 1,Latt_unit%Norb
                  this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
@@ -332,23 +377,23 @@
               enddo
            endif
         enddo
-        
+
       end Subroutine Set_Default_hopping_parameters_N_Leg_Ladder
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !>
-!> @brief 
-!> Default hopping for Honeycomb lattice.  Ham_T is the nearest neighbour hopping along the chain, Lambda is  the 
+!> @brief
+!> Default hopping for Honeycomb lattice.  Ham_T is the nearest neighbour hopping along the chain, Lambda is  the
 !> Kane-Mele term and H_chem the chemical potential.  **Note**  The Kane-Mele term is not yet implemented.
-!> 
-!     
-!--------------------------------------------------------------------      
+!>
+!
+!--------------------------------------------------------------------
       Subroutine Set_Default_hopping_parameters_honeycomb(this,Ham_T_vec, Ham_Lambda_vec, Ham_Chem_vec, Phi_X_vec, &
            &                                              Phi_Y_vec, Bulk,  N_Phi_vec, N_FL,&
            &                                              List, Invlist, Latt, Latt_unit)
-        
+
         Implicit none
 
         type (Hopping_Matrix_type), allocatable            :: this(:)
@@ -364,14 +409,14 @@
         Integer :: nf,N_Bonds, nc, I, I1, n, no
         Real (Kind=Kind(0.d0)) :: Zero = 1.0E-8, Ham_Lambda_Max
 
-        Write(6,*) Ham_T_vec, Ham_Chem_vec
+        !Write(6,*) Ham_T_vec, Ham_Chem_vec
         Ham_Lambda_Max = 0.d0
         do nf = 1,N_FL
            if ( Abs(Ham_Lambda_vec(nf)) > Ham_Lambda_Max ) Ham_Lambda_Max =  Abs(Ham_Lambda_vec(nf))
         enddo
         If (abs(Ham_Lambda_max) > 0 ) then
-           Write(6,*)  'Kane Mele term is not yet implemented'
-           Stop
+           Write(error_unit,*) 'Kane Mele term is not yet implemented'
+           error stop 1
         endif
         Allocate( this(N_FL) )
         do nf = 1,N_FL
@@ -385,18 +430,18 @@
            this(nf)%List(nc,2) =  2
            this(nf)%List(nc,3) =  0
            this(nf)%List(nc,4) =  0
-           
+
            nc = nc + 1
            this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
            this(nf)%List(nc,1) =  2
-           this(nf)%List(nc,2) =  1 
+           this(nf)%List(nc,2) =  1
            this(nf)%List(nc,3) =  0
            this(nf)%List(nc,4) =  1
 
            nc = nc + 1
            this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
            this(nf)%List(nc,1) =  1
-           this(nf)%List(nc,2) =  2 
+           this(nf)%List(nc,2) =  2
            this(nf)%List(nc,3) =  1
            this(nf)%List(nc,4) = -1
 
@@ -409,7 +454,7 @@
            this(nf)%Phi_Y =  Phi_Y_vec(nf)
            this(nf)%Bulk =   Bulk
         enddo
-        
+
         ! Set Checkerboard
         this(1)%N_FAM  = 3
         Allocate (this(1)%L_Fam(this(1)%N_FAM),  this(1)%Prop_Fam(this(1)%N_FAM), this(1)%Multiplicity(Latt_unit%Norb) )
@@ -423,25 +468,25 @@
               this(1)%List_Fam(nf,I,2) = nf ! The bond (See above)
            Enddo
         enddo
-        
+
       end Subroutine Set_Default_hopping_parameters_honeycomb
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !>
-!> @brief 
+!> @brief
 !> Default hopping for a bilayer square. Ham_T1, Ham_T2, are the nearest neighbour hopping on the first and second layer and
 !> Ham_T_perp   is the interlayer  hopping.
-!> 
-!     
-!--------------------------------------------------------------------      
+!>
+!
+!--------------------------------------------------------------------
       Subroutine Set_Default_hopping_parameters_Bilayer_square(this,Ham_T1_vec,Ham_T2_vec,Ham_Tperp_vec, Ham_Chem_vec, &
            &                                                   Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL,&
            &                                                   List, Invlist, Latt, Latt_unit )
- 
+
         Implicit none
-        
+
         type  (Hopping_Matrix_type), allocatable            :: this(:)
         Real (Kind=Kind(0.d0)), Intent(IN),dimension(:)  :: Ham_T1_vec, Ham_T2_vec, Ham_Tperp_vec, Ham_Chem_vec, Phi_x_vec, Phi_y_vec
         Integer, Intent(IN),dimension(:)                 :: N_Phi_vec
@@ -450,7 +495,7 @@
         Integer, Intent(IN), Dimension(:,:)   :: List, Invlist
         Type(Lattice),  Intent(in)            :: Latt
         Type(Unit_cell),Intent(in)            :: Latt_unit
-        
+
 
         ! Local
         Integer :: nf,N_Bonds, nc, I, I1, No_Shift, n, nb
@@ -468,38 +513,36 @@
            if (abs(Ham_Tperp_vec(nf)) > Ham_Tperp_max ) Ham_Tperp_max = abs(Ham_Tperp_vec(nf))
         enddo
 
-        If (abs(Ham_T1_max) < Zero ) Then
-           Write(6,*) 'At least Ham_T1 has to be bigger than zero'
-           Stop
-        endif
+!!$        If (abs(Ham_T1_max) < Zero ) Then
+!!$           Write(error_unit,*) 'At least Ham_T1 has to be bigger than zero'
+!!$           error stop 1
+!!$        endif
 
-        
+
         Allocate( this(N_FL) )
         do nf = 1,N_FL
            N_bonds = 0
-           if (abs(Ham_T1_max)    > Zero )  N_bonds = N_bonds + 2
+           N_bonds = N_bonds + 2
            if (abs(Ham_Tperp_max) > Zero )  N_bonds = N_bonds + 1
            if (abs(Ham_T2_max)    > Zero )  N_bonds = N_bonds + 2
            this(nf)%N_bonds = N_bonds
            Allocate (this(nf)%List(this(nf)%N_bonds,4), &
                 &    this(nf)%T(this(nf)%N_bonds) )
            nc = 0
-           If (abs(Ham_T1_max) > Zero ) Then
-              nc = nc + 1
-              this(nf)%T(nc)    = cmplx(-Ham_T1_vec(nf),0.d0,kind(0.d0))
-              this(nf)%List(nc,1) = 1
-              this(nf)%List(nc,2) = 1
-              this(nf)%List(nc,3) = 0
-              this(nf)%List(nc,4) = 1
-              
-              nc = nc + 1
-              this(nf)%T(nc)    = cmplx(-Ham_T1_vec(nf),0.d0,kind(0.d0))
-              this(nf)%List(nc,1) = 1
-              this(nf)%List(nc,2) = 1
-              this(nf)%List(nc,3) = 1
-              this(nf)%List(nc,4) = 0
-           endif
-           
+           nc = nc + 1
+           this(nf)%T(nc)    = cmplx(-Ham_T1_vec(nf),0.d0,kind(0.d0))
+           this(nf)%List(nc,1) = 1
+           this(nf)%List(nc,2) = 1
+           this(nf)%List(nc,3) = 0
+           this(nf)%List(nc,4) = 1
+
+           nc = nc + 1
+           this(nf)%T(nc)    = cmplx(-Ham_T1_vec(nf),0.d0,kind(0.d0))
+           this(nf)%List(nc,1) = 1
+           this(nf)%List(nc,2) = 1
+           this(nf)%List(nc,3) = 1
+           this(nf)%List(nc,4) = 0
+
            If (abs(Ham_Tperp_max) > Zero ) Then
               nc = nc + 1
               this(nf)%T(nc)    = cmplx(-Ham_Tperp_vec(nf),0.d0,kind(0.d0))
@@ -516,7 +559,7 @@
               this(nf)%List(nc,2) = 2
               this(nf)%List(nc,3) = 0
               this(nf)%List(nc,4) = 1
-              
+
               nc = nc + 1
               this(nf)%T(nc)    = cmplx(-Ham_T2_vec(nf),0.d0,kind(0.d0))
               this(nf)%List(nc,1) = 2
@@ -540,13 +583,13 @@
         ! Set Checkerboard
         this(1)%N_FAM  = 4
         if (abs(Ham_Tperp_max) > Zero )  this(1)%N_FAM=5
-        
+
         Allocate (this(1)%L_Fam(this(1)%N_FAM),  this(1)%Prop_Fam(this(1)%N_FAM), this(1)%Multiplicity(Latt_unit%Norb) )
         this(1)%Prop_Fam= 1.d0
-        
+
         No_Shift = 0
         If (abs(Ham_Tperp_max) > Zero ) No_Shift=1
-        
+
         If     ( abs(Ham_T2_max)   <  Zero  .and. abs(Ham_Tperp_max) < Zero)    then
            this(1)%L_FAM  = Latt%N/2
            Allocate (this(1)%List_Fam(this(1)%N_FAM,Latt%N/2,2))
@@ -582,7 +625,7 @@
               Nf = 2
               this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
               this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
-              this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 2 
+              this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 2
               If (Abs(Ham_T2_max) > Zero) then
                  this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
                  this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I ! Unit cell
@@ -592,7 +635,7 @@
               Nf = 3
               this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
               this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
-              this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 1  
+              this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 1
               If (Abs(Ham_T2_max) > Zero) then
                  this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
                  this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I ! Unit cell
@@ -601,7 +644,7 @@
               Nf = 4
               this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
               this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
-              this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 2  
+              this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 2
               If (Abs(Ham_T2_max) > Zero) then
                  this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
                  this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I ! Unit cell
@@ -612,7 +655,7 @@
               Nf = 5
               this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
               this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
-              this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 3  
+              this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 3
            Endif
         enddo
         ! Test
@@ -631,25 +674,25 @@
         endif
 
 
-        
+
       end Subroutine Set_Default_hopping_parameters_Bilayer_square
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !>
-!> @brief 
+!> @brief
 !> Default hopping for a bilayer square. Ham_T1, Ham_T2, are the nearest neighbour hopping on the first and second layer and
 !> Ham_T_perp   is the interlayer  hopping.
-!> 
-!     
-!--------------------------------------------------------------------      
+!>
+!
+!--------------------------------------------------------------------
       Subroutine Set_Default_hopping_parameters_Bilayer_honeycomb(this,Ham_T1_vec,Ham_T2_vec,Ham_Tperp_vec, Ham_Chem_vec, &
            &                                                      Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL,&
            &                                                      List, Invlist, Latt, Latt_unit)
- 
+
         Implicit none
-        
+
         type (Hopping_Matrix_type), allocatable           :: this(:)
         Real (Kind=Kind(0.d0)), Intent(IN),dimension(:)  :: Ham_T1_vec, Ham_T2_vec, Ham_Tperp_vec, Ham_Chem_vec, Phi_x_vec, Phi_y_vec
         Integer, Intent(IN),dimension(:)                 :: N_Phi_vec
@@ -674,16 +717,17 @@
            if (abs(Ham_T2_vec   (nf)) > Ham_T2_max    ) Ham_T2_max    = abs(Ham_T2_vec(nf)   )
            if (abs(Ham_Tperp_vec(nf)) > Ham_Tperp_max ) Ham_Tperp_max = abs(Ham_Tperp_vec(nf))
         enddo
-        If (abs(Ham_T1_max) < Zero ) Then
-           Write(6,*) 'At least Ham_T1 has to be bigger than zero'
-           Stop
-        endif
+
+!!$        If (abs(Ham_T1_max) < Zero ) Then
+!!$           Write(error_unit,*) 'At least Ham_T1 has to be bigger than zero'
+!!$           error stop 1
+!!$        endif
 
 
         Allocate( this(N_FL) )
         do nf = 1,N_FL
            N_bonds = 0
-           if (abs(Ham_T1_max)    > Zero )  N_bonds = N_bonds + 3
+           N_bonds = N_bonds + 3
            if (abs(Ham_Tperp_max) > Zero )  N_bonds = N_bonds + 2
            if (abs(Ham_T2_max)    > Zero )  N_bonds = N_bonds + 3
            this(nf)%N_bonds =  N_Bonds
@@ -696,18 +740,18 @@
            this(nf)%List(nc,2) =  2
            this(nf)%List(nc,3) =  0
            this(nf)%List(nc,4) =  0
-           
+
            nc = nc + 1
            this(nf)%T(nc)    = cmplx(-Ham_T1_vec(nf),0.d0,kind(0.d0))
            this(nf)%List(nc,1) =  2
-           this(nf)%List(nc,2) =  1 
+           this(nf)%List(nc,2) =  1
            this(nf)%List(nc,3) =  0
            this(nf)%List(nc,4) =  1
 
            nc = nc + 1
            this(nf)%T(nc)    = cmplx(-Ham_T1_vec(nf),0.d0,kind(0.d0))
            this(nf)%List(nc,1) =  1
-           this(nf)%List(nc,2) =  2 
+           this(nf)%List(nc,2) =  2
            this(nf)%List(nc,3) =  1
            this(nf)%List(nc,4) = -1
 
@@ -715,7 +759,7 @@
               nc = nc + 1
               this(nf)%T(nc)    = cmplx(-Ham_Tperp_vec(nf),0.d0,kind(0.d0))
               this(nf)%List(nc,1) =  1
-              this(nf)%List(nc,2) =  3 
+              this(nf)%List(nc,2) =  3
               this(nf)%List(nc,3) =  0
               this(nf)%List(nc,4) =  0
 
@@ -733,14 +777,14 @@
               this(nf)%List(nc,2) =  2 + 2
               this(nf)%List(nc,3) =  0
               this(nf)%List(nc,4) =  0
-              
+
               nc = nc + 1
               this(nf)%T(nc)    = cmplx(-Ham_T2_vec(nf),0.d0,kind(0.d0))
               this(nf)%List(nc,1) =  2 + 2
               this(nf)%List(nc,2) =  1 + 2
               this(nf)%List(nc,3) =  0
               this(nf)%List(nc,4) =  1
-              
+
               nc = nc + 1
               this(nf)%T(nc)    = cmplx(-Ham_T2_vec(nf),0.d0,kind(0.d0))
               this(nf)%List(nc,1) =  1 + 2
@@ -760,18 +804,18 @@
            this(nf)%Phi_X =  Phi_X_vec(nf)
            this(nf)%Phi_Y =  Phi_Y_vec(nf)
            this(nf)%Bulk =   Bulk
-           
+
         enddo
-        
+
         ! Set Checkerboard
         this(1)%N_FAM  = 3
         If ( abs(Ham_Tperp_Max) > Zero ) this(1)%N_FAM = 4
         Allocate (this(1)%L_Fam(this(1)%N_FAM),  this(1)%Prop_Fam(this(1)%N_FAM), this(1)%Multiplicity(Latt_unit%Norb) )
         this(1)%Prop_Fam= 1.d0
-        
+
         No_Shift = 0
         If (abs(Ham_Tperp_Max) > Zero ) No_Shift=2
-        
+
         If     ( abs(Ham_T2_Max)   <  Zero  .and. abs(Ham_Tperp_Max) < Zero)    then
            this(1)%L_FAM  = Latt%N
            Allocate (this(1)%List_Fam(this(1)%N_FAM,Latt%N,2))
@@ -794,7 +838,7 @@
            this(1)%Multiplicity = 4
            No_Shift     = 2
         endif
-        
+
         do I = 1,Latt%N
            Do  nf = 1,this(1)%N_FAM
               this(1)%List_Fam(nf,I,1) = I  ! Unit cell
@@ -835,15 +879,15 @@
       end Subroutine Set_Default_hopping_parameters_Bilayer_honeycomb
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !>
-!> @brief 
-!> Given the checkerbord decompostion  
+!> @brief
+!> Given the checkerbord decompostion
 !> the routine allocates and sets OP_T Set_Default_hopping_parameters_"Lattice" routine,
-!> this routine generates the data for the symmetric decompostion. 
-!     
-!--------------------------------------------------------------------      
+!> this routine generates the data for the symmetric decompostion.
+!
+!--------------------------------------------------------------------
       Subroutine Symmetrize_Families(this)
         implicit none
 
@@ -858,10 +902,10 @@
 
         Integer :: n,n1,n2, n_f_max, n_l_max, nc
         Integer, allocatable ::  list_Fam_tmp(:)
-        
+
         ! Copy
         N_FAM_C = this(1)%N_FAM
-        Allocate(L_FAM_C(N_FAM_C)) 
+        Allocate(L_FAM_C(N_FAM_C))
         n2 = Size(this(1)%List_Fam,2)
         Allocate ( List_Fam_C(N_FAM_C,n2,2), Prop_Fam_C(N_FAM_C) )
         L_FAM_C    = this(1)%L_FAM
@@ -876,20 +920,21 @@
         ! Symmetrize
         ! Find the longest family.
         n_l_max = 0
+        n_f_max = 0
         do n = 1, N_FAM_C
            if (L_FAM_C(n) > n_l_max ) then
               n_l_max = L_FAM_C(n)
               n_f_max = n
            endif
         enddo
-        Write(6,*) 'N_f_max' , n_f_max
+        !Write(6,*) 'N_f_max' , n_f_max
         Allocate( list_Fam_tmp(this(1)%N_FAM) )
         nc = 0
-        Do n = 1, N_FAM_C   
+        Do n = 1, N_FAM_C
            nc = nc + 1
            list_Fam_tmp(nc) = n
         Enddo
-        Do n = N_FAM_C-1,1,-1 
+        Do n = N_FAM_C-1,1,-1
            nc = nc + 1
            list_Fam_tmp(nc) = n
         Enddo
@@ -902,7 +947,7 @@
            list_Fam_tmp(1)              = N_FAM_C
            list_Fam_tmp(this(1)%N_FAM ) = N_Fam_C
         endif
-        
+
         do n = 1,this(1)%N_FAM
            n1 = list_Fam_tmp(n)
            this(1)%L_Fam(n)        = L_FAM_C(n1)
@@ -912,23 +957,23 @@
         ! Clean
         Deallocate( L_FAM_C, List_Fam_C, Prop_Fam_C, List_Fam_tmp )
 
-        Write(6,*)  this(1)%N_FAM
-        Write(6,*)  this(1)%L_FAM
-        Write(6,*)  this(1)%Prop_Fam
-        
+        !Write(6,*)  this(1)%N_FAM
+        !Write(6,*)  this(1)%L_FAM
+        !Write(6,*)  this(1)%Prop_Fam
+
       end Subroutine Symmetrize_Families
-      
+
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !>
-!> @brief 
-!> Given the Hopping-martix, and if required the checkerboard decomposion  (i.e. private data of this module) 
+!> @brief
+!> Given the Hopping-martix, and if required the checkerboard decomposion  (i.e. private data of this module)
 !> the routine allocates and sets OP_T
 !
-!--------------------------------------------------------------------      
+!--------------------------------------------------------------------
       Subroutine Predefined_Hoppings_set_OPT(this,List,Invlist,Latt,  Latt_unit,  Dtau,Checkerboard, Symm,  OP_T )
-        
+
         Implicit none
 
         type (Hopping_Matrix_type), allocatable             :: this(:)
@@ -937,124 +982,146 @@
         Type(Unit_cell),Intent(in)                          :: Latt_unit
         Real (Kind=Kind(0.d0)), Intent(In)                  :: Dtau
         Logical, Intent(IN)                                 :: Checkerboard, Symm
-        
-        Type(Operator), Intent(Out),  dimension(:,:), allocatable  :: Op_T 
-        
+
+        Type(Operator), Intent(Out),  dimension(:,:), allocatable  :: Op_T
 
 
-        ! Local 
+
+        ! Local
         Integer                           :: Ndim, N_FL, N_Phi, I, J, I1, J1, no_I, no_J, nf
         Integer                           :: n_1, n_2, Nb, n_f,l_f, n_l, N, nc
         Real   (Kind=Kind(0.d0))          :: Ham_T, Ham_Chem,  Phi_X, Phi_Y
         Logical                           :: Bulk
-        Complex(Kind=Kind(0.d0))          :: Z 
-        
+        Complex(Kind=Kind(0.d0))          :: Z
+
         N_FL =  size(this,1)
         !Write(6,*)  'N_FL ', N_FL
         Ndim =  Latt%N * Latt_Unit%Norb
-        
-        If ( .not. Checkerboard) then
+
+
+        select case (inquire_hop(this))
+        case(0)  !  Zero
            allocate(Op_T(1,N_FL))
            do nf = 1,N_FL
-              Write(6,*)
-              Call Op_make(Op_T(1,nf),Ndim)   ! This is too restrictive for the  Kondo type models. The hopping only occurs on one  subsystem. 
-              N_Phi     = this(nf)%N_Phi
-              Phi_X     = this(nf)%Phi_X  
-              Phi_Y     = this(nf)%Phi_Y 
-              Bulk      = this(nf)%Bulk
-              !Write(6,*) N_Phi, Phi_X,Phi_Y, Bulk
-              !Write(6,*) This(nf)%list
-              DO I = 1, Latt%N
-                 do Nb = 1, this(nf)%N_bonds
-                    no_I = this(nf)%list(Nb,1)
-                    no_J = this(nf)%list(Nb,2)
-                    n_1  = this(nf)%list(Nb,3)
-                    n_2  = this(nf)%list(Nb,4)
-                    J    = Latt%nnlist(I,n_1,n_2)
-                    Z    = Generic_hopping(I,no_I, n_1, n_2, no_J, N_Phi, Phi_x,Phi_y, Bulk, Latt, Latt_Unit)
-                    I1   = Invlist(I,no_I)
-                    J1   = Invlist(J,no_J)
-                    Op_T(1,nf)%O(I1,J1) = this(nf)%T(Nb)*Z
-                    Op_T(1,nf)%O(J1,I1) = Conjg(this(nf)%T(Nb)*Z)
-                 enddo
-                 ! T(N_b=1..N_bonds)
-                 ! List(N_b,1) = no_1
-                 ! List(N_b,2) = no_2
-                 ! List(N_b,3) = n_1
-                 ! List(N_b,4) = n_2
-                 ! H_[(i,no_1),(i + n_1 a_1 + n_2 a_2,no_2)] = T(N_b)
-                 Do no_I = 1, Latt_Unit%Norb
-                    I1   = Invlist(I,no_I)
-                    Op_T(1,nf)%O(I1,I1) = this(nf)%T_Loc(no_I)
-                 Enddo
-              enddo
-              Do I = 1,Ndim
-                 Op_T(1,nf)%P(i) = i 
-              Enddo
-              if ( this(nf)%N_bonds == 0 ) then 
-                 Op_T(1,nf)%g = 0.d0
-              else
-                 Op_T(1,nf)%g = -Dtau
-              endif
-              Op_T(1,nf)%alpha=cmplx(0.d0,0.d0, kind(0.D0))
+              Call Op_make(Op_T(1,nf),1)
+              Op_T(1,nf)%P(1)   = 1
+              Op_T(1,nf)%O(1,1) = cmplx(0.d0,0.d0, kind(0.d0))
+              Op_T(1,nf)%g      = 0.d0
+              Op_T(1,nf)%alpha  = cmplx(0.d0,0.d0, kind(0.D0))
               Call Op_set(Op_T(1,nf))
-              !Do I = 1,Size(Op_T(1,nf)%E,1)
-              !   Write(6,*) Op_T(1,nf)%E(I)
-              !Enddo
-           Enddo
-        Elseif (Checkerboard) then
-           If (Symm) Call Symmetrize_families(this)
-           N = 0
-           do n_f = 1,this(1)%N_FAM
-              N = N +  this(1)%L_Fam(n_f)
            enddo
-           allocate(Op_T(N,N_FL))
+        case(1)  ! Diagonal
+           allocate(Op_T(Ndim,N_FL))
            do nf = 1,N_FL
-              N_Phi     = this(nf)%N_Phi
-              Phi_X     = this(nf)%Phi_X  
-              Phi_Y     = this(nf)%Phi_Y 
-              Bulk      = this(nf)%Bulk 
-              do nc = 1, Size(Op_T,1)
-                 Call Op_make(Op_T(nc,nf),2)
+              do n = 1,ndim
+                 Call Op_make(Op_T(n,nf),1)
+                 Op_T(n,nf)%P(1)   = n
+                 Op_T(n,nf)%O(1,1) =  this(nf)%T_Loc(list(n,2))
+                 Op_T(n,nf)%g      = -Dtau
+                 Op_T(n,nf)%alpha  =  cmplx(0.d0,0.d0, kind(0.D0))
+                 Call Op_set(Op_T(n,nf))
               enddo
-              nc = 0
-              Do n_f = 1, this(1)%N_FAM
-                 Do l_f = 1, this(1)%L_Fam(n_f)
-                    I  = this(1)%List_Fam(n_f,l_f,1)
-                    nb = this(1)%List_Fam(n_f,l_f,2)
-                    no_I = this(nf)%list(Nb,1)
-                    no_J = this(nf)%list(Nb,2)
-                    n_1  = this(nf)%list(Nb,3)
-                    n_2  = this(nf)%list(Nb,4)
-                    J    = Latt%nnlist(I,n_1,n_2)
-                    Z    = Generic_hopping(I,no_I, n_1, n_2, no_J, N_Phi, Phi_x,Phi_y, Bulk, Latt, Latt_Unit)
-                    I1   = Invlist(I,no_I)
-                    J1   = Invlist(J,no_J)
-                    nc = nc + 1
-                    Op_T(nc,nf)%P(1) = I1 
-                    Op_T(nc,nf)%P(2) = J1 
-                    Op_T(nc,nf)%O(1,2) = this(nf)%T(Nb)*Z
-                    Op_T(nc,nf)%O(2,1) = Conjg(this(nf)%T(Nb)*Z)
-                    Op_T(nc,nf)%O(1,1) = this(nf)%T_loc(no_I)/this(1)%Multiplicity(no_I)
-                    Op_T(nc,nf)%O(2,2) = this(nf)%T_loc(no_J)/this(1)%Multiplicity(no_J)
-                    Op_T(nc,nf)%g = -Dtau*this(1)%Prop_Fam(n_f)
-                    Op_T(nc,nf)%alpha=cmplx(0.d0,0.d0, kind(0.D0))
-                    Call Op_set(Op_T(nc,nf))
+           enddo
+        case default
+           If ( .not. Checkerboard) then
+              allocate(Op_T(1,N_FL))
+              do nf = 1,N_FL
+                 !Write(6,*)
+                 Call Op_make(Op_T(1,nf),Ndim)   ! This is too restrictive for the  Kondo type models. The hopping only occurs on one  subsystem.
+                 N_Phi     = this(nf)%N_Phi
+                 Phi_X     = this(nf)%Phi_X
+                 Phi_Y     = this(nf)%Phi_Y
+                 Bulk      = this(nf)%Bulk
+                 !Write(6,*) N_Phi, Phi_X,Phi_Y, Bulk
+                 !Write(6,*) This(nf)%list
+                 DO I = 1, Latt%N
+                    do Nb = 1, this(nf)%N_bonds
+                       no_I = this(nf)%list(Nb,1)
+                       no_J = this(nf)%list(Nb,2)
+                       n_1  = this(nf)%list(Nb,3)
+                       n_2  = this(nf)%list(Nb,4)
+                       J    = Latt%nnlist(I,n_1,n_2)
+                       Z    = Generic_hopping(I,no_I, n_1, n_2, no_J, N_Phi, Phi_x,Phi_y, Bulk, Latt, Latt_Unit)
+                       I1   = Invlist(I,no_I)
+                       J1   = Invlist(J,no_J)
+                       Op_T(1,nf)%O(I1,J1) = this(nf)%T(Nb)*Z
+                       Op_T(1,nf)%O(J1,I1) = Conjg(this(nf)%T(Nb)*Z)
+                    enddo
+                    ! T(N_b=1..N_bonds)
+                    ! List(N_b,1) = no_1
+                    ! List(N_b,2) = no_2
+                    ! List(N_b,3) = n_1
+                    ! List(N_b,4) = n_2
+                    ! H_[(i,no_1),(i + n_1 a_1 + n_2 a_2,no_2)] = T(N_b)
+                    Do no_I = 1, Latt_Unit%Norb
+                       I1   = Invlist(I,no_I)
+                       Op_T(1,nf)%O(I1,I1) = this(nf)%T_Loc(no_I)
+                    Enddo
+                 enddo
+                 Do I = 1,Ndim
+                    Op_T(1,nf)%P(i) = i
+                 Enddo
+                 Op_T(1,nf)%g = -Dtau
+                 Op_T(1,nf)%alpha=cmplx(0.d0,0.d0, kind(0.D0))
+                 Call Op_set(Op_T(1,nf))
+                 !Do I = 1,Size(Op_T(1,nf)%E,1)
+                 !   Write(6,*) Op_T(1,nf)%E(I)
+                 !Enddo
+              Enddo
+           Elseif (Checkerboard) then
+              If (Symm) Call Symmetrize_families(this)
+              N = 0
+              do n_f = 1,this(1)%N_FAM
+                 N = N +  this(1)%L_Fam(n_f)
+              enddo
+              allocate(Op_T(N,N_FL))
+              do nf = 1,N_FL
+                 N_Phi     = this(nf)%N_Phi
+                 Phi_X     = this(nf)%Phi_X
+                 Phi_Y     = this(nf)%Phi_Y
+                 Bulk      = this(nf)%Bulk
+                 do nc = 1, Size(Op_T,1)
+                    Call Op_make(Op_T(nc,nf),2)
+                 enddo
+                 nc = 0
+                 Do n_f = 1, this(1)%N_FAM
+                    Do l_f = 1, this(1)%L_Fam(n_f)
+                       I  = this(1)%List_Fam(n_f,l_f,1)
+                       nb = this(1)%List_Fam(n_f,l_f,2)
+                       no_I = this(nf)%list(Nb,1)
+                       no_J = this(nf)%list(Nb,2)
+                       n_1  = this(nf)%list(Nb,3)
+                       n_2  = this(nf)%list(Nb,4)
+                       J    = Latt%nnlist(I,n_1,n_2)
+                       Z    = Generic_hopping(I,no_I, n_1, n_2, no_J, N_Phi, Phi_x,Phi_y, Bulk, Latt, Latt_Unit)
+                       I1   = Invlist(I,no_I)
+                       J1   = Invlist(J,no_J)
+                       nc = nc + 1
+                       Op_T(nc,nf)%P(1) = I1
+                       Op_T(nc,nf)%P(2) = J1
+                       Op_T(nc,nf)%O(1,2) = this(nf)%T(Nb)*Z
+                       Op_T(nc,nf)%O(2,1) = Conjg(this(nf)%T(Nb)*Z)
+                       Op_T(nc,nf)%O(1,1) = this(nf)%T_loc(no_I)/this(1)%Multiplicity(no_I)
+                       Op_T(nc,nf)%O(2,2) = this(nf)%T_loc(no_J)/this(1)%Multiplicity(no_J)
+                       Op_T(nc,nf)%g = -Dtau*this(1)%Prop_Fam(n_f)
+                       Op_T(nc,nf)%alpha=cmplx(0.d0,0.d0, kind(0.D0))
+                       Call Op_set(Op_T(nc,nf))
+                    Enddo
                  enddo
               enddo
-           enddo
-        endif
-        
+           endif
+        end select
+
       end Subroutine Predefined_Hoppings_set_OPT
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !>
-!> @brief 
-!> The subroutine computes the kinietic energy  based on the generic form of the 
+!> @brief
+!> The subroutine computes the kinietic energy  based on the generic form of the
 !> the hopping matrix.
-!> 
+!>
 !--------------------------------------------------------------------
       Subroutine  Predefined_Hoppings_Compute_Kin(this,List,Invlist, Latt, Latt_unit, GRC, Z_Kin)
 
@@ -1072,42 +1139,58 @@
         Integer                           :: n_1, n_2, Nb, n_f,l_f, n_l, N, nc
         Real   (Kind=Kind(0.d0))          :: Ham_T, Ham_Chem,  Phi_X, Phi_Y
         Logical                           :: Bulk
-        Complex(Kind=Kind(0.d0))          :: Z 
+        Complex(Kind=Kind(0.d0))          :: Z
 
-        N_FL  =  Size(GRC,3)
 
-        Z_Kin = cmplx(0.d0,0.d0,Kind(0.d0))
-        do nf = 1,N_FL
-           N_Phi     = this(nf)%N_Phi
-           Phi_X     = this(nf)%Phi_X  
-           Phi_Y     = this(nf)%Phi_Y 
-           Bulk      = this(nf)%Bulk 
-           DO I = 1, Latt%N
-              do Nb = 1, this(nf)%N_bonds
-                 no_I = this(nf)%list(Nb,1)
-                 no_J = this(nf)%list(Nb,2)
-                 n_1  = this(nf)%list(Nb,3)
-                 n_2  = this(nf)%list(Nb,4)
-                 J    = Latt%nnlist(I,n_1,n_2)
-                 Z    = Generic_hopping(I,no_I, n_1, n_2, no_J, N_Phi, Phi_x,Phi_y, Bulk, Latt, Latt_Unit)
-                 I1   = Invlist(I,no_I)
-                 J1   = Invlist(J,no_J)
-                 Z_Kin = Z_Kin + this(nf)%T(Nb)*Z * GRC(I1,J1,nf) + conjg(this(nf)%T(Nb)*Z)*GRC(J1,I1,nf)
+        select case (inquire_hop(this))
+        case(0)  !  Zero
+           Z_Kin = cmplx(0.d0,0.d0,Kind(0.d0))
+        case(1)
+           Z_Kin = cmplx(0.d0,0.d0,Kind(0.d0))
+           N_FL  =  Size(GRC,3)
+           do nf = 1,N_FL
+              do I = 1, Latt%N
+                 Do no_I = 1, Latt_Unit%Norb
+                    I1   = Invlist(I,no_I)
+                    Z_Kin = Z_Kin   +  this(nf)%T_Loc(no_I)*GRC(I1,I1,nf)
+                 Enddo
               enddo
-              Do no_I = 1, Latt_Unit%Norb
-                 I1   = Invlist(I,no_I)
-                 Z_Kin = Z_Kin   +  this(nf)%T_Loc(no_I)*GRC(I1,I1,nf)
-              Enddo
            enddo
-        enddo
-           
+        case default
+           N_FL  =  Size(GRC,3)
+           Z_Kin = cmplx(0.d0,0.d0,Kind(0.d0))
+           do nf = 1,N_FL
+              N_Phi     = this(nf)%N_Phi
+              Phi_X     = this(nf)%Phi_X
+              Phi_Y     = this(nf)%Phi_Y
+              Bulk      = this(nf)%Bulk
+              DO I = 1, Latt%N
+                 do Nb = 1, this(nf)%N_bonds
+                    no_I = this(nf)%list(Nb,1)
+                    no_J = this(nf)%list(Nb,2)
+                    n_1  = this(nf)%list(Nb,3)
+                    n_2  = this(nf)%list(Nb,4)
+                    J    = Latt%nnlist(I,n_1,n_2)
+                    Z    = Generic_hopping(I,no_I, n_1, n_2, no_J, N_Phi, Phi_x,Phi_y, Bulk, Latt, Latt_Unit)
+                    I1   = Invlist(I,no_I)
+                    J1   = Invlist(J,no_J)
+                    Z_Kin = Z_Kin + this(nf)%T(Nb)*Z * GRC(I1,J1,nf) + conjg(this(nf)%T(Nb)*Z)*GRC(J1,I1,nf)
+                 enddo
+                 Do no_I = 1, Latt_Unit%Norb
+                    I1   = Invlist(I,no_I)
+                    Z_Kin = Z_Kin   +  this(nf)%T_Loc(no_I)*GRC(I1,I1,nf)
+                 Enddo
+              enddo
+           enddo
+        end select
+
       end Subroutine Predefined_Hoppings_Compute_Kin
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !>
-!> @brief 
-!>    Hopping, with ot without checkerboard  
+!> @brief
+!>    Hopping, with ot without checkerboard
 !>    Per flavor, the  hopping is given by
 !>    \f[  e^{ - \Delta \tau  H_t  }   = \prod_{n=1}^{N} e^{ - \Delta \tau_n  H_t(n) }   \f]
 !>    If  _Symm_ is set to true and if  _Checkeborad_ is on, then  one will carry out a
@@ -1115,9 +1198,9 @@
 !>    Thereby   OP_T has dimension OP_T(N,N_FL)
 !> @param [in]  Latttice_type
 !>    Character(64)
-!>\verbatim 
-!>     Square,  Honeycomb, Pi_Flux 
-!>\endverbatim 
+!>\verbatim
+!>     Square,  Honeycomb, Pi_Flux
+!>\endverbatim
 !> @param [in]  Latt_unit
 !>    Type(Unit_cell)
 !> \verbatim
@@ -1126,14 +1209,14 @@
 !> @param [in]  Ndim
 !>    Integer
 !> \verbatim
-!>     Number of orbitals      
+!>     Number of orbitals
 !> \endverbatim
 !> @param [in]  List, Invlist
 !>    Integer(:,:)
 !> \verbatim
-!>      List(I=1.. Ndim,1)    =   Unit cell of site I    
-!>      List(I=1.. Ndim,2)    =   Orbital index  of site I    
-!>      Invlist(Unit_cell,Orbital) = site I    
+!>      List(I=1.. Ndim,1)    =   Unit cell of site I
+!>      List(I=1.. Ndim,2)    =   Orbital index  of site I
+!>      Invlist(Unit_cell,Orbital) = site I
 !> \endverbatim
 !> @param [in]    Latt
 !>    Type(Lattice)
@@ -1160,7 +1243,7 @@
 !> \verbatim
 !>      X, Y  Boundary conditions
 !> \endverbatim
-!> @param [in]  Phi_X, Phi_Y 
+!> @param [in]  Phi_X, Phi_Y
 !>    Real
 !> \verbatim
 !>      X, Y  Fluxes
@@ -1180,40 +1263,40 @@
 !> \verbatim
 !>      Allows for symmetric checkerboard decomposition
 !> \endverbatim
-!> @param [out]  OP_T 
+!> @param [out]  OP_T
 !>    Type(operator)(N,N_FL)
 !> \verbatim
 !>      Hopping
 !> \endverbatim
-!> @param [in]  Dimer 
+!> @param [in]  Dimer
 !>    Real, Optional.  Modulation of hopping that breaks lattice symmetries so as to generate a unique
 !>    ground state for the half-filled case.  This option is  effective only  if the checkerboard
 !>    decomposition is not used. It is presently implemented for the square and one-dimensional lattices.
 !> \verbatim
 !>      Hopping
 !> \endverbatim
-!>       
+!>
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !>
-!> @brief 
+!> @brief
 !> This  function provides generic hopping.
-!>    
+!>
 !--------------------------------------------------------------------
 
       complex  (Kind=kind(0.d0)) function Generic_hopping(i,no_i, del_1, del_2, no_j, N_Phi, Flux_1,Flux_2, Bulk, Latt, Latt_Unit)
 
-        Use Lattices_v3 
+        Use Lattices_v3
         Implicit none
 
-        
+
         Integer        ,  Intent(In) :: N_Phi, i, no_i, del_1, del_2, no_j
         Type(Unit_cell),  Intent(In) :: Latt_Unit
         Type(Lattice)  ,  Intent(In) :: Latt
         Real (Kind = Kind(0.d0)), intent(In) :: Flux_1,Flux_2
-        Logical        ,  Intent(In) :: Bulk 
+        Logical        ,  Intent(In) :: Bulk
 
 
         !Local
@@ -1222,11 +1305,11 @@
 
         Complex (Kind=Kind(0.d0)) :: Z_hop
 
-        
+
         Z_hop = cmplx(1.d0,0.d0,kind(0.d0))
-        
+
         xj_p =  real(latt%list(i,1) + del_1 ,kind(0.d0)) * latt%a1_p  +  real(latt%list(i,2) + del_2 ,kind(0.d0)) * latt%a2_p
-        ! Check if you have crossed the boundary:  xj_p  = xjp_p + N1*L1_p  + N2*L2_p  with  xjp_p  in the set of lattice sites. 
+        ! Check if you have crossed the boundary:  xj_p  = xjp_p + N1*L1_p  + N2*L2_p  with  xjp_p  in the set of lattice sites.
         N1 = 0; N2 = 0
         Call npbc(xjp_p, xj_p, Latt%L1_p, Latt%L2_p,  N1, N2)
         XB_p = real(N1,kind(0.d0))*Latt%L1_p  +  real(N2,kind(0.d0))*Latt%L2_p
@@ -1241,16 +1324,16 @@
         !!Check that  xjp_p(:) + XB_p(:) =  xj_p(:)
         !!x1_p(:) = xjp_p(:) + XB_p
         !!Write(6,"(F12.6,2x,F12.6,2x,F12.6,2x,F12.6,2x,I2,3x,I2)")  x1_p(1),x1_p(2), xj_p(1), xj_p(2), N1,N2
-        !! -->  i + del_1*a_1 + del_2* a_2  =  i' + N1*L1_p + N2*L2_p  with i' in the set of lattice points.   
+        !! -->  i + del_1*a_1 + del_2* a_2  =  i' + N1*L1_p + N2*L2_p  with i' in the set of lattice points.
 
-        
+
         ! The hopping increment.
         del_p  =  xj_p - xi_p
 
         !Twist
         pi = acos(-1.d0)
         A_p(:)  =   Flux_1 * Xnorm(Latt%a1_p) * latt%bZ1_p(:)  /  Xnorm(Latt%L1_p) + &
-             &      Flux_2 * Xnorm(Latt%a2_p) * latt%bZ2_p(:)  /  Xnorm(Latt%L2_p) 
+             &      Flux_2 * Xnorm(Latt%a2_p) * latt%bZ2_p(:)  /  Xnorm(Latt%L2_p)
 
         if (Bulk) then
            !Twist in bulk
@@ -1259,40 +1342,40 @@
            !Twist as boundary
            Z_hop = Z_hop * exp(cmplx(0.d0,Iscalar(A_p,XB_p ),Kind(0.d0)))
         endif
-        
+
         !Orbital magnetic field (Landau gauge)
         Zero =  1.0E-8
-        V  =  abs(Latt%L1_p(1) * Latt%L2_p(2)  -  Latt%L1_p(2) * Latt%L2_p(1) ) 
+        V  =  abs(Latt%L1_p(1) * Latt%L2_p(2)  -  Latt%L1_p(2) * Latt%L2_p(1) )
         If ( V > Zero )  then
            B = real(N_Phi,kind(0.d0))/V
            Z_hop = Z_hop*exp(cmplx(0.d0, -2.d0*pi* B * del_p(1) *  ( xj_p(2) + xi_p(2) )/2.d0,kind(0.d0) ) )
            ! Boundary
            x_p   =  Real(N2,Kind(0.d0))*Latt%L2_p
            x1_p  =  Xjp_p + Real(N1,Kind(0.d0))*Latt%L1_p
-           Z_hop =  Z_hop  *  exp(cmplx( 0.d0, -Chi(x_p, x1_p,B,pi),kind(0.d0))) 
+           Z_hop =  Z_hop  *  exp(cmplx( 0.d0, -Chi(x_p, x1_p,B,pi),kind(0.d0)))
            x_p   =  Real(N1,Kind(0.d0))*Latt%L1_p
-           x1_p  =  Xjp_p 
-           Z_hop =  Z_hop  *  exp(cmplx( 0.d0, -Chi(x_p, x1_p,B,pi),kind(0.d0))) 
+           x1_p  =  Xjp_p
+           Z_hop =  Z_hop  *  exp(cmplx( 0.d0, -Chi(x_p, x1_p,B,pi),kind(0.d0)))
         endif
-        
+
         Generic_hopping =  Z_hop
-        
+
       end function GENERIC_HOPPING
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !>
-!> @brief 
+!> @brief
 !> Periodic boundary conditions for Landau gauge: c_{i+L} = e{-i Chi(L,i)} c_{i}
-!>    
+!>
 !--------------------------------------------------------------------
       Real (Kind=kind(0.d0)) function Chi(L_p,X_p,B,pi)
         Implicit none
 
-        Real (Kind=Kind(0.d0)), Intent(In) :: L_p(2), X_p(2), B, pi 
+        Real (Kind=Kind(0.d0)), Intent(In) :: L_p(2), X_p(2), B, pi
 
         Chi =  - 2.d0 * pi *B * L_p(2) * X_p(1)
       end function Chi
-      
+
     end Module Predefined_Hoppings

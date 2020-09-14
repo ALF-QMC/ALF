@@ -4,32 +4,32 @@
 % under a Creative Commons Attribution-ShareAlike 4.0 International License.
 % For the licensing details of the documentation see license.CCBYSA.
 
-% !TEX root = Doc.tex
+% !TEX root = doc.tex
 
+\red{Summarize and change slightly -- or completely omit -- in order to reduce overlap with ALF 1.0 paper (unless this paper is to be published as a 2nd version of the first - especially since we'd prefer to have it self-contained).}//
 
 %------------------------------------------------------------
-\subsection{Formulation of the method}  
+\subsection{Formulation of the method}  \label{sec:method}
 %------------------------------------------------------------
 Our aim is to compute observables  for the general Hamiltonian  (\ref{eqn:general_ham}) in
  thermodynamic equilibrium as described by the grand-canonical ensemble.
-We will show below  how the grand-canonical partition function is rewritten as 
+We show below  how the grand-canonical partition function can be rewritten as 
 \begin{equation}
 Z = \Tr{\left(e^{-\beta \hat{\mathcal{H}} }\right)}
 = \sum_{C} e^{-S(C) } + \mathcal{O}(\Delta\tau^{2})
 \end{equation}
 and define the space of configurations  $C$.
-Note that the chemical potential term is already included in the definition of the one-body term ${\mathcal{\hat{H}}_{T}}$, see eq. \eqref{eqn:general_ham_t}, of the general Hamiltonian.  
+Note that the chemical potential term is already included in the definition of the one-body term ${\mathcal{\hat{H}}_{T}}$, see Eq. \eqref{eqn:general_ham_t}, of the general Hamiltonian.  
 
 The outline of this section is as follows. First, we derive the detailed form of the partition function and outline the computation of observables (Sec.~\ref{sec:part} - \ref{sec:reweight}). 
 Next, we present a number of update strategies, namely local updates, global updates, and parallel tempering (Sec.~\ref{sec:updating}). 
-We equally discuss the measures we have implemented to make the code numerically stable (Sec.~\ref{sec:stable}). Finally, we discuss the autocorrelations and associated time scales during the 
+We also describe the measures we have implemented to make the code numerically stable (Sec.~\ref{sec:stable}). Finally, we discuss the autocorrelations and associated time scales during the 
 Monte Carlo sampling process (Sec.~\ref{sec:sampling}). 
 
-The essential ingredients of the auxiliary field quantum Monte Carlo implementation in the ALF package are the following:
+The essential ingredients of the auxiliary-field quantum Monte Carlo implementation in the ALF package are the following:
 \begin{itemize}
-\item  We will discretize the imaginary time propagation: $\beta = \Delta \tau L_{\text{Trotter}} $. Generically this introduces a systematic Trotter error of $\mathcal{O}(\Delta \tau)^2$  \cite{Fye86}. 
-We note that there has been considerable effort at getting rid of the Trotter systematic error and to 
-formulate a genuine continuous-time BSS  algorithm \cite{Iazzi15}.   To date, efforts in this direction are based on a CT-AUX type formulation \cite{Rombouts99,Gull08} and   face  two issues. The first issue is that they are restricted to a class of models with Hubbard-type interactions
+\item  We discretize the imaginary time propagation: $\beta = \Delta \tau L_{\text{Trotter}} $. Generically this introduces a systematic Trotter error of $\mathcal{O}(\Delta \tau)^2$  \cite{Fye86}. 
+We note that there has been considerable effort at getting rid of the Trotter systematic error and to formulate a genuine continuous-time BSS  algorithm \cite{Iazzi15}.   To date, efforts in this direction are based on a CT-AUX type formulation \cite{Rombouts99,Gull08} and   face  two issues. The first issue is that they are restricted to a class of models with Hubbard-type interactions
 \begin{equation}
         \left(  \hat{n}_{i}- 1\right)^{2}  = \left(  \hat{n}_{i}- 1\right)^{4} ,
 \end{equation}
@@ -39,29 +39,31 @@ such that  the  basic CT-AUX equation \cite{Rombouts98}
 \end{equation}
 holds.
 The second issue is that in the continuous-time  approach it is hard to formulate a  computationally efficient algorithm.  Given this situation it turns out that the multi-grid method \cite{Rost12,Rost13,Bluemer08}  is an efficient  scheme to   extrapolate to  small imaginary-time steps so as to  eliminate the Trotter systematic error if required.
-\item  Having isolated the two-body term,  we will use  the   discrete HS transformation \cite{Motome97,Assaad97}:
+\item  Having isolated the two-body term, we apply Gau\ss{}-Hermite quadrature \cite{goth2020} to the 
+continuous HS transform and obtain the discrete HS transformation \cite{Motome97,Assaad97}:
 \begin{equation}
 \label{HS_squares}
         e^{\Delta \tau  \lambda  \hat{A}^2 } =
         \sum_{ l = \pm 1, \pm 2}  \gamma(l)
 e^{ \sqrt{\Delta \tau \lambda }
        \eta(l)  \hat{A} }
-                + {\cal O} (\Delta \tau ^4)\;,
+                + \mathcal{O} (\Delta \tau ^4)\;,
 \end{equation}
 where the fields $\eta$ and $\gamma$ take the values:
-\begin{eqnarray}
- \gamma(\pm 1)  = 1 + \sqrt{6}/3, \quad  \eta(\pm 1 ) = \pm \sqrt{2 \left(3 - \sqrt{6} \right)}\;,\\\nonumber
-  \gamma(\pm 2) = 1 - \sqrt{6}/3, \quad  \eta(\pm 2 ) = \pm \sqrt{2 \left(3 + \sqrt{6} \right)}\;.
-\nonumber
-\end{eqnarray}
-Since the Trotter error is already of order $(\Delta \tau ^2) $ per time slice, this transformation is next to exact. 
-\item  We will work in  a basis for the Ising spins  where  $\hat{Z}_k$ is diagonal: $\hat{Z}_{k}|s_{k}\rangle = s_{k}|s_{k}\rangle$, where $s_{k}=\pm 1$.
+\begin{equation} \label{eta_gamma_fields}
+\begin{aligned}
+\gamma(\pm 1) &= 1 + \sqrt{6}/3, \quad & \eta(\pm 1 ) &= \pm \sqrt{2 \left(3 - \sqrt{6} \right)},\\
+\gamma(\pm 2) &= 1 - \sqrt{6}/3, \quad & \eta(\pm 2 ) &= \pm \sqrt{2 \left(3 + \sqrt{6} \right)}.
+\end{aligned}
+\end{equation}
+Since the Trotter error is already of order $(\Delta \tau ^2) $ per time slice, this transformation is next to exact.
+\item $\hat{Z}_k$ can stand for a variety of operators, such as the Pauli matrix $\hat{\sigma}_{z}$, in which case the Ising spins take the values $s_{k} = \pm 1$, or the position operator -- such that $ \hat{Z}_k | \phi\rangle = \phi|\phi\rangle $, with $\phi$ a real number.
 \item From the above it follows that the  Monte Carlo configuration space $C$  
 is given by the combined spaces of Ising spin configurations  and of HS discrete field configurations:
 \begin{equation}
 	C = \left\{   s_{i,\tau} ,  l_{j,\tau}  \text{ with }  i=1\cdots M_I,\;  j = 1\cdots M_V,\; \tau=1\cdots L_{\mathrm{Trotter}}  \right\}.
 \end{equation}
-Here, the Ising spins take the values  $s_{i,\tau} = \pm 1$ and  the HS fields take the values  $l_{j,\tau}  = \pm 2, \pm 1 $.
+Here, the HS fields take the values $l_{j,\tau} = \pm 2, \pm 1 $ and the Ising spins $s_{i,\tau}$ may, for instance, be a continuous real field or, if $\hat{Z}_k = \hat{\sigma}_{z}$, be restricted to $\pm 1$.
 \end{itemize}
 
 %------------------------------------------------------------
@@ -69,50 +71,50 @@ Here, the Ising spins take the values  $s_{i,\tau} = \pm 1$ and  the HS fields t
 %------------------------------------------------------------
 
 With the above, the partition function of the model (\ref{eqn:general_ham}) can be written as follows.
-\begin{eqnarray}\label{eqn:partition_1}
-Z &=& \Tr{\left(e^{-\beta \hat{\mathcal{H}} }\right)}\nonumber\\
-  &=&   \Tr{  \left[ e^{-\Delta \tau \hat{\mathcal{H}}_{0,I}}  
+\begin{align}\label{eqn:partition_1}
+Z &= \Tr{\left(e^{-\beta \hat{\mathcal{H}} }\right)}\nonumber\\
+  &=   \Tr{  \left[ e^{-\Delta \tau \hat{\mathcal{H}}_{0,I}}  
     \prod_{k=1}^{M_V}   e^{ - \Delta \tau  U_k \left(  \hat{V}^{(k)} \right)^2}   \prod_{k=1}^{M_I}   e^{  -\Delta \tau  \hat{\sigma}_{k}  \hat{I}^{(k)}} 
      \prod_{k=1}^{M_T}   e^{-\Delta \tau \hat{T}^{(k)}}  
    \right]^{L_{\text{Trotter}}}}  + \mathcal{O}(\Delta\tau^{2})\nonumber \\
-   &=&
+   &=
    \sum_{C} \left( \prod_{k=1}^{M_V} \prod_{\tau=1}^{L_{\mathrm{Trotter}}} \gamma_{k,\tau} \right) e^{-S_{0,I} \left( \left\{ s_{i,\tau} \right\}  \right) }\times \nonumber\\
-   &\quad&
+   &\quad
     \Trf{ \left\{  \prod_{\tau=1}^{L_{\mathrm{Trotter}}} \left[  
     \prod_{k=1}^{M_V}   e^{  \sqrt{ -\Delta \tau  U_k} \eta_{k,\tau} \hat{V}^{(k)} }   \prod_{k=1}^{M_I}   e^{  -\Delta \tau s_{k,\tau}  \hat{I}^{(k)}}  
       \prod_{k=1}^{M_T}   e^{-\Delta \tau \hat{T}^{(k)}}    \right]\right\} }+ \mathcal{O}(\Delta\tau^{2})\;.
-\end{eqnarray}
+\end{align}
 In the above,  the trace $\mathrm{Tr} $  runs over the Ising spins as well as over the fermionic degrees of freedom, and $ \mathrm{Tr}_{\mathrm{F}}  $ only over the  fermionic Fock space. 
 $S_{0,I} \left( \left\{ s_{i,\tau} \right\}  \right)  $ is the action  corresponding to the Ising Hamiltonian,  and is only dependent on the Ising spins so that  it can be pulled out of the fermionic trace.  We have adopted the short hand notation $\eta_{k,\tau}  = \eta(l_{k,\tau})$   and $\gamma_{k,\tau}  = \gamma(l_{k,\tau})$.
 At this point,  and  since for a given configuration $C$  we are dealing with a free propagation, we can integrate out the fermions to obtain a determinant: 
-\begin{eqnarray}
- &\quad&\Trf{ \left\{  \prod_{\tau=1}^{L_{\mathrm{Trotter}}} \left[    
+\begin{align}
+ &\Trf{ \left\{  \prod_{\tau=1}^{L_{\mathrm{Trotter}}} \left[    
     \prod_{k=1}^{M_V}   e^{  \sqrt{ - \Delta \tau  U_k} \eta_{k,\tau} \hat{V}^{(k)} }   \prod_{k=1}^{M_I}   e^{  -\Delta \tau s_{k,\tau}  \hat{I}^{(k)}} 
     \prod_{k=1}^{M_T}   e^{-\Delta \tau \hat{T}^{(k)}}   \right] \right\}} = \nonumber\\
-&\quad& \quad\prod\limits_{s=1}^{N_{\mathrm{fl}}} \left[  e^{\sum\limits_{k=1}^{M_V} \sum\limits_{\tau = 1}^{L_{\mathrm{Trotter}}}\sqrt{-\Delta \tau U_k}  \alpha_{k,s} \eta_{k,\tau} }
+& \quad\prod\limits_{s=1}^{N_{\mathrm{fl}}} \left[  e^{\sum\limits_{k=1}^{M_V} \sum\limits_{\tau = 1}^{L_{\mathrm{Trotter}}}\sqrt{-\Delta \tau U_k}  \alpha_{k,s} \eta_{k,\tau} }
    \right]^{N_{\mathrm{col}}}\times
 \nonumber\\
-&\quad&\quad   \prod\limits_{s=1}^{N_{\mathrm{fl}}} 
+&\quad   \prod\limits_{s=1}^{N_{\mathrm{fl}}} 
    \left[
     \det\left(  \mathds{1} + 
      \prod_{\tau=1}^{L_{\mathrm{Trotter}}}   
     \prod_{k=1}^{M_V}   e^{  \sqrt{ -\Delta \tau  U_k} \eta_{k,\tau} {\bm V}^{(ks)} }   \prod_{k=1}^{M_I}   e^{  -\Delta \tau s_{k,\tau}  {\bm I}^{(ks)}}  
-      \prod_{k=1}^{M_T}   e^{-\Delta \tau \textbf{T}^{(ks)}}   \right) \right]^{N_{\mathrm{col}}}\;,
-\end{eqnarray}
-where the matrices $\textbf{T}^{(ks)}$,  $\textbf{V}^{(ks)}$, and  $\textbf{I}^{(ks)}$ define the Hamiltonian [Eq.~(\ref{eqn:general_ham}) - (\ref{eqn:general_ham_i})].
-All in all,   the partition function is given by:
-\begin{eqnarray}\label{eqn:partition_2}
-    Z  &=&   \sum_{C}   e^{-S_{0,I} \left( \left\{ s_{i,\tau} \right\}  \right) }     \left( \prod_{k=1}^{M_V} \prod_{\tau=1}^{L_{\mathrm{Trotter}}} \gamma_{k,\tau} \right)
+      \prod_{k=1}^{M_T}   e^{-\Delta \tau \bm{T}^{(ks)}}   \right) \right]^{N_{\mathrm{col}}}\;,
+\end{align}
+where the matrices $\bm{T}^{(ks)}$,  $\bm{V}^{(ks)}$, and  $\bm{I}^{(ks)}$ define the Hamiltonian [Eq.~(\ref{eqn:general_ham}) - (\ref{eqn:general_ham_i})].
+All in all, the partition function is given by:
+\begin{align}\label{eqn:partition_2}
+    Z  &=   \sum_{C}   e^{-S_{0,I} \left( \left\{ s_{i,\tau} \right\}  \right) }     \left( \prod_{k=1}^{M_V} \prod_{\tau=1}^{L_{\mathrm{Trotter}}} \gamma_{k,\tau} \right)
     e^{ N_{\mathrm{col}}\sum\limits_{s=1}^{N_{\mathrm{fl}}} \sum\limits_{k=1}^{M_V} \sum\limits_{\tau = 1}^{L_{\mathrm{Trotter}}}\sqrt{-\Delta \tau U_k}  \alpha_{k,s} \eta_{k,\tau} } 
   \times   \nonumber \\
-  &\quad&
+  &\quad
       \prod_{s=1}^{N_{\mathrm{fl}}}\left[\det\left(  \mathds{1} + 
      \prod_{\tau=1}^{L_{\mathrm{Trotter}}}   
     \prod_{k=1}^{M_V}   e^{  \sqrt{ -\Delta \tau  U_k} \eta_{k,\tau} {\bm V}^{(ks)} }   \prod_{k=1}^{M_I}   e^{  -\Delta \tau s_{k,\tau}  {\bm I}^{(ks)}}  
      \prod_{k=1}^{M_T}   e^{-\Delta \tau {\bm T}^{(ks)}} 
      \right) \right]^{N_{\mathrm{col}}} + \mathcal{O}(\Delta\tau^{2}) \nonumber \\ 
-     & \equiv&  \sum_{C} e^{-S(C) } + \mathcal{O}(\Delta\tau^{2})\;.
-\end{eqnarray}
+     & \equiv  \sum_{C} e^{-S(C) } + \mathcal{O}(\Delta\tau^{2})\;.
+\end{align}
 In the above, one notices that the weight factorizes in  the flavor index. The color index raises the determinant to the power $N_{\mathrm{col}}$. 
 This corresponds to  an explicit $SU(N_{\mathrm{col}})$ symmetry   for each  configuration. This symmetry is manifest in the fact that the single particle  Green functions are color independent, again for each given  configuration $C$.
 
@@ -120,9 +122,9 @@ This corresponds to  an explicit $SU(N_{\mathrm{col}})$ symmetry   for each  con
 \subsubsection{Observables}\label{Observables.General}
 %------------------------------------------------------------
 
-In the auxiliary field QMC approach, the single-particle Green function plays a crucial role.  It determines the Monte Carlo dynamics and is used to compute  observables:
+In the auxiliary-field QMC approach, the single-particle Green function plays a crucial role.  It determines the Monte Carlo dynamics and is used to compute  observables:
 \begin{equation}\label{eqn:obs}
-\langle \hat{O}  \rangle  = \frac{ \text{Tr}   \left[ e^{- \beta \hat{H}}  \hat{O}   \right] }{ \text{Tr}   \left[ e^{- \beta \hat{H}}  \right] } =   \sum_{C}   P(C) 
+\langle \hat{O}  \rangle  = \frac{ \text{Tr}   \left[ e^{- \beta \hat{H}}  \hat{O}  \right] }{ \text{Tr}   \left[ e^{- \beta \hat{H}}  \right] } =   \sum_{C}   P(C) 
    \langle \langle \hat{O}  \rangle \rangle_{(C)} , \text{   with   } 
   P(C)   = \frac{ e^{-S(C)}}{\sum_C e^{-S(C)}}\;,
 \end{equation}
@@ -131,11 +133,11 @@ For a given configuration $C$  one can use Wick's theorem to compute $O (C) $   
 \begin{equation}
        G( x,\sigma,s, \tau |    x',\sigma',s', \tau')   =       \langle \langle \mathcal{T} \hat{c}^{\phantom\dagger}_{x \sigma s} (\tau)  \hat{c}^{\dagger}_{x' \sigma' s'} (\tau') \rangle \rangle_{C}
 \end{equation}
-where $ \mathcal{T} $ corresponds to the imaginary-time ordering operator.   The  corresponding equal time quantity reads, 
+where $ \mathcal{T} $ corresponds to the imaginary-time ordering operator.   The  corresponding equal-time quantity reads, 
 \begin{equation}
        G( x,\sigma,s, \tau |    x',\sigma',s', \tau)   =       \langle \langle  \hat{c}^{\phantom\dagger}_{x \sigma s} (\tau)  \hat{c}^{\dagger}_{x' \sigma' s'} (\tau) \rangle \rangle_{C}.
 \end{equation}
-Since  for a given HS field translation invariance in imaginary-time is broken, the Green function has an explicit $\tau$ and $\tau'$ dependence.   On the other hand it is diagonal in the flavor index, and independent on the color index. The latter reflects the  explicit $SU(N)$   color symmetry present at the level of individual HS configurations.   As an example,  one can show that the equal time Green function at $\tau = 0$ reads \cite{Assaad08_rev}:
+Since, for a given HS field, translation invariance in imaginary-time is broken, the Green function has an explicit $\tau$ and $\tau'$ dependence.   On the other hand it is diagonal in the flavor index, and independent of the color index. The latter reflects the  explicit $SU(N)$   color symmetry present at the level of individual HS configurations.   As an example,  one can show that the equal-time Green function at $\tau = 0$ reads \cite{Assaad08_rev}:
 \begin{equation}\label{eqn:Green_eq}
 G(x,\sigma,s,0| x',\sigma,s,0 )  =   \left(  \mathds{1}  +  \prod_{\tau = 1}^{L_{\text{Trotter}}}  \bm{B}_{\tau}^{(s)}   \right)^{-1}_{x,x'}
 \end{equation}
@@ -148,12 +150,13 @@ with
 \end{equation}
 
 
-To compute equal time as well as time displaced observables,  one can make use of Wick's theorem. A convenient formulation of this theorem for  QMC simulations reads: 
-\begin{eqnarray}
-& & \langle \langle 	\mathcal{T}   c^{\dagger}_{\underline x_{1}}(\tau_{1}) c^{\phantom\dagger}_{{\underline x}'_{1}}(\tau'_{1})  
+To compute equal-time, as well as time-displaced observables, one can make use of Wick's theorem. A convenient formulation of this theorem for QMC simulations reads: 
+\begin{align}
+&\langle \langle 	\mathcal{T}   c^{\dagger}_{\underline x_{1}}(\tau_{1}) c^{\phantom\dagger}_{{\underline x}'_{1}}(\tau'_{1})  
 \cdots c^{\dagger}_{\underline x_{n}}(\tau_{n}) c^{\phantom\dagger}_{{\underline x}'_{n}}(\tau'_{n}) 
 \rangle \rangle_{C} =
-\nonumber \\ & & \det  
+\nonumber \\
+&\qquad\det  
 \begin{bmatrix}
    \langle \langle   \mathcal{T}   c^{\dagger}_{\underline x_{1}}(\tau_{1}) c^{\phantom\dagger}_{{\underline x}'_{1}}(\tau'_{1})  \rangle \rangle_{C} & 
     \langle \langle  \mathcal{T}   c^{\dagger}_{\underline x_{1}}(\tau_{1}) c^{\phantom\dagger}_{{\underline x}'_{2}}(\tau'_{2})  \rangle \rangle_{C}  & \dots   &   
@@ -166,9 +169,12 @@ To compute equal time as well as time displaced observables,  one can make use o
      \langle \langle   \mathcal{T}   c^{\dagger}_{\underline x_{n}}(\tau_{n}) c^{\phantom\dagger}_{{\underline x}'_{2}}(\tau'_{2})  \rangle \rangle_{C}   & \dots  & 
      \langle \langle   \mathcal{T}   c^{\dagger}_{\underline x_{n}}(\tau_{n}) c^{\phantom\dagger}_{{\underline x}'_{n}}(\tau'_{n})  \rangle \rangle_{C}
  \end{bmatrix}.
-\end{eqnarray}
+\end{align}
 Here, we have defined the super-index $\underline{ x} = \left\{   x,\sigma,s \right\}$.
-In the subroutines   \path{Obser}  and \path{ObserT} of  the module \path{Hamiltonian_Examples.F90} (see Sec.~\ref{sec:obs})   the user is provided with the equal time and time displaced correlation function. Using the  above  formulation  of  Wick's theorem, arbitrary  correlation functions can be computed. We note however, that the program is limited to the calculation of observables that contain only two different imaginary times.  
+
+% Removed to refer to predefined obs. instead: In the subroutines   \path{Obser}  and \path{ObserT} of  the module \path{Hamiltonian_Examples_mod.F90} (see Sec.~\ref{sec:obs}) the user is provided with
+In Sec.~\ref{sec:predefined_observales} we describe the equal-time and time-displaced correlation functions that come predefined in ALF.
+Using the  above  formulation  of  Wick's theorem, arbitrary  correlation functions can be computed. We note, however, that the program is limited to the calculation of observables that contain only two different imaginary times.  
 
 %------------------------------------------------------------
 \subsubsection{Reweighting and the sign problem}\label{sec:reweight}
@@ -186,10 +192,10 @@ and with the definition
 	 \text{ sign }(C)   =  \frac{   \Re \left[e^{-S(C)} \right]  } {\left| \Re \left[e^{-S(C)} \right]  \right|  }\;,
 \end{equation}
 the computation of the observable [Eq.~(\ref{eqn:obs})] is re-expressed as follows:
-\begin{eqnarray}\label{eqn:obs_rw}
-\langle \hat{O}  \rangle  &=&  \frac{\sum_{C}  e^{-S(C)} \langle \langle \hat{O}  \rangle \rangle_{(C)} }{\sum_{C}  e^{-S(C)}}       \nonumber \\ 
-                          &=&  \frac{\sum_{C}   \Re \left[e^{-S(C)} \right]    \frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}  \langle \langle \hat{O}  \rangle \rangle_{(C)} }{\sum_{C}   \Re \left[e^{-S(C)} \right]}    \nonumber \\ 
-          &=&
+\begin{align}\label{eqn:obs_rw}
+\langle \hat{O}  \rangle  &=  \frac{\sum_{C}  e^{-S(C)} \langle \langle \hat{O}  \rangle \rangle_{(C)} }{\sum_{C}  e^{-S(C)}}       \nonumber \\ 
+                          &=  \frac{\sum_{C}   \Re \left[e^{-S(C)} \right]    \frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}  \langle \langle \hat{O}  \rangle \rangle_{(C)} }{\sum_{C}   \Re \left[e^{-S(C)} \right]}    \nonumber \\ 
+          &=
    \frac{
      \left\{
       \sum_{C}  \left| \Re \left[e^{-S(C)} \right]  \right|   \text{ sign }(C)   \frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}  \langle \langle \hat{O}  \rangle \rangle_{(C)}  \right\}/
@@ -199,9 +205,9 @@ the computation of the observable [Eq.~(\ref{eqn:obs})] is re-expressed as follo
           \left\{ \sum_{C}  \left|  \Re \left[ e^{-S(C)} \right]   \right|   \text{ sign }(C) \right\}/
             \sum_{C}   \left| \Re \left[ e^{-S(C)} \right] \right|  
           } \nonumber\\
-          &=&
+          &=
   	 \frac{  \left\langle  \text{ sign }   \frac{e^{-S}} {\Re \left[e^{-S} \right]}  \langle \langle \hat{O}  \rangle \rangle  \right\rangle_{\overline{P}} } { \langle \text{sign}   \rangle_{\overline{P}}}  \;.      
-\end{eqnarray} 
+\end{align} 
 The average sign is 
 \begin{equation}\label{eqn:sign_rw}
 	 \langle \text{sign} \rangle_{\overline{P}} =    \frac { \sum_{C}  \left|  \Re \left[ e^{-S(C)} \right]   \right|   \text{ sign }(C) }  {  \sum_{C}   \left| \Re \left[ e^{-S(C)} \right] \right|  } \;,
@@ -213,11 +219,11 @@ The Monte Carlo simulation samples the probability distribution
 \end{equation}
 such that the nominator and denominator of  Eq.~(\ref{eqn:obs_rw})  can be computed.   
 
-The negative sign problem is an issue since the average sign is a ratio of two partition functions such that one can argue that 
+The negative sign problem is still an issue because the average sign is a ratio of two partition functions and one can argue that 
 \begin{equation}
- \langle \text{sign} \rangle_{\overline{P}}   \propto e^{-  \Delta N \beta}.
+ \langle \text{sign} \rangle_{\overline{P}}   \propto e^{-  \Delta N \beta},
 \end{equation}
-$\Delta $ is intensive positive quantity and $N \beta$ denotes the  Euclidean volume.    In a Monte Carlo simulation, the  error scales as $ 1/\sqrt{T_{CPU}} $   where $T_{CPU}$ corresponds to the computational  time.  Since the error on the  average sign has to be much smaller than the average sign itself,   one sees that:
+where $\Delta $ is intensive positive quantity and $N \beta$ denotes the  Euclidean volume.    In a Monte Carlo simulation the  error scales as $ 1/\sqrt{T_{CPU}} $   where $T_{CPU}$ corresponds to the computational  time.  Since the error on the  average sign has to be much smaller than the average sign itself,   one sees that:
 \begin{equation}
 	T_{CPU}  \gg e^{2 \Delta N \beta}.
 \end{equation}   

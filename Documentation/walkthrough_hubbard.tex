@@ -4,473 +4,35 @@
 % under a Creative Commons Attribution-ShareAlike 4.0 International License.
 % For the licensing details of the documentation see license.CCBYSA.
 
-% !TEX root = Doc.tex
-%------------------------------------------------------------
-\subsection{The $SU(2)$-Hubbard model on a square lattice}\label{sec:walk1}
-%------------------------------------------------------------
+% !TEX root = doc.tex
 
-To implement a Hamiltonian, the user has to provide  a module   which  specifies the lattice, the model, as well as the observables  they wish to compute. 
-In this section, we describe the module 
-\path{Hamiltonian_Examples.F90} which contains an implementation of the Hubbard model on the square lattice. 
-A sample run for this model can be found in \path{Examples/Hubbard_SU2_Square/}.
 
-The Hamiltonian reads 
-\begin{equation}
-\label{eqn_hubbard_sun}
-\mathcal{H}= 
-\sum\limits_{\sigma=1}^{2} 
-\sum\limits_{x,y =1 }^{N_{\text{unit cell}}} 
-  c^{\dagger}_{x \sigma} T_{x,y}c^{\phantom\dagger}_{y \sigma} 
-+ \frac{U}{2}\sum\limits_{x}\left[
-\sum\limits_{\sigma=1}^{2}
-\left(  c^{\dagger}_{x \sigma} c^{\phantom\dagger}_{x \sigma}  -1/2 \right) \right]^{2}\;.
-\end{equation} 
-We can make contact with the general form of the Hamiltonian by setting: 
-$N_{\mathrm{fl}} = 1$, $N_{\mathrm{col}} \equiv \texttt{N\_SUN}     =2 $,   $M_T    =    1$,  $T^{(ks)}_{x y}   =  T_{x,y}$,  $M_V   =  N_{\text{unit cell}} $,  $U_{k}       =   -\frac{U}{2}$, 
- $V_{x y}^{(ks)} =  \delta_{x,y} \delta_{x,k}$,  $\alpha_{ks}   = - \frac{1}{2}  $ and $M_I       = 0 $.
+\red{TO BE DELETED, with parts being reused in sections Predefined Structures and Model classes.}
 
-%------------------------------------------------------------
-\subsubsection{Setting the Hamiltonian:  \texttt{Ham\_set} }
-%------------------------------------------------------------
-
-The main program will call the subroutine   \texttt{Ham\_set} in the module \texttt{Hamiltonian\_Hub.F90}.
-The latter  subroutine  defines the  public variables
-\lstset{style=fortran}
-\begin{lstlisting}
-
-Type (Operator), dimension(:,:), allocatable  :: Op_V 
-Type (Operator), dimension(:,:), allocatable  :: Op_T
-Integer, allocatable :: nsigma(:,:)
-Integer              :: Ndim,  N_FL,  N_SUN,  Ltrot
-
-\end{lstlisting}
-which specify the model. The array \texttt{nsigma} contains the HS field. The  routine \texttt{Ham\_set}  will first  read the parameter file,  then set the lattice, \texttt{Call Ham\_latt},  set the hopping, \texttt{Call Ham\_hop},  and set the interaction, 
-\texttt{call Ham\_V}.  
-The parameters are read in from the file \texttt{parameters}, see Sec.~\ref{sec:input}.
-
-%------------------------------------------------------------
-\paragraph{The lattice:   \texttt{Call Ham\_latt} }
-%------------------------------------------------------------
-
-The choice \texttt{Lattice\_type = "Square"} sets $\vec{a}_1 =  (1,0) $ and $\vec{a}_2 =  (0,1) $  and for an $L_1 \times L_2$  lattice  $\vec{L}_1 = L_1 \vec{a}_1$ and  $\vec{L}_2 = L_2 \vec{a}_2$.     The call to  \texttt{Call Make\_Lattice( L1, L2, a1,  a2, Latt)} will generate the lattice   \texttt{Latt} of type \texttt{Lattice}. 
-For the Hubbard model on the square lattice, the number of orbitals per unit cell is given by \texttt{NORB=1} such that   $N_{\mathrm{dim}}   \equiv N_{\text{unit cell}}   \cdot \texttt{NORB}  = \texttt{Latt\%N} \cdot \texttt{NORB}$, since $N_{\text{unit cell}} = \texttt{Latt\%N}$.
-
-%------------------------------------------------------------
-\paragraph{The hopping term: \texttt{Call Ham\_hop}}
-%------------------------------------------------------------
-
-The hopping matrix is implemented as follows. 
-We allocate an array of dimension $1\times 1$ of type operator  called \texttt{Op\_T} and set the  dimension for the hopping  matrix to $N=N_{\mathrm{dim}}$. One  allocates and initializes this type by a single call to the subroutine \texttt{Op\_make}: 
-\begin{lstlisting}
-
-call Op_make(Op_T(1,1),Ndim)
-
-\end{lstlisting}
-Since the hopping  does not  break down into small blocks, we have ${\bm P}=\mathds{1}$   and  
-\begin{lstlisting}
-
-Do i= 1,Ndim
-  Op_T(1,1)%P(i) = i
-Enddo
-
-\end{lstlisting}
-We set the hopping matrix  with 
-
-\begin{lstlisting}
-
-DO I = 1, Latt%N
-   Ix = Latt%nnlist(I,1,0)
-   Iy = Latt%nnlist(I,0,1)
-   Op_T(1,1)%O(I  ,Ix) = cmplx(-Ham_T,   0.d0,kind(0.D0))
-   Op_T(1,1)%O(Ix,I  ) = cmplx(-Ham_T,   0.d0,kind(0.D0))
-   Op_T(1,1)%O(I  ,Iy) = cmplx(-Ham_T,   0.d0,kind(0.D0))
-   Op_T(1,1)%O(Iy, I ) = cmplx(-Ham_T,   0.d0,kind(0.D0))
-   Op_T(1,1)%O(I  ,I ) = cmplx(-Ham_chem,0.d0,kind(0.D0))
-ENDDO
-
-\end{lstlisting}
-Here, the integer function \texttt{  j=  Latt\%nnlist(I,n,m)} is defined in the lattice module and returns the index of the lattice site $ \vec{I} +  n \vec{a}_1 +  m \vec{a}_2$.
-Note that periodic boundary conditions are 
-already taken into account.  The hopping parameter \texttt{Ham\_T} as well as the chemical potential \texttt{Ham\_chem} are read from the parameter file.  
-To completely define the hopping  we further set: \texttt{Op\_T(1,1)\%g = -Dtau }, \texttt{Op\_T(1,1)\%alpha = cmplx(0.d0,0.d0, kind(0.D0))} and call the routine  \texttt{Op\_set(Op\_T(1,1))}  so as to generate  the unitary transformation and eigenvalues as specified in Table \ref{table:operator}.  Recall that for the hopping, the variable  \texttt{Op\_set(Op\_T(1,1))\%type}  is not  required. 
-Note that although a checkerboard decomposition is not  used here,  it can be implemented by considering a larger number of sparse hopping matrices.
-
-
-%------------------------------------------------------------
-\paragraph{The interaction term: \texttt{Call Ham\_V}}
-%------------------------------------------------------------
-
-To implement this interaction, we allocate an array of \texttt{Operator} type. The array is called  \texttt{Op\_V} and has dimensions $N_{\mathrm{dim}}\times N_{\mathrm{fl}}=N_{\mathrm{dim}} \times 1$. 
-We set the dimension for the interaction term to  $N=1$, and  allocate and initialize this array of type  \texttt{Operator} by repeatedly calling the subroutine \texttt{Op\_make}: 
-
-\begin{lstlisting}
-
-do i  = 1,Ndim
-   call Op_make(Op_V(i,1),1)
-enddo
-
-\end{lstlisting}
-For each lattice site $i$, the  matrices ${\bm P}$ are of dimension $1\times N_{\mathrm{dim}} $ and have only one non-vanishing entry. Thereby we can set:
-
-\begin{lstlisting}
-
-Do i = 1,Ndim
-   Op_V(i,1)%P(1)   = i
-   Op_V(i,1)%O(1,1) = cmplx(1.d0,0.d0, kind(0.D0))
-   Op_V(i,1)%g      = sqrt(cmplx(-dtau*ham_U/dble(N_SUN),0.D0,kind(0.D0)))
-   Op_V(i,1)%alpha  = cmplx(-0.5d0,0.d0, kind(0.D0))
-   Op_V(i,1)%type   = 2
-   Call Op_set( Op_V(i,1) )
-Enddo
-
-\end{lstlisting}
-so as to completely define the interaction term. 
-
-%\mycomment{Perhaps also mention \texttt{Call Op\_set(Op\_V(nc,n))} here}
-
-%------------------------------------------------------------
-\subsubsection{Observables}
-%------------------------------------------------------------
-
-At this point, all the information   for the simulation to  start has been provided.  The code will sequentially go through  the operator list  \texttt{Op\_V}  and update the  fields.   Between  time slices   \texttt{LOBS\_ST}  and  \texttt{LOBS\_EN}   the main program will call the routine  \texttt{Obser(GR,Phase,Ntau)}   which is provided by the user and handles equal time correlation functions. 
-If \texttt{Ltau=1} the main program will call the routine \texttt{ObserT(NT,  GT0,G0T,G00,GTT, PHASE) }   which is again  provided by the user and handles  imaginary-time displaced correlation functions. 
-
-The user will have to  implement the  observables  they  want to compute. Here  we  will describe how to  proceed. 
-
-%------------------------------------------------------------------------------------
-\paragraph{Allocating space for the observables: \texttt{Call Alloc\_obs(Ltau) }} \label{Alloc_obs_sec}
-%-------------------------------------------------------------------------------------
-
-For  four scalar  or vector observables,  the user will have to  declare the following: 
-\begin{lstlisting}
-
-Allocate ( Obs_scal(4) )
-Do I = 1,Size(Obs_scal,1)
-   select case (I)
-   case (1)
-      N = 2;  Filename ="Kin"
-   case (2)
-      N = 1;  Filename ="Pot"
-   case (3)
-      N = 1;  Filename ="Part"
-   case (4)
-      N = 1,  Filename ="Ener"
-   case default
-      Write(6,*) ' Error in Alloc_obs '  
-   end select
-   Call Obser_Vec_make(Obs_scal(I),N,Filename)
-enddo
-\end{lstlisting}
-Here,   \texttt{Obs\_scal(1)}   contains a vector  of two observables  so as to account for the $x$- and $y$-components of the kinetic energy for example.  
-
-For equal time correlation  functions  we allocate  \texttt{Obs\_eq}  of type \texttt{Obser\_Latt}.  Here we include the calculation of spin-spin and density-density correlation functions alongside equal time Green functions. 
-\begin{lstlisting}
-
-Allocate ( Obs_eq(4) )
-Do I = 1,Size(Obs_eq,1)
-   select case (I)
-   case (1)
-      Ns = Latt%N; No = Norb;  Filename ="Green"
-   case (2)
-      Ns = Latt%N; No = Norb;  Filename ="SpinZ"
-   case (3)
-      Ns = Latt%N; No = Norb;  Filename ="SpinXY"
-   case (4)
-      Ns = Latt%N; No = Norb;  Filename ="Den"
-   case default
-      Write(6,*) ' Error in Alloc_obs '  
-   end select
-   Nt = 1
-   Call Obser_Latt_make(Obs_eq(I),Ns,Nt,No,Filename)
-enddo
- \end{lstlisting} 
- For the Hubbard model \texttt{Norb = 1} and for   equal time correlation functions   \texttt{Nt = 1}.       If  \texttt{Ltau = 1}  then the code will allocate space for  time displaced quantities.   The same structure as for  equal time correlation functions will be used albeit with  \texttt{Nt = Ltrot + 1}.  At the beginning of each bin, the main program will set the bin observables to zero by calling  the routine 
- \texttt{Init\_obs(Ltau)}.   The user does not have to edit this routine. 
- 
-%-------------------------------------------------------------------------------------
-\paragraph{Measuring equal time observables: \texttt{Obser(GR,Phase,Ntau)}}
-%-------------------------------------------------------------------------------------
-
-The equal time  Green function,
-\begin{equation}
-	 \texttt{GR(x,y},\sigma{\texttt)}  = \langle c^{\phantom{\dagger}}_{x,\sigma} c^{\dagger}_{y,\sigma}  \rangle,
-\end{equation}
-the  phase factor \texttt{phase} [Eq.~(\ref{eqn:phase})], and time slice \texttt{Ntau}   are provided by the main program.  
-
-Here,   $x$ and $y$ label  both unit cell as well as the orbital within the unit cell. For the Hubbard model described here, $x$ corresponds to the unit cell.  The Green function  does not depend on the color index, and is diagonal in flavor.  For the $SU(2)$ symmetric implementation  there is only one flavor, $\sigma = 1$ and the Green function is  independent on the spin index.  This renders the calculation of the observables particularly easy.   
-
-An explicit calculation of the   potential energy  $ \langle U \sum_{\vec{i}}  \hat{n}_{\vec{i},\uparrow}   \hat{n}_{\vec{i},\downarrow}  \rangle $ reads 
-
-\begin{lstlisting} 
-
-Obs_scal(2)%N     = Obs_scal(2)%N + 1
-Obs_scal(2)%Ave_sign = Obs_scal(2)%Ave_sign + Real(ZS,kind(0.d0))
-Do i = 1,Ndim
-   Obs_scal(2)%Obs_vec(1) = Obs_scal(2)%Obs_vec(1) + (1-GR(i,i,1))**2 * Ham_U * ZS * ZP
-Enddo
-
-\end{lstlisting} 
-Here  $ \texttt{ZS} = \text{ sign} (C) $  [see Eq.~(\ref{Sign.eq})],  $ \texttt{ZP} =   \frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}   $ [see Eq.~(\ref{eqn:phase})] and  \texttt{Ham\_U}  corresponds to the Hubbard-$U$ term.
-
-
-Equal time correlations  are also computed in this routine. As an explicit example, we  consider the equal time density-density correlation:
-\begin{equation}
-	 \langle n_{\vec{i},\alpha}   n_{\vec{j},\beta} \rangle   -  \langle n_{\vec{i},\alpha} \rangle  \langle    n_{\vec{j},\beta}  \rangle \;.
-\end{equation} 
-For the calculation of such quantities, it is convenient to  define: 
-\begin{equation}
-\label{GRC.eq}
-	\texttt{GRC(x,y,s)}   =  \delta_{x,y}  - \texttt{GR(y,x,s)  }
-\end{equation}
-such that \texttt{GRC(x,y,s)}    corresponds to  $ \langle \langle  \hat{c}_{x,s}^{\dagger}\hat{c}_{y,s}^{\phantom\dagger} \rangle \rangle $. 
-In the program code, the calculation of the equal time density-density correlation function looks as follows:
-\begin{lstlisting} 
-
-Obs_eq(4)%N     = Obs_eq(4)%N + 1       ! Even if it is redundant, each observable  
-                                        ! carries its own counter and sign.
-Obs_eq(4)%Ave_sign = Obs_eq(4)%Ave_sign + Real(ZS,kind(0.d0))  
-Do I1 = 1,Ndim
-   I    = List(I1,1)                    ! = I1  (The Hubbard model  on the square
-   no_I = List(I1,2)                    ! = 1   lattice has one orbital per unit-cell)
-   Do J1 = 1,Ndim                       
-      J    = List(J1,1)
-      no_J = List(J1,2)
-      imj = latt%imj(I,J)
-      Obs_eq(4)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(4)%Obs_Latt(imj,1,no_I,no_J) + &
-                     &     (    GRC(I1,I1,1) * GRC(J1,J1,1) * N_SUN * N_SUN      + &
-                     &          GRC(I1,J1,1) * GR(I1,J1,1) * N_SUN   ) * ZP * ZS 
-   Enddo
-   Obs_eq(4)%Obs_Latt0(no_I) = Obs_eq(4)%Obs_Latt0(no_I) + GRC(I1,I1,1) * N_SUN*ZP*ZS
-Enddo
-\end{lstlisting} 
-Note that we consider the  square lattice of the single site Hubbard model as a special case of a multiorbital problem as described in Sec.~\ref{sec:multi-orbital}
-At the end of each bin  the main program will call the routine \texttt{ Pr\_obs(LTAU)}. This routine will append the result of the bins in the specified file,  with appropriate suffix. 
-
-%-------------------------------------------------------------------------------------
-\paragraph{Measuring time displaced observables: \texttt{ObserT(NT,  GT0,G0T,G00,GTT, PHASE) }}
-%-------------------------------------------------------------------------------------
-%
-This subroutine is called by the main program at the beginning of each sweep, provided that \texttt{LTAU}  is set to unity.  \texttt{NT} runs from \texttt{0}  to \texttt{Ltrot} and denotes the   imaginary time difference.   For a given time  displacement, the main program provides:
-\begin{eqnarray}
-\texttt{GT0(x,y,s) }  &=&   \phantom{+} \langle \langle \hat{c}^{\phantom\dagger}_{x,s} (Nt \Delta \tau)   \hat{c}^{\dagger}_{y,s} (0)   \rangle \rangle = \langle \langle {\cal T} \hat{c}^{\phantom\dagger}_{x,s} (Nt \Delta \tau)   \hat{c}^{\dagger}_{y,s} (0)   \rangle \rangle  \nonumber \\
-\texttt{G0T(x,y,s) }   &=&  -   \langle \langle   \hat{c}^{\dagger}_{y,s} (Nt \Delta \tau)    \hat{c}^{\phantom\dagger}_{x,s} (0)    \rangle \rangle =
-    \langle \langle {\cal T} \hat{c}^{\phantom\dagger}_{x,s} (0)    \hat{c}^{\dagger}_{y,s} (Nt \Delta \tau)   \rangle \rangle  \nonumber  \\
-  \texttt{G00(x,y,s) }  &=&    \phantom{+} \langle \langle \hat{c}^{\phantom\dagger}_{x,s} (0)   \hat{c}^{\dagger}_{y,s} (0)   \rangle \rangle    \nonumber \\
-    \texttt{GTT(x,y,s) }  &=&   \phantom{+} \langle \langle \hat{c}^{\phantom\dagger}_{x,s} (Nt \Delta \tau)   \hat{c}^{\dagger}_{y,s} (Nt \Delta \tau)   \rangle \rangle    
-\end{eqnarray}
-In the above we have omitted the color index since  the  Green functions are color independent.  The time displaced  spin-spin correlations 
-$ 4 \langle \langle \hat{S}^{z}_{\vec{i}} (\tau)  \hat{S}^{z}_{\vec{j}} (0)\rangle \rangle   $ 
-are thereby given by: 
-\begin{equation}
-	4 \langle \langle \hat{S}^{z}_{\vec{i}} (\tau)  \hat{S}^{z}_{\vec{j}} (0)\rangle \rangle   = - 2 \; \texttt{G0T(J1,I1,1) } \texttt{GT0(I1,J1,1) } \;.
-\end{equation}
-Note that the above holds for the $SU(2)$ HS transformation discussed in this chapter. 
-The handling of time displaced correlation functions is identical to that of equal time correlations. 
-
-%-------------------------------------------------------------------------------------
-\subsubsection{Numerical precision}\label{sec:prec_charge}
-%-------------------------------------------------------------------------------------
-The directory \path{Examples/Hubbard_SU2_Square}  contains an example simulation of the $4 \times 4$ Hubbard model at $U/t=4$ and $\beta t = 10$. 
-Information on the numerical stability is included in the following lines of the corresponding file \texttt{info}:
-\begin{alltt}
-Precision Green  Mean, Max :    1.2918865817224671E-014   4.0983018995027644E-011
-Precision Phase, Max       :    5.0272908791449966E-012
-Precision tau    Mean, Max :    8.4596701790588625E-015   3.5033530012121281E-011
-\end{alltt}
-showing the mean and maximum difference between the \textit{wrapped}  and from scratched computed equal and time displaced  Green functions \cite{Assaad08_rev}.
-A stable code  should produce results where the mean difference is smaller than the  stochastic error. The above example  shows a very stable  simulation since the Green function  is of order one. 
-
-
-%-------------------------------------------------------------------------------------
-\subsection{The $M_z$-Hubbard model on a square lattice}\label{sec:walk1.1}
-%-------------------------------------------------------------------------------------
-
-The Hubbard Hamiltonian can equally be written as:
-\begin{equation}
-\label{eqn_hubbard_Mz}
-\mathcal{H}=
-\sum\limits_{\sigma=1}^{2} 
-\sum\limits_{x,y =1 }^{N_{unit\; cells }} 
-  c^{\dagger}_{x \sigma} T_{x,y}c^{\phantom\dagger}_{y \sigma} 
-- \frac{U}{2}\sum\limits_{x}\left[
-c^{\dagger}_{x, \uparrow} c^{\phantom\dagger}_{x \uparrow}  -   c^{\dagger}_{x, \downarrow} c^{\phantom\dagger}_{x \downarrow}  \right]^{2}\;.
-\end{equation} 
-We can make contact with the general form of the Hamiltonian  (see Eq.~\ref{eqn:general_ham}) by setting: 
-$N_{\mathrm{fl}} = 2$, $N_{\mathrm{col}} \equiv \texttt{N\_SUN}     =1 $,   $M_T    =    1$,  $T^{(ks)}_{x y}   =  T_{x,y}$,  $M_V   =  N_{\text{unit cell}} $,  $U_{k}       =   \frac{U}{2}$, 
- $V_{x y}^{(k, s=1)} =  \delta_{x,y} \delta_{x,k}  $,  $V_{x y}^{(k, s=2)} =  - \delta_{x,y} \delta_{x,k}  $,  $\alpha_{ks}   = 0  $ and $M_I       = 0 $.   
- The coupling of the HS fields to the $z$-component of   the magnetization breaks the $SU(2)$ spin symmetry. Nevertheless the $z$-component of the spin remains a good quantum number such that the imaginary-time propagator -- for a given HS field -- is block  diagonal in this quantum number. This corresponds to the flavor index  which runs from one to two  labelling spin up and spin down  degrees of freedom.       In the parameter file  listed in  Sec.~\ref{sec:input}  setting the model variable to  \texttt{Hubbard\_Mz}  will carry out the simulation in the above representation. 
- With respect to the $SU(2)$ case, the changes required in the \texttt{Hamiltonian\_Examples.F90}   module are  minimal and essentially effect only the interaction term, and the calculation of observables.  We note that  in this formulation the  hopping matrix can be flavor dependent such that a Zeeman  magnetic field can be introduced.  If the chemical potential is set to zero, this will not generate a negative sign problem \cite{Wu04,Milat04,Bercx09}.    
- A sample run for this model can be found in \texttt{Examples/Hubbard\_Mz\_Square/}.
-
-%-------------------------------------------------------------------------------------
-\subsubsection{The interaction term: \texttt{Call Ham\_V} } 
-%-------------------------------------------------------------------------------------
-The interaction term is now given by: 
-
-\begin{lstlisting}
-
-Allocate(Op_V(Ndim,N_FL))
-do nf = 1,N_FL
-   do i  = 1, Ndim
-      Call Op_make(Op_V(i,nf),1)
-   enddo
-enddo
-Do nf = 1,N_FL
-   nc = 0
-   X = 1.d0
-   if (nf == 2) X = -1.d0
-   Do i = 1,Ndim
-      nc = nc + 1
-      Op_V(nc,nf)%P(1) = I
-      Op_V(nc,nf)%O(1,1) = cmplx(1.d0, 0.d0, kind(0.D0))
-      Op_V(nc,nf)%g      = X*SQRT(CMPLX(DTAU*ham_U/2.d0, 0.D0, kind(0.D0))) 
-      Op_V(nc,nf)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
-      Op_V(nc,nf)%type   = 2
-      Call Op_set( Op_V(nc,nf) )
-   Enddo
-Enddo
-
-\end{lstlisting}
-In the above, one will see explicitly that  there is a sign   difference between  the coupling of the HS field  in  the  two flavor sectors.  
-
-%-------------------------------------------------------------------------------------
- \subsubsection{The  measurements: \texttt{Call Obser, Call  ObserT} } 
-%-------------------------------------------------------------------------------------
-
- Since  the spin up and spin down Green functions differ  for a given HS configuration,  the Wick decomposition will take a different form. In particular, the  equal time spin-spin correlation functions 
- $ 4 \langle \langle \hat{S}^{z}_{\vec{i}}   \hat{S}^{z}_{\vec{j}} \rangle \rangle   $  calculated in the subroutine  \texttt{Obser}  will take the form: 
-  \begin{eqnarray}
-   4 \langle \langle \hat{S}^{z}_{x}   \hat{S}^{z}_{y} \rangle \rangle   =  & &  \texttt{  GRC(x,y,1) * GR(x,y,1) + GRC(x,y,2) * GR(x,y,2) + }  \nonumber \\ 
-& & \texttt{   (GRC(x,x,2) - GRC(x,x,1))*(GRC(y,y,2) - GRC(y,y,1))}  \nonumber
-  \end{eqnarray}
-Here,  \texttt{GRC}  is defined in Eq.~\ref{GRC.eq}.  Equivalent changes will have to be carried out for other equal time and time displaced observables. 
-  
-Apart from these modifications, the program  will run in exactly the same manner as for the $SU(2)$ case. 
-    
-  
-%-------------------------------------------------------------------------------------
-\subsubsection{Numerical precision}\label{sec:prec_spin}
-%-------------------------------------------------------------------------------------
-The directory \path{Examples/Hubbard_Mz_Square}  contains an example simulation of the $4 \times 4$ Hubbard model at $U/t=4$ and $\beta t = 10$. 
-Information on the numerical stability is included in the following lines of the corresponding file \texttt{info}:
- \begin{alltt}
-Precision Green  Mean, Max :    5.0823874429126405E-011   5.8621144596315844E-006
-Precision Phase, Max       :    0.0000000000000000     
-Precision tau    Mean, Max :    1.5929357848647394E-011   1.0985132530727526E-005 
-\end{alltt}
-
-This is still an excellent precision but nevertheless choosing a 
- HS field which couples to the z-component of the magnetization apparently leads to numerical results that are 
-a couple of order of magnitudes less precise than a HS decomposition coupling to the charge (compare with Sec.~\ref{sec:prec_charge}).
-
-    
-
-%-------------------------------------------------------------------------------------  
-\subsection{The $SU(2)$-Hubbard model on  the honeycomb  lattice}\label{sec:walk1.2}
-%-------------------------------------------------------------------------------------
-
-The Hamilton module \texttt{Hamiltonian\_Examples.F90}   can also carry out simulations for the Hubbard model on the Honeycomb lattice by setting in the parameter file   \path{Lattice_type = "Honeycomb"} (see Sec.~\ref{sec:input}).
- A sample run for this model can be found in \path{Examples/Hubbard_SU2_Honeycomb/}.
-
- %-------------------------------------------------------------------------------------
-\subsubsection{Working with multi-orbital unit cells:  \texttt{Call Ham\_Latt} } \label{sec:multi-orbital}
-%-------------------------------------------------------------------------------------
-
-  This model is an example of  a multi-orbital unit cell, and the aim of this section is to document how to implement this in the code.  The  Honeycomb lattice is a  triangular Bravais lattice with two orbitals per unit cell.  The routine  \texttt{Ham\_Latt} will set: 
-
-\begin{lstlisting}
-
-Norb    = 2
-N_coord = 3
-a1_p(1) =  1.D0   ; a1_p(2) =  0.d0
-a2_p(1) =  0.5D0  ; a2_p(2) =  sqrt(3.D0)/2.D0             
-L1_p    =  dble(L1) * a1_p
-L2_p    =  dble(L2) * a2_p
-            
-\end{lstlisting}
-and then  call \path{ Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt ) } so as to generate the triangular lattice.  The coordination number of this lattice is \texttt{ N\_coord=3 }  and  the number of orbitals per unit cell  corresponds to \texttt{NORB=2}.    The total number of  orbitals  is thereby: \texttt{$N_{\mathrm{dim}}$=Latt\%N*NORB}.    To easily keep track of the orbital and unit cell, we define a  super-index as shown below:
-
-
-\begin{lstlisting}
-
-Allocate (List(Ndim,2), Invlist(Latt%N,Norb))
-nc = 0
-Do I = 1,Latt%N                               ! Unit-cell index 
-   Do no = 1,Norb                             ! Orbital index
-      nc = nc + 1                             ! Super-index labeling unit cell
-                                              ! and orbital
-      List(nc,1) = I                          ! Unit-cell  of super index  nc
-      List(nc,2) = no                         ! Orbital of super index nc
-      Invlist(I,no) = nc                      ! Super-index for given  unit cell
-                                              ! and orbital
-  Enddo
-Enddo
-
-\end{lstlisting}
-
-With the above lists one can run through all the orbitals and at each time keep track of the unit-cell and orbital index.    We note that when translation symmetry is completely absent  one can work with a single unit cell, and the  number of orbitals will then correspond to the  number of lattice sites. 
-
-%-------------------------------------------------------------------------------------
-\subsubsection{The hopping term:  \texttt{Call Ham\_Hop} }
-%-------------------------------------------------------------------------------------
-
-Some care has to be taken when setting the hopping matrix.    In the Hamilton module \path{Hamiltonian_Examples.F90}   we do this in the following way:
-
-\begin{lstlisting}
-
-DO I = 1, Latt%N                              ! Loop over unit cell 
-   do no = 1,Norb                             ! Runs over orbitals and 
-                                              ! sets the chemical potential
-      I1 = invlist(I,no)  
-      Op_T(nc,n)%O(I1 ,I1) = cmplx(-Ham_chem, 0.d0, kind(0.D0))
-   enddo
-   I1 = Invlist(I,1)                          ! Orbital A of unit cell I
-   Do nc1 = 1,N_coord                         ! Loop over coordination  number
-      select case (nc1)
-      case (1)
-         J1 = invlist(I,2)                    ! Orbital B of unit cell i
-      case (2)
-         J1 = invlist(Latt%nnlist(I,1,-1),2)  ! Orbital B of unit cell i + a_1 - a_2
-      case (3)
-         J1 = invlist(Latt%nnlist(I,0,-1),2)  ! Orbital B of unit cell i - a_2 
-      case default
-         Write(6,*) ' Error in  Ham_Hop '  
-      end select
-      Op_T(nc,n)%O(I1,J1) = cmplx(-Ham_T,    0.d0, kind(0.D0))   
-      Op_T(nc,n)%O(J1,I1) = cmplx(-Ham_T,    0.d0, kind(0.D0))
-   Enddo
-Enddo
-
-\end{lstlisting}
-As apparent from the above, hopping matrix elements   are non-zero only between the $A$ and $B$  sublattices. 
-
-%-------------------------------------------------------------------------------------
-\subsubsection{Observables:  \texttt{Call Obser},   \texttt{Call ObserT}}
-%-------------------------------------------------------------------------------------
-
-In the multi-orbital case,  the correlation functions have additional orbital indices. This is automatically taken care of in the routines \texttt{Call Obser} and \texttt{Call ObserT}  since  we have already considered the  Hubbard model on the square lattice to correspond to a multi-orbital unit cell albeit with the special choice of one orbital per unit cell. 
 
 %------------------------------------------------------------------------------------- 
 \subsection{The $SU(2)$-Hubbard model on a square lattice coupled to a transverse Ising field}\label{sec:walk2}
 %-------------------------------------------------------------------------------------
 
 The model we consider here  is very similar to the  above,  but has an additional coupling to a transverse field: 
-\begin{eqnarray}
+\begin{equation}
+\begin{aligned}
 \label{eqn_hubbard_sun_Ising}
-\mathcal{H}= & & 
+\mathcal{H} =&
 \sum\limits_{\sigma=1}^{2} 
 \sum\limits_{x,y } 
   c^{\dagger}_{x \sigma} T_{x,y}c^{\phantom\dagger}_{y \sigma} 
 + \frac{U}{2}\sum\limits_{x}\left[
 \sum\limits_{\sigma=1}^{2}
 \left(  c^{\dagger}_{x \sigma} c^{\phantom\dagger}_{x \sigma}  -1/2 \right) \right]^{2}   
-+  \xi \sum_{\sigma,\langle x,y \rangle} \hat{Z}_{\langle x,y \rangle}  \left( c^{\dagger}_{x \sigma} c^{\phantom\dagger}_{y \sigma}  + h.c. \right)  \nonumber \\ 
- & & - h \sum_{\langle x,y \rangle} \hat{X}_{\langle x,y \rangle}   - J \sum_{\langle \langle x,y \rangle \langle x',y' \rangle \rangle} 
++  \xi \sum_{\sigma,\langle x,y \rangle} \hat{Z}_{\langle x,y \rangle}  \left( c^{\dagger}_{x \sigma} c^{\phantom\dagger}_{y \sigma}  + h.c. \right) \\ 
+ &- h \sum_{\langle x,y \rangle} \hat{X}_{\langle x,y \rangle}   - J \sum_{\langle \langle x,y \rangle \langle x',y' \rangle \rangle} 
   \hat{Z}_{\langle x,y \rangle}   \hat{Z}_{\langle x',y' \rangle} 
-\end{eqnarray}
+  \end{aligned}
+\end{equation}
 We can make contact with the general form of the Hamiltonian by setting: 
-$N_{\mathrm{fl}} = 1$, $N_{\mathrm{col}} \equiv \texttt{N\_SUN}     =2 $,   $M_T    =    1$,  $T^{(ks)}_{x y}   =  T_{x,y}$,  $M_V   =  N_{\text{unit cell}} \equiv N_{\mathrm{dim}}$,  $U_{k}       =   -\frac{U}{2}$, 
- $V_{x y}^{(ks)} =  \delta_{x,y} \delta_{x,k}$,  $\alpha_{ks}   = - \frac{1}{2}  $ and $M_I       = 2 N_{\text{unit cell}} $.  
+$N_{\mathrm{fl}} = 1$, $N_{\mathrm{col}} \equiv \texttt{N\_SUN}     =2 $,   $M_T    =    1$,  $T^{(ks)}_{x y}   =  T_{x,y}$,  $M_V   =  N_{\text{unit-cell}} \equiv N_{\mathrm{dim}}$,  $U_{k}       =   -\frac{U}{2}$, 
+ $V_{x y}^{(ks)} =  \delta_{x,y} \delta_{x,k}$,  $\alpha_{ks}   = - \frac{1}{2}  $ and $M_I       = 2 N_{\text{unit-cell}} $.  
  The last two terms of the  above Hamiltonian describe a transverse Ising field model on the bonds of the square lattice.  This  type of Hamiltonian  has  recently been extensively discussed  \cite{Schattner15,Xu16,Assaad16}.  Here we adopt the notation of Ref.~\cite{Assaad16}. Note that   $\langle \langle x,y \rangle \langle x',y' \rangle \rangle $ denotes nearest neighbor bonds.
 The modifications  required to generalize the Hubbard model code to the above model are two-fold. 
 
@@ -482,11 +44,8 @@ A sample run for this model can be found in \path{Examples/Hubbard_SU2_Ising_Squ
 %-------------------------------------------------------------------------------------
 \subsubsection{The Ising term.}
 %-------------------------------------------------------------------------------------
-Since the Ising field lives on bonds we have to provide a data structure defining this quantity.  A bond has an anchor site as well as an orientation. The routine \path{Setup_Ising_action}   initializes  the arrays \path{L_bond} and  \path{L_bond_inv} that contain this information. 
-
-
-\begin{lstlisting}
-
+Since the Ising field lives on bonds we have to provide a data structure defining this quantity.  A bond has an anchor site as well as an orientation. The routine \path{Setup_Ising_action}   initializes  the arrays \path{L_bond} and  \path{L_bond_inv} that contain this information.
+\begin{lstlisting}[style=fortran]
 nc = 0
 Do n_orientation = 1,N_coord
 Do I = 1, Latt%N
@@ -497,29 +56,22 @@ Do I = 1, Latt%N
 enddo
 enddo
 \end{lstlisting}
-The two legs of the bond are given by  the anchor $\vec{I}$ and $\vec{I}+ \vec{a}_{n_{orientation}}$
+The two legs of the bond are given by  the anchor $\vec{I}$ and $\vec{I}+ \vec{a}_{n_\text{orientation}}$
 %-------------------------------------------------------------------------------------
 \subsubsection{The interaction term: \texttt{Call Ham\_V}}
 %-------------------------------------------------------------------------------------
 
-The dimension of   \texttt{Op\_V}  is now  $(M_I + M_V)\times N_{\mathrm{fl}}=((N_{coord} +  1 )N_{\mathrm{dim}}) \times 1$ since each site has $N_{coord} =2$ bonds   for the square lattice.
-
-
-
-\begin{lstlisting}
-
+The dimension of   \texttt{Op\_V}  is now  $(M_I + M_V)\times N_{\mathrm{fl}}=((N_\text{coord} +  1 )N_{\text{dim}}) \times 1$ since each site has $N_\text{coord} =2$ bonds   for the square lattice.
+\begin{lstlisting}[style=fortran]
 do i  = 1,N_coord*Ndim                     ! Runs over bonds for Ising interaction.
   call Op_make(Op_V(i,1),2)
 enddo
 do i  =  N_coord*Ndim+1, (N_coord+1)*Ndim  ! Runs over sites for Hubbard interaction.
   call Op_make(Op_V(i,1),1)
 enddo
-
 \end{lstlisting}
-
 The  first  \texttt{N\_coord*Ndim} operators run through the $2N$ bonds of the square lattice and   are given by:
-\begin{lstlisting}
-
+\begin{lstlisting}[style=fortran]
 Do nc = 1,Ndim*N_coord                     ! Runs over bonds. Coordination number = 2.
                                            ! For the square lattice Ndim = Latt%N
   
@@ -535,13 +87,10 @@ Do nc = 1,Ndim*N_coord                     ! Runs over bonds. Coordination numbe
    Op_V(nc,1)%alpha  = cmplx(0d0,0.d0, kind(0.D0))
    Op_V(nc,1)%type   = 1
 Enddo
-
 \end{lstlisting}
 Here,  \texttt{ham\_xi} defines the coupling strength  between the Ising  and fermion degree of freedom.
 As for the Hubbard case, the last \texttt{Ndim}  operators read: 
-
-\begin{lstlisting}
-
+\begin{lstlisting}[style=fortran]
 nc = N_coord*Ndim 
 Do i = 1, Ndim
     nc = nc + 1
@@ -551,7 +100,6 @@ Do i = 1, Ndim
     Op_V(nc,1)%alpha  = cmplx(-0.5d0,0.d0, kind(0.D0))
     Op_V(nc,1)%type   = 2
 Enddo
-
 \end{lstlisting}
 
 %-------------------------------------------------------------------------------------
@@ -560,7 +108,7 @@ Enddo
 
 As mentioned above,  a configuration now includes both HS spins and Ising spins and is given by
 \begin{equation}
-	C = \left\{   s_{i,\tau} ,  l_{j,\tau}  \text{ with }  i=1\cdots M_I,  j = 1\cdots M_V,  \tau=1,L_{Trotter}  \right\}\:.
+	C = \left\{   s_{i,\tau} ,  l_{j,\tau},  \text{ with }  i=1,\cdots, M_I;\;  j = 1,\cdots, M_V;\;  \tau=1,\cdots,L_\text{Trotter}  \right\}\:.
 \end{equation}
 This configuration is stored in the  integer array \texttt{nsigma(M\_V + M\_I, Ltrot)}.  With the above ordering of Hubbard and Ising interaction terms, and a for a given imaginary time, the first \texttt{2*Ndim} fields correspond to the Ising interaction and the next \path{Ndim} ones to the Hubbard interaction.
 The first   argument of the function \texttt{S0}, namely \texttt{n},  corresponds to the index of the operator  string 

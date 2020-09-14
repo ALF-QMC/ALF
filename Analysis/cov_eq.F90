@@ -1,57 +1,58 @@
 !  Copyright (C) 2016-2019 The ALF project
-! 
+!
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
-! 
+!
 !     The ALF project is distributed in the hope that it will be useful,
 !     but WITHOUT ANY WARRANTY; without even the implied warranty of
 !     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 !     GNU General Public License for more details.
-! 
+!
 !     You should have received a copy of the GNU General Public License
 !     along with Foobar.  If not, see http://www.gnu.org/licenses/.
-!     
+!
 !     Under Section 7 of GPL version 3 we require you to fulfill the following additional terms:
-!     
+!
 !     - It is our hope that this program makes a contribution to the scientific community. Being
 !       part of that community we feel that it is reasonable to require you to give an attribution
 !       back to the original authors if you have benefitted from this program.
 !       Guidelines for a proper citation can be found on the project's homepage
 !       http://alf.physik.uni-wuerzburg.de .
-!       
+!
 !     - We require the preservation of the above copyright notice and this license in all original files.
-!     
-!     - We prohibit the misrepresentation of the origin of the original source files. To obtain 
+!
+!     - We prohibit the misrepresentation of the origin of the original source files. To obtain
 !       the original source files please visit the homepage http://alf.physik.uni-wuerzburg.de .
-! 
+!
 !     - If you make substantial changes to the program we require you to either consider contributing
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
        Program Cov_eq
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !
-!> @brief 
+!> @brief
 !> Analysis program for equal time observables.
-!> 
+!>
 !
 !--------------------------------------------------------------------
          Use Errors
          Use MyMats
          Use Matrix
-         Use Lattices_v3 
-	 Use Predefined_Lattices
+         Use Lattices_v3
+      	 Use Predefined_Lattices
+         use iso_fortran_env, only: output_unit, error_unit
 
          Implicit none
 
 
          Integer      :: Nunit, Norb, ierr
          Integer      :: no, no1, n, n1,m,  nbins, n_skip, nb, N_rebin, N_cov, N_Back
-         real (Kind=Kind(0.d0)):: X, Y 
+         real (Kind=Kind(0.d0)):: X, Y
          Complex (Kind=Kind(0.d0)), allocatable :: Phase(:)
          Type  (Mat_C), allocatable :: Bins (:,:), Bins_R(:,:)
          Complex (Kind=Kind(0.d0)), allocatable :: Bins0(:,:)
@@ -79,8 +80,8 @@
          N_auto = 0
          OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
          IF (ierr /= 0) THEN
-            WRITE(*,*) 'unable to open <parameters>',ierr
-            STOP
+            WRITE(error_unit,*) 'unable to open <parameters>',ierr
+            error stop 1
          END IF
          READ(5,NML=VAR_lattice)
          READ(5,NML=VAR_errors)
@@ -88,11 +89,11 @@
 
 
          Call Predefined_Latt(Lattice_type, L1, L2, Ndim, List, Invlist, Latt, Latt_Unit )
-         
-         
-         ! Determine the number of bins. 
+
+
+         ! Determine the number of bins.
          Pi = acos(-1.d0)
-         Open ( Unit=10, File="ineq", status="unknown" ) 
+         Open ( Unit=10, File="ineq", status="unknown" )
          nbins = 0
          do
             Read(10,*,End=10) X,Norb,Nunit
@@ -110,14 +111,14 @@
             nbins = nbins + 1
          enddo
 10       continue
-         Close(10) 
+         Close(10)
          Write(6,*) "# of bins: ", Nbins
          nbins  = Nbins - n_skip
          Write(6,*) "Effective # of bins: ", Nbins
          N_auto=min(N_auto,Nbins/3)
          if(Nbins <= 1) then
-           write (*,*) "Effective # of bins smaller than 2. Analysis impossible!"
-           stop 1
+           write (error_unit,*) "Effective # of bins smaller than 2. Analysis impossible!"
+           error stop 1
          endif
 
          ! Allocate  space
@@ -131,7 +132,7 @@
             Enddo
          Enddo
          Bins0 = cmplx(0.d0,0.d0,kind(0.d0))
-         Open ( Unit=10, File="ineq", status="unknown" ) 
+         Open ( Unit=10, File="ineq", status="unknown" )
          do nb = 1, nbins + n_skip
             if (nb > n_skip ) then
                Read(10,*,End=10) X,no,no1
@@ -145,7 +146,7 @@
                   m = Inv_K(Xk_p,Latt)
                   do no = 1,norb
                      do no1 = 1,Norb
-                        read(10,*) bins(m,nb-n_skip)%el(no,no1) 
+                        read(10,*) bins(m,nb-n_skip)%el(no,no1)
                      enddo
                   enddo
                   if ( sqrt(Xk_p(1)**2 + Xk_p(2)**2) < 1.D-6 ) then
@@ -175,11 +176,11 @@
          enddo
          close(10)
         N_auto=min(N_auto,Nbins/3)
-         
+
 
          Call Fourier_K_to_R(bins,bins_r,Latt)
 
-         ! Setup symmetries for square lattice. 
+         ! Setup symmetries for square lattice.
 #ifdef test
          do n = 1,Nunit
             n1 = n
@@ -194,8 +195,8 @@
          Open (Unit=33,File="equalJ"        ,status="unknown")
          Open (Unit=34,File="equalJR"       ,status="unknown")
          Do n = 1,Nunit
-            Xk_p = dble(Latt%listk(n,1))*Latt%b1_p + dble(Latt%listk(n,2))*Latt%b2_p 
-            Xr_p = dble(Latt%list (n,1))*Latt%a1_p + dble(Latt%list (n,2))*Latt%a2_p 
+            Xk_p = dble(Latt%listk(n,1))*Latt%b1_p + dble(Latt%listk(n,2))*Latt%b2_p
+            Xr_p = dble(Latt%list (n,1))*Latt%a1_p + dble(Latt%list (n,2))*Latt%a2_p
             Write(33,"(F12.6,2x,F12.6)")  Xk_p(1), Xk_p(2)
             Write(34,"(F12.6,2x,F12.6)")  Xr_p(1), Xr_p(2)
             Do no = 1,Norb
@@ -203,37 +204,37 @@
                   do nb = 1,Nbins
                      V_help(nb) = bins  (n,nb)%el(no,no1)
                   enddo
-                  call ERRCALCJ( V_help, Phase,XMean, XERR, N_rebin ) 
+                  call ERRCALCJ( V_help, Phase,XMean, XERR, N_rebin )
                   Write(33,"(I3,2x,I3,2x,F16.8,2x,F16.8,2x,F16.8,2x,F16.8)") &
                        &  no,no1, dble(XMean), dble(XERR), aimag(XMean), aimag(XERR)
                   do nb = 1,Nbins
                      V_help(nb) = bins_r(n,nb)%el(no,no1)
                   enddo
-                  call ERRCALCJ( V_help,Phase, XMean_r, XERR_r, N_rebin ) 
+                  call ERRCALCJ( V_help,Phase, XMean_r, XERR_r, N_rebin )
                   Write(34,"(I3,2x,I3,2x,F16.8,2x,F16.8,2x,F16.8,2x,F16.8)") &
                        &  no,no1, dble(XMean_r), dble(XERR_r), aimag(XMean_r), aimag(XERR_r)
                enddo
             enddo
          enddo
-!!$         If (Norb > 1 ) then 
-!!$            !Compute susecptibility 
+!!$         If (Norb > 1 ) then
+!!$            !Compute susecptibility
 !!$            Xk_p = 0.d0
 !!$            n = Inv_K(Xk_p,Latt)
 !!$            V_help   = 0.d0
-!!$            do nb = 1,Nbins 
+!!$            do nb = 1,Nbins
 !!$               do no = 1,Norb
 !!$                  Do no1 = 1,Norb
 !!$                     V_help  (nb) = V_help  (nb) + bins(n,nb)%el(no,no1)
 !!$                  enddo
 !!$               enddo
 !!$            enddo
-!!$            call ERRCALCJ(V_help,   XMean, XERR, N_rebin ) 
+!!$            call ERRCALCJ(V_help,   XMean, XERR, N_rebin )
 !!$            Write(33,"('# Suscpetibility: ', F12.6,2x,F12.6)")  dble(Xmean  ), dble(Xerr  )
 !!$         endif
 
          Close(33)
          Close(34)
-         
+
         if(N_auto>0) then
          ALLOCATE(AutoCorr(N_auto))
          ALLOCATE(EN(Nbins))
@@ -262,7 +263,7 @@
         endif
 
 
-      
+
        end Program Cov_eq
 
 
@@ -285,11 +286,11 @@
 !!$
 !!$         Zero = 1.D-4
 !!$         pi = acos(-1.d0)
-!!$         X1_p(1)  =  Xk_p(2,n)   
-!!$         X1_p(2)  = -Xk_p(1,n)   
+!!$         X1_p(1)  =  Xk_p(2,n)
+!!$         X1_p(2)  = -Xk_p(1,n)
 !!$         if (X1_p(1) < -pi + Zero )  X1_p(1) = X1_p(1) + 2.0*pi
 !!$         if (X1_p(2) < -pi + Zero )  X1_p(2) = X1_p(2) + 2.0*pi
-!!$         
+!!$
 !!$         Rot90 = 0
 !!$         Do m = 1,Nunit
 !!$            X = sqrt( (X1_p(1) -Xk_p(1,m))**2 +  (X1_p(2) -Xk_p(2,m))**2 )
