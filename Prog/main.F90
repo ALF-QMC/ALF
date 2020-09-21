@@ -310,21 +310,31 @@ Program Main
         endif
         !  Default values of  measuring interval.
         if (Projector)  then
-           if ( LOBS_ST == 0  ) then
-              LOBS_ST = Thtrot+1
+           ! LOBS_ST refers to the beta interval on which you are allowed to take measurements
+           ! If it is smaller then 1, it's modified such that you start measuring on the first beta slice
+           ! if it is larger then or equal to 1, it will be increased by Thtrot to exclude measurements
+           !   on the projection intervall
+           if ( LOBS_ST < 1 ) then
+              LOBS_ST=Thtrot+1
            else
-              If (LOBS_ST < Thtrot+1 ) then
-                 Write(error_unit,*) 'Measuring out of dedicating interval, LOBS_ST too small.'
-                 error stop 1
-              endif
+              LOBS_ST=LOBS_ST+Thtrot
            endif
-           if ( LOBS_EN == 0) then
-              LOBS_EN = Ltrot-Thtrot
+           ! same logic as for LOBS_ST
+           ! Note that LOBS_EN==0 is required for the default values to work (and remain unchanged)
+           if ( LOBS_EN > Ltrot-2*Thtrot .or. LOBS_EN == 0) then
+              LOBS_EN=Ltrot-Thtrot
            else
-              If (LOBS_EN > Ltrot-Thtrot ) then
-                 Write(error_unit,*) 'Measuring out of dedicating interval, LOBS_EN too big.'
-                 error stop 1
-              endif
+              LOBS_EN=LOBS_EN+Thtrot
+           endif
+           ! The above should quarantee that measurements are only taken on the beta Section
+           ! It doesn't hurt to explicitly test this, so let's keep it in for safety
+           If (LOBS_ST < Thtrot+1 ) then
+              Write(error_unit,*) 'Measuring out of dedicating interval, LOBS_ST too small.'
+              error stop 1
+           endif
+           If (LOBS_EN > Ltrot-Thtrot ) then
+              Write(error_unit,*) 'Measuring out of dedicating interval, LOBS_EN too big.'
+              error stop 1
            endif
         else
            if ( LOBS_ST == 0  ) then
@@ -333,6 +343,10 @@ Program Main
            if ( LOBS_EN == 0) then
               LOBS_EN =  Ltrot
            endif
+        endif
+        If (LOBS_EN < LOBS_ST ) then
+           Write(error_unit,*) 'Measuring interval has no elements, LOBS_EN < LOBS_ST.'
+           error stop 1
         endif
         If ( .not. Global_tau_moves )  then
            ! This  corresponds to the default updating scheme
