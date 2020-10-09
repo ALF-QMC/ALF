@@ -165,7 +165,7 @@
         Enddo
         Call Op_phase(Phase_new,OP_V,Nsigma,N_SUN)
         Ratiotot = Hybrid_Compute_Ratio(Phase_Det_old, Phase_Det_new, &
-                                Det_vec_old, Det_vec_new, nsigma_old, pfield_old, T0_Proposal_ratio, Ratio)
+                                Det_vec_old, Det_vec_new, nsigma_old, pfield_old, Ratio)
         
         Weight = abs(  real( Phase_old * Ratiotot, kind=Kind(0.d0))/real(Phase_old,kind=Kind(0.d0)) )
 
@@ -178,9 +178,9 @@
            TOGGLE = .true.
            Phase_old     = Phase_new
            Phase_det_old = Phase_det_new
-           nsigma_old%t    = nsigma%t
-           nsigma_old%f    = nsigma%f
-           Det_vec_old     = Det_vec_new
+           nsigma_old%t  = nsigma%t
+           nsigma_old%f  = nsigma%f
+           Det_vec_old   = Det_vec_new
         else
            nsigma%t = nsigma_old%t
            nsigma%f = nsigma_old%f
@@ -226,7 +226,7 @@
            Enddo
            Do n = 1, size(OP_V,1) 
               Do nf = 1, N_FL
-                 spin = nsigma%f(n,ntau1) ! Phi(nsigma(n,ntau1),Op_V(n,nf)%type)
+                 spin = nsigma%phi(n,ntau1) ! Phi(nsigma(n,ntau1),Op_V(n,nf)%type)
                  N_type = 1
                  Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type)
                  N_type = 2
@@ -396,7 +396,7 @@
            Enddo
            Do n = 1, size(OP_V,1) 
               Do nf = 1, N_FL
-                 spin = nsigma%f(n,ntau1) ! Phi(nsigma(n,ntau1),Op_V(n,nf)%type)
+                 spin = nsigma%phi(n,ntau1) ! Phi(nsigma(n,ntau1),Op_V(n,nf)%type)
                  N_type = 1
                  Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type)
                  N_type = 2
@@ -442,7 +442,7 @@
            
         enddo
 
-        Call Control_Langevin(Forces_fer,Group_Comm)
+        Call Control_Force_fer(Forces_fer,Group_Comm)
 
         Do nf = 1,N_FL
            if (Projector) then
@@ -539,7 +539,7 @@
       end SUBROUTINE Hybrid_pfield_initial
 
       Complex (Kind=Kind(0.d0)) Function  Hybrid_Compute_Ratio(Phase_Det_old, Phase_Det_new, &
-                                Det_vec_old, Det_vec_new, nsigma_old, pfield_old, T0_Proposal_ratio, Ratio)
+                                Det_vec_old, Det_vec_new, nsigma_old, pfield_old, Ratio)
 
         Implicit none
 
@@ -547,7 +547,6 @@
         Complex (Kind=Kind(0.d0)), allocatable, INTENT(IN) :: Phase_Det_old(:), Phase_Det_new(:)
         REAL    (Kind=Kind(0.d0)), allocatable, INTENT(IN) :: Det_vec_old(:,:), Det_vec_new(:,:)
         REAL    (Kind=Kind(0.d0)), allocatable, INTENT(IN) :: pfield_old(:,:)
-        Real    (Kind=Kind(0.d0)),    INTENT(IN)  :: T0_proposal_ratio
         Type    (Fields),             INTENT(IN)  :: nsigma_old
         Complex (Kind=Kind(0.d0)),    INTENT(out) :: Ratio(2)
 
@@ -594,7 +593,6 @@
            z_ene_tmp2 = zdotc(ltrot, xfield_it_tmp, 1, xfield_iw_tmp, 1)
            Ratio(1) = Ratio(1) * exp(-(z_ene_tmp-z_ene_tmp2))
         Enddo
-        Ratio_2 = Ratio_2 + log(Delta_S0_global(Nsigma_old)) + log(T0_Proposal_ratio)
 
         Ratio(2) = Ratio_2
         Hybrid_Compute_Ratio = Ratio(1)*exp(Ratio(2))

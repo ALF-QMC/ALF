@@ -188,7 +188,7 @@
 #if defined(MPI)
           If (Irank_g == 0 ) then
 #endif
-             ham_T = 0.d0; Ham_chem = 0.d0; Ham_g = 0.d0; Ham_J = 0.d0
+             ham_T = 0.d0; Ham_chem = 0.d0; Ham_g = 1.d0; Ham_J = 0.d0
              Ham_K = 0.d0; Ham_h = 0.d0; Projector = .False. ;  N_part = L1*L2/2
              Ham_lambda = 0.d0; l_hmc = .false.; dt=0.1; mdstep=10
              OPEN(UNIT=5,FILE=file_para,STATUS='old',ACTION='read',IOSTAT=ierr)

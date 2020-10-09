@@ -133,7 +133,7 @@ Contains
     Enddo
     Do n = Nt_sequential_start,Nt_sequential_end
        Do nf = 1, N_FL
-          spin = nsigma%f(n,ntau1) ! Phi(nsigma(n,ntau1),Op_V(n,nf)%type)
+          spin = nsigma%phi(n,ntau1) ! Phi(nsigma(n,ntau1),Op_V(n,nf)%type)
           N_type = 1
           Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type)
        enddo
@@ -238,7 +238,7 @@ Contains
     Do n =  Nt_sequential_end, Nt_sequential_start, -1
        N_type = 2
        nf = 1
-       spin = nsigma%f(n,ntau) 
+       spin = nsigma%phi(n,ntau) 
        do nf = 1,N_FL
           Call Op_Wrapdo( Gr(:,:,nf), Op_V(n,nf), spin, Ndim, N_Type)
        enddo
@@ -266,7 +266,7 @@ Contains
        !Call Upgrade(GR,n,ntau,PHASE,Op_V(n,1)%N_non_zero) 
        ! The spin has changed after the upgrade!
        nf = 1
-       spin = nsigma%f(n,ntau)  ! Phi(nsigma(n,ntau),Op_V(n,nf)%type)
+       spin = nsigma%phi(n,ntau)  ! Phi(nsigma(n,ntau),Op_V(n,nf)%type)
        N_type = 1
        do nf = 1,N_FL
           Call Op_Wrapdo( Gr(:,:,nf), Op_V(n,nf), spin, Ndim, N_Type )
@@ -314,7 +314,7 @@ Contains
        !Write(6,*) "Wrapup from ",  m + 1, "to",  m1, " on tau=",  ntau
        Do n = m+1,m1
           Do nf = 1, N_FL
-             spin = nsigma%f(n,ntau) 
+             spin = nsigma%phi(n,ntau) 
              N_type = 1
              Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type)
           enddo
@@ -328,13 +328,13 @@ Contains
        Do n =  m, m1+1 ,-1 
           N_type = 2
           nf = 1
-          spin = nsigma%f(n,ntau) 
+          spin = nsigma%phi(n,ntau) 
           do nf = 1,N_FL
              Call Op_Wrapdo( Gr(:,:,nf), Op_V(n,nf), spin, Ndim, N_Type)
           enddo
           !Write(6,*) 'Upgrade : ', ntau,n 
           nf = 1
-          spin = nsigma%f(n,ntau) 
+          spin = nsigma%phi(n,ntau) 
           N_type = 1
           do nf = 1,N_FL
              Call Op_Wrapdo( Gr(:,:,nf), Op_V(n,nf), spin, Ndim, N_Type )
@@ -439,7 +439,7 @@ Contains
              !Write(6,*)  "Back from PlaceGR",  m, n-1,ntau
              If ( Flip_count == 1 .and. Flip_length > 1 ) GR_st = Gr
              Do nf = 1, N_FL
-                spin = nsigma%f(n,ntau) 
+                spin = nsigma%phi(n,ntau) 
                 N_type = 1
                 Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type)
              enddo

@@ -197,7 +197,7 @@
               Call Hop_mod_mmthr(Ain(:,:,nf),nf)
               Do n = 1,Size(Op_V,1)
 !                  X = Phi(nsigma(n,nt),Op_V(n,nf)%type)
-                 Call Op_mmultR(Ain(:,:,nf),Op_V(n,nf),nsigma%f(n,nt),'n')
+                 Call Op_mmultR(Ain(:,:,nf),Op_V(n,nf),nsigma%phi(n,nt),'n')
               ENDDO
            Enddo
 
@@ -224,7 +224,7 @@
               Call Hop_mod_mmthl_m1(Ain(:,:,nf),nf)
               Do n =1,Size(Op_V,1)
 !                  X = -Phi(nsigma(n,nt),Op_V(n,nf)%type)
-                 Call Op_mmultL(Ain(:,:,nf),Op_V(n,nf),-nsigma%f(n,nt),'n')
+                 Call Op_mmultL(Ain(:,:,nf),Op_V(n,nf),-nsigma%phi(n,nt),'n')
               Enddo
            enddo
 

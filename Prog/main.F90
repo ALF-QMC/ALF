@@ -486,8 +486,6 @@ Program Main
         NT1 = stab_nt(1)
         CALL WRAPUL(NT1, 0, UDVL)
 
-
-
         NVAR = 1
         Phase = cmplx(1.d0, 0.d0, kind(0.D0))
         do nf = 1,N_Fl
@@ -500,8 +498,6 @@ Program Main
 #else
         !WRITE(6,*) 'Phase is: ',  PHASE
 #endif
-
-
 
         Call Control_init
 

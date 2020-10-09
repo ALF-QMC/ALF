@@ -82,52 +82,6 @@ Module Operator_mod
   
 Contains
 
-!!$  Real (Kind=Kind(0.d0)) :: Phi(-2:2,2),  Gaml(-2:2,2)
-!!$  Integer ::  NFLIPL(-2:2,3)
-!!$      Subroutine Op_setHS
-!!$
-!!$        Implicit none
-!!$        !Local
-!!$        Integer :: n
-!!$        
-!!$
-!!$        Phi = 0.d0
-!!$        do n = -2,2
-!!$           Phi(n,1) = real(n,Kind=Kind(0.d0))
-!!$        enddo
-!!$        Phi(-2,2) = - SQRT(2.D0 * ( 3.D0 + SQRT(6.D0) ) )
-!!$        Phi(-1,2) = - SQRT(2.D0 * ( 3.D0 - SQRT(6.D0) ) )
-!!$        Phi( 1,2) =   SQRT(2.D0 * ( 3.D0 - SQRT(6.D0) ) )
-!!$        Phi( 2,2) =   SQRT(2.D0 * ( 3.D0 + SQRT(6.D0) ) )
-!!$        
-!!$        Do n = -2,2
-!!$           gaml(n,1) = 1.d0
-!!$        Enddo
-!!$        GAML(-2,2) = 1.D0 - SQRT(6.D0)/3.D0
-!!$        GAML( 2,2) = 1.D0 - SQRT(6.D0)/3.D0
-!!$        GAML(-1,2) = 1.D0 + SQRT(6.D0)/3.D0
-!!$        GAML( 1,2) = 1.D0 + SQRT(6.D0)/3.D0
-!!$        
-!!$        NFLIPL(-2,1) = -1
-!!$        NFLIPL(-2,2) =  1
-!!$        NFLIPL(-2,3) =  2
-!!$        
-!!$        NFLIPL(-1,1) =  1
-!!$        NFLIPL(-1,2) =  2
-!!$        NFLIPL(-1,3) = -2
-!!$        
-!!$        NFLIPL( 1,1) =  2
-!!$        NFLIPL( 1,2) = -2
-!!$        NFLIPL( 1,3) = -1
-!!$        
-!!$        NFLIPL( 2,1) = -2
-!!$        NFLIPL( 2,2) = -1
-!!$        NFLIPL( 2,3) =  1 
-!!$
-!!$      end Subroutine Op_setHS
-
-  
-
 !--------------------------------------------------------------------
 !> @author
 !> 

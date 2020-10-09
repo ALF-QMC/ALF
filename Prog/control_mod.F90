@@ -54,6 +54,7 @@ module Control
     Integer (Kind=Kind(0.d0)) , private, save :: NC_up, ACC_up
     Integer (Kind=Kind(0.d0)) , private, save :: NC_eff_up, ACC_eff_up
     Integer (Kind=kind(0.d0)),  private, save :: NC_Glob_up, ACC_Glob_up
+    Integer (Kind=kind(0.d0)),  private, save :: NC_HMC_up, ACC_HMC_up
     Integer (Kind=kind(0.d0)),  private, save :: NC_Temp_up, ACC_Temp_up
     real    (Kind=Kind(0.d0)),  private, save :: XMAXP_Glob, XMEANP_Glob
     Integer (Kind=Kind(0.d0)),  private, save :: NC_Phase_GLob
@@ -83,6 +84,8 @@ module Control
         ACC_eff_up   = 0
         NC_Glob_up   = 0
         ACC_Glob_up  = 0
+        NC_HMC_up    = 0
+        ACC_HMC_up   = 0
         NC_Phase_GLob= 0
 
         NC_Temp_up   = 0
@@ -98,7 +101,7 @@ module Control
         call system_clock(count_CPU_start,count_rate,count_max)
       end subroutine control_init
 
-      Subroutine Control_Langevin(Forces, Group_Comm)
+      Subroutine Control_Force_fer(Forces, Group_Comm)
 
         Use ieee_arithmetic
         Implicit none
@@ -131,7 +134,7 @@ module Control
         enddo
         Force_mean = Force_mean  +  X/Real(n1*n2,Kind(0.d0)) 
         
-      end Subroutine Control_Langevin
+      end Subroutine Control_Force_fer
 
       Subroutine Control_upgrade(toggle)
         Implicit none
@@ -165,6 +168,15 @@ module Control
           size_clust_Glob_ACC_up = size_clust_Glob_ACC_up + size_clust
         endif
       end Subroutine Control_upgrade_Glob
+
+      Subroutine Control_upgrade_Hybrid(toggle)
+        Implicit none
+        Logical :: toggle
+        NC_HMC_up = NC_HMC_up + 1
+        if (toggle) then
+          ACC_HMC_up = ACC_HMC_up + 1
+        endif
+      end Subroutine Control_upgrade_Hybrid
 
 
       Subroutine Control_PrecisionG(A,B,Ndim)
@@ -227,7 +239,7 @@ module Control
         Integer, Intent(IN) :: Group_Comm
 
         Character (len=64) :: file1
-        Real (Kind=Kind(0.d0)) :: Time, Acc, Acc_eff, Acc_Glob, Acc_Temp, size_clust_Glob, size_clust_Glob_ACC
+        Real (Kind=Kind(0.d0)) :: Time, Acc, Acc_eff, Acc_Glob, Acc_HMC, Acc_Temp, size_clust_Glob, size_clust_Glob_ACC
 #ifdef MPI
         REAL (Kind=Kind(0.d0))  :: X
         Integer        :: Ierr, Isize, Irank, irank_g, isize_g, igroup
@@ -251,6 +263,10 @@ module Control
           size_clust_Glob     = size_clust_Glob_up     / dble( NC_Glob_up)
           size_clust_Glob_ACC = size_clust_Glob_ACC_up / dble(ACC_Glob_up)
         endif
+        ACC_HMC = 0.d0
+        IF (NC_HMC_up    > 0 )  then
+          ACC_HMC    = dble(ACC_HMC_up)/dble(NC_HMC_up)
+        endif
         ACC_TEMP = 0.d0
         IF (NC_Temp_up    > 0 )  ACC_Temp    = dble(ACC_Temp_up)/dble(NC_Temp_up)
         IF (NC_Phase_GLob > 0 ) XMEANP_Glob  = XMEANP_Glob/dble(NC_Phase_GLob)
@@ -269,6 +285,9 @@ module Control
         X = 0.d0
         CALL MPI_REDUCE(ACC_Glob,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
         ACC_Glob = X/dble(Isize_g)
+        X = 0.d0
+        CALL MPI_REDUCE(ACC_HMC,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
+        ACC_HMC = X/dble(Isize_g)
         X = 0.d0
         CALL MPI_REDUCE(ACC_Temp ,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
         ACC_Temp  = X/dble(Isize_g)
@@ -338,6 +357,7 @@ module Control
               Write(50,*) ' Acceptance_Glob              : ', ACC_Glob
               Write(50,*) ' Mean Phase diff Glob         : ', XMEANP_Glob
               Write(50,*) ' Max  Phase diff Glob         : ', XMAXP_Glob
+              Write(50,*) ' Acceptance_HMC               : ', ACC_HMC
               Write(50,*) ' Average cluster size         : ', size_clust_Glob
               Write(50,*) ' Average accepted cluster size: ', size_clust_Glob_ACC
            !endif
