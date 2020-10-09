@@ -97,7 +97,7 @@ Beta           = 10.d0      ! Inverse temperature
 Projector      = .F.        ! Whether the projective algorithm is used
 Theta          = 10.d0      ! Projection parameter
 l_hmc          = .T.
-dt             = 0.04
-mdstep         = 20
+dt             = 0.1
+mdstep         = 10
 /
 ! slash terminates namelist statement - DO NOT REMOVE

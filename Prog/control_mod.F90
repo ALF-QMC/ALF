@@ -105,7 +105,7 @@ module Control
 
         Use ieee_arithmetic
         Implicit none
-        Complex (Kind=Kind(0.d0)),  allocatable, Intent(In)  :: Forces(:,:)
+        Real (Kind=Kind(0.d0)),  allocatable, Intent(In)  :: Forces(:,:)
         Integer, Intent(IN) :: Group_Comm
         
         Integer :: n1,n2, n, nt 

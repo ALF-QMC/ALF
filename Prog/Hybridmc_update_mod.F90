@@ -41,8 +41,8 @@
         Implicit none
         
         real(Kind=Kind(0.d0))    , allocatable, private ::  pfield(:,:)         !momentum field
-        Complex (Kind=Kind(0.d0)), allocatable, private ::  Forces_fer(:,:)     !Fermion MD force
-        Complex (Kind=Kind(0.d0)), allocatable, private ::  Forces_bos(:,:)     !Boson   MD force
+        real(Kind=Kind(0.d0))    , allocatable, private ::  Forces_fer(:,:)     !Fermion MD force
+        real(Kind=Kind(0.d0))    , allocatable, private ::  Forces_bos(:,:)     !Boson   MD force
         Complex (Kind=Kind(0.d0)), allocatable, private ::  xfield_it_tmp(:), xfield_iw_tmp(:)
 
       Contains
@@ -417,7 +417,7 @@
                           Z  = Z + Op_V(n,nf)%O(I,J) * ( Z1 - Gr(Op_V(n,nf)%P(J),Op_V(n,nf)%P(I), nf) )
                        Enddo
                     Enddo
-                    Forces_fer(n,ntau1) = Forces_fer(n,ntau1)  - Op_V(n,nf)%g * Z *  cmplx(real(N_SUN,Kind(0.d0)), 0.d0, Kind(0.d0)) 
+                    Forces_fer(n,ntau1) = Forces_fer(n,ntau1) - dble(Op_V(n,nf)%g*Z*cmplx(real(N_SUN,Kind(0.d0)),0.d0,Kind(0.d0)) )
                  Enddo
               endif
            enddo
