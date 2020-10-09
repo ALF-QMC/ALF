@@ -84,7 +84,7 @@ Tolerance  = 0.1d0          ! Data points for which the relative error exceeds t
 &VAR_Z2_Matter             !! Variables for the Z_2 class
 N_SUN          = 2          ! Number of colors
 ham_T          = 0.0        ! Hopping for fermions
-ham_TZ2        = 0.0        ! Hopping for orthogonal fermions
+ham_TZ2        = 1.0        ! Hopping for orthogonal fermions
 ham_chem       = 0.0        ! Chemical potential for fermions
 ham_U          = 0.0        ! Hubbard for fermions
 Ham_J          = 0.0        ! Hopping Z2 matter fields

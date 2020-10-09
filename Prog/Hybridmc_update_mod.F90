@@ -133,7 +133,7 @@
         call Hybrid_pfield_initial
 
         ! Set up the old fermion determinant
-        storage = "Full"
+        storage = "Empty"
         Call Compute_Fermion_Det(Phase_det_old,Det_Vec_old, udvl, udvst, Stab_nt, storage)
         Phase_old = cmplx(1.d0,0.d0,kind=kind(0.d0))
         Do nf = 1,N_Fl
@@ -148,11 +148,12 @@
         pfield_old = pfield
 
         ! First calculate the fermion force and boson force
-        call Hybrid_cal_force_fer(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst)
+        call Hybrid_refresh_Greensfunction(Phase, GR, udvr, udvl, Stab_nt, udvst)
+        call Hybrid_cal_force_fer(Phase, GR, Test, udvr, udvl, Stab_nt, udvst)
         call Hybrid_cal_force_bos
         ! Start of Molecular Dynamics
         do i = 1, mdstep
-            call Hybrid_md_splitting(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst)
+            call Hybrid_md_splitting(Phase, GR, Test, udvr, udvl, Stab_nt, udvst)
         enddo
 
         ! calculate the ratio
@@ -187,34 +188,10 @@
         endif
         Call Control_upgrade_Hybrid(TOGGLE)
 
-        If (.not.TOGGLE) then
-           DO nf = 1,N_FL
-             if (Projector) then
-               CALL udvl(nf)%reset('l',WF_L(nf)%P)
-             else
-               CALL udvl(nf)%reset('l')
-             endif
-           ENDDO
-           DO NST = NSTM-1,1,-1
-              NT1 = Stab_nt(NST+1)
-              NT  = Stab_nt(NST  )
-              !Write(6,*) NT1,NT, NST
-              CALL WRAPUL(NT1,NT, udvl)
-              Do nf = 1,N_FL
-                 udvst(NST, nf) = udvl(nf)
-              ENDDO
-           ENDDO
-           NT1 = stab_nt(1)
-           CALL WRAPUL(NT1,0, udvl)
-           !Compute the Green functions so as to provide correct starting point for the sequential updates.
-           NVAR  = 1
-           Phase = cmplx(1.d0,0.d0,kind(0.d0))
-           do nf = 1,N_Fl
-              CALL CGR(Z, NVAR, GR(:,:,nf), udvr(nf), udvl(nf))
-              Phase = Phase*Z
-           Enddo
-           call Op_phase(Phase,OP_V,Nsigma,N_SUN)
-        Endif
+        !If (.not. TOGGLE) then
+        !   call Hybrid_refresh_Greensfunction(Phase, GR, udvr, udvl, Stab_nt, udvst)
+        !Endif
+        call Hybrid_refresh_Greensfunction(Phase, GR, udvr, udvl, Stab_nt, udvst)
 
         ! Measure
         NST = 1
@@ -268,43 +245,6 @@
 
         enddo
 
-        Do nf = 1,N_FL
-           if (Projector) then
-              CALL udvl(nf)%reset('l',WF_L(nf)%P)
-              CALL udvst(NSTM, nf)%reset('l',WF_L(nf)%P)
-           else
-              CALL udvl(nf)%reset('l')
-              CALL udvst(NSTM, nf)%reset('l')
-           endif
-        ENDDO
-        
-        DO NST = NSTM-1,1,-1
-           NT1 = Stab_nt(NST+1)
-           NT  = Stab_nt(NST  )
-           CALL WRAPUL(NT1, NT, UDVL)
-           Do nf = 1,N_FL
-              UDVST(NST, nf) = UDVL(nf)
-           ENDDO
-        ENDDO
-        NT1 = stab_nt(1)
-        CALL WRAPUL(NT1, 0, UDVL)
-        
-        do nf = 1,N_FL
-           if (Projector) then
-              CALL udvr(nf)%reset('r',WF_R(nf)%P)
-           else
-              CALL udvr(nf)%reset('r')
-           endif
-        ENDDO
-        
-        NVAR = 1
-        Phase = cmplx(1.d0, 0.d0, kind(0.D0))
-        do nf = 1,N_Fl
-           CALL CGR(Z, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
-           Phase = Phase*Z
-        Enddo
-        call Op_phase(Phase,OP_V,Nsigma,N_SUN)
-
         ! Deallocate the tmp array
         call nsigma_old%clear
         Deallocate ( Det_vec_old  , Det_vec_new, Det_vec_test  )
@@ -336,7 +276,7 @@
 
       endsubroutine Hybrid_cal_force_bos
 
-      SUBROUTINE Hybrid_cal_force_fer(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst)
+      SUBROUTINE Hybrid_cal_force_fer(Phase, GR, Test, udvr, udvl, Stab_nt, udvst)
         Implicit none
         
         Interface
@@ -370,7 +310,7 @@
         CLASS(UDV_State), intent(inout), allocatable, dimension(:,:) :: udvst
         Complex (Kind=Kind(0.d0)), intent(inout) :: Phase
         Complex (Kind=Kind(0.d0)), intent(inout), allocatable, dimension(:,:)   :: Test
-        COMPLEX (Kind=Kind(0.d0)), intent(inout), allocatable, dimension(:,:,:) :: GR, GR_Tilde
+        COMPLEX (Kind=Kind(0.d0)), intent(inout), allocatable, dimension(:,:,:) :: GR
         Integer, intent(in),  dimension(:), allocatable :: Stab_nt
 
 
@@ -379,7 +319,7 @@
         Complex (Kind=Kind(0.d0)) :: Z, Z1
         Real    (Kind=Kind(0.d0)) :: spin
         
-        NSTM = Size(Stab_nt,1) - 1 
+        NSTM = Size(udvst, 1)
         
         Forces_fer = cmplx(0.d0,0.d0,Kind(0.d0))
         do nf = 1,N_FL
@@ -447,53 +387,15 @@
 
         Call Control_Force_fer(Forces_fer,Group_Comm)
 
-        Do nf = 1,N_FL
-           if (Projector) then
-              CALL udvl(nf)%reset('l',WF_L(nf)%P)
-              CALL udvst(NSTM, nf)%reset('l',WF_L(nf)%P)
-           else
-              CALL udvl(nf)%reset('l')
-              CALL udvst(NSTM, nf)%reset('l')
-           endif
-        ENDDO
-        
-        DO NST = NSTM-1,1,-1
-           NT1 = Stab_nt(NST+1)
-           NT  = Stab_nt(NST  )
-           !Write(6,*)'Hi', NT1,NT, NST
-           CALL WRAPUL(NT1, NT, UDVL)
-           Do nf = 1,N_FL
-              UDVST(NST, nf) = UDVL(nf)
-           ENDDO
-        ENDDO
-        NT1 = stab_nt(1)
-        CALL WRAPUL(NT1, 0, UDVL)
-        
-        do nf = 1,N_FL
-           if (Projector) then
-              CALL udvr(nf)%reset('r',WF_R(nf)%P)
-           else
-              CALL udvr(nf)%reset('r')
-           endif
-        ENDDO
-        
-        NVAR = 1
-        Phase = cmplx(1.d0, 0.d0, kind(0.D0))
-        do nf = 1,N_Fl
-           CALL CGR(Z, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
-           Phase = Phase*Z
-        Enddo
-        call Op_phase(Phase,OP_V,Nsigma,N_SUN)
-        
       END SUBROUTINE Hybrid_cal_force_fer
 
-      subroutine Hybrid_md_splitting(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst)
+      subroutine Hybrid_md_splitting(Phase, GR, Test, udvr, udvl, Stab_nt, udvst)
         Implicit none
 
         !  Arguments
         COMPLEX (Kind=Kind(0.d0)),                                INTENT(INOUT) :: Phase
         CLASS   (UDV_State), DIMENSION(:), ALLOCATABLE,           INTENT(INOUT) :: udvl, udvr
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:),  allocatable,INTENT(INOUT) :: GR, GR_Tilde
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:),  allocatable,INTENT(INOUT) :: GR
         CLASS(UDV_State), Dimension(:,:), ALLOCATABLE,            INTENT(INOUT) :: udvst
         INTEGER, dimension(:),   allocatable,                     INTENT(IN)    :: Stab_nt
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:),    allocatable,INTENT(INOUT) :: TEST
@@ -519,7 +421,8 @@
         enddo
 
         ! lastly update the momentum using force fermion (prepare the force fermion before update)
-        call Hybrid_cal_force_fer(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst)
+        call Hybrid_refresh_Greensfunction(Phase, GR, udvr, udvl, Stab_nt, udvst)
+        call Hybrid_cal_force_fer(Phase, GR, Test, udvr, udvl, Stab_nt, udvst)
         pfield = pfield + dt/2.d0*Forces_fer
 
       endsubroutine Hybrid_md_splitting
@@ -626,5 +529,89 @@
         Deallocate ( xfield_it_tmp )
         Deallocate ( xfield_iw_tmp )
       end SUBROUTINE Hybrid_clear
+
+      SUBROUTINE Hybrid_refresh_Greensfunction(Phase, GR, udvr, udvl, Stab_nt, udvst)
+        Implicit none
+        
+        Interface
+           SUBROUTINE WRAPUR(NTAU, NTAU1, UDVR)
+             Use Hamiltonian
+             Use UDV_Wrap_mod
+             Use UDV_State_mod
+             Implicit None
+             CLASS(UDV_State), intent(inout), allocatable, dimension(:) :: UDVR
+             Integer :: NTAU1, NTAU
+           END SUBROUTINE WRAPUR
+           SUBROUTINE WRAPUL(NTAU1, NTAU, UDVL)
+             Use Hamiltonian
+             Use UDV_State_mod
+             Implicit none
+             CLASS(UDV_State), intent(inout), allocatable, dimension(:) :: UDVL
+             Integer :: NTAU1, NTAU
+           END SUBROUTINE WRAPUL
+           SUBROUTINE CGR(PHASE,NVAR, GRUP, udvr, udvl)
+             Use UDV_Wrap_mod
+             Use UDV_State_mod
+             Implicit None
+             CLASS(UDV_State), INTENT(IN) :: UDVL, UDVR
+             COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(Inout) :: GRUP
+             COMPLEX(Kind=Kind(0.d0)) :: PHASE
+             INTEGER         :: NVAR
+           END SUBROUTINE CGR
+        end Interface
+        
+        CLASS(UDV_State), intent(inout), allocatable, dimension(:  ) :: udvl, udvr
+        CLASS(UDV_State), intent(inout), allocatable, dimension(:,:) :: udvst
+        Complex (Kind=Kind(0.d0)), intent(inout) :: Phase
+        COMPLEX (Kind=Kind(0.d0)), intent(inout), allocatable, dimension(:,:,:) :: GR
+        Integer, intent(in),  dimension(:), allocatable :: Stab_nt
+
+
+        !Local
+        Integer :: NSTM, n, nf, NST, NTAU, nt, nt1, Ntau1, NVAR, N_Type, I, J
+        Complex (Kind=Kind(0.d0)) :: Z, Z1
+        Real    (Kind=Kind(0.d0)) :: spin
+        
+        NSTM = Size(Stab_nt,1) - 1 ! is the same with NSTM = Size(udvst, 1)
+
+        Do nf = 1,N_FL
+           if (Projector) then
+              CALL udvl(nf)%reset('l',WF_L(nf)%P)
+              CALL udvst(NSTM, nf)%reset('l',WF_L(nf)%P)
+           else
+              CALL udvl(nf)%reset('l')
+              CALL udvst(NSTM, nf)%reset('l')
+           endif
+        ENDDO
+        
+        DO NST = NSTM-1,1,-1
+           NT1 = Stab_nt(NST+1)
+           NT  = Stab_nt(NST  )
+           !Write(6,*)'Hi', NT1,NT, NST
+           CALL WRAPUL(NT1, NT, UDVL)
+           Do nf = 1,N_FL
+              UDVST(NST, nf) = UDVL(nf)
+           ENDDO
+        ENDDO
+        NT1 = stab_nt(1)
+        CALL WRAPUL(NT1, 0, UDVL)
+        
+        do nf = 1,N_FL
+           if (Projector) then
+              CALL udvr(nf)%reset('r',WF_R(nf)%P)
+           else
+              CALL udvr(nf)%reset('r')
+           endif
+        ENDDO
+        
+        NVAR = 1
+        Phase = cmplx(1.d0, 0.d0, kind(0.D0))
+        do nf = 1,N_Fl
+           CALL CGR(Z, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
+           Phase = Phase*Z
+        Enddo
+        call Op_phase(Phase,OP_V,Nsigma,N_SUN)
+        
+      END SUBROUTINE Hybrid_refresh_Greensfunction
 
     end Module Hybrid_mod
