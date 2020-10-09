@@ -169,7 +169,7 @@
                                 Det_vec_old, Det_vec_new, nsigma_old, pfield_old, Ratio)
         
         Weight = abs(  real( Phase_old * Ratiotot, kind=Kind(0.d0))/real(Phase_old,kind=Kind(0.d0)) )
-        write(*,*) weight
+        !write(*,*) weight
 
         Z = Phase_old * Ratiotot/ABS(Ratiotot)
         Call Control_PrecisionP_Glob(Z,Phase_new)

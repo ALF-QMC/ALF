@@ -27,8 +27,8 @@ Theta        = 10.d0        ! Projection parameter
 &VAR_QMC                   !! Variables for the QMC run
 Nwrap               = 10    ! Stabilization. Green functions will be computed from 
                             ! scratch after each time interval Nwrap*Dtau
-NSweep              = 1     ! Number of sweeps
-NBin                = 10     ! Number of bins
+NSweep              = 20     ! Number of sweeps
+NBin                = 20     ! Number of bins
 Ltau                = 0     ! 1 to calculate time-displaced Green functions; 0 otherwise
 LOBS_ST             = 0     ! Start measurements at time slice LOBS_ST
 LOBS_EN             = 0     ! End measurements at time slice LOBS_EN

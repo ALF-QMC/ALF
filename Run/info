@@ -983,3 +983,42 @@
   Average cluster size         :   0.000000000000000E+000
   Average accepted cluster size:   0.000000000000000E+000
   CPU Time                   :   0.900788000000000     
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ l_hmc         :  T
+ dt            :   5.000000000000000E-002
+ mdstep        :           10
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :           20
+ Bins                                :           20
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit e4b25a82 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   1.508463763428412E-015  2.109423746787797E-014
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :   8.909815633233932E-015
+  Max  Phase diff Glob         :   4.315052036137736E-014
+  Acceptance_HMC               :    1.00000000000000     
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :    34.7625130000000     
