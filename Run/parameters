@@ -28,7 +28,7 @@ Theta        = 10.d0        ! Projection parameter
 Nwrap               = 10    ! Stabilization. Green functions will be computed from 
                             ! scratch after each time interval Nwrap*Dtau
 NSweep              = 1     ! Number of sweeps
-NBin                = 1     ! Number of bins
+NBin                = 10     ! Number of bins
 Ltau                = 0     ! 1 to calculate time-displaced Green functions; 0 otherwise
 LOBS_ST             = 0     ! Start measurements at time slice LOBS_ST
 LOBS_EN             = 0     ! End measurements at time slice LOBS_EN
@@ -84,14 +84,14 @@ Tolerance  = 0.1d0          ! Data points for which the relative error exceeds t
 &VAR_Z2_Matter             !! Variables for the Z_2 class
 N_SUN          = 2          ! Number of colors
 ham_T          = 0.0        ! Hopping for fermions
-ham_TZ2        = 1.0        ! Hopping for orthogonal fermions
+ham_TZ2        = 0.0        ! Hopping for orthogonal fermions
 ham_chem       = 0.0        ! Chemical potential for fermions
 ham_U          = 0.0        ! Hubbard for fermions
 Ham_J          = 0.0        ! Hopping Z2 matter fields
 Ham_K          = 0.0        ! Plaquette term for gauge fields
 Ham_h          = 0.0        ! sigma^x-term for matter
 Ham_g          = 1.0        ! tau^x-term for gauge
-Ham_lambda     = 10.0       ! mass to shift the zero point
+Ham_lambda     = 30.0       ! mass to shift the zero point
 Dtau           = 0.1d0      ! Thereby Ltrot=Beta/dtau
 Beta           = 10.d0      ! Inverse temperature
 Projector      = .F.        ! Whether the projective algorithm is used

@@ -21,7 +21,8 @@ BINS= Z2_Matter.out Kondo.out KN_Kondo.out Hubbard.out Hubbard_Plain_Vanilla.out
 # Add your new Hamiltonian by appending My_New_Hamiltonian_mod.out to the above list
       
 all:
-	(make tidy Z2_Matter_Hmc)
+	(make Z2_Matter_Hmc)
+	#(make tidy Z2_Matter_Hmc)
 	#(make tidy Hubbard)
 	#(make tidy Hubbard_Plain_Vanilla)
 	#(make tidy tV)

@@ -647,3 +647,2377 @@
  Default sequential updating 
  This executable represents commit 701c4a2c of branch master.
  STAB3 is defined 
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :    1.00000000000000     
+ g_Z2          :   0.000000000000000E+000
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :    1.00000000000000     
+ g_Z2          :   0.000000000000000E+000
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    10.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :            1
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   8.084961659923636E-003  4.616887753034857E-002
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :                      NaN
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :   0.000000000000000E+000
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :   0.153753000000000     
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :    1.00000000000000     
+ g_Z2          :   0.000000000000000E+000
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :    1.00000000000000     
+ g_Z2          :   0.000000000000000E+000
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    10.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :            1
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   8.084961659923636E-003  4.616887753034857E-002
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :                      NaN
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :   0.000000000000000E+000
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :   0.159339000000000     
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :    1.00000000000000     
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :    1.00000000000000     
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    10.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :            1
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   1.461282476300023E-002  0.172919657216873     
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :                      NaN
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :   0.000000000000000E+000
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :   0.157573000000000     
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :    1.00000000000000     
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :    1.00000000000000     
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    10.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :            1
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   1.461282476300023E-002  0.172919657216873     
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :                      NaN
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :   0.000000000000000E+000
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :   0.155313000000000     
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :    1.00000000000000     
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :    1.00000000000000     
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    10.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :            1
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   1.461282476300023E-002  0.172919657216873     
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :                      NaN
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :   0.000000000000000E+000
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :   0.170862000000000     
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    10.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :            1
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :            0
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   0.000000000000000E+000  0.000000000000000E+000
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :   0.000000000000000E+000
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :   0.000000000000000E+000
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :   8.501000000000000E-003
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    10.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :            1
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :            0
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   0.000000000000000E+000  0.000000000000000E+000
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :   0.000000000000000E+000
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :   0.000000000000000E+000
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :   8.399999999999999E-003
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    10.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :            1
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :            0
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   0.000000000000000E+000  0.000000000000000E+000
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :   0.000000000000000E+000
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :   0.000000000000000E+000
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :   8.671999999999999E-003
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    10.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :            1
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :            0
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   0.000000000000000E+000  0.000000000000000E+000
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :   0.000000000000000E+000
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :    1.00000000000000     
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :   8.354000000000000E-003
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    10.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :            1
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :            0
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   0.000000000000000E+000  0.000000000000000E+000
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :   0.000000000000000E+000
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :    1.00000000000000     
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :   8.342000000000000E-003
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    10.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :            1
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   3.903127820947819E-016  1.554312234475219E-015
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :                      NaN
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :   0.000000000000000E+000
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :   0.113233000000000     
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    10.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :            1
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   3.903127820947819E-016  1.554312234475219E-015
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :                      NaN
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :   0.000000000000000E+000
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :   0.112384000000000     
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    10.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :            1
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :            1
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :            1
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :            1
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :            1
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :            1
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :           10
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :           10
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :           10
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :           10
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :           10
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :           10
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :           10
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   3.903127820947816E-016  1.554312234475219E-015
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :                      NaN
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :   0.000000000000000E+000
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :    1.17733100000000     
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :           10
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :           10
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :           10
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   3.903127820947816E-016  1.554312234475219E-015
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :                      NaN
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :   0.000000000000000E+000
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :    1.32234600000000     
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :           10
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   3.903127820947816E-016  1.554312234475219E-015
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :                      NaN
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :   0.000000000000000E+000
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :    1.09536700000000     
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :           10
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   3.903127820947816E-016  1.554312234475219E-015
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :                      NaN
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :   0.000000000000000E+000
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :    1.11808200000000     
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :           10
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   3.903127820947816E-016  1.554312234475219E-015
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :                      NaN
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :   0.000000000000000E+000
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :    1.06829000000000     
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :           10
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   3.903127820947816E-016  1.554312234475219E-015
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :                      NaN
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :   0.000000000000000E+000
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :    1.08168500000000     
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :           10
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   3.903127820947816E-016  1.554312234475219E-015
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :                      NaN
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :   0.000000000000000E+000
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :    1.08695300000000     
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :           10
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   3.903127820947816E-016  1.554312234475219E-015
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :                      NaN
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :   0.000000000000000E+000
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :    1.10083100000000     
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :           10
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   3.903127820947816E-016  1.554312234475219E-015
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :                      NaN
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :   0.000000000000000E+000
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :    1.11532200000000     
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :           10
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   3.903127820947816E-016  1.554312234475219E-015
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :                      NaN
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :   0.000000000000000E+000
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :    1.07503300000000     
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :           10
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   3.903127820947816E-016  1.554312234475219E-015
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :                      NaN
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :   0.000000000000000E+000
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :    1.07699500000000     
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :           10
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   3.903127820947816E-016  1.554312234475219E-015
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :                      NaN
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :   0.000000000000000E+000
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :    1.08153700000000     
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :           10
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   3.903127820947816E-016  1.554312234475219E-015
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :                      NaN
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :   0.000000000000000E+000
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :    1.06930800000000     
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :           10
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   3.903127820947816E-016  1.554312234475219E-015
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :                      NaN
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :   0.000000000000000E+000
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :    1.09709600000000     
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :           10
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   3.903127820947816E-016  1.554312234475219E-015
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :                      NaN
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :   0.000000000000000E+000
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :    1.08530200000000     
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :           10
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   3.903127820947816E-016  1.554312234475219E-015
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :                      NaN
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :   0.000000000000000E+000
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :    1.10332200000000     
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :           10
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   3.903127820947816E-016  1.554312234475219E-015
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :                      NaN
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :   0.000000000000000E+000
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :    1.08884600000000     
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :           10
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   3.903127820947816E-016  1.554312234475219E-015
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :                      NaN
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :   0.000000000000000E+000
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :    1.08052700000000     
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :           10
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   3.903127820947816E-016  1.554312234475219E-015
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :   2.410414123499012E-016
+  Max  Phase diff Glob         :   4.326460085326087E-016
+  Acceptance_HMC               :   0.000000000000000E+000
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :    1.09453200000000     
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :           10
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   3.903127820947816E-016  1.554312234475219E-015
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :                      NaN
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :   0.000000000000000E+000
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :    1.29878500000000     
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :           10
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   3.903127820947816E-016  1.554312234475219E-015
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :                      NaN
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :   0.000000000000000E+000
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :    1.31486200000000     
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :           10
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :           10
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+ =====================================
+ Model is      : 
+ Z2_Matter                                                       
+ Lattice is    : 
+ Square                                                          
+ # of orbitals :           16
+ Finite temperture version
+ Beta          :    10.0000000000000     
+ dtau,Ltrot    :   0.100000000000000              100
+ N_SUN         :            2
+ N_FL          :            1
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ t_Z2          :   0.000000000000000E+000
+ g_Z2          :    1.00000000000000     
+ K_Gauge       :   0.000000000000000E+000
+ t_fermion     :   0.000000000000000E+000
+ h_Matter      :   0.000000000000000E+000
+ J_Gauge_Z2    :   0.000000000000000E+000
+ lambda        :    30.0000000000000     
+ l_hmc         :  T
+ dt            :   4.000000000000000E-002
+ mdstep        :           20
+ Ham_chem      :   0.000000000000000E+000
+ Ham_U         :   0.000000000000000E+000
+ No initial configuration
+ Sweeps                              :            1
+ Bins                                :           10
+ No CPU-time limitation 
+ Measure Int.                        :            1         100
+ Stabilization,Wrap                  :           10
+ Nstm                                :           10
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ This executable represents commit 7045fa14 of branch master.
+ STAB3 is defined 
+  Precision Green  Mean, Max :   3.903127820947816E-016  1.554312234475219E-015
+  Precision Phase, Max       :   0.000000000000000E+000
+  Acceptance                 :   0.000000000000000E+000
+  Effective Acceptance       :   0.000000000000000E+000
+  Acceptance_Glob              :   0.000000000000000E+000
+  Mean Phase diff Glob         :                      NaN
+  Max  Phase diff Glob         :   0.000000000000000E+000
+  Acceptance_HMC               :   0.000000000000000E+000
+  Average cluster size         :   0.000000000000000E+000
+  Average accepted cluster size:   0.000000000000000E+000
+  CPU Time                   :    1.14222000000000     

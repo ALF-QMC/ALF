@@ -14,3 +14,9 @@ Documentation/doc.log
 Documentation/doc.synctex.gz
 Documentation/doc.toc
 environment
+*_eq
+*_tau
+*_eq
+*_eq_info
+info
+logs

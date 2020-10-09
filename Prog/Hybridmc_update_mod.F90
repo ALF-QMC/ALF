@@ -185,6 +185,7 @@
            nsigma%t = nsigma_old%t
            nsigma%f = nsigma_old%f
         endif
+        Call Control_upgrade_Hybrid(TOGGLE)
 
         If (.not.TOGGLE) then
            DO nf = 1,N_FL
@@ -328,7 +329,10 @@
             call zscal(ltrot, dcmplx(1.d0/dble(ltrot),0.d0), xfield_it_tmp, 1 )
             call vzmul(ltrot, xfield_it_tmp, w_coeffi, xfield_iw_tmp)
             call onedimension_invfft( ltrot, xfield_iw_tmp )
-            Forces_bos(i, :) = -2.d0*dble(xfield_iw_tmp) + tanh(nsigma%f(i,:))
+            do j = 1, ltrot
+                Forces_bos(i, j) = -2.d0*dble(xfield_iw_tmp(j)) + nsigma%phi(i,j)
+            enddo
+            !Forces_bos(i, :) = -2.d0*dble(xfield_iw_tmp) + tanh(nsigma%f(i,:))
         enddo
 
       endsubroutine Hybrid_cal_force_bos
