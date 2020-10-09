@@ -1,9 +1,9 @@
-.PHONY : Compile tidy clean Z2_Matter  Kondo Hubbard tV Hubbard_Plain_Vanilla LRC
+.PHONY : Compile tidy clean Z2_Matter  Kondo Hubbard tV Hubbard_Plain_Vanilla LRC Z2_Matter_Hmc
 
 OBJS= Hamiltonians/LRC_mod.o  Set_random.o control_mod.o Fields_mod.o Operator_mod.o WaveFunction_mod.o observables_mod.o \
       Predefined_Int_mod.o Predefined_Obs_mod.o Predefined_Latt_mod.o Predefined_Hop_mod.o  Predefined_Trial_mod.o \
-      $(HAMILTONIAN) QDRP_decompose_mod.o udv_state_mod.o Hop_mod.o UDV_WRAP_mod.o \
-      Global_mod.o Wrapgr_mod.o tau_m_mod.o tau_p_mod.o main.o wrapul.o cgr1.o wrapur.o cgr2_2.o upgrade.o 
+      $(HAMILTONIAN) QDRP_decompose_mod.o udv_state_mod.o Hop_mod.o UDV_WRAP_mod.o Global_mod.o \
+      Hybridmc_update_mod.o Wrapgr_mod.o tau_m_mod.o tau_p_mod.o main.o wrapul.o cgr1.o wrapur.o cgr2_2.o upgrade.o 
 MODS= control.mod fields_mod.mod global_mod.mod hop_mod.mod lrc_mod.mod observables.mod \
       operator_mod.mod predefined_int.mod predefined_lattices.mod predefined_obs.mod \
       predefined_hoppings.mod  predefined_trial.mod qdrp_mod.mod tau_m_mod.mod tau_p_mod.mod \
@@ -13,19 +13,21 @@ OHAM= Hamiltonians/Hamiltonian_Z2_Matter_mod.o \
 	Hamiltonians/Hamiltonian_Hubbard_mod.o \
 	Hamiltonians/Hamiltonian_Hubbard_Plain_Vanilla_mod.o \
 	Hamiltonians/Hamiltonian_tV_mod.o \
-      	Hamiltonians/Hamiltonian_LRC_mod.o
+    Hamiltonians/Hamiltonian_LRC_mod.o \
+    Hamiltonians/Hamiltonian_Z2_Matter_Hmc_mod.o
 # Add your new Hamiltonian here by appending  Hamiltonians/Hamiltonian_My_New_Hamiltonian_mod.o to the above list.
 BINS= Z2_Matter.out Kondo.out KN_Kondo.out Hubbard.out Hubbard_Plain_Vanilla.out tV.out \
-      LRC.out
+      LRC.out Z2_Matter_Hmc.out
 # Add your new Hamiltonian by appending My_New_Hamiltonian_mod.out to the above list
       
 all:
-	(make tidy Hubbard)
-	(make tidy Hubbard_Plain_Vanilla)
-	(make tidy tV)
-	(make tidy Kondo)
-	(make tidy LRC)
-	(make tidy Z2_Matter)
+	(make tidy Z2_Matter_Hmc)
+	#(make tidy Hubbard)
+	#(make tidy Hubbard_Plain_Vanilla)
+	#(make tidy tV)
+	#(make tidy Kondo)
+	#(make tidy LRC)
+	#(make tidy Z2_Matter)
 # Add your new Hamiltonian by appending (make  tidy My_New_Hamiltonian )  to the above list
 
 #My_New_Hamiltonian:
@@ -56,6 +58,9 @@ Z2_Matter:
 	./Git_config.sh
 	(make Compile TARGET="Z2_Matter.out" HAMILTONIAN="Hamiltonians/Hamiltonian_Z2_Matter_mod.o")
 
+Z2_Matter_Hmc:
+	./Git_config.sh
+	(make Compile TARGET="Z2_Matter_Hmc.out" HAMILTONIAN="Hamiltonians/Hamiltonian_Z2_Matter_Hmc_mod.o")
 
 
 Compile: $(OBJS)

@@ -60,6 +60,8 @@ module Control
 
     real    (Kind=Kind(0.d0)),  private, save :: size_clust_Glob_up, size_clust_Glob_ACC_up
 
+    real    (Kind=Kind(0.d0)),  private, save :: Force_max, Force_mean
+    Integer, private, save  :: Force_Count
 
     Contains
 
@@ -89,8 +91,47 @@ module Control
         size_clust_Glob_up    = 0.d0
         size_clust_Glob_ACC_up= 0.d0
 
+        Force_max  = 0.d0
+        Force_mean = 0.d0
+        Force_count = 0
+
         call system_clock(count_CPU_start,count_rate,count_max)
       end subroutine control_init
+
+      Subroutine Control_Langevin(Forces, Group_Comm)
+
+        Use ieee_arithmetic
+        Implicit none
+        Complex (Kind=Kind(0.d0)),  allocatable, Intent(In)  :: Forces(:,:)
+        Integer, Intent(IN) :: Group_Comm
+        
+        Integer :: n1,n2, n, nt 
+        Real (Kind = Kind(0.d0) ) :: X
+
+        ! Test for not a  number
+        n1 =  size(Forces,1)
+        n2 =  size(Forces,2)
+        do  n = 1,n1
+           do nt =1,n2
+              if ( ieee_is_nan(real(Forces(n,nt),kind(0.d0))) )  then
+                 Write(6,*) 'The forces are not defined ',  Forces(n,nt)
+                 stop
+              endif
+           enddo
+        enddo
+        Force_count =  Force_count  + 1
+
+        X = 0.d0
+        do  n = 1,n1
+           do nt =1,n2
+              If ( abs( Real(Forces(n,nt),kind(0.d0))) >=  Force_max  ) &
+                   &  Force_max = abs( Real(Forces(n,nt),kind(0.d0)))
+              X  = X + abs( Real(Forces(n,nt),kind(0.d0)) )
+           enddo
+        enddo
+        Force_mean = Force_mean  +  X/Real(n1*n2,Kind(0.d0)) 
+        
+      end Subroutine Control_Langevin
 
       Subroutine Control_upgrade(toggle)
         Implicit none

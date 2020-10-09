@@ -7,7 +7,7 @@ INTELOPTFLAGS="-cpp -O3 -fp-model fast=2 -xHost -unroll -finline-functions -ipo 
 INTELOPTFLAGS="-cpp -O3 "
 #INTELOPTFLAGS="$INTELOPTFLAGS -traceback"
 # uncomment the next line if you want to use additional openmp parallelization
-INTELOPTFLAGS="${INTELOPTFLAGS} -parallel -qopenmp"
+#INTELOPTFLAGS="${INTELOPTFLAGS} -parallel -qopenmp"
 INTELUSEFULFLAGS="-std08"
 
 # default optimization flags for GNU compiler

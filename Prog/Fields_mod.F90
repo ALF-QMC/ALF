@@ -103,7 +103,7 @@
         case(2)
            Fields_Phi = Phi_st(Nint(this%f(n_op,n_tau)),2)
         case(3)
-           Fields_Phi = this%f(n_op,n_tau)
+           Fields_Phi = tanh(this%f(n_op,n_tau))
         case default
            Write(error_unit,*) 'Error in Fields_Phi'
            error stop 1
@@ -130,7 +130,7 @@
         case(2)
            Fields_GAMA = GAMA_st(Nint(this%f(n_op,n_tau)),2)
         case(3)
-           Fields_GAMA = 1.d0
+           Fields_GAMA = cosh(2.d0*this%f(n_op,n_tau))
         case default
            Write(error_unit,*) 'Error in Fields_GAMA'
            error stop 1
@@ -176,6 +176,8 @@
 
         if ( this%t(n_op) == 1 .or.   this%t(n_op) == 2 ) then
            Fields_get_i = NINT(this%f(n_op,n_tau))
+        elseif ( this%t(n_op) == 3 ) then
+           Fields_get_i = 1 ! Need to modify, now just for debug
         else
            Write(error_unit,*) "Error in fields"
            error stop 1
