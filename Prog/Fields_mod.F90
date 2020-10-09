@@ -130,7 +130,7 @@
         case(2)
            Fields_GAMA = GAMA_st(Nint(this%f(n_op,n_tau)),2)
         case(3)
-           Fields_GAMA = cosh(2.d0*this%f(n_op,n_tau))
+           Fields_GAMA = 2.d0*cosh(this%f(n_op,n_tau))
         case default
            Write(error_unit,*) 'Error in Fields_GAMA'
            error stop 1

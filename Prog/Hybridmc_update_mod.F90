@@ -330,9 +330,8 @@
             call vzmul(ltrot, xfield_it_tmp, w_coeffi, xfield_iw_tmp)
             call onedimension_invfft( ltrot, xfield_iw_tmp )
             do j = 1, ltrot
-                Forces_bos(i, j) = -2.d0*dble(xfield_iw_tmp(j)) + nsigma%phi(i,j)
+               Forces_bos(i, j) = -2.d0*dble(xfield_iw_tmp(j)) + nsigma%phi(i,j)
             enddo
-            !Forces_bos(i, :) = -2.d0*dble(xfield_iw_tmp) + tanh(nsigma%f(i,:))
         enddo
 
       endsubroutine Hybrid_cal_force_bos
@@ -579,7 +578,8 @@
         Do I = 1,Size(Op_V,1)
            X = 0.d0
            Do nt = 1,Ltrot
-              Ratio(1) = Ratio(1) * cmplx( nsigma%Gama(i,nt)/nsigma_old%Gama(i,nt),0.d0,kind(0.d0) )  !  You could put this in Ratio_2
+              Ratio(1) = Ratio(1) * cmplx( nsigma%Gama(i,nt)/nsigma_old%Gama(i,nt),0.d0,kind(0.d0) )
+              Ratio(1) = Ratio(1) * exp(cmplx( 0.5d0*(pfield_old(i,nt)**2-pfield(i,nt)**2),0.d0,kind(0.d0) ))
               X = X + nsigma%Phi(i,nt) - nsigma_old%Phi(i,nt)
            Enddo
            Do nf = 1,N_FL
