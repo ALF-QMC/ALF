@@ -169,6 +169,7 @@
                                 Det_vec_old, Det_vec_new, nsigma_old, pfield_old, Ratio)
         
         Weight = abs(  real( Phase_old * Ratiotot, kind=Kind(0.d0))/real(Phase_old,kind=Kind(0.d0)) )
+        write(*,*) weight
 
         Z = Phase_old * Ratiotot/ABS(Ratiotot)
         Call Control_PrecisionP_Glob(Z,Phase_new)
@@ -356,7 +357,9 @@
                           Z  = Z + Op_V(n,nf)%O(I,J) * ( Z1 - Gr(Op_V(n,nf)%P(J),Op_V(n,nf)%P(I), nf) )
                        Enddo
                     Enddo
-                    Forces_fer(n,ntau1) = Forces_fer(n,ntau1) - dble(Op_V(n,nf)%g*Z*cmplx(real(N_SUN,Kind(0.d0)),0.d0,Kind(0.d0)) )
+                    Forces_fer(n,ntau1) = Forces_fer(n,ntau1) + &
+                        dble(Op_V(n,nf)%g*Z*cmplx(real(N_SUN,Kind(0.d0)),0.d0,Kind(0.d0)))*(1.d0-spin*spin)
+
                  Enddo
               endif
            enddo
