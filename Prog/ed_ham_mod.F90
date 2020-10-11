@@ -2,6 +2,7 @@ MODULE ed_ham_mod
 
     use Operator_mod, only: Operator
     use ed_state_mod, only: ed_state, N_fermions
+    use iso_fortran_env, only: output_unit, error_unit
 
     IMPLICIT NONE
     PRIVATE
@@ -187,8 +188,8 @@ CONTAINS
       if( abs(val) < 1e-11 ) return
 
       if ( this%list(i,1) .ne. this%list(j,1) ) then
-        print*, "Error in ed_ham_add_matrixelement", this%list(i,1), this%list(j,1), val
-        stop 1
+        write(error_unit,*) "Error in ed_ham_add_matrixelement", this%list(i,1), this%list(j,1), val
+        error stop 1
       endif
 
       this%H_part(this%list(i,1))%H(this%list(i,2), this%list(j,2)) = &
@@ -251,8 +252,8 @@ CONTAINS
       type(ed_state) :: state
 
       if( op_v(1)%type .ne. 2 ) then
-          print*, "ED only implemented for OP_V type 2"
-          stop 1
+          write(error_unit,*) "ED only implemented for OP_V type 2"
+          error stop 1
       endif
 
       call state%init(this%N_orbitals, this%N_SUN, this%N_FL)
@@ -283,10 +284,10 @@ CONTAINS
                       do m1=1, op_v(s+1)%N
                         do m2=1, op_v(s+1)%N
                           call state%set(i)
-                          call state%annihil_e( op_v(s+1)%p(m1)-1, sigma2, s2 )
-                          call state%create_e ( op_v(s+1)%p(m2)-1, sigma2, s2 )
-                          call state%annihil_e( op_v(s+1)%p(n1)-1, sigma , s  )
-                          call state%create_e ( op_v(s+1)%p(n2)-1, sigma , s  )
+                          call state%annihil_e( op_v(s2+1)%p(m1)-1, sigma2, s2 )
+                          call state%create_e ( op_v(s2+1)%p(m2)-1, sigma2, s2 )
+                          call state%annihil_e( op_v(s +1)%p(n1)-1, sigma , s  )
+                          call state%create_e ( op_v(s +1)%p(n2)-1, sigma , s  )
 
                           call this%add_matrixelement(state%get_i(), i, &
                             & state%get_factor() * op_v(s+1)%O(n2,n1) * op_v(s2+1)%O(m2,m1) * &
@@ -323,8 +324,8 @@ CONTAINS
           do i=1, size(this%H_part(n)%H, 1)
             do j=i, size(this%H_part(n)%H, 1)
               if( abs( this%H_part(n)%H(i,j)- conjg(this%H_part(n)%H(j,i)) ) > zero ) then
-                print*, "H", n, i, j, "not hermitian",  this%H_part(n)%H(i,j)- conjg(this%H_part(n)%H(j,i))
-                stop 1
+                write(error_unit,*) "H", n, i, j, "not hermitian",  this%H_part(n)%H(i,j)- conjg(this%H_part(n)%H(j,i))
+                error stop 1
               endif
             enddo
           enddo
@@ -342,7 +343,7 @@ CONTAINS
 !> @brief
 !> Calculates eigenvalues of Hamiltonian block
       IMPLICIT NONE
-      class(ed_ham_part)  , intent(inout) :: this
+      class(ed_ham_part), intent(inout) :: this
 
       INTEGER               :: INFO, LDA, LWORK
       real(dp), allocatable :: E(:)
@@ -360,8 +361,8 @@ CONTAINS
       print*, 'N_states', this%N_states
       CALL ZHETRD( 'U', this%N_states, this%H, this%N_states, this%eigenval, E, TAU, WORK, LWORK, INFO )
       if ( INFO .ne. 0 ) then
-        print*, "Error with ZHETRD in ed_ham_part_eigenvalues", INFO
-        stop 1
+        write(error_unit,*) "Error with ZHETRD in ed_ham_part_eigenvalues", INFO
+        error stop 1
       endif
 
       deallocate( this%H, TAU, WORK )
@@ -371,8 +372,8 @@ CONTAINS
       !SUBROUTINE DSTERF( N, D, E, INFO )
       CALL DSTERF( this%N_states, this%eigenval, E, INFO )
       if ( INFO .ne. 0 ) then
-        print*, "Error with DSTERF in ed_ham_part_eigenvalues", INFO
-        stop 1
+        write(error_unit,*) "Error with DSTERF in ed_ham_part_eigenvalues", INFO
+        error stop 1
       endif
 
       deallocate( E )
