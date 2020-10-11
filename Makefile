@@ -1,4 +1,5 @@
-.PHONY : all lib ana Examples Z2_Slave Z2_Matter Hub_Can Kondo_Honey Hubbard  Hubbard_Plain_Vanilla
+.PHONY : all lib ana Z2_Matter Kondo Hubbard tV Hubbard_Plain_Vanilla LRC
+# To add a new Hamiltonain named My_New_Hamiltonian, add "My_New_Hamiltonian"  to the above list
 
 all: lib ana
 	cd Prog && $(MAKE) all
@@ -7,20 +8,22 @@ lib:
 	cd Libraries && $(MAKE)
 ana: lib
 	cd Analysis && $(MAKE)
-Examples: lib
-	cd Prog && $(MAKE) Examples
 Hubbard: lib
 	cd Prog && $(MAKE) Hubbard
 Hubbard_Plain_Vanilla: lib
 	cd Prog && $(MAKE) Hubbard_Plain_Vanilla
-Z2_Slave: lib
-	cd Prog && $(MAKE) Z2_Slave
+tV: lib
+	cd Prog && $(MAKE) tV
+Kondo: lib
+	cd Prog && $(MAKE) Kondo
+LRC: lib
+	cd Prog && $(MAKE) LRC
 Z2_Matter: lib
 	cd Prog && $(MAKE) Z2_Matter
-Hub_Can: lib
-	cd Prog && $(MAKE) Hub_Can
-Kondo_Honey: lib
-	cd Prog && $(MAKE) Kondo_Honey
+
+# To add a new Hamiltonain named My_New_Hamiltonian  uncomment the lines below.
+# My_New_Hamiltonian: lib
+#	cd Prog && $(MAKE) My_New_Hamiltonian
 
 .PHONY : clean cleanall cleanprog cleanlib cleanana tidy tidyprog tidyana help
 clean: cleanall
@@ -40,4 +43,4 @@ tidyprog:
 help:
 	@echo "The following are some of the valid targets of this Makefile"
 	@echo "lib, ana, clean, cleanall, cleanprog, cleanlib, cleanana"
-	@echo "Examples, Z2_Slave, Z2_Matter, Hub_Can, Kondo_Honey,  Hubbard"
+	@echo "Z2_Matter, Kondo,  Hubbard, Hubbard_Plain_Vanilla, tV"

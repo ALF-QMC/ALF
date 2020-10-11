@@ -151,6 +151,38 @@
 !
 !> @brief
 !> Sets  
+!>   - V/N_SUN  [ \sum_{s=1}^{N_SUN}( ic^{dag}_{i,s} c_{j,s}  - ic^{dag}_{j,s} c_{i,s} ) ]^2 
+!>   
+!>   This is for an SU(N) symmetric code such that the above  interaction corresponds to just one operator
+!>   
+!--------------------------------------------------------------------
+      Subroutine Predefined_Int_VJ_SUN( OP, I, J, N_SUN, DTAU, V  ) 
+        
+        Implicit none
+        Integer,  Intent(In) :: I, J, N_SUN
+        Real (Kind=Kind(0.d0)), Intent(IN) ::  Dtau, V
+        Type(Operator), Intent(Out) :: OP
+
+        Call OP_Make( Op,2 )
+
+        Op%P(1)   = I
+        Op%P(2)   = J
+        Op%O(1,2) = cmplx(0.d0 ,  1.d0, kind(0.D0)) 
+        Op%O(2,1) = cmplx(0.d0 , -1.d0, kind(0.D0))
+        Op%g      = SQRT(CMPLX(DTAU*V/real(N_SUN,kind(0.d0)), 0.D0, kind(0.D0))) 
+        Op%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
+        Op%type   = 2
+        
+        Call Op_set( Op )
+        
+      end Subroutine Predefined_Int_VJ_SUN
+
+!-------------------------------------------------------------------
+!> @author 
+!> ALF-project
+!
+!> @brief
+!> Sets  
 !>     \hat{Z}_{i,j} \xi  \sum_{s=1}^{N_SUN}( c^{dag}_{i,s} c_{j,s} + c^{dag}_{j,s} c_{i,s} ) 
 !>   
 !>   This is for an SU(N) symmetric code, such that the above corresponds to one operator. 

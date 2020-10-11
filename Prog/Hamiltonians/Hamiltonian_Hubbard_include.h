@@ -17,14 +17,14 @@
 
 
           Do I = 1,Size(Obs_scal,1)
-             Call  Print_bin_Vec(Obs_scal(I),Group_Comm)
+             Call Print_bin_Vec(Obs_scal(I), Group_Comm)
           enddo
           Do I = 1,Size(Obs_eq,1)
-             Call  Print_bin_Latt(Obs_eq(I),Latt,dtau,Group_Comm)
+             Call Print_bin_Latt(Obs_eq(I), Group_Comm)
           enddo
-          If (Ltau  == 1 ) then
+          If (Ltau == 1 ) then
              Do I = 1,Size(Obs_tau,1)
-                Call  Print_bin_Latt(Obs_tau(I),Latt,dtau,Group_Comm)
+                Call Print_bin_Latt(Obs_tau(I), Group_Comm)
              enddo
           endif
 
@@ -223,7 +223,6 @@
 !>  Size of cluster that will be flipped.
 !> \endverbatim
 !-------------------------------------------------------------------
-        ! Functions for Global moves.  These move are not implemented in this example.
         Subroutine Global_move(T0_Proposal_ratio,nsigma_old,size_clust)
 
           Implicit none

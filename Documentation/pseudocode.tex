@@ -9,14 +9,14 @@
 \subsection{Pseudo code description}\label{sec:pseudocode}
 %------------------------------------------------------------
 %
-\begin{mdframed}[frametitle={Basic structure of the auxiliary field QMC implementation (\path{Prog/main.F90}):}]
+\begin{mdframed}[frametitle={Basic structure of the auxiliary-field QMC implementation (\path{Prog/main.F90}):}]
 {\setlength{\parindent}{0pt}
 Set the Hamiltonian and the lattice:\\
 \textbf{Call} ham\_set\\
 Read in an auxiliary-field configuration or generate it randomly:\\
-\textbf{Call} confin\\
+\textbf{Call} field\%in\\
 
-This loop fills the storage, needed for the first actual Monte Carlo sweep:\\
+This loop fills the storage needed for the first actual Monte Carlo sweep:\\
 \textbf{Do} \texttt{ntau} from  \texttt{ltrot} to \texttt{1}\\
 \hspace*{1em} Compute propagation matrices and store them at the stabilization points:\\
 \hspace*{1em} \textbf{Call} wrapul\\
@@ -24,14 +24,14 @@ This loop fills the storage, needed for the first actual Monte Carlo sweep:\\
  
 Loop over bins: \\
 \textbf{Do} \texttt{nbc} from  \texttt{1} to \texttt{nbin} \\
-\hspace*{1em} Loop over sweeps. Each sweep updates twice (sweeping upward and downward in time)\\
-\hspace*{1em} the whole space-time lattice of auxiliary fields.
-\hspace*{1em} The sweep defines the unit of Monte Carlo time:\\
+\hspace*{1em} Loop over sweeps. Each sweep updates twice (upward and downward in time) the whole\\
+\hspace*{1em} space-time lattice of auxiliary fields. The sweep defines the unit of Monte Carlo time:\\
+%\hspace*{1em} The sweep defines the unit of Monte Carlo time:\\
 \hspace*{1em} \textbf{Do} \texttt{nsw} from  \texttt{1} to \texttt{nsweep}  \\
 \hspace*{2em} Upward sweep:\\
 \hspace*{2em} \textbf{Do} \texttt{ntau} from \texttt{1} to \texttt{ltrot}\\      
-\hspace*{3em} Propagate the Green function from time \texttt{ntau -1} to \texttt{ntau}, and compute\\
-\hspace*{3em} a new estimate (using sequential update scheme) of the Green function at \texttt{ntau}: \\
+\hspace*{3em} Propagate the Green function from time \texttt{ntau$-$1} to \texttt{ntau}, and compute a new\\
+\hspace*{3em} estimate (using sequential update scheme) of the Green function at \texttt{ntau}: \\
 \hspace*{3em} \textbf{Call} wrapgrup\\
          
 \hspace*{3em}  Stabilization: \\     
@@ -39,14 +39,14 @@ Loop over bins: \\
 \hspace*{4em} Compute propagation matrix from previous stabilization point to \texttt{ntau}: \\
 \hspace*{4em} \textbf{Call} wrapur\\
 \hspace*{4em} Read from storage: propagation from \texttt{ltrot} to \texttt{ntau}\\
-\hspace*{4em} Write to storage : the just computed propagation \\
+\hspace*{4em} Write to storage: the just-computed propagation \\
 \hspace*{4em} Recalculate the Green function at time \texttt{ntau} in a stable way:\\
 \hspace*{4em} \textbf{Call} cgr\\            
 \hspace*{4em} Check the precision between propagated and recalculated Green functions:\\
 \hspace*{4em} \textbf{Call} control\_precisionG\\
 \hspace*{3em} \textbf{Endif}\\
     
-\hspace*{3em} Measure the equal time observables: \\
+\hspace*{3em} Measure the equal-time observables: \\
 \hspace*{3em} \textbf{If} \texttt{ntau} is in the intervall \texttt{[LOBS\_ST, LOBS\_EN]} \textbf{then}\\
 \hspace*{4em} \textbf{Call} obser\\
 \hspace*{3em} \textbf{Endif}\\
@@ -54,18 +54,18 @@ Loop over bins: \\
 
 \hspace*{2em} Downward sweep:\\
 \hspace*{2em} \textbf{Do} \texttt{ntau} from \texttt{ltrot} to \texttt{1}\\
-\hspace*{3em} Repeat the above steps (update, propagation, stabilization, equal time measurements) \\
+\hspace*{3em} Repeat the above steps (update, propagation, stabilization, equal-time measurements) \\
 \hspace*{3em} for the downward direction in imaginary time\\
 \hspace*{2em} \textbf{Enddo}\\
 
-\hspace*{2em} Measure the time displaced observables: \\
+\hspace*{2em} Measure the time-displaced observables: \\
 \hspace*{2em} \textbf{Call} tau\_m\\
 \hspace*{1em} \textbf{Enddo} (loop over sweeps)\\
     
 \hspace*{1em} Calculate measurement averages for current bin and write them to disk:\\
-\hspace*{1em} \textbf{call} pr\_obs\\
+\hspace*{1em} \textbf{Call} pr\_obs\\
 \hspace*{1em} Write auxiliary-field configuration to disk: \\
-\hspace*{1em} \textbf{call} confout\\
+\hspace*{1em} \textbf{Call} field\%out\\
 \textbf{Enddo} (loop over bins)\\
 % 
 % Write the \texttt{info} file to disk:\\

@@ -7,4 +7,10 @@ Test_*
 ALF_Doxygen_*
 Doxygen_Docu/*
 Analysis/cov_tau_ph.F90
+Documentation/doc.aux
+Documentation/doc.blg
+Documentation/doc.idx
+Documentation/doc.log
+Documentation/doc.synctex.gz
+Documentation/doc.toc
 environment

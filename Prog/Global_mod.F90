@@ -1,67 +1,68 @@
 !  Copyright (C) 2016 - 2018 The ALF project
-! 
+!
 !  This file is part of the ALF project.
-! 
+!
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
-! 
+!
 !     The ALF project is distributed in the hope that it will be useful,
 !     but WITHOUT ANY WARRANTY; without even the implied warranty of
 !     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 !     GNU General Public License for more details.
-! 
+!
 !     You should have received a copy of the GNU General Public License
 !     along with ALF.  If not, see http://www.gnu.org/licenses/.
-!     
+!
 !     Under Section 7 of GPL version 3 we require you to fulfill the following additional terms:
-!     
+!
 !     - It is our hope that this program makes a contribution to the scientific community. Being
 !       part of that community we feel that it is reasonable to require you to give an attribution
 !       back to the original authors if you have benefitted from this program.
 !       Guidelines for a proper citation can be found on the project's homepage
 !       http://alf.physik.uni-wuerzburg.de .
-!       
+!
 !     - We require the preservation of the above copyright notice and this license in all original files.
-!     
-!     - We prohibit the misrepresentation of the origin of the original source files. To obtain 
+!
+!     - We prohibit the misrepresentation of the origin of the original source files. To obtain
 !       the original source files please visit the homepage http://alf.physik.uni-wuerzburg.de .
-! 
+!
 !     - If you make substantial changes to the program we require you to either consider contributing
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
 
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !
-!> @brief 
+!> @brief
 !> Handles global updates and parallel tempering
 !
 !--------------------------------------------------------------------
 Module Global_mod
 
       Use Hamiltonian
-      Use MyMats 
+      Use MyMats
       Use Operator_mod
       Use Control
       Use Observables
       Use Fields_mod
-      
+      use iso_fortran_env, only: output_unit, error_unit
+
       Implicit none
 
       Type (Obser_Vec ),  private  ::   Tempering_acceptance
 
-      
+
     Contains
 #if defined(TEMPERING)
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !
-!> @brief 
+!> @brief
 !> Handles parrallel tempering \n
 !> This subroutine is called only if the tempering flag is switched on \n
 !> Requires MPI
@@ -99,7 +100,7 @@ Module Global_mod
 !> \verbatim
 !>  If true then the fermion determinant is computed in the calulcation of the exchange weight.
 !> \endverbatim
-!> 
+!>
 !--------------------------------------------------------------------
       Subroutine Exchange_Step(Phase,GR, udvr, udvl, Stab_nt, udvst, N_exchange_steps, Tempering_calc_det)
         Use UDV_State_mod
@@ -124,7 +125,7 @@ Module Global_mod
              INTEGER         :: NVAR
            END SUBROUTINE CGR
         end Interface
-        
+
         !  Arguments
         COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT)                                :: Phase
         CLASS(UDV_State), intent(inout), allocatable, Dimension(:)              :: udvl, udvr
@@ -133,8 +134,8 @@ Module Global_mod
         INTEGER, dimension(:),     INTENT   (IN), allocatable         :: Stab_nt
         INTEGER, INTENT(IN) :: N_exchange_steps
         Logical, INTENT(IN) :: Tempering_calc_det
-        
-        
+
+
         !>  Local variables.
         Integer :: NST, NSTM, NF, NT, NT1, NVAR,N, N1,N2, I, NC, I_Partner, n_step,  N_count, N_part
         Type    (Fields)           :: nsigma_old
@@ -156,7 +157,7 @@ Module Global_mod
         Integer        :: Isize, Irank, Ierr, irank_g, isize_g, igroup
         Integer        :: STATUS(MPI_STATUS_SIZE)
 
-        Character (Len=64)  :: storage 
+        Character (Len=64)  :: storage
 
 
         CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
@@ -171,18 +172,18 @@ Module Global_mod
         NSTM = Size(udvst, 1)
         call nsigma_old%make(n1, n2)
         if (Tempering_calc_det) then
-           Allocate ( Det_vec_old(NDIM,N_FL), Det_vec_new(NDIM,N_FL) ) 
+           Allocate ( Det_vec_old(NDIM,N_FL), Det_vec_new(NDIM,N_FL) )
            Allocate ( Phase_Det_new(N_FL), Phase_Det_old(N_FL) )
         endif
         Allocate ( List_partner(0:Isize-1), List_masters(Isize/2) )
-        
+
         !         Allocate ( nsigma_orig(n1,n2) )
         !         nsigma_orig = nsigma
-        
-        !  Compute for each core the old weights.     
+
+        !  Compute for each core the old weights.
         L_test = .false.
         if (Tempering_calc_det) then
-           ! Set old weight. 
+           ! Set old weight.
            storage = "Full"
            Call Compute_Fermion_Det(Phase_det_old,Det_Vec_old, udvl, udvst, Stab_nt, storage)
            Phase_old = cmplx(1.d0,0.d0,kind=kind(0.d0))
@@ -225,32 +226,32 @@ Module Global_mod
            endif
 
            CALL MPI_BCAST(List_partner, Isize  ,MPI_INTEGER,   0,MPI_COMM_WORLD,ierr)
-           
+
            If (L_test) then
               if (Irank == 0 ) then
                  Write(6,*) 'Testing global : '
-                 do  I = 0,Isize -1 
+                 do  I = 0,Isize -1
                     Write(6,*)   I, List_partner(I) !, Phase_old, Phase
                     Write(11,*)  I, List_partner(I) !, Phase_old, Phase
                  enddo
                  Write(11,*)
               endif
            Endif
-    
+
 
            !  Exchange configurations
-           !  The types do not change --> no need to exchange them 
+           !  The types do not change --> no need to exchange them
            n = size(nsigma_old%f,1)*size(nsigma_old%f,2)
            CALL MPI_Sendrecv(nsigma_old%f    , n, MPI_REAL8, List_partner(IRANK), 0, &
                     &        nsigma%f        , n, MPI_REAL8, List_partner(IRANK), 0, MPI_COMM_WORLD,STATUS,IERR)
            CALL MPI_Sendrecv(nsigma_old_irank, 1, MPI_INTEGER, List_partner(IRANK), 0, &
                     &        nsigma_irank    , 1, MPI_INTEGER, List_partner(IRANK), 0, MPI_COMM_WORLD,STATUS,IERR)
-           
+
            !  Each node now has a new configuration nsigma
-           
-           
+
+
            if (Tempering_calc_det) then
-              !  HERE 
+              !  HERE
               !  Compute ratio on weights one each rank
               storage = "Empty"
               Call Compute_Fermion_Det(Phase_det_new,Det_Vec_new, udvl, udvst, Stab_nt, storage)
@@ -260,11 +261,11 @@ Module Global_mod
                  Phase_new = Phase_new*Phase_det_new(nf)
               Enddo
               Call Op_phase(Phase_new,OP_V,Nsigma,N_SUN)
-              
+
               T0_Proposal_ratio = 1.d0
               Ratiotot = Compute_Ratio_Global(Phase_Det_old, Phase_Det_new, &
-                   &            Det_vec_old, Det_vec_new, nsigma_old, T0_Proposal_ratio,Ratio) 
-           
+                   &            Det_vec_old, Det_vec_new, nsigma_old, T0_Proposal_ratio,Ratio)
+
               If (L_Test) Write(6,*) 'Ratio_global: Irank, Partner',Irank,List_partner(Irank), &
                    &                  Ratiotot, Ratio(1)*exp(Ratio(2))
            else
@@ -272,7 +273,7 @@ Module Global_mod
               Ratio(1) = Ratiotot
               Ratio(2) = 0
            endif
-           
+
            !  Acceptace/rejection decision taken on master node after receiving information from slave
            Do nc = 1,Isize/2 ! Loop over masters
               I = List_masters(nc)
@@ -282,12 +283,12 @@ Module Global_mod
                  CALL MPI_RECV(Ratio_p    , 2, MPI_COMPLEX16,  I, I+1024, MPI_COMM_WORLD,STATUS,IERR)
                  !Weight = abs(Ratiotot_p*Ratiotot)
                  Weight= abs(Ratio(1) * Ratio_p(1) * exp( Ratio_p(2) + Ratio(2)  ) )
-                 TOGGLE = .false. 
+                 TOGGLE = .false.
                  if ( Weight > ranf_wrap() )  Toggle =.true.
                  If (L_Test) Write(6,*) 'Master : ', List_Partner(I), I, Weight, Toggle
               endif
            enddo
-           
+
            !>  Send result of acceptance/rejection decision form master to slave
            Do nc =  1,Isize/2 ! Loop over masters
               I = List_masters(nc)
@@ -299,10 +300,10 @@ Module Global_mod
                  If (L_Test) Write(6,*) 'Slave : ', Irank,  Toggle
               endif
            enddo
-           
+
            If (L_Test) Write(6,*) 'Final: ',  Irank, List_partner(Irank), toggle
            Call Global_Tempering_obser(Toggle)
-           Call Control_upgrade_Temp  (Toggle) 
+           Call Control_upgrade_Temp  (Toggle)
            If (toggle)  then
               !     Move has been accepted
               if (Tempering_calc_det) then
@@ -319,7 +320,7 @@ Module Global_mod
               nsigma_irank = nsigma_old_irank
            endif
         enddo
-        
+
         ! Finalize
         if (Tempering_calc_det) then
            ! If move has been accepted, no use to recomute storage
@@ -350,9 +351,9 @@ Module Global_mod
               CALL CGR(Z, NVAR, GR(:,:,nf), udvr(nf),  udvl(nf))
               Phase = Phase*Z
            Enddo
-           call Op_phase(Phase,OP_V,Nsigma,N_SUN)     
+           call Op_phase(Phase,OP_V,Nsigma,N_SUN)
         else
-           !  Send >> Phase, GR, udvr, udvl, udvst << to new node 
+           !  Send >> Phase, GR, udvr, udvl, udvst << to new node
            !  First step: Each node sends to IRANK=0 its value nsigma_irank,
            !  which is the node where its new Phase, GR, udvr, udvl, udvst is stored
            !  This node then tells each node where to send its now old Phase, GR, udvr, udvl, udvst
@@ -377,11 +378,11 @@ Module Global_mod
            if ( nsigma_irank /= irank ) then
               CALL MPI_Sendrecv_Replace(Phase, 1, MPI_COMPLEX16, nsigma_old_irank, 0, &
                    &        nsigma_irank, 0, MPI_COMM_WORLD, STATUS, IERR)
-              
+
               n_GR = size(GR,1)*size(GR,2)*size(GR,3)
               CALL MPI_Sendrecv_Replace(GR, n_GR, MPI_COMPLEX16, nsigma_old_irank, 0, &
                    &        nsigma_irank, 0, MPI_COMM_WORLD, STATUS, IERR)
-              
+
               do nf = 1,N_Fl
                  CALL udvr(nf)%MPI_Sendrecv(nsigma_old_irank, 0, nsigma_irank, 0, STATUS, IERR)
               enddo
@@ -398,13 +399,13 @@ Module Global_mod
 
 
         call nsigma_old%clear
-        
+
         if (Tempering_calc_det) then
-           Deallocate ( Det_vec_old, Det_vec_new ) 
+           Deallocate ( Det_vec_old, Det_vec_new )
            Deallocate ( Phase_Det_new, Phase_Det_old )
         endif
         Deallocate ( List_partner, List_masters )
-        
+
       end Subroutine Exchange_Step
 #endif
 
@@ -445,13 +446,13 @@ Module Global_mod
 !> \verbatim
 !>  Number of global moves that will be caried out
 !> \endverbatim
-!> 
+!>
 !--------------------------------------------------------------------
       Subroutine Global_Updates(Phase,GR, udvr, udvl, Stab_nt, udvst,N_Global)
-        
+
         Use UDV_State_mod
         Implicit none
-        
+
         Interface
            SUBROUTINE WRAPUL(NTAU1, NTAU, udvl)
              Use Hamiltonian
@@ -470,7 +471,7 @@ Module Global_mod
              INTEGER         :: NVAR
            END SUBROUTINE CGR
         end Interface
-        
+
         !  Arguments
         COMPLEX (Kind=Kind(0.d0)),                                INTENT(INOUT) :: Phase
         CLASS   (UDV_State), DIMENSION(:), ALLOCATABLE,           INTENT(INOUT) :: udvl, udvr
@@ -478,8 +479,8 @@ Module Global_mod
         CLASS(UDV_State), Dimension(:,:), ALLOCATABLE,            INTENT(INOUT) :: udvst
         INTEGER, dimension(:),   allocatable,                     INTENT(IN)    :: Stab_nt
         Integer,                                                  INTENT(IN)    :: N_Global
-        
-        
+
+
         !  Local variables.
         Integer :: NST, NSTM, NF, NT, NT1, NVAR,N, N1,N2, I, NC, N_part,j
         Real    (Kind=Kind(0.d0)) :: T0_Proposal_ratio, Weight
@@ -490,22 +491,22 @@ Module Global_mod
 
         Complex (Kind=Kind(0.d0)) :: Ratio(2)
         Logical :: TOGGLE, L_Test
-        Real    (Kind=Kind(0.d0)) :: size_clust 
+        Real    (Kind=Kind(0.d0)) :: size_clust
         Real    (Kind=Kind(0.d0)) :: ratio_2_test
-        Character (Len=64)  :: storage 
-        
-        
-        
+        Character (Len=64)  :: storage
+
+
+
         n1 = size(nsigma%f,1)
         n2 = size(nsigma%f,2)
         NSTM = Size(udvst, 1)
         call nsigma_old%make(n1, n2)
 
-        Allocate ( Det_vec_old(NDIM,N_FL), Det_vec_new(NDIM,N_FL), Det_vec_test(NDIM,N_FL) ) 
+        Allocate ( Det_vec_old(NDIM,N_FL), Det_vec_new(NDIM,N_FL), Det_vec_test(NDIM,N_FL) )
         Allocate ( Phase_Det_new(N_FL), Phase_Det_old(N_FL) )
-        
+
         L_test = .false.
-        ! Set old weight. 
+        ! Set old weight.
         storage = "Full"
         Call Compute_Fermion_Det(Phase_det_old,Det_Vec_old, udvl, udvst, Stab_nt, storage)
         Phase_old = cmplx(1.d0,0.d0,kind=kind(0.d0))
@@ -513,9 +514,9 @@ Module Global_mod
            Phase_old = Phase_old*Phase_det_old(nf)
         Enddo
         Call Op_phase(Phase_old,OP_V,Nsigma,N_SUN)
-        
-        If (L_test) then 
-           ! Testing    
+
+        If (L_test) then
+           ! Testing
            Do nf = 1,N_FL
               if (Projector) then
                  CALL udvr(nf)%reset('r',WF_R(nf)%P)
@@ -529,7 +530,7 @@ Module Global_mod
               CALL CGR(Z, NVAR, GR(:,:,nf), udvr(nf), udvl(nf))
               Phase = Phase*Z
            Enddo
-           call Op_phase(Phase,OP_V,Nsigma,N_SUN) 
+           call Op_phase(Phase,OP_V,Nsigma,N_SUN)
            Do Nf = 1,N_FL
               Call DET_C_LU(GR(:,:,nf),Det_vec_test(:,nf),Ndim)
               Z = Phase_det_old(nf)
@@ -543,11 +544,11 @@ Module Global_mod
               if(abs(ratio_2_test)>650) write(6,*) "Weight is about to reach double underflow!"
            Enddo
         Endif
-        
+
         ! Store old configuration
         nsigma_old%f = nsigma%f
         nsigma_old%t = nsigma%t
-        ! Phase_old, Phase_det_old and Det_vec_old  are all set. 
+        ! Phase_old, Phase_det_old and Det_vec_old  are all set.
         NC = 0
         Do n = 1,N_Global
            ! Draw a new spin configuration. This is provided by the user in the Hamiltonian module
@@ -564,20 +565,20 @@ Module Global_mod
                  Phase_new = Phase_new*Phase_det_new(nf)
               Enddo
               Call Op_phase(Phase_new,OP_V,Nsigma,N_SUN)
-              
+
               Ratiotot = Compute_Ratio_Global(Phase_Det_old, Phase_Det_new, &
-                   &                          Det_vec_old, Det_vec_new, nsigma_old, T0_Proposal_ratio, Ratio) 
-              
+                   &                          Det_vec_old, Det_vec_new, nsigma_old, T0_Proposal_ratio, Ratio)
+
               !Write(6,*) 'Ratio_global: ', Ratiotot
-              
+
               Weight = abs(  real( Phase_old * Ratiotot, kind=Kind(0.d0))/real(Phase_old,kind=Kind(0.d0)) )
-              
+
               Z = Phase_old * Ratiotot/ABS(Ratiotot)
               Call Control_PrecisionP_Glob(Z,Phase_new)
               !Write(6,*) Z, Phase_new
-              
-              
-              TOGGLE = .false. 
+
+
+              TOGGLE = .false.
               if ( Weight > ranf_wrap() )  Then
                  TOGGLE = .true.
                  Phase_old     = Phase_new
@@ -592,7 +593,7 @@ Module Global_mod
               Call Control_upgrade_Glob(TOGGLE,size_clust)
            endif
         Enddo
-        
+
         If (NC > 0 ) then
            If (.not.TOGGLE) then
               DO nf = 1,N_FL
@@ -621,17 +622,17 @@ Module Global_mod
               CALL CGR(Z, NVAR, GR(:,:,nf), udvr(nf), udvl(nf))
               Phase = Phase*Z
            Enddo
-           call Op_phase(Phase,OP_V,Nsigma,N_SUN) 
+           call Op_phase(Phase,OP_V,Nsigma,N_SUN)
         endif
-        
-        
+
+
         call nsigma_old%clear
-        Deallocate ( Det_vec_old  , Det_vec_new, Det_vec_test  ) 
+        Deallocate ( Det_vec_old  , Det_vec_new, Det_vec_test  )
         Deallocate ( Phase_Det_new, Phase_Det_old )
-        
-        
+
+
       End Subroutine Global_Updates
-      
+
 
 !--------------------------------------------------------------------
 !> @author
@@ -642,7 +643,7 @@ Module Global_mod
 !>
 !> @details
 !> \verbatim
-!>  Ratio_Global = T0(nsigma--> nsigma_old) W(nsigma)/T0(nsigma_old--> nsigma) W(nsigma_old) = 
+!>  Ratio_Global = T0(nsigma--> nsigma_old) W(nsigma)/T0(nsigma_old--> nsigma) W(nsigma_old) =
 !>                 T0_Proposal_ratio   W(nsigma)/  W(nsigma_old)
 !>  On entry the old and new fermion determinants read: Phase_det*e^{ \sum_{n=1}^{ndim} Det_vec(n) }
 !>  as obtained from the Compute_Fermion_det routine.
@@ -663,21 +664,21 @@ Module Global_mod
       Complex (Kind=Kind(0.d0)) Function Compute_Ratio_Global(Phase_Det_old, Phase_Det_new, &
            &                    Det_vec_old, Det_vec_new, nsigma_old, T0_Proposal_ratio,Ratio)
 
-    
+
         Implicit none
-        
+
         ! Arguments
         Complex (Kind=Kind(0.d0)), allocatable, INTENT(IN) :: Phase_Det_old(:), Phase_Det_new(:)
         REAL    (Kind=Kind(0.d0)), allocatable, INTENT(IN) :: Det_vec_old(:,:), Det_vec_new(:,:)
-        Real    (Kind=Kind(0.d0)),    INTENT(IN)  :: T0_proposal_ratio 
+        Real    (Kind=Kind(0.d0)),    INTENT(IN)  :: T0_proposal_ratio
         Type    (Fields),             INTENT(IN)  :: nsigma_old
         Complex (Kind=Kind(0.d0)),    INTENT(out) :: Ratio(2)
-        
-        ! Local 
+
+        ! Local
         Integer  :: Nf, i, nt
         Complex (Kind=Kind(0.d0)) :: Z, Z1
         Real    (Kind=Kind(0.d0)) :: X, Ratio_2
-        
+
         Ratio = cmplx(0.d0,0.d0,kind(0.d0))
         Ratio_2 = 0.d0
         !X = 1.d0
@@ -693,14 +694,14 @@ Module Global_mod
            !Z = Z*Phase_Det_new(nf)/Phase_Det_old(nf)
            Ratio(1) = Ratio(1) *  Phase_Det_new(nf)/Phase_Det_old(nf)
         enddo
-        !Z = Z**N_SUN 
+        !Z = Z**N_SUN
         Ratio(1) = Ratio(1)**N_SUN
         Ratio_2 = real(N_SUN,kind(0.d0))*Ratio_2
-        
+
         Do I = 1,Size(Op_V,1)
            X = 0.d0
            Do nt = 1,Ltrot
-              !Z = Z * cmplx( Gaml(nsigma(i,nt),2)/Gaml(nsigma_old(i,nt),2),0.d0,kind(0.d0) ) 
+              !Z = Z * cmplx( Gaml(nsigma(i,nt),2)/Gaml(nsigma_old(i,nt),2),0.d0,kind(0.d0) )
               Ratio(1) = Ratio(1) * cmplx( nsigma%Gama(i,nt)/nsigma_old%Gama(i,nt),0.d0,kind(0.d0) )  !  You could put this in Ratio_2
               X = X + nsigma%Phi(i,nt) - nsigma_old%Phi(i,nt)
            Enddo
@@ -712,17 +713,17 @@ Module Global_mod
         !Z =  Z * cmplx( Delta_S0_global(Nsigma_old),0.d0,kind(0.d0) )
         !Z =  Z * cmplx( T0_Proposal_ratio, 0.d0,kind(0.d0))
         Ratio_2 = Ratio_2 + log(Delta_S0_global(Nsigma_old)) + log(T0_Proposal_ratio)
-        
+
         Ratio(2) = Ratio_2
         Compute_Ratio_Global = Ratio(1)*exp(Ratio(2))
-        
-        
+
+
       end Function Compute_Ratio_Global
-      
+
 !--------------------------------------------------------------------
-!> @author 
-!> 
-!> @brief 
+!> @author
+!>
+!> @brief
 !> Computes the fermion determinant from scratch or from the storage.
 !>
 !> @details
@@ -742,7 +743,7 @@ Module Global_mod
 !> \endverbatim
 !> @param[out] Phase_det  Complex, Dimension(N_FL)
 !> \verbatim
-!>  The phase, per flavor 
+!>  The phase, per flavor
 !> \endverbatim
 !> @param[out] Det_vec  Real, Dimension(:,N_FL)
 !> @param[in] Stab_nt  Integer, Dimension(:)
@@ -754,14 +755,14 @@ Module Global_mod
 !>  storage = "Full".  Compute the fermion det  with the use of the storage.
 !>  storage = "Empty". Compute the fermion det from scratch and  in doing so, fill the storage.
 !> \endverbatim
-!> 
+!>
 !--------------------------------------------------------------------
       Subroutine Compute_Fermion_Det(Phase_det,Det_Vec, udvl, udvst, Stab_nt, storage)
 !--------------------------------------------------------------------
 
         Use  UDV_Wrap_mod
         Use UDV_State_mod
-        
+
         Implicit none
 
         Interface
@@ -773,15 +774,15 @@ Module Global_mod
              Integer :: NTAU1, NTAU
            END SUBROUTINE WRAPUL
         end Interface
-        
+
         REAL    (Kind=Kind(0.d0)), Dimension(:,:), Intent(OUT)  ::  Det_Vec
         Complex (Kind=Kind(0.d0)), Dimension(:)  , Intent(OUT)  ::  Phase_det
         CLASS(UDV_State), DIMENSION(:)  , ALLOCATABLE,  INTENT(INOUT) :: udvl
         CLASS(UDV_State), Dimension(:,:), ALLOCATABLE,  INTENT(INOUT) :: udvst
         INTEGER,          dimension(:),   allocatable,    INTENT(IN)  :: Stab_nt
-        Character (Len=64), Intent(IN) :: storage 
+        Character (Len=64), Intent(IN) :: storage
 
-        
+
         !> Local variables
         Integer ::  N_size, NCON, I,  J, N_part, info, NSTM, N, nf, nst, nt, nt1
         Integer, allocatable :: ipiv(:)
@@ -790,10 +791,10 @@ Module Global_mod
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  TP!, U, V
         COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable :: D
 
-        
+
         if(udvl(1)%side .ne. "L" .and. udvl(1)%side .ne. "l" ) then
-           write(*,*) "calling wrong decompose"
-           Stop
+           write(error_unit,*) "Compute_Fermion_Det: calling wrong decompose"
+           error stop 1
         endif
 
         NSTM = Size(udvst, 1)
@@ -815,9 +816,9 @@ Module Global_mod
               ENDDO
            ENDDO
            NT1 = stab_nt(1)
-           CALL WRAPUL(NT1,0, udvl)           
+           CALL WRAPUL(NT1,0, udvl)
         Endif
-        
+
         if (Projector) then
            N_part=udvst(1,1)%N_part
            N_size=udvl(1)%ndim
@@ -860,14 +861,14 @@ Module Global_mod
            Deallocate(TP,ipiv)
            return
         endif
-        
+
         !    N_size = SIZE(DL,1)
         N_size = udvl(1)%ndim
         NCON  = 0
         alpha = cmplx(1.d0,0.d0,kind(0.d0))
         beta  = cmplx(0.d0,0.d0,kind(0.d0))
         Allocate (TP(N_Size,N_Size),D(N_size))
-        CALL udvlocal%alloc(N_size)  
+        CALL udvlocal%alloc(N_size)
         Do nf = 1,N_FL
            TP = udvl(nf)%U !udvl stores U^dag instead of U !CT(udvl%U)
 #if !defined(LOG)
@@ -899,7 +900,7 @@ Module Global_mod
            Z  = DET_C(udvlocal%V, N_size) ! Det destroys its argument
            !         Call MMULT(TP, udvl%U, udvlocal%U)
            CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, udvl(nf)%U(1,1), N_size, udvlocal%U(1,1), N_size, beta, TP, N_size)
-           Z1 = Det_C(TP, N_size) 
+           Z1 = Det_C(TP, N_size)
            Phase_det(nf)   = Z*Z1/ABS(Z*Z1)
 #if !defined(LOG)
 #if !defined(STAB3)
@@ -931,33 +932,33 @@ Module Global_mod
         Enddo
         Deallocate (TP)
         CALL udvlocal%dealloc
-        
+
       end subroutine Compute_Fermion_Det
-      
-      
+
+
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> The ALF Project contributors
 !>
-!> @brief 
+!> @brief
 !> Periodic boundary conditions required to defined master and slave for the tempering
 !--------------------------------------------------------------------
       Integer function  npbc_tempering(n,Isize)
         implicit none
         Integer,  INTENT(IN)   :: Isize,n
-        
+
         npbc_tempering = n
         if (  npbc_tempering < 0       ) npbc_tempering = npbc_tempering +  Isize
         if (  npbc_tempering > Isize -1) npbc_tempering = npbc_tempering -  Isize
-        
+
       end function npbc_tempering
-      
-      
+
+
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> The ALF Project contributors
 !>
-!> @brief 
+!> @brief
 !> Allocates the Tempering_acceptance (Type Obser_vec) variable  that monitors the exchange acceptance
 !--------------------------------------------------------------------
       Subroutine Global_Tempering_setup
@@ -969,10 +970,10 @@ Module Global_mod
       End Subroutine Global_Tempering_setup
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> The ALF Project contributors
 !>
-!> @brief 
+!> @brief
 !> Initializes  Tempering_acceptance
 !--------------------------------------------------------------------
 
@@ -981,10 +982,10 @@ Module Global_mod
       end Subroutine Global_Tempering_init_obs
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> The ALF Project contributors
 !>
-!> @brief 
+!> @brief
 !> Measures Tempering_acceptance
 !--------------------------------------------------------------------
 
@@ -995,19 +996,19 @@ Module Global_mod
         Tempering_acceptance%N         =  Tempering_acceptance%N + 1
         Tempering_acceptance%Ave_sign  =  Tempering_acceptance%Ave_sign + 1.d0
         if (toggle) Tempering_acceptance%Obs_vec(1) = Tempering_acceptance%Obs_vec(1) +  cmplx(1.d0,0.d0,kind(0.d0))
-        
+
       end Subroutine Global_Tempering_obser
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> The ALF Project contributors
 !>
-!> @brief 
+!> @brief
 !> Prints Tempering_acceptance
 !--------------------------------------------------------------------
       Subroutine Global_Tempering_Pr
         Implicit none
         Call  Print_bin_Vec(Tempering_acceptance,Group_Comm)
       end Subroutine Global_Tempering_Pr
-      
-      
+
+
 end Module Global_mod

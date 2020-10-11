@@ -1,0 +1,31 @@
+ =====================================
+ Model is      : 
+ Hubbard_SU2                                                     
+ Lattice is    : 
+ Honeycomb                                                       
+ # of orbitals :           72
+ Flux_1        :   0.000000000000000E+000
+ Flux_2        :   0.000000000000000E+000
+ Twist as phase factor in bulk
+ Checkerboard  :  T
+ Symm. decomp  :  F
+ Finite temperture version
+ Beta          :    40.0000000000000     
+ dtau,Ltrot_eff:   0.100000000000000              400
+ N_SUN         :            2
+ N_FL          :            1
+ t             :    1.00000000000000     
+ Ham_U         :    2.00000000000000     
+ Ham_chem      :   0.000000000000000E+000
+ No initial configuration, Seed_in      452938
+ Sweeps                              :         3000
+ Prog will stop after hours:   24.0000
+ Measure Int.                        :            1         400
+ Stabilization,Wrap                  :           10
+ Nstm                                :           40
+ Ltau                                :            1
+ # of interacting Ops per time slice :           72
+ Default sequential updating 
+ Number of mpi-processes :            2
+ This executable represents commit 088b334d of branch 
+ 132-better_predefined_structures.

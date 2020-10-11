@@ -2,9 +2,9 @@
 #
 # The following jobscript contains a few 'variables' marked by the ##...## pattern.
 # The user has to provide the appropriate values, e.g. replace ##Nnodes## by 1 if the job is supposed to run on a single node.
-# Most variables are selfexplaning, one exceptions might be Nthreads, which is refering to the number of OpenMP threads per MPI task.
+# Most variables are self-explanatory, one exceptions might be Nthreads, which is referring to the number of OpenMP threads per MPI task.
 # Useful configurations on SuperMUC-NG (48 cores) for Nthreads are 1,2,4,6,12,24 and NtaskPnode = 48/Nthreads
-# In general we found that ALF does not profit from hyperthreading such that we suggest to only use physical cores.
+# In general we found that ALF does not profit from hyper-threading such that we suggest to only use physical cores.
 #
 #SBATCH --job-name ##NAME##
 #SBATCH --output=out.%j.log
@@ -37,10 +37,10 @@ module switch mpi.intel  mpi.intel/2018
 module switch intel intel/18.0
 module switch mkl mkl/2018
 
-# the follwing eviroment variables generate an optimal pinning (to the best of our knowledge)
-# This DOES NOT have to be addepted to the choice of Ntasks
-# FIRST EXCEPTION: If you chose to use hyperthreading (not recommended) you should set I_MPI_PIN_CELL=cpu
-# SECOND EXCEPTION: The following enviroment variables are Intel specific.
+# the follwing environment variables generate an optimal pinning (to the best of our knowledge)
+# This DOES NOT have to be adapted to the choice of Ntasks
+# FIRST EXCEPTION: If you chose to use hyper-threading (not recommended) you should set I_MPI_PIN_CELL=cpu
+# SECOND EXCEPTION: The following environment variables are Intel specific.
 #export KMP_AFFINITY=verbose,granularity=fine,compact
 export KMP_AFFINITY=granularity=fine,compact
 export I_MPI_PIN_CELL=core

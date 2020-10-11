@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 - 2018 The ALF project
+!  Copyright (C) 2016 - 2020 The ALF project
 !
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -89,7 +89,7 @@
 !> \verbatim
 !>  Number of global moves per  sequential sweep.
 !>  Default: N_Global=0
-!> \endverbatim
+!> \endverbatim/
 !> @param Global_tau_moves Logical
 !> \verbatim
 !>  If true, global moves on a given time slice will be carried out
@@ -125,6 +125,7 @@ Program Main
         Use Wrapgr_mod
         Use Fields_mod
         Use ed_ham_mod, only: ed_ham
+        use iso_fortran_env, only: output_unit, error_unit
 #ifdef MPI
         Use mpi
 #endif
@@ -157,6 +158,10 @@ Program Main
              CLASS(UDV_State), intent(inout), allocatable, dimension(:) :: UDVR
              Integer :: NTAU1, NTAU
            END SUBROUTINE WRAPUR
+           Subroutine Set_Random_number_Generator(File_seeds,Seed_in)
+             Character (LEN=64), Intent(IN) :: File_seeds
+             Integer,  Intent(out) :: SEED_IN
+           end Subroutine Set_Random_number_Generator
         end Interface
 
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:)  , Allocatable   ::  TEST
@@ -167,7 +172,8 @@ Program Main
         Integer :: Nwrap, NSweep, NBin, NBin_eff,Ltau, NSTM, NT, NT1, NVAR, LOBS_EN, LOBS_ST, NBC, NSW
         Integer :: NTAU, NTAU1
         Real(Kind=Kind(0.d0)) :: CPU_MAX
-        Character (len=64) :: file1
+        Character (len=64) :: file1, File_seeds
+        Integer :: Seed_in
         Real (Kind=Kind(0.d0)) , allocatable, dimension(:,:) :: Initial_field
 
 
@@ -205,7 +211,6 @@ Program Main
 
         ! For tests
         Real (Kind=Kind(0.d0)) :: Weight, Weight_tot
-        Logical :: Log
 
         ! For the truncation of the program:
         logical                   :: prog_truncation
@@ -224,8 +229,8 @@ Program Main
         Tempering_calc_det = .true. ! Default value
         OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
         IF (ierr /= 0) THEN
-           WRITE(*,*) 'unable to open <parameters>',ierr
-           STOP
+           WRITE(error_unit,*) 'main: unable to open <parameters>',ierr
+           error stop 1
         END IF
         READ(5,NML=VAR_TEMP)
         CLOSE(5)
@@ -234,8 +239,8 @@ Program Main
         CALL MPI_BCAST(mpi_per_parameter_set   ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
         CALL MPI_BCAST(Tempering_calc_det      ,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
         if ( mod(ISIZE,mpi_per_parameter_set) .ne. 0 ) then
-           Write (6,*) "mpi_per_parameter_set is not a multiple of total mpi processes"
-           stop
+           Write (error_unit,*) "mpi_per_parameter_set is not a multiple of total mpi processes"
+           error stop 1
         endif
         Call Global_Tempering_setup
 #elif !defined(TEMPERING)  && defined(MPI)
@@ -274,8 +279,8 @@ Program Main
            Nt_sequential_start = 1 ;  Nt_sequential_end  = 0;  N_Global_tau  = 0
            OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
            IF (ierr /= 0) THEN
-              WRITE(*,*) 'unable to open <parameters>',ierr
-              STOP
+              WRITE(error_unit,*) 'main: unable to open <parameters>',ierr
+              error stop 1
            END IF
            READ(5,NML=VAR_QMC)
            CLOSE(5)
@@ -316,11 +321,16 @@ Program Main
         call MPI_BARRIER( Group_Comm, ierr )
 #endif
 
-        log=.false.
         if(Projector) then
-           if (.not. allocated(WF_R) .or. .not. allocated(WF_L)) log=.true.
+           if (.not. allocated(WF_R) .or. .not. allocated(WF_L)) then
+              write(error_unit,*) "Projector is selected but there are no trial wave functions!"
+              error stop 1
+           endif
            do nf=1,N_fl
-              if (.not. allocated(WF_R(nf)%P) .or. .not. allocated(WF_L(nf)%P)) log=.true.
+              if (.not. allocated(WF_R(nf)%P) .or. .not. allocated(WF_L(nf)%P)) then
+                 write(error_unit,*) "Projector is selected but there are no trial wave functions!"
+                 error stop 1
+              endif
            enddo
         endif
         !  Default values of  measuring interval.
@@ -329,16 +339,16 @@ Program Main
               LOBS_ST = Thtrot+1
            else
               If (LOBS_ST < Thtrot+1 ) then
-                 Write(6,*) ' Measuring out of dedicating interval '
-                 stop
+                 Write(error_unit,*) 'Measuring out of dedicating interval, LOBS_ST too small.'
+                 error stop 1
               endif
            endif
            if ( LOBS_EN == 0) then
               LOBS_EN = Ltrot-Thtrot
            else
               If (LOBS_EN > Ltrot-Thtrot ) then
-                 Write(6,*) ' Measuring out of dedicating interval '
-                 stop
+                 Write(error_unit,*) 'Measuring out of dedicating interval, LOBS_EN too big.'
+                 error stop 1
               endif
            endif
         else
@@ -354,15 +364,23 @@ Program Main
            Nt_sequential_start = 1
            Nt_sequential_end   = Size(OP_V,1)
            N_Global_tau        = 0
+        else
+           !  Gives the possibility to set parameters in the Hamiltonian file
+           Call Overide_global_tau_sampling_parameters(Nt_sequential_start,Nt_sequential_end,N_Global_tau)
         endif
-        Call Overide_global_tau_sampling_parameters(Nt_sequential_start,Nt_sequential_end,N_Global_tau)
-
+        
         N_op = Size(OP_V,1)
         call nsigma%make(N_op, Ltrot)
         Do n = 1,N_op
            nsigma%t(n)  = OP_V(n,1)%type
         Enddo
+        File_seeds="seeds"
+        Call Set_Random_number_Generator(File_seeds,Seed_in)
+        !Write(6,*) Seed_in
+               
         Call Hamiltonian_set_nsigma(Initial_field)
+
+        
         if (allocated(Initial_field)) then
            Call nsigma%in(Group_Comm,Initial_field)
            deallocate(Initial_field)
@@ -402,7 +420,6 @@ Program Main
         if ( Irank_g == 0 ) then
 #endif
            Open (Unit = 50,file=file1,status="unknown",position="append")
-           if(log) Write(50,*) "Projector is selected by there are no trial wave functions!"
            Write(50,*) 'Sweeps                              : ', Nsweep
            If ( abs(CPU_MAX) < ZERO ) then
               Write(50,*) 'Bins                                : ', NBin
@@ -460,7 +477,6 @@ Program Main
 #if defined(MPI)
         endif
 #endif
-        if (log) stop
 
 
 
