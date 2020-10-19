@@ -100,27 +100,35 @@ To restart the code using the configuration from a previous simulation as a star
 %-------------------------------------------------------------------------------------
 %
 
-The ALF package includes a few bash scripts for performing simple error analysis and correlation function calculations, as listed in Table~\ref{table:analysis_programs}. 
-To perform an error analysis based on the Jackknife resampling method~\cite{efron1981} (Sec.~\ref{sec:jack}) of the Monte Carlo bins for all observables run
+The ALF package includes the analysis program \texttt{ana.out} for performing simple error analysis and correlation function calculations on the three observable types. To perform an error analysis based on the Jackknife resampling method~\cite{efron1981} (Sec.~\ref{sec:jack}) of the Monte Carlo bins for a list of observables run
 \begin{lstlisting}[style=bash]
-./analysis.sh
+/path/to/ALF/Analysis/ana.out <list of files>
 \end{lstlisting}
-In case that the parameter \path{N_auto} is set to a finite value the script will also trigger the computation of autocorrelation functions (Sec.~\ref{sec:autocorr}).
+or run
+\begin{lstlisting}[style=bash]
+/path/to/ALF/Analysis/ana.out *
+\end{lstlisting}
+for all observables.
 
-Note that the error analysis script requires the presence of the environment variable \texttt{ALF\_DIR}, which stores the package's path and can be set by running \texttt{source configure.sh}. The files taken by \texttt{analysis.sh} as input, as well as its output files are listed in Table~\ref{table:analysis_files}.
+In case the parameter \path{N_auto} is set to a finite value the program will also trigger the computation of autocorrelation functions (Sec.~\ref{sec:autocorr}).
+
+The program \texttt{ana.out} is based on the included module \texttt{ana\_mod}, which provides subroutines for reading an analyzing ALF Monte Carlo bins, that can be used to implement more specialized analysis. The three high-level analysis routines employed by \texttt{ana\_mod} are listed in Table~\ref{table:analysis_programs}. The files taken as input, as well as the output files are listed in Table~\ref{table:analysis_files}.
 
 \begin{table}[h]
 	\begin{center}
 	\begin{tabular}{@{} p{0.15\linewidth} p{0.8\linewidth} @{}}\toprule
 		Program & Description \\\midrule
-		\texttt{cov\_scal.F90}  &  In combination with the script \texttt{analysis.sh}, the bin files with suffix \texttt{\_scal} are read in, and  the corresponding files with suffix \texttt{\_scalJ} are produced. They  contain the  result of the Jackknife rebinning analysis  (see Sec.~\ref{sec:sampling})  \\
-		\texttt{cov\_eq.F90}    &  In combination with the script \texttt{analysis.sh}, the bin files with suffix \texttt{\_eq} are read in, and the corresponding files with suffix  \texttt{\_eqJR}  and  \texttt{\_eqJK}  are produced. They  correspond to correlation functions in real and Fourier space, respectively  \\
-		\texttt{cov\_tau.F90}   &  In combination with the script \texttt{analysis.sh}, the bin files  \texttt{X\_tau} are read in, and the directories  \texttt{X\_kx\_ky} are produced  for all \texttt{kx} and \texttt{ky} greater or equal to zero \\
-		& Here \texttt{X}  is a place holder from \texttt{Green}, \texttt{SpinXY}, etc., as specified in \texttt{ Alloc\_obs(Ltau)} (See section \ref{Alloc_obs_sec}). Each directory contains  a  file    \texttt{g\_kx\_ky}  containing the  time-displaced correlation function traced over the  orbitals.  It also contains the covariance matrix if \texttt{N\_cov} is set to unity in the parameter file  (see Sec.~\ref{sec:input}). Also, a directory  \texttt{X\_R0}  for the local  time displaced  correlation function is generated  \\                         
-		\texttt{cov\_tau\_ph.F90} & At compilation time  the file \texttt{cov\_tau\_ph.F90} is generated, and  should be used to compute particle-hole, imaginary-time correlation functions such as Spin and Charge. Here we use the fact that these  correlation functions  are symmetric around $\tau = \beta/2$ so that we can define an improved estimator by averaging over $\tau$ and $\beta - \tau$  
+		\texttt{cov\_vec(name)}  &  
+		  The bin file \texttt{name}, which should have suffix \texttt{\_scal}, is read in, and  the corresponding file with suffix \texttt{\_scalJ} is produced. It contains the result of the Jackknife rebinning analysis (see Sec.~\ref{sec:sampling}).  \\
+		\texttt{cov\_eq(name)}    &  
+		  The bin file \texttt{name}, which should have suffix \texttt{\_eq}, is read in, and the corresponding files with suffix \texttt{\_eqJR} and \texttt{\_eqJK} are produced. They  correspond to correlation functions in real and Fourier space, respectively. \\
+		\texttt{cov\_tau(name)}   &  
+		  The bin file \texttt{name}, which should have suffix \texttt{\_tau}, is read in, and the directories \texttt{X\_kx\_ky} are produced for all \texttt{kx} and \texttt{ky} greater or equal to zero. \\
+		& Here \texttt{X}  is a place holder from \texttt{Green}, \texttt{SpinXY}, etc., as specified in \texttt{ Alloc\_obs(Ltau)} (See section \ref{Alloc_obs_sec}). Each directory contains  a  file    \texttt{g\_dat}  containing the  time-displaced correlation function traced over the  orbitals.  It also contains the covariance matrix if \texttt{N\_cov} is set to unity in the parameter file (see Sec.~\ref{sec:input}). Also, a directory \texttt{X\_R0} for the local time displaced correlation function is generated.  \\                         
+		& For particle-hole, imaginary-time correlation functions (\texttt{Channel="PH"}) such as Spin and Charge, we use the fact that these correlation functions  are symmetric around $\tau = \beta/2$ so that we can define an improved estimator by averaging over $\tau$ and $\beta - \tau$.
 		\\\bottomrule
 	\end{tabular}
-	\caption{ Overview of analysis programs that are called within the script \texttt{analysis.sh}. \label{table:analysis_programs}}
+	\caption{Overview of analysis subroutines called within the program \texttt{ana.out}. \label{table:analysis_programs}}
 \end{center}
 \end{table}
 %
@@ -136,7 +144,7 @@ If the autocorrelation time  is smaller than the effective bin size, the error s
 		\begin{tabular}{@{} p{0.2\linewidth} p{0.75\linewidth} @{}}\toprule
 		File & Description  \\ \midrule
 		Input &  \\\midrule %\cmidrule{1-1}
-		\texttt{parameters}  &  Includes error analysis variables \texttt{n\_skip}, \texttt{N\_rebin}, and \texttt{N\_Cov} (see Sec.~\ref{sec:input}) \\
+		\texttt{parameters}  &  Includes error analysis variables \texttt{N\_skip}, \texttt{N\_rebin}, and \texttt{N\_Cov} (see Sec.~\ref{sec:input}) \\
 		\texttt{X\_scal}, \texttt{Y\_eq}, \texttt{Y\_tau} & Monte Carlo bins (see Table \ref{table:output}) \vspace{5pt} \\
 
 		Output &  \\\midrule
@@ -145,7 +153,7 @@ If the autocorrelation time  is smaller than the effective bin size, the error s
 		\texttt{Y\_R0/g\_R0} & Time-resolved and spatially local Jackknife mean and error of \texttt{Y}, where \texttt{Y} stands for \texttt{Green, SpinZ, SpinXY}, and \texttt{Den}\\
 		\texttt{Y\_kx\_ky/g\_kx\_ky} & Time resolved and $\vec{k}$-dependent Jackknife mean and error of \texttt{Y}, where \texttt{Y} stands for \texttt{Green, SpinZ, SpinXY}, and \texttt{Den}\\\bottomrule
 	\end{tabular}
-	\caption{ Standard input and output files of the error analysis script \texttt{analysis.sh}. \label{table:analysis_files}}
+	\caption{Standard input and output files of the error analysis program \texttt{ana.out}. \label{table:analysis_files}}
 \end{center}
 \end{table}
 %
@@ -153,7 +161,7 @@ The analysis output files listed in Table \ref{table:analysis_files} and are for
 \begin{itemize}
 	\item For the scalar quantities \texttt{X}, the output files  \texttt{X\_scalJ} have the following formatting:
 	\begin{alltt}
-		Effective number of bins, and bins:           <N_bin - n_skip>          <N_bin>	
+		Effective number of bins, and bins:      <N_bin - N_skip>/<N_rebin>       <N_bin>	
 		OBS :    1      <mean(X)>      <error(X)>	
 		OBS :    2      <mean(sign)>   <error(sign)>
 	\end{alltt}
@@ -190,7 +198,7 @@ The analysis output files listed in Table \ref{table:analysis_files} and are for
 
 %
 %-------------------------------------------------------------------------------------
-\subsection{Performance \& parameter optimization} \label{sec:optimize}
+\subsection{Parameter optimization} \label{sec:optimize}
 %-------------------------------------------------------------------------------------
 %
 

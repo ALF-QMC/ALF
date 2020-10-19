@@ -149,8 +149,8 @@
       Logical              :: Symm
 
 
-      Type (Lattice),       private :: Latt
-      Type (Unit_cell),     private :: Latt_unit
+      Type (Lattice),       private, target :: Latt
+      Type (Unit_cell),     private, target :: Latt_unit
       Integer,              private :: L1, L2
       Type (Hopping_Matrix_type), Allocatable, private :: Hopping_Matrix(:)
       real (Kind=Kind(0.d0)),        private :: ham_T , ham_U,  Ham_chem
@@ -337,6 +337,9 @@
              Write(50,*) 'N_FL          : ', N_FL
              Write(50,*) 't             : ', Ham_T
              Write(50,*) 'Ham_U         : ', Ham_U
+             Write(50,*) 't2            : ', Ham_T2
+             Write(50,*) 'Ham_U2        : ', Ham_U2
+             Write(50,*) 'Ham_tperp     : ', Ham_tperp
              Write(50,*) 'Ham_chem      : ', Ham_chem
              Close(50)
 #ifdef MPI
@@ -487,15 +490,15 @@
         Subroutine Ham_V
 
           Use Predefined_Int
-          Implicit none 
-          
-          Integer :: nf, I, I1, I2,  nc,  J, no,  N_ops 
+          Implicit none
+
+          Integer :: nf, I, I1, I2,  nc,  J, no,  N_ops
           Real (Kind=Kind(0.d0)) :: X,  Zero = 1.D-10
           Real (Kind=Kind(0.d0)), allocatable :: Ham_U_vec(:)
 
 
           Allocate (Ham_U_vec(Latt_unit%Norb))
-          
+
           N_ops = 0
           if ( Lattice_type == "Bilayer_square" .or. Lattice_type =="Bilayer_honeycomb" ) then
              Ham_U_vec(1) = Ham_U
@@ -520,7 +523,7 @@
                 enddo
              enddo
           else
-             Allocate(Op_V(Ndim,N_FL))
+             Allocate(Op_V(N_ops,N_FL))
              nc = 0
              Do I1 = 1,Latt%N
                 do no = 1, Latt_unit%Norb
@@ -551,23 +554,23 @@
           Implicit none
           !>  Ltau=1 if time displaced correlations are considered.
           Integer, Intent(In) :: Ltau
-          Integer    ::  i, N, Ns,Nt,No, Norb
+          Integer    ::  i, N, Nt
           Character (len=64) ::  Filename
+          Character (len=2)  ::  Channel
 
 
-          Norb = Latt_unit%Norb
           ! Scalar observables
           Allocate ( Obs_scal(4) )
           Do I = 1,Size(Obs_scal,1)
              select case (I)
              case (1)
-                N = 1;   Filename ="Kin"
+                N = 1;   Filename = "Kin"
              case (2)
-                N = 1;   Filename ="Pot"
+                N = 1;   Filename = "Pot"
              case (3)
-                N = 1;   Filename ="Part"
+                N = 1;   Filename = "Part"
              case (4)
-                N = 1;   Filename ="Ener"
+                N = 1;   Filename = "Ener"
              case default
                 Write(6,*) ' Error in Alloc_obs '
              end select
@@ -580,20 +583,21 @@
              Do I = 1,Size(Obs_eq,1)
                 select case (I)
                 case (1)
-                   Ns = Latt%N;  No = Norb;  Filename ="Green"
+                   Filename = "Green"
                 case (2)
-                   Ns = Latt%N;  No = Norb;  Filename ="SpinZ"
+                   Filename = "SpinZ"
                 case (3)
-                   Ns = Latt%N;  No = Norb;  Filename ="SpinXY"
+                   Filename = "SpinXY"
                 case (4)
-                   Ns = Latt%N;  No = Norb;  Filename ="SpinT"
+                   Filename = "SpinT"
                 case (5)
-                   Ns = Latt%N;  No = Norb;  Filename ="Den"
+                   Filename = "Den"
                 case default
                    Write(6,*) ' Error in Alloc_obs '
                 end select
                 Nt = 1
-                Call Obser_Latt_make(Obs_eq(I),Ns,Nt,No,Filename)
+                Channel = '--'
+                Call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
              enddo
 
              If (Ltau == 1) then
@@ -602,20 +606,21 @@
                 Do I = 1,Size(Obs_tau,1)
                    select case (I)
                    case (1)
-                      Ns = Latt%N; No = Norb;  Filename ="Green"
+                      Channel = 'P' ; Filename = "Green"
                    case (2)
-                      Ns = Latt%N; No = Norb;  Filename ="SpinZ"
+                      Channel = 'PH'; Filename = "SpinZ"
                    case (3)
-                      Ns = Latt%N; No = Norb;  Filename ="SpinXY"
+                      Channel = 'PH'; Filename = "SpinXY"
                    case (4)
-                      Ns = Latt%N; No = Norb;  Filename ="SpinT"
+                      Channel = 'PH'; Filename = "SpinT"
                    case (5)
-                      Ns = Latt%N; No = Norb;  Filename ="Den"
+                      Channel = 'PH'; Filename = "Den"
                    case default
                       Write(6,*) ' Error in Alloc_obs '
                    end select
                    Nt = Ltrot+1-2*Thtrot
-                   Call Obser_Latt_make(Obs_tau(I),Ns,Nt,No,Filename)
+                   If(Projector) Channel = 'T0'
+                   Call Obser_Latt_make(Obs_tau(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
                 enddo
              endif
           else
@@ -624,16 +629,17 @@
              Do I = 1,Size(Obs_eq,1)
                 select case (I)
                 case (1)
-                   Ns = Latt%N;  No = Norb;  Filename ="Green"
+                   Filename = "Green"
                 case (2)
-                   Ns = Latt%N;  No = Norb;  Filename ="SpinZ"
+                   Filename = "SpinZ"
                 case (3)
-                   Ns = Latt%N;  No = Norb;  Filename ="Den"
+                   Filename = "Den"
                 case default
                    Write(6,*) ' Error in Alloc_obs '
                 end select
                 Nt = 1
-                Call Obser_Latt_make(Obs_eq(I),Ns,Nt,No,Filename)
+                Channel = '--'
+                Call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
              enddo
 
              If (Ltau == 1) then
@@ -642,16 +648,17 @@
                 Do I = 1,Size(Obs_tau,1)
                    select case (I)
                    case (1)
-                      Ns = Latt%N; No = Norb;  Filename ="Green"
+                      Channel = 'P' ; Filename = "Green"
                    case (2)
-                      Ns = Latt%N; No = Norb;  Filename ="SpinZ"
+                      Channel = 'PH'; Filename = "SpinZ"
                    case (3)
-                      Ns = Latt%N; No = Norb;  Filename ="Den"
+                      Channel = 'PH'; Filename = "Den"
                    case default
                       Write(6,*) ' Error in Alloc_obs '
                    end select
                    Nt = Ltrot+1-2*Thtrot
-                   Call Obser_Latt_make(Obs_tau(I),Ns,Nt,No,Filename)
+                   If(Projector) Channel = 'T0'
+                   Call Obser_Latt_make(Obs_tau(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
                 enddo
              endif
           endif
@@ -731,7 +738,7 @@
                 if (no_I == 2)  ZPot = ZPot + Grc(i1,i1,1) * Grc(i1,i1, dec)* ham_U2
              enddo
           Enddo
-          
+
           Obs_scal(2)%Obs_vec(1)  =  Obs_scal(2)%Obs_vec(1) + Zpot * ZP*ZS
 
 

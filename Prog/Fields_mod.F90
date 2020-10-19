@@ -62,7 +62,7 @@
        Private
        Real (Kind=Kind(0.d0)), allocatable, dimension(:,:)  :: Phi_st,  Gama_st
        Real (Kind=Kind(0.d0))  :: Del
-       Real (Kind=Kind(0.d0))  :: Amplitude=5.d0
+       Real (Kind=Kind(0.d0))  :: Amplitude=1.d0
        Integer :: maxgh ! the maximum number of gauss-hemite quadrature nodes divided by two
 
        Type Fields
@@ -231,6 +231,8 @@
         else
             maxgh = nrnodes/2
         endif
+
+        Del = 1.d0
         If (Present(Delta_X)) Del = Delta_X
         
         Allocate(Phi_st(-maxgh:maxgh, 2), gama_st(-maxgh:maxgh, 2))
@@ -614,7 +616,7 @@
                   this%f(I,nt)  = 1.d0
                   if ( ranf_wrap() > 0.5D0 ) this%f(I,nt) = -1.d0
                else
-                  this%f(I,nt)  = ranf_wrap() - 0.5d0
+                  this%f(I,nt)  = del*(ranf_wrap() - 0.5d0)
                endif
             enddo
          enddo

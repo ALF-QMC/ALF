@@ -25,6 +25,7 @@
 
       ! What is below is  private
       Type (Lattice),       private :: Latt
+      Type (Unit_cell),     private :: Latt_unit
       Integer,              private :: L1, L2, n_Lambda
       real (Kind=8),        private :: ham_T , ham_U,  Ham_chem, Lambda, RhoD
       real (Kind=8),        private :: Dtau, Beta, Phi_x, Theta
@@ -147,50 +148,21 @@
 #endif
           call Ham_V
         end Subroutine Ham_Set
-!=============================================================================
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Sets  the  Lattice
+!--------------------------------------------------------------------
         Subroutine Ham_Latt
+
+          Use Predefined_Lattices
+
           Implicit none
-          !Set the lattice
-          Real (Kind=8)  :: a1_p(2), a2_p(2), L1_p(2), L2_p(2)
-          Integer :: I, nc, no
-
-
-          If ( Lattice_type =="Square" ) then
-             a1_p(1) =  1.0  ; a1_p(2) =  0.d0
-             a2_p(1) =  0.0  ; a2_p(2) =  1.d0
-             L1_p    =  dble(L1)*a1_p
-             L2_p    =  dble(L2)*a2_p
-             Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
-             !Write(6,*)  'Lattice: ', Ndim
-             One_dimensional = .false.
-             N_coord   = 2
-             Norb = 1
-             If ( L1 == 1 .or. L2 == 1 ) then
-                One_dimensional = .true.
-                N_coord   = 1
-                If (L1 == 1 ) then
-                   Write(error_unit,*) 'Ham_Latt: For one dimensional systems set  L2 = 1'
-                   error stop 1
-                endif
-             endif
-          else
-             Write(error_unit,*) "Ham_Latt: Lattice not yet implemented!"
-             error stop 1
-          endif
-
-          ! This is for the orbital structure.
-          Ndim = Latt%N*Norb
-          Allocate (List(Ndim,2), Invlist(Latt%N,Norb))
-          nc = 0
-          Do I = 1,Latt%N
-             Do no = 1,Norb
-                ! For the Honeycomb lattice no = 1,2 corresponds to the A,and B sublattices.
-                nc = nc + 1
-                List(nc,1) = I
-                List(nc,2) = no
-                Invlist(I,no) = nc
-             Enddo
-          Enddo
+          ! Use predefined stuctures or set your own lattice.
+          Call Predefined_Latt(Lattice_type, L1,L2,Ndim, List,Invlist,Latt,Latt_Unit)
 
         end Subroutine Ham_Latt
 
@@ -357,21 +329,22 @@
 
           Implicit none
           Integer, Intent(In) :: Ltau
-          Integer    ::  i, N, Ns,Nt,No
+          Integer    ::  i, N, Nt
           Character (len=64) ::  Filename
+          Character (len=2)  ::  Channel
 
           ! Scalar observables
           Allocate ( Obs_scal(4) )
           Do I = 1,Size(Obs_scal,1)
              select case (I)
              case (1)
-                N = 1;   Filename ="Kin"
+                N = 1;   Filename = "Kin"
              case (2)
-                N = 1;   Filename ="Pot"
+                N = 1;   Filename = "Pot"
              case (3)
-                N = 1;   Filename ="Part"
+                N = 1;   Filename = "Part"
              case (4)
-                N = 1;   Filename ="Ener"
+                N = 1;   Filename = "Ener"
              case default
                 Write(6,*) ' Error in Alloc_obs '
              end select
@@ -384,18 +357,19 @@
           Do I = 1,Size(Obs_eq,1)
              select case (I)
              case (1)
-                Ns = Latt%N;  No = Norb;  Filename ="Green"
+                Filename = "Green"
              case (2)
-                Ns = Latt%N;  No = Norb;  Filename ="SpinZ"
+                Filename = "SpinZ"
              case (3)
-                Ns = Latt%N;  No = Norb;  Filename ="SpinXY"
+                Filename = "SpinXY"
              case (4)
-                Ns = Latt%N;  No = Norb;  Filename ="Den"
+                Filename = "Den"
              case default
                 Write(6,*) ' Error in Alloc_obs '
              end select
              Nt = 1
-             Call Obser_Latt_make(Obs_eq(I),Ns,Nt,No,Filename)
+             Channel = '--'
+             Call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
           enddo
 
           If (Ltau == 1) then
@@ -404,18 +378,19 @@
              Do I = 1,Size(Obs_tau,1)
                 select case (I)
                 case (1)
-                   Ns = Latt%N; No = Norb;  Filename ="Green"
+                   Channel = 'P' ; Filename = "Green"
                 case (2)
-                   Ns = Latt%N; No = Norb;  Filename ="SpinZ"
+                   Channel = 'PH'; Filename = "SpinZ"
                 case (3)
-                   Ns = Latt%N; No = Norb;  Filename ="SpinXY"
+                   Channel = 'PH'; Filename = "SpinXY"
                 case (4)
-                   Ns = Latt%N; No = Norb;  Filename ="Den"
+                   Channel = 'PH'; Filename = "Den"
                 case default
                    Write(6,*) ' Error in Alloc_obs '
                 end select
                 Nt = Ltrot+1-2*Thtrot
-                Call Obser_Latt_make(Obs_tau(I),Ns,Nt,No,Filename)
+                If(Projector) Channel = 'T0'
+                Call Obser_Latt_make(Obs_tau(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
              enddo
           endif
         end Subroutine Alloc_obs
@@ -656,11 +631,11 @@
              Call  Print_bin_Vec(Obs_scal(I),Group_Comm)
           enddo
           Do I = 1,Size(Obs_eq,1)
-             Call  Print_bin_Latt(Obs_eq(I),Latt,dtau,Group_Comm)
+             Call  Print_bin_Latt(Obs_eq(I),Group_Comm)
           enddo
           If (Ltau  == 1 ) then
              Do I = 1,Size(Obs_tau,1)
-                Call  Print_bin_Latt(Obs_tau(I),Latt,dtau,Group_Comm)
+                Call  Print_bin_Latt(Obs_tau(I),Group_Comm)
              enddo
           endif
 

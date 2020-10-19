@@ -63,13 +63,14 @@
          Real    (Kind=Kind(0.d0)), allocatable :: Xk_p(:,:)
          Character (len=64) :: File_out
 
-         NAMELIST /VAR_errors/   n_skip, N_rebin, N_Cov, N_Back, N_auto
+         NAMELIST /VAR_errors/   N_skip, N_rebin, N_Cov, N_Back, N_auto
 
 
-
-
+         N_skip = 1
+         N_rebin = 1
          N_Back = 1
          N_auto = 0
+         N_Cov  = 0
          OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
          IF (ierr /= 0) THEN
             WRITE(error_unit,*) 'unable to open <parameters>',ierr

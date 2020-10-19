@@ -62,7 +62,7 @@ Module Operator_mod
      ! P has only one non-zero entry per column which is specified by P
      ! All in all.   g * Phi(s,type) * ( c^{dagger} A c  + alpha )
      ! The variable Type allows you to define the type of HS. 
-     ! The first N_non_zero elemets of diagonal matrix E are non-zero. The rest vanish.
+     ! The first N_non_zero elements of diagonal matrix E are non-zero. The rest vanish.
 
      ! !!!!! M_exp and E_exp  are for storage   !!!!!
      ! If Type =1   then the Ising field  takes the values  s = +/- 1 

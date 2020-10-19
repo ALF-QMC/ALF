@@ -1,4 +1,4 @@
-!  Copyright (C) 2016-2019 The ALF project
+!  Copyright (C) 2016-2020 The ALF project
 !
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -42,9 +42,8 @@
 !--------------------------------------------------------------------
        Use MaxEnt_stoch_mod
 
+       use iso_fortran_env, only: output_unit, error_unit
        Implicit  None
-       !Implicit Real (Kind=Kind(0.d0)) (A-G,O-Z)
-       !Implicit Integer (H-N)
 
        Interface
           Subroutine  Rescale ( XCOV, XQMC,XTAU, Ntau_st, Ntau_en, Tolerance,  Ntau)
@@ -67,7 +66,7 @@
 
 
        Integer                :: Ngamma, Ndis,  NBins, NSweeps, Nwarm, N_alpha, N_cov
-       Integer                :: N_skip, N_rebin, Norb
+       Integer                :: N_skip, N_rebin, N_Back, N_auto, Norb
        Real (Kind=Kind(0.d0)) :: OM_st, OM_en,  alpha_st, R, Tolerance
        Logical                :: Checkpoint
        Character (Len=2)      :: Channel
@@ -78,9 +77,9 @@
        Real (Kind=Kind(0.d0)) :: Zero
 
        NAMELIST /VAR_Max_Stoch/ Ngamma, Ndis,  NBins, NSweeps, Nwarm, N_alpha, &
-            &                   OM_st, OM_en,  alpha_st, R,  Checkpoint, Channel, Tolerance
+            &                   OM_st, OM_en,  alpha_st, R,  Checkpoint, Tolerance
 
-       NAMELIST /VAR_errors/    N_skip, N_rebin, N_cov
+       NAMELIST /VAR_errors/    N_skip, N_rebin, N_cov,  N_Back, N_auto
 
        open(unit=30,file='parameters',status='old',action='read', iostat=io_error)
        if (io_error.eq.0) then
@@ -92,26 +91,9 @@
        endif
        close(30)
 
-       Open(unit=50,File='Info_MaxEnt',Status="unknown")
-       write(50,*) 'Channel      :: ', Channel
-       If (Channel == "ph" )  then
-          Write(50,*)  'Om_start is set to zero. PH channel corresponds to symmetric data '
-          Om_st = 0.d0
-       endif
-       Write(50, "('Covariance         :: ',I2)")  N_cov
-       Write(50, "('Checkpoint         :: ',L )")  Checkpoint
-       Write(50, "('Om_st, Om_en       :: ',2x,F12.6,2x,F12.6)") Om_st, Om_en
-       Write(50, "('Delta Om           :: ',2x,F12.6)")  (Om_en - Om_st)/real(Ndis,kind(0.d0))
-       Write(50, "('Bins, Sweeps, Warm :: ',2x,I4,2x,I4,2x,I4)") NBins, NSweeps, Nwarm
-       If (N_alpha <= 10 ) then
-          Write(error_unit,*) 'Not enough temperatures: N_alpha has to be bigger than 10'
-          error stop 1
-       Endif
-       Write(50, "('N_Alpha, Alpha_st,R:: ',2x,I4,F12.6,2x,F12.6)") N_alpha, alpha_st, R
-
 
        open (unit=10,File="g_dat", status="unknown")
-       read(10,*)  ntau, nbin_qmc, Beta, Norb
+       read(10,*)  ntau, nbin_qmc, Beta, Norb, Channel
        Allocate ( XCOV(NTAU,NTAU), XQMC(NTAU),XTAU(NTAU) )
        XCOV  = 0.d0
        Do nt = 1,NTAU
@@ -128,6 +110,23 @@
        close(10)
        dtau = Xtau(2) - Xtau(1)
 
+       Open(unit=50,File='Info_MaxEnt',Status="unknown")
+       write(50,*) 'Channel      :: ', Channel
+       If (Channel == "ph" )  then
+          Write(50,*)  'Om_start is set to zero. PH channel corresponds to symmetric data '
+          Om_st = 0.d0
+       endif
+       Write(50, "('Covariance         :: ',I2)")  N_cov
+       Write(50, "('Checkpoint         :: ',L1)")  Checkpoint
+       Write(50, "('Om_st, Om_en       :: ',2x,F12.6,2x,F12.6)") Om_st, Om_en
+       Write(50, "('Delta Om           :: ',2x,F12.6)")  (Om_en - Om_st)/real(Ndis,kind(0.d0))
+       Write(50, "('Bins, Sweeps, Warm :: ',2x,I4,2x,I4,2x,I4)") NBins, NSweeps, Nwarm
+       If (N_alpha <= 10 ) then
+          Write(error_unit,*) 'Not enough temperatures: N_alpha has to be bigger than 10'
+          error stop 1
+       Endif
+       Write(50, "('N_Alpha, Alpha_st,R:: ',2x,I4,F12.6,2x,F12.6)") N_alpha, alpha_st, R
+
        Zero = 1.D-10
        pi = acos(-1.d0)
        Ntau_st = 1
@@ -138,7 +137,7 @@
        Case ("PP")
           xmom1 = 2.d0* pi * xqmc(1)
        Case ("P")
-          xmom1 =  pi * real(norb,Kind(0.d0))
+          xmom1 =  pi * ( xqmc(1) + xqmc(ntau) )
           !  Remove the tau = beta point from the data since it is  correlated
           !  due to the sum rule with  the tau=0 data point. Also if the tau = 0
           !  data point has no fluctations (due to particle-hole symmetry for instance)
@@ -222,9 +221,9 @@
 
        If ( .not.  Checkpoint ) then
           Command = "rm dump*"
-          Call System (Command)
+          Call EXECUTE_COMMAND_LINE(Command)
           Command = "ls"
-          Call System (Command)
+          Call EXECUTE_COMMAND_LINE(Command)
        endif
        Open (Unit=10,File="energies",status="unknown")
 
@@ -295,7 +294,7 @@
              Z = Z + A(nwp)/cmplx( om -  omp, delta, kind(0.d0))
           enddo
           Z = Z * dom
-          write(43,"('X'2x,F14.7,2x,F16.8,2x,F16.8)" ) xom(nw), dble(Z), -Aimag(Z)/pi
+          write(43,"('X',2x,F14.7,2x,F16.8,2x,F16.8)") xom(nw), dble(Z), -Aimag(Z)/pi
        enddo
        close(43)
 

@@ -44,7 +44,7 @@
          Use MyMats
          Use Matrix
          Use Lattices_v3
-      	 Use Predefined_Lattices
+         Use Predefined_Lattices
          use iso_fortran_env, only: output_unit, error_unit
 
          Implicit none
@@ -76,6 +76,8 @@
          NAMELIST /VAR_errors/   n_skip, N_rebin, N_Cov, N_Back, N_auto
 
 
+         N_skip = 1
+         N_rebin = 1
          N_Back = 1
          N_auto = 0
          OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
@@ -114,7 +116,7 @@
          Close(10)
          Write(6,*) "# of bins: ", Nbins
          nbins  = Nbins - n_skip
-         Write(6,*) "Effective # of bins: ", Nbins
+         Write(6,*) "Effective # of bins: ", Nbins/N_rebin
          N_auto=min(N_auto,Nbins/3)
          if(Nbins <= 1) then
            write (error_unit,*) "Effective # of bins smaller than 2. Analysis impossible!"

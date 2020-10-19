@@ -61,6 +61,8 @@
         NAMELIST /VAR_errors/   n_skip, N_rebin, N_Cov, N_Back, N_auto
 
 
+        N_skip = 1
+        N_rebin = 1
         N_auto=0
         OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
         IF (ierr /= 0) THEN
@@ -109,7 +111,7 @@
          endif
 
         OPEN (UNIT=21, FILE='Var_scalJ', STATUS='unknown')
-        WRITE(21,*) 'Effective number of bins, and bins: ', Nbins_eff, Nbins
+        WRITE(21,*) 'Effective number of bins, and bins: ', Nbins_eff/N_rebin, Nbins
         ALLOCATE (EN(Nbins_eff), SIGN(Nbins_eff))
         DO IOBS = 1,NOBS
            WRITE(21,*)

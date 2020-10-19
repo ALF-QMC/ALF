@@ -19,9 +19,9 @@ For the SU(2) case $T^{a}$  corresponds to the $T  = \frac{1}{2} \ve{\sigma}$ wi
          +  \frac{2 J}{N} \sum_{i, a=1  }^{N^2 -1}  \hat{T}^{a,c}_{i}  \hat{T}^{a,f}_{i}. 
 \label{Kondo_SUN_Ham.eq}
 \end{equation}
-In the above,  $i$ is a super-index  accounting for the unit cell and orbital,
+In the above,  $i$ is a super-index accounting for the unit cell and orbital,
 \begin{equation}
-	 \hat{T}^{a,c}_{i}   =   \sum_{\sigma,\sigma'=1}^{N} \hat{c}^{\dagger}_{i,\sigma}T^{a}_{\sigma,\sigma'}  \hat{\ve{c}}^{\phantom\dagger}_{i,\sigma'}, \; \; 
+	 \hat{T}^{a,c}_{i}   =   \sum_{\sigma,\sigma'=1}^{N} \hat{c}^{\dagger}_{i,\sigma}T^{a}_{\sigma,\sigma'}  \hat{c}^{\phantom\dagger}_{i,\sigma'}, \; \; 
 	  \hat{T}^{a,f}_{i}   = \sum_{\sigma,\sigma'=1}^{N} \hat{f}^{\dagger}_{i,\sigma} T^{a}_{\sigma,\sigma'}  \hat{f}^{\phantom\dagger}_{i,\sigma'},  
 	  \text{   and  }   \hat{n}^c_i  = \sum_{\sigma=1}^{N} \hat{c}_{i,\sigma}^{\dagger} \hat{c}_{i,\sigma}^{\phantom\dagger} 
 \end{equation}
@@ -140,7 +140,8 @@ $U_f$   has to be chosen large enough  such that  the above quantity vanishes wi
 \includegraphics[width=0.4\textwidth]{Figures/Kondo/Constraint.pdf}
 \includegraphics[width=0.4\textwidth]{Figures/Kondo/Spin.pdf}
 
-\caption{  Left:  Suppression of charge fluctuations of the f-orbitals as a function of $U_f$.  Right:   When  charge fluctuations  on the f-orbitals vanish, quantities such as the Fourier transform of the $f$ spin-spin  correlations at $\ve{q} = (\pi,\pi) $  converge to their KLM value. Typically,  for the SU(2) case $\beta U_f > 10 $  suffices to reach converges results.     }
+\caption{  Left:  Suppression of charge fluctuations of the f-orbitals as a function of $U_f$.  Right:   When  charge fluctuations  on the f-orbitals vanish, quantities such as the Fourier transform of the $f$ spin-spin  correlations at $\ve{q} = (\pi,\pi) $  converge to their KLM value. Typically,  for the SU(2) case $\beta U_f > 10 $  suffices to reach converges results.   
+The pyALF script used to produce the data of  the plot can be found in \href{https://git.physik.uni-wuerzburg.de/ALF/ALF/-/blob/master/Documentation/Figures/Kondo/Kondo.py}{\texttt{Kondo.py}}  }
         \label{Constraint.fig}
 \end{figure}
 
