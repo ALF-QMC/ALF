@@ -1,5 +1,5 @@
 !  Copyright (C) 2016 - 2020 The ALF project
-! 
+!
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
 !     the Free Software Foundation, either version 3 of the License, or
@@ -19,22 +19,22 @@
 !       part of that community we feel that it is reasonable to require you to give an attribution
 !       back to the original authors if you have benefitted from this program.
 !       Guidelines for a proper citation can be found on the project's homepage
-!       http://alf.physik.uni-wuerzburg.de 
+!       http://alf.physik.uni-wuerzburg.de
 !
 !     - We require the preservation of the above copyright notice and this license in all original files.
 !
 !     - We prohibit the misrepresentation of the origin of the original source files. To obtain
 !       the original source files please visit the homepage http://alf.physik.uni-wuerzburg.de .
 !
-!     - If you make substantial changes to the program we require you to either consider contributing   
-!       to the ALF project or to mark your material in a reasonable way as different from the original version 
+!     - If you make substantial changes to the program we require you to either consider contributing
+!       to the ALF project or to mark your material in a reasonable way as different from the original version
 
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !>
-!> @brief 
+!> @brief
 !> This module defines the  Hamiltonian and observables.  Here, we have included a
 !> set of predefined Hamiltonians. They include the Hubbard and SU(N) tV models
 !> on honeycomb, pi-flux and square lattices.
@@ -42,16 +42,16 @@
 !> @details
 !> The public variables of this module are the following
 !>
-!> 
+!>
 !> @param [public] OP_V
 !> \verbatim
-!> Type (Operator), dimension(:,:), allocatable 
+!> Type (Operator), dimension(:,:), allocatable
 !> List of operators of type=1,2 and 3 describing the sequence of interactions on a time slice.
 !> The first index runs over this sequence. The second corresponds to the flavor index.  \endverbatim
-!> 
+!>
 !> @param [public] OP_T
 !> \verbatim
-!> Type (Operator), dimension(:,:), allocatable  
+!> Type (Operator), dimension(:,:), allocatable
 !> Sequence of  operators  accounting for the  hopping on a  time slice. This can include  various
 !> checkerboard decompositions. The first index runs over this sequence. The second corresponds to
 !> the flavor index. \endverbatim
@@ -59,7 +59,7 @@
 !> \f$ \prod_{\tau} \; \;  \prod_{n=1}^{N_V}e^{V_n(\tau)}  \prod_{n=1}^{N_T}e^{T_n}  \f$.  That is
 !> first the hopping and then the potential energy.
 !>
-!>@param [public] WF_L   
+!>@param [public] WF_L
 !> \verbatim Type (WaveFunction), dimension(:),   allocatable
 !> Left trial wave function.  \endverbatim
 !>
@@ -83,35 +83,35 @@
 !> @param [public]  N_SUN
 !> \verbatim Integer
 !> # of colors.  Propagation is color independent.  \endverbatim
-!> 
+!>
 !> @param [public] Ltrot
 !> \verbatim Integer
 !> Available measurment interval in units of Delta Tau. \endverbatim
 !>
-!> @param [public] Thtrot  
+!> @param [public] Thtrot
 !>  \verbatim Integer
 !> Effective projection parameter in units of Delta Tau.  (Only relevant if projective option is turned on) \endverbatim
 !>
 !> @param [public] Projector
 !> \verbatim Logical
 !> Flag for projector. If true then the total number of time slices will correspond to Ltrot + 2*Thtrot \endverbatim
-!> 
-!> @param [public] Group_Comm 
+!>
+!> @param [public] Group_Comm
 !> \verbatim Integer
 !> Defines MPI communicator  \endverbatim
 !
 !> @param [public] Symm
 !> \verbatim Logical  \endverbatim
 !> If set to true then the green functions will be symmetrized
-!> before being  sent to the Obser, ObserT subroutines. 
+!> before being  sent to the Obser, ObserT subroutines.
 !> In particular, the transformation,  \f$ \tilde{G} =  e^{-\Delta \tau T /2 } G e^{\Delta \tau T /2 } \f$
 !> will be carried out  and \f$ \tilde{G} \f$  will be sent to the Obser and ObserT subroutines.  Note that
 !> if you want to use this  feature, then you have to be sure the hopping and interaction terms are decomposed
 !> symmetrically. If Symm is true, the propagation reads:
 !> \f$ \prod_{\tau} \; \;  \prod_{n=N_T}^{1}e^{T_n/2} \prod_{n=1}^{N_V}e^{V_n(\tau)}  \prod_{n=1}^{N_T}e^{T_n/2}  \f$
 !>
-!>  
-!> You still have to add some docu for the other private variables in this module.      
+!>
+!> You still have to add some docu for the other private variables in this module.
 !>
 !--------------------------------------------------------------------
 
@@ -119,8 +119,8 @@
 
       Use Operator_mod
       Use WaveFunction_mod
-      Use Lattices_v3 
-      Use MyMats 
+      Use Lattices_v3
+      Use MyMats
       Use Random_Wrap
       Use Files_mod
       Use Matrix
@@ -129,11 +129,11 @@
       Use Predefined_Hoppings
       Use LRC_Mod
       use iso_fortran_env, only: output_unit, error_unit
-      
+
       Implicit none
 
-     
-      Type (Operator),     dimension(:,:), allocatable :: Op_V 
+
+      Type (Operator),     dimension(:,:), allocatable :: Op_V
       Type (Operator),     dimension(:,:), allocatable :: Op_T
       Type (WaveFunction), dimension(:),   allocatable :: WF_L
       Type (WaveFunction), dimension(:),   allocatable :: WF_R
@@ -142,14 +142,14 @@
       Integer              :: N_FL
       Integer              :: N_SUN
       Integer              :: Ltrot
-      Integer              :: Thtrot 
+      Integer              :: Thtrot
       Logical              :: Projector
       Integer              :: Group_Comm
       Logical              :: Symm
 
 
-      Type (Lattice),       private :: Latt
-      Type (Unit_cell),     private :: Latt_unit
+      Type (Lattice),       private, Target  :: Latt
+      Type (Unit_cell),     private, Target  :: Latt_unit
       Integer,              private :: L1, L2
       Type (Hopping_Matrix_type), Allocatable, private :: Hopping_Matrix(:)
       real (Kind=Kind(0.d0)),        private :: ham_T , ham_Uc,  Ham_chem
@@ -166,19 +166,19 @@
       Type (Obser_Vec ),  private, dimension(:), allocatable ::   Obs_scal
       Type (Obser_Latt),  private, dimension(:), allocatable ::   Obs_eq
       Type (Obser_Latt),  private, dimension(:), allocatable ::   Obs_tau
-      
 
-    contains 
+
+    contains
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF Collaboration
 !>
 !> @brief
 !> Sets the Hamiltonian
 !--------------------------------------------------------------------
       Subroutine Ham_Set
-        
+
 #if defined (MPI) || defined(TEMPERING)
           Use mpi
 #endif
@@ -186,19 +186,19 @@
 
           integer                :: ierr, N_part, nf
           Character (len=64)     :: file_info, file_para
-          
-          
+
+
           ! L1, L2, Lattice_type, List(:,:), Invlist(:,:) -->  Lattice information
           ! Ham_T, Chem, Phi_X, XB_B, Checkerboard, Symm   -->  Hopping
           ! Interaction                              -->  Model
-          ! Simulation type                          -->  Finite  T or Projection  Symmetrize Trotter. 
-          
+          ! Simulation type                          -->  Finite  T or Projection  Symmetrize Trotter.
+
           NAMELIST /VAR_Lattice/  L1, L2, Lattice_type, Model
 
           NAMELIST /VAR_Model_Generic/  Checkerboard, N_SUN, N_FL, Phi_X, Phi_Y, Symm, Bulk, N_Phi, Dtau, Beta, Theta, Projector
 
           NAMELIST /VAR_Kondo/  ham_T, ham_chem, ham_Uc, ham_Uf, ham_JK
-          
+
 
 #ifdef MPI
           Integer        :: Isize, Irank, irank_g, isize_g, igroup
@@ -210,7 +210,7 @@
           Checkerboard = .false.
           Symm         = .false.
           Projector    = .false.
-          Bulk         = .true. 
+          Bulk         = .true.
           Phi_X        = 0.d0
           Phi_Y        = 0.d0
           N_Phi        = 0
@@ -218,7 +218,7 @@
           Ham_Uc       = 0.d0
           Ham_JK       = 0.d0
 
-          
+
 #ifdef MPI
           CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
           CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
@@ -228,9 +228,9 @@
 #endif
              File_Para = "parameters"
              File_info = "info"
-#if defined(TEMPERING) 
+#if defined(TEMPERING)
              write(File_para,'(A,I0,A)') "Temp_",igroup,"/parameters"
-             write(File_info,'(A,I0,A)') "Temp_",igroup,"/info"     
+             write(File_info,'(A,I0,A)') "Temp_",igroup,"/info"
 #endif
 
 #ifdef MPI
@@ -253,7 +253,7 @@
              Ltrot = nint(beta/dtau)
              if (Projector) Thtrot = nint(theta/dtau)
              Ltrot = Ltrot+2*Thtrot
-          
+
 #ifdef MPI
           Endif
           CALL MPI_BCAST(L1          ,1  ,MPI_INTEGER,   0,Group_Comm,ierr)
@@ -282,15 +282,15 @@
 
           IF ( N_FL > 1 ) then
              Write(error_unit,*) 'For the Kondo systems, N_FL has  to be equal to unity'
-             error stop 1 
+             error stop 1
           Endif
           ! Setup the Bravais lattice
           Call  Ham_Latt
-          
+
           ! Setup the hopping / single-particle part
           Call  Ham_Hop
-          
-          
+
+
           ! Setup the interaction.
           call Ham_V
 
@@ -299,12 +299,12 @@
 #endif
              OPEN(Unit = 50,file=file_info,status="unknown",position="append")
              Write(50,*) '====================================='
-             Write(50,*) 'Model is      : ', Model 
+             Write(50,*) 'Model is      : ', Model
              Write(50,*) 'Lattice is    : ', Lattice_type
              Write(50,*) '# of orbitals : ', Ndim
              Write(50,*) 'Flux_1        : ', Phi_X
              Write(50,*) 'Flux_2        : ', Phi_Y
-             If (Bulk) then 
+             If (Bulk) then
                 Write(50,*) 'Twist as phase factor in bulk'
              Else
                 Write(50,*) 'Twist as boundary condition'
@@ -327,18 +327,18 @@
              Write(50,*) 'Ham_Uf        : ', Ham_Uf
              Write(50,*) 'Ham_JK        : ', Ham_JK
              Write(50,*) 'Ham_chem      : ', Ham_chem
-             Close(50) 
+             Close(50)
 #ifdef MPI
           Endif
 #endif
           ! Setup the trival wave function, in case of a projector approach
           if (Projector)   Call Ham_Trial(File_info)
-          
+
 
         end Subroutine Ham_Set
-        
+
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF Collaboration
 !>
 !> @brief
@@ -347,21 +347,21 @@
         Subroutine Ham_Latt
 
           Use Predefined_Lattices
-          
+
           Implicit none
           ! Use predefined stuctures or set your own lattice.
           Call Predefined_Latt(Lattice_type, L1,L2,Ndim, List,Invlist,Latt,Latt_Unit)
-          
+
         end Subroutine Ham_Latt
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF Collaboration
 !>
 !> @brief
 !> Sets  the Hopping
 !--------------------------------------------------------------------
         Subroutine Ham_Hop
-          
+
           Implicit none
 
           Real (Kind=Kind(0.d0) ) ::  Ham_Lambda = 0.d0
@@ -385,28 +385,28 @@
           Ham_T2_vec     = 0.d0
           Ham_Lambda_vec = Ham_Lambda
           N_Phi_vec      = N_Phi
-          
+
           Select case (Lattice_type)
           Case ("Bilayer_square")
              Call  Set_Default_hopping_parameters_Bilayer_square(Hopping_Matrix,Ham_T_vec,Ham_T2_vec,Ham_Tperp_vec, Ham_Chem_vec, &
                   &                                              Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL,&
                   &                                              List, Invlist, Latt, Latt_unit )
-             
+
           Case ("Bilayer_honeycomb")
              Call  Set_Default_hopping_parameters_Bilayer_honeycomb(Hopping_Matrix,Ham_T_vec,Ham_T2_vec,Ham_Tperp_vec, Ham_Chem_vec, &
                   &                                                 Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL,&
                   &                                                 List, Invlist, Latt, Latt_unit )
 
           end Select
-          
+
           Call  Predefined_Hoppings_set_OPT(Hopping_Matrix,List,Invlist,Latt,  Latt_unit,  Dtau, Checkerboard, Symm, OP_T )
-          
+
           Deallocate (Ham_T_vec, Ham_T2_vec, Ham_Tperp_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
                &                                   N_Phi_vec,  Ham_Lambda_vec )
-          
+
         end Subroutine Ham_Hop
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF Collaboration
 !>
 !> @brief
@@ -420,10 +420,10 @@
 #endif
           Use Predefined_Trial
 
-          Implicit none 
+          Implicit none
           Character (len=64), intent(in)  :: file_info
 
-          
+
           Integer :: N_part, nf
 #ifdef MPI
           Integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
@@ -440,7 +440,7 @@
           Call Predefined_TrialWaveFunction(Lattice_type ,Ndim,  List,Invlist,Latt, Latt_unit, &
                &                            N_part, N_FL,  WF_L, WF_R)
 
-          
+
 #ifdef MPI
           If (Irank_g == 0) then
 #endif
@@ -457,7 +457,7 @@
         end Subroutine Ham_Trial
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF Collaboration
 !>
 !> @brief
@@ -466,12 +466,12 @@
         Subroutine Ham_V
 
           Use Predefined_Int
-          Implicit none 
-          
+          Implicit none
+
           Integer :: nf, I, I1, I2,  nc,  no, N_ops
           Real (Kind=Kind(0.d0)) :: X, Zero=1.D-10
           Real (Kind=Kind(0.d0)), allocatable :: Ham_U_vec(:)
-          
+
 
           N_ops = 0
           if (abs(Ham_Uc)  > Zero ) N_ops = N_ops + Latt%N*Latt_Unit%Norb/2
@@ -529,28 +529,28 @@
                 Enddo
              Enddo
           endif
-          
+
         end Subroutine Ham_V
 
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF Collaboration
 !>
 !> @brief
 !> Specifiy the equal time and time displaced observables
 !> @details
 !--------------------------------------------------------------------
-        Subroutine  Alloc_obs(Ltau) 
+        Subroutine  Alloc_obs(Ltau)
 
           Implicit none
           !>  Ltau=1 if time displaced correlations are considered.
           Integer, Intent(In) :: Ltau
-          Integer    ::  i, N, Ns,Nt,No, Norb
+          Integer    ::  i, N, Nt
           Character (len=64) ::  Filename
+          Character (len=2)  ::  Channel
 
 
-          Norb = Latt_unit%Norb
           ! Scalar observables
           Allocate ( Obs_scal(5) )
           Do I = 1,Size(Obs_scal,1)
@@ -566,90 +566,92 @@
              case (5)
                 N = 1;   Filename ="Constraint"
              case default
-                Write(6,*) ' Error in Alloc_obs '  
+                Write(6,*) ' Error in Alloc_obs '
              end select
              Call Obser_Vec_make(Obs_scal(I),N,Filename)
           enddo
-          
+
           ! Equal time correlators
           ! Equal time correlators
           Allocate ( Obs_eq(3) )
           Do I = 1,Size(Obs_eq,1)
              select case (I)
              case (1)
-                Ns = Latt%N;  No = Norb;  Filename ="Green"
+                Filename = "Green"
              case (2)
-                Ns = Latt%N;  No = Norb;  Filename ="SpinZ"
+                Filename = "SpinZ"
              case (3)
-                Ns = Latt%N;  No = Norb;  Filename ="Den"
+                Filename = "Den"
              case default
-                Write(6,*) ' Error in Alloc_obs '  
+                Write(6,*) ' Error in Alloc_obs '
              end select
              Nt = 1
-             Call Obser_Latt_make(Obs_eq(I),Ns,Nt,No,Filename)
+             Channel = '--'
+             Call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
           enddo
-          
-          If (Ltau == 1) then 
+
+          If (Ltau == 1) then
              ! Equal time correlators
              Allocate ( Obs_tau(3) )
              Do I = 1,Size(Obs_tau,1)
                 select case (I)
                 case (1)
-                   Ns = Latt%N; No = Norb;  Filename ="Green"
+                   Channel = 'P' ; Filename = "Green"
                 case (2)
-                   Ns = Latt%N; No = Norb;  Filename ="SpinZ"
+                   Channel = 'PH'; Filename = "SpinZ"
                 case (3)
-                   Ns = Latt%N; No = Norb;  Filename ="Den"
+                   Channel = 'PH'; Filename = "Den"
                 case default
-                   Write(6,*) ' Error in Alloc_obs '  
+                   Write(6,*) ' Error in Alloc_obs '
                 end select
                 Nt = Ltrot+1-2*Thtrot
-                Call Obser_Latt_make(Obs_tau(I),Ns,Nt,No,Filename)
+                If(Projector) Channel = 'T0'
+                Call Obser_Latt_make(Obs_tau(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
              enddo
           endif
-          
+
         End Subroutine Alloc_obs
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF Collaboration
 !>
-!> @brief 
+!> @brief
 !> Computes equal time observables
 !> @details
-!> @param [IN] Gr   Complex(:,:,:)  
+!> @param [IN] Gr   Complex(:,:,:)
 !> \verbatim
 !>  Green function: Gr(I,J,nf) = <c_{I,nf } c^{dagger}_{J,nf } > on time slice ntau
 !> \endverbatim
 !> @param [IN] Phase   Complex
 !> \verbatim
-!>  Phase  
+!>  Phase
 !> \endverbatim
 !> @param [IN] Ntau Integer
 !> \verbatim
-!>  Time slice 
+!>  Time slice
 !> \endverbatim
 !-------------------------------------------------------------------
         subroutine Obser(GR,Phase,Ntau)
 
           Use Predefined_Obs
-          
+
           Implicit none
-          
+
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
           Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE
           Integer, INTENT(IN)          :: Ntau
-          
-          !Local 
+
+          !Local
           Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK
           Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, Zhubc, ZCon, ZJ, Z, ZP,ZS, ZZ, ZXY
           Integer :: I,J, no, n, I_c,I_f, nf
           Real    (Kind=Kind(0.d0)) :: X
-          
+
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
-          
-          
+
+
           Do nf = 1,N_FL
              Do I = 1,Ndim
                 Do J = 1,Ndim
@@ -660,15 +662,15 @@
           Enddo
           ! GRC(i,j,nf) = < c^{dagger}_{j,nf } c_{j,nf } >
 
-          ! Compute scalar observables. 
+          ! Compute scalar observables.
           Do I = 1,Size(Obs_scal,1)
              Obs_scal(I)%N         =  Obs_scal(I)%N + 1
              Obs_scal(I)%Ave_sign  =  Obs_scal(I)%Ave_sign + Real(ZS,kind(0.d0))
           Enddo
-             
+
 
           Zkin = cmplx(0.d0, 0.d0, kind(0.D0))
-          Call Predefined_Hoppings_Compute_Kin(Hopping_Matrix,List,Invlist, Latt, Latt_unit, GRC, ZKin)      
+          Call Predefined_Hoppings_Compute_Kin(Hopping_Matrix,List,Invlist, Latt, Latt_unit, GRC, ZKin)
           Zkin = Zkin* dble(N_SUN)
           Obs_scal(1)%Obs_vec(1)  =    Obs_scal(1)%Obs_vec(1) + Zkin *ZP* ZS
 
@@ -689,19 +691,19 @@
                 I_c  = invlist(I,no                   )
                 I_f  = invlist(I,no + Latt_unit%Norb/2)
                 ZJ = ZJ +  Z*2.d0*GRC(I_c,I_f,1)* GRC(I_f,I_c,1) +  GRC(I_c,I_c,1)* GR(I_f,I_f,1) + &
-                     &     GR(I_c,I_c,1)* GRC(I_f,I_f,1) 
+                     &     GR(I_c,I_c,1)* GRC(I_f,I_f,1)
              Enddo
           Enddo
           ZJ = -Ham_JK*ZJ/2.d0 +  Real(Latt%N* Latt_unit%Norb/8,kind(0.d0))*Ham_JK
 
-          
+
           Obs_scal(2)%Obs_vec(1)  =  Obs_scal(2)%Obs_vec(1) + ( Zhubc + ZJ )*ZP*ZS
 
 
           Zrho = cmplx(0.d0,0.d0, kind(0.D0))
           Do nf = 1,N_FL
              Do I = 1,Ndim
-                Zrho = Zrho + Grc(i,i,nf) 
+                Zrho = Zrho + Grc(i,i,nf)
              enddo
           enddo
           Zrho = Zrho* dble(N_SUN)
@@ -709,7 +711,7 @@
 
           Obs_scal(4)%Obs_vec(1)  =    Obs_scal(4)%Obs_vec(1) + (Zkin + Zhubc + ZJ )*ZP*ZS
 
-          
+
           ZCon = cmplx(0.d0, 0.d0, kind(0.D0))
           Do I = 1,Latt%N
              Do no = Latt_unit%Norb/2 +1 , Latt_unit%Norb
@@ -719,36 +721,36 @@
           Enddo
           Obs_scal(5)%Obs_vec(1)  =    Obs_scal(5)%Obs_vec(1) + ZCon*ZP*ZS
 
-          
+
           ! Standard two-point correlations
           Call Predefined_Obs_eq_Green_measure  ( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(1) )
           Call Predefined_Obs_eq_SpinSUN_measure( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(2) )
           Call Predefined_Obs_eq_Den_measure    ( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(3) )
-                
+
 
         end Subroutine Obser
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF Collaboration
 !>
-!> @brief 
+!> @brief
 !> Computes time displaced  observables
 !> @details
 !> @param [IN] NT, Integer
 !> \verbatim
 !>  Imaginary time
 !> \endverbatim
-!> @param [IN] GT0, GTT, G00, GTT,  Complex(:,:,:)  
+!> @param [IN] GT0, GTT, G00, GTT,  Complex(:,:,:)
 !> \verbatim
 !>  Green functions:
-!>  GT0(I,J,nf) = <T c_{I,nf }(tau) c^{dagger}_{J,nf }(0  )> 
-!>  G0T(I,J,nf) = <T c_{I,nf }(0  ) c^{dagger}_{J,nf }(tau)> 
-!>  G00(I,J,nf) = <T c_{I,nf }(0  ) c^{dagger}_{J,nf }(0  )> 
-!>  GTT(I,J,nf) = <T c_{I,nf }(tau) c^{dagger}_{J,nf }(tau)> 
+!>  GT0(I,J,nf) = <T c_{I,nf }(tau) c^{dagger}_{J,nf }(0  )>
+!>  G0T(I,J,nf) = <T c_{I,nf }(0  ) c^{dagger}_{J,nf }(tau)>
+!>  G00(I,J,nf) = <T c_{I,nf }(0  ) c^{dagger}_{J,nf }(0  )>
+!>  GTT(I,J,nf) = <T c_{I,nf }(tau) c^{dagger}_{J,nf }(tau)>
 !> \endverbatim
 !> @param [IN] Phase   Complex
 !> \verbatim
-!>  Phase  
+!>  Phase
 !> \endverbatim
 !-------------------------------------------------------------------
         Subroutine ObserT(NT,  GT0,G0T,G00,GTT, PHASE)
@@ -756,11 +758,11 @@
           Use Predefined_Obs
 
           Implicit none
-          
+
           Integer         , INTENT(IN) :: NT
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: GT0(Ndim,Ndim,N_FL),G0T(Ndim,Ndim,N_FL),G00(Ndim,Ndim,N_FL),GTT(Ndim,Ndim,N_FL)
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: Phase
-          
+
           !Locals
           Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY
           Real    (Kind=Kind(0.d0)) :: X
@@ -774,10 +776,10 @@
           Call Predefined_Obs_tau_Green_measure  ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(1) )
           Call Predefined_Obs_tau_SpinSUN_measure( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(2) )
           Call Predefined_Obs_tau_Den_measure    ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(3) )
-          
+
         end Subroutine OBSERT
 
-#include "Hamiltonian_Hubbard_include.h"        
+#include "Hamiltonian_Hubbard_include.h"
 
-      
+
     end Module Hamiltonian

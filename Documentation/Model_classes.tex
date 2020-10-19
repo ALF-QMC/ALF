@@ -6,10 +6,9 @@
 
 % !TEX root = doc.tex
 
-\section{  Model Classes }
+\section{  Model Classes } \label{sec:model_classes}
 
-The ALF  library comes with five model classes. a) SU(N) Hubbard models, (b)  O(2N) t-V models, (c)   Kondo models, (d)    Models with long ranged coulomb and (e)  Generic $Z_2$ lattice gauges theories coupled to $Z_2$ matter  and fermions.   Below we will 
-detail the functioning of these classes.  
+The ALF  library comes with five model classes: (i) SU(N) Hubbard models, (ii) O(2N) t-V models, (iii) Kondo models, (iv) Models with long ranged coulomb, and (v) Generic $Z_2$ lattice gauge theories coupled to $Z_2$ matter  and fermions.   Below we detail the functioning of these classes.  
 
 
 \subsection{ SU(N) Hubbard models   \texttt{Hamiltonian\_Hubbard\_mod.F90}} \label{sec:hubbard}
@@ -32,13 +31,13 @@ ham_Tperp = 1.d0            ! For bilayer systems
 In the above   \texttt{ham\_T} and \texttt{ham\_T2}   correspond to the hopping in the first and second layers respectively and  \texttt{ham\_Tperp}   is to the interlayer hopping.   The Hubbard $U$ term has an orbital index, 
  \texttt{ham\_U}  for the first and  \texttt{ham\_U2}   for the second layers.  Finally   \texttt{ham\_chem}  corresponds to the chemical potential.     If  the flag \texttt{Mz} is set to \texttt{.False.},   then the code will simulate the  following 
 SU(N)   symmetry Hubbard model. 
-\begin{eqnarray}
-\hat{H}= & & \sum_{(\ve{i},\ve{\delta}), (\ve{j},\ve{\delta}')}  \sum_{\sigma =1}^{N}  T_{(\ve{i},\ve{\delta}), (\ve{j},\ve{\delta}')}    \hat{c}^{\dagger}_{(\ve{i},\ve{\delta}), \sigma }   e^{\frac{2 \pi i}{\Phi_0} \int_{\ve{i} + \ve{\delta}}^{\ve{j} + \ve{\delta}'}  
+\begin{align}
+\hat{H} &= \sum_{(\ve{i},\ve{\delta}), (\ve{j},\ve{\delta}')}  \sum_{\sigma =1}^{N}  T_{(\ve{i},\ve{\delta}), (\ve{j},\ve{\delta}')}    \hat{c}^{\dagger}_{(\ve{i},\ve{\delta}), \sigma }   e^{\frac{2 \pi i}{\Phi_0} \int_{\ve{i} + \ve{\delta}}^{\ve{j} + \ve{\delta}'}  
      \vec{A}(\ve{l})  d \ve{l}} \hat{c}^{}_{(\ve{j},\ve{\delta}'),\sigma} 
 + \sum_{\vec{i}} \sum_{\delta}   \frac{U_{\ve{\delta}} }{N} \left(\sum_{\sigma=1}^{N}  \left[   \hat{c}^{\dagger}_{(\vec{i},\ve{\delta}),\sigma } 
     \hat{c}^{\phantom\dagger}_{(\vec{i}, \ve{\delta}),\sigma }  - 1/2  \right] \right)^2  \nonumber \\
-    & & - \mu \sum_{(\ve{i},\ve{\delta})}  \sum_{\sigma =1}^{N} \hat{c}^{\dagger}_{(\vec{i},\ve{\delta}),\sigma } \hat{c}^{\phantom\dagger}_{(\vec{i},\ve{\delta}),\sigma } 
-\end{eqnarray}
+    &\phantom{= } - \mu \sum_{(\ve{i},\ve{\delta})}  \sum_{\sigma =1}^{N} \hat{c}^{\dagger}_{(\vec{i},\ve{\delta}),\sigma } \hat{c}^{\phantom\dagger}_{(\vec{i},\ve{\delta}),\sigma } 
+\end{align}
 The  generic hopping is taken fron Eq.~\ref{generic_hopping.eq}   with appropriate boundary conditions given by Eq.~\ref{generic_boundary.eq}.    $\ve{i}$ runs over the unit cells, $\ve{\delta}$ over the orbitals in each unit cell and $\sigma$  from $1 \cdots N$  and encodes  the SU(N) symmetry.    Note that  $N$ corresponds to \texttt{N\_SUN}  in the code.  The flavor index is set to  unity such that it does not appear in the  Hamiltonian.  $\mu$ corresponds to the chemical potential  and is relevant only for the finite temperature code. 
 
 If the variable \texttt{Mz} is set to \texttt{.True.}, then the code    will require  \texttt{N\_SUN}  to be even and will simulate the following Hamiltonian. 
@@ -53,22 +52,36 @@ If the variable \texttt{Mz} is set to \texttt{.True.}, then the code    will req
 \end{align}
 In this case, the flavor index \texttt{N\_FL}   takes the value 2. Cleary at $N=2$, both modes  correspond  to the Hubbard model.  For $N$  even and $N > 2$  the models differ.  In particular  in the latter  Hamiltonian the U(N) symmetry is broken down to  U(N/2) $\otimes $U(N/2).  
 
-Since this model class  works for all predefined lattices  (see Fig.~\ref{fig_predefined_lattices})  is includes the SU(N) periodic Anderson model on   the square and Honeycomb lattices.     Finally,  we note that the executable for this class is given by \texttt{Hubbard.out}
+Since this model class  works for all predefined lattices  (see Fig.~\ref{fig_predefined_lattices}) 
+it includes the SU(N) periodic Anderson model on the square and Honeycomb lattices.
+Finally, we note that the executable for this class is given by \texttt{Hubbard.out}.
 
-{\color{red}  If we do a good job in the previous sections we actually do not need much more explanation for this.   We could also provide Juypyter notebooks to start a set of Hubbard  hamiltonians.  e.g.  
-\begin{itemize}
-\item   \texttt{Pam\_square.ipynb}            SU(N) Square lattice PAM 
-\item  \texttt{Pam\_honeycomb.ipynb}     SU(N) Honeycomb lattice lattice PAM 
-\item  \texttt{Bilayer\_Hubbard.ipynb}      SU(N) Hubbard model on bilayers.
-\item  \texttt{N\_leg\_ladder\_Hubbard.ipynb}   SU(N) n-leg-ladder  Hubbard
-\item ...
-\end{itemize} 
-Would be nice to discuss this point.}
+As an example,  we can consider the periodic Anderson model.   Here we choose  the \texttt{Bilayer\_square}  lattice \texttt{Ham\_U} =  \texttt{Ham\_T2} $= 0$,  \texttt{Ham\_U2}$=U_f$,  \texttt{Ham\_tperp}$=V$  and \texttt{Ham\_T}$=1$.   The  pyALF  based python script    \href{https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/blob/master/Scripts/Hubbard_PAM.py}{\texttt{Hubbard\_PAM.py}}  produces the data  shown in  Fig.~\ref{Fig:PAM}  for the L=8 lattice.  
+
+\begin{figure}
+\center
+\includegraphics[width=0.4\textwidth]{Figures/PAM/PAM.pdf}
+
+\caption{  The periodic Anderson model.  Here we  plot the  equal time spin structure factor  of the f-electrons  at $\ve{q} = (\pi,\pi)$.   This quantity is found in the file \texttt{SpinZ\_eqJK}.  The  pyALF  based python script    \href{https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/blob/master/Scripts/Hubbard_PAM.py}{\texttt{Hubbard\_PAM.py}}  produces the data  shown   for the L=8 lattice.    One sees  that for this considered value of $U_f/t $  the competition between the RKKY interaction and  Kondo screening drives the system through a magnetic order-disorder transition at $V_c/t \simeq 1$  \cite{Vekic95}.}
+        \label{Fig:PAM}
+\end{figure}
+
+
+
+%{\color{red}  If we do a good job in the previous sections we actually do not need much more explanation for this.   We could also provide Juypyter notebooks to start a set of Hubbard  hamiltonians.  e.g.  
+%\begin{itemize}
+%\item   \texttt{Pam\_square.ipynb}            SU(N) Square lattice PAM 
+%\item  \texttt{Pam\_honeycomb.ipynb}     SU(N) Honeycomb lattice lattice PAM 
+%\item  \texttt{Bilayer\_Hubbard.ipynb}      SU(N) Hubbard model on bilayers.
+%\item  \texttt{N\_leg\_ladder\_Hubbard.ipynb}   SU(N) n-leg-ladder  Hubbard
+%\item ...
+%\end{itemize} 
+%Would be nice to discuss this point.}
 
 
 \subsection{O(2N)  t-V models  \texttt{tV\_mod.F90}}
 
-This would include the $SU(N)$  $t-V$ models on various lattices.  The defining property of this set of Hamiltonians would be the enlarged O(2N) symmetry.  Again  this   module should support our standard bipartite lattices. 
+%This would include the $SU(N)$  $t-V$ models on various lattices.  The defining property of this set of Hamiltonians would be the enlarged O(2N) symmetry.  Again  this   module should support our standard bipartite lattices. 
 
 The parameter space for this model class  reads: 
 
@@ -76,16 +89,17 @@ The parameter space for this model class  reads:
 &VAR_tV                    !! Variables for the t-V class
 ham_T     = 1.d0            ! Hopping parameter
 ham_chem  = 0.d0            ! Chemical potential
-ham_V     = 4.d0            ! Hubbard interaction
+ham_V     = 0.5d0           ! interaction strength
 ham_T2    = 1.d0            ! For bilayer systems
-ham_V2    = 4.d0            ! For bilayer systems
+ham_V2    = 0.5d0           ! For bilayer systems
 ham_Tperp = 1.d0            ! For bilayer systems
-ham_Vperp = 1.d0            ! For bilayer systems
+ham_Vperp = 0.5d0           ! For bilayer systems
 /
 
 \end{lstlisting}
 In the above   \texttt{ham\_T} and \texttt{ham\_T2} and \texttt{ham\_Tperp}   correspond to the hopping in the first and second layers respectively and  \texttt{ham\_Tperp}   is to the interlayer hopping.   The interaction term has an orbital index, 
-\texttt{ham\_V}  for the first and  \texttt{ham\_V2}  for the second layers,  and \texttt{ham\_Vperp} for interlayer coupling.  Finally   \texttt{ham\_chem}  corresponds to the chemical potential. Let us define the operator
+\texttt{ham\_V}  for the first and  \texttt{ham\_V2}  for the second layers,  and \texttt{ham\_Vperp} for interlayer coupling. Note the we use the same sign conventions here for both the hopping parameters and the interaction strength. This implies a relative minus sign between here and the $U_\delta$ interaction strength of the Hubbard model (see Sec.~\ref{sec:hubbard}).
+Finally   \texttt{ham\_chem}  corresponds to the chemical potential. Let us define the operator
 \begin{equation}
 \hat{b}_{\langle (\ve{i},\ve{\delta}), (\ve{j},\ve{\delta}') \rangle} =  \sum_{\sigma =1}^{N}    \hat{c}^{\dagger}_{(\ve{i},\ve{\delta}), \sigma }   e^{\frac{2 \pi i}{\Phi_0} \int_{\ve{i} + \ve{\delta}}^{\ve{j} + \ve{\delta}'}  
 	\vec{A}(\ve{l})  d \ve{l}} \hat{c}^{}_{(\ve{j},\ve{\delta}'),\sigma} 
@@ -97,7 +111,17 @@ The model is then defined as follows:
 + \sum_{\langle (\ve{i},\ve{\delta}), (\ve{j},\ve{\delta}') \rangle}  \frac{V_{(\ve{i},\ve{\delta}), (\ve{j},\ve{\delta}')}}{N} \left(  \hat{b}_{\langle (\ve{i},\ve{\delta}), (\ve{j},\ve{\delta}') \rangle}  \right)^2  \nonumber \\
 & - \mu \sum_{(\ve{i},\ve{\delta})}  \sum_{\sigma =1}^{N} \hat{c}^{\dagger}_{(\vec{i},\ve{\delta}),\sigma } \hat{c}^{\phantom\dagger}_{(\vec{i},\ve{\delta}),\sigma } \,.
 \end{align}
-The  generic hopping is taken from Eq.~\ref{generic_hopping.eq}   with appropriate boundary conditions given by Eq.~\ref{generic_boundary.eq}.    $\ve{i}$ runs over the unit cells, $\ve{\delta}$ over the orbitals in each unit cell and $\sigma$  from $1 \cdots N$  and encodes  the SU(N) symmetry.    Note that  $N$ corresponds to \texttt{N\_SUN}  in the code.  The flavor index is set to  unity such that it does not appear in the  Hamiltonian.  $\mu$ corresponds to the chemical potential  and is relevant only for the finite temperature code. 
+The  generic hopping is taken from Eq.~\ref{generic_hopping.eq}   with appropriate boundary conditions given by Eq.~\ref{generic_boundary.eq}.    $\ve{i}$ runs over the unit cells, $\ve{\delta}$ over the orbitals in each unit cell and $\sigma$  from $1 \cdots N$  and encodes  the SU(N) symmetry.    Note that  $N$ corresponds to \texttt{N\_SUN}  in the code.  The flavor index is set to  unity such that it does not appear in the  Hamiltonian.  $\mu$ corresponds to the chemical potential  and is relevant only for the finite temperature code.      An example showing  how to run this model class can be found in the   pyALF based Jupyter notebook   
+\href{https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/blob/master/Notebooks/tV_model.ipynb}{\texttt{tV\_model.ipynb}}.
+
+For concreteness sake, the Hamiltonian of the $t-V$ model of $SU(N)$ fermions on the square lattice reads,
+\begin{align}
+\hat{H}= & -t \sum_{\langle \ve{i}, \ve{j} \rangle}  \hat{b}_{\langle \ve{i}, \ve{j} \rangle}
+- \frac{V}{N} \sum_{\langle \ve{i}, \ve{j} \rangle}  \left(  \hat{b}_{\langle \ve{i}, \ve{j} \rangle}  \right)^2   - \mu \sum_{\ve{i}}  \sum_{\sigma =1}^{N} \hat{c}^{\dagger}_{\vec{i},\sigma } \hat{c}^{\phantom\dagger}_{\vec{i},\sigma } \,,
+\end{align} 
+and can be simulated by setting $\texttt{ham\_T}=t$, $\texttt{ham\_V} = V$, and $\texttt{ham\_chem}=\mu$. Al half-band filling $\mu =0$, the sign problem is absent for $V>0$ and for all values of $N$.  For even values of $N$   no sign problem occurs for $V>0$ and arbitrary chemical potentials.   
+
+Note  that   in the absence of orbital magnetic fields,  the model has an O(2N) symmetry. This can be seen by writing the model in a Majorana basis (see e.g. Ref.~\cite{Assaad16}). 
 
 \subsection{  SU(N) Kondo lattice models  \texttt{Kondo\_mod.F90}}
 

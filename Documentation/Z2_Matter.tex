@@ -19,7 +19,7 @@ The model is defined on a square lattice, and describers fermions,
  \left\{ \hat{\Psi}^{\dagger}_{\vec{i},\sigma},  \hat{\Psi}^{\phantom\dagger}_{\vec{j},\sigma'} \right\}  = \delta_{\vec{i},\vec{j}} \delta_{\sigma,\sigma'}, \;  
 \left\{ \hat{\Psi}^{\phantom\dagger}_{\vec{i},\sigma},  \hat{\Psi}^{\phantom\dagger}_{\vec{j},\sigma'} \right\}  =  0,  
 \end{align}
-coupled to  bond gauge fields 
+coupled to  bond gauge fields, 
 \begin{align}
 \hat{\sigma}^{z}_{\langle \vec{i}, \vec{j} \rangle}  = 
 \begin{bmatrix}
@@ -60,12 +60,11 @@ One can  then show that  $\hat{Q}_{\vec{i}}^2 = 1 $ and that
 \begin{equation}
 	\left[   \hat{Q}_{\vec{i}}, \hat{H}  \right]  = 0. 
 \end{equation} 
-The above allows us to assign $Z_2$  charges to the operators.   Since $ \left\{ \hat{Q}_{\vec{i}},   \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \right\} =    0 $ we can assign a $Z_2$ to the fermions.  Equivalently 
-$\hat{\tau}^{z}_{\ve{i}}$   has a $Z_2$ charge and $\hat{\sigma}^{z}_{\vec{i},\vec{j}} $   carries  $Z_2$ charges at it's ends.   
- Since the total fermion number is conserved,   we can equally assign an electric charge to the  fermions.  
-
- Finally, since  the model has an SU(N) color symmetry.  In fact, at zero chemical potential and $U=0$,    the symmetry is enhanced to O(2N) \cite{Assaad16}.
-Aspect of this Hamiltonian were investigated in Ref.~\cite{Assaad16,Gazit16,Gazit18,Gazit19,Hohenadler18,Hohenadler19}  and we refer  the interested user these papers for a discussion of the phases and phase transitions supported by the model.  
+The above allows us to assign $Z_2$  charges to the operators.   Since $ \left\{ \hat{Q}_{\vec{i}},   \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \right\} =    0 $ we can assign a $Z_2$  charge to the fermions.  Equivalently 
+$\hat{\tau}^{z}_{\ve{i}}$   has a $Z_2$ charge and $\hat{\sigma}^{z}_{\vec{i},\vec{j}} $   carries  $Z_2$ charges at its ends.   
+ Since the total fermion number is conserved,   we can assign an electric charge to the  fermions.
+Finally,  the model has an SU(N) color symmetry.  In fact, at zero chemical potential and $U=0$,    the symmetry is enhanced to O(2N) \cite{Assaad16}.
+Aspects of this Hamiltonian were investigated in Refs.~\cite{Assaad16,Gazit16,Gazit18,Gazit19,Hohenadler18,Hohenadler19} and we refer the interested user to these papers for a discussion of the phases and phase transitions supported by the model.
 
 \subsubsection*{ QMC implementation } 
 
@@ -83,8 +82,14 @@ Ham_h          = 1.0        ! sigma^x-term for matter
 Ham_g          = 1.0        ! tau^x-term for gauge
 Dtau           = 0.1d0      ! Thereby Ltrot=Beta/dtau
 Beta           = 10.d0      ! Inverse temperature
+Projector      = False      ! To enable projective code
+Theta          = 10.0       ! Projection parameter 
 /
 \end{lstlisting}
+
+
+We note that the implementation is such that  if \texttt{Ham\_T=0}   (\texttt{Ham\_TZ2=0}) then all the terms involving the matter field ($Z_2$  gauge field) are automatically set to zero.  
+We  warn the user that autocorrelation and warmup times ca be  large for this model class.  At this point, only the finite temperature code is implemented. 
 
 The key point to implement the model,  is to  define a new bond variable: 
 \begin{equation}
@@ -99,15 +104,15 @@ By construction, the $\hat{\mu}^{z}_{ \langle  \ve{i}, \ve{j}  \rangle } $ bond 
 
 
 Consider a basis where  $\hat{\mu}^{z}_{ \langle  \ve{i}, \ve{j}  \rangle } $ and $  \hat{\tau}^{z}_{ \ve{i}}$  are diagonal with eigenvalues  $\mu_{ \langle  \ve{i}, \ve{j}  \rangle } $ and $  {\tau}_{ \ve{i}}$  respectively. 
-The map from  $ \left\{ \tau_{\vec{i}}  \right\} $ to $ \left\{ \mu_{\langle \vec{i}, \vec{j} \rangle } \right\} $  is unique.  The reverse however  is valid only up to  to a global sign.  To pin down this sign  (and thereby   the  relative signs between different time slices)  we  store per time slice the $  \mu_{\langle \vec{i},\vec{j} \rangle } $ fields as well as the value of the Ising field  at  a reference site $\tau^{z}_{\vec{i} = \ve{0}} $. Within the ALF, this can be done by adding a dummy operator in the \texttt{Op\_V}  list which will carry this degree of freedom.    With this extra degree of freedom we can switch  between the two representations, without loosing any information.   To compute the Ising part of the action it is certainly more transparent to work  with the $ \left\{ \tau_{\vec{i}}  \right\} $  variables. For the  fermion determinant,  the $ \left\{ \mu_{\langle \vec{i}, \vec{j} \rangle } \right\} $   are more convenient.
+The map from  $ \left\{ \tau_{\vec{i}}  \right\} $ to $ \left\{ \mu_{\langle \vec{i}, \vec{j} \rangle } \right\} $  is unique.  The reverse however  is valid only up to  to a global sign.  To pin down this sign  (and thereby   the  relative signs between different time slices)  we  store per time slice the $  \mu_{\langle \vec{i},\vec{j} \rangle } $ fields as well as the value of the Ising field  at  a reference site $\tau_{\vec{i} = \ve{0}} $. Within the ALF, this can be done by adding a dummy operator in the \texttt{Op\_V}  list which will carry this degree of freedom.    With this extra degree of freedom we can switch  between the two representations, without loosing any information.   To compute the Ising part of the action it is certainly more transparent to work  with the $ \left\{ \tau_{\vec{i}}  \right\} $  variables. For the  fermion determinant,  the $ \left\{ \mu_{\langle \vec{i}, \vec{j} \rangle } \right\} $   are more convenient.
 
-Since flipping  $\hat{\tau}^{z}_{ \ve{i}} $  amount to changing the sign of the four  bond variables emanating from site $\ve{i}$,  the identitiy:
+Since flipping  $\hat{\tau}^{z}_{ \ve{i}} $  amounts to changing the sign of the four  bond variables emanating from site $\ve{i}$,  the identitiy:
 \begin{equation}
 \hat{\tau}^x_{\ve{i}}  = \hat{\mu}^{x}_{\ve{i},\ve{i} + \ve{a}_x } \hat{\mu}^{x}_{\ve{i} + \ve{a}_x, \ve{i} + \ve{a}_x + \ve{a}_y }   \hat{\mu}^{x}_{\ve{i} + \ve{a}_x + \ve{a}_y, \ve{i} + \ve{a}_y  }
 \end{equation}
 holds.  
 Note that $\left\{ \hat{\mu}^{z}_{\langle \vec{i}, \vec{j} \rangle} , \hat{\mu}^x_{\langle \vec{i}', \vec{j}'  \rangle} \right\}  =  2 \left( 1 -  \delta_{\langle \vec{i}, \vec{j}  \rangle, \langle \vec{i}', \vec{j}'  \rangle } \right) 
-\hat{\mu}^{z}_{\langle \vec{i}, \vec{j} \rangle}  \hat{\mu}^x_{\langle \vec{i}', \vec{j}'  \rangle} $    such that applying $\hat{\mu}^x_{\langle \vec{i}', \vec{j}'  \rangle}$  on an eigenstate of  $\hat{\mu}^{z}_{\langle \vec{i}, \vec{j} \rangle}$  flips the 
+\hat{\mu}^{z}_{\langle \vec{i}, \vec{j} \rangle}  \hat{\mu}^x_{\langle \vec{i}', \vec{j}'  \rangle} $    such that applying $\hat{\mu}^x_{\langle \vec{i}, \vec{j}  \rangle}$  on an eigenstate of  $\hat{\mu}^{z}_{\langle \vec{i}, \vec{j} \rangle}$  flips the 
 field. 
 
 
@@ -154,7 +159,7 @@ and
          \\
          & +\frac{U}{N}\sum_{\ve{i}} \left[ \sum_{\sigma}  ( \hat{\Psi}^{\dagger}_{\ve{i},\sigma}  \hat{\Psi}^{\phantom\dagger}_{\ve{i},\sigma} - 1/2 ) \right]^2. 
  \end{align*}
-In the above, $  | \underline{s}_{L_\tau+1}  \rangle  = | \underline{s}_{1}  \rangle   $ and a further  HS transformation of the Hubbard term (see Sec.~\ref{Hubbard_SUN_HS.eq})  the model is readily implemented in the ALF.    Including this HS field, $l$,  (see Eq.~\ref{HS_squares}) yields  the configuration space: 
+In the above, $  | \underline{s}_{L_\tau+1}  \rangle  = | \underline{s}_{1}  \rangle   $.  With a further  HS transformation of the Hubbard term (see Sec.~\ref{Hubbard_SUN_HS.eq})  the model is readily implemented in the ALF.    Including this HS field, $l$,  (see Eq.~\ref{HS_squares}) yields  the configuration space: 
 \begin{equation}
 	C = \left(  \left\{  \mu_{ \langle  \ve{i}, \ve{j} \rangle,\tau }  \right\},  \left\{  \sigma_{ \langle  \ve{i}, \ve{j} \rangle, \tau }  \right\},    \left\{ \tau_{\ve{0},\tau}    \right\},  \left\{ l_{\ve{i}, \tau}  \right\}  \right) 
 \end{equation} 
@@ -164,8 +169,35 @@ The initial configuration as well as the  moves have to respect the zero flux co
 $ \mu_{\vec{i},\vec{i} +  \vec{a}_x} \rightarrow - \mu_{\vec{i},\vec{i} +  \vec{a}_x} $,  $ \mu_{\vec{i},\vec{i} -  \vec{a}_x} \rightarrow - \mu_{\vec{i},\vec{i} -  \vec{a}_x} $,
 $ \mu_{\vec{i},\vec{i} +  \vec{a}_y} \rightarrow - \mu_{\vec{i},\vec{i} +  \vec{a}_y} $ and $ \mu_{\vec{i},\vec{i} -  \vec{a}_y} \rightarrow - \mu_{\vec{i},\vec{i} -  \vec{a}_y} $.  One can carry out such moves by using the global move in real space option presented in Sec.~\ref{sec:global_space} and \ref{sec:input}.
 
+\subsubsection{Projective approach} 
+The program  equally supports a zero temperature implementation.    Our  choice  of the trial wave  function does not break any symmetries of the model and reads: 
+\begin{equation}
+	| \Psi_T \rangle  =    | \Psi^{F}_T \rangle \,  \otimes_{\langle \ve{i},\ve{j} \rangle}  | + \rangle_{\langle \ve{i},\ve{j} \rangle }     \,  \otimes_{ \ve{i} }  | + \rangle_{ \ve{i} }.   
+\end{equation}
+For the fermion part we use  a Fermi see with small dimerization to avoid the negative sign problem at half-filling (see Sec.~\ref{Sec:Plain_vanilla_trial}).  For the Ising part the trial   wave function  is diagonal in the $ \hat{\sigma}^{x}_{\langle \ve{i}, \ve{j} \rangle} $ and $\hat{\tau}^{x}_{\ve{i}} $   operators: 
+\begin{equation}
+	\hat{\sigma}^{x}_{\langle \ve{i}, \ve{j} \rangle}  | + \rangle_{\langle \ve{i},\ve{j} }\rangle  = | + \rangle_{\langle \ve{i},\ve{j} \rangle }  \text{  and }  \hat{\tau}^{x}_{\ve{i}} | + \rangle_{ \ve{i} } = | + \rangle_{ \ve{i} }.
+\end{equation}
+
+An alternative  choice would  be to choose a  charge density wave  fermionic trial wave function.     This   violates the partial particle-hole symmetry of the model at $U=\mu=0$ and effectively imposes the constraint $\hat{Q}_{\ve{i}} =1 $.
+
+\subsubsection{Observables} 
+Aside from the  standard  observables discussed in Sec.~\ref{sec:predefined_observales}  the code  computes  
+\begin{equation} 
+	\langle  \hat{\sigma}^{x}_{ \langle \ve{i},\ve{j} \rangle } \rangle    \text{   and  }  \langle  \hat{\tau}^{x}_{ \ve{j}  } \rangle    \nonumber
+\end{equation}
+(file  \texttt{X\_scal}), 
+\begin{equation} 
+	\langle  \hat{\sigma}^{z}_{ \langle \ve{i},\ve{i} + \ve{a}_x \rangle }   \hat{\sigma}^{z}_{ \langle \ve{i} + \ve{a}_x ,\ve{i} + \ve{a}_x +  \ve{a}_y   \rangle }  
+	                      \hat{\sigma}^{z}_{ \langle \ve{i}+ \ve{a}_x +  \ve{a}_y ,\ve{i} + \ve{a}_y \rangle }   \hat{\sigma}^{z}_{ \langle \ve{i} + \ve{a}_y,\ve{i}  \rangle }   \rangle    \text{   and  }    \langle  \hat{\mu}^{z}_{ \langle \ve{i},\ve{i} + \ve{a}_x \rangle }   \hat{\mu}^{z}_{ \langle \ve{i} + \ve{a}_x ,\ve{i} + \ve{a}_x +  \ve{a}_y   \rangle }  
+	                      \hat{\mu}^{z}_{ \langle \ve{i}+ \ve{a}_x +  \ve{a}_y ,\ve{i} + \ve{a}_y \rangle }   \hat{\mu}^{z}_{ \langle  \ve{i} + \ve{a}_y,\ve{i}  \rangle }   \rangle   \nonumber
+\end{equation}
+(file \texttt{Flux\_scal} ),   as well as $ \langle \hat{Q}_{\ve{i}} \rangle $ (file \texttt{Q\_scal}).  Note that the flux over a plaquette  of the $\hat{\mu}^{z}_{ \langle \ve{i},\ve{j} \rangle  } $   is equal to unity by construction  so that this observable  provides a cross-check.    The file \texttt{Q\_eq}   contains the two point correlation $ \langle \hat{Q}_{\ve{i}} \hat{Q}_{\ve{j}} \rangle -   \langle \hat{Q}_{\ve{i}} \rangle \langle \hat{Q}_{\ve{j}} \rangle $  and \texttt{Greenf\_eq}  the   equal time fermion   Green function 
+$  \langle  \hat{\tau}^{z}_{\ve{i}}  \hat{\Psi}^{\dagger}_{\ve{i},\sigma}  \hat{\tau}^{z}_{\ve{j}}  \hat{\Psi}^{\phantom\dagger}_{\ve{j},\sigma}   \rangle $.
+
 
 \subsubsection{A test case: $Z_2$ slave spin formulation of the  SU(2)  Hubbard model }
+
 In this subsection, we  demonstrate that the code can be used to  simulate the attractive Hubbard model in the  $Z_2$-slave spin formulation \cite{Ruegg10}:
 \begin{equation}
         \hat{H} = -t \sum_{\langle \vec{i}, \vec{j} \rangle, \sigma }\hat{c}^{\dagger}_{\vec{i},\sigma} \hat{c}^{\phantom{\dagger}}_{\vec{j},\sigma}   -  U  \sum_i
@@ -204,17 +236,24 @@ A test run for the $8\times 8 $ lattice at $U/t = 4$ and $\beta t = 40$ gives:
  \toprule
    k   &  $\langle n_k \rangle_{H} $  &  $\langle n_k \rangle_{H_{Z_2}} $ \\
   \midrule
-   $(0,0)$                      & $1.93348548    \pm    0.00011322$  & $1.93336807   \pm      0.00080473$ \\
-   $(\pi/4, \pi/4)$             & $1.90120688     \pm   0.00014854$  & $1.90107164    \pm     0.00097029$  \\
+   $(0,0)$                      & $1.93348548    \pm    0.00011322$  &   $ 1.93333895   \pm     0.00010405 $ \\
+   $(\pi/4, \pi/4)$             & $1.90120688     \pm   0.00014854$  &  $1.90203726  \pm      0.00017943 $ \\
    $(\pi/2, \pi/2)$             & $0.99942957     \pm   0.00091377$  & $1.00000000    \pm     0.00000000$\\
-   $(3\pi/4, 3\pi/4)$         &  $0.09905425     \pm   0.00015940$ & $0.09892836    \pm     0.00097029$ \\
-   $(\pi,\pi)$                   & $0.06651452     \pm   0.00011321$  & $0.06663193     \pm    0.00080473$ \\
+   $(3\pi/4, 3\pi/4)$         &  $0.09905425     \pm   0.00015940$ & $ 0.09796274   \pm     0.00017943 $ \\
+   $(\pi,\pi)$                   & $0.06651452     \pm   0.00011321$  &  $ 0.06666105     \pm  0.00010405   $ \\
   \bottomrule
 \end{tabular}
 
 \end{center}
 \vspace*{0.5cm}
-Here a Trotter time step of  $\Delta \tau t = 0.05$ was used  so as to minimize the systematic error   which should be different  between the two codes.  This code  was used in Ref.~\cite{Hohenadler19}.
+Here a Trotter time step of  $\Delta \tau t = 0.05$ was used  so as to minimize the systematic error   which should be different  between the two codes.   The Hamiltonian is invariant under a partial particle-hole transformation (see Ref.~\cite{Assaad16}. Since $\hat{Q}_{\ve{i}} $ is odd under this  transformation 
+$\langle \hat{Q}_{\ve{i}}  \rangle =0$. To asses if the constraint is well imposed,  the code,  for this special case, computes the correlation function:
+\begin{equation}
+	   S_Q(\ve{q})  = \sum_{\ve{i}}    \langle \hat{Q}_{\ve{i}} \hat{Q}_{\ve{0}}   \rangle.
+\end{equation}
+For the above run we obtain  $ S_Q(\ve{q} = \ve{0}) = 63.42  \pm   1.7 $  which,   for this $ 8\times 8$ lattice, complies with a ferromagnetic ordering of the 
+Ising  $\hat{Q}_{\ve{i}}$  variables.    The pyALF python script that produces this data can be found in  \href{https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/blob/master/Scripts/Z2_Matter.py}{\texttt{Z2\_Matter.py}}
+This code  was used in Ref.~\cite{Hohenadler19}.  
 
 
 

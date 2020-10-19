@@ -6,7 +6,13 @@
 
 % !TEX root = doc.tex
 
-\red{Summarize and change slightly -- or completely omit -- in order to reduce overlap with ALF 1.0 paper (unless this paper is to be published as a 2nd version of the first - especially since we'd prefer to have it self-contained).}//
+%\red{Summarize and change slightly -- or completely omit -- in order to reduce overlap with ALF 1.0 paper (unless this paper is to be published as a 2nd version of the first - especially since we'd prefer to have it self-contained).}//
+
+
+We start this section by deriving the detailed form of the partition function and outlining the computation of observables (Sec.~\ref{sec:part} - \ref{sec:reweight}). 
+Next, we present a number of update strategies, namely local updates, global updates, and parallel tempering (Sec.~\ref{sec:updating}). 
+We then discuss the Trotter error, both for symmetric and asymmetric decompositions (Sec.~\ref{sec:trotter}) and, finally, we describe the measures we have implemented to make the code numerically stable (Sec.~\ref{sec:stable}).
+%Finally, we discuss the autocorrelations and associated time scales during the Monte Carlo sampling process (Sec.~\ref{sec:sampling}). 
 
 %------------------------------------------------------------
 \subsection{Formulation of the method}  \label{sec:method}
@@ -16,38 +22,31 @@ Our aim is to compute observables  for the general Hamiltonian  (\ref{eqn:genera
 We show below  how the grand-canonical partition function can be rewritten as 
 \begin{equation}
 Z = \Tr{\left(e^{-\beta \hat{\mathcal{H}} }\right)}
-= \sum_{C} e^{-S(C) } + \mathcal{O}(\Delta\tau^{2})
+= \sum_{C} e^{-S(C) } + \mathcal{O}(\Delta\tau^{2}),
 \end{equation}
-and define the space of configurations  $C$.
-Note that the chemical potential term is already included in the definition of the one-body term ${\mathcal{\hat{H}}_{T}}$, see Eq. \eqref{eqn:general_ham_t}, of the general Hamiltonian.  
-
-The outline of this section is as follows. First, we derive the detailed form of the partition function and outline the computation of observables (Sec.~\ref{sec:part} - \ref{sec:reweight}). 
-Next, we present a number of update strategies, namely local updates, global updates, and parallel tempering (Sec.~\ref{sec:updating}). 
-We also describe the measures we have implemented to make the code numerically stable (Sec.~\ref{sec:stable}). Finally, we discuss the autocorrelations and associated time scales during the 
-Monte Carlo sampling process (Sec.~\ref{sec:sampling}). 
-
+and define the space of configurations  $C$. Note that the chemical potential term is already included in the definition of the one-body term ${\mathcal{\hat{H}}_{T}}$, see Eq. \eqref{eqn:general_ham_t}, of the general Hamiltonian.  
 The essential ingredients of the auxiliary-field quantum Monte Carlo implementation in the ALF package are the following:
 \begin{itemize}
 \item  We discretize the imaginary time propagation: $\beta = \Delta \tau L_{\text{Trotter}} $. Generically this introduces a systematic Trotter error of $\mathcal{O}(\Delta \tau)^2$  \cite{Fye86}. 
-We note that there has been considerable effort at getting rid of the Trotter systematic error and to formulate a genuine continuous-time BSS  algorithm \cite{Iazzi15}.   To date, efforts in this direction are based on a CT-AUX type formulation \cite{Rombouts99,Gull08} and   face  two issues. The first issue is that they are restricted to a class of models with Hubbard-type interactions
+We note that there has been considerable effort at getting rid of the Trotter systematic error and to formulate a genuine continuous-time BSS  algorithm \cite{Iazzi15}.   To date, efforts in this direction are based on a CT-AUX type formulation \cite{Rombouts99,Gull08} and face two issues. The first one is that they are restricted to a class of models with Hubbard-type interactions
+\begin{align}
+        (\hat{n}_{i}- 1)^{2}  = (\hat{n}_{i}- 1)^{4} ,
+\end{align}
+in order for the basic CT-AUX equation \cite{Rombouts98},
 \begin{equation}
-        \left(  \hat{n}_{i}- 1\right)^{2}  = \left(  \hat{n}_{i}- 1\right)^{4} ,
+          1   + \frac{U}{K} \left(  \hat{n}_{i}- 1\right)^{2}    = \frac{1}{2}\sum_{s=\pm 1}   e^{ \alpha s \left(  \hat{n}_{i}- 1\right) }  \; \text{ with  }  \;  \frac{U}{K} = \cosh(\alpha) -1 \; \text{ and  }  \; K\in\mathbb{R},
 \end{equation}
-such that  the  basic CT-AUX equation \cite{Rombouts98}
-\begin{equation}
-          1   + \frac{U}{K} \left(  \hat{n}_{i}- 1\right)^{2}    = \frac{1}{2}\sum_{s=\pm 1}   e^{ \alpha s \left(  \hat{n}_{i}- 1\right) }  \; \text{ with  }  \;  \frac{U}{K} = \cosh(\alpha) -1 \; \text{ and  }  \; K\in\mathbb{R}
-\end{equation}
-holds.
-The second issue is that in the continuous-time  approach it is hard to formulate a  computationally efficient algorithm.  Given this situation it turns out that the multi-grid method \cite{Rost12,Rost13,Bluemer08}  is an efficient  scheme to   extrapolate to  small imaginary-time steps so as to  eliminate the Trotter systematic error if required.
+to hold.
+The second issue is that in the continuous-time  approach it is hard to formulate a  computationally efficient algorithm.  Given this situation, if eliminating the Trotter systematic error is required, it turns out that extrapolating to small imaginary-time steps using the multi-grid method \cite{Rost12,Rost13,Bluemer08} is a more efficient scheme.
 \item  Having isolated the two-body term, we apply Gau\ss{}-Hermite quadrature \cite{goth2020} to the 
 continuous HS transform and obtain the discrete HS transformation \cite{Motome97,Assaad97}:
 \begin{equation}
 \label{HS_squares}
-        e^{\Delta \tau  \lambda  \hat{A}^2 } =
+        e^{\Delta \tau  \lambda  \hat{A}^2 } = \frac{1}{4}
         \sum_{ l = \pm 1, \pm 2}  \gamma(l)
 e^{ \sqrt{\Delta \tau \lambda }
        \eta(l)  \hat{A} }
-                + \mathcal{O} (\Delta \tau ^4)\;,
+                + \mathcal{O} \left(  (\Delta \tau \lambda)^4\right) \;,
 \end{equation}
 where the fields $\eta$ and $\gamma$ take the values:
 \begin{equation} \label{eta_gamma_fields}
@@ -57,13 +56,19 @@ where the fields $\eta$ and $\gamma$ take the values:
 \end{aligned}
 \end{equation}
 Since the Trotter error is already of order $(\Delta \tau ^2) $ per time slice, this transformation is next to exact.
-\item $\hat{Z}_k$ can stand for a variety of operators, such as the Pauli matrix $\hat{\sigma}_{z}$, in which case the Ising spins take the values $s_{k} = \pm 1$, or the position operator -- such that $ \hat{Z}_k | \phi\rangle = \phi|\phi\rangle $, with $\phi$ a real number.
+One can relate the expectation value of the field $\eta(l)$ to the operator $\hat{A}$  by noting that:
+\begin{eqnarray} 
+    & &  \frac{1}{4} \sum_{l = \pm 1, \pm 2} \gamma(l) e^{\sqrt{ \Delta \tau \lambda} \eta(l) \hat{A}} \left( \frac{\eta(l)}{-2 \sqrt{ \Delta \tau \lambda}  } \right)    =   e^{ \Delta \tau \lambda  \hat{A}^2}  \hat{A}  +   \mathcal{O}  \left( (\Delta \tau \lambda)^3\right)   \text{  and } \nonumber \\  
+     & &    \frac{1}{4} \sum_{l = \pm 1, \pm 2} \gamma(l) e^{\sqrt{ \Delta \tau \lambda} \eta(l) \hat{A}} \left( \frac{(\eta(l))^2 - 2}{4 \Delta \tau \lambda  } \right)    =   e^{ \Delta \tau \lambda  \hat{A}^2}  \hat{A}^2  +   \mathcal{O}  \left( (\Delta \tau \lambda)^2\right).
+\end{eqnarray}
+\item $\hat{Z}_k$ in Eq.~\ref{eqn:general_ham_i} can stand for a variety of operators, such as the Pauli matrix $\hat{\sigma}_{z}$ -- in which case the Ising spins take the values $s_{k} = \pm 1$ -- or the position operator -- such that $ \hat{Z}_k | \phi\rangle = \phi_k  |\phi\rangle $, with $\phi_k$ a real number.  
+
 \item From the above it follows that the  Monte Carlo configuration space $C$  
 is given by the combined spaces of Ising spin configurations  and of HS discrete field configurations:
 \begin{equation}
-	C = \left\{   s_{i,\tau} ,  l_{j,\tau}  \text{ with }  i=1\cdots M_I,\;  j = 1\cdots M_V,\; \tau=1\cdots L_{\mathrm{Trotter}}  \right\}.
+	C = \left\{   \phi_{i,\tau} ,  l_{j,\tau}  \text{ with }  i=1\cdots M_I,\;  j = 1\cdots M_V,\; \tau=1\cdots L_{\mathrm{Trotter}}  \right\}.
 \end{equation}
-Here, the HS fields take the values $l_{j,\tau} = \pm 2, \pm 1 $ and the Ising spins $s_{i,\tau}$ may, for instance, be a continuous real field or, if $\hat{Z}_k = \hat{\sigma}_{z}$, be restricted to $\pm 1$.
+Here, the HS fields take the values $l_{j,\tau} = \pm 2, \pm 1 $ and  $\phi_{i,\tau}$ may, for instance, be a continuous real field or, if $\hat{Z}_k = \hat{\sigma}_{z}$, be restricted to $\pm 1$.
 \end{itemize}
 
 %------------------------------------------------------------
@@ -85,15 +90,13 @@ Z &= \Tr{\left(e^{-\beta \hat{\mathcal{H}} }\right)}\nonumber\\
       \prod_{k=1}^{M_T}   e^{-\Delta \tau \hat{T}^{(k)}}    \right]\right\} }+ \mathcal{O}(\Delta\tau^{2})\;.
 \end{align}
 In the above,  the trace $\mathrm{Tr} $  runs over the Ising spins as well as over the fermionic degrees of freedom, and $ \mathrm{Tr}_{\mathrm{F}}  $ only over the  fermionic Fock space. 
-$S_{0,I} \left( \left\{ s_{i,\tau} \right\}  \right)  $ is the action  corresponding to the Ising Hamiltonian,  and is only dependent on the Ising spins so that  it can be pulled out of the fermionic trace.  We have adopted the short hand notation $\eta_{k,\tau}  = \eta(l_{k,\tau})$   and $\gamma_{k,\tau}  = \gamma(l_{k,\tau})$.
+$S_{0,I} \left( \left\{ s_{i,\tau} \right\}  \right)  $ is the action  corresponding to the Ising Hamiltonian,  and is only dependent on the Ising spins so that  it can be pulled out of the fermionic trace.  We have adopted the shorthand notation $\eta_{k,\tau} \equiv \eta(l_{k,\tau})$   and $\gamma_{k,\tau} \equiv \gamma(l_{k,\tau})$.
 At this point,  and  since for a given configuration $C$  we are dealing with a free propagation, we can integrate out the fermions to obtain a determinant: 
 \begin{align}
  &\Trf{ \left\{  \prod_{\tau=1}^{L_{\mathrm{Trotter}}} \left[    
     \prod_{k=1}^{M_V}   e^{  \sqrt{ - \Delta \tau  U_k} \eta_{k,\tau} \hat{V}^{(k)} }   \prod_{k=1}^{M_I}   e^{  -\Delta \tau s_{k,\tau}  \hat{I}^{(k)}} 
-    \prod_{k=1}^{M_T}   e^{-\Delta \tau \hat{T}^{(k)}}   \right] \right\}} = \nonumber\\
-& \quad\prod\limits_{s=1}^{N_{\mathrm{fl}}} \left[  e^{\sum\limits_{k=1}^{M_V} \sum\limits_{\tau = 1}^{L_{\mathrm{Trotter}}}\sqrt{-\Delta \tau U_k}  \alpha_{k,s} \eta_{k,\tau} }
-   \right]^{N_{\mathrm{col}}}\times
-\nonumber\\
+    \prod_{k=1}^{M_T}   e^{-\Delta \tau \hat{T}^{(k)}}   \right]   \right\}} = \nonumber\\
+& \quad\prod\limits_{s=1}^{N_{\mathrm{fl}}} \left[  e^{\sum\limits_{k=1}^{M_V} \sum\limits_{\tau = 1}^{L_{\mathrm{Trotter}}}\sqrt{-\Delta \tau U_k}  \alpha_{k,s} \eta_{k,\tau} } \right]^{N_{\mathrm{col}}} \times \nonumber\\
 &\quad   \prod\limits_{s=1}^{N_{\mathrm{fl}}} 
    \left[
     \det\left(  \mathds{1} + 
@@ -122,18 +125,19 @@ This corresponds to  an explicit $SU(N_{\mathrm{col}})$ symmetry   for each  con
 \subsubsection{Observables}\label{Observables.General}
 %------------------------------------------------------------
 
-In the auxiliary-field QMC approach, the single-particle Green function plays a crucial role.  It determines the Monte Carlo dynamics and is used to compute  observables:
+In the auxiliary-field QMC approach, the single-particle Green function plays a crucial role.  It determines the Monte Carlo dynamics and is used to compute  observables. Consider the observable:
 \begin{equation}\label{eqn:obs}
 \langle \hat{O}  \rangle  = \frac{ \text{Tr}   \left[ e^{- \beta \hat{H}}  \hat{O}  \right] }{ \text{Tr}   \left[ e^{- \beta \hat{H}}  \right] } =   \sum_{C}   P(C) 
-   \langle \langle \hat{O}  \rangle \rangle_{(C)} , \text{   with   } 
-  P(C)   = \frac{ e^{-S(C)}}{\sum_C e^{-S(C)}}\;,
+   \langle \langle \hat{O}  \rangle \rangle_{(C)} ,
+   \quad \text{ where } 
+  P(C)   = \frac{ e^{-S(C)}}{\sum_C e^{-S(C)}}\;
 \end{equation}
 and $\langle \langle \hat{O}  \rangle \rangle_{(C)} $ denotes the observed value of $\hat{O}$ for a given configuration $C$.
 For a given configuration $C$  one can use Wick's theorem to compute $O (C) $   from the knowledge of the single-particle Green function: 
 \begin{equation}
-       G( x,\sigma,s, \tau |    x',\sigma',s', \tau')   =       \langle \langle \mathcal{T} \hat{c}^{\phantom\dagger}_{x \sigma s} (\tau)  \hat{c}^{\dagger}_{x' \sigma' s'} (\tau') \rangle \rangle_{C}
+       G( x,\sigma,s, \tau |    x',\sigma',s', \tau')   =       \langle \langle \mathcal{T} \hat{c}^{\phantom\dagger}_{x \sigma s} (\tau)  \hat{c}^{\dagger}_{x' \sigma' s'} (\tau') \rangle \rangle_{C},
 \end{equation}
-where $ \mathcal{T} $ corresponds to the imaginary-time ordering operator.   The  corresponding equal-time quantity reads, 
+where $ \mathcal{T} $ denotes the imaginary-time ordering operator.   The  corresponding equal-time quantity reads
 \begin{equation}
        G( x,\sigma,s, \tau |    x',\sigma',s', \tau)   =       \langle \langle  \hat{c}^{\phantom\dagger}_{x \sigma s} (\tau)  \hat{c}^{\dagger}_{x' \sigma' s'} (\tau) \rangle \rangle_{C}.
 \end{equation}
@@ -223,12 +227,12 @@ The negative sign problem is still an issue because the average sign is a ratio 
 \begin{equation}
  \langle \text{sign} \rangle_{\overline{P}}   \propto e^{-  \Delta N \beta},
 \end{equation}
-where $\Delta $ is intensive positive quantity and $N \beta$ denotes the  Euclidean volume.    In a Monte Carlo simulation the  error scales as $ 1/\sqrt{T_{CPU}} $   where $T_{CPU}$ corresponds to the computational  time.  Since the error on the  average sign has to be much smaller than the average sign itself,   one sees that:
+where $\Delta $ is an intensive positive quantity and $N \beta$ denotes the  Euclidean volume.    In a Monte Carlo simulation the  error scales as $ 1/\sqrt{T_\text{CPU}} $   where $T_\text{CPU}$ corresponds to the computational  time.  Since the error on the  average sign has to be much smaller than the average sign itself,   one sees that:
 \begin{equation}
-	T_{CPU}  \gg e^{2 \Delta N \beta}.
+	T_\text{CPU}  \gg e^{2 \Delta N \beta}.
 \end{equation}   
 Two comments are in order. First, the presence of a sign problem invariably leads to an exponential increase of CPU time as a function of the Euclidean volume. And second,  $\Delta$ is formulation dependent.  
-For instance, at finite doping, the SU(2) invariant formulation of the Hubbard model presented in Sec.~\ref{sec:walk1}   has a much more severe sign problem than the formulation presented in Sec.~\ref{sec:walk1.1} where the HS field couples to the z-component of the magnetization. 
+For instance, at finite doping, the SU(2) invariant formulation of the Hubbard model presented in Sec.~\ref{sec:hubbard} has a much more severe sign problem than the formulation (also presented in Sec.~\ref{sec:hubbard}) where the HS field couples to the $z$-component of the magnetization. 
 
 
 

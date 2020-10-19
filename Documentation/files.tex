@@ -2,7 +2,7 @@
 % This is a part of the ALF project documentation.
 % The ALF project documentation by the ALF contributors is licensed
 % under a Creative Commons Attribution-ShareAlike 4.0 International License.
-% For the licensing details of the documentation see license.CCBYSA.
+% For the licensing details of the documentation see license.CCBYSA
 
 % !TEX root = doc.tex
 %------------------------------------------------------------
@@ -95,6 +95,8 @@ n_skip  = 1                 ! Number of bins that to be skipped.
 N_rebin = 1                 ! Rebinning  
 N_Cov   = 0                 ! If set to 1 covariance computed for non-equal-time
                             ! correlation functions
+N_auto   = 0                ! If > 0  triggers  calculation of autocorrelation 
+N_Back   = 1                ! If set to 1, substract background in correlation functions
 /  
 
 &VAR_TEMP                  !! Variables for parallel tempering
@@ -119,8 +121,6 @@ NWarm      = 20             ! The Nwarm first bins will be ommitted
 N_alpha    = 14             ! Number of temperatures
 alpha_st   = 1.d0           ! Smallest inverse temperature increment for inverse
 R          = 1.2d0          ! temperature (see above) 
-Channel    = "P"            ! Options: zero temperature (T0), and finite temperature
-                            ! particle (P), particle-hole (PH), or particle-particle (PP)
 Checkpoint = .F.            ! Whether to produce dump files, allowing the simulation
                             ! to be resumed later on
 Tolerance  = 0.1d0          ! Data points for which the relative error exceeds the
@@ -163,7 +163,9 @@ ham_Tperp = 1.d0            ! For bilayer systems
 		%  \path{confin_<thread number>} & Input files for the HS and Ising configuration, used to continue a simulation.
 		\\\bottomrule
 	\end{tabular}
-	\caption{\red{[To be removed, at least after the files seeds is no longer necessary.]} Overview of the input files required for a simulation, which can be found in the subdirectory \texttt{Scripts\_and\_Parameters\_files/Start/}. \label{table:input}}
+	\caption{
+	%\red{[To be removed, at least after the files seeds is no longer necessary.]} 
+	Overview of the input files required for a simulation, which can be found in the subdirectory \texttt{Scripts\_and\_Parameters\_files/Start/}. \label{table:input}}
 \end{center}
 \end{table}
 %
@@ -215,10 +217,6 @@ If the program is not compiled with the parallel tempering flag, then the \textt
 %N_alpha    = 14              ! # of temperatures
 %alpha_st   = 1.d0            ! smallest inverse temperature
 %R          = 1.2d0           ! increment for inverse temperature (see above) 
-%Channel    = "P"             ! T0       : Zero temperature
-%                             ! P        : Finite temperarure particle 
-%                             ! PH       : Finite temperarure particle-hole
-%                             ! PP       : Finite temperarure particle-particle 
 %Checkpoint = .false.         !.true.    : dump files will be produced so as to be able
 %                             !            to restart the simulation
 %                             !.false.   : dump files will not be produced 
@@ -239,7 +237,8 @@ If the program is not compiled with the parallel tempering flag, then the \textt
    \path{info}        & After completion of the simulation, this file documents the parameters of the model, as well as the QMC run and simulation metrics (precision, acceptance rate, wallclock time)\\
    \path{X_scal}      & Results of equal-time measurements of scalar observables \\
    & The placeholder \path{X} stands for the observables \path{Kin}, \path{Pot}, \path{Part}, and \path{Ener} \\
-   \path{Y_eq, Y_tau} & Results of equal-time and time-displaced measurements of correlation functions. The placeholder \path{Y} stands for \path{Green}, \path{SpinZ}, \path{SpinXY}, and \path{Den} \\   
+   \path{Y_eq, Y_tau} & Results of equal-time and time-displaced measurements of correlation functions. The placeholder \path{Y} stands for \path{Green}, \path{SpinZ}, \path{SpinXY}, \path{Den}, etc. \\   
+   \path{Y_eq_info, Y_tau_info} & Additional info, like Bravais lattice and unit cell, for equal-time and time-displaced observable. \\   
    \path{confout_<thread number>} & Output files (one per MPI instance) for the HS and Ising configuration \\\bottomrule
    \end{tabular}
    \caption{Overview of the standard output files. See Sec.~\ref{sec:obs} for the definitions of observables and correlation functions. \label{table:output}}
@@ -268,7 +267,7 @@ The block consists of the expectation values [Eq.~(\ref{eqn:o})] contributing to
 and the correlated part [Eq.~(\ref{eqn:s_corr})] of the correlation function.
 For imaginary-time displaced correlation functions, the formatting of the block is given by:
 \begin{alltt}
-<measured sign>  <N_orbital>  <N_unit_cell>  <N_time_slices>  <dtau>
+<measured sign>  <N_orbital>  <N_unit_cell>  <N_time_slices>  <dtau>  <Channel>
 do alpha = 1, N_orbital
     \(\langle\hat{O}\sb{\alpha}\rangle \)
 enddo
@@ -283,7 +282,7 @@ do i = 1, N_unit_cell
    enddo
 enddo
 \end{alltt}
-The same block structure is used for equal-time correlation functions, except for the entries  \path{<N_time_slices>} and \path{<dtau>}, which are then omitted.
+The same block structure is used for equal-time correlation functions, except for the entries  \path{<N_time_slices>}, \path{<dtau>} and \path{<Channel>}, which are then omitted.
 Using this structure for the bins as input, the full correlation function $S_{\alpha,\beta}(\vec{k},\tau)$ [Eq.~(\ref{eqn:s})] is then calculated by calling the error analysis routine (see Sec.~\ref{sec:analysis}).
 \end{itemize}
 

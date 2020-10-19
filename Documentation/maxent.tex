@@ -34,6 +34,22 @@ In order to produce a histogram of  $ A(\omega) $ we divide  the frequency range
 
 Besides the parameters included in the namelist \texttt{VAR\_Max\_Stoch} set in the file \texttt{parameters} (see Sec.~\ref{sec:files}), also the variable \texttt{N\_cov}, from the namelist \texttt{VAR\_errors}, is required to run the maxent code. Recalling: \texttt{N\_cov = 1} (\texttt{N\_cov = 0}) sets that the covariance will (will not) be taken into account.
 
+\subsubsection*{Input files} 
+Aside for the aforementioned parameter file,  the  MaxEnt program reads requires the output of the  analysis of the time displaced functions. After running \texttt{Anaylsis/ana.out} a directory named    \texttt{\$\{Variable\_name\}}\texttt{\_\$\{kx\}\_\$\{ky\}}   is  generate for each $k$-point.  In this directory  the file \texttt{g\_\$\{kx\}\_\$\{ky\}} contains the  required information for the MaxEnt code  and is  formatted as follows:
+\begin{alltt}
+ < # tau-points >  <# of bins >  <beta>  <Norb>  <Channel>
+do tau = 1,  # tau-points
+   \( \tau \),  \( \sum\sb{\alpha}\langle{S}\sb{\alpha,\alpha}\sp{(\mathrm{corr})}(k,\tau)\rangle\),   error
+enddo
+do tau1 = 1,  # tau-points
+  do tau2 = 1,  # tau-points
+     \( C( \tau\sb{1},\tau\sb{2} ) \)
+  enddo
+enddo
+\end{alltt}
+
+
+
 \subsubsection*{Output files}
 
 The code produces the following output files:
@@ -86,9 +102,10 @@ Note that  $ A_p(k, \omega)  = - \Im G^{\mathrm{ret}} (k, \omega) $,  with
 \end{equation}
 Finally the sum rule reads
 \begin{equation}
-	\int \d \omega  A_p(k, \omega)  = \pi \langle  \big\{ \hat{c}^{\phantom\dagger}_{k} , \hat{c}^{\dagger}_{k}  \big\}   \rangle = \pi. 
+	\int \d \omega  A_p(k, \omega)  = \pi \langle  \big\{ \hat{c}^{\phantom\dagger}_{k} , \hat{c}^{\dagger}_{k}  \big\}   \rangle = \pi \left( 
+	\langle \hat{c}^{\phantom\dagger}_{k} (\tau=0)  \hat{c}^{\dagger}_{k} (0)   \rangle  +  \langle \hat{c}^{\phantom\dagger}_{k} (\tau=\beta)  \hat{c}^{\dagger}_{k} (0)   \rangle  \right)
 \end{equation}
-Using the \texttt{Max\_Sac.F90}  with \texttt{Channel="P"}   will  load the above kernel in the MaxEnt library.  Note that in this case the back  transformation is set to unity.  
+Using the \texttt{Max\_Sac.F90}  with \texttt{Channel="P"}   will  load the above kernel in the MaxEnt library. In this case the back  transformation is set to unity.  
 Note that for each  configuration of fields we have $ \langle  \langle \hat{c}^{\phantom\dagger}_{k} (\tau=0)  \hat{c}^{\dagger}_{k} (0)   \rangle  \rangle_{C} +   
 \langle \langle \hat{c}^{\phantom\dagger}_{k} (\tau=\beta)  \hat{c}^{\dagger}_{k} (0)   \rangle \rangle_{C} = 
 \langle \langle \big\{ \hat{c}^{\phantom\dagger}_{k},   \hat{c}^{\dagger}_{k}    \big\} \rangle \rangle_{C}   = 1$, hence, if both  the $\tau=0$ and $\tau=\beta$ data points are included, the covariance matrix will have a zero eigenvalue and the $\chi^{2}$ measure is not defined. Therefore, for the particle channel the program omits the $\tau=\beta$ data point. There are special  particle-hole symmetric  cases where the $\tau=0$ data point shows no  fluctuations -- in such cases the code omits the $\tau=0$ data point as well.
@@ -182,6 +199,7 @@ The back transformation  yields
 
 
 
+
 \subsection{Zero-temperature, projective code}
 
  In the zero temperature limit,  the spectral function associated to an operator $\hat{O} $    reads:
@@ -205,3 +223,16 @@ The back transformation  yields
  In the zero-temperature limit one does not distinguish between  particle, particle-hole, or particle-particle channels.
  Using the \texttt{Max\_Sac.F90}  with \texttt{Channel="T0"} loads the above kernel in the MaxEnt library. In this case the back  transformation is set to unity. 
  The code will also cut-off the tail of the  imaginary time correlation function  if the relative error is greater that the variable \texttt{Tolerance}. 
+ 
+ \subsection{Dynamics of the one-dimensional half-filled Hubbard model}
+
+To conclude this section, we   show the example of the one dimensional Hubbard model that is know to  show spin-charge separation (see Ref.~\cite{Abendschein06}  and references therein).    The data of Fig.~\ref{Fig:Spectral1D}    was produced with the pyALF python script  \href{https://git.physik.uni-wuerzburg.de/ALF/ALF/-/blob/master/Documentation/Figures/MaxEnt/Hubbard_1D.py}{\texttt{Hubbard\_1D.py}}, and   the  spectral functions plots with the bash \href{https://git.physik.uni-wuerzburg.de/ALF/ALF/-/blob/master/Documentation/Figures/MaxEnt/Spectral.sh}{\texttt{Spectral.sh}}. 
+
+\begin{figure}
+\center
+\includegraphics[width=\textwidth]{Figures/MaxEnt/Spectral_1D.pdf}
+
+\caption{ Dynamics of the one-dimensional half-filled Hubbard model  on a 46-site chain   and at U/t=4 and at $\beta t = 10$.  (a) Dynamical charge structure factor, (b) single particle spectral function and (c) dynamical spin structure factor.   As apparent in the pyALF python script 
+ \href{https://git.physik.uni-wuerzburg.de/ALF/ALF/-/blob/master/Documentation/Figures/MaxEnt/Hubbard_1D.py}{\texttt{Hubbard\_1D.py}}  we consider 400  bins of 200 sweeps  each and  take into account the covariance matrix for the MaxEnt.  The parameters for the MaxEnt  that differ for the default values are also listed in the  python script. }
+        \label{Fig:Spectral1D}
+\end{figure}

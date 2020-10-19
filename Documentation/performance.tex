@@ -7,8 +7,8 @@
 %-------------------------------------------------------------------------------------
 \subsection{Performance, memory requirements and parallelization} \label{sec:performance}
 %-------------------------------------------------------------------------------------
-
-\red{\\Could this subsection be brought to Sec.~\ref{sec:optimize} (Using the Code / performance \& parameter optimization).}\\ \\
+%
+% \red{\\Could this subsection be brought to Sec.~\ref{sec:optimize} (Using the Code / performance \& parameter optimization).}\\ \\
 
 As mentioned in the  introduction, the auxiliary field QMC algorithm scales linearly in inverse temperature $\beta$ and cubic in the volume $N_{\text{dim}}$. Using fast updates,  a single spin flip  requires $(N_{\text{dim}})^2$ operations to update the Green function upon acceptance.  As there are $L_{\text{Trotter}}\times N_{\text{dim}}$ spins to be visited, the total computational cost for one sweep is of the order of $\beta (N_{\text{dim}})^3$. This operation  dominates the performance, see Fig.~\ref{fig_scaling_size}. A profiling analysis of our code shows that 80-90\% of the CPU time is spend in ZGEMM calls of the BLAS library provided in the MKL package by Intel. Consequently, the single-core performance is next to optimal.
 

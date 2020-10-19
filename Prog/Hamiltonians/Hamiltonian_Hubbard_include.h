@@ -1,9 +1,9 @@
-        
+
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF Collaboration
 !>
-!> @brief 
+!> @brief
 !> Prints out the bins.  No need to change this routine.
 !-------------------------------------------------------------------
         Subroutine  Pr_obs(LTAU)
@@ -11,39 +11,39 @@
           Implicit none
 
           Integer,  Intent(In) ::  Ltau
-          
-          !Local 
+
+          !Local
           Integer :: I
 
 
           Do I = 1,Size(Obs_scal,1)
-             Call  Print_bin_Vec(Obs_scal(I),Group_Comm)
+             Call Print_bin_Vec(Obs_scal(I), Group_Comm)
           enddo
           Do I = 1,Size(Obs_eq,1)
-             Call  Print_bin_Latt(Obs_eq(I),Latt,dtau,Group_Comm)
+             Call Print_bin_Latt(Obs_eq(I), Group_Comm)
           enddo
-          If (Ltau  == 1 ) then
+          If (Ltau == 1 ) then
              Do I = 1,Size(Obs_tau,1)
-                Call  Print_bin_Latt(Obs_tau(I),Latt,dtau,Group_Comm)
+                Call Print_bin_Latt(Obs_tau(I), Group_Comm)
              enddo
           endif
 
         end Subroutine Pr_obs
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF Collaboration
 !>
-!> @brief 
+!> @brief
 !> Initializes observables to zero before each bins.  No need to change
 !> this routine.
 !-------------------------------------------------------------------
-        Subroutine  Init_obs(Ltau) 
+        Subroutine  Init_obs(Ltau)
 
           Implicit none
           Integer, Intent(In) :: Ltau
-          
-          ! Local 
+
+          ! Local
           Integer :: I
 
           Do I = 1,Size(Obs_scal,1)
@@ -63,7 +63,7 @@
         end Subroutine Init_obs
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF Collaboration
 !>
 !> @brief
@@ -101,8 +101,8 @@
         Subroutine Global_move_tau(T0_Proposal_ratio, S0_ratio, &
              &                     Flip_list, Flip_length,Flip_value,ntau)
 
-          
-          Implicit none 
+
+          Implicit none
           Real (Kind = Kind(0.d0)),INTENT(OUT) :: T0_Proposal_ratio,  S0_ratio
           Integer                , INTENT(OUT) :: Flip_list(:)
           Real (Kind = Kind(0.d0)),INTENT(OUT) :: Flip_value(:)
@@ -115,11 +115,11 @@
           Real (Kind=Kind(0.d0)) :: T0_proposal
 
           Flip_length = nranf(4)
-          do n = 1,flip_length 
+          do n = 1,flip_length
              n_op = nranf(size(OP_V,1))
              Flip_list(n)  = n_op
              Flip_value(n) = nsigma%flip(n_op,ntau)
-             If ( OP_V(n_op,1)%type == 1 ) then 
+             If ( OP_V(n_op,1)%type == 1 ) then
                 S0_ratio          =   S0(n_op,ntau,Flip_value(n))
                 T0_Proposal       =  1.d0 - 1.d0/(1.d0+S0_ratio) ! No move prob
                 If ( T0_Proposal > Ranf_wrap() ) then
@@ -132,11 +132,11 @@
                 S0_ratio          = 1.d0
              endif
           Enddo
-          
+
         end Subroutine Global_move_tau
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF Collaboration
 !>
 !> @brief
@@ -149,22 +149,22 @@
 !>  the initial field
 !> \endverbatim
 !--------------------------------------------------------------------
-     Subroutine  Hamiltonian_set_nsigma(Initial_field) 
+     Subroutine  Hamiltonian_set_nsigma(Initial_field)
         Implicit none
 
         Real (Kind=Kind(0.d0)), allocatable, dimension(:,:), Intent(OUT) :: Initial_field
 
-        
+
       end Subroutine Hamiltonian_set_nsigma
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF Collaboration
 !>
 !> @brief
 !> This routine allows to user to  determine the global_tau sampling parameters at run time
 !> It is especially usefull if these parameters are dependent on other parameters.
-!>      
+!>
 !> @details
 !> \endverbatim
 !--------------------------------------------------------------------
@@ -175,7 +175,7 @@
       end Subroutine Overide_global_tau_sampling_parameters
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF Collaboration
 !>
 !> @brief
@@ -185,7 +185,7 @@
 !> a spin flip of Operator n on time slice nt
 !> @details
 !--------------------------------------------------------------------
-      Real (Kind=Kind(0.d0)) function S0(n,nt,Hs_new)  
+      Real (Kind=Kind(0.d0)) function S0(n,nt,Hs_new)
         Implicit none
         !> Operator index
         Integer, Intent(IN) :: n
@@ -193,22 +193,22 @@
         Integer, Intent(IN) :: nt
         !> New local field on time slice nt and operator index n
         Real (Kind=Kind(0.d0)), Intent(In) :: Hs_new
-        
+
         Integer :: nt1,I
         !Write(6,*) "Hi1"
-        
+
         S0 = 1.d0
-        
+
       end function S0
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF Collaboration
 !>
 !> @brief
 !> Global moves
-!> 
+!>
 !> @details
-!>  This routine generates a 
+!>  This routine generates a
 !>  global update  and returns the propability T0_Proposal_ratio  =  T0( sigma_out-> sigma_in ) /  T0( sigma_in -> sigma_out)
 !> @param [IN] nsigma_old,  Type(Fields)
 !> \verbatim
@@ -216,7 +216,7 @@
 !> \endverbatim
 !> @param [OUT]  T0_Proposal_ratio Real
 !> \verbatimam
-!>  T0_Proposal_ratio  =  T0( sigma_new -> sigma_old ) /  T0( sigma_old -> sigma_new)  
+!>  T0_Proposal_ratio  =  T0( sigma_new -> sigma_old ) /  T0( sigma_old -> sigma_new)
 !> \endverbatim
 !> @param [OUT]  Size_clust Real
 !> \verbatim
@@ -224,7 +224,7 @@
 !> \endverbatim
 !-------------------------------------------------------------------
         Subroutine Global_move(T0_Proposal_ratio,nsigma_old,size_clust)
-          
+
           Implicit none
           Real (Kind=Kind(0.d0)), intent(out) :: T0_Proposal_ratio, size_clust
           Type (Fields),  Intent(IN)  :: nsigma_old
@@ -244,15 +244,15 @@
              n2 = nranf(N_tau)
              nsigma%f(n1,n2) = nsigma_old%flip(n1,n2)
           enddo
-          
+
         End Subroutine Global_move
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF Collaboration
 !>
 !> @brief
 !> Computes the ratio exp(S0(new))/exp(S0(old))
-!> 
+!>
 !> @details
 !> This function computes the ratio \verbatim  e^{-S0(nsigma)}/e^{-S0(nsigma_old)} \endverbatim
 !> @param [IN] nsigma_old,  Type(Fields)
@@ -263,17 +263,16 @@
         Real (Kind=kind(0.d0)) Function Delta_S0_global(Nsigma_old)
 
           !  This function computes the ratio:  e^{-S0(nsigma)}/e^{-S0(nsigma_old)}
-          Implicit none 
-          
+          Implicit none
+
           ! Arguments
           Type (Fields),  INTENT(IN) :: nsigma_old
 
           ! Local
           Integer :: I,n,n1,n2,n3,n4,nt,nt1, nc_F, nc_J, nc_h_p, nc_h_m
-         
+
 
           Delta_S0_global = 1.d0
 
 
         end Function Delta_S0_global
-      

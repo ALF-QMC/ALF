@@ -351,7 +351,7 @@ Program Main
         Enddo
         File_seeds="seeds"
         Call Set_Random_number_Generator(File_seeds,Seed_in)
-        Write(6,*) Seed_in
+        !Write(6,*) Seed_in
                
         Call Hamiltonian_set_nsigma(Initial_field)
 

@@ -149,8 +149,8 @@
       Logical              :: Symm
 
 
-      Type (Lattice),       private :: Latt
-      Type (Unit_cell),     private :: Latt_unit
+      Type (Lattice),       private, target :: Latt
+      Type (Unit_cell),     private, target :: Latt_unit
       Integer,              private :: L1, L2
       Type (Hopping_Matrix_type), Allocatable, private :: Hopping_Matrix(:)
       real (Kind=Kind(0.d0)),        private :: ham_T , ham_U,  Ham_chem, Ham_h, Ham_J, Ham_xi,  Ham_tV
@@ -202,7 +202,7 @@
           NAMELIST /VAR_Lattice/  L1, L2, Lattice_type, Model
 
           NAMELIST /VAR_Model_Generic/  Checkerboard, N_SUN, N_FL, Phi_X, Phi_Y, Symm, Bulk, N_Phi, Dtau, Beta, Theta, Projector
-          
+
           Namelist /VAR_LRC/      ham_T, ham_T2, ham_Tperp, ham_chem, ham_U, ham_alpha, Percent_change
 
 #ifdef MPI
@@ -348,7 +348,7 @@
              WRITE(error_unit,*) 'Wrong Hamiltonian',ierr
              error stop 1
           end Select
-          
+
           Call  Ham_Hop
 
 
@@ -402,7 +402,7 @@
 
 
           call Ham_V
-          
+
 
         end Subroutine Ham_Set
 
@@ -531,10 +531,10 @@
           Use Predefined_Int
           Implicit none
 
-          Integer :: I 
+          Integer :: I
 
           Allocate(Op_V(Ndim,N_FL))
-          
+
           Do I = 1,Ndim
              Call Predefined_Int_LRC( OP_V(I,1), I, DTAU  )
           Enddo
@@ -580,11 +580,11 @@
           Implicit none
           !>  Ltau=1 if time displaced correlations are considered.
           Integer, Intent(In) :: Ltau
-          Integer    ::  i, N, Ns,Nt,No, Norb
+          Integer    ::  i, N, Nt
           Character (len=64) ::  Filename
+          Character (len=2)  ::  Channel
 
 
-          Norb = Latt_unit%Norb
           ! Scalar observables
           Allocate ( Obs_scal(4) )
           Do I = 1,Size(Obs_scal,1)
@@ -602,40 +602,42 @@
              end select
              Call Obser_Vec_make(Obs_scal(I),N,Filename)
           enddo
-          
+
           ! Equal time correlators
           Allocate ( Obs_eq(3) )
           Do I = 1,Size(Obs_eq,1)
              select case (I)
              case (1)
-                Ns = Latt%N;  No = Norb;  Filename ="Green"
+                Filename ="Green"
              case (2)
-                Ns = Latt%N;  No = Norb;  Filename ="SpinZ"
+                Filename ="SpinZ"
              case (3)
-                Ns = Latt%N;  No = Norb;  Filename ="Den"
+                Filename ="Den"
              case default
                 Write(6,*) ' Error in Alloc_obs '
              end select
              Nt = 1
-             Call Obser_Latt_make(Obs_eq(I),Ns,Nt,No,Filename)
+             Channel = '--'
+             Call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
           enddo
-          
+
           If (Ltau == 1) then
              ! Equal time correlators
              Allocate ( Obs_tau(3) )
              Do I = 1,Size(Obs_tau,1)
                 select case (I)
                 case (1)
-                   Ns = Latt%N; No = Norb;  Filename ="Green"
+                   Channel = 'P' ; Filename ="Green"
                 case (2)
-                   Ns = Latt%N; No = Norb;  Filename ="SpinZ"
+                   Channel = 'PH'; Filename ="SpinZ"
                 case (3)
-                   Ns = Latt%N; No = Norb;  Filename ="Den"
+                   Channel = 'PH'; Filename ="Den"
                 case default
                    Write(6,*) ' Error in Alloc_obs '
                 end select
                 Nt = Ltrot+1-2*Thtrot
-                Call Obser_Latt_make(Obs_tau(I),Ns,Nt,No,Filename)
+                If(Projector) Channel = 'T0'
+                Call Obser_Latt_make(Obs_tau(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
              enddo
           endif
 
@@ -790,7 +792,7 @@
           Call Predefined_Obs_eq_Green_measure  ( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(1) )
           Call Predefined_Obs_eq_SpinSUN_measure( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(2) )
           Call Predefined_Obs_eq_Den_measure    ( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(3) )
-          
+
 
         end Subroutine Obser
 !--------------------------------------------------------------------
@@ -863,11 +865,11 @@
              Call  Print_bin_Vec(Obs_scal(I),Group_Comm)
           enddo
           Do I = 1,Size(Obs_eq,1)
-             Call  Print_bin_Latt(Obs_eq(I),Latt,dtau,Group_Comm)
+             Call  Print_bin_Latt(Obs_eq(I),Group_Comm)
           enddo
           If (Ltau  == 1 ) then
              Do I = 1,Size(Obs_tau,1)
-                Call  Print_bin_Latt(Obs_tau(I),Latt,dtau,Group_Comm)
+                Call  Print_bin_Latt(Obs_tau(I),Group_Comm)
              enddo
           endif
 
@@ -1011,9 +1013,9 @@
         If ( Model  == "LRC" )  then
            Nt_sequential_start = 1
            Nt_sequential_end   = 0
-           N_Global_tau   = Nint(1.d0/Percent_change) 
+           N_Global_tau   = Nint(1.d0/Percent_change)
         endif
-        
+
       end Subroutine Overide_global_tau_sampling_parameters
 
       end Module Hamiltonian

@@ -86,7 +86,7 @@ The right  hand side of the above equation is given  the type  \texttt{Hopping\_
 with the rule that  if $k$ and $k'$  belong to the same set $\mathcal{S}^{T}_i $ then   $ \big[ \hat{T}^{(k)} , \hat{T}^{(k')} \big] = 0 $.  In the checkerboard decomposition, $\hat{T}^{(k)}$   corresponds to  hopping on a bond.    The checkerboard decomposition depends on the   lattice type, as well as on the hopping matrix elements.   The required  information is stored in  \texttt{Hopping\_matrix\_type}. In this data type,  \texttt{N\_FAM}  corresponds to the number of sets  (or families) ($N_T$ in the above equation). \texttt{L\_FAM(1:N\_FAM)}   corresponds to the number of bonds in the set,  and finally,  \texttt{LIST\_FAM(1:N\_FAM, 1:max(L\_FAM(:)), 2)}    contains  information concerning the two legs of the bonds.    In the checkerboard decomposition, care has to be taken for local terms: each site  occurs multiple times in the list of bonds.    Since we have postulated translation symmetry,    a one-dimensional array, \texttt{Multiplicity},  of length  given by  the number of orbitals per unit cell suffices to  encode the required information.  
 Finally, to be able to generate  the imaginary time step of length $\Delta \tau$  we  have to know   by which fraction of  $\Delta \tau$   we have to propagate each set.  This information is given in  the array  \texttt{Prop\_Fam}.  
 
-As an  example we can consider the three leg ladder lattice of Figure \ref{fig_predefined_lattices}(c).   Here the number of sets (or families) \texttt{N\_FAM}  is equal to four  corresponding to the red, green, black and blue  bonds.  As apparent,  bonds in a given set do not have common legs such that hopping instances on the bonds of a given set commute.     For this three leg ladder  it is apparent that the  second orbital in a unit cell appears  in each set or family. It hence has a multiplicity of four. On the other hand, the top and bottom orbitals have a multiplicity of 3 since they appear in only three of the four sets. 
+As an  example we can consider the three-leg ladder lattice of Figure~\ref{fig_predefined_lattices}(c).   Here the number of sets (or families) \texttt{N\_FAM}  is equal to four  corresponding to the red, green, black and blue  bonds.  As apparent,  bonds in a given set do not have common legs such that hopping instances on the bonds of a given set commute.     For this three leg ladder  it is apparent that the  second orbital in a unit cell appears  in each set or family. It hence has a multiplicity of four. On the other hand, the top and bottom orbitals have a multiplicity of 3 since they appear in only three of the four sets. 
 
 
 
@@ -145,7 +145,7 @@ The   data in  the \texttt{Hopping\_matrix\_type} type   equally  suffices to co
         \label{But.fig}
 \end{figure}
 
-For the honeycomb lattice of  Fig.~\ref{fig_predefined_lattices}(d)   the number of  bond within and emanating from  a unit cell is \texttt{N\_bonds = 3}.     The list array of the \texttt{Hopping\_matirx\_type} reads:
+For the honeycomb lattice of  Fig.~\ref{fig_predefined_lattices}(d)   the number of  bond within and emanating from  a unit cell is \texttt{N\_bonds = 3}.     The list array of the \texttt{Hopping\_matrix\_type} reads:
 
 \begin{lstlisting}[style=fortran]
 list(1,1) = 1;  list(1,2) = 2;  list(1,3) = 0;   list(1,4) =  0   ! Intra unit-cell hopping

@@ -62,7 +62,7 @@
        Private
        Real (Kind=Kind(0.d0))  :: Phi_st(-2:2,2),  Gama_st(-2:2,2)
        Real (Kind=Kind(0.d0))  :: Del, FLIP_st(-2:2,3)
-       Real (Kind=Kind(0.d0))  :: Amplitude=5.d0
+       Real (Kind=Kind(0.d0))  :: Amplitude=1.d0
 
        Type Fields
           Real    (Kind=Kind(0.d0)), allocatable    :: f(:,:)
@@ -212,7 +212,7 @@
         !Local
         Integer :: n
 
-        Del = 0.d0
+        Del = 1.d0
         If (Present(Delta_X)) Del = Delta_X
 
         Phi_st = 0.d0
@@ -548,7 +548,7 @@
                   this%f(I,nt)  = 1.d0
                   if ( ranf_wrap() > 0.5D0 ) this%f(I,nt) = -1.d0
                else
-                  this%f(I,nt)  = ranf_wrap() - 0.5d0
+                  this%f(I,nt)  = del*(ranf_wrap() - 0.5d0)
                endif
             enddo
          enddo

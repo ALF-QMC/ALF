@@ -150,7 +150,8 @@
 !> ALF-project
 !>
 !> @brief
-!> Default hopping for the square lattice.  Ham_T is the nearest neighbour hopping and Ham_Chem the chemical potention.
+!> Default hopping for the square lattice.  Ham_T is the nearest
+!> neighbour hopping and Ham_Chem the chemical potential.
 !>
 !
 !--------------------------------------------------------------------
@@ -885,7 +886,7 @@
 !> @brief
 !> Given the checkerbord decompostion
 !> the routine allocates and sets OP_T Set_Default_hopping_parameters_"Lattice" routine,
-!> this routine generates the data for the symmetric decompostion.
+!> this routine generates the data for the symmetric decomposition.
 !
 !--------------------------------------------------------------------
       Subroutine Symmetrize_Families(this)
@@ -968,8 +969,8 @@
 !> ALF-project
 !>
 !> @brief
-!> Given the Hopping-martix, and if required the checkerboard decomposion  (i.e. private data of this module)
-!> the routine allocates and sets OP_T
+!> Given the Hopping-matrix, and if required the checkerboard decomposion (i.e. private data of this module)
+!> the routine allocates and sets OP_T.
 !
 !--------------------------------------------------------------------
       Subroutine Predefined_Hoppings_set_OPT(this,List,Invlist,Latt,  Latt_unit,  Dtau,Checkerboard, Symm,  OP_T )
@@ -1027,7 +1028,7 @@
               allocate(Op_T(1,N_FL))
               do nf = 1,N_FL
                  !Write(6,*)
-                 Call Op_make(Op_T(1,nf),Ndim)   ! This is too restrictive for the  Kondo type models. The hopping only occurs on one  subsystem.
+                 Call Op_make(Op_T(1,nf),Ndim)   ! This is too restrictive for the Kondo type models. The hopping only occurs on one subsystem.
                  N_Phi     = this(nf)%N_Phi
                  Phi_X     = this(nf)%Phi_X
                  Phi_Y     = this(nf)%Phi_Y
@@ -1119,7 +1120,7 @@
 !> ALF-project
 !>
 !> @brief
-!> The subroutine computes the kinietic energy  based on the generic form of the
+!> The subroutine computes the kinetic energy based on the generic form of the
 !> the hopping matrix.
 !>
 !--------------------------------------------------------------------
@@ -1190,10 +1191,10 @@
 !> ALF-project
 !>
 !> @brief
-!>    Hopping, with ot without checkerboard
+!>    Hopping, with or without checkerboard
 !>    Per flavor, the  hopping is given by
 !>    \f[  e^{ - \Delta \tau  H_t  }   = \prod_{n=1}^{N} e^{ - \Delta \tau_n  H_t(n) }   \f]
-!>    If  _Symm_ is set to true and if  _Checkeborad_ is on, then  one will carry out a
+!>    If  _Symm_ is set to true and if  _Checkeboard_ is on, then  one will carry out a
 !>    symmetric decomposition so as to preserve  the hermitian properties of the hopping.
 !>    Thereby   OP_T has dimension OP_T(N,N_FL)
 !> @param [in]  Latttice_type

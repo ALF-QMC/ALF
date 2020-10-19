@@ -45,7 +45,7 @@ stages:
     - gfortran -v
     - make lib
     - make ana
-    - make Examples
+    - make Hubbard_Plain_Vanilla
     - cd testsuite
     - cmake -E make_directory tests
     - cd tests
@@ -219,7 +219,7 @@ GQMCT_Buster-PGI_tests:
     - . configure.sh PGI serial
     - make lib
     - make ana
-    - make Examples
+    - make Hubbard_Plain_Vanilla
     - cd testsuite
     - cmake -E make_directory tests
     - cd tests
@@ -240,21 +240,16 @@ GQMCT_Stretch_valgrind:
       - . configure.sh Devel serial
       - gfortran -v
       - make lib
-      - make Examples
-      - cp Prog/Examples.out Examples/LRC_Test/Start
+      - make Hubbard_Plain_Vanilla
+      - cp Prog/Hubbard_Plain_Vanilla.out Examples/LRC_Test/Start
       - cd Examples/LRC_Test/Start
-      - valgrind --leak-check=full --log-file=vglog.txt ./Examples.out
+      - valgrind --leak-check=full --log-file=vglog.txt ./Hubbard_Plain_Vanilla.out
       - cat vglog.txt
       - grep lost vglog.txt | cut -d":" -f 2 | cut -d " " -f 2 | f=$(cat); echo $(( ${f//$'\n'/+} ))
 
 create_doc:
   image: aergus/latex
   stage: build
-  only:
-    changes:
-      - Documentation/*.tex
-      - Documentation/*.bib
-      - Documentation/Figures/*
   artifacts:
     paths:
       - Documentation/doc.pdf

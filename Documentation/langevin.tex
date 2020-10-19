@@ -24,7 +24,7 @@ $P(\ve{s}, \tl) $ be the distribution of fields at Langevin time $\tl$. Then,
 \begin{equation}
         P(\ve{s}, \tl  + \delta \tl )    = \int D\ve{s}'  P  (\ve{s}', \tl  )    \left\langle    \delta \left(  \ve{s} - \left[ \ve{s}'   - \frac{\partial S(\ve{s}' )}{\partial    \ve{s}' }   \delta \tl     +\sqrt{2 \delta \tl } \vec{\eta}(\tl)  \right]    \right) \right\rangle_{\eta},
 \end{equation}
-where $\delta$ corresponds to the $L_\mathrm{trot} M_I $  dimensional Dirac $\delta$-function.   Taylor expanding  up to order $\delta \tl$  and averaging over the stochastic variable yields:
+where $\delta$ corresponds to the $L_\mathrm{trotter} M_I $  dimensional Dirac $\delta$-function.   Taylor expanding  up to order $\delta \tl$  and averaging over the stochastic variable yields:
 \begin{align}
 P(\ve{s}, \tl  + \delta \tl ) &  = \int D\ve{s'}  P  (\ve{s}', \tl  )   \times \left(   \delta \left(  \ve{s}' - \ve{s}   \right)
 - \frac{\partial S(\ve{s'}) }{\partial    \ve{s'} }   \frac{\partial  }{\partial    \ve{s'} } \delta \left(  \ve{s}' - \ve{s} \right)  \delta \tl   +
@@ -42,11 +42,11 @@ The stationary,  $ \frac{\partial  }{\partial   \tl}  P( \ve{s}, \tl) =0$,  norm
 \begin{equation}
           P(\ve{s}) =  \frac{ e^{ - S(\ve{s}) } }   {   \int D \ve{s}  e^{ - S(\ve{s}) } }.
 \end{equation}
-In order to formulate  the Langevin dynamics, we will need  to estimate the forces:
+In order to formulate  the Langevin dynamics, we need to estimate the forces:
 \begin{equation}
 	\frac { \partial S(C)}{\partial s_{k,\tau} } =\frac { \partial S_{0,I}(C)}{\partial s_{k,\tau} } +  \frac { \partial S^F(C)}{\partial s_{k,\tau} },
 \end{equation}
-with the fermionic part of the action 
+with the fermionic part of the action,
 \begin{equation}
 S^F(C) = - \ln{ \left\{
   \prod_{s=1}^{N_{\mathrm{fl}}}\left[\det\left(  \mathds{1} + 
@@ -59,14 +59,14 @@ The forces must be bounded for Langevin dynamics to work well. If this condition
 
 One possible source of divergence is the determinant in the fermionic action. Zeros lead to unbounded forces and, in order to circumvent this problem at least partially, we adopt a variable time step strategy in the code.  The user   provides an upper bound to the fermion force, \texttt{Max\_Force} and, if the maximal force in a configuration, \texttt{Max\_Force\_Conf}, is larger than \texttt{Max\_Force}, then the time step is rescaled as 
 \begin{equation}
-     \tilde{\delta \tl}   =  \frac{ \texttt{Max\_Force} *  \delta \tl }{\texttt{Max\_Force\_Conf}}.
+     \tilde{\delta \tl}   =  \frac{ \texttt{Max\_Force}} {\texttt{Max\_Force\_Conf}} \; \texttt{*} \; \delta \tl.
 \end{equation}
 With the adaptive time  step,  averages are computed as: 
 \begin{equation}
    \langle \hat{O} \rangle = \frac{ \sum_n (  \tilde{\delta \tl}  )_n \langle \langle \hat{O} \rangle   \rangle_{(C_n)}} {\sum_n (  \tilde{\delta \tl}  )_n }. 
 \end{equation}
 
-In order to use Langevin dynamics the user also has to provide the Langevin time step \texttt{Delta\_tau\_Langevin} and the maximal force \texttt{Max\_Force} in the \texttt{parameter} file. The routine  \texttt{Langevin\_update} in the module \texttt{Langevin\_update\_mod.F90}   computes the fermion forces  for a  general model
+In order to use Langevin dynamics the user also has to provide the Langevin time step \texttt{Delta\_tau\_Langevin} and the maximal force \texttt{Max\_Force} in the \texttt{parameter} file. The routine  \texttt{Langevin\_update} in the module \texttt{Langevin\_update\_mod.F90}   computes the fermion forces  for a  general model:
 \begin{equation}
  \frac { \partial S^F(C)}{\partial s_{k,\tau} } 
  	= \Delta \tau {N_{\mathrm{col}}} \sum\limits_{s=1}^{N_{\mathrm{fl}}} \Tr{\left[ \bm{I}^{(ks)}\left(\mathds{1} - \bm{G}^{(s)}(k,\tau) \right) \right]} .
@@ -97,13 +97,15 @@ The great advantage of the Langevin updating scheme is the absence of update rej
 \item   The factor $\sqrt{2 \delta \tl} $   multiplying the stochastic variable makes the  noise dominant  on short time scales.  On these time scales  Langevin dynamics essentially  corresponds to a random walk. This has the advantage of allowing one to circumvent potential barriers, but may render the updating scheme less efficient than the hybrid molecular dynamics approach.
 \end{itemize}
 
-We have tested the code for a 6-site Hubbard chain at half-filling  at $U/t = 4$,  $\beta t = 4$.
-The Hubbard interaction can also be decoupled using a continuous HS transformation, where we introduce a real auxiliary field $s_{i,\tau}$ for every lattice site $i$ and time slice $\tau$. When the HS fields are coupled to the $z$-component of the magnetization (see Sec.~\ref{sec:walk1.1}), the partition function can be written as
+\subsubsection*{Example - Hubbard chain at half-filling}
+
+Let us consider a 6-site Hubbard chain at half-filling with $U/t = 4$ and  $\beta t = 4$.
+The Hubbard interaction can be decoupled using a continuous HS transformation, where we introduce a real auxiliary field $s_{i,\tau}$ for every lattice site $i$ and time slice $\tau$. When the HS fields are coupled to the $z$-component of the magnetization (see Sec.~\ref{sec:hubbard}), the partition function can be written as
 \begin{align}
 Z &= \int \left( \prod_{\tau=1}^{L_{\text{Trotter}}} \prod_{i=1}^{N_{\text{unit-cell}} } \frac{d s_{i,\tau}}{\sqrt{2 \pi}} e^{-\frac{1}{2} s_{i,\tau}^2 } \right) \times \nonumber \\
  &\quad \prod_{s=\uparrow, \downarrow} \det \left(  \mathds{1} + \prod_{\tau=1}^{L_{\mathrm{Trotter}}}    \prod_{i=1}^{N_{\text{unit-cell}}} \left( e^{-\sqrt{\Delta \tau U}s_{i,\tau} \bm{V}^{(is)}} \right) e^{-\Delta \tau \bm{T}} \right) + \mathcal{O}(\Delta\tau^{2}).
 \end{align}
-The flavor dependent interaction matrices have only one non-vanishing entry $V_{x,y}^{(i,s=\uparrow)}=\delta_{x,y}\delta_{x,i}$ and $V_{x,y}^{(i,s=\downarrow)}=-\delta_{x,y}\delta_{x,i}$ respectively. 
+The flavor-dependent interaction matrices have only one non-vanishing entry each: $V_{x,y}^{(i,s=\uparrow)}=\delta_{x,y}\delta_{x,i}$ and $V_{x,y}^{(i,s=\downarrow)}=-\delta_{x,y}\delta_{x,i}$. 
 The forces of the Hubbard model are given by:
 \begin{equation}
 \frac { \partial S(C)}{\partial s_{i,\tau} } = s_{i,\tau} - \sqrt{\Delta \tau U} \sum\limits_{s=\uparrow, \downarrow} \Tr{\left[ \bm{V}^{(is)}\left(\mathds{1} - \bm{G}^{(s)}(i,\tau) \right) \right]} ,
@@ -119,8 +121,8 @@ where the Green function is defined by eq.~(\ref{eqn:green_langevin}) with
    e^{-\Delta\tau  \hat{\vec{c}}_{s}^{\dagger} \bm{T} \hat{\vec{c}}_{s}^{\phantom\dagger}} .
 \end{align}
 One can show that for periodic boundary conditions the   forces are not bounded 
-and to make sure that the program does not   crash we have  set \texttt{Max\_Force = 1.5}.\\
-The discrete variable code gives
+and to make sure that the program does not crash we set \texttt{Max\_Force = 1.5}.\\
+The results are: the reference, discrete-variable code gives
 \begin{equation}
  \langle  \hat{H} \rangle  =  -3.4684 \pm 0.0007,
 % \langle  \hat{H} \rangle  =  -3.468429   \pm     0.000726,
@@ -143,14 +145,14 @@ Controlling Langevin dynamics when the action has logarithmic divergences is a c
 
 \begin{figure}[H]
         \begin{center}
-                \includegraphics[scale=0.9]{Figures/Langevin.pdf}
+                \includegraphics[scale=0.9,clip]{Figures/Langevin.pdf}
             \end{center}
-        \caption{\label{Langevin.fig}   Total energy for the 6-site Hubbard chain at $U/t=4$, $\beta t = 4$ and with open boundary conditions.   Here one can show that the determinant is always positive such that  no   singularities occur in the action, and consequently the Langevin dynamics works very well.  The data point at $\delta \tl =0$ stems from running the  discrete  field code with coupling  of the field to the z-component of the magnetization.  The extrapolated value of the energy reads
+        \caption{Total energy for the 6-site Hubbard chain at $U/t=4$, $\beta t = 4$ and with open boundary conditions.   Here one can show that the determinant is always positive such that  no   singularities occur in the action, and consequently the Langevin dynamics works very well.  The data point at $\delta \tl =0$ stems from running the  discrete  field code with coupling  of the field to the z-component of the magnetization.  The extrapolated value of the energy reads
         $-2.8710   \pm 0.0011$
         %$-2.87104   \pm 0.001144$
         and the reference result from the discrete code is
         $-2.8711   \pm  0.0004 $.
         %$-2.871124   \pm  0.000389 $.
-        Throughout the runs the maximal force was always less than the threshold of 1.5.   }
+        Throughout the runs the maximal force was always less than the threshold of 1.5.   }\label{Langevin.fig}
 \end{figure}
 

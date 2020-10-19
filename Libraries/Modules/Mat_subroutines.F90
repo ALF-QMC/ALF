@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 - 2018 The ALF project
+!  Copyright (C) 2016 - 2020 The ALF project
 !
 !  This file is part of the ALF project.
 !
@@ -603,7 +603,7 @@ subroutine ZSLHEMM(side, uplo, N, M1, M2, A, P, Mat)
           SELECT CASE(N)
           CASE (1)
             ! Here only one row is rescaled
-            ! uplo and transpositions as well as conjugatio has no effect for 1x1 herm. Matrices
+            ! uplo and transpositions as well as conjugation has no effect for 1x1 herm. Matrices
             CALL ZSCAL(M2,A(1,1),Mat(P(1),1),M1)
           CASE (2)
             ! perform inplace matmult
@@ -797,7 +797,7 @@ subroutine ZSLHEMM(side, uplo, N, M1, M2, A, P, Mat)
           SELECT CASE(N)
           CASE (1)
             ! Here only one column is rescaled
-            ! uplo and transpositions as well as conjugatio has no effect for 1x1 herm. Matrices
+            ! uplo and transposition as well as conjugation has no effect for 1x1 herm. matrices
             CALL ZSCAL(M1,A(1,1),Mat(1,P(1)),1)
           CASE (2)
             ! perform inplace matmult

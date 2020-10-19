@@ -96,7 +96,7 @@ Percent_change = 0.1       ! Parameter P
 \end{lstlisting}
 
 By setting $\alpha$ to zero we can test this code against the Hubbard code.   For a   $ 4 \times 4 $ square  lattice at $ \beta t = 5$, $U/t = 4$, and half-band filling,     \texttt{Hamiltonian\_Hubbard\_mod.F90}    gives $ E = -13.188896      \pm  0.001698 $  and
-  \texttt{Hamiltonian\_LRC\_mod.F90}  $ E =  -13.198512    \pm  0.040029 $.    Note that for the  Hubbard code we have used  the default \texttt{Mz = True}.   This  option   breaks SU(2) spin symmetry for a given HS configuration but produces very precise values of the energy. On the other hand,  the LRC code  is an SU(2) invariant code ( as would be  choosing \texttt{Mz = False}  )  and  produces  more  fluctuations in the double occupancy.   This  partly explains the difference in  error  bars between the two codes. 
+  \texttt{Hamiltonian\_LRC\_mod.F90}  $ E =  -13.198512    \pm  0.040029 $.    Note that for the  Hubbard code we have used  the default \texttt{Mz = True}.   This  option   breaks SU(2) spin symmetry for a given HS configuration but produces very precise values of the energy. On the other hand,  the LRC code  is an SU(2) invariant code ( as would be  choosing \texttt{Mz = False}  )  and  produces  more  fluctuations in the double occupancy.   This  partly explains the difference in  error  bars between the two codes.    To produce this data, one  can run the pyALF  python script:  \href{https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/blob/master/Scripts/LRC.py}{\texttt{LRC.py}}
   
 % The definition of  the Coulomb repulsion is as follows. 
 %A general lattice site  \texttt{I,n}   where \texttt{I: 1...Latt\%N} is the unit cell and \texttt{ n = 1 ...Latt\_unit\%NORB}  the orbital  is given by: 

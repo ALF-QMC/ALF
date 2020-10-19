@@ -85,7 +85,7 @@ which specify the model.  The  routine \texttt{Ham\_set}  will first  read the p
 The parameters are read in from the file \texttt{parameters}, see Sec.~\ref{sec:input}.
 
 %------------------------------------------------------------
-\subsection{The lattice:   \texttt{Call Ham\_latt} }
+\subsection{The lattice:   \texttt{Call Ham\_latt} }  \label{U_PV_Ham_latt}
 %------------------------------------------------------------
 
 For the square lattice  the routine reads:
@@ -95,10 +95,18 @@ a2_p(1) = 0.0  ; a2_p(2) = 1.d0
 L1_p    = dble(L1)*a1_p
 L2_p    = dble(L2)*a2_p
 Call Make_Lattice(L1_p, L2_p, a1_p, a2_p, Latt)
+
+Latt_unit\%Norb = 1
+Latt_unit\%N_coord = 2
+allocate(Latt_unit\%Orb_pos_p(Latt_unit\%Norb,2))
+Latt_unit\%Orb_pos_p(1, :) = [0.d0, 0.d0]
+Ndim = Latt\%N*Latt_unit\%Norb
+
 \end{lstlisting}
-The routine also sets the  number of single particle states per flavor and color:  \texttt{Ndim=Latt\%N}.     Note  that for unit cells with \texttt{Norb}   orbitals,  \texttt{Ndim=Latt\%N*Norb}. 
+The routine also sets the  number of single particle states per flavor and color:  \texttt{Ndim=Latt\%N*Latt\_unit\%Norb}.    
+
 %------------------------------------------------------------
-\subsection{The hopping: \texttt{Call Ham\_hop}}
+\subsection{The hopping: \texttt{Call Ham\_hop}} \label{U_PV_Ham_hop}
 %------------------------------------------------------------
 
 The hopping matrix is implemented as follows. 
@@ -139,7 +147,7 @@ Note that although a checkerboard decomposition is not  used here,  it can be im
 
 
 %------------------------------------------------------------
-\subsection{The interaction: \texttt{Call Ham\_V}}
+\subsection{The interaction: \texttt{Call Ham\_V}}\label{U_PV_Ham_V} 
 %------------------------------------------------------------
 To implement  the interaction, we allocate an array of \texttt{Operator} type. The array is called  \texttt{Op\_V} and has dimensions $N_{\mathrm{dim}}\times N_{\mathrm{fl}}=N_{\mathrm{dim}} \times 2$. 
 We set the dimension for the interaction term to  $N=1$, and  allocate and initialize this array of type  \texttt{Operator} by repeatedly calling the subroutine \texttt{Op\_make}: 
@@ -169,8 +177,9 @@ Enddo
 In the above, one will see explicitly that  there is a sign   difference between  the coupling of the HS field  in  the  two flavor sectors. 
 
 %------------------------------------------------------------
-\subsection{The trial wave function: \texttt{Call Ham\_Trial}}
+\subsection{The trial wave function: \texttt{Call Ham\_Trial}} \label{U_PV_Ham_Trial}
 %------------------------------------------------------------
+\label{Sec:Plain_vanilla_trial}
 As  argued in Sec.~\ref{sec:trial_wave_function}, it is useful to generate the trial wave function from a non-interacting trial Hamiltonian.   Here we will  use the same left and right  flavor-independent trial wave functions that correspond to the ground state of: 
 \begin{equation}
    \hat{H}_T    = - t \sum_{\ve{i}} \left[  \left( 1 + (-1)^{i_x + i_y}  \delta \right)  \hat{c}^{\dagger}_{\ve{i}}   \hat{c}^{\phantom\dagger}_{\ve{i} +\ve{a}_x}  +  
@@ -227,26 +236,38 @@ Here,   \texttt{Obs\_scal(1)}   contains a vector  of two observables  so as to 
 
 For equal-time correlation functions  we allocate  \texttt{Obs\_eq}  of type \texttt{Obser\_Latt}.  Here we include the calculation of spin-spin and density-density correlation functions alongside equal-time Green functions. 
 \begin{lstlisting}[style=fortran]
-Allocate ( Obs_eq(4) )
+Allocate ( Obs_eq(5) )
 Do I = 1,Size(Obs_eq,1)
    select case (I)
    case (1)
-      Ns = Latt%N; No = 1;  Filename ="Green"
+      Filename = "Green"
    case (2)
-      Ns = Latt%N; No = 1;  Filename ="SpinZ"
+      Filename = "SpinZ"
    case (3)
-      Ns = Latt%N; No = 1;  Filename ="SpinXY"
+      Filename = "SpinXY"
    case (4)
-      Ns = Latt%N; No = 1;  Filename ="Den"
+      Filename = "SpinT"
+   case (5)
+      Filename = "Den"
    case default
-      Write(6,*) ' Error in Alloc_obs '  
+      Write(6,*) "Error in Alloc_obs"
    end select
-   Nt = 1
-   Call Obser_Latt_make(Obs_eq(I), Ns, Nt, No, Filename)
-enddo
+Nt = 1
+Channel = "--"
+Call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
 \end{lstlisting} 
- For the Hubbard model \texttt{Norb = 1} and for   equal-time correlation functions   \texttt{Nt = 1}.       If  \texttt{Ltau = 1}  then the code will allocate space for  time displaced quantities.   The same structure as for  equal-time correlation functions will be used, albeit with  \texttt{Nt = Ltrot + 1}.  At the beginning of each bin, the main program will set the bin observables to zero by calling  the routine 
- \texttt{Init\_obs(Ltau)}.   The user does not have to edit this routine. 
+Be aware that \texttt{Obser\_Latt\_make} does not copy the Bravais lattice \texttt{Latt} 
+and unit cell \texttt{Latt\_unit}, but links them through pointers to be more memory 
+efficient. One can have different lattices attached to different observables by declaring 
+additional instances of \texttt{Type(Lattice)} and \texttt{Type(Unit\_cell)}.
+ For equal-time correlation functions, we set \texttt{Nt = 1} and \texttt{Channel} does not have a meaning.
+
+If \texttt{Ltau = 1}, then the code will allocate space for time displaced quantities. The 
+same structure as for equal-time correlation functions will be used, albeit with 
+\texttt{Nt = Ltrot + 1} and the channel should be set. Whith \texttt{Channel="PH"}, the 
+analysis will assume the observable to be particle-hole symmetric. For more details on the meaning of this parameter, see Sec.~\ref{sec:maxent}.
+
+At the beginning of each bin, the main program will set the bin observables to zero by calling  the routine \texttt{Init\_obs(Ltau)}. The user does not have to edit this routine. 
  
 %-------------------------------------------------------------------------------------
 \subsubsection{Measuring equal-time observables: \texttt{Obser(GR,Phase,Ntau)}} \label{sec:EqualTimeobs}
@@ -340,45 +361,25 @@ Precision tau    Mean, Max :    1.5929357848647394E-011   1.0985132530727526E-00
 showing the mean and maximum difference between the \textit{wrapped}  and from scratched computed equal and time-displaced  Green functions \cite{Assaad08_rev}.
 A stable code  should produce results where the mean difference is smaller than the  stochastic error. The above example  shows a very stable simulation since the Green function  is of order one. 
 
-\subsubsection{Running the code and testing}
+\subsection{Running the code and testing}
 
 To test the code, one can carry out high precision simulations. After compilation, the executable \texttt{Hubbard\_Plain\_Vanilla.out} is found in the directory \texttt{\$ALF\_DIR/Prog/} and can be run from any directory containing the files \texttt{parameters} and \texttt{seeds} (See Sec.~\ref{sec:files}).
 
-Alternatively, it may be convenient to use \texttt{pyALF} to compile and run the code. In this case, the simulation parameters assigned non-default values can be set in the \texttt{Sims} such as: 
-\begin{lstlisting}[style=fortran]
-{"Model": "Hubbard_Plain_Vanilla", "Lattice_type": "Square", "L1": 4 , "L2": 4, "Nsweep": 2000,  
-"NBin": 40, "Beta": 1.0 , "Theta": 10.0, "Dtau": 0.05}
-\end{lstlisting}
-The simulation can then be run using the script \texttt{Run.py}:
-\begin{lstlisting}[style=bash]
-python3 Run.py -R --alfdir $ALF_DIR --machine GNU --mpi MPI --n_mpi 4 \
-               --ham_name_R  Hubbard_Plain_Vanilla
-\end{lstlisting}
-\red{[Should we declare Run.py legacy, and substitute it by dedicated python scripts?]}
+Alternatively, it may be convenient to use \texttt{pyALF} to compile and run the code.  
 
-\paragraph{One dimensional case} 
+\paragraph*{One dimensional case} 
 
-For the four site Hubbard model  we can use the parameter set:
- \begin{lstlisting}[style=fortran]
-{"Model": "Hubbard_Plain_Vanilla", "Lattice_type": "Square", "L1": 4 , "L2": 1, "Nsweep": 2000,  
-"NBin": 40, "Beta": 1.0 , "Theta": 10.0, "Dtau": 0.05,  "Projector": true}
-\end{lstlisting}
-yields a total energy of 
+The \texttt{pyALF} python script   \href{https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/blob/master/Scripts/Hubbard_Plain_Vanilla.py}{\texttt{Hubbard\_Plain\_Vanilla.py}}   runs the projective version of the code for the four site Hubbard model.   At $\theta t =10$, $\Delta \tau t = 0.05 $ with the symmetric Trotter  decomposition,  we obtain  after  40 bins of each 2000 sweeps  the  total energy:   
 \begin{equation*}
-       \langle  \hat{H}   \rangle = 2.106818     \pm   0.003318
-\end{equation*}
+       \langle  \hat{H}   \rangle = -2.103750  \pm      0.004825  
+ \end{equation*}
 and the exact result is  
 \begin{equation*}
 \langle  \hat{H}   \rangle_{\texttt{Exact}}    = -2.100396
 \end{equation*}
 
-\paragraph{Two dimensional case}  
-For the two-dimensional case, 
-\begin{lstlisting}[style=fortran]
-{"Model": "Hubbard_Plain_Vanilla", "Lattice_type": "Square", "L1": 4 , "L2": 4, "Nsweep": 2000,  
-"NBin": 25, "Beta": 1.0 , "Theta": 10.0, "Dtau": 0.05,  "Projector": true}
-\end{lstlisting}
-we obtain, \\
+\paragraph*{Two dimensional case}  
+For the two-dimensional case,   with similar parameters, we obtain, \\
 \begin{center}
 \begin{tabular}{|c|c|c|}
 \hline

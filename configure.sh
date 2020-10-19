@@ -4,13 +4,15 @@ STABCONFIGURATION=""
 
 # default optimization flags for Intel compiler
 INTELOPTFLAGS="-cpp -O3 -fp-model fast=2 -xHost -unroll -finline-functions -ipo -ip -heap-arrays 1024 -no-wrap-margin"
-INTELOPTFLAGS="-cpp -O3 "
+INTELOPTFLAGS="-cpp -O3"
+INTELOPTFLAGS="$INTELOPTFLAGS -no-wrap-margin"
+#INTELOPTFLAGS="$INTELOPTFLAGS -traceback"
 # uncomment the next line if you want to use additional openmp parallelization
 INTELOPTFLAGS="${INTELOPTFLAGS} -parallel -qopenmp"
 INTELUSEFULFLAGS="-std08"
 
 # default optimization flags for GNU compiler
-GNUOPTFLAGS="-cpp -O3 -ffree-line-length-none -ffast-math"
+GNUOPTFLAGS="-cpp -O3 -ffree-line-length-none -ffast-math -fmax-errors=10"
 # uncomment the next line if you want to use additional openmp parallelization
 GNUOPTFLAGS="${GNUOPTFLAGS} -fopenmp"
 GNUUSEFULFLAGS="-std=f2008"
@@ -265,7 +267,7 @@ fi
 
 ALF_FLAGS_QRREF="${F90OPTFLAGS} ${ALF_FLAGS_EXT}"
 ALF_FLAGS_MODULES="${F90OPTFLAGS} ${ALF_FLAGS_EXT}"
-ALF_FLAGS_ANA="${F90OPTFLAGS} ${ALF_INC} ${ALF_FLAGS_EXT}"
+ALF_FLAGS_ANA="${F90USEFULFLAGS} ${F90OPTFLAGS} ${ALF_INC} ${ALF_FLAGS_EXT}"
 ALF_FLAGS_PROG="${F90USEFULFLAGS} ${F90OPTFLAGS} ${PROGRAMMCONFIGURATION} ${ALF_INC} ${ALF_FLAGS_EXT}"
 export ALF_FLAGS_QRREF
 export ALF_FLAGS_MODULES

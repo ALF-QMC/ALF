@@ -24,8 +24,7 @@ $\hat{\mathcal{H}}_{V} +  \hat{\mathcal{H}}_{I}   +   \hat{\mathcal{H}}_{0,I} $.
 \label{Checkerboard.Eq}
 	\hat{\mathcal{H}}_{T}     = \sum_{i=1}^{N_T} \sum_{k \in \mathcal{S}^{T}_i} \hat{T}^{(k)}  \equiv \sum_{i=1}^{N_T} \hat{T}_{i}
 \end{equation}
-Here the decomposition follows the rule  that if $k$ and $k'$  belong to the same set $\mathcal{S}^{T}_i $ then   $ \left[ \hat{T}^{(k)} , \hat{T}^{(k')} \right] = 0 $.  As an 
-example, we can mention the checkerboard decomposition.
+Here the decomposition follows the rule  that if $k$ and $k'$  belong to the same set $\mathcal{S}^{T}_i $ then   $ \left[ \hat{T}^{(k)} , \hat{T}^{(k')} \right] = 0 $.  An important example is the checkerboard decomposition.
 For the square lattice we can decouple the nearest neighbor hopping  into $N_T=4$ groups,  each group consisting of two site hopping processes.
 This type of checkerboard decomposition is activated for a set  of predefined lattices by setting the flag \index{\texttt{Checkerboard}} \texttt{Checkerboard} to \texttt{.true.}
 We will carry out the same decomposition for the interaction: 
@@ -202,15 +201,15 @@ $\mathcal{\bm{B}}_j \bm{A}_{j-1}$ is formed in the following three steps:
 \item Do a QR decomposition of $\bm{M}_j = \bm{Q}_j \bm{D}_j \bm{R}_j$. This gives the final $\bm{Q}_j$ and $\bm{D}_j$.
 \item Form the updated $\bm{T}$ matrices $\bm{T}_j = \bm{R}_j \bm{T}_{j-1}$.
 \end{enumerate}
-%While this provides provides a stable method to calculate the involved matrix product
-%it can be pretty expensive. Therefore the user can specify to skip a certain number of 
-%QR Decompositions and perform plain multiplications instead. This is specified in the parameters file by the \path{NWrap} parameter.
-%\path{NWrap}~=~1 corresponds to always performing QR decompositions whereas larger integers give longer intervals where no QR decomposition will be performed.
+This is a stable but expensive method for calculating the matrix product. Here is where \path{NWrap} comes into play: it specifies 
+the number of plain multiplications performed between the QR decompositions just described, so that \path{NWrap}~=~1 corresponds to always performing QR decompositions whereas larger values define longer intervals where no QR decomposition will be performed.
+%\path{Nwrap} determines the imaginary time interval after which the stabilization is being done.
+Whenever we perform a stabilization, we compare the old result (fast updates) with the new one (recalculated from the QR stabilized matrices). The difference is documented as the stability, both for the Green function and for the sign (of the determinant)
 The effectiveness of the stabilization \emph{has} to be judged for every simulation from the output file \path{info} (Sec.~\ref{sec:output_obs}). For most simulations there are two values to look out for:
 \begin{itemize}
 \item \texttt{Precision Green} \index{\texttt{Precision Green} }
 \item \texttt{Precision Phase} \index{\texttt{Precision Phase}}
 \end{itemize}
 The Green function, as well as the average phase, are usually numbers with a magnitude of $\mathcal{O} (1)$. 
-For that reason we recommend that \path{NWrap} \index{\path{NWrap}} is chosen such that the mean precision is of the order of $10^{-8}$ or better (or further recommendations see Sec.~\ref{sec:optimize}).
+For that reason we recommend that \path{NWrap} \index{\path{NWrap}} is chosen such that the mean precision is of the order of $10^{-8}$ or better (for further recommendations see Sec.~\ref{sec:optimize}).
 We include typical values of \texttt{Precision Phase} and of the mean and the maximal values of \texttt{Precision Green} in the example simulations discussed in Sec.~\ref{sec:prec_spin}.

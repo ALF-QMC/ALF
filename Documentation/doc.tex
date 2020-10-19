@@ -37,6 +37,10 @@
 %\usepackage[xindy]{imakeidx}
 \usepackage[framemethod=default]{mdframed}
 \usepackage{showexpl}
+\usepackage{etoolbox}
+\usepackage[toc,page]{appendix}
+%\usepackage[tocindentauto,tocgraduated]{tocstyle}
+%\usetocstyle{KOMAlike}
 
 \makeatletter
 \renewcommand\paragraph{\@startsection{paragraph}{4}{\z@}%
@@ -107,7 +111,8 @@
 % % only for the scrartcl class:
 \setkomafont{author}{\large}
 \setkomafont{date}{\large}
-% \RedeclareSectionCommand[style=section,indent=0pt]{part}
+%% \RedeclareSectionCommand[style=section,indent=0pt]{part}
+%\RedeclareSectionCommands[tocdynnumwidth]{section,subsection}
 % \renewcommand*\partformat{\thepart\autodot\enskip}
 
 \newcommand*{\red}{\textcolor{red}}
@@ -132,12 +137,12 @@
 %---------------------------------------------------------------------------------------------------------
 \maketitle
 
-Copyright \textcopyright ~2016--2020 The \textit{ALF} Project.\\
-This is the ALF Project Documentation by the ALF contributors.
+\noindent Copyright \textcopyright ~2016--2020 The \textit{ALF} Project.\\
+This is the ALF Project Documentation. % by the ALF contributors.
 It is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License.
 You are free to share and benefit from this documentation as long as this license is preserved
 and proper attribution to the authors is given. For details see the ALF project
-homepage \url{alf.physik.uni-wuerzburg.de}.
+website \url{alf.physik.uni-wuerzburg.de}.
 \tableofcontents
 \clearpage
 \section{Introduction}\label{sec:intro}
@@ -164,9 +169,19 @@ homepage \url{alf.physik.uni-wuerzburg.de}.
 \input{Model_classes}
 \section{Maximum Entropy}\label{sec:maxent}
 \input{maxent}
-\input{performance}
 \section{Conclusions and Future Directions}\label{sec:con}
 \input{conclusion}
+\addcontentsline{toc}{section}{Acknowledgments}
+\input{acknowledgment}
+\addcontentsline{toc}{section}{Appendix}
+\appendix
+%\gdef\thesubsection{Appendix~\Alph{subsection}}
+\gdef\thesubsection{\Alph{subsection}}
+\makeatletter
+%\addtocontents{toc}{\protect\patchcmd{\protect\l@section}{1.5em}{\widthof{\textbf{Appendix X\quad}}}{}{}}
+\makeatother
+\input{performance}
+
 %{\color{red} OLD STUFF} 
 %\section{Examples}\label{sec:ex}
 %\input{walkthrough_hubbard}
@@ -176,9 +191,6 @@ homepage \url{alf.physik.uni-wuerzburg.de}.
 %\input{Z2_Matter}
 %\input{tV}
 
-
-\addcontentsline{toc}{section}{Acknowledgments}
-\input{acknowledgment}
 \addcontentsline{toc}{section}{References}
 \bibliographystyle{./prXsty} 
 \bibliography{./fassaad,./doc}
