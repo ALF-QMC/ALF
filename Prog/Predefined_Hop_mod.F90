@@ -1191,10 +1191,10 @@
 !> ALF-project
 !>
 !> @brief
-!>    Hopping, with ot without checkerboard
+!>    Hopping, with or without checkerboard
 !>    Per flavor, the  hopping is given by
 !>    \f[  e^{ - \Delta \tau  H_t  }   = \prod_{n=1}^{N} e^{ - \Delta \tau_n  H_t(n) }   \f]
-!>    If  _Symm_ is set to true and if  _Checkeborad_ is on, then  one will carry out a
+!>    If  _Symm_ is set to true and if  _Checkeboard_ is on, then  one will carry out a
 !>    symmetric decomposition so as to preserve  the hermitian properties of the hopping.
 !>    Thereby   OP_T has dimension OP_T(N,N_FL)
 !> @param [in]  Latttice_type

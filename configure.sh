@@ -4,14 +4,20 @@ STABCONFIGURATION=""
 
 # default optimization flags for Intel compiler
 INTELOPTFLAGS="-cpp -O3 -fp-model fast=2 -xHost -unroll -finline-functions -ipo -ip -heap-arrays 1024 -no-wrap-margin"
+<<<<<<< HEAD
 INTELOPTFLAGS="-cpp -O3 "
 INTELOPTFLAGS="$INTELOPTFLAGS -traceback"
+=======
+INTELOPTFLAGS="-cpp -O3"
+INTELOPTFLAGS="$INTELOPTFLAGS -no-wrap-margin"
+#INTELOPTFLAGS="$INTELOPTFLAGS -traceback"
+>>>>>>> 9f19735d0eb3bc13888bb2cc7c815d2523538898
 # uncomment the next line if you want to use additional openmp parallelization
 #INTELOPTFLAGS="${INTELOPTFLAGS} -parallel -qopenmp"
 INTELUSEFULFLAGS="-std08"
 
 # default optimization flags for GNU compiler
-GNUOPTFLAGS="-cpp -O3 -ffree-line-length-none -ffast-math"
+GNUOPTFLAGS="-cpp -O3 -ffree-line-length-none -ffast-math -fmax-errors=10"
 # uncomment the next line if you want to use additional openmp parallelization
 GNUOPTFLAGS="${GNUOPTFLAGS} -fopenmp"
 GNUUSEFULFLAGS="-std=f2008"

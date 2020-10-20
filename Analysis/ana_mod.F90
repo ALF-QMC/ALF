@@ -86,7 +86,7 @@
 
       Nbins = 0
       do
-         read(10, *, iostat=stat)
+         read(10, *, iostat=stat) N1, (tmp(I), I=1,size(Tmp,1)),X
          if (stat /= 0) exit
          Nbins = Nbins + 1
       enddo
