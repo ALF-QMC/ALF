@@ -46,6 +46,7 @@
         Complex (Kind=Kind(0.d0)), allocatable, private ::  xfield_it_tmp(:), xfield_iw_tmp(:)
 
       Contains
+
 !--------------------------------------------------------------------
 !> @author 
 !> Zihong Liu
@@ -254,6 +255,14 @@
 
       end subroutine Hybrid_MD_update
 
+!--------------------------------------------------------------------
+!> @author 
+!> ALF-project
+!
+!> @brief 
+!> FFA:  I do not really understand how this routine works.  Why do the   fermion
+!>       fields nsigma enter the bosonic force?  
+!--------------------------------------------------------------------
       subroutine Hybrid_cal_force_bos
         Implicit none
         
@@ -265,9 +274,9 @@
 
         Forces_bos = 0.d0
         do i = 1, size(OP_V,1) 
-            xfield_it_tmp = dcmplx(nsigma%f(i,:))
+            xfield_it_tmp = cmplx(nsigma%f(i,:),0.d0,kind(0.d0))
             call onedimension_fft( ltrot, xfield_it_tmp )
-            call zscal(ltrot, dcmplx(1.d0/dble(ltrot),0.d0), xfield_it_tmp, 1 )
+            call zscal(ltrot, cmplx(1.d0/dble(ltrot),0.d0,kind(0.d0)), xfield_it_tmp, 1 )
             call vzmul(ltrot, xfield_it_tmp, w_coeffi, xfield_iw_tmp)
             call onedimension_invfft( ltrot, xfield_iw_tmp )
             do j = 1, ltrot
@@ -277,6 +286,23 @@
 
       endsubroutine Hybrid_cal_force_bos
 
+!--------------------------------------------------------------------
+!> @author 
+!> ALF-project
+!
+!> @brief 
+!>   Computes the fermionic forces.
+!>   On input GR is on the first time slice and  the storage is full with
+!>      left propagations.  Udvr and Udvl are on time slice 1.
+!>   On output:  Fermion forces.
+!>   Questions/comments.  1)  This is the  very same routine as in the Langevin code.   We should write a
+!>                            general routine that returns the  fermionic forces.
+!>                        2)  There is no need to overwrite udvst in this routine.
+!>                        3)  The forces should be a parameter and not a global variable since this routine
+!>                            will used  for Langevin and for HMC.  
+!--------------------------------------------------------------------
+
+      
       SUBROUTINE Hybrid_cal_force_fer(Phase, GR, Test, udvr, udvl, Stab_nt, udvst)
         Implicit none
         
@@ -391,7 +417,8 @@
         Call Control_Force_fer(Forces_fer,Group_Comm)
 
       END SUBROUTINE Hybrid_cal_force_fer
-
+      
+      
       subroutine Hybrid_md_splitting(Phase, GR, Test, udvr, udvl, Stab_nt, udvst)
         Implicit none
 
@@ -430,7 +457,8 @@
 
       endsubroutine Hybrid_md_splitting
 
-      
+
+     
       SUBROUTINE Hybrid_pfield_initial
         Implicit none
 
@@ -491,14 +519,14 @@
            Do nf = 1,N_FL
               Ratio(1) = Ratio(1) * exp(cmplx( X*Real(N_SUN,Kind(0.d0)), 0.d0,kind(0.d0)) * Op_V(i,nf)%g * Op_V(i,nf)%alpha )
            Enddo
-           xfield_it_tmp = dcmplx(nsigma%f(i,:))
+           xfield_it_tmp = cmplx(nsigma%f(i,:), 0.d0, kind(0.d0))
            call onedimension_fft( ltrot, xfield_it_tmp )
-           call zscal(ltrot, dcmplx(sqrt(1.d0/dble(ltrot)),0.d0), xfield_it_tmp, 1 )
+           call zscal(ltrot, cmplx(sqrt(1.d0/dble(ltrot)),0.d0,kind(0.d0)), xfield_it_tmp, 1 )
            call vzmul(ltrot, xfield_it_tmp, w_coeffi, xfield_iw_tmp)
            z_ene_tmp = zdotc(ltrot, xfield_it_tmp, 1, xfield_iw_tmp, 1)
-           xfield_it_tmp = dcmplx(nsigma_old%f(i,:))
+           xfield_it_tmp = cmplx(nsigma_old%f(i,:),0.d0,kind(0.d0))
            call onedimension_fft( ltrot, xfield_it_tmp )
-           call zscal(ltrot, dcmplx(sqrt(1.d0/dble(ltrot)),0.d0), xfield_it_tmp, 1 )
+           call zscal(ltrot, cmplx(sqrt(1.d0/dble(ltrot)),0.d0,kind(0.d0)), xfield_it_tmp, 1 )
            call vzmul(ltrot, xfield_it_tmp, w_coeffi, xfield_iw_tmp)
            z_ene_tmp2 = zdotc(ltrot, xfield_it_tmp, 1, xfield_iw_tmp, 1)
            Ratio(1) = Ratio(1) * exp(-(z_ene_tmp-z_ene_tmp2))

@@ -523,157 +523,159 @@ Program Main
               
               If ( l_hmc ) then
                 
-                  Call Hybrid_MD_update(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst, LOBS_ST, LOBS_EN)
-              
+                 Call Hybrid_MD_update(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst, LOBS_ST, LOBS_EN)
+                 
               else
 
-                ! Global updates
-                If (Global_moves) Call Global_Updates(Phase, GR, udvr, udvl, Stab_nt, udvst,N_Global)
-
-                ! Propagation from 1 to Ltrot
-                ! Set the right storage to 1
-
-                do nf = 1,N_FL
-                  if (Projector) then
-                      CALL udvr(nf)%reset('r',WF_R(nf)%P)
-                  else
-                      CALL udvr(nf)%reset('r')
-                  endif
-                Enddo
-
-                NST = 1
-                DO NTAU = 0, LTROT-1
-                   NTAU1 = NTAU + 1
-                   CALL WRAPGRUP(GR,NTAU,PHASE,Propose_S0, Nt_sequential_start, Nt_sequential_end, N_Global_tau)
-
-                   If (NTAU1 == Stab_nt(NST) ) then
-                      NT1 = Stab_nt(NST-1)
-                      CALL WRAPUR(NT1, NTAU1, udvr)
-                      Z = cmplx(1.d0, 0.d0, kind(0.D0))
-                      Do nf = 1, N_FL
-                         ! Read from storage left propagation from LTROT to  NTAU1
-                         udvl(nf) = udvst(NST, nf)
-                         ! Write in storage right prop from 1 to NTAU1
-                         udvst(NST, nf) = udvr(nf)
-                         NVAR = 1
-                         IF (NTAU1 .GT. LTROT/2) NVAR = 2
-                         TEST(:,:) = GR(:,:,nf)
-                         CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
-                         Z = Z*Z1
-                         Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
-                      ENDDO
-                      call Op_phase(Z,OP_V,Nsigma,N_SUN)
-                      Call Control_PrecisionP(Z,Phase)
-                      Phase = Z
-                      NST = NST + 1
-                   ENDIF
-
-                   IF (NTAU1.GE. LOBS_ST .AND. NTAU1.LE. LOBS_EN ) THEN
-                      !Call  Global_tau_mod_Test(Gr,ntau1)
-                      !Stop
-                      !write(*,*) "GR before obser sum: ",sum(GR(:,:,1))
-                      !write(*,*) "Phase before obser : ",phase
-                      If (Symm) then
-                         Call Hop_mod_Symm(GR_Tilde,GR)
-                         CALL Obser( GR_Tilde, PHASE, Ntau1 )
-                      else
-                         CALL Obser( GR, PHASE, Ntau1 )
-                      endif
-                   ENDIF
-                ENDDO
-
-                Do nf = 1,N_FL
-                  if (Projector) then
-                      CALL udvl(nf)%reset('l',WF_L(nf)%P)
-                  else
-                      CALL udvl(nf)%reset('l')
-                  endif
-                ENDDO
-
-                NST = NSTM-1
-                DO NTAU = LTROT,1,-1
-                   NTAU1 = NTAU - 1
-                   CALL WRAPGRDO(GR,NTAU, PHASE,Propose_S0,Nt_sequential_start, Nt_sequential_end, N_Global_tau)
-                   IF (NTAU1.GE. LOBS_ST .AND. NTAU1.LE. LOBS_EN ) THEN
-                      !write(*,*) "GR before obser sum: ",sum(GR(:,:,1))
-                      !write(*,*) "Phase before obser : ",phase
-                      If (Symm) then
-                         Call Hop_mod_Symm(GR_Tilde,GR)
-                         CALL Obser( GR_Tilde, PHASE, Ntau1 )
-                      else
-                         CALL Obser( GR, PHASE, Ntau1 )
-                      endif
-                   ENDIF
-                   IF ( Stab_nt(NST) == NTAU1 .AND. NTAU1.NE.0 ) THEN
-                      NT1 = Stab_nt(NST+1)
-                      !Write(6,*) 'Wrapul : ', NT1, NTAU1
-                      CALL WRAPUL(NT1, NTAU1, udvl)
-                      !Write(6,*)  'Write UL, read UR ', NTAU1, NST
-                      Z = cmplx(1.d0, 0.d0, kind(0.D0))
-                      do nf = 1,N_FL
-                         ! Read from store the right prop. from 1 to LTROT/NWRAP-1
-                         udvr(nf) = udvst(NST, nf)
-                         ! WRITE in store the left prop. from LTROT/NWRAP-1 to 1
-                         udvst(NST, nf) = udvl(nf)
-                         NVAR = 1
-                         IF (NTAU1 .GT. LTROT/2) NVAR = 2
-                         TEST(:,:) = GR(:,:,nf)
-                         CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
-                         Z = Z*Z1
-                         Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
-                      ENDDO
-                      call Op_phase(Z,OP_V,Nsigma,N_SUN)
-                      Call Control_PrecisionP(Z,Phase)
-                      Phase = Z
-                      IF( LTAU == 1 .and. Projector .and. Stab_nt(NST)<=THTROT+1 .and. THTROT+1<Stab_nt(NST+1) ) then
-                         Call tau_p ( udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, NST )
-                      endif
-                      NST = NST -1
-                   ENDIF
-!                    IF( LTAU == 1 .and. Projector .and. Ntau1==THTROT+1) &
-!                    &Call tau_p(udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, NST )
-                ENDDO
-
-                !Calculate and compare green functions on time slice 0.
-                NT1 = Stab_nt(0)
-                NT  = Stab_nt(1)
-                CALL WRAPUL(NT, NT1, udvl)
-
-                do nf = 1,N_FL
-                  if (Projector) then
-                      CALL udvr(nf)%reset('r',WF_R(nf)%P)
-                  else
-                      CALL udvr(nf)%reset('r')
-                  endif
-                ENDDO
-                Z = cmplx(1.d0, 0.d0, kind(0.D0))
-                do nf = 1,N_FL
-                   TEST(:,:) = GR(:,:,nf)
-                   NVAR = 1
-                   CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
-                   Z = Z*Z1
-                   Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
-                ENDDO
-                call Op_phase(Z,OP_V,Nsigma,N_SUN)
-                Call Control_PrecisionP(Z,Phase)
-                Phase = Z
-                NST =  NSTM
-                Do nf = 1,N_FL
-                  if (Projector) then
-                      CALL udvst(NST, nf)%reset('l',WF_L(nf)%P)
-                  else
-                      CALL udvst(NST, nf)%reset('l')
-                  endif
-                enddo
-                IF ( LTAU == 1 .and. .not. Projector ) then
-                   ! Call for imaginary time displaced  correlation fuctions.
-                   Call TAU_M( udvst, GR, PHASE, NSTM, NWRAP, STAB_NT )
-                endif
-
-            endif
-
+                 ! Global updates
+                 If (Global_moves) Call Global_Updates(Phase, GR, udvr, udvl, Stab_nt, udvst,N_Global)
+                 
+                 ! Propagation from 1 to Ltrot
+                 ! Set the right storage to 1
+                 
+                 do nf = 1,N_FL
+                    if (Projector) then
+                       CALL udvr(nf)%reset('r',WF_R(nf)%P)
+                    else
+                       CALL udvr(nf)%reset('r')
+                    endif
+                 Enddo
+                 
+                 NST = 1
+                 DO NTAU = 0, LTROT-1
+                    NTAU1 = NTAU + 1
+                    CALL WRAPGRUP(GR,NTAU,PHASE,Propose_S0, Nt_sequential_start, Nt_sequential_end, N_Global_tau)
+                    
+                    If (NTAU1 == Stab_nt(NST) ) then
+                       NT1 = Stab_nt(NST-1)
+                       CALL WRAPUR(NT1, NTAU1, udvr)
+                       Z = cmplx(1.d0, 0.d0, kind(0.D0))
+                       Do nf = 1, N_FL
+                          ! Read from storage left propagation from LTROT to  NTAU1
+                          udvl(nf) = udvst(NST, nf)
+                          ! Write in storage right prop from 1 to NTAU1
+                          udvst(NST, nf) = udvr(nf)
+                          NVAR = 1
+                          IF (NTAU1 .GT. LTROT/2) NVAR = 2
+                          TEST(:,:) = GR(:,:,nf)
+                          CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
+                          Z = Z*Z1
+                          Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
+                       ENDDO
+                       call Op_phase(Z,OP_V,Nsigma,N_SUN)
+                       Call Control_PrecisionP(Z,Phase)
+                       Phase = Z
+                       NST = NST + 1
+                    ENDIF
+                    
+                    IF (NTAU1.GE. LOBS_ST .AND. NTAU1.LE. LOBS_EN ) THEN
+                       !Call  Global_tau_mod_Test(Gr,ntau1)
+                       !Stop
+                       !write(*,*) "GR before obser sum: ",sum(GR(:,:,1))
+                       !write(*,*) "Phase before obser : ",phase
+                       If (Symm) then
+                          Call Hop_mod_Symm(GR_Tilde,GR)
+                          CALL Obser( GR_Tilde, PHASE, Ntau1 )
+                       else
+                          CALL Obser( GR, PHASE, Ntau1 )
+                       endif
+                    ENDIF
+                 ENDDO
+                 
+                 Do nf = 1,N_FL
+                    if (Projector) then
+                       CALL udvl(nf)%reset('l',WF_L(nf)%P)
+                    else
+                       CALL udvl(nf)%reset('l')
+                    endif
+                 ENDDO
+                 
+                 NST = NSTM-1
+                 DO NTAU = LTROT,1,-1
+                    NTAU1 = NTAU - 1
+                    CALL WRAPGRDO(GR,NTAU, PHASE,Propose_S0,Nt_sequential_start, Nt_sequential_end, N_Global_tau)
+                    IF (NTAU1.GE. LOBS_ST .AND. NTAU1.LE. LOBS_EN ) THEN
+                       !write(*,*) "GR before obser sum: ",sum(GR(:,:,1))
+                       !write(*,*) "Phase before obser : ",phase
+                       If (Symm) then
+                          Call Hop_mod_Symm(GR_Tilde,GR)
+                          CALL Obser( GR_Tilde, PHASE, Ntau1 )
+                       else
+                          CALL Obser( GR, PHASE, Ntau1 )
+                       endif
+                    ENDIF
+                    IF ( Stab_nt(NST) == NTAU1 .AND. NTAU1.NE.0 ) THEN
+                       NT1 = Stab_nt(NST+1)
+                       !Write(6,*) 'Wrapul : ', NT1, NTAU1
+                       CALL WRAPUL(NT1, NTAU1, udvl)
+                       !Write(6,*)  'Write UL, read UR ', NTAU1, NST
+                       Z = cmplx(1.d0, 0.d0, kind(0.D0))
+                       do nf = 1,N_FL
+                          ! Read from store the right prop. from 1 to LTROT/NWRAP-1
+                          udvr(nf) = udvst(NST, nf)
+                          ! WRITE in store the left prop. from LTROT/NWRAP-1 to 1
+                          udvst(NST, nf) = udvl(nf)
+                          NVAR = 1
+                          IF (NTAU1 .GT. LTROT/2) NVAR = 2
+                          TEST(:,:) = GR(:,:,nf)
+                          CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
+                          Z = Z*Z1
+                          Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
+                       ENDDO
+                       call Op_phase(Z,OP_V,Nsigma,N_SUN)
+                       Call Control_PrecisionP(Z,Phase)
+                       Phase = Z
+                       IF( LTAU == 1 .and. Projector .and. Stab_nt(NST)<=THTROT+1 .and. THTROT+1<Stab_nt(NST+1) ) then
+                          Call tau_p ( udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, NST )
+                       endif
+                       NST = NST -1
+                    ENDIF
+                    !                    IF( LTAU == 1 .and. Projector .and. Ntau1==THTROT+1) &
+                    !                    &Call tau_p(udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, NST )
+                 ENDDO
+                 
+                 !Calculate and compare green functions on time slice 0.
+                 NT1 = Stab_nt(0)
+                 NT  = Stab_nt(1)
+                 CALL WRAPUL(NT, NT1, udvl)
+                 
+                 do nf = 1,N_FL
+                    if (Projector) then
+                       CALL udvr(nf)%reset('r',WF_R(nf)%P)
+                    else
+                       CALL udvr(nf)%reset('r')
+                    endif
+                 ENDDO
+                 Z = cmplx(1.d0, 0.d0, kind(0.D0))
+                 do nf = 1,N_FL
+                    TEST(:,:) = GR(:,:,nf)
+                    NVAR = 1
+                    CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
+                    Z = Z*Z1
+                    Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
+                 ENDDO
+                 call Op_phase(Z,OP_V,Nsigma,N_SUN)
+                 Call Control_PrecisionP(Z,Phase)
+                 Phase = Z
+                 NST =  NSTM
+                 Do nf = 1,N_FL
+                    if (Projector) then
+                       CALL udvst(NST, nf)%reset('l',WF_L(nf)%P)
+                    else
+                       CALL udvst(NST, nf)%reset('l')
+                    endif
+                 enddo
+                 IF ( LTAU == 1 .and. .not. Projector ) then
+                    ! Call for imaginary time displaced  correlation fuctions.
+                    Call TAU_M( udvst, GR, PHASE, NSTM, NWRAP, STAB_NT )
+                 endif
+                 
+              endif
+              
            ENDDO
+           
            Call Pr_obs(Ltau)
+
 #if defined(TEMPERING)
            Call Global_Tempering_Pr
 #endif
