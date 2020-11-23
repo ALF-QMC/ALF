@@ -9,6 +9,10 @@ MODS=errors.mod   files_mod.mod fourier.mod   histograms.mod   histograms_v2.mod
 $(LIB): $(OBJS)
 	ar -r $(LIB) $(OBJS)
 
+alf_f2py:
+	(make clean $(LIB) ALF_FLAGS_MODULES="$(ALF_FLAGS_MODULES) -fPIC")
+	f2py -c alf_f2py.F90 -m alf_f2py --f90exec=$(ALF_FC) --f90flags="$(ALF_FLAGS_MODULES)" $(PWD)/modules_90.a
+
 %.o: %.F90
 	$(ALF_FC) -c $(ALF_FLAGS_MODULES) $<
 
