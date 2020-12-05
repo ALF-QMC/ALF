@@ -199,9 +199,8 @@ subroutine FullExp_init(this, nodes, usedcolors)
     type(node), dimension(:), intent(in) :: nodes
     integer, intent(in) :: usedcolors
     integer, dimension(:), allocatable :: nredges, edgectr
-    integer :: i, maxedges, k
+    integer :: i, maxedges,
     type(node), dimension(:, :), allocatable :: colsepnodes! An array of nodes separated by color
-    character(len=64) :: filename
 #ifndef NDEBUG
     write(*,*) "Setting up Full Checkerboard exponential."
 #endif
@@ -219,13 +218,7 @@ subroutine FullExp_init(this, nodes, usedcolors)
         colsepnodes(nodes(i)%col, edgectr(nodes(i)%col)) = nodes(i)
         edgectr(nodes(i)%col) = edgectr(nodes(i)%col) + 1
     enddo
-    do i = 1, usedcolors
-    write (filename, "(A6,I3)") "matrix", i
-    open(unit=5,file=filename)
-    do k = 1, nredges(i)
-    write (5, *) colsepnodes(i, k)%x, colsepnodes(i, k)%y, dble(colsepnodes(i, k)%axy)
-    enddo
-    enddo
+
 !     do i = 1, usedcolors
 !     write (*,*) edgectr(i), nredges(i)
 !     enddo
