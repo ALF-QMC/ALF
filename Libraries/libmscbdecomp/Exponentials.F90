@@ -199,7 +199,7 @@ subroutine FullExp_init(this, nodes, usedcolors)
     type(node), dimension(:), intent(in) :: nodes
     integer, intent(in) :: usedcolors
     integer, dimension(:), allocatable :: nredges, edgectr
-    integer :: i, maxedges,
+    integer :: i, maxedges
     type(node), dimension(:, :), allocatable :: colsepnodes! An array of nodes separated by color
 #ifndef NDEBUG
     write(*,*) "Setting up Full Checkerboard exponential."
