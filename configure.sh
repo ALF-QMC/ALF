@@ -12,9 +12,9 @@ INTELOPTFLAGS="${INTELOPTFLAGS} -parallel -qopenmp"
 INTELUSEFULFLAGS="-std08"
 
 # default optimization flags for GNU compiler
-GNUOPTFLAGS="-cpp -O3 -ffree-line-length-none -ffast-math -fmax-errors=10"
+GNUOPTFLAGS="-cpp -g -ffree-line-length-none"
 # uncomment the next line if you want to use additional openmp parallelization
-GNUOPTFLAGS="${GNUOPTFLAGS} -fopenmp"
+# GNUOPTFLAGS="${GNUOPTFLAGS} -fopenmp"
 GNUUSEFULFLAGS="-std=f2008"
 
 MACHINE=""
@@ -254,8 +254,8 @@ esac
 PROGRAMMCONFIGURATION="$STABCONFIGURATION $PROGRAMMCONFIGURATION"
 
 Libs="$PWD/Libraries"
-ALF_INC="-I${Libs}/Modules"
-ALF_LIB="${Libs}/Modules/modules_90.a ${Libs}/libqrref/libqrref.a ${LIB_BLAS_LAPACK}"
+ALF_INC="-I${Libs}/Modules -I${Libs}/libmscbdecomp"
+ALF_LIB="${Libs}/libmscbdecomp/libmscbdecomp.a ${Libs}/Modules/modules_90.a ${Libs}/libqrref/libqrref.a ${LIB_BLAS_LAPACK}"
 export ALF_LIB
 
 export ALF_DIR="$PWD"
