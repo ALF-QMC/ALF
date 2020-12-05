@@ -44,7 +44,7 @@ subroutine Path_init(this)
     class(Path) :: this
     integer :: temp
     this%tail = 0 ! when the vector is empty, this is invalid memory
-    this%avamem = 4096/SIZEOF(temp) ! allocate a page of memory
+    this%avamem = 4096/STORAGE_SIZE(temp) ! allocate a page of memory
     allocate(this%vertices(this%avamem), this%nbrindex(this%avamem))
 end subroutine Path_init
 
