@@ -94,6 +94,10 @@ contains
         Complex(kind=kind(0.d0)), allocatable, dimension(:,:) :: cmat, cinvmat
         Complex(kind=kind(0.d0)) :: cg
         Integer :: i, j
+        type(GraphData) :: gd
+        
+        gd = mat2verts(Op_T%O) ! convert to graphdata structure
+        call MvG_decomp(gd%verts) ! perform the decomposition
         
         this%Zero = 1.E-12
         this%Ndim_hop = Op_T%N

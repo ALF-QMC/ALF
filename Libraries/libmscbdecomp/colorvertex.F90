@@ -461,7 +461,7 @@ end subroutine quicksort
 !--------------------------------------------------------------------
 function mat2verts(A) result(gd)
     implicit none
-    complex (kind=kind(0.d0)), ALLOCATABLE, DIMENSION(:,:), intent(in) :: A
+    complex (kind=kind(0.d0)), pointer, DIMENSION(:,:), intent(in) :: A
     type(GraphData) :: gd
     integer :: i, j, maxcolors, k, i2
     integer, allocatable, dimension(:) :: cntarr
