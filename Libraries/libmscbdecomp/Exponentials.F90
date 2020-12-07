@@ -25,12 +25,12 @@ module Exponentials_mod
     
     type :: Simplenode
         integer :: x,y
-        complex (kind=kind(0.d0)) :: s,c
+        complex (kind=kind(0.d0)) :: s,c ! evaluated sinh and cosh
     end type Simplenode
 
     type :: node
         integer :: x,y, col
-        complex (kind=kind(0.d0)) :: axy
+        complex (kind=kind(0.d0)) :: axy ! the value of the matrix A_{x,y}
     end type node
 
     type :: SingleColExp
@@ -52,7 +52,7 @@ module Exponentials_mod
 !> This holds together a set of exponentials that, if applied in the
 !> correct order approximate e^A.
 !> It provides functions for matrix-matrix and matrix-vector
-!>  multiplications.
+!>  multiplications in transposed and non-transposed manner.
 !--------------------------------------------------------------------
     type :: FullExp
         integer :: nrofcols
@@ -61,7 +61,9 @@ module Exponentials_mod
         procedure :: init => FullExp_init
         procedure :: dealloc => FullExp_dealloc
         procedure :: vecmult => FullExp_vecmult
+        procedure :: vecmult_T => FullExp_vecmult_T
         procedure :: matmult => FullExp_matmult
+        procedure :: matmult_T => FullExp_matmult_T
     end type FullExp
     
 contains
@@ -86,7 +88,7 @@ end subroutine SingleColExp_vecmult
 !> @brief 
 !> Perform the multiplication of this exponential with a matrix.
 !
-!> @param[in] this The vertex that we consider
+!> @param[in] this The exponential that we consider
 !> @param[inout] mat the matrix that we modify.
 !--------------------------------------------------------------------
 subroutine SingleColExp_matmult(this, mat)
@@ -122,11 +124,13 @@ end subroutine SingleColExp_matmult
 !> @param[inout] this the SingleColExp object.
 !> @param[in] nodes The nodes that belng to this color.
 !> @param[in] nredges how many nodes of this color.
+!> @param[in] weight a prefactor for the exponent.
 !--------------------------------------------------------------------
-subroutine SingleColExp_init(this, nodes, nredges)
+subroutine SingleColExp_init(this, nodes, nredges, weight)
     class(SingleColExp) :: this
     type(node), dimension(:), intent(in) :: nodes
     integer, intent(in) :: nredges
+    complex (kind=kind(0.d0)), intent(in) :: weight
     integer :: i
     allocate(this%nodes(nredges))
     this%nrofentries = nredges
@@ -136,8 +140,8 @@ subroutine SingleColExp_init(this, nodes, nredges)
     do i = 1, nredges
         this%nodes(i)%x = nodes(i)%x
         this%nodes(i)%y = nodes(i)%y
-        this%nodes(i)%c = cosh(nodes(i)%axy)
-        this%nodes(i)%s = sinh(nodes(i)%axy)
+        this%nodes(i)%c = cosh(weight*nodes(i)%axy)
+        this%nodes(i)%s = sinh(weight*nodes(i)%axy)
     enddo
 ! All nodes that we have been passed are now from a single color.
 ! They constitute now a strictly sparse matrix.
@@ -173,6 +177,15 @@ subroutine FullExp_vecmult(this, vec)
     enddo
 end subroutine FullExp_vecmult
 
+subroutine FullExp_vecmult_T(this, vec)
+    class(FullExp) :: this
+    complex(kind=kind(0.D0)), dimension(:) :: vec
+    integer :: i
+    do i = this%nrofcols, 1, -1
+        call this%singleexps(i)%vecmult(vec)
+    enddo
+end subroutine FullExp_vecmult_T
+
 subroutine FullExp_matmult(this, mat)
     class(FullExp) :: this
     complex(kind=kind(0.D0)), dimension(:, :) :: mat
@@ -181,6 +194,15 @@ subroutine FullExp_matmult(this, mat)
         call this%singleexps(i)%matmult(mat)
     enddo
 end subroutine FullExp_matmult
+
+subroutine FullExp_matmult_T(this, mat)
+    class(FullExp) :: this
+    complex(kind=kind(0.D0)), dimension(:, :) :: mat
+    integer :: i
+    do i = this%nrofcols, 1, -1
+        call this%singleexps(i)%matmult(mat)
+    enddo
+end subroutine FullExp_matmult_T
 
 !--------------------------------------------------------------------
 !> @author
@@ -193,14 +215,17 @@ end subroutine FullExp_matmult
 !> @param[in] nodes The array of nodes
 !> @param[in] usedcolors the number of used colors/terms in 
 !>                       the decomposition.
+!> @param[in] weight a prefactor of the exponent
 !--------------------------------------------------------------------
-subroutine FullExp_init(this, nodes, usedcolors)
+subroutine FullExp_init(this, nodes, usedcolors, weight)
     class(FullExp) :: this
     type(node), dimension(:), intent(in) :: nodes
     integer, intent(in) :: usedcolors
+    complex (kind=kind(0.d0)), intent(in) :: weight
     integer, dimension(:), allocatable :: nredges, edgectr
-    integer :: i, maxedges
+    integer :: i, maxedges, k
     type(node), dimension(:, :), allocatable :: colsepnodes! An array of nodes separated by color
+
 #ifndef NDEBUG
     write(*,*) "Setting up Full Checkerboard exponential."
 #endif
@@ -219,15 +244,12 @@ subroutine FullExp_init(this, nodes, usedcolors)
         edgectr(nodes(i)%col) = edgectr(nodes(i)%col) + 1
     enddo
 
-!     do i = 1, usedcolors
-!     write (*,*) edgectr(i), nredges(i)
-!     enddo
     ! Now that we have properly separated which entry of a matrix belongs to
     ! which color we can create an exponential for each color that exploits
     ! the structure that the color decomposition creates strictly sparse matrices.
     allocate(this%singleexps(usedcolors))
     do i = 1, usedcolors
-        call this%singleexps(i)%init(colsepnodes(i, :), nredges(i))
+        call this%singleexps(i)%init(colsepnodes(i, :), nredges(i), weight)
     enddo
     deallocate(colsepnodes)
     deallocate(nredges, edgectr)

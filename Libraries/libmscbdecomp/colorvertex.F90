@@ -200,6 +200,7 @@ function createFullExponentialfromGraphData(gd) result(fe)
     implicit none
     type(GraphData) :: gd
     type(FullExp) :: fe
+    complex(kind=kind(0.D0)) :: weight
     integer :: k, elempos, mynbr, nbr1, l, i
     logical, allocatable, dimension(:) :: usedcols
     type(node), allocatable, dimension(:) :: nodes
@@ -252,7 +253,8 @@ function createFullExponentialfromGraphData(gd) result(fe)
         enddo
         elempos = elempos + gd%verts(i)%degree
     enddo
-    call fe%init(nodes, gd%usedcolors)
+    weight = 1.0
+    call fe%init(nodes, gd%usedcolors, weight)
     deallocate(nodes, usedcols)
 end function
 
@@ -461,7 +463,7 @@ end subroutine quicksort
 !--------------------------------------------------------------------
 function mat2verts(A) result(gd)
     implicit none
-    complex (kind=kind(0.d0)), pointer, DIMENSION(:,:), intent(in) :: A
+    complex (kind=kind(0.d0)), ALLOCATABLE, DIMENSION(:,:), intent(in) :: A
     type(GraphData) :: gd
     integer :: i, j, maxcolors, k, i2
     integer, allocatable, dimension(:) :: cntarr
