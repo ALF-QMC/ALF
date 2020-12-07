@@ -6,9 +6,9 @@ USE UDV_State_mod
 implicit none
 interface
       SUBROUTINE CGRold(PHASE,NVAR, GRUP, URUP,DRUP,VRUP, ULUP,DLUP,VLUP)
-        COMPLEX(Kind=8), Dimension(:,:), Intent(IN)   ::  URUP, VRUP, ULUP, VLUP
-        COMPLEX(Kind=8), Dimension(:),   Intent(In)   ::  DLUP, DRUP
-        COMPLEX(Kind=8), Dimension(:,:), Intent(INOUT) :: GRUP
+        COMPLEX(Kind=8), allocatable, Intent(IN)   ::  URUP(:,:), VRUP(:,:), ULUP(:,:), VLUP(:,:)
+        COMPLEX(Kind=8), allocatable, Intent(In)   ::  DLUP(:), DRUP(:)
+        COMPLEX(Kind=8), allocatable, Intent(INOUT) :: GRUP(:,:)
         COMPLEX(Kind=8) :: PHASE
         INTEGER, Intent(In)         :: NVAR
         end subroutine CGRold
@@ -108,9 +108,9 @@ end Program TESTCGR
 	!!!  NVAR = 2 Big scales are in DR
 
 	!Arguments.
-        COMPLEX(Kind=8), Dimension(:,:), Intent(IN)   ::  URUP, VRUP, ULUP, VLUP
-        COMPLEX(Kind=8), Dimension(:),   Intent(In)   ::  DLUP, DRUP
-        COMPLEX(Kind=8), Dimension(:,:), Intent(INOUT) :: GRUP
+        COMPLEX(Kind=8), allocatable, Intent(IN)   ::  URUP(:,:), VRUP(:,:), ULUP(:,:), VLUP(:,:)
+        COMPLEX(Kind=8), allocatable, Intent(In)   ::  DLUP(:), DRUP(:)
+        COMPLEX(Kind=8), allocatable, Intent(INOUT) :: GRUP(:,:)
         COMPLEX(Kind=8) :: PHASE
         INTEGER, Intent(In)         :: NVAR
  

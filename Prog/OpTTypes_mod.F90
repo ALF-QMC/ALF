@@ -48,7 +48,7 @@ module OpTTypes_mod
     type, extends(ContainerElementBase) :: RealExpOpT
         Real(kind=kind(0.d0)), allocatable, dimension(:,:) :: mat, invmat, mat_1D2, invmat_1D2 !>We store the matrix in the class
         Real(kind=kind(0.d0)) :: g, Zero
-        integer, pointer :: P(:)
+        integer, allocatable :: P(:)
         Integer :: m, n, Ndim_hop
         
     contains
@@ -73,7 +73,7 @@ module OpTTypes_mod
         Complex(kind=kind(0.d0)), allocatable, dimension(:,:) :: mat, invmat, mat_1D2, invmat_1D2 !>We store the matrix inclass
         Complex(kind=kind(0.d0)) :: g
         Real(kind=kind(0.d0)) :: Zero
-        integer, pointer :: P(:)
+        integer, allocatable :: P(:)
         Integer :: m, n, Ndim_hop
     contains
         procedure :: init => CmplxExpOpT_init ! initialize and allocate matrices
@@ -125,7 +125,7 @@ contains
                 this%invmat_1D2(i, j) = (this%invmat_1D2(i, j) + this%invmat_1D2(j, i))/2.D0
             ENDDO
         ENDDO
-        this%P => Op_T%P
+        this%P = Op_T%P ! copy all data locally to be consistent and less error prone
         this%g = DBLE(Op_T%g)
         deallocate(cmat, cinvmat)
     end subroutine
@@ -222,8 +222,7 @@ contains
                 this%invmat_1D2(i, j) = (this%invmat_1D2(i, j) + Conjg(this%invmat_1D2(j, i)))/2.D0
             ENDDO
         ENDDO
-        this%P => Op_T%P
-
+        this%P = Op_T%P ! copy all data locally to be consistent and less error prone
     end subroutine
 
     subroutine CmplxExpOpT_adjointaction(this, arg)
@@ -319,13 +318,13 @@ contains
         subroutine CmplxExpOpT_dealloc(this)
         class(CmplxExpOpT), intent(inout) :: this
         
-        deallocate(this%mat, this%invmat, this%mat_1D2, this%invmat_1D2)
+        deallocate(this%mat, this%invmat, this%mat_1D2, this%invmat_1D2, this%P)
     end subroutine
 
     subroutine RealExpOpT_dealloc(this)
         class(RealExpOpT), intent(inout) :: this
         
-        deallocate(this%mat, this%invmat, this%mat_1D2, this%invmat_1D2)
+        deallocate(this%mat, this%invmat, this%mat_1D2, this%invmat_1D2, this%P)
     end subroutine
     
 end module OpTTypes_mod

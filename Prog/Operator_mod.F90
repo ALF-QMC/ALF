@@ -52,9 +52,9 @@ Module Operator_mod
   Type Operator
      Integer          :: N, N_non_zero
      logical          :: diag
-     complex (Kind=Kind(0.d0)), pointer :: O(:,:), U (:,:), M_exp(:,:,:), E_exp(:,:)
-     Real    (Kind=Kind(0.d0)), pointer :: E(:)
-     Integer, pointer :: P(:)
+     complex (Kind=Kind(0.d0)), allocatable :: O(:,:), U (:,:), M_exp(:,:,:), E_exp(:,:)
+     Real    (Kind=Kind(0.d0)), allocatable :: E(:) ! allocatable members are part of F2003
+     Integer, allocatable :: P(:)
      complex (Kind=Kind(0.d0)) :: g
      complex (Kind=Kind(0.d0)) :: alpha
      Integer          :: Type 
@@ -213,7 +213,10 @@ Contains
     Integer, Intent(IN) :: N
     Deallocate (Op%O, Op%P )
 
-    If ( Op%Type >= 1)   deallocate(OP%M_exp,OP%E_exp,  OP%U, OP%E)
+    If ( allocated(OP%M_exp) ) deallocate(OP%M_exp)
+    If ( allocated(OP%E_exp) ) deallocate(OP%E_exp)
+    If ( allocated(OP%U) ) deallocate(OP%U)
+    If ( allocated(OP%E) ) deallocate(OP%E)
 
   end subroutine Op_clear
 

@@ -86,7 +86,7 @@
               Use UDV_Wrap_mod
               Use UDV_State_mod
               Implicit None
-              CLASS(UDV_State), intent(inout) :: UDVR(N_FL)
+              CLASS(UDV_State), allocatable, dimension(:), intent(inout) :: UDVR
               Integer :: NTAU1, NTAU
             END SUBROUTINE WRAPUR
          End Interface

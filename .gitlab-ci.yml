@@ -237,12 +237,12 @@ GQMCT_Stretch_valgrind:
       - Libraries/Modules/*.(f|F)90
   script:
       - export ALF_FLAGS_EXT="-g"
-      - . configure.sh Devel serial
+      - . configure.sh GNU serial
       - gfortran -v
       - make lib
       - make Hubbard_Plain_Vanilla
-      - cp Prog/Hubbard_Plain_Vanilla.out Examples/LRC_Test/Start
-      - cd Examples/LRC_Test/Start
+      - cp Prog/Hubbard_Plain_Vanilla.out Scripts_and_Parameters_files/Start
+      - cd Scripts_and_Parameters_files/Start
       - valgrind --leak-check=full --log-file=vglog.txt ./Hubbard_Plain_Vanilla.out
       - cat vglog.txt
       - grep lost vglog.txt | cut -d":" -f 2 | cut -d " " -f 2 | f=$(cat); echo $(( ${f//$'\n'/+} ))
