@@ -261,50 +261,45 @@ contains
     subroutine CmplxmscbOpT_rmult(this, arg)
         class(CmplxmscbOpT), intent(in) :: this
         Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
-        Integer :: n1, n2
         
-        ! taken from mmthl
-        n1 = size(arg,1)
-        n2 = size(arg,2)
+        !FIXME: P
+        
         If ( dble(this%g*conjg(this%g)) > this%Zero ) then
-            call ZSLHEMM('R', 'U', this%Ndim_hop, n1, n2, this%mat, this%P, arg)
+            call this%fe%rmult(arg)
+!            call ZSLHEMM('R', 'U', this%Ndim_hop, n1, n2, this%mat, this%P, arg)
         Endif
     end subroutine
     
     subroutine CmplxmscbOpT_rmultinv(this, arg)
         class(CmplxmscbOpT), intent(in) :: this
         Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
-        Integer :: n1, n2
         
-        ! taken from mmthl_m1
-        n1 = size(arg,1)
-        n2 = size(arg,2)
+        !FIXME: P
         If ( dble(this%g*conjg(this%g)) > this%Zero ) then
-            call ZSLHEMM('R', 'U', this%Ndim_hop, n1, n2, this%invmat, this%P, arg)
+            call this%fe%rmultinv(arg)
+!            call ZSLHEMM('R', 'U', this%Ndim_hop, n1, n2, this%invmat, this%P, arg)
         Endif
     end subroutine
     
     subroutine CmplxmscbOpT_lmult(this, arg)
         class(CmplxmscbOpT), intent(in) :: this
         Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
-        integer :: n1, n2
         
-        ! taken from mmthr
-        n1 = size(arg,1)
-        n2 = size(arg,2)
+        !FIXME: P
         If ( dble(this%g*conjg(this%g)) > this%Zero ) then
-            call ZSLHEMM('L', 'U', this%Ndim_hop, n1, n2, this%mat, this%P, arg)
+            call this%fe%lmult(arg)
+!             call ZSLHEMM('L', 'U', this%Ndim_hop, n1, n2, this%mat, this%P, arg)
         Endif
     end subroutine
     
     subroutine CmplxmscbOpT_lmultinv(this, arg)
         class(CmplxmscbOpT), intent(in) :: this
         Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
-        integer :: n1, n2
-        n1 = size(arg,1)
-        n2 = size(arg,2)
+
+        !FIXME: P
         If ( dble(this%g*conjg(this%g)) > this%Zero ) then
-            call ZSLHEMM('L', 'U', this%Ndim_hop, n1, n2, this%invmat, this%P, arg)
+            call this%fe%lmultinv(arg)
+!             call ZSLHEMM('L', 'U', this%Ndim_hop, n1, n2, this%invmat, this%P, arg)
         Endif
     end subroutine
 
@@ -312,38 +307,23 @@ contains
         class(CmplxmscbOpT), intent(in) :: this
         integer :: i,j
 
-        do i = 1, size(this%mat, 1)
-            write (*,*) (dble(this%mat(i,j)), j = 1,size(this%mat,2) )
-        enddo
-        write (*,*) "---------------"
-        do i = 1, size(this%mat, 1)
-            write (*,*) (dble(this%invmat(i,j)), j = 1,size(this%mat,2) )
-        enddo
     end subroutine
 
     subroutine RealmscbOpT_dump(this)
         class(RealmscbOpT), intent(in) :: this
         integer :: i,j
 
-        do i = 1, size(this%mat, 1)
-            write (*,*) (dble(this%mat(i,j)), j = 1,size(this%mat,2) )
-        enddo
-        write (*,*) "---------------"
-        do i = 1, size(this%mat, 1)
-            write (*,*) (dble(this%invmat(i,j)), j = 1,size(this%mat,2) )
-        enddo
     end subroutine
     
     subroutine CmplxmscbOpT_dealloc(this)
         class(CmplxmscbOpT), intent(inout) :: this
         
-        deallocate(this%mat, this%invmat, this%mat_1D2, this%invmat_1D2)
+        call this%fe%dealloc()
     end subroutine
 
     subroutine RealmscbOpT_dealloc(this)
         class(RealmscbOpT), intent(inout) :: this
         
-        deallocate(this%mat, this%invmat, this%mat_1D2, this%invmat_1D2)
     end subroutine
     
 end module mscbOpT_mod
