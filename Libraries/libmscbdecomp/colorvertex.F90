@@ -189,17 +189,17 @@ end function colorvertex_find_maximal_fan
 !
 !> @brief 
 !> This function takes a graphdata object as e.g. determined with the
-!> help of the MvG_decomp function and creates a FullExp(=product 
+!> help of the MvG_decomp function and creates a EulerExp(=product 
 !> of checkerboard exponentials) object from it.
 !
 !> @param gd
 !> @result fe
 !--------------------------------------------------------------------
 
-function createFullExponentialfromGraphData(gd) result(fe)
+function createEulerExponentialfromGraphData(gd) result(fe)
     implicit none
     type(GraphData) :: gd
-    type(FullExp) :: fe
+    type(EulerExp) :: fe
     complex(kind=kind(0.D0)) :: weight
     integer :: k, elempos, mynbr, nbr1, l, i
     logical, allocatable, dimension(:) :: usedcols
@@ -255,6 +255,69 @@ function createFullExponentialfromGraphData(gd) result(fe)
     enddo
     weight = 1.0
     call fe%init(nodes, gd%usedcolors, weight)
+    deallocate(nodes, usedcols)
+end function
+
+function createFullExponentialfromGraphData(gd, method) result(fe)
+    implicit none
+    type(GraphData) :: gd
+    integer, intent(in) :: method
+    type(FullExp) :: fe
+    complex(kind=kind(0.D0)) :: weight
+    integer :: k, elempos, mynbr, nbr1, l, i
+    logical, allocatable, dimension(:) :: usedcols
+    type(node), allocatable, dimension(:) :: nodes
+    
+    if ((gd%usedcolors == 0) .or. (gd%nredges == 0)) then ! check that those are available
+        gd%usedcolors = 0
+        gd%nredges = 0
+        do i = 1, gd%ndim
+            gd%deltag = max(gd%deltag, gd%verts(i)%degree)
+            do k = 1, gd%verts(i)%degree
+                if (gd%verts(i)%nbrs(k) > i) gd%nredges = gd%nredges + 1
+                if (gd%verts(i)%nbrs(k) > gd%ndim) then
+                    write(*,*) "invalid nbr!!!"
+                    STOP
+                endif
+                gd%usedcolors = max(gd%usedcolors, gd%verts(i)%cols(k))
+            enddo
+        enddo
+    endif
+
+    ! set up data in an edges based layout
+    k = 0
+    elempos = 0
+    allocate( nodes(gd%nredges), usedcols(gd%usedcolors))
+    do i = 1, gd%ndim-1
+        ! check validity of the coloring locally
+        usedcols = .false.
+        do l = 1, gd%verts(i)%degree
+            if(gd%verts(i)%cols(l) == 0) then
+                write (*,*) "forgotten edge found!"
+                STOP
+            endif
+            if (usedcols(gd%verts(i)%cols(l)) .eqv. .true. ) then
+                write (*,*) "invalid coloring!!"
+                STOP
+            else
+                usedcols(gd%verts(i)%cols(l)) = .true.
+            endif
+        enddo
+        do l = 1, gd%usedcolors
+            mynbr = gd%verts(i)%nbrbycol(l)
+            nbr1 = gd%verts(i)%nbrs(mynbr)
+            if (nbr1 > i) then ! nbr1 could be zero if there is no such edge
+                k = k+1
+                nodes(k)%x = i
+                nodes(k)%y = nbr1
+                nodes(k)%axy = gd%elems(elempos + mynbr)
+                nodes(k)%col = l
+            endif
+        enddo
+        elempos = elempos + gd%verts(i)%degree
+    enddo
+    weight = 1.0
+    call fe%init(nodes, gd%usedcolors, method, weight)
     deallocate(nodes, usedcols)
 end function
 
@@ -463,7 +526,7 @@ end subroutine quicksort
 !--------------------------------------------------------------------
 function mat2verts(A) result(gd)
     implicit none
-    complex (kind=kind(0.d0)), ALLOCATABLE, DIMENSION(:,:), intent(in) :: A
+    complex (kind=kind(0.d0)), intent(in) :: A(:,:)
     type(GraphData) :: gd
     integer :: i, j, maxcolors, k, i2
     integer, allocatable, dimension(:) :: cntarr
