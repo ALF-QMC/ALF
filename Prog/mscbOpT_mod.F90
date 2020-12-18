@@ -34,6 +34,7 @@ module mscbOpT_mod
     use ContainerElementBase_mod
     use Operator_mod
     use MvG_mod
+    use Exponentials_mod
     implicit none
 
     private
@@ -50,6 +51,7 @@ module mscbOpT_mod
         Real(kind=kind(0.d0)), allocatable, dimension(:,:) :: mat, invmat, mat_1D2, invmat_1D2 !>We store the matrix in the class
         Real(kind=kind(0.d0)) :: g, Zero
         integer, allocatable :: P(:)
+        type(FullExp) :: fe
         Integer :: m, n, Ndim_hop
         
     contains
@@ -75,6 +77,7 @@ module mscbOpT_mod
         Complex(kind=kind(0.d0)) :: g
         Real(kind=kind(0.d0)) :: Zero
         integer, allocatable :: P(:)
+        type(FullExp) :: fe
         Integer :: m, n, Ndim_hop
     contains
         procedure :: init => CmplxmscbOpT_init ! initialize and allocate matrices
@@ -200,33 +203,43 @@ contains
     subroutine CmplxmscbOpT_init(this, Op_T)
         class(CmplxmscbOpT) :: this
         Type(Operator), intent(in) :: Op_T
-        Integer :: i, j
+        Integer :: i, k
+        type(GraphData) :: gd
+        Complex(kind=kind(0.D0)), allocatable, dimension(:,:) :: tmp
         
         this%Zero = 1.E-12
         this%Ndim_hop = Op_T%N
-        
-        allocate(this%mat(this%Ndim_hop, this%Ndim_hop), this%invmat(this%Ndim_hop, this%Ndim_hop))
-        allocate(this%mat_1D2(this%Ndim_hop, this%Ndim_hop), this%invmat_1D2(this%Ndim_hop, this%Ndim_hop))
-        
-        this%g = -Op_T%g/2.0
-        Call  Op_exp(this%g, Op_T, this%invmat_1D2)
-        this%g = Op_T%g/2.0
-        Call  Op_exp(this%g, Op_T, this%mat_1D2)
-        
-        this%g = -Op_T%g
-        Call  Op_exp(this%g, Op_T, this%invmat)
         this%g = Op_T%g
-        Call  Op_exp(this%g, Op_T, this%mat)
+        allocate(tmp(Op_T%N, Op_T%N))
+        tmp = this%g* Op_T%O
         
-        DO i = 1, this%Ndim_hop
-            DO j = i, this%Ndim_hop
-                this%mat(i, j) = (this%mat(i, j) + Conjg(this%mat(j, i)))/2.D0
-                this%invmat(i, j) = (this%invmat(i, j) + Conjg(this%invmat(j, i)))/2.D0
-                
-                this%mat_1D2(i, j) = (this%mat_1D2(i, j) + Conjg(this%mat_1D2(j, i)))/2.D0
-                this%invmat_1D2(i, j) = (this%invmat_1D2(i, j) + Conjg(this%invmat_1D2(j, i)))/2.D0
-            ENDDO
-        ENDDO
+        gd = mat2verts(Op_T%O) ! convert to graphdata structure
+        deallocate(tmp)
+        call MvG_decomp(gd%verts) ! perform the decomposition
+        
+        ! some sanity checks ans status informations
+        gd%usedcolors = 0
+        gd%nredges = 0
+        do i = 1, gd%ndim
+            gd%deltag = max(gd%deltag, gd%verts(i)%degree)
+            do k = 1, gd%verts(i)%degree
+                if (gd%verts(i)%nbrs(k) > i) gd%nredges = gd%nredges + 1
+                if (gd%verts(i)%nbrs(k) > gd%ndim) then
+                    write(*,*) "invalid nbr!!!"
+                    STOP
+                endif
+                gd%usedcolors = max(gd%usedcolors, gd%verts(i)%cols(k))
+            enddo
+        enddo
+        write (*,*) "Nr edges: ", gd%nredges
+        if (gd%usedcolors == gd%deltag) then
+            write(*,*) "Maximum Degree", gd%deltag, ". Found", gd%usedcolors," Families -> optimal decomposition"
+        else
+            write(*,*) "Maximum Degree", gd%deltag, ". Found", gd%usedcolors," Families"
+        endif
+        
+        this%fe = createFullExponentialfromGraphData(gd, 5)
+
         this%P = Op_T%P
 
     end subroutine
