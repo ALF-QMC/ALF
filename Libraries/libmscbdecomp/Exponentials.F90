@@ -22,11 +22,6 @@
 
 module Exponentials_mod
     implicit none
-    
-    type :: Simplenode
-        integer :: x,y
-        complex (kind=kind(0.d0)) :: s,c ! evaluated sinh and cosh
-    end type Simplenode
 
     type :: node
         integer :: x,y, col
@@ -35,7 +30,8 @@ module Exponentials_mod
 
     type :: SingleColExp
         integer :: nrofentries
-        type(Simplenode), dimension(:), allocatable :: nodes
+        integer, allocatable :: x(:), y(:)
+        complex (kind=kind(0.d0)), allocatable :: s(:), c(:), s2(:), c2(:), p(:)
     contains
         procedure :: init => SingleColExp_init
         procedure :: dealloc => SingleColExp_dealloc
@@ -44,6 +40,8 @@ module Exponentials_mod
         procedure :: lmultinv => SingleColExp_lmultinv
         procedure :: rmult => SingleColExp_rmult
         procedure :: rmultinv => SingleColExp_rmultinv
+        procedure :: adjoint_over_two => SingleColExp_adjoint_over_two
+        procedure :: adjointaction => SingleColExp_adjointaction
     end type
 
     
@@ -61,7 +59,7 @@ module Exponentials_mod
         integer :: nrofcols
         type(SingleColExp), allocatable :: singleexps(:)
     contains
-         procedure :: init => EulerExp_init
+        procedure :: init => EulerExp_init
         procedure :: dealloc => EulerExp_dealloc
         procedure :: vecmult => EulerExp_vecmult
         procedure :: vecmult_T => EulerExp_vecmult_T
@@ -71,6 +69,9 @@ module Exponentials_mod
         procedure :: rmultinv => EulerExp_rmultinv
         procedure :: rmult_T => EulerExp_rmult_T
         procedure :: lmult_T => EulerExp_lmult_T
+        procedure :: adjointaction => EulerExp_adjointaction
+        procedure :: adjoint_over_two => EulerExp_adjoint_over_two
+        procedure :: adjoint_over_two_T => EulerExp_adjoint_over_two_T
         procedure :: rmultinv_T => EulerExp_rmultinv_T
         procedure :: lmultinv_T => EulerExp_lmultinv_T
     end type EulerExp
@@ -98,6 +99,7 @@ module Exponentials_mod
         procedure :: rmult => FullExp_rmult
         procedure :: rmultinv => FullExp_rmultinv
         procedure :: lmult_T => FullExp_lmult_T
+        procedure :: adjoint_over_two => FullExp_adjoint_over_two
     end type FullExp
     
 contains
@@ -144,17 +146,17 @@ subroutine FullExp_init(this, nodes, usedcolors, method, weight)
         case (4)! SE_3 4, Yoshida, Neri
             this%evals = 6
             allocate(this%stages(this%evals))
-            tmp = 0.675604*weight
+            tmp = 0.6756035959798*weight
             call this%stages(1)%init(nodes, usedcolors, tmp)
-            tmp = 0.675604*weight
+            tmp = 0.6756035959798*weight
             call this%stages(2)%init(nodes, usedcolors, tmp)
-            tmp = -0.851207*weight
+            tmp = -0.8512071919597*weight
             call this%stages(3)%init(nodes, usedcolors, tmp)
-            tmp = -0.851207*weight
+            tmp = -0.8512071919597*weight
             call this%stages(4)%init(nodes, usedcolors, tmp)
-            tmp = 0.675604*weight
+            tmp = 0.6756035959798*weight
             call this%stages(5)%init(nodes, usedcolors, tmp)
-            tmp = 0.675604*weight
+            tmp = 0.6756035959798*weight
             call this%stages(6)%init(nodes, usedcolors, tmp)
         case (5)! SE_6 4, Blanes
             this%evals = 12
@@ -233,6 +235,16 @@ subroutine FullExp_lmult(this, mat)
     enddo
 end subroutine FullExp_lmult
 
+subroutine FullExp_adjoint_over_two(this, mat)
+    class(FullExp) :: this
+    complex(kind=kind(0.D0)), intent(inout) :: mat(:,:)
+    integer :: i
+    do i = this%evals-1, 1, -2
+       call this%stages(i+1)%adjoint_over_two_T(mat)
+       call this%stages(i)%adjoint_over_two(mat)
+    enddo
+end subroutine FullExp_adjoint_over_two
+
 subroutine FullExp_lmultinv(this, mat)
     class(FullExp) :: this
     complex(kind=kind(0.D0)), intent(inout) :: mat(:,:)
@@ -280,10 +292,10 @@ subroutine SingleColExp_vecmult(this, vec)
     integer :: i
     complex(kind=kind(0.D0)) :: t1,t2
     do i = 1, this%nrofentries! for every matrix
-        t1 = vec(this%nodes(i)%x)
-        t2 = vec(this%nodes(i)%y)
-        vec(this%nodes(i)%x) = this%nodes(i)%c * t1 + this%nodes(i)%s* t2
-        vec(this%nodes(i)%y) = this%nodes(i)%c * t2 + this%nodes(i)%s* t1
+        t1 = vec(this%x(i))
+        t2 = vec(this%y(i))
+        vec(this%x(i)) = this%c(i) * t1 + this%s(i) * t2
+        vec(this%y(i)) = this%c(i) * t2 + this%s(i) * t1
     enddo
 end subroutine SingleColExp_vecmult
 
@@ -309,12 +321,12 @@ subroutine SingleColExp_lmult(this, mat)
     do j = 1, loopend, step
         do i = 1, this%nrofentries! for every matrix
             do k = 1,step
-                t1(k) = mat(this%nodes(i)%x, j+k-1)
-                t2(k) = mat(this%nodes(i)%y, j+k-1)
+                t1(k) = mat(this%x(i), j+k-1)
+                t2(k) = mat(this%y(i), j+k-1)
             enddo
             do k = 1, step
-                mat(this%nodes(i)%x, j+k-1) = this%nodes(i)%c * t1(k) + this%nodes(i)%s* t2(k)
-                mat(this%nodes(i)%y, j+k-1) = this%nodes(i)%c * t2(k) + this%nodes(i)%s* t1(k)
+                mat(this%x(i), j+k-1) = this%c(i) * t1(k) + this%s(i) * t2(k)
+                mat(this%y(i), j+k-1) = this%c(i) * t2(k) + this%s(i) * t1(k)
             enddo
         enddo
     enddo
@@ -332,16 +344,81 @@ subroutine SingleColExp_lmultinv(this, mat)
     do j = 1, loopend, step
         do i = 1, this%nrofentries! for every matrix
             do k = 1,step
-                t1(k) = mat(this%nodes(i)%x, j+k-1)
-                t2(k) = mat(this%nodes(i)%y, j+k-1)
+                t1(k) = mat(this%x(i), j+k-1)
+                t2(k) = mat(this%y(i), j+k-1)
             enddo
             do k = 1, step
-                mat(this%nodes(i)%x, j+k-1) = this%nodes(i)%c * t1(k) - this%nodes(i)%s* t2(k)
-                mat(this%nodes(i)%y, j+k-1) = this%nodes(i)%c * t2(k) - this%nodes(i)%s* t1(k)
+                mat(this%x(i), j+k-1) = this%c(i) * t1(k) - this%s(i) * t2(k)
+                mat(this%y(i), j+k-1) = this%c(i) * t2(k) - this%s(i) * t1(k)
             enddo
         enddo
     enddo
 end subroutine SingleColExp_lmultinv
+
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
+!> The routines for moving to an adjoint representation : out = this.mat.this^(-1)
+!> If needed we could instead calculate an eigendecomposition and use that.
+!> We could really invest in a diagonal calculation at every multiplication
+!> The stability of this topic has been discussed in 
+!> Hargreaves, G. (2005). Topics in matrix computations: Stability and efficiency of algorithms (Doctoral dissertation, University of Manchester).
+!> and "Unifying unitary and hyperbolic transformations Adam Bojanczyka, Sanzheng Qiaob;;1, Allan O. Steinhardt"
+!> For the future we might want to look into fast hyperbolic rotations of Hargreaves, G. (2005).
+!
+!> @param[in] this The exponential that we consider
+!> @param[inout] mat the matrix that we modify.
+!--------------------------------------------------------------------
+subroutine SingleColExp_adjointaction(this, mat)
+    class(SingleColExp) :: this
+    complex(kind=kind(0.D0)), dimension(:, :) :: mat
+    integer :: i, j, k, ndim, loopend
+    integer, parameter :: step = 2
+    complex(kind=kind(0.D0)) :: t1(step), t2(step)
+    
+    call this%lmult(mat)
+    call this%rmultinv(mat)
+end subroutine SingleColExp_adjointaction
+
+subroutine SingleColExp_adjoint_over_two(this, mat)
+    class(SingleColExp) :: this
+    complex(kind=kind(0.D0)), dimension(:, :) :: mat
+    integer :: i, j, k, ndim, loopend
+    integer, parameter :: step = 2
+    complex(kind=kind(0.D0)) :: t1(step), t2(step), t1scal, t2scal, myc, mys
+    
+    ! lmult part
+    ndim = size(mat,1)
+    loopend = (ndim/step)*step
+    do j = 1, loopend, step
+        do i = 1, this%nrofentries! for every matrix
+            mys = this%s2(i)
+            myc = this%c2(i)
+            do k = 1,step
+                t1(k) = mat(this%x(i), j+k-1)
+                t2(k) = mat(this%y(i), j+k-1)
+            enddo
+            do k = 1, step
+                mat(this%x(i), j+k-1) = myc * t1(k) + mys * t2(k)
+                mat(this%y(i), j+k-1) = myc * t2(k) + mys * t1(k)
+            enddo
+        enddo
+    enddo
+
+    ! rmultinv part
+    do i = 1, this%nrofentries! for every matrix
+            myc = this%c2(i)
+            mys = this%s2(i)
+        do j = 1, ndim
+            t1scal = mat(j, this%x(i))
+            t2scal = mat(j, this%y(i))
+            mat(j, this%x(i)) = myc * t1scal - mys * t2scal
+            mat(j, this%y(i)) = myc * t2scal - mys * t1scal
+        enddo
+    enddo
+end subroutine SingleColExp_adjoint_over_two
 
 !--------------------------------------------------------------------
 !> @author
@@ -362,10 +439,10 @@ subroutine SingleColExp_rmult(this, mat)
     ndim = size(mat,1)
     do i = 1, this%nrofentries! for every matrix
         do j = 1, ndim
-        t1 = mat(j, this%nodes(i)%x)
-        t2 = mat(j, this%nodes(i)%y)
-        mat(j, this%nodes(i)%x) = this%nodes(i)%c * t1 + this%nodes(i)%s* t2
-        mat(j, this%nodes(i)%y) = this%nodes(i)%c * t2 + this%nodes(i)%s* t1
+        t1 = mat(j, this%x(i))
+        t2 = mat(j, this%y(i))
+        mat(j, this%x(i)) = this%c(i) * t1 + this%s(i)* t2
+        mat(j, this%y(i)) = this%c(i) * t2 + this%s(i)* t1
         enddo
     enddo
 end subroutine SingleColExp_rmult
@@ -379,10 +456,10 @@ subroutine SingleColExp_rmultinv(this, mat)
     ndim = size(mat,1)
     do i = 1, this%nrofentries! for every matrix
         do j = 1, ndim
-        t1 = mat(j, this%nodes(i)%x)
-        t2 = mat(j, this%nodes(i)%y)
-        mat(j, this%nodes(i)%x) = this%nodes(i)%c * t1 - this%nodes(i)%s* t2
-        mat(j, this%nodes(i)%y) = this%nodes(i)%c * t2 - this%nodes(i)%s* t1
+        t1 = mat(j, this%x(i))
+        t2 = mat(j, this%y(i))
+        mat(j, this%x(i)) = this%c(i) * t1 - this%s(i) * t2
+        mat(j, this%y(i)) = this%c(i) * t2 - this%s(i) * t1
         enddo
     enddo
 end subroutine SingleColExp_rmultinv
@@ -406,16 +483,31 @@ subroutine SingleColExp_init(this, nodes, nredges, weight)
     integer, intent(in) :: nredges
     complex (kind=kind(0.d0)), intent(in) :: weight
     integer :: i
-    allocate(this%nodes(nredges))
+    allocate(this%x(nredges), this%y(nredges), this%c(nredges), this%s(nredges))
+    allocate(this%c2(nredges), this%s2(nredges), this%p(nredges))
     this%nrofentries = nredges
 #ifndef NDEBUG
     write(*,*) "Setting up strict. sparse matrix with ", nredges, "edges"
 #endif
     do i = 1, nredges
-        this%nodes(i)%x = nodes(i)%x
-        this%nodes(i)%y = nodes(i)%y
-        this%nodes(i)%c = cosh(weight*nodes(i)%axy)
-        this%nodes(i)%s = sinh(weight*nodes(i)%axy)
+        this%x(i) = nodes(i)%x
+        this%y(i) = nodes(i)%y
+        this%p(i) = weight*nodes(i)%axy
+! This is the order of operations that yields stable matrix inversions
+        this%c(i) = cosh(weight*nodes(i)%axy)
+        this%c2(i) = cosh(weight*nodes(i)%axy/2)
+        ! I got the most reliablle results if the hyperbolic pythagoras is best fulfilled.
+        this%s(i) = sqrt(this%c(i)**2-1)
+        this%s2(i) = sqrt(this%c2(i)**2-1)
+        ! Process a_xy a little bit further to catch the different sectors in the complex plane.
+        if (dble(weight*nodes(i)%axy) < 0.0 ) then
+            this%s(i) = -this%s(i)
+            this%s2(i) = -this%s2(i)
+        endif
+        if (dble(weight*nodes(i)%axy) * aimag(weight*nodes(i)%axy) < 0.0 ) then
+            this%s(i) = conjg(this%s(i))
+            this%s2(i) = conjg(this%s2(i))
+        endif
     enddo
 ! All nodes that we have been passed are now from a single color.
 ! They constitute now a strictly sparse matrix.
@@ -424,7 +516,7 @@ end subroutine SingleColExp_init
 
 subroutine SingleColExp_dealloc(this)
     class(SingleColExp) :: this
-    deallocate(this%nodes)
+    deallocate(this%x, this%y, this%c, this%s, this%c2, this%s2)
 end subroutine SingleColExp_dealloc
 
 subroutine EulerExp_dealloc(this)
@@ -477,6 +569,33 @@ subroutine EulerExp_lmult(this, mat)
         call this%singleexps(i)%lmult(mat)
     enddo
 end subroutine EulerExp_lmult
+
+subroutine EulerExp_adjointaction(this, mat)
+    class(EulerExp) :: this
+    complex(kind=kind(0.D0)), dimension(:, :) :: mat
+    integer :: i
+    do i = this%nrofcols, 1, -1
+        call this%singleexps(i)%adjointaction(mat)
+    enddo
+end subroutine EulerExp_adjointaction
+
+subroutine EulerExp_adjoint_over_two(this, mat)
+    class(EulerExp) :: this
+    complex(kind=kind(0.D0)), dimension(:, :) :: mat
+    integer :: i
+    do i = this%nrofcols, 1, -1
+        call this%singleexps(i)%adjoint_over_two(mat)
+    enddo
+end subroutine EulerExp_adjoint_over_two
+
+subroutine EulerExp_adjoint_over_two_T(this, mat)
+    class(EulerExp) :: this
+    complex(kind=kind(0.D0)), dimension(:, :) :: mat
+    integer :: i
+    do i = 1, this%nrofcols
+        call this%singleexps(i)%adjoint_over_two(mat)
+    enddo
+end subroutine EulerExp_adjoint_over_two_T
 
 subroutine EulerExp_rmult(this, mat)
     class(EulerExp) :: this
@@ -570,15 +689,12 @@ subroutine EulerExp_init(this, nodes, usedcolors, weight)
         colsepnodes(nodes(i)%col, edgectr(nodes(i)%col)) = nodes(i)
         edgectr(nodes(i)%col) = edgectr(nodes(i)%col) + 1
     enddo
-    do i = 1, usedcolors
-    write (filename, "(A6,I3)") "matrix", i
-    open(unit=5,file=filename)
-    do k = 1, nredges(i)
-    write (5, *) colsepnodes(i, k)%x, colsepnodes(i, k)%y, dble(colsepnodes(i, k)%axy)
-    enddo
-    enddo
 !     do i = 1, usedcolors
-!     write (*,*) edgectr(i), nredges(i)
+!     write (filename, "(A6,I3)") "matrix", i
+!     open(unit=5,file=filename)
+!     do k = 1, nredges(i)
+!     write (5, *) colsepnodes(i, k)%x, colsepnodes(i, k)%y, dble(colsepnodes(i, k)%axy)
+!     enddo
 !     enddo
     ! Now that we have properly separated which entry of a matrix belongs to
     ! which color we can create an exponential for each color that exploits
