@@ -32,7 +32,7 @@ We will carry out the same separation for the interaction:
 	\hat{\mathcal{H}}_{V}  +  \hat{\mathcal{H}}_{I}   +   \hat{\mathcal{H}}_{0,I}   = \sum_{i=1}^{N_I}  \hat{O}_{i},
 \end{equation}
 where each $\hat{O}_{i}$  contains a set of commuting terms.  For instance, for the Hubbard model,   the  above reduces to 
-$U \sum_{\vec{i}}  \hat{n}_{\vec{i},\uparrow } \hat{n}_{\vec{i},\downarrow }  $    such the $N_T = 1$ and   $ \hat{O}_{1} = U \sum_{\vec{i}}  \hat{n}_{\vec{i},\uparrow } \hat{n}_{\vec{i},\downarrow }   $. 
+$U \sum_{\vec{i}}  \hat{n}_{\vec{i},\uparrow } \hat{n}_{\vec{i},\downarrow }  $    such that $N_I = 1$ and   $ \hat{O}_{1} = U \sum_{\vec{i}}  \hat{n}_{\vec{i},\uparrow } \hat{n}_{\vec{i},\downarrow }   $. 
 
 The default Trotter decomposition in the ALF code is  based on the equation: 
 \begin{equation}
@@ -66,8 +66,10 @@ The following comments are in order:
 \item  The biggest drawback  of the above decomposition is that  the imaginary-time propagation is not Hermitian.   This can lead to acausal  features in imaginary-time correlation functions \cite{Beyl_thesis}. To be more precise, the eigenvalues of  
 $  H_{\text{Approx}} = - \frac{1}{\beta} \log  U_{\text{Approx}}$ need not be real and thus imaginary-time displaced correlation functions may oscillate as a function of imaginary time.   
 This is shown in  Fig.~\ref{Trotter.fig}(a)  that plots the  absolute value of local time-displaced Green function for  the Honeycomb lattice at $U/t=2$.  Sign changes of this quantity   involve zeros  that, on the considered log-scale,  correspond to negative divergences.
-As we see next, this issue can be solved by considering a symmetric  Trotter decomposition. 
- % One  should also note that  the  prefactor of the $\Delta \tau^2$ error is rather big (see Fig.~\ref{Trotter.fig})(b)  in comparison to higher order approximations that we  will %discuss below. 
+As detailed in \cite{goth2020}, using the non-symmetric Trotter decomposition 
+leads to an additional   non-hermitian second-order error in the measurement of observables $O$
+that is proportional to $[T,[T,O]]$.
+As we see next, these issues can be solved by considering a symmetric  Trotter decomposition.
 \end{itemize}
 
 
@@ -106,7 +108,7 @@ f_{\text{Approx} }  &=
    \left(  \prod_{j=N_T-1}^{1} e^{-\frac{\Delta \tau}{4} \hat{T}_j } \right)   
    \right]^{L_{\text{Trotter}}}  \nonumber 
 \end{aligned}\\
-   &= f    - \frac{1}{V}   \langle \hat{\lambda}_{TO} + \hat{\lambda}_{O} + 2 \hat{\lambda}_{T} \rangle  + \mathcal{O}( \Delta \tau ^5).
+   &= f    - \frac{1}{V}   \langle \hat{\lambda}_{TO} + \hat{\lambda}_{O} + 2 \hat{\lambda}_{T} \rangle  + \mathcal{O}( \Delta \tau ^4).
 \end{align}
 
 The following comments are in order:
@@ -119,8 +121,8 @@ The following comments are in order:
 
 \begin{figure}
 \center
-\includegraphics[width=0.49\textwidth]{Figures/Dtau_1/Dtau_1.pdf}
-\includegraphics[width=0.49\textwidth]{Figures/Dtau/Dtau.pdf}
+\includegraphics[width=0.49\textwidth]{Dtau_1.pdf}
+\includegraphics[width=0.49\textwidth]{Dtau.pdf}
 
 \caption{Analysis of  Trotter systematic error.
         Left:    We consider a $6 \times 6$ Hubbard model on the Honeycomb lattice, $U/t=2$, half-band filling,  inverse temperature $\beta t =40$,  and we have used an HS transformation that couples to  the density.    The figure plots the  local-time displaced Green function.
@@ -169,16 +171,22 @@ contain a relative error
 \end{equation}
 where $\epsilon$ denotes the machine precision, which is $2^{-53}$ for IEEE double-precision numbers, and $\kappa_p(\bm{M})$ is the condition number of the matrix $\bm{M}$ with respect to the matrix $p$-norm. Due to $\prod_ \tau \bm{B}_\tau$ containing exponentially large and small scales, as can be seen in Eq.~\eqref{eqn:partition_2}, a straightforward inversion is completely ill-suited, in that its condition number would grow exponentially with increasing inverse temperature, rendering the computed solution $\tilde{x}$ meaningless.
 
-In order to circumvent this, more sophisticated methods have to be employed. As a first step we assume that, for a given integer \texttt{NWrap}, the multiplication of \texttt{NWrap} $\bm{B}$ matrices has an acceptable condition number and, for simplicity, that $L_{\text{Trotter}}$ is divisible by \texttt{NWrap}. We can then write:
+In order to circumvent this, more sophisticated methods have to be employed.
+In the realm of the BSS algorithm there has been a long history \cite{Loh1989, Sorella89, Assaad02,Loh2005, Bai2011, Bauer2020} of using various matrix factorization techniques.
+The predominant techniques are either based on the singular value decomposition (SVD) or 
+on techniques using the QR decomposition.
+The default stabilization strategy in the auxiliary-field QMC implementation of the ALF package is to form a product of QR-decompositions, which is proven to be weakly backwards stable~\cite{Bai2011}. While algorithms using the SVD can provide higher stability, though at a higher cost, we note that great care has to be taken in the choice of the algorithm, which has to achieve a high relative accuracy \cite{Demmel1992, Dongarra2018}.
+
+As a first step we assume that, for a given integer \texttt{NWrap}, the multiplication of \texttt{NWrap} $\bm{B}$ matrices has an acceptable condition number and, for simplicity, that $L_{\text{Trotter}}$ is divisible by \texttt{NWrap}. We can then write:
 %\begin{equation}
 %\bm{G} = \left( \mathds{1} + \prod\limits_{ i = 0}^{\frac{L_{\text{Trotter}}} {\texttt{NWrap} -1}}       \underbrace{\prod_{\tau=1}^{\texttt{NWrap}} \bm{B}_{i  \cdot  \texttt{NWrap}+ \tau} }_{ \equiv \mathcal{\bm{B}}_i}\right)^{-1}.
 %\end{equation}
 \begin{equation}
 \bm{G} = \Vast( \mathds{1} + \prod\limits_{ i = 1}^{\frac{L_{\text{Trotter}}} {\texttt{NWrap}}}       \underbrace{\prod_{\tau=1}^{\texttt{NWrap}} \bm{B}_{(i-1)  \cdot  \texttt{NWrap}+ \tau} }_{ \equiv \mathcal{\bm{B}}_i} \Vast)^{-1}.
 \end{equation}
-The default stabilization strategy in the auxiliary-field QMC implementation of the ALF package, is then to form a product of QR-decompositions, which was proven to be weakly backwards stable in \cite{Bai2011}.
+
 The key idea is to efficiently separate the scales of a matrix from the orthogonal part of a matrix.
-This can be achieved using a QR decomposition of a matrix $\bm{A}$ in the form $\bm{A}_i = \bm{Q}_i \bm{R}_i$. The matrix $\bm{Q}_i$ is unitary and hence in the usual $2$-norm it satisfies $\kappa_2(\bm{Q}_i) = 1$.
+This can be achieved with the QR decomposition of a matrix $\bm{A}$ in the form $\bm{A}_i = \bm{Q}_i \bm{R}_i$. The matrix $\bm{Q}_i$ is unitary and hence in the usual $2$-norm it satisfies $\kappa_2(\bm{Q}_i) = 1$.
 To get a handle on the condition number of $\bm{R}_i$ we consider the
 diagonal matrix
 \begin{equation}

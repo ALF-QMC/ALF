@@ -17,7 +17,7 @@ Let $T^{a}$ be the $N^2 -1  $ generators of SU(N) that satisfy the normalization
 \end{equation}
 For the SU(2) case, $T^{a}$  corresponds to the $T  = \frac{1}{2} \ve{\sigma}$ with $\ve{\sigma}$   a vector of the three Pauli spin matrices, Eq.~\eqref{eq:vecPaulimat}.      The   Hamiltonian is defined on bilayer  square or honeycomb lattices, with  hopping restricted to the  first layer  (i.e  conduction orbitals $\ve{c}^{\dagger}_{i}  )$   and  spins, f-orbitals, on the second layer. 
 \begin{multline}
-	\hat{H} = - t  \sum_{\langle i,j \rangle}    \sum_{\sigma=1}^{N}  \left(  \hat{c}^{\dagger}_{i,\sigma}  e^{\frac{2\pi i}{\Phi_0}  \int_{i}^{j} \ve{A}\cdot d \ve{l}}\hat{c}^{\phantom\dagger}_{j,\sigma}   + H.c.  \right)  - \mu \sum_{i,\sigma} \hat{c}^{\dagger}_{i,\sigma}  \hat{c}^{\phantom\dagger}_{i,\sigma}  \\ 
+	\hat{H} = - t  \sum_{\langle i,j \rangle}    \sum_{\sigma=1}^{N}  \left(  \hat{c}^{\dagger}_{i,\sigma}  e^{\frac{2\pi i}{\Phi_0}  \int_{i}^{j} \ve{A}\cdot d \ve{l}}\hat{c}^{\phantom\dagger}_{j,\sigma}   + \hc  \right)  - \mu \sum_{i,\sigma} \hat{c}^{\dagger}_{i,\sigma}  \hat{c}^{\phantom\dagger}_{i,\sigma}  \\ 
    + \frac{U_c}{N}  \sum_{i}   \left( \hat{n}^c_i -  \frac{N}{2} \right)^2  
          +  \frac{2 J}{N} \sum_{i, a=1  }^{N^2 -1}  \hat{T}^{a,c}_{i}  \hat{T}^{a,f}_{i}. 
 \label{Kondo_SUN_Ham.eq}
@@ -26,7 +26,7 @@ In the above, $i$ is a super-index accounting for the unit cell and orbital,
 \begin{equation}
 	 \hat{T}^{a,c}_{i}   =   \sum_{\sigma,\sigma'=1}^{N} \hat{c}^{\dagger}_{i,\sigma}T^{a}_{\sigma,\sigma'}  \hat{c}^{\phantom\dagger}_{i,\sigma'}, \; \; 
 	  \hat{T}^{a,f}_{i}   = \sum_{\sigma,\sigma'=1}^{N} \hat{f}^{\dagger}_{i,\sigma} T^{a}_{\sigma,\sigma'}  \hat{f}^{\phantom\dagger}_{i,\sigma'},  
-	  \;\text{ and }\;   \hat{n}^c_i  = \sum_{\sigma=1}^{N} \hat{c}_{i,\sigma}^{\dagger} \hat{c}_{i,\sigma}^{\phantom\dagger} 
+	  \;\text{ and }\;   \hat{n}^c_i  = \sum_{\sigma=1}^{N} \hat{c}_{i,\sigma}^{\dagger} \hat{c}_{i,\sigma}^{\phantom\dagger} .
 \end{equation}
 Finally, the constraint
 \begin{equation}
@@ -57,7 +57,7 @@ To do so, we work in the unconstrained Hilbert space and add a Hubbard  $U$-term
 With this addition, the Hamiltonian we simulate reads: 
 
 \begin{multline}
-	\hat{H}_\textrm{QMC}     =    - t  \sum_{\langle i,j \rangle}    \sum_{\sigma=1}^{N}  \left(  \hat{c}^{\dagger}_{i,\sigma}  e^{\frac{2\pi i}{\Phi_0}  \int_{i}^{j} \ve{A}\cdot d \ve{l}}\hat{c}^{\phantom\dagger}_{j,\sigma}   + H.c.  \right)  - \mu \sum_{i,\sigma} \hat{c}^{\dagger}_{i,\sigma}  \hat{c}^{\phantom\dagger}_{i,\sigma} 
+	\hat{H}_\textrm{QMC}     =    - t  \sum_{\langle i,j \rangle}    \sum_{\sigma=1}^{N}  \left(  \hat{c}^{\dagger}_{i,\sigma}  e^{\frac{2\pi i}{\Phi_0}  \int_{i}^{j} \ve{A}\cdot d \ve{l}}\hat{c}^{\phantom\dagger}_{j,\sigma}  + \hc \right)  - \mu \sum_{i,\sigma} \hat{c}^{\dagger}_{i,\sigma}  \hat{c}^{\phantom\dagger}_{i,\sigma} 
 	+    \frac{U_c}{N}  \sum_{i}   \left( \hat{n}^c_i -  \frac{N}{2} \right)^2  \\
     -    \frac{J}{4N}    \left[ \left(   \hat{D}^{\dagger}_{i}  + \hat{D}^{\phantom\dagger}_{i}    \right)^{2}  + 
                                                        \left(  i\hat{D}^{\dagger}_{i}  - i  \hat{D}^{\phantom\dagger}_{i}    \right)^2  \right]  
@@ -84,7 +84,7 @@ As in Refs.~\cite{Assaad99a,Capponi00,Beach04}, the Hamiltonian that one will si
  \begin{multline}
  \label{eqn:ham_kondo}
  	\hat{\mathcal{H}}  =
-	\underbrace{-t \sum_{\langle i,j \rangle,\sigma} \left( \hat{c}_{i,\sigma}^{\dagger} e^{\frac{2\pi i}{\Phi_0}  \int_{i}^{j} \ve{A}\cdot d \ve{l}} \hat{c}_{j,\sigma}^{\phantom\dagger}   + \text{H.c.} \right) +
+	\underbrace{-t \sum_{\langle i,j \rangle,\sigma} \left( \hat{c}_{i,\sigma}^{\dagger} e^{\frac{2\pi i}{\Phi_0}  \int_{i}^{j} \ve{A}\cdot d \ve{l}} \hat{c}_{j,\sigma}^{\phantom\dagger}   + \hc \right) +
 	  \frac{U_c}{2}   \sum_{i}   \left( \hat{n}^{c}_{i} -1 \right)^2    }_{\equiv \hat{\mathcal{H}}_{tU_c}}  \\
   - \frac{J}{4} 	\sum_{i} \left( \sum_{\sigma} \hat{c}_{i,\sigma}^{\dagger}  \hat{f}_{i,\sigma}^{\phantom\dagger}  + 
 	                                                        \hat{f}_{i,\sigma}^{\dagger}  \hat{c}_{i,\sigma}^{\phantom\dagger}   \right)^{2}   +
@@ -139,8 +139,8 @@ Aside from the usual observables  we have included  the scalar observable \textt
 $U_f$ has to be chosen large enough  such that  the above quantity vanishes within statistical uncertainty.  For the square lattice,  Fig.~\ref{Constraint.fig}   plots   the  aforementioned quantity as a function of $U_f$  for the SU(2) model.  As apparent $ \Big<    \sum_{i}   \big( \hat{n}_i^f - N/2 \big)^2 \Big> \propto e^{-\beta U_f/2} $.
 \begin{figure}
 \center
-\includegraphics[width=0.49\textwidth]{Figures/Kondo/Constraint.pdf}
-\includegraphics[width=0.49\textwidth]{Figures/Kondo/Spin.pdf}
+\includegraphics[width=0.49\textwidth]{Constraint.pdf}
+\includegraphics[width=0.49\textwidth]{Spin.pdf}
 
 \caption{Left:  Suppression of charge fluctuations of the f-orbitals as a function of $U_f$.  Right:   When  charge fluctuations  on the f-orbitals vanish, quantities such as the Fourier transform of the $f$ spin-spin  correlations at $\ve{q} = (\pi,\pi) $  converge to their KLM value. Typically,  for the SU(2) case, $\beta U_f > 10 $ suffices to reach convergent results.
 The pyALF script used to produce the data of  the plot can be found in \href{https://git.physik.uni-wuerzburg.de/ALF/ALF/-/blob/master/Documentation/Figures/Kondo/Kondo.py}{\texttt{Kondo.py}}  }

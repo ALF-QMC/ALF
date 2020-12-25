@@ -12,7 +12,7 @@ All the data structures necessary to implement a given model have been introduce
 \mathcal{H}=
 - t 
 \sum\limits_{\langle \ve{i}, \ve{j} \rangle,  \sigma={\uparrow,\downarrow}} 
-  \left(  \hat{c}^{\dagger}_{\ve{i}, \sigma} \hat{c}^{\phantom\dagger}_{\ve{j},\sigma}  + H.c. \right) 
+  \left(  \hat{c}^{\dagger}_{\ve{i}, \sigma} \hat{c}^{\phantom\dagger}_{\ve{j},\sigma}  + \hc \right) 
 - \frac{U}{2}\sum\limits_{\ve{i}}\left[
 \hat{c}^{\dagger}_{\ve{i}, \uparrow} \hat{c}^{\phantom\dagger}_{\ve{i}, \uparrow}  -   \hat{c}^{\dagger}_{\ve{i}, \downarrow} \hat{c}^{\phantom\dagger}_{\ve{i}, \downarrow}  \right]^{2}   
 -  \mu \sum_{\ve{i},\sigma } \hat{c}^{\dagger}_{\ve{i}, \sigma}  \hat{c}^{\phantom\dagger}_{\ve{i},\sigma}. 
@@ -89,7 +89,7 @@ In its last line, the routine sets the total number of single particle states pe
 The hopping matrix is implemented as follows. 
 We allocate an array of dimension $1\times 1$ of type operator  called \texttt{Op\_T} and set the  dimension for the hopping  matrix to $N=N_{\mathrm{dim}}$. The operator allocation and initialization is performed by the subroutine \texttt{Op\_make}: 
 \begin{lstlisting}[style=fortran]
-call Op_make(Op_T(1,N_FL),Ndim)
+call Op_make(Op_T(1,1),Ndim);  call Op_make(Op_T(1,2),Ndim) 
 \end{lstlisting}
 Since the hopping  does not  break down into small blocks, we have ${\bm P}=\mathds{1}$   and  
 \begin{lstlisting}[style=fortran]
@@ -119,7 +119,7 @@ Enddo
 Here, the integer function \texttt{Latt\%nnlist(I,n,m)} is defined in the lattice module and returns the index of the lattice site $ \vec{I} +  n \vec{a}_1 +  m \vec{a}_2$.
 Note that periodic boundary conditions are 
 already taken into account.  The hopping parameter \texttt{Ham\_T}, as well as the chemical potential \texttt{Ham\_chem} are read from the parameter file.  
-To completely define the hopping  we further set: \texttt{Op\_T(1,nf)\%g = -Dtau }, \texttt{Op\_T(1,nf)\%alpha = cmplx(0.d0,0.d0, kind(0.D0))} and call the routine  \texttt{Op\_set(Op\_T(1,nf))}  so as to generate  the unitary transformation and eigenvalues as specified in Table \ref{table:operator}.  Recall that for the hopping, the variable  \texttt{Op\_set(Op\_T(1,nf))\%type} is not required. 
+To completely define the hopping  we further set: \texttt{Op\_T(1,nf)\%g = -Dtau }, \texttt{Op\_T(1,nf)\%alpha = cmplx(0.d0,0.d0, kind(0.D0))} and call the routine  \texttt{Op\_set(Op\_T(1,nf))}  so as to generate  the unitary transformation and eigenvalues as specified in Table \ref{table:operator}.  Recall that for the hopping, the variable  \texttt{Op\_set(Op\_T(1,nf))\%type}  takes its default value of 0.  
 Finally, note that, although a checkerboard decomposition is not used here, it can be implemented by considering a larger number of sparse hopping matrices.  
 
 
@@ -159,7 +159,7 @@ The code above makes it explicit that there is a sign difference between the cou
 As  argued in Sec.~\ref{sec:trial_wave_function}, it is useful to generate the trial wave function from a non-interacting trial Hamiltonian.   Here we will  use the same left and right  flavor-independent trial wave functions that correspond to the ground state of: 
 \begin{equation}
    \hat{H}_T    = - t \sum_{\ve{i}} \left[  \left( 1 + (-1)^{i_x + i_y}  \delta \right)  \hat{c}^{\dagger}_{\ve{i}}   \hat{c}^{\phantom\dagger}_{\ve{i} +\ve{a}_x}  +  
-   							\left(1 - \delta \right)  \hat{c}^{\dagger}_{\ve{i}}   \hat{c}^{\phantom\dagger}_{\ve{i} +\ve{a}_y}    + H.c.  \right]   \equiv   \sum_{\ve{i},\ve{j}}  \hat{c}^{\dagger}_{\ve{i}}   h_{\ve{i},\ve{j}}  \hat{c}^{\phantom\dagger}_{\ve{i}}.
+   							\left(1 - \delta \right)  \hat{c}^{\dagger}_{\ve{i}}   \hat{c}^{\phantom\dagger}_{\ve{i} +\ve{a}_y}    + \hc  \right]   \equiv   \sum_{\ve{i},\ve{j}}  \hat{c}^{\dagger}_{\ve{i}}   h_{\ve{i},\ve{j}}  \hat{c}^{\phantom\dagger}_{\ve{i}}.
 \end{equation}
 For the half-filled case, the  dimerization $\delta  = 0^{+} $  opens up a gap at  half-filling,   thus generating the desired  non-degenerate  trial wave function  that has the same symmetries (particle-hole  for instance) as  the   trial  Hamiltonian.
 
@@ -227,15 +227,16 @@ Do I = 1,Size(Obs_eq,1)
    case default
       Write(6,*) "Error in Alloc_obs"
    end select
-Nt = 1
-Channel = "--"
-Call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
+   Nt = 1
+   Channel = "--"
+   Call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
+Enddo
 \end{lstlisting} 
 Be aware that \texttt{Obser\_Latt\_make} does not copy the Bravais lattice \texttt{Latt} 
 and unit cell \texttt{Latt\_unit}, but links them through pointers to be more memory 
 efficient. One can have different lattices attached to different observables by declaring 
 additional instances of \texttt{Type(Lattice)} and \texttt{Type(Unit\_cell)}.
- For equal-time correlation functions, we set \texttt{Nt = 1} and \texttt{Channel} does not have a meaning.
+ For equal-time correlation functions, we set \texttt{Nt = 1} and \texttt{Channel} specification is not necessary.
 
 If \texttt{Ltau = 1}, then the code allocates space for time displaced quantities. The 
 same structure as for equal-time correlation functions is used, albeit with 
@@ -263,7 +264,7 @@ Do i = 1,Ndim
   Obs_scal(2)%Obs_vec(1)= Obs_scal(2)%Obs_vec(1) +(1-GR(i,i,1))*(1-GR(i,i,2))*Ham_U*ZS*ZP
 Enddo
 \end{lstlisting} 
-Here  $ \texttt{ZS} = \sgn(C) $  [see Eq.~(\ref{Sign.eq})],  $ \texttt{ZP} =   \frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}   $ [see Eq.~(\ref{eqn:phase})] and  \texttt{Ham\_U}  corresponds to the Hubbard's $U$ term.
+Here  $ \texttt{ZS} = \sgn(C) $  [see Eq.~(\ref{Sign.eq})],  $ \texttt{ZP} =   \frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}   $ [see Eq.~(\ref{eqn:phase})] and  \texttt{Ham\_U}  corresponds to the Hubbard  $U$ term.
 
 Equal-time correlations  are also computed in this routine. As an explicit example, we  consider the equal-time density-density correlation:
 \begin{equation}
@@ -303,6 +304,7 @@ At the end of each bin the main program calls the routine \texttt{ Pr\_obs(LTAU)
 This subroutine is called by the main program at the beginning of each sweep, provided that \texttt{LTAU}  is set to $1$. The variable \texttt{NT} runs from \texttt{0}  to \texttt{Ltrot} and denotes the imaginary time difference. For a given time  displacement, the main program provides:
 \begin{align}
 \begin{aligned}
+\label{Time_displaced_green.eq}
 \texttt{GT0(x,y,s) }  &=   \phantom{+} \langle \langle \hat{c}^{\phantom\dagger}_{x,s} (Nt \Delta \tau)   \hat{c}^{\dagger}_{y,s} (0)   \rangle \rangle \;=\; \langle \langle \mathcal{T} \hat{c}^{\phantom\dagger}_{x,s} (Nt \Delta \tau)   \hat{c}^{\dagger}_{y,s} (0)   \rangle \rangle   \\
 \texttt{G0T(x,y,s) }   &=  -   \langle \langle   \hat{c}^{\dagger}_{y,s} (Nt \Delta \tau)    \hat{c}^{\phantom\dagger}_{x,s} (0)    \rangle \rangle \;=\;
     \langle \langle \mathcal{T} \hat{c}^{\phantom\dagger}_{x,s} (0)    \hat{c}^{\dagger}_{y,s} (Nt \Delta \tau)   \rangle \rangle    \\
@@ -356,7 +358,7 @@ and the exact result is
 For the two-dimensional case,   with similar parameters, we obtain the results listed in Table~\ref{tab:2dplain}.
 \begin{table}[h!]
 \begin{center}
-\begin{tabular}{@{}l l l@{}}
+\begin{tabular}{l l l}
 \toprule
              &  QMC  & Exact  \\ \midrule
 Total energy & -13.618   $\pm $  0.002 &  -13.6224  \\

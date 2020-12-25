@@ -13,13 +13,16 @@
 
 \subsection{Motivation}
 
-The aim of the ALF project is to provide a general formulation of the auxiliary-field QMC method with discrete  fields that enables one to promptly play with different model Hamiltonians  at  minimal programming cost.
+The aim of the ALF project is to provide a general formulation of the auxiliary-field QMC method that enables one to promptly play with different model Hamiltonians at  minimal programming cost. The package also comes with a number of predefined Hamiltonians aimed at producing benchmark results. 
 
 The auxiliary-field quantum Monte Carlo (QMC) approach is the algorithm of choice to simulate  thermodynamic properties of a variety of correlated electron systems in the solid state and beyond \cite{Blankenbecler81,White89,Sugiyama86,Sorella89, Duane87, Assaad08_rev}.  
 Apart from the physics of the  canonical Hubbard model 
-\cite{Scalapino07,LeBlanc15},   the topics one can investigate in detail include correlation effects in the bulk and on surfaces of topological insulators \cite{Hohenadler10,Zheng11}, quantum phase transitions between  Dirac fermions  and insulators \cite{Assaad13,Toldin14,Otsuka16,Chandrasekharan13,Chandrasekharan15},  
-deconfined quantum critical points \cite{Li15a,Assaad16}, topologically ordered phases \cite{Assaad16}, heavy fermion systems \cite{Assaad99a,Capponi00}, nematic \cite{Schattner15} and magnetic  \cite{Xu16c} quantum phase transitions in metals, antiferromagnetism in metals \cite{Berg12},    superconductivity in spin-orbit split bands \cite{Tang14_1}, SU(N) symmetric models \cite{Assaad04,Lang13},  long-ranged Coulomb interactions in graphene systems \cite{Hohenadler14,Tang15},  cold atomic gases  \cite{Rigol03},  low energy nuclear physics \cite{Lee09},  entanglement entropies and spectra \cite{Grover13,Broecker14,Assaad13a,Assaad15},  among others. 
+\cite{Scalapino07,LeBlanc15},   the topics one can investigate in detail include correlation effects in the bulk and on surfaces of topological insulators \cite{Hohenadler10,Zheng11,Assaad12,Hofmann19}, quantum phase transitions between  Dirac fermions  and insulators \cite{Assaad13,Toldin14,Otsuka16,Chandrasekharan13,Chandrasekharan15,Liu18,Li17,Raczkowski2019},  
+deconfined quantum critical points 
+\cite{Assaad16,SatoT17,Liu18,Sato20,Wang20},  constrained and unconstrained lattice gauge theories \cite{Assaad16,Gazit16,Gazit18,Xu18,Hohenadler18,Hohenadler19,Gazit19}, heavy fermion systems \cite{Assaad99a,Capponi00,SatoT17_1,Hofmann18,Danu19,Danu20}, nematic \cite{Schattner15,Grossman20} and magnetic  \cite{Xu16c,LiuZH19} quantum phase transitions in metals, antiferromagnetism in metals \cite{Berg12},    superconductivity in spin-orbit split and in topological flat bands \cite{Tang14_1,Hofmann20, Peri20}, SU(N) symmetric models \cite{Assaad04,Lang13,Kim_F17,WangD14,Kim_F18,Raczkowski20},  long-ranged Coulomb interactions in graphene systems \cite{Hohenadler14,Tang15,Tang17,Raczkowski17,Leaw19},  cold atomic gases  \cite{Rigol03},   low energy nuclear physics \cite{Lee09}   that may require formulations in the canonical ensemble \cite{WangZ17,Shen20},   entanglement entropies and spectra \cite{Grover13,Broecker14,Assaad13a,Assaad15,Toldin18,Toldin18_1,ParisenToldin19},  electron-phonon systems \cite{Chen18,Chen19,Bradley20},  Landau level  regularization of continuum theories \cite{Ippoliti18,WangZ20},     Yukawa SYK models \cite{Pan20}    and even spin systems \cite{HZhang20} among others. 
 This ever-growing list of topics is based on algorithmic progress and on recent symmetry-related insights  \cite{Wu04,Huffman14,Yao14a,Wei16} that lead to formulations free of the negative sign problem for a number of model systems with very rich phase diagrams.
+
+
 
 Auxiliary-field methods  can be formulated in a number of very different ways.  The fields define  the  configuration space $\mathcal{C}$. They can stem from the Hubbard-Stratonovich (HS)  \cite{Hubbard59} transformation required to decouple the  many-body interacting term into a sum of non-interacting problems,  or they can correspond to  bosonic modes with predefined dynamics such as phonons or gauge fields. In all cases, the result is that  the grand-canonical partition function  takes the form
 \begin{equation}
@@ -29,7 +32,7 @@ Auxiliary-field methods  can be formulated in a number of very different ways.  
 where $\beta $ corresponds to the inverse temperature and $S$  is the action of non-interacting fermions subject to a  space-time fluctuating auxiliary field.    
 The high-dimensional  integration  over the fields is carried out stochastically.  In this formulation of many-body quantum systems, there is no reason for the action to be a real number.  Thereby $e^{-S(\mathcal{C})}$ cannot be interpreted as a weight. To circumvent this problem one can adopt   re-weighting schemes and sample $| e^{-S(\mathcal{C})}| $. This invariably leads to the so-called \emph{negative sign problem}, with the associated exponential computational scaling in system size and inverse temperature \cite{Troyer05}.  The sign problem is formulation dependent and, as mentioned above, there has been tremendous progress at identifying an increasing number of models not affected by the negative sign problem which cover a rich domain of collective emergent phenomena.  
 For continuous fields, the stochastic integrations can  be carried out with Langevin  dynamics or hybrid methods \cite{Duane85}.   However, for many  problems one can get away with discrete fields \cite{Hirsch83}. In this case,  Monte Carlo importance sampling will often be put to use \cite{Sokal89}.  
-We note that  due to  the non-locality of the fermion determinant (see below), cluster updates,  such as in the loop or stochastic series expansion algorithms for quantum spin systems  \cite{Evertz93,Sandvik99b,Sandvik02}, are hard to formulate for this class of problems.  The search for efficient updating schemes that quickly wander through the configuration space defines the ongoing challenges. 
+We note that  due to  the non-locality of the fermion determinant (see below), cluster updates,  such as in the loop or stochastic series expansion algorithms for quantum spin systems  \cite{Evertz93,Sandvik99b,Sandvik02}, are hard to formulate for this class of problems.  The search for efficient updating schemes that quickly wander through the configuration space defines ongoing challenges. 
 
 Formulations differ not only in the choice of the fields, continuous or discrete, and sampling strategy, but also by the formulation of the action itself.
 For a given field configuration, integrating out fermionic degrees of freedom generically leads to a fermionic determinant of dimension $\beta N$ where $N$ is the volume of the system.  Working  with this determinant leads to the  Hirsch-Fye approach \cite{HirschFye86}  and the computational effort scales\footnote{Here we implicitly assume the absence of negative sign problem.} as $\mathcal{O}\left( \beta N \right)^3$. The Hirsch-Fye  algorithm is the method of choice for impurity problems, but has  in general been outperformed by a class of so-called continuous-time quantum Monte Carlo approaches  
@@ -96,7 +99,7 @@ The indices and symbols used above have the following meaning:
 \begin{itemize}
 \item The number of fermion \emph{flavors} is set by $N_{\mathrm{fl}}$.  After the HS transformation, the action will be block diagonal in the flavor index. 
 \item The number of fermion \emph{colors} is set\footnote{Note that  in the code $ N_{\mathrm{col}} \equiv \texttt{N\_{SUN}} $.} by $N_{\mathrm{col}}$.    The Hamiltonian is invariant under  SU($N_{\mathrm{col}}$)  rotations.
-\item $N_{\mathrm{dim}}$ is the total number of spacial vertices: $N_{\mathrm{dim}}=N_{\text{unit-cell}} N_{\mathrm{orbital}}$, where $N_{\text{unit-cell}}$ is the number of unit cells of the underlying Bravais lattice and $N_{\mathrm{orbital}}$ is the number of (spacial) orbitals per unit cell.
+\item $N_{\mathrm{dim}}$ is the total number of spacial vertices: $N_{\mathrm{dim}}=N_{\text{unit-cell}} N_{\mathrm{orbital}}$, where $N_{\text{unit-cell}}$ is the number of unit cells of the underlying Bravais lattice and $N_{\mathrm{orbital}}$ is the number of  orbitals per unit cell.
 \item The indices $x$ and $y$ label lattice sites where $x,y=1,\cdots, N_{\mathrm{dim}}$. 
 \item Therefore, the  matrices $\bm{T}^{(k s)}$, $\bm{V}^{(ks)}$  and $\bm{I}^{(ks)}$ are  of dimension $N_{\mathrm{dim}}\times N_{\mathrm{dim}}$.
 \item The number of interaction terms  is labeled by $M_V$   and $M_I$.   $M_T> 1 $ would allow for a checkerboard decomposition.
@@ -105,12 +108,14 @@ The indices and symbols used above have the following meaning:
 	\left\{ \hat{c}^{\dagger}_{y \sigma s},    \hat{c}^{\phantom\dagger}_{y' \sigma' s'}  \right\}   =   \delta_{xx'}  \delta_{ss'} \delta_{\sigma\sigma'},   
 	\; \text{ and } \left\{ \hat{c}^{\phantom\dagger}_{y \sigma s},    \hat{c}^{\phantom\dagger}_{y' \sigma' s'}  \right\}   =0.
 \end{equation}
-\item $\alpha_{k s}$ is a one-body operator with the background which gives fluctuations over the average.
+\item $\alpha_{k s}$ is a complex number.
 
 \end{itemize}
 The bosonic  part of the general Hamiltonian (\ref{eqn:general_ham}) is $\hat{\mathcal{H}}_{0,I}+ \hat{\mathcal{H}}_{I}$ and  has the following properties:
 \begin{itemize}
-\item $\hat{Z}_k$ couples to a general one-body term. It is a general operator, such as the Ising spin operator (which gives the term its index $I$) corresponding to the Pauli matrix $\hat{\sigma}_{z}$ or the position operator.  Generically,  we will work in a basis where this operator is diagonal:  $\hat{Z}_k | \phi \rangle  =  \phi_k | \phi \rangle $. $\phi_k$ is a real   or Ising variable. 
+\item $\hat{Z}_k$ couples to a general one-body term.  
+We will work in a basis where this operator is diagonal:  $\hat{Z}_k | \phi \rangle  =  \phi_k | \phi \rangle $. $\phi_k$ is a real  number   or an  Ising variable. 
+Hence   $\hat{Z}_k$ can correspond  to the Pauli matrix $\hat{\sigma}_{z}$ or to the position operator.  
 \item  The dynamics of the bosonic field  is given by $\hat{\mathcal{H}}_{0,I}$. This term is not specified here; 
 it has to be specified by the user and becomes relevant when the Monte Carlo update probability is computed in the code
 \end{itemize}

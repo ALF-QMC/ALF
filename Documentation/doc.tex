@@ -8,8 +8,10 @@
 % For the licensing details of the documentation see license.CCBYSA.
 
 \documentclass[submission, Phys]{SciPost}
+\pdfoutput=1
 \usepackage{lineno}
 \usepackage{graphicx}
+\graphicspath{{./Figures/}{./Figures/Kondo/}{./Figures/MaxEnt/}{./Figures/MaxEnt/}{./Figures/Projector/}{./Figures/PAM/}{./Figures/Dtau/}{./Figures/Dtau_1/}}
 %\usepackage[T1]{fontenc}
 %\usepackage{lmodern}
 \usepackage{bbm}
@@ -118,6 +120,7 @@
 \def\Tr{\mathop{\mathrm{Tr}}}
 \def\Trf{\mathop{\mathrm{Tr}_{\mathrm{F}}}}
 \def\d{\mathrm{d}}
+\def\hc{\mathrm{H.c.}}
 \DeclareMathOperator{\sgn}{sgn}
 \makesavenoteenv{tabular}
 \makesavenoteenv{table}
@@ -187,17 +190,17 @@ The \emph{ALF} (\emph{A}lgorithms for \emph{L}attice \emph{F}ermions)\\project r
 
 % Author list
 \begin{center}
-The \textbf{ALF Collaboration}:
-F.~F.~Assaad\textsuperscript{1},
+The \textbf{ALF Collaboration\textsuperscript}{*}:
+F.~F.~Assaad\textsuperscript{1,4},
 M.~Bercx\textsuperscript{1},
 F.~Goth\textsuperscript{1},
 A.~G\"otz\textsuperscript{1},
 J.~S.~Hofmann\textsuperscript{2},
-%E.~Huffman\textsuperscript{3},
+E.~Huffman\textsuperscript{3},
 Z.~Liu\textsuperscript{1},
+F.~Parisen~Toldin\textsuperscript{1},
 J.~S.~E.~Portela\textsuperscript{1},
-J.~Schwab\textsuperscript{1},
-%F.~P.~Toldin\textsuperscript{1}
+J.~Schwab\textsuperscript{1}
 \end{center}
 
 % Affiliation
@@ -206,10 +209,11 @@ J.~Schwab\textsuperscript{1},
 97074 W\"urzburg, Germany\\
 {\bf 2} Department of Condensed Matter Physics, Weizmann Institute of Science,\\
 Rehovot, 76100, Israel\\
-%{\bf 3} Perimeter Institute for Theoretical Physics\\
-%Waterloo, Ontario N2L 2Y5, Canada\\
+{\bf 3} Perimeter Institute for Theoretical Physics,\\
+Waterloo, Ontario N2L 2Y5, Canada\\
+{\bf 4} W\"urzburg-Dresden Cluster of Excellence ct.qmat, \\ Am Hubland, 97074 W\"urzburg, Germany
 
-\url{alf@physik.uni-wuerzburg.de}
+\textsuperscript{*}\href{mailto:alf@physik.uni-wuerzburg.de}{alf@physik.uni-wuerzburg.de}
 \end{center}
 
 \begin{center}
@@ -221,16 +225,17 @@ Rehovot, 76100, Israel\\
 
 \section*{Abstract}
 {\bf
-\red{ TODO } The abstract is in boldface, and should fit in 8 lines.
-The Algorithms for Lattice Fermions package provides a general code for the auxiliary field quantum Monte Carlo algorithm. The code is engineered to be	able to simulate any model that can be written in terms of sums of single-body operators, of squares of single-body operators and single-body operators coupled to a bosonic field with given dynamics. We provide predefined types that allow the user to specify the model, the Bravais lattice as well as equal-time and time-displaced observables. The code supports an MPI implementation. Examples such as the Hubbard model on the honeycomb lattice and the Hubbard model on the square lattice coupled to a transverse Ising field are provided and discussed in the documentation. We furthermore discuss how to use the package to implement the Kondo lattice model and the SU(N)-Hubbard-Heisenberg model. One can download the code from our Git instance at \url{https://alf.physik.uni-wuerzburg.de} and sign in to file issues.
-}\\
+The \emph{Algorithms for Lattice Fermions} package provides a general code for the finite-temperature and projective auxiliary-field quantum Monte Carlo algorithm. The code is engineered to be able to simulate any model that can be written in terms of sums of single-body operators, of squares of single-body operators and single-body operators coupled to a bosonic field with given dynamics.   The package includes five pre-defined model classes:  SU(N) Kondo, SU(N) Hubbard, SU(N) t-V and SU(N) models with long range Coulomb repulsion on honeycomb, square and N-leg lattices, as well as $Z_2$  unconstrained lattice gauge theories coupled to fermionic and $Z_2$ matter. An implementation of the stochastic  Maximum Entropy  method is also provided. 
+One can download the code from our Git instance at \url{https://git.physik.uni-wuerzburg.de/ALF/ALF} and sign in to file issues.} \\
+
+% We provide predefined types that allow the user to specify the model, the Bravais lattice as well as equal-time and time-displaced observables. The code supports an MPI implementation. Examples such as the Hubbard model on the honeycomb lattice and the Hubbard model on the square lattice coupled to a transverse Ising field are provided and discussed in the documentation. We furthermore discuss how to use the package to implement the Kondo lattice model and the SU(N)-Hubbard-Heisenberg model. }\\
 
 %\noindent Copyright \textcopyright ~2016--2020 The \textit{ALF} Project.\\
 %This is the ALF Project Documentation. % by the ALF contributors.
 %It is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License.
-You are free to share and benefit from this documentation as long as this license is preserved
-and proper attribution to the authors is given. For details see the ALF project
-website \url{alf.physik.uni-wuerzburg.de}.
+%You are free to share and benefit from this documentation as long as this license is preserved
+%and proper attribution to the authors is given. For details see the ALF project
+%website \url{https://alf.physik.uni-wuerzburg.de}.
 
 \vspace{10pt}
 \noindent\rule{\textwidth}{1pt}
@@ -268,6 +273,7 @@ website \url{alf.physik.uni-wuerzburg.de}.
 \addcontentsline{toc}{section}{Acknowledgments}
 \input{acknowledgment}
 \begin{appendix}
+\input{wick}
 \input{performance}
 \input{license}
 \end{appendix}

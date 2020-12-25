@@ -103,7 +103,7 @@ The ALF includes three different types of fields:
 %For an Ising term, we store type \texttt{t=1}, which sets $\gamma_{k,\tau} = 1$ and $\phi_{k,\tau}=s_{k,\tau} = \pm 1$. 
 %In the case of a perfect-square term, the fields results from the discrete HS transformation (\ref{HS_squares}) and we store \texttt{t=2}, which sets $\gamma_{k,\tau} = s_{k,\tau}$ and $\phi_{k,\tau}=\eta_{k,\tau}$ ). For continuous real fields $f$ we store \texttt{t=3}, which sets $\gamma_{k,\tau} = 1$ and $\phi_{k,\tau}=f$.
 
-For such auxiliary fields a dedicated type \texttt{Fields} is defined, whose components, listed in Table~\ref{table:Fields}, include the variables \texttt{Field\%f} and \texttt{Field\%t}, which store the field values and types, respectively, and functions such as \texttt{Field\%flip}, which flips the field values randomly. Before using this variable type, the routine \texttt{Fields\_init(del)} should be called (its argument is optional), in order for internal variables such as  $\eta(l)$ and $\gamma(l)$  [see Eq.~\eqref{eta_gamma_fields}] to be initialized.
+For such auxiliary fields a dedicated type \texttt{Fields} is defined, whose components, listed in Table~\ref{table:Fields}, include the variables \texttt{Field\%f} and \texttt{Field\%t}, which store the field values and types, respectively, and functions such as \texttt{Field\%flip}, which flips the field values randomly. Before using this variable type, the routine \texttt{Fields\_init(Amplitude)} should be called (its argument is optional and the default value is of unity (see Sec.~\ref{sec:sequential}), in order for internal variables such as  $\eta(l)$ and $\gamma(l)$  [see Eq.~\eqref{eta_gamma_fields}] to be initialized.
 
 
 %
@@ -146,7 +146,7 @@ For such auxiliary fields a dedicated type \texttt{Fields} is defined, whose com
 ALF's lattice module can generate one- and two-dimensional Bravais lattices.
 Both the lattice and the unit cell are defined in the module \texttt{Lattices\_v3\_mod.F90} and their components are detailed in Tables \ref{table:lattice} and \ref{table:unit_cell}. 
 As  its name suggest the module  \texttt{Predefined\_Latt\_mod.F90} also provides predefined lattices as  described in Sec.~\ref{sec:predefined_lattices}.
-The user who wishes to define his/her own lattice has to specify: 1) unit vectors $\vec{a}_1$ and $\vec{a}_2$, 2) the size of the lattice, characterized by the vectors $\vec{L}_1$ and $\vec{L}_2$ and 3) the  unit cell characterized be the number of orbitals and their positions.  The coordination number of the lattice is specified in the \texttt{Unit\_cell} data type.   The lattice is placed on a torus (periodic boundary conditions):
+The user who wishes to define his/her own lattice has to specify: 1) unit vectors $\vec{a}_1$ and $\vec{a}_2$, 2) the size and shape of the lattice, characterized by the vectors $\vec{L}_1$ and $\vec{L}_2$ and 3) the  unit cell characterized be the number of orbitals and their positions.  The coordination number of the lattice is specified in the \texttt{Unit\_cell} data type.   The lattice is placed on a torus (periodic boundary conditions):
 \begin{equation}
 	\hat{c}_{\vec{i} + \vec{L}_1 }  =  \hat{c}_{\vec{i} + \vec{L}_2 }  = \hat{c}_{\vec{i}}\;.
 \end{equation}
@@ -283,21 +283,28 @@ Scalar observables are stored in the data type \texttt{Obser\_vec}, described in
 %
 \begin{table}[h!]
 	\begin{center}
-   \begin{tabular}{@{} p{0.19\columnwidth} @{ } p{0.06\columnwidth} p{0.39\columnwidth} l @{}}\toprule
-    Variable  &  Type      &  Description &  Contribution \\\midrule
-    \texttt{Obs\%N}                       & \texttt{int}   &    Number of measurements &    $+1$ \\
-    \texttt{Obs\%Ave\_sign}               & \texttt{dble}  &    Cumulated average sign [Eq.~\eqref{eqn:sign_rw}] & $\sgn(C)$  \\
-    \texttt{Obs\%Obs\_vec(:)}  		      & \texttt{cmplx} &    Cumulated vector of observables [Eq.~\eqref{eqn:obs_rw}] &
+   \begin{tabular}{@{} p{0.19\columnwidth} @{ } p{0.06\columnwidth} p{0.39\columnwidth} l @{}}
+   \toprule
+    Variable                 &  Type          & Description &  Contribution \\
+    \midrule
+    \texttt{N}               & \texttt{int}   & Number of measurements &    $+1$ \\
+    \texttt{Ave\_sign}       & \texttt{dble}  & Cumulated average sign [Eq.~\eqref{eqn:sign_rw}] & $\sgn(C)$  \\
+    \texttt{Obs\_vec(:)}  	  & \texttt{cmplx} & Cumulated vector of observables [Eq.~\eqref{eqn:obs_rw}] &
            $ \langle \langle \hat{O}(:) \rangle \rangle_{C}\frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]} \sgn(C) $ \\
-     \texttt{Obs\%File\_Vec}           & \texttt{char}   &    Name of output file  &\\\bottomrule
+     \texttt{File\_Vec}      & \texttt{char} & Name of output file  &\\
+     \texttt{analysis\_mode} & \texttt{char} & How to analyze the observable &\\
+                             &               & Default value: "identity" &\\
+     \texttt{description(:)} & \texttt{char} & Optional description. Arbitrary number of 64-character lines &\\
+     \bottomrule     
    \end{tabular}
-   \caption{Components of a variable of type \texttt{Obser\_vec} named \texttt{Obs}. The contribution listed is that of each configuration $C$.}
+   \caption{Components of a variable of type \texttt{Obser\_vec}. The contribution listed is that of each configuration $C$.}
          \label{table:Obser_vec}
      \end{center}
 \end{table}
 %
-At the end of the bin, a call to  \texttt{Print\_bin\_Vec}   in  module \texttt{observables\_mod.F90}  will  append the result of the bin in the file  \texttt{File\_Vec}\emph{\_scal}.  Note that this subroutine will automatically append the suffix \emph{\_scal} to the the filename \texttt{File\_Vec}.
-This suffix  is important to facilitate automatic analyses of the data at the end of the run. 
+At the end of the bin, a call to \texttt{Print\_bin\_Vec} in module \texttt{observables\_mod.F90} will append the result of the bin in the file \texttt{File\_Vec}\emph{\_scal}.  Note that this subroutine will automatically append the suffix \emph{\_scal} to the the filename \texttt{File\_Vec}.
+This suffix  is important to facilitate automatic analyses of the data at the end of the run.
+Furthermore, the file \texttt{File\_Vec}\emph{\_scal\_info} is created (if it does not exist yet), which contains a string that specifies how to analyze the observable and an optional description.
 
 %------------------------------------------------------------
 \subsubsection{Equal-time and time-displaced correlation functions}
@@ -456,7 +463,7 @@ In this case $\bm{X}^{(ks)}=\bm{T}^{(ks)}$, and a single variable  \texttt{Op\_T
             \left( \sum_{x,y}^{N_{\mathrm{dim}}} \hat{c}^{\dagger}_x T_{xy}^{(ks)} \hat{c}^{\phantom{\dagger}}_{y}  \right)  \;,
 \end{equation} 
 where $k=[1, M_{T}]$ and $s=[1, N_{\mathrm{fl}}]$. In the notation of the general expression (\ref{eqn:exponent_mat}), we set $g=-\Delta \tau$ (and $\alpha = 0$).
-In case of the hopping matrix, the type variable $\texttt{Op\_T\%type}$  is neglected by the code. 
+In case of the hopping matrix, the type variable  takes its default value  $\texttt{Op\_T\%type}=0$. 
 All in all, the corresponding array of structure variables is  \texttt{Op\_T(M$_T$,N$_{fl}$)}.
 
 \item For the interaction Hamiltonian (\ref{eqn:general_ham_v}), which is of perfect-square type, we have to set the exponentiated matrices $e^{  \sqrt{ -  \Delta \tau  U_k} \eta_{k\tau} {\bm V}^{(ks)} }$:\\
@@ -474,7 +481,8 @@ In this case, $\bm{X}  = \bm{I}^{(k,s)} $ and a single variable  \texttt{Op\_V} 
             \left( \sum_{x,y}^{N_{\mathrm{dim}}} \hat{c}^{\dagger}_x I_{xy}^{(ks)} \hat{c}^{\phantom{\dagger}}_{y}  \right)  \;,
 \end{equation} 
 where $k=[1, M_{I}]$ and $s=[1, N_{\mathrm{fl}}]$ and $g = -\Delta \tau$ (and $\alpha = 0$).
-An Ising interaction is specified by setting the type variable  $\texttt{Op\_V\%type=1}$. 
+It this operator couples to an Ising field, we specify the  type variable  $\texttt{Op\_V\%type=1}$.    On the other hand, if it couples to a scalar field (i.e. real number)   then we 
+specify $\texttt{Op\_V\%type=3}$.
 All in all, the required structure variables are contained in the array \texttt{Op\_V(M$_{I}$,N$_\mathrm{fl}$)}.
 
 \item In case of a full interaction [perfect-square term (\ref{eqn:general_ham_v}) and bosonic term (\ref{eqn:general_ham_i})],

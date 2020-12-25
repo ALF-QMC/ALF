@@ -1,4 +1,4 @@
-% Copyright (c) 2016 2017 The ALF project.
+% Copyright (c) 2016 2020 The ALF project.
 % This is a part of the ALF project documentation.
 % The ALF project documentation by the ALF contributors is licensed
 % under a Creative Commons Attribution-ShareAlike 4.0 International License.
@@ -11,14 +11,14 @@
 The Hamiltonian we will consider here reads
 \begin{align}
 	\hat{H} =& -  t_{\Ztwo} \sum_{\langle \vec{i}, \vec{j} \rangle, \sigma } \hat{\sigma}^z_{\langle \vec{i}, \vec{j} \rangle}
-	\left(\hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{j},\sigma}   + h.c. \right) - \mu \sum_{\vec{i},\sigma} \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{i},\sigma}  
+	\left(\hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{j},\sigma}   + \hc \right) - \mu \sum_{\vec{i},\sigma} \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{i},\sigma}  
 	-g \sum_{\langle \vec{i}, \vec{j} \rangle } \hat{\sigma}^{x}_{\langle \vec{i}, \vec{j} \rangle } \nonumber \\
 	  & +K \sum_{\square} \prod_{\langle \vec{i}, \vec{j} \rangle \in \partial \square} \hat{\sigma}^{z}_{\langle \vec{i}, \vec{j} \rangle}  
 	 + J  \sum_{\langle \vec{i}, \vec{j} \rangle}  \hat{\tau}^z_{\pmb{i}}  \hat{\sigma}^{z}_{\langle \vec{i}, \vec{j} \rangle} \hat{\tau}^z_{\pmb{j}}   
 	      -  h \sum_{ \vec{i} } \hat{\tau}^x_{\vec{i}} \nonumber \\
-	& - t  \sum_{\langle \vec{i}, \vec{j} \rangle, \sigma }   \hat{\tau}^z_{\pmb{i}}   \hat{\tau}^z_{\pmb{j}}  \left( \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{j},\sigma} 	+ h.c. \right) + \frac{U}{N}\sum_{\ve{i}} \left[ \sum_{\sigma}  \left( \hat{\Psi}^{\dagger}_{\ve{i},\sigma}  \hat{\Psi}^{\phantom\dagger}_{\ve{i},\sigma} - 1/2\right) \right]^2.
+	& - t  \sum_{\langle \vec{i}, \vec{j} \rangle, \sigma }   \hat{\tau}^z_{\pmb{i}}   \hat{\tau}^z_{\pmb{j}}  \left( \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{j},\sigma} 	+ \hc \right) + \frac{U}{N}\sum_{\ve{i}} \left[ \sum_{\sigma}  \left( \hat{\Psi}^{\dagger}_{\ve{i},\sigma}  \hat{\Psi}^{\phantom\dagger}_{\ve{i},\sigma} - 1/2\right) \right]^2.
 \end{align}  
-The model is defined on a square lattice, and describers fermions, 
+The model is defined on a square lattice, and describes  fermions, 
 \begin{align}
  \left\{ \hat{\Psi}^{\dagger}_{\vec{i},\sigma},  \hat{\Psi}^{\phantom\dagger}_{\vec{j},\sigma'} \right\}  = \delta_{\vec{i},\vec{j}} \delta_{\sigma,\sigma'}, \;  
 \left\{ \hat{\Psi}^{\phantom\dagger}_{\vec{i},\sigma},  \hat{\Psi}^{\phantom\dagger}_{\vec{j},\sigma'} \right\}  =  0,  
@@ -95,7 +95,7 @@ Theta          = 10.0       ! Projection parameter
 
 We note that the implementation is such that  if \texttt{Ham\_T=0}   (\texttt{Ham\_TZ2=0}) then all the terms involving the matter field ($\Ztwo$  gauge field) are automatically set to zero.  
 We warn the user that autocorrelation and warmup times can be  large for this model class.
-At this point, only the finite temperature code is implemented. 
+At this point,  the model is only implemented for the square lattice  and does not support a symmetric Trotter decomposition.
 
 The key point to implement the model is to  define a new bond variable: 
 \begin{equation}
@@ -126,13 +126,13 @@ Note that $\left\{ \hat{\mu}^{z}_{\langle \vec{i}, \vec{j} \rangle} , \hat{\mu}^
 The model  can then be written as:
 \begin{align}
 	\hat{H} =& - t_{\Ztwo}\! \sum_{\langle \vec{i}, \vec{j} \rangle, \sigma } \hat{\sigma}^z_{\langle \vec{i}, \vec{j} \rangle}
-	\left(\hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{j},\sigma} \!+ h.c. \right) - \mu \sum_{\vec{i},\sigma} \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{i},\sigma}  
+	\left(\hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{j},\sigma} \!+ \hc \right) - \mu \sum_{\vec{i},\sigma} \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{i},\sigma}  
 	-g \sum_{\langle \vec{i}, \vec{j} \rangle } \hat{\sigma}^{x}_{\langle \vec{i}, \vec{j} \rangle }  +
 	  K \sum_{\square} \prod_{\langle \vec{i}, \vec{j} \rangle \in \partial \square} \hat{\sigma}^{z}_{\langle \vec{i}, \vec{j} \rangle}  \nonumber \\
 	& + J  \sum_{\langle \vec{i}, \vec{j} \rangle}  \hat{\mu}^z_{ \langle \pmb{i}, \ve{j} \rangle }  \hat{\sigma}^{z}_{\langle \vec{i}, \vec{j} \rangle}    
 	      -  h \sum_{ \vec{i} } \hat{\mu}^{x}_{\ve{i},\ve{i} + \ve{a}_x } \hat{\mu}^{x}_{\ve{i} + \ve{a}_x, \ve{i} + \ve{a}_x + \ve{a}_y }   \hat{\mu}^{x}_{\ve{i} + \ve{a}_x + \ve{a}_y, \ve{i} + \ve{a}_y  }
 	         \hat{\mu}^{x}_{\ve{i} + \ve{a}_y, \ve{i}  }	\nonumber  \\      
-	&        - t  \sum_{\langle \vec{i}, \vec{j} \rangle, \sigma }   \hat{\mu}^z_{\pmb{i},\ve{j}}    \left( \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{j},\sigma} 	+ h.c. \right) + \frac{U}{N}\sum_{\ve{i}} \left[ \sum_{\sigma}  ( \hat{\Psi}^{\dagger}_{\ve{i},\sigma}  \hat{\Psi}^{\phantom\dagger}_{\ve{i},\sigma} - 1/2 ) \right]^2 
+	&        - t  \sum_{\langle \vec{i}, \vec{j} \rangle, \sigma }   \hat{\mu}^z_{\pmb{i},\ve{j}}    \left( \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{j},\sigma} 	+ \hc \right) + \frac{U}{N}\sum_{\ve{i}} \left[ \sum_{\sigma}  ( \hat{\Psi}^{\dagger}_{\ve{i},\sigma}  \hat{\Psi}^{\phantom\dagger}_{\ve{i},\sigma} - 1/2 ) \right]^2 
 \end{align}  
 subject to the constraint of Eq.~\eqref{zero_flux.eq}.  
 
@@ -161,8 +161,8 @@ and
  \begin{align*}
    \hat{H}_F(\underline{s})  = 
    	     & - t_{\Ztwo} \sum_{\langle \vec{i}, \vec{j} \rangle, \sigma } \sigma_{\langle \vec{i}, \vec{j} \rangle}
-	\left(\hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{j},\sigma}   + h.c. \right) - \mu \sum_{\vec{i},\sigma} \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{i},\sigma}  \\
-         & - t  \sum_{\langle \vec{i}, \vec{j} \rangle, \sigma }   \mu_{\pmb{i},\ve{j}}    \left( \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{j},\sigma} 	+ h.c. \right)  
+	\left(\hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{j},\sigma}   + \hc \right) - \mu \sum_{\vec{i},\sigma} \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{i},\sigma}  \\
+         & - t  \sum_{\langle \vec{i}, \vec{j} \rangle, \sigma }   \mu_{\pmb{i},\ve{j}}    \left( \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{j},\sigma} 	+ \hc \right)  
          +\frac{U}{N}\sum_{\ve{i}} \left[ \sum_{\sigma}  ( \hat{\Psi}^{\dagger}_{\ve{i},\sigma}  \hat{\Psi}^{\phantom\dagger}_{\ve{i},\sigma} - 1/2 ) \right]^2. 
  \end{align*}
 In the above, $  | \underline{s}_{L_\tau+1}  \rangle  = | \underline{s}_{1}  \rangle   $.  With a further  HS transformation of the Hubbard term (see Sec.~\ref{Hubbard_SUN_HS.eq})  the model is readily implemented in the ALF.    Including this HS field, $l$,  [see Eq.~\eqref{HS_squares}] yields  the configuration space: 
@@ -243,7 +243,7 @@ Hence  one can foresee that the constraint will be dynamically imposed (we expec
 
 A test run for the $8\times 8 $ lattice at $U/t = 4$ and $\beta t = 40$ gives:
 \begin{center}
-\begin{tabular}{@{} c c c @{}}
+\begin{tabular}{c c c}
  \toprule
    k                      & $\langle n_k \rangle_{H} $     &  $\langle n_k \rangle_{H_{\Ztwo}}$\\
   \midrule
@@ -264,8 +264,8 @@ Since $\hat{Q}_{\ve{i}} $ is odd under this  transformation, $\langle \hat{Q}_{\
 	   S_Q(\ve{q})  = \sum_{\ve{i}}    \langle \hat{Q}_{\ve{i}} \hat{Q}_{\ve{0}}   \rangle.
 \end{equation}
 For the above run we obtain  $ S_Q(\ve{q} = \ve{0}) = 63.4 \pm 1.7 $  which,   for this $ 8\times 8$ lattice, complies with a ferromagnetic ordering of the 
-Ising  $\hat{Q}_{\ve{i}}$  variables.    The pyALF python script that produces this data can be found in  \href{https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/blob/master/Scripts/Z2_Matter.py}{\texttt{Z2\_Matter.py}}
-This code  was used in Ref.~\cite{Hohenadler19}.  
+Ising  $\hat{Q}_{\ve{i}}$  variables.    The pyALF python script that produces this data can be found in  \href{https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/blob/master/Scripts/Z2_Matter.py}{\texttt{Z2\_Matter.py}}.
+This code  was used in Refs.~\cite{Hohenadler18,Hohenadler19}.  
 
 
  
@@ -275,7 +275,7 @@ This code  was used in Ref.~\cite{Hohenadler19}.
 %\item  Include a projective version, with different left and right wave functions. The right imposes translation invariance and  the left  the constraint.  That is,  we choose the right trial wave function to be the ground state of 
 %\begin{equation}
 %	\hat{H}_T^{R}  = -  t  \sum_{\langle \vec{i}, \vec{j} \rangle, \sigma } 
-%	  \left( \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{j},\sigma}    + h.c. \right)  
+%	  \left( \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{j},\sigma}    + \hc \right)  
 %	  - h \sum_{\vec{i} } \left( \hat{X}_{\vec{i},\vec{i} +  \vec{a}_x }+  \hat{X}_{\vec{i},\vec{i} +  \vec{a}_y}  + \tau^{x}_{\vec{i}} \right)
 %\end{equation}
 %and the left one to be the ground state of

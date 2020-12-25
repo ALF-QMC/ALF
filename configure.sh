@@ -140,7 +140,7 @@ case $MACHINE in
   #Development
   DEVEL|DEVELOPMENT)
     # F90OPTFLAGS="$GNUOPTFLAGS -Wconversion -Werror -fcheck=all -ffpe-trap=invalid,zero,overflow,underflow,denormal"
-    F90OPTFLAGS="$GNUOPTFLAGS -Wconversion -Werror -fcheck=all -g -fbacktrace "
+    F90OPTFLAGS="$GNUOPTFLAGS -Wconversion -Werror=conversion -fcheck=all -g -fbacktrace "
     # F90OPTFLAGS=$GNUOPTFLAGS" -Wconversion -Wcompare-reals -fcheck=all -g -fbacktrace "
     F90USEFULFLAGS="$GNUUSEFULFLAGS"
 
@@ -266,7 +266,8 @@ if [ ! -z "${ALF_FLAGS_EXT+x}" ]; then
 fi
 
 ALF_FLAGS_QRREF="${F90OPTFLAGS} ${ALF_FLAGS_EXT}"
-ALF_FLAGS_MODULES="${F90OPTFLAGS} ${ALF_FLAGS_EXT}"
+#Modules need to know the programm configuration since entanglement needs MPI
+ALF_FLAGS_MODULES="${F90OPTFLAGS} ${PROGRAMMCONFIGURATION} ${ALF_FLAGS_EXT}"
 ALF_FLAGS_ANA="${F90USEFULFLAGS} ${F90OPTFLAGS} ${ALF_INC} ${ALF_FLAGS_EXT}"
 ALF_FLAGS_PROG="${F90USEFULFLAGS} ${F90OPTFLAGS} ${PROGRAMMCONFIGURATION} ${ALF_INC} ${ALF_FLAGS_EXT}"
 export ALF_FLAGS_QRREF

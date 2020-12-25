@@ -1,4 +1,4 @@
-% Copyright (c) 2016 The ALF project.
+% Copyright (c) 2020 The ALF project.
 % This is a part of the ALF project documentation.
 % The ALF project documentation by the ALF contributors is licensed
 % under a Creative Commons Attribution-ShareAlike 4.0 International License.
@@ -9,13 +9,13 @@
 \subsection{Updating schemes}\label{sec:updating}
 %------------------------------------------------------------
 %
-The program allows for different types of updating schemes, which are described below and summarized in Tab.~\ref{table:Updating_schemes}. In all of them, given a configuration $C$, we propose a new one, $C'$, with a given probability $T_0(C \rightarrow C')$  and accept it according to   the  Metropolis-Hastings   acceptance-rejection probability, 
+The program allows for different types of updating schemes, which are described below and summarized in Tab.~\ref{table:Updating_schemes}.  With  the exception of Langevin dynamics, for a given configuration $C$, we propose a new one, $C'$, with a given probability $T_0(C \rightarrow C')$  and accept it according to   the  Metropolis-Hastings   acceptance-rejection probability, 
 \begin{equation}
 	P(C \rightarrow C') =  \text{min}  \left( 1, \frac{T_0(C' \rightarrow C) W(C')}{T_0(C \rightarrow C') W(C)} \right),
 \end{equation}
 so as to guarantee the stationarity condition.  Here, $ W(C) = \left| \Re \left[ e^{-S(C)} \right] \right| $.
 
-Predicting how efficient a certain Monte Carlo update scheme will turn out to be for a given simulation is very hard, so one must typically resort to testing to find out which option produces best results.
+Predicting how efficient a certain Monte Carlo update scheme will turn out to be for a given simulation is very hard, so one must typically resort to testing to find out which option produces best results.   Methods to optimize the acceptance of  global moves include Hybrid Monte Carlo  \cite{Duane85} as well as self-learning techniques  \cite{LiuJ17,Xu17a}.      Langevin dynamics stands apart, and as we will see does not depend on the Metropolis-Hastings   acceptance-rejection scheme.
 
 \begin{table}[h]
 	\begin{tabular}{@{} p{0.22\columnwidth} p{0.11\columnwidth} p{0.61\columnwidth} @{}}
@@ -23,7 +23,8 @@ Predicting how efficient a certain Monte Carlo update scheme will turn out to be
 		Updating schemes             & Type             & Description \\
 		\midrule
 		\texttt{Sequential}          & \texttt{logical} & (internal variable) If true, the configurations moves through sequential, single spin flips  \\
-		\texttt{Propose\_S0}         & \texttt{logical} & If true, proposes sequential local moves according to the probability $e^{-S_0}$, where $S_0$ is the free Ising action\\
+		\texttt{Propose\_S0}         & \texttt{logical} & If true, proposes sequential local moves according to the probability $e^{-S_0}$, where $S_0$ is the free Ising action. This option only works for 
+		  \texttt{type=1}  operator where the field corresponds to an Ising variable  \\
 		\texttt{Global\_tau\_moves}  & \texttt{logical} & Whether to carry out  global moves on a single time slice.
 		For a given time slice the user can define which part of the operator string is to be computed sequentially. This is specified by the  variable  \texttt{N\_sequential\_start} and \texttt{N\_sequential\_end}. A number of   \texttt{N\_tau\_Global} user-defined global moves on the given time slice  will then be carried out   \\
 		\texttt{Global\_moves}       & \texttt{logical} & If true, allows for global moves in space and time.   A user-defined number \texttt{N\_Global} of global moves in space and time  will be carried out at the end of each sweep \\
@@ -40,9 +41,9 @@ Predicting how efficient a certain Monte Carlo update scheme will turn out to be
 \subsubsection{Sequential single spin flips}
 %------------------------------------------------------------
 %
-
+\label{sec:sequential}
 %If the boolean variable \texttt{Sequential\_Sweeps}  is set to true, then  the 
-The program adopts per default a sequential, single spin-flip strategy. It will visit sequentially each HS field in the space-time operator list and  propose a spin flip. Consider  the Ising spin $s_{i,\tau}$. By default (\texttt{Propose\_S0=.false.}), we will flip it with probability $1$, such that for  this local move  the  proposal matrix is symmetric.  If we are considering the HS field $l_{i,\tau}$  we will propose with probability $1/3$ one  of the other three  possible fields.   Again, for this local move, the proposal matrix is symmetric.  Hence in both cases we will accept or reject the move according to 
+The program adopts per default a sequential, single spin-flip strategy. It will visit sequentially each HS field in the space-time operator list and  propose a spin flip. Consider  the Ising spin $s_{i,\tau}$. By default (\texttt{Propose\_S0=.false.}), we will flip it with probability $1$, such that for  this local move  the  proposal matrix is symmetric.  If we are considering the HS field $l_{i,\tau}$  we will propose with probability $1/3$ one  of the other three  possible fields.    For a continuous field, we  modify it with a box distribution of width \texttt{Amplitude}  centered around the origin.   The default value of  \texttt{Amplitude} is set to unity. These updating rules are defined in the   \texttt{Fields\_mod.F90} module  (see Sec.~\ref{sec:fields}). Again, for these local moves, the proposal matrix is symmetric.  Hence in all cases we will accept or reject the move according to 
 \begin{equation}
 P(C \rightarrow C') =  \text{min}  \left( 1, \frac{ W(C')}{W(C)} \right).
 \end{equation}
@@ -57,7 +58,7 @@ It is also worth noting that this type of sequential spin-flip updating does not
 \label{sec:S0}
 %------------------------------------------------------------
 % 
-The package can also propose single spin-flip updates according to a non-vanishing free bosonic action $S_0(C)$. This sampling scheme is used if the logical variable \texttt{Propose\_S0} is set to \texttt{.true.}.
+The package can also propose single spin-flip updates according to a non-vanishing free bosonic action $S_0(C)$. This sampling scheme is used if the logical variable \texttt{Propose\_S0} is set to \texttt{.true.}.   As mentioned previously, this option only holds for Ising variables. 
 
 Consider an Ising spin at space-time $i,\tau$ in the configuration $C$. Flipping this spin generates the configuration $C'$ and we propose this move according to 
 \begin{equation}
@@ -110,8 +111,8 @@ Like for the global move in space (Sec.~\ref{sec:global_space}), \texttt{T0\_Pro
 Since we allow for a stochastic  generation of  the global move, it may very well be that no change is proposed. In this case, \texttt{T0\_Proposal\_ratio}   takes the value 0 upon exit, and  \texttt{nsigma$\,=\,$nsigma\_old}.   
 The real-valued \texttt{size\_clust} gives the size of the proposed move (e.g., $\tfrac{\text{Number of flipped spins}}{\text{Total number of spins}}$). This is used to calculate the average sizes of proposed and accepted moves, which are printed in the \texttt{info} file. The variable \texttt{size\_clust} is not necessary for the simulation, but may help the user to estimate the effectiveness of the global update.
 
-In order to compute the acceptance-rejection ratio,  the user must also provide a function \linebreak
-\texttt{Delta\_\-S0\_\-global(nsigma\_old)} that computes the ratio $e^{-S_0(C')}/e^{-S_0(C)}$. Again, the configuration $C'$ is given by the field \texttt{nsigma}.
+In order to compute the acceptance-rejection ratio,  the user must also provide a function 
+\texttt{Delta\_\-S0}\texttt{\_\-global(nsigma\_old)} that computes the ratio $e^{-S_0(C')}/e^{-S_0(C)}$. Again, the configuration $C'$ is given by the field \texttt{nsigma}.
 
 The variable \texttt{N\_Global} determines the number of global updates performed per sweep. Note that global updates are expensive, since they require a complete recalculation of the weight.
 % 

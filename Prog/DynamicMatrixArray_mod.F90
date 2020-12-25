@@ -111,7 +111,7 @@ subroutine DynamicMatrixArray_pushback(this, itm)
 
     if (this%tail == this%avamem) then
         ! reallocate the memory
-        write (*,*) "not enough space -> growing."
+        ! write (*,*) "not enough space -> growing."
         call MOVE_ALLOC(this%data, temp)
         allocate(this%data(2*this%avamem))
         do i = 1, this%avamem

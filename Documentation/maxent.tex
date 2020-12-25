@@ -83,7 +83,7 @@ The first column of the  \texttt{Green}  file is a place holder for post-process
 The essential question is: Which image should one use? There is no ultimate answer to this question in the context of the stochastic MaxEnt. The only rule of thumb is to consider temperatures for which the \( \chi^2 \) is  comparable to the number of data points.
 
 
-\subsection{Single-particle quantities}
+\subsection{Single-particle quantities: \texttt{Channel=P}}
 For the single-particle Green function, 
 \begin{equation} 
 	\langle \hat{c}^{\phantom\dagger}_{k} (\tau)  \hat{c}^{\dagger}_{k} (0)   \rangle   = \int \d \omega  K_p(\tau,\omega)   A_p(k, \omega) ,
@@ -111,7 +111,7 @@ Note that for each  configuration of fields we have $ \langle  \langle \hat{c}^{
 \langle \langle \hat{c}^{\phantom\dagger}_{k} (\tau=\beta)  \hat{c}^{\dagger}_{k} (0)   \rangle \rangle_{C} = 
 \langle \langle \big\{ \hat{c}^{\phantom\dagger}_{k},   \hat{c}^{\dagger}_{k}    \big\} \rangle \rangle_{C}   = 1$, hence, if both  the $\tau=0$ and $\tau=\beta$ data points are included, the covariance matrix will have a zero eigenvalue and the $\chi^{2}$ measure is not defined. Therefore, for the particle channel the program omits the $\tau=\beta$ data point. There are special  particle-hole symmetric  cases where the $\tau=0$ data point shows no  fluctuations -- in such cases the code omits the $\tau=0$ data point as well.
 
-\subsection{Particle-hole quantities }
+\subsection{Particle-hole quantities:  \texttt{Channel=PH}}
 
 \subsubsection*{Imaginary-time formulation}
  For particle-hole quantities such as spin-spin or charge-charge correlations, 
@@ -125,7 +125,7 @@ This follows directly from the  Lehmann representation
  \chi''(q,\omega)  = \frac{\pi}{Z} \sum_{n,m} e^{-\beta E_n} |\langle n | \hat{S}(q) | m \rangle |^2 
 \delta ( \omega + E_n - E_m) \left( 1 - e^{-\beta  \omega} \right) .
 \end{equation}
-Since the linear response to a hermitian perturbation  is real, $\chi''(q,\omega)  = - \chi''(-q,-\omega)$ and hence $\langle \hat{S}(q,\tau) \hat{S}(-q,0) \rangle $ is a symmetric function around $\beta= \tau/2$ for systems with inversion symmetry -- the ones we consider here. The analysis file \texttt{cov\_tau\_ph.F90} produced at compilation time uses this to define an improved estimator. 
+Since the linear response to a hermitian perturbation  is real, $\chi''(q,\omega)  = - \chi''(-q,-\omega)$ and hence $\langle \hat{S}(q,\tau) \hat{S}(-q,0) \rangle $ is a symmetric function around $\beta= \tau/2$ for systems with inversion symmetry -- the ones we consider here.  When  \texttt{Channel=PH}  the analysis program \texttt{ana.out} uses this symmetry to provide an improved estimator. 
 
 The  stochastic MaxEnt requires a sum rule, and hence the kernel and image have to be adequately redefined. 
 Let us consider $\coth(\beta \omega/2) \chi''(q,\omega)$. For this quantity, we have the sum rule, since
@@ -190,7 +190,7 @@ The above definitions produce an image that satisfies the sum rule:
 \end{equation}
 
 
-\subsection{Particle-Particle quantities}
+\subsection{Particle-Particle quantities: \texttt{Channel=PP}}
 
 Similarly to the particle-hole channel, the particle-particle channel is also a bosonic correlation function. Here, however, we do not assume that the  imaginary time data is symmetric around   the $\tau = \beta/2$ point.  We use the kernel $K_{pp}$ defined in Eq.~\eqref{Kpp.eq}  and consider the whole frequency range. 
 The back transformation  yields
@@ -199,7 +199,7 @@ The back transformation  yields
 \end{equation}
 
 
-\subsection{Zero-temperature, projective code}
+\subsection{Zero-temperature, projective code:  \texttt{Channel=T0}}
 
  In the zero temperature limit,  the spectral function associated to an operator $\hat{O} $    reads:
  \begin{equation}
@@ -229,9 +229,9 @@ To conclude this section, we show the example of the one-dimensional Hubbard mod
 
 \begin{figure}
 \center
-\includegraphics[width=\textwidth,clip]{Figures/MaxEnt/Spectral_1D.pdf}
+\includegraphics[width=\textwidth,clip]{Spectral_1D.pdf}
 
 \caption{Dynamics of the one-dimensional half-filled Hubbard model  on a 46-site chain, with U/t=4 and $\beta t = 10$.  (a) Dynamical charge structure factor, (b) single particle spectral function and (c) dynamical spin structure factor.  Data obtained using the pyALF python script 
- \href{https://git.physik.uni-wuerzburg.de/ALF/ALF/-/blob/master/Documentation/Figures/MaxEnt/Hubbard_1D.py}{\texttt{Hubbard\_1D.py}}, considering 400 bins of 200 sweeps each and taking into account the covariance matrix for the MaxEnt.  The parameters for the MaxEnt  that differ for the default values are also listed in the python script.}
+ \href{https://git.physik.uni-wuerzburg.de/ALF/ALF/-/blob/master/Documentation/Figures/MaxEnt/Hubbard_1D.py}{\texttt{Hubbard\_1D.py}}, considering 400 bins of 200 sweeps each and taking into account the covariance matrix for the MaxEnt.  The parameters for the MaxEnt  that differ from the default values are also listed in the python script.}
         \label{Fig:Spectral1D}
 \end{figure}

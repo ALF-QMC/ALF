@@ -10,17 +10,21 @@
 %
 % \red{\\Could this subsection be brought to Sec.~\ref{sec:optimize} (Using the Code / performance \& parameter optimization).}\\ \\
 
-As mentioned in the  introduction, the auxiliary field QMC algorithm scales linearly in inverse temperature $\beta$ and cubic in the volume $N_{\text{dim}}$. Using fast updates,  a single spin flip  requires $(N_{\text{dim}})^2$ operations to update the Green function upon acceptance.  As there are $L_{\text{Trotter}}\times N_{\text{dim}}$ spins to be visited, the total computational cost for one sweep is of the order of $\beta (N_{\text{dim}})^3$. This operation  dominates the performance, see Fig.~\ref{fig_scaling_size}. A profiling analysis of our code shows that 80-90\% of the CPU time is spend in ZGEMM calls of the BLAS library provided in the MKL package by Intel. Consequently, the single-core performance is next to optimal.
+As mentioned in the  introduction, the auxiliary field QMC algorithm scales linearly in inverse temperature $\beta$ and as a cube in the volume $N_{\text{dim}}$. Using fast updates,  a single spin flip  requires $(N_{\text{dim}})^2$ operations to update the Green function upon acceptance.  As there are $L_{\text{Trotter}}\times N_{\text{dim}}$ spins to be visited, the total computational cost for one sweep is of the order of $\beta (N_{\text{dim}})^3$. This operation  alongside QR-decompositions required for stabilization  dominates the performance,  see Fig.~\ref{fig_scaling_size}. A profiling analysis of our code shows that 80-90\% of the CPU time is spend in ZGEMM calls of the BLAS library provided in the MKL package by Intel. Consequently, the single-core performance is next to optimal.
 
 \begin{figure}[h]
 	\begin{center}
-		\includegraphics[scale=.8]{Figures/Size_scaling_ALF_2.pdf}
+		\includegraphics[scale=.8]{Size_scaling_ALF_2.pdf}
 	\end{center}
 	\caption{\label{fig_scaling_size}Volume scaling behavior of the auxiliary field QMC code of the ALF project on SuperMUC (phase 2/Haswell nodes) at the LRZ in Munich. The number of sites $N_{\text{dim}}$ corresponds to the system volume.
 	The plot confirms that the leading scaling order is due to matrix multiplications such that the runtime is dominated by calls to ZGEMM. }
 \end{figure}
 
-For the implementation which scales linearly in $\beta$, one has to store $L_{\text{Trotter}}/\texttt{NWrap}$ intermediate propagation matrices of dimension $N\times N$. For large lattices and/or low temperatures this dominates the total memory requirements that can exceed 2~GB memory for a sequential version.
+For the implementation which scales linearly in $\beta$, one has to store $2\times N_{fl} \times L_{\text{Trotter}}/\texttt{NWrap}$ intermediate propagation matrices of dimension $N_{\text{dim}}\times N_{\text{dim}}$.   
+Hence the memory cost scales as $ \beta N_{\text{dim}}^2$ and for  large lattices and/or low temperatures this dominates the total memory requirements that can exceed 2~GB memory for a sequential version.   
+
+The above estimates of $\beta N_{\text{dim}}^3 $ for CPU time and $\beta N_{\text{dim}}^2 $ for memory implicitly assume Hamiltonians where the interaction  is a sum of local terms.  
+Recently  Landau level projection schemes for the   regularization of continuum field theories have been introduced in the realm of the auxiliary field QMC algorithm  \cite{Ippoliti18,WangZ20}. In  this case the interaction is not local,  such that the matrices stored in  the   \texttt{Op\_V} array  of \texttt{Observable} type   are of dimension of $N_{\text{dim}}$. Since the  dimension of the  \texttt{Op\_V}   array scales as $N_{\text{dim}}$, the memory  requirement scales as $N_{\text{dim}}^3$.    In these algorithms, a single field couples to a $N_{\text{dim}} \times  N_{\text{dim}} $ matrix, such that updating  it scales as $ N_{\text{dim}}^3$.  Furthermore, and as mentioned in Sec.~\ref{sec:trotter}, for non-local  Hamiltonians the  Trotter time step has to be scaled   as $1/N_{\text{dim}}$ so as to maintain a constant systematic error.  Taking all of this into account,    yields a CPU time that scales as $\beta N_{\text{dim}}^5$.    Hence  this approach  is expensive both in memory and CPU time. 
 
 At the heart of Monte Carlo schemes lies a random walk through the given configuration space. This is easily parallelized via MPI by associating one random walker to each MPI task. For each task, we start from a random configuration and have to invest the autocorrelation time $T_\mathrm{auto}$ to produce an equilibrated configuration.
 Additionally we can also profit from an OpenMP parallelized version of the BLAS/LAPACK library for an additional speedup, which also effects equilibration overhead $N_\text{MPI}\times T_\text{auto} / N_\text{OMP}$, where $N_{\text{MPI}}$ is the number of cores and $N_{\text{OMP}}$ the number of OpenMP threads.
@@ -39,8 +43,8 @@ We store the field configurations of the random walker as checkpoints, such that
 
 \begin{figure}[H]
 	\begin{center}
-		\includegraphics[scale=0.6]{Figures/MPI_scaling_ALF_2.pdf}
-		\includegraphics[scale=0.6]{Figures/OMP_scaling_ALF_2.pdf}
+		\includegraphics[scale=0.6]{MPI_scaling_ALF_2.pdf}
+		\includegraphics[scale=0.6]{OMP_scaling_ALF_2.pdf}
 	\end{center}
 	\caption{\label{fig_scaling} MPI (left) and OpenMP (right) scaling behavior of the auxiliary field QMC code of the ALF project on SuperMUC (phase 2/Haswell nodes) at the LRZ in Munich.
 		The MPI performance data was normalized to 28 cores and was obtained using a problem size of $N_{\text{dim}}=400$. This is a medium to small system size that is the least favorable in terms of MPI synchronization effects.

@@ -18,6 +18,7 @@
   	\path{Analysis/}                      & Routines for error analysis \\
   	\path{Scripts_and_Parameters_files/}  & Helper scripts and the \path{Start/} directory, which contains the files required to start a run \\
   	\path{Documentation/}                 & This documentation\\
+	\path{Mathematica/}                   & Mathematica notebooks to  evaluate higher order correlation functions with Wicks theorem \\
   	\path{testsuite/}                     & An automatic test suite for various parts of the code\\ \bottomrule
   	%\hline
 	\end{tabular}
@@ -26,7 +27,8 @@
 \end{table}
 %
 
-The code package, summarized in Table~\ref{table:files}, consists of the program directories \path{Prog/}, \path{Libraries/}, and \path{Analysis/}, as well as the directory \path{Scripts_and_Parameters_files/}, which contains supporting scripts and, in its subdirectory \path{Start}, the input files necessary for a run, described in the Sec.~\ref{sec:input}.
+The code package, summarized in Table~\ref{table:files}, consists of the program directories \path{Prog/}, \path{Libraries/}, \path{Analysis/}, and the directory \path{Scripts_and_Parameters_files/}, which contains supporting scripts and, in its subdirectory \path{Start}, the input files necessary for a run, described in the Sec.~\ref{sec:input}  as well as \path{Mathematica/}   that contains 
+Mathematica notebooks to  evaluate higher order correlation functions with Wicks theorem  as  described in Appendix  \ref{Wick_appendix}. \\
 The routines available in the directory \path{Analysis/} are described in Sec.~\ref{sec:analysis}, and the testsuite in Sec.~\ref{sec:compilation}. 
 
 Below we describe the structure of ALF's input and output files. Notice that the input/output files for the Analysis routines are described in Sec.~\ref{sec:analysis}.
@@ -181,6 +183,7 @@ The output of the measured data is organized in bins. One bin corresponds to the
    \path{info}        & After completion of the simulation, this file documents the parameters of the model, as well as the QMC run and simulation metrics (precision, acceptance rate, wallclock time)\\
    \path{X_scal}      & Results of equal-time measurements of scalar observables \\
    & The placeholder \path{X} stands for the observables \path{Kin}, \path{Pot}, \path{Part}, and \path{Ener} \\
+   \path{X_scal_info} & Contains info on how to analyze the observable and optionally a description.\\
    \path{Y_eq, Y_tau} & Results of equal-time and time-displaced measurements of correlation functions. The placeholder \path{Y} stands for \path{Green}, \path{SpinZ}, \path{SpinXY}, \path{Den}, etc. \\   
    \path{Y_eq_info, Y_tau_info} & Additional info, like Bravais lattice and unit cell, for equal-time and time-displaced observables \\
    \path{confout_<thread number>} & Output files (one per MPI instance) for the HS and bosonic configuration \\\bottomrule

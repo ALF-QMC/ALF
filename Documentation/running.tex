@@ -88,11 +88,11 @@ To run serially the simulation for a given model, for instance the plain vanilla
 \end{lstlisting}
 In order to run a different model, the corresponding executable should be used and, for running with parallelization, the appropriate MPI execution command should be called. For instance, a Kondo model (Sec.~\ref{sec:kondo}) compiled with OpenMPI can be run in parallel by issuing  
   \begin{lstlisting}[style=bash]
-orterun -np <number of processes> ./Prog/Kondo_Honey.out
+orterun -np <number of processes>  $ALF/Prog/Kondo_Honey.out
 \end{lstlisting}
 
 
-To restart the code using the configuration from a previous simulation as a starting point, first run the script \texttt{out\_to\_in.sh}, which copies outputted field configurations into input files, before calling the ALF executable.
+To restart the code using the configuration from a previous simulation as a starting point, first run the script \texttt{out\_to\_in.sh}, which copies outputted field configurations into input files, before calling the ALF executable.   This file is located in the  directory \path{$ALF/Scripts_and_Parameters_files/Start/}
 
 %
 %-------------------------------------------------------------------------------------
@@ -102,11 +102,11 @@ To restart the code using the configuration from a previous simulation as a star
 
 The ALF package includes the analysis program \texttt{ana.out} for performing simple error analysis and correlation function calculations on the three observable types. To perform an error analysis based on the Jackknife resampling method~\cite{efron1981} (Sec.~\ref{sec:jack}) of the Monte Carlo bins for a list of observables run
 \begin{lstlisting}[style=bash]
-/path/to/ALF/Analysis/ana.out <list of files>
+$ALF/Analysis/ana.out <list of files>
 \end{lstlisting}
 or run
 \begin{lstlisting}[style=bash]
-/path/to/ALF/Analysis/ana.out *
+$ALF/Analysis/ana.out *
 \end{lstlisting}
 for all observables.
 
@@ -178,8 +178,8 @@ The analysis output files listed in Table \ref{table:analysis_files} and are for
 	where \texttt{Re} and \texttt{Im} refer to the real and imaginary part, respectively.
 	
 	\item The imaginary-time displaced correlation functions \texttt{Y} are written to the output files \texttt{g\_R0} inside folders \texttt{Y\_R0}, when measured locally in space; 
-	and to the output files \texttt{g\_kx\_ky} inside folders \texttt{Y\_kx\_ky} when they are measured $\vec{k}$-resolved (where $\vec{k}=(\texttt{kx}, \texttt{ky})$). The first line of the file contains the number of time slices, 
-	the number of bins and the inverse temperature. 
+	and to the output files \texttt{g\_kx\_ky} inside folders \texttt{Y\_kx\_ky} when they are measured $\vec{k}$-resolved (where $\vec{k}=(\texttt{kx}, \texttt{ky})$). 
+	The first line of the file contains the  number of  imaginary times, the effective number of bins,  $\beta$, the number of orbitals and  the channel.  
 	Both output files have the following formatting:
 	{\small \begin{alltt}
 		do i = 0, Ltau
@@ -188,6 +188,19 @@ The analysis output files listed in Table \ref{table:analysis_files} and are for
 	\end{alltt} }
 	where \texttt{Tr} corresponds to the trace over the orbital degrees of freedom.   For particle-hole quantities at finite temperature,  $\tau$ runs from 
 	$0$ to $\beta/2$.   In all other cases it runs from $0$ to $\beta$. 
+	
+	\item The file  \texttt{Y\_tauJK}    contains the susceptibilities defined as: 
+	\begin{equation}
+	  \chi(\ve{q})   =   \sum_{n,n'=1}^{\text{Norb}}  \int_{0}^{\beta}   d \tau    \left(   \left<   Y_n(\ve{q},\tau) Y_{n'}(-\ve{q},0) \right>  - \left<   Y_n(\ve{q}) \right> \left< Y_{n'}(-\ve{q}) \right> \delta_{\ve{q},\ve{0}}  \right) 
+	\end{equation}
+	The output file 	has the following formatting:
+	{\small \begin{alltt}
+		do i = 0, Ltau
+		   q_x, q_y, <mean(Real(chi(q)) )>,  <error(Real(chi(q)))>, & 
+		           & <mean(Im  (chi(q)) )>,  <error(lmi (chi(q)))>
+		enddo
+	\end{alltt} }
+
 	
 	\item Setting the parameter \path{N_auto} to a finite value triggers the computation of autocorrelation functions $S_{\hat{O}}(t_{\textrm{Auto}})$ in the range $t_{\text{Auto}}=[0,\textrm{\path{N_auto}}]$. The output is written to the file \texttt{Part\_scal\_Auto}, where the data in organized in three columns:
 	{\small

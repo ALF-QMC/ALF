@@ -20,7 +20,7 @@ In fact, the autocorrelation time $T_\mathrm{auto}$ characterizes the required t
 	\item First of all, we start from a randomly chosen field configuration, such that one has to invest a time of \emph{at least} one $T_\mathrm{auto}$, but typically many more, in order to generate relevant, equilibrated configurations before reliable measurements are possible. This phase of the simulation is known as the warm-up or burn-in phase. In order to keep the code as flexible as possible (as different simulations might have different autocorrelation times), measurements are taken from the very beginning and, in the analysis phase, the parameter \path{n_skip} controls the number of initial bins that are ignored.
 	\item Second, our implementation averages over bins with \texttt{NSWEEPS} measurements before storing the results on disk. The  error analysis requires statistically  independent bins in order to generate reliable confidence estimates. If the bins are too small (averaged over a period shorter then $T_\mathrm{auto}$), then the error bars are typically underestimated. Most of the time, however, the autocorrelation time is unknown before the simulation is started and, sometimes, single runs long enough to generate appropriately sized bins are not feasible. For this reason, we provide a rebinning facility controlled by the parameter \path{N_rebin} that specifies the number of bins recombined into each new bin during the error analysis. One can test the suitability of a given bin size by verifying whether an increase in size changes the error estimate (For an explicit example, see Sec.~\ref{sec:autocorr} and the appendix of Ref.~\cite{Assaad02}).
 	\item The \path{N_rebin} variable can be used to control a further issue. The distribution of the Monte Carlo estimates $\langle\langle\hat{O}\rangle\rangle_C$ is unknown, while a result in the form $(\mathrm{mean}\pm \mathrm{error})$ assumes a Gaussian distribution. Every distribution with a finite variance turns into a Gaussian one once it is folded often enough (central limit theorem). Due to the internal averaging (folding) within one bin, many observables are already quite Gaussian. Otherwise one can increase \path{N_rebin} further, even if the bins are already independent~\cite{Bercx17}.
-	\item The last issue we mention concerns time-displaced correlation functions. Even if the configurations are independent, the fields within the configuration are still correlated. Hence, the data for $S_{\alpha,\beta}(\vec{k},\tau)$ (see Sec.~\ref{sec:obs}; Eq.~\eqref{eqn:s}) and $S_{\alpha,\beta}(\vec{k},\tau+\Delta\tau)$ are also correlated. Setting the switch \path{N_Cov = 1} triggers the calculation of the covariance matrix in addition to the usual error analysis. The covariance is defined by
+	\item The last issue we mention concerns time-displaced correlation functions. Even if the configurations are independent, the fields within the configuration are still correlated. Hence, the data for $S_{\alpha,\beta}(\vec{k},\tau)$ [see Sec.~\ref{sec:obs}; Eq.~\eqref{eqn:s}] and $S_{\alpha,\beta}(\vec{k},\tau+\Delta\tau)$ are also correlated. Setting the switch \path{N_Cov = 1} triggers the calculation of the covariance matrix in addition to the usual error analysis. The covariance is defined by
 	\begin{align}
 		COV_{\tau\tau'}=\frac{1}{N_{\text{Bin}}}\left\langle
 		\left( S_{\alpha,\beta}(\vec{k},\tau) - \big\langle S_{\alpha,\beta}(\vec{k},\tau)\big\rangle \right)
@@ -80,7 +80,7 @@ where $O_i$ refers to the Monte Carlo estimate of the observable $\hat{O}$ in th
 %
 \begin{figure}
 	\begin{center}
-		\includegraphics[width=.95\textwidth]{Figures/fig1.pdf}
+		\includegraphics[width=.95\textwidth]{fig1.pdf}
 		\caption{The autocorrelation function $S_{\hat{O}}(t_{\textrm{Auto}})$ (a) and the scaling of the error with effective bin size (b) of three equal-time, spin-spin correlation functions $\hat{O}$ of the Hubbard model in the $M_z$ decoupling (see Sec.~\ref{sec:hubbard}). Simulations were done on a $ 6 \times 6$ square lattice, with  $U/t=4$ and $\beta t = 6$. We used $\textrm{\texttt{N\_auto}}=500$ (see Sec.~\ref{sec:running}) and a total of approximately one million bins. The original bin contained only one sweep and we calculated around one million bins on a single core. The different  autocorrelation times for the $xy$-plane compared to the $z$-direction can be detected from the decay rate of the autocorrelation function (a) and from the point where saturation of the error sets in (b), which defines the required effective bin size for independent measurements. The improved estimator $(S_{\hat{S}^{x}} + S_{\hat{S}^{y}}+ S_{\hat{S}^{z}})/3$ appears to have the smallest autocorrelation time, as argued in the text.}
 		\label{fig_autocorr}
 	\end{center}
@@ -146,7 +146,7 @@ Per default, the finite-temperature algorithm is used, \texttt{Ltau=0}, and the 
 		\EndIf
 		\If{Langevin}
 		\State{\textbf{call} Langevin\_update} \Comment{\textsc{Update and measure} equal-time observables}
-		\If{$L_{\tau} = 1$}
+		\If{$L_{\tau} == 1$}
 		\If{Projector}
 		\State{\textbf{call} Tau\_p} \Comment{\textsc{Measure} time-displaced observables (projective code)}
 		\Else
@@ -164,7 +164,7 @@ Per default, the finite-temperature algorithm is used, \texttt{Ltau=0}, and the 
 		\State{\textbf{call} Wrapgrup}\Comment{\parbox[t]{0.6\linewidth}{\textsc{Propagate} Green function from $n_{\tau}-1$ to $n_{\tau}$, and compute its new estimate at $n_{\tau}$, using sequential updates}}
 		\vspace{1.5ex}
 		
-		\If{$n_{\tau}$ = stabilization point in imaginary time} \Comment{\textsc{Stabilize}}
+		\If{$n_{\tau}$ == stabilization point in imaginary time} \Comment{\textsc{Stabilize}}
 		\State{\textbf{call} Wrapur}\Comment{Propagate from previous stabilization point to $n_{\tau}$} 
 		
 		\LineComment{Storage management:\\
@@ -185,7 +185,7 @@ Per default, the finite-temperature algorithm is used, \texttt{Ltau=0}, and the 
 		\LineComment{\textsc{Downward sweep}}
 		\For{$n_{\tau}=L_{\text{Trotter}}$ to $1$}
 		\FirstLineComment{Same steps as for the upward sweep (propagation and estimate update, stabilization, equal-time measurements) now downwards in imaginary time}
-		\If{Projector \textbf{and}  $L_{\tau} = 1$ \textbf{and} \\
+		\If{Projector \textbf{and}  $L_{\tau} == 1$ \textbf{and} \\
 			\hspace{15.8ex} $n_{\tau}$ = stabilization point in imaginary time \textbf{and} \\
 			\hspace{15.8ex} the projection time $\theta$ is within the measurement interval}
 		\State{\textbf{call} Tau\_p} \Comment{\textsc{Measure} time-displaced observables (projective code)}
@@ -194,7 +194,7 @@ Per default, the finite-temperature algorithm is used, \texttt{Ltau=0}, and the 
 		\vspace{1.5ex}
 		
 		\LineComment{\textsc{Measure} time-displaced observables (finite temperature)}
-		\If{$L_{\tau} = 1$ \textbf{and not} Projector}
+		\If{$L_{\tau} == 1$ \textbf{and not} Projector}
 		\State{\textbf{call} Tau\_m}
 		\EndIf
 		\vspace{1.5ex}

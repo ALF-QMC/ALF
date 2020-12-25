@@ -8,7 +8,8 @@ MODS= control.mod fields_mod.mod global_mod.mod hop_mod.mod lrc_mod.mod observab
       operator_mod.mod predefined_int.mod predefined_lattices.mod predefined_obs.mod \
       predefined_hoppings.mod  predefined_trial.mod qdrp_mod.mod tau_m_mod.mod tau_p_mod.mod \
       udv_state_mod.mod udv_wrap_mod.mod wavefunction_mod.mod wrapgr_mod.mod hamiltonian.mod \
-      containerelementbase_mod.mod opttypes_mod.mod dynamicmatrixarray_mod.mod mscbOpT_mod.mod
+      containerelementbase_mod.mod opttypes_mod.mod dynamicmatrixarray_mod.mod mscbOpT_mod.mod langevin_hmc_mod.mod 
+
 OHAM= Hamiltonians/Hamiltonian_Z2_Matter_mod.o \
 	Hamiltonians/Hamiltonian_Kondo_mod.o \
 	Hamiltonians/Hamiltonian_Hubbard_mod.o \

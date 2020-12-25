@@ -33,7 +33,7 @@ Note that time-displaced correlation functions  are computed for a $\tau$ rangin
 
 \subsection{Specification of the trial wave function} \label{sec:trial_wave_function}
 
-For each flavor, one needs to specify a left and a right trial wave function. In the ALF, they are assumed to be the ground state of single-particle trial Hamiltonians $\hat{H}_{T, L/R}$ and hence correspond to a single Slater determinant each. More specifically, we consider a single-particle Hamiltonian with the same symmetries (color and flavor) as the original Hamiltonian:
+For each flavor, one needs to specify a left and a right trial wave function. In the ALF, they are assumed to be the ground state of single-particle trial Hamiltonians $\hat{H}_{T, L/R}$ and hence correspond to a single Slater determinant each. More specifically, we consider a single-particle Hamiltonian with the same symmetries, color and flavor,  as the original Hamiltonian:
 \begin{equation} \label{eq:trial_wave_function}
 \hat{H}_{T,L/R} = 
 \sum\limits_{\sigma=1}^{N_{\mathrm{col}}}
@@ -99,9 +99,9 @@ The finite temperature code  operates in the grand canonical ensemble, whereas  
         
 \begin{figure}
 \center
-\includegraphics[width=0.49\textwidth]{Figures/Projector/Proj_ener.pdf}
-\includegraphics[width=0.49\textwidth]{Figures/Projector/Proj_kin.pdf} \\
-\includegraphics[width=0.49\textwidth]{Figures/Projector/Proj_chi.pdf}
+\includegraphics[width=0.49\textwidth]{Proj_ener.pdf}
+\includegraphics[width=0.49\textwidth]{Proj_kin.pdf} \\
+\includegraphics[width=0.49\textwidth]{Proj_chi.pdf}
 
 	\caption{Comparison between the finite-temperature and projective codes for the Hubbard model on a $6 \times 6 $  Honeycomb lattice at $U/t=2$ and with periodic boundary conditions.   For the projective code (blue and black symbols) $\beta t = 1$ is fixed, while $\theta$ is varied. In all cases we have $\Delta \tau t = 0.1$, no checkerboard decomposition, and a symmetric Trotter decomposition.  For this lattice size and choice of boundary conditions, the non-interacting ground state is degenerate, since the Dirac points belong to the discrete set of crystal momenta.  In order to generate the trial wave function we  have lifted this degeneracy by either including a K\'ekul\'e mass term \cite{Lang13} that breaks translation symmetry (blue symbols), or by adding a next-next nearest neighbor hopping (black symbols) that breaks the symmetry nematically and shifts the Dirac points away from the zone boundary~\cite{Ixert14}. As apparent, both choices of trial wave functions yield the same answer, which compares very well with the finite temperature code at temperature scales below the finite-size charge gap.}
 	\label{PQMC.fig}

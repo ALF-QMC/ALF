@@ -24,10 +24,11 @@ ham_U     = 4.d0            ! Hubbard interaction
 ham_T2    = 1.d0            ! For bilayer systems
 ham_U2    = 4.d0            ! For bilayer systems
 ham_Tperp = 1.d0            ! For bilayer systems
+Continuous  = .F.           ! For continuous HS decomposition
 /
                
 \end{lstlisting}
-In the above listing, \texttt{ham\_T} and \texttt{ham\_T2} correspond to the hopping in the first and second layers respectively and  \texttt{ham\_Tperp} is to the interlayer hopping.   The Hubbard $U$ term has an orbital index, \texttt{ham\_U}  for the first and \texttt{ham\_U2} for the second layers.  Finall,  \texttt{ham\_chem}  corresponds to the chemical potential.    If the flag \texttt{Mz} is set to \texttt{.False.}, then the code simulates the following SU(N) symmetric Hubbard model:
+In the above listing, \texttt{ham\_T} and \texttt{ham\_T2} correspond to the hopping in the first and second layers respectively and  \texttt{ham\_Tperp} is to the interlayer hopping.   The Hubbard $U$ term has an orbital index, \texttt{ham\_U}  for the first and \texttt{ham\_U2} for the second layers.  Finally,  \texttt{ham\_chem}  corresponds to the chemical potential.    If the flag \texttt{Mz} is set to \texttt{.False.}, then the code simulates the following SU(N) symmetric Hubbard model:
 \begin{multline}
 \hat{H} = \sum_{(\ve{i},\ve{\delta}), (\ve{j},\ve{\delta}')}  \sum_{\sigma =1}^{N}  T_{(\ve{i},\ve{\delta}), (\ve{j},\ve{\delta}')}    \hat{c}^{\dagger}_{(\ve{i},\ve{\delta}), \sigma }   e^{\frac{2 \pi i}{\Phi_0} \int_{\ve{i} + \ve{\delta}}^{\ve{j} + \ve{\delta}'}  
      \vec{A}(\ve{l})  d \ve{l}} \hat{c}^{}_{(\ve{j},\ve{\delta}'),\sigma} \\
@@ -35,7 +36,7 @@ In the above listing, \texttt{ham\_T} and \texttt{ham\_T2} correspond to the hop
     \hat{c}^{\phantom\dagger}_{(\vec{i}, \ve{\delta}),\sigma }  - 1/2  \right] \right)^2
     - \mu \sum_{(\ve{i},\ve{\delta})}  \sum_{\sigma =1}^{N} \hat{c}^{\dagger}_{(\vec{i},\ve{\delta}),\sigma } \hat{c}^{\phantom\dagger}_{(\vec{i},\ve{\delta}),\sigma } .
 \end{multline}
-The  generic hopping is taken fron Eq.~\eqref{generic_hopping.eq}   with appropriate boundary conditions given by Eq.~\eqref{generic_boundary.eq}.  The index $\ve{i}$ runs over the unit cells, $\ve{\delta}$ over the orbitals in each unit cell and $\sigma$  from $1$ to $N$  and encodes the SU(N) symmetry.    Note that  $N$ corresponds to \texttt{N\_SUN}  in the code.  The flavor index is set to  unity such that it does not appear in the  Hamiltonian. The chemical potential $\mu$ is relevant only for the finite temperature code. 
+The generic hopping is taken from Eq.~\eqref{generic_hopping.eq}   with appropriate boundary conditions given by Eq.~\eqref{generic_boundary.eq}.  The index $\ve{i}$ runs over the unit cells, $\ve{\delta}$ over the orbitals in each unit cell and $\sigma$  from $1$ to $N$  and encodes the SU(N) symmetry.    Note that  $N$ corresponds to \texttt{N\_SUN}  in the code.  The flavor index is set to  unity such that it does not appear in the  Hamiltonian. The chemical potential $\mu$ is relevant only for the finite temperature code. 
 
 If the variable \texttt{Mz} is set to \texttt{.True.}, then the code requires  \texttt{N\_SUN}  to be even and simulates the following Hamiltonian: 
 \begin{align}
@@ -48,6 +49,16 @@ If the variable \texttt{Mz} is set to \texttt{.True.}, then the code requires  \
 \end{align}
 In this case, the flavor index \texttt{N\_FL}   takes the value 2. Cleary at $N=2$, both modes  correspond  to the Hubbard model.  For $N$  even and $N > 2$  the models differ.  In particular  in the latter  Hamiltonian the U(N) symmetry is broken down to  U(N/2) $\otimes$ U(N/2).  
 
+It the variable \texttt{Continuous=.T.}   then the code will use  the   generic  HS transformation: 
+\begin{equation}
+	e^{\alpha\hat{A}^2 }   = \frac{1}{\sqrt{2 \pi}} \int d \phi e^{ - \phi^2/2  + \sqrt{2\alpha} \hat{A}}
+\end{equation} 
+as opposed to the discrete version of Eq.~\ref{HS_squares}.
+If the Langevin flag  is set to false, the code will use the single spin-flip update:
+ \begin{equation}
+	\phi \rightarrow  \phi  + \texttt{Amplitude} \left(  \xi - 1/2 \right)
+\end{equation}
+where $ \xi $ is a random number $ \in [0,1] $ and   \texttt{Amplitude}   is defined in the \texttt{Fields\_mod.F90}  module. 
 Since this model class  works for all predefined lattices  (see Fig.~\ref{fig_predefined_lattices}) 
 it includes the SU(N) periodic Anderson model on the square and Honeycomb lattices.
 Finally, we note that the executable for this class is given by \texttt{Hubbard.out}.
@@ -56,7 +67,7 @@ As an example,  we can consider the periodic Anderson model.   Here we choose  t
 
 \begin{figure}
 \center
-\includegraphics[width=0.6\textwidth]{Figures/PAM/PAM.pdf}
+\includegraphics[width=0.6\textwidth]{PAM.pdf}
 
 \caption{The periodic Anderson model.  Here we  plot the  equal-time spin structure factor  of the f-electrons  at $\ve{q} = (\pi,\pi)$.   This quantity is found in the file \texttt{SpinZ\_eqJK}.  The  pyALF  based python script    \href{https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/blob/master/Scripts/Hubbard_PAM.py}{\texttt{Hubbard\_PAM.py}}  produces the data  shown for the $L=8$ lattice.    One sees  that for the chosen value of $U_f/t$  the competition between the RKKY interaction and  Kondo screening drives the system through a magnetic order-disorder transition at $V_c/t \simeq 1$  \cite{Vekic95}.}
         \label{Fig:PAM}
@@ -75,7 +86,7 @@ As an example,  we can consider the periodic Anderson model.   Here we choose  t
 %Would be nice to discuss this point.}
 
 
-\subsection{O(2N)  t-V models  \texttt{tV\_mod.F90}}
+\subsection{SU(N)  t-V models  \texttt{tV\_mod.F90}}
 
 %This would include the SU(N)  $t-V$ models on various lattices.  The defining property of this set of Hamiltonians would be the enlarged O(2N) symmetry.  Again  this   module should support our standard bipartite lattices. 
 
@@ -94,12 +105,12 @@ ham_Vperp = 0.5d0           ! For bilayer systems
 
 \end{lstlisting}
 In the above   \texttt{ham\_T} and \texttt{ham\_T2} and \texttt{ham\_Tperp}   correspond to the hopping in the first and second layers respectively and  \texttt{ham\_Tperp}   is to the interlayer hopping.   The interaction term has an orbital index, 
-\texttt{ham\_V}  for the first and  \texttt{ham\_V2}  for the second layers,  and \texttt{ham\_Vperp} for interlayer coupling. Note the we use the same sign conventions here for both the hopping parameters and the interaction strength. This implies a relative minus sign between here and the $U_\delta$ interaction strength of the Hubbard model (see Sec.~\ref{sec:hubbard}).
-Finally   \texttt{ham\_chem}  corresponds to the chemical potential. Let us define the operator
+\texttt{ham\_V}  for the first and  \texttt{ham\_V2}  for the second layers,  and \texttt{ham\_Vperp} for interlayer coupling. Note that we use the same sign conventions here for both the hopping parameters and the interaction strength. This implies a relative minus sign between here and the $U_\delta$ interaction strength of the Hubbard model (see Sec.~\ref{sec:hubbard}).
+Finally   \texttt{ham\_chem}  corresponds to the chemical potential. Let us introduce the operator
 \begin{equation}
 \hat{b}_{\langle (\ve{i},\ve{\delta}), (\ve{j},\ve{\delta}') \rangle} =  \sum_{\sigma =1}^{N}    \hat{c}^{\dagger}_{(\ve{i},\ve{\delta}), \sigma }   e^{\frac{2 \pi i}{\Phi_0} \int_{\ve{i} + \ve{\delta}}^{\ve{j} + \ve{\delta}'}  
 	\vec{A}(\ve{l})  d \ve{l}} \hat{c}^{}_{(\ve{j},\ve{\delta}'),\sigma} 
-+ \textrm{H.c.}
++ \hc
 \end{equation}
 The model is then defined as follows:
 \begin{align}
@@ -120,7 +131,7 @@ As a concrete example, we can consider the Hamiltonian of the t-V model of SU(N)
 - \frac{V}{N} \sum_{\langle \ve{i}, \ve{j} \rangle}  \left(  \hat{b}_{\langle \ve{i}, \ve{j} \rangle}  \right)^2   - \mu \sum_{\ve{i}}  \sum_{\sigma =1}^{N} \hat{c}^{\dagger}_{\vec{i},\sigma } \hat{c}^{\phantom\dagger}_{\vec{i},\sigma } \,,
 \end{align} 
 which can be simulated by setting $\texttt{ham\_T}=t$, $\texttt{ham\_V} = V$, and $\texttt{ham\_chem}=\mu$.
-At half-band filling $\mu =0$, the sign problem is absent for $V>0$ and for all values of $N$.  For even values of $N$ no sign problem occurs for $V>0$ and arbitrary chemical potentials.   
+At half-band filling $\mu =0$, the sign problem is absent for $V>0$ and for all values of $N$ \cite{Huffman14,Li16}.  For even values of $N$ no sign problem occurs for $V>0$ and arbitrary chemical potentials \cite{Wu04}.   
 
 Note  that  in the absence of orbital magnetic fields,  the model has an $O(2N)$ symmetry. This can be seen by writing the model in a Majorana basis (see e.g. Ref.~\cite{Assaad16}). 
 
