@@ -237,7 +237,7 @@ contains
         else
             write(*,*) "Maximum Degree", gd%deltag, ". Found", gd%usedcolors," Families"
         endif
-        
+
         this%fe = createFullExponentialfromGraphData(gd, 5)
 
         this%P = Op_T%P
@@ -247,15 +247,12 @@ contains
     subroutine CmplxmscbOpT_adjointaction(this, arg)
         class(CmplxmscbOpT), intent(in) :: this
         Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
-        Integer :: n1, n2
 
-        n1 = size(arg,1)
-        n2 = size(arg,2)
-        If ( dble(this%g*conjg(this%g)) > this%Zero ) then            
-            call ZSLHEMM('L', 'U', this%Ndim_hop, n1, n2, this%mat_1D2, this%P, arg)
-            call ZSLHEMM('R', 'U', this%Ndim_hop, n1, n2, this%invmat_1D2, this%P, arg)
+        !FIXME: P
+        If ( dble(this%g*conjg(this%g)) > this%Zero ) then
+            call this%fe%adjoint_over_two(arg)
         Endif
-        
+
     end subroutine
     
     subroutine CmplxmscbOpT_rmult(this, arg)
@@ -269,7 +266,7 @@ contains
 !            call ZSLHEMM('R', 'U', this%Ndim_hop, n1, n2, this%mat, this%P, arg)
         Endif
     end subroutine
-    
+
     subroutine CmplxmscbOpT_rmultinv(this, arg)
         class(CmplxmscbOpT), intent(in) :: this
         Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
@@ -291,7 +288,7 @@ contains
 !             call ZSLHEMM('L', 'U', this%Ndim_hop, n1, n2, this%mat, this%P, arg)
         Endif
     end subroutine
-    
+
     subroutine CmplxmscbOpT_lmultinv(this, arg)
         class(CmplxmscbOpT), intent(in) :: this
         Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
