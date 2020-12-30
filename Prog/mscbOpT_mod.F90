@@ -213,7 +213,7 @@ contains
         allocate(tmp(Op_T%N, Op_T%N))
         tmp = this%g* Op_T%O
         
-        gd = mat2verts(Op_T%O) ! convert to graphdata structure
+        gd = mat2verts(tmp) ! convert to graphdata structure
         deallocate(tmp)
         call MvG_decomp(gd%verts) ! perform the decomposition
         
