@@ -51,6 +51,7 @@
       Use DynamicMatrixArray_mod
       Use ContainerElementBase_mod
       Use OpTTypes_mod
+      Use mscbOpT_mod
       use iso_fortran_env, only: output_unit, error_unit
 
       ! Private variables
@@ -82,7 +83,21 @@
             
             Class(CmplxExpOpT), pointer :: cmplxexp => null()
             Class(RealExpOpT), pointer :: realexp => null()
+            Class(CmplxmscbOpT), pointer :: mscbexp => null()
+            integer :: ierr, method
             
+            NAMELIST /VAR_MSCB/ method
+            
+            OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
+            IF (ierr /= 0) THEN
+              WRITE(*,*) 'main: unable to open <parameters>',ierr
+              error stop 1
+            END IF
+            READ(5,NML=VAR_MSCB)
+            CLOSE(5)
+            
+            if (method == 0) then
+            write (*,*) "No MSCB"
             if (Op_is_real(op)) then
                 ! branch for real operators
                     allocate(realexp) ! Yep, this is a manifest memory leak. Using the ptr we can allocate onto the same variable
@@ -94,6 +109,12 @@
                     call cmplxexp%init(op)
                     call ExpOpT_vec%pushback(cmplxexp)
                 endif
+            else
+                write (*,*) "MSCB, method", method
+                allocate(mscbexp)
+                call mscbexp%init(op, method)
+                call ExpOpT_vec%pushback(mscbexp)
+            endif
         end subroutine
         
       

@@ -73,7 +73,6 @@ module mscbOpT_mod
     !>
     !--------------------------------------------------------------------
     type, extends(ContainerElementBase) :: CmplxmscbOpT
-        Complex(kind=kind(0.d0)), allocatable, dimension(:,:) :: mat, invmat, mat_1D2, invmat_1D2 !>We store the matrix inclass
         Complex(kind=kind(0.d0)) :: g
         Real(kind=kind(0.d0)) :: Zero
         integer, allocatable :: P(:)
@@ -200,9 +199,10 @@ contains
         Endif
     end subroutine
     
-    subroutine CmplxmscbOpT_init(this, Op_T)
+    subroutine CmplxmscbOpT_init(this, Op_T, method)
         class(CmplxmscbOpT) :: this
         Type(Operator), intent(in) :: Op_T
+        integer, intent(in) :: method
         Integer :: i, k
         type(GraphData) :: gd
         Complex(kind=kind(0.D0)), allocatable, dimension(:,:) :: tmp
@@ -217,7 +217,7 @@ contains
         deallocate(tmp)
         call MvG_decomp(gd%verts) ! perform the decomposition
         
-        ! some sanity checks ans status informations
+        ! some sanity checks and status informations
         gd%usedcolors = 0
         gd%nredges = 0
         do i = 1, gd%ndim
@@ -238,8 +238,14 @@ contains
             write(*,*) "Maximum Degree", gd%deltag, ". Found", gd%usedcolors," Families"
         endif
 
-        this%fe = createFullExponentialfromGraphData(gd, 5)
-
+        this%fe = createFullExponentialfromGraphData(gd, method)
+        
+        ! check wether it is supported behaviour
+        do i = 1, size(Op_T%P)
+        if (Op_T%P(i) /= i) then
+        write (*,*) "unsupported case."
+        endif
+        enddo
         this%P = Op_T%P
 
     end subroutine
@@ -302,7 +308,10 @@ contains
 
     subroutine CmplxmscbOpT_dump(this)
         class(CmplxmscbOpT), intent(in) :: this
-        integer :: i,j
+        integer :: i, j
+        
+        write (*,*) "method: ", this%fe%method
+        write (*,*) "colors: ", this%fe%stages(1)%nrofcols
 
     end subroutine
 
