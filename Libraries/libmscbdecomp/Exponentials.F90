@@ -325,7 +325,7 @@ subroutine SingleColExp_lmult(this, mat)
             enddo
             do k = 1, step
                 mat(this%x(2*i-1), j+k-1) = this%c(i) * t1(k) + this%s(i) * t2(k)
-                mat(this%x(2*i), j+k-1) = this%c(i) * t2(k) + this%s(i) * t1(k)
+                mat(this%x(2*i), j+k-1) = this%c(i) * t2(k) + conjg(this%s(i)) * t1(k)
             enddo
         enddo
     enddo
@@ -348,7 +348,7 @@ subroutine SingleColExp_lmultinv(this, mat)
             enddo
             do k = 1, step
                 mat(this%x(2*i-1), j+k-1) = this%c(i) * t1(k) - this%s(i) * t2(k)
-                mat(this%x(2*i), j+k-1) = this%c(i) * t2(k) - this%s(i) * t1(k)
+                mat(this%x(2*i), j+k-1) = this%c(i) * t2(k) - conjg(this%s(i)) * t1(k)
             enddo
         enddo
     enddo
@@ -401,7 +401,7 @@ subroutine SingleColExp_adjoint_over_two(this, mat)
             enddo
             do k = 1, step
                 mat(this%x(2*i-1), j+k-1) = myc * t1(k) + mys * t2(k)
-                mat(this%x(2*i), j+k-1) = myc * t2(k) + mys * t1(k)
+                mat(this%x(2*i), j+k-1) = myc * t2(k) + conjg(mys) * t1(k)
             enddo
         enddo
     enddo
@@ -414,7 +414,7 @@ subroutine SingleColExp_adjoint_over_two(this, mat)
             t1scal = mat(j, this%x(2*i-1))
             t2scal = mat(j, this%x(2*i))
             mat(j, this%x(2*i-1)) = myc * t1scal - mys * t2scal
-            mat(j, this%x(2*i)) = myc * t2scal - mys * t1scal
+            mat(j, this%x(2*i)) = myc * t2scal - conjg(mys) * t1scal
         enddo
     enddo
 end subroutine SingleColExp_adjoint_over_two
@@ -441,7 +441,7 @@ subroutine SingleColExp_rmult(this, mat)
         t1 = mat(j, this%x(2*i-1))
         t2 = mat(j, this%x(2*i))
         mat(j, this%x(2*i-1)) = this%c(i) * t1 + this%s(i)* t2
-        mat(j, this%x(2*i)) = this%c(i) * t2 + this%s(i)* t1
+        mat(j, this%x(2*i)) = this%c(i) * t2 + conjg(this%s(i))* t1
         enddo
     enddo
 end subroutine SingleColExp_rmult
@@ -458,7 +458,7 @@ subroutine SingleColExp_rmultinv(this, mat)
         t1 = mat(j, this%x(2*i-1))
         t2 = mat(j, this%x(2*i))
         mat(j, this%x(2*i-1)) = this%c(i) * t1 - this%s(i) * t2
-        mat(j, this%x(2*i)) = this%c(i) * t2 - this%s(i) * t1
+        mat(j, this%x(2*i)) = this%c(i) * t2 - conjg(this%s(i)) * t1
         enddo
     enddo
 end subroutine SingleColExp_rmultinv
@@ -496,20 +496,20 @@ subroutine SingleColExp_init(this, nodes, nredges, weight)
         this%y(i) = nodes(i)%y
         this%p(i) = weight*nodes(i)%axy
 ! This is the order of operations that yields stable matrix inversions
-        this%c(i) = cosh(weight*nodes(i)%axy)
-        this%c2(i) = cosh(weight*nodes(i)%axy/2)
+        this%c(i) = cosh(abs(weight*nodes(i)%axy))
+        this%c2(i) = cosh(abs(weight*nodes(i)%axy)/2)
         ! I got the most reliable results if the hyperbolic pythagoras is best fulfilled.
-        this%s(i) = sqrt(this%c(i)**2-1)
-        this%s2(i) = sqrt(this%c2(i)**2-1)
-        ! Process a_xy a little bit further to catch the different sectors in the complex plane.
-        if (dble(weight*nodes(i)%axy) < 0.0 ) then
-            this%s(i) = -this%s(i)
-            this%s2(i) = -this%s2(i)
-        endif
-        if (dble(weight*nodes(i)%axy) * aimag(weight*nodes(i)%axy) < 0.0 ) then
-            this%s(i) = conjg(this%s(i))
-            this%s2(i) = conjg(this%s2(i))
-        endif
+        this%s(i) = sqrt(this%c(i)**2-1.0)*weight*nodes(i)%axy/abs(weight*nodes(i)%axy)
+        this%s2(i) = sqrt(this%c2(i)**2-1.0)*weight*nodes(i)%axy/abs(weight*nodes(i)%axy)
+!         ! Process a_xy a little bit further to catch the different sectors in the complex plane.
+!         if (dble(weight*nodes(i)%axy) < 0.0 ) then
+!             this%s(i) = -this%s(i)
+!             this%s2(i) = -this%s2(i)
+!         endif
+!         if (dble(weight*nodes(i)%axy) * aimag(weight*nodes(i)%axy) < 0.0 ) then
+!             this%s(i) = conjg(this%s(i))
+!             this%s2(i) = conjg(this%s2(i))
+!         endif
     enddo
 ! All nodes that we have been passed are now from a single color.
 ! They constitute now a strictly sparse matrix.
