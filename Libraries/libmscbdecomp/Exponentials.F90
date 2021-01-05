@@ -116,16 +116,11 @@ subroutine FullExp_init(this, nodes, usedcolors, method, weight)
     character(len=64) :: filename
     type(EulerExp) :: dummy
     
+    this%method = method
 #ifndef NDEBUG
     write(*,*) "Setting up Full Checkerboard exponential."
 #endif
     select case (method)
-        case (1)! Euler
-            this%evals = 2
-            allocate(this%stages(this%evals))
-            call this%stages(1)%init(nodes, usedcolors, weight)
-            tmp = 0.D0 ! cheat to get Euler method in there
-            call this%stages(2)%init(nodes, usedcolors, tmp)
         case (2)! Strang
             this%evals = 2
             allocate(this%stages(this%evals))
@@ -306,6 +301,10 @@ end subroutine SingleColExp_vecmult
 !> @brief 
 !> Perform the multiplication of this exponential with a matrix: out = this*mat
 !
+!> Notes: unifying x and y into one array gave some speedup.
+!> Unifying c and s did not...
+!> FIXME: ndim divisible by two...
+!
 !> @param[in] this The exponential that we consider
 !> @param[inout] mat the matrix that we modify.
 !--------------------------------------------------------------------
@@ -313,7 +312,7 @@ subroutine SingleColExp_lmult(this, mat)
     class(SingleColExp) :: this
     complex(kind=kind(0.D0)), dimension(:, :) :: mat
     integer :: i, j, k, ndim, loopend
-    integer, parameter :: step = 2
+    integer, parameter :: step = 2 ! determined to be fastest on 6x6 hubbard
     complex(kind=kind(0.D0)) :: t1(step), t2(step)
     
     ndim = size(mat,1)
@@ -321,12 +320,12 @@ subroutine SingleColExp_lmult(this, mat)
     do j = 1, loopend, step
         do i = 1, this%nrofentries! for every matrix
             do k = 1,step
-                t1(k) = mat(this%x(i), j+k-1)
-                t2(k) = mat(this%y(i), j+k-1)
+                t1(k) = mat(this%x(2*i-1), j+k-1)
+                t2(k) = mat(this%x(2*i), j+k-1)
             enddo
             do k = 1, step
-                mat(this%x(i), j+k-1) = this%c(i) * t1(k) + this%s(i) * t2(k)
-                mat(this%y(i), j+k-1) = this%c(i) * t2(k) + this%s(i) * t1(k)
+                mat(this%x(2*i-1), j+k-1) = this%c(i) * t1(k) + this%s(i) * t2(k)
+                mat(this%x(2*i), j+k-1) = this%c(i) * t2(k) + this%s(i) * t1(k)
             enddo
         enddo
     enddo
@@ -344,12 +343,12 @@ subroutine SingleColExp_lmultinv(this, mat)
     do j = 1, loopend, step
         do i = 1, this%nrofentries! for every matrix
             do k = 1,step
-                t1(k) = mat(this%x(i), j+k-1)
-                t2(k) = mat(this%y(i), j+k-1)
+                t1(k) = mat(this%x(2*i-1), j+k-1)
+                t2(k) = mat(this%x(2*i), j+k-1)
             enddo
             do k = 1, step
-                mat(this%x(i), j+k-1) = this%c(i) * t1(k) - this%s(i) * t2(k)
-                mat(this%y(i), j+k-1) = this%c(i) * t2(k) - this%s(i) * t1(k)
+                mat(this%x(2*i-1), j+k-1) = this%c(i) * t1(k) - this%s(i) * t2(k)
+                mat(this%x(2*i), j+k-1) = this%c(i) * t2(k) - this%s(i) * t1(k)
             enddo
         enddo
     enddo
@@ -397,12 +396,12 @@ subroutine SingleColExp_adjoint_over_two(this, mat)
             mys = this%s2(i)
             myc = this%c2(i)
             do k = 1,step
-                t1(k) = mat(this%x(i), j+k-1)
-                t2(k) = mat(this%y(i), j+k-1)
+                t1(k) = mat(this%x(2*i-1), j+k-1)
+                t2(k) = mat(this%x(2*i), j+k-1)
             enddo
             do k = 1, step
-                mat(this%x(i), j+k-1) = myc * t1(k) + mys * t2(k)
-                mat(this%y(i), j+k-1) = myc * t2(k) + mys * t1(k)
+                mat(this%x(2*i-1), j+k-1) = myc * t1(k) + mys * t2(k)
+                mat(this%x(2*i), j+k-1) = myc * t2(k) + mys * t1(k)
             enddo
         enddo
     enddo
@@ -412,10 +411,10 @@ subroutine SingleColExp_adjoint_over_two(this, mat)
             myc = this%c2(i)
             mys = this%s2(i)
         do j = 1, ndim
-            t1scal = mat(j, this%x(i))
-            t2scal = mat(j, this%y(i))
-            mat(j, this%x(i)) = myc * t1scal - mys * t2scal
-            mat(j, this%y(i)) = myc * t2scal - mys * t1scal
+            t1scal = mat(j, this%x(2*i-1))
+            t2scal = mat(j, this%x(2*i))
+            mat(j, this%x(2*i-1)) = myc * t1scal - mys * t2scal
+            mat(j, this%x(2*i)) = myc * t2scal - mys * t1scal
         enddo
     enddo
 end subroutine SingleColExp_adjoint_over_two
@@ -439,10 +438,10 @@ subroutine SingleColExp_rmult(this, mat)
     ndim = size(mat,1)
     do i = 1, this%nrofentries! for every matrix
         do j = 1, ndim
-        t1 = mat(j, this%x(i))
-        t2 = mat(j, this%y(i))
-        mat(j, this%x(i)) = this%c(i) * t1 + this%s(i)* t2
-        mat(j, this%y(i)) = this%c(i) * t2 + this%s(i)* t1
+        t1 = mat(j, this%x(2*i-1))
+        t2 = mat(j, this%x(2*i))
+        mat(j, this%x(2*i-1)) = this%c(i) * t1 + this%s(i)* t2
+        mat(j, this%x(2*i)) = this%c(i) * t2 + this%s(i)* t1
         enddo
     enddo
 end subroutine SingleColExp_rmult
@@ -456,10 +455,10 @@ subroutine SingleColExp_rmultinv(this, mat)
     ndim = size(mat,1)
     do i = 1, this%nrofentries! for every matrix
         do j = 1, ndim
-        t1 = mat(j, this%x(i))
-        t2 = mat(j, this%y(i))
-        mat(j, this%x(i)) = this%c(i) * t1 - this%s(i) * t2
-        mat(j, this%y(i)) = this%c(i) * t2 - this%s(i) * t1
+        t1 = mat(j, this%x(2*i-1))
+        t2 = mat(j, this%x(2*i))
+        mat(j, this%x(2*i-1)) = this%c(i) * t1 - this%s(i) * t2
+        mat(j, this%x(2*i)) = this%c(i) * t2 - this%s(i) * t1
         enddo
     enddo
 end subroutine SingleColExp_rmultinv
@@ -471,6 +470,8 @@ end subroutine SingleColExp_rmultinv
 !> @brief 
 !> This sets up the data to perform the exponentiation of a 
 !> strictly sparse matrix.
+!> The internal layout is that the non-zero element a_xy stored at (x,y) in the matrix
+!> has x(i) at x(2i-1) and y(i) at x(2i)
 !
 !> @param[inout] this the SingleColExp object.
 !> @param[in] nodes The nodes that belng to this color.
@@ -483,20 +484,21 @@ subroutine SingleColExp_init(this, nodes, nredges, weight)
     integer, intent(in) :: nredges
     complex (kind=kind(0.d0)), intent(in) :: weight
     integer :: i
-    allocate(this%x(nredges), this%y(nredges), this%c(nredges), this%s(nredges))
+    allocate(this%x(2*nredges), this%y(nredges), this%c(nredges), this%s(nredges))
     allocate(this%c2(nredges), this%s2(nredges), this%p(nredges))
     this%nrofentries = nredges
 #ifndef NDEBUG
     write(*,*) "Setting up strict. sparse matrix with ", nredges, "edges"
 #endif
     do i = 1, nredges
-        this%x(i) = nodes(i)%x
+        this%x(2*i-1) = nodes(i)%x
+        this%x(2*i) = nodes(i)%y
         this%y(i) = nodes(i)%y
         this%p(i) = weight*nodes(i)%axy
 ! This is the order of operations that yields stable matrix inversions
         this%c(i) = cosh(weight*nodes(i)%axy)
         this%c2(i) = cosh(weight*nodes(i)%axy/2)
-        ! I got the most reliablle results if the hyperbolic pythagoras is best fulfilled.
+        ! I got the most reliable results if the hyperbolic pythagoras is best fulfilled.
         this%s(i) = sqrt(this%c(i)**2-1)
         this%s2(i) = sqrt(this%c2(i)**2-1)
         ! Process a_xy a little bit further to catch the different sectors in the complex plane.
@@ -669,9 +671,11 @@ subroutine EulerExp_init(this, nodes, usedcolors, weight)
     integer, intent(in) :: usedcolors
     complex (kind=kind(0.d0)), intent(in) :: weight
     integer, dimension(:), allocatable :: nredges, edgectr
-    integer :: i, maxedges, k
+    integer :: i, maxedges, k, ndim, ldvl, lwork, ierr
     type(node), dimension(:, :), allocatable :: colsepnodes! An array of nodes separated by color
     character(len=64) :: filename
+    character jobvl, jobvr
+    complex (kind=kind(0.d0)), allocatable :: mat(:,:), evs(:), v(:), work(:), rwork(:)
 #ifndef NDEBUG
     write(*,*) "Setting up Euler Checkerboard exponential."
 #endif
@@ -705,6 +709,27 @@ subroutine EulerExp_init(this, nodes, usedcolors, weight)
     enddo
     deallocate(colsepnodes)
     deallocate(nredges, edgectr)
+! !     ndim = 1
+! !     do i = 1, usedcolors
+! !     ndim = max(maxval(this%singleexps(i)%x), maxval(this%singleexps(i)%y))
+! !     enddo
+! !     write (*,*) ndim
+! !     lwork = 2*ndim
+! !     allocate (mat(ndim, ndim), work(lwork), rwork(lwork), evs(ndim))
+! !     mat = 0
+! !     do i =1, ndim
+! !     mat(i,i) = 1
+! !     enddo
+! !     call this%lmult(mat)
+! !     call this%rmultinv(mat)
+! !     jobvl = 'N'
+! !     jobvr = 'N'
+! !     maxedges = 1
+! !     call zgeev(jobvl, jobvr, ndim, mat, ndim, evs, v, maxedges, v, maxedges, work, lwork, rwork, ierr)
+! !     do i = 1, ndim
+! !     write (*,*) evs(i)
+! !     enddo
+    
 end subroutine EulerExp_init
 
 end module Exponentials_mod
