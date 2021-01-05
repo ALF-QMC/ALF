@@ -501,15 +501,6 @@ subroutine SingleColExp_init(this, nodes, nredges, weight)
         ! I got the most reliable results if the hyperbolic pythagoras is best fulfilled.
         this%s(i) = sqrt(this%c(i)**2-1.0)*weight*nodes(i)%axy/abs(weight*nodes(i)%axy)
         this%s2(i) = sqrt(this%c2(i)**2-1.0)*weight*nodes(i)%axy/abs(weight*nodes(i)%axy)
-!         ! Process a_xy a little bit further to catch the different sectors in the complex plane.
-!         if (dble(weight*nodes(i)%axy) < 0.0 ) then
-!             this%s(i) = -this%s(i)
-!             this%s2(i) = -this%s2(i)
-!         endif
-!         if (dble(weight*nodes(i)%axy) * aimag(weight*nodes(i)%axy) < 0.0 ) then
-!             this%s(i) = conjg(this%s(i))
-!             this%s2(i) = conjg(this%s2(i))
-!         endif
     enddo
 ! All nodes that we have been passed are now from a single color.
 ! They constitute now a strictly sparse matrix.
