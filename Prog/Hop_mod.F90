@@ -84,7 +84,8 @@
             Class(CmplxExpOpT), pointer :: cmplxexp => null()
             Class(RealExpOpT), pointer :: realexp => null()
             Class(CmplxmscbOpT), pointer :: mscbexp => null()
-            integer :: ierr, method
+            Class(CmplxEulermscbOpT), pointer :: eulerexp => null()
+            integer :: ierr, method, i
             
             NAMELIST /VAR_MSCB/ method
             
@@ -111,9 +112,26 @@
                 endif
             else
                 write (*,*) "MSCB, method", method
-                allocate(mscbexp)
-                call mscbexp%init(op, method)
-                call ExpOpT_vec%pushback(mscbexp)
+                ! check for chemical potential
+                if (op%N - 2* (op%N/2) /= 0) then
+                        write (*,*) "operator dimension not divisible by two."
+                        error stop 2
+                endif
+                do i = 1, op%N
+                    if (Op%O(i,i) /= 0) then
+                        write (*,*) "chemical potential not supported."
+                        error stop 2
+                    endif
+                enddo
+                if (method == 1) then 
+                    allocate(eulerexp)
+                    call eulerexp%init(op)
+                    call ExpOpT_vec%pushback(eulerexp)
+                else
+                    allocate(mscbexp)
+                    call mscbexp%init(op, method)
+                    call ExpOpT_vec%pushback(mscbexp)
+                endif
             endif
         end subroutine
         
@@ -146,7 +164,6 @@
                 call OpT_postprocess(ExpOpT_vec(nf), Op_T(nc, nf))
              enddo
           enddo
-
           Zero = 1.E-12
         end subroutine Hop_mod_init
 
