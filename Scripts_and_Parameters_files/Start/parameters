@@ -24,6 +24,10 @@ Projector    = .F.          ! Whether the projective algorithm is used
 Theta        = 10.d0        ! Projection parameter
 /
 
+&VAR_MSCB
+method = 5 ! 0,1,2,3,4,5
+/
+
 &VAR_QMC                   !! Variables for the QMC run
 Nwrap                = 10   ! Stabilization. Green functions will be computed from 
                             ! scratch after each time interval Nwrap*Dtau
