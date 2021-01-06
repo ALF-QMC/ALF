@@ -38,7 +38,7 @@ module mscbOpT_mod
     implicit none
 
     private
-    public :: RealmscbOpT, CmplxmscbOpT
+    public :: RealmscbOpT, CmplxmscbOpT, CmplxEulermscbOpT
     
     !--------------------------------------------------------------------
     !> @author
@@ -88,6 +88,23 @@ module mscbOpT_mod
         procedure :: adjointaction => CmplxmscbOpT_adjointaction
         procedure :: dump => CmplxmscbOpT_dump ! dump matrices for debugging to screen
     end type CmplxmscbOpT
+    
+    type, extends(ContainerElementBase) :: CmplxEulermscbOpT
+        Complex(kind=kind(0.d0)) :: g
+        Real(kind=kind(0.d0)) :: Zero
+        integer, allocatable :: P(:)
+        type(EulerExp) :: ee
+        Integer :: m, n, Ndim_hop
+    contains
+        procedure :: init => CmplxEulermscbOpT_init ! initialize and allocate matrices
+        procedure :: dealloc => CmplxEulermscbOpT_dealloc ! dealloc matrices
+        procedure :: rmult => CmplxEulermscbOpT_rmult ! right multiplication with Op_T
+        procedure :: lmult => CmplxEulermscbOpT_lmult
+        procedure :: rmultinv => CmplxEulermscbOpT_rmultinv ! right multiplication with Op_T inverse
+        procedure :: lmultinv => CmplxEulermscbOpT_lmultinv
+        procedure :: adjointaction => CmplxEulermscbOpT_adjointaction
+        procedure :: dump => CmplxEulermscbOpT_dump ! dump matrices for debugging to screen
+    end type CmplxEulermscbOpT
 
 contains
     subroutine RealmscbOpT_init(this, Op_T)
@@ -247,7 +264,6 @@ contains
         endif
         enddo
         this%P = Op_T%P
-
     end subroutine
 
     subroutine CmplxmscbOpT_adjointaction(this, arg)
@@ -330,6 +346,125 @@ contains
     subroutine RealmscbOpT_dealloc(this)
         class(RealmscbOpT), intent(inout) :: this
         
+    end subroutine
+    
+    subroutine CmplxEulermscbOpT_init(this, Op_T)
+        class(CmplxEulermscbOpT) :: this
+        Type(Operator), intent(in) :: Op_T
+        Integer :: i, k
+        type(GraphData) :: gd
+        Complex(kind=kind(0.D0)), allocatable, dimension(:,:) :: tmp
+        
+        this%Zero = 1.E-12
+        this%Ndim_hop = Op_T%N
+        this%g = Op_T%g
+        allocate(tmp(Op_T%N, Op_T%N))
+        tmp = this%g* Op_T%O
+        
+        gd = mat2verts(tmp) ! convert to graphdata structure
+        deallocate(tmp)
+        call MvG_decomp(gd%verts) ! perform the decomposition
+        
+        ! some sanity checks and status informations
+        gd%usedcolors = 0
+        gd%nredges = 0
+        do i = 1, gd%ndim
+            gd%deltag = max(gd%deltag, gd%verts(i)%degree)
+            do k = 1, gd%verts(i)%degree
+                if (gd%verts(i)%nbrs(k) > i) gd%nredges = gd%nredges + 1
+                if (gd%verts(i)%nbrs(k) > gd%ndim) then
+                    write(*,*) "invalid nbr!!!"
+                    STOP
+                endif
+                gd%usedcolors = max(gd%usedcolors, gd%verts(i)%cols(k))
+            enddo
+        enddo
+        write (*,*) "Nr edges: ", gd%nredges
+        if (gd%usedcolors == gd%deltag) then
+            write(*,*) "Maximum Degree", gd%deltag, ". Found", gd%usedcolors," Families -> optimal decomposition"
+        else
+            write(*,*) "Maximum Degree", gd%deltag, ". Found", gd%usedcolors," Families"
+        endif
+
+        this%ee = createEulerExponentialfromGraphData(gd)
+        
+        ! check wether it is supported behaviour
+        do i = 1, size(Op_T%P)
+        if (Op_T%P(i) /= i) then
+        write (*,*) "unsupported case."
+        endif
+        enddo
+        this%P = Op_T%P
+    end subroutine
+    
+    subroutine CmplxEulermscbOpT_adjointaction(this, arg)
+        class(CmplxEulermscbOpT), intent(in) :: this
+        Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
+
+        !FIXME: P
+        If ( dble(this%g*conjg(this%g)) > this%Zero ) then
+            call this%ee%adjoint_over_two(arg)
+        Endif
+
+    end subroutine
+    
+    subroutine CmplxEulermscbOpT_rmult(this, arg)
+        class(CmplxEulermscbOpT), intent(in) :: this
+        Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
+        
+        !FIXME: P
+        
+        If ( dble(this%g*conjg(this%g)) > this%Zero ) then
+            call this%ee%rmult(arg)
+!            call ZSLHEMM('R', 'U', this%Ndim_hop, n1, n2, this%mat, this%P, arg)
+        Endif
+    end subroutine
+
+    subroutine CmplxEulermscbOpT_rmultinv(this, arg)
+        class(CmplxEulermscbOpT), intent(in) :: this
+        Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
+        
+        !FIXME: P
+        If ( dble(this%g*conjg(this%g)) > this%Zero ) then
+            call this%ee%rmultinv(arg)
+!            call ZSLHEMM('R', 'U', this%Ndim_hop, n1, n2, this%invmat, this%P, arg)
+        Endif
+    end subroutine
+    
+    subroutine CmplxEulermscbOpT_lmult(this, arg)
+        class(CmplxEulermscbOpT), intent(in) :: this
+        Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
+        
+        !FIXME: P
+        If ( dble(this%g*conjg(this%g)) > this%Zero ) then
+            call this%ee%lmult(arg)
+!             call ZSLHEMM('L', 'U', this%Ndim_hop, n1, n2, this%mat, this%P, arg)
+        Endif
+    end subroutine
+
+    subroutine CmplxEulermscbOpT_lmultinv(this, arg)
+        class(CmplxEulermscbOpT), intent(in) :: this
+        Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
+
+        !FIXME: P
+        If ( dble(this%g*conjg(this%g)) > this%Zero ) then
+            call this%ee%lmultinv(arg)
+!             call ZSLHEMM('L', 'U', this%Ndim_hop, n1, n2, this%invmat, this%P, arg)
+        Endif
+    end subroutine
+
+    subroutine CmplxEulermscbOpT_dump(this)
+        class(CmplxEulermscbOpT), intent(in) :: this
+        integer :: i, j
+        
+        write (*,*) "colors: ", this%ee%nrofcols
+
+    end subroutine
+    
+    subroutine CmplxEulermscbOpT_dealloc(this)
+        class(CmplxEulermscbOpT), intent(inout) :: this
+        
+        call this%ee%dealloc()
     end subroutine
     
 end module mscbOpT_mod
