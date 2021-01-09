@@ -492,6 +492,25 @@ C.~Chen, X.~Y. Xu, Z.~Y. Meng and M.~Hohenadler,
 \newblock Phys. Rev. Lett. \textbf{122}, 077601 (2019),
 \newblock \doi{10.1103/PhysRevLett.122.077601}.
 
+\bibitem{Karakuzu18}
+S.~Karakuzu, K.~Seki and S.~Sorella,
+\newblock \emph{Solution of the sign problem for the half-filled
+  hubbard-holstein model},
+\newblock Phys. Rev. B \textbf{98}, 201108 (2018),
+\newblock \doi{10.1103/PhysRevB.98.201108}.
+
+\bibitem{Costa20}
+N.~C. Costa, K.~Seki, S.~Yunoki and S.~Sorella,
+\newblock \emph{Phase diagram of the two-dimensional hubbard-holstein model},
+\newblock Communications Physics \textbf{3}(1), 80 (2020),
+\newblock \doi{10.1038/s42005-020-0342-2}.
+
+\bibitem{Costa20a}
+N.~C. Costa, K.~Seki and S.~Sorella,
+\newblock \emph{Magnetism and charge order in the honeycomb lattice},
+\newblock arXiv:2009.05586  (2020),
+\newblock \eprint{https://arxiv.org/abs/2009.05586}.
+
 \bibitem{Bradley20}
 O.~Bradley, G.~G. Batrouni and R.~T. Scalettar,
 \newblock \emph{Superconductivity and charge density wave order in the 2d
@@ -526,6 +545,12 @@ H.~Zhang, Z.~Zhao, D.~Gautreau, M.~Raczkowski, A.~Saha, V.~O. Garlea, H.~Cao,
   spin chains},
 \newblock Phys. Rev. Lett. \textbf{125}, 037204 (2020),
 \newblock \doi{10.1103/PhysRevLett.125.037204}.
+
+\bibitem{SatoT20a}
+T.~Sato and F.~F. Assaad,
+\newblock \emph{Quantum monte carlo simulation of generalized kitaev models},
+\newblock arXiv:2012.12283  (2020),
+\newblock \eprint{https://arxiv.org/abs/2012.12283}.
 
 \bibitem{Wu04}
 C.~Wu and S.-C. Zhang,
