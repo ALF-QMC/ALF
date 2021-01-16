@@ -709,6 +709,11 @@ F.~F. Assaad, M.~Imada and D.~J. Scalapino,
 \newblock Phys. Rev. B \textbf{56}, 15001 (1997),
 \newblock \doi{10.1103/PhysRevB.56.15001}.
 
+\bibitem{Quest2010}
+C.-R. Lee, S.~Chiesa, C.~N. Varney, E.~Khatami, Z.~Bai, E.~F. D'Azevedo,
+  M.~Jarrell, T.~Maier, S.~Y. Savrasov, R.~T. Scalettar and K.~Tomko,
+\newblock \emph{Quest: Quantum electron simulation toolbox} (2010).
+
 \bibitem{Sandvik98}
 A.~Sandvik,
 \newblock \emph{Stochastic method for analytic continuation of quantum monte
