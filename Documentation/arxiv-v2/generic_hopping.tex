@@ -50,7 +50,7 @@ Provided that the bare hopping Hamiltonian, $T$ (i.e., without phases, see Eq.~\
 On the  torus, the uniqueness of the wave functions requires that  $\hat{T}_{\vec{L}_1} \hat{T}_{\vec{L}_2}  =   \hat{T}_{\vec{L}_2} \hat{T}_{\vec{L}_1} $ such
 that
 \begin{equation}
-\frac{\vec{B} \cdot \left( \vec{a} \times \vec{b}  \right) }{\Phi_0 } = N_{\Phi}   
+\frac{\vec{B} \cdot \left( \vec{L}_1 \times \vec{L}_2  \right) }{\Phi_0 } = N_{\Phi}   
 \end{equation}
 with  $N_\Phi $ an integer.  The variable \texttt{N\_Phi},   specified in the parameter file,   denotes the number of flux quanta piercing the lattice.    The variables \texttt{Phi\_X}  and   \texttt{Phi\_Y} also   in the parameter file denote  the twists  -- in units of the flux quanta  --  along the $\vec{L}_1$ and  $\vec{L}_2$ directions.     There are gauge  equivalent ways to insert the  twist in the boundary conditions. In the above we  have inserted the twist as a boundary condition such that for example setting \texttt{Phi\_1=0.5}  corresponds to anti-periodic boundary conditions along the $L_1$  axis.
 Alternatively we can consider the Hamiltonian:
