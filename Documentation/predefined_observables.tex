@@ -9,93 +9,104 @@
 \subsection{Predefined observables} \label{sec:predefined_observales}
 %-----------------------------------------------------------------------------------
 
-The types \texttt{Obser\_Vec} and \texttt{Obser\_Latt} described in Section~\ref{sec:obs} handles arrays of scalar observables and correlation functions with lattice symmetry respectively. The module \texttt{Predefined\_Obs} provides a set of standard equal-time and time-displaced observables, as described bellow.
+The types \texttt{Obser\_Vec} and \texttt{Obser\_Latt} described in Section~\ref{sec:obs} handle arrays of scalar observables and correlation functions with lattice symmetry respectively.
+The module \texttt{Predefined\_Obs} provides a set of standard equal-time and time-displaced observables, as described below.  
+It contains procedures and functions.   Procedures  provide a complete handling of the observable structure. That is, they take care, for example, of incrementing the counter and of the average sign. On the other hand, functions only provide the Wick decomposition result, and the handling of the observable structure is left to the user. 
 
 The predefined measurements methods take as input Green functions \texttt{GR}, \texttt{GT0}, \texttt{G0T}, \texttt{G00}, and \texttt{GTT}, defined in Sec.~\ref{sec:EqualTimeobs} and~\ref{sec:TimeDispObs}, as well as \texttt{N\_SUN}, time slice \texttt{Ntau}, lattice information, and so on -- see Table~\ref{table:predefined_obs}.
 %
 \begin{table}[h]
 	\begin{center}
-		\begin{tabular}{@{} p{0.21\columnwidth}  p{0.1\columnwidth} p{0.06\columnwidth} p{0.55\columnwidth}  @{}}
+		\begin{tabular}{@{} p{0.26\columnwidth}  p{0.14\columnwidth} @{\hspace{1.5ex}} p{0.55\columnwidth}  @{}}
 			\toprule
-			Argument                      & Type       & Role   & Description \\
+			Argument                      & Type                 & Description \\
 			\midrule
-			\texttt{Latt}                 & Lattice    & Input  & Lattice as a variable of type \texttt{Lattice}, see Sec.~\ref{sec:latt}\\
-			\texttt{Latt\_Unit}           & Unit\_cell & Input  & Unit cell as a variable of type \texttt{Unit\_cell}, see Sec.~\ref{sec:latt}\\
-			\texttt{List(Ndim,2)}         & Integer    & Input  & For every site index $\texttt{I}$, stores the corresponding lattice position, \texttt{List(I,1)}, and the (local) orbital index, \texttt{List(I,2)}\\
-			\texttt{NT}                   & Integer    & Input  & Imaginary time $\tau$\\
-			\texttt{GR(Ndim,Ndim,N\_FL)}  & Complex    & Input  & Equal-time Green function $\texttt{GR(i,j,s)}  = \langle c^{\phantom{\dagger}}_{i,s} c^{\dagger}_{j,s}  \rangle$\\
-			\texttt{GRC(Ndim,Ndim,N\_FL)} & Complex    & Input  & $\texttt{GRC(i,j,s)}  = \langle c^{\dagger}_{i,s} c^{\phantom{\dagger}}_{j,s}  \rangle  =  \delta_{i,j} - \texttt{GR(j,i,s)}$\\
-			\texttt{GT0(Ndim,Ndim,N\_FL)} & Complex    & Input  & Time-displaced Green function $\langle \langle \mathcal{T} \hat{c}^{\phantom\dagger}_{i,s}(\tau) \hat{c}^{\dagger}_{j,s}(0) \rangle \rangle$\\
-			\texttt{G0T(Ndim,Ndim,N\_FL)} & Complex    & Input  & Time-displaced Green function $\langle \langle \mathcal{T} \hat{c}^{\phantom\dagger}_{i,s}(0) \hat{c}^{\dagger}_{j,s}(\tau) \rangle \rangle $\\
-			\texttt{G00(Ndim,Ndim,N\_FL)} & Complex    & Input  & Time-displaced Green function $\langle \langle \mathcal{T} \hat{c}^{\phantom\dagger}_{i,s}(0) \hat{c}^{\dagger}_{j,s}(0) \rangle \rangle $\\
-			\texttt{GTT(Ndim,Ndim,N\_FL)} & Complex    & Input  & Time-displaced Green function $\langle \langle \mathcal{T} \hat{c}^{\phantom\dagger}_{i,s}(\tau) \hat{c}^{\dagger}_{j,s}(\tau) \rangle \rangle $\\
-			\texttt{N\_SUN}               & Integer    & Input  & Number of fermion colors $N_{\mathrm{col}}$\\
-			\texttt{ZS}                   & Complex    & Input  & $\texttt{ZS} = \text{sign}(C)$, see Sec.~\ref{sec:obs}\\
-			\texttt{ZP}                   & Complex    & Input  & $\texttt{ZP} = e^{-S(C)}/\Re \left[e^{-S(C)} \right]$, see Sec.~\ref{sec:obs}\\
-			\texttt{Obs}                  & Obser\_Latt& Output & One or more measurement result\\
+			\texttt{Latt}                 & \texttt{Lattice}     & Lattice as a variable of type \texttt{Lattice}, see Sec.~\ref{sec:latt}\\
+			\texttt{Latt\_Unit}           & \texttt{Unit\_cell}  & Unit cell as a variable of type \texttt{Unit\_cell}, see Sec.~\ref{sec:latt}\\
+			\texttt{List(Ndim,2)}         & \texttt{int}         & For every site index $\texttt{I}$, stores the corresponding lattice position, \texttt{List(I,1)}, and the (local) orbital index, \texttt{List(I,2)}\\
+			\texttt{NT}                   & \texttt{int}         & Imaginary time $\tau$\\
+			\texttt{GR(Ndim,Ndim,N\_FL)}  & \texttt{cmplx}       & Equal-time Green function $\texttt{GR(i,j,s)}  = \langle c^{\phantom{\dagger}}_{i,s} c^{\dagger}_{j,s}  \rangle$\\
+			\texttt{GRC(Ndim,Ndim,N\_FL)} & \texttt{cmplx}       & $\texttt{GRC(i,j,s)}  = \langle c^{\dagger}_{i,s} c^{\phantom{\dagger}}_{j,s}  \rangle  =  \delta_{i,j} - \texttt{GR(j,i,s)}$\\
+			\texttt{GT0(Ndim,Ndim,N\_FL)} & \texttt{cmplx}       & Time-displaced Green function $\langle \langle \mathcal{T} \hat{c}^{\phantom\dagger}_{i,s}(\tau) \hat{c}^{\dagger}_{j,s}(0) \rangle \rangle$\\
+			\texttt{G0T(Ndim,Ndim,N\_FL)} & \texttt{cmplx}       & Time-displaced Green function $\langle \langle \mathcal{T} \hat{c}^{\phantom\dagger}_{i,s}(0) \hat{c}^{\dagger}_{j,s}(\tau) \rangle \rangle $\\
+			\texttt{G00(Ndim,Ndim,N\_FL)} & \texttt{cmplx}       & Time-displaced Green function $\langle \langle \mathcal{T} \hat{c}^{\phantom\dagger}_{i,s}(0) \hat{c}^{\dagger}_{j,s}(0) \rangle \rangle $\\
+			\texttt{GTT(Ndim,Ndim,N\_FL)} & \texttt{cmplx}       & Time-displaced Green function $\langle \langle \mathcal{T} \hat{c}^{\phantom\dagger}_{i,s}(\tau) \hat{c}^{\dagger}_{j,s}(\tau) \rangle \rangle $\\
+			\texttt{N\_SUN}               & \texttt{int}         & Number of fermion colors $N_{\mathrm{col}}$\\
+			\texttt{ZS}                   & \texttt{cmplx}       & $\texttt{ZS} = \sgn(C)$, see Sec.~\ref{sec:obs}\\
+			\texttt{ZP}                   & \texttt{cmplx}       & $\texttt{ZP} = e^{-S(C)}/\Re \left[e^{-S(C)} \right]$, see Sec.~\ref{sec:obs}\\
+			\texttt{Obs}                  & \texttt{Obser\_Latt} & \textbf{Output}: one or more measurement result\\
 			\bottomrule
 		\end{tabular}
-		\caption{Arguments taken by the subroutines in the module \texttt{Predefined\_Obs}. Note that a given method makes use of only a subset of this list, as specified in their calls described bellow.   Note that 
-		the superindex $i = (\ve{i}, n_{\ve{i}})$  where $\ve{i}$ denotes the unit cell and $n_{\ve{i}}$ the orbital. }		\label{table:predefined_obs}
+		\caption{Arguments taken by the subroutines in the module \texttt{Predefined\_Obs}. Note that a given method makes use of only a subset of this list, as described in this section.
+		Note also that we use the superindex $i = (\ve{i}, n_{\ve{i}})$  where $\ve{i}$ denotes the unit cell and $n_{\ve{i}}$ the orbital. }		\label{table:predefined_obs}
 	\end{center}
 \end{table}
 
 
-\subsubsection{Equal-time $SU(N)$ spin-spin correlations}
+\subsubsection{Equal-time SU(N) spin-spin correlations}
 \label{SU_N_equal_time.sec}
-A measurement of $SU(N)$ spin-spin correlations can be obtained by:
+A measurement of SU(N) spin-spin correlations can be obtained through:
 \begin{lstlisting}[style=fortran]
-Call Predefined_Obs_eq_SpinSUN_measure(Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP,  Obs)
+Call Predefined_Obs_eq_SpinSUN_measure(Latt, Latt_unit, List, GR, GRC, N_SUN, ZS, ZP, Obs)
 \end{lstlisting}
 
 If \texttt{N\_FL = 1} then  this routine returns
 \begin{align}
 \texttt{Obs}(\ve{i}-\ve{j},n_{\ve{i}}, n_{\ve{j}})  = \frac{2N}{N^2-1}\sum_{a=1}^{N^2 - 1}  \langle \langle \ve{\hat{c}}^{\dagger}_{\vec{i}, n_{\ve{i}}} T^a \ve{\hat{c}}^{\phantom\dagger}_{\vec{i},n_{\ve{i}}}   \;   \ve{\hat{c}}^{\dagger}_{\vec{j},n_{\ve{j}}} T^a  \ve{\hat{c}}^{\phantom\dagger}_{\vec{j},n_{\ve{j}}}\rangle\rangle_C,
 \end{align}
-where $T^a$ are the generators of $SU(N)$ satisfying the normalization conditions  $\Tr [ T^a  T^b ]= \delta_{a,b}/2$ , $\Tr [ T^a ] = 0 $,    
+where $T^a$ are the generators of SU(N) satisfying the normalization conditions  $\Tr [ T^a  T^b ]= \delta_{a,b}/2$ , $\Tr [ T^a ] = 0 $,    
 $ \ve{\hat{c}}^{\dagger}_{\ve{j},n_{\ve{j}}}   =  \left(   \hat{c}^{\dagger}_{\ve{j}, n_{\ve{j}},1},   \cdots, \hat{c}^{\dagger}_{\ve{j},n_{\ve{j}},N}  \right)    $     is an N-flavored spinor,  
 $\ve{j}$   corresponds to the unit-cell index and $n_{\ve{j}}$    labels the orbital.
 
-Using   Wicks theorem,  valid for a given  configuration of   fields,  we  obtain
-\begin{eqnarray}
- \texttt{Obs} =   & & \frac{2N}{N^2-1}\sum_{a=1}^{N^2 - 1}   \sum_{\alpha,\beta,\gamma, \delta = 1}^{N}     T^a_{\alpha,\beta}  T^a_{\gamma,\delta}   \times 
-  \nonumber  \\
-& &   
+Using Wick's theorem, valid for a given configuration of fields, we obtain
+\begin{multline}
+ \texttt{Obs} =   \frac{2N}{N^2-1}\sum_{a=1}^{N^2 - 1}   \sum_{\alpha,\beta,\gamma, \delta = 1}^{N}     T^a_{\alpha,\beta}  T^a_{\gamma,\delta}   \times  \\
   \left( \langle \langle \hat{c}^{\dagger}_{\vec{i},n_{\ve{i}},\alpha} \hat{c}^{\phantom\dagger}_{\vec{i},n_{\ve{i}}, \beta }  \rangle\rangle_C  \langle \langle     \hat{c}^{\dagger}_{\vec{j}, n_{\ve{j}},\gamma}  \hat{c}^{\phantom\dagger}_{\vec{j},n_{\ve{j}},\delta}\rangle\rangle_C        +  
   \langle \langle \hat{c}^{\dagger}_{\vec{i},  n_{\ve{i}},\alpha}   \hat{c}^{\phantom\dagger}_{\vec{j},  n_{\ve{j}},\delta}\rangle\rangle_C  \langle \langle   \hat{c}^{\phantom\dagger}_{\vec{i},   n_{\ve{i}}, \beta }   \hat{c}^{\dagger}_{\vec{j},   n_{\ve{j}}, \gamma} \rangle\rangle_C 
-   \right)    
-%\nonumber \\
+   \right).
+% \\
 %\sum_{a=1}^{N^2 - 1 }  \left\langle \hat{c}^{\dagger}_i T^a c_i  c^{\dagger}_j T^a  c_j\right\rangle   = \sum_{a} \Tr{T^a T^a} \langle c^{\dagger}_i c_j\rangle \langle c_i c^{\dagger}_j\rangle = \frac{N^2 -1}{2} \langle c^{\dagger}_i c_j\rangle \langle c_i c^{\dagger}_j\rangle.
-\end{eqnarray}
-For this  SU(N)  symmetric  code, the  Green function  is diagonal  in the spin  index and spin independent: 
+\end{multline}
+For this SU(N) symmetric code, the  Green function  is diagonal  in the spin  index and spin independent: 
 \begin{equation}
  \langle \langle \hat{c}^{\dagger}_{\vec{i},  n_{\ve{i}},\alpha} \hat{c}^{}_{\vec{j},  n_{\ve{j}}, \beta }  \rangle\rangle_C  =  \delta_{\alpha,\beta}  \langle \langle \hat{c}^{\dagger}_{\vec{i},  n_{\ve{i}}} \hat{c}^{}_{\vec{j} ,  n_{\ve{j}}}  \rangle\rangle_C.
 \end{equation}
 Hence, 
-\begin{eqnarray}
- \texttt{Obs} =   & & \frac{2N}{N^2-1}\sum_{a=1}^{N^2 - 1} \left(   
-\left[   \text{Tr} T^{a}\right]^2 \langle \langle \hat{c}^{\dagger}_{\vec{i},  n_{\ve{i}} } \hat{c}^{\phantom\dagger}_{\vec{i} ,  n_{\ve{i}}}  \rangle\rangle_C       \langle \langle \hat{c}^{\dagger}_{\vec{j} ,  n_{\ve{j}}} \hat{c}^{\phantom\dagger}_{\vec{j} ,  n_{\ve{j}}}  \rangle\rangle_C 
- +   \text{Tr}\left[ T^{a}  T^{a} \right]    \langle \langle \hat{c}^{\dagger}_{\vec{i},  n_{\ve{i}}}   \hat{c}^{\phantom\dagger}_{\vec{j},  n_{\ve{j}}}\rangle\rangle_C  \langle \langle   \hat{c}^{\phantom\dagger}_{\vec{i},  n_{\ve{i}}}   \hat{c}^{\dagger}_{\vec{j},  n_{\ve{j}}} \rangle\rangle_C  \right)   
+\begin{align}
+ \texttt{Obs} &= \begin{multlined}[t] \frac{2N}{N^2-1}\sum_{a=1}^{N^2 - 1} \left(   
+\left[   \text{Tr} T^{a}\right]^2 \langle \langle \hat{c}^{\dagger}_{\vec{i},  n_{\ve{i}} } \hat{c}^{\phantom\dagger}_{\vec{i} ,  n_{\ve{i}}}  \rangle\rangle_C       \langle \langle \hat{c}^{\dagger}_{\vec{j} ,  n_{\ve{j}}} \hat{c}^{\phantom\dagger}_{\vec{j} ,  n_{\ve{j}}}  \rangle\rangle_C   \right.\\   
+ + \left.   \text{Tr}\left[ T^{a}  T^{a} \right]    \langle \langle \hat{c}^{\dagger}_{\vec{i},  n_{\ve{i}}}   \hat{c}^{\phantom\dagger}_{\vec{j},  n_{\ve{j}}}\rangle\rangle_C  \langle \langle   \hat{c}^{\phantom\dagger}_{\vec{i},  n_{\ve{i}}}   \hat{c}^{\dagger}_{\vec{j},  n_{\ve{j}}} \rangle\rangle_C  \right)   \end{multlined}
  \nonumber \\
-= & &    N       \langle \langle \hat{c}^{\dagger}_{\vec{i},  n_{\ve{i}}}   \hat{c}^{\phantom\dagger}_{\vec{j},  n_{\ve{j}}}\rangle\rangle_C  \langle \langle   \hat{c}^{\phantom\dagger}_{\vec{i},  n_{\ve{i}}}   \hat{c}^{\dagger}_{\vec{j},  n_{\ve{j}}} \rangle\rangle_C   
-\end{eqnarray}
+&=   N       \langle \langle \hat{c}^{\dagger}_{\vec{i},  n_{\ve{i}}}   \hat{c}^{\phantom\dagger}_{\vec{j},  n_{\ve{j}}}\rangle\rangle_C  \langle \langle   \hat{c}^{\phantom\dagger}_{\vec{i},  n_{\ve{i}}}   \hat{c}^{\dagger}_{\vec{j},  n_{\ve{j}}} \rangle\rangle_C .
+\end{align}
+
+Note that we  can also  define the generators of SU(N) as 
+\begin{equation}
+	\hat{S}^{\mu}_{\, \,  \nu} (x)  =  \hat{c}^{\dagger}_{x,\mu} \hat{c}^{}_{x,\nu}    - \delta_{\mu,\nu} \frac{1}{N}  \sum_{\alpha = 1}^{N} \hat{c}^{\dagger}_{x,\alpha} \hat{c}^{}_{x,\alpha}.   
+\end{equation}
+With this definition, the spin-spin correlations read: 
+\begin{equation}
+      \sum_{\mu,\nu=1}^{N}\langle \langle \hat{S}^{\mu}_{\, \,  \nu} (x)   \hat{S}^{\nu}_{\, \,  \mu} (y)  \rangle  \rangle_C =  
+      (N^2-1)      \langle \langle \hat{c}^{\dagger}_{\vec{x} }   \hat{c}^{\phantom\dagger}_{\vec{y} } \rangle\rangle_C  \langle \langle   \hat{c}^{\phantom\dagger}_{\vec{x}}   \hat{c}^{\dagger}_{\vec{y} } \rangle\rangle_C . 
+\end{equation}
+In the above $x$ denotes a super index  defining site and orbital. Aside from the normalization, this formulation  gives the same result.  
 \subsubsection{Equal-time spin correlations}
 
 A measurement of the equal-time spin correlations can be obtained by:
 \begin{lstlisting}[style=fortran]
-Call Predefined_Obs_eq_SpinMz_measure(Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP,
+Call Predefined_Obs_eq_SpinMz_measure(Latt, Latt_unit, List, GR, GRC, N_SUN, ZS, ZP,
                                       ObsZ, ObsXY, ObsXYZ)
 \end{lstlisting}
 If \texttt{N\_FL=2} and \texttt{N\_SUN=1}, then the routine returns:
 \begin{align}
-\texttt{ObsZ}\left(\ve{i}-\ve{j}, n_{\ve{i}},  n_{\ve{j}} \right)  &=  4 \langle \langle \ve{\hat{c}}^{\dagger}_{\ve{i}, n_{\ve{i}}} S^z \ve{\hat{c}}^{\phantom\dagger}_{\ve{i}, n_{\ve{i}} }   \;  \ve{\hat{c}}^{\dagger}_{\ve{j}, n_{\ve{j}}} S^z  \ve{\hat{c}}^{\phantom\dagger}_{\ve{j}, n_{\ve{j}}}\rangle \rangle_{C}  -   {\color{red} 4 \langle \langle \ve{\hat{c}}^{\dagger}_{\ve{i}, n_{\ve{i}}} S^z \ve{\hat{c}}^{\phantom\dagger}_{\ve{i}, n_{\ve{i}} } \rangle \rangle_{C}  \langle \langle \  \ve{\hat{c}}^{\dagger}_{\ve{j}, n_{\ve{j}}} S^z  \ve{\hat{c}}^{\phantom\dagger}_{\ve{j}, n_{\ve{j}}}\rangle \rangle_{C}  } \nonumber \\  
-\texttt{ObsXY}\left(\ve{i}-\ve{j}, n_{\ve{i}},  n_{\ve{j}} \right)  &=  2 \left( \langle \langle \ve{\hat{c}}^{\dagger}_{\ve{i}, n_{\ve{i}}} S^x \ve{\hat{c}}^{\phantom\dagger}_{\ve{i}, n_{\ve{i}} }   \;  \ve{\hat{c}}^{\dagger}_{\ve{j}, n_{\ve{j}}} S^x  
+&\texttt{ObsZ}\left(\ve{i}-\ve{j}, n_{\ve{i}},  n_{\ve{j}} \right)  =  \begin{multlined}[t]  4 \langle \langle \ve{\hat{c}}^{\dagger}_{\ve{i}, n_{\ve{i}}} S^z \ve{\hat{c}}^{\phantom\dagger}_{\ve{i}, n_{\ve{i}} }   \;  \ve{\hat{c}}^{\dagger}_{\ve{j}, n_{\ve{j}}} S^z  \ve{\hat{c}}^{\phantom\dagger}_{\ve{j}, n_{\ve{j}}}\rangle \rangle_{C} \\
+-    4 \langle \langle \ve{\hat{c}}^{\dagger}_{\ve{i}, n_{\ve{i}}} S^z \ve{\hat{c}}^{\phantom\dagger}_{\ve{i}, n_{\ve{i}} } \rangle \rangle_{C}  \langle \langle \  \ve{\hat{c}}^{\dagger}_{\ve{j}, n_{\ve{j}}} S^z  \ve{\hat{c}}^{\phantom\dagger}_{\ve{j}, n_{\ve{j}}}\rangle \rangle_{C} ,  \end{multlined} \nonumber \\  
+&\texttt{ObsXY}\left(\ve{i}-\ve{j}, n_{\ve{i}},  n_{\ve{j}} \right)  =  2 \left( \langle \langle \ve{\hat{c}}^{\dagger}_{\ve{i}, n_{\ve{i}}} S^x \ve{\hat{c}}^{\phantom\dagger}_{\ve{i}, n_{\ve{i}} }   \;  \ve{\hat{c}}^{\dagger}_{\ve{j}, n_{\ve{j}}} S^x  
 \ve{\hat{c}}^{\phantom\dagger}_{\ve{j}, n_{\ve{j}}}\rangle \rangle_{C}  +
-\langle \langle \ve{\hat{c}}^{\dagger}_{\ve{i}, n_{\ve{i}}} S^y \ve{\hat{c}}^{\phantom\dagger}_{\ve{i}, n_{\ve{i}} }   \;  \ve{c}^{\dagger}_{\ve{j}, n_{\ve{j}}} S^y  \ve{\hat{c}}^{\phantom\dagger}_{\ve{j}, n_{\ve{j}}}\rangle \rangle_{C}  \right)  \nonumber \\
-\texttt{ObsXYZ} &=  \frac{2\cdot\texttt{ObsXY} + \texttt{ObsZ}}{3}.
+\langle \langle \ve{\hat{c}}^{\dagger}_{\ve{i}, n_{\ve{i}}} S^y \ve{\hat{c}}^{\phantom\dagger}_{\ve{i}, n_{\ve{i}} }   \;  \ve{c}^{\dagger}_{\ve{j}, n_{\ve{j}}} S^y  \ve{\hat{c}}^{\phantom\dagger}_{\ve{j}, n_{\ve{j}}}\rangle \rangle_{C}  \right), \nonumber \\
+&\texttt{ObsXYZ} =  \frac{2\cdot\texttt{ObsXY} + \texttt{ObsZ}}{3}.
 \end{align}
-Here  $\ve{\hat{c}}^{\dagger}_{\ve{i}, n_{\ve{i}}} =  \left( \hat{c}^{\dagger}_{\ve{i}, n_{\ve{i}},\uparrow},  \hat{c}^{\dagger}_{\ve{i}, n_{\ve{i}},\downarrow} \right) $ is a two  component spinor  and    $ \ve{S}  = \frac{1}{2} \ve{\sigma}$  
-with
+Here  $\ve{\hat{c}}^{\dagger}_{\ve{i}, n_{\ve{i}}} =  \left( \hat{c}^{\dagger}_{\ve{i}, n_{\ve{i}},\uparrow},  \hat{c}^{\dagger}_{\ve{i}, n_{\ve{i}},\downarrow} \right) $ is a two component spinor and   $ \ve{S} = \frac{1}{2} \ve{\sigma}$, with
 \begin{equation}
 \ve{\sigma}   = \left(
 \begin{bmatrix} 
@@ -110,16 +121,15 @@ i & 0
 1 & 0 \\
 0 & -1 
 \end{bmatrix}
-\right) 
- \end{equation}
- the Pauli spin  matrices. 
- {\color{red}  Add this to the code since you are not assuming SU(2) spin symmetry.}
+\right), \label{eq:vecPaulimat}
+\end{equation}
+the Pauli spin  matrices. 
 
 \subsubsection{Equal-time Green function}
 
 A measurement of the equal-time Green function can be obtained by:
 \begin{lstlisting}[style=fortran]
-Call Predefined_Obs_eq_Green_measure(Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP,  Obs)
+Call Predefined_Obs_eq_Green_measure(Latt, Latt_unit, List, GR, GRC, N_SUN, ZS, ZP, Obs)
 \end{lstlisting}
 
 Which returns:
@@ -132,7 +142,7 @@ Which returns:
 
 A measurement of equal-time density-density correlations can be obtained by:
 \begin{lstlisting}[style=fortran]
-Call Predefined_Obs_eq_Den_measure(Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP,  Obs)
+Call Predefined_Obs_eq_Den_measure(Latt, Latt_unit, List, GR, GRC, N_SUN, ZS, ZP, Obs)
 \end{lstlisting}
 Which returns:
 \begin{align}
@@ -149,8 +159,8 @@ where
 
 A measurement of the time-displaced Green function can be obtained by:
 \begin{lstlisting}[style=fortran]
-Call Predefined_Obs_tau_Green_measure(Latt, Latt_unit, List,  NT, GT0, G0T, G00, GTT, 
-                                      N_SUN, ZS, ZP,  Obs)
+Call Predefined_Obs_tau_Green_measure(Latt, Latt_unit, List, NT, GT0, G0T, G00, GTT, 
+                                      N_SUN, ZS, ZP, Obs)
 \end{lstlisting}
 Which returns:
 \begin{align}
@@ -158,43 +168,43 @@ Which returns:
 \end{align}
 
 
-\subsubsection{Time-displaced $SU(N)$ spin-spin correlations}
+\subsubsection{Time-displaced SU(N) spin-spin correlations}
 
 
-A measurement of time-displaced spin-spin correlations for $SU(N)$ models ($N_\text{fl} = 1$) can be obtained by:
+A measurement of time-displaced spin-spin correlations for SU(N) models ($N_\text{fl} = 1$) can be obtained by:
 \begin{lstlisting}[style=fortran]
-Call Predefined_Obs_tau_SpinSUN_measure(Latt, Latt_unit, List,  NT, GT0, G0T, G00, GTT, 
-                                        N_SUN, ZS, ZP,  Obs)
+Call Predefined_Obs_tau_SpinSUN_measure(Latt, Latt_unit, List, NT, GT0, G0T, G00, GTT, 
+                                        N_SUN, ZS, ZP, Obs)
 \end{lstlisting}
-
 \begin{align}
 \texttt{Obs}(\ve{i} - \ve{j}, \tau, n_{\ve{i}},  n_{\ve{j}} )= \frac{2N}{N^2-1}\sum_{a=1}^{N^2 - 1}  \langle \ve{\hat{c}}^{\dagger}_{\ve{i}, n_{\ve{i}}}(\tau) T^a \ve{\hat{c}}^{\phantom\dagger}_{\ve{i}, n_{\ve{i}}}(\tau)  \;
     \ve{\hat{c}}^{\dagger}_{\ve{j}, n_{\ve{j}}} T^a \ve{\hat{c}}^{\phantom\dagger}_{\ve{j}, n_{\ve{j}}}    \rangle  \rangle_{C}
 \end{align}
-where $T^a$ are the generators of $SU(N)$ (see Sec.~\ref{SU_N_equal_time.sec}  for more details).
+where $T^a$ are the generators of SU(N) (see Sec.~\ref{SU_N_equal_time.sec}  for more details).
 
 
 \subsubsection{Time-displaced spin correlations}
 
 A measurement of time-displaced spin-spin correlations for $M\!z$ models ($N_\text{fl} = 2, N_\text{col} = 1$)  is returned by:
 \begin{lstlisting}[style=fortran]
-Call Predefined_Obs_tau_SpinMz_measure(Latt, Latt_unit, List,  NT, GT0, G0T, G00, GTT,
-                                       N_SUN, ZS, ZP,  ObsZ, ObsXY, ObsXYZ)
+Call Predefined_Obs_tau_SpinMz_measure(Latt, Latt_unit, List, NT, GT0, G0T, G00, GTT,
+                                       N_SUN, ZS, ZP, ObsZ, ObsXY, ObsXYZ)
 \end{lstlisting}
 Which calculates the following observables:
-\begin{eqnarray}
-\texttt{ObsZ}(\ve{i} - \ve{j}, \tau, n_{\ve{i}},  n_{\ve{j}} ) &= & 4 \langle \langle \ve{\hat{c}}^{\dagger}_{\ve{i}, n_{\ve{i}}}(\tau)  S^z \ve{\hat{c}}^{\phantom\dagger}_{\ve{i}, n_{\ve{i}} }(\tau)   \;  \ve{\hat{c}}^{\dagger}_{\ve{j}, n_{\ve{j}}} S^z  \ve{\hat{c}}^{\phantom\dagger}_{\ve{j}, n_{\ve{j}}}\rangle \rangle_{C}  -   {\color{red} 4 \langle \langle \ve{\hat{c}}^{\dagger}_{\ve{i}, n_{\ve{i}}} S^z \ve{\hat{c}}^{\phantom\dagger}_{\ve{i}, n_{\ve{i}} } \rangle \rangle_{C}  \langle \langle \  \ve{\hat{c}}^{\dagger}_{\ve{j}, n_{\ve{j}}} S^z  \ve{\hat{c}}^{\phantom\dagger}_{\ve{j}, n_{\ve{j}}}\rangle \rangle_{C}  } \nonumber \\  
-\texttt{ObsXY} (\ve{i} - \ve{j}, \tau, n_{\ve{i}},  n_{\ve{j}} ) &= & 
-  2 \left( \langle \langle \ve{\hat{c}}^{\dagger}_{\ve{i}, n_{\ve{i}}}(\tau) S^x \ve{\hat{c}}^{\phantom\dagger}_{\ve{i}, n_{\ve{i}} } (\tau)  \;  \ve{\hat{c}}^{\dagger}_{\ve{j}, n_{\ve{j}}} S^x  
-\ve{\hat{c}}^{\phantom\dagger}_{\ve{j}, n_{\ve{j}}}\rangle \rangle_{C}  +
-\langle \langle \ve{\hat{c}}^{\dagger}_{\ve{i}, n_{\ve{i}}}(\tau) S^y \ve{\hat{c}}^{\phantom\dagger}_{\ve{i}, n_{\ve{i}} }(\tau)   \;  \ve{c}^{\dagger}_{\ve{j}, n_{\ve{j}}} S^y  \ve{\hat{c}}^{\phantom\dagger}_{\ve{j}, n_{\ve{j}}}\rangle \rangle_{C}  \right)  \nonumber \\
-\texttt{ObsXYZ} &= & \frac{2\cdot\texttt{ObsXY} + \texttt{ObsZ}}{3}.
-\end{eqnarray}
+\begin{align}
+\texttt{ObsZ}(\ve{i} - \ve{j}, \tau, n_{\ve{i}},  n_{\ve{j}} ) &= \begin{multlined}[t] 4 \langle \langle \ve{\hat{c}}^{\dagger}_{\ve{i}, n_{\ve{i}}}(\tau)  S^z \ve{\hat{c}}^{\phantom\dagger}_{\ve{i}, n_{\ve{i}} }(\tau)   \;  \ve{\hat{c}}^{\dagger}_{\ve{j}, n_{\ve{j}}} S^z  \ve{\hat{c}}^{\phantom\dagger}_{\ve{j}, n_{\ve{j}}}\rangle \rangle_{C} \\  
+- 4 \langle \langle \ve{\hat{c}}^{\dagger}_{\ve{i}, n_{\ve{i}}} S^z \ve{\hat{c}}^{\phantom\dagger}_{\ve{i}, n_{\ve{i}} } \rangle \rangle_{C}  \langle \langle \  \ve{\hat{c}}^{\dagger}_{\ve{j}, n_{\ve{j}}} S^z  \ve{\hat{c}}^{\phantom\dagger}_{\ve{j}, n_{\ve{j}}}\rangle \rangle_{C}   \end{multlined} \nonumber \\  
+\texttt{ObsXY} (\ve{i} - \ve{j}, \tau, n_{\ve{i}},  n_{\ve{j}} ) &=\begin{multlined}[t] 
+2 \left( \langle \langle \ve{\hat{c}}^{\dagger}_{\ve{i}, n_{\ve{i}}}(\tau) S^x \ve{\hat{c}}^{\phantom\dagger}_{\ve{i}, n_{\ve{i}} } (\tau)  \;  \ve{\hat{c}}^{\dagger}_{\ve{j}, n_{\ve{j}}} S^x  
+\ve{\hat{c}}^{\phantom\dagger}_{\ve{j}, n_{\ve{j}}}\rangle \rangle_{C}  \right.\\
++ \left. \langle \langle \ve{\hat{c}}^{\dagger}_{\ve{i}, n_{\ve{i}}}(\tau) S^y \ve{\hat{c}}^{\phantom\dagger}_{\ve{i}, n_{\ve{i}} }(\tau)   \;  \ve{c}^{\dagger}_{\ve{j}, n_{\ve{j}}} S^y  \ve{\hat{c}}^{\phantom\dagger}_{\ve{j}, n_{\ve{j}}}\rangle \rangle_{C}  \right)  \end{multlined}  \nonumber \\
+\texttt{ObsXYZ} &= \frac{2\cdot\texttt{ObsXY} + \texttt{ObsZ}}{3}.
+\end{align}
 
 
 \subsubsection{Time-displaced density-density correlations}
 
-A measurement of time-displaced density-density correlations for general $SU(N)$ models is given by:
+A measurement of time-displaced density-density correlations for general SU(N) models is given by:
 \begin{lstlisting}[style=fortran]
 Call Predefined_Obs_tau_Den_measure(Latt, Latt_unit, List,  NT, GT0, G0T, G00, GTT,
                                     N_SUN, ZS, ZP,  Obs)
@@ -203,4 +213,127 @@ Which returns:
 \begin{align}
 \texttt{Obs}(\ve{i} - \ve{j}, \tau, n_{\ve{i}},  n_{\ve{j}} ) = \langle  \langle \hat{ N}_{\ve{i},n_{\ve{i}}} (\tau)  \hat{N}_{\ve{j},n_{\ve{j}}}\rangle - \langle \hat{N}_{\ve{i},n_{\ve{i}}} \rangle  \langle \hat{N}_{\ve{j},n_{\ve{j}}}\rangle \rangle_C.
  \end{align}
- The density operator is defined in Eq.~\ref{Density_op.eq}.
+ The density operator is defined in Eq.~\eqref{Density_op.eq}.
+
+%-----------------------------------------------------------------------------------
+\subsubsection{Dimer-Dimer correlations }
+%-----------------------------------------------------------------------------------
+Let  
+\begin{equation}
+\hat{S}^{\mu}_{\, \,  \nu} (x)  =  \hat{c}^{\dagger}_{x,\mu} \hat{c}^{}_{x,\nu}    - \delta_{\mu,\nu} \frac{1}{N}  \sum_{\alpha = 1}^{N} \hat{c}^{\dagger}_{x,\alpha} \hat{c}^{}_{x,\alpha}
+\end{equation}
+be the generators of SU(N). 
+Dimer-Dimer correlations are defined  as: 
+\begin{equation}
+\langle \langle \hat{S}^{\mu}_{\, \,  \nu} (x,\tau)   \hat{S}^{\nu}_{\, \,  \mu} (y,\tau) 
+\hat{S}^{\gamma}_{\, \,  \delta} (w)   \hat{S}^{\delta}_{\, \,  \gamma} (z)   \rangle   \rangle_C  ,
+\end{equation}
+where the sum   over repeated indices   from $ 1 \cdots N $ is implied. 
+The calculation is carried out  for the self-adjoint antisymmetric  representation of SU(N)   for which $ \sum_{\alpha = 1}^{N} \hat{c}^{\dagger}_{x,\alpha} \hat{c}^{}_{x,\alpha}  = N/2$,   such that the generators can be replaced by: 
+\begin{equation}
+\hat{S}^{\mu}_{\, \,  \nu} (x)  =  \hat{c}^{\dagger}_{x,\mu} \hat{c}^{}_{x,\nu}    - \delta_{\mu,\nu} \frac{1}{2}. 
+\end{equation}
+The  function 
+\begin{lstlisting}[style=fortran]
+Complex (Kind=Kind(0.d0)) function Predefined_Obs_dimer_tau(x, y, w, z, GT0, G0T, G00,
+                                                            GTT, N_SUN, N_FL)  
+\end{lstlisting}
+returns the   value of the time-displaced dimer-dimer correlation function. 
+The  function 
+\begin{lstlisting}[style=fortran]
+Complex (Kind=Kind(0.d0)) function Predefined_Obs_dimer_eq(x, y, w, z, GR, GRC, N_SUN,
+                                                           N_FL)
+\end{lstlisting}
+returns the   value of the equal time  dimer-dimer correlation function:
+\begin{equation}
+\langle \langle \hat{S}^{\mu}_{\, \,  \nu} (x,\tau)   \hat{S}^{\nu}_{\, \,  \mu} (y,\tau) 
+\hat{S}^{\gamma}_{\, \,  \delta} (w,\tau)   \hat{S}^{\delta}_{\, \,  \gamma} (z,\tau)   \rangle   \rangle_C.  
+\end{equation}
+Here,  both \texttt{GR}  and  \texttt{GRC}  are on time slice  $\tau$.
+
+To compute the background terms, the function
+\begin{lstlisting}[style=fortran]
+Complex (Kind=Kind(0.d0)) function Predefined_Obs_dimer0_eq(x, y, GR, N_SUN, N_FL)
+\end{lstlisting}
+returns 
+\begin{equation}
+\langle \langle \hat{S}^{\mu}_{\, \,  \nu} (x,\tau)   \hat{S}^{\nu}_{\, \,  \mu} (y,\tau)  \rangle   \rangle_C .
+\end{equation} 
+
+All routines  are programmed  for \texttt{N\_SUN = 2,4,6,8} at \texttt{N\_FL=1}.   The routines also handle the case of broken SU(2)  spin symmetry corresponding  to  \texttt{N\_FL=2}  and \texttt{N\_SUN=1}.   To carry out the Wick decomposition  and sums over  spin indices,  we use the  Mathematica  notebooks 
+\texttt{Dimer\-Dimer\_SU2\_NFL\_2.nb}  and \texttt{Dimer\-Dimer\_SUN\_NFL\_1.nb}.
+
+
+%-----------------------------------------------------------------------------------
+\subsubsection{Cotunneling for Kondo models}
+%-----------------------------------------------------------------------------------
+
+The  Kondo lattice model (KLM), $\hat{H}_{KLM}$   is obtained by carrying out a   canonical Schrieffer-Wolf  \cite{Schrieffer66}  transformation  of the   periodic Anderson model (PAM), $\hat{H}_{PAM}$.    Hence, $e^{\hat{S}}  $ $\hat{H}_{PAM} $$ e^{-S}   = \hat{H}_{KLM}$  with  $\hat{S}^\dagger = - \hat{S}$.     Let $\hat{f}_{x,\sigma} $  create an  electron on the   correlation f-orbital of the   PAM.  Then, 
+\begin{equation}
+e^{\hat{S}} \hat{f}^{\dagger}_{x,\sigma'} e^{-\hat{S}}   \simeq  
+\frac{2V}{U}  \left( \hat{c}^{\dagger}_{x,-\sigma'}  \hat{S}^{\sigma'}_{x} +  \sigma'   \hat{c}^{\dagger}_{x,\sigma'} \hat{S}^{z}_x   \right)  \equiv  \frac{2V}{U}   \tilde{\hat{f}}^{\dagger}_{x,\sigma'} .  
+\end{equation}
+In the above, it is understood that $\sigma'$ takes the value $1$ ($-1$)  for up  (down) spin degrees of freedom, that  $  \hat{S}^{\sigma'}_{x} =  f^{\dagger}_{x,\sigma'} \hat{f}^{}_{x,-\sigma'}  $  and that 
+$ \hat{S}^{z}_{x} = \frac{1}{2} \sum_{\sigma'}  \sigma' \hat{f}^{\dagger}_{x,\sigma'} \hat{f}^{}_{x,\sigma'} $.  Finally, $\hat{c}^{\dagger}_{x,\sigma'}$ corresponds to the conduction electron that hybridizes with $\hat{f}^{\dagger}_{x,\sigma'}$.  This form matches that derived in Ref.~\cite{Costi00} and a  calculation  of the former equation can be found in Ref.~\cite{Raczkowski18}.  An identical, but more transparent formulation is given in  Ref.~\cite{Maltseva09}   and reads: 
+\begin{equation}
+\tilde{\hat{f}}^{\dagger}_{x,\sigma} = \sum_{\sigma'} \hat{c}^{\dagger}_{x,\sigma'} \ve{\sigma}_{\sigma',\sigma} \cdot  \hat{\ve{S}}_x,
+\end{equation}
+where $\ve{\sigma}$  denotes  the vector of Pauli spin matrices.    With the above,  one will readily show that the  $ \tilde{\hat{f}}^{\dagger}_{x,\sigma} $  transforms as  $ \hat{f}^{\dagger}_{x,\sigma} $   under an SU(2)  spin rotation. 
+The  function 
+\begin{lstlisting}[style=fortran]
+Complex (Kind=Kind(0.d0)) function Predefined_Obs_Cotunneling(x_c, x, y_c, y, GT0, G0T,
+                                                              G00, GTT, N_SUN, N_FL)
+\end{lstlisting}
+returns the   value of the time displaced correlation function: 
+\begin{equation}
+\sum_{\sigma} \langle \langle   \tilde{\hat{f}}^{\dagger}_{x,\sigma}(\tau)  \tilde{\hat{f}}_{y,\sigma}(0)   \rangle \rangle_{C} .
+\end{equation}
+Here, $x_c$ and $y_c$ correspond to the  conduction orbitals that hybridize with the  $x$ and $y$ f-orbitals.  The routine  works for  SU(N)  symmetric codes  corresponding to   \texttt{N\_FL=1}  and \texttt{N\_SUN = 2,4,6,8}.  For the larger N-values,  we have replaced the generators of SU(2)  with that of SU(N).  The routine also handles the case where spin-symmetry is broken by e.g. a  Zeeman field. This  corresponds to the 
+case  \texttt{N\_FL=2}  and \texttt{N\_SUN=1}.    Note that the function only  carries out the Wick decomposition   and the handling  of the observable  type corresponding to this quantity   has to be done by the user.     To carry out the Wick decomposition  and sums over  spin indices,  we use the  Mathematica  notebooks 
+\texttt{Cotunneling\_SU2\_NFL\_2.nb}  and  \texttt{Cotunneling\_SUN\_NFL\_1.nb}. 
+
+
+%-----------------------------------------------------------------------------------
+\subsubsection{R{\'e}nyi Entropy}
+\label{sec:renyi}
+%-----------------------------------------------------------------------------------
+The module \texttt{entanglement\_mod.F90} allows one to compute the 2\textsuperscript{nd} R\'enyi entropy, $S_2$, for a subsystem.
+Using Eq.~\eqref{rhoA}, $S_2$ can be expressed as a stochastic average of an observable constructed from two independent simulations of the model \cite{Grover13}:
+\begin{equation}
+e^{-S_2} = \sum_{C_1,C_2} P(C_2) P(C_1) \det\left[G_A(\tau_0; C_1)G_A(\tau_0; C_2)-(\mathds{1} - G_A(\tau_0; C_1))(\mathds{1} - G_A(\tau_0; C_2))\right],
+\label{renyi_obs}
+\end{equation}
+where $G_A(\tau_0; C_i)$, $i=1, 2$ is the Green function matrix restricted to the desired subsystem $A$ at a given time-slice $\tau_0$, and for the configuration $C_i$ of the replica $i$. The degrees of freedom defining the subsystem $A$ are lattice site, flavor index, and color index.
+
+Notice that, due to its formulation, sampling $S_2$ requires an MPI simulation with at least $2$ processes. Also, only real-space partitions are currently supported.
+
+A measurement of the 2\textsuperscript{nd} R\'enyi entropy can be obtained by:
+\begin{lstlisting}[style=fortran]
+Call Predefined_Obs_scal_Renyi_Ent(GRC, List, Nsites, N_SUN, ZS, ZP, Obs)
+\end{lstlisting}
+which returns the observable \texttt{Obs}, for which $\langle\texttt{Obs}\rangle=e^{-S_2}$.
+The subsystem $A$ can be defined in a number of different ways, which are handled by what we call \emph{specializations} of the subroutine, described as follows.
+
+In the most general case, \texttt{List(:, N\_FL, N\_SUN)} is a three-dimensional array that contains the list of lattice sites in $A$ for every flavor and color index; \texttt{Nsites(N\_FL, N\_SUN)} is then a bidimensional array that provides the number of lattice sites in the subsystem for every flavor and color index; and the argument \texttt{N\_SUN} must be omitted in the call.
+
+For a subsystem whose degrees of freedom, for a given flavor index, have a common value of color indexes, \texttt{Predefined\_Obs\_scal\_Renyi\_Ent} can be called by providing \texttt{List(:, N\_FL)} as a bidimensional array that contains the list of lattice sites for every flavor index. In this case, \texttt{Nsites(N\_FL)} provides the number of sites in the subsystem for any given flavor index, while \texttt{N\_SUN(N\_FL)} contains the number of color indexes for a given flavor index.
+
+Finally, a specialization exists for the simple case of a subsystem whose lattice degrees of freedom are flavor- and color-independent. In this case, \texttt{List(:)} is a one-dimensional array containing the lattice sites of the subsystem. \texttt{Nsites} is the number of sites, and \texttt{N\_SUN} is the number of color indexes belonging to the subsystem.
+Accordingly, for every element \texttt{I} of \texttt{List}, the subsystem contains all degrees of freedom with site index \texttt{I}, any flavor index, and \texttt{1} \ldots \texttt{N\_SUN} color index.
+
+\paragraph*{Mutual Information}
+The mutual information between two subsystems $A$ and $B$ is given by
+\begin{equation}
+I_2=-\ln \langle \texttt{Renyi\_A}\rangle -\ln \langle \texttt{Renyi\_B}\rangle +\ln \langle \texttt{Renyi\_AB}\rangle,
+\end{equation}
+where \texttt{Renyi\_A}, \texttt{Renyi\_B}, and \texttt{Renyi\_AB} are the second R\'enyi entropies of $A$, $B$, and $A\cup B$, respectively.
+
+The measurements necessary for computing $I_2$ are obtained by:
+\begin{lstlisting}[style=fortran,breaklines=true]
+Call Predefined_Obs_scal_Mutual_Inf(GRC, List_A, Nsites_A, List_B, Nsites_B, N_SUN, 
+                                    ZS, ZP, Obs)
+\end{lstlisting}
+which returns the 2\textsuperscript{nd} R\'enyi entropies mentioned above, stored in the variable \texttt{Obs}. Here, \texttt{List\_A} and \texttt{Nsites\_A} are input parameters describing the subsystem $A$ -- with the same conventions and specializations described above -- and
+\texttt{List\_B} and \texttt{Nsites\_B} are the corresponding input parameters for the subsystem $B$, while \texttt{N\_SUN} is assumed to be identical for $A$ and $B$.
+
+

@@ -92,7 +92,7 @@ Contains
     Implicit none
     
     Interface
-       Subroutine Upgrade2(GR,N_op,NT,PHASE,Op_dim,Hs_new, Prev_Ratiotot, S0_ratio, T0_proposal_ratio, toggle,  mode) 
+       Subroutine Upgrade2(GR,N_op,NT,PHASE,Hs_new, Prev_Ratiotot, S0_ratio, T0_proposal_ratio, toggle,  mode) 
        
          Use Hamiltonian
          Use Random_wrap
@@ -102,7 +102,7 @@ Contains
          
          Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: GR(Ndim,Ndim, N_FL)
          Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Prev_Ratiotot
-         Integer                  , INTENT(IN)    :: N_op, Nt, Op_dim
+         Integer                  , INTENT(IN)    :: N_op, Nt
          Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Phase
          Real    (Kind=Kind(0.d0)), INTENT(IN)    :: Hs_new
          Real    (Kind=Kind(0.d0)), INTENT(IN)    :: S0_ratio, T0_proposal_ratio
@@ -152,7 +152,7 @@ Contains
           !Write(6,*) 'Hi', n, Op_V(n,nf)%type, T0_Proposal_ratio, S0_ratio  
           mode = "Final"
           Prev_Ratiotot = cmplx(1.d0,0.d0,kind(0.d0))
-          Call Upgrade2(GR,n,ntau1,PHASE,Op_V(n,nf)%N_non_Zero,HS_new, Prev_Ratiotot, S0_ratio,T0_Proposal_ratio, Acc, mode ) 
+          Call Upgrade2(GR,n,ntau1,PHASE,HS_new, Prev_Ratiotot, S0_ratio,T0_Proposal_ratio, Acc, mode ) 
        else
           toggle1 = .false.
           Call Control_upgrade_eff(toggle1)
@@ -191,7 +191,7 @@ Contains
     Implicit None
     
     Interface
-       Subroutine Upgrade2(GR,N_op,NT,PHASE,Op_dim,Hs_new, Prev_Ratiotot, S0_ratio, T0_proposal_ratio, toggle,  mode) 
+       Subroutine Upgrade2(GR,N_op,NT,PHASE,Hs_new, Prev_Ratiotot, S0_ratio, T0_proposal_ratio, toggle,  mode) 
        
          Use Hamiltonian
          Use Random_wrap
@@ -201,7 +201,7 @@ Contains
          
          Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: GR(Ndim,Ndim, N_FL)
          Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Prev_Ratiotot
-         Integer                  , INTENT(IN)    :: N_op, Nt, Op_dim
+         Integer                  , INTENT(IN)    :: N_op, Nt
          Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Phase
          Real    (Kind=Kind(0.d0)), INTENT(IN)    :: Hs_new
          Real    (Kind=Kind(0.d0)), INTENT(IN)    :: S0_ratio, T0_proposal_ratio
@@ -257,7 +257,7 @@ Contains
        If ( T0_proposal > ranf_wrap() ) Then
           mode = "Final"
           Prev_Ratiotot = cmplx(1.d0,0.d0,kind(0.d0))
-          Call Upgrade2(GR,n,ntau,PHASE,Op_V(n,nf)%N_non_Zero,HS_new, Prev_Ratiotot, S0_ratio,T0_Proposal_ratio, Acc, mode ) 
+          Call Upgrade2(GR,n,ntau,PHASE,HS_new, Prev_Ratiotot, S0_ratio,T0_Proposal_ratio, Acc, mode ) 
        else
           toggle1 = .false.
           Call Control_upgrade_eff(toggle1)
@@ -378,7 +378,7 @@ Contains
     Implicit none
     
     Interface
-       Subroutine Upgrade2(GR,N_op,NT,PHASE,Op_dim,Hs_new, Prev_Ratiotot, S0_ratio, T0_proposal_ratio, toggle,  mode) 
+       Subroutine Upgrade2(GR,N_op,NT,PHASE,Hs_new, Prev_Ratiotot, S0_ratio, T0_proposal_ratio, toggle,  mode) 
        
          Use Hamiltonian
          Use Random_wrap
@@ -388,7 +388,7 @@ Contains
          
          Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: GR(Ndim,Ndim, N_FL)
          Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Prev_Ratiotot
-         Integer                  , INTENT(IN)    :: N_op, Nt, Op_dim
+         Integer                  , INTENT(IN)    :: N_op, Nt
          Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Phase
          Real    (Kind=Kind(0.d0)), INTENT(IN)    :: Hs_new
          Real    (Kind=Kind(0.d0)), INTENT(IN)    :: S0_ratio, T0_proposal_ratio
@@ -447,7 +447,7 @@ Contains
              If (Flip_count <  Flip_length)  then 
                 mode = "Intermediate"
                 HS_new = Flip_value(Flip_count)
-                Call Upgrade2(GR,n,ntau,PHASE, Op_V(n,nf)%N_non_Zero, HS_new , &
+                Call Upgrade2(GR,n,ntau,PHASE, HS_new , &
                      &        Prev_Ratiotot, S0_ratio, T0_Proposal_ratio, Acc, mode ) 
                 do nf = 1,N_FL
                    N_type =  2
@@ -457,7 +457,7 @@ Contains
                 !Write(6,*)  "Call Up mode final", n,ntau
                 mode = "Final"
                 HS_new = Flip_value(Flip_count)
-                Call Upgrade2(GR,n,ntau,PHASE,Op_V(n,nf)%N_non_Zero,HS_new, &
+                Call Upgrade2(GR,n,ntau,PHASE,HS_new, &
                      &        Prev_Ratiotot, S0_ratio, T0_Proposal_ratio, Acc, mode ) 
                 !Write(6,*)  "Back from up mode final", n,ntau
                 !Write(6,*)  "Acceptance", Acc

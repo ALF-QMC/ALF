@@ -201,7 +201,8 @@
 
           NAMELIST /VAR_Lattice/  L1, L2, Lattice_type, Model
 
-          NAMELIST /VAR_Model_Generic/  Checkerboard, N_SUN, N_FL, Phi_X, Phi_Y, Symm, Bulk, N_Phi, Dtau, Beta, Theta, Projector
+          NAMELIST /VAR_Model_Generic/  Checkerboard, N_SUN, N_FL, Phi_X, Phi_Y, Symm, Bulk, N_Phi, Dtau, Beta, Theta, &
+               & Projector
 
           Namelist /VAR_LRC/      ham_T, ham_T2, ham_Tperp, ham_chem, ham_U, ham_alpha, Percent_change
 
@@ -221,6 +222,7 @@
           Ham_T2       = 0.d0
           Ham_Tperp    = 0.d0
           Ham_U2       = 0.d0
+
 
 
 #ifdef MPI
@@ -271,8 +273,6 @@
           CALL MPI_BCAST(Projector   ,1,  MPI_LOGICAL  , 0,Group_Comm,ierr)
           CALL MPI_BCAST(Dtau        ,1,  MPI_REAL8    , 0,Group_Comm,ierr)
           CALL MPI_BCAST(Beta        ,1,  MPI_REAL8    , 0,Group_Comm,ierr)
-
-
 #endif
 
           Call  Ham_Latt
@@ -723,7 +723,7 @@
 !>  Time slice
 !> \endverbatim
 !-------------------------------------------------------------------
-        subroutine Obser(GR,Phase,Ntau)
+        subroutine Obser(GR,Phase,Ntau,Mc_step_weight)
 
           Use Predefined_Obs
 
@@ -732,6 +732,8 @@
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
           Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE
           Integer, INTENT(IN)          :: Ntau
+          Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
+
 
           !Local
           Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK
@@ -741,6 +743,7 @@
 
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
+          ZS = ZS*Mc_step_weight
 
 
           Do nf = 1,N_FL
@@ -819,7 +822,7 @@
 !>  Phase
 !> \endverbatim
 !-------------------------------------------------------------------
-        Subroutine ObserT(NT,  GT0,G0T,G00,GTT, PHASE)
+        Subroutine ObserT(NT,  GT0,G0T,G00,GTT, PHASE, Mc_step_weight)
 
           Use Predefined_Obs
 
@@ -828,6 +831,8 @@
           Integer         , INTENT(IN) :: NT
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: GT0(Ndim,Ndim,N_FL),G0T(Ndim,Ndim,N_FL),G00(Ndim,Ndim,N_FL),GTT(Ndim,Ndim,N_FL)
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: Phase
+          Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
+                    
 
           !Locals
           Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY
@@ -836,7 +841,9 @@
 
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
+          ZS = ZS*Mc_step_weight
 
+          
           ! Standard two-point correlations
 
           Call Predefined_Obs_tau_Green_measure  ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(1) )
@@ -1018,4 +1025,36 @@
 
       end Subroutine Overide_global_tau_sampling_parameters
 
+!--------------------------------------------------------------------
+!> @author 
+!> ALF Collaboration
+!>
+!> @brief 
+!>   Forces_0  = \partial S_0 / \partial s  are calculated and returned to  main program.
+!> 
+!-------------------------------------------------------------------
+        Subroutine Ham_Langevin_HMC_S0(Forces_0)
+
+          Implicit none
+
+          Real (Kind=Kind(0.d0)), Intent(out  ),  dimension(:,:) :: Forces_0
+
+          !Local
+          Integer :: N, N_op,nt
+          
+          ! Compute \partial S_0 / \partial s
+          N_op = size(nsigma%f,1)
+          Forces_0  = 0.d0
+          do n = 1,N_op
+             if (OP_V(n,1)%type == 3 ) then
+                do nt = 1,Ltrot
+                   Forces_0(n,nt) = nsigma%f(n,nt)
+                enddo
+             endif
+          enddo
+          
+        end Subroutine Ham_Langevin_HMC_S0
+
+
+      
       end Module Hamiltonian

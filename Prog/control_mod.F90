@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 - 2018 The ALF project
+!  Copyright (C) 2016 - 2020 The ALF project
 !
 !  This file is part of the ALF project.
 !
@@ -60,7 +60,10 @@ module Control
 
     real    (Kind=Kind(0.d0)),  private, save :: size_clust_Glob_up, size_clust_Glob_ACC_up
 
+    real    (Kind=Kind(0.d0)),  private, save :: Force_max, Force_mean
+    Integer, private, save  :: Force_Count
 
+    
     Contains
 
       subroutine control_init
@@ -89,9 +92,45 @@ module Control
         size_clust_Glob_up    = 0.d0
         size_clust_Glob_ACC_up= 0.d0
 
+        Force_max  = 0.d0
+        Force_mean = 0.d0
+        Force_count = 0
+        
         call system_clock(count_CPU_start,count_rate,count_max)
       end subroutine control_init
 
+
+!-------------------------------------------------------------
+
+      Subroutine Control_Langevin(Forces, Group_Comm)
+
+
+        Implicit none
+        
+        Complex (Kind=Kind(0.d0)), Intent(In)  :: Forces(:,:)
+        Integer, Intent(IN) :: Group_Comm
+        
+        Integer :: n1,n2, n, nt 
+        Real (Kind = Kind(0.d0) ) :: X
+
+        ! Test for not a  number
+        n1 =  size(Forces,1)
+        n2 =  size(Forces,2)
+        Force_count =  Force_count  + 1
+
+        X = 0.d0
+        do  n = 1,n1
+           do nt =1,n2
+              If ( abs( Real(Forces(n,nt),kind(0.d0))) >=  Force_max  ) &
+                   &  Force_max = abs( Real(Forces(n,nt),kind(0.d0)))
+              X  = X + abs( Real(Forces(n,nt),kind(0.d0)) )
+           enddo
+        enddo
+        Force_mean = Force_mean  +  X/Real(n1*n2,Kind(0.d0)) 
+        
+      end Subroutine Control_Langevin
+
+      
       Subroutine Control_upgrade(toggle)
         Implicit none
         Logical :: toggle
@@ -177,13 +216,15 @@ module Control
       End Subroutine Control_PrecisionP_Glob
 
 
-      Subroutine Control_Print(Group_Comm)
+      Subroutine Control_Print(Group_Comm, Global_update_scheme)
 #ifdef MPI
         Use mpi
 #endif
         Implicit none
 
         Integer, Intent(IN) :: Group_Comm
+        Character (Len = 64), Intent(IN) :: Global_update_scheme
+                
 
         Character (len=64) :: file1
         Real (Kind=Kind(0.d0)) :: Time, Acc, Acc_eff, Acc_Glob, Acc_Temp, size_clust_Glob, size_clust_Glob_ACC
@@ -217,8 +258,16 @@ module Control
         call system_clock(count_CPU_end)
         time = (count_CPU_end-count_CPU_start)/dble(count_rate)
         if (count_CPU_end .lt. count_CPU_start) time = (count_max+count_CPU_end-count_CPU_start)/dble(count_rate)
-
+        If (trim(Global_update_scheme) == "Langevin") Force_mean =  Force_mean/real(Force_count,kind(0.d0)) 
+        
 #if defined(MPI)
+        If (trim(Global_update_scheme) == "Langevin")  then
+           X = 0.d0
+           CALL MPI_REDUCE(Force_mean,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
+           Force_mean= X/dble(Isize_g)
+           CALL MPI_REDUCE(Force_max,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
+           Force_max= X
+        endif
         X = 0.d0
         CALL MPI_REDUCE(ACC,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
         ACC = X/dble(Isize_g)
@@ -294,13 +343,15 @@ module Control
            Write(50,*) ' Acceptance Tempering       : ', ACC_Temp
 #endif
            !If (ACC_Glob > 1.D-200 ) then
-              Write(50,*) ' Acceptance_Glob              : ', ACC_Glob
-              Write(50,*) ' Mean Phase diff Glob         : ', XMEANP_Glob
-              Write(50,*) ' Max  Phase diff Glob         : ', XMAXP_Glob
-              Write(50,*) ' Average cluster size         : ', size_clust_Glob
-              Write(50,*) ' Average accepted cluster size: ', size_clust_Glob_ACC
+           Write(50,*) ' Acceptance_Glob              : ', ACC_Glob
+           Write(50,*) ' Mean Phase diff Glob         : ', XMEANP_Glob
+           Write(50,*) ' Max  Phase diff Glob         : ', XMAXP_Glob
+           Write(50,*) ' Average cluster size         : ', size_clust_Glob
+           Write(50,*) ' Average accepted cluster size: ', size_clust_Glob_ACC
            !endif
-
+           if (trim(Global_update_scheme) == "Langevin") &
+                &  Write(50,*) ' Langevin         Mean, Max : ', Force_mean,  Force_max
+           
            Write(50,*) ' CPU Time                   : ', Time
            Close(50)
 #if defined(MPI)

@@ -128,6 +128,7 @@
       Use Fields_mod
       Use Predefined_Hoppings
       Use LRC_Mod
+      use iso_fortran_env, only: output_unit, error_unit
 
 
       Implicit none
@@ -146,7 +147,7 @@
       Logical              :: Projector
       Integer              :: Group_Comm
       Logical              :: Symm
-
+      
 
       Type (Lattice),       private, target :: Latt
       Type (Unit_cell),     private, target :: Latt_unit
@@ -160,7 +161,7 @@
       Character (len=64),   private :: Model, Lattice_type
       Logical,              private :: Checkerboard,  Bulk
       Integer, allocatable, private :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
-
+      
 
 !>    Privat Observables
       Type (Obser_Vec ),  private, dimension(:), allocatable ::   Obs_scal
@@ -195,7 +196,8 @@
 
           NAMELIST /VAR_Lattice/  L1, L2, Lattice_type, Model
 
-          NAMELIST /VAR_Model_Generic/  Checkerboard, N_SUN, N_FL, Phi_X, Phi_Y, Symm, Bulk, N_Phi, Dtau, Beta, Theta, Projector
+          NAMELIST /VAR_Model_Generic/  Checkerboard, N_SUN, N_FL, Phi_X, Phi_Y, Symm, Bulk, N_Phi, Dtau, Beta, Theta,&
+               &   Projector
 
           NAMELIST /VAR_tV/  ham_T, ham_chem, ham_V, ham_T2, ham_V2, ham_Tperp,  ham_Vperp
 
@@ -218,7 +220,6 @@
           Ham_V2       = 0.d0
           Ham_Vperp    = 0.d0
 
-
 #ifdef MPI
           CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
           CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
@@ -238,8 +239,8 @@
 #endif
              OPEN(UNIT=5,FILE=file_para,STATUS='old',ACTION='read',IOSTAT=ierr)
              IF (ierr /= 0) THEN
-                WRITE(*,*) 'unable to open <parameters>',ierr
-                STOP
+                WRITE(error_unit,*) 'unable to open <parameters>',ierr
+                error stop 1 
              END IF
              READ(5,NML=VAR_lattice)
              READ(5,NML=VAR_Model_Generic)
@@ -278,6 +279,7 @@
           CALL MPI_BCAST(ham_V2      ,1,  MPI_REAL8    , 0,Group_Comm,ierr)
           CALL MPI_BCAST(ham_Tperp   ,1,  MPI_REAL8    , 0,Group_Comm,ierr)
           CALL MPI_BCAST(ham_Vperp   ,1,  MPI_REAL8    , 0,Group_Comm,ierr)
+
 #endif
 
           ! Setup the Bravais lattice
@@ -681,7 +683,7 @@
 !>  Time slice
 !> \endverbatim
 !-------------------------------------------------------------------
-        subroutine Obser(GR,Phase,Ntau)
+        subroutine Obser(GR,Phase,Ntau, Mc_step_weight)
 
           Use Predefined_Obs
 
@@ -690,6 +692,7 @@
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
           Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE
           Integer, INTENT(IN)          :: Ntau
+          Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
 
           !Local
           Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK, Zn, weight, delta
@@ -699,7 +702,8 @@
 
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
-
+          
+          ZS = ZS*Mc_step_weight
 
           Do nf = 1,N_FL
              Do I = 1,Ndim
@@ -804,7 +808,7 @@
 !>  Phase
 !> \endverbatim
 !-------------------------------------------------------------------
-        Subroutine ObserT(NT,  GT0,G0T,G00,GTT, PHASE)
+        Subroutine ObserT(NT,  GT0,G0T,G00,GTT, PHASE,Mc_step_weight)
 
           Use Predefined_Obs
 
@@ -813,6 +817,7 @@
           Integer         , INTENT(IN) :: NT
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: GT0(Ndim,Ndim,N_FL),G0T(Ndim,Ndim,N_FL),G00(Ndim,Ndim,N_FL),GTT(Ndim,Ndim,N_FL)
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: Phase
+          Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
 
           !Locals
           Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY
@@ -822,6 +827,9 @@
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
 
+          ZS = ZS*Mc_step_weight
+
+          
           ! Standard two-point correlations
 
           Call Predefined_Obs_tau_Green_measure  ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(1) )
@@ -831,6 +839,55 @@
         end Subroutine OBSERT
 
 #include "Hamiltonian_Hubbard_include.h"
+
+
+!--------------------------------------------------------------------
+!> @author 
+!> ALF Collaboration
+!>
+!> @brief 
+!>   Forces_0  = \partial S_0 / \partial s  are calculated and returned to  main program.
+!> 
+!-------------------------------------------------------------------
+        Subroutine Ham_Langevin_HMC_S0(Forces_0)
+
+          Implicit none
+
+          Real (Kind=Kind(0.d0)), Intent(out  ),  dimension(:,:) :: Forces_0
+
+          !Local
+          Integer :: N, N_op,nt
+          
+          ! Compute \partial S_0 / \partial s
+          Forces_0  = 0.d0
+          
+        end Subroutine Ham_Langevin_HMC_S0
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Single spin flip S0 ratio
+!> @details
+!> S0=exp(-S0(new))/exp(-S0(old)) where the new configuration correpsonds to the old one up to
+!> a spin flip of Operator n on time slice nt
+!> @details
+!--------------------------------------------------------------------
+      Real (Kind=Kind(0.d0)) function S0(n,nt,Hs_new)
+        Implicit none
+        !> Operator index
+        Integer, Intent(IN) :: n
+        !> Time slice
+        Integer, Intent(IN) :: nt
+        !> New local field on time slice nt and operator index n
+        Real (Kind=Kind(0.d0)), Intent(In) :: Hs_new
+
+        Integer :: nt1,I
+
+        S0 = 1.d0
+        
+      end function S0
 
 
     end Module Hamiltonian

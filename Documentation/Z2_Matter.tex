@@ -1,20 +1,24 @@
-% Copyright (c) 2016 2017 The ALF project.
+% Copyright (c) 2016 2020 The ALF project.
 % This is a part of the ALF project documentation.
 % The ALF project documentation by the ALF contributors is licensed
 % under a Creative Commons Attribution-ShareAlike 4.0 International License.
 % For the licensing details of the documentation see license.CCBYSA.
-% !TEX root = Model_classes.tex 
-\label{Z2.Sec}
+% !TEX root = doc.tex 
+
+
+\subsection{$\Ztwo$ lattice gauge theories coupled to fermion and $\Ztwo$ matter  \texttt{Z2\_mod.F90}} \label{Z2.Sec}
+
 The Hamiltonian we will consider here reads
 \begin{align}
-	\hat{H} =& -  t_{Z_2} \sum_{\langle \vec{i}, \vec{j} \rangle, \sigma } \hat{\sigma}^z_{\langle \vec{i}, \vec{j} \rangle}
-	\left(\hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{j},\sigma}   + h.c. \right) - \mu \sum_{\vec{i},\sigma} \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{i},\sigma}  
-	-g \sum_{\langle \vec{i}, \vec{j} \rangle } \hat{\sigma}^{x}_{\langle \vec{i}, \vec{j} \rangle }  +
-	  K \sum_{\square} \prod_{\langle \vec{i}, \vec{j} \rangle \in \partial \square} \hat{\sigma}^{z}_{\langle \vec{i}, \vec{j} \rangle}  \nonumber \\
-	& + J  \sum_{\langle \vec{i}, \vec{j} \rangle}  \hat{\tau}^z_{\pmb{i}}  \hat{\sigma}^{z}_{\langle \vec{i}, \vec{j} \rangle} \hat{\tau}^z_{\pmb{j}}   
-	      -  h \sum_{ \vec{i} } \hat{\tau}^x_{\vec{i}}   - t  \sum_{\langle \vec{i}, \vec{j} \rangle, \sigma }   \hat{\tau}^z_{\pmb{i}}   \hat{\tau}^z_{\pmb{j}}  \left( \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{j},\sigma} 	+ h.c. \right) + \frac{U}{N}\sum_{\ve{i}} \left[ \sum_{\sigma}  ( \hat{\Psi}^{\dagger}_{\ve{i},\sigma}  \hat{\Psi}^{\phantom\dagger}_{\ve{i},\sigma} - 1/2 ) \right]^2 
+	\hat{H} =& -  t_{\Ztwo} \sum_{\langle \vec{i}, \vec{j} \rangle, \sigma } \hat{\sigma}^z_{\langle \vec{i}, \vec{j} \rangle}
+	\left(\hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{j},\sigma}   + \hc \right) - \mu \sum_{\vec{i},\sigma} \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{i},\sigma}  
+	-g \sum_{\langle \vec{i}, \vec{j} \rangle } \hat{\sigma}^{x}_{\langle \vec{i}, \vec{j} \rangle } \nonumber \\
+	  & +K \sum_{\square} \prod_{\langle \vec{i}, \vec{j} \rangle \in \partial \square} \hat{\sigma}^{z}_{\langle \vec{i}, \vec{j} \rangle}  
+	 + J  \sum_{\langle \vec{i}, \vec{j} \rangle}  \hat{\tau}^z_{\pmb{i}}  \hat{\sigma}^{z}_{\langle \vec{i}, \vec{j} \rangle} \hat{\tau}^z_{\pmb{j}}   
+	      -  h \sum_{ \vec{i} } \hat{\tau}^x_{\vec{i}} \nonumber \\
+	& - t  \sum_{\langle \vec{i}, \vec{j} \rangle, \sigma }   \hat{\tau}^z_{\pmb{i}}   \hat{\tau}^z_{\pmb{j}}  \left( \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{j},\sigma} 	+ \hc \right) + \frac{U}{N}\sum_{\ve{i}} \left[ \sum_{\sigma}  \left( \hat{\Psi}^{\dagger}_{\ve{i},\sigma}  \hat{\Psi}^{\phantom\dagger}_{\ve{i},\sigma} - 1/2\right) \right]^2.
 \end{align}  
-The model is defined on a square lattice, and describers fermions, 
+The model is defined on a square lattice, and describes  fermions, 
 \begin{align}
  \left\{ \hat{\Psi}^{\dagger}_{\vec{i},\sigma},  \hat{\Psi}^{\phantom\dagger}_{\vec{j},\sigma'} \right\}  = \delta_{\vec{i},\vec{j}} \delta_{\sigma,\sigma'}, \;  
 \left\{ \hat{\Psi}^{\phantom\dagger}_{\vec{i},\sigma},  \hat{\Psi}^{\phantom\dagger}_{\vec{j},\sigma'} \right\}  =  0,  
@@ -34,24 +38,24 @@ coupled to  bond gauge fields,
 \left\{ \hat{\sigma}^{z}_{\langle \vec{i}, \vec{j} \rangle} , \hat{\sigma}^x_{\langle \vec{i}', \vec{j}'  \rangle} \right\}  =  2 \left( 1 -  \delta_{\langle \vec{i}, \vec{j}  \rangle, \langle \vec{i}', \vec{j}'  \rangle } \right) 
 \hat{\sigma}^{z}_{\langle \vec{i}, \vec{j} \rangle}  \hat{\sigma}^x_{\langle \vec{i}', \vec{j}'  \rangle}
 \end{align}
-and  $Z_2$ matter fields:
+and  $\Ztwo$ matter fields:
 \begin{align}
  \hat{\tau}_{\ve{i}}^{z} = 
 \begin{bmatrix}
 1 & 0 \\
 0 & -1 
-\end{bmatrix},  
+\end{bmatrix},\quad
 \hat{\tau}^{x}_{\vec{i} }  = 
 \begin{bmatrix}
 0 & 1 \\
 1 & 0 
-\end{bmatrix}, 
-\left\{ \hat{\tau}^{z}_{ \vec{i} } , \hat{\tau}^x_{\vec{i}'} \right\}  =  2 \left( 1 -  \delta_{ \vec{i}, \vec{i}' } \right) 
+\end{bmatrix},\quad 
+\left\{ \hat{\tau}^{z}_{ \vec{i} }, \hat{\tau}^x_{\vec{i}'} \right\}  =  2 \left( 1 -  \delta_{ \vec{i}, \vec{i}' } \right) 
 \hat{\tau}^{z}_{ \vec{i} }  \hat{\tau}^x_{ \vec{i}' }.
 \end{align}
- Fermions,  gauge fields and $Z_2$ matter fields commute with each other. 
+ Fermions,  gauge fields and $\Ztwo$ matter fields commute with each other. 
  
- Importantly,  the model has a local  $Z_2$ symmetry. Consider:
+ Importantly,  the model has a local  $\Ztwo$ symmetry. Consider:
 \begin{equation}
 	\hat{Q}_{\vec{i}} =  (-1)^{\sum_{\sigma} \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{i},\sigma}   } 
 	\;  \hat{\tau}^{x}_{\vec{i}}  \; \hat{\sigma}^{x}_{\vec{i},\vec{i} +  \vec{a}_x} \hat{\sigma}^{x}_{\vec{i},\vec{i} -  \vec{a}_x} \hat{\sigma}^{x}_{\vec{i},\vec{i} +  \vec{a}_y} \hat{\sigma}^{x}_{\vec{i}}.
@@ -60,13 +64,14 @@ One can  then show that  $\hat{Q}_{\vec{i}}^2 = 1 $ and that
 \begin{equation}
 	\left[   \hat{Q}_{\vec{i}}, \hat{H}  \right]  = 0. 
 \end{equation} 
-The above allows us to assign $Z_2$  charges to the operators.   Since $ \left\{ \hat{Q}_{\vec{i}},   \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \right\} =    0 $ we can assign a $Z_2$  charge to the fermions.  Equivalently 
-$\hat{\tau}^{z}_{\ve{i}}$   has a $Z_2$ charge and $\hat{\sigma}^{z}_{\vec{i},\vec{j}} $   carries  $Z_2$ charges at its ends.   
+The above allows us to assign $\Ztwo$  charges to the operators.   Since $ \left\{ \hat{Q}_{\vec{i}},   \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \right\} =    0 $ we can assign a $\Ztwo$  charge to the fermions.  Equivalently 
+$\hat{\tau}^{z}_{\ve{i}}$   has a $\Ztwo$ charge and $\hat{\sigma}^{z}_{\vec{i},\vec{j}} $   carries  $\Ztwo$ charges at its ends.   
  Since the total fermion number is conserved,   we can assign an electric charge to the  fermions.
-Finally,  the model has an SU(N) color symmetry.  In fact, at zero chemical potential and $U=0$,    the symmetry is enhanced to O(2N) \cite{Assaad16}.
+Finally, the model has an SU(N) color symmetry.
+In fact, at zero chemical potential and $U=0$, the symmetry is enhanced to $O(2N)$ \cite{Assaad16}.
 Aspects of this Hamiltonian were investigated in Refs.~\cite{Assaad16,Gazit16,Gazit18,Gazit19,Hohenadler18,Hohenadler19} and we refer the interested user to these papers for a discussion of the phases and phase transitions supported by the model.
 
-\subsubsection*{ QMC implementation } 
+\subsubsection*{QMC implementation} 
 
 The name space for this model class reads: 
 
@@ -82,16 +87,17 @@ Ham_h          = 1.0        ! sigma^x-term for matter
 Ham_g          = 1.0        ! tau^x-term for gauge
 Dtau           = 0.1d0      ! Thereby Ltrot=Beta/dtau
 Beta           = 10.d0      ! Inverse temperature
-Projector      = False      ! To enable projective code
+Projector      = .False.    ! To enable projective code
 Theta          = 10.0       ! Projection parameter 
 /
 \end{lstlisting}
 
 
-We note that the implementation is such that  if \texttt{Ham\_T=0}   (\texttt{Ham\_TZ2=0}) then all the terms involving the matter field ($Z_2$  gauge field) are automatically set to zero.  
-We  warn the user that autocorrelation and warmup times ca be  large for this model class.  At this point, only the finite temperature code is implemented. 
+We note that the implementation is such that  if \texttt{Ham\_T=0}   (\texttt{Ham\_TZ2=0}) then all the terms involving the matter field ($\Ztwo$  gauge field) are automatically set to zero.  
+We warn the user that autocorrelation and warmup times can be  large for this model class.
+At this point,  the model is only implemented for the square lattice  and does not support a symmetric Trotter decomposition.
 
-The key point to implement the model,  is to  define a new bond variable: 
+The key point to implement the model is to  define a new bond variable: 
 \begin{equation}
 	\hat{\mu}^{z}_{ \langle  \ve{i}, \ve{j}  \rangle }  =  \hat{\tau}^{z}_{ \ve{i}}\hat{\tau}^{z}_{\ve{j}  }. 
 \end{equation}  
@@ -104,41 +110,42 @@ By construction, the $\hat{\mu}^{z}_{ \langle  \ve{i}, \ve{j}  \rangle } $ bond 
 
 
 Consider a basis where  $\hat{\mu}^{z}_{ \langle  \ve{i}, \ve{j}  \rangle } $ and $  \hat{\tau}^{z}_{ \ve{i}}$  are diagonal with eigenvalues  $\mu_{ \langle  \ve{i}, \ve{j}  \rangle } $ and $  {\tau}_{ \ve{i}}$  respectively. 
-The map from  $ \left\{ \tau_{\vec{i}}  \right\} $ to $ \left\{ \mu_{\langle \vec{i}, \vec{j} \rangle } \right\} $  is unique.  The reverse however  is valid only up to  to a global sign.  To pin down this sign  (and thereby   the  relative signs between different time slices)  we  store per time slice the $  \mu_{\langle \vec{i},\vec{j} \rangle } $ fields as well as the value of the Ising field  at  a reference site $\tau_{\vec{i} = \ve{0}} $. Within the ALF, this can be done by adding a dummy operator in the \texttt{Op\_V}  list which will carry this degree of freedom.    With this extra degree of freedom we can switch  between the two representations, without loosing any information.   To compute the Ising part of the action it is certainly more transparent to work  with the $ \left\{ \tau_{\vec{i}}  \right\} $  variables. For the  fermion determinant,  the $ \left\{ \mu_{\langle \vec{i}, \vec{j} \rangle } \right\} $   are more convenient.
+The map from  $ \left\{ \tau_{\vec{i}}  \right\} $ to $ \left\{ \mu_{\langle \vec{i}, \vec{j} \rangle } \right\} $  is unique.
+The reverse however  is valid only up to a global sign.
+To pin down this sign (and thereby  the  relative signs between different time slices)  we store the fields $ \mu_{\langle \vec{i},\vec{j} \rangle } $ at every time slice as well as the value of the Ising field at a reference site $\tau_{\vec{i} = \ve{0}}$. Within the ALF, this can be done by adding a dummy operator in the \texttt{Op\_V} list to carry this degree of freedom.    With this extra degree of freedom we can switch  between the two representations without loosing any information.   To compute the Ising part of the action it is certainly more transparent to work  with the $ \left\{ \tau_{\vec{i}}  \right\} $  variables. For the  fermion determinant,  the $ \left\{ \mu_{\langle \vec{i}, \vec{j} \rangle } \right\} $   are more convenient.
 
-Since flipping  $\hat{\tau}^{z}_{ \ve{i}} $  amounts to changing the sign of the four  bond variables emanating from site $\ve{i}$,  the identitiy:
+Since flipping  $\hat{\tau}^{z}_{ \ve{i}} $  amounts to changing the sign of the four  bond variables emanating from site $\ve{i}$, the identity:
 \begin{equation}
 \hat{\tau}^x_{\ve{i}}  = \hat{\mu}^{x}_{\ve{i},\ve{i} + \ve{a}_x } \hat{\mu}^{x}_{\ve{i} + \ve{a}_x, \ve{i} + \ve{a}_x + \ve{a}_y }   \hat{\mu}^{x}_{\ve{i} + \ve{a}_x + \ve{a}_y, \ve{i} + \ve{a}_y  }
 \end{equation}
 holds.  
 Note that $\left\{ \hat{\mu}^{z}_{\langle \vec{i}, \vec{j} \rangle} , \hat{\mu}^x_{\langle \vec{i}', \vec{j}'  \rangle} \right\}  =  2 \left( 1 -  \delta_{\langle \vec{i}, \vec{j}  \rangle, \langle \vec{i}', \vec{j}'  \rangle } \right) 
-\hat{\mu}^{z}_{\langle \vec{i}, \vec{j} \rangle}  \hat{\mu}^x_{\langle \vec{i}', \vec{j}'  \rangle} $    such that applying $\hat{\mu}^x_{\langle \vec{i}, \vec{j}  \rangle}$  on an eigenstate of  $\hat{\mu}^{z}_{\langle \vec{i}, \vec{j} \rangle}$  flips the 
-field. 
+\hat{\mu}^{z}_{\langle \vec{i}, \vec{j} \rangle}  \hat{\mu}^x_{\langle \vec{i}', \vec{j}'  \rangle} $, such that applying $\hat{\mu}^x_{\langle \vec{i}, \vec{j}  \rangle}$  on an eigenstate of  $\hat{\mu}^{z}_{\langle \vec{i}, \vec{j} \rangle}$  flips the field. 
 
 
 The model  can then be written as:
 \begin{align}
-	\hat{H} =& -  t_{Z_2} \sum_{\langle \vec{i}, \vec{j} \rangle, \sigma } \hat{\sigma}^z_{\langle \vec{i}, \vec{j} \rangle}
-	\left(\hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{j},\sigma}   + h.c. \right) - \mu \sum_{\vec{i},\sigma} \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{i},\sigma}  
+	\hat{H} =& - t_{\Ztwo}\! \sum_{\langle \vec{i}, \vec{j} \rangle, \sigma } \hat{\sigma}^z_{\langle \vec{i}, \vec{j} \rangle}
+	\left(\hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{j},\sigma} \!+ \hc \right) - \mu \sum_{\vec{i},\sigma} \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{i},\sigma}  
 	-g \sum_{\langle \vec{i}, \vec{j} \rangle } \hat{\sigma}^{x}_{\langle \vec{i}, \vec{j} \rangle }  +
 	  K \sum_{\square} \prod_{\langle \vec{i}, \vec{j} \rangle \in \partial \square} \hat{\sigma}^{z}_{\langle \vec{i}, \vec{j} \rangle}  \nonumber \\
 	& + J  \sum_{\langle \vec{i}, \vec{j} \rangle}  \hat{\mu}^z_{ \langle \pmb{i}, \ve{j} \rangle }  \hat{\sigma}^{z}_{\langle \vec{i}, \vec{j} \rangle}    
 	      -  h \sum_{ \vec{i} } \hat{\mu}^{x}_{\ve{i},\ve{i} + \ve{a}_x } \hat{\mu}^{x}_{\ve{i} + \ve{a}_x, \ve{i} + \ve{a}_x + \ve{a}_y }   \hat{\mu}^{x}_{\ve{i} + \ve{a}_x + \ve{a}_y, \ve{i} + \ve{a}_y  }
-	         \hat{\mu}^{x}_{\ve{i} + \ve{a}_y, \ve{i}  }	  \\      
-	&        - t  \sum_{\langle \vec{i}, \vec{j} \rangle, \sigma }   \hat{\mu}^z_{\pmb{i},\ve{j}}    \left( \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{j},\sigma} 	+ h.c. \right) + \frac{U}{N}\sum_{\ve{i}} \left[ \sum_{\sigma}  ( \hat{\Psi}^{\dagger}_{\ve{i},\sigma}  \hat{\Psi}^{\phantom\dagger}_{\ve{i},\sigma} - 1/2 ) \right]^2 
+	         \hat{\mu}^{x}_{\ve{i} + \ve{a}_y, \ve{i}  }	\nonumber  \\      
+	&        - t  \sum_{\langle \vec{i}, \vec{j} \rangle, \sigma }   \hat{\mu}^z_{\pmb{i},\ve{j}}    \left( \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{j},\sigma} 	+ \hc \right) + \frac{U}{N}\sum_{\ve{i}} \left[ \sum_{\sigma}  ( \hat{\Psi}^{\dagger}_{\ve{i},\sigma}  \hat{\Psi}^{\phantom\dagger}_{\ve{i},\sigma} - 1/2 ) \right]^2 
 \end{align}  
-subject to the constraint of Eq.~\ref{zero_flux.eq}.  
+subject to the constraint of Eq.~\eqref{zero_flux.eq}.  
 
 To formulate the Monte Carlo, we work in a basis in which  $\hat{\mu}^{z}_{ \langle  \ve{i}, \ve{j} \rangle }$,  $ \hat{\tau}^{z}_{   \ve{0} } $  and  $ \hat{\sigma}^{z}_{ \langle  \ve{i}, \ve{j} \rangle }$    are diagonal: 
 \begin{align}
-	  \hat{\mu}^{z}_{ \langle  \ve{i}, \ve{j} \rangle } |  \underline{s} \rangle  =  \mu_{ \langle  \ve{i}, \ve{j} \rangle }   |  \underline{s} \rangle, 
-	 \hat{\sigma}^{z}_{ \langle  \ve{i}, \ve{j} \rangle }|  \underline{s} \rangle  =  \sigma_{ \langle  \ve{i}, \ve{j} \rangle } |  \underline{s} \rangle,    
+	  \hat{\mu}^{z}_{ \langle  \ve{i}, \ve{j} \rangle } |  \underline{s} \rangle  =  \mu_{ \langle  \ve{i}, \ve{j} \rangle }   |  \underline{s} \rangle,\quad 
+	 \hat{\sigma}^{z}_{ \langle  \ve{i}, \ve{j} \rangle }|  \underline{s} \rangle  =  \sigma_{ \langle  \ve{i}, \ve{j} \rangle } |  \underline{s} \rangle,\quad    
 	  \hat{\tau}^{z}_{   \ve{0} }  |  \underline{s} \rangle   =  \tau_{  \ve{0} } |  \underline{s} \rangle
 \end{align}
 with $ \underline{s} = \left( \left\{  \mu_{ \langle  \ve{i}, \ve{j} \rangle }  \right\},  \left\{  \sigma_{ \langle  \ve{i}, \ve{j} \rangle }  \right\},  \tau_{\ve{0}}  \right) $. 
 In this basis,
 \begin{equation}
-   Z  =  \sum_{\underline {s}_1, \cdots, \underline {s}_{L_{\tau}}}  e^{-S_0( \left\{ \underline{s}_\tau \right\})} \text{Tr}_F   \left[    \prod_{\tau=1}^{L_{\tau}} e^{- \Delta \tau \hat{H}_F(\underline{s}_{\tau}) } \right]
+   Z  =  \sum_{\underline {s}_1, \cdots, \underline {s}_{L_{\tau}}}  e^{-S_0( \left\{ \underline{s}_\tau \right\})} \text{Tr}_F   \left[    \prod_{\tau=1}^{L_{\tau}} e^{- \Delta \tau \hat{H}_F(\underline{s}_{\tau}) } \right],
  \end{equation}
  where 
  \begin{align*}
@@ -153,57 +160,61 @@ In this basis,
 and 
  \begin{align*}
    \hat{H}_F(\underline{s})  = 
-   	     & -  t_{Z_2} \sum_{\langle \vec{i}, \vec{j} \rangle, \sigma } \sigma_{\langle \vec{i}, \vec{j} \rangle}
-	\left(\hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{j},\sigma}   + h.c. \right) - \mu \sum_{\vec{i},\sigma} \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{i},\sigma}     
-         - t  \sum_{\langle \vec{i}, \vec{j} \rangle, \sigma }   \mu_{\pmb{i},\ve{j}}    \left( \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{j},\sigma} 	+ h.c. \right)  
-         \\
-         & +\frac{U}{N}\sum_{\ve{i}} \left[ \sum_{\sigma}  ( \hat{\Psi}^{\dagger}_{\ve{i},\sigma}  \hat{\Psi}^{\phantom\dagger}_{\ve{i},\sigma} - 1/2 ) \right]^2. 
+   	     & - t_{\Ztwo} \sum_{\langle \vec{i}, \vec{j} \rangle, \sigma } \sigma_{\langle \vec{i}, \vec{j} \rangle}
+	\left(\hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{j},\sigma}   + \hc \right) - \mu \sum_{\vec{i},\sigma} \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{i},\sigma}  \\
+         & - t  \sum_{\langle \vec{i}, \vec{j} \rangle, \sigma }   \mu_{\pmb{i},\ve{j}}    \left( \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{j},\sigma} 	+ \hc \right)  
+         +\frac{U}{N}\sum_{\ve{i}} \left[ \sum_{\sigma}  ( \hat{\Psi}^{\dagger}_{\ve{i},\sigma}  \hat{\Psi}^{\phantom\dagger}_{\ve{i},\sigma} - 1/2 ) \right]^2. 
  \end{align*}
-In the above, $  | \underline{s}_{L_\tau+1}  \rangle  = | \underline{s}_{1}  \rangle   $.  With a further  HS transformation of the Hubbard term (see Sec.~\ref{Hubbard_SUN_HS.eq})  the model is readily implemented in the ALF.    Including this HS field, $l$,  (see Eq.~\ref{HS_squares}) yields  the configuration space: 
+In the above, $  | \underline{s}_{L_\tau+1}  \rangle  = | \underline{s}_{1}  \rangle   $.  With a further  HS transformation of the Hubbard term (see Sec.~\ref{Hubbard_SUN_HS.eq})  the model is readily implemented in the ALF.    Including this HS field, $l$,  [see Eq.~\eqref{HS_squares}] yields  the configuration space: 
 \begin{equation}
-	C = \left(  \left\{  \mu_{ \langle  \ve{i}, \ve{j} \rangle,\tau }  \right\},  \left\{  \sigma_{ \langle  \ve{i}, \ve{j} \rangle, \tau }  \right\},    \left\{ \tau_{\ve{0},\tau}    \right\},  \left\{ l_{\ve{i}, \tau}  \right\}  \right) 
+	C = \left(  \big\{  \mu_{ \langle  \ve{i}, \ve{j} \rangle,\tau }  \big\},  \big\{  \sigma_{ \langle  \ve{i}, \ve{j} \rangle, \tau }  \big\},    \big\{ \tau_{\ve{0},\tau}  \big\},  \big\{ l_{\ve{i}, \tau}  \big\}  \right) 
 \end{equation} 
 where the variables $\mu$, $\tau$ and $\sigma$ take the values $\pm 1$  and $l$  the values $\pm1, \pm 2$. 
 
-The initial configuration as well as the  moves have to respect the zero flux constraint of Eq.~\ref{zero_flux.eq}. Thereby single spin flips of the $\mu$ fields  are prohibited and the minimal move one can carry out on  a given time slice is the following. We randomly choose a site $\vec{i} $ and  propose a move where:
+The initial configuration as well as the  moves have to respect the zero flux constraint of Eq.~\eqref{zero_flux.eq}. Therefore, single spin flips of the $\mu$ fields  are prohibited and the minimal move one can carry out on  a given time slice is the following. We randomly choose a site $\vec{i} $ and  propose a move where:
 $ \mu_{\vec{i},\vec{i} +  \vec{a}_x} \rightarrow - \mu_{\vec{i},\vec{i} +  \vec{a}_x} $,  $ \mu_{\vec{i},\vec{i} -  \vec{a}_x} \rightarrow - \mu_{\vec{i},\vec{i} -  \vec{a}_x} $,
 $ \mu_{\vec{i},\vec{i} +  \vec{a}_y} \rightarrow - \mu_{\vec{i},\vec{i} +  \vec{a}_y} $ and $ \mu_{\vec{i},\vec{i} -  \vec{a}_y} \rightarrow - \mu_{\vec{i},\vec{i} -  \vec{a}_y} $.  One can carry out such moves by using the global move in real space option presented in Sec.~\ref{sec:global_space} and \ref{sec:input}.
 
 \subsubsection{Projective approach} 
-The program  equally supports a zero temperature implementation.    Our  choice  of the trial wave  function does not break any symmetries of the model and reads: 
+The program also supports a zero temperature implementation.
+Our  choice  of the trial wave  function does not break any symmetries of the model and reads: 
 \begin{equation}
 	| \Psi_T \rangle  =    | \Psi^{F}_T \rangle \,  \otimes_{\langle \ve{i},\ve{j} \rangle}  | + \rangle_{\langle \ve{i},\ve{j} \rangle }     \,  \otimes_{ \ve{i} }  | + \rangle_{ \ve{i} }.   
 \end{equation}
-For the fermion part we use  a Fermi see with small dimerization to avoid the negative sign problem at half-filling (see Sec.~\ref{Sec:Plain_vanilla_trial}).  For the Ising part the trial   wave function  is diagonal in the $ \hat{\sigma}^{x}_{\langle \ve{i}, \ve{j} \rangle} $ and $\hat{\tau}^{x}_{\ve{i}} $   operators: 
+For the fermion part we use a Fermi sea with small dimerization to avoid the negative sign problem at half-filling (see Sec.~\ref{Sec:Plain_vanilla_trial}).  For the Ising part the trial   wave function  is diagonal in the $ \hat{\sigma}^{x}_{\langle \ve{i}, \ve{j} \rangle} $ and $\hat{\tau}^{x}_{\ve{i}} $   operators: 
 \begin{equation}
-	\hat{\sigma}^{x}_{\langle \ve{i}, \ve{j} \rangle}  | + \rangle_{\langle \ve{i},\ve{j} }\rangle  = | + \rangle_{\langle \ve{i},\ve{j} \rangle }  \text{  and }  \hat{\tau}^{x}_{\ve{i}} | + \rangle_{ \ve{i} } = | + \rangle_{ \ve{i} }.
+	\hat{\sigma}^{x}_{\langle \ve{i}, \ve{j} \rangle}  | + \rangle_{\langle \ve{i},\ve{j} \rangle}  = | + \rangle_{\langle \ve{i},\ve{j} \rangle }  \quad\text{and}\quad  \hat{\tau}^{x}_{\ve{i}} | + \rangle_{ \ve{i} } = | + \rangle_{ \ve{i} }.
 \end{equation}
 
 An alternative  choice would  be to choose a  charge density wave  fermionic trial wave function.     This   violates the partial particle-hole symmetry of the model at $U=\mu=0$ and effectively imposes the constraint $\hat{Q}_{\ve{i}} =1 $.
 
 \subsubsection{Observables} 
-Aside from the  standard  observables discussed in Sec.~\ref{sec:predefined_observales}  the code  computes  
-\begin{equation} 
-	\langle  \hat{\sigma}^{x}_{ \langle \ve{i},\ve{j} \rangle } \rangle    \text{   and  }  \langle  \hat{\tau}^{x}_{ \ve{j}  } \rangle    \nonumber
-\end{equation}
-(file  \texttt{X\_scal}), 
-\begin{equation} 
-	\langle  \hat{\sigma}^{z}_{ \langle \ve{i},\ve{i} + \ve{a}_x \rangle }   \hat{\sigma}^{z}_{ \langle \ve{i} + \ve{a}_x ,\ve{i} + \ve{a}_x +  \ve{a}_y   \rangle }  
-	                      \hat{\sigma}^{z}_{ \langle \ve{i}+ \ve{a}_x +  \ve{a}_y ,\ve{i} + \ve{a}_y \rangle }   \hat{\sigma}^{z}_{ \langle \ve{i} + \ve{a}_y,\ve{i}  \rangle }   \rangle    \text{   and  }    \langle  \hat{\mu}^{z}_{ \langle \ve{i},\ve{i} + \ve{a}_x \rangle }   \hat{\mu}^{z}_{ \langle \ve{i} + \ve{a}_x ,\ve{i} + \ve{a}_x +  \ve{a}_y   \rangle }  
-	                      \hat{\mu}^{z}_{ \langle \ve{i}+ \ve{a}_x +  \ve{a}_y ,\ve{i} + \ve{a}_y \rangle }   \hat{\mu}^{z}_{ \langle  \ve{i} + \ve{a}_y,\ve{i}  \rangle }   \rangle   \nonumber
-\end{equation}
-(file \texttt{Flux\_scal} ),   as well as $ \langle \hat{Q}_{\ve{i}} \rangle $ (file \texttt{Q\_scal}).  Note that the flux over a plaquette  of the $\hat{\mu}^{z}_{ \langle \ve{i},\ve{j} \rangle  } $   is equal to unity by construction  so that this observable  provides a cross-check.    The file \texttt{Q\_eq}   contains the two point correlation $ \langle \hat{Q}_{\ve{i}} \hat{Q}_{\ve{j}} \rangle -   \langle \hat{Q}_{\ve{i}} \rangle \langle \hat{Q}_{\ve{j}} \rangle $  and \texttt{Greenf\_eq}  the   equal time fermion   Green function 
-$  \langle  \hat{\tau}^{z}_{\ve{i}}  \hat{\Psi}^{\dagger}_{\ve{i},\sigma}  \hat{\tau}^{z}_{\ve{j}}  \hat{\Psi}^{\phantom\dagger}_{\ve{j},\sigma}   \rangle $.
+Apart from the  standard  observables discussed in Sec.~\ref{sec:predefined_observales}  the code computes additionally  
+\begin{equation*} 
+	\big\langle  \hat{\sigma}^{x}_{ \langle \ve{i},\ve{j} \rangle } \big\rangle    \quad\text{and}\quad  \big\langle  \hat{\tau}^{x}_{ \ve{j}  } \big\rangle,
+\end{equation*}
+which are written to file  \texttt{X\_scal}; 
+\begin{equation*}
+	\big\langle  \hat{\sigma}^{z}_{ \langle \ve{i},\ve{i} + \ve{a}_x \rangle }   \hat{\sigma}^{z}_{ \langle \ve{i} + \ve{a}_x ,\ve{i} + \ve{a}_x +  \ve{a}_y   \rangle }  
+	\hat{\sigma}^{z}_{ \langle \ve{i}+ \ve{a}_x +  \ve{a}_y ,\ve{i} + \ve{a}_y \rangle }   \hat{\sigma}^{z}_{ \langle \ve{i} + \ve{a}_y,\ve{i}  \rangle }   \big\rangle
+\end{equation*}
+	and
+\begin{equation*}
+	\big\langle  \hat{\mu}^{z}_{ \langle \ve{i},\ve{i} + \ve{a}_x \rangle }   \hat{\mu}^{z}_{ \langle \ve{i} + \ve{a}_x ,\ve{i} + \ve{a}_x +  \ve{a}_y   \rangle }  
+	\hat{\mu}^{z}_{ \langle \ve{i}+ \ve{a}_x +  \ve{a}_y ,\ve{i} + \ve{a}_y \rangle }   \hat{\mu}^{z}_{ \langle  \ve{i} + \ve{a}_y,\ve{i}  \rangle }   \big\rangle,
+\end{equation*}
+written to file \texttt{Flux\_scal}; and also $ \langle \hat{Q}_{\ve{i}} \rangle $ (file \texttt{Q\_scal}).  Note that the flux over a plaquette  of the $\hat{\mu}^{z}_{ \langle \ve{i},\ve{j} \rangle  } $   is equal to unity by construction  so that this observable  provides a sanity check.    The file \texttt{Q\_eq} contains the two-point correlation $ \langle \hat{Q}_{\ve{i}} \hat{Q}_{\ve{j}} \rangle -  \langle \hat{Q}_{\ve{i}} \rangle \langle \hat{Q}_{\ve{j}} \rangle $  and \texttt{Greenf\_eq}  the equal-time fermion   Green function 
+$ \langle  \hat{\tau}^{z}_{\ve{i}}  \hat{\Psi}^{\dagger}_{\ve{i},\sigma}  \hat{\tau}^{z}_{\ve{j}}  \hat{\Psi}^{\phantom\dagger}_{\ve{j},\sigma}   \rangle $.
 
 
-\subsubsection{A test case: $Z_2$ slave spin formulation of the  SU(2)  Hubbard model }
+\subsubsection{A test case: $\Ztwo$ slave spin formulation of the SU(2) Hubbard model }
 
-In this subsection, we  demonstrate that the code can be used to  simulate the attractive Hubbard model in the  $Z_2$-slave spin formulation \cite{Ruegg10}:
+In this subsection, we  demonstrate that the code can be used to  simulate the attractive Hubbard model in the  $\Ztwo$-slave spin formulation \cite{Ruegg10}:
 \begin{equation}
         \hat{H} = -t \sum_{\langle \vec{i}, \vec{j} \rangle, \sigma }\hat{c}^{\dagger}_{\vec{i},\sigma} \hat{c}^{\phantom{\dagger}}_{\vec{j},\sigma}   -  U  \sum_i
         \left( \hat{n}_{\vec{i}, \uparrow} - 1/2\right)  \left( \hat{n}_{\vec{i}, \downarrow} - 1/2\right).
 \end{equation}
-In the $Z_2$ slave spin  representation, the physical fermion, $\hat{c}_{\vec{i},\sigma} $,   is fractionalized into  an Ising spin carrying $Z_2$ charge and a fermion, $\hat{\Psi}_{\vec{i},\sigma} $, carrying $Z_2$ and  global $U(1)$ charge:
+In the $\Ztwo$ slave spin  representation, the physical fermion, $\hat{c}_{\vec{i},\sigma} $,   is fractionalized into  an Ising spin carrying $\Ztwo$ charge and a fermion, $\hat{\Psi}_{\vec{i},\sigma} $, carrying $\Ztwo$ and  global $U(1)$ charge:
 \begin{equation}
         \hat{c}^{\dagger}_{\vec{i},\sigma}  = \hat{\tau}^{z}_{\vec{i}} \hat{\Psi}^{\dagger}_{\vec{i},\sigma}.
 \end{equation}
@@ -211,7 +222,7 @@ To ensure that we remain in the correct Hilbert space, the constraint:
 \begin{equation}
         \hat{\tau}^{x}_{i}   - (-1)^{\sum_{\sigma}\hat{\Psi}^{\dagger}_{i,\sigma}  \hat{\Psi}^{\phantom{\dagger}}_{i,\sigma}  }  = 0
 \end{equation}
-has to be impose locally. Since $\left(  \tau^{x}_{\vec{i}}\right)^2 = 1 $ it is   equivalent to
+has to be imposed locally. Since $\left(  \tau^{x}_{\vec{i}}\right)^2 = 1 $, the latter is   equivalent to
  \begin{equation}
         \hat{Q}_{\vec{i}} = \tau^{x}_{\vec{i}}  (-1)^{\sum_{\sigma}\hat{\Psi}^{\dagger}_{\vec{i},\sigma}  \hat{\Psi}^{\phantom{\dagger}}_{\vec{i},\sigma}  }   = 1.
  \end{equation}
@@ -219,45 +230,42 @@ has to be impose locally. Since $\left(  \tau^{x}_{\vec{i}}\right)^2 = 1 $ it is
  \begin{equation}
  	(-1)^{\sum_{\sigma}\hat{\Psi}^{\dagger}_{\vec{i},\sigma}  \hat{\Psi}^{\phantom{\dagger}}_{\vec{i},\sigma}  }    = \prod_{\sigma} ( 1 - 2 \hat{\Psi}^{\dagger}_{\vec{i},\sigma}  \hat{\Psi}^{\phantom{\dagger}}_{\vec{i},\sigma} ) =  4\prod_{\sigma} ( \hat{c}^{\dagger}_{\vec{i},\sigma}  \hat{c}^{\phantom{\dagger}}_{\vec{i},\sigma}  - 1/2 ),
  \end{equation}
- the  $Z_2$ slave spin representation of  the Hubbard model now reads:
+ the  $\Ztwo$ slave spin representation of  the Hubbard model now reads:
  \begin{equation}
-         \hat{H}_{Z_2}= -t \sum_{\langle \vec{i}, \vec{j} \rangle, \sigma }  \hat{\tau}^{z}_{\vec{i}}  \hat{\tau}^{z}_{\vec{j}} \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{j},\sigma}   -  \frac{U}{4}  \sum_{\vec{i}}  \hat{\tau}^{x}_{\vec{i}}.
+         \hat{H}_{\Ztwo}= -t \sum_{\langle \vec{i}, \vec{j} \rangle, \sigma }  \hat{\tau}^{z}_{\vec{i}}  \hat{\tau}^{z}_{\vec{j}} \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{j},\sigma}   -  \frac{U}{4}  \sum_{\vec{i}}  \hat{\tau}^{x}_{\vec{i}}.
  \end{equation}
  Importantly, the constraint  commutes with Hamiltonian:
  \begin{equation}
-        \left[ \hat{H}_{Z_2}, \hat{Q}_{\vec{i}} \right] = 0.
+        \left[ \hat{H}_{\Ztwo}, \hat{Q}_{\vec{i}} \right] = 0.
  \end{equation}
-Hence  one can foresee that the constraint will be dynamically imposed (we expect a finite temperature Ising phase  transitions  below which $\hat{Q}_{\ve{i}} $  orders) and that at  $T=0$ on a finite lattice both models should give the same results.
+Hence  one can foresee that the constraint will be dynamically imposed (we expect a finite-temperature Ising phase  transition below which $\hat{Q}_{\ve{i}}$ orders) and that at  $T=0$ on a finite lattice both models should give the same results.
 
 
 A test run for the $8\times 8 $ lattice at $U/t = 4$ and $\beta t = 40$ gives:
 \begin{center}
-\begin{tabular}{@{} c c c @{}}
+\begin{tabular}{c c c}
  \toprule
-   k   &  $\langle n_k \rangle_{H} $  &  $\langle n_k \rangle_{H_{Z_2}} $ \\
+   k                      & $\langle n_k \rangle_{H} $     &  $\langle n_k \rangle_{H_{\Ztwo}}$\\
   \midrule
-   $(0,0)$                      & $1.93348548    \pm    0.00011322$  &   $ 1.93333895   \pm     0.00010405 $ \\
-   $(\pi/4, \pi/4)$             & $1.90120688     \pm   0.00014854$  &  $1.90203726  \pm      0.00017943 $ \\
-   $(\pi/2, \pi/2)$             & $0.99942957     \pm   0.00091377$  & $1.00000000    \pm     0.00000000$\\
-   $(3\pi/4, 3\pi/4)$         &  $0.09905425     \pm   0.00015940$ & $ 0.09796274   \pm     0.00017943 $ \\
-   $(\pi,\pi)$                   & $0.06651452     \pm   0.00011321$  &  $ 0.06666105     \pm  0.00010405   $ \\
+   $(0,0)$                & $1.93348548  \pm  0.00011322$  &  $ 1.93333895  \pm  0.00010405 $ \\
+   $(\pi/4, \pi/4)$       & $1.90120688  \pm  0.00014854$  &  $ 1.90203726  \pm  0.00017943 $ \\
+   $(\pi/2, \pi/2)$       & $0.99942957  \pm  0.00091377$  &  $ 1.00000000  \pm  0.00000000 $ \\
+   $(3\pi/4, 3\pi/4)$     & $0.09905425  \pm  0.00015940$  &  $ 0.09796274  \pm  0.00017943 $ \\
+   $(\pi,\pi)$            & $0.06651452  \pm  0.00011321$  &  $ 0.06666105  \pm  0.00010405 $ \\
   \bottomrule
 \end{tabular}
 
 \end{center}
 \vspace*{0.5cm}
-Here a Trotter time step of  $\Delta \tau t = 0.05$ was used  so as to minimize the systematic error   which should be different  between the two codes.   The Hamiltonian is invariant under a partial particle-hole transformation (see Ref.~\cite{Assaad16}. Since $\hat{Q}_{\ve{i}} $ is odd under this  transformation 
-$\langle \hat{Q}_{\ve{i}}  \rangle =0$. To asses if the constraint is well imposed,  the code,  for this special case, computes the correlation function:
+Here a Trotter time step of  $\Delta \tau t = 0.05$ was used in order to minimize the systematic error   which should be different  between the two codes.   The Hamiltonian is invariant under a partial particle-hole transformation (see Ref.~\cite{Assaad16}).
+Since $\hat{Q}_{\ve{i}} $ is odd under this  transformation, $\langle \hat{Q}_{\ve{i}}  \rangle =0$.
+ To asses whether the constraint is well imposed,  the code,  for this special case, computes the correlation function:
 \begin{equation}
 	   S_Q(\ve{q})  = \sum_{\ve{i}}    \langle \hat{Q}_{\ve{i}} \hat{Q}_{\ve{0}}   \rangle.
 \end{equation}
-For the above run we obtain  $ S_Q(\ve{q} = \ve{0}) = 63.42  \pm   1.7 $  which,   for this $ 8\times 8$ lattice, complies with a ferromagnetic ordering of the 
-Ising  $\hat{Q}_{\ve{i}}$  variables.    The pyALF python script that produces this data can be found in  \href{https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/blob/master/Scripts/Z2_Matter.py}{\texttt{Z2\_Matter.py}}
-This code  was used in Ref.~\cite{Hohenadler19}.  
-
-
-
-
+For the above run we obtain  $ S_Q(\ve{q} = \ve{0}) = 63.4 \pm 1.7 $  which,   for this $ 8\times 8$ lattice, complies with a ferromagnetic ordering of the 
+Ising  $\hat{Q}_{\ve{i}}$  variables.    The pyALF python script that produces this data can be found in  \href{https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/blob/master/Scripts/Z2_Matter.py}{\texttt{Z2\_Matter.py}}.
+This code  was used in Refs.~\cite{Hohenadler18,Hohenadler19}.  
 
 
  
@@ -267,7 +275,7 @@ This code  was used in Ref.~\cite{Hohenadler19}.
 %\item  Include a projective version, with different left and right wave functions. The right imposes translation invariance and  the left  the constraint.  That is,  we choose the right trial wave function to be the ground state of 
 %\begin{equation}
 %	\hat{H}_T^{R}  = -  t  \sum_{\langle \vec{i}, \vec{j} \rangle, \sigma } 
-%	  \left( \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{j},\sigma}    + h.c. \right)  
+%	  \left( \hat{\Psi}^{\dagger}_{\vec{i},\sigma} \hat{\Psi}^{\phantom{\dagger}}_{\vec{j},\sigma}    + \hc \right)  
 %	  - h \sum_{\vec{i} } \left( \hat{X}_{\vec{i},\vec{i} +  \vec{a}_x }+  \hat{X}_{\vec{i},\vec{i} +  \vec{a}_y}  + \tau^{x}_{\vec{i}} \right)
 %\end{equation}
 %and the left one to be the ground state of

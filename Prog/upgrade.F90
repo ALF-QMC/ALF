@@ -97,7 +97,7 @@
 !>  *  The weight reads \f$ W(C)  =   \left[ \left( \prod_{n,\tau}  \exp \left[ g(n,\tau) \alpha(n,\tau) \phi(\sigma(n,\tau)) \right] \right) \det(M(C))\right]^{N_{SUN}} \prod_{n,\tau }\gamma(\sigma(n,\tau)) \f$
 !--------------------------------------------------------------------
 
-      Subroutine Upgrade2(GR,N_op,NT,PHASE,Op_dim,Hs_new, Prev_Ratiotot, S0_ratio, T0_proposal_ratio, toggle,  mode)
+      Subroutine Upgrade2(GR,N_op,NT,PHASE,Hs_new, Prev_Ratiotot, S0_ratio, T0_proposal_ratio, toggle,  mode)
 !--------------------------------------------------------------------
 
         Use Hamiltonian
@@ -109,7 +109,7 @@
 
         Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: GR(Ndim,Ndim, N_FL)
         Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Prev_Ratiotot
-        Integer                  , INTENT(IN)    :: N_op, Nt, Op_dim
+        Integer                  , INTENT(IN)    :: N_op, Nt
         Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Phase
         Real    (Kind=Kind(0.d0)), INTENT(IN)    :: Hs_new
         Real    (Kind=Kind(0.d0)), INTENT(IN)    :: S0_ratio, T0_proposal_ratio
@@ -120,15 +120,16 @@
 
         ! Local ::
         Type   (Fields)   ::  nsigma_new
-        Complex (Kind=Kind(0.d0)) :: Mat(Op_dim,Op_Dim), Delta(Op_dim,N_FL)
         Complex (Kind=Kind(0.d0)) :: Ratio(N_FL), Ratiotot, Z1
-        Integer ::  n,m,nf, i
+        Integer ::  n,m,nf, i, Op_dim, op_dim_nf
         Complex (Kind=Kind(0.d0)) :: Z, D_Mat, myexp, s1, s2
 
         Real    (Kind=Kind(0.d0)) :: Weight
-        Complex (Kind=Kind(0.d0)) :: u(Ndim,Op_dim), v(Ndim,Op_dim) ,alpha, beta
-        Complex (Kind=Kind(0.d0)) :: y_v(Ndim,Op_dim), xp_v(Ndim,Op_dim)
-        Complex (Kind=Kind(0.d0)) :: x_v(Ndim,Op_dim)
+        Complex (Kind=Kind(0.d0)) :: alpha, beta
+        Complex (Kind=Kind(0.d0)), Dimension(:, :), Allocatable :: Mat, Delta
+        Complex (Kind=Kind(0.d0)), Dimension(:, :), Allocatable :: u, v
+        Complex (Kind=Kind(0.d0)), Dimension(:, :), Allocatable :: y_v, xp_v
+        Complex (Kind=Kind(0.d0)), Dimension(:, :), Allocatable :: x_v
         Complex (Kind=Kind(0.D0)), Dimension(:, :), Allocatable :: Zarr, grarr
         Complex (Kind=Kind(0.D0)), Dimension(:), Allocatable :: sxv, syu
 
@@ -136,6 +137,16 @@
         ! if ( abs(OP_V(n_op,1)%g) < 1.D-12 )   return
 
         Call nsigma_new%make(1,1)
+        
+        op_dim=Op_V(n_op,1)%N_non_zero
+        Do nf = 2,N_FL
+           if (op_dim<Op_V(n_op,nf)%N_non_zero) op_dim=Op_V(n_op,nf)%N_non_zero
+        Enddo
+        
+        if (op_dim > 0) then
+           Allocate ( Mat(Op_dim,Op_Dim), Delta(Op_dim,N_FL), u(Ndim,Op_dim), v(Ndim,Op_dim) )
+           Allocate ( y_v(Ndim,Op_dim), xp_v(Ndim,Op_dim), x_v(Ndim,Op_dim) )
+        endif
 
         ! Compute the ratio
         nf = 1
@@ -144,18 +155,21 @@
         Do nf = 1,N_FL
            !Z1 = Op_V(n_op,nf)%g * ( Phi_st(ns_new,Op_V(n_op,nf)%type) -  Phi_st(ns_old,Op_V(n_op,nf)%type))
            Z1 = Op_V(n_op,nf)%g * ( nsigma_new%Phi(1,1) -  nsigma%Phi(n_op,nt) )
-           Do m = 1,Op_V(n_op,nf)%N_non_zero
+           op_dim_nf = Op_V(n_op,nf)%N_non_zero
+           Do m = 1,op_dim_nf
               myexp = exp( Z1* Op_V(n_op,nf)%E(m) )
               Z = myexp - 1.d0
               Delta(m,nf) = Z
-              do n = 1,Op_V(n_op,nf)%N_non_zero
+              do n = 1,op_dim_nf
                  Mat(n,m) = - Z * GR( Op_V(n_op,nf)%P(n), Op_V(n_op,nf)%P(m),nf )
               Enddo
               Mat(m,m) = myexp + Mat(m,m)
            Enddo
-           If (Size(Mat,1) == 1 ) then
+           If (op_dim_nf == 0 ) then
+              D_mat = 1.0d0
+           elseIf (op_dim_nf == 1 ) then
               D_mat = Mat(1,1)
-           elseif (Size(Mat,1) == 2 ) then
+           elseif (op_dim_nf == 2 ) then
               s1 = Mat(1,1)*Mat(2,2)
               s2 = Mat(2,1)*Mat(1,2)
               If (Abs(s1) > Abs(s2)) then
@@ -165,7 +179,7 @@
               Endif
               !  D_mat =  - Mat(2,1)*Mat(1,2)
            else
-              D_mat = Det(Mat,Size(Mat,1))
+              D_mat = Det(Mat,op_dim_nf)
            endif
            Ratio(nf) =  D_Mat * exp( Z1*Op_V(n_op,nf)%alpha )
         Enddo
@@ -200,61 +214,69 @@
 
            Do nf = 1,N_FL
               ! Setup u(i,n), v(n,i)
-              beta = 0.D0
-              call zlaset('N', Ndim, Op_dim, beta, beta, u, size(u, 1))
-              call zlaset('N', Ndim, Op_dim, beta, beta, v, size(v, 1))
-              do n = 1,Op_V(n_op,nf)%N_non_zero
-                 u( Op_V(n_op,nf)%P(n), n) = Delta(n,nf)
-                 do i = 1,Ndim
-                    v(i,n) = - GR( Op_V(n_op,nf)%P(n), i, nf )
-                 enddo
-                 v(Op_V(n_op,nf)%P(n), n)  = 1.d0 - GR( Op_V(n_op,nf)%P(n),  Op_V(n_op,nf)%P(n), nf)
-              enddo
+              op_dim_nf = Op_V(n_op,nf)%N_non_zero
+              if (op_dim_nf > 0) then
+                beta = 0.D0
+                call zlaset('N', Ndim, op_dim_nf, beta, beta, u, size(u, 1))
+                call zlaset('N', Ndim, op_dim_nf, beta, beta, v, size(v, 1))
+                do n = 1,op_dim_nf
+                    u( Op_V(n_op,nf)%P(n), n) = Delta(n,nf)
+                    do i = 1,Ndim
+                        v(i,n) = - GR( Op_V(n_op,nf)%P(n), i, nf )
+                    enddo
+                    v(Op_V(n_op,nf)%P(n), n)  = 1.d0 - GR( Op_V(n_op,nf)%P(n),  Op_V(n_op,nf)%P(n), nf)
+                enddo
 
-              call zlaset('N', Ndim, Op_dim, beta, beta, x_v, size(x_v, 1))
-              call zlaset('N', Ndim, Op_dim, beta, beta, y_v, size(y_v, 1))
-              i = Op_V(n_op,nf)%P(1)
-              x_v(i, 1) = u(i, 1)/(1.d0 + v(i,1)*u(i,1) )
-              call zcopy(Ndim, v(:, 1), 1, y_v(:, 1), 1)
-              do n = 2,Op_V(n_op,nf)%N_non_zero
-                 call zcopy(Ndim, u(:, n), 1, x_v(:, n), 1)
-                 call zcopy(Ndim, v(:, n), 1, y_v(:, n), 1)
-                 Z = 1.d0 + u( Op_V(n_op,nf)%P(n), n)*v(Op_V(n_op,nf)%P(n),n)
-                 alpha = -1.D0
-                 Allocate(syu(n), sxv(n))
-                 call zgemv('T', NDim, n-1, alpha, y_v, Ndim, u(1,n), 1, beta , syu, 1)
-                 call zgemv('T', NDim, n-1, alpha, x_v, Ndim, v(1,n), 1, beta , sxv, 1)
-                 alpha = 1.D0
-                 call zgemv('N', NDim, n-1, alpha, x_v, Ndim, syu, 1, alpha, x_v(1, n), 1)
-                 call zgemv('N', NDim, n-1, alpha, y_v, Ndim, sxv, 1, alpha, y_v(1, n), 1)
-                 do m = 1,n-1
-                    Z = Z - syu(m)*sxv(m)
-                 enddo
-                 Z = 1.D0/Z
-                 call zscal(Ndim, Z, x_v(1, n), 1)
-                 Deallocate(syu, sxv)
-              enddo
-              IF (size(Op_V(n_op,nf)%P, 1) == 1) THEN
-                CALL ZCOPY(Ndim, gr(1, Op_V(n_op,nf)%P(1), nf), 1, xp_v(1, 1), 1)
-                Z = -x_v(Op_V(n_op,nf)%P(1), 1)
-                CALL ZGERU(Ndim, Ndim, Z, xp_v(1,1), 1, y_v(1, 1), 1, gr(1,1,nf), Ndim)
-              ELSE
-                Allocate (zarr(Op_dim, Op_dim), grarr(NDim, Op_dim))
-                Zarr = x_v(Op_V(n_op,nf)%P(1:Op_dim), :)
-                grarr = gr(:, Op_V(n_op,nf)%P(1:Op_dim), nf)
-                beta  = 0.d0
-                alpha = 1.D0
-                CALL ZGEMM('N', 'N', NDim, Op_Dim, Op_Dim, alpha, grarr, Ndim, Zarr, Op_dim, beta, xp_v, Ndim)
-                Deallocate(Zarr, grarr)
-                beta  = cmplx ( 1.0d0, 0.0d0, kind(0.D0))
-                alpha = -1.D0
-                CALL ZGEMM('N','T',Ndim,Ndim,Op_dim,alpha,xp_v, Ndim, y_v, Ndim,beta,gr(1,1,nf), Ndim)
-              ENDIF
+                call zlaset('N', Ndim, op_dim_nf, beta, beta, x_v, size(x_v, 1))
+                call zlaset('N', Ndim, op_dim_nf, beta, beta, y_v, size(y_v, 1))
+                i = Op_V(n_op,nf)%P(1)
+                x_v(i, 1) = u(i, 1)/(1.d0 + v(i,1)*u(i,1) )
+                call zcopy(Ndim, v(:, 1), 1, y_v(:, 1), 1)
+                do n = 2,op_dim_nf
+                    call zcopy(Ndim, u(:, n), 1, x_v(:, n), 1)
+                    call zcopy(Ndim, v(:, n), 1, y_v(:, n), 1)
+                    Z = 1.d0 + u( Op_V(n_op,nf)%P(n), n)*v(Op_V(n_op,nf)%P(n),n)
+                    alpha = -1.D0
+                    Allocate(syu(n), sxv(n))
+                    call zgemv('T', NDim, n-1, alpha, y_v, Ndim, u(1,n), 1, beta , syu, 1)
+                    call zgemv('T', NDim, n-1, alpha, x_v, Ndim, v(1,n), 1, beta , sxv, 1)
+                    alpha = 1.D0
+                    call zgemv('N', NDim, n-1, alpha, x_v, Ndim, syu, 1, alpha, x_v(1, n), 1)
+                    call zgemv('N', NDim, n-1, alpha, y_v, Ndim, sxv, 1, alpha, y_v(1, n), 1)
+                    do m = 1,n-1
+                        Z = Z - syu(m)*sxv(m)
+                    enddo
+                    Z = 1.D0/Z
+                    call zscal(Ndim, Z, x_v(1, n), 1)
+                    Deallocate(syu, sxv)
+                enddo
+                IF (size(Op_V(n_op,nf)%P, 1) == 1) THEN
+                    CALL ZCOPY(Ndim, gr(1, Op_V(n_op,nf)%P(1), nf), 1, xp_v(1, 1), 1)
+                    Z = -x_v(Op_V(n_op,nf)%P(1), 1)
+                    CALL ZGERU(Ndim, Ndim, Z, xp_v(1,1), 1, y_v(1, 1), 1, gr(1,1,nf), Ndim)
+                ELSE
+                    Allocate (zarr(op_dim_nf, op_dim_nf), grarr(NDim, op_dim_nf))
+                    Zarr = x_v(Op_V(n_op,nf)%P(1:op_dim_nf), :)
+                    grarr = gr(:, Op_V(n_op,nf)%P(1:op_dim_nf), nf)
+                    beta  = 0.d0
+                    alpha = 1.D0
+                    CALL ZGEMM('N', 'N', NDim, op_dim_nf, op_dim_nf, alpha, grarr, Ndim, Zarr, op_dim_nf, beta, xp_v, Ndim)
+                    Deallocate(Zarr, grarr)
+                    beta  = cmplx ( 1.0d0, 0.0d0, kind(0.D0))
+                    alpha = -1.D0
+                    CALL ZGEMM('N','T',Ndim,Ndim,op_dim_nf,alpha,xp_v, Ndim, y_v, Ndim,beta,gr(1,1,nf), Ndim)
+                ENDIF
+              endif
 
            enddo
 
            ! Flip the spin
            nsigma%f(n_op,nt) = nsigma_new%f(1,1) ! real(ns_new,Kind=kind(0.d0))
+        endif
+        
+        if (op_dim > 0) then
+           deallocate ( Mat, Delta, u, v )
+           deallocate ( y_v, xp_v, x_v )
         endif
 
         If ( mode == "Final" )  then

@@ -61,8 +61,8 @@
 
        Private
        Real (Kind=Kind(0.d0))  :: Phi_st(-2:2,2),  Gama_st(-2:2,2)
-       Real (Kind=Kind(0.d0))  :: Del, FLIP_st(-2:2,3)
-       Real (Kind=Kind(0.d0))  :: Amplitude=1.d0
+       Real (Kind=Kind(0.d0))  :: FLIP_st(-2:2,3)
+       Real (Kind=Kind(0.d0))  :: Amplitude
 
        Type Fields
           Real    (Kind=Kind(0.d0)), allocatable    :: f(:,:)
@@ -203,17 +203,17 @@
         deallocate (this%f, this%t )
       end Subroutine Fields_clear
 
-      Subroutine Fields_init(Delta_X)
+      Subroutine Fields_init(Amplitude_in)
 
         Implicit none
 
-        Real  (Kind=Kind(0.d0)), Optional, Intent(IN) :: Delta_X
+        Real  (Kind=Kind(0.d0)), Optional, Intent(IN) :: Amplitude_in
 
         !Local
         Integer :: n
 
-        Del = 1.d0
-        If (Present(Delta_X)) Del = Delta_X
+        Amplitude = 1.d0
+        If (Present(Amplitude_in)) Amplitude = Amplitude_in
 
         Phi_st = 0.d0
         do n = -2,2
@@ -548,7 +548,7 @@
                   this%f(I,nt)  = 1.d0
                   if ( ranf_wrap() > 0.5D0 ) this%f(I,nt) = -1.d0
                else
-                  this%f(I,nt)  = del*(ranf_wrap() - 0.5d0)
+                  this%f(I,nt)  = Amplitude*(ranf_wrap() - 0.5d0)
                endif
             enddo
          enddo

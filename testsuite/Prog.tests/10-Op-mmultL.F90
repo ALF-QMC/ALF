@@ -9,7 +9,7 @@ Program OPMULTTEST
       implicit none
       
       Complex (Kind=Kind(0.D0)) :: Matnew(3,3), matold(3,3), VH(3,3), Z, Z1, Zre, Zim
-      Real (KIND = KIND(0.D0)) :: spin, nspin
+      Real (KIND = KIND(0.D0)) :: spin
       Integer :: i, n, m, j, ndim 
       Type(Operator) :: Op
       Type (Fields)  :: nsigma_single
@@ -96,10 +96,10 @@ Program OPMULTTEST
             endif
          enddo
       enddo
-      
+
+      deallocate(Op%U, Op%E, Op%E_exp, Op%M_exp)
       !Repeat test for diagonal operator
       Op%O = CMPLX(0.d0, 0.d0, kind(0.D0))
-      Op%U = CMPLX(0.d0, 0.d0, kind(0.D0))
       do i = 1, Op%N
          Op%O(i,i) = 2*i-3
          !             Op%P(i) = i
@@ -109,7 +109,7 @@ Program OPMULTTEST
       !         Op%g = 2.D0
       !         spin =-1.0
       call Op_set(Op)
-      
+
       do i = 1,Ndim
          do n = 1,Ndim
             matnew(i,n) = CMPLX(i,n, kind(0.D0))
@@ -170,7 +170,6 @@ Program OPMULTTEST
       write (*,*) "success"
 
       Call nsigma_single%clear() 
-      
-      
+
     end Program OPMULTTEST
-    
+

@@ -28,8 +28,6 @@
 !
 !     - If you make substantial changes to the program we require you to either consider contributing
 !       to the ALF project or to mark your material in a reasonable way as different from the original version
-
-
 !--------------------------------------------------------------------
 !> @author
 !> ALF-project
@@ -148,6 +146,7 @@
       Logical              :: Symm
 
 
+
       Type (Lattice),       private, Target  :: Latt
       Type (Unit_cell),     private, Target  :: Latt_unit
       Integer,              private :: L1, L2
@@ -163,6 +162,7 @@
 
 
 !>    Privat Observables
+      Type (Unit_cell),   private, Target  :: Latt_unit_f    ! Unit cell for f  correlation functions
       Type (Obser_Vec ),  private, dimension(:), allocatable ::   Obs_scal
       Type (Obser_Latt),  private, dimension(:), allocatable ::   Obs_eq
       Type (Obser_Latt),  private, dimension(:), allocatable ::   Obs_tau
@@ -195,7 +195,8 @@
 
           NAMELIST /VAR_Lattice/  L1, L2, Lattice_type, Model
 
-          NAMELIST /VAR_Model_Generic/  Checkerboard, N_SUN, N_FL, Phi_X, Phi_Y, Symm, Bulk, N_Phi, Dtau, Beta, Theta, Projector
+          NAMELIST /VAR_Model_Generic/  Checkerboard, N_SUN, N_FL, Phi_X, Phi_Y, Symm, Bulk, N_Phi, Dtau, Beta, Theta,&
+               &   Projector
 
           NAMELIST /VAR_Kondo/  ham_T, ham_chem, ham_Uc, ham_Uf, ham_JK
 
@@ -218,7 +219,7 @@
           Ham_Uc       = 0.d0
           Ham_JK       = 0.d0
 
-
+          
 #ifdef MPI
           CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
           CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
@@ -349,9 +350,23 @@
           Use Predefined_Lattices
 
           Implicit none
+          Integer :: n
           ! Use predefined stuctures or set your own lattice.
           Call Predefined_Latt(Lattice_type, L1,L2,Ndim, List,Invlist,Latt,Latt_Unit)
-
+          Select case (Lattice_type)
+          Case ("Bilayer_square")
+             Latt_Unit_f%Norb       = 1
+             Latt_Unit_f%N_coord    = 2
+             Allocate (Latt_Unit_f%Orb_pos_p(1,2))
+             Latt_Unit_f%Orb_pos_p(1,:) = 0.d0
+          Case ("Bilayer_honeycomb")
+             Latt_Unit_f%Norb    = 2
+             Latt_Unit_f%N_coord = 3
+             Allocate (Latt_Unit_f%Orb_pos_p(2,2))
+             Latt_Unit_f%Orb_pos_p(1,:) = 0.d0
+             Latt_Unit_f%Orb_pos_p(2,:) = (Latt%a2_p(:) - 0.5D0*Latt%a1_p(:) ) * 2.D0/3.D0
+          end Select
+          
         end Subroutine Ham_Latt
 !--------------------------------------------------------------------
 !> @author
@@ -475,7 +490,7 @@
 
           N_ops = 0
           if (abs(Ham_Uc)  > Zero ) N_ops = N_ops + Latt%N*Latt_Unit%Norb/2
-          if (abs(Ham_Uf) > Zero ) N_ops = N_ops + Latt%N*Latt_Unit%Norb/2
+          if (abs(Ham_Uf) > Zero )  N_ops = N_ops + Latt%N*Latt_Unit%Norb/2
           if (abs(Ham_JK) > Zero ) Then
              if (N_SUN == 2 ) then
                 N_ops = N_ops + Latt%N*Latt_Unit%Norb/2
@@ -550,6 +565,7 @@
           Character (len=64) ::  Filename
           Character (len=2)  ::  Channel
 
+          
 
           ! Scalar observables
           Allocate ( Obs_scal(5) )
@@ -573,7 +589,7 @@
 
           ! Equal time correlators
           ! Equal time correlators
-          Allocate ( Obs_eq(3) )
+          Allocate ( Obs_eq(4) )
           Do I = 1,Size(Obs_eq,1)
              select case (I)
              case (1)
@@ -582,17 +598,23 @@
                 Filename = "SpinZ"
              case (3)
                 Filename = "Den"
+             case (4)
+                Filename = "Dimer"
              case default
                 Write(6,*) ' Error in Alloc_obs '
              end select
              Nt = 1
              Channel = '--'
-             Call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
+             if (I == 4 ) then
+                Call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit_f, Channel, dtau)
+             else
+                Call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit  , Channel, dtau)
+             endif
           enddo
 
           If (Ltau == 1) then
              ! Equal time correlators
-             Allocate ( Obs_tau(3) )
+             Allocate ( Obs_tau(5) )
              Do I = 1,Size(Obs_tau,1)
                 select case (I)
                 case (1)
@@ -601,12 +623,20 @@
                    Channel = 'PH'; Filename = "SpinZ"
                 case (3)
                    Channel = 'PH'; Filename = "Den"
+                case (4)
+                   Channel = 'P' ; Filename = "Greenf"
+                case (5)
+                   Channel = 'PH'; Filename = "Dimer"
                 case default
                    Write(6,*) ' Error in Alloc_obs '
                 end select
                 Nt = Ltrot+1-2*Thtrot
                 If(Projector) Channel = 'T0'
-                Call Obser_Latt_make(Obs_tau(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
+                if (I == 4 .or.  I == 5 ) then
+                   Call Obser_Latt_make(Obs_tau(I), Nt, Filename, Latt, Latt_unit_f, Channel, dtau)
+                else
+                   Call Obser_Latt_make(Obs_tau(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
+                endif
              enddo
           endif
 
@@ -632,7 +662,7 @@
 !>  Time slice
 !> \endverbatim
 !-------------------------------------------------------------------
-        subroutine Obser(GR,Phase,Ntau)
+        subroutine Obser(GR,Phase,Ntau, Mc_step_weight)
 
           Use Predefined_Obs
 
@@ -641,15 +671,18 @@
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
           Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE
           Integer, INTENT(IN)          :: Ntau
+          Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
+
 
           !Local
           Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK
           Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, Zhubc, ZCon, ZJ, Z, ZP,ZS, ZZ, ZXY
-          Integer :: I,J, no, n, I_c,I_f, nf
+          Integer :: I,J, no, n, I_c,I_f, nf, J_c, J_f, no_I, no_J, imj
           Real    (Kind=Kind(0.d0)) :: X
 
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
+          ZS = ZS*Mc_step_weight
 
 
           Do nf = 1,N_FL
@@ -728,6 +761,28 @@
           Call Predefined_Obs_eq_Den_measure    ( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(3) )
 
 
+          ! Dimer correlations
+          obs_eq(4)%N        = obs_eq(4)%N + 1
+          obs_eq(4)%Ave_sign = obs_eq(4)%Ave_sign + real(ZS,kind(0.d0))
+          Do I = 1,Latt%N
+             do no_I  = 1, Latt_unit%Norb / 2
+                I_c = Invlist(I,no_I)
+                I_f = Invlist(I,no_I + Latt_unit%Norb/2 ) 
+                Do J = 1,Latt%N
+                   Imj = latt%imj(I,J)
+                   do no_J  = 1, Latt_unit%Norb / 2
+                      J_c = Invlist(J,no_J)
+                      J_f = Invlist(J,no_J + Latt_unit%Norb / 2 )
+                      Z  = Predefined_Obs_dimer_eq(I_c,I_f,J_c,J_f, GR, GRC, N_SUN, N_FL) 
+                      obs_eq(4)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(4)%Obs_Latt(imj,1,no_I,no_J) + Z*ZP*ZS
+                   enddo
+                enddo
+                Obs_eq(4)%Obs_Latt0(no_I) =  Obs_eq(4)%Obs_Latt0(no_I) +  &
+                     &  Predefined_Obs_dimer0_eq(I_c,I_f, GR, N_SUN, N_FL) * ZP*ZS
+             enddo
+          enddo
+
+          
         end Subroutine Obser
 !--------------------------------------------------------------------
 !> @author
@@ -753,7 +808,7 @@
 !>  Phase
 !> \endverbatim
 !-------------------------------------------------------------------
-        Subroutine ObserT(NT,  GT0,G0T,G00,GTT, PHASE)
+        Subroutine ObserT(NT,  GT0,G0T,G00,GTT, PHASE,Mc_step_weight)
 
           Use Predefined_Obs
 
@@ -762,14 +817,17 @@
           Integer         , INTENT(IN) :: NT
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: GT0(Ndim,Ndim,N_FL),G0T(Ndim,Ndim,N_FL),G00(Ndim,Ndim,N_FL),GTT(Ndim,Ndim,N_FL)
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: Phase
+          Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
 
+          
           !Locals
           Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY
           Real    (Kind=Kind(0.d0)) :: X
-          Integer :: IMJ, I, J, I1, J1, no_I, no_J
+          Integer :: IMJ, I_c, I_f, J_c, J_f, I,J, no_I, no_J
 
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
+          ZS = ZS*Mc_step_weight
 
           ! Standard two-point correlations
 
@@ -777,9 +835,83 @@
           Call Predefined_Obs_tau_SpinSUN_measure( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(2) )
           Call Predefined_Obs_tau_Den_measure    ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(3) )
 
+          ! Greenf correlations
+          If (NT == 0 ) then
+             obs_tau(4)%N        = obs_tau(4)%N + 1
+             obs_tau(4)%Ave_sign = obs_tau(4)%Ave_sign + real(ZS,kind(0.d0))
+             obs_tau(5)%N        = obs_tau(5)%N + 1
+             obs_tau(5)%Ave_sign = obs_tau(5)%Ave_sign + real(ZS,kind(0.d0))
+          endif
+          Do I = 1,Latt%N
+             do no_I  = 1, Latt_unit%Norb / 2
+                I_c = Invlist(I,no_I)
+                I_f = Invlist(I,no_I + Latt_unit%Norb / 2 ) 
+                Do J = 1,Latt%N
+                   Imj = latt%imj(I,J)
+                   do no_J  = 1, Latt_unit%Norb / 2
+                      J_c = Invlist(J,no_J)
+                      J_f = Invlist(J,no_J + Latt_unit%Norb / 2 )
+                      Z  = Predefined_Obs_Cotunneling(I_c, I_f, J_c, J_f,  GT0,G0T,G00,GTT, N_SUN, N_FL) 
+                      obs_tau(4)%Obs_Latt(imj,NT+1,no_I,no_J) =  Obs_tau(4)%Obs_Latt(imj,NT+1,no_I,no_J) + Z*ZP*ZS
+                      Z  = Predefined_Obs_dimer_tau(I_c, I_f, J_c, J_f, GT0,G0T,G00,GTT, N_SUN, N_FL) 
+                      obs_tau(5)%Obs_Latt(imj,NT+1,no_I,no_J) =  Obs_tau(5)%Obs_Latt(imj,NT+1,no_I,no_J) + Z*ZP*ZS
+                   enddo
+                enddo
+                Z = Predefined_Obs_dimer0_eq(I_c,I_f, GTT, N_SUN, N_FL)
+                Obs_tau(5)%Obs_Latt0(no_I) =  Obs_tau(5)%Obs_Latt0(no_I) +  Z*ZP*ZS
+             enddo
+          enddo
         end Subroutine OBSERT
 
 #include "Hamiltonian_Hubbard_include.h"
+
+!--------------------------------------------------------------------
+!> @author 
+!> ALF Collaboration
+!>
+!> @brief 
+!>   Forces_0  = \partial S_0 / \partial s  are calculated and returned to  main program.
+!> 
+!-------------------------------------------------------------------
+        Subroutine Ham_Langevin_HMC_S0(Forces_0)
+
+          Implicit none
+
+          Real (Kind=Kind(0.d0)), Intent(out  ),  dimension(:,:) :: Forces_0
+
+          !Local
+          Integer :: N, N_op,nt
+          
+          ! Compute \partial S_0 / \partial s
+          Forces_0  = 0.d0
+          
+        end Subroutine Ham_Langevin_HMC_S0
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Single spin flip S0 ratio
+!> @details
+!> S0=exp(-S0(new))/exp(-S0(old)) where the new configuration correpsonds to the old one up to
+!> a spin flip of Operator n on time slice nt
+!> @details
+!--------------------------------------------------------------------
+      Real (Kind=Kind(0.d0)) function S0(n,nt,Hs_new)
+        Implicit none
+        !> Operator index
+        Integer, Intent(IN) :: n
+        !> Time slice
+        Integer, Intent(IN) :: nt
+        !> New local field on time slice nt and operator index n
+        Real (Kind=Kind(0.d0)), Intent(In) :: Hs_new
+
+        Integer :: nt1,I
+
+        S0 = 1.d0
+        
+      end function S0
 
 
     end Module Hamiltonian
