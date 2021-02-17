@@ -147,7 +147,7 @@ Contains
 !> Integer
 !> * Number of colors
 !--------------------------------------------------------------------
-  Subroutine  Op_phase(Phase,OP_V,Nsigma,N_SUN) 
+  Subroutine  Op_phase(Phase,OP_V,Nsigma,N_SUN,lweightabs)
     Implicit none
 
     Complex  (Kind=Kind(0.d0)), Intent(Inout) :: Phase
@@ -155,6 +155,7 @@ Contains
     Type  (Fields),    Intent(IN)    :: Nsigma
     Type (Operator),   dimension(:,:), Intent(In) :: Op_V
     Real  (Kind=Kind(0.d0))                       :: angle
+    Logical,           Intent(In)                 :: lweightabs
     
     Integer :: n, nf, nt
     
@@ -166,7 +167,11 @@ Contains
           enddo
        enddo
     enddo
-    Phase = Phase**N_SUN
+    if (lweightabs) then
+        Phase = Phase*conjg(Phase)
+    else
+        Phase = Phase**N_SUN
+    endif
     
   end Subroutine Op_phase
   

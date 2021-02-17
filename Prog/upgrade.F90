@@ -187,7 +187,11 @@
         Ratiotot = Product(Ratio)
         nf = 1
         !Ratiotot = (Ratiotot**dble(N_SUN)) * Gama_st(ns_new, Op_V(n_op,nf)%type)/Gama_st(ns_old, Op_V(n_op,nf)%type)
-        Ratiotot = (Ratiotot**dble(N_SUN)) * nsigma_new%Gama(1,1)/nsigma%Gama(n_op,nt)
+        if (lweightabs) then
+            Ratiotot = (Ratiotot*conjg(Ratiotot)) * nsigma_new%Gama(1,1)/nsigma%Gama(n_op,nt)
+        else
+            Ratiotot = (Ratiotot**dble(N_SUN)) * nsigma_new%Gama(1,1)/nsigma%Gama(n_op,nt)
+        endif
 
         !Write(6,*) Ratiotot
 

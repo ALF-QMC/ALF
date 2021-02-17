@@ -147,6 +147,8 @@
       Logical              :: Projector
       Integer              :: Group_Comm
       Logical              :: Symm
+      Logical              :: lweightabs
+      Integer              :: N_Block
 
 
       Type (Lattice),       private, target :: Latt
@@ -197,7 +199,7 @@
           NAMELIST /VAR_Lattice/  L1, L2, Lattice_type, Model
 
           NAMELIST /VAR_Model_Generic/  Checkerboard, N_SUN, N_FL, Phi_X, Phi_Y, Symm, Bulk, N_Phi, Dtau, Beta, Theta, &
-               &                        Projector
+               &                        Projector, lweightabs
                   
 
           NAMELIST /VAR_Hubbard/  ham_T, ham_chem, ham_U, ham_T2, ham_U2, ham_Tperp,  Mz,  Continuous
@@ -219,7 +221,8 @@
           Ham_T2       = 0.d0
           Ham_Tperp    = 0.d0
           Ham_U2       = 0.d0
-          Continuous   =.false.
+          Continuous   = .false.
+          lweightabs   = .false.
           
 
 #ifdef MPI
@@ -263,6 +266,11 @@
                 N_FL  = 1
              endif
 
+             N_block = N_FL
+             if (lweightabs .and. (N_FL .eq. 2) ) then
+                 N_FL = 1
+             endif
+
 #ifdef MPI
           Endif
           CALL MPI_BCAST(L1          ,1  ,MPI_INTEGER,   0,Group_Comm,ierr)
@@ -290,6 +298,8 @@
           CALL MPI_BCAST(ham_Tperp   ,1,  MPI_REAL8    , 0,Group_Comm,ierr)
           CALL MPI_BCAST(Mz          ,1,  MPI_LOGICAL  , 0,Group_Comm,IERR)
           CALL MPI_BCAST(Continuous  ,1,  MPI_LOGICAL  , 0,Group_Comm,IERR)
+          CALL MPI_BCAST(lweightabs  ,1,  MPI_LOGICAL  , 0,Group_Comm,ierr)
+          CALL MPI_BCAST(N_Block     ,1  ,MPI_INTEGER,   0,Group_Comm,ierr)
 #endif
 
           ! Setup the Bravais lattice
@@ -334,6 +344,7 @@
                 Write(50,*) 'Beta          : ', Beta
              endif
              Write(50,*) 'dtau,Ltrot_eff: ', dtau,Ltrot
+             Write(50,*) 'lweightabs    : ', lweightabs
              if ( Mz )  then
                 Write(50,*) 'N_SUN         : ', 2*N_SUN
              else
@@ -525,10 +536,21 @@
                    I = invlist(I1,no)
                    if (abs(Ham_U_vec(no)) > Zero ) then
                       nc = nc + 1
-                      if (Continuous) then
-                         Call Predefined_Int_U_MZ_continuous_HS( OP_V(nc,1), OP_V(nc,2), I,  DTAU, Ham_U_vec(no) )
+                      if (lweightabs) then
+                           Call OP_Make( Op_V(nc,1),1 )
+                           Op_V(nc,1)%P(1)   =  I
+                           Op_V(nc,1)%O(1,1) =  cmplx(  1.d0, 0.d0, kind(0.D0))
+                           Op_V(nc,1)%alpha  =  cmplx(-0.5d0, 0.d0, kind(0.D0))
+                           Op_V(nc,1)%g      =  SQRT(CMPLX(DTAU*Ham_U_vec(no)/2.d0, 0.D0, kind(0.D0))) 
+                           Op_V(nc,1)%type   =  2
+                           if (Continuous) Op_V(nc,1)%type   =  3
+                           Call Op_set( Op_V(nc,1) )
                       else
-                         Call Predefined_Int_U_MZ              ( OP_V(nc,1), OP_V(nc,2), I,  DTAU, Ham_U_vec(no) )
+                        if (Continuous) then
+                           Call Predefined_Int_U_MZ_continuous_HS( OP_V(nc,1), OP_V(nc,2), I,  DTAU, Ham_U_vec(no) )
+                        else
+                           Call Predefined_Int_U_MZ              ( OP_V(nc,1), OP_V(nc,2), I,  DTAU, Ham_U_vec(no) )
+                        endif
                       endif
                    endif
                 enddo
@@ -700,20 +722,21 @@
 !>  Time slice
 !> \endverbatim
 !-------------------------------------------------------------------
-        subroutine Obser(GR,Phase,Ntau, Mc_step_weight)
+        subroutine Obser(GR0,Phase,Ntau, Mc_step_weight)
 
           Use Predefined_Obs
 
           Implicit none
 
-          Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
+          Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR0(Ndim,Ndim,N_FL)
           Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE
           Integer, INTENT(IN)          :: Ntau
           Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
 
           !Local
-          Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK
-          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP,ZS, ZZ, ZXY
+          Complex (Kind=Kind(0.d0)) :: GR(Ndim,Ndim,N_Block), GRC(Ndim,Ndim,N_Block), ZK
+          Complex (Kind=Kind(0.d0)) :: GRCI(Ndim,Ndim,N_FL)
+          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP,ZS, ZZ, ZXY, Ztmp1, Ztmp2
           Integer :: I,J, imj, nf, dec, I1, J1, no_I, no_J,n
           Real    (Kind=Kind(0.d0)) :: X
 
@@ -722,6 +745,12 @@
 
           ZS = ZS*Mc_step_weight
           
+          if ( lweightabs ) then
+              GR(:,:,1) = GR0(:,:,1)
+          else
+              GR = GR0
+          endif
+
           Do nf = 1,N_FL
              Do I = 1,Ndim
                 Do J = 1,Ndim
@@ -732,18 +761,28 @@
           Enddo
           ! GRC(i,j,nf) = < c^{dagger}_{j,nf } c_{j,nf } >
 
+          if ( lweightabs ) then
+             call PartcleHole_transform_eq(GR(:,:,1),GRC(:,:,1),GR(:,:,2),GRC(:,:,2))
+          endif
+
           ! Compute scalar observables.
           Do I = 1,Size(Obs_scal,1)
              Obs_scal(I)%N         =  Obs_scal(I)%N + 1
              Obs_scal(I)%Ave_sign  =  Obs_scal(I)%Ave_sign + Real(ZS,kind(0.d0))
           Enddo
 
-
           Zkin = cmplx(0.d0, 0.d0, kind(0.D0))
-          Call Predefined_Hoppings_Compute_Kin(Hopping_Matrix,List,Invlist, Latt, Latt_unit, GRC, ZKin)
+          if (lweightabs) then
+            GRCI(:,:,1) = GRC(:,:,1)
+            Call Predefined_Hoppings_Compute_Kin(Hopping_Matrix,List,Invlist, Latt, Latt_unit, GRCI, Ztmp1)
+            GRCI(:,:,1) = GRC(:,:,2) 
+            Call Predefined_Hoppings_Compute_Kin(Hopping_Matrix,List,Invlist, Latt, Latt_unit, GRCI, Ztmp2)
+            Zkin = Ztmp1 + Ztmp2
+          else
+            Call Predefined_Hoppings_Compute_Kin(Hopping_Matrix,List,Invlist, Latt, Latt_unit, GRC, ZKin)
+          endif
           Zkin = Zkin* dble(N_SUN)
           Obs_scal(1)%Obs_vec(1)  =    Obs_scal(1)%Obs_vec(1) + Zkin *ZP* ZS
-
 
           ZPot = cmplx(0.d0, 0.d0, kind(0.D0))
           dec = 1
@@ -768,7 +807,7 @@
 
 
           Zrho = cmplx(0.d0,0.d0, kind(0.D0))
-          Do nf = 1,N_FL
+          Do nf = 1,N_Block
              Do I = 1,Ndim
                 Zrho = Zrho + Grc(i,i,nf)
              enddo
@@ -827,6 +866,8 @@
           Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
           
           !Locals
+          Complex (Kind=Kind(0.d0)) :: GT0_R(Ndim,Ndim,N_Block),G0T_R(Ndim,Ndim,N_Block)
+          Complex (Kind=Kind(0.d0)) :: G00_R(Ndim,Ndim,N_Block),GTT_R(Ndim,Ndim,N_Block)
           Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY
           Real    (Kind=Kind(0.d0)) :: X
           Integer :: IMJ, I, J, I1, J1, no_I, no_J
@@ -835,17 +876,34 @@
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
           ZS = ZS * Mc_step_weight
 
+          if ( lweightabs ) then
+              GT0_R(:,:,1) = GT0(:,:,1)
+              G0T_R(:,:,1) = G0T(:,:,1)
+              G00_R(:,:,1) = G00(:,:,1)
+              GTT_R(:,:,1) = GTT(:,:,1)
+          else
+              GT0_R = GT0
+              G0T_R = G0T
+              G00_R = G00
+              GTT_R = GTT
+          endif
+
+          if ( lweightabs ) then
+             call PartcleHole_transform_tau(GT0(:,:,1),G0T(:,:,1),G00(:,:,1),GTT(:,:,1),&
+                 GT0_R(:,:,2),G0T_R(:,:,2),G00_R(:,:,2),GTT_R(:,:,2))
+          endif
+
           ! Standard two-point correlations
 
           If ( Mz ) then
-             Call Predefined_Obs_tau_Green_measure  ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(1) )
-             Call Predefined_Obs_tau_SpinMz_measure ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(2),&
+             Call Predefined_Obs_tau_Green_measure  ( Latt, Latt_unit, List, NT, GT0_R,G0T_R,G00_R,GTT_R,  N_SUN, ZS, ZP, Obs_tau(1) )
+             Call Predefined_Obs_tau_SpinMz_measure ( Latt, Latt_unit, List, NT, GT0_R,G0T_R,G00_R,GTT_R,  N_SUN, ZS, ZP, Obs_tau(2),&
                   &                                   Obs_tau(3), Obs_tau(4) )
-             Call Predefined_Obs_tau_Den_measure    ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(5) )
+             Call Predefined_Obs_tau_Den_measure    ( Latt, Latt_unit, List, NT, GT0_R,G0T_R,G00_R,GTT_R,  N_SUN, ZS, ZP, Obs_tau(5) )
           Else
-             Call Predefined_Obs_tau_Green_measure  ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(1) )
-             Call Predefined_Obs_tau_SpinSUN_measure( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(2) )
-             Call Predefined_Obs_tau_Den_measure    ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(3) )
+             Call Predefined_Obs_tau_Green_measure  ( Latt, Latt_unit, List, NT, GT0_R,G0T_R,G00_R,GTT_R,  N_SUN, ZS, ZP, Obs_tau(1) )
+             Call Predefined_Obs_tau_SpinSUN_measure( Latt, Latt_unit, List, NT, GT0_R,G0T_R,G00_R,GTT_R,  N_SUN, ZS, ZP, Obs_tau(2) )
+             Call Predefined_Obs_tau_Den_measure    ( Latt, Latt_unit, List, NT, GT0_R,G0T_R,G00_R,GTT_R,  N_SUN, ZS, ZP, Obs_tau(3) )
           endif
 
         end Subroutine OBSERT
@@ -911,5 +969,97 @@
           enddo
           
         end Subroutine Ham_Langevin_HMC_S0
+
+      Subroutine PartcleHole_transform_eq(GRUP,GRCUP,GRDN,GRCDN)
+
+        Complex (Kind=Kind(0.d0)), Intent(In)  :: GRUP(Ndim,Ndim), GRCUP(Ndim,Ndim)
+        Complex (Kind=Kind(0.d0)), Intent(Out) :: GRDN(Ndim,Ndim), GRCDN(Ndim,Ndim)
+
+        ! Local
+        Integer :: N_FL, I, I1, J, J1, no_I, no_J, imj, nf, Id, Jd, ia1, ia2, ja1, ja2
+        Real(Kind=Kind(0.d0)) :: Rtp1, rtpi, rtpj
+
+        Do Id = 1,Latt%N*Latt_Unit%Norb
+           I    = List(Id,1)
+           no_I = List(Id,2)
+
+           ia1 = Latt%list(I,1); ia2 = Latt%list(I,2)
+           rtpi = (-1.d0)**(ia1+ia2)
+           Do Jd = 1,Latt%N*Latt_Unit%Norb
+              J    = List(Jd,1)
+              no_J = List(Jd,2)
+
+              ja1 = Latt%list(J,1); ja2 = Latt%list(J,2)
+              rtpj = (-1.d0)**(ja1+ja2)
+              
+              Select case (Lattice_type)
+              Case ("Square")
+                  Rtp1 = rtpi*rtpj
+              Case ("N_leg_ladder")
+                  Rtp1 = rtpi*rtpj
+              Case ("Honeycomb")
+                  Rtp1 = (-1.d0)**(no_I+no_J)
+              Case ("Bilayer_square")
+                  Rtp1 = rtpi*rtpj
+              Case ("Bilayer_honeycomb")
+                  Rtp1 = (-1.d0)**(no_I+no_J)
+              end Select
+              
+              GRDN (Id,Jd) = cmplx(Rtp1, 0.d0, kind(0.D0))*conjg(GRCUP(Id,Jd))
+              GRCDN(Id,Jd) = cmplx(Rtp1, 0.d0, kind(0.D0))*conjg(GRUP (Id,Jd))
+           enddo
+        enddo
+
+      End Subroutine PartcleHole_transform_eq
+
+      Subroutine PartcleHole_transform_tau(GT0UP,G0TUP,G00UP,GTTUP,GT0DN,G0TDN,G00DN,GTTDN)
+
+        Complex (Kind=Kind(0.d0)), Intent(In)  :: GT0UP(Ndim,Ndim), G0TUP(Ndim,Ndim), G00UP(Ndim,Ndim), GTTUP(Ndim,Ndim)
+        Complex (Kind=Kind(0.d0)), Intent(Out) :: GT0DN(Ndim,Ndim), G0TDN(Ndim,Ndim), G00DN(Ndim,Ndim), GTTDN(Ndim,Ndim)
+
+        ! Local
+        Integer :: N_FL, I, I1, J, J1, no_I, no_J, imj, nf, Id, Jd, ia1, ia2, ja1, ja2
+        Real(Kind=Kind(0.d0)) :: Rtp1, rtpi, rtpj
+        Complex(Kind=Kind(0.d0)) :: GRC00IJ_tmp, GRCTTIJ_tmp
+
+        Do Id = 1,Latt%N*Latt_Unit%Norb
+           I    = List(Id,1)
+           no_I = List(Id,2)
+
+           ia1 = Latt%list(I,1); ia2 = Latt%list(I,2)
+           rtpi = (-1.d0)**(ia1+ia2)
+           Do Jd = 1,Latt%N*Latt_Unit%Norb
+              J    = List(Jd,1)
+              no_J = List(Jd,2)
+
+              ja1 = Latt%list(J,1); ja2 = Latt%list(J,2)
+              rtpj = (-1.d0)**(ja1+ja2)
+
+              Select case (Lattice_type)
+              Case ("Square")
+                  Rtp1 = rtpi*rtpj
+              Case ("N_leg_ladder")
+                  Rtp1 = rtpi*rtpj
+              Case ("Honeycomb")
+                  Rtp1 = (-1.d0)**(no_I+no_J)
+              Case ("Bilayer_square")
+                  Rtp1 = rtpi*rtpj
+              Case ("Bilayer_honeycomb")
+                  Rtp1 = (-1.d0)**(no_I+no_J)
+              end Select
+
+              GT0DN(Id,Jd) = cmplx(-Rtp1, 0.d0, kind(0.D0))*conjg(G0TUP(Jd,Id))
+              G0TDN(Id,Jd) = cmplx(-Rtp1, 0.d0, kind(0.D0))*conjg(GT0UP(Jd,Id))
+              GRC00IJ_tmp = -G00UP(Jd,Id); GRCTTIJ_tmp = -GTTUP(Jd,Id)
+              if (Id .eq. Jd) then
+                  GRC00IJ_tmp = cmplx(1.d0, 0.d0, kind(0.D0)) + GRC00IJ_tmp
+                  GRCTTIJ_tmp = cmplx(1.d0, 0.d0, kind(0.D0)) + GRCTTIJ_tmp
+              endif
+              G00DN(Id,Jd) = cmplx(Rtp1, 0.d0, kind(0.D0))*conjg(GRC00IJ_tmp)
+              GTTDN(Id,Jd) = cmplx(Rtp1, 0.d0, kind(0.D0))*conjg(GRCTTIJ_tmp)
+           enddo
+        enddo
+
+      End Subroutine PartcleHole_transform_tau
         
     end Module Hamiltonian

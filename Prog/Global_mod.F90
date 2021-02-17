@@ -190,7 +190,7 @@ Module Global_mod
            Do nf = 1,N_Fl
               Phase_old = Phase_old*Phase_det_old(nf)
            Enddo
-           Call Op_phase(Phase_old,OP_V,Nsigma,N_SUN)
+           Call Op_phase(Phase_old,OP_V,Nsigma,N_SUN,lweightabs)
         endif
         !> Store old configuration
         nsigma_old%f = nsigma%f
@@ -260,7 +260,7 @@ Module Global_mod
               Do nf = 1,N_Fl
                  Phase_new = Phase_new*Phase_det_new(nf)
               Enddo
-              Call Op_phase(Phase_new,OP_V,Nsigma,N_SUN)
+              Call Op_phase(Phase_new,OP_V,Nsigma,N_SUN,lweightabs)
 
               T0_Proposal_ratio = 1.d0
               Ratiotot = Compute_Ratio_Global(Phase_Det_old, Phase_Det_new, &
@@ -351,7 +351,7 @@ Module Global_mod
               CALL CGR(Z, NVAR, GR(:,:,nf), udvr(nf),  udvl(nf))
               Phase = Phase*Z
            Enddo
-           call Op_phase(Phase,OP_V,Nsigma,N_SUN)
+           call Op_phase(Phase,OP_V,Nsigma,N_SUN,lweightabs)
         else
            !  Send >> Phase, GR, udvr, udvl, udvst << to new node
            !  First step: Each node sends to IRANK=0 its value nsigma_irank,
@@ -513,7 +513,7 @@ Module Global_mod
         Do nf = 1,N_Fl
            Phase_old = Phase_old*Phase_det_old(nf)
         Enddo
-        Call Op_phase(Phase_old,OP_V,Nsigma,N_SUN)
+        Call Op_phase(Phase_old,OP_V,Nsigma,N_SUN,lweightabs)
 
         If (L_test) then
            ! Testing
@@ -530,7 +530,7 @@ Module Global_mod
               CALL CGR(Z, NVAR, GR(:,:,nf), udvr(nf), udvl(nf))
               Phase = Phase*Z
            Enddo
-           call Op_phase(Phase,OP_V,Nsigma,N_SUN)
+           call Op_phase(Phase,OP_V,Nsigma,N_SUN,lweightabs)
            Do Nf = 1,N_FL
               Call DET_C_LU(GR(:,:,nf),Det_vec_test(:,nf),Ndim)
               Z = Phase_det_old(nf)
@@ -564,7 +564,7 @@ Module Global_mod
               Do nf = 1,N_Fl
                  Phase_new = Phase_new*Phase_det_new(nf)
               Enddo
-              Call Op_phase(Phase_new,OP_V,Nsigma,N_SUN)
+              Call Op_phase(Phase_new,OP_V,Nsigma,N_SUN,lweightabs)
 
               Ratiotot = Compute_Ratio_Global(Phase_Det_old, Phase_Det_new, &
                    &                          Det_vec_old, Det_vec_new, nsigma_old, T0_Proposal_ratio, Ratio)
@@ -622,7 +622,7 @@ Module Global_mod
               CALL CGR(Z, NVAR, GR(:,:,nf), udvr(nf), udvl(nf))
               Phase = Phase*Z
            Enddo
-           call Op_phase(Phase,OP_V,Nsigma,N_SUN)
+           call Op_phase(Phase,OP_V,Nsigma,N_SUN,lweightabs)
         endif
 
 
@@ -716,6 +716,7 @@ Module Global_mod
 
         Ratio(2) = Ratio_2
         Compute_Ratio_Global = Ratio(1)*exp(Ratio(2))
+        if (lweightabs) Compute_Ratio_Global = Compute_Ratio_Global*conjg(Compute_Ratio_Global)
 
 
       end Function Compute_Ratio_Global

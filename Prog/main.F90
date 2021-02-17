@@ -526,7 +526,7 @@ Program Main
            CALL CGR(Z, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
            Phase = Phase*Z
         Enddo
-        call Op_phase(Phase,OP_V,Nsigma,N_SUN)
+        call Op_phase(Phase,OP_V,Nsigma,N_SUN,lweightabs)
 #ifdef MPI
         !WRITE(6,*) 'Phase is: ', Irank, PHASE, GR(1,1,1)
 #else
@@ -609,7 +609,7 @@ Program Main
                           Z = Z*Z1
                           Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
                        ENDDO
-                       call Op_phase(Z,OP_V,Nsigma,N_SUN)
+                       call Op_phase(Z,OP_V,Nsigma,N_SUN,lweightabs)
                        Call Control_PrecisionP(Z,Phase)
                        Phase = Z
                        NST = NST + 1
@@ -671,7 +671,7 @@ Program Main
                           Z = Z*Z1
                           Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
                        ENDDO
-                       call Op_phase(Z,OP_V,Nsigma,N_SUN)
+                       call Op_phase(Z,OP_V,Nsigma,N_SUN,lweightabs)
                        Call Control_PrecisionP(Z,Phase)
                        Phase = Z
                        IF( LTAU == 1 .and. Projector .and. Stab_nt(NST)<=THTROT+1 .and. THTROT+1<Stab_nt(NST+1) ) then
@@ -701,7 +701,7 @@ Program Main
                     Z = Z*Z1
                     Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
                  ENDDO
-                 call Op_phase(Z,OP_V,Nsigma,N_SUN)
+                 call Op_phase(Z,OP_V,Nsigma,N_SUN,lweightabs)
                  Call Control_PrecisionP(Z,Phase)
                  Phase = Z
                  NST =  NSTM

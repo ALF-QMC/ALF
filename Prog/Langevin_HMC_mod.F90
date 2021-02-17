@@ -161,7 +161,7 @@
                  Z = Z*Z1
                  Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
               ENDDO
-              call Op_phase(Z,OP_V,Nsigma,N_SUN) 
+              call Op_phase(Z,OP_V,Nsigma,N_SUN,lweightabs)
               Call Control_PrecisionP(Z,Phase)
               Phase = Z
               NST = NST + 1
@@ -228,8 +228,13 @@
                        Z  = Z +    Op_V(n,nf)%O(I,J) * ( Z1 - Gr(Op_V(n,nf)%P(J),Op_V(n,nf)%P(I), nf) )
                     Enddo
                  Enddo
-                 this%Forces(n,nt1) =  this%Forces(n,nt1)  - &
-                      &    Op_V(n,nf)%g * Z *  cmplx(real(N_SUN,Kind(0.d0)), 0.d0, Kind(0.d0)) 
+                 if (lweightabs) then
+                    this%Forces(n,nt1) =  this%Forces(n,nt1)  - &
+                         &    (Op_V(n,nf)%g * Z + conjg(Op_V(n,nf)%g * Z) )
+                 else
+                    this%Forces(n,nt1) =  this%Forces(n,nt1)  - &
+                         &    Op_V(n,nf)%g * Z *  cmplx(real(N_SUN,Kind(0.d0)), 0.d0, Kind(0.d0)) 
+                 endif
               Enddo
            endif
         enddo
@@ -325,7 +330,7 @@
            CALL CGR(Z, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
            Phase = Phase*Z
         Enddo
-        call Op_phase(Phase,OP_V,Nsigma,N_SUN)
+        call Op_phase(Phase,OP_V,Nsigma,N_SUN,lweightabs)
 
       end Subroutine Langevin_HMC_Reset_storage
       
