@@ -506,8 +506,10 @@
 
           N_ops = 0
           if ( Lattice_type == "Bilayer_square" .or. Lattice_type =="Bilayer_honeycomb" ) then
-             Ham_U_vec(1) = Ham_U
-             Ham_U_vec(2) = Ham_U2
+             Do no = 1,  Latt_unit%Norb/2
+                Ham_U_vec(no                    ) = Ham_U
+                Ham_U_vec(no + Latt_unit%Norb/2 ) = Ham_U2
+             enddo
              If (abs(Ham_U ) > Zero ) N_ops = N_ops + Latt%N*Latt_unit%Norb/2
              If (abs(Ham_U2) > Zero ) N_ops = N_ops + Latt%N*Latt_unit%Norb/2
           else
