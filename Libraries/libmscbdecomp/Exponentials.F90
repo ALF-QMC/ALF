@@ -496,6 +496,9 @@ subroutine SingleColExp_init(this, nodes, nredges, weight)
         this%y(i) = nodes(i)%y
         this%p(i) = weight*nodes(i)%axy
 ! This is the order of operations that yields stable matrix inversions
+! We assume that the matrix that we have decomposed is hermitian:
+! M=(0  , b)
+!   (b^*, 0) then the below entries follow for the exponential
         this%c(i) = cosh(abs(weight*nodes(i)%axy))
         this%c2(i) = cosh(abs(weight*nodes(i)%axy)/2)
         ! I got the most reliable results if the hyperbolic pythagoras is best fulfilled.
