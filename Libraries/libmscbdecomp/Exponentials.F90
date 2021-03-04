@@ -335,8 +335,8 @@ subroutine SingleColExp_lmult(this, mat)
                 t2(k) = mat(xyarray(2*i), j+k-1)
             enddo
             do k = 1, step
-                mat(xyarray(2*i-1), j+k-1) = csh(i) * t1(k) + snh(i) * t2(k)
-                mat(xyarray(2*i), j+k-1) = csh(i) * t2(k) + conjg(snh(i)) * t1(k)
+                mat(xyarray(2*i-1), j+k-1) = DBLE(csh(i)) * t1(k) + snh(i) * t2(k)
+                mat(xyarray(2*i), j+k-1) = DBLE(csh(i)) * t2(k) + conjg(snh(i)) * t1(k)
             enddo
         enddo
     enddo
@@ -359,8 +359,8 @@ subroutine SingleColExp_lmultinv(this, mat)
                 t2(k) = mat(this%x(2*i), j+k-1)
             enddo
             do k = 1, step
-                mat(this%x(2*i-1), j+k-1) = this%c(i) * t1(k) - this%s(i) * t2(k)
-                mat(this%x(2*i), j+k-1) = this%c(i) * t2(k) - conjg(this%s(i)) * t1(k)
+                mat(this%x(2*i-1), j+k-1) = DBLE(this%c(i)) * t1(k) - this%s(i) * t2(k)
+                mat(this%x(2*i), j+k-1) = DBLE(this%c(i)) * t2(k) - conjg(this%s(i)) * t1(k)
             enddo
         enddo
     enddo
@@ -452,8 +452,8 @@ subroutine SingleColExp_rmult(this, mat)
         do j = 1, ndim
         t1 = mat(j, this%x(2*i-1))
         t2 = mat(j, this%x(2*i))
-        mat(j, this%x(2*i-1)) = this%c(i) * t1 + this%s(i)* t2
-        mat(j, this%x(2*i)) = this%c(i) * t2 + conjg(this%s(i))* t1
+        mat(j, this%x(2*i-1)) = DBLE(this%c(i)) * t1 + this%s(i)* t2
+        mat(j, this%x(2*i)) = DBLE(this%c(i)) * t2 + conjg(this%s(i))* t1
         enddo
     enddo
 end subroutine SingleColExp_rmult
@@ -469,8 +469,8 @@ subroutine SingleColExp_rmultinv(this, mat)
         do j = 1, ndim
         t1 = mat(j, this%x(2*i-1))
         t2 = mat(j, this%x(2*i))
-        mat(j, this%x(2*i-1)) = this%c(i) * t1 - this%s(i) * t2
-        mat(j, this%x(2*i)) = this%c(i) * t2 - conjg(this%s(i)) * t1
+        mat(j, this%x(2*i-1)) = DBLE(this%c(i)) * t1 - this%s(i) * t2
+        mat(j, this%x(2*i)) = DBLE(this%c(i)) * t2 - conjg(this%s(i)) * t1
         enddo
     enddo
 end subroutine SingleColExp_rmultinv
