@@ -310,25 +310,37 @@ end subroutine SingleColExp_vecmult
 !--------------------------------------------------------------------
 subroutine SingleColExp_lmult(this, mat)
     class(SingleColExp) :: this
-    complex(kind=kind(0.D0)), dimension(:, :) :: mat
+    complex(kind=kind(0.D0)), dimension(:, :), contiguous :: mat
     integer :: i, j, k, ndim, loopend
     integer, parameter :: step = 2 ! determined to be fastest on 6x6 hubbard
     complex(kind=kind(0.D0)) :: t1(step), t2(step)
-    
+    integer, allocatable, dimension(:) ::xyarray
+    complex(kind=kind(0.D0)), allocatable, dimension(:) :: csh, snh
+
+! The intel compiler is really helped by using these temporary arrays
+    allocate(xyarray(2*this%nrofentries), csh(this%nrofentries), snh(this%nrofentries) )
+    xyarray = this%x
+    csh = this%c
+    snh = this%s
+
     ndim = size(mat,1)
     loopend = (ndim/step)*step
+
+! ifort 2017
+!DIR$ UNROLL_AND_JAM(4)
     do j = 1, loopend, step
         do i = 1, this%nrofentries! for every matrix
             do k = 1,step
-                t1(k) = mat(this%x(2*i-1), j+k-1)
-                t2(k) = mat(this%x(2*i), j+k-1)
+                t1(k) = mat(xyarray(2*i-1), j+k-1)
+                t2(k) = mat(xyarray(2*i), j+k-1)
             enddo
             do k = 1, step
-                mat(this%x(2*i-1), j+k-1) = this%c(i) * t1(k) + this%s(i) * t2(k)
-                mat(this%x(2*i), j+k-1) = this%c(i) * t2(k) + conjg(this%s(i)) * t1(k)
+                mat(xyarray(2*i-1), j+k-1) = DBLE(csh(i)) * t1(k) + snh(i) * t2(k)
+                mat(xyarray(2*i), j+k-1) = DBLE(csh(i)) * t2(k) + conjg(snh(i)) * t1(k)
             enddo
         enddo
     enddo
+    deallocate(xyrarray, csh, snh)
 end subroutine SingleColExp_lmult
 
 subroutine SingleColExp_lmultinv(this, mat)
@@ -347,8 +359,8 @@ subroutine SingleColExp_lmultinv(this, mat)
                 t2(k) = mat(this%x(2*i), j+k-1)
             enddo
             do k = 1, step
-                mat(this%x(2*i-1), j+k-1) = this%c(i) * t1(k) - this%s(i) * t2(k)
-                mat(this%x(2*i), j+k-1) = this%c(i) * t2(k) - conjg(this%s(i)) * t1(k)
+                mat(this%x(2*i-1), j+k-1) = DBLE(this%c(i)) * t1(k) - this%s(i) * t2(k)
+                mat(this%x(2*i), j+k-1) = DBLE(this%c(i)) * t2(k) - conjg(this%s(i)) * t1(k)
             enddo
         enddo
     enddo
@@ -440,8 +452,8 @@ subroutine SingleColExp_rmult(this, mat)
         do j = 1, ndim
         t1 = mat(j, this%x(2*i-1))
         t2 = mat(j, this%x(2*i))
-        mat(j, this%x(2*i-1)) = this%c(i) * t1 + this%s(i)* t2
-        mat(j, this%x(2*i)) = this%c(i) * t2 + conjg(this%s(i))* t1
+        mat(j, this%x(2*i-1)) = DBLE(this%c(i)) * t1 + this%s(i)* t2
+        mat(j, this%x(2*i)) = DBLE(this%c(i)) * t2 + conjg(this%s(i))* t1
         enddo
     enddo
 end subroutine SingleColExp_rmult
@@ -457,8 +469,8 @@ subroutine SingleColExp_rmultinv(this, mat)
         do j = 1, ndim
         t1 = mat(j, this%x(2*i-1))
         t2 = mat(j, this%x(2*i))
-        mat(j, this%x(2*i-1)) = this%c(i) * t1 - this%s(i) * t2
-        mat(j, this%x(2*i)) = this%c(i) * t2 - conjg(this%s(i)) * t1
+        mat(j, this%x(2*i-1)) = DBLE(this%c(i)) * t1 - this%s(i) * t2
+        mat(j, this%x(2*i)) = DBLE(this%c(i)) * t2 - conjg(this%s(i)) * t1
         enddo
     enddo
 end subroutine SingleColExp_rmultinv
@@ -496,6 +508,9 @@ subroutine SingleColExp_init(this, nodes, nredges, weight)
         this%y(i) = nodes(i)%y
         this%p(i) = weight*nodes(i)%axy
 ! This is the order of operations that yields stable matrix inversions
+! We assume that the matrix that we have decomposed is hermitian:
+! M=(0  , b)
+!   (b^*, 0) then the below entries follow for the exponential and cosh is real
         this%c(i) = cosh(abs(weight*nodes(i)%axy))
         this%c2(i) = cosh(abs(weight*nodes(i)%axy)/2)
         ! I got the most reliable results if the hyperbolic pythagoras is best fulfilled.
