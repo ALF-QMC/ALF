@@ -314,7 +314,7 @@ subroutine SingleColExp_lmult(this, mat)
     integer :: i, j, k, ndim, loopend
     integer, parameter :: step = 2 ! determined to be fastest on 6x6 hubbard
     complex(kind=kind(0.D0)) :: t1(step), t2(step)
-    integer, allocatable, dimension(:) ::xyarray
+    integer, allocatable, dimension(:) :: xyarray
     complex(kind=kind(0.D0)), allocatable, dimension(:) :: csh, snh
 
 ! The intel compiler is really helped by using these temporary arrays
@@ -340,7 +340,7 @@ subroutine SingleColExp_lmult(this, mat)
             enddo
         enddo
     enddo
-    deallocate(xyrarray, csh, snh)
+    deallocate(xyarray, csh, snh)
 end subroutine SingleColExp_lmult
 
 subroutine SingleColExp_lmultinv(this, mat)
