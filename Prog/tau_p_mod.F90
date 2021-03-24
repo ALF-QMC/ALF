@@ -40,7 +40,7 @@
 !--------------------------------------------------------------------
 
      Module Tau_p_mod
-       Use Hamiltonian
+       Use Hamiltonian_main
        Use Operator_mod
        Use Control
        Use Hop_mod
@@ -82,7 +82,7 @@
               COMPLEX (Kind=Kind(0.d0)), Intent(INOUT) :: PHASE
             End Subroutine CGRP
             SUBROUTINE WRAPUR(NTAU, NTAU1, UDVR)
-              Use Hamiltonian
+              Use Hamiltonian_main
               Use UDV_Wrap_mod
               Use UDV_State_mod
               Implicit None
@@ -146,9 +146,9 @@
            If (trim(Langevin_HMC%get_Update_scheme())=="Langevin" .and. NT .ge. LOBS_ST .and. NT .le. LOBS_EN ) then
               If (Symm) then
                  Call Hop_mod_Symm(GTTUP_T,GTTUP)
-                 CALL Obser( GTTUP_T, PHASE, NT, Mc_step_weight )
+                 CALL ham%Obser( GTTUP_T, PHASE, NT, Mc_step_weight )
               else
-                 CALL Obser( GTTUP, PHASE, NT, Mc_step_weight )
+                 CALL ham%Obser( GTTUP, PHASE, NT, Mc_step_weight )
               endif
            endif
            IF ( NT .EQ. STAB_NT(NT_ST+1) ) THEN
@@ -181,9 +181,9 @@
            Call Hop_mod_Symm(GTTUP_T,GTTUP)
            Call Hop_mod_Symm(G0TUP_T,G0TUP)
            Call Hop_mod_Symm(GT0UP_T,GT0UP)
-           CALL OBSERT (NTAU,GT0UP_T,G0TUP_T,G00UP_T,GTTUP_T,PHASE, Mc_step_Weight)
+           CALL ham%OBSERT (NTAU,GT0UP_T,G0TUP_T,G00UP_T,GTTUP_T,PHASE, Mc_step_Weight)
         else
-           CALL OBSERT (NTAU,GT0UP,G0TUP,G00UP,GTTUP,PHASE, Mc_step_Weight)
+           CALL ham%OBSERT (NTAU,GT0UP,G0TUP,G00UP,GTTUP,PHASE, Mc_step_Weight)
         endif
         DO NT = THTROT+1, Ltrot-THTROT
            ! UR is on time slice NT
@@ -228,13 +228,13 @@
               Call Hop_mod_Symm(GTTUP_T,GTTUP)
               Call Hop_mod_Symm(G0TUP_T,G0TUP)
               Call Hop_mod_Symm(GT0UP_T,GT0UP)
-              Call OBSERT (NTAU1,GT0UP_T,G0TUP_T,G00UP_T,GTTUP_T,PHASE,Mc_step_weight)
+              Call ham%OBSERT (NTAU1,GT0UP_T,G0TUP_T,G00UP_T,GTTUP_T,PHASE,Mc_step_weight)
               If ( trim(Langevin_HMC%get_Update_scheme())=="Langevin"&
-                   &.and. NT1 .ge. LOBS_ST .and. NT1 .le. LOBS_EN ) CALL Obser( GTTUP_T, PHASE, NT1, Mc_step_weight )
+                   &.and. NT1 .ge. LOBS_ST .and. NT1 .le. LOBS_EN ) CALL ham%Obser( GTTUP_T, PHASE, NT1, Mc_step_weight )
            else
-              Call OBSERT (NTAU1,GT0UP,G0TUP,G00UP,GTTUP,PHASE,Mc_step_weight)
+              Call ham%OBSERT (NTAU1,GT0UP,G0TUP,G00UP,GTTUP,PHASE,Mc_step_weight)
               If ( trim(Langevin_HMC%get_Update_scheme())=="Langevin"&
-                   & .and. NT1 .ge. LOBS_ST .and. NT1 .le. LOBS_EN ) CALL Obser( GTTUP, PHASE, NT1, Mc_step_weight )
+                   & .and. NT1 .ge. LOBS_ST .and. NT1 .le. LOBS_EN ) CALL ham%Obser( GTTUP, PHASE, NT1, Mc_step_weight )
            endif
 
         ENDDO
@@ -258,9 +258,9 @@
               If (NT1 .ge. LOBS_ST .and. NT1 .le. LOBS_EN ) Then
                  If (Symm) then
                     Call Hop_mod_Symm(GTTUP_T,GTTUP)
-                    CALL Obser( GTTUP_T, PHASE, NT1, Mc_step_weight )
+                    CALL ham%Obser( GTTUP_T, PHASE, NT1, Mc_step_weight )
                  else
-                    CALL Obser( GTTUP, PHASE, NT1, Mc_step_weight )
+                    CALL ham%Obser( GTTUP, PHASE, NT1, Mc_step_weight )
                  endif
               endif
            Enddo

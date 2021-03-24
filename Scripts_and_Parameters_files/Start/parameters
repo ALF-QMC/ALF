@@ -1,6 +1,9 @@
 !=======================================================================================
 !  Input variables for a general ALF run
 !---------------------------------------------------------------------------------------
+&VAR_ham_name
+ham_name = "Hubbard"
+/
 
 &VAR_lattice               !! Parameters defining the specific lattice and base model
 L1           = 6            ! Length in direction a_1

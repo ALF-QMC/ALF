@@ -1,9 +1,14 @@
 # Log of backward compatibility changes and critical bugs
 
 
+## 2021-03-22  Implementing Submodule Hamiltonians / All hamiltonians in one binary
 
+Author : J. Schwab <br>
+Merge request !107
 
-
+### Breaking changes
+1) **In Hamiltonians** You will have to adapt your Hamiltonians to the Submodule structure
+2) You will have to add your Hamiltonian name to the **Hamiltonians.list** in the Prog directory
 
 ## 2020-11-16   Implementing  Langevin 
 

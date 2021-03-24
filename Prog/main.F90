@@ -115,7 +115,7 @@ Program Main
         Use Operator_mod
         Use Lattices_v3
         Use MyMats
-        Use Hamiltonian
+        Use Hamiltonian_main
         Use Control
         Use Tau_m_mod
         Use Tau_p_mod
@@ -124,6 +124,7 @@ Program Main
         Use UDV_State_mod
         Use Wrapgr_mod
         Use Fields_mod
+        Use WaveFunction_mod
         use entanglement_mod
         use iso_fortran_env, only: output_unit, error_unit
         Use Langevin_HMC_mod
@@ -137,7 +138,7 @@ Program Main
 
         Interface
            SUBROUTINE WRAPUL(NTAU1, NTAU, UDVL)
-             Use Hamiltonian
+             Use Hamiltonian_main
              Use UDV_State_mod
              Implicit none
              CLASS(UDV_State), intent(inout), allocatable, dimension(:) :: UDVL
@@ -153,7 +154,7 @@ Program Main
              INTEGER         :: NVAR
            END SUBROUTINE CGR
            SUBROUTINE WRAPUR(NTAU, NTAU1, UDVR)
-             Use Hamiltonian
+             Use Hamiltonian_main
              Use UDV_Wrap_mod
              Use UDV_State_mod
              Implicit None
@@ -318,7 +319,8 @@ Program Main
         CALL MPI_BCAST(Delta_t_Langevin_HMC ,1 ,MPI_REAL8    ,0,MPI_COMM_WORLD,ierr)
 #endif
         Call Fields_init()
-        Call Ham_set
+        Call Alloc_Ham()
+        Call ham%Ham_set()
         if(Projector) then
            if (.not. allocated(WF_R) .or. .not. allocated(WF_L)) then
               write(error_unit,*) "Projector is selected but there are no trial wave functions!"
@@ -363,8 +365,8 @@ Program Main
            Nt_sequential_end   = Size(OP_V,1)
            N_Global_tau        = 0
         else
-           !  Gives the possibility to set parameters in the Hamiltonian file 
-           Call Overide_global_tau_sampling_parameters(Nt_sequential_start,Nt_sequential_end,N_Global_tau)
+           !  Gives the possibility to set parameters in the Hamiltonian file
+           Call ham%Overide_global_tau_sampling_parameters(Nt_sequential_start,Nt_sequential_end,N_Global_tau)
         endif
         
         N_op = Size(OP_V,1)
@@ -376,7 +378,7 @@ Program Main
         Call Set_Random_number_Generator(File_seeds,Seed_in)
         !Write(6,*) Seed_in
                
-        Call Hamiltonian_set_nsigma(Initial_field)
+        Call ham%Hamiltonian_set_nsigma(Initial_field)
         if (allocated(Initial_field)) then
            Call nsigma%in(Group_Comm,Initial_field)
            deallocate(Initial_field)
@@ -391,7 +393,7 @@ Program Main
         endif
 
         Call control_init
-        Call Alloc_obs(Ltau)
+        Call ham%Alloc_obs(Ltau)
 
         If ( mod(Ltrot,nwrap) == 0  ) then
            Nstm = Ltrot/nwrap
@@ -543,7 +545,7 @@ Program Main
 
            call system_clock(count_bin_start)
 
-           Call Init_obs(Ltau)
+           Call ham%Init_obs(Ltau)
 #if defined(TEMPERING)
            Call Global_Tempering_init_obs
 #endif
@@ -623,9 +625,9 @@ Program Main
                        Mc_step_weight = 1.d0
                        If (Symm) then
                           Call Hop_mod_Symm(GR_Tilde,GR)
-                          CALL Obser( GR_Tilde, PHASE, Ntau1, Mc_step_weight )
+                          CALL ham%Obser( GR_Tilde, PHASE, Ntau1, Mc_step_weight )
                        else
-                          CALL Obser( GR, PHASE, Ntau1, Mc_step_weight  )
+                          CALL ham%Obser( GR, PHASE, Ntau1, Mc_step_weight  )
                        endif
                     ENDIF
                  ENDDO
@@ -648,9 +650,9 @@ Program Main
                        Mc_step_weight = 1.d0
                        If (Symm) then
                           Call Hop_mod_Symm(GR_Tilde,GR)
-                          CALL Obser( GR_Tilde, PHASE, Ntau1, Mc_step_weight )
+                          CALL ham%Obser( GR_Tilde, PHASE, Ntau1, Mc_step_weight )
                        else
-                          CALL Obser( GR, PHASE, Ntau1,Mc_step_weight )
+                          CALL ham%Obser( GR, PHASE, Ntau1,Mc_step_weight )
                        endif
                     ENDIF
                     IF ( Stab_nt(NST) == NTAU1 .AND. NTAU1.NE.0 ) THEN
@@ -719,7 +721,7 @@ Program Main
               endif
 
            ENDDO
-           Call Pr_obs(Ltau)
+           Call ham%Pr_obs(Ltau)
 #if defined(TEMPERING)
            Call Global_Tempering_Pr
 #endif

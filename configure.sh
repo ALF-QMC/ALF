@@ -214,7 +214,7 @@ case $MACHINE in
       printf "    'export ALF_FC=<mpicompiler>'${NC}\n"
     fi
     LIB_BLAS_LAPACK="-llapack -lblas"
-    F90OPTFLAGS="-Mpreprocess -O1 -mp"
+    F90OPTFLAGS="-Mpreprocess -O3 -mp -Minform=inform -g -traceback"
     F90USEFULFLAGS="-Minform=inform"
   ;;
 

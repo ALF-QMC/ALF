@@ -44,7 +44,8 @@ The package's two input files are described in Table~\ref{table:input}.
 	\begin{center}
 		\begin{tabular}{@{} l l @{}}\toprule
 			File & Description \\\midrule
-			\path{parameters} &  Sets the parameters for: lattice, model, QMC process, and error analysis\\
+			\path{parameters} & Defines which Hamiltonian to use and sets the parameters for: \\
+			   & lattice, model, QMC process, and error analysis\\
 			\path{seeds} & List of integer numbers to initialize the random number generator and \\
 			& to start a simulation from scratch
 			\\\bottomrule
@@ -60,6 +61,9 @@ using as an example the Hubbard model on a square lattice (see Sec.~\ref{sec:hub
 !=======================================================================================
 !  Input variables for a general ALF run
 !---------------------------------------------------------------------------------------
+&VAR_ham_name              !! Use Hamiltonian defined in
+ham_name = "Hubbard"        ! Prog/Hamiltonians/Hamiltonian_{ham_name}_smod.F90
+/
 
 &VAR_lattice               !! Parameters defining the specific lattice and base model
 L1           = 6            ! Length in direction a_1
@@ -157,7 +161,6 @@ ham_T2     = 1.d0           ! For bilayer systems
 ham_U2     = 4.d0           ! For bilayer systems
 ham_Tperp  = 1.d0           ! For bilayer systems
 /
-               
 \end{lstlisting}
 %
 \FloatBarrier

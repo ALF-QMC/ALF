@@ -34,13 +34,13 @@ $N_{\mathrm{fl}} = 2$, $N_{\mathrm{col}} \equiv \texttt{N\_SUN}     =1 $,
  $M_V   =  N_{\text{unit-cell}} $,  $U_{k}       =   \frac{U}{2}$, 
  $V_{x y}^{(k, s=1)} =  \delta_{x,y} \delta_{x,k}  $,  $V_{x y}^{(k, s=2)} =  - \delta_{x,y} \delta_{x,k}  $,  $\alpha_{ks}   = 0  $ and $M_I       = 0 $.   
 The coupling of the HS fields to the $z$-component of the magnetization breaks the SU(2) spin symmetry. Nevertheless, the $z$-component of the spin remains a good quantum number such that the imaginary-time propagator -- for a given HS field -- is block  diagonal in this quantum number. This corresponds to the flavor index running from $1$ to $2$,  labeling spin up and spin down degrees of freedom. We note that  in this formulation the  hopping matrix can be flavor dependent such that a Zeeman  magnetic field can be introduced.  If the chemical potential is set to zero, this will not generate a negative sign problem \cite{Wu04,Milat04,Bercx09}.    
-The code that we describe below  can be found in the module \path{Prog/Hamiltonians/Hamiltonian_plain_vanilla_hubbard_mod.F90}. This file may be a good starting point for implementing a new model Hamiltonian. 
+The code that we describe below  can be found in the submodule \path{Prog/Hamiltonians/Hamiltonian_plain_vanilla_hubbard_smod.F90}. This file may be a good starting point for implementing a new model Hamiltonian. 
 
 %------------------------------------------------------------
 \subsection{Setting the Hamiltonian:  \texttt{Ham\_set} }
 %------------------------------------------------------------
 
-The main program will call the subroutine \texttt{Ham\_set} in the module \path{Hamiltonian_plain_vanilla_hubbard_mod.F90}.
+The main program will call the subroutine \texttt{Ham\_set} in the submodule \path{Hamiltonian_plain_vanilla_hubbard_smod.F90}.
 The latter  subroutine  defines the  public variables
 \begin{lstlisting}[style=fortran]
 Type(Operator),     dimension(:,:), allocatable :: Op_V  ! Interaction
@@ -339,7 +339,7 @@ A stable code  should produce results where the mean difference is smaller than 
 
 \subsection{Running the code and testing}
 
-To test the code, one can carry out high precision simulations. After compilation, the executable \texttt{Hubbard\_Plain\_Vanilla.out} is found in the directory \texttt{\$ALF\_DIR/Prog/} and can be run from any directory containing the files \texttt{parameters} and \texttt{seeds} (See Sec.~\ref{sec:files}).
+To test the code, one can carry out high precision simulations. After compilation, the executable \texttt{ALF.out} is found in the directory \texttt{\$ALF\_DIR/Prog/} and can be run from any directory containing the files \texttt{parameters} and \texttt{seeds} (See Sec.~\ref{sec:files}).
 
 Alternatively, as we do bellow, it may be convenient to use \texttt{pyALF} to compile and run the code, especially when using one of the scripts or notebooks available.  
 

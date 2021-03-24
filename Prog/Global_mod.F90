@@ -43,12 +43,13 @@
 !--------------------------------------------------------------------
 Module Global_mod
 
-      Use Hamiltonian
+      Use Hamiltonian_main
       Use MyMats
       Use Operator_mod
       Use Control
       Use Observables
       Use Fields_mod
+      Use Random_Wrap
       use iso_fortran_env, only: output_unit, error_unit
 
       Implicit none
@@ -109,7 +110,7 @@ Module Global_mod
 
         Interface
            SUBROUTINE WRAPUL(NTAU1, NTAU, udvl)
-             Use Hamiltonian
+             Use Hamiltonian_main
              Use UDV_State_mod
              Implicit none
              CLASS(UDV_State), intent(inout) :: udvl(N_FL)
@@ -269,7 +270,7 @@ Module Global_mod
               If (L_Test) Write(6,*) 'Ratio_global: Irank, Partner',Irank,List_partner(Irank), &
                    &                  Ratiotot, Ratio(1)*exp(Ratio(2))
            else
-              Ratiotot = Delta_S0_global(Nsigma_old)
+              Ratiotot = ham%Delta_S0_global(Nsigma_old)
               Ratio(1) = Ratiotot
               Ratio(2) = 0
            endif
@@ -455,7 +456,7 @@ Module Global_mod
 
         Interface
            SUBROUTINE WRAPUL(NTAU1, NTAU, udvl)
-             Use Hamiltonian
+             Use Hamiltonian_main
              Use UDV_State_mod
              Implicit none
              CLASS(UDV_State), intent(inout), allocatable, dimension(:) :: udvl
@@ -553,7 +554,7 @@ Module Global_mod
         Do n = 1,N_Global
            ! Draw a new spin configuration. This is provided by the user in the Hamiltonian module
            ! Note that nsigma is a variable in the module Hamiltonian
-           Call Global_move(T0_Proposal_ratio,nsigma_old,size_clust)
+           Call ham%Global_move(T0_Proposal_ratio,nsigma_old,size_clust)
            If (T0_Proposal_ratio > 1.D-24) then
               NC = NC + 1
               ! Compute the new Green function
@@ -710,9 +711,9 @@ Module Global_mod
               Ratio(1) = Ratio(1) * exp(cmplx( X*Real(N_SUN,Kind(0.d0)), 0.d0,kind(0.d0)) * Op_V(i,nf)%g * Op_V(i,nf)%alpha )
            Enddo
         Enddo
-        !Z =  Z * cmplx( Delta_S0_global(Nsigma_old),0.d0,kind(0.d0) )
+        !Z =  Z * cmplx( ham%Delta_S0_global(Nsigma_old),0.d0,kind(0.d0) )
         !Z =  Z * cmplx( T0_Proposal_ratio, 0.d0,kind(0.d0))
-        Ratio_2 = Ratio_2 + log(Delta_S0_global(Nsigma_old)) + log(T0_Proposal_ratio)
+        Ratio_2 = Ratio_2 + log(ham%Delta_S0_global(Nsigma_old)) + log(T0_Proposal_ratio)
 
         Ratio(2) = Ratio_2
         Compute_Ratio_Global = Ratio(1)*exp(Ratio(2))
@@ -767,7 +768,7 @@ Module Global_mod
 
         Interface
            SUBROUTINE WRAPUL(NTAU1, NTAU, udvl)
-             Use Hamiltonian
+             Use Hamiltonian_main
              Use UDV_State_mod
              Implicit none
              CLASS(UDV_State), intent(inout), allocatable, dimension(:) :: udvl

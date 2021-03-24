@@ -28,8 +28,6 @@
 !
 !     - If you make substantial changes to the program we require you to either consider contributing
 !       to the ALF project or to mark your material in a reasonable way as different from the original version
-
-
 !--------------------------------------------------------------------
 !> @author
 !> ALF-project
@@ -115,7 +113,7 @@
 !>
 !--------------------------------------------------------------------
 
-    Module Hamiltonian
+    submodule (Hamiltonian_main) ham_Kondo_smod
 
       Use Operator_mod
       Use WaveFunction_mod
@@ -129,41 +127,39 @@
       Use Predefined_Hoppings
       Use LRC_Mod
 
-
       Implicit none
+      
+      type, extends(ham_base) :: ham_Kondo
+      contains
+        ! Set Hamiltonian-specific procedures
+        procedure, nopass :: Ham_Set
+        procedure, nopass :: Alloc_obs
+        procedure, nopass :: Obser
+        procedure, nopass :: ObserT
+        procedure, nopass :: S0
+      end type ham_Kondo
 
-
-      Type (Operator),     dimension(:,:), allocatable :: Op_V
-      Type (Operator),     dimension(:,:), allocatable :: Op_T
-      Type (WaveFunction), dimension(:),   allocatable :: WF_L
-      Type (WaveFunction), dimension(:),   allocatable :: WF_R
-      Type (Fields)        :: nsigma
-      Integer              :: Ndim
-      Integer              :: N_FL
-      Integer              :: N_SUN
-      Integer              :: Ltrot
-      Integer              :: Thtrot
-      Logical              :: Projector
-      Integer              :: Group_Comm
-      Logical              :: Symm
-
-
-      Type (Lattice),       private, target :: Latt
-      Type (Unit_cell),     private, target :: Latt_unit
-      Integer,              private :: L1, L2
-      real (Kind=Kind(0.d0)),        private :: Ham_T , ham_U,  Ham_chem
-      real (Kind=Kind(0.d0)),        private :: Dtau, Beta, Theta
-      Integer               ,        private :: N_part
-      Character (len=64),   private :: Model, Lattice_type
-
-
-!>    Privat Observables
-      Type (Obser_Vec ),  private, dimension(:), allocatable ::   Obs_scal
-      Type (Obser_Latt),  private, dimension(:), allocatable ::   Obs_eq
-      Type (Obser_Latt),  private, dimension(:), allocatable ::   Obs_tau
+      Type (Lattice),       Target  :: Latt
+      Type (Unit_cell),     Target  :: Latt_unit
+      Integer                       :: L1, L2
+      Type (Hopping_Matrix_type), Allocatable :: Hopping_Matrix(:)
+      real (Kind=Kind(0.d0)) :: ham_T , ham_Uc,  Ham_chem
+      real (Kind=Kind(0.d0)) :: ham_Uf, ham_JK
+      real (Kind=Kind(0.d0)) :: Phi_Y, Phi_X
+      Integer                :: N_Phi
+      real (Kind=Kind(0.d0)) :: Dtau, Beta, Theta
+      Character (len=64)     :: Model, Lattice_type
+      Logical                :: Checkerboard,  Bulk, Mz
+      Integer, allocatable   :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
+      
+      Type (Unit_cell), Target  :: Latt_unit_f    ! Unit cell for f  correlation functions
 
 
     contains
+      
+      module Subroutine Ham_Alloc_Kondo
+        allocate(ham_Kondo::ham)
+      end Subroutine Ham_Alloc_Kondo
 
 !--------------------------------------------------------------------
 !> @author
@@ -179,23 +175,40 @@
 #endif
           Implicit none
 
-          integer                :: ierr, nf
+          integer                :: ierr, N_part, nf
           Character (len=64)     :: file_info, file_para
 
 
+          ! L1, L2, Lattice_type, List(:,:), Invlist(:,:) -->  Lattice information
+          ! Ham_T, Chem, Phi_X, XB_B, Checkerboard, Symm   -->  Hopping
+          ! Interaction                              -->  Model
+          ! Simulation type                          -->  Finite  T or Projection  Symmetrize Trotter.
 
           NAMELIST /VAR_Lattice/  L1, L2, Lattice_type, Model
 
+          NAMELIST /VAR_Model_Generic/  Checkerboard, N_SUN, N_FL, Phi_X, Phi_Y, Symm, Bulk, N_Phi, Dtau, Beta, Theta,&
+               &   Projector
 
-          NAMELIST /VAR_Hubbard_Plain_Vanilla/  Ham_T, ham_chem, ham_U, Dtau, Beta, Projector, Theta, Symm, N_part
-          
-          
+          NAMELIST /VAR_Kondo/  ham_T, ham_chem, ham_Uc, ham_Uf, ham_JK
+
 
 #ifdef MPI
           Integer        :: Isize, Irank, irank_g, isize_g, igroup
           Integer        :: STATUS(MPI_STATUS_SIZE)
 #endif
           ! Global "Default" values.
+          N_SUN        = 2
+          N_FL         = 1
+          Checkerboard = .false.
+          Symm         = .false.
+          Projector    = .false.
+          Bulk         = .true.
+          Phi_X        = 0.d0
+          Phi_Y        = 0.d0
+          N_Phi        = 0
+          Ham_Uf       = 0.d0
+          Ham_Uc       = 0.d0
+          Ham_JK       = 0.d0
 
           
 #ifdef MPI
@@ -217,24 +230,21 @@
 #endif
              OPEN(UNIT=5,FILE=file_para,STATUS='old',ACTION='read',IOSTAT=ierr)
              IF (ierr /= 0) THEN
-                WRITE(*,*) 'unable to open <parameters>',ierr
-                STOP
+                WRITE(error_unit,*) 'unable to open <parameters>',ierr
+                error stop 1
              END IF
              READ(5,NML=VAR_lattice)
-             N_part =  L1*L2/2
-             If (L1 == 1) then
-                Write(6,*) 'For  one-dimensional lattices set L2=1'
-                stop
+             If ( .not. ( Lattice_type == "Bilayer_square" .or.  Lattice_type == "Bilayer_honeycomb") ) then
+                Write(error_unit,*) "The Kondo Hamiltonian is only defined for bilayer lattices"
+                error stop 1
              endif
-             READ(5,NML=VAR_Hubbard_Plain_Vanilla)
+             READ(5,NML=VAR_Model_Generic)
+             READ(5,NML=VAR_Kondo)
              CLOSE(5)
 
-             Ltrot  = nint(beta/dtau)
-             Thtrot = 0
+             Ltrot = nint(beta/dtau)
              if (Projector) Thtrot = nint(theta/dtau)
              Ltrot = Ltrot+2*Thtrot
-             N_SUN        = 1
-             N_FL         = 2
 
 #ifdef MPI
           Endif
@@ -242,20 +252,30 @@
           CALL MPI_BCAST(L2          ,1  ,MPI_INTEGER,   0,Group_Comm,ierr)
           CALL MPI_BCAST(N_SUN       ,1  ,MPI_INTEGER,   0,Group_Comm,ierr)
           CALL MPI_BCAST(N_FL        ,1  ,MPI_INTEGER,   0,Group_Comm,ierr)
+          CALL MPI_BCAST(N_Phi       ,1  ,MPI_INTEGER,   0,Group_Comm,ierr)
+          CALL MPI_BCAST(Phi_X       ,1  ,MPI_REAL8  ,   0,Group_Comm,ierr)
+          CALL MPI_BCAST(Phi_Y       ,1  ,MPI_REAL8  ,   0,Group_Comm,ierr)
+          CALL MPI_BCAST(Bulk        ,1  ,MPI_LOGICAL  , 0,Group_Comm,IERR)
           CALL MPI_BCAST(Model       ,64 ,MPI_CHARACTER, 0,Group_Comm,IERR)
+          CALL MPI_BCAST(Checkerboard,1  ,MPI_LOGICAL  , 0,Group_Comm,IERR)
           CALL MPI_BCAST(Symm        ,1  ,MPI_LOGICAL  , 0,Group_Comm,IERR)
           CALL MPI_BCAST(Lattice_type,64 ,MPI_CHARACTER, 0,Group_Comm,IERR)
           CALL MPI_BCAST(Ltrot       ,1,  MPI_INTEGER  , 0,Group_Comm,ierr)
-          CALL MPI_BCAST(N_part      ,1,  MPI_INTEGER  , 0,Group_Comm,ierr)
           CALL MPI_BCAST(Thtrot      ,1,  MPI_INTEGER  , 0,Group_Comm,ierr)
           CALL MPI_BCAST(Projector   ,1,  MPI_LOGICAL  , 0,Group_Comm,ierr)
           CALL MPI_BCAST(Dtau        ,1,  MPI_REAL8    , 0,Group_Comm,ierr)
           CALL MPI_BCAST(Beta        ,1,  MPI_REAL8    , 0,Group_Comm,ierr)
-          CALL MPI_BCAST(Ham_T       ,1,  MPI_REAL8    , 0,Group_Comm,ierr)
+          CALL MPI_BCAST(ham_T       ,1,  MPI_REAL8    , 0,Group_Comm,ierr)
           CALL MPI_BCAST(ham_chem    ,1,  MPI_REAL8    , 0,Group_Comm,ierr)
-          CALL MPI_BCAST(ham_U       ,1,  MPI_REAL8    , 0,Group_Comm,ierr)
+          CALL MPI_BCAST(ham_Uc      ,1,  MPI_REAL8    , 0,Group_Comm,ierr)
+          CALL MPI_BCAST(ham_Uf      ,1,  MPI_REAL8    , 0,Group_Comm,ierr)
+          CALL MPI_BCAST(ham_JK      ,1,  MPI_REAL8    , 0,Group_Comm,ierr)
 #endif
 
+          IF ( N_FL > 1 ) then
+             Write(error_unit,*) 'For the Kondo systems, N_FL has  to be equal to unity'
+             error stop 1
+          Endif
           ! Setup the Bravais lattice
           Call  Ham_Latt
 
@@ -271,24 +291,33 @@
 #endif
              OPEN(Unit = 50,file=file_info,status="unknown",position="append")
              Write(50,*) '====================================='
-             Write(50,*) 'Model is      : ', Model
+             Write(50,*) 'Model is      : Kondo'
              Write(50,*) 'Lattice is    : ', Lattice_type
-             Write(50,*) 'L1            : ', L1
-             Write(50,*) 'L2            : ', L2
              Write(50,*) '# of orbitals : ', Ndim
+             Write(50,*) 'Flux_1        : ', Phi_X
+             Write(50,*) 'Flux_2        : ', Phi_Y
+             If (Bulk) then
+                Write(50,*) 'Twist as phase factor in bulk'
+             Else
+                Write(50,*) 'Twist as boundary condition'
+             endif
+             Write(50,*) 'Checkerboard  : ', Checkerboard
              Write(50,*) 'Symm. decomp  : ', Symm
              if (Projector) then
                 Write(50,*) 'Projective version'
                 Write(50,*) 'Theta         : ', Theta
                 Write(50,*) 'Tau_max       : ', beta
-                Write(50,*) '# of particles: ', N_part
              else
                 Write(50,*) 'Finite temperture version'
                 Write(50,*) 'Beta          : ', Beta
              endif
              Write(50,*) 'dtau,Ltrot_eff: ', dtau,Ltrot
+             Write(50,*) 'N_SUN         : ',   N_SUN
+             Write(50,*) 'N_FL          : ', N_FL
              Write(50,*) 't             : ', Ham_T
-             Write(50,*) 'Ham_U         : ', Ham_U
+             Write(50,*) 'Ham_Uc        : ', Ham_Uc
+             Write(50,*) 'Ham_Uf        : ', Ham_Uf
+             Write(50,*) 'Ham_JK        : ', Ham_JK
              Write(50,*) 'Ham_chem      : ', Ham_chem
              Close(50)
 #ifdef MPI
@@ -309,27 +338,25 @@
 !--------------------------------------------------------------------
         Subroutine Ham_Latt
 
+          Use Predefined_Lattices
 
           Implicit none
-          Real (Kind=Kind(0.d0))  :: a1_p(2), a2_p(2), L1_p(2), L2_p(2)
-          
-          If (Lattice_Type /=  "Square")  then
-             Write(6,*) 'The plain vanilla Hubbard model is only defined for the square lattice'
-             stop
-          Endif
-          
-          Latt_unit%Norb    = 1
-          Latt_unit%N_coord = 2
-          allocate(Latt_unit%Orb_pos_p(Latt_unit%Norb,2))
-          Latt_unit%Orb_pos_p(1, :) = [0.d0, 0.d0]
-
-          a1_p(1) =  1.0  ; a1_p(2) =  0.d0
-          a2_p(1) =  0.0  ; a2_p(2) =  1.d0
-          L1_p    =  dble(L1)*a1_p
-          L2_p    =  dble(L2)*a2_p
-          Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
-         
-          Ndim = Latt%N*Latt_unit%Norb
+          Integer :: n
+          ! Use predefined stuctures or set your own lattice.
+          Call Predefined_Latt(Lattice_type, L1,L2,Ndim, List,Invlist,Latt,Latt_Unit)
+          Select case (Lattice_type)
+          Case ("Bilayer_square")
+             Latt_Unit_f%Norb       = 1
+             Latt_Unit_f%N_coord    = 2
+             Allocate (Latt_Unit_f%Orb_pos_p(1,2))
+             Latt_Unit_f%Orb_pos_p(1,:) = 0.d0
+          Case ("Bilayer_honeycomb")
+             Latt_Unit_f%Norb    = 2
+             Latt_Unit_f%N_coord = 3
+             Allocate (Latt_Unit_f%Orb_pos_p(2,2))
+             Latt_Unit_f%Orb_pos_p(1,:) = 0.d0
+             Latt_Unit_f%Orb_pos_p(2,:) = (Latt%a2_p(:) - 0.5D0*Latt%a1_p(:) ) * 2.D0/3.D0
+          end Select
           
         end Subroutine Ham_Latt
 !--------------------------------------------------------------------
@@ -343,27 +370,45 @@
 
           Implicit none
 
-          Integer :: nf , I, Ix, Iy
-          allocate(Op_T(1,N_FL))
-          do nf = 1,N_FL
-             Call Op_make(Op_T(1,nf),Ndim)
-             Do I = 1,Latt%N
-                Ix = Latt%nnlist(I,1,0)
-                Op_T(1,nf)%O(I,  Ix) = cmplx(-Ham_T,    0.d0, kind(0.D0))
-                Op_T(1,nf)%O(Ix, I ) = cmplx(-Ham_T,    0.d0, kind(0.D0))
-                If ( L2 > 1 ) then
-                   Iy = Latt%nnlist(I,0,1)
-                   Op_T(1,nf)%O(I,  Iy) = cmplx(-Ham_T,    0.d0, kind(0.D0))
-                   Op_T(1,nf)%O(Iy, I ) = cmplx(-Ham_T,    0.d0, kind(0.D0))
-                endif
-                Op_T(1,nf)%O(I,  I ) = cmplx(-Ham_chem, 0.d0, kind(0.D0))
-                Op_T(1,nf)%P(i) = i
-             Enddo
-             Op_T(1,nf)%g      = -Dtau
-             Op_T(1,nf)%alpha  =  cmplx(0.d0,0.d0, kind(0.D0))
-             Call Op_set(Op_T(1,nf))
-          enddo
+          Real (Kind=Kind(0.d0) ) ::  Ham_Lambda = 0.d0
 
+          Real (Kind=Kind(0.d0) ), allocatable :: Ham_T_vec(:), Ham_Tperp_vec(:), Ham_Chem_vec(:), Phi_X_vec(:), Phi_Y_vec(:),&
+               &                                  Ham_T2_vec(:),  Ham_Lambda_vec(:)
+          Integer, allocatable ::   N_Phi_vec(:)
+
+          ! Use predefined stuctures or set your own hopping
+          Integer :: n,nth
+
+          Allocate (Ham_T_vec(N_FL), Ham_T2_vec(N_FL), Ham_Tperp_vec(N_FL), Ham_Chem_vec(N_FL), Phi_X_vec(N_FL), Phi_Y_vec(N_FL),&
+               &                                   N_Phi_vec(N_FL), Ham_Lambda_vec(N_FL) )
+
+          ! Here we consider no N_FL  dependence of the hopping parameters.
+          Ham_T_vec      = Ham_T
+          Ham_Tperp_vec  = 0.d0
+          Ham_Chem_vec   = Ham_Chem
+          Phi_X_vec      = Phi_X
+          Phi_Y_vec      = Phi_Y
+          Ham_T2_vec     = 0.d0
+          Ham_Lambda_vec = Ham_Lambda
+          N_Phi_vec      = N_Phi
+
+          Select case (Lattice_type)
+          Case ("Bilayer_square")
+             Call  Set_Default_hopping_parameters_Bilayer_square(Hopping_Matrix,Ham_T_vec,Ham_T2_vec,Ham_Tperp_vec, Ham_Chem_vec, &
+                  &                                              Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL,&
+                  &                                              List, Invlist, Latt, Latt_unit )
+
+          Case ("Bilayer_honeycomb")
+             Call  Set_Default_hopping_parameters_Bilayer_honeycomb(Hopping_Matrix,Ham_T_vec,Ham_T2_vec,Ham_Tperp_vec, Ham_Chem_vec, &
+                  &                                                 Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL,&
+                  &                                                 List, Invlist, Latt, Latt_unit )
+
+          end Select
+
+          Call  Predefined_Hoppings_set_OPT(Hopping_Matrix,List,Invlist,Latt,  Latt_unit,  Dtau, Checkerboard, Symm, OP_T )
+
+          Deallocate (Ham_T_vec, Ham_T2_vec, Ham_Tperp_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
+               &                                   N_Phi_vec,  Ham_Lambda_vec )
 
         end Subroutine Ham_Hop
 !--------------------------------------------------------------------
@@ -384,9 +429,8 @@
           Implicit none
           Character (len=64), intent(in)  :: file_info
 
-          Integer                              :: nf, Ix, Iy, I, n
-          Real (Kind=Kind(0.d0)), allocatable  :: H0(:,:),  U0(:,:), E0(:)
-          Real (Kind=Kind(0.d0))               :: Pi = acos(-1.d0), Delta = 0.01d0
+
+          Integer :: N_part, nf
 #ifdef MPI
           Integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
           Integer        :: STATUS(MPI_STATUS_SIZE)
@@ -397,40 +441,10 @@
           call MPI_Comm_size(Group_Comm, isize_g, ierr)
           igroup           = irank/isize_g
 #endif
-
-          Allocate(WF_L(N_FL),WF_R(N_FL))
-          do nf=1,N_FL
-             Call WF_alloc(WF_L(nf),Ndim,N_part)
-             Call WF_alloc(WF_R(nf),Ndim,N_part)
-          enddo
-
-
-          Allocate(H0(Ndim,Ndim),  U0(Ndim, Ndim),  E0(Ndim) )
-          H0 = 0.d0; U0 = 0.d0;  E0=0.d0
-          Do I = 1,Latt%N
-             Ix = Latt%nnlist(I,1,0)
-             H0(I,  Ix) = -Ham_T*(1.d0   +   Delta*cos(Pi*real(Latt%list(I,1) + Latt%list(I,2),Kind(0.d0))))
-             H0(Ix, I ) = -Ham_T*(1.d0   +   Delta*cos(Pi*real(Latt%list(I,1) + Latt%list(I,2),Kind(0.d0))))
-             If (L2  > 1 ) Then
-                Iy = Latt%nnlist(I,0,1)
-                H0(I,  Iy) = -Ham_T *(1.d0  -   Delta)
-                H0(Iy, I ) = -Ham_T *(1.d0  -   Delta)
-             Endif
-          Enddo
-          Call  Diag(H0,U0,E0)
-!!$          Do I = 1,Ndim
-!!$             Write(6,*) I,E0(I)
-!!$          Enddo
-          Do nf = 1,N_FL
-             do n=1,N_part
-                do I=1,Ndim
-                   WF_L(nf)%P(I,n)=U0(I,n)
-                   WF_R(nf)%P(I,n)=U0(I,n)
-                enddo
-             enddo
-             WF_L(nf)%Degen = E0(N_part+1) - E0(N_part)
-             WF_R(nf)%Degen = E0(N_part+1) - E0(N_part)
-          enddo
+          ! Use predefined stuctures or set your own Trial  wave function
+          N_part = Ndim/2
+          Call Predefined_TrialWaveFunction(Lattice_type ,Ndim,  List,Invlist,Latt, Latt_unit, &
+               &                            N_part, N_FL,  WF_L, WF_R)
 
 
 #ifdef MPI
@@ -446,8 +460,6 @@
           endif
 #endif
 
-          Deallocate(H0,  U0,  E0 )
-
         end Subroutine Ham_Trial
 
 !--------------------------------------------------------------------
@@ -462,31 +474,67 @@
           Use Predefined_Int
           Implicit none
 
-          Integer :: nf, I
-          Real (Kind=Kind(0.d0)) :: X
+          Integer :: nf, I, I1, I2,  nc,  no, N_ops
+          Real (Kind=Kind(0.d0)) :: X, Zero=1.D-10
+          Real (Kind=Kind(0.d0)), allocatable :: Ham_U_vec(:)
 
 
-          Allocate(Op_V(Ndim,N_FL))
-
-          do nf = 1,N_FL
-             do i  = 1, Ndim
-                Call Op_make(Op_V(i,nf), 1)
-             enddo
-          enddo
-
-          Do nf = 1,N_FL
-             X = 1.d0
-             if (nf == 2)  X = -1.d0
-             Do i = 1,Ndim
-                Op_V(i,nf)%P(1)   = I
-                Op_V(i,nf)%O(1,1) = cmplx(1.d0, 0.d0, kind(0.D0))
-                Op_V(i,nf)%g      = X*SQRT(CMPLX(DTAU*ham_U/2.d0, 0.D0, kind(0.D0)))
-                Op_V(i,nf)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
-                Op_V(i,nf)%type   = 2
-                Call Op_set( Op_V(i,nf) )
+          N_ops = 0
+          if (abs(Ham_Uc)  > Zero ) N_ops = N_ops + Latt%N*Latt_Unit%Norb/2
+          if (abs(Ham_Uf) > Zero )  N_ops = N_ops + Latt%N*Latt_Unit%Norb/2
+          if (abs(Ham_JK) > Zero ) Then
+             if (N_SUN == 2 ) then
+                N_ops = N_ops + Latt%N*Latt_Unit%Norb/2
+             elseif (N_SUN > 2 .and. Symm  )  then
+                N_ops = N_ops + Latt%N*Latt_Unit%Norb*3/2
+             elseif (N_SUN > 2             )  then
+                N_ops = N_ops + Latt%N*Latt_Unit%Norb*2/2
+             endif
+          Endif
+          Allocate(Op_V(N_ops,N_FL))
+          nc = 0
+          if ( abs(Ham_Uc)  > Zero ) then
+             Do I = 1,Latt%N
+                do no = 1, Latt_unit%Norb/2
+                   I1 = invlist(I,no)
+                   nc = nc + 1
+                   Call Predefined_Int_U_SUN(  OP_V(nc,1), I1, N_SUN, DTAU, Ham_Uc )
+                enddo
              Enddo
-          Enddo
-
+          Endif
+          if ( abs(Ham_Uf)  > Zero ) then
+             Do I = 1,Latt%N
+                do no =  Latt_unit%Norb/2 + 1, Latt_unit%Norb
+                   I1 = invlist(I,no)
+                   nc = nc + 1
+                   Call Predefined_Int_U_SUN(  OP_V(nc,1), I1, N_SUN, DTAU, Ham_Uf )
+                enddo
+             Enddo
+          Endif
+          if ( abs(Ham_JK)  > Zero ) then
+             Do I = 1,Latt%N
+                Do no = 1, Latt_unit%Norb/2
+                   I1 = Invlist(I,no                    )
+                   I2 = Invlist(I,no + Latt_unit%Norb/2 )
+                   if (N_SUN == 2 ) then
+                      nc = nc + 1
+                      Call Predefined_Int_V_SUN ( OP_V(nc,1), I1,I2, N_SUN, DTAU     , Ham_JK/2.d0 )
+                   elseif (N_SUN > 2 .and. Symm ) then
+                      nc = nc + 1
+                      Call Predefined_Int_V_SUN ( OP_V(nc,1), I1,I2, N_SUN, DTAU/2.d0, Ham_JK/4.d0 )
+                      nc = nc + 1
+                      Call Predefined_Int_VJ_SUN( OP_V(nc,1), I1,I2, N_SUN, DTAU     , Ham_JK/4.d0 )
+                      nc = nc + 1
+                      Call Predefined_Int_V_SUN ( OP_V(nc,1), I1,I2, N_SUN, DTAU/2.d0, Ham_JK/4.d0 )
+                   else
+                      nc = nc + 1
+                      Call Predefined_Int_V_SUN ( OP_V(nc,1), I1,I2, N_SUN, DTAU     , Ham_JK/4.d0 )
+                      nc = nc + 1
+                      Call Predefined_Int_VJ_SUN( OP_V(nc,1), I1,I2, N_SUN, DTAU     , Ham_JK/4.d0 )
+                   endif
+                Enddo
+             Enddo
+          endif
 
         end Subroutine Ham_V
 
@@ -508,9 +556,10 @@
           Character (len=64) ::  Filename
           Character (len=2)  ::  Channel
 
+          
 
           ! Scalar observables
-          Allocate ( Obs_scal(4) )
+          Allocate ( Obs_scal(5) )
           Do I = 1,Size(Obs_scal,1)
              select case (I)
              case (1)
@@ -521,6 +570,8 @@
                 N = 1;   Filename ="Part"
              case (4)
                 N = 1;   Filename ="Ener"
+             case (5)
+                N = 1;   Filename ="Constraint"
              case default
                 Write(6,*) ' Error in Alloc_obs '
              end select
@@ -528,7 +579,8 @@
           enddo
 
           ! Equal time correlators
-          Allocate ( Obs_eq(5) )
+          ! Equal time correlators
+          Allocate ( Obs_eq(4) )
           Do I = 1,Size(Obs_eq,1)
              select case (I)
              case (1)
@@ -536,17 +588,19 @@
              case (2)
                 Filename = "SpinZ"
              case (3)
-                Filename = "SpinXY"
-             case (4)
-                Filename = "SpinT"
-             case (5)
                 Filename = "Den"
+             case (4)
+                Filename = "Dimer"
              case default
-                Write(6,*) "Error in Alloc_obs"
+                Write(6,*) ' Error in Alloc_obs '
              end select
              Nt = 1
-             Channel = "--"
-             Call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
+             Channel = '--'
+             if (I == 4 ) then
+                Call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit_f, Channel, dtau)
+             else
+                Call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit  , Channel, dtau)
+             endif
           enddo
 
           If (Ltau == 1) then
@@ -559,17 +613,21 @@
                 case (2)
                    Channel = 'PH'; Filename = "SpinZ"
                 case (3)
-                   Channel = 'PH'; Filename = "SpinXY"
-                case (4)
-                   Channel = 'PH'; Filename = "SpinT"
-                case (5)
                    Channel = 'PH'; Filename = "Den"
+                case (4)
+                   Channel = 'P' ; Filename = "Greenf"
+                case (5)
+                   Channel = 'PH'; Filename = "Dimer"
                 case default
                    Write(6,*) ' Error in Alloc_obs '
                 end select
                 Nt = Ltrot+1-2*Thtrot
                 If(Projector) Channel = 'T0'
-                Call Obser_Latt_make(Obs_tau(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
+                if (I == 4 .or.  I == 5 ) then
+                   Call Obser_Latt_make(Obs_tau(I), Nt, Filename, Latt, Latt_unit_f, Channel, dtau)
+                else
+                   Call Obser_Latt_make(Obs_tau(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
+                endif
              enddo
           endif
 
@@ -606,18 +664,17 @@
           Integer, INTENT(IN)          :: Ntau
           Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
 
+
           !Local
           Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK
-          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP,ZS, ZZ, ZXY, ZDen
-          Integer :: I,J, imj, nf,  Ix, Iy
+          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, Zhubc, ZCon, ZJ, Z, ZP,ZS, ZZ, ZXY
+          Integer :: I,J, no, n, I_c,I_f, nf, J_c, J_f, no_I, no_J, imj
           Real    (Kind=Kind(0.d0)) :: X
 
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
-
           ZS = ZS*Mc_step_weight
-                    
-          
+
 
           Do nf = 1,N_FL
              Do I = 1,Ndim
@@ -637,67 +694,86 @@
 
 
           Zkin = cmplx(0.d0, 0.d0, kind(0.D0))
+          Call Predefined_Hoppings_Compute_Kin(Hopping_Matrix,List,Invlist, Latt, Latt_unit, GRC, ZKin)
           Zkin = Zkin* dble(N_SUN)
-          Do I = 1,Latt%N
-             Ix = Latt%nnlist(I,1,0)
-             Zkin = Zkin  + GRC(I,Ix,1)  + GRC(Ix,I,1)  &
-                  &       + GRC(I,Ix,2)  + GRC(Ix,I,2)
-          Enddo
-          If (L2 > 1) then
-             Do I = 1,Latt%N
-                Iy = Latt%nnlist(I,0,1)
-                Zkin = Zkin + GRC(I,Iy,2)  + GRC(Iy,I,2)   &
-                     &      + GRC(I,Iy,1)  + GRC(Iy,I,1)
-             Enddo
-          Endif
-          Zkin = Zkin*cmplx(-Ham_T,0.d0,Kind(0.d0))
           Obs_scal(1)%Obs_vec(1)  =    Obs_scal(1)%Obs_vec(1) + Zkin *ZP* ZS
 
 
-          ZPot = cmplx(0.d0, 0.d0, kind(0.D0))
-          Do I = 1,Ndim
-             ZPot = ZPot + Grc(i,i,1) * Grc(i,i, 2)
+          Z     = cmplx(real(N_SUN,kind(0.d0)),0.d0,Kind(0.d0))
+          ZHubc = cmplx(0.d0, 0.d0, kind(0.D0))
+          Do I = 1,Latt%N
+             Do no = 1, Latt_unit%Norb/2
+                I_c = invlist(I,no)
+                ZHubc =  ZHubc +  Z*( GRC(I_c,I_c,1) - 0.5d0)**2 +  GRC(I_c,I_c,1)* GR(I_c,I_c,1)
+             Enddo
           Enddo
-          Zpot = Zpot*ham_U
-          Obs_scal(2)%Obs_vec(1)  =  Obs_scal(2)%Obs_vec(1) + Zpot * ZP*ZS
+          Zhubc = Ham_Uc*Zhubc
+
+          ZJ  = cmplx(0.d0, 0.d0, kind(0.D0))
+          Do I = 1,Latt%N
+             Do no = 1, Latt_unit%Norb/2
+                I_c  = invlist(I,no                   )
+                I_f  = invlist(I,no + Latt_unit%Norb/2)
+                ZJ = ZJ +  Z*2.d0*GRC(I_c,I_f,1)* GRC(I_f,I_c,1) +  GRC(I_c,I_c,1)* GR(I_f,I_f,1) + &
+                     &     GR(I_c,I_c,1)* GRC(I_f,I_f,1)
+             Enddo
+          Enddo
+          ZJ = -Ham_JK*ZJ/2.d0 +  Real(Latt%N* Latt_unit%Norb/8,kind(0.d0))*Ham_JK
+
+
+          Obs_scal(2)%Obs_vec(1)  =  Obs_scal(2)%Obs_vec(1) + ( Zhubc + ZJ )*ZP*ZS
 
 
           Zrho = cmplx(0.d0,0.d0, kind(0.D0))
-          Do I = 1,Ndim
-             Zrho = Zrho + Grc(i,i,1) +  Grc(i,i,2)
-          enddo
-          Obs_scal(3)%Obs_vec(1)  =    Obs_scal(3)%Obs_vec(1) + Zrho * ZP*ZS
-          Obs_scal(4)%Obs_vec(1)  =    Obs_scal(4)%Obs_vec(1) + (Zkin + Zpot)*ZP*ZS
-
-          Do I = 1,Size(Obs_eq,1)
-             Obs_eq(I)%N         =  Obs_eq(I)%N + 1
-             Obs_eq(I)%Ave_sign  =  Obs_eq(I)%Ave_sign + Real(ZS,kind(0.d0))
-          Enddo
-
-          Do I = 1,Latt%N
-             Do J = 1,Latt%N
-                imj  = latt%imj(I,J)
-                ZXY  = GRC(I,J,1) * GR(I,J,2) +  GRC(I,J,2) * GR(I,J,1)
-                ZZ   = GRC(I,J,1) * GR(I,J,1) +  GRC(I,J,2) * GR(I,J,2)    + &
-                       (GRC(I,I,2) - GRC(I,I,1))*(GRC(J,J,2) - GRC(J,J,1))
-
-                ZDen = (GRC(I,I,1) + GRC(I,I,2)) * (GRC(J,J,1) + GRC(J,J,2)) + &
-                     &  GRC(I,J,1) * GR(I,J,1)   +  GRC(I,J,2) * GR(I,J,2)
-                
-                Obs_eq(1)%Obs_Latt(imj,1,1,1) =  Obs_eq(1)%Obs_Latt(imj,1,1,1) + (GRC(I,J,1) + GRC(I,J,2))*ZP*ZS
-                Obs_eq(2)%Obs_Latt(imj,1,1,1) =  Obs_eq(2)%Obs_Latt(imj,1,1,1) +  ZZ  *ZP*ZS
-                Obs_eq(3)%Obs_Latt(imj,1,1,1) =  Obs_eq(3)%Obs_Latt(imj,1,1,1) +  ZXY *ZP*ZS
-                Obs_eq(4)%Obs_Latt(imj,1,1,1) =  Obs_eq(4)%Obs_Latt(imj,1,1,1) + (2.d0*ZXY + ZZ)*ZP*ZS/3.d0
-                Obs_eq(5)%Obs_Latt(imj,1,1,1) =  Obs_eq(5)%Obs_Latt(imj,1,1,1) +  ZDen * ZP * ZS
-
-
+          Do nf = 1,N_FL
+             Do I = 1,Ndim
+                Zrho = Zrho + Grc(i,i,nf)
              enddo
-             Obs_eq(5)%Obs_Latt0(1) = Obs_eq(5)%Obs_Latt0(1) + (GRC(I,I,1) + GRC(I,I,2)) *  ZP*ZS
+          enddo
+          Zrho = Zrho* dble(N_SUN)
+          Obs_scal(3)%Obs_vec(1)  =    Obs_scal(3)%Obs_vec(1) + Zrho * ZP*ZS
+
+          Obs_scal(4)%Obs_vec(1)  =    Obs_scal(4)%Obs_vec(1) + (Zkin + Zhubc + ZJ )*ZP*ZS
+
+
+          ZCon = cmplx(0.d0, 0.d0, kind(0.D0))
+          Do I = 1,Latt%N
+             Do no = Latt_unit%Norb/2 +1 , Latt_unit%Norb
+                I_f = invlist(I,no)
+                ZCon =  ZCon +  Z*( GRC(I_f,I_f,1) - 0.5d0)**2 +  GRC(I_f,I_f,1)* GR(I_f,I_f,1)
+             Enddo
+          Enddo
+          Obs_scal(5)%Obs_vec(1)  =    Obs_scal(5)%Obs_vec(1) + ZCon*ZP*ZS
+
+
+          ! Standard two-point correlations
+          Call Predefined_Obs_eq_Green_measure  ( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(1) )
+          Call Predefined_Obs_eq_SpinSUN_measure( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(2) )
+          Call Predefined_Obs_eq_Den_measure    ( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(3) )
+
+
+          ! Dimer correlations
+          obs_eq(4)%N        = obs_eq(4)%N + 1
+          obs_eq(4)%Ave_sign = obs_eq(4)%Ave_sign + real(ZS,kind(0.d0))
+          Do I = 1,Latt%N
+             do no_I  = 1, Latt_unit%Norb / 2
+                I_c = Invlist(I,no_I)
+                I_f = Invlist(I,no_I + Latt_unit%Norb/2 ) 
+                Do J = 1,Latt%N
+                   Imj = latt%imj(I,J)
+                   do no_J  = 1, Latt_unit%Norb / 2
+                      J_c = Invlist(J,no_J)
+                      J_f = Invlist(J,no_J + Latt_unit%Norb / 2 )
+                      Z  = Predefined_Obs_dimer_eq(I_c,I_f,J_c,J_f, GR, GRC, N_SUN, N_FL) 
+                      obs_eq(4)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(4)%Obs_Latt(imj,1,no_I,no_J) + Z*ZP*ZS
+                   enddo
+                enddo
+                Obs_eq(4)%Obs_Latt0(no_I) =  Obs_eq(4)%Obs_Latt0(no_I) +  &
+                     &  Predefined_Obs_dimer0_eq(I_c,I_f, GR, N_SUN, N_FL) * ZP*ZS
+             enddo
           enddo
 
-
-
-
+          
         end Subroutine Obser
 !--------------------------------------------------------------------
 !> @author
@@ -723,7 +799,7 @@
 !>  Phase
 !> \endverbatim
 !-------------------------------------------------------------------
-        Subroutine ObserT(NT,  GT0,G0T,G00,GTT, PHASE, Mc_step_weight )
+        Subroutine ObserT(NT,  GT0,G0T,G00,GTT, PHASE,Mc_step_weight)
 
           Use Predefined_Obs
 
@@ -734,81 +810,49 @@
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: Phase
           Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
 
+          
           !Locals
-          Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY, ZDEN
+          Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY
           Real    (Kind=Kind(0.d0)) :: X
-          Integer :: IMJ, I, J, I1, J1, no_I, no_J
+          Integer :: IMJ, I_c, I_f, J_c, J_f, I,J, no_I, no_J
 
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
           ZS = ZS*Mc_step_weight
 
+          ! Standard two-point correlations
+
+          Call Predefined_Obs_tau_Green_measure  ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(1) )
+          Call Predefined_Obs_tau_SpinSUN_measure( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(2) )
+          Call Predefined_Obs_tau_Den_measure    ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(3) )
+
+          ! Greenf correlations
           If (NT == 0 ) then
-             Do I = 1,Size(Obs_tau,1)
-                Obs_tau(I)%N         =  Obs_tau(I)%N + 1
-                Obs_tau(I)%Ave_sign  =  Obs_tau(I)%Ave_sign + Real(ZS,kind(0.d0))
-             Enddo
-          Endif
+             obs_tau(4)%N        = obs_tau(4)%N + 1
+             obs_tau(4)%Ave_sign = obs_tau(4)%Ave_sign + real(ZS,kind(0.d0))
+             obs_tau(5)%N        = obs_tau(5)%N + 1
+             obs_tau(5)%Ave_sign = obs_tau(5)%Ave_sign + real(ZS,kind(0.d0))
+          endif
           Do I = 1,Latt%N
-             Do J = 1,Latt%N
-                imj  = latt%imj(I,J)
-
-                ZZ   =      (GTT(I,I,1) -  GTT(I,I,2) ) * ( G00(J,J,1)  -  G00(J,J,2) )   &
-                     &    -  G0T(J,I,1) * GT0(I,J,1)  -  G0T(J,I,2) * GT0(I,J,2)
-                ZXY  =    -  G0T(J,I,1) * GT0(I,J,2)  -  G0T(J,I,2) * GT0(I,J,1)
-
-
-                ZDen =   (cmplx(2.d0,0.d0,kind(0.d0)) -  GTT(I,I,1) - GTT(I,I,2) ) * &
-                     &   (cmplx(2.d0,0.d0,kind(0.d0)) -  G00(J,J,1) - G00(J,J,2) )   &
-                     &   -G0T(J,I,1) * GT0(I,J,1)  -  G0T(J,I,2) * GT0(I,J,2)
-
-                Obs_tau(1)%Obs_Latt(imj,NT+1,1,1) =  Obs_tau(1)%Obs_Latt(imj,NT+1,1,1) + (GT0(I,J,1) + GT0(I,J,2))*ZP*ZS
-                Obs_tau(2)%Obs_Latt(imj,NT+1,1,1) =  Obs_tau(2)%Obs_Latt(imj,NT+1,1,1) +  ZZ  *ZP*ZS
-                Obs_tau(3)%Obs_Latt(imj,NT+1,1,1) =  Obs_tau(3)%Obs_Latt(imj,NT+1,1,1) +  ZXY *ZP*ZS
-                Obs_tau(4)%Obs_Latt(imj,NT+1,1,1) =  Obs_tau(4)%Obs_Latt(imj,NT+1,1,1) + (2.d0*ZXY + ZZ)*ZP*ZS/3.d0
-                Obs_tau(5)%Obs_Latt(imj,NT+1,1,1) =  Obs_tau(5)%Obs_Latt(imj,NT+1,1,1) +  ZDen * ZP * ZS
-
-
-             enddo
-             Obs_tau(5)%Obs_Latt0(1) = Obs_tau(5)%Obs_Latt0(1) + &
-                  &                   (cmplx(2.d0,0.d0,kind(0.d0)) -  GTT(I,I,1) - GTT(I,I,2))  *  ZP*ZS
-          enddo
-
-
-
-        end Subroutine OBSERT
-
-#include "Hamiltonian_Hubbard_include.h"
-        
-!--------------------------------------------------------------------
-!> @author 
-!> ALF Collaboration
-!>
-!> @brief 
-!>   Forces_0  = \partial S_0 / \partial s  are calculated and returned to  main program.
-!> 
-!-------------------------------------------------------------------
-        Subroutine Ham_Langevin_HMC_S0(Forces_0)
-
-          Implicit none
-
-          Real (Kind=Kind(0.d0)), Intent(out  ),  dimension(:,:) :: Forces_0
-
-          !Local
-          Integer :: N, N_op,nt
-          
-          ! Compute \partial S_0 / \partial s
-          N_op = size(nsigma%f,1)
-          Forces_0  = 0.d0
-          do n = 1,N_op
-             if (OP_V(n,1)%type == 3 ) then
-                do nt = 1,Ltrot
-                   Forces_0(n,nt) = nsigma%f(n,nt)
+             do no_I  = 1, Latt_unit%Norb / 2
+                I_c = Invlist(I,no_I)
+                I_f = Invlist(I,no_I + Latt_unit%Norb / 2 ) 
+                Do J = 1,Latt%N
+                   Imj = latt%imj(I,J)
+                   do no_J  = 1, Latt_unit%Norb / 2
+                      J_c = Invlist(J,no_J)
+                      J_f = Invlist(J,no_J + Latt_unit%Norb / 2 )
+                      Z  = Predefined_Obs_Cotunneling(I_c, I_f, J_c, J_f,  GT0,G0T,G00,GTT, N_SUN, N_FL) 
+                      obs_tau(4)%Obs_Latt(imj,NT+1,no_I,no_J) =  Obs_tau(4)%Obs_Latt(imj,NT+1,no_I,no_J) + Z*ZP*ZS
+                      Z  = Predefined_Obs_dimer_tau(I_c, I_f, J_c, J_f, GT0,G0T,G00,GTT, N_SUN, N_FL) 
+                      obs_tau(5)%Obs_Latt(imj,NT+1,no_I,no_J) =  Obs_tau(5)%Obs_Latt(imj,NT+1,no_I,no_J) + Z*ZP*ZS
+                   enddo
                 enddo
-             endif
+                Z = Predefined_Obs_dimer0_eq(I_c,I_f, GTT, N_SUN, N_FL)
+                Obs_tau(5)%Obs_Latt0(no_I) =  Obs_tau(5)%Obs_Latt0(no_I) +  Z*ZP*ZS
+             enddo
           enddo
-          
-        end Subroutine Ham_Langevin_HMC_S0
+        end Subroutine OBSERT
 
 !--------------------------------------------------------------------
 !> @author
@@ -835,5 +879,6 @@
         S0 = 1.d0
         
       end function S0
-        
-    end Module Hamiltonian
+
+
+    end submodule ham_Kondo_smod

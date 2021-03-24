@@ -372,7 +372,7 @@ The projective algorithm (Sec.~\ref{sec:defT0}) requires a pair of trial wave fu
 \begin{table}[h!]
 	\begin{center}
 		\begin{tabular}{@{} p{0.12\columnwidth} p{0.07\columnwidth} p{0.75\columnwidth}  @{}}\toprule
-			Variable               & Ty      pe     &  Description \\\midrule
+			Variable               & Type           &  Description \\\midrule
 			\texttt{WF\%P(:,:)}    & \texttt{cmplx} &  P is an $\texttt{Ndim}\times\texttt{N\_part}$ matrix, where \texttt{N\_part} is the number of particles\\
 			\texttt{WF\%Degen}     & \texttt{dble}  &  It stores the energy difference between the last occupied and first unoccupied single particle state and can be used to check for degeneracy\\\bottomrule
 		\end{tabular}
@@ -393,44 +393,136 @@ The module \texttt{WaveFunction\_mod} also includes the routine \texttt{WF\_over
 
 %{\color{red}   This subsection has to be  rewritten the file \path{Hamiltonian_Examples_mod.F90} is legacy. }
 
-The modules \path{Hamiltonian} in the directory \path{$ALF/Prog/Hamiltonians}  define  specific Hamiltonians. This module must contain a set of subroutines that define  the lattice,  the hopping,  the interaction, the observables,   the  trial wave function, and optionally  updating schemes (see Sec.~\ref{sec:updating}). 
-In order to implement a user-defined model, only the module \path{Hamiltonian} has to be set up. Accordingly, this documentation focuses almost entirely  on this module and the subprograms it includes.
+The module \path{Hamiltonian_main} in \path{Prog/Hamiltonian_main_mod.F90} defines the interface for all model-specific variables and subroutines needed by the Monte Carlo algorithm, like the hopping,  the interaction, the observables, the trial wave function, and optionally updating schemes (see Sec.~\ref{sec:updating}).
+All Hamiltonians (which is the term we are using for an encapsulated model definition) are derived from this main Hamiltonian.
+In order to implement a new user-defined Hamiltonian, one only has to set up a single submodule of the module \path{Hamiltonian_main}. Accordingly, this documentation focuses almost entirely on this module and how to derive a new model from it.
 The remaining parts of the code may hence be treated as a black box.
-The  mandatory  elements of the Hamiltonian module   are defined in Table~\ref{table:hamiltonian}.
+
+Table~\ref{table:hamiltonian_variables} shows all variables declared in \path{Hamiltonian_main}, they fully define the model. Note that the procedures listed in Table~\ref{table:hamiltonian_procedures} are part of the variable \path{ham}.
+
+To define a new Hamiltonian called \emph{New\_model}, one has to do two things:
+\begin{enumerate}
+\item Add a new line \emph{New\_model} to the file \path{Prog/Hamiltonians.list}
+\item Write the new submodule in \texttt{Prog/Hamiltonians/Hamiltonian\_\emph{New\_model}\_smod.F90}
+\end{enumerate}
+
+In this new submodule the user can redefine the procedures listed in Table~\ref{table:hamiltonian_procedures}, those have to be bound to a new type, which is derived from the Hamiltonian object \path{ham_base}. The submodule has access to all variables defined in \path{Hamiltonian_main}, while all variables defined in the submodule are encapsulated. To expose the new Hamiltonian, the user has to define 
+\begin{lstlisting}[style=fortran]
+module Subroutine Ham_Alloc_New_model
+  allocate(ham_New_model::ham)
+end Subroutine Ham_Alloc_New_model
+\end{lstlisting}
+where \path{ham_New_model} is the name of the new type derived from \path{ham_base}. The rest of the linking is done automatically through the entry in \path{Prog/Hamiltonians.list}.
+
 To simplify  the implementation of a new Hamiltonian, ALF comes with a set of predefined structures (Sec.~\ref{sec:predefined}) which the user can combine together or use as templates.
+
+
+\begin{table}[h!]
+	\begin{center}
+   \begin{tabular}{@{} p{0.2\columnwidth} p{0.2\columnwidth} p{0.54\columnwidth}  @{}}
+%   lll}
+   \toprule
+    Public Variable           &  Type                     & Description \\
+    \midrule
+    \texttt{ham}              & \path{class(ham_base)} & Hamiltonian object. 
+       All model dependent procedures are attached to this variable
+       (see Table~\ref{table:hamiltonian_procedures}). \\
+    \hl{\texttt{Op\_V}}       & \path{Operator}         & Interaction \\
+    \hl{\texttt{Op\_T}}       & \path{Operator}         & Hopping \\
+    \hl{\texttt{WF\_L}}       & \path{WaveFunction}     & Left trial wave function \\
+    \hl{\texttt{WF\_R}}       & \path{WaveFunction}     & Right trial wave function \\
+    \texttt{nsigma}           & \path{Fields}           & Fields \\
+    \hl{\texttt{Ndim}}        & \path{int}              & Number of sites \\
+    \hl{\texttt{N\_Fl}}       & \path{int}              & Number of flavors \\
+    \hl{\texttt{N\_SUN}}      & \path{int}              & Number of colors \\
+    \hl{\texttt{Ltrot}}       & \path{int}              & Total number of trotter silces \\
+    \hl{\texttt{Thtrot}}      & \path{int}              & Number of trotter slices reserved for projection \\
+    \hl{\texttt{Projector}}   & \path{logical}          & Enable projector code \\
+    \texttt{Group\_Comm}      & \path{int}              & Group communicator for MPI \\
+    \hl{\texttt{Symm}}        & \path{logical}          & Symmetric trotter \\
+     \bottomrule
+   \toprule
+    Private Variable           &  Type                & Description \\
+    \midrule
+    \texttt{Obs\_scal}         & \path{Obser_Vec}  & 
+       Storage for measured scalar observables \\
+    \texttt{Obs\_eq}           & \path{Obser_Latt} & 
+       Storage for measured equal time correlations \\
+    \texttt{Obs\_tau}          & \path{Obser_Latt} & 
+       Storage for measured time displaced correlations \\
+     \bottomrule
+   \end{tabular}
+   \caption{List of the public and private variables declared in the module \texttt{Hamiltonian}. The \hl{highlighted} variables have to be set in the subroutine \texttt{ham\_set}.}
+         \label{table:hamiltonian_variables}
+     \end{center}
+\end{table}
 
 %
 \begin{table}[h!]
 \begin{center}
  \begin{tabular}{ p{0.25\columnwidth} p{0.51\columnwidth} p{0.15\columnwidth} } 
-    Subprogram & Description & Section \\\midrule
-    \hl{\texttt{Ham\_Set}}  & Reads in model and lattice parameters from the file \texttt{parameters}.
-                                  Sets the Hamiltonian calling the necessary subprograms: \texttt{Ham\_Latt},   \texttt{Ham\_Hop}, \texttt{Ham\_V}  and \texttt{Ham\_Trial}  & 
-                                  \ref{sec:hamiltonian},  \ref{sec:model_classes} \\
-   \hl{\texttt{Ham\_Latt}}  &  Sets the  \texttt{Lattice}   and the \texttt{Unit\_cell}    as well as the the arrays \texttt{List}  and \texttt{Inv\_list} required
-                                            for multiorbital problems    &   \ref{sec:latt}, \ref{U_PV_Ham_latt}  \ref{sec:predefined_lattices} \\
-   \hl{\texttt{Ham\_hop}}  & Sets the hopping term  $\hat{\mathcal{H}}_{T}$ (i.e., operator \texttt{Op\_T}) by calling \texttt{Op\_make} and \texttt{Op\_set} &
-                                          \ref{sec:op},  \ref{U_PV_Ham_hop},  \ref{sec:predefined_hopping_1} \\    
- \hl{\texttt{Ham\_V}}  & Sets the interaction  term  $\hat{\mathcal{H}}_{V}$ (i.e., operator \texttt{Op\_V}) by calling \texttt{Op\_make} and \texttt{Op\_set} &
-                                          \ref{sec:op},  \ref{U_PV_Ham_V},    \ref{sec:interaction_vertices} \\       
- \hl{\texttt{Ham\_Trial}}  & Sets the trial  wave function for the  projective code  $| \Psi_{T,L/R} \rangle  $ 
-                                         specified by the \texttt{Wavefunction} type  & 
-                                          \ref{sec:wave_function},  \ref{U_PV_Ham_Trial},    \ref{sec:predefined_trial_wave_function}\\    
-\hl{\texttt{Alloc\_obs}} & Assigns memory storage to the observable & \ref{sec:obs} , \ref{Alloc_obs_sec}\\
-\hl{\texttt{Obser}}      & Computes the scalar and equal-time observables & \ref{sec:obs},  \ref{sec:EqualTimeobs}, \ref{sec:predefined_observales}   \\
-\hl{\texttt{ObserT}}     & Computes time-displaced correlation functions & \ref{sec:obs}, \ref{sec:TimeDispObs}, \ref{sec:predefined_observales} \\
-  \hl{\texttt{S0}}     & Returns the ratio $e^{S_0(C')} /e^{-S_0(C)} $ for a single spin flip  & \ref{sec:S0} \\    
- \hl{\texttt{Global\_move\_tau}} & Generates a global move on a given time slice $\tau$.  This routine is only called if \texttt{Global\_tau\_moves=True} 
-and \texttt{N\_Global\_tau>0}  & \ref{sec:global_space} \\
-\hl{\texttt{Overide\_global\_tau\_sampling\_parameters}}     & Allows setting \texttt{global\_tau} parameters at run time  &   \ref{sec:global_space} \\  
- \hl{\texttt{Hamiltonian\_set\_nsigma}} &   Sets the initial field configuration.  This   routine is to be modified if one wants to specify the initial configuration. By default the initial configuration is assumed to be random  &  \\
-\hl{\texttt{Global\_move}} &  Handles global moves in time and space   & \ref{sec:global_slice}  \\
-\hl{\texttt{Delta\_S0\_global}} & Computes $e^{S_0(C')} /e^{-S_0(C)} $ for a global move  & \ref{sec:global_slice} \\ 
-\texttt{Init\_obs}  & Initializes the observables to zero & \\    
-\texttt{Pr\_obs}   & Writes the observables to disk by calling \texttt{Print\_bin} of the \texttt{Observables}  module &   
+   Procedure & Description & Section \\\midrule
+   \path{Ham_Set}  & 
+      Reads in model and lattice parameters from the file \texttt{parameters}.
+      Sets the Hamiltonian, which is commonly split up into subroutines \texttt{Ham\_Latt},           
+      \texttt{Ham\_Hop}, \texttt{Ham\_V}  and \texttt{Ham\_Trial}  & 
+         \ref{sec:hamiltonian},  \ref{sec:model_classes} \\
+      & \texttt{Ham\_Latt}: \hspace{3pt} Sets the \texttt{Lattice} and the \texttt{Unit\_cell} 
+      as well as the the arrays \texttt{List}  and \texttt{Inv\_list} required
+      for multiorbital problems    &  
+         \ref{sec:latt}, \ref{U_PV_Ham_latt}  \ref{sec:predefined_lattices} \\
+      & \texttt{Ham\_hop}: \hspace{3pt} Sets the hopping term  $\hat{\mathcal{H}}_{T}$ 
+      (i.e., operator \texttt{Op\_T}) by calling \texttt{Op\_make} and \texttt{Op\_set} &
+         \ref{sec:op},  \ref{U_PV_Ham_hop},  \ref{sec:predefined_hopping_1} \\    
+      & \texttt{Ham\_V}: \hspace{3pt} Sets the interaction term 
+      $\hat{\mathcal{H}}_{V}$ (i.e., operator \texttt{Op\_V}) by calling \texttt{Op\_make}
+      and \texttt{Op\_set} &
+         \ref{sec:op}, \ref{U_PV_Ham_V}, \ref{sec:interaction_vertices} \\       
+      & \texttt{Ham\_Trial}: \hspace{3pt}
+      Sets the trial  wave function for the  projective code $| \Psi_{T,L/R} \rangle  $ 
+      specified by the \texttt{Wavefunction} type  & 
+         \ref{sec:wave_function}, \ref{U_PV_Ham_Trial}, 
+         \ref{sec:predefined_trial_wave_function}\\    
+   \texttt{Alloc\_obs} & 
+      Assigns memory storage to the observable & 
+         \ref{sec:obs} , \ref{Alloc_obs_sec}\\
+   \texttt{Obser}      &
+      Computes the scalar and equal-time observables &
+         \ref{sec:obs},  \ref{sec:EqualTimeobs}, \ref{sec:predefined_observales}   \\
+   \texttt{ObserT}     &
+      Computes time-displaced correlation functions &
+         \ref{sec:obs}, \ref{sec:TimeDispObs}, \ref{sec:predefined_observales} \\
+   \texttt{S0}     &
+      Returns the ratio $e^{S_0(C')} /e^{-S_0(C)} $ for a single spin flip  &
+         \ref{sec:S0} \\    
+   \texttt{Global\_move\_tau} &
+      Generates a global move on a given time slice $\tau$.  This routine is only called
+      if \texttt{Global\_tau\_moves=True} and \texttt{N\_Global\_tau>0} & 
+         \ref{sec:global_space} \\
+   \texttt{Overide\_global\_tau\_sampling\_parameters}     &
+      Allows setting \texttt{global\_tau} parameters at run time  &
+         \ref{sec:global_space} \\  
+   \texttt{Hamiltonian\_set\_nsigma} &
+      Sets the initial field configuration. This routine is to be modified if one wants
+      to specify the initial configuration. By default the initial configuration is
+      assumed to be random  &  \\
+   \texttt{Global\_move} &  
+      Handles global moves in time and space &
+         \ref{sec:global_slice}  \\
+   \texttt{Delta\_S0\_global} &
+      Computes $e^{S_0(C')} /e^{-S_0(C)} $ for a global move  &
+         \ref{sec:global_slice} \\ 
+   \texttt{Init\_obs}  &
+      Initializes the observables to zero. Usually, this doesn't have to be modified. & \\    
+   \texttt{Pr\_obs}   &
+      Writes the observables to disk by calling
+      \texttt{Print\_bin} of the \texttt{Observables} module.
+      Usually, this doesn't have to be modified. &   
  \\\bottomrule   
  \end{tabular}
-\caption{Overview of the subprograms of the  module \texttt{Hamiltonian}, contained in the Hamiltonian files used to define various  Hamiltonians. The \hl{highlighted} subroutines may have to be modified by the user. \label{table:hamiltonian} }
+\caption{Typebound procedures bound to type \texttt{ham\_base}. To define a new model, at least \texttt{Ham\_Set} has to be overloaded in the Hamiltonian submodule. For measurements \texttt{Alloc\_obs}, \texttt{Obser} (and \texttt{ObserT} for time displaced observables) are necessary.
+The other procedures are needed for optional features.
+\label{table:hamiltonian_procedures} }
 \end{center}
 \end{table}
 %

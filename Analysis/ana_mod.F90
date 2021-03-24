@@ -515,7 +515,7 @@
       LT    = size(bins_raw,2)
 
       Write(6, '(A22, I0)') "# of bins: ", Nbins
-      nbins  = Nbins - n_skip
+      nbins = Nbins - n_skip
       Write(6, '(A22, I0)') "Effective # of bins: ", Nbins/N_rebin
       if(Nbins/N_rebin < 2) then
          Write(error_unit,*) "Effective # of bins smaller than 2. Analysis impossible!"
@@ -566,21 +566,20 @@
       do n = 1,Latt%N
          if (  Xk_p(1,n) >= -zero .and. XK_p(2,n) >= -zero ) then
             call COV(bins(n,:,:), phase, Xcov, Xmean, N_rebin )
-            !write(File_out,'(A,"_",F4.2,"_",F4.2)')  trim(name_obs), Xk_p(1,n), Xk_p(2,n)
-            !write(File_out,'(A,"_",F4.2,"_",F4.2,"/g_",F4.2,"_",F4.2)') trim(name_obs), Xk_p(1,n), Xk_p(2,n), Xk_p(1,n), Xk_p(2,n)
             write(File_out,'(A,"_",F4.2,"_",F4.2,"/g_dat")') trim(name_obs), Xk_p(1,n), Xk_p(2,n)
             write(command, '("mkdir -p ",A,"_",F4.2,"_",F4.2)') trim(name_obs), Xk_p(1,n), Xk_p(2,n)
             CALL EXECUTE_COMMAND_LINE(command)
             Open (Unit=10, File=File_out, status="unknown")
-            Write(10,*) Lt_eff, nbins/N_rebin, real(lt-1,kind(0.d0))*dtau, Latt_unit%Norb, Channel
+            Write(10, '(2(I11), E26.17E3, I11, A3)') &
+                  & Lt_eff, nbins/N_rebin, real(lt-1,kind(0.d0))*dtau, Latt_unit%Norb, Channel
             do nt = 1, LT_eff
-               Write(10,"(F14.7,2x,F16.8,2x,F16.8)") &
+               Write(10, '(3(E26.17E3))') &
                      & dble(nt-1)*dtau,  dble(Xmean(nt)), sqrt(abs(dble(Xcov(nt,nt))))
             enddo
             If (N_cov == 1) Then ! print covarariance
                Do nt = 1,LT_eff
                   Do nt1 = 1,LT_eff
-                     Write(10,*) dble(Xcov(nt,nt1))
+                     Write(10, '(E25.17E3)') dble(Xcov(nt,nt1))
                   Enddo
                Enddo
             Endif
@@ -606,15 +605,16 @@
       write(command, '("mkdir -p ",A,"_R0")') trim(name_obs)
       CALL EXECUTE_COMMAND_LINE(command)
       Open (Unit=10,File=File_out,status="unknown")
-      Write(10,*) LT_eff, nbins/N_rebin, real(lt-1,kind(0.d0))*dtau, Latt_unit%Norb, Channel
+      Write(10, '(2(I11), E26.17E3, I11, A3)') &
+            & LT_eff, nbins/N_rebin, real(lt-1,kind(0.d0))*dtau, Latt_unit%Norb, Channel
       do nt = 1, LT_eff
-         Write(10,"(F14.7,2x,F16.8,2x,F16.8)") &
+         Write(10, '(3(E26.17E3))') &
                & dble(nt-1)*dtau,  dble(Xmean(nt)), sqrt(abs(dble(Xcov(nt,nt))))
       enddo
       If (N_cov == 1) Then ! Print  covariance
          Do nt = 1,LT_eff
             Do nt1 = 1,LT_eff
-               Write(10,*) dble(Xcov(nt,nt1))
+               Write(10, '(E25.17E3)') dble(Xcov(nt,nt1))
             Enddo
          Enddo
       Endif
@@ -645,7 +645,7 @@
          call ERRCALCJ(Bins_chi(n,:), PhaseI, ZMean, ZERR, N_rebin )
          Zmean = Zmean*dtau
          Zerr = Zerr*dtau
-         Write(33,"(F12.6,2x,F12.6,2x,F16.8,2x,F16.8,2x,F16.8,2x,F16.8)") &
+         Write(33, '(6(E26.17E3))') &
                &   Xk_p(1,n), Xk_p(2,n), dble(ZMean), dble(ZERR), aimag(ZMean), aimag(ZERR)
       enddo
       Close(33)
@@ -788,10 +788,10 @@
 #ifdef test
       do n = 1,Latt%N
          n1 = n
-         Write(6,*) Xk_p(1,n1), Xk_p(2,n1)
+         Write(6, "(2(E26.17E3))") Xk_p(1,n1), Xk_p(2,n1)
          do m = 1,4
             n1 = Rot90(n1, Xk_p, Latt%N)
-            Write(6,*) n1, Xk_p(1,n1), Xk_p(2,n1)
+            Write(6, "(I11, 2(E26.17E3))") n1, Xk_p(1,n1), Xk_p(2,n1)
          enddo
          Write(6,*)
       enddo
@@ -803,22 +803,22 @@
       Do n = 1,Latt%N
          Xk_p = dble(Latt%listk(n,1))*Latt%b1_p + dble(Latt%listk(n,2))*Latt%b2_p
          Xr_p = dble(Latt%list (n,1))*Latt%a1_p + dble(Latt%list (n,2))*Latt%a2_p
-         Write(33,"(F12.6,2x,F12.6)")  Xk_p(1), Xk_p(2)
-         Write(34,"(F12.6,2x,F12.6)")  Xr_p(1), Xr_p(2)
+         Write(33, '(2(E26.17E3))')  Xk_p(1), Xk_p(2)
+         Write(34, '(2(E26.17E3))')  Xr_p(1), Xr_p(2)
          Do no = 1,Latt_unit%Norb
             do no1 = 1,Latt_unit%Norb
                do nb = 1,Nbins
                   V_help(nb) = bins  (n,nb)%el(no,no1)
                enddo
                call ERRCALCJ( V_help, Phase,XMean, XERR, N_rebin )
-               Write(33,"(I3,2x,I3,2x,F16.8,2x,F16.8,2x,F16.8,2x,F16.8)") &
-                     &  no,no1, dble(XMean), dble(XERR), aimag(XMean), aimag(XERR)
+               Write(33, "(2(I11), 4(E26.17E3))") &
+                     &  no, no1, dble(XMean), dble(XERR), aimag(XMean), aimag(XERR)
                do nb = 1,Nbins
                   V_help(nb) = bins_r(n,nb)%el(no,no1)
                enddo
                call ERRCALCJ( V_help,Phase, XMean_r, XERR_r, N_rebin )
-               Write(34,"(I3,2x,I3,2x,F16.8,2x,F16.8,2x,F16.8,2x,F16.8)") &
-                     &  no,no1, dble(XMean_r), dble(XERR_r), aimag(XMean_r), aimag(XERR_r)
+               Write(34, "(2(I11), 4(E26.17E3))") &
+                     &  no, no1, dble(XMean_r), dble(XERR_r), aimag(XMean_r), aimag(XERR_r)
             enddo
          enddo
       enddo
@@ -845,7 +845,7 @@
             Call AUTO_COR(En,AutoCorr)
             do i = 1,N_auto
                CALL ERRCALCJ(En,XM, XE,i)
-               write(21,*) i, AutoCorr(i), Xe
+               write(21, "(I11, 2(E26.17E3))") i, AutoCorr(i), Xe
             enddo
             CLOSE(21)
          endif
@@ -982,14 +982,12 @@
          vec    (IOBS) = XM
          vec_err(IOBS) = XERR
          WRITE(21,*)
-         WRITE(21,2001) IOBS, XM,  XERR
+         WRITE(21, "(I11, 2(E26.17E3))") IOBS, XM,  XERR
       ENDDO
       CALL ERRCALCJ(sgn, XM,XERR,N_Rebin)
       WRITE(21,*)
-      WRITE(21,2001) Nobs_output+1, XM,  XERR
+      WRITE(21, "(I11, 2(E26.17E3))") Nobs_output+1, XM,  XERR
       CLOSE(21)
-2001    FORMAT('OBS : ', I4,4x,F12.6,2X, F12.6)
-!2001  FORMAT('OBS : ', I4,4x,ES12.5,2X, ES12.5)
 
       if(N_auto>0) then
          ALLOCATE(AutoCorr(N_auto))
@@ -1002,7 +1000,7 @@
             Call AUTO_COR(EN,AutoCorr)
             do i = 1,N_auto
                CALL ERRCALCJ(EN,XM,XERR,i)
-               write(21,*) i, AutoCorr(i), Xerr
+               write(21, "(I11, 2(E26.17E3))") i, AutoCorr(i), Xerr
             enddo
             CLOSE(21)
          ENDDO

@@ -20,7 +20,7 @@ The necessary environment variables and the directives for compiling the code ar
 \begin{lstlisting}[style=bash]
 source configure.sh [MACHINE] [MODE] [STAB]
 \end{lstlisting}
-If run with no arguments, it lists the available options and sets a generic, serial GNU compiler with minimal flags \texttt{-cpp -O3 -ffree-line-length-none -ffast-math}. The predefined machine configurations and parallelization modes available, as well as the options for stabilization schemes for the matrix multiplications (see Sec.~\ref{sec:stable}) are shown Table~\ref{table:configureHPC}. The stabilization scheme choice, in particular, is critical for performance and is discussed further in Sec.~\ref{sec:optimize}.
+If run with no arguments, it lists the available options and sets a generic, serial GNU compiler with minimal flags \texttt{-cpp -O3 -ffree-line-length-none -ffast-math}. The predefined machine configurations and parallelization modes available, as well as the options for stabilization schemes for the matrix multiplications (see Sec.~\ref{sec:stable}) are shown in Table~\ref{table:configureHPC}. The stabilization scheme choice, in particular, is critical for performance and is discussed further in Sec.~\ref{sec:optimize}.
 
 In order to compile the libraries, the analysis routines and the QMC program at once, just execute the single command:%\lstinline[style=bash,morekeywords={make}]{make}.
 \begin{lstlisting}[style=bash,morekeywords={make}]
@@ -64,7 +64,7 @@ source configure.sh Devel serial
 gfortran -v
 make lib
 make ana
-make Examples
+make program
 cd testsuite
 cmake -E make_directory tests
 cd tests
@@ -82,17 +82,17 @@ which will output test results and total success rate.
 %
 
 In order to start a simulation from scratch, the following files have to be present: \texttt{parameters} and \texttt{seeds} (see Sec.~\ref{sec:input}). 
-To run serially the simulation for a given model, for instance the plain vanilla Hubbard model included in \texttt{Hamiltonian\_Hubbard\_Plain\_Vanilla\_mod.F90}, described in Sec.~\ref{sec:hubbard}, issue the command
+To run serial simulation, issue the command
 \begin{lstlisting}[style=bash]
-./Prog/Hubbard_Plain_Vanilla.out
+$ALF_DIR/Prog/ALF.out
 \end{lstlisting}
-In order to run a different model, the corresponding executable should be used and, for running with parallelization, the appropriate MPI execution command should be called. For instance, a Kondo model (Sec.~\ref{sec:kondo}) compiled with OpenMPI can be run in parallel by issuing  
+In order to run with MPI parallelization, the appropriate MPI execution command should be called. For instance, a program compiled with OpenMPI can be run in parallel by issuing  
   \begin{lstlisting}[style=bash]
-orterun -np <number of processes>  $ALF/Prog/Kondo_Honey.out
+orterun -np <number of processes> $ALF_DIR/Prog/ALF.out
 \end{lstlisting}
 
 
-To restart the code using the configuration from a previous simulation as a starting point, first run the script \texttt{out\_to\_in.sh}, which copies outputted field configurations into input files, before calling the ALF executable.   This file is located in the  directory \path{$ALF/Scripts_and_Parameters_files/Start/}
+To restart the code using the configuration from a previous simulation as a starting point, first run the script \texttt{out\_to\_in.sh}, which copies outputted field configurations into input files, before calling the ALF executable.   This file is located in the  directory \path{$ALF_DIR/Scripts_and_Parameters_files/Start/}
 
 %
 %-------------------------------------------------------------------------------------
@@ -102,15 +102,15 @@ To restart the code using the configuration from a previous simulation as a star
 
 The ALF package includes the analysis program \texttt{ana.out} for performing simple error analysis and correlation function calculations on the three observable types. To perform an error analysis based on the Jackknife resampling method~\cite{efron1981} (Sec.~\ref{sec:jack}) of the Monte Carlo bins for a list of observables run
 \begin{lstlisting}[style=bash]
-$ALF/Analysis/ana.out <list of files>
+$ALF_DIR/Analysis/ana.out <list of files>
 \end{lstlisting}
 or run
 \begin{lstlisting}[style=bash]
-$ALF/Analysis/ana.out *
+$ALF_DIR/Analysis/ana.out *
 \end{lstlisting}
 for all observables.
 
-The program \texttt{ana.out} is based on the included module \texttt{ana\_mod}, which provides subroutines for reading an analyzing ALF Monte Carlo bins, that can be used to implement more specialized analysis. The three high-level analysis routines employed by \texttt{ana\_mod} are listed in Table~\ref{table:analysis_programs}. The files taken as input, as well as the output files are listed in Table~\ref{table:analysis_files}.
+The program \texttt{ana.out} is based on the included module \texttt{ana\_mod}, which provides subroutines for reading and analyzing ALF Monte Carlo bins, that can be used to implement more specialized analysis. The three high-level analysis routines employed by \texttt{ana\_mod} are listed in Table~\ref{table:analysis_programs}. The files taken as input, as well as the output files are listed in Table~\ref{table:analysis_files}.
 
 \begin{table}[h]
 	\begin{center}
