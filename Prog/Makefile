@@ -20,6 +20,9 @@ program: git.h Hamiltonians_interface.h Hamiltonians_case.h $(OBJS)
 	@make $(OHAM)
 	$(ALF_FC) -o "ALF.out" $(OBJS) $(OHAM) $(ALF_LIB)
 
+test_io: Fields_mod.o Set_random.o test_io.o
+	$(ALF_FC) -o "test_io.out" Fields_mod.o Set_random.o test_io.o $(ALF_LIB)
+
 git.h:
 	./Git_config.sh
 
