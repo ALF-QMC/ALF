@@ -63,16 +63,24 @@ program test_io
   Integer :: Seed_in
   
   NAMELIST /VAR/ N_op, Ltrot
+
 #ifdef MPI
-  Integer :: ierr, Isize, Irank
+  Integer :: ierr, Isize, Irank, Irank_g, Isize_g, color, key, igroup, mpi_per_parameter_set
 
   CALL MPI_INIT(ierr)
   CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
   CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+  mpi_per_parameter_set = Isize
+  color = irank/mpi_per_parameter_set
+  key   =  0
+  call MPI_COMM_SPLIT(MPI_COMM_WORLD,color,key,Group_comm, ierr)
+  call MPI_Comm_rank(Group_Comm, Irank_g, ierr)
+  call MPI_Comm_size(Group_Comm, Isize_g, ierr)
+  igroup           = irank/isize_g
 #endif
   
   OPEN(UNIT=5, FILE='parameters_io', STATUS='old', ACTION='read')
-  READ(5,NML=VAR)
+  READ(5, NML=VAR)
   
   call nsigma%make(N_op, Ltrot)
   
