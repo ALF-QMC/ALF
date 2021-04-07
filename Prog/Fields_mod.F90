@@ -504,11 +504,11 @@
          WRITE(10,*) SEED_VEC
          DO NT = 1,size(this%f,2)
             DO I = 1,size(this%f,1)
-               if (this%t(i) ==  3 ) then
-                  WRITE(10,*) this%f(I,NT)
-               else
+               ! if (this%t(i) ==  3 ) then
+               !    WRITE(10,*) this%f(I,NT)
+               ! else
                   WRITE(10,*) nint(this%f(I,NT))
-               endif
+               ! endif
             ENDDO
          ENDDO
          CLOSE(10)
