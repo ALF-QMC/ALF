@@ -464,6 +464,7 @@
          INTEGER        :: I, K, NT
          INTEGER, DIMENSION(:), ALLOCATABLE :: SEED_VEC
          CHARACTER (LEN=64) :: FILE_TG
+         Real (Kind=Kind(0.d0)), allocatable :: X(:,:)
 
 #if defined(MPI)
          INTEGER        :: irank_g, isize_g, igroup, ISIZE, IRANK, IERR
@@ -502,15 +503,19 @@
          FILE_TG = "confout_0"
          OPEN (UNIT = 10, FILE=FILE_TG, STATUS='UNKNOWN', ACTION='WRITE')
          WRITE(10,*) SEED_VEC
-         DO NT = 1,size(this%f,2)
-            DO I = 1,size(this%f,1)
+         write(6,*) size(this%f,1), size(this%f,2)
+         allocate (X(size(this%f,1), size(this%f,2)))
+         X = this%f
+         DO NT = 1,size(X,2)
+            DO I = 1,size(X,1)
                ! if (this%t(i) ==  3 ) then
                !    WRITE(10,*) this%f(I,NT)
                ! else
-                  WRITE(10,*) nint(this%f(I,NT))
+                  WRITE(10,*) nint(X(I,NT))
                ! endif
             ENDDO
          ENDDO
+         deallocate(X) 
          CLOSE(10)
          DEALLOCATE(SEED_VEC)
 #endif
