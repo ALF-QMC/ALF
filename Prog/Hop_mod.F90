@@ -46,18 +46,58 @@
 
     Module Hop_mod
 
-      Use Hamiltonian
+      Use Hamiltonian_main
+      Use Operator_mod
       Use Random_wrap
+      Use DynamicMatrixArray_mod
+      Use ContainerElementBase_mod
+      Use OpTTypes_mod
       use iso_fortran_env, only: output_unit, error_unit
 
       ! Private variables
-      Complex (Kind=Kind(0.d0)), allocatable, private :: Exp_T(:,:,:,:), Exp_T_M1(:,:,:,:)
-      Complex (Kind=Kind(0.d0)), allocatable, private :: Exp_T_1D2(:,:,:,:), Exp_T_M1_1D2(:,:,:,:)
-      Complex (Kind=Kind(0.d0)), allocatable, private :: U_HLP(:,:), U_HLP1(:,:),  V_HLP(:,:), V_HLP1(:,:)
-      Integer, private, save ::  Ncheck, Ndim_hop
+      Type(DynamicMatrixArray), private, allocatable :: ExpOpT_vec(:) ! for now we have for simplicity for each flavour a vector
+      Integer, private, save ::  Ncheck
       Real (Kind=Kind(0.d0)), private, save  :: Zero
 
       Contains
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF-project
+!
+!> @brief
+!> This function serves as a central entry point to collect the 
+!> processing that occurs in mapping an OpT input matrix to the internal
+!> matrix-like data structure.
+!
+!> @param ExpOpT_vec[inout] a DynamicMatrixArray structure to which we append new elements.
+!> @param op[in] an Operator that describes an OpT hopping matrix.
+!
+!--------------------------------------------------------------------
+        subroutine OpT_postprocess(ExpOpT_vec, op)
+            use Operator_mod
+            implicit none
+            
+            Type(DynamicMatrixArray), intent(inout) :: ExpOpT_vec
+            Type(Operator), intent(in) :: op
+            
+            Class(CmplxExpOpT), pointer :: cmplxexp => null()
+            Class(RealExpOpT), pointer :: realexp => null()
+            
+            if (Op_is_real(op)) then
+                ! branch for real operators
+                    allocate(realexp) ! Yep, this is a manifest memory leak. Using the ptr we can allocate onto the same variable
+                    call realexp%init(op)
+                    call ExpOpT_vec%pushback(realexp)
+                else
+                ! branch for complex operators
+                    allocate(cmplxexp)
+                    call cmplxexp%init(op)
+                    call ExpOpT_vec%pushback(cmplxexp)
+                endif
+        end subroutine
+        
+      
 !--------------------------------------------------------------------
 !> @author
 !> ALF-project
@@ -68,62 +108,26 @@
 !
 !--------------------------------------------------------------------
         subroutine Hop_mod_init
-
           Implicit none
 
-          Integer :: nc, nf, i,j
-          Complex (Kind=Kind(0.d0)) :: g
+          Integer :: nc, nf
 
           Ncheck = size(Op_T,1)
           If ( size(Op_T,2) /= N_FL ) then
              Write(error_unit,*) 'Hop_mod_init: Error in the number of flavors.'
              error stop 1
           Endif
-          Ndim_hop = Op_T(1,1)%N
-          !Write(6,*) 'In Hop_mod: ', Ndim, Ndim_hop, Ncheck
-          Do nc = 1, Ncheck
-             do nf = 1,N_FL
-                if ( Ndim_hop /= Op_T(nc,nf)%N ) Then
-                   Write(error_unit,*) 'Hop_mod_init: Different size of Hoppings not implemented '
-                   error stop 1
-                endif
-             enddo
-          enddo
 
-          Allocate ( Exp_T       (Ndim_hop,Ndim_hop,Ncheck,N_FL) )
-          Allocate ( Exp_T_M1    (Ndim_hop,Ndim_hop,Ncheck,N_FL) )
-          Allocate ( Exp_T_1D2   (Ndim_hop,Ndim_hop,Ncheck,N_FL) )
-          Allocate ( Exp_T_M1_1D2(Ndim_hop,Ndim_hop,Ncheck,N_FL) )
+          allocate(ExpOpT_vec(N_FL))
 
-          Allocate ( V_Hlp(Ndim_hop,Ndim) )
-          Allocate ( V_Hlp1(Ndim_hop,Ndim) )
-          Allocate ( U_Hlp (Ndim, Ndim_hop) )
-          Allocate ( U_Hlp1(Ndim, Ndim_hop) )
-
-          Exp_T = cmplx(0.d0, 0.d0, kind(0.D0))
-          Exp_T_M1 = cmplx(0.d0, 0.d0, kind(0.D0))
           do nf = 1,N_FL
+             call ExpOpT_vec(nf)%init()
              do nc = 1,Ncheck
-                g = Op_T(nc,nf)%g
-                Call  Op_exp(g,Op_T(nc,nf),Exp_T(:,:,nc,nf))
-                g = -Op_T(nc,nf)%g
-                Call  Op_exp(g,Op_T(nc,nf),Exp_T_M1(:,:,nc,nf))
-                g = Op_T(nc,nf)%g/2.d0
-                Call  Op_exp(g,Op_T(nc,nf),Exp_T_1D2(:,:,nc,nf))
-                g = -Op_T(nc,nf)%g/2.d0
-                Call  Op_exp(g,Op_T(nc,nf),Exp_T_M1_1D2(:,:,nc,nf))
-                ! symmetrize the upper part of Exp_T and Exp_T_M1
-                DO i = 1, Ndim_hop
-                   DO j = i, Ndim_hop
-                      Exp_T(i, j, nc, nf) = (Exp_T(i, j, nc, nf) + Conjg(Exp_T(j, i, nc, nf)))/2.D0
-                      Exp_T_M1(i, j, nc, nf) = (Exp_T_M1(i, j, nc, nf) + Conjg(Exp_T_M1(j, i, nc, nf)))/2.D0
-                   ENDDO
-                ENDDO
+                call OpT_postprocess(ExpOpT_vec(nf), Op_T(nc, nf))
              enddo
           enddo
 
           Zero = 1.E-12
-
         end subroutine Hop_mod_init
 
 !--------------------------------------------------------------------
@@ -138,42 +142,14 @@
           Integer, intent(IN) :: nf
 
           !Local
-          Integer :: nc, N1, N2
-
-          N1=size(In,1)
-          N2=size(In,2)
+          Integer :: nc
+          class(ContainerElementBase), pointer :: dummy
 
           do nc =  Ncheck,1,-1
-             If ( dble( Op_T(nc,nf)%g*conjg(Op_T(nc,nf)%g) ) > Zero ) then
-                call ZSLHEMM('L','U',Ndim_hop,N1,N2,Exp_T(:,:,nc,nf),Op_T(nc,nf)%P,In)
-             Endif
+            dummy => ExpOpT_vec(nf)%at(nc)
+            call dummy%lmult(In)
           Enddo
         end Subroutine Hop_mod_mmthr
-
-!--------------------------------------------------------------------
-        Subroutine Hop_mod_mmthr_1D2(In,nf)
-
-
-          ! InOut:  In = e^{ -dtau T /2 }.IN
-          Implicit none
-
-          Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
-          Integer, intent(IN) :: nf
-
-          !Local
-          Integer :: nc, N1, N2
-
-          N1=size(In,1)
-          N2=size(In,2)
-
-          do nc =  Ncheck,1,-1
-             If ( dble( Op_T(nc,nf)%g*conjg(Op_T(nc,nf)%g) ) > Zero ) then
-                call ZSLHEMM('L','U',Ndim_hop,N1,N2,Exp_T_1D2(:,:,nc,nf),Op_T(nc,nf)%P,In)
-             Endif
-          Enddo
-        end Subroutine Hop_mod_mmthr_1D2
-
-!--------------------------------------------------------------------
 
         Subroutine Hop_mod_mmthr_m1(In,nf)
 
@@ -185,15 +161,12 @@
           Integer :: nf
 
           !Local
-          Integer :: nc , N1, N2
-
-          N1=size(In,1)
-          N2=size(In,2)
+          Integer :: nc
+          class(ContainerElementBase), pointer :: dummy
 
           do nc =  1,Ncheck
-             If ( dble( Op_T(nc,nf)%g*conjg(Op_T(nc,nf)%g) ) > Zero ) then
-                call ZSLHEMM('L','U',Ndim_hop,N1,N2,Exp_T_m1(:,:,nc,nf),Op_T(nc,nf)%P,In)
-             Endif
+            dummy => ExpOpT_vec(nf)%at(nc)
+            call dummy%lmultinv(In)
           Enddo
 
         end Subroutine Hop_mod_mmthr_m1
@@ -210,15 +183,12 @@
           Integer :: nf
 
           !Local
-          Integer :: nc, N1, N2
-
-          N1=size(In,1)
-          N2=size(In,2)
+          Integer :: nc
+          class(ContainerElementBase), pointer :: dummy
 
           do nc =  1, Ncheck
-             If ( dble( Op_T(nc,nf)%g*conjg(Op_T(nc,nf)%g) ) > Zero ) then
-                call ZSLHEMM('R','U',Ndim_hop,N1,N2,Exp_T(:,:,nc,nf),Op_T(nc,nf)%P,In)
-             Endif
+            dummy => ExpOpT_vec(nf)%at(nc)
+            call dummy%rmult(In)
           Enddo
 
         end Subroutine Hop_mod_mmthl
@@ -235,15 +205,12 @@
           Integer :: nf
 
           !Local
-          Integer :: nc, N1, N2
-
-          N1=size(In,1)
-          N2=size(In,2)
+          Integer :: nc
+          class(ContainerElementBase), pointer :: dummy
 
           do nc =  1, Ncheck
-             If ( dble( Op_T(nc,nf)%g*conjg(Op_T(nc,nf)%g) ) > Zero ) then
-                call ZSLHEMM('L','U',Ndim_hop,N1,N2,Exp_T(:,:,nc,nf),Op_T(nc,nf)%P,In)
-             Endif
+            dummy => ExpOpT_vec(nf)%at(nc)
+            call dummy%lmult(In)
           Enddo
 
         end Subroutine Hop_mod_mmthlc
@@ -260,45 +227,15 @@
           Integer :: nf
 
           !Local
-          Integer :: nc, N1, N2
-
-          N1=size(In,1)
-          N2=size(In,2)
+          Integer :: nc
+          class(ContainerElementBase), pointer :: dummy
 
           do nc =  Ncheck,1,-1
-             If ( dble( Op_T(nc,nf)%g*conjg(Op_T(nc,nf)%g) ) > Zero ) then
-                call ZSLHEMM('R','U',Ndim_hop,N1,N2,Exp_T_m1(:,:,nc,nf),Op_T(nc,nf)%P,In)
-             Endif
+            dummy => ExpOpT_vec(nf)%at(nc)
+            call dummy%rmultinv(In)
           Enddo
 
         end Subroutine Hop_mod_mmthl_m1
-
-
-!--------------------------------------------------------------------
-
-        Subroutine Hop_mod_mmthl_m1_1D2(In, nf)
-
-
-          ! InOut:  In = IN * e^{ dtau T/2 }
-          Implicit none
-
-          Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
-          Integer :: nf
-
-          !Local
-          Integer :: nc, N1, N2
-
-          N1=size(In,1)
-          N2=size(In,2)
-
-          do nc =  Ncheck,1,-1
-             If ( dble( Op_T(nc,nf)%g*conjg(Op_T(nc,nf)%g) ) > Zero ) then
-                call ZSLHEMM('R','U',Ndim_hop,N1,N2,Exp_T_m1_1D2(:,:,nc,nf),Op_T(nc,nf)%P,In)
-             Endif
-          Enddo
-
-        end Subroutine Hop_mod_mmthl_m1_1D2
-
 
 !!$        Subroutine  Hop_mod_test
 !!$
@@ -333,12 +270,15 @@
           COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:), Intent(Out):: Out
           COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:), Intent(IN):: In
 
-          Integer :: nf
+          Integer :: nf, nc
+          class(ContainerElementBase), pointer :: dummy
 
           Out = In
           Do nf = 1, size(In,3)
-             Call Hop_mod_mmthr_1D2   (Out(:,:,nf), nf )
-             Call Hop_mod_mmthl_m1_1D2(Out(:,:,nf), nf )
+             do nc =  Ncheck,1,-1
+                dummy => ExpOpT_vec(nf)%at(nc)
+                call dummy%adjointaction(Out(:, :, nf))
+             enddo
           enddo
 
         End Subroutine Hop_mod_Symm

@@ -52,9 +52,9 @@ Module Operator_mod
   Type Operator
      Integer          :: N, N_non_zero
      logical          :: diag
-     complex (Kind=Kind(0.d0)), pointer :: O(:,:), U (:,:), M_exp(:,:,:), E_exp(:,:)
-     Real    (Kind=Kind(0.d0)), pointer :: E(:)
-     Integer, pointer :: P(:)
+     complex (Kind=Kind(0.d0)), allocatable :: O(:,:), U (:,:), M_exp(:,:,:), E_exp(:,:)
+     Real    (Kind=Kind(0.d0)), allocatable :: E(:) ! allocatable members are part of F2003
+     Integer, allocatable :: P(:)
      complex (Kind=Kind(0.d0)) :: g
      complex (Kind=Kind(0.d0)) :: alpha
      Integer          :: Type 
@@ -213,7 +213,10 @@ Contains
     Integer, Intent(IN) :: N
     Deallocate (Op%O, Op%P )
 
-    If ( Op%Type >= 1)   deallocate(OP%M_exp,OP%E_exp,  OP%U, OP%E)
+    If ( allocated(OP%M_exp) ) deallocate(OP%M_exp)
+    If ( allocated(OP%E_exp) ) deallocate(OP%E_exp)
+    If ( allocated(OP%U) ) deallocate(OP%U)
+    If ( allocated(OP%E) ) deallocate(OP%E)
 
   end subroutine Op_clear
 
@@ -420,7 +423,6 @@ Contains
 !--------------------------------------------------------------------
   subroutine Op_mmultL(Mat,Op,spin,cop)
     Implicit none 
-    Integer :: Ndim
     Type (Operator)          , INTENT(IN)    :: Op
     Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Mat (:,:)
     Real    (Kind=Kind(0.d0)), INTENT(IN)    :: spin
@@ -654,7 +656,7 @@ Contains
     Implicit none 
     
     Integer :: Ndim
-    Type (Operator) , INTENT(IN )   :: Op
+    Type (Operator) , INTENT(IN)   :: Op
     Complex (Kind = Kind(0.D0)), INTENT(INOUT) :: Mat (Ndim,Ndim)
     Real (Kind=Kind(0.d0)), INTENT(IN )   :: spin
     Integer, INTENT(IN) :: N_Type
@@ -712,5 +714,23 @@ Contains
        endif
     endif
   end Subroutine Op_Wrapdo
-
+  
+  function Op_is_real(Op) result(retval)
+    Implicit None
+    
+    Type (Operator) , INTENT(IN)   :: Op
+    Logical :: retval
+    Real (Kind=Kind(0.d0)) :: myzero
+    integer :: i,j
+    
+    retval = (Abs(aimag(Op%g)) < Abs(Op%g)*epsilon(1.D0))
+    ! calculate a matrix scale
+    myzero = maxval(abs(Op%E))*epsilon(Op%E)
+    
+    do i = 1, Op%N
+      do j = 1, Op%N
+        retval = retval .and. (Abs(aimag(Op%O(i,j))) < myzero)
+      enddo
+    enddo
+  end function Op_is_real
 end Module Operator_mod

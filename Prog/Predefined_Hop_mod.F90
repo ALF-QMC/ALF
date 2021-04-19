@@ -285,100 +285,171 @@
         Integer :: nf,N_Bonds, nc, I, I1, n, no
         Real (Kind=Kind(0.d0)) :: Zero = 1.0E-8
 
-        !Write(6,*) Ham_T_vec,  Ham_T_perp_vec, Ham_chem_vec
-        Allocate( this(N_FL) )
-        do nf = 1,N_FL
-           this(nf)%N_bonds = Latt_unit%Norb +  (Latt_unit%Norb - 1 )
-           Allocate (this(nf)%List(this(nf)%N_bonds,4), &
-                &    this(nf)%T(this(nf)%N_bonds) )
-           nc = 0
-           do n = 1,Latt_unit%Norb
-              nc = nc + 1
-              this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
-              this(nf)%List(nc,1) = n
-              this(nf)%List(nc,2) = n
-              this(nf)%List(nc,3) = 1
-              this(nf)%List(nc,4) = 0
-           enddo
 
-           do n = 1,Latt_unit%Norb -1
-              nc = nc + 1
-              this(nf)%T(nc)    = cmplx(-Ham_T_perp_vec(nf),0.d0,kind(0.d0))
-              this(nf)%List(nc,1) = n
-              this(nf)%List(nc,2) = n + 1
-              this(nf)%List(nc,3) = 0
-              this(nf)%List(nc,4) = 0
-           enddo
-
-           Allocate ( this(nf)%T_Loc(Latt_Unit%Norb) )
-           do nc = 1,Latt_Unit%Norb
-              this(nf)%T_Loc(nc)  = cmplx(-Ham_Chem_vec(nf),0.d0,kind(0.d0))
-           enddo
-           this(nf)%N_Phi =  N_Phi_vec(nf)
-           this(nf)%Phi_X =  Phi_X_vec(nf)
-           this(nf)%Phi_Y =  Phi_Y_vec(nf)
-           this(nf)%Bulk =   Bulk
-        enddo
-
-        ! Write(6,*) Latt_unit%Norb
-        ! Set Checkerboard
-        Allocate ( this(1)%Multiplicity(Latt_unit%Norb) )
-        If     ( Latt_Unit%Norb  == 1 ) then
-           this(1)%Multiplicity = 2
-           this(1)%N_FAM        = 2
-        elseif ( Latt_Unit%Norb  == 2 ) then
-           this(1)%Multiplicity = 3
-           this(1)%N_FAM        = 3
-        else
-           this(1)%Multiplicity                 = 4
-           this(1)%Multiplicity(1)              = 3
-           this(1)%Multiplicity(Latt_unit%Norb) = 3
-           this(1)%N_FAM        = 4
-        endif
-        Allocate ( this(1)%L_Fam(this(1)%N_FAM),  this(1)%Prop_Fam(this(1)%N_FAM) )
-        this(1)%L_Fam    = Latt%N*Latt_unit%Norb/2
-        this(1)%Prop_Fam= 1.d0
-        Allocate ( this(1)%List_Fam(this(1)%N_FAM,this(1)%L_Fam(1),2) )
-
-
-        this(1)%L_FAM  = 0
-        do I = 1,Latt%N
-           if ( mod(Latt%List(I,1),2) == 0 ) then
-              Nf = 1
-              do no = 1,Latt_unit%Norb
-                 this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I ! Unit cell
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = no ! The bond (See above)
+        select case (Latt%N)
+        case(1)   !  Here the length of the  N_leg_ladder is unity such  that it
+                  !  effectivley maps onto a one-dimensional chain with open boundary conditions.
+           
+           
+           Allocate( this(N_FL) )
+           do nf = 1,N_FL
+              this(nf)%N_bonds =  Latt_unit%Norb - 1
+              Allocate (this(nf)%List( this(nf)%N_bonds,4 ), this(nf)%T( this(nf)%N_bonds ) )
+              nc = 0
+              do n = 1,Latt_unit%Norb  -1
+                 nc = nc + 1
+                 this(nf)%T(nc)    = cmplx(-Ham_T_perp_vec(nf),0.d0,kind(0.d0))
+                 this(nf)%List(nc,1) = n
+                 this(nf)%List(nc,2) = n + 1
+                 this(nf)%List(nc,3) = 0
+                 this(nf)%List(nc,4) = 0
               enddo
+              
+              Allocate ( this(nf)%T_Loc(Latt_Unit%Norb) )
+              do nc = 1,Latt_Unit%Norb
+                 this(nf)%T_Loc(nc)  = cmplx(-Ham_Chem_vec(nf),0.d0,kind(0.d0))
+              enddo
+              this(nf)%N_Phi =  N_Phi_vec(nf)
+              this(nf)%Phi_X =  Phi_X_vec(nf)
+              this(nf)%Phi_Y =  Phi_Y_vec(nf)
+              this(nf)%Bulk =   Bulk
+           enddo
+           
+           ! Set Checkerboard
+           Allocate ( this(1)%Multiplicity(Latt_unit%Norb) )
+           If  ( Latt_Unit%Norb  <=  2 ) then
+              this(1)%Multiplicity = 1
+              this(1)%N_FAM        = 1
            else
-              Nf = 2
-              do no = 1,Latt_unit%Norb
-                 this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = no
-              enddo
+              this(1)%Multiplicity                 = 2
+              this(1)%Multiplicity(1)              = 1
+              this(1)%Multiplicity(Latt_unit%Norb) = 1
+              this(1)%N_FAM        = 2
            endif
-        enddo
-        do no = 1,Latt_unit%Norb - 1
-           if (mod(no,2) == 1 ) then
-              Nf = 3
-              !Write(6,*)  NF, no + Latt_unit%Norb
-              do I = 1,Latt%N
-                 this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = no + Latt_unit%Norb
-              enddo
-           else
-              Nf = 4
-              !Write(6,*)  NF, no + Latt_unit%Norb
-              do I = 1,Latt%N
-                 this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = no + Latt_unit%Norb
-              enddo
-           endif
-        enddo
+           Allocate ( this(1)%L_Fam( this(1)%N_FAM ),  this(1)%Prop_Fam( this(1)%N_FAM ) )
+           this(1)%L_Fam    = Latt_unit%Norb/2
+           this(1)%Prop_Fam = 1.d0
+           Allocate ( this(1)%List_Fam(this(1)%N_FAM,this(1)%L_Fam(1),2) )
+           
+           
+           this(1)%L_FAM  = 0
+           do no = 1,Latt_unit%Norb - 1
+              if (mod(no,2) == 1 ) then
+                 Nf = 1
+                 !Write(6,*)  NF, no 
+                 do I = 1,Latt%N
+                    this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = no 
+                 enddo
+              else
+                 Nf = 2
+                 !Write(6,*)  NF, no 
+                 do I = 1,Latt%N
+                    this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = no 
+                 enddo
+              endif
+           enddo
 
+           
+        case default
+           !Write(6,*) Ham_T_vec,  Ham_T_perp_vec, Ham_chem_vec
+           Allocate( this(N_FL) )
+           do nf = 1,N_FL
+              this(nf)%N_bonds = Latt_unit%Norb +  (Latt_unit%Norb - 1 )
+              Allocate (this(nf)%List( this(nf)%N_bonds,4 ), &
+                   &    this(nf)%T( this(nf)%N_bonds ) )
+              nc = 0
+              do n = 1,Latt_unit%Norb
+                 nc = nc + 1
+                 this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
+                 this(nf)%List(nc,1) = n
+                 this(nf)%List(nc,2) = n
+                 this(nf)%List(nc,3) = 1
+                 this(nf)%List(nc,4) = 0
+              enddo
+              
+              do n = 1,Latt_unit%Norb -1
+                 nc = nc + 1
+                 this(nf)%T(nc)    = cmplx(-Ham_T_perp_vec(nf),0.d0,kind(0.d0))
+                 this(nf)%List(nc,1) = n
+                 this(nf)%List(nc,2) = n + 1
+                 this(nf)%List(nc,3) = 0
+                 this(nf)%List(nc,4) = 0
+              enddo
+              
+              Allocate ( this(nf)%T_Loc(Latt_Unit%Norb) )
+              do nc = 1,Latt_Unit%Norb
+                 this(nf)%T_Loc(nc)  = cmplx(-Ham_Chem_vec(nf),0.d0,kind(0.d0))
+              enddo
+              this(nf)%N_Phi =  N_Phi_vec(nf)
+              this(nf)%Phi_X =  Phi_X_vec(nf)
+              this(nf)%Phi_Y =  Phi_Y_vec(nf)
+              this(nf)%Bulk =   Bulk
+           enddo
+           
+           ! Write(6,*) Latt_unit%Norb
+           ! Set Checkerboard
+           Allocate ( this(1)%Multiplicity(Latt_unit%Norb) )
+           If     ( Latt_Unit%Norb  == 1 ) then
+              this(1)%Multiplicity = 2
+              this(1)%N_FAM        = 2
+           elseif ( Latt_Unit%Norb  == 2 ) then
+              this(1)%Multiplicity = 3
+              this(1)%N_FAM        = 3
+           else
+              this(1)%Multiplicity                 = 4
+              this(1)%Multiplicity(1)              = 3
+              this(1)%Multiplicity(Latt_unit%Norb) = 3
+              this(1)%N_FAM        = 4
+           endif
+           Allocate ( this(1)%L_Fam(this(1)%N_FAM),  this(1)%Prop_Fam(this(1)%N_FAM) )
+           this(1)%L_Fam    = Latt%N*Latt_unit%Norb/2
+           this(1)%Prop_Fam= 1.d0
+           Allocate ( this(1)%List_Fam(this(1)%N_FAM,this(1)%L_Fam(1),2) )
+           
+           
+           this(1)%L_FAM  = 0
+           do I = 1,Latt%N
+              if ( mod(Latt%List(I,1),2) == 0 ) then
+                 Nf = 1
+                 do no = 1,Latt_unit%Norb
+                    this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I ! Unit cell
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = no ! The bond (See above)
+                 enddo
+              else
+                 Nf = 2
+                 do no = 1,Latt_unit%Norb
+                    this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = no
+                 enddo
+              endif
+           enddo
+           do no = 1,Latt_unit%Norb - 1
+              if (mod(no,2) == 1 ) then
+                 Nf = 3
+                 !Write(6,*)  NF, no + Latt_unit%Norb
+                 do I = 1,Latt%N
+                    this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = no + Latt_unit%Norb
+                 enddo
+              else
+                 Nf = 4
+                 !Write(6,*)  NF, no + Latt_unit%Norb
+                 do I = 1,Latt%N
+                    this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = no + Latt_unit%Norb
+                 enddo
+              endif
+           enddo
+        end select
+        
       end Subroutine Set_Default_hopping_parameters_N_Leg_Ladder
 
 !--------------------------------------------------------------------

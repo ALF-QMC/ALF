@@ -51,7 +51,7 @@
 
         Use UDV_State_mod
 #if defined(STAB2) ||  defined(STAB1) 
-        Use Hamiltonian
+        Use Hamiltonian_main
         Use Hop_mod
         Use UDV_Wrap_mod
 

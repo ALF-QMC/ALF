@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 - 2018 The ALF project
+!  Copyright (C) 2016 - 2020 The ALF project
 !
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -36,22 +36,40 @@
 !> @brief 
 !> This module handles calculation of imaginary-time-displaced Green functions and  
 !> calls the routine ObserT.F90 in the Hamiltonian module, so as to compute  user
-!> defined time-displaced correlations functions. This modules is for the projector code.
-!> 
-!
+!> defined time-displaced correlations functions. This module is for the projector code.
 !--------------------------------------------------------------------
 
      Module Tau_p_mod
-       Use Hamiltonian
+       Use Hamiltonian_main
        Use Operator_mod
        Use Control
        Use Hop_mod
        Use UDV_State_mod
-       Use tau_m_mod !, only propr, proprm1
+       Use Langevin_HMC_mod
+       Use tau_m_mod  !, only propr, proprm1
 
      Contains
 
-       SUBROUTINE Tau_p(udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, NST )
+!--------------------------------------------------------------------
+!> @author
+!> ALF-project
+!
+!> @brief      This routine computes the time displaced  zero termperature Green functions and call  obserT. 
+!> On input:   a) GR,  the equal time Green function,  as  well as udvl, udvr are on time slice 
+!>                nt_in= stab_nt(nst)   with   stab_nt(NST) <= THTROT+1  and  stab_nt( NST +1 )  > THTROT+1.
+!>             b) The storage, udvst, is full with left propagations from  Ltrot to    stab_nt( NST +1 ).                    
+!> On_input    a) GR,  the equal time Green function,  as  well as udvl, udvr are on time slice 
+!>                nt_in = = Stab_nt(NST_IN)  with nt_in <= THTROT+1.
+!>             b) The storage is full with left propagations for all n's with stab_nt(n) > nt_in.
+!>             c) udvl and udvr are on time slice nt_in  such that  a call to CGR with udvl and udvr will
+!>                produce Gr.
+!>
+!> On_output   a) The time displaced Green functions have been computed and measurements carried out.
+!>             b) If Langevin then 1)  nt_in = 0, 2) forces are computed  3)  time displaced and equal time
+!>                observables are  measured.      
+!--------------------------------------------------------------------
+
+       SUBROUTINE Tau_p(udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, NST_IN, LOBS_ST, LOBS_EN )
 
          Implicit none
 
@@ -64,11 +82,11 @@
               COMPLEX (Kind=Kind(0.d0)), Intent(INOUT) :: PHASE
             End Subroutine CGRP
             SUBROUTINE WRAPUR(NTAU, NTAU1, UDVR)
-              Use Hamiltonian
+              Use Hamiltonian_main
               Use UDV_Wrap_mod
               Use UDV_State_mod
               Implicit None
-              CLASS(UDV_State), intent(inout) :: UDVR(N_FL)
+              CLASS(UDV_State), allocatable, dimension(:), intent(inout) :: UDVR
               Integer :: NTAU1, NTAU
             END SUBROUTINE WRAPUR
          End Interface
@@ -76,34 +94,34 @@
         ! Storage is full with U^{<} (left)  propagations.
 
 
-        Integer, Intent(In) :: NSTM, NST
+        Integer, Intent(In) :: NSTM, NST_IN
         CLASS(UDV_State), Dimension(:), ALLOCATABLE, INTENT(IN) :: udvl, udvr
         CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(IN) :: udvst
         Complex (Kind=Kind(0.d0)), Intent(in) :: GR(NDIM,NDIM,N_FL),  Phase
         Integer, Intent(In) :: STAB_NT(0:NSTM)
-
+        Integer, Intent(In) :: LOBS_ST, LOBS_EN
+        
 !       Local.
         CLASS(UDV_State), Dimension(:), ALLOCATABLE :: udvr_local
         Complex (Kind=Kind(0.d0)) :: DETZ, ZK, DET1(2)
         Complex (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable  ::  GRUPB, GRUP
         Complex (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable  ::  G00UP, G0TUP, GT0UP,  GTTUP
         Complex (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable  ::  G00UP_T, G0TUP_T, GT0UP_T,  GTTUP_T
-
         Complex (Kind=Kind(0.d0)), allocatable  :: TEMP(:,:), TMPUP(:,:)
 
         Real    (Kind=kind(0.d0))  :: XMEAN_DYN, XMAX_DYN
 
         Integer :: NTAUIN,  NTDM,  LFAM, NFAM, N_Part,  LQ , I, NCON, NF, NFLAG, NL, NT1, NT_ST, NT, NTAU, NTAU1,n
 
-        Real (Kind=Kind(0.d0)):: XMEAN, XMAX
-
+        Real (Kind=Kind(0.d0)) :: XMEAN, XMAX
+        Real (Kind=Kind(0.d0)) :: Mc_step_weight
+        
         LQ = ndim
-        nt_st=0
 
-        do while(STAB_NT(NT_ST)<=THTROT+1)
-           nt_st=nt_st+1
-        enddo
+        Mc_step_weight = 1.d0
+        if (trim(Langevin_HMC%get_Update_scheme())=="Langevin") Mc_step_weight =  Langevin_HMC%get_Delta_t_running()
 
+        
         ALLOCATE (  GRUPB(LQ,LQ,N_FL), GRUP(LQ,LQ,N_FL), G00UP(LQ,LQ,N_FL), G0TUP(LQ,LQ,N_FL), &
              &      GT0UP(LQ,LQ,N_FL),  GTTUP(LQ,LQ,N_FL), TEMP(LQ,LQ), udvr_local(N_FL) )
 
@@ -116,51 +134,70 @@
            udvr_local(nf)=udvr(nf)
         enddo
 
-
-        Call Wrapur(STAB_NT(NST), STAB_NT(NT_ST), UDVR_local)
-
-        GRUP=GR
-        do nt=stab_nt(nst)+1,THTROT+1
-           CALL PROPRM1(GRUP,nt)
-           CALL PROPR  (GRUP,nt)
+        GTTUP = GR ! On time slice Stab_nt(NST_IN)
+        NT_ST = NST_IN
+        do NT = Stab_nt(NT_ST)+1, Thtrot + 1
+           If  (trim(Langevin_HMC%get_Update_scheme())=="Langevin") then            
+              Call Langevin_HMC%Wrap_Forces(GTTUP,NT)
+           else
+              CALL PROPRM1 (GTTUP,NT)
+              CALL PROPR   (GTTUP,NT)
+           endif
+           If (trim(Langevin_HMC%get_Update_scheme())=="Langevin" .and. NT .ge. LOBS_ST .and. NT .le. LOBS_EN ) then
+              If (Symm) then
+                 Call Hop_mod_Symm(GTTUP_T,GTTUP)
+                 CALL ham%Obser( GTTUP_T, PHASE, NT, Mc_step_weight )
+              else
+                 CALL ham%Obser( GTTUP, PHASE, NT, Mc_step_weight )
+              endif
+           endif
+           IF ( NT .EQ. STAB_NT(NT_ST+1) ) THEN
+              Call Wrapur(STAB_NT(NT_ST), STAB_NT(NT_ST+1), UDVR_local)
+              do nf=1,N_FL
+                 CALL CGRP(DetZ, GRUP(:,:,nf), udvr_local(nf), udvst(nt_st + 1,nf))
+              enddo
+              Do nf = 1,N_FL
+                 Call Control_Precision_tau(GTTUP(:,:,nf), GRUP(:,:,nf), Ndim)
+              enddo
+              GTTUP = GRUP
+              NT_ST = NT_ST+1
+           endif
         enddo
 
-        GRUPB = GRUP
+        GRUPB = GTTUP
         do nf=1,N_FL
            do I=1,Ndim
               GRUPB(I,I,nf)=GRUPB(I,I,nf)-1.d0
            enddo
         enddo
 
-        G00UP = GRUP
-        GTTUP = GRUP
-        GT0UP = GRUP
+        G00UP = GTTUP
+        !GTTUP = GTTUP
+        GT0UP = GTTUP
         G0TUP = GRUPB
-        NT1   = 0
+        NTAU   = 0
         If (Symm) then
            Call Hop_mod_Symm(G00UP_T,G00UP)
            Call Hop_mod_Symm(GTTUP_T,GTTUP)
            Call Hop_mod_Symm(G0TUP_T,G0TUP)
            Call Hop_mod_Symm(GT0UP_T,GT0UP)
-           CALL OBSERT (NT1,GT0UP_T,G0TUP_T,G00UP_T,GTTUP_T,PHASE)
+           CALL ham%OBSERT (NTAU,GT0UP_T,G0TUP_T,G00UP_T,GTTUP_T,PHASE, Mc_step_Weight)
         else
-           CALL OBSERT (NT1,GT0UP,G0TUP,G00UP,GTTUP,PHASE)
+           CALL ham%OBSERT (NTAU,GT0UP,G0TUP,G00UP,GTTUP,PHASE, Mc_step_Weight)
         endif
-        ! WRITE(6,*) 'Starting Dyn'
         DO NT = THTROT+1, Ltrot-THTROT
            ! UR is on time slice NT
            NTAU = NT - THTROT -1
-           !#ifdef test
-           !            WRITE(6,*) 'Ntau: ', NTAU, "on slice",NT
-           !#endif
-           IF ( NT.EQ.STAB_NT(NT_ST) .and. NTAU/=0) THEN
-              !               write(*,*) "stabilization at ",stab_nt(NT_st)
-              do nf=1,N_FL
-                 !                   write(*,*) "udvl side:",udvst(nt_st,nf)%side
-                 CALL CGRP(DetZ, GRUP(:,:,nf), udvr_local(nf), udvst(nt_st,nf))
-              enddo
+           IF ( NT .EQ. STAB_NT(NT_ST+1) .and. NTAU /= 0) THEN
               Call Wrapur(STAB_NT(NT_ST), STAB_NT(NT_ST+1), UDVR_local)
-              NT_ST=NT_ST+1
+              do nf=1,N_FL
+                 CALL CGRP(DetZ, GRUP(:,:,nf), udvr_local(nf), udvst(nt_st + 1,nf))
+              enddo
+              NT_ST = NT_ST+1
+              Do nf = 1,N_FL
+                 Call Control_Precision_tau(GTTUP(:,:,nf), GRUP(:,:,nf), Ndim)
+              enddo
+              GTTUP = GRUP
 
               GRUPB = -GRUP
               do nf=1,N_FL
@@ -168,49 +205,22 @@
                     GRUPB(I,I,nf)=GRUPB(I,I,nf)+1.d0
                  enddo
               enddo
-
-              Do nf = 1,N_FL
-                 Call Control_Precision_tau(GTTUP(:,:,nf), GRUP(:,:,nf), Ndim)
-              enddo
-
-!!$              XMAX      = 0.D0
-!!$              XMEAN     = 0.D0
-!!$              XMAX_DYN  = 0.D0
-!!$              XMEAN_DYN = 0.D0
-!!$              do nf=1,N_FL
-!!$                 CALL COMPARE (GTTUP(:,:,nf), GRUP(:,:,nf), XMAX,XMEAN)
-!!$                 IF (XMAX.GT.XMAX_DYN) XMAX_DYN = XMAX
-!!$                 XMEAN_DYN = XMEAN_DYN + XMEAN
-!!$              enddo
-!!$              !#ifdef test
-!!$                                WRITE(6,*) 'Compare up: ',XMEAN/Real(N_FL*LQ*LQ,Kind(0.d0)), XMAX
-!!$              !#endif
-
-              GTTUP = GRUP
-
               do nf=1,N_FL
                  CALL MMULT(TEMP,GRUP(:,:,nf),GT0UP(:,:,nf))
                  GT0UP(:,:,nf) = TEMP
                  CALL MMULT(TEMP,G0TUP(:,:,nf),GRUPB(:,:,nf))
                  G0TUP(:,:,nf) = TEMP
               enddo
-           ENDIF                ! Ortho.
-           ! Now propagate to Ntau + 1 and call OBSERT.
+           ENDIF
            NT1 = NT + 1
-           !Write(6,*) "CALL PROPR  (GT0UP,NT1)"
            CALL PROPR  (GT0UP,NT1)
-           !Write(6,*) "Ret"
-           !Write(6,*) " CALL PROPRM1(G0TUP,NT1)"
            CALL PROPRM1(G0TUP,NT1)
-           !Write(6,*) "Ret"
-
-           !Write(6,*) "CALL PROPRM1(GTTUP,NT1)"
-           CALL PROPRM1(GTTUP,NT1)
-           !Write(6,*) "Ret"
-           !Write(6,*) "CALL PROPR  (GTTUP,NT1)"
-           CALL PROPR  (GTTUP,NT1)
-           !Write(6,*) "Ret"
-
+           If  (trim(Langevin_HMC%get_Update_scheme())=="Langevin") then
+              Call Langevin_HMC%Wrap_Forces(GTTUP,NT1)
+           else
+              CALL PROPRM1 (GTTUP,NT1)
+              CALL PROPR   (GTTUP,NT1)
+           endif
 
            NTAU1 = NTAU + 1
            If (Symm) then
@@ -218,13 +228,44 @@
               Call Hop_mod_Symm(GTTUP_T,GTTUP)
               Call Hop_mod_Symm(G0TUP_T,G0TUP)
               Call Hop_mod_Symm(GT0UP_T,GT0UP)
-              Call OBSERT (NTAU1,GT0UP_T,G0TUP_T,G00UP_T,GTTUP_T,PHASE)
+              Call ham%OBSERT (NTAU1,GT0UP_T,G0TUP_T,G00UP_T,GTTUP_T,PHASE,Mc_step_weight)
+              If ( trim(Langevin_HMC%get_Update_scheme())=="Langevin"&
+                   &.and. NT1 .ge. LOBS_ST .and. NT1 .le. LOBS_EN ) CALL ham%Obser( GTTUP_T, PHASE, NT1, Mc_step_weight )
            else
-              Call OBSERT (NTAU1,GT0UP,G0TUP,G00UP,GTTUP,PHASE)
+              Call ham%OBSERT (NTAU1,GT0UP,G0TUP,G00UP,GTTUP,PHASE,Mc_step_weight)
+              If ( trim(Langevin_HMC%get_Update_scheme())=="Langevin"&
+                   & .and. NT1 .ge. LOBS_ST .and. NT1 .le. LOBS_EN ) CALL ham%Obser( GTTUP, PHASE, NT1, Mc_step_weight )
            endif
 
         ENDDO
 
+        If (trim(Langevin_HMC%get_Update_scheme())=="Langevin") then   ! Finish calculating the forces
+           DO NT = Ltrot-THTROT + 1, Ltrot - 1
+              ! UR is on time slice NT
+              IF ( NT .EQ. STAB_NT(NT_ST+1) ) THEN
+                 Call Wrapur(STAB_NT(NT_ST), STAB_NT(NT_ST+1), UDVR_local)
+                 do nf=1,N_FL
+                    CALL CGRP(DetZ, GRUP(:,:,nf), udvr_local(nf), udvst(nt_st + 1,nf))
+                 enddo
+                 NT_ST = NT_ST+1
+                 Do nf = 1,N_FL
+                    Call Control_Precision_tau(GTTUP(:,:,nf), GRUP(:,:,nf), Ndim)
+                 enddo
+                 GTTUP = GRUP
+              ENDIF
+              NT1 = NT + 1
+              Call Langevin_HMC%Wrap_Forces(GTTUP,NT1)
+              If (NT1 .ge. LOBS_ST .and. NT1 .le. LOBS_EN ) Then
+                 If (Symm) then
+                    Call Hop_mod_Symm(GTTUP_T,GTTUP)
+                    CALL ham%Obser( GTTUP_T, PHASE, NT1, Mc_step_weight )
+                 else
+                    CALL ham%Obser( GTTUP, PHASE, NT1, Mc_step_weight )
+                 endif
+              endif
+           Enddo
+        endif
+        
         Do nf=1,N_FL
            call udvr_local(nf)%dealloc
         enddo
@@ -232,11 +273,7 @@
         If (Symm) Then
            Deallocate ( G00UP_T, G0TUP_T, GT0UP_T,  GTTUP_T )
         endif
-
-        !         DEALLOCATE (TMPUP, V, D  )
-        !         DEALLOCATE (ULR , ULRINV )
         
-        RETURN
       END SUBROUTINE Tau_p
-
+      
     End Module Tau_p_mod

@@ -1,5 +1,5 @@
 ! compile with
-! gfortran -std=f2003  -I ../../../Libraries/Modules/ -L ../../../Libraries/Modules/ main.F90 ../../../Prog_8/Operator.o ../../../Libraries/Modules/modules_90.a -llapack -lblas ../../../Libraries/MyNag/libnag.a
+! gfortran -std=f2003 -I ../../Prog/ -I ../../Libraries/Modules/ -L ../../Libraries/Modules/ 11-Op-mmultR.F90  ../../Prog/Operator_mod.o ../../Prog/Fields_mod.o ../../Libraries/Modules/modules_90.a -llapack -lblas
 
 Program OPMULTTEST
 
@@ -19,9 +19,9 @@ Program OPMULTTEST
         
 ! setup some test data
         Ndim = 3
-        Call Op_make(Op, 3)
 
-        do nt = 1,2
+        do nt = 1, 2
+           Call Op_make(Op, 3)
            do i = 1, Op%N
               !             Op%E(i) = 2*i-3
               Op%P(i) = i
@@ -92,10 +92,10 @@ Program OPMULTTEST
                  endif
               enddo
            enddo
-           
+
+           deallocate(Op%U, Op%E, Op%E_exp, Op%M_Exp)
            !Repeat test for diagonal Operator
            Op%O = CMPLX(0.d0, 0.d0, kind(0.D0))
-           Op%U = CMPLX(0.d0, 0.d0, kind(0.D0))
            do i = 1, Op%N
               Op%O(i,i) = 2*i-3
               !             Op%P(i) = i
@@ -159,6 +159,7 @@ Program OPMULTTEST
                  endif
               enddo
            enddo
+           call Op_clear(Op, 3)
         enddo
         Call nsigma_single%clear() 
         

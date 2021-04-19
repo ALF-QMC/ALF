@@ -48,7 +48,8 @@
        END INTERFACE
        INTERFACE ERRCALCJ
           MODULE PROCEDURE ERRCALC_J,    ERRCALC_J_REBIN,    ERRCALC_JS, ERRCALC_JS_REBIN, &
-               &           ERRCALC_J_C,  ERRCALC_J_C_REBIN,  ERRCALC_JS_C, ERRCALC_JS_C_REBIN
+               &           ERRCALC_J_C,  ERRCALC_J_C_REBIN,  ERRCALC_JS_C, ERRCALC_JS_C_REBIN, &
+               &           ERRCALC_JS_F, ERRCALC_JS_REBIN_F, ERRCALC_JS_C_F, ERRCALC_JS_C_REBIN_F
        END INTERFACE
        INTERFACE COV
           MODULE PROCEDURE COVJ, COVJS, COVJS_C, COVJS_C_REBIN
@@ -74,6 +75,20 @@
        INTERFACE Bootstrap_fluc
           MODULE PROCEDURE  BootstrapC_fluc
        END INTERFACE
+       
+       abstract interface
+           function func_r (Z)
+               real (Kind=Kind(0.d0)) :: func_r
+               real (Kind=Kind(0.d0)), allocatable, intent (in) :: Z(:)
+           end function func_r
+       end interface
+       
+       abstract interface
+           function func_c (X)
+               COMPLEX (Kind=Kind(0.d0)) :: func_c
+               COMPLEX (Kind=Kind(0.d0)), allocatable, intent (in) :: X(:)
+           end function func_c
+       end interface
 
        CONTAINS
 !***********
@@ -309,6 +324,51 @@
          END SUBROUTINE ERRCALC_JS
 
 !**********
+         SUBROUTINE ERRCALC_JS_F(EN,SI,XM,XERR,f)
+!	   Calculates error on the input vector EN.  Just the variance.
+!          The input are the bins
+
+           IMPLICIT NONE
+
+           REAL (Kind=Kind(0.d0)), DIMENSION(:,:) ::  EN
+           REAL (Kind=Kind(0.d0)), DIMENSION(:) ::  SI
+           REAL (Kind=Kind(0.d0))               ::  XM, XERR, XS, XShelp
+!            REAL (Kind=Kind(0.d0)), EXTERNAL     ::  f
+           procedure (func_r), pointer:: f
+           REAL (Kind=Kind(0.d0)), ALLOCATABLE  :: EN1(:), Xhelp(:),X(:)
+           INTEGER                     ::  N, N1, NP, NP1, Nobs
+
+           NP = SIZE(EN,2)
+           Nobs = SIZE(EN,1)
+           NP1= SIZE(SI)
+           IF (NP1.NE.NP) THEN
+              WRITE(6,*) 'Error in Errcalc_JS'
+              STOP
+           ENDIF
+           ALLOCATE (EN1(NP),Xhelp(nobs), X(nobs))
+           
+           ! Build the jackknife averages and send to errcalc
+
+           Xhelp  = 0.D0
+           XShelp = 0.D0
+           DO N1 = 1,NP
+              Xhelp  = Xhelp  + EN(:,N1)
+              XShelp = XShelp + SI(N1)
+           ENDDO
+
+           DO N = 1,NP
+              XS = XShelp - SI(N)
+              X  = (Xhelp  - EN(:,N))/Xs
+              EN1(N) = f(X)
+           ENDDO
+           CALL ERRCALC(EN1,XM,XERR)
+           XERR = XERR*DBLE(NP)
+           DEALLOCATE  ( EN1, X, Xhelp )
+
+           RETURN
+         END SUBROUTINE ERRCALC_JS_F
+
+!**********
          SUBROUTINE ERRCALC_JS_C(EN,SI,XM,XERR)
 !          Calculates error on the input vector EN.  Just the variance.
 !          The input are the bins
@@ -347,6 +407,51 @@
 
            RETURN
          END SUBROUTINE ERRCALC_JS_C
+
+!**********
+         SUBROUTINE ERRCALC_JS_C_F(EN,SI,XM,XERR,f)
+!	   Calculates error on the input vector EN.  Just the variance.
+!          The input are the bins
+
+           IMPLICIT NONE
+
+           COMPLEX (Kind=Kind(0.d0)), DIMENSION(:,:) ::  EN
+           COMPLEX (Kind=Kind(0.d0)), DIMENSION(:) ::  SI
+           COMPLEX (Kind=Kind(0.d0))               ::  XM, XERR, XS, XShelp
+!            COMPLEX (Kind=Kind(0.d0)), EXTERNAL     ::  f
+           procedure (func_c), pointer:: f
+           COMPLEX (Kind=Kind(0.d0)), ALLOCATABLE  :: EN1(:), Xhelp(:),X(:)
+           INTEGER                     ::  N, N1, NP, NP1, Nobs
+
+           NP = SIZE(EN,2)
+           Nobs = SIZE(EN,1)
+           NP1= SIZE(SI)
+           IF (NP1.NE.NP) THEN
+              WRITE(6,*) 'Error in Errcalc_JS'
+              STOP
+           ENDIF
+           ALLOCATE (EN1(NP),Xhelp(nobs), X(nobs))
+           
+           ! Build the jackknife averages and send to errcalc
+
+           Xhelp  = CMPLX(0.D0, 0.D0, kind(0.D0))
+           XShelp = CMPLX(0.D0, 0.D0, kind(0.D0))
+           DO N1 = 1,NP
+              Xhelp  = Xhelp  + EN(:,N1)
+              XShelp = XShelp + SI(N1)
+           ENDDO
+
+           DO N = 1,NP
+              XS = XShelp - SI(N)
+              X  = (Xhelp  - EN(:,N))/Xs
+              EN1(N) = f(X)
+           ENDDO
+           CALL ERRCALC(EN1,XM,XERR)
+           XERR = XERR*DBLE(NP)
+           DEALLOCATE  ( EN1, X, Xhelp )
+
+           RETURN
+         END SUBROUTINE ERRCALC_JS_C_F
 
 
 
@@ -388,6 +493,49 @@
            RETURN
          END SUBROUTINE ERRCALC_JS_REBIN
 
+
+
+!********
+         SUBROUTINE ERRCALC_JS_REBIN_F(EN,SI,XM,XERR,NREBIN,f)
+!	   Calculates jacknife error on the input vector EN with rebinning.  Mean and  variance.
+!          The input are the bins.
+           
+           IMPLICIT NONE
+
+           REAL (Kind=Kind(0.d0))               ::  EN(:,:), SI(:)
+!            REAL (Kind=Kind(0.d0)), EXTERNAL     ::  f
+           procedure (func_r), pointer:: f
+           REAL (Kind=Kind(0.d0))               ::  XM, XERR, Y
+           REAL (Kind=Kind(0.d0)), ALLOCATABLE  ::  EN1(:,:), SI1(:), X(:)
+           INTEGER :: NREBIN, NC, N, NB, NP, NP1, nobs
+ 
+           NP = SIZE(EN,2)
+           Nobs = SIZE(EN,1)
+           NP1 = NP/NREBIN
+           ALLOCATE (EN1(nobs,NP1), X(nobs))
+           ALLOCATE (SI1(NP1))
+           
+           ! Rebin
+           NC = 0
+           DO N = 1,NP1
+              X = 0.D0; Y = 0.D0
+              DO NB = 1,NREBIN
+                 NC = NC + 1
+                 X = X + EN(:,NC)
+                 Y = Y + SI(NC)
+              ENDDO
+              X = X/DBLE(NREBIN)
+              Y = Y/DBLE(NREBIN)
+              EN1(:,N) = X
+              SI1(N) = Y
+           ENDDO
+           CALL ERRCALC_JS_F(EN1,SI1,XM,XERR,f)
+
+           DEALLOCATE (EN1,SI1)
+
+           RETURN
+         END SUBROUTINE ERRCALC_JS_REBIN_F
+
 !******************
          SUBROUTINE ERRCALC_JS_C_REBIN(EN,SI,XM,XERR,NREBIN)
 !          Calculates jacknife error on the input vector EN with rebinning.  Mean and  variance.
@@ -424,6 +572,47 @@
 
            RETURN
          END SUBROUTINE ERRCALC_JS_C_REBIN
+
+!******************
+         SUBROUTINE ERRCALC_JS_C_REBIN_F(EN,SI,XM,XERR,NREBIN,f)
+!	   Calculates jacknife error on the input vector EN with rebinning.  Mean and  variance.
+!          The input are the bins.
+           
+           IMPLICIT NONE
+
+           COMPLEX (Kind=Kind(0.d0))               ::  EN(:,:), SI(:)
+           COMPLEX (Kind=Kind(0.d0))               ::  XM, XERR, Y
+!            COMPLEX (Kind=Kind(0.d0)), EXTERNAL     ::  f
+           procedure (func_c), pointer:: f
+           COMPLEX (Kind=Kind(0.d0)), ALLOCATABLE  ::  EN1(:,:), SI1(:), X(:)
+           INTEGER :: NREBIN, NC, N, NB, NP, NP1, nobs
+ 
+           Nobs = SIZE(EN,1)
+           NP = SIZE(EN,2)
+           NP1 = NP/NREBIN
+           ALLOCATE (EN1(nobs,NP1))
+           ALLOCATE (SI1(NP1), X(nobs))
+           
+           ! Rebin
+           NC = 0
+           DO N = 1,NP1
+              X = cmplx(0.D0,0.d0,kind(0.d0)); Y = cmplx(0.D0,0.D0,kind(0.d0))
+              DO NB = 1,NREBIN
+                 NC = NC + 1
+                 X = X + EN(:,NC)
+                 Y = Y + SI(NC)
+              ENDDO
+              X = X/DBLE(NREBIN)
+              Y = Y/DBLE(NREBIN)
+              EN1(:,N) = X
+              SI1(N) = Y
+           ENDDO
+           CALL ERRCALC_JS_C_F(EN1,SI1,XM,XERR,f)
+
+           DEALLOCATE (EN1,SI1,X)
+
+           RETURN
+         END SUBROUTINE ERRCALC_JS_C_REBIN_F
 
 !******************
 
@@ -529,7 +718,7 @@
            VINV = 0.D0
            V1 = 0.D0
            B = 0.D0
-           NCON = 1
+           NCON = 0
            DO M = 1,NBASIS
               DO I = 1,NDATA
                  A(I,M) = F(M,XDATA(I))/ERROR(I)

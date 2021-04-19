@@ -24,7 +24,6 @@ stages:
   stage: build
   <<: *exemptfiles_definition
   script:
-    - export PATH="/opt/pgi/linux86-64/2019/bin:$PATH"
     - pgfortran --version
     - . configure.sh PGI serial
     - make all
@@ -45,18 +44,18 @@ stages:
     - gfortran -v
     - make lib
     - make ana
-    - make Hubbard_Plain_Vanilla
+    - make program
     - cd testsuite
     - cmake -E make_directory tests
     - cd tests
-    - cmake -G "Unix Makefiles" -DCMAKE_Fortran_FLAGS_RELEASE=${F90OPTFLAGS} -DCMAKE_BUILD_TYPE=RELEASE ..
+    - cmake -G "Unix Makefiles" -DCMAKE_Fortran_FLAGS_RELEASE=${ALF_FLAGS_PROG} -DCMAKE_BUILD_TYPE=RELEASE ..
     - cmake --build . --target all --config Release
     - ctest -VV -O log.txt
     - cat log.txt | grep "tests passed" | cut -d " " -f 1
 
-GQMCT_Jessie:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:jessie-gfortran-blas-lapack
-  <<: *build_definition
+# GQMCT_Jessie:
+#   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:jessie-gfortran-blas-lapack
+#   <<: *build_definition
 
 GQMCT_Stretch:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:stretch-gfortran-blas-lapack
@@ -66,37 +65,37 @@ GQMCT_Buster:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:buster-gfortran-blas-lapack
   <<: *build_definition
 
-GQMCT_Jessie_OpenBlas:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:jessie-gfortran-openblas-lapack
-  <<: *build_definition
+#GQMCT_Jessie_OpenBlas:
+  #image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:jessie-gfortran-openblas-lapack
+  #<<: *build_definition
 
 GQMCT_Stretch_OpenBlas:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:stretch-gfortran-openblas-lapack
   <<: *build_definition
 
-GQMCT_CentOS:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:centos-7-gfortran-blas-lapack
-  <<: *build_definition
+#GQMCT_CentOS:
+  #image: git.physik.uni-wuerzburg.de:25812/z03/pdi:centos-7-gfortran-blas-lapack
+  #<<: *build_definition
 
-GQMCT_OpenSuse-13.2:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:opensuse-13.2-gfortran-blas-lapack
-  <<: *build_definition
+#GQMCT_OpenSuse-13.2:
+  #image: git.physik.uni-wuerzburg.de:25812/z03/pdi:opensuse-13.2-gfortran-blas-lapack
+  #<<: *build_definition
 
-GQMCT_OpenSuse-42.1:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:opensuse-42.1-gfortran-blas-lapack
-  <<: *build_definition
+#GQMCT_OpenSuse-42.1:
+  #image: git.physik.uni-wuerzburg.de:25812/z03/pdi:opensuse-42.1-gfortran-blas-lapack
+  #<<: *build_definition
 
-GQMCT_Buster-PGI:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:buster-pgi1910
+GQMCT_PGI:
+  image: nvcr.io/nvidia/nvhpc:20.11-devel-cuda_multi-ubuntu20.04
   <<: *build_definition_pgi
 
-GQMCT_Ubuntu_Trusty:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/ubuntu:trusty-tahr-gfortran-lapack
-  <<: *build_definition
+#GQMCT_Ubuntu_Trusty:
+  #image: git.physik.uni-wuerzburg.de:25812/z03/pdi/ubuntu:trusty-tahr-gfortran-lapack
+  #<<: *build_definition
 
-GQMCT_Ubuntu_Xenial:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:xenial-gfortran-lapack
-  <<: *build_definition
+#GQMCT_Ubuntu_Xenial:
+  #image: git.physik.uni-wuerzburg.de:25812/z03/pdi:xenial-gfortran-lapack
+  #<<: *build_definition
 
 GQMCT_Ubuntu_Bionic:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/ubuntu:bionic-beaver-gfortran-lapack
@@ -117,9 +116,9 @@ GQMCT_Stretch_MPI:
     - export ALF_FC="mpif90"
     - make all
 
-GQMCT_Jessie_conv:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:jessie-gfortran-blas-lapack
-  <<: *warnconv_definition
+#GQMCT_Jessie_conv:
+  #image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:jessie-gfortran-blas-lapack
+  #<<: *warnconv_definition
 
 GQMCT_Stretch_conv:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:stretch-gfortran-blas-lapack
@@ -129,28 +128,28 @@ GQMCT_Buster_conv:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:buster-gfortran-blas-lapack
   <<: *warnconv_definition
 
-GQMCT_Jessie_OpenBlas_conv:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:jessie-gfortran-openblas-lapack
-  <<: *warnconv_definition
+#GQMCT_Jessie_OpenBlas_conv:
+  #image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:jessie-gfortran-openblas-lapack
+  #<<: *warnconv_definition
 
 GQMCT_Stretch_OpenBlas_conv:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:stretch-gfortran-openblas-lapack
   <<: *warnconv_definition
 
-GQMCT_CentOS_conv:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:centos-7-gfortran-blas-lapack
-  <<: *warnconv_definition
+#GQMCT_CentOS_conv:
+  #image: git.physik.uni-wuerzburg.de:25812/z03/pdi:centos-7-gfortran-blas-lapack
+  #<<: *warnconv_definition
 
-GQMCT_OpenSuse-13.2_conv:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:opensuse-13.2-gfortran-blas-lapack
-  <<: *warnconv_definition
+#GQMCT_OpenSuse-13.2_conv:
+  #image: git.physik.uni-wuerzburg.de:25812/z03/pdi:opensuse-13.2-gfortran-blas-lapack
+  #<<: *warnconv_definition
 
-GQMCT_OpenSuse-42.1_conv:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:opensuse-42.1-gfortran-blas-lapack
-  <<: *warnconv_definition
+#GQMCT_OpenSuse-42.1_conv:
+  #image: git.physik.uni-wuerzburg.de:25812/z03/pdi:opensuse-42.1-gfortran-blas-lapack
+  #<<: *warnconv_definition
 
-GQMCT_Buster-PGI_conv:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:buster-pgi1910
+GQMCT_PGI_conv:
+  image: nvcr.io/nvidia/nvhpc:20.11-devel-cuda_multi-ubuntu20.04
   stage: warnconv
   except:
     changes:
@@ -159,14 +158,13 @@ GQMCT_Buster-PGI_conv:
       - README.md
       - license.*
   script:
-    - export PATH="/opt/pgi/linux86-64/2019/bin:$PATH"
     - pgfortran --version
     - . configure.sh PGI serial
     - make all
 
-GQMCT_Jessie_tests:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:jessie-gfortran-blas-lapack
-  <<: *test_definition
+#GQMCT_Jessie_tests:
+  #image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:jessie-gfortran-blas-lapack
+  #<<: *test_definition
 
 GQMCT_Stretch_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:stretch-gfortran-blas-lapack
@@ -176,36 +174,36 @@ GQMCT_Buster_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:buster-gfortran-blas-lapack
   <<: *test_definition
 
-GQMCT_Jessie_OpenBlas_tests:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:jessie-gfortran-openblas-lapack
-  <<: *test_definition
+#GQMCT_Jessie_OpenBlas_tests:
+  #image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:jessie-gfortran-openblas-lapack
+  #<<: *test_definition
 
 GQMCT_Stretch_OpenBlas_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:stretch-gfortran-openblas-lapack
   <<: *test_definition
 
-GQMCT_CentOS_tests:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:centos-7-gfortran-blas-lapack
-  <<: *test_definition
+#GQMCT_CentOS_tests:
+  #image: git.physik.uni-wuerzburg.de:25812/z03/pdi:centos-7-gfortran-blas-lapack
+  #<<: *test_definition
 
-GQMCT_OpenSuse-13.2_tests:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:opensuse-13.2-gfortran-blas-lapack
-  <<: *test_definition
+#GQMCT_OpenSuse-13.2_tests:
+  #image: git.physik.uni-wuerzburg.de:25812/z03/pdi:opensuse-13.2-gfortran-blas-lapack
+  #<<: *test_definition
 
-GQMCT_OpenSuse-42.1_tests:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi:opensuse-42.1-gfortran-blas-lapack
-  <<: *test_definition
+#GQMCT_OpenSuse-42.1_tests:
+  #image: git.physik.uni-wuerzburg.de:25812/z03/pdi:opensuse-42.1-gfortran-blas-lapack
+  #<<: *test_definition
 
-GQMCT_Ubuntu-trusty_tests:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/ubuntu:trusty-tahr-gfortran-lapack
-  <<: *test_definition
+#GQMCT_Ubuntu-trusty_tests:
+  #image: git.physik.uni-wuerzburg.de:25812/z03/pdi/ubuntu:trusty-tahr-gfortran-lapack
+  #<<: *test_definition
 
 GQMCT_Ubuntu-bionic_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/ubuntu:bionic-beaver-gfortran-lapack
   <<: *test_definition
 
-GQMCT_Buster-PGI_tests:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:buster-pgi1910-cmake
+GQMCT_PGI_tests:
+  image: nvcr.io/nvidia/nvhpc:20.11-devel-cuda_multi-ubuntu20.04
   stage: test
   except:
     changes:
@@ -214,16 +212,16 @@ GQMCT_Buster-PGI_tests:
       - README.md
       - license.*
   script:
-    - export PATH="/opt/pgi/linux86-64/2019/bin:$PATH"
     - pgfortran --version
     - . configure.sh PGI serial
     - make lib
     - make ana
-    - make Hubbard_Plain_Vanilla
+    - make program
     - cd testsuite
     - cmake -E make_directory tests
     - cd tests
-    - cmake -G "Unix Makefiles" -DCMAKE_Fortran_FLAGS_RELEASE="${F90OPTFLAGS} -noswitcherror -L/opt/pgi/linux86-64/2019/lib/ -llapack -lblas" -DCMAKE_Fortran_COMPILER="/opt/pgi/linux86-64/2019/bin/pgfortran" -DCMAKE_BUILD_TYPE=RELEASE -DLAPACK_LIBRARIES="/opt/pgi/linux86-64/2019/lib/liblapack.a" -DBLAS_LIBRARIES="/opt/pgi/linux86-64/2019/lib/libblas.a" ..
+    - export PGIDIR="/opt/nvidia/hpc_sdk/Linux_x86_64/20.11/compilers"
+    - cmake -G "Unix Makefiles" -DCMAKE_Fortran_FLAGS_RELEASE="${ALF_FLAGS_PROG} -noswitcherror -L${PGIDIR}/lib/ -llapack -lblas" -DCMAKE_Fortran_COMPILER="${PGIDIR}/bin/pgfortran" -DCMAKE_BUILD_TYPE=RELEASE -DLAPACK_LIBRARIES="${PGIDIR}/lib/liblapack.a" -DBLAS_LIBRARIES="${PGIDIR}/lib/libblas.a" ..
     - cmake --build . --target all --config Release
     - ctest -VV -O log.txt
     - cat log.txt | grep "tests passed" | cut -d " " -f 1
@@ -237,12 +235,12 @@ GQMCT_Stretch_valgrind:
       - Libraries/Modules/*.(f|F)90
   script:
       - export ALF_FLAGS_EXT="-g"
-      - . configure.sh Devel serial
+      - . configure.sh GNU serial
       - gfortran -v
       - make lib
-      - make Hubbard_Plain_Vanilla
-      - cp Prog/Hubbard_Plain_Vanilla.out Examples/LRC_Test/Start
-      - cd Examples/LRC_Test/Start
+      - make program
+      - cp Prog/Hubbard_Plain_Vanilla.out Scripts_and_Parameters_files/Start
+      - cd Scripts_and_Parameters_files/Start
       - valgrind --leak-check=full --log-file=vglog.txt ./Hubbard_Plain_Vanilla.out
       - cat vglog.txt
       - grep lost vglog.txt | cut -d":" -f 2 | cut -d " " -f 2 | f=$(cat); echo $(( ${f//$'\n'/+} ))
