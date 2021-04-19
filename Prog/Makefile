@@ -43,7 +43,7 @@ Hamiltonians_case.h: Hamiltonians.list
 	$(ALF_FC) -c -o $@ $(ALF_FLAGS_PROG) $<
 
 tidy:
-	rm -f $(OBJS) $(MODS) hamiltonian*.mod hamiltonian*.smod git.h Hamiltonians_interface.h Hamiltonians_case.h
+	rm -f $(OBJS) $(OHAM) $(MODS) hamiltonian*.mod hamiltonian*.smod git.h Hamiltonians_interface.h Hamiltonians_case.h
 
 clean: tidy
 	rm -f "ALF.out"

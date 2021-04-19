@@ -62,12 +62,20 @@ module Control
 
     real    (Kind=Kind(0.d0)),  private, save :: Force_max, Force_mean
     Integer, private, save  :: Force_Count
+#ifdef MPI
+    Integer                  ,  private, save :: Ierr, Isize, Irank, irank_g, isize_g, igroup
+#endif
 
     
     Contains
 
-      subroutine control_init
+      subroutine control_init(Group_Comm)
+#ifdef MPI
+        Use mpi
+#endif
         Implicit none
+        Integer       , INTENT(IN)               :: Group_Comm
+
         XMEANG     = 0.d0
         XMEAN_tau  = 0.d0
         XMAXG      = 0.d0
@@ -95,6 +103,14 @@ module Control
         Force_max  = 0.d0
         Force_mean = 0.d0
         Force_count = 0
+        
+#ifdef MPI
+        CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
+        CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+        call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+        call MPI_Comm_size(Group_Comm, isize_g, ierr)
+        igroup           = irank/isize_g
+#endif
         
         call system_clock(count_CPU_start,count_rate,count_max)
       end subroutine control_init
@@ -166,17 +182,52 @@ module Control
 
 
       Subroutine Control_PrecisionG(A,B,Ndim)
+#ifdef MPI
+        Use mpi
+#endif
         Implicit none
 
         Integer :: Ndim
         Complex (Kind=Kind(0.d0)) :: A(Ndim,Ndim), B(Ndim,Ndim)
         Real    (Kind=Kind(0.d0)) :: XMAX, XMEAN
+        Character (len=64) :: file1 
+#ifdef MPI
+        Integer:: ierr, merr
+#endif
 
         NCG = NCG + 1
         CALL COMPARE(A, B, XMAX, XMEAN)
         IF (XMAX  >  10.d0) then
-          write(error_unit,*) 'Precision very low, aborting. Try with smaller Nwrap or dtau.'
+#if defined(TEMPERING) 
+          write(File1,'(A,I0,A)') "Temp_",igroup,"/info"
+#else
+          File1 = "info"
+#endif
+          Open (Unit=50,file=file1, status="unknown", position="append")
+          write(50,*)
+#ifdef MPI
+          write(50,*) "Task", Irank_g, "of group", igroup, "reports:"
+#endif
+          write(50,*) XMAX, " is exceeding the threshold of 10 for G difference!"
+          write(50,*) (XmeanG+Xmean)/ncg, " is the average deviation!"
+          write(50,*) "This calculation is unstable and therefore aborted!!!"
+          write(50,*)
+          close(50)
+          write(error_unit,*)
+#ifdef MPI
+          write(error_unit,*) "Task", Irank_g, "of group", igroup, "reports:"
+#endif
+          write(error_unit,*) XMAX, " is exceeding the threshold of 10 for G difference!"
+          write(error_unit,*) (XmeanG+Xmean)/ncg, " is the average deviation!"
+          write(error_unit,*) "This calculation is unstable and therefore aborted!!!"
+          write(error_unit,*) 'Try with smaller Nwrap or dtau.'
+          write(error_unit,*)
+#if !defined(MPI)
           error stop 1
+#else
+          merr=1
+          call MPI_ABORT(MPI_COMM_WORLD,merr,ierr)
+#endif
         endif
         IF (XMAX  >  XMAXG) XMAXG = XMAX
         XMEANG = XMEANG + XMEAN

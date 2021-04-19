@@ -392,7 +392,7 @@ Program Main
            Call Wrapgr_alloc
         endif
 
-        Call control_init
+        Call control_init(Group_Comm)
         Call ham%Alloc_obs(Ltau)
 
         If ( mod(Ltrot,nwrap) == 0  ) then
@@ -537,7 +537,7 @@ Program Main
 
 
 
-        Call Control_init
+        Call Control_init(Group_Comm)
 
         DO  NBC = 1, NBIN
            ! Here, you have the green functions on time slice 1.
