@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.5)
+cmake_minimum_required(VERSION 2.8.11)
 Project(matmod.tests C Fortran)
 find_package(LAPACK)
 

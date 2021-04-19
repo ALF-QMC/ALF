@@ -1334,9 +1334,9 @@
 
         ! Arguments
         Integer, intent(in) :: N
-        Complex(Kind=Kind(0.d0)), intent(inout) :: mat(N,N)
+        Complex(Kind=Kind(0.d0)), intent(inout) :: mat(:,:)
 
-        integer :: i, info
+        integer :: i, info, LDmat
         integer :: ipiv(N)
 
         integer :: sgn
@@ -1344,7 +1344,8 @@
         ipiv = 0
 
         !Lapack LU decomposition
-        call zgetrf(N, N, mat, N, ipiv, info)
+        LDmat=size(mat,1)
+        call zgetrf(N, N, mat, LDmat, ipiv, info)
 
         det_C = cmplx(1.d0, 0.d0, kind(0.d0) )
         do i = 1, N

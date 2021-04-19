@@ -40,7 +40,7 @@
 !--------------------------------------------------------------------
 
 
-    Module Hamiltonian
+    submodule (Hamiltonian_main) ham_Z2_Matter_smod
 
       Use Operator_mod
       Use WaveFunction_mod
@@ -53,53 +53,44 @@
       Use Fields_mod
       Use Predefined_Hoppings
       Use Predefined_Obs
-      use iso_fortran_env, only: output_unit, error_unit
-
 
       Implicit none
-
-!>    Public variables. Have to be set by user
-      Type (Operator), dimension(:,:), allocatable  :: Op_V
-      Type (Operator), dimension(:,:), allocatable  :: Op_T
-      Type (WaveFunction), dimension(:),   allocatable :: WF_L
-      Type (WaveFunction), dimension(:),   allocatable :: WF_R
-      Type (Fields)        :: nsigma
-      Integer              :: Ndim
-      Integer              :: N_FL
-      Integer              :: N_SUN
-      Integer              :: Ltrot
-      Integer              :: Thtrot
-      Logical              :: Projector
-      Integer              :: Group_Comm
-      Logical              :: Symm = .False.
-
+      
+      type, extends(ham_base) :: ham_Z2_Matter
+      contains
+        ! Set Hamiltonian-specific procedures
+        procedure, nopass :: Ham_Set
+        procedure, nopass :: Alloc_obs
+        procedure, nopass :: Obser
+        procedure, nopass :: ObserT
+        procedure, nopass :: Global_move_tau
+        procedure, nopass :: Hamiltonian_set_nsigma
+        procedure, nopass :: Overide_global_tau_sampling_parameters
+        procedure, nopass :: Delta_S0_global
+        procedure, nopass :: S0
+      end type ham_Z2_Matter
 
 !>    Privat variables
-      Type (Lattice),        private, target :: Latt
-      Type (Unit_cell),      private, target :: Latt_unit
-      Integer,               private :: L1, L2, N_part
-      real (Kind=Kind(0.d0)),private :: ham_T, Ham_chem, Ham_g, Ham_J,  Ham_K, Ham_h,  Ham_TZ2, Ham_U
-      real (Kind=Kind(0.d0)),private :: Dtau, Beta, Theta
-      Character (len=64),    private :: Model, Lattice_type
-      Logical,               private :: One_dimensional
-      Integer, allocatable,  private :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
-      real (Kind=Kind(0.d0)),private :: Zero = 1.D-10
-
-
-
-      !>    Privat Observables
-      Type (Obser_Vec ),  private, dimension(:), allocatable ::   Obs_scal
-      Type (Obser_Latt),  private, dimension(:), allocatable ::   Obs_eq
-      Type (Obser_Latt),  private, dimension(:), allocatable ::   Obs_tau
+      Type (Lattice),        target :: Latt
+      Type (Unit_cell),      target :: Latt_unit
+      Integer                :: L1, L2, N_part
+      real (Kind=Kind(0.d0)) :: ham_T, Ham_chem, Ham_g, Ham_J,  Ham_K, Ham_h,  Ham_TZ2, Ham_U
+      real (Kind=Kind(0.d0)) :: Dtau, Beta, Theta
+      Character (len=64)     :: Model, Lattice_type
+      Logical                :: One_dimensional
+      Integer, allocatable   :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
+      real (Kind=Kind(0.d0)) :: Zero = 1.D-10
 
       !>    Storage for the Ising action
-      Real (Kind=Kind(0.d0)), private :: DW_Ising_tau(-1:1), DW_Ising_Space(-1:1), DW_Ising_Flux(-1:1,-1:1)
-      Real (Kind=Kind(0.d0)), private :: DW_Matter_tau(-1:1), DW_Ising_Matter(-1:1)
-      Integer, allocatable  , private :: Field_list(:,:,:), Field_list_inv(:,:)
-
+      Real (Kind=Kind(0.d0)) :: DW_Ising_tau(-1:1), DW_Ising_Space(-1:1), DW_Ising_Flux(-1:1,-1:1)
+      Real (Kind=Kind(0.d0)) :: DW_Matter_tau(-1:1), DW_Ising_Matter(-1:1)
+      Integer, allocatable   :: Field_list(:,:,:), Field_list_inv(:,:)
 
     contains
-
+      
+      module Subroutine Ham_Alloc_Z2_Matter
+        allocate(ham_Z2_Matter::ham)
+      end Subroutine Ham_Alloc_Z2_Matter
 
 
 !--------------------------------------------------------------------
@@ -111,9 +102,8 @@
 !--------------------------------------------------------------------
       Subroutine Ham_Set
 
-
 #if defined (MPI) || defined(TEMPERING)
-           use mpi
+          use mpi
 #endif
           Implicit none
 
@@ -127,7 +117,8 @@
           NAMELIST /VAR_Z2_Matter/ ham_T, Ham_chem, Ham_g, Ham_J,  Ham_K, Ham_h, &
                &                   Dtau, Beta, ham_TZ2, Ham_U,  N_SUN, Projector, Theta, N_part
 
-
+          
+          
 #ifdef MPI
           Integer        :: Isize, Irank, igroup, irank_g, isize_g
           Integer        :: STATUS(MPI_STATUS_SIZE)
@@ -138,7 +129,6 @@
           igroup           = irank/isize_g
           !if ( irank_g == 0 )   write(6,*) "Mpi Test", igroup, isize_g
 #endif
-
 
 #ifdef MPI
           If (Irank == 0 ) then
@@ -174,9 +164,9 @@
 
           File_Para = "parameters"
           File_info = "info"
-#if defined(TEMPERING) 
+#if defined(TEMPERING)
           write(File_para,'(A,I0,A)') "Temp_",igroup,"/parameters"
-          write(File_info,'(A,I0,A)') "Temp_",igroup,"/info"     
+          write(File_info,'(A,I0,A)') "Temp_",igroup,"/info"
 #endif
           
 #if defined(MPI)
@@ -189,7 +179,7 @@
              CLOSE(5)
              If (Abs(Ham_T) < Zero ) then
                 Ham_J = 0.d0 ! Matter-Ising interction
-                Ham_h = 0.d0 
+                Ham_h = 0.d0
              endif
              If (Abs(Ham_TZ2) < Zero ) then
                 Ham_J = 0.d0 ! Matter-Ising interction
@@ -220,7 +210,7 @@
           if (Projector) Thtrot = nint(theta/dtau)
           Ltrot = Ltrot+2*Thtrot
           
-          If  ( Model == "Z2_Matter" )  Call Setup_Ising_action_and_field_list 
+          If  ( Model == "Z2_Matter" )  Call Setup_Ising_action_and_field_list
 
 
 
@@ -230,7 +220,7 @@
 
               Open (Unit = 50,file=file_info,status="unknown",position="append")
               Write(50,*) '====================================='
-              Write(50,*) 'Model is      : ', Model
+              Write(50,*) 'Model is      : Z2_Matter'
               Write(50,*) 'Lattice is    : ', Lattice_type
               Write(50,*) '# of orbitals : ', Ndim
               if (Projector) then
@@ -419,7 +409,7 @@
 #endif
           Use Predefined_Trial
 
-          Implicit none 
+          Implicit none
           Character (len=64), intent(in)  :: file_info
           
           Integer                              :: nf, Ix, Iy, I, n
@@ -488,7 +478,7 @@
 
         end Subroutine Ham_Trial
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF Collaboration
 !>
 !> @brief
@@ -571,7 +561,6 @@
              endif
 
           endif
-
 
         end function S0
 
@@ -671,7 +660,7 @@
              elseif ( ntau == 1 ) then
                 Call Hamiltonian_set_Z2_matter(Isigma1,ntau + 1)
                 Call Hamiltonian_set_Z2_matter(Isigma2,ntau    )
-                S0_Matter = S0_Matter*DW_Matter_tau ( Isigma1(I)*Isigma2(I) ) 
+                S0_Matter = S0_Matter*DW_Matter_tau ( Isigma1(I)*Isigma2(I) )
              else
                 Call Hamiltonian_set_Z2_matter(Isigma1,ntau +1 )
                 Call Hamiltonian_set_Z2_matter(Isigma2,ntau    )
@@ -719,43 +708,7 @@
 !!$          endif
 
         end Subroutine Global_move_tau
-!--------------------------------------------------------------------
-!> @author
-!> ALF Collaboration
-!>
-!> @brief
-!> Global moves
-!>
-!> @details
-!>  This routine generates a
-!>  global update  and returns the propability T0_Proposal_ratio  =  T0( sigma_out-> sigma_in ) /  T0( sigma_in -> sigma_out)
-!> @param [IN] nsigma_old,  Type(Fields)
-!> \verbatim
-!>  Old configuration. The new configuration is stored in nsigma.
-!> \endverbatim
-!> @param [OUT]  T0_Proposal_ratio Real
-!> \verbatimam
-!>  T0_Proposal_ratio  =  T0( sigma_new -> sigma_old ) /  T0( sigma_old -> sigma_new)
-!> \endverbatim
-!> @param [OUT]  Size_clust Real
-!> \verbatim
-!>  Size of cluster that will be flipped.
-!> \endverbatim
-!-------------------------------------------------------------------
-        Subroutine Global_move(T0_Proposal_ratio,nsigma_old,size_clust)
 
-          !>  The input is the field nsigma declared in this module. This routine generates a
-          !>  global update with  and returns the propability
-          !>  T0_Proposal_ratio  =  T0( sigma_out-> sigma_in ) /  T0( sigma_in -> sigma_out)
-          !>
-
-          Implicit none
-          Real (Kind=Kind(0.d0)), intent(out) :: T0_Proposal_ratio, size_clust
-          type (Fields),  Intent(IN)  :: nsigma_old
-          !> nsigma_old contains a copy of nsigma upon entry
-
-
-        End Subroutine Global_move
 !--------------------------------------------------------------------
 !> @author
 !> ALF Collaboration
@@ -1050,6 +1003,7 @@
           endif
 
         end Subroutine Alloc_obs
+
 !--------------------------------------------------------------------
 !> @author
 !> ALF Collaboration
@@ -1070,14 +1024,15 @@
 !>  Time slice
 !> \endverbatim
 !--------------------------------------------------------------------
-        Subroutine Obser(GR,Phase,Ntau)
-
+        Subroutine Obser(GR,Phase,Ntau, Mc_step_weight)
 
           Implicit none
 
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
           Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE
           Integer, INTENT(IN)          :: Ntau
+          Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
+
 
           !Local
           Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK
@@ -1093,6 +1048,7 @@
 
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
+          ZS = ZS*Mc_step_weight
 
           ZN =  cmplx(dble(N_SUN), 0.d0, kind(0.D0))
 
@@ -1127,7 +1083,7 @@
 
              X_ave = 0.d0
              Do I = 1,Latt%N
-                X_ave = X_ave + tau_x(I,ntau, Isigma, Isigmap1) 
+                X_ave = X_ave + tau_x(I,ntau, Isigma, Isigmap1)
              Enddo
              Obs_scal(3)%Obs_vec(2)  =  Obs_scal(3)%Obs_vec(2) + cmplx(X_ave,0.d0,kind(0.d0)) * ZP*ZS
              
@@ -1160,7 +1116,7 @@
 
           Endif
 
-          ! Constraint. 
+          ! Constraint.
           do I  = 1, Latt%N
              Z1 = cmplx(1.d0,0.d0,kind(0.d0)) - cmplx(2.d0,0.d0,kind(0.d0))*GRC(I,I,1)
              Z1 = Z1**(N_SUN)
@@ -1185,7 +1141,7 @@
              enddo
           endif
 
-          ! Compute spin-spin, Green, and den-den correlation functions 
+          ! Compute spin-spin, Green, and den-den correlation functions
           Call Predefined_Obs_eq_SpinSUN_measure( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(2) )
           Call Predefined_Obs_eq_Den_measure    ( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(3) )
           Call Predefined_Obs_eq_Green_measure  ( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(4) )
@@ -1216,6 +1172,7 @@
           If (Abs(Ham_T) > Zero )  Deallocate ( Isigma, Isigmap1)
  
         end Subroutine Obser
+
 !--------------------------------------------------------------------
 !> @author
 !> ALF Collaboration
@@ -1240,13 +1197,13 @@
 !>  Phase
 !> \endverbatim
 !-------------------------------------------------------------------
-
-        Subroutine ObserT(NT,  GT0,G0T,G00,GTT, PHASE)
+        Subroutine ObserT(NT,  GT0,G0T,G00,GTT, PHASE,Mc_step_weight)
           Implicit none
 
           Integer         , INTENT(IN) :: NT
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: GT0(Ndim,Ndim,N_FL),G0T(Ndim,Ndim,N_FL),G00(Ndim,Ndim,N_FL),GTT(Ndim,Ndim,N_FL)
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: Phase
+          Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
 
           !Locals
           Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS
@@ -1256,6 +1213,8 @@
           If (NT == 0 ) NT1 = LTROT
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
+
+          ZS = ZS*Mc_step_weight
 
 !!$          If (NT == 0 ) then
 !!$             DO I = 1,Size(Obs_tau,1)
@@ -1269,68 +1228,6 @@
           Call Predefined_Obs_tau_Den_measure    ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(3) )
           
         end Subroutine OBSERT
-!--------------------------------------------------------------------
-!> @author
-!> ALF Collaboration
-!>
-!> @brief
-!> Prints out the bins.  No need to change this routine.
-!-------------------------------------------------------------------
-        Subroutine  Pr_obs(LTAU)
-
-          Implicit none
-
-          Integer,  Intent(In) ::  Ltau
-
-          !Local
-          Integer :: I
-
-
-          Do I = 1,Size(Obs_scal,1)
-             Call  Print_bin_Vec(Obs_scal(I),Group_Comm)
-          enddo
-          Do I = 1,Size(Obs_eq,1)
-             Call  Print_bin_Latt(Obs_eq(I),Group_Comm)
-          enddo
-          If (Ltau  == 1 ) then
-             Do I = 1,Size(Obs_tau,1)
-                Call  Print_bin_Latt(Obs_tau(I),Group_Comm)
-             enddo
-          endif
-
-        end Subroutine Pr_obs
-
-!--------------------------------------------------------------------
-!> @author
-!> ALF Collaboration
-!>
-!> @brief
-!> Initializes observables to zero before each bins.  No need to change
-!> this routine.
-!-------------------------------------------------------------------
-        Subroutine  Init_obs(Ltau)
-
-          Implicit none
-          Integer, Intent(In) :: Ltau
-
-          ! Local
-          Integer :: I
-
-          Do I = 1,Size(Obs_scal,1)
-             Call Obser_vec_Init(Obs_scal(I))
-          Enddo
-
-          Do I = 1,Size(Obs_eq,1)
-             Call Obser_Latt_Init(Obs_eq(I))
-          Enddo
-
-          If (Ltau == 1) then
-             Do I = 1,Size(Obs_tau,1)
-                Call Obser_Latt_Init(Obs_tau(I))
-             Enddo
-          Endif
-
-        end Subroutine Init_obs
 
 !--------------------------------------------------------------------
 !> @author
@@ -1340,7 +1237,6 @@
 !> Returns the flux on a plaquette. I is the left-bottom corner.
 !>
 !--------------------------------------------------------------------
-
       Integer Function  iFlux(I,nt,nb_type)
 
         Implicit none
@@ -1380,7 +1276,7 @@
 
         Implicit none
 
-        Real (Kind=Kind(0.d0)), allocatable, dimension(:,:), Intent(OUT) :: Initial_field
+        Real (Kind=Kind(0.d0)), allocatable, dimension(:,:), Intent(INOUT) :: Initial_field
 
         ! Local
         Integer :: I,nc, I1, nt, n_orientation, N_ops
@@ -1449,6 +1345,7 @@
 
 
       end Subroutine Hamiltonian_set_nsigma
+
 !--------------------------------------------------------------------
 !> @author
 !> ALF Collaboration
@@ -1521,8 +1418,8 @@
 !> ALF Collaboration
 !>
 !> @brief
-!> This function returns the expectation value of the operator tau_x_i on time slice nt 
-!> 
+!> This function returns the expectation value of the operator tau_x_i on time slice nt
+!>
 !>
 !> @details
 !> \endverbatim
@@ -1539,9 +1436,9 @@
 
         tau_x = 1.d0
         If  (Abs(Ham_T) > Zero ) then
-           X     =   DW_Matter_tau( Isigma(I)*Isigmap1(I) ) 
+           X     =   DW_Matter_tau( Isigma(I)*Isigmap1(I) )
            If  (Abs(Ham_TZ2) > Zero )  then
-              !      I2  
+              !      I2
               !  I3  I  I1
               !      I4
               I3 = Latt%nnlist(I,-1, 0)
@@ -1553,15 +1450,15 @@
            Endif
            tau_x  = X
         endif
-        
       end function tau_x
+
 !--------------------------------------------------------------------
 !> @author
 !> ALF Collaboration
 !>
 !> @brief
-!> This function returns the expectation value of the operator <tau_x_i tau_x_j> on time slice nt 
-!> 
+!> This function returns the expectation value of the operator <tau_x_i tau_x_j> on time slice nt
+!>
 !>
 !> @details
 !> \endverbatim
@@ -1594,7 +1491,7 @@
                     !   I - J  = a_1
                     !
                     !       J2  I2
-                    !   J3  J   I  I1 
+                    !   J3  J   I  I1
                     !       J4  I4
                     !
                     X  =   X *  DW_Ising_Matter( nsigma%i(Field_list(I ,1,2),nt) * nsigma%i(Field_list(I ,1,1),nt) ) * &
@@ -1602,12 +1499,12 @@
                          &      DW_Ising_Matter( nsigma%i(Field_list(I4,2,2),nt) * nsigma%i(Field_list(I4,2,1),nt) ) * &
                          &      DW_Ising_Matter( nsigma%i(Field_list(J ,2,2),nt) * nsigma%i(Field_list(J ,2,1),nt) ) * &
                          &      DW_Ising_Matter( nsigma%i(Field_list(J3,1,2),nt) * nsigma%i(Field_list(J3,1,1),nt) ) * &
-                         &      DW_Ising_Matter( nsigma%i(Field_list(J4,2,2),nt) * nsigma%i(Field_list(J4,2,1),nt) ) 
-                 elseif (J == Latt%nnlist(I,1,0) ) then 
+                         &      DW_Ising_Matter( nsigma%i(Field_list(J4,2,2),nt) * nsigma%i(Field_list(J4,2,1),nt) )
+                 elseif (J == Latt%nnlist(I,1,0) ) then
                     !   I - J  = - a_1
                     !
                     !       I2  J2
-                    !   I3  I   J  J1 
+                    !   I3  I   J  J1
                     !       I4  J4
                     !
                     X  =   X *  DW_Ising_Matter( nsigma%i(Field_list(I ,2,2),nt) * nsigma%i(Field_list(I ,2,1),nt) ) * &
@@ -1615,13 +1512,13 @@
                          &      DW_Ising_Matter( nsigma%i(Field_list(I4,2,2),nt) * nsigma%i(Field_list(I4,2,1),nt) ) * &
                          &      DW_Ising_Matter( nsigma%i(Field_list(J ,1,2),nt) * nsigma%i(Field_list(J ,1,1),nt) ) * &
                          &      DW_Ising_Matter( nsigma%i(Field_list(J ,2,2),nt) * nsigma%i(Field_list(J ,2,1),nt) ) * &
-                         &      DW_Ising_Matter( nsigma%i(Field_list(J4,2,2),nt) * nsigma%i(Field_list(J4,2,1),nt) ) 
-                 elseif (J == Latt%nnlist(I,0,-1) ) then 
+                         &      DW_Ising_Matter( nsigma%i(Field_list(J4,2,2),nt) * nsigma%i(Field_list(J4,2,1),nt) )
+                 elseif (J == Latt%nnlist(I,0,-1) ) then
                     !   I - J  =  a_2
                     !
                     !           I2
                     !       I3  I  I1
-                    !       J3  J  J1 
+                    !       J3  J  J1
                     !           J4
                     !
                     X  =   X *  DW_Ising_Matter( nsigma%i(Field_list(I ,1,2),nt) * nsigma%i(Field_list(I ,1,1),nt) ) * &
@@ -1629,12 +1526,12 @@
                          &      DW_Ising_Matter( nsigma%i(Field_list(I3,1,2),nt) * nsigma%i(Field_list(I3,1,1),nt) ) * &
                          &      DW_Ising_Matter( nsigma%i(Field_list(J ,1,2),nt) * nsigma%i(Field_list(J ,1,1),nt) ) * &
                          &      DW_Ising_Matter( nsigma%i(Field_list(J3,1,2),nt) * nsigma%i(Field_list(J3,1,1),nt) ) * &
-                         &      DW_Ising_Matter( nsigma%i(Field_list(J4,2,2),nt) * nsigma%i(Field_list(J4,2,1),nt) ) 
-                 elseif (J ==  Latt%nnlist(I,0,1) ) then 
+                         &      DW_Ising_Matter( nsigma%i(Field_list(J4,2,2),nt) * nsigma%i(Field_list(J4,2,1),nt) )
+                 elseif (J ==  Latt%nnlist(I,0,1) ) then
                     !   I - J  =  -a_2
                     !           J2
                     !       J3  J  J1
-                    !       I3  I  I1 
+                    !       I3  I  I1
                     !           I4
                     !
                     X  =   X *  DW_Ising_Matter( nsigma%i(Field_list(I ,1,2),nt) * nsigma%i(Field_list(I ,1,1),nt) ) * &
@@ -1642,7 +1539,7 @@
                          &      DW_Ising_Matter( nsigma%i(Field_list(I4,2,2),nt) * nsigma%i(Field_list(I4,2,1),nt) ) * &
                          &      DW_Ising_Matter( nsigma%i(Field_list(J ,1,2),nt) * nsigma%i(Field_list(J ,1,1),nt) ) * &
                          &      DW_Ising_Matter( nsigma%i(Field_list(J ,2,2),nt) * nsigma%i(Field_list(J ,2,1),nt) ) * &
-                         &      DW_Ising_Matter( nsigma%i(Field_list(J4,2,2),nt) * nsigma%i(Field_list(J4,2,1),nt) ) 
+                         &      DW_Ising_Matter( nsigma%i(Field_list(J4,2,2),nt) * nsigma%i(Field_list(J4,2,1),nt) )
                  else
                     X  =   X *  DW_Ising_Matter( nsigma%i(Field_list(I ,1,2),nt) * nsigma%i(Field_list(I ,1,1),nt) ) * &
                          &      DW_Ising_Matter( nsigma%i(Field_list(I ,2,2),nt) * nsigma%i(Field_list(I ,2,1),nt) ) * &
@@ -1651,22 +1548,22 @@
                          &      DW_Ising_Matter( nsigma%i(Field_list(J ,1,2),nt) * nsigma%i(Field_list(J ,1,1),nt) ) * &
                          &      DW_Ising_Matter( nsigma%i(Field_list(J ,2,2),nt) * nsigma%i(Field_list(J ,2,1),nt) ) * &
                          &      DW_Ising_Matter( nsigma%i(Field_list(J3,1,2),nt) * nsigma%i(Field_list(J3,1,1),nt) ) * &
-                         &      DW_Ising_Matter( nsigma%i(Field_list(J4,2,2),nt) * nsigma%i(Field_list(J4,2,1),nt) ) 
+                         &      DW_Ising_Matter( nsigma%i(Field_list(J4,2,2),nt) * nsigma%i(Field_list(J4,2,1),nt) )
                  Endif
               endif
               tau_x_c  = X
            endif
         endif
         !Write(6,*) 'Out tau_x_c'
-        
       end function tau_x_c
+
 !--------------------------------------------------------------------
 !> @author
 !> ALF Collaboration
 !>
 !> @brief
-!> This function returns the expectation value of the operator sigma_x_(i,i + a_n_orientation)  on time slice nt 
-!> 
+!> This function returns the expectation value of the operator sigma_x_(i,i + a_n_orientation)  on time slice nt
+!>
 !>
 !> @details
 !> \endverbatim
@@ -1691,17 +1588,17 @@
         If  (Abs(Ham_TZ2) > Zero ) then
            X = X *  DW_Ising_tau( nsigma%i(Field_list(I ,n_orientation,1),nt )*nsigma%i(Field_list(I ,n_orientation,1),nt1) )
            if ( n_orientation == 1 ) then
-              F1 = iFlux(i                  , nt,1) 
-              F2 = iFlux(latt%nnlist(i,0,-1), nt,1) 
+              F1 = iFlux(i                  , nt,1)
+              F2 = iFlux(latt%nnlist(i,0,-1), nt,1)
            else
-              F1 = iFlux(i                  , nt,1) 
-              F2 = iFlux(latt%nnlist(i,-1,0), nt,1) 
+              F1 = iFlux(i                  , nt,1)
+              F2 = iFlux(latt%nnlist(i,-1,0), nt,1)
            endif
            X  = X * DW_Ising_Flux(F1,F2)
            If (Abs(Ham_T) > Zero )  then
               X = X * DW_Ising_Matter( nsigma%i(Field_list(I ,n_orientation,2),nt) * nsigma%i(Field_list(I ,n_orientation,1),nt) )
            endif
-           sigma_x  = X  
+           sigma_x  = X
         endif
         !Write(6,*) 'Out sigma_x'
         
@@ -1713,7 +1610,7 @@
 !>
 !> @brief
 !> This function returns the expectation value of the operator <star_sigma_x(i) >
-!> where star_sigma_x(j) = sigma^x(i,i+a_x) sigma^x(i,i-a_x) sigma^x(i,i+a_y) sigma^x(i,i-a_y) 
+!> where star_sigma_x(j) = sigma^x(i,i+a_x) sigma^x(i,i-a_x) sigma^x(i,i+a_y) sigma^x(i,i-a_y)
 !>
 !> @details
 !> \endverbatim
@@ -1732,23 +1629,23 @@
         If  (Abs(Ham_TZ2) > Zero ) then
            X     = 1.d0
            ntp1   = nt + 1
-           If ( nt == Ltrot )  ntp1 = 1 
+           If ( nt == Ltrot )  ntp1 = 1
            !         I2
-           !      I3  I  I1 
+           !      I3  I  I1
            !         I4
            !
-           I3 = Latt%nnlist(I,-1, 0)   
+           I3 = Latt%nnlist(I,-1, 0)
            I4 = Latt%nnlist(I, 0,-1)
            X =     DW_Ising_tau  ( nsigma%i(Field_list(I ,1,1),nt)*nsigma%i(Field_list(I ,1,1),ntp1)  ) * &
                 &  DW_Ising_tau  ( nsigma%i(Field_list(I ,2,1),nt)*nsigma%i(Field_list(I ,2,1),ntp1)  ) * &
                 &  DW_Ising_tau  ( nsigma%i(Field_list(I4,2,1),nt)*nsigma%i(Field_list(I4,2,1),ntp1)  ) * &
-                &  DW_Ising_tau  ( nsigma%i(Field_list(I3,1,1),nt)*nsigma%i(Field_list(I3,1,1),ntp1)  )   
+                &  DW_Ising_tau  ( nsigma%i(Field_list(I3,1,1),nt)*nsigma%i(Field_list(I3,1,1),ntp1)  )
            ! Flux remains invariant.
            If (Abs(Ham_T) > Zero )  then
               X = X * DW_Ising_Matter( nsigma%i(Field_list(I ,1,2),nt) * nsigma%i(Field_list(I ,1,1),nt) ) * &
                       DW_Ising_Matter( nsigma%i(Field_list(I ,2,2),nt) * nsigma%i(Field_list(I ,2,1),nt) ) * &
                       DW_Ising_Matter( nsigma%i(Field_list(I3,1,2),nt) * nsigma%i(Field_list(I3,1,1),nt) ) * &
-                      DW_Ising_Matter( nsigma%i(Field_list(I4,2,2),nt) * nsigma%i(Field_list(I4,2,1),nt) ) 
+                      DW_Ising_Matter( nsigma%i(Field_list(I4,2,2),nt) * nsigma%i(Field_list(I4,2,1),nt) )
            endif
            star_sigma_x  = x
         endif
@@ -1761,8 +1658,8 @@
 !> ALF Collaboration
 !>
 !> @brief
-!> This function returns the expectation value of the operator <star_sigma_x(i) * star_sigma_x(j) > 
-!> where star_sigma_x(j) = sigma^x(i,i+a_x) sigma^x(i,i-a_x) sigma^x(i,i+a_y) sigma^x(i,i-a_y) 
+!> This function returns the expectation value of the operator <star_sigma_x(i) * star_sigma_x(j) >
+!> where star_sigma_x(j) = sigma^x(i,i+a_x) sigma^x(i,i-a_x) sigma^x(i,i+a_y) sigma^x(i,i-a_y)
 !>
 !> @details
 !> \endverbatim
@@ -1784,10 +1681,10 @@
         elseif ( Abs(Ham_TZ2) < Zero ) then
            star_sigma_x_c = 1.d0
         else
-           !      I2  
+           !      I2
            !  I3  I  I1
            !      I4
-           !      J2  
+           !      J2
            !  J3  J  J1
            !      J4
            I3 = Latt%nnlist(I,-1, 0)
@@ -1797,7 +1694,7 @@
            If (J == Latt%nnlist(I,-1,0) ) then
               !
               !       J2  I2
-              !   J3  J   I  I1 
+              !   J3  J   I  I1
               !       J4  I4
               !
               X       = DW_Ising_tau( nsigma%i(Field_list(I ,1,1),nt)*nsigma%i(Field_list(I ,1,1),nt1) )* &
@@ -1805,11 +1702,11 @@
                    &    DW_Ising_tau( nsigma%i(Field_list(I4,2,1),nt)*nsigma%i(Field_list(I4,2,1),nt1) )* &
                    &    DW_Ising_tau( nsigma%i(Field_list(J ,2,1),nt)*nsigma%i(Field_list(J ,2,1),nt1) )* &
                    &    DW_Ising_tau( nsigma%i(Field_list(J3,1,1),nt)*nsigma%i(Field_list(J3,1,1),nt1) )* &
-                   &    DW_Ising_tau( nsigma%i(Field_list(J4,2,1),nt)*nsigma%i(Field_list(J4,2,1),nt1) ) 
-           elseif (J == Latt%nnlist(I,1,0) ) then 
+                   &    DW_Ising_tau( nsigma%i(Field_list(J4,2,1),nt)*nsigma%i(Field_list(J4,2,1),nt1) )
+           elseif (J == Latt%nnlist(I,1,0) ) then
               !
               !       I2  J2
-              !   I3  I   J  J1 
+              !   I3  I   J  J1
               !       I4  J4
               !
               X       = DW_Ising_tau( nsigma%i(Field_list(I ,2,1),nt)*nsigma%i(Field_list(I ,2,1),nt1) )* &
@@ -1817,12 +1714,12 @@
                    &    DW_Ising_tau( nsigma%i(Field_list(I4,2,1),nt)*nsigma%i(Field_list(I4,2,1),nt1) )* &
                    &    DW_Ising_tau( nsigma%i(Field_list(J ,1,1),nt)*nsigma%i(Field_list(J ,1,1),nt1) )* &
                    &    DW_Ising_tau( nsigma%i(Field_list(J ,2,1),nt)*nsigma%i(Field_list(J ,2,1),nt1) )* &
-                   &    DW_Ising_tau( nsigma%i(Field_list(J4,2,1),nt)*nsigma%i(Field_list(J4,2,1),nt1) ) 
-           elseif (J == Latt%nnlist(I,0,-1) ) then 
-              !   
+                   &    DW_Ising_tau( nsigma%i(Field_list(J4,2,1),nt)*nsigma%i(Field_list(J4,2,1),nt1) )
+           elseif (J == Latt%nnlist(I,0,-1) ) then
+              !
               !           I3
               !       I2  I  I1
-              !       J3  J  J1 
+              !       J3  J  J1
               !           J4
               !
               X   =     DW_Ising_tau( nsigma%i(Field_list(I ,1,1),nt)*nsigma%i(Field_list(I ,1,1),nt1) )* &
@@ -1830,12 +1727,12 @@
                    &    DW_Ising_tau( nsigma%i(Field_list(I3,1,1),nt)*nsigma%i(Field_list(I3,1,1),nt1) )* &
                    &    DW_Ising_tau( nsigma%i(Field_list(J ,1,1),nt)*nsigma%i(Field_list(J ,1,1),nt1) )* &
                    &    DW_Ising_tau( nsigma%i(Field_list(J3,1,1),nt)*nsigma%i(Field_list(J3,1,1),nt1) )* &
-                   &    DW_Ising_tau( nsigma%i(Field_list(J4,2,1),nt)*nsigma%i(Field_list(J4,2,1),nt1) ) 
-           elseif (J ==  Latt%nnlist(I,0,1) ) then 
-              !   
+                   &    DW_Ising_tau( nsigma%i(Field_list(J4,2,1),nt)*nsigma%i(Field_list(J4,2,1),nt1) )
+           elseif (J ==  Latt%nnlist(I,0,1) ) then
+              !
               !           J3
               !       J2  J  J1
-              !       I3  I  I1 
+              !       I3  I  I1
               !           I4
               !
               X   =     DW_Ising_tau( nsigma%i(Field_list(I ,1,1),nt)*nsigma%i(Field_list(I ,1,1),nt1) )* &
@@ -1852,14 +1749,14 @@
                    &    DW_Ising_tau( nsigma%i(Field_list(J ,1,1),nt)*nsigma%i(Field_list(J ,1,1),nt1) )* &
                    &    DW_Ising_tau( nsigma%i(Field_list(J ,2,1),nt)*nsigma%i(Field_list(J ,2,1),nt1) )* &
                    &    DW_Ising_tau( nsigma%i(Field_list(J3,1,1),nt)*nsigma%i(Field_list(J3,1,1),nt1) )* &
-                   &    DW_Ising_tau( nsigma%i(Field_list(J4,2,1),nt)*nsigma%i(Field_list(J4,2,1),nt1) ) 
+                   &    DW_Ising_tau( nsigma%i(Field_list(J4,2,1),nt)*nsigma%i(Field_list(J4,2,1),nt1) )
            endif
            If  (Abs(Ham_T) > Zero )  then
               If (J == Latt%nnlist(I,-1,0) ) then
                  !   I - J  = a_1
                  !
                  !       J2  I2
-                 !   J3  J   I  I1 
+                 !   J3  J   I  I1
                  !       J4  I4
                  !
                  X  =   X *  DW_Ising_Matter( nsigma%i(Field_list(I ,1,2),nt) * nsigma%i(Field_list(I ,1,1),nt) ) * &
@@ -1867,12 +1764,12 @@
                       &      DW_Ising_Matter( nsigma%i(Field_list(I4,2,2),nt) * nsigma%i(Field_list(I4,2,1),nt) ) * &
                       &      DW_Ising_Matter( nsigma%i(Field_list(J ,2,2),nt) * nsigma%i(Field_list(J ,2,1),nt) ) * &
                       &      DW_Ising_Matter( nsigma%i(Field_list(J3,1,2),nt) * nsigma%i(Field_list(J3,1,1),nt) ) * &
-                      &      DW_Ising_Matter( nsigma%i(Field_list(J4,2,2),nt) * nsigma%i(Field_list(J4,2,1),nt) ) 
-              elseif (J == Latt%nnlist(I,1,0) ) then 
+                      &      DW_Ising_Matter( nsigma%i(Field_list(J4,2,2),nt) * nsigma%i(Field_list(J4,2,1),nt) )
+              elseif (J == Latt%nnlist(I,1,0) ) then
                  !   I - J  = - a_1
                  !
                  !       I2  J2
-                 !   I3  I   J  J1 
+                 !   I3  I   J  J1
                  !       I4  J4
                  !
                  X  =   X *  DW_Ising_Matter( nsigma%i(Field_list(I ,2,2),nt) * nsigma%i(Field_list(I ,2,1),nt) ) * &
@@ -1880,13 +1777,13 @@
                       &      DW_Ising_Matter( nsigma%i(Field_list(I4,2,2),nt) * nsigma%i(Field_list(I4,2,1),nt) ) * &
                       &      DW_Ising_Matter( nsigma%i(Field_list(J ,1,2),nt) * nsigma%i(Field_list(J ,1,1),nt) ) * &
                       &      DW_Ising_Matter( nsigma%i(Field_list(J ,2,2),nt) * nsigma%i(Field_list(J ,2,1),nt) ) * &
-                      &      DW_Ising_Matter( nsigma%i(Field_list(J4,2,2),nt) * nsigma%i(Field_list(J4,2,1),nt) ) 
-              elseif (J == Latt%nnlist(I,0,-1) ) then 
+                      &      DW_Ising_Matter( nsigma%i(Field_list(J4,2,2),nt) * nsigma%i(Field_list(J4,2,1),nt) )
+              elseif (J == Latt%nnlist(I,0,-1) ) then
                  !   I - J  =  a_2
                  !
                  !           I2
                  !       I3  I  I1
-                 !       J3  J  J1 
+                 !       J3  J  J1
                  !           J4
                  !
                  X  =   X *  DW_Ising_Matter( nsigma%i(Field_list(I ,1,2),nt) * nsigma%i(Field_list(I ,1,1),nt) ) * &
@@ -1894,12 +1791,12 @@
                       &      DW_Ising_Matter( nsigma%i(Field_list(I3,1,2),nt) * nsigma%i(Field_list(I3,1,1),nt) ) * &
                       &      DW_Ising_Matter( nsigma%i(Field_list(J ,1,2),nt) * nsigma%i(Field_list(J ,1,1),nt) ) * &
                       &      DW_Ising_Matter( nsigma%i(Field_list(J3,1,2),nt) * nsigma%i(Field_list(J3,1,1),nt) ) * &
-                      &      DW_Ising_Matter( nsigma%i(Field_list(J4,2,2),nt) * nsigma%i(Field_list(J4,2,1),nt) ) 
-              elseif (J ==  Latt%nnlist(I,0,1) ) then 
+                      &      DW_Ising_Matter( nsigma%i(Field_list(J4,2,2),nt) * nsigma%i(Field_list(J4,2,1),nt) )
+              elseif (J ==  Latt%nnlist(I,0,1) ) then
                  !   I - J  =  -a_2
                  !           J2
                  !       J3  J  J1
-                 !       I3  I  I1 
+                 !       I3  I  I1
                  !           I4
                  !
                  X  =   X *  DW_Ising_Matter( nsigma%i(Field_list(I ,1,2),nt) * nsigma%i(Field_list(I ,1,1),nt) ) * &
@@ -1907,7 +1804,7 @@
                       &      DW_Ising_Matter( nsigma%i(Field_list(I4,2,2),nt) * nsigma%i(Field_list(I4,2,1),nt) ) * &
                       &      DW_Ising_Matter( nsigma%i(Field_list(J ,1,2),nt) * nsigma%i(Field_list(J ,1,1),nt) ) * &
                       &      DW_Ising_Matter( nsigma%i(Field_list(J ,2,2),nt) * nsigma%i(Field_list(J ,2,1),nt) ) * &
-                      &      DW_Ising_Matter( nsigma%i(Field_list(J4,2,2),nt) * nsigma%i(Field_list(J4,2,1),nt) ) 
+                      &      DW_Ising_Matter( nsigma%i(Field_list(J4,2,2),nt) * nsigma%i(Field_list(J4,2,1),nt) )
               else
                  X  =   X *  DW_Ising_Matter( nsigma%i(Field_list(I ,1,2),nt) * nsigma%i(Field_list(I ,1,1),nt) ) * &
                       &      DW_Ising_Matter( nsigma%i(Field_list(I ,2,2),nt) * nsigma%i(Field_list(I ,2,1),nt) ) * &
@@ -1916,7 +1813,7 @@
                       &      DW_Ising_Matter( nsigma%i(Field_list(J ,1,2),nt) * nsigma%i(Field_list(J ,1,1),nt) ) * &
                       &      DW_Ising_Matter( nsigma%i(Field_list(J ,2,2),nt) * nsigma%i(Field_list(J ,2,1),nt) ) * &
                       &      DW_Ising_Matter( nsigma%i(Field_list(J3,1,2),nt) * nsigma%i(Field_list(J3,1,1),nt) ) * &
-                      &      DW_Ising_Matter( nsigma%i(Field_list(J4,2,2),nt) * nsigma%i(Field_list(J4,2,1),nt) ) 
+                      &      DW_Ising_Matter( nsigma%i(Field_list(J4,2,2),nt) * nsigma%i(Field_list(J4,2,1),nt) )
               Endif
               
            endif
@@ -1925,4 +1822,5 @@
         
       end function star_sigma_x_c
 
-      end Module Hamiltonian
+
+      end submodule ham_Z2_Matter_smod

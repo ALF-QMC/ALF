@@ -9,7 +9,7 @@
 \subsection{Predefined interaction vertices} \label{sec:interaction_vertices}
 %-----------------------------------------------------------------------------------
 
-In its most general form, an interaction Hamiltonian expressed in terms of sums of perfect squares can be written, as presented in Section~\ref{sec:intro}, as a sum of $M_V$ vertices: %Eq.~\eqref{eqn:general_ham_v}:
+In its most general form, an interaction Hamiltonian, expressed in terms of sums of perfect squares, can be written, as presented in Section~\ref{sec:intro}, as a sum of $M_V$ vertices: %Eq.~\eqref{eqn:general_ham_v}:
 
 \begin{align*}
 \hat{\mathcal{H}}_{V} &=  \sum\limits_{k=1}^{M_V}U_{k}
@@ -21,12 +21,12 @@ In its most general form, an interaction Hamiltonian expressed in terms of sums 
 \end{align*}
 which are encoded in one or more variables of type \texttt{Operator}, described in Sec.~\ref{sec:op}. We often use arrays of \texttt{Operator} type, which should be initialized by repeatedly calling the subroutine \texttt{Op\_make}.
 
-The module \texttt{Predefined\_Int\_mod.F90} implements some of the most common of such interaction vertices $\hat{\mathcal{H}}_V^{(k)}$, as detailed in the remaining of this section, where we drop the superscript $(k)$ when unambiguous.
+The module \texttt{Predefined\_Int\_mod.F90} implements some of the most common of such interaction vertices $\hat{\mathcal{H}}_V^{(k)}$, as detailed in the remainder of this section, where we drop the superscript $(k)$ when unambiguous.
 
 
-\subsubsection{$SU(N)$ Hubbard interaction}
+\subsubsection{SU(N) Hubbard interaction}
 \label{Hubbard_SUN_HS.eq}
-The $SU(N)$ Hubbard interaction on a given site $i$ is given by 
+The SU(N) Hubbard interaction on a given site $i$ is given by 
 \begin{align}
 %\label{eqn_hubbard_sun}
 \hat{\mathcal{H}}_{V,i} =
@@ -34,15 +34,15 @@ The $SU(N)$ Hubbard interaction on a given site $i$ is given by
 \sum\limits_{\sigma=1}^{N_{\mathrm{col}}}
 \left(  \hat{c}^{\dagger}_{i \sigma} \hat{c}^{\phantom\dagger}_{i\sigma}  -1/2 \right) \right]^{2}.
 \end{align} 
-Assuming that no other term in the Hamiltonian breaks the $SU(N) $ color symmetry, then this interaction term conveniently corresponds to  a single operator, obtained by calling, for each of the $N_{\mathrm{dim}}$ sites $i$:
+Assuming that no other term in the Hamiltonian breaks the SU(N) color symmetry, then this interaction term conveniently corresponds to  a single operator, obtained by calling, for each of the $N_{\mathrm{dim}}$ sites $i$:
 \begin{lstlisting}[style=fortran]
-Call Predefined_Int_U_SUN( OP, I, N_SUN, DTAU, U )
+Call Predefined_Int_U_SUN(OP, I, N_SUN, DTAU, U)
 \end{lstlisting}
 which defines:
 %which corresponds to the general form of Eq.~\eqref{eqn:general_ham_v} by setting: 
 %$N_{\mathrm{fl}} = 1$,  $M_V = N_{\text{unit-cell}} $,  $U_{k} =  -\frac{U}{N_{\mathrm{col}}}$,  $V_{x y}^{(ks)} =  \delta_{x,y} \delta_{x,k}$, and $\alpha_{ks} = -\frac{1}{2}$; and which is defined in the subroutine \texttt{Predefined\_Int\_U\_SUN} by a single operator:
 
-\begin{lstlisting}[style=fortran]
+\begin{lstlisting}[style=fortran,ndkeywords={type},ndkeywordstyle=\color{black}\ttfamily]
 Op%P(1)   = I
 Op%O(1,1) = cmplx(1.d0,  0.d0, kind(0.D0))
 Op%alpha  = cmplx(-0.5d0,0.d0, kind(0.D0))
@@ -51,13 +51,13 @@ Op%type   = 2
 
 \end{lstlisting}
 
-To relate to  Eq.~\eqref{eqn:general_ham_v} we have,   $V_{x y}^{(is)} =  \delta_{x,y} \delta_{x,i}$, $\alpha_{is} = -\frac{1}{2}$ and $U_{k} =  \frac{U}{N_{\mathrm{col}}}$.   Here  the flavor index, $s$,  plays no role. 
+To relate to  Eq.~\eqref{eqn:general_ham_v}, we have $V_{x y}^{(is)} =  \delta_{x,y} \delta_{x,i}$, $\alpha_{is} = -\frac{1}{2}$ and $U_{k} =  \frac{U}{N_{\mathrm{col}}}$.   Here  the flavor index, $s$,  plays no role. 
 
 
 \subsubsection{$M_z$-Hubbard interaction}
 
 \begin{lstlisting}[style=fortran]
-Call Predefined_Int_U_MZ( OP_up, Op_do, I, DTAU, U )
+Call Predefined_Int_U_MZ(OP_up, Op_do, I, DTAU, U)
 \end{lstlisting}
 
 The $M_z$-Hubbard interaction is given by 
@@ -69,7 +69,7 @@ The $M_z$-Hubbard interaction is given by
 which corresponds to the general form of Eq.~\eqref{eqn:general_ham_v} by setting: 
 $N_{\mathrm{fl}} = 2$, $N_{\mathrm{col}} \equiv \texttt{N\_SUN} =1 $,  $M_V =  N_{\text{unit-cell}} $,  $U_{k} = \frac{U}{2}$, 
 $V_{x y}^{(i, s=1)} =  \delta_{x,y} \delta_{x,i}  $,  $V_{x y}^{(i, s=2)} =  - \delta_{x,y} \delta_{x,i}  $, and $\alpha_{is}   = 0  $; and which is defined in the subroutine \texttt{Predefined\_Int\_U\_MZ} by two operators:
-\begin{lstlisting}[style=fortran]
+\begin{lstlisting}[style=fortran,ndkeywords={type},ndkeywordstyle=\color{black}\ttfamily]
 Op_up%P(1)   = I
 Op_up%O(1,1) = cmplx(1.d0, 0.d0, kind(0.D0))
 Op_up%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
@@ -85,10 +85,10 @@ Op_do%type   = 2
 \end{lstlisting}
 
 
-\subsubsection{$SU(N)$ $V$-interaction}
+\subsubsection{SU(N) $V$-interaction}
 
 \begin{lstlisting}[style=fortran]
-Call Predefined_Int_V_SUN( OP, I, J, N_SUN, DTAU, V )
+Call Predefined_Int_V_SUN(OP, I, J, N_SUN, DTAU, V)
 \end{lstlisting}
 
 The interaction term of the generalized t-V model, given by 
@@ -97,7 +97,7 @@ The interaction term of the generalized t-V model, given by
 -\frac{V}{N_\mathrm{col}}\left[ \sum_{\sigma=1}^{N_\mathrm{col}}\left( \hat{c}^{\dagger}_{i \sigma} \hat{c}^{\phantom\dagger}_{j \sigma} + \hat{c}^{\dagger}_{j \sigma} \hat{c}^{\phantom\dagger}_{i \sigma} \right) \right]^2,
 \end{align} 
 is coded in the subroutine \texttt{Predefined\_Int\_V\_SUN} by a single symmetric operator:
-\begin{lstlisting}[style=fortran]
+\begin{lstlisting}[style=fortran,ndkeywords={type},ndkeywordstyle=\color{black}\ttfamily]
 Op%P(1)   = I
 Op%P(2)   = J
 Op%O(1,2) = cmplx(1.d0 ,0.d0, kind(0.D0)) 
@@ -112,7 +112,7 @@ Op%type   = 2
 \subsubsection{Fermion-Ising coupling}
 
 \begin{lstlisting}[style=fortran]
-Call Predefined_Int_Ising_SUN( OP, I, J, DTAU, XI )
+Call Predefined_Int_Ising_SUN(OP, I, J, DTAU, XI)
 \end{lstlisting}
 
 The interaction between the Ising and a fermion degree of freedom, given by
@@ -122,7 +122,7 @@ The interaction between the Ising and a fermion degree of freedom, given by
 \hat{Z}_{i,j} \xi  \sum_{\sigma=1}^{N_\mathrm{col}}\left( \hat{c}^{\dagger}_{i \sigma} \hat{c}^{\phantom\dagger}_{j \sigma} + \hat{c}^{\dagger}_{j \sigma} \hat{c}^{\phantom\dagger}_{i \sigma} \right),
 \end{align} 
 where $\xi$ determines the coupling strength, is implemented in the subroutine \texttt{Predefined\_Int\_Ising\_SUN}:
-\begin{lstlisting}[style=fortran]
+\begin{lstlisting}[style=fortran,ndkeywords={type},ndkeywordstyle=\color{black}\ttfamily]
 Op%P(1)   = I
 Op%P(2)   = J
 Op%O(1,2) = cmplx(1.d0 ,0.d0, kind(0.D0)) 
@@ -138,7 +138,7 @@ Op%type   = 1
 \subsubsection{Long-Range Coulomb repulsion}
 
 \begin{lstlisting}[style=fortran]
-Call Predefined_Int_LRC( OP, I, DTAU )
+Call Predefined_Int_LRC(OP, I, DTAU)
 \end{lstlisting}
 
 The Long-Range Coulomb (LRC) interaction can be written as
@@ -160,7 +160,7 @@ e^{-\Delta \tau \hat{H}_{V,k} }  =  \int \prod_{\vec{i}} d \phi_{i}   e^{ - \fra
 The above holds only provided that the matrix $V$ is positive definite and the implementation follows Ref.~\cite{Hohenadler14}.   
 
 The LRC interaction is implemented in the subroutine \texttt{Predefined\_Int\_LRC}:
-\begin{lstlisting}[style=fortran]
+\begin{lstlisting}[style=fortran,ndkeywords={type},ndkeywordstyle=\color{black}\ttfamily]
 Op%P(1)   = I
 Op%O(1,1) = cmplx(1.d0  ,0.d0, kind(0.D0))
 Op%alpha  = cmplx(-0.5d0,0.d0, kind(0.D0))
@@ -172,7 +172,7 @@ Op%type   = 3
 \subsubsection{$J_z$-$J_z$ interaction}
 
 \begin{lstlisting}[style=fortran]
-Call Predefined_Int_Jz( OP_up, Op_do, I, J, DTAU, Jz )
+Call Predefined_Int_Jz(OP_up, Op_do, I, J, DTAU, Jz)
 \end{lstlisting}
 
 Another predefined vertex is:
@@ -181,10 +181,10 @@ Another predefined vertex is:
 - \frac{|J_z|}{2}  \left( S^{z}_i - \sgn|J_z| S^{z}_j \right)^2 =
 J_z  S^{z}_i  S^{z}_j  - \frac{|J_z|}{2} (S^{z}_i)^2 - \frac{|J_z|}{2}(S^{z}_j)^2 
 \end{align} 
-which, if particle fluctuations are frozen on the $i$ and $j$ sites, then $(S^{z}_i)^2 = 1/4$ and the interactions corresponds to a $J_z$-$J_z$ ferro or antiferro coupling.
+which, if particle fluctuations are frozen on the $i$ and $j$ sites, then $(S^{z}_i)^2 = 1/4$ and the interaction corresponds to a $J_z$-$J_z$ ferromagnetic or antiferromagnetic coupling.
 
 The implementation of the interaction in \texttt{Predefined\_Int\_Jz} defines two operators:
-\begin{lstlisting}[style=fortran]
+\begin{lstlisting}[style=fortran,ndkeywords={type},ndkeywordstyle=\color{black}\ttfamily]
 Op_up%P(1)   = I
 Op_up%P(2)   = J
 Op_up%O(1,1) = cmplx(1.d0,              0.d0, kind(0.D0))

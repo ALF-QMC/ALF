@@ -62,7 +62,7 @@
        Private
        Real (Kind=Kind(0.d0)), allocatable, dimension(:,:)  :: Phi_st,  Gama_st
        Real (Kind=Kind(0.d0))  :: Del
-       Real (Kind=Kind(0.d0))  :: Amplitude=1.d0
+       Real (Kind=Kind(0.d0))  :: Amplitude
        Integer :: maxgh ! the maximum number of gauss-hemite quadrature nodes divided by two
 
        Type Fields
@@ -215,28 +215,27 @@
         deallocate (this%f, this%t )
       end Subroutine Fields_clear
 
-      Subroutine Fields_init(nrnodes, Delta_X)
+      Subroutine Fields_init(nrnodes, Amplitude_in)
 
         Implicit none
 
-        Real  (Kind=Kind(0.d0)), Optional, Intent(IN) :: Delta_X
+        Real  (Kind=Kind(0.d0)), Optional, Intent(IN) :: Amplitude_in
         Integer, intent(in), optional :: nrnodes
 
         !Local
         Integer :: n
 
-        Del = 0.d0
         If ( .not. Present(nrnodes)) then
             maxgh = 2 ! default 4 Integration nodes
         else
             maxgh = nrnodes/2
         endif
 
-        Del = 1.d0
-        If (Present(Delta_X)) Del = Delta_X
-        
         Allocate(Phi_st(-maxgh:maxgh, 2), gama_st(-maxgh:maxgh, 2))
-        
+
+        Amplitude = 1.d0
+        If (Present(Amplitude_in)) Amplitude = Amplitude_in
+
         Phi_st = 0.d0
         do n = -2,2
            Phi_st(n,1) = real(n,Kind=Kind(0.d0))
@@ -616,7 +615,7 @@
                   this%f(I,nt)  = 1.d0
                   if ( ranf_wrap() > 0.5D0 ) this%f(I,nt) = -1.d0
                else
-                  this%f(I,nt)  = del*(ranf_wrap() - 0.5d0)
+                  this%f(I,nt)  = Amplitude*(ranf_wrap() - 0.5d0)
                endif
             enddo
          enddo

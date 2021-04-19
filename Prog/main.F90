@@ -115,7 +115,7 @@ Program Main
         Use Operator_mod
         Use Lattices_v3
         Use MyMats
-        Use Hamiltonian
+        Use Hamiltonian_main
         Use Control
         Use Tau_m_mod
         Use Tau_p_mod
@@ -124,7 +124,11 @@ Program Main
         Use UDV_State_mod
         Use Wrapgr_mod
         Use Fields_mod
+        Use WaveFunction_mod
+        use entanglement_mod
         use iso_fortran_env, only: output_unit, error_unit
+        Use Langevin_HMC_mod
+
 #ifdef MPI
         Use mpi
 #endif
@@ -134,7 +138,7 @@ Program Main
 
         Interface
            SUBROUTINE WRAPUL(NTAU1, NTAU, UDVL)
-             Use Hamiltonian
+             Use Hamiltonian_main
              Use UDV_State_mod
              Implicit none
              CLASS(UDV_State), intent(inout), allocatable, dimension(:) :: UDVL
@@ -150,7 +154,7 @@ Program Main
              INTEGER         :: NVAR
            END SUBROUTINE CGR
            SUBROUTINE WRAPUR(NTAU, NTAU1, UDVR)
-             Use Hamiltonian
+             Use Hamiltonian_main
              Use UDV_Wrap_mod
              Use UDV_State_mod
              Implicit None
@@ -179,8 +183,13 @@ Program Main
         Integer :: N_Global
         Integer :: Nt_sequential_start, Nt_sequential_end, mpi_per_parameter_set
         Integer :: N_Global_tau
+        Logical :: Sequential
 
-
+        !  Space for reading in Langevin & HMC  parameters
+        Logical                      :: Langevin,  HMC
+        Integer                      :: Leapfrog_Steps
+        Real  (Kind=Kind(0.d0))      :: Delta_t_Langevin_HMC, Max_Force
+          
 #if defined(TEMPERING)
         Integer :: N_exchange_steps, N_Tempering_frequency
         NAMELIST /VAR_TEMP/  N_exchange_steps, N_Tempering_frequency, mpi_per_parameter_set, Tempering_calc_det
@@ -188,13 +197,18 @@ Program Main
 
         NAMELIST /VAR_QMC/   Nwrap, NSweep, NBin, nodes, Ltau, LOBS_EN, LOBS_ST, CPU_MAX, &
              &               Propose_S0,Global_moves,  N_Global, Global_tau_moves, &
-             &               Nt_sequential_start, Nt_sequential_end, N_Global_tau
+             &               Nt_sequential_start, Nt_sequential_end, N_Global_tau, &
+             &               Langevin, HMC, Delta_t_Langevin_HMC, Max_Force, Leapfrog_steps
 
 
+        !  General
         Integer :: Ierr, I,nf, nst, n, N_op
         Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Phase, Z, Z1
         Real    (Kind=Kind(0.d0)) :: ZERO = 10D-8, X, X1
-        Integer, dimension(:), allocatable :: Stab_nt
+        Real    (Kind=Kind(0.d0)) :: Mc_step_weight
+
+        ! Storage for  stabilization steps
+        Integer, dimension(:), allocatable :: Stab_nt 
 
         ! Space for storage.
         CLASS(UDV_State), Dimension(:,:), ALLOCATABLE :: udvst
@@ -248,6 +262,10 @@ Program Main
         igroup           = irank/isize_g
         !Write(6,*) 'irank, Irank_g, Isize_g', irank, irank_g, isize_g
 #endif
+        !Initialize entanglement pairs of MPI jobs
+        !This routine can and should also be called if MPI is not activated
+        !It will then deactivate the entanglement measurements, i.e., the user does not have to care about this
+        call Init_Entanglement_replicas(Group_Comm)
 
 #ifdef MPI
         If (  Irank == 0 ) then
@@ -265,7 +283,8 @@ Program Main
            ! This is a set of variables that  identical for each simulation.
            Nwrap=0;  NSweep=0; NBin=0; Ltau=0; LOBS_EN = 0;  LOBS_ST = 0;  CPU_MAX = 0.d0
            Propose_S0 = .false. ;  Global_moves = .false. ; N_Global = 0
-           Global_tau_moves = .false.
+           Global_tau_moves = .false.; Langevin = .false. ; HMC =.false.
+           Delta_t_Langevin_HMC = 0.d0;  Max_Force = 0.d0 ; Leapfrog_steps = 0
            Nt_sequential_start = 1 ;  Nt_sequential_end  = 0;  N_Global_tau  = 0
            OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
            IF (ierr /= 0) THEN
@@ -277,24 +296,30 @@ Program Main
            NBin_eff = NBin
 #ifdef MPI
         Endif
-        CALL MPI_BCAST(Nwrap              ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(NSweep             ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(NBin               ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(Ltau               ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(nodes              ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(LOBS_EN            ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(LOBS_ST            ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(CPU_MAX            ,1,MPI_REAL8,  0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(Propose_S0         ,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(Global_moves       ,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(N_Global           ,1,MPI_Integer,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(Global_tau_moves   ,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(Nt_sequential_start,1,MPI_Integer,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(Nt_sequential_end  ,1,MPI_Integer,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(N_Global_tau       ,1,MPI_Integer,0,MPI_COMM_WORLD,ierr)
+        CALL MPI_BCAST(Nwrap                ,1 ,MPI_INTEGER  ,0,MPI_COMM_WORLD,ierr)
+        CALL MPI_BCAST(NSweep               ,1 ,MPI_INTEGER  ,0,MPI_COMM_WORLD,ierr)
+        CALL MPI_BCAST(NBin                 ,1 ,MPI_INTEGER  ,0,MPI_COMM_WORLD,ierr)
+        CALL MPI_BCAST(Ltau                 ,1 ,MPI_INTEGER  ,0,MPI_COMM_WORLD,ierr)
+        CALL MPI_BCAST(LOBS_EN              ,1 ,MPI_INTEGER  ,0,MPI_COMM_WORLD,ierr)
+        CALL MPI_BCAST(LOBS_ST              ,1 ,MPI_INTEGER  ,0,MPI_COMM_WORLD,ierr)
+        CALL MPI_BCAST(CPU_MAX              ,1 ,MPI_REAL8    ,0,MPI_COMM_WORLD,ierr)
+        CALL MPI_BCAST(Propose_S0           ,1 ,MPI_LOGICAL  ,0,MPI_COMM_WORLD,ierr)
+        CALL MPI_BCAST(Global_moves         ,1 ,MPI_LOGICAL  ,0,MPI_COMM_WORLD,ierr)
+        CALL MPI_BCAST(N_Global             ,1 ,MPI_Integer  ,0,MPI_COMM_WORLD,ierr)
+        CALL MPI_BCAST(Global_tau_moves     ,1 ,MPI_LOGICAL  ,0,MPI_COMM_WORLD,ierr)
+        CALL MPI_BCAST(Nt_sequential_start  ,1 ,MPI_Integer  ,0,MPI_COMM_WORLD,ierr)
+        CALL MPI_BCAST(Nt_sequential_end    ,1 ,MPI_Integer  ,0,MPI_COMM_WORLD,ierr)
+        CALL MPI_BCAST(N_Global_tau         ,1 ,MPI_Integer  ,0,MPI_COMM_WORLD,ierr)
+        CALL MPI_BCAST(Langevin             ,1 ,MPI_LOGICAL  ,0,MPI_COMM_WORLD,ierr)
+        CALL MPI_BCAST(HMC                  ,1 ,MPI_LOGICAL  ,0,MPI_COMM_WORLD,ierr)
+        CALL MPI_BCAST(Leapfrog_steps       ,1 ,MPI_Integer  ,0,MPI_COMM_WORLD,ierr)
+        CALL MPI_BCAST(Max_Force            ,1 ,MPI_REAL8    ,0,MPI_COMM_WORLD,ierr)
+        CALL MPI_BCAST(Delta_t_Langevin_HMC ,1 ,MPI_REAL8    ,0,MPI_COMM_WORLD,ierr)
 #endif
-        Call Fields_init(nodes)
-        Call Ham_set
+        Call Fields_init()
+        Call Alloc_Ham()
+        Call ham%Ham_set()
+
         if(Projector) then
            if (.not. allocated(WF_R) .or. .not. allocated(WF_L)) then
               write(error_unit,*) "Projector is selected but there are no trial wave functions!"
@@ -339,8 +364,8 @@ Program Main
            Nt_sequential_end   = Size(OP_V,1)
            N_Global_tau        = 0
         else
-           !  Gives the possibility to set parameters in the Hamiltonian file 
-           Call Overide_global_tau_sampling_parameters(Nt_sequential_start,Nt_sequential_end,N_Global_tau)
+           !  Gives the possibility to set parameters in the Hamiltonian file
+           Call ham%Overide_global_tau_sampling_parameters(Nt_sequential_start,Nt_sequential_end,N_Global_tau)
         endif
         
         N_op = Size(OP_V,1)
@@ -352,9 +377,7 @@ Program Main
         Call Set_Random_number_Generator(File_seeds,Seed_in)
         !Write(6,*) Seed_in
                
-        Call Hamiltonian_set_nsigma(Initial_field)
-
-        
+        Call ham%Hamiltonian_set_nsigma(Initial_field)
         if (allocated(Initial_field)) then
            Call nsigma%in(Group_Comm,Initial_field)
            deallocate(Initial_field)
@@ -368,8 +391,8 @@ Program Main
            Call Wrapgr_alloc
         endif
 
-        Call control_init
-        Call Alloc_obs(Ltau)
+        Call control_init(Group_Comm)
+        Call ham%Alloc_obs(Ltau)
 
         If ( mod(Ltrot,nwrap) == 0  ) then
            Nstm = Ltrot/nwrap
@@ -419,7 +442,12 @@ Program Main
            else
               Write(50,*) 'Default sequential updating '
            endif
-
+           if ( Langevin ) then
+              Write(50,*) 'Langevin del_t: ', Delta_t_Langevin_HMC
+              Write(50,*) 'Max Force     : ', Max_Force
+           endif
+           
+           
 #if defined(MPI)
            Write(50,*) 'Number of mpi-processes : ', isize_g
 #endif
@@ -452,8 +480,15 @@ Program Main
         endif
 #endif
 
-
-
+        Sequential = .true.
+        
+        if ( Langevin .or.  HMC  ) then
+           Call Langevin_HMC%make(Langevin, HMC , Delta_t_Langevin_HMC, Max_Force, Leapfrog_steps)
+           Sequential = .False.
+        else
+           Call Langevin_HMC%set_Update_scheme(Langevin, HMC )
+        endif
+        
         !Call Test_Hamiltonian
         Allocate ( Test(Ndim,Ndim), GR(NDIM,NDIM,N_FL), GR_Tilde(NDIM,NDIM,N_FL)  )
         ALLOCATE(udvl(N_FL), udvr(N_FL), udvst(NSTM, N_FL))
@@ -501,7 +536,7 @@ Program Main
 
 
 
-        Call Control_init
+        Call Control_init(Group_Comm)
 
         DO  NBC = 1, NBIN
            ! Here, you have the green functions on time slice 1.
@@ -509,7 +544,7 @@ Program Main
 
            call system_clock(count_bin_start)
 
-           Call Init_obs(Ltau)
+           Call ham%Init_obs(Ltau)
 #if defined(TEMPERING)
            Call Global_Tempering_init_obs
 #endif
@@ -525,148 +560,167 @@ Program Main
               ! Global updates
               If (Global_moves) Call Global_Updates(Phase, GR, udvr, udvl, Stab_nt, udvst,N_Global)
 
-              ! Propagation from 1 to Ltrot
-              ! Set the right storage to 1
 
-              do nf = 1,N_FL
-                if (Projector) then
-                    CALL udvr(nf)%reset('r',WF_R(nf)%P)
-                else
-                    CALL udvr(nf)%reset('r')
-                endif
-              Enddo
-
-              NST = 1
-              DO NTAU = 0, LTROT-1
-                 NTAU1 = NTAU + 1
-                 CALL WRAPGRUP(GR,NTAU,PHASE,Propose_S0, Nt_sequential_start, Nt_sequential_end, N_Global_tau)
-
-                 If (NTAU1 == Stab_nt(NST) ) then
-                    NT1 = Stab_nt(NST-1)
-                    CALL WRAPUR(NT1, NTAU1, udvr)
-                    Z = cmplx(1.d0, 0.d0, kind(0.D0))
-                    Do nf = 1, N_FL
-                       ! Read from storage left propagation from LTROT to  NTAU1
-                       udvl(nf) = udvst(NST, nf)
-                       ! Write in storage right prop from 1 to NTAU1
-                       udvst(NST, nf) = udvr(nf)
-                       NVAR = 1
-                       IF (NTAU1 .GT. LTROT/2) NVAR = 2
-                       TEST(:,:) = GR(:,:,nf)
-                       CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
-                       Z = Z*Z1
-                       Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
-                    ENDDO
-                    call Op_phase(Z,OP_V,Nsigma,N_SUN)
-                    Call Control_PrecisionP(Z,Phase)
-                    Phase = Z
-                    NST = NST + 1
-                 ENDIF
-
-                 IF (NTAU1.GE. LOBS_ST .AND. NTAU1.LE. LOBS_EN ) THEN
-                    !Call  Global_tau_mod_Test(Gr,ntau1)
-                    !Stop
-                    !write(*,*) "GR before obser sum: ",sum(GR(:,:,1))
-                    !write(*,*) "Phase before obser : ",phase
-                    If (Symm) then
-                       Call Hop_mod_Symm(GR_Tilde,GR)
-                       CALL Obser( GR_Tilde, PHASE, Ntau1 )
+              If (  trim(Langevin_HMC%get_Update_scheme()) == "Langevin" )  then
+                 !  Carry out a Langevin update and calculate equal time observables.
+                 Call Langevin_HMC%update(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst, &
+                      &                   LOBS_ST, LOBS_EN, LTAU)
+                 
+                 IF ( LTAU == 1 ) then
+                    If (Projector) then 
+                       NST = 0 
+                       Call Tau_p ( udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, NST, LOBS_ST, LOBS_EN)
+                       call Langevin_HMC%set_L_Forces(.true.)
                     else
-                       CALL Obser( GR, PHASE, Ntau1 )
+                       Call Tau_m( udvst, GR, PHASE, NSTM, NWRAP, STAB_NT, LOBS_ST, LOBS_EN )
+                       call Langevin_HMC%set_L_Forces(.true.)
                     endif
-                 ENDIF
-              ENDDO
+                 endif
+              endif
 
-              Do nf = 1,N_FL
-                if (Projector) then
-                    CALL udvl(nf)%reset('l',WF_L(nf)%P)
-                else
-                    CALL udvl(nf)%reset('l')
-                endif
-              ENDDO
-
-              NST = NSTM-1
-              DO NTAU = LTROT,1,-1
-                 NTAU1 = NTAU - 1
-                 CALL WRAPGRDO(GR,NTAU, PHASE,Propose_S0,Nt_sequential_start, Nt_sequential_end, N_Global_tau)
-                 IF (NTAU1.GE. LOBS_ST .AND. NTAU1.LE. LOBS_EN ) THEN
-                    !write(*,*) "GR before obser sum: ",sum(GR(:,:,1))
-                    !write(*,*) "Phase before obser : ",phase
-                    If (Symm) then
-                       Call Hop_mod_Symm(GR_Tilde,GR)
-                       CALL Obser( GR_Tilde, PHASE, Ntau1 )
+              If (Sequential)  then 
+                 ! Propagation from 1 to Ltrot
+                 ! Set the right storage to 1
+                 do nf = 1,N_FL
+                    if (Projector) then
+                       CALL udvr(nf)%reset('r',WF_R(nf)%P)
                     else
-                       CALL Obser( GR, PHASE, Ntau1 )
+                       CALL udvr(nf)%reset('r')
                     endif
-                 ENDIF
-                 IF ( Stab_nt(NST) == NTAU1 .AND. NTAU1.NE.0 ) THEN
-                    NT1 = Stab_nt(NST+1)
-                    !Write(6,*) 'Wrapul : ', NT1, NTAU1
-                    CALL WRAPUL(NT1, NTAU1, udvl)
-                    !Write(6,*)  'Write UL, read UR ', NTAU1, NST
-                    Z = cmplx(1.d0, 0.d0, kind(0.D0))
-                    do nf = 1,N_FL
-                       ! Read from store the right prop. from 1 to LTROT/NWRAP-1
-                       udvr(nf) = udvst(NST, nf)
-                       ! WRITE in store the left prop. from LTROT/NWRAP-1 to 1
-                       udvst(NST, nf) = udvl(nf)
-                       NVAR = 1
-                       IF (NTAU1 .GT. LTROT/2) NVAR = 2
-                       TEST(:,:) = GR(:,:,nf)
-                       CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
-                       Z = Z*Z1
-                       Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
-                    ENDDO
-                    call Op_phase(Z,OP_V,Nsigma,N_SUN)
-                    Call Control_PrecisionP(Z,Phase)
-                    Phase = Z
-                    IF( LTAU == 1 .and. Projector .and. Stab_nt(NST)<=THTROT+1 .and. THTROT+1<Stab_nt(NST+1) ) then
-                       Call tau_p ( udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, NST )
+                 Enddo
+                 
+                 NST = 1
+                 DO NTAU = 0, LTROT-1
+                    NTAU1 = NTAU + 1
+                    CALL WRAPGRUP(GR,NTAU,PHASE,Propose_S0, Nt_sequential_start, Nt_sequential_end, N_Global_tau)
+                    
+                    If (NTAU1 == Stab_nt(NST) ) then
+                       NT1 = Stab_nt(NST-1)
+                       CALL WRAPUR(NT1, NTAU1, udvr)
+                       Z = cmplx(1.d0, 0.d0, kind(0.D0))
+                       Do nf = 1, N_FL
+                          ! Read from storage left propagation from LTROT to  NTAU1
+                          udvl(nf) = udvst(NST, nf)
+                          ! Write in storage right prop from 1 to NTAU1
+                          udvst(NST, nf) = udvr(nf)
+                          NVAR = 1
+                          IF (NTAU1 .GT. LTROT/2) NVAR = 2
+                          TEST(:,:) = GR(:,:,nf)
+                          CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
+                          Z = Z*Z1
+                          Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
+                       ENDDO
+                       call Op_phase(Z,OP_V,Nsigma,N_SUN)
+                       Call Control_PrecisionP(Z,Phase)
+                       Phase = Z
+                       NST = NST + 1
+                    ENDIF
+                    
+                    IF (NTAU1.GE. LOBS_ST .AND. NTAU1.LE. LOBS_EN ) THEN
+                       !Call  Global_tau_mod_Test(Gr,ntau1)
+                       !Stop
+                       !write(*,*) "GR before obser sum: ",sum(GR(:,:,1))
+                       !write(*,*) "Phase before obser : ",phase
+                       Mc_step_weight = 1.d0
+                       If (Symm) then
+                          Call Hop_mod_Symm(GR_Tilde,GR)
+                          CALL ham%Obser( GR_Tilde, PHASE, Ntau1, Mc_step_weight )
+                       else
+                          CALL ham%Obser( GR, PHASE, Ntau1, Mc_step_weight  )
+                       endif
+                    ENDIF
+                 ENDDO
+                 
+                 Do nf = 1,N_FL
+                    if (Projector) then
+                       CALL udvl(nf)%reset('l',WF_L(nf)%P)
+                    else
+                       CALL udvl(nf)%reset('l')
                     endif
-                    NST = NST -1
-                 ENDIF
-!                  IF( LTAU == 1 .and. Projector .and. Ntau1==THTROT+1) &
-!                  &Call tau_p(udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, NST )
-              ENDDO
-
-              !Calculate and compare green functions on time slice 0.
-              NT1 = Stab_nt(0)
-              NT  = Stab_nt(1)
-              CALL WRAPUL(NT, NT1, udvl)
-
-              do nf = 1,N_FL
-                if (Projector) then
-                    CALL udvr(nf)%reset('r',WF_R(nf)%P)
-                else
-                    CALL udvr(nf)%reset('r')
-                endif
-              ENDDO
-              Z = cmplx(1.d0, 0.d0, kind(0.D0))
-              do nf = 1,N_FL
-                 TEST(:,:) = GR(:,:,nf)
-                 NVAR = 1
-                 CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
-                 Z = Z*Z1
-                 Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
-              ENDDO
-              call Op_phase(Z,OP_V,Nsigma,N_SUN)
-              Call Control_PrecisionP(Z,Phase)
-              Phase = Z
-              NST =  NSTM
-              Do nf = 1,N_FL
-                if (Projector) then
-                    CALL udvst(NST, nf)%reset('l',WF_L(nf)%P)
-                else
-                    CALL udvst(NST, nf)%reset('l')
-                endif
-              enddo
-              IF ( LTAU == 1 .and. .not. Projector ) then
-                 ! Call for imaginary time displaced  correlation fuctions.
-                 Call TAU_M( udvst, GR, PHASE, NSTM, NWRAP, STAB_NT )
+                 ENDDO
+                 
+                 NST = NSTM-1
+                 DO NTAU = LTROT,1,-1
+                    NTAU1 = NTAU - 1
+                    CALL WRAPGRDO(GR,NTAU, PHASE,Propose_S0,Nt_sequential_start, Nt_sequential_end, N_Global_tau)
+                    IF (NTAU1.GE. LOBS_ST .AND. NTAU1.LE. LOBS_EN ) THEN
+                       !write(*,*) "GR before obser sum: ",sum(GR(:,:,1))
+                       !write(*,*) "Phase before obser : ",phase
+                       Mc_step_weight = 1.d0
+                       If (Symm) then
+                          Call Hop_mod_Symm(GR_Tilde,GR)
+                          CALL ham%Obser( GR_Tilde, PHASE, Ntau1, Mc_step_weight )
+                       else
+                          CALL ham%Obser( GR, PHASE, Ntau1,Mc_step_weight )
+                       endif
+                    ENDIF
+                    IF ( Stab_nt(NST) == NTAU1 .AND. NTAU1.NE.0 ) THEN
+                       NT1 = Stab_nt(NST+1)
+                       !Write(6,*) 'Wrapul : ', NT1, NTAU1
+                       CALL WRAPUL(NT1, NTAU1, udvl)
+                       !Write(6,*)  'Write UL, read UR ', NTAU1, NST
+                       Z = cmplx(1.d0, 0.d0, kind(0.D0))
+                       do nf = 1,N_FL
+                          ! Read from store the right prop. from 1 to LTROT/NWRAP-1
+                          udvr(nf) = udvst(NST, nf)
+                          ! WRITE in store the left prop. from LTROT/NWRAP-1 to 1
+                          udvst(NST, nf) = udvl(nf)
+                          NVAR = 1
+                          IF (NTAU1 .GT. LTROT/2) NVAR = 2
+                          TEST(:,:) = GR(:,:,nf)
+                          CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
+                          Z = Z*Z1
+                          Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
+                       ENDDO
+                       call Op_phase(Z,OP_V,Nsigma,N_SUN)
+                       Call Control_PrecisionP(Z,Phase)
+                       Phase = Z
+                       IF( LTAU == 1 .and. Projector .and. Stab_nt(NST)<=THTROT+1 .and. THTROT+1<Stab_nt(NST+1) ) then
+                          Call tau_p ( udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, NST,  LOBS_ST, LOBS_EN )
+                       endif
+                       NST = NST -1
+                    ENDIF
+                 ENDDO
+                 
+                 !Calculate and compare green functions on time slice 0.
+                 NT1 = Stab_nt(0)
+                 NT  = Stab_nt(1)
+                 CALL WRAPUL(NT, NT1, udvl)
+                 
+                 do nf = 1,N_FL
+                    if (Projector) then
+                       CALL udvr(nf)%reset('r',WF_R(nf)%P)
+                    else
+                       CALL udvr(nf)%reset('r')
+                    endif
+                 ENDDO
+                 Z = cmplx(1.d0, 0.d0, kind(0.D0))
+                 do nf = 1,N_FL
+                    TEST(:,:) = GR(:,:,nf)
+                    NVAR = 1
+                    CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
+                    Z = Z*Z1
+                    Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
+                 ENDDO
+                 call Op_phase(Z,OP_V,Nsigma,N_SUN)
+                 Call Control_PrecisionP(Z,Phase)
+                 Phase = Z
+                 NST =  NSTM
+                 Do nf = 1,N_FL
+                    if (Projector) then
+                       CALL udvst(NST, nf)%reset('l',WF_L(nf)%P)
+                    else
+                       CALL udvst(NST, nf)%reset('l')
+                    endif
+                 enddo
+                 
+                 IF ( LTAU == 1 .and. .not. Projector ) then
+                    Call TAU_M( udvst, GR, PHASE, NSTM, NWRAP, STAB_NT, LOBS_ST, LOBS_EN )
+                 endif
               endif
 
            ENDDO
-           Call Pr_obs(Ltau)
+           Call ham%Pr_obs(Ltau)
 #if defined(TEMPERING)
            Call Global_Tempering_Pr
 #endif
@@ -703,7 +757,7 @@ Program Main
            Call Wrapgr_dealloc
         endif
 
-        Call Control_Print(Group_Comm)
+        Call Control_Print(Group_Comm, Langevin_HMC%get_Update_scheme())
 
 #if defined(MPI)
         If (Irank_g == 0 ) then
@@ -721,6 +775,8 @@ Program Main
 #if defined(MPI)
         endif
 #endif
+        
+        Call Langevin_HMC%clean()
 
 #ifdef MPI
         CALL MPI_FINALIZE(ierr)

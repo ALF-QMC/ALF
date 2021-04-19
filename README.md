@@ -9,7 +9,7 @@ The Hamiltonians we can consider reads:
 where
 ![The Hamiltonian1](Images/Hamiltonian1.png "Parts explanation")
 
-Here Z denotes an Ising spin variable with predefined dynamics. If your model can be written in this form then it will be amenable to the ALF. 
+Here Z denotes a scalar field (Ising or real continuous field) with predefined dynamics. If your model can be written in this form then it will be amenable to the ALF. 
 
 <!--## Doxygen ##
 
@@ -37,11 +37,12 @@ Once you have run the configuration script, change directory to Libraries, and t
 
 **Analysis** Analysis programs. 
 
-**Start**   This directory contain the files required to start a run. In particular it contains the parameter file   that specifies the model the lattice and various   parameters for the Monte Carlo run and  error analysis. 
+**Scripts\_and\_Parameters\_files**  Helper scripts and the Start/ directory, which contains the files required to start a run. 
 
-**Examples** This directory provides a set of short example runs.  
-
+ 
 **Documentation**  We have included in the file  [doc.pdf](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/jobs/artifacts/master/raw/Documentation/doc.pdf?job=create_doc) an extensive documentation.
+
+**testsuite** An automatic test suite for various parts of the code
 
 ## pyALF ##
 

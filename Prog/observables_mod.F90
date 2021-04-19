@@ -46,10 +46,12 @@
        Type Obser_Vec
 !>  Data structure for
 !>  < O_n >  n : =1, size(Obs,1)
-          Integer            :: N                    ! Number of measurements
+          Integer                     :: N                    ! Number of measurements
           real      (Kind=Kind(0.d0)) :: Ave_Sign             ! Averarge sign
           complex   (Kind=Kind(0.d0)), pointer :: Obs_vec(:)  ! Vector of observables
-          Character (len=64) :: File_Vec             ! Name of file in which the bins will be written out
+          Character (len=64) :: File_Vec                      ! Name of file in which the bins will be written out
+          Character (len=64) :: analysis_mode                 ! How to analyze the observable
+          Character (len=64), allocatable :: description(:)   ! Optional short description
        end type Obser_Vec
 
 
@@ -169,13 +171,53 @@
 
 !--------------------------------------------------------------------
 
-         Subroutine Obser_Vec_make(Obs,N,Filename)
+         Subroutine Obser_Vec_make(Obs, N, Filename, analysis_mode, description)
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Create scalar type observable
+!>
+!> @param [INOUT] Obs, Type(Obser_vec)
+!> \verbatim
+!>  Observable to define
+!> \endverbatim
+!> @param [IN] N, Integer
+!> \verbatim
+!>  Number of scalars in this observable.
+!> \endverbatim
+!> @param [IN] Filename, Character(len=64)
+!> \verbatim
+!>  Name of file in which the bins will be written out.
+!> \endverbatim
+!> @param [IN] analysis_mode, Character(len=64), optional
+!> \verbatim
+!>  How to analyze the observable.
+!> \endverbatim
+!> @param [IN] description(:), Character(len=64), optional
+!> \verbatim
+!>  Optional array to describe observable.
+!> \endverbatim
+!-------------------------------------------------------------------
            Implicit none
            Type (Obser_vec), intent(INOUT) :: Obs
            Integer, Intent(IN)             :: N
            Character (len=64), Intent(IN)  :: Filename
+           Character (len=64), Intent(IN), optional :: analysis_mode
+           Character (len=64), Intent(IN), optional :: description(:)
+           
            Allocate (Obs%Obs_vec(N))
            Obs%File_Vec = Filename
+           if(present(analysis_mode)) then
+             Obs%analysis_mode = analysis_mode
+           else
+             Obs%analysis_mode = 'identity'
+           endif
+           if(present(description)) then
+             allocate(Obs%description(size(description, 1)))
+             Obs%description = description
+           endif
          end subroutine Obser_Vec_make
 !--------------------------------------------------------------------
 
@@ -298,20 +340,20 @@
               enddo
               Open(Unit=10, File=File_pr, status="unknown",  position="append")
               If ( Ntau == 1 ) then
-                 Write(10,*) Obs%Ave_sign, Obs%Latt_unit%Norb, Obs%Latt%N
+                 Write(10, '(E25.17E3, 2(I11))') Obs%Ave_sign, Obs%Latt_unit%Norb, Obs%Latt%N
               else
-                 Write(10,*) Obs%Ave_sign, Obs%Latt_unit%Norb, Obs%Latt%N, Ntau, Obs%dtau
+                 Write(10, '(E25.17E3, 3(I11), E26.17E3)') Obs%Ave_sign, Obs%Latt_unit%Norb, Obs%Latt%N, Ntau, Obs%dtau
               endif
               Do no = 1, Obs%Latt_unit%Norb
-                 Write(10,*)  Obs%Obs_Latt0(no)
+                 Write(10, '("(", E25.17E3, ",", E25.17E3, ")")')  Obs%Obs_Latt0(no)
               enddo
               do I = 1, Obs%Latt%N
                  x_p = dble(Obs%Latt%listk(i,1))*Obs%Latt%b1_p + dble(Obs%Latt%listk(i,2))*Obs%Latt%b2_p
-                 Write(10,*) X_p(1), X_p(2)
+                 Write(10, '(E25.17E3, 1x, E25.17E3)') X_p(1), X_p(2)
                  Do nt = 1, Ntau
                     do no = 1, Obs%Latt_unit%Norb
                        do no1 = 1, Obs%Latt_unit%Norb
-                          Write(10,*) tmp(I,nt,no,no1)
+                          Write(10, '("(", E25.17E3, ",", E25.17E3, ")")') tmp(I,nt,no,no1)
                        enddo
                     enddo
                  enddo
@@ -338,7 +380,8 @@
 
            ! Local
            Integer :: I
-           Character (len=64)             :: File_pr, File_suff
+           Character (len=64) :: File_pr, File_suff, File_aux
+           logical            :: File_exists
 #ifdef MPI
            Integer        :: Ierr, Isize, Irank, No
            INTEGER        :: irank_g, isize_g, igroup
@@ -374,8 +417,27 @@
 #if defined(TEMPERING)
               write(File_pr,'(A,I0,A,A,A)') "Temp_",igroup,"/",trim(Obs%File_Vec),trim(File_suff)
 #endif
+              write(File_aux, '(A,A)') trim(File_pr), "_info"
+              inquire(file=File_aux, exist=File_exists)
+              if (.not.File_exists) then
+                 open(10, file=File_aux, status='new')
+                 write(10, '(A)') '====== Analysis Mode ======'
+                 write(10, '(A)') trim(Obs%analysis_mode)
+                 if(allocated(Obs%description)) then
+                   write(10, '(A)') '====== Description ======'
+                   do i=1, size(Obs%description, 1)
+                     write(10, '(A)') trim(Obs%description(i))
+                   enddo
+                 endif
+                 close(10)
+              endif
               Open (Unit=10,File=File_pr, status="unknown",  position="append")
-              WRITE(10,*) size(Obs%Obs_vec,1)+1, (Obs%Obs_vec(I), I=1,size(Obs%Obs_vec,1)), Obs%Ave_sign
+              !WRITE(10,*) size(Obs%Obs_vec,1)+1, (Obs%Obs_vec(I), I=1,size(Obs%Obs_vec,1)), Obs%Ave_sign
+              write(10, '(I10)', advance='no') size(Obs%Obs_vec,1)+1
+              do I=1,size(Obs%Obs_vec,1)
+                 write(10, '(" (",E25.17E3,",",E25.17E3,")")', advance='no') Obs%Obs_vec(I)
+              enddo
+              write(10, '(E26.17E3)') Obs%Ave_sign
               close(10)
 #if defined(MPI)
            endif

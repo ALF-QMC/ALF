@@ -1,6 +1,9 @@
 !=======================================================================================
 !  Input variables for a general ALF run
 !---------------------------------------------------------------------------------------
+&VAR_ham_name
+ham_name = "Hubbard"
+/
 
 &VAR_lattice               !! Parameters defining the specific lattice and base model
 L1           = 6            ! Length in direction a_1
@@ -25,25 +28,30 @@ Theta        = 10.d0        ! Projection parameter
 /
 
 &VAR_QMC                   !! Variables for the QMC run
-Nwrap               = 10    ! Stabilization. Green functions will be computed from 
+Nwrap                = 10   ! Stabilization. Green functions will be computed from 
                             ! scratch after each time interval Nwrap*Dtau
-NSweep              = 20    ! Number of sweeps
-NBin                = 5     ! Number of bins
-Ltau                = 1     ! 1 to calculate time-displaced Green functions; 0 otherwise
-LOBS_ST             = 0     ! Start measurements at time slice LOBS_ST
-LOBS_EN             = 0     ! End measurements at time slice LOBS_EN
-CPU_MAX             = 0.0   ! Code stops after CPU_MAX hours, if 0 or not
+NSweep               = 20   ! Number of sweeps
+NBin                 = 5    ! Number of bins
+Ltau                 = 1    ! 1 to calculate time-displaced Green functions; 0 otherwise
+LOBS_ST              = 0    ! Start measurements at time slice LOBS_ST
+LOBS_EN              = 0    ! End measurements at time slice LOBS_EN
+CPU_MAX              = 0.0  ! Code stops after CPU_MAX hours, if 0 or not
                             ! specified, the code stops after Nbin bins
-Propose_S0          = .F.   ! Proposes single spin flip moves with probability exp(-S0) 
-Global_moves        = .F.   ! Allows for global moves in space and time 
-N_Global            = 1     ! Number of global moves per sweep 
-Global_tau_moves    = .F.   ! Allows for global moves on a single time slice.  
-N_Global_tau        = 1     ! Number of global moves that will be carried out on a 
+Propose_S0           = .F.  ! Proposes single spin flip moves with probability exp(-S0) 
+Global_moves         = .F.  ! Allows for global moves in space and time 
+N_Global             = 1    ! Number of global moves per sweep 
+Global_tau_moves     = .F.  ! Allows for global moves on a single time slice.  
+N_Global_tau         = 1    ! Number of global moves that will be carried out on a 
                             ! single time slice
-Nt_sequential_start = 0     ! One can combine sequential and global moves on a time slice
-Nt_sequential_end   = -1    ! The program then carries out sequential local moves in the
+Nt_sequential_start  = 0    ! One can combine sequential and global moves on a time slice
+Nt_sequential_end    = -1   ! The program then carries out sequential local moves in the
                             ! range [Nt_sequential_start, Nt_sequential_end] followed by
                             ! N_Global_tau global moves
+Langevin            = .F.   ! Langevin update
+Delta_t_Langevin_HMC=0.1    ! Default time step for Langevin and HMC updates
+Max_Force           = 5.0   ! Max Force for  Langevin
+HMC                 = .F.   ! HMC update
+Leapfrog_steps      = 0     ! Number of leapfrog interations
 /
 
 &VAR_errors                !! Variables for analysis programs
@@ -82,15 +90,16 @@ Tolerance  = 0.1d0          ! Data points for which the relative error exceeds t
 /
 
 &VAR_Hubbard               !! Variables for the specific model
-Mz        = .T.             ! When true, sets the M_z-Hubbard model: Nf=2, N_sun=1, HS field
-                            ! couples to the z-component of magnetization; otherwise, HS field
-                            ! couples to the density
-ham_T     = 1.d0            ! Hopping parameter
-ham_chem  = 0.d0            ! Chemical potential
-ham_U     = 4.d0            ! Hubbard interaction
-ham_T2    = 1.d0            ! For bilayer systems
-ham_U2    = 4.d0            ! For bilayer systems
-ham_Tperp = 1.d0            ! For bilayer systems
+Mz         = .T.            ! When true, sets the M_z-Hubbard model: Nf=2, demands that
+                            ! N_sun is even, HS field couples to the z-component of
+                            ! magnetization; otherwise, HS field couples to the density
+Continuous = .F.            ! Uses (T: continuous; F: discrete) HS transformation
+ham_T      = 1.d0           ! Hopping parameter
+ham_chem   = 0.d0           ! Chemical potential
+ham_U      = 4.d0           ! Hubbard interaction
+ham_T2     = 1.d0           ! For bilayer systems
+ham_U2     = 4.d0           ! For bilayer systems
+ham_Tperp  = 1.d0           ! For bilayer systems
 /
 
 &VAR_Hubbard_Plain_Vanilla !! Variables for the specific model

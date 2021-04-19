@@ -10,7 +10,7 @@ Program TESTOPMAKE
         subroutine Op_exp_FFA(g,Op,Mat)
             Use Operator_mod
             Type (Operator), Intent(IN)  :: Op
-            Complex (Kind=8), Dimension(:,:), INTENT(OUT) :: Mat
+            Complex (Kind=8), allocatable, INTENT(INOUT) :: Mat(:,:)
             Complex (Kind=8), INTENT(IN) :: g
          End Subroutine
       End Interface
@@ -22,9 +22,11 @@ Program TESTOPMAKE
 !
       Do opn = 1, 16 ! overflow occurs for our particular O
             Allocate (matold(opn, opn), matnew(opn, opn))
-           ! setup some test data
+            ! setup some test data
             Call Op_make (Op, opn)
+            Op%type = 2 ! Op_make resets the type to 0
 !
+
             Do i = 1, Op%n
                Op%P (i) = i
                Do n = 1, Op%n
@@ -74,7 +76,7 @@ End Program TESTOPMAKE
     Use Operator_mod
     Implicit none 
     Type (Operator), Intent(IN)  :: Op
-    Complex (Kind=8), Dimension(:,:), INTENT(OUT) :: Mat
+    Complex (Kind=8), allocatable, INTENT(INOUT) :: Mat(:,:)
     Complex (Kind=8), INTENT(IN) :: g
     Complex (Kind=8) :: Z, Z1
 

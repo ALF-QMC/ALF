@@ -1,8 +1,11 @@
 *.o
 *.mod
+*.smod
 *.out
 *.a
 Prog/git.h
+Prog/Hamiltonians_case.h
+Prog/Hamiltonians_interface.h
 Test_*
 ALF_Doxygen_*
 Doxygen_Docu/*

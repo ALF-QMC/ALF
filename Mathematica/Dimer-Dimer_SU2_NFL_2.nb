@@ -1,0 +1,576 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 10.0' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       158,          7]
+NotebookDataLength[     21511,        568]
+NotebookOptionsPosition[     20487,        542]
+NotebookOutlinePosition[     21229,        565]
+CellTagsIndexPosition[     21186,        562]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell[BoxData[
+ RowBox[{"\[IndentingNewLine]", "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"F", "[", 
+     RowBox[{"a_", ",", "b_", ",", "g_", ",", "d_"}], "]"}], "=", 
+    RowBox[{"{", " ", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{
+         RowBox[{
+          RowBox[{"G1", "[", 
+           RowBox[{"1", ",", "1", ",", "a"}], "]"}], "*", 
+          RowBox[{"KroneckerDelta", "[", 
+           RowBox[{"a", ",", "b"}], "]"}]}], "-", 
+         RowBox[{
+          RowBox[{"1", "/", "2"}], "*", 
+          RowBox[{"KroneckerDelta", "[", 
+           RowBox[{"a", ",", "b"}], "]"}]}]}], ",", " ", 
+        RowBox[{"G1", "[", 
+         RowBox[{"1", ",", "2", ",", "a"}], "]"}], ",", 
+        RowBox[{
+         RowBox[{"G1", "[", 
+          RowBox[{"1", ",", "3", ",", "a"}], "]"}], "*", 
+         RowBox[{"KroneckerDelta", "[", 
+          RowBox[{"a", ",", "d"}], "]"}]}], ",", 
+        RowBox[{
+         RowBox[{"G1", "[", 
+          RowBox[{"1", ",", "4", ",", "a"}], "]"}], "*", 
+         RowBox[{"KroneckerDelta", "[", 
+          RowBox[{"a", ",", "g"}], "]"}]}]}], "}"}], " ", ",", " ", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"G1", "[", 
+         RowBox[{"2", ",", "1", ",", "b"}], "]"}], ",", " ", 
+        RowBox[{
+         RowBox[{
+          RowBox[{"G1", "[", 
+           RowBox[{"2", ",", "2", ",", "b"}], "]"}], "*", 
+          RowBox[{"KroneckerDelta", "[", 
+           RowBox[{"b", ",", "a"}], "]"}]}], "-", 
+         RowBox[{
+          RowBox[{"1", "/", "2"}], "*", 
+          RowBox[{"KroneckerDelta", "[", 
+           RowBox[{"b", ",", "a"}], "]"}]}]}], ",", 
+        RowBox[{
+         RowBox[{"G1", "[", 
+          RowBox[{"2", ",", "3", ",", "b"}], "]"}], "*", 
+         RowBox[{"KroneckerDelta", "[", 
+          RowBox[{"b", ",", "d"}], "]"}]}], ",", 
+        RowBox[{
+         RowBox[{"G1", "[", 
+          RowBox[{"2", ",", "4", ",", "b"}], "]"}], "*", 
+         RowBox[{"KroneckerDelta", "[", 
+          RowBox[{"b", ",", "g"}], "]"}]}]}], "}"}], ",", " ", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{
+         RowBox[{"G1", "[", 
+          RowBox[{"3", ",", "1", ",", "g"}], "]"}], "*", 
+         RowBox[{"KroneckerDelta", "[", 
+          RowBox[{"g", ",", "b"}], "]"}]}], ",", " ", 
+        RowBox[{
+         RowBox[{"G1", "[", 
+          RowBox[{"3", ",", "2", ",", "g"}], "]"}], "*", 
+         RowBox[{"KroneckerDelta", "[", 
+          RowBox[{"g", ",", "a"}], "]"}]}], ",", 
+        RowBox[{
+         RowBox[{
+          RowBox[{"G1", "[", 
+           RowBox[{"3", ",", "3", ",", "g"}], "]"}], "*", 
+          RowBox[{"KroneckerDelta", "[", 
+           RowBox[{"g", ",", "d"}], "]"}]}], "-", 
+         RowBox[{
+          RowBox[{"1", "/", "2"}], "*", 
+          RowBox[{"KroneckerDelta", "[", 
+           RowBox[{"g", ",", "d"}], "]"}]}]}], ",", 
+        RowBox[{"G1", "[", 
+         RowBox[{"3", ",", "4", ",", "g"}], "]"}]}], "}"}], ",", " ", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{
+         RowBox[{"G1", "[", 
+          RowBox[{"4", ",", "1", ",", "d"}], "]"}], "*", 
+         RowBox[{"KroneckerDelta", "[", 
+          RowBox[{"d", ",", "b"}], "]"}]}], " ", ",", 
+        RowBox[{
+         RowBox[{"G1", "[", 
+          RowBox[{"4", ",", "2", ",", "d"}], "]"}], "*", 
+         RowBox[{"KroneckerDelta", "[", 
+          RowBox[{"d", ",", "a"}], "]"}]}], ",", 
+        RowBox[{"G1", "[", 
+         RowBox[{"4", ",", "3", ",", "d"}], "]"}], ",", 
+        RowBox[{
+         RowBox[{
+          RowBox[{"G1", "[", 
+           RowBox[{"4", ",", "4", ",", "d"}], "]"}], "*", 
+          RowBox[{"KroneckerDelta", "[", 
+           RowBox[{"d", ",", "g"}], "]"}]}], "-", 
+         RowBox[{
+          RowBox[{"1", "/", "2"}], "*", 
+          RowBox[{"KroneckerDelta", "[", 
+           RowBox[{"d", ",", "g"}], "]"}]}]}]}], "}"}]}], "}"}]}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"F", "[", 
+     RowBox[{"a", ",", "b", ",", "g", ",", "d"}], "]"}], "//", "MatrixForm"}],
+    "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"R", "[", "n_", "]"}], " ", ":=", 
+    RowBox[{"FortranForm", "[", 
+     RowBox[{"FullSimplify", "[", 
+      RowBox[{"Sum", "[", "  ", 
+       RowBox[{
+        RowBox[{"Det", "[", 
+         RowBox[{"F", "[", 
+          RowBox[{"a", ",", "b", ",", "c", ",", "d"}], "]"}], "]"}], ",", " ", 
+        RowBox[{"{", 
+         RowBox[{"a", ",", "1", ",", "n"}], "}"}], ",", " ", 
+        RowBox[{"{", 
+         RowBox[{"b", ",", "1", ",", "n"}], "}"}], ",", " ", 
+        RowBox[{"{", 
+         RowBox[{"c", ",", "1", ",", "n"}], "}"}], ",", " ", 
+        RowBox[{"{", 
+         RowBox[{"d", ",", "1", ",", "n"}], "}"}]}], "]"}], "]"}], "]"}]}], 
+   "\[IndentingNewLine]", 
+   RowBox[{"R", "[", "2", "]"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"R", "[", "2", "]"}], ">>", "\"\<Dimer_SU2_NFL_2\>\""}], 
+   "\[IndentingNewLine]", " "}]}]], "Input",
+ CellChangeTimes->{{3.664780370651444*^9, 3.664780378025936*^9}, {
+  3.664780684162928*^9, 3.664780689156006*^9}, {3.6647807649544687`*^9, 
+  3.664780765560409*^9}, {3.6647809706048183`*^9, 3.6647809744748*^9}, {
+  3.815020325215301*^9, 3.8150205333991127`*^9}},
+ CellLabel->"In[19]:=",ExpressionUUID->"446584e5-7284-473f-bc52-a2f7a6f086ee"],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"-", 
+       FractionBox[
+        TemplateBox[{
+          RowBox[{"a", ",", "b"}]},
+         "KroneckerDeltaSeq"], "2"]}], "+", 
+      RowBox[{
+       RowBox[{"G1", "[", 
+        RowBox[{"1", ",", "1", ",", "a"}], "]"}], " ", 
+       TemplateBox[{
+         RowBox[{"a", ",", "b"}]},
+        "KroneckerDeltaSeq"]}]}], ",", 
+     RowBox[{"G1", "[", 
+      RowBox[{"1", ",", "2", ",", "a"}], "]"}], ",", 
+     RowBox[{
+      RowBox[{"G1", "[", 
+       RowBox[{"1", ",", "3", ",", "a"}], "]"}], " ", 
+      TemplateBox[{
+        RowBox[{"a", ",", "d"}]},
+       "KroneckerDeltaSeq"]}], ",", 
+     RowBox[{
+      RowBox[{"G1", "[", 
+       RowBox[{"1", ",", "4", ",", "a"}], "]"}], " ", 
+      TemplateBox[{
+        RowBox[{"a", ",", "g"}]},
+       "KroneckerDeltaSeq"]}]}], "}"}], ",", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"G1", "[", 
+      RowBox[{"2", ",", "1", ",", "b"}], "]"}], ",", 
+     RowBox[{
+      RowBox[{"-", 
+       FractionBox[
+        TemplateBox[{
+          RowBox[{"a", ",", "b"}]},
+         "KroneckerDeltaSeq"], "2"]}], "+", 
+      RowBox[{
+       RowBox[{"G1", "[", 
+        RowBox[{"2", ",", "2", ",", "b"}], "]"}], " ", 
+       TemplateBox[{
+         RowBox[{"a", ",", "b"}]},
+        "KroneckerDeltaSeq"]}]}], ",", 
+     RowBox[{
+      RowBox[{"G1", "[", 
+       RowBox[{"2", ",", "3", ",", "b"}], "]"}], " ", 
+      TemplateBox[{
+        RowBox[{"b", ",", "d"}]},
+       "KroneckerDeltaSeq"]}], ",", 
+     RowBox[{
+      RowBox[{"G1", "[", 
+       RowBox[{"2", ",", "4", ",", "b"}], "]"}], " ", 
+      TemplateBox[{
+        RowBox[{"b", ",", "g"}]},
+       "KroneckerDeltaSeq"]}]}], "}"}], ",", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"G1", "[", 
+       RowBox[{"3", ",", "1", ",", "g"}], "]"}], " ", 
+      TemplateBox[{
+        RowBox[{"b", ",", "g"}]},
+       "KroneckerDeltaSeq"]}], ",", 
+     RowBox[{
+      RowBox[{"G1", "[", 
+       RowBox[{"3", ",", "2", ",", "g"}], "]"}], " ", 
+      TemplateBox[{
+        RowBox[{"a", ",", "g"}]},
+       "KroneckerDeltaSeq"]}], ",", 
+     RowBox[{
+      RowBox[{"-", 
+       FractionBox[
+        TemplateBox[{
+          RowBox[{"d", ",", "g"}]},
+         "KroneckerDeltaSeq"], "2"]}], "+", 
+      RowBox[{
+       RowBox[{"G1", "[", 
+        RowBox[{"3", ",", "3", ",", "g"}], "]"}], " ", 
+       TemplateBox[{
+         RowBox[{"d", ",", "g"}]},
+        "KroneckerDeltaSeq"]}]}], ",", 
+     RowBox[{"G1", "[", 
+      RowBox[{"3", ",", "4", ",", "g"}], "]"}]}], "}"}], ",", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"G1", "[", 
+       RowBox[{"4", ",", "1", ",", "d"}], "]"}], " ", 
+      TemplateBox[{
+        RowBox[{"b", ",", "d"}]},
+       "KroneckerDeltaSeq"]}], ",", 
+     RowBox[{
+      RowBox[{"G1", "[", 
+       RowBox[{"4", ",", "2", ",", "d"}], "]"}], " ", 
+      TemplateBox[{
+        RowBox[{"a", ",", "d"}]},
+       "KroneckerDeltaSeq"]}], ",", 
+     RowBox[{"G1", "[", 
+      RowBox[{"4", ",", "3", ",", "d"}], "]"}], ",", 
+     RowBox[{
+      RowBox[{"-", 
+       FractionBox[
+        TemplateBox[{
+          RowBox[{"d", ",", "g"}]},
+         "KroneckerDeltaSeq"], "2"]}], "+", 
+      RowBox[{
+       RowBox[{"G1", "[", 
+        RowBox[{"4", ",", "4", ",", "d"}], "]"}], " ", 
+       TemplateBox[{
+         RowBox[{"d", ",", "g"}]},
+        "KroneckerDeltaSeq"]}]}]}], "}"}]}], "}"}]], "Output",
+ CellChangeTimes->{3.815020542053344*^9},
+ CellLabel->"Out[19]=",ExpressionUUID->"eb4b1fc0-ed2a-432a-9efb-840467315804"],
+
+Cell[BoxData[
+ TagBox[
+  RowBox[{"(", "\[NoBreak]", GridBox[{
+     {
+      RowBox[{
+       RowBox[{"-", 
+        FractionBox[
+         TemplateBox[{
+           RowBox[{"a", ",", "b"}]},
+          "KroneckerDeltaSeq"], "2"]}], "+", 
+       RowBox[{
+        RowBox[{"G1", "[", 
+         RowBox[{"1", ",", "1", ",", "a"}], "]"}], " ", 
+        TemplateBox[{
+          RowBox[{"a", ",", "b"}]},
+         "KroneckerDeltaSeq"]}]}], 
+      RowBox[{"G1", "[", 
+       RowBox[{"1", ",", "2", ",", "a"}], "]"}], 
+      RowBox[{
+       RowBox[{"G1", "[", 
+        RowBox[{"1", ",", "3", ",", "a"}], "]"}], " ", 
+       TemplateBox[{
+         RowBox[{"a", ",", "d"}]},
+        "KroneckerDeltaSeq"]}], 
+      RowBox[{
+       RowBox[{"G1", "[", 
+        RowBox[{"1", ",", "4", ",", "a"}], "]"}], " ", 
+       TemplateBox[{
+         RowBox[{"a", ",", "g"}]},
+        "KroneckerDeltaSeq"]}]},
+     {
+      RowBox[{"G1", "[", 
+       RowBox[{"2", ",", "1", ",", "b"}], "]"}], 
+      RowBox[{
+       RowBox[{"-", 
+        FractionBox[
+         TemplateBox[{
+           RowBox[{"a", ",", "b"}]},
+          "KroneckerDeltaSeq"], "2"]}], "+", 
+       RowBox[{
+        RowBox[{"G1", "[", 
+         RowBox[{"2", ",", "2", ",", "b"}], "]"}], " ", 
+        TemplateBox[{
+          RowBox[{"a", ",", "b"}]},
+         "KroneckerDeltaSeq"]}]}], 
+      RowBox[{
+       RowBox[{"G1", "[", 
+        RowBox[{"2", ",", "3", ",", "b"}], "]"}], " ", 
+       TemplateBox[{
+         RowBox[{"b", ",", "d"}]},
+        "KroneckerDeltaSeq"]}], 
+      RowBox[{
+       RowBox[{"G1", "[", 
+        RowBox[{"2", ",", "4", ",", "b"}], "]"}], " ", 
+       TemplateBox[{
+         RowBox[{"b", ",", "g"}]},
+        "KroneckerDeltaSeq"]}]},
+     {
+      RowBox[{
+       RowBox[{"G1", "[", 
+        RowBox[{"3", ",", "1", ",", "g"}], "]"}], " ", 
+       TemplateBox[{
+         RowBox[{"b", ",", "g"}]},
+        "KroneckerDeltaSeq"]}], 
+      RowBox[{
+       RowBox[{"G1", "[", 
+        RowBox[{"3", ",", "2", ",", "g"}], "]"}], " ", 
+       TemplateBox[{
+         RowBox[{"a", ",", "g"}]},
+        "KroneckerDeltaSeq"]}], 
+      RowBox[{
+       RowBox[{"-", 
+        FractionBox[
+         TemplateBox[{
+           RowBox[{"d", ",", "g"}]},
+          "KroneckerDeltaSeq"], "2"]}], "+", 
+       RowBox[{
+        RowBox[{"G1", "[", 
+         RowBox[{"3", ",", "3", ",", "g"}], "]"}], " ", 
+        TemplateBox[{
+          RowBox[{"d", ",", "g"}]},
+         "KroneckerDeltaSeq"]}]}], 
+      RowBox[{"G1", "[", 
+       RowBox[{"3", ",", "4", ",", "g"}], "]"}]},
+     {
+      RowBox[{
+       RowBox[{"G1", "[", 
+        RowBox[{"4", ",", "1", ",", "d"}], "]"}], " ", 
+       TemplateBox[{
+         RowBox[{"b", ",", "d"}]},
+        "KroneckerDeltaSeq"]}], 
+      RowBox[{
+       RowBox[{"G1", "[", 
+        RowBox[{"4", ",", "2", ",", "d"}], "]"}], " ", 
+       TemplateBox[{
+         RowBox[{"a", ",", "d"}]},
+        "KroneckerDeltaSeq"]}], 
+      RowBox[{"G1", "[", 
+       RowBox[{"4", ",", "3", ",", "d"}], "]"}], 
+      RowBox[{
+       RowBox[{"-", 
+        FractionBox[
+         TemplateBox[{
+           RowBox[{"d", ",", "g"}]},
+          "KroneckerDeltaSeq"], "2"]}], "+", 
+       RowBox[{
+        RowBox[{"G1", "[", 
+         RowBox[{"4", ",", "4", ",", "d"}], "]"}], " ", 
+        TemplateBox[{
+          RowBox[{"d", ",", "g"}]},
+         "KroneckerDeltaSeq"]}]}]}
+    },
+    GridBoxAlignment->{"Columns" -> {{Center}}, "Rows" -> {{Baseline}}},
+    GridBoxSpacings->{"Columns" -> {
+        Offset[0.27999999999999997`], {
+         Offset[0.7]}, 
+        Offset[0.27999999999999997`]}, "Rows" -> {
+        Offset[0.2], {
+         Offset[0.4]}, 
+        Offset[0.2]}}], "\[NoBreak]", ")"}],
+  Function[BoxForm`e$, 
+   MatrixForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{3.815020542059678*^9},
+ CellLabel->
+  "Out[20]//MatrixForm=",ExpressionUUID->"c4b32d7e-f5a4-46c8-ad7d-\
+2ea07d64d8a4"],
+
+Cell["\<\
+        (-(G1(1,2,2)*G1(2,1,1)) - G1(1,2,1)*G1(2,1,2) - \
+G1(1,2,2)*G1(2,3,1)*G1(3,1,1) - G1(1,2,1)*G1(2,3,2)*G1(3,1,2) - 
+     -    G1(1,3,1)*G1(2,1,2)*G1(3,2,1) - G1(1,3,2)*G1(2,1,1)*G1(3,2,2) + \
+G1(1,2,2)*G1(2,1,1)*G1(3,3,1) + G1(1,2,1)*G1(2,1,2)*G1(3,3,1) + 
+     -    G1(1,2,2)*G1(2,1,1)*G1(3,3,2) + G1(1,2,1)*G1(2,1,2)*G1(3,3,2) - \
+G1(1,2,2)*G1(2,4,1)*G1(4,1,1) + 
+     -    2*G1(1,4,2)*G1(2,3,1)*G1(3,2,2)*G1(4,1,1) + \
+2*G1(1,2,2)*G1(2,4,1)*G1(3,3,1)*G1(4,1,1) - \
+2*G1(1,2,2)*G1(2,3,1)*G1(3,4,1)*G1(4,1,1) - 
+     -    ((G1(1,4,1)*(1 - 4*G1(2,3,1)*G1(3,2,1) - 2*G1(3,3,1) + \
+G1(2,2,1)*(-2 + 4*G1(3,3,1))) + 
+     -         2*G1(1,3,1)*(2*G1(2,4,1)*G1(3,2,1) + (1 - \
+2*G1(2,2,1))*G1(3,4,1)) + 
+     -         2*G1(1,2,1)*(G1(2,4,1)*(1 - 2*G1(3,3,1)) + \
+2*G1(2,3,1)*G1(3,4,1)))*G1(4,1,1))/2. - G1(1,3,1)*G1(3,4,2)*G1(4,1,1) + 
+     -    2*G1(1,3,1)*G1(2,2,1)*G1(3,4,2)*G1(4,1,1) - \
+2*G1(1,2,1)*G1(2,3,1)*G1(3,4,2)*G1(4,1,1) - \
+2*G1(1,2,2)*G1(2,3,1)*G1(3,4,2)*G1(4,1,1) - 
+     -    G1(1,2,1)*G1(2,4,2)*G1(4,1,2) + \
+2*G1(1,4,1)*G1(2,3,2)*G1(3,2,1)*G1(4,1,2) + \
+2*G1(1,2,1)*G1(2,4,2)*G1(3,3,2)*G1(4,1,2) - 
+     -    G1(1,3,2)*G1(3,4,1)*G1(4,1,2) + \
+2*G1(1,3,2)*G1(2,2,2)*G1(3,4,1)*G1(4,1,2) - \
+2*G1(1,2,1)*G1(2,3,2)*G1(3,4,1)*G1(4,1,2) - 
+     -    2*G1(1,2,2)*G1(2,3,2)*G1(3,4,1)*G1(4,1,2) - \
+2*G1(1,2,1)*G1(2,3,2)*G1(3,4,2)*G1(4,1,2) - 
+     -    ((G1(1,4,2)*(1 - 4*G1(2,3,2)*G1(3,2,2) - 2*G1(3,3,2) + \
+G1(2,2,2)*(-2 + 4*G1(3,3,2))) + 
+     -         2*G1(1,3,2)*(2*G1(2,4,2)*G1(3,2,2) + (1 - \
+2*G1(2,2,2))*G1(3,4,2)) + 
+     -         2*G1(1,2,2)*(G1(2,4,2)*(1 - 2*G1(3,3,2)) + \
+2*G1(2,3,2)*G1(3,4,2)))*G1(4,1,2))/2. - G1(1,4,1)*G1(2,1,2)*G1(4,2,1) + 
+     -    2*G1(1,3,1)*G1(2,4,2)*G1(3,1,2)*G1(4,2,1) + \
+2*G1(1,4,1)*G1(2,1,2)*G1(3,3,1)*G1(4,2,1) - \
+2*G1(1,3,1)*G1(2,1,2)*G1(3,4,1)*G1(4,2,1) + 
+     -    ((G1(2,4,1)*(-1 + 4*G1(1,3,1)*G1(3,1,1) + G1(1,1,1)*(2 - \
+4*G1(3,3,1)) + 2*G1(3,3,1)) + 
+     -         G1(1,4,1)*(-4*G1(2,3,1)*G1(3,1,1) + G1(2,1,1)*(-2 + \
+4*G1(3,3,1))) - 
+     -         2*(2*G1(1,3,1)*G1(2,1,1) + (1 - \
+2*G1(1,1,1))*G1(2,3,1))*G1(3,4,1))*G1(4,2,1))/2. - \
+2*G1(1,3,1)*G1(2,1,1)*G1(3,4,2)*G1(4,2,1) - 
+     -    2*G1(1,3,1)*G1(2,1,2)*G1(3,4,2)*G1(4,2,1) - \
+G1(2,3,1)*G1(3,4,2)*G1(4,2,1) + 2*G1(1,1,1)*G1(2,3,1)*G1(3,4,2)*G1(4,2,1) - 
+     -    G1(1,4,2)*G1(2,1,1)*G1(4,2,2) + \
+2*G1(1,3,2)*G1(2,4,1)*G1(3,1,1)*G1(4,2,2) + \
+2*G1(1,4,2)*G1(2,1,1)*G1(3,3,2)*G1(4,2,2) - 
+     -    2*G1(1,3,2)*G1(2,1,1)*G1(3,4,1)*G1(4,2,2) - \
+2*G1(1,3,2)*G1(2,1,2)*G1(3,4,1)*G1(4,2,2) - G1(2,3,2)*G1(3,4,1)*G1(4,2,2) + 
+     -    2*G1(1,1,2)*G1(2,3,2)*G1(3,4,1)*G1(4,2,2) - \
+2*G1(1,3,2)*G1(2,1,1)*G1(3,4,2)*G1(4,2,2) + 
+     -    ((G1(2,4,2)*(-1 + 4*G1(1,3,2)*G1(3,1,2) + G1(1,1,2)*(2 - \
+4*G1(3,3,2)) + 2*G1(3,3,2)) + 
+     -         G1(1,4,2)*(-4*G1(2,3,2)*G1(3,1,2) + G1(2,1,2)*(-2 + \
+4*G1(3,3,2))) - 
+     -         2*(2*G1(1,3,2)*G1(2,1,2) + (1 - \
+2*G1(1,1,2))*G1(2,3,2))*G1(3,4,2))*G1(4,2,2))/2. - \
+2*G1(1,2,2)*G1(2,4,1)*G1(3,1,1)*G1(4,3,1) - 
+     -    G1(1,4,2)*G1(3,1,2)*G1(4,3,1) + \
+2*G1(1,4,2)*G1(2,2,2)*G1(3,1,2)*G1(4,3,1) - \
+2*G1(1,2,1)*G1(2,4,2)*G1(3,1,2)*G1(4,3,1) - 
+     -    2*G1(1,2,2)*G1(2,4,2)*G1(3,1,2)*G1(4,3,1) - \
+2*G1(1,4,1)*G1(2,1,2)*G1(3,2,1)*G1(4,3,1) - \
+2*G1(1,4,2)*G1(2,1,1)*G1(3,2,2)*G1(4,3,1) - 
+     -    2*G1(1,4,2)*G1(2,1,2)*G1(3,2,2)*G1(4,3,1) - \
+G1(2,4,2)*G1(3,2,2)*G1(4,3,1) + 2*G1(1,1,2)*G1(2,4,2)*G1(3,2,2)*G1(4,3,1) + 
+     -    2*G1(1,2,2)*G1(2,1,1)*G1(3,4,1)*G1(4,3,1) + \
+2*G1(1,2,1)*G1(2,1,2)*G1(3,4,1)*G1(4,3,1) + 
+     -    ((-1 + 4*G1(1,2,2)*G1(2,1,2) + G1(1,1,2)*(2 - 4*G1(2,2,2)) + \
+2*G1(2,2,2))*G1(3,4,1)*G1(4,3,1))/2. + 
+     -    ((G1(1,4,1)*((-2 + 4*G1(2,2,1))*G1(3,1,1) - 4*G1(2,1,1)*G1(3,2,1)) \
++ G1(1,2,1)*(-4*G1(2,4,1)*G1(3,1,1) + 4*G1(2,1,1)*G1(3,4,1)) + 
+     -         (-1 + 2*G1(1,1,1))*(2*G1(2,4,1)*G1(3,2,1) + (1 - \
+2*G1(2,2,1))*G1(3,4,1)))*G1(4,3,1))/2. - G1(3,4,2)*G1(4,3,1) + 
+     -    G1(1,1,1)*G1(3,4,2)*G1(4,3,1) + G1(1,1,2)*G1(3,4,2)*G1(4,3,1) + \
+2*G1(1,2,1)*G1(2,1,1)*G1(3,4,2)*G1(4,3,1) + 
+     -    2*G1(1,2,2)*G1(2,1,1)*G1(3,4,2)*G1(4,3,1) + \
+2*G1(1,2,1)*G1(2,1,2)*G1(3,4,2)*G1(4,3,1) + \
+2*G1(1,2,2)*G1(2,1,2)*G1(3,4,2)*G1(4,3,1) + 
+     -    G1(2,2,1)*G1(3,4,2)*G1(4,3,1) - \
+2*G1(1,1,1)*G1(2,2,1)*G1(3,4,2)*G1(4,3,1) + G1(2,2,2)*G1(3,4,2)*G1(4,3,1) - 
+     -    2*G1(1,1,2)*G1(2,2,2)*G1(3,4,2)*G1(4,3,1) - \
+G1(1,4,1)*G1(3,1,1)*G1(4,3,2) + 2*G1(1,4,1)*G1(2,2,1)*G1(3,1,1)*G1(4,3,2) - 
+     -    2*G1(1,2,1)*G1(2,4,1)*G1(3,1,1)*G1(4,3,2) - \
+2*G1(1,2,2)*G1(2,4,1)*G1(3,1,1)*G1(4,3,2) - \
+2*G1(1,2,1)*G1(2,4,2)*G1(3,1,2)*G1(4,3,2) - 
+     -    2*G1(1,4,1)*G1(2,1,1)*G1(3,2,1)*G1(4,3,2) - \
+2*G1(1,4,1)*G1(2,1,2)*G1(3,2,1)*G1(4,3,2) - G1(2,4,1)*G1(3,2,1)*G1(4,3,2) + 
+     -    2*G1(1,1,1)*G1(2,4,1)*G1(3,2,1)*G1(4,3,2) - \
+2*G1(1,4,2)*G1(2,1,1)*G1(3,2,2)*G1(4,3,2) - G1(3,4,1)*G1(4,3,2) + 
+     -    G1(1,1,1)*G1(3,4,1)*G1(4,3,2) + G1(1,1,2)*G1(3,4,1)*G1(4,3,2) + \
+2*G1(1,2,1)*G1(2,1,1)*G1(3,4,1)*G1(4,3,2) + 
+     -    2*G1(1,2,2)*G1(2,1,1)*G1(3,4,1)*G1(4,3,2) + \
+2*G1(1,2,1)*G1(2,1,2)*G1(3,4,1)*G1(4,3,2) + \
+2*G1(1,2,2)*G1(2,1,2)*G1(3,4,1)*G1(4,3,2) + 
+     -    G1(2,2,1)*G1(3,4,1)*G1(4,3,2) - \
+2*G1(1,1,1)*G1(2,2,1)*G1(3,4,1)*G1(4,3,2) + G1(2,2,2)*G1(3,4,1)*G1(4,3,2) - 
+     -    2*G1(1,1,2)*G1(2,2,2)*G1(3,4,1)*G1(4,3,2) + \
+2*G1(1,2,2)*G1(2,1,1)*G1(3,4,2)*G1(4,3,2) + \
+2*G1(1,2,1)*G1(2,1,2)*G1(3,4,2)*G1(4,3,2) + 
+     -    ((-1 + 4*G1(1,2,1)*G1(2,1,1) + G1(1,1,1)*(2 - 4*G1(2,2,1)) + \
+2*G1(2,2,1))*G1(3,4,2)*G1(4,3,2))/2. + 
+     -    ((G1(1,4,2)*((-2 + 4*G1(2,2,2))*G1(3,1,2) - 4*G1(2,1,2)*G1(3,2,2)) \
++ G1(1,2,2)*(-4*G1(2,4,2)*G1(3,1,2) + 4*G1(2,1,2)*G1(3,4,2)) + 
+     -         (-1 + 2*G1(1,1,2))*(2*G1(2,4,2)*G1(3,2,2) + (1 - \
+2*G1(2,2,2))*G1(3,4,2)))*G1(4,3,2))/2. + 
+     -    2*((G1(1,3,1)*(0.5 - G1(2,2,1)) + G1(1,2,1)*G1(2,3,1))*G1(3,1,1) + 
+     -       ((2*G1(1,3,1)*G1(2,1,1) + (1 - \
+2*G1(1,1,1))*G1(2,3,1))*G1(3,2,1))/2. + 
+     -       ((1 - 4*G1(1,2,1)*G1(2,1,1) - 2*G1(2,2,1) + G1(1,1,1)*(-2 + \
+4*G1(2,2,1)))*(-1 + 2*G1(3,3,1)))/8.)*(-0.5 + G1(4,4,1)) + 
+     -    G1(1,2,2)*G1(2,1,1)*G1(4,4,1) + G1(1,2,1)*G1(2,1,2)*G1(4,4,1) + \
+2*G1(1,2,2)*G1(2,3,1)*G1(3,1,1)*G1(4,4,1) + 
+     -    2*G1(1,3,1)*G1(2,1,2)*G1(3,2,1)*G1(4,4,1) - \
+2*G1(1,2,2)*G1(2,1,1)*G1(3,3,1)*G1(4,4,1) - \
+2*G1(1,2,1)*G1(2,1,2)*G1(3,3,1)*G1(4,4,1) + 
+     -    ((1 - 4*G1(1,2,2)*G1(2,1,2) - 2*G1(2,2,2) + G1(1,1,2)*(-2 + \
+4*G1(2,2,2)))*(-1 + 2*G1(3,3,1))*(-1 + 2*G1(4,4,1)))/8. + 
+     -    2*((G1(1,3,2)*(0.5 - G1(2,2,2)) + G1(1,2,2)*G1(2,3,2))*G1(3,1,2) + 
+     -       ((2*G1(1,3,2)*G1(2,1,2) + (1 - \
+2*G1(1,1,2))*G1(2,3,2))*G1(3,2,2))/2. + 
+     -       ((1 - 4*G1(1,2,2)*G1(2,1,2) - 2*G1(2,2,2) + G1(1,1,2)*(-2 + \
+4*G1(2,2,2)))*(-1 + 2*G1(3,3,2)))/8.)*(-0.5 + G1(4,4,2)) + 
+     -    G1(1,2,2)*G1(2,1,1)*G1(4,4,2) + G1(1,2,1)*G1(2,1,2)*G1(4,4,2) + \
+2*G1(1,2,1)*G1(2,3,2)*G1(3,1,2)*G1(4,4,2) + 
+     -    2*G1(1,3,2)*G1(2,1,1)*G1(3,2,2)*G1(4,4,2) - \
+2*G1(1,2,2)*G1(2,1,1)*G1(3,3,2)*G1(4,4,2) - \
+2*G1(1,2,1)*G1(2,1,2)*G1(3,3,2)*G1(4,4,2) + 
+     -    ((1 - 4*G1(1,2,1)*G1(2,1,1) - 2*G1(2,2,1) + G1(1,1,1)*(-2 + \
+4*G1(2,2,1)))*(-1 + 2*G1(3,3,2))*(-1 + 2*G1(4,4,2)))/8.)/2.\
+\>", "Output",
+ CellChangeTimes->{3.8150205690889463`*^9},
+ CellLabel->
+  "Out[22]//FortranForm=",ExpressionUUID->"a8dfaa70-cc36-4744-a9a7-\
+29a6444955cb"]
+}, Open  ]]
+},
+WindowSize->{1250, 738},
+WindowMargins->{{Automatic, -399}, {Automatic, 0}},
+PrintingPageRange->{Automatic, Automatic},
+PrintingOptions->{"Magnification"->1,
+"PaperOrientation"->"Portrait",
+"PaperSize"->{612, 792},
+"PostScriptOutputFile":>FrontEnd`FileName[{$RootDirectory, "home", "assaad"}, 
+  "Wick.nb.ps", CharacterEncoding -> "iso8859-1"]},
+PrivateNotebookOptions->{"VersionedStylesheet"->{"Default.nb"[8.] -> False}},
+FrontEndVersion->"12.1 for Mac OS X x86 (64-bit) (June 19, 2020)",
+StyleDefinitions->"Default.nb",
+ExpressionUUID->"7809f9e6-7c01-4f56-8522-3bd94228c522"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[580, 22, 5215, 135, 262, "Input",ExpressionUUID->"446584e5-7284-473f-bc52-a2f7a6f086ee"],
+Cell[5798, 159, 3538, 116, 90, "Output",ExpressionUUID->"eb4b1fc0-ed2a-432a-9efb-840467315804"],
+Cell[9339, 277, 3846, 125, 146, "Output",ExpressionUUID->"c4b32d7e-f5a4-46c8-ad7d-2ea07d64d8a4"],
+Cell[13188, 404, 7283, 135, 1071, "Output",ExpressionUUID->"a8dfaa70-cc36-4744-a9a7-29a6444955cb"]
+}, Open  ]]
+}
+]
+*)
+

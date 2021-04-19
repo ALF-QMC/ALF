@@ -115,7 +115,7 @@
 !>
 !--------------------------------------------------------------------
 
-    Module Hamiltonian
+    submodule (Hamiltonian_main) ham_Hubbard_Plain_Vanilla_smod
 
       Use Operator_mod
       Use WaveFunction_mod
@@ -131,39 +131,29 @@
 
 
       Implicit none
+      
+      type, extends(ham_base) :: ham_Hubbard_Plain_Vanilla
+      contains
+        ! Set Hamiltonian-specific procedures
+        procedure, nopass :: Ham_Set
+        procedure, nopass :: Alloc_obs
+        procedure, nopass :: Obser
+        procedure, nopass :: ObserT
+      end type ham_Hubbard_Plain_Vanilla
 
-
-      Type (Operator),     dimension(:,:), allocatable :: Op_V
-      Type (Operator),     dimension(:,:), allocatable :: Op_T
-      Type (WaveFunction), dimension(:),   allocatable :: WF_L
-      Type (WaveFunction), dimension(:),   allocatable :: WF_R
-      Type (Fields)        :: nsigma
-      Integer              :: Ndim
-      Integer              :: N_FL
-      Integer              :: N_SUN
-      Integer              :: Ltrot
-      Integer              :: Thtrot
-      Logical              :: Projector
-      Integer              :: Group_Comm
-      Logical              :: Symm
-
-
-      Type (Lattice),       private, target :: Latt
-      Type (Unit_cell),     private, target :: Latt_unit
-      Integer,              private :: L1, L2
-      real (Kind=Kind(0.d0)),        private :: Ham_T , ham_U,  Ham_chem
-      real (Kind=Kind(0.d0)),        private :: Dtau, Beta, Theta
-      Integer               ,        private :: N_part
-      Character (len=64),   private :: Model, Lattice_type
-
-
-!>    Privat Observables
-      Type (Obser_Vec ),  private, dimension(:), allocatable ::   Obs_scal
-      Type (Obser_Latt),  private, dimension(:), allocatable ::   Obs_eq
-      Type (Obser_Latt),  private, dimension(:), allocatable ::   Obs_tau
-
+      Type (Lattice),       target :: Latt
+      Type (Unit_cell),     target :: Latt_unit
+      Integer                :: L1, L2
+      real (Kind=Kind(0.d0)) :: Ham_T , ham_U,  Ham_chem
+      real (Kind=Kind(0.d0)) :: Dtau, Beta, Theta
+      Integer                :: N_part
+      Character (len=64)     :: Model, Lattice_type
 
     contains
+      
+      module Subroutine Ham_Alloc_Hubbard_Plain_Vanilla
+        allocate(ham_Hubbard_Plain_Vanilla::ham)
+      end Subroutine Ham_Alloc_Hubbard_Plain_Vanilla
 
 !--------------------------------------------------------------------
 !> @author
@@ -197,7 +187,7 @@
 #endif
           ! Global "Default" values.
 
-
+          
 #ifdef MPI
           CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
           CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
@@ -271,7 +261,7 @@
 #endif
              OPEN(Unit = 50,file=file_info,status="unknown",position="append")
              Write(50,*) '====================================='
-             Write(50,*) 'Model is      : ', Model
+             Write(50,*) 'Model is      : Hubbard_Plain_Vanilla'
              Write(50,*) 'Lattice is    : ', Lattice_type
              Write(50,*) 'L1            : ', L1
              Write(50,*) 'L2            : ', L2
@@ -595,7 +585,7 @@
 !>  Time slice
 !> \endverbatim
 !-------------------------------------------------------------------
-        subroutine Obser(GR,Phase,Ntau)
+        subroutine Obser(GR,Phase,Ntau, Mc_step_weight)
 
           Use Predefined_Obs
 
@@ -604,6 +594,7 @@
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
           Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE
           Integer, INTENT(IN)          :: Ntau
+          Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
 
           !Local
           Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK
@@ -614,6 +605,9 @@
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
 
+          ZS = ZS*Mc_step_weight
+                    
+          
 
           Do nf = 1,N_FL
              Do I = 1,Ndim
@@ -719,7 +713,7 @@
 !>  Phase
 !> \endverbatim
 !-------------------------------------------------------------------
-        Subroutine ObserT(NT,  GT0,G0T,G00,GTT, PHASE)
+        Subroutine ObserT(NT,  GT0,G0T,G00,GTT, PHASE, Mc_step_weight )
 
           Use Predefined_Obs
 
@@ -728,6 +722,7 @@
           Integer         , INTENT(IN) :: NT
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: GT0(Ndim,Ndim,N_FL),G0T(Ndim,Ndim,N_FL),G00(Ndim,Ndim,N_FL),GTT(Ndim,Ndim,N_FL)
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: Phase
+          Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
 
           !Locals
           Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY, ZDEN
@@ -736,6 +731,7 @@
 
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
+          ZS = ZS*Mc_step_weight
 
           If (NT == 0 ) then
              Do I = 1,Size(Obs_tau,1)
@@ -772,7 +768,4 @@
 
         end Subroutine OBSERT
 
-#include "Hamiltonian_Hubbard_include.h"
-
-
-    end Module Hamiltonian
+    end submodule ham_Hubbard_Plain_Vanilla_smod

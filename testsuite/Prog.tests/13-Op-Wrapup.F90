@@ -12,14 +12,14 @@ Program Wrapup
          Subroutine Op_WrapupFFA (Mat, Op, spin, Ndim, N_Type)
             Use Operator_mod
             Type (Operator), Intent (In) :: Op
-            Complex (Kind=8), Intent (Inout) :: Mat (Ndim, Ndim)
-            Real (Kind=8), Intent (In) :: spin
+            Complex (Kind=kind(0.D0)), allocatable, Intent (Inout) :: Mat (:, :)
+            Real (Kind=kind(0.D0)), Intent (In) :: spin
             Integer, Intent (In) :: N_Type, Ndim
          End Subroutine
       End Interface
 !
       Complex (Kind=Kind(0.D0)) :: Zre, Zim
-      Real (Kind=Kind(0.D0)) :: spin, nspin
+      Real (Kind=Kind(0.D0)) :: spin
       Complex (Kind=Kind(0.D0)), Dimension (:, :), Allocatable :: VH, &
      & matnew, matold
       Integer :: i, n, j, Ndim, N_Type, opn, nt
@@ -106,12 +106,12 @@ Subroutine Op_WrapupFFA (Mat, Op, spin, Ndim, N_Type)
 !
       Integer, Intent (In) :: Ndim
       Type (Operator), Intent (In) :: Op
-      Complex (Kind=8), Intent (Inout) :: Mat (Ndim, Ndim)
-      Real (Kind=8), Intent (In) :: spin
+      Complex (Kind=kind(0.D0)), allocatable, Intent (Inout) :: Mat (:, :)
+      Real (Kind=kind(0.D0)), Intent (In) :: spin
       Integer, Intent (In) :: N_Type
 !
     ! Local
-      Complex (Kind=8) :: VH (Ndim, Op%n), Z, Z1
+      Complex (Kind=kind(0.D0)) :: VH (Ndim, Op%n), Z, Z1
       Integer :: n, i, m
 !
 !
