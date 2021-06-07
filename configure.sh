@@ -124,8 +124,8 @@ case $STAB in
 esac
 
 case $MACHINE in
-  #Fakhers MacBook
-  FAKHERSMAC)
+  #MAC computer
+  MAC)
     # F90OPTFLAGS=$GNUOPTFLAGS
     F90OPTFLAGS="$GNUOPTFLAGS -Wconversion  -Wuninitialized  -fcheck=all -g -fbacktrace"
     F90USEFULFLAGS="$GNUUSEFULFLAGS"
@@ -146,18 +146,6 @@ case $MACHINE in
 
     ALF_FC="$GNUCOMPILER"
     LIB_BLAS_LAPACK="-llapack -lblas -fopenmp"
-  ;;
-
-  #LRZ enviroment
-  SUPERMUC)
-    module switch mpi.ibm  mpi.intel/2018
-    module switch intel intel/18.0
-    module switch mkl mkl/2018
-
-    F90OPTFLAGS="$INTELOPTFLAGS"
-    F90USEFULFLAGS="$INTELUSEFULFLAGS"
-    ALF_FC="mpiifort"
-    LIB_BLAS_LAPACK="$MKL_LIB"
   ;;
 
   #LRZ enviroment
@@ -231,19 +219,20 @@ case $MACHINE in
     printf "\n"
     printf "Activating fallback option with gfortran for SERIAL JOB.\n"
     printf "\n"
-    printf "usage 'source configureHPC.sh MACHINE MODE STAB'\n"
+    printf "usage 'source configure.sh MACHINE MODE STAB'\n"
     printf "\n"
-    printf "Please choose one of the following machines:\n"
-    printf " * SuperMUC\n"
-    printf " * SuperMUC-NG\n"
-    printf " * JUWELS\n"
-    printf " * Devel\n"
-    printf " * Intel\n"
-    printf " * GNU\n"
-    printf " * FakhersMAC\n"
-    printf "Possible modes are MPI (default), noMPI and Tempering\n"
-    printf "Possible stab are no-argument (default), STAB1 (old), STAB2 (old), STAB3 (newest)\n"
+    printf "Please choose one of the following MACHINEs:\n"
+    printf " * Intel  (Intel compiler for a generic machine)\n"
+    printf " * GNU  (GNU compiler for a generic machine - default)\n"
+    printf " * PGI  (PGI compiler for a generic machine)\n"
+    printf " * MAC  (GNU compiler for a generic MAC computer)\n"
+    printf " * SuperMUC-NG  (at the Leibniz Supercomputing Centre)\n"
+    printf " * JUWELS  (at the Juelich Supercomputing Centre)\n"
+    printf " * Devel  (GNU compiler, and flags appropriate for debugging)\n"
+    printf "Possible MODEs are: MPI (default), noMPI and Tempering\n"
+    printf "Possible STABs are :no-argument (default), STAB1 (old), STAB2 (old), STAB3 (newest)\n"
     printf "and LOG (increases accessible scales, e.g. in beta or interaction strength by solving NaN issues)\n"
+    printf "For more details check the documentation.\n"
 
     PROGRAMMCONFIGURATION=""
     F90OPTFLAGS="-cpp -O3 -ffree-line-length-none -ffast-math"
