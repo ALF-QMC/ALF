@@ -204,7 +204,7 @@ case $MACHINE in
     printf "${RED}   !!         IGNORING PARALLEL SETTINGS         !!${NC}\n"
     printf "${RED}   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!${NC}\n"
     printf "\n"
-    printf "Activating fallback option with gfortran for SERIAL JOB.\n"
+    printf "Activating fallback option with gfortran for SERIAL JOB - Deactivating MPI.\n"
     printf "\n"
     printf "usage 'source configure.sh MACHINE MODE STAB'\n"
     printf "\n"
@@ -253,4 +253,4 @@ export ALF_FLAGS_MODULES
 export ALF_FLAGS_ANA
 export ALF_FLAGS_PROG
 
-printf "\nTo compile your program use:    'make TARGET'\n\n"
+printf "\nTo compile your program use:    'make'\n\n"
