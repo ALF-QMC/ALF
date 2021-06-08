@@ -124,15 +124,35 @@ case $STAB in
 esac
 
 case $MACHINE in
-  #Development
-  DEVEL|DEVELOPMENT)
-    # F90OPTFLAGS="$GNUOPTFLAGS -Wconversion -Werror -fcheck=all -ffpe-trap=invalid,zero,overflow,underflow,denormal"
-    F90OPTFLAGS="$GNUOPTFLAGS -Wconversion -Werror=conversion -fcheck=all -g -fbacktrace "
-    # F90OPTFLAGS=$GNUOPTFLAGS" -Wconversion -Wcompare-reals -fcheck=all -g -fbacktrace "
+  #GNU (as Hybrid code)
+  GNU)
+    F90OPTFLAGS="$GNUOPTFLAGS"
     F90USEFULFLAGS="$GNUUSEFULFLAGS"
-
     ALF_FC="$GNUCOMPILER"
     LIB_BLAS_LAPACK="-llapack -lblas -fopenmp"
+  ;;
+
+  #Intel (as Hybrid code)
+  INTEL)
+    F90OPTFLAGS="$INTELOPTFLAGS"
+    F90USEFULFLAGS="$INTELUSEFULFLAGS"
+    ALF_FC="$INTELCOMPILER"
+    LIB_BLAS_LAPACK="-mkl"
+  ;;
+
+  #PGI
+  PGI)
+    if [ "$MPICOMP" -eq "0" ]; then
+      ALF_FC="pgfortran"
+    else
+      ALF_FC="mpifort"
+      printf "\n${RED}   !! Compiler set to 'mpifort' !!\n"
+      printf "If this is not your PGI MPI compiler you have to set it manually through:\n"
+      printf "    'export ALF_FC=<mpicompiler>'${NC}\n"
+    fi
+    LIB_BLAS_LAPACK="-llapack -lblas"
+    F90OPTFLAGS="-Mpreprocess -O1 -mp"
+    F90USEFULFLAGS="-Minform=inform"
   ;;
 
   #LRZ enviroment
@@ -165,35 +185,15 @@ case $MACHINE in
     LIB_BLAS_LAPACK="-mkl"
   ;;
 
-  #Intel (as Hybrid code)
-  INTEL)
-    F90OPTFLAGS="$INTELOPTFLAGS"
-    F90USEFULFLAGS="$INTELUSEFULFLAGS"
-    ALF_FC="$INTELCOMPILER"
-    LIB_BLAS_LAPACK="-mkl"
-  ;;
-
-  #GNU (as Hybrid code)
-  GNU)
-    F90OPTFLAGS="$GNUOPTFLAGS"
+  #Development
+  DEVEL|DEVELOPMENT)
+    # F90OPTFLAGS="$GNUOPTFLAGS -Wconversion -Werror -fcheck=all -ffpe-trap=invalid,zero,overflow,underflow,denormal"
+    F90OPTFLAGS="$GNUOPTFLAGS -Wconversion -Werror=conversion -fcheck=all -g -fbacktrace "
+    # F90OPTFLAGS=$GNUOPTFLAGS" -Wconversion -Wcompare-reals -fcheck=all -g -fbacktrace "
     F90USEFULFLAGS="$GNUUSEFULFLAGS"
+
     ALF_FC="$GNUCOMPILER"
     LIB_BLAS_LAPACK="-llapack -lblas -fopenmp"
-  ;;
-
-  #PGI
-  PGI)
-    if [ "$MPICOMP" -eq "0" ]; then
-      ALF_FC="pgfortran"
-    else
-      ALF_FC="mpifort"
-      printf "\n${RED}   !! Compiler set to 'mpifort' !!\n"
-      printf "If this is not your PGI MPI compiler you have to set it manually through:\n"
-      printf "    'export ALF_FC=<mpicompiler>'${NC}\n"
-    fi
-    LIB_BLAS_LAPACK="-llapack -lblas"
-    F90OPTFLAGS="-Mpreprocess -O1 -mp"
-    F90USEFULFLAGS="-Minform=inform"
   ;;
 
   #Default (unknown machine)
