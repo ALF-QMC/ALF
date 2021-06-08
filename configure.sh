@@ -212,7 +212,7 @@ case $MACHINE in
     printf " * Intel  (Intel compiler for a generic machine)\n"
     printf " * GNU  (GNU compiler for a generic machine - default)\n"
     printf " * PGI  (PGI compiler for a generic machine)\n"
-    printf " * SuperMUC-NG  (at the Leibniz Supercomputing Centre)\n"
+    printf " * NG  (SuperMUC-NG, at the Leibniz Supercomputing Centre)\n"
     printf " * JUWELS  (at the Juelich Supercomputing Centre)\n"
     printf " * Devel  (GNU compiler, and flags appropriate for debugging)\n"
     printf "Possible MODEs are: MPI (default), noMPI and Tempering\n"

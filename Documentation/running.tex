@@ -33,13 +33,13 @@ Related auxiliary directories, object files and executables can be removed by ex
 		\begin{tabular}{@{} p{0.16\columnwidth} p{0.81\columnwidth} @{}}\toprule %16 81
 			Argument & Selected feature \\\midrule
 			\textbf{\texttt{MACHINE}} &  \\\midrule
-			\texttt{GNU}  &   GNU compiler for a generic machine (\emph{default}) \\
-			\texttt{Intel}  &   Intel compiler for a generic machine\footnote{A known issue with the alternative Intel Fortran compiler \texttt{ifort} is the handling of automatic, temporary arrays 
+			\texttt{GNU}  &   GNU compiler (\texttt{gfortran} or \texttt{mpifort}) for a generic machine (\emph{default}) \\
+			\texttt{Intel}  &   Intel compiler (\texttt{ifort} or \texttt{mpiifort}) for a generic machine\footnote{A known issue with the alternative Intel Fortran compiler \texttt{ifort} is the handling of automatic, temporary arrays 
 				which \texttt{ifort} allocates on the stack. For large system sizes and/or low temperatures this may lead to a runtime error. One solution is to demand allocation of arrays above a certain size on the heap instead of the stack. This is accomplished by the \texttt{ifort} compiler flag \texttt{-heap-arrays [n]} where \texttt{[n]} is the minimal size (in kilobytes, for example \texttt{n=1024}) of arrays that are allocated on the heap.} \\
-			\texttt{PGI}  &   PGI compiler for a generic machine \\
-			\texttt{SuperMUC-NG}  &  Intel compiler and loads modules for SuperMUC-NG\footnote{Supercomputer at the Leibniz Supercomputing Centre.} \\
-			\texttt{JUWELS}  &  Intel compiler and loads modules for JUWELS\footnote{Supercomputer at the J\"ulich Supercomputing Centre.} \\
-			\texttt{Development}  &  GNU compiler with flags appropriate for debugging  \vspace{7pt}\\
+			\texttt{PGI}  &   PGI compiler (\texttt{pgfortran} or \texttt{mpifort}) for a generic machine \\
+			\texttt{SuperMUC-NG}  &  Intel compiler (\texttt{mpiifort}) and loads modules for SuperMUC-NG\footnote{Supercomputer at the Leibniz Supercomputing Centre.} \\
+			\texttt{JUWELS}  &  Intel compiler (\texttt{mpiifort}) and loads modules for JUWELS\footnote{Supercomputer at the J\"ulich Supercomputing Centre.} \\
+			\texttt{Development}  &  GNU compiler (\texttt{gfortran} or \texttt{mpifort}) with debugging flags \vspace{7pt}\\
 			
 			\textbf{\texttt{MODE}} &  \\\midrule
 			\texttt{noMPI|Serial}  &  No parallelization \\
