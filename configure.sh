@@ -124,19 +124,6 @@ case $STAB in
 esac
 
 case $MACHINE in
-  #MAC computer
-  MAC)
-    # F90OPTFLAGS=$GNUOPTFLAGS
-    F90OPTFLAGS="$GNUOPTFLAGS -Wconversion  -Wuninitialized  -fcheck=all -g -fbacktrace"
-    F90USEFULFLAGS="$GNUUSEFULFLAGS"
-    if [ "$MPICOMP" -eq "0" ]; then
-    ALF_FC="gfortran"
-    else
-    ALF_FC="$mpif90"
-    fi
-    LIB_BLAS_LAPACK="-llapack -lblas -fopenmp"
-  ;;
-
   #Development
   DEVEL|DEVELOPMENT)
     # F90OPTFLAGS="$GNUOPTFLAGS -Wconversion -Werror -fcheck=all -ffpe-trap=invalid,zero,overflow,underflow,denormal"
@@ -225,7 +212,6 @@ case $MACHINE in
     printf " * Intel  (Intel compiler for a generic machine)\n"
     printf " * GNU  (GNU compiler for a generic machine - default)\n"
     printf " * PGI  (PGI compiler for a generic machine)\n"
-    printf " * MAC  (GNU compiler for a generic MAC computer)\n"
     printf " * SuperMUC-NG  (at the Leibniz Supercomputing Centre)\n"
     printf " * JUWELS  (at the Juelich Supercomputing Centre)\n"
     printf " * Devel  (GNU compiler, and flags appropriate for debugging)\n"
