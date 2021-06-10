@@ -703,7 +703,7 @@ Module Global_mod
            X = 0.d0
            Do nt = 1,Ltrot
               !Z = Z * cmplx( Gaml(nsigma(i,nt),2)/Gaml(nsigma_old(i,nt),2),0.d0,kind(0.d0) )
-              Ratio(1) = Ratio(1) * cmplx( nsigma%Gama(i,nt)/nsigma_old%Gama(i,nt),0.d0,kind(0.d0) )  !  You could put this in Ratio_2
+              Ratio(1) = Ratio(1) * cmplx( nsigma%Gama(i,nt)/nsigma_old%Gama(i,nt),0.d0,kind(0.d0) ) !You could put this in Ratio_2
               X = X + nsigma%Phi(i,nt) - nsigma_old%Phi(i,nt)
            Enddo
            Do nf = 1,N_FL
@@ -729,7 +729,8 @@ Module Global_mod
 !>
 !> @details
 !> \verbatim
-!> Finite temperature: If the storage is full then computes  det( 1 +  VL*DL*UL^{dag} )= Phase_det*e^{ \sum_{n=1}^{ndim} Det_vec(n) }
+!> Finite temperature: If the storage is full then computes 
+!>                     det( 1 +  VL*DL*UL^{dag} )= Phase_det*e^{ \sum_{n=1}^{ndim} Det_vec(n)}
 !>                     Note that  Udvl%U = UL, Udvl%D = DL and  Udvl%V = VL^{dag}
 !>                     If storage is empty one first computes  Udvl and in doing so fills up the storage.
 !> Zero temperature:   If storage is full then computes  det \Psi_L U(\theta_tot,0) \Psi_R  =  Phase_det*e^{ \sum_{n=1}^{N_part} Det_vec(n) }

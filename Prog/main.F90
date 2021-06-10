@@ -221,6 +221,11 @@ Program Main
         ! For the truncation of the program:
         logical                   :: prog_truncation
         integer (kind=kind(0.d0)) :: count_bin_start, count_bin_end
+        
+        ! For MPI shared memory
+        character(64), parameter :: name="ALF_SHM_CHUNK_SIZE_GB"
+        character(64) :: chunk_size_str
+        Real    (Kind=Kind(0.d0)) :: chunk_size_gb
 
 #ifdef MPI
         Integer        :: Isize, Irank, Irank_g, Isize_g, color, key, igroup
@@ -228,6 +233,14 @@ Program Main
         CALL MPI_INIT(ierr)
         CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
         CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+        
+        If (  Irank == 0 ) then
+#endif
+           write (*,*) "ALF Copyright (C) 2016 - 2021 The ALF project contributors"
+           write (*,*) "This Program comes with ABSOLUTELY NO WARRANTY; for details see license.GPL"
+           write (*,*) "This is free software, and you are welcome to redistribute it under certain conditions."
+#ifdef MPI
+        endif
 #endif
 
 #if defined(TEMPERING) && defined(MPI)
@@ -263,21 +276,24 @@ Program Main
         call MPI_Comm_size(Group_Comm, Isize_g, ierr)
         igroup           = irank/isize_g
         !Write(6,*) 'irank, Irank_g, Isize_g', irank, irank_g, isize_g
+        !read environment variable called ALF_SHM_CHUNK_SIZE_GB
+        !it should be a positive integer setting the chunk size of shared memory blocks in GB
+        !if it is not set, or set to a non-positive (including 0) integer, the routine defaults back to the
+        !usual Fortran allocation routines
+        CALL GET_ENVIRONMENT_VARIABLE(Name, VALUE=chunk_size_str, STATUS=ierr)
+        if (ierr==0) then
+           read(chunk_size_str,*,IOSTAT=ierr) chunk_size_gb
+        endif
+        if (ierr/=0 .or. chunk_size_gb<0) then
+              chunk_size_gb=0
+        endif
+        CALL mpi_shared_memory_init(Group_Comm, chunk_size_gb)
 #endif
         !Initialize entanglement pairs of MPI jobs
         !This routine can and should also be called if MPI is not activated
         !It will then deactivate the entanglement measurements, i.e., the user does not have to care about this
         call Init_Entanglement_replicas(Group_Comm)
 
-#ifdef MPI
-        If (  Irank == 0 ) then
-#endif
-           write (*,*) "ALF Copyright (C) 2016 - 2020 The ALF project contributors"
-           write (*,*) "This Program comes with ABSOLUTELY NO WARRANTY; for details see license.GPL"
-           write (*,*) "This is free software, and you are welcome to redistribute it under certain conditions."
-#ifdef MPI
-        endif
-#endif
 
 #ifdef MPI
         If ( Irank == 0 ) then
@@ -451,6 +467,7 @@ Program Main
            
 #if defined(MPI)
            Write(50,*) 'Number of mpi-processes : ', isize_g
+           if(use_mpi_shm) Write(50,*) 'Using mpi-shared memory in chunks of ', chunk_size_gb, 'GB.'
 #endif
 #if defined(GIT)
            Write(50,*) 'This executable represents commit '&
@@ -757,6 +774,20 @@ Program Main
         If (N_Global_tau > 0) then
            Call Wrapgr_dealloc
         endif
+        do nf = 1, N_FL
+          do n = 1, size(OP_V,1)
+            call Op_clear(Op_V(n,nf),Op_V(n,nf)%N)
+          enddo
+          do n = 1, size(OP_T,1)
+            call Op_clear(Op_T(n,nf),Op_T(n,nf)%N)
+          enddo
+        enddo
+
+#if defined(MPI)  
+        ! Gracefully deallocate all shared MPI memory (thw whole chunks)
+        ! irrespective of where they actually have been used
+        call deallocate_all_shared_memory
+#endif
 
         Call Control_Print(Group_Comm, Langevin_HMC%get_Update_scheme())
 

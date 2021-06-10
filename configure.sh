@@ -165,6 +165,9 @@ case $MACHINE in
     module switch mpi.intel  mpi.intel/2019
     module switch intel intel/19.0
     module switch mkl mkl/2019
+    printf "\n${RED}   !!   unsetting  FORT_BLOCKSIZE  !!${NC}\n"
+    unset FORT_BLOCKSIZE
+
     #module load  mpi.intel
     #module load intel
     #module load mkl

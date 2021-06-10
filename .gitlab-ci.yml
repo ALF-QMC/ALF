@@ -65,12 +65,17 @@ GQMCT_Buster:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:buster-gfortran-blas-lapack
   <<: *build_definition
 
+GQMCT_Bullseye:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-gfortran-blas-lapack
+  <<: *build_definition
+
+
 #GQMCT_Jessie_OpenBlas:
   #image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:jessie-gfortran-openblas-lapack
   #<<: *build_definition
 
-GQMCT_Stretch_OpenBlas:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:stretch-gfortran-openblas-lapack
+GQMCT_Bullseye_OpenBlas:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-gfortran-openblas-lapack
   <<: *build_definition
 
 #GQMCT_CentOS:
@@ -86,7 +91,7 @@ GQMCT_Stretch_OpenBlas:
   #<<: *build_definition
 
 GQMCT_PGI:
-  image: nvcr.io/nvidia/nvhpc:20.11-devel-cuda_multi-ubuntu20.04
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-pgi-21-03
   <<: *build_definition_pgi
 
 #GQMCT_Ubuntu_Trusty:
@@ -116,6 +121,20 @@ GQMCT_Stretch_MPI:
     - export ALF_FC="mpif90"
     - make all
 
+GQMCT_Intel-21:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-intel-oneapi-ifort
+  stage: build
+  except:
+    changes:
+      - .gitignore
+      - CITATION
+      - README.md
+      - license.*
+  script:
+    - . /opt/intel/oneapi/setvars.sh
+    - . configure.sh INTEL serial
+    - make all
+
 #GQMCT_Jessie_conv:
   #image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:jessie-gfortran-blas-lapack
   #<<: *warnconv_definition
@@ -128,12 +147,12 @@ GQMCT_Buster_conv:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:buster-gfortran-blas-lapack
   <<: *warnconv_definition
 
-#GQMCT_Jessie_OpenBlas_conv:
-  #image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:jessie-gfortran-openblas-lapack
-  #<<: *warnconv_definition
+GQMCT_Bullseye_conv:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-gfortran-blas-lapack
+  <<: *warnconv_definition
 
-GQMCT_Stretch_OpenBlas_conv:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:stretch-gfortran-openblas-lapack
+GQMCT_Bullseye_OpenBlas_conv:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-gfortran-openblas-lapack
   <<: *warnconv_definition
 
 #GQMCT_CentOS_conv:
@@ -149,7 +168,7 @@ GQMCT_Stretch_OpenBlas_conv:
   #<<: *warnconv_definition
 
 GQMCT_PGI_conv:
-  image: nvcr.io/nvidia/nvhpc:20.11-devel-cuda_multi-ubuntu20.04
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-pgi-21-03
   stage: warnconv
   except:
     changes:
@@ -174,9 +193,9 @@ GQMCT_Buster_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:buster-gfortran-blas-lapack
   <<: *test_definition
 
-#GQMCT_Jessie_OpenBlas_tests:
-  #image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:jessie-gfortran-openblas-lapack
-  #<<: *test_definition
+GQMCT_Bullseye_tests:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-gfortran-blas-lapack
+  <<: *test_definition
 
 GQMCT_Stretch_OpenBlas_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:stretch-gfortran-openblas-lapack
@@ -203,7 +222,7 @@ GQMCT_Ubuntu-bionic_tests:
   <<: *test_definition
 
 GQMCT_PGI_tests:
-  image: nvcr.io/nvidia/nvhpc:20.11-devel-cuda_multi-ubuntu20.04
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-pgi-21-03
   stage: test
   except:
     changes:
@@ -220,7 +239,7 @@ GQMCT_PGI_tests:
     - cd testsuite
     - cmake -E make_directory tests
     - cd tests
-    - export PGIDIR="/opt/nvidia/hpc_sdk/Linux_x86_64/20.11/compilers"
+    - export PGIDIR="/opt/nvidia/hpc_sdk/Linux_x86_64/21.3/compilers"
     - cmake -G "Unix Makefiles" -DCMAKE_Fortran_FLAGS_RELEASE="${ALF_FLAGS_PROG} -noswitcherror -L${PGIDIR}/lib/ -llapack -lblas" -DCMAKE_Fortran_COMPILER="${PGIDIR}/bin/pgfortran" -DCMAKE_BUILD_TYPE=RELEASE -DLAPACK_LIBRARIES="${PGIDIR}/lib/liblapack.a" -DBLAS_LIBRARIES="${PGIDIR}/lib/libblas.a" ..
     - cmake --build . --target all --config Release
     - ctest -VV -O log.txt
@@ -239,9 +258,9 @@ GQMCT_Stretch_valgrind:
       - gfortran -v
       - make lib
       - make program
-      - cp Prog/Hubbard_Plain_Vanilla.out Scripts_and_Parameters_files/Start
+      - cp Prog/ALF.out Scripts_and_Parameters_files/Start
       - cd Scripts_and_Parameters_files/Start
-      - valgrind --leak-check=full --log-file=vglog.txt ./Hubbard_Plain_Vanilla.out
+      - valgrind --leak-check=full --log-file=vglog.txt ./ALF.out
       - cat vglog.txt
       - grep lost vglog.txt | cut -d":" -f 2 | cut -d " " -f 2 | f=$(cat); echo $(( ${f//$'\n'/+} ))
 
