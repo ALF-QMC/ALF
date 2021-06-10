@@ -87,7 +87,7 @@ In its last line, the routine sets the total number of single particle states pe
 %------------------------------------------------------------
 
 The hopping matrix is implemented as follows. 
-We allocate an array of dimension $1\times 1$ of type operator  called \texttt{Op\_T} and set the  dimension for the hopping  matrix to $N=N_{\mathrm{dim}}$. The operator allocation and initialization is performed by the subroutine \texttt{Op\_make}: 
+We allocate an array of dimension $1\times 2$ of type operator  called \texttt{Op\_T} and set the  dimension for the hopping  matrix to $N=N_{\mathrm{dim}}$. The operator allocation and initialization is performed by the subroutine \texttt{Op\_make}: 
 \begin{lstlisting}[style=fortran]
 call Op_make(Op_T(1,1),Ndim);  call Op_make(Op_T(1,2),Ndim) 
 \end{lstlisting}
