@@ -203,10 +203,10 @@ Call Set_Default_hopping_parameters_honeycomb(Hopping_Matrix,T_vec, Chem_vec, Ph
          Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
 \end{lstlisting}
 defines  the  \path{Hopping_Matrix} for the  honeycomb lattice: 
-\begin{align}
-\hat{H}_T  &=  \sum_{\ve{i}, \sigma, s}  \left(  \sum_{ \ve{\delta} = \left\{ \ve{\delta}_1, \ve{\delta}_2, \ve{\delta}_3\right\} }    - t^{(s)} \hat{c}^{\dagger}_{\ve{i},s,\sigma}   e^{\frac{2 \pi i}{\Phi_0} \int_{\ve{i}}^{\ve{i}+ \ve{\delta}}  \vec{A}^{(s)}(\vec{l})  d \vec{l}}   \hat{c}^{}_{\ve{i} + \ve{\delta},s,\sigma} +  \hc \right)   \nonumber \\   
-    &=  \sum_{\ve{i}, \sigma, s}   -  \mu^{(s)} \left( \hat{c}^{\dagger}_{\ve{i},s,\sigma} \hat{c}^{}_{\ve{i},s,\sigma}   +  \hat{c}^{\dagger}_{\ve{i} + \ve{\delta}_1,s,\sigma} \hat{c}^{}_{\ve{i} + \ve{\delta}_1,s,\sigma}   \right),
-\end{align}
+\begin{multline}
+\hat{H}_T  =  \sum_{\ve{i}, \sigma, s}  \left(  \sum_{ \ve{\delta} = \left\{ \ve{\delta}_1, \ve{\delta}_2, \ve{\delta}_3\right\} }    - t^{(s)} \hat{c}^{\dagger}_{\ve{i},s,\sigma}   e^{\frac{2 \pi i}{\Phi_0} \int_{\ve{i}}^{\ve{i}+ \ve{\delta}}  \vec{A}^{(s)}(\vec{l})  d \vec{l}}   \hat{c}^{}_{\ve{i} + \ve{\delta},s,\sigma} +  \hc \right)   \\   
+    +  \sum_{\ve{i}, \sigma, s}   -  \mu^{(s)} \left( \hat{c}^{\dagger}_{\ve{i},s,\sigma} \hat{c}^{}_{\ve{i},s,\sigma}   +  \hat{c}^{\dagger}_{\ve{i} + \ve{\delta}_1,s,\sigma} \hat{c}^{}_{\ve{i} + \ve{\delta}_1,s,\sigma}   \right),
+\end{multline}
 where the \path{T_vec} and \path{Chem_vec} have  length \texttt{N\_FL} and specify the hopping and the chemical potentials, while the  vectors \path{Phi_X_vec},  \path{Phi_Y_vec} and \path{N_Phi_vec},  also of  length  \texttt{N\_FL}, define the vector potential.  Here $\ve{i}$  runs over  sublattice  A, and $\ve{i} + \ve{\delta}$  over the three nearest neighbors of site $\ve{i}$.
 
 
