@@ -391,8 +391,6 @@ The module \texttt{WaveFunction\_mod} also includes the routine \texttt{WF\_over
 %------------------------------------------------------------
 
 
-%{\color{red}   This subsection has to be  rewritten the file \path{Hamiltonian_Examples_mod.F90} is legacy. }
-
 The module \path{Hamiltonian_main} in \path{Prog/Hamiltonian_main_mod.F90} defines the interface for all model-specific variables and subroutines needed by the Monte Carlo algorithm, like the hopping,  the interaction, the observables, the trial wave function, and optionally updating schemes (see Sec.~\ref{sec:updating}).
 All Hamiltonians (which is the term we are using for an encapsulated model definition) are derived from this main Hamiltonian.
 In order to implement a new user-defined Hamiltonian, one only has to set up a single submodule of the module \path{Hamiltonian_main}. Accordingly, this documentation focuses almost entirely on this module and how to derive a new model from it.
