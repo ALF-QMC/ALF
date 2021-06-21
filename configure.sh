@@ -124,28 +124,35 @@ case $STAB in
 esac
 
 case $MACHINE in
-  #MAC computer
-  MAC)
-    # F90OPTFLAGS=$GNUOPTFLAGS
-    F90OPTFLAGS="$GNUOPTFLAGS -Wconversion  -Wuninitialized  -fcheck=all -g -fbacktrace"
+  #GNU (as Hybrid code)
+  GNU)
+    F90OPTFLAGS="$GNUOPTFLAGS"
     F90USEFULFLAGS="$GNUUSEFULFLAGS"
-    if [ "$MPICOMP" -eq "0" ]; then
-    ALF_FC="gfortran"
-    else
-    ALF_FC="$mpif90"
-    fi
+    ALF_FC="$GNUCOMPILER"
     LIB_BLAS_LAPACK="-llapack -lblas -fopenmp"
   ;;
 
-  #Development
-  DEVEL|DEVELOPMENT)
-    # F90OPTFLAGS="$GNUOPTFLAGS -Wconversion -Werror -fcheck=all -ffpe-trap=invalid,zero,overflow,underflow,denormal"
-    F90OPTFLAGS="$GNUOPTFLAGS -Wconversion -Werror=conversion -fcheck=all -g -fbacktrace "
-    # F90OPTFLAGS=$GNUOPTFLAGS" -Wconversion -Wcompare-reals -fcheck=all -g -fbacktrace "
-    F90USEFULFLAGS="$GNUUSEFULFLAGS"
+  #Intel (as Hybrid code)
+  INTEL)
+    F90OPTFLAGS="$INTELOPTFLAGS"
+    F90USEFULFLAGS="$INTELUSEFULFLAGS"
+    ALF_FC="$INTELCOMPILER"
+    LIB_BLAS_LAPACK="-mkl"
+  ;;
 
-    ALF_FC="$GNUCOMPILER"
-    LIB_BLAS_LAPACK="-llapack -lblas -fopenmp"
+  #PGI
+  PGI)
+    if [ "$MPICOMP" -eq "0" ]; then
+      ALF_FC="pgfortran"
+    else
+      ALF_FC="mpifort"
+      printf "\n${RED}   !! Compiler set to 'mpifort' !!\n"
+      printf "If this is not your PGI MPI compiler you have to set it manually through:\n"
+      printf "    'export ALF_FC=<mpicompiler>'${NC}\n"
+    fi
+    LIB_BLAS_LAPACK="-llapack -lblas"
+    F90OPTFLAGS="-Mpreprocess -O1 -mp"
+    F90USEFULFLAGS="-Minform=inform"
   ;;
 
   #LRZ enviroment
@@ -178,35 +185,15 @@ case $MACHINE in
     LIB_BLAS_LAPACK="-mkl"
   ;;
 
-  #Intel (as Hybrid code)
-  INTEL)
-    F90OPTFLAGS="$INTELOPTFLAGS"
-    F90USEFULFLAGS="$INTELUSEFULFLAGS"
-    ALF_FC="$INTELCOMPILER"
-    LIB_BLAS_LAPACK="-mkl"
-  ;;
-
-  #GNU (as Hybrid code)
-  GNU)
-    F90OPTFLAGS="$GNUOPTFLAGS"
+  #Development
+  DEVEL|DEVELOPMENT)
+    # F90OPTFLAGS="$GNUOPTFLAGS -Wconversion -Werror -fcheck=all -ffpe-trap=invalid,zero,overflow,underflow,denormal"
+    F90OPTFLAGS="$GNUOPTFLAGS -Wconversion -Werror=conversion -fcheck=all -g -fbacktrace "
+    # F90OPTFLAGS=$GNUOPTFLAGS" -Wconversion -Wcompare-reals -fcheck=all -g -fbacktrace "
     F90USEFULFLAGS="$GNUUSEFULFLAGS"
+
     ALF_FC="$GNUCOMPILER"
     LIB_BLAS_LAPACK="-llapack -lblas -fopenmp"
-  ;;
-
-  #PGI
-  PGI)
-    if [ "$MPICOMP" -eq "0" ]; then
-      ALF_FC="pgfortran"
-    else
-      ALF_FC="mpifort"
-      printf "\n${RED}   !! Compiler set to 'mpifort' !!\n"
-      printf "If this is not your PGI MPI compiler you have to set it manually through:\n"
-      printf "    'export ALF_FC=<mpicompiler>'${NC}\n"
-    fi
-    LIB_BLAS_LAPACK="-llapack -lblas"
-    F90OPTFLAGS="-Mpreprocess -O1 -mp"
-    F90USEFULFLAGS="-Minform=inform"
   ;;
 
   #Default (unknown machine)
@@ -217,7 +204,7 @@ case $MACHINE in
     printf "${RED}   !!         IGNORING PARALLEL SETTINGS         !!${NC}\n"
     printf "${RED}   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!${NC}\n"
     printf "\n"
-    printf "Activating fallback option with gfortran for SERIAL JOB.\n"
+    printf "Activating fallback option with gfortran for SERIAL JOB - Deactivating MPI.\n"
     printf "\n"
     printf "usage 'source configure.sh MACHINE MODE STAB'\n"
     printf "\n"
@@ -225,8 +212,7 @@ case $MACHINE in
     printf " * Intel  (Intel compiler for a generic machine)\n"
     printf " * GNU  (GNU compiler for a generic machine - default)\n"
     printf " * PGI  (PGI compiler for a generic machine)\n"
-    printf " * MAC  (GNU compiler for a generic MAC computer)\n"
-    printf " * SuperMUC-NG  (at the Leibniz Supercomputing Centre)\n"
+    printf " * NG  (SuperMUC-NG, at the Leibniz Supercomputing Centre)\n"
     printf " * JUWELS  (at the Juelich Supercomputing Centre)\n"
     printf " * Devel  (GNU compiler, and flags appropriate for debugging)\n"
     printf "Possible MODEs are: MPI (default), noMPI and Tempering\n"
@@ -267,4 +253,4 @@ export ALF_FLAGS_MODULES
 export ALF_FLAGS_ANA
 export ALF_FLAGS_PROG
 
-printf "\nTo compile your program use:    'make TARGET'\n\n"
+printf "\nTo compile your program use:    'make'\n\n"
