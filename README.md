@@ -1,8 +1,7 @@
-# ALF #
+# ALF 2.1 #
 [![pipeline status](https://git.physik.uni-wuerzburg.de/fassaad/General_QMCT_code/badges/master/pipeline.svg)](https://git.physik.uni-wuerzburg.de/fassaad/General_QMCT_code/commits/master)
 [![coverage report](https://git.physik.uni-wuerzburg.de/fassaad/General_QMCT_code/badges/master/coverage.svg)](https://git.physik.uni-wuerzburg.de/fassaad/General_QMCT_code/commits/master)
 ## General information ##
-This is the **development** version of ALF, the latest stable version is [ALF 2.0](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/tree/ALF-2.0).
 
 The **A**lgorithms for **L**attice **F**ermions package provides a general code for the finite temperature  and projective auxiliary field Quantum Monte Carlo algorithm.       The code  is engineered to  be able simulate any model that can be written in terms of  sums of single body operators, of squares of single body operators and single body operators coupled to an Ising field with  given dynamics. We  provide predefined types that allow  the user to specify the model, the  Bravais lattice  as well as equal time and time displaced observables.     The code supports an MPI implementation.   Examples such as the Hubbard model, the SU(N) Kondo lattice model, tV models,  models with long ranged interactions as well as Z2 lattice gauge theories coupled to fermions adn Z2 matter are discussed in the [documentation](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/jobs/artifacts/master/raw/Documentation/doc.pdf?job=create_doc). Slides on the auxiliary field QMC can be found [here.](https://git.physik.uni-wuerzburg.de/ALF/ALF_Tutorial/-/blob/master/Presentations/ALF_2020_Assaad.pdf)
 
