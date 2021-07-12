@@ -166,6 +166,8 @@ case $MACHINE in
     #module load  mpi.intel
     #module load intel
     #module load mkl
+    printf "\n${RED}   !!   unsetting  FORT_BLOCKSIZE  !!${NC}\n"
+    unset FORT_BLOCKSIZE
 
     F90OPTFLAGS="$INTELOPTFLAGS"
     F90USEFULFLAGS="$INTELUSEFULFLAGS"
