@@ -9,7 +9,39 @@
 
 In this section we describe the steps for compiling and running the code from the shell, and describe how to search for optimal parameter values as well as how to perform the error analysis of the data.
 
-A Python interface, \textbf{pyALF}, is also available and can be found, together with a number of Jupyter notebooks exploring the interface's capabilities, at \url{https://git.physik.uni-wuerzburg.de/ALF/pyALF}. This interface facilitates setting up simple runs and is ideal for setting benchmarks and getting acquainted with ALF. Some of pyALF's notebooks form the core of the introductory part of the \href{https://git.physik.uni-wuerzburg.de/ALF/ALF_Tutorial}{ALF Tutorial}, where pyALF's usage is described in more detail.
+The source code of ALF 2.0 is available at \url{https://git.physik.uni-wuerzburg.de/ALF/ALF/-/tree/ALF-2.0} and can be cloned with git or downloaded from the repository (make sure to chose the appropriate release, 2.0).
+
+A Python interface, \textbf{pyALF}, is also available and can be found, together with a number of Jupyter notebooks exploring the interface's capabilities, at \url{https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/tree/ALF-2.0/}. This interface facilitates setting up simple runs and is ideal for setting benchmarks and getting acquainted with ALF. Some of pyALF's notebooks form the core of the introductory part of the \href{https://git.physik.uni-wuerzburg.de/ALF/ALF_Tutorial}{ALF Tutorial}, where pyALF's usage is described in more detail.
+
+We start out by providing step-by-step instructions that allow a first-time user to go from zero to performing a simulation and reading out their first measurement using ALF.
+
+%-------------------------------------------------------------------------------------
+\subsection{Zeroth step}
+\label{sec:zeroth}
+%-------------------------------------------------------------------------------------
+
+The aim of this section is to provide a fruitful and stress-free first contact with the package. Ideally, it should be possible to copy and paste the instructions below to a Debian/Ubuntu-based Linux shell without further thought\footnote{For other systems and distributions see the package's  \href{https://git.physik.uni-wuerzburg.de/ALF/ALF/-/blob/ALF-2.0/README.md}{README}.}. Explanations and further options and details are found in the remaining sections and in the \href{https://git.physik.uni-wuerzburg.de/ALF/ALF_Tutorial}{Tutorial}.
+
+\textbf{Prerequisites}:
+You should have access to a shell and the permissions to install -- or have already installed -- the numerical packages Lapack and Blas, a Fortran compiler and the tools \texttt{make} and \texttt{git}. 
+
+The following commands can be executed in a Debian-based shell in order to install ALF 2.0 and its dependencies, run a demonstration simulation and output one of the measurements performed:
+\begin{itemize}[itemsep=0pt]
+	\item \lstinline[style=bash,morekeywords={sudo}]{sudo apt-get install gfortran liblapack-dev make git}
+	\item \lstinline[style=bash,morekeywords={}]{git clone -b ALF-2.0 https://git.physik.uni-wuerzburg.de/ALF/ALF.git}
+	\item \lstinline[style=bash,morekeywords={cd}]{cd ALF}
+	\item \lstinline[style=bash,morekeywords={source}]{source configure.sh GNU noMPI}
+	\item \lstinline[style=bash,morekeywords={make}]{make Hubbard_Plain_Vanilla}
+	\item \lstinline[style=bash,morekeywords={cp}]{cp -r ./Scripts_and_Parameters_files/Start ./Run && cd ./Run/}
+	\item \lstinline[style=bash,morekeywords={}]{$ALF_DIR/Prog/Hubbard_Plain_Vanilla.out}
+	\item \lstinline[style=bash,morekeywords={}]{$ALF_DIR/Analysis/ana.out Ener_scal}
+	\item \lstinline[style=bash,morekeywords={}]{cat Ener_scalJ}
+\end{itemize}
+The last command will output a few lines, including one similar to:
+\begin{lstlisting}[style=bash]
+OBS :    1      -30.009191      0.110961
+\end{lstlisting}
+which is listing the internal energy of the system and its error.
 
 %-------------------------------------------------------------------------------------
 \subsection{Compiling and running}
@@ -30,20 +62,19 @@ Related auxiliary directories, object files and executables can be removed by ex
 
 \begin{table}[!ht]
 	\begin{center}
-		\begin{tabular}{@{} p{0.16\columnwidth} p{0.81\columnwidth} @{}}\toprule
+		\begin{tabular}{@{} p{0.16\columnwidth} p{0.81\columnwidth} @{}}\toprule %16 81
 			Argument & Selected feature \\\midrule
 			\textbf{\texttt{MACHINE}} &  \\\midrule
-			\texttt{Intel}  &   Intel compiler for a generic machine\footnote{A known issue with the alternative Intel Fortran compiler \texttt{ifort} is the handling of automatic, temporary arrays 
+			\texttt{GNU}  &   GNU compiler (\texttt{gfortran} or \texttt{mpifort}) for a generic machine (\emph{default}) \\
+			\texttt{Intel}  &   Intel compiler (\texttt{ifort} or \texttt{mpiifort}) for a generic machine\footnote{A known issue with the alternative Intel Fortran compiler \texttt{ifort} is the handling of automatic, temporary arrays 
 				which \texttt{ifort} allocates on the stack. For large system sizes and/or low temperatures this may lead to a runtime error. One solution is to demand allocation of arrays above a certain size on the heap instead of the stack. This is accomplished by the \texttt{ifort} compiler flag \texttt{-heap-arrays [n]} where \texttt{[n]} is the minimal size (in kilobytes, for example \texttt{n=1024}) of arrays that are allocated on the heap.} \\
-			\texttt{GNU}  &   GNU compiler for a generic machine (\emph{default}) \\
-			\texttt{PGI}  &   PGI compiler for a generic machine \\
-			\texttt{MAC}  &   GNU compiler for a generic MAC computer \\
-			\texttt{SuperMUC-NG}  &  Intel compiler and loads modules for SuperMUC-NG\footnote{Supercomputer at the Leibniz Supercomputing Centre.} \\
-			\texttt{JUWELS}  &  Intel compiler and loads modules for JUWELS\footnote{Supercomputer at the J\"ulich Supercomputing Centre.} \\
-			\texttt{Development}  &  GNU compiler, and flags appropriate for debugging  \vspace{7pt}\\
+			\texttt{PGI}  &   PGI compiler (\texttt{pgfortran} or \texttt{mpifort}) for a generic machine \\
+			\texttt{SuperMUC-NG}  &  Intel compiler (\texttt{mpiifort}) and loads modules for SuperMUC-NG\footnote{Supercomputer at the Leibniz Supercomputing Centre.} \\
+			\texttt{JUWELS}  &  Intel compiler (\texttt{mpiifort}) and loads modules for JUWELS\footnote{Supercomputer at the J\"ulich Supercomputing Centre.} \\
+			\texttt{Development}  &  GNU compiler (\texttt{gfortran} or \texttt{mpifort}) with debugging flags \vspace{7pt}\\
 			
 			\textbf{\texttt{MODE}} &  \\\midrule
-			\texttt{noMPI|serial}  &  No parallelization \\
+			\texttt{noMPI|Serial}  &  No parallelization \\
 			\texttt{MPI}  &  MPI parallelization (\emph{default} -- if a machine is selected) \\
 			\texttt{Tempering}  &  Parallel tempering (Sec.~\ref{Parallel_tempering.sec}) and the required MPI as well \vspace{7pt}\\ 
 			

@@ -124,53 +124,41 @@ case $STAB in
 esac
 
 case $MACHINE in
-  #Fakhers MacBook
-  FAKHERSMAC)
-    # F90OPTFLAGS=$GNUOPTFLAGS
-    F90OPTFLAGS="$GNUOPTFLAGS -Wconversion  -Wuninitialized  -fcheck=all -g -fbacktrace"
+  #GNU (as Hybrid code)
+  GNU)
+    F90OPTFLAGS="$GNUOPTFLAGS"
     F90USEFULFLAGS="$GNUUSEFULFLAGS"
-    if [ "$MPICOMP" -eq "0" ]; then
-    ALF_FC="gfortran"
-    else
-    ALF_FC="$mpif90"
-    fi
-    LIB_BLAS_LAPACK="-llapack -lblas -fopenmp"
-  ;;
-
-  #Development
-  DEVEL|DEVELOPMENT)
-    # F90OPTFLAGS="$GNUOPTFLAGS -Wconversion -Werror -fcheck=all -ffpe-trap=invalid,zero,overflow,underflow,denormal"
-    F90OPTFLAGS="$GNUOPTFLAGS -Wconversion -Werror=conversion -fcheck=all -g -fbacktrace "
-    # F90OPTFLAGS=$GNUOPTFLAGS" -Wconversion -Wcompare-reals -fcheck=all -g -fbacktrace "
-    F90USEFULFLAGS="$GNUUSEFULFLAGS"
-
     ALF_FC="$GNUCOMPILER"
     LIB_BLAS_LAPACK="-llapack -lblas -fopenmp"
   ;;
 
-  #LRZ enviroment
-  SUPERMUC)
-    module switch mpi.ibm  mpi.intel/2018
-    module switch intel intel/18.0
-    module switch mkl mkl/2018
-
+  #Intel (as Hybrid code)
+  INTEL)
     F90OPTFLAGS="$INTELOPTFLAGS"
     F90USEFULFLAGS="$INTELUSEFULFLAGS"
-    ALF_FC="mpiifort"
-    LIB_BLAS_LAPACK="$MKL_LIB"
+    ALF_FC="$INTELCOMPILER"
+    LIB_BLAS_LAPACK="-mkl"
+  ;;
+
+  #PGI
+  PGI)
+    if [ "$MPICOMP" -eq "0" ]; then
+      ALF_FC="pgfortran"
+    else
+      ALF_FC="mpifort"
+      printf "\n${RED}   !! Compiler set to 'mpifort' !!\n"
+      printf "If this is not your PGI MPI compiler you have to set it manually through:\n"
+      printf "    'export ALF_FC=<mpicompiler>'${NC}\n"
+    fi
+    LIB_BLAS_LAPACK="-llapack -lblas"
+    F90OPTFLAGS="-Mpreprocess -O1 -mp"
+    F90USEFULFLAGS="-Minform=inform"
   ;;
 
   #LRZ enviroment
   SUPERMUC-NG|NG)
-    module switch mpi.intel  mpi.intel/2019
-    module switch intel intel/19.0
-    module switch mkl mkl/2019
     printf "\n${RED}   !!   unsetting  FORT_BLOCKSIZE  !!${NC}\n"
     unset FORT_BLOCKSIZE
-
-    #module load  mpi.intel
-    #module load intel
-    #module load mkl
 
     F90OPTFLAGS="$INTELOPTFLAGS"
     F90USEFULFLAGS="$INTELUSEFULFLAGS"
@@ -190,35 +178,15 @@ case $MACHINE in
     LIB_BLAS_LAPACK="-mkl"
   ;;
 
-  #Intel (as Hybrid code)
-  INTEL)
-    F90OPTFLAGS="$INTELOPTFLAGS"
-    F90USEFULFLAGS="$INTELUSEFULFLAGS"
-    ALF_FC="$INTELCOMPILER"
-    LIB_BLAS_LAPACK="-mkl"
-  ;;
-
-  #GNU (as Hybrid code)
-  GNU)
-    F90OPTFLAGS="$GNUOPTFLAGS"
+  #Development
+  DEVEL|DEVELOPMENT)
+    # F90OPTFLAGS="$GNUOPTFLAGS -Wconversion -Werror -fcheck=all -ffpe-trap=invalid,zero,overflow,underflow,denormal"
+    F90OPTFLAGS="$GNUOPTFLAGS -Wconversion -Werror=conversion -fcheck=all -g -fbacktrace "
+    # F90OPTFLAGS=$GNUOPTFLAGS" -Wconversion -Wcompare-reals -fcheck=all -g -fbacktrace "
     F90USEFULFLAGS="$GNUUSEFULFLAGS"
+
     ALF_FC="$GNUCOMPILER"
     LIB_BLAS_LAPACK="-llapack -lblas -fopenmp"
-  ;;
-
-  #PGI
-  PGI)
-    if [ "$MPICOMP" -eq "0" ]; then
-      ALF_FC="pgfortran"
-    else
-      ALF_FC="mpifort"
-      printf "\n${RED}   !! Compiler set to 'mpifort' !!\n"
-      printf "If this is not your PGI MPI compiler you have to set it manually through:\n"
-      printf "    'export ALF_FC=<mpicompiler>'${NC}\n"
-    fi
-    LIB_BLAS_LAPACK="-llapack -lblas"
-    F90OPTFLAGS="-Mpreprocess -O3 -mp -Minform=inform -g -traceback"
-    F90USEFULFLAGS="-Minform=inform"
   ;;
 
   #Default (unknown machine)
@@ -229,21 +197,21 @@ case $MACHINE in
     printf "${RED}   !!         IGNORING PARALLEL SETTINGS         !!${NC}\n"
     printf "${RED}   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!${NC}\n"
     printf "\n"
-    printf "Activating fallback option with gfortran for SERIAL JOB.\n"
+    printf "Activating fallback option with gfortran for SERIAL JOB - Deactivating MPI.\n"
     printf "\n"
-    printf "usage 'source configureHPC.sh MACHINE MODE STAB'\n"
+    printf "usage 'source configure.sh MACHINE MODE STAB'\n"
     printf "\n"
-    printf "Please choose one of the following machines:\n"
-    printf " * SuperMUC\n"
-    printf " * SuperMUC-NG\n"
-    printf " * JUWELS\n"
-    printf " * Devel\n"
-    printf " * Intel\n"
-    printf " * GNU\n"
-    printf " * FakhersMAC\n"
-    printf "Possible modes are MPI (default), noMPI and Tempering\n"
-    printf "Possible stab are no-argument (default), STAB1 (old), STAB2 (old), STAB3 (newest)\n"
+    printf "Please choose one of the following MACHINEs:\n"
+    printf " * Intel  (Intel compiler for a generic machine)\n"
+    printf " * GNU  (GNU compiler for a generic machine - default)\n"
+    printf " * PGI  (PGI compiler for a generic machine)\n"
+    printf " * NG  (SuperMUC-NG, at the Leibniz Supercomputing Centre)\n"
+    printf " * JUWELS  (at the Juelich Supercomputing Centre)\n"
+    printf " * Devel  (GNU compiler, and flags appropriate for debugging)\n"
+    printf "Possible MODEs are: MPI (default), noMPI and Tempering\n"
+    printf "Possible STABs are :no-argument (default), STAB1 (old), STAB2 (old), STAB3 (newest)\n"
     printf "and LOG (increases accessible scales, e.g. in beta or interaction strength by solving NaN issues)\n"
+    printf "For more details check the documentation.\n"
 
     PROGRAMMCONFIGURATION=""
     F90OPTFLAGS="-cpp -O3 -ffree-line-length-none -ffast-math"
@@ -278,4 +246,4 @@ export ALF_FLAGS_MODULES
 export ALF_FLAGS_ANA
 export ALF_FLAGS_PROG
 
-printf "\nTo compile your program use:    'make TARGET'\n\n"
+printf "\nTo compile your program use:    'make'\n\n"

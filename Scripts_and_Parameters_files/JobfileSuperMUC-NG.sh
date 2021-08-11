@@ -33,10 +33,6 @@
 #Important
 module load slurm_setup
 
-module switch mpi.intel  mpi.intel/2019
-module switch intel intel/19.0
-module switch mkl mkl/2019
-
 # the follwing environment variables generate an optimal pinning (to the best of our knowledge)
 # This DOES NOT have to be adapted to the choice of Ntasks
 # FIRST EXCEPTION: If you chose to use hyper-threading (not recommended) you should set I_MPI_PIN_CELL=cpu

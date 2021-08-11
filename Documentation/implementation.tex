@@ -203,7 +203,7 @@ such that
                                                        &                &  $n_1, n_2 \in [-1,1] $, $\vec{R}_j = \vec{R}_i + n_1 \vec{a}_1  + n_2 \vec{a}_2 $ \\
    \texttt{Latt\%imj}                                  & \texttt{int}   &  $\vec{R}_{\mathrm{imj}(i,j)}  =  \vec{R}_i -  \vec{R}_j$, with  $\mathrm{imj}, i, j \in  1,\cdots, N_{\text{unit-cell}}$ \\
     \texttt{Latt\%BZ1\_p}, \texttt{Latt\%BZ2\_p}       & \texttt{dble}  & Reciprocal space vectors $\vec{g}_i$   [See Eq.~\eqref{Latt.G.eq}] \\
-    \texttt{Latt\%b1\_p}, \texttt{Latt\%b1\_p}         & \texttt{dble}  &  $k$-quantization [See Eq.~\eqref{k.quant.eq}] \\
+    \texttt{Latt\%b1\_p}, \texttt{Latt\%b2\_p}          & \texttt{dble}  &  $k$-quantization [See Eq.~\eqref{k.quant.eq}] \\
     \texttt{Latt\%listk}                               & \texttt{int}   &  Maps each reciprocal lattice point $k=1,\cdots, N_{\text{unit-cell}}$\\
                                                                    &    & to a reciprocal space vector\\
                                                                    &    & $\vec{k}_k= \texttt{listk(k,1)} \vec{b}_1 +  \texttt{listk(k,2)} \vec{b}_2  \equiv k_1  \vec{b}_1 +   k_2  \vec{b}_2 $ \\
@@ -552,7 +552,7 @@ Accordingly, the following data structures fully describe the  Hamiltonian (\ref
 \item For the hopping Hamiltonian (\ref{eqn:general_ham_t}), we have to set the exponentiated hopping matrices $ e^{-\Delta \tau {\bm T}^{(ks)}}$: \\
 In this case $\bm{X}^{(ks)}=\bm{T}^{(ks)}$, and a single variable  \texttt{Op\_T}  describes the operator matrix
 \begin{equation}
-            \left( \sum_{x,y}^{N_{\mathrm{dim}}} \hat{c}^{\dagger}_x T_{xy}^{(ks)} \hat{c}^{\phantom{\dagger}}_{y}  \right)  \;,
+            \left( \sum_{x,y}^{N_{\mathrm{dim}}} \hat{c}^{\dagger}_{xs} T_{xy}^{(ks)} \hat{c}^{\phantom{\dagger}}_{ys}  \right)  \;,
 \end{equation} 
 where $k=[1, M_{T}]$ and $s=[1, N_{\mathrm{fl}}]$. In the notation of the general expression (\ref{eqn:exponent_mat}), we set $g=-\Delta \tau$ (and $\alpha = 0$).
 In case of the hopping matrix, the type variable  takes its default value  $\texttt{Op\_T\%type}=0$. 
@@ -561,7 +561,7 @@ All in all, the corresponding array of structure variables is  \texttt{Op\_T(M$_
 \item For the interaction Hamiltonian (\ref{eqn:general_ham_v}), which is of perfect-square type, we have to set the exponentiated matrices $e^{  \sqrt{ -  \Delta \tau  U_k} \eta_{k\tau} {\bm V}^{(ks)} }$:\\
 In this case, $\bm{X}  = \bm{V}^{(ks)}$ and a single variable  \texttt{Op\_V}  describes the operator matrix:
 \begin{equation}
-             \left[ \left( \sum_{x,y}^{N_{\mathrm{dim}}} \hat{c}^{\dagger}_x V_{x,y}^{(ks)} \hat{c}^{\phantom{\dagger}}_{y}  \right)  + \alpha_{ks} \right]  \;,
+             \left[ \left( \sum_{x,y}^{N_{\mathrm{dim}}} \hat{c}^{\dagger}_{xs} V_{x,y}^{(ks)} \hat{c}^{\phantom{\dagger}}_{ys}  \right)  + \alpha_{ks} \right]  \;,
 \end{equation} 
 where $k=[1, M_{V}]$ and $s=[1, N_{\mathrm{fl}}]$, $g = \sqrt{-\Delta \tau  U_k}$ and  $\alpha = \alpha_{ks}$. 
 The discrete HS decomposition which is used for the perfect-square interaction, is selected by setting the type variable to $\texttt{Op\_V\%type}=2$.
@@ -570,7 +570,7 @@ All in all, the required structure variables \texttt{Op\_V} are defined  using t
 \item For the bosonic interaction Hamiltonian (\ref{eqn:general_ham_i}), we have to set the exponentiated matrices $e^{  -\Delta \tau s_{k\tau}  {\bm I}^{(ks)}}$:\\
 In this case, $\bm{X}  = \bm{I}^{(k,s)} $ and a single variable  \texttt{Op\_V} then  describes the operator matrix:
 \begin{equation}
-            \left( \sum_{x,y}^{N_{\mathrm{dim}}} \hat{c}^{\dagger}_x I_{xy}^{(ks)} \hat{c}^{\phantom{\dagger}}_{y}  \right)  \;,
+            \left( \sum_{x,y}^{N_{\mathrm{dim}}} \hat{c}^{\dagger}_{xs} I_{xy}^{(ks)} \hat{c}^{\phantom{\dagger}}_{ys}  \right)  \;,
 \end{equation} 
 where $k=[1, M_{I}]$ and $s=[1, N_{\mathrm{fl}}]$ and $g = -\Delta \tau$ (and $\alpha = 0$).
 It this operator couples to an Ising field, we specify the  type variable  $\texttt{Op\_V\%type=1}$.    On the other hand, if it couples to a scalar field (i.e. real number)   then we 

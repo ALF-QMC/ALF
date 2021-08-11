@@ -10,6 +10,7 @@ Merge request !107
 1) **In Hamiltonians** You will have to adapt your Hamiltonians to the Submodule structure
 2) You will have to add your Hamiltonian name to the **Hamiltonians.list** in the Prog directory
 
+
 ## 2020-11-16   Implementing  Langevin 
 
 Author : F.F. Assaad <br>
@@ -35,3 +36,15 @@ b) Delta\_t\_Langevin\_HMC = 0.01 ! Default time step for Langevin and HMC updat
 c) Max\_Force            = 1.5  ! Max Force for  Langevin <br>
 d) HMC     = .F.   ! HMC update <br>
 e) Leapfrog_steps = 0 !  Number of leapfrog steps
+
+
+
+## 2020-09-25   Embedding lattice information in observables 
+
+Author :  J. Schwab <br>
+Merge request !66 
+
+### Breaking changes
+**In Hamiltonians** 
+
+Calls to `Obser_Latt_make` should be adjusted to the subroutine's new interface
