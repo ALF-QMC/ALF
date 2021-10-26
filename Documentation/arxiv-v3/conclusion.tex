@@ -1,0 +1,12 @@
+% Copyright (c) 2016 The ALF project.
+% This is a part of the ALF project documentation.
+% The ALF project documentation by the ALF contributors is licensed
+% under a Creative Commons Attribution-ShareAlike 4.0 International License.
+% For the licensing details of the documentation see license.CCBYSA.
+% !TEX root = doc.tex
+
+In its present form, the  auxiliary-field QMC code of the ALF project allows us to simulate a large class of non-trivial models, both efficiently and at minimal  programming cost.  ALF 2.0 contains many advanced functionalities, including a projective formulation, various updating schemes, better control of Trotter errors, predefined structures that facilitate reuse, a large class of models, continuous fields and, finally, stochastic analytical continuation code. Also the usability of the code has improved in comparison with ALF 1.0. In particular the \href{https://git.physik.uni-wuerzburg.de/ALF/pyALF}{pyALF} project provides a Python interface to the ALF which substantially facilitates running the code for established models.  This ease of use renders ALF 2.0 a  powerful  tool to for benchmarking new algorithms. 
+
+There are further capabilities that we would like to see in future versions of ALF. Introducing time-dependent Hamiltonians, for instance, will require some rethinking, but will allow, for example, to access entanglement properties of interacting fermionic systems \cite{Broecker14,Assaad13a,Assaad15}. Moreover, the auxiliary field approach is not the only method to simulate fermionic systems.
+It would be desirable to include additional lattice fermion algorithms such as the CT-INT \cite{Rubtsov05,Assaad07}.
+Lastly, at the more technical level, improved IO (e.g., HDF5 support), post-processing, object oriented programming, as well as increased compatibility with other software projects are all certainly improvements to look forward to. 
