@@ -9,9 +9,9 @@
 
 In this section we describe the steps for compiling and running the code from the shell, and describe how to search for optimal parameter values as well as how to perform the error analysis of the data.
 
-The source code of ALF 2.0 is available at \url{https://git.physik.uni-wuerzburg.de/ALF/ALF/-/tree/ALF-2.0} and can be cloned with git or downloaded from the repository (make sure to chose the appropriate release, 2.0).
+The source code of ALF is available at \url{https://git.physik.uni-wuerzburg.de/ALF/ALF/} and can be cloned with git or downloaded from the repository.
 
-A Python interface, \textbf{pyALF}, is also available and can be found, together with a number of Jupyter notebooks exploring the interface's capabilities, at \url{https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/tree/ALF-2.0/}. This interface facilitates setting up simple runs and is ideal for setting benchmarks and getting acquainted with ALF. Some of pyALF's notebooks form the core of the introductory part of the \href{https://git.physik.uni-wuerzburg.de/ALF/ALF_Tutorial}{ALF Tutorial}, where pyALF's usage is described in more detail.
+A Python interface, \textbf{pyALF}, is also available and can be found, together with a number of Jupyter notebooks exploring the interface's capabilities, at \url{https://git.physik.uni-wuerzburg.de/ALF/pyALF/}. This interface facilitates setting up simple runs and is ideal for setting benchmarks and getting acquainted with ALF. Some of pyALF's notebooks form the core of the introductory part of the \href{https://git.physik.uni-wuerzburg.de/ALF/ALF_Tutorial}{ALF Tutorial}, where pyALF's usage is described in more detail.
 
 We start out by providing step-by-step instructions that allow a first-time user to go from zero to performing a simulation and reading out their first measurement using ALF.
 
@@ -20,7 +20,7 @@ We start out by providing step-by-step instructions that allow a first-time user
 \label{sec:zeroth}
 %-------------------------------------------------------------------------------------
 
-The aim of this section is to provide a fruitful and stress-free first contact with the package. Ideally, it should be possible to copy and paste the instructions below to a Debian/Ubuntu-based Linux shell without further thought\footnote{For other systems and distributions see the package's  \href{https://git.physik.uni-wuerzburg.de/ALF/ALF/-/blob/ALF-2.0/README.md}{README}.}. Explanations and further options and details are found in the remaining sections and in the \href{https://git.physik.uni-wuerzburg.de/ALF/ALF_Tutorial}{Tutorial}.
+The aim of this section is to provide a fruitful and stress-free first contact with the package. Ideally, it should be possible to copy and paste the instructions below to a Debian/Ubuntu-based Linux shell without further thought\footnote{For other systems and distributions see the package's  \href{https://git.physik.uni-wuerzburg.de/ALF/ALF/-/blob/master/README.md}{README}.}. Explanations and further options and details are found in the remaining sections and in the \href{https://git.physik.uni-wuerzburg.de/ALF/ALF_Tutorial}{Tutorial}.
 
 \textbf{Prerequisites}:
 You should have access to a shell and the permissions to install -- or have already installed -- the numerical packages Lapack and Blas, a Fortran compiler and the tools \texttt{make} and \texttt{git}. 
@@ -31,7 +31,7 @@ The following commands can be executed in a Debian-based shell in order to insta
 	\item \lstinline[style=bash,morekeywords={}]{git clone -b ALF-2.0 https://git.physik.uni-wuerzburg.de/ALF/ALF.git}
 	\item \lstinline[style=bash,morekeywords={cd}]{cd ALF}
 	\item \lstinline[style=bash,morekeywords={source}]{source configure.sh GNU noMPI}
-	\item \lstinline[style=bash,morekeywords={make}]{make Hubbard_Plain_Vanilla}
+	\item \lstinline[style=bash,morekeywords={make}]{make Hubbard_Plain_Vanilla ana}
 	\item \lstinline[style=bash,morekeywords={cp}]{cp -r ./Scripts_and_Parameters_files/Start ./Run && cd ./Run/}
 	\item \lstinline[style=bash,morekeywords={}]{$ALF_DIR/Prog/Hubbard_Plain_Vanilla.out}
 	\item \lstinline[style=bash,morekeywords={}]{$ALF_DIR/Analysis/ana.out Ener_scal}
