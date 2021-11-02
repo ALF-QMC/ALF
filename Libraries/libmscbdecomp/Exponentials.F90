@@ -51,9 +51,9 @@ module Exponentials_mod
 !
 !> @brief 
 !> This holds together a set of exponentials that, if applied in the
-!> correct order approximate e^A to first order.
+!> correct order, approximate e^A to first order.
 !> It provides functions for matrix-matrix and matrix-vector
-!>  multiplications in transposed and non-transposed manner.
+!> multiplications in transposed and non-transposed manner.
 !--------------------------------------------------------------------
     type :: EulerExp
         integer :: nrofcols
@@ -81,7 +81,7 @@ module Exponentials_mod
 !> Florian Goth
 !
 !> @brief 
-!> This holds together a set of Euler Exponentials
+!> This holds together a set of Euler exponentials
 !> and applies them in the correct order to obtain higher order
 !> approximations.
 !--------------------------------------------------------------------
@@ -101,7 +101,7 @@ module Exponentials_mod
         procedure :: lmult_T => FullExp_lmult_T
         procedure :: adjoint_over_two => FullExp_adjoint_over_two
     end type FullExp
-    
+
 contains
 
 subroutine FullExp_init(this, nodes, usedcolors, method, weight)
@@ -115,7 +115,7 @@ subroutine FullExp_init(this, nodes, usedcolors, method, weight)
     type(node), dimension(:, :), allocatable :: colsepnodes! An array of nodes separated by color
     character(len=64) :: filename
     type(EulerExp) :: dummy
-    
+
     this%method = method
 #ifndef NDEBUG
     write(*,*) "Setting up Full Checkerboard exponential."
