@@ -263,21 +263,19 @@ subroutine determine_used_colors_of_graph(gd)
     type(GraphData) :: gd
     integer :: i, k
 
-    if ((gd%usedcolors == 0) .or. (gd%nredges == 0)) then ! check that those are available
-        gd%usedcolors = 0
-        gd%nredges = 0
-        do i = 1, gd%ndim
-            gd%deltag = max(gd%deltag, gd%verts(i)%degree)
-            do k = 1, gd%verts(i)%degree
-                if (gd%verts(i)%nbrs(k) > i) gd%nredges = gd%nredges + 1
-                if (gd%verts(i)%nbrs(k) > gd%ndim) then
-                    write(*,*) "invalid nbr!!!"
-                    STOP
-                endif
-                gd%usedcolors = max(gd%usedcolors, gd%verts(i)%cols(k))
-            enddo
+    gd%usedcolors = 0
+    gd%nredges = 0
+    do i = 1, gd%ndim
+        gd%deltag = max(gd%deltag, gd%verts(i)%degree)
+        do k = 1, gd%verts(i)%degree
+            if (gd%verts(i)%nbrs(k) > i) gd%nredges = gd%nredges + 1
+            if (gd%verts(i)%nbrs(k) > gd%ndim) then
+                write(*,*) "invalid nbr!!!"
+                STOP
+            endif
+            gd%usedcolors = max(gd%usedcolors, gd%verts(i)%cols(k))
         enddo
-    endif
+    enddo
 end subroutine
 
 function createFullExponentialfromGraphData(gd, method) result(fe)
@@ -290,7 +288,9 @@ function createFullExponentialfromGraphData(gd, method) result(fe)
     logical, allocatable, dimension(:) :: usedcols
     type(node), allocatable, dimension(:) :: nodes
 
-    call determine_used_colors_of_graph(gd)
+    if ((gd%usedcolors == 0) .or. (gd%nredges == 0)) then ! check that those are available
+        call determine_used_colors_of_graph(gd)
+    endif
 
     ! set up data in an edges based layout
     k = 0
