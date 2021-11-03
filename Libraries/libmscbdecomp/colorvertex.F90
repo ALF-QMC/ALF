@@ -258,16 +258,11 @@ function createEulerExponentialfromGraphData(gd) result(fe)
     deallocate(nodes, usedcols)
 end function
 
-function createFullExponentialfromGraphData(gd, method) result(fe)
+subroutine determine_used_colors_of_graph(gd)
     implicit none
     type(GraphData) :: gd
-    integer, intent(in) :: method
-    type(FullExp) :: fe
-    complex(kind=kind(0.D0)) :: weight
-    integer :: k, elempos, mynbr, nbr1, l, i
-    logical, allocatable, dimension(:) :: usedcols
-    type(node), allocatable, dimension(:) :: nodes
-    
+    integer :: i, k
+
     if ((gd%usedcolors == 0) .or. (gd%nredges == 0)) then ! check that those are available
         gd%usedcolors = 0
         gd%nredges = 0
@@ -283,6 +278,19 @@ function createFullExponentialfromGraphData(gd, method) result(fe)
             enddo
         enddo
     endif
+end subroutine
+
+function createFullExponentialfromGraphData(gd, method) result(fe)
+    implicit none
+    type(GraphData) :: gd
+    integer, intent(in) :: method
+    type(FullExp) :: fe
+    complex(kind=kind(0.D0)) :: weight
+    integer :: k, elempos, mynbr, nbr1, l, i
+    logical, allocatable, dimension(:) :: usedcols
+    type(node), allocatable, dimension(:) :: nodes
+
+    call determine_used_colors_of_graph(gd)
 
     ! set up data in an edges based layout
     k = 0
