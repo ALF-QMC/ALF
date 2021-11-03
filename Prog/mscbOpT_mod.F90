@@ -39,7 +39,7 @@ module mscbOpT_mod
 
     private
     public :: RealmscbOpT, CmplxmscbOpT, CmplxEulermscbOpT
-    
+
     !--------------------------------------------------------------------
     !> @author
     !> ALF-project
@@ -53,7 +53,7 @@ module mscbOpT_mod
         integer, allocatable :: P(:)
         type(FullExp) :: fe
         Integer :: m, n, Ndim_hop
-        
+
     contains
         procedure :: init => RealmscbOpT_init ! initialize and allocate matrices
         procedure :: dealloc => RealmscbOpT_dealloc ! dealloc matrices
@@ -223,6 +223,7 @@ contains
         Integer :: i, k
         type(GraphData) :: gd
         Complex(kind=kind(0.D0)), allocatable, dimension(:,:) :: tmp
+        Real(kind=kind(0.D0)), allocatable, dimension(:) :: diags
         
         this%Zero = 1.E-12
         this%Ndim_hop = Op_T%N
@@ -234,20 +235,14 @@ contains
         deallocate(tmp)
         call MvG_decomp(gd%verts) ! perform the decomposition
         
-        ! some sanity checks and status informations
-        gd%usedcolors = 0
-        gd%nredges = 0
-        do i = 1, gd%ndim
-            gd%deltag = max(gd%deltag, gd%verts(i)%degree)
-            do k = 1, gd%verts(i)%degree
-                if (gd%verts(i)%nbrs(k) > i) gd%nredges = gd%nredges + 1
-                if (gd%verts(i)%nbrs(k) > gd%ndim) then
-                    write(*,*) "invalid nbr!!!"
-                    STOP
-                endif
-                gd%usedcolors = max(gd%usedcolors, gd%verts(i)%cols(k))
-            enddo
+        ! Let's retrieve the diagonal of the matrix, hence the chemical potential
+        do i = 1, Op_T%N
+            diags(i) = DBLE(tmp(i, i))!If the input matrix is hermitian, this has to be real.
+            tmp(i, i) = 0 ! Set to zero afterwards to disable any checks in the MvG decomposition
         enddo
+
+        ! some sanity checks and status informations
+        call determine_used_colors_of_graph(gd)
         write (*,*) "Nr edges: ", gd%nredges
         if (gd%usedcolors == gd%deltag) then
             write(*,*) "Maximum Degree", gd%deltag, ". Found", gd%usedcolors," Families -> optimal decomposition"
@@ -256,7 +251,7 @@ contains
         endif
 
         this%fe = createFullExponentialfromGraphData(gd, method)
-        
+
         ! check wether it is supported behaviour
         do i = 1, size(Op_T%P)
         if (Op_T%P(i) /= i) then
