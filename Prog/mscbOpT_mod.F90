@@ -250,8 +250,8 @@ contains
             write(*,*) "Maximum Degree", gd%deltag, ". Found", gd%usedcolors," Families"
         endif
 
-        this%fe = createFullExponentialfromGraphData(gd, method)
-
+        this%fe = createFullExponentialfromGraphData(gd, diags, method)
+        
         ! check wether it is supported behaviour
         do i = 1, size(Op_T%P)
         if (Op_T%P(i) /= i) then
@@ -348,6 +348,7 @@ contains
         Type(Operator), intent(in) :: Op_T
         Integer :: i, k
         type(GraphData) :: gd
+        real(kind=kind(0.D0)), allocatable, dimension(:) :: diags
         Complex(kind=kind(0.D0)), allocatable, dimension(:,:) :: tmp
         
         this%Zero = 1.E-12
@@ -381,7 +382,7 @@ contains
             write(*,*) "Maximum Degree", gd%deltag, ". Found", gd%usedcolors," Families"
         endif
 
-        this%ee = createEulerExponentialfromGraphData(gd)
+        this%ee = createEulerExponentialfromGraphData(gd, diags)
         
         ! check wether it is supported behaviour
         do i = 1, size(Op_T%P)
