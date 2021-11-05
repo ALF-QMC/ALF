@@ -21,30 +21,9 @@
 ! DEALINGS IN THE SOFTWARE.
 
 module Exponentials_mod
+    Use HomogeneousSingleColExp_mod
     implicit none
 
-    type :: node
-        integer :: x,y, col
-        complex (kind=kind(0.d0)) :: axy ! the value of the matrix A_{x,y}
-    end type node
-
-    type :: SingleColExp
-        integer :: nrofentries
-        integer, allocatable :: x(:), y(:)
-        complex (kind=kind(0.d0)), allocatable :: s(:), c(:), s2(:), c2(:), p(:)
-    contains
-        procedure :: init => SingleColExp_init
-        procedure :: dealloc => SingleColExp_dealloc
-        procedure :: vecmult => SingleColExp_vecmult
-        procedure :: lmult => SingleColExp_lmult
-        procedure :: lmultinv => SingleColExp_lmultinv
-        procedure :: rmult => SingleColExp_rmult
-        procedure :: rmultinv => SingleColExp_rmultinv
-        procedure :: adjoint_over_two => SingleColExp_adjoint_over_two
-        procedure :: adjointaction => SingleColExp_adjointaction
-    end type
-
-    
 !--------------------------------------------------------------------
 !> @author
 !> Florian Goth
@@ -57,7 +36,7 @@ module Exponentials_mod
 !--------------------------------------------------------------------
     type :: EulerExp
         integer :: nrofcols
-        type(SingleColExp), allocatable :: singleexps(:)
+        class(HomogeneousSingleColExp), allocatable :: singleexps(:)
     contains
         procedure :: init => EulerExp_init
         procedure :: dealloc => EulerExp_dealloc
@@ -109,8 +88,8 @@ subroutine FullExp_init(this, nodes, usedcolors, mys, method, weight)
     type(node), dimension(:), intent(in) :: nodes
     integer, intent(in) :: usedcolors, method
     real(kind=kind(0.D0)), intent(in), allocatable, dimension(:) :: mys
-    complex (kind=kind(0.d0)), intent(in) :: weight
-    complex (kind=kind(0.d0)) :: tmp
+    real (kind=kind(0.d0)), intent(in) :: weight
+    real (kind=kind(0.d0)) :: tmp
     integer, dimension(:), allocatable :: nredges, edgectr
     integer :: i, maxedges, k
     type(node), dimension(:, :), allocatable :: colsepnodes! An array of nodes separated by color
@@ -281,255 +260,6 @@ subroutine FullExp_lmult_T(this, mat)
     enddo
 end subroutine FullExp_lmult_T
 
-
-subroutine SingleColExp_vecmult(this, vec)
-    class(SingleColExp) :: this
-    complex(kind=kind(0.D0)), dimension(:) :: vec
-    integer :: i
-    complex(kind=kind(0.D0)) :: t1,t2
-    do i = 1, this%nrofentries! for every matrix
-        t1 = vec(this%x(i))
-        t2 = vec(this%y(i))
-        vec(this%x(i)) = this%c(i) * t1 + this%s(i) * t2
-        vec(this%y(i)) = this%c(i) * t2 + this%s(i) * t1
-    enddo
-end subroutine SingleColExp_vecmult
-
-!--------------------------------------------------------------------
-!> @author
-!> Florian Goth
-!
-!> @brief 
-!> Perform the multiplication of this exponential with a matrix: out = this*mat
-!
-!> Notes: unifying x and y into one array gave some speedup.
-!> Unifying c and s did not...
-!> FIXME: ndim divisible by two...
-!
-!> @param[in] this The exponential that we consider
-!> @param[inout] mat the matrix that we modify.
-!--------------------------------------------------------------------
-subroutine SingleColExp_lmult(this, mat)
-    class(SingleColExp) :: this
-    complex(kind=kind(0.D0)), dimension(:, :), contiguous :: mat
-    integer :: i, j, k, ndim, loopend
-    integer, parameter :: step = 2 ! determined to be fastest on 6x6 hubbard
-    complex(kind=kind(0.D0)) :: t1(step), t2(step)
-    integer, allocatable, dimension(:) :: xyarray
-    complex(kind=kind(0.D0)), allocatable, dimension(:) :: csh, snh
-
-! The intel compiler is really helped by using these temporary arrays
-    allocate(xyarray(2*this%nrofentries), csh(this%nrofentries), snh(this%nrofentries) )
-    xyarray = this%x
-    csh = this%c
-    snh = this%s
-
-    ndim = size(mat,1)
-    loopend = (ndim/step)*step
-
-! ifort 2017
-!DIR$ UNROLL_AND_JAM(4)
-    do j = 1, loopend, step
-        do i = 1, this%nrofentries! for every matrix
-            do k = 1,step
-                t1(k) = mat(xyarray(2*i-1), j+k-1)
-                t2(k) = mat(xyarray(2*i), j+k-1)
-            enddo
-            do k = 1, step
-                mat(xyarray(2*i-1), j+k-1) = DBLE(csh(i)) * t1(k) + snh(i) * t2(k)
-                mat(xyarray(2*i), j+k-1) = DBLE(csh(i)) * t2(k) + conjg(snh(i)) * t1(k)
-            enddo
-        enddo
-    enddo
-    deallocate(xyarray, csh, snh)
-end subroutine SingleColExp_lmult
-
-subroutine SingleColExp_lmultinv(this, mat)
-    class(SingleColExp) :: this
-    complex(kind=kind(0.D0)), dimension(:, :) :: mat
-    integer :: i, j, k, ndim, loopend
-    integer, parameter :: step = 2
-    complex(kind=kind(0.D0)) :: t1(step), t2(step)
-    
-    ndim = size(mat,1)
-    loopend = (ndim/step)*step
-    do j = 1, loopend, step
-        do i = 1, this%nrofentries! for every matrix
-            do k = 1,step
-                t1(k) = mat(this%x(2*i-1), j+k-1)
-                t2(k) = mat(this%x(2*i), j+k-1)
-            enddo
-            do k = 1, step
-                mat(this%x(2*i-1), j+k-1) = DBLE(this%c(i)) * t1(k) - this%s(i) * t2(k)
-                mat(this%x(2*i), j+k-1) = DBLE(this%c(i)) * t2(k) - conjg(this%s(i)) * t1(k)
-            enddo
-        enddo
-    enddo
-end subroutine SingleColExp_lmultinv
-
-!--------------------------------------------------------------------
-!> @author
-!> Florian Goth
-!
-!> @brief 
-!> The routines for moving to an adjoint representation : out = this.mat.this^(-1)
-!> If needed we could instead calculate an eigendecomposition and use that.
-!> We could really invest in a diagonal calculation at every multiplication
-!> The stability of this topic has been discussed in 
-!> Hargreaves, G. (2005). Topics in matrix computations: Stability and efficiency of algorithms (Doctoral dissertation, University of Manchester).
-!> and "Unifying unitary and hyperbolic transformations Adam Bojanczyka, Sanzheng Qiaob;;1, Allan O. Steinhardt"
-!> For the future we might want to look into fast hyperbolic rotations of Hargreaves, G. (2005).
-!
-!> @param[in] this The exponential that we consider
-!> @param[inout] mat the matrix that we modify.
-!--------------------------------------------------------------------
-subroutine SingleColExp_adjointaction(this, mat)
-    class(SingleColExp) :: this
-    complex(kind=kind(0.D0)), dimension(:, :) :: mat
-    integer :: i, j, k, ndim, loopend
-    integer, parameter :: step = 2
-    complex(kind=kind(0.D0)) :: t1(step), t2(step)
-    
-    call this%lmult(mat)
-    call this%rmultinv(mat)
-end subroutine SingleColExp_adjointaction
-
-subroutine SingleColExp_adjoint_over_two(this, mat)
-    class(SingleColExp) :: this
-    complex(kind=kind(0.D0)), dimension(:, :) :: mat
-    integer :: i, j, k, ndim, loopend
-    integer, parameter :: step = 2
-    complex(kind=kind(0.D0)) :: t1(step), t2(step), t1scal, t2scal, myc, mys
-    
-    ! lmult part
-    ndim = size(mat,1)
-    loopend = (ndim/step)*step
-    do j = 1, loopend, step
-        do i = 1, this%nrofentries! for every matrix
-            mys = this%s2(i)
-            myc = this%c2(i)
-            do k = 1,step
-                t1(k) = mat(this%x(2*i-1), j+k-1)
-                t2(k) = mat(this%x(2*i), j+k-1)
-            enddo
-            do k = 1, step
-                mat(this%x(2*i-1), j+k-1) = myc * t1(k) + mys * t2(k)
-                mat(this%x(2*i), j+k-1) = myc * t2(k) + conjg(mys) * t1(k)
-            enddo
-        enddo
-    enddo
-
-    ! rmultinv part
-    do i = 1, this%nrofentries! for every matrix
-            myc = this%c2(i)
-            mys = this%s2(i)
-        do j = 1, ndim
-            t1scal = mat(j, this%x(2*i-1))
-            t2scal = mat(j, this%x(2*i))
-            mat(j, this%x(2*i-1)) = myc * t1scal - mys * t2scal
-            mat(j, this%x(2*i)) = myc * t2scal - conjg(mys) * t1scal
-        enddo
-    enddo
-end subroutine SingleColExp_adjoint_over_two
-
-!--------------------------------------------------------------------
-!> @author
-!> Florian Goth
-!
-!> @brief 
-!> Perform the multiplication of this exponential with a matrix: out = mat*this
-!
-!> @param[in] this The exponential that we consider
-!> @param[inout] mat the matrix that we modify.
-!--------------------------------------------------------------------
-subroutine SingleColExp_rmult(this, mat)
-    class(SingleColExp) :: this
-    complex(kind=kind(0.D0)), dimension(:, :) :: mat
-    integer :: i, j, k, ndim
-    complex(kind=kind(0.D0)) :: t1, t2
-    
-    ndim = size(mat,1)
-    do i = 1, this%nrofentries! for every matrix
-        do j = 1, ndim
-        t1 = mat(j, this%x(2*i-1))
-        t2 = mat(j, this%x(2*i))
-        mat(j, this%x(2*i-1)) = DBLE(this%c(i)) * t1 + this%s(i)* t2
-        mat(j, this%x(2*i)) = DBLE(this%c(i)) * t2 + conjg(this%s(i))* t1
-        enddo
-    enddo
-end subroutine SingleColExp_rmult
-
-subroutine SingleColExp_rmultinv(this, mat)
-    class(SingleColExp) :: this
-    complex(kind=kind(0.D0)), dimension(:, :) :: mat
-    integer :: i, j, k, ndim
-    complex(kind=kind(0.D0)) :: t1, t2
-    
-    ndim = size(mat,1)
-    do i = 1, this%nrofentries! for every matrix
-        do j = 1, ndim
-        t1 = mat(j, this%x(2*i-1))
-        t2 = mat(j, this%x(2*i))
-        mat(j, this%x(2*i-1)) = DBLE(this%c(i)) * t1 - this%s(i) * t2
-        mat(j, this%x(2*i)) = DBLE(this%c(i)) * t2 - conjg(this%s(i)) * t1
-        enddo
-    enddo
-end subroutine SingleColExp_rmultinv
-
-!--------------------------------------------------------------------
-!> @author
-!> Florian Goth
-!
-!> @brief 
-!> This sets up the data to perform the exponentiation of a 
-!> strictly sparse matrix.
-!> The internal layout is that the non-zero element a_xy stored at (x,y) in the matrix
-!> has x(i) at x(2i-1) and y(i) at x(2i)
-!
-!> @param[inout] this the SingleColExp object.
-!> @param[in] nodes The nodes that belng to this color.
-!> @param[in] nredges how many nodes of this color.
-!> @param[in] weight a prefactor for the exponent.
-!--------------------------------------------------------------------
-subroutine SingleColExp_init(this, nodes, nredges, mys, weight)
-    class(SingleColExp) :: this
-    type(node), dimension(:), intent(in) :: nodes
-    real(kind=kind(0.D0)), intent(in), allocatable, dimension(:) :: mys
-    integer, intent(in) :: nredges
-    complex (kind=kind(0.d0)), intent(in) :: weight
-    integer :: i
-    allocate(this%x(2*nredges), this%y(nredges), this%c(nredges), this%s(nredges))
-    allocate(this%c2(nredges), this%s2(nredges), this%p(nredges))
-    this%nrofentries = nredges
-#ifndef NDEBUG
-    write(*,*) "Setting up strict. sparse matrix with ", nredges, "edges"
-#endif
-    do i = 1, nredges
-        this%x(2*i-1) = nodes(i)%x
-        this%x(2*i) = nodes(i)%y
-        this%y(i) = nodes(i)%y
-        this%p(i) = weight*nodes(i)%axy
-! This is the order of operations that yields stable matrix inversions
-! We assume that the matrix that we have decomposed is hermitian:
-! M=(0  , b)
-!   (b^*, 0) then the below entries follow for the exponential and cosh is real
-        this%c(i) = cosh(abs(weight*nodes(i)%axy))
-        this%c2(i) = cosh(abs(weight*nodes(i)%axy)/2)
-        ! I got the most reliable results if the hyperbolic pythagoras is best fulfilled.
-        ! If we generalize this, to non-zero diagonals, this means 
-        this%s(i) = sqrt(this%c(i)**2-1.0)*weight*nodes(i)%axy/abs(weight*nodes(i)%axy)
-        this%s2(i) = sqrt(this%c2(i)**2-1.0)*weight*nodes(i)%axy/abs(weight*nodes(i)%axy)
-    enddo
-! All nodes that we have been passed are now from a single color.
-! They constitute now a strictly sparse matrix.
-! Further processing of the entries could be done here.
-end subroutine SingleColExp_init
-
-subroutine SingleColExp_dealloc(this)
-    class(SingleColExp) :: this
-    deallocate(this%x, this%y, this%c, this%s, this%c2, this%s2)
-end subroutine SingleColExp_dealloc
-
 subroutine EulerExp_dealloc(this)
     class(EulerExp) :: this
     deallocate(this%singleexps)
@@ -540,7 +270,7 @@ end subroutine EulerExp_dealloc
 !> Florian Goth
 !
 !> @brief 
-!> This function multiplies this full exponential with a vector
+!> This function multiplies this full exponential with a vector.
 !
 !> @param[in] this The exponential opbject
 !> @param[in] vec The vector that we multiply
@@ -554,6 +284,17 @@ subroutine EulerExp_vecmult(this, vec)
     enddo
 end subroutine EulerExp_vecmult
 
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
+!> This function multiplies this transposed full exponential,
+!> i.e reverses the order of application of exponentials, with a vector.
+!
+!> @param[in] this The exponential opbject
+!> @param[in] vec The vector that we multiply
+!--------------------------------------------------------------------
 subroutine EulerExp_vecmult_T(this, vec)
     class(EulerExp) :: this
     complex(kind=kind(0.D0)), dimension(:) :: vec
@@ -679,7 +420,7 @@ subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
     type(node), dimension(:), intent(in) :: nodes
     integer, intent(in) :: usedcolors
     real(kind=kind(0.D0)), intent(in), allocatable, dimension(:) :: mys
-    complex (kind=kind(0.d0)), intent(in) :: weight
+    real (kind=kind(0.d0)), intent(in) :: weight
     integer, dimension(:), allocatable :: nredges, edgectr
     integer :: i, maxedges, k, ndim, ldvl, lwork, ierr
     type(node), dimension(:, :), allocatable :: colsepnodes! An array of nodes separated by color

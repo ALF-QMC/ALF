@@ -26,8 +26,8 @@ module colorvertex_mod
     implicit none
     
     type, extends(Vertex) :: ColorVertex
-        integer, allocatable, dimension(:) :: cols !< At initialization empty. Can be used for the colors
-        integer, allocatable, dimension(:) :: nbrbycol !< An array that holds for each color the local array position in this Vertex
+        integer, allocatable, dimension(:) :: cols !< At initialization empty. Can be used for the colors.
+        integer, allocatable, dimension(:) :: nbrbycol !< An array that holds for each color the local array position in this Vertex.
     contains
         procedure, pass(this) :: colorvertex_init
         generic, public :: init => colorvertex_init
@@ -201,7 +201,7 @@ function createEulerExponentialfromGraphData(gd, diags) result(fe)
     type(GraphData) :: gd
     real(kind=kind(0.D0)), intent(in), allocatable, dimension(:) :: diags
     type(EulerExp) :: fe
-    complex(kind=kind(0.D0)) :: weight
+    real(kind=kind(0.D0)) :: weight
     integer :: k, elempos, mynbr, nbr1, l, i
     logical, allocatable, dimension(:) :: usedcols
     type(node), allocatable, dimension(:) :: nodes
@@ -285,7 +285,7 @@ function createFullExponentialfromGraphData(gd, diags, method) result(fe)
     real(kind=kind(0.D0)), intent(in), allocatable, dimension(:) :: diags
     integer, intent(in) :: method
     type(FullExp) :: fe
-    complex(kind=kind(0.D0)) :: weight
+    real(kind=kind(0.D0)) :: weight
     integer :: k, elempos, mynbr, nbr1, l, i
     logical, allocatable, dimension(:) :: usedcols
     type(node), allocatable, dimension(:) :: nodes
