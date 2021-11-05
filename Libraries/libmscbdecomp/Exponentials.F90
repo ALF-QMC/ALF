@@ -514,6 +514,7 @@ subroutine SingleColExp_init(this, nodes, nredges, weight)
         this%c(i) = cosh(abs(weight*nodes(i)%axy))
         this%c2(i) = cosh(abs(weight*nodes(i)%axy)/2)
         ! I got the most reliable results if the hyperbolic pythagoras is best fulfilled.
+        ! If we generalize this, to non-zero diagonals, this means 
         this%s(i) = sqrt(this%c(i)**2-1.0)*weight*nodes(i)%axy/abs(weight*nodes(i)%axy)
         this%s2(i) = sqrt(this%c2(i)**2-1.0)*weight*nodes(i)%axy/abs(weight*nodes(i)%axy)
     enddo
@@ -665,7 +666,7 @@ end subroutine EulerExp_lmultinv_T
 !> @brief 
 !> This function creates an exponential object from an array of nodes.
 !
-!> @param this The exponential opbject
+!> @param this The exponential object
 !> @param[in] nodes The array of nodes
 !> @param[in] usedcolors the number of used colors/terms in 
 !>                       the decomposition.
