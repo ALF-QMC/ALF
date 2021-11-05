@@ -104,10 +104,11 @@ module Exponentials_mod
 
 contains
 
-subroutine FullExp_init(this, nodes, usedcolors, method, weight)
+subroutine FullExp_init(this, nodes, usedcolors, mys, method, weight)
     class(FullExp) :: this
     type(node), dimension(:), intent(in) :: nodes
     integer, intent(in) :: usedcolors, method
+    real(kind=kind(0.D0)), intent(in), allocatable, dimension(:) :: mys
     complex (kind=kind(0.d0)), intent(in) :: weight
     complex (kind=kind(0.d0)) :: tmp
     integer, dimension(:), allocatable :: nredges, edgectr
@@ -125,61 +126,61 @@ subroutine FullExp_init(this, nodes, usedcolors, method, weight)
             this%evals = 2
             allocate(this%stages(this%evals))
             tmp = 1.D0/2.D0*weight
-            call this%stages(1)%init(nodes, usedcolors, tmp)
-            call this%stages(2)%init(nodes, usedcolors, tmp)
+            call this%stages(1)%init(nodes, usedcolors, mys, tmp)
+            call this%stages(2)%init(nodes, usedcolors, mys, tmp)
         case (3)! SE_2 2
             this%evals = 4
             allocate(this%stages(this%evals))
             tmp = 0.21178*weight
-            call this%stages(1)%init(nodes, usedcolors, tmp)
+            call this%stages(1)%init(nodes, usedcolors, mys, tmp)
             tmp = 0.28822*weight
-            call this%stages(2)%init(nodes, usedcolors, tmp)
+            call this%stages(2)%init(nodes, usedcolors, mys, tmp)
             tmp = 0.28822*weight
-            call this%stages(3)%init(nodes, usedcolors, tmp)
+            call this%stages(3)%init(nodes, usedcolors, mys, tmp)
             tmp = 0.21178*weight
-            call this%stages(4)%init(nodes, usedcolors, tmp)
+            call this%stages(4)%init(nodes, usedcolors, mys, tmp)
         case (4)! SE_3 4, Yoshida, Neri
             this%evals = 6
             allocate(this%stages(this%evals))
             tmp = 0.6756035959798*weight
-            call this%stages(1)%init(nodes, usedcolors, tmp)
+            call this%stages(1)%init(nodes, usedcolors, mys, tmp)
             tmp = 0.6756035959798*weight
-            call this%stages(2)%init(nodes, usedcolors, tmp)
+            call this%stages(2)%init(nodes, usedcolors, mys, tmp)
             tmp = -0.8512071919597*weight
-            call this%stages(3)%init(nodes, usedcolors, tmp)
+            call this%stages(3)%init(nodes, usedcolors, mys, tmp)
             tmp = -0.8512071919597*weight
-            call this%stages(4)%init(nodes, usedcolors, tmp)
+            call this%stages(4)%init(nodes, usedcolors, mys, tmp)
             tmp = 0.6756035959798*weight
-            call this%stages(5)%init(nodes, usedcolors, tmp)
+            call this%stages(5)%init(nodes, usedcolors, mys, tmp)
             tmp = 0.6756035959798*weight
-            call this%stages(6)%init(nodes, usedcolors, tmp)
+            call this%stages(6)%init(nodes, usedcolors, mys, tmp)
         case (5)! SE_6 4, Blanes
             this%evals = 12
             allocate(this%stages(this%evals))
             tmp = 0.0792037*weight
-            call this%stages(1)%init(nodes, usedcolors, tmp)
+            call this%stages(1)%init(nodes, usedcolors, mys, tmp)
             tmp = 0.130311*weight
-            call this%stages(2)%init(nodes, usedcolors, tmp)
+            call this%stages(2)%init(nodes, usedcolors, mys, tmp)
             tmp = 0.222861*weight
-            call this%stages(3)%init(nodes, usedcolors, tmp)
+            call this%stages(3)%init(nodes, usedcolors, mys, tmp)
             tmp = -0.366713*weight
-            call this%stages(4)%init(nodes, usedcolors, tmp)
+            call this%stages(4)%init(nodes, usedcolors, mys, tmp)
             tmp = 0.324648*weight
-            call this%stages(5)%init(nodes, usedcolors, tmp)
+            call this%stages(5)%init(nodes, usedcolors, mys, tmp)
             tmp = 0.109688*weight
-            call this%stages(6)%init(nodes, usedcolors, tmp)
+            call this%stages(6)%init(nodes, usedcolors, mys, tmp)
             tmp = 0.109688*weight
-            call this%stages(7)%init(nodes, usedcolors, tmp)
+            call this%stages(7)%init(nodes, usedcolors, mys, tmp)
             tmp = 0.324648*weight
-            call this%stages(8)%init(nodes, usedcolors, tmp)
+            call this%stages(8)%init(nodes, usedcolors, mys, tmp)
             tmp = -0.366713*weight
-            call this%stages(9)%init(nodes, usedcolors, tmp)
+            call this%stages(9)%init(nodes, usedcolors, mys, tmp)
             tmp = 0.222861*weight
-            call this%stages(10)%init(nodes, usedcolors, tmp)
+            call this%stages(10)%init(nodes, usedcolors, mys, tmp)
             tmp = 0.130311*weight
-            call this%stages(11)%init(nodes, usedcolors, tmp)
+            call this%stages(11)%init(nodes, usedcolors, mys, tmp)
             tmp = 0.0792037*weight
-            call this%stages(12)%init(nodes, usedcolors, tmp)
+            call this%stages(12)%init(nodes, usedcolors, mys, tmp)
     end select
 end subroutine FullExp_init
 
@@ -490,9 +491,10 @@ end subroutine SingleColExp_rmultinv
 !> @param[in] nredges how many nodes of this color.
 !> @param[in] weight a prefactor for the exponent.
 !--------------------------------------------------------------------
-subroutine SingleColExp_init(this, nodes, nredges, weight)
+subroutine SingleColExp_init(this, nodes, nredges, mys, weight)
     class(SingleColExp) :: this
     type(node), dimension(:), intent(in) :: nodes
+    real(kind=kind(0.D0)), intent(in), allocatable, dimension(:) :: mys
     integer, intent(in) :: nredges
     complex (kind=kind(0.d0)), intent(in) :: weight
     integer :: i
@@ -672,10 +674,11 @@ end subroutine EulerExp_lmultinv_T
 !>                       the decomposition.
 !> @param[in] weight a prefactor of the exponent
 !--------------------------------------------------------------------
-subroutine EulerExp_init(this, nodes, usedcolors, weight)
+subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
     class(EulerExp) :: this
     type(node), dimension(:), intent(in) :: nodes
     integer, intent(in) :: usedcolors
+    real(kind=kind(0.D0)), intent(in), allocatable, dimension(:) :: mys
     complex (kind=kind(0.d0)), intent(in) :: weight
     integer, dimension(:), allocatable :: nredges, edgectr
     integer :: i, maxedges, k, ndim, ldvl, lwork, ierr
@@ -700,19 +703,21 @@ subroutine EulerExp_init(this, nodes, usedcolors, weight)
         colsepnodes(nodes(i)%col, edgectr(nodes(i)%col)) = nodes(i)
         edgectr(nodes(i)%col) = edgectr(nodes(i)%col) + 1
     enddo
-!     do i = 1, usedcolors
-!     write (filename, "(A6,I3)") "matrix", i
-!     open(unit=5,file=filename)
-!     do k = 1, nredges(i)
-!     write (5, *) colsepnodes(i, k)%x, colsepnodes(i, k)%y, dble(colsepnodes(i, k)%axy)
-!     enddo
-!     enddo
+    write (*,*) "text"
+     do i = 1, usedcolors
+     write (filename, "(A6,I3)") "matrix", i
+     open(unit=5,file=filename)
+     do k = 1, nredges(i)
+     write (5, *) "{{", colsepnodes(i, k)%x, ",",colsepnodes(i, k)%y,"} -> ", dble(colsepnodes(i, k)%axy), "}"
+     enddo
+     close(unit=5)
+     enddo
     ! Now that we have properly separated which entry of a matrix belongs to
     ! which color we can create an exponential for each color that exploits
     ! the structure that the color decomposition creates strictly sparse matrices.
     allocate(this%singleexps(usedcolors))
     do i = 1, usedcolors
-        call this%singleexps(i)%init(colsepnodes(i, :), nredges(i), weight)
+        call this%singleexps(i)%init(colsepnodes(i, :), nredges(i), mys, weight)
     enddo
     deallocate(colsepnodes)
     deallocate(nredges, edgectr)

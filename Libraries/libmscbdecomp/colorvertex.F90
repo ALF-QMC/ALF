@@ -1,6 +1,6 @@
 ! MIT License
 ! 
-! Copyright (c) 2018-2020 Florian Goth
+! Copyright (c) 2018-2021 Florian Goth
 !
 ! Permission is hereby granted, free of charge, to any person obtaining a copy
 ! of this software and associated documentation files (the "Software"), to deal
@@ -196,9 +196,10 @@ end function colorvertex_find_maximal_fan
 !> @result fe
 !--------------------------------------------------------------------
 
-function createEulerExponentialfromGraphData(gd) result(fe)
+function createEulerExponentialfromGraphData(gd, diags) result(fe)
     implicit none
     type(GraphData) :: gd
+    real(kind=kind(0.D0)), intent(in), allocatable, dimension(:) :: diags
     type(EulerExp) :: fe
     complex(kind=kind(0.D0)) :: weight
     integer :: k, elempos, mynbr, nbr1, l, i
@@ -254,7 +255,7 @@ function createEulerExponentialfromGraphData(gd) result(fe)
         elempos = elempos + gd%verts(i)%degree
     enddo
     weight = 1.0
-    call fe%init(nodes, gd%usedcolors, weight)
+    call fe%init(nodes, gd%usedcolors, diags, weight)
     deallocate(nodes, usedcols)
 end function
 
@@ -278,9 +279,10 @@ subroutine determine_used_colors_of_graph(gd)
     enddo
 end subroutine
 
-function createFullExponentialfromGraphData(gd, method) result(fe)
+function createFullExponentialfromGraphData(gd, diags, method) result(fe)
     implicit none
     type(GraphData) :: gd
+    real(kind=kind(0.D0)), intent(in), allocatable, dimension(:) :: diags
     integer, intent(in) :: method
     type(FullExp) :: fe
     complex(kind=kind(0.D0)) :: weight
@@ -325,7 +327,7 @@ function createFullExponentialfromGraphData(gd, method) result(fe)
         elempos = elempos + gd%verts(i)%degree
     enddo
     weight = 1.0
-    call fe%init(nodes, gd%usedcolors, method, weight)
+    call fe%init(nodes, gd%usedcolors, diags, method, weight)
     deallocate(nodes, usedcols)
 end function
 
