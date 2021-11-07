@@ -275,7 +275,7 @@ subroutine NonHomogeneousSingleColExp_init(this, nodes, nredges, mys, weight)
     integer, intent(in) :: nredges
     real (kind=kind(0.d0)), intent(in) :: weight
     integer :: i
-    real (kind=kind(0.d0)) :: nf, my1, my2, localzero
+    real (kind=kind(0.d0)) :: nf, my1, my2, localzero, md, mav, angle, cloc, sloc
     allocate(this%x(2*nredges), this%y(nredges), this%c(2*nredges), this%s(nredges))
     allocate(this%c2(2*nredges), this%s2(nredges), this%p(nredges))
     this%nrofentries = nredges
@@ -292,7 +292,9 @@ subroutine NonHomogeneousSingleColExp_init(this, nodes, nredges, mys, weight)
         my2 = mys(nodes(i)%y)
         nf = sqrt(my1*my1+my2*my2 + 2*dble(this%p(i) * conjg(this%p(i))))
         localzero = 1E-15*nf ! definition of my local scale that defines zero
-        if (abs(my1-my2) < localzero) then
+        md = 0.5*(my1 - my2)
+        mav = 0.5*(my1 + my2)
+        if (abs(md) < localzero) then
             write(*,*) "[NonHomogeneousSingleColExp_init]: Identical diagonals found! This should go in another class!"
         endif
         ! This is the order of operations that yields stable matrix inversions
@@ -300,12 +302,32 @@ subroutine NonHomogeneousSingleColExp_init(this, nodes, nredges, mys, weight)
         ! M=(d  , b)
         !   (b^*, -d) then the below entries follow for the exponential and cosh is real.
         ! The fixup for generic chemical potentials happens at the end.
-        this%c(i) = cosh(abs(weight*nodes(i)%axy))
-        this%c2(i) = cosh(abs(weight*nodes(i)%axy)/2)
+        angle = abs(weight)*sqrt(md*md + DBLE(nodes(i)%axy * conjg(nodes(i)%axy)))
+        this%c(2*i) = cosh(angle)
+        this%c(2*i+1) = this%c(2*i)
+        sloc = sqrt(this%c(2*i)**2 - 1.0)
+        this%c(2*i) = this%c(2*i) + weight*md*sloc/angle
+        this%c(2*i+1) = this%c(2*i+1) - weight*md*sloc/angle
+        
+        this%c2(2*i) = cosh(angle/2)
+        this%c2(2*i+1) = this%c2(2*i)
+        sloc = sqrt(this%c2(2*i)**2 - 1.0)
+        this%c2(2*i) = this%c2(2*i) + weight*md*sloc/angle
+        this%c2(2*i+1) = this%c2(2*i+1) - weight*md*sloc/angle
         ! I got the most reliable results if the hyperbolic pythagoras is best fulfilled.
-        ! If we generalize this, to non-zero diagonals, this means 
-        this%s(i) = sqrt(this%c(i)**2-1.0)*weight*nodes(i)%axy/abs(weight*nodes(i)%axy)
-        this%s2(i) = sqrt(this%c2(i)**2-1.0)*weight*nodes(i)%axy/abs(weight*nodes(i)%axy)
+        
+        this%s(i) = weight*nodes(i)%axy/abs(weight*nodes(i)%axy)*sqrt(this%c(2*i)*this%c(2*i+1)-1.0)! generalized pythagoras
+        this%s2(i) = weight*nodes(i)%axy/abs(weight*nodes(i)%axy)*sqrt(this%c2(2*i)*this%c2(2*i+1)-1.0)! generalized pythagoras
+        if(abs(mav) > localzero) then ! fixup chemical potential
+            sloc = exp(mav)
+            this%c(2*i) = this%c(2*i) * sloc
+            this%c(2*i+1) = this%c(2*i+1) * sloc
+            this%s(i) = this%s(i)*sloc
+            
+            this%c2(2*i) = this%c2(2*i) * sloc
+            this%c2(2*i+1) = this%c2(2*i+1) * sloc
+            this%s2(i) =this%s2(i) * sloc
+        endif
     enddo
 ! All nodes that we have been passed are now from a single color.
 ! They constitute now a strictly sparse matrix.
