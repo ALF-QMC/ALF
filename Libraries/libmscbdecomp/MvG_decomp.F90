@@ -216,6 +216,7 @@ subroutine construct_and_invert_path(col, verts, start)
     write (*,*) "construct path of colors", col(1), col(2), "at", start
 #endif
     call p%init()
+    nbr1 = 0
     do k = 1, verts(start)%degree
         if (verts(start)%cols(k) == col(1)) nbr1 = k
     enddo
