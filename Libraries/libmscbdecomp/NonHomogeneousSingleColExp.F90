@@ -117,6 +117,20 @@ subroutine NonHomogeneousSingleColExp_lmult(this, mat)
     deallocate(xyarray, csh, snh)
 end subroutine NonHomogeneousSingleColExp_lmult
 
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
+!> Perform the multiplication of this exponential with a matrix: out = this*mat
+!
+!> Notes: unifying x and y into one array gave some speedup.
+!> Unifying c and s did not...
+!> FIXME: ndim divisible by two...
+!
+!> @param[in] this The exponential that we consider
+!> @param[inout] mat the matrix that we modify.
+!--------------------------------------------------------------------
 subroutine NonHomogeneousSingleColExp_lmultinv(this, mat)
     class(NonHomogeneousSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
@@ -213,10 +227,11 @@ end subroutine NonHomogeneousSingleColExp_adjoint_over_two
 !> Florian Goth
 !
 !> @brief 
-!> Perform the multiplication of this exponential with a matrix: out = mat*this
+!> Perform the multiplication of this exponential with a matrix:
+!> out = mat*this
 !
-!> @param[in] this The exponential that we consider
-!> @param[inout] mat the matrix that we modify.
+!> @param[in] this The exponential that we consider.
+!> @param[inout] mat The matrix that we modify.
 !--------------------------------------------------------------------
 subroutine NonHomogeneousSingleColExp_rmult(this, mat)
     class(NonHomogeneousSingleColExp), intent(in) :: this
@@ -235,6 +250,17 @@ subroutine NonHomogeneousSingleColExp_rmult(this, mat)
     enddo
 end subroutine NonHomogeneousSingleColExp_rmult
 
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
+!> Perform the multiplication of the inverse exponential with a matrix:
+!> out = mat^-1*this.
+!
+!> @param[in] this The exponential that we consider.
+!> @param[inout] mat The matrix that we modify.
+!--------------------------------------------------------------------
 subroutine NonHomogeneousSingleColExp_rmultinv(this, mat)
     class(NonHomogeneousSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
@@ -246,8 +272,8 @@ subroutine NonHomogeneousSingleColExp_rmultinv(this, mat)
         do j = 1, ndim
         t1 = mat(j, this%x(2*i-1))
         t2 = mat(j, this%x(2*i))
-        mat(j, this%x(2*i-1)) = this%c(2*i) * t1 - this%s(i) * t2
-        mat(j, this%x(2*i)) = this%c(2*i+1) * t2 - conjg(this%s(i)) * t1
+        mat(j, this%x(2*i-1)) = this%c(2*i+1) * t1 - this%s(i) * t2
+        mat(j, this%x(2*i)) = this%c(2*i) * t2 - conjg(this%s(i)) * t1
         enddo
     enddo
 end subroutine NonHomogeneousSingleColExp_rmultinv
@@ -318,12 +344,14 @@ subroutine NonHomogeneousSingleColExp_init(this, nodes, nredges, mys, weight)
         
         this%s(i) = weight*nodes(i)%axy/abs(weight*nodes(i)%axy)*sqrt(this%c(2*i)*this%c(2*i+1)-1.0)! generalized pythagoras
         this%s2(i) = weight*nodes(i)%axy/abs(weight*nodes(i)%axy)*sqrt(this%c2(2*i)*this%c2(2*i+1)-1.0)! generalized pythagoras
+        
         if(abs(mav) > localzero) then ! fixup chemical potential
             sloc = exp(mav)
             this%c(2*i) = this%c(2*i) * sloc
             this%c(2*i+1) = this%c(2*i+1) * sloc
             this%s(i) = this%s(i)*sloc
             
+            sloc = exp(mav/2.0)
             this%c2(2*i) = this%c2(2*i) * sloc
             this%c2(2*i+1) = this%c2(2*i+1) * sloc
             this%s2(i) =this%s2(i) * sloc
