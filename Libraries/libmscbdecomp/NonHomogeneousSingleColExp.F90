@@ -284,6 +284,76 @@ end subroutine NonHomogeneousSingleColExp_rmultinv
 !> Florian Goth
 !
 !> @brief 
+!> This calculates the input data of a checkerboard matrix, hence
+!> the entries of C=exp({{d,o},{o^*,-d}})
+!> While best preserving det(C) = 1
+!> After 
+!
+!> @param [out] diag1 first diagonal
+!> @param [out] diag2 second diagonal
+!> @param [out] offout resulting off-diagonal
+!> @param [in] diag diagonal d
+!> @param [in] offinp The off-diagonal o
+!> @param [in] weight a real prefactor
+!--------------------------------------------------------------------
+subroutine expof2x2tracelesshermitianmatrix(diag1, diag2, offout, diag, offinp, weight)
+    real (kind=kind(0.d0)), intent(in) :: weight, diag
+    real (kind=kind(0.d0)), intent(out) :: diag1, diag2
+    complex(kind=kind(0.D0)), intent(in) :: offinp
+    complex(kind=kind(0.D0)), intent(out) :: offout
+    real (kind=kind(0.d0)) :: sinhlocal, angle
+
+    angle = sqrt(diag*diag + DBLE(offinp * conjg(offinp)))
+    sinhlocal = sinh(weight*angle)
+    diag1 = sqrt(sinhlocal**2 - 1.0)
+    diag2 = diag1
+    diag1 = diag1 + diag*sinhlocal/angle
+    diag2 = diag2 - diag*sinhlocal/angle
+    offout = offinp/abs(offinp)*sqrt(diag1*diag2 - 1.0)! rescale offdiagonal such that det(exp(C)) == 1
+end subroutine
+
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
+!> This calculates the input data of a checkerboard matrix, hence
+!> the entries of C=exp({{d,o},{o^*,-d}})
+!> While best preserving det(C) = 1
+!> After 
+!
+!> @param [out] diag1 first diagonal
+!> @param [out] diag2 second diagonal
+!> @param [out] offout resulting off-diagonal
+!> @param [in] diag diagonal d
+!> @param [in] offinp The off-diagonal o
+!> @param [in] weight a real prefactor
+!> @param [in] mav the average chemical potential
+!> @param [in] eps my definition of a local zero.
+!--------------------------------------------------------------------
+subroutine expof2x2hermitianmatrix(diag1, diag2, offout, diag, offinp, weight, mav, eps)
+    real (kind=kind(0.d0)), intent(out) :: diag1, diag2
+    complex(kind=kind(0.D0)), intent(out) :: offout
+    real (kind=kind(0.d0)), intent(in) :: weight, diag, mav, eps
+    complex(kind=kind(0.D0)), intent(in) :: offinp
+    real (kind=kind(0.d0)) :: myexp
+    
+    call expof2x2tracelesshermitianmatrix(diag1, diag2, offout, diag, offinp, weight)
+    
+    if(abs(mav) > eps) then ! fixup chemical potential
+        myexp = exp(mav)
+        diag1 = diag1 * myexp
+        diag2 = diag2 * myexp
+            
+        offout = offout * myexp
+    endif
+end subroutine
+
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
 !> This sets up the data to perform the exponentiation of a 
 !> strictly sparse matrix.
 !> The internal layout is that the non-zero element a_xy stored at (x,y) in the matrix
@@ -302,7 +372,7 @@ subroutine NonHomogeneousSingleColExp_init(this, nodes, nredges, mys, weight)
     integer, intent(in) :: nredges
     real (kind=kind(0.d0)), intent(in) :: weight
     integer :: i
-    real (kind=kind(0.d0)) :: nf, my1, my2, localzero, md, mav, angle, cloc, sloc
+    real (kind=kind(0.d0)) :: nf, my1, my2, localzero, md, mav, angle, cloc, sloc, dweight
     allocate(this%x(2*nredges), this%y(nredges), this%c(2*nredges), this%s(nredges))
     allocate(this%c2(2*nredges), this%s2(nredges), this%p(nredges))
     this%nrofentries = nredges
@@ -327,42 +397,28 @@ subroutine NonHomogeneousSingleColExp_init(this, nodes, nredges, mys, weight)
         ! This is the order of operations that yields stable matrix inversions
         ! We assume that the matrix that we have decomposed is hermitian:
         ! M=(d  , b)
-        !   (b^*, -d) then the below entries follow for the exponential and cosh is real.
-        ! The fixup for generic chemical potentials happens at the end.
-        angle = abs(weight)*sqrt(md*md + DBLE(nodes(i)%axy * conjg(nodes(i)%axy)))
-        this%c(2*i-1) = cosh(angle)
-        this%c(2*i) = this%c(2*i-1)
-        sloc = sqrt(this%c(2*i-1)**2 - 1.0)
-        this%c(2*i-1) = this%c(2*i-1) + weight*md*sloc/angle
-        this%c(2*i) = this%c(2*i) - weight*md*sloc/angle
+        !   (b^*, -d)
+        ! with d = (my1-m2)/2 and mav = (my1+m2)/2
         
-        this%c2(2*i-1) = cosh(angle/2)
-        this%c2(2*i) = this%c2(2*i-1)
-        sloc = sqrt(this%c2(2*i-1)**2 - 1.0)
-        this%c2(2*i-1) = this%c2(2*i-1) + weight*md*sloc/angle
-        this%c2(2*i) = this%c2(2*i) - weight*md*sloc/angle
-        ! I got the most reliable results if the hyperbolic pythagoras is best fulfilled.
-        
-        this%s(i) = weight*nodes(i)%axy/abs(weight*nodes(i)%axy)*sqrt(this%c(2*i-1)*this%c(2*i)-1.0)! follows from det(M) == 1
-        this%s2(i) = weight*nodes(i)%axy/abs(weight*nodes(i)%axy)*sqrt(this%c2(2*i-1)*this%c2(2*i)-1.0)! follows from det(M) == 1
-        
-        if(abs(mav) > localzero) then ! fixup chemical potential
-            sloc = exp(mav)
-            this%c(2*i-1) = this%c(2*i-1) * sloc
-            this%c(2*i) = this%c(2*i) * sloc
-            this%s(i) = this%s(i)*sloc
-            
-            sloc = exp(mav/2.0)
-            this%c2(2*i-1) = this%c2(2*i-1) * sloc
-            this%c2(2*i) = this%c2(2*i) * sloc
-            this%s2(i) =this%s2(i) * sloc
-        endif
+        call expof2x2hermitianmatrix(this%c(2*i-1), this%c(2*i), this%s(i), md, nodes(i)%axy, weight, mav, localzero)
+        dweight = 0.5*weight
+        call expof2x2hermitianmatrix(this%c2(2*i-1), this%c2(2*i), this%s2(i), md, nodes(i)%axy, dweight, mav, localzero)
+
     enddo
 ! All nodes that we have been passed are now from a single color.
-! They constitute now a strictly sparse matrix.
+! They constitute now a strictly sparse matrix adapted to a chemical potential.
 ! Further processing of the entries could be done here.
 end subroutine NonHomogeneousSingleColExp_init
 
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
+!> Tidy up internal data structures.
+!
+!> @param[inout] this the NonHomogeneousSingleColExp object.
+!--------------------------------------------------------------------
 subroutine NonHomogeneousSingleColExp_dealloc(this)
     class(NonHomogeneousSingleColExp), intent(inout) :: this
     deallocate(this%x, this%y, this%c, this%s, this%c2, this%s2)
