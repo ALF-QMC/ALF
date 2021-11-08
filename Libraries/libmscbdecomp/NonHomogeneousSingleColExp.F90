@@ -78,8 +78,8 @@ end subroutine NonHomogeneousSingleColExp_vecmult
 !> Unifying c and s did not...
 !> FIXME: ndim divisible by two...
 !
-!> @param[in] this The exponential that we consider
-!> @param[inout] mat the matrix that we modify.
+!> @param[in] this The exponential that we consider.
+!> @param[inout] mat The matrix that we modify.
 !--------------------------------------------------------------------
 subroutine NonHomogeneousSingleColExp_lmult(this, mat)
     class(NonHomogeneousSingleColExp), intent(in) :: this
@@ -109,8 +109,8 @@ subroutine NonHomogeneousSingleColExp_lmult(this, mat)
                 t2(k) = mat(xyarray(2*i), j+k-1)
             enddo
             do k = 1, step
-                mat(xyarray(2*i-1), j+k-1) = csh(2*i) * t1(k) + snh(i) * t2(k)
-                mat(xyarray(2*i), j+k-1) = csh(2*i+1) * t2(k) + conjg(snh(i)) * t1(k)
+                mat(xyarray(2*i-1), j+k-1) = csh(2*i-1) * t1(k) + snh(i) * t2(k)
+                mat(xyarray(2*i), j+k-1) = csh(2*i) * t2(k) + conjg(snh(i)) * t1(k)
             enddo
         enddo
     enddo
@@ -148,7 +148,7 @@ subroutine NonHomogeneousSingleColExp_lmultinv(this, mat)
             enddo
             do k = 1, step
                 mat(this%x(2*i-1), j+k-1) = this%c(2*i) * t1(k) - this%s(i) * t2(k)
-                mat(this%x(2*i), j+k-1) = this%c(2*i+1) * t2(k) - conjg(this%s(i)) * t1(k)
+                mat(this%x(2*i), j+k-1) = this%c(2*i-1) * t2(k) - conjg(this%s(i)) * t1(k)
             enddo
         enddo
     enddo
@@ -195,8 +195,8 @@ subroutine NonHomogeneousSingleColExp_adjoint_over_two(this, mat)
     do j = 1, loopend, step
         do i = 1, this%nrofentries! for every matrix
             mys = this%s2(i)
-            myc(1) = this%c2(2*i)
-            myc(2) = this%c2(2*i+1)
+            myc(1) = this%c2(2*i-1)
+            myc(2) = this%c2(2*i)
             do k = 1,step
                 t1(k) = mat(this%x(2*i-1), j+k-1)
                 t2(k) = mat(this%x(2*i), j+k-1)
@@ -210,8 +210,9 @@ subroutine NonHomogeneousSingleColExp_adjoint_over_two(this, mat)
 
     ! rmultinv part
     do i = 1, this%nrofentries! for every matrix
+            ! Inversion swaps diagonal entries
             myc(1) = this%c2(2*i)
-            myc(2) = this%c2(2*i+1)
+            myc(2) = this%c2(2*i-1)
             mys = this%s2(i)
         do j = 1, ndim
             t1scal = mat(j, this%x(2*i-1))
@@ -244,8 +245,8 @@ subroutine NonHomogeneousSingleColExp_rmult(this, mat)
         do j = 1, ndim
         t1 = mat(j, this%x(2*i-1))
         t2 = mat(j, this%x(2*i))
-        mat(j, this%x(2*i-1)) = this%c(2*i) * t1 + this%s(i)* t2
-        mat(j, this%x(2*i)) = this%c(2*i+1) * t2 + conjg(this%s(i))* t1
+        mat(j, this%x(2*i-1)) = this%c(2*i-1) * t1 + this%s(i)* t2
+        mat(j, this%x(2*i)) = this%c(2*i) * t2 + conjg(this%s(i))* t1
         enddo
     enddo
 end subroutine NonHomogeneousSingleColExp_rmult
@@ -272,8 +273,8 @@ subroutine NonHomogeneousSingleColExp_rmultinv(this, mat)
         do j = 1, ndim
         t1 = mat(j, this%x(2*i-1))
         t2 = mat(j, this%x(2*i))
-        mat(j, this%x(2*i-1)) = this%c(2*i+1) * t1 - this%s(i) * t2
-        mat(j, this%x(2*i)) = this%c(2*i) * t2 - conjg(this%s(i)) * t1
+        mat(j, this%x(2*i-1)) = this%c(2*i) * t1 - this%s(i) * t2
+        mat(j, this%x(2*i)) = this%c(2*i-1) * t2 - conjg(this%s(i)) * t1
         enddo
     enddo
 end subroutine NonHomogeneousSingleColExp_rmultinv
@@ -329,31 +330,31 @@ subroutine NonHomogeneousSingleColExp_init(this, nodes, nredges, mys, weight)
         !   (b^*, -d) then the below entries follow for the exponential and cosh is real.
         ! The fixup for generic chemical potentials happens at the end.
         angle = abs(weight)*sqrt(md*md + DBLE(nodes(i)%axy * conjg(nodes(i)%axy)))
-        this%c(2*i) = cosh(angle)
-        this%c(2*i+1) = this%c(2*i)
-        sloc = sqrt(this%c(2*i)**2 - 1.0)
-        this%c(2*i) = this%c(2*i) + weight*md*sloc/angle
-        this%c(2*i+1) = this%c(2*i+1) - weight*md*sloc/angle
+        this%c(2*i-1) = cosh(angle)
+        this%c(2*i) = this%c(2*i-1)
+        sloc = sqrt(this%c(2*i-1)**2 - 1.0)
+        this%c(2*i-1) = this%c(2*i-1) + weight*md*sloc/angle
+        this%c(2*i) = this%c(2*i) - weight*md*sloc/angle
         
-        this%c2(2*i) = cosh(angle/2)
-        this%c2(2*i+1) = this%c2(2*i)
-        sloc = sqrt(this%c2(2*i)**2 - 1.0)
-        this%c2(2*i) = this%c2(2*i) + weight*md*sloc/angle
-        this%c2(2*i+1) = this%c2(2*i+1) - weight*md*sloc/angle
+        this%c2(2*i-1) = cosh(angle/2)
+        this%c2(2*i) = this%c2(2*i-1)
+        sloc = sqrt(this%c2(2*i-1)**2 - 1.0)
+        this%c2(2*i-1) = this%c2(2*i-1) + weight*md*sloc/angle
+        this%c2(2*i) = this%c2(2*i) - weight*md*sloc/angle
         ! I got the most reliable results if the hyperbolic pythagoras is best fulfilled.
         
-        this%s(i) = weight*nodes(i)%axy/abs(weight*nodes(i)%axy)*sqrt(this%c(2*i)*this%c(2*i+1)-1.0)! generalized pythagoras
-        this%s2(i) = weight*nodes(i)%axy/abs(weight*nodes(i)%axy)*sqrt(this%c2(2*i)*this%c2(2*i+1)-1.0)! generalized pythagoras
+        this%s(i) = weight*nodes(i)%axy/abs(weight*nodes(i)%axy)*sqrt(this%c(2*i-1)*this%c(2*i)-1.0)! follows from det(M) == 1
+        this%s2(i) = weight*nodes(i)%axy/abs(weight*nodes(i)%axy)*sqrt(this%c2(2*i-1)*this%c2(2*i)-1.0)! follows from det(M) == 1
         
         if(abs(mav) > localzero) then ! fixup chemical potential
             sloc = exp(mav)
+            this%c(2*i-1) = this%c(2*i-1) * sloc
             this%c(2*i) = this%c(2*i) * sloc
-            this%c(2*i+1) = this%c(2*i+1) * sloc
             this%s(i) = this%s(i)*sloc
             
             sloc = exp(mav/2.0)
+            this%c2(2*i-1) = this%c2(2*i-1) * sloc
             this%c2(2*i) = this%c2(2*i) * sloc
-            this%c2(2*i+1) = this%c2(2*i+1) * sloc
             this%s2(i) =this%s2(i) * sloc
         endif
     enddo
