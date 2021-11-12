@@ -113,18 +113,18 @@
                 endif
             else
                 write (*,*) "MSCB, method", method
-                ! check for chemical potential
                 if (op%N - 2* (op%N/2) /= 0) then
                         write (*,*) "operator dimension not divisible by two."
                         error stop 2
                 endif
+                ! check for chemical potential
                 do i = 1, op%N
                     if (Op%O(i,i) /= 0) then
                         write (*,*) "chemical potential not supported."
                         error stop 2
                     endif
                 enddo
-                if (method == 1) then 
+                if (method == 1) then
                     allocate(eulerexp)
                     call eulerexp%init(op)
                     call ExpOpT_vec%pushback(eulerexp)
