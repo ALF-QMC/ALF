@@ -37,10 +37,10 @@ module HomogeneousSingleColExp_mod
 
 !--------------------------------------------------------------------
     type, extends(SingleColExpBase) :: HomogeneousSingleColExp
-        integer :: nrofentries
-        integer, allocatable :: x(:), y(:) ! the y array is still around but often(?) unused
-        complex (kind=kind(0.d0)), allocatable :: s(:), s2(:), p(:)
-        real (kind=kind(0.d0)), allocatable :: c(:), c2(:)
+!         integer :: nrofentries
+!         integer, allocatable :: x(:), y(:) ! the y array is still around but often(?) unused
+        complex (kind=kind(0.d0)), allocatable :: s2(:), p(:)
+        real (kind=kind(0.d0)), allocatable :: c2(:)
     contains
         procedure :: init => HomogeneousSingleColExp_init
         procedure :: dealloc => HomogeneousSingleColExp_dealloc
@@ -85,37 +85,8 @@ end subroutine HomogeneousSingleColExp_vecmult
 subroutine HomogeneousSingleColExp_lmult(this, mat)
     class(HomogeneousSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout), contiguous :: mat
-    integer :: i, j, k, ndim, loopend
-    integer, parameter :: step = 2 ! determined to be fastest on 6x6 hubbard
-    complex(kind=kind(0.D0)) :: t1(step), t2(step)
-    integer, allocatable, dimension(:) :: xyarray
-    complex(kind=kind(0.D0)), allocatable, dimension(:) :: snh
-    real(kind=kind(0.D0)), allocatable, dimension(:) :: csh
-
-! The intel compiler is really helped by using these temporary arrays
-    allocate(xyarray(2*this%nrofentries), csh(this%nrofentries), snh(this%nrofentries) )
-    xyarray = this%x
-    csh = this%c
-    snh = this%s
-
-    ndim = size(mat,1)
-    loopend = (ndim/step)*step
-
-! ifort 2017
-!DIR$ UNROLL_AND_JAM(4)
-    do j = 1, loopend, step
-        do i = 1, this%nrofentries! for every matrix
-            do k = 1,step
-                t1(k) = mat(xyarray(2*i-1), j+k-1)
-                t2(k) = mat(xyarray(2*i), j+k-1)
-            enddo
-            do k = 1, step
-                mat(xyarray(2*i-1), j+k-1) = csh(i) * t1(k) + snh(i) * t2(k)
-                mat(xyarray(2*i), j+k-1) = csh(i) * t2(k) + conjg(snh(i)) * t1(k)
-            enddo
-        enddo
-    enddo
-    deallocate(xyarray, csh, snh)
+    
+    call lmultbase(this%c, this%s, this%x, this%nrofentries, mat)
 end subroutine HomogeneousSingleColExp_lmult
 
 subroutine HomogeneousSingleColExp_lmultinv(this, mat)
@@ -217,18 +188,8 @@ end subroutine HomogeneousSingleColExp_adjoint_over_two
 subroutine HomogeneousSingleColExp_rmult(this, mat)
     class(HomogeneousSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
-    integer :: i, j, ndim
-    complex(kind=kind(0.D0)) :: t1, t2
     
-    ndim = size(mat,1)
-    do i = 1, this%nrofentries! for every matrix
-        do j = 1, ndim
-        t1 = mat(j, this%x(2*i-1))
-        t2 = mat(j, this%x(2*i))
-        mat(j, this%x(2*i-1)) = this%c(i) * t1 + this%s(i)* t2
-        mat(j, this%x(2*i)) = this%c(i) * t2 + conjg(this%s(i))* t1
-        enddo
-    enddo
+    call rmultbase(this%c, this%s, this%x, this%nrofentries, mat)
 end subroutine HomogeneousSingleColExp_rmult
 
 subroutine HomogeneousSingleColExp_rmultinv(this, mat)
@@ -295,7 +256,7 @@ subroutine HomogeneousSingleColExp_init(this, nodes, nredges, mys, weight)
         ! We assume that the matrix that we have decomposed is hermitian:
         ! M=(0  , b)
         !   (b^*, 0) then the below entries follow for the exponential and cosh is real.
-        ! The case of a uniforn chemical potential is fixed up later.
+        ! The case of a uniform chemical potential is fixed up later.
         this%c(i) = cosh(abs(weight*nodes(i)%axy))
         this%c2(i) = cosh(abs(weight*nodes(i)%axy)/2)
         ! I got the most reliable results if the hyperbolic pythagoras is best fulfilled.

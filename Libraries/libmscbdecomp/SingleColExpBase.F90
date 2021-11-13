@@ -21,12 +21,17 @@
 ! DEALINGS IN THE SOFTWARE.
 
 
-! We require a common base class to distinguish between matrices that have no chemical potential and those that have.
+! We require a common base class to distinguish for optimization purposes
+!between matrices that have no chemical potential, that have a uniform chemical potential and those that have arbitrary.
 module SingleColExpBase_mod
     implicit none
 
     ! Base for defining the interface
     type, abstract :: SingleColExpBase
+    integer :: nrofentries
+    integer, allocatable :: x(:), y(:) ! the y array is still around but often(?) unused
+    complex (kind=kind(0.d0)), allocatable :: s(:)
+    real (kind=kind(0.d0)), allocatable :: c(:)
     contains
     procedure(rmultinterface), deferred :: rmult
     procedure(lmultinterface), deferred :: lmult
@@ -147,4 +152,99 @@ module SingleColExpBase_mod
          Complex(kind=kind(0.d0)), intent(inout), dimension(:,:) :: mat
       end subroutine
     end interface
+    
+    contains
+    
+    !--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
+!> Perform the multiplication of an checkerboard exponential with a matrix.
+!> This is an internal helper function that finds reuse in multiple places.
+!
+!> @param[in] c the diagonal data
+!> @param[in] s the off-diagonal data
+!> @param[in] x the used matrix positions
+!> @param[in] nrofentries how many vertices are in this family.
+!> @param[inout] mat the matrix that we modify.
+!--------------------------------------------------------------------
+pure subroutine rmultbase(c, s, x, nrofentries, mat)
+    real (kind=kind(0.d0)), allocatable, intent(in) :: c(:)
+    complex (kind=kind(0.d0)), allocatable, intent(in) :: s(:)
+    integer, allocatable, intent(in) :: x(:)
+    integer, intent(in) ::nrofentries
+    complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
+    integer :: i, j, ndim
+    complex(kind=kind(0.D0)) :: t1, t2
+
+    ndim = size(mat,1)
+    do i = 1, nrofentries! for every matrix
+        do j = 1, ndim
+        t1 = mat(j, x(2*i-1))
+        t2 = mat(j, x(2*i))
+        mat(j, x(2*i-1)) = c(i) * t1 + s(i)* t2
+        mat(j, x(2*i)) = c(i) * t2 + conjg(s(i))* t1
+        enddo
+    enddo
+end subroutine
+
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
+!> Perform the multiplication of this exponential with a matrix: out = this*mat
+!
+!> Notes: unifying x and y into one array gave some speedup.
+!> Unifying c and s did not...
+!> FIXME: ndim divisible by two...
+!> This is an internal helper function that finds reuse in multiple places.
+!
+!> @param[in] c the diagonal data
+!> @param[in] s the off-diagonal data
+!> @param[in] x the used matrix positions
+!> @param[in] nrofentries how many vertices are in this family.
+!> @param[inout] mat the matrix that we modify.
+!--------------------------------------------------------------------
+
+pure subroutine lmultbase(c, s, x, nrofentries, mat)
+    real (kind=kind(0.d0)), allocatable, intent(in) :: c(:)
+    complex (kind=kind(0.d0)), allocatable, intent(in) :: s(:)
+    integer, allocatable, intent(in) :: x(:)
+    integer, intent(in) ::nrofentries
+    complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
+    
+    integer :: i, j, k, ndim, loopend
+    integer, parameter :: step = 2 ! determined to be fastest on 6x6 hubbard
+    complex(kind=kind(0.D0)) :: t1(step), t2(step)
+    integer, allocatable, dimension(:) :: xyarray
+    complex(kind=kind(0.D0)), allocatable, dimension(:) :: snh
+    real(kind=kind(0.D0)), allocatable, dimension(:) :: csh
+
+! The intel compiler is really helped by using these temporary arrays
+    allocate(xyarray(nrofentries), csh(nrofentries), snh(nrofentries) )
+    xyarray = x
+    csh = c
+    snh = s
+
+    ndim = size(mat,1)
+    loopend = (ndim/step)*step
+
+! ifort 2017
+!DIR$ UNROLL_AND_JAM(4)
+    do j = 1, loopend, step
+        do i = 1, nrofentries! for every matrix
+            do k = 1,step
+                t1(k) = mat(xyarray(2*i-1), j+k-1)
+                t2(k) = mat(xyarray(2*i), j+k-1)
+            enddo
+            do k = 1, step
+                mat(xyarray(2*i-1), j+k-1) = csh(i) * t1(k) + snh(i) * t2(k)
+                mat(xyarray(2*i), j+k-1) = csh(i) * t2(k) + conjg(snh(i)) * t1(k)
+            enddo
+        enddo
+    enddo
+    deallocate(xyarray, csh, snh)
+end subroutine
 end module SingleColExpBase_mod
