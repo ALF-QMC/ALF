@@ -20,7 +20,7 @@
 ! FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 ! DEALINGS IN THE SOFTWARE.
 
-module NonHomogeneousSingleColExp_mod
+module GeneralSingleColExp_mod
     Use Node_mod
     Use SingleColExpBase_mod
     implicit none
@@ -35,27 +35,27 @@ module NonHomogeneousSingleColExp_mod
 !> This particular class allows for non-identical chemical potentials,
 !> in contrast to HomogeneousSingleColExp.
 !--------------------------------------------------------------------
-    type, extends(SingleColExpBase) :: NonHomogeneousSingleColExp
+    type, extends(SingleColExpBase) :: GeneralSingleColExp
         integer :: nrofentries
         integer, allocatable :: x(:), y(:)
         complex (kind=kind(0.d0)), allocatable :: s(:), s2(:), p(:)
         real (kind=kind(0.d0)), allocatable :: c(:), c2(:) ! the cosh arrays are twice as big since we need two real values
     contains
-        procedure :: init => NonHomogeneousSingleColExp_init
-        procedure :: dealloc => NonHomogeneousSingleColExp_dealloc
-        procedure :: vecmult => NonHomogeneousSingleColExp_vecmult
-        procedure :: lmult => NonHomogeneousSingleColExp_lmult
-        procedure :: lmultinv => NonHomogeneousSingleColExp_lmultinv
-        procedure :: rmult => NonHomogeneousSingleColExp_rmult
-        procedure :: rmultinv => NonHomogeneousSingleColExp_rmultinv
-        procedure :: adjoint_over_two => NonHomogeneousSingleColExp_adjoint_over_two
-        procedure :: adjointaction => NonHomogeneousSingleColExp_adjointaction
+        procedure :: init => GeneralSingleColExp_init
+        procedure :: dealloc => GeneralSingleColExp_dealloc
+        procedure :: vecmult => GeneralSingleColExp_vecmult
+        procedure :: lmult => GeneralSingleColExp_lmult
+        procedure :: lmultinv => GeneralSingleColExp_lmultinv
+        procedure :: rmult => GeneralSingleColExp_rmult
+        procedure :: rmultinv => GeneralSingleColExp_rmultinv
+        procedure :: adjoint_over_two => GeneralSingleColExp_adjoint_over_two
+        procedure :: adjointaction => GeneralSingleColExp_adjointaction
     end type
 
 contains
 
-subroutine NonHomogeneousSingleColExp_vecmult(this, vec)
-    class(NonHomogeneousSingleColExp) :: this
+subroutine GeneralSingleColExp_vecmult(this, vec)
+    class(GeneralSingleColExp) :: this
     complex(kind=kind(0.D0)), dimension(:) :: vec
     integer :: i
     complex(kind=kind(0.D0)) :: t1,t2
@@ -65,7 +65,7 @@ subroutine NonHomogeneousSingleColExp_vecmult(this, vec)
         vec(this%x(i)) = this%c(2*i) * t1 + this%s(i) * t2
         vec(this%y(i)) = this%c(2*i+1) * t2 + conjg(this%s(i)) * t1
     enddo
-end subroutine NonHomogeneousSingleColExp_vecmult
+end subroutine GeneralSingleColExp_vecmult
 
 !--------------------------------------------------------------------
 !> @author
@@ -81,8 +81,8 @@ end subroutine NonHomogeneousSingleColExp_vecmult
 !> @param[in] this The exponential that we consider.
 !> @param[inout] mat The matrix that we modify.
 !--------------------------------------------------------------------
-subroutine NonHomogeneousSingleColExp_lmult(this, mat)
-    class(NonHomogeneousSingleColExp), intent(in) :: this
+subroutine GeneralSingleColExp_lmult(this, mat)
+    class(GeneralSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout), contiguous :: mat
     integer :: i, j, k, ndim, loopend
     integer, parameter :: step = 2 ! determined to be fastest on 6x6 hubbard
@@ -115,7 +115,7 @@ subroutine NonHomogeneousSingleColExp_lmult(this, mat)
         enddo
     enddo
     deallocate(xyarray, csh, snh)
-end subroutine NonHomogeneousSingleColExp_lmult
+end subroutine GeneralSingleColExp_lmult
 
 !--------------------------------------------------------------------
 !> @author
@@ -131,8 +131,8 @@ end subroutine NonHomogeneousSingleColExp_lmult
 !> @param[in] this The exponential that we consider
 !> @param[inout] mat the matrix that we modify.
 !--------------------------------------------------------------------
-subroutine NonHomogeneousSingleColExp_lmultinv(this, mat)
-    class(NonHomogeneousSingleColExp), intent(in) :: this
+subroutine GeneralSingleColExp_lmultinv(this, mat)
+    class(GeneralSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
     integer :: i, j, k, ndim, loopend
     integer, parameter :: step = 2
@@ -152,7 +152,7 @@ subroutine NonHomogeneousSingleColExp_lmultinv(this, mat)
             enddo
         enddo
     enddo
-end subroutine NonHomogeneousSingleColExp_lmultinv
+end subroutine GeneralSingleColExp_lmultinv
 
 !--------------------------------------------------------------------
 !> @author
@@ -170,8 +170,8 @@ end subroutine NonHomogeneousSingleColExp_lmultinv
 !> @param[in] this The exponential that we consider
 !> @param[inout] mat the matrix that we modify.
 !--------------------------------------------------------------------
-subroutine NonHomogeneousSingleColExp_adjointaction(this, mat)
-    class(NonHomogeneousSingleColExp), intent(in) :: this
+subroutine GeneralSingleColExp_adjointaction(this, mat)
+    class(GeneralSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
     integer :: i, j, k, ndim, loopend
     integer, parameter :: step = 2
@@ -179,10 +179,10 @@ subroutine NonHomogeneousSingleColExp_adjointaction(this, mat)
     
     call this%lmult(mat)
     call this%rmultinv(mat)
-end subroutine NonHomogeneousSingleColExp_adjointaction
+end subroutine GeneralSingleColExp_adjointaction
 
-subroutine NonHomogeneousSingleColExp_adjoint_over_two(this, mat)
-    class(NonHomogeneousSingleColExp), intent(in) :: this
+subroutine GeneralSingleColExp_adjoint_over_two(this, mat)
+    class(GeneralSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
     integer :: i, j, k, ndim, loopend
     integer, parameter :: step = 2
@@ -221,7 +221,7 @@ subroutine NonHomogeneousSingleColExp_adjoint_over_two(this, mat)
             mat(j, this%x(2*i)) = myc(2) * t2scal - conjg(mys) * t1scal
         enddo
     enddo
-end subroutine NonHomogeneousSingleColExp_adjoint_over_two
+end subroutine GeneralSingleColExp_adjoint_over_two
 
 !--------------------------------------------------------------------
 !> @author
@@ -234,8 +234,8 @@ end subroutine NonHomogeneousSingleColExp_adjoint_over_two
 !> @param[in] this The exponential that we consider.
 !> @param[inout] mat The matrix that we modify.
 !--------------------------------------------------------------------
-subroutine NonHomogeneousSingleColExp_rmult(this, mat)
-    class(NonHomogeneousSingleColExp), intent(in) :: this
+subroutine GeneralSingleColExp_rmult(this, mat)
+    class(GeneralSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
     integer :: i, j, k, ndim
     complex(kind=kind(0.D0)) :: t1, t2
@@ -249,7 +249,7 @@ subroutine NonHomogeneousSingleColExp_rmult(this, mat)
         mat(j, this%x(2*i)) = this%c(2*i) * t2 + conjg(this%s(i))* t1
         enddo
     enddo
-end subroutine NonHomogeneousSingleColExp_rmult
+end subroutine GeneralSingleColExp_rmult
 
 !--------------------------------------------------------------------
 !> @author
@@ -262,8 +262,8 @@ end subroutine NonHomogeneousSingleColExp_rmult
 !> @param[in] this The exponential that we consider.
 !> @param[inout] mat The matrix that we modify.
 !--------------------------------------------------------------------
-subroutine NonHomogeneousSingleColExp_rmultinv(this, mat)
-    class(NonHomogeneousSingleColExp), intent(in) :: this
+subroutine GeneralSingleColExp_rmultinv(this, mat)
+    class(GeneralSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
     integer :: i, j, k, ndim
     complex(kind=kind(0.D0)) :: t1, t2
@@ -277,7 +277,7 @@ subroutine NonHomogeneousSingleColExp_rmultinv(this, mat)
         mat(j, this%x(2*i)) = this%c(2*i-1) * t2 - conjg(this%s(i)) * t1
         enddo
     enddo
-end subroutine NonHomogeneousSingleColExp_rmultinv
+end subroutine GeneralSingleColExp_rmultinv
 
 !--------------------------------------------------------------------
 !> @author
@@ -360,13 +360,13 @@ end subroutine
 !> has x(i) at x(2i-1) and y(i) at x(2i).
 !> the two values for the diagonals are stored in c(2i) and c(2i+1)
 !
-!> @param[inout] this the NonHomogeneousSingleColExp object.
+!> @param[inout] this the GeneralSingleColExp object.
 !> @param[in] nodes The nodes that belng to this color.
 !> @param[in] nredges how many nodes of this color.
 !> @param[in] weight a prefactor for the exponent.
 !--------------------------------------------------------------------
-subroutine NonHomogeneousSingleColExp_init(this, nodes, nredges, mys, weight)
-    class(NonHomogeneousSingleColExp), intent(inout) :: this
+subroutine GeneralSingleColExp_init(this, nodes, nredges, mys, weight)
+    class(GeneralSingleColExp), intent(inout) :: this
     type(node), dimension(:), intent(in) :: nodes
     real(kind=kind(0.D0)), intent(in), allocatable, dimension(:) :: mys
     integer, intent(in) :: nredges
@@ -392,7 +392,7 @@ subroutine NonHomogeneousSingleColExp_init(this, nodes, nredges, mys, weight)
         md = 0.5*(my1 - my2)
         mav = 0.5*(my1 + my2)
         if (abs(md) < localzero) then
-            write(*,*) "[NonHomogeneousSingleColExp_init]: Identical diagonals found! This should go in another class!"
+            write(*,*) "[GeneralSingleColExp_init]: Identical diagonals found! This should go in another class!"
         endif
         ! This is the order of operations that yields stable matrix inversions
         ! We assume that the matrix that we have decomposed is hermitian:
@@ -408,7 +408,7 @@ subroutine NonHomogeneousSingleColExp_init(this, nodes, nredges, mys, weight)
 ! All nodes that we have been passed are now from a single color.
 ! They constitute now a strictly sparse matrix adapted to a chemical potential.
 ! Further processing of the entries could be done here.
-end subroutine NonHomogeneousSingleColExp_init
+end subroutine GeneralSingleColExp_init
 
 !--------------------------------------------------------------------
 !> @author
@@ -417,11 +417,11 @@ end subroutine NonHomogeneousSingleColExp_init
 !> @brief 
 !> Tidy up internal data structures.
 !
-!> @param[inout] this the NonHomogeneousSingleColExp object.
+!> @param[inout] this the GeneralSingleColExp object.
 !--------------------------------------------------------------------
-subroutine NonHomogeneousSingleColExp_dealloc(this)
-    class(NonHomogeneousSingleColExp), intent(inout) :: this
+subroutine GeneralSingleColExp_dealloc(this)
+    class(GeneralSingleColExp), intent(inout) :: this
     deallocate(this%x, this%y, this%c, this%s, this%c2, this%s2)
-end subroutine NonHomogeneousSingleColExp_dealloc
+end subroutine GeneralSingleColExp_dealloc
 
-end module NonHomogeneousSingleColExp_mod
+end module GeneralSingleColExp_mod

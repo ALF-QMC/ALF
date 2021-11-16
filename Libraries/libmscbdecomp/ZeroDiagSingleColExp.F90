@@ -20,7 +20,7 @@
 ! FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 ! DEALINGS IN THE SOFTWARE.
 
-module TraceLessSingleColExp_mod
+module ZeroDiagSingleColExp_mod
     Use Node_mod
     Use SingleColExpBase_mod
     implicit none
@@ -36,25 +36,25 @@ module TraceLessSingleColExp_mod
 !> particular color all chemical potentials vanish.
 
 !--------------------------------------------------------------------
-    type, extends(SingleColExpBase) :: TraceLessSingleColExp
+    type, extends(SingleColExpBase) :: ZeroDiagSingleColExp
         complex (kind=kind(0.d0)), allocatable :: s2(:), p(:)
         real (kind=kind(0.d0)), allocatable :: c2(:) !> additional array for storing values of half argument.
     contains
-        procedure :: init => TraceLessSingleColExp_init
-        procedure :: dealloc => TraceLessSingleColExp_dealloc
-        procedure :: vecmult => TraceLessSingleColExp_vecmult
-        procedure :: lmult => TraceLessSingleColExp_lmult
-        procedure :: lmultinv => TraceLessSingleColExp_lmultinv
-        procedure :: rmult => TraceLessSingleColExp_rmult
-        procedure :: rmultinv => TraceLessSingleColExp_rmultinv
-        procedure :: adjoint_over_two => TraceLessSingleColExp_adjoint_over_two
-        procedure :: adjointaction => TraceLessSingleColExp_adjointaction
+        procedure :: init => ZeroDiagSingleColExp_init
+        procedure :: dealloc => ZeroDiagSingleColExp_dealloc
+        procedure :: vecmult => ZeroDiagSingleColExp_vecmult
+        procedure :: lmult => ZeroDiagSingleColExp_lmult
+        procedure :: lmultinv => ZeroDiagSingleColExp_lmultinv
+        procedure :: rmult => ZeroDiagSingleColExp_rmult
+        procedure :: rmultinv => ZeroDiagSingleColExp_rmultinv
+        procedure :: adjoint_over_two => ZeroDiagSingleColExp_adjoint_over_two
+        procedure :: adjointaction => ZeroDiagSingleColExp_adjointaction
     end type
 
 contains
 
-subroutine TraceLessSingleColExp_vecmult(this, vec)
-    class(TraceLessSingleColExp), intent(in) :: this
+subroutine ZeroDiagSingleColExp_vecmult(this, vec)
+    class(ZeroDiagSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:) :: vec
     integer :: i
     complex(kind=kind(0.D0)) :: t1,t2
@@ -64,7 +64,7 @@ subroutine TraceLessSingleColExp_vecmult(this, vec)
         vec(this%x(i)) = this%c(i) * t1 + this%s(i) * t2
         vec(this%y(i)) = this%c(i) * t2 + conjg(this%s(i)) * t1
     enddo
-end subroutine TraceLessSingleColExp_vecmult
+end subroutine ZeroDiagSingleColExp_vecmult
 
 !--------------------------------------------------------------------
 !> @author
@@ -76,15 +76,15 @@ end subroutine TraceLessSingleColExp_vecmult
 !> @param[in] this The exponential that we consider
 !> @param[inout] mat the matrix that we modify.
 !--------------------------------------------------------------------
-subroutine TraceLessSingleColExp_lmult(this, mat)
-    class(TraceLessSingleColExp), intent(in) :: this
+subroutine ZeroDiagSingleColExp_lmult(this, mat)
+    class(ZeroDiagSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout), contiguous :: mat
     
     call lmultbase(this%c, this%s, this%x, this%nrofentries, mat)
-end subroutine TraceLessSingleColExp_lmult
+end subroutine ZeroDiagSingleColExp_lmult
 
-subroutine TraceLessSingleColExp_lmultinv(this, mat)
-    class(TraceLessSingleColExp), intent(in) :: this
+subroutine ZeroDiagSingleColExp_lmultinv(this, mat)
+    class(ZeroDiagSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
     integer :: i, j, k, ndim, loopend
     integer, parameter :: step = 2
@@ -104,7 +104,7 @@ subroutine TraceLessSingleColExp_lmultinv(this, mat)
             enddo
         enddo
     enddo
-end subroutine TraceLessSingleColExp_lmultinv
+end subroutine ZeroDiagSingleColExp_lmultinv
 
 !--------------------------------------------------------------------
 !> @author
@@ -122,16 +122,16 @@ end subroutine TraceLessSingleColExp_lmultinv
 !> @param[in] this The exponential that we consider
 !> @param[inout] mat the matrix that we modify.
 !--------------------------------------------------------------------
-subroutine TraceLessSingleColExp_adjointaction(this, mat)
-    class(TraceLessSingleColExp), intent(in) :: this
+subroutine ZeroDiagSingleColExp_adjointaction(this, mat)
+    class(ZeroDiagSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
     
     call this%lmult(mat)
     call this%rmultinv(mat)
-end subroutine TraceLessSingleColExp_adjointaction
+end subroutine ZeroDiagSingleColExp_adjointaction
 
-subroutine TraceLessSingleColExp_adjoint_over_two(this, mat)
-    class(TraceLessSingleColExp), intent(in) :: this
+subroutine ZeroDiagSingleColExp_adjoint_over_two(this, mat)
+    class(ZeroDiagSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
     integer :: i, j, k, ndim, loopend
     integer, parameter :: step = 2
@@ -167,7 +167,7 @@ subroutine TraceLessSingleColExp_adjoint_over_two(this, mat)
             mat(j, this%x(2*i)) = myc * t2scal - conjg(mys) * t1scal
         enddo
     enddo
-end subroutine TraceLessSingleColExp_adjoint_over_two
+end subroutine ZeroDiagSingleColExp_adjoint_over_two
 
 !--------------------------------------------------------------------
 !> @author
@@ -179,15 +179,15 @@ end subroutine TraceLessSingleColExp_adjoint_over_two
 !> @param[in] this The exponential that we consider
 !> @param[inout] mat the matrix that we modify.
 !--------------------------------------------------------------------
-subroutine TraceLessSingleColExp_rmult(this, mat)
-    class(TraceLessSingleColExp), intent(in) :: this
+subroutine ZeroDiagSingleColExp_rmult(this, mat)
+    class(ZeroDiagSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
     
     call rmultbase(this%c, this%s, this%x, this%nrofentries, mat)
-end subroutine TraceLessSingleColExp_rmult
+end subroutine ZeroDiagSingleColExp_rmult
 
-subroutine TraceLessSingleColExp_rmultinv(this, mat)
-    class(TraceLessSingleColExp), intent(in) :: this
+subroutine ZeroDiagSingleColExp_rmultinv(this, mat)
+    class(ZeroDiagSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
     integer :: i, j, ndim
     complex(kind=kind(0.D0)) :: t1, t2
@@ -201,7 +201,7 @@ subroutine TraceLessSingleColExp_rmultinv(this, mat)
         mat(j, this%x(2*i)) = this%c(i) * t2 - conjg(this%s(i)) * t1
         enddo
     enddo
-end subroutine TraceLessSingleColExp_rmultinv
+end subroutine ZeroDiagSingleColExp_rmultinv
 
 !--------------------------------------------------------------------
 !> @author
@@ -213,13 +213,13 @@ end subroutine TraceLessSingleColExp_rmultinv
 !> The internal layout is that the non-zero element a_xy stored at (x,y) in the matrix
 !> has x(i) at x(2i-1) and y(i) at x(2i)
 !
-!> @param[inout] this the TraceLessSingleColExp object.
+!> @param[inout] this the ZeroDiagSingleColExp object.
 !> @param[in] nodes The nodes that belng to this color.
 !> @param[in] nredges how many nodes of this color.
 !> @param[in] weight a prefactor for the exponent.
 !--------------------------------------------------------------------
-subroutine TraceLessSingleColExp_init(this, nodes, nredges, mys, weight)
-    class(TraceLessSingleColExp), intent(inout) :: this
+subroutine ZeroDiagSingleColExp_init(this, nodes, nredges, mys, weight)
+    class(ZeroDiagSingleColExp), intent(inout) :: this
     type(node), dimension(:), intent(in) :: nodes
     real(kind=kind(0.D0)), intent(in), allocatable, dimension(:) :: mys
     integer, intent(in) :: nredges
@@ -230,7 +230,7 @@ subroutine TraceLessSingleColExp_init(this, nodes, nredges, mys, weight)
     allocate(this%c2(nredges), this%s2(nredges), this%p(nredges))
     this%nrofentries = nredges
 #ifndef NDEBUG
-    write(*,*) "[TraceLessSingleColExp] Setting up strict. sparse matrix with ", nredges, "edges"
+    write(*,*) "[ZeroDiagSingleColExp] Setting up strict. sparse matrix with ", nredges, "edges"
 #endif
     do i = 1, nredges
         this%x(2*i-1) = nodes(i)%x
@@ -243,7 +243,7 @@ subroutine TraceLessSingleColExp_init(this, nodes, nredges, mys, weight)
         nf = sqrt(my1*my1+my2*my2 + 2*dble(this%p(i) * conjg(this%p(i))))
         localzero = 1E-15*nf ! definition of my local scale that defines zero
         if (abs(my1) > localzero || abs(my2) > localzero) then
-            write(*,*) "[TraceLessSingleColExp_init]: Diagonal NOT zero. This should not happen here."
+            write(*,*) "[ZeroDiagSingleColExp_init]: Diagonal NOT zero. This should not happen here."
             error stop 1
         endif
         ! This is the order of operations that yields stable matrix inversions
@@ -259,11 +259,11 @@ subroutine TraceLessSingleColExp_init(this, nodes, nredges, mys, weight)
     enddo
 ! All nodes that we have been passed are now from a single color.
 ! They constitute now a strictly sparse matrix.
-end subroutine TraceLessSingleColExp_init
+end subroutine ZeroDiagSingleColExp_init
 
-subroutine TraceLessSingleColExp_dealloc(this)
-    class(TraceLessSingleColExp), intent(inout) :: this
+subroutine ZeroDiagSingleColExp_dealloc(this)
+    class(ZeroDiagSingleColExp), intent(inout) :: this
     deallocate(this%x, this%y, this%c, this%s, this%c2, this%s2, this%p)
-end subroutine TraceLessSingleColExp_dealloc
+end subroutine ZeroDiagSingleColExp_dealloc
 
-end module TraceLessSingleColExp_mod
+end module ZeroDiagSingleColExp_mod
