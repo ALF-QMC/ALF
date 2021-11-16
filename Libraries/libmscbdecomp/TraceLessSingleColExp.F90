@@ -32,8 +32,8 @@ module TraceLessSingleColExp_mod
 !> @brief 
 !> This holds together all the low-level routines for performing the
 !> multiplications.
-!> This particular class is specialized to the case that in each
-!> checkerboard matrix, the chemical potentials are identical.
+!> This particular class is specialized to the case that each
+!> 2x2 block is a traceless matrix.
 
 !--------------------------------------------------------------------
     type, extends(SingleColExpBase) :: TraceLessSingleColExp
