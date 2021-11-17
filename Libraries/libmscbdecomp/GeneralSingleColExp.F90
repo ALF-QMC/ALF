@@ -23,6 +23,7 @@
 module GeneralSingleColExp_mod
     Use Node_mod
     Use SingleColExpBase_mod
+    Use TraceLessSingleColExp_mod
     implicit none
 
 !--------------------------------------------------------------------
@@ -37,10 +38,8 @@ module GeneralSingleColExp_mod
 !> implementation.
 !--------------------------------------------------------------------
     type, extends(SingleColExpBase) :: GeneralSingleColExp
-        integer :: nrofentries
-        integer, allocatable :: x(:), y(:)
-        complex (kind=kind(0.d0)), allocatable :: s(:), s2(:), p(:)
-        real (kind=kind(0.d0)), allocatable :: c(:), c2(:) ! the cosh arrays are twice as big since we need two real values
+        complex (kind=kind(0.d0)), allocatable :: sinv(:)
+        real (kind=kind(0.d0)), allocatable :: cinv(:)! the cosh arrays are twice as big since we need two real values
     contains
         procedure :: init => GeneralSingleColExp_init
         procedure :: dealloc => GeneralSingleColExp_dealloc
@@ -63,8 +62,8 @@ subroutine GeneralSingleColExp_vecmult(this, vec)
     do i = 1, this%nrofentries! for every matrix
         t1 = vec(this%x(i))
         t2 = vec(this%y(i))
-        vec(this%x(i)) = this%c(2*i) * t1 + this%s(i) * t2
-        vec(this%y(i)) = this%c(2*i+1) * t2 + conjg(this%s(i)) * t1
+        vec(this%x(i)) = this%c(2*i-1) * t1 + this%s(i) * t2
+        vec(this%y(i)) = this%c(2*i) * t2 + conjg(this%s(i)) * t1
     enddo
 end subroutine GeneralSingleColExp_vecmult
 
@@ -75,8 +74,6 @@ end subroutine GeneralSingleColExp_vecmult
 !> @brief 
 !> Perform the multiplication of this exponential with a matrix: out = this*mat
 !
-!> Notes: unifying x and y into one array gave some speedup.
-!> Unifying c and s did not...
 !> FIXME: ndim divisible by two...
 !
 !> @param[in] this The exponential that we consider.
@@ -85,37 +82,8 @@ end subroutine GeneralSingleColExp_vecmult
 subroutine GeneralSingleColExp_lmult(this, mat)
     class(GeneralSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout), contiguous :: mat
-    integer :: i, j, k, ndim, loopend
-    integer, parameter :: step = 2 ! determined to be fastest on 6x6 hubbard
-    complex(kind=kind(0.D0)) :: t1(step), t2(step)
-    integer, allocatable, dimension(:) :: xyarray
-    complex(kind=kind(0.D0)), allocatable, dimension(:) :: snh
-    real(kind=kind(0.D0)), allocatable, dimension(:) :: csh
-
-! The intel compiler is really helped by using these temporary arrays
-    allocate(xyarray(2*this%nrofentries), csh(2*this%nrofentries), snh(this%nrofentries) )
-    xyarray = this%x
-    csh = this%c
-    snh = this%s
-
-    ndim = size(mat,1)
-    loopend = (ndim/step)*step
-
-! ifort 2017
-!DIR$ UNROLL_AND_JAM(4)
-    do j = 1, loopend, step
-        do i = 1, this%nrofentries! for every matrix
-            do k = 1,step
-                t1(k) = mat(xyarray(2*i-1), j+k-1)
-                t2(k) = mat(xyarray(2*i), j+k-1)
-            enddo
-            do k = 1, step
-                mat(xyarray(2*i-1), j+k-1) = csh(2*i-1) * t1(k) + snh(i) * t2(k)
-                mat(xyarray(2*i), j+k-1) = csh(2*i) * t2(k) + conjg(snh(i)) * t1(k)
-            enddo
-        enddo
-    enddo
-    deallocate(xyarray, csh, snh)
+    
+    call lmultthreeelementbase(this%c, this%s, this%nrofentries, mat)
 end subroutine GeneralSingleColExp_lmult
 
 !--------------------------------------------------------------------
@@ -135,24 +103,8 @@ end subroutine GeneralSingleColExp_lmult
 subroutine GeneralSingleColExp_lmultinv(this, mat)
     class(GeneralSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
-    integer :: i, j, k, ndim, loopend
-    integer, parameter :: step = 2
-    complex(kind=kind(0.D0)) :: t1(step), t2(step)
     
-    ndim = size(mat,1)
-    loopend = (ndim/step)*step
-    do j = 1, loopend, step
-        do i = 1, this%nrofentries! for every matrix
-            do k = 1,step
-                t1(k) = mat(this%x(2*i-1), j+k-1)
-                t2(k) = mat(this%x(2*i), j+k-1)
-            enddo
-            do k = 1, step
-                mat(this%x(2*i-1), j+k-1) = this%c(2*i) * t1(k) - this%s(i) * t2(k)
-                mat(this%x(2*i), j+k-1) = this%c(2*i-1) * t2(k) - conjg(this%s(i)) * t1(k)
-            enddo
-        enddo
-    enddo
+    call lmultthreeelementsbase(this%cinv, this%sinv, this%nrofentries, mat)
 end subroutine GeneralSingleColExp_lmultinv
 
 !--------------------------------------------------------------------
@@ -238,18 +190,8 @@ end subroutine GeneralSingleColExp_adjoint_over_two
 subroutine GeneralSingleColExp_rmult(this, mat)
     class(GeneralSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
-    integer :: i, j, k, ndim
-    complex(kind=kind(0.D0)) :: t1, t2
-    
-    ndim = size(mat,1)
-    do i = 1, this%nrofentries! for every matrix
-        do j = 1, ndim
-        t1 = mat(j, this%x(2*i-1))
-        t2 = mat(j, this%x(2*i))
-        mat(j, this%x(2*i-1)) = this%c(2*i-1) * t1 + this%s(i)* t2
-        mat(j, this%x(2*i)) = this%c(2*i) * t2 + conjg(this%s(i))* t1
-        enddo
-    enddo
+
+    call rmultthreeelementsbase(this%c, this%s, this%x, this%nrofentries, mat)
 end subroutine GeneralSingleColExp_rmult
 
 !--------------------------------------------------------------------
@@ -266,52 +208,9 @@ end subroutine GeneralSingleColExp_rmult
 subroutine GeneralSingleColExp_rmultinv(this, mat)
     class(GeneralSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
-    integer :: i, j, k, ndim
-    complex(kind=kind(0.D0)) :: t1, t2
-    
-    ndim = size(mat,1)
-    do i = 1, this%nrofentries! for every matrix
-        do j = 1, ndim
-        t1 = mat(j, this%x(2*i-1))
-        t2 = mat(j, this%x(2*i))
-        mat(j, this%x(2*i-1)) = this%c(2*i) * t1 - this%s(i) * t2
-        mat(j, this%x(2*i)) = this%c(2*i-1) * t2 - conjg(this%s(i)) * t1
-        enddo
-    enddo
+
+    call rmultthreeelementsbase(this%cinv, this%sinv, this%x, this%nrofentries, mat)
 end subroutine GeneralSingleColExp_rmultinv
-
-!--------------------------------------------------------------------
-!> @author
-!> Florian Goth
-!
-!> @brief 
-!> This calculates the input data of a checkerboard matrix, hence
-!> the entries of C=exp({{d,o},{o^*,-d}})
-!> While best preserving det(C) = 1
-!> After 
-!
-!> @param [out] diag1 first diagonal
-!> @param [out] diag2 second diagonal
-!> @param [out] offout resulting off-diagonal
-!> @param [in] diag diagonal d
-!> @param [in] offinp The off-diagonal o
-!> @param [in] weight a real prefactor
-!--------------------------------------------------------------------
-subroutine expof2x2tracelesshermitianmatrix(diag1, diag2, offout, diag, offinp, weight)
-    real (kind=kind(0.d0)), intent(in) :: weight, diag
-    real (kind=kind(0.d0)), intent(out) :: diag1, diag2
-    complex(kind=kind(0.D0)), intent(in) :: offinp
-    complex(kind=kind(0.D0)), intent(out) :: offout
-    real (kind=kind(0.d0)) :: sinhlocal, angle
-
-    angle = sqrt(diag*diag + DBLE(offinp * conjg(offinp)))
-    sinhlocal = sinh(weight*angle)
-    diag1 = sqrt(sinhlocal**2 - 1.0)
-    diag2 = diag1
-    diag1 = diag1 + diag*sinhlocal/angle
-    diag2 = diag2 - diag*sinhlocal/angle
-    offout = offinp/abs(offinp)*sqrt(diag1*diag2 - 1.0)! rescale offdiagonal such that det(exp(C)) == 1
-end subroutine
 
 !--------------------------------------------------------------------
 !> @author
@@ -342,7 +241,7 @@ subroutine expof2x2hermitianmatrix(diag1, diag2, offout, diag, offinp, weight, m
     call expof2x2tracelesshermitianmatrix(diag1, diag2, offout, diag, offinp, weight)
     
     if(abs(mav) > eps) then ! fixup chemical potential
-        myexp = exp(mav)
+        myexp = exp(weight * mav)
         diag1 = diag1 * myexp
         diag2 = diag2 * myexp
             
@@ -402,13 +301,16 @@ subroutine GeneralSingleColExp_init(this, nodes, nredges, mys, weight)
         ! with d = (my1-m2)/2 and mav = (my1+m2)/2
         
         call expof2x2hermitianmatrix(this%c(2*i-1), this%c(2*i), this%s(i), md, nodes(i)%axy, weight, mav, localzero)
+        
+        dweight = -weight
+        call expof2x2hermitianmatrix(this%cinv(2*i-1), this%cinv(2*i), this%sinv(i), md, nodes(i)%axy, dweight, mav,
+        localzero)
         dweight = 0.5*weight
         call expof2x2hermitianmatrix(this%c2(2*i-1), this%c2(2*i), this%s2(i), md, nodes(i)%axy, dweight, mav, localzero)
 
     enddo
 ! All nodes that we have been passed are now from a single color.
-! They constitute now a strictly sparse matrix adapted to a chemical potential.
-! Further processing of the entries could be done here.
+! They constitute now a strictly sparse matrix adapted to a chemical potential..
 end subroutine GeneralSingleColExp_init
 
 !--------------------------------------------------------------------

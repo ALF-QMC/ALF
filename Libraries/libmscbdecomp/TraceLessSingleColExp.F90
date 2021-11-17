@@ -268,6 +268,41 @@ end subroutine
 !> Florian Goth
 !
 !> @brief 
+!> Perform the inverse multiplication with a matrix.
+!> This version requires three data elements.
+!> This is an internal helper function that finds reuse in multiple places.
+!
+!> @param[in] c the diagonal data
+!> @param[in] s the off-diagonal data
+!> @param[in] x the used matrix positions
+!> @param[in] nrofentries how many vertices are in this family.
+!> @param[inout] mat the matrix that we modify.
+!--------------------------------------------------------------------
+pure subroutine rmultthreeelementsbaseinv(c, s, x, nrofentries, mat)
+    real (kind=kind(0.d0)), allocatable, intent(in) :: c(:)
+    complex (kind=kind(0.d0)), allocatable, intent(in) :: s(:)
+    integer, allocatable, intent(in) :: x(:)
+    integer, intent(in) ::nrofentries
+    complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
+    integer :: i, j, ndim
+    complex(kind=kind(0.D0)) :: t1, t2
+
+    ndim = size(mat,1)
+    do i = 1, nrofentries! for every matrix
+        do j = 1, ndim
+        t1 = mat(j, x(2*i-1))
+        t2 = mat(j, x(2*i))
+        mat(j, x(2*i-1)) = c(2*i) * t1 - s(i)* t2
+        mat(j, x(2*i)) = c(2*i-1) * t2 - conjg(s(i))* t1
+        enddo
+    enddo
+end subroutine
+
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
 !> Perform the multiplication of this exponential with a matrix: out = mat*this
 !
 !> @param[in] this The exponential that we consider
@@ -310,6 +345,40 @@ subroutine TraceLessSingleColExp_rmultinv(this, mat)
         enddo
     enddo
 end subroutine TraceLessSingleColExp_rmultinv
+
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
+!> This calculates the input data of a checkerboard matrix, hence
+!> the entries of C=exp({{d,o},{o^*,-d}})
+!> While best preserving det(C) = 1
+!> After 
+!
+!> @param [out] diag1 first diagonal
+!> @param [out] diag2 second diagonal
+!> @param [out] offout resulting off-diagonal
+!> @param [in] diag diagonal d
+!> @param [in] offinp The off-diagonal o
+!> @param [in] weight a real prefactor
+!--------------------------------------------------------------------
+subroutine expof2x2tracelesshermitianmatrix(diag1, diag2, offout, diag, offinp, weight)
+    real (kind=kind(0.d0)), intent(in) :: weight, diag
+    real (kind=kind(0.d0)), intent(out) :: diag1, diag2
+    complex(kind=kind(0.D0)), intent(in) :: offinp
+    complex(kind=kind(0.D0)), intent(out) :: offout
+    real (kind=kind(0.d0)) :: sinhlocal, angle
+
+    angle = sqrt(diag*diag + DBLE(offinp * conjg(offinp)))
+    sinhlocal = sinh(weight*angle) ! weight does not seem to get an abs() here.
+    diag1 = sqrt(1.0 + sinhlocal**2) ! solve for cosh
+    diag2 = diag1
+    diag1 = diag1 + diag*sinhlocal/angle
+    diag2 = diag2 - diag*sinhlocal/angle
+    offout = weight*offinp/abs(weight*offinp)*sqrt(diag1*diag2 - 1.0)! rescale offdiagonal such that det(exp(C)) == 1
+end subroutine
+
 
 !--------------------------------------------------------------------
 !> @author
@@ -362,12 +431,8 @@ subroutine TraceLessSingleColExp_init(this, nodes, nredges, mys, weight)
         ! with a real d.
         ! then the below entries follow for the exponential and cosh is real.
         ! chemical potentials are deferred to different classes
-        angle = sqrt(my1*my1 + this%p(i)*conjg(this%p(i)))
-        tmp = cosh(abs(weight*nodes(i)%axy))
-        this%s(i) = sqrt(this%c(i)**2-1.0)
-        this%c(2*i-1) = tmp + d/angle*this%s(i)
-        this%c(2*i) = tmp - d/angle*this%s(i)
-        this%s(i) = weight*nodes(i)%axy/abs(weight*nodes(i)%axy)*sqrt(this%c(2*i)*this%c(2*i-1)-1.0)! det(M) == 1
+        
+        call expof2x2tracelesshermitianmatrix(this%c(2*i-1), this%c(2*i), this%s(i), my1, nodes(i)%axy, weight)
         
         !FIXME: not yet updated.
         this%c2(i) = cosh(abs(weight*nodes(i)%axy)/2)
