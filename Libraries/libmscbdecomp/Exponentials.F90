@@ -22,6 +22,7 @@
 
 module Exponentials_mod
     Use HomogeneousSingleColExp_mod
+    Use NonHomogeneousSingleColExp_mod
     implicit none
 
 !--------------------------------------------------------------------
