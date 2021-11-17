@@ -61,10 +61,69 @@ subroutine TraceLessSingleColExp_vecmult(this, vec)
     do i = 1, this%nrofentries! for every matrix
         t1 = vec(this%x(i))
         t2 = vec(this%y(i))
-        vec(this%x(i)) = this%c(i) * t1 + this%s(i) * t2
-        vec(this%y(i)) = this%c(i) * t2 + conjg(this%s(i)) * t1
+        vec(this%x(i)) = this%c(2*i-1) * t1 + this%s(i) * t2
+        vec(this%y(i)) = this%c(2*i) * t2 + conjg(this%s(i)) * t1
     enddo
 end subroutine TraceLessSingleColExp_vecmult
+
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
+!> Perform the multiplication of this exponential with a matrix: out = this*mat
+!
+!> Notes: unifying x and y into one array gave some speedup.
+!> Unifying c and s did not...
+!> FIXME: ndim divisible by two...
+!> This is an internal helper function that finds reuse in multiple places.
+!
+!> @param[in] c the diagonal data
+!> @param[in] s the off-diagonal data
+!> @param[in] x the used matrix positions
+!> @param[in] nrofentries how many vertices are in this family.
+!> @param[inout] mat the matrix that we modify.
+!--------------------------------------------------------------------
+
+pure subroutine lmultthreeelementbase(c, s, x, nrofentries, mat)
+    real (kind=kind(0.d0)), allocatable, intent(in) :: c(:)
+    complex (kind=kind(0.d0)), allocatable, intent(in) :: s(:)
+    integer, allocatable, intent(in) :: x(:)
+    integer, intent(in) ::nrofentries
+    complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
+    
+    integer :: i, j, k, ndim, loopend
+    integer, parameter :: step = 2 ! determined to be fastest on 6x6 hubbard
+    complex(kind=kind(0.D0)) :: t1(step), t2(step)
+    integer, allocatable, dimension(:) :: xyarray
+    complex(kind=kind(0.D0)), allocatable, dimension(:) :: snh
+    real(kind=kind(0.D0)), allocatable, dimension(:) :: csh
+
+! The intel compiler is really helped by using these temporary arrays
+    allocate(xyarray(nrofentries), csh(nrofentries), snh(nrofentries) )
+    xyarray = x
+    csh = c
+    snh = s
+
+    ndim = size(mat,1)
+    loopend = (ndim/step)*step
+
+! ifort 2017
+!DIR$ UNROLL_AND_JAM(4)
+    do j = 1, loopend, step
+        do i = 1, nrofentries! for every matrix
+            do k = 1,step
+                t1(k) = mat(xyarray(2*i-1), j+k-1)
+                t2(k) = mat(xyarray(2*i), j+k-1)
+            enddo
+            do k = 1, step
+                mat(xyarray(2*i-1), j+k-1) = csh(2*i-1) * t1(k) + snh(i) * t2(k)
+                mat(xyarray(2*i), j+k-1) = csh(2*i) * t2(k) + conjg(snh(i)) * t1(k)
+            enddo
+        enddo
+    enddo
+    deallocate(xyarray, csh, snh)
+end subroutine
 
 !--------------------------------------------------------------------
 !> @author
@@ -80,7 +139,7 @@ subroutine TraceLessSingleColExp_lmult(this, mat)
     class(TraceLessSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout), contiguous :: mat
     
-    call lmultbase(this%c, this%s, this%x, this%nrofentries, mat)
+    call lmultthreeelementbase(this%c, this%s, this%x, this%nrofentries, mat)
 end subroutine TraceLessSingleColExp_lmult
 
 subroutine TraceLessSingleColExp_lmultinv(this, mat)
@@ -99,8 +158,8 @@ subroutine TraceLessSingleColExp_lmultinv(this, mat)
                 t2(k) = mat(this%x(2*i), j+k-1)
             enddo
             do k = 1, step
-                mat(this%x(2*i-1), j+k-1) = this%c(i) * t1(k) - this%s(i) * t2(k)
-                mat(this%x(2*i), j+k-1) = this%c(i) * t2(k) - conjg(this%s(i)) * t1(k)
+                mat(this%x(2*i-1), j+k-1) = this%c(2*i) * t1(k) - this%s(i) * t2(k)
+                mat(this%x(2*i), j+k-1) = this%c(2*i-1) * t2(k) - conjg(this%s(i)) * t1(k)
             enddo
         enddo
     enddo
@@ -174,6 +233,41 @@ end subroutine TraceLessSingleColExp_adjoint_over_two
 !> Florian Goth
 !
 !> @brief 
+!> Perform the multiplication with a matrix.
+!> This version requires three data elements
+!> This is an internal helper function that finds reuse in multiple places.
+!
+!> @param[in] c the diagonal data
+!> @param[in] s the off-diagonal data
+!> @param[in] x the used matrix positions
+!> @param[in] nrofentries how many vertices are in this family.
+!> @param[inout] mat the matrix that we modify.
+!--------------------------------------------------------------------
+pure subroutine rmultthreeelementsbase(c, s, x, nrofentries, mat)
+    real (kind=kind(0.d0)), allocatable, intent(in) :: c(:)
+    complex (kind=kind(0.d0)), allocatable, intent(in) :: s(:)
+    integer, allocatable, intent(in) :: x(:)
+    integer, intent(in) ::nrofentries
+    complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
+    integer :: i, j, ndim
+    complex(kind=kind(0.D0)) :: t1, t2
+
+    ndim = size(mat,1)
+    do i = 1, nrofentries! for every matrix
+        do j = 1, ndim
+        t1 = mat(j, x(2*i-1))
+        t2 = mat(j, x(2*i))
+        mat(j, x(2*i-1)) = c(2*i-1) * t1 + s(i)* t2
+        mat(j, x(2*i)) = c(2*i) * t2 + conjg(s(i))* t1
+        enddo
+    enddo
+end subroutine
+
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
 !> Perform the multiplication of this exponential with a matrix: out = mat*this
 !
 !> @param[in] this The exponential that we consider
@@ -183,9 +277,23 @@ subroutine TraceLessSingleColExp_rmult(this, mat)
     class(TraceLessSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
     
-    call rmultbase(this%c, this%s, this%x, this%nrofentries, mat)
+    call rmultthreeelementsbase(this%c, this%s, this%x, this%nrofentries, mat)
 end subroutine TraceLessSingleColExp_rmult
 
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
+!> multiplication with inverse.
+!> We know that Inverse of
+!> M= ( a, x  )   ( b, -x )
+!>    (x^*, b) =  ( -x^*, a)
+!> if det(M) = 1.
+!
+!> @param[in] this The exponential that we consider
+!> @param[inout] mat the matrix that we modify.
+!--------------------------------------------------------------------
 subroutine TraceLessSingleColExp_rmultinv(this, mat)
     class(TraceLessSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
@@ -197,8 +305,8 @@ subroutine TraceLessSingleColExp_rmultinv(this, mat)
         do j = 1, ndim
         t1 = mat(j, this%x(2*i-1))
         t2 = mat(j, this%x(2*i))
-        mat(j, this%x(2*i-1)) = this%c(i) * t1 - this%s(i) * t2
-        mat(j, this%x(2*i)) = this%c(i) * t2 - conjg(this%s(i)) * t1
+        mat(j, this%x(2*i-1)) = this%c(2*i) * t1 - this%s(i) * t2
+        mat(j, this%x(2*i)) = this%c(2*i-1) * t2 - conjg(this%s(i)) * t1
         enddo
     enddo
 end subroutine TraceLessSingleColExp_rmultinv
@@ -225,8 +333,9 @@ subroutine TraceLessSingleColExp_init(this, nodes, nredges, mys, weight)
     integer, intent(in) :: nredges
     real (kind=kind(0.d0)), intent(in) :: weight
     integer :: i
-    real (kind=kind(0.d0)) :: nf, my1, my2, localzero
-    allocate(this%x(2*nredges), this%y(nredges), this%c(nredges), this%s(nredges))
+    real (kind=kind(0.d0)) :: nf, my1, my2, localzero, angle, tmp
+    ! We need twice the amount of storage for the diagonal.
+    allocate(this%x(2*nredges), this%y(nredges), this%s(nredges)), this%c(2*nredges) 
     allocate(this%c2(nredges), this%s2(nredges), this%p(nredges))
     this%nrofentries = nredges
 #ifndef NDEBUG
@@ -242,19 +351,26 @@ subroutine TraceLessSingleColExp_init(this, nodes, nredges, mys, weight)
         my2 = mys(nodes(i)%y)
         nf = sqrt(my1*my1+my2*my2 + 2*dble(this%p(i) * conjg(this%p(i))))
         localzero = 1E-15*nf ! definition of my local scale that defines zero
-        if (abs(my1) > localzero || abs(my2) > localzero) then
-            write(*,*) "[TraceLessSingleColExp_init]: Diagonal NOT zero. This should not happen here."
+        if (abs(my1+my2) > localzero) then
+            write(*,*) "[TraceLessSingleColExp_init]: Matrix not traceless. This should not happen here."
             error stop 1
         endif
         ! This is the order of operations that yields stable matrix inversions
         ! We assume that the matrix that we have decomposed is hermitian:
-        ! M=(0  , b)
-        !   (b^*, 0) then the below entries follow for the exponential and cosh is real.
+        ! M=(d  , b)
+        !   (b^*, -d)
+        ! with a real d.
+        ! then the below entries follow for the exponential and cosh is real.
         ! chemical potentials are deferred to different classes
-        this%c(i) = cosh(abs(weight*nodes(i)%axy))
+        angle = sqrt(my1*my1 + this%p(i)*conjg(this%p(i)))
+        tmp = cosh(abs(weight*nodes(i)%axy))
+        this%s(i) = sqrt(this%c(i)**2-1.0)
+        this%c(2*i-1) = tmp + d/angle*this%s(i)
+        this%c(2*i) = tmp - d/angle*this%s(i)
+        this%s(i) = weight*nodes(i)%axy/abs(weight*nodes(i)%axy)*sqrt(this%c(2*i)*this%c(2*i-1)-1.0)! det(M) == 1
+        
+        !FIXME: not yet updated.
         this%c2(i) = cosh(abs(weight*nodes(i)%axy)/2)
-        ! I got the most reliable results if the hyperbolic pythagoras is best fulfilled.
-        this%s(i) = sqrt(this%c(i)**2-1.0)*weight*nodes(i)%axy/abs(weight*nodes(i)%axy)
         this%s2(i) = sqrt(this%c2(i)**2-1.0)*weight*nodes(i)%axy/abs(weight*nodes(i)%axy)
     enddo
 ! All nodes that we have been passed are now from a single color.

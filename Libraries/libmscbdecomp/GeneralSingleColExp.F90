@@ -33,7 +33,8 @@ module GeneralSingleColExp_mod
 !> This holds together all the low-level routines for performing the
 !> multiplications.
 !> This particular class allows for non-identical chemical potentials,
-!> in contrast to HomogeneousSingleColExp.
+!> in contrast to HomogeneousSingleColExp and hence is the most general
+!> implementation.
 !--------------------------------------------------------------------
     type, extends(SingleColExpBase) :: GeneralSingleColExp
         integer :: nrofentries

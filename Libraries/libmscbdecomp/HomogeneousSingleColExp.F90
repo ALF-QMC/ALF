@@ -37,10 +37,10 @@ module HomogeneousSingleColExp_mod
 
 !--------------------------------------------------------------------
     type, extends(SingleColExpBase) :: HomogeneousSingleColExp
-!         integer :: nrofentries
-!         integer, allocatable :: x(:), y(:) ! the y array is still around but often(?) unused
+        complex (kind=kind(0.d0)), allocatable :: sinv()
         complex (kind=kind(0.d0)), allocatable :: s2(:), p(:)
         real (kind=kind(0.d0)), allocatable :: c2(:)
+        real (kind=kind(0.d0)), allocatable :: cinv(:)
     contains
         procedure :: init => HomogeneousSingleColExp_init
         procedure :: dealloc => HomogeneousSingleColExp_dealloc
@@ -105,8 +105,8 @@ subroutine HomogeneousSingleColExp_lmultinv(this, mat)
                 t2(k) = mat(this%x(2*i), j+k-1)
             enddo
             do k = 1, step
-                mat(this%x(2*i-1), j+k-1) = this%c(i) * t1(k) - this%s(i) * t2(k)
-                mat(this%x(2*i), j+k-1) = this%c(i) * t2(k) - conjg(this%s(i)) * t1(k)
+                mat(this%x(2*i-1), j+k-1) = this%cinv(i) * t1(k) - this%sinv(i) * t2(k)
+                mat(this%x(2*i), j+k-1) = this%cinv(i) * t2(k) - conjg(this%sinv(i)) * t1(k)
             enddo
         enddo
     enddo
@@ -203,8 +203,8 @@ subroutine HomogeneousSingleColExp_rmultinv(this, mat)
         do j = 1, ndim
         t1 = mat(j, this%x(2*i-1))
         t2 = mat(j, this%x(2*i))
-        mat(j, this%x(2*i-1)) = this%c(i) * t1 - this%s(i) * t2
-        mat(j, this%x(2*i)) = this%c(i) * t2 - conjg(this%s(i)) * t1
+        mat(j, this%x(2*i-1)) = this%cinv(i) * t1 - this%sinv(i) * t2
+        mat(j, this%x(2*i)) = this%cinv(i) * t2 - conjg(this%sinv(i)) * t1
         enddo
     enddo
 end subroutine HomogeneousSingleColExp_rmultinv
@@ -220,7 +220,7 @@ end subroutine HomogeneousSingleColExp_rmultinv
 !> has x(i) at x(2i-1) and y(i) at x(2i)
 !
 !> @param[inout] this the HomogeneousSingleColExp object.
-!> @param[in] nodes The nodes that belng to this color.
+!> @param[in] nodes The nodes that belong to this color.
 !> @param[in] nredges how many nodes of this color.
 !> @param[in] weight a prefactor for the exponent.
 !--------------------------------------------------------------------
@@ -254,9 +254,9 @@ subroutine HomogeneousSingleColExp_init(this, nodes, nredges, mys, weight)
         endif
         ! This is the order of operations that yields stable matrix inversions
         ! We assume that the matrix that we have decomposed is hermitian:
-        ! M=(0  , b)
-        !   (b^*, 0) then the below entries follow for the exponential and cosh is real.
-        ! The case of a uniform chemical potential is fixed up later.
+        ! M=(my  , b)
+        !   (b^*, my) then the below entries follow for the exponential and cosh is real.
+        ! The case of the uniform chemical potential is fixed up later.
         this%c(i) = cosh(abs(weight*nodes(i)%axy))
         this%c2(i) = cosh(abs(weight*nodes(i)%axy)/2)
         ! I got the most reliable results if the hyperbolic pythagoras is best fulfilled.
@@ -264,8 +264,10 @@ subroutine HomogeneousSingleColExp_init(this, nodes, nredges, mys, weight)
         this%s(i) = sqrt(this%c(i)**2-1.0)*weight*nodes(i)%axy/abs(weight*nodes(i)%axy)
         this%s2(i) = sqrt(this%c2(i)**2-1.0)*weight*nodes(i)%axy/abs(weight*nodes(i)%axy)
         if (abs(my1+my2) > 2*localzero) then ! chemical potential is actually different from zero
+            this%cinv(i) = this%c(i) * exp(-my1)
             this%c(i) = this%c(i) * exp(my1)
             this%c2(i) = this%c2(i) * exp(my1/2)
+            this%sinv(i) = -this%s(i) * exp(-my1)! FIXME: reuse inverse functions from zerodiag
             this%s(i) = this%s(i) * exp(my1)
             this%s2(i) = this%s2(i) * exp(my1/2)
         endif
@@ -277,7 +279,7 @@ end subroutine HomogeneousSingleColExp_init
 
 subroutine HomogeneousSingleColExp_dealloc(this)
     class(HomogeneousSingleColExp), intent(inout) :: this
-    deallocate(this%x, this%y, this%c, this%s, this%c2, this%s2)
+    deallocate(this%x, this%y, this%c, this%s, this%c2, this%s2, this%cinv, this%sinv)
 end subroutine HomogeneousSingleColExp_dealloc
 
 end module HomogeneousSingleColExp_mod
