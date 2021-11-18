@@ -122,13 +122,13 @@ subroutine HomogeneousSingleColExp_adjoint_over_two(this, mat)
 
     ! rmultinv part
     do i = 1, this%nrofentries! for every matrix
-            myc = this%cinv2(i)
-            mys = this%sinv2(i)
+            myc = this%c2inv(i)
+            mys = this%s2inv(i)
         do j = 1, ndim
             t1scal = mat(j, this%x(2*i-1))
             t2scal = mat(j, this%x(2*i))
-            mat(j, this%x(2*i-1)) = myc * t1scal - mys * t2scal
-            mat(j, this%x(2*i)) = myc * t2scal - conjg(mys) * t1scal
+            mat(j, this%x(2*i-1)) = myc * t1scal + mys * t2scal ! the sign of sinh() has been taken care of in the initialization
+            mat(j, this%x(2*i)) = myc * t2scal + conjg(mys) * t1scal
         enddo
     enddo
 end subroutine HomogeneousSingleColExp_adjoint_over_two
@@ -214,7 +214,7 @@ subroutine HomogeneousSingleColExp_init(this, nodes, nredges, mys, weight)
             this%c2(i) = this%c2(i) * exp(my1/2)
             this%sinv(i) = -this%s(i) * exp(-my1)
             this%s(i) = this%s(i) * exp(my1)
-            this%s2inv(i) = this%s2(i) * exp(-my1/2)
+            this%s2inv(i) = -this%s2(i) * exp(-my1/2)
             this%s2(i) = this%s2(i) * exp(my1/2)
         endif
     enddo

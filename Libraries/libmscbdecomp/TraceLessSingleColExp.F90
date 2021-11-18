@@ -213,7 +213,6 @@ subroutine TraceLessSingleColExp_adjoint_over_two(this, mat)
 
     ! rmultinv part
     do i = 1, this%nrofentries! for every matrix
-            myc = this%c2(i)
             mys = this%s2(i)
         do j = 1, ndim
             t1scal = mat(j, this%x(2*i-1))
