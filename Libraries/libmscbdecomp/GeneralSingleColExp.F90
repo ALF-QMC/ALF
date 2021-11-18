@@ -122,19 +122,8 @@ subroutine GeneralSingleColExp_adjoint_over_two(this, mat)
         enddo
     enddo
 
-    ! rmultinv part
-    do i = 1, this%nrofentries! for every matrix
-            ! Inversion swaps diagonal entries
-            myc(1) = this%c2(2*i)
-            myc(2) = this%c2(2*i-1)
-            mys = this%s2(i)
-        do j = 1, ndim
-            t1scal = mat(j, this%x(2*i-1))
-            t2scal = mat(j, this%x(2*i))
-            mat(j, this%x(2*i-1)) = myc(1) * t1scal - mys * t2scal
-            mat(j, this%x(2*i)) = myc(2) * t2scal - conjg(mys) * t1scal
-        enddo
-    enddo
+    ! rmultinv part with new data
+    call rmultthreeelementsbase(this%c2inv, this%s2inv, this%x, this%nrofentries, mat)
 end subroutine GeneralSingleColExp_adjoint_over_two
 
 !--------------------------------------------------------------------
