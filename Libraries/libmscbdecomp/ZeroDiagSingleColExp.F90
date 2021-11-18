@@ -37,8 +37,7 @@ module ZeroDiagSingleColExp_mod
 
 !--------------------------------------------------------------------
     type, extends(SingleColExpBase) :: ZeroDiagSingleColExp
-        complex (kind=kind(0.d0)), allocatable :: s2(:), p(:)
-        real (kind=kind(0.d0)), allocatable :: c2(:) !> additional array for storing values of half argument.
+        complex (kind=kind(0.d0)), allocatable :: p(:)
     contains
         procedure :: init => ZeroDiagSingleColExp_init
         procedure :: dealloc => ZeroDiagSingleColExp_dealloc

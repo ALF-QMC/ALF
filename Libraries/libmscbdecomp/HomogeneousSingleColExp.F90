@@ -38,8 +38,7 @@ module HomogeneousSingleColExp_mod
 !--------------------------------------------------------------------
     type, extends(SingleColExpBase) :: HomogeneousSingleColExp
         complex (kind=kind(0.d0)), allocatable :: sinv(:)
-        complex (kind=kind(0.d0)), allocatable :: s2(:), p(:)
-        real (kind=kind(0.d0)), allocatable :: c2(:)
+        complex (kind=kind(0.d0)), allocatable :: p(:)
         real (kind=kind(0.d0)), allocatable :: cinv(:)
     contains
         procedure :: init => HomogeneousSingleColExp_init

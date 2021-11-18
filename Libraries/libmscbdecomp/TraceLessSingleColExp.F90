@@ -34,11 +34,9 @@ module TraceLessSingleColExp_mod
 !> multiplications.
 !> This particular class is specialized to the case that each
 !> 2x2 block is a traceless matrix.
-
 !--------------------------------------------------------------------
     type, extends(SingleColExpBase) :: TraceLessSingleColExp
-        complex (kind=kind(0.d0)), allocatable :: s2(:), p(:)
-        real (kind=kind(0.d0)), allocatable :: c2(:) !> additional array for storing values of half argument.
+        complex (kind=kind(0.d0)), allocatable :: p(:)
     contains
         procedure :: init => TraceLessSingleColExp_init
         procedure :: dealloc => TraceLessSingleColExp_dealloc

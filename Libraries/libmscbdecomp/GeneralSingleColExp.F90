@@ -38,7 +38,7 @@ module GeneralSingleColExp_mod
 !> implementation.
 !--------------------------------------------------------------------
     type, extends(SingleColExpBase) :: GeneralSingleColExp
-        complex (kind=kind(0.d0)), allocatable :: sinv(:)
+        complex (kind=kind(0.d0)), allocatable :: sinv(:), p(:)
         real (kind=kind(0.d0)), allocatable :: cinv(:)! the cosh arrays are twice as big since we need two real values
     contains
         procedure :: init => GeneralSingleColExp_init
@@ -83,7 +83,7 @@ subroutine GeneralSingleColExp_lmult(this, mat)
     class(GeneralSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout), contiguous :: mat
     
-    call lmultthreeelementbase(this%c, this%s, this%nrofentries, mat)
+    call lmultthreeelementbase(this%c, this%s, this%x, this%nrofentries, mat)
 end subroutine GeneralSingleColExp_lmult
 
 !--------------------------------------------------------------------
@@ -104,7 +104,7 @@ subroutine GeneralSingleColExp_lmultinv(this, mat)
     class(GeneralSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
     
-    call lmultthreeelementsbase(this%cinv, this%sinv, this%nrofentries, mat)
+    call lmultthreeelementsbase(this%cinv, this%sinv, this%x, this%nrofentries, mat)
 end subroutine GeneralSingleColExp_lmultinv
 
 !--------------------------------------------------------------------
@@ -126,9 +126,9 @@ end subroutine GeneralSingleColExp_lmultinv
 subroutine GeneralSingleColExp_adjointaction(this, mat)
     class(GeneralSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
-    integer :: i, j, k, ndim, loopend
-    integer, parameter :: step = 2
-    complex(kind=kind(0.D0)) :: t1(step), t2(step)
+!     integer :: i, j, k, ndim, loopend
+!     integer, parameter :: step = 2
+!     complex(kind=kind(0.D0)) :: t1(step), t2(step)
     
     call this%lmult(mat)
     call this%rmultinv(mat)
@@ -272,7 +272,7 @@ subroutine GeneralSingleColExp_init(this, nodes, nredges, mys, weight)
     integer, intent(in) :: nredges
     real (kind=kind(0.d0)), intent(in) :: weight
     integer :: i
-    real (kind=kind(0.d0)) :: nf, my1, my2, localzero, md, mav, angle, cloc, sloc, dweight
+    real (kind=kind(0.d0)) :: nf, my1, my2, localzero, md, mav, dweight
     allocate(this%x(2*nredges), this%y(nredges), this%c(2*nredges), this%s(nredges))
     allocate(this%c2(2*nredges), this%s2(nredges), this%p(nredges))
     this%nrofentries = nredges
@@ -300,11 +300,11 @@ subroutine GeneralSingleColExp_init(this, nodes, nredges, mys, weight)
         !   (b^*, -d)
         ! with d = (my1-m2)/2 and mav = (my1+m2)/2
         
-        call expof2x2hermitianmatrix(this%c(2*i-1), this%c(2*i), this%s(i), md, nodes(i)%axy, weight, mav, localzero)
+        call expof2x2hermitianmatrix(this%c(2*i-1), this%c(2*i), this%s(i), md, &
+        & nodes(i)%axy, weight, mav, localzero)
         
         dweight = -weight
-        call expof2x2hermitianmatrix(this%cinv(2*i-1), this%cinv(2*i), this%sinv(i), md, nodes(i)%axy, dweight, mav,
-        localzero)
+        call expof2x2hermitianmatrix(this%cinv(2*i-1), this%cinv(2*i), this%sinv(i), md, nodes(i)%axy, dweight, mav, localzero)
         dweight = 0.5*weight
         call expof2x2hermitianmatrix(this%c2(2*i-1), this%c2(2*i), this%s2(i), md, nodes(i)%axy, dweight, mav, localzero)
 

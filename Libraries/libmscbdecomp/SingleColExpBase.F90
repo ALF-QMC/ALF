@@ -30,8 +30,8 @@ module SingleColExpBase_mod
     type, abstract :: SingleColExpBase
     integer :: nrofentries
     integer, allocatable :: x(:), y(:) ! the y array is still around but often(?) unused
-    complex (kind=kind(0.d0)), allocatable :: s(:)
-    real (kind=kind(0.d0)), allocatable :: c(:)
+    complex (kind=kind(0.d0)), allocatable :: s(:), s2(:)
+    real (kind=kind(0.d0)), allocatable :: c(:), c2(:)
     contains
     procedure(rmultinterface), deferred :: rmult
     procedure(lmultinterface), deferred :: lmult
