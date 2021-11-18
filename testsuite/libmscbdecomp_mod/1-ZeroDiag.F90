@@ -3,11 +3,11 @@
 
 Program HomogeneousExplmult
 
-  Use HomogeneousSingleColExp_mod
+  Use ZeroDiagSingleColExp_mod
 
         COMPLEX (KIND=8) :: myx
         
-        type(HomogeneousSingleColExp) :: test
+        type(ZeroDiagSingleColExp) :: test
         integer, parameter :: nredges = 6
         integer, parameter :: ndim = 24
         Type(Node) :: nodes(nredges)
@@ -43,6 +43,8 @@ Program HomogeneousExplmult
         
         weight = 1.0
         mys = 0.3
+        
+        ! initialize as identity matrix
         mat = 0
         do i = 1, ndim
             mat(i,i) = 1
@@ -51,6 +53,8 @@ Program HomogeneousExplmult
         call test%init(nodes, nredges, mys, weight)
         call test%lmult(mat)
         call test%lmultinv(mat)
+        
+        ! test for Trace(mat) = ndim
         sumdiag = 0
         sumoff = 0
         do i = 1, ndim
