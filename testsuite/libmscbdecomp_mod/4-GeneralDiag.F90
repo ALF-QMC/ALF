@@ -1,13 +1,13 @@
 ! compile with
-! gfortran -I ../../Libraries/libmscbdecomp/ -L ../../Libraries/libmscbdecomp/ 1-ZeroDiag-lmult.F90 -lmscbdecomp
+! gfortran -I ../../Libraries/libmscbdecomp/ -L ../../Libraries/libmscbdecomp/ 4-GeneralDiag.F90 -lmscbdecomp
 
-Program HomogeneousExplmult
+Program GeneralExpTest
 
-  Use ZeroDiagSingleColExp_mod
+  Use GeneralSingleColExp_mod
 
         COMPLEX (KIND=8) :: myx
         
-        type(ZeroDiagSingleColExp) :: test
+        type(GeneralSingleColExp) :: test
         integer, parameter :: nredges = 6
         integer, parameter :: ndim = 24
         Type(Node) :: nodes(nredges)
@@ -71,4 +71,4 @@ Program HomogeneousExplmult
         ERROR STOP 4
         endif
         write (*,*) "success"
-end Program HomogeneousExplmult
+end Program GeneralExpTest
