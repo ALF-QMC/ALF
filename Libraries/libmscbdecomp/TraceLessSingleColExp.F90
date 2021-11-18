@@ -266,41 +266,6 @@ end subroutine
 !> Florian Goth
 !
 !> @brief 
-!> Perform the inverse multiplication with a matrix.
-!> This version requires three data elements.
-!> This is an internal helper function that finds reuse in multiple places.
-!
-!> @param[in] c the diagonal data
-!> @param[in] s the off-diagonal data
-!> @param[in] x the used matrix positions
-!> @param[in] nrofentries how many vertices are in this family.
-!> @param[inout] mat the matrix that we modify.
-!--------------------------------------------------------------------
-pure subroutine rmultthreeelementsbaseinv(c, s, x, nrofentries, mat)
-    real (kind=kind(0.d0)), allocatable, intent(in) :: c(:)
-    complex (kind=kind(0.d0)), allocatable, intent(in) :: s(:)
-    integer, allocatable, intent(in) :: x(:)
-    integer, intent(in) ::nrofentries
-    complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
-    integer :: i, j, ndim
-    complex(kind=kind(0.D0)) :: t1, t2
-
-    ndim = size(mat,1)
-    do i = 1, nrofentries! for every matrix
-        do j = 1, ndim
-        t1 = mat(j, x(2*i-1))
-        t2 = mat(j, x(2*i))
-        mat(j, x(2*i-1)) = c(2*i) * t1 - s(i)* t2
-        mat(j, x(2*i)) = c(2*i-1) * t2 - conjg(s(i))* t1
-        enddo
-    enddo
-end subroutine
-
-!--------------------------------------------------------------------
-!> @author
-!> Florian Goth
-!
-!> @brief 
 !> Perform the multiplication of this exponential with a matrix: out = mat*this
 !
 !> @param[in] this The exponential that we consider
@@ -351,8 +316,7 @@ end subroutine TraceLessSingleColExp_rmultinv
 !> @brief 
 !> This calculates the input data of a checkerboard matrix, hence
 !> the entries of C=exp({{d,o},{o^*,-d}})
-!> While best preserving det(C) = 1
-!> After 
+!> While best preserving det(C) = 1.
 !
 !> @param [out] diag1 first diagonal
 !> @param [out] diag2 second diagonal

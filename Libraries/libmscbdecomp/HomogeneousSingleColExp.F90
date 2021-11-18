@@ -22,7 +22,7 @@
 
 module HomogeneousSingleColExp_mod
     Use Node_mod
-    Use SingleColExpBase_mod
+    Use ZeroDiagSingleColExp_mod
     implicit none
 
 !--------------------------------------------------------------------
@@ -33,20 +33,18 @@ module HomogeneousSingleColExp_mod
 !> This holds together all the low-level routines for performing the
 !> multiplications.
 !> This particular class is specialized to the case that in each
-!> 2x2 block the chemical potentials are equal.
+!> 2x2 block the chemical potentials are equal. This necessitates additional data
+!> compared to ZeroDiag.
+!> Where possible we reuse functions from the ZeroDiag base-class
 
 !--------------------------------------------------------------------
-    type, extends(SingleColExpBase) :: HomogeneousSingleColExp
+    type, extends(ZeroDiagSingleColExp) :: HomogeneousSingleColExp
         complex (kind=kind(0.d0)), allocatable :: sinv(:)
-        complex (kind=kind(0.d0)), allocatable :: p(:)
         real (kind=kind(0.d0)), allocatable :: cinv(:)
     contains
         procedure :: init => HomogeneousSingleColExp_init
         procedure :: dealloc => HomogeneousSingleColExp_dealloc
-        procedure :: vecmult => HomogeneousSingleColExp_vecmult
-        procedure :: lmult => HomogeneousSingleColExp_lmult
         procedure :: lmultinv => HomogeneousSingleColExp_lmultinv
-        procedure :: rmult => HomogeneousSingleColExp_rmult
         procedure :: rmultinv => HomogeneousSingleColExp_rmultinv
         procedure :: adjoint_over_two => HomogeneousSingleColExp_adjoint_over_two
         procedure :: adjointaction => HomogeneousSingleColExp_adjointaction
@@ -54,61 +52,22 @@ module HomogeneousSingleColExp_mod
 
 contains
 
-subroutine HomogeneousSingleColExp_vecmult(this, vec)
-    class(HomogeneousSingleColExp), intent(in) :: this
-    complex(kind=kind(0.D0)), dimension(:) :: vec
-    integer :: i
-    complex(kind=kind(0.D0)) :: t1,t2
-    do i = 1, this%nrofentries! for every matrix
-        t1 = vec(this%x(i))
-        t2 = vec(this%y(i))
-        vec(this%x(i)) = this%c(i) * t1 + this%s(i) * t2
-        vec(this%y(i)) = this%c(i) * t2 + conjg(this%s(i)) * t1
-    enddo
-end subroutine HomogeneousSingleColExp_vecmult
-
 !--------------------------------------------------------------------
 !> @author
 !> Florian Goth
 !
 !> @brief 
-!> Perform the multiplication of this exponential with a matrix: out = this*mat
-!
-!> Notes: unifying x and y into one array gave some speedup.
-!> Unifying c and s did not...
-!> FIXME: ndim divisible by two...
+!> Perform the multiplication of the inverse of this 
+!> exponential with a matrix: out = this*mat
 !
 !> @param[in] this The exponential that we consider
 !> @param[inout] mat the matrix that we modify.
 !--------------------------------------------------------------------
-subroutine HomogeneousSingleColExp_lmult(this, mat)
-    class(HomogeneousSingleColExp), intent(in) :: this
-    complex(kind=kind(0.D0)), dimension(:, :), intent(inout), contiguous :: mat
-    
-    call lmultbase(this%c, this%s, this%x, this%nrofentries, mat)
-end subroutine HomogeneousSingleColExp_lmult
-
 subroutine HomogeneousSingleColExp_lmultinv(this, mat)
     class(HomogeneousSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
-    integer :: i, j, k, ndim, loopend
-    integer, parameter :: step = 2
-    complex(kind=kind(0.D0)) :: t1(step), t2(step)
     
-    ndim = size(mat,1)
-    loopend = (ndim/step)*step
-    do j = 1, loopend, step
-        do i = 1, this%nrofentries! for every matrix
-            do k = 1,step
-                t1(k) = mat(this%x(2*i-1), j+k-1)
-                t2(k) = mat(this%x(2*i), j+k-1)
-            enddo
-            do k = 1, step
-                mat(this%x(2*i-1), j+k-1) = this%cinv(i) * t1(k) - this%sinv(i) * t2(k)
-                mat(this%x(2*i), j+k-1) = this%cinv(i) * t2(k) - conjg(this%sinv(i)) * t1(k)
-            enddo
-        enddo
-    enddo
+    call lmultbase(this%cinv, this%sinv, this%x, this%nrofentries, mat)
 end subroutine HomogeneousSingleColExp_lmultinv
 
 !--------------------------------------------------------------------
@@ -179,33 +138,17 @@ end subroutine HomogeneousSingleColExp_adjoint_over_two
 !> Florian Goth
 !
 !> @brief 
-!> Perform the multiplication of this exponential with a matrix: out = mat*this
+!> Perform the multiplication of the inverse of this 
+!> exponential with a matrix: out = mat*this
 !
 !> @param[in] this The exponential that we consider
 !> @param[inout] mat the matrix that we modify.
 !--------------------------------------------------------------------
-subroutine HomogeneousSingleColExp_rmult(this, mat)
-    class(HomogeneousSingleColExp), intent(in) :: this
-    complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
-    
-    call rmultbase(this%c, this%s, this%x, this%nrofentries, mat)
-end subroutine HomogeneousSingleColExp_rmult
-
 subroutine HomogeneousSingleColExp_rmultinv(this, mat)
     class(HomogeneousSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
-    integer :: i, j, ndim
-    complex(kind=kind(0.D0)) :: t1, t2
     
-    ndim = size(mat,1)
-    do i = 1, this%nrofentries! for every matrix
-        do j = 1, ndim
-        t1 = mat(j, this%x(2*i-1))
-        t2 = mat(j, this%x(2*i))
-        mat(j, this%x(2*i-1)) = this%cinv(i) * t1 - this%sinv(i) * t2
-        mat(j, this%x(2*i)) = this%cinv(i) * t2 - conjg(this%sinv(i)) * t1
-        enddo
-    enddo
+    call rmultbase(this%cinv, this%sinv, this%x, this%nrofentries, mat)
 end subroutine HomogeneousSingleColExp_rmultinv
 
 !--------------------------------------------------------------------
@@ -262,23 +205,25 @@ subroutine HomogeneousSingleColExp_init(this, nodes, nredges, mys, weight)
         ! If we generalize this, to non-zero diagonals, this means 
         this%s(i) = sqrt(this%c(i)**2-1.0)*weight*nodes(i)%axy/abs(weight*nodes(i)%axy)
         this%s2(i) = sqrt(this%c2(i)**2-1.0)*weight*nodes(i)%axy/abs(weight*nodes(i)%axy)
+        
         if (abs(my1+my2) > 2*localzero) then ! chemical potential is actually different from zero
             this%cinv(i) = this%c(i) * exp(-my1)
             this%c(i) = this%c(i) * exp(my1)
             this%c2(i) = this%c2(i) * exp(my1/2)
-            this%sinv(i) = -this%s(i) * exp(-my1)! FIXME: reuse inverse functions from zerodiag
+            this%sinv(i) = -this%s(i) * exp(-my1)
             this%s(i) = this%s(i) * exp(my1)
             this%s2(i) = this%s2(i) * exp(my1/2)
         endif
     enddo
 ! All nodes that we have been passed are now from a single color.
 ! They constitute now a strictly sparse matrix.
-! Further processing of the entries could be done here.
 end subroutine HomogeneousSingleColExp_init
 
 subroutine HomogeneousSingleColExp_dealloc(this)
     class(HomogeneousSingleColExp), intent(inout) :: this
-    deallocate(this%x, this%y, this%c, this%s, this%c2, this%s2, this%cinv, this%sinv)
+    
+    deallocate(this%cinv, this%sinv)
+    call this%ZeroDiagSingleColExp%dealloc()
 end subroutine HomogeneousSingleColExp_dealloc
 
 end module HomogeneousSingleColExp_mod

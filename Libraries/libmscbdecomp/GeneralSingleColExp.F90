@@ -37,16 +37,13 @@ module GeneralSingleColExp_mod
 !> in contrast to HomogeneousSingleColExp and hence is the most general
 !> implementation.
 !--------------------------------------------------------------------
-    type, extends(SingleColExpBase) :: GeneralSingleColExp
-        complex (kind=kind(0.d0)), allocatable :: sinv(:), p(:)
-        real (kind=kind(0.d0)), allocatable :: cinv(:)! the cosh arrays are twice as big since we need two real values
+    type, extends(TraceLessSingleColExp) :: GeneralSingleColExp
+        complex (kind=kind(0.d0)), allocatable :: sinv(:)
+        real (kind=kind(0.d0)), allocatable :: cinv(:)! the cosh array is twice as big since we need two real values
     contains
         procedure :: init => GeneralSingleColExp_init
         procedure :: dealloc => GeneralSingleColExp_dealloc
-        procedure :: vecmult => GeneralSingleColExp_vecmult
-        procedure :: lmult => GeneralSingleColExp_lmult
         procedure :: lmultinv => GeneralSingleColExp_lmultinv
-        procedure :: rmult => GeneralSingleColExp_rmult
         procedure :: rmultinv => GeneralSingleColExp_rmultinv
         procedure :: adjoint_over_two => GeneralSingleColExp_adjoint_over_two
         procedure :: adjointaction => GeneralSingleColExp_adjointaction
@@ -54,48 +51,13 @@ module GeneralSingleColExp_mod
 
 contains
 
-subroutine GeneralSingleColExp_vecmult(this, vec)
-    class(GeneralSingleColExp) :: this
-    complex(kind=kind(0.D0)), dimension(:) :: vec
-    integer :: i
-    complex(kind=kind(0.D0)) :: t1,t2
-    do i = 1, this%nrofentries! for every matrix
-        t1 = vec(this%x(i))
-        t2 = vec(this%y(i))
-        vec(this%x(i)) = this%c(2*i-1) * t1 + this%s(i) * t2
-        vec(this%y(i)) = this%c(2*i) * t2 + conjg(this%s(i)) * t1
-    enddo
-end subroutine GeneralSingleColExp_vecmult
-
 !--------------------------------------------------------------------
 !> @author
 !> Florian Goth
 !
 !> @brief 
-!> Perform the multiplication of this exponential with a matrix: out = this*mat
-!
-!> FIXME: ndim divisible by two...
-!
-!> @param[in] this The exponential that we consider.
-!> @param[inout] mat The matrix that we modify.
-!--------------------------------------------------------------------
-subroutine GeneralSingleColExp_lmult(this, mat)
-    class(GeneralSingleColExp), intent(in) :: this
-    complex(kind=kind(0.D0)), dimension(:, :), intent(inout), contiguous :: mat
-    
-    call lmultthreeelementbase(this%c, this%s, this%x, this%nrofentries, mat)
-end subroutine GeneralSingleColExp_lmult
-
-!--------------------------------------------------------------------
-!> @author
-!> Florian Goth
-!
-!> @brief 
-!> Perform the multiplication of this exponential with a matrix: out = this*mat
-!
-!> Notes: unifying x and y into one array gave some speedup.
-!> Unifying c and s did not...
-!> FIXME: ndim divisible by two...
+!> Perform the multiplication of the inverse of this 
+!> exponential with a matrix: out = this*mat
 !
 !> @param[in] this The exponential that we consider
 !> @param[inout] mat the matrix that we modify.
@@ -175,24 +137,6 @@ subroutine GeneralSingleColExp_adjoint_over_two(this, mat)
         enddo
     enddo
 end subroutine GeneralSingleColExp_adjoint_over_two
-
-!--------------------------------------------------------------------
-!> @author
-!> Florian Goth
-!
-!> @brief 
-!> Perform the multiplication of this exponential with a matrix:
-!> out = mat*this
-!
-!> @param[in] this The exponential that we consider.
-!> @param[inout] mat The matrix that we modify.
-!--------------------------------------------------------------------
-subroutine GeneralSingleColExp_rmult(this, mat)
-    class(GeneralSingleColExp), intent(in) :: this
-    complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
-
-    call rmultthreeelementsbase(this%c, this%s, this%x, this%nrofentries, mat)
-end subroutine GeneralSingleColExp_rmult
 
 !--------------------------------------------------------------------
 !> @author
@@ -324,7 +268,8 @@ end subroutine GeneralSingleColExp_init
 !--------------------------------------------------------------------
 subroutine GeneralSingleColExp_dealloc(this)
     class(GeneralSingleColExp), intent(inout) :: this
-    deallocate(this%x, this%y, this%c, this%s, this%c2, this%s2)
+    deallocate(this%cinv, this%sinv)
+    call this%TraceLessSingleColExp%dealloc()
 end subroutine GeneralSingleColExp_dealloc
 
 end module GeneralSingleColExp_mod
