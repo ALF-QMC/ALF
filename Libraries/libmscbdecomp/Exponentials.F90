@@ -21,8 +21,10 @@
 ! DEALINGS IN THE SOFTWARE.
 
 module Exponentials_mod
+    Use ZeroDiagSingleColExp_mod
     Use HomogeneousSingleColExp_mod
-    Use NonHomogeneousSingleColExp_mod
+    Use TraceLessSingleColExp_mod
+    Use GeneralSingleColExp_mod
     implicit none
 
 !--------------------------------------------------------------------
