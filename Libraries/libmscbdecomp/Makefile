@@ -1,5 +1,5 @@
 LIB=libmscbdecomp.a
-OBJS=Node.o vertex.o SingleColExpBase.o HomogeneousSingleColExp.o NonHomogeneousSingleColExp.o Exponentials.o colorvertex.o MvG_decomp.o
+OBJS=Node.o vertex.o SingleColExpBase.o ZeroDiagSingleColExp.o HomogeneousSingleColExp.o TraceLessSingleColExp.o GeneralSingleColExp.o Exponentials.o colorvertex.o MvG_decomp.o
 MODS=
 
 $(LIB): $(OBJS)
