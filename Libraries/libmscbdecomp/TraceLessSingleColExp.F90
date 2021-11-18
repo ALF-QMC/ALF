@@ -402,9 +402,9 @@ subroutine TraceLessSingleColExp_init(this, nodes, nredges, mys, weight)
     integer, intent(in) :: nredges
     real (kind=kind(0.d0)), intent(in) :: weight
     integer :: i
-    real (kind=kind(0.d0)) :: nf, my1, my2, localzero, angle, tmp
+    real (kind=kind(0.d0)) :: nf, my1, my2, localzero
     ! We need twice the amount of storage for the diagonal.
-    allocate(this%x(2*nredges), this%y(nredges), this%s(nredges)), this%c(2*nredges) 
+    allocate(this%x(2*nredges), this%y(nredges), this%s(nredges), this%c(2*nredges))
     allocate(this%c2(nredges), this%s2(nredges), this%p(nredges))
     this%nrofentries = nredges
 #ifndef NDEBUG
