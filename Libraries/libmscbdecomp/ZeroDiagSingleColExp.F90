@@ -242,7 +242,7 @@ subroutine ZeroDiagSingleColExp_init(this, nodes, nredges, mys, weight)
         my2 = mys(nodes(i)%y)
         nf = sqrt(my1*my1+my2*my2 + 2*dble(this%p(i) * conjg(this%p(i))))
         localzero = 1E-15*nf ! definition of my local scale that defines zero
-        if (abs(my1) > localzero || abs(my2) > localzero) then
+        if ((abs(my1) > localzero) .or. (abs(my2) > localzero)) then
             write(*,*) "[ZeroDiagSingleColExp_init]: Diagonal NOT zero. This should not happen here."
             error stop 1
         endif
