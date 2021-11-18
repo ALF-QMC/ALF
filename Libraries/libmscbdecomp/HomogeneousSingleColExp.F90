@@ -39,8 +39,8 @@ module HomogeneousSingleColExp_mod
 
 !--------------------------------------------------------------------
     type, extends(ZeroDiagSingleColExp) :: HomogeneousSingleColExp
-        complex (kind=kind(0.d0)), allocatable :: sinv(:)
-        real (kind=kind(0.d0)), allocatable :: cinv(:)
+        complex (kind=kind(0.d0)), allocatable :: sinv(:), s2inv(:)
+        real (kind=kind(0.d0)), allocatable :: cinv(:), c2inv(:)
     contains
         procedure :: init => HomogeneousSingleColExp_init
         procedure :: dealloc => HomogeneousSingleColExp_dealloc
@@ -122,8 +122,8 @@ subroutine HomogeneousSingleColExp_adjoint_over_two(this, mat)
 
     ! rmultinv part
     do i = 1, this%nrofentries! for every matrix
-            myc = this%c2(i)
-            mys = this%s2(i)
+            myc = this%cinv2(i)
+            mys = this%sinv2(i)
         do j = 1, ndim
             t1scal = mat(j, this%x(2*i-1))
             t2scal = mat(j, this%x(2*i))
@@ -176,6 +176,7 @@ subroutine HomogeneousSingleColExp_init(this, nodes, nredges, mys, weight)
     real (kind=kind(0.d0)) :: nf, my1, my2, localzero
     allocate(this%x(2*nredges), this%y(nredges), this%c(nredges), this%s(nredges))
     allocate(this%c2(nredges), this%s2(nredges), this%p(nredges))
+    allocate(this%c2inv(nredges), this%s2inv(nredges), this%cinv(nredges), this%sinv(nredges))
     this%nrofentries = nredges
 #ifndef NDEBUG
     write(*,*) "Setting up strict. sparse matrix with ", nredges, "edges"
@@ -209,9 +210,11 @@ subroutine HomogeneousSingleColExp_init(this, nodes, nredges, mys, weight)
         if (abs(my1+my2) > 2*localzero) then ! chemical potential is actually different from zero
             this%cinv(i) = this%c(i) * exp(-my1)
             this%c(i) = this%c(i) * exp(my1)
+            this%c2inv(i) = this%c2(i) * exp(-my1/2)
             this%c2(i) = this%c2(i) * exp(my1/2)
             this%sinv(i) = -this%s(i) * exp(-my1)
             this%s(i) = this%s(i) * exp(my1)
+            this%s2inv(i) = this%s2(i) * exp(-my1/2)
             this%s2(i) = this%s2(i) * exp(my1/2)
         endif
     enddo
@@ -222,7 +225,7 @@ end subroutine HomogeneousSingleColExp_init
 subroutine HomogeneousSingleColExp_dealloc(this)
     class(HomogeneousSingleColExp), intent(inout) :: this
     
-    deallocate(this%cinv, this%sinv)
+    deallocate(this%cinv, this%sinv, this%c2inv, this%s2inv)
     call this%ZeroDiagSingleColExp%dealloc()
 end subroutine HomogeneousSingleColExp_dealloc
 

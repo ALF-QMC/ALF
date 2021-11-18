@@ -22,7 +22,6 @@
 
 module GeneralSingleColExp_mod
     Use Node_mod
-    Use SingleColExpBase_mod
     Use TraceLessSingleColExp_mod
     implicit none
 
@@ -38,8 +37,8 @@ module GeneralSingleColExp_mod
 !> implementation.
 !--------------------------------------------------------------------
     type, extends(TraceLessSingleColExp) :: GeneralSingleColExp
-        complex (kind=kind(0.d0)), allocatable :: sinv(:)
-        real (kind=kind(0.d0)), allocatable :: cinv(:)! the cosh array is twice as big since we need two real values
+        complex (kind=kind(0.d0)), allocatable :: sinv(:), s2inv(:)
+        real (kind=kind(0.d0)), allocatable :: cinv(:), c2inv(:)! the cosh array is twice as big since we need two real values
     contains
         procedure :: init => GeneralSingleColExp_init
         procedure :: dealloc => GeneralSingleColExp_dealloc
@@ -163,8 +162,7 @@ end subroutine GeneralSingleColExp_rmultinv
 !> @brief 
 !> This calculates the input data of a checkerboard matrix, hence
 !> the entries of C=exp({{d,o},{o^*,-d}})
-!> While best preserving det(C) = 1
-!> After 
+!> While best preserving det(C) = 1.
 !
 !> @param [out] diag1 first diagonal
 !> @param [out] diag2 second diagonal
@@ -249,8 +247,12 @@ subroutine GeneralSingleColExp_init(this, nodes, nredges, mys, weight)
         
         dweight = -weight
         call expof2x2hermitianmatrix(this%cinv(2*i-1), this%cinv(2*i), this%sinv(i), md, nodes(i)%axy, dweight, mav, localzero)
+        
         dweight = 0.5*weight
         call expof2x2hermitianmatrix(this%c2(2*i-1), this%c2(2*i), this%s2(i), md, nodes(i)%axy, dweight, mav, localzero)
+        
+        dweight = -0.5*weight
+        call expof2x2hermitianmatrix(this%c2inv(2*i-1), this%c2inv(2*i), this%s2inv(i), md, nodes(i)%axy, dweight, mav, localzero)
 
     enddo
 ! All nodes that we have been passed are now from a single color.
@@ -268,7 +270,7 @@ end subroutine GeneralSingleColExp_init
 !--------------------------------------------------------------------
 subroutine GeneralSingleColExp_dealloc(this)
     class(GeneralSingleColExp), intent(inout) :: this
-    deallocate(this%cinv, this%sinv)
+    deallocate(this%cinv, this%sinv, this%c2inv, this%s2inv)
     call this%TraceLessSingleColExp%dealloc()
 end subroutine GeneralSingleColExp_dealloc
 

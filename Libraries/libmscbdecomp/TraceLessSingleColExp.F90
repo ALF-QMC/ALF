@@ -193,22 +193,20 @@ subroutine TraceLessSingleColExp_adjoint_over_two(this, mat)
     integer :: i, j, k, ndim, loopend
     integer, parameter :: step = 2
     complex(kind=kind(0.D0)) :: t1(step), t2(step), t1scal, t2scal, mys
-    real(kind=kind(0.D0)) :: myc
-    
+
     ! lmult part
     ndim = size(mat,1)
     loopend = (ndim/step)*step
     do j = 1, loopend, step
         do i = 1, this%nrofentries! for every matrix
             mys = this%s2(i)
-            myc = this%c2(i)
             do k = 1,step
                 t1(k) = mat(this%x(2*i-1), j+k-1)
                 t2(k) = mat(this%x(2*i), j+k-1)
             enddo
             do k = 1, step
-                mat(this%x(2*i-1), j+k-1) = myc * t1(k) + mys * t2(k)
-                mat(this%x(2*i), j+k-1) = myc * t2(k) + conjg(mys) * t1(k)
+                mat(this%x(2*i-1), j+k-1) = this%c2(2*i-1) * t1(k) + mys * t2(k)
+                mat(this%x(2*i), j+k-1) = this%c2(2*i) * t2(k) + conjg(mys) * t1(k)
             enddo
         enddo
     enddo
@@ -220,8 +218,8 @@ subroutine TraceLessSingleColExp_adjoint_over_two(this, mat)
         do j = 1, ndim
             t1scal = mat(j, this%x(2*i-1))
             t2scal = mat(j, this%x(2*i))
-            mat(j, this%x(2*i-1)) = myc * t1scal - mys * t2scal
-            mat(j, this%x(2*i)) = myc * t2scal - conjg(mys) * t1scal
+            mat(j, this%x(2*i-1)) = this%c2(2*i) * t1scal - mys * t2scal
+            mat(j, this%x(2*i)) = this%c2(2*i-1) * t2scal - conjg(mys) * t1scal
         enddo
     enddo
 end subroutine TraceLessSingleColExp_adjoint_over_two
@@ -364,7 +362,7 @@ subroutine TraceLessSingleColExp_init(this, nodes, nredges, mys, weight)
     integer, intent(in) :: nredges
     real (kind=kind(0.d0)), intent(in) :: weight
     integer :: i
-    real (kind=kind(0.d0)) :: nf, my1, my2, localzero
+    real (kind=kind(0.d0)) :: nf, my1, my2, localzero, tmp
     ! We need twice the amount of storage for the diagonal.
     allocate(this%x(2*nredges), this%y(nredges), this%s(nredges), this%c(2*nredges))
     allocate(this%c2(2*nredges), this%s2(nredges), this%p(nredges))
@@ -395,10 +393,8 @@ subroutine TraceLessSingleColExp_init(this, nodes, nredges, mys, weight)
         ! chemical potentials are deferred to different classes
         
         call expof2x2tracelesshermitianmatrix(this%c(2*i-1), this%c(2*i), this%s(i), my1, nodes(i)%axy, weight)
-        
-        !FIXME: not yet updated.
-        this%c2(i) = cosh(abs(weight*nodes(i)%axy)/2)
-        this%s2(i) = sqrt(this%c2(i)**2-1.0)*weight*nodes(i)%axy/abs(weight*nodes(i)%axy)
+        tmp = weight/2
+        call expof2x2tracelesshermitianmatrix(this%c2(2*i-1), this%c2(2*i), this%s2(i), my1, nodes(i)%axy, tmp)
     enddo
 ! All nodes that we have been passed are now from a single color.
 ! They constitute now a strictly sparse matrix.
