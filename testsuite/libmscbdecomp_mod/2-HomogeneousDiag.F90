@@ -43,7 +43,19 @@ Program HomogeneousExpTest
         
         weight = 1.0
         mys = 0.0 ! initialize chemical potential to zero
-        
+        mys(1) = 0.2
+        mys(3) = 0.2
+        mys(5) = 0.4
+        mys(7) = 0.4
+        mys(9) = 0.6
+        mys(11) = 0.6
+        mys(13) = 0.8
+        mys(15) = 0.8
+        mys(17) = 1
+        mys(19) = 1
+        mys(21) = 1.2
+        mys(23) = 1.2
+
         ! initialize as identity matrix
         mat = 0
         do i = 1, ndim
