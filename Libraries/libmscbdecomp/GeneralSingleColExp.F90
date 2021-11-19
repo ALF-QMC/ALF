@@ -204,7 +204,7 @@ subroutine GeneralSingleColExp_init(this, nodes, nredges, mys, weight)
     real (kind=kind(0.d0)), intent(in) :: weight
     integer :: i
     real (kind=kind(0.d0)) :: nf, my1, my2, localzero, md, mav, dweight
-    allocate(this%x(2*nredges), this%y(nredges), this%c(2*nredges), this%s(nredges))
+    allocate(this%x(2*nredges), this%y(nredges), this%c(2*nredges), this%s(nredges), this%cinv(2*nredges), this%sinv(nredges) )
     allocate(this%c2(2*nredges), this%c2inv(2*nredges), this%s2(nredges), this%s2inv(nredges), this%p(nredges))
     this%nrofentries = nredges
 #ifndef NDEBUG
