@@ -91,7 +91,7 @@ module SingleColExpBase_mod
       subroutine lmultinvinterface(this, mat)
          import SingleColExpBase
          class(SingleColExpBase), intent(in) :: this
-         Complex(kind=kind(0.d0)), intent(inout),  dimension(:,:) :: mat
+         Complex(kind=kind(0.d0)), intent(inout),  dimension(:,:), contiguous :: mat
       end subroutine
 
     !--------------------------------------------------------------------
@@ -213,7 +213,7 @@ pure subroutine lmultbase(c, s, x, nrofentries, mat)
     complex (kind=kind(0.d0)), allocatable, intent(in) :: s(:)
     integer, allocatable, intent(in) :: x(:)
     integer, intent(in) ::nrofentries
-    complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
+    complex(kind=kind(0.D0)), dimension(:, :), intent(inout), contiguous :: mat
     
     integer :: i, j, k, ndim, loopend
     integer, parameter :: step = 2 ! determined to be fastest on 6x6 hubbard

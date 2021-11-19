@@ -63,7 +63,7 @@ contains
 !--------------------------------------------------------------------
 subroutine GeneralSingleColExp_lmultinv(this, mat)
     class(GeneralSingleColExp), intent(in) :: this
-    complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
+    complex(kind=kind(0.D0)), dimension(:, :), intent(inout), contiguous :: mat
     
     call lmultthreeelementbase(this%cinv, this%sinv, this%x, this%nrofentries, mat)
 end subroutine GeneralSingleColExp_lmultinv
