@@ -39,7 +39,7 @@ module Exponentials_mod
 !--------------------------------------------------------------------
     type :: EulerExp
         integer :: nrofcols
-        class(HomogeneousSingleColExp), allocatable :: singleexps(:)
+        class(ZeroDiagSingleColExp), allocatable :: singleexps(:)
     contains
         procedure :: init => EulerExp_init
         procedure :: dealloc => EulerExp_dealloc
@@ -416,7 +416,8 @@ end subroutine EulerExp_lmultinv_T
 !> @param[in] nodes The array of nodes
 !> @param[in] usedcolors the number of used colors/terms in 
 !>                       the decomposition.
-!> @param[in] weight a prefactor of the exponent
+!> @param[in] mys a vector containing the chemical potentials.
+!> @param[in] weight a prefactor of the exponent.
 !--------------------------------------------------------------------
 subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
     class(EulerExp) :: this
@@ -447,6 +448,7 @@ subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
         colsepnodes(nodes(i)%col, edgectr(nodes(i)%col)) = nodes(i)
         edgectr(nodes(i)%col) = edgectr(nodes(i)%col) + 1
     enddo
+    
     write (*,*) "text"
      do i = 1, usedcolors
      write (filename, "(A6,I3)") "matrix", i
@@ -456,6 +458,7 @@ subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
      enddo
      close(unit=5)
      enddo
+     
     ! Now that we have properly separated which entry of a matrix belongs to
     ! which color we can create an exponential for each color that exploits
     ! the structure that the color decomposition creates strictly sparse matrices.
