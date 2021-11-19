@@ -205,7 +205,7 @@ subroutine GeneralSingleColExp_init(this, nodes, nredges, mys, weight)
     integer :: i
     real (kind=kind(0.d0)) :: nf, my1, my2, localzero, md, mav, dweight
     allocate(this%x(2*nredges), this%y(nredges), this%c(2*nredges), this%s(nredges))
-    allocate(this%c2(2*nredges), this%s2(nredges), this%p(nredges))
+    allocate(this%c2(2*nredges), this%c2inv(2*nredges), this%s2(nredges), this%s2inv(nredges), this%p(nredges))
     this%nrofentries = nredges
 #ifndef NDEBUG
     write(*,*) "Setting up strict. sparse matrix with ", nredges, "edges"
@@ -224,6 +224,7 @@ subroutine GeneralSingleColExp_init(this, nodes, nredges, mys, weight)
         mav = 0.5*(my1 + my2)
         if (abs(md) < localzero) then
             write(*,*) "[GeneralSingleColExp_init]: Identical diagonals found! This should go in another class!"
+            error stop 1
         endif
         ! This is the order of operations that yields stable matrix inversions
         ! We assume that the matrix that we have decomposed is hermitian:
