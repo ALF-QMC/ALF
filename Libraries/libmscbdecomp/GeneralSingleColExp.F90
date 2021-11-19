@@ -65,7 +65,7 @@ subroutine GeneralSingleColExp_lmultinv(this, mat)
     class(GeneralSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
     
-    call lmultthreeelementsbase(this%cinv, this%sinv, this%x, this%nrofentries, mat)
+    call lmultthreeelementbase(this%cinv, this%sinv, this%x, this%nrofentries, mat)
 end subroutine GeneralSingleColExp_lmultinv
 
 !--------------------------------------------------------------------
@@ -123,7 +123,7 @@ subroutine GeneralSingleColExp_adjoint_over_two(this, mat)
     enddo
 
     ! rmultinv part with new data
-    call rmultthreeelementsbase(this%c2inv, this%s2inv, this%x, this%nrofentries, mat)
+    call rmultthreeelementbase(this%c2inv, this%s2inv, this%x, this%nrofentries, mat)
 end subroutine GeneralSingleColExp_adjoint_over_two
 
 !--------------------------------------------------------------------
@@ -141,7 +141,7 @@ subroutine GeneralSingleColExp_rmultinv(this, mat)
     class(GeneralSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
 
-    call rmultthreeelementsbase(this%cinv, this%sinv, this%x, this%nrofentries, mat)
+    call rmultthreeelementbase(this%cinv, this%sinv, this%x, this%nrofentries, mat)
 end subroutine GeneralSingleColExp_rmultinv
 
 !--------------------------------------------------------------------

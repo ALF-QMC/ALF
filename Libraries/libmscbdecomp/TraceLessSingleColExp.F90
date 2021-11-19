@@ -238,7 +238,7 @@ end subroutine TraceLessSingleColExp_adjoint_over_two
 !> @param[in] nrofentries how many vertices are in this family.
 !> @param[inout] mat the matrix that we modify.
 !--------------------------------------------------------------------
-pure subroutine rmultthreeelementsbase(c, s, x, nrofentries, mat)
+pure subroutine rmultthreeelementbase(c, s, x, nrofentries, mat)
     real (kind=kind(0.d0)), allocatable, intent(in) :: c(:)
     complex (kind=kind(0.d0)), allocatable, intent(in) :: s(:)
     integer, allocatable, intent(in) :: x(:)
@@ -272,7 +272,7 @@ subroutine TraceLessSingleColExp_rmult(this, mat)
     class(TraceLessSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
     
-    call rmultthreeelementsbase(this%c, this%s, this%x, this%nrofentries, mat)
+    call rmultthreeelementbase(this%c, this%s, this%x, this%nrofentries, mat)
 end subroutine TraceLessSingleColExp_rmult
 
 !--------------------------------------------------------------------
