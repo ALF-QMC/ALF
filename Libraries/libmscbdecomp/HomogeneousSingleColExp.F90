@@ -195,6 +195,10 @@ subroutine HomogeneousSingleColExp_init(this, nodes, nredges, mys, weight)
             write(*,*) "[HomogeneousSingleColExp_init]: Unequal diagonals found. This should not happen here."
             error stop 1
         endif
+        if (abs(my1+my2) < localzero) then
+            write(*,*) "[HomogeneousSingleColExp_init]: Zero diagonals found. There is a better class for that."
+            error stop 1
+        endif
         ! This is the order of operations that yields stable matrix inversions
         ! We assume that the matrix that we have decomposed is hermitian:
         ! M=(my  , b)
