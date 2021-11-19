@@ -43,7 +43,19 @@ Program TracelessExpTest
         
         weight = 1.0
         mys = 0.0 ! initialize chemical potential to zero
-        
+        mys(1) = 0.2
+        mys(3) = -0.2
+        mys(5) = 0.4
+        mys(7) = -0.4
+        mys(9) = 0.6
+        mys(11) = -0.6
+        mys(13) = 0.8
+        mys(15) = -0.8
+        mys(17) = 1
+        mys(19) = -1
+        mys(21) = 1.2
+        mys(23) = -1.2
+
         ! initialize as identity matrix
         mat = 0
         do i = 1, ndim
@@ -70,5 +82,43 @@ Program TracelessExpTest
         if (abs(sumoff) > 1E-15) then !FIXME: this limit is a bit scale less...
         ERROR STOP 4
         endif
+
+        call test%rmult(mat)
+        call test%rmultinv(mat)
+        ! test for Trace(mat) = ndim
+        sumdiag = 0
+        sumoff = 0
+        do i = 1, ndim
+            sumdiag = sumdiag + DBLE(mat(i,i))
+        enddo
+        do i = 1, ndim-3
+            sumoff = sumoff + DBLE(mat(i,i+2))
+        enddo
+        write (*,*) sumoff, sumdiag
+        if (abs(sumdiag - ndim) > ndim*1E-15) then
+        ERROR STOP 3
+        endif
+        if (abs(sumoff) > 1E-15) then !FIXME: this limit is a bit scale less...
+        ERROR STOP 6
+        endif
+
+        call test%adjoint_over_two(mat)
+        ! test for Trace(mat) = ndim
+        sumdiag = 0
+        sumoff = 0
+        do i = 1, ndim
+            sumdiag = sumdiag + DBLE(mat(i,i))
+        enddo
+        do i = 1, ndim-3
+            sumoff = sumoff + DBLE(mat(i,i+2))
+        enddo
+        write (*,*) sumoff, sumdiag
+        if (abs(sumdiag - ndim) > ndim*1E-15) then
+        ERROR STOP 7
+        endif
+        if (abs(sumoff) > 1E-15) then !FIXME: this limit is a bit scale less...
+        ERROR STOP 14
+        endif
+
         write (*,*) "success"
 end Program TracelessExpTest

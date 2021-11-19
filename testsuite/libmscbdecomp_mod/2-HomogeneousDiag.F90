@@ -82,5 +82,43 @@ Program HomogeneousExpTest
         if (abs(sumoff) > 1E-15) then !FIXME: this limit is a bit scale less...
         ERROR STOP 4
         endif
+
+        call test%rmult(mat)
+        call test%rmultinv(mat)
+        ! test for Trace(mat) = ndim
+        sumdiag = 0
+        sumoff = 0
+        do i = 1, ndim
+            sumdiag = sumdiag + DBLE(mat(i,i))
+        enddo
+        do i = 1, ndim-3
+            sumoff = sumoff + DBLE(mat(i,i+2))
+        enddo
+        write (*,*) sumoff, sumdiag
+        if (abs(sumdiag - ndim) > ndim*1E-15) then
+        ERROR STOP 3
+        endif
+        if (abs(sumoff) > 1E-15) then !FIXME: this limit is a bit scale less...
+        ERROR STOP 6
+        endif
+
+        call test%adjoint_over_two(mat)
+        ! test for Trace(mat) = ndim
+        sumdiag = 0
+        sumoff = 0
+        do i = 1, ndim
+            sumdiag = sumdiag + DBLE(mat(i,i))
+        enddo
+        do i = 1, ndim-3
+            sumoff = sumoff + DBLE(mat(i,i+2))
+        enddo
+        write (*,*) sumoff, sumdiag
+        if (abs(sumdiag - ndim) > ndim*1E-15) then
+        ERROR STOP 7
+        endif
+        if (abs(sumoff) > 1E-15) then !FIXME: this limit is a bit scale less...
+        ERROR STOP 14
+        endif
+
         write (*,*) "success"
 end Program HomogeneousExpTest
