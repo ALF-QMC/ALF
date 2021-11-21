@@ -53,7 +53,7 @@ contains
 
 subroutine TraceLessSingleColExp_vecmult(this, vec)
     class(TraceLessSingleColExp), intent(in) :: this
-    complex(kind=kind(0.D0)), dimension(:) :: vec
+    complex(kind=kind(0.D0)), dimension(:), intent(inout) :: vec
     integer :: i
     complex(kind=kind(0.D0)) :: t1,t2
     do i = 1, this%nrofentries! for every matrix

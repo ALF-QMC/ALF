@@ -33,6 +33,7 @@ module SingleColExpBase_mod
     complex (kind=kind(0.d0)), allocatable :: s(:), s2(:)
     real (kind=kind(0.d0)), allocatable :: c(:), c2(:)
     contains
+    procedure(vecmultinterface), deferred :: vecmult
     procedure(rmultinterface), deferred :: rmult
     procedure(lmultinterface), deferred :: lmult
     procedure(rmultinvinterface), deferred :: rmultinv
@@ -47,10 +48,10 @@ module SingleColExpBase_mod
     
     !--------------------------------------------------------------------
     !> @brief 
-    !> multiplies this with arg from the right.
+    !> Multiplies this with arg from the right.
     !
     !> @param[in] this
-    !> @param[inout] arg
+    !> @param[inout] mat
     !--------------------------------------------------------------------
       subroutine rmultinterface(this, mat)
          import SingleColExpBase
@@ -60,14 +61,28 @@ module SingleColExpBase_mod
 
     !--------------------------------------------------------------------
     !> @brief 
-    !> multiplies this with arg from the left.
+    !> Multiplies this with arg from the left.
     !
     !> @param[in] this
+    !> @param[inout] mat
     !--------------------------------------------------------------------
       subroutine lmultinterface(this, mat)
          import SingleColExpBase
          class(SingleColExpBase), intent(in) :: this
          Complex(kind=kind(0.d0)), intent(inout),  dimension(:,:), contiguous :: mat
+      end subroutine
+
+    !--------------------------------------------------------------------
+    !> @brief 
+    !> Multiplies this with a vector from the left.
+    !
+    !> @param[in] this
+    !> @param[inout] vec
+    !--------------------------------------------------------------------
+      subroutine vecmultinterface(this, vec)
+         import SingleColExpBase
+         class(SingleColExpBase), intent(in) :: this
+         Complex(kind=kind(0.d0)), intent(inout),  dimension(:) :: vec
       end subroutine
 
     !--------------------------------------------------------------------
