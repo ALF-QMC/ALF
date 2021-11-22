@@ -179,7 +179,7 @@ subroutine HomogeneousSingleColExp_init(this, nodes, nredges, mys, weight)
     allocate(this%c2inv(nredges), this%s2inv(nredges), this%cinv(nredges), this%sinv(nredges))
     this%nrofentries = nredges
 #ifndef NDEBUG
-    write(*,*) "Setting up strict. sparse matrix with ", nredges, "edges"
+    write(*,*) "[HomogeneousSingleColExp_init]: Setting up strict. sparse matrix with ", nredges, "edges"
 #endif
     do i = 1, nredges
         this%x(2*i-1) = nodes(i)%x

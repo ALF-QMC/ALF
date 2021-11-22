@@ -122,7 +122,7 @@ subroutine FullExp_init(this, nodes, usedcolors, mys, method, weight)
             tmp = 1.D0/2.D0*weight
             call this%stages(1)%init(nodes, usedcolors, mys, tmp)
             call this%stages(2)%init(nodes, usedcolors, mys, tmp)
-        case (3)! SE_2 2
+        case (3)! SE_2 2, Blanes
             this%evals = 4
             allocate(this%stages(this%evals))
             tmp = 0.21178*weight
@@ -133,7 +133,7 @@ subroutine FullExp_init(this, nodes, usedcolors, mys, method, weight)
             call this%stages(3)%init(nodes, usedcolors, mys, tmp)
             tmp = 0.21178*weight
             call this%stages(4)%init(nodes, usedcolors, mys, tmp)
-        case (4)! SE_3 4, Yoshida, Neri
+        case (4)! SE_3 4, Yoshida, Neri, Suzuki, 1990
             this%evals = 6
             allocate(this%stages(this%evals))
             tmp = 0.6756035959798*weight
@@ -148,7 +148,7 @@ subroutine FullExp_init(this, nodes, usedcolors, mys, method, weight)
             call this%stages(5)%init(nodes, usedcolors, mys, tmp)
             tmp = 0.6756035959798*weight
             call this%stages(6)%init(nodes, usedcolors, mys, tmp)
-        case (5)! SE_6 4, Blanes
+        case (5)! SE_6 4, Blanes, Blanes and Moan 2002
             this%evals = 12
             allocate(this%stages(this%evals))
             tmp = 0.0792037*weight
@@ -199,7 +199,7 @@ end subroutine FullExp_dealloc
 !--------------------------------------------------------------------
 subroutine FullExp_vecmult(this, vec)
     class(FullExp) :: this
-    complex(kind=kind(0.D0)), dimension(:) :: vec
+    complex(kind=kind(0.D0)), dimension(:), intent(inout) :: vec
     integer :: i
     do i = 1, this%evals
        call this%stages(i)%vecmult(vec)
@@ -208,7 +208,7 @@ end subroutine FullExp_vecmult
 
 subroutine FullExp_vecmult_T(this, vec)
     class(FullExp) :: this
-    complex(kind=kind(0.D0)), dimension(:) :: vec
+    complex(kind=kind(0.D0)), dimension(:), intent(inout) :: vec
     integer :: i
     do i = this%evals, 1, -1
        call this%stages(i)%vecmult_T(vec)
@@ -247,7 +247,7 @@ end subroutine FullExp_lmultinv
 
 subroutine FullExp_rmult(this, mat)
     class(FullExp) :: this
-    complex(kind=kind(0.D0)), dimension(:, :) :: mat
+    complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
     integer :: i
     do i = 1, this%evals,2
        call this%stages(i)%rmult(mat)
@@ -267,7 +267,7 @@ end subroutine FullExp_rmultinv
 
 subroutine FullExp_lmult_T(this, mat)
     class(FullExp) :: this
-    complex(kind=kind(0.D0)), dimension(:, :) :: mat
+    complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
     integer :: i
     do i = 1, this%evals, 2
        call this%stages(i)%lmult_T(mat)
@@ -276,7 +276,6 @@ subroutine FullExp_lmult_T(this, mat)
 end subroutine FullExp_lmult_T
 
 subroutine EulerExp_dealloc(this)
-    implicit none
     class(EulerExp) :: this
     integer :: i
     do i = 1, this%nrofcols
@@ -423,6 +422,17 @@ subroutine EulerExp_lmultinv_T(this, mat)
     enddo
 end subroutine EulerExp_lmultinv_T
 
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
+!> A function to determine the equality of twor floating point numbers.
+
+!> @param[in] a first number
+!> @param[in] b second number
+!> @return true if the numbers are equal up to 10^-15 of relative deviation.
+!--------------------------------------------------------------------
 function fpequal(a, b) result(isequal)
     real(kind=kind(0.D0)), intent(in) :: a,b
     logical :: isequal
@@ -458,7 +468,6 @@ function determinediagtype(nodes, mys) result(diagtype)
             isequal = .false.
         endif
     enddo
-    write (*,*) isequal
     
     if(isequal) then
     ! check whether they are as good as zero.
@@ -508,7 +517,8 @@ subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
     type(node), dimension(:), intent(in) :: nodes
     integer, intent(in) :: usedcolors
     real(kind=kind(0.D0)), intent(in), allocatable, dimension(:) :: mys
-    real (kind=kind(0.d0)), intent(in) :: weight
+    real(kind=kind(0.d0)), intent(in) :: weight
+    real(kind=kind(0.D0)), allocatable, dimension(:) :: mys2
     integer, dimension(:), allocatable :: nredges, edgectr
     integer :: i, maxedges, k, ndim, ldvl, lwork, ierr
     type(node), dimension(:, :), allocatable :: colsepnodes! An array of nodes separated by color
@@ -531,7 +541,7 @@ subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
     enddo
     maxedges = maxval(nredges)
     edgectr = 1
-    allocate(colsepnodes(usedcolors, maxedges))
+    allocate(colsepnodes(usedcolors, maxedges), mys2(size(mys)))
     do i = 1, size(nodes)
         colsepnodes(nodes(i)%col, edgectr(nodes(i)%col)) = nodes(i)
         edgectr(nodes(i)%col) = edgectr(nodes(i)%col) + 1
@@ -545,10 +555,13 @@ subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
      enddo
      close(unit=5)
      enddo
-     
+
     ! Now that we have properly separated which entry of a matrix belongs to
     ! which color we can create an exponential for each color that exploits
     ! the structure that the color decomposition creates strictly sparse matrices.
+    
+    ! But first we have to distribute the chemical potential entries across the colors
+    
 !     write (*,*) mys
     allocate(this%singleexps(usedcolors))
     do i = 1, usedcolors
