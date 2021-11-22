@@ -276,6 +276,7 @@ subroutine FullExp_lmult_T(this, mat)
 end subroutine FullExp_lmult_T
 
 subroutine EulerExp_dealloc(this)
+    implicit none
     class(EulerExp) :: this
     integer :: i
     do i = 1, this%nrofcols
