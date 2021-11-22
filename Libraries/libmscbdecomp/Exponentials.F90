@@ -476,7 +476,7 @@ function determinediagtype(nodes, mys) result(diagtype)
     ! check whether all blocks are traceless
         istraceless = .true.
         
-        do i = i, size(nodes)
+        do i = 1, size(nodes)
             localzero = 1E-15*sqrt(mys(nodes(i)%x)**2 + mys(nodes(i)%y)**2 + dble(nodes(i)%axy*conjg(nodes(i)%axy)))
             if (abs(mys(nodes(i)%x) + mys(nodes(i)%y)) > localzero) istraceless = .false.
         enddo
@@ -486,7 +486,6 @@ function determinediagtype(nodes, mys) result(diagtype)
             diagtype = 3
         endif
     endif
-
 end function
 
 !--------------------------------------------------------------------
