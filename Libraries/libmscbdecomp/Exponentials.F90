@@ -421,6 +421,74 @@ subroutine EulerExp_lmultinv_T(this, mat)
         call this%singleexps(i)%dat%lmultinv(mat)
     enddo
 end subroutine EulerExp_lmultinv_T
+
+function fpequal(a, b) result(isequal)
+    real(kind=kind(0.D0)), intent(in) :: a,b
+    logical :: isequal
+    
+    isequal = .true.
+    if(abs(a - b) > max(abs(a), abs(b)) * 1E-15) then
+        isequal = .false.
+    endif
+end function
+
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
+!> This function classifies the diagonal.
+
+!> @param[in] mys a vector containing the chemical potentials.
+!> @return 0: ZeroDiag, 1:HomogeneousSingleColExp, 2:Traceless: 3: General
+!--------------------------------------------------------------------
+function determinediagtype(nodes, mys) result(diagtype)
+    real(kind=kind(0.D0)), intent(in), allocatable, dimension(:) :: mys
+    type(node), dimension(:), intent(in) :: nodes
+    integer :: diagtype
+    integer :: i
+    real(kind=kind(0.D0)) mymax, localzero, tmp
+    logical :: isequal, iszero, istraceless
+
+    ! check for pairwise equality
+    isequal = .true.
+    do i = 1, size(nodes)
+        if ( .not. fpequal(mys(nodes(i)%x), mys(nodes(i)%y ) )) then
+            isequal = .false.
+        endif
+    enddo
+    write (*,*) isequal
+    
+    if(isequal) then
+    ! check whether they are as good as zero.
+        iszero = .true.
+        
+        do i = 1, size(nodes)
+            localzero = 1E-15*sqrt(2*mys(nodes(i)%x)**2 + dble(nodes(i)%axy*conjg(nodes(i)%axy)))
+            if (abs(mys(nodes(i)%x)) > localzero) iszero = .false.
+        enddo
+        if (iszero) then
+            diagtype = 0
+        else
+            diagtype = 1
+        endif
+    else
+    ! check whether all blocks are traceless
+        istraceless = .true.
+        
+        do i = i, size(nodes)
+            localzero = 1E-15*sqrt(mys(nodes(i)%x)**2 + mys(nodes(i)%y)**2 + dble(nodes(i)%axy*conjg(nodes(i)%axy)))
+            if (abs(mys(nodes(i)%x) + mys(nodes(i)%y)) > localzero) istraceless = .false.
+        enddo
+        if (istraceless) then
+            diagtype = 2
+        else
+            diagtype = 3
+        endif
+    endif
+
+end function
+
 !--------------------------------------------------------------------
 !> @author
 !> Florian Goth
@@ -484,8 +552,26 @@ subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
 !     write (*,*) mys
     allocate(this%singleexps(usedcolors))
     do i = 1, usedcolors
-        allocate(zerodiagexp)
-        this%singleexps(i)%dat => zerodiagexp
+        ! In each color we have to determine which optimizations are possible
+        select case(determinediagtype( colsepnodes(i, :), mys )) 
+        case (0)
+        write (*,*) "Zero"
+            allocate(zerodiagexp)
+            this%singleexps(i)%dat => zerodiagexp
+        case(1)
+        write (*,*) "hom"
+            allocate(homexp)
+            this%singleexps(i)%dat => homexp
+        case(2)
+        write (*,*) "traceless"
+            allocate(tracelessexp)
+            this%singleexps(i)%dat => tracelessexp
+        case(3)
+        write (*,*) "General"
+            allocate(generalexp)
+            this%singleexps(i)%dat => generalexp
+        end select
+        
         call this%singleexps(i)%dat%init(colsepnodes(i, :), nredges(i), mys, weight)
     enddo
     deallocate(colsepnodes)
