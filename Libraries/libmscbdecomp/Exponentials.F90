@@ -32,6 +32,18 @@ module Exponentials_mod
 !> Florian Goth
 !
 !> @brief 
+!> A wrapper type such that Fortran can hold an array of 
+!> base class pointers.
+!--------------------------------------------------------------------    
+    type :: SingleColeExpBaseWrapper
+        class(SingleColExpBase), pointer :: dat => null()
+    end type
+
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
 !> This holds together a set of exponentials that, if applied in the
 !> correct order, approximate e^A to first order.
 !> It provides functions for matrix-matrix and matrix-vector
@@ -39,7 +51,7 @@ module Exponentials_mod
 !--------------------------------------------------------------------
     type :: EulerExp
         integer :: nrofcols
-        class(ZeroDiagSingleColExp), allocatable :: singleexps(:)
+        Type(SingleColeExpBaseWrapper), allocatable :: singleexps(:)
     contains
         procedure :: init => EulerExp_init
         procedure :: dealloc => EulerExp_dealloc
@@ -265,6 +277,10 @@ end subroutine FullExp_lmult_T
 
 subroutine EulerExp_dealloc(this)
     class(EulerExp) :: this
+    integer :: i
+    do i = 1, this%nrofcols
+        call this%singleexps(i)%dat%dealloc()
+    enddo
     deallocate(this%singleexps)
 end subroutine EulerExp_dealloc
 
@@ -283,7 +299,7 @@ subroutine EulerExp_vecmult(this, vec)
     complex(kind=kind(0.D0)), dimension(:) :: vec
     integer :: i
     do i = 1, this%nrofcols
-       call this%singleexps(i)%vecmult(vec)
+       call this%singleexps(i)%dat%vecmult(vec)
     enddo
 end subroutine EulerExp_vecmult
 
@@ -303,7 +319,7 @@ subroutine EulerExp_vecmult_T(this, vec)
     complex(kind=kind(0.D0)), dimension(:) :: vec
     integer :: i
     do i = this%nrofcols, 1, -1
-       call this%singleexps(i)%vecmult(vec)
+       call this%singleexps(i)%dat%vecmult(vec)
     enddo
 end subroutine EulerExp_vecmult_T
 
@@ -312,7 +328,7 @@ subroutine EulerExp_lmultinv(this, mat)
     complex(kind=kind(0.D0)), dimension(:, :), contiguous :: mat
     integer :: i
     do i = 1, this%nrofcols
-        call this%singleexps(i)%lmultinv(mat)
+        call this%singleexps(i)%dat%lmultinv(mat)
     enddo
 end subroutine EulerExp_lmultinv
 
@@ -321,7 +337,7 @@ subroutine EulerExp_lmult(this, mat)
     complex(kind=kind(0.D0)), dimension(:, :), contiguous :: mat
     integer :: i
     do i = this%nrofcols, 1, -1
-        call this%singleexps(i)%lmult(mat)
+        call this%singleexps(i)%dat%lmult(mat)
     enddo
 end subroutine EulerExp_lmult
 
@@ -330,7 +346,7 @@ subroutine EulerExp_adjointaction(this, mat)
     complex(kind=kind(0.D0)), dimension(:, :) :: mat
     integer :: i
     do i = this%nrofcols, 1, -1
-        call this%singleexps(i)%adjointaction(mat)
+        call this%singleexps(i)%dat%adjointaction(mat)
     enddo
 end subroutine EulerExp_adjointaction
 
@@ -339,7 +355,7 @@ subroutine EulerExp_adjoint_over_two(this, mat)
     complex(kind=kind(0.D0)), dimension(:, :) :: mat
     integer :: i
     do i = this%nrofcols, 1, -1
-        call this%singleexps(i)%adjoint_over_two(mat)
+        call this%singleexps(i)%dat%adjoint_over_two(mat)
     enddo
 end subroutine EulerExp_adjoint_over_two
 
@@ -348,7 +364,7 @@ subroutine EulerExp_adjoint_over_two_T(this, mat)
     complex(kind=kind(0.D0)), dimension(:, :) :: mat
     integer :: i
     do i = 1, this%nrofcols
-        call this%singleexps(i)%adjoint_over_two(mat)
+        call this%singleexps(i)%dat%adjoint_over_two(mat)
     enddo
 end subroutine EulerExp_adjoint_over_two_T
 
@@ -357,7 +373,7 @@ subroutine EulerExp_rmult(this, mat)
     complex(kind=kind(0.D0)), dimension(:, :) :: mat
     integer :: i
     do i = 1, this%nrofcols
-        call this%singleexps(i)%rmult(mat)
+        call this%singleexps(i)%dat%rmult(mat)
     enddo
 end subroutine EulerExp_rmult
 
@@ -366,7 +382,7 @@ subroutine EulerExp_rmultinv(this, mat)
     complex(kind=kind(0.D0)), dimension(:, :) :: mat
     integer :: i
     do i = this%nrofcols, 1, -1
-        call this%singleexps(i)%rmultinv(mat)
+        call this%singleexps(i)%dat%rmultinv(mat)
     enddo
 end subroutine EulerExp_rmultinv
 
@@ -375,7 +391,7 @@ subroutine EulerExp_rmult_T(this, mat)
     complex(kind=kind(0.D0)), dimension(:, :) :: mat
     integer :: i
     do i = this%nrofcols, 1, -1
-        call this%singleexps(i)%rmult(mat)
+        call this%singleexps(i)%dat%rmult(mat)
     enddo
 end subroutine EulerExp_rmult_T
 
@@ -384,7 +400,7 @@ subroutine EulerExp_rmultinv_T(this, mat)
     complex(kind=kind(0.D0)), dimension(:, :) :: mat
     integer :: i
     do i = 1, this%nrofcols
-        call this%singleexps(i)%rmultinv(mat)
+        call this%singleexps(i)%dat%rmultinv(mat)
     enddo
 end subroutine EulerExp_rmultinv_T
 
@@ -393,7 +409,7 @@ subroutine EulerExp_lmult_T(this, mat)
     complex(kind=kind(0.D0)), dimension(:, :) :: mat
     integer :: i
     do i = 1, this%nrofcols
-        call this%singleexps(i)%lmult(mat)
+        call this%singleexps(i)%dat%lmult(mat)
     enddo
 end subroutine EulerExp_lmult_T
 
@@ -402,7 +418,7 @@ subroutine EulerExp_lmultinv_T(this, mat)
     complex(kind=kind(0.D0)), dimension(:, :) :: mat
     integer :: i
     do i = this%nrofcols, 1, -1
-        call this%singleexps(i)%lmultinv(mat)
+        call this%singleexps(i)%dat%lmultinv(mat)
     enddo
 end subroutine EulerExp_lmultinv_T
 !--------------------------------------------------------------------
@@ -431,6 +447,10 @@ subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
     character(len=64) :: filename
     character jobvl, jobvr
     complex (kind=kind(0.d0)), allocatable :: mat(:,:), evs(:), v(:), work(:), rwork(:)
+    class(ZeroDiagSingleColExp), pointer :: zerodiagexp
+    class(HomogeneousSingleColExp), pointer :: homexp
+    class(TraceLessSingleColExp), pointer :: tracelessexp
+    class(GeneralSingleColExp), pointer :: generalexp
 #ifndef NDEBUG
     write(*,*) "Setting up Euler Checkerboard exponential."
 #endif
@@ -448,8 +468,7 @@ subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
         colsepnodes(nodes(i)%col, edgectr(nodes(i)%col)) = nodes(i)
         edgectr(nodes(i)%col) = edgectr(nodes(i)%col) + 1
     enddo
-    
-    write (*,*) "text"
+
      do i = 1, usedcolors
      write (filename, "(A6,I3)") "matrix", i
      open(unit=5,file=filename)
@@ -462,9 +481,12 @@ subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
     ! Now that we have properly separated which entry of a matrix belongs to
     ! which color we can create an exponential for each color that exploits
     ! the structure that the color decomposition creates strictly sparse matrices.
+!     write (*,*) mys
     allocate(this%singleexps(usedcolors))
     do i = 1, usedcolors
-        call this%singleexps(i)%init(colsepnodes(i, :), nredges(i), mys, weight)
+        allocate(zerodiagexp)
+        this%singleexps(i)%dat => zerodiagexp
+        call this%singleexps(i)%dat%init(colsepnodes(i, :), nredges(i), mys, weight)
     enddo
     deallocate(colsepnodes)
     deallocate(nredges, edgectr)
