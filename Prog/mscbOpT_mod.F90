@@ -216,6 +216,38 @@ contains
         Endif
     end subroutine
     
+    !--------------------------------------------------------------------
+    !> @author
+    !> ALF-project
+    !> @brief
+    !> transform an Op_T object to a GraphData object and a vector containing
+    !> the matrix diagonal
+    !
+    !> @param Op_T the Operator
+    !> @param gd the Graphdata object. We take care to create one.
+    !> @param diags the vector of the diagonal. We allocate it.
+    !>
+    !--------------------------------------------------------------------
+    subroutine Op_T_to_graphdata(Op_T, gd, diags)
+        Type(Operator), intent(in) :: Op_T
+        type(GraphData), intent(inout) :: gd
+        Real(kind=kind(0.D0)), allocatable, dimension(:), intent(inout) :: diags
+        Complex(kind=kind(0.D0)), allocatable, dimension(:,:) :: tmp
+        integer :: i
+        
+        allocate(tmp(Op_T%N, Op_T%N), diags(Op_T%N))
+        tmp = Op_T%g* Op_T%O
+        
+        ! Let's retrieve the diagonal of the matrix, hence the chemical potential
+        do i = 1, Op_T%N
+            diags(i) = DBLE(tmp(i, i))!If the input matrix is hermitian, this has to be real.
+            tmp(i, i) = 0 ! Set to zero afterwards to disable any checks in the MvG decomposition
+        enddo
+        gd = mat2verts(tmp) ! convert to graphdata structure
+        deallocate(tmp)
+        call MvG_decomp(gd%verts) ! perform the decomposition
+    end subroutine
+    
     subroutine CmplxmscbOpT_init(this, Op_T, method)
         class(CmplxmscbOpT) :: this
         Type(Operator), intent(in) :: Op_T
@@ -228,18 +260,8 @@ contains
         this%Zero = 1.E-12
         this%Ndim_hop = Op_T%N
         this%g = Op_T%g
-        allocate(tmp(Op_T%N, Op_T%N), diags(Op_T%N))
-        tmp = this%g* Op_T%O
         
-        gd = mat2verts(tmp) ! convert to graphdata structure
-        call MvG_decomp(gd%verts) ! perform the decomposition
-        
-        ! Let's retrieve the diagonal of the matrix, hence the chemical potential
-        do i = 1, Op_T%N
-            diags(i) = DBLE(tmp(i, i))!If the input matrix is hermitian, this has to be real.
-            tmp(i, i) = 0 ! Set to zero afterwards to disable any checks in the MvG decomposition
-        enddo
-        deallocate(tmp)
+        call Op_T_to_graphdata(Op_T, gd, diags)
         ! some sanity checks and status informations
         call determine_used_colors_of_graph(gd)
         write (*,*) "Nr edges: ", gd%nredges
@@ -250,7 +272,7 @@ contains
         endif
 
         this%fe = createFullExponentialfromGraphData(gd, diags, method)
-        
+
         ! check wether it is supported behaviour
         do i = 1, size(Op_T%P)
         if (Op_T%P(i) /= i) then
@@ -354,17 +376,8 @@ contains
         this%Zero = 1.E-12
         this%Ndim_hop = Op_T%N
         this%g = Op_T%g
-        allocate(tmp(Op_T%N, Op_T%N), diags(Op_T%N))
-        tmp = this%g* Op_T%O
         
-        ! Let's retrieve the diagonal of the matrix, hence the chemical potential
-        do i = 1, Op_T%N
-            diags(i) = DBLE(tmp(i, i))!If the input matrix is hermitian, this has to be real.
-            tmp(i, i) = 0 ! Set to zero afterwards to disable any checks in the MvG decomposition
-        enddo
-        gd = mat2verts(tmp) ! convert to graphdata structure
-        deallocate(tmp)
-        call MvG_decomp(gd%verts) ! perform the decomposition
+        call Op_T_to_graphdata(Op_T, gd, diags)
         
         ! some sanity checks and status informations
         gd%usedcolors = 0
