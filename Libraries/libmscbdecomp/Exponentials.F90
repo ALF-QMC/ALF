@@ -541,7 +541,7 @@ subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
     enddo
     maxedges = maxval(nredges)
     edgectr = 1
-    allocate(colsepnodes(usedcolors, maxedges), mys2(size(mys)))
+    allocate(colsepnodes(usedcolors, maxedges))
     do i = 1, size(nodes)
         colsepnodes(nodes(i)%col, edgectr(nodes(i)%col)) = nodes(i)
         edgectr(nodes(i)%col) = edgectr(nodes(i)%col) + 1
@@ -563,11 +563,12 @@ subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
     ! But first we have to distribute the chemical potential entries across the colors
     
 !     write (*,*) mys
-    allocate(this%singleexps(usedcolors))
+    allocate(this%singleexps(usedcolors), mys2(size(mys)))
     do i = 1, usedcolors
+        mys2 = mys
         ! In each color we have to determine which optimizations are possible
         select case(determinediagtype( colsepnodes(i, :), mys )) 
-        case (0)
+        case(0)
         write (*,*) "Zero"
             allocate(zerodiagexp)
             this%singleexps(i)%dat => zerodiagexp
@@ -587,8 +588,7 @@ subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
         
         call this%singleexps(i)%dat%init(colsepnodes(i, :), nredges(i), mys, weight)
     enddo
-    deallocate(colsepnodes)
-    deallocate(nredges, edgectr)
+    deallocate(nredges, edgectr, colsepnodes, mys2)
 ! !     ndim = 1
 ! !     do i = 1, usedcolors
 ! !     ndim = max(maxval(this%singleexps(i)%x), maxval(this%singleexps(i)%y))
