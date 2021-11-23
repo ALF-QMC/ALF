@@ -92,11 +92,10 @@ The right  hand side of the above equation is given  the type  \texttt{Hopping\_
 \begin{equation}
 \hat{\mathcal{H}}_{T}     = \sum_{i=1}^{N_T} \sum_{k \in \mathcal{S}^{T}_i} \hat{T}^{(k)},  
 \end{equation}
-with the rule that  if $k$ and $k'$  belong to the same set $\mathcal{S}^{T}_i $ then   $ \big[ \hat{T}^{(k)} , \hat{T}^{(k')} \big] = 0 $.  In the checkerboard decomposition, $\hat{T}^{(k)}$   corresponds to  hopping on a bond.    The checkerboard decomposition depends on the   lattice type, as well as on the hopping matrix elements.   The required  information is stored in  \texttt{Hopping\_matrix\_type}. In this data type,  \texttt{N\_FAM}  corresponds to the number of sets  (or families) ($N_T$ in the above equation). \texttt{L\_FAM(1:N\_FAM)}   corresponds to the number of bonds in the set,  and finally,  \texttt{LIST\_FAM(1:N\_FAM, 1:max(L\_FAM(:)), 2)}    contains  information concerning the two legs of the bonds.    In the checkerboard decomposition, care has to be taken for local terms: each site  occurs multiple times in the list of bonds.    Since we have postulated translation symmetry,    a one-dimensional array, \texttt{Multiplicity},  of length  given by  the number of orbitals per unit cell suffices to  encode the required information.  
+with the rule that  if $k$ and $k'$  belong to the same set $\mathcal{S}^{T}_i $ then   $ \big[ \hat{T}^{(k)} , \hat{T}^{(k')} \big] = 0 $.  In the checkerboard decomposition, $\hat{T}^{(k)}$   corresponds to  hopping on a bond.    The checkerboard decomposition depends on the   lattice type, as well as on the hopping matrix elements.   The required  information is stored in  \texttt{Hopping\_matrix\_type}. In this data type,  \texttt{N\_FAM}  corresponds to the number of sets  (or families) ($N_T$ in the above equation). \texttt{L\_FAM(1:N\_FAM)}   corresponds to the number of bonds in the set,  and finally,  \texttt{LIST\_FAM(1:N\_FAM, 1:max(L\_FAM(:)), 2)}    contains  information concerning the two legs of the bonds.
 Finally, to be able to generate  the imaginary time step of length $\Delta \tau$  we  have to know   by which fraction of  $\Delta \tau$   we have to propagate each set.  This information is given in  the array  \texttt{Prop\_Fam}.  
 
-As an  example we can consider the three-leg ladder lattice of Figure~\ref{fig_predefined_lattices}(c).   Here the number of sets (or families) \texttt{N\_FAM} is equal to four, corresponding to the red, green, black and blue  bonds. It is clear from the figure that bonds in a given set do not have common legs, so that hopping instances on the bonds of a given set commute.  For this three-leg ladder, we see that the middle orbital in a unit cell appears in each set or family. It hence has a multiplicity of four. On the other hand, the top and bottom orbitals have a multiplicity of 3 since they appear in only three of the four sets. 
-
+As an  example we can consider the three-leg ladder lattice of Figure~\ref{fig_predefined_lattices}(c).   Here the number of sets (or families) \texttt{N\_FAM} is equal to four, corresponding to the red, green, black and blue  bonds. It is clear from the figure that bonds in a given set do not have common legs, so that hopping instances on the bonds of a given set commute.
 
 \paragraph*{Usage: the \texttt{Hopping\_Matrix\_type} } %\label{Hopping_Matrix_type.sec} 
 
@@ -123,10 +122,9 @@ There are \path{N_bonds} hopping matrix elements emanating from a given unit cel
 			\texttt{L\_Fam(N\_FAM)}  & \texttt{int}    & Number of bonds per set $\mathcal{S}^{T}$ \\    
 			\texttt{List\_Fam(N\_FAM,max(L\_FAM(:)),2)}& \texttt{int} & \texttt{List\_Fam($ \bullet,\bullet $,1)} =  Unit cell \\
 			&                        &          \texttt{List\_Fam($\bullet,\bullet$,2)} =   Bond number \\
-			\texttt{Multiplicity(Norb)}& \texttt{int}  & Number of  times a  given orbital  occurs in the list of bonds  \\
 			\texttt{Prop\_Fam(N\_FAM)} & \texttt{dble}         & The fraction of $\Delta \tau$ with which the set will be propagated   \\\bottomrule
 		\end{tabular}
-		\caption{Member variables of the \texttt{Hopping\_Matrix\_type}  type.   
+		\caption{Public member variables of the \texttt{Hopping\_Matrix\_type}  type.
 			\label{table:Hopping_matrix}}
 	\end{center}
 \end{table}
@@ -173,9 +171,7 @@ do I = 1,Latt%N
       List_Fam(nf,I,2) = nf ! The bond 
    enddo
 enddo
-Multiplicity  = 3
 \end{lstlisting}        
-Since each site of the honeycomb lattice occurs in  the three sets, their multiplicity is equal to 3.  
 
 
 %-----------------------------------------------------------------------------------

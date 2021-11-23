@@ -175,7 +175,7 @@ In particular, note that if \texttt{Nt\_sequential\_start}  and \texttt{Nt\_sequ
 \subsubsection{Output files -- observables} \label{sec:output_obs}
 %------------------------------------------------------------
 %
-The standard output files are listed in Table~\ref{table:output}. Notice that, besides these files, which contain direct QMC outputs, ALF can also produce a number of analysis output files, discussed in Sec.~\ref{sec:analysis}.
+The standard output files are listed in Table~\ref{table:output} and Table~\ref{table:output_hdf5} for plain-text and HDF5 output, respectively. Notice that, besides these files, which contain direct QMC outputs, ALF can also produce a number of analysis output files, discussed in Sec.~\ref{sec:analysis}.
 
 The output of the measured data is organized in bins. One bin corresponds to the arithmetic average over a fixed number of individual measurements which depends on the chosen measurement interval \path{[LOBS_ST,LOBS_EN]} on the imaginary-time axis and on the number \path{NSweep} of Monte Carlo sweeps. If the user runs an MPI parallelized version of the code, the average also extends over the number of MPI threads.
 %
@@ -183,18 +183,46 @@ The output of the measured data is organized in bins. One bin corresponds to the
 	\begin{center}
    \begin{tabular}{@{} p{0.3\columnwidth}p{0.67\columnwidth} @{}}\toprule
    File               & Description \\\midrule
-   \path{info}        & After completion of the simulation, this file documents the parameters of the model, as well as the QMC run and simulation metrics (precision, acceptance rate, wallclock time)\\
-   \path{X_scal}      & Results of equal-time measurements of scalar observables \\
+   \path{info}        & Summary after completion of the simulation, including parameters of the model and the QMC run and simulation metrics (precision, acceptance rate, wallclock time)\\
+   \path{X_scal}      & Results of equal-time measurements of scalar observables. \\
    & The placeholder \path{X} stands for the observables \path{Kin}, \path{Pot}, \path{Part}, and \path{Ener} \\
-   \path{X_scal_info} & Contains info on how to analyze the observable and optionally a description.\\
+   \path{X_scal_info} & Info on how to analyze the observable and optionally a description.\\
    \path{Y_eq, Y_tau} & Results of equal-time and time-displaced measurements of correlation functions. The placeholder \path{Y} stands for \path{Green}, \path{SpinZ}, \path{SpinXY}, \path{Den}, etc. \\   
    \path{Y_eq_info, Y_tau_info} & Additional info, like Bravais lattice and unit cell, for equal-time and time-displaced observables \\
-   \path{confout_<thread number>} & Output files (one per MPI instance) for the HS and bosonic configuration \\\bottomrule
+   \path{confout_<thread#>} & Output files (one per MPI instance) for the HS and bosonic configuration \\\bottomrule
    \end{tabular}
-   \caption{Overview of the standard output files. See Sec.~\ref{sec:obs} for the definitions of observables and correlation functions. \label{table:output}}
+   \caption{Overview of the standard output files if compiled without HDF5. See Sec.~\ref{sec:obs} for the definitions of observables and correlation functions and Table~\ref{table:output_hdf5} for HDF5 output. \label{table:output}}
 \end{center}
 \end{table}
 
+\begin{table}[h]
+	\begin{center}
+   \begin{tabular}{@{} p{0.3\columnwidth}p{0.67\columnwidth} @{}}\toprule
+   File               & Description \\\midrule
+   \path{info}        & Same as in Tab.~\ref{table:output}\\
+   \path{data.h5}     & Contains the same information as the scalar, equal-time correlation and time-displaced correlation operators as in Tab.~\ref{table:output}, but in one single HDF5 file (see also Fig.~\ref{fig_data_h5})\\
+   \path{confout_<thread#>.h5} & Output files (one per MPI instance) for the HS and bosonic configuration, in HDF5 format \\
+   \bottomrule
+   \end{tabular}
+   \caption{Overview of the standard output files if compiled with HDF5. See Sec.~\ref{sec:obs} for the definitions of observables and correlation functions. \label{table:output_hdf5}}
+\end{center}
+\end{table}
+
+\begin{figure}
+\dirtree{%
+.1 data.h5.
+.2 lattice\DTcomment{Attached attributes describe Bravais lattice and unit cell}.
+.2 X\_scal\DTcomment{Attached attribute: analysis\_mode}.
+.3 obser\DTcomment{Dataset of shape (NBins, Nobs, 2)}.
+.3 sign\DTcomment{Dataset of shape (NBins)}.
+.2 Y\_eq Y\_tau\DTcomment{Attached attributes: Channel, dtau}.
+.3 lattice\DTcomment{Attached attributes describe Bravais lattice and unit cell}.
+.3 obser\DTcomment{Dataset of shape (NBins, Norbs, Norbs, Ntau, Nlatt, 2)}.
+.3 back\DTcomment{Dataset of shape (NBins, Norbs, 2)}.
+.3 sign\DTcomment{Dataset of shape (NBins)}.
+}
+\caption{Structure of HDF5 output file \texttt{data.h5}.}\label{fig_data_h5}
+\end{figure}
 
 The formatting of a single bin's output depends on the observable type, \path{Obs_vec} or \path{Obs_Latt}:
 \begin{itemize}

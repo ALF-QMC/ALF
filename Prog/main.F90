@@ -132,6 +132,9 @@ Program Main
 #ifdef MPI
         Use mpi
 #endif
+#ifdef HDF5
+        use hdf5
+#endif
         Implicit none
 
 #include "git.h"
@@ -187,6 +190,10 @@ Program Main
         Integer :: N_Global_tau
         Logical :: Sequential
 
+#ifdef HDF5
+        INTEGER(HID_T) :: file_id
+        Logical :: file_exists
+#endif
         !  Space for reading in Langevin & HMC  parameters
         Logical                      :: Langevin,  HMC
         Integer                      :: Leapfrog_Steps
@@ -407,6 +414,29 @@ Program Main
         If (N_Global_tau > 0) then
            Call Wrapgr_alloc
         endif
+        
+#if defined(HDF5)
+#if defined(TEMPERING)
+        write(File1,'(A,I0,A)') "Temp_",igroup,"/data.h5"
+#else
+        File1 = "data.h5"
+#endif
+#if defined(MPI)
+        if ( Irank_g == 0 ) then
+#endif
+          CALL h5open_f(ierr)
+          inquire (file=File1, exist=file_exists)
+          IF (.not. file_exists) THEN
+            ! Create HDF5 file
+            CALL h5fcreate_f(File1, H5F_ACC_TRUNC_F, file_id, ierr)
+            call h5fclose_f(file_id, ierr)
+          endif
+
+#if defined(MPI)
+        endif
+#endif
+#endif
+
 
         Call control_init(Group_Comm)
         Call ham%Alloc_obs(Ltau)

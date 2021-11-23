@@ -207,7 +207,7 @@
            L2_p    =  dble(L2) * (a1_p + a2_p)/2.d0
            Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
         case default
-           Write(error_unit,*) "Predfined_Latt: Lattice not yet implemented!"
+           Write(error_unit,*) "Predefined_Latt: Lattice not yet implemented!"
            error stop 1
         end select
         ! Call Print_latt(Latt)

@@ -1,5 +1,30 @@
 # Log of backward compatibility changes and critical bugs
 
+## 2021-11-21 Implementing HDF5
+
+Author : J.Schwab <br>
+Merge request !120
+
+### Breaking changes
+1) In script configure.sh: The argument DEVEL/DEVELOPMENT is no longer a MACHINE name, but an optional switch
+
+### Optional changes
+1) Added option for compiling with HDF5 by handing argument HDF5 to configure.sh
+
+## 2021-11-21  Automatic computation of Hopping_Matrix_Type%Multiplicity
+
+Author : F. Parisen Toldin <br>
+Merge request !116
+
+### Breaking changes
+1) Hopping_Matrix_Type%Multiplicity is now a private member, automatically initialized
+
+
+## 2021-11-21  Test the checkerboard decomposition
+
+Author : F. Parisen Toldin <br>
+Merge request !124
+
 
 ## 2021-03-22  Implementing Submodule Hamiltonians / All hamiltonians in one binary
 

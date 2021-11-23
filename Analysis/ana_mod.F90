@@ -44,6 +44,11 @@
       Use Matrix
       Use Lattices_v3, only: Unit_cell, Lattice, Make_lattice, Fourier_K_to_R
       Use Predefined_Lattices, only: Predefined_Latt
+#ifdef HDF5
+      use hdf5
+      use h5lt
+      Use alf_hdf5
+#endif
 
    contains
 
@@ -55,7 +60,7 @@
 !> @brief
 !> Reads in bins of scalar observables from file
 !>
-!> @param [IN] file Character(len=64)
+!> @param [IN] file Character(len=*)
 !> \verbatim
 !>  Name of file that gets read in
 !> \endverbatim
@@ -73,7 +78,7 @@
 !> \endverbatim
 !-------------------------------------------------------------------
       Implicit none
-      Character (len=64), intent(in) :: file
+      Character (len=*), intent(in) :: file
       Real    (Kind=Kind(0.d0)), allocatable, intent(out) :: sgn(:)
       Complex (Kind=Kind(0.d0)), pointer, intent(out) :: bins(:,:)
       Character (len=64), intent(out) :: analysis_mode
@@ -124,6 +129,97 @@
 
 !==============================================================================
 
+#ifdef HDF5
+   Subroutine read_vec_hdf5(filename, groupname, sgn, bins, analysis_mode)
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Reads in bins of scalar observables from HDF5 file
+!>
+!> @param [IN] filename Character(len=*)
+!> \verbatim
+!>  Name of file that gets read in
+!> \endverbatim
+!> @param [IN] groupname Character(len=*)
+!> \verbatim
+!>  Name of observable that gets read in
+!> \endverbatim
+!> @param [OUT] sgn Real(:)
+!> \verbatimam
+!>  Sign of bins
+!> \endverbatim
+!> @param [OUT] bins Complex(:,:)
+!> \verbatim
+!>  Monte Carlo bins
+!> \endverbatim
+!> @param [OUT] analysis_mode Character(len=64)
+!> \verbatim
+!>  How to analyze the observable
+!> \endverbatim
+!-------------------------------------------------------------------
+      Implicit none
+      Character (len=*), intent(in) :: filename
+      Character (len=*), intent(in) :: groupname
+      Real    (Kind=Kind(0.d0)), allocatable, intent(out) :: sgn(:)
+      Complex (Kind=Kind(0.d0)), pointer, intent(out) :: bins(:,:)
+      Character (len=64), intent(out) :: analysis_mode
+
+      Integer :: Nobs, Nbins
+
+      Character (len=64) :: file, obs_dsetname, sgn_dsetname
+      INTEGER                       :: rank, hdferr
+      INTEGER(HSIZE_T)              :: mem_dims(1)
+      INTEGER(HSIZE_T), allocatable :: dims(:), maxdims(:)
+      INTEGER(HID_T)                :: file_id, dset_id, dataspace, memspace
+      TYPE(C_PTR)                   :: dat_ptr
+
+      file = 'data.h5'
+      write(obs_dsetname,'(2A)') trim(groupname), "/obser"
+      write(sgn_dsetname,'(2A)') trim(groupname), "/sign"
+
+      CALL h5open_f(hdferr)
+
+      CALL h5fopen_f (File, H5F_ACC_RDONLY_F, file_id, hdferr)
+      call read_attribute(file_id, groupname, "analysis_mode", analysis_mode, hdferr)
+      !Open the  dataset.
+      CALL h5dopen_f(file_id, obs_dsetname, dset_id, hdferr)
+
+      !Get dataset's dataspace handle.
+      CALL h5dget_space_f(dset_id, dataspace, hdferr)
+
+      !Get dataspace's rank.
+      CALL h5sget_simple_extent_ndims_f(dataspace, rank, hdferr)
+      allocate( dims(rank), maxdims(rank) )
+
+      !Get dataspace's dimensions.
+      CALL h5sget_simple_extent_dims_f(dataspace, dims, maxdims, hdferr)
+
+      Nobs  = int( dims(2) )
+      Nbins = int( dims(3) )
+      deallocate( dims )
+
+      Allocate ( Bins(Nobs,Nbins), sgn(Nbins))
+
+      dat_ptr = C_LOC(bins(1,1))
+      CALL h5dopen_f(file_id, obs_dsetname, dset_id, hdferr)
+      CALL h5dget_space_f(dset_id, dataspace, hdferr)
+      CALL H5dread_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr, &
+                  mem_space_id = dataspace, file_space_id = dataspace)
+
+      allocate( dims(1) )
+      dims(1) = Nbins
+      CALL h5dopen_f(file_id, sgn_dsetname, dset_id, hdferr)
+      CALL H5dread_f(dset_id, H5T_NATIVE_DOUBLE, sgn, dims, hdferr)
+      deallocate( dims )
+
+   End Subroutine read_vec_hdf5
+#endif
+
+!==============================================================================
+
+
    Subroutine read_latt(file, sgn, bins, bins0, Latt, Latt_unit, dtau, Channel)
 !--------------------------------------------------------------------
 !> @author
@@ -165,7 +261,7 @@
 !> \endverbatim
 !-------------------------------------------------------------------
       Implicit none
-      Character (len=64), intent(in) :: file
+      Character (len=*), intent(in) :: file
       Real    (Kind=Kind(0.d0)), allocatable, intent(out) :: sgn(:)
       Complex (Kind=Kind(0.d0)), pointer    , intent(out) :: bins(:,:,:,:,:)
       Complex (Kind=Kind(0.d0)), pointer    , intent(out) :: bins0(:,:)
@@ -294,6 +390,160 @@
       enddo
 
    End Subroutine read_latt
+
+!==============================================================================
+
+#ifdef HDF5
+Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dtau, Channel)
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Reads in bins of lattice-type observables (both equal time and timedisplaced)
+!> from HDF5 file data.h5
+!>
+!> @param [IN] name Character(len=64)
+!> \verbatim
+!>  Name of observable that gets read in
+!> \endverbatim
+!> @param [OUT] sgn Real(:)
+!> \verbatimam
+!>  Sign of bins
+!> \endverbatim
+!> @param [OUT] bins Complex(:,:,:,:,:)
+!> \verbatim
+!>  Monte Carlo bins of correlation
+!> @param [OUT] bins0 Complex(:,:)
+!> \verbatim
+!>  Monte Carlo bins of background
+!> \endverbatim
+!> @param [OUT] Latt Type(Lattice)
+!> \verbatim
+!>  Bravais lattice
+!> \endverbatim
+!> @param [OUT] Latt_unit Type(Unit_cell)
+!> \verbatim
+!>  Unit cell
+!> \endverbatim
+!> @param [OUT] dtau Real
+!> \verbatim
+!>  Size of imaginary time step
+!> \endverbatim
+!> @param [OUT] file Character(len=2)
+!> \verbatim
+!>  MaxEnt Channel. Relevant for timedisplaced correlation.
+!> \endverbatim
+!-------------------------------------------------------------------
+      Implicit none
+      Character (len=*), intent(in) :: filename
+      Character (len=*), intent(in) :: name
+      Real    (Kind=Kind(0.d0)), allocatable, intent(out) :: sgn(:)
+      Complex (Kind=Kind(0.d0)), pointer    , intent(out) :: Bins(:,:,:,:,:)
+      Complex (Kind=Kind(0.d0)), pointer    , intent(out) :: Bins0(:,:)
+      Type (Lattice)                        , intent(out) :: Latt
+      Type (Unit_cell)                      , intent(out) :: Latt_unit
+      Real    (Kind=Kind(0.d0))             , intent(out) :: dtau
+      Character (len=2)                     , intent(out) :: Channel
+
+      Integer    :: Nbins, Norb
+
+      Character (len=64) :: obs_dsetname, bak_dsetname, sgn_dsetname, par_dsetname, attr_name
+      INTEGER                       :: ierr, rank, Nunit, Ntau, Ndim, no
+      INTEGER(HSIZE_T), allocatable :: dims(:), maxdims(:)
+      INTEGER(HID_T)                :: file_id, dset_id, grp_id, dataspace
+      TYPE(C_PTR)                   :: dat_ptr
+      Real (Kind=Kind(0.d0))        :: a1_p(2), a2_p(2), L1_p(2), L2_p(2)
+
+      write(obs_dsetname,'(2A)') trim(name), "/obser"
+      write(bak_dsetname,'(2A)') trim(name), "/back"
+      write(sgn_dsetname,'(2A)') trim(name), "/sign"
+
+      !Initialize HDF5
+      CALL h5open_f(ierr)
+
+      !Open HDF5 file
+      CALL h5fopen_f (filename, H5F_ACC_RDONLY_F, file_id, ierr)
+
+      !Open the dataset.
+      CALL h5dopen_f(file_id, obs_dsetname, dset_id, ierr)
+
+      !Get dataset's dataspace handle.
+      CALL h5dget_space_f(dset_id, dataspace, ierr)
+
+      !Get dataspace's rank.
+      CALL h5sget_simple_extent_ndims_f(dataspace, rank, ierr)
+      allocate( dims(rank), maxdims(rank) )
+
+      !Get dataspace's dimensions.
+      CALL h5sget_simple_extent_dims_f(dataspace, dims, maxdims, ierr)
+      if ( rank == 5 ) then
+         Nunit = int( dims(2) )
+         Ntau  = 1
+         Norb  = int( dims(3) )
+         Nbins = int( dims(5) )
+      else
+         Nunit = int( dims(2) )
+         Ntau  = int( dims(3) )
+         Norb  = int( dims(4) )
+         Nbins = int( dims(6) )
+      endif
+      deallocate( dims )
+
+      CALL h5gopen_f(file_id, name, grp_id, ierr)
+      call read_attribute(grp_id, '.', "dtau", dtau, ierr)
+      call read_attribute(grp_id, '.', "Channel", Channel, ierr)
+      call h5gclose_f(grp_id, ierr)
+
+      par_dsetname = "lattice"
+      write(par_dsetname, '(A, "/lattice")') trim(name)
+      CALL h5gopen_f(file_id, par_dsetname, grp_id, ierr)
+      call h5ltget_attribute_double_f(grp_id, '.', "a1", a1_p , ierr)
+      call h5ltget_attribute_double_f(grp_id, '.', "a2", a2_p , ierr)
+      call h5ltget_attribute_double_f(grp_id, '.', "L1", L1_p , ierr)
+      call h5ltget_attribute_double_f(grp_id, '.', "L2", L2_p , ierr)
+      Call Make_Lattice( L1_p, L2_p, a1_p, a2_p, Latt )
+      
+      attr_name = "N_coord"
+      call read_attribute(grp_id, '.', attr_name, Latt_unit%Norb, ierr)
+      attr_name = "Norb"
+      call read_attribute(grp_id, '.', attr_name, Latt_unit%N_coord, ierr)
+      attr_name = "Ndim"
+      call read_attribute(grp_id, '.', attr_name, Ndim, ierr)
+      allocate(Latt_unit%Orb_pos_p(Latt_unit%Norb, Ndim))
+      
+      do no = 1, Latt_unit%Norb
+         write(attr_name, '("Orbital", I0)') no
+         call  h5ltget_attribute_double_f(grp_id, '.', attr_name, Latt_unit%Orb_pos_p(no,:), ierr )
+      enddo
+
+      Allocate ( Bins(Nunit,Ntau,Norb,Norb,Nbins), Bins0(Norb,Nbins), sgn(Nbins) )
+
+      dat_ptr = C_LOC(Bins(1,1,1,1,1))
+      CALL h5dopen_f(file_id, obs_dsetname, dset_id, ierr)
+      CALL h5dget_space_f(dset_id, dataspace, ierr)
+      CALL H5dread_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, ierr, &
+                     mem_space_id = dataspace, file_space_id = dataspace)
+      call h5dclose_f(dset_id, ierr)
+
+      dat_ptr = C_LOC(Bins0(1,1))
+      CALL h5dopen_f(file_id, bak_dsetname, dset_id, ierr)
+      CALL h5dget_space_f(dset_id, dataspace, ierr)
+      CALL H5dread_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, ierr, &
+                     mem_space_id = dataspace, file_space_id = dataspace)
+      call h5dclose_f(dset_id, ierr)
+
+      allocate( dims(1) )
+      dims(1) = Nbins
+      CALL h5dopen_f(file_id, sgn_dsetname, dset_id, ierr)
+      CALL H5dread_f(dset_id, H5T_NATIVE_DOUBLE, sgn, dims, ierr)
+      call h5dclose_f(dset_id, ierr)
+      deallocate( dims )
+
+      call h5fclose_f(file_id, ierr)
+
+   End Subroutine read_latt_hdf5
+#endif
 
 !==============================================================================
 
@@ -426,7 +676,7 @@
 !==============================================================================
 
 
-   subroutine Cov_tau(file)
+   subroutine Cov_tau(name_obs, filename_h5)
 !--------------------------------------------------------------------
 !> @author
 !> ALF-project
@@ -434,35 +684,42 @@
 !> @brief
 !> Analysis of imaginary time displaced  correlation functions.
 !>
-!> @param [IN] file Character(len=64)
+!> @param [IN] name_obs Character(len=64)
 !> \verbatim
 !>  Name of file that gets read in
 !> \endverbatim
-!> @param [IN] PartHole logical
-!> \verbatimam
-!>  If true, it is assumed that observable is symmetric in imaginary time around tau = beta/2
+!> @param [IN] filename_h5 Character(len=64), optional
+!> \verbatim
+!>  Name of file that gets read in
 !> \endverbatim
 !
 !--------------------------------------------------------------------
 
       Implicit none
-      Character (len=64), intent(in) :: file
+      Character (len=*), intent(in) :: name_obs
+      Character (len=*), intent(in), optional :: filename_h5
 
-      Character (len=64) :: name_obs
+      Character (len=64) :: name_obs2
       Real    (Kind=Kind(0.d0)), allocatable :: sgn(:)
       Complex (Kind=Kind(0.d0)), pointer :: Bins_raw(:,:,:,:,:), Bins0_raw(:,:)
       Type (Lattice)   :: Latt
       Type (Unit_cell) :: Latt_unit
-      real (Kind=Kind(0.d0)) :: dtau
+      real    (Kind=Kind(0.d0)):: dtau
       Character (len=2)      :: Channel
       Integer :: i
 
-      i = len(trim(file)) - 4
-      name_obs = file(:i)
+      i = len(trim(name_obs)) - 4
+      name_obs2 = name_obs(:i)
 
-      call read_latt(file, sgn, bins_raw, bins0_raw, Latt, Latt_unit, dtau, Channel)
-      call ana_tau(name_obs, sgn, bins_raw, bins0_raw, Latt, Latt_unit, dtau, Channel)
+      if( present(filename_h5) ) then
+#ifdef HDF5
+        call read_latt_hdf5(filename_h5, name_obs, sgn, bins_raw, bins0_raw, Latt, Latt_unit, dtau, Channel)
+#endif
+      else
+        call read_latt(name_obs, sgn, bins_raw, bins0_raw, Latt, Latt_unit, dtau, Channel)
+      endif
 
+      call ana_tau(name_obs2, sgn, bins_raw, bins0_raw, Latt, Latt_unit, dtau, Channel)
    end subroutine Cov_tau
 
 !==============================================================================
@@ -659,7 +916,7 @@
 
 !==============================================================================
 
-   subroutine Cov_eq(file)
+   subroutine Cov_eq(name_obs, filename_h5)
 !--------------------------------------------------------------------
 !> @author
 !> ALF-project
@@ -671,7 +928,8 @@
 !--------------------------------------------------------------------
 
       Implicit none
-      Character (len=64), intent(in) :: file
+      Character (len=*), intent(in) :: name_obs
+      Character (len=*), intent(in), optional :: filename_h5
 
       Real    (Kind=Kind(0.d0)), allocatable :: sgn(:)
       Complex (Kind=Kind(0.d0)), pointer :: Bins_raw(:,:,:,:,:), Bins0_raw(:,:)
@@ -679,9 +937,15 @@
       Type (Unit_cell) :: Latt_unit
       Real (Kind=Kind(0.d0)) :: dtau
       Character (len=2)      :: Channel
-
-      call read_latt(file, sgn, bins_raw, bins0_raw, Latt, Latt_unit, dtau, Channel)
-      call ana_eq(file, sgn, bins_raw, bins0_raw, Latt, Latt_unit)
+      
+      if( present(filename_h5) ) then
+#ifdef HDF5
+         call read_latt_hdf5(filename_h5, name_obs, sgn, bins_raw, bins0_raw, Latt, Latt_unit, dtau, Channel)
+#endif
+      else
+         call read_latt(name_obs, sgn, bins_raw, bins0_raw, Latt, Latt_unit, dtau, Channel)
+      endif
+      call ana_eq(name_obs, sgn, bins_raw, bins0_raw, Latt, Latt_unit)
 
    end subroutine Cov_eq
 
@@ -689,7 +953,7 @@
 
    Subroutine ana_eq(name, sgn, bins_raw, bins0_raw, Latt, Latt_unit)
       Implicit none
-      Character (len=64)                    , intent(in) :: name
+      Character (len=*)                     , intent(in) :: name
       Real    (Kind=Kind(0.d0)), allocatable, intent(in) :: sgn(:)
       Complex (Kind=Kind(0.d0)), pointer    , intent(in) :: Bins_raw(:,:,:,:,:)
       Complex (Kind=Kind(0.d0)), pointer    , intent(in) :: Bins0_raw(:,:)
@@ -856,7 +1120,7 @@
    end Subroutine ana_eq
 
 
-   subroutine Cov_vec(file)
+   subroutine Cov_vec(name_obs, filename_h5)
 !--------------------------------------------------------------------
 !> @author
 !> ALF-project
@@ -867,14 +1131,21 @@
 !--------------------------------------------------------------------
 
       Implicit none
-      Character (len=64), intent(in) :: file
+      Character (len=*), intent(in) :: name_obs
+      Character (len=*), intent(in), optional :: filename_h5
 
       Real    (Kind=Kind(0.d0)), allocatable :: sgn_raw(:)
       Complex (Kind=Kind(0.d0)), pointer     :: Bins_raw(:,:)
       Character (len=64)                     :: analysis_mode
 
-      call read_vec(file, sgn_raw, bins_raw, analysis_mode)
-      call ana_vec(file, sgn_raw, bins_raw, analysis_mode)
+      if( present(filename_h5) ) then
+#ifdef HDF5
+        call read_vec_hdf5(filename_h5, name_obs, sgn_raw, bins_raw, analysis_mode)
+#endif
+      else
+        call read_vec(name_obs, sgn_raw, bins_raw, analysis_mode)
+      endif
+      call ana_vec(name_obs, sgn_raw, bins_raw, analysis_mode)
 
    END subroutine Cov_vec
 
@@ -882,7 +1153,7 @@
 
    subroutine ana_vec(name, sgn_raw, bins_raw, analysis_mode)
       Implicit none
-      Character (len=64), intent(in) :: name
+      Character (len=*), intent(in) :: name
       Real    (Kind=Kind(0.d0)), allocatable, intent(inout) :: sgn_raw(:)
       Complex (Kind=Kind(0.d0)), pointer,     intent(inout) :: bins_raw(:,:)
       Character (len=64),                     intent(in)    :: analysis_mode

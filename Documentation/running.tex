@@ -62,27 +62,35 @@ Related auxiliary directories, object files and executables can be removed by ex
 
 \begin{table}[!ht]
 	\begin{center}
-		\begin{tabular}{@{} p{0.16\columnwidth} p{0.81\columnwidth} @{}}\toprule %16 81
+		\begin{tabular}{@{} p{0.19\columnwidth} p{0.78\columnwidth} @{}}\toprule %16 81
 			Argument & Selected feature \\\midrule
 			\textbf{\texttt{MACHINE}} &  \\\midrule
-			\texttt{GNU}  &   GNU compiler (\texttt{gfortran} or \texttt{mpifort}) for a generic machine (\emph{default}) \\
-			\texttt{Intel}  &   Intel compiler (\texttt{ifort} or \texttt{mpiifort}) for a generic machine\footnote{A known issue with the alternative Intel Fortran compiler \texttt{ifort} is the handling of automatic, temporary arrays 
+			\texttt{GNU}  &   GNU compiler (\texttt{gfortran}/\texttt{mpifort}) for a generic machine (\emph{default}) \\
+			\texttt{Intel}  &   Intel compiler (\texttt{ifort}/\texttt{mpiifort}) for a generic machine\footnote{A known issue with the alternative Intel Fortran compiler \texttt{ifort} is the handling of automatic, temporary arrays 
 				which \texttt{ifort} allocates on the stack. For large system sizes and/or low temperatures this may lead to a runtime error. One solution is to demand allocation of arrays above a certain size on the heap instead of the stack. This is accomplished by the \texttt{ifort} compiler flag \texttt{-heap-arrays [n]} where \texttt{[n]} is the minimal size (in kilobytes, for example \texttt{n=1024}) of arrays that are allocated on the heap.} \\
-			\texttt{PGI}  &   PGI compiler (\texttt{pgfortran} or \texttt{mpifort}) for a generic machine \\
+			\texttt{PGI}  &   PGI compiler (\texttt{pgfortran}/\texttt{mpifort}) for a generic machine \\
 			\texttt{SuperMUC-NG}  &  Intel compiler (\texttt{mpiifort}) and loads modules for SuperMUC-NG\footnote{Supercomputer at the Leibniz Supercomputing Centre.} \\
-			\texttt{JUWELS}  &  Intel compiler (\texttt{mpiifort}) and loads modules for JUWELS\footnote{Supercomputer at the J\"ulich Supercomputing Centre.} \\
-			\texttt{Development}  &  GNU compiler (\texttt{gfortran} or \texttt{mpifort}) with debugging flags \vspace{7pt}\\
+			\texttt{JUWELS}  &  Intel compiler (\texttt{mpiifort}) and loads modules for JUWELS\footnote{Supercomputer at the J\"ulich Supercomputing Centre.}
+			\vspace{7pt}\\
 			
 			\textbf{\texttt{MODE}} &  \\\midrule
 			\texttt{noMPI|Serial}  &  No parallelization \\
 			\texttt{MPI}  &  MPI parallelization (\emph{default} -- if a machine is selected) \\
-			\texttt{Tempering}  &  Parallel tempering (Sec.~\ref{Parallel_tempering.sec}) and the required MPI as well \vspace{7pt}\\ 
+			\texttt{Tempering}  &  Parallel tempering (Sec.~\ref{Parallel_tempering.sec}) and the required MPI as well
+			\vspace{7pt}\\ 
 			
 			\textbf{\texttt{STAB}} &  \\\midrule
-			\texttt{STAB1}  &  Simplest stabilization, with UDV (QR-, not SVD-based) decompositions\\
+			\texttt{STAB1}  &  Simplest stabilization: UDV (QR-, not SVD-based) decompositions\\
 			\texttt{STAB2}  &  QR-based UDV decompositions with additional normalizations\\
-			\texttt{STAB3}  &  Newest scheme, additionally separates large and small scales (\emph{default})\\
-			\texttt{LOG}  &  Log storage for internal scales, increases accessible ranges\\\bottomrule
+			\texttt{STAB3}  &  Latest, additionally separates large and small scales (\emph{default})\\
+			\texttt{LOG}  &  Logarithmic storage for internal scales, increases accessible ranges
+			\vspace{7pt}\\
+			
+			\textbf{\texttt{OTHER SWITCHES}} &  \\\midrule
+			\texttt{Devel}  &  Compile with additional flags for development and debugging\\
+			\texttt{HDF5}  &  Compile with HDF5 -- automatically downloads and installs HDF5 if not present\\
+			\texttt{NO-INTERACTIVE} & Do not ask for user confirmation during execution of this script\\
+			\bottomrule
 		\end{tabular}
 		\caption{Available arguments for the script \texttt{configure.sh}, called before compilation of the package: predefined machines, parallelization modes, and stabilization schemes (see also Sec.~\ref{sec:optimize}).} \label{table:configureHPC}
 	\end{center}
@@ -91,7 +99,7 @@ Related auxiliary directories, object files and executables can be removed by ex
 A suite of tests for individual parts of the code (subroutines, functions, operations, etc.) is available at the directory \path{testsuite}. The tests can be run by executing the following sequence of commands (the script \path{configure.sh} sets environment variables as described above):
 \begin{lstlisting}[style=bash,morekeywords={make,cmake,ctest}]
 
-source configure.sh Devel serial
+source configure.sh GNU Devel noMPI
 gfortran -v
 make lib
 make ana
@@ -134,7 +142,7 @@ To restart the code using the configuration from a previous simulation as a star
 %-------------------------------------------------------------------------------------
 %
 
-The ALF package includes the analysis program \texttt{ana.out} for performing simple error analysis and correlation function calculations on the three observable types. To perform an error analysis based on the Jackknife resampling method~\cite{efron1981} (Sec.~\ref{sec:jack}) of the Monte Carlo bins for a list of observables run
+The ALF package includes the analysis programs \texttt{ana.out} for plain text bins and \texttt{ana\_hdf5.out} for bins in HDF5 format. They perform the same simple error analysis and correlation function calculations on the three observable types. To perform an error analysis based on the Jackknife resampling method~\cite{efron1981} (Sec.~\ref{sec:jack}) of the Monte Carlo bins for a list of plain-text observables run
 \begin{lstlisting}[style=bash]
 $ALF_DIR/Analysis/ana.out <list of files>
 \end{lstlisting}
@@ -144,7 +152,17 @@ $ALF_DIR/Analysis/ana.out *
 \end{lstlisting}
 for all observables.
 
-The program \texttt{ana.out} is based on the included module \texttt{ana\_mod}, which provides subroutines for reading and analyzing ALF Monte Carlo bins, that can be used to implement more specialized analysis. The three high-level analysis routines employed by \texttt{ana\_mod} are listed in Table~\ref{table:analysis_programs}. The files taken as input, as well as the output files are listed in Table~\ref{table:analysis_files}.
+For analyzing observables stored in the HDF5 file \texttt{data.h5}, run
+\begin{lstlisting}[style=bash]
+$ALF_DIR/Analysis/ana_hdf5.out <list of observables>
+\end{lstlisting}
+or run
+\begin{lstlisting}[style=bash]
+$ALF_DIR/Analysis/ana_hdf5.out *
+\end{lstlisting}
+for all observables.
+
+The programs \texttt{ana.out} and \texttt{ana\_hdf5.out} are based on the included module \texttt{ana\_mod}, which provides subroutines for reading and analyzing ALF Monte Carlo bins, that can be used to implement more specialized analysis. The three high-level analysis routines employed by \texttt{ana\_mod} are listed in Table~\ref{table:analysis_programs}. The files taken as input, as well as the output files are listed in Table~\ref{table:analysis_files}.
 
 \begin{table}[h]
 	\begin{center}
@@ -160,7 +178,7 @@ The program \texttt{ana.out} is based on the included module \texttt{ana\_mod}, 
 		& For particle-hole, imaginary-time correlation functions (\texttt{Channel = "PH"}) such as spin and charge, we use the fact that these correlation functions  are symmetric around $\tau = \beta/2$ so that we can define an improved estimator by averaging over $\tau$ and $\beta - \tau$
 		\\\bottomrule
 	\end{tabular}
-	\caption{Overview of analysis subroutines called within the program \texttt{ana.out}. \label{table:analysis_programs}}
+	\caption{Overview of analysis subroutines called within \texttt{ana.out} and \texttt{ana\_hdf5.out}. \label{table:analysis_programs}}
 \end{center}
 \end{table}
 %
