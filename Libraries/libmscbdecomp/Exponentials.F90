@@ -518,7 +518,7 @@ subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
     integer, intent(in) :: usedcolors
     real(kind=kind(0.D0)), intent(in), allocatable, dimension(:) :: mys
     real(kind=kind(0.d0)), intent(in) :: weight
-    real(kind=kind(0.D0)), allocatable, dimension(:) :: mys2
+    real(kind=kind(0.D0)), allocatable, dimension(:) :: mys_start, myloc
     integer, dimension(:), allocatable :: nredges, edgectr
     integer :: i, maxedges, k, ndim, ldvl, lwork, ierr
     type(node), dimension(:, :), allocatable :: colsepnodes! An array of nodes separated by color
@@ -529,6 +529,7 @@ subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
     class(HomogeneousSingleColExp), pointer :: homexp
     class(TraceLessSingleColExp), pointer :: tracelessexp
     class(GeneralSingleColExp), pointer :: generalexp
+    real(kind=kind(0.D0)) :: my1, my2, myd, myav
 #ifndef NDEBUG
     write(*,*) "Setting up Euler Checkerboard exponential."
 #endif
@@ -560,14 +561,32 @@ subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
     ! which color we can create an exponential for each color that exploits
     ! the structure that the color decomposition creates strictly sparse matrices.
     
-    ! But first we have to distribute the chemical potential entries across the colors
-    
 !     write (*,*) mys
-    allocate(this%singleexps(usedcolors), mys2(size(mys)))
+    allocate(this%singleexps(usedcolors), mys_start(size(mys)), myloc(size(mys)))
+    mys_start = mys
     do i = 1, usedcolors
-        mys2 = mys
+        ! But first we have to distribute the chemical potential entries across the colors
+        !myloc = mys_start
+        if (i < usedcolors) then
+            myloc = 0
+            do k = 1, nredges(i) - 1
+                my1 = mys_start(colsepnodes(i, k)%x)
+                my2 = mys_start(colsepnodes(i, k)%y)
+                myav = (my1+my2)/2
+                myd  = (my1-my2)/2
+            
+                myloc(colsepnodes(i, k)%x) = myd
+                myloc(colsepnodes(i, k)%y) = -myd
+            
+                mys_start(colsepnodes(i, k)%x) = myav
+                mys_start(colsepnodes(i, k)%y) = myav
+            enddo
+        else
+            !in the last loop mys_start contains all the remaining entries
+            myloc = mys_start
+        endif
         ! In each color we have to determine which optimizations are possible
-        select case(determinediagtype( colsepnodes(i, :), mys )) 
+        select case(determinediagtype( colsepnodes(i, :), myloc )) 
         case(0)
         write (*,*) "Zero"
             allocate(zerodiagexp)
@@ -586,9 +605,9 @@ subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
             this%singleexps(i)%dat => generalexp
         end select
         
-        call this%singleexps(i)%dat%init(colsepnodes(i, :), nredges(i), mys, weight)
+        call this%singleexps(i)%dat%init(colsepnodes(i, :), nredges(i), myloc, weight)
     enddo
-    deallocate(nredges, edgectr, colsepnodes, mys2)
+    deallocate(nredges, edgectr, colsepnodes, myloc, mys_start)
 ! !     ndim = 1
 ! !     do i = 1, usedcolors
 ! !     ndim = max(maxval(this%singleexps(i)%x), maxval(this%singleexps(i)%y))

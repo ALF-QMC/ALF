@@ -118,12 +118,12 @@
                         error stop 2
                 endif
                 ! check for chemical potential
-                do i = 1, op%N
-                    if (Op%O(i,i) /= 0) then
-                        write (*,*) "chemical potential not supported."
-                        error stop 2
-                    endif
-                enddo
+!                do i = 1, op%N
+!                    if (Op%O(i,i) /= 0) then
+!                        write (*,*) "chemical potential not supported."
+!                        error stop 2
+!                    endif
+!                enddo
                 if (method == 1) then
                     allocate(eulerexp)
                     call eulerexp%init(op)
