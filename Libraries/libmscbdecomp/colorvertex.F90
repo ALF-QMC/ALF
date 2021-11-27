@@ -196,11 +196,11 @@ end function colorvertex_find_maximal_fan
 !> @result fe
 !--------------------------------------------------------------------
 
-function createEulerExponentialfromGraphData(gd, diags) result(fe)
+function createEulerExponentialfromGraphData(gd, diags) result(ee)
     implicit none
     type(GraphData) :: gd
     real(kind=kind(0.D0)), intent(in), allocatable, dimension(:) :: diags
-    type(EulerExp) :: fe
+    type(EulerExp) :: ee
     real(kind=kind(0.D0)) :: weight
     integer :: k, elempos, mynbr, nbr1, l, i
     logical, allocatable, dimension(:) :: usedcols
@@ -255,7 +255,7 @@ function createEulerExponentialfromGraphData(gd, diags) result(fe)
         elempos = elempos + gd%verts(i)%degree
     enddo
     weight = 1.0
-    call fe%init(nodes, gd%usedcolors, diags, weight)
+    call ee%init(nodes, gd%usedcolors, diags, weight)
     deallocate(nodes, usedcols)
 end function
 
