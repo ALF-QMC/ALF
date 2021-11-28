@@ -17,7 +17,6 @@ stages:
 
 .build_template: &build_definition
   stage: build
-  <<: *exemptfiles_definition
   script:
     - apt-get update && apt install -y curl libghc-zlib-dev g++
     - . configure.sh GNU serial $CONFIG_ARGS
@@ -26,7 +25,6 @@ stages:
 
 .build_template_pgi: &build_definition_pgi
   stage: build
-  <<: *exemptfiles_definition
   script:
     - apt-get update && apt install -y curl libghc-zlib-dev
     - pgfortran --version
@@ -35,7 +33,6 @@ stages:
 
 .warnconv_template: &warnconv_definition
   stage: warnconv
-  <<: *exemptfiles_definition
   script:
     - apt-get update && apt install -y curl libghc-zlib-dev g++
     - . configure.sh GNU Devel serial $CONFIG_ARGS
@@ -44,7 +41,6 @@ stages:
 
 .test_template: &test_definition
   stage: test
-  <<: *exemptfiles_definition
   script:
     - apt-get update && apt install -y curl libghc-zlib-dev g++
     - . configure.sh GNU Devel serial $CONFIG_ARGS
