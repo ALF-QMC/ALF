@@ -17,6 +17,7 @@ stages:
 
 .build_template: &build_definition
   stage: build
+  needs: []
   script:
     - apt-get update && apt install -y curl libghc-zlib-dev g++
     - . configure.sh GNU serial $CONFIG_ARGS
@@ -25,6 +26,7 @@ stages:
 
 .build_template_pgi: &build_definition_pgi
   stage: build
+  needs: []
   script:
     - apt-get update && apt install -y curl libghc-zlib-dev
     - pgfortran --version
@@ -33,6 +35,7 @@ stages:
 
 .warnconv_template: &warnconv_definition
   stage: warnconv
+  needs: []
   script:
     - apt-get update && apt install -y curl libghc-zlib-dev g++
     - . configure.sh GNU Devel serial $CONFIG_ARGS
@@ -41,6 +44,7 @@ stages:
 
 .test_template: &test_definition
   stage: test
+  needs: []
   script:
     - apt-get update && apt install -y curl libghc-zlib-dev g++
     - . configure.sh GNU Devel serial $CONFIG_ARGS
@@ -112,6 +116,7 @@ GQMCT_Ubuntu_Bionic:
 GQMCT_Stretch_MPI:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:stretch-gfortran-blas-lapack-fftw-hdf5-scipy
   stage: build
+  needs: []
   except:
     changes:
       - .gitignore
@@ -128,6 +133,7 @@ GQMCT_Stretch_MPI:
 GQMCT_Intel-21:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-intel-oneapi-ifort
   stage: build
+  needs: []
   except:
     changes:
       - .gitignore
@@ -175,6 +181,7 @@ GQMCT_Bullseye_OpenBlas_conv:
 GQMCT_PGI_conv:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-pgi-21-03
   stage: warnconv
+  needs: []
   except:
     changes:
       - .gitignore
@@ -230,6 +237,7 @@ GQMCT_Ubuntu-bionic_tests:
 GQMCT_PGI_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-pgi-21-03
   stage: test
+  needs: []
   except:
     changes:
       - .gitignore
@@ -254,6 +262,7 @@ GQMCT_PGI_tests:
 GQMCT_Stretch_valgrind:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:stretch-gfortran-blas-lapack-valgrind
   stage: memleaks
+  needs: []
   only:
     changes:
       - Prog/*.(f|F)90
@@ -274,6 +283,7 @@ GQMCT_Stretch_valgrind:
 create_doc:
   image: aergus/latex
   stage: build
+  needs: []
   artifacts:
     paths:
       - Documentation/doc.pdf
@@ -284,6 +294,7 @@ create_doc:
 create_doxygen:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:buster-clang
   stage: build
+  needs: []
   artifacts:
     expire_in: 120 days
     paths:
