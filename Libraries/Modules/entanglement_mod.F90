@@ -31,9 +31,9 @@
  
 Module entanglement_mod
 
-#ifndef MPI
-#warning "You are compiling entanglement without MPI. No results possible"
-#endif
+! #ifndef MPI
+! #warning "You are compiling entanglement without MPI. No results possible"
+! #endif
 
 !--------------------------------------------------------------------
 !> @author 
