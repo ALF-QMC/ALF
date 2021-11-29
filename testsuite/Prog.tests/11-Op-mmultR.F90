@@ -99,7 +99,7 @@ Program OPMULTTEST
            Op%O = CMPLX(0.d0, 0.d0, kind(0.D0))
            do i = 1, Op%N
               Op%O(i,i) = 2*i-3
-              !             Op%P(i) = i
+              Op%P(i) = i
               !             Op%U(i,i) = CMPLX(1.d0, 0.d0, kind(0.D0))
            enddo
            ! the following line is neccessary as we circumvent the Op_set routine
