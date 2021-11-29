@@ -252,9 +252,14 @@ subroutine ZeroDiagSingleColExp_init(this, nodes, nredges, mys, weight)
         ! chemical potentials are deferred to different classes
         this%c(i) = cosh(abs(weight*nodes(i)%axy))
         this%c2(i) = cosh(abs(weight*nodes(i)%axy)/2)
-        ! I got the most reliable results if the hyperbolic pythagoras is best fulfilled.
-        this%s(i) = sqrt(this%c(i)**2-1.0)*weight*nodes(i)%axy/abs(weight*nodes(i)%axy)
-        this%s2(i) = sqrt(this%c2(i)**2-1.0)*weight*nodes(i)%axy/abs(weight*nodes(i)%axy)
+        if (abs(weight*nodes(i)%axy) > 0.0) then
+            ! I got the most reliable results if the hyperbolic pythagoras is best fulfilled.
+            this%s(i) = sqrt(this%c(i)**2-1.0)*weight*nodes(i)%axy/abs(weight*nodes(i)%axy)
+            this%s2(i) = sqrt(this%c2(i)**2-1.0)*weight*nodes(i)%axy/abs(weight*nodes(i)%axy)
+        else
+            this%s(i) = 0
+            this%s2(i) = 0
+        endif
     enddo
 ! All nodes that we have been passed are now from a single color.
 ! They constitute now a strictly sparse matrix.
