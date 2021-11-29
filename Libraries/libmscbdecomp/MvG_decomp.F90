@@ -376,10 +376,10 @@ end function binarySearch
 !> Florian Goth
 !
 !> @brief 
-!> the Misra van-Gries graph decomposition
+!> The Misra van-Gries graph decomposition
 !> If everything works out, the col array that each vertex has is completely set afterwards.
 !
-!> @param[in] verts our internal data structure composed of vertices.
+!> @param[in] verts Our internal data structure composed of vertices.
 !--------------------------------------------------------------------
 subroutine MvG_decomp(verts)
     implicit none
