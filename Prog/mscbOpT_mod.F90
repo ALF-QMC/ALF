@@ -88,7 +88,14 @@ module mscbOpT_mod
         procedure :: adjointaction => CmplxmscbOpT_adjointaction
         procedure :: dump => CmplxmscbOpT_dump ! dump matrices for debugging to screen
     end type CmplxmscbOpT
-    
+
+    !--------------------------------------------------------------------
+    !> @author
+    !> ALF-project
+    !> @brief
+    !> A specialized class for ecapsulating the Euler approximation.
+    !>
+    !--------------------------------------------------------------------
     type, extends(ContainerElementBase) :: CmplxEulermscbOpT
         Complex(kind=kind(0.d0)) :: g
         Real(kind=kind(0.d0)) :: Zero
@@ -220,10 +227,10 @@ contains
     !> @author
     !> ALF-project
     !> @brief
-    !> transform an Op_T object to a GraphData object and a vector containing
-    !> the matrix diagonal
+    !> Transform an Op_T object to a GraphData object and a vector containing
+    !> the matrix diagonal.
     !
-    !> @param Op_T the Operator
+    !> @param Op_T the operator.
     !> @param gd the Graphdata object. We take care to create one.
     !> @param diags the vector of the diagonal. We allocate it.
     !>
@@ -257,6 +264,7 @@ contains
         Complex(kind=kind(0.D0)), allocatable, dimension(:,:) :: tmp
         Real(kind=kind(0.D0)), allocatable, dimension(:) :: diags
         
+        write (*,*) "[CmplxMSCB]: init"
         this%Zero = 1.E-12
         this%Ndim_hop = Op_T%N
         this%g = Op_T%g
@@ -298,11 +306,9 @@ contains
         class(CmplxmscbOpT), intent(in) :: this
         Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
         
-        !FIXME: P
-        
+        !FIXME: P        
         If ( dble(this%g*conjg(this%g)) > this%Zero ) then
             call this%fe%rmult(arg)
-!            call ZSLHEMM('R', 'U', this%Ndim_hop, n1, n2, this%mat, this%P, arg)
         Endif
     end subroutine
 
@@ -313,10 +319,9 @@ contains
         !FIXME: P
         If ( dble(this%g*conjg(this%g)) > this%Zero ) then
             call this%fe%rmultinv(arg)
-!            call ZSLHEMM('R', 'U', this%Ndim_hop, n1, n2, this%invmat, this%P, arg)
         Endif
     end subroutine
-    
+
     subroutine CmplxmscbOpT_lmult(this, arg)
         class(CmplxmscbOpT), intent(in) :: this
         Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
@@ -324,7 +329,6 @@ contains
         !FIXME: P
         If ( dble(this%g*conjg(this%g)) > this%Zero ) then
             call this%fe%lmult(arg)
-!             call ZSLHEMM('L', 'U', this%Ndim_hop, n1, n2, this%mat, this%P, arg)
         Endif
     end subroutine
 
@@ -335,7 +339,6 @@ contains
         !FIXME: P
         If ( dble(this%g*conjg(this%g)) > this%Zero ) then
             call this%fe%lmultinv(arg)
-!             call ZSLHEMM('L', 'U', this%Ndim_hop, n1, n2, this%invmat, this%P, arg)
         Endif
     end subroutine
 
@@ -380,19 +383,7 @@ contains
         call Op_T_to_graphdata(Op_T, gd, diags)
         
         ! some sanity checks and status informations
-        gd%usedcolors = 0
-        gd%nredges = 0
-        do i = 1, gd%ndim
-            gd%deltag = max(gd%deltag, gd%verts(i)%degree)
-            do k = 1, gd%verts(i)%degree
-                if (gd%verts(i)%nbrs(k) > i) gd%nredges = gd%nredges + 1
-                if (gd%verts(i)%nbrs(k) > gd%ndim) then
-                    write(*,*) "invalid nbr!!!"
-                    STOP
-                endif
-                gd%usedcolors = max(gd%usedcolors, gd%verts(i)%cols(k))
-            enddo
-        enddo
+        call determine_used_colors_of_graph(gd)
         write (*,*) "Nr edges: ", gd%nredges
         if (gd%usedcolors == gd%deltag) then
             write(*,*) "Maximum Degree", gd%deltag, ". Found", gd%usedcolors," Families -> optimal decomposition"
@@ -431,7 +422,6 @@ contains
         
         If ( dble(this%g*conjg(this%g)) > this%Zero ) then
             call this%ee%rmult(arg)
-!            call ZSLHEMM('R', 'U', this%Ndim_hop, n1, n2, this%mat, this%P, arg)
         Endif
     end subroutine
 
@@ -442,7 +432,6 @@ contains
         !FIXME: P
         If ( dble(this%g*conjg(this%g)) > this%Zero ) then
             call this%ee%rmultinv(arg)
-!            call ZSLHEMM('R', 'U', this%Ndim_hop, n1, n2, this%invmat, this%P, arg)
         Endif
     end subroutine
     
@@ -453,7 +442,6 @@ contains
         !FIXME: P
         If ( dble(this%g*conjg(this%g)) > this%Zero ) then
             call this%ee%lmult(arg)
-!             call ZSLHEMM('L', 'U', this%Ndim_hop, n1, n2, this%mat, this%P, arg)
         Endif
     end subroutine
 
@@ -464,7 +452,6 @@ contains
         !FIXME: P
         If ( dble(this%g*conjg(this%g)) > this%Zero ) then
             call this%ee%lmultinv(arg)
-!             call ZSLHEMM('L', 'U', this%Ndim_hop, n1, n2, this%invmat, this%P, arg)
         Endif
     end subroutine
 
