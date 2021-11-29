@@ -529,7 +529,7 @@ end subroutine quicksort
 !> Florian Goth
 !
 !> @brief 
-!> A function that transforms a matrix into our internal data structure
+!> A function that transforms a matrix into our internal data structure.
 !
 !> @param[in] A the matrix that we bring into our internal datastructure
 !> @result our internal data structure of graph vertices
