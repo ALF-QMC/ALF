@@ -78,6 +78,8 @@ module Exponentials_mod
 !> This holds together a set of Euler exponentials
 !> and applies them in the correct order to obtain higher order
 !> approximations.
+!> Note that due to the use of higher-order approximations we have successive
+!> Strang pairings. Hence the Euler type method needs to be treated separately.
 !--------------------------------------------------------------------
     type :: FullExp
         integer :: method
@@ -289,7 +291,7 @@ end subroutine EulerExp_dealloc
 !> Florian Goth
 !
 !> @brief 
-!> This function multiplies this full exponential with a vector.
+!> This function multiplies this Euler exponential with a vector.
 !
 !> @param[in] this The exponential opbject
 !> @param[in] vec The vector that we multiply
@@ -453,9 +455,10 @@ end function
 !> @param[in] mys a vector containing the chemical potentials.
 !> @return 0: ZeroDiag, 1:HomogeneousSingleColExp, 2:Traceless: 3: General
 !--------------------------------------------------------------------
-function determinediagtype(nodes, mys) result(diagtype)
+function determinediagtype(nodes, nrnodes, mys) result(diagtype)
     real(kind=kind(0.D0)), intent(in), allocatable, dimension(:) :: mys
     type(node), dimension(:), intent(in) :: nodes
+    integer, intent(in) :: nrnodes
     integer :: diagtype
     integer :: i
     real(kind=kind(0.D0)) mymax, localzero, tmp
@@ -463,7 +466,7 @@ function determinediagtype(nodes, mys) result(diagtype)
 
     ! check for pairwise equality
     isequal = .true.
-    do i = 1, size(nodes)
+    do i = 1, nrnodes
         if ( .not. fpequal(mys(nodes(i)%x), mys(nodes(i)%y ) )) then
             isequal = .false.
         endif
@@ -473,8 +476,8 @@ function determinediagtype(nodes, mys) result(diagtype)
     ! check whether they are as good as zero.
         iszero = .true.
         
-        do i = 1, size(nodes)
-            localzero = 1E-15*sqrt(2*mys(nodes(i)%x)**2 + dble(nodes(i)%axy*conjg(nodes(i)%axy)))
+        do i = 1, nrnodes
+            localzero = 1E-15*abs(nodes(i)%axy)*sqrt(2*(mys(nodes(i)%x)/abs(nodes(i)%axy) )**2 + 1)
             if (abs(mys(nodes(i)%x)) > localzero) iszero = .false.
         enddo
         if (iszero) then
@@ -486,7 +489,7 @@ function determinediagtype(nodes, mys) result(diagtype)
     ! check whether all blocks are traceless
         istraceless = .true.
         
-        do i = 1, size(nodes)
+        do i = 1, nrnodes
             localzero = 1E-15*sqrt(mys(nodes(i)%x)**2 + mys(nodes(i)%y)**2 + dble(nodes(i)%axy*conjg(nodes(i)%axy)))
             if (abs(mys(nodes(i)%x) + mys(nodes(i)%y)) > localzero) istraceless = .false.
         enddo
@@ -574,7 +577,7 @@ subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
                 my2 = mys_start(colsepnodes(i, k)%y)
                 myav = (my1+my2)/2
                 myd  = (my1-my2)/2
-            
+
                 myloc(colsepnodes(i, k)%x) = myd
                 myloc(colsepnodes(i, k)%y) = -myd
             
@@ -585,8 +588,9 @@ subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
             !in the last loop mys_start contains all the remaining entries
             myloc = mys_start
         endif
+
         ! In each color we have to determine which optimizations are possible
-        select case(determinediagtype( colsepnodes(i, :), myloc )) 
+        select case(determinediagtype( colsepnodes(i, :), nredges(i), myloc )) 
         case(0)
         write (*,*) "Zero"
             allocate(zerodiagexp)
