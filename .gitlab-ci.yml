@@ -191,7 +191,7 @@ GQMCT_PGI_conv:
   script:
     - apt-get update && apt install -y curl libghc-zlib-dev
     - pgfortran --version
-    - . configure.sh PGI serial $CONFIG_ARGS
+    - . configure.sh PGI devel serial $CONFIG_ARGS
     - make all
 
 #GQMCT_Jessie_tests:
@@ -247,7 +247,7 @@ GQMCT_PGI_tests:
   script:
     - apt-get update && apt install -y curl libghc-zlib-dev
     - pgfortran --version
-    - . configure.sh PGI serial $CONFIG_ARGS
+    - . configure.sh PGI devel serial $CONFIG_ARGS
     - make lib
     - make ana
     - make program
