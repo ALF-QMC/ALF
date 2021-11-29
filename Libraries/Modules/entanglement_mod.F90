@@ -31,9 +31,11 @@
  
 Module entanglement_mod
 
-! #ifndef MPI
-! #warning "You are compiling entanglement without MPI. No results possible"
-! #endif
+#ifndef PIPELINE
+#ifndef MPI
+#warning "You are compiling entanglement without MPI. No results possible"
+#endif
+#endif
 
 !--------------------------------------------------------------------
 !> @author 
