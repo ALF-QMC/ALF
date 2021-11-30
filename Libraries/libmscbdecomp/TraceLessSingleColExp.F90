@@ -375,8 +375,8 @@ subroutine TraceLessSingleColExp_init(this, nodes, nredges, mys, weight)
         this%y(i) = nodes(i)%y
         this%p(i) = weight*nodes(i)%axy
         !calculate Frobenius norm
-        my1 = mys(nodes(i)%x)
-        my2 = mys(nodes(i)%y)
+        my1 = weight * mys(nodes(i)%x)
+        my2 = weight * mys(nodes(i)%y)
         nf = sqrt(my1*my1+my2*my2 + 2*dble(this%p(i) * conjg(this%p(i))))
         localzero = 1E-15*nf ! definition of my local scale that defines zero
         if (abs(my1+my2) > localzero) then
