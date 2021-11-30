@@ -119,6 +119,16 @@ subroutine HomogeneousSingleColExp_adjoint_over_two(this, mat)
             enddo
         enddo
     enddo
+    
+    ! remainder loop
+    if ((ndim - loopend) .ne. 0) then
+        do i = 1, this%nrofentries! for every matrix
+            t1(1) = mat(this%x(2*i-1), ndim)
+            t2(1) = mat(this%x(2*i), ndim)
+            mat(this%x(2*i-1), ndim) = this%c2(i) * t1(1) + this%s2(i) * t2(1)
+            mat(this%x(2*i), ndim) = this%c2(i) * t2(1) + conjg(this%s2(i)) * t1(1)
+        enddo
+    endif
 
     ! rmultinv part
     do i = 1, this%nrofentries! for every matrix
@@ -175,7 +185,7 @@ subroutine HomogeneousSingleColExp_init(this, nodes, nredges, mys, weight)
     integer :: i
     real (kind=kind(0.d0)) :: nf, my1, my2, localzero
     allocate(this%x(2*nredges), this%y(nredges), this%c(nredges), this%s(nredges))
-    allocate(this%c2(nredges), this%s2(nredges), this%p(nredges))
+    allocate(this%c2(nredges), this%s2(nredges))
     allocate(this%c2inv(nredges), this%s2inv(nredges), this%cinv(nredges), this%sinv(nredges))
     this%nrofentries = nredges
 #ifndef NDEBUG
@@ -185,11 +195,10 @@ subroutine HomogeneousSingleColExp_init(this, nodes, nredges, mys, weight)
         this%x(2*i-1) = nodes(i)%x
         this%x(2*i) = nodes(i)%y
         this%y(i) = nodes(i)%y
-        this%p(i) = weight*nodes(i)%axy
         !calculate Frobenius norm
-        my1 = weight * mys(nodes(i)%x)
-        my2 = weight * mys(nodes(i)%y)
-        nf = sqrt(my1*my1+my2*my2 + 2*dble(this%p(i) * conjg(this%p(i))))
+        my1 = mys(nodes(i)%x)
+        my2 = mys(nodes(i)%y)
+        nf = sqrt(my1*my1 + my2*my2 + 2*dble(nodes(i)%axy * conjg(nodes(i)%axy)))! dependence on weight drops out in all comps
         localzero = 1E-15*nf ! definition of my local scale that defines zero
         if (abs(my1-my2) > localzero) then
             write(*,*) "[HomogeneousSingleColExp_init]: Unequal diagonals found. This should not happen here."
@@ -205,21 +214,21 @@ subroutine HomogeneousSingleColExp_init(this, nodes, nredges, mys, weight)
         !   (b^*, my) then the below entries follow for the exponential and cosh is real.
         ! The case of the uniform chemical potential is fixed up later.
         this%c(i) = cosh(abs(weight*nodes(i)%axy))
-        this%c2(i) = cosh(abs(weight*nodes(i)%axy)/2)
+        this%c2(i) = cosh(abs(weight*nodes(i)%axy)/2.D0)
         ! I got the most reliable results if the hyperbolic pythagoras is best fulfilled.
         ! If we generalize this, to non-zero diagonals, this means 
-        this%s(i) = sqrt(this%c(i)**2-1.0)*weight*nodes(i)%axy/abs(weight*nodes(i)%axy)
-        this%s2(i) = sqrt(this%c2(i)**2-1.0)*weight*nodes(i)%axy/abs(weight*nodes(i)%axy)
+        this%s(i) = sqrt(this%c(i)**2-1.D0)*weight*nodes(i)%axy/abs(weight*nodes(i)%axy)
+        this%s2(i) = sqrt(this%c2(i)**2-1.D0)*weight*nodes(i)%axy/abs(weight*nodes(i)%axy)
         
         if (abs(my1+my2) > 2*localzero) then ! chemical potential is actually different from zero
             this%cinv(i) = this%c(i) * exp(-my1)
             this%c(i) = this%c(i) * exp(my1)
-            this%c2inv(i) = this%c2(i) * exp(-my1/2)
-            this%c2(i) = this%c2(i) * exp(my1/2)
+            this%c2inv(i) = this%c2(i) * exp(-my1/2.D0)
+            this%c2(i) = this%c2(i) * exp(my1/2.D0)
             this%sinv(i) = -this%s(i) * exp(-my1)
             this%s(i) = this%s(i) * exp(my1)
-            this%s2inv(i) = -this%s2(i) * exp(-my1/2)
-            this%s2(i) = this%s2(i) * exp(my1/2)
+            this%s2inv(i) = -this%s2(i) * exp(-my1/2.D0)
+            this%s2(i) = this%s2(i) * exp(my1/2.D0)
         endif
     enddo
 ! All nodes that we have been passed are now from a single color.

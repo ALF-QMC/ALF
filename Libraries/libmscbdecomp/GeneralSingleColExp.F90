@@ -100,7 +100,7 @@ subroutine GeneralSingleColExp_adjoint_over_two(this, mat)
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
     integer :: i, j, k, ndim, loopend
     integer, parameter :: step = 2
-    complex(kind=kind(0.D0)) :: t1(step), t2(step), t1scal, t2scal, mys
+    complex(kind=kind(0.D0)) :: t1(step), t2(step), mys
     real(kind=kind(0.D0)) :: myc(2)
     
     ! lmult part
@@ -121,6 +121,16 @@ subroutine GeneralSingleColExp_adjoint_over_two(this, mat)
             enddo
         enddo
     enddo
+
+    ! remainder loop
+    if ((ndim - loopend) .ne. 0) then
+        do i = 1, this%nrofentries! for every matrix
+            t1(1) = mat(this%x(2*i-1), ndim)
+            t2(1) = mat(this%x(2*i), ndim)
+            mat(this%x(2*i-1), ndim) = this%c2(2*i-1) * t1(1) + this%s2(i) * t2(1)
+            mat(this%x(2*i), ndim) = this%c2(2*i) * t2(1) + conjg(this%s2(i)) * t1(1)
+        enddo
+    endif
 
     ! rmultinv part with new data
     call rmultthreeelementbase(this%c2inv, this%s2inv, this%x, this%nrofentries, mat)
@@ -189,12 +199,13 @@ end subroutine
 !> strictly sparse matrix.
 !> The internal layout is that the non-zero element a_xy stored at (x,y) in the matrix
 !> has x(i) at x(2i-1) and y(i) at x(2i).
-!> the two values for the diagonals are stored in c(2i) and c(2i+1)
+!> The two values for the diagonals are stored in c(2i) and c(2i+1).
 !
-!> @param[inout] this the GeneralSingleColExp object.
-!> @param[in] nodes The nodes that belng to this color.
-!> @param[in] nredges how many nodes of this color.
-!> @param[in] weight a prefactor for the exponent.
+!> @param[inout] this The GeneralSingleColExp object.
+!> @param[in] nodes The nodes that belong to this color.
+!> @param[in] nredges How many nodes of this color.
+!> @param[in] mys A vector containing the diagonal of the matrix
+!> @param[in] weight A prefactor for the exponent.
 !--------------------------------------------------------------------
 subroutine GeneralSingleColExp_init(this, nodes, nredges, mys, weight)
     class(GeneralSingleColExp), intent(inout) :: this
@@ -205,7 +216,7 @@ subroutine GeneralSingleColExp_init(this, nodes, nredges, mys, weight)
     integer :: i
     real (kind=kind(0.d0)) :: nf, my1, my2, localzero, md, mav, dweight
     allocate(this%x(2*nredges), this%y(nredges), this%c(2*nredges), this%s(nredges), this%cinv(2*nredges), this%sinv(nredges) )
-    allocate(this%c2(2*nredges), this%c2inv(2*nredges), this%s2(nredges), this%s2inv(nredges), this%p(nredges))
+    allocate(this%c2(2*nredges), this%c2inv(2*nredges), this%s2(nredges), this%s2inv(nredges))
     this%nrofentries = nredges
 #ifndef NDEBUG
     write(*,*) "Setting up strict. sparse matrix with ", nredges, "edges"
@@ -214,11 +225,10 @@ subroutine GeneralSingleColExp_init(this, nodes, nredges, mys, weight)
         this%x(2*i-1) = nodes(i)%x
         this%x(2*i) = nodes(i)%y
         this%y(i) = nodes(i)%y
-        this%p(i) = weight*nodes(i)%axy
         !calculate Frobenius norm
-        my1 = weight * mys(nodes(i)%x)
-        my2 = weight * mys(nodes(i)%y)
-        nf = sqrt(my1*my1+my2*my2 + 2*dble(this%p(i) * conjg(this%p(i))))
+        my1 = mys(nodes(i)%x)
+        my2 = mys(nodes(i)%y)
+        nf = sqrt(my1*my1+my2*my2 + 2*dble(nodes(i)%axy * conjg(nodes(i)%axy))) ! dependence on weight cancels in all comps
         localzero = 1E-15*nf ! definition of my local scale that defines zero
         md = 0.5*(my1 - my2)
         mav = 0.5*(my1 + my2)

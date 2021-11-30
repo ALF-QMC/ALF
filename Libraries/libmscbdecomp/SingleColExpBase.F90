@@ -260,6 +260,16 @@ pure subroutine lmultbase(c, s, x, nrofentries, mat)
             enddo
         enddo
     enddo
+    
+    ! remainder loop
+    if ((ndim - loopend) .ne. 0) then
+        do i = 1, nrofentries! for every matrix
+            t1(1) = mat(xyarray(2*i-1), ndim)
+            t2(1) = mat(xyarray(2*i), ndim)
+            mat(xyarray(2*i-1), ndim) = csh(i) * t1(1) + snh(i) * t2(1)
+            mat(xyarray(2*i), ndim) = csh(i) * t2(1) + conjg(snh(i)) * t1(1)
+        enddo
+    endif
     deallocate(xyarray, csh, snh)
 end subroutine
 end module SingleColExpBase_mod

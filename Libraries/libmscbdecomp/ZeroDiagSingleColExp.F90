@@ -56,7 +56,7 @@ subroutine ZeroDiagSingleColExp_vecmult(this, vec)
     class(ZeroDiagSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:),intent(inout) :: vec
     integer :: i
-    complex(kind=kind(0.D0)) :: t1,t2
+    complex(kind=kind(0.D0)) :: t1, t2
     do i = 1, this%nrofentries! for every matrix
         t1 = vec(this%x(i))
         t2 = vec(this%y(i))
@@ -103,6 +103,16 @@ subroutine ZeroDiagSingleColExp_lmultinv(this, mat)
             enddo
         enddo
     enddo
+    
+    ! remainder loop
+    if ((ndim - loopend) .ne. 0) then
+        do i = 1, this%nrofentries! for every matrix
+            t1(1) = mat(this%x(2*i-1), ndim)
+            t2(1) = mat(this%x(2*i), ndim)
+            mat(this%x(2*i-1), ndim) = this%c(i) * t1(1) + this%s(i) * t2(1)
+            mat(this%x(2*i), ndim) = this%c(i) * t2(1) + conjg(this%s(i)) * t1(1)
+        enddo
+    endif
 end subroutine ZeroDiagSingleColExp_lmultinv
 
 !--------------------------------------------------------------------
@@ -118,7 +128,7 @@ end subroutine ZeroDiagSingleColExp_lmultinv
 !> and "Unifying unitary and hyperbolic transformations Adam Bojanczyka, Sanzheng Qiaob;;1, Allan O. Steinhardt"
 !> For the future we might want to look into fast hyperbolic rotations of Hargreaves, G. (2005).
 !
-!> @param[in] this The exponential that we consider
+!> @param[in] this The exponential that we consider.
 !> @param[inout] mat the matrix that we modify.
 !--------------------------------------------------------------------
 subroutine ZeroDiagSingleColExp_adjointaction(this, mat)
@@ -154,6 +164,16 @@ subroutine ZeroDiagSingleColExp_adjoint_over_two(this, mat)
             enddo
         enddo
     enddo
+
+    ! remainder loop
+    if ((ndim - loopend) .ne. 0) then
+        do i = 1, this%nrofentries! for every matrix
+            t1(1) = mat(this%x(2*i-1), ndim)
+            t2(1) = mat(this%x(2*i), ndim)
+            mat(this%x(2*i-1), ndim) = this%c2(i) * t1(1) + this%s2(i) * t2(1)
+            mat(this%x(2*i), ndim) = this%c2(i) * t2(1) + conjg(this%s2(i)) * t1(1)
+        enddo
+    endif
 
     ! rmultinv part
     do i = 1, this%nrofentries! for every matrix
@@ -238,9 +258,9 @@ subroutine ZeroDiagSingleColExp_init(this, nodes, nredges, mys, weight)
         this%y(i) = nodes(i)%y
         this%p(i) = weight*nodes(i)%axy
         !calculate Frobenius norm
-        my1 = weight * mys(nodes(i)%x)
-        my2 = weight * mys(nodes(i)%y)
-        nf = sqrt(my1*my1+my2*my2 + 2*dble(this%p(i) * conjg(this%p(i))))
+        my1 = mys(nodes(i)%x)
+        my2 = mys(nodes(i)%y)
+        nf = sqrt(my1*my1+my2*my2 + 2*dble(nodes(i)%axy * conjg(nodes(i)%axy)))! dependence on weight cancels in all comparisons.
         localzero = 1E-15*nf ! definition of my local scale that defines zero
         if ((abs(my1) > localzero) .or. (abs(my2) > localzero)) then
             write(*,*) "[ZeroDiagSingleColExp_init]: Diagonal NOT zero. This should not happen here."
@@ -254,7 +274,7 @@ subroutine ZeroDiagSingleColExp_init(this, nodes, nredges, mys, weight)
         
         this%c(i) = cosh(abs(weight*nodes(i)%axy))
         this%c2(i) = cosh(abs(weight*nodes(i)%axy)/2.D0)
-        if (abs(weight*nodes(i)%axy) > 0.D0) then
+        if (abs(weight*nodes(i)%axy) > 0.D0) then ! weight required here, since it could be zero
             ! I got the most reliable results if the hyperbolic pythagoras is best fulfilled.
             this%s(i) = sqrt(this%c(i)**2-1.D0)*(weight*nodes(i)%axy/abs(weight*nodes(i)%axy))
             this%s2(i) = sqrt(this%c2(i)**2-1.D0)*(weight*nodes(i)%axy/abs(weight*nodes(i)%axy))

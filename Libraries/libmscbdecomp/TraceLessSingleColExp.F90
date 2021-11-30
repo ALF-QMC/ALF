@@ -121,6 +121,16 @@ pure subroutine lmultthreeelementbase(c, s, x, nrofentries, mat)
         enddo
     enddo
     deallocate(xyarray, csh, snh)
+    
+    ! remainder loop
+    if ((ndim - loopend) .ne. 0) then
+        do i = 1, nrofentries! for every matrix
+            t1(1) = mat(xyarray(2*i-1), ndim)
+            t2(1) = mat(xyarray(2*i), ndim)
+            mat(xyarray(2*i-1), ndim) = csh(2*i-1) * t1(1) + snh(i) * t2(1)
+            mat(xyarray(2*i), ndim) = csh(2*i) * t2(1) + conjg(snh(i)) * t1(1)
+        enddo
+    endif
 end subroutine
 
 !--------------------------------------------------------------------
@@ -161,6 +171,16 @@ subroutine TraceLessSingleColExp_lmultinv(this, mat)
             enddo
         enddo
     enddo
+    
+    ! remainder loop
+    if ((ndim - loopend) .ne. 0) then
+        do i = 1, this%nrofentries! for every matrix
+            t1(1) = mat(this%x(2*i-1), ndim)
+            t2(1) = mat(this%x(2*i), ndim)
+            mat(this%x(2*i-1), ndim) = this%c(2*i) * t1(1) + this%s(i) * t2(1)
+            mat(this%x(2*i), ndim) = this%c(2*i-1) * t2(1) + conjg(this%s(i)) * t1(1)
+        enddo
+    endif
 end subroutine TraceLessSingleColExp_lmultinv
 
 !--------------------------------------------------------------------
@@ -210,6 +230,16 @@ subroutine TraceLessSingleColExp_adjoint_over_two(this, mat)
             enddo
         enddo
     enddo
+
+    ! remainder loop
+    if ((ndim - loopend) .ne. 0) then
+        do i = 1, this%nrofentries! for every matrix
+            t1(1) = mat(this%x(2*i-1), ndim)
+            t2(1) = mat(this%x(2*i), ndim)
+            mat(this%x(2*i-1), ndim) = this%c2(2*i-1) * t1(1) + this%s2(i) * t2(1)
+            mat(this%x(2*i), ndim) = this%c2(2*i) * t2(1) + conjg(this%s2(i)) * t1(1)
+        enddo
+    endif
 
     ! rmultinv part
     do i = 1, this%nrofentries! for every matrix
@@ -364,7 +394,7 @@ subroutine TraceLessSingleColExp_init(this, nodes, nredges, mys, weight)
     real (kind=kind(0.d0)) :: nf, my1, my2, localzero, tmp
     ! We need twice the amount of storage for the diagonal.
     allocate(this%x(2*nredges), this%y(nredges), this%s(nredges), this%c(2*nredges))
-    allocate(this%c2(2*nredges), this%s2(nredges), this%p(nredges))
+    allocate(this%c2(2*nredges), this%s2(nredges))
     this%nrofentries = nredges
 #ifndef NDEBUG
     write(*,*) "[TraceLessSingleColExp] Setting up strict. sparse matrix with ", nredges, "edges"
@@ -373,11 +403,10 @@ subroutine TraceLessSingleColExp_init(this, nodes, nredges, mys, weight)
         this%x(2*i-1) = nodes(i)%x
         this%x(2*i) = nodes(i)%y
         this%y(i) = nodes(i)%y
-        this%p(i) = weight*nodes(i)%axy
         !calculate Frobenius norm
-        my1 = weight * mys(nodes(i)%x)
-        my2 = weight * mys(nodes(i)%y)
-        nf = sqrt(my1*my1+my2*my2 + 2*dble(this%p(i) * conjg(this%p(i))))
+        my1 = mys(nodes(i)%x)
+        my2 = mys(nodes(i)%y)
+        nf = sqrt(my1*my1+my2*my2 + 2*dble(nodes(i)%axy * conjg(nodes(i)%axy)))! dependence on weight cancels in all comps.
         localzero = 1E-15*nf ! definition of my local scale that defines zero
         if (abs(my1+my2) > localzero) then
             write(*,*) "[TraceLessSingleColExp_init]: Matrix not traceless. This should not happen here."
@@ -392,7 +421,7 @@ subroutine TraceLessSingleColExp_init(this, nodes, nredges, mys, weight)
         ! chemical potentials are deferred to different classes
         
         call expof2x2tracelesshermitianmatrix(this%c(2*i-1), this%c(2*i), this%s(i), my1, nodes(i)%axy, weight)
-        tmp = weight/2
+        tmp = weight/2.D0
         call expof2x2tracelesshermitianmatrix(this%c2(2*i-1), this%c2(2*i), this%s2(i), my1, nodes(i)%axy, tmp)
     enddo
 ! All nodes that we have been passed are now from a single color.
@@ -401,7 +430,7 @@ end subroutine TraceLessSingleColExp_init
 
 subroutine TraceLessSingleColExp_dealloc(this)
     class(TraceLessSingleColExp), intent(inout) :: this
-    deallocate(this%x, this%y, this%c, this%s, this%c2, this%s2, this%p)
+    deallocate(this%x, this%y, this%c, this%s, this%c2, this%s2)
 end subroutine TraceLessSingleColExp_dealloc
 
 end module TraceLessSingleColExp_mod
