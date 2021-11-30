@@ -247,7 +247,7 @@ subroutine ZeroDiagSingleColExp_init(this, nodes, nredges, mys, weight)
     integer :: i
     real (kind=kind(0.d0)) :: nf, my1, my2, localzero
     allocate(this%x(2*nredges), this%y(nredges), this%c(nredges), this%s(nredges))
-    allocate(this%c2(nredges), this%s2(nredges), this%p(nredges))
+    allocate(this%c2(nredges), this%s2(nredges))
     this%nrofentries = nredges
 #ifndef NDEBUG
     write(*,*) "[ZeroDiagSingleColExp] Setting up strict. sparse matrix with ", nredges, "edges"
@@ -256,7 +256,6 @@ subroutine ZeroDiagSingleColExp_init(this, nodes, nredges, mys, weight)
         this%x(2*i-1) = nodes(i)%x
         this%x(2*i) = nodes(i)%y
         this%y(i) = nodes(i)%y
-        this%p(i) = weight*nodes(i)%axy
         !calculate Frobenius norm
         my1 = mys(nodes(i)%x)
         my2 = mys(nodes(i)%y)
@@ -289,7 +288,7 @@ end subroutine ZeroDiagSingleColExp_init
 
 subroutine ZeroDiagSingleColExp_dealloc(this)
     class(ZeroDiagSingleColExp), intent(inout) :: this
-    deallocate(this%x, this%y, this%c, this%s, this%c2, this%s2, this%p)
+    deallocate(this%x, this%y, this%c, this%s, this%c2, this%s2)
 end subroutine ZeroDiagSingleColExp_dealloc
 
 end module ZeroDiagSingleColExp_mod
