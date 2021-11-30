@@ -375,13 +375,13 @@ contains
         type(GraphData) :: gd
         real(kind=kind(0.D0)), allocatable, dimension(:) :: diags
         Complex(kind=kind(0.D0)), allocatable, dimension(:,:) :: tmp
-        
+
         this%Zero = 1.E-12
         this%Ndim_hop = Op_T%N
         this%g = Op_T%g
-        
+
         call Op_T_to_graphdata(Op_T, gd, diags)
-        
+
         ! some sanity checks and status informations
         call determine_used_colors_of_graph(gd)
         write (*,*) "Nr edges: ", gd%nredges
@@ -392,7 +392,7 @@ contains
         endif
 
         this%ee = createEulerExponentialfromGraphData(gd, diags)
-        
+
         ! check wether it is supported behaviour
         do i = 1, size(Op_T%P)
         if (Op_T%P(i) /= i) then

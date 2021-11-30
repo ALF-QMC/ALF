@@ -103,21 +103,21 @@
             READ(5,NML=VAR_MSCB)
             CLOSE(5)
             
-            if (method == 0) then
-            write (*,*) "No MSCB"
-            if (Op_is_real(op)) then
-                ! branch for real operators
-                    allocate(realexp) ! Yep, this is a manifest memory leak. Using the ptr we can allocate onto the same variable
-                    call realexp%init(op)
-                    call ExpOpT_vec%pushback(realexp)
-                else
-                ! branch for complex operators
-                    allocate(cmplxexp)
-                    call cmplxexp%init(op)
-                    call ExpOpT_vec%pushback(cmplxexp)
-                endif
+            if ((method == 0) .or. (op%N <= 2)) then
+                write (*,*) "No MSCB requested/necessary"
+                if (Op_is_real(op)) then
+                    ! branch for real operators
+                        allocate(realexp) ! Yep, this is a manifest memory leak. Using the ptr we can allocate onto the same variable
+                        call realexp%init(op)
+                        call ExpOpT_vec%pushback(realexp)
+                    else
+                    ! branch for complex operators
+                        allocate(cmplxexp)
+                        call cmplxexp%init(op)
+                        call ExpOpT_vec%pushback(cmplxexp)
+                    endif
             else
-                write (*,*) "MSCB, method", method
+                write (*,*) "MSCB, method:", method
                 if (op%N - 2* (op%N/2) /= 0) then
                         write (*,*) "operator dimension not divisible by two."
                         error stop 2
@@ -138,30 +138,31 @@
                     call mscbexp%init(op, method)
                     call ExpOpT_vec%pushback(mscbexp)
                 endif
-            endif
-            ! Let's apply a quick check to see, if the resulting matrix gives a symmetric time evolution.
-            ndim = size(Op%O, 1)
-            allocate(mat(ndim, ndim))
-            mat = 0
-            do i = 1, ndim
-                mat(i,i) = 1
-            enddo
+                
+                ! Let's apply a quick check to see, if the resulting matrix gives a symmetric time evolution.
+                ndim = size(Op%O, 1)
+                allocate(mat(ndim, ndim))
+                mat = 0
+                do i = 1, ndim
+                    mat(i,i) = 1
+                enddo
             
-            dummy => ExpOpT_vec%back()
-            call dummy%lmult(mat)
-            optscale = zlange('F', ndim, ndim, mat, ndim, work) ! work not refd for Frobenius norm.
-            mat = mat - Conjg(Transpose(mat))
-            nonsymmetrymeasure = zlange('F', ndim, ndim, mat, ndim, work) ! work not refd for Frobenius norm.
-            if (nonsymmetrymeasure > 1E-15*optscale) then
-                if (method == 1) then
-                    write (*,*) "[Hop_T::MSCB] Warning! non hermitian time evolution generated! This can lead to stability issues and unphysical results!"
-                    write (*,*) "[Hop_T::MSCB] Consider using a symmetric method > 1 !"
-                else
-                    write (*,*) "[Hop_T::MSCB] WARNING!! Symmetric method requested, but non-symmetric time-evolution generated"
+                dummy => ExpOpT_vec%back()
+                call dummy%lmult(mat)
+                optscale = zlange('F', ndim, ndim, mat, ndim, work) ! work not refd for Frobenius norm.
+                mat = mat - Conjg(Transpose(mat))
+                nonsymmetrymeasure = zlange('F', ndim, ndim, mat, ndim, work) ! work not refd for Frobenius norm.
+                if (nonsymmetrymeasure > 1E-15*optscale) then
+                    if (method == 1) then
+                        write (*,*) "[Hop_T::MSCB] Warning! non hermitian time evolution generated! This can lead to stability issues and unphysical results!"
+                        write (*,*) "[Hop_T::MSCB] Consider using a symmetric method > 1 !"
+                    else
+                        write (*,*) "[Hop_T::MSCB] WARNING!! Symmetric method requested, but non-symmetric time-evolution generated"
+                    endif
                 endif
-            endif
             
-            deallocate(mat)
+                deallocate(mat)
+            endif
         end subroutine
         
       
