@@ -107,7 +107,6 @@ subroutine FullExp_init(this, nodes, usedcolors, mys, method, weight)
     real(kind=kind(0.D0)), intent(in), allocatable, dimension(:) :: mys
     real (kind=kind(0.d0)), intent(in) :: weight
     real (kind=kind(0.d0)) :: tmp
-    integer, dimension(:), allocatable :: nredges, edgectr
     integer :: i, maxedges, k
     type(node), dimension(:, :), allocatable :: colsepnodes! An array of nodes separated by color
     type(EulerExp) :: dummy
@@ -523,6 +522,7 @@ subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
     real(kind=kind(0.D0)), allocatable, dimension(:) :: mys_start, myloc
     integer, dimension(:), allocatable :: nredges, edgectr
     integer :: i, maxedges, k, ndim, ldvl
+!     character(length=64) :: filename
     type(node), dimension(:, :), allocatable :: colsepnodes! An array of nodes separated by color
     complex (kind=kind(0.d0)), allocatable :: mat(:,:), evs(:), v(:), work(:), rwork(:)
     class(ZeroDiagSingleColExp), pointer :: zerodiagexp
