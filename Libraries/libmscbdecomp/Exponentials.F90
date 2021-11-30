@@ -110,7 +110,6 @@ subroutine FullExp_init(this, nodes, usedcolors, mys, method, weight)
     integer, dimension(:), allocatable :: nredges, edgectr
     integer :: i, maxedges, k
     type(node), dimension(:, :), allocatable :: colsepnodes! An array of nodes separated by color
-    character(len=64) :: filename
     type(EulerExp) :: dummy
 
     this%method = method
@@ -523,10 +522,8 @@ subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
     real(kind=kind(0.d0)), intent(in) :: weight
     real(kind=kind(0.D0)), allocatable, dimension(:) :: mys_start, myloc
     integer, dimension(:), allocatable :: nredges, edgectr
-    integer :: i, maxedges, k, ndim, ldvl, lwork, ierr
+    integer :: i, maxedges, k, ndim, ldvl
     type(node), dimension(:, :), allocatable :: colsepnodes! An array of nodes separated by color
-    character(len=64) :: filename
-    character jobvl, jobvr
     complex (kind=kind(0.d0)), allocatable :: mat(:,:), evs(:), v(:), work(:), rwork(:)
     class(ZeroDiagSingleColExp), pointer :: zerodiagexp
     class(HomogeneousSingleColExp), pointer :: homexp
@@ -612,27 +609,6 @@ subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
         call this%singleexps(i)%dat%init(colsepnodes(i, :), nredges(i), myloc, weight)
     enddo
     deallocate(nredges, edgectr, colsepnodes, myloc, mys_start)
-! !     ndim = 1
-! !     do i = 1, usedcolors
-! !     ndim = max(maxval(this%singleexps(i)%x), maxval(this%singleexps(i)%y))
-! !     enddo
-! !     write (*,*) ndim
-! !     lwork = 2*ndim
-! !     allocate (mat(ndim, ndim), work(lwork), rwork(lwork), evs(ndim))
-! !     mat = 0
-! !     do i =1, ndim
-! !     mat(i,i) = 1
-! !     enddo
-! !     call this%lmult(mat)
-! !     call this%rmultinv(mat)
-! !     jobvl = 'N'
-! !     jobvr = 'N'
-! !     maxedges = 1
-! !     call zgeev(jobvl, jobvr, ndim, mat, ndim, evs, v, maxedges, v, maxedges, work, lwork, rwork, ierr)
-! !     do i = 1, ndim
-! !     write (*,*) evs(i)
-! !     enddo
-    
 end subroutine EulerExp_init
 
 end module Exponentials_mod
