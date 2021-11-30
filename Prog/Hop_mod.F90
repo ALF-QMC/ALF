@@ -86,7 +86,12 @@
             Class(RealExpOpT), pointer :: realexp => null()
             Class(CmplxmscbOpT), pointer :: mscbexp => null()
             Class(CmplxEulermscbOpT), pointer :: eulerexp => null()
-            integer :: ierr, method, i
+            integer :: ierr, method, i, ndim
+            Complex (Kind=Kind(0.d0)), allocatable  :: mat(:,:), work(:)
+            Real (Kind=Kind(0.d0)) :: nonsymmetrymeasure, optscale
+            Real (Kind=Kind(0.d0)) :: zlange
+            class(ContainerElementBase), pointer :: dummy
+
             
             NAMELIST /VAR_MSCB/ method
             
@@ -134,6 +139,29 @@
                     call ExpOpT_vec%pushback(mscbexp)
                 endif
             endif
+            ! Let's apply a quick check to see, if the resulting matrix gives a symmetric time evolution.
+            ndim = size(Op%O, 1)
+            allocate(mat(ndim, ndim))
+            mat = 0
+            do i = 1, ndim
+                mat(i,i) = 1
+            enddo
+            
+            dummy => ExpOpT_vec%back()
+            call dummy%lmult(mat)
+            optscale = zlange('F', ndim, ndim, mat, ndim, work) ! work not refd for Frobenius norm.
+            mat = mat - Conjg(Transpose(mat))
+            nonsymmetrymeasure = zlange('F', ndim, ndim, mat, ndim, work) ! work not refd for Frobenius norm.
+            if (nonsymmetrymeasure > 1E-15*optscale) then
+                if (method == 1) then
+                    write (*,*) "[Hop_T::MSCB] Warning! non hermitian time evolution generated! This can lead to stability issues and unphysical results!"
+                    write (*,*) "[Hop_T::MSCB] Consider using a symmetric method > 1 !"
+                else
+                    write (*,*) "[Hop_T::MSCB] WARNING!! Symmetric method requested, but non-symmetric time-evolution generated"
+                endif
+            endif
+            
+            deallocate(mat)
         end subroutine
         
       
