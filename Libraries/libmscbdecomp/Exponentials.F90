@@ -548,14 +548,14 @@ subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
         edgectr(nodes(i)%col) = edgectr(nodes(i)%col) + 1
     enddo
 
-     do i = 1, usedcolors
-     write (filename, "(A6,I3)") "matrix", i
-     open(unit=5,file=filename)
-     do k = 1, nredges(i)
-     write (5, *) "{{", colsepnodes(i, k)%x, ",",colsepnodes(i, k)%y,"} -> ", dble(colsepnodes(i, k)%axy), "}"
-     enddo
-     close(unit=5)
-     enddo
+!      do i = 1, usedcolors
+!      write (filename, "(A6,I3)") "matrix", i
+!      open(unit=5,file=filename)
+!      do k = 1, nredges(i)
+!      write (5, *) "{{", colsepnodes(i, k)%x, ",",colsepnodes(i, k)%y,"} -> ", dble(colsepnodes(i, k)%axy), "}"
+!      enddo
+!      close(unit=5)
+!      enddo
 
     ! Now that we have properly separated which entry of a matrix belongs to
     ! which color we can create an exponential for each color that exploits
