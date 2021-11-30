@@ -41,10 +41,10 @@ subroutine exectest(gd, ndim, mys)
             sumoff = sumoff + DBLE(mat(i,i+2))
         enddo
         write (*,*) sumoff, sumdiag
-        if (abs(sumdiag - ndim) > ndim*1E-15) then
+        if (abs(sumdiag - ndim) > ndim*1E-14) then
         ERROR STOP 2
         endif
-        if (abs(sumoff) > 1E-15) then !FIXME: this limit is a bit scale less...
+        if (abs(sumoff) > 1E-14) then !FIXME: this limit is a bit scale less...
         ERROR STOP 4
         endif
         
@@ -72,10 +72,10 @@ subroutine exectest(gd, ndim, mys)
             sumoff = sumoff + DBLE(mat(i,i+2))
         enddo
         write(*,*) "rmult  ", sumoff, sumdiag
-        if (abs(sumdiag - ndim) > ndim*1E-15) then
+        if (abs(sumdiag - ndim) > ndim*1E-14) then
         ERROR STOP 3
         endif
-        if (abs(sumoff) > 1E-15) then !FIXME: this limit is a bit scale less...
+        if (abs(sumoff) > maxval(exp(mys))*1E-14) then !FIXME: this limit is a bit scale less...
         ERROR STOP 6
         endif
 
@@ -102,10 +102,10 @@ subroutine exectest(gd, ndim, mys)
             sumoff = sumoff + DBLE(mat(i,i+2))
         enddo
         write (*,*) sumoff, sumdiag
-        if (abs(sumdiag - ndim) > ndim*1E-15) then
+        if (abs(sumdiag - ndim) > ndim*1E-14) then
         ERROR STOP 102
         endif
-        if (abs(sumoff) > 1E-15) then !FIXME: this limit is a bit scale less...
+        if (abs(sumoff) > maxval(exp(mys))*1E-14) then !FIXME: this limit is a bit scale less...
         ERROR STOP 104
         endif
         
@@ -118,7 +118,7 @@ subroutine exectest(gd, ndim, mys)
         
 
         call ee%rmult_T(mat)
-!         call ee%rmult_T(mat)
+        call ee%rmult_T(mat)
 !         call ee%rmult_T(mat)
 !         call ee%rmult_T(mat)
 !         call ee%rmult_T(mat)
@@ -127,7 +127,7 @@ subroutine exectest(gd, ndim, mys)
 !         call ee%rmultinv_T(mat)
 !         call ee%rmultinv_T(mat)
 !         call ee%rmultinv_T(mat)
-!         call ee%rmultinv_T(mat)
+        call ee%rmultinv_T(mat)
         call ee%rmultinv_T(mat)
         ! test for Trace(mat) = ndim
         sumdiag = 0
@@ -139,10 +139,10 @@ subroutine exectest(gd, ndim, mys)
             sumoff = sumoff + DBLE(mat(i,i+2))
         enddo
         write (*,*) "rmult_T", sumoff, sumdiag
-        if (abs(sumdiag - ndim) > ndim*1E-15) then
+        if (abs(sumdiag - ndim) > ndim*1E-14) then
         ERROR STOP 103
         endif
-        if (abs(sumoff) > 1E-15) then !FIXME: this limit is a bit scale less...
+        if (abs(sumoff) > maxval(exp(mys))* 1E-14) then !FIXME: this limit is a bit scale less...
         ERROR STOP 106
         endif
         
@@ -158,10 +158,10 @@ subroutine exectest(gd, ndim, mys)
             sumoff = sumoff + DBLE(mat(i,i+2))
         enddo
         write (*,*) sumoff, sumdiag
-        if (abs(sumdiag - ndim) > ndim*1E-15) then
+        if (abs(sumdiag - ndim) > ndim*1E-14) then
         ERROR STOP 7
         endif
-        if (abs(sumoff) > 1E-15) then !FIXME: this limit is a bit scale less...
+        if (abs(sumoff) > maxval(exp(mys))*1E-14) then !FIXME: this limit is a bit scale less...
         ERROR STOP 14
         endif
         
@@ -225,11 +225,7 @@ Program EulerExpTest
         ! Now test homogeneous exponentials
         mys = 0.5
         call exectest(gd, ndim, mys)
-        
-        ! Now test traceless exponentials
-        
-!         call exectest(gd, ndim, mys)        
-        
+
         ! Now test general exponentials
       do i = 1, ndim
         mys(i) = 0.1*i
