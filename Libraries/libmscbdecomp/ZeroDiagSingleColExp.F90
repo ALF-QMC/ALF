@@ -218,6 +218,7 @@ end subroutine ZeroDiagSingleColExp_rmultinv
 !> @param[in] weight a prefactor for the exponent.
 !--------------------------------------------------------------------
 subroutine ZeroDiagSingleColExp_init(this, nodes, nredges, mys, weight)
+    implicit none
     class(ZeroDiagSingleColExp), intent(inout) :: this
     type(node), dimension(:), intent(in) :: nodes
     real(kind=kind(0.D0)), intent(in), allocatable, dimension(:) :: mys
@@ -237,8 +238,8 @@ subroutine ZeroDiagSingleColExp_init(this, nodes, nredges, mys, weight)
         this%y(i) = nodes(i)%y
         this%p(i) = weight*nodes(i)%axy
         !calculate Frobenius norm
-        my1 = mys(nodes(i)%x)
-        my2 = mys(nodes(i)%y)
+        my1 = weight * mys(nodes(i)%x)
+        my2 = weight * mys(nodes(i)%y)
         nf = sqrt(my1*my1+my2*my2 + 2*dble(this%p(i) * conjg(this%p(i))))
         localzero = 1E-15*nf ! definition of my local scale that defines zero
         if ((abs(my1) > localzero) .or. (abs(my2) > localzero)) then
@@ -250,12 +251,13 @@ subroutine ZeroDiagSingleColExp_init(this, nodes, nredges, mys, weight)
         ! M=(0  , b)
         !   (b^*, 0) then the below entries follow for the exponential and cosh is real.
         ! chemical potentials are deferred to different classes
+        
         this%c(i) = cosh(abs(weight*nodes(i)%axy))
-        this%c2(i) = cosh(abs(weight*nodes(i)%axy)/2)
-        if (abs(weight*nodes(i)%axy) > 0.0) then
+        this%c2(i) = cosh(abs(weight*nodes(i)%axy)/2.D0)
+        if (abs(weight*nodes(i)%axy) > 0.D0) then
             ! I got the most reliable results if the hyperbolic pythagoras is best fulfilled.
-            this%s(i) = sqrt(this%c(i)**2-1.0)*weight*nodes(i)%axy/abs(weight*nodes(i)%axy)
-            this%s2(i) = sqrt(this%c2(i)**2-1.0)*weight*nodes(i)%axy/abs(weight*nodes(i)%axy)
+            this%s(i) = sqrt(this%c(i)**2-1.D0)*(weight*nodes(i)%axy/abs(weight*nodes(i)%axy))
+            this%s2(i) = sqrt(this%c2(i)**2-1.D0)*(weight*nodes(i)%axy/abs(weight*nodes(i)%axy))
         else
             this%s(i) = 0
             this%s2(i) = 0
