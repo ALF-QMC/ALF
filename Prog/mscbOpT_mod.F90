@@ -284,10 +284,11 @@ contains
         ! check wether it is supported behaviour
         do i = 1, size(Op_T%P)
         if (Op_T%P(i) /= i) then
-        write (*,*) "unsupported case."
+        write (*,*) "P unsupported"
         endif
         enddo
         this%P = Op_T%P
+        call dealloc_graphdata(gd)
         deallocate(diags)
     end subroutine
 
@@ -396,10 +397,11 @@ contains
         ! check wether it is supported behaviour
         do i = 1, size(Op_T%P)
         if (Op_T%P(i) /= i) then
-        write (*,*) "unsupported case."
+            write (*,*) "P unsupported."
         endif
         enddo
         this%P = Op_T%P
+        call dealloc_graphdata(gd)
         deallocate(diags)
     end subroutine
     
