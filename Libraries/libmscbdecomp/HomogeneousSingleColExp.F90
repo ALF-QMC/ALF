@@ -237,7 +237,7 @@ end subroutine HomogeneousSingleColExp_init
 
 subroutine HomogeneousSingleColExp_dealloc(this)
     class(HomogeneousSingleColExp), intent(inout) :: this
-    
+
     deallocate(this%cinv, this%sinv, this%c2inv, this%s2inv)
     call this%ZeroDiagSingleColExp%dealloc()
 end subroutine HomogeneousSingleColExp_dealloc

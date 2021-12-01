@@ -36,7 +36,6 @@ module TraceLessSingleColExp_mod
 !> 2x2 block is a traceless matrix.
 !--------------------------------------------------------------------
     type, extends(SingleColExpBase) :: TraceLessSingleColExp
-        complex (kind=kind(0.d0)), allocatable :: p(:)
     contains
         procedure :: init => TraceLessSingleColExp_init
         procedure :: dealloc => TraceLessSingleColExp_dealloc
@@ -392,7 +391,7 @@ subroutine TraceLessSingleColExp_init(this, nodes, nredges, mys, weight)
     real (kind=kind(0.d0)), intent(in) :: weight
     integer :: i
     real (kind=kind(0.d0)) :: nf, my1, my2, localzero, tmp
-    ! We need twice the amount of storage for the diagonal.
+    ! We need twice the amount of storage for the diagonal for this traceless case.
     allocate(this%x(2*nredges), this%y(nredges), this%s(nredges), this%c(2*nredges))
     allocate(this%c2(2*nredges), this%s2(nredges))
     this%nrofentries = nredges
@@ -418,7 +417,7 @@ subroutine TraceLessSingleColExp_init(this, nodes, nredges, mys, weight)
         !   (b^*, -d)
         ! with a real d.
         ! then the below entries follow for the exponential and cosh is real.
-        ! chemical potentials are deferred to different classes
+        ! more general chemical potentials are deferred to different classes
         
         call expof2x2tracelesshermitianmatrix(this%c(2*i-1), this%c(2*i), this%s(i), my1, nodes(i)%axy, weight)
         tmp = weight/2.D0
