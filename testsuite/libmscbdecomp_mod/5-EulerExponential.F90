@@ -30,7 +30,6 @@ subroutine exectest(gd, ndim, mys)
         call ee%lmultinv(mat)
         call ee%lmultinv(mat)
         call ee%lmultinv(mat)
-
         ! test for Trace(mat) = ndim
         sumdiag = 0
         sumoff = 0
@@ -42,10 +41,10 @@ subroutine exectest(gd, ndim, mys)
         enddo
         write (*,*) sumoff, sumdiag
         if (abs(sumdiag - ndim) > ndim*1E-14) then
-        ERROR STOP 2
+            ERROR STOP 2
         endif
-        if (abs(sumoff) > 1E-14) then !FIXME: this limit is a bit scale less...
-        ERROR STOP 4
+        if (abs(sumoff) >  maxval(exp(mys))*1E-14) then
+            ERROR STOP 4
         endif
         
 
@@ -75,7 +74,7 @@ subroutine exectest(gd, ndim, mys)
         if (abs(sumdiag - ndim) > ndim*1E-14) then
         ERROR STOP 3
         endif
-        if (abs(sumoff) > maxval(exp(mys))*1E-14) then !FIXME: this limit is a bit scale less...
+        if (abs(sumoff) > maxval(exp(mys))*1E-14) then
         ERROR STOP 6
         endif
 
@@ -105,7 +104,7 @@ subroutine exectest(gd, ndim, mys)
         if (abs(sumdiag - ndim) > ndim*1E-14) then
         ERROR STOP 102
         endif
-        if (abs(sumoff) > maxval(exp(mys))*1E-14) then !FIXME: this limit is a bit scale less...
+        if (abs(sumoff) > maxval(exp(mys))*1E-14) then 
         ERROR STOP 104
         endif
         
@@ -142,7 +141,7 @@ subroutine exectest(gd, ndim, mys)
         if (abs(sumdiag - ndim) > ndim*1E-14) then
         ERROR STOP 103
         endif
-        if (abs(sumoff) > maxval(exp(mys))* 1E-14) then !FIXME: this limit is a bit scale less...
+        if (abs(sumoff) > maxval(exp(mys))* 1E-14) then
         ERROR STOP 106
         endif
         
@@ -161,7 +160,7 @@ subroutine exectest(gd, ndim, mys)
         if (abs(sumdiag - ndim) > ndim*1E-14) then
         ERROR STOP 7
         endif
-        if (abs(sumoff) > maxval(exp(mys))*1E-14) then !FIXME: this limit is a bit scale less...
+        if (abs(sumoff) > maxval(exp(mys))*1E-14) then
         ERROR STOP 14
         endif
         
@@ -172,6 +171,7 @@ end subroutine
 Program EulerExpTest
 
   Use Exponentials_mod
+  Use colorvertex_mod
   Use MvG_mod
   
   interface
@@ -186,7 +186,7 @@ Program EulerExpTest
   end interface
         type(EulerExp) :: ee
 !         integer, parameter :: nredges = 6
-        integer, parameter :: ndim = 36
+        integer, parameter :: ndim = 27
 !         integer, parameter :: usedcolors = 1
         type(GraphData) :: gd
         real(kind=kind(0.D0)) :: weight, sumdiag, sumoff
@@ -224,13 +224,15 @@ Program EulerExpTest
         
         ! Now test homogeneous exponentials
         mys = 0.5
-        call exectest(gd, ndim, mys)
+       call exectest(gd, ndim, mys)
 
         ! Now test general exponentials
       do i = 1, ndim
         mys(i) = 0.1*i
       enddo
-       call exectest(gd, ndim, mys)
-        deallocate(input)
+      call exectest(gd, ndim, mys)
+
+        call dealloc_graphdata(gd)
+        deallocate(input, mys)
         write (*,*) "success"
 end Program EulerExpTest
