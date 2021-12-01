@@ -324,13 +324,15 @@ function createFullExponentialfromGraphData(gd, diags, method) result(fe)
         enddo
         do l = 1, gd%usedcolors
             mynbr = gd%verts(i)%nbrbycol(l)
-            nbr1 = gd%verts(i)%nbrs(mynbr)
-            if (nbr1 > i) then ! nbr1 could be zero if there is no such edge
-                k = k+1
-                nodes(k)%x = i
-                nodes(k)%y = nbr1
-                nodes(k)%axy = gd%elems(elempos + mynbr)
-                nodes(k)%col = l
+            if (mynbr > 0) then ! only do sth. if the color is associated with an edge
+                nbr1 = gd%verts(i)%nbrs(mynbr)
+                if (nbr1 > i) then ! nbr1 could be zero if there is no such edge
+                    k = k+1
+                    nodes(k)%x = i
+                    nodes(k)%y = nbr1
+                    nodes(k)%axy = gd%elems(elempos + mynbr)
+                    nodes(k)%col = l
+                endif
             endif
         enddo
         elempos = elempos + gd%verts(i)%degree
