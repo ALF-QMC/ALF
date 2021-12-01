@@ -119,7 +119,6 @@ pure subroutine lmultthreeelementbase(c, s, x, nrofentries, mat)
             enddo
         enddo
     enddo
-    deallocate(xyarray, csh, snh)
     
     ! remainder loop
     if ((ndim - loopend) .ne. 0) then
@@ -130,6 +129,7 @@ pure subroutine lmultthreeelementbase(c, s, x, nrofentries, mat)
             mat(xyarray(2*i), ndim) = csh(2*i) * t2(1) + conjg(snh(i)) * t1(1)
         enddo
     endif
+    deallocate(xyarray, csh, snh)
 end subroutine
 
 !--------------------------------------------------------------------
@@ -176,8 +176,8 @@ subroutine TraceLessSingleColExp_lmultinv(this, mat)
         do i = 1, this%nrofentries! for every matrix
             t1(1) = mat(this%x(2*i-1), ndim)
             t2(1) = mat(this%x(2*i), ndim)
-            mat(this%x(2*i-1), ndim) = this%c(2*i) * t1(1) + this%s(i) * t2(1)
-            mat(this%x(2*i), ndim) = this%c(2*i-1) * t2(1) + conjg(this%s(i)) * t1(1)
+            mat(this%x(2*i-1), ndim) = this%c(2*i) * t1(1) - this%s(i) * t2(1)
+            mat(this%x(2*i), ndim) = this%c(2*i-1) * t2(1) - conjg(this%s(i)) * t1(1)
         enddo
     endif
 end subroutine TraceLessSingleColExp_lmultinv

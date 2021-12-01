@@ -109,8 +109,8 @@ subroutine ZeroDiagSingleColExp_lmultinv(this, mat)
         do i = 1, this%nrofentries! for every matrix
             t1(1) = mat(this%x(2*i-1), ndim)
             t2(1) = mat(this%x(2*i), ndim)
-            mat(this%x(2*i-1), ndim) = this%c(i) * t1(1) + this%s(i) * t2(1)
-            mat(this%x(2*i), ndim) = this%c(i) * t2(1) + conjg(this%s(i)) * t1(1)
+            mat(this%x(2*i-1), ndim) = this%c(i) * t1(1) - this%s(i) * t2(1)
+            mat(this%x(2*i), ndim) = this%c(i) * t2(1) - conjg(this%s(i)) * t1(1)
         enddo
     endif
 end subroutine ZeroDiagSingleColExp_lmultinv
@@ -288,6 +288,7 @@ end subroutine ZeroDiagSingleColExp_init
 
 subroutine ZeroDiagSingleColExp_dealloc(this)
     class(ZeroDiagSingleColExp), intent(inout) :: this
+    
     deallocate(this%x, this%y, this%c, this%s, this%c2, this%s2)
 end subroutine ZeroDiagSingleColExp_dealloc
 
