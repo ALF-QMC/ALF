@@ -62,6 +62,13 @@ module colorvertex_mod
 
 contains
 
+subroutine dealloc_graphdata(gd)
+    implicit none
+    type(GraphData) :: gd
+    
+    deallocate(gd%elems, gd%verts)
+end subroutine
+
 function colorvertex_iscolorfree(this, col) result(r)
     class(ColorVertex) :: this
     integer, intent(in) :: col
@@ -243,13 +250,15 @@ function createEulerExponentialfromGraphData(gd, diags) result(ee)
         enddo
         do l = 1, gd%usedcolors
             mynbr = gd%verts(i)%nbrbycol(l)
-            nbr1 = gd%verts(i)%nbrs(mynbr)
-            if (nbr1 > i) then ! nbr1 could be zero if there is no such edge
-                k = k+1
-                nodes(k)%x = i
-                nodes(k)%y = nbr1
-                nodes(k)%axy = gd%elems(elempos + mynbr)
-                nodes(k)%col = l
+            if (mynbr > 0) then ! only do sth. if the color is associated with an edge
+                nbr1 = gd%verts(i)%nbrs(mynbr)
+                if (nbr1 > i) then ! nbr1 could be zero if there is no such edge
+                    k = k+1
+                    nodes(k)%x = i
+                    nodes(k)%y = nbr1
+                    nodes(k)%axy = gd%elems(elempos + mynbr)
+                    nodes(k)%col = l
+                endif
             endif
         enddo
         elempos = elempos + gd%verts(i)%degree
@@ -492,7 +501,7 @@ end function colorvertex_any_color_available
 !> Florian Goth
 !
 !> @brief 
-!> An implementation of quicksort to sort an array of integers
+!> An implementation of quicksort to sort an array of integers.
 !
 !> @param[in] a the array in which we search
 !> @param[in] first where to start sorting
@@ -501,8 +510,8 @@ end function colorvertex_any_color_available
 recursive subroutine quicksort(a, first, last)
   implicit none
   integer, dimension(:), intent(inout) :: a
+  integer, intent(in) :: first, last
   integer :: x, t
-  integer :: first, last
   integer :: i, j
 
   x = a( (first+last) / 2 )
