@@ -50,8 +50,8 @@ module Exponentials_mod
 !> multiplications in transposed and non-transposed manner.
 !--------------------------------------------------------------------
     type :: EulerExp
-        integer :: nrofcols
-        Type(SingleColeExpBaseWrapper), allocatable :: singleexps(:)
+        integer :: nrofcols ! The number of colors
+        Type(SingleColeExpBaseWrapper), allocatable :: singleexps(:) ! an array of pointers to the actual polymorphic classes that do the work
     contains
         procedure :: init => EulerExp_init
         procedure :: dealloc => EulerExp_dealloc
@@ -278,8 +278,10 @@ end subroutine FullExp_lmult_T
 subroutine EulerExp_dealloc(this)
     class(EulerExp) :: this
     integer :: i
+
     do i = 1, this%nrofcols
         call this%singleexps(i)%dat%dealloc()
+        deallocate(this%singleexps(i)%dat)
     enddo
     deallocate(this%singleexps)
 end subroutine EulerExp_dealloc
@@ -525,10 +527,10 @@ subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
 !     character(length=64) :: filename
     type(node), dimension(:, :), allocatable :: colsepnodes! An array of nodes separated by color
     complex (kind=kind(0.d0)), allocatable :: mat(:,:), evs(:), v(:), work(:), rwork(:)
-    class(ZeroDiagSingleColExp), pointer :: zerodiagexp
-    class(HomogeneousSingleColExp), pointer :: homexp
-    class(TraceLessSingleColExp), pointer :: tracelessexp
-    class(GeneralSingleColExp), pointer :: generalexp
+    class(ZeroDiagSingleColExp), pointer :: zerodiagexp => null()
+    class(HomogeneousSingleColExp), pointer :: homexp => null()
+    class(TraceLessSingleColExp), pointer :: tracelessexp => null()
+    class(GeneralSingleColExp), pointer :: generalexp => null()
     real(kind=kind(0.D0)) :: my1, my2, myd, myav
 #ifndef NDEBUG
     write(*,*) "Setting up Euler Checkerboard exponential."
@@ -559,9 +561,9 @@ subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
 
     ! Now that we have properly separated which entry of a matrix belongs to
     ! which color we can create an exponential for each color that exploits
-    ! the structure that the color decomposition creates strictly sparse matrices.
-    
-!     write (*,*) mys
+    ! the structure, that the color decomposition creates strictly sparse matrices.
+
+
     allocate(this%singleexps(usedcolors), mys_start(size(mys)), myloc(size(mys)))
     mys_start = mys
     do i = 1, usedcolors
@@ -587,7 +589,7 @@ subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
         endif
 
         ! In each color we have to determine which optimizations are possible
-        select case(determinediagtype( colsepnodes(i, :), nredges(i), myloc )) 
+        select case(determinediagtype( colsepnodes(i, :), nredges(i), myloc ))
         case(0)
         write (*,*) "Zero"
             allocate(zerodiagexp)
