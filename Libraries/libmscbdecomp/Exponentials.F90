@@ -133,47 +133,47 @@ subroutine FullExp_init(this, nodes, usedcolors, mys, method, weight)
             call this%stages(3)%init(nodes, usedcolors, mys, tmp)
             tmp = 0.21178*weight
             call this%stages(4)%init(nodes, usedcolors, mys, tmp)
-        case (4)! SE_3 4, Yoshida, Neri, Suzuki, 1990
+        case (4)! S_3 4, Yoshida, Neri, Suzuki, 1990
             this%evals = 6
             allocate(this%stages(this%evals))
-            tmp = 0.6756035959798*weight
+            tmp =  0.6756035959798*weight
             call this%stages(1)%init(nodes, usedcolors, mys, tmp)
-            tmp = 0.6756035959798*weight
+            tmp =  0.6756035959798*weight
             call this%stages(2)%init(nodes, usedcolors, mys, tmp)
             tmp = -0.8512071919597*weight
             call this%stages(3)%init(nodes, usedcolors, mys, tmp)
             tmp = -0.8512071919597*weight
             call this%stages(4)%init(nodes, usedcolors, mys, tmp)
-            tmp = 0.6756035959798*weight
+            tmp =  0.6756035959798*weight
             call this%stages(5)%init(nodes, usedcolors, mys, tmp)
-            tmp = 0.6756035959798*weight
+            tmp =  0.6756035959798*weight
             call this%stages(6)%init(nodes, usedcolors, mys, tmp)
         case (5)! SE_6 4, Blanes, Blanes and Moan 2002
             this%evals = 12
             allocate(this%stages(this%evals))
-            tmp = 0.0792037*weight
+            tmp = 0.079203696431195694249716154899943D0 *weight
             call this%stages(1)%init(nodes, usedcolors, mys, tmp)
-            tmp = 0.130311*weight
+            tmp = 0.13031141018216631233261892930386D0 *weight
             call this%stages(2)%init(nodes, usedcolors, mys, tmp)
-            tmp = 0.222861*weight
+            tmp = 0.22286149586760771457161212083520D0 *weight
             call this%stages(3)%init(nodes, usedcolors, mys, tmp)
-            tmp = -0.366713*weight
+            tmp = -0.36671326904742572450057735977680D0 *weight
             call this%stages(4)%init(nodes, usedcolors, mys, tmp)
-            tmp = 0.324648*weight
+            tmp = 0.32464818868970622689484883949262D0 *weight
             call this%stages(5)%init(nodes, usedcolors, mys, tmp)
-            tmp = 0.109688*weight
+            tmp = 0.1096884778767497764517813152452D0 *weight
             call this%stages(6)%init(nodes, usedcolors, mys, tmp)
-            tmp = 0.109688*weight
+            tmp = 0.1096884778767497764517813152452D0 *weight
             call this%stages(7)%init(nodes, usedcolors, mys, tmp)
-            tmp = 0.324648*weight
+            tmp = 0.3246481886897062268948488394926D0 *weight
             call this%stages(8)%init(nodes, usedcolors, mys, tmp)
-            tmp = -0.366713*weight
+            tmp = -0.3667132690474257245005773597768D0 *weight
             call this%stages(9)%init(nodes, usedcolors, mys, tmp)
-            tmp = 0.222861*weight
+            tmp = 0.2228614958676077145716121208352D0 *weight
             call this%stages(10)%init(nodes, usedcolors, mys, tmp)
-            tmp = 0.130311*weight
+            tmp = 0.1303114101821663123326189293039D0 *weight
             call this%stages(11)%init(nodes, usedcolors, mys, tmp)
-            tmp = 0.0792037*weight
+            tmp = 0.0792036964311956942497161548999D0 *weight
             call this%stages(12)%init(nodes, usedcolors, mys, tmp)
     end select
 end subroutine FullExp_init
@@ -592,19 +592,15 @@ subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
         ! In each color we have to determine which optimizations are possible
         select case(determinediagtype( colsepnodes(i, :), nredges(i), myloc ))
         case(0)
-        write (*,*) "Zero"
             allocate(zerodiagexp)
             this%singleexps(i)%dat => zerodiagexp
         case(1)
-        write (*,*) "hom"
             allocate(homexp)
             this%singleexps(i)%dat => homexp
         case(2)
-        write (*,*) "traceless"
             allocate(tracelessexp)
             this%singleexps(i)%dat => tracelessexp
         case(3)
-        write (*,*) "General"
             allocate(generalexp)
             this%singleexps(i)%dat => generalexp
         end select
