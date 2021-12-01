@@ -130,8 +130,8 @@ Program EulerExpTest
         type(GraphData) :: gd
         Real (Kind=Kind(0.d0))  :: a1_p(2), a2_p(2), L1_p(2), L2_p(2)
         
-        Type (Lattice),       target :: Latt
-        Type (Unit_cell),     target :: Latt_unit
+        Type (Lattice) :: Lat
+        Type (Unit_cell) :: Lat_unit
         
         
         
@@ -149,26 +149,26 @@ Program EulerExpTest
         
         
         
-          Latt_unit%Norb    = 1
-          Latt_unit%N_coord = 2
-          allocate(Latt_unit%Orb_pos_p(Latt_unit%Norb,2))
-          Latt_unit%Orb_pos_p(1, :) = [0.d0, 0.d0]
+          Lat_unit%Norb    = 1
+          Lat_unit%N_coord = 2
+          allocate(Lat_unit%Orb_pos_p(Lat_unit%Norb,2))
+          Lat_unit%Orb_pos_p(1, :) = [0.d0, 0.d0]
 
           a1_p(1) =  1.0  ; a1_p(2) =  0.d0
           a2_p(1) =  0.0  ; a2_p(2) =  1.d0
           L1_p    =  dble(L1)*a1_p
           L2_p    =  dble(L2)*a2_p
-          Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
+          Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Lat )
          
-          Ndim = Latt%N*Latt_unit%Norb
+          Ndim = Lat%N*Lat_unit%Norb
           write (*,*) Ndim
           Call Op_make(Op_T, Ndim)
-          Do I = 1,Latt%N
-            Ix = Latt%nnlist(I,1,0)
+          Do I = 1,Lat%N
+            Ix = Lat%nnlist(I,1,0)
             Op_T%O(I,  Ix) = cmplx(-Ham_T,    0.d0, kind(0.D0))
             Op_T%O(Ix, I ) = cmplx(-Ham_T,    0.d0, kind(0.D0))
             If ( L2 > 1 ) then
-                Iy = Latt%nnlist(I,0,1)
+                Iy = Lat%nnlist(I,0,1)
                 Op_T%O(I,  Iy) = cmplx(-Ham_T,    0.d0, kind(0.D0))
                 Op_T%O(Iy, I ) = cmplx(-Ham_T,    0.d0, kind(0.D0))
             endif
@@ -178,14 +178,14 @@ Program EulerExpTest
          Op_T%g      = -0.1
          Op_T%alpha  =  cmplx(0.d0,0.d0, kind(0.D0))
          Call Op_set(Op_T)
-        
-        
+
+
         allocate(mys(ndim) )
 
         ! Start with zero diagonals
         mys = 0.0 ! initialize chemical potential to zero
         call exectest(op_t, mys)
-        
+
 ! ! !         ! Now test homogeneous exponentials
 ! ! !         mys = 0.5
 ! ! !         call exectest(op_t, mys)
@@ -199,6 +199,7 @@ Program EulerExpTest
 ! ! !         mys(i) = 0.1*i
 ! ! !       enddo
 ! ! !        call exectest(op_t, mys)
-
-        write (*,*) "success"
+       call Op_clear(Op_T, ndim)
+       deallocate(mys, Lat_unit%Orb_pos_p, Lat%L2_p, Lat%L1_p, Lat%a1_p, Lat%a2_p, Lat%b1_p, Lat%b2_p, Lat%BZ1_p, Lat%BZ2_p, Lat%b1_perp_p, Lat%b2_perp_p, Lat%List, Lat%Invlist, Lat%Listk, Lat%Invlistk, Lat%nnlist, Lat%imj)
+       write (*,*) "success"
 end Program EulerExpTest

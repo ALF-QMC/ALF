@@ -1,5 +1,5 @@
 ! compile with
-! gfortran -I ../../Libraries/libmscbdecomp/ -L ../../Libraries/libmscbdecomp/ 1-ZeroDiag-lmult.F90 -lmscbdecomp
+! gfortran -I ../../Libraries/libmscbdecomp/ -L ../../Libraries/libmscbdecomp/ 5-EulerExponential.F90 -lmscbdecomp
 
 subroutine exectest(gd, ndim, mys)
   Use Exponentials_mod
@@ -178,16 +178,12 @@ Program EulerExpTest
   subroutine exectest(gd, ndim, mys)
   Use Exponentials_mod
   Use colorvertex_mod
-        integer :: nredges
         integer :: ndim
         Type(GraphData) :: gd
         real(kind=kind(0.D0)), allocatable :: mys(:)
     end subroutine
   end interface
-        type(EulerExp) :: ee
-!         integer, parameter :: nredges = 6
         integer, parameter :: ndim = 27
-!         integer, parameter :: usedcolors = 1
         type(GraphData) :: gd
         real(kind=kind(0.D0)) :: weight, sumdiag, sumoff
         real(kind=kind(0.D0)), allocatable :: mys(:)

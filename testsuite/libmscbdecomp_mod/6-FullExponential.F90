@@ -1,68 +1,36 @@
 ! compile with
-! gfortran -I ../../Libraries/libmscbdecomp/ -L ../../Libraries/libmscbdecomp/ 1-ZeroDiag-lmult.F90 -lmscbdecomp
+! gfortran -I ../../Libraries/libmscbdecomp/ -L ../../Libraries/libmscbdecomp/ 6-FullExponential.F90 -lmscbdecomp
 
-Program FullExpTest
-
+subroutine exectest(gd, ndim, mys, method)
   Use Exponentials_mod
-
-        COMPLEX (KIND=8) :: myx
-        
+  Use colorvertex_mod
+  implicit none
+        integer :: method
         type(FullExp) :: fe
-        integer, parameter :: nredges = 6
-        integer, parameter :: ndim = 24
+        integer :: ndim
         integer, parameter :: usedcolors = 1
-        integer, parameter :: method = 3
-        Type(Node) :: nodes(nredges)
+        Type(GraphData) :: gd
         real(kind=kind(0.D0)) :: weight, sumdiag, sumoff
         real(kind=kind(0.D0)), allocatable :: mys(:)
         COMPLEX (KIND=kind(0.D0)), DIMENSION(ndim, ndim) :: mat
         integer :: i
-        
-        allocate(mys(ndim))
-        nodes(1)%x=1
-        nodes(1)%y=3
-        nodes(1)%col=1
-        nodes(1)%axy=0.1
-
-        nodes(2)%x=5
-        nodes(2)%y=7
-        nodes(2)%col=1
-        nodes(2)%axy=0.1
-        
-        nodes(3)%x=9
-        nodes(3)%y=11
-        nodes(3)%col=1
-        nodes(3)%axy=0.1
-        
-        nodes(4)%x=13
-        nodes(4)%y=15
-        nodes(4)%col=1
-        nodes(4)%axy=0.1
-
-        nodes(5)%x=17
-        nodes(5)%y=19
-        nodes(5)%col=1
-        nodes(5)%axy=0.1
-
-        nodes(6)%x=21
-        nodes(6)%y=23
-        nodes(6)%col=1
-        nodes(6)%axy=0.1
 
         weight = 1.0
-        mys = 0.0 ! initialize chemical potential to zero
 
         ! initialize as identity matrix
         mat = 0
         do i = 1, ndim
             mat(i,i) = 1
         enddo
-
-        call fe%init(nodes, usedcolors, mys, method, weight)
+        
+        fe = createFullExponentialfromGraphData(gd, mys, method)
         
         call fe%lmult(mat)
+        call fe%lmult(mat)
+        call fe%lmult(mat)
         call fe%lmultinv(mat)
-
+        call fe%lmultinv(mat)
+        call fe%lmultinv(mat)
         ! test for Trace(mat) = ndim
         sumdiag = 0
         sumoff = 0
@@ -73,16 +41,26 @@ Program FullExpTest
             sumoff = sumoff + DBLE(mat(i,i+2))
         enddo
         write (*,*) sumoff, sumdiag
-        if (abs(sumdiag - ndim) > ndim*1E-15) then
-        ERROR STOP 2
+        if (abs(sumdiag - ndim) > ndim*1E-14) then
+            ERROR STOP 2
         endif
-        if (abs(sumoff) > 1E-15) then !FIXME: this limit is a bit scale less...
-        ERROR STOP 4
+        if (abs(sumoff) >  maxval(exp(mys))*1E-14) then
+            ERROR STOP 4
         endif
         
 
+        ! initialize as identity matrix
+        mat = 0
+        do i = 1, ndim
+            mat(i,i) = 1
+        enddo
+        
 
         call fe%rmult(mat)
+        call fe%rmult(mat)
+        call fe%rmult(mat)
+        call fe%rmultinv(mat)
+        call fe%rmultinv(mat)
         call fe%rmultinv(mat)
         ! test for Trace(mat) = ndim
         sumdiag = 0
@@ -93,14 +71,20 @@ Program FullExpTest
         do i = 1, ndim-3
             sumoff = sumoff + DBLE(mat(i,i+2))
         enddo
-        write (*,*) sumoff, sumdiag
-        if (abs(sumdiag - ndim) > ndim*1E-15) then
+        write(*,*) "rmult  ", sumoff, sumdiag
+        if (abs(sumdiag - ndim) > ndim*1E-14) then
         ERROR STOP 3
         endif
-        if (abs(sumoff) > 1E-15) then !FIXME: this limit is a bit scale less...
+        if (abs(sumoff) > maxval(exp(mys))*1E-14) then
         ERROR STOP 6
         endif
 
+        ! initialize as identity matrix
+        mat = 0
+        do i = 1, ndim
+            mat(i,i) = 1
+        enddo
+        
         call fe%adjoint_over_two(mat)
         ! test for Trace(mat) = ndim
         sumdiag = 0
@@ -112,11 +96,84 @@ Program FullExpTest
             sumoff = sumoff + DBLE(mat(i,i+2))
         enddo
         write (*,*) sumoff, sumdiag
-        if (abs(sumdiag - ndim) > ndim*1E-15) then
+        if (abs(sumdiag - ndim) > ndim*1E-14) then
         ERROR STOP 7
         endif
-        if (abs(sumoff) > 1E-15) then !FIXME: this limit is a bit scale less...
+        if (abs(sumoff) > maxval(exp(mys))*1E-14) then
         ERROR STOP 14
         endif
+        
+        call fe%dealloc()
+        
+end subroutine 
+
+Program FullExpTest
+
+    Use Exponentials_mod
+  Use colorvertex_mod
+  Use MvG_mod
+  
+  interface
+  subroutine exectest(gd, ndim, mys, method)
+  Use Exponentials_mod
+  Use colorvertex_mod
+        integer :: ndim, method
+        Type(GraphData) :: gd
+        real(kind=kind(0.D0)), allocatable :: mys(:)
+    end subroutine
+  end interface
+        integer, parameter :: ndim = 23
+        type(GraphData) :: gd
+        real(kind=kind(0.D0)) :: dt, sumdiag, sumoff
+        real(kind=kind(0.D0)), allocatable :: mys(:)
+        COMPLEX (KIND=kind(0.D0)), DIMENSION(:,:), allocatable :: input
+        integer :: i, j
+        
+        allocate(mys(ndim), input(ndim, ndim) )
+        input = 0
+        do i = 1, ndim-1
+             input(i, i + 1) = 1
+             input(i + 1, i) = 1
+        enddo
+        
+        do i = 1, ndim-2
+             input(i, i + 2) = 1
+             input(i + 2, i) = 1
+        enddo
+        dt = 0.1
+        input = input * dt
+        
+        gd = mat2verts(input) ! convert to graphdata structure
+        call MvG_decomp(gd%verts) ! perform the decomposition
+        
+        call determine_used_colors_of_graph(gd)
+        write (*,*) "Nr edges: ", gd%nredges
+        if (gd%usedcolors == gd%deltag) then
+            write(*,*) "Maximum Degree", gd%deltag, ". Found", gd%usedcolors," Families -> optimal decomposition"
+        else
+            write(*,*) "Maximum Degree", gd%deltag, ". Found", gd%usedcolors," Families"
+        endif
+
+        ! Start with zero diagonals
+        mys = 0.0 ! initialize chemical potential to zero
+        do i = 2, 5
+            call exectest(gd, ndim, mys, i)
+        enddo
+        ! Now test homogeneous exponentials
+        mys = 0.5*dt
+        do i = 2, 5
+            call exectest(gd, ndim, mys, i)
+        enddo
+
+        ! Now test general exponentials
+        do i = 1, ndim
+            mys(i) = 0.05*i*dt
+        enddo
+        do i = 2, 5
+            call exectest(gd, ndim, mys, i)
+        enddo
+
+        call dealloc_graphdata(gd)
+        deallocate(input, mys)
         write (*,*) "success"
 end Program FullExpTest
