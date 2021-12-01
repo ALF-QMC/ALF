@@ -107,9 +107,6 @@ subroutine FullExp_init(this, nodes, usedcolors, mys, method, weight)
     real(kind=kind(0.D0)), intent(in), allocatable, dimension(:) :: mys
     real (kind=kind(0.d0)), intent(in) :: weight
     real (kind=kind(0.d0)) :: tmp
-    integer :: i, maxedges, k
-    type(node), dimension(:, :), allocatable :: colsepnodes! An array of nodes separated by color
-    type(EulerExp) :: dummy
 
     this%method = method
 #ifndef NDEBUG
@@ -461,7 +458,7 @@ function determinediagtype(nodes, nrnodes, mys) result(diagtype)
     integer, intent(in) :: nrnodes
     integer :: diagtype
     integer :: i
-    real(kind=kind(0.D0)) mymax, localzero, tmp
+    real(kind=kind(0.D0)) :: localzero
     logical :: isequal, iszero, istraceless
 
     ! check for pairwise equality
@@ -523,10 +520,9 @@ subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
     real(kind=kind(0.d0)), intent(in) :: weight
     real(kind=kind(0.D0)), allocatable, dimension(:) :: mys_start, myloc
     integer, dimension(:), allocatable :: nredges, edgectr
-    integer :: i, maxedges, k, ndim, ldvl
+    integer :: i, maxedges, k
 !     character(64) :: filename
     type(node), dimension(:, :), allocatable :: colsepnodes! An array of nodes separated by color
-    complex (kind=kind(0.d0)), allocatable :: mat(:,:), evs(:), v(:), work(:), rwork(:)
     class(ZeroDiagSingleColExp), pointer :: zerodiagexp => null()
     class(HomogeneousSingleColExp), pointer :: homexp => null()
     class(TraceLessSingleColExp), pointer :: tracelessexp => null()
