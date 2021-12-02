@@ -4,6 +4,7 @@
 subroutine exectest(gd, ndim, mys, method)
   Use Exponentials_mod
   Use colorvertex_mod
+  Use graphdata_mod
   implicit none
         integer :: method
         type(FullExp) :: fe
@@ -109,14 +110,16 @@ end subroutine
 
 Program FullExpTest
 
-    Use Exponentials_mod
-  Use colorvertex_mod
-  Use MvG_mod
-  
-  interface
-  subroutine exectest(gd, ndim, mys, method)
   Use Exponentials_mod
   Use colorvertex_mod
+  Use MvG_mod
+  Use graphdata_mod
+  
+  interface
+    subroutine exectest(gd, ndim, mys, method)
+        Use Exponentials_mod
+        Use colorvertex_mod
+        Use graphdata_mod
         integer :: ndim, method
         Type(GraphData) :: gd
         real(kind=kind(0.D0)), allocatable :: mys(:)

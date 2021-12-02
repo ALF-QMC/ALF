@@ -4,6 +4,7 @@
 subroutine exectest(gd, ndim, mys)
   Use Exponentials_mod
   Use colorvertex_mod
+  Use graphdata_mod
   implicit none
         type(EulerExp) :: ee
         integer :: ndim
@@ -172,12 +173,13 @@ Program EulerExpTest
 
   Use Exponentials_mod
   Use colorvertex_mod
+  Use graphdata_mod
   Use MvG_mod
   
   interface
   subroutine exectest(gd, ndim, mys)
   Use Exponentials_mod
-  Use colorvertex_mod
+  Use graphdata_mod
         integer :: ndim
         Type(GraphData) :: gd
         real(kind=kind(0.D0)), allocatable :: mys(:)

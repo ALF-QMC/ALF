@@ -177,15 +177,15 @@ Program EulerExpTest
         mys = 0.0 ! initialize chemical potential to zero
         call exectest(op_t, mys)
 
-! ! !         ! Now test homogeneous exponentials
-! ! !         mys = 0.5
-! ! !         call exectest(op_t, mys)
-! ! !         
-! ! !         ! Now test general exponentials
-! ! !       do i = 1, ndim
-! ! !         mys(i) = 0.1*i
-! ! !       enddo
-! ! !        call exectest(op_t, mys)
+        ! Now test homogeneous exponentials
+        mys = 0.5
+        call exectest(op_t, mys)
+        
+        ! Now test general exponentials
+       do i = 1, ndim
+         mys(i) = 0.1*i
+       enddo
+       call exectest(op_t, mys)
        call Op_clear(Op_T, ndim)
        deallocate(mys, Lat_unit%Orb_pos_p, Lat%L2_p, Lat%L1_p, Lat%a1_p, Lat%a2_p, Lat%b1_p, Lat%b2_p, Lat%BZ1_p, Lat%BZ2_p, Lat%b1_perp_p, Lat%b2_perp_p, Lat%List, Lat%Invlist, Lat%Listk, Lat%Invlistk, Lat%nnlist, Lat%imj)
        write (*,*) "success"
