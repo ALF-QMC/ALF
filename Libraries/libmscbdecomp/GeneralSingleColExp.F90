@@ -29,15 +29,15 @@ module GeneralSingleColExp_mod
 !> @author
 !> Florian Goth
 !
-!> @brief 
-!> This holds together all the low-level routines for performing the
-!> multiplications.
+!> @class GeneralSingleColExp
+!> @brief This holds together all the low-level routines for performing the multiplications.
+!>
 !> This particular class allows for non-identical chemical potentials,
 !> in contrast to HomogeneousSingleColExp and hence is the most general
 !> implementation.
 !--------------------------------------------------------------------
     type, extends(TraceLessSingleColExp) :: GeneralSingleColExp
-        complex (kind=kind(0.d0)), allocatable :: sinv(:), s2inv(:)
+        complex (kind=kind(0.d0)), allocatable :: sinv(:), s2inv(:) ! data for storing the sinh
         real (kind=kind(0.d0)), allocatable :: cinv(:), c2inv(:)! the cosh array is twice as big since we need two real values
     contains
         procedure :: init => GeneralSingleColExp_init
@@ -81,23 +81,31 @@ end subroutine GeneralSingleColExp_lmultinv
 !> and "Unifying unitary and hyperbolic transformations Adam Bojanczyka, Sanzheng Qiaob;;1, Allan O. Steinhardt"
 !> For the future we might want to look into fast hyperbolic rotations of Hargreaves, G. (2005).
 !
-!> @param[in] this The exponential that we consider
-!> @param[inout] mat the matrix that we modify.
+!> @param[in] this The exponential that we consider.
+!> @param[inout] mat The matrix that we modify.
 !--------------------------------------------------------------------
 subroutine GeneralSingleColExp_adjointaction(this, mat)
     class(GeneralSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
-!     integer :: i, j, k, ndim, loopend
-!     integer, parameter :: step = 2
-!     complex(kind=kind(0.D0)) :: t1(step), t2(step)
     
     call this%lmult(mat)
     call this%rmultinv(mat)
 end subroutine GeneralSingleColExp_adjointaction
 
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
+!> The routines for moving to an adjoint representation : out = this.mat.this^(-1),
+!> but this time with a halved prefactor.
+!
+!> @param[in] this The exponential that we consider.
+!> @param[inout] mat the matrix that we modify.
+!--------------------------------------------------------------------
 subroutine GeneralSingleColExp_adjoint_over_two(this, mat)
     class(GeneralSingleColExp), intent(in) :: this
-    complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
+    complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat ! input matrix
     integer :: i, j, k, ndim, loopend
     integer, parameter :: step = 2
     complex(kind=kind(0.D0)) :: t1(step), t2(step), mys
@@ -242,8 +250,7 @@ subroutine GeneralSingleColExp_init(this, nodes, nredges, mys, weight)
         !   (b^*, -d)
         ! with d = (my1-m2)/2 and mav = (my1+m2)/2
         
-        call expof2x2hermitianmatrix(this%c(2*i-1), this%c(2*i), this%s(i), md, &
-        & nodes(i)%axy, weight, mav, localzero)
+        call expof2x2hermitianmatrix(this%c(2*i-1), this%c(2*i), this%s(i), md, nodes(i)%axy, weight, mav, localzero)
         
         dweight = -weight
         call expof2x2hermitianmatrix(this%cinv(2*i-1), this%cinv(2*i), this%sinv(i), md, nodes(i)%axy, dweight, mav, localzero)

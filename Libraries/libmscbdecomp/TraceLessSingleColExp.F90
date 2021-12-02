@@ -349,7 +349,7 @@ end subroutine TraceLessSingleColExp_rmultinv
 !> @param [out] offout resulting off-diagonal
 !> @param [in] diag diagonal d
 !> @param [in] offinp The off-diagonal o
-!> @param [in] weight a real prefactor
+!> @param [in] weight a real prefactor that can be in front of the entire 2x2 sub-block.
 !--------------------------------------------------------------------
 subroutine expof2x2tracelesshermitianmatrix(diag1, diag2, offout, diag, offinp, weight)
     real (kind=kind(0.d0)), intent(in) :: weight, diag

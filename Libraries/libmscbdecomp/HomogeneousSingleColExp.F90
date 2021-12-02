@@ -216,19 +216,18 @@ subroutine HomogeneousSingleColExp_init(this, nodes, nredges, mys, weight)
         this%c(i) = cosh(abs(weight*nodes(i)%axy))
         this%c2(i) = cosh(abs(weight*nodes(i)%axy)/2.D0)
         ! I got the most reliable results if the hyperbolic pythagoras is best fulfilled.
-        ! If we generalize this, to non-zero diagonals, this means 
         this%s(i) = sqrt(this%c(i)**2-1.D0)*weight*nodes(i)%axy/abs(weight*nodes(i)%axy)
         this%s2(i) = sqrt(this%c2(i)**2-1.D0)*weight*nodes(i)%axy/abs(weight*nodes(i)%axy)
         
         if (abs(my1+my2) > 2*localzero) then ! chemical potential is actually different from zero
-            this%cinv(i) = this%c(i) * exp(-my1)
-            this%c(i) = this%c(i) * exp(my1)
-            this%c2inv(i) = this%c2(i) * exp(-my1/2.D0)
-            this%c2(i) = this%c2(i) * exp(my1/2.D0)
-            this%sinv(i) = -this%s(i) * exp(-my1)
-            this%s(i) = this%s(i) * exp(my1)
-            this%s2inv(i) = -this%s2(i) * exp(-my1/2.D0)
-            this%s2(i) = this%s2(i) * exp(my1/2.D0)
+            this%cinv(i) = this%c(i) * exp(-weight*my1)
+            this%c(i) = this%c(i) * exp(weight*my1)
+            this%c2inv(i) = this%c2(i) * exp(-weight*my1/2.D0)
+            this%c2(i) = this%c2(i) * exp(weight*my1/2.D0)
+            this%sinv(i) = -this%s(i) * exp(-weight*my1)
+            this%s(i) = this%s(i) * exp(weight*my1)
+            this%s2inv(i) = -this%s2(i) * exp(-weight*my1/2.D0)
+            this%s2(i) = this%s2(i) * exp(weight*my1/2.D0)
         endif
     enddo
 ! All nodes that we have been passed are now from a single color.
