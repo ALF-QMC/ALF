@@ -47,12 +47,9 @@
     Module Hop_mod
 
       Use Hamiltonian_main
-      Use Operator_mod
       Use Random_wrap
       Use DynamicMatrixArray_mod
       Use ContainerElementBase_mod
-      Use OpTTypes_mod
-      Use mscbOpT_mod
       use iso_fortran_env, only: output_unit, error_unit
 
       ! Private variables
@@ -77,6 +74,8 @@
 !--------------------------------------------------------------------
         subroutine OpT_postprocess(ExpOpT_vec, op)
             use Operator_mod
+            Use mscbOpT_mod
+            Use OpTTypes_mod
             implicit none
             
             Type(DynamicMatrixArray), intent(inout) :: ExpOpT_vec

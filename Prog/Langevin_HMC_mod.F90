@@ -84,6 +84,7 @@
 !--------------------------------------------------------------------
         
       SUBROUTINE  Langevin_HMC_Forces(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst, LOBS_ST, LOBS_EN,Calc_Obser_eq)
+        use Operator_mod
         Implicit none
         
         Interface
@@ -191,7 +192,7 @@
 !--------------------------------------------------------------------
 
       Subroutine  Wrapgrup_Forces(this,Gr, NT1)
-        
+        use Operator_mod
         Implicit none
         
         class (Langevin_HMC_type) :: this
@@ -246,7 +247,7 @@
 !>   udvl, udvr are on time slice 0. 
 !--------------------------------------------------------------------
       Subroutine Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
-
+        use Operator_mod
         Implicit none
         
         Interface
@@ -345,7 +346,7 @@
 !--------------------------------------------------------------------
 
       SUBROUTINE  Langevin_HMC_update(this,Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst, LOBS_ST, LOBS_EN, LTAU)
-        
+        use Operator_mod
         Implicit none
         
         class (Langevin_HMC_type) :: this

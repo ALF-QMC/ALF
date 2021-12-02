@@ -47,8 +47,9 @@
 
 !-------------------------------------------------------------------
 
-        Use Hop_mod
+        use Operator_mod
         Use UDV_State_mod
+        Use Hop_mod
 #if defined(STAB2) || defined(STAB1)         
         Use Hamiltonian_main
         Use UDV_Wrap_mod

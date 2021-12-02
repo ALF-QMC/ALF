@@ -50,9 +50,10 @@
 !--------------------------------------------------------------------
 
         Use UDV_State_mod
+        use Operator_mod
+        Use Hop_mod
 #if defined(STAB2) ||  defined(STAB1) 
         Use Hamiltonian_main
-        Use Hop_mod
         Use UDV_Wrap_mod
 
         Implicit none
@@ -99,7 +100,6 @@
         ENDDO
 
 #else
-        Use Hop_mod
         Implicit none
         
         ! Arguments
