@@ -25,10 +25,10 @@ module MvG_mod
     implicit none
     !Another helper type for the cd_X path construction
     type :: Path
-        integer :: avamem
+        integer :: avamem ! The amount of storage available
         integer :: tail ! Last valid Fortran index
-        integer, allocatable, dimension(:) :: vertices
-        integer, allocatable, dimension(:) :: nbrindex
+        integer, allocatable, dimension(:) :: vertices ! position in an associated arrays of colorvertices
+        integer, allocatable, dimension(:) :: nbrindex ! position in an associated arrays of colorvertices
     contains
         procedure :: init => Path_init
         procedure :: dealloc => Path_dealloc
@@ -40,6 +40,15 @@ module MvG_mod
     
 contains
 
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
+!> initialize the Path object with 4 KB of memory.
+!
+!> @param[in] this the path object that we consider.
+!--------------------------------------------------------------------
 subroutine Path_init(this)
     class(Path) :: this
     integer :: temp
@@ -48,6 +57,15 @@ subroutine Path_init(this)
     allocate(this%vertices(this%avamem), this%nbrindex(this%avamem))
 end subroutine Path_init
 
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
+!> Deallocate storage.
+!
+!> @param[in] this the path object that we consider.
+!--------------------------------------------------------------------
 subroutine Path_dealloc(this)
     class(Path) :: this
     deallocate(this%vertices, this%nbrindex)
@@ -84,6 +102,17 @@ subroutine Path_at(this, pos, vert, nbridx)
     nbridx = this%nbrindex(pos)
 end subroutine
 
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
+!> Access to the last valid element
+!
+!> @param[in] this the path object that we consider.
+!> @param[out] vert the index of the vertex that is at the end.
+!> @param[out] nbridx the index of the other vertex that make up this edge.
+!--------------------------------------------------------------------
 subroutine Path_back(this, vert, nbridx)
     class(Path) :: this
     integer, intent(out) :: vert, nbridx
@@ -91,6 +120,16 @@ subroutine Path_back(this, vert, nbridx)
     nbridx = this%nbrindex(this%tail)
 end subroutine
 
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
+!> Query the length of the path.
+!
+!> @param[in] this the path object that we consider.
+!> @return the length of the path.
+!--------------------------------------------------------------------
 function Path_length(this) result(l)
     class(Path) :: this
     integer :: l
@@ -145,7 +184,7 @@ function find_and_try_to_set_common_free_color(i, j, verts, maxcols) result(col)
     implicit none
     type(ColorVertex), dimension(:), allocatable, intent(inout) :: verts
     integer, intent(in) :: maxcols, i, j
-    integer :: col, k, l, pos, kf, ko
+    integer :: col, k, l !, pos, kf, ko
 
     col = 0
     k = 1
@@ -198,11 +237,11 @@ end function find_and_try_to_set_common_free_color
 !
 !> @brief 
 !> This function constructs an alternating cd path at start
-!> And then inverts the colors
+!> and then inverts the colors.
 !>
-!> @param[in] col the two colors that make up the path
+!> @param[in] col The two colors that make up the path
 !> @param[inout] verts The array of vertices
-!> @param[in] start the starting vertex
+!> @param[in] start The starting vertex
 !--------------------------------------------------------------------
 subroutine construct_and_invert_path(col, verts, start)
     implicit none
@@ -221,7 +260,7 @@ subroutine construct_and_invert_path(col, verts, start)
         if (verts(start)%cols(k) == col(1)) nbr1 = k
     enddo
     ! We start the path at verts(i)
-    ! (i, nbr1) is the first piece of the path. nbr1 is the position within the arrays of verts(i)
+    ! (i, nbr1) is the first piece of the path. nbr1 is the position within the arrays of verts(i).
     ! The edge i -> nbr1 has color col(1)
 #ifndef NDEBUG
     write (*,*) "starting path to ", nbr1, "which is", verts(start)%nbrs(nbr1)
