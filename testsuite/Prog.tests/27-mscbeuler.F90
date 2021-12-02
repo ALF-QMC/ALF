@@ -6,6 +6,7 @@ subroutine exectest(op_T, mys)
   Use Exponentials_mod
   Use colorvertex_mod
   Use Operator_mod
+  Use graphdata_mod
   implicit none
         Type(Operator), intent(in) :: Op_T
         class(CmplxEulermscbOpT), allocatable :: ee
@@ -124,31 +125,21 @@ Program EulerExpTest
   end interface
         type(EulerExp) :: ee
         Type(Operator) :: Op_T
-!         integer, parameter :: nredges = 6
         integer :: ndim, L1, L2, Ix, Iy
-!         integer, parameter :: usedcolors = 1
-        type(GraphData) :: gd
         Real (Kind=Kind(0.d0))  :: a1_p(2), a2_p(2), L1_p(2), L2_p(2)
         
         Type (Lattice) :: Lat
         Type (Unit_cell) :: Lat_unit
-        
-        
-        
-        
         real(kind=kind(0.D0)) :: weight, sumdiag, sumoff, ham_t
         real(kind=kind(0.D0)), allocatable :: mys(:)
         COMPLEX (KIND=kind(0.D0)), DIMENSION(:,:), allocatable :: input
         integer :: i, j
-        
-        
-        
+
         L1 = 8
         L2 = 8
         ham_t = 1.0
         
-        
-        
+
           Lat_unit%Norb    = 1
           Lat_unit%N_coord = 2
           allocate(Lat_unit%Orb_pos_p(Lat_unit%Norb,2))
@@ -189,10 +180,6 @@ Program EulerExpTest
 ! ! !         ! Now test homogeneous exponentials
 ! ! !         mys = 0.5
 ! ! !         call exectest(op_t, mys)
-! ! !         
-! ! !         ! Now test traceless exponentials
-! ! !         
-! ! ! !         call exectest(gd, ndim, mys)        
 ! ! !         
 ! ! !         ! Now test general exponentials
 ! ! !       do i = 1, ndim
