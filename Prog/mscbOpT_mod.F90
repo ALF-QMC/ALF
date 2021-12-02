@@ -46,6 +46,7 @@ module mscbOpT_mod
     !>
     !--------------------------------------------------------------------
     type, extends(ContainerElementBase) :: RealmscbOpT
+        use Exponentials_mod, only: EulerExp
         Real(kind=kind(0.d0)), allocatable, dimension(:,:) :: mat, invmat, mat_1D2, invmat_1D2 !>We store the matrix in the class
         Real(kind=kind(0.d0)) :: g, Zero
         integer, allocatable :: P(:)
