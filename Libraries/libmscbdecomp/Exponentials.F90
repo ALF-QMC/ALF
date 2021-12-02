@@ -474,7 +474,7 @@ function determinediagtype(nodes, nrnodes, mys) result(diagtype)
         iszero = .true.
         
         do i = 1, nrnodes
-            localzero = 1E-15*abs(nodes(i)%axy)*sqrt(2*(mys(nodes(i)%x)/abs(nodes(i)%axy) )**2 + 1)
+            localzero = 1E-15*abs(nodes(i)%axy)*sqrt(2.D0*(mys(nodes(i)%x)/abs(nodes(i)%axy) )**2 + 1.D0)
             if (abs(mys(nodes(i)%x)) > localzero) iszero = .false.
         enddo
         if (iszero) then
@@ -487,7 +487,7 @@ function determinediagtype(nodes, nrnodes, mys) result(diagtype)
         istraceless = .true.
         
         do i = 1, nrnodes
-            localzero = 1E-15*sqrt(mys(nodes(i)%x)**2 + mys(nodes(i)%y)**2 + dble(nodes(i)%axy*conjg(nodes(i)%axy)))
+            localzero = 1E-15*frobnorm(mys(nodes(i)%x), mys(nodes(i)%y), nodes(i)%axy)
             if (abs(mys(nodes(i)%x) + mys(nodes(i)%y)) > localzero) istraceless = .false.
         enddo
         if (istraceless) then

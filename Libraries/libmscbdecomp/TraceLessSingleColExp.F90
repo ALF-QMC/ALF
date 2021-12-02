@@ -390,7 +390,7 @@ subroutine TraceLessSingleColExp_init(this, nodes, nredges, mys, weight)
     integer, intent(in) :: nredges
     real (kind=kind(0.d0)), intent(in) :: weight
     integer :: i
-    real (kind=kind(0.d0)) :: nf, my1, my2, localzero, tmp
+    real (kind=kind(0.d0)) :: my1, my2, localzero, tmp
     ! We need twice the amount of storage for the diagonal for this traceless case.
     allocate(this%x(2*nredges), this%y(nredges), this%s(nredges), this%c(2*nredges))
     allocate(this%c2(2*nredges), this%s2(nredges))
@@ -405,8 +405,8 @@ subroutine TraceLessSingleColExp_init(this, nodes, nredges, mys, weight)
         !calculate Frobenius norm
         my1 = mys(nodes(i)%x)
         my2 = mys(nodes(i)%y)
-        nf = sqrt(my1*my1+my2*my2 + 2*dble(nodes(i)%axy * conjg(nodes(i)%axy)))! dependence on weight cancels in all comps.
-        localzero = 1E-15*nf ! definition of my local scale that defines zero
+        ! dependence on weight cancels in all comparisons.
+        localzero = 1E-15*frobnorm(my1, my2, nodes(i)%axy) ! definition of my local scale that defines zero
         if (abs(my1+my2) > localzero) then
             write(*,*) "[TraceLessSingleColExp_init]: Matrix not traceless. This should not happen here."
             error stop 1

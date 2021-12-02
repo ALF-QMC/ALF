@@ -214,7 +214,7 @@ subroutine GeneralSingleColExp_init(this, nodes, nredges, mys, weight)
     integer, intent(in) :: nredges
     real (kind=kind(0.d0)), intent(in) :: weight
     integer :: i
-    real (kind=kind(0.d0)) :: nf, my1, my2, localzero, md, mav, dweight
+    real (kind=kind(0.d0)) :: my1, my2, localzero, md, mav, dweight
     allocate(this%x(2*nredges), this%y(nredges), this%c(2*nredges), this%s(nredges), this%cinv(2*nredges), this%sinv(nredges) )
     allocate(this%c2(2*nredges), this%c2inv(2*nredges), this%s2(nredges), this%s2inv(nredges))
     this%nrofentries = nredges
@@ -228,8 +228,8 @@ subroutine GeneralSingleColExp_init(this, nodes, nredges, mys, weight)
         !calculate Frobenius norm
         my1 = mys(nodes(i)%x)
         my2 = mys(nodes(i)%y)
-        nf = sqrt(my1*my1+my2*my2 + 2*dble(nodes(i)%axy * conjg(nodes(i)%axy))) ! dependence on weight cancels in all comps
-        localzero = 1E-15*nf ! definition of my local scale that defines zero
+        ! dependence on weight cancels in all comps
+        localzero = 1E-15*frobnorm(my1, my2, nodes(i)%axy) ! definition of my local scale that defines zero
         md = 0.5*(my1 - my2)
         mav = 0.5*(my1 + my2)
         if (abs(md) < localzero) then

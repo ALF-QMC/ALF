@@ -272,4 +272,22 @@ pure subroutine lmultbase(c, s, x, nrofentries, mat)
     endif
     deallocate(xyarray, csh, snh)
 end subroutine
+
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
+!> A function to calculate the Frobenius norm of hermitian 2x2 matrices.
+!
+!> @param[in] d1 first diagonal entry
+!> @param[in] d2 second diagonal entry
+!> @param[in] o off-diagonal entry
+!> @return The value of the frobenius norm
+!--------------------------------------------------------------------
+function frobnorm(d1, d2, o) result(fn)
+    real (kind=kind(0.d0)) :: fn, d1, d2
+    complex(kind=kind(0.D0)), intent(in) :: o
+    fn = sqrt(d1*d1+d2*d2 + 2*dble(o * conjg(o)))
+end function
 end module SingleColExpBase_mod

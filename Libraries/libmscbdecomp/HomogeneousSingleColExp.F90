@@ -183,7 +183,7 @@ subroutine HomogeneousSingleColExp_init(this, nodes, nredges, mys, weight)
     integer, intent(in) :: nredges
     real (kind=kind(0.d0)), intent(in) :: weight
     integer :: i
-    real (kind=kind(0.d0)) :: nf, my1, my2, localzero
+    real (kind=kind(0.d0)) :: my1, my2, localzero
     allocate(this%x(2*nredges), this%y(nredges), this%c(nredges), this%s(nredges))
     allocate(this%c2(nredges), this%s2(nredges))
     allocate(this%c2inv(nredges), this%s2inv(nredges), this%cinv(nredges), this%sinv(nredges))
@@ -198,8 +198,8 @@ subroutine HomogeneousSingleColExp_init(this, nodes, nredges, mys, weight)
         !calculate Frobenius norm
         my1 = mys(nodes(i)%x)
         my2 = mys(nodes(i)%y)
-        nf = sqrt(my1*my1 + my2*my2 + 2*dble(nodes(i)%axy * conjg(nodes(i)%axy)))! dependence on weight drops out in all comps
-        localzero = 1E-15*nf ! definition of my local scale that defines zero
+        ! dependence on weight drops out in all comparisons
+        localzero = 1E-15*frobnorm(my1, my2, nodes(i)%axy) ! definition of my local scale that defines zero
         if (abs(my1-my2) > localzero) then
             write(*,*) "[HomogeneousSingleColExp_init]: Unequal diagonals found. This should not happen here."
             error stop 1
