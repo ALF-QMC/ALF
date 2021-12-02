@@ -34,7 +34,6 @@ module ZeroDiagSingleColExp_mod
 !> multiplications.
 !> This particular class is specialized to the case that in this
 !> particular color all chemical potentials vanish.
-
 !--------------------------------------------------------------------
     type, extends(SingleColExpBase) :: ZeroDiagSingleColExp
         complex (kind=kind(0.d0)), allocatable :: p(:)
@@ -78,7 +77,7 @@ end subroutine ZeroDiagSingleColExp_vecmult
 subroutine ZeroDiagSingleColExp_lmult(this, mat)
     class(ZeroDiagSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout), contiguous :: mat
-    
+
     call lmultbase(this%c, this%s, this%x, this%nrofentries, mat)
 end subroutine ZeroDiagSingleColExp_lmult
 
@@ -88,7 +87,7 @@ subroutine ZeroDiagSingleColExp_lmultinv(this, mat)
     integer :: i, j, k, ndim, loopend
     integer, parameter :: step = 2
     complex(kind=kind(0.D0)) :: t1(step), t2(step)
-    
+
     ndim = size(mat,1)
     loopend = (ndim/step)*step
     do j = 1, loopend, step
@@ -103,7 +102,7 @@ subroutine ZeroDiagSingleColExp_lmultinv(this, mat)
             enddo
         enddo
     enddo
-    
+
     ! remainder loop
     if ((ndim - loopend) .ne. 0) then
         do i = 1, this%nrofentries! for every matrix
