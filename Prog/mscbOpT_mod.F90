@@ -32,9 +32,7 @@
 
 module mscbOpT_mod
     use ContainerElementBase_mod
-    use Operator_mod
-    use MvG_mod
-    use Exponentials_mod
+    use Exponentials_mod, only: EulerExp, FullExp
     implicit none
 
     private
@@ -114,16 +112,56 @@ module mscbOpT_mod
     end type CmplxEulermscbOpT
 
 contains
+    !--------------------------------------------------------------------
+    !> @author
+    !> ALF-project
+    !> @brief
+    !> Transform an Op_T object to a GraphData object and a vector containing
+    !> the matrix diagonal.
+    !
+    !> @param Op_T the operator.
+    !> @param gd the Graphdata object. We take care to create one.
+    !> @param diags the vector of the diagonal. We allocate it.
+    !>
+    !--------------------------------------------------------------------
+    subroutine Op_T_to_graphdata(Op_T, gd, diags)
+        use Operator_mod
+        use MvG_mod
+        use graphdata_mod, only: GraphData, mat2verts
+        implicit none
+
+        Type(Operator), intent(in) :: Op_T
+        type(GraphData), intent(inout) :: gd
+        Real(kind=kind(0.D0)), allocatable, dimension(:), intent(inout) :: diags
+        Complex(kind=kind(0.D0)), allocatable, dimension(:,:) :: tmp
+        integer :: i
+        
+        allocate(tmp(Op_T%N, Op_T%N), diags(Op_T%N))
+        tmp = Op_T%g* Op_T%O
+        
+        ! Let's retrieve the diagonal of the matrix, hence the chemical potential
+        do i = 1, Op_T%N
+            diags(i) = DBLE(tmp(i, i))!If the input matrix is hermitian, this has to be real.
+            tmp(i, i) = 0 ! Set to zero afterwards to disable any checks in the MvG decomposition
+        enddo
+        gd = mat2verts(tmp) ! convert to graphdata structure
+        deallocate(tmp)
+        call MvG_decomp(gd%verts) ! perform the decomposition
+    end subroutine
+    
     subroutine RealmscbOpT_init(this, Op_T)
+        use Operator_mod
+        use graphdata_mod, only: GraphData
+        implicit none
         class(RealmscbOpT) :: this
         Type(Operator), intent(in) :: Op_T
         Complex(kind=kind(0.d0)), allocatable, dimension(:,:) :: cmat, cinvmat
+        real(kind=kind(0.d0)), allocatable, dimension(:) :: mys
         Complex(kind=kind(0.d0)) :: cg
         Integer :: i, j
         type(GraphData) :: gd
         
-        gd = mat2verts(Op_T%O) ! convert to graphdata structure
-        call MvG_decomp(gd%verts) ! perform the decomposition
+        call Op_T_to_graphdata(Op_T, gd, mys)
         
         this%Zero = 1.E-12
         this%Ndim_hop = Op_T%N
@@ -223,39 +261,11 @@ contains
         Endif
     end subroutine
     
-    !--------------------------------------------------------------------
-    !> @author
-    !> ALF-project
-    !> @brief
-    !> Transform an Op_T object to a GraphData object and a vector containing
-    !> the matrix diagonal.
-    !
-    !> @param Op_T the operator.
-    !> @param gd the Graphdata object. We take care to create one.
-    !> @param diags the vector of the diagonal. We allocate it.
-    !>
-    !--------------------------------------------------------------------
-    subroutine Op_T_to_graphdata(Op_T, gd, diags)
-        Type(Operator), intent(in) :: Op_T
-        type(GraphData), intent(inout) :: gd
-        Real(kind=kind(0.D0)), allocatable, dimension(:), intent(inout) :: diags
-        Complex(kind=kind(0.D0)), allocatable, dimension(:,:) :: tmp
-        integer :: i
-        
-        allocate(tmp(Op_T%N, Op_T%N), diags(Op_T%N))
-        tmp = Op_T%g* Op_T%O
-        
-        ! Let's retrieve the diagonal of the matrix, hence the chemical potential
-        do i = 1, Op_T%N
-            diags(i) = DBLE(tmp(i, i))!If the input matrix is hermitian, this has to be real.
-            tmp(i, i) = 0 ! Set to zero afterwards to disable any checks in the MvG decomposition
-        enddo
-        gd = mat2verts(tmp) ! convert to graphdata structure
-        deallocate(tmp)
-        call MvG_decomp(gd%verts) ! perform the decomposition
-    end subroutine
-    
     subroutine CmplxmscbOpT_init(this, Op_T, method)
+        use Operator_mod
+        use graphdata_mod
+        implicit none
+        
         class(CmplxmscbOpT) :: this
         Type(Operator), intent(in) :: Op_T
         integer, intent(in) :: method
@@ -370,6 +380,10 @@ contains
     end subroutine
     
     subroutine CmplxEulermscbOpT_init(this, Op_T)
+        use Operator_mod
+        use graphdata_mod
+        implicit none
+
         class(CmplxEulermscbOpT) :: this
         Type(Operator), intent(in) :: Op_T
         Integer :: i, k
