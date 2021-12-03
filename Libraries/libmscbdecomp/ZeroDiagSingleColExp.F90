@@ -148,36 +148,20 @@ subroutine ZeroDiagSingleColExp_adjoint_over_two(this, mat)
     
     ! lmult part
     ndim = size(mat,1)
-    loopend = (ndim/step)*step
-    do j = 1, loopend, step
-        do i = 1, this%nrofentries! for every matrix
-            mys = this%s2(i)
-            myc = this%c2(i)
-            do k = 1,step
-                t1(k) = mat(this%x(2*i-1), j+k-1)
-                t2(k) = mat(this%x(2*i), j+k-1)
-            enddo
-            do k = 1, step
-                mat(this%x(2*i-1), j+k-1) = myc * t1(k) + mys * t2(k)
-                mat(this%x(2*i), j+k-1) = myc * t2(k) + conjg(mys) * t1(k)
-            enddo
-        enddo
-    enddo
-
-    ! remainder loop
-    if ((ndim - loopend) .ne. 0) then
-        do i = 1, this%nrofentries! for every matrix
-            t1(1) = mat(this%x(2*i-1), ndim)
-            t2(1) = mat(this%x(2*i), ndim)
-            mat(this%x(2*i-1), ndim) = this%c2(i) * t1(1) + this%s2(i) * t2(1)
-            mat(this%x(2*i), ndim) = this%c2(i) * t2(1) + conjg(this%s2(i)) * t1(1)
-        enddo
-    endif
-
-    ! rmultinv part
     do i = 1, this%nrofentries! for every matrix
-            myc = this%c2(i)
-            mys = this%s2(i)
+        ! get data
+        mys = this%s2(i)
+        myc = this%c2(i)
+        do j = 1, ndim
+                t1(1) = mat(this%x(2*i-1), j)
+                t2(1) = mat(this%x(2*i), j)
+                mat(this%x(2*i-1), j) = myc * t1(1) + mys * t2(1)
+                mat(this%x(2*i), j) = myc * t2(1) + conjg(mys) * t1(1)
+        enddo
+!     enddo
+! 
+!     ! rmultinv part
+!     do i = 1, this%nrofentries! for every matrix
         do j = 1, ndim
             t1scal = mat(j, this%x(2*i-1))
             t2scal = mat(j, this%x(2*i))
