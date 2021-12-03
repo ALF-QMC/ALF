@@ -200,7 +200,7 @@ end subroutine colorvertex_destruct
 !
 !> @param[in] this The vertex that we consider
 !> @param[in] vert the index of the neighbour
-!> @param[in] col the value of the color
+!> @return col the value of the color
 !--------------------------------------------------------------------
 function colorvertex_get_edge_color(this, vert) result(col)
     class(ColorVertex) :: this
