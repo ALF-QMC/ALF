@@ -188,12 +188,68 @@ end subroutine
 !> Florian Goth
 !
 !> @brief 
+!> A function that transforms the graphdata object to an array of nodes.
+!
+!> @param[in] gd A fully prepared graphdata object.
+!> @result An allocated array of nodes.
+!--------------------------------------------------------------------
+function gd_to_nodes(gd) result(nodes)
+    use node_mod
+    implicit none
+    type(GraphData), intent(in) :: gd
+    type(node), allocatable, dimension(:) :: nodes
+    
+    integer :: k, elempos, i, l, mynbr, nbr1
+    logical, allocatable, dimension(:) :: usedcols
+
+    allocate(nodes(gd%nredges), usedcols(gd%usedcolors))
+! set up data in an edges based layout
+    k = 0
+    elempos = 0
+    do i = 1, gd%ndim-1
+        ! check validity of the coloring locally
+        usedcols = .false.
+        do l = 1, gd%verts(i)%degree
+            if(gd%verts(i)%cols(l) == 0) then
+                write (*,*) "forgotten edge found!"
+                STOP
+            endif
+            if (usedcols(gd%verts(i)%cols(l)) .eqv. .true. ) then
+                write (*,*) "invalid coloring!!"
+                STOP
+            else
+                usedcols(gd%verts(i)%cols(l)) = .true.
+            endif
+        enddo
+        do l = 1, gd%usedcolors
+            mynbr = gd%verts(i)%nbrbycol(l)
+            if (mynbr > 0) then ! only do sth. if the color is associated with an edge
+                nbr1 = gd%verts(i)%nbrs(mynbr)
+                if (nbr1 > i) then ! nbr1 could be zero if there is no such edge
+                    k = k+1
+                    nodes(k)%x = i
+                    nodes(k)%y = nbr1
+                    nodes(k)%axy = gd%elems(elempos + mynbr)
+                    nodes(k)%col = l
+                endif
+            endif
+        enddo
+        elempos = elempos + gd%verts(i)%degree
+    enddo
+    deallocate(usedcols)
+end function
+
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
 !> This function takes a graphdata object as e.g. determined with the
 !> help of the MvG_decomp function and creates a EulerExp(=product 
 !> of checkerboard exponentials) object from it.
 !
 !> @param gd
-!> @result fe
+!> @result A EulerExp object that can be utilized for matrix multiplications
 !--------------------------------------------------------------------
 function createEulerExponentialfromGraphData(gd, diags) result(ee)
     use node_mod
@@ -223,44 +279,25 @@ function createEulerExponentialfromGraphData(gd, diags) result(ee)
     endif
 
     ! set up data in an edges based layout
-    k = 0
-    elempos = 0
-    allocate( nodes(gd%nredges), usedcols(gd%usedcolors))
-    do i = 1, gd%ndim-1
-        ! check validity of the coloring locally
-        usedcols = .false.
-        do l = 1, gd%verts(i)%degree
-            if(gd%verts(i)%cols(l) == 0) then
-                write (*,*) "forgotten edge found!"
-                STOP
-            endif
-            if (usedcols(gd%verts(i)%cols(l)) .eqv. .true. ) then
-                write (*,*) "invalid coloring!!"
-                STOP
-            else
-                usedcols(gd%verts(i)%cols(l)) = .true.
-            endif
-        enddo
-        do l = 1, gd%usedcolors
-            mynbr = gd%verts(i)%nbrbycol(l)
-            if (mynbr > 0) then ! only do sth. if the color is associated with an edge
-                nbr1 = gd%verts(i)%nbrs(mynbr)
-                if (nbr1 > i) then ! nbr1 could be zero if there is no such edge
-                    k = k+1
-                    nodes(k)%x = i
-                    nodes(k)%y = nbr1
-                    nodes(k)%axy = gd%elems(elempos + mynbr)
-                    nodes(k)%col = l
-                endif
-            endif
-        enddo
-        elempos = elempos + gd%verts(i)%degree
-    enddo
+    nodes = gd_to_nodes(gd)
     weight = 1.0
     call ee%init(nodes, gd%usedcolors, diags, weight)
-    deallocate(nodes, usedcols)
+    deallocate(nodes)
 end function
 
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
+!> This function takes a graphdata object as e.g. determined with the
+!> help of the MvG_decomp function and creates a FullExp(=product 
+!> of checkerboard exponentials) object from it.
+!
+!> @param gd
+!> @param method the method that determines the approximation type.
+!> @result A FullExp object that can be utilized for matrix multiplications.
+!--------------------------------------------------------------------
 function createFullExponentialfromGraphData(gd, diags, method) result(fe)
     use node_mod
     implicit none
@@ -278,41 +315,9 @@ function createFullExponentialfromGraphData(gd, diags, method) result(fe)
     endif
 
     ! set up data in an edges based layout
-    k = 0
-    elempos = 0
-    allocate( nodes(gd%nredges), usedcols(gd%usedcolors))
-    do i = 1, gd%ndim-1
-        ! check validity of the coloring locally
-        usedcols = .false.
-        do l = 1, gd%verts(i)%degree
-            if(gd%verts(i)%cols(l) == 0) then
-                write (*,*) "forgotten edge found!"
-                STOP
-            endif
-            if (usedcols(gd%verts(i)%cols(l)) .eqv. .true. ) then
-                write (*,*) "invalid coloring!!"
-                STOP
-            else
-                usedcols(gd%verts(i)%cols(l)) = .true.
-            endif
-        enddo
-        do l = 1, gd%usedcolors
-            mynbr = gd%verts(i)%nbrbycol(l)
-            if (mynbr > 0) then ! only do sth. if the color is associated with an edge
-                nbr1 = gd%verts(i)%nbrs(mynbr)
-                if (nbr1 > i) then ! nbr1 could be zero if there is no such edge
-                    k = k+1
-                    nodes(k)%x = i
-                    nodes(k)%y = nbr1
-                    nodes(k)%axy = gd%elems(elempos + mynbr)
-                    nodes(k)%col = l
-                endif
-            endif
-        enddo
-        elempos = elempos + gd%verts(i)%degree
-    enddo
+    nodes = gd_to_nodes(gd)
     weight = 1.0
     call fe%init(nodes, gd%usedcolors, diags, method, weight)
-    deallocate(nodes, usedcols)
+    deallocate(nodes)
 end function
 end module graphdata_mod
