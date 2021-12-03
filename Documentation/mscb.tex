@@ -12,7 +12,34 @@
 ALF has a module for the automatic decomposition of arbitrary graphs/ hermitian matrices into 
 an almost minimal number of so-called strictly sparse matrices. We call a hermitian matrix $A$
 strictly sparse if it has the property
-\begin{equation*}
-A_{i,j} =0 \lrarrow \left( e^A \right)_{i,j} = 0 \forall i,j
-\end{equation*}
-
+\begin{equation}
+A_{i,j} = 0 \lrarrow \left( e^A \right)_{i,j} = 0 \forall i,j
+\label{eq:strictsparse}
+\end{equation}
+To exploit that property for a mtrix, \eg the hopping matrix $T$
+we need a decomposition of $T$ in the form
+\begin{equation}
+T=\sum_i^N T^i
+\label{eq:sep}
+\end{equation}
+with each $T^i$ having the property \eqref{strictsparse}, because then by an application
+of the Lie-Trotter formula a first order approximation of $e^{\Delta \tau T}$ can be constructed.
+Of course the question remains how to find a decomposition \eqref{eq:sep}.
+For some lattices you have seen an example of this type of decomposition in Figure \ref{fig_predefined_lattices}.
+As you might notice from the figure, all edges that are attached to a vertex have a different color.
+And indeed, as pointed out by \cite{Lee2013} a color decomposition will give a decomposition of $T$
+with the required properties. More generally the problem of coloring the edges of a graph
+is known as the graph-coloring problem and the number of colors required for a graph $G$ is known as 
+its chromaticity index $\chi(G)$. An important structural result is Vizing's theorem
+which states that a graph $G$ of degree $g$ (meaning the maximum of the number of edges over $G$) the following holds
+\begin{equation}
+g \leq \chi(G) \leq g+1
+\end{equation}
+thereby enabling a classification of graphs into two classes.
+Determining the chromaticity index for an arbitrary $G$ is an NP-hard problem.
+ALF does not try to solve this challenge but tries to find a decomposition with the help of the
+Misra-van-Gries graph coloring algorithm.
+This algorithm allows itself the freedom to utilize $g+1$ colors, from which it can derive the important
+knowledge that at every vertex it encounters during the process it has always one free color.
+In ALF we allow to utilize higher-order checkerboard (as e.g. demonstrated in the appendix of \cite{goth2020})
+via a config switch.
