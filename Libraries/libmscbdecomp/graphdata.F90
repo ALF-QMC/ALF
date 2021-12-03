@@ -163,9 +163,18 @@ function mat2verts(A) result(gd)
     end associate
 end function
 
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
+!> A function to fill the color information of a graph.
+!
+!> @param[inout] gd A graphdata object.
+!--------------------------------------------------------------------
 subroutine determine_used_colors_of_graph(gd)
     implicit none
-    type(GraphData) :: gd
+    type(GraphData), intent(inout) :: gd
     integer :: i, k
 
     gd%usedcolors = 0
@@ -244,6 +253,86 @@ end function
 !> Florian Goth
 !
 !> @brief 
+!> A function that findsfrom an array of colors 
+!> The color that has the most edges associated to it,
+!> according to the data in edges_per_color.
+!
+!> @param[in] edges_per_color An array containing for each color the number of edges
+!> @param[in] cols An array of colors from which we rty to find the biggest
+!> @result The color in col that has the most edges associated with it.
+!--------------------------------------------------------------------
+function find_biggest_color(edges_per_color, cols) result(ret)
+    integer, allocatable, dimension(:), intent(in) :: edges_per_color, cols
+    integer :: ret
+    integer :: i, start
+    
+    start = 1
+    do while (cols(start) == 0)
+        start = start + 1
+    enddo
+    
+    ret = cols(start)
+    do i = start+1, size(cols)
+        if (cols(i) > 0) then
+           if (edges_per_color(cols(i)) > edges_per_color(ret)) ret = cols(i)
+        endif
+    enddo
+end function
+
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
+!> This function encodes the strategy that is ued to distribute the
+!> main-diagonal ov the various colors.
+!
+!> Currently we try to put the diagonal into the color which hosts the most
+!> edges. If the edges of touch the entire diagonal then only a single color
+!> with a GeneralExp, or HomogeneousExp is generated. The rest will be the fast
+!> ZeroDiag type exponentials.
+!
+!> @param gd  The matrix in the graphdata representation.
+!> @param nodes The matrix in an array of nodes represntation.
+!> @param diag The diagonal of the matrix
+!> @result A nrofcolors x ndim array where for each color a diagonal is present according to the strategy.
+!--------------------------------------------------------------------
+function distribute_diagonal_over_colors(gd, nodes, diag) result(dcol)
+    use node_mod
+    implicit none
+    type(GraphData), intent(in) :: gd
+    type(node), allocatable, dimension(:), intent(in) :: nodes
+    real(kind=kind(0.D0)), intent(in), allocatable, dimension(:) :: diag
+    real(kind=kind(0.D0)), allocatable, dimension(:, :) :: dcol ! color separated diagonal
+    
+    integer :: i, tmpcol
+    integer, allocatable, dimension(:) :: edgespercol
+
+
+    allocate(edgespercol(gd%usedcolors), dcol(gd%usedcolors, gd%ndim) )
+    edgespercol = 0
+    do i = 1, size(nodes)
+        edgespercol(nodes(i)%col) = edgespercol(nodes(i)%col) + 1
+    enddo
+    
+    
+    dcol = 0
+    do i = 1, gd%ndim ! for every chemical potential on the diagonal, do
+        ! Data is actually present.
+        ! Scale-wise decisions are taken when setting up the *expbase classes
+        if(abs(diag(i)) > 0.D0 ) then
+            tmpcol = find_biggest_color(edgespercol, gd%verts(i)%cols)
+            dcol(tmpcol, i) = diag(i) ! move diagonal to color
+        endif
+    enddo
+    deallocate(edgespercol)
+end function
+
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
 !> This function takes a graphdata object as e.g. determined with the
 !> help of the MvG_decomp function and creates a EulerExp(=product 
 !> of checkerboard exponentials) object from it.
@@ -258,31 +347,22 @@ function createEulerExponentialfromGraphData(gd, diags) result(ee)
     real(kind=kind(0.D0)), intent(in), allocatable, dimension(:) :: diags
     type(EulerExp) :: ee
     real(kind=kind(0.D0)) :: weight
-    integer :: k, elempos, mynbr, nbr1, l, i
-    logical, allocatable, dimension(:) :: usedcols
+    real(kind=kind(0.D0)), allocatable, dimension(:, :) :: dcol ! color separated diagonal
     type(node), allocatable, dimension(:) :: nodes
     
     if ((gd%usedcolors == 0) .or. (gd%nredges == 0)) then ! check that those are available
-        gd%usedcolors = 0
-        gd%nredges = 0
-        do i = 1, gd%ndim
-            gd%deltag = max(gd%deltag, gd%verts(i)%degree)
-            do k = 1, gd%verts(i)%degree
-                if (gd%verts(i)%nbrs(k) > i) gd%nredges = gd%nredges + 1
-                if (gd%verts(i)%nbrs(k) > gd%ndim) then
-                    write(*,*) "invalid nbr!!!"
-                    STOP
-                endif
-                gd%usedcolors = max(gd%usedcolors, gd%verts(i)%cols(k))
-            enddo
-        enddo
+        call determine_used_colors_of_graph(gd)
     endif
 
     ! set up data in an edges based layout
     nodes = gd_to_nodes(gd)
+    
+    ! distribute the diagonal over the colors
+    dcol = distribute_diagonal_over_colors(gd, nodes, diags)
+
     weight = 1.0
-    call ee%init(nodes, gd%usedcolors, diags, weight)
-    deallocate(nodes)
+    call ee%init(nodes, gd%usedcolors, dcol, weight)
+    deallocate(nodes, dcol)
 end function
 
 !--------------------------------------------------------------------
@@ -303,11 +383,10 @@ function createFullExponentialfromGraphData(gd, diags, method) result(fe)
     implicit none
     type(GraphData) :: gd
     real(kind=kind(0.D0)), intent(in), allocatable, dimension(:) :: diags
+    real(kind=kind(0.D0)), allocatable, dimension(:,:) :: dcol
     integer, intent(in) :: method
     type(FullExp) :: fe
     real(kind=kind(0.D0)) :: weight
-    integer :: k, elempos, mynbr, nbr1, l, i
-    logical, allocatable, dimension(:) :: usedcols
     type(node), allocatable, dimension(:) :: nodes
 
     if ((gd%usedcolors == 0) .or. (gd%nredges == 0)) then ! check that those are available
@@ -316,8 +395,12 @@ function createFullExponentialfromGraphData(gd, diags, method) result(fe)
 
     ! set up data in an edges based layout
     nodes = gd_to_nodes(gd)
+    
+    ! distribute the diagonal over the colors
+    dcol = distribute_diagonal_over_colors(gd, nodes, diags)
+    
     weight = 1.0
-    call fe%init(nodes, gd%usedcolors, diags, method, weight)
-    deallocate(nodes)
+    call fe%init(nodes, gd%usedcolors, dcol, method, weight)
+    deallocate(nodes, dcol)
 end function
 end module graphdata_mod

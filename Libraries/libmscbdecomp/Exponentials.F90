@@ -100,11 +100,11 @@ module Exponentials_mod
 
 contains
 
-subroutine FullExp_init(this, nodes, usedcolors, mys, method, weight)
+subroutine FullExp_init(this, nodes, usedcolors, dcols, method, weight)
     class(FullExp) :: this
     type(node), dimension(:), intent(in) :: nodes
     integer, intent(in) :: usedcolors, method
-    real(kind=kind(0.D0)), intent(in), allocatable, dimension(:) :: mys
+    real(kind=kind(0.D0)), intent(in), allocatable, dimension(:, :) :: dcols
     real (kind=kind(0.d0)), intent(in) :: weight
     real (kind=kind(0.d0)) :: tmp
 
@@ -117,61 +117,61 @@ subroutine FullExp_init(this, nodes, usedcolors, mys, method, weight)
             this%evals = 2
             allocate(this%stages(this%evals))
             tmp = 1.D0/2.D0*weight
-            call this%stages(1)%init(nodes, usedcolors, mys, tmp)
-            call this%stages(2)%init(nodes, usedcolors, mys, tmp)
+            call this%stages(1)%init(nodes, usedcolors, dcols, tmp)
+            call this%stages(2)%init(nodes, usedcolors, dcols, tmp)
         case (3)! SE_2 2, Blanes
             this%evals = 4
             allocate(this%stages(this%evals))
             tmp = 0.21178*weight
-            call this%stages(1)%init(nodes, usedcolors, mys, tmp)
+            call this%stages(1)%init(nodes, usedcolors, dcols, tmp)
             tmp = 0.28822*weight
-            call this%stages(2)%init(nodes, usedcolors, mys, tmp)
+            call this%stages(2)%init(nodes, usedcolors, dcols, tmp)
             tmp = 0.28822*weight
-            call this%stages(3)%init(nodes, usedcolors, mys, tmp)
+            call this%stages(3)%init(nodes, usedcolors, dcols, tmp)
             tmp = 0.21178*weight
-            call this%stages(4)%init(nodes, usedcolors, mys, tmp)
+            call this%stages(4)%init(nodes, usedcolors, dcols, tmp)
         case (4)! S_3 4, Yoshida, Neri, Suzuki, 1990
             this%evals = 6
             allocate(this%stages(this%evals))
             tmp =  0.6756035959798*weight
-            call this%stages(1)%init(nodes, usedcolors, mys, tmp)
+            call this%stages(1)%init(nodes, usedcolors, dcols, tmp)
             tmp =  0.6756035959798*weight
-            call this%stages(2)%init(nodes, usedcolors, mys, tmp)
+            call this%stages(2)%init(nodes, usedcolors, dcols, tmp)
             tmp = -0.8512071919597*weight
-            call this%stages(3)%init(nodes, usedcolors, mys, tmp)
+            call this%stages(3)%init(nodes, usedcolors, dcols, tmp)
             tmp = -0.8512071919597*weight
-            call this%stages(4)%init(nodes, usedcolors, mys, tmp)
+            call this%stages(4)%init(nodes, usedcolors, dcols, tmp)
             tmp =  0.6756035959798*weight
-            call this%stages(5)%init(nodes, usedcolors, mys, tmp)
+            call this%stages(5)%init(nodes, usedcolors, dcols, tmp)
             tmp =  0.6756035959798*weight
-            call this%stages(6)%init(nodes, usedcolors, mys, tmp)
+            call this%stages(6)%init(nodes, usedcolors, dcols, tmp)
         case (5)! SE_6 4, Blanes, Blanes and Moan 2002
             this%evals = 12
             allocate(this%stages(this%evals))
             tmp = 0.079203696431195694249716154899943D0 *weight
-            call this%stages(1)%init(nodes, usedcolors, mys, tmp)
+            call this%stages(1)%init(nodes, usedcolors, dcols, tmp)
             tmp = 0.13031141018216631233261892930386D0 *weight
-            call this%stages(2)%init(nodes, usedcolors, mys, tmp)
+            call this%stages(2)%init(nodes, usedcolors, dcols, tmp)
             tmp = 0.22286149586760771457161212083520D0 *weight
-            call this%stages(3)%init(nodes, usedcolors, mys, tmp)
+            call this%stages(3)%init(nodes, usedcolors, dcols, tmp)
             tmp = -0.36671326904742572450057735977680D0 *weight
-            call this%stages(4)%init(nodes, usedcolors, mys, tmp)
+            call this%stages(4)%init(nodes, usedcolors, dcols, tmp)
             tmp = 0.32464818868970622689484883949262D0 *weight
-            call this%stages(5)%init(nodes, usedcolors, mys, tmp)
+            call this%stages(5)%init(nodes, usedcolors, dcols, tmp)
             tmp = 0.1096884778767497764517813152452D0 *weight
-            call this%stages(6)%init(nodes, usedcolors, mys, tmp)
+            call this%stages(6)%init(nodes, usedcolors, dcols, tmp)
             tmp = 0.1096884778767497764517813152452D0 *weight
-            call this%stages(7)%init(nodes, usedcolors, mys, tmp)
+            call this%stages(7)%init(nodes, usedcolors, dcols, tmp)
             tmp = 0.3246481886897062268948488394926D0 *weight
-            call this%stages(8)%init(nodes, usedcolors, mys, tmp)
+            call this%stages(8)%init(nodes, usedcolors, dcols, tmp)
             tmp = -0.3667132690474257245005773597768D0 *weight
-            call this%stages(9)%init(nodes, usedcolors, mys, tmp)
+            call this%stages(9)%init(nodes, usedcolors, dcols, tmp)
             tmp = 0.2228614958676077145716121208352D0 *weight
-            call this%stages(10)%init(nodes, usedcolors, mys, tmp)
+            call this%stages(10)%init(nodes, usedcolors, dcols, tmp)
             tmp = 0.1303114101821663123326189293039D0 *weight
-            call this%stages(11)%init(nodes, usedcolors, mys, tmp)
+            call this%stages(11)%init(nodes, usedcolors, dcols, tmp)
             tmp = 0.0792036964311956942497161548999D0 *weight
-            call this%stages(12)%init(nodes, usedcolors, mys, tmp)
+            call this%stages(12)%init(nodes, usedcolors, dcols, tmp)
     end select
 end subroutine FullExp_init
 
@@ -453,7 +453,7 @@ end function
 !> @return 0: ZeroDiag, 1:HomogeneousSingleColExp, 2:Traceless: 3: General
 !--------------------------------------------------------------------
 function determinediagtype(nodes, nrnodes, mys) result(diagtype)
-    real(kind=kind(0.D0)), intent(in), allocatable, dimension(:) :: mys
+    real(kind=kind(0.D0)), intent(in), dimension(:) :: mys
     type(node), dimension(:), intent(in) :: nodes
     integer, intent(in) :: nrnodes
     integer :: diagtype
@@ -509,25 +509,24 @@ end function
 !> @param[in] nodes The array of nodes
 !> @param[in] usedcolors the number of used colors/terms in 
 !>                       the decomposition.
-!> @param[in] mys a vector containing the chemical potentials.
+!> @param[in] dcols a usedcolors x ndim array that contains for each color the diagonal entries to be used.
 !> @param[in] weight a prefactor of the exponent.
 !--------------------------------------------------------------------
-subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
+subroutine EulerExp_init(this, nodes, usedcolors, dcols, weight)
     class(EulerExp) :: this
     type(node), dimension(:), intent(in) :: nodes
     integer, intent(in) :: usedcolors
-    real(kind=kind(0.D0)), intent(in), allocatable, dimension(:) :: mys
+    real(kind=kind(0.D0)), intent(in), allocatable, dimension(:, :) :: dcols
     real(kind=kind(0.d0)), intent(in) :: weight
-    real(kind=kind(0.D0)), allocatable, dimension(:) :: mys_start, myloc
-    integer, dimension(:), allocatable :: nredges, edgectr
+    integer, dimension(:), allocatable :: nredges ! An array for determining how many edges are there for each color
+    integer, dimension(:), allocatable :: edgectr ! A helper array for counting.
     integer :: i, maxedges, k
-!     character(64) :: filename
+! !     character(64) :: filename
     type(node), dimension(:, :), allocatable :: colsepnodes! An array of nodes separated by color
     class(ZeroDiagSingleColExp), pointer :: zerodiagexp => null()
     class(HomogeneousSingleColExp), pointer :: homexp => null()
     class(TraceLessSingleColExp), pointer :: tracelessexp => null()
     class(GeneralSingleColExp), pointer :: generalexp => null()
-    real(kind=kind(0.D0)) :: my1, my2, myd, myav
 #ifndef NDEBUG
     write(*,*) "Setting up Euler Checkerboard exponential."
 #endif
@@ -538,6 +537,7 @@ subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
     do i = 1, size(nodes)
         nredges(nodes(i)%col) = nredges(nodes(i)%col) + 1
     enddo
+
     maxedges = maxval(nredges)
     edgectr = 1
     allocate(colsepnodes(usedcolors, maxedges))
@@ -561,32 +561,11 @@ subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
     ! the structure, that the color decomposition creates strictly sparse matrices.
 
 
-    allocate(this%singleexps(usedcolors), mys_start(size(mys)), myloc(size(mys)))
-    mys_start = mys
+    allocate(this%singleexps(usedcolors))
     do i = 1, usedcolors
-        ! But first we have to distribute the chemical potential entries across the colors
-        !myloc = mys_start
-        if (i < usedcolors) then
-            myloc = 0
-            do k = 1, nredges(i) - 1
-                my1 = mys_start(colsepnodes(i, k)%x)
-                my2 = mys_start(colsepnodes(i, k)%y)
-                myav = (my1+my2)/2
-                myd  = (my1-my2)/2
-
-                myloc(colsepnodes(i, k)%x) = myd
-                myloc(colsepnodes(i, k)%y) = -myd
-            
-                mys_start(colsepnodes(i, k)%x) = myav
-                mys_start(colsepnodes(i, k)%y) = myav
-            enddo
-        else
-            !in the last loop mys_start contains all the remaining entries
-            myloc = mys_start
-        endif
 
         ! In each color we have to determine which optimizations are possible
-        select case(determinediagtype( colsepnodes(i, :), nredges(i), myloc ))
+        select case(determinediagtype( colsepnodes(i, :), nredges(i), dcols(i,:) ))
         case(0)
             allocate(zerodiagexp)
             this%singleexps(i)%dat => zerodiagexp
@@ -601,9 +580,9 @@ subroutine EulerExp_init(this, nodes, usedcolors, mys, weight)
             this%singleexps(i)%dat => generalexp
         end select
         
-        call this%singleexps(i)%dat%init(colsepnodes(i, :), nredges(i), myloc, weight)
+        call this%singleexps(i)%dat%init(colsepnodes(i, :), nredges(i), dcols(i, :), weight)
     enddo
-    deallocate(nredges, edgectr, colsepnodes, myloc, mys_start)
+    deallocate(nredges, edgectr, colsepnodes)
 end subroutine EulerExp_init
 
 end module Exponentials_mod
