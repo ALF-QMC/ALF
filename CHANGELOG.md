@@ -1,5 +1,10 @@
 # Log of backward compatibility changes and critical bugs
 
+## 2021-MM-DD Automatic Checkerboard decomposition with the help of libmscbdecomp
+
+Author : F. Goth <br>
+Merge request !175
+
 ## 2021-11-21 Implementing HDF5
 
 Author : J.Schwab <br>
