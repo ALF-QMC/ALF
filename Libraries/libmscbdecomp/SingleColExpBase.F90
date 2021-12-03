@@ -21,37 +21,52 @@
 ! DEALINGS IN THE SOFTWARE.
 
 
-! We require a common base class to distinguish for optimization purposes
-!between matrices that have no chemical potential, that have a uniform chemical potential and those that have arbitrary.
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @file SingleColExpBase.F90
+!> @brief This file contains the interface class for all checkerboard objects.
+!--------------------------------------------------------------------
 module SingleColExpBase_mod
     implicit none
-
-    ! Base for defining the interface
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @class SingleColExpBase
+!> @brief This defines the interface for all four checkerboard types.
+!>
+!> We require a common base class to distinguish for optimization purposes
+!> between matrices where the diagonal is zero, 
+!> those that have the same value on the entire diagonal(i.e. homogeneous)
+!> and those that have an arbitrary diagonal.
+!--------------------------------------------------------------------
     type, abstract :: SingleColExpBase
-    integer :: nrofentries
-    integer, allocatable :: x(:), y(:) ! the y array is still around but often(?) unused
-    complex (kind=kind(0.d0)), allocatable :: s(:), s2(:)
-    real (kind=kind(0.d0)), allocatable :: c(:), c2(:)
+        integer :: nrofentries
+        integer, allocatable :: x(:), y(:) ! the y array is still around but often(?) unused
+        complex (kind=kind(0.d0)), allocatable :: s(:), s2(:)
+        real (kind=kind(0.d0)), allocatable :: c(:), c2(:)
     contains
-    procedure(vecmultinterface), deferred :: vecmult
-    procedure(rmultinterface), deferred :: rmult
-    procedure(lmultinterface), deferred :: lmult
-    procedure(rmultinvinterface), deferred :: rmultinv
-    procedure(lmultinvinterface), deferred :: lmultinv
-    procedure(adjointactioninterface), deferred :: adjointaction
-    procedure(adjointactionovertwointerface), deferred :: adjoint_over_two
-    procedure(initinterface), deferred :: init
-    procedure(deallocinterface), deferred :: dealloc
+        procedure(vecmultinterface), deferred :: vecmult
+        procedure(rmultinterface), deferred :: rmult
+        procedure(lmultinterface), deferred :: lmult
+        procedure(rmultinvinterface), deferred :: rmultinv
+        procedure(lmultinvinterface), deferred :: lmultinv
+        procedure(adjointactioninterface), deferred :: adjointaction
+        procedure(adjointactionovertwointerface), deferred :: adjoint_over_two
+        procedure(initinterface), deferred :: init
+        procedure(deallocinterface), deferred :: dealloc
     end type SingleColExpBase
 
     abstract interface
     
     !--------------------------------------------------------------------
     !> @brief 
-    !> Multiplies this with arg from the right.
+    !> Multiplies this with mat from the right.
     !
     !> @param[in] this
-    !> @param[inout] mat
+    !> @param[inout] mat a complex matrix.
     !--------------------------------------------------------------------
       subroutine rmultinterface(this, mat)
          import SingleColExpBase
@@ -61,7 +76,7 @@ module SingleColExpBase_mod
 
     !--------------------------------------------------------------------
     !> @brief 
-    !> Multiplies this with arg from the left.
+    !> Multiplies this with mat from the left.
     !
     !> @param[in] this
     !> @param[inout] mat
@@ -87,7 +102,7 @@ module SingleColExpBase_mod
 
     !--------------------------------------------------------------------
     !> @brief 
-    !> multiplies this^-1 with arg from the right.
+    !> multiplies this^-1 with mat from the right.
     !
     !> @param[in] this
     !--------------------------------------------------------------------
@@ -99,7 +114,7 @@ module SingleColExpBase_mod
 
     !--------------------------------------------------------------------
     !> @brief 
-    !> multiplies this^-1 with arg from the left.
+    !> multiplies this^-1 with mat from the left.
     !
     !> @param[in] this
     !--------------------------------------------------------------------
@@ -128,10 +143,10 @@ module SingleColExpBase_mod
         integer, intent(in) :: nredges
         real(kind=kind(0.D0)), intent(in) :: weight
       end subroutine
-      
+
     !--------------------------------------------------------------------
     !> @brief 
-    !> Free the used memory
+    !> Free the used memory.
     !
     !> @param[in] this
     !--------------------------------------------------------------------
@@ -139,7 +154,7 @@ module SingleColExpBase_mod
          import SingleColExpBase
          class(SingleColExpBase), intent(inout) :: this
       end subroutine
-      
+
     !--------------------------------------------------------------------
     !> @brief 
     !> Perform the similarity transform e^{-T} arg e^{T}

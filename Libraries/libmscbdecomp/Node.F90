@@ -27,8 +27,8 @@ module Node_mod
 !> @author
 !> Florian Goth
 !
-!> @brief 
-!> This type is used to store Information about he color and the value
+!> @brief
+!> This type is used to store information about the color and the value
 !> in the adjacency matrix of a graph.
 !> It is used in multiple places, hence it now has its own module.
 !--------------------------------------------------------------------
