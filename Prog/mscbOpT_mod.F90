@@ -36,32 +36,7 @@ module mscbOpT_mod
     implicit none
 
     private
-    public :: RealmscbOpT, CmplxmscbOpT, CmplxEulermscbOpT
-
-    !--------------------------------------------------------------------
-    !> @author
-    !> ALF-project
-    !> @brief
-    !> Encapsulates operations for real exponentiated OpTs.
-    !>
-    !--------------------------------------------------------------------
-    type, extends(ContainerElementBase) :: RealmscbOpT
-        Real(kind=kind(0.d0)), allocatable, dimension(:,:) :: mat, invmat, mat_1D2, invmat_1D2 !>We store the matrix in the class
-        Real(kind=kind(0.d0)) :: g, Zero
-        integer, allocatable :: P(:)
-        type(FullExp) :: fe
-        Integer :: m, n, Ndim_hop
-
-    contains
-        procedure :: init => RealmscbOpT_init ! initialize and allocate matrices
-        procedure :: dealloc => RealmscbOpT_dealloc ! dealloc matrices
-        procedure :: rmult => RealmscbOpT_rmult ! right multiplication with Op_T
-        procedure :: lmult => RealmscbOpT_lmult
-        procedure :: rmultinv => RealmscbOpT_rmultinv ! right multiplication with Op_T inverse
-        procedure :: lmultinv => RealmscbOpT_lmultinv
-        procedure :: adjointaction => RealmscbOpT_adjointaction
-        procedure :: dump => RealmscbOpT_dump ! dump matrices for debugging to screen
-    end type RealmscbOpT
+    public :: CmplxmscbOpT, CmplxEulermscbOpT
 
     !--------------------------------------------------------------------
     !> @author
@@ -80,9 +55,9 @@ module mscbOpT_mod
         procedure :: init => CmplxmscbOpT_init ! initialize and allocate matrices
         procedure :: dealloc => CmplxmscbOpT_dealloc ! dealloc matrices
         procedure :: rmult => CmplxmscbOpT_rmult ! right multiplication with Op_T
-        procedure :: lmult => CmplxmscbOpT_lmult
+        procedure :: lmult => CmplxmscbOpT_lmult  ! left multiplication with Op_T
         procedure :: rmultinv => CmplxmscbOpT_rmultinv ! right multiplication with Op_T inverse
-        procedure :: lmultinv => CmplxmscbOpT_lmultinv
+        procedure :: lmultinv => CmplxmscbOpT_lmultinv  ! left multiplication with Op_T inverse
         procedure :: adjointaction => CmplxmscbOpT_adjointaction
         procedure :: dump => CmplxmscbOpT_dump ! dump matrices for debugging to screen
     end type CmplxmscbOpT
@@ -149,118 +124,6 @@ contains
         call MvG_decomp(gd%verts) ! perform the decomposition
     end subroutine
     
-    subroutine RealmscbOpT_init(this, Op_T)
-        use Operator_mod
-        use graphdata_mod, only: GraphData
-        implicit none
-        class(RealmscbOpT) :: this
-        Type(Operator), intent(in) :: Op_T
-        Complex(kind=kind(0.d0)), allocatable, dimension(:,:) :: cmat, cinvmat
-        real(kind=kind(0.d0)), allocatable, dimension(:) :: mys
-        Complex(kind=kind(0.d0)) :: cg
-        Integer :: i, j
-        type(GraphData) :: gd
-        
-        call Op_T_to_graphdata(Op_T, gd, mys)
-        
-        this%Zero = 1.E-12
-        this%Ndim_hop = Op_T%N
-        allocate(this%mat(this%Ndim_hop, this%Ndim_hop), this%invmat(this%Ndim_hop, this%Ndim_hop))
-        allocate(this%mat_1D2(this%Ndim_hop, this%Ndim_hop), this%invmat_1D2(this%Ndim_hop, this%Ndim_hop))
-        allocate(cmat(this%Ndim_hop, this%Ndim_hop), cinvmat(this%Ndim_hop, this%Ndim_hop))
-
-        cg = -Op_T%g
-        Call Op_exp(cg, Op_T, cinvmat)
-        cg = Op_T%g
-        Call Op_exp(cg, Op_T, cmat)
-        ! copy over the data to the real storage
-        this%mat = DBLE(cmat)
-        this%invmat = DBLE(cinvmat)
-        
-        cg = -Op_T%g/2.0
-        Call Op_exp(cg, Op_T, cinvmat)
-        cg = Op_T%g/2.0
-        Call Op_exp(cg, Op_T, cmat)
-        ! copy over the data to the real storage
-        this%mat_1D2 = DBLE(cmat)
-        this%invmat_1D2 = DBLE(cinvmat)
-        
-        DO i = 1, this%Ndim_hop
-            DO j = i, this%Ndim_hop
-                this%mat(i, j) = (this%mat(i, j) + this%mat(j, i))/2.D0
-                this%invmat(i, j) = (this%invmat(i, j) + this%invmat(j, i))/2.D0
-                
-                this%mat_1D2(i, j) = (this%mat_1D2(i, j) + this%mat_1D2(j, i))/2.D0
-                this%invmat_1D2(i, j) = (this%invmat_1D2(i, j) + this%invmat_1D2(j, i))/2.D0
-            ENDDO
-        ENDDO
-        this%P = Op_T%P
-        this%g = DBLE(Op_T%g)
-        deallocate(cmat, cinvmat)
-    end subroutine
-    
-    subroutine RealmscbOpT_adjointaction(this, arg)
-        class(RealmscbOpT), intent(in) :: this
-        Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
-        Integer :: n1, n2
-        
-        n1 = size(arg,1)
-        n2 = size(arg,2)
-        If ( this%g*this%g > this%Zero ) then
-            call ZDSLSYMM('L', 'U', this%Ndim_hop, n1, n2, this%mat_1D2, this%P, arg)
-            call ZDSLSYMM('R', 'U', this%Ndim_hop, n1, n2, this%invmat_1D2, this%P, arg)
-        Endif
-    end subroutine
-    
-    subroutine RealmscbOpT_rmult(this, arg)
-        class(RealmscbOpT), intent(in) :: this
-        Complex(kind=kind(0.D0)), intent(inout),  dimension(:,:) :: arg
-        Integer :: n1, n2
-        
-        n1 = size(arg,1)
-        n2 = size(arg,2)
-        If ( this%g*this%g > this%Zero ) then
-            call ZDSLSYMM('R', 'U', this%Ndim_hop, n1, n2, this%mat, this%P, arg)
-        Endif
-    end subroutine
-    
-    subroutine RealmscbOpT_rmultinv(this, arg)
-        class(RealmscbOpT), intent(in) :: this
-        Complex(kind=kind(0.D0)), intent(inout),  dimension(:,:) :: arg
-        Integer :: n1, n2
-        
-        n1 = size(arg,1)
-        n2 = size(arg,2)
-        If ( this%g*this%g > this%Zero ) then
-            call ZDSLSYMM('R', 'U', this%Ndim_hop, n1, n2, this%invmat, this%P, arg)
-        Endif
-    end subroutine
-    
-    subroutine RealmscbOpT_lmult(this, arg)
-        class(RealmscbOpT), intent(in) :: this
-        Complex(kind=kind(0.D0)), intent(inout),  dimension(:,:) :: arg
-        integer :: n1, n2
-        
-        ! taken from mmthr
-        n1 = size(arg,1)
-        n2 = size(arg,2)
-        If ( this%g*this%g > this%Zero ) then
-            call ZDSLSYMM('L', 'U', this%Ndim_hop, n1, n2, this%mat, this%P, arg)
-        Endif
-    end subroutine
-    
-    subroutine RealmscbOpT_lmultinv(this, arg)
-        class(RealmscbOpT), intent(in) :: this
-        Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
-        integer :: n1, n2
-        
-        n1 = size(arg,1)
-        n2 = size(arg,2)
-        If ( this%g*this%g > this%Zero ) then
-            call ZDSLSYMM('L', 'U', this%Ndim_hop, n1, n2, this%invmat, this%P, arg)
-        Endif
-    end subroutine
-    
     subroutine CmplxmscbOpT_init(this, Op_T, method)
         use Operator_mod
         use graphdata_mod
@@ -278,6 +141,11 @@ contains
         this%Zero = 1.E-12
         this%Ndim_hop = Op_T%N
         this%g = Op_T%g
+        
+        do i = 1, 20
+            Op_T%O(i, i+1) = 0
+            Op_T%O(i+1, i) = 0
+        enddo
         
         call Op_T_to_graphdata(Op_T, gd, diags)
         ! some sanity checks and status informations
@@ -361,22 +229,11 @@ contains
         write (*,*) "colors: ", this%fe%stages(1)%nrofcols
 
     end subroutine
-
-    subroutine RealmscbOpT_dump(this)
-        class(RealmscbOpT), intent(in) :: this
-        integer :: i,j
-
-    end subroutine
     
     subroutine CmplxmscbOpT_dealloc(this)
         class(CmplxmscbOpT), intent(inout) :: this
         
         call this%fe%dealloc()
-    end subroutine
-
-    subroutine RealmscbOpT_dealloc(this)
-        class(RealmscbOpT), intent(inout) :: this
-        
     end subroutine
     
     subroutine CmplxEulermscbOpT_init(this, Op_T)
