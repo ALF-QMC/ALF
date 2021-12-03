@@ -139,7 +139,7 @@ module SingleColExpBase_mod
         import SingleColExpBase
         class(SingleColExpBase), intent(inout) :: this
         type(node), dimension(:), intent(in) :: nodes
-        real(kind=kind(0.D0)), intent(in), allocatable, dimension(:) :: mys
+        real(kind=kind(0.D0)), intent(in), dimension(:) :: mys
         integer, intent(in) :: nredges
         real(kind=kind(0.D0)), intent(in) :: weight
       end subroutine

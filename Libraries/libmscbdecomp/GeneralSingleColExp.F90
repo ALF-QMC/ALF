@@ -218,7 +218,7 @@ end subroutine
 subroutine GeneralSingleColExp_init(this, nodes, nredges, mys, weight)
     class(GeneralSingleColExp), intent(inout) :: this
     type(node), dimension(:), intent(in) :: nodes
-    real(kind=kind(0.D0)), intent(in), allocatable, dimension(:) :: mys
+    real(kind=kind(0.D0)), intent(in), dimension(:) :: mys
     integer, intent(in) :: nredges
     real (kind=kind(0.d0)), intent(in) :: weight
     integer :: i
@@ -227,7 +227,7 @@ subroutine GeneralSingleColExp_init(this, nodes, nredges, mys, weight)
     allocate(this%c2(2*nredges), this%c2inv(2*nredges), this%s2(nredges), this%s2inv(nredges))
     this%nrofentries = nredges
 #ifndef NDEBUG
-    write(*,*) "Setting up strict. sparse matrix with ", nredges, "edges"
+    write(*,*) " [GeneralSingleColExp_init]: Setting up strict. sparse matrix with ", nredges, "edges"
 #endif
     do i = 1, nredges
         this%x(2*i-1) = nodes(i)%x
@@ -240,10 +240,6 @@ subroutine GeneralSingleColExp_init(this, nodes, nredges, mys, weight)
         localzero = 1E-15*frobnorm(my1, my2, nodes(i)%axy) ! definition of my local scale that defines zero
         md = 0.5*(my1 - my2)
         mav = 0.5*(my1 + my2)
-        if (abs(md) < localzero) then
-            write(*,*) "[GeneralSingleColExp_init]: Identical diagonals found! This should go in another class!"
-            error stop 1
-        endif
         ! This is the order of operations that yields stable matrix inversions
         ! We assume that the matrix that we have decomposed is hermitian:
         ! M=(d  , b)
