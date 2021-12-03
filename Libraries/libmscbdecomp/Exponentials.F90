@@ -520,7 +520,8 @@ subroutine EulerExp_init(this, nodes, usedcolors, dcols, weight)
     real(kind=kind(0.d0)), intent(in) :: weight
     integer, dimension(:), allocatable :: nredges ! An array for determining how many edges are there for each color
     integer, dimension(:), allocatable :: edgectr ! A helper array for counting.
-    integer :: i, maxedges, k
+    integer :: i, maxedges
+! !     integer :: k
 ! !     character(64) :: filename
     type(node), dimension(:, :), allocatable :: colsepnodes! An array of nodes separated by color
     class(ZeroDiagSingleColExp), pointer :: zerodiagexp => null()
