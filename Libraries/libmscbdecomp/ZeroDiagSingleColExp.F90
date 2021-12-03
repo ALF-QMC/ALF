@@ -141,9 +141,8 @@ end subroutine ZeroDiagSingleColExp_adjointaction
 subroutine ZeroDiagSingleColExp_adjoint_over_two(this, mat)
     class(ZeroDiagSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
-    integer :: i, j, k, ndim, loopend
-    integer, parameter :: step = 2
-    complex(kind=kind(0.D0)) :: t1(step), t2(step), t1scal, t2scal, mys
+    integer :: i, j, ndim
+    complex(kind=kind(0.D0)) :: t1scal, t2scal, mys
     real(kind=kind(0.D0)) :: myc
     
     ! lmult part
@@ -153,10 +152,10 @@ subroutine ZeroDiagSingleColExp_adjoint_over_two(this, mat)
         mys = this%s2(i)
         myc = this%c2(i)
         do j = 1, ndim
-                t1(1) = mat(this%x(2*i-1), j)
-                t2(1) = mat(this%x(2*i), j)
-                mat(this%x(2*i-1), j) = myc * t1(1) + mys * t2(1)
-                mat(this%x(2*i), j) = myc * t2(1) + conjg(mys) * t1(1)
+                t1scal = mat(this%x(2*i-1), j)
+                t2scal = mat(this%x(2*i), j)
+                mat(this%x(2*i-1), j) = myc * t1scal + mys * t2scal
+                mat(this%x(2*i), j) = myc * t2scal + conjg(mys) * t1scal
         enddo
 !     enddo
 ! 
