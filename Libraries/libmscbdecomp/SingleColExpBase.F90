@@ -44,7 +44,7 @@ module SingleColExpBase_mod
 !--------------------------------------------------------------------
     type, abstract :: SingleColExpBase
         integer :: nrofentries
-        integer, allocatable :: x(:), y(:) ! the y array is still around but often(?) unused
+        integer, allocatable :: xy(:)
         complex (kind=kind(0.d0)), allocatable :: s(:), s2(:)
         real (kind=kind(0.d0)), allocatable :: c(:), c2(:)
     contains
@@ -195,14 +195,14 @@ module SingleColExpBase_mod
 !
 !> @param[in] c the diagonal data
 !> @param[in] s the off-diagonal data
-!> @param[in] x the used matrix positions
+!> @param[in] xy the used matrix positions
 !> @param[in] nrofentries how many vertices are in this family.
 !> @param[inout] mat the matrix that we modify.
 !--------------------------------------------------------------------
-pure subroutine rmultbase(c, s, x, nrofentries, mat)
+pure subroutine rmultbase(c, s, xy, nrofentries, mat)
     real (kind=kind(0.d0)), allocatable, intent(in) :: c(:)
     complex (kind=kind(0.d0)), allocatable, intent(in) :: s(:)
-    integer, allocatable, intent(in) :: x(:)
+    integer, allocatable, intent(in) :: xy(:)
     integer, intent(in) ::nrofentries
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
     integer :: i, j, ndim
@@ -211,10 +211,10 @@ pure subroutine rmultbase(c, s, x, nrofentries, mat)
     ndim = size(mat,1)
     do i = 1, nrofentries! for every matrix
         do j = 1, ndim
-        t1 = mat(j, x(2*i-1))
-        t2 = mat(j, x(2*i))
-        mat(j, x(2*i-1)) = c(i) * t1 + s(i)* t2
-        mat(j, x(2*i)) = c(i) * t2 + conjg(s(i))* t1
+        t1 = mat(j, xy(2*i-1))
+        t2 = mat(j, xy(2*i))
+        mat(j, xy(2*i-1)) = c(i) * t1 + s(i)* t2
+        mat(j, xy(2*i)) = c(i) * t2 + conjg(s(i))* t1
         enddo
     enddo
 end subroutine
@@ -238,10 +238,10 @@ end subroutine
 !> @param[inout] mat the matrix that we modify.
 !--------------------------------------------------------------------
 
-pure subroutine lmultbase(c, s, x, nrofentries, mat)
+pure subroutine lmultbase(c, s, xy, nrofentries, mat)
     real (kind=kind(0.d0)), allocatable, intent(in) :: c(:)
     complex (kind=kind(0.d0)), allocatable, intent(in) :: s(:)
-    integer, allocatable, intent(in) :: x(:)
+    integer, allocatable, intent(in) :: xy(:)
     integer, intent(in) ::nrofentries
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout), contiguous :: mat
     
@@ -253,8 +253,8 @@ pure subroutine lmultbase(c, s, x, nrofentries, mat)
     real(kind=kind(0.D0)), allocatable, dimension(:) :: csh
 
 ! The intel compiler is really helped by using these temporary arrays
-    allocate(xyarray(nrofentries), csh(nrofentries), snh(nrofentries) )
-    xyarray = x
+    allocate(xyarray(size(xy)), csh(nrofentries), snh(nrofentries) )
+    xyarray = xy
     csh = c
     snh = s
 

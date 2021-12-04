@@ -36,7 +36,6 @@ module ZeroDiagSingleColExp_mod
 !> particular color all chemical potentials vanish.
 !--------------------------------------------------------------------
     type, extends(SingleColExpBase) :: ZeroDiagSingleColExp
-        complex (kind=kind(0.d0)), allocatable :: p(:)
     contains
         procedure :: init => ZeroDiagSingleColExp_init
         procedure :: dealloc => ZeroDiagSingleColExp_dealloc
@@ -57,10 +56,10 @@ subroutine ZeroDiagSingleColExp_vecmult(this, vec)
     integer :: i
     complex(kind=kind(0.D0)) :: t1, t2
     do i = 1, this%nrofentries! for every matrix
-        t1 = vec(this%x(i))
-        t2 = vec(this%y(i))
-        vec(this%x(i)) = this%c(i) * t1 + this%s(i) * t2
-        vec(this%y(i)) = this%c(i) * t2 + conjg(this%s(i)) * t1
+        t1 = vec(this%xy(2*i-1))
+        t2 = vec(this%xy(2*i))
+        vec(this%xy(2*i-1)) = this%c(i) * t1 + this%s(i) * t2
+        vec(this%xy(2*i)) = this%c(i) * t2 + conjg(this%s(i)) * t1
     enddo
 end subroutine ZeroDiagSingleColExp_vecmult
 
@@ -78,7 +77,7 @@ subroutine ZeroDiagSingleColExp_lmult(this, mat)
     class(ZeroDiagSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout), contiguous :: mat
 
-    call lmultbase(this%c, this%s, this%x, this%nrofentries, mat)
+    call lmultbase(this%c, this%s, this%xy, this%nrofentries, mat)
 end subroutine ZeroDiagSingleColExp_lmult
 
 subroutine ZeroDiagSingleColExp_lmultinv(this, mat)
@@ -93,12 +92,12 @@ subroutine ZeroDiagSingleColExp_lmultinv(this, mat)
     do j = 1, loopend, step
         do i = 1, this%nrofentries! for every matrix
             do k = 1,step
-                t1(k) = mat(this%x(2*i-1), j+k-1)
-                t2(k) = mat(this%x(2*i), j+k-1)
+                t1(k) = mat(this%xy(2*i-1), j+k-1)
+                t2(k) = mat(this%xy(2*i), j+k-1)
             enddo
             do k = 1, step
-                mat(this%x(2*i-1), j+k-1) = this%c(i) * t1(k) - this%s(i) * t2(k)
-                mat(this%x(2*i), j+k-1) = this%c(i) * t2(k) - conjg(this%s(i)) * t1(k)
+                mat(this%xy(2*i-1), j+k-1) = this%c(i) * t1(k) - this%s(i) * t2(k)
+                mat(this%xy(2*i), j+k-1) = this%c(i) * t2(k) - conjg(this%s(i)) * t1(k)
             enddo
         enddo
     enddo
@@ -106,10 +105,10 @@ subroutine ZeroDiagSingleColExp_lmultinv(this, mat)
     ! remainder loop
     if ((ndim - loopend) .ne. 0) then
         do i = 1, this%nrofentries! for every matrix
-            t1(1) = mat(this%x(2*i-1), ndim)
-            t2(1) = mat(this%x(2*i), ndim)
-            mat(this%x(2*i-1), ndim) = this%c(i) * t1(1) - this%s(i) * t2(1)
-            mat(this%x(2*i), ndim) = this%c(i) * t2(1) - conjg(this%s(i)) * t1(1)
+            t1(1) = mat(this%xy(2*i-1), ndim)
+            t2(1) = mat(this%xy(2*i), ndim)
+            mat(this%xy(2*i-1), ndim) = this%c(i) * t1(1) - this%s(i) * t2(1)
+            mat(this%xy(2*i), ndim) = this%c(i) * t2(1) - conjg(this%s(i)) * t1(1)
         enddo
     endif
 end subroutine ZeroDiagSingleColExp_lmultinv
@@ -152,20 +151,20 @@ subroutine ZeroDiagSingleColExp_adjoint_over_two(this, mat)
         mys = this%s2(i)
         myc = this%c2(i)
         do j = 1, ndim
-                t1scal = mat(this%x(2*i-1), j)
-                t2scal = mat(this%x(2*i), j)
-                mat(this%x(2*i-1), j) = myc * t1scal + mys * t2scal
-                mat(this%x(2*i), j) = myc * t2scal + conjg(mys) * t1scal
+                t1scal = mat(this%xy(2*i-1), j)
+                t2scal = mat(this%xy(2*i), j)
+                mat(this%xy(2*i-1), j) = myc * t1scal + mys * t2scal
+                mat(this%xy(2*i), j) = myc * t2scal + conjg(mys) * t1scal
         enddo
 !     enddo
 ! 
 !     ! rmultinv part
 !     do i = 1, this%nrofentries! for every matrix
         do j = 1, ndim
-            t1scal = mat(j, this%x(2*i-1))
-            t2scal = mat(j, this%x(2*i))
-            mat(j, this%x(2*i-1)) = myc * t1scal - mys * t2scal
-            mat(j, this%x(2*i)) = myc * t2scal - conjg(mys) * t1scal
+            t1scal = mat(j, this%xy(2*i-1))
+            t2scal = mat(j, this%xy(2*i))
+            mat(j, this%xy(2*i-1)) = myc * t1scal - mys * t2scal
+            mat(j, this%xy(2*i)) = myc * t2scal - conjg(mys) * t1scal
         enddo
     enddo
 end subroutine ZeroDiagSingleColExp_adjoint_over_two
@@ -183,10 +182,20 @@ end subroutine ZeroDiagSingleColExp_adjoint_over_two
 subroutine ZeroDiagSingleColExp_rmult(this, mat)
     class(ZeroDiagSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
-    
-    call rmultbase(this%c, this%s, this%x, this%nrofentries, mat)
+
+    call rmultbase(this%c, this%s, this%xy, this%nrofentries, mat)
 end subroutine ZeroDiagSingleColExp_rmult
 
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
+!> Perform the multiplication of this inverted exponential with a matrix: out = mat*(this)^-1
+!
+!> @param[in] this The exponential that we consider.
+!> @param[inout] mat the matrix that we modify.
+!--------------------------------------------------------------------
 subroutine ZeroDiagSingleColExp_rmultinv(this, mat)
     class(ZeroDiagSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
@@ -196,10 +205,10 @@ subroutine ZeroDiagSingleColExp_rmultinv(this, mat)
     ndim = size(mat,1)
     do i = 1, this%nrofentries! for every matrix
         do j = 1, ndim
-        t1 = mat(j, this%x(2*i-1))
-        t2 = mat(j, this%x(2*i))
-        mat(j, this%x(2*i-1)) = this%c(i) * t1 - this%s(i) * t2
-        mat(j, this%x(2*i)) = this%c(i) * t2 - conjg(this%s(i)) * t1
+        t1 = mat(j, this%xy(2*i-1))
+        t2 = mat(j, this%xy(2*i))
+        mat(j, this%xy(2*i-1)) = this%c(i) * t1 - this%s(i) * t2
+        mat(j, this%xy(2*i)  ) = this%c(i) * t2 - conjg(this%s(i)) * t1
         enddo
     enddo
 end subroutine ZeroDiagSingleColExp_rmultinv
@@ -228,16 +237,15 @@ subroutine ZeroDiagSingleColExp_init(this, nodes, nredges, mys, weight)
     real (kind=kind(0.d0)), intent(in) :: weight
     integer :: i
     real (kind=kind(0.d0)) :: my1, my2, localzero
-    allocate(this%x(2*nredges), this%y(nredges), this%c(nredges), this%s(nredges))
-    allocate(this%c2(nredges), this%s2(nredges))
+    allocate(this%xy(2*nredges), this%c(nredges), this%s(nredges), this%c2(nredges), this%s2(nredges))
     this%nrofentries = nredges
 #ifndef NDEBUG
     write(*,*) "[ZeroDiagSingleColExp] Setting up strict. sparse matrix with ", nredges, "edges"
 #endif
     do i = 1, nredges
-        this%x(2*i-1) = nodes(i)%x
-        this%x(2*i) = nodes(i)%y
-        this%y(i) = nodes(i)%y
+        this%xy(2*i-1) = nodes(i)%x
+        this%xy(2*i) = nodes(i)%y
+
         !calculate Frobenius norm
         my1 = mys(nodes(i)%x)
         my2 = mys(nodes(i)%y)
@@ -268,10 +276,19 @@ subroutine ZeroDiagSingleColExp_init(this, nodes, nredges, mys, weight)
 ! They constitute now a strictly sparse matrix.
 end subroutine ZeroDiagSingleColExp_init
 
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
+!> Deallocate our memory.
+!
+!> @param[in] this The exponential that we consider.
+!--------------------------------------------------------------------
 subroutine ZeroDiagSingleColExp_dealloc(this)
     class(ZeroDiagSingleColExp), intent(inout) :: this
-    
-    deallocate(this%x, this%y, this%c, this%s, this%c2, this%s2)
+
+    deallocate(this%xy, this%c, this%s, this%c2, this%s2)
 end subroutine ZeroDiagSingleColExp_dealloc
 
 end module ZeroDiagSingleColExp_mod

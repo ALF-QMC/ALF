@@ -56,10 +56,10 @@ subroutine TraceLessSingleColExp_vecmult(this, vec)
     integer :: i
     complex(kind=kind(0.D0)) :: t1,t2
     do i = 1, this%nrofentries! for every matrix
-        t1 = vec(this%x(i))
-        t2 = vec(this%y(i))
-        vec(this%x(i)) = this%c(2*i-1) * t1 + this%s(i) * t2
-        vec(this%y(i)) = this%c(2*i) * t2 + conjg(this%s(i)) * t1
+        t1 = vec(this%xy(2*i))
+        t2 = vec(this%xy(2*i-1))
+        vec(this%xy(2*i)) = this%c(2*i-1) * t1 + this%s(i) * t2
+        vec(this%xy(2*i-1)) = this%c(2*i) * t2 + conjg(this%s(i)) * t1
     enddo
 end subroutine TraceLessSingleColExp_vecmult
 
@@ -145,10 +145,21 @@ end subroutine
 subroutine TraceLessSingleColExp_lmult(this, mat)
     class(TraceLessSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout), contiguous :: mat
-    
-    call lmultthreeelementbase(this%c, this%s, this%x, this%nrofentries, mat)
+
+    call lmultthreeelementbase(this%c, this%s, this%xy, this%nrofentries, mat)
 end subroutine TraceLessSingleColExp_lmult
 
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
+!> Perform the multiplication of this inverted exponential with a matrix:
+!>  out = this*mat
+!
+!> @param[in] this The exponential that we consider
+!> @param[inout] mat the matrix that we modify.
+!--------------------------------------------------------------------
 subroutine TraceLessSingleColExp_lmultinv(this, mat)
     class(TraceLessSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout), contiguous :: mat
@@ -161,12 +172,12 @@ subroutine TraceLessSingleColExp_lmultinv(this, mat)
     do j = 1, loopend, step
         do i = 1, this%nrofentries! for every matrix
             do k = 1,step
-                t1(k) = mat(this%x(2*i-1), j+k-1)
-                t2(k) = mat(this%x(2*i), j+k-1)
+                t1(k) = mat(this%xy(2*i-1), j+k-1)
+                t2(k) = mat(this%xy(2*i), j+k-1)
             enddo
             do k = 1, step
-                mat(this%x(2*i-1), j+k-1) = this%c(2*i) * t1(k) - this%s(i) * t2(k)
-                mat(this%x(2*i), j+k-1) = this%c(2*i-1) * t2(k) - conjg(this%s(i)) * t1(k)
+                mat(this%xy(2*i-1), j+k-1) = this%c(2*i) * t1(k) - this%s(i) * t2(k)
+                mat(this%xy(2*i), j+k-1) = this%c(2*i-1) * t2(k) - conjg(this%s(i)) * t1(k)
             enddo
         enddo
     enddo
@@ -174,10 +185,10 @@ subroutine TraceLessSingleColExp_lmultinv(this, mat)
     ! remainder loop
     if ((ndim - loopend) .ne. 0) then
         do i = 1, this%nrofentries! for every matrix
-            t1(1) = mat(this%x(2*i-1), ndim)
-            t2(1) = mat(this%x(2*i), ndim)
-            mat(this%x(2*i-1), ndim) = this%c(2*i) * t1(1) - this%s(i) * t2(1)
-            mat(this%x(2*i), ndim) = this%c(2*i-1) * t2(1) - conjg(this%s(i)) * t1(1)
+            t1(1) = mat(this%xy(2*i-1), ndim)
+            t2(1) = mat(this%xy(2*i), ndim)
+            mat(this%xy(2*i-1), ndim) = this%c(2*i) * t1(1) - this%s(i) * t2(1)
+            mat(this%xy(2*i), ndim) = this%c(2*i-1) * t2(1) - conjg(this%s(i)) * t1(1)
         enddo
     endif
 end subroutine TraceLessSingleColExp_lmultinv
@@ -220,12 +231,12 @@ subroutine TraceLessSingleColExp_adjoint_over_two(this, mat)
         do i = 1, this%nrofentries! for every matrix
             mys = this%s2(i)
             do k = 1,step
-                t1(k) = mat(this%x(2*i-1), j+k-1)
-                t2(k) = mat(this%x(2*i), j+k-1)
+                t1(k) = mat(this%xy(2*i-1), j+k-1)
+                t2(k) = mat(this%xy(2*i), j+k-1)
             enddo
             do k = 1, step
-                mat(this%x(2*i-1), j+k-1) = this%c2(2*i-1) * t1(k) + mys * t2(k)
-                mat(this%x(2*i), j+k-1) = this%c2(2*i) * t2(k) + conjg(mys) * t1(k)
+                mat(this%xy(2*i-1), j+k-1) = this%c2(2*i-1) * t1(k) + mys * t2(k)
+                mat(this%xy(2*i), j+k-1) = this%c2(2*i) * t2(k) + conjg(mys) * t1(k)
             enddo
         enddo
     enddo
@@ -233,21 +244,21 @@ subroutine TraceLessSingleColExp_adjoint_over_two(this, mat)
     ! remainder loop
     if ((ndim - loopend) .ne. 0) then
         do i = 1, this%nrofentries! for every matrix
-            t1(1) = mat(this%x(2*i-1), ndim)
-            t2(1) = mat(this%x(2*i), ndim)
-            mat(this%x(2*i-1), ndim) = this%c2(2*i-1) * t1(1) + this%s2(i) * t2(1)
-            mat(this%x(2*i), ndim) = this%c2(2*i) * t2(1) + conjg(this%s2(i)) * t1(1)
+            t1(1) = mat(this%xy(2*i-1), ndim)
+            t2(1) = mat(this%xy(2*i), ndim)
+            mat(this%xy(2*i-1), ndim) = this%c2(2*i-1) * t1(1) + this%s2(i) * t2(1)
+            mat(this%xy(2*i), ndim) = this%c2(2*i) * t2(1) + conjg(this%s2(i)) * t1(1)
         enddo
     endif
 
     ! rmultinv part
     do i = 1, this%nrofentries! for every matrix
-            mys = this%s2(i)
+        mys = this%s2(i)
         do j = 1, ndim
-            t1scal = mat(j, this%x(2*i-1))
-            t2scal = mat(j, this%x(2*i))
-            mat(j, this%x(2*i-1)) = this%c2(2*i) * t1scal - mys * t2scal
-            mat(j, this%x(2*i)) = this%c2(2*i-1) * t2scal - conjg(mys) * t1scal
+            t1scal = mat(j, this%xy(2*i-1))
+            t2scal = mat(j, this%xy(2*i))
+            mat(j, this%xy(2*i-1)) = this%c2(2*i) * t1scal - mys * t2scal
+            mat(j, this%xy(2*i)) = this%c2(2*i-1) * t2scal - conjg(mys) * t1scal
         enddo
     enddo
 end subroutine TraceLessSingleColExp_adjoint_over_two
@@ -301,7 +312,7 @@ subroutine TraceLessSingleColExp_rmult(this, mat)
     class(TraceLessSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
     
-    call rmultthreeelementbase(this%c, this%s, this%x, this%nrofentries, mat)
+    call rmultthreeelementbase(this%c, this%s, this%xy, this%nrofentries, mat)
 end subroutine TraceLessSingleColExp_rmult
 
 !--------------------------------------------------------------------
@@ -327,10 +338,10 @@ subroutine TraceLessSingleColExp_rmultinv(this, mat)
     ndim = size(mat,1)
     do i = 1, this%nrofentries! for every matrix
         do j = 1, ndim
-        t1 = mat(j, this%x(2*i-1))
-        t2 = mat(j, this%x(2*i))
-        mat(j, this%x(2*i-1)) = this%c(2*i) * t1 - this%s(i) * t2
-        mat(j, this%x(2*i)) = this%c(2*i-1) * t2 - conjg(this%s(i)) * t1
+        t1 = mat(j, this%xy(2*i-1))
+        t2 = mat(j, this%xy(2*i))
+        mat(j, this%xy(2*i-1)) = this%c(2*i) * t1 - this%s(i) * t2
+        mat(j, this%xy(2*i)) = this%c(2*i-1) * t2 - conjg(this%s(i)) * t1
         enddo
     enddo
 end subroutine TraceLessSingleColExp_rmultinv
@@ -392,16 +403,14 @@ subroutine TraceLessSingleColExp_init(this, nodes, nredges, mys, weight)
     integer :: i
     real (kind=kind(0.d0)) :: my1, my2, localzero, tmp
     ! We need twice the amount of storage for the diagonal for this traceless case.
-    allocate(this%x(2*nredges), this%y(nredges), this%s(nredges), this%c(2*nredges))
-    allocate(this%c2(2*nredges), this%s2(nredges))
+    allocate(this%xy(2*nredges), this%s(nredges), this%c(2*nredges), this%c2(2*nredges), this%s2(nredges))
     this%nrofentries = nredges
 #ifndef NDEBUG
     write(*,*) "[TraceLessSingleColExp] Setting up strict. sparse matrix with ", nredges, "edges"
 #endif
     do i = 1, nredges
-        this%x(2*i-1) = nodes(i)%x
-        this%x(2*i) = nodes(i)%y
-        this%y(i) = nodes(i)%y
+        this%xy(2*i-1) = nodes(i)%x
+        this%xy(2*i) = nodes(i)%y
         !calculate Frobenius norm
         my1 = mys(nodes(i)%x)
         my2 = mys(nodes(i)%y)
@@ -429,7 +438,7 @@ end subroutine TraceLessSingleColExp_init
 
 subroutine TraceLessSingleColExp_dealloc(this)
     class(TraceLessSingleColExp), intent(inout) :: this
-    deallocate(this%x, this%y, this%c, this%s, this%c2, this%s2)
+    deallocate(this%xy, this%c, this%s, this%c2, this%s2)
 end subroutine TraceLessSingleColExp_dealloc
 
 end module TraceLessSingleColExp_mod

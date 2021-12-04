@@ -65,7 +65,7 @@ subroutine GeneralSingleColExp_lmultinv(this, mat)
     class(GeneralSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout), contiguous :: mat
     
-    call lmultthreeelementbase(this%cinv, this%sinv, this%x, this%nrofentries, mat)
+    call lmultthreeelementbase(this%cinv, this%sinv, this%xy, this%nrofentries, mat)
 end subroutine GeneralSingleColExp_lmultinv
 
 !--------------------------------------------------------------------
@@ -120,12 +120,12 @@ subroutine GeneralSingleColExp_adjoint_over_two(this, mat)
             myc(1) = this%c2(2*i-1)
             myc(2) = this%c2(2*i)
             do k = 1,step
-                t1(k) = mat(this%x(2*i-1), j+k-1)
-                t2(k) = mat(this%x(2*i), j+k-1)
+                t1(k) = mat(this%xy(2*i-1), j+k-1)
+                t2(k) = mat(this%xy(2*i), j+k-1)
             enddo
             do k = 1, step
-                mat(this%x(2*i-1), j+k-1) = myc(1) * t1(k) + mys * t2(k)
-                mat(this%x(2*i), j+k-1) = myc(2) * t2(k) + conjg(mys) * t1(k)
+                mat(this%xy(2*i-1), j+k-1) = myc(1) * t1(k) + mys * t2(k)
+                mat(this%xy(2*i), j+k-1) = myc(2) * t2(k) + conjg(mys) * t1(k)
             enddo
         enddo
     enddo
@@ -133,15 +133,15 @@ subroutine GeneralSingleColExp_adjoint_over_two(this, mat)
     ! remainder loop
     if ((ndim - loopend) .ne. 0) then
         do i = 1, this%nrofentries! for every matrix
-            t1(1) = mat(this%x(2*i-1), ndim)
-            t2(1) = mat(this%x(2*i), ndim)
-            mat(this%x(2*i-1), ndim) = this%c2(2*i-1) * t1(1) + this%s2(i) * t2(1)
-            mat(this%x(2*i), ndim) = this%c2(2*i) * t2(1) + conjg(this%s2(i)) * t1(1)
+            t1(1) = mat(this%xy(2*i-1), ndim)
+            t2(1) = mat(this%xy(2*i), ndim)
+            mat(this%xy(2*i-1), ndim) = this%c2(2*i-1) * t1(1) + this%s2(i) * t2(1)
+            mat(this%xy(2*i), ndim) = this%c2(2*i) * t2(1) + conjg(this%s2(i)) * t1(1)
         enddo
     endif
 
     ! rmultinv part with new data
-    call rmultthreeelementbase(this%c2inv, this%s2inv, this%x, this%nrofentries, mat)
+    call rmultthreeelementbase(this%c2inv, this%s2inv, this%xy, this%nrofentries, mat)
 end subroutine GeneralSingleColExp_adjoint_over_two
 
 !--------------------------------------------------------------------
@@ -159,7 +159,7 @@ subroutine GeneralSingleColExp_rmultinv(this, mat)
     class(GeneralSingleColExp), intent(in) :: this
     complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
 
-    call rmultthreeelementbase(this%cinv, this%sinv, this%x, this%nrofentries, mat)
+    call rmultthreeelementbase(this%cinv, this%sinv, this%xy, this%nrofentries, mat)
 end subroutine GeneralSingleColExp_rmultinv
 
 !--------------------------------------------------------------------
@@ -223,16 +223,16 @@ subroutine GeneralSingleColExp_init(this, nodes, nredges, mys, weight)
     real (kind=kind(0.d0)), intent(in) :: weight
     integer :: i
     real (kind=kind(0.d0)) :: my1, my2, localzero, md, mav, dweight
-    allocate(this%x(2*nredges), this%y(nredges), this%c(2*nredges), this%s(nredges), this%cinv(2*nredges), this%sinv(nredges) )
+
+    allocate(this%xy(2*nredges), this%c(2*nredges), this%s(nredges), this%cinv(2*nredges), this%sinv(nredges))
     allocate(this%c2(2*nredges), this%c2inv(2*nredges), this%s2(nredges), this%s2inv(nredges))
     this%nrofentries = nredges
 #ifndef NDEBUG
     write(*,*) " [GeneralSingleColExp_init]: Setting up strict. sparse matrix with ", nredges, "edges"
 #endif
     do i = 1, nredges
-        this%x(2*i-1) = nodes(i)%x
-        this%x(2*i) = nodes(i)%y
-        this%y(i) = nodes(i)%y
+        this%xy(2*i-1) = nodes(i)%x
+        this%xy(2*i) = nodes(i)%y
         !calculate Frobenius norm
         my1 = mys(nodes(i)%x)
         my2 = mys(nodes(i)%y)
