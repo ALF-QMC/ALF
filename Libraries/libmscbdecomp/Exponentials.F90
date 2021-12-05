@@ -521,8 +521,8 @@ subroutine EulerExp_init(this, nodes, usedcolors, dcols, weight)
     integer, dimension(:), allocatable :: nredges ! An array for determining how many edges are there for each color
     integer, dimension(:), allocatable :: edgectr ! A helper array for counting.
     integer :: i, maxedges
-! !     integer :: k
-! !     character(64) :: filename
+    integer :: k
+    character(16) :: filename
     type(node), dimension(:, :), allocatable :: colsepnodes! An array of nodes separated by color
     class(ZeroDiagSingleColExp), pointer :: zerodiagexp => null()
     class(HomogeneousSingleColExp), pointer :: homexp => null()
@@ -547,15 +547,17 @@ subroutine EulerExp_init(this, nodes, usedcolors, dcols, weight)
         edgectr(nodes(i)%col) = edgectr(nodes(i)%col) + 1
     enddo
 
-! ! Useful for generating input for mathematica
-! !      do i = 1, usedcolors
-! !      write (filename, "(A6,I3)") "matrix", i
-! !      open(unit=5,file=filename)
-! !      do k = 1, nredges(i)
-! !      write (5, *) "{{", colsepnodes(i, k)%x, ",",colsepnodes(i, k)%y,"} -> ", dble(colsepnodes(i, k)%axy), "}"
-! !      enddo
-! !      close(unit=5)
-! !      enddo
+! ! Useful for dumping the matrices in MatrixMarket file format.
+     do i = 1, usedcolors
+     write (filename, "(A6,I3,A4)") "matrix", i, ".mtx"
+     open(unit=5,file=filename)
+     write(5, '(A)') '%%MatrixMarket matrix coordinate real symmetric' ! ignore imag. parts.
+     write(5, *) size(dcols, 2), size(dcols, 2), nredges(i)
+     do k = 1, nredges(i)
+     write (5, *) colsepnodes(i, k)%x, colsepnodes(i, k)%y, dble(colsepnodes(i, k)%axy)
+     enddo
+     close(unit=5)
+     enddo
 
     ! Now that we have properly separated which entry of a matrix belongs to
     ! which color we can create an exponential for each color that exploits
