@@ -128,25 +128,19 @@ contains
         use Operator_mod
         use graphdata_mod
         implicit none
-        
+
         class(CmplxmscbOpT) :: this
-        Type(Operator), intent(in) :: Op_T
+        type(Operator), intent(in) :: Op_T
         integer, intent(in) :: method
-        Integer :: i, k
+        integer :: i
         type(GraphData) :: gd
         Complex(kind=kind(0.D0)), allocatable, dimension(:,:) :: tmp
         Real(kind=kind(0.D0)), allocatable, dimension(:) :: diags
-        
-        write (*,*) "[CmplxMSCB]: init"
+
         this%Zero = 1.E-12
         this%Ndim_hop = Op_T%N
         this%g = Op_T%g
-        
-        do i = 1, 20
-            Op_T%O(i, i+1) = 0
-            Op_T%O(i+1, i) = 0
-        enddo
-        
+
         call Op_T_to_graphdata(Op_T, gd, diags)
         ! some sanity checks and status informations
         call determine_used_colors_of_graph(gd)
@@ -161,9 +155,9 @@ contains
 
         ! check wether it is supported behaviour
         do i = 1, size(Op_T%P)
-        if (Op_T%P(i) /= i) then
-        write (*,*) "P unsupported"
-        endif
+            if (Op_T%P(i) /= i) then
+                write (*,*) "P unsupported"
+            endif
         enddo
         this%P = Op_T%P
         call dealloc_graphdata(gd)
@@ -178,9 +172,8 @@ contains
         If ( dble(this%g*conjg(this%g)) > this%Zero ) then
             call this%fe%adjoint_over_two(arg)
         Endif
-
     end subroutine
-    
+
     subroutine CmplxmscbOpT_rmult(this, arg)
         class(CmplxmscbOpT), intent(in) :: this
         Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
