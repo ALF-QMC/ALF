@@ -59,6 +59,8 @@ module mscbOpT_mod
         procedure :: rmultinv => CmplxmscbOpT_rmultinv ! right multiplication with Op_T inverse
         procedure :: lmultinv => CmplxmscbOpT_lmultinv  ! left multiplication with Op_T inverse
         procedure :: adjointaction => CmplxmscbOpT_adjointaction
+        procedure :: adjoint => CmplxmscbOpT_adjoint
+        procedure :: adjoint_over_two => CmplxmscbOpT_adjoint_over_two
         procedure :: dump => CmplxmscbOpT_dump ! dump matrices for debugging to screen
     end type CmplxmscbOpT
 
@@ -83,6 +85,8 @@ module mscbOpT_mod
         procedure :: rmultinv => CmplxEulermscbOpT_rmultinv ! right multiplication with Op_T inverse
         procedure :: lmultinv => CmplxEulermscbOpT_lmultinv
         procedure :: adjointaction => CmplxEulermscbOpT_adjointaction
+        procedure :: adjoint => CmplxEulermscbOpT_adjointaction
+        procedure :: adjoint_over_two => CmplxEulermscbOpT_adjointaction
         procedure :: dump => CmplxEulermscbOpT_dump ! dump matrices for debugging to screen
     end type CmplxEulermscbOpT
 
@@ -165,6 +169,26 @@ contains
     end subroutine
 
     subroutine CmplxmscbOpT_adjointaction(this, arg)
+        class(CmplxmscbOpT), intent(in) :: this
+        Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
+
+        !FIXME: P
+        If ( dble(this%g*conjg(this%g)) > this%Zero ) then
+            call this%fe%adjoint_over_two(arg)
+        Endif
+    end subroutine
+    
+    subroutine CmplxmscbOpT_adjoint(this, arg)
+        class(CmplxmscbOpT), intent(in) :: this
+        Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
+
+        !FIXME: P
+        If ( dble(this%g*conjg(this%g)) > this%Zero ) then
+            call this%fe%adjoint(arg)
+        Endif
+    end subroutine
+    
+    subroutine CmplxmscbOpT_adjoint_over_two(this, arg)
         class(CmplxmscbOpT), intent(in) :: this
         Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
 
