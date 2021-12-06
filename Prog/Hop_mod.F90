@@ -332,7 +332,7 @@
           Do nf = 1, size(In,3)
              do nc =  Ncheck,1,-1
                 dummy => ExpOpT_vec(nf)%at(nc)
-                call dummy%adjointaction(Out(:, :, nf))
+                call dummy%adjoint_over_two(Out(:, :, nf))
              enddo
           enddo
 
