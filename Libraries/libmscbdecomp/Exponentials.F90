@@ -426,7 +426,7 @@ end subroutine EulerExp_lmultinv_T
 !> Florian Goth
 !
 !> @brief 
-!> A function to determine the equality of twor floating point numbers.
+!> A function to determine the equality of two floating point numbers.
 
 !> @param[in] a first number
 !> @param[in] b second number
