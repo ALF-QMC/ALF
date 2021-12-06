@@ -66,7 +66,7 @@ module mscbOpT_mod
     !> @author
     !> ALF-project
     !> @brief
-    !> A specialized class for ecapsulating the Euler approximation.
+    !> A specialized class for encapsulating the Euler approximation.
     !>
     !--------------------------------------------------------------------
     type, extends(ContainerElementBase) :: CmplxEulermscbOpT
