@@ -59,6 +59,7 @@ module OpTTypes_mod
         procedure :: rmultinv => RealExpOpT_rmultinv ! right multiplication with Op_T inverse
         procedure :: lmultinv => RealExpOpT_lmultinv
         procedure :: adjoint => RealExpOpT_adjoint
+        procedure :: reverseadjoint => RealExpOpT_reverseadjoint
         procedure :: adjoint_over_two => RealExpOpT_adjoint_over_two
         procedure :: dump => RealExpOpT_dump ! dump matrices for debugging to screen
     end type RealExpOpT
@@ -84,6 +85,7 @@ module OpTTypes_mod
         procedure :: rmultinv => CmplxExpOpT_rmultinv ! right multiplication with Op_T inverse
         procedure :: lmultinv => CmplxExpOpT_lmultinv
         procedure :: adjoint => CmplxExpOpT_adjoint
+        procedure :: reverseadjoint => CmplxExpOpT_reverseadjoint
         procedure :: adjoint_over_two => CmplxExpOpT_adjoint_over_two
         procedure :: dump => CmplxExpOpT_dump ! dump matrices for debugging to screen
     end type CmplxExpOpT
@@ -155,6 +157,19 @@ contains
         If ( this%g*this%g > this%Zero ) then
             call ZDSLSYMM('L', 'U', this%Ndim_hop, n1, n2, this%mat, this%P, arg)
             call ZDSLSYMM('R', 'U', this%Ndim_hop, n1, n2, this%invmat, this%P, arg)
+        Endif
+    end subroutine
+    
+    subroutine RealExpOpT_reverseadjoint(this, arg)
+        class(RealExpOpT), intent(in) :: this
+        Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
+        Integer :: n1, n2
+        
+        n1 = size(arg,1)
+        n2 = size(arg,2)
+        If ( this%g*this%g > this%Zero ) then
+            call ZDSLSYMM('L', 'U', this%Ndim_hop, n1, n2, this%invmat, this%P, arg)
+            call ZDSLSYMM('R', 'U', this%Ndim_hop, n1, n2, this%mat, this%P, arg)
         Endif
     end subroutine
     
@@ -265,7 +280,20 @@ contains
             call ZSLHEMM('R', 'U', this%Ndim_hop, n1, n2, this%invmat, this%P, arg)
         Endif
     end subroutine
-    
+
+    subroutine CmplxExpOpT_reverseadjoint(this, arg)
+        class(CmplxExpOpT), intent(in) :: this
+        Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
+        Integer :: n1, n2
+
+        n1 = size(arg,1)
+        n2 = size(arg,2)
+        If ( dble(this%g*conjg(this%g)) > this%Zero ) then            
+            call ZSLHEMM('L', 'U', this%Ndim_hop, n1, n2, this%invmat, this%P, arg)
+            call ZSLHEMM('R', 'U', this%Ndim_hop, n1, n2, this%mat, this%P, arg)
+        Endif
+    end subroutine
+
     subroutine CmplxExpOpT_rmult(this, arg)
         class(CmplxExpOpT), intent(in) :: this
         Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg

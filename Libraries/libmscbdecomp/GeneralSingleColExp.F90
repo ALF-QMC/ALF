@@ -46,6 +46,7 @@ module GeneralSingleColExp_mod
         procedure :: rmultinv => GeneralSingleColExp_rmultinv
         procedure :: adjoint_over_two => GeneralSingleColExp_adjoint_over_two
         procedure :: adjointaction => GeneralSingleColExp_adjointaction
+        procedure :: reverseadjointaction => GeneralSingleColExp_reverseadjointaction
     end type
 
 contains
@@ -91,6 +92,14 @@ subroutine GeneralSingleColExp_adjointaction(this, mat)
     call this%lmult(mat)
     call this%rmultinv(mat)
 end subroutine GeneralSingleColExp_adjointaction
+
+subroutine GeneralSingleColExp_reverseadjointaction(this, mat)
+    class(GeneralSingleColExp), intent(in) :: this
+    complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
+    
+    call this%lmultinv(mat)
+    call this%rmult(mat)
+end subroutine GeneralSingleColExp_reverseadjointaction
 
 !--------------------------------------------------------------------
 !> @author

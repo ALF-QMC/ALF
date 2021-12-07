@@ -65,6 +65,8 @@ module Exponentials_mod
         procedure :: lmult_T => EulerExp_lmult_T
         procedure :: adjoint => EulerExp_adjoint
         procedure :: adjoint_T => EulerExp_adjoint_T
+        procedure :: reverseadjoint => EulerExp_reverseadjoint
+        procedure :: reverseadjoint_T => EulerExp_reverseadjoint_T
         procedure :: adjoint_over_two => EulerExp_adjoint_over_two
         procedure :: adjoint_over_two_T => EulerExp_adjoint_over_two_T
         procedure :: rmultinv_T => EulerExp_rmultinv_T
@@ -97,6 +99,7 @@ module Exponentials_mod
         procedure :: rmultinv => FullExp_rmultinv
         procedure :: lmult_T => FullExp_lmult_T
         procedure :: adjoint => FullExp_adjoint
+        procedure :: reverseadjoint => FullExp_reverseadjoint
         procedure :: adjoint_over_two => FullExp_adjoint_over_two
     end type FullExp
 
@@ -244,6 +247,16 @@ subroutine FullExp_adjoint(this, mat)
     enddo
 end subroutine FullExp_adjoint
 
+subroutine FullExp_reverseadjoint(this, mat)
+    class(FullExp) :: this
+    complex(kind=kind(0.D0)), intent(inout) :: mat(:,:)
+    integer :: i
+    do i = this%evals-1, 1, -2
+       call this%stages(i+1)%reverseadjoint_T(mat)
+       call this%stages(i)%reverseadjoint(mat)
+    enddo
+end subroutine FullExp_reverseadjoint
+
 subroutine FullExp_lmultinv(this, mat)
     class(FullExp) :: this
     complex(kind=kind(0.D0)), intent(inout) :: mat(:,:)
@@ -369,6 +382,24 @@ subroutine EulerExp_adjoint_T(this, mat)
         call this%singleexps(i)%dat%adjointaction(mat)
     enddo
 end subroutine EulerExp_adjoint_T
+
+subroutine EulerExp_reverseadjoint(this, mat)
+    class(EulerExp) :: this
+    complex(kind=kind(0.D0)), dimension(:, :) :: mat
+    integer :: i
+    do i = this%nrofcols, 1, -1
+        call this%singleexps(i)%dat%reverseadjointaction(mat)
+    enddo
+end subroutine EulerExp_reverseadjoint
+
+subroutine EulerExp_reverseadjoint_T(this, mat)
+    class(EulerExp) :: this
+    complex(kind=kind(0.D0)), dimension(:, :) :: mat
+    integer :: i
+    do i = 1,this%nrofcols
+        call this%singleexps(i)%dat%reverseadjointaction(mat)
+    enddo
+end subroutine EulerExp_reverseadjoint_T
 
 subroutine EulerExp_adjoint_over_two(this, mat)
     class(EulerExp) :: this

@@ -249,6 +249,46 @@
         end Subroutine Hop_mod_mmthl
 
 !--------------------------------------------------------------------
+        Subroutine Hop_mod_adjoint (In,nf)
+!e^U M e^{-U}
+
+          ! InOut:  In = IN * e^{ -dtau T }
+          Implicit none
+
+          Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
+          Integer :: nf
+
+          !Local
+          Integer :: nc
+          class(ContainerElementBase), pointer :: dummy
+
+          do nc = Ncheck, 1, -1
+            dummy => ExpOpT_vec(nf)%at(nc)
+            call dummy%adjoint(In)
+          Enddo
+
+        end Subroutine Hop_mod_adjoint
+
+!----------------------------------------------------------------------
+        Subroutine Hop_mod_reverseadjoint (In, nf)
+!e^{-U} M e^U
+
+          Implicit none
+
+          Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
+          Integer :: nf
+
+          !Local
+          Integer :: nc
+          class(ContainerElementBase), pointer :: dummy
+
+          do nc = Ncheck, 1, -1
+            dummy => ExpOpT_vec(nf)%at(nc)
+            call dummy%reverseadjoint(In)
+          Enddo
+
+        end Subroutine Hop_mod_reverseadjoint
+!----------------------------------------------------------------------
 
         Subroutine Hop_mod_mmthlc (In,nf)
 

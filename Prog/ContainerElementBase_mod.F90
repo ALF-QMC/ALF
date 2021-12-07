@@ -45,6 +45,7 @@ module ContainerElementBase_mod
     procedure(rmultinvinterface), deferred :: rmultinv
     procedure(lmultinvinterface), deferred :: lmultinv
     procedure(adjointactioninterface), deferred :: adjoint
+    procedure(reverseadjointinterface), deferred :: reverseadjoint
     procedure(adjoint_over_twointerface), deferred :: adjoint_over_two
     procedure(dump), deferred :: dump
     procedure(dealloc), deferred :: dealloc
@@ -131,6 +132,19 @@ module ContainerElementBase_mod
     !> @param[inout] the matrix that we intend to transform.
     !--------------------------------------------------------------------
       subroutine adjointactioninterface(this, arg)
+         import ContainerElementBase
+         class(ContainerElementBase), intent(in) :: this
+         Complex(kind=kind(0.d0)), intent(inout), dimension(:,:) :: arg
+      end subroutine
+      
+    !--------------------------------------------------------------------
+    !> @brief 
+    !> Perform the similarity transform e^{T} arg e^{-T}
+    !
+    !> @param[in] this
+    !> @param[inout] the matrix that we intend to transform.
+    !--------------------------------------------------------------------
+      subroutine reverseadjointinterface(this, arg)
          import ContainerElementBase
          class(ContainerElementBase), intent(in) :: this
          Complex(kind=kind(0.d0)), intent(inout), dimension(:,:) :: arg

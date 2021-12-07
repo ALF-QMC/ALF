@@ -48,6 +48,7 @@ module HomogeneousSingleColExp_mod
         procedure :: rmultinv => HomogeneousSingleColExp_rmultinv
         procedure :: adjoint_over_two => HomogeneousSingleColExp_adjoint_over_two
         procedure :: adjointaction => HomogeneousSingleColExp_adjointaction
+        procedure :: reverseadjointaction => HomogeneousSingleColExp_reverseadjointaction
     end type
 
 contains
@@ -93,6 +94,14 @@ subroutine HomogeneousSingleColExp_adjointaction(this, mat)
     call this%lmult(mat)
     call this%rmultinv(mat)
 end subroutine HomogeneousSingleColExp_adjointaction
+
+subroutine HomogeneousSingleColExp_reverseadjointaction(this, mat)
+    class(HomogeneousSingleColExp), intent(in) :: this
+    complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
+    
+    call this%lmultinv(mat)
+    call this%rmult(mat)
+end subroutine HomogeneousSingleColExp_reverseadjointaction
 
 subroutine HomogeneousSingleColExp_adjoint_over_two(this, mat)
     class(HomogeneousSingleColExp), intent(in) :: this

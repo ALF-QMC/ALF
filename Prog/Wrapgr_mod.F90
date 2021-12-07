@@ -128,8 +128,9 @@ Contains
     ! Wrap up, upgrade ntau1.  with B^{1}(tau1) 
     NTAU1 = NTAU + 1
     Do nf = 1,N_FL
-       CALL HOP_MOD_mmthr   (GR(:,:,nf), nf )
-       CALL HOP_MOD_mmthl_m1(GR(:,:,nf), nf )
+        call HOP_MOD_adjoint(GR(:,:,nf), nf )
+!        CALL HOP_MOD_mmthr   (GR(:,:,nf), nf )
+!        CALL HOP_MOD_mmthl_m1(GR(:,:,nf), nf )
     Enddo
     Do n = Nt_sequential_start,Nt_sequential_end
        Do nf = 1, N_FL
@@ -273,10 +274,11 @@ Contains
        enddo
     enddo
     DO nf = 1,N_FL
-       Call Hop_mod_mmthl   (GR(:,:,nf), nf)
-       Call Hop_mod_mmthr_m1(GR(:,:,nf), nf)
+       call Hop_mod_reverseadjoint(GR(:,:,nf), nf)
+!        Call Hop_mod_mmthl   (GR(:,:,nf), nf)
+!        Call Hop_mod_mmthr_m1(GR(:,:,nf), nf)
     enddo
-    
+
   end SUBROUTINE WRAPGRDO
   
 

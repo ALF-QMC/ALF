@@ -54,6 +54,7 @@ module SingleColExpBase_mod
         procedure(rmultinvinterface), deferred :: rmultinv
         procedure(lmultinvinterface), deferred :: lmultinv
         procedure(adjointactioninterface), deferred :: adjointaction
+        procedure(reverseadjointactioninterface), deferred :: reverseadjointaction
         procedure(adjointactionovertwointerface), deferred :: adjoint_over_two
         procedure(initinterface), deferred :: init
         procedure(deallocinterface), deferred :: dealloc
@@ -157,6 +158,19 @@ module SingleColExpBase_mod
 
     !--------------------------------------------------------------------
     !> @brief 
+    !> Perform the similarity transform e^{T} arg e^{-T}
+    !
+    !> @param[in] this
+    !> @param[inout] mat the matrix that we intend to transform.
+    !--------------------------------------------------------------------
+      subroutine reverseadjointactioninterface(this, mat)
+         import SingleColExpBase
+         class(SingleColExpBase), intent(in) :: this
+         Complex(kind=kind(0.d0)), intent(inout), dimension(:,:) :: mat
+      end subroutine
+
+    !--------------------------------------------------------------------
+    !> @brief 
     !> Perform the similarity transform e^{-T} arg e^{T}
     !
     !> @param[in] this
@@ -167,7 +181,7 @@ module SingleColExpBase_mod
          class(SingleColExpBase), intent(in) :: this
          Complex(kind=kind(0.d0)), intent(inout), dimension(:,:) :: mat
       end subroutine
-      
+
     !--------------------------------------------------------------------
     !> @brief 
     !> Perform the similarity transform e^{-T/2} arg e^{T/2}

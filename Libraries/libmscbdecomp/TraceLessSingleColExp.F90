@@ -46,6 +46,7 @@ module TraceLessSingleColExp_mod
         procedure :: rmultinv => TraceLessSingleColExp_rmultinv
         procedure :: adjoint_over_two => TraceLessSingleColExp_adjoint_over_two
         procedure :: adjointaction => TraceLessSingleColExp_adjointaction
+        procedure :: reverseadjointaction => TraceLessSingleColExp_reverseadjointaction
     end type
 
 contains
@@ -216,6 +217,30 @@ subroutine TraceLessSingleColExp_adjointaction(this, mat)
     call this%lmult(mat)
     call this%rmultinv(mat)
 end subroutine TraceLessSingleColExp_adjointaction
+
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
+!> The routines for moving to an adjoint representation : out = this.mat.this^(-1)
+!> If needed we could instead calculate an eigendecomposition and use that.
+!> We could really invest in a diagonal calculation at every multiplication
+!> The stability of this topic has been discussed in 
+!> Hargreaves, G. (2005). Topics in matrix computations: Stability and efficiency of algorithms (Doctoral dissertation, University of Manchester).
+!> and "Unifying unitary and hyperbolic transformations Adam Bojanczyka, Sanzheng Qiaob;;1, Allan O. Steinhardt"
+!> For the future we might want to look into fast hyperbolic rotations of Hargreaves, G. (2005).
+!
+!> @param[in] this The exponential that we consider
+!> @param[inout] mat the matrix that we modify.
+!--------------------------------------------------------------------
+subroutine TraceLessSingleColExp_reverseadjointaction(this, mat)
+    class(TraceLessSingleColExp), intent(in) :: this
+    complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
+    
+    call this%lmultinv(mat)
+    call this%rmult(mat)
+end subroutine TraceLessSingleColExp_reverseadjointaction
 
 subroutine TraceLessSingleColExp_adjoint_over_two(this, mat)
     class(TraceLessSingleColExp), intent(in) :: this
