@@ -75,14 +75,14 @@ end subroutine ZeroDiagSingleColExp_vecmult
 !--------------------------------------------------------------------
 subroutine ZeroDiagSingleColExp_lmult(this, mat)
     class(ZeroDiagSingleColExp), intent(in) :: this
-    complex(kind=kind(0.D0)), dimension(:, :), intent(inout), contiguous :: mat
+    complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
 
     call lmultbase(this%c, this%s, this%xy, this%nrofentries, mat)
 end subroutine ZeroDiagSingleColExp_lmult
 
 subroutine ZeroDiagSingleColExp_lmultinv(this, mat)
     class(ZeroDiagSingleColExp), intent(in) :: this
-    complex(kind=kind(0.D0)), dimension(:, :), intent(inout), contiguous :: mat
+    complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
     integer :: i, j, k, ndim, loopend
     integer, parameter :: step = 2
     complex(kind=kind(0.D0)) :: t1(step), t2(step)

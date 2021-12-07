@@ -84,7 +84,7 @@ module SingleColExpBase_mod
       subroutine lmultinterface(this, mat)
          import SingleColExpBase
          class(SingleColExpBase), intent(in) :: this
-         Complex(kind=kind(0.d0)), intent(inout),  dimension(:,:), contiguous :: mat
+         Complex(kind=kind(0.d0)), intent(inout),  dimension(:,:) :: mat
       end subroutine
 
     !--------------------------------------------------------------------
@@ -121,7 +121,7 @@ module SingleColExpBase_mod
       subroutine lmultinvinterface(this, mat)
          import SingleColExpBase
          class(SingleColExpBase), intent(in) :: this
-         Complex(kind=kind(0.d0)), intent(inout),  dimension(:,:), contiguous :: mat
+         Complex(kind=kind(0.d0)), intent(inout),  dimension(:,:) :: mat
       end subroutine
 
     !--------------------------------------------------------------------
@@ -228,7 +228,6 @@ end subroutine
 !
 !> Notes: unifying x and y into one array gave some speedup.
 !> Unifying c and s did not...
-!> FIXME: ndim divisible by two...
 !> This is an internal helper function that finds reuse in multiple places.
 !
 !> @param[in] c the diagonal data
@@ -243,20 +242,11 @@ pure subroutine lmultbase(c, s, xy, nrofentries, mat)
     complex (kind=kind(0.d0)), allocatable, intent(in) :: s(:)
     integer, allocatable, intent(in) :: xy(:)
     integer, intent(in) ::nrofentries
-    complex(kind=kind(0.D0)), dimension(:, :), intent(inout), contiguous :: mat
+    complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
     
     integer :: i, j, k, ndim, loopend
     integer, parameter :: step = 2 ! determined to be fastest on 6x6 hubbard
     complex(kind=kind(0.D0)) :: t1(step), t2(step)
-    integer, allocatable, dimension(:) :: xyarray
-    complex(kind=kind(0.D0)), allocatable, dimension(:) :: snh
-    real(kind=kind(0.D0)), allocatable, dimension(:) :: csh
-
-! The intel compiler is really helped by using these temporary arrays
-    allocate(xyarray(size(xy)), csh(nrofentries), snh(nrofentries) )
-    xyarray = xy
-    csh = c
-    snh = s
 
     ndim = size(mat,1)
     loopend = (ndim/step)*step
@@ -266,26 +256,25 @@ pure subroutine lmultbase(c, s, xy, nrofentries, mat)
     do j = 1, loopend, step
         do i = 1, nrofentries! for every matrix
             do k = 1,step
-                t1(k) = mat(xyarray(2*i-1), j+k-1)
-                t2(k) = mat(xyarray(2*i), j+k-1)
+                t1(k) = mat(xy(2*i-1), j+k-1)
+                t2(k) = mat(xy(2*i), j+k-1)
             enddo
             do k = 1, step
-                mat(xyarray(2*i-1), j+k-1) = csh(i) * t1(k) + snh(i) * t2(k)
-                mat(xyarray(2*i), j+k-1) = csh(i) * t2(k) + conjg(snh(i)) * t1(k)
+                mat(xy(2*i-1), j+k-1) = c(i) * t1(k) + s(i) * t2(k)
+                mat(xy(2*i), j+k-1) = c(i) * t2(k) + conjg(s(i)) * t1(k)
             enddo
         enddo
     enddo
-    
+
     ! remainder loop
     if ((ndim - loopend) .ne. 0) then
         do i = 1, nrofentries! for every matrix
-            t1(1) = mat(xyarray(2*i-1), ndim)
-            t2(1) = mat(xyarray(2*i), ndim)
-            mat(xyarray(2*i-1), ndim) = csh(i) * t1(1) + snh(i) * t2(1)
-            mat(xyarray(2*i), ndim) = csh(i) * t2(1) + conjg(snh(i)) * t1(1)
+            t1(1) = mat(xy(2*i-1), ndim)
+            t2(1) = mat(xy(2*i), ndim)
+            mat(xy(2*i-1), ndim) = c(i) * t1(1) + s(i) * t2(1)
+            mat(xy(2*i), ndim) = c(i) * t2(1) + conjg(s(i)) * t1(1)
         enddo
     endif
-    deallocate(xyarray, csh, snh)
 end subroutine
 
 !--------------------------------------------------------------------

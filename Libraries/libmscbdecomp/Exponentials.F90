@@ -216,7 +216,7 @@ end subroutine FullExp_vecmult_T
 
 subroutine FullExp_lmult(this, mat)
     class(FullExp) :: this
-    complex(kind=kind(0.D0)), intent(inout), contiguous :: mat(:,:)
+    complex(kind=kind(0.D0)), intent(inout) :: mat(:,:)
     integer :: i
     do i = this%evals-1, 1, -2
        call this%stages(i+1)%lmult_T(mat)
@@ -246,7 +246,7 @@ end subroutine FullExp_adjoint
 
 subroutine FullExp_lmultinv(this, mat)
     class(FullExp) :: this
-    complex(kind=kind(0.D0)), intent(inout), contiguous :: mat(:,:)
+    complex(kind=kind(0.D0)), intent(inout) :: mat(:,:)
     integer :: i
     do i = 1, this%evals, 2
        call this%stages(i)%lmultinv(mat)
@@ -302,7 +302,7 @@ end subroutine EulerExp_dealloc
 !> @brief 
 !> This function multiplies this Euler exponential with a vector.
 !
-!> @param[in] this The exponential opbject
+!> @param[in] this The exponential object
 !> @param[in] vec The vector that we multiply
 !--------------------------------------------------------------------
 subroutine EulerExp_vecmult(this, vec)
@@ -336,7 +336,7 @@ end subroutine EulerExp_vecmult_T
 
 subroutine EulerExp_lmultinv(this, mat)
     class(EulerExp) :: this
-    complex(kind=kind(0.D0)), dimension(:, :), contiguous :: mat
+    complex(kind=kind(0.D0)), dimension(:, :) :: mat
     integer :: i
     do i = 1, this%nrofcols
         call this%singleexps(i)%dat%lmultinv(mat)
@@ -345,7 +345,7 @@ end subroutine EulerExp_lmultinv
 
 subroutine EulerExp_lmult(this, mat)
     class(EulerExp) :: this
-    complex(kind=kind(0.D0)), dimension(:, :), contiguous :: mat
+    complex(kind=kind(0.D0)), dimension(:, :) :: mat
     integer :: i
     do i = this%nrofcols, 1, -1
         call this%singleexps(i)%dat%lmult(mat)
@@ -447,7 +447,7 @@ end subroutine EulerExp_lmultinv_T
 !> Florian Goth
 !
 !> @brief 
-!> A function to determine the equality of twor floating point numbers.
+!> A function to determine the equality of two floating point numbers.
 
 !> @param[in] a first number
 !> @param[in] b second number
