@@ -47,6 +47,15 @@ module graphdata_mod
 
 contains
 
+!--------------------------------------------------------------------
+!> @author
+!> Florian Goth
+!
+!> @brief 
+!> Tidy up internal arrays.
+!
+!> @param[in] gd A graphdata object
+!--------------------------------------------------------------------
 subroutine dealloc_graphdata(gd)
     implicit none
     type(GraphData) :: gd
@@ -253,9 +262,11 @@ end function
 !> Florian Goth
 !
 !> @brief 
-!> A function that findsfrom an array of colors 
-!> The color that has the most edges associated to it,
+!> A function that finds from an array of colors 
+!> the color that has the most edges associated to it,
 !> according to the data in edges_per_color.
+!> If multiple colors have the same size, the tie is resolved according to
+!> the biggest numerical value of the color.
 !
 !> @param[in] edges_per_color An array containing for each color the number of edges
 !> @param[in] cols An array of colors from which we rty to find the biggest
@@ -266,6 +277,7 @@ function find_biggest_color(edges_per_color, cols) result(ret)
     integer :: ret
     integer :: i, start
     
+    ! there can be some unused colors in the array
     start = 1
     do while (cols(start) == 0)
         start = start + 1
@@ -274,7 +286,7 @@ function find_biggest_color(edges_per_color, cols) result(ret)
     ret = cols(start)
     do i = start+1, size(cols)
         if (cols(i) > 0) then
-           if (edges_per_color(cols(i)) > edges_per_color(ret)) ret = cols(i)
+           if (edges_per_color(cols(i)) >= edges_per_color(ret)) ret = max(cols(i), ret)
         endif
     enddo
 end function
@@ -284,11 +296,11 @@ end function
 !> Florian Goth
 !
 !> @brief 
-!> This function encodes the strategy that is ued to distribute the
-!> main-diagonal ov the various colors.
+!> This function encodes the strategy that is used to distribute the
+!> main-diagonal over the various colors.
 !
 !> Currently we try to put the diagonal into the color which hosts the most
-!> edges. If the edges of touch the entire diagonal then only a single color
+!> edges. If the edges of it touch the entire diagonal then only a single color
 !> with a GeneralExp, or HomogeneousExp is generated. The rest will be the fast
 !> ZeroDiag type exponentials.
 !
