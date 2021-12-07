@@ -133,9 +133,9 @@ Its code is written in Fortran, according to the 2008 standard, and natively use
 In this documentation we aim to present in enough detail both the algorithm and its implementation to allow the user to confidently use and modify the program.
 
 In Sec.~\ref{sec:def}, we summarize the steps required to formulate the many-body, imaginary-time propagation in terms of a sum over HS and bosonic fields of one-body, imaginary-time propagators.   
-To simulate a model not already included in ALF, the user has to provide this one-body, imaginary-time propagator for a given configuration of HS and bosonic fields.  In this section we also  touch on how to compute observables and on  how we deal with the negative sign problem.  The ALF-2.0  has a number  of new updating schemes.   The package comes with  the possibility to  implement global updates in space and time or only in space. We provide parallel-tempering  and Langevin dynamics options.   Another important addition in ALF 2.0  is the possibility to implement symmetric Trotter decompositions.    At the end of the section   we  comment  on the issue of stabilization for the finite temperature code. 
+To simulate a model not already included in ALF, the user has to provide this one-body, imaginary-time propagator for a given configuration of HS and bosonic fields.  In this section we also touch on how to compute observables and on  how we deal with the negative sign problem.  Since version 2.0, ALF has a number  of new updating schemes.   The package comes with  the possibility to  implement global updates in space and time or only in space. We provide parallel-tempering  and Langevin dynamics options.  Another possibility is to implement symmetric Trotter decompositions. At the end of the section   we  comment  on the issue of stabilization for the finite temperature code. 
 
-In Sec.~\ref{sec:defT0},    we describe the projective version of the algorithm, constructed to produce ground state properties. This is a new feature of ALF 2.0, and  one can very easily switch between  projective and finite temperature codes. 
+In Sec.~\ref{sec:defT0},    we describe the projective version of the algorithm, constructed to produce ground state properties. One can very easily switch between  projective and finite temperature codes, but a trial wave function must be provided for the projective algorithm. 
 
 One of the key challenges in  Monte Carlo methods is to  adequately evaluate the stochastic error.  In Sec.~\ref{sec:sampling}  we provide an explicit example  of how to correctly estimate the   error. 
 
@@ -146,15 +146,15 @@ a generic \texttt{Fields} type for the auxiliary fields,
 two \texttt{Observable} types to handle scalar observables (e.g., total energy) and equal-time or time-displaced two-point correlation functions (e.g., spin-spin correlations) and finally a \texttt{Wavefunction} type  to define the trial wave function in the projective code.
 At the end of this section we comment on the file structure.
 
-In Sec.~\ref{sec:running}   we provide details on running the code  using the shell.  As an alternative the user can download a separate project, \href{https://git.physik.uni-wuerzburg.de/ALF/pyALF}{pyALF}   that provides a convenient python interface as well as  Jupyter  notebooks. 
+In Sec.~\ref{sec:running}   we provide details on running the code  using the shell.  As an alternative the user can download a separate project, \href{https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/tree/\ALFbranch}{pyALF}   that provides a convenient python interface as well as  Jupyter  notebooks. 
 
-In ALF-2.0  we have defined a set of predefined structures that allow easy reuse of lattices, observables, interactions and trial wave functions.   Although convenient, this extra layer of abstraction might 
-render ALF-2.0  harder to modify. To circumvent this we make available an implementation of a plain vanilla Hubbard model on the square lattice (see Sec.~\ref{sec:vanilla}) that shows explicitly how to implement this basic model without making use of predefined structures.  We believe that this is a good starting point to modify a Hamiltonian from scratch, as exemplified in the package's \href{https://git.physik.uni-wuerzburg.de/ALF/ALF_Tutorial}{Tutorial}. 
+The package has a set of predefined structures that allow easy reuse of lattices, observables, interactions and trial wave functions.   Although convenient, this extra layer of abstraction might 
+render ALF harder to modify. To circumvent this we make available an implementation of a plain vanilla Hubbard model on the square lattice (see Sec.~\ref{sec:vanilla}) that shows explicitly how to implement this basic model without making use of predefined structures.  We believe that this is a good starting point to modify a Hamiltonian from scratch, as exemplified in the package's \href{https://git.physik.uni-wuerzburg.de/ALF/ALF_Tutorial}{Tutorial}. 
 
 Sec.~\ref{sec:predefined}   introduces the sets of predefined lattices,  hopping matrices,  interactions, observables and trial wave functions available.  The goal here is to provide a 
 library  so as to facilitate  implementation of new  Hamiltonians. 
 
-The ALF 2.0  comes with as set of Hamiltonians, described in Sec.~\ref{sec:model_classes}, which includes: (i) SU(N) Hubbard models, (ii) SU(N) t-V models, (iii) SU(N) Kondo lattice models, (iv)    Models with long ranged coulomb interactions, and (v) Generic $\Ztwo$ lattice gauge theories coupled to $\Ztwo$ matter and fermions.  These model classes are built on the predefined structures. 
+The package comes with a set of Hamiltonians, described in Sec.~\ref{sec:model_classes}, which includes: (i) SU(N) Hubbard models, (ii) SU(N) t-V models, (iii) SU(N) Kondo lattice models, (iv)    Models with long ranged coulomb interactions, and (v) Generic $\Ztwo$ lattice gauge theories coupled to $\Ztwo$ matter and fermions.  These model classes are built on the predefined structures. 
 
 In Sec.~\ref{sec:maxent}  we  describe how to use our implementation of the stochastic analytical  continuation \cite{Sandvik98,Beach04a}.
 
