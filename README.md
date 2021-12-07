@@ -1,6 +1,6 @@
 # ALF #
-[![pipeline status](https://git.physik.uni-wuerzburg.de/ALF/ALF/badges/master/pipeline.svg)](https://git.physik.uni-wuerzburg.de/ALF/ALF/commits/master)
-[![coverage report](https://git.physik.uni-wuerzburg.de/ALF/ALF/badges/master/coverage.svg)](https://git.physik.uni-wuerzburg.de/ALF/ALF/commits/master)
+[![pipeline status](https://git.physik.uni-wuerzburg.de/ALF/ALF/badges/ALF-2.2/pipeline.svg)](https://git.physik.uni-wuerzburg.de/ALF/ALF/commits/ALF-2.2)
+[![coverage report](https://git.physik.uni-wuerzburg.de/ALF/ALF/badges/ALF-2.2/coverage.svg)](https://git.physik.uni-wuerzburg.de/ALF/ALF/commits/ALF-2.2)
 ## General information ##
 This is the **development** version of ALF, the latest stable version is [ALF 2.2](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/tree/ALF-2.2).
 
