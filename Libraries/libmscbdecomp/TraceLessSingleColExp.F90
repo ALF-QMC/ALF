@@ -87,7 +87,7 @@ pure subroutine lmultthreeelementbase(c, s, x, nrofentries, mat)
     complex (kind=kind(0.d0)), allocatable, intent(in) :: s(:)
     integer, allocatable, intent(in) :: x(:)
     integer, intent(in) ::nrofentries
-    complex(kind=kind(0.D0)), dimension(:, :), intent(inout), contiguous :: mat
+    complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
     
     integer :: i, j, k, ndim, loopend
     integer, parameter :: step = 2 ! determined to be fastest on 6x6 hubbard
@@ -144,7 +144,7 @@ end subroutine
 !--------------------------------------------------------------------
 subroutine TraceLessSingleColExp_lmult(this, mat)
     class(TraceLessSingleColExp), intent(in) :: this
-    complex(kind=kind(0.D0)), dimension(:, :), intent(inout), contiguous :: mat
+    complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
 
     call lmultthreeelementbase(this%c, this%s, this%xy, this%nrofentries, mat)
 end subroutine TraceLessSingleColExp_lmult
@@ -157,12 +157,12 @@ end subroutine TraceLessSingleColExp_lmult
 !> Perform the multiplication of this inverted exponential with a matrix:
 !>  out = this*mat
 !
-!> @param[in] this The exponential that we consider
+!> @param[in] this The exponential that we consider.
 !> @param[inout] mat the matrix that we modify.
 !--------------------------------------------------------------------
 subroutine TraceLessSingleColExp_lmultinv(this, mat)
     class(TraceLessSingleColExp), intent(in) :: this
-    complex(kind=kind(0.D0)), dimension(:, :), intent(inout), contiguous :: mat
+    complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
     integer :: i, j, k, ndim, loopend
     integer, parameter :: step = 2
     complex(kind=kind(0.D0)) :: t1(step), t2(step)

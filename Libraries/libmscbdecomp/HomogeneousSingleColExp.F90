@@ -65,7 +65,7 @@ contains
 !--------------------------------------------------------------------
 subroutine HomogeneousSingleColExp_lmultinv(this, mat)
     class(HomogeneousSingleColExp), intent(in) :: this
-    complex(kind=kind(0.D0)), dimension(:, :), intent(inout), contiguous :: mat
+    complex(kind=kind(0.D0)), dimension(:, :), intent(inout) :: mat
     
     call lmultbase(this%cinv, this%sinv, this%xy, this%nrofentries, mat)
 end subroutine HomogeneousSingleColExp_lmultinv
