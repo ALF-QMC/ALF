@@ -48,6 +48,7 @@ module OpTTypes_mod
     type, extends(ContainerElementBase) :: RealExpOpT
         Real(kind=kind(0.d0)), allocatable, dimension(:,:) :: mat, invmat, mat_1D2, invmat_1D2 !>We store the matrix in the class
         Real(kind=kind(0.d0)) :: g, Zero
+        complex(kind=kind(0.d0)), allocatable, dimension(:,:) :: O
         integer, allocatable :: P(:)
         Integer :: m, n, Ndim_hop
         
@@ -129,6 +130,7 @@ contains
                 this%invmat_1D2(i, j) = (this%invmat_1D2(i, j) + this%invmat_1D2(j, i))/2.D0
             ENDDO
         ENDDO
+        this%O = Op_T%O
         this%P = Op_T%P ! copy all data locally to be consistent and less error prone
         this%g = DBLE(Op_T%g)
         deallocate(cmat, cinvmat)
@@ -147,31 +149,119 @@ contains
         Endif
     end subroutine
     
+    function ad(X, Y) result(res)
+    Complex(kind=kind(0.D0)), intent(in), dimension(:,:) :: X,Y
+    Complex(kind=kind(0.D0)), dimension(:,:), allocatable :: res
+    res = matmul(X, Y) - matmul(Y, X)
+    end function
+    
+    function app4(dt, X, M) result(res)
+    Complex(kind=kind(0.D0)), intent(in), dimension(:,:) :: X, M
+    Complex(kind=kind(0.D0)), dimension(:,:), allocatable :: res
+    Real(kind=kind(0.D0)) :: dt
+    
+!     write (*,*) X
+!     stop -3
+    res = M + dt                     * ad(X, M) &
+        &+ 1.0/2.0      *dt**2*        ad(X, ad(X, M)) &
+        &+ 1.D0/6.D0    *dt**3 * ad(X, ad(X, ad(X, M))) + &
+        & 1.D0/24.D0    *dt**4 * ad(X, ad(X, ad(X, ad(X, M)))) + &
+        & 1.D0/120.0    *dt**5 * ad(X, ad(X, ad(X, ad(X, ad(X, M))))) +&
+        & 1.D0/720.0    *dt**6 * ad(X, ad(X, ad(X, ad(X, ad(X, ad(X, M)))))) + &
+        & 1.D0/5040.0   *dt**7 * ad(X, ad(X, ad(X, ad(X, ad(X, ad(X, ad(X, M))))))) + &
+        & 1.D0/403020.0 *dt**8 * ad(X, ad(X, ad(X, ad(X, ad(X, ad(X, ad(X, ad(X, M))))))))
+    end function
+    
     subroutine RealExpOpT_adjoint(this, arg)
         class(RealExpOpT), intent(in) :: this
         Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
+        Complex(kind=kind(0.D0)), dimension(:,:), allocatable :: arginp
+        REAL(kind=kind(0.D0)), dimension(:), allocatable :: work
+        REAL(kind=kind(0.D0)) :: zlanhe
+        REAL(kind=kind(0.D0)) :: nt, ng
         Integer :: n1, n2
         
         n1 = size(arg,1)
         n2 = size(arg,2)
+        arginp = arg
         If ( this%g*this%g > this%Zero ) then
-            call ZDSLSYMM('L', 'U', this%Ndim_hop, n1, n2, this%mat, this%P, arg)
-            call ZDSLSYMM('R', 'U', this%Ndim_hop, n1, n2, this%invmat, this%P, arg)
+        nt = dble(this%g)*zlanhe('F', 'U', n1, this%O, n1, work)
+        ng = zlanhe('F', 'U', n1, arg, n1, work)
+        write (*,*) "norm T:", nt
+        write (*,*) "norm G:", ng
+        write (*,*) "remainder: ", 1.0/362288.0 * nt**9 * ng
+                arginp = app4(dble(this%g), this%O, arginp)
+!             call ZDSLSYMM('L', 'U', this%Ndim_hop, n1, n2, this%mat, this%P, arg)
+!             call ZDSLSYMM('R', 'U', this%Ndim_hop, n1, n2, this%invmat, this%P, arg)
+!             write (*,*) DBLE(arginp)
+!             write (*,*) "========"
+!             write (*,*) DBLE(arg)
+!             stop -2
+           arg = arginp
         Endif
     end subroutine
     
     subroutine RealExpOpT_reverseadjoint(this, arg)
         class(RealExpOpT), intent(in) :: this
         Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
+        Complex(kind=kind(0.D0)), dimension(:,:), allocatable :: arginp
+        REAL(kind=kind(0.D0)), dimension(:), allocatable :: work
+        REAL(kind=kind(0.D0)) :: zlanhe
+        real(kind = kind(0.D0)) :: dt
         Integer :: n1, n2
         
         n1 = size(arg,1)
         n2 = size(arg,2)
+        arginp = arg
         If ( this%g*this%g > this%Zero ) then
-            call ZDSLSYMM('L', 'U', this%Ndim_hop, n1, n2, this%invmat, this%P, arg)
-            call ZDSLSYMM('R', 'U', this%Ndim_hop, n1, n2, this%mat, this%P, arg)
+            dt = -dble(this%g)
+            arginp = app4(dt, this%O, arginp)
+!             call ZDSLSYMM('L', 'U', this%Ndim_hop, n1, n2, this%invmat, this%P, arg)
+!             call ZDSLSYMM('R', 'U', this%Ndim_hop, n1, n2, this%mat, this%P, arg)
+!             write (*,*) DBLE(arginp)
+!             write (*,*) "========"
+!             write (*,*) DBLE(arg)
+!             stop -2
+    arg = arginp
         Endif
     end subroutine
+    
+    function apprmult(dt, O, arg) result(res)
+        Complex(kind=kind(0.D0)), intent(in), dimension(:,:) :: arg, O
+        Complex(kind=kind(0.D0)), dimension(:,:), allocatable :: res
+        Real(kind=kind(0.D0)), intent(in) :: dt
+        
+        ! Horner scheme applied to taylor series of exponential
+        res = arg + &
+        & dt*matmul(O, arg + dt/2.0*&
+        &    matmul(O, arg + dt/3.0*&
+        &    matmul(O, arg + dt/4.0*&
+        &    matmul(O, arg + dt/5.0*&
+        &    matmul(O, arg + dt/6.0*&
+        &    matmul(O, arg + dt/7.0*&
+        &    matmul(O, arg + dt/8.0*&
+        &    matmul(O, arg + dt/9.0*matmul(O, arg)))))))))
+        
+    end function
+
+    function applmult(dt, O, arg) result(res)
+        Complex(kind=kind(0.D0)), intent(in), dimension(:,:) :: arg, O
+        Complex(kind=kind(0.D0)), dimension(:,:), allocatable :: res
+        Real(kind=kind(0.D0)), intent(in) :: dt
+        
+        ! Horner scheme applied to taylor series of exponential
+        res = arg + &
+        & matmul(arg + &
+        & matmul(arg + &
+        & matmul(arg + &
+        & matmul(arg + &
+        & matmul(arg + &
+        & matmul(arg + &
+        & matmul(arg + &
+        & matmul(arg + &
+        & matmul(arg + dt/9.0*matmul(arg, O), O)*dt/8.0, &
+        & O)*dt/7.0, O)*dt/6.0, O)*dt/5.0, O)*dt/4.0, O)*dt/3.0, O)*dt/2.0, O)*dt , O)
+    end function
     
     subroutine RealExpOpT_rmult(this, arg)
         class(RealExpOpT), intent(in) :: this
@@ -181,7 +271,8 @@ contains
         n1 = size(arg,1)
         n2 = size(arg,2)
         If ( this%g*this%g > this%Zero ) then
-            call ZDSLSYMM('R', 'U', this%Ndim_hop, n1, n2, this%mat, this%P, arg)
+        arg = apprmult(this%g, this%O, arg)
+!             call ZDSLSYMM('R', 'U', this%Ndim_hop, n1, n2, this%mat, this%P, arg)
         Endif
     end subroutine
     
@@ -206,7 +297,8 @@ contains
         n1 = size(arg,1)
         n2 = size(arg,2)
         If ( this%g*this%g > this%Zero ) then
-            call ZDSLSYMM('L', 'U', this%Ndim_hop, n1, n2, this%mat, this%P, arg)
+            arg = apprmult(this%g, this%O, arg)
+!             call ZDSLSYMM('L', 'U', this%Ndim_hop, n1, n2, this%mat, this%P, arg)
         Endif
     end subroutine
     
