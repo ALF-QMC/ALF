@@ -162,14 +162,14 @@ contains
     
 !     write (*,*) X
 !     stop -3
-    res = M + dt                     * ad(X, M) &
-        &+ 1.0/2.0      *dt**2*        ad(X, ad(X, M)) &
-        &+ 1.D0/6.D0    *dt**3 * ad(X, ad(X, ad(X, M))) + &
-        & 1.D0/24.D0    *dt**4 * ad(X, ad(X, ad(X, ad(X, M)))) + &
-        & 1.D0/120.0    *dt**5 * ad(X, ad(X, ad(X, ad(X, ad(X, M))))) +&
-        & 1.D0/720.0    *dt**6 * ad(X, ad(X, ad(X, ad(X, ad(X, ad(X, M)))))) + &
-        & 1.D0/5040.0   *dt**7 * ad(X, ad(X, ad(X, ad(X, ad(X, ad(X, ad(X, M))))))) + &
-        & 1.D0/403020.0 *dt**8 * ad(X, ad(X, ad(X, ad(X, ad(X, ad(X, ad(X, ad(X, M))))))))
+    res = M + dt*ad(X, &
+          & M + dt/2.0 * ad(X, &
+          & M + dt/3.0 * ad(X, &
+          & M + dt/4.0 * ad(X, &
+          & M + dt/5.0 * ad(X, &
+          & M + dt/6.0 * ad(X, &
+          & M + dt/7.0 * ad(X, &
+          & M + dt/8.0 * ad(X,M))))))))
     end function
     
     subroutine RealExpOpT_adjoint(this, arg)
