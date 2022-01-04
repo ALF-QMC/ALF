@@ -187,6 +187,7 @@
 
       !>    Privat Observables
       Type (Obser_Vec ), dimension(:), allocatable :: Obs_scal
+      Type (Obser_hist), dimension(:), allocatable :: Obs_hist
       Type (Obser_Latt), dimension(:), allocatable :: Obs_eq
       Type (Obser_Latt), dimension(:), allocatable :: Obs_tau
 
@@ -471,6 +472,11 @@
                   Call Print_bin_Vec(Obs_scal(I), Group_Comm)
                enddo
              endif
+             if ( allocated(Obs_hist) ) then
+                Do I = 1,Size(Obs_hist,1)
+                   Call  Obs_hist(I)%print_bin(Group_Comm)
+                enddo
+             endif
              if ( allocated(Obs_eq) ) then
                Do I = 1,Size(Obs_eq,1)
                   Call Print_bin_Latt(Obs_eq(I), Group_Comm)
@@ -505,6 +511,12 @@
                Do I = 1,Size(Obs_scal,1)
                   Call Obser_vec_Init(Obs_scal(I))
                Enddo
+             endif
+
+             if ( allocated(Obs_hist) ) then
+                Do I = 1,Size(Obs_hist,1)
+                   Call Obs_hist(I)%init()
+                Enddo
              endif
     
              if ( allocated(Obs_eq) ) then
