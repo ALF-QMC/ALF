@@ -72,23 +72,23 @@
       integer, parameter :: dp=kind(0.d0)  ! double precision
 
       !#PARAMETERS START# VAR_Nematic_Dirac
-      !Integer :: N_SUN = 2
-      real(dp) :: dtau = 0.1d0
-      Character (len=64) :: Global_type = '' !Type of global update. Possible values: 'Wolff', 'Geo', 'switch', 'flip'
-      Integer  :: L1 = 4
-      Integer  :: L2 = 4
-      Integer  :: Model_vers = 1 !Version of model. 1: C_2v model, 2: C_4v model
-      real(dp) :: ham_t = 1.d0
-      real(dp) :: beta = 10.d0
-      real(dp) :: Ham_h = 3.d0
-      real(dp) :: Ham_J = 1.d0
-      real(dp) :: Ham_xi = 1.d0
-      real(dp) :: Ham_xi2 = 0.d0
-      real(dp) :: Ham_chem = 0.d0
-      real(dp) :: Global_J = 1.d0
-      real(dp) :: Global_h = 3.d0
-      real(dp) :: Phi_1 = 0.d0
-      real(dp) :: Phi_2 = 0.d0
+      !Integer :: N_SUN = 2       ! SU(N) symmetry
+      real(dp) :: dtau = 0.1d0    ! Imaginary time step size
+      Character (len=64) :: Global_type = '' ! Type of global update. Possible values: 'Wolff', 'Geo', 'switch', 'flip'
+      Integer  :: L1 = 4          ! Size of lattice in a1 direction
+      Integer  :: L2 = 4          ! Size of lattice in a2 direction
+      Integer  :: Model_vers = 1  ! Version of model. 1: C_2v model, 2: C_4v model
+      real(dp) :: ham_t = 1.d0    ! Hopping amplitude of fermions
+      real(dp) :: beta = 10.d0    ! Reciprocal temperature
+      real(dp) :: Ham_h = 3.d0    ! Ising transverse field
+      real(dp) :: Ham_J = 1.d0    ! Ferromagnetic Ising interaction
+      real(dp) :: Ham_xi = 1.d0   ! Coupling strength Ising spins <-> fermions
+      real(dp) :: Ham_xi2 = 0.d0  ! Static fermion hopping "distortion"
+      real(dp) :: Ham_chem = 0.d0 ! Chemical potential
+      real(dp) :: Global_J = 1.d0 ! J for proposing global updates
+      real(dp) :: Global_h = 3.d0 ! h for proposing global updates
+      real(dp) :: Phi_1 = 0.d0    ! Twisted boundary in a1 direction
+      real(dp) :: Phi_2 = 0.d0    ! Twisted boundary in a2 direction
       !#PARAMETERS END#
 
       !#PARAMETERS START# VAR_Init
