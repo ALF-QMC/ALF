@@ -1,4 +1,4 @@
-!  Copyright (C) 2021 The ALF project
+!  Copyright (C) 2021-2022 The ALF project
 !
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -89,6 +89,10 @@
       real(dp) :: Global_h = 3.d0
       real(dp) :: Phi_1 = 0.d0
       real(dp) :: Phi_2 = 0.d0
+      !#PARAMETERS END#
+
+      !#PARAMETERS START# VAR_Init
+      Character (len=64) :: init_type = 'random' ! How to initialize Ising field. Possile values: 'random', 'up', 'down', 'updown'
       !#PARAMETERS END#
       
 
@@ -605,20 +609,6 @@
          Real (Kind=Kind(0.d0)), allocatable, dimension(:,:), Intent(INOUT) :: Initial_field
 
           Integer :: I, nt, ierr
-          Character (len=64) :: init_type
-          NAMELIST /VAR_Init/   init_type
-
-          OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
-          IF (ierr /= 0) THEN
-             WRITE(*,*) 'unable to open <parameters>',ierr
-             STOP
-          END IF
-          init_type = 'random'
-          READ(5,NML=VAR_init,iostat=ierr)
-          IF (ierr /= 0) THEN
-             init_type = 'random'
-          ENDIF
-          CLOSE(5)
 
           !write(*,*) init_type
           Allocate( Initial_field(Size(OP_V,1), Ltrot) )
