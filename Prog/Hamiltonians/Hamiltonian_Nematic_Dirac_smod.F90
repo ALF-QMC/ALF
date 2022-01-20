@@ -161,6 +161,10 @@
           
          If (Irank_g == 0 ) then
 #endif
+
+           ! From dynamically generated file "Hamiltonian_Nematic_Dirac_read_write_parameters.F90"
+           call read_parameters()
+
 #if defined(TEMPERING)
            write(file_info,'(A,I0,A)') "Temp_",igroup,"/info"
 #else
@@ -185,6 +189,7 @@
            Write(unit_info,*) 'Global_h            : ', Global_h
            Write(unit_info,*) 'Phi_1               : ', Phi_1
            Write(unit_info,*) 'Phi_2               : ', Phi_2
+           Write(unit_info,*) 'init_type           : ', init_type
            close(unit_info)
 #ifdef MPI
           endif
