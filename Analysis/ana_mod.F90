@@ -1977,7 +1977,11 @@ Subroutine ana_local(name, sgn, bins_raw, Latt, Latt_unit)
       Type (Lattice)                        , intent(in) :: Latt
       Type (Unit_cell)                      , intent(in) :: Latt_unit
       Real    (Kind=Kind(0.d0))             , intent(in) :: dtau
+<<<<<<< HEAD
       Character (len=*)                     , intent(in) :: Channel
+=======
+      Character (len=2)                     , intent(in) :: Channel
+>>>>>>> 13bd2f25 (Add tools for converting plain text bins to HDF5 format)
 
       Integer :: Norb, Nunit, Ntau, Nbins
 
