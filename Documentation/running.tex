@@ -367,7 +367,7 @@ depending on the specific implementation of the library used\footnote{The linked
 \subsection{Parallel parameters feature} \label{sec:parallel_params}
 %-------------------------------------------------------------------------------------
 %
-With the compile-time option \verb|PARALLEL\_PARAMS| (or equivalently \verb|PP|), ALF can run multiple independent simulations in parallel. This feature is meant for utilizing the high core counts of modern HPC systems in cases where a normal job size might be overkill for a single simulation. The basic folder structure is the same as in Parallel Tempering, as sketched in Fig.~\ref{fig:parallel_params}: The root directory contains the files \verb|parameters|, \verb|seeds| and directories \verb|Temp_0| to \verb|Temp_{N-1}|, where $N$ is the number of parameter sets, i.e. different simulations. Contrary to Parallel Tempering, in Parallel Parameters mode only \verb|mpi_per_parameter_set| from the namelist \verb|VAR_TEMP| is read from \verb|./parameters|. This variable is defined as the number of availbale MPI processes divided by $N$. All the rest of the parameters are read from \verb|Temp_*/parameters|, which allows to simulate completely different parameters and even different Hamiltonians.
+With the compile-time option \verb|PARALLEL_PARAMS| (or equivalently \verb|PP|), ALF can run multiple independent simulations in parallel. This feature is meant for utilizing the high core counts of modern HPC systems in cases where a normal job size might be overkill for a single simulation. The basic folder structure is the same as in Parallel Tempering, as sketched in Fig.~\ref{fig:parallel_params}: The root directory contains the files \verb|parameters|, \verb|seeds| and directories \verb|Temp_0| to \verb|Temp_{N-1}|, where $N$ is the number of parameter sets, i.e. different simulations. Contrary to Parallel Tempering, in Parallel Parameters mode only \verb|mpi_per_parameter_set| from the namelist \verb|VAR_TEMP| is read from \verb|./parameters|. This variable is defined as the number of availbale MPI processes divided by $N$. All the rest of the parameters are read from \verb|Temp_*/parameters|, which allows to simulate completely different parameters and even different Hamiltonians.
 
 \begin{figure}
 \dirtree{%
@@ -381,3 +381,39 @@ With the compile-time option \verb|PARALLEL\_PARAMS| (or equivalently \verb|PP|)
 }
 \caption{Folder structure for a parallel parameters (or Parallel Tempering) simulation with 2 parameter sets.}\label{fig:parallel_params}
 \end{figure}
+
+
+%
+%-------------------------------------------------------------------------------------
+\subsection{Convert plain text bins to HDF5} \label{sec:convert_to_hdf5}
+%-------------------------------------------------------------------------------------
+%
+The Analysis folder also contains programs for converting plain text bins to HDF5, writing the bins from files ending in \verb|_scal|, \verb|_eq|, or \verb|_tau| to \verb|data.h5|, thereby reducing file sizes and increasing compatibility with pyALF.
+
+There are a number of scripts and program:
+\begin{itemize}
+	\item \verb|convert_scal.out| and \verb|convert_latt.out|: Writing the contents of a \verb|_scal| observable or a lattice type observables (so both \verb|_eq|, and \verb|_tau|) to an HDF5 file. E.g. writing bing from \verb|some_obs_scal|, \verb|some_obs_eq| and \verb|some_obs_tau| to data.h5 is done by executing.
+	\vspace{-\baselineskip}
+	\begin{lstlisting}[style=bash]
+
+$ALF_DIR/Analysis/convert_scal.out some_obs_scal data.h5
+$ALF_DIR/Analysis/convert_latt.out some_obs_eq data.h5
+$ALF_DIR/Analysis/convert_latt.out some_obs_tau data.h5
+	\end{lstlisting}
+	\item \verb|convert_bins.py|: 
+	\begin{itemize}
+		\item Automatically combines file \verb|parameters| and the Hamiltonian used in the simulation to determine simulation parameters and write them into HDF5 file.
+		\item Calls \verb|convert_scal.out| and \verb|convert_latt.out| for all observables.
+	\end{itemize}
+	You can also get a help text by executing:
+	\begin{lstlisting}[style=bash]
+$ALF_DIR/Analysis/convert_bins.py --help
+	\end{lstlisting}
+	One can automatically convert a big number of simulations by executing,
+	\begin{lstlisting}[style=bash]
+find . -name "$ref" -execdir ${ALF_DIR}/Analysis/copy_parameters.py \;
+	\end{lstlisting}
+	where \verb|$ref| has to be the name of an observable produced by the simulation, e.g. \verb|Ener_scal|.
+	\item \verb|convert_batch.sh|: Executes the command above. Can also be used to convert the bins without copying parameters.
+\end{itemize}
+

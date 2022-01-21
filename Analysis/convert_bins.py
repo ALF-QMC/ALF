@@ -1,0 +1,81 @@
+#!/usr/bin/env python3
+"""Copies parameters from parameters file to hdf5 file.
+"""
+import sys
+import os
+import subprocess
+from argparse import ArgumentParser
+
+import h5py
+import f90nml
+
+
+def copy_parameters(sim_dir, hamiltonian_file):
+    r"""Copy parameters from parameters file and hamiltonian to HDF5 file."""
+    nml = f90nml.read(os.path.join(sim_dir, 'parameters'))
+
+    default_parameters = parse(hamiltonian_file)
+    filename = os.path.join(sim_dir, 'data.h5')
+
+    with h5py.File(filename, 'w') as f:
+        for nlist_name, nlist in default_parameters.items():
+            nlist_name = nlist_name.lower()
+            groupname = f"parameters/{nlist_name}"
+            f.create_group(groupname)
+            for par_name, par in nlist.items():
+                par_name = par_name.lower()
+                try:
+                    val = nml[nlist_name][par_name]
+                except KeyError:
+                    val = par['value']
+
+                if isinstance(par['value'], bool):
+                    val = int(par['value'])
+                f[groupname].attrs.create(par_name, val)
+
+
+def _get_arg_parser():
+    parser = ArgumentParser(
+        description='Convert plain text bins and paramerts to HDF5 file. '
+        'One could run a bigger batch with '
+        r'`find . -name "Ener_scal" -execdir ${ALF_DIR}/Analysis/copy_parameters.py \;` '
+        'Where "Ener_scal" can be replaced by any file name for recognizing simulation folders.',
+        )
+    parser.add_argument(
+        '--alfdir', default=os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+        help="Path to ALF directory. Otherwise, it is determined by location of this script.")
+    parser.add_argument(
+        'directories', nargs='*',
+        help='Directories')
+    return parser
+
+
+if __name__ == "__main__":
+    parser = _get_arg_parser()
+    args = parser.parse_args()
+
+    directories = args.directories if args.directories else ['.']
+
+    sys.path.append(os.path.join(args.alfdir, 'Prog'))
+    from parse_ham_mod import parse, get_ham_names_ham_files
+
+    convert_scal = os.path.join(args.alfdir, 'Analysis', 'convert_scal.out')
+    convert_latt = os.path.join(args.alfdir, 'Analysis', 'convert_latt.out')
+
+    ham_names, ham_files = get_ham_names_ham_files(
+        os.path.join(args.alfdir, 'Prog', 'Hamiltonians.list'))
+    ham_file_dict = {}
+    for ham_name, ham_file in zip(ham_names, ham_files):
+        ham_file_dict[ham_name] = ham_file
+
+    for directory in directories:
+        nml = f90nml.read(os.path.join(directory, 'parameters'))
+        ham_name = nml['VAR_ham_name']['ham_name']
+        ham_file = os.path.join(args.alfdir, 'Prog', ham_file_dict[ham_name])
+        copy_parameters(directory, ham_file)
+        print(f'Convert bins in folder "{os.path.abspath(directory)}"')
+        for dir_content in os.listdir(path=directory):
+            if dir_content.endswith('_scal'):
+                subprocess.run([convert_scal, dir_content, 'data.h5'], check=True, cwd=directory)
+            elif dir_content.endswith('_eq') or dir_content.endswith('_tau'):
+                subprocess.run([convert_latt, dir_content, 'data.h5'], check=True, cwd=directory)
