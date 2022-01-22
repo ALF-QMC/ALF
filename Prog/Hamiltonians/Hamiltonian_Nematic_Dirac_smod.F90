@@ -89,9 +89,6 @@
       real(dp) :: Global_h = 3.d0 ! h for proposing global updates
       real(dp) :: Phi_1 = 0.d0    ! Twisted boundary in a1 direction
       real(dp) :: Phi_2 = 0.d0    ! Twisted boundary in a2 direction
-      !#PARAMETERS END#
-
-      !#PARAMETERS START# VAR_Init
       Character (len=64) :: init_type = 'random' ! How to initialize Ising field. Possile values: 'random', 'up', 'down', 'updown'
       !#PARAMETERS END#
       
