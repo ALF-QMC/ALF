@@ -53,7 +53,6 @@
       type, extends(ham_base) :: ham_Nematic_Dirac
       contains
          procedure, nopass :: Ham_Set
-         procedure, nopass :: Setup_Ising_action
          procedure, nopass :: S0
          procedure, nopass :: Delta_S0_global
          procedure, nopass :: Alloc_obs
@@ -65,7 +64,6 @@
 #ifdef HDF5
          procedure, nopass :: write_parameters_hdf5
 #endif
-
       end type ham_Nematic_Dirac
       
       integer, parameter :: dp=kind(0.d0)  ! double precision
@@ -90,7 +88,6 @@
       real(dp) :: Phi_2 = 0.d0    ! Twisted boundary in a2 direction
       Character (len=64) :: init_type = 'random' ! How to initialize Ising field. Possile values: 'random', 'up', 'down', 'updown'
       !#PARAMETERS END#
-      
 
 #ifdef MPI
       Integer        :: Isize, Irank, irank_g, isize_g, igroup
@@ -151,13 +148,14 @@
          call MPI_Comm_rank(Group_Comm, irank_g, ierr)
          call MPI_Comm_size(Group_Comm, isize_g, ierr)
          igroup           = irank/isize_g
-          
-         If (Irank_g == 0 ) then
 #endif
 
            ! From dynamically generated file "Hamiltonian_Nematic_Dirac_read_write_parameters.F90"
            call read_parameters()
 
+#ifdef MPI
+           If (Irank_g == 0 ) then
+#endif
 #if defined(TEMPERING)
            write(file_info,'(A,I0,A)') "Temp_",igroup,"/info"
 #else
