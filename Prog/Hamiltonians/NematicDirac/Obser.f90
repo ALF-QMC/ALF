@@ -282,9 +282,8 @@ Subroutine Obser(GR,Phase,Ntau, Mc_step_weight)
 end Subroutine Obser
 
 
-Subroutine measure_hist(ham, Phase)
+Subroutine measure_hist(Phase)
   Implicit none
-  class(ham_Nematic_Dirac) , intent(inout) :: ham
   Complex (Kind=Kind(0.d0)), Intent(IN)    :: Phase
 
   Complex (Kind=Kind(0.d0)) :: ZP, ZS
