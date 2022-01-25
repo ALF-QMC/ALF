@@ -891,6 +891,9 @@ Program Main
                     ENDIF
                  ENDDO
                  
+                 !Measure histograms
+                 CALL ham%measure_hist(PHASE)
+                 
                  Do nf_eff = 1,N_FL_eff
                     nf=Calc_Fl_map(nf_eff)
                     if (Projector) then

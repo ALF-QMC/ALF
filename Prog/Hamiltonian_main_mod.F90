@@ -146,6 +146,7 @@
         procedure, nopass :: Alloc_obs => Alloc_obs_base
         procedure, nopass :: Obser => Obser_base
         procedure, nopass :: ObserT => ObserT_base
+        procedure, nopass :: measure_hist => measure_hist_base
         procedure, nopass :: Pr_obs => Pr_obs_base
         procedure, nopass :: Init_obs => Init_obs_base
         procedure, nopass :: Global_move_tau => Global_move_tau_base
@@ -448,6 +449,22 @@
              
     
           end Subroutine ObserT_base
+
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Measures the histogram observables. Gets called once per sweep.
+!> Currently only works with pure Ising observables.
+!-------------------------------------------------------------------
+      Subroutine measure_hist_base(Phase)
+         Implicit none
+
+         Complex (Kind=Kind(0.d0)), Intent(IN) :: Phase
+
+      end Subroutine measure_hist_base
 
 
     !--------------------------------------------------------------------
