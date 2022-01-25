@@ -62,7 +62,6 @@
          procedure, nopass :: ObserT
          procedure, nopass :: Global_move
          procedure, nopass :: Hamiltonian_set_nsigma
-         !procedure, nopass :: get_param               => get_param_Nematic_Dirac
 #ifdef HDF5
          procedure, nopass :: write_parameters_hdf5
 #endif
@@ -104,7 +103,7 @@
      Integer, allocatable     :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
 
 
-     real (Kind=Kind(0.d0)) :: Model_sign, Theta
+     real (Kind=Kind(0.d0)) :: Model_sign
 
      !>    Private variables for observing Z_x_ising
      Real (Kind=Kind(0.d0)) :: eq_x_ising, neq_x_ising
@@ -112,16 +111,13 @@
 
      !>    Storage for the Ising action
      Real (Kind=Kind(0.d0)) :: DW_Ising_tau(-1:1), DW_Ising_Space(-1:1)
-     Integer, allocatable   :: L_bond(:,:), L_bond_inv(:,:), Ising_nnlist(:,:)
+     Integer, allocatable   :: Ising_nnlist(:,:)
 
-     !>    Monitoring Global updates
-     Type (Obser_Vec) :: Global_Monitor
      !>    Variables for the Wolff cluster update
      Real (Kind=Kind(0.d0)) :: Wolff_addProb_space, Wolff_addProb_tau
      Integer                :: N_ising
      !>    Variables for the Geometric cluster update
      Real (Kind=Kind(0.d0)) :: Geo_AddProb_space, Geo_AddProb_tau
-!        Logical, allocatable, dimension(:,:), private :: Geo_cluster
      Integer :: R_init(2)
 
      !>    Experimenting
@@ -199,7 +195,6 @@
           Call Ham_hop()
           Ltrot = nint(beta/dtau)
           Projector = .false.
-          Theta = 0.d0
           Thtrot = 0
           Symm = .false.
 
