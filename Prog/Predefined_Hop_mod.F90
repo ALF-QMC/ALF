@@ -96,10 +96,10 @@
         Type  (Hopping_Matrix_type)   , allocatable    :: this(:)
         Integer :: n
         If ( allocated(this) ) then
-           do n = 1, size(This,1)
+           do n = 1, size(this,1)
               deallocate (this(n)%T,this(n)%T_loc,this(n)%list)
            enddo
-           deallocate (this(1)%L_Fam, this(1)%List_Fam, this(1)%Multiplicity, this(1)%Prop_Fam )
+           deallocate (this(1)%L_Fam, this(1)%List_Fam, this(1)%Prop_Fam )
         endif
 
       end Subroutine Predefined_hoppings_clear
