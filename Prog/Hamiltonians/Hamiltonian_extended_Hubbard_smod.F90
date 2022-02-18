@@ -303,9 +303,12 @@
              Write(unit_info,*) 'N_FL          : ', N_FL
              Write(unit_info,*) 't             : ', Ham_T
              Write(unit_info,*) 'Ham_U         : ', Ham_U
+             Write(unit_info,*) 'Ham_V1        : ', Ham_V1
              Write(unit_info,*) 't2            : ', Ham_T2
              Write(unit_info,*) 'Ham_U2        : ', Ham_U2
+             Write(unit_info,*) 'Ham_V2        : ', Ham_V2
              Write(unit_info,*) 'Ham_tperp     : ', Ham_tperp
+             Write(unit_info,*) 'Ham_Vperp     : ', Ham_Vperp
              Write(unit_info,*) 'Ham_chem      : ', Ham_chem
              if (Projector) then
                 Do nf = 1,N_FL
@@ -440,8 +443,8 @@
           Integer, allocatable ::   N_Phi_vec(:)
           Type (Hopping_Matrix_type), Allocatable :: Bond_Matrix(:)
 
-          Integer                           :: I, J, I1, J1, no_I, no_J, nf
-          Integer                           :: n_1, n_2, Nb, n_f,l_f, n_l, N, nc
+          Integer                           :: J1, no_I, no_J
+          Integer                           :: n_1, n_2, Nb, n_f,l_f, n_l, N
           Complex(Kind=Kind(0.d0))          :: Z
 
 
@@ -452,9 +455,9 @@
                &                                   N_Phi_vec(N_FL), Ham_Lambda_vec(N_FL) )
 
           ! Here we consider no N_FL  dependence of the hopping parameters.
-          Ham_V_vec      = abs(Ham_V1)/dble(2*N_SUN)
-          Ham_V2_vec     = abs(Ham_V2)/dble(2*N_SUN)
-          Ham_Vperp_vec  = abs(Ham_Vperp)/dble(2*N_SUN)
+          Ham_V_vec      = -abs(Ham_V1)/dble(2*N_SUN)
+          Ham_V2_vec     = -abs(Ham_V2)/dble(2*N_SUN)
+          Ham_Vperp_vec  = -abs(Ham_Vperp)/dble(2*N_SUN)
           Ham_Chem_vec   = 0.0d0
           Phi_X_vec      = 0.d0
           Phi_Y_vec      = 0.d0
@@ -587,10 +590,12 @@
                    Op_V(nc,nf)%O(1,1) = cmplx(1.d0, 0.d0, kind(0.D0))
                    Op_V(nc,nf)%O(2,2) = cmplx(1.d0, 0.d0, kind(0.D0))
                    IF ( Ham_V1 < 0)  Op_V(nc,nf)%O(2,2) = cmplx(-1.d0, 0.d0, kind(0.D0) )
-                !    Op_V(nc,nf)%g = Sqrt(-Dtau*Bond_Matrix(nf)%T(Nb)*Bond_Matrix(1)%Prop_Fam(n_f))
-                   Op_V(nc,nf)%g = cmplx(0.d0,Sqrt(Dtau*abs(Ham_V1)/(2.d0*N_SUN)),kind(0.d0))
+                   Op_V(nc,nf)%g = Sqrt(-Dtau*Bond_Matrix(nf)%T(Nb)*Bond_Matrix(1)%Prop_Fam(n_f))
+                  !  print*,-Dtau*Bond_Matrix(nf)%T(Nb)*Bond_Matrix(1)%Prop_Fam(n_f), -Dtau*abs(Ham_V1)/(2.d0*N_SUN)
+                  !  Op_V(nc,nf)%g = cmplx(0.d0,Sqrt(Dtau*abs(Ham_V1)/(2.d0*N_SUN)),kind(0.d0))
                    WRITE(*,*) Op_V(nc,nf)%g, -Dtau*abs(Ham_V1)/(2.d0*N_SUN)
-                   Op_V(nc,nf)%alpha=cmplx(-0.5*N_SUN,0.d0, kind(0.D0))
+                   Op_V(nc,nf)%alpha=cmplx(-1.d0,0.d0, kind(0.D0))
+                   IF ( Ham_V1 < 0) Op_V(nc,nf)%alpha=cmplx(-0.d0,0.d0, kind(0.D0))
                    Op_V(nc,nf)%type=2
                    Call Op_set(Op_V(nc,nf))
                 enddo
