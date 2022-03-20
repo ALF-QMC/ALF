@@ -25,7 +25,8 @@ The aim of this section is to provide a fruitful and stress-free first contact w
 \textbf{Prerequisites}:
 You should have access to a shell and the permissions to install -- or have already installed -- the numerical packages Lapack and Blas, a Fortran compiler and the tools \texttt{make} and \texttt{git}. 
 
-The following commands can be executed in a Debian-based shell in order to install ALF \ALFver{} and its dependencies, run a demonstration simulation and output one of the measurements performed:
+The following commands can be executed in a Debian-based shell\footnote{Avoid folder names containing spaces, which are not supported.} in order to install ALF~\ALFver{} and its dependencies, run a demonstration simulation and output one of the measurements performed:
+
 \begin{itemize}[itemsep=0pt]
 	\item \lstinline[style=bash,morekeywords={sudo}]{sudo apt-get install gfortran liblapack-dev make git}
 	\item \lstinline[style=bash]{git clone -b }\texttt{\ALFbranch}\lstinline[style=bash]{https://git.physik.uni-wuerzburg.de/ALF/ALF.git}
