@@ -56,7 +56,7 @@ ALF.
 ## CONFIGURATION FOR COMPILATION ##
 <!--**setenv.sh**   sets the default set of envorinment variables.  Do not change  this since this default set of  environment variables is required for the tests to run adequaltely.-->
 
-**configure.sh**  It is recommended to use this script to set the environment variables. Type ./configure.sh to  browse through a list of options.
+**configure.sh**  It is recommended to use this script to set the environment variables. Type ./configure.sh to  browse through a list of options. Notice that directory names containing **spaces are not supported**.
 
 Once you have run the configuration script, change directory to Libraries, and to Analysis  and run the Makefiles there. In the Prog directory then type make examples.   The other programs are being updated to comply with the new version of the code.  
 
