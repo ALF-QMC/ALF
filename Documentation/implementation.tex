@@ -6,7 +6,6 @@
 
 % !TEX root = doc.tex
 
-%{\color{red}   We have to restructure this  section.   As it  stands it is a  chaos. We have to separate more clearly data structures, specification of the model, and  the Input output. }
 %\red{Also mention:}\\
 %Also available is the \texttt{Hopping\_Matrix\_type}, defined in Sec.~\ref{sec:hopping_type}, used for defining hopping matrices.
 
@@ -144,7 +143,7 @@ For such auxiliary fields a dedicated type \texttt{Fields} is defined, whose com
 %------------------------------------------------------------
 
 ALF's lattice module can generate one- and two-dimensional Bravais lattices.
-Both the lattice and the unit cell are defined in the module \texttt{Lattices\_v3\_mod.F90} and their components are detailed in Tables \ref{table:lattice} and \ref{table:unit_cell}. 
+Both the lattice and the unit cell are defined in the module \texttt{lattices\_v3\_mod.F90} and their components are detailed in Tables \ref{table:lattice} and \ref{table:unit_cell}. 
 As  its name suggest the module  \texttt{Predefined\_Latt\_mod.F90} also provides predefined lattices as  described in Sec.~\ref{sec:predefined_lattices}.
 The user who wishes to define his/her own lattice has to specify: 1) unit vectors $\vec{a}_1$ and $\vec{a}_2$, 2) the size and shape of the lattice, characterized by the vectors $\vec{L}_1$ and $\vec{L}_2$ and 3) the  unit cell characterized be the number of orbitals and their positions.  The coordination number of the lattice is specified in the \texttt{Unit\_cell} data type.   The lattice is placed on a torus (periodic boundary conditions):
 \begin{equation}
