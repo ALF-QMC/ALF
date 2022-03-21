@@ -592,6 +592,9 @@ Module Global_mod
                  nsigma%f = nsigma_old%f
               endif
               Call Control_upgrade_Glob(TOGGLE,size_clust)
+           else
+              nsigma%t = nsigma_old%t
+              nsigma%f = nsigma_old%f
            endif
         Enddo
 
