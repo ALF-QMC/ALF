@@ -115,7 +115,7 @@
 !>
 !--------------------------------------------------------------------
 
-    Module Hamiltonian
+    submodule (Hamiltonian_main) ham_Hubbard_smod
 
       Use Operator_mod
       Use WaveFunction_mod
@@ -128,48 +128,70 @@
       Use Fields_mod
       Use Predefined_Hoppings
       Use LRC_Mod
-      use iso_fortran_env, only: output_unit, error_unit
-
 
       Implicit none
+      
+      type, extends(ham_base) :: ham_Hubbard
+      contains
+        ! Set Hamiltonian-specific procedures
+        procedure, nopass :: Ham_Set
+        procedure, nopass :: Alloc_obs
+        procedure, nopass :: Obser
+        procedure, nopass :: ObserT
+        procedure, nopass :: S0
+        procedure, nopass :: Ham_Langevin_HMC_S0
+#ifdef HDF5
+        procedure, nopass :: write_parameters_hdf5
+#endif
+      end type ham_Hubbard
 
+      !#PARAMETERS START# VAR_lattice
+      Character (len=64) :: Model = 'Hubbard'  ! Value not relevant
+      Character (len=64) :: Lattice_type = 'Square'
+      Integer            :: L1 = 6   ! Length in direction a_1
+      Integer            :: L2 = 6   ! Length in direction a_2
+      !#PARAMETERS END#
 
-      Type (Operator),     dimension(:,:), allocatable :: Op_V
-      Type (Operator),     dimension(:,:), allocatable :: Op_T
-      Type (WaveFunction), dimension(:),   allocatable :: WF_L
-      Type (WaveFunction), dimension(:),   allocatable :: WF_R
-      Type (Fields)        :: nsigma
-      Integer              :: Ndim
-      Integer              :: N_FL
-      Integer              :: N_SUN
-      Integer              :: Ltrot
-      Integer              :: Thtrot
-      Logical              :: Projector
-      Integer              :: Group_Comm
-      Logical              :: Symm
+      !#PARAMETERS START# VAR_Model_Generic
+      !Integer              :: N_SUN        = 2        ! Number of colors
+      !Integer              :: N_FL         = 1        ! Number of flavors
+      real(Kind=Kind(0.d0)) :: Phi_X        = 0.d0     ! Twist along the L_1 direction, in units of the flux quanta
+      real(Kind=Kind(0.d0)) :: Phi_Y        = 0.d0     ! Twist along the L_2 direction, in units of the flux quanta
+      logical               :: Bulk         = .true.   ! Twist as a vector potential (.T.), or at the boundary (.F.)
+      Integer               :: N_Phi        = 0        ! Total number of flux quanta traversing the lattice
+      real(Kind=Kind(0.d0)) :: Dtau         = 0.1d0    ! Thereby Ltrot=Beta/dtau
+      real(Kind=Kind(0.d0)) :: Beta         = 5.d0     ! Inverse temperature
+      logical               :: Checkerboard = .true.   ! Whether checkerboard decomposition is used
+      !logical              :: Symm         = .true.   ! Whether symmetrization takes place
+      !logical              :: Projector    = .false.  ! Whether the projective algorithm is used
+      real(Kind=Kind(0.d0)) :: Theta        = 10.d0    ! Projection parameter
+      !#PARAMETERS END#
 
+      !#PARAMETERS START# VAR_Hubbard
+      real(Kind=Kind(0.d0)) :: ham_T      = 1.d0     ! Hopping parameter
+      real(Kind=Kind(0.d0)) :: Ham_chem   = 0.d0     ! Chemical potential
+      real(Kind=Kind(0.d0)) :: Ham_U      = 4.d0    ! Hubbard interaction
+      real(Kind=Kind(0.d0)) :: ham_T2     = 1.d0     ! For bilayer systems
+      real(Kind=Kind(0.d0)) :: Ham_U2     = 4.d0    ! For bilayer systems
+      real(Kind=Kind(0.d0)) :: ham_Tperp  = 1.d0     ! For bilayer systems
+      logical               :: Mz         = .true.   ! When true, sets the M_z-Hubbard model: Nf=2, demands that N_sun is even, HS field couples to the z-component of magnetization; otherwise, HS field couples to the density
+      logical               :: Continuous = .false.  ! Uses (T: continuous; F: discrete) HS transformation
+      !#PARAMETERS END#
 
-      Type (Lattice),       private, target :: Latt
-      Type (Unit_cell),     private, target :: Latt_unit
-      Integer,              private :: L1, L2
-      Type (Hopping_Matrix_type), Allocatable, private :: Hopping_Matrix(:)
-      real (Kind=Kind(0.d0)),        private :: ham_T , ham_U,  Ham_chem
-      real (Kind=Kind(0.d0)),        private :: ham_T2, ham_U2, ham_Tperp !  For Bilayers
-      real (Kind=Kind(0.d0)),        private :: Phi_Y, Phi_X
-      Integer               ,        private :: N_Phi
-      real (Kind=Kind(0.d0)),        private :: Dtau, Beta, Theta
-      Character (len=64),   private :: Model, Lattice_type
-      Logical,              private :: Checkerboard,  Bulk, Mz, Continuous
-      Integer, allocatable, private :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
-
-
-!>    Privat Observables
-      Type (Obser_Vec ),  private, dimension(:), allocatable ::   Obs_scal
-      Type (Obser_Latt),  private, dimension(:), allocatable ::   Obs_eq
-      Type (Obser_Latt),  private, dimension(:), allocatable ::   Obs_tau
-
+      Type (Lattice),       target :: Latt
+      Type (Unit_cell),     target :: Latt_unit
+      Type (Hopping_Matrix_type), Allocatable :: Hopping_Matrix(:)
+      Integer, allocatable :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
 
     contains
+      
+      module Subroutine Ham_Alloc_hubbard
+        allocate(ham_Hubbard::ham)
+      end Subroutine Ham_Alloc_hubbard
+
+! Dynamically generated on compile time from parameters list.
+! Supplies the subroutines read_parameters and write_parameters_hdf5.
+#include "Hamiltonian_Hubbard_read_write_parameters.F90"
 
 !--------------------------------------------------------------------
 !> @author
@@ -185,112 +207,41 @@
 #endif
           Implicit none
 
-          integer                :: ierr, N_part, nf
-          Character (len=64)     :: file_info, file_para
+          integer                :: ierr, nf, unit_info
+          Character (len=64)     :: file_info
 
 
           ! L1, L2, Lattice_type, List(:,:), Invlist(:,:) -->  Lattice information
           ! Ham_T, Chem, Phi_X, XB_B, Checkerboard, Symm   -->  Hopping
           ! Interaction                              -->  Model
           ! Simulation type                          -->  Finite  T or Projection  Symmetrize Trotter.
-
-          NAMELIST /VAR_Lattice/  L1, L2, Lattice_type, Model
-
-          NAMELIST /VAR_Model_Generic/  Checkerboard, N_SUN, N_FL, Phi_X, Phi_Y, Symm, Bulk, N_Phi, Dtau, Beta, Theta, &
-               &                        Projector
                   
-
-          NAMELIST /VAR_Hubbard/  ham_T, ham_chem, ham_U, ham_T2, ham_U2, ham_Tperp,  Mz,  Continuous
-
-
 #ifdef MPI
           Integer        :: Isize, Irank, irank_g, isize_g, igroup
           Integer        :: STATUS(MPI_STATUS_SIZE)
-#endif
-          ! Global "Default" values.
-          N_SUN        = 1
-          Checkerboard = .false.
-          Symm         = .false.
-          Projector    = .false.
-          Bulk         = .true.
-          Phi_X        = 0.d0
-          Phi_Y        = 0.d0
-          N_Phi        = 0
-          Ham_T2       = 0.d0
-          Ham_Tperp    = 0.d0
-          Ham_U2       = 0.d0
-          Continuous   =.false.
-          
-
-#ifdef MPI
           CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
           CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
           call MPI_Comm_size(Group_Comm, isize_g, ierr)
           igroup           = irank/isize_g
 #endif
-             File_Para = "parameters"
-             File_info = "info"
-#if defined(TEMPERING)
-             write(File_para,'(A,I0,A)') "Temp_",igroup,"/parameters"
-             write(File_info,'(A,I0,A)') "Temp_",igroup,"/info"
-#endif
 
-#ifdef MPI
-          If (Irank_g == 0 ) then
-#endif
-             OPEN(UNIT=5,FILE=file_para,STATUS='old',ACTION='read',IOSTAT=ierr)
-             IF (ierr /= 0) THEN
-                WRITE(error_unit,*) 'Ham_Set: unable to open <parameters>',ierr
+          ! From dynamically generated file "Hamiltonian_Hubbard_read_write_parameters.F90"
+          call read_parameters()
+
+          Ltrot = nint(beta/dtau)
+          if (Projector) Thtrot = nint(theta/dtau)
+          Ltrot = Ltrot+2*Thtrot
+          If ( Mz ) then
+             N_FL  = 2
+             if (mod(N_SUN,2) .ne. 0 ) then
+                Write(error_unit,*) 'Ham_Set: N_SUN has to be even if Mz = True'
                 error stop 1
-             END IF
-             READ(5,NML=VAR_lattice)
-             READ(5,NML=VAR_Model_Generic)
-             READ(5,NML=VAR_Hubbard)
-             CLOSE(5)
-
-             Ltrot = nint(beta/dtau)
-             if (Projector) Thtrot = nint(theta/dtau)
-             Ltrot = Ltrot+2*Thtrot
-             If ( Mz ) then
-                N_FL  = 2
-                if (mod(N_SUN,2) .ne. 0 ) then
-                   Write(error_unit,*) 'Ham_Set: N_SUN has to be even if Mz = True'
-                   error stop 1
-                endif
-                N_SUN = N_SUN / 2
-             else
-                N_FL  = 1
              endif
-
-#ifdef MPI
-          Endif
-          CALL MPI_BCAST(L1          ,1  ,MPI_INTEGER,   0,Group_Comm,ierr)
-          CALL MPI_BCAST(L2          ,1  ,MPI_INTEGER,   0,Group_Comm,ierr)
-          CALL MPI_BCAST(N_SUN       ,1  ,MPI_INTEGER,   0,Group_Comm,ierr)
-          CALL MPI_BCAST(N_FL        ,1  ,MPI_INTEGER,   0,Group_Comm,ierr)
-          CALL MPI_BCAST(N_Phi       ,1  ,MPI_INTEGER,   0,Group_Comm,ierr)
-          CALL MPI_BCAST(Phi_X       ,1  ,MPI_REAL8  ,   0,Group_Comm,ierr)
-          CALL MPI_BCAST(Phi_Y       ,1  ,MPI_REAL8  ,   0,Group_Comm,ierr)
-          CALL MPI_BCAST(Bulk        ,1  ,MPI_LOGICAL  , 0,Group_Comm,IERR)
-          CALL MPI_BCAST(Model       ,64 ,MPI_CHARACTER, 0,Group_Comm,IERR)
-          CALL MPI_BCAST(Checkerboard,1  ,MPI_LOGICAL  , 0,Group_Comm,IERR)
-          CALL MPI_BCAST(Symm        ,1  ,MPI_LOGICAL  , 0,Group_Comm,IERR)
-          CALL MPI_BCAST(Lattice_type,64 ,MPI_CHARACTER, 0,Group_Comm,IERR)
-          CALL MPI_BCAST(Ltrot       ,1,  MPI_INTEGER  , 0,Group_Comm,ierr)
-          CALL MPI_BCAST(Thtrot      ,1,  MPI_INTEGER  , 0,Group_Comm,ierr)
-          CALL MPI_BCAST(Projector   ,1,  MPI_LOGICAL  , 0,Group_Comm,ierr)
-          CALL MPI_BCAST(Dtau        ,1,  MPI_REAL8    , 0,Group_Comm,ierr)
-          CALL MPI_BCAST(Beta        ,1,  MPI_REAL8    , 0,Group_Comm,ierr)
-          CALL MPI_BCAST(ham_T       ,1,  MPI_REAL8    , 0,Group_Comm,ierr)
-          CALL MPI_BCAST(ham_chem    ,1,  MPI_REAL8    , 0,Group_Comm,ierr)
-          CALL MPI_BCAST(ham_U       ,1,  MPI_REAL8    , 0,Group_Comm,ierr)
-          CALL MPI_BCAST(ham_T2      ,1,  MPI_REAL8    , 0,Group_Comm,ierr)
-          CALL MPI_BCAST(ham_U2      ,1,  MPI_REAL8    , 0,Group_Comm,ierr)
-          CALL MPI_BCAST(ham_Tperp   ,1,  MPI_REAL8    , 0,Group_Comm,ierr)
-          CALL MPI_BCAST(Mz          ,1,  MPI_LOGICAL  , 0,Group_Comm,IERR)
-          CALL MPI_BCAST(Continuous  ,1,  MPI_LOGICAL  , 0,Group_Comm,IERR)
-#endif
+             N_SUN = N_SUN / 2
+          else
+             N_FL  = 1
+          endif
 
           ! Setup the Bravais lattice
           Call  Ham_Latt
@@ -298,62 +249,70 @@
           ! Setup the hopping / single-particle part
           Call  Ham_Hop
 
-
           ! Setup the interaction.
           call Ham_V
+
+          ! Setup the trival wave function, in case of a projector approach
+          if (Projector) Call Ham_Trial()
 
 #ifdef MPI
           If (Irank_g == 0) then
 #endif
-             OPEN(Unit = 50,file=file_info,status="unknown",position="append")
-             Write(50,*) '====================================='
-             Write(50,*) 'Model is      : ', Model
-             Write(50,*) 'Lattice is    : ', Lattice_type
-             Write(50,*) '# unit cells  : ', Latt%N 
-             Write(50,*) '# of orbitals : ', Latt_unit%Norb
-             Write(50,*) 'Flux_1        : ', Phi_X
-             Write(50,*) 'Flux_2        : ', Phi_Y
+             File_info = "info"
+#if defined(TEMPERING)
+             write(File_info,'(A,I0,A)') "Temp_",igroup,"/info"
+#endif
+             Open(newunit=unit_info, file=file_info, status="unknown", position="append")
+             Write(unit_info,*) '====================================='
+             Write(unit_info,*) 'Model is      : ', Model
+             Write(unit_info,*) 'Lattice is    : ', Lattice_type
+             Write(unit_info,*) '# unit cells  : ', Latt%N 
+             Write(unit_info,*) '# of orbitals : ', Latt_unit%Norb
+             Write(unit_info,*) 'Flux_1        : ', Phi_X
+             Write(unit_info,*) 'Flux_2        : ', Phi_Y
              If (Bulk) then
-                Write(50,*) 'Twist as phase factor in bulk'
+                Write(unit_info,*) 'Twist as phase factor in bulk'
              Else
-                Write(50,*) 'Twist as boundary condition'
+                Write(unit_info,*) 'Twist as boundary condition'
              endif
              If ( Mz )  then
-                Write(50,*) 'HS  couples to z-component of spin'
+                Write(unit_info,*) 'HS  couples to z-component of spin'
              else
-                Write(50,*) 'HS  couples to density'
+                Write(unit_info,*) 'HS  couples to density'
              endif
-             Write(50,*) 'Checkerboard  : ', Checkerboard
-             Write(50,*) 'Symm. decomp  : ', Symm
+             Write(unit_info,*) 'Checkerboard  : ', Checkerboard
+             Write(unit_info,*) 'Symm. decomp  : ', Symm
              if (Projector) then
-                Write(50,*) 'Projective version'
-                Write(50,*) 'Theta         : ', Theta
-                Write(50,*) 'Tau_max       : ', beta
+                Write(unit_info,*) 'Projective version'
+                Write(unit_info,*) 'Theta         : ', Theta
+                Write(unit_info,*) 'Tau_max       : ', beta
              else
-                Write(50,*) 'Finite temperture version'
-                Write(50,*) 'Beta          : ', Beta
+                Write(unit_info,*) 'Finite temperture version'
+                Write(unit_info,*) 'Beta          : ', Beta
              endif
-             Write(50,*) 'dtau,Ltrot_eff: ', dtau,Ltrot
+             Write(unit_info,*) 'dtau,Ltrot_eff: ', dtau,Ltrot
              if ( Mz )  then
-                Write(50,*) 'N_SUN         : ', 2*N_SUN
+                Write(unit_info,*) 'N_SUN         : ', 2*N_SUN
              else
-                Write(50,*) 'N_SUN         : ',   N_SUN
+                Write(unit_info,*) 'N_SUN         : ',   N_SUN
              endif
-             Write(50,*) 'N_FL          : ', N_FL
-             Write(50,*) 't             : ', Ham_T
-             Write(50,*) 'Ham_U         : ', Ham_U
-             Write(50,*) 't2            : ', Ham_T2
-             Write(50,*) 'Ham_U2        : ', Ham_U2
-             Write(50,*) 'Ham_tperp     : ', Ham_tperp
-             Write(50,*) 'Ham_chem      : ', Ham_chem
-             Close(50)
+             Write(unit_info,*) 'N_FL          : ', N_FL
+             Write(unit_info,*) 't             : ', Ham_T
+             Write(unit_info,*) 'Ham_U         : ', Ham_U
+             Write(unit_info,*) 't2            : ', Ham_T2
+             Write(unit_info,*) 'Ham_U2        : ', Ham_U2
+             Write(unit_info,*) 'Ham_tperp     : ', Ham_tperp
+             Write(unit_info,*) 'Ham_chem      : ', Ham_chem
+             if (Projector) then
+                Do nf = 1,N_FL
+                   Write(unit_info,*) 'Degen of right trial wave function: ', WF_R(nf)%Degen
+                   Write(unit_info,*) 'Degen of left  trial wave function: ', WF_L(nf)%Degen
+                enddo
+             endif
+             Close(unit_info)
 #ifdef MPI
           Endif
 #endif
-          ! Setup the trival wave function, in case of a projector approach
-          if (Projector)   Call Ham_Trial(File_info)
-
-
         end Subroutine Ham_Set
 
 !--------------------------------------------------------------------
@@ -441,47 +400,17 @@
 !> @brief
 !> Sets the trial wave function
 !--------------------------------------------------------------------
-        Subroutine Ham_Trial(file_info)
+        Subroutine Ham_Trial()
 
-
-#if defined (MPI) || defined(TEMPERING)
-          Use mpi
-#endif
           Use Predefined_Trial
 
           Implicit none
-          Character (len=64), intent(in)  :: file_info
-
 
           Integer :: N_part, nf
-#ifdef MPI
-          Integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
-          Integer        :: STATUS(MPI_STATUS_SIZE)
-
-          CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-          CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-          call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-          call MPI_Comm_size(Group_Comm, isize_g, ierr)
-          igroup           = irank/isize_g
-#endif
           ! Use predefined stuctures or set your own Trial  wave function
           N_part = Ndim/2
           Call Predefined_TrialWaveFunction(Lattice_type ,Ndim,  List,Invlist,Latt, Latt_unit, &
                &                            N_part, N_FL,  WF_L, WF_R)
-
-
-#ifdef MPI
-          If (Irank_g == 0) then
-#endif
-             OPEN(Unit = 50,file=file_info,status="unknown",position="append")
-             Do nf = 1,N_FL
-                Write(50,*) 'Degen of right trial wave function: ', WF_R(nf)%Degen
-                Write(50,*) 'Degen of left  trial wave function: ', WF_L(nf)%Degen
-             enddo
-             close(50)
-#ifdef MPI
-          endif
-#endif
 
         end Subroutine Ham_Trial
 
@@ -506,8 +435,10 @@
 
           N_ops = 0
           if ( Lattice_type == "Bilayer_square" .or. Lattice_type =="Bilayer_honeycomb" ) then
-             Ham_U_vec(1) = Ham_U
-             Ham_U_vec(2) = Ham_U2
+             Do no = 1,  Latt_unit%Norb/2
+                Ham_U_vec(no                    ) = Ham_U
+                Ham_U_vec(no + Latt_unit%Norb/2 ) = Ham_U2
+             enddo
              If (abs(Ham_U ) > Zero ) N_ops = N_ops + Latt%N*Latt_unit%Norb/2
              If (abs(Ham_U2) > Zero ) N_ops = N_ops + Latt%N*Latt_unit%Norb/2
           else
@@ -728,7 +659,7 @@
                 GRC(I, I, nf) = 1.D0 + GRC(I, I, nf)
              Enddo
           Enddo
-          ! GRC(i,j,nf) = < c^{dagger}_{j,nf } c_{j,nf } >
+          ! GRC(i,j,nf) = < c^{dagger}_{i,nf } c_{j,nf } >
 
           ! Compute scalar observables.
           Do I = 1,Size(Obs_scal,1)
@@ -848,8 +779,6 @@
 
         end Subroutine OBSERT
 
-#include "Hamiltonian_Hubbard_include.h"
-
 !--------------------------------------------------------------------
 !> @author
 !> ALF Collaboration
@@ -892,8 +821,7 @@
 
           Implicit none
 
-          Real (Kind=Kind(0.d0)), Intent(out  ),  dimension(:,:) :: Forces_0
-
+          Real (Kind=Kind(0.d0)), Intent(inout), allocatable :: Forces_0(:,:)
           !Local
           Integer :: N, N_op,nt
           
@@ -910,4 +838,4 @@
           
         end Subroutine Ham_Langevin_HMC_S0
         
-    end Module Hamiltonian
+    end submodule ham_Hubbard_smod

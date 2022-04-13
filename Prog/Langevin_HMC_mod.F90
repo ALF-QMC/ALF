@@ -32,7 +32,7 @@
 
       Module Langevin_HMC_mod
         
-        Use Hamiltonian
+        Use Hamiltonian_main
         Use UDV_State_mod
         Use Control
         Use Hop_mod
@@ -50,9 +50,9 @@
            Character (Len=64)                      :: Update_scheme
            Logical                                 :: L_Forces
            Real    (Kind=Kind(0.d0))               :: Delta_t_running, Delta_t_Langevin_HMC, Max_Force
-           Complex (Kind=Kind(0.d0)),  pointer :: Forces  (:,:)
+           Complex (Kind=Kind(0.d0)), allocatable  :: Forces  (:,:)
            
-           Real    (Kind=Kind(0.d0)),  pointer :: Forces_0(:,:)
+           Real    (Kind=Kind(0.d0)), allocatable  :: Forces_0(:,:)
          CONTAINS
            procedure  ::    make        => Langevin_HMC_setup
            procedure  ::    clean       => Langevin_HMC_clear
@@ -88,7 +88,7 @@
         
         Interface
            SUBROUTINE WRAPUR(NTAU, NTAU1, UDVR)
-             Use Hamiltonian
+             Use Hamiltonian_main
              Use UDV_Wrap_mod
              Use UDV_State_mod
              Implicit None
@@ -96,7 +96,7 @@
              Integer :: NTAU1, NTAU
            END SUBROUTINE WRAPUR
            SUBROUTINE WRAPUL(NTAU1, NTAU, UDVL)
-             Use Hamiltonian
+             Use Hamiltonian_main
              Use UDV_State_mod
              Implicit none
              CLASS(UDV_State), intent(inout), allocatable, dimension(:) :: UDVL
@@ -170,9 +170,9 @@
            IF (NTAU1 .GE. LOBS_ST .AND. NTAU1 .LE. LOBS_EN .and. Calc_Obser_eq ) THEN
               If (Symm) then
                  Call Hop_mod_Symm(GR_Tilde,GR)
-                 CALL Obser( GR_Tilde, PHASE, Ntau1,Langevin_HMC%Delta_t_running )
+                 CALL ham%Obser( GR_Tilde, PHASE, Ntau1,Langevin_HMC%Delta_t_running )
               else
-                 CALL Obser( GR, PHASE, Ntau1, Langevin_HMC%Delta_t_running )
+                 CALL ham%Obser( GR, PHASE, Ntau1, Langevin_HMC%Delta_t_running )
               endif
            endif
         enddo
@@ -251,7 +251,7 @@
         
         Interface
            SUBROUTINE WRAPUR(NTAU, NTAU1, UDVR)
-             Use Hamiltonian
+             Use Hamiltonian_main
              Use UDV_Wrap_mod
              Use UDV_State_mod
              Implicit None
@@ -259,7 +259,7 @@
              Integer :: NTAU1, NTAU
            END SUBROUTINE WRAPUR
            SUBROUTINE WRAPUL(NTAU1, NTAU, UDVL)
-             Use Hamiltonian
+             Use Hamiltonian_main
              Use UDV_State_mod
              Implicit none
              CLASS(UDV_State), intent(inout), allocatable, dimension(:) :: UDVL
@@ -373,7 +373,7 @@
            
            Call Control_Langevin   ( this%Forces,Group_Comm )
            
-           Call Ham_Langevin_HMC_S0( this%Forces_0)
+           Call ham%Ham_Langevin_HMC_S0( this%Forces_0)
            
            N_op = size(nsigma%f,1)
            !  Determine running time step

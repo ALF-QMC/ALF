@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 - 2020 The ALF project
+!  Copyright (C) 2016 - 2021 The ALF project
 ! 
 !  This file is part of the ALF project.
 ! 
@@ -41,7 +41,7 @@
 !--------------------------------------------------------------------
 Module Operator_mod
 
-
+  Use mpi_shared_memory
   Use MyMats
   Use Fields_mod
 
@@ -50,14 +50,17 @@ Module Operator_mod
   
 
   Type Operator
-     Integer          :: N, N_non_zero
-     logical          :: diag
-     complex (Kind=Kind(0.d0)), allocatable :: O(:,:), U (:,:), M_exp(:,:,:), E_exp(:,:)
-     Real    (Kind=Kind(0.d0)), allocatable :: E(:) ! allocatable members are part of F2003
-     Integer, allocatable :: P(:)
-     complex (Kind=Kind(0.d0)) :: g
-     complex (Kind=Kind(0.d0)) :: alpha
-     Integer          :: Type 
+     Integer          :: N, N_non_zero !> dimension of Operator (P and O), number of non-zero eigenvalues
+     Integer, private :: win_M_exp, win_U !> MPI_windows which can be used for fences (memory synch.) and dealloc.
+     logical          :: diag !> encodes if Operator is diagonal
+     logical, private :: U_alloc, M_exp_alloc !> logical to track if memory is allocated
+     complex (Kind=Kind(0.d0)), pointer :: O(:,:), U (:,:)  !>Storage for operator matrix O and it's eigenvectors U
+     complex (Kind=Kind(0.d0)), pointer, private :: M_exp(:,:,:), E_exp(:,:)  !>internal storage for exp(O) and exp(E)
+     Real    (Kind=Kind(0.d0)), pointer :: E(:) !>Eigenvalues of O
+     Integer, pointer :: P(:) !> Projector P encoding DoFs that contribute in Operator
+     complex (Kind=Kind(0.d0)) :: g !> coupling constant
+     complex (Kind=Kind(0.d0)) :: alpha !> operator shift
+     Integer          :: Type !> Type of the operator: 1=Ising; 2=discrete HS; 3=continues HS
      ! P is an N X Ndim matrix such that  P.T*O*P*  =  A  
      ! P has only one non-zero entry per column which is specified by P
      ! All in all.   g * Phi(s,type) * ( c^{dagger} A c  + alpha )
@@ -66,9 +69,9 @@ Module Operator_mod
 
      ! !!!!! M_exp and E_exp  are for storage   !!!!!
      ! If Type =1   then the Ising field  takes the values  s = +/- 1 
-     !              and M_exp   has dimensions  M_exp(N,N,-1:1)
+     !              and M_exp   has dimensions  M_exp(N,N,3)   last index=1 rep field -1 and index=3 rep field 1 
      ! If Type =2   then the Ising field  takes the values  s = +/- 1,  +/- 2
-     !              and M_exp   has dimensions  M_exp(N,N,-2:2)
+     !              and M_exp   has dimensions  M_exp(N,N,5)
      ! M_exp(:,:,s) =  e^{g * Phi(s,type) *  O(:,:) }
      !
      ! 
@@ -195,6 +198,8 @@ Contains
     Op%alpha = cmplx(0.d0,0.d0, kind(0.D0))
     Op%diag  = .false.
     Op%type = 0
+    Op%U_alloc = .false.
+    Op%M_exp_alloc = .false.
   end subroutine Op_make
 
 !--------------------------------------------------------------------
@@ -207,16 +212,28 @@ Contains
 !> @param[in] N 
 !--------------------------------------------------------------------
 
-  Pure subroutine Op_clear(Op,N)
+  subroutine Op_clear(Op,N)
     Implicit none
     Type (Operator), intent(INOUT) :: Op
     Integer, Intent(IN) :: N
-    Deallocate (Op%O, Op%P )
 
-    If ( allocated(OP%M_exp) ) deallocate(OP%M_exp)
-    If ( allocated(OP%E_exp) ) deallocate(OP%E_exp)
-    If ( allocated(OP%U) ) deallocate(OP%U)
-    If ( allocated(OP%E) ) deallocate(OP%E)
+!     If ( associated(OP%O) )   deallocate(OP%O)
+!     If ( associated(OP%P) )   deallocate(OP%P)
+!     If ( associated(OP%E_exp) )   deallocate(OP%E_exp)
+!     If ( associated(OP%E) )   deallocate(OP%E)
+    if (use_mpi_shm) then
+      If ( Op%U_alloc ) then
+         deallocate(OP%O, OP%P, OP%E)
+         !call deallocate_shared_memory(OP%win_U)
+      endif
+      If ( Op%M_exp_alloc ) then
+         deallocate(OP%E_exp)
+         !call deallocate_shared_memory(OP%win_M_exp)
+      endif
+    else
+      If ( Op%M_exp_alloc )   deallocate(OP%M_exp, OP%E_exp)
+      If ( Op%U_alloc )   deallocate(OP%U, OP%O, OP%P, OP%E)
+    endif
 
   end subroutine Op_clear
 
@@ -236,16 +253,25 @@ Contains
     Complex (Kind=Kind(0.d0)), allocatable :: U(:,:), TMP(:, :)
     Real    (Kind=Kind(0.d0)), allocatable :: E(:)
     Real    (Kind=Kind(0.d0)) :: Zero = 1.D-9 !, Phi(-2:2)
-    Integer :: N, I, J, np,nz
+    Integer :: N, I, J, np,nz, noderank, arrayshape2d(2), arrayshape(3), ierr
     Complex (Kind=Kind(0.d0)) :: Z
     Type  (Fields)   :: nsigma_single
     
     
     Call nsigma_single%make(1,1)
+    noderank=0
 
     N = OP%N
-    Allocate ( Op%U(N,N), Op%E(N) )
-    Op%U = cmplx(0.d0, 0.d0, kind(0.D0))
+    Allocate ( Op%E(N) )
+    if (use_mpi_shm) then
+      arrayshape2d=(/ Op%N,Op%N /)
+      call allocate_shared_memory(Op%U,Op%win_U,noderank,arrayshape2d)
+      if (noderank == 0) Op%U = cmplx(0.d0, 0.d0, kind(0.D0))
+    else
+      Allocate ( Op%U(N,N) )
+      Op%U = cmplx(0.d0, 0.d0, kind(0.D0))
+    endif
+    Op%U_alloc = .true.
     Op%E = 0.d0
     
     If (Op%N > 1) then
@@ -260,7 +286,7 @@ Contains
        if (Op%diag) then
           do I=1,N
              Op%E(I)=DBLE(Op%O(I,I))
-             Op%U(I,I)=cmplx(1.d0,0.d0, kind(0.D0))
+             if (noderank == 0) Op%U(I,I)=cmplx(1.d0,0.d0, kind(0.D0))
           enddo
           Op%N_non_zero = N
           ! FFA Why do we assume that Op%N_non_zero = N for a diagonal operator? 
@@ -272,35 +298,47 @@ Contains
           do I = 1,N
               if ( abs(E(I)) > Zero ) then
                 np = np + 1
-                Op%U(:, np) = U(:, i)
+                if (noderank == 0) Op%U(:, np) = U(:, i)
                 Op%E(np)   = E(I)
               else
-                Op%U(:, N-nz) = U(:, i)
+                if (noderank == 0) Op%U(:, N-nz) = U(:, i)
                 Op%E(N-nz)   = E(I)
                 nz = nz + 1
               endif
           enddo
           Op%N_non_zero = np
           ! Write(6,*) "Op_set", np,N
-          TMP = Op%U ! that way we have the changes to the determinant due to the permutation
-          Z = Det_C(TMP, N)
-          ! Scale Op%U to be in SU(N) 
-          DO I = 1, N
-             Op%U(I,1) = Op%U(I, 1)/Z 
-          ENDDO
+          if (noderank == 0) then
+            TMP = Op%U ! that way we have the changes to the determinant due to the permutation
+            Z = Det_C(TMP, N)
+            ! Scale Op%U to be in SU(N) 
+            DO I = 1, N
+                Op%U(I,1) = Op%U(I, 1)/Z 
+            ENDDO
+          endif
           deallocate (U, E, TMP)
           ! Op%U,Op%E)
           ! Write(6,*) 'Calling diag 1'
        endif
     else
        Op%E(1)   = REAL(Op%O(1,1), kind(0.D0))
-       Op%U(1,1) = cmplx(1.d0, 0.d0 , kind(0.D0))
+       if (noderank == 0) Op%U(1,1) = cmplx(1.d0, 0.d0 , kind(0.D0))
        Op%N_non_zero = 1
        Op%diag = .true.
     endif
+#ifdef MPI
+    if (use_mpi_shm) call MPI_WIN_FENCE(0, Op%win_U, ierr)
+#endif
     select case(OP%type)
     case(1)
-       Allocate(Op%E_exp(Op%N, -Op%type : Op%type), Op%M_exp(Op%N, Op%N, -Op%type : Op%type))
+       if (use_mpi_shm) then
+         Allocate(Op%E_exp(Op%N, -Op%type : Op%type))
+         arrayshape=(/ Op%N,Op%N,3 /)
+         call allocate_shared_memory(Op%M_exp,Op%win_M_exp,noderank,arrayshape)
+       else
+         Allocate(Op%E_exp(Op%N, -Op%type : Op%type), Op%M_exp(Op%N, Op%N, 3))
+       endif
+       Op%M_exp_alloc = .true.
        nsigma_single%t(1) = 1
        Do I=1,Op%type
           nsigma_single%f(1,1) = real(I,kind=kind(0.d0))
@@ -315,11 +353,23 @@ Contains
           enddo
           !call Op_exp(Op%g*Phi_st( I,1),Op,Op%M_exp(:,:,I))
           !call Op_exp(Op%g*Phi_st(-I,1),Op,Op%M_exp(:,:,-I))
-          call Op_exp( Op%g*nsigma_single%Phi(1,1),Op,Op%M_exp(:,:,I))
-          call Op_exp(-Op%g*nsigma_single%Phi(1,1),Op,Op%M_exp(:,:,-I))
+          if (noderank == 0) then
+            call Op_exp( Op%g*nsigma_single%Phi(1,1),Op,Op%M_exp(:,:,I+2))
+            call Op_exp(-Op%g*nsigma_single%Phi(1,1),Op,Op%M_exp(:,:,-I+2))
+          endif
+#ifdef MPI
+          if (use_mpi_shm) call MPI_WIN_FENCE(0, Op%win_M_exp, ierr)
+#endif
        enddo
     case(2)
-       Allocate(Op%E_exp(Op%N, -Op%type : Op%type), Op%M_exp(Op%N, Op%N, -Op%type : Op%type))
+       if (use_mpi_shm) then
+         Allocate(Op%E_exp(Op%N, -Op%type : Op%type))
+         arrayshape=(/ Op%N,Op%N,5 /)
+         call allocate_shared_memory(Op%M_exp,Op%win_M_exp,noderank,arrayshape)
+       else
+         Allocate(Op%E_exp(Op%N, -Op%type : Op%type), Op%M_exp(Op%N, Op%N, 5))
+       endif
+       Op%M_exp_alloc = .true.
        nsigma_single%t(1) = 2
        Do I=1,Op%type
           nsigma_single%f(1,1) = real(I,kind=kind(0.d0))
@@ -332,8 +382,13 @@ Contains
                 Op%E_exp(n,-I) = 1.D0/Op%E_exp(n,I)
              endif
           enddo
-          call Op_exp( Op%g*nsigma_single%Phi(1,1),Op,Op%M_exp(:,:,I))
-          call Op_exp(-Op%g*nsigma_single%Phi(1,1),Op,Op%M_exp(:,:,-I))
+          if (noderank == 0) then
+            call Op_exp( Op%g*nsigma_single%Phi(1,1),Op,Op%M_exp(:,:,I+3))
+            call Op_exp(-Op%g*nsigma_single%Phi(1,1),Op,Op%M_exp(:,:,-I+3))
+          endif
+#ifdef MPI
+          if (use_mpi_shm) call MPI_WIN_FENCE(0, Op%win_M_exp, ierr)
+#endif
           !call Op_exp(Op%g*Phi_st( I,2),Op,Op%M_exp(:,:,I))
           !call Op_exp(Op%g*Phi_st(-I,2),Op,Op%M_exp(:,:,-I))
        enddo
@@ -452,7 +507,7 @@ Contains
              endif
           enddo
        else
-          call ZSLGEMM('r',cop,Op%N,N1,N2,Op%M_exp(:,:,sp),Op%P,Mat)
+          call ZSLGEMM('r',cop,Op%N,N1,N2,Op%M_exp(:,:,sp+op%type+1),Op%P,Mat)
        endif
     else
        if ( Op%diag ) then
@@ -520,7 +575,7 @@ Contains
              endif
           enddo
        else
-          call ZSLGEMM('L',cop,Op%N,N1,N2,Op%M_exp(:,:,sp),Op%P,Mat)
+          call ZSLGEMM('L',cop,Op%N,N1,N2,Op%M_exp(:,:,sp+op%type+1),Op%P,Mat)
        endif
     else
        if ( Op%diag ) then

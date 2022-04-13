@@ -43,7 +43,7 @@
 Module Wrapgr_mod
 
 
-  Use Hamiltonian
+  Use Hamiltonian_main
   Use MyMats 
   Use Operator_mod
   Use Control
@@ -87,14 +87,14 @@ Contains
 !
 !--------------------------------------------------------------------
  
-    Use Hamiltonian
+    Use Hamiltonian_main
     Use Hop_mod
     Implicit none
     
     Interface
        Subroutine Upgrade2(GR,N_op,NT,PHASE,Hs_new, Prev_Ratiotot, S0_ratio, T0_proposal_ratio, toggle,  mode) 
        
-         Use Hamiltonian
+         Use Hamiltonian_main
          Use Random_wrap
          Use Control
          Use Fields_mod
@@ -141,7 +141,7 @@ Contains
        T0_proposal       = 1.5D0
        T0_Proposal_ratio = 1.D0
        Hs_new            = nsigma%flip(n,ntau1) 
-       S0_ratio          = S0(n,ntau1, Hs_New)
+       S0_ratio          = ham%S0(n,ntau1, Hs_New)
        if ( Propose_S0 ) then
           If ( Op_V(n,nf)%type == 1)  then
              T0_proposal       = 1.d0 - 1.d0/(1.d0+S0_ratio)
@@ -185,7 +185,7 @@ Contains
 !> NTAU: [LTROT:1]
 !
 !--------------------------------------------------------------------    
-    Use Hamiltonian
+    Use Hamiltonian_main
     Use MyMats
     Use Hop_mod
     Implicit None
@@ -193,7 +193,7 @@ Contains
     Interface
        Subroutine Upgrade2(GR,N_op,NT,PHASE,Hs_new, Prev_Ratiotot, S0_ratio, T0_proposal_ratio, toggle,  mode) 
        
-         Use Hamiltonian
+         Use Hamiltonian_main
          Use Random_wrap
          Use Control
          Use Fields_mod
@@ -247,7 +247,7 @@ Contains
        T0_proposal       = 1.5D0
        T0_Proposal_ratio = 1.D0
        Hs_new            =  nsigma%flip(n,ntau) 
-       S0_ratio          = S0(n,ntau,Hs_new)
+       S0_ratio          = ham%S0(n,ntau,Hs_new)
        if ( Propose_S0 ) then
           If ( Op_V(n,nf)%type == 1)  then
              T0_proposal       = 1.d0 - 1.d0/(1.d0+S0_ratio)
@@ -380,7 +380,7 @@ Contains
     Interface
        Subroutine Upgrade2(GR,N_op,NT,PHASE,Hs_new, Prev_Ratiotot, S0_ratio, T0_proposal_ratio, toggle,  mode) 
        
-         Use Hamiltonian
+         Use Hamiltonian_main
          Use Random_wrap
          Use Control
          Use Fields_mod
@@ -420,7 +420,7 @@ Contains
 
     Do ng_c = 1,N_Global_tau
        ! New configuration
-       Call Global_move_tau(T0_Proposal_ratio, S0_ratio,  Flip_list, Flip_length,Flip_value,ntau )
+       Call ham%Global_move_tau(T0_Proposal_ratio, S0_ratio,  Flip_list, Flip_length,Flip_value,ntau )
        !Write(6,*)  "Calling global move",  m, Flip_list(1), nsigma(Flip_list(1),ntau),Flip_value(1)
        If ( T0_Proposal_ratio  >  Zero )  Then
           ! Order the list

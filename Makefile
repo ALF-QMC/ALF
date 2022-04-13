@@ -1,39 +1,30 @@
-.PHONY : all lib ana Z2_Matter Kondo Hubbard tV Hubbard_Plain_Vanilla LRC
-# To add a new Hamiltonain named My_New_Hamiltonian, add "My_New_Hamiltonian"  to the above list
+.PHONY : all lib ana program test_compiler_set
 
-all: lib ana
-	cd Prog && $(MAKE) all
 
-lib:
+all: lib ana program
+
+lib: test_compiler_set
+	@echo "Compiling Libraries"
 	cd Libraries && $(MAKE)
 ana: lib
+	@echo "Compiling Analysis"
 	cd Analysis && $(MAKE)
-Hubbard: lib
-	cd Prog && $(MAKE) Hubbard
-Hubbard_Plain_Vanilla: lib
-	cd Prog && $(MAKE) Hubbard_Plain_Vanilla
-tV: lib
-	cd Prog && $(MAKE) tV
-Kondo: lib
-	cd Prog && $(MAKE) Kondo
-LRC: lib
-	cd Prog && $(MAKE) LRC
-Z2_Matter: lib
-	cd Prog && $(MAKE) Z2_Matter
-
-# To add a new Hamiltonain named My_New_Hamiltonian  uncomment the lines below.
-# My_New_Hamiltonian: lib
-#	cd Prog && $(MAKE) My_New_Hamiltonian
+program: lib
+	@echo "Compiling Program"
+	cd Prog && $(MAKE) program
 
 .PHONY : clean cleanall cleanprog cleanlib cleanana tidy tidyprog tidyana help
 clean: cleanall
 cleanall: cleanprog cleanlib cleanana
 tidy: cleanlib tidyana tidyprog
 cleanprog:
+	@echo "Cleaning up Prog/"
 	cd Prog && $(MAKE) clean 
 cleanlib:
+	@echo "Cleaning up Libraries/"
 	cd Libraries && $(MAKE) clean
 cleanana:
+	@echo "Cleaning up Analysis/"
 	cd Analysis && $(MAKE) clean
 tidyana:
 	cd Analysis && $(MAKE) tidy
@@ -42,5 +33,18 @@ tidyprog:
 
 help:
 	@echo "The following are some of the valid targets of this Makefile"
-	@echo "lib, ana, clean, cleanall, cleanprog, cleanlib, cleanana"
-	@echo "Z2_Matter, Kondo,  Hubbard, Hubbard_Plain_Vanilla, tV"
+	@echo "all, lib, ana, program, clean, cleanall, cleanprog, cleanlib, cleanana"
+
+
+# Test whether enviroment variable ALF_FC is set and is a valid command.
+test_compiler_set:
+	@if [ -z ${ALF_FC} ]; then \
+	  printf "\n\033[0;31m Environment variable ALF_FC not set.\n"; \
+	  printf " Please source configure.sh before compilation.\033[0m\n\n"; \
+	  exit 1; \
+	fi
+	@if [ ! `command -v ${ALF_FC}` ]; then \
+	  printf "\n\033[0;31m Compiler '${ALF_FC}' does not exist.\n"; \
+	  printf " Please install or choose other in configure.sh.\033[0m\n"; \
+	  exit 1; \
+	fi

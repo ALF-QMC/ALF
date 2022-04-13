@@ -9,7 +9,40 @@
 
 In this section we describe the steps for compiling and running the code from the shell, and describe how to search for optimal parameter values as well as how to perform the error analysis of the data.
 
-A Python interface, \textbf{pyALF}, is also available and can be found, together with a number of Jupyter notebooks exploring the interface's capabilities, at \url{https://git.physik.uni-wuerzburg.de/ALF/pyALF}. This interface facilitates setting up simple runs and is ideal for setting benchmarks and getting acquainted with ALF. Some of pyALF's notebooks form the core of the introductory part of the \href{https://git.physik.uni-wuerzburg.de/ALF/ALF_Tutorial}{ALF Tutorial}, where pyALF's usage is described in more detail.
+The source code of ALF~\ALFver{} is available at \url{https://git.physik.uni-wuerzburg.de/ALF/ALF/-/tree/\ALFbranch/} and can be cloned with git or downloaded from the repository (make sure to choose the appropriate release).
+
+A Python interface, \textbf{pyALF}, is also available and can be found, together with a number of Jupyter notebooks exploring the interface's capabilities, at \url{https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/tree/\pyALFbranch/}. This interface facilitates setting up simple runs and is ideal for setting benchmarks and getting acquainted with ALF. Some of pyALF's notebooks form the core of the introductory part of the \href{https://git.physik.uni-wuerzburg.de/ALF/ALF_Tutorial/-/blob/master/Tutorial-ALF-\tutALFver/}{ALF Tutorial}, where pyALF's usage is described in more detail.
+
+We start out by providing step-by-step instructions that allow a first-time user to go from zero to performing a simulation and reading out their first measurement using ALF.
+
+%-------------------------------------------------------------------------------------
+\subsection{Zeroth step}
+\label{sec:zeroth}
+%-------------------------------------------------------------------------------------
+
+The aim of this section is to provide a fruitful and stress-free first contact with the package. Ideally, it should be possible to copy and paste the instructions below to a Debian/Ubuntu-based Linux shell without further thought\footnote{For other systems and distributions see the package's  \href{https://git.physik.uni-wuerzburg.de/ALF/ALF/-/blob/\ALFbranch/README.md}{README}.}. Explanations and further options and details are found in the remaining sections and in the \href{https://git.physik.uni-wuerzburg.de/ALF/ALF_Tutorial/-/blob/master/Tutorial-ALF-\tutALFver/}{Tutorial}.
+
+\textbf{Prerequisites}:
+You should have access to a shell and the permissions to install -- or have already installed -- the numerical packages Lapack and Blas, a Fortran compiler, Python, and the tools \texttt{make} and \texttt{git}. 
+
+The following commands can be executed in a Debian-based shell\footnote{Avoid folder names containing spaces, which are not supported.} in order to install ALF~\ALFver{} and its dependencies, run a demonstration simulation and output one of the measurements performed:
+\begin{itemize}[itemsep=0pt]
+	\item \lstinline[style=bash,morekeywords={sudo}]{sudo apt-get update}
+	\item \lstinline[style=bash,morekeywords={sudo}]{sudo apt-get install gfortran liblapack-dev python3 make git}
+	\item \lstinline[style=bash]{git clone -b }\texttt{\ALFbranch}\lstinline[style=bash]{https://git.physik.uni-wuerzburg.de/ALF/ALF.git}
+	\item \lstinline[style=bash,morekeywords={cd}]{cd ALF}
+	\item \lstinline[style=bash,morekeywords={source}]{source configure.sh GNU noMPI}
+	\item \lstinline[style=bash,morekeywords={make}]{make Hubbard_Plain_Vanilla ana}
+	\item \lstinline[style=bash,morekeywords={cp}]{cp -r ./Scripts_and_Parameters_files/Start ./Run && cd ./Run/}
+	\item \lstinline[style=bash,morekeywords={}]{$ALF_DIR/Prog/ALF.out}
+	\item \lstinline[style=bash,morekeywords={}]{$ALF_DIR/Analysis/ana.out Ener_scal}
+	\item \lstinline[style=bash,morekeywords={}]{cat Ener_scalJ}
+\end{itemize}
+The last command will output a few lines, including one similar to:
+\begin{lstlisting}[style=bash]
+OBS :    1      -30.009191      0.110961
+\end{lstlisting}
+which is listing the internal energy of the system and its error.
 
 %-------------------------------------------------------------------------------------
 \subsection{Compiling and running}
@@ -20,7 +53,7 @@ The necessary environment variables and the directives for compiling the code ar
 \begin{lstlisting}[style=bash]
 source configure.sh [MACHINE] [MODE] [STAB]
 \end{lstlisting}
-If run with no arguments, it lists the available options and sets a generic, serial GNU compiler with minimal flags \texttt{-cpp -O3 -ffree-line-length-none -ffast-math}. The predefined machine configurations and parallelization modes available, as well as the options for stabilization schemes for the matrix multiplications (see Sec.~\ref{sec:stable}) are shown Table~\ref{table:configureHPC}. The stabilization scheme choice, in particular, is critical for performance and is discussed further in Sec.~\ref{sec:optimize}.
+If run with no arguments, it lists the available options and sets a generic, serial GNU compiler with minimal flags \texttt{-cpp -O3 -ffree-line-length-none -ffast-math}. The predefined machine configurations and parallelization modes available, as well as the options for stabilization schemes for the matrix multiplications (see Sec.~\ref{sec:stable}) are shown in Table~\ref{table:configureHPC}. The stabilization scheme choice, in particular, is critical for performance and is discussed further in Sec.~\ref{sec:optimize}.
 
 In order to compile the libraries, the analysis routines and the QMC program at once, just execute the single command:%\lstinline[style=bash,morekeywords={make}]{make}.
 \begin{lstlisting}[style=bash,morekeywords={make}]
@@ -30,28 +63,35 @@ Related auxiliary directories, object files and executables can be removed by ex
 
 \begin{table}[!ht]
 	\begin{center}
-		\begin{tabular}{@{} p{0.16\columnwidth} p{0.81\columnwidth} @{}}\toprule
+		\begin{tabular}{@{} p{0.19\columnwidth} p{0.78\columnwidth} @{}}\toprule %16 81
 			Argument & Selected feature \\\midrule
 			\textbf{\texttt{MACHINE}} &  \\\midrule
-			\texttt{Intel}  &   Intel compiler for a generic machine\footnote{A known issue with the alternative Intel Fortran compiler \texttt{ifort} is the handling of automatic, temporary arrays 
+			\texttt{GNU}  &   GNU compiler (\texttt{gfortran}/\texttt{mpifort}) for a generic machine (\emph{default}) \\
+			\texttt{Intel}  &   Intel compiler (\texttt{ifort}/\texttt{mpiifort}) for a generic machine\footnote{A known issue with the alternative Intel Fortran compiler \texttt{ifort} is the handling of automatic, temporary arrays 
 				which \texttt{ifort} allocates on the stack. For large system sizes and/or low temperatures this may lead to a runtime error. One solution is to demand allocation of arrays above a certain size on the heap instead of the stack. This is accomplished by the \texttt{ifort} compiler flag \texttt{-heap-arrays [n]} where \texttt{[n]} is the minimal size (in kilobytes, for example \texttt{n=1024}) of arrays that are allocated on the heap.} \\
-			\texttt{GNU}  &   GNU compiler for a generic machine (\emph{default}) \\
-			\texttt{PGI}  &   PGI compiler for a generic machine \\
-			\texttt{MAC}  &   GNU compiler for a generic MAC computer \\
-			\texttt{SuperMUC-NG}  &  Intel compiler and loads modules for SuperMUC-NG\footnote{Supercomputer at the Leibniz Supercomputing Centre.} \\
-			\texttt{JUWELS}  &  Intel compiler and loads modules for JUWELS\footnote{Supercomputer at the J\"ulich Supercomputing Centre.} \\
-			\texttt{Development}  &  GNU compiler, and flags appropriate for debugging  \vspace{7pt}\\
+			\texttt{PGI}  &   PGI compiler (\texttt{pgfortran}/\texttt{mpifort}) for a generic machine \\
+			\texttt{SuperMUC-NG}  &  Intel compiler (\texttt{mpiifort}) and loads modules for SuperMUC-NG\footnote{Supercomputer at the Leibniz Supercomputing Centre.} \\
+			\texttt{JUWELS}  &  Intel compiler (\texttt{mpiifort}) and loads modules for JUWELS\footnote{Supercomputer at the J\"ulich Supercomputing Centre.}
+			\vspace{7pt}\\
 			
 			\textbf{\texttt{MODE}} &  \\\midrule
-			\texttt{noMPI|serial}  &  No parallelization \\
+			\texttt{noMPI|Serial}  &  No parallelization \\
 			\texttt{MPI}  &  MPI parallelization (\emph{default} -- if a machine is selected) \\
-			\texttt{Tempering}  &  Parallel tempering (Sec.~\ref{Parallel_tempering.sec}) and the required MPI as well \vspace{7pt}\\ 
+			\texttt{Tempering}  &  Parallel tempering (Sec.~\ref{Parallel_tempering.sec}) and the required MPI as well
+			\vspace{7pt}\\ 
 			
 			\textbf{\texttt{STAB}} &  \\\midrule
-			\texttt{STAB1}  &  Simplest stabilization, with UDV (QR-, not SVD-based) decompositions\\
+			\texttt{STAB1}  &  Simplest stabilization: UDV (QR-, not SVD-based) decompositions\\
 			\texttt{STAB2}  &  QR-based UDV decompositions with additional normalizations\\
-			\texttt{STAB3}  &  Newest scheme, additionally separates large and small scales (\emph{default})\\
-			\texttt{LOG}  &  Log storage for internal scales, increases accessible ranges\\\bottomrule
+			\texttt{STAB3}  &  Latest, additionally separates large and small scales (\emph{default})\\
+			\texttt{LOG}  &  Logarithmic storage for internal scales, increases accessible ranges
+			\vspace{7pt}\\
+			
+			\textbf{\texttt{OTHER SWITCHES}} &  \\\midrule
+			\texttt{Devel}  &  Compile with additional flags for development and debugging\\
+			\texttt{HDF5}  &  Compile with HDF5 -- automatically downloads and installs HDF5 if not present\\
+			\texttt{NO-INTERACTIVE} & Do not ask for user confirmation during execution of this script\\
+			\bottomrule
 		\end{tabular}
 		\caption{Available arguments for the script \texttt{configure.sh}, called before compilation of the package: predefined machines, parallelization modes, and stabilization schemes (see also Sec.~\ref{sec:optimize}).} \label{table:configureHPC}
 	\end{center}
@@ -60,11 +100,11 @@ Related auxiliary directories, object files and executables can be removed by ex
 A suite of tests for individual parts of the code (subroutines, functions, operations, etc.) is available at the directory \path{testsuite}. The tests can be run by executing the following sequence of commands (the script \path{configure.sh} sets environment variables as described above):
 \begin{lstlisting}[style=bash,morekeywords={make,cmake,ctest}]
 
-source configure.sh Devel serial
+source configure.sh GNU Devel noMPI
 gfortran -v
 make lib
 make ana
-make Examples
+make program
 cd testsuite
 cmake -E make_directory tests
 cd tests
@@ -82,17 +122,20 @@ which will output test results and total success rate.
 %
 
 In order to start a simulation from scratch, the following files have to be present: \texttt{parameters} and \texttt{seeds} (see Sec.~\ref{sec:input}). 
-To run serially the simulation for a given model, for instance the plain vanilla Hubbard model included in \texttt{Hamiltonian\_Hubbard\_Plain\_Vanilla\_mod.F90}, described in Sec.~\ref{sec:hubbard}, issue the command
+To run serial simulation, issue the command
 \begin{lstlisting}[style=bash]
-./Prog/Hubbard_Plain_Vanilla.out
+$ALF_DIR/Prog/ALF.out
 \end{lstlisting}
-In order to run a different model, the corresponding executable should be used and, for running with parallelization, the appropriate MPI execution command should be called. For instance, a Kondo model (Sec.~\ref{sec:kondo}) compiled with OpenMPI can be run in parallel by issuing  
-  \begin{lstlisting}[style=bash]
-orterun -np <number of processes>  $ALF/Prog/Kondo_Honey.out
+In order to run with MPI parallelization, the appropriate MPI execution command should be called. For instance, a program compiled with OpenMPI can be run in parallel by issuing  
+\begin{lstlisting}[style=bash]
+orterun -np <number of processes> $ALF_DIR/Prog/ALF.out
 \end{lstlisting}
 
+\noindent The environment variable \texttt{ALF\_SHM\_CHUNK\_SIZE\_GB} can be used to reduce the program's memory footprint by sharing memory between MPI processes on the same node. The variable, a positive real number, defines the chunk size of the shared memory objects in units of GB.
+Typical values are 1.0 or 2.0 GB, but larger values can be used, if otherwise the total number of MPI communicators so large as to trigger MPI error messages.
+If \texttt{ALF\_SHM\_CHUNK\_SIZE\_GB} is not defined or set to values smaller that one, then the memory is not shared between MPI processes, which is the default behavior.
 
-To restart the code using the configuration from a previous simulation as a starting point, first run the script \texttt{out\_to\_in.sh}, which copies outputted field configurations into input files, before calling the ALF executable.   This file is located in the  directory \path{$ALF/Scripts_and_Parameters_files/Start/}
+To restart the code using the configuration from a previous simulation as a starting point, first run the script \texttt{out\_to\_in.sh}, which copies outputted field configurations into input files, before calling the ALF executable.   This file is located in the  directory \path{$ALF_DIR/Scripts_and_Parameters_files/Start/}
 
 %
 %-------------------------------------------------------------------------------------
@@ -100,17 +143,27 @@ To restart the code using the configuration from a previous simulation as a star
 %-------------------------------------------------------------------------------------
 %
 
-The ALF package includes the analysis program \texttt{ana.out} for performing simple error analysis and correlation function calculations on the three observable types. To perform an error analysis based on the Jackknife resampling method~\cite{efron1981} (Sec.~\ref{sec:jack}) of the Monte Carlo bins for a list of observables run
+The ALF package includes the analysis programs \texttt{ana.out} for plain text bins and \texttt{ana\_hdf5.out} for bins in HDF5 format. They perform the same simple error analysis and correlation function calculations on the three observable types. To perform an error analysis based on the Jackknife resampling method~\cite{efron1981} (Sec.~\ref{sec:jack}) of the Monte Carlo bins for a list of plain-text observables run
 \begin{lstlisting}[style=bash]
-$ALF/Analysis/ana.out <list of files>
+$ALF_DIR/Analysis/ana.out <list of files>
 \end{lstlisting}
 or run
 \begin{lstlisting}[style=bash]
-$ALF/Analysis/ana.out *
+$ALF_DIR/Analysis/ana.out *
 \end{lstlisting}
 for all observables.
 
-The program \texttt{ana.out} is based on the included module \texttt{ana\_mod}, which provides subroutines for reading an analyzing ALF Monte Carlo bins, that can be used to implement more specialized analysis. The three high-level analysis routines employed by \texttt{ana\_mod} are listed in Table~\ref{table:analysis_programs}. The files taken as input, as well as the output files are listed in Table~\ref{table:analysis_files}.
+For analyzing observables stored in the HDF5 file \texttt{data.h5}, run
+\begin{lstlisting}[style=bash]
+$ALF_DIR/Analysis/ana_hdf5.out <list of observables>
+\end{lstlisting}
+or run
+\begin{lstlisting}[style=bash]
+$ALF_DIR/Analysis/ana_hdf5.out *
+\end{lstlisting}
+for all observables.
+
+The programs \texttt{ana.out} and \texttt{ana\_hdf5.out} are based on the included module \texttt{ana\_mod}, which provides subroutines for reading and analyzing ALF Monte Carlo bins, that can be used to implement more specialized analysis. The three high-level analysis routines employed by \texttt{ana\_mod} are listed in Table~\ref{table:analysis_programs}. The files taken as input, as well as the output files are listed in Table~\ref{table:analysis_files}.
 
 \begin{table}[h]
 	\begin{center}
@@ -126,7 +179,7 @@ The program \texttt{ana.out} is based on the included module \texttt{ana\_mod}, 
 		& For particle-hole, imaginary-time correlation functions (\texttt{Channel = "PH"}) such as spin and charge, we use the fact that these correlation functions  are symmetric around $\tau = \beta/2$ so that we can define an improved estimator by averaging over $\tau$ and $\beta - \tau$
 		\\\bottomrule
 	\end{tabular}
-	\caption{Overview of analysis subroutines called within the program \texttt{ana.out}. \label{table:analysis_programs}}
+	\caption{Overview of analysis subroutines called within \texttt{ana.out} and \texttt{ana\_hdf5.out}. \label{table:analysis_programs}}
 \end{center}
 \end{table}
 %
@@ -245,7 +298,8 @@ If the numerical stabilization fails, one possible measure is to reduce the valu
 			\texttt{nskip}       & Should be set \emph{large} enough to allow for equilibration ($\sim$ autocorrelation time) \\
 			\texttt{Nrebin}      & Can be set to 1 when \texttt{Nsweep} is large enough; otherwise, and for testing, larger values can be used\\
 			Stabilization scheme & Use the default \texttt{STAB3} -- newest and fastest, if it works for your model; alternatives are: \texttt{STAB1} -- simplest, for reference only; \texttt{STAB2} -- with additional normalizations; and \texttt{LOG} -- for dealing with more extreme scales (see also Tab.~\ref{table:configureHPC}) \\
-			Parallelism          & For some models and systems, restricting parallelism in your BLAS library can improve performance: for OpenBLAS try setting \texttt{OPENBLAS\_NUM\_THREADS=1} in the shell \\\bottomrule
+			Parallelism          & For some models and systems, restricting parallelism in your BLAS library can improve performance: for OpenBLAS try setting \texttt{OPENBLAS\_NUM\_THREADS=1} in the shell \\
+			\texttt{ALF\_SHM\_CHUNK\_SIZE\_GB} & An environment variable that sets the chunk size in GBs for the memory shared between different MPI processes on the same computing node. By default it is zero (i.e., no sharing), but can be set to, e.g., 1.0 or 2.0 GB or larger if, for instance, the total number of MPI communicators is so large as to trigger MPI error messages. \\\bottomrule
 		\end{tabular}
 		\caption{Rules of thumb for obtaining best results and performance from ALF. It is important to fine tune the parameters to the specific model under consideration and perform sanity checks throughout. Most suggestions can severely impact performance and numerical stability if overdone. \label{table:tips}}
 	\end{center}

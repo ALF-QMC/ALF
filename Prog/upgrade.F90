@@ -100,7 +100,7 @@
       Subroutine Upgrade2(GR,N_op,NT,PHASE,Hs_new, Prev_Ratiotot, S0_ratio, T0_proposal_ratio, toggle,  mode)
 !--------------------------------------------------------------------
 
-        Use Hamiltonian
+        Use Hamiltonian_main
         Use Random_wrap
         Use Control
         Use Fields_mod

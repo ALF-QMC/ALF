@@ -34,7 +34,9 @@ with boundary conditions
 \label{generic_boundary.eq}
 \end{equation}
 Here $i$  labels the unit cell and $\delta$    the orbital.
-Both the twist and  vector  potential can have a flavor dependency. These and the other components of the generic Hopping Hamiltonian are described bellow. For now onwards we will  mostly omit the flavor index ${s}$.\\
+Both the twist and  vector  potential can have a flavor dependency.
+These and the other components of the generic Hopping Hamiltonian are described below.
+For now onwards we will  mostly omit the flavor index ${s}$.\\
 
 \noindent
 \textbf{Phase factors}.  
@@ -92,21 +94,20 @@ The right  hand side of the above equation is given  the type  \texttt{Hopping\_
 \begin{equation}
 \hat{\mathcal{H}}_{T}     = \sum_{i=1}^{N_T} \sum_{k \in \mathcal{S}^{T}_i} \hat{T}^{(k)},  
 \end{equation}
-with the rule that  if $k$ and $k'$  belong to the same set $\mathcal{S}^{T}_i $ then   $ \big[ \hat{T}^{(k)} , \hat{T}^{(k')} \big] = 0 $.  In the checkerboard decomposition, $\hat{T}^{(k)}$   corresponds to  hopping on a bond.    The checkerboard decomposition depends on the   lattice type, as well as on the hopping matrix elements.   The required  information is stored in  \texttt{Hopping\_matrix\_type}. In this data type,  \texttt{N\_FAM}  corresponds to the number of sets  (or families) ($N_T$ in the above equation). \texttt{L\_FAM(1:N\_FAM)}   corresponds to the number of bonds in the set,  and finally,  \texttt{LIST\_FAM(1:N\_FAM, 1:max(L\_FAM(:)), 2)}    contains  information concerning the two legs of the bonds.    In the checkerboard decomposition, care has to be taken for local terms: each site  occurs multiple times in the list of bonds.    Since we have postulated translation symmetry,    a one-dimensional array, \texttt{Multiplicity},  of length  given by  the number of orbitals per unit cell suffices to  encode the required information.  
+with the rule that  if $k$ and $k'$  belong to the same set $\mathcal{S}^{T}_i $ then   $ \big[ \hat{T}^{(k)} , \hat{T}^{(k')} \big] = 0 $.  In the checkerboard decomposition, $\hat{T}^{(k)}$   corresponds to  hopping on a bond.    The checkerboard decomposition depends on the   lattice type, as well as on the hopping matrix elements.   The required  information is stored in  \texttt{Hopping\_matrix\_type}. In this data type,  \texttt{N\_FAM}  corresponds to the number of sets  (or families) ($N_T$ in the above equation). \texttt{L\_FAM(1:N\_FAM)}   corresponds to the number of bonds in the set,  and finally,  \texttt{LIST\_FAM(1:N\_FAM, 1:max(L\_FAM(:)), 2)}    contains  information concerning the two legs of the bonds.
 Finally, to be able to generate  the imaginary time step of length $\Delta \tau$  we  have to know   by which fraction of  $\Delta \tau$   we have to propagate each set.  This information is given in  the array  \texttt{Prop\_Fam}.  
 
-As an  example we can consider the three-leg ladder lattice of Figure~\ref{fig_predefined_lattices}(c).   Here the number of sets (or families) \texttt{N\_FAM} is equal to four, corresponding to the red, green, black and blue  bonds. It is clear from the figure that bonds in a given set do not have common legs, so that hopping instances on the bonds of a given set commute.  For this three-leg ladder, we see that the middle orbital in a unit cell appears in each set or family. It hence has a multiplicity of four. On the other hand, the top and bottom orbitals have a multiplicity of 3 since they appear in only three of the four sets. 
-
+As an  example we can consider the three-leg ladder lattice of Figure~\ref{fig_predefined_lattices}(c).   Here the number of sets (or families) \texttt{N\_FAM} is equal to four, corresponding to the red, green, black and blue  bonds. It is clear from the figure that bonds in a given set do not have common legs, so that hopping instances on the bonds of a given set commute.
 
 \paragraph*{Usage: the \texttt{Hopping\_Matrix\_type} } %\label{Hopping_Matrix_type.sec} 
 
-There are  \path{N_bonds}   hopping   matrix  elements  emanating  from  a  given unit  cell. For  each bond,  the array 
+There are \path{N_bonds} hopping matrix elements emanating from a given unit cell, defined so that looping over all of the elements does not overcount the bonds. For each bond, the array 
 \texttt{List}   contains the full  information to define the  RHS of Eq.~\eqref{eq:hop}.    The hopping amplitudes are  stored in the  array  \texttt{T}  and the local potentials in the  array \texttt{T\_loc}   (See  Table~\ref{table:Hopping_matrix}).    The  \texttt{Hopping\_Matrix\_type}   type    also contains the information for the  checkerboard   decomposition.
 
 \begin{table}[h]
 	\begin{center}
 		%    \begin{tabular}{@{} l l l @{}}\toprule
-		\begin{tabular}{@{} p{0.34\columnwidth} @{} p{0.09\columnwidth} p{0.54\columnwidth} @{}}\toprule
+		\begin{tabular}{@{} p{0.42\columnwidth} @{} p{0.09\columnwidth} p{0.46\columnwidth} @{}}\toprule
 			Variable                 & Type            & Description \\\midrule
 			\texttt{N\_bonds}        & \texttt{int}    & Number of  hopping  matrix elements within and  emanating from   a unit cell   \\
 			\texttt{List(N\_bonds,4)}& \texttt{int}    & List($\bullet$,1) =   $\delta$ \\
@@ -121,13 +122,11 @@ There are  \path{N_bonds}   hopping   matrix  elements  emanating  from  a  give
 			\texttt{Bulk}            & \texttt{logical}& Twist as vector potential (T) or  boundary condition (F)  \\
 			\texttt{N\_Fam}          & \texttt{int}    & Number of  sets, $N_T$ in Eq.~\eqref{Checkerboard.Eq}   \\
 			\texttt{L\_Fam(N\_FAM)}  & \texttt{int}    & Number of bonds per set $\mathcal{S}^{T}$ \\    
-			\texttt{List\_Fam(N\_FAM,L\_FAM,2)}& \texttt{int} & \texttt{List Fam($ \bullet,\bullet $,1)} =  Unit cell \\
-			&                        &          \texttt{List Fam($\bullet,\bullet$,2)} =   Bond number \\
-			\texttt{Multiplicity(Norb)}& \texttt{int}  & Number of  times a  given orbital  occurs in the list of bonds  \\
-			\texttt{Prop\_Fam} & \texttt{dble}         & The fraction of $\Delta \tau$ with which the set will be propagated   \                                
-			\\\bottomrule
+			\texttt{List\_Fam(N\_FAM,max(L\_FAM(:)),2)}& \texttt{int} & \texttt{List\_Fam($ \bullet,\bullet $,1)} =  Unit cell \\
+			&                        &          \texttt{List\_Fam($\bullet,\bullet$,2)} =   Bond number \\
+			\texttt{Prop\_Fam(N\_FAM)} & \texttt{dble}         & The fraction of $\Delta \tau$ with which the set will be propagated   \\\bottomrule
 		\end{tabular}
-		\caption{Member variables of the \texttt{Hopping\_Matrix\_type}  type.   
+		\caption{Public member variables of the \texttt{Hopping\_Matrix\_type}  type.
 			\label{table:Hopping_matrix}}
 	\end{center}
 \end{table}
@@ -174,9 +173,7 @@ do I = 1,Latt%N
       List_Fam(nf,I,2) = nf ! The bond 
    enddo
 enddo
-Multiplicity  = 3
 \end{lstlisting}        
-Since each site of the honeycomb lattice occurs in  the three sets, their multiplicity is equal to 3.  
 
 
 %-----------------------------------------------------------------------------------
@@ -204,10 +201,10 @@ Call Set_Default_hopping_parameters_honeycomb(Hopping_Matrix,T_vec, Chem_vec, Ph
          Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
 \end{lstlisting}
 defines  the  \path{Hopping_Matrix} for the  honeycomb lattice: 
-\begin{align}
-\hat{H}_T  &=  \sum_{\ve{i}, \sigma, s}  \left(  \sum_{ \ve{\delta} = \left\{ \ve{\delta}_1, \ve{\delta}_2, \ve{\delta}_3\right\} }    - t^{(s)} \hat{c}^{\dagger}_{\ve{i},s,\sigma}   e^{\frac{2 \pi i}{\Phi_0} \int_{\ve{i}}^{\ve{i}+ \ve{\delta}}  \vec{A}^{(s)}(\vec{l})  d \vec{l}}   \hat{c}^{}_{\ve{i} + \ve{\delta},s,\sigma} +  \hc \right)   \nonumber \\   
-    &=  \sum_{\ve{i}, \sigma, s}   -  \mu^{(s)} \left( \hat{c}^{\dagger}_{\ve{i},s,\sigma} \hat{c}^{}_{\ve{i},s,\sigma}   +  \hat{c}^{\dagger}_{\ve{i} + \ve{\delta}_1,s,\sigma} \hat{c}^{}_{\ve{i} + \ve{\delta}_1,s,\sigma}   \right),
-\end{align}
+\begin{multline}
+\hat{H}_T  =  \sum_{\ve{i}, \sigma, s}  \left(  \sum_{ \ve{\delta} = \left\{ \ve{\delta}_1, \ve{\delta}_2, \ve{\delta}_3\right\} }    - t^{(s)} \hat{c}^{\dagger}_{\ve{i},s,\sigma}   e^{\frac{2 \pi i}{\Phi_0} \int_{\ve{i}}^{\ve{i}+ \ve{\delta}}  \vec{A}^{(s)}(\vec{l})  d \vec{l}}   \hat{c}^{}_{\ve{i} + \ve{\delta},s,\sigma} +  \hc \right)   \\   
+    +  \sum_{\ve{i}, \sigma, s}   -  \mu^{(s)} \left( \hat{c}^{\dagger}_{\ve{i},s,\sigma} \hat{c}^{}_{\ve{i},s,\sigma}   +  \hat{c}^{\dagger}_{\ve{i} + \ve{\delta}_1,s,\sigma} \hat{c}^{}_{\ve{i} + \ve{\delta}_1,s,\sigma}   \right),
+\end{multline}
 where the \path{T_vec} and \path{Chem_vec} have  length \texttt{N\_FL} and specify the hopping and the chemical potentials, while the  vectors \path{Phi_X_vec},  \path{Phi_Y_vec} and \path{N_Phi_vec},  also of  length  \texttt{N\_FL}, define the vector potential.  Here $\ve{i}$  runs over  sublattice  A, and $\ve{i} + \ve{\delta}$  over the three nearest neighbors of site $\ve{i}$.
 
 

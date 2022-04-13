@@ -1,15 +1,21 @@
-declare -i n
-declare -i n1
+#!/bin/bash
+shopt -s extglob
 
-n1=`ls confout_* | wc -l`
-
-let n=0
-let n1=n1-1
-while [ $n -le  $n1 ];
-   do
-     export file_out="confout_"$n
-     export file_in="confin_"$n
-     echo $file_out  $file_in
-     mv $file_out $file_in
-     let n=n+1
-   done
+if [ -e confout_0.h5 ]  && [ -e confout_0 ]; then
+  >&2 echo "out_to_in.sh: Both plain text and HDF5 configuration present. Please remove one of them."
+  exit 1
+fi
+ 
+if [ -e confout_0.h5 ]; then
+  for file_out in confout_+([0-9]).h5; do
+    file_in=${file_out/out/in}
+    echo "mv $file_out to $file_in"
+    mv "$file_out" "$file_in"
+  done
+elif [ -e confout_0 ]; then
+  for file_out in confout_+([0-9]); do
+    file_in=${file_out/out/in}
+    echo "mv $file_out to $file_in"
+    mv "$file_out" "$file_in"
+  done
+fi

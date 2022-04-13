@@ -71,9 +71,10 @@
 
          ! For Checkerboard decomposition
          Integer                            :: N_Fam
-         Integer                  , pointer :: L_Fam(:),  List_Fam(:,:,:), Multiplicity(:)
+         Integer                  , pointer :: L_Fam(:),  List_Fam(:,:,:)
          Real    (Kind=Kind(0.d0)), pointer :: Prop_Fam(:)
 
+         Integer, private         , pointer :: Multiplicity(:) !> Numer of times a given orbital occurs in the list of bonds, automatically computed
       End type Hopping_Matrix_Type
 
 
@@ -98,7 +99,8 @@
            do n = 1, size(This,1)
               deallocate (this(n)%T,this(n)%T_loc,this(n)%list)
            enddo
-           deallocate (this(1)%L_Fam, this(1)%List_Fam, this(1)%Multiplicity, this(1)%Prop_Fam )
+           deallocate (this(1)%L_Fam, this(1)%List_Fam, this(1)%Prop_Fam )
+           if( associated(this(1)%Multiplicity) ) deallocate(this(1)%Multiplicity)
         endif
 
       end Subroutine Predefined_hoppings_clear
@@ -145,6 +147,97 @@
         endif
 
       end function inquire_hop
+
+!--------------------------------------------------------------------
+!> @author
+!> Francesco Parisen Toldin
+!>
+!> @brief
+!> Check the consistency of the checkerboard decomposition.
+!> Following tests are done:
+!>   -it checks that the allocated size of second index of List_Fam is
+!>    at least maximum size of families. If the allocated size exceeds
+!>    the required size, it issues a warning.
+!>   -it checks that all bonds enter once and only once in the decomposition
+!>   -it checks that every pair of bonds in each family commute
+!
+!--------------------------------------------------------------------
+      Logical Function test_checkerboard_decomposition(this, Latt, inv_list)
+        Implicit none
+
+        Type(Hopping_Matrix_type), intent(IN) :: this
+        Type(Lattice), intent(IN)             :: Latt
+        Integer, intent(IN)                   :: inv_list(:, :)
+
+        ! Local variables
+        Logical, allocatable :: all_bonds(:, :)
+        Integer              :: maxl, i, j, n1, n2, unit1, bond1, site1a, site1b, unit2, bond2, site2a, site2b
+
+        test_checkerboard_decomposition = .true.
+        allocate(all_bonds(Latt%N, this%N_bonds))
+        all_bonds = .false.
+
+        ! Check size of families
+        maxl = this%L_Fam(1)
+        do i = 2, this%N_Fam
+           if (maxl < this%L_Fam(i)) maxl = this%L_Fam(i)
+        end do
+        if (maxl > size(this%List_Fam, 2)) then
+           write(error_unit, *) 'Error in the length of families. Maximum length found is ', maxl, ' allocated size is ', size(this%List_Fam, 2)
+           test_checkerboard_decomposition = .false.
+        else if (maxl < size(this%List_Fam, 2)) then
+           write(error_unit, *) 'Warning: the maximum family length is ', maxl, ' allocated size is ', size(this%List_Fam, 2)
+        end if
+        
+        ! Check duplicates
+        do i = 1, this%N_Fam
+           do j = 1, this%L_Fam(i)
+              if (all_bonds(this%List_Fam(i, j, 1), this%List_Fam(i, j, 2))) then
+                 write(error_unit, *) 'Error in decomposition: bond at List_Fam(', i, ' ', j, ') is present twice'
+                 test_checkerboard_decomposition = .false.
+              else
+                 all_bonds(this%List_Fam(i, j, 1), this%List_Fam(i, j, 2)) = .true.
+              end if
+           end do
+        end do
+
+        ! Check that all bonds are present in the decomposition
+        do i = 1, Latt%N
+           do j = 1, this%N_bonds
+              if (.not.(all_bonds(i, j))) then
+                 write(error_unit, *) 'Error: bonds at Nunit_cell = ', i, ' bond no. ', j, ' is missing'
+                 test_checkerboard_decomposition = .false.
+              end if
+           end do
+        end do
+
+        ! Check commutativity
+        do i = 1, this%N_Fam
+           do n1 = 1, this%L_Fam(i) - 1
+              ! Sites of the first bond
+              unit1 = this%List_Fam(i, n1, 1)
+              bond1 = this%List_Fam(i, n1, 2)
+              site1a = inv_list(unit1, this%List(bond1, 1))
+              site1b = inv_list(Latt%nnlist(unit1, this%List(bond1, 3), this%List(bond1, 4)), this%List(bond1, 2))
+              do n2 = n1 + 1, this%L_Fam(i)
+                 unit2 = this%List_Fam(i, n2, 1)
+                 bond2 = this%List_Fam(i, n2, 2)
+                 site2a = inv_list(unit2, this%List(bond2, 1))
+                 site2b = inv_list(Latt%nnlist(unit2, this%List(bond2, 3), this%List(bond2, 4)), this%List(bond2, 2))
+
+                 if ((site1a == site2a) .or. (site1a == site2b) .or. (site1b == site2a) .or. (site1b == site2b)) then
+                    write(error_unit, *) 'Error: non-communting hoppings at family ', i, ' n1 = ', n1, ' List_Fam(i, n1) = ', &
+                         & this%List_Fam(i, n1, 1), ' ', this%List_Fam(i, n1, 2), ' site1a = ', site1a, ' site1b = ', site1b, &
+                         & ' n2 = ', n2, ' List_Fam(i, n2) = ', &
+                         & this%List_Fam(i, n2, 1), ' ', this%List_Fam(i, n2, 2), ' site2a = ', site2a, ' site2b = ', site2b
+                    test_checkerboard_decomposition = .false.
+                 end if
+              end do
+           end do
+        end do
+        
+        deallocate(all_bonds)
+      end Function test_checkerboard_decomposition
 !--------------------------------------------------------------------
 !> @author
 !> ALF-project
@@ -224,11 +317,10 @@
            !Set Checkerboard
            if ( Ham_T_max   > Zero ) then
               this(1)%N_FAM  = 4
-              Allocate (this(1)%L_Fam(this(1)%N_FAM),  this(1)%Prop_Fam(this(1)%N_FAM), this(1)%Multiplicity(Latt_unit%Norb) )
+              Allocate (this(1)%L_Fam(this(1)%N_FAM),  this(1)%Prop_Fam(this(1)%N_FAM))
               this(1)%L_FAM  = Latt%N/2
               this(1)%Prop_Fam= 1.d0
               Allocate (this(1)%List_Fam(this(1)%N_FAM,this(1)%L_Fam(1),2))
-              this(1)%Multiplicity = 4
               this(1)%L_FAM  = 0
               do I = 1,Latt%N
                  if ( mod(Latt%List(I,1) + Latt%List(I,2),2) == 0 ) then
@@ -316,14 +408,9 @@
            enddo
            
            ! Set Checkerboard
-           Allocate ( this(1)%Multiplicity(Latt_unit%Norb) )
            If  ( Latt_Unit%Norb  <=  2 ) then
-              this(1)%Multiplicity = 1
               this(1)%N_FAM        = 1
            else
-              this(1)%Multiplicity                 = 2
-              this(1)%Multiplicity(1)              = 1
-              this(1)%Multiplicity(Latt_unit%Norb) = 1
               this(1)%N_FAM        = 2
            endif
            Allocate ( this(1)%L_Fam( this(1)%N_FAM ),  this(1)%Prop_Fam( this(1)%N_FAM ) )
@@ -392,17 +479,11 @@
            
            ! Write(6,*) Latt_unit%Norb
            ! Set Checkerboard
-           Allocate ( this(1)%Multiplicity(Latt_unit%Norb) )
            If     ( Latt_Unit%Norb  == 1 ) then
-              this(1)%Multiplicity = 2
               this(1)%N_FAM        = 2
            elseif ( Latt_Unit%Norb  == 2 ) then
-              this(1)%Multiplicity = 3
               this(1)%N_FAM        = 3
            else
-              this(1)%Multiplicity                 = 4
-              this(1)%Multiplicity(1)              = 3
-              this(1)%Multiplicity(Latt_unit%Norb) = 3
               this(1)%N_FAM        = 4
            endif
            Allocate ( this(1)%L_Fam(this(1)%N_FAM),  this(1)%Prop_Fam(this(1)%N_FAM) )
@@ -529,11 +610,10 @@
 
         ! Set Checkerboard
         this(1)%N_FAM  = 3
-        Allocate (this(1)%L_Fam(this(1)%N_FAM),  this(1)%Prop_Fam(this(1)%N_FAM), this(1)%Multiplicity(Latt_unit%Norb) )
+        Allocate (this(1)%L_Fam(this(1)%N_FAM),  this(1)%Prop_Fam(this(1)%N_FAM))
         this(1)%L_FAM  = Latt%N
         this(1)%Prop_Fam= 1.d0
         Allocate (this(1)%List_Fam(this(1)%N_FAM,this(1)%L_Fam(1),2))
-        this(1)%Multiplicity = 3
         do I = 1,Latt%N
            Do  nf = 1,this(1)%N_FAM
               this(1)%List_Fam(nf,I,1) = I  ! Unit cell
@@ -656,7 +736,7 @@
         this(1)%N_FAM  = 4
         if (abs(Ham_Tperp_max) > Zero )  this(1)%N_FAM=5
 
-        Allocate (this(1)%L_Fam(this(1)%N_FAM),  this(1)%Prop_Fam(this(1)%N_FAM), this(1)%Multiplicity(Latt_unit%Norb) )
+        Allocate (this(1)%L_Fam(this(1)%N_FAM),  this(1)%Prop_Fam(this(1)%N_FAM))
         this(1)%Prop_Fam= 1.d0
 
         No_Shift = 0
@@ -665,21 +745,16 @@
         If     ( abs(Ham_T2_max)   <  Zero  .and. abs(Ham_Tperp_max) < Zero)    then
            this(1)%L_FAM  = Latt%N/2
            Allocate (this(1)%List_Fam(this(1)%N_FAM,Latt%N/2,2))
-           this(1)%Multiplicity = 4
         elseif ( abs(Ham_T2_max)   <  Zero  .and. abs(Ham_Tperp_max) > Zero)    then
            this(1)%L_FAM    = Latt%N/2
            this(1)%L_Fam(5) = Latt%N
            Allocate (this(1)%List_Fam(this(1)%N_FAM,Latt%N,2))
-           this(1)%Multiplicity(1) = 5
-           this(1)%Multiplicity(2) = 1
         elseif ( abs(Ham_T2_max)   >  Zero  .and. abs(Ham_Tperp_max) < Zero)    then
            this(1)%L_FAM    = Latt%N
            Allocate (this(1)%List_Fam(this(1)%N_FAM,Latt%N,2))
-           this(1)%Multiplicity = 4
         elseif ( abs(Ham_T2_max)   >  Zero  .and. abs(Ham_Tperp_max) > Zero)    then
            this(1)%L_FAM    = Latt%N
            Allocate (this(1)%List_Fam(this(1)%N_FAM,Latt%N,2))
-           this(1)%Multiplicity = 5
            No_Shift     = 1
         endif
         this(1)%L_FAM  = 0
@@ -882,7 +957,7 @@
         ! Set Checkerboard
         this(1)%N_FAM  = 3
         If ( abs(Ham_Tperp_Max) > Zero ) this(1)%N_FAM = 4
-        Allocate (this(1)%L_Fam(this(1)%N_FAM),  this(1)%Prop_Fam(this(1)%N_FAM), this(1)%Multiplicity(Latt_unit%Norb) )
+        Allocate (this(1)%L_Fam(this(1)%N_FAM),  this(1)%Prop_Fam(this(1)%N_FAM))
         this(1)%Prop_Fam= 1.d0
 
         No_Shift = 0
@@ -891,23 +966,16 @@
         If     ( abs(Ham_T2_Max)   <  Zero  .and. abs(Ham_Tperp_Max) < Zero)    then
            this(1)%L_FAM  = Latt%N
            Allocate (this(1)%List_Fam(this(1)%N_FAM,Latt%N,2))
-           this(1)%Multiplicity = 3
         elseif ( abs(Ham_T2_Max)   <  Zero  .and. abs(Ham_Tperp_Max) > Zero)    then
            this(1)%L_FAM    =   Latt%N
            this(1)%L_Fam(4) = 2*Latt%N
            Allocate (this(1)%List_Fam(this(1)%N_FAM,2*Latt%N,2))
-           this(1)%Multiplicity(1) = 4
-           this(1)%Multiplicity(2) = 4
-           this(1)%Multiplicity(3) = 1
-           this(1)%Multiplicity(4) = 1
         elseif ( abs(Ham_T2_Max)   >  Zero  .and. abs(Ham_Tperp_Max) < Zero)    then
            this(1)%L_FAM    = 2*Latt%N
            Allocate (this(1)%List_Fam(this(1)%N_FAM,2*Latt%N,2))
-           this(1)%Multiplicity = 3
         elseif ( abs(Ham_T2_Max)   >  Zero  .and. abs(Ham_Tperp_Max) > Zero)    then
            this(1)%L_FAM    = 2*Latt%N
            Allocate (this(1)%List_Fam(this(1)%N_FAM,2*Latt%N,2))
-           this(1)%Multiplicity = 4
            No_Shift     = 2
         endif
 
@@ -1061,7 +1129,7 @@
 
         ! Local
         Integer                           :: Ndim, N_FL, N_Phi, I, J, I1, J1, no_I, no_J, nf
-        Integer                           :: n_1, n_2, Nb, n_f,l_f, n_l, N, nc
+        Integer                           :: n_1, n_2, Nb, n_f,l_f, n_l, N, nc, orb
         Real   (Kind=Kind(0.d0))          :: Ham_T, Ham_Chem,  Phi_X, Phi_Y
         Logical                           :: Bulk
         Complex(Kind=Kind(0.d0))          :: Z
@@ -1070,6 +1138,10 @@
         !Write(6,*)  'N_FL ', N_FL
         Ndim =  Latt%N * Latt_Unit%Norb
 
+        ! Test of correctness of checkerboard decomposition
+        If (checkerboard) then
+           if (.not.(test_checkerboard_decomposition(this(1), Latt, invlist))) error stop 1
+        end If
 
         select case (inquire_hop(this))
         case(0)  !  Zero
@@ -1148,6 +1220,16 @@
               enddo
               allocate(Op_T(N,N_FL))
               do nf = 1,N_FL
+                 ! Compute Multiplicity
+                 allocate(this(nf)%Multiplicity(Latt_Unit%Norb))
+                 this(nf)%Multiplicity = 0
+                 do i = 1, size(this(nf)%List, 1)
+                    orb = this(nf)%List(i, 1)
+                    this(nf)%Multiplicity(orb) = this(nf)%Multiplicity(orb) + 1
+                    orb = this(nf)%List(i, 2)
+                    this(nf)%Multiplicity(orb) = this(nf)%Multiplicity(orb) + 1
+                 end do
+
                  N_Phi     = this(nf)%N_Phi
                  Phi_X     = this(nf)%Phi_X
                  Phi_Y     = this(nf)%Phi_Y

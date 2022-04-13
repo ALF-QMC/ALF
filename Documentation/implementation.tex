@@ -1,4 +1,4 @@
-% Copyright (c) 2016-2020 The ALF project.
+% Copyright (c) 2016-2022 The ALF project.
 % This is a part of the ALF project documentation.
 % The ALF project documentation by the ALF contributors is licensed
 % under a Creative Commons Attribution-ShareAlike 4.0 International License.
@@ -6,7 +6,6 @@
 
 % !TEX root = doc.tex
 
-%{\color{red}   We have to restructure this  section.   As it  stands it is a  chaos. We have to separate more clearly data structures, specification of the model, and  the Input output. }
 %\red{Also mention:}\\
 %Also available is the \texttt{Hopping\_Matrix\_type}, defined in Sec.~\ref{sec:hopping_type}, used for defining hopping matrices.
 
@@ -126,8 +125,8 @@ For such auxiliary fields a dedicated type \texttt{Fields} is defined, whose com
 		\multicolumn{2}{@{}l@{}}{ \texttt{Field\%phi(n,nt)}}          & Returns $\phi$ for the \texttt{n}-th operator at the time slice  \texttt{nt} \\
 		\multicolumn{2}{@{}l@{}}{ \texttt{Field\%gamma(n,nt)}}        & Returns $\gamma$ for the  \texttt{n}-th operator at the time slice  \texttt{nt}  \\
 		\multicolumn{2}{@{}l@{}}{ \texttt{Field\%i(n,nt)}}            & Returns \texttt{Field\%f} rounded to nearest integer (if \texttt{t=1} or \texttt{2}) \\
-		\multicolumn{2}{@{} p{0.3\columnwidth} @{}}{ \texttt{Field\%in(Group\_Comm, In\_field)}} &      If  the file  \texttt{confin\_np} exists  it reads the field configuration  from this file.   Otherwise if \texttt{In\_field}  is present it sets the fields to   \texttt{In\_field}.   
-		 If both  \texttt{confin\_np}  and  \texttt{In\_field}  are not provided it sets a random field by calling \texttt{Field\%set()}.
+		\multicolumn{2}{@{} p{0.3\columnwidth} @{}}{ \texttt{Field\%in(Group\_Comm, In\_field)}} &      If  the file  \texttt{confin\_np} (or \texttt{confin\_np.h5}) exists  it reads the field configuration  from this file.   Otherwise if \texttt{In\_field}  is present it sets the fields to   \texttt{In\_field}.   
+		 If both  \texttt{confin\_np}(\texttt{.h5})  and  \texttt{In\_field}  are not provided it sets a random field by calling \texttt{Field\%set()}.
 		 Here \texttt{np} is the rank number of the process  \\
 		\multicolumn{2}{@{}l@{}}{ \texttt{Field\%out(Group\_Comm)}}   & Writes out the field configuration  \\\bottomrule
 	\end{tabular}
@@ -144,7 +143,7 @@ For such auxiliary fields a dedicated type \texttt{Fields} is defined, whose com
 %------------------------------------------------------------
 
 ALF's lattice module can generate one- and two-dimensional Bravais lattices.
-Both the lattice and the unit cell are defined in the module \texttt{Lattices\_v3\_mod.F90} and their components are detailed in Tables \ref{table:lattice} and \ref{table:unit_cell}. 
+Both the lattice and the unit cell are defined in the module \texttt{lattices\_v3\_mod.F90} and their components are detailed in Tables \ref{table:lattice} and \ref{table:unit_cell}. 
 As  its name suggest the module  \texttt{Predefined\_Latt\_mod.F90} also provides predefined lattices as  described in Sec.~\ref{sec:predefined_lattices}.
 The user who wishes to define his/her own lattice has to specify: 1) unit vectors $\vec{a}_1$ and $\vec{a}_2$, 2) the size and shape of the lattice, characterized by the vectors $\vec{L}_1$ and $\vec{L}_2$ and 3) the  unit cell characterized be the number of orbitals and their positions.  The coordination number of the lattice is specified in the \texttt{Unit\_cell} data type.   The lattice is placed on a torus (periodic boundary conditions):
 \begin{equation}
@@ -203,7 +202,7 @@ such that
                                                        &                &  $n_1, n_2 \in [-1,1] $, $\vec{R}_j = \vec{R}_i + n_1 \vec{a}_1  + n_2 \vec{a}_2 $ \\
    \texttt{Latt\%imj}                                  & \texttt{int}   &  $\vec{R}_{\mathrm{imj}(i,j)}  =  \vec{R}_i -  \vec{R}_j$, with  $\mathrm{imj}, i, j \in  1,\cdots, N_{\text{unit-cell}}$ \\
     \texttt{Latt\%BZ1\_p}, \texttt{Latt\%BZ2\_p}       & \texttt{dble}  & Reciprocal space vectors $\vec{g}_i$   [See Eq.~\eqref{Latt.G.eq}] \\
-    \texttt{Latt\%b1\_p}, \texttt{Latt\%b1\_p}         & \texttt{dble}  &  $k$-quantization [See Eq.~\eqref{k.quant.eq}] \\
+    \texttt{Latt\%b1\_p}, \texttt{Latt\%b2\_p}          & \texttt{dble}  &  $k$-quantization [See Eq.~\eqref{k.quant.eq}] \\
     \texttt{Latt\%listk}                               & \texttt{int}   &  Maps each reciprocal lattice point $k=1,\cdots, N_{\text{unit-cell}}$\\
                                                                    &    & to a reciprocal space vector\\
                                                                    &    & $\vec{k}_k= \texttt{listk(k,1)} \vec{b}_1 +  \texttt{listk(k,2)} \vec{b}_2  \equiv k_1  \vec{b}_1 +   k_2  \vec{b}_2 $ \\
@@ -293,7 +292,7 @@ Scalar observables are stored in the data type \texttt{Obser\_vec}, described in
            $ \langle \langle \hat{O}(:) \rangle \rangle_{C}\frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]} \sgn(C) $ \\
      \texttt{File\_Vec}      & \texttt{char} & Name of output file  &\\
      \texttt{analysis\_mode} & \texttt{char} & How to analyze the observable &\\
-                             &               & Default value: "identity" &\\
+                             &               & Default value: ``identity'' &\\
      \texttt{description(:)} & \texttt{char} & Optional description. Arbitrary number of 64-character lines &\\
      \bottomrule     
    \end{tabular}
@@ -372,7 +371,7 @@ The projective algorithm (Sec.~\ref{sec:defT0}) requires a pair of trial wave fu
 \begin{table}[h!]
 	\begin{center}
 		\begin{tabular}{@{} p{0.12\columnwidth} p{0.07\columnwidth} p{0.75\columnwidth}  @{}}\toprule
-			Variable               & Ty      pe     &  Description \\\midrule
+			Variable               & Type           &  Description \\\midrule
 			\texttt{WF\%P(:,:)}    & \texttt{cmplx} &  P is an $\texttt{Ndim}\times\texttt{N\_part}$ matrix, where \texttt{N\_part} is the number of particles\\
 			\texttt{WF\%Degen}     & \texttt{dble}  &  It stores the energy difference between the last occupied and first unoccupied single particle state and can be used to check for degeneracy\\\bottomrule
 		\end{tabular}
@@ -393,44 +392,169 @@ The module \texttt{WaveFunction\_mod} also includes the routine \texttt{WF\_over
 
 %{\color{red}   This subsection has to be  rewritten the file \path{Hamiltonian_Examples_mod.F90} is legacy. }
 
-The modules \path{Hamiltonian} in the directory \path{$ALF/Prog/Hamiltonians}  define  specific Hamiltonians. This module must contain a set of subroutines that define  the lattice,  the hopping,  the interaction, the observables,   the  trial wave function, and optionally  updating schemes (see Sec.~\ref{sec:updating}). 
-In order to implement a user-defined model, only the module \path{Hamiltonian} has to be set up. Accordingly, this documentation focuses almost entirely  on this module and the subprograms it includes.
+The module \path{Hamiltonian_main} in \path{Prog/Hamiltonian_main_mod.F90} defines the interface for all model-specific variables and subroutines needed by the Monte Carlo algorithm, like the hopping,  the interaction, the observables, the trial wave function, and optionally updating schemes (see Sec.~\ref{sec:updating}).
+All Hamiltonians (which is the term we are using for an encapsulated model definition) are derived from this main Hamiltonian.
+In order to implement a new user-defined Hamiltonian, one only has to set up a single submodule of the module \path{Hamiltonian_main}. Accordingly, this documentation focuses almost entirely on this module and how to derive a new model from it.
 The remaining parts of the code may hence be treated as a black box.
-The  mandatory  elements of the Hamiltonian module   are defined in Table~\ref{table:hamiltonian}.
+
+Table~\ref{table:hamiltonian_variables} shows all variables declared in \path{Hamiltonian_main}, they fully define the model. Note that the procedures listed in Table~\ref{table:hamiltonian_procedures} are part of the variable \path{ham}.
+
+To define a new Hamiltonian called \emph{New\_model}, one has to do two things:
+\begin{enumerate}
+\item Add a new line \emph{New\_model} to the file \path{Prog/Hamiltonians.list}
+\item Write the new submodule in \texttt{Prog/Hamiltonians/Hamiltonian\_\emph{New\_model}\_smod.F90}
+\end{enumerate}
+
+In this new submodule the user can redefine the procedures listed in Table~\ref{table:hamiltonian_procedures}, those have to be bound to a new type, which is derived from the Hamiltonian object \path{ham_base}. The submodule has access to all variables defined in \path{Hamiltonian_main}, while all variables defined in the submodule are encapsulated. To expose the new Hamiltonian, the user has to define 
+\begin{lstlisting}[style=fortran]
+module Subroutine Ham_Alloc_New_model
+  allocate(ham_New_model::ham)
+end Subroutine Ham_Alloc_New_model
+\end{lstlisting}
+where \path{ham_New_model} is the name of the new type derived from \path{ham_base}. The rest of the linking is done automatically through the entry in \path{Prog/Hamiltonians.list}.
+
+Hamiltonian variables to be read in through the parameters file should be written in a specific format, since they will be parsed at compile time and subroutines for reading from parameters file and writing the HDF5 file will be automatically generated.
+For each namelist, there has to be block of this form:
+\begin{lstlisting}[style=fortran]
+!#PARAMETERS START# <namelist_name>
+<var1_type> :: <var1_name> = <var1_default>  ! <var1_description>
+<var2_type> :: <var2_name> = <var2_default>  ! <var2_description>
+...
+!#PARAMETERS END#
+\end{lstlisting}
+
+Each of those ``namelist specifications'' starts with a line containing \path{#PARAMETERS START#} and end with a line containing \path{#PARAMETERS END#}. The namelist name has to be written after \path{#PARAMETERS START#} on the same line. The variable type specification \path{<varX_type>} should be either \path{real}, \path{integer}, \path{character} or \path{logical}, declared as \path{real(Kind=Kind(0.d0))}, \path{integer}, \path{character(len=64)} or \path{logical} respectively. Each variable needs to have a default value. The description of the parameters is optional. A variable can be commented out, but will still be parsed to be read from parameters. This is to facilitate reading of variables that are already defined in \path{Hamiltonian_main}, e.g. \path{N_SUN}.
+
+For example, a namelist called \path{my_parameter_list} containing \path{N_SUN} and \path{Beta} could look like:
+\begin{lstlisting}[style=fortran]
+!#PARAMETERS START# my_parameter_list
+!Integer              :: N_SUN = 2
+real(Kind=Kind(0.d0)) :: Beta  = 5.d0  ! Inverse temperature
+!#PARAMETERS END#
+\end{lstlisting}
+The parsing script \path{parse_ham.py} in \path{Prog/} has the option \path{--test_file} for testing the namelist specifications, e.g. calling:
+\begin{lstlisting}[style=bash]
+./parse_ham.py --test_file Hamiltonians/Hamiltonian_New_model_smod.F90
+\end{lstlisting}
+prints out the results from parsing for manual checking. We recommend doing this after every change in the namelist.
+
+During compilation, the file \texttt{Hamiltonian\_\emph{New\_model}\_read\_write\_parameters.F90} containing the subroutines \path{read_parameters} and \path{write_parameters_hdf5} is generated automatically. The former subroutine can be called in \path{ham_set}, while the latter has to be bound to \path{ham_New_model} through:
+\begin{lstlisting}[style=fortran]
+#ifdef HDF5
+        procedure, nopass :: write_parameters_hdf5
+#endif
+\end{lstlisting}
+
+To help creating a new Hamiltonian, we provide a template \path{Prog/Hamiltonians/Hamiltonian_##NAME##_smod.F90}, which can be copied to \texttt{Prog/Hamiltonians/Hamiltonian\_\emph{New\_model}\_smod.F90} before being modified.
 To simplify  the implementation of a new Hamiltonian, ALF comes with a set of predefined structures (Sec.~\ref{sec:predefined}) which the user can combine together or use as templates.
+
+
+\begin{table}[h!]
+	\begin{center}
+   \begin{tabular}{@{} p{0.2\columnwidth} p{0.2\columnwidth} p{0.54\columnwidth}  @{}}
+%   lll}
+   \toprule
+    Public Variable           &  Type                     & Description \\
+    \midrule
+    \texttt{ham}              & \path{class(ham_base)} & Hamiltonian object. 
+       All model dependent procedures are attached to this variable
+       (see Table~\ref{table:hamiltonian_procedures}). \\
+    \hl{\texttt{Op\_V}}       & \path{Operator}         & Interaction \\
+    \hl{\texttt{Op\_T}}       & \path{Operator}         & Hopping \\
+    \hl{\texttt{WF\_L}}       & \path{WaveFunction}     & Left trial wave function \\
+    \hl{\texttt{WF\_R}}       & \path{WaveFunction}     & Right trial wave function \\
+    \texttt{nsigma}           & \path{Fields}           & Fields \\
+    \hl{\texttt{Ndim}}        & \path{int}              & Number of sites \\
+    \hl{\texttt{N\_Fl}}       & \path{int}              & Number of flavors \\
+    \hl{\texttt{N\_SUN}}      & \path{int}              & Number of colors \\
+    \hl{\texttt{Ltrot}}       & \path{int}              & Total number of trotter silces \\
+    \hl{\texttt{Thtrot}}      & \path{int}              & Number of trotter slices reserved for projection \\
+    \hl{\texttt{Projector}}   & \path{logical}          & Enable projector code \\
+    \texttt{Group\_Comm}      & \path{int}              & Group communicator for MPI \\
+    \hl{\texttt{Symm}}        & \path{logical}          & Symmetric trotter \\
+     \bottomrule
+   \toprule
+    Private Variable           &  Type                & Description \\
+    \midrule
+    \texttt{Obs\_scal}         & \path{Obser_Vec}  & 
+       Storage for measured scalar observables \\
+    \texttt{Obs\_eq}           & \path{Obser_Latt} & 
+       Storage for measured equal time correlations \\
+    \texttt{Obs\_tau}          & \path{Obser_Latt} & 
+       Storage for measured time displaced correlations \\
+     \bottomrule
+   \end{tabular}
+   \caption{List of the public and private variables declared in the module \texttt{Hamiltonian}. The \hl{highlighted} variables have to be set in the subroutine \texttt{ham\_set}.}
+         \label{table:hamiltonian_variables}
+     \end{center}
+\end{table}
 
 %
 \begin{table}[h!]
 \begin{center}
  \begin{tabular}{ p{0.25\columnwidth} p{0.51\columnwidth} p{0.15\columnwidth} } 
-    Subprogram & Description & Section \\\midrule
-    \hl{\texttt{Ham\_Set}}  & Reads in model and lattice parameters from the file \texttt{parameters}.
-                                  Sets the Hamiltonian calling the necessary subprograms: \texttt{Ham\_Latt},   \texttt{Ham\_Hop}, \texttt{Ham\_V}  and \texttt{Ham\_Trial}  & 
-                                  \ref{sec:hamiltonian},  \ref{sec:model_classes} \\
-   \hl{\texttt{Ham\_Latt}}  &  Sets the  \texttt{Lattice}   and the \texttt{Unit\_cell}    as well as the the arrays \texttt{List}  and \texttt{Inv\_list} required
-                                            for multiorbital problems    &   \ref{sec:latt}, \ref{U_PV_Ham_latt}  \ref{sec:predefined_lattices} \\
-   \hl{\texttt{Ham\_hop}}  & Sets the hopping term  $\hat{\mathcal{H}}_{T}$ (i.e., operator \texttt{Op\_T}) by calling \texttt{Op\_make} and \texttt{Op\_set} &
-                                          \ref{sec:op},  \ref{U_PV_Ham_hop},  \ref{sec:predefined_hopping_1} \\    
- \hl{\texttt{Ham\_V}}  & Sets the interaction  term  $\hat{\mathcal{H}}_{V}$ (i.e., operator \texttt{Op\_V}) by calling \texttt{Op\_make} and \texttt{Op\_set} &
-                                          \ref{sec:op},  \ref{U_PV_Ham_V},    \ref{sec:interaction_vertices} \\       
- \hl{\texttt{Ham\_Trial}}  & Sets the trial  wave function for the  projective code  $| \Psi_{T,L/R} \rangle  $ 
-                                         specified by the \texttt{Wavefunction} type  & 
-                                          \ref{sec:wave_function},  \ref{U_PV_Ham_Trial},    \ref{sec:predefined_trial_wave_function}\\    
-\hl{\texttt{Alloc\_obs}} & Assigns memory storage to the observable & \ref{sec:obs} , \ref{Alloc_obs_sec}\\
-\hl{\texttt{Obser}}      & Computes the scalar and equal-time observables & \ref{sec:obs},  \ref{sec:EqualTimeobs}, \ref{sec:predefined_observales}   \\
-\hl{\texttt{ObserT}}     & Computes time-displaced correlation functions & \ref{sec:obs}, \ref{sec:TimeDispObs}, \ref{sec:predefined_observales} \\
-  \hl{\texttt{S0}}     & Returns the ratio $e^{S_0(C')} /e^{-S_0(C)} $ for a single spin flip  & \ref{sec:S0} \\    
- \hl{\texttt{Global\_move\_tau}} & Generates a global move on a given time slice $\tau$.  This routine is only called if \texttt{Global\_tau\_moves=True} 
-and \texttt{N\_Global\_tau>0}  & \ref{sec:global_space} \\
-\hl{\texttt{Overide\_global\_tau\_sampling\_parameters}}     & Allows setting \texttt{global\_tau} parameters at run time  &   \ref{sec:global_space} \\  
- \hl{\texttt{Hamiltonian\_set\_nsigma}} &   Sets the initial field configuration.  This   routine is to be modified if one wants to specify the initial configuration. By default the initial configuration is assumed to be random  &  \\
-\hl{\texttt{Global\_move}} &  Handles global moves in time and space   & \ref{sec:global_slice}  \\
-\hl{\texttt{Delta\_S0\_global}} & Computes $e^{S_0(C')} /e^{-S_0(C)} $ for a global move  & \ref{sec:global_slice} \\ 
-\texttt{Init\_obs}  & Initializes the observables to zero & \\    
-\texttt{Pr\_obs}   & Writes the observables to disk by calling \texttt{Print\_bin} of the \texttt{Observables}  module &   
+   Procedure & Description & Section \\\midrule
+   \path{Ham_Set}  & 
+      Reads in model and lattice parameters from the file \texttt{parameters}.
+      Sets the Hamiltonian, which is commonly split up into subroutines \texttt{Ham\_Latt},           
+      \texttt{Ham\_Hop}, \texttt{Ham\_V}  and \texttt{Ham\_Trial}  & 
+         \ref{sec:hamiltonian},  \ref{sec:model_classes} \\
+      & \texttt{Ham\_Latt}: \hspace{3pt} Sets the \texttt{Lattice} and the \texttt{Unit\_cell} 
+      as well as the the arrays \texttt{List}  and \texttt{Inv\_list} required
+      for multiorbital problems    &  
+         \ref{sec:latt}, \ref{U_PV_Ham_latt}  \ref{sec:predefined_lattices} \\
+      & \texttt{Ham\_hop}: \hspace{3pt} Sets the hopping term  $\hat{\mathcal{H}}_{T}$ 
+      (i.e., operator \texttt{Op\_T}) by calling \texttt{Op\_make} and \texttt{Op\_set} &
+         \ref{sec:op},  \ref{U_PV_Ham_hop},  \ref{sec:predefined_hopping_1} \\    
+      & \texttt{Ham\_V}: \hspace{3pt} Sets the interaction term 
+      $\hat{\mathcal{H}}_{V}$ (i.e., operator \texttt{Op\_V}) by calling \texttt{Op\_make}
+      and \texttt{Op\_set} &
+         \ref{sec:op}, \ref{U_PV_Ham_V}, \ref{sec:interaction_vertices} \\       
+      & \texttt{Ham\_Trial}: \hspace{3pt}
+      Sets the trial  wave function for the  projective code $| \Psi_{T,L/R} \rangle  $ 
+      specified by the \texttt{Wavefunction} type  & 
+         \ref{sec:wave_function}, \ref{U_PV_Ham_Trial}, 
+         \ref{sec:predefined_trial_wave_function}\\    
+   \texttt{Alloc\_obs} & 
+      Assigns memory storage to the observable & 
+         \ref{sec:obs} , \ref{Alloc_obs_sec}\\
+   \texttt{Obser}      &
+      Computes the scalar and equal-time observables &
+         \ref{sec:obs},  \ref{sec:EqualTimeobs}, \ref{sec:predefined_observales}   \\
+   \texttt{ObserT}     &
+      Computes time-displaced correlation functions &
+         \ref{sec:obs}, \ref{sec:TimeDispObs}, \ref{sec:predefined_observales} \\
+   \texttt{S0}     &
+      Returns the ratio $e^{S_0(C')} /e^{-S_0(C)} $ for a single spin flip  &
+         \ref{sec:S0} \\    
+   \texttt{Global\_move\_tau} &
+      Generates a global move on a given time slice $\tau$.  This routine is only called
+      if \texttt{Global\_tau\_moves=True} and \texttt{N\_Global\_tau>0} & 
+         \ref{sec:global_space} \\
+   \texttt{Overide\_global\_tau\_sampling\_parameters}     &
+      Allows setting \texttt{global\_tau} parameters at run time  &
+         \ref{sec:global_space} \\  
+   \texttt{Hamiltonian\_set\_nsigma} &
+      Sets the initial field configuration. This routine is to be modified if one wants
+      to specify the initial configuration. By default the initial configuration is
+      assumed to be random  &  \\
+   \texttt{Global\_move} &  
+      Handles global moves in time and space &
+         \ref{sec:global_slice}  \\
+   \texttt{Delta\_S0\_global} &
+      Computes $e^{S_0(C')} /e^{-S_0(C)} $ for a global move  &
+         \ref{sec:global_slice} \\ 
+   \texttt{Init\_obs}  &
+      Initializes the observables to zero. Usually, this doesn't have to be modified. & \\    
+   \texttt{Pr\_obs}   &
+      Writes the observables to disk by calling
+      \texttt{Print\_bin} of the \texttt{Observables} module.
+      Usually, this doesn't have to be modified. &   
  \\\bottomrule   
  \end{tabular}
-\caption{Overview of the subprograms of the  module \texttt{Hamiltonian}, contained in the Hamiltonian files used to define various  Hamiltonians. The \hl{highlighted} subroutines may have to be modified by the user. \label{table:hamiltonian} }
+\caption{Typebound procedures bound to type \texttt{ham\_base}. To define a new model, at least \texttt{Ham\_Set} has to be overloaded in the Hamiltonian submodule. For measurements \texttt{Alloc\_obs}, \texttt{Obser} (and \texttt{ObserT} for time displaced observables) are necessary.
+The other procedures are needed for optional features.
+\label{table:hamiltonian_procedures} }
 \end{center}
 \end{table}
 %
@@ -460,7 +584,7 @@ Accordingly, the following data structures fully describe the  Hamiltonian (\ref
 \item For the hopping Hamiltonian (\ref{eqn:general_ham_t}), we have to set the exponentiated hopping matrices $ e^{-\Delta \tau {\bm T}^{(ks)}}$: \\
 In this case $\bm{X}^{(ks)}=\bm{T}^{(ks)}$, and a single variable  \texttt{Op\_T}  describes the operator matrix
 \begin{equation}
-            \left( \sum_{x,y}^{N_{\mathrm{dim}}} \hat{c}^{\dagger}_x T_{xy}^{(ks)} \hat{c}^{\phantom{\dagger}}_{y}  \right)  \;,
+            \left( \sum_{x,y}^{N_{\mathrm{dim}}} \hat{c}^{\dagger}_{xs} T_{xy}^{(ks)} \hat{c}^{\phantom{\dagger}}_{ys}  \right)  \;,
 \end{equation} 
 where $k=[1, M_{T}]$ and $s=[1, N_{\mathrm{fl}}]$. In the notation of the general expression (\ref{eqn:exponent_mat}), we set $g=-\Delta \tau$ (and $\alpha = 0$).
 In case of the hopping matrix, the type variable  takes its default value  $\texttt{Op\_T\%type}=0$. 
@@ -469,7 +593,7 @@ All in all, the corresponding array of structure variables is  \texttt{Op\_T(M$_
 \item For the interaction Hamiltonian (\ref{eqn:general_ham_v}), which is of perfect-square type, we have to set the exponentiated matrices $e^{  \sqrt{ -  \Delta \tau  U_k} \eta_{k\tau} {\bm V}^{(ks)} }$:\\
 In this case, $\bm{X}  = \bm{V}^{(ks)}$ and a single variable  \texttt{Op\_V}  describes the operator matrix:
 \begin{equation}
-             \left[ \left( \sum_{x,y}^{N_{\mathrm{dim}}} \hat{c}^{\dagger}_x V_{x,y}^{(ks)} \hat{c}^{\phantom{\dagger}}_{y}  \right)  + \alpha_{ks} \right]  \;,
+             \left[ \left( \sum_{x,y}^{N_{\mathrm{dim}}} \hat{c}^{\dagger}_{xs} V_{x,y}^{(ks)} \hat{c}^{\phantom{\dagger}}_{ys}  \right)  + \alpha_{ks} \right]  \;,
 \end{equation} 
 where $k=[1, M_{V}]$ and $s=[1, N_{\mathrm{fl}}]$, $g = \sqrt{-\Delta \tau  U_k}$ and  $\alpha = \alpha_{ks}$. 
 The discrete HS decomposition which is used for the perfect-square interaction, is selected by setting the type variable to $\texttt{Op\_V\%type}=2$.
@@ -478,7 +602,7 @@ All in all, the required structure variables \texttt{Op\_V} are defined  using t
 \item For the bosonic interaction Hamiltonian (\ref{eqn:general_ham_i}), we have to set the exponentiated matrices $e^{  -\Delta \tau s_{k\tau}  {\bm I}^{(ks)}}$:\\
 In this case, $\bm{X}  = \bm{I}^{(k,s)} $ and a single variable  \texttt{Op\_V} then  describes the operator matrix:
 \begin{equation}
-            \left( \sum_{x,y}^{N_{\mathrm{dim}}} \hat{c}^{\dagger}_x I_{xy}^{(ks)} \hat{c}^{\phantom{\dagger}}_{y}  \right)  \;,
+            \left( \sum_{x,y}^{N_{\mathrm{dim}}} \hat{c}^{\dagger}_{xs} I_{xy}^{(ks)} \hat{c}^{\phantom{\dagger}}_{ys}  \right)  \;,
 \end{equation} 
 where $k=[1, M_{I}]$ and $s=[1, N_{\mathrm{fl}}]$ and $g = -\Delta \tau$ (and $\alpha = 0$).
 It this operator couples to an Ising field, we specify the  type variable  $\texttt{Op\_V\%type=1}$.    On the other hand, if it couples to a scalar field (i.e. real number)   then we 

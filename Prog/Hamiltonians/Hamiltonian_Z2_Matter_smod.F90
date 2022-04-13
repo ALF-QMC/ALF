@@ -40,7 +40,7 @@
 !--------------------------------------------------------------------
 
 
-    Module Hamiltonian
+    submodule (Hamiltonian_main) ham_Z2_Matter_smod
 
       Use Operator_mod
       Use WaveFunction_mod
@@ -53,54 +53,70 @@
       Use Fields_mod
       Use Predefined_Hoppings
       Use Predefined_Obs
-      use iso_fortran_env, only: output_unit, error_unit
-
 
       Implicit none
+      
+      type, extends(ham_base) :: ham_Z2_Matter
+      contains
+        ! Set Hamiltonian-specific procedures
+        procedure, nopass :: Ham_Set
+        procedure, nopass :: Alloc_obs
+        procedure, nopass :: Obser
+        procedure, nopass :: ObserT
+        procedure, nopass :: Global_move_tau
+        procedure, nopass :: Hamiltonian_set_nsigma
+        procedure, nopass :: Overide_global_tau_sampling_parameters
+        procedure, nopass :: Delta_S0_global
+        procedure, nopass :: S0
+#ifdef HDF5
+        procedure, nopass :: write_parameters_hdf5
+#endif
+      end type ham_Z2_Matter
 
-!>    Public variables. Have to be set by user
-      Type (Operator), dimension(:,:), allocatable  :: Op_V
-      Type (Operator), dimension(:,:), allocatable  :: Op_T
-      Type (WaveFunction), dimension(:),   allocatable :: WF_L
-      Type (WaveFunction), dimension(:),   allocatable :: WF_R
-      Type (Fields)        :: nsigma
-      Integer              :: Ndim
-      Integer              :: N_FL
-      Integer              :: N_SUN
-      Integer              :: Ltrot
-      Integer              :: Thtrot
-      Logical              :: Projector
-      Integer              :: Group_Comm
-      Logical              :: Symm = .False.
+      !#PARAMETERS START# VAR_lattice
+      Character (len=64) :: Model = 'Z2_Matter'  ! Possible Values: 'Z2_Matter'
+      Character (len=64) :: Lattice_type = 'Square'  ! Possible Values: 'Square'
+      Integer            :: L1 = 6   ! Length in direction a_1
+      Integer            :: L2 = 6   ! Length in direction a_2
+      !#PARAMETERS END#
 
-
-!>    Privat variables
-      Type (Lattice),        private, target :: Latt
-      Type (Unit_cell),      private, target :: Latt_unit
-      Integer,               private :: L1, L2, N_part
-      real (Kind=Kind(0.d0)),private :: ham_T, Ham_chem, Ham_g, Ham_J,  Ham_K, Ham_h,  Ham_TZ2, Ham_U
-      real (Kind=Kind(0.d0)),private :: Dtau, Beta, Theta
-      Character (len=64),    private :: Model, Lattice_type
-      Logical,               private :: One_dimensional
-      Integer, allocatable,  private :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
-      real (Kind=Kind(0.d0)),private :: Zero = 1.D-10
-
-
-
-      !>    Privat Observables
-      Type (Obser_Vec ),  private, dimension(:), allocatable ::   Obs_scal
-      Type (Obser_Latt),  private, dimension(:), allocatable ::   Obs_eq
-      Type (Obser_Latt),  private, dimension(:), allocatable ::   Obs_tau
+      !#PARAMETERS START# VAR_Z2_Matter
+      !Integer              :: N_SUN = 2
+      real(Kind=Kind(0.d0)) :: ham_T    = 1.d0   ! Hopping for fermions
+      real(Kind=Kind(0.d0)) :: ham_TZ2  = 1.d0   ! Hopping for orthogonal fermions
+      real(Kind=Kind(0.d0)) :: Ham_chem = 0.d0   ! Chemical potential for fermions
+      real(Kind=Kind(0.d0)) :: Ham_U    = 0.d0  ! Hubbard for fermions
+      real(Kind=Kind(0.d0)) :: Ham_J    = 1.d0   ! Hopping Z2 matter fields
+      real(Kind=Kind(0.d0)) :: Ham_K    = 1.d0   ! Plaquette term for gauge fields
+      real(Kind=Kind(0.d0)) :: Ham_h    = 1.d0   ! sigma^x-term for matter
+      real(Kind=Kind(0.d0)) :: Ham_g    = 1.d0   ! tau^x-term for gauge
+      real(Kind=Kind(0.d0)) :: Dtau     = 0.1d0  ! Thereby Ltrot=Beta/dtau
+      real(Kind=Kind(0.d0)) :: Beta     = 10.d0  ! Inverse temperature
+      !logical              :: Projector = .false.  ! Whether the projective algorithm is used
+      real(Kind=Kind(0.d0)) :: Theta    = 0.d0      ! Projection parameter
+      Integer               :: N_part   = -1        ! Number of particles in trial wave function. If N_part < 0 -> N_part = L1*L2/2
+      !#PARAMETERS END#
+      
+      Type (Lattice),        target :: Latt
+      Type (Unit_cell),      target :: Latt_unit
+      Logical                :: One_dimensional
+      Integer, allocatable   :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
+      real (Kind=Kind(0.d0)) :: Zero = 1.D-10
 
       !>    Storage for the Ising action
-      Real (Kind=Kind(0.d0)), private :: DW_Ising_tau(-1:1), DW_Ising_Space(-1:1), DW_Ising_Flux(-1:1,-1:1)
-      Real (Kind=Kind(0.d0)), private :: DW_Matter_tau(-1:1), DW_Ising_Matter(-1:1)
-      Integer, allocatable  , private :: Field_list(:,:,:), Field_list_inv(:,:)
-
+      Real (Kind=Kind(0.d0)) :: DW_Ising_tau(-1:1), DW_Ising_Space(-1:1), DW_Ising_Flux(-1:1,-1:1)
+      Real (Kind=Kind(0.d0)) :: DW_Matter_tau(-1:1), DW_Ising_Matter(-1:1)
+      Integer, allocatable   :: Field_list(:,:,:), Field_list_inv(:,:)
 
     contains
+      
+      module Subroutine Ham_Alloc_Z2_Matter
+        allocate(ham_Z2_Matter::ham)
+      end Subroutine Ham_Alloc_Z2_Matter
 
-
+! Dynamically generated on compile time from parameters list.
+! Supplies the subroutines read_parameters and write_parameters_hdf5.
+#include "Hamiltonian_Z2_Matter_read_write_parameters.F90"
 
 !--------------------------------------------------------------------
 !> @author
@@ -111,23 +127,13 @@
 !--------------------------------------------------------------------
       Subroutine Ham_Set
 
-
 #if defined (MPI) || defined(TEMPERING)
           use mpi
 #endif
           Implicit none
 
-
-          integer :: ierr
-          Character (len=64) :: file_info, file_para
-
-          NAMELIST /VAR_lattice/  L1, L2, Lattice_type, Model
-
-
-          NAMELIST /VAR_Z2_Matter/ ham_T, Ham_chem, Ham_g, Ham_J,  Ham_K, Ham_h, &
-               &                   Dtau, Beta, ham_TZ2, Ham_U,  N_SUN, Projector, Theta, N_part
-
-          
+          integer :: ierr, nf, unit_info
+          Character (len=64) :: file_info
           
 #ifdef MPI
           Integer        :: Isize, Irank, igroup, irank_g, isize_g
@@ -140,24 +146,9 @@
           !if ( irank_g == 0 )   write(6,*) "Mpi Test", igroup, isize_g
 #endif
 
+          ! From dynamically generated file "Hamiltonian_Z2_Matter_read_write_parameters.F90"
+          call read_parameters()
           
-#ifdef MPI
-          If (Irank == 0 ) then
-#endif
-             OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
-             IF (ierr /= 0) THEN
-                WRITE(error_unit,*) 'Ham_set: unable to open <parameters>',ierr
-                error stop 1
-             END IF
-             READ(5,NML=VAR_lattice)
-             CLOSE(5)
-#ifdef MPI
-          Endif
-          CALL MPI_BCAST(L1          ,1  ,MPI_INTEGER,   0,MPI_COMM_WORLD,ierr)
-          CALL MPI_BCAST(L2          ,1  ,MPI_INTEGER,   0,MPI_COMM_WORLD,ierr)
-          CALL MPI_BCAST(Model       ,64 ,MPI_CHARACTER, 0,MPI_COMM_WORLD,IERR)
-          CALL MPI_BCAST(Lattice_type,64 ,MPI_CHARACTER, 0,MPI_COMM_WORLD,IERR)
-#endif
           Call Ham_latt
 
           if ( Model == "Z2_Matter" ) then
@@ -170,50 +161,16 @@
              Write(error_unit,*) "Ham_set: Model not yet implemented!"
              error stop 1
           endif
-
-
-
-          File_Para = "parameters"
-          File_info = "info"
-#if defined(TEMPERING)
-          write(File_para,'(A,I0,A)') "Temp_",igroup,"/parameters"
-          write(File_info,'(A,I0,A)') "Temp_",igroup,"/info"
-#endif
-          
-#if defined(MPI)
-          If (Irank_g == 0 ) then
-#endif
-             ham_T = 0.d0; Ham_chem = 0.d0; Ham_g = 0.d0; Ham_J = 0.d0
-             Ham_K = 0.d0; Ham_h = 0.d0; Projector = .False. ;  N_part = L1*L2/2
-             OPEN(UNIT=5,FILE=file_para,STATUS='old',ACTION='read',IOSTAT=ierr)
-             READ(5,NML=VAR_Z2_Matter)
-             CLOSE(5)
-             If (Abs(Ham_T) < Zero ) then
-                Ham_J = 0.d0 ! Matter-Ising interction
-                Ham_h = 0.d0
-             endif
-             If (Abs(Ham_TZ2) < Zero ) then
-                Ham_J = 0.d0 ! Matter-Ising interction
-                Ham_K = 0.d0 ! Flux
-                Ham_g = 0.d0
-             endif
-#ifdef MPI
+          if (N_part < 0) N_part = L1*L2/2
+          If (Abs(Ham_T) < Zero ) then
+              Ham_J = 0.d0 ! Matter-Ising interction
+              Ham_h = 0.d0
           endif
-          CALL MPI_BCAST(ham_T    ,1,MPI_REAL8,0,Group_Comm,ierr)
-          CALL MPI_BCAST(ham_TZ2  ,1,MPI_REAL8,0,Group_Comm,ierr)
-          CALL MPI_BCAST(ham_chem ,1,MPI_REAL8,0,Group_Comm,ierr)
-          CALL MPI_BCAST(ham_g    ,1,MPI_REAL8,0,Group_Comm,ierr)
-          CALL MPI_BCAST(Ham_J    ,1,MPI_REAL8,0,Group_Comm,ierr)
-          CALL MPI_BCAST(Ham_K    ,1,MPI_REAL8,0,Group_Comm,ierr)
-          CALL MPI_BCAST(Ham_h    ,1,MPI_REAL8,0,Group_Comm,ierr)
-          CALL MPI_BCAST(Dtau     ,1,MPI_REAL8,0,Group_Comm,ierr)
-          CALL MPI_BCAST(Beta     ,1,MPI_REAL8,0,Group_Comm,ierr)
-          CALL MPI_BCAST(Ham_U    ,1,MPI_REAL8,0,Group_Comm,ierr)
-          CALL MPI_BCAST(N_SUN    ,1,MPI_INTEGER,0,Group_Comm,ierr)
-          CALL MPI_BCAST(N_part      ,1,  MPI_INTEGER  , 0,Group_Comm,ierr)
-          CALL MPI_BCAST(theta       ,1,  MPI_REAL8    , 0,Group_Comm,ierr)
-          CALL MPI_BCAST(Projector   ,1,  MPI_LOGICAL  , 0,Group_Comm,ierr)
-#endif
+          If (Abs(Ham_TZ2) < Zero ) then
+              Ham_J = 0.d0 ! Matter-Ising interction
+              Ham_K = 0.d0 ! Flux
+              Ham_g = 0.d0
+          endif
 
           Call Ham_hop
           Ltrot = nint(beta/dtau)
@@ -222,55 +179,62 @@
           Ltrot = Ltrot+2*Thtrot
           
           If  ( Model == "Z2_Matter" )  Call Setup_Ising_action_and_field_list
+          
+          call Ham_V
+           
+          if (Projector) Call Ham_Trial()
 
-
-
-#if defined(MPI) && !defined(TEMPERING)
-           If (Irank == 0 ) then
+#if defined(MPI)
+           If (irank_g == 0 ) then
 #endif
-
-              Open (Unit = 50,file=file_info,status="unknown",position="append")
-              Write(50,*) '====================================='
-              Write(50,*) 'Model is      : ', Model
-              Write(50,*) 'Lattice is    : ', Lattice_type
-              Write(50,*) '# of orbitals : ', Ndim
+              File_info = "info"
+#if defined(TEMPERING)
+              write(File_info,'(A,I0,A)') "Temp_",igroup,"/info"
+#endif
+              Open(newunit=unit_info, file=file_info, status="unknown", position="append")
+              Write(unit_info,*) '====================================='
+              Write(unit_info,*) 'Model is      : Z2_Matter'
+              Write(unit_info,*) 'Lattice is    : ', Lattice_type
+              Write(unit_info,*) '# of orbitals : ', Ndim
               if (Projector) then
-                 Write(50,*) 'Projective version'
-                 Write(50,*) 'Theta         : ', Theta
-                 Write(50,*) 'Tau_max       : ', beta
-                 Write(50,*) '# of particles: ', N_part
+                 Write(unit_info,*) 'Projective version'
+                 Write(unit_info,*) 'Theta         : ', Theta
+                 Write(unit_info,*) 'Tau_max       : ', beta
+                 Write(unit_info,*) '# of particles: ', N_part
               else
-                 Write(50,*) 'Finite temperture version'
-                 Write(50,*) 'Beta          : ', Beta
+                 Write(unit_info,*) 'Finite temperture version'
+                 Write(unit_info,*) 'Beta          : ', Beta
               endif
-              Write(50,*) 'dtau,Ltrot    : ', dtau,Ltrot
-              Write(50,*) 'N_SUN         : ', N_SUN
-              Write(50,*) 'N_FL          : ', N_FL
+              Write(unit_info,*) 'dtau,Ltrot    : ', dtau,Ltrot
+              Write(unit_info,*) 'N_SUN         : ', N_SUN
+              Write(unit_info,*) 'N_FL          : ', N_FL
               If (Abs(Ham_T) < Zero) then
-                 Write(50,*) 't_Z2          : ', Ham_TZ2
-                 Write(50,*) 'g_Z2          : ', Ham_g
-                 Write(50,*) 'K_Gauge       : ', Ham_K
+                 Write(unit_info,*) 't_Z2          : ', Ham_TZ2
+                 Write(unit_info,*) 'g_Z2          : ', Ham_g
+                 Write(unit_info,*) 'K_Gauge       : ', Ham_K
               elseif (Abs(Ham_TZ2) < Zero) then
-                 Write(50,*) 't_fermion     : ', Ham_T
-                 Write(50,*) 'h_Matter      : ', Ham_h
+                 Write(unit_info,*) 't_fermion     : ', Ham_T
+                 Write(unit_info,*) 'h_Matter      : ', Ham_h
               else
-                 Write(50,*) 't_Z2          : ', Ham_TZ2
-                 Write(50,*) 'g_Z2          : ', Ham_g
-                 Write(50,*) 'K_Gauge       : ', Ham_K
-                 Write(50,*) 't_fermion     : ', Ham_T
-                 Write(50,*) 'h_Matter      : ', Ham_h
-                 Write(50,*) 'J_Gauge_Z2    : ', Ham_J
+                 Write(unit_info,*) 't_Z2          : ', Ham_TZ2
+                 Write(unit_info,*) 'g_Z2          : ', Ham_g
+                 Write(unit_info,*) 'K_Gauge       : ', Ham_K
+                 Write(unit_info,*) 't_fermion     : ', Ham_T
+                 Write(unit_info,*) 'h_Matter      : ', Ham_h
+                 Write(unit_info,*) 'J_Gauge_Z2    : ', Ham_J
               endif
-              Write(50,*) 'Ham_chem      : ', Ham_chem
-              Write(50,*) 'Ham_U         : ', Ham_U
-              close(50)
-#if defined(MPI) && !defined(TEMPERING)
+              Write(unit_info,*) 'Ham_chem      : ', Ham_chem
+              Write(unit_info,*) 'Ham_U         : ', Ham_U
+              if (Projector) then
+                 Do nf = 1,N_FL
+                    Write(unit_info,*) 'Degen of right trial wave function: ', WF_R(nf)%Degen
+                    Write(unit_info,*) 'Degen of left  trial wave function: ', WF_L(nf)%Degen
+                 enddo
+              endif
+              close(unit_info)
+#if defined(MPI)
            endif
 #endif
-           call Ham_V
-           
-           if (Projector)   Call Ham_Trial(File_info)
-           
          end Subroutine Ham_Set
 
 !--------------------------------------------------------------------
@@ -412,30 +376,15 @@
 !> @brief
 !> Sets the trial wave function
 !--------------------------------------------------------------------
-        Subroutine Ham_Trial(file_info)
+        Subroutine Ham_Trial()
 
-
-#if defined (MPI) || defined(TEMPERING)
-          Use mpi
-#endif
           Use Predefined_Trial
 
           Implicit none
-          Character (len=64), intent(in)  :: file_info
           
           Integer                              :: nf, Ix, Iy, I, n
           Real (Kind=Kind(0.d0)), allocatable  :: H0(:,:),  U0(:,:), E0(:)
           Real (Kind=Kind(0.d0))               :: Pi = acos(-1.d0), Delta = 0.01d0
-#ifdef MPI
-          Integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
-          Integer        :: STATUS(MPI_STATUS_SIZE)
-
-          CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-          CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-          call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-          call MPI_Comm_size(Group_Comm, isize_g, ierr)
-          igroup           = irank/isize_g
-#endif
           
           Allocate(WF_L(N_FL),WF_R(N_FL))
           do nf=1,N_FL
@@ -470,20 +419,6 @@
              WF_L(nf)%Degen = E0(N_part+1) - E0(N_part)
              WF_R(nf)%Degen = E0(N_part+1) - E0(N_part)
           enddo
-          
-          
-#ifdef MPI
-          If (Irank_g == 0) then
-#endif
-             OPEN(Unit = 50,file=file_info,status="unknown",position="append")
-             Do nf = 1,N_FL
-                Write(50,*) 'Degen of right trial wave function: ', WF_R(nf)%Degen
-                Write(50,*) 'Degen of left  trial wave function: ', WF_L(nf)%Degen
-             enddo
-             close(50)
-#ifdef MPI
-          endif
-#endif
 
           Deallocate(H0,  U0,  E0 )
 
@@ -572,7 +507,6 @@
              endif
 
           endif
-
 
         end function S0
 
@@ -720,43 +654,7 @@
 !!$          endif
 
         end Subroutine Global_move_tau
-!--------------------------------------------------------------------
-!> @author
-!> ALF Collaboration
-!>
-!> @brief
-!> Global moves
-!>
-!> @details
-!>  This routine generates a
-!>  global update  and returns the propability T0_Proposal_ratio  =  T0( sigma_out-> sigma_in ) /  T0( sigma_in -> sigma_out)
-!> @param [IN] nsigma_old,  Type(Fields)
-!> \verbatim
-!>  Old configuration. The new configuration is stored in nsigma.
-!> \endverbatim
-!> @param [OUT]  T0_Proposal_ratio Real
-!> \verbatimam
-!>  T0_Proposal_ratio  =  T0( sigma_new -> sigma_old ) /  T0( sigma_old -> sigma_new)
-!> \endverbatim
-!> @param [OUT]  Size_clust Real
-!> \verbatim
-!>  Size of cluster that will be flipped.
-!> \endverbatim
-!-------------------------------------------------------------------
-        Subroutine Global_move(T0_Proposal_ratio,nsigma_old,size_clust)
 
-          !>  The input is the field nsigma declared in this module. This routine generates a
-          !>  global update with  and returns the propability
-          !>  T0_Proposal_ratio  =  T0( sigma_out-> sigma_in ) /  T0( sigma_in -> sigma_out)
-          !>
-
-          Implicit none
-          Real (Kind=Kind(0.d0)), intent(out) :: T0_Proposal_ratio, size_clust
-          type (Fields),  Intent(IN)  :: nsigma_old
-          !> nsigma_old contains a copy of nsigma upon entry
-
-
-        End Subroutine Global_move
 !--------------------------------------------------------------------
 !> @author
 !> ALF Collaboration
@@ -1051,6 +949,7 @@
           endif
 
         end Subroutine Alloc_obs
+
 !--------------------------------------------------------------------
 !> @author
 !> ALF Collaboration
@@ -1072,7 +971,6 @@
 !> \endverbatim
 !--------------------------------------------------------------------
         Subroutine Obser(GR,Phase,Ntau, Mc_step_weight)
-
 
           Implicit none
 
@@ -1108,7 +1006,7 @@
                 GRC(I, I, nf) = 1.D0 + GRC(I, I, nf)
              Enddo
           Enddo
-          ! GRC(i,j,nf) = < c^{dagger}_{j,nf } c_{j,nf } >
+          ! GRC(i,j,nf) = < c^{dagger}_{i,nf } c_{j,nf } >
 
           ! Compute scalar observables.
           Do I = 1,Size(Obs_scal,1)
@@ -1220,6 +1118,7 @@
           If (Abs(Ham_T) > Zero )  Deallocate ( Isigma, Isigmap1)
  
         end Subroutine Obser
+
 !--------------------------------------------------------------------
 !> @author
 !> ALF Collaboration
@@ -1244,7 +1143,6 @@
 !>  Phase
 !> \endverbatim
 !-------------------------------------------------------------------
-
         Subroutine ObserT(NT,  GT0,G0T,G00,GTT, PHASE,Mc_step_weight)
           Implicit none
 
@@ -1276,68 +1174,6 @@
           Call Predefined_Obs_tau_Den_measure    ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(3) )
           
         end Subroutine OBSERT
-!--------------------------------------------------------------------
-!> @author
-!> ALF Collaboration
-!>
-!> @brief
-!> Prints out the bins.  No need to change this routine.
-!-------------------------------------------------------------------
-        Subroutine  Pr_obs(LTAU)
-
-          Implicit none
-
-          Integer,  Intent(In) ::  Ltau
-
-          !Local
-          Integer :: I
-
-
-          Do I = 1,Size(Obs_scal,1)
-             Call  Print_bin_Vec(Obs_scal(I),Group_Comm)
-          enddo
-          Do I = 1,Size(Obs_eq,1)
-             Call  Print_bin_Latt(Obs_eq(I),Group_Comm)
-          enddo
-          If (Ltau  == 1 ) then
-             Do I = 1,Size(Obs_tau,1)
-                Call  Print_bin_Latt(Obs_tau(I),Group_Comm)
-             enddo
-          endif
-
-        end Subroutine Pr_obs
-
-!--------------------------------------------------------------------
-!> @author
-!> ALF Collaboration
-!>
-!> @brief
-!> Initializes observables to zero before each bins.  No need to change
-!> this routine.
-!-------------------------------------------------------------------
-        Subroutine  Init_obs(Ltau)
-
-          Implicit none
-          Integer, Intent(In) :: Ltau
-
-          ! Local
-          Integer :: I
-
-          Do I = 1,Size(Obs_scal,1)
-             Call Obser_vec_Init(Obs_scal(I))
-          Enddo
-
-          Do I = 1,Size(Obs_eq,1)
-             Call Obser_Latt_Init(Obs_eq(I))
-          Enddo
-
-          If (Ltau == 1) then
-             Do I = 1,Size(Obs_tau,1)
-                Call Obser_Latt_Init(Obs_tau(I))
-             Enddo
-          Endif
-
-        end Subroutine Init_obs
 
 !--------------------------------------------------------------------
 !> @author
@@ -1347,7 +1183,6 @@
 !> Returns the flux on a plaquette. I is the left-bottom corner.
 !>
 !--------------------------------------------------------------------
-
       Integer Function  iFlux(I,nt,nb_type)
 
         Implicit none
@@ -1387,7 +1222,7 @@
 
         Implicit none
 
-        Real (Kind=Kind(0.d0)), allocatable, dimension(:,:), Intent(OUT) :: Initial_field
+        Real (Kind=Kind(0.d0)), allocatable, dimension(:,:), Intent(INOUT) :: Initial_field
 
         ! Local
         Integer :: I,nc, I1, nt, n_orientation, N_ops
@@ -1456,6 +1291,7 @@
 
 
       end Subroutine Hamiltonian_set_nsigma
+
 !--------------------------------------------------------------------
 !> @author
 !> ALF Collaboration
@@ -1560,8 +1396,8 @@
            Endif
            tau_x  = X
         endif
-        
       end function tau_x
+
 !--------------------------------------------------------------------
 !> @author
 !> ALF Collaboration
@@ -1665,8 +1501,8 @@
            endif
         endif
         !Write(6,*) 'Out tau_x_c'
-        
       end function tau_x_c
+
 !--------------------------------------------------------------------
 !> @author
 !> ALF Collaboration
@@ -1763,7 +1599,6 @@
         
       end function star_sigma_x
 
-
 !--------------------------------------------------------------------
 !> @author
 !> ALF Collaboration
@@ -1775,8 +1610,10 @@
 !> @details
 !> \endverbatim
 !--------------------------------------------------------------------
-Real (Kind=Kind(0.d0)) function star_sigma_x_c(i,j,nt)
+      Real (Kind=Kind(0.d0)) function star_sigma_x_c(i,j,nt)
+        
         Implicit none
+
         Integer, Intent(IN) ::  i, j, nt
 
         Integer :: I3, I4, J3,J4,  nt1
@@ -1930,62 +1767,6 @@ Real (Kind=Kind(0.d0)) function star_sigma_x_c(i,j,nt)
         endif
         
       end function star_sigma_x_c
-        
-
-      function get_dtau()
-!--------------------------------------------------------------------
-!> @author
-!> ALF Collaboration
-!>
-!> @brief
-!> Returns dtau, for use outside of Hamiltonian.
-!>
-!> @details
-!> \endverbatim
-!----------------------------------------------
-        Implicit none
-        real (Kind=Kind(0.d0)) :: get_dtau
-        get_dtau = dtau
-      end function get_dtau
-      
-      
-      function get_beta()
-!--------------------------------------------------------------------
-!> @author
-!> ALF Collaboration
-!>
-!> @brief
-!> Returns dtau, for use outside of Hamiltonian.
-!>
-!> @details
-!> \endverbatim
-!----------------------------------------------
-        Implicit none
-        real (Kind=Kind(0.d0)) :: get_beta
-        get_beta = beta
-      end function get_beta
-
-!--------------------------------------------------------------------
-!> @author 
-!> ALF Collaboration
-!>
-!> @brief 
-!>   Forces_0  = \partial S_0 / \partial s  are calculated and returned to  main program.
-!> 
-!-------------------------------------------------------------------
-        Subroutine Ham_Langevin_HMC_S0(Forces_0)
-
-          Implicit none
-
-          Real (Kind=Kind(0.d0)), Intent(out  ),  dimension(:,:) :: Forces_0
-
-          !Local
-          Integer :: N, N_op,nt
-          
-          ! Compute \partial S_0 / \partial s
-          Forces_0  = 0.d0
-          
-        end Subroutine Ham_Langevin_HMC_S0
 
 
-      end Module Hamiltonian
+      end submodule ham_Z2_Matter_smod

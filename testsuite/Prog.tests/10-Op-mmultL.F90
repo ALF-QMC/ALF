@@ -97,12 +97,13 @@ Program OPMULTTEST
          enddo
       enddo
 
-      deallocate(Op%U, Op%E, Op%E_exp, Op%M_exp)
+      Call Op_clear(Op, 3)
+      Call Op_make(Op, 3)
       !Repeat test for diagonal operator
       Op%O = CMPLX(0.d0, 0.d0, kind(0.D0))
       do i = 1, Op%N
          Op%O(i,i) = 2*i-3
-         !             Op%P(i) = i
+         Op%P(i) = i
          !             Op%U(i,i) = CMPLX(1.d0, 0.d0, kind(0.D0))
       enddo
       !         Op%N_non_zero = 2

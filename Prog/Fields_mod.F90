@@ -52,7 +52,14 @@
 !--------------------------------------------------------------------
 
      Module Fields_mod
-
+       
+#ifdef MPI
+       Use mpi
+#endif
+#if defined HDF5
+       Use hdf5
+       use h5lt
+#endif
        Use Random_Wrap
        use iso_fortran_env, only: output_unit, error_unit
 
@@ -77,6 +84,11 @@
           procedure  :: Phi   => Fields_Phi
           procedure  :: Gama  => Fields_Gama
           procedure  :: Flip  => Fields_Flip
+          procedure, private  :: read_conf    => Fields_read_conf
+#if defined HDF5
+          procedure, private  :: read_conf_h5 => Fields_read_conf_h5
+#endif
+          procedure, private  :: write_conf   => Fields_write_conf
        END TYPE Fields
 
     Contains
@@ -262,14 +274,14 @@
 !> @details
 !> Reads in the field configuration and seeds if present so as to
 !> pursue a run. If  the configuration is not present  the
-!> routine will generate one randomly. Note that the random number generator is 
-!> initialized from the  seeds file in the routine Set_Random_number_Generator  of the 
+!> routine will generate one randomly. Note that the random number generator is
+!> initialized from the  seeds file in the routine Set_Random_number_Generator  of the
 !> module random_wrap_mod.F90
 !>
 !> @param [INOUT] this
 !> \verbatim
 !> Type Fields
-!> On input  test%t(:) is set.  The operator types are time independent.
+!> On input  test%t(:) is set. The operator types are time independent.
 !> On output test%f(:,:) is initialized \endverbatim
 !>
 !> @param [IN] Group_Comm
@@ -284,10 +296,6 @@
 !--------------------------------------------------------------------
       Subroutine Fields_in(this,Group_Comm,Initial_field)
 
-#ifdef MPI
-        Use mpi
-#endif
-
         Implicit none
 
         Class (Fields)        , INTENT(INOUT) :: this
@@ -298,8 +306,8 @@
         Integer                 :: I, I1, IERR, SEED_IN, K, NT
         Real (Kind=Kind(0.d0) ) :: X
         Integer, DIMENSION(:), ALLOCATABLE :: SEED_VEC
-        Logical ::   LCONF
-        Character (LEN=64) :: FILE_SR, FILE_TG, FILE_seeds, FILE_info, File1
+        Logical ::   LCONF, LCONF_H5
+        Character (LEN=64) :: FILE_SR, FILE_TG, FILE_seeds, FILE_info, File1, FILE_TG_H5, File1_h5
 
 #ifdef MPI
         INTEGER        :: STATUS(MPI_STATUS_SIZE), irank_g, isize_g, igroup, ISIZE, IRANK
@@ -312,123 +320,89 @@
 
 
 #if defined(MPI)
-
 #if defined(TEMPERING)
-            write(FILE1,'(A,I0,A)') "Temp_",igroup,"/confin_0"
+            write(FILE1,'(A,I0,A)')      "Temp_",igroup,"/confin_0"
+            write(FILE_TG,'(A,I0,A,I0)') "Temp_",igroup,"/confin_",irank_g
+            write(FILE_info,'(A,I0,A)')  "Temp_",igroup,"/info"
 #else
             File1 = "confin_0"
+            write(FILE_TG,'(A,I0)') "confin_",irank_g
+            FILE_info="info"
 #endif
-            INQUIRE (FILE=File1, EXIST=LCONF)
-            IF (LCONF) THEN
-#if defined(TEMPERING)
-               write(FILE_TG,'(A,I0,A,I0)') "Temp_",igroup,"/confin_",irank_g
 #else
-               write(FILE_TG,'(A,I0)') "confin_",irank_g
+            File1   = "confin_0"
+            FILE_TG = "confin_0"
+            FILE_info="info"
 #endif
-               CALL GET_SEED_LEN(K)
-               ALLOCATE(SEED_VEC(K))
-               OPEN (UNIT = 10, FILE=FILE_TG, STATUS='OLD', ACTION='READ')
-               READ(10,*) SEED_VEC
-               CALL RANSET(SEED_VEC)
-               DO NT = 1,SIZE(this%f,2)
-                  DO I = 1,SIZE(this%f,1)
-                     IF (this%t(I) == 1 .or.  this%t(I) == 2) then
-                        Read(10,*)  I1
-                        this%f(I,NT) = real(I1,kind(0.d0))
-                     else
-                        Read(10,*)  this%f(I,NT)
-                     Endif
-                  Enddo
-               Enddo
-               CLOSE(10)
-               DEALLOCATE(SEED_VEC)
+            FILE_seeds="seeds"
+            write(FILE1_H5,  '(A,A)') trim(FILE1)  , ".h5"
+            write(FILE_TG_H5,'(A,A)') trim(FILE_TG), ".h5"
+
+            INQUIRE (FILE=File1, EXIST=LCONF)
+            INQUIRE (FILE=File1_h5, EXIST=LCONF_H5)
+#if defined HDF5
+            CALL h5open_f(ierr)
+            IF (LCONF) THEN
+               write(error_unit,*) "ERROR: Plain text configuration file confin_0 exists, even though program is compiled"
+               write(error_unit,*) "   with HDF5! You cannot mix up HDF5 runs with non-HDF5 runs, program aborted!"
+               error stop 1
+            ENDIF
+            IF (LCONF_H5) THEN
+               CALL this%read_conf_h5(FILE_TG_H5)
             ELSE
-               
-!!$               IF (IRANK == 0) THEN
-!!$                  WRITE(6,*) 'No initial configuration'
-!!$                  OPEN(UNIT=5,FILE='seeds',STATUS='OLD',ACTION='READ',IOSTAT=IERR)
-!!$                  IF (IERR /= 0) THEN
-!!$                     WRITE(error_unit,*) 'Fields_in: unable to open <seeds>',IERR
-!!$                     error stop 1
-!!$                  END IF
-!!$                  DO I = ISIZE-1,1,-1
-!!$                     READ (5,*) SEED_IN
-!!$                     CALL MPI_SEND(SEED_IN,1,MPI_INTEGER, I, I+1024, MPI_COMM_WORLD,IERR)
-!!$                  ENDDO
-!!$                  READ(5,*) SEED_IN
-!!$                  CLOSE(5)
-!!$               ELSE
-!!$                  CALL MPI_RECV(SEED_IN, 1, MPI_INTEGER,0,  IRANK + 1024,  MPI_COMM_WORLD,STATUS,IERR)
-!!$               ENDIF
-!!$               ALLOCATE (SEED_VEC(1))
-!!$               SEED_VEC(1) = SEED_IN
-!!$               CALL RANSET(SEED_VEC)
-!!$               DEALLOCATE (SEED_VEC)
-               
+#else
+            IF (LCONF_H5) THEN
+               write(error_unit,*) "ERROR: HDF5 configuration file confin_0.h5 exists, even though program is compiled"
+               write(error_unit,*) "   without HDF5! You cannot mix up HDF5 runs with non-HDF5 runs, program aborted!"
+               error stop 1
+            ENDIF
+            IF (LCONF) THEN
+               CALL this%read_conf(FILE_TG)
+            ELSE
+#endif
+#if defined MPI
+               IF (IRANK == 0) THEN
+#endif
+                  WRITE(6,*) 'No initial configuration'
+                  OPEN(UNIT=5,FILE=FILE_seeds,STATUS='OLD',ACTION='READ',IOSTAT=IERR)
+                  IF (IERR /= 0) THEN
+                     WRITE(error_unit,*) 'Fields_in: unable to open <seeds>',IERR
+                     error stop 1
+                  END IF
+#if defined MPI
+                  DO I = ISIZE-1,1,-1
+                     READ (5,*) SEED_IN
+                     CALL MPI_SEND(SEED_IN,1,MPI_INTEGER, I, I+1024, MPI_COMM_WORLD,IERR)
+                  ENDDO
+                  READ(5,*) SEED_IN
+                  CLOSE(5)
+               ELSE
+                  CALL MPI_RECV(SEED_IN, 1, MPI_INTEGER,0,  IRANK + 1024,  MPI_COMM_WORLD,STATUS,IERR)
+               ENDIF
+#else
+               READ (5,*) SEED_IN
+               CLOSE(5)
+#endif
+               ALLOCATE (SEED_VEC(1))
+               SEED_VEC(1) = SEED_IN
+               CALL RANSET(SEED_VEC)
+               DEALLOCATE (SEED_VEC)
                If (Present(Initial_field)) then
                   this%f = Initial_field
                else
                   Call  this%set()
                endif
+#if defined MPI
                if (irank_g == 0) then
-#if defined(TEMPERING)
-                  write(FILE_info,'(A,I0,A)') "Temp_",igroup,"/info"
-#else
-                  FILE_info="info"
 #endif
                   Open (Unit = 50,file=FILE_info,status="unknown",position="append")
-                  WRITE(50,*) 'No initial configuration'
+                  WRITE(50,*) 'No initial configuration, Seed_in', SEED_IN
                   Close(50)
+#if defined MPI
                endif
+#endif
          ENDIF
 
-#else
-         FILE_TG = "confin_0"
-         INQUIRE (FILE=FILE_TG, EXIST=LCONF)
-         IF (LCONF) THEN
-            CALL GET_SEED_LEN(K)
-            ALLOCATE(SEED_VEC(K))
-            OPEN (UNIT = 10, FILE=FILE_TG, STATUS='OLD', ACTION='READ')
-            READ(10,*) SEED_VEC
-            CALL RANSET(SEED_VEC)
-            DO NT = 1,SIZE(this%f,2)
-               DO I = 1,SIZE(this%f,1)
-                  IF (this%t(I) == 1 .or.  this%t(I) == 2) then
-                     Read(10,*)  I1
-                     this%f(I,NT) = real(I1,kind(0.d0))
-                  else
-                     Read(10,*)  this%f(I,NT)
-                  Endif
-               Enddo
-            Enddo
-            DEALLOCATE(SEED_VEC)
-         ELSE
-            
-!!$            FILE_seeds="seeds"
-!!$            OPEN(UNIT=5,FILE=FILE_seeds,STATUS='OLD',ACTION='READ',IOSTAT=IERR)
-!!$            IF (IERR /= 0) THEN
-!!$               WRITE(*,*) 'Fields_in: unable to open <seeds>',IERR
-!!$               error stop 1
-!!$            END IF
-!!$            READ (5,*) SEED_IN
-!!$            CLOSE(5)
-!!$            ALLOCATE(SEED_VEC(1))
-!!$            SEED_VEC(1) = SEED_IN
-!!$            CALL RANSET (SEED_VEC)
-!!$            DEALLOCATE  (SEED_VEC)
-            
-            FILE_info="info"
-            Open (Unit = 50,file=FILE_info,status="unknown",position="append")
-            WRITE(50,*) 'No initial configuration'
-            Close(50)
-            
-            If (Present(Initial_field)) then
-               this%f = Initial_field
-            else
-               Call  this%set()
-            endif
-         ENDIF
-#endif
        end Subroutine Fields_in
 !--------------------------------------------------------------------
 !> @author
@@ -452,17 +426,12 @@
 
        SUBROUTINE Fields_out(this,Group_Comm)
 
-#ifdef MPI
-         Use mpi
-#endif
          IMPLICIT NONE
 
          Class (Fields), INTENT(INOUT) :: this
          Integer,        INTENT(IN   ) :: Group_Comm
 
          ! LOCAL
-         INTEGER        :: I, K, NT
-         INTEGER, DIMENSION(:), ALLOCATABLE :: SEED_VEC
          CHARACTER (LEN=64) :: FILE_TG
 
 #if defined(MPI)
@@ -473,47 +442,19 @@
          call MPI_Comm_size(Group_Comm, isize_g, ierr)
          igroup           = irank/isize_g
          !Write(6,*) "Group, rank :", igroup, irank_g
-
-         CALL GET_SEED_LEN(K)
-         ALLOCATE(SEED_VEC(K))
-         CALL RANGET(SEED_VEC)
 #if defined(TEMPERING)
          write(FILE_TG,'(A,I0,A,I0)') "Temp_",igroup,"/confout_",irank_g
 #else
          write(FILE_TG,'(A,I0)') "confout_",irank_g
 #endif
-         OPEN (UNIT = 10, FILE=FILE_TG, STATUS='UNKNOWN', ACTION='WRITE')
-         WRITE(10,*) SEED_VEC
-         DO NT = 1,size(this%f,2)
-            DO I = 1,size(this%f,1)
-               if (this%t(i) ==  3 ) then
-                  WRITE(10,*) this%f(I,NT)
-               else
-                  WRITE(10,*) nint(this%f(I,NT))
-               endif
-            ENDDO
-         ENDDO
-         CLOSE(10)
-         DEALLOCATE(SEED_VEC)
 #else
-         CALL GET_SEED_LEN(K)
-         ALLOCATE(SEED_VEC(K))
-         CALL RANGET(SEED_VEC)
          FILE_TG = "confout_0"
-         OPEN (UNIT = 10, FILE=FILE_TG, STATUS='UNKNOWN', ACTION='WRITE')
-         WRITE(10,*) SEED_VEC
-         DO NT = 1,size(this%f,2)
-            DO I = 1,size(this%f,1)
-               if (this%t(i) ==  3 ) then
-                  WRITE(10,*) this%f(I,NT)
-               else
-                  WRITE(10,*) nint(this%f(I,NT))
-               endif
-            ENDDO
-         ENDDO
-         CLOSE(10)
-         DEALLOCATE(SEED_VEC)
 #endif
+
+#if defined HDF5
+         write(FILE_TG,'(A,A)') trim(FILE_TG), ".h5"
+#endif
+         call this%write_conf(FILE_TG)
 
        END SUBROUTINE Fields_out
 
@@ -554,7 +495,220 @@
          enddo
 
        end Subroutine Fields_set
-!---------------------------------------------------------------------
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF-project
+!>
+!> @brief
+!> Reads in field configuration for single process, private Subroutine.
+!>
+!
+!> @param [INOUT] this
+!> \verbatim
+!> Type Fields
+!> On input  test%t(:) is set. The operator types are time independent.
+!> On output test%f(:,:) is initialized \endverbatim
+!>
+!> @param [IN] filename
+!> \verbatim
+!> Type CHARACTER (LEN=64)
+!> Name of file from which to read configuration and random seed \endverbatim
+!--------------------------------------------------------------------
+        SUBROUTINE Fields_read_conf(this, filename)
+            IMPLICIT NONE
+
+            Class (Fields)    , INTENT(INOUT) :: this
+            CHARACTER (LEN=64), intent(in)    :: filename
+
+            INTEGER             :: K, I, NT, I1
+            INTEGER,ALLOCATABLE :: SEED_VEC(:)
+
+            CALL GET_SEED_LEN(K)
+            ALLOCATE(SEED_VEC(K))
+
+            OPEN (UNIT = 10, FILE=filename, STATUS='OLD', ACTION='READ')
+            READ(10,*) SEED_VEC
+            CALL RANSET(SEED_VEC)
+            DO NT = 1,SIZE(this%f,2)
+               DO I = 1,SIZE(this%f,1)
+                  IF (this%t(I) == 1 .or.  this%t(I) == 2) then
+                     Read(10,*)  I1
+                     this%f(I,NT) = real(I1,kind(0.d0))
+                  else
+                     Read(10,*)  this%f(I,NT)
+                  Endif
+               ENDDO
+            ENDDO
+            CLOSE(10)
+            DEALLOCATE(SEED_VEC)
+        END SUBROUTINE Fields_read_conf
+
+#if defined HDF5
+        SUBROUTINE Fields_read_conf_h5(this, filename)
+            IMPLICIT NONE
+
+            Class (Fields)    , INTENT(INOUT) :: this
+            CHARACTER (LEN=64), intent(in)    :: filename
+
+            INTEGER             :: K, hdferr
+            INTEGER,ALLOCATABLE :: SEED_VEC(:)
+            INTEGER(HID_T)      :: file_id
+            Character (len=64)  :: dset_name
+            INTEGER(HSIZE_T), allocatable :: dims(:)
+
+            CALL GET_SEED_LEN(K)
+            ALLOCATE(SEED_VEC(K))
+
+            CALL h5fopen_f(filename, H5F_ACC_RDONLY_F, file_id, hdferr)
+
+            !Open and read random seed dataset
+            dset_name = "seed"
+            allocate( dims(1) )
+            dims(1) = K
+            CALL h5ltread_dataset_int_f(file_id, dset_name, SEED_VEC, dims, hdferr)
+            CALL RANSET(SEED_VEC)
+            deallocate( dims, SEED_VEC )
+
+            !Open and read configuration dataset
+            dset_name = "configuration"
+            allocate( dims(2) )
+            dims(1) = SIZE(this%f,1)
+            dims(2) = SIZE(this%f,2)
+            CALL h5ltread_dataset_double_f(file_id, dset_name, this%f, dims, hdferr)
+            deallocate( dims )
+
+            CALL h5fclose_f(file_id, hdferr)
+        END SUBROUTINE Fields_read_conf_h5
+#endif
 
 
+!--------------------------------------------------------------------
+!> @author
+!> ALF-project
+!>
+!> @brief
+!> Writes out field configuration for single process, private Subroutine.
+!>
+!
+!> @param [INOUT] this
+!> \verbatim
+!> Type Fields
+!>
+!> @param [IN] filename
+!> \verbatim
+!> Type CHARACTER (LEN=64)
+!> Name of file in which to write configuration and random seed \endverbatim
+!--------------------------------------------------------------------
+        SUBROUTINE Fields_write_conf(this, filename)
+#if !defined HDF5
+            IMPLICIT NONE
+
+            Class (Fields)    , INTENT(INOUT) :: this
+            CHARACTER (LEN=64), intent(in)    :: filename
+
+            INTEGER             :: K, I, NT
+            INTEGER,ALLOCATABLE :: SEED_VEC(:)
+
+            CALL GET_SEED_LEN(K)
+            ALLOCATE(SEED_VEC(K))
+            CALL RANGET(SEED_VEC)
+
+            OPEN (UNIT = 10, FILE=filename, STATUS='UNKNOWN', ACTION='WRITE')
+            WRITE(10,*) SEED_VEC
+            DO NT = 1,size(this%f,2)
+               DO I = 1,size(this%f,1)
+                  if (this%t(i) ==  3 ) then
+                     WRITE(10,*) this%f(I,NT)
+                  else
+                     WRITE(10,*) nint(this%f(I,NT))
+                  endif
+               ENDDO
+            ENDDO
+            CLOSE(10)
+            DEALLOCATE(SEED_VEC)
+#else
+            IMPLICIT NONE
+
+            Class (Fields)    , INTENT(INOUT) :: this
+            CHARACTER (LEN=64), intent(in)    :: filename
+
+            INTEGER             :: K, hdferr, rank
+            INTEGER(HSIZE_T), allocatable :: dims(:)
+            Logical             :: file_exists
+            INTEGER,ALLOCATABLE :: SEED_VEC(:)
+            INTEGER(HID_T)      :: file_id, crp_list, space_id, dset_id
+            Character (len=64)  :: dset_name
+
+
+            CALL GET_SEED_LEN(K)
+            ALLOCATE(SEED_VEC(K))
+            CALL RANGET(SEED_VEC)
+
+            inquire (file=filename, exist=file_exists)
+            IF (.not. file_exists) THEN
+                CALL h5fcreate_f(filename, H5F_ACC_TRUNC_F, file_id, hdferr)
+
+                !Create and write dataset for random seed
+                dset_name = "seed"
+                rank = 1
+                allocate( dims(1) )
+                dims(1) = K
+                CALL  h5ltmake_dataset_int_f(file_id, dset_name, rank, dims, SEED_VEC, hdferr)
+                deallocate( dims )
+
+                !Create and write dataset for configuration
+                dset_name = "configuration"
+                rank = 2
+                allocate( dims(2) )
+                dims(1) = SIZE(this%f,1)
+                dims(2) = SIZE(this%f,2)
+                !Create Dataspace
+                CALL h5screate_simple_f(rank, dims, space_id, hdferr)
+                !Modify dataset creation properties, i.e. enable chunking
+                CALL h5pcreate_f(H5P_DATASET_CREATE_F, crp_list, hdferr)
+                CALL h5pset_chunk_f(crp_list, rank, dims, hdferr)
+#if defined HDF5_ZLIB
+                ! Set ZLIB / DEFLATE Compression using compression level HDF5_ZLIB
+                CALL h5pset_deflate_f(crp_list, HDF5_ZLIB, hdferr)
+#endif
+                !Create a dataset using cparms creation properties.
+                CALL h5dcreate_f(file_id, dset_name, H5T_NATIVE_DOUBLE, space_id, &
+                                dset_id, hdferr, crp_list )
+                !Write configuration
+                CALL H5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, this%f, dims, hdferr)
+                !Close objects
+                deallocate( dims )
+                CALL h5sclose_f(space_id, hdferr)
+                CALL h5pclose_f(crp_list, hdferr)
+                CALL h5dclose_f(dset_id,   hdferr)
+                CALL h5fclose_f(file_id, hdferr)
+            else
+                !open file
+                CALL h5fopen_f (filename, H5F_ACC_RDWR_F, file_id, hdferr)
+
+                !open and write random seed dataset
+                dset_name = "seed"
+                CALL h5dopen_f(file_id, dset_name, dset_id, hdferr)
+                allocate( dims(1) )
+                dims(1) = K
+                CALL H5dwrite_f(dset_id, H5T_NATIVE_INTEGER, SEED_VEC, dims, hdferr)
+                deallocate( dims )
+                CALL h5dclose_f(dset_id,   hdferr)
+
+                !open and write configuration dataset
+                dset_name = "configuration"
+                CALL h5dopen_f(file_id, dset_name, dset_id, hdferr)
+                allocate( dims(2) )
+                dims(1) = SIZE(this%f,1)
+                dims(2) = SIZE(this%f,2)
+                CALL H5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, this%f, dims, hdferr)
+                deallocate( dims )
+                CALL h5dclose_f(dset_id,   hdferr)
+
+                CALL h5fclose_f(file_id, hdferr)
+            endif
+            DEALLOCATE(SEED_VEC)
+#endif
+            END SUBROUTINE Fields_write_conf
      end Module Fields_Mod

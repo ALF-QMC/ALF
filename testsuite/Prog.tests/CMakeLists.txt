@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 2.8.11)
 Project(matmod.tests C Fortran)
-find_package(LAPACK)
 
 # add_executable(1-copy-sel-rows 1-copy-sel-rows.F90)
 # add_executable(2-copy-sel-columns 2-copy-sel-columns.F90)
@@ -37,7 +36,6 @@ set(cgr1tests 15-cgr 20-qdrp 23-cgrp)
 set(udvstatetests 18-ul-update-matrices 19-ur-update-matrices 24-udv 25-assign-UDV-state)
 set(progtests ${operatorparts} ${cgr1tests} ${cgr2_1tests} ${cgr2_2tests} ${udvstatetests})
 
-set_target_properties(${progtests} PROPERTIES COMPILE_FLAGS "-Wall -I  ${CMAKE_CURRENT_SOURCE_DIR}/../../Libraries/Modules/ -I ${CMAKE_CURRENT_SOURCE_DIR}/../../Prog/ -L ${CMAKE_CURRENT_SOURCE_DIR}/../../Libraries/Modules/")
 
 foreach(iter ${operatorparts})
 target_link_libraries(${iter} ${CMAKE_CURRENT_SOURCE_DIR}/../../Prog/Operator_mod.o ${CMAKE_CURRENT_SOURCE_DIR}/../../Prog/Fields_mod.o)
@@ -71,12 +69,20 @@ endforeach(iter)
 
 
 foreach(iter ${progtests})
-target_link_libraries(${iter} ${CMAKE_CURRENT_SOURCE_DIR}/../../Libraries/Modules/modules_90.a )
-target_link_libraries(${iter} ${CMAKE_CURRENT_SOURCE_DIR}/../../Libraries/libqrref/libqrref.a)
-target_link_libraries(${iter} ${LAPACK_LIBRARIES})
+  foreach(iflag ${FLAG_LIST})
+    target_compile_options(${iter} PRIVATE ${iflag})
+  endforeach(iflag)
+  target_include_directories(${iter} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../Prog/)
+  target_include_directories(${iter} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../Libraries/Modules/)
+  target_link_libraries(${iter} ${LIB_LIST})
 endforeach(iter)
 
+
+target_include_directories(26-Test-Polymorphic-Fortran PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../Prog/)
 target_link_libraries(26-Test-Polymorphic-Fortran ${CMAKE_CURRENT_SOURCE_DIR}/../../Prog/OpTTypes_mod.o ${CMAKE_CURRENT_SOURCE_DIR}/../../Prog/DynamicMatrixArray_mod.o ${CMAKE_CURRENT_SOURCE_DIR}/../../Prog/ContainerElementBase_mod.o)
+foreach(iflag ${FLAG_LIST})
+  target_compile_options(26-Test-Polymorphic-Fortran PRIVATE ${iflag})
+endforeach(iflag)
 
 enable_testing()
 # add_test(1-copy-sel-rows 1-copy-sel-rows)

@@ -125,8 +125,9 @@ Per default, the finite-temperature algorithm is used, \texttt{Ltau=0}, and the 
 	\begin{algorithmic}[1]
 		
 		\LineComment{\textsc{Initialization}}
-		\State{\textbf{call} Ham\_Set}\Comment{Set the Hamiltonian and the lattice}
 		\State{\textbf{call} Fields\_Init}\Comment{Set the auxiliary fields}
+		\State{\textbf{call} Alloc\_Ham}\Comment{Select Hamiltonian based on \texttt{ham\_name} in \texttt{parameters}}
+		\State{\textbf{call} ham\%Ham\_Set}\Comment{Set the Hamiltonian and the lattice}
 		\State{\textbf{call} Nsigma\%in}\Comment{Read in an auxiliary-field configuration or generate it randomly}
 		\For{$n=L_{\text{Trotter}}$ to $1$} \Comment{Fill the storage needed for the first actual MC sweep}
 		\State{\textbf{call} Wrapul}\Comment{Compute propagation matrices and store them at stabilization points}
@@ -177,7 +178,7 @@ Per default, the finite-temperature algorithm is used, \texttt{Ltau=0}, and the 
 		\vspace{1.5ex}
 		
 		\If{$n_{\tau} \in [\text{Lobs\_st}, \text{Lobs\_en}]$}
-		\State{\textbf{call} Obser} \Comment{\textsc{Measure} the equal-time observables}
+		\State{\textbf{call} ham\%Obser} \Comment{\textsc{Measure} the equal-time observables}
 		\EndIf
 		\EndFor
 		\vspace{1.5ex}
@@ -205,7 +206,7 @@ Per default, the finite-temperature algorithm is used, \texttt{Ltau=0}, and the 
 		\EndFor  \textcolor{gray}{~\scriptsize (Sweeps)} % sweeps
 		\vspace{1.5ex}
 		
-		\State{\textbf{call} Pr\_obs} \Comment{Calculate and write to disk measurement averages for the current bin}
+		\State{\textbf{call} ham\%Pr\_obs} \Comment{Calculate and write to disk measurement averages for current bin}
 		\State{\textbf{call} Nsigma\%out}\Comment{Write auxiliary field configuration to disk}
 		
 		\EndFor  \textcolor{gray}{~\scriptsize (Bins)} % bins

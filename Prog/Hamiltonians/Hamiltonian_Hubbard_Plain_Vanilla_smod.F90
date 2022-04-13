@@ -115,7 +115,7 @@
 !>
 !--------------------------------------------------------------------
 
-    Module Hamiltonian
+    submodule (Hamiltonian_main) ham_Hubbard_Plain_Vanilla_smod
 
       Use Operator_mod
       Use WaveFunction_mod
@@ -131,39 +131,50 @@
 
 
       Implicit none
+      
+      type, extends(ham_base) :: ham_Hubbard_Plain_Vanilla
+      contains
+        ! Set Hamiltonian-specific procedures
+        procedure, nopass :: Ham_Set
+        procedure, nopass :: Alloc_obs
+        procedure, nopass :: Obser
+        procedure, nopass :: ObserT
+#ifdef HDF5
+        procedure, nopass :: write_parameters_hdf5
+#endif
+      end type ham_Hubbard_Plain_Vanilla
+      
+      !#PARAMETERS START# VAR_lattice
+      Character (len=64) :: Model = ''  ! Value irrelevant
+      Character (len=64) :: Lattice_type = 'Square'  ! Possible Values: 'Square'
+      Integer            :: L1 = 6   ! Length in direction a_1
+      Integer            :: L2 = 6   ! Length in direction a_2
+      !#PARAMETERS END#
 
+      !#PARAMETERS START# VAR_Hubbard_Plain_Vanilla
+      real(Kind=Kind(0.d0)) :: ham_T    = 1.d0      ! Hopping parameter
+      real(Kind=Kind(0.d0)) :: Ham_chem = 0.d0      ! Chemical potential
+      real(Kind=Kind(0.d0)) :: Ham_U    = 4.d0      ! Hubbard interaction
+      real(Kind=Kind(0.d0)) :: Dtau     = 0.1d0     ! Thereby Ltrot=Beta/dtau
+      real(Kind=Kind(0.d0)) :: Beta     = 5.d0      ! Inverse temperature
+      !logical              :: Projector= .false.   ! Whether the projective algorithm is used
+      real(Kind=Kind(0.d0)) :: Theta    = 10.d0     ! Projection parameter
+      !logical              :: Symm     = .true.    ! Whether symmetrization takes place
+      Integer               :: N_part   = -1        ! Number of particles in trial wave function. If N_part < 0 -> N_part = L1*L2/2
+      !#PARAMETERS END#
 
-      Type (Operator),     dimension(:,:), allocatable :: Op_V
-      Type (Operator),     dimension(:,:), allocatable :: Op_T
-      Type (WaveFunction), dimension(:),   allocatable :: WF_L
-      Type (WaveFunction), dimension(:),   allocatable :: WF_R
-      Type (Fields)        :: nsigma
-      Integer              :: Ndim
-      Integer              :: N_FL
-      Integer              :: N_SUN
-      Integer              :: Ltrot
-      Integer              :: Thtrot
-      Logical              :: Projector
-      Integer              :: Group_Comm
-      Logical              :: Symm
-
-
-      Type (Lattice),       private, target :: Latt
-      Type (Unit_cell),     private, target :: Latt_unit
-      Integer,              private :: L1, L2
-      real (Kind=Kind(0.d0)),        private :: Ham_T , ham_U,  Ham_chem
-      real (Kind=Kind(0.d0)),        private :: Dtau, Beta, Theta
-      Integer               ,        private :: N_part
-      Character (len=64),   private :: Model, Lattice_type
-
-
-!>    Privat Observables
-      Type (Obser_Vec ),  private, dimension(:), allocatable ::   Obs_scal
-      Type (Obser_Latt),  private, dimension(:), allocatable ::   Obs_eq
-      Type (Obser_Latt),  private, dimension(:), allocatable ::   Obs_tau
-
+      Type (Lattice),       target :: Latt
+      Type (Unit_cell),     target :: Latt_unit
 
     contains
+      
+      module Subroutine Ham_Alloc_Hubbard_Plain_Vanilla
+        allocate(ham_Hubbard_Plain_Vanilla::ham)
+      end Subroutine Ham_Alloc_Hubbard_Plain_Vanilla
+
+! Dynamically generated on compile time from parameters list.
+! Supplies the subroutines read_parameters and write_parameters_hdf5.
+#include "Hamiltonian_Hubbard_Plain_Vanilla_read_write_parameters.F90"
 
 !--------------------------------------------------------------------
 !> @author
@@ -179,82 +190,37 @@
 #endif
           Implicit none
 
-          integer                :: ierr, nf
-          Character (len=64)     :: file_info, file_para
-
-
-
-          NAMELIST /VAR_Lattice/  L1, L2, Lattice_type, Model
-
-
-          NAMELIST /VAR_Hubbard_Plain_Vanilla/  Ham_T, ham_chem, ham_U, Dtau, Beta, Projector, Theta, Symm, N_part
+          integer                :: ierr, nf, unit_info
+          Character (len=64)     :: file_info
           
           
 
 #ifdef MPI
           Integer        :: Isize, Irank, irank_g, isize_g, igroup
           Integer        :: STATUS(MPI_STATUS_SIZE)
-#endif
-          ! Global "Default" values.
-
-          
-#ifdef MPI
           CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
           CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
           call MPI_Comm_size(Group_Comm, isize_g, ierr)
           igroup           = irank/isize_g
 #endif
-             File_Para = "parameters"
-             File_info = "info"
-#if defined(TEMPERING)
-             write(File_para,'(A,I0,A)') "Temp_",igroup,"/parameters"
-             write(File_info,'(A,I0,A)') "Temp_",igroup,"/info"
-#endif
 
-#ifdef MPI
-          If (Irank_g == 0 ) then
-#endif
-             OPEN(UNIT=5,FILE=file_para,STATUS='old',ACTION='read',IOSTAT=ierr)
-             IF (ierr /= 0) THEN
-                WRITE(*,*) 'unable to open <parameters>',ierr
-                STOP
-             END IF
-             READ(5,NML=VAR_lattice)
-             N_part =  L1*L2/2
-             If (L1 == 1) then
-                Write(6,*) 'For  one-dimensional lattices set L2=1'
-                stop
-             endif
-             READ(5,NML=VAR_Hubbard_Plain_Vanilla)
-             CLOSE(5)
+          ! From dynamically generated file "Hamiltonian_Hubbard_Plain_Vanilla_read_write_parameters.F90"
+          call read_parameters()
+          
 
-             Ltrot  = nint(beta/dtau)
-             Thtrot = 0
-             if (Projector) Thtrot = nint(theta/dtau)
-             Ltrot = Ltrot+2*Thtrot
-             N_SUN        = 1
-             N_FL         = 2
+          If (L1 == 1) then
+             Write(6,*) 'For  one-dimensional lattices set L2=1'
+             stop
+          endif
 
-#ifdef MPI
-          Endif
-          CALL MPI_BCAST(L1          ,1  ,MPI_INTEGER,   0,Group_Comm,ierr)
-          CALL MPI_BCAST(L2          ,1  ,MPI_INTEGER,   0,Group_Comm,ierr)
-          CALL MPI_BCAST(N_SUN       ,1  ,MPI_INTEGER,   0,Group_Comm,ierr)
-          CALL MPI_BCAST(N_FL        ,1  ,MPI_INTEGER,   0,Group_Comm,ierr)
-          CALL MPI_BCAST(Model       ,64 ,MPI_CHARACTER, 0,Group_Comm,IERR)
-          CALL MPI_BCAST(Symm        ,1  ,MPI_LOGICAL  , 0,Group_Comm,IERR)
-          CALL MPI_BCAST(Lattice_type,64 ,MPI_CHARACTER, 0,Group_Comm,IERR)
-          CALL MPI_BCAST(Ltrot       ,1,  MPI_INTEGER  , 0,Group_Comm,ierr)
-          CALL MPI_BCAST(N_part      ,1,  MPI_INTEGER  , 0,Group_Comm,ierr)
-          CALL MPI_BCAST(Thtrot      ,1,  MPI_INTEGER  , 0,Group_Comm,ierr)
-          CALL MPI_BCAST(Projector   ,1,  MPI_LOGICAL  , 0,Group_Comm,ierr)
-          CALL MPI_BCAST(Dtau        ,1,  MPI_REAL8    , 0,Group_Comm,ierr)
-          CALL MPI_BCAST(Beta        ,1,  MPI_REAL8    , 0,Group_Comm,ierr)
-          CALL MPI_BCAST(Ham_T       ,1,  MPI_REAL8    , 0,Group_Comm,ierr)
-          CALL MPI_BCAST(ham_chem    ,1,  MPI_REAL8    , 0,Group_Comm,ierr)
-          CALL MPI_BCAST(ham_U       ,1,  MPI_REAL8    , 0,Group_Comm,ierr)
-#endif
+          if (N_part < 0) N_part = L1*L2/2
+          Ltrot  = nint(beta/dtau)
+          Thtrot = 0
+          if (Projector) Thtrot = nint(theta/dtau)
+          Ltrot = Ltrot+2*Thtrot
+          N_SUN        = 1
+          N_FL         = 2
 
           ! Setup the Bravais lattice
           Call  Ham_Latt
@@ -262,41 +228,51 @@
           ! Setup the hopping / single-particle part
           Call  Ham_Hop
 
-
           ! Setup the interaction.
           call Ham_V
+
+          ! Setup the trival wave function, in case of a projector approach
+          if (Projector) Call Ham_Trial()
 
 #ifdef MPI
           If (Irank_g == 0) then
 #endif
-             OPEN(Unit = 50,file=file_info,status="unknown",position="append")
-             Write(50,*) '====================================='
-             Write(50,*) 'Model is      : ', Model
-             Write(50,*) 'Lattice is    : ', Lattice_type
-             Write(50,*) 'L1            : ', L1
-             Write(50,*) 'L2            : ', L2
-             Write(50,*) '# of orbitals : ', Ndim
-             Write(50,*) 'Symm. decomp  : ', Symm
+             File_info = "info"
+#if defined(TEMPERING)
+             write(File_info,'(A,I0,A)') "Temp_",igroup,"/info"
+#endif
+
+             Open(newunit=unit_info, file=file_info, status="unknown", position="append")
+             Write(unit_info,*) '====================================='
+             Write(unit_info,*) 'Model is      : Hubbard_Plain_Vanilla'
+             Write(unit_info,*) 'Lattice is    : ', Lattice_type
+             Write(unit_info,*) 'L1            : ', L1
+             Write(unit_info,*) 'L2            : ', L2
+             Write(unit_info,*) '# of orbitals : ', Ndim
+             Write(unit_info,*) 'Symm. decomp  : ', Symm
              if (Projector) then
-                Write(50,*) 'Projective version'
-                Write(50,*) 'Theta         : ', Theta
-                Write(50,*) 'Tau_max       : ', beta
-                Write(50,*) '# of particles: ', N_part
+                Write(unit_info,*) 'Projective version'
+                Write(unit_info,*) 'Theta         : ', Theta
+                Write(unit_info,*) 'Tau_max       : ', beta
+                Write(unit_info,*) '# of particles: ', N_part
              else
-                Write(50,*) 'Finite temperture version'
-                Write(50,*) 'Beta          : ', Beta
+                Write(unit_info,*) 'Finite temperture version'
+                Write(unit_info,*) 'Beta          : ', Beta
              endif
-             Write(50,*) 'dtau,Ltrot_eff: ', dtau,Ltrot
-             Write(50,*) 't             : ', Ham_T
-             Write(50,*) 'Ham_U         : ', Ham_U
-             Write(50,*) 'Ham_chem      : ', Ham_chem
-             Close(50)
+             Write(unit_info,*) 'dtau,Ltrot_eff: ', dtau,Ltrot
+             Write(unit_info,*) 't             : ', Ham_T
+             Write(unit_info,*) 'Ham_U         : ', Ham_U
+             Write(unit_info,*) 'Ham_chem      : ', Ham_chem
+             if (Projector) then
+                Do nf = 1,N_FL
+                   Write(unit_info,*) 'Degen of right trial wave function: ', WF_R(nf)%Degen
+                   Write(unit_info,*) 'Degen of left  trial wave function: ', WF_L(nf)%Degen
+                enddo
+             endif
+             Close(unit_info)
 #ifdef MPI
           Endif
 #endif
-          ! Setup the trival wave function, in case of a projector approach
-          if (Projector)   Call Ham_Trial(File_info)
-
 
         end Subroutine Ham_Set
 
@@ -373,30 +349,15 @@
 !> @brief
 !> Sets the trial wave function
 !--------------------------------------------------------------------
-        Subroutine Ham_Trial(file_info)
+        Subroutine Ham_Trial()
 
-
-#if defined (MPI) || defined(TEMPERING)
-          Use mpi
-#endif
           Use Predefined_Trial
 
           Implicit none
-          Character (len=64), intent(in)  :: file_info
 
           Integer                              :: nf, Ix, Iy, I, n
           Real (Kind=Kind(0.d0)), allocatable  :: H0(:,:),  U0(:,:), E0(:)
           Real (Kind=Kind(0.d0))               :: Pi = acos(-1.d0), Delta = 0.01d0
-#ifdef MPI
-          Integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
-          Integer        :: STATUS(MPI_STATUS_SIZE)
-
-          CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-          CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-          call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-          call MPI_Comm_size(Group_Comm, isize_g, ierr)
-          igroup           = irank/isize_g
-#endif
 
           Allocate(WF_L(N_FL),WF_R(N_FL))
           do nf=1,N_FL
@@ -431,20 +392,6 @@
              WF_L(nf)%Degen = E0(N_part+1) - E0(N_part)
              WF_R(nf)%Degen = E0(N_part+1) - E0(N_part)
           enddo
-
-
-#ifdef MPI
-          If (Irank_g == 0) then
-#endif
-             OPEN(Unit = 50,file=file_info,status="unknown",position="append")
-             Do nf = 1,N_FL
-                Write(50,*) 'Degen of right trial wave function: ', WF_R(nf)%Degen
-                Write(50,*) 'Degen of left  trial wave function: ', WF_L(nf)%Degen
-             enddo
-             close(50)
-#ifdef MPI
-          endif
-#endif
 
           Deallocate(H0,  U0,  E0 )
 
@@ -627,7 +574,7 @@
                 GRC(I, I, nf) = 1.D0 + GRC(I, I, nf)
              Enddo
           Enddo
-          ! GRC(i,j,nf) = < c^{dagger}_{j,nf } c_{j,nf } >
+          ! GRC(i,j,nf) = < c^{dagger}_{i,nf } c_{j,nf } >
 
           ! Compute scalar observables.
           Do I = 1,Size(Obs_scal,1)
@@ -778,62 +725,4 @@
 
         end Subroutine OBSERT
 
-#include "Hamiltonian_Hubbard_include.h"
-        
-!--------------------------------------------------------------------
-!> @author 
-!> ALF Collaboration
-!>
-!> @brief 
-!>   Forces_0  = \partial S_0 / \partial s  are calculated and returned to  main program.
-!> 
-!-------------------------------------------------------------------
-        Subroutine Ham_Langevin_HMC_S0(Forces_0)
-
-          Implicit none
-
-          Real (Kind=Kind(0.d0)), Intent(out  ),  dimension(:,:) :: Forces_0
-
-          !Local
-          Integer :: N, N_op,nt
-          
-          ! Compute \partial S_0 / \partial s
-          N_op = size(nsigma%f,1)
-          Forces_0  = 0.d0
-          do n = 1,N_op
-             if (OP_V(n,1)%type == 3 ) then
-                do nt = 1,Ltrot
-                   Forces_0(n,nt) = nsigma%f(n,nt)
-                enddo
-             endif
-          enddo
-          
-        end Subroutine Ham_Langevin_HMC_S0
-
-!--------------------------------------------------------------------
-!> @author
-!> ALF Collaboration
-!>
-!> @brief
-!> Single spin flip S0 ratio
-!> @details
-!> S0=exp(-S0(new))/exp(-S0(old)) where the new configuration correpsonds to the old one up to
-!> a spin flip of Operator n on time slice nt
-!> @details
-!--------------------------------------------------------------------
-      Real (Kind=Kind(0.d0)) function S0(n,nt,Hs_new)
-        Implicit none
-        !> Operator index
-        Integer, Intent(IN) :: n
-        !> Time slice
-        Integer, Intent(IN) :: nt
-        !> New local field on time slice nt and operator index n
-        Real (Kind=Kind(0.d0)), Intent(In) :: Hs_new
-
-        Integer :: nt1,I
-
-        S0 = 1.d0
-        
-      end function S0
-        
-    end Module Hamiltonian
+    end submodule ham_Hubbard_Plain_Vanilla_smod

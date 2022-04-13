@@ -115,7 +115,7 @@ Program Main
         Use Operator_mod
         Use Lattices_v3
         Use MyMats
-        Use Hamiltonian
+        Use Hamiltonian_main
         Use Control
         Use Tau_m_mod
         Use Tau_p_mod
@@ -125,6 +125,7 @@ Program Main
         Use Wrapgr_mod
         Use Fields_mod
         Use ed_ham_mod, only: ed_ham
+        Use WaveFunction_mod
         use entanglement_mod
         use iso_fortran_env, only: output_unit, error_unit
         Use Langevin_HMC_mod
@@ -132,13 +133,16 @@ Program Main
 #ifdef MPI
         Use mpi
 #endif
+#ifdef HDF5
+        use hdf5
+#endif
         Implicit none
 
 #include "git.h"
 
         Interface
            SUBROUTINE WRAPUL(NTAU1, NTAU, UDVL)
-             Use Hamiltonian
+             Use Hamiltonian_main
              Use UDV_State_mod
              Implicit none
              CLASS(UDV_State), intent(inout), allocatable, dimension(:) :: UDVL
@@ -154,7 +158,7 @@ Program Main
              INTEGER         :: NVAR
            END SUBROUTINE CGR
            SUBROUTINE WRAPUR(NTAU, NTAU1, UDVR)
-             Use Hamiltonian
+             Use Hamiltonian_main
              Use UDV_Wrap_mod
              Use UDV_State_mod
              Implicit None
@@ -193,6 +197,10 @@ Program Main
         Integer :: N_Global_tau
         Logical :: Sequential
 
+#ifdef HDF5
+        INTEGER(HID_T) :: file_id
+        Logical :: file_exists
+#endif
         !  Space for reading in Langevin & HMC  parameters
         Logical                      :: Langevin,  HMC
         Integer                      :: Leapfrog_Steps
@@ -228,6 +236,11 @@ Program Main
         ! For the truncation of the program:
         logical                   :: prog_truncation
         integer (kind=kind(0.d0)) :: count_bin_start, count_bin_end
+        
+        ! For MPI shared memory
+        character(64), parameter :: name="ALF_SHM_CHUNK_SIZE_GB"
+        character(64) :: chunk_size_str
+        Real    (Kind=Kind(0.d0)) :: chunk_size_gb
 
 #ifdef MPI
         Integer        :: Isize, Irank, Irank_g, Isize_g, color, key, igroup
@@ -235,6 +248,14 @@ Program Main
         CALL MPI_INIT(ierr)
         CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
         CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+        
+        If (  Irank == 0 ) then
+#endif
+           write (*,*) "ALF Copyright (C) 2016 - 2021 The ALF project contributors"
+           write (*,*) "This Program comes with ABSOLUTELY NO WARRANTY; for details see license.GPL"
+           write (*,*) "This is free software, and you are welcome to redistribute it under certain conditions."
+#ifdef MPI
+        endif
 #endif
 
 #if defined(TEMPERING) && defined(MPI)
@@ -270,21 +291,24 @@ Program Main
         call MPI_Comm_size(Group_Comm, Isize_g, ierr)
         igroup           = irank/isize_g
         !Write(6,*) 'irank, Irank_g, Isize_g', irank, irank_g, isize_g
+        !read environment variable called ALF_SHM_CHUNK_SIZE_GB
+        !it should be a positive integer setting the chunk size of shared memory blocks in GB
+        !if it is not set, or set to a non-positive (including 0) integer, the routine defaults back to the
+        !usual Fortran allocation routines
+        CALL GET_ENVIRONMENT_VARIABLE(Name, VALUE=chunk_size_str, STATUS=ierr)
+        if (ierr==0) then
+           read(chunk_size_str,*,IOSTAT=ierr) chunk_size_gb
+        endif
+        if (ierr/=0 .or. chunk_size_gb<0) then
+              chunk_size_gb=0
+        endif
+        CALL mpi_shared_memory_init(Group_Comm, chunk_size_gb)
 #endif
         !Initialize entanglement pairs of MPI jobs
         !This routine can and should also be called if MPI is not activated
         !It will then deactivate the entanglement measurements, i.e., the user does not have to care about this
         call Init_Entanglement_replicas(Group_Comm)
 
-#ifdef MPI
-        If (  Irank == 0 ) then
-#endif
-           write (*,*) "ALF Copyright (C) 2016 - 2020 The ALF project contributors"
-           write (*,*) "This Program comes with ABSOLUTELY NO WARRANTY; for details see license.GPL"
-           write (*,*) "This is free software, and you are welcome to redistribute it under certain conditions."
-#ifdef MPI
-        endif
-#endif
 
 #ifdef MPI
         If ( Irank == 0 ) then
@@ -326,24 +350,25 @@ Program Main
         CALL MPI_BCAST(Delta_t_Langevin_HMC ,1 ,MPI_REAL8    ,0,MPI_COMM_WORLD,ierr)
 #endif
         Call Fields_init()
-        Call Ham_set
+        Call Alloc_Ham()
+        Call ham%Ham_set()
 
 #if defined(MPI)
         if ( Irank_g == 0 ) then
 #endif
            if (do_ED) then
-              call ham_ed%build_ham(ndim, N_SUN, OP_T, OP_V, get_dtau(), ED_N_Part)
-              print*, "Finite temperature energy:", ham_ed%energy( get_beta() )
+              call ham_ed%build_ham(ndim, N_SUN, OP_T, OP_V, ham%get_dtau(), ED_N_Part)
+              print*, "Finite temperature energy:", ham_ed%energy( ham%get_beta() )
 
               OPEN(Unit = 50,file="ED_Energy",status="replace")
-              write(50,*) ham_ed%energy( get_beta() )
+              write(50,*) ham_ed%energy( ham%get_beta() )
               close(50)
            endif
 #if defined(MPI)
         endif
         call MPI_BARRIER( Group_Comm, ierr )
 #endif
-
+        
         if(Projector) then
            if (.not. allocated(WF_R) .or. .not. allocated(WF_L)) then
               write(error_unit,*) "Projector is selected but there are no trial wave functions!"
@@ -389,7 +414,7 @@ Program Main
            N_Global_tau        = 0
         else
            !  Gives the possibility to set parameters in the Hamiltonian file
-           Call Overide_global_tau_sampling_parameters(Nt_sequential_start,Nt_sequential_end,N_Global_tau)
+           Call ham%Overide_global_tau_sampling_parameters(Nt_sequential_start,Nt_sequential_end,N_Global_tau)
         endif
         
         N_op = Size(OP_V,1)
@@ -401,7 +426,7 @@ Program Main
         Call Set_Random_number_Generator(File_seeds,Seed_in)
         !Write(6,*) Seed_in
                
-        Call Hamiltonian_set_nsigma(Initial_field)
+        Call ham%Hamiltonian_set_nsigma(Initial_field)
         if (allocated(Initial_field)) then
            Call nsigma%in(Group_Comm,Initial_field)
            deallocate(Initial_field)
@@ -414,9 +439,33 @@ Program Main
         If (N_Global_tau > 0) then
            Call Wrapgr_alloc
         endif
+        
+#if defined(HDF5)
+#if defined(TEMPERING)
+        write(File1,'(A,I0,A)') "Temp_",igroup,"/data.h5"
+#else
+        File1 = "data.h5"
+#endif
+#if defined(MPI)
+        if ( Irank_g == 0 ) then
+#endif
+          CALL h5open_f(ierr)
+          inquire (file=File1, exist=file_exists)
+          IF (.not. file_exists) THEN
+            ! Create HDF5 file
+            CALL h5fcreate_f(File1, H5F_ACC_TRUNC_F, file_id, ierr)
+            call h5fclose_f(file_id, ierr)
+          endif
+          call ham%write_parameters_hdf5(File1)
 
-        Call control_init
-        Call Alloc_obs(Ltau)
+#if defined(MPI)
+        endif
+#endif
+#endif
+
+
+        Call control_init(Group_Comm)
+        Call ham%Alloc_obs(Ltau)
 
         If ( mod(Ltrot,nwrap) == 0  ) then
            Nstm = Ltrot/nwrap
@@ -474,6 +523,7 @@ Program Main
            
 #if defined(MPI)
            Write(50,*) 'Number of mpi-processes : ', isize_g
+           if(use_mpi_shm) Write(50,*) 'Using mpi-shared memory in chunks of ', chunk_size_gb, 'GB.'
 #endif
 #if defined(GIT)
            Write(50,*) 'This executable represents commit '&
@@ -560,7 +610,7 @@ Program Main
 
 
 
-        Call Control_init
+        Call Control_init(Group_Comm)
 
         DO  NBC = 1, NBIN
            ! Here, you have the green functions on time slice 1.
@@ -568,7 +618,7 @@ Program Main
 
            call system_clock(count_bin_start)
 
-           Call Init_obs(Ltau)
+           Call ham%Init_obs(Ltau)
 #if defined(TEMPERING)
            Call Global_Tempering_init_obs
 #endif
@@ -648,9 +698,9 @@ Program Main
                        Mc_step_weight = 1.d0
                        If (Symm) then
                           Call Hop_mod_Symm(GR_Tilde,GR)
-                          CALL Obser( GR_Tilde, PHASE, Ntau1, Mc_step_weight )
+                          CALL ham%Obser( GR_Tilde, PHASE, Ntau1, Mc_step_weight )
                        else
-                          CALL Obser( GR, PHASE, Ntau1, Mc_step_weight  )
+                          CALL ham%Obser( GR, PHASE, Ntau1, Mc_step_weight  )
                        endif
                     ENDIF
                  ENDDO
@@ -673,9 +723,9 @@ Program Main
                        Mc_step_weight = 1.d0
                        If (Symm) then
                           Call Hop_mod_Symm(GR_Tilde,GR)
-                          CALL Obser( GR_Tilde, PHASE, Ntau1, Mc_step_weight )
+                          CALL ham%Obser( GR_Tilde, PHASE, Ntau1, Mc_step_weight )
                        else
-                          CALL Obser( GR, PHASE, Ntau1,Mc_step_weight )
+                          CALL ham%Obser( GR, PHASE, Ntau1,Mc_step_weight )
                        endif
                     ENDIF
                     IF ( Stab_nt(NST) == NTAU1 .AND. NTAU1.NE.0 ) THEN
@@ -744,7 +794,7 @@ Program Main
               endif
 
            ENDDO
-           Call Pr_obs(Ltau)
+           Call ham%Pr_obs(Ltau)
 #if defined(TEMPERING)
            Call Global_Tempering_Pr
 #endif
@@ -780,6 +830,20 @@ Program Main
         If (N_Global_tau > 0) then
            Call Wrapgr_dealloc
         endif
+        do nf = 1, N_FL
+          do n = 1, size(OP_V,1)
+            call Op_clear(Op_V(n,nf),Op_V(n,nf)%N)
+          enddo
+          do n = 1, size(OP_T,1)
+            call Op_clear(Op_T(n,nf),Op_T(n,nf)%N)
+          enddo
+        enddo
+
+#if defined(MPI)  
+        ! Gracefully deallocate all shared MPI memory (thw whole chunks)
+        ! irrespective of where they actually have been used
+        call deallocate_all_shared_memory
+#endif
 
         Call Control_Print(Group_Comm, Langevin_HMC%get_Update_scheme())
 

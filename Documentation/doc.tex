@@ -1,7 +1,7 @@
 % !TeX document-id = {2fc16d90-fe07-4ec8-91d5-5acebdd2ee85}
 % !BIB TS-program = bibtex
 
-% Copyright (c) 2016-2020 The ALF project.
+% Copyright (c) 2016-2021 The ALF project.
 % This is the ALF project documentation.
 % The ALF project documentation by the ALF contributors is licensed
 % under a Creative Commons Attribution-ShareAlike 4.0 International License.
@@ -46,6 +46,7 @@
 \usepackage{showexpl}
 \usepackage{etoolbox}
 \usepackage{calc}
+\usepackage{dirtree}
 
 \makeatletter
 \renewcommand\paragraph{\@startsection{paragraph}{4}{\z@}%
@@ -117,6 +118,12 @@
   xrightmargin=3.4pt,
 }
 
+\newcommand{\ALFver}{dev.}          %{2.2}{dev.} version of ALF the tutorial uses
+\newcommand{\ALFbranch}{master}   %{ALF-2.2}{master} corresponding ALF branch
+\newcommand{\pyALFver}{dev.}        %{2.2}{dev.} version of pyALF the tutorial uses
+\newcommand{\pyALFbranch}{master} %{ALF-2.2}{master} corresponding pyALF branch
+\newcommand{\tutALFver}{dev}       %{2.2}{dev} version of the tutorial - normally should be the same as \ALFver (ex.: 2.2, dev [no period after "dev", since it's also used in paths])
+
 \def\Tr{\mathop{\mathrm{Tr}}}
 \def\Trf{\mathop{\mathrm{Tr}_{\mathrm{F}}}}
 \def\d{\mathrm{d}}
@@ -184,7 +191,7 @@
 	
 % Title
 \begin{center}{\Large \textbf{
-The \emph{ALF} (\emph{A}lgorithms for \emph{L}attice \emph{F}ermions)\\project release 2.0\\
+The \emph{ALF} (\emph{A}lgorithms for \emph{L}attice \emph{F}ermions)\\project release \ALFver\\
 {\normalsize Documentation for the  auxiliary-field quantum Monte Carlo code}
 }}\end{center}
 
@@ -225,8 +232,8 @@ Waterloo, Ontario N2L 2Y5, Canada\\
 
 \section*{Abstract}
 {\bf
-The \emph{Algorithms for Lattice Fermions} package provides a general code for the finite-temperature and projective auxiliary-field quantum Monte Carlo algorithm. The code is engineered to be able to simulate any model that can be written in terms of sums of single-body operators, of squares of single-body operators and single-body operators coupled to a bosonic field with given dynamics.   The package includes five pre-defined model classes:  SU(N) Kondo, SU(N) Hubbard, SU(N) t-V and SU(N) models with long range Coulomb repulsion on honeycomb, square and N-leg lattices, as well as $Z_2$  unconstrained lattice gauge theories coupled to fermionic and $Z_2$ matter. An implementation of the stochastic  Maximum Entropy  method is also provided. 
-One can download the code from our Git instance at \url{https://git.physik.uni-wuerzburg.de/ALF/ALF} and sign in to file issues.} \\
+The \emph{Algorithms for Lattice Fermions} package provides a general code for the finite-temperature and projective auxiliary-field quantum Monte Carlo algorithm. The code is engineered to be able to simulate any model that can be written in terms of sums of single-body operators, of squares of single-body operators and single-body operators coupled to a bosonic field with given dynamics.   The package includes five pre-defined model classes:  SU(N) Kondo, SU(N) Hubbard, SU(N) t-V and SU(N) models with long range Coulomb repulsion on honeycomb, square and N-leg lattices, as well as $\Ztwo$  unconstrained lattice gauge theories coupled to fermionic and $\Ztwo$ matter. An implementation of the stochastic  Maximum Entropy  method is also provided. 
+One can download the code from our Git instance at \url{https://git.physik.uni-wuerzburg.de/ALF/ALF/-/tree/\ALFbranch} and sign in to file issues.} \\
 
 % We provide predefined types that allow the user to specify the model, the Bravais lattice as well as equal-time and time-displaced observables. The code supports an MPI implementation. Examples such as the Hubbard model on the honeycomb lattice and the Hubbard model on the square lattice coupled to a transverse Ising field are provided and discussed in the documentation. We furthermore discuss how to use the package to implement the Kondo lattice model and the SU(N)-Hubbard-Heisenberg model. }\\
 

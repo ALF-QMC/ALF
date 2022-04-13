@@ -1,0 +1,71 @@
+# YAML 1.2
+---
+cff-version: "1.2.0"
+message: "If you use ALF, please cite both the article from preferred-citation and the software itself using these metadata and mention the following: The quantum Monte Carlo simulations were performed with the ALF package, available at https://alf.physik.uni-wuerzburg.de."
+repository-code: "https://git.physik.uni-wuerzburg.de/ALF/ALF"
+license: "GPL-3.0+"
+authors: 
+  - family-names: "ALF Collaboration"
+    given-names: " "
+  - family-names: Assaad
+    given-names: "Fakher Fakhry"
+  - family-names: Bercx
+    given-names: Martin
+  - family-names: Goth
+    given-names: Florian
+    orcid: "https://orcid.org/0000-0003-2707-4790"
+  - family-names: Götz
+    given-names: Anika
+  - family-names: Hofmann
+    given-names: "Johannes S."
+  - family-names: Huffman
+    given-names: Emilie
+  - family-names: Liu
+    given-names: Zihong
+  - family-names: "Parisen Toldin"
+    given-names: Francesco
+  - family-names: "Stafusa Elias Portela"
+    given-names: Jefferson
+    orcid: "https://orcid.org/0000-0002-6138-0305"
+  - family-names: Schwab
+    given-names: Jonas
+preferred-citation:
+  authors:
+    - family-names: "ALF Collaboration"
+      given-names: " "
+    - family-names: Assaad
+      given-names: "Fakher Fakhry"
+    - family-names: Bercx
+      given-names: Martin
+    - family-names: Goth
+      given-names: Florian
+      orcid: "https://orcid.org/0000-0003-2707-4790"
+    - family-names: Götz
+      given-names: Anika
+    - family-names: Hofmann
+      given-names: "Johannes S."
+    - family-names: Huffman
+      given-names: Emilie
+    - family-names: Liu
+      given-names: Zihong
+    - family-names: "Parisen Toldin"
+      given-names: Francesco
+    - family-names: "Stafusa Elias Portela"
+      given-names: Jefferson
+      orcid: "https://orcid.org/0000-0002-6138-0305"
+    - family-names: Schwab
+      given-names: Jonas
+  title: "The ALF (Algorithms for Lattice Fermions) project release 2.0. Documentation for the auxiliary-field quantum Monte Carlo code"
+  url: "https://arxiv.org/abs/2012.11914"
+  year: "2021"
+  license: "CC-BY-SA-4.0"
+  type: article
+title: "ALF"
+date-released: 2020-12-22
+keywords:
+  - "Quantum Monte Carlo simulations"
+  - "Quantum many-body systems"
+  - "Strongly Correlated Electrons"
+  - "Hubbard model"
+  - "Kondo lattice"
+...
