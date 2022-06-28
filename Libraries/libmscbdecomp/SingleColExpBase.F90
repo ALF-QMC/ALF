@@ -190,7 +190,8 @@ module SingleColExpBase_mod
 !> Florian Goth
 !
 !> @brief 
-!> Perform the multiplication of an checkerboard exponential with a matrix.
+!> Perform the multiplication of an checkerboard exponential with a matrix:
+!> A = A*C
 !> This is an internal helper function that finds reuse in multiple places.
 !
 !> @param[in] c the diagonal data
@@ -224,7 +225,8 @@ end subroutine
 !> Florian Goth
 !
 !> @brief 
-!> Perform the multiplication of this exponential with a matrix: out = this*mat
+!> Perform the multiplication of this exponential with a matrix:
+!> mat = this*mat
 !
 !> Notes: unifying x and y into one array gave some speedup.
 !> Unifying c and s did not...
