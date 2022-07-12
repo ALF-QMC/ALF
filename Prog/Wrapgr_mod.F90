@@ -117,7 +117,7 @@ Contains
           nf=Calc_Fl_map(nf_eff)
           spin = nsigma%f(n,ntau1) ! Phi(nsigma(n,ntau1),Op_V(n,nf)%type)
           N_type = 1
-          Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type)
+          Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type,ntau1)
        enddo
        nf = 1
        T0_proposal       = 1.5D0
@@ -142,7 +142,7 @@ Contains
        do nf_eff = 1,N_FL_eff
           nf=Calc_Fl_map(nf_eff)
           N_type =  2
-          Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type)
+          Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type,ntau1)
        enddo
     Enddo
 
@@ -201,7 +201,7 @@ Contains
        spin = nsigma%f(n,ntau) 
        do nf_eff = 1,N_FL_eff
           nf=Calc_Fl_map(nf_eff)
-          Call Op_Wrapdo( Gr(:,:,nf), Op_V(n,nf), spin, Ndim, N_Type)
+          Call Op_Wrapdo( Gr(:,:,nf), Op_V(n,nf), spin, Ndim, N_Type,ntau)
        enddo
        !Write(6,*) 'Upgrade : ', ntau,n 
        nf = 1
@@ -231,7 +231,7 @@ Contains
        N_type = 1
        do nf_eff = 1,N_FL_eff
           nf=Calc_Fl_map(nf_eff)
-          Call Op_Wrapdo( Gr(:,:,nf), Op_V(n,nf), spin, Ndim, N_Type )
+          Call Op_Wrapdo( Gr(:,:,nf), Op_V(n,nf), spin, Ndim, N_Type, ntau )
        enddo
     enddo
     DO nf_eff = 1,N_FL_eff
@@ -280,12 +280,12 @@ Contains
              nf=Calc_Fl_map(nf_eff)
              spin = nsigma%f(n,ntau) 
              N_type = 1
-             Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type)
+             Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type,ntau)
           enddo
           do nf_eff = 1,N_FL_eff
              nf=Calc_Fl_map(nf_eff)
              N_type =  2
-             Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type)
+             Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type,ntau)
           enddo
        Enddo
     elseif  (m1 < m ) then
@@ -296,7 +296,7 @@ Contains
           spin = nsigma%f(n,ntau) 
           do nf_eff = 1,N_FL_eff
              nf=Calc_Fl_map(nf_eff)
-             Call Op_Wrapdo( Gr(:,:,nf), Op_V(n,nf), spin, Ndim, N_Type)
+             Call Op_Wrapdo( Gr(:,:,nf), Op_V(n,nf), spin, Ndim, N_Type,ntau)
           enddo
           !Write(6,*) 'Upgrade : ', ntau,n 
           nf = 1
@@ -304,7 +304,7 @@ Contains
           N_type = 1
           do nf_eff = 1,N_FL_eff
              nf=Calc_Fl_map(nf_eff)
-             Call Op_Wrapdo( Gr(:,:,nf), Op_V(n,nf), spin, Ndim, N_Type )
+             Call Op_Wrapdo( Gr(:,:,nf), Op_V(n,nf), spin, Ndim, N_Type, ntau )
           enddo
        enddo
     endif
@@ -388,7 +388,7 @@ Contains
                 nf=Calc_Fl_map(nf_eff)
                 spin = nsigma%f(n,ntau) 
                 N_type = 1
-                Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type)
+                Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type,ntau)
              enddo
              nf = 1
              If (Flip_count <  Flip_length)  then 
@@ -399,7 +399,7 @@ Contains
                 do nf_eff = 1,N_FL_eff
                    nf=Calc_Fl_map(nf_eff)
                    N_type =  2
-                   Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type)
+                   Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type,ntau)
                 enddo
              else
                 !Write(6,*)  "Call Up mode final", n,ntau
@@ -412,7 +412,7 @@ Contains
                 do nf_eff = 1,N_FL_eff
                    nf=Calc_Fl_map(nf_eff)
                    N_type =  2
-                   Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),Spin,Ndim,N_Type)
+                   Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),Spin,Ndim,N_Type,ntau)
                 enddo
              endif
              m = n

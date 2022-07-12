@@ -203,9 +203,9 @@
               nf=Calc_FL_map(nf_eff)
               spin = nsigma%f(n,nt1) ! Phi(nsigma(n,ntau1),Op_V(n,nf)%type)
               N_type = 1
-              Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type)
+              Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type,nt1)
               N_type =  2
-              Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type)
+              Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type,nt1)
            enddo
            !TODO how does flavor symmetry effect section below? I feel like skipping some flavors is incorrect!
            if (OP_V(n,1)%type == 3 ) then

@@ -81,7 +81,7 @@ module wrapur_mod
 !             TMP = TMP1
               Do n = 1,Size(Op_V,1)
 !                  X = Phi(nsigma(n,nt),Op_V(n,nf)%type)
-                 Call Op_mmultR(Tmp,Op_V(n,nf),nsigma%f(n,nt),'n')
+                 Call Op_mmultR(Tmp,Op_V(n,nf),nsigma%f(n,nt),'n',nt)
               ENDDO
            ENDDO
            CALL MMULT(TMP1,TMP, udvr(nf_eff)%U)
@@ -112,7 +112,7 @@ module wrapur_mod
            DO NT = NTAU + 1, NTAU1
               Call Hop_mod_mmthR(UDVR(nf_eff)%U,nf)
               Do n = 1,Size(Op_V,1)
-                 Call Op_mmultR(UDVR(nf_eff)%U,Op_V(n,nf),nsigma%f(n,nt),'n')
+                 Call Op_mmultR(UDVR(nf_eff)%U,Op_V(n,nf),nsigma%f(n,nt),'n',nt)
               ENDDO
            ENDDO
 

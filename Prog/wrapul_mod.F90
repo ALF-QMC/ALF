@@ -82,7 +82,7 @@ module wrapul_mod
            CALL INITD(TMP,Z_ONE)
            DO NT = NTAU1, NTAU+1 , -1
               Do n = Size(Op_V,1),1,-1
-                 Call Op_mmultL(Tmp,Op_V(n,nf),nsigma%f(n,nt),'n')
+                 Call Op_mmultL(Tmp,Op_V(n,nf),nsigma%f(n,nt),'n',nt)
               enddo
               !CALL MMULT( TMP1,Tmp,Exp_T(:,:,nf) )
               Call  Hop_mod_mmthl (Tmp,nf)
@@ -117,7 +117,7 @@ module wrapul_mod
            nf=Calc_Fl_map(nf_eff)
            DO NT = NTAU1, NTAU+1 , -1
               Do n = Size(Op_V,1),1,-1
-                 Call Op_mmultR(udvl(nf_eff)%U,Op_V(n,nf),nsigma%f(n,nt),'c')
+                 Call Op_mmultR(udvl(nf_eff)%U,Op_V(n,nf),nsigma%f(n,nt),'c',nt)
               enddo
               Call  Hop_mod_mmthlc (udvl(nf_eff)%U,nf)
            ENDDO

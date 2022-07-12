@@ -54,12 +54,13 @@ Module Operator_mod
      Integer          :: N, N_non_zero !> dimension of Operator (P and O), number of non-zero eigenvalues
      Integer, private :: win_M_exp, win_U !> MPI_windows which can be used for fences (memory synch.) and dealloc.
      logical          :: diag !> encodes if Operator is diagonal
-     logical, private :: U_alloc, M_exp_alloc !> logical to track if memory is allocated
+     logical, private :: U_alloc, M_exp_alloc, g_t_alloc !> logical to track if memory is allocated
      complex (Kind=Kind(0.d0)), pointer :: O(:,:), U (:,:)  !>Storage for operator matrix O and it's eigenvectors U
      complex (Kind=Kind(0.d0)), pointer, private :: M_exp(:,:,:), E_exp(:,:)  !>internal storage for exp(O) and exp(E)
      Real    (Kind=Kind(0.d0)), pointer :: E(:) !>Eigenvalues of O
      Integer, pointer :: P(:) !> Projector P encoding DoFs that contribute in Operator
      complex (Kind=Kind(0.d0)) :: g !> coupling constant
+     complex (Kind=Kind(0.d0)), allocatable :: g_t(:) !> time dependent  coupling constant
      complex (Kind=Kind(0.d0)) :: alpha !> operator shift
      Integer          :: Type !> Type of the operator: 1=Ising; 2=discrete HS; 3=continues HS
      ! P is an N X Ndim matrix such that  P.T*O*P*  =  A  
@@ -161,10 +162,14 @@ Contains
     Real  (Kind=Kind(0.d0))                       :: angle
     
     Integer :: n, nt
+    complex (kind=kind(0.d0)) :: g_loc
+
+    g_loc = OP_v%g
     
     do n = 1,size(Op_V,1)
        do nt = 1,size(nsigma%f,2)
-          angle = Aimag( Op_V(n,nf)%g * Op_V(n,nf)%alpha ) * nsigma%Phi(n,nt) 
+          if (op_v(n,nf)%g_t_alloc) g_loc = Op_V(n,nf)%g_t(nt)
+          angle = Aimag( g_loc * Op_V(n,nf)%alpha ) * nsigma%Phi(n,nt)
           Phase = Phase*CMPLX(cos(angle),sin(angle), Kind(0.D0))
        enddo
     enddo
@@ -202,10 +207,14 @@ Contains
       Real  (Kind=Kind(0.d0))                       :: angle
       
       Integer :: n, nt
+      complex (kind=kind(0.d0)) :: g_loc
+
+      g_loc = OP_v%g
       
       do n = 1,size(Op_V,1)
          do nt = 1,size(nsigma%f,2)
-            angle = Aimag( Op_V(n,nf)%g ) * nsigma%Phi(n,nt) 
+            if (op_v(n,nf)%g_t_alloc) g_loc = Op_V(n,nf)%g_t(nt)
+            angle = Aimag( g_loc ) * nsigma%Phi(n,nt)
             Phase = Phase*CMPLX(cos(angle),sin(angle), Kind(0.D0))
          enddo
       enddo
@@ -239,6 +248,7 @@ Contains
     Op%type = 0
     Op%U_alloc = .false.
     Op%M_exp_alloc = .false.
+    Op%g_t_alloc = .false.
   end subroutine Op_make
 
 !--------------------------------------------------------------------
@@ -272,6 +282,7 @@ Contains
     else
       If ( Op%M_exp_alloc )   deallocate(OP%M_exp, OP%E_exp)
       If ( Op%U_alloc )   deallocate(OP%U, OP%O, OP%P, OP%E)
+      if ( Op%g_t_alloc )  deallocate(Op%g_t)
     endif
 
   end subroutine Op_clear
@@ -296,6 +307,7 @@ Contains
     Complex (Kind=Kind(0.d0)) :: Z
     Type  (Fields)   :: nsigma_single
     
+    if (allocated(OP%g_t)) Op%g_t_alloc = .true.
     
     Call nsigma_single%make(1,1)
     noderank=0
@@ -515,16 +527,22 @@ Contains
 !> 
   
 !--------------------------------------------------------------------
-  subroutine Op_mmultL(Mat,Op,spin,cop)
+  subroutine Op_mmultL(Mat,Op,spin,cop, nt)
     Implicit none 
     Type (Operator)          , INTENT(IN)    :: Op
     Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Mat (:,:)
     Real    (Kind=Kind(0.d0)), INTENT(IN)    :: spin
     Character                , Intent(IN)    :: cop
+    integer                  , intent(in)    :: nt
 
     ! Local 
     Integer :: I, N1, N2, sp
-    Complex (Kind=Kind(0.d0)) :: ExpMat (Op%n,Op%n)
+    Complex (Kind=Kind(0.d0)) :: ExpMat (Op%n,Op%n), g_loc
+    Type  (Fields)   :: nsigma_single
+
+    Call nsigma_single%make(1,1)
+    nsigma_single%f(1,1) = spin
+    nsigma_single%t(1)   = op%type
     
     N1=size(Mat,1)
     N2=size(Mat,2)
@@ -538,27 +556,44 @@ Contains
     if ( op%type < 3 ) then
        sp = nint(spin)
        if ( Op%diag ) then
-          do I=1,Op%N
+        if (Op%g_t_alloc) then
+            do I=1,Op%N
+                if ( cop == 'c' .or. cop =='C' ) then
+                   call ZSCAL(N1,conjg(exp(nsigma_single%phi(1,1)*Op%g_t(nt)*Op%E(I))),Mat(1,Op%P(I)),1)
+                else
+                   call ZSCAL(N1,exp(nsigma_single%phi(1,1)*Op%g_t(nt)*Op%E(I)),Mat(1,Op%P(I)),1)
+                endif
+            enddo
+        else
+            do I=1,Op%N
              if ( cop == 'c' .or. cop =='C' ) then
                 call ZSCAL(N1,conjg(Op%E_exp(I,sp)),Mat(1,Op%P(I)),1)
              else
                 call ZSCAL(N1,Op%E_exp(I,sp),Mat(1,Op%P(I)),1)
              endif
           enddo
+        endif
        else
-          call ZSLGEMM('r',cop,Op%N,N1,N2,Op%M_exp(:,:,sp+op%type+1),Op%P,Mat)
+          if (Op%g_t_alloc) then
+            call Op_exp(nsigma_single%phi(1,1)*Op%g_t(nt),Op,expmat)
+            call ZSLGEMM('r',cop,Op%N,N1,N2,expmat,Op%P,Mat)
+          else
+            call ZSLGEMM('r',cop,Op%N,N1,N2,Op%M_exp(:,:,sp+op%type+1),Op%P,Mat)
+          endif
        endif
     else
+       g_loc = Op%g
+       if (op%g_t_alloc)  g_loc = Op%g_t(nt)
        if ( Op%diag ) then
           do I=1,Op%N
              if ( cop == 'c' .or. cop =='C' ) then
-                call ZSCAL(N1,conjg(exp(spin*Op%g*Op%E(I))),Mat(1,Op%P(I)),1)
+                call ZSCAL(N1,conjg(exp(spin*g_loc*Op%E(I))),Mat(1,Op%P(I)),1)
              else
-                call ZSCAL(N1,exp(spin*Op%g*Op%E(I)),Mat(1,Op%P(I)),1)
+                call ZSCAL(N1,exp(spin*g_loc*Op%E(I)),Mat(1,Op%P(I)),1)
              endif
           enddo
        else
-          call Op_exp(Op%g*spin,Op,expmat)
+          call Op_exp(g_loc*spin,Op,expmat)
           call ZSLGEMM('r',cop,Op%N,N1,N2,expmat,Op%P,Mat)
        endif
     endif
@@ -583,16 +618,22 @@ Contains
 !> * cop = C,  Op = Transposed + Complex conjugation
 !> 
 !--------------------------------------------------------------------
-  subroutine Op_mmultR(Mat,Op,spin,cop)
+  subroutine Op_mmultR(Mat,Op,spin,cop,nt)
     Implicit none
     Type (Operator)          , INTENT(IN )   :: Op
     Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Mat (:,:)
     Real    (Kind=Kind(0.d0)), INTENT(IN )   :: spin
     Character                , Intent(IN)    :: cop
+    integer                  , intent(in)    :: nt
 
     ! Local 
     Integer :: I, N1, N2, sp
-    Complex (Kind=Kind(0.d0)) :: ExpMat (Op%n,Op%n)
+    Complex (Kind=Kind(0.d0)) :: ExpMat (Op%n,Op%n), g_loc
+    Type  (Fields)   :: nsigma_single
+
+    Call nsigma_single%make(1,1)
+    nsigma_single%f(1,1) = spin
+    nsigma_single%t(1)   = op%type
 
     N1=size(Mat,1)
     N2=size(Mat,2)
@@ -606,27 +647,45 @@ Contains
     if ( op%type < 3 ) then
        sp = nint(spin)
        if ( Op%diag ) then
-          do I=1,Op%N
+        if (op%g_t_alloc) then
+            do I=1,Op%N
+                if ( cop == 'c' .or. cop =='C' ) then
+                    call ZSCAL(N2,conjg(exp(nsigma_single%phi(1,1)*Op%g_t(nt)*Op%E(I))),Mat(Op%P(I),1),N1)
+                else
+                    call ZSCAL(N2,exp(nsigma_single%phi(1,1)*Op%g_t(nt)*Op%E(I)),Mat(Op%P(I),1),N1)
+                endif
+            enddo
+        else
+            do I=1,Op%N
              if ( cop == 'c' .or. cop =='C' ) then
                 call ZSCAL(N2,conjg(Op%E_exp(I,sp)),Mat(Op%P(I),1),N1)
              else
                 call ZSCAL(N2,Op%E_exp(I,sp),Mat(Op%P(I),1),N1)
              endif
-          enddo
+            
+            enddo
+        endif
        else
+        if (op%g_t_alloc) then
+            call Op_exp(Op%g_t(nt)*nsigma_single%phi(1,1),Op,expmat)
+            call ZSLGEMM('L',cop,Op%N,N1,N2,expmat,Op%P,Mat)
+        else
           call ZSLGEMM('L',cop,Op%N,N1,N2,Op%M_exp(:,:,sp+op%type+1),Op%P,Mat)
+        endif
        endif
     else
+        g_loc = Op%g
+        if (op%g_t_alloc) g_loc = Op%g_t(nt)
        if ( Op%diag ) then
           do I=1,Op%N
              if ( cop == 'c' .or. cop =='C' ) then
-                call ZSCAL(N2,conjg(exp(spin*Op%g*Op%E(I))),Mat(Op%P(I),1),N1)
+                call ZSCAL(N2,conjg(exp(spin*g_loc*Op%E(I))),Mat(Op%P(I),1),N1)
              else
-                call ZSCAL(N2,exp(spin*Op%g*Op%E(I)),Mat(Op%P(I),1),N1)
+                call ZSCAL(N2,exp(spin*g_loc*Op%E(I)),Mat(Op%P(I),1),N1)
              endif
           enddo
        else
-          call Op_exp(Op%g*spin,Op,expmat)
+          call Op_exp(g_loc*spin,Op,expmat)
           call ZSLGEMM('L',cop,Op%N,N1,N2,expmat,Op%P,Mat)
        endif
     endif
@@ -656,7 +715,7 @@ Contains
 !> @param[in] Ndim Integer
 !> 
 !--------------------------------------------------------------------
-  Subroutine Op_Wrapup(Mat,Op,spin,Ndim,N_Type)
+  Subroutine Op_Wrapup(Mat,Op,spin,Ndim,N_Type, nt)
 
     Implicit none 
 
@@ -665,31 +724,59 @@ Contains
     Complex (Kind=Kind(0.d0)) , INTENT(INOUT) :: Mat (Ndim,Ndim)
     Real    (Kind=Kind(0.d0)) , INTENT(IN )   :: spin
     Integer                   , INTENT(IN)    :: N_Type
+    Integer                   , INTENT(IN)    :: nt
 
     ! Local 
     Complex (Kind=Kind(0.d0)) :: VH1(Op%N,Op%N)
     Integer :: I,sp
+    Complex (kind=kind(0.d0)) :: g_loc
+    Type  (Fields)   :: nsigma_single
+
+    Call nsigma_single%make(1,1)
+    nsigma_single%f(1,1) = spin
+    nsigma_single%t(1)   = op%type
 
     if ( op%type < 3 ) then
     !if ( op%type == 2 ) then
        sp = nint(spin)
        If (N_type == 1) then
           if(Op%diag) then
+            if (op%g_t_alloc) then
+                do I=1,Op%N
+                    call ZSCAL(Ndim,exp( nsigma_single%phi(1,1)*Op%g_t(nt)*Op%E(I)),Mat(Op%P(I),1),Ndim)
+                enddo
+                do I=1,Op%N
+                    call ZSCAL(Ndim,exp(-nsigma_single%phi(1,1)*Op%g_t(nt)*Op%E(I)),Mat(1,Op%P(I)),1)
+                enddo
+            else
              do I=1,Op%N
                 call ZSCAL(Ndim,Op%E_Exp(I,sp),Mat(Op%P(I),1),Ndim)
              enddo
              do I=1,Op%N
                 call ZSCAL(Ndim,Op%E_Exp(I,-sp),Mat(1,Op%P(I)),1)
              enddo
+            endif
           else
-             Do i = 1,Op%N
-                VH1(:,i)=Op%U(:,i)*Op%E_Exp(I,-sp)
-             Enddo
-             call ZSLGEMM('r','n',Op%n,Ndim,Ndim,VH1,Op%P,Mat)
-             Do i = 1,Op%N
-                VH1(:,i)=Op%E_Exp(I, sp)*conjg(Op%U(:,i))
-             Enddo
-             call ZSLGEMM('l','T',Op%n,Ndim,Ndim,VH1,Op%P,Mat)
+            if (op%g_t_alloc) then
+                Do i = 1,Op%N
+                   VH1(:,i)=Op%U(:,i)*exp(-nsigma_single%phi(1,1)*Op%g_t(nt)*Op%E(I))
+                Enddo
+                call ZSLGEMM('r','n',Op%n,Ndim,Ndim,VH1,Op%P,Mat)
+                Do i = 1,Op%N
+                   VH1(:,i)=exp(nsigma_single%phi(1,1)*Op%g_t(nt)*Op%E(I))*conjg(Op%U(:,i))
+                Enddo
+                call ZSLGEMM('l','T',Op%n,Ndim,Ndim,VH1,Op%P,Mat)
+
+            else
+                 Do i = 1,Op%N
+                    VH1(:,i)=Op%U(:,i)*Op%E_Exp(I,-sp)
+                 Enddo
+                 call ZSLGEMM('r','n',Op%n,Ndim,Ndim,VH1,Op%P,Mat)
+                 Do i = 1,Op%N
+                    VH1(:,i)=Op%E_Exp(I, sp)*conjg(Op%U(:,i))
+                 Enddo
+                 call ZSLGEMM('l','T',Op%n,Ndim,Ndim,VH1,Op%P,Mat)
+            endif
           endif
        elseif (N_Type == 2 .and. .not. Op%diag) then
           call ZSLGEMM('l','n',Op%n,Ndim,Ndim,Op%U,Op%P,Mat)
@@ -697,20 +784,22 @@ Contains
        endif
     else
        If (N_type == 1) then
+        g_loc = Op%g
+        if (op%g_t_alloc) g_loc = Op%g_t(nt)
           if(Op%diag) then
              do I=1,Op%N
-                call ZSCAL(Ndim,exp( spin*Op%g*Op%E(I)),Mat(Op%P(I),1),Ndim)
+                call ZSCAL(Ndim,exp( spin*g_loc*Op%E(I)),Mat(Op%P(I),1),Ndim)
              enddo
              do I=1,Op%N
-                call ZSCAL(Ndim,exp(-spin*Op%g*Op%E(I)),Mat(1,Op%P(I)),1)
+                call ZSCAL(Ndim,exp(-spin*g_loc*Op%E(I)),Mat(1,Op%P(I)),1)
              enddo
           else
              Do i = 1,Op%N
-                VH1(:,i)=Op%U(:,i)*exp(-spin*Op%g*Op%E(I)) 
+                VH1(:,i)=Op%U(:,i)*exp(-spin*g_loc*Op%E(I))
              Enddo
              call ZSLGEMM('r','n',Op%n,Ndim,Ndim,VH1,Op%P,Mat)
              Do i = 1,Op%N
-                VH1(:,i)=exp(spin*Op%g*Op%E(I))*conjg(Op%U(:,i))
+                VH1(:,i)=exp(spin*g_loc*Op%E(I))*conjg(Op%U(:,i))
              Enddo
              call ZSLGEMM('l','T',Op%n,Ndim,Ndim,VH1,Op%P,Mat)
           endif
@@ -746,38 +835,64 @@ Contains
 !> 
 !--------------------------------------------------------------------
 
-  Subroutine Op_Wrapdo(Mat,Op,spin,Ndim,N_Type)
+  Subroutine Op_Wrapdo(Mat,Op,spin,Ndim,N_Type,nt)
     Implicit none 
     
     Integer :: Ndim
     Type (Operator) , INTENT(IN)   :: Op
     Complex (Kind = Kind(0.D0)), INTENT(INOUT) :: Mat (Ndim,Ndim)
     Real (Kind=Kind(0.d0)), INTENT(IN )   :: spin
-    Integer, INTENT(IN) :: N_Type
+    Integer, INTENT(IN) :: N_Type, nt
 
     ! Local 
     Integer :: n, i, sp
     Complex (Kind = Kind(0.D0)) :: VH1(Op%N,OP%N)
+    Complex (Kind = Kind(0.D0)) :: g_loc
+    Type  (Fields)   :: nsigma_single
+
+    Call nsigma_single%make(1,1)
+    nsigma_single%f(1,1) = spin
+    nsigma_single%t(1)   = op%type
 
     if ( op%type < 3 ) then
        sp = nint(spin)
        If (N_type == 1) then
           if(Op%diag) then
+            if (op%g_t_alloc) then
+                do I=1,Op%N
+                   call ZSCAL(Ndim,exp(-nsigma_single%phi(1,1)*Op%g_t(nt)*Op%E(I)),Mat(Op%P(I),1),Ndim)
+                enddo
+                do I=1,Op%N
+                   call ZSCAL(Ndim,exp(nsigma_single%phi(1,1)*Op%g_t(nt)*Op%E(I)),Mat(1,Op%P(I)),1)
+                enddo
+            else
              do I=1,Op%N
                 call ZSCAL(Ndim,Op%E_Exp(I,-sp),Mat(Op%P(I),1),Ndim)
              enddo
              do I=1,Op%N
                 call ZSCAL(Ndim,Op%E_Exp(I, sp),Mat(1,Op%P(I)),1)
              enddo
+            endif
           else
-             Do n = 1,Op%N
-                VH1(:,n)=Op%U(:,n)*Op%E_Exp(n,-sp)
-             Enddo
-             call ZSLGEMM('l','n',Op%n,Ndim,Ndim,VH1,Op%P,Mat)
-             Do n = 1,Op%N
-                VH1(:,n)=Op%E_Exp(n, sp)*conjg(Op%U(:,n))
-             Enddo
-             call ZSLGEMM('r','T',Op%n,Ndim,Ndim,VH1,Op%P,Mat)
+            if (op%g_t_alloc) then
+                Do n = 1,Op%N
+                   VH1(:,n)=Op%U(:,n)*exp(-nsigma_single%phi(1,1)*Op%g_t(nt)*Op%E(n))
+                Enddo
+                call ZSLGEMM('l','n',Op%n,Ndim,Ndim,VH1,Op%P,Mat)
+                Do n = 1,Op%N
+                   VH1(:,n)=exp(nsigma_single%phi(1,1)*Op%g_t(nt)*Op%E(n))*conjg(Op%U(:,n))
+                Enddo
+                call ZSLGEMM('r','T',Op%n,Ndim,Ndim,VH1,Op%P,Mat)
+            else
+                 Do n = 1,Op%N
+                    VH1(:,n)=Op%U(:,n)*Op%E_Exp(n,-sp)
+                 Enddo
+                 call ZSLGEMM('l','n',Op%n,Ndim,Ndim,VH1,Op%P,Mat)
+                 Do n = 1,Op%N
+                    VH1(:,n)=Op%E_Exp(n, sp)*conjg(Op%U(:,n))
+                 Enddo
+                 call ZSLGEMM('r','T',Op%n,Ndim,Ndim,VH1,Op%P,Mat)
+            endif
           endif
        elseif (N_Type == 2 .and. .not. Op%diag) then
           call ZSLGEMM('r','n',Op%n,Ndim,Ndim,Op%U,Op%P,Mat)
@@ -785,20 +900,22 @@ Contains
        endif
     else
        If (N_type == 1) then
+        g_loc = Op%g
+        if (op%g_t_alloc) g_loc = Op%g_t(nt)
           if(Op%diag) then
              do I=1,Op%N
-                call ZSCAL(Ndim,exp(-spin*Op%g*Op%E(I)),Mat(Op%P(I),1),Ndim)
+                call ZSCAL(Ndim,exp(-spin*g_loc*Op%E(I)),Mat(Op%P(I),1),Ndim)
              enddo
              do I=1,Op%N
-                call ZSCAL(Ndim,exp( spin*Op%g*Op%E(I)),Mat(1,Op%P(I)),1)
+                call ZSCAL(Ndim,exp( spin*g_loc*Op%E(I)),Mat(1,Op%P(I)),1)
              enddo
           else
              Do n = 1,Op%N
-                VH1(:,n)=Op%U(:,n)*exp(-spin*Op%g*Op%E(n)) 
+                VH1(:,n)=Op%U(:,n)*exp(-spin*g_loc*Op%E(n))
              Enddo
              call ZSLGEMM('l','n',Op%n,Ndim,Ndim,VH1,Op%P,Mat)
              Do n = 1,Op%N
-                VH1(:,n)=exp(spin*Op%g*Op%E(n))*conjg(Op%U(:,n))
+                VH1(:,n)=exp(spin*g_loc*Op%E(n))*conjg(Op%U(:,n))
              Enddo
              call ZSLGEMM('r','T',Op%n,Ndim,Ndim,VH1,Op%P,Mat)
           endif
