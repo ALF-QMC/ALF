@@ -163,11 +163,10 @@ Contains
     
     Integer :: n, nt
     complex (kind=kind(0.d0)) :: g_loc
-
-    g_loc = OP_v%g
     
     do n = 1,size(Op_V,1)
        do nt = 1,size(nsigma%f,2)
+          g_loc = Op_V(n,nf)%g
           if (op_v(n,nf)%g_t_alloc) g_loc = Op_V(n,nf)%g_t(nt)
           angle = Aimag( g_loc * Op_V(n,nf)%alpha ) * nsigma%Phi(n,nt)
           Phase = Phase*CMPLX(cos(angle),sin(angle), Kind(0.D0))
@@ -208,11 +207,10 @@ Contains
       
       Integer :: n, nt
       complex (kind=kind(0.d0)) :: g_loc
-
-      g_loc = OP_v%g
       
       do n = 1,size(Op_V,1)
          do nt = 1,size(nsigma%f,2)
+            g_loc = OP_v(n,nf)%g
             if (op_v(n,nf)%g_t_alloc) g_loc = Op_V(n,nf)%g_t(nt)
             angle = Aimag( g_loc ) * nsigma%Phi(n,nt)
             Phase = Phase*CMPLX(cos(angle),sin(angle), Kind(0.D0))
