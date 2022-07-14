@@ -131,10 +131,11 @@ contains
         deallocate(cmat, cinvmat)
     end subroutine
     
-    subroutine RealExpOpT_adjointaction(this, arg)
+    subroutine RealExpOpT_adjointaction(this, arg, t)
         class(RealExpOpT), intent(in) :: this
         Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
         Integer :: n1, n2
+        Integer, intent(in) :: t
         
         n1 = size(arg,1)
         n2 = size(arg,2)
@@ -144,10 +145,11 @@ contains
         Endif
     end subroutine
     
-    subroutine RealExpOpT_rmult(this, arg)
+    subroutine RealExpOpT_rmult(this, arg, t)
         class(RealExpOpT), intent(in) :: this
         Complex(kind=kind(0.D0)), intent(inout),  dimension(:,:) :: arg
         Integer :: n1, n2
+        Integer, intent(in) :: t
         
         n1 = size(arg,1)
         n2 = size(arg,2)
@@ -156,10 +158,11 @@ contains
         Endif
     end subroutine
     
-    subroutine RealExpOpT_rmultinv(this, arg)
+    subroutine RealExpOpT_rmultinv(this, arg, t)
         class(RealExpOpT), intent(in) :: this
         Complex(kind=kind(0.D0)), intent(inout),  dimension(:,:) :: arg
         Integer :: n1, n2
+        Integer, intent(in) :: t
         
         n1 = size(arg,1)
         n2 = size(arg,2)
@@ -168,9 +171,10 @@ contains
         Endif
     end subroutine
     
-    subroutine RealExpOpT_lmult(this, arg)
+    subroutine RealExpOpT_lmult(this, arg, t)
         class(RealExpOpT), intent(in) :: this
         Complex(kind=kind(0.D0)), intent(inout),  dimension(:,:) :: arg
+        Integer, intent(in) :: t
         integer :: n1, n2
         
         ! taken from mmthr
@@ -181,9 +185,10 @@ contains
         Endif
     end subroutine
     
-    subroutine RealExpOpT_lmultinv(this, arg)
+    subroutine RealExpOpT_lmultinv(this, arg, t)
         class(RealExpOpT), intent(in) :: this
         Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
+        Integer, intent(in) :: t
         integer :: n1, n2
         
         n1 = size(arg,1)
@@ -226,9 +231,10 @@ contains
         this%P = Op_T%P ! copy all data locally to be consistent and less error prone
     end subroutine
 
-    subroutine CmplxExpOpT_adjointaction(this, arg)
+    subroutine CmplxExpOpT_adjointaction(this, arg, t)
         class(CmplxExpOpT), intent(in) :: this
         Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
+        Integer, intent(in) :: t
         Integer :: n1, n2
 
         n1 = size(arg,1)
@@ -240,9 +246,10 @@ contains
         
     end subroutine
     
-    subroutine CmplxExpOpT_rmult(this, arg)
+    subroutine CmplxExpOpT_rmult(this, arg, t)
         class(CmplxExpOpT), intent(in) :: this
         Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
+        Integer, intent(in) :: t
         Integer :: n1, n2
         
         ! taken from mmthl
@@ -253,9 +260,10 @@ contains
         Endif
     end subroutine
     
-        subroutine CmplxExpOpT_rmultinv(this, arg)
+        subroutine CmplxExpOpT_rmultinv(this, arg, t)
         class(CmplxExpOpT), intent(in) :: this
         Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
+        Integer, intent(in) :: t
         Integer :: n1, n2
         
         ! taken from mmthl_m1
@@ -266,9 +274,10 @@ contains
         Endif
     end subroutine
     
-    subroutine CmplxExpOpT_lmult(this, arg)
+    subroutine CmplxExpOpT_lmult(this, arg, t)
         class(CmplxExpOpT), intent(in) :: this
         Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
+        Integer, intent(in) :: t
         integer :: n1, n2
         
         ! taken from mmthr
@@ -279,9 +288,10 @@ contains
         Endif
     end subroutine
     
-    subroutine CmplxExpOpT_lmultinv(this, arg)
+    subroutine CmplxExpOpT_lmultinv(this, arg, t)
         class(CmplxExpOpT), intent(in) :: this
         Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
+        Integer, intent(in) :: t
         integer :: n1, n2
         n1 = size(arg,1)
         n2 = size(arg,2)
