@@ -50,7 +50,7 @@ module OpTTypes_mod
         Real(kind=kind(0.d0)), allocatable, dimension(:,:) :: mat, invmat, mat_1D2, invmat_1D2 !>We store the matrix in the class
         Real(kind=kind(0.d0)) :: g, Zero
         integer, allocatable :: P(:)
-        Integer :: m, n, Ndim_hop
+        Integer :: Ndim_hop
         
     contains
         procedure :: init => RealExpOpT_init ! initialize and allocate matrices
@@ -75,7 +75,7 @@ module OpTTypes_mod
         Complex(kind=kind(0.d0)) :: g
         Real(kind=kind(0.d0)) :: Zero
         integer, allocatable :: P(:)
-        Integer :: m, n, Ndim_hop
+        Integer :: Ndim_hop
     contains
         procedure :: init => CmplxExpOpT_init ! initialize and allocate matrices
         procedure :: dealloc => CmplxExpOpT_dealloc ! dealloc matrices
