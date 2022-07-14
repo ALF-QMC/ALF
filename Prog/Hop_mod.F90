@@ -144,10 +144,12 @@
           !Local
           Integer :: nc
           class(ContainerElementBase), pointer :: dummy
+          Integer :: t
 
+          t = 0
           do nc =  Ncheck,1,-1
             dummy => ExpOpT_vec(nf)%at(nc)
-            call dummy%lmult(In)
+            call dummy%lmult(In, t)
           Enddo
         end Subroutine Hop_mod_mmthr
 
@@ -163,10 +165,12 @@
           !Local
           Integer :: nc
           class(ContainerElementBase), pointer :: dummy
+          Integer :: t
 
+          t = 0
           do nc =  1,Ncheck
             dummy => ExpOpT_vec(nf)%at(nc)
-            call dummy%lmultinv(In)
+            call dummy%lmultinv(In, t)
           Enddo
 
         end Subroutine Hop_mod_mmthr_m1
@@ -185,10 +189,12 @@
           !Local
           Integer :: nc
           class(ContainerElementBase), pointer :: dummy
+          Integer :: t
 
-          do nc =  1, Ncheck
+          t = 0
+          do nc = 1, Ncheck
             dummy => ExpOpT_vec(nf)%at(nc)
-            call dummy%rmult(In)
+            call dummy%rmult(In, t)
           Enddo
 
         end Subroutine Hop_mod_mmthl
@@ -207,10 +213,12 @@
           !Local
           Integer :: nc
           class(ContainerElementBase), pointer :: dummy
+          Integer :: t
 
+          t = 0
           do nc =  1, Ncheck
             dummy => ExpOpT_vec(nf)%at(nc)
-            call dummy%lmult(In)
+            call dummy%lmult(In, t)
           Enddo
 
         end Subroutine Hop_mod_mmthlc
@@ -229,10 +237,12 @@
           !Local
           Integer :: nc
           class(ContainerElementBase), pointer :: dummy
+          Integer :: t
 
+          t = 0
           do nc =  Ncheck,1,-1
             dummy => ExpOpT_vec(nf)%at(nc)
-            call dummy%rmultinv(In)
+            call dummy%rmultinv(In, t)
           Enddo
 
         end Subroutine Hop_mod_mmthl_m1
@@ -272,13 +282,15 @@
 
           Integer :: nf, nc, nf_eff
           class(ContainerElementBase), pointer :: dummy
+          Integer :: t
 
+          t = 0
           Out = In
           Do nf_eff = 1, N_FL_eff !size(In,3)
              nf=Calc_Fl_map(nf_eff)
              do nc =  Ncheck,1,-1
                 dummy => ExpOpT_vec(nf)%at(nc)
-                call dummy%adjointaction(Out(:, :, nf))
+                call dummy%adjointaction(Out(:, :, nf), t)
              enddo
           enddo
 
