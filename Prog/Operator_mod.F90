@@ -45,24 +45,24 @@ Module Operator_mod
   Use mat_subroutines
   Use MyMats
   Use Fields_mod
-
-  Implicit none
-
   
-
+  Implicit none
+  
+  
+  
   Type Operator
-     Integer          :: N, N_non_zero !> dimension of Operator (P and O), number of non-zero eigenvalues
-     Integer, private :: win_M_exp, win_U !> MPI_windows which can be used for fences (memory synch.) and dealloc.
-     logical          :: diag !> encodes if Operator is diagonal
-     logical, private :: U_alloc, M_exp_alloc, g_t_alloc !> logical to track if memory is allocated
-     complex (Kind=Kind(0.d0)), pointer :: O(:,:), U (:,:)  !>Storage for operator matrix O and it's eigenvectors U
+     Integer          :: N, N_non_zero                      !> dimension of Operator (P and O), number of non-zero eigenvalues
+     Integer, private :: win_M_exp, win_U                   !> MPI_windows which can be used for fences (memory synch.) and dealloc.
+     logical          :: diag                               !> encodes if Operator is diagonal
+     logical, private :: U_alloc, M_exp_alloc, g_t_alloc    !> logical to track if memory is allocated
+     complex (Kind=Kind(0.d0)), pointer :: O(:,:), U (:,:)  !> Storage for operator matrix O and it's eigenvectors U
      complex (Kind=Kind(0.d0)), pointer, private :: M_exp(:,:,:), E_exp(:,:)  !>internal storage for exp(O) and exp(E)
-     Real    (Kind=Kind(0.d0)), pointer :: E(:) !>Eigenvalues of O
-     Integer, pointer :: P(:) !> Projector P encoding DoFs that contribute in Operator
-     complex (Kind=Kind(0.d0)) :: g !> coupling constant
-     complex (Kind=Kind(0.d0)), allocatable :: g_t(:) !> time dependent  coupling constant
-     complex (Kind=Kind(0.d0)) :: alpha !> operator shift
-     Integer          :: Type !> Type of the operator: 1=Ising; 2=discrete HS; 3=continues HS
+     Real    (Kind=Kind(0.d0)), pointer :: E(:)             !> Eigenvalues of O
+     Integer, pointer :: P(:)                               !> Projector P encoding DoFs that contribute in Operator
+     complex (Kind=Kind(0.d0)) :: g                         !> coupling constant
+     complex (Kind=Kind(0.d0)), allocatable :: g_t(:)       !> time dependent  coupling constant
+     complex (Kind=Kind(0.d0)) :: alpha                     !> operator shift
+     Integer          :: Type                               !> Type of the operator: 1=Ising; 2=discrete HS; 3=continues HS
      ! P is an N X Ndim matrix such that  P.T*O*P*  =  A  
      ! P has only one non-zero entry per column which is specified by P
      ! All in all.   g * Phi(s,type) * ( c^{dagger} A c  + alpha )
@@ -81,8 +81,8 @@ Module Operator_mod
      !              and dimensions E_exp(N,-2:2)   for Type = 2
      !
      ! !!! If Type .neq. 1,2  then  E_exp  and  M_exp  are  not allocated !!!
-     contains
-        procedure  :: get_g_t_alloc => operator_get_g_t_alloc
+   contains
+     procedure  :: get_g_t_alloc => operator_get_g_t_alloc     !>    External access to   private  logical  variable g_t_alloc 
   end type Operator
 
   
@@ -537,7 +537,7 @@ Contains
     ! Local 
     Integer :: I, N1, N2, sp
     Complex (Kind=Kind(0.d0)) :: ExpMat (Op%n,Op%n), g_loc
-    Type  (Fields)   :: nsigma_single
+    Type  (Fields)            :: nsigma_single
 
     Call nsigma_single%make(1,1)
     nsigma_single%f(1,1) = spin
@@ -938,18 +938,18 @@ Contains
     myzero = maxval(abs(Op%E))*epsilon(Op%E)
     
     do i = 1, Op%N
-      do j = 1, Op%N
-        retval = retval .and. (Abs(aimag(Op%O(i,j))) < myzero)
-      enddo
+       do j = 1, Op%N
+          retval = retval .and. (Abs(aimag(Op%O(i,j))) < myzero)
+       enddo
     enddo
   end function Op_is_real
-
-    logical function operator_get_g_t_alloc(this)
-      Implicit None
-      
-      class (Operator) , INTENT(IN)   :: this
-      
-      operator_get_g_t_alloc = this%g_t_alloc
-
-    end function operator_get_g_t_alloc
+  
+  logical function operator_get_g_t_alloc(this)
+    Implicit None
+    
+    class (Operator) , INTENT(IN)   :: this
+    
+    operator_get_g_t_alloc = this%g_t_alloc
+    
+  end function operator_get_g_t_alloc
 end Module Operator_mod
