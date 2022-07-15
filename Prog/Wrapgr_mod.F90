@@ -109,8 +109,8 @@ Contains
     NTAU1 = NTAU + 1
     Do nf_eff = 1,N_FL_eff
        nf=Calc_Fl_map(nf_eff)
-       CALL HOP_MOD_mmthr   (GR(:,:,nf), nf )
-       CALL HOP_MOD_mmthl_m1(GR(:,:,nf), nf )
+       CALL HOP_MOD_mmthr   (GR(:,:,nf), nf, ntau1 )
+       CALL HOP_MOD_mmthl_m1(GR(:,:,nf), nf, ntau1 )
     Enddo
     Do n = Nt_sequential_start,Nt_sequential_end
        Do nf_eff = 1, N_FL_eff
@@ -236,8 +236,8 @@ Contains
     enddo
     DO nf_eff = 1,N_FL_eff
        nf=Calc_Fl_map(nf_eff)
-       Call Hop_mod_mmthl   (GR(:,:,nf), nf)
-       Call Hop_mod_mmthr_m1(GR(:,:,nf), nf)
+       Call Hop_mod_mmthl   (GR(:,:,nf), nf,ntau)
+       Call Hop_mod_mmthr_m1(GR(:,:,nf), nf,ntau)
     enddo
     
   end SUBROUTINE WRAPGRDO

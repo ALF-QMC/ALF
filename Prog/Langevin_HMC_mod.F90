@@ -194,8 +194,8 @@
 
         Do nf_eff = 1,N_FL_eff
            nf=Calc_FL_map(nf_eff)
-           CALL HOP_MOD_mmthr   (GR(:,:,nf), nf )
-           CALL HOP_MOD_mmthl_m1(GR(:,:,nf), nf )
+           CALL HOP_MOD_mmthr   (GR(:,:,nf), nf, nt1 )
+           CALL HOP_MOD_mmthl_m1(GR(:,:,nf), nf, nt1 )
         Enddo
         Do n = 1, size(OP_V,1) 
            this%Forces(n,nt1)  = cmplx(0.d0,0.d0,Kind(0.d0))

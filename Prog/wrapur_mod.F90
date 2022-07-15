@@ -77,7 +77,7 @@ module wrapur_mod
            CALL INITD(TMP,Z_ONE)
            DO NT = NTAU + 1, NTAU1
               !CALL MMULT(TMP1,Exp_T(:,:,nf) ,TMP)
-              Call Hop_mod_mmthr(TMP,nf)
+              Call Hop_mod_mmthr(TMP,nf,nt)
 !             TMP = TMP1
               Do n = 1,Size(Op_V,1)
 !                  X = Phi(nsigma(n,nt),Op_V(n,nf)%type)
@@ -110,7 +110,7 @@ module wrapur_mod
         Do nf_eff = 1,N_FL_eff
            nf=Calc_Fl_map(nf_eff)
            DO NT = NTAU + 1, NTAU1
-              Call Hop_mod_mmthR(UDVR(nf_eff)%U,nf)
+              Call Hop_mod_mmthR(UDVR(nf_eff)%U,nf,nt)
               Do n = 1,Size(Op_V,1)
                  Call Op_mmultR(UDVR(nf_eff)%U,Op_V(n,nf),nsigma%f(n,nt),'n',nt)
               ENDDO

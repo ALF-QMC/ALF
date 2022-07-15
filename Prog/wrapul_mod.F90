@@ -85,7 +85,7 @@ module wrapul_mod
                  Call Op_mmultL(Tmp,Op_V(n,nf),nsigma%f(n,nt),'n',nt)
               enddo
               !CALL MMULT( TMP1,Tmp,Exp_T(:,:,nf) )
-              Call  Hop_mod_mmthl (Tmp,nf)
+              Call  Hop_mod_mmthl (Tmp,nf,nt)
               ! Tmp = Tmp1
            ENDDO
            
@@ -119,7 +119,7 @@ module wrapul_mod
               Do n = Size(Op_V,1),1,-1
                  Call Op_mmultR(udvl(nf_eff)%U,Op_V(n,nf),nsigma%f(n,nt),'c',nt)
               enddo
-              Call  Hop_mod_mmthlc (udvl(nf_eff)%U,nf)
+              Call  Hop_mod_mmthlc (udvl(nf_eff)%U,nf,nt)
            ENDDO
            
            !Carry out U,D,V decomposition.

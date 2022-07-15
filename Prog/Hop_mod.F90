@@ -52,6 +52,7 @@
       Use DynamicMatrixArray_mod
       Use ContainerElementBase_mod
       Use OpTTypes_mod
+      Use OpT_time_dependent_mod
       use iso_fortran_env, only: output_unit, error_unit
 
       ! Private variables
@@ -83,6 +84,7 @@
             
             Class(CmplxExpOpT), pointer :: cmplxexp => null()
             Class(RealExpOpT), pointer :: realexp => null()
+            Class(OpT_time_dependent), pointer :: time_dependent => null()
             
             if (Op_is_real(op)) then
                 ! branch for real operators
@@ -132,28 +134,26 @@
 
 !--------------------------------------------------------------------
 
-        Subroutine Hop_mod_mmthr(In,nf)
+        Subroutine Hop_mod_mmthr(In,nf, t)
 
 
           ! InOut:  In = e^{ -dtau T }.IN
           Implicit none
 
           Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
-          Integer, intent(IN) :: nf
+          Integer, intent(IN) :: nf, t
 
           !Local
           Integer :: nc
           class(ContainerElementBase), pointer :: dummy
-          Integer :: t
 
-          t = 0
           do nc =  Ncheck,1,-1
             dummy => ExpOpT_vec(nf)%at(nc)
             call dummy%lmult(In, t)
           Enddo
         end Subroutine Hop_mod_mmthr
 
-        Subroutine Hop_mod_mmthr_m1(In,nf)
+        Subroutine Hop_mod_mmthr_m1(In,nf,t)
 
 
           ! InOut:  In = e^{  dtau T }.IN
@@ -161,13 +161,12 @@
 
           Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
           Integer :: nf
+          integer, intent(in) :: t
 
           !Local
           Integer :: nc
           class(ContainerElementBase), pointer :: dummy
-          Integer :: t
 
-          t = 0
           do nc =  1,Ncheck
             dummy => ExpOpT_vec(nf)%at(nc)
             call dummy%lmultinv(In, t)
@@ -177,7 +176,7 @@
 
 !--------------------------------------------------------------------
 
-        Subroutine Hop_mod_mmthl (In,nf)
+        Subroutine Hop_mod_mmthl (In,nf,t)
 
 
           ! InOut:  In = IN * e^{ -dtau T }
@@ -185,13 +184,12 @@
 
           Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
           Integer :: nf
+          integer, intent(in) :: t
 
           !Local
           Integer :: nc
           class(ContainerElementBase), pointer :: dummy
-          Integer :: t
 
-          t = 0
           do nc = 1, Ncheck
             dummy => ExpOpT_vec(nf)%at(nc)
             call dummy%rmult(In, t)
@@ -201,7 +199,7 @@
 
 !--------------------------------------------------------------------
 
-        Subroutine Hop_mod_mmthlc (In,nf)
+        Subroutine Hop_mod_mmthlc (In,nf,t)
 
 
           ! InOut:  In = IN * e^{ -dtau T }
@@ -209,13 +207,12 @@
 
           Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
           Integer :: nf
+          integer, intent(in) :: t
 
           !Local
           Integer :: nc
           class(ContainerElementBase), pointer :: dummy
-          Integer :: t
 
-          t = 0
           do nc =  1, Ncheck
             dummy => ExpOpT_vec(nf)%at(nc)
             call dummy%lmult(In, t)
@@ -225,7 +222,7 @@
 
 !--------------------------------------------------------------------
 
-        Subroutine Hop_mod_mmthl_m1 (In, nf)
+        Subroutine Hop_mod_mmthl_m1 (In, nf,t)
 
 
           ! InOut:  In = IN * e^{ dtau T }
@@ -233,13 +230,12 @@
 
           Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
           Integer :: nf
+          integer, intent(in) :: t
 
           !Local
           Integer :: nc
           class(ContainerElementBase), pointer :: dummy
-          Integer :: t
 
-          t = 0
           do nc =  Ncheck,1,-1
             dummy => ExpOpT_vec(nf)%at(nc)
             call dummy%rmultinv(In, t)
@@ -284,7 +280,7 @@
           class(ContainerElementBase), pointer :: dummy
           Integer :: t
 
-          t = 0
+          t = 1
           Out = In
           Do nf_eff = 1, N_FL_eff !size(In,3)
              nf=Calc_Fl_map(nf_eff)
