@@ -124,8 +124,8 @@ contains
         If ( DBLE( this%g_t(t) * Conjg(this%g_t(t)) ) > this%Zero ) then
             call ZSLGEMM('R', 'N', this%Ndim_hop, n1, n2, this%U, this%P, arg)
             do i = 1, n1
-                do j = 1, n2
-                    arg(i, j) = arg(i, j) * exp(this%g_t(t)*this%E(j))
+                do j = 1, size(this%E,1)
+                    arg(i, this%P(j)) = arg(i, this%P(j)) * exp(this%g_t(t)*this%E(j))
                 enddo
             enddo
             call ZSLGEMM('R', 'C', this%Ndim_hop, n1, n2, this%U, this%P, arg)
@@ -146,8 +146,8 @@ contains
         If ( DBLE( this%g_t(t) * Conjg(this%g_t(t)) ) > this%Zero ) then
             call ZSLGEMM('R', 'N', this%Ndim_hop, n1, n2, this%U, this%P, arg)
             do i = 1, n1
-                do j = 1, n2
-                    arg(i, j) = arg(i, j) * exp(-this%g_t(t)*this%E(j))
+                do j = 1, size(this%E,1)
+                    arg(i, this%P(j)) = arg(i, this%P(j)) * exp(-this%g_t(t)*this%E(j))
                 enddo
             enddo
             call ZSLGEMM('R', 'C', this%Ndim_hop, n1, n2, this%U, this%P, arg)
@@ -167,14 +167,14 @@ contains
         n2 = size(arg,2)
         
         If ( DBLE( this%g_t(t) * Conjg(this%g_t(t)) ) > this%Zero ) then
-            call ZSLGEMM('L', 'N', this%Ndim_hop, n1, n2, this%U, this%P, arg)
-            do i = 1, n1
+            call ZSLGEMM('L', 'C', this%Ndim_hop, n1, n2, this%U, this%P, arg)
+            do i = 1, size(this%e,1)
                 te = exp(this%g_t(t)*this%E(i))
                 do j = 1, n2
-                    arg(i, j) = arg(i, j) * te
+                    arg(this%P(i), j) = arg(this%P(i), j) * te
                 enddo
             enddo
-            call ZSLGEMM('L', 'C', this%Ndim_hop, n1, n2, this%U, this%P, arg)
+            call ZSLGEMM('L', 'N', this%Ndim_hop, n1, n2, this%U, this%P, arg)
         Endif
 
     end subroutine
@@ -190,14 +190,14 @@ contains
         n2 = size(arg,2)
         
         If ( DBLE( this%g_t(t) * Conjg(this%g_t(t)) ) > this%Zero ) then
-            call ZSLGEMM('L', 'N', this%Ndim_hop, n1, n2, this%U, this%P, arg)
-            do i = 1, n1
+            call ZSLGEMM('L', 'C', this%Ndim_hop, n1, n2, this%U, this%P, arg)
+            do i = 1, size(this%e,1)
                 te = exp(-this%g_t(t)*this%E(i))
                 do j = 1, n2
-                    arg(i, j) = arg(i, j) * te
+                    arg(this%P(i), j) = arg(this%P(i), j) * te
                 enddo
             enddo
-            call ZSLGEMM('L', 'C', this%Ndim_hop, n1, n2, this%U, this%P, arg)
+            call ZSLGEMM('L', 'N', this%Ndim_hop, n1, n2, this%U, this%P, arg)
         Endif
 
     end subroutine

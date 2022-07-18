@@ -86,17 +86,23 @@
             Class(RealExpOpT), pointer :: realexp => null()
             Class(OpT_time_dependent), pointer :: time_dependent => null()
             
-            if (Op_is_real(op)) then
-                ! branch for real operators
-                    allocate(realexp) ! Yep, this is a manifest memory leak. Using the ptr we can allocate onto the same variable
-                    call realexp%init(op)
-                    call ExpOpT_vec%pushback(realexp)
-                else
-                ! branch for complex operators
-                    allocate(cmplxexp)
-                    call cmplxexp%init(op)
-                    call ExpOpT_vec%pushback(cmplxexp)
-                endif
+            if (op%get_g_t_alloc()) then
+                allocate(time_dependent)
+                call time_dependent%init(op,op%g_t)
+                call ExpOpT_vec%pushback(time_dependent)
+            else
+                if (Op_is_real(op)) then
+                    ! branch for real operators
+                        allocate(realexp) ! Yep, this is a manifest memory leak. Using the ptr we can allocate onto the same variable
+                        call realexp%init(op)
+                        call ExpOpT_vec%pushback(realexp)
+                    else
+                    ! branch for complex operators
+                        allocate(cmplxexp)
+                        call cmplxexp%init(op)
+                        call ExpOpT_vec%pushback(cmplxexp)
+                    endif
+            endif
         end subroutine
         
       
