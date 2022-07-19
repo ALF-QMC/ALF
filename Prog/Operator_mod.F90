@@ -175,50 +175,6 @@ Contains
     enddo
     
   end Subroutine Op_phase
-
-  
-
-  !--------------------------------------------------------------------
-  !> @author
-  !> 
-  !
-  !> @brief 
-  !> calculate the PHfactor phase of a given set of operators and HS fields.
-  !
-  !> @param[inout] Phase  Complex
-  !> * On entry: phase of \f$ \prod_{f} \det M_f(C) \f$, f is the flavor index.
-  !> * On exit:  phase of  \f$ W(C)  =   \left[ \left( \prod_{n,\tau,f}  \exp \left[ g_f(n) \alpha_f(n) \phi(\sigma(n,\tau)) \right] \right) \det(M_f(C))\right]^{N_{SUN}} \prod_{n,\tau }\gamma(\sigma(n,\tau)) \f$ 
-  !> @param[in] Op_V  Dimension(:,:)  Type(Operator)
-  !> * List of interaction operators. OP_V(n,f) has no tau index.  
-  !> @param[in] Nsigma 
-  !> Type(Fields)
-  !> * Fields
-  !> @param[in] nf
-  !> Integer
-  !> * flavor index
-  !--------------------------------------------------------------------
-    Subroutine  Op_PHfactor(Phase,OP_V,Nsigma,nf) 
-      Implicit none
-  
-      Complex  (Kind=Kind(0.d0)), Intent(Inout) :: Phase
-      Integer,           Intent(IN)    :: nf
-      Type  (Fields),    Intent(IN)    :: Nsigma
-      Type (Operator),   dimension(:,:), Intent(In) :: Op_V
-      Real  (Kind=Kind(0.d0))                       :: angle
-      
-      Integer :: n, nt
-      complex (kind=kind(0.d0)) :: g_loc
-      
-      do n = 1,size(Op_V,1)
-         do nt = 1,size(nsigma%f,2)
-            g_loc = OP_v(n,nf)%g
-            if (op_v(n,nf)%g_t_alloc) g_loc = Op_V(n,nf)%g_t(nt)
-            angle = Aimag( g_loc ) * nsigma%Phi(n,nt)
-            Phase = Phase*CMPLX(cos(angle),sin(angle), Kind(0.D0))
-         enddo
-      enddo
-      
-    end Subroutine Op_PHfactor
   
 !--------------------------------------------------------------------
 !> @author
