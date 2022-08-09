@@ -43,6 +43,7 @@
         use wrapur_mod
         use wrapul_mod
         use cgr1_mod
+        Use global_parameters_mod, only: Group_Comm
         Use iso_fortran_env, only: output_unit, error_unit
 #ifdef MPI
         Use mpi

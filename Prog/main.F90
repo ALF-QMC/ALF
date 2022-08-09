@@ -136,6 +136,8 @@ Program Main
         use cgr1_mod
         use set_random
 
+        use alf_mpi_mod
+
 #ifdef MPI
         Use mpi
 #endif
@@ -156,7 +158,7 @@ Program Main
         Integer :: Nwrap, NSweep, NBin, NBin_eff,Ltau, NSTM, NT, NT1, NVAR, LOBS_EN, LOBS_ST, NBC, NSW
         Integer :: NTAU, NTAU1
         Real(Kind=Kind(0.d0)) :: CPU_MAX
-        Character (len=64) :: file_seeds, file_para, file_dat, file_info, ham_name
+        Character (len=64) :: ham_name
         Integer :: Seed_in
         Complex (Kind=Kind(0.d0)) , allocatable, dimension(:,:) :: Initial_field
 
@@ -164,7 +166,7 @@ Program Main
         Logical :: Propose_S0, Tempering_calc_det
         Logical :: Global_moves, Global_tau_moves
         Integer :: N_Global
-        Integer :: Nt_sequential_start, Nt_sequential_end, mpi_per_parameter_set
+        Integer :: Nt_sequential_start, Nt_sequential_end
         Integer :: N_Global_tau
         Logical :: Sequential
         real (Kind=Kind(0.d0)) ::  Amplitude  !    Needed for  update of  type  3  and  4  fields.
@@ -180,7 +182,6 @@ Program Main
           
 #if defined(TEMPERING)
         Integer :: N_exchange_steps, N_Tempering_frequency
-        NAMELIST /VAR_TEMP/  N_exchange_steps, N_Tempering_frequency, mpi_per_parameter_set, Tempering_calc_det
 #endif
 
         NAMELIST /VAR_QMC/   Nwrap, NSweep, NBin, Ltau, LOBS_EN, LOBS_ST, CPU_MAX, &
@@ -210,21 +211,15 @@ Program Main
         ! For the truncation of the program:
         logical                   :: prog_truncation, run_file_exists
         integer (kind=kind(0.d0)) :: count_bin_start, count_bin_end
-        
+
         ! For MPI shared memory
         character(64), parameter :: name="ALF_SHM_CHUNK_SIZE_GB"
         character(64) :: chunk_size_str
         Real    (Kind=Kind(0.d0)) :: chunk_size_gb
 
-#ifdef MPI
-        Integer        :: Isize, Irank, Irank_g, Isize_g, color, key, igroup, MPI_COMM_i
-
-        CALL MPI_INIT(ierr)
-        CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-        CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+        call alf_mpi%init1()
         
-        If (  Irank == 0 ) then
-#endif
+        If ( alf_mpi%is_main_process() ) then
            write (*,*) "ALF Copyright (C) 2016 - 2022 The ALF project contributors"
            write (*,*) "This Program comes with ABSOLUTELY NO WARRANTY; for details see license.GPL"
            write (*,*) "This is free software, and you are welcome to redistribute it under certain conditions."
@@ -260,46 +255,10 @@ Program Main
            end if
 #ifdef MPI
         endif
-#endif
 
-#if defined(TEMPERING) && defined(MPI)
-        mpi_per_parameter_set = 1   ! Default value
-        Tempering_calc_det = .true. ! Default value
-        OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
-        IF (ierr /= 0) THEN
-           WRITE(error_unit,*) 'main: unable to open <parameters>',ierr
-           CALL Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
-        END IF
-        READ(5,NML=VAR_TEMP)
-        CLOSE(5)
-        CALL MPI_BCAST(N_exchange_steps        ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(N_Tempering_frequency   ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(mpi_per_parameter_set   ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(Tempering_calc_det      ,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
-        if ( mod(ISIZE,mpi_per_parameter_set) .ne. 0 ) then
-           Write (error_unit,*) "mpi_per_parameter_set is not a multiple of total mpi processes"
-           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
-        endif
-        Call Global_Tempering_setup
-#elif !defined(TEMPERING)  && defined(MPI)
-        mpi_per_parameter_set = Isize
-#elif defined(TEMPERING)  && !defined(MPI)
-        Write(error_unit,*) 'Mpi has to be defined for tempering runs'
-        CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
-#endif
-#if defined(PARALLEL_PARAMS) && !defined(TEMPERING)
-        Write(error_unit,*) 'TEMPERING has to be defined for PARALLEL_PARAMS'
-        CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
-#endif
+        call alf_mpi%init2(N_exchange_steps, N_Tempering_frequency, Tempering_calc_det)
 
 #ifdef MPI
-        color = irank/mpi_per_parameter_set
-        key   =  0
-        call MPI_COMM_SPLIT(MPI_COMM_WORLD,color,key,Group_comm, ierr)
-        call MPI_Comm_rank(Group_Comm, Irank_g, ierr)
-        call MPI_Comm_size(Group_Comm, Isize_g, ierr)
-        igroup           = irank/isize_g
-        !Write(6,*) 'irank, Irank_g, Isize_g', irank, irank_g, isize_g
         !read environment variable called ALF_SHM_CHUNK_SIZE_GB
         !it should be a positive integer setting the chunk size of shared memory blocks in GB
         !if it is not set, or set to a non-positive (including 0) integer, the routine defaults back to the
@@ -318,20 +277,7 @@ Program Main
         !It will then deactivate the entanglement measurements, i.e., the user does not have to care about this
         call Init_Entanglement_replicas(Group_Comm)
 
-
-#ifdef MPI
-#ifdef PARALLEL_PARAMS
-        MPI_COMM_i = Group_Comm
-        If ( irank_g == 0 ) then
-           write(file_para,'(A,I0,A)') "Temp_", igroup, "/parameters"
-#else
-        MPI_COMM_i = MPI_COMM_WORLD
-        If ( Irank == 0 ) then
-           file_para = "parameters"
-#endif
-#else
-           file_para = "parameters"
-#endif
+        If ( alf_mpi%is_main_process() ) then
            ! This is a set of variables that  identical for each simulation.
            Nwrap=0;  NSweep=0; NBin=0; Ltau=0; LOBS_EN = 0;  LOBS_ST = 0;  CPU_MAX = 0.d0
            Propose_S0 = .false. ;  Global_moves = .false. ; N_Global = 0
@@ -348,8 +294,8 @@ Program Main
            READ(5,NML=VAR_HAM_NAME)
            CLOSE(5)
            NBin_eff = NBin
+         endif
 #ifdef MPI
-        Endif
         CALL MPI_BCAST(Nwrap                ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(NSweep               ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(NBin                 ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
@@ -505,14 +451,17 @@ Program Main
         file_dat = "data.h5"
 #endif
 #if defined(MPI)
-        if ( Irank_g == 0 ) then
+        if ( alf_mpi%is_main_process() ) then
 #endif
           CALL h5open_f(ierr)
           inquire (file=file_dat, exist=file_exists)
           IF (.not. file_exists) THEN
             ! Create HDF5 file
             CALL h5fcreate_f(file_dat, H5F_ACC_TRUNC_F, file_id, ierr)
+<<<<<<< HEAD
             call h5ltset_attribute_string_f(file_id, '/', 'program_name', 'ALF', ierr)
+=======
+>>>>>>> d10fc7c9 (Read ham_name in main.F90, make filename variable clearer in main.F90)
             call h5fclose_f(file_id, ierr)
           endif
           call ham%write_parameters_hdf5(file_dat)
@@ -606,7 +555,7 @@ Program Main
 #endif
 
 #if defined(MPI)
-        if ( Irank_g == 0 ) then
+        if ( alf_mpi%is_main_process() ) then
 #endif
            Open (Unit = 50,file=file_info,status="unknown",position="append")
            Write(50,*) 'Sweeps                              : ', Nsweep
@@ -671,7 +620,7 @@ Program Main
            endif
            
 #if defined(MPI)
-           Write(50,*) 'Number of mpi-processes : ', isize_g
+           Write(50,*) 'Number of mpi-processes : ', alf_mpi%get_mpi_per_parameter_set()
            if(use_mpi_shm) Write(50,*) 'Using mpi-shared memory in chunks of ', chunk_size_gb, 'GB.'
 #endif
 #if defined(GIT)
@@ -1051,7 +1000,7 @@ Program Main
         Call Control_Print(Group_Comm, Langevin_HMC%get_Update_scheme())
 
 #if defined(MPI)
-        If (Irank_g == 0 ) then
+        If ( alf_mpi%is_main_process() ) then
 #endif
            if ( abs(CPU_MAX) > Zero ) then
 #if defined(TEMPERING)

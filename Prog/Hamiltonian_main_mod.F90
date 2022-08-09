@@ -129,6 +129,7 @@
       Use files_mod
       Use Operator_mod, only: Operator
       Use WaveFunction_mod, only: WaveFunction
+      Use global_parameters_mod, only: Group_Comm
       Use Observables
       Use Fields_mod, only: Fields
       use iso_fortran_env, only: output_unit, error_unit
@@ -179,7 +180,6 @@
       Integer      , public        :: Ltrot
       Integer      , public        :: Thtrot
       Logical      , public        :: Projector
-      Integer      , public        :: Group_Comm
       Logical      , public        :: Symm
       Logical      , public        :: reconstruction_needed
       Logical      , public        :: leap_frog_bulk

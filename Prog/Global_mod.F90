@@ -52,6 +52,7 @@ Module Global_mod
       Use Observables
       Use Fields_mod
       Use Random_Wrap
+      Use global_parameters_mod, only: Group_Comm
       use iso_fortran_env, only: output_unit, error_unit
 
       Implicit none

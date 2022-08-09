@@ -292,6 +292,15 @@ case $MODE in
     GNUCOMPILER="mpifort"
     MPICOMP=1
   ;;
+ 
+  PARALLEL_PARAMS|PP)
+    printf "Activating parallel runs with different parameters.\n"
+    printf "This requires also MPI parallization which is set as well.\n"
+    PROGRAMMCONFIGURATION="-DMPI -DTEMPERING -DPARALLEL_PARAMS"
+    INTELCOMPILER="mpiifort"
+    GNUCOMPILER="mpifort"
+    MPICOMP=1
+  ;;
 
   *)
     printf "Activating ${RED}MPI parallization (default)${NC}.\n"
