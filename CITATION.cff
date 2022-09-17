@@ -56,8 +56,9 @@ preferred-citation:
     - family-names: Schwab
       given-names: Jonas
   title: "The ALF (Algorithms for Lattice Fermions) project release 2.0. Documentation for the auxiliary-field quantum Monte Carlo code"
-  url: "https://arxiv.org/abs/2012.11914"
-  year: "2021"
+  doi: "10.21468/SciPostPhysCodeb.1"
+  url: "https://scipost.org/10.21468/SciPostPhysCodeb.1"
+  year: "2022"
   license: "CC-BY-SA-4.0"
   type: article
 title: "ALF"

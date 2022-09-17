@@ -1,12 +1,32 @@
-If you use the ALF package, please mention the following in your acknowledgements.
+If you use the ALF package, please mention the following in your acknowledgments:
+
 The auxillary field QMC simulations were carried out with the ALF package available at
-https://alf.physik.uni-wuerzburg.de,
-and please cite our  SciPost article:
+https://alf.physik.uni-wuerzburg.de
+
+and please cite the package's reference paper:
+
+ALF Collaboration, The ALF (Algorithms for Lattice Fermions) project release 2.0. Documentation for the auxiliary-field quantum Monte Carlo code, SciPost Phys. Codebases 1 (2022), URL: https://scipost.org/SciPostPhysCodeb.1
+x
+The corresponding Bibtex entry:
+
+@Article{10.21468/SciPostPhysCodeb.1,
+        title={{The ALF (Algorithms for Lattice Fermions) project release 2.0.  Documentation for the auxiliary-field quantum Monte Carlo code}},
+        author={F. F. Assaad and M. Bercx and F. Goth and A. Götz and J. S. Hofmann and E. Huffman and Z. Liu and F. Parisen Toldin and J. S. E. Portela and J. Schwab},
+        journal={SciPost Phys. Codebases},
+        pages={1},
+        year={2022},
+        publisher={SciPost},
+        doi={10.21468/SciPostPhysCodeb.1},
+        url={https://scipost.org/10.21468/SciPostPhysCodeb.1},
+}
+
+
+In case you’re still using the (legacy) ALF 1.0 version, you can cite the SciPost article:
 M. Bercx, F. Goth, J. S. Hofmann, and F. F. Assaad,
 “The ALF (Algorithms for Lattice Fermions) project release 1.0. Documentation for the auxiliary field quantum Monte Carlo code,”
 SciPost Phys., vol. 3, p. 013, 2017.
 
-A suitable bibtex entry for the latex users would be:
+The corresponding bibtex entry:
 @Article{ALFQMC,
 	title={{The ALF (Algorithms for Lattice Fermions) project release 1.0.  Documentation for the auxiliary field quantum Monte Carlo code}},
 	author={Martin Bercx and Florian Goth and Johannes S. Hofmann and Fakher F. Assaad},
