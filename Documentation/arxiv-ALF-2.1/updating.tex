@@ -1,0 +1,169 @@
+% Copyright (c) 2020 The ALF project.
+% This is a part of the ALF project documentation.
+% The ALF project documentation by the ALF contributors is licensed
+% under a Creative Commons Attribution-ShareAlike 4.0 International License.
+% For the licensing details of the documentation see license.CCBYSA.
+
+% !TEX root = doc.tex
+%------------------------------------------------------------
+\subsection{Updating schemes}\label{sec:updating}
+%------------------------------------------------------------
+%
+The program allows for different types of updating schemes, which are described below and summarized in Tab.~\ref{table:Updating_schemes}.  With  the exception of Langevin dynamics, for a given configuration $C$, we propose a new one, $C'$, with a given probability $T_0(C \rightarrow C')$  and accept it according to   the  Metropolis-Hastings   acceptance-rejection probability, 
+\begin{equation}
+	P(C \rightarrow C') =  \text{min}  \left( 1, \frac{T_0(C' \rightarrow C) W(C')}{T_0(C \rightarrow C') W(C)} \right),
+\end{equation}
+so as to guarantee the stationarity condition.  Here, $ W(C) = \left| \Re \left[ e^{-S(C)} \right] \right| $.
+
+Predicting how efficient a certain Monte Carlo update scheme will turn out to be for a given simulation is very hard, so one must typically resort to testing to find out which option produces best results.   Methods to optimize the acceptance of  global moves include Hybrid Monte Carlo  \cite{Duane85} as well as self-learning techniques  \cite{LiuJ17,Xu17a}.      Langevin dynamics stands apart, and as we will see does not depend on the Metropolis-Hastings   acceptance-rejection scheme.
+
+\begin{table}[h]
+	\begin{tabular}{@{} p{0.22\columnwidth} p{0.11\columnwidth} p{0.61\columnwidth} @{}}
+		\toprule
+		Updating schemes             & Type             & Description \\
+		\midrule
+		\texttt{Sequential}          & \texttt{logical} & (internal variable) If true, the configurations moves through sequential, single spin flips  \\
+		\texttt{Propose\_S0}         & \texttt{logical} & If true, proposes sequential local moves according to the probability $e^{-S_0}$, where $S_0$ is the free Ising action. This option only works for 
+		  \texttt{type=1}  operator where the field corresponds to an Ising variable  \\
+		\texttt{Global\_tau\_moves}  & \texttt{logical} & Whether to carry out  global moves on a single time slice.
+		For a given time slice the user can define which part of the operator string is to be computed sequentially. This is specified by the  variable  \texttt{N\_sequential\_start} and \texttt{N\_sequential\_end}. A number of   \texttt{N\_tau\_Global} user-defined global moves on the given time slice  will then be carried out   \\
+		\texttt{Global\_moves}       & \texttt{logical} & If true, allows for global moves in space and time.   A user-defined number \texttt{N\_Global} of global moves in space and time  will be carried out at the end of each sweep \\
+		\texttt{Langevin}            & \texttt{logical} & If true, Langevin dynamics is used exclusively (i.e., can only be used in association with tempering) \\
+		\texttt{Tempering}           & Compiling option & Requires MPI and runs the code in a parallel tempering mode, also see Sec.~\ref{Parallel_tempering.sec},~\ref{sec:compilation} \\
+		\bottomrule
+	\end{tabular}
+	\caption{Variables required to control the updating scheme. Per default the program carries out sequential, single spin-flip sweeps, and logical variables are set to \texttt{.false.}.}
+	\label{table:Updating_schemes}
+\end{table}
+% 
+
+%------------------------------------------------------------
+\subsubsection{Sequential single spin flips}
+%------------------------------------------------------------
+%
+\label{sec:sequential}
+%If the boolean variable \texttt{Sequential\_Sweeps}  is set to true, then  the 
+The program adopts per default a sequential, single spin-flip strategy. It will visit sequentially each HS field in the space-time operator list and  propose a spin flip. Consider  the Ising spin $s_{i,\tau}$. By default (\texttt{Propose\_S0=.false.}), we will flip it with probability $1$, such that for  this local move  the  proposal matrix is symmetric.  If we are considering the HS field $l_{i,\tau}$  we will propose with probability $1/3$ one  of the other three  possible fields.    For a continuous field, we  modify it with a box distribution of width \texttt{Amplitude}  centered around the origin.   The default value of  \texttt{Amplitude} is set to unity. These updating rules are defined in the   \texttt{Fields\_mod.F90} module  (see Sec.~\ref{sec:fields}). Again, for these local moves, the proposal matrix is symmetric.  Hence in all cases we will accept or reject the move according to 
+\begin{equation}
+P(C \rightarrow C') =  \text{min}  \left( 1, \frac{ W(C')}{W(C)} \right).
+\end{equation}
+
+This default updating scheme can be overruled by, e.g., setting \texttt{Global\_tau\_moves} to \texttt{.true.} and not setting \texttt{Nt\_sequential\_start} and \texttt{Nt\_sequential\_end} (see Sec.~\ref{sec:input}).
+It is also worth noting that this type of sequential spin-flip updating does not satisfy detailed balance, but rather the more fundamental stationarity condition \cite{Sokal89}. 
+
+
+% 
+%------------------------------------------------------------
+\subsubsection{Sampling of $e^{-S_0}$}
+\label{sec:S0}
+%------------------------------------------------------------
+% 
+The package can also propose single spin-flip updates according to a non-vanishing free bosonic action $S_0(C)$. This sampling scheme is used if the logical variable \texttt{Propose\_S0} is set to \texttt{.true.}.   As mentioned previously, this option only holds for Ising variables. 
+
+Consider an Ising spin at space-time $i,\tau$ in the configuration $C$. Flipping this spin generates the configuration $C'$ and we propose this move according to 
+\begin{equation}
+T_0(C \rightarrow C')  =  \frac{e^{-S_0(C')}}{ e^{-S_0(C')} + e^{-S_0(C)} }   = 1 - \frac{1}{1 +  e^{-S_0(C')} /e^{-S_0(C)}}.
+\end{equation}
+Note that the function $\texttt{S0}$ in the  \texttt{Hamiltonian\_Hubbard\_include.h}  module  computes precisely the ratio\\
+ ${e^{-S_0(C')} /e^{-S_0(C)}}$, therefore $T_0(C \rightarrow C') $ is obtained without any additional calculation. 
+The proposed move is accepted with the probability: 
+\begin{equation}
+ P(C \rightarrow C') =  \text{min}  \left( 1,  \frac{e^{-S_0(C)}   W(C')}{ e^{-S_0(C')} W(C)} \right).
+\end{equation}
+Note that, as can be seen from Eq.~\eqref{eqn:partition_2}, the bare action $S_0(C)$  determining the  dynamics of the bosonic configuration in the absence of coupling to the fermions does not enter the Metropolis acceptance-rejection step.
+% 
+% 
+
+%------------------------------------------------------------
+\subsubsection{Global updates in space} 
+\label{sec:global_space}
+This option allows one to carry out  user-defined global moves on a single time slice.  This option is enabled by setting the logical variable  \texttt{Global\_tau\_moves} to \texttt{.true.}.  Recall that the propagation over a time step $\Delta \tau$   (see Eq. \ref{Btau.eq}) can be  written as: 
+\begin{equation}
+	e^{-V_{M_I+M_V}(s_{M_I+M_V,\tau})}  \cdots e^{-V_{1}(s_{1,\tau})}  \prod_{k=1}^{M_T}   e^{-\Delta \tau {\bm T}^{(k)}},
+\end{equation}
+where $e^{-V_{n}(s_{n})}$ denotes one element of the  operator list  containing the HS fields.  One can provide  an interval of indices, 
+\texttt{[Nt\_sequential\_start, Nt\_sequential\_end]},  in which the operators will be updated  sequentially. Setting \texttt{Nt\_sequential\_start}$\; = 1$ and \texttt{Nt\_sequential\_end}$\; = M_I+M_V$  reproduces the  sequential single spin flip strategy of the above section.
+
+The variable \texttt{N\_tau\_Global}  sets the number of global moves carried out on each time slice \texttt{ntau}. Each global move is generated in the routine  \texttt{Global\_move\_tau}, which is provided by the user in the Hamiltonian file. In order to  define this move, one specifies the following variables: 
+\begin{itemize}
+\item \texttt{Flip\_length}:  An integer stipulating the  number of spins to be flipped.
+\item \texttt{Flip\_list(1:Flip\_length)}:   Integer array containing the  indices of the operators to be flipped.
+\item \texttt{Flip\_value(1:Flip\_length)}:  \texttt{Flip\_value(n)} is an  integer containing the new value of the  HS  field for the operator \texttt{Flip\_list(n)}.
+\item  \texttt{T0\_Proposal\_ratio}:   Real number containing  the quotient
+\begin{equation}
+	 \frac{T_0(C' \rightarrow C)}{T_0(C \rightarrow C') }  \;, \label{T0_ratio}
+\end{equation}
+where $ C'$  denotes the new configuration  obtained by flipping the spins specified in the \texttt{Flip\_list}  array. 
+Since we allow for a stochastic  generation of  the global move, it may very well be that no change is proposed. In this case, \texttt{T0\_Proposal\_ratio}   takes the value 0 upon exit of the routine \texttt{Global\_move\_tau} and  no update is carried out. 
+\item \texttt{S0\_ratio}:   Real number containing  the ratio  $e^{-S_0(C')}/e^{-S_0(C)}$. 
+\end{itemize}
+%------------------------------------------------------------
+%------------------------------------------------------------
+\subsubsection{Global updates in time and space}
+\label{sec:global_slice}
+%------------------------------------------------------------
+%  
+The code allows for global updates as well. The user must then provide two additional functions (see \texttt{Hamiltonian\_Hubbard\_include.h}): \texttt{Global\_move} and \texttt{Delta\_\-S0\_\-global(Nsigma\_old)}.   
+
+The subroutine  \texttt{Global\_move(T0\_Proposal\_ratio,nsigma\_old,size\_clust)}  proposes  a global move. 
+Its single input is the variable \texttt{nsigma\_old} of type \texttt{Field} (see Section~\ref{sec:fields}) that contains  the full  configuration $C$ stored in \texttt{nsigma\_old\%f(M\_V + M\_I, Ltrot)}.  On output, the new configuration $C'$, determined by the user,  is stored in the two-dimensional array \texttt{nsigma}, which is a global variable declared in the Hamiltonian module.
+Like for the global move in space (Sec.~\ref{sec:global_space}), \texttt{T0\_Proposal\_ratio} contains the proposal ratio $T_0(C' \rightarrow C) / T_0(C \rightarrow C') $.
+Since we allow for a stochastic  generation of  the global move, it may very well be that no change is proposed. In this case, \texttt{T0\_Proposal\_ratio}   takes the value 0 upon exit, and  \texttt{nsigma$\,=\,$nsigma\_old}.   
+The real-valued \texttt{size\_clust} gives the size of the proposed move (e.g., $\tfrac{\text{Number of flipped spins}}{\text{Total number of spins}}$). This is used to calculate the average sizes of proposed and accepted moves, which are printed in the \texttt{info} file. The variable \texttt{size\_clust} is not necessary for the simulation, but may help the user to estimate the effectiveness of the global update.
+
+In order to compute the acceptance-rejection ratio,  the user must also provide a function 
+\texttt{Delta\_\-S0}\texttt{\_\-global(nsigma\_old)} that computes the ratio $e^{-S_0(C')}/e^{-S_0(C)}$. Again, the configuration $C'$ is given by the field \texttt{nsigma}.
+
+The variable \texttt{N\_Global} determines the number of global updates performed per sweep. Note that global updates are expensive, since they require a complete recalculation of the weight.
+% 
+
+%------------------------------------------------------------
+\subsubsection{Parallel tempering } 
+\label{Parallel_tempering.sec}
+%------------------------------------------------------------
+% 
+Exchange Monte Carlo \cite{Hukushima96}, or parallel tempering \cite{Greyer91}, is a possible route to overcome sampling issues in parts of the parameter space.
+Let $h$ be a parameter which one can vary without  altering the configuration space $ \{C  \}  $ and let us assume that for some values of $h$ one encounters sampling problems.   For example, in the realm of spin glasses, $h$  could correspond to the  inverse temperature.  Here at high temperatures the phase space is easily sampled, but at low temperatures  simulations get stuck in local minima. For quantum systems, $h$ could   trigger a quantum phase transition where  sampling issues are encountered, for example, in the ordered phase and not in the disordered one.   As its name suggests, parallel tempering  carries out in parallel simulations at consecutive  values of  $h$:  $h_1, h_2,  \cdots h_n$, with  $h_{1} < h_2 < \cdots < h_n$.  One will sample the extended ensemble:
+\begin{equation}
+	P(\left[h_1,C_1\right], \left[h_2,C_2\right], \cdots, \left[h_n,C_n\right] ) =  \frac{W(h_1,C_1) W(h_2,C_2) \cdots   W(h_n,C_n) } {\sum_{C_1, C_2, \cdots, C_n} W( h_1,C_1) W( h_2,C_2) \cdots   W(h_n,C_n) },
+\end{equation}
+where $W(h,C)$ corresponds to the weight for a given value of $h$ and configuration C. 
+Clearly, one can sample  $P( \left[h_1,C_1\right], \left[h_2,C_2\right], \cdots, \left[h_n,C_n\right])$ by carrying out $n$ independent runs.
+However, parallel tempering  includes the following   exchange step:
+\begin{multline} \label{eq:exchangestep}
+	\left[h_1,C_1\right], \cdots, \left[\red{h_i,C_i}\right],\left[\blue{h_{i+1},C_{i+1}}\right], \cdots, \left[h_n,C_n\right]  \; \rightarrow \\
+	\left[h_1,C_1\right], \cdots, \left[\red{h_i},\blue{C_{i+1}}\right],\left[\blue{h_{i+1}},\red{C_{i}}\right], \cdots, \left[h_n,C_n\right]
+\end{multline}
+which, for a symmetric proposal matrix, will  be accepted with probability
+\begin{equation}
+	\text{ min} \left( 1,   \frac{ W(h_i,C_{i+1}) W(h_{i+1},C_{i})}{W(h_i,C_{i}) W(h_{i+1},C_{i+1})} \right).
+\end{equation}
+In this way a configuration can meander in parameter space $h$ and  explore regions where ergodicity is not an issue. In the context of spin-glasses, a low temperature configuration, stuck in a local minima, can heat up, overcome the potential  barrier and then cool down again. 
+ 
+A judicious choice of the values $h_i$ is important to obtain a good acceptance rate for the exchange step.  With  $W(h,C)  = e^{- S(h,C) }$, the  distribution of the action $S$  reads:
+\begin{equation}
+	 \mathcal{P}( h, S ) =   \sum_{C}     P( h,C )   \delta ( S(h,C) -  S ). 
+\end{equation}
+A given exchange step can only be accepted if the distributions $\mathcal{P}(h,S)$ and $\mathcal{P}(h+\Delta h, S)$ overlap. For 
+$\langle S \rangle_{h}  < \langle S \rangle_{h +  \Delta h} $   one can formulate this  requirement as:
+\begin{equation}
+	\langle S \rangle_{h}  +\langle \Delta S \rangle_{h}   \simeq \langle S \rangle_{h +  \Delta h}  - \langle \Delta S \rangle_{h + \Delta h} ,  \text{    with   }   
+\langle \Delta S \rangle_{h}   =  \sqrt{ \langle \left(    S -  \langle S   \rangle_h  	\right)^2 \rangle_h} .
+\end{equation}
+Assuming  $ \langle \Delta S \rangle_{h + \Delta h}  \simeq \langle \Delta S \rangle_{h} $  and expanding in $\Delta h$ one obtains: 
+\begin{equation}
+	\Delta h \simeq \frac{ 2  \langle \Delta S \rangle_{h}    }{ \partial \langle S \rangle_{h} / \partial h}.  
+\end{equation} 
+The above equation becomes transparent  for  classical systems  with $ S(h,C) =  h H(C) $.  In this case, the above equation reads: 
+\begin{equation}
+	\Delta h       \simeq  2 h \frac{  \sqrt{c} } { c  + h \langle H \rangle_h},  \text{   with  } c = h^2    \langle \left(  H -  \langle H   \rangle_h \right)^2 \rangle_h .
+\end{equation} 
+Several comments are in order:
+\begin{itemize}
+\item[i)] Let us identify $h$ with the inverse temperature  such that $c$ corresponds to the specific heat. This quantity is extensive,  as well as the energy, such that $ \Delta h \simeq 1/{\sqrt{N}} $ where $N$ is the system size.
+\item[ii)] Near a phase transition the specific heat can diverge, and $h$ must be chosen with particular care.
+\item[iii)]  Since the action is formulation dependent, also the acceptance rate of the exchange move equally depend  upon the formulation. 
+\end{itemize}
+%\mycomment{MB: Do you track the $n-1$ exchange acceptance rates $acc(i,i+1)$ for the $n$ replicas in the code? Could the exchange rates be an efficient way to locate  a phase transition in the parameters space of $h$, without a priori knowing the order parameter? Also for topological phase transitions w/o an order parameter?  }
+%\mycomment{FFA:  Yes I do track the individual acceptances and I do see  singularities in the  acceptance at the phase transition. However, owing to comment iii) at would now be very careful at interpreting the results since they are really formulation dependent. }
+The quantum Monte Carlo code in the ALF project carries out parallel-tempering runs when the script \path{configure.sh} is called with the argument \path{Tempering} before compilation, see Sec.~\ref{sec:compilation}.

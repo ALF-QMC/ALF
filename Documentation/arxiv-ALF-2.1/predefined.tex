@@ -1,0 +1,79 @@
+% Copyright (c) 2016-2020 The ALF project.
+% This is a part of the ALF project documentation.
+% The ALF project documentation by the ALF contributors is licensed
+% under a Creative Commons Attribution-ShareAlike 4.0 International License.
+% For the licensing details of the documentation see license.CCBYSA.
+
+% !TEX root = doc.tex
+
+\label{Predefined_chap}
+The ALF package includes predefined structures, which the user can combine together or use as templates for defining new ones. Using the data types defined in the Sec.~\ref{sec:imp} the following modules are available:
+\begin{itemize}
+	\item lattices and unit cells -- \texttt{Predefined\_Latt\_mod.F90}
+	\item hopping Hamiltonians -- \texttt{Predefined\_Hop\_mod.F90 }
+	\item interaction Hamiltonians -- \texttt{Predefined\_Int\_mod.F90}
+	\item observables -- \texttt{Predefined\_Obs\_mod.F90 }
+	\item trial wave functions -- \texttt{Predefined\_Trial\_mod.F90 }
+\end{itemize}
+which we describe in the remaining of this section.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{predefined_lattices}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{generic_hopping}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{interaction_vertices}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{predefined_observables}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{trial_wave_function}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%\subsection{Template}
+%	
+%\red{Rethink. Maybe merge this with Chapter on Examples and Models/Model Classes.\\}
+%
+% \red{TODO} Go through everything one has to defined/set in order to define a new Hamiltonian. \red{TODO}\\
+%
+%We'd perhaps want to provide a \emph{minimum} Hamiltonian, probably written in pseudo-code, from which one could write their own.\\ \\
+%
+%\noindent A \emph{complete} list of all the code that would have to be changed for the \emph{most general} case could read as:
+%
+%\begin{itemize}
+%	\item Hamiltonian -- one-body, imaginary-time propagator for a given configuration of HS and  Ising fields
+%	\item Table~\ref{table:hamiltonian}:
+%	\begin{itemize}
+%		\item \texttt{Ham\_Set}
+%		\item \texttt{Ham\_V}
+%		\item \texttt{S0}
+%		\item \texttt{Setup\_Ising\_action}
+%		\item \texttt{Global\_move}
+%		\item \texttt{Delta\_S0\_global}
+%		\item \texttt{Global\_move\_tau}
+%		\item \texttt{Alloc\_obs}
+%		\item \texttt{Obser}
+%		\item \texttt{ObserT}
+%	\end{itemize}
+%	\item Check Table~\ref{table:operator} (Operator type).
+%	\item Table~\ref{table:lattice} and \ref{table:unit_cell}:
+%	\begin{itemize}
+%		\item \texttt{Lattice\%a1\_p}, \texttt{Lattice\%a2\_p}
+%		\item \texttt{Lattice\%L1\_p}, \texttt{Lattice\%L2\_p}
+%		\item \texttt{Lattice\%N}
+%		\item \texttt{Norb}
+%		\item \texttt{N\_coord}
+%		\item \texttt{Orb\_pos(1..Norb,2)}
+%	\end{itemize}
+%\end{itemize}
+
