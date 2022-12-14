@@ -1,0 +1,121 @@
+% Copyright (c) 2016-2020 The ALF project.
+% This is a part of the ALF project documentation.
+% The ALF project documentation by the ALF contributors is licensed
+% under a Creative Commons Attribution-ShareAlike 4.0 International License.
+% For the licensing details of the documentation see license.CCBYSA.
+
+% !TEX root = doc.tex
+
+\subsection{Predefined trial wave functions} \label{sec:predefined_trial_wave_function}
+
+When using the projective algorithm (see Sec.~\ref{sec:defT0}), trial wave functions must be specified.
+These are stored in variables of the \texttt{WaveFunction} type (Sec.~\ref{sec:wave_function}).
+The ALF package provides a set of predefined trial wave functions $|\Psi_{T,L/R}\rangle$=\texttt{WF\_L/R}, returned by the call:
+
+\begin{lstlisting}[style=fortran]
+Call Predefined_TrialWaveFunction(Lattice_type, Ndim, List, Invlist, Latt, Latt_unit,
+                                  N_part, N_FL, WF_L, WF_R)
+\end{lstlisting}
+Twisted boundary conditions (\texttt{Phi\_X\_vec=0.01}) are implemented for some lattices in order to generate non-degenerate trial wave functions. Here the marker ``\texttt{\_vec}'' indicates the variable may assume different values depending on the flavor (e.g., spin up and down). Currently predefined trial wave functions are flavor independent.
+
+The predefined trial wave functions correspond to the solution of the non-interacting tight binding Hamiltonian on each of the predefined lattices. These solutions are the ground states of the predefined hopping matrices (Sec.~\ref{sec:predefined_hopping_1}) with default parameters, for each lattice, as follows.
+
+\subsubsection{Square}
+
+Parameter values for the predefined trial wave function on the square lattice:
+\begin{lstlisting}[style=fortran]
+Checkerboard  = .false.
+Symm          = .false.
+Bulk          = .false.
+N_Phi_vec     = 0
+Phi_X_vec     = 0.01d0
+Phi_Y_vec     = 0.d0
+Ham_T_vec     = 1.d0
+Ham_Chem_vec  = 0.d0
+Dtau          = 1.d0
+\end{lstlisting}
+%Ham_T2_vec    = 0.d0
+%Ham_Tperp_vec = 0.d0
+
+
+\subsubsection{Honeycomb}
+
+%\red{[JSEP: I'm not sure how to best describe the definition of the trial wave function for the honeycomb, since it doesn't use the Predefined Hopping module.\\
+%	  Also, do we want to mention the \texttt{Kekule\_Trial} option?]}\\
+% Parameter values for the predefined trial wave function on the Honeycomb lattice:
+The twisted boundary condition  for the square lattice lifts  the degeneracy  present at half-band filling, but breaks time reversal symmetry as well as the $C_4$ lattice symmetry.  If  time reversal  symmetry is  required  to avoid the negative sign problem (that would be the case for the attractive Hubbard model at finite doping), then this choice of the trial  wave function will introduce a negative sign. One should then use the trial wave function presented in Sec.~\ref{Sec:Plain_vanilla_trial}.  For the Honeycomb case,  the trial wave function we choose is the ground state of the tight binding model  with small  next-next-next  nearest hopping matrix element $t'$  \cite{Ixert14}.
+This breaks the $C_3$ symmetry and shifts the Dirac cone away from the zone boundary.
+Time  reversal symmetry is however not broken.
+Alternatively, one could include a small Kekule mass term.
+As shown in Sec.~\ref{Sec:Compare_T0_T} both choices of trial wave functions produce good results.
+
+%\begin{lstlisting}[style=fortran,escapechar=\#]
+%Checkerboard  = .false.
+%Symm          = .false.
+%Bulk          = .false.
+%N_Phi_vec     = 0
+%Phi_X_vec     = 0.d0
+%Phi_Y_vec     = 0.d0
+%Ham_T_vec     = 1.d0
+%Ham_Tperp_vec = 0.d0
+%Ham_Chem_vec  = 0.d0
+%Dtau          = 1.d0
+%end{lstlisting}
+%delta         = 0.01d0
+%Kekule_Trial  = .false. #\red{(include?)}#
+%Ham_T2_vec    = 0.d0
+
+
+\subsubsection{N-leg ladder}
+
+Parameter values for the predefined trial wave function on the N-leg ladder lattice:
+\begin{lstlisting}[style=fortran]
+Checkerboard  = .false.
+Symm          = .false.
+Bulk          = .false.
+N_Phi_vec     = 0
+Phi_X_vec     = 0.01d0
+Phi_Y_vec     = 0.d0
+Ham_T_vec     = 1.d0
+Ham_Tperp_vec = 1.d0
+Ham_Chem_vec  = 0.d0
+Dtau          = 1.d0
+\end{lstlisting}
+%Ham_T2_vec    = 0.d0
+
+
+\subsubsection{Bilayer square}
+
+Parameter values for the predefined trial wave function on the bilayer square lattice:
+\begin{lstlisting}[style=fortran]
+Checkerboard  = .false.
+Symm          = .false.
+Bulk          = .false.
+N_Phi_vec     = 0
+Phi_X_vec     = 0.d0
+Phi_Y_vec     = 0.d0
+Ham_T_vec     = 1.d0
+Ham_T2_vec    = 0.d0
+Ham_Tperp_vec = 1.d0
+Ham_Chem_vec  = 0.d0
+Dtau          = 1.d0
+\end{lstlisting}
+
+
+\subsubsection{Bilayer honeycomb}
+
+Parameter values for the predefined trial wave function on the bilayer honeycomb lattice:
+\begin{lstlisting}[style=fortran]
+Checkerboard  = .false.
+Symm          = .false.
+Bulk          = .false.
+N_Phi_vec     = 0
+Phi_X_vec     = 0.d0
+Phi_Y_vec     = 0.d0
+Ham_T_vec     = 1.d0
+Ham_T2_vec    = 0.d0
+Ham_Tperp_vec = 1.d0
+Ham_Chem_vec  = 0.d0
+Dtau          = 1.d0
+\end{lstlisting}
+

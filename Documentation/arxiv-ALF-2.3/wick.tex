@@ -1,0 +1,64 @@
+% Copyright (c) 2016, 2020 The ALF project.
+% This is a part of the ALF project documentation.
+% The ALF project documentation by the ALF contributors is licensed
+% under a Creative Commons Attribution-ShareAlike 4.0 International License.
+% For the licensing details of the documentation see license.CCBYSA.
+
+% !TEX root = doc.tex
+
+%-------------------------------------------------------------------------------------
+\section{Practical implementation of Wick decomposition of $2n$-point correlation functions of two imaginary times } \label{sec:wick}
+%-------------------------------------------------------------------------------------
+\label{Wick_appendix}
+In this Appendix we briefly  outline how to compute $2n$ point correlation functions   of the form: 
+\begin{align}
+\label{Time_dispalced_gen.eq}
+	\lim_{\epsilon \rightarrow 0  } & \sum_{\sigma_1, \sigma'_1, \cdots, \sigma_n, \sigma'_n,  s_1, s'_1  \cdots s_n,  s'_n  }  f( \sigma_1, \sigma'_1, \cdots, \sigma_n, \sigma'_n,  s_1, s'_1  \cdots s_n,  s'_n ) 
+	\nonumber    \\
+         &  \, \, \, \,        \langle \langle {\cal T}  \left( \hat{c}^{\dagger}_{x_1,\sigma_1,s_1}(\tau_{1,\epsilon}) \hat{c}^{\phantom\dagger}_{x'_{1},\sigma'_1,s'_1}(\tau'_{1,\epsilon}) - a_1  \right)  \cdots 
+	    \left( \hat{c}^{\dagger}_{x_n,\sigma_n,s_n}(\tau_{n,\epsilon}) \hat{c}^{\phantom\dagger}_{x'_{n},\sigma'_n,s'_m} (\tau'_{n,\epsilon}) - a_n  \right)   \rangle \rangle_C.
+\end{align}
+Here,  $ \sigma $ is a color  index and $s$ a flavor index such that 
+\begin{equation}
+	\langle \langle {\cal T}  \hat{c}^{\dagger}_{x,\sigma,s}(\tau) \hat{c}^{\phantom\dagger}_{x',\sigma',s'}(\tau')  \rangle \rangle_C  = 
+	\langle \langle {\cal T}  \hat{c}^{\dagger}_{x,s}(\tau) \hat{c}^{\phantom\dagger}_{x',s}(\tau')  \rangle \rangle_C  \, \, \delta_{s,s'} \delta_{\sigma,\sigma'}.
+\end{equation}
+That is, the single-particle Green function is diagonal in the flavor index  and color  independent.   To  define the time ordering we will assume  that all times differ  but that $  \lim_{\epsilon \rightarrow 0 }    \tau_{n,\epsilon}  $   as well as $ \lim_{\epsilon \rightarrow 0 }    \tau'_{n,\epsilon} $  take the values $0$  or $\tau$.  
+Let
+\begin{equation}
+	G_s(I,J)   =  \lim_{\epsilon \rightarrow 0 }\langle \langle   \mathcal{T}   c^{\dagger}_{x_I,s}(\tau_{I,\epsilon}) c^{\phantom\dagger}_{x'_{J},s}(\tau'_{J,\epsilon})  \rangle \rangle_{C} .
+\end{equation}
+The $G_s(I,J)  $  are  uniquely defined by the time-displaced correlation   functions  that enter  the \texttt{ObserT}   routine in the Hamiltonian files.  They are defined in Eq.~\eqref{Time_displaced_green.eq} and read: 
+\begin{align}
+\begin{aligned}
+\texttt{GT0(x,y,s) }  &=   \phantom{+} \langle \langle \hat{c}^{\phantom\dagger}_{x,s} (\tau)   \hat{c}^{\dagger}_{y,s} (0)   \rangle \rangle_C \;=\; \langle \langle \mathcal{T} \hat{c}^{\phantom\dagger}_{x,s} (\tau)   \hat{c}^{\dagger}_{y,s} (0)   \rangle \rangle_C   \\
+\texttt{G0T(x,y,s) }   &=  -   \langle \langle   \hat{c}^{\dagger}_{y,s} (\tau)    \hat{c}^{\phantom\dagger}_{x,s} (0)    \rangle \rangle_C \;=\;
+    \langle \langle \mathcal{T} \hat{c}^{\phantom\dagger}_{x,s} (0)    \hat{c}^{\dagger}_{y,s} (\tau)   \rangle \rangle_C  \\
+  \texttt{G00(x,y,s) }  &=    \phantom{+} \langle \langle \hat{c}^{\phantom\dagger}_{x,s} (0)   \hat{c}^{\dagger}_{y,s} (0)   \rangle \rangle_C    \\
+    \texttt{GTT(x,y,s) }  &=   \phantom{+} \langle \langle \hat{c}^{\phantom\dagger}_{x,s} (\tau)   \hat{c}^{\dagger}_{y,s} (\tau)   \rangle \rangle_C.
+\end{aligned}
+\end{align}
+For instance, let  $\tau_{I,\epsilon}   > \tau'_{J,\epsilon}  $  and $ \lim_{\epsilon \rightarrow 0 } \tau_{I,\epsilon}   = \lim_{\epsilon \rightarrow 0 }\tau'_{J,\epsilon} = \tau$. Then 
+\begin{equation}
+	G_s(I,J)   =  \langle \langle  c^{\dagger}_{x_I,s}(\tau) c^{\phantom\dagger}_{x'_{J},s}(\tau)  \rangle \rangle_{C}  =   \delta_{x_I,x'_J} -  GTT(x'_J,x_I,s).
+\end{equation}
+
+Using the formulation of Wick's theorem of Eq.~\eqref{Wick.eq},  Eq.~\eqref{Time_dispalced_gen.eq}  reads: 
+\begin{align}
+	& \sum_{\sigma_1, \sigma'_1, \cdots, \sigma_n, \sigma'_n,  s_1, s'_1  \cdots s_n,  s'_n  }  f( \sigma_1, \sigma'_1, \cdots, \sigma_n, \sigma'_n,  s_1, s'_1  \cdots s_n,  s'_n ) 
+	\\
+	& \det  
+\begin{bmatrix}
+   G_{s_1}(1,1) \delta_{s_1,s'_1} \delta_{\sigma_1,\sigma'_1}  {- \alpha_1} & 
+   G_{s_1}(1,2) \delta_{s_1,s'_2} \delta_{\sigma_1,\sigma'_2}   \phantom{ - \alpha_1}         &\! \dots  \!    &   
+   G_{s_1}(1,n) \delta_{s_1,s'_n} \delta_{\sigma_1,\sigma'_n}   \phantom{ - \alpha_1} \\
+   G_{s_2}(2,1) \delta_{s_2,s'_1} \delta_{\sigma_2,\sigma'_1}  \phantom{ - \alpha_1} &   
+   G_{s_2}(2,2) \delta_{s_2,s'_2} \delta_{\sigma_2,\sigma'_2}  {- \alpha_2}  & \! \dots  \! &
+    G_{s_2}(2,n) \delta_{s_2,s'_n} \delta_{\sigma_2,\sigma'_n} \phantom{ - \alpha_2}  \\
+    \vdots & \vdots & \!   \ddots  \!  & \vdots \\
+    G_{s_n}(n,1) \delta_{s_n,s'_1} \delta_{\sigma_n,\sigma'_1}   \phantom{- \alpha_n} & 
+    G_{s_n}(n,2) \delta_{s_n,s'_2} \delta_{\sigma_n,\sigma'_2}   \phantom{- \alpha_n} & \! \dots   \!  & 
+    G_{s_n}(n,n) \delta_{s_n,s'_n} \delta_{\sigma_n,\sigma'_n}   {- \alpha_n } 
+ \end{bmatrix}.   \nonumber 
+\end{align}
+The  symbolic evaluation of the  determinant   as well as the sum over the color and flavor indices can be carried out with Mathematica.  This  produces a  long expression in terms of the   functions $G(I,J,s)$ that can then be  included in the code.   The Mathematica notebooks  that we use  can be found in the directory  \texttt{Mathematica}  of  the ALF  directory.   As an open source alternative to Mathematica, the user can consider the Sympy Python library. 
