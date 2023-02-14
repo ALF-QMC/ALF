@@ -13,6 +13,7 @@ Possible MODEs are:\n\
  * MPI (default)\n\
  * noMPI\n\
  * Tempering\n\
+ * PARALLEL_PARAMS (shorthand PP)\n\
 Possible STABs are:
  * <no-argument> (default)\n\
  * STAB1 (old)\n\
@@ -141,7 +142,7 @@ while [ "$#" -gt "0" ]; do
       STAB="$ARG"
       stabv="1"
     ;;
-    NOMPI|MPI|TEMPERING|SERIAL)
+    NOMPI|MPI|TEMPERING|SERIAL|PARALLEL_PARAMS|PP)
       if [ "$modev" = "1" ]; then
          printf "Additional MODE configuration found. Overwriting %s with %s .\n" "$MODE" "$ARG"
       fi
@@ -193,6 +194,15 @@ case $MODE in
   MPI)
     printf "Activating MPI parallization.\n"
     PROGRAMMCONFIGURATION="-DMPI"
+    INTELCOMPILER="mpiifort"
+    GNUCOMPILER="mpifort"
+    MPICOMP=1
+  ;;
+ 
+  PARALLEL_PARAMS|PP)
+    printf "Activating parallel runs with different parameters.\n"
+    printf "This requires also MPI parallization which is set as well.\n"
+    PROGRAMMCONFIGURATION="-DMPI -DTEMPERING -DPARALLEL_PARAMS"
     INTELCOMPILER="mpiifort"
     GNUCOMPILER="mpifort"
     MPICOMP=1
