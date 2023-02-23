@@ -515,6 +515,71 @@
         enddo
 
       end Subroutine Predefined_Obs_tau_Den_measure
+
+!-------------------------------------------------------------------
+!> @author
+!> ALF-project
+!--------------------------------------------------------------------
+      Complex (Kind=Kind(0.d0)) function Predefined_Obs_bondcor_eq(I,M,J,N, GR, GRC, N_SUN, N_FL)
+  
+        Implicit none
+        
+        Integer, Intent(IN)        ::  I,M,J,N, N_SUN, N_FL
+        Complex (Kind=Kind(0.d0)), Dimension(:,:,:), INTENT(IN) :: GR,GRC
+        Complex (Kind=Kind(0.d0))  ::  Z, Z1, ZK, ZN
+
+        Z  = cmplx(0.d0,0.d0,Kind(0.d0))
+        Z1 = cmplx(0.d0,0.d0,Kind(0.d0))
+        ZK = cmplx(0.d0,0.d0,kind(0.d0))
+        ZN = cmplx(Real(N_SUN,Kind(0.d0)),0.d0,Kind(0.d0))
+
+        If (N_FL == 1) then
+            Z = GRC(I,M,N_FL)*GRC(J,N,N_FL) + GRC(I,N,N_FL)*GR(M,J,N_FL) + &
+                GRC(I,M,N_FL)*GRC(N,J,N_FL) + GRC(I,J,N_FL)*GR(M,N,N_FL) + &
+                GRC(M,I,N_FL)*GRC(J,N,N_FL) + GRC(M,N,N_FL)*GR(I,J,N_FL) + &
+                GRC(M,I,N_FL)*GRC(N,J,N_FL) + GRC(M,J,N_FL)*GR(I,N,N_FL)
+
+            Z1 = (GRC(I,M,N_FL) + GRC(I,M,N_FL) )*( GRC(J,N,N_FL) + GRC(N,J,N_FL) )
+        endif
+
+        Predefined_Obs_bondcor_eq = Z*ZN + Z1*(ZN*ZN-ZN)
+        
+      end function Predefined_Obs_bondcor_eq
+
+!-------------------------------------------------------------------
+!> @author
+!> ALF-project
+!--------------------------------------------------------------------
+      Complex (Kind=Kind(0.d0)) function Predefined_Obs_bondcor_tau(I,M,J,N, GT0,G0T,G00,GTT, N_SUN, N_FL)
+  
+        Implicit none
+        
+        Integer, Intent(IN)        ::  I,M,J,N, N_SUN, N_FL
+        Complex (Kind=Kind(0.d0)), Dimension(:,:,:), INTENT(IN) :: GT0,G0T,G00,GTT
+        Complex (Kind=Kind(0.d0))  ::  Z, Z1, ZK, ZN, ZEI, ZEJ
+
+        Z   = cmplx(0.d0,0.d0,Kind(0.d0))
+        Z1  = cmplx(0.d0,0.d0,Kind(0.d0))
+        ZEI = cmplx(0.d0,0.d0,kind(0.d0))
+        ZEJ = cmplx(0.d0,0.d0,kind(0.d0))
+        if ( I .eq. M ) ZEI = cmplx(1.d0,0.d0,kind(0.d0))
+        if ( J .eq. N ) ZEJ = cmplx(1.d0,0.d0,kind(0.d0))
+        ZN = cmplx(Real(N_SUN,Kind(0.d0)),0.d0,Kind(0.d0))
+
+        If (N_FL == 1) then
+            Z = (ZEI-GTT(M,I,N_FL))*(ZEJ-G00(N,J,N_FL)) + (-G0T(N,I,N_FL))*GT0(M,J,N_FL) + &
+                (ZEI-GTT(M,I,N_FL))*(ZEJ-G00(J,N,N_FL)) + (-G0T(J,I,N_FL))*GT0(M,N,N_FL) + &
+                (ZEI-GTT(I,M,N_FL))*(ZEJ-G00(N,J,N_FL)) + (-G0T(N,M,N_FL))*GT0(I,J,N_FL) + &
+                (ZEI-GTT(I,M,N_FL))*(ZEJ-G00(J,N,N_FL)) + (-G0T(J,M,N_FL))*GT0(I,N,N_FL)
+
+            Z1 = ( (ZEI-GTT(M,I,N_FL)) + (ZEI-GTT(I,M,N_FL)) ) * &
+                & ( (ZEJ-G00(N,J,N_FL)) + (ZEJ-G00(J,N,N_FL)) )
+        endif
+
+        Predefined_Obs_bondcor_tau = Z*ZN + Z1*(ZN*ZN-ZN)
+        
+      end function Predefined_Obs_bondcor_tau
+
       
 #include  "Cotunneling_dimer_obs.F90"
       

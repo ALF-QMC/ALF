@@ -181,6 +181,10 @@
       Type (Hopping_Matrix_type), Allocatable :: Hopping_Matrix(:)
       Integer, allocatable   :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
 
+      !> For dimer measurement
+      Type (Unit_cell), Target  :: Latt_unit_dimer
+      Integer, allocatable      :: List_dimer(:,:), Invlist_dimer(:,:)  
+
     contains
       
       module Subroutine Ham_Alloc_tV
@@ -303,8 +307,42 @@
           Use Predefined_Lattices
 
           Implicit none
+
+          Integer :: n, nc, I, no
+
           ! Use predefined stuctures or set your own lattice.
           Call Predefined_Latt(Lattice_type, L1,L2,Ndim, List,Invlist,Latt,Latt_Unit)
+
+
+          !  Setup lattices for f-and c-sites.
+          Select case (Lattice_type)
+          Case ("Pi_Flux")
+            Latt_Unit_dimer%Norb       = 4
+            Latt_Unit_dimer%N_coord    = 2
+            Allocate (Latt_Unit_dimer%Orb_pos_p(4,3))
+            Latt_Unit_dimer%Orb_pos_p(:,:) =  0.d0
+            Latt_Unit_dimer%Orb_pos_p(2,3) = -1.d0
+            Latt_Unit_dimer%Orb_pos_p(3,3) = -2.d0
+            Latt_Unit_dimer%Orb_pos_p(4,3) = -3.d0
+
+            Allocate (List_dimer(Latt%N*Latt_Unit_dimer%Norb,2), Invlist_dimer(Latt%N,Latt_Unit_dimer%Norb))
+            nc = 0
+            Do I = 1,Latt%N
+               Do no = 1,Latt_Unit_dimer%Norb
+                  nc = nc + 1
+                  List_dimer(nc,1) = I
+                  List_dimer(nc,2) = no
+                  Invlist_dimer(I,no) = nc
+               Enddo
+            Enddo
+
+          Case default
+            Latt_Unit_dimer%Norb       = 2*Latt_Unit%Norb
+            Latt_Unit_dimer%N_coord    = Latt_Unit%N_coord
+            Allocate (Latt_Unit_dimer%Orb_pos_p(Latt_Unit_dimer%Norb, 3))
+            Latt_Unit_dimer%Orb_pos_p(:,:) =  0.d0
+
+          end Select
 
         end Subroutine Ham_Latt
 !--------------------------------------------------------------------
@@ -561,7 +599,7 @@
           enddo
 
           ! Equal time correlators
-          Allocate ( Obs_eq(3) )
+          Allocate ( Obs_eq(5) )
           Do I = 1,Size(Obs_eq,1)
              select case (I)
              case (1)
@@ -570,17 +608,25 @@
                 Filename = "SpinZ"
              case (3)
                 Filename = "Den"
+             case (4)
+                Filename = "Dimer"
+             case (5)
+                Filename = "Kbond"
              case default
                 Write(6,*) ' Error in Alloc_obs '
              end select
              Nt = 1
              Channel = '--'
-             Call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
+             if (I == 4 .or. I == 5) then
+                Call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit_dimer, Channel, dtau)
+             else
+                Call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
+             endif
           enddo
 
           If (Ltau == 1) then
              ! Time-displaced correlators
-             Allocate ( Obs_tau(3) )
+             Allocate ( Obs_tau(5) )
              Do I = 1,Size(Obs_tau,1)
                 select case (I)
                 case (1)
@@ -589,12 +635,20 @@
                    Channel = 'PH'; Filename = "SpinZ"
                 case (3)
                    Channel = 'PH'; Filename = "Den"
+                case (4)
+                   Channel = 'PH'; Filename = "Dimer"
+                case (5)
+                   Channel = 'PH'; Filename = "Kbond"
                 case default
                    Write(6,*) ' Error in Alloc_obs '
                 end select
                 Nt = Ltrot+1-2*Thtrot
                 If(Projector) Channel = 'T0'
-                Call Obser_Latt_make(Obs_tau(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
+                if (I == 4 .or. I == 5) then
+                   Call Obser_Latt_make(Obs_tau(I), Nt, Filename, Latt, Latt_unit_dimer, Channel, dtau)
+                else
+                   Call Obser_Latt_make(Obs_tau(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
+                endif
              enddo
           endif
 
@@ -635,6 +689,7 @@
           Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK, Zn, weight, delta
           Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP,ZS, ZZ, ZXY, tmp
           Integer :: I,J, imj, nf, dec, I1, J1, no_I, no_J,n, nf2, k, k1, l, l1
+          Integer :: I_c, I_f, J_c, J_f
           Real    (Kind=Kind(0.d0)) :: X
 
           ZP = PHASE/Real(Phase, kind(0.D0))
@@ -719,6 +774,62 @@
           Call Predefined_Obs_eq_SpinSUN_measure( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(2) )
           Call Predefined_Obs_eq_Den_measure    ( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(3) )
 
+          ! Dimer correlations
+          obs_eq(4)%N        = obs_eq(4)%N + 1
+          obs_eq(4)%Ave_sign = obs_eq(4)%Ave_sign + real(ZS,kind(0.d0))
+          obs_eq(5)%N        = obs_eq(5)%N + 1
+          obs_eq(5)%Ave_sign = obs_eq(5)%Ave_sign + real(ZS,kind(0.d0))
+          
+          Zn=cmplx(dble(N_sun),0.d0,kind(0.d0))
+          Do I = 1,Latt%N
+             do no_I  = 1, 4
+                select case (no_I)
+                case (1)
+                    I_c = invlist(I, 1)
+                    I_f = invlist(I, 2)
+                case (2)
+                    I_c = invlist(I, 1)
+                    I_f = invlist(latt%nnlist(I,0,1), 2)
+                case (3)
+                    I_c = invlist(I, 2)
+                    I_f = invlist(latt%nnlist(I,1,0), 1)
+                case (4)
+                    I_c = invlist(I, 2)
+                    I_f = invlist(latt%nnlist(I,1,-1), 1)
+                end select
+                Do J = 1,Latt%N
+                   Imj = latt%imj(I,J)
+                   do no_J  = 1, 4
+                      select case (no_J)
+                      case (1)
+                          J_c = invlist(J, 1)
+                          J_f = invlist(J, 2)
+                      case (2)
+                          J_c = invlist(J, 1)
+                          J_f = invlist(latt%nnlist(J,0,1), 2)
+                      case (3)
+                          J_c = invlist(J, 2)
+                          J_f = invlist(latt%nnlist(J,1,0), 1)
+                      case (4)
+                          J_c = invlist(J, 2)
+                          J_f = invlist(latt%nnlist(J,1,-1), 1)
+                      end select
+                      
+                      Z  = Predefined_Obs_dimer_eq(I_c,I_f,J_c,J_f, GR, GRC, N_SUN, N_FL) 
+                      obs_eq(4)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(4)%Obs_Latt(imj,1,no_I,no_J) + Z*ZP*ZS
+                      Z  = Predefined_Obs_bondcor_eq(I_c,I_f,J_c,J_f, GR, GRC, N_SUN, N_FL) 
+                      obs_eq(5)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(5)%Obs_Latt(imj,1,no_I,no_J) + Z*ZP*ZS
+                   enddo
+                enddo
+                Obs_eq(4)%Obs_Latt0(no_I) =  Obs_eq(4)%Obs_Latt0(no_I) +  &
+                     &  Predefined_Obs_dimer0_eq(I_c,I_f, GR, N_SUN, N_FL) * ZP*ZS
+                Z   = cmplx(0.d0,0.d0,kind(0.d0))
+                Do nf = 1,N_FL
+                    Z =  Z + ( GRC(I_c, I_f, nf)+GRC(I_f, I_c, nf) )
+                enddo
+                Obs_eq(5)%Obs_Latt0(no_I) =  Obs_eq(5)%Obs_Latt0(no_I) +  Z * ZN * ZP*ZS
+             enddo
+          enddo
 
         end Subroutine Obser
 !--------------------------------------------------------------------
@@ -757,21 +868,81 @@
           Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
 
           !Locals
-          Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY
+          Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY, ZEI, ZN
           Real    (Kind=Kind(0.d0)) :: X
-          Integer :: IMJ, I, J, I1, J1, no_I, no_J
+          Integer :: IMJ, I, J, I1, J1, no_I, no_J, I_c, I_f, J_c, J_f, nf
 
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
 
           ZS = ZS*Mc_step_weight
 
-          
           ! Standard two-point correlations
 
           Call Predefined_Obs_tau_Green_measure  ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(1) )
           Call Predefined_Obs_tau_SpinSUN_measure( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(2) )
           Call Predefined_Obs_tau_Den_measure    ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(3) )
+
+          ZN =  cmplx(dble(N_SUN), 0.d0, kind(0.D0))
+          ! Greenf correlations
+          If (NT == 0 ) then
+             obs_tau(4)%N        = obs_tau(4)%N + 1
+             obs_tau(4)%Ave_sign = obs_tau(4)%Ave_sign + real(ZS,kind(0.d0))
+             obs_tau(5)%N        = obs_tau(5)%N + 1
+             obs_tau(5)%Ave_sign = obs_tau(5)%Ave_sign + real(ZS,kind(0.d0))
+          endif
+          Do I = 1,Latt%N
+             do no_I  = 1, 4
+                select case (no_I)
+                case (1)
+                    I_c = invlist(I, 1)
+                    I_f = invlist(I, 2)
+                case (2)
+                    I_c = invlist(I, 1)
+                    I_f = invlist(latt%nnlist(I,0,1), 2)
+                case (3)
+                    I_c = invlist(I, 2)
+                    I_f = invlist(latt%nnlist(I,1,0), 1)
+                case (4)
+                    I_c = invlist(I, 2)
+                    I_f = invlist(latt%nnlist(I,1,-1), 1)
+                end select
+                Do J = 1,Latt%N
+                   Imj = latt%imj(I,J)
+                   do no_J  = 1, 4
+                      select case (no_J)
+                      case (1)
+                          J_c = invlist(J, 1)
+                          J_f = invlist(J, 2)
+                      case (2)
+                          J_c = invlist(J, 1)
+                          J_f = invlist(latt%nnlist(J,0,1), 2)
+                      case (3)
+                          J_c = invlist(J, 2)
+                          J_f = invlist(latt%nnlist(J,1,0), 1)
+                      case (4)
+                          J_c = invlist(J, 2)
+                          J_f = invlist(latt%nnlist(J,1,-1), 1)
+                      end select
+                      
+                      Z  = Predefined_Obs_dimer_tau(I_c, I_f, J_c, J_f, GT0,G0T,G00,GTT, N_SUN, N_FL) 
+                      obs_tau(4)%Obs_Latt(imj,NT+1,no_I,no_J) =  Obs_tau(4)%Obs_Latt(imj,NT+1,no_I,no_J) + Z*ZP*ZS
+                      Z  = Predefined_Obs_bondcor_tau(I_c, I_f, J_c, J_f, GT0,G0T,G00,GTT, N_SUN, N_FL) 
+                      obs_tau(5)%Obs_Latt(imj,NT+1,no_I,no_J) =  Obs_tau(5)%Obs_Latt(imj,NT+1,no_I,no_J) + Z*ZP*ZS
+                   enddo
+                enddo
+                Z = Predefined_Obs_dimer0_eq(I_c,I_f, GTT, N_SUN, N_FL)
+                Obs_tau(4)%Obs_Latt0(no_I) =  Obs_tau(4)%Obs_Latt0(no_I) +  Z*ZP*ZS
+                
+                ZEI = cmplx(0.d0,0.d0,kind(0.d0))
+                Z   = cmplx(0.d0,0.d0,kind(0.d0))
+                if ( I_c .eq. I_f ) ZEI = cmplx(1.d0,0.d0,kind(0.d0))
+                Do nf = 1,N_FL
+                    Z = Z + ( ZEI-GTT(I_f, I_c,nf) +  ZEI-GTT(I_c, I_f,nf) )*ZN
+                enddo
+                Obs_tau(5)%Obs_Latt0(no_I) =  Obs_tau(5)%Obs_Latt0(no_I) +  Z*ZP*ZS
+             enddo
+          enddo
 
         end Subroutine OBSERT
 
