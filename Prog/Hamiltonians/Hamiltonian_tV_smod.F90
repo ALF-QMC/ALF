@@ -318,17 +318,17 @@
 
           Implicit none
 
-          Real (Kind=Kind(0.d0) ) ::  Ham_Lambda = 0.d0
+          Real (Kind=Kind(0.d0) ) ::  Ham_Lambda = 0.d0, t0_proj = 0.d0
 
           Real (Kind=Kind(0.d0) ), allocatable :: Ham_T_vec(:), Ham_Tperp_vec(:), Ham_Chem_vec(:), Phi_X_vec(:), Phi_Y_vec(:),&
-               &                                  Ham_T2_vec(:),  Ham_Lambda_vec(:)
+               &                                  Ham_T2_vec(:),  Ham_Lambda_vec(:), Ham_Tpi_vec(:)
           Integer, allocatable ::   N_Phi_vec(:)
 
           ! Use predefined stuctures or set your own hopping
           Integer :: n,nth
 
           Allocate (Ham_T_vec(N_FL), Ham_T2_vec(N_FL), Ham_Tperp_vec(N_FL), Ham_Chem_vec(N_FL), Phi_X_vec(N_FL), Phi_Y_vec(N_FL),&
-               &                                   N_Phi_vec(N_FL), Ham_Lambda_vec(N_FL) )
+               &                                   N_Phi_vec(N_FL), Ham_Lambda_vec(N_FL), Ham_Tpi_vec(N_FL) )
 
           ! Here we consider no N_FL  dependence of the hopping parameters.
           Ham_T_vec      = Ham_T
@@ -339,10 +339,15 @@
           Ham_T2_vec     = Ham_T2
           Ham_Lambda_vec = Ham_Lambda
           N_Phi_vec      = N_Phi
+          Ham_Tpi_vec    = Ham_T 
 
           Select case (Lattice_type)
           Case ("Square")
              Call  Set_Default_hopping_parameters_square(Hopping_Matrix,Ham_T_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
+                  &                                      Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
+          Case ("Pi_Flux")
+             Ham_Tpi_vec    = -Ham_T
+             Call  Set_Default_hopping_parameters_Pi_Flux(Hopping_Matrix,Ham_T_vec, Ham_Tpi_vec, Ham_Chem_vec, t0_proj, Phi_X_vec, Phi_Y_vec, &
                   &                                      Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
           Case ("N_leg_ladder")
              Call  Set_Default_hopping_parameters_n_leg_ladder(Hopping_Matrix, Ham_T_vec, Ham_Tperp_vec, Ham_Chem_vec, Phi_X_vec, &
@@ -366,7 +371,7 @@
           Call  Predefined_Hoppings_set_OPT(Hopping_Matrix,List,Invlist,Latt,  Latt_unit,  Dtau, Checkerboard, Symm, OP_T )
 
           Deallocate (Ham_T_vec, Ham_T2_vec, Ham_Tperp_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
-               &                                   N_Phi_vec,  Ham_Lambda_vec )
+               &                                   N_Phi_vec,  Ham_Lambda_vec, Ham_Tpi_vec )
 
         end Subroutine Ham_Hop
 !--------------------------------------------------------------------
@@ -403,17 +408,17 @@
           Implicit none
 
           Real (Kind=Kind(0.d0) ), allocatable :: Ham_V_vec(:), Ham_Vperp_vec(:), Ham_Chem_vec(:), Phi_X_vec(:), Phi_Y_vec(:),&
-               &                                  Ham_V2_vec(:),  Ham_Lambda_vec(:)
+               &                                  Ham_V2_vec(:),  Ham_Lambda_vec(:), Ham_Vpi_vec(:)
           Integer, allocatable ::   N_Phi_vec(:)
           Type (Hopping_Matrix_type), Allocatable :: Bond_Matrix(:)
 
           Integer                           :: I, J, I1, J1, no_I, no_J, nf
           Integer                           :: n_1, n_2, Nb, n_f,l_f, n_l, N, nc
           Complex(Kind=Kind(0.d0))          :: Z
-          real(Kind=Kind(0.d0))             :: Zero =  1.0E-6
+          real(Kind=Kind(0.d0))             :: Zero =  1.0E-6, t0_proj = 0.d0
 
           Allocate (Ham_V_vec(N_FL), Ham_V2_vec(N_FL), Ham_Vperp_vec(N_FL), Ham_Chem_vec(N_FL), Phi_X_vec(N_FL), Phi_Y_vec(N_FL),&
-               &                                   N_Phi_vec(N_FL), Ham_Lambda_vec(N_FL) )
+               &                                   N_Phi_vec(N_FL), Ham_Lambda_vec(N_FL), Ham_Vpi_vec(N_FL) )
 
           ! Here we consider no N_FL  dependence of the hopping parameters.
           Ham_V_vec      = Ham_V/dble(N_SUN)
@@ -424,11 +429,15 @@
           Phi_Y_vec      = Phi_Y
           Ham_Lambda_vec = 0.0d0
           N_Phi_vec      = N_Phi
+          Ham_Vpi_vec    = Ham_V/dble(N_SUN)
 
           !Use predefined hoppings to manage the bonds since the interaction of the tV model is exactly on the hopping bonds
           Select case (Lattice_type)
           Case ("Square")
              Call  Set_Default_hopping_parameters_square(Bond_Matrix,Ham_V_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
+                  &                                      Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
+          Case ("Pi_Flux")
+             Call  Set_Default_hopping_parameters_Pi_Flux(Bond_Matrix,Ham_V_vec, Ham_Vpi_vec, Ham_Chem_vec, t0_proj, Phi_X_vec, Phi_Y_vec, &
                   &                                      Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
           Case ("N_leg_ladder")
              Call  Set_Default_hopping_parameters_n_leg_ladder(Bond_Matrix, Ham_V_vec, Ham_Vperp_vec, Ham_Chem_vec, Phi_X_vec, &
@@ -510,7 +519,7 @@
           enddo
           
           Deallocate (Ham_V_vec, Ham_V2_vec, Ham_Vperp_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
-               &                                   N_Phi_vec,  Ham_Lambda_vec )
+               &                                   N_Phi_vec,  Ham_Lambda_vec, Ham_Vpi_vec )
           
         end Subroutine Ham_Vint
 

@@ -359,6 +359,125 @@
 !> ALF-project
 !>
 !> @brief
+!> Default hopping for the square lattice.  Ham_T is the nearest
+!> neighbour hopping and Ham_Chem the chemical potential.
+!>
+!
+!--------------------------------------------------------------------
+      Subroutine Set_Default_hopping_parameters_Pi_Flux(this, Ham_T_vec, Ham_Tpi_vec, Ham_Chem_vec, t0_proj, Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL, &
+           &                                           List, Invlist, Latt, Latt_unit )
+
+        Implicit none
+
+        Type  (Hopping_Matrix_type), allocatable     :: this(:)
+        Real (Kind=Kind(0.d0)), Intent(IN),Dimension(:)   :: Ham_T_vec, Ham_Chem_vec, Phi_x_vec, Phi_y_vec, Ham_Tpi_vec
+        Real (Kind=Kind(0.d0)), Intent(IN)                :: t0_proj
+        Integer, Intent(IN),Dimension(:)                  :: N_Phi_vec
+        Integer, Intent(IN)                               :: N_FL
+        Logical, Intent(IN)                               :: Bulk
+        Integer, Intent(IN), Dimension(:,:)               :: List, Invlist
+        Type(Lattice),  Intent(in)            :: Latt
+        Type(Unit_cell),Intent(in)            :: Latt_unit
+
+
+        ! Local
+        Integer :: nf,N_Bonds, nc, I, I1
+        Real (Kind = Kind(0.d0) ) :: Zero = 1.0E-8,  Ham_T_max
+        Real (Kind = Kind(0.d0) ), allocatable :: Ham_T_perp_vec(:)
+
+        Allocate( this(N_FL) )
+
+        Ham_T_max = 0.d0
+        Do nf = 1,N_FL
+           If ( Abs(Ham_T_vec(nf))   >  Ham_T_max )  Ham_T_max = Abs(Ham_T_vec(nf))
+        Enddo
+
+        do nf = 1,N_FL
+           this(nf)%N_bonds = 0
+           if ( abs(Ham_T_max) > Zero)  then
+              this(nf)%N_bonds = 4
+              Allocate (this(nf)%List(this(nf)%N_bonds,4), &
+                   &    this(nf)%T(this(nf)%N_bonds) )
+              nc = 0
+              nc = nc + 1
+              this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf)-t0_proj,0.d0,kind(0.d0))
+              this(nf)%List(nc,1) = 1
+              this(nf)%List(nc,2) = 2
+              this(nf)%List(nc,3) = 0
+              this(nf)%List(nc,4) = 1
+
+              nc = nc + 1
+              this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf)-t0_proj,0.d0,kind(0.d0))
+              this(nf)%List(nc,1) = 1
+              this(nf)%List(nc,2) = 2
+              this(nf)%List(nc,3) =-1
+              this(nf)%List(nc,4) = 0
+
+              nc = nc + 1
+              this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf)-t0_proj,0.d0,kind(0.d0))
+              this(nf)%List(nc,1) = 1
+              this(nf)%List(nc,2) = 2
+              this(nf)%List(nc,3) =-1
+              this(nf)%List(nc,4) = 1
+              
+              nc = nc + 1
+              this(nf)%T(nc)    = cmplx(-Ham_Tpi_vec(nf)-t0_proj,0.d0,kind(0.d0))
+              this(nf)%List(nc,1) = 1
+              this(nf)%List(nc,2) = 2
+              this(nf)%List(nc,3) = 0
+              this(nf)%List(nc,4) = 0
+           Endif
+           Allocate ( this(nf)%T_Loc(Latt_Unit%Norb) )
+           do nc = 1,Latt_Unit%Norb
+              this(nf)%T_Loc(nc)  = cmplx(-Ham_Chem_vec(nf),0.d0,kind(0.d0))
+           enddo
+           this(nf)%N_Phi =  N_Phi_vec(nf)
+           this(nf)%Phi_X =  Phi_X_vec(nf)
+           this(nf)%Phi_Y =  Phi_Y_vec(nf)
+           this(nf)%Bulk  =  Bulk
+        enddo
+
+        !Set Checkerboard
+        if ( Ham_T_max   > Zero ) then
+           this(1)%N_FAM  = 4
+           Allocate (this(1)%L_Fam(this(1)%N_FAM),  this(1)%Prop_Fam(this(1)%N_FAM))
+           this(1)%L_FAM  = Latt%N
+           this(1)%Prop_Fam= 1.d0
+           Allocate (this(1)%List_Fam(this(1)%N_FAM,this(1)%L_Fam(1),2))
+           this(1)%L_FAM  = 0
+           do I = 1,Latt%N
+              
+              Nf = 1
+              this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+              this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I ! Unit cell
+              this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 1 ! The bond (See above)
+              
+              Nf = 2
+              this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+              this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+              this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 2
+              
+              Nf = 3
+              this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+              this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+              this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 3
+              
+              Nf = 4
+              this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+              this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+              this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 4
+           
+           enddo
+        endif
+      
+      end Subroutine Set_Default_hopping_parameters_Pi_Flux
+
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF-project
+!>
+!> @brief
 !> Default hopping for n-leg-ladder.  Ham_T is the nearest neighbour hopping along the chain,  Ham_T_perp  the
 !> interrung hopping and H_chem the chemical potential.
 !>

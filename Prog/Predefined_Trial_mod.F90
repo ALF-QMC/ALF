@@ -127,14 +127,14 @@
 
         Type (Lattice)                                :: Latt_Kekule
         Real (Kind=Kind(0.d0))  :: A1_p(2), A2_p(2), L1_p(2), L2_p(2), x_p(2),x1_p(2), hop(3), del_p(2)
-        Real (Kind=Kind(0.d0))  :: delta = 0.01, Ham_T1, Ham_T2, Ham_Tperp
+        Real (Kind=Kind(0.d0))  :: delta = 0.01, Ham_T1, Ham_T2, Ham_Tperp, t0_proj
 
         Integer :: N, nf, I, I1, I2, nc, nc1, IK_u, I_u, J1, lp, J, N_Phi
         Logical :: Test=.false. ,  Bulk =.true.
         Complex (Kind=Kind(0.d0)) :: Z_norm
 
         Real (Kind=Kind(0.d0) ), allocatable :: Ham_T_vec(:), Ham_Tperp_vec(:), Ham_Chem_vec(:), Phi_X_vec(:), Phi_Y_vec(:),&
-               &                                Ham_T2_vec(:)
+               &                                Ham_T2_vec(:), Ham_Tpi_vec(:)
         Integer, allocatable ::   N_Phi_vec(:)
 
 
@@ -148,7 +148,7 @@
 
 
         Allocate (Ham_T_vec(N_FL), Ham_T2_vec(N_FL), Ham_Tperp_vec(N_FL), Ham_Chem_vec(N_FL), Phi_X_vec(N_FL), Phi_Y_vec(N_FL),&
-             &                                    N_Phi_vec(N_FL) )
+             &                                    N_Phi_vec(N_FL), Ham_Tpi_vec(N_FL) )
 
 
         Checkerboard  = .false.
@@ -173,6 +173,7 @@
         Ham_Tperp_vec  = Ham_Tperp
         Ham_T2_vec     = Ham_T2
         Ham_Chem_vec   = Ham_Chem
+        Ham_Tpi_vec    = -Ham_T
 
 
         Select case (Lattice_type)
@@ -303,6 +304,13 @@
            Call  Set_Default_hopping_parameters_square(Hopping_Matrix_tmp,Ham_T_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
                 &                                      Bulk,  N_Phi_vec, N_FL, &
                 &                                      List, Invlist, Latt, Latt_unit )
+        Case ("Pi_Flux")
+           Ham_T_vec     = 0.01d0
+           Ham_Tpi_vec   =-0.01d0
+           t0_proj       = 1.d0
+           Call  Set_Default_hopping_parameters_Pi_Flux(Hopping_Matrix_tmp,Ham_T_vec, Ham_Tpi_vec, Ham_Chem_vec, t0_proj, Phi_X_vec, Phi_Y_vec, &
+                &                                      Bulk,  N_Phi_vec, N_FL, &
+                &                                      List, Invlist, Latt, Latt_unit )
         Case ("N_leg_ladder")
            Ham_T_vec     = 1.d0
            Ham_Tperp_vec = 1.d0
@@ -390,7 +398,7 @@
         Deallocate (OP_tmp)
         Call Predefined_hoppings_clear(Hopping_Matrix_tmp)
 
-        Deallocate (Ham_T_vec, Ham_Tperp_vec, Ham_T2_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec,  N_Phi_vec )
+        Deallocate (Ham_T_vec, Ham_Tperp_vec, Ham_T2_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec,  N_Phi_vec, Ham_Tpi_vec )
 
       end Subroutine Predefined_TrialWaveFunction
 
