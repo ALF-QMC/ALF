@@ -143,6 +143,8 @@
         procedure, nopass :: Overide_global_tau_sampling_parameters
         procedure, nopass :: S0
         procedure, nopass :: Ham_Langevin_HMC_S0
+        procedure, nopass :: get_dtau
+        procedure, nopass :: get_beta
 #ifdef HDF5
         procedure, nopass :: write_parameters_hdf5
 #endif
@@ -834,5 +836,37 @@
         end Subroutine Ham_Langevin_HMC_S0
 
 
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Returns dtau, for use outside of Hamiltonian.
+!>
+!> @details
+!> \endverbatim
+!----------------------------------------------
+         function get_beta()
+            Implicit none
+            real (Kind=Kind(0.d0)) :: get_beta
+            get_beta = beta
+         end function get_beta
+
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Returns dtau, for use outside of Hamiltonian.
+!>
+!> @details
+!> \endverbatim
+!----------------------------------------------
+         function get_dtau()
+            Implicit none
+            real (Kind=Kind(0.d0)) :: get_dtau
+            get_dtau = dtau
+         end function get_dtau
       
       end Submodule ham_LRC_smod
