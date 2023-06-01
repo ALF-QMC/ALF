@@ -1,6 +1,7 @@
 MODULE ed_ham_mod
 
     use Operator_mod, only: Operator
+    use runtime_error_mod, only: ERROR_GENERIC, Terminate_on_error
     use ed_state_mod, only: ed_state, N_fermions
     use iso_fortran_env, only: output_unit, error_unit
 
@@ -189,7 +190,7 @@ CONTAINS
 
       if ( this%list(i,1) .ne. this%list(j,1) ) then
         write(error_unit,*) "Error in ed_ham_add_matrixelement", this%list(i,1), this%list(j,1), val
-        error stop 1
+        CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
       endif
 
       this%H_part(this%list(i,1))%H(this%list(i,2), this%list(j,2)) = &
@@ -253,7 +254,7 @@ CONTAINS
 
       if( op_v(1)%type .ne. 2 ) then
           write(error_unit,*) "ED only implemented for OP_V type 2"
-          error stop 1
+          CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
       endif
 
       call state%init(this%N_orbitals, this%N_SUN, this%N_FL)
@@ -325,7 +326,7 @@ CONTAINS
             do j=i, size(this%H_part(n)%H, 1)
               if( abs( this%H_part(n)%H(i,j)- conjg(this%H_part(n)%H(j,i)) ) > zero ) then
                 write(error_unit,*) "H", n, i, j, "not hermitian",  this%H_part(n)%H(i,j)- conjg(this%H_part(n)%H(j,i))
-                error stop 1
+                CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
               endif
             enddo
           enddo
@@ -362,7 +363,7 @@ CONTAINS
       CALL ZHETRD( 'U', this%N_states, this%H, this%N_states, this%eigenval, E, TAU, WORK, LWORK, INFO )
       if ( INFO .ne. 0 ) then
         write(error_unit,*) "Error with ZHETRD in ed_ham_part_eigenvalues", INFO
-        error stop 1
+        CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
       endif
 
       deallocate( this%H, TAU, WORK )
@@ -373,7 +374,7 @@ CONTAINS
       CALL DSTERF( this%N_states, this%eigenval, E, INFO )
       if ( INFO .ne. 0 ) then
         write(error_unit,*) "Error with DSTERF in ed_ham_part_eigenvalues", INFO
-        error stop 1
+        CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
       endif
 
       deallocate( E )
