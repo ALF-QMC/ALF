@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 - 2021 The ALF project
+!  Copyright (C) 2016 - 2022 The ALF project
 ! 
 !  This file is part of the ALF project.
 ! 
@@ -42,6 +42,7 @@
 Module Operator_mod
 
   Use mpi_shared_memory
+  Use mat_subroutines
   Use MyMats
   Use Fields_mod
 
@@ -146,30 +147,27 @@ Contains
 !> @param[in] Nsigma 
 !> Type(Fields)
 !> * Fields
-!> @param[in] N_SUN
+!> @param[in] nf
 !> Integer
-!> * Number of colors
+!> * flavor index
 !--------------------------------------------------------------------
-  Subroutine  Op_phase(Phase,OP_V,Nsigma,N_SUN) 
+  Subroutine  Op_phase(Phase,OP_V,Nsigma,nf) 
     Implicit none
 
     Complex  (Kind=Kind(0.d0)), Intent(Inout) :: Phase
-    Integer,           Intent(IN)    :: N_SUN
+    Integer,           Intent(IN)    :: nf
     Type  (Fields),    Intent(IN)    :: Nsigma
     Type (Operator),   dimension(:,:), Intent(In) :: Op_V
     Real  (Kind=Kind(0.d0))                       :: angle
     
-    Integer :: n, nf, nt
+    Integer :: n, nt
     
-    do nf = 1,Size(Op_V,2)
-       do n = 1,size(Op_V,1)
-          do nt = 1,size(nsigma%f,2)
-             angle = Aimag( Op_V(n,nf)%g * Op_V(n,nf)%alpha ) * nsigma%Phi(n,nt) 
-             Phase = Phase*CMPLX(cos(angle),sin(angle), Kind(0.D0))
-          enddo
+    do n = 1,size(Op_V,1)
+       do nt = 1,size(nsigma%f,2)
+          angle = Aimag( Op_V(n,nf)%g * Op_V(n,nf)%alpha ) * nsigma%Phi(n,nt) 
+          Phase = Phase*CMPLX(cos(angle),sin(angle), Kind(0.D0))
        enddo
     enddo
-    Phase = Phase**N_SUN
     
   end Subroutine Op_phase
   

@@ -115,6 +115,7 @@
 !>
 !--------------------------------------------------------------------
 
+
     submodule (Hamiltonian_main) ham_LRC_smod
 
       Use Operator_mod
@@ -236,7 +237,7 @@
           
           if (Model .ne. 'LRC') then
             WRITE(error_unit,*) 'Wrong Hamiltonian',ierr
-            error stop 1
+            CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
           endif
 
           Ltrot = nint(beta/dtau)

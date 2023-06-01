@@ -1,4 +1,4 @@
-!  Copyright (C) 2020 The ALF project
+!  Copyright (C) 2020 - 2022 The ALF project
 ! 
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -33,6 +33,7 @@
 module OpTTypes_mod
     use ContainerElementBase_mod
     use Operator_mod
+    use mat_subroutines
     implicit none
 
     private

@@ -2,6 +2,7 @@
 ! gfortran -std=f2003  -I ../../../Libraries/Modules/ -L ../../../Libraries/Modules/ main.F90 ../../../Prog_8/Operator.o ../../../Libraries/Modules/modules_90.a -llapack -lblas ../../../Libraries/MyNag/libnag.a
 !
 PROGRAM SLMATMULTS
+        use mat_subroutines
 
         IMPLICIT NONE
         INTEGER                   :: N, M, M2, I, J, K

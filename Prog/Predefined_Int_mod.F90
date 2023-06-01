@@ -113,7 +113,7 @@
 !
 !> @brief
 !> Sets  Hubbard U Mz 
-!>   - U/2  ( n_{i,up} - n_{i,do} ) ^2
+!>   - U/2  ( (n_{i,up} -1/2) - (n_{i,do} - 1/2)  ) ^2
 !>   Here N_FL = 2 and  the routine sets both the up and down operators.
 !>   The routine uses a  descrete  HS transformation  with four fields
 !>   (see documentation)
@@ -132,12 +132,14 @@
         Op_up%O(1,1) =  cmplx(1.d0  ,0.d0, kind(0.D0))
         Op_up%alpha  =  cmplx(0.d0, 0.d0, kind(0.D0))
         Op_up%g      =  SQRT(CMPLX(DTAU*U/2.d0, 0.D0, kind(0.D0))) 
+        Op_up%alpha  =  cmplx(-0.5d0,0.d0, kind(0.D0))
         Op_up%type   =  2
 
         Op_do%P(1)   =  I
         Op_do%O(1,1) =  cmplx(1.d0  ,0.d0, kind(0.D0))
         Op_do%alpha  =  cmplx(0.d0, 0.d0, kind(0.D0))
         Op_do%g      = -SQRT(CMPLX(DTAU*U/2.d0, 0.D0, kind(0.D0))) 
+        Op_do%alpha  =  cmplx(-0.5d0,0.d0, kind(0.D0))
         Op_do%type   =  2
 
         Call Op_set( Op_up )

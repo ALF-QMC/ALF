@@ -34,7 +34,10 @@ Program TESTOP_PHASE
   Phasenew = 1.D0
   Phaseold = 1.D0
   
-  Call Op_Phase(Phasenew, Op, NSigma, N_SUN)
+  Do nf = 1, 3
+     Call Op_Phase(Phasenew, Op, NSigma, nf)
+  enddo
+  Phasenew=Phasenew**N_SUN
   
   ! check against old version
   do nf = 1, Size(Op,2)

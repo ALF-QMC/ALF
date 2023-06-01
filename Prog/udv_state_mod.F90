@@ -42,6 +42,7 @@
 
 
 MODULE UDV_State_mod
+    use runtime_error_mod
     use iso_fortran_env, only: output_unit, error_unit
 
     IMPLICIT NONE
@@ -83,7 +84,7 @@ MODULE UDV_State_mod
 
     TYPE UDV_State
         COMPLEX (Kind=Kind(0.d0)), allocatable :: U(:, :), V(:, :)
-#if !defined(LOG)
+#if !defined(STABLOG)
         COMPLEX (Kind=Kind(0.d0)), allocatable :: D(:)
 #else
         REAL    (Kind=Kind(0.d0)), allocatable :: L(:)
@@ -138,7 +139,7 @@ CONTAINS
           this%N_part=t
           ALLOCATE(this%U(this%ndim, this%N_part), this%V(this%N_part, this%N_part))
        endif
-#if !defined(LOG)
+#if !defined(STABLOG)
        ALLOCATE(this%D(this%N_part))
 #else
        ALLOCATE(this%L(this%N_part))
@@ -172,11 +173,11 @@ CONTAINS
        if( present(P)) then
           if ( t .ne. size(P,1) ) then
              write(error_unit,*) "Mismatching Ndim between explicitly provided argument and implicitly provided size(P,1)"
-             error stop 1
+             CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
           endif
           if ( t < size(P,2) .or. size(P,2) < 0 ) then
              write(error_unit,*) "Illegal number of particles provided as size(P,2) (0 <= N_part <= Ndim)"
-             error stop 1
+             CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
           endif
           CALL this%alloc(t,size(P,2))
           CALL this%reset(side,P)
@@ -204,7 +205,7 @@ CONTAINS
        COMPLEX (Kind=Kind(0.d0)), INTENT(IN) :: scale_val
        INTEGER, INTENT(IN) :: scale_idx
 
-#if !defined(LOG)
+#if !defined(STABLOG)
        this%D(scale_idx)=scale_val
 #else
        this%L(scale_idx)=log(dble(scale_val))
@@ -228,7 +229,7 @@ CONTAINS
        COMPLEX (Kind=Kind(0.d0)), INTENT(out) :: scale_val
        INTEGER, INTENT(IN) :: scale_idx
 
-#if !defined(LOG)
+#if !defined(STABLOG)
        scale_val=this%D(scale_idx)
 #else
        scale_val=cmplx(exp(this%L(scale_idx)),0.d0,kind(0.d0))
@@ -251,7 +252,7 @@ CONTAINS
        !V is only allocated in finite temperature version
        IF(ALLOCATED(this%V)) DEALLOCATE(this%V)
        DEALLOCATE(this%U)
-#if !defined(LOG)
+#if !defined(STABLOG)
        DEALLOCATE(this%D)
 #else
        DEALLOCATE(this%L)
@@ -290,7 +291,7 @@ CONTAINS
           CALL ZLASET('A', this%ndim, this%ndim, alpha, beta, this%U(1, 1), this%ndim)
           CALL ZLASET('A', this%ndim, this%ndim, alpha, beta, this%V(1, 1), this%ndim)
        endif
-#if !defined(LOG)
+#if !defined(STABLOG)
        this%D = beta
 #else
        this%L = 0.d0
@@ -326,7 +327,7 @@ CONTAINS
           WRITE(*,*) "V is only stored in finite temperature version"
        endif
        WRITE(*,*) "======================"
-#if !defined(LOG)
+#if !defined(STABLOG)
        WRITE(*,*) this%D(:)
 #else
        WRITE(*,*) this%L(:)
@@ -365,7 +366,7 @@ CONTAINS
          if (ALLOCATED(src%V)) CALL ZLACPY('A', this%n_part, this%n_part, src%V(1, 1), &
               & this%n_part, this%V(1, 1), this%n_part)
        END ASSOCIATE
-#if !defined(LOG)
+#if !defined(STABLOG)
        IF(.not. ALLOCATED(this%D)) ALLOCATE(this%D(this%n_part))
        this%D = src%D
 #else
@@ -407,7 +408,7 @@ CONTAINS
        COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta, phase
        INTEGER :: INFO, i, LWORK, Ndim, N_part
        INTEGER, allocatable, Dimension(:) :: IPVT
-#ifdef LOG
+#if defined(STABLOG)
        REAL (Kind=Kind(0.d0)), allocatable, Dimension(:) :: tmpnorm
        REAL (Kind=Kind(0.d0)) :: tmpL, DZNRM2
        INTEGER :: J, PVT
@@ -421,7 +422,7 @@ CONTAINS
        Ndim = UDVR%ndim
        N_part = UDVR%n_part
        ALLOCATE(TAU(N_part), IPVT(N_part))
-#if !defined(LOG)
+#if !defined(STABLOG)
        ! TMP1 = TMP1 * D
        If( ALLOCATED(UDVR%V) ) then
           DO i = 1,N_part
@@ -566,7 +567,7 @@ CONTAINS
             &                source, recvtag, MPI_COMM_WORLD, STATUS, IERR)
        CALL MPI_Sendrecv_replace(this%V, n, MPI_COMPLEX16, dest, sendtag, &
             &                source, recvtag, MPI_COMM_WORLD, STATUS, IERR)
-#if !defined(LOG)
+#if !defined(STABLOG)
        CALL MPI_Sendrecv_replace(this%D, this%ndim, MPI_COMPLEX16, dest, sendtag, &
             &                source, recvtag, MPI_COMM_WORLD, STATUS, IERR)
 #else

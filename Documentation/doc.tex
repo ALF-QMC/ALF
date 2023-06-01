@@ -1,22 +1,25 @@
 % !TeX document-id = {2fc16d90-fe07-4ec8-91d5-5acebdd2ee85}
 % !BIB TS-program = bibtex
 
-% Copyright (c) 2016-2021 The ALF project.
+% Copyright (c) 2016-2022 The ALF project.
 % This is the ALF project documentation.
 % The ALF project documentation by the ALF contributors is licensed
 % under a Creative Commons Attribution-ShareAlike 4.0 International License.
 % For the licensing details of the documentation see license.CCBYSA.
 
-\documentclass[submission, Phys]{SciPost}
+\documentclass[submission, PhysCodeb]{SciPost}
 \pdfoutput=1
 \usepackage{lineno}
 \usepackage{graphicx}
 \graphicspath{{./Figures/}{./Figures/Kondo/}{./Figures/MaxEnt/}{./Figures/MaxEnt/}{./Figures/Projector/}{./Figures/PAM/}{./Figures/Dtau/}{./Figures/Dtau_1/}}
-%\usepackage[T1]{fontenc}
-%\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+
 \usepackage{bbm}
-\usepackage{amsmath,mathtools}
-\usepackage{amssymb}
+\newcommand{\bmmax}{1}
+\newcommand{\hmmax}{1}
+\usepackage{amsmath,mathtools} % multilined
+%%\usepackage{amssymb}
 \usepackage{wasysym}
 \usepackage{color}
 \usepackage{xcolor}
@@ -37,7 +40,7 @@
 \usepackage{algpseudocode}
 \usepackage{url}
 \usepackage{booktabs}
-\hypersetup{breaklinks=true, colorlinks, pdfborder={0 0 0}, linkcolor={red!60!black}, citecolor={blue!80!black}, urlcolor={blue!99!black}}
+\hypersetup{breaklinks=true, colorlinks, pdfborder={0 0 0}, linkcolor={red!50!black}, citecolor={blue!50!black}, urlcolor={blue!80!black}}
 \usepackage{float} 
 \usepackage{placeins}
 \usepackage{makeidx}
@@ -47,6 +50,17 @@
 \usepackage{etoolbox}
 \usepackage{calc}
 \usepackage{dirtree}
+\usepackage[bitstream-charter]{mathdesign}
+\urlstyle{sf}
+
+% Fix \cal and \mathcal characters look (so it's not the same as \mathscr)
+\DeclareSymbolFont{usualmathcal}{OMS}{cmsy}{m}{n}
+\DeclareSymbolFontAlphabet{\mathcal}{usualmathcal}
+
+
+% Prevent all line breaks in inline equations.
+\binoppenalty=10000
+\relpenalty=10000
 
 \makeatletter
 \renewcommand\paragraph{\@startsection{paragraph}{4}{\z@}%
@@ -118,11 +132,11 @@
   xrightmargin=3.4pt,
 }
 
-\newcommand{\ALFver}{dev.}          %{2.2}{dev.} version of ALF the tutorial uses
+\newcommand{\ALFver}{dev.}          %{2.2}{dev.} version of ALF this document refers to
 \newcommand{\ALFbranch}{master}   %{ALF-2.2}{master} corresponding ALF branch
-\newcommand{\pyALFver}{dev.}        %{2.2}{dev.} version of pyALF the tutorial uses
+\newcommand{\pyALFver}{dev.}        %{2.2}{dev.} version of pyALF that works with \ALFver
 \newcommand{\pyALFbranch}{master} %{ALF-2.2}{master} corresponding pyALF branch
-\newcommand{\tutALFver}{dev}       %{2.2}{dev} version of the tutorial - normally should be the same as \ALFver (ex.: 2.2, dev [no period after "dev", since it's also used in paths])
+\newcommand{\tutALFver}{dev}       %{2.2}{dev} version of the tutorial - normally should be the same as \ALFver (ex.: 2.2, dev [NO PERIOD AFTER "DEV", SINCE IT'S ALSO USED IN PATHS])
 
 \def\Tr{\mathop{\mathrm{Tr}}}
 \def\Trf{\mathop{\mathrm{Tr}_{\mathrm{F}}}}
@@ -197,7 +211,7 @@ The \emph{ALF} (\emph{A}lgorithms for \emph{L}attice \emph{F}ermions)\\project r
 
 % Author list
 \begin{center}
-The \textbf{ALF Collaboration\textsuperscript}{*}:
+The \textbf{ALF Collaboration\textsuperscript{$\star$}}:
 F.~F.~Assaad\textsuperscript{1,4},
 M.~Bercx\textsuperscript{1},
 F.~Goth\textsuperscript{1},
@@ -220,7 +234,7 @@ Rehovot, 76100, Israel\\
 Waterloo, Ontario N2L 2Y5, Canada\\
 {\bf 4} W\"urzburg-Dresden Cluster of Excellence ct.qmat, \\ Am Hubland, 97074 W\"urzburg, Germany
 
-\textsuperscript{*}\href{mailto:alf@physik.uni-wuerzburg.de}{alf@physik.uni-wuerzburg.de}
+${}^\star$\href{mailto:alf@physik.uni-wuerzburg.de}{\small \sf alf@physik.uni-wuerzburg.de}
 \end{center}
 
 \begin{center}
@@ -237,7 +251,7 @@ One can download the code from our Git instance at \url{https://git.physik.uni-w
 
 % We provide predefined types that allow the user to specify the model, the Bravais lattice as well as equal-time and time-displaced observables. The code supports an MPI implementation. Examples such as the Hubbard model on the honeycomb lattice and the Hubbard model on the square lattice coupled to a transverse Ising field are provided and discussed in the documentation. We furthermore discuss how to use the package to implement the Kondo lattice model and the SU(N)-Hubbard-Heisenberg model. }\\
 
-%\noindent Copyright \textcopyright ~2016--2020 The \textit{ALF} Project.\\
+%\noindent Copyright \textcopyright ~2016--2022 The \textit{ALF} Project.\\
 %This is the ALF Project Documentation. % by the ALF contributors.
 %It is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License.
 %You are free to share and benefit from this documentation as long as this license is preserved

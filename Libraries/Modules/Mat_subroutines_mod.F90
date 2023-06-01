@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 - 2020 The ALF project
+!  Copyright (C) 2016 - 2022 The ALF project
 !
 !  This file is part of the ALF project.
 !
@@ -32,6 +32,7 @@
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
 
+module mat_subroutines
 !--------------------------------------------------------------------
 !> @author
 !> ALF-project
@@ -41,6 +42,10 @@
 !> type.
 !
 !--------------------------------------------------------------------
+use runtime_error_mod
+implicit none
+
+contains
 
 subroutine ZSLGEMM(side, op, N, M1, M2, A, P, Mat)
 ! Small Large general matrix multiplication
@@ -83,7 +88,7 @@ subroutine ZSLGEMM(side, op, N, M1, M2, A, P, Mat)
           LEFT=.false.
         ELSE
           write(error_unit,*) 'ZSLGEMM: Illegal argument for side=',side,': It is not one of [R,r,L,l] !'
-          error stop 2
+          Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         ENDIF
 
         IF ( op == 'N' .or. op == 'n' ) THEN
@@ -94,7 +99,7 @@ subroutine ZSLGEMM(side, op, N, M1, M2, A, P, Mat)
           op_id=2
         ELSE
           write(error_unit,*) 'ZSLGEMM: Illegal argument for op=',op,': It is not one of [N,n,T,t,C,c] !'
-          error stop 2
+          Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         ENDIF
 
         alpha = 1.D0
@@ -953,7 +958,7 @@ subroutine ZSLHEMM(side, uplo, N, M1, M2, A, P, Mat)
 
         ELSE
           write(error_unit,*) 'ZSLHEMM: Illegal argument for side: It is not one of [R,r,L,l] !'
-          error stop 1
+          Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         ENDIF
 
 end subroutine ZSLHEMM
@@ -1004,7 +1009,7 @@ subroutine ZDSLSYMM(side, uplo, N, M1, M2, A, P, Mat)
         !only used in default case for n>4
         IF(N > 8) THEN
           IF(uplo=='L' .or. uplo=='l') THEN ! uplo == l unimplemented and never used in this case
-            ERROR STOP
+            Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
           ENDIF
           COMPACT = .TRUE.
           L = 1
@@ -1414,7 +1419,9 @@ subroutine ZDSLSYMM(side, uplo, N, M1, M2, A, P, Mat)
 
         ELSE
           write(error_unit,*) 'ZDSLSYMM: Illegal argument for side: It is not one of [R,r,L,l] !'
-          error stop 1
+          Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         ENDIF
 
 end subroutine ZDSLSYMM
+
+end module

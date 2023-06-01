@@ -150,7 +150,7 @@ Module Random_Wrap
        real (Kind=kind(0.D0)) ::  pi, ranmod, theta
        
        PI = 3.1415926536D0
-       RANMOD = SQRT(-2.D0 * LOG(RANF_Wrap(iq)))
+       RANMOD = SQRT(-2.D0 * log(RANF_Wrap(iq)))
        THETA  = 2.D0 * PI * RANF_wrap(iq)
        rang_wrap = RANMOD * COS(THETA)
        

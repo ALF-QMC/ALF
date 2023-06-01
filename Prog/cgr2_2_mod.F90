@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 - 2018  The ALF project
+!  Copyright (C) 2016 - 2022  The ALF project
 ! 
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -29,6 +29,11 @@
 !     - If you make substantial changes to the program we require you to either consider contributing
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
+module cgr2_2_mod
+   implicit none
+   private
+   public :: CGR2_2, solve_extended_system, get_blocks
+   contains
 
 !--------------------------------------------------------------------
 !> @author
@@ -67,7 +72,7 @@
 
       end Subroutine
 
-#if (defined(STAB2) || defined(STAB1)) && !defined(LOG)
+#if (defined(STAB2) || defined(STAB1)) && !defined(STABLOG)
 !--------------------------------------------------------------------
 !> @author
 !> Florian Goth
@@ -218,7 +223,7 @@
 
         Use MyMats
         Use UDV_State_mod
-#if (defined(STAB2) || defined(STAB1)) && !defined(LOG)   
+#if (defined(STAB2) || defined(STAB1)) && !defined(STABLOG)   
 
         Use UDV_WRAP_mod
         Implicit none
@@ -337,8 +342,8 @@
         IPVT = 0
         MYU2 = CONJG(TRANSPOSE(udv2%U))
         CALL INV(udv1%V, V1INV,Z)
-#if defined(STAB3) || defined(LOG)
-#if defined(LOG)
+#if defined(STAB3) || defined(STABLOG)
+#if defined(STABLOG)
         DO J=1,LQ
           !keep scales smaller than 1.0 in D1*U1 and D2*V2
           !bring scales larger that 1.0 with V1^-1 and U2^-1
@@ -377,7 +382,7 @@
         D1m=udv1%D
         D2m=udv2%D
 #endif
-#if defined(LOG)
+#if defined(STABLOG)
         If (udv1%L(1) >  udv2%L(1) ) Then
 #else 
         If (dble(udv1%D(1)) >  dble(udv2%D(1)) ) Then
@@ -413,3 +418,5 @@
         DEALLOCATE(MYU2, V1INV, HLPB1, HLPB2, WORK, IPVT, TAU, D3, D1m, D2m)
 #endif
       END SUBROUTINE CGR2_2
+
+end module cgr2_2_mod

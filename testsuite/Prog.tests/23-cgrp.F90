@@ -3,6 +3,7 @@
 
 Program TESTCGRP
 USE UDV_State_mod
+use cgr1_mod
 implicit none
 interface
       SUBROUTINE CGRPold(PHASE, GRUP, udvr, udvl)
@@ -11,13 +12,6 @@ interface
         COMPLEX(Kind=Kind(0.D0)), Dimension(:,:), Intent(INOUT) :: GRUP
         COMPLEX(Kind=Kind(0.D0)), Intent(INOUT) :: PHASE
         end subroutine CGRPold
-        
-      SUBROUTINE CGRP(PHASE, GRUP, udvr, udvl)
-        USE UDV_State_mod
-        CLASS(UDV_State), INTENT(IN) :: udvr, udvl
-        COMPLEX(Kind=Kind(0.D0)), Dimension(:,:), Intent(INOUT) :: GRUP
-        COMPLEX(Kind=Kind(0.D0)), Intent(INOUT) :: PHASE
-        end subroutine CGRP
 end interface
 
         TYPE(UDV_State) :: udvr, udvl

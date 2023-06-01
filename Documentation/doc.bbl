@@ -586,6 +586,7 @@ J.~Hirsch,
 A.~D. Sokal,
 \newblock \emph{{M}onte {C}arlo methods in statistical mechanics: Foundations
   and new algorithms},
+\newblock \doi{10.1007/978-1-4899-0319-8_6},
 \newblock Lecture notes from Cours de Troisi\`eme Cycle de la Physique en
   Suisse Romande. Updated in 1996 for the Carg\`ese Summer School on
   ``Functional Integration: Basics and Applications'' (1989).
@@ -865,7 +866,9 @@ E.~Loh, J.~Gubernatis, R.~Scalettar, R.~Sugar and S.~White,
 \newblock \emph{Stable matrix-multiplication algorithms for low-temperature
   numerical simulations of fermions},
 \newblock In \emph{Interacting Electrons in Reduced Dimensions}, pp. 55--60.
-  Springer (1989).
+  Springer,
+\newblock ISBN 978-1-4613-0565-1,
+\newblock \doi{10.1007/978-1-4613-0565-1} (1989).
 
 \bibitem{Loh2005}
 E.~Y. LOH, J.~E. GUBERNATIS, R.~T. SCALETTAR, S.~R. WHITE, D.~J. SCALAPINO and
@@ -930,8 +933,8 @@ D.~Ixert, F.~F. Assaad and K.~P. Schmidt,
 \bibitem{Negele}
 J.~W. Negele and H.~Orland,
 \newblock \emph{Quantum Many body systems},
-\newblock Frontiers in physics. Addison-Wesley, Redwood City, Calif. u.a.
-  (1988).
+\newblock Frontiers in physics. Addison-Wesley, Redwood City, Calif. u.a.,
+\newblock ISBN 9780201125931 (1988).
 
 \bibitem{Krauth2006}
 W.~Krauth,
@@ -940,8 +943,9 @@ W.~Krauth,
 
 \bibitem{Geyer1992}
 C.~J. Geyer,
-\newblock \emph{Practical markov chain monte carlo},
-\newblock Statistical Science \textbf{7}(4), 473 (1992).
+\newblock \emph{Practical {M}arkov chain {M}onte {C}arlo},
+\newblock Statistical Science \textbf{7}(4), 473 (1992),
+\newblock \doi{10.1214/ss/1177011137}.
 
 \bibitem{neal1993}
 R.~M. Neal,
@@ -1068,6 +1072,7 @@ A.~N. Rubtsov, V.~V. Savkin and A.~I. Lichtenstein,
 {J\"ulich Supercomputing Centre},
 \newblock \emph{{JURECA: General-purpose supercomputer at J\"ulich
   Supercomputing Centre}},
-\newblock Journal of large-scale research facilities \textbf{2}, A62 (2016).
+\newblock Journal of large-scale research facilities \textbf{2}, A62 (2016),
+\newblock \doi{10.17815/jlsrf-2-121}.
 
 \end{thebibliography}

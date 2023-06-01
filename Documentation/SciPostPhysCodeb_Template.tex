@@ -1,40 +1,99 @@
 % =========================================================================
 % SciPost LaTeX template
-% Version 1e (2017-10-31)
+% Version 2021-08
 %
 % Submissions to SciPost Journals should make use of this template.
 %
 % INSTRUCTIONS: simply look for the `TODO:' tokens and adapt your file.
 %
-% - please enable line numbers (package: lineno)
-% - you should run LaTeX twice in order for the line numbers to appear
+% You can also make use of our empty "skeleton" templates for each Journal,
+% e.g. SciPostPhys_skeleton.tex
 % =========================================================================
 
 
 % TODO: uncomment ONE of the class declarations below
-% If you are submitting a paper to SciPost Physics: uncomment next line
-\documentclass[submission, Phys]{SciPost}
-% If you are submitting a paper to SciPost Physics Lecture Notes: uncomment next line
-%\documentclass[submission, LectureNotes]{SciPost}
-% If you are submitting a paper to SciPost Physics Proceedings: uncomment next line
-%\documentclass[submission, Proceedings]{SciPost}
 
+% Class declaration format: \documentclass[submission, {DOI label of journal}]{SciPost}
+% where the DOI label of the journal should be one of:
+% Phys          (for SciPost Physics)
+% PhysCore      (for SciPost Physics Core)
+% PhysLectNotes (for SciPost Physics Lecture Notes)
+% PhysProc      (for SciPost Physics Proceedings -> !! Please use the conference-specific template which you will find on our website !!
+% PhysCodeb     (for SciPost Physics Codebases)
+% Astro         (for SciPost Astronomy)
+% Bio           (for SciPost Biology)
+% Chem          (for SciPost Chemistry)
+% CompSci       (for SciPost Computer Science)
+% Math          (for SciPost Mathematics)
+
+
+%% PHYSICS:
+% If you are submitting a paper to SciPost Physics: uncomment next line
+%\documentclass[submission, Phys]{SciPost}
+% If you are submitting a paper to SciPost Physics Core: uncomment next line
+%\documentclass[submission, PhysCore]{SciPost}
+% If you are submitting a paper to SciPost Physics Lecture Notes: uncomment next line
+%\documentclass[submission, PhysLectNotes]{SciPost}
+% If you are submitting a paper to SciPost Physics Proceedings: uncomment next line
+%\documentclass[submission, PhysProc]{SciPost}
+% If you are submitting a paper to SciPost Physics Codebases: uncomment next line
+\documentclass[submission, PhysCodeb]{SciPost}
+
+%% ASTRONOMY:
+% If you are submitting a paper to SciPost Astronomy: uncomment next line
+% \documentclass[submission, Astro]{SciPost}
+
+%% BIOLOGY:
+% If you are submitting a paper to SciPost Biology: uncomment next line
+% \documentclass[submission, Bio]{SciPost}
+
+%% CHEMISTRY:
+% If you are submitting a paper to SciPost Chemistry: uncomment next line
+% \documentclass[submission, Chem]{SciPost}
+
+%% COMPUTER SCIENCE:
+% If you are submitting a paper to SciPost Computer Science: uncomment next line
+% \documentclass[submission, CompSci]{SciPost}
+
+%% MATHEMATICS:
+% If you are submitting a paper to SciPost Mathematics: uncomment next line
+% \documentclass[submission, Math]{SciPost}
+
+
+
+% Prevent all line breaks in inline equations.
+\binoppenalty=10000
+\relpenalty=10000
+
+\hypersetup{
+    colorlinks,
+    linkcolor={red!50!black},
+    citecolor={blue!50!black},
+    urlcolor={blue!80!black}
+}
+
+\usepackage[bitstream-charter]{mathdesign}
+\urlstyle{sf}
+
+% Fix \cal and \mathcal characters look (so it's not the same as \mathscr)
+\DeclareSymbolFont{usualmathcal}{OMS}{cmsy}{m}{n}
+\DeclareSymbolFontAlphabet{\mathcal}{usualmathcal}
 
 \begin{document}
 
 % TODO: write your article's title here.
 % The article title is centered, Large boldface, and should fit in two lines
 \begin{center}{\Large \textbf{
-Article Title, as descriptive as possible, ideally fitting in two lines (approximately 150 characters) or less
+Article Title, as descriptive as possible, ideally fitting in two lines (approximately 150 characters) or less\\
 }}\end{center}
 
-% TODO: write the author list here. Use initials + surname format.
-% Separate subsequent authors by a comma, omit comma at the end of the list.
-% Mark the corresponding author with a superscript *.
+% TODO: write the author list here. Use first name (+ other initials) + surname format.
+% Separate subsequent authors by a comma, omit comma and use "and" for the last author.
+% Mark the corresponding author with a superscript star.
 \begin{center}
-D. E. Faa\textsuperscript{1},
-A. B. Cee\textsuperscript{2},
-G. K. See\textsuperscript{3*}
+Dee E. Faa\textsuperscript{1},
+Aah B. Cee\textsuperscript{2} and
+Gee K. See\textsuperscript{3$\star$}
 \end{center}
 
 % TODO: write all affiliations here.
@@ -47,15 +106,17 @@ G. K. See\textsuperscript{3*}
 {\bf 3} Affiliation2
 \\
 % TODO: provide email address of corresponding author
-* CorrespondingAuthor@email.address
+${}^\star$ {\small \sf CorrespondingAuthor@email.address}
 \end{center}
 
 \begin{center}
 \today
 \end{center}
 
-% For convenience during refereeing: line numbers
+% For convenience during refereeing (optional),
+% you can turn on line numbers by uncommenting the next line:
 %\linenumbers
+% You should run LaTeX twice in order for the line numbers to appear.
 
 \section*{Abstract}
 {\bf
@@ -63,7 +124,6 @@ G. K. See\textsuperscript{3*}
 The abstract is in boldface, and should fit in 8 lines.
 It should be written in a clear and accessible style, emphasizing the context, the problem(s) studied, the methods used, the results obtained, the conclusions reached, and the outlook. You can add a table contents, recommended if your paper is more than 6 pages long.
 }
-
 
 % TODO: include a table of contents (optional)
 % Guideline: if your paper is longer that 6 pages, include a TOC

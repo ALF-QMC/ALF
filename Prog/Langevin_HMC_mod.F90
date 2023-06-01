@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 - 2020 The ALF project
+!  Copyright (C) 2016 - 2022 The ALF project
 ! 
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -30,13 +30,23 @@
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
 
+! TODO ATTENTION: this module still has to be updated for flavor symmetries!!!
+
+
       Module Langevin_HMC_mod
         
+        Use runtime_error_mod 
         Use Hamiltonian_main
         Use UDV_State_mod
         Use Control
         Use Hop_mod
+        use wrapur_mod
+        use wrapul_mod
+        use cgr1_mod
         Use iso_fortran_env, only: output_unit, error_unit
+#ifdef MPI
+        Use mpi
+#endif
 
         
         Implicit none
@@ -86,33 +96,6 @@
       SUBROUTINE  Langevin_HMC_Forces(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst, LOBS_ST, LOBS_EN,Calc_Obser_eq)
         Implicit none
         
-        Interface
-           SUBROUTINE WRAPUR(NTAU, NTAU1, UDVR)
-             Use Hamiltonian_main
-             Use UDV_Wrap_mod
-             Use UDV_State_mod
-             Implicit None
-             CLASS(UDV_State), intent(inout), allocatable, dimension(:) :: UDVR
-             Integer :: NTAU1, NTAU
-           END SUBROUTINE WRAPUR
-           SUBROUTINE WRAPUL(NTAU1, NTAU, UDVL)
-             Use Hamiltonian_main
-             Use UDV_State_mod
-             Implicit none
-             CLASS(UDV_State), intent(inout), allocatable, dimension(:) :: UDVL
-             Integer :: NTAU1, NTAU
-           END SUBROUTINE WRAPUL
-           SUBROUTINE CGR(PHASE,NVAR, GRUP, udvr, udvl)
-             Use UDV_Wrap_mod
-             Use UDV_State_mod
-             Implicit None
-             CLASS(UDV_State), INTENT(IN) :: UDVL, UDVR
-             COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(Inout) :: GRUP
-             COMPLEX(Kind=Kind(0.d0)) :: PHASE
-             INTEGER         :: NVAR
-           END SUBROUTINE CGR
-        end Interface
-        
         CLASS(UDV_State), intent(inout), allocatable, dimension(:  ) :: udvl, udvr
         CLASS(UDV_State), intent(in), allocatable, dimension(:,:)    :: udvst
         Complex (Kind=Kind(0.d0)), intent(inout)                     :: Phase
@@ -124,8 +107,8 @@
         
 
         !Local
-        Integer :: NSTM, n, nf, NST, NTAU, nt, nt1, Ntau1, NVAR, N_Type, I, J
-        Complex (Kind=Kind(0.d0)) :: Z, Z1
+        Integer :: NSTM, n, nf, nf_eff, NST, NTAU, nt, nt1, Ntau1, NVAR, N_Type, I, J
+        Complex (Kind=Kind(0.d0)) :: Z, Z1, Phase_array(N_FL)
         Real    (Kind=Kind(0.d0)) :: spin
         
         NSTM = Size(Stab_nt,1) - 1 
@@ -134,11 +117,11 @@
         !Enddo
         
         Langevin_HMC%Forces = cmplx(0.d0,0.d0,Kind(0.d0))
-        do nf = 1,N_FL
+        do nf_eff = 1,N_FL_eff
            if (Projector) then
-              CALL udvr(nf)%reset('r',WF_R(nf)%P)
+              CALL udvr(nf_eff)%reset('r',WF_R(nf_eff)%P)
            else
-              CALL udvr(nf)%reset('r')
+              CALL udvr(nf_eff)%reset('r')
            endif
         Enddo
         NST = 1
@@ -150,18 +133,22 @@
            If (NTAU1 == Stab_nt(NST) ) then 
               NT1 = Stab_nt(NST-1)
               CALL WRAPUR(NT1, NTAU1, udvr)
-              Z = cmplx(1.d0, 0.d0, kind(0.D0))
-              Do nf = 1, N_FL
+              Phase_array = cmplx(1.d0, 0.d0, kind(0.D0))
+              Do nf_eff = 1, N_FL_eff
+                 nf=Calc_FL_map(nf_eff)
                  ! Read from storage left propagation from LTROT to  NTAU1
-                 udvl(nf) = udvst(NST, nf)
+                 udvl(nf_eff) = udvst(NST, nf_eff)
                  NVAR = 1
                  IF (NTAU1 .GT. LTROT/2) NVAR = 2
                  TEST(:,:) = GR(:,:,nf)
-                 CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
-                 Z = Z*Z1
+                 CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf_eff), UDVL(nf_eff))
                  Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
+                 call Op_phase(Z1,OP_V,Nsigma,nf) 
+                 Phase_array(nf)=Z1
               ENDDO
-              call Op_phase(Z,OP_V,Nsigma,N_SUN) 
+              if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
+              Z=product(Phase_array)
+              Z=Z**N_SUN 
               Call Control_PrecisionP(Z,Phase)
               Phase = Z
               NST = NST + 1
@@ -170,8 +157,10 @@
            IF (NTAU1 .GE. LOBS_ST .AND. NTAU1 .LE. LOBS_EN .and. Calc_Obser_eq ) THEN
               If (Symm) then
                  Call Hop_mod_Symm(GR_Tilde,GR)
+                 If (reconstruction_needed) Call ham%GR_reconstruction( GR_Tilde )
                  CALL ham%Obser( GR_Tilde, PHASE, Ntau1,Langevin_HMC%Delta_t_running )
               else
+               If (reconstruction_needed) Call ham%GR_reconstruction( GR )
                  CALL ham%Obser( GR, PHASE, Ntau1, Langevin_HMC%Delta_t_running )
               endif
            endif
@@ -200,36 +189,43 @@
 
         
         !Local
-        Complex (Kind=Kind(0.d0)) :: Z, Z1
-        Integer ::  nf, I, J, n, N_type
+        Complex (Kind=Kind(0.d0)) :: Z(N_FL), Z1
+        Integer ::  nf, I, J, n, N_type, nf_eff
         Real(Kind=Kind(0.d0)) :: spin
 
 
-        Do nf = 1,N_FL
+        Do nf_eff = 1,N_FL_eff
+           nf=Calc_FL_map(nf_eff)
            CALL HOP_MOD_mmthr   (GR(:,:,nf), nf )
            CALL HOP_MOD_mmthl_m1(GR(:,:,nf), nf )
         Enddo
         Do n = 1, size(OP_V,1) 
            this%Forces(n,nt1)  = cmplx(0.d0,0.d0,Kind(0.d0))
-           Do nf = 1, N_FL
+           Do nf_eff = 1, N_FL_eff
+              nf=Calc_FL_map(nf_eff)
               spin = nsigma%f(n,nt1) ! Phi(nsigma(n,ntau1),Op_V(n,nf)%type)
               N_type = 1
               Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type)
               N_type =  2
               Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type)
            enddo
+           !TODO how does flavor symmetry effect section below? I feel like skipping some flavors is incorrect!
            if (OP_V(n,1)%type == 3 ) then
-              Do nf = 1, N_Fl
-                 Z = cmplx(0.d0,0.d0,Kind(0.d0))
+              Z = cmplx(0.d0,0.d0,Kind(0.d0))
+              Do nf_eff = 1, N_Fl_eff
+                 nf=Calc_FL_map(nf_eff)
                  do I = 1,size(OP_V(n,nf)%P,1)
                     do J = 1,size(OP_V(n,nf)%P,1)
                        Z1 =  cmplx(0.d0,0.d0,Kind(0.d0))
                        if ( I == J ) Z1 = cmplx(1.d0,0.d0,Kind(0.d0))
-                       Z  = Z +    Op_V(n,nf)%O(I,J) * ( Z1 - Gr(Op_V(n,nf)%P(J),Op_V(n,nf)%P(I), nf) )
+                       Z(nf)  = Z(nf) +    Op_V(n,nf)%O(I,J) * ( Z1 - Gr(Op_V(n,nf)%P(J),Op_V(n,nf)%P(I), nf) )
                     Enddo
                  Enddo
+              Enddo
+              if (reconstruction_needed) call ham%weight_reconstruction(Z)
+              Do nf = 1, N_Fl
                  this%Forces(n,nt1) =  this%Forces(n,nt1)  - &
-                      &    Op_V(n,nf)%g * Z *  cmplx(real(N_SUN,Kind(0.d0)), 0.d0, Kind(0.d0)) 
+                      &    Op_V(n,nf)%g * Z(nf) *  cmplx(real(N_SUN,Kind(0.d0)), 0.d0, Kind(0.d0)) 
               Enddo
            endif
         enddo
@@ -249,33 +245,6 @@
 
         Implicit none
         
-        Interface
-           SUBROUTINE WRAPUR(NTAU, NTAU1, UDVR)
-             Use Hamiltonian_main
-             Use UDV_Wrap_mod
-             Use UDV_State_mod
-             Implicit None
-             CLASS(UDV_State), intent(inout), allocatable, dimension(:) :: UDVR
-             Integer :: NTAU1, NTAU
-           END SUBROUTINE WRAPUR
-           SUBROUTINE WRAPUL(NTAU1, NTAU, UDVL)
-             Use Hamiltonian_main
-             Use UDV_State_mod
-             Implicit none
-             CLASS(UDV_State), intent(inout), allocatable, dimension(:) :: UDVL
-             Integer :: NTAU1, NTAU
-           END SUBROUTINE WRAPUL
-           SUBROUTINE CGR(PHASE,NVAR, GRUP, udvr, udvl)
-             Use UDV_Wrap_mod
-             Use UDV_State_mod
-             Implicit None
-             CLASS(UDV_State), INTENT(IN) :: UDVL, UDVR
-             COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(Inout) :: GRUP
-             COMPLEX(Kind=Kind(0.d0)) :: PHASE
-             INTEGER         :: NVAR
-           END SUBROUTINE CGR
-        end Interface
-        
         CLASS(UDV_State), intent(inout), allocatable, dimension(:  ) :: udvl, udvr
         CLASS(UDV_State), intent(inout), allocatable, dimension(:,:) :: udvst
         Complex (Kind=Kind(0.d0)), intent(inout) :: Phase
@@ -283,18 +252,19 @@
         Integer, intent(in),  dimension(:), allocatable :: Stab_nt
                   
         ! Local
-        Integer :: NSTM, nf,  nt, nt1,  NST, NVAR
-        Complex (Kind=Kind(0.d0)) :: Z
+        Integer :: NSTM, nf,  nt, nt1,  NST, NVAR, nf_eff
+        Complex (Kind=Kind(0.d0)) :: Z, Phase_array(N_FL)
 
         
         NSTM = Size(Stab_nt,1) - 1 
-        Do nf = 1,N_FL
+        Do nf_eff = 1,N_FL_eff
+           nf=Calc_FL_map(nf_eff)
            if (Projector) then
-              CALL udvl(nf)%reset('l',WF_L(nf)%P)
-              CALL udvst(NSTM, nf)%reset('l',WF_L(nf)%P)
+              CALL udvl(nf_eff)%reset('l',WF_L(nf)%P)
+              CALL udvst(NSTM, nf_eff)%reset('l',WF_L(nf)%P)
            else
-              CALL udvl(nf)%reset('l')
-              CALL udvst(NSTM, nf)%reset('l')
+              CALL udvl(nf_eff)%reset('l')
+              CALL udvst(NSTM, nf_eff)%reset('l')
            endif
         ENDDO
 
@@ -304,28 +274,33 @@
            NT  = Stab_nt(NST  )
            !Write(6,*)'Hi', NT1,NT, NST
            CALL WRAPUL(NT1, NT, UDVL)
-           Do nf = 1,N_FL
-              UDVST(NST, nf) = UDVL(nf)
+           Do nf_eff = 1,N_FL_eff
+              UDVST(NST, nf_eff) = UDVL(nf_eff)
            ENDDO
         ENDDO
         NT1 = stab_nt(1)
         CALL WRAPUL(NT1, 0, UDVL)
         
-        do nf = 1,N_FL
+        do nf_eff = 1,N_FL_eff
+           nf=Calc_FL_map(nf_eff)
            if (Projector) then
-              CALL udvr(nf)%reset('r',WF_R(nf)%P)
+              CALL udvr(nf_eff)%reset('r',WF_R(nf)%P)
            else
-              CALL udvr(nf)%reset('r')
+              CALL udvr(nf_eff)%reset('r')
            endif
         ENDDO
         
         NVAR = 1
-        Phase = cmplx(1.d0, 0.d0, kind(0.D0))
-        do nf = 1,N_Fl
-           CALL CGR(Z, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
-           Phase = Phase*Z
+        Phase_array = cmplx(1.d0, 0.d0, kind(0.D0))
+        do nf_eff = 1,N_Fl_eff
+           nf=Calc_FL_map(nf_eff)
+           CALL CGR(Z, NVAR, GR(:,:,nf), UDVR(nf_eff), UDVL(nf_eff))
+           call Op_phase(Z,OP_V,Nsigma,nf)
+           Phase_array(nf)=Z
         Enddo
-        call Op_phase(Phase,OP_V,Nsigma,N_SUN)
+        if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
+        Phase=product(Phase_array)
+        Phase=Phase**N_SUN
 
       end Subroutine Langevin_HMC_Reset_storage
       
@@ -404,11 +379,11 @@
            this%L_Forces = .False. 
         case("HMC")
            WRITE(error_unit,*) 'HMC  step is not yet implemented'
-           error stop 1
+           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         case default
            WRITE(error_unit,*) 'Unknown Global_update_scheme ', trim(this%Update_scheme) 
            WRITE(error_unit,*) 'Global_update_scheme is Langevin or HMC'
-           error stop 1
+           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         end select
            
       end SUBROUTINE Langevin_HMC_update
@@ -425,9 +400,6 @@
 
       
       SUBROUTINE  Langevin_HMC_setup(this,Langevin,HMC, Delta_t_Langevin_HMC, Max_Force, Leapfrog_steps )
-#ifdef MPI
-        Use mpi
-#endif
 
         Implicit none
 
@@ -458,7 +430,7 @@
            Do i = 1, Nr
               if ( nsigma%t(i) /= 3 ) then
                  WRITE(error_unit,*) 'For the Langevin runs, all fields have to be of type 3'
-                 error stop 1
+                 CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
               endif
            enddo
            Allocate ( this%Forces(Nr,Nt),  this%Forces_0(Nr,Nt) )
@@ -492,7 +464,7 @@
            endif
         elseif (HMC) then
            WRITE(error_unit,*) 'HMC  step is not yet implemented'
-           error stop 1
+           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         else
            this%Update_scheme        =  "None"
         endif
@@ -508,10 +480,6 @@
 !--------------------------------------------------------------------
 
       SUBROUTINE  Langevin_HMC_clear(this) 
-
-#ifdef MPI
-        Use mpi
-#endif
 
         Implicit none
 
@@ -551,7 +519,7 @@
            Deallocate ( Langevin_HMC%Forces, Langevin_HMC%Forces_0 )
         case ("HMC")
            WRITE(error_unit,*) 'HMC  step is not yet implemented'
-           error stop 1
+           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         case default
         end select
       end SUBROUTINE Langevin_HMC_clear

@@ -131,8 +131,8 @@ For such auxiliary fields a dedicated type \texttt{Fields} is defined, whose com
 		\multicolumn{2}{@{}l@{}}{ \texttt{Field\%out(Group\_Comm)}}   & Writes out the field configuration  \\\bottomrule
 	\end{tabular}
 	\caption{Components of a variable of type \texttt{Fields} named \texttt{Field}.  The routine \texttt{Fields\_init(del)} should be called before the use of this variable type, since it initializes necessary internal variables such as  $\eta(l)$, $\gamma(l)$  [see Eq.~\eqref{eta_gamma_fields}]. Note that \texttt{del}  and \texttt{amplitude}  are private variables of the fields module. The integers \texttt{n\_op} and \texttt{Ltrot} are the number of interacting operators  per time slice and time slices, respectively, \texttt{Group\_Comm} (integer) is an MPI communicator defined by the main program, and the optional \texttt{In\_field} stores the initial field configuration.}
-    \end{center}
 	\label{table:Fields}
+    \end{center}
 \end{table}
 %
 
@@ -472,16 +472,14 @@ To simplify  the implementation of a new Hamiltonian, ALF comes with a set of pr
     \hl{\texttt{Projector}}   & \path{logical}          & Enable projector code \\
     \texttt{Group\_Comm}      & \path{int}              & Group communicator for MPI \\
     \hl{\texttt{Symm}}        & \path{logical}          & Symmetric trotter \\
+    \texttt{Calc\_Fl}         & \path{logical}          & Explicitly calculation of flavors (optional) \\
      \bottomrule
    \toprule
-    Private Variable           &  Type                & Description \\
+    Private Variable          &  Type                   & Description \\
     \midrule
-    \texttt{Obs\_scal}         & \path{Obser_Vec}  & 
-       Storage for measured scalar observables \\
-    \texttt{Obs\_eq}           & \path{Obser_Latt} & 
-       Storage for measured equal time correlations \\
-    \texttt{Obs\_tau}          & \path{Obser_Latt} & 
-       Storage for measured time displaced correlations \\
+    \texttt{Obs\_scal}        & \path{Obser_Vec}        & Storage for measured scalar observables \\
+    \texttt{Obs\_eq}          & \path{Obser_Latt}       & Storage for measured equal time correlations \\
+    \texttt{Obs\_tau}         & \path{Obser_Latt}       & Storage for measured time displaced correlations \\
      \bottomrule
    \end{tabular}
    \caption{List of the public and private variables declared in the module \texttt{Hamiltonian}. The \hl{highlighted} variables have to be set in the subroutine \texttt{ham\_set}.}
@@ -549,7 +547,13 @@ To simplify  the implementation of a new Hamiltonian, ALF comes with a set of pr
    \texttt{Pr\_obs}   &
       Writes the observables to disk by calling
       \texttt{Print\_bin} of the \texttt{Observables} module.
-      Usually, this doesn't have to be modified. &   
+      Usually this does not have to be modified &   \\    
+      \texttt{weight\_reconstruction}   &
+      Reconstructs of the weight for `inactive' flavors &  \ref{sec:flavor_sym}  \\    
+      \texttt{GR\_reconstruction}   &
+      Reconstructs the Green function \texttt{GR} for the `inactive' flavors &  \ref{sec:flavor_sym}  \\    
+      \texttt{GRT\_reconstruction}   &
+      Reconstructs the time-displaced Green functions \texttt{G0T} and \texttt{GT0} & \ref{sec:flavor_sym}
  \\\bottomrule   
  \end{tabular}
 \caption{Typebound procedures bound to type \texttt{ham\_base}. To define a new model, at least \texttt{Ham\_Set} has to be overloaded in the Hamiltonian submodule. For measurements \texttt{Alloc\_obs}, \texttt{Obser} (and \texttt{ObserT} for time displaced observables) are necessary.
@@ -614,4 +618,26 @@ we  define  the corresponding doubled array \texttt{Op\_V(M$_V$+M$_I$,N$_\mathrm
 
 \end{itemize}
 
+\subsubsection{Flavor symmetries}
+\label{sec:flavor_sym}
 
+This code allows the use of time-reversal or particle-hole symmetry to accelerate the algorithm by only explicitly calculating a subset of flavors and reconstructing the complement by symmetry.
+Here, a pair of flavors $(n_\mathrm{fl},\bar{n}_\mathrm{fl})$ are related by a unitary or anti-unitary symmetry, including particle-hole transformations, such that
+\begin{equation}
+	\mathcal{U}^{-1} \texttt{Op\_V(i,n$_\mathrm{fl}$)} \mathcal{U} = \texttt{Op\_V(i,$\bar{n}_\mathrm{fl}$)}; \quad 
+	\mathcal{U}^{-1} \texttt{Op\_T(i,n$_\mathrm{fl}$)} \mathcal{U} = \texttt{Op\_T(i,$\bar{n}_\mathrm{fl}$)}
+\end{equation}
+for any given $i$. Note that \texttt{Op\_V(i,n$_\mathrm{fl}$)} includes a constant shift $\alpha$ to absorb contributions from the commutator in case of particle-hole symmetries.
+For example, the particle-hole symmetry requires a non-zero shift $\alpha=1/2$ in the $M_z$ decoupling of the Hubbard interaction to map the upspin to the downspin.
+This acceleration is activated by allocating \texttt{Calc\_Fl} in \texttt{Ham\_set} and setting the `active' flavors $n_\mathrm{fl}$ to \texttt{.True.} and the symmetry-related flavors $\bar{n}_\mathrm{fl}$ to \texttt{.False.}.
+
+This symmetry allows one to reconstruct one flavor, say $\bar{n}_\mathrm{fl}$, from the other, $n_\mathrm{fl}$. For unitary symmetries, the weight is given by $Z(\bar{n}_\mathrm{fl})=Z(n_\mathrm{fl})$, while anti-unitary symmetries lead to $Z(\bar{n}_\mathrm{fl})=Z(n_\mathrm{fl})^*$. This relation has to be provided by the user in  \texttt{weight\_reconstruction}. Up to entry, all weights $Z(n_\mathrm{fl})$ have be explicitly calculated by ALF and the user has to fill all `inactive' flavors $\bar{n}_\mathrm{fl}$ of the array $Z$.
+Similarly, the subroutines \texttt{GR\_reconstruction} and \texttt{GRT\_reconstruction} have to be overridden to provide the symmetry reconstruction of the `inactive' flavors $\bar{n}_\mathrm{fl}$ of the equal-time and time-displaced Green functions out of $n_\mathrm{fl}$, respectively.   
+
+Finally  we  note  that   if  the projective  algorithm is  used  then   the  trial  wave  function  also has  to satisfy  the   aforementioned  symmetry.  
+In particular,  
+assume  that  the   trial wave function    corresponds  to the  ground state of a  single  particle  Hamiltonian,   $\hat{H}_T(n_\mathrm{fl}) $,  then  we  
+will require  that  
+\begin{equation}
+\mathcal{U}^{-1}   \hat{H}_T(n_\mathrm{fl})  \mathcal{U} = \hat{H}_T(\bar{n}_\mathrm{fl})  
+\end{equation}

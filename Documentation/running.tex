@@ -16,8 +16,8 @@ A Python interface, \textbf{pyALF}, is also available and can be found, together
 We start out by providing step-by-step instructions that allow a first-time user to go from zero to performing a simulation and reading out their first measurement using ALF.
 
 %-------------------------------------------------------------------------------------
-\subsection{Zeroth step}
-\label{sec:zeroth}
+\subsection{Quick Start}
+\label{sec:quick_alf}
 %-------------------------------------------------------------------------------------
 
 The aim of this section is to provide a fruitful and stress-free first contact with the package. Ideally, it should be possible to copy and paste the instructions below to a Debian/Ubuntu-based Linux shell without further thought\footnote{For other systems and distributions see the package's  \href{https://git.physik.uni-wuerzburg.de/ALF/ALF/-/blob/\ALFbranch/README.md}{README}.}. Explanations and further options and details are found in the remaining sections and in the \href{https://git.physik.uni-wuerzburg.de/ALF/ALF_Tutorial/-/blob/master/Tutorial-ALF-\tutALFver/}{Tutorial}.
@@ -136,6 +136,8 @@ Typical values are 1.0 or 2.0 GB, but larger values can be used, if otherwise th
 If \texttt{ALF\_SHM\_CHUNK\_SIZE\_GB} is not defined or set to values smaller that one, then the memory is not shared between MPI processes, which is the default behavior.
 
 To restart the code using the configuration from a previous simulation as a starting point, first run the script \texttt{out\_to\_in.sh}, which copies outputted field configurations into input files, before calling the ALF executable.   This file is located in the  directory \path{$ALF_DIR/Scripts_and_Parameters_files/Start/}
+
+Notice that, when compiled with DHF5 the code checks whether the parameters stored in existing data files have the same values as those in the parameter file and exit with an error when they do not.
 
 %
 %-------------------------------------------------------------------------------------

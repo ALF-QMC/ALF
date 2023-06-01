@@ -14,7 +14,27 @@ g(\tau) =  \int_{\omega_\mathrm{start}}^{\omega_\mathrm{end}} \d{\omega} K(\tau,
 The  ALF package includes a standard implementation of the stochastic MaxEnt, as formulated in the article of K. Beach~\cite{Beach04a}, in the module \texttt{Libraries/Modules/\allowbreak{}maxent\_stoch\_mod.F90}. Its wrapper is found in \texttt{Analysis/Max\_SAC.F90} and the Green function is read from the
 %file \texttt{g\_dat}, corresponding to the 
 output of the \texttt{cov\_tau.F90} analysis program.
-%Here we will comment on the method's workflow.
+
+In the next section we provide a quick guide on how this facility can be used, followed by sections with more detailed information.
+
+
+\subsection{Quick Start}
+\label{sec:quick_maxent}
+
+\begin{itemize}[itemsep=0pt]
+	\item Before running the simulation, set in the file \texttt{parameters} the variable \texttt{Ltau=1}, so that the necessary time-displaced Green functions are calculated; also set a large enough number of bins
+	\item Also in the \texttt{parameters} file, set \texttt{N\_Cov=0} (for shorter runs; \texttt{N\_Cov=1} might give more reliable error estimates)
+	\item Run the Monte Carlo simulation and the analysis:\\
+		\lstinline[style=bash]{$ALF_DIR/Prog/ALF.out}\\
+		\lstinline[style=bash]{$ALF_DIR/Analysis/ana.out *}
+	\item Then enter the desired results directory, e.g., \texttt{Green\_0.00\_0.00} (they're named in the pattern \texttt{Variable\_name\_kx\_ky}) and copy the parameter file to it:\\
+		\lstinline[style=bash,morekeywords={cd,cp}]{cd Green_0.00_0.00/ && cp ../parameters .}
+	\item Run MaxEnt:\\
+		\lstinline[style=bash]{$ALF_DIR/Analysis/Max_SAC.out}
+\end{itemize}
+
+For many purposes it is practical to script some of the steps above, and an example of such a script can be found in \texttt{\$ALF\_DIR/Scripts\_and\_Parameters\_files/Spectral.sh}.
+
 
 \subsection{General setup}
 

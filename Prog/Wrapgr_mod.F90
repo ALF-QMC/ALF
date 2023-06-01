@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 - 2018 The ALF project
+!  Copyright (C) 2016 - 2022 The ALF project
 ! 
 !  This file is part of the ALF project.
 ! 
@@ -49,6 +49,9 @@ Module Wrapgr_mod
   Use Control
   Use Random_Wrap
   Use Fields_mod
+  Use Hamiltonian_main
+  Use Hop_mod
+  use upgrade_mod
 
   Implicit none
 
@@ -86,30 +89,7 @@ Contains
 !> NTAU: [0:LTROT-1]
 !
 !--------------------------------------------------------------------
- 
-    Use Hamiltonian_main
-    Use Hop_mod
     Implicit none
-    
-    Interface
-       Subroutine Upgrade2(GR,N_op,NT,PHASE,Hs_new, Prev_Ratiotot, S0_ratio, T0_proposal_ratio, toggle,  mode) 
-       
-         Use Hamiltonian_main
-         Use Random_wrap
-         Use Control
-         Use Fields_mod
-         Implicit none 
-         
-         Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: GR(Ndim,Ndim, N_FL)
-         Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Prev_Ratiotot
-         Integer                  , INTENT(IN)    :: N_op, Nt
-         Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Phase
-         Real    (Kind=Kind(0.d0)), INTENT(IN)    :: Hs_new
-         Real    (Kind=Kind(0.d0)), INTENT(IN)    :: S0_ratio, T0_proposal_ratio
-         Character (Len=64)       , INTENT(IN)    :: Mode
-         Logical                  , INTENT(INOUT) :: toggle
-       End Subroutine Upgrade2
-    end Interface
     
     ! Arguments
     COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT), allocatable ::  GR(:,:,:)
@@ -119,7 +99,7 @@ Contains
     INTEGER, INTENT(IN) :: Nt_sequential_start, Nt_sequential_end, N_Global_tau
 
     !Local 
-    Integer :: nf, N_Type, NTAU1,n, m
+    Integer :: nf, nf_eff, N_Type, NTAU1,n, m
     Complex (Kind=Kind(0.d0)) :: Prev_Ratiotot
     Real    (Kind=Kind(0.d0)) :: T0_proposal,  T0_Proposal_ratio,  S0_ratio, spin, HS_new
     Character (Len=64)        :: Mode
@@ -127,12 +107,14 @@ Contains
     
     ! Wrap up, upgrade ntau1.  with B^{1}(tau1) 
     NTAU1 = NTAU + 1
-    Do nf = 1,N_FL
+    Do nf_eff = 1,N_FL_eff
+       nf=Calc_Fl_map(nf_eff)
        CALL HOP_MOD_mmthr   (GR(:,:,nf), nf )
        CALL HOP_MOD_mmthl_m1(GR(:,:,nf), nf )
     Enddo
     Do n = Nt_sequential_start,Nt_sequential_end
-       Do nf = 1, N_FL
+       Do nf_eff = 1, N_FL_eff
+          nf=Calc_Fl_map(nf_eff)
           spin = nsigma%f(n,ntau1) ! Phi(nsigma(n,ntau1),Op_V(n,nf)%type)
           N_type = 1
           Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type)
@@ -157,7 +139,8 @@ Contains
           toggle1 = .false.
           Call Control_upgrade_eff(toggle1)
        Endif
-       do nf = 1,N_FL
+       do nf_eff = 1,N_FL_eff
+          nf=Calc_Fl_map(nf_eff)
           N_type =  2
           Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type)
        enddo
@@ -185,30 +168,7 @@ Contains
 !> NTAU: [LTROT:1]
 !
 !--------------------------------------------------------------------    
-    Use Hamiltonian_main
-    Use MyMats
-    Use Hop_mod
     Implicit None
-    
-    Interface
-       Subroutine Upgrade2(GR,N_op,NT,PHASE,Hs_new, Prev_Ratiotot, S0_ratio, T0_proposal_ratio, toggle,  mode) 
-       
-         Use Hamiltonian_main
-         Use Random_wrap
-         Use Control
-         Use Fields_mod
-         Implicit none 
-         
-         Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: GR(Ndim,Ndim, N_FL)
-         Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Prev_Ratiotot
-         Integer                  , INTENT(IN)    :: N_op, Nt
-         Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Phase
-         Real    (Kind=Kind(0.d0)), INTENT(IN)    :: Hs_new
-         Real    (Kind=Kind(0.d0)), INTENT(IN)    :: S0_ratio, T0_proposal_ratio
-         Character (Len=64)       , INTENT(IN)    :: Mode
-         Logical                  , INTENT(INOUT) :: toggle
-       End Subroutine Upgrade2
-    End Interface
     
     ! Given GREEN at time NTAU => GREEN at time NTAU - 1,
     ! Upgrade NTAU  [LTROT:1]
@@ -220,7 +180,7 @@ Contains
     INTEGER, INTENT(IN) :: Nt_sequential_start, Nt_sequential_end, N_Global_tau
     
     ! Local
-    Integer :: nf, N_Type, n, m
+    Integer :: nf, nf_eff, N_Type, n, m
     Complex (Kind=Kind(0.d0)) :: Prev_Ratiotot
     Real    (Kind=Kind(0.d0)) :: T0_proposal,  T0_Proposal_ratio,  S0_ratio, spin, HS_new
     Character (Len=64)        :: Mode
@@ -239,7 +199,8 @@ Contains
        N_type = 2
        nf = 1
        spin = nsigma%f(n,ntau) 
-       do nf = 1,N_FL
+       do nf_eff = 1,N_FL_eff
+          nf=Calc_Fl_map(nf_eff)
           Call Op_Wrapdo( Gr(:,:,nf), Op_V(n,nf), spin, Ndim, N_Type)
        enddo
        !Write(6,*) 'Upgrade : ', ntau,n 
@@ -268,11 +229,13 @@ Contains
        nf = 1
        spin = nsigma%f(n,ntau)  ! Phi(nsigma(n,ntau),Op_V(n,nf)%type)
        N_type = 1
-       do nf = 1,N_FL
+       do nf_eff = 1,N_FL_eff
+          nf=Calc_Fl_map(nf_eff)
           Call Op_Wrapdo( Gr(:,:,nf), Op_V(n,nf), spin, Ndim, N_Type )
        enddo
     enddo
-    DO nf = 1,N_FL
+    DO nf_eff = 1,N_FL_eff
+       nf=Calc_Fl_map(nf_eff)
        Call Hop_mod_mmthl   (GR(:,:,nf), nf)
        Call Hop_mod_mmthr_m1(GR(:,:,nf), nf)
     enddo
@@ -305,7 +268,7 @@ Contains
     Integer, INTENT(IN) :: m,m1, ntau
 
     !Local 
-    Integer :: n, nf, N_Type 
+    Integer :: n, nf, nf_eff, N_Type 
     Real (Kind=Kind(0.d0)) :: spin
 
     If (m == m1)  then 
@@ -313,12 +276,14 @@ Contains
     elseif  ( m1 > m  ) then
        !Write(6,*) "Wrapup from ",  m + 1, "to",  m1, " on tau=",  ntau
        Do n = m+1,m1
-          Do nf = 1, N_FL
+          Do nf_eff = 1, N_FL_eff
+             nf=Calc_Fl_map(nf_eff)
              spin = nsigma%f(n,ntau) 
              N_type = 1
              Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type)
           enddo
-          do nf = 1,N_FL
+          do nf_eff = 1,N_FL_eff
+             nf=Calc_Fl_map(nf_eff)
              N_type =  2
              Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type)
           enddo
@@ -329,14 +294,16 @@ Contains
           N_type = 2
           nf = 1
           spin = nsigma%f(n,ntau) 
-          do nf = 1,N_FL
+          do nf_eff = 1,N_FL_eff
+             nf=Calc_Fl_map(nf_eff)
              Call Op_Wrapdo( Gr(:,:,nf), Op_V(n,nf), spin, Ndim, N_Type)
           enddo
           !Write(6,*) 'Upgrade : ', ntau,n 
           nf = 1
           spin = nsigma%f(n,ntau) 
           N_type = 1
-          do nf = 1,N_FL
+          do nf_eff = 1,N_FL_eff
+             nf=Calc_Fl_map(nf_eff)
              Call Op_Wrapdo( Gr(:,:,nf), Op_V(n,nf), spin, Ndim, N_Type )
           enddo
        enddo
@@ -376,27 +343,6 @@ Contains
 !--------------------------------------------------------------------
         
     Implicit none
-    
-    Interface
-       Subroutine Upgrade2(GR,N_op,NT,PHASE,Hs_new, Prev_Ratiotot, S0_ratio, T0_proposal_ratio, toggle,  mode) 
-       
-         Use Hamiltonian_main
-         Use Random_wrap
-         Use Control
-         Use Fields_mod
-         Implicit none 
-         
-         Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: GR(Ndim,Ndim, N_FL)
-         Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Prev_Ratiotot
-         Integer                  , INTENT(IN)    :: N_op, Nt
-         Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Phase
-         Real    (Kind=Kind(0.d0)), INTENT(IN)    :: Hs_new
-         Real    (Kind=Kind(0.d0)), INTENT(IN)    :: S0_ratio, T0_proposal_ratio
-         Character (Len=64)       , INTENT(IN)    :: Mode
-         Logical                  , INTENT(INOUT) :: toggle
-       End Subroutine Upgrade2
-
-    end Interface
 
     ! Arguments 
     COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:), INTENT(INOUT), allocatable :: GR
@@ -407,7 +353,7 @@ Contains
 
 
     ! Space for local variables
-    Integer                   :: n, Flip_length, nf, N_Type, ng_c, Flip_count
+    Integer                   :: n, Flip_length, nf, nf_eff, N_Type, ng_c, Flip_count
     Real    (Kind=Kind(0.d0)) :: T0_Proposal_ratio, T0_proposal,S0_ratio, HS_new, spin
     COMPLEX (Kind=Kind(0.d0)) :: Prev_Ratiotot 
     Logical                   :: Acc
@@ -438,7 +384,8 @@ Contains
              Call Wrapgr_PlaceGR(GR,m, n-1, ntau)
              !Write(6,*)  "Back from PlaceGR",  m, n-1,ntau
              If ( Flip_count == 1 .and. Flip_length > 1 ) GR_st = Gr
-             Do nf = 1, N_FL
+             Do nf_eff = 1, N_FL_eff
+                nf=Calc_Fl_map(nf_eff)
                 spin = nsigma%f(n,ntau) 
                 N_type = 1
                 Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type)
@@ -449,7 +396,8 @@ Contains
                 HS_new = Flip_value(Flip_count)
                 Call Upgrade2(GR,n,ntau,PHASE, HS_new , &
                      &        Prev_Ratiotot, S0_ratio, T0_Proposal_ratio, Acc, mode ) 
-                do nf = 1,N_FL
+                do nf_eff = 1,N_FL_eff
+                   nf=Calc_Fl_map(nf_eff)
                    N_type =  2
                    Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type)
                 enddo
@@ -461,7 +409,8 @@ Contains
                      &        Prev_Ratiotot, S0_ratio, T0_Proposal_ratio, Acc, mode ) 
                 !Write(6,*)  "Back from up mode final", n,ntau
                 !Write(6,*)  "Acceptance", Acc
-                do nf = 1,N_FL
+                do nf_eff = 1,N_FL_eff
+                   nf=Calc_Fl_map(nf_eff)
                    N_type =  2
                    Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),Spin,Ndim,N_Type)
                 enddo
@@ -536,7 +485,7 @@ Contains
     Integer :: ntau
     
     ! Local 
-    Integer :: m, m1, N_size, nf, nth
+    Integer :: m, m1, N_size, nf, nf_eff, nth
     Real (Kind=kind(0.d0)) :: Xmean, Xmax
 
     !Input is the Green function on time slice tau 
@@ -554,7 +503,8 @@ Contains
     Write(6,*) m, N_size
     
     Xmax = 0.d0
-    Do nf = 1,N_FL
+    Do nf_eff = 1,N_FL_eff
+       nf=Calc_Fl_map(nf_eff)
        Call COMPARE(GR_st(:,:,nf),GR(:,:,nf),XMAX,XMEAN)
     Enddo
     Write(6,*)  'Compare Global_tau_mod_Test ', Xmax

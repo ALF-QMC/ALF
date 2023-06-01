@@ -83,8 +83,9 @@ We can test the correct formatting of the parameters by calling:
 
 The main program will call the subroutine \texttt{Ham\_set} in the submodule \path{Hamiltonian_Hubbard_Plain_Vanilla_smod.F90}
 which specify the model.  The  routine \texttt{Ham\_set}  will first  read the parameter file \texttt{parameters} (see Sec.~\ref{sec:input}) \texttt{Call read\_parameters}; then set the lattice: \texttt{Call Ham\_latt};  set the hopping: \texttt{Call Ham\_hop};  
- set the interaction: \texttt{call Ham\_V}; and if required, set the trial wave function: \texttt{call Ham\_trial}.
-
+ set the interaction: \texttt{call Ham\_V}; and if required, set the trial wave function: \texttt{call Ham\_trial}.     In the  subroutine   \texttt{Ham\_set} one  
+ will equally  have  to  specify  if  a  symmetry  relates   different  flavors.   This functionality  is   described in  Sec.~\ref{sec:flavor_sym}   and   one  enables it  by allocating  tine  array  \texttt{Calc\_Fl}. 
+ 
 %------------------------------------------------------------
 \subsection{The lattice: \texttt{Ham\_latt}} \label{U_PV_Ham_latt}
 %------------------------------------------------------------
@@ -145,7 +146,7 @@ Enddo
 Here, the integer function \texttt{Latt\%nnlist(I,n,m)} is defined in the lattice module and returns the index of the lattice site $ \vec{I} +  n \vec{a}_1 +  m \vec{a}_2$.
 Note that periodic boundary conditions are 
 already taken into account.  The hopping parameter \texttt{Ham\_T}, as well as the chemical potential \texttt{Ham\_chem} are read from the parameter file.  
-To completely define the hopping  we further set: \texttt{Op\_T(1,nf)\%g = -Dtau }, \texttt{Op\_T(1,nf)\%alpha = cmplx(0.d0,0.d0, kind(0.D0))} and call the routine  \texttt{Op\_set(Op\_T(1,nf))}  so as to generate  the unitary transformation and eigenvalues as specified in Table \ref{table:operator}.  Recall that for the hopping, the variable  \texttt{Op\_set(Op\_T(1,nf))\%type}  takes its default value of 0.  
+To completely define the hopping  we further set: \texttt{Op\_T(1,nf)\%g = -Dtau }, \texttt{Op\_T(1,nf)\%alpha = cmplx(0.d0,0.d0,kind(0.D0))} and call the routine  \texttt{Op\_set(Op\_T(1,nf))}  so as to generate  the unitary transformation and eigenvalues as specified in Table \ref{table:operator}.  Recall that for the hopping, the variable  \texttt{Op\_set(Op\_T(1,nf))\%type}  takes its default value of 0.  
 Finally, note that, although a checkerboard decomposition is not used here, it can be implemented by considering a larger number of sparse hopping matrices.  
 
 
@@ -167,16 +168,18 @@ Do nf = 1,N_FL
    if (nf == 2)  X = -1.d0
    Do i = 1,Ndim
       nc = nc + 1
-      Op_V(i,nf)%P(1)   = I
+      Op_V(i,nf)%P(1)   = i
       Op_V(i,nf)%O(1,1) = cmplx(1.d0, 0.d0, kind(0.D0))
       Op_V(i,nf)%g      = X*SQRT(CMPLX(DTAU*ham_U/2.d0, 0.D0, kind(0.D0))) 
-      Op_V(i,nf)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
+      Op_V(i,nf)%alpha  = cmplx(-0.5d0, 0.d0, kind(0.D0))
       Op_V(i,nf)%type   = 2
       Call Op_set( Op_V(i,nf) )
    Enddo
 Enddo
 \end{lstlisting}
-The code above makes it explicit that there is a sign difference between the coupling of the HS field in the two flavor sectors. 
+The code above makes it explicit that there is a sign difference between the coupling of the HS field in the two flavor sectors.        Hence,  
+\texttt{Op\_V(i,nf)}     encodes    $ e^{  X \sqrt{\Delta   \tau U/2} \left( \hat{c}^{\dagger}_{\ve{i},{\texttt{nf}}}  \hat{c}^{\phantom\dagger}_{\ve{i},{\texttt{nf}}}  + \alpha  \right) }  $    with  $X=1 $  for  $\texttt{nf}=1$  and $X=-1 $  for  $\texttt{nf}=2$.    Strictly  speaking  $X$  can  be  omitted.  However,  it  is  required  when  using the  flavor  symmetry  option in the presence  of  particle-hole  symmetry (see  Sec.~\ref{sec:flavor_sym}). 
+
 
 %------------------------------------------------------------
 \subsection{The trial wave function: \texttt{Ham\_Trial}} \label{U_PV_Ham_Trial}
@@ -206,7 +209,7 @@ with \texttt{N\_part = Ndim/2}.     The  variable \texttt{Degen}   belonging to 
 \subsection{Observables}
 %------------------------------------------------------------
 
-At this point, all the information for starting the simulation has been provided.  The code will sequentially go through  the operator list  \texttt{Op\_V}  and update the  fields.  Between  time slices  \texttt{LOBS\_ST}  and  \texttt{LOBS\_EN} the main program will call the routine  \texttt{Obser(GR,Phase,Ntau)}, which handles equal-time correlation functions, and, if \texttt{Ltau=1}, the routine \texttt{ObserT(NT,  GT0,G0T,G00,GTT, PHASE)} which handles imaginary-time displaced correlation functions. 
+At this point, all the information for starting the simulation has been provided.  The code will sequentially go through  the operator list  \texttt{Op\_V}  and update the  fields.  Between  time slices  \texttt{LOBS\_ST}  and  \texttt{LOBS\_EN} the main program will call the routine  \texttt{Obser(GR,Phase,Ntau)}, which handles equal-time correlation functions, and, if \texttt{Ltau=1}, the routine \texttt{ObserT(NT,  GT0, G0T, G00, GTT, PHASE)} which handles imaginary-time displaced correlation functions. 
 
 Both \texttt{Obser} and \texttt{ObserT} should be provided by the user, who can either implement themselves the observables they want to compute or use the predefined structures of Chap.~\ref{Predefined_chap}. Here we describe how to proceed in order to define an observable. 
 
@@ -348,6 +351,50 @@ are then given by:
 \end{multline}
 
 The handling of time-displaced correlation functions is identical to that of equal-time correlations. 
+
+
+%-------------------------------------------------------------------------------------
+\subsection[Flavor symmetries]{Flavor symmetries: \texttt{weight\_reconstruction(weight),  GR\_reconstruction(GR)}, and \texttt{GRT\_reconstruction(GT0, G0T)}}  \label{sec:flavor_symm_vanilla_hubbard}
+%-------------------------------------------------------------------------------------
+At  zero  chemical  potential,  and  for  repulsive  interactions,    the plain-vanilla   Hubbard  model  enjoys a  partial  particle-hole  symmetry which, for  each HS  field  configuration,  maps one  flavor  (i.e.  spin  sector)  onto  the other:      
+\begin{equation} 
+	\hat{P}  z   \hat{c}^{\dagger}_{\ve{i},\downarrow} \hat{P}^{-1}    =  z^{*}  e^{i \,  \ve{i} \cdot \ve{Q} }\hat{c}^{\phantom\dagger}_{\ve{i},\uparrow}.
+\end{equation}
+Here  $ \ve{Q}$  is  the  antiferromagnetic wave  vector. 
+Note  that   in the presence  of  an  orbital magnetic field, or  of   twisted boundary conditions  that  couples  symmetrically  to  the  flavor (spin)  
+degree of  freedom,  
+the anti-unitarity of the   transformation is   required.    Aa a   consequence  of  this    symmetry,  for  a  given  HS  field configuration the  following holds for  the  equal-time Green function. 
+\begin{align}
+\begin{aligned}
+ \texttt{G00(x,y,}\uparrow\texttt{)}  &=     \langle \langle \hat{c}^{\phantom\dagger}_{\ve{x},\uparrow} (0)   \hat{c}^{\dagger}_{\ve{y},\uparrow} (0)   \rangle \rangle
+ \;=\;   e^{i (\ve{y} - \ve{x}) \cdot \ve{Q}} \, \,  \overline{ \langle \langle \hat{c}^{\dagger}_{\ve{x},\downarrow} (0)  
+     \hat{c}^{\phantom\dagger}_{\ve{y},\uparrow} (0)   \rangle }   
+ \\      & =   \delta_{\ve{x},\ve{y}} -  e^{i (\ve{y} - \ve{x}) \cdot \ve{Q}}\, \, \overline{ \texttt{G00(y,x,}\downarrow\texttt{)}  } 
+\end{aligned}
+\end{align}
+
+For   the  attractive  Hubbard  model  $U<0$,  the  up  and  down  sectors  are  related  by  time  reversal  symmetry:   
+\begin{equation}
+\hat{T}  z  
+\begin{pmatrix}
+  \hat{c}^{\phantom\dagger}_{\ve{i},\uparrow}  \\
+    \hat{c}^{\phantom\dagger}_{\ve{i},\downarrow} 
+\end{pmatrix}
+ \hat{T }^{-1}    =  z^{*}    i  \sigma_y  
+\begin{pmatrix}
+  \hat{c}^{\phantom\dagger}_{\ve{i},\uparrow}  \\
+    \hat{c}^{\phantom\dagger}_{\ve{i},\downarrow} 
+\end{pmatrix}
+\end{equation}
+Of  course,   we  have  assumed  that  the  hopping    remains  invariant    under  time  reversal.    As  a  consequence of  this  symmetry: 
+\begin{align}
+\begin{aligned}
+ \texttt{G00(x,y,}\uparrow\texttt{)}     =  \overline{ \texttt{G00(x,y}\downarrow\texttt{)}  } 
+\end{aligned}
+\end{align}
+
+The  usage  of  the  flavor   symmetry  is  described  in   Sec.~\ref{sec:flavor_sym}.   Only  one  flavor  has  to be   computed  and  the   routines
+\texttt{GR\_reconstruction(GR)}, and \texttt{GRT\_reconstruction(GT0, G0T)}  reconstruct, respectively,    the  equal-time  and    time-displaced  Green  functions for one flavor  given the  other.   Hence we  gain a  factor  two  in  computing time.   We  note  that  since  both  symmetries  are  anti-unitary, the  weights   between  the  two  sectors  are  related  by a  complex  conjugation.  This is  specified in the routine    \texttt{ weight\_reconstruction(weight)}.
 
 %-------------------------------------------------------------------------------------
 \subsection{Numerical precision}\label{sec:prec_spin}

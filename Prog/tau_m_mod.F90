@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 - 2018 The ALF project
+!  Copyright (C) 2016 - 2022 The ALF project
 ! 
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -47,6 +47,8 @@
        Use Hop_mod
        Use UDV_State_mod
        Use Langevin_HMC_mod
+       use wrapur_mod
+       use cgr2_2_mod
        
 
        Contains
@@ -54,26 +56,6 @@
          SUBROUTINE TAU_M(udvst, GR, PHASE, NSTM, NWRAP, STAB_NT, LOBS_ST, LOBS_EN) 
            
            Implicit none
-
-           Interface
-              SUBROUTINE WRAPUR(NTAU1, NTAU, udvr)
-                Use Hamiltonian_main
-                Use UDV_State_mod
-                Implicit none
-                CLASS(UDV_State), intent(inout), ALLOCATABLE, dimension(:) :: UDVr
-                Integer :: NTAU1, NTAU
-              END SUBROUTINE WRAPUR
-              SUBROUTINE CGR2_2(GRT0, GR00, GRTT, GR0T, udv2, udv1, LQ)
-                Use MyMats
-                Use UDV_WRAP_mod
-                Use UDV_State_mod
-                Implicit none
-                !  Arguments
-                Integer,  intent(in) :: LQ
-                CLASS(UDV_State), intent(in) :: udv1, udv2
-                Complex (Kind=Kind(0.d0)), intent(inout) :: GRT0(LQ,LQ), GR0T(LQ,LQ), GR00(LQ,LQ), GRTT(LQ,LQ)
-              end SUBROUTINE CGR2_2
-           end Interface
      
            Integer, Intent(In) :: NSTM, NWRAP
            CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(IN) :: udvst
@@ -89,7 +71,7 @@
            Complex (Kind=Kind(0.d0))  :: HLP4(Ndim,Ndim), HLP5(Ndim,Ndim), HLP6(Ndim,Ndim)
            
            Complex (Kind=Kind(0.d0))  ::  Z
-           Integer  ::  I, J, nf, NT, NT1, NTST, NST, N,  N_type
+           Integer  ::  I, J, nf, nf_eff, NT, NT1, NTST, NST, N,  N_type
            Real (Kind=Kind(0.d0))  ::  spin,  Mc_step_Weight
            
            If (Symm) Then
@@ -101,7 +83,8 @@
            if (trim(Langevin_HMC%get_Update_scheme())=="Langevin") Mc_step_weight = Langevin_HMC%get_Delta_t_running()
            
            !Tau = 0
-           Do nf = 1, N_FL
+           Do nf_eff = 1, N_FL_eff
+              nf=Calc_Fl_map(nf_eff)
               DO J = 1,Ndim 
                  DO I = 1,Ndim
                     Z = cmplx(0.d0, 0.d0, kind(0.D0))
@@ -120,18 +103,31 @@
               Call Hop_mod_Symm(GTT_T,GTT)
               Call Hop_mod_Symm(G0T_T,G0T)
               Call Hop_mod_Symm(GT0_T,GT0)
+              !call reconstruction of non-calculated flavor blocks
+              If (reconstruction_needed) then
+                  Call ham%GR_reconstruction( G00_T )
+                  Call ham%GR_reconstruction( GTT_T )
+                  Call ham%GRT_reconstruction( GT0_T, G0T_T )
+              endif
               CALL ham%OBSERT(NT,  GT0_T,G0T_T,G00_T,GTT_T, PHASE, Mc_step_Weight)
            Else
+              !call reconstruction of non-calculated flavor blocks
+              If (reconstruction_needed) then
+                  Call ham%GR_reconstruction( G00 )
+                  Call ham%GR_reconstruction( GTT )
+                  Call ham%GRT_reconstruction( GT0, G0T )
+              endif
               CALL ham%OBSERT(NT,  GT0,G0T,G00,GTT, PHASE, Mc_step_Weight)
            Endif
            
-           ALLOCATE(udvr(N_FL))
+           ALLOCATE(udvr(N_FL_eff))
            Z = cmplx(1.d0,0.d0,kind(0.d0))
-           Do nf = 1, N_FL
+           Do nf_eff = 1, N_FL_eff
+              nf=Calc_Fl_map(nf_eff)
               if (Projector) then
-                CALL udvr(nf)%init(ndim,'r',WF_R(nf)%P)
+                CALL udvr(nf_eff)%init(ndim,'r',WF_R(nf)%P)
               else
-                CALL udvr(nf)%init(ndim,'r')
+                CALL udvr(nf_eff)%init(ndim,'r')
               endif
            enddo
 
@@ -153,10 +149,22 @@
                  Call Hop_mod_Symm(GTT_T,GTT)
                  Call Hop_mod_Symm(G0T_T,G0T)
                  Call Hop_mod_Symm(GT0_T,GT0)
+                 !call reconstruction of non-calculated flavor blocks
+                 If (reconstruction_needed) then
+                     Call ham%GR_reconstruction( G00_T )
+                     Call ham%GR_reconstruction( GTT_T )
+                     Call ham%GRT_reconstruction( GT0_T, G0T_T )
+                 endif
                  CALL ham%OBSERT(NT1, GT0_T,G0T_T,G00_T,GTT_T,PHASE, Mc_step_weight)
                  If (trim(Langevin_HMC%get_Update_scheme())=="Langevin" &
                       &  .and. NT1.ge.LOBS_ST .and. NT1.le.LOBS_EN ) CALL ham%Obser( GTT_T, PHASE, NT1, Mc_step_weight )
               Else
+                 !call reconstruction of non-calculated flavor blocks
+                 If (reconstruction_needed) then 
+                     Call ham%GR_reconstruction( G00 )
+                     Call ham%GR_reconstruction( GTT )
+                     Call ham%GRT_reconstruction( GT0, G0T )
+                 endif
                  CALL ham%OBSERT(NT1, GT0,G0T,G00,GTT,PHASE, Mc_step_weight)
                  If (trim(Langevin_HMC%get_Update_scheme())=="Langevin"&
                       & .and. NT1.ge.LOBS_ST .and. NT1.le.LOBS_EN ) CALL ham%Obser( GTT, PHASE, NT1, Mc_step_weight )
@@ -168,12 +176,13 @@
                  NTST = Stab_nt(NST-1)
                  ! WRITE(6,*) 'NT1, NST: ', NT1,NST
                  CALL WRAPUR(NTST, NT1, udvr)
-                 DO nf = 1,N_FL
+                 DO nf_eff = 1,N_FL_eff
+                    nf=Calc_Fl_map(nf_eff)
                     HLP4(:,:) = GTT(:,:,nf)
                     HLP5(:,:) = GT0(:,:,nf)
                     HLP6(:,:) = G0T(:,:,nf)
                     Call CGR2_2(GT0(:,:,nf), G00(:,:,nf), GTT(:,:,nf), G0T(:,:,nf), &
-                         & udvr(nf), udvst(NST, nf), NDIM)
+                         & udvr(nf_eff), udvst(NST, nf_eff), NDIM)
                     Call Control_Precision_tau(GR(:,:,nf), G00(:,:,nf), Ndim)
                     Call Control_Precision_tau(HLP4      , GTT(:,:,nf), Ndim)
                     Call Control_Precision_tau(HLP5      , GT0(:,:,nf), Ndim)
@@ -183,8 +192,8 @@
               Endif
            ENDDO
            
-           DO nf = 1, N_Fl
-              CALL udvr(nf)%dealloc
+           DO nf_eff = 1, N_Fl_eff
+              CALL udvr(nf_eff)%dealloc
            ENDDO
            DEALLOCATE(udvr)
            If (Symm) Then
@@ -205,9 +214,10 @@
            Integer, INTENT(IN) :: NT
 
            !Locals
-           Integer :: nf,n 
+           Integer :: nf,nf_eff,n 
 
-           Do nf = 1,N_FL
+           Do nf_eff = 1,N_FL_eff
+              nf=Calc_Fl_map(nf_eff)
               Call Hop_mod_mmthr(Ain(:,:,nf),nf)
               Do n = 1,Size(Op_V,1)
 !                  X = Phi(nsigma(n,nt),Op_V(n,nf)%type)
@@ -231,9 +241,10 @@
            Integer :: NT
 
            ! Locals 
-           Integer :: nf, n 
+           Integer :: nf,nf_eff, n 
 
-           do nf = 1,N_FL
+           do nf_eff = 1,N_FL_eff
+              nf=Calc_Fl_map(nf_eff)
               !Call MMULT(HLP4,Ain(:,:,nf),Exp_T_M1(:,:,nf) )
               Call Hop_mod_mmthl_m1(Ain(:,:,nf),nf)
               Do n =1,Size(Op_V,1)

@@ -1,8 +1,15 @@
 # ALF #
 [![pipeline status](https://git.physik.uni-wuerzburg.de/fassaad/General_QMCT_code/badges/master/pipeline.svg)](https://git.physik.uni-wuerzburg.de/fassaad/General_QMCT_code/commits/master)
 [![coverage report](https://git.physik.uni-wuerzburg.de/fassaad/General_QMCT_code/badges/master/coverage.svg)](https://git.physik.uni-wuerzburg.de/fassaad/General_QMCT_code/commits/master)
-## General information ##
-This is the **development** version of ALF, the latest stable version is [ALF 2.2](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/tree/ALF-2.2/).
+
+
+**Project website: https://alf.physik.uni-wuerzburg.de/.**
+
+-> Interested contributors please check our [CONTRIBUTING.md](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/blob/master/CONTRIBUTING.md) guidelines.
+
+-> This is the **development** version of ALF, the latest stable version is [ALF 2.4](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/tree/ALF-2.4/).
+
+## Description ##
 
 The **A**lgorithms for **L**attice **F**ermions package provides a general code for the finite temperature  and projective auxiliary field Quantum Monte Carlo algorithm.       The code  is engineered to  be able simulate any model that can be written in terms of  sums of single body operators, of squares of single body operators and single body operators coupled to an Ising field with  given dynamics. We  provide predefined types that allow  the user to specify the model, the  Bravais lattice  as well as equal time and time displaced observables.     The code supports an MPI implementation.   Examples such as the Hubbard model, the SU(N) Kondo lattice model, tV models,  models with long ranged interactions as well as Z2 lattice gauge theories coupled to fermions adn Z2 matter are discussed in the [documentation](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/jobs/artifacts/master/raw/Documentation/doc.pdf?job=create_doc). Slides on the auxiliary field QMC can be found [here.](https://git.physik.uni-wuerzburg.de/ALF/ALF_Tutorial/-/blob/master/Presentations/ALF_2020_Assaad.pdf)
 
@@ -13,11 +20,19 @@ where
 
 Here Z denotes a scalar field (Ising or real continuous field) with predefined dynamics. If your model can be written in this form then it will be amenable to the ALF. 
 
+## pyALF ##
+
+For ease of use, the  [pyALF](https://git.physik.uni-wuerzburg.de/ALF/pyALF) repository  provides a python interface to run the ALF-code
+
 ## Doxygen ##
 
 You can find here [Doxygen](https://gitpages.physik.uni-wuerzburg.de/ALF/ALF/) formatted documentation. (Work in progress)
 
-## PREREQUISITES ##
+## Installation ##
+
+* Please check the latest documentation (Documentation/doc.pdf) for more details and Sec. 6.1, "Quick Start", to try ALF out straight away.
+
+### PREREQUISITES ###
 
 * Make
 * A Fortran compiler, such as `gfortran` or `ifort`
@@ -88,9 +103,6 @@ Once you have run the configuration script, change directory to Libraries, and t
 
 **testsuite** An automatic test suite for various parts of the code
 
-## pyALF ##
-
-For ease of use, the  [pyALF](https://git.physik.uni-wuerzburg.de/ALF/pyALF) repository  provides a python interface to run the ALF-code
 
 ## TESTING ##
 

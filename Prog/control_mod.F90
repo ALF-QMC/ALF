@@ -42,6 +42,7 @@
 !
 !--------------------------------------------------------------------
 
+
 module Control
 
     Use MyMats
@@ -185,15 +186,13 @@ module Control
 #ifdef MPI
         Use mpi
 #endif
+        use runtime_error_mod
         Implicit none
 
         Integer :: Ndim
         Complex (Kind=Kind(0.d0)) :: A(Ndim,Ndim), B(Ndim,Ndim)
         Real    (Kind=Kind(0.d0)) :: XMAX, XMEAN
         Character (len=64) :: file1 
-#ifdef MPI
-        Integer:: ierr, merr
-#endif
 
         NCG = NCG + 1
         CALL COMPARE(A, B, XMAX, XMEAN)
@@ -222,12 +221,9 @@ module Control
           write(error_unit,*) "This calculation is unstable and therefore aborted!!!"
           write(error_unit,*) 'Try with smaller Nwrap or dtau.'
           write(error_unit,*)
-#if !defined(MPI)
-          error stop 1
-#else
-          merr=1
-          call MPI_ABORT(MPI_COMM_WORLD,merr,ierr)
-#endif
+          
+          CALL Terminate_on_error(ERROR_UNSTABLE_MATRIX,__FILE__,__LINE__)
+          
         endif
         IF (XMAX  >  XMAXG) XMAXG = XMAX
         XMEANG = XMEANG + XMEAN

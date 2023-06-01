@@ -29,6 +29,7 @@
 !     - If you make substantial changes to the program we require you to either consider contributing
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
+
      MODULE ERRORS
 !--------------------------------------------------------------------
 !> @author
@@ -38,7 +39,7 @@
 !> Collection of routines for error analysis
 !
 !--------------------------------------------------------------------
-
+       use runtime_error_mod
        Use MyMats
        Use Random_Wrap
        use iso_fortran_env, only: output_unit, error_unit
@@ -298,7 +299,7 @@
            NP1= SIZE(SI)
            IF (NP1.NE.NP) THEN
               WRITE(error_unit,*) 'Error in Errcalc_JS'
-              error stop 1
+              Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
            ENDIF
            ALLOCATE (EN1(NP))
 
@@ -343,7 +344,7 @@
            NP1= SIZE(SI)
            IF (NP1.NE.NP) THEN
               WRITE(6,*) 'Error in Errcalc_JS'
-              STOP
+              Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
            ENDIF
            ALLOCATE (EN1(NP),Xhelp(nobs), X(nobs))
            
@@ -383,7 +384,7 @@
            NP1= SIZE(SI)
            IF (NP1.NE.NP) THEN
               WRITE(error_unit,*) 'Error in Errcalc_JS'
-              error stop 1
+              Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
            ENDIF
            ALLOCATE (EN1(NP))
 
@@ -428,7 +429,7 @@
            NP1= SIZE(SI)
            IF (NP1.NE.NP) THEN
               WRITE(6,*) 'Error in Errcalc_JS'
-              STOP
+              Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
            ENDIF
            ALLOCATE (EN1(NP),Xhelp(nobs), X(nobs))
            
@@ -784,7 +785,7 @@
 
            IF ( (SIZE(XCOV,1).NE.SIZE(XCOV,2) ) .OR. (SIZE(XCOV,1).NE.NTDM) ) THEN
               WRITE(error_unit,*) 'Error in COVJ'
-              error stop 1
+              Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
            ENDIF
 
            ALLOCATE( HLP(NDATA), HLP1(NTDM,NDATA) )
@@ -840,7 +841,7 @@
 
            IF ( (SIZE(XCOV,1).NE.SIZE(XCOV,2) ) .OR. (SIZE(XCOV,1).NE.NTDM) ) THEN
               WRITE(error_unit,*) 'Error in COVJS'
-              error stop 1
+              Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
            ENDIF
 
            ALLOCATE( HLP(NDATA), HLP1(NTDM,NDATA) )
@@ -906,7 +907,7 @@
            !Write(6,*) 'Errors.F90 ', NTDM, NDATA
            IF ( (SIZE(XCOV,1).NE.SIZE(XCOV,2) ) .OR. (SIZE(XCOV,1).NE.NTDM) ) THEN
               WRITE(error_unit,*) 'Error in COVJS_C'
-              error stop 1
+              Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
            ENDIF
 
 
@@ -1069,7 +1070,7 @@
            nt = SIZE(RES)
            if (nb.lt.nt) then
               write(error_unit,*) 'Error in auto_cor'
-              error stop 1
+              Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
            end if
 
            DO ntau = 1,  nt
@@ -1170,7 +1171,7 @@
                  I = NINT( DBLE(NP)* RANF_WRAP() + 0.5D0 )
                  IF (I.EQ.0 .OR. I.GT.NP ) THEN
                     WRITE(error_unit,*) 'ERROR IN BOOTSTRAP'
-                    error stop 1
+                    Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
                  ENDIF
                  X = X + EN(I)
               ENDDO

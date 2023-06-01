@@ -1,5 +1,5 @@
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesClass{SciPost} % SciPost Latex Template v1e (2017/10/31)
+\ProvidesClass{SciPost} % SciPost Latex Template (2021-08)
 
 
 \LoadClass[11pt,a4paper]{article}
@@ -50,10 +50,19 @@
 
 \RequirePackage{xcolor}
 \definecolor{scipostdeepblue}{HTML}{002B49}
+\definecolor{scipostphys}{HTML}{0019A2}
+\definecolor{scipostastro}{HTML}{946E13}
+\definecolor{scipostbio}{HTML}{2B7E13}
+\definecolor{scipostchem}{HTML}{605AAF}
+\definecolor{scipostcompsci}{HTML}{0AADAB}
+\definecolor{scipostmath}{HTML}{A10800}
 
 \RequirePackage{graphicx}
 
 \RequirePackage{cite}
+
+\RequirePackage[width=.90\textwidth]{caption}
+
 
 %% Patch lineno when used with amsmath
 \newcommand*\patchAmsMathEnvironmentForLineno[1]{%
@@ -75,29 +84,105 @@
 }
 %% End patch lineno
 
-\DeclareOption{Phys}{
-\lhead{
-  \colorbox{scipostdeepblue}{\strut \bf \color{white} ~SciPost Physics }
-}
-}
-
-\DeclareOption{LectureNotes}{
-  \lhead{
-    \colorbox{scipostdeepblue}{\strut \bf \color{white} ~SciPost Physics Lecture Notes }
-  }
-}
-\ProcessOptions\relax
-
-\DeclareOption{Proceedings}{
-  \lhead{
-    \colorbox{scipostdeepblue}{\strut \bf \color{white} ~SciPost Physics Proceedings }
-  }
-}
-\ProcessOptions\relax
 
 \DeclareOption{submission}{
   \rhead{
-    \colorbox{scipostdeepblue}{\strut \bf \color{white} ~Submission }
+    {\bf \color{scipostdeepblue} ~Submission }
   }
  }
+
+
+%%%%%%%%%% Physics
+\DeclareOption{Phys}{
+\lhead{
+  \colorbox{scipostphys}{\bf \color{white} ~SciPost Physics }
+}
+}
+
+\DeclareOption{PhysCore}{
+\lhead{
+  \colorbox{scipostphys}{\bf \color{white} ~SciPost Physics Core}
+}
+}
+
+\DeclareOption{PhysLectNotes}{
+  \lhead{
+    \colorbox{scipostphys}{\strut \bf \color{white} ~SciPost Physics Lecture Notes }
+  }
+}
+
+\DeclareOption{PhysProc}{
+\lhead{
+  \colorbox{scipostphys}{\strut \bf \color{white} ~SciPost Physics Proceedings }
+}
+}
+
+\DeclareOption{PhysCodeb}{
+\lhead{
+  \colorbox{scipostphys}{\strut \bf \color{white} ~SciPost Physics Codebases }
+}
+}
+
+%%%%%%%%%%% Astronomy
+\DeclareOption{Astro}{
+\lhead{
+  \colorbox{scipostastro}{\strut \bf \color{white} ~SciPost Astronomy }
+}
+}
+
+\DeclareOption{AstroCore}{
+\lhead{
+  \colorbox{scipostastro}{\strut \bf \color{white} ~SciPost Astronomy Core }
+}
+}
+
+
+%%%%%%%%%%% Biology
+\DeclareOption{Bio}{
+\lhead{
+  \colorbox{scipostbio}{\strut \bf \color{white} ~SciPost Biology }
+}
+}
+
+\DeclareOption{BioCore}{
+\lhead{
+  \colorbox{scipostbio}{\strut \bf \color{white} ~SciPost Biology Core }
+}
+}
+
+
+%%%%%%%%%%% Chemistry
+\DeclareOption{Chem}{
+\lhead{
+  \colorbox{scipostchem}{\strut \bf \color{white} ~SciPost Chemistry }
+}
+}
+
+\DeclareOption{ChemCore}{
+\lhead{
+  \colorbox{scipostchem}{\strut \bf \color{white} ~SciPost Chemistry Core }
+}
+}
+
+%%%%%%%%%%% Computer Science
+\DeclareOption{CompSci}{
+\lhead{
+  \colorbox{scipostcompsci}{\strut \bf \color{white} ~SciPost Computer Science }
+}
+}
+
+
+%%%%%%%%%%% Mathematics
+\DeclareOption{Math}{
+\lhead{
+  \colorbox{scipostmath}{\strut \bf \color{white} ~SciPost Mathematics }
+}
+}
+
+\DeclareOption{MathCore}{
+\lhead{
+  \colorbox{scipostmath}{\strut \bf \color{white} ~SciPost Mathematics Core }
+}
+}
+
 \ProcessOptions\relax

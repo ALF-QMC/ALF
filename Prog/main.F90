@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 - 2020 The ALF project
+!  Copyright (C) 2016 - 2022 The ALF project
 !
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -110,8 +110,10 @@
 
 !--------------------------------------------------------------------
 
+
 Program Main
 
+        Use runtime_error_mod
         Use Operator_mod
         Use Lattices_v3
         Use MyMats
@@ -129,51 +131,26 @@ Program Main
         use entanglement_mod
         use iso_fortran_env, only: output_unit, error_unit
         Use Langevin_HMC_mod
+        use wrapur_mod
+        use wrapul_mod
+        use cgr1_mod
+        use set_random
 
 #ifdef MPI
         Use mpi
 #endif
 #ifdef HDF5
         use hdf5
+        use h5lt
 #endif
         Implicit none
 
 #include "git.h"
 
-        Interface
-           SUBROUTINE WRAPUL(NTAU1, NTAU, UDVL)
-             Use Hamiltonian_main
-             Use UDV_State_mod
-             Implicit none
-             CLASS(UDV_State), intent(inout), allocatable, dimension(:) :: UDVL
-             Integer :: NTAU1, NTAU
-           END SUBROUTINE WRAPUL
-           SUBROUTINE CGR(PHASE,NVAR, GRUP, udvr, udvl)
-             Use UDV_Wrap_mod
-             Use UDV_State_mod
-             Implicit None
-             CLASS(UDV_State), INTENT(IN) :: UDVL, UDVR
-             COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(Inout) :: GRUP
-             COMPLEX(Kind=Kind(0.d0)) :: PHASE
-             INTEGER         :: NVAR
-           END SUBROUTINE CGR
-           SUBROUTINE WRAPUR(NTAU, NTAU1, UDVR)
-             Use Hamiltonian_main
-             Use UDV_Wrap_mod
-             Use UDV_State_mod
-             Implicit None
-             CLASS(UDV_State), intent(inout), allocatable, dimension(:) :: UDVR
-             Integer :: NTAU1, NTAU
-           END SUBROUTINE WRAPUR
-           Subroutine Set_Random_number_Generator(File_seeds,Seed_in)
-             Character (LEN=64), Intent(IN) :: File_seeds
-             Integer,  Intent(out) :: SEED_IN
-           end Subroutine Set_Random_number_Generator
-        end Interface
-
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:)  , Allocatable   ::  TEST
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable    :: GR, GR_Tilde
         CLASS(UDV_State), DIMENSION(:), ALLOCATABLE :: udvl, udvr
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:)  , Allocatable   :: Phase_array
 
 
         Integer :: Nwrap, NSweep, NBin, NBin_eff,Ltau, NSTM, NT, NT1, NVAR, LOBS_EN, LOBS_ST, NBC, NSW
@@ -219,7 +196,7 @@ Program Main
 
 
         !  General
-        Integer :: Ierr, I,nf, nst, n, N_op
+        Integer :: Ierr, I,nf, nf_eff, nst, n, N_op
         Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Phase, Z, Z1
         Real    (Kind=Kind(0.d0)) :: ZERO = 10D-8, X, X1
         Real    (Kind=Kind(0.d0)) :: Mc_step_weight
@@ -234,7 +211,7 @@ Program Main
         Real (Kind=Kind(0.d0)) :: Weight, Weight_tot
 
         ! For the truncation of the program:
-        logical                   :: prog_truncation
+        logical                   :: prog_truncation, run_file_exists
         integer (kind=kind(0.d0)) :: count_bin_start, count_bin_end
         
         ! For MPI shared memory
@@ -254,6 +231,36 @@ Program Main
            write (*,*) "ALF Copyright (C) 2016 - 2021 The ALF project contributors"
            write (*,*) "This Program comes with ABSOLUTELY NO WARRANTY; for details see license.GPL"
            write (*,*) "This is free software, and you are welcome to redistribute it under certain conditions."
+
+           ! Ensure that only one ALF is running at the same time, i.e. the file RUNNING is not present
+           inquire (file='RUNNING', exist=run_file_exists)
+           if (run_file_exists) then
+             write (error_unit,*)
+             write (error_unit,*) "ALF is already running or the previous run failed."
+             write (error_unit,*) "Please ensure the following:"
+             write (error_unit,*) " * Make sure no other simulation is currently running in this directory"
+             write (error_unit,*) "   (Wait until the previous run is finished; it will automatically remove RUNNING)"
+             write (error_unit,*) " * If the previous run crashed, make sure that"
+             write (error_unit,*) "    1) the data files are not corrupted"
+             write (error_unit,*) "       (run the analysis)"
+             write (error_unit,*) "    2) the configuration files are not corrupted"
+             write (error_unit,*) "       (e.g., h5dump confout_*.h5 or check number of lines in confout_*)"
+             write (error_unit,*) "    3) If either data or configuration file are currupted (rare event), either"
+             write (error_unit,*) "       * [PREFERED] remove them and start fresh (safe)"
+             write (error_unit,*) "       * repair them (if you know what you are doing)"
+             write (error_unit,*) "         (difficult or impossible; ensure data and configuration files synced)"
+             write (error_unit,*) "    4) remove the file RUNNING manually before resubmition"
+             write (error_unit,*) "Afterwards, you may rerun the simulation."
+#ifdef MPI
+             call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
+#else
+   CALL Terminate_on_error(ERROR_RUNNING_FILE_FOUND,__FILE__,__LINE__)
+#endif
+           else
+             open (unit=5, file='RUNNING', status='replace', action='write')
+             write (5,*) "ALF is running"
+             close (5)
+           end if
 #ifdef MPI
         endif
 #endif
@@ -264,7 +271,7 @@ Program Main
         OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
         IF (ierr /= 0) THEN
            WRITE(error_unit,*) 'main: unable to open <parameters>',ierr
-           error stop 1
+           CALL Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
         END IF
         READ(5,NML=VAR_TEMP)
         CLOSE(5)
@@ -274,7 +281,7 @@ Program Main
         CALL MPI_BCAST(Tempering_calc_det      ,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
         if ( mod(ISIZE,mpi_per_parameter_set) .ne. 0 ) then
            Write (error_unit,*) "mpi_per_parameter_set is not a multiple of total mpi processes"
-           error stop 1
+           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         endif
         Call Global_Tempering_setup
 #elif !defined(TEMPERING)  && defined(MPI)
@@ -322,7 +329,7 @@ Program Main
            OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
            IF (ierr /= 0) THEN
               WRITE(error_unit,*) 'main: unable to open <parameters>',ierr
-              error stop 1
+              CALL Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
            END IF
            READ(5,NML=VAR_QMC)
            CLOSE(5)
@@ -369,15 +376,38 @@ Program Main
         call MPI_BARRIER( Group_Comm, ierr )
 #endif
         
+        ! Test if user has initialized Calc_FL array
+        If ( .not. allocated(Calc_Fl)) then
+          allocate(Calc_Fl(N_FL))
+          Calc_Fl=.True.
+        endif
+        ! Count number of flavors to be calculated
+        N_FL_eff=0
+        Do I=1,N_Fl
+          if (Calc_Fl(I)) N_FL_eff=N_FL_eff+1
+        Enddo
+        reconstruction_needed=.false.
+        If (N_FL_eff /= N_FL) reconstruction_needed=.true.
+        !initialize the flavor map
+        allocate(Calc_Fl_map(N_FL_eff),Phase_array(N_FL))
+        N_FL_eff=0
+        Do I=1,N_Fl
+          if (Calc_Fl(I)) then
+             N_FL_eff=N_FL_eff+1
+             Calc_Fl_map(N_FL_eff)=I
+          endif
+        Enddo
+
         if(Projector) then
            if (.not. allocated(WF_R) .or. .not. allocated(WF_L)) then
               write(error_unit,*) "Projector is selected but there are no trial wave functions!"
-              error stop 1
+              CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
            endif
-           do nf=1,N_fl
+           do nf_eff=1,N_fl_eff
+              nf=Calc_Fl_map(nf_eff)
               if (.not. allocated(WF_R(nf)%P) .or. .not. allocated(WF_L(nf)%P)) then
                  write(error_unit,*) "Projector is selected but there are no trial wave functions!"
-                 error stop 1
+                 CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
               endif
            enddo
         endif
@@ -388,7 +418,7 @@ Program Main
            else
               If (LOBS_ST < Thtrot+1 ) then
                  Write(error_unit,*) 'Measuring out of dedicating interval, LOBS_ST too small.'
-                 error stop 1
+                 CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
               endif
            endif
            if ( LOBS_EN == 0) then
@@ -396,7 +426,7 @@ Program Main
            else
               If (LOBS_EN > Ltrot-Thtrot ) then
                  Write(error_unit,*) 'Measuring out of dedicating interval, LOBS_EN too big.'
-                 error stop 1
+                 CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
               endif
            endif
         else
@@ -454,6 +484,7 @@ Program Main
           IF (.not. file_exists) THEN
             ! Create HDF5 file
             CALL h5fcreate_f(File1, H5F_ACC_TRUNC_F, file_id, ierr)
+            call h5ltset_attribute_string_f(file_id, '/', 'program_name', 'ALF', ierr)
             call h5fclose_f(file_id, ierr)
           endif
           call ham%write_parameters_hdf5(File1)
@@ -538,7 +569,7 @@ Program Main
 #if defined(STAB3)
            Write(50,*) 'STAB3 is defined '
 #endif
-#if defined(LOG)
+#if defined(STABLOG)
            Write(50,*) 'LOG is defined '
 #endif
 #if defined(QRREF)
@@ -565,19 +596,20 @@ Program Main
         
         !Call Test_Hamiltonian
         Allocate ( Test(Ndim,Ndim), GR(NDIM,NDIM,N_FL), GR_Tilde(NDIM,NDIM,N_FL)  )
-        ALLOCATE(udvl(N_FL), udvr(N_FL), udvst(NSTM, N_FL))
-        do nf = 1, N_FL
+        ALLOCATE(udvl(N_FL_eff), udvr(N_FL_eff), udvst(NSTM, N_FL_eff))
+        do nf_eff = 1, N_FL_eff
+           nf=Calc_Fl_map(nf_eff)
            do n = 1, NSTM
-              CALL udvst(n,nf)%alloc(ndim)
+              CALL udvst(n,nf_eff)%alloc(ndim)
            ENDDO
            if (Projector) then
-              CALL udvl(nf)%init(ndim,'l',WF_L(nf)%P)
-              CALL udvr(nf)%init(ndim,'r',WF_R(nf)%P)
-              CALL udvst(NSTM, nf)%reset('l',WF_L(nf)%P)
+              CALL udvl(nf_eff)%init(ndim,'l',WF_L(nf)%P)
+              CALL udvr(nf_eff)%init(ndim,'r',WF_R(nf)%P)
+              CALL udvst(NSTM, nf_eff)%reset('l',WF_L(nf)%P)
            else
-              CALL udvl(nf)%init(ndim,'l')
-              CALL udvr(nf)%init(ndim,'r')
-              CALL udvst(NSTM, nf)%reset('l')
+              CALL udvl(nf_eff)%init(ndim,'l')
+              CALL udvr(nf_eff)%init(ndim,'r')
+              CALL udvst(NSTM, nf_eff)%reset('l')
            endif
         enddo
 
@@ -586,8 +618,8 @@ Program Main
            NT  = Stab_nt(NST  )
            !Write(6,*)'Hi', NT1,NT, NST
            CALL WRAPUL(NT1, NT, UDVL)
-           Do nf = 1,N_FL
-              UDVST(NST, nf) = UDVL(nf)
+           Do nf_eff = 1,N_FL_eff
+              UDVST(NST, nf_eff) = UDVL(nf_eff)
            ENDDO
         ENDDO
         NT1 = stab_nt(1)
@@ -596,12 +628,16 @@ Program Main
 
 
         NVAR = 1
-        Phase = cmplx(1.d0, 0.d0, kind(0.D0))
-        do nf = 1,N_Fl
-           CALL CGR(Z, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
-           Phase = Phase*Z
+        Phase_array = cmplx(1.d0, 0.d0, kind(0.D0))
+        do nf_eff = 1,N_Fl_eff
+           nf=Calc_Fl_map(nf_eff)
+           CALL CGR(Z, NVAR, GR(:,:,nf), UDVR(nf_eff), UDVL(nf_eff))
+           call Op_phase(Z,OP_V,Nsigma,nf)
+           Phase_array(nf)=Z
         Enddo
-        call Op_phase(Phase,OP_V,Nsigma,N_SUN)
+        if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
+        Phase=product(Phase_array)
+        Phase=Phase**N_SUN
 #ifdef MPI
         !WRITE(6,*) 'Phase is: ', Irank, PHASE, GR(1,1,1)
 #else
@@ -655,11 +691,12 @@ Program Main
               If (Sequential)  then 
                  ! Propagation from 1 to Ltrot
                  ! Set the right storage to 1
-                 do nf = 1,N_FL
+                 do nf_eff = 1,N_FL_eff
+                    nf=Calc_Fl_map(nf_eff)
                     if (Projector) then
-                       CALL udvr(nf)%reset('r',WF_R(nf)%P)
+                       CALL udvr(nf_eff)%reset('r',WF_R(nf)%P)
                     else
-                       CALL udvr(nf)%reset('r')
+                       CALL udvr(nf_eff)%reset('r')
                     endif
                  Enddo
                  
@@ -671,20 +708,24 @@ Program Main
                     If (NTAU1 == Stab_nt(NST) ) then
                        NT1 = Stab_nt(NST-1)
                        CALL WRAPUR(NT1, NTAU1, udvr)
-                       Z = cmplx(1.d0, 0.d0, kind(0.D0))
-                       Do nf = 1, N_FL
+                       Phase_array = cmplx(1.d0, 0.d0, kind(0.D0))
+                       Do nf_eff = 1, N_FL_eff
+                          nf=Calc_Fl_map(nf_eff)
                           ! Read from storage left propagation from LTROT to  NTAU1
-                          udvl(nf) = udvst(NST, nf)
+                          udvl(nf_eff) = udvst(NST, nf_eff)
                           ! Write in storage right prop from 1 to NTAU1
-                          udvst(NST, nf) = udvr(nf)
+                          udvst(NST, nf_eff) = udvr(nf_eff)
                           NVAR = 1
                           IF (NTAU1 .GT. LTROT/2) NVAR = 2
                           TEST(:,:) = GR(:,:,nf)
-                          CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
-                          Z = Z*Z1
+                          CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf_eff), UDVL(nf_eff))
                           Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
+                          call Op_phase(Z1,OP_V,Nsigma,nf)
+                          Phase_array(nf)=Z1
                        ENDDO
-                       call Op_phase(Z,OP_V,Nsigma,N_SUN)
+                       if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
+                       Z=product(Phase_array)
+                       Z=Z**N_SUN
                        Call Control_PrecisionP(Z,Phase)
                        Phase = Z
                        NST = NST + 1
@@ -698,18 +739,23 @@ Program Main
                        Mc_step_weight = 1.d0
                        If (Symm) then
                           Call Hop_mod_Symm(GR_Tilde,GR)
+                          !reconstruction of NOT calculated block!!!
+                          If (reconstruction_needed) Call ham%GR_reconstruction( GR_Tilde )
                           CALL ham%Obser( GR_Tilde, PHASE, Ntau1, Mc_step_weight )
                        else
+                          !reconstruction of NOT calculated block!!!
+                          If (reconstruction_needed) Call ham%GR_reconstruction( GR )
                           CALL ham%Obser( GR, PHASE, Ntau1, Mc_step_weight  )
                        endif
                     ENDIF
                  ENDDO
                  
-                 Do nf = 1,N_FL
+                 Do nf_eff = 1,N_FL_eff
+                    nf=Calc_Fl_map(nf_eff)
                     if (Projector) then
-                       CALL udvl(nf)%reset('l',WF_L(nf)%P)
+                       CALL udvl(nf_eff)%reset('l',WF_L(nf)%P)
                     else
-                       CALL udvl(nf)%reset('l')
+                       CALL udvl(nf_eff)%reset('l')
                     endif
                  ENDDO
                  
@@ -723,8 +769,12 @@ Program Main
                        Mc_step_weight = 1.d0
                        If (Symm) then
                           Call Hop_mod_Symm(GR_Tilde,GR)
+                          !reconstruction of NOT calculated block!!!
+                          If (reconstruction_needed) Call ham%GR_reconstruction( GR_Tilde )
                           CALL ham%Obser( GR_Tilde, PHASE, Ntau1, Mc_step_weight )
                        else
+                          !reconstruction of NOT calculated block!!!
+                          If (reconstruction_needed) Call ham%GR_reconstruction( GR )
                           CALL ham%Obser( GR, PHASE, Ntau1,Mc_step_weight )
                        endif
                     ENDIF
@@ -733,20 +783,24 @@ Program Main
                        !Write(6,*) 'Wrapul : ', NT1, NTAU1
                        CALL WRAPUL(NT1, NTAU1, udvl)
                        !Write(6,*)  'Write UL, read UR ', NTAU1, NST
-                       Z = cmplx(1.d0, 0.d0, kind(0.D0))
-                       do nf = 1,N_FL
+                       Phase_array = cmplx(1.d0, 0.d0, kind(0.D0))
+                       do nf_eff = 1,N_FL_eff
+                          nf=Calc_Fl_map(nf_eff)
                           ! Read from store the right prop. from 1 to LTROT/NWRAP-1
-                          udvr(nf) = udvst(NST, nf)
+                          udvr(nf_eff) = udvst(NST, nf_eff)
                           ! WRITE in store the left prop. from LTROT/NWRAP-1 to 1
-                          udvst(NST, nf) = udvl(nf)
+                          udvst(NST, nf_eff) = udvl(nf_eff)
                           NVAR = 1
                           IF (NTAU1 .GT. LTROT/2) NVAR = 2
                           TEST(:,:) = GR(:,:,nf)
-                          CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
-                          Z = Z*Z1
+                          CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf_eff), UDVL(nf_eff))
                           Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
+                          call Op_phase(Z1,OP_V,Nsigma,nf)
+                          Phase_array(nf)=Z1
                        ENDDO
-                       call Op_phase(Z,OP_V,Nsigma,N_SUN)
+                       if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
+                       Z=product(Phase_array)
+                       Z=Z**N_SUN
                        Call Control_PrecisionP(Z,Phase)
                        Phase = Z
                        IF( LTAU == 1 .and. Projector .and. Stab_nt(NST)<=THTROT+1 .and. THTROT+1<Stab_nt(NST+1) ) then
@@ -761,30 +815,36 @@ Program Main
                  NT  = Stab_nt(1)
                  CALL WRAPUL(NT, NT1, udvl)
                  
-                 do nf = 1,N_FL
+                 do nf_eff = 1,N_FL_eff
+                    nf=Calc_Fl_map(nf_eff)
                     if (Projector) then
-                       CALL udvr(nf)%reset('r',WF_R(nf)%P)
+                       CALL udvr(nf_eff)%reset('r',WF_R(nf)%P)
                     else
-                       CALL udvr(nf)%reset('r')
+                       CALL udvr(nf_eff)%reset('r')
                     endif
                  ENDDO
-                 Z = cmplx(1.d0, 0.d0, kind(0.D0))
-                 do nf = 1,N_FL
+                 Phase_array = cmplx(1.d0, 0.d0, kind(0.D0))
+                 do nf_eff = 1,N_FL_eff
+                    nf=Calc_Fl_map(nf_eff)
                     TEST(:,:) = GR(:,:,nf)
                     NVAR = 1
-                    CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf), UDVL(nf))
-                    Z = Z*Z1
+                    CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf_eff), UDVL(nf_eff))
                     Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
+                    call Op_phase(Z1,OP_V,Nsigma,nf)
+                    Phase_array(nf)=Z1
                  ENDDO
-                 call Op_phase(Z,OP_V,Nsigma,N_SUN)
+                 if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
+                 Z=product(Phase_array)
+                 Z=Z**N_SUN
                  Call Control_PrecisionP(Z,Phase)
                  Phase = Z
                  NST =  NSTM
-                 Do nf = 1,N_FL
+                 Do nf_eff = 1,N_FL_eff
+                    nf=Calc_Fl_map(nf_eff)
                     if (Projector) then
-                       CALL udvst(NST, nf)%reset('l',WF_L(nf)%P)
+                       CALL udvst(NST, nf_eff)%reset('l',WF_L(nf)%P)
                     else
-                       CALL udvst(NST, nf)%reset('l')
+                       CALL udvst(NST, nf_eff)%reset('l')
                     endif
                  enddo
                  
@@ -813,17 +873,19 @@ Program Main
         Enddo
 
         ! Deallocate things
-        DO nf = 1, N_FL
-           CALL udvl(nf)%dealloc
-           CALL udvr(nf)%dealloc
+        DO nf_eff = 1, N_FL_eff
+           CALL udvl(nf_eff)%dealloc
+           CALL udvr(nf_eff)%dealloc
            do n = 1, NSTM
-              CALL udvst(n,nf)%dealloc
+              CALL udvst(n,nf_eff)%dealloc
            ENDDO
-           if (Projector) then
+        ENDDO
+        if (Projector) then
+           DO nf = 1, N_FL
               CALL WF_clear(WF_R(nf))
               CALL WF_clear(WF_L(nf))
-           endif
-        ENDDO
+           ENDDO
+        endif
         DEALLOCATE(udvl, udvr, udvst)
         DEALLOCATE(GR, TEST, Stab_nt,GR_Tilde)
         if (Projector) DEALLOCATE(WF_R, WF_L)
@@ -865,6 +927,16 @@ Program Main
 #endif
         
         Call Langevin_HMC%clean()
+
+         ! Delete the file RUNNING since the simulation finished successfully
+#if defined(MPI)
+        If (  Irank == 0 ) then
+#endif
+           open(unit=5, file='RUNNING', status='old')
+           close(5, status='delete')
+#if defined(MPI)
+        endif
+#endif
 
 #ifdef MPI
         CALL MPI_FINALIZE(ierr)

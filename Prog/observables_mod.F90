@@ -38,12 +38,14 @@
 !> routine to initialize them and to print out the bins
 !
 !--------------------------------------------------------------------
+
+
      Module Observables
 
 #if !defined HDF5 && !defined OBS_LEGACY
 #define OBS_LEGACY 1
 #endif
-
+       Use runtime_error_mod
        Use Lattices_v3, only: Unit_cell, Lattice
        use iso_fortran_env, only: output_unit, error_unit
 
@@ -300,7 +302,7 @@
            Ntau  = Size(Obs%Obs_Latt,2)
            if ( .not. (Obs%Latt%N == Ns ) ) then
               Write(error_unit,*) 'Error in Print_bin_Latt'
-              error stop 1
+              CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
            endif
            If (Ntau == 1) then
               File_suff = "_eq"

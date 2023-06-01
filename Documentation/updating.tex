@@ -32,7 +32,7 @@ Predicting how efficient a certain Monte Carlo update scheme will turn out to be
 		\texttt{Tempering}           & Compiling option & Requires MPI and runs the code in a parallel tempering mode, also see Sec.~\ref{Parallel_tempering.sec},~\ref{sec:compilation} \\
 		\bottomrule
 	\end{tabular}
-	\caption{Variables required to control the updating scheme. Per default the program carries out sequential, single spin-flip sweeps, and logical variables are set to \texttt{.false.}.}
+	\caption{Variables required to control the updating scheme. Per default the program carries out sequential, single spin-flip sweeps, and logical variables are set to \texttt{.false.}}
 	\label{table:Updating_schemes}
 \end{table}
 % 
@@ -103,13 +103,13 @@ Since we allow for a stochastic  generation of  the global move, it may very wel
 \label{sec:global_slice}
 %------------------------------------------------------------
 %  
-The code allows for global updates as well. The user must then provide two additional functions (see \texttt{Hamiltonian\_Hubbard\_include.h}): \texttt{Global\_move} and \texttt{Delta\_\-S0\_\-global(Nsigma\_old)}.   
+The code allows for global updates as well. The user must then provide two additional functions (see \texttt{Hamiltonian\_Hubbard\_include.h}): \texttt{Global\_move} and \texttt{Delta\_\-S0\_\-global( Nsigma\_old )}.   
 
 The subroutine  \texttt{Global\_move(T0\_Proposal\_ratio,nsigma\_old,size\_clust)}  proposes  a global move. 
 Its single input is the variable \texttt{nsigma\_old} of type \texttt{Field} (see Section~\ref{sec:fields}) that contains  the full  configuration $C$ stored in \texttt{nsigma\_old\%f(M\_V + M\_I, Ltrot)}.  On output, the new configuration $C'$, determined by the user,  is stored in the two-dimensional array \texttt{nsigma}, which is a global variable declared in the Hamiltonian module.
-Like for the global move in space (Sec.~\ref{sec:global_space}), \texttt{T0\_Proposal\_ratio} contains the proposal ratio $T_0(C' \rightarrow C) / T_0(C \rightarrow C') $.
+Like for the global move in space (Sec.~\ref{sec:global_space}), \texttt{T0\_Proposal\_ratio} contains the proposal ratio $\frac{T_0(C' \rightarrow C)}{T_0(C \rightarrow C')} $.
 Since we allow for a stochastic  generation of  the global move, it may very well be that no change is proposed. In this case, \texttt{T0\_Proposal\_ratio}   takes the value 0 upon exit, and  \texttt{nsigma$\,=\,$nsigma\_old}.   
-The real-valued \texttt{size\_clust} gives the size of the proposed move (e.g., $\tfrac{\text{Number of flipped spins}}{\text{Total number of spins}}$). This is used to calculate the average sizes of proposed and accepted moves, which are printed in the \texttt{info} file. The variable \texttt{size\_clust} is not necessary for the simulation, but may help the user to estimate the effectiveness of the global update.
+The real-valued \texttt{size\_clust} gives the size of the proposed move $\left(\text{e.g.,} \tfrac{\text{Number of flipped spins}}{\text{Total number of spins}}\right)$. This is used to calculate the average sizes of proposed and accepted moves, which are printed in the \texttt{info} file. The variable \texttt{size\_clust} is not necessary for the simulation, but may help the user to estimate the effectiveness of the global update.
 
 In order to compute the acceptance-rejection ratio,  the user must also provide a function 
 \texttt{Delta\_\-S0}\texttt{\_\-global(nsigma\_old)} that computes the ratio $e^{-S_0(C')}/e^{-S_0(C)}$. Again, the configuration $C'$ is given by the field \texttt{nsigma}.
