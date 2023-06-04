@@ -77,12 +77,26 @@ alf_test_branch_py:
   - export PYTHONPATH="$PWD/pyALF:$PYTHONPATH"
   - export PATH="$PWD/pyALF/py_alf/cli:$PATH"
   - export ALF_DIR="$PWD"
-  - alf_test_branch.py
-    --sim_pars pyALF/py_alf/cli/test_pars.json
-    --alfdir /home/debian/ALF
-    --machine GNU
-    --branch_T $CI_COMMIT_BRANCH
-    --branch_R master
+  - |
+    if [ "$USER" = "root" ]; then
+      adduser --system --disabled-password tester && \
+      mkdir test && chown tester test && cd test && \
+      runuser -m -u tester -- alf_test_branch.py \
+        --sim_pars pyALF/py_alf/cli/test_pars.json \
+        --alfdir /home/debian/ALF \
+        --machine GNU \
+        --mpi \
+        --branch_T $CI_COMMIT_BRANCH \
+        --branch_R master
+    else
+      alf_test_branch.py \
+        --sim_pars pyALF/py_alf/cli/test_pars.json \
+        --alfdir /home/debian/ALF \
+        --machine GNU \
+        --mpi \
+        --branch_T $CI_COMMIT_BRANCH \
+        --branch_R master
+    fi
 
 
 GQMCT_Buster:
