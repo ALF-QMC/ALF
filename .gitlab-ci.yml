@@ -67,6 +67,24 @@ Check_Stopcommands:
     - grep -irn -e "^\s*error\s*stop" -e "^\s*stop" --include="*.F90" --exclude-dir=Analysis --exclude-dir=HDF5 --exclude-dir=testsuite --exclude-dir=Not\_supported --exclude="runtime\_error\_mod.F90" && exit 1
     - exit 0
 
+alf_test_branch_py:
+  stage: test
+  tags: [k8s]
+  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/bullseye-pyalf-req
+  needs: []
+  script:
+  - git clone https://git.physik.uni-wuerzburg.de/ALF/pyALF.git
+  - export PYTHONPATH="$PWD/pyALF:$PYTHONPATH"
+  - export PATH="$PWD/pyALF/py_alf/cli:$PATH"
+  - export ALF_DIR="$PWD
+  - alf_test_branch.py 
+    --sim_pars test_pars.json
+    --alfdir /home/debian/ALF 
+    --machine GNU
+    --branch_T $CI_COMMIT_BRANCH
+    --branch_R master
+
+
 GQMCT_Buster:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:buster-gfortran-blas-lapack
   <<: *build_definition
