@@ -78,7 +78,7 @@ alf_test_branch_py:
   - export PATH="$PWD/pyALF/py_alf/cli:$PATH"
   - export ALF_DIR="$PWD"
   - |
-    if [ "$USER" = "root" ]; then
+    if [ "$(whoami)" = "root" ]; then
       adduser --system --disabled-password tester && \
       mkdir test && chown tester test && cd test && \
       runuser -m -u tester -- alf_test_branch.py \
