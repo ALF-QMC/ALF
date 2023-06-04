@@ -76,10 +76,10 @@ alf_test_branch_py:
   - git clone https://git.physik.uni-wuerzburg.de/ALF/pyALF.git
   - export PYTHONPATH="$PWD/pyALF:$PYTHONPATH"
   - export PATH="$PWD/pyALF/py_alf/cli:$PATH"
-  - export ALF_DIR="$PWD
-  - alf_test_branch.py 
-    --sim_pars test_pars.json
-    --alfdir /home/debian/ALF 
+  - export ALF_DIR="$PWD"
+  - alf_test_branch.py
+    --sim_pars pyALF/py_alf/cli/test_pars.json
+    --alfdir /home/debian/ALF
     --machine GNU
     --branch_T $CI_COMMIT_BRANCH
     --branch_R master
