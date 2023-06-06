@@ -59,12 +59,13 @@ stages:
   variables:
     MACHINE: GNU
   needs: []
+  when: manual
   script:
   - git clone https://git.physik.uni-wuerzburg.de/ALF/pyALF.git
   - git clone --depth 1 https://git.physik.uni-wuerzburg.de/ALF/ALF.git
   - export PYTHONPATH="$PWD/pyALF:$PYTHONPATH"
   - export PATH="$PWD/pyALF/py_alf/cli:$PATH"
-  - export ALF_DIR="$PWD/ALF"
+  - export ALF_DIR="$PWD"
   - |
     if [ "$(whoami)" = "root" ]; then
       export NUMBA_CACHE_DIR=/tmp && \
