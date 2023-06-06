@@ -6,6 +6,7 @@ stages:
   - build
   - warnconv
   - test
+  - testbranch
   - memleaks
 
 .build_template: &build_definition
@@ -54,7 +55,7 @@ stages:
     - cat log.txt | grep "tests passed" | cut -d " " -f 1
 
 .test_branch_template: &test_branch_definintion
-  stage: test
+  stage: testbranch
   variables:
     MACHINE: GNU
   needs: []
@@ -64,14 +65,13 @@ stages:
   - export PYTHONPATH="$PWD/pyALF:$PYTHONPATH"
   - export PATH="$PWD/pyALF/py_alf/cli:$PATH"
   - export ALF_DIR="$PWD/ALF"
-  - export PYALF_DIR="$PWD/pyALF"
   - |
     if [ "$(whoami)" = "root" ]; then
       export NUMBA_CACHE_DIR=/tmp && \
       adduser --disabled-password --gecos "" tester && \
       chown -R tester . && \
       runuser -m -u tester -- alf_test_branch.py \
-        --sim_pars $PYALF_DIR/py_alf/cli/test_pars.json \
+        --sim_pars $ALF_DIR/testsuite/test_branch_parameters.json \
         --machine $MACHINE \
         --mpi \
         --branch_T $CI_COMMIT_BRANCH \
@@ -79,7 +79,7 @@ stages:
         --devel
     else
       alf_test_branch.py \
-        --sim_pars $PYALF_DIR/py_alf/cli/test_pars.json \
+        --sim_pars $ALF_DIR/testsuite/test_branch_parameters.json \
         --machine $MACHINE \
         --mpi \
         --branch_T $CI_COMMIT_BRANCH \
