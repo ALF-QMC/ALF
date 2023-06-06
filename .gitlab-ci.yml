@@ -62,7 +62,6 @@ stages:
   when: manual
   script:
   - git clone https://git.physik.uni-wuerzburg.de/ALF/pyALF.git
-  - git clone --depth 1 https://git.physik.uni-wuerzburg.de/ALF/ALF.git
   - export PYTHONPATH="$PWD/pyALF:$PYTHONPATH"
   - export PATH="$PWD/pyALF/py_alf/cli:$PATH"
   - export ALF_DIR="$PWD"
