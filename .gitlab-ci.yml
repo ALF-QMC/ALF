@@ -96,12 +96,6 @@ GQMCT_Bullseye_MPI:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-gfortran-blas-lapack-fftw-hdf5-scipy3
   stage: build
   needs: []
-  except:
-    changes:
-      - .gitignore
-      - CITATION
-      - README.md
-      - license.*
   script:
     - apt-get update && apt install -y python3 curl libghc-zlib-dev g++
     - gfortran -v
@@ -113,12 +107,6 @@ GQMCT_Intel-21:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-intel-oneapi-ifort-python3
   stage: build
   needs: []
-  except:
-    changes:
-      - .gitignore
-      - CITATION
-      - README.md
-      - license.*
   script:
     - apt-get update && apt install -y curl libghc-zlib-dev
     - . /opt/intel/oneapi/setvars.sh
@@ -155,12 +143,6 @@ GQMCT_Intel-21_conv:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-intel-oneapi-ifort-python3
   stage: warnconv
   needs: []
-  except:
-    changes:
-      - .gitignore
-      - CITATION
-      - README.md
-      - license.*
   script:
     - apt-get update && apt install -y curl libghc-zlib-dev
     - . /opt/intel/oneapi/setvars.sh
