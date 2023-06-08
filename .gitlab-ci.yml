@@ -104,12 +104,19 @@ Check_Stopcommands:
 Test_Branch_Bookworm:
   <<: *test_branch_definintion
   tags: [k8s]
-  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/bullseye-pyalf-req
+  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/pyalf-requirements:bookworm
 
 Test_Branch_Bullseye:
   <<: *test_branch_definintion
   tags: [k8s]
-  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/bullseye-pyalf-req
+  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/pyalf-requirements:bullseye
+
+Test_Branch_Intel:
+  <<: *test_branch_definintion
+  tags: [k8s]
+  variables:
+    MACHINE: Intel
+  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/pyalf-requirements:intel
 
 Test_Branch_Mac:
   <<: *test_branch_definintion
