@@ -2,6 +2,7 @@ variables:
   CONFIG_ARGS: ""  # Variable for additional arguments for configure.sh
 
 stages:
+  - lint
   - build
   - warnconv
   - test
@@ -52,9 +53,19 @@ stages:
     - ctest -VV -O log.txt
     - cat log.txt | grep "tests passed" | cut -d " " -f 1
 
-GQMCT_Stretch:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:stretch-gfortran-blas-lapack
-  <<: *build_definition
+Check_Stopcommands:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bookworm-buildd
+  stage: lint
+  needs: []
+  except:
+    changes:
+      - .gitignore
+      - CITATION
+      - README.md
+      - license.*
+  script:
+    - grep -irn -e "^\s*error\s*stop" -e "^\s*stop" --include="*.F90" --exclude-dir=Analysis --exclude-dir=HDF5 --exclude-dir=testsuite --exclude-dir=Not\_supported --exclude="runtime\_error\_mod.F90" && exit 1
+    - exit 0
 
 GQMCT_Buster:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:buster-gfortran-blas-lapack
@@ -62,6 +73,10 @@ GQMCT_Buster:
 
 GQMCT_Bullseye:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-gfortran-blas-lapack
+  <<: *build_definition
+
+GQMCT_Bookworm:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bookworm-gfortran-blas-lapack
   <<: *build_definition
 
 
@@ -77,8 +92,8 @@ GQMCT_Ubuntu_Bionic:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/ubuntu:bionic-beaver-gfortran-lapack
   <<: *build_definition
 
-GQMCT_Stretch_MPI:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:stretch-gfortran-blas-lapack-fftw-hdf5-scipy3
+GQMCT_Bullseye_MPI:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-gfortran-blas-lapack-fftw-hdf5-scipy3
   stage: build
   needs: []
   except:
@@ -110,10 +125,6 @@ GQMCT_Intel-21:
     - . configure.sh INTEL serial $CONFIG_ARGS
     - make all
 
-GQMCT_Stretch_conv:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:stretch-gfortran-blas-lapack
-  <<: *warnconv_definition
-
 GQMCT_Buster_conv:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:buster-gfortran-blas-lapack
   <<: *warnconv_definition
@@ -124,6 +135,10 @@ GQMCT_Bullseye_conv:
 
 GQMCT_Bullseye_OpenBlas_conv:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-gfortran-openblas-lapack
+  <<: *warnconv_definition
+
+GQMCT_Bookworm_conv:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bookworm-gfortran-blas-lapack
   <<: *warnconv_definition
 
 GQMCT_PGI_conv:
@@ -152,10 +167,6 @@ GQMCT_Intel-21_conv:
     - . configure.sh INTEL serial devel $CONFIG_ARGS
     - make all
 
-GQMCT_Stretch_tests:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:stretch-gfortran-blas-lapack
-  <<: *test_definition
-
 GQMCT_Buster_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:buster-gfortran-blas-lapack
   <<: *test_definition
@@ -164,8 +175,12 @@ GQMCT_Bullseye_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-gfortran-blas-lapack
   <<: *test_definition
 
-GQMCT_Stretch_OpenBlas_tests:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:stretch-gfortran-openblas-lapack
+GQMCT_Bullseye_OpenBlas_tests:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-gfortran-openblas-lapack
+  <<: *test_definition
+
+GQMCT_Bookworm_tests:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bookworm-gfortran-blas-lapack
   <<: *test_definition
 
 GQMCT_Ubuntu-bionic_tests:
@@ -191,8 +206,8 @@ GQMCT_PGI_tests:
     - ctest -VV -O log.txt
     - cat log.txt | grep "tests passed" | cut -d " " -f 1
 
-GQMCT_Stretch_valgrind:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:stretch-gfortran-blas-lapack-valgrind
+GQMCT_Bullseye_valgrind:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-gfortran-blas-lapack
   stage: memleaks
   needs: []
   only:
@@ -200,7 +215,7 @@ GQMCT_Stretch_valgrind:
       - Prog/*.(f|F)90
       - Libraries/Modules/*.(f|F)90
   script:
-      - apt-get update && apt install -y python3 curl libghc-zlib-dev g++
+      - apt-get update && apt install -y python3 curl libghc-zlib-dev g++ valgrind
       - . configure.sh GNU devel serial $CONFIG_ARGS
       - gfortran -v
       - make lib

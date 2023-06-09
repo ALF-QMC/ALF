@@ -123,7 +123,9 @@
 !>
 !--------------------------------------------------------------------
 
+
     Module Hamiltonian_main
+      Use runtime_error_mod
       Use Operator_mod, only: Operator
       Use WaveFunction_mod, only: WaveFunction
       Use Observables
@@ -155,6 +157,7 @@
         procedure, nopass :: weight_reconstruction => weight_reconstruction_base
         procedure, nopass :: GR_reconstruction => GR_reconstruction_base
         procedure, nopass :: GRT_reconstruction => GRT_reconstruction_base
+        procedure, nopass :: Apply_B_HMC => Apply_B_HMC_base
 #ifdef HDF5
         procedure, nopass :: write_parameters_hdf5 => write_parameters_hdf5_base
 #endif
@@ -178,6 +181,7 @@
       Integer      , public        :: Group_Comm
       Logical      , public        :: Symm
       Logical      , public        :: reconstruction_needed
+      Logical      , public        :: leap_frog_bulk
 
 
       !>    Privat Observables
@@ -214,7 +218,7 @@
        OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
        IF (ierr /= 0) THEN
           WRITE(error_unit,*) 'Alloc_Ham: unable to open <parameters>',ierr
-          error stop 1
+          CALL Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
        END IF
        READ(5,NML=VAR_HAM_NAME)
        CLOSE(5)
@@ -222,21 +226,9 @@
        Select Case (ham_name)
 #include "Hamiltonians_case.h"
 !!$       This file will be dynamically generated and appended
-!!$       Case ('Kondo')
-!!$          call Ham_Alloc_Kondo()
-!!$       Case ('Hubbard')
-!!$          call Ham_Alloc_Hubbard()
-!!$       Case ('Hubbard_Plain_Vanilla')
-!!$          call Ham_Alloc_Hubbard_Plain_Vanilla()
-!!$       Case ('tV')
-!!$          call Ham_Alloc_tV()
-!!$       Case ('LRC')
-!!$          call Ham_Alloc_LRC()
-!!$       Case ('Z2_Matter')
-!!$          call Ham_Alloc_Z2_Matter()
        Case default
           write(error_unit, '("A","A","A")') 'Hamiltonian ', ham_name, ' not yet implemented!'
-          error stop 1
+          CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
        end Select
     end subroutine Alloc_Ham
     
@@ -249,7 +241,7 @@
     subroutine Ham_Set_base()
       implicit none
       write(error_unit, *) 'Ham_set not defined!'
-      error stop 1
+      CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
     end subroutine Ham_Set_base
     
     !--------------------------------------------------------------------
@@ -264,20 +256,20 @@
     !> @details
     !--------------------------------------------------------------------
           Real (Kind=Kind(0.d0)) function S0_base(n,nt,Hs_new)
-             Implicit none
-             !> Operator index
-             Integer, Intent(IN) :: n
-             !> Time slice
-             Integer, Intent(IN) :: nt
-             !> New local field on time slice nt and operator index n
-             Real (Kind=Kind(0.d0)), Intent(In) :: Hs_new
-
-             S0_base = 1.d0
-             If ( Op_V(n,1)%type == 1 ) then
+            Implicit none
+            !> Operator index
+            Integer, Intent(IN) :: n
+            !> Time slice
+            Integer, Intent(IN) :: nt
+            !> New local field on time slice nt and operator index n
+            Real (Kind=Kind(0.d0)), Intent(In) :: Hs_new
+            
+            S0_base = 1.d0
+            If ( Op_V(n,1)%type == 1 ) then
                write(error_unit, *) 'function S0 not implemented'
-               error stop 1
-             endif
-
+               CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+            endif
+            
           end function S0_base
 
 
@@ -328,7 +320,7 @@
              Type (Fields),  Intent(IN)  :: nsigma_old
 
              write(error_unit, *) 'Global_move not implemented'
-             error stop 1
+             CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
 
           End Subroutine Global_move_base
 
@@ -355,7 +347,33 @@
              ! Arguments
              Type (Fields),  INTENT(IN) :: nsigma_old
 
+             Logical, save              :: first_call=.True.
+             integer                    :: field_id, tau, Nfields, Ntau
+             Real(kind=kind(0.0d0))     :: Hs_old
+
              Delta_S0_global_base = 1.d0
+             Nfields=size(nsigma_old%f,1)
+             Ntau=size(nsigma_old%f,2)
+             do tau=1,Ntau
+                do field_id=1,Nfields
+                   ! S0 returns S0=exp(-S0(HS_old))/exp(-S0(nsigma))
+                   ! purposly call ham%S0 instead of S0_base such that S0 may be provided in derived Hamiltonian
+                   Hs_old=nsigma_old%f(field_id,tau)
+                   ! note we need exp(-S0(new))/exp(-S0(old)) but nsigma is already the new config and we provide HS_old
+                   ! in contrast to HS_new. Hence, S0 returns the inverse of whar we need!
+                   Delta_S0_global_base=Delta_S0_global_base/ham%S0(field_id,tau,Hs_old)
+                enddo
+             enddo
+
+             if (first_call) then
+                write(output_unit,*)
+                write(output_unit,*) "ATTENTION:     The base implementation of Delta_S0_global is used!"
+                write(output_unit,*) "This relies on a proper version of S0, but may be inefficient for some models."
+                write(output_unit,*) "Consider overwriting this function to benefit from model specific properties."
+                write(output_unit,*) "Suppressing further printouts of this message."
+                write(output_unit,*)
+                first_call=.False.
+             endif
 
           end Function Delta_S0_global_base
 
@@ -388,9 +406,12 @@
              Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE
              Integer, INTENT(IN)          :: Ntau
              Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
+             Logical, save              :: first_call=.True.
              
-             write(error_unit, *) "Warning: Obser not implemented."
-
+             If  (first_call)    then 
+                write(error_unit, *) "Warning: Obser not implemented."
+                first_call=.false.
+             endif
           end Subroutine Obser_base
 
 
@@ -426,8 +447,13 @@
              Complex (Kind=Kind(0.d0)), INTENT(IN) :: G00(Ndim,Ndim,N_FL), GTT(Ndim,Ndim,N_FL)
              Complex (Kind=Kind(0.d0)), INTENT(IN) :: Phase
              Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
+             Logical, save              :: first_call=.True.
              
-             write(error_unit, *) "Warning: ObserT not implemented."
+             If  (first_call)    then 
+                write(error_unit, *) "Warning: ObserT not implemented."
+                first_call=.false.
+             endif
+             
     
           end Subroutine ObserT_base
 
@@ -552,9 +578,8 @@
              Integer, INTENT(IN)  :: ntau
              
              write(error_unit, *) 'Global_move_tau not implemented'
-             error stop 1
+             CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
           end Subroutine Global_move_tau_base
-
 
     !--------------------------------------------------------------------
     !> @author
@@ -575,6 +600,12 @@
 
              Real (Kind=Kind(0.d0)), allocatable, dimension(:,:), Intent(INOUT) :: Initial_field
 
+             !  Consider  when we implement  different debugging  levels
+!!$             write(output_unit,*)
+!!$             write(output_unit,*) "ATTENTION:     Base implementation of Hamiltonian_set_nsigma is getting calling!"
+!!$             write(output_unit,*) "This routine does not actually change the initial field configuration."
+!!$             write(output_unit,*)
+
           end Subroutine Hamiltonian_set_nsigma_base
 
 
@@ -593,6 +624,12 @@
 
              Implicit none
              Integer, Intent(INOUT) :: Nt_sequential_start,Nt_sequential_end, N_Global_tau
+
+!!$             write(output_unit,*)
+!!$             write(output_unit,*) "ATTENTION:     Base implementation of Overide_global_tau_sampling_parameters is getting calling!"
+!!$             write(output_unit,*) "This routine does not actually change the parameters."
+!!$             write(output_unit,*)
+
           end Subroutine Overide_global_tau_sampling_parameters_base
 
 
@@ -610,9 +647,62 @@
 
             Real (Kind=Kind(0.d0)), Intent(inout), allocatable :: Forces_0(:,:)
 
+            logical, save                                      :: first_call=.True.
+
             Forces_0  = 0.d0
+
+            if (first_call) then
+               write(output_unit,*)
+               write(output_unit,*) "ATTENTION:     Base implementation of Ham_Langevin_HMC_S0 is getting calling!"
+               write(output_unit,*) "This assumes trivial S0 action and is likely incorrect!"
+               write(output_unit,*) "Consider overwritting this routine according to the model in your Hamiltonian."
+               write(output_unit,*) "Suppressing further printouts of this message."
+               write(output_unit,*)
+               first_call=.False.
+            endif
+            ! Johannes: I would actually like to terminate the code. I cannot come up with a scenario where Forces_0=0 is correct!
             
           end Subroutine Ham_Langevin_HMC_S0_base
+
+
+  !--------------------------------------------------------------------
+  !> @author 
+  !> ALF Collaboration
+  !>
+  !> @brief 
+  !>   p_HMC are the conjugate momenta to the fields phi in the HMC updating scheme.
+  !>   The relevant part of the action reads -1/2 p_HMC^T M^{-1} p_HMC, where M^{-1} = B^T * B is the
+  !>   "mass" of the conjugate momenta (tuning parameter in HMC) 
+  !>   If we define p_tilde_HMC= B*p_HMC then the Forces to update p_tilde_HMC are: 
+  !>        p_tilde_HMC --> p_tilde_HMC - delta t B del H /del phi .
+  !>   and the Forces to update phi are: 
+  !>        phi --> phi + delta t B^T p_tilde_HMC
+  !>   By detault, M=1 => B=1, hence this routine does nothing!
+  !>   We  note  that  Forces_HMC(:,:)   has  to be  understood as  a vection  with  superindex x=(n1,n2)
+  !>   such  that B =  B(x,y).   Since  we  want  M to be positive definite  the  Kernel of  B has  to consist         
+  !>   solely of the zero vector.        
+  !>         
+  !> @details
+  !> @param[inout] Forces_HMC Real(:,:)
+  !> \verbatim
+  !>  del H /del phi or p_tilde_HMC on input
+  !>  Forces_HMS --> B^op Forces_HMC  
+  !> \endverbatim .
+  !> @param[in] ltrans Logical
+  !> \verbatim
+  !>  ltrans = .true.  : op='T'
+  !>  ltrans = .false. : op='N'
+  !> \endverbatim 
+  !> 
+  !-------------------------------------------------------------------
+          Subroutine Apply_B_HMC_base(Forces_HMC, ltrans )
+
+            Implicit none
+
+            Real (Kind=Kind(0.d0)), Intent(inout), allocatable :: Forces_HMC(:,:)
+            Logical               , Intent(in)                 :: ltrans
+
+          end Subroutine Apply_B_HMC_base
     
 !--------------------------------------------------------------------
 !> @brief
@@ -623,8 +713,10 @@
           subroutine weight_reconstruction_base(weight)
             implicit none
             complex (Kind=Kind(0.d0)), Intent(inout) :: weight(:)
+
             write(error_unit, *) 'weight_reconstruction not defined!'
-            error stop 1
+            CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+            
           end subroutine weight_reconstruction_base
 
 
@@ -648,7 +740,7 @@
             Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: GR(Ndim,Ndim,N_FL)
             
             write(error_unit, *) "Warning: GR_reconstruction not implemented."
-            error stop 1
+            CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
           end Subroutine GR_reconstruction_base
 
 
@@ -673,7 +765,7 @@
            Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: GT0(Ndim,Ndim,N_FL), G0T(Ndim,Ndim,N_FL)
            
            write(error_unit, *) "Warning: GRT_reconstruction not implemented."
-           error stop 1
+           CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
          end Subroutine GRT_reconstruction_base
          
          
@@ -682,6 +774,13 @@
            implicit none
            
            Character (len=64), intent(in) :: filename
+
+           write(output_unit,*)
+           write(output_unit,*) "ATTENTION:     Base implementation of write_parameters_hdf5 is getting calling!"
+           write(output_unit,*) "This routine does not actually store the parameters in the hdf5 file."
+           write(output_unit,*) "Usually, a python script is generating a model specific routine, granted that the Hamiltonian"
+           write(output_unit,*) "respects the design rule. Without parameters, the HDF5 file's compatibility with pyALF is limited."
+           write(output_unit,*)
            
          end subroutine write_parameters_hdf5_base
 #endif

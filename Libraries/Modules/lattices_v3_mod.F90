@@ -1,4 +1,4 @@
-!  Copyright (C) 2018 The ALF project
+!  Copyright (C) 2018-2023 The ALF project
 !
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@
 !     - If you make substantial changes to the program we require you to either consider contributing
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
+
      Module Lattices_v3
 
 !--------------------------------------------------------------------
@@ -40,7 +41,13 @@
 !
 !--------------------------------------------------------------------
          Use Matrix
+         Use runtime_error_mod
          use iso_fortran_env, only: output_unit, error_unit
+         implicit none
+         private
+         public :: Unit_cell, Lattice, Make_lattice, Fourier_K_to_R, &
+                   Fourier_R_to_K, Inv_K, Inv_R, Iscalar, npbc, Xnorm, Print_latt, &
+                   clear_lattice
 
          Type Unit_cell
             !> Number of orbitals
@@ -53,7 +60,7 @@
 
          Type Lattice
             Integer          :: N, Ns
-            Integer, pointer :: list(:,:), invlist(:,:), nnlist(:,:,:), listk(:,:), &
+            Integer, pointer :: list(:,:), invlist(:,:), nnlist(:,:,:), nnlistk(:,:,:), listk(:,:), &
                  &              invlistk(:,:),  imj(:,:)
             Real (Kind=Kind(0.d0)), pointer :: a1_p(:), a2_p(:), b1_p(:), b2_p(:), BZ1_p(:), BZ2_p(:), &
                  &                    L1_p(:), L2_p(:), b1_perp_p(:), b2_perp_p(:)
@@ -264,7 +271,7 @@
            enddo
            If (nc.ne.Latt%N) Then
               write(error_unit,*) 'Make_lattice: Error ', nc, Latt%N
-              error stop 1
+              Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
            endif
 
            !Setup nnlist
@@ -294,6 +301,33 @@
               enddo
            enddo
 
+           !Setup nnlistk
+           Allocate ( Latt%nnlistk(LQ,-1:1,-1:1) )
+
+           do nr = 1, Latt%N
+              do nd1 = -1,1
+                 do nd2 = -1,1
+                    d_p = dble(nd1)*b1_p + dble(nd2)*b2_p
+                    x_p  = dble(Latt%listk(nr,1))*Latt%b1_p + dble(Latt%listk(nr,2))*Latt%b2_p  + d_p
+                    call npbc(x1_p, x_p , Latt%BZ1_p, Latt%BZ2_p)
+                    call npbc(x_p , x1_p, Latt%BZ1_p, Latt%BZ2_p)
+                    call npbc(x1_p, x_p , Latt%BZ1_p, Latt%BZ2_p)
+                    call npbc(x_p , x1_p, Latt%BZ1_p, Latt%BZ2_p)
+                    nnr1 =  nint ( Iscalar(Latt%L1_p,x_p) / (2.d0*pi) )
+                    nnr2 =  nint ( Iscalar(Latt%L2_p,x_p) / (2.d0*pi) )
+                    nnr  = Latt%invlistk(nnr1,nnr2)
+                    Latt%nnlistk(nr,nd1,nd2) = nnr
+                    if ( nnr < 1  .or.  nnr > Latt%N ) then
+                        write(6,*) "Error in nnlistk ", nnr
+                        x1_p =  dble(Latt%listk(nr,1))*Latt%b1_p + dble(Latt%listk(nr,2))*Latt%b2_p
+                        !Write(91,"(F14.7,2x,F14.7,2x,F14.7,2x,F14.7)") x1_p(1), x1_p(2), d_p(1), d_p(2)
+                        Write(91,"(F14.7,2x,F14.7)") x1_p(1) , x1_p(2)
+                        Write(91,*)
+                     endif
+                 enddo
+              enddo
+           enddo
+
            !Setup imj
            Allocate ( Latt%imj(LQ,LQ) )
            do nr = 1, Latt%N
@@ -315,6 +349,18 @@
            deallocate ( x_p,  x1_p, d_p,  a_p )
 
          end subroutine MAKE_LATTICE
+
+         subroutine Clear_Lattice(Latt)
+           Implicit none
+           Type (Lattice) :: Latt
+
+           deallocate (Latt%L2_p, Latt%L1_p, Latt%a1_p , Latt%a2_p, &
+                &    Latt%b1_p, Latt%b2_p, Latt%BZ1_p, Latt%BZ2_p )
+           deallocate (Latt%b1_perp_p, Latt%b2_perp_p )
+           deallocate ( Latt%Listk, Latt%Invlistk, Latt%imj, Latt%nnlistk, &
+                &    Latt%nnlist,Latt%List, Latt%Invlist)
+
+         end subroutine Clear_Lattice
 
  !********
          subroutine npbc_I(nr_p, n_p, L1_p, L2_p)
@@ -453,7 +499,7 @@
               Inv_K = nk
            else
               write(error_unit,*) 'Lattice: Error in Inv_K'
-              error stop 1
+              Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
            endif
 
  !!$          nk = 1
@@ -466,7 +512,7 @@
  !!$                nk = nk + 1
  !!$             else
  !!$                write(6,*) 'Error in Inv_K Lattice_new'
- !!$                stop
+ !!$                Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
  !!$             endif
  !!$          enddo
 

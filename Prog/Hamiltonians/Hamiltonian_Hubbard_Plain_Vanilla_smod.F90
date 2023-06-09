@@ -115,6 +115,7 @@
 !>
 !--------------------------------------------------------------------
 
+
     submodule (Hamiltonian_main) ham_Hubbard_Plain_Vanilla_smod
 
       Use Operator_mod
@@ -128,6 +129,7 @@
       Use Fields_mod
       Use Predefined_Hoppings
       Use LRC_Mod
+      use runtime_error_mod
 
 
       Implicit none
@@ -215,7 +217,7 @@
 
           If (L1 == 1) then
              Write(6,*) 'For  one-dimensional lattices set L2=1'
-             stop
+             Call Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
           endif
 
           if (N_part < 0) N_part = L1*L2/2
@@ -312,7 +314,7 @@
           
           If (Lattice_Type /=  "Square")  then
              Write(6,*) 'The plain vanilla Hubbard model is only defined for the square lattice'
-             stop
+             Call Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
           Endif
           
           Latt_unit%Norb    = 1
@@ -518,7 +520,7 @@
           enddo
 
           If (Ltau == 1) then
-             ! Equal time correlators
+             ! time-displaced correlators
              Allocate ( Obs_tau(5) )
              Do I = 1,Size(Obs_tau,1)
                 select case (I)

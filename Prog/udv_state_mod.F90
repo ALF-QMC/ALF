@@ -42,6 +42,7 @@
 
 
 MODULE UDV_State_mod
+    use runtime_error_mod
     use iso_fortran_env, only: output_unit, error_unit
 
     IMPLICIT NONE
@@ -172,11 +173,11 @@ CONTAINS
        if( present(P)) then
           if ( t .ne. size(P,1) ) then
              write(error_unit,*) "Mismatching Ndim between explicitly provided argument and implicitly provided size(P,1)"
-             error stop 1
+             CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
           endif
           if ( t < size(P,2) .or. size(P,2) < 0 ) then
              write(error_unit,*) "Illegal number of particles provided as size(P,2) (0 <= N_part <= Ndim)"
-             error stop 1
+             CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
           endif
           CALL this%alloc(t,size(P,2))
           CALL this%reset(side,P)

@@ -113,6 +113,7 @@
 !>
 !--------------------------------------------------------------------
 
+
     submodule (Hamiltonian_main) ham_Kondo_smod
 
       Use Operator_mod
@@ -232,7 +233,7 @@
           
           If ( .not. ( Lattice_type == "Bilayer_square" .or.  Lattice_type == "Bilayer_honeycomb") ) then
              Write(error_unit,*) "The Kondo Hamiltonian is only defined for bilayer lattices"
-             error stop 1
+             CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
           endif
 
           Ltrot = nint(beta/dtau)
@@ -241,7 +242,7 @@
 
           IF ( N_FL > 1 ) then
              Write(error_unit,*) 'For the Kondo systems, N_FL has  to be equal to unity'
-             error stop 1
+             CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
           Endif
           ! Setup the Bravais lattice
           Call  Ham_Latt

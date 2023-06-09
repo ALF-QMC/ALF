@@ -89,7 +89,7 @@
 !> \verbatim
 !>  Number of global moves per  sequential sweep.
 !>  Default: N_Global=0
-!> \endverbatim/
+!> \endverbatim
 !> @param Global_tau_moves Logical
 !> \verbatim
 !>  If true, global moves on a given time slice will be carried out
@@ -110,8 +110,10 @@
 
 !--------------------------------------------------------------------
 
+
 Program Main
 
+        Use runtime_error_mod
         Use Operator_mod
         Use Lattices_v3
         Use MyMats
@@ -171,7 +173,7 @@ Program Main
 #endif
         !  Space for reading in Langevin & HMC  parameters
         Logical                      :: Langevin,  HMC
-        Integer                      :: Leapfrog_Steps
+        Integer                      :: Leapfrog_Steps, N_HMC_sweeps
         Real  (Kind=Kind(0.d0))      :: Delta_t_Langevin_HMC, Max_Force
           
 #if defined(TEMPERING)
@@ -182,7 +184,8 @@ Program Main
         NAMELIST /VAR_QMC/   Nwrap, NSweep, NBin, Ltau, LOBS_EN, LOBS_ST, CPU_MAX, &
              &               Propose_S0,Global_moves,  N_Global, Global_tau_moves, &
              &               Nt_sequential_start, Nt_sequential_end, N_Global_tau, &
-             &               Langevin, HMC, Delta_t_Langevin_HMC, Max_Force, Leapfrog_steps
+             &               sequential, Langevin, HMC, Delta_t_Langevin_HMC, &
+             &               Max_Force, Leapfrog_steps, N_HMC_sweeps
 
 
         !  General
@@ -201,7 +204,7 @@ Program Main
         Real (Kind=Kind(0.d0)) :: Weight, Weight_tot
 
         ! For the truncation of the program:
-        logical                   :: prog_truncation
+        logical                   :: prog_truncation, run_file_exists
         integer (kind=kind(0.d0)) :: count_bin_start, count_bin_end
         
         ! For MPI shared memory
@@ -221,6 +224,36 @@ Program Main
            write (*,*) "ALF Copyright (C) 2016 - 2021 The ALF project contributors"
            write (*,*) "This Program comes with ABSOLUTELY NO WARRANTY; for details see license.GPL"
            write (*,*) "This is free software, and you are welcome to redistribute it under certain conditions."
+
+           ! Ensure that only one ALF is running at the same time, i.e. the file RUNNING is not present
+           inquire (file='RUNNING', exist=run_file_exists)
+           if (run_file_exists) then
+             write (error_unit,*)
+             write (error_unit,*) "ALF is already running or the previous run failed."
+             write (error_unit,*) "Please ensure the following:"
+             write (error_unit,*) " * Make sure no other simulation is currently running in this directory"
+             write (error_unit,*) "   (Wait until the previous run is finished; it will automatically remove RUNNING)"
+             write (error_unit,*) " * If the previous run crashed, make sure that"
+             write (error_unit,*) "    1) the data files are not corrupted"
+             write (error_unit,*) "       (run the analysis)"
+             write (error_unit,*) "    2) the configuration files are not corrupted"
+             write (error_unit,*) "       (e.g., h5dump confout_*.h5 or check number of lines in confout_*)"
+             write (error_unit,*) "    3) If either data or configuration file are currupted (rare event), either"
+             write (error_unit,*) "       * [PREFERED] remove them and start fresh (safe)"
+             write (error_unit,*) "       * repair them (if you know what you are doing)"
+             write (error_unit,*) "         (difficult or impossible; ensure data and configuration files synced)"
+             write (error_unit,*) "    4) remove the file RUNNING manually before resubmition"
+             write (error_unit,*) "Afterwards, you may rerun the simulation."
+#ifdef MPI
+             call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
+#else
+   CALL Terminate_on_error(ERROR_RUNNING_FILE_FOUND,__FILE__,__LINE__)
+#endif
+           else
+             open (unit=5, file='RUNNING', status='replace', action='write')
+             write (5,*) "ALF is running"
+             close (5)
+           end if
 #ifdef MPI
         endif
 #endif
@@ -231,7 +264,7 @@ Program Main
         OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
         IF (ierr /= 0) THEN
            WRITE(error_unit,*) 'main: unable to open <parameters>',ierr
-           error stop 1
+           CALL Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
         END IF
         READ(5,NML=VAR_TEMP)
         CLOSE(5)
@@ -241,7 +274,7 @@ Program Main
         CALL MPI_BCAST(Tempering_calc_det      ,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
         if ( mod(ISIZE,mpi_per_parameter_set) .ne. 0 ) then
            Write (error_unit,*) "mpi_per_parameter_set is not a multiple of total mpi processes"
-           error stop 1
+           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         endif
         Call Global_Tempering_setup
 #elif !defined(TEMPERING)  && defined(MPI)
@@ -283,13 +316,13 @@ Program Main
            ! This is a set of variables that  identical for each simulation.
            Nwrap=0;  NSweep=0; NBin=0; Ltau=0; LOBS_EN = 0;  LOBS_ST = 0;  CPU_MAX = 0.d0
            Propose_S0 = .false. ;  Global_moves = .false. ; N_Global = 0
-           Global_tau_moves = .false.; Langevin = .false. ; HMC =.false.
-           Delta_t_Langevin_HMC = 0.d0;  Max_Force = 0.d0 ; Leapfrog_steps = 0
+           Global_tau_moves = .false.; sequential = .true.; Langevin = .false. ; HMC =.false.
+           Delta_t_Langevin_HMC = 0.d0;  Max_Force = 0.d0 ; Leapfrog_steps = 0; N_HMC_sweeps = 1
            Nt_sequential_start = 1 ;  Nt_sequential_end  = 0;  N_Global_tau  = 0
            OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
            IF (ierr /= 0) THEN
               WRITE(error_unit,*) 'main: unable to open <parameters>',ierr
-              error stop 1
+              CALL Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
            END IF
            READ(5,NML=VAR_QMC)
            CLOSE(5)
@@ -310,14 +343,17 @@ Program Main
         CALL MPI_BCAST(Nt_sequential_start  ,1 ,MPI_Integer  ,0,MPI_COMM_WORLD,ierr)
         CALL MPI_BCAST(Nt_sequential_end    ,1 ,MPI_Integer  ,0,MPI_COMM_WORLD,ierr)
         CALL MPI_BCAST(N_Global_tau         ,1 ,MPI_Integer  ,0,MPI_COMM_WORLD,ierr)
+        CALL MPI_BCAST(sequential           ,1 ,MPI_LOGICAL  ,0,MPI_COMM_WORLD,ierr)
         CALL MPI_BCAST(Langevin             ,1 ,MPI_LOGICAL  ,0,MPI_COMM_WORLD,ierr)
         CALL MPI_BCAST(HMC                  ,1 ,MPI_LOGICAL  ,0,MPI_COMM_WORLD,ierr)
         CALL MPI_BCAST(Leapfrog_steps       ,1 ,MPI_Integer  ,0,MPI_COMM_WORLD,ierr)
+        CALL MPI_BCAST(N_HMC_sweeps         ,1 ,MPI_Integer  ,0,MPI_COMM_WORLD,ierr)
         CALL MPI_BCAST(Max_Force            ,1 ,MPI_REAL8    ,0,MPI_COMM_WORLD,ierr)
         CALL MPI_BCAST(Delta_t_Langevin_HMC ,1 ,MPI_REAL8    ,0,MPI_COMM_WORLD,ierr)
 #endif
         Call Fields_init()
         Call Alloc_Ham()
+        leap_frog_bulk = .false.
         Call ham%Ham_set()
 
         ! Test if user has initialized Calc_FL array
@@ -345,13 +381,13 @@ Program Main
         if(Projector) then
            if (.not. allocated(WF_R) .or. .not. allocated(WF_L)) then
               write(error_unit,*) "Projector is selected but there are no trial wave functions!"
-              error stop 1
+              CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
            endif
            do nf_eff=1,N_fl_eff
               nf=Calc_Fl_map(nf_eff)
               if (.not. allocated(WF_R(nf)%P) .or. .not. allocated(WF_L(nf)%P)) then
                  write(error_unit,*) "Projector is selected but there are no trial wave functions!"
-                 error stop 1
+                 CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
               endif
            enddo
         endif
@@ -362,7 +398,7 @@ Program Main
            else
               If (LOBS_ST < Thtrot+1 ) then
                  Write(error_unit,*) 'Measuring out of dedicating interval, LOBS_ST too small.'
-                 error stop 1
+                 CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
               endif
            endif
            if ( LOBS_EN == 0) then
@@ -370,7 +406,7 @@ Program Main
            else
               If (LOBS_EN > Ltrot-Thtrot ) then
                  Write(error_unit,*) 'Measuring out of dedicating interval, LOBS_EN too big.'
-                 error stop 1
+                 CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
               endif
            endif
         else
@@ -455,6 +491,66 @@ Program Main
 
         Stab_nt(Nstm) = Ltrot
 
+      !   Sequential = .true.
+        !TODO: check if sequential is done if some fields are discrete (Warning or error termination?)
+        if ( Langevin .or.  HMC  ) then
+           if (Langevin) then
+#if defined(MPI)
+               if ( Irank_g == 0 ) then
+#endif
+                  if (sequential) then 
+                     write(output_unit,*) "Langevin mode does not allow sequential updates."
+                     write(output_unit,*) "Overriding Sequential=.True. from parameter files."
+                  endif
+                  if (HMC) then 
+                     write(output_unit,*) "Langevin mode does not allow HMC updates."
+                     write(output_unit,*) "Overriding HMC=.True. from parameter files."
+                  endif
+                  if (Global_moves) then 
+                     write(output_unit,*) "Langevin mode does not allow global updates."
+                     write(output_unit,*) "Overriding Global_moves=.True. from parameter files."
+                  endif
+                  if (Global_tau_moves) then 
+                     write(output_unit,*) "Langevin mode does not allow global tau updates."
+                     write(output_unit,*) "Overriding Global_tau_moves=.True. from parameter files."
+                  endif
+#if defined(TEMPERING)
+                  if ( N_exchange_steps > 0 ) then
+                     write(output_unit,*) "Langevin mode does not allow tempering updates."
+                     write(output_unit,*) "Overwriting N_exchange_steps to 0."
+                  end if
+#endif
+#if defined(MPI)
+               endif
+#endif
+               Sequential = .False.
+               HMC = .False.
+               Global_moves = .False.
+               Global_tau_moves = .False.
+#if defined(TEMPERING)
+               N_exchange_steps = 0
+#endif
+           endif
+           Call Langevin_HMC%make(Langevin, HMC , Delta_t_Langevin_HMC, Max_Force, Leapfrog_steps)
+        else
+           Call Langevin_HMC%set_Update_scheme(Langevin, HMC )
+        endif
+
+        if ( .not. Sequential .and. Global_tau_moves) then
+           write(output_unit,*) "Warning: Sequential = .False. and Global_tau_moves = .True."
+           write(output_unit,*) "in the parameter file. Global tau updates will not occur if"
+           write(output_unit,*) "Sequential is set to .False. ."
+        endif
+
+        if ( .not. Sequential .and. .not. HMC .and. .not. Langevin .and. .not. Global_moves) then
+         write(output_unit,*) "Warning: no updates will occur as Sequential, HMC, Langevin, and"
+         write(output_unit,*) "Global_moves are all .False. in the parameter file."
+        endif
+
+        if ( Sequential .and. Nt_sequential_end < Nt_sequential_start ) then
+         write(output_unit,*) "Warning: Nt_sequential_end is smaller than Nt_sequential_start"
+        endif
+
 #if defined(TEMPERING)
         write(File1,'(A,I0,A)') "Temp_",igroup,"/info"
 #else
@@ -483,16 +579,23 @@ Program Main
               Write(50,*) 'Global moves are enabled   '
               Write(50,*) '# of global moves / sweep :', N_Global
            Endif
-           If ( Global_tau_moves ) Then
-              Write(50,*) 'Nt_sequential_start: ', Nt_sequential_start
-              Write(50,*) 'Nt_sequential_end  : ', Nt_sequential_end
-              Write(50,*) 'N_Global_tau       : ', N_Global_tau
-           else
-              Write(50,*) 'Default sequential updating '
-           endif
+           if ( sequential ) then
+               If ( Global_tau_moves ) Then
+                  Write(50,*) 'Nt_sequential_start: ', Nt_sequential_start
+                  Write(50,*) 'Nt_sequential_end  : ', Nt_sequential_end
+                  Write(50,*) 'N_Global_tau       : ', N_Global_tau
+               else
+                  Write(50,*) 'Default sequential updating '
+               endif
+            endif
            if ( Langevin ) then
               Write(50,*) 'Langevin del_t: ', Delta_t_Langevin_HMC
               Write(50,*) 'Max Force     : ', Max_Force
+           endif
+           if ( HMC ) then
+              Write(50,*) 'HMC del_t     : ', Delta_t_Langevin_HMC
+              Write(50,*) 'Leapfrog_Steps: ', Leapfrog_Steps
+              Write(50,*) 'HMC_Sweeps:     ', N_HMC_sweeps
            endif
            
            
@@ -528,15 +631,6 @@ Program Main
 #if defined(MPI)
         endif
 #endif
-
-        Sequential = .true.
-        
-        if ( Langevin .or.  HMC  ) then
-           Call Langevin_HMC%make(Langevin, HMC , Delta_t_Langevin_HMC, Max_Force, Leapfrog_steps)
-           Sequential = .False.
-        else
-           Call Langevin_HMC%set_Update_scheme(Langevin, HMC )
-        endif
         
         !Call Test_Hamiltonian
         Allocate ( Test(Ndim,Ndim), GR(NDIM,NDIM,N_FL), GR_Tilde(NDIM,NDIM,N_FL)  )
@@ -629,6 +723,38 @@ Program Main
                        Call Tau_m( udvst, GR, PHASE, NSTM, NWRAP, STAB_NT, LOBS_ST, LOBS_EN )
                        call Langevin_HMC%set_L_Forces(.true.)
                     endif
+                 endif
+              endif
+
+              If (  trim(Langevin_HMC%get_Update_scheme()) == "HMC" )  then
+                 if (Sequential) call Langevin_HMC%set_L_Forces(.False.)
+                 Do n=1, N_HMC_sweeps
+                     !  Carry out a Langevin update and calculate equal time observables.
+                     Call Langevin_HMC%update(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst, &
+                          &                   LOBS_ST, LOBS_EN, LTAU)
+                     if (n /= N_HMC_sweeps) then
+                        Call Langevin_HMC%calc_Forces(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst,&
+                             &  LOBS_ST, LOBS_EN, .True. )
+                        Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
+                        call Langevin_HMC%set_L_Forces(.true.)
+                     endif
+                 enddo
+                 
+                 !Do time-displaced measurements if needed, else set Calc_Obser_eq=.True. for the very first leapfrog ONLY
+                 If ( .not. sequential) then
+                    IF ( LTAU == 1 ) then
+                       If (Projector) then 
+                          NST = 0 
+                          Call Tau_p ( udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, NST, LOBS_ST, LOBS_EN)
+                       else
+                          Call Tau_m( udvst, GR, PHASE, NSTM, NWRAP, STAB_NT, LOBS_ST, LOBS_EN )
+                       endif
+                    else
+                       Call Langevin_HMC%calc_Forces(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst,&
+                       &  LOBS_ST, LOBS_EN, .True. )
+                       Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
+                    endif
+                    call Langevin_HMC%set_L_Forces(.true.)
                  endif
               endif
 
@@ -871,6 +997,16 @@ Program Main
 #endif
         
         Call Langevin_HMC%clean()
+
+         ! Delete the file RUNNING since the simulation finished successfully
+#if defined(MPI)
+        If (  Irank == 0 ) then
+#endif
+           open(unit=5, file='RUNNING', status='old')
+           close(5, status='delete')
+#if defined(MPI)
+        endif
+#endif
 
 #ifdef MPI
         CALL MPI_FINALIZE(ierr)

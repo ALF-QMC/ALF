@@ -1,5 +1,19 @@
 # Log of backward compatibility changes and critical bugs
 
+---
+## ALF 2.5
+ALF 2.5 released on 2023-05-??
+
+### 2023-05-09 Use a RUNNING file to avoid multiple instances running in the same directory 
+
+Author : J. Hofmann <br>
+Merge request !155
+
+### 2023-03-13  Improved  support  for  automatic HDF5 cmplilation 
+
+Author : J. Schwab <br>
+Merge request !151
+
 
 
 ---

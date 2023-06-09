@@ -39,8 +39,10 @@
 !
 !--------------------------------------------------------------------
 
+
     Module Predefined_Obs
 
+      use runtime_error_mod
       Use Observables
       Use Lattices_v3
       Use entanglement_mod
@@ -85,7 +87,7 @@
 
         If ( Obs%File_Latt .ne. "SpinZ" )   then
            Write(error_unit,*) 'Predefined_Obs_eq_SpinSUN_measure: Wrong filename'
-           error stop 1
+           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         endif
         ! Count and average sign
         Obs%N        = Obs%N + 1
@@ -138,7 +140,7 @@
         If ( ObsZ%File_Latt .ne. "SpinZ" .and. ObsXY%File_Latt .ne. "SpinXY" .and.  &
            & ObsXYZ%File_Latt .ne. "SpinT"  )   then
            Write(error_unit,*) 'Predefined_Obs_eq_SpinMz_measure: Wrong filename'
-           error stop 1
+           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         endif
         ! Count and average sign
         ObsZ%N          = ObsZ%N + 1
@@ -196,7 +198,7 @@
 
         If ( Obs%File_Latt .ne. "Green" )   then
            Write(error_unit,*) 'Predefined_Obs_eq_Green_measure: Wrong filename'
-           error stop 1
+           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         endif
         ! Count and average sign
         Obs%N        = Obs%N + 1
@@ -246,8 +248,8 @@
         Complex (Kind=Kind(0.d0)) :: ZI, ZJ, Z
 
         If ( Obs%File_Latt .ne. "Den" )   then
-           Write(6,*) 'Predefined_Obs_eq_Den_measure: Wrong filename'
-           error stop 1
+           Write(error_unit,*) 'Predefined_Obs_eq_Den_measure: Wrong filename'
+           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         endif
         ! Count and average sign
         Obs%N        = Obs%N + 1
@@ -308,7 +310,7 @@
 
         If ( Obs%File_Latt .ne. "Green" )   then
            Write(error_unit,*) 'Predefined_Obs_tau_Green_measure: Wrong filename'
-           error stop 1
+           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         endif
 
         ! Count and average sign
@@ -360,8 +362,8 @@
         Complex (Kind=Kind(0.d0)) :: Z
 
         If ( Obs%File_Latt .ne. "SpinZ" )   then
-           Write(6,*) 'Predefined_Obs_tau_SpinSUN_measure: Wrong filename'
-           error stop 1
+           Write(error_unit,*) 'Predefined_Obs_tau_SpinSUN_measure: Wrong filename'
+           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         endif
 
         ! Count and average sign
@@ -417,7 +419,7 @@
         If ( ObsZ%File_Latt .ne. "SpinZ" .and. ObsXY%File_Latt .ne. "SpinXY" .and.  &
            & ObsXYZ%File_Latt .ne. "SpinT"  )   then
            Write(error_unit,*) 'Predefined_Obs_tau_SpinMz_measure: Wrong filename'
-           error stop 1
+           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         endif
         If (NT == 0 ) then
            ! Count and average sign
@@ -477,7 +479,7 @@
 
         If ( Obs%File_Latt .ne. "Den" )   then
            Write(error_unit,*) 'Predefined_Obs_tau_Den_measure: Wrong filename'
-           error stop 1
+           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         endif
 
         ! Count and average sign

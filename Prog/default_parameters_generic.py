@@ -29,9 +29,12 @@ _PARAMS_GENERIC = OrderedDict([
          'LOBS_ST': {'comment': 'Start measurements at time slice '
                                 'LOBS_ST',
                      'value': 0},
+         'sequential': {'comment': 'Conventional updating scheme', 'value': True},
          'Langevin': {'comment': 'Langevin update', 'value': False},
          'Leapfrog_steps': {'comment': 'Number of leapfrog steps',
                             'value': 0},
+         'N_HMC_sweeps': {'comment': 'Number of HMC sweeps',
+                            'value': 1},
          'Ltau': {'comment': '1 to calculate time-displaced Green '
                              'functions; 0 otherwise.',
                   'value': 1},

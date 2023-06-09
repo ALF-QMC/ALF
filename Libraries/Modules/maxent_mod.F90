@@ -1,9 +1,10 @@
+
 Module MaxEnt_mod
 
         Use MyMats
         Use Errors
         use iso_fortran_env, only: output_unit, error_unit
-
+        use runtime_error_mod
 
         Interface MaxEnt
            Module Procedure MaxEnt_T, MaxEnt_T0
@@ -340,7 +341,7 @@ Module MaxEnt_mod
 
             IF ( SIZE(AH,1).NE.NTAU .OR. SIZE(AH,2).NE.NTAU) THEN
                WRITE(error_unit,*) 'Error in Setah'
-               error stop 1
+               Call Terminate_on_error(ERROR_MAXENT,__FILE__,__LINE__)
             ENDIF
 
             DO NT  = 1,NTAU
@@ -370,7 +371,7 @@ Module MaxEnt_mod
 
             IF (SIZE(F,1).NE.NTAU) THEN
                WRITE(error_unit,*) 'Error in Setf'
-               error stop 1
+               Call Terminate_on_error(ERROR_MAXENT,__FILE__,__LINE__)
             ENDIF
             DO NT = 1,NTAU
                X  = 0.D0

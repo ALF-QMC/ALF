@@ -11,8 +11,10 @@
 !>  If N_FL = 1 then N_SUN can take any value.
 !>  If N_FL = 2 then N_SUN = 1 
 !--------------------------------------------------------------------
+
       Complex (Kind=Kind(0.d0)) function Predefined_Obs_dimer0_eq(I,M, GR, N_SUN, N_FL)
   
+        USE runtime_error_mod 
         Implicit none
         
         Integer, Intent(IN)        ::  I,M, N_SUN, N_FL
@@ -49,6 +51,7 @@
 !--------------------------------------------------------------------
       Complex (Kind=Kind(0.d0)) function Predefined_Obs_dimer_eq(I,M,J,N, GR, GRC, N_SUN, N_FL) 
           
+        USE runtime_error_mod
         Implicit none
         
         Integer, Intent(IN) ::  I,M,J, N, N_SUN, N_FL
@@ -163,7 +166,7 @@
                    &    (1 - 32*G(3,4)*G(4,3) - 2*G(4,4) + G(3,3)*(-2 + 4*G(4,4)))))
            case  default
               Write(error_unit,*) 'Dimer, N_SUN=', N_SUN, 'is not yet implemented'
-              error stop 1
+              CALL Terminate_on_error(ERROR_MISSING_OBS,__FILE__,__LINE__)
            end select
         elseif(N_FL == 2 ) then  !  This only works for N_SUN = 1
            do ns = 1,2
@@ -280,6 +283,7 @@
 !--------------------------------------------------------------------
       Complex (Kind=Kind(0.d0)) function Predefined_Obs_dimer_tau(I,M,J,N, GT0,G0T,G00,GTT, N_SUN, N_FL) 
           
+        USE runtime_error_mod 
         Implicit none
         
         Integer, Intent(IN) ::  I,M,J, N, N_SUN, N_FL
@@ -402,7 +406,7 @@
                    &    (1 - 32*G(3,4)*G(4,3) - 2*G(4,4) + G(3,3)*(-2 + 4*G(4,4)))))
            case  default
               Write(error_unit,*) 'Dimer, N_SUN=', N_SUN, 'is not yet implemented'
-              error stop 1
+              CALL Terminate_on_error(ERROR_MISSING_OBS,__FILE__,__LINE__)
            end select
         elseif(N_FL == 2 ) then  !  This only works for N_SUN = 1
            do ns = 1,2
@@ -523,6 +527,8 @@
 !--------------------------------------------------------------------
       Complex (Kind=Kind(0.d0)) function Predefined_Obs_Cotunneling(I_c, I_f, J_c, J_f,  GT0,G0T,G00,GTT, N_SUN, N_FL) 
 
+        USE runtime_error_mod 
+        !Why is there no implicit none here?
         Integer,              Intent(In)      :: N_SUN, I_c,I_f, J_c, J_f, N_FL
         Complex (Kind=Kind(0.d0)), Intent(In) :: GT0(:,:,:), G0T(:,:,:), G00(:,:,:), GTT(:,:,:)
 
@@ -597,7 +603,7 @@
                    &       (189.*G(1,2)*G(2,1) + 76.5*G(1,1)*G(2,2))*G(3,3)))/64. 
            case default
               Write(error_unit,*) 'Cotunneling, N_SUN=', N_SUN, 'is not yet implemented'
-              error stop 1
+              CALL Terminate_on_error(ERROR_MISSING_OBS,__FILE__,__LINE__)
            end select
            Predefined_Obs_Cotunneling  = Z
            
