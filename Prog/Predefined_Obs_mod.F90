@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 - 2020 The ALF project
+!  Copyright (C) 2016 - 2023 The ALF project
 !
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -94,19 +94,22 @@
         Obs%Ave_sign = Obs%Ave_sign + real(ZS,kind(0.d0))
 
         ! Measure
-
         N_FL = Size(GR,3)
         If (N_FL == 1)   then
-           Do I1 = 1,Latt%N*Latt_Unit%Norb
+           Do I1 = 1,Size(List,1)
               I    = List(I1,1)
-              no_I = List(I1,2)
-              Do J1 = 1,Latt%N*Latt_Unit%Norb
-                 J    = List(J1,1)
-                 no_J = List(J1,2)
-                 imj  = latt%imj(I,J)
-                 ZZ   = GRC(I1,J1,1) * GR(I1,J1,1) * cmplx(dble(N_SUN), 0.d0, kind(0.D0))
-                 Obs%Obs_Latt(imj,1,no_I,no_J) =  Obs%Obs_Latt(imj,1,no_I,no_J) + ZZ*ZP*ZS
-              enddo
+              If  ( I > 0 ) then 
+                 no_I = List(I1,2)
+                 Do J1 = 1,Size(List,1)
+                    J    = List(J1,1)
+                    if  (  J  > 0 )  then 
+                       no_J = List(J1,2)
+                       imj  = latt%imj(I,J)
+                       ZZ   = GRC(I1,J1,1) * GR(I1,J1,1) * cmplx(dble(N_SUN), 0.d0, kind(0.D0))
+                       Obs%Obs_Latt(imj,1,no_I,no_J) =  Obs%Obs_Latt(imj,1,no_I,no_J) + ZZ*ZP*ZS
+                    endif
+                 enddo
+              endif
            enddo
         endif
 
@@ -150,26 +153,31 @@
         ObsXYZ%N        = ObsXYZ%N + 1
         ObsXYZ%Ave_sign = ObsXYZ%Ave_sign + real(ZS,kind(0.d0))
 
+
         ! Measure
         N_FL = Size(GR,3)
         If (N_FL == 2 .and. N_SUN == 1 ) Then
-           Do I1 = 1,Latt%N*Latt_Unit%Norb
+           Do I1 = 1,Size(List,1) 
               I    = List(I1,1)
-              no_I = List(I1,2)
-              Do J1 = 1,Latt%N*Latt_Unit%Norb
-                 J    = List(J1,1)
-                 no_J = List(J1,2)
-                 imj  = latt%imj(I,J)
-                 ZXY  = GRC(I1,J1,1) * GR(I1,J1,2) +  GRC(I1,J1,2) * GR(I1,J1,1)
-                 ZZ   = GRC(I1,J1,1) * GR(I1,J1,1) +  GRC(I1,J1,2) * GR(I1,J1,2)    + &
-                       (GRC(I1,I1,2) - GRC(I1,I1,1))*(GRC(J1,J1,2) - GRC(J1,J1,1))
-
-                 ObsZ  %Obs_Latt(imj,1,no_I,no_J) =  ObsZ  %Obs_Latt(imj,1,no_I,no_J) +  ZZ  *ZP*ZS
-                 ObsXY %Obs_Latt(imj,1,no_I,no_J) =  ObsXY %Obs_Latt(imj,1,no_I,no_J) +  ZXY *ZP*ZS
-                 ObsXYZ%Obs_Latt(imj,1,no_I,no_J) =  ObsXYZ%Obs_Latt(imj,1,no_I,no_J) + (2.d0*ZXY + ZZ)*ZP*ZS/3.d0
-              enddo
-              ObsZ  %Obs_Latt0(no_I) =  ObsZ  %Obs_Latt0(no_I) +   (GRC(I1,I1,2) - GRC(I1,I1,1)) * ZP*ZS
-              ObsXYZ%Obs_Latt0(no_I) =  ObsXYZ%Obs_Latt0(no_I) +   (GRC(I1,I1,2) - GRC(I1,I1,1)) * ZP*ZS/sqrt(3.d0)
+              If (I  > 0 )  then 
+                 no_I = List(I1,2)
+                 Do J1 = 1,Size(List,1) 
+                    J    = List(J1,1)
+                    If (J > 0 )  then 
+                       no_J = List(J1,2)
+                       imj  = latt%imj(I,J)
+                       ZXY  = GRC(I1,J1,1) * GR(I1,J1,2) +  GRC(I1,J1,2) * GR(I1,J1,1)
+                       ZZ   = GRC(I1,J1,1) * GR(I1,J1,1) +  GRC(I1,J1,2) * GR(I1,J1,2)    + &
+                            (GRC(I1,I1,2) - GRC(I1,I1,1))*(GRC(J1,J1,2) - GRC(J1,J1,1))
+                       
+                       ObsZ  %Obs_Latt(imj,1,no_I,no_J) =  ObsZ  %Obs_Latt(imj,1,no_I,no_J) +  ZZ  *ZP*ZS
+                       ObsXY %Obs_Latt(imj,1,no_I,no_J) =  ObsXY %Obs_Latt(imj,1,no_I,no_J) +  ZXY *ZP*ZS
+                       ObsXYZ%Obs_Latt(imj,1,no_I,no_J) =  ObsXYZ%Obs_Latt(imj,1,no_I,no_J) + (2.d0*ZXY + ZZ)*ZP*ZS/3.d0
+                    endif
+                 enddo
+                 ObsZ  %Obs_Latt0(no_I) =  ObsZ  %Obs_Latt0(no_I) +   (GRC(I1,I1,2) - GRC(I1,I1,1)) * ZP*ZS
+                 ObsXYZ%Obs_Latt0(no_I) =  ObsXYZ%Obs_Latt0(no_I) +   (GRC(I1,I1,2) - GRC(I1,I1,1)) * ZP*ZS/sqrt(3.d0)
+              endif
            enddo
         endif
       End Subroutine Predefined_Obs_eq_SpinMz_measure
@@ -205,22 +213,25 @@
         Obs%Ave_sign = Obs%Ave_sign + real(ZS,kind(0.d0))
 
         ! Measure
-
         N_FL = Size(GR,3)
-        Do I1 = 1,Latt%N*Latt_Unit%Norb
+        Do I1 = 1,Size(List,1)
            I    = List(I1,1)
-           no_I = List(I1,2)
-           Do J1 = 1,Latt%N*Latt_Unit%Norb
-              J    = List(J1,1)
-              no_J = List(J1,2)
-              imj  = latt%imj(I,J)
-              Z = cmplx(0.d0,0.d0,Kind(0.d0))
-              Do nf = 1, N_FL
-                 Z = Z +  GRC(I1,J1,nf)
+           If ( I  > 0 ) then 
+              no_I = List(I1,2)
+              Do J1 = 1,Size(List,1)
+                 J    = List(J1,1)
+                 If  ( J > 0 ) then 
+                    no_J = List(J1,2)
+                    imj  = latt%imj(I,J)
+                    Z = cmplx(0.d0,0.d0,Kind(0.d0))
+                    Do nf = 1, N_FL
+                       Z = Z +  GRC(I1,J1,nf)
+                    enddo
+                    Z   = Z * cmplx(dble(N_SUN), 0.d0, kind(0.D0))
+                    Obs%Obs_Latt(imj,1,no_I,no_J) =  Obs%Obs_Latt(imj,1,no_I,no_J) + Z*ZP*ZS
+                 endif
               enddo
-              Z   = Z * cmplx(dble(N_SUN), 0.d0, kind(0.D0))
-              Obs%Obs_Latt(imj,1,no_I,no_J) =  Obs%Obs_Latt(imj,1,no_I,no_J) + Z*ZP*ZS
-           enddo
+           endif
         enddo
 
       end Subroutine Predefined_Obs_eq_Green_measure
@@ -258,31 +269,35 @@
         ! Measure
 
         N_FL = Size(GR,3)
-        Do I1 = 1,Latt%N*Latt_Unit%Norb
+        Do I1 = 1,Size(List,1)
            I    = List(I1,1)
-           no_I = List(I1,2)
-           ZI = cmplx(0.d0,0.d0,Kind(0.d0))
-           Do nf = 1,N_FL
-              ZI  = ZI + GRC(I1,I1,nf)
-           enddo
-           ZI  = ZI * cmplx(dble(N_SUN), 0.d0, kind(0.D0))
-           Do J1 = 1,Latt%N*Latt_Unit%Norb
-              J    = List(J1,1)
-              no_J = List(J1,2)
-              imj  = latt%imj(I,J)
-              ZJ = cmplx(0.d0,0.d0,Kind(0.d0))
+           If (I > 0 )  then 
+              no_I = List(I1,2)
+              ZI = cmplx(0.d0,0.d0,Kind(0.d0))
               Do nf = 1,N_FL
-                 ZJ  = ZJ + GRC(J1,J1,nf)
+                 ZI  = ZI + GRC(I1,I1,nf)
               enddo
-              ZJ  = ZJ * cmplx(dble(N_SUN), 0.d0, kind(0.D0))
-              Z   = cmplx(0.d0,0.d0,Kind(0.d0))
-              Do nf = 1,N_FL
-                 Z = Z + GRC(I1,J1,nf) * GR(I1,J1,nf)
-              Enddo
-              Z   =  Z * cmplx(dble(N_SUN), 0.d0, kind(0.D0))
-              Obs%Obs_Latt(imj,1,no_I,no_J) =  Obs%Obs_Latt(imj,1,no_I,no_J) + (ZI*ZJ + Z)*ZP*ZS
-           enddo
-           Obs%Obs_Latt0(no_I) =  Obs%Obs_Latt0(no_I) +  ZI * ZP*ZS
+              ZI  = ZI * cmplx(dble(N_SUN), 0.d0, kind(0.D0))
+              Do J1 = 1,Size(List,1)
+                 J    = List(J1,1)
+                 If  (J > 0 ) then 
+                    no_J = List(J1,2)
+                    imj  = latt%imj(I,J)
+                    ZJ = cmplx(0.d0,0.d0,Kind(0.d0))
+                    Do nf = 1,N_FL
+                       ZJ  = ZJ + GRC(J1,J1,nf)
+                    enddo
+                    ZJ  = ZJ * cmplx(dble(N_SUN), 0.d0, kind(0.D0))
+                    Z   = cmplx(0.d0,0.d0,Kind(0.d0))
+                    Do nf = 1,N_FL
+                       Z = Z + GRC(I1,J1,nf) * GR(I1,J1,nf)
+                    Enddo
+                    Z   =  Z * cmplx(dble(N_SUN), 0.d0, kind(0.D0))
+                    Obs%Obs_Latt(imj,1,no_I,no_J) =  Obs%Obs_Latt(imj,1,no_I,no_J) + (ZI*ZJ + Z)*ZP*ZS
+                 endif
+              enddo
+              Obs%Obs_Latt0(no_I) =  Obs%Obs_Latt0(no_I) +  ZI * ZP*ZS
+           endif
         enddo
       end Subroutine Predefined_Obs_eq_Den_measure
 
@@ -321,20 +336,24 @@
 
         ! Measure
         N_FL = Size(GT0,3)
-        Do I1 = 1,Latt%N*Latt_Unit%Norb
+        Do I1 = 1,Size(List,1) 
            I    = List(I1,1)
-           no_I = List(I1,2)
-           Do J1 = 1,Latt%N*Latt_Unit%Norb
-              J    = List(J1,1)
-              no_J = List(J1,2)
-              imj  = latt%imj(I,J)
-              Z = cmplx(0.d0,0.d0,Kind(0.d0))
-              Do nf = 1, N_FL
-                 Z = Z +  GT0(I1,J1,nf)
+           If  ( I > 0 ) then 
+              no_I = List(I1,2)
+              Do J1 = 1,Size(List,1) 
+                 J    = List(J1,1)
+                 If  (J > 0 )  then 
+                    no_J = List(J1,2)
+                    imj  = latt%imj(I,J)
+                    Z = cmplx(0.d0,0.d0,Kind(0.d0))
+                    Do nf = 1, N_FL
+                       Z = Z +  GT0(I1,J1,nf)
+                    enddo
+                    Z   = Z * cmplx(1.d0/dble(N_FL), 0.d0, kind(0.D0))
+                    Obs%Obs_Latt(imj,NT+1,no_I,no_J) =  Obs%Obs_Latt(imj,NT+1,no_I,no_J) + Z*ZP*ZS
+                 endif
               enddo
-              Z   = Z * cmplx(1.d0/dble(N_FL), 0.d0, kind(0.D0))
-              Obs%Obs_Latt(imj,NT+1,no_I,no_J) =  Obs%Obs_Latt(imj,NT+1,no_I,no_J) + Z*ZP*ZS
-           enddo
+           endif
         enddo
 
       end Subroutine Predefined_Obs_tau_Green_measure
@@ -375,16 +394,20 @@
         ! Measure
         N_FL = Size(GT0,3)
         Z =  cmplx(dble(N_SUN),0.d0, kind(0.D0))
-        Do I1 = 1,Latt%N*Latt_Unit%Norb
+        Do I1 = 1,Size(List,1)
            I    = List(I1,1)
-           no_I = List(I1,2)
-           Do J1 = 1,Latt%N*Latt_Unit%Norb
-              J    = List(J1,1)
-              no_J = List(J1,2)
-              imj  = latt%imj(I,J)
-              Obs%Obs_Latt(imj,NT+1,no_I,no_J) =  Obs%Obs_Latt(imj,NT+1,no_I,no_J) &
-                   &  -  Z*G0T(J1,I1,1) * GT0(I1,J1,1) *ZP*ZS
-           enddo
+           If (I > 0 ) then
+              no_I = List(I1,2)
+              Do J1 = 1,Size(List,1)
+                 J    = List(J1,1)
+                 If  (J > 0)  then 
+                    no_J = List(J1,2)
+                    imj  = latt%imj(I,J)
+                    Obs%Obs_Latt(imj,NT+1,no_I,no_J) =  Obs%Obs_Latt(imj,NT+1,no_I,no_J) &
+                         &  -  Z*G0T(J1,I1,1) * GT0(I1,J1,1) *ZP*ZS
+                 endif
+              enddo
+           endif
         enddo
 
       end Subroutine Predefined_Obs_tau_SpinSUN_measure
@@ -433,29 +456,33 @@
 
         ! Measure
         N_FL = Size(GT0,3)
-        Do I1 = 1,Latt%N*Latt_Unit%Norb
+        Do I1 = 1,Size(List,1)
            I    = List(I1,1)
-           no_I = List(I1,2)
-           Do J1 = 1,Latt%N*Latt_Unit%Norb
-              J    = List(J1,1)
-              no_J = List(J1,2)
-              imj  = latt%imj(I,J)
-              ZZ   =      (GTT(I1,I1,1) -  GTT(I1,I1,2) ) * ( G00(J1,J1,1)  -  G00(J1,J1,2) )   &
-                   &    -  G0T(J1,I1,1) * GT0(I1,J1,1)  -  G0T(J1,I1,2) * GT0(I1,J1,2) 
-              ZXY  =    -  G0T(J1,I1,1) * GT0(I1,J1,2)  -  G0T(J1,I1,2) * GT0(I1,J1,1) 
-              ObsZ  %Obs_Latt(imj,NT+1,no_I,no_J) =  ObsZ %Obs_Latt(imj,NT+1,no_I,no_J)  +  ZZ*ZP*ZS
-              ObsXY %Obs_Latt(imj,NT+1,no_I,no_J) =  ObsXY%Obs_Latt(imj,NT+1,no_I,no_J)  +  ZXY*ZP*ZS
-              ObsXYZ%Obs_Latt(imj,NT+1,no_I,no_J) =  ObsXYZ%Obs_Latt(imj,NT+1,no_I,no_J) + (2.d0*ZXY + ZZ)*ZP*ZS/3.d0
-           enddo
-           ObsZ  %Obs_Latt0(no_I) =  ObsZ  %Obs_Latt0(no_I) +   (GTT(I1,I1,2) - GTT(I1,I1,1)) * ZP*ZS
-           ObsXYZ%Obs_Latt0(no_I) =  ObsXYZ%Obs_Latt0(no_I) +   (GTT(I1,I1,2) - GTT(I1,I1,1)) * ZP*ZS/sqrt(3.d0)
+           If  (I > 0 ) then
+              no_I = List(I1,2)
+              Do J1 = 1,Size(List,1)
+                 J    = List(J1,1)
+                 if (J > 0 ) then 
+                    no_J = List(J1,2)
+                    imj  = latt%imj(I,J)
+                    ZZ   =      (GTT(I1,I1,1) -  GTT(I1,I1,2) ) * ( G00(J1,J1,1)  -  G00(J1,J1,2) )   &
+                         &    -  G0T(J1,I1,1) * GT0(I1,J1,1)  -  G0T(J1,I1,2) * GT0(I1,J1,2) 
+                    ZXY  =    -  G0T(J1,I1,1) * GT0(I1,J1,2)  -  G0T(J1,I1,2) * GT0(I1,J1,1) 
+                    ObsZ  %Obs_Latt(imj,NT+1,no_I,no_J) =  ObsZ %Obs_Latt(imj,NT+1,no_I,no_J)  +  ZZ*ZP*ZS
+                    ObsXY %Obs_Latt(imj,NT+1,no_I,no_J) =  ObsXY%Obs_Latt(imj,NT+1,no_I,no_J)  +  ZXY*ZP*ZS
+                    ObsXYZ%Obs_Latt(imj,NT+1,no_I,no_J) =  ObsXYZ%Obs_Latt(imj,NT+1,no_I,no_J) + (2.d0*ZXY + ZZ)*ZP*ZS/3.d0
+                 endif
+              enddo
+              ObsZ  %Obs_Latt0(no_I) =  ObsZ  %Obs_Latt0(no_I) +   (GTT(I1,I1,2) - GTT(I1,I1,1)) * ZP*ZS
+              ObsXYZ%Obs_Latt0(no_I) =  ObsXYZ%Obs_Latt0(no_I) +   (GTT(I1,I1,2) - GTT(I1,I1,1)) * ZP*ZS/sqrt(3.d0)
+           endif
         enddo
 
       end Subroutine Predefined_Obs_tau_SpinMz_measure
 
 
 !-------------------------------------------------------------------
-!> @author
+!> @Author
 !> ALF-project
 !
 !>  @brief
@@ -489,31 +516,35 @@
         endif
         N_FL = Size(GT0,3)
         !Measure
-        Do I1 = 1,Latt%N*Latt_Unit%Norb
+        Do I1 = 1,Size(List,1)
            I    = List(I1,1)
-           no_I = List(I1,2)
-           ZI = cmplx(0.d0,0.d0,Kind(0.d0))
-           Do nf = 1,N_FL
-              ZI  = ZI  + cmplx(1.d0,0.d0,kind(0.d0)) -  GTT(I1,I1,nf)
-           enddo
-           ZI  = ZI * cmplx(dble(N_SUN), 0.d0, kind(0.D0))
-           Do J1 = 1,Latt%N*Latt_Unit%Norb
-              J    = List(J1,1)
-              no_J = List(J1,2)
-              imj  = latt%imj(I,J)
-              ZJ = cmplx(0.d0,0.d0,Kind(0.d0))
+           If ( I > 0 )  then 
+              no_I = List(I1,2)
+              ZI = cmplx(0.d0,0.d0,Kind(0.d0))
               Do nf = 1,N_FL
-                 ZJ  = ZJ + cmplx(1.d0,0.d0,kind(0.d0)) -  G00(J1,J1,nf)
+                 ZI  = ZI  + cmplx(1.d0,0.d0,kind(0.d0)) -  GTT(I1,I1,nf)
               enddo
-              ZJ  = ZJ * cmplx(dble(N_SUN), 0.d0, kind(0.D0))
-              Z   = cmplx(0.d0,0.d0,Kind(0.d0))
-              Do nf = 1,N_FL
-                 Z = Z - G0T(J1,I1,nf) * GT0(I1,J1,nf)
-              Enddo
-              Z   =  Z * cmplx(dble(N_SUN), 0.d0, kind(0.D0))
-              Obs%Obs_Latt(imj,NT+1,no_I,no_J) =  Obs%Obs_Latt(imj,NT+1,no_I,no_J) + (ZI*ZJ + Z)*ZP*ZS
-           enddo
-           Obs%Obs_Latt0(no_I) =  Obs%Obs_Latt0(no_I) +  ZI * ZP*ZS
+              ZI  = ZI * cmplx(dble(N_SUN), 0.d0, kind(0.D0))
+              Do J1 = 1,Size(List,1)
+                 J    = List(J1,1)
+                 If  ( J > 0 ) then
+                    no_J = List(J1,2)
+                    imj  = latt%imj(I,J)
+                    ZJ = cmplx(0.d0,0.d0,Kind(0.d0))
+                    Do nf = 1,N_FL
+                       ZJ  = ZJ + cmplx(1.d0,0.d0,kind(0.d0)) -  G00(J1,J1,nf)
+                    enddo
+                    ZJ  = ZJ * cmplx(dble(N_SUN), 0.d0, kind(0.D0))
+                    Z   = cmplx(0.d0,0.d0,Kind(0.d0))
+                    Do nf = 1,N_FL
+                       Z = Z - G0T(J1,I1,nf) * GT0(I1,J1,nf)
+                    Enddo
+                    Z   =  Z * cmplx(dble(N_SUN), 0.d0, kind(0.D0))
+                    Obs%Obs_Latt(imj,NT+1,no_I,no_J) =  Obs%Obs_Latt(imj,NT+1,no_I,no_J) + (ZI*ZJ + Z)*ZP*ZS
+                 endif
+              enddo
+              Obs%Obs_Latt0(no_I) =  Obs%Obs_Latt0(no_I) +  ZI * ZP*ZS
+           endif
         enddo
 
       end Subroutine Predefined_Obs_tau_Den_measure

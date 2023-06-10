@@ -5,6 +5,70 @@
 !> ALF-project
 !
 !>  @brief
+!>  K_{i,m} =  \sum{\alpha,\sigma} c^{\dagger}_{i,\alpha,sigma}  c_{m,\alpha, sigma}   + H.c.
+!>  The routine returns 
+!>       << K_{i,m}   >>
+!>  If N_FL  (\alpha)   and  N_SUN (\sigma)  can take  any values 
+!--------------------------------------------------------------------
+      Complex (Kind=Kind(0.d0)) function Predefined_Obs_dimer_kin0_eq(I,M, GR, N_SUN, N_FL)
+  
+        Implicit none
+        
+        Integer, Intent(IN)        ::  I,M, N_SUN, N_FL
+        Complex (Kind=Kind(0.d0)), Dimension(:,:,:), INTENT(IN) :: GR 
+        Complex (Kind=Kind(0.d0))  ::  Z, ZK, ZN
+        Integer                    ::  nf
+
+        Z  = cmplx(0.d0,0.d0,Kind(0.d0))
+        ZK = cmplx(0.d0,0.d0,kind(0.d0))
+        if ( I == M ) ZK = cmplx(1.d0,0.d0,kind(0.d0))
+        ZN = cmplx(Real(N_SUN,Kind(0.d0)),0.d0,Kind(0.d0))
+        do nf =  1, N_FL
+           Z  = ZN  *   ( 2.d0*ZK - GR(I,M,nf)  -  GR(M,I,nf) )
+        enddo
+
+        Predefined_Obs_dimer_kin0_eq = Z
+        
+      end function Predefined_Obs_dimer_kin0_eq
+
+ !-------------------------------------------------------------------
+!> @author
+!> ALF-project
+!
+!>  @brief
+!>  K_{i,m} =  \sum{\alpha,\sigma} c^{\dagger}_{i,\alpha,sigma}  c_{m,\alpha, sigma}   + H.c.
+!>  The routine returns 
+!>       << K_{i,m}  K_{j,n}   >>
+!>  If N_FL  (\alpha)   and  N_SUN (\sigma)  can take  any values 
+!--------------------------------------------------------------------
+      Complex (Kind=Kind(0.d0)) function Predefined_Obs_dimer_kin_eq(I,M, J, N,  GR, GRC,  N_SUN, N_FL)
+  
+        Implicit none
+        
+        Integer, Intent(IN)        ::  I,M, J, N, N_SUN, N_FL
+        Complex (Kind=Kind(0.d0)), Dimension(:,:,:), INTENT(IN) :: GR,  GRC 
+        Complex (Kind=Kind(0.d0))  ::  Z, ZK, ZN
+        Integer                    ::  nf
+
+        Z  = cmplx(0.d0,0.d0,Kind(0.d0))
+        ZK = cmplx(0.d0,0.d0,kind(0.d0))
+        if ( I == M ) ZK = cmplx(1.d0,0.d0,kind(0.d0))
+        ZN = cmplx(Real(N_SUN,Kind(0.d0)),0.d0,Kind(0.d0))
+        do nf =  1, N_FL
+           Z  =     ZN * ZN* (GRC(I,M,nf) +   GRC(M,I,nf))*  (GRC(J,N,nf) +   GRC(N,J,nf)) + &
+                &   ZN *  (   GRC(I,N,nf)* GR(M,J,nf)  + GRC(I,J,nf) *GR(M,N,nf) + &
+                &             GRC(M,N,nf)* GR(I,J,nf)  + GRC(M,J,nf) *GR(I,N,nf)    )
+        enddo
+
+        Predefined_Obs_dimer_kin_eq = Z
+        
+      end function Predefined_Obs_dimer_kin_eq
+     
+!-------------------------------------------------------------------
+!> @author
+!> ALF-project
+!
+!>  @brief
 !>  Let   S^{alpha}_{beta}(i)   =   c^{\dagger}_{\alpha}  c_{\beta}   - \delta{\alpha,\beta}/2 
 !>  The routine returns 
 !>       << S^{alpha}_{beta}(i)  S^{beta}_{alpha}(m)  >>

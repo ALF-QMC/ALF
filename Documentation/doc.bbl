@@ -855,6 +855,20 @@ C.~Davies, G.~Batrouni, G.~Katz, A.~Kronfeld, P.~Lepage, P.~Rossi, B.~Svetitsky
 \newblock Journal of Statistical Physics \textbf{43}(5), 1073 (1986),
 \newblock \doi{10.1007/BF02628331}.
 
+\bibitem{Wolff89}
+U.~Wolff,
+\newblock \emph{Collective monte carlo updating for spin systems},
+\newblock Phys. Rev. Lett. \textbf{62}, 361 (1989),
+\newblock \doi{10.1103/PhysRevLett.62.361}.
+
+\bibitem{Imada88}
+M.~Imada,
+\newblock \emph{A fermion simulation algorithm by molecular dynamics techique
+  combined with monte carlo method},
+\newblock Journal of the Physical Society of Japan \textbf{57}(8), 2689 (1988),
+\newblock \doi{10.1143/JPSJ.57.2689},
+\newblock \eprint{https://doi.org/10.1143/JPSJ.57.2689}.
+
 \bibitem{Beyl_thesis}
 S.~Beyl,
 \newblock \emph{Hybrid Quantum Monte Carlo for Condensed Matter Models},

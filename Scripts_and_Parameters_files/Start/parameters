@@ -43,6 +43,7 @@ N_Global             = 1    ! Number of global moves per sweep
 Global_tau_moves     = .F.  ! Allows for global moves on a single time slice.  
 N_Global_tau         = 1    ! Number of global moves that will be carried out on a 
                             ! single time slice
+Sequential           = .T.  ! Sequantial moves
 Nt_sequential_start  = 0    ! One can combine sequential and global moves on a time slice
 Nt_sequential_end    = -1   ! The program then carries out sequential local moves in the
                             ! range [Nt_sequential_start, Nt_sequential_end] followed by
@@ -50,7 +51,9 @@ Nt_sequential_end    = -1   ! The program then carries out sequential local move
 Langevin            = .F.   ! Langevin update
 Delta_t_Langevin_HMC=0.1    ! Default time step for Langevin and HMC updates
 Max_Force           = 5.0   ! Max Force for  Langevin
+
 HMC                 = .F.   ! HMC update
+N_HMC_sweeps        = 1     ! # of HMC updates between  sequential ones
 Leapfrog_steps      = 0     ! Number of leapfrog interations
 /
 
