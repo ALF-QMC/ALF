@@ -74,6 +74,27 @@
             "Delta_t_Langevin_HMC": 0.05
         }
     ],
+    "HMC_1": [
+        "Hubbard",
+        {
+            "Model": "Hubbard",
+	    "Lattice_type": "N_leg_ladder", 
+            "L1": 1 , "L2": 6, 
+            "Beta"      : 4.0,
+            "Projector" : false, 
+            "Ham_U"     : 4.0,  
+            "ham_Tperp" : 1.0,  
+            "Nsweep"    : 10, 
+            "NBin"      : 5,
+            "Ltau"      : 1,
+            "Mz"        : true,
+            "HMC"       : true,
+            "Sequential"       : false,
+            "Delta_t_Langevin_HMC" : 0.1, 
+            "Leapfrog_steps" : 50, 
+            "Continuous" : true
+        }
+    ],
     "Hubbard_N_Leg_Ladder": [
         "Hubbard",
         {
