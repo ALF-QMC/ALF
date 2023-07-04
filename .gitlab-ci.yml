@@ -86,6 +86,11 @@ stages:
         --branch_R master \
         --devel
     fi
+  artifacts:
+    when: on_failure
+    paths:
+      - *.txt
+      - ALF_data
 
 Check_Stopcommands:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bookworm-buildd
