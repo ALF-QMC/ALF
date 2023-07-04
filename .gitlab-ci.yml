@@ -89,7 +89,7 @@ stages:
   artifacts:
     when: on_failure
     paths:
-      - *.txt
+      - "*.txt"
       - ALF_data
 
 Check_Stopcommands:
