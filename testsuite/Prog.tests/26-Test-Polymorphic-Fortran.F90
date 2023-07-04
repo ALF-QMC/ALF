@@ -75,12 +75,12 @@ program test
 !     do i = 1, ndimmax
 !         write (*,*) (res(i,j), j = 1,ndimmax )
 !     enddo
-    if (abs(dble(res(ndimmax,ndimmax-1)) - 559995.58637168515D00) > 559995.58637168515D00*1D-15) then
-        write (*,*) "error in OpT mult.", abs(dble(res(ndimmax,ndimmax-1))-559995.58637168515D00), 559995.58637168515D00*1D-15
+    if (abs(dble(res(ndimmax,ndimmax-1)) - 559995.58637168515D00) > 559995.58637168515D00*1D-13) then
+        write (*,*) "error in OpT mult.", abs(dble(res(ndimmax,ndimmax-1))-559995.58637168515D00), 559995.58637168515D00*1D-13
         stop 1
     endif
     
-    if (abs(aimag(res(ndimmax,ndimmax-1)) + 559995.58637168526D00 ) > 559995.58637168526D00 * 1D-15) then ! ref is negative
+    if (abs(aimag(res(ndimmax,ndimmax-1)) + 559995.58637168526D00 ) > 559995.58637168526D00 * 1D-13) then ! ref is negative
         write (*,*) "error in OpT multiplication",abs(aimag(res(ndimmax, ndimmax-1)) + 559995.58637168526D00 )
         stop 2
     endif

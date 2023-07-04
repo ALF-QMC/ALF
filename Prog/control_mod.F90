@@ -55,10 +55,15 @@ module Control
     Integer (Kind=Kind(0.d0)) , private, save :: NC_up, ACC_up
     Integer (Kind=Kind(0.d0)) , private, save :: NC_eff_up, ACC_eff_up
     Integer (Kind=kind(0.d0)),  private, save :: NC_Glob_up, ACC_Glob_up
+    Integer (Kind=kind(0.d0)),  private, save :: NC_HMC_up, ACC_HMC_up
     Integer (Kind=kind(0.d0)),  private, save :: NC_Temp_up, ACC_Temp_up
     real    (Kind=Kind(0.d0)),  private, save :: XMAXP_Glob, XMEANP_Glob
     Integer (Kind=Kind(0.d0)),  private, save :: NC_Phase_GLob
 
+    real    (Kind=Kind(0.d0)),  private, save :: XMAXP_HMC, XMEANP_HMC
+    Integer (Kind=Kind(0.d0)),  private, save :: NC_Phase_HMC
+
+    
     real    (Kind=Kind(0.d0)),  private, save :: size_clust_Glob_up, size_clust_Glob_ACC_up
 
     real    (Kind=Kind(0.d0)),  private, save :: Force_max, Force_mean
@@ -84,7 +89,10 @@ module Control
         XMAXP      = 0.d0
         XMEANP_Glob= 0.d0
         XMAXP_Glob = 0.d0
+        XMEANP_HMC = 0.d0
+        XMAXP_HMC  = 0.d0
 
+        
         NCG          = 0
         NCG_tau      = 0
         NC_up        = 0
@@ -95,6 +103,10 @@ module Control
         ACC_Glob_up  = 0
         NC_Phase_GLob= 0
 
+        NC_Phase_HMC = 0
+        NC_HMC_up    = 0
+        ACC_HMC_up   = 0
+        
         NC_Temp_up   = 0
         ACC_Temp_up  = 0
 
@@ -181,6 +193,15 @@ module Control
         endif
       end Subroutine Control_upgrade_Glob
 
+      Subroutine Control_upgrade_HMC(toggle)
+        Implicit none
+        Logical :: toggle
+        NC_HMC_up = NC_HMC_up + 1
+        if (toggle) then
+           ACC_HMC_up = ACC_HMC_up + 1
+        endif
+      end Subroutine Control_upgrade_HMC
+
 
       Subroutine Control_PrecisionG(A,B,Ndim)
 #ifdef MPI
@@ -262,6 +283,16 @@ module Control
         NC_Phase_GLob = NC_Phase_GLob + 1
       End Subroutine Control_PrecisionP_Glob
 
+      Subroutine Control_PrecisionP_HMC(Z,Z1)
+        Implicit none
+        Complex (Kind=Kind(0.D0)), INTENT(IN) :: Z,Z1
+        Real    (Kind=Kind(0.D0)) :: X
+        X = ABS(Z-Z1)
+        if ( X > XMAXP_HMC ) XMAXP_HMC = X
+        XMEANP_HMC = XMEANP_HMC + X
+        NC_Phase_HMC = NC_Phase_HMC + 1
+      End Subroutine Control_PrecisionP_HMC
+
 
       Subroutine Control_Print(Group_Comm, Global_update_scheme)
 #ifdef MPI
@@ -274,7 +305,7 @@ module Control
                 
 
         Character (len=64) :: file1
-        Real (Kind=Kind(0.d0)) :: Time, Acc, Acc_eff, Acc_Glob, Acc_Temp, size_clust_Glob, size_clust_Glob_ACC
+        Real (Kind=Kind(0.d0)) :: Time, Acc, Acc_eff, Acc_Glob, Acc_Temp, size_clust_Glob, size_clust_Glob_ACC, Acc_HMC
 #ifdef MPI
         REAL (Kind=Kind(0.d0))  :: X
         Integer        :: Ierr, Isize, Irank, irank_g, isize_g, igroup
@@ -298,6 +329,12 @@ module Control
           size_clust_Glob     = size_clust_Glob_up     / dble( NC_Glob_up)
           size_clust_Glob_ACC = size_clust_Glob_ACC_up / dble(ACC_Glob_up)
         endif
+        ACC_HMC = 0.d0
+        IF (NC_HMC_up    > 0 )  then
+           ACC_HMC    = dble(ACC_HMC_up)/dble(NC_HMC_up)
+        endif
+
+        
         ACC_TEMP = 0.d0
         IF (NC_Temp_up    > 0 )  ACC_Temp    = dble(ACC_Temp_up)/dble(NC_Temp_up)
         IF (NC_Phase_GLob > 0 ) XMEANP_Glob  = XMEANP_Glob/dble(NC_Phase_GLob)
@@ -324,6 +361,9 @@ module Control
         X = 0.d0
         CALL MPI_REDUCE(ACC_Glob,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
         ACC_Glob = X/dble(Isize_g)
+        X = 0.d0
+        CALL MPI_REDUCE(ACC_HMC,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
+        ACC_HMC = X/dble(Isize_g)
         X = 0.d0
         CALL MPI_REDUCE(ACC_Temp ,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
         ACC_Temp  = X/dble(Isize_g)
@@ -362,6 +402,9 @@ module Control
         CALL MPI_REDUCE(XMAXP_GLOB,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
         XMAXP_GLOB = X
 
+        CALL MPI_REDUCE(XMAXP_HMC,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
+        XMAXP_HMC = X
+
 #endif
 
 #if defined(TEMPERING)
@@ -384,20 +427,30 @@ module Control
               XMEAN_tau = XMEAN_tau/dble(NCG_tau)
               Write(50,*) ' Precision tau    Mean, Max : ', XMEAN_tau, XMAX_tau
            endif
-           Write(50,*) ' Acceptance                 : ', ACC
-           Write(50,*) ' Effective Acceptance       : ', ACC_eff
+           If ( NC_up > 0 ) then
+              Write(50,*) ' Acceptance                 : ', ACC
+           Endif
+           If ( NC_eff_up > 0 ) then
+              Write(50,*) ' Effective Acceptance       : ', ACC_eff
+           Endif
 #if defined(TEMPERING)
            Write(50,*) ' Acceptance Tempering       : ', ACC_Temp
 #endif
-           !If (ACC_Glob > 1.D-200 ) then
-           Write(50,*) ' Acceptance_Glob              : ', ACC_Glob
-           Write(50,*) ' Mean Phase diff Glob         : ', XMEANP_Glob
-           Write(50,*) ' Max  Phase diff Glob         : ', XMAXP_Glob
-           Write(50,*) ' Average cluster size         : ', size_clust_Glob
-           Write(50,*) ' Average accepted cluster size: ', size_clust_Glob_ACC
-           !endif
+           If (ACC_Glob > 1.D-200 ) then
+              Write(50,*) ' Acceptance_Glob              : ', ACC_Glob
+              Write(50,*) ' Mean Phase diff Glob         : ', XMEANP_Glob
+              Write(50,*) ' Max  Phase diff Glob         : ', XMAXP_Glob
+              Write(50,*) ' Average cluster size         : ', size_clust_Glob
+              Write(50,*) ' Average accepted cluster size: ', size_clust_Glob_ACC
+           endif
            if (trim(Global_update_scheme) == "Langevin") &
                 &  Write(50,*) ' Langevin         Mean, Max : ', Force_mean,  Force_max
+           
+           if (trim(Global_update_scheme) == "HMC")   Then
+              Write(50,*) ' Acceptance_HMC              : ', ACC_HMC
+              Write(50,*) ' Mean Phase diff HMC         : ', XMEANP_HMC
+              Write(50,*) ' Max  Phase diff HMC         : ', XMAXP_HMC
+           Endif
            
            Write(50,*) ' CPU Time                   : ', Time
            Close(50)

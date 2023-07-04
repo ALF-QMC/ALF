@@ -1,0 +1,97 @@
+% Copyright (c) 2016-2023 The ALF project.
+% This is a part of the ALF project documentation.
+% The ALF project documentation by the ALF contributors is licensed
+% under a Creative Commons Attribution-ShareAlike 4.0 International License.
+% For the licensing details of the documentation see license.CCBYSA.
+
+% !TEX root = doc.tex
+
+%------------------------------------------------------------
+\subsubsection{Hybrid  Monte  dynamics} \label{sec:hmc}
+%------------------------------------------------------------
+
+Hybrid molecular  dynamics  circumvents some  drawbacks of Langevin dynamics.  It does not introduce a systematic error and  does not boil down to a random walk  at small time steps.   The approach is based on the Metropolis-Hastings   importance sampling formula.  Let $C$ and $C'$  be  configurations  in the {\it Monte Carlo} space.  The probability of accepting a move form $C$ to $C'$ is given by
+\begin{equation}
+	  P(C \rightarrow C')  = \max \left(    \frac{T_0(C' \rightarrow C) P(C')}{T_0(C \rightarrow C') P(C) }, 1 \right)  
+\end{equation}
+where  $T_0(C' \rightarrow C)$ is the probability of { \it proposing}  a move from  $C'$ to $C$.     In the Monte Carlo approach,  we will iterate the above procedure  so as to generate a time series of configurations  $C_m$. Provided that we are able to reach all configurations in the Monte Carlo space from any  starting  configuration, then,
+\begin{equation}
+    \lim_{n \rightarrow \infty } \frac{1}{n}  \sum_{m=1}^{n}  \delta_{C_m,C}      = P(C).
+\end{equation}  
+Ideally one would like to propose global, ergodic,  moves that satisfy  $P(C \rightarrow C') =1$ and thereby {\it hope} to have {\it small} autocorrelation times.  This is a property of cluster algorithms such as  the loop \cite{Assaad08_rev}, SSE  \cite{Sandvik99b} or Wolff \cite{Wolff89} algorithms.    
+
+We will start by expanding the configuration space to $ C = \left\{ \pmb{p}, \pmb{s}  \right\} $   and define the Hamiltonian 
+\begin{equation}
+  H(\pmb{p}, \pmb{s} )   = \frac{ \pmb{p}^{T} M^{-1}  \pmb{p} }{2}  +   S(\pmb{s} ).
+\end{equation}
+ $\pmb{p} $  and $\pmb{s}$ are canonical conjugate.  Clearly, 
+ \begin{equation}
+ \langle \hat{O} \rangle   =  \frac{ \int D \pmb{s} e^{- S(\pmb{s} ) }  \langle \langle \hat{O} \rangle \rangle_{\pmb{s} } } { \int D \pmb{s} e^{- S(\pmb{s} )}}
+ = \frac{ \int D \pmb{s} D \pmb{p} e^{- H(\pmb{p},\pmb{s})}  \langle \langle \hat{O} \rangle \rangle_{\pmb{s} } } { \int D \pmb{s}  D \pmb{p} e^{-H(\pmb{p},\pmb{s}) }}.
+ \end{equation}
+ and in the hybrid molecular dynamics scheme we sample
+ \begin{equation}
+ 	P(\pmb{p},\pmb{s})   =   \frac{e^{-H (\pmb{p},\pmb{s})}}{ \int D \pmb{s}  D \pmb{p} \; e^{-H(\pmb{p},\pmb{s}) } }.
+ \end{equation}
+ The  mass   matrix  has   to  be  positive  definite  and  can be  used  to  speed  up  simulations  by  assigning  a  larger  (smaller)  mass  to   fast (slow)   modes.   Since   $M$ is  positive  and  real   it  can be   written  as   $M^{-1}  = B^T  B $   with  sole  restriction on  $B$  being  that  $\text{Ker}(B) =  \left\{ 0 \right\}  $.   The  action of  $B$  or  $B^T$  on a  vector of    e.g.  momenta  has  to  be  provided  by  the  user.  To  this purpose  we  have included  a 
+routine  \texttt{Apply\_B\_HMC\_base}  in the base  Hamiltonian.  By   default    $M = B = 1$. 
+ 
+ Hybrid molecular dynamics  consists of two steps.  \\
+{\bf Step 1:} Updating the momenta  $ \pmb{p} $ \\
+ Here we  choose:
+ \begin{equation}   
+ 	T_0 \left(C' =\left\{\pmb{p}',\pmb{s} \right\} \rightarrow C = \left\{\pmb{p},\pmb{s} \right\}  \right)   = \frac{e^{- \pmb{p}^2}} {\int d \pmb{p}  \; e^{ -\pmb{p}^2} }
+\end{equation}
+such that   $P(C \rightarrow C')  = 1$.  \\
+{\bf Step 2:}  Updating the positions $ \pmb{s} $ \\  
+This step is numerically expensive  and uses Hamiltonian equations of motions,  
+\begin{equation}
+  \dot{\pmb{p}}   = - \frac {\partial H}{\partial \pmb{s}} \; \;  \text{ and }  \; \;  \dot{\pmb{s}}   =  \frac {\partial H}{\partial \pmb{p}} 
+\end{equation}
+that  conserve energy, $H$, for time independent Hamiltonians.   As for the Langevin dynamics, the fields acquire an additional time index, $t_m$, and 
+$\dot{\pmb{s}} = \frac{d \pmb{s}}{d t_m} $.   We can propagate the fields  over a given molecular dynamics time interval, $T_M$, to obtain: 
+\begin{equation}
+	\left\{ \pmb{p},  \pmb{s} \right\} (t_m  + T_m)   =  U^H_{T_m} \left[ \left\{ \pmb{p},  \pmb{s}  \right\} (t_m)\right]
+\end{equation} 
+where $U^H_{T_m}\left[ \left\{ \pmb{p},  \pmb{s}  \right\} (t_m)\right]$   propagates the initial state  $\left\{ \pmb{p},  \pmb{s}  \right\} (t_m)$ with Hamiltonian dynamics for a time  interval $T_m$. 
+The  Hamiltonian equations of motion  are time  reversal symmetric, and  according to Liouville's  theorem conserve volumes  in phase space.  Thereby,
+\begin{equation}
+ \frac{T_0 \left(  \left\{ \pmb{p},  \pmb{s} \right\}  (t_m  + T_m)    \rightarrow   \left\{  \pmb{p},  \pmb{s} \right\} (t_m)  \right) e^{-H( \left\{ \pmb{p},  \pmb{s} \right\}  (t_m  + T_m) ) } }{
+ T_0 \left(  \left\{ \pmb{p},  \pmb{s} \right\}  (t_m  )    \rightarrow   \left\{  \pmb{p},  \pmb{s} \right\} (t_m + T_m)  \right) e^{-H( \left\{ \pmb{p},  \pmb{s} \right\}  (t_m  ) ) }} = 1, 
+\end{equation}
+and the acceptance will be of unity.      Clearly this corresponds to the ideal case, and in practice the integration will be carried out with a finite time step such that the energy will not be conserved exactly and the acceptance  will not be of unity. 
+Provided that we choose an integrator  that  is time reversal symmetric (see below) then the  Monte Carlo acceptance rejection step  will  cure this systematic error.   The acceptance-rejection step of the  molecular dynamics trajectory is the reason why this updating scheme is coined {\it hybrid} molecular dynamics.    
+The algorithm  then proceeds by iterating   step 1 followed by step 2.
+
+In our  implementation of  the Hybrid Molecular  dynamics   approach,  the forces  are computed  exactly.  This  stands in contrast to the  algorithm  generically  
+referred  to  as  Hybrid Monte Carlo  where the forces  are  computed  stochastically.  The  reader is referred to Refs.~\cite{Duane87,Beyl17}  for   further  readings. 
+
+\paragraph{The leap-frog integrator}
+  In practice one will adopt an  integrator  that conserves  time reversal symmetry such as the Leapfrog  algorithm.   Our Hamiltonian can be split into 
+ $H_1   = \pmb{p}^2/2 $ and $H_2   =  S(\pmb{s} ) $.     Propagating with $H_1$ only allows for an exact solution since in this case $\pmb{p}$ is constant and $  \pmb{s}(t) $  $= \pmb{s}(t=t_0) + (  t - t_0)\pmb{p}   $.  Similarly for $H_2 $, $\pmb{s}$  is constant and 
+ $ \pmb{p}(t)   = \pmb{p}(t=t_0)  -(   t - t_0) \frac{\partial S(\pmb{s} )}{\partial \pmb{s} }   $.  Hence  both for $H_1 $ and $H_2$   the propagation  can be carried out exactly   such that time reversal symmetry and  Liouville's theorem hold.  In very much the same manner as for the symmetric Trotter decomposition, the leapfrog approach carries  out a  $\delta t_m$ time interval propagation  of the full Hamiltonian $H = H_1 + H_2 $ as: 
+ \begin{equation}	
+ 	 U^H_{\delta t_m}    = U^{H_1}_{\delta t_m/2}  \circ  U^{H_2}_{\delta t_m } \circ  U^{H_1}_{\delta t_m/2}   +{\cal O } \left(  \delta t_m^2 \right). 
+ \end{equation}
+Clearly  time reversal is satisfied and because of this property the error  contains only even powers of the  time step. The energy $H =  H_1 + H_2 $ will however not be conserved exactly  such that, as mentioned above, the molecular dynamics trajectory  will be accepted according to:
+\begin{eqnarray}
+	& & \max \left(   
+	 \frac{T_0 \left(  \left\{ \pmb{p},  \pmb{s} \right\}  (t_m  + T_m)    \rightarrow   \left\{  \pmb{p},  \pmb{s} \right\} (t_m)  \right) e^{-H( \left\{ \pmb{p},  \pmb{s} \right\}  (t_m  + T_m) ) } }{
+ T_0 \left(  \left\{ \pmb{p},  \pmb{s} \right\}  (t_m  )    \rightarrow   \left\{  \pmb{p},  \pmb{s} \right\} (t_m + T_m)  \right) e^{-H( \left\{ \pmb{p},  \pmb{s} \right\}  (t_m  ) ) }} , 1 \right) \nonumber \\
+ = & &  \max \left(   
+	 \frac{ e^{-H( \left\{ \pmb{p},  \pmb{s} \right\}  (t_m  + T_m) ) } }{
+                   e^{-H( \left\{ \pmb{p},  \pmb{s} \right\}  (t_m  ) ) }} , 1 \right).
+\end{eqnarray}
+
+\paragraph{Specific Implementation}
+To  use  the    hybrid   molecular  dynamics  update,   the  user  has  to set \texttt{HMC=.true.}  in the  parameter  file.  Clearly  we  also  have  to use 
+continuous  Hubbard-Stratonovitch  fields  such that
+  \texttt{OP\_V\%type=3} . 
+  The  time  step  for  the  leap-frog  integrator is  given  by  the   same  variable as for  the  Langevin dynamics, \texttt{Delta\_t\_Langevin\_HMC},   and  the  total  number of  leap-frog   molecular  dynamics  steps  is  given by  the  variable  \texttt{Leapfrog\_steps}.  Thereby   $ t_m = $ \texttt{Delta\_t\_Langevin\_HMC} $\times $ \texttt{Leapfrog\_steps}.  
+Molecular  dynamics can  be  understood  a  clever  way  to  propose  a  global update,  that  will be  accepted  or  rejected  by  a  Metropolis   acceptance  rejection step.   Hence  it  can be combined  with  other   moves  such as  our  standard  sequential  updating scheme.   In the  code,  this  will happen  provide  that  the variable  \texttt{Sequential=.true.}.    If  both  the variables \texttt{HMC=.true.}   and   \texttt{Sequential=.true.}   then \texttt{N\_HMC\_sweeps}    will
+correspond  to the  number  of   hybrid   molecular  dynamics   carried out between  a  sequential  sweep. 
+In order to address potential ergodicity issues \cite{Beyl17} it is crucial to integrate both sequential and hybrid molecular dynamics moves,
+ rather than relying solely on hybrid molecular dynamics \cite{Imada88}. 
+ 
+ To  test  the  code,  we  have  carried  out  high precision calculations  of  the  6-sites   Hubbard  chain  with  open boundary  conditions  (see  Sec.~\ref{sec:langevin})  at  $\beta t  = 4$.     Using \textit{only}   hybrid   molecular  dynamics  updates  we  obtain:  $ \langle  \hat{H} \rangle = -2.81715     \pm 0.00023 $.  This  compares  very  well  with  the  discrete  field    sequential  updating run: $ \langle  \hat{H} \rangle = -2.81706   \pm 0.00013 $. 
+

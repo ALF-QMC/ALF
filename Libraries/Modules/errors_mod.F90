@@ -53,8 +53,10 @@
                &           ERRCALC_JS_F, ERRCALC_JS_REBIN_F, ERRCALC_JS_C_F, ERRCALC_JS_C_REBIN_F
        END INTERFACE
        INTERFACE COV
-          MODULE PROCEDURE COVJ, COVJS, COVJS_C, COVJS_C_REBIN
-       END INTERFACE
+          MODULE PROCEDURE COVJ, COVJS, COVJS_C, COVJS_C_REBIN, COVJS_C_BG, COVJS_C_REBIN_BG, &
+               &           COVJS_C_BG_Weights,  COVJS_C_BG_Rebin_Weights
+
+       END INTERFACE COV
        INTERFACE COV_ERR
           MODULE PROCEDURE COV_ERR
        END INTERFACE
@@ -324,55 +326,72 @@
            RETURN
          END SUBROUTINE ERRCALC_JS
 
-!**********
-         SUBROUTINE ERRCALC_JS_F(EN,SI,XM,XERR,f)
-!	   Calculates error on the input vector EN.  Just the variance.
-!          The input are the bins
+         !> Calculates error on the input vector EN. Just the variance.
+         !!> The input are the bins.
+         !!> The output is the mean and error on f(EN(:,nb) / SI(nb)) computed with jackknife.
+         !!> @param EN Input vector of bins.
+         !!> @param SI Input vector of SI values.
+         !!> @param XM Mean of EN1.
+         !!> @param XERR Error of EN1.
+         !!> @param f Pointer to function that takes a real array and returns a real value.
+         !!> @return None.
+         SUBROUTINE ERRCALC_JS_F(EN, SI, XM, XERR, f)
+            IMPLICIT NONE
 
-           IMPLICIT NONE
+            ! Declare input variables
+            REAL (Kind=Kind(0.d0)), DIMENSION(:,:) :: EN
+            REAL (Kind=Kind(0.d0)), DIMENSION(:) :: SI
+            REAL (Kind=Kind(0.d0)) :: XM, XERR, XS, XShelp
+            procedure (func_r), pointer :: f
 
-           REAL (Kind=Kind(0.d0)), DIMENSION(:,:) ::  EN
-           REAL (Kind=Kind(0.d0)), DIMENSION(:) ::  SI
-           REAL (Kind=Kind(0.d0))               ::  XM, XERR, XS, XShelp
-!            REAL (Kind=Kind(0.d0)), EXTERNAL     ::  f
-           procedure (func_r), pointer:: f
-           REAL (Kind=Kind(0.d0)), ALLOCATABLE  :: EN1(:), Xhelp(:),X(:)
-           INTEGER                     ::  N, N1, NP, NP1, Nobs
+            ! Declare local variables
+            REAL (Kind=Kind(0.d0)), ALLOCATABLE :: EN1(:), Xhelp(:), X(:)
+            INTEGER :: N, N1, NP, NP1, Nobs
 
-           NP = SIZE(EN,2)
-           Nobs = SIZE(EN,1)
-           NP1= SIZE(SI)
-           IF (NP1.NE.NP) THEN
-              WRITE(6,*) 'Error in Errcalc_JS'
-              Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
-           ENDIF
-           ALLOCATE (EN1(NP),Xhelp(nobs), X(nobs))
-           
-           ! Build the jackknife averages and send to errcalc
+            ! Get the number of bins and observations
+            NP = SIZE(EN,2)
+            Nobs = SIZE(EN,1)
 
-           Xhelp  = 0.D0
-           XShelp = 0.D0
-           DO N1 = 1,NP
-              Xhelp  = Xhelp  + EN(:,N1)
-              XShelp = XShelp + SI(N1)
-           ENDDO
+            ! Check that the number of SI values matches the number of bins
+            NP1 = SIZE(SI)
+            IF (NP1.NE.NP) THEN
+               WRITE(6,*) 'Error in Errcalc_JS'
+               Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+            ENDIF
 
-           DO N = 1,NP
-              XS = XShelp - SI(N)
-              X  = (Xhelp  - EN(:,N))/Xs
-              EN1(N) = f(X)
-           ENDDO
-           CALL ERRCALC(EN1,XM,XERR)
-           XERR = XERR*DBLE(NP)
-           DEALLOCATE  ( EN1, X, Xhelp )
+            ! Allocate memory for temporary arrays
+            ALLOCATE (EN1(NP), Xhelp(nobs), X(nobs))
 
-           RETURN
+            ! Build the jackknife averages and send to errcalc
+            Xhelp = 0.D0
+            XShelp = 0.D0
+            DO N1 = 1,NP
+               Xhelp = Xhelp + EN(:,N1)
+               XShelp = XShelp + SI(N1)
+            ENDDO
+
+            ! Compute the jackknife averages
+            DO N = 1,NP
+               XS = XShelp - SI(N)
+               X = (Xhelp - EN(:,N)) / XS
+               EN1(N) = f(X)
+            ENDDO
+
+            ! Compute the mean and error on EN1
+            CALL ERRCALC(EN1, XM, XERR)
+            XERR = XERR * DBLE(NP)
+
+            ! Deallocate memory for temporary arrays
+            DEALLOCATE (EN1, X, Xhelp)
+
+            RETURN
          END SUBROUTINE ERRCALC_JS_F
 
 !**********
          SUBROUTINE ERRCALC_JS_C(EN,SI,XM,XERR)
 !          Calculates error on the input vector EN.  Just the variance.
 !          The input are the bins
+           
            IMPLICIT NONE
 
            COMPLEX (Kind=Kind(0.d0)), DIMENSION(:) ::  EN, SI
@@ -411,8 +430,10 @@
 
 !**********
          SUBROUTINE ERRCALC_JS_C_F(EN,SI,XM,XERR,f)
-!	   Calculates error on the input vector EN.  Just the variance.
-!          The input are the bins
+!	    Calculates error on the input vector EN.  Just the variance.
+!           The input are the bins
+!           The  output  is  the  mean and   error  on    f( EN(:,nb) / SI(nb) )
+!           computed  with  jackknife
 
            IMPLICIT NONE
 
@@ -458,8 +479,8 @@
 
 !********
          SUBROUTINE ERRCALC_JS_REBIN(EN,SI,XM,XERR,NREBIN)
-!          Calculates jacknife error on the input vector EN with rebinning.  Mean and  variance.
-!          The input are the bins.
+           ! Calculates jacknife error on the input vector EN with rebinning.  Mean and  variance.
+           ! The input are the bins.
 
            IMPLICIT NONE
 
@@ -1002,6 +1023,381 @@
            DEALLOCATE ( GR1, SIGN1 )
 
          END SUBROUTINE COVJS_C_REBIN
+
+
+!========================
+         SUBROUTINE COVJS_C_BG(Gr, SIGN1, XCOV, XMEAN, background)
+
+           
+           IMPLICIT NONE
+           ! Given GR(Times, Bins)  and Sign1(Bins) calculates the mean and the covariance.
+           ! The sign is the same for all Times.
+
+           Complex (Kind=Kind(0.d0)), DIMENSION(:,:) ::  GR, XCOV, background
+           Complex (Kind=Kind(0.d0)), DIMENSION(:)   ::  XMEAN
+           Real    (Kind=Kind(0.d0)), DIMENSION(:)   ::  SIGN1
+
+
+           !Local
+           REAL (Kind=Kind(0.d0)), DIMENSION(:  ), ALLOCATABLE  ::  HLP, XMEAN_R
+           REAL (Kind=Kind(0.d0)), DIMENSION(:,:), ALLOCATABLE  ::  HLP1
+           REAL (Kind=Kind(0.d0))                 ::  X, XM, XERR, Y, Xhelp, Yhelp
+           INTEGER :: NT, NT1, NB, NTDM, NDATA, Nth, Norb, no
+           COMPLEX (Kind=Kind(0.d0)) :: Z, tmp
+           complex (kind=kind(0.d0)), dimension(:), allocatable :: BGME, BGJ
+
+           NTDM  = SIZE(GR,1)
+           NDATA = SIZE(GR,2)
+           Norb  = SIZE(background,1)
+
+           allocate ( BGME(Norb), BGJ(Norb) )
+
+           !Write(6,*) 'Errors.F90 ', NTDM, NDATA
+           IF ( (SIZE(XCOV,1).NE.SIZE(XCOV,2) ) .OR. (SIZE(XCOV,1).NE.NTDM) ) THEN
+              WRITE(error_unit,*) 'Error in COVJS_C'
+              Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+           ENDIF
+
+
+
+           ALLOCATE( HLP(NDATA), HLP1(NTDM,NDATA), XMEAN_R(NTDM) )
+           XMEAN = CMPLX(0.d0, 0.d0, kind(0.D0))
+           XCOV  = CMPLX(0.d0, 0.d0, kind(0.D0))
+           BGME  = CMPLX(0.d0, 0.d0, kind(0.D0))
+
+           Do NB=1,NDATA
+              BGME(:) = BGME(:) + background(:,NB)
+           End Do
+
+           DO NTH = 1,2
+              Z = CMPLX(1.D0, 0.D0, kind(0.D0))
+              IF (NTH .EQ. 2 ) Z = CMPLX( 0.D0, -1.D0, kind(0.D0))
+              DO NT = 1,NTDM
+                 Xhelp=0.d0
+                 Yhelp=0.d0
+                 DO NB= 1, NDATA
+                    Xhelp = Xhelp + DBLE ( Z*GR(NT,NB) )
+                    Yhelp = Yhelp + SIGN1(NB)
+                 ENDDO
+                 DO NB= 1, NDATA
+                    Y = Yhelp - SIGN1(NB)
+                    BGJ = BGME - background(:,NB)
+                    tmp = 0.d0
+                    DO No = 1,Norb
+                       tmp = tmp + BGJ(No)*BGJ(No)/Y
+                    enddo
+                    X = Xhelp - DBLE ( Z*GR(NT,NB) ) - DBLE ( Z*tmp )
+                    HLP1(NT,NB) = X/Y
+                    HLP (NB   ) = X/Y
+                 ENDDO
+                 CALL ERRCALC(HLP,XM ,XERR)
+                 XMEAN(NT) = XMEAN(NT) + CONJG(Z)*XM
+                 XMEAN_R(NT) = XM
+                 !if (Nth.eq.2) write(6,*) XM
+              ENDDO
+
+
+              DO NT = 1,NTDM
+                 DO NT1= 1,NTDM
+                    X = 0.d0
+                    DO NB = 1,NDATA
+                       X = X +  (HLP1(NT,NB)-XMEAN_R(NT))*(HLP1(NT1,NB)-XMEAN_R(NT1))
+                    ENDDO
+                    X = X/DBLE(NDATA)
+                    XCOV(NT,NT1)  = XCOV(NT,NT1) + CONJG(Z)* X *DBLE(NDATA)
+                 ENDDO
+              ENDDO
+           ENDDO
+
+           DEALLOCATE( HLP, HLP1, XMEAN_R, BGME, BGJ )
+
+           RETURN
+         END SUBROUTINE COVJS_C_BG
+
+!========================
+         SUBROUTINE COVJS_C_BG_Weights(Gr_in, SIGN1, XCOV, XMEAN, background,L_Back, Weights)
+!!!!===================================================
+!!!        On Input   Gr(tau,n,m,b)       =  O^dag_n(tau,b)  O_m(0,b)   with  b  the bin, tau  the imaginary time
+!!!                                          and  n  the  orbital index
+!!!                   Sign1(b)            =  the  sign  for   each bin          
+!!!                   Background(n,b)     =  O_n(b)
+!!!                   L_Back              if  true (false)  background is  (not) taken  into account
+!!!                   Optional Weights(n) 
+!!!       On Output
+!!!                  If   Weight  is   not  provided   computes  the  trace
+!!!                     Xmean(tau)    =      \sum_n <O^dag_n(tau,:) O_n(0,:)>/<sign(:)>    -     (Background(n,:)>/<sign(:)>)^2
+!!!                     Cov  (tau, tau')  =  Covariance matrix              
+!!!                  If   Weight  is  provided  
+!!!                     Xmean(tau)    =       <M^dag(tau,:) M(0,:)>/<sign(:)>    -     (M_background(:)>/<sign(:)>)^2
+!!!                     with   M(tau,b)        =  \sum_n Weights(n) O_n(tau,b)
+!!!                     and    M_background(b) =  \sum_n Weights(n) Background(n,b)          
+!!!                     Cov  (tau, tau')  =  Covariance matrix
+!!!!===================================================
+           
+           Implicit None
+ 
+           Complex (Kind=Kind(0.d0)), DIMENSION(:,:,:,:), INTENT(IN) ::  GR_IN
+           Real    (Kind=Kind(0.d0)), DIMENSION(:)      , INTENT(IN) ::  SIGN1
+           Complex (Kind=Kind(0.d0)), DIMENSION(:,:)    , INTENT(IN) ::  Background
+           Logical                                      , INTENT(IN) ::  L_Back
+           Complex (Kind=Kind(0.d0)), DIMENSION(:)      , INTENT(IN), Optional ::  Weights
+
+           Complex (Kind=Kind(0.d0)), DIMENSION(:)        , INTENT(OUT) ::  XMEAN
+           Complex (Kind=Kind(0.d0)), DIMENSION(:,:)      , INTENT(OUT) ::  XCOV
+
+
+           !Local
+           REAL (Kind=Kind(0.d0)), DIMENSION(:  ), ALLOCATABLE  ::  HLP, XMEAN_R
+           REAL (Kind=Kind(0.d0)), DIMENSION(:,:), ALLOCATABLE  ::  HLP1
+           REAL (Kind=Kind(0.d0))                 ::  X, XM, XERR, Y, Xhelp, Yhelp
+           INTEGER :: NT, NT1, NB, NTDM, NDATA, Nth, Norb, no,  Norb_eff,  no1, no2
+           COMPLEX (Kind=Kind(0.d0)) :: Z, tmp
+           complex (kind=kind(0.d0)), dimension(:), allocatable :: BGME, BGJ
+           complex (kind=kind(0.d0)), dimension(:,:), allocatable :: GR
+
+           NTDM  = SIZE(GR_in,1)
+           NDATA = SIZE(GR_in,4)
+           Norb  = SIZE(background,1)
+           If  (Present(Weights))  then
+              Norb_eff = 1
+           else
+              Norb_eff = Norb
+           endif
+           allocate ( BGME(Norb_eff), BGJ(Norb_eff) )
+
+           !Write(6,*) 'Errors.F90 ', NTDM, NDATA
+           IF ( (SIZE(XCOV,1).NE.SIZE(XCOV,2) ) .OR. (SIZE(XCOV,1).NE.NTDM) ) THEN
+              WRITE(error_unit,*) 'Error in COVJS_C'
+              Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+           ENDIF
+
+           ALLOCATE( HLP(NDATA), HLP1(NTDM,NDATA), XMEAN_R(NTDM) )
+           ALLOCATE( GR(NTDM,NDATA) )
+           XMEAN = CMPLX(0.d0, 0.d0, kind(0.D0))
+           XCOV  = CMPLX(0.d0, 0.d0, kind(0.D0))
+           BGME  = CMPLX(0.d0, 0.d0, kind(0.D0))
+           GR    = CMPLX(0.d0,0.d0,kind(0.d0))
+
+           If  (Present(Weights))  then
+              do  no1 = 1,Norb
+                 do no2  = 1,Norb
+                    Z  =   Weights(no2)*  conjg (Weights(no1) ) 
+                    do  nt  = 1,NTDM
+                       do  nb  =  1,  NDATA
+                          GR(nt,nb)   =    GR(nt,nb) +  Z * GR_IN(nt,no1,no2,nb)
+                       enddo
+                    enddo
+                 enddo
+              enddo
+              do no = 1,Norb
+                 Do NB=1,NDATA
+                    BGME(1) = BGME(1) + Weights(no)*background(no,NB)
+                 End Do
+              enddo
+           else
+              do no = 1,Norb
+                 do  nt  = 1,NTDM
+                    do  nb  =  1,  NDATA
+                       GR(nt,nb)   =    GR(nt,nb) +  GR_IN(nt,no,no,nb)
+                    enddo
+                 enddo
+              enddo
+              Do NB=1,NDATA
+                 BGME(:) = BGME(:) + background(:,NB)
+              End Do
+           endif
+           
+           
+           DO NTH = 1,2
+              Z = CMPLX(1.D0, 0.D0, kind(0.D0))
+              IF (NTH .EQ. 2 ) Z = CMPLX( 0.D0, -1.D0, kind(0.D0))
+              DO NT = 1,NTDM
+                 Xhelp=0.d0
+                 Yhelp=0.d0
+                 DO NB= 1, NDATA
+                    Xhelp = Xhelp + DBLE ( Z*GR(NT,NB) )
+                    Yhelp = Yhelp + SIGN1(NB)
+                 ENDDO
+                 DO NB= 1, NDATA
+                    Y = Yhelp - SIGN1(NB)
+                    If  (Present(Weights))  then
+                       tmp = cmplx(0.d0,0.d0,kind(0.d0))
+                       do  no = 1,Norb
+                          tmp =  tmp  +  Weights(no)*background(no,NB)
+                       enddo
+                       BGJ(1) = BGME(1) - tmp
+                    else
+                       do no = 1,Norb
+                          BGJ(no) = BGME(no) - background(no,NB)
+                       enddo
+                    endif
+                    tmp = cmplx(0.d0,0.d0,kind(0.d0))
+                    if (L_Back)  then 
+                       DO No = 1,Norb_eff
+                          tmp = tmp + BGJ(No)*BGJ(No)/Y
+                       enddo
+                    endif
+                    X = Xhelp - DBLE ( Z*GR(NT,NB) ) - DBLE ( Z*tmp )
+                    HLP1(NT,NB) = X/Y
+                    HLP (NB   ) = X/Y
+                 ENDDO
+                 CALL ERRCALC(HLP,XM ,XERR)
+                 XMEAN(NT) = XMEAN(NT) + CONJG(Z)*XM
+                 XMEAN_R(NT) = XM
+                 !if (Nth.eq.2) write(6,*) XM
+              ENDDO
+
+
+              DO NT = 1,NTDM
+                 DO NT1= 1,NTDM
+                    X = 0.d0
+                    DO NB = 1,NDATA
+                       X = X +  (HLP1(NT,NB)-XMEAN_R(NT))*(HLP1(NT1,NB)-XMEAN_R(NT1))
+                    ENDDO
+                    X = X/DBLE(NDATA)
+                    XCOV(NT,NT1)  = XCOV(NT,NT1) + CONJG(Z)* X *DBLE(NDATA)
+                 ENDDO
+              ENDDO
+           ENDDO
+
+           DEALLOCATE( HLP, HLP1, XMEAN_R, BGME, BGJ )
+
+           RETURN
+         END SUBROUTINE COVJS_C_BG_WEIGHTS
+
+!!!!===================================================
+         SUBROUTINE COVJS_C_BG_Rebin_Weights(Gr_in, SIGN, XCOV, XMEAN, background,L_Back, Nrebin,Weights)
+!!!!===================================================
+!!!        On Input   Gr(tau,n,m,b)       =  O^dag_n(tau,b)  O_m(0,b)   with  b  the bin, tau  the imaginary time
+!!!                                          and  n  the  orbital index
+!!!                   Sign1(b)            =  the  sign  for   each bin          
+!!!                   Background(n,b)     =  O_n(b)
+!!!                   L_Back              if  true (false)  background is  (not) taken  into account
+!!!                   N_rebin             Rebinning 
+!!!                   Optional Weights(n) 
+!!!       On Output
+!!!                  If   Weight  is   not  provided   computes  the  trace
+!!!                     Xmean(tau)    =      \sum_n <O^dag_n(tau,:) O_n(0,:)>/<sign(:)>    -     (Background(n,:)>/<sign(:)>)^2
+!!!                     Cov  (tau, tau')  =  Covariance matrix              
+!!!                  If   Weight  is  provided  
+!!!                     Xmean(tau)    =       <M^dag(tau,:) M(0,:)>/<sign(:)>    -     (M_background(:)>/<sign(:)>)^2
+!!!                     with   M(tau,b)        =  \sum_n Weights(n) O_n(tau,b)
+!!!                     and    M_background(b) =  \sum_n Weights(n) Background(n,b)          
+!!!                     Cov  (tau, tau')  =  Covariance matrix
+!!!!===================================================
+           
+           Implicit None
+ 
+           Complex (Kind=Kind(0.d0)), DIMENSION(:,:,:,:), INTENT(IN) ::  GR_IN
+           Real    (Kind=Kind(0.d0)), DIMENSION(:)      , INTENT(IN) ::  SIGN
+           Complex (Kind=Kind(0.d0)), DIMENSION(:,:)    , INTENT(IN) ::  Background
+           Integer                                      , INTENT(IN) ::  Nrebin
+           Logical                                      , INTENT(IN) ::  L_Back
+           Complex (Kind=Kind(0.d0)), DIMENSION(:)      , INTENT(IN), Optional ::  Weights
+
+           Complex (Kind=Kind(0.d0)), DIMENSION(:)        , INTENT(OUT) ::  XMEAN
+           Complex (Kind=Kind(0.d0)), DIMENSION(:,:)      , INTENT(OUT) ::  XCOV
+
+           
+           
+           !Local
+           Complex (Kind=Kind(0.d0)), DIMENSION(:,:,:,:), allocatable ::  GR1
+           Real    (Kind=Kind(0.d0)), DIMENSION(:)      , allocatable ::  SIGN1
+           Complex (Kind=Kind(0.d0)), DIMENSION(:,:)    , allocatable ::  Background1
+
+           Integer ::  Norb, Ntdm, Ndata,  Ndata1, no1,no2,no, N, nc,nb, Nt
+
+           If (NREBIN == 1 )  then
+              Call COVJS_C_BG_Weights(Gr_in, SIGN, XCOV, XMEAN, background,L_Back, Weights)
+           else
+
+              NTDM  = SIZE(GR_IN,1)
+              NDATA = SIZE(GR_IN,4)
+              Norb  = SIZE(background,1)
+              NDATA1 = NDATA/NREBIN
+              ALLOCATE ( GR1(NTDM,Norb,Norb,NDATA1), SIGN1(NDATA1), background1(Norb,NDATA1) )
+              
+              SIGN1 = 0.d0
+              GR1   = CMPLX(0.d0,0.d0,kind(0.d0))
+              background1 = CMPLX(0.d0,0.d0,kind(0.d0))
+              ! Rebin
+              NC = 0
+              DO N = 1,NDATA1
+                 DO NB = 1,NREBIN
+                    NC = NC + 1
+                    SIGN1(N) = SIGN1(N) + SIGN(NC)
+                    do no1  = 1,Norb
+                       Do  no2  = 1,Norb
+                          DO NT = 1,NTDM
+                             GR1(NT,no1,no2,N)  = GR1(NT,no1,no2,N) + GR_in(NT,no1,no2,NC)
+                          ENDDO
+                       enddo
+                    enddo
+                    DO No = 1,Norb
+                       background1(No,N) = background1(No,N) + background(No,NC)
+                    enddo
+                 ENDDO
+              ENDDO
+              SIGN1 = SIGN1/DBLE (NREBIN)
+              GR1   = GR1  /CMPLX(DBLE(NREBIN),0.d0,KIND(0.d0))
+              background1 =  background1 /CMPLX(DBLE(NREBIN),0.d0,KIND(0.d0))
+
+              Call COVJS_C_BG_Weights(Gr1, SIGN1, XCOV, XMEAN, background1,L_Back, Weights)
+              DEALLOCATE ( GR1, SIGN1, background1 )
+           endif
+
+         END SUBROUTINE COVJS_C_BG_REBIN_WEIGHTS
+
+!========================
+
+         SUBROUTINE COVJS_C_REBIN_BG(GR, SIGN2, XCOV, XMEAN,NREBIN, background)
+
+           IMPLICIT NONE
+           ! Given GR(Times, Bins)  and Sign1(Bins) calculates the mean and the covariance.
+           ! The sign is the same for all Times.
+           Complex (Kind=Kind(0.d0)), DIMENSION(:,:) ::  GR, XCOV, background
+           Complex (Kind=Kind(0.d0)), DIMENSION(:)   ::  XMEAN
+           Real    (Kind=Kind(0.d0)), DIMENSION(:)   ::  SIGN2
+           INTEGER :: NREBIN
+
+
+           COMPLEX (Kind=Kind(0.d0)), DIMENSION(:,:), ALLOCATABLE ::  GR1, background1
+           REAL    (Kind=Kind(0.d0)), DIMENSION(:), ALLOCATABLE ::  SIGN1
+
+           INTEGER :: NTDM, NDATA, NDATA1, N, NB, NC, NT, No, Norb
+
+           NTDM  = SIZE(GR,1)
+           NDATA = SIZE(GR,2)
+           Norb  = SIZE(background,1)
+
+           NDATA1 = NDATA/NREBIN
+           ALLOCATE ( GR1(NTDM,NDATA1), SIGN1(NDATA1), background1(Norb,NDATA1) )
+
+           SIGN1 = 0.d0
+           GR1   = CMPLX(0.d0,0.d0,kind(0.d0))
+           background1 = CMPLX(0.d0,0.d0,kind(0.d0))
+           ! Rebin
+           NC = 0
+           DO N = 1,NDATA1
+              DO NB = 1,NREBIN
+                 NC = NC + 1
+                 SIGN1(N) = SIGN1(N) + SIGN2(NC)
+                 DO NT = 1,NTDM
+                    GR1(NT,N)  = GR1(NT,N) + GR(NT,NC)
+                 ENDDO
+                 DO No = 1,Norb
+                    background1(No,N) = background1(No,N) + background(No,NC)
+                 enddo
+              ENDDO
+           ENDDO
+           SIGN1 = SIGN1/DBLE (NREBIN)
+           GR1   = GR1  /CMPLX(DBLE(NREBIN),0.d0,KIND(0.d0))
+
+           CALL COVJS_C_BG(GR1, SIGN1, XCOV, XMEAN, background1)
+
+           DEALLOCATE ( GR1, SIGN1, background1 )
+
+         END SUBROUTINE COVJS_C_REBIN_BG
 
 
          Subroutine COV_ERR(XMEAN, XCOV, ISEED)
