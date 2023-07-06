@@ -221,6 +221,11 @@
              Call Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
           endif
 
+          if ( (.not. projector) .and. adiabatic) then
+            write(output_unit,*) "Adiabatic mode is only implemented for projective code."
+            write(output_unit,*) "Overriding Adiabatic=.True. from parameter files."
+          endif
+
           if (N_part < 0) N_part = L1*L2/2
           Ltrot  = nint(beta/dtau)
           Thtrot = 0
@@ -262,6 +267,7 @@
                 Write(unit_info,*) 'Theta         : ', Theta
                 Write(unit_info,*) 'Tau_max       : ', beta
                 Write(unit_info,*) '# of particles: ', N_part
+                Write(unit_info,*) 'Adiabatic switching on of U: ', Adiabatic
              else
                 Write(unit_info,*) 'Finite temperture version'
                 Write(unit_info,*) 'Beta          : ', Beta
@@ -453,10 +459,12 @@
              Do i = 1,Ndim
                 Op_V(i,nf)%P(1)   = I
                 Op_V(i,nf)%O(1,1) = cmplx(1.d0, 0.d0, kind(0.D0))
-                If  (Adiabatic)   then 
+                If  (Adiabatic)   then
                    Allocate(OP_V(i,nf)%g_t(Ltrot))
-                   do  nt = 1,Ltrot 
-                      Op_V(i,nf)%g_t(nt)  = X*SQRT(CMPLX(DTAU*ham_U/2.d0, 0.D0, kind(0.D0)))
+                   Op_V(i,nf)%g_t  = X*SQRT(CMPLX(DTAU*ham_U/2.d0, 0.D0, kind(0.D0)))
+                   do  nt = 1, Thtrot
+                      Op_V(i,nf)%g_t(nt)            = X*SQRT(CMPLX(DTAU*dble(nt)/dble(thtrot)*ham_U/2.d0, 0.D0, kind(0.D0)))
+                      Op_V(i,nf)%g_t(Ltrot-(nt-1))  = X*SQRT(CMPLX(DTAU*dble(nt)/dble(thtrot)*ham_U/2.d0, 0.D0, kind(0.D0)))
                    enddo
                 else
                    Op_V(i,nf)%g      = X*SQRT(CMPLX(DTAU*ham_U/2.d0, 0.D0, kind(0.D0)))
