@@ -506,7 +506,9 @@ Contains
     ! Out Mat = Mat*exp(spin*Op)
     
     ! quick return if possible
-    if ( abs(OP%g) < 1.D-12 ) return
+    g_loc = OP%g
+    if (op%g_t_alloc)  g_loc = Op%g_t(nt)
+    if ( abs(g_loc) < 1.D-12 ) return
 
     if ( op%type < 3 ) then
        sp = nint(spin)
@@ -537,8 +539,6 @@ Contains
           endif
        endif
     else
-       g_loc = Op%g
-       if (op%g_t_alloc)  g_loc = Op%g_t(nt)
        if ( Op%diag ) then
           do I=1,Op%N
              if ( cop == 'c' .or. cop =='C' ) then
@@ -597,7 +597,9 @@ Contains
     ! Out Mat = exp(spin*Op)*Mat
     
     ! quick return if possible
-    if ( abs(OP%g) < 1.D-12 ) return
+    g_loc = Op%g
+    if (op%g_t_alloc) g_loc = Op%g_t(nt)
+    if ( abs(g_loc) < 1.D-12 ) return
 
     if ( op%type < 3 ) then
        sp = nint(spin)
@@ -629,8 +631,6 @@ Contains
         endif
        endif
     else
-        g_loc = Op%g
-        if (op%g_t_alloc) g_loc = Op%g_t(nt)
        if ( Op%diag ) then
           do I=1,Op%N
              if ( cop == 'c' .or. cop =='C' ) then
