@@ -114,6 +114,7 @@ Beta      = 5.d0            ! Inverse temperature
 Projector = .F.             ! Whether the projective algorithm is used
 Theta     = 10.d0           ! Projection parameter
 Symm      = .T.             ! Whether symmetrization takes place
+Adiabatic = .F.             ! Adiabatic  switching on  of the interaction
 /
 
 &VAR_tV                    !! Variables for the t-V class

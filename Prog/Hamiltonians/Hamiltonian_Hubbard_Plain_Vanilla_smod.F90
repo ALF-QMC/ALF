@@ -451,8 +451,6 @@
              enddo
           enddo
 
-          
-          
           Do nf = 1,N_FL
              X = 1.d0
              if (nf == 2)  X = -1.d0
@@ -474,9 +472,6 @@
                 Call Op_set( Op_V(i,nf) )
              Enddo
           Enddo
-
-          
-
 
         end Subroutine Ham_V
 

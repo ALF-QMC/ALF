@@ -355,7 +355,7 @@ Program Main
         Call Alloc_Ham()
         leap_frog_bulk = .false.
         Call ham%Ham_set()
-        ! Check   array  size  for time dependent Hamiltonians
+        ! Test  if  user  has  specified  correct  array  size  for time dependent Hamiltonians
         N_op = Size(OP_V,1)
         do n = 1, N_op
             do i = 1, N_Fl
