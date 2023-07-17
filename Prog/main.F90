@@ -997,6 +997,7 @@ Program Main
 #endif
         
         Call Langevin_HMC%clean()
+        deallocate(Calc_Fl_map,Phase_array)
 
          ! Delete the file RUNNING since the simulation finished successfully
 #if defined(MPI)
