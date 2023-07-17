@@ -215,6 +215,52 @@ module Control
         Real    (Kind=Kind(0.d0)) :: XMAX, XMEAN
         Character (len=64) :: file1 
 
+        if (any(A /= A)) then
+#if defined(TEMPERING) 
+          write(File1,'(A,I0,A)') "Temp_",igroup,"/info"
+#else
+          File1 = "info"
+#endif
+          Open (Unit=50,file=file1, status="unknown", position="append")
+          write(50,*)
+#ifdef MPI
+          write(50,*) "Task", Irank_g, "of group", igroup, "reports:"
+#endif
+          write(50,*) "Green function A contains NaN, calculation is being aborted!"
+          write(50,*)
+          close(50)
+          write(error_unit,*)
+#ifdef MPI
+          write(error_unit,*) "Task", Irank_g, "of group", igroup, "reports:"
+#endif
+          write(error_unit,*) "Green function A contains NaN, calculation is being aborted!"
+          write(error_unit,*)
+          CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+        endif
+
+        if (any(B /= B)) then
+#if defined(TEMPERING) 
+          write(File1,'(A,I0,A)') "Temp_",igroup,"/info"
+#else
+          File1 = "info"
+#endif
+          Open (Unit=50,file=file1, status="unknown", position="append")
+          write(50,*)
+#ifdef MPI
+          write(50,*) "Task", Irank_g, "of group", igroup, "reports:"
+#endif
+          write(50,*) "Green function B contains NaN, calculation is being aborted!"
+          write(50,*)
+          close(50)
+          write(error_unit,*)
+#ifdef MPI
+          write(error_unit,*) "Task", Irank_g, "of group", igroup, "reports:"
+#endif
+          write(error_unit,*) "Green function B contains NaN, calculation is being aborted!"
+          write(error_unit,*)
+          CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+        endif
+
         NCG = NCG + 1
         CALL COMPARE(A, B, XMAX, XMEAN)
         IF (XMAX  >  10.d0) then
