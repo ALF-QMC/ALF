@@ -11,17 +11,29 @@ $(LIB): $(OBJS)
 
 lattices_x86-64.so: lattices_interface_mod.F90 matrix_mod.F90 lattices_v3_mod.F90
 	(make clean)
-	gfortran -O3 -march=x86-64 -c matrix_mod.F90
-	gfortran -O3 -march=x86-64 -c lattices_v3_mod.F90
+	gfortran -O3 -march=x86-64 -fPIC -c runtime_error_mod.F90
+	gfortran -O3 -march=x86-64 -fPIC -c matrix_mod.F90
+	gfortran -O3 -march=x86-64 -fPIC -c lattices_v3_mod.F90
+	#gfortran -O3 -march=x86-64 -shared -lgfortran -static-libgfortran -fPIC lattices_interface_mod.F90 -o lattices_x86-64.so \
+	#		matrix_mod.o lattices_v3_mod.o runtime_error_mod.o
 	gfortran -O3 -march=x86-64 -shared -fPIC lattices_interface_mod.F90 -o lattices_x86-64.so \
-			matrix_mod.o lattices_v3_mod.o
+			matrix_mod.o lattices_v3_mod.o runtime_error_mod.o
+
+lattices_x86-64_intel.so: lattices_interface_mod.F90 matrix_mod.F90 lattices_v3_mod.F90
+	(make clean)
+	ifx -O3 -c -fPIC runtime_error_mod.F90
+	ifx -O3 -c -fPIC matrix_mod.F90
+	ifx -O3 -c -fPIC lattices_v3_mod.F90
+	ifx -O3 -shared -static -fPIC lattices_interface_mod.F90 -o lattices_x86-64_intel.so \
+			matrix_mod.o lattices_v3_mod.o runtime_error_mod.o
 
 lattices_armv8.4-a.so: lattices_interface_mod.F90 matrix_mod.F90 lattices_v3_mod.F90
 	(make clean)
+	gfortran -O3 -march=armv8.4-a -c runtime_error_mod.F90
 	gfortran -O3 -march=armv8.4-a -c matrix_mod.F90
 	gfortran -O3 -march=armv8.4-a -c lattices_v3_mod.F90
 	gfortran -O3 -march=armv8.4-a -shared -fPIC lattices_interface_mod.F90 -o lattices_armv8.4-a.so \
-			matrix_mod.o lattices_v3_mod.o
+			matrix_mod.o lattices_v3_mod.o runtime_error_mod.o
 
 %.o: %.F90
 	$(ALF_FC) -c $(ALF_FLAGS_MODULES) $<
