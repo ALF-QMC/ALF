@@ -75,7 +75,7 @@
          Integer                  , pointer :: L_Fam(:),  List_Fam(:,:,:)
          Real    (Kind=Kind(0.d0)), pointer :: Prop_Fam(:)
 
-         Integer, private         , pointer :: Multiplicity(:) !> Numer of times a given orbital occurs in the list of bonds, automatically computed
+         Integer, private         , allocatable :: Multiplicity(:) !> Numer of times a given orbital occurs in the list of bonds, automatically computed
       End type Hopping_Matrix_Type
 
 
@@ -101,7 +101,7 @@
               deallocate (this(n)%T,this(n)%T_loc,this(n)%list)
            enddo
            deallocate (this(1)%L_Fam, this(1)%List_Fam, this(1)%Prop_Fam )
-           if( associated(this(1)%Multiplicity) ) deallocate(this(1)%Multiplicity)
+           if( allocated(this(1)%Multiplicity) ) deallocate(this(1)%Multiplicity)
         endif
 
       end Subroutine Predefined_hoppings_clear
