@@ -54,7 +54,6 @@ module wrapul_mod
 !--------------------------------------------------------------------
 
         Use UDV_State_mod
-        Use iso_fortran_env, only: output_unit
 #if defined(STAB2) ||  defined(STAB1) 
         Use Hamiltonian_main
         Use Hop_mod
@@ -103,6 +102,7 @@ module wrapul_mod
               CALL UDV_WRAP_Pivot(TMP1(:,1:UDVL(nf_eff)%N_part),udvl(nf_eff)%U,udvl(nf_eff)%D,V1,NCON,Ndim,UDVL(nf_eff)%N_part)
            endif
            ! Test if scales in D are appraoching the limit of double precision. (TODO)
+           CALL UDVL(nf_eff)%testscale
         ENDDO
 
 #else
@@ -114,7 +114,6 @@ module wrapul_mod
         Integer, intent(in) :: NTAU1, NTAU
         
         Integer :: NT, n, nf, nf_eff
-        real (Kind=Kind(UDVL(1)%D(1))) :: dummy_dp
         
         Do nf_eff = 1, N_FL_eff
            nf=Calc_Fl_map(nf_eff)
@@ -128,16 +127,7 @@ module wrapul_mod
            !Carry out U,D,V decomposition.
            CALL UDVL(nf_eff)%decompose
            ! Test if scales in D are appraoching the limit of double precision. (TODO)
-           ! Check if largest scale is approaching the largest representable value
-#if !defined(STABLOG)
-           if (abs(UDVL(nf_eff)%D(1)) > 0.9*huge(dummy_dp)) then
-              write(output_unit,*) "largest scale is approaching the largest representable value. Consider switching to STABLOG."
-           end if  
-           ! Check if myVariable is approaching the smallest representable value
-           if (abs(UDVL(nf_eff)%D(UDVL(nf_eff)%n_part)) < 10.0*tiny(dummy_dp)) then
-              write(output_unit,*) "smallest scale is approaching the smallest representable value. Consider switching to STABLOG."
-           end if
-#endif
+           CALL UDVL(nf_eff)%testscale
         Enddo
 #endif
       END SUBROUTINE WRAPUL

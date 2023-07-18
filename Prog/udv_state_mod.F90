@@ -102,11 +102,14 @@ MODULE UDV_State_mod
             PROCEDURE :: print => print_UDV_state
             PROCEDURE :: setscale => setscale_UDV_state
             PROCEDURE :: getscale => getscale_UDV_state
+            PROCEDURE :: testscale => testscale_UDV_state
 #if defined(MPI)
             PROCEDURE :: MPI_Sendrecv => MPI_Sendrecv_UDV_state
 #endif
             GENERIC :: ASSIGNMENT(=) => assign
     END TYPE UDV_State
+
+    logical, save :: trigger_scale_warning = .true.
 
 CONTAINS
 !--------------------------------------------------------------------
@@ -235,6 +238,38 @@ CONTAINS
        scale_val=cmplx(exp(this%L(scale_idx)),0.d0,kind(0.d0))
 #endif
      END SUBROUTINE getscale_UDV_state
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF-project
+!
+!> @brief
+!> This function prints a warning message if the scales in D grow too large or too small.
+!> A switch to STABLOG is recommended for this scenario which usually solves it and prevents NaN's from getting generated.
+!> The warning is only printed once and the test does not apply to the STABLOG option.
+!>
+!> @param [in] this Class(UDV_state)
+!-------------------------------------------------------------------
+     SUBROUTINE testscale_UDV_state(this)
+       IMPLICIT NONE
+       CLASS(UDV_State), INTENT(IN) :: this
+
+#if !defined(STABLOG)
+       real (Kind=Kind(this%D(1))) :: dummy_dp
+
+       ! ATTENTION, the test assumes a (mostly) sorted array D!
+       ! Check if largest scale is approaching the largest representable value
+       if (abs(this%D(1)) > 0.9*huge(dummy_dp) .and. trigger_scale_warning) then
+          write(error_unit,*) "largest scale is approaching the largest representable value. Consider switching to STABLOG."
+          trigger_scale_warning = .false.
+       end if  
+       ! Check if myVariable is approaching the smallest representable value
+       if (abs(this%D(this%n_part)) < 10.0*tiny(dummy_dp) .and. trigger_scale_warning) then
+          write(error_unit,*) "smallest scale is approaching the smallest representable value. Consider switching to STABLOG."
+          trigger_scale_warning = .false.
+       end if
+#endif
+     END SUBROUTINE testscale_UDV_state
 
 !--------------------------------------------------------------------
 !> @author
