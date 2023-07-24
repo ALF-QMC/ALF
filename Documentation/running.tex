@@ -63,7 +63,7 @@ Related auxiliary directories, object files and executables can be removed by ex
 
 \begin{table}[!ht]
 	\begin{center}
-		\begin{tabular}{@{} p{0.19\columnwidth} p{0.78\columnwidth} @{}}\toprule %16 81
+		\begin{tabular}{@{} p{0.20\columnwidth} p{0.78\columnwidth} @{}}\toprule %16 81
 			Argument & Selected feature \\\midrule
 			\textbf{\texttt{MACHINE}} &  \\\midrule
 			\texttt{GNU}  &   GNU compiler (\texttt{gfortran}/\texttt{mpifort}) for a generic machine (\emph{default}) \\
@@ -77,7 +77,8 @@ Related auxiliary directories, object files and executables can be removed by ex
 			\textbf{\texttt{MODE}} &  \\\midrule
 			\texttt{noMPI|Serial}  &  No parallelization \\
 			\texttt{MPI}  &  MPI parallelization (\emph{default} -- if a machine is selected) \\
-			\texttt{Tempering}  &  Parallel tempering (Sec.~\ref{Parallel_tempering.sec}) and the required MPI as well
+			\texttt{Tempering}  &  Parallel tempering (Sec.~\ref{Parallel_tempering.sec}) and the required MPI as well \\
+			\texttt{PARALLEL\_PARAMS}  & Run multiple independent simulations in parallel (Sec.~\ref{sec:parallel_params})
 			\vspace{7pt}\\ 
 			
 			\textbf{\texttt{STAB}} &  \\\midrule
@@ -312,3 +313,23 @@ In particular, for the stabilization of the involved matrix multiplications we r
 %significantly
 depending on the specific implementation of the library used\footnote{The linked library should implement at least the LAPACK-3.4.0 interface.}. In order to deal with this possibility, we offer a simple baseline which can be used as a quick check as tho whether results depend on the library used for linear algebra routines. Namely, we have included QR-decomposition related routines of the LAPACK-3.7.0 reference implementation from \url{http://www.netlib.org/lapack/}, which you can use by running the script \path{configure.sh}, (described in Sec.~\ref{sec:running}), with the flag \texttt{STAB1} and recompiling ALF\footnote{This flag may trigger compiling issues, in particular, the Intel ifort compiler version 10.1 fails for all optimization levels.}. The stabilization flags available are described in Tables~\ref{table:configureHPC} and~\ref{table:tips}. The performance of the package is further discussed in Sec.~\ref{sec:performance}.
 
+
+%
+%-------------------------------------------------------------------------------------
+\subsection{Parallel parameters feature} \label{sec:parallel_params}
+%-------------------------------------------------------------------------------------
+%
+With the compile-time option \verb|PARALLEL\_PARAMS| (or equivalently \verb|PP|), ALF can run multiple independent simulations in parallel. This feature is meant for utilizing the high core counts of modern HPC systems in cases where a normal job size might be overkill for a single simulation. The basic folder structure is the same as in Parallel Tempering, as sketched in Fig.~\ref{fig:parallel_params}: The root directory contains the files \verb|parameters|, \verb|seeds| and directories \verb|Temp_0| to \verb|Temp_{N-1}|, where $N$ is the number of parameter sets, i.e. different simulations. Contrary to Parallel Tempering, in Parallel Parameters mode only \verb|mpi_per_parameter_set| from the namelist \verb|VAR_TEMP| is read from \verb|./parameters|. This variable is defined as the number of availbale MPI processes divided by $N$. All the rest of the parameters are read from \verb|Temp_*/parameters|, which allows to simulate completely different parameters and even different Hamiltonians.
+
+\begin{figure}
+\dirtree{%
+.1 ..
+.2 parameters.
+.2 seeds.
+.2 Temp\_0/.
+.3 parameters.
+.2 Temp\_1/.
+.3 parameters.
+}
+\caption{Folder structure for a parallel parameters (or Parallel Tempering) simulation with 2 parameter sets.}\label{fig:parallel_params}
+\end{figure}

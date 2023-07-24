@@ -209,19 +209,9 @@
       
     contains
 
-    subroutine Alloc_Ham()
+    subroutine Alloc_Ham(ham_name)
        Implicit none
-       Integer :: ierr, I
-       Character (len=64) :: ham_name
-       NAMELIST /VAR_HAM_NAME/ ham_name
-       
-       OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
-       IF (ierr /= 0) THEN
-          WRITE(error_unit,*) 'Alloc_Ham: unable to open <parameters>',ierr
-          CALL Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
-       END IF
-       READ(5,NML=VAR_HAM_NAME)
-       CLOSE(5)
+       Character (len=64), intent(in) :: ham_name
 
        Select Case (ham_name)
 #include "Hamiltonians_case.h"
