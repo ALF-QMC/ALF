@@ -1,0 +1,318 @@
+{
+    "Hubbard_N_Leg_Ladder_temper": [
+        "Hubbard",
+        [
+            {
+                "Model": "Hubbard",
+                "Lattice_type": "N_leg_ladder",
+                "L1": 6,
+                "L2": 2,
+                "Beta": 10.0,
+                "Projector": false,
+                "Theta": 10.0,
+                "Ham_U": 4.0,
+                "Ham_U2": 0.0,
+                "Ham_T": 1.0,
+                "Ham_T2": 0.0,
+                "ham_Tperp": 0.0,
+                "Nsweep": 20,
+                "NBin": 5,
+                "Ltau": 1,
+                "Mz": false
+            },
+            {
+                "Model": "Hubbard",
+                "Lattice_type": "N_leg_ladder",
+                "L1": 6,
+                "L2": 2,
+                "Beta": 10.0,
+                "Projector": false,
+                "Theta": 10.0,
+                "Ham_U": 4.0,
+                "Ham_U2": 0.0,
+                "Ham_T": 1.0,
+                "Ham_T2": 0.0,
+                "ham_Tperp": 0.0,
+                "Nsweep": 20,
+                "NBin": 5,
+                "Ltau": 1,
+                "Mz": false
+            }
+        ]
+    ],
+    "Langevin": [
+        "Hubbard",
+        {
+            "Model": "Hubbard",
+            "Lattice_type": "N_leg_ladder",
+            "L1": 1,
+            "L2": 6,
+            "Beta": 4.0,
+            "Nsweep": 50,
+            "NBin": 10,
+            "Ltau": 0,
+            "Dtau": 0.1,
+            "Continuous": true,
+            "Langevin": true,
+            "Delta_t_Langevin_HMC": 0.05
+        }
+    ],
+    "Langevin_1": [
+        "Hubbard",
+        {
+            "Model": "Hubbard",
+            "Lattice_type": "N_leg_ladder",
+            "L1": 1,
+            "L2": 6,
+            "Beta": 4.0,
+            "Nsweep": 50,
+            "NBin": 10,
+            "Ltau": 1,
+            "Dtau": 0.1,
+            "Continuous": true,
+            "Langevin": true,
+            "Delta_t_Langevin_HMC": 0.05
+        }
+    ],
+    "HMC_1": [
+        "Hubbard",
+        {
+            "Model": "Hubbard",
+	    "Lattice_type": "N_leg_ladder", 
+            "L1": 1 , "L2": 6, 
+            "Beta"      : 4.0,
+            "Projector" : false, 
+            "Ham_U"     : 4.0,  
+            "ham_Tperp" : 1.0,  
+            "Nsweep"    : 20, 
+            "NBin"      : 5,
+            "Ltau"      : 1,
+            "Mz"        : true,
+            "HMC"       : true,
+            "Sequential"       : false,
+            "Delta_t_Langevin_HMC" : 0.1, 
+            "Leapfrog_steps" : 50, 
+            "Continuous" : true
+        }
+    ],
+    "Hubbard_N_Leg_Ladder": [
+        "Hubbard",
+        {
+            "Model": "Hubbard",
+            "Lattice_type": "N_leg_ladder",
+            "L1": 6,
+            "L2": 2,
+            "Beta": 10.0,
+            "Projector": false,
+            "Theta": 10.0,
+            "Ham_U": 4.0,
+            "Ham_U2": 0.0,
+            "Ham_T": 1.0,
+            "Ham_T2": 0.0,
+            "ham_Tperp": 0.0,
+            "Nsweep": 20,
+            "NBin": 5,
+            "Ltau": 1,
+            "Mz": false
+        }
+    ],
+    "Hubbard_PAM": [
+        "Hubbard",
+        {
+            "Model": "Hubbard",
+            "Lattice_type": "Bilayer_square",
+            "L1": 4,
+            "L2": 4,
+            "Beta": 1.0,
+            "Projector": true,
+            "Theta": 10.0,
+            "Ham_U": 0.0,
+            "Ham_U2": 4.0,
+            "Ham_T": 1.0,
+            "Ham_T2": 0.0,
+            "ham_Tperp": 1.0,
+            "Nsweep": 20,
+            "NBin": 5,
+            "Ltau": 1,
+            "Mz": true
+        }
+    ],
+    "Hubbard_PAM_1": [
+        "Hubbard",
+        {
+            "Model": "Hubbard",
+            "Lattice_type": "Bilayer_square",
+            "L1": 4,
+            "L2": 4,
+            "Beta": 1.0,
+            "Projector": true,
+            "Theta": 10.0,
+            "Ham_U": 0.0,
+            "Ham_U2": 4.0,
+            "Ham_T": 1.0,
+            "Ham_T2": 0.0,
+            "ham_Tperp": 1.0,
+            "Nsweep": 20,
+            "NBin": 5,
+            "Ltau": 1,
+            "N_Phi": 1,
+            "Mz": false
+        }
+    ],
+    "Hubbard_Bilayer": [
+        "Hubbard",
+        {
+            "Model": "Hubbard",
+            "Lattice_type": "Bilayer_square",
+            "L1": 4,
+            "L2": 4,
+            "Beta": 5.0,
+            "Checkerboard": false,
+            "Projector": false,
+            "Ham_U": 0.0,
+            "Ham_U2": 4.0,
+            "Ham_T": 1.0,
+            "Ham_T2": 1.0,
+            "ham_Tperp": 1.0,
+            "Nsweep": 20,
+            "NBin": 5,
+            "Ltau": 1,
+            "N_Phi": 1,
+            "Mz": false
+        }
+    ],
+    "Hubbard_PAM_2": [
+        "Hubbard",
+        {
+            "Model": "Hubbard",
+            "Lattice_type": "Bilayer_square",
+            "L1": 4,
+            "L2": 4,
+            "Beta": 1.0,
+            "Checkerboard": true,
+            "Projector": true,
+            "Theta": 10.0,
+            "Ham_U": 0.0,
+            "Ham_U2": 4.0,
+            "Ham_T": 1.0,
+            "Ham_T2": 0.0,
+            "ham_Tperp": 1.0,
+            "Nsweep": 20,
+            "NBin": 5,
+            "Ltau": 1,
+            "N_Phi": 1,
+            "N_SUN": 4,
+            "Mz": false
+        }
+    ],
+    "Hubbard_Plain_Vanilla": [
+        "Hubbard_Plain_Vanilla",
+        {
+            "Model": "Hubbard_Plain_Vanilla",
+            "Lattice_type": "Square",
+            "L1": 4,
+            "L2": 4,
+            "Beta": 1.0,
+            "Nsweep": 20,
+            "NBin": 5,
+            "Ltau": 1,
+            "Dtau": 0.05,
+            "Projector": true
+        }
+    ],
+    "Hubbard_Plain_Vanilla_1": [
+        "Hubbard_Plain_Vanilla",
+        {
+           "Model": "Hubbard_Plain_Vanilla", 
+           "Lattice_type": "Square", 
+           "L1": 4 , "L2": 4, 
+           "Beta"      : 1.0,
+           "Projector" : true, 
+           "Adiabatic" : true, 
+           "Theta"     : 10.0, 
+           "Ham_U"     : 4.0,  
+           "Ham_T"     : 1.0, 
+           "Nsweep"    : 50, 
+           "NBin"      : 5,
+           "Ltau"      : 0
+        }
+    ],
+    "Kondo": [
+        "Kondo",
+        {
+            "Model": "Kondo",
+            "Lattice_type": "Bilayer_square",
+            "L1": 4,
+            "L2": 4,
+            "Ham_Uf": 1.0,
+            "Beta": 5.0,
+            "Nsweep": 20,
+            "NBin": 5,
+            "Ltau": 1
+        }
+    ],
+    "LRC": [
+        "LRC",
+        {
+            "Model": "LRC",
+            "Lattice_type": "Square",
+            "L1": 4,
+            "L2": 4,
+            "Beta": 5.0,
+            "Nsweep": 20,
+            "NBin": 5,
+            "Ltau": 0,
+            "Global_tau_moves": true,
+            "ham_U": 4.0,
+            "ham_alpha": 0.0,
+            "Percent_change": 0.1
+        }
+    ],
+    "tV": [
+        "tV",
+        {
+            "Model": "tV",
+            "Lattice_type": "Square",
+            "L1": 4,
+            "L2": 4,
+            "Beta": 10.0,
+            "Projector": false,
+            "Theta": 10.0,
+            "Ham_T": 1.0,
+            "Ham_T2": 0.0,
+            "Ham_Tperp": 0.0,
+            "Ham_V": -1.0,
+            "Ham_V2": 0.0,
+            "Ham_Vperp": 0.0,
+            "Nsweep": 20,
+            "NBin": 5,
+            "Ltau": 0,
+            "N_SUN": 1,
+            "Global_tau_moves": false
+        }
+    ],
+    "Z2_Matter": [
+        "Z2_Matter",
+        {
+            "Model": "Z2_Matter",
+            "Lattice_type": "Square",
+            "L1": 4,
+            "L2": 4,
+            "Beta": 20.0,
+            "Dtau": 0.05,
+            "Nsweep": 20,
+            "NBin": 10,
+            "Ltau": 0,
+            "Ham_T": 0.0,
+            "Ham_h": 0.0,
+            "Ham_TZ2": 1.0,
+            "Ham_K": 0.0,
+            "Ham_J": 0.0,
+            "Ham_g": 1.0,
+            "Ham_U": 0.0,
+            "Global_tau_moves": true,
+            "Propose_S0": false,
+            "Nwrap": 10
+        }
+    ]
+}

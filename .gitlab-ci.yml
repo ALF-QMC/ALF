@@ -6,6 +6,7 @@ stages:
   - build
   - warnconv
   - test
+  - testbranch
   - memleaks
 
 .build_template: &build_definition
@@ -66,6 +67,33 @@ Check_Stopcommands:
   script:
     - grep -irn -e "^\s*error\s*stop" -e "^\s*stop" --include="*.F90" --exclude-dir=Analysis --exclude-dir=HDF5 --exclude-dir=testsuite --exclude-dir=Not\_supported --exclude="runtime\_error\_mod.F90" && exit 1
     - exit 0
+
+prep_test_branch:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bookworm-buildd
+  stage: testbranch
+  when: manual
+  needs: []
+  tags:
+    - k8s
+  script:
+    - apt-get update && apt-get install -y python3-yaml
+    - ./testsuite/test_branch_generate_config.py
+    - cat generated-config.yml
+  artifacts:
+    paths:
+      - generated-config.yml
+    expire_in: 1 day
+
+trigger_test_branch:
+  stage: testbranch
+  needs: [prep_test_branch]
+  trigger:
+    include:
+      - artifact: generated-config.yml
+        job: prep_test_branch
+    strategy: depend
+  variables:
+    PARENT_PIPELINE_ID: $CI_PIPELINE_ID
 
 GQMCT_Buster:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:buster-gfortran-blas-lapack
