@@ -129,9 +129,9 @@ Bookworm:
 IntelLatest:
     image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/pyalf-requirements/intel
     machine: INTEL
-#IntelLLVMLatest:
-#    image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/pyalf-requirements/intel
-#    machine: IntelLLVM
+IntelLLVMLatest:
+    image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/pyalf-requirements/intel
+    machine: IntelLLVM
 PGI-21-03:
     image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/pyalf-requirements/bullseye-pgi-21-03
     machine: PGI
