@@ -4,12 +4,15 @@ variables:
 default:
   tags: [k8s]
   cache:
+    key: HDF5
     untracked: true
     paths:
       - HDF5
+    policy: pull
 
 stages:
   - lint
+  - build_hdf5
   - build
   - test
   - testbranch
@@ -27,6 +30,23 @@ stages:
     - echo $ALF_FC
     - $ALF_FC -v
     - make all
+
+.build_hdf5_template: &build_hdf5_definition
+  stage: build_hdf5
+  variables:
+    MACHINE: GNU
+  needs: []
+  script:
+    - ls HDF5
+    - du -sh HDF5
+    - . configure.sh $MACHINE noMPI HDF5
+    - du -sh HDF5
+  cache:
+    key: HDF5
+    untracked: true
+    paths:
+      - HDF5
+    policy: pull-push
 
 .test_template: &test_definition
   stage: test
@@ -127,6 +147,43 @@ pages:
       - public
   rules:
     - if: '$CI_COMMIT_BRANCH == "master"'
+
+
+build_hdf5_Buster:
+  <<: *build_hdf5_definition
+  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/buster
+build_hdf5_Bullseye:
+  <<: *build_hdf5_definition
+  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bullseye
+  needs: [build_hdf5_Buster]
+build_hdf5_Bookworm:
+  <<: *build_hdf5_definition
+  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bookworm
+  needs: [build_hdf5_Bullseye]
+build_hdf5_PGI-21-03:
+  <<: *build_hdf5_definition
+  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bullseye-pgi-21-03
+  needs: [build_hdf5_Bookworm]
+  variables:
+    MACHINE: PGI
+build_hdf5_Intel-21:
+  <<: *build_hdf5_definition
+  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bullseye-intel
+  needs: [build_hdf5_PGI-21-03]
+  variables:
+    MACHINE: Intel
+build_hdf5_IntelLatest:
+  <<: *build_hdf5_definition
+  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/intel
+  needs: [build_hdf5_Intel-21]
+  variables:
+    MACHINE: Intel
+build_hdf5_IntelLLVM:
+  <<: *build_hdf5_definition
+  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/intel
+  needs: [build_hdf5_IntelLatest]
+  variables:
+    MACHINE: IntelLLVM
 
 
 # GNU on Debian Buster
