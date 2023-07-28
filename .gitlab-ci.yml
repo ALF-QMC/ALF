@@ -4,7 +4,7 @@ variables:
 default:
   tags: [k8s]
   cache:
-    key: HDF5
+    key: HDF5-$MACHINE
     untracked: true
     paths:
       - HDF5
@@ -42,7 +42,7 @@ stages:
     - . configure.sh $MACHINE noMPI HDF5
     - du -sh HDF5
   cache:
-    key: HDF5
+    key: HDF5-$MACHINE
     untracked: true
     paths:
       - HDF5
@@ -149,21 +149,21 @@ pages:
     - if: '$CI_COMMIT_BRANCH == "master"'
 
 
-build_hdf5_Buster:
+build_hdf5_GNU-Buster:
   <<: *build_hdf5_definition
   image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/buster
-build_hdf5_Bullseye:
+build_hdf5_GNU-Bullseye:
   <<: *build_hdf5_definition
   image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bullseye
-  needs: [build_hdf5_Buster]
-build_hdf5_Bookworm:
+  needs: [build_hdf5_GNU-Buster]
+build_hdf5_GNU-Bookworm:
   <<: *build_hdf5_definition
   image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bookworm
-  needs: [build_hdf5_Bullseye]
+  needs: [build_hdf5_GNU-Bullseye]
 build_hdf5_PGI-21-03:
   <<: *build_hdf5_definition
   image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bullseye-pgi-21-03
-  needs: [build_hdf5_Bookworm]
+  needs: [build_hdf5_GNU-Bookworm]
   variables:
     MACHINE: PGI
 build_hdf5_Intel-21:
@@ -172,7 +172,7 @@ build_hdf5_Intel-21:
   needs: [build_hdf5_PGI-21-03]
   variables:
     MACHINE: Intel
-build_hdf5_IntelLatest:
+build_hdf5_Intel-Latest:
   <<: *build_hdf5_definition
   image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/intel
   needs: [build_hdf5_Intel-21]
@@ -181,52 +181,51 @@ build_hdf5_IntelLatest:
 build_hdf5_IntelLLVM:
   <<: *build_hdf5_definition
   image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/intel
-  needs: [build_hdf5_IntelLatest]
+  needs: [build_hdf5_Intel-Latest]
   variables:
     MACHINE: IntelLLVM
 
 
 # GNU on Debian Buster
 
-build_Buster:
+build_GNU-Buster:
   image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/buster
   <<: *build_definition
 
-tests_Buster:
+tests_GNU-Buster:
   image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/buster
   <<: *test_definition
 
 # GNU on Debian Bullseye
 
-build_Bullseye:
+build_GNU-Bullseye:
   image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bullseye
   <<: *build_definition
 
-tests_Bullseye:
+tests_GNU-Bullseye:
   <<: *test_definition
   image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bullseye
 
-GQMCT_Bullseye_MPI:
+build_GNU-Bullseye_MPI:
   image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bullseye
   stage: build
   needs: []
+  variables:
+    MACHINE: GNU
   script:
     - gfortran -v
-    - . configure.sh GNU Devel Tempering $CONFIG_ARGS
-    - export ALF_FC="mpif90"
+    - . configure.sh $MACHINE Devel Tempering $CONFIG_ARGS
     - make all
 
-GQMCT_Bullseye_valgrind:
+vlagrind_GNU-Bullseye:
   image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bullseye
   stage: memleaks
   needs: []
-  only:
-    changes:
-      - Prog/*.(f|F)90
-      - Libraries/Modules/*.(f|F)90
+  variables:
+    MACHINE: GNU
   script:
       - sudo apt-get update && sudo apt-get install -y valgrind
-      - . configure.sh GNU devel serial $CONFIG_ARGS
+      - . configure.sh $MACHINE devel serial $CONFIG_ARGS
       - gfortran -v
       - make lib
       - make program
@@ -239,35 +238,35 @@ GQMCT_Bullseye_valgrind:
 
 # GNU on Debian Bookworm
 
-build_Bookworm:
+build_GNU-Bookworm:
   <<: *build_definition
   image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bookworm
 
-tests_Bookworm:
+tests_GNU-Bookworm:
   <<: *test_definition
   image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bookworm
 
 
 # GNU on Debian Bullseye with OpenBlas
 
-build_Bullseye_OpenBlas:
+build_GNU-Bullseye_OpenBlas:
   <<: *build_definition
   image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bullseye-openblas
 
-tests_Bullseye_OpenBlas:
+tests_GNU-Bullseye_OpenBlas:
   <<: *test_definition
   image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bullseye-openblas
 
 # PGI/NVIDIA 21.03 on Debian Bullseye
 
-build_PGI:
+build_PGI-21-03:
   <<: *build_definition
   image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bullseye-pgi-21-03
   variables:
     MACHINE: PGI
     MODE: noMPI
 
-tests_PGI:
+tests_PGI-21-03:
   <<: *test_definition
   image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bullseye-pgi-21-03
   variables:
