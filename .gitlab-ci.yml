@@ -213,6 +213,14 @@ build:
         IMAGE_MINOR: intel
         MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
 
+build_mac:
+  extends: .build_template
+  tags: [macos]
+  parallel:
+    matrix:
+      - MACHINE: GNU
+        MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
+
 test:
   extends: .test_template
   image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/$IMAGE_MINOR
@@ -233,6 +241,14 @@ test:
       - MACHINE: INTELLLVM
         IMAGE_MINOR: intel
         MODE: [noMPI]
+
+test_mac:
+  extends: .test_template
+  tags: [macos]
+  parallel:
+    matrix:
+      - MACHINE: GNU
+        MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
 
 valgrind_GNU-Bullseye:
   image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bullseye
