@@ -76,8 +76,7 @@
        Real (Kind=Kind(0.d0))  :: Amplitude
 
        Type Fields
-          Real    (Kind=Kind(0.d0)), allocatable    :: f(:,:)          
-          Real    (Kind=Kind(0.d0)), allocatable    :: h(:,:)
+          Complex (Kind=Kind(0.d0)), allocatable    :: f(:,:)
           Integer                  , allocatable    :: t(:)
         CONTAINS
           procedure  :: make  => Fields_make
@@ -116,13 +115,13 @@
 
         select case (this%t(n_op))
         case(1)
-           Fields_Phi = Phi_st(Nint(this%f(n_op,n_tau)),1)
+           Fields_Phi = Phi_st(Nint(real(this%f(n_op,n_tau))),1)
         case(2)
-           Fields_Phi = Phi_st(Nint(this%f(n_op,n_tau)),2)
+           Fields_Phi = Phi_st(Nint(real(this%f(n_op,n_tau))),2)
         case(3)
-           Fields_Phi = this%f(n_op,n_tau)
+           Fields_Phi = real(this%f(n_op,n_tau),kind(0.d0)) 
         case(4)
-           Fields_Phi = Phi_st(Nint(this%f(n_op,n_tau)),2)*sqrt( 1.d0 +  this%h(n_op,n_tau) )
+           Fields_Phi = Phi_st(Nint(real(this%f(n_op,n_tau))),2)*sqrt( 1.d0 +  aimag(this%f(n_op,n_tau)) )
         case default
            Write(error_unit,*) 'Error in Fields_Phi'
            CALL Terminate_on_error(ERROR_FIELDS,__FILE__,__LINE__)
@@ -147,11 +146,11 @@
         case(1)
            Fields_GAMA = 1.d0
         case(2)
-           Fields_GAMA = GAMA_st(Nint(this%f(n_op,n_tau)),2)
+           Fields_GAMA = GAMA_st(Nint(Real(this%f(n_op,n_tau))),2)
         case(3)
            Fields_GAMA = 1.d0
         case(4)
-           Fields_GAMA = GAMA_st(Nint(this%f(n_op,n_tau)),2)
+           Fields_GAMA = GAMA_st(Nint(Real(this%f(n_op,n_tau))),2)
         case default
            Write(error_unit,*) 'Error in Fields_GAMA'
            CALL Terminate_on_error(ERROR_FIELDS,__FILE__,__LINE__)
@@ -167,29 +166,30 @@
 !> Flips the field this(n_op,n_tau)
 !>
 !-------------------------------------------------------------------
-
-      Subroutine Fields_flip(this,n_op,n_tau, HS_new)
+      Complex (Kind=Kind(0.d0)) function  Fields_flip(this,n_op,n_tau)
 
         Implicit none
-        Class (Fields) :: this
-        Integer, INTENT(IN)                    ::  n_op, n_tau
-        Real  (Kind=Kind(0.d0))  , INTENT(out) ::  HS_new(2) 
+        Class (Fields)      :: this
+        Integer, INTENT(IN) :: n_op, n_tau
 
-        HS_new = 0.d0
+       
         select case (this%t(n_op))
         case(1)
-           HS_new(1) = - this%f(n_op,n_tau)
+           Fields_flip = - this%f(n_op,n_tau)
         case (2)
-           HS_new(1) =   Flip_st( nint(this%f(n_op,n_tau)),nranf(3))
+           Fields_flip =   cmplx(Flip_st( nint(real(this%f(n_op,n_tau))),nranf(3)),  0.d0,  Kind(0.d0) )
         case (3)
-           HS_new(1) =   this%f(n_op,n_tau) + Amplitude*( ranf_wrap() - 0.5D0)
+           Fields_flip =   cmplx(real(this%f(n_op,n_tau)) + Amplitude*( ranf_wrap() - 0.5D0), 0.d0,  Kind(0.d0))
+        case (4)
+           Fields_flip =   cmplx(Flip_st( nint(real(this%f(n_op,n_tau))),nranf(3)), aimag(this%f(n_op,n_tau)) , Kind(0.d0)) 
         case default
            Write(error_unit,*) 'Error in Fields. '
            CALL Terminate_on_error(ERROR_FIELDS,__FILE__,__LINE__)
         end select
 
-      end Subroutine Fields_flip
+      end function Fields_flip
       
+!-------------------------------------------------------------------
 
       Integer function Fields_get_i(this,n_op,n_tau)
 
@@ -198,15 +198,14 @@
         Integer, INTENT(IN) ::  n_op, n_tau
 
         if ( this%t(n_op) == 1 .or.   this%t(n_op) == 2 ) then
-           Fields_get_i = NINT(this%f(n_op,n_tau))
+           Fields_get_i = NINT(Real(this%f(n_op,n_tau)))
         else
            Write(error_unit,*) "Error in fields"
            CALL Terminate_on_error(ERROR_FIELDS,__FILE__,__LINE__)
         endif
 
       end function Fields_get_i
-
-
+!-------------------------------------------------------------------
       Subroutine Fields_make(this,N_OP,N_tau)
         Implicit none
         Class (Fields), INTENT(INOUT)  :: this
@@ -214,18 +213,19 @@
 
         !Write(6,*) "Allocating  fields: ", N_op, N_tau
         allocate (this%f(N_OP,N_tau), this%t(N_OP) )
-        Allocate (this%h(N_OP,N_tau))
 
-        this%f = 0.d0;  this%t = 0
+        this%f = cmplx(0.d0,0.d0,kind(0.d0)) ;  this%t = 0
 
       end Subroutine Fields_make
-
+!-------------------------------------------------------------------
       Subroutine Fields_clear(this)
         Implicit none
         Class (Fields) :: this
 
         deallocate (this%f, this%t )
       end Subroutine Fields_clear
+
+!-------------------------------------------------------------------
 
       Subroutine Fields_init(Amplitude_in)
 
@@ -492,16 +492,18 @@
 
          Class (Fields), INTENT(INOUT) :: this
 
-         Integer :: nt, I
+         Integer :: nt, I, I1
 
          !Write(6,*) "Fields_set", size(this%f,1), size(this%f,2)
          Do nt = 1,size(this%f,2)
             Do I = 1,size(this%f,1)
                if (this%t(i)  < 4 ) then
-                  this%f(I,nt)  = 1.d0
-                  if ( ranf_wrap() > 0.5D0 ) this%f(I,nt) = -1.d0
-               else
-                  this%f(I,nt)  = Amplitude*(ranf_wrap() - 0.5d0)
+                  this%f(I,nt)  = cmplx(1.d0,0.d0,kind(0.d0))
+                  if ( ranf_wrap() > 0.5D0 ) this%f(I,nt) = cmplx(-1.d0,0.d0,kind(0.d0))
+               else 
+                  I1 = 1
+                  if ( ranf_wrap() > 0.5D0 ) I1 = -1
+                  this%f(I,nt)  = cmplx(dble(I1)/0.5d0, 0.d0 ,Kind(0.d0))
                endif
             enddo
          enddo
@@ -533,8 +535,9 @@
             Class (Fields)    , INTENT(INOUT) :: this
             CHARACTER (LEN=64), intent(in)    :: filename
 
-            INTEGER             :: K, I, NT, I1
-            INTEGER,ALLOCATABLE :: SEED_VEC(:)
+            INTEGER                :: K, I, NT, I1
+            INTEGER,ALLOCATABLE    :: SEED_VEC(:)
+            Real (Kind=Kind(0.d0)) :: X
 
             CALL GET_SEED_LEN(K)
             ALLOCATE(SEED_VEC(K))
@@ -546,8 +549,11 @@
                DO I = 1,SIZE(this%f,1)
                   IF (this%t(I) == 1 .or.  this%t(I) == 2) then
                      Read(10,*)  I1
-                     this%f(I,NT) = real(I1,kind(0.d0))
-                  else
+                     this%f(I,NT) = cmplx(real(I1,kind(0.d0)), 0.d0,kind(0.d0))
+                  elseif (this%t(I) == 3)   then
+                     Read(10,*)  X
+                     this%f(I,NT) = cmplx(X,0.d0,kind(0.d0))
+                  elseif (this%t(I) == 4)   then
                      Read(10,*)  this%f(I,NT)
                   Endif
                ENDDO
@@ -555,7 +561,7 @@
             CLOSE(10)
             DEALLOCATE(SEED_VEC)
         END SUBROUTINE Fields_read_conf
-
+!--------------------------------------------------------------------
 #if defined HDF5
         SUBROUTINE Fields_read_conf_h5(this, filename)
             IMPLICIT NONE
@@ -631,9 +637,11 @@
             DO NT = 1,size(this%f,2)
                DO I = 1,size(this%f,1)
                   if (this%t(i) ==  3 ) then
-                     WRITE(10,*) this%f(I,NT)
-                  else
-                     WRITE(10,*) nint(this%f(I,NT))
+                     WRITE(10,*) real(this%f(I,NT))
+                  elseif ( this%t(i) ==  1  .or. this%t(i) ==  2 ) then
+                     WRITE(10,*) nint(real(this%f(I,NT)))
+                  elseif ( this%t(i) ==  4  ) then
+                     WRITE(10,*) this%f(I,NT) 
                   endif
                ENDDO
             ENDDO

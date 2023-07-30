@@ -252,7 +252,7 @@
             !> Time slice
             Integer, Intent(IN) :: nt
             !> New local field on time slice nt and operator index n
-            Real (Kind=Kind(0.d0)), Intent(In) :: Hs_new(2)
+            Complex (Kind=Kind(0.d0)), Intent(In) :: Hs_new
             
             S0_base = 1.d0
             If ( Op_V(n,1)%type == 1 ) then
@@ -339,7 +339,7 @@
 
              Logical, save              :: first_call=.True.
              integer                    :: field_id, tau, Nfields, Ntau
-             Real(kind=kind(0.0d0))     :: Hs_old(2)
+             Complex (kind=kind(0.0d0)) :: Hs_old
 
              Delta_S0_global_base = 1.d0
              Nfields=size(nsigma_old%f,1)
@@ -348,8 +348,7 @@
                 do field_id=1,Nfields
                    ! S0 returns S0=exp(-S0(HS_old))/exp(-S0(nsigma))
                    ! purposly call ham%S0 instead of S0_base such that S0 may be provided in derived Hamiltonian
-                   Hs_old(1)=nsigma_old%f(field_id,tau)
-                   Hs_old(2)=nsigma_old%h(field_id,tau)
+                   Hs_old  =nsigma_old%f(field_id,tau)
                    ! note we need exp(-S0(new))/exp(-S0(old)) but nsigma is already the new config and we provide HS_old
                    ! in contrast to HS_new. Hence, S0 returns the inverse of whar we need!
                    Delta_S0_global_base=Delta_S0_global_base/ham%S0(field_id,tau,Hs_old)
@@ -562,9 +561,9 @@
                 &                     Flip_list, Flip_length,Flip_value,ntau)
 
              Implicit none
-             Real (Kind = Kind(0.d0)),INTENT(OUT) :: T0_Proposal_ratio,  S0_ratio
-             Integer                , INTENT(OUT) :: Flip_list(:)
-             Real (Kind = Kind(0.d0)),INTENT(OUT) :: Flip_value(:,:)
+             Real (Kind = Kind(0.d0)),   INTENT(OUT) :: T0_Proposal_ratio,  S0_ratio
+             Integer                   , INTENT(OUT) :: Flip_list(:)
+             Complex (Kind = Kind(0.d0)),INTENT(OUT) :: Flip_value(:)
              Integer, INTENT(OUT) :: Flip_length
              Integer, INTENT(IN)  :: ntau
              

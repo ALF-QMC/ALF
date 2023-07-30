@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 - 2020 The ALF project
+!  Copyright (C) 2016 - 2023 The ALF project
 !
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -438,7 +438,7 @@
         Real (Kind=Kind(0.d0)) function S0(n,nt,Hs_new)
           Implicit none
           Integer, Intent(IN) :: n,nt
-          Real (Kind=Kind(0.d0)), Intent(In) :: Hs_new(2)
+          complex (Kind=Kind(0.d0)), Intent(In) :: Hs_new
 
           !Local
           Integer :: nt1,I, F1,F2,I1,I2,I3,  n_orientation, n_m
@@ -538,7 +538,7 @@
           Implicit none
           Real (Kind= kind(0.d0)),INTENT(OUT) :: T0_Proposal_ratio, S0_ratio
           Integer                ,INTENT(OUT) :: Flip_list(:)
-          Real (Kind= Kind(0.d0)),INTENT(out) :: Flip_value(:,:)
+          Complex (Kind= Kind(0.d0)),INTENT(out) :: Flip_value(:)
           Integer, INTENT(OUT) :: Flip_length
           Integer, INTENT(IN)    :: ntau
 
@@ -589,14 +589,14 @@
                 CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
              end select
              Flip_list(n)  = n_op
-             Call nsigma%flip(n_op,ntau,Flip_value(:,n))
+             Flip_value(n) = nsigma%flip(n_op,ntau)  
           enddo
           If ( I == Latt%N )   then
              Flip_length   = 5
              n             = 5
              n_op          = Field_list(Latt%N,3,4)
-             Flip_list(n)  = n_op
-             call nsigma%flip(n_op,ntau,Flip_value(:,n))
+             Flip_list (n) = n_op
+             Flip_value(n) = nsigma%flip(n_op,ntau)  
           endif
 
           If (Projector) then
