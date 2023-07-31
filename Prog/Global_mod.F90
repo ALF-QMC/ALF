@@ -232,8 +232,8 @@ Module Global_mod
            !  Exchange configurations
            !  The types do not change --> no need to exchange them
            n = size(nsigma_old%f,1)*size(nsigma_old%f,2)
-           CALL MPI_Sendrecv(nsigma_old%f    , n, MPI_REAL8, List_partner(IRANK), 0, &
-                    &        nsigma%f        , n, MPI_REAL8, List_partner(IRANK), 0, MPI_COMM_WORLD,STATUS,IERR)
+           CALL MPI_Sendrecv(nsigma_old%f    , n, MPI_COMPLEX16, List_partner(IRANK), 0, &
+                    &        nsigma%f        , n, MPI_COMPLEX16, List_partner(IRANK), 0, MPI_COMM_WORLD,STATUS,IERR)
            CALL MPI_Sendrecv(nsigma_old_irank, 1, MPI_INTEGER, List_partner(IRANK), 0, &
                     &        nsigma_irank    , 1, MPI_INTEGER, List_partner(IRANK), 0, MPI_COMM_WORLD,STATUS,IERR)
 
