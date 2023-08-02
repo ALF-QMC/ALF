@@ -152,7 +152,7 @@ INTELLLVMOPTFLAGS="-cpp -O3"
 INTELLLVMOPTFLAGS="-cpp -O3 -fp-model=fast=2 -no-prec-div -static -xHost -unroll -finline-functions -heap-arrays 1024 -no-wrap-margin"
 # uncomment the next line if you want to use additional openmp parallelization
 # INTELLLVMOPTFLAGS="${INTELLLVMOPTFLAGS} -qopenmp"
-INTELLLVMDEVFLAGS="-warn all -check all -g -traceback"
+INTELLLVMDEVFLAGS="-warn all -check all,nouninit -g -traceback"
 INTELLLVMUSEFULFLAGS="-std08"
 
 
