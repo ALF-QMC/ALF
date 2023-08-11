@@ -1,7 +1,8 @@
 ! compile with
-!gfortran -std=f2003  -I ../../Libraries/Modules/ -I ../../Prog_8/  -L ../../Libraries/Modules/ 9-Op-Phase.F90 ../../Prog_8/Operator.o ../../Libraries/Modules/modules_90.a -llapack -lblas
+!gfortran -std=f2003 -I ../../Prog/ -I ../../Libraries/Modules/ -L ../../Libraries/Modules/ 9-Op-Phase.F90  ../../Prog/Operator_mod.o ../../Prog/Fields_mod.o ../../Libraries/Modules/modules_90.a -llapack -lblas
 
-Program TESTOP_PHASE
+
+Program Testop_PHASE
 
   Use Operator_mod
   Use Fields_mod
@@ -43,7 +44,7 @@ Program TESTOP_PHASE
   do nf = 1, Size(Op,2)
      do n = 1, size(Op,1)
         do nt = 1, size(nsigma%f,2)
-           Phaseold=Phaseold*exp(cmplx(0.d0,Aimag(Op(n,nf)%g*Op(n,nf)%alpha) * nsigma%Phi(n,nt) ,kind(0.D0)))
+           Phaseold=Phaseold*exp(cmplx(0.d0,Aimag(Op(n,nf)%g*Op(n,nf)%alpha) ,kind(0.D0)) * nsigma%Phi(n,nt)  )
         enddo
      enddo
   enddo
