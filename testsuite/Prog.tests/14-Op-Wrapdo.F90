@@ -68,7 +68,7 @@ Program OPWRAPDO
             Call Op_Wrapdo (matnew, Op, spin, Ndim, N_Type,1)
 !
 ! check against old version from Operator_FFA.F90
-            spin = cmplx(nsigma_single%Phi(1,1), 0.d0, Kind(0.d0))
+            spin = nsigma_single%Phi(1,1) 
             Call Op_WrapdoFFA (matold, Op, spin, Ndim, N_Type)
 !
             Do i = 1, 3
