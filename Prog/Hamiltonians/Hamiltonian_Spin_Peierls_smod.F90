@@ -535,23 +535,31 @@
                  end select
                  Nt = 1
                  Channel = '--'
-                 Call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
-                 If (I == 2) Call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt1_unit, Channel, dtau)
+                 If (I == 2) then
+                    Call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt1_unit, Channel, dtau)
+                 else
+                    Call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
+                 endif
               enddo
-              
               If (Ltau == 1) then
                  ! Time-displaced correlators
-                 Allocate ( Obs_tau(1) )
+                 Allocate ( Obs_tau(2) )
                  Do I = 1,Size(Obs_tau,1)
                     select case (I)
                     case (1)
                        Channel = 'PH' ; Filename = "SpinZ"
+                    case (2)
+                       Channel = 'PH' ; Filename = "Phi"
                     case default
                        Write(6,*) ' Error in Alloc_obs '
                     end select
                     Nt = Ltrot+1-2*Thtrot
                     If(Projector) Channel = 'T0'
-                    Call Obser_Latt_make(Obs_tau(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
+                    If (I == 2) then
+                       Call Obser_Latt_make(Obs_tau(I), Nt, Filename, Latt, Latt1_unit, Channel, dtau)
+                    else
+                       Call Obser_Latt_make(Obs_tau(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
+                    endif
                  enddo
               endif
            else
@@ -752,6 +760,8 @@
           
           !Locals
           Complex (Kind=Kind(0.d0)) :: ZP, ZS
+          Integer :: I,J, No_I, No_J, imj,  nc, nc1, nt_st
+          Real (Kind=Kind(0.d0)) :: X
           ! Add local variables as needed
 
           ZP = PHASE/Real(Phase, kind(0.D0))
@@ -761,13 +771,53 @@
           ! Compute observables
           If (SU2_Symm)  then
              Call Predefined_Obs_tau_SpinSUN_measure( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(1) )
+
+             If (NT == 0 ) then
+                Obs_tau(2)%N        = Obs_tau(2)%N + 1
+                Obs_tau(2)%Ave_sign = Obs_tau(2)%Ave_sign + real(ZS,kind(0.d0))
+             endif
+             Do I  = 1, Latt%N
+                Do  No_I = 1, Latt1_unit%Norb
+                   nc  = listb(I,no_I)
+                   Do  J  =  1, Latt%N
+                      DO no_J  =  1, Latt1_unit%Norb
+                         nc1  = listb(J,no_J)
+                         imj  = latt%imj(I,J)
+                         X  = 0.d0
+                         do  nt_st =  1,Ltrot
+                            X = X  + Aimag(nsigma%f(nc,nt_st)) * Aimag(nsigma%f(nc1,NPBC_beta(NT+nt_st,Ltrot)))
+                         enddo
+                         X = X/dble(Ltrot)
+                         Obs_tau(2)%Obs_Latt(imj,NT+1,no_I,no_J) =  Obs_tau(2)%Obs_Latt(imj,NT+1,no_I,no_J) + &
+                              &    X*ZP*ZS
+                      Enddo
+                   Enddo
+                   Obs_tau(2)%Obs_Latt0(no_I) = Obs_tau(2)%Obs_Latt0(no_I)  + Aimag(nsigma%f(nc,NPBC_beta(NT+1,Ltrot) )) *ZP*ZS
+                Enddo
+             Enddo
           else
              Call Predefined_Obs_tau_SpinMz_measure( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, &
                   &                                  Obs_tau(1), Obs_tau(2), Obs_tau(3) )
           endif
+
+          !  Compute  Phonon-dynamics
           
         end Subroutine OBSERT
+!--------------------------------------------------------------------
+!> @brief
+!> Periodic  boundary  conditions
+!> @details
+!--------------------------------------------------------------------
+        Integer  function  NPBC_beta(I,M)
+          implicit none
 
+          Integer,  Intent(IN) ::  I, M
+
+          NPBC_beta = I 
+          If (I  > M)  NPBC_beta =  I - M
+          If (I  < 1)  NPBC_beta =  I + M
+          
+        end function NPBC_beta
 
 !--------------------------------------------------------------------
 !> @brief
