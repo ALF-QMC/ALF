@@ -178,7 +178,7 @@
       real(Kind=Kind(0.d0)) :: Ham_Jy       = 0.d0
       real(Kind=Kind(0.d0)) :: Ham_U        = 0.d0
       real(Kind=Kind(0.d0)) :: Ham_h        = 0.d0
-      real(Kind=Kind(0.d0)) :: Ham_g_factor = 0.d0
+      real(Kind=Kind(0.d0)) :: Ham_g_factor = 2.d0
       real(Kind=Kind(0.d0)) :: Ham_Lambda   = 0.d0
       real(Kind=Kind(0.d0)) :: Ham_Omega0   = 0.d0
       !#PARAMETERS END#
@@ -492,7 +492,8 @@
              enddo
           enddo
           
-          Write(6,*) nc, n_op
+          !Write(6,*) nc, n_op
+          
         end Subroutine Ham_V
 !--------------------------------------------------------------------
 !> @author

@@ -157,4 +157,13 @@ Ham_g          = 1.0        ! tau^x-term for gauge
 Dtau           = 0.1d0      ! Thereby Ltrot=Beta/dtau
 Beta           = 10.d0      ! Inverse temperature
 /
+
+&VAR_Spin_Peierls         !! Variables for the  Spin-Peierls class
+ham_Jx  = 1.0              ! J along  the  a_x  direction
+Ham_Jy  = 1.0              ! J along  the  a_y  direction
+ham_U   = 1.0              ! Hubbard  U  to impose  the constraint
+ham_Lambda =  0.2          ! Electron-phonon  coupling
+Ham_omega0 =  0.25         ! Phonon   frequency
+/
+
 ! slash terminates namelist statement - DO NOT REMOVE
