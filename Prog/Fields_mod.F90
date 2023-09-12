@@ -76,8 +76,10 @@
        Real (Kind=Kind(0.d0))  :: Amplitude
 
        Type Fields
-          Complex (Kind=Kind(0.d0)), allocatable    :: f(:,:)
-          Integer                  , allocatable    :: t(:)
+          Complex (Kind=Kind(0.d0)), allocatable    :: f(:,:)             ! Field
+          Integer                  , allocatable    :: t(:)               ! Type
+          Integer                  , allocatable    :: Flip_protocol(:)   ! Flip_protocol   Allows  for different  flip  protocols.
+                                                                          ! Used only  for  type  4.
         CONTAINS
           procedure  :: make  => Fields_make
           procedure  :: clear => Fields_clear
@@ -182,18 +184,35 @@
         case (3)
            Fields_flip =   cmplx(real(this%f(n_op,n_tau)) + Amplitude*( ranf_wrap() - 0.5D0), 0.d0,  Kind(0.d0))
         case (4)
-           If (ranf_wrap() > 0.5D0 )  then 
+           Select case (this%Flip_Protocol(n_op))
+           case(1) ! Flip one of  the  two  fields randomly,  this is the  default
+              If (ranf_wrap() > 0.5D0 )  then 
+                 Fields_flip =   cmplx( Flip_st( nint(real(this%f(n_op,n_tau))),nranf(3))             , &
+                      &                 aimag(this%f(n_op,n_tau)), Kind(0.d0))
+              else
+                 Fields_flip =   cmplx( real(this%f(n_op,n_tau)) , &
+                      &                 aimag(this%f(n_op,n_tau)) +  Amplitude*( ranf_wrap() - 0.5D0) , Kind(0.d0))
+              endif
+           case(2) ! Flip both  fields
+              Fields_flip =   cmplx( Flip_st( nint(real(this%f(n_op,n_tau))),nranf(3))                , &
+                   &                 aimag(this%f(n_op,n_tau)) +  Amplitude*( ranf_wrap() - 0.5D0) , Kind(0.d0))
+              
+           case(3) ! Flip only  the  real  part
               Fields_flip =   cmplx( Flip_st( nint(real(this%f(n_op,n_tau))),nranf(3))             , &
                    &                 aimag(this%f(n_op,n_tau)), Kind(0.d0))
-           else
+           case(4) ! Flip only  the   impaginary  part
               Fields_flip =   cmplx( real(this%f(n_op,n_tau)) , &
                    &                 aimag(this%f(n_op,n_tau)) +  Amplitude*( ranf_wrap() - 0.5D0) , Kind(0.d0))
-           endif
+           case default
+              Write(error_unit,*) 'No flip protocol provided for  field. '
+              CALL Terminate_on_error(ERROR_FIELDS,__FILE__,__LINE__)
+           end Select
+           
         case default
            Write(error_unit,*) 'Error in Fields. '
            CALL Terminate_on_error(ERROR_FIELDS,__FILE__,__LINE__)
         end select
-
+        
       end function Fields_flip
       
 !-------------------------------------------------------------------
@@ -219,9 +238,10 @@
         Integer, INTENT(IN)            :: N_OP, N_tau
 
         !Write(6,*) "Allocating  fields: ", N_op, N_tau
-        allocate (this%f(N_OP,N_tau), this%t(N_OP) )
+        allocate (this%f(N_OP,N_tau), this%t(N_OP), this%Flip_protocol(N_OP) )
 
-        this%f = cmplx(0.d0,0.d0,kind(0.d0)) ;  this%t = 0
+        
+        this%f = cmplx(0.d0,0.d0,kind(0.d0)) ;  this%t = 0; this%flip_protocol = 1
 
       end Subroutine Fields_make
 !-------------------------------------------------------------------
@@ -243,7 +263,7 @@
         !Local
         Integer :: n
 
-        Amplitude = 0.2d0
+        Amplitude = 1.d0
         If (Present(Amplitude_in)) Amplitude = Amplitude_in
 
         Phi_st = 0.d0
