@@ -87,7 +87,7 @@
         Complex (Kind=Kind(0.d0)) :: ZZ
 
 
-        If ( Size(List,1) .ne. Size(GR,1) )   then
+        If ( Size(List,1) .ne. Size(GR,1) .or. Size(List,2) .ne. 2  )   then
            Write(error_unit,*) 'List in  Predefined_Obs_eq_SpinSUN_measure has  wrong  dim.'
            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         endif
@@ -146,7 +146,7 @@
         Integer :: N_FL, I, I1, J, J1, no_I, no_J, imj
         Complex (Kind=Kind(0.d0)) :: ZXY, ZZ
 
-        If ( Size(List,1) .ne. Size(GR,1) )   then
+        If ( Size(List,1) .ne. Size(GR,1) .or. Size(List,2) .ne. 2 )   then
            Write(error_unit,*) 'List in Predefined_Obs_eq_SpinMz_measure  has  wrong  dim.'
            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         endif
@@ -216,7 +216,7 @@
         Integer :: N_FL, I, I1, J, J1, no_I, no_J, imj,nf
         Complex (Kind=Kind(0.d0)) :: Z
 
-        If ( Size(List,1) .ne. Size(GR,1) )   then
+        If ( Size(List,1) .ne. Size(GR,1) .or. Size(List,2) .ne. 2 )   then
            Write(error_unit,*) 'List in  Predefined_Obs_eq_Green_measure  has  wrong  dim.'
            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         endif
@@ -276,7 +276,7 @@
         Complex (Kind=Kind(0.d0)) :: ZI, ZJ, Z
 
 
-        If ( Size(List,1) .ne. Size(GR,1) )   then
+        If ( Size(List,1) .ne. Size(GR,1) .or. Size(List,2) .ne. 2 )   then
            Write(error_unit,*) 'List in  Predefined_Obs_eq_Den_measure  has  wrong  dim.'
            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         endif
@@ -347,7 +347,7 @@
         Complex (Kind=Kind(0.d0)) :: Z
 
 
-        If ( Size(List,1) .ne. Size(GT0,1) )   then
+        If ( Size(List,1) .ne. Size(GT0,1) .or. Size(List,2) .ne. 2 )   then
            Write(error_unit,*) 'List in has Predefined_Obs_tau_Green_measure  wrong  dim.'
            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         endif
@@ -413,7 +413,7 @@
            Write(error_unit,*) 'Predefined_Obs_tau_SpinSUN_measure: Wrong filename'
            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         endif
-        If ( Size(List,1) .ne. Size(GT0,1) )   then
+        If ( Size(List,1) .ne. Size(GT0,1) .or. Size(List,2) .ne. 2  )   then
            Write(error_unit,*) 'List in  Predefined_Obs_tau_SpinSUN_measure  has  wrong  dim.'
            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         endif
@@ -470,7 +470,7 @@
         Integer :: N_FL, I, I1, J, J1, no_I, no_J, imj,nf
         Complex (Kind=Kind(0.d0)) :: ZZ, ZXY
 
-        If ( Size(List,1) .ne. Size(GT0,1) )   then
+        If ( Size(List,1) .ne. Size(GT0,1) .or. Size(List,2) .ne. 2 )   then
            Write(error_unit,*) 'List in Predefined_Obs_tau_SpinMz_measure has  wrong  dim.'
            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         endif
@@ -542,7 +542,7 @@
         Integer :: N_FL, I, I1, J, J1, no_I, no_J, imj,nf
         Complex (Kind=Kind(0.d0)) :: Z, ZI, ZJ
         
-        If ( Size(List,1) .ne. Size(GT0,1) )   then
+        If ( Size(List,1) .ne. Size(GT0,1) .or. Size(List,2) .ne. 2 )   then
            Write(error_unit,*) 'List in Predefined_Obs_tau_Den_measure has  wrong  dim.'
            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         endif
