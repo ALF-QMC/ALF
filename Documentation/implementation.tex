@@ -334,7 +334,7 @@ where $\alpha$ and $\beta$ are orbital indices and $\vec{i}$ and $\vec{j}$ latti
 		\\\bottomrule
 	\end{tabular}
 	\caption{Components of a variable of type \texttt{Obser\_latt} named \texttt{Obs}.
-	Be aware: The types marked with asterisks, $*$, are actually pointers, i.e., when the subroutine \texttt{Obser\_Latt\_make} creates an observable \texttt{Obs}, the variables \texttt{Latt} and \texttt{Latt\_unit} do not get copied but linked, meaning modifying them after the creation of \texttt{Obs} still affects the observable.}
+	Be aware: The types marked with asterisks, $*$, are actually pointers, i.e., when the subroutine \texttt{Obser\_Latt\_make} creates an observable \texttt{Obs}, the variables \texttt{Latt} and \texttt{Latt\_unit} do not get copied but linked, meaning modifying them after the creation of \texttt{Obs} still affects the observable.    Each  observable  can have its  own lattice  and  unit-cell  that  can  differ  from  the lattice  and  unit  cell  associated to the Hamiltonian. For  example,    when  simulation a  two-dimensional  Hubbard model,  one  can  define an observable on a one-dimensional sub-lattice.  We  refer  the   reader  to Sec.~\ref{sec:predefined_observales}     for  further   discussion on this    option.   }
 	\label{table:Obser_latt}
 \end{center}
 \end{table}
