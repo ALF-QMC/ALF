@@ -294,7 +294,32 @@ returns
 All routines  are programmed  for \texttt{N\_SUN = 2,4,6,8} at \texttt{N\_FL=1}.   The routines also handle the case of broken SU(2)  spin symmetry corresponding  to  \texttt{N\_FL=2}  and \texttt{N\_SUN=1}.   To carry out the Wick decomposition  and sums over  spin indices,  we use the  Mathematica  notebooks 
 \texttt{Dimer\-Dimer\_SU2\_NFL\_2.nb}  and \texttt{Dimer\-Dimer\_SUN\_NFL\_1.nb}.
 
+%-----------------------------------------------------------------------------------
+\subsubsection{Bond-Bond  correlations}
+%-----------------------------------------------------------------------------------
+The  function 
+\begin{lstlisting}[style=fortran]
+ Complex (Kind=Kind(0.d0)) function Predefined_Obs_dimer_kin_eq(I,M, J, N,  GR, GRC, 
+                                                                N_SUN, N_FL) 
+\end{lstlisting}
+returns:
+\begin{equation}  
+  \left< \left< \hat{K}_{i,m}  \hat{K}_{j,n}    \right>  \right>_C    \, \, \,   \text{with} \, \, \,  \hat{K}_{i,m}   = 
+  \sum_{s=1}^{N_{Fl}} \sum_{\sigma=1}^{N_{col}}  \hat{c}^{\dagger}_{i,s,\sigma}  \hat{c}^{\phantom\dagger}_{m,s, \sigma}   + \text{H.c} 
+\end{equation}
 
+The  accompanying  function 
+\begin{lstlisting}[style=fortran]
+Complex (Kind=Kind(0.d0)) function Predefined_Obs_dimer_kin0_eq(I,M, GR, N_SUN, N_FL) 
+ \end{lstlisting} 
+computes  the  background:
+\begin{equation}
+	 \left< \left< \hat{K}_{i,m}    \right>  \right>_C.
+\end{equation}
+
+%-----------------------------------------------------------------------------------
+\subsubsection{Expectation value of perfect  squares}
+%-----------------------------------------------------------------------------------
 The  function
 \begin{lstlisting}[style=fortran]
  Complex (Kind=Kind(0.d0)) function Predefined_Obs_V_Int(OP_Vint, GR, GRC, N_SUN )
