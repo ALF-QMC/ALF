@@ -180,8 +180,8 @@
       
       Type (Unit_cell), Target  :: Latt_unit_f  ! Unit cell for f  correlation functions
       Type (Unit_cell), Target  :: Latt_unit_c  ! Unit cell for c  correlation functions
-      Integer, allocatable      :: List_c(:,:), Invlist_c(:,:)  
-      Integer, allocatable      :: List_f(:,:), Invlist_f(:,:)  
+      Integer, allocatable      :: List_c(:,:)
+      Integer, allocatable      :: List_f(:,:)
 
 
     contains
@@ -359,24 +359,22 @@
 
           end Select
           
-          Allocate (List_f(Ndim,2), Invlist_f(Latt%N,Latt_Unit_f%Norb))
+          Allocate (List_f(Ndim,2))  !  For measuring only on  f-lattice
           List_f = 0
           Do I = 1,Latt%N
              Do no = 1,Latt_Unit_f%Norb
                 list_f(Invlist(I,no + Latt_Unit%Norb/2),1)  =  I
                 list_f(Invlist(I,no + Latt_Unit%Norb/2),2)  =  no
-                Invlist_f(I,no) =  Invlist(I,no + Latt_Unit%Norb/2)
              Enddo
           Enddo
           
-          Allocate (List_c(Ndim,2), Invlist_c(Latt%N,Latt_Unit_c%Norb))
+          Allocate (List_c(Ndim,2) ) !  For measuring only on  c-lattice
           List_c = 0 
           nc = 0
           Do I = 1,Latt%N
              Do no = 1,Latt_Unit_c%Norb
                 List_c(Invlist(I,no ),1) = I
                 List_c(Invlist(I,no ),2) = no
-                Invlist_c(I,no) = Invlist(I,no )
              Enddo
           Enddo
           
@@ -705,8 +703,8 @@
           ZJ  = cmplx(0.d0, 0.d0, kind(0.D0))
           Do I = 1,Latt%N
              Do no = 1, Latt_unit%Norb/2
-                I_c  = invlist_c(I,no )
-                I_f  = invlist_f(I,no )
+                I_c  = Invlist(I,no) 
+                I_f  = Invlist(I,no + Latt_Unit%Norb/2) 
                 ZJ = ZJ +  Z*2.d0*GRC(I_c,I_f,1)* GRC(I_f,I_c,1) +  GRC(I_c,I_c,1)* GR(I_f,I_f,1) + &
                      &     GR(I_c,I_c,1)* GRC(I_f,I_f,1)
              Enddo
@@ -725,14 +723,13 @@
           enddo
           Zrho = Zrho* dble(N_SUN)
           Obs_scal(3)%Obs_vec(1)  =    Obs_scal(3)%Obs_vec(1) + Zrho * ZP*ZS
-
           Obs_scal(4)%Obs_vec(1)  =    Obs_scal(4)%Obs_vec(1) + (Zkin + Zhubc + ZJ )*ZP*ZS
 
 
           ZCon = cmplx(0.d0, 0.d0, kind(0.D0))
           Do I = 1,Latt%N
-             Do no = 1, Latt_unit_f%Norb  ! Latt_unit%Norb/2 +1 , Latt_unit%Norb
-                I_f = invlist_f(I,no)
+             Do no = 1, Latt_unit%Norb/2  ! Latt_unit%Norb/2 +1 , Latt_unit%Norb
+                I_f  = Invlist(I,no + Latt_Unit%Norb/2) 
                 ZCon =  ZCon +  Z*( GRC(I_f,I_f,1) - 0.5d0)**2 +  GRC(I_f,I_f,1)* GR(I_f,I_f,1)
              Enddo
           Enddo
