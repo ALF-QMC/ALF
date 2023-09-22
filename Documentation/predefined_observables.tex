@@ -15,7 +15,7 @@ It contains procedures and functions.   Procedures  provide a complete handling 
 
 The predefined measurements methods take as input Green functions \texttt{GR}, \texttt{GT0}, \texttt{G0T}, \texttt{G00}, and \texttt{GTT}, defined in Sec.~\ref{sec:EqualTimeobs} and~\ref{sec:TimeDispObs}, as well as \texttt{N\_SUN}, time slice \texttt{Ntau}, lattice information, and so on -- see Table~\ref{table:predefined_obs}. 
 
-As  mentioned in  Sec.~\ref{sec:obs}  and  summarized in  Table~\ref{table:Obser_latt}   the  lattice  and  unit-cell   objects  that  are  passed  in  the  following  routines,  are  tied  to  the  specific  observable   and  not    to  the  Hamiltonian.     For  example,    the  Hamiltonian   can be  defined on a    bilayer-honeycomb lattice,  with  associated  \textit{hamiltonian} lattice,  \texttt{Latt\_ham},  unit-cell,  \texttt{Latt\_unit\_ham},   and   lists \texttt{list\_ham}, \texttt{invlist\_ham},  and the  observable  on  a one  dimensional  \textit{observable} lattice  with    two orbitals per  unit  cell:  \texttt{Latt} and  \texttt{Unit\_cell}.     Recall  that  the  total number of  orbitals  reads
+As  mentioned in  Sec.~\ref{sec:obs}  and  summarized in  Table~\ref{table:Obser_latt}   the  lattice  and  unit-cell   objects  that  are  passed  in  the  following  routines,  are  tied  to  the  specific  observable   and  not    to  the  Hamiltonian.     For  example,    the  Hamiltonian   can be  defined on a    bilayer-honeycomb lattice,  with  associated  \textit{hamiltonian} lattice  \texttt{Latt\_ham},  unit-cell  \texttt{Latt\_unit\_ham},   and   lists \texttt{list\_ham}, \texttt{invlist\_ham},  whereas the  observable can be defined  on  a one  dimensional  \textit{observable} lattice  \texttt{Latt} with a   two orbitals per  unit  cell  \texttt{Unit\_cell}.     Recall  that  the  total number of  orbitals  reads
 \begin{lstlisting}[style=fortran]
  Ndim  =  Latt_ham%N * Latt_unit_ham%Norb 
 \end{lstlisting}
@@ -84,7 +84,7 @@ If \texttt{N\_FL = 1} then  this routine returns
 \end{align}
 where $T^a$ are the generators of SU(N) satisfying the normalization conditions  $\Tr [ T^a  T^b ]= \delta_{a,b}/2$, $\Tr [ T^a ] = 0 $,    
 $ \ve{\hat{c}}^{\dagger}_{\ve{j},n_{\ve{j}}}   =  \left(   \hat{c}^{\dagger}_{\ve{j}, n_{\ve{j}},1},   \cdots, \hat{c}^{\dagger}_{\ve{j},n_{\ve{j}},N}  \right)    $     is an N-flavored spinor,  
-$\ve{j}$   corresponds to the unit-cell index and $n_{\ve{j}}$    labels the orbital.   Recall  that   $  \langle \langle \bullet \rangle \rangle_C $   corresponds  to   the    expectation value  of  an  observable  for a  given  configuration of  fields  $C$  and  not  to the connected   part  of  the  observable. 
+$\ve{j}$   corresponds to the unit-cell index and $n_{\ve{j}}$    labels the orbital. \footnote{Recall  that   $  \langle \langle \bullet \rangle \rangle_C $   corresponds  to   the    expectation value  of  an  observable  for a  given  configuration of  fields  $C$  and  not  to the connected   part  of  the  observable, see Eq.~(\ref{eqn:obs}).}
 
 Using Wick's theorem, valid for a given configuration of fields, we obtain
 \begin{multline}
