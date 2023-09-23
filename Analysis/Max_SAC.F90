@@ -75,12 +75,17 @@
        Integer                :: ntau_st, ntau_en, ntau_new, Ntau_old
        Real (Kind=Kind(0.d0)) :: dtau, pi, xmom1, x,x1,x2, tau, omp, om, Beta,err, delta, Dom
        Real (Kind=Kind(0.d0)) :: Zero
-
+       Integer ::  N_BZ_Zones     =  1 
+       Logical ::  Extended_Zone = .false.
+       
        NAMELIST /VAR_Max_Stoch/ Ngamma, Ndis,  NBins, NSweeps, Nwarm, N_alpha, &
             &                   OM_st, OM_en,  alpha_st, R,  Checkpoint, Tolerance
 
-       NAMELIST /VAR_errors/    N_skip, N_rebin, N_cov,  N_Back, N_auto
+       NAMELIST /VAR_errors/    N_skip, N_rebin, N_cov,  N_Back, N_auto,  N_BZ_Zones,  Extended_Zone
 
+       
+
+       
        open(unit=30,file='parameters',status='old',action='read', iostat=io_error)
        if (io_error.eq.0) then
           READ(30,NML=VAR_errors)

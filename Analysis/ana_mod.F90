@@ -1263,11 +1263,15 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       Complex (Kind=Kind(0.d0)), Allocatable  :: Bins(:,:)
       REAL    (Kind=Kind(0.d0)), Allocatable  :: AutoCorr(:)
       Integer :: Nobs, Nobs_output, data_range
-      Integer :: Nbins, Nbins_eff, I, IOBS, N_Back
+      Integer :: Nbins, Nbins_eff, I, IOBS, N_Back, N_BZ_Zones =  1 
+      Logical ::  Extended_Zone = .false. 
+      
+
+      
 
       Integer :: N_skip, N_rebin, N_Cov, ierr, N_auto
       Character (len=64) :: File_out
-      NAMELIST /VAR_errors/   N_skip, N_rebin, N_Cov, N_Back, N_auto
+      NAMELIST /VAR_errors/   N_skip, N_rebin, N_Cov, N_Back, N_auto, N_BZ_Zones, Extended_Zone 
 
       !New Stuff for Autocorrelation
       REAL(Kind=Kind(0.d0)), DIMENSION(:)  , ALLOCATABLE :: vec, vec_err
