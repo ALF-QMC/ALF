@@ -72,7 +72,13 @@ _PARAMS_GENERIC = OrderedDict([
                                 'into one.',
                      'value': 1},
          'N_skip': {'comment': 'Number of bins to be skipped.',
-                    'value': 1}}),
+                    'value': 1},
+         'N_BZ_Zones': {'comment': '# of   Brilloiun  zones',
+                        'value': 1},
+         'Extended_Zone': {'comment': 'If true  carries out the fourier '
+                           'transform in the extened  zone scheme.',
+                           'value': False},
+        }),
     ('VAR_TEMP',
         {'N_Tempering_frequency': {'comment': 'The frequency, in units '
                                               'of sweeps, at which the '
