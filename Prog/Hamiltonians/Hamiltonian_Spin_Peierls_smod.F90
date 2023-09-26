@@ -822,6 +822,8 @@
                          X = X  + Aimag(nsigma%f(nc,nt_st)) * Aimag(nsigma%f(nc1,NPBC_beta(NT+nt_st,Ltrot)))
                       enddo
                       X = X/dble(Ltrot)
+                      Obs_tau(2)%Obs_Latt(imj,NT+1,no_I,no_J) =  Obs_tau(2)%Obs_Latt(imj,NT+1,no_I,no_J) + &
+                           &     cmplx(X,0.d0,kind(0.d0))*ZP*ZS           
                       Obs_tau(3)%Obs_Latt(imj,NT+1,no_I,no_J) =  Obs_tau(3)%Obs_Latt(imj,NT+1,no_I,no_J) + &
                            &     Predefined_Obs_dimer_tau(I, I1, J, J1, GT0,G0T,G00,GTT, N_SUN, N_FL)*ZP*ZS
                    Enddo
