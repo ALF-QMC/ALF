@@ -240,7 +240,7 @@
              N_FL  = 2
              if (mod(N_SUN,2) .ne. 0 ) then
                 Write(error_unit,*) 'Ham_Set: N_SUN has to be even if Mz = True'
-                error stop 1
+                CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
              endif
              N_SUN = N_SUN / 2
           else
@@ -670,7 +670,7 @@
              enddo
 
              If (Ltau == 1) then
-                ! Equal time correlators
+                ! Time-displaced correlators
                 Allocate ( Obs_tau(5) )
                 Do I = 1,Size(Obs_tau,1)
                    select case (I)
@@ -712,7 +712,7 @@
              enddo
 
              If (Ltau == 1) then
-                ! Equal time correlators
+                ! Time-displaced correlators
                 Allocate ( Obs_tau(3) )
                 Do I = 1,Size(Obs_tau,1)
                    select case (I)
