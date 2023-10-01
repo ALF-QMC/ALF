@@ -1,0 +1,124 @@
+% !TEX root = doc.tex
+
+The Hamiltonian can also include an imaginary time dependency.  In that case the  imaginary  time  evolution  is given by 
+
+\begin{align}\label{eqn:partition_time}
+    Z  & \equiv    \begin{multlined}[t]   \Tr{\left( \mathcal{T} e^{-\int_{0}^{\beta} d  \tau  \hat{\mathcal{H}}(\tau) }  \right)}     =   \\
+          \sum_{C}   e^{-S_0 \left( \left\{ s_{i,\tau} \right\}  \right) }     \left( \prod_{k=1}^{M_V} \prod_{\tau=1}^{L_{\mathrm{Trotter}}} \gamma_{k,\tau} \right) 
+        e^{ N_{\mathrm{col}}\sum\limits_{s=1}^{N_{\mathrm{fl}}} \sum\limits_{k=1}^{M_V} \sum\limits_{\tau = 1}^{L_{\mathrm{Trotter}}}\sqrt{-\Delta \tau g^{\bm V}_{k,\tau} U_{k}}  \alpha_{k,s} \eta_{k,\tau} }  \\
+\times    \prod_{s=1}^{N_{\mathrm{fl}}}\left[\det\left(  \mathds{1}     + \prod_{\tau=1}^{L_{\mathrm{Trotter}}}   
+	\bm{B}_{\tau}^{(s)}
+     \right) \right]^{N_{\mathrm{col}}} + \mathcal{O}(\Delta\tau^{2})  \end{multlined}   % \nonumber \\ 
+ %    & \equiv  \sum_{C} e^{-S(C) } + \mathcal{O}(\Delta\tau^{2})\;.
+\end{align}
+with
+\begin{equation}
+\label{Btau_time}
+	\bm{B}_{\tau}^{(s)} =   
+    \prod_{k=1}^{M_V}   e^{  \sqrt{ -\Delta \tau g^{\bm V}_{k,\tau} U_{k}} \eta_{k,\tau} {\bm V}^{(ks)} }   \prod_{k=1}^{M_I}   e^{  -\Delta \tau g^{\bm I}_{k,\tau} s_{k,\tau}  {\bm I}^{(ks)}}  
+     \prod_{k=1}^{M_T}   e^{-\Delta \tau g^{\bm T}_{k,\tau} {\bm T}^{(ks)}} 
+\end{equation}
+In order to recover the partition function of a time independent Hamiltonian, given in Eq.~(\ref{eqn:partition_2}), one has to set $g^{\bm X}_{k,\tau}\rightarrow 1$ with ${\bm X}={\bm V}, {\bm I}, {\bm T}$.
+
+By default a constant coupling strength $g$ is assumed. In order to include an imaginary time dependency for a given operator the array  \texttt{Op\_X\%g\_t(Ltrot)} has to be allocated.
+
+In thermodynamic  equilibrium,   the   Hamiltonian  is  time   independent,  and  the  imaginary  time  propagation is by   definition  Hermitian.   In this  case,     the   asymmetric  and  symmetric  Trotter  decomposition   differ  by  symmetry:  for   the   symmetric  (asymmetric)  decomposition,  the  imaginary  time  propagator  is  (non-) hermitian.   For  time  dependent  Hamiltonians,  this    distinction  cannot  be  made  since   generically,  
+\begin{equation}
+	 \mathcal{T} e^{-\int_{0}^{\beta} d  \tau  \hat{\mathcal{H}}(\tau) }   \neq   \left( \mathcal{T} e^{-\int_{0}^{\beta} d  \tau  \hat{\mathcal{H}}(\tau) }  \right)^\dagger
+\end{equation}
+
+Nevertheless,   to   guarantee  consistency  with the  rest of  the code,   we    generalize  the  Trotter  decompositions  presented in  Sec.~\ref{sec:trotter}  as  follows.   The  operators   $\hat{T}_{i} $   and  $\hat{O}_{i} $   defined  in  Eq.~\eqref{Checkerboard.Eq}   
+and   \eqref{Checkerboard_V.Eq}   acquire  an   imaginary  time index that  encodes  the time  dependence of the coupling  constants   as  explicitly  shown above.      Since we only allow  for a  time variation of the  coupling constants,   the   very same  Trotter  decomposition that we  use  to  define 
+$\hat{T}_{i} $      can be  used  to     for  time  dependent  problems. 
+
+\noindent
+\textbf{Asymmetric Trotter} 
+The asymmetric  Trotter   decomposition,    estimates  the   imaginary time propagation  as 
+\begin{equation}
+  \hat{U}_{\text{Approx}}  =  \prod_{\tau=1}^{L_\text{Trotter}} \left(\prod_{i=1}^{N_O} e^{-\Delta \tau \hat{O}_{i,\tau}} \prod_{j=1}^{N_T} e^{-\Delta \tau \hat{T}_{j,\tau}}  \right).
+  \end{equation}
+
+
+\noindent
+\textbf{Symmetric Trotter} 
+For  the symmetric  Trotter,   we  use
+\begin{align}
+\label{eq:f_approx_symm_T} 
+\hat{U}_{\text{Approx} }  &=  
+\begin{aligned}[t]
+    \prod_{\tau=1}^{L_{\text{Trotter}}} &\left[ \left(\prod_{j=1}^{N_T-1} e^{-\frac{\Delta \tau}{4} \hat{T}_{j,\tau} } \right)    e^{-\frac{\Delta \tau}{2} \hat{T}_{N_T,\tau} } \;   
+   \left(  \prod_{j=N_T-1}^{1} e^{-\frac{\Delta \tau}{4} \hat{T}_{j,\tau} } \right)  \times   \right. \nonumber \\   
+   &\;\;\left(\prod_{i=1\phantom{N_O}}^{N_O-1} e^{-\frac{\Delta \tau}{2} \hat{O}_{i,\tau} } \right)    e^{-\Delta \tau \hat{O}_{N_O,\tau} }    
+     \left( \prod_{i=N_O-1}^{1} e^{-\frac{\Delta \tau}{2} \hat{O}_{i,\tau} } \right)  \times  \nonumber  \\
+   &\;\;\left.   \left(\prod_{j=1}^{N_T-1} e^{-\frac{\Delta \tau}{4} \hat{T}_{j,\tau} } \right)    e^{-\frac{\Delta \tau}{2} \hat{T}_{N_T,\tau} }  \;  
+   \left(  \prod_{j=N_T-1}^{1} e^{-\frac{\Delta \tau}{4} \hat{T}_{j,\tau} } \right)   
+   \right] 
+   \end{aligned}
+\end{align}
+As  for  the   imaginary  time independent  Hamiltonians,  we  save  computational  resources  by  approximating: 
+\begin{align}
+  & \left(\prod_{j=1}^{N_T-1} e^{-\frac{\Delta \tau}{4} \hat{T}_{j,\tau+1} } \right)    e^{-\frac{\Delta \tau}{2} \hat{T}_{N_T,\tau+1} }  \;  
+   \left(  \prod_{j=N_T-1}^{1} e^{-\frac{\Delta \tau}{4} \hat{T}_{j,\tau+1} } \right)    
+    \left(\prod_{j=1}^{N_T-1} e^{-\frac{\Delta \tau}{4} \hat{T}_{j,\tau} } \right)    e^{-\frac{\Delta \tau}{2} \hat{T}_{N_T,\tau} }  \;  
+   \left(  \prod_{j=N_T-1}^{1} e^{-\frac{\Delta \tau}{4} \hat{T}_{j,\tau} } \right)       \simeq  \nonumber  \\
+    & \left(\prod_{j=1}^{N_T-1} e^{-\frac{\Delta \tau}{4} ( \hat{T}_{j,\tau+1}  +  \hat{T}_{j,\tau} )} \right)    e^{-\frac{\Delta \tau}{2} ( \hat{T}_{N_T,\tau+1} 
+     +  \hat{T}_{N_T,\tau}  ) }  \;  
+   \left(  \prod_{j=N_T-1}^{1} e^{-\frac{\Delta \tau}{4} ( \hat{T}_{j,\tau+1}  +  \hat{T}_{j,\tau} ) } \right)    
+\end{align}
+
+We  conclude  this     section by  comparing  the   generic   projector  QMC code    where  the imaginary  time propagation  is   carried out  with   the 
+Hamiltonian  and  the  adiabatic   scheme   in   which  the interaction is  adiabatically  switched on according  to  Fig.~\ref{U_profile.fig}.   
+
+\begin{figure}
+\center 
+\includegraphics[width=0.49\textwidth]{Adiabatic/Ener_adiabatic.pdf}
+\includegraphics[width=0.49\textwidth]{Adiabatic/Spin_adiabatic.pdf}
+        \caption{   Simulations of  the  Hubbard model   with  adiabatic   (Fig.~\ref{U_profile.fig})   switching   and  Hamilton propagation.    Left: Energy. Right: Spin-spin correlations  at wave  vector $(\pi,\pi)$.  The  Exact 
+        results stem  from  \cite{Parola91}.    }
+        \label{Adiabatic.fig}
+\end{figure}
+
+%
+%
+%\fa{I  would  skip things  from here  to  }
+%
+%\subparagraph{Asymmetric Trotter}
+%\begin{equation}\label{eqn:Green_eq_time}
+%G(\sigma,s,\tau| \sigma,s,\tau)  =   \left(  \mathds{1}  +  \prod_{\tau' = 1}^{\tau}  \bm{B}_{\tau'}^{(s)}   \prod_{\tau'= \tau+1}^{L_{\text{Trotter}}}  \bm{B}_{\tau'}^{(s)}   \right)^{-1} = \left( \prod_{\tau' = 1}^{\tau}\bm{B}_{\tau'}^{(s)} \right) G(\sigma,s,0| \sigma,s,0) \left( \prod_{\tau' = 1}^{\tau}\bm{B}_{\tau'}^{(s)} \right)^{-1}
+%\end{equation}
+%    
+%
+%\begin{align}
+%G(\sigma,s,\tau| \sigma,s,0)  =\left( \prod_{\tau'=1}^{\tau}	\bm{B}_{\tau'}^{(s)} \right) G(\sigma,s,0| \sigma,s,0 )  \\
+%G(\sigma,s,0| \sigma,s,\tau)  = 	-(1- G(\sigma,s,0| \sigma,s,0 )) \left( \prod_{\tau'=1}^{\tau}	\bm{B}_{\tau'}^{(s)} \right) ^{-1}
+%\end{align}
+%
+%\subparagraph{Symmetric Trotter}
+%\begin{equation}
+%	\bm{B}_{\tau}^{(s)} =   
+%	\prod_{k=M_T}^{1} e^{- \frac{\Delta \tau}{2}  g^{\bm T}_{k,\tau} {\bm T}^{(ks)}} 
+%    \prod_{k=1}^{M_V}   e^{  \sqrt{ -\Delta \tau g^{\bm V}_{k,\tau} U_{k}} \eta_{k,\tau} {\bm V}^{(ks)} }   \prod_{k=1}^{M_I}   e^{  -\Delta \tau g^{\bm I}_{k,\tau} s_{k,\tau}  {\bm I}^{(ks)}}  
+%  \prod_{k=1}^{M_T}  e^{- \frac{\Delta \tau}{2} g^{\bm T}_{k,\tau} {\bm T}^{(ks)}} 
+%\end{equation}
+%
+%\begin{align}
+%\prod_{\tau=\tau_1}^{\tau_2}   
+%	\bm{B}_{\tau}^{(s)} = 
+%	 e^{- \frac{\Delta \tau}{2} \sum_{k=1}^{M_T} g^{\bm T}_{k,\tau_2} {\bm T}^{(ks)}} 
+%	 \prod_{\tau=\tau_1}^{\tau_2}  \left(    \prod_{k=1}^{M_V}   e^{  \sqrt{ -\Delta \tau g^{\bm V}_{k,\tau} U_{k}} \eta_{k,\tau} {\bm V}^{(ks)} }  \right. \\ 
+%\left.	 \times \prod_{k=1}^{M_I}   e^{  -\Delta \tau g^{\bm I}_{k,\tau} s_{k,\tau}  {\bm I}^{(ks)}}  
+%	 e^{- \frac{\Delta \tau}{2} \sum_{k=1}^{M_T} (g^{\bm T}_{k,\tau}+g^{\bm T}_{k,\tau-1}) {\bm T}^{(ks)}} \right)
+%	  e^{ \frac{\Delta \tau}{2} \sum_{k=1}^{M_T} g^{\bm T}_{k,\tau_1-1} {\bm T}^{(ks)}} 
+%\end{align}
+%
+%
+%\begin{equation}
+%G_{\mathrm{s}}(\sigma,s,\tau| \sigma,s,\tau)   =   e^{- \frac{\Delta \tau}{2} \sum_{k=1}^{M_T} g^{\bm T}_{k,\tau} {\bm T}^{(ks)}}  G_{\mathrm{ns}}(\sigma,s,\tau| \sigma,s,\tau)  e^{ \frac{\Delta \tau}{2} \sum_{k=1}^{M_T} g^{\bm T}_{k,\tau} {\bm T}^{(ks)}} 
+%\end{equation}
+%
+%\begin{align}
+%G_{\mathrm{s}}(\sigma,s,\tau| \sigma,s,0)  =  e^{- \frac{\Delta \tau}{2} \sum_{k=1}^{M_T} g^{\bm T}_{k,\tau} {\bm T}^{(ks)}}   G_{\mathrm{ns}}(\sigma,s,\tau| \sigma,s,0)  e^{ \frac{\Delta \tau}{2} \sum_{k=1}^{M_T} g^{\bm T}_{k,L_{\text{Trotter}}} {\bm T}^{(ks)}}   \\
+%G_{\mathrm{s}}(\sigma,s,0| \sigma,s,\tau)  = e^{- \frac{\Delta \tau}{2} \sum_{k=1}^{M_T} g^{\bm T}_{k,L_{\text{Trotter}}} {\bm T}^{(ks)}} 	G_{\mathrm{ns}}(\sigma,s,0| \sigma,s,\tau) e^{ \frac{\Delta \tau}{2} \sum_{k=1}^{M_T} g^{\bm T}_{k,\tau} {\bm T}^{(ks)}} 
+%\end{align}
+%
+%\fa{to here.}

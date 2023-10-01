@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 - 2018 The ALF project
+!  Copyright (C) 2016 - 2022 The ALF project
 ! 
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -28,6 +28,10 @@
 ! 
 !     - If you make substantial changes to the program we require you to either consider contributing
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
+
+module wrapul_mod
+   implicit none
+   contains
       
       SUBROUTINE WRAPUL(NTAU1, NTAU, UDVL)
 
@@ -65,7 +69,7 @@
         ! Working space.
         COMPLEX (Kind=Kind(0.d0)) ::  U1(Ndim,Ndim), V1(Ndim,Ndim), TMP(Ndim,Ndim), TMP1(Ndim,Ndim)
         COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta
-        Integer :: NT, NCON, n, nf
+        Integer :: NT, NCON, n, nf, nf_eff
         Real    (Kind=Kind(0.d0)) ::  X
  
 
@@ -73,29 +77,32 @@
 
         Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
         beta = 0.D0
-        Do nf = 1, N_FL
+        Do nf_eff = 1, N_FL_eff
+           nf=Calc_Fl_map(nf_eff)
            CALL INITD(TMP,Z_ONE)
            DO NT = NTAU1, NTAU+1 , -1
               Do n = Size(Op_V,1),1,-1
-                 Call Op_mmultL(Tmp,Op_V(n,nf),nsigma%f(n,nt),'n')
+                 Call Op_mmultL(Tmp,Op_V(n,nf),nsigma%f(n,nt),'n',nt)
               enddo
               !CALL MMULT( TMP1,Tmp,Exp_T(:,:,nf) )
-              Call  Hop_mod_mmthl (Tmp,nf)
+              Call  Hop_mod_mmthl (Tmp,nf,nt)
               ! Tmp = Tmp1
            ENDDO
            
            !Carry out U,D,V decomposition.
-           CALL ZGEMM('C', 'N', Ndim, UDVL(nf)%N_part, Ndim, Z_ONE, TMP, Ndim, udvl(nf)%U(1, 1), Ndim, beta, TMP1, Ndim)
-           if( ALLOCATED(UDVL(nf)%V) ) then
-              DO n = 1,UDVL(nf)%N_part
-                  TMP1(:, n) = TMP1(:, n) * udvl(nf)%D(n)
+           CALL ZGEMM('C', 'N', Ndim, UDVL(nf_eff)%N_part, Ndim, Z_ONE, TMP, Ndim, udvl(nf_eff)%U(1, 1), Ndim, beta, TMP1, Ndim)
+           if( ALLOCATED(UDVL(nf_eff)%V) ) then
+              DO n = 1,UDVL(nf_eff)%N_part
+                  TMP1(:, n) = TMP1(:, n) * udvl(nf_eff)%D(n)
               ENDDO
-              CALL UDV_WRAP_Pivot(TMP1,udvl(nf)%U,udvl(nf)%D,V1,NCON,Ndim,Ndim)
-              CALL ZGEMM('N', 'C', Ndim, Ndim, Ndim, Z_ONE, udvl(nf)%V(1,1), Ndim, V1, Ndim, beta, TMP1, Ndim)
-              udvl(nf)%V = TMP1
+              CALL UDV_WRAP_Pivot(TMP1,udvl(nf_eff)%U,udvl(nf_eff)%D,V1,NCON,Ndim,Ndim)
+              CALL ZGEMM('N', 'C', Ndim, Ndim, Ndim, Z_ONE, udvl(nf_eff)%V(1,1), Ndim, V1, Ndim, beta, TMP1, Ndim)
+              udvl(nf_eff)%V = TMP1
            else
-              CALL UDV_WRAP_Pivot(TMP1(:,1:UDVL(nf)%N_part),udvl(nf)%U,udvl(nf)%D,V1,NCON,Ndim,UDVL(nf)%N_part)
+              CALL UDV_WRAP_Pivot(TMP1(:,1:UDVL(nf_eff)%N_part),udvl(nf_eff)%U,udvl(nf_eff)%D,V1,NCON,Ndim,UDVL(nf_eff)%N_part)
            endif
+           ! Test if scales in D are appraoching the limit of double precision.
+           CALL UDVL(nf_eff)%testscale
         ENDDO
 
 #else
@@ -106,19 +113,23 @@
         CLASS(UDV_State), intent(inout), allocatable, dimension(:) :: UDVL
         Integer, intent(in) :: NTAU1, NTAU
         
-        Integer :: NT, n, nf
+        Integer :: NT, n, nf, nf_eff
         
-        Do nf = 1, N_FL
+        Do nf_eff = 1, N_FL_eff
+           nf=Calc_Fl_map(nf_eff)
            DO NT = NTAU1, NTAU+1 , -1
               Do n = Size(Op_V,1),1,-1
-                 Call Op_mmultR(udvl(nf)%U,Op_V(n,nf),nsigma%f(n,nt),'c')
+                 Call Op_mmultR(udvl(nf_eff)%U,Op_V(n,nf),nsigma%f(n,nt),'c',nt)
               enddo
-              Call  Hop_mod_mmthlc (udvl(nf)%U,nf)
+              Call  Hop_mod_mmthlc (udvl(nf_eff)%U,nf,nt)
            ENDDO
            
            !Carry out U,D,V decomposition.
-           CALL UDVL(nf)%decompose
+           CALL UDVL(nf_eff)%decompose
+           ! Test if scales in D are appraoching the limit of double precision.
+           CALL UDVL(nf_eff)%testscale
         Enddo
 #endif
       END SUBROUTINE WRAPUL
       
+end module wrapul_mod

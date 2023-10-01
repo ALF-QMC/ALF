@@ -1,0 +1,97 @@
+hubbard_finT_chain:
+  environments: &environments
+    Buster:
+      image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/pyalf-requirements/buster
+      variables: {MACHINE: GNU}
+    Bullseye:
+      image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/pyalf-requirements/bullseye
+      variables: {MACHINE: GNU}
+    Bookworm:
+      image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/pyalf-requirements/bookworm
+      variables: {MACHINE: GNU}
+    Intel21:
+      image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/pyalf-requirements/bullseye-intel
+      variables: {MACHINE: INTEL}
+    IntelLatest:
+      image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/pyalf-requirements/intel
+      variables: {MACHINE: INTEL}
+    IntelLLVMLatest:
+      image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/pyalf-requirements/intel
+      variables: {MACHINE: IntelLLVM}
+    PGI-21-03:
+      image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/pyalf-requirements/bullseye-pgi-21-03
+      variables: {MACHINE: PGI}
+    macGNU:
+      tags: ['macos']
+      variables: {MACHINE: GNU}
+  ham_name: "Hubbard"
+  ed_energy: -1.47261997
+  max_sigma: 3
+  max_delta: 0.001
+  sim_dicts:
+    - &hubbard_finT_chain_parameter1
+      Lattice_type: "N_leg_ladder"
+      L1: 4
+      L2: 1
+      Checkerboard: false
+      Symm: true
+      ham_T: 1.0
+      ham_U: 4.0
+      ham_Tperp: 0.0
+      beta: 2.0
+      Ltau: 0
+      NSweep: 1000
+      NBin: 1000
+      Mz: true
+      dtau: 0.05
+      Nwrap: 25
+    - <<: *hubbard_finT_chain_parameter1
+      dtau: 0.1
+      Nwrap: 15
+    - <<: *hubbard_finT_chain_parameter1
+      dtau: 0.14285714285714285
+      Nwrap: 10
+    - <<: *hubbard_finT_chain_parameter1
+      dtau: 0.18181818181818182
+      Nwrap: 8
+    - <<: *hubbard_finT_chain_parameter1
+      dtau: 0.2
+      Nwrap: 5
+
+hubbard_T0_chain:
+  environments: *environments
+  ham_name: "Hubbard"
+  ed_energy: -2.10274848
+  max_sigma: 3
+  max_delta: 0.002
+  sim_dicts:
+    - &hubbard_T0_chain_parameter1
+      Lattice_type: "N_leg_ladder"
+      L1: 4
+      L2: 1
+      Checkerboard: false
+      Symm: true
+      ham_T: 1.0
+      ham_U: 4.0
+      ham_Tperp: 0.0
+      beta: 1.0
+      Projector: true
+      theta: 5.0
+      Ltau: 0
+      NSweep: 1000
+      NBin: 500
+      Mz: true
+      dtau: 0.05
+      Nwrap: 15
+    - <<: *hubbard_T0_chain_parameter1
+      dtau: 0.1
+      Nwrap: 10
+    - <<: *hubbard_T0_chain_parameter1
+      dtau: 0.14285714285714285
+      Nwrap: 5
+    - <<: *hubbard_T0_chain_parameter1
+      dtau: 0.18181818181818182
+      Nwrap: 5
+    - <<: *hubbard_T0_chain_parameter1
+      dtau: 0.2
+      Nwrap: 5

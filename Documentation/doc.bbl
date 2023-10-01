@@ -586,6 +586,7 @@ J.~Hirsch,
 A.~D. Sokal,
 \newblock \emph{{M}onte {C}arlo methods in statistical mechanics: Foundations
   and new algorithms},
+\newblock \doi{10.1007/978-1-4899-0319-8_6},
 \newblock Lecture notes from Cours de Troisi\`eme Cycle de la Physique en
   Suisse Romande. Updated in 1996 for the Carg\`ese Summer School on
   ``Functional Integration: Basics and Applications'' (1989).
@@ -658,6 +659,13 @@ S.~D{\"u}rr, Z.~Fodor, J.~Frison, C.~Hoelbling, R.~Hoffmann, S.~D. Katz,
 \newblock \doi{10.1126/science.1163233},
 \newblock
   \eprint{http://science.sciencemag.org/content/322/5905/1224.full.pdf}.
+
+\bibitem{Sorella21}
+S.~Sorella,
+\newblock \emph{The phase diagram of the hubbard model by variational auxiliary
+  field quantum monte carlo},
+\newblock arXiv:2101.07045  (2021),
+\newblock \doi{10.48550/ARXIV.2101.07045}.
 
 \bibitem{Assaad02}
 F.~F. Assaad,
@@ -854,6 +862,20 @@ C.~Davies, G.~Batrouni, G.~Katz, A.~Kronfeld, P.~Lepage, P.~Rossi, B.~Svetitsky
 \newblock Journal of Statistical Physics \textbf{43}(5), 1073 (1986),
 \newblock \doi{10.1007/BF02628331}.
 
+\bibitem{Wolff89}
+U.~Wolff,
+\newblock \emph{Collective monte carlo updating for spin systems},
+\newblock Phys. Rev. Lett. \textbf{62}, 361 (1989),
+\newblock \doi{10.1103/PhysRevLett.62.361}.
+
+\bibitem{Imada88}
+M.~Imada,
+\newblock \emph{A fermion simulation algorithm by molecular dynamics techique
+  combined with monte carlo method},
+\newblock Journal of the Physical Society of Japan \textbf{57}(8), 2689 (1988),
+\newblock \doi{10.1143/JPSJ.57.2689},
+\newblock \eprint{https://doi.org/10.1143/JPSJ.57.2689}.
+
 \bibitem{Beyl_thesis}
 S.~Beyl,
 \newblock \emph{Hybrid Quantum Monte Carlo for Condensed Matter Models},
@@ -865,7 +887,9 @@ E.~Loh, J.~Gubernatis, R.~Scalettar, R.~Sugar and S.~White,
 \newblock \emph{Stable matrix-multiplication algorithms for low-temperature
   numerical simulations of fermions},
 \newblock In \emph{Interacting Electrons in Reduced Dimensions}, pp. 55--60.
-  Springer (1989).
+  Springer,
+\newblock ISBN 978-1-4613-0565-1,
+\newblock \doi{10.1007/978-1-4613-0565-1} (1989).
 
 \bibitem{Loh2005}
 E.~Y. LOH, J.~E. GUBERNATIS, R.~T. SCALETTAR, S.~R. WHITE, D.~J. SCALAPINO and
@@ -930,8 +954,8 @@ D.~Ixert, F.~F. Assaad and K.~P. Schmidt,
 \bibitem{Negele}
 J.~W. Negele and H.~Orland,
 \newblock \emph{Quantum Many body systems},
-\newblock Frontiers in physics. Addison-Wesley, Redwood City, Calif. u.a.
-  (1988).
+\newblock Frontiers in physics. Addison-Wesley, Redwood City, Calif. u.a.,
+\newblock ISBN 9780201125931 (1988).
 
 \bibitem{Krauth2006}
 W.~Krauth,
@@ -940,8 +964,9 @@ W.~Krauth,
 
 \bibitem{Geyer1992}
 C.~J. Geyer,
-\newblock \emph{Practical markov chain monte carlo},
-\newblock Statistical Science \textbf{7}(4), 473 (1992).
+\newblock \emph{Practical {M}arkov chain {M}onte {C}arlo},
+\newblock Statistical Science \textbf{7}(4), 473 (1992),
+\newblock \doi{10.1214/ss/1177011137}.
 
 \bibitem{neal1993}
 R.~M. Neal,
@@ -976,6 +1001,13 @@ M.~B. {Thompson},
 \newblock arXiv:1011.0175  (2010),
 \newblock \eprint{https://arxiv.org/abs/1011.0175}.
 
+\bibitem{Parola91}
+A.~Parola, S.~Sorella, M.~Parrinello and E.~Tosatti,
+\newblock \emph{d-wave, dimer, and chiral states in the two-dimensional hubbard
+  model},
+\newblock Phys. Rev. B \textbf{43}, 6190 (1991),
+\newblock \doi{10.1103/PhysRevB.43.6190}.
+
 \bibitem{Milat04}
 I.~Milat, F.~Assaad and M.~Sigrist,
 \newblock \emph{Field induced magnetic ordering transition in kondo
@@ -991,12 +1023,12 @@ M.~Bercx, T.~C. Lang and F.~F. Assaad,
 \newblock Phys. Rev. B \textbf{80}, 045412 (2009),
 \newblock \doi{10.1103/PhysRevB.80.045412}.
 
-\bibitem{Parola91}
-A.~Parola, S.~Sorella, M.~Parrinello and E.~Tosatti,
-\newblock \emph{d-wave, dimer, and chiral states in the two-dimensional hubbard
-  model},
-\newblock Phys. Rev. B \textbf{43}, 6190 (1991),
-\newblock \doi{10.1103/PhysRevB.43.6190}.
+\bibitem{Vaezi21}
+M.-S. Vaezi, A.-R. Negari, A.~Moharramipour and A.~Vaezi,
+\newblock \emph{Amelioration for the sign problem: An adiabatic quantum monte
+  carlo algorithm},
+\newblock Phys. Rev. Lett. \textbf{127}, 217003 (2021),
+\newblock \doi{10.1103/PhysRevLett.127.217003}.
 
 \bibitem{Schrieffer66}
 J.~R. Schrieffer and P.~A. Wolff,
@@ -1068,6 +1100,7 @@ A.~N. Rubtsov, V.~V. Savkin and A.~I. Lichtenstein,
 {J\"ulich Supercomputing Centre},
 \newblock \emph{{JURECA: General-purpose supercomputer at J\"ulich
   Supercomputing Centre}},
-\newblock Journal of large-scale research facilities \textbf{2}, A62 (2016).
+\newblock Journal of large-scale research facilities \textbf{2}, A62 (2016),
+\newblock \doi{10.17815/jlsrf-2-121}.
 
 \end{thebibliography}

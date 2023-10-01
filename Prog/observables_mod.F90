@@ -38,12 +38,14 @@
 !> routine to initialize them and to print out the bins
 !
 !--------------------------------------------------------------------
+
+
      Module Observables
 
 #if !defined HDF5 && !defined OBS_LEGACY
 #define OBS_LEGACY 1
 #endif
-
+       Use runtime_error_mod
        Use Lattices_v3, only: Unit_cell, Lattice
        use iso_fortran_env, only: output_unit, error_unit
 
@@ -300,7 +302,7 @@
            Ntau  = Size(Obs%Obs_Latt,2)
            if ( .not. (Obs%Latt%N == Ns ) ) then
               Write(error_unit,*) 'Error in Print_bin_Latt'
-              error stop 1
+              CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
            endif
            If (Ntau == 1) then
               File_suff = "_eq"
@@ -359,6 +361,8 @@
                  11 format(A20, ': ', A)
                  12 format(A20, ': ', I10)
                  13 format(A20, ': ', *(E26.17E3))
+                 14 format(A20, ': ')
+                 15 format((E26.17E3))
                  open(10, file=File_aux, status='new')
                  write(tmp_str, '(A, A)') trim(Obs%File_Latt), trim(File_suff)
                  write(10, 11) 'Observable', trim(tmp_str)
@@ -377,7 +381,11 @@
                  write(10, 12) 'Ndim', size(Obs%Latt_unit%Orb_pos_p, 2)
                  do no = 1, Obs%Latt_unit%Norb
                     write(tmp_str, '("Orbital ",I0)') no
-                    write(10, 13) trim(tmp_str), Obs%Latt_unit%Orb_pos_p(no,:)
+                    write(10, 14, advance='no') trim(tmp_str)
+                    do i = 1, size(Obs%Latt_unit%Orb_pos_p, 2)
+                       write(10, 15, advance='no') Obs%Latt_unit%Orb_pos_p(no,i)
+                    enddo
+                    write(10, *)
                  enddo
                  close(10)
               endif

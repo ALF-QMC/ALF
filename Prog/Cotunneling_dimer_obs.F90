@@ -1,3 +1,69 @@
+! This file is included by Predefined_Obs_mod.F90
+
+!-------------------------------------------------------------------
+!> @author
+!> ALF-project
+!
+!>  @brief
+!>  K_{i,m} =  \sum{\alpha,\sigma} c^{\dagger}_{i,\alpha,sigma}  c_{m,\alpha, sigma}   + H.c.
+!>  The routine returns 
+!>       << K_{i,m}   >>
+!>  If N_FL  (\alpha)   and  N_SUN (\sigma)  can take  any values 
+!--------------------------------------------------------------------
+      Complex (Kind=Kind(0.d0)) function Predefined_Obs_dimer_kin0_eq(I,M, GR, N_SUN, N_FL)
+  
+        Implicit none
+        
+        Integer, Intent(IN)        ::  I,M, N_SUN, N_FL
+        Complex (Kind=Kind(0.d0)), Dimension(:,:,:), INTENT(IN) :: GR 
+        Complex (Kind=Kind(0.d0))  ::  Z, ZK, ZN
+        Integer                    ::  nf
+
+        Z  = cmplx(0.d0,0.d0,Kind(0.d0))
+        ZK = cmplx(0.d0,0.d0,kind(0.d0))
+        if ( I == M ) ZK = cmplx(1.d0,0.d0,kind(0.d0))
+        ZN = cmplx(Real(N_SUN,Kind(0.d0)),0.d0,Kind(0.d0))
+        do nf =  1, N_FL
+           Z  = ZN  *   ( 2.d0*ZK - GR(I,M,nf)  -  GR(M,I,nf) )
+        enddo
+
+        Predefined_Obs_dimer_kin0_eq = Z
+        
+      end function Predefined_Obs_dimer_kin0_eq
+
+ !-------------------------------------------------------------------
+!> @author
+!> ALF-project
+!
+!>  @brief
+!>  K_{i,m} =  \sum{\alpha,\sigma} c^{\dagger}_{i,\alpha,sigma}  c_{m,\alpha, sigma}   + H.c.
+!>  The routine returns 
+!>       << K_{i,m}  K_{j,n}   >>
+!>  If N_FL  (\alpha)   and  N_SUN (\sigma)  can take  any values 
+!--------------------------------------------------------------------
+      Complex (Kind=Kind(0.d0)) function Predefined_Obs_dimer_kin_eq(I,M, J, N,  GR, GRC,  N_SUN, N_FL)
+  
+        Implicit none
+        
+        Integer, Intent(IN)        ::  I,M, J, N, N_SUN, N_FL
+        Complex (Kind=Kind(0.d0)), Dimension(:,:,:), INTENT(IN) :: GR,  GRC 
+        Complex (Kind=Kind(0.d0))  ::  Z, ZK, ZN
+        Integer                    ::  nf
+
+        Z  = cmplx(0.d0,0.d0,Kind(0.d0))
+        ZK = cmplx(0.d0,0.d0,kind(0.d0))
+        if ( I == M ) ZK = cmplx(1.d0,0.d0,kind(0.d0))
+        ZN = cmplx(Real(N_SUN,Kind(0.d0)),0.d0,Kind(0.d0))
+        do nf =  1, N_FL
+           Z  =     ZN * ZN* (GRC(I,M,nf) +   GRC(M,I,nf))*  (GRC(J,N,nf) +   GRC(N,J,nf)) + &
+                &   ZN *  (   GRC(I,N,nf)* GR(M,J,nf)  + GRC(I,J,nf) *GR(M,N,nf) + &
+                &             GRC(M,N,nf)* GR(I,J,nf)  + GRC(M,J,nf) *GR(I,N,nf)    )
+        enddo
+
+        Predefined_Obs_dimer_kin_eq = Z
+        
+      end function Predefined_Obs_dimer_kin_eq
+     
 !-------------------------------------------------------------------
 !> @author
 !> ALF-project
@@ -9,8 +75,10 @@
 !>  If N_FL = 1 then N_SUN can take any value.
 !>  If N_FL = 2 then N_SUN = 1 
 !--------------------------------------------------------------------
+
       Complex (Kind=Kind(0.d0)) function Predefined_Obs_dimer0_eq(I,M, GR, N_SUN, N_FL)
   
+        USE runtime_error_mod 
         Implicit none
         
         Integer, Intent(IN)        ::  I,M, N_SUN, N_FL
@@ -47,6 +115,7 @@
 !--------------------------------------------------------------------
       Complex (Kind=Kind(0.d0)) function Predefined_Obs_dimer_eq(I,M,J,N, GR, GRC, N_SUN, N_FL) 
           
+        USE runtime_error_mod
         Implicit none
         
         Integer, Intent(IN) ::  I,M,J, N, N_SUN, N_FL
@@ -161,7 +230,7 @@
                    &    (1 - 32*G(3,4)*G(4,3) - 2*G(4,4) + G(3,3)*(-2 + 4*G(4,4)))))
            case  default
               Write(error_unit,*) 'Dimer, N_SUN=', N_SUN, 'is not yet implemented'
-              error stop 1
+              CALL Terminate_on_error(ERROR_MISSING_OBS,__FILE__,__LINE__)
            end select
         elseif(N_FL == 2 ) then  !  This only works for N_SUN = 1
            do ns = 1,2
@@ -278,6 +347,7 @@
 !--------------------------------------------------------------------
       Complex (Kind=Kind(0.d0)) function Predefined_Obs_dimer_tau(I,M,J,N, GT0,G0T,G00,GTT, N_SUN, N_FL) 
           
+        USE runtime_error_mod 
         Implicit none
         
         Integer, Intent(IN) ::  I,M,J, N, N_SUN, N_FL
@@ -400,7 +470,7 @@
                    &    (1 - 32*G(3,4)*G(4,3) - 2*G(4,4) + G(3,3)*(-2 + 4*G(4,4)))))
            case  default
               Write(error_unit,*) 'Dimer, N_SUN=', N_SUN, 'is not yet implemented'
-              error stop 1
+              CALL Terminate_on_error(ERROR_MISSING_OBS,__FILE__,__LINE__)
            end select
         elseif(N_FL == 2 ) then  !  This only works for N_SUN = 1
            do ns = 1,2
@@ -521,6 +591,8 @@
 !--------------------------------------------------------------------
       Complex (Kind=Kind(0.d0)) function Predefined_Obs_Cotunneling(I_c, I_f, J_c, J_f,  GT0,G0T,G00,GTT, N_SUN, N_FL) 
 
+        USE runtime_error_mod 
+        !Why is there no implicit none here?
         Integer,              Intent(In)      :: N_SUN, I_c,I_f, J_c, J_f, N_FL
         Complex (Kind=Kind(0.d0)), Intent(In) :: GT0(:,:,:), G0T(:,:,:), G00(:,:,:), GTT(:,:,:)
 
@@ -595,7 +667,7 @@
                    &       (189.*G(1,2)*G(2,1) + 76.5*G(1,1)*G(2,2))*G(3,3)))/64. 
            case default
               Write(error_unit,*) 'Cotunneling, N_SUN=', N_SUN, 'is not yet implemented'
-              error stop 1
+              CALL Terminate_on_error(ERROR_MISSING_OBS,__FILE__,__LINE__)
            end select
            Predefined_Obs_Cotunneling  = Z
            

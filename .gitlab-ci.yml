@@ -1,86 +1,79 @@
 variables:
   CONFIG_ARGS: ""  # Variable for additional arguments for configure.sh
-  ALF_FLAGS_EXT: "-DPIPELINE"
+
+default:
+  tags: [k8s]
+  cache:
+    key: HDF5-$MACHINE
+    untracked: true
+    paths:
+      - HDF5
+    policy: pull
 
 stages:
+  - lint
+  - build_hdf5
+  - build_doc
   - build
-  - warnconv
   - test
+  - testbranch
+  - test_vs_ed
   - memleaks
 
-.build_template: &build_definition
+.build_hdf5_template:
+  stage: build_hdf5
+  variables:
+    MACHINE: GNU
+  needs: []
+  script:
+    - ls HDF5
+    - du -sh HDF5
+    - . configure.sh $MACHINE noMPI HDF5
+    - du -sh HDF5
+  cache:
+    key: HDF5-$MACHINE
+    untracked: true
+    paths:
+      - HDF5
+    policy: pull-push
+
+.build_template:
   stage: build
+  variables:
+    MACHINE: GNU
+    MODE: noMPI
   needs: []
   script:
-    - apt-get update && apt install -y python3 curl libghc-zlib-dev g++
-    - . configure.sh GNU serial $CONFIG_ARGS
-    - gfortran -v
+    - ls HDF5
+    - . configure.sh $MACHINE $MODE $CONFIG_ARGS
+    - echo $ALF_FC
+    - $ALF_FC -v
     - make all
 
-.build_template_pgi: &build_definition_pgi
-  stage: build
-  needs: []
-  script:
-    - apt-get update && apt install -y python3 curl libghc-zlib-dev
-    - pgfortran --version
-    - . configure.sh PGI serial $CONFIG_ARGS
-    - make all
-
-.warnconv_template: &warnconv_definition
-  stage: warnconv
-  needs: []
-  script:
-    - apt-get update && apt install -y python3 curl libghc-zlib-dev g++
-    - . configure.sh GNU Devel serial $CONFIG_ARGS
-    - gfortran -v
-    - make all
-
-.test_template: &test_definition
+.test_template:
   stage: test
+  variables:
+    MACHINE: GNU
+    MODE: noMPI
   needs: []
   script:
-    - apt-get update && apt install -y python3 curl libghc-zlib-dev g++
-    - . configure.sh GNU Devel serial $CONFIG_ARGS
-    - gfortran -v
-    - make lib
-    - make ana
-    - make program
-    - cd testsuite
-    - cmake -E make_directory tests
-    - cd tests
+    - ls HDF5
+    - . configure.sh $MACHINE Devel $MODE $CONFIG_ARGS
+    - echo $ALF_FC
+    - $ALF_FC -v
+    - make all
+    - mkdir testsuite/tests
+    - cd testsuite/tests
     - cmake ..
     - cmake --build . --target all --config Release
     - ctest -VV -O log.txt
     - cat log.txt | grep "tests passed" | cut -d " " -f 1
 
-GQMCT_Stretch:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:stretch-gfortran-blas-lapack
-  <<: *build_definition
+#################################################################################
 
-GQMCT_Buster:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:buster-gfortran-blas-lapack
-  <<: *build_definition
-
-GQMCT_Bullseye:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-gfortran-blas-lapack
-  <<: *build_definition
-
-
-GQMCT_Bullseye_OpenBlas:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-gfortran-openblas-lapack
-  <<: *build_definition
-
-GQMCT_PGI:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-pgi-21-03
-  <<: *build_definition_pgi
-
-GQMCT_Ubuntu_Bionic:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/ubuntu:bionic-beaver-gfortran-lapack
-  <<: *build_definition
-
-GQMCT_Stretch_MPI:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:stretch-gfortran-blas-lapack-fftw-hdf5-scipy3
-  stage: build
+Check_Stopcommands:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bookworm-buildd
+  stage: lint
   needs: []
   except:
     changes:
@@ -89,117 +82,68 @@ GQMCT_Stretch_MPI:
       - README.md
       - license.*
   script:
-    - apt-get update && apt install -y python3 curl libghc-zlib-dev g++
-    - gfortran -v
-    - . configure.sh GNU Devel Tempering $CONFIG_ARGS
-    - export ALF_FC="mpif90"
-    - make all
+    - '! grep -irn -e "^\s*error\s*stop" -e "^\s*stop" --include="*.F90" 
+      --exclude-dir=Analysis --exclude-dir=HDF5 --exclude-dir=testsuite 
+      --exclude-dir=Not\_supported --exclude="runtime\_error\_mod.F90"'
 
-GQMCT_Intel-21:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-intel-oneapi-ifort-python3
-  stage: build
+prep_test_branch:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bookworm-buildd
+  stage: testbranch
+  when: manual
   needs: []
-  except:
-    changes:
-      - .gitignore
-      - CITATION
-      - README.md
-      - license.*
+  tags:
+    - k8s
   script:
-    - apt-get update && apt install -y curl libghc-zlib-dev
-    - . /opt/intel/oneapi/setvars.sh
-    - . configure.sh INTEL serial $CONFIG_ARGS
-    - make all
+    - apt-get update && apt-get install -y python3-yaml
+    - ./testsuite/test_branch_generate_config.py
+    - cat generated-config.yml
+  artifacts:
+    paths:
+      - generated-config.yml
+    expire_in: 1 day
 
-GQMCT_Stretch_conv:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:stretch-gfortran-blas-lapack
-  <<: *warnconv_definition
+trigger_test_branch:
+  stage: testbranch
+  needs: [prep_test_branch]
+  trigger:
+    include:
+      - artifact: generated-config.yml
+        job: prep_test_branch
+    strategy: depend
+  variables:
+    PARENT_PIPELINE_ID: $CI_PIPELINE_ID
 
-GQMCT_Buster_conv:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:buster-gfortran-blas-lapack
-  <<: *warnconv_definition
-
-GQMCT_Bullseye_conv:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-gfortran-blas-lapack
-  <<: *warnconv_definition
-
-GQMCT_Bullseye_OpenBlas_conv:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-gfortran-openblas-lapack
-  <<: *warnconv_definition
-
-GQMCT_PGI_conv:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-pgi-21-03
-  stage: warnconv
+prep_ED_test:
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bookworm-buildd
+  stage: test_vs_ed
+  when: manual
   needs: []
+  tags:
+    - k8s
   script:
-    - apt-get update && apt install -y python3 curl libghc-zlib-dev
-    - pgfortran --version
-    - . configure.sh PGI devel serial $CONFIG_ARGS
-    - make all
+    - apt-get update && apt-get install -y python3-yaml
+    - ./testsuite/test_vs_ed/prep_test.py
+    - cat generated-config.yml
+  artifacts:
+    paths:
+      - generated-config.yml
+      - testsuite/test_vs_ed
+    expire_in: 1 day
 
-GQMCT_Stretch_tests:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:stretch-gfortran-blas-lapack
-  <<: *test_definition
-
-GQMCT_Buster_tests:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:buster-gfortran-blas-lapack
-  <<: *test_definition
-
-GQMCT_Bullseye_tests:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-gfortran-blas-lapack
-  <<: *test_definition
-
-GQMCT_Stretch_OpenBlas_tests:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:stretch-gfortran-openblas-lapack
-  <<: *test_definition
-
-GQMCT_Ubuntu-bionic_tests:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/ubuntu:bionic-beaver-gfortran-lapack
-  <<: *test_definition
-
-GQMCT_PGI_tests:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-pgi-21-03
-  stage: test
-  needs: []
-  script:
-    - apt-get update && apt install -y python3 curl libghc-zlib-dev
-    - pgfortran --version
-    - . configure.sh PGI devel serial $CONFIG_ARGS
-    - make lib
-    - make ana
-    - make program
-    - cd testsuite
-    - cmake -E make_directory tests
-    - cd tests
-    - cmake ..
-    - cmake --build . --target all --config Release
-    - ctest -VV -O log.txt
-    - cat log.txt | grep "tests passed" | cut -d " " -f 1
-
-GQMCT_Stretch_valgrind:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:stretch-gfortran-blas-lapack-valgrind
-  stage: memleaks
-  needs: []
-  only:
-    changes:
-      - Prog/*.(f|F)90
-      - Libraries/Modules/*.(f|F)90
-  script:
-      - apt-get update && apt install -y python3 curl libghc-zlib-dev g++
-      - . configure.sh GNU devel serial $CONFIG_ARGS
-      - gfortran -v
-      - make lib
-      - make program
-      - cp Prog/ALF.out Scripts_and_Parameters_files/Start
-      - cd Scripts_and_Parameters_files/Start
-      - cat parameters
-      - valgrind --leak-check=full --log-file=vglog.txt ./ALF.out
-      - cat vglog.txt
-      - grep lost vglog.txt | cut -d":" -f 2 | cut -d " " -f 2 | f=$(cat); echo $(( ${f//$'\n'/+} ))
+trigger_ED_test:
+  stage: test_vs_ed
+  needs: [prep_ED_test]
+  trigger:
+    include:
+      - artifact: generated-config.yml
+        job: prep_ED_test
+    strategy: depend
+  variables:
+    PARENT_PIPELINE_ID: $CI_PIPELINE_ID
 
 create_doc:
   image: aergus/latex
-  stage: build
+  stage: build_doc
   needs: []
   artifacts:
     paths:
@@ -210,7 +154,7 @@ create_doc:
 
 create_doxygen:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:buster-clang
-  stage: build
+  stage: build_doc
   needs: []
   artifacts:
     expire_in: 120 days
@@ -223,7 +167,7 @@ create_doxygen:
 
 pages:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:buster-clang
-  stage: build
+  stage: build_doc
   script:
     - apt-get update && apt install -y doxygen graphviz
     - doxygen doxygen/Doxyfile
@@ -235,3 +179,121 @@ pages:
   rules:
     - if: '$CI_COMMIT_BRANCH == "master"'
 
+
+build_hdf5_GNU-Buster:
+  extends: .build_hdf5_template
+  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/buster
+  needs: []
+build_hdf5_GNU-Bullseye:
+  extends: .build_hdf5_template
+  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bullseye
+  needs: [build_hdf5_GNU-Buster]
+build_hdf5_GNU-Bookworm:
+  extends: .build_hdf5_template
+  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bookworm
+  needs: [build_hdf5_GNU-Bullseye]
+
+build_hdf5_PGI-21-03:
+  extends: .build_hdf5_template
+  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bullseye-pgi-21-03
+  needs: []
+  variables:
+    MACHINE: PGI
+
+build_hdf5_Intel-21:
+  extends: .build_hdf5_template
+  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bullseye-intel
+  needs: []
+  variables:
+    MACHINE: INTEL
+build_hdf5_Intel-Latest:
+  extends: .build_hdf5_template
+  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/intel
+  needs: [build_hdf5_Intel-21]
+  variables:
+    MACHINE: INTEL
+
+build_hdf5_IntelLLVM:
+  extends: .build_hdf5_template
+  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/intel
+  needs: []
+  variables:
+    MACHINE: INTELLLVM
+
+
+build:
+  extends: .build_template
+  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/$IMAGE_MINOR
+  parallel:
+    matrix:
+      - MACHINE: GNU
+        IMAGE_MINOR: [buster, bullseye, bookworm]
+        MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
+      - MACHINE: GNU
+        IMAGE_MINOR: [bullseye-openblas]
+        MODE: [noMPI]
+      - MACHINE: PGI
+        IMAGE_MINOR: bullseye-pgi-21-03
+        MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
+      - MACHINE: INTEL
+        IMAGE_MINOR: [bullseye-intel, intel]
+        MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
+      - MACHINE: INTELLLVM
+        IMAGE_MINOR: intel
+        MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
+
+build_mac:
+  extends: .build_template
+  tags: [macos]
+  parallel:
+    matrix:
+      - MACHINE: GNU
+        MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
+
+test:
+  extends: .test_template
+  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/$IMAGE_MINOR
+  parallel:
+    matrix:
+      - MACHINE: GNU
+        IMAGE_MINOR: [buster, bullseye, bookworm]
+        MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
+      - MACHINE: GNU
+        IMAGE_MINOR: [bullseye-openblas]
+        MODE: [noMPI]
+      - MACHINE: PGI
+        IMAGE_MINOR: bullseye-pgi-21-03
+        MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
+      - MACHINE: INTEL
+        IMAGE_MINOR: [bullseye-intel, intel]
+        MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
+      - MACHINE: INTELLLVM
+        IMAGE_MINOR: intel
+        MODE: [noMPI]
+
+test_mac:
+  extends: .test_template
+  tags: [macos]
+  parallel:
+    matrix:
+      - MACHINE: GNU
+        MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
+
+valgrind_GNU-Bullseye:
+  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bullseye
+  stage: memleaks
+  needs: []
+  variables:
+    MACHINE: GNU
+  script:
+      - sudo apt-get update && sudo apt-get install -y valgrind
+      - . configure.sh $MACHINE devel serial $CONFIG_ARGS
+      - gfortran -v
+      - make lib
+      - make program
+      - cp Prog/ALF.out Scripts_and_Parameters_files/Start
+      - cd Scripts_and_Parameters_files/Start
+      - cat parameters
+      - valgrind --leak-check=full --log-file=vglog.txt ./ALF.out
+      - cat vglog.txt
+      - grep lost vglog.txt | cut -d":" -f 2 | cut -d " " -f 2 | f=$(cat); echo $(( ${f//$'\n'/+} ))

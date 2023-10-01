@@ -42,6 +42,7 @@
 
 
 MODULE UDV_State_mod
+    use runtime_error_mod
     use iso_fortran_env, only: output_unit, error_unit
 
     IMPLICIT NONE
@@ -83,7 +84,7 @@ MODULE UDV_State_mod
 
     TYPE UDV_State
         COMPLEX (Kind=Kind(0.d0)), allocatable :: U(:, :), V(:, :)
-#if !defined(LOG)
+#if !defined(STABLOG)
         COMPLEX (Kind=Kind(0.d0)), allocatable :: D(:)
 #else
         REAL    (Kind=Kind(0.d0)), allocatable :: L(:)
@@ -101,11 +102,14 @@ MODULE UDV_State_mod
             PROCEDURE :: print => print_UDV_state
             PROCEDURE :: setscale => setscale_UDV_state
             PROCEDURE :: getscale => getscale_UDV_state
+            PROCEDURE :: testscale => testscale_UDV_state
 #if defined(MPI)
             PROCEDURE :: MPI_Sendrecv => MPI_Sendrecv_UDV_state
 #endif
             GENERIC :: ASSIGNMENT(=) => assign
     END TYPE UDV_State
+
+    logical, save :: trigger_scale_warning = .true.
 
 CONTAINS
 !--------------------------------------------------------------------
@@ -138,7 +142,7 @@ CONTAINS
           this%N_part=t
           ALLOCATE(this%U(this%ndim, this%N_part), this%V(this%N_part, this%N_part))
        endif
-#if !defined(LOG)
+#if !defined(STABLOG)
        ALLOCATE(this%D(this%N_part))
 #else
        ALLOCATE(this%L(this%N_part))
@@ -172,11 +176,11 @@ CONTAINS
        if( present(P)) then
           if ( t .ne. size(P,1) ) then
              write(error_unit,*) "Mismatching Ndim between explicitly provided argument and implicitly provided size(P,1)"
-             error stop 1
+             CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
           endif
           if ( t < size(P,2) .or. size(P,2) < 0 ) then
              write(error_unit,*) "Illegal number of particles provided as size(P,2) (0 <= N_part <= Ndim)"
-             error stop 1
+             CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
           endif
           CALL this%alloc(t,size(P,2))
           CALL this%reset(side,P)
@@ -204,7 +208,7 @@ CONTAINS
        COMPLEX (Kind=Kind(0.d0)), INTENT(IN) :: scale_val
        INTEGER, INTENT(IN) :: scale_idx
 
-#if !defined(LOG)
+#if !defined(STABLOG)
        this%D(scale_idx)=scale_val
 #else
        this%L(scale_idx)=log(dble(scale_val))
@@ -228,12 +232,57 @@ CONTAINS
        COMPLEX (Kind=Kind(0.d0)), INTENT(out) :: scale_val
        INTEGER, INTENT(IN) :: scale_idx
 
-#if !defined(LOG)
+#if !defined(STABLOG)
        scale_val=this%D(scale_idx)
 #else
        scale_val=cmplx(exp(this%L(scale_idx)),0.d0,kind(0.d0))
 #endif
      END SUBROUTINE getscale_UDV_state
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF-project
+!
+!> @brief
+!> This function prints a warning message if the scales in D grow too large or too small.
+!> A switch to STABLOG is recommended for this scenario which usually solves it and prevents NaN's from getting generated.
+!> The warning is only printed once and the test does not apply to the STABLOG option.
+!>
+!> @param [in] this Class(UDV_state)
+!-------------------------------------------------------------------
+     SUBROUTINE testscale_UDV_state(this)
+       use runtime_error_mod
+       IMPLICIT NONE
+       CLASS(UDV_State), INTENT(IN) :: this
+
+#if !defined(STABLOG)
+       real (Kind=Kind(this%D(1))) :: dummy_dp
+
+       ! Check if any scale is NaN
+       if ( any(this%D /= this%D) )  then
+          write(error_unit,*) 
+          write(error_unit,*) "Error: At least one scale is NaN."
+          write(error_unit,*) "       Switch to LOG is required."
+          call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+       end if 
+
+       ! ATTENTION, the test assumes a (mostly) sorted array D [real and positive numbers]!
+       ! Check if largest scale is approaching the largest representable value
+       if ( dble(this%D(1)) > 0.1*huge(dummy_dp) .and. trigger_scale_warning) then
+          write(error_unit,*) 
+          write(error_unit,*) "Warning: Largest scale is approaching the largest representable value."
+          write(error_unit,*) "         Consider switching to LOG."
+          trigger_scale_warning = .false.
+       end if  
+       ! Check if myVariable is approaching the smallest representable value
+       if ( dble(this%D(this%n_part)) < 10.0*tiny(dummy_dp) .and. trigger_scale_warning) then
+          write(error_unit,*) 
+          write(error_unit,*) "Warning: Smallest scale is approaching the smalles representable value."
+          write(error_unit,*) "         Consider switching to LOG."
+          trigger_scale_warning = .false.
+       end if
+#endif
+     END SUBROUTINE testscale_UDV_state
 
 !--------------------------------------------------------------------
 !> @author
@@ -251,7 +300,7 @@ CONTAINS
        !V is only allocated in finite temperature version
        IF(ALLOCATED(this%V)) DEALLOCATE(this%V)
        DEALLOCATE(this%U)
-#if !defined(LOG)
+#if !defined(STABLOG)
        DEALLOCATE(this%D)
 #else
        DEALLOCATE(this%L)
@@ -290,7 +339,7 @@ CONTAINS
           CALL ZLASET('A', this%ndim, this%ndim, alpha, beta, this%U(1, 1), this%ndim)
           CALL ZLASET('A', this%ndim, this%ndim, alpha, beta, this%V(1, 1), this%ndim)
        endif
-#if !defined(LOG)
+#if !defined(STABLOG)
        this%D = beta
 #else
        this%L = 0.d0
@@ -326,7 +375,7 @@ CONTAINS
           WRITE(*,*) "V is only stored in finite temperature version"
        endif
        WRITE(*,*) "======================"
-#if !defined(LOG)
+#if !defined(STABLOG)
        WRITE(*,*) this%D(:)
 #else
        WRITE(*,*) this%L(:)
@@ -365,7 +414,7 @@ CONTAINS
          if (ALLOCATED(src%V)) CALL ZLACPY('A', this%n_part, this%n_part, src%V(1, 1), &
               & this%n_part, this%V(1, 1), this%n_part)
        END ASSOCIATE
-#if !defined(LOG)
+#if !defined(STABLOG)
        IF(.not. ALLOCATED(this%D)) ALLOCATE(this%D(this%n_part))
        this%D = src%D
 #else
@@ -407,7 +456,7 @@ CONTAINS
        COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta, phase
        INTEGER :: INFO, i, LWORK, Ndim, N_part
        INTEGER, allocatable, Dimension(:) :: IPVT
-#ifdef LOG
+#if defined(STABLOG)
        REAL (Kind=Kind(0.d0)), allocatable, Dimension(:) :: tmpnorm
        REAL (Kind=Kind(0.d0)) :: tmpL, DZNRM2
        INTEGER :: J, PVT
@@ -421,7 +470,7 @@ CONTAINS
        Ndim = UDVR%ndim
        N_part = UDVR%n_part
        ALLOCATE(TAU(N_part), IPVT(N_part))
-#if !defined(LOG)
+#if !defined(STABLOG)
        ! TMP1 = TMP1 * D
        If( ALLOCATED(UDVR%V) ) then
           DO i = 1,N_part
@@ -566,7 +615,7 @@ CONTAINS
             &                source, recvtag, MPI_COMM_WORLD, STATUS, IERR)
        CALL MPI_Sendrecv_replace(this%V, n, MPI_COMPLEX16, dest, sendtag, &
             &                source, recvtag, MPI_COMM_WORLD, STATUS, IERR)
-#if !defined(LOG)
+#if !defined(STABLOG)
        CALL MPI_Sendrecv_replace(this%D, this%ndim, MPI_COMPLEX16, dest, sendtag, &
             &                source, recvtag, MPI_COMM_WORLD, STATUS, IERR)
 #else

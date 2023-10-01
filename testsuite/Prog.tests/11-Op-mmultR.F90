@@ -44,7 +44,7 @@ Program OPMULTTEST
               enddo
            enddo
            
-           Call Op_mmultR(matnew, Op, nspin, 'n')
+           Call Op_mmultR(matnew, Op, nspin, 'n',1)
            
            ! check against old version from Operator_FFA.F90
            
@@ -112,7 +112,7 @@ Program OPMULTTEST
               enddo
            enddo
            
-           Call Op_mmultR(matnew, Op, nspin, 'n')
+           Call Op_mmultR(matnew, Op, nspin, 'n',1)
            
            ! check against old version from Operator_FFA.F90
            

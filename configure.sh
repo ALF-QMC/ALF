@@ -6,13 +6,16 @@ USAGE="usage 'source configure.sh MACHINE MODE STAB' \n\
 Please choose one of the following MACHINEs:\n\
  * GNU\n\
  * Intel\n\
+ * IntelLLVM or IntelX\n\
  * PGI\n\
  * SuperMUC-NG\n\
  * JUWELS\n\
+ * FRITZ\n\
 Possible MODEs are:\n\
  * MPI (default)\n\
  * noMPI\n\
  * Tempering\n\
+ * PARALLEL_PARAMS (shorthand PP)\n\
 Possible STABs are:
  * <no-argument> (default)\n\
  * STAB1 (old)\n\
@@ -41,7 +44,8 @@ set_hdf5_flags()
   
   HDF5_DIR="$ALF_DIR/HDF5/$compiler_vers"
   if [ ! -d "$HDF5_DIR" ]; then
-    printf "\nHDF5 is not yet installed for this compiler.\n"
+    printf "\nHDF5 is not yet installed for compiler '%s'.\n" "$compiler_vers"
+    printf "ALF does never use global HDF5 libraries, but installs it locally in subfolders of '%s/HDF5'.\n" "$ALF_DIR"
     if [ "$NO_INTERACTIVE" = "" ]; then
       printf "Do you want download and install it now locally in the ALF folder? (Y/n):"
       read -r yn
@@ -50,7 +54,7 @@ set_hdf5_flags()
     fi
     case "$yn" in
       y|Y|"")
-        printf "\e[31mDownloading and installing HDF5 in %s.\e[0m\n" "$HDF5_DIR"
+        printf "${RED}Downloading and installing HDF5 in %s.${NC}\n" "$HDF5_DIR"
         CC="$CC" FC="$FC" CXX="$CXX" HDF5_DIR="$HDF5_DIR" "$ALF_DIR/HDF5/install_hdf5.sh" || return 1
       ;;
       *) 
@@ -61,7 +65,78 @@ set_hdf5_flags()
   fi
   INC_HDF5="-I$HDF5_DIR/include"
   LIB_HDF5="-L$HDF5_DIR/lib $HDF5_DIR/lib/libhdf5hl_fortran.a $HDF5_DIR/lib/libhdf5_hl.a"
-  LIB_HDF5="$LIB_HDF5 $HDF5_DIR/lib/libhdf5_fortran.a $HDF5_DIR/lib/libhdf5.a -lz -ldl -lm -Wl,-rpath -Wl,$HDF5_DIR/lib"
+  EXTRA_LIBRARIES="$("$HDF5_DIR"/bin/h5fc -showconfig | grep 'Extra libraries:' | cut -f2 -d':')"
+  # EXTRA_LIBRARIES="-lz -ldl -lm"
+  LIB_HDF5="$LIB_HDF5 $HDF5_DIR/lib/libhdf5_fortran.a $HDF5_DIR/lib/libhdf5.a $EXTRA_LIBRARIES -Wl,-rpath -Wl,$HDF5_DIR/lib"
+
+  if ! "$HDF5_DIR/bin/h5fc" -showconfig | grep "deflate(zlib)" > /dev/null; then
+    printf "${RED}Warning: HDF5 installed without compression capabilies. The output files will not be compressed!${NC}\n" 1>&2
+  fi
+}
+
+check_libs()
+{
+    FC="$1" LIBS="$2"
+    FC0="$(echo "$FC" | cut -f1 -d' ')"
+    if command -v "$FC0" > /dev/null; then       # Compiler binary found
+        if sh -c "$FC check_libs.f90 $LIBS -o check_libs.out"; then  # Compiling with $LIBS is successful
+            ./check_libs.out || (
+              printf "${RED}\n==== Error: Execution of test program using compiler <%s> ====${NC}\n" "$FC" 1>&2
+              printf "${RED}==== and linear algebra libraries <%s> not successful. ====${NC}\n\n" "$LIBS" 1>&2
+              return 1
+              )
+        else
+            printf "${RED}\n==== Error: Linear algebra libraries <%s> not found. ====${NC}\n\n" "$LIBS" 1>&2
+            return 1
+        fi
+    else
+        printf "${RED}\n==== Error: Compiler <%s> not found. ====${NC}\n\n" "$FC" 1>&2
+        return 1
+    fi
+}
+
+check_python()
+{
+    if ! command -v python3 > /dev/null; then
+	printf "${RED}\n==== Error: Python 3 not found. =====${NC}\n\n" 1>&2
+	return 1
+    fi
+}
+
+find_mkl_flag()
+{
+  if command -v ifort > /dev/null; then
+    # default optimization flags for Intel compiler
+    ifort_major=2000
+    ifort_minor=0
+    ifort_major=$(ifort --version | head -n 1 | awk '{print $(NF - 1)}' | cut -d '.' -f 1)
+    ifort_minor=$(ifort --version | head -n 1 | awk '{print $(NF - 1)}' | cut -d '.' -f 2)
+    if [ "$ifort_major" -gt 2021 ] || { [ "$ifort_major" -eq 2021 ] && [ "$ifort_minor" -gt 3 ]; }; then
+      INTELMKL="-qmkl"
+    else
+      INTELMKL="-mkl"
+    fi
+  else 
+    printf "${RED}\n==== Error: MKL only supported for ifort compiler. ====${NC}\n\n" "$FC" 1>&2
+  fi
+}
+
+set_intelcc()
+{
+  if command -v icx > /dev/null; then
+    INTELCC="icx"
+  else
+    INTELCC="icc"
+  fi
+}
+
+set_intelcxx()
+{
+  if command -v icpx > /dev/null; then
+    INTELCXX="icpx"
+  else
+    INTELCXX="icpc"
+  fi
 }
 
 # default optimization flags for Intel compiler
@@ -73,13 +148,21 @@ INTELOPTFLAGS="${INTELOPTFLAGS} -parallel -qopenmp"
 INTELDEVFLAGS="-warn all -check all -g -traceback"
 INTELUSEFULFLAGS="-std08"
 
+INTELLLVMOPTFLAGS="-cpp -O3"
+INTELLLVMOPTFLAGS="-cpp -O3 -fp-model=fast=2 -no-prec-div -static -xHost -unroll -finline-functions -heap-arrays 1024 -no-wrap-margin"
+# uncomment the next line if you want to use additional openmp parallelization
+# INTELLLVMOPTFLAGS="${INTELLLVMOPTFLAGS} -qopenmp"
+INTELLLVMDEVFLAGS="-warn all -check all,nouninit -g -traceback"
+INTELLLVMUSEFULFLAGS="-std08"
+
+
 # default optimization flags for GNU compiler
 GNUOPTFLAGS="-cpp -O3 -ffree-line-length-none -ffast-math"
 #GNUOPTFLAGS="-cpp -O0 -ffree-line-length-none"
 # uncomment the next line if you want to use additional openmp parallelization
 GNUOPTFLAGS="${GNUOPTFLAGS} -fopenmp"
 # GNUDEVFLAGS="-Wconversion -Werror -fcheck=all -ffpe-trap=invalid,zero,overflow,underflow,denormal"
-GNUDEVFLAGS="-Wconversion -Werror -fcheck=all -g -fbacktrace -fmax-errors=10"
+GNUDEVFLAGS="-Wconversion -Werror -Wno-error=cpp -fcheck=all -g -fbacktrace -fmax-errors=10"
 GNUUSEFULFLAGS="-std=f2008"
 
 # default optimization flags for PGI compiler
@@ -107,14 +190,14 @@ while [ "$#" -gt "0" ]; do
   case "$ARG" in
     STAB1|STAB2|STAB3|LOG)
       if [ "$stabv" = "1" ]; then
-         printf "Additional STAB configuration found. Overwriting %s with %s .\n" "$STAB" "$ARG"
+         printf "Additional STAB configuration found. Overwriting %s with %s .\n" "$STAB" "$ARG" 1>&2
       fi
       STAB="$ARG"
       stabv="1"
     ;;
-    NOMPI|MPI|TEMPERING|SERIAL)
+    NOMPI|MPI|TEMPERING|SERIAL|PARALLEL_PARAMS|PP)
       if [ "$modev" = "1" ]; then
-         printf "Additional MODE configuration found. Overwriting %s with %s .\n" "$MODE" "$ARG"
+         printf "Additional MODE configuration found. Overwriting %s with %s .\n" "$MODE" "$ARG" 1>&2
       fi
       MODE="$ARG"
       modev="1"
@@ -126,6 +209,7 @@ while [ "$#" -gt "0" ]; do
       #DEVEL="1"
       GNUOPTFLAGS="$GNUOPTFLAGS $GNUDEVFLAGS"
       INTELOPTFLAGS="$INTELOPTFLAGS $INTELDEVFLAGS"
+      INTELLLVMOPTFLAGS="$INTELLLVMOPTFLAGS $INTELLLVMDEVFLAGS"
       PGIOPTFLAGS="$PGIOPTFLAGS $PGIDEVFLAGS"
     ;;
     NO-INTERACTIVE)
@@ -133,7 +217,7 @@ while [ "$#" -gt "0" ]; do
     ;;
     *)
       if [ "$Machinev" = "1" ]; then
-         printf "Additional MACHINE / unrecognized configuration found. Overwriting %s with %s .\n" "$MACHINE" "$ARG"
+         printf "Additional MACHINE / unrecognized configuration found. Overwriting %s with %s .\n" "$MACHINE" "$ARG" 1>&2
       fi
       MACHINE="$ARG"
       Machinev="1"
@@ -148,6 +232,7 @@ case $MODE in
     printf "serial job.\n"
     PROGRAMMCONFIGURATION=""
     INTELCOMPILER="ifort"
+    INTELLLVMCOMPILER="ifx"
     GNUCOMPILER="gfortran"
     MPICOMP=0
   ;;
@@ -157,6 +242,7 @@ case $MODE in
     printf "This requires also MPI parallization which is set as well.\n"
     PROGRAMMCONFIGURATION="-DMPI -DTEMPERING"
     INTELCOMPILER="mpiifort"
+    INTELLLVMCOMPILER="mpiifort -fc=ifx"
     GNUCOMPILER="mpifort"
     MPICOMP=1
   ;;
@@ -165,6 +251,17 @@ case $MODE in
     printf "Activating MPI parallization.\n"
     PROGRAMMCONFIGURATION="-DMPI"
     INTELCOMPILER="mpiifort"
+    INTELLLVMCOMPILER="mpiifort -fc=ifx"
+    GNUCOMPILER="mpifort"
+    MPICOMP=1
+  ;;
+ 
+  PARALLEL_PARAMS|PP)
+    printf "Activating parallel runs with different parameters.\n"
+    printf "This requires also MPI parallization which is set as well.\n"
+    PROGRAMMCONFIGURATION="-DMPI -DTEMPERING -DPARALLEL_PARAMS"
+    INTELCOMPILER="mpiifort"
+    INTELLLVMCOMPILER="mpiifort -fc=ifx"
     GNUCOMPILER="mpifort"
     MPICOMP=1
   ;;
@@ -199,7 +296,7 @@ case $STAB in
   ;;
 
   LOG)
-    STABCONFIGURATION="${STABCONFIGURATION} -DLOG"
+    STABCONFIGURATION="${STABCONFIGURATION} -DSTABLOG"
     printf "Using log storage for internal scales\n"
   ;;
 
@@ -226,9 +323,26 @@ case $MACHINE in
     F90OPTFLAGS="$INTELOPTFLAGS"
     F90USEFULFLAGS="$INTELUSEFULFLAGS"
     ALF_FC="$INTELCOMPILER"
-    LIB_BLAS_LAPACK="-mkl"
+    find_mkl_flag || return 1
+    LIB_BLAS_LAPACK="${INTELMKL}"
     if [ "${HDF5_ENABLED}" = "1" ]; then
-      set_hdf5_flags icc ifort icpc || return 1
+      set_intelcc
+      set_intelcxx
+      set_hdf5_flags "$INTELCC" ifort "$INTELCXX" || return 1
+    fi
+  ;;
+
+  #Intel (as Hybrid code)
+  INTELLLVM|INTELX)
+    F90OPTFLAGS="$INTELLLVMOPTFLAGS"
+    F90USEFULFLAGS="$INTELLLVMUSEFULFLAGS"
+    ALF_FC="$INTELLLVMCOMPILER"
+    find_mkl_flag || return 1
+    LIB_BLAS_LAPACK="${INTELMKL}"
+    if [ "${HDF5_ENABLED}" = "1" ]; then
+      set_intelcc
+      set_intelcxx
+      set_hdf5_flags "$INTELCC" ifort "$INTELCXX" || return 1
     fi
   ;;
 
@@ -240,9 +354,9 @@ case $MACHINE in
       ALF_FC="pgfortran"
     else
       ALF_FC="mpifort"
-      printf "\n${RED}   !! Compiler set to 'mpifort' !!\n"
-      printf "If this is not your PGI MPI compiler you have to set it manually through:\n"
-      printf "    'export ALF_FC=<mpicompiler>'${NC}\n"
+      printf "\n${RED}   !! Compiler set to 'mpifort' !!\n" 1>&2
+      printf "If this is not your PGI MPI compiler you have to set it manually through e.g.\n" 1>&2
+      printf "    'export ALF_FC=<mpicompiler>'${NC}\n" 1>&2
     fi
     LIB_BLAS_LAPACK="-llapack -lblas"
     if [ "${HDF5_ENABLED}" = "1" ]; then
@@ -253,8 +367,8 @@ case $MACHINE in
 
   #LRZ enviroment
   SUPERMUC-NG|NG)
-    module load hdf5/1.10.7-intel19
-    printf "\n${RED}   !!   unsetting  FORT_BLOCKSIZE  !!${NC}\n"
+    module load hdf5/1.10.7-intel21
+    printf "\n${RED}   !!   unsetting  FORT_BLOCKSIZE  !!${NC}\n" 1>&2
     unset FORT_BLOCKSIZE
 
     F90OPTFLAGS="$INTELOPTFLAGS"
@@ -275,20 +389,39 @@ case $MACHINE in
     F90OPTFLAGS="$INTELOPTFLAGS"
     F90USEFULFLAGS="$INTELUSEFULFLAGS"
     ALF_FC="mpiifort"
-    LIB_BLAS_LAPACK="-mkl"
+    find_mkl_flag || return 1
+    LIB_BLAS_LAPACK="${INTELMKL}"
     LIB_HDF5="–lh5df_fortran"
     INC_HDF5=""
   ;;
+
+  #NHR@FAU Fritz cluster
+  FRITZ)
+    module load intel
+    module load intelmpi
+    module load mkl
+
+    F90OPTFLAGS="$INTELOPTFLAGS"
+    F90USEFULFLAGS="$INTELUSEFULFLAGS"
+    ALF_FC="$INTELCOMPILER"
+    find_mkl_flag || return 1
+    LIB_BLAS_LAPACK="${INTELMKL}"
+    if [ "${HDF5_ENABLED}" = "1" ]; then
+      set_intelcc
+      set_intelcxx
+      set_hdf5_flags "$INTELCC" ifort "$INTELCXX" || return 1
+    fi
+  ;;
   #Default (unknown machine)
   *)
-    printf "\n"
-    printf "${RED}   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!${NC}\n"
-    printf "${RED}   !!               UNKNOW MACHINE               !!${NC}\n"
-    printf "${RED}   !!         IGNORING PARALLEL SETTINGS         !!${NC}\n"
-    printf "${RED}   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!${NC}\n"
-    printf "\n"
-    printf "Activating fallback option with gfortran for SERIAL JOB - Deactivating MPI.\n"
-    printf "\n"
+    printf "\n" 1>&2
+    printf "${RED}   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!${NC}\n" 1>&2
+    printf "${RED}   !!               UNKNOW MACHINE               !!${NC}\n" 1>&2
+    printf "${RED}   !!         IGNORING PARALLEL SETTINGS         !!${NC}\n" 1>&2
+    printf "${RED}   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!${NC}\n" 1>&2
+    printf "\n" 1>&2
+    printf "Activating fallback option with gfortran for SERIAL JOB - Deactivating MPI.\n" 1>&2
+    printf "\n" 1>&2
     printf "$USAGE"
     PROGRAMMCONFIGURATION=""
     F90OPTFLAGS="-cpp -O3 -ffree-line-length-none -ffast-math"
@@ -301,6 +434,10 @@ case $MACHINE in
     fi
   ;;
 esac
+
+check_libs "$ALF_FC" "${LIB_BLAS_LAPACK}" || return 1
+
+check_python || return 1
 
 PROGRAMMCONFIGURATION="$STABCONFIGURATION $PROGRAMMCONFIGURATION"
 
@@ -317,7 +454,7 @@ fi
 export ALF_LIB
 
 export ALF_DIR
-export ALF_FC
+export ALF_FC="$ALF_FC"
 
 if [ -n "${ALF_FLAGS_EXT+x}" ]; then
   printf "\nAppending additional compiler flag '%s'\n" "${ALF_FLAGS_EXT}"

@@ -65,7 +65,7 @@ Program OPWRAPDO
                End Do
             End Do
 !
-            Call Op_Wrapdo (matnew, Op, nspin, Ndim, N_Type)
+            Call Op_Wrapdo (matnew, Op, nspin, Ndim, N_Type,1)
 !
 ! check against old version from Operator_FFA.F90
             Call Op_WrapdoFFA (matold, Op, spin, Ndim, N_Type)

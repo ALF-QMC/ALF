@@ -39,8 +39,10 @@
 !
 !--------------------------------------------------------------------
 
+
     Module Predefined_Lattices
 
+      use runtime_error_mod
       Use Lattices_v3
       use iso_fortran_env, only: output_unit, error_unit
       Implicit none
@@ -117,7 +119,7 @@
            else
               Write(error_unit,*) 'For one-dimensional lattices set L2=1.'
               Write(error_unit,*) 'You can also use use n_leg_ladder with n=1'
-              error stop 1
+              CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
            endif
            Latt_Unit%Norb      = 1
            Allocate (Latt_unit%Orb_pos_p(1,2))
@@ -160,7 +162,7 @@
         case("Honeycomb")
            If (L1==1 .or. L2==1 ) then
               Write(error_unit,*) 'The Honeycomb lattice cannot be one-dimensional.'
-              error stop 1
+              CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
            endif
            Latt_Unit%Norb    = 2
            Latt_Unit%N_coord = 3
@@ -194,7 +196,7 @@
         case("Pi_Flux")
            If (L1==1 .or. L2==1 ) then
               Write(error_unit, *) 'The Pi Flux lattice cannot be one-dimensional.'
-              error stop 1
+              CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
            endif
            Latt_Unit%Norb    = 2
            Latt_Unit%N_coord = 4
@@ -208,7 +210,7 @@
            Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
         case default
            Write(error_unit,*) "Predefined_Latt: Lattice not yet implemented!"
-           error stop 1
+           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         end select
         ! Call Print_latt(Latt)
         ! This is for the orbital structure.

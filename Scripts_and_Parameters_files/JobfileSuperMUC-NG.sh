@@ -33,7 +33,7 @@
 #Important
 module load slurm_setup
 
-module load hdf5/1.10.7-intel19
+module load hdf5/1.10.7-intel21
 
 # the follwing environment variables generate an optimal pinning (to the best of our knowledge)
 # This DOES NOT have to be adapted to the choice of Ntasks

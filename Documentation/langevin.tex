@@ -1,4 +1,4 @@
-% Copyright (c) 2016-2020 The ALF project.
+% Copyright (c) 2016-2023 The ALF project.
 % This is a part of the ALF project documentation.
 % The ALF project documentation by the ALF contributors is licensed
 % under a Creative Commons Attribution-ShareAlike 4.0 International License.
@@ -90,7 +90,7 @@ A possible way to reduce autocorrelation times is to employ Fourier acceleration
 \end{equation}
 with $\hat{F}$ being a transformation to independent modes of the field. This generically corresponds to a Fourier transform, thus the notation. Currently, Fourier acceleration is not implemented in ALF, but can be included by the user.
 
-In order to use Langevin dynamics the user also has to provide the Langevin time step \texttt{Delta\_t\_Langevin\_HMC},  the maximal force \texttt{Max\_Force},  set  \texttt{Global\_update\_scheme = Langevin} in the \texttt{parameter} file.  Furthermore, the   forces   $ \frac{ \partial S_{0}(C)}{\partial s_{k,\tau}}  $  are to be specified in the routine \texttt{Ham\_Langevin\_HMC\_S0}  of the Hamiltonian files.  The Langevin update   for a general Hamiltonian  is carried out in the module  \texttt{Langevin\_HMC\_mod.F90}.   In particular the  fermion forces, 
+In order to use Langevin dynamics the user also has to provide the Langevin time step \texttt{Delta\_t\_Langevin\_HMC},  the maximal force \texttt{Max\_Force},  set  \texttt{Global\_update\_scheme=Langevin} in the \texttt{parameter} file.  Furthermore, the   forces   $ \frac{ \partial S_{0}(C)}{\partial s_{k,\tau}}  $  are to be specified in the routine \texttt{Ham\_Langevin\_HMC\_S0}  of the Hamiltonian files.  The Langevin update   for a general Hamiltonian  is carried out in the module  \texttt{Langevin\_HMC\_mod.F90}.   In particular the  fermion forces, 
 \begin{equation}
  \frac { \partial S^F(C)}{\partial s_{k,\tau} } 
  	=  \Delta \tau {N_{\mathrm{col}}} \sum\limits_{s=1}^{N_{\mathrm{fl}}} \Tr{\left[ \bm{I}^{(ks)} \left(\mathds{1} - \bm{G}^{(s)}(k,\tau) \right) \right]},
@@ -180,4 +180,5 @@ Controlling Langevin dynamics when the action has logarithmic divergences is a c
         \caption{Total energy for the 6-site Hubbard chain at $U/t=4$, $\beta t = 4$ and with open boundary conditions. For this system it can be shown that the determinant is always positive, so that no singularities occur in the action and, consequently, the Langevin dynamics works very well.  The reference data point at $\delta \tl =0$ comes from the discrete field code for the field coupled to the z-component of the magnetization and reads $-2.8169 \pm 0.0013$, while the extrapolated value is $-2.8176 \pm 0.0010$. Throughout the runs the maximal force remained bellow the threshold of 1.5. The displayed data has been produced by the pyALF script 
          \href{https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/blob/\pyALFbranch/Scripts/Langevin.py}{\texttt{Langevin.py}}. }\label{Langevin.fig}
 \end{figure}
+
 

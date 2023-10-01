@@ -1,4 +1,4 @@
-% Copyright (c) 2016 The ALF project.
+% Copyright (c) 2016-2022 The ALF project.
 % This is a part of the ALF project documentation.
 % The ALF project documentation by the ALF contributors is licensed
 % under a Creative Commons Attribution-ShareAlike 4.0 International License.
@@ -29,7 +29,7 @@ Auxiliary-field methods  can be formulated in a number of very different ways.  
 	 Z = \text{Tr}\left( e^{-\beta \hat{\mathcal{H}}}\right)   =   \sum_{\mathcal{C}} e^{-S(\mathcal{C}) },
 %\mycomment{\text{MB: more general } \int\limits_{\phi\in\mathcal{C}}\mathrm{d}\phi\; e^{-S[\phi]}}
 \end{equation}
-where $\beta $ corresponds to the inverse temperature and $S$  is the action of non-interacting fermions subject to a  space-time fluctuating auxiliary field.    
+where $\beta $ corresponds to the inverse temperature and $S$  is the action of non-interacting fermions subject to a  space-time fluctuating auxiliary field.  
 The high-dimensional  integration  over the fields is carried out stochastically.  In this formulation of many-body quantum systems, there is no reason for the action to be a real number.  Thereby $e^{-S(\mathcal{C})}$ cannot be interpreted as a weight. To circumvent this problem one can adopt   re-weighting schemes and sample $| e^{-S(\mathcal{C})}| $. This invariably leads to the so-called \emph{negative sign problem}, with the associated exponential computational scaling in system size and inverse temperature \cite{Troyer05}.  The sign problem is formulation dependent and, as mentioned above, there has been tremendous progress at identifying an increasing number of models not affected by the negative sign problem which cover a rich domain of collective emergent phenomena.  
 For continuous fields, the stochastic integrations can  be carried out with Langevin  dynamics or hybrid methods \cite{Duane85}.   However, for many  problems one can get away with discrete fields \cite{Hirsch83}. In this case,  Monte Carlo importance sampling will often be put to use \cite{Sokal89}.  
 We note that  due to  the non-locality of the fermion determinant (see below), cluster updates,  such as in the loop or stochastic series expansion algorithms for quantum spin systems  \cite{Evertz93,Sandvik99b,Sandvik02}, are hard to formulate for this class of problems.  The search for efficient updating schemes that quickly wander through the configuration space defines ongoing challenges. 
@@ -39,7 +39,9 @@ For a given field configuration, integrating out fermionic degrees of freedom ge
 \cite{Gull_rev,Assaad14_rev, Assaad07}.  One key advantage of continuous-time methods is being action based, allowing one to better handle the retarded interactions obtained when integrating out fermion or boson baths. However, in high dimensions or at low temperatures, the cubic scaling originating from the fermionic determinant is expensive. To circumvent this, the hybrid Monte-Carlo approach  \cite{Scalettar86,Duane87,Beyl17}  expresses the fermionic determinant in terms of a Gaussian integral thereby introducing a new variable in the Monte Carlo integration.    The resulting algorithm is the method of choice for lattice gauge theories in 3+1 dimensions   and has been used to provide \emph{ab initio} estimates of light hadron masses starting from quantum chromodynamics \cite{Durr08}.
 
 The approach we adopt lies between the above two \emph{extremes}.  We keep the fermionic determinant, but formulate  the problem so as to  work only with $N\times N$ matrices.    This 
-Blankenbecler,  Scalapino, Sugar (BSS)  algorithm scales linearly in  imaginary time $\beta$, but remains cubic in the volume $N$.    Furthermore, the algorithm can be formulated either in a projective manner \cite{Sugiyama86,Sorella89},  adequate to obtain zero temperature properties in the  canonical ensemble,  or at finite temperatures, in the  grand-canonical ensemble \cite{White89}.
+Blankenbecler,  Scalapino, Sugar (BSS)  algorithm scales linearly in  imaginary time $\beta$, but remains cubic in the volume $N$.    Furthermore, the algorithm can be formulated either in a projective manner \cite{Sugiyama86,Sorella89},  adequate to obtain zero temperature properties in the  canonical ensemble,  or at finite temperatures, in the  grand-canonical ensemble \cite{White89}.   
+\fa{The formulations of  the auxiliary-field approach  can  be  generalized  to   time  dependent   Hamiltonians.   This  
+allows    for  great  flexibility  and in particular  to  use  the  projective  algorithm  as  a  variational approach   \cite{Sorella21}. }
 In this documentation we summarize the essential aspects of the auxiliary-field QMC approach, and refer the reader to Refs.~\cite{Assaad02,Assaad08_rev} for complete reviews. 
 %In the following we show in detail how to implement a variety of models, run the code, and produce results for  equal-time and time-displaced correlation functions.
 
@@ -154,7 +156,7 @@ render ALF harder to modify. To circumvent this we make available an implementat
 Sec.~\ref{sec:predefined}   introduces the sets of predefined lattices,  hopping matrices,  interactions, observables and trial wave functions available.  The goal here is to provide a 
 library  so as to facilitate  implementation of new  Hamiltonians. 
 
-The package comes with as set of Hamiltonians, described in Sec.~\ref{sec:model_classes}, which includes: (i) SU(N) Hubbard models, (ii) SU(N) t-V models, (iii) SU(N) Kondo lattice models, (iv)    Models with long ranged coulomb interactions, and (v) Generic $\Ztwo$ lattice gauge theories coupled to $\Ztwo$ matter and fermions.  These model classes are built on the predefined structures. 
+The package comes with a set of Hamiltonians, described in Sec.~\ref{sec:model_classes}, which includes: (i) SU(N) Hubbard models, (ii) SU(N) t-V models, (iii) SU(N) Kondo lattice models, (iv)    Models with long ranged coulomb interactions, and (v) Generic $\Ztwo$ lattice gauge theories coupled to $\Ztwo$ matter and fermions.  These model classes are built on the predefined structures. 
 
 In Sec.~\ref{sec:maxent}  we  describe how to use our implementation of the stochastic analytical  continuation \cite{Sandvik98,Beach04a}.
 

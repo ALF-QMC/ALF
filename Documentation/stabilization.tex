@@ -29,6 +29,7 @@ For the square lattice we can decouple the nearest neighbor hopping  into $N_T=4
 This type of checkerboard decomposition is activated for a set  of predefined lattices by setting the flag \index{\texttt{Checkerboard}} \texttt{Checkerboard} to \texttt{.true.}.
 We will carry out the same separation for the interaction: 
 \begin{equation}
+\label{Checkerboard_V.Eq}
 	\hat{\mathcal{H}}_{V}  +  \hat{\mathcal{H}}_{I}   +   \hat{\mathcal{H}}_{0,I}   = \sum_{i=1}^{N_I}  \hat{O}_{i},
 \end{equation}
 where each $\hat{O}_{i}$  contains a set of commuting terms.  For instance, for the Hubbard model,   the  above reduces to 
@@ -98,6 +99,7 @@ Then,
 \end{multline}
 and we can derive  a  closed equation  for  the free energy density:
 \begin{align}
+\label{eq:f_approx_symm} 
 f_{\text{Approx} }  &=  
 \begin{aligned}[t]
    -\frac{1}{\beta V } \log \Tr &\left[ \left(\prod_{j=1}^{N_T-1} e^{-\frac{\Delta \tau}{4} \hat{T}_j } \right)    e^{-\frac{\Delta \tau}{2} \hat{T}_{N_T} } \;   
@@ -138,7 +140,7 @@ have been detailed in \cite{goth2020}.
 \subsubsection{The \texttt{Symm} flag} 
 
 If the  \texttt{Symm}   \index{\texttt{Symm}} flag is set to true,  then the program will automatically --  for the set of predefined lattices  and models -- use the symmetric   $\Delta \tau$ time step  of the interaction and 
-hopping terms.
+hopping terms.   However,  the  specification of  the  interaction in the   symmetric  form of  Eq.~\ref{eq:f_approx_symm}   has  to be carried out by the user in the Hamiltonian module. 
 
 To save CPU time  when the \texttt{Symm}  flag is on  we  carry out the following   approximation:
 \begin{multline}

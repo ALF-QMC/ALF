@@ -150,7 +150,7 @@ def create_read_write_par(filename, parameters, ham_name):
          call MPI_Comm_size(Group_Comm, isize_g, ierr)
          IF (ierr /= 0) THEN
             WRITE(error_unit,*) 'read_parameters: Error in MPI', ierr
-            error stop 1
+            Call Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
          END IF
          igroup           = irank/isize_g
 #endif
@@ -171,7 +171,7 @@ def create_read_write_par(filename, parameters, ham_name):
             OPEN(NEWUNIT=unit_para, FILE=file_para, STATUS='old', ACTION='read', IOSTAT=ierr)
             IF (ierr /= 0) THEN
                WRITE(error_unit,*) 'unable to open <parameters>', ierr
-               error stop 1
+               Call Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
             END IF
             ##READ_VAR##
             close(unit_para)

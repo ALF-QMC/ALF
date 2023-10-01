@@ -66,7 +66,7 @@ Program Wrapup
 !
             Call Op_WrapupFFA (matold, Op, spin, Ndim, N_Type)
 !
-            Call Op_Wrapup (matnew, Op, spin, Ndim, N_Type)
+            Call Op_Wrapup (matnew, Op, spin, Ndim, N_Type, 1)
 !
 !
             Do i = 1, Ndim
