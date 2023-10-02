@@ -159,13 +159,8 @@ def create_read_write_par(filename, parameters, ham_name):
 #ifdef MPI
          If (Irank_g == 0 ) then
 #endif
-#ifdef TEMPERING
-            write(file_para,'(A,I0,A)') "Temp_", igroup, "/parameters"
-            write(file_info,'(A,I0,A)') "Temp_", igroup, "/info"
-#else
             file_para = "parameters"
             file_info = "info"
-#endif
 
             !Read in parameters
             OPEN(NEWUNIT=unit_para, FILE=file_para, STATUS='old', ACTION='read', IOSTAT=ierr)

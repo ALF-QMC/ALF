@@ -137,25 +137,19 @@
     private
     public :: Alloc_Ham, ham_base, ham
 #ifdef __PGI
-    public :: Obs_scal, Obs_eq, Obs_tau
+    public :: Obs_scal
 #endif
       type ham_base
       contains
         procedure, nopass :: ham_set => ham_set_base
         procedure, nopass :: Alloc_obs => Alloc_obs_base
         procedure, nopass :: Obser => Obser_base
-        procedure, nopass :: ObserT => ObserT_base
         procedure, nopass :: Pr_obs => Pr_obs_base
         procedure, nopass :: Init_obs => Init_obs_base
-        procedure, nopass :: Global_move_tau => Global_move_tau_base
         procedure, nopass :: Hamiltonian_set_nsigma => Hamiltonian_set_nsigma_base
-        procedure, nopass :: Overide_global_tau_sampling_parameters => Overide_global_tau_sampling_parameters_base
-        procedure, nopass :: Global_move => Global_move_base
-        procedure, nopass :: Delta_S0_global => Delta_S0_global_base
         procedure, nopass :: S0 => S0_base
         procedure, nopass :: weight_reconstruction => weight_reconstruction_base
         procedure, nopass :: GR_reconstruction => GR_reconstruction_base
-        procedure, nopass :: GRT_reconstruction => GRT_reconstruction_base
 #ifdef HDF5
         procedure, nopass :: write_parameters_hdf5 => write_parameters_hdf5_base
 #endif
@@ -173,19 +167,17 @@
       Integer      , public        :: Ndim
       Integer      , public        :: N_FL, N_FL_eff
       Integer      , public        :: N_SUN
-      Integer      , public        :: Ltrot
-      Integer      , public        :: Thtrot
-      Logical      , public        :: Projector
+      Integer      , public        :: N_blk
       Integer      , public        :: Group_Comm
       Logical      , public        :: Symm
       Logical      , public        :: reconstruction_needed
-
+      
+      Complex (Kind=Kind(0.d0)), dimension(:), allocatable, public :: fac_norm
+      Complex (Kind=Kind(0.d0)), public :: weight_k
+      Complex (Kind=Kind(0.d0)), dimension(:), allocatable, public :: weight_k
 
       !>    Privat Observables
       Type (Obser_Vec ), dimension(:), allocatable :: Obs_scal
-      Type (Obser_Latt), dimension(:), allocatable :: Obs_eq
-      Type (Obser_Latt), dimension(:), allocatable :: Obs_tau
-
 
 #include "Hamiltonians_interface.h"
 !!$      This file will  be dynamically generated and appended
@@ -276,95 +268,6 @@
              write(error_unit, *) "Warning: Alloc_obs not implemented."
           End Subroutine Alloc_obs_base
 
-
-    !--------------------------------------------------------------------
-    !> @author
-    !> ALF Collaboration
-    !>
-    !> @brief
-    !> Global moves
-    !>
-    !> @details
-    !>  This routine generates a
-    !>  global update  and returns the propability T0_Proposal_ratio  =  T0( sigma_out-> sigma_in ) /  T0( sigma_in -> sigma_out)
-    !> @param [IN] nsigma_old,  Type(Fields)
-    !> \verbatim
-    !>  Old configuration. The new configuration is stored in nsigma.
-    !> \endverbatim
-    !> @param [OUT]  T0_Proposal_ratio Real
-    !> \verbatimam
-    !>  T0_Proposal_ratio  =  T0( sigma_new -> sigma_old ) /  T0( sigma_old -> sigma_new)
-    !> \endverbatim
-    !> @param [OUT]  Size_clust Real
-    !> \verbatim
-    !>  Size of cluster that will be flipped.
-    !> \endverbatim
-    !-------------------------------------------------------------------
-          Subroutine Global_move_base(T0_Proposal_ratio, nsigma_old, size_clust)
-
-             Implicit none
-             Real (Kind=Kind(0.d0)), intent(out) :: T0_Proposal_ratio, size_clust
-             Type (Fields),  Intent(IN)  :: nsigma_old
-
-             write(error_unit, *) 'Global_move not implemented'
-             CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
-
-          End Subroutine Global_move_base
-
-
-    !--------------------------------------------------------------------
-    !> @author
-    !> ALF Collaboration
-    !>
-    !> @brief
-    !> Computes the ratio exp(S0(new))/exp(S0(old))
-    !>
-    !> @details
-    !> This function computes the ratio \verbatim  e^{-S0(nsigma)}/e^{-S0(nsigma_old)} \endverbatim
-    !> @param [IN] nsigma_old,  Type(Fields)
-    !> \verbatim
-    !>  Old configuration. The new configuration is stored in nsigma.
-    !> \endverbatim
-    !-------------------------------------------------------------------
-          Real (Kind=kind(0.d0)) Function Delta_S0_global_base(Nsigma_old)
-
-             !  This function computes the ratio:  e^{-S0(nsigma)}/e^{-S0(nsigma_old)}
-             Implicit none
-
-             ! Arguments
-             Type (Fields),  INTENT(IN) :: nsigma_old
-
-             Logical, save              :: first_call=.True.
-             integer                    :: field_id, tau, Nfields, Ntau
-             Real(kind=kind(0.0d0))     :: Hs_old
-
-             Delta_S0_global_base = 1.d0
-             Nfields=size(nsigma_old%f,1)
-             Ntau=size(nsigma_old%f,2)
-             do tau=1,Ntau
-                do field_id=1,Nfields
-                   ! S0 returns S0=exp(-S0(HS_old))/exp(-S0(nsigma))
-                   ! purposly call ham%S0 instead of S0_base such that S0 may be provided in derived Hamiltonian
-                   Hs_old=nsigma_old%f(field_id,tau)
-                   ! note we need exp(-S0(new))/exp(-S0(old)) but nsigma is already the new config and we provide HS_old
-                   ! in contrast to HS_new. Hence, S0 returns the inverse of whar we need!
-                   Delta_S0_global_base=Delta_S0_global_base/ham%S0(field_id,tau,Hs_old)
-                enddo
-             enddo
-
-             if (first_call) then
-                write(output_unit,*)
-                write(output_unit,*) "ATTENTION:     The base implementation of Delta_S0_global is used!"
-                write(output_unit,*) "This relies on a proper version of S0, but may be inefficient for some models."
-                write(output_unit,*) "Consider overwriting this function to benefit from model specific properties."
-                write(output_unit,*) "Suppressing further printouts of this message."
-                write(output_unit,*)
-                first_call=.False.
-             endif
-
-          end Function Delta_S0_global_base
-
-
     !--------------------------------------------------------------------
     !> @author
     !> ALF Collaboration
@@ -400,49 +303,6 @@
              endif
           end Subroutine Obser_base
 
-
-    !--------------------------------------------------------------------
-    !> @author
-    !> ALF Collaboration
-    !>
-    !> @brief
-    !> Computes time displaced  observables
-    !> @details
-    !> @param [IN] NT, Integer
-    !> \verbatim
-    !>  Imaginary time
-    !> \endverbatim
-    !> @param [IN] GT0, GTT, G00, GTT,  Complex(:,:,:)
-    !> \verbatim
-    !>  Green functions:
-    !>  GT0(I,J,nf) = <T c_{I,nf }(tau) c^{dagger}_{J,nf }(0  )>
-    !>  G0T(I,J,nf) = <T c_{I,nf }(0  ) c^{dagger}_{J,nf }(tau)>
-    !>  G00(I,J,nf) = <T c_{I,nf }(0  ) c^{dagger}_{J,nf }(0  )>
-    !>  GTT(I,J,nf) = <T c_{I,nf }(tau) c^{dagger}_{J,nf }(tau)>
-    !> \endverbatim
-    !> @param [IN] Phase   Complex
-    !> \verbatim
-    !>  Phase
-    !> \endverbatim
-    !-------------------------------------------------------------------
-          Subroutine ObserT_base(NT, GT0, G0T, G00, GTT, PHASE)
-             Implicit none
-    
-             Integer         , INTENT(IN) :: NT
-             Complex (Kind=Kind(0.d0)), INTENT(IN) :: GT0(Ndim,Ndim,N_FL), G0T(Ndim,Ndim,N_FL)
-             Complex (Kind=Kind(0.d0)), INTENT(IN) :: G00(Ndim,Ndim,N_FL), GTT(Ndim,Ndim,N_FL)
-             Complex (Kind=Kind(0.d0)), INTENT(IN) :: Phase
-             Logical, save              :: first_call=.True.
-             
-             If  (first_call)    then 
-                write(error_unit, *) "Warning: ObserT not implemented."
-                first_call=.false.
-             endif
-             
-    
-          end Subroutine ObserT_base
-
-
     !--------------------------------------------------------------------
     !> @author
     !> ALF Collaboration
@@ -463,16 +323,6 @@
              if ( allocated(Obs_scal) ) then
                Do I = 1,Size(Obs_scal,1)
                   Call Print_bin_Vec(Obs_scal(I), Group_Comm)
-               enddo
-             endif
-             if ( allocated(Obs_eq) ) then
-               Do I = 1,Size(Obs_eq,1)
-                  Call Print_bin_Latt(Obs_eq(I), Group_Comm)
-               enddo
-             endif
-             if ( allocated(Obs_tau) ) then
-               Do I = 1,Size(Obs_tau,1)
-                  Call Print_bin_Latt(Obs_tau(I), Group_Comm)
                enddo
              endif
     
@@ -500,71 +350,8 @@
                   Call Obser_vec_Init(Obs_scal(I))
                Enddo
              endif
-    
-             if ( allocated(Obs_eq) ) then
-               Do I = 1,Size(Obs_eq,1)
-                  Call Obser_Latt_Init(Obs_eq(I))
-               Enddo
-             endif
-    
-             if ( allocated(Obs_tau) ) then
-               Do I = 1,Size(Obs_tau,1)
-                  Call Obser_Latt_Init(Obs_tau(I))
-               Enddo
-             Endif
-    
+
           end Subroutine Init_obs_base
-
-
-    !--------------------------------------------------------------------
-    !> @author
-    !> ALF Collaboration
-    !>
-    !> @brief
-    !> Specify a global move on a given time slice tau.
-    !>
-    !> @details
-    !> @param[in] ntau Integer
-    !> \verbatim
-    !>  Time slice
-    !> \endverbatim
-    !> @param[out] T0_Proposal_ratio, Real
-    !> \verbatim
-    !>  T0_Proposal_ratio = T0( sigma_new -> sigma ) /  T0( sigma -> sigma_new)
-    !> \endverbatim
-    !> @param[out] S0_ratio, Real
-    !> \verbatim
-    !>  S0_ratio = e^( S_0(sigma_new) ) / e^( S_0(sigma) )
-    !> \endverbatim
-    !> @param[out] Flip_length  Integer
-    !> \verbatim
-    !>  Number of flips stored in the first  Flip_length entries of the array Flip_values.
-    !>  Has to be smaller than NDIM
-    !> \endverbatim
-    !> @param[out] Flip_list  Integer(Ndim)
-    !> \verbatim
-    !>  List of spins to be flipped: nsigma%f(Flip_list(1),ntau) ... nsigma%f(Flip_list(Flip_Length),ntau)
-    !>  Note that Ndim = size(Op_V,1)
-    !> \endverbatim
-    !> @param[out] Flip_value  Real(Ndim)
-    !> \verbatim
-    !>  Flip_value(:)= nsigma%flip(Flip_list(:),ntau)
-    !>  Note that Ndim = size(Op_V,1)
-    !> \endverbatim
-    !--------------------------------------------------------------------
-          Subroutine Global_move_tau_base(T0_Proposal_ratio, S0_ratio, &
-                &                     Flip_list, Flip_length,Flip_value,ntau)
-
-             Implicit none
-             Real (Kind = Kind(0.d0)),INTENT(OUT) :: T0_Proposal_ratio,  S0_ratio
-             Integer                , INTENT(OUT) :: Flip_list(:)
-             Real (Kind = Kind(0.d0)),INTENT(OUT) :: Flip_value(:)
-             Integer, INTENT(OUT) :: Flip_length
-             Integer, INTENT(IN)  :: ntau
-             
-             write(error_unit, *) 'Global_move_tau not implemented'
-             CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
-          end Subroutine Global_move_tau_base
 
     !--------------------------------------------------------------------
     !> @author
@@ -592,30 +379,6 @@
 !!$             write(output_unit,*)
 
           end Subroutine Hamiltonian_set_nsigma_base
-
-
-    !--------------------------------------------------------------------
-    !> @author
-    !> ALF Collaboration
-    !>
-    !> @brief
-    !> This routine allows to user to  determine the global_tau sampling parameters at run time
-    !> It is especially usefull if these parameters are dependent on other parameters.
-    !>
-    !> @details
-    !> \endverbatim
-    !--------------------------------------------------------------------
-          Subroutine Overide_global_tau_sampling_parameters_base(Nt_sequential_start,Nt_sequential_end,N_Global_tau)
-
-             Implicit none
-             Integer, Intent(INOUT) :: Nt_sequential_start,Nt_sequential_end, N_Global_tau
-
-!!$             write(output_unit,*)
-!!$             write(output_unit,*) "ATTENTION:     Base implementation of Overide_global_tau_sampling_parameters is getting calling!"
-!!$             write(output_unit,*) "This routine does not actually change the parameters."
-!!$             write(output_unit,*)
-
-          end Subroutine Overide_global_tau_sampling_parameters_base
     
 !--------------------------------------------------------------------
 !> @brief
@@ -655,32 +418,6 @@
             write(error_unit, *) "Warning: GR_reconstruction not implemented."
             CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
           end Subroutine GR_reconstruction_base
-
-
-!--------------------------------------------------------------------
-!> @author
-!> ALF Collaboration
-!>
-!> @brief
-!> Reconstructs dependent flavors of time displaced Greens function G0T and GT0
-!> @details
-!> This has to be overloaded in the Hamiltonian submodule.
-!> @param [INOUT] GT0, G0T,  Complex(:,:,:)
-!> \verbatim
-!>  Green functions:
-!>  GT0(I,J,nf) = <T c_{I,nf }(tau) c^{dagger}_{J,nf }(0  )>
-!>  G0T(I,J,nf) = <T c_{I,nf }(0  ) c^{dagger}_{J,nf }(tau)>
-!> \endverbatim
-!-------------------------------------------------------------------
-         Subroutine GRT_reconstruction_base(GT0, G0T)
-           Implicit none
-           
-           Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: GT0(Ndim,Ndim,N_FL), G0T(Ndim,Ndim,N_FL)
-           
-           write(error_unit, *) "Warning: GRT_reconstruction not implemented."
-           CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
-         end Subroutine GRT_reconstruction_base
-         
          
 #ifdef HDF5
          subroutine write_parameters_hdf5_base(filename)

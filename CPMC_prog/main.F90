@@ -30,7 +30,7 @@ Program Main
         CLASS(UDV_State), DIMENSION(:), ALLOCATABLE :: udvl, udvr
         COMPLEX (Kind=Kind(0.d0)), Dimension(:)  , Allocatable   :: Phase_array
 
-        Integer :: N_eqblk, N_blksteps, N_blk, i_blk, j_step, N_blksteps_eff
+        Integer :: N_eqblk, N_blksteps, i_blk, j_step, N_blksteps_eff
         Integer :: Nwrap, itv_pc, itv_Em
         Real(Kind=Kind(0.d0)) :: CPU_MAX
         Character (len=64) :: file_seeds, file_para, file_dat, file_info, ham_name
@@ -42,7 +42,7 @@ Program Main
         Logical :: file_exists
 #endif
         
-        NAMELIST /VAR_CPMC/ Nwrap, itv_pc, itv_Em, N_eqblk, N_blksteps, N_blk, i_blk, j_step, CPU_MAX, N_blksteps
+        NAMELIST /VAR_CPMC/ Nwrap, itv_pc, itv_Em, N_eqblk, N_blksteps, i_blk, j_step, CPU_MAX, N_blksteps
 
         NAMELIST /VAR_HAM_NAME/ ham_name
 
@@ -139,7 +139,7 @@ Program Main
 #endif
 
            ! This is a set of variables that  identical for each simulation.
-           Nwrap=0; NBin=0; Ltau=0; CPU_MAX = 0.d0;
+           Nwrap=0; Ltau=0; CPU_MAX = 0.d0;
            OPEN(UNIT=5,FILE=file_para,STATUS='old',ACTION='read',IOSTAT=ierr)
            IF (ierr /= 0) THEN
               WRITE(error_unit,*) 'main: unable to open <parameters>', file_para, ierr
@@ -156,7 +156,6 @@ Program Main
         CALL MPI_BCAST(itv_Em               ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(N_eqblk              ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(N_blksteps           ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(N_blk                ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(CPU_MAX              ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(ham_name             ,64,MPI_CHARACTER,0,MPI_COMM_i,ierr)
 #endif
@@ -191,7 +190,7 @@ Program Main
         Call Set_Random_number_Generator(File_seeds,Seed_in)
 
         Call Hop_mod_init
-        IF (ABS(CPU_MAX) > Zero ) NBIN = 10000000
+        IF (ABS(CPU_MAX) > Zero ) N_blksteps = 10000000
 
 #if defined(HDF5)
         file_dat = "data.h5"
@@ -221,7 +220,6 @@ Program Main
            If ( abs(CPU_MAX) < ZERO ) then
               Write(50,*) 'N_eqblk                              : ', N_eqblk
               Write(50,*) 'N_blksteps                           : ', N_blksteps
-              Write(50,*) 'N_blk                                : ', N_blk
               Write(50,*) 'Nwrap                                : ', Nwrap
               Write(50,*) 'itv_pc                               : ', itv_pc
               Write(50,*) 'itv_Em                               : ', itv_Em
@@ -261,15 +259,13 @@ Program Main
         Call Control_init(Group_Comm)
 
         !! main loop
-        do i_blk =1, N_blk
+        do j_step=1, N_blksteps
             !! also add a function to init Green's function
 
-
+            call system_clock(count_bin_start)
             call ham%Init_obs(Ltau)
         
-            do j_step=1, N_blksteps
-                
-                call system_clock(count_bin_start)
+            do i_blk =1, N_blk
                 
                 !! propagate the walkers:
                 call stepwlk(Phi, N_wlk, N_sites, w, O, E_blk(i_blk), W_blk(i_blk), H_k, Proj_k_half, flag_mea, Phi_T, N_up, N_par, U, fac_norm, aux_fld);
@@ -283,9 +279,18 @@ Program Main
                     CALL ham%Obser( GR_Tilde, PHASE )
                 endif
             enddo
+            
+            call ham%Pr_obs
+            call system_clock(count_bin_end)
+            prog_truncation = .false.
+            if ( abs(CPU_MAX) > Zero ) then
+               Call make_truncation(prog_truncation,CPU_MAX,count_bin_start,count_bin_end,group_comm)
+            endif
+            If (prog_truncation) then
+               exit !exit the loop over the step index
+            Endif
         
         enddo
-        call ham%Pr_obs
         
         deallocate(Calc_Fl_map,Phase_array)
 
