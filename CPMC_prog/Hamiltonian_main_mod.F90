@@ -146,7 +146,6 @@
         procedure, nopass :: Obser => Obser_base
         procedure, nopass :: Pr_obs => Pr_obs_base
         procedure, nopass :: Init_obs => Init_obs_base
-        procedure, nopass :: Hamiltonian_set_nsigma => Hamiltonian_set_nsigma_base
         procedure, nopass :: S0 => S0_base
         procedure, nopass :: weight_reconstruction => weight_reconstruction_base
         procedure, nopass :: GR_reconstruction => GR_reconstruction_base
@@ -163,7 +162,7 @@
       Type (WaveFunction), dimension(:),   allocatable, public :: WF_R
       Logical            , dimension(:),   allocatable, public :: Calc_Fl
       Integer            , dimension(:),   allocatable, public :: Calc_Fl_map
-      Type (Fields), public        :: nsigma
+      Type (Fields)      , dimension(:),   allocatable, public :: nsigma
       Integer      , public        :: Ndim
       Integer      , public        :: N_FL, N_FL_eff
       Integer      , public        :: N_SUN
@@ -173,8 +172,8 @@
       Logical      , public        :: reconstruction_needed
       
       Complex (Kind=Kind(0.d0)), dimension(:), allocatable, public :: fac_norm
-      Complex (Kind=Kind(0.d0)), public :: weight_k
       Complex (Kind=Kind(0.d0)), dimension(:), allocatable, public :: weight_k
+      Complex (Kind=Kind(0.d0)), dimension(:), allocatable, public :: Overlap
 
       !>    Privat Observables
       Type (Obser_Vec ), dimension(:), allocatable :: Obs_scal
@@ -352,33 +351,6 @@
              endif
 
           end Subroutine Init_obs_base
-
-    !--------------------------------------------------------------------
-    !> @author
-    !> ALF Collaboration
-    !>
-    !> @brief
-    !> The user can set the initial field.
-    !>
-    !> @details
-    !> @param[OUT] Initial_field Real(:,:)
-    !> \verbatim
-    !>  Upon entry Initial_field is not allocated. If alloacted then it will contain the
-    !>  the initial field
-    !> \endverbatim
-    !--------------------------------------------------------------------
-          Subroutine  Hamiltonian_set_nsigma_base(Initial_field)
-             Implicit none
-
-             Real (Kind=Kind(0.d0)), allocatable, dimension(:,:), Intent(INOUT) :: Initial_field
-
-             !  Consider  when we implement  different debugging  levels
-!!$             write(output_unit,*)
-!!$             write(output_unit,*) "ATTENTION:     Base implementation of Hamiltonian_set_nsigma is getting calling!"
-!!$             write(output_unit,*) "This routine does not actually change the initial field configuration."
-!!$             write(output_unit,*)
-
-          end Subroutine Hamiltonian_set_nsigma_base
     
 !--------------------------------------------------------------------
 !> @brief

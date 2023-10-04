@@ -25,17 +25,15 @@ Program Main
 
 #include "git.h"
 
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:)  , Allocatable   ::  TEST
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable   :: GR, GR_Tilde
-        CLASS(UDV_State), DIMENSION(:), ALLOCATABLE :: udvl, udvr
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:)  , Allocatable   :: Phase_array
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:,:), Allocatable   :: GR
+        CLASS(UDV_State), DIMENSION(:,:), ALLOCATABLE :: phi_trial, udvr, phi_0
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:)  , Allocatable   :: Phase_array
 
         Integer :: N_eqblk, N_blksteps, i_blk, j_step, N_blksteps_eff
         Integer :: Nwrap, itv_pc, itv_Em
         Real(Kind=Kind(0.d0)) :: CPU_MAX
         Character (len=64) :: file_seeds, file_para, file_dat, file_info, ham_name
         Integer :: Seed_in
-        Real (Kind=Kind(0.d0)) , allocatable, dimension(:,:) :: Initial_field
 
 #ifdef HDF5
         INTEGER(HID_T) :: file_id
@@ -48,7 +46,8 @@ Program Main
 
         !  General
         Integer :: Ierr, I,nf, nf_eff, nst, n, N_op
-        Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Phase, Z, Z1
+        Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Z, Z1
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:)  , Allocatable   :: Phase
         Real    (Kind=Kind(0.d0)) :: ZERO = 10D-8, X, X1
 
         ! Space for storage.
@@ -165,6 +164,7 @@ Program Main
 
         N_op = Size(OP_V,1)
 
+        ! Test if user has initialized Calc_FL array
         If ( .not. allocated(Calc_Fl)) then
           allocate(Calc_Fl(N_FL))
           Calc_Fl=.True.
@@ -177,7 +177,7 @@ Program Main
         reconstruction_needed=.false.
         If (N_FL_eff /= N_FL) reconstruction_needed=.true.
         !initialize the flavor map
-        allocate(Calc_Fl_map(N_FL_eff),Phase_array(N_FL))
+        allocate(Calc_Fl_map(N_FL_eff),Phase_array(N_FL,N_blk), Phase(N_blk))
         N_FL_eff=0
         Do I=1,N_Fl
           if (Calc_Fl(I)) then
@@ -189,7 +189,17 @@ Program Main
         File_seeds="seeds"
         Call Set_Random_number_Generator(File_seeds,Seed_in)
 
+        allocate(nisgma(N_blk))
+        do i_blk =1, N_blk
+            call nsigma(i_blk)%make(N_op, nwrap)
+            Do n = 1,N_op
+               nsigma(i_blk)%t(n)  = OP_V(n,1)%type
+            Enddo
+            Call nsigma(i_blk)%in(Group_Comm)
+        enddo
+        
         Call Hop_mod_init
+
         IF (ABS(CPU_MAX) > Zero ) N_blksteps = 10000000
 
 #if defined(HDF5)
@@ -234,12 +244,6 @@ Program Main
            if(use_mpi_shm) Write(50,*) 'Using mpi-shared memory in chunks of ', chunk_size_gb, 'GB.'
 #endif
 
-#if defined(STAB1)
-           Write(50,*) 'STAB1 is defined '
-#endif
-#if defined(STAB2)
-           Write(50,*) 'STAB2 is defined '
-#endif
 #if defined(STAB3)
            Write(50,*) 'STAB3 is defined '
 #endif
@@ -249,14 +253,45 @@ Program Main
 #if defined(QRREF)
            Write(50,*) 'QRREF is defined '
 #endif
+
 #if defined(MPI)
         endif
 #endif
 
-        Allocate( GR(NDIM,NDIM,N_FL) )
-        Allocate( udvl(N_FL_eff) , udvr(N_FL_eff))
+        Call control_init(Group_Comm)
+        Call ham%Alloc_obs
         
-        Call Control_init(Group_Comm)
+        Allocate( GR(NDIM,NDIM,N_FL,N_blk) )
+        Allocate( phi_trail(N_FL_eff, N_blk) , udvr(N_FL_eff, N_blk), phi_0(N_FL_eff, N_blk))
+        
+        Phase_array(:,:) = cmplx(1.d0, 0.d0, kind(0.D0))
+        
+        ! init slater determinant
+        do i_blk  = 1, N_blk
+            do nf_eff = 1, N_FL_eff
+               nf=Calc_Fl_map(nf_eff)
+               CALL udvr(nf_eff, i_blk)%init(ndim,'r',WF_R(nf)%P)
+               CALL phi_trial(nf_eff, i_blk)%init(ndim,'l',WF_L(nf)%P)
+               CALL phi_0(nf_eff, i_blk)%init(ndim,'r',WF_R(nf)%P)
+               
+               !Carry out U,D,V decomposition.
+               CALL udvr(nf_eff, i_blk)%decompose
+               CALL phi_trial(nf_eff, i_blk)%decompose
+               CALL phi_0(nf_eff, i_blk)%decompose
+            enddo
+
+            NVAR = 1
+            do nf_eff = 1,N_Fl_eff
+               nf=Calc_Fl_map(nf_eff)
+               call CGR(Z, NVAR, GR(:,:,nf, i_blk), phi_0(nf_eff, i_blk), phi_trial(nf_eff, i_blk))
+               Phase_array(nf, i_blk)=Z
+            enddo
+            if (reconstruction_needed) call ham%weight_reconstruction(Phase_array(:,i_blk))
+            Phase(i_blk)=product(Phase_array(:,i_blk))
+            Phase(i_blk)=Phase(i_blk)**N_SUN
+        enddo
+
+        Call control_init(Group_Comm)
 
         !! main loop
         do j_step=1, N_blksteps
@@ -275,8 +310,8 @@ Program Main
                 !! update the exponent of the pre-factor exp(-deltau*(H-E_T))
                 if ( mod(j_step,itv_Em)     .eq. 0 ) fac_norm=(real(E_blk(i_blk)/W_blk(i_blk))-0.5*U*N_par)*dtau;
                 if ( mod(j_step,itv_Em)     .eq. 0 ) then
-                    If (reconstruction_needed) Call ham%GR_reconstruction( GR_Tilde )
-                    CALL ham%Obser( GR_Tilde, PHASE )
+                If (reconstruction_needed) Call ham%GR_reconstruction( GR )
+                    CALL ham%Obser( GR, PHASE )
                 endif
             enddo
             

@@ -107,7 +107,8 @@
 
           allocate( weight_k(N_blk) )
           allocate( fac_norm(N_blk) )
-          weight_k = cmplx(1.d0, 0.d0, kind(0.d0))
+          allocate( overlap (N_blk) )
+          weight_k(:) = cmplx(1.d0, 0.d0, kind(0.d0))
 
           ! Setup the Bravais lattice
           Call Ham_Latt
@@ -290,11 +291,10 @@
 !> Specifiy the equal time and time displaced observables
 !> @details
 !--------------------------------------------------------------------
-        Subroutine  Alloc_obs(Ltau)
+        Subroutine  Alloc_obs
 
           Implicit none
           !>  Ltau=1 if time displaced correlations are considered.
-          Integer, Intent(In) :: Ltau
           Integer    ::  i, N, Nt
           Character (len=64) ::  Filename
           Character (len=2)  ::  Channel
