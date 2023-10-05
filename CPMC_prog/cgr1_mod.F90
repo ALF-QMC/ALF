@@ -55,124 +55,6 @@ module cgr1_mod
 
         Use UDV_State_mod
 
-#if (defined(STAB2) || defined(STAB1)) && !defined(STABLOG)
-        Use UDV_Wrap_mod
-
-        Implicit None
-
-        !Arguments.
-        CLASS(UDV_State), INTENT(IN) :: udvl, udvr
-        COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(INOUT) :: GRUP
-        COMPLEX(Kind=Kind(0.d0)) :: PHASE
-        INTEGER         :: NVAR
- 
-        !Local
-        Logical, save :: Scale_warning_message = .true.
-        TYPE(UDV_State) :: udvlocal
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable :: TPUP, TPUP1, TPUPM1
-        INTEGER, Dimension(:), Allocatable :: IPVT
-        COMPLEX (Kind=Kind(0.d0)) ::  ZDUP1, ZDDO1, ZDUP2, ZDDO2, Z1, ZUP, ZDO, alpha, beta
-        Integer :: I,J, N_size, NCON, info
-        Real (Kind=Kind(0.D0)) :: X, Xmax, sv
-            
-        if( .not. allocated(UDVL%V) ) then
-          !call projector cgr
-          call cgrp(phase, grup, udvr, udvl)
-          return
-        endif
-        
-        if(udvl%side .ne. "L" .and. udvl%side .ne. "l" ) then
-          write(*,*) "calling wrong decompose"
-        endif
-        if(udvr%side .ne. "R" .and. udvr%side .ne. "r" ) then
-          write(*,*) "calling wrong decompose"
-        endif
-        
-        N_size = udvl%Ndim
-        NCON = 0
-        alpha = 1.D0
-        beta = 0.D0
-        Allocate(TPUP(N_size,N_size), TPUP1(N_size,N_size), TPUPM1(N_size,N_size), IPVT(N_size) )
-        CALL udvlocal%alloc(N_size)
-        !Write(6,*) 'In CGR', N_size
-        CALL MMULT(udvlocal%V, udvr%V, udvl%V)
-        if ( dble(udvr%D(1)*udvlocal%V(1,1)*udvl%D(1)) > 0.1*huge(1.0d0) .and. Scale_warning_message) then
-           write(error_unit,*) 
-           write(error_unit,*) "Warning: Large number encountered; Generation of NaN's is imminent"
-           write(error_unit,*) "         Switching to LOG stablilization scheme is likely to help"
-           Scale_warning_message = .false.
-        endif
-        DO J = 1,N_size
-            TPUP(:,J) = udvr%D(:)*udvlocal%V(:,J)*udvl%D(J)
-        ENDDO
-        CALL ZGEMM('C', 'N', N_size, N_size, N_size, alpha, udvr%U(1,1), N_size, udvl%U(1,1), N_size, alpha, TPUP, N_size)
-        !>  Syntax 
-        !>  ZGEMM(TRANSA,TRANSB,M,N,K,ALPHA,A,LDA,B,LDB,BETA,C,LDC)
-        !>  C := alpha*op( A )*op( B ) + beta*C
-        !>  TPUP =  (URUP)^(dagger) ULUP^(dagger) + TPUP
-        IF (NVAR.EQ.1) THEN
-           !WRITE(6,*) 'UDV of U + DR * V * DL'
-           CALL UDV_WRAP_Pivot(TPUP,udvlocal%U,udvlocal%D,udvlocal%V,NCON,N_size,N_Size)
-           !CALL UDV(TPUP,UUP,DUP,VUP,NCON)
-!            CALL MMULT(TPUP,udvlocal%V, udvl%U)
-           CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, udvlocal%V(1,1), N_size, udvl%U(1,1), N_size, beta, TPUP, N_size)
-           !Do I = 1,N_size
-           !   Write(6,*) DLUP(I)
-           !enddo
-           CALL INV  (TPUP,TPUPM1,ZDUP1)
-           CALL MMULT(TPUP1, udvr%U, udvlocal%U)
-           CALL ZGETRF(N_size, N_size, TPUP1, N_size, IPVT, info)
-           !>  TPUP1 = P * L * U   LU-decomposition
-           Z1 = ZDUP1
-           Do i = 1, N_size
-              IF (IPVT(i) .ne. i) THEN
-                 Z1 = -Z1
-              endif
-              Z1 = Z1 * TPUP1(I, I) 
-              
-           enddo
-        ELSE
-           !WRITE(6,*) 'UDV of (U + DR * V * DL)^{*}'
-           TPUP1 = CT(TPUP)
-           CALL UDV_WRAP_Pivot(TPUP1, udvlocal%U, udvlocal%D, udvlocal%V, NCON,N_size,N_size)
-           !CALL UDV(TPUP1,UUP,DUP,VUP,NCON)
-           CALL ZGEMM('N', 'N', N_size, N_size, N_size, alpha, udvl%U(1,1), N_size, udvlocal%U, N_size, beta, TPUPM1, N_size)
-           CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, udvr%U(1,1), N_size, udvlocal%V, N_size, beta, TPUP1, N_size)
-           CALL ZGETRF(N_size, N_size, TPUP1, N_size, IPVT, info)
-           !>  TPUP1 = P * L * U   LU-decomposition
-           ZDUP2 = 1.D0
-           do i = 1, N_size
-              ZDUP2 = ZDUP2 * TPUP1(I,I)
-              IF (IPVT(i) .ne. i) THEN
-                 ZDUP2 = -ZDUP2
-              endif
-           enddo
-           TPUP = TPUPM1
-           ZDUP1 = DET_C(TPUP, N_size)! Det destroys its argument
-           Z1 = ZDUP2/ZDUP1
-        ENDIF
-        DO J = 1, N_size
-           sv = DBLE(udvlocal%D(J))
-           X = ABS(sv)
-           if (J == 1)  Xmax = X
-           if ( X  < Xmax ) Xmax = X
-           sv = 1.D0/sv
-           DO I = 1, N_size
-              udvlocal%U(J, I) = TPUPM1(I, J) * sv
-           ENDDO
-        ENDDO
-        call ZGETRS('T', N_size, N_size, TPUP1, N_size, IPVT, udvlocal%U, N_size, info)
-        !> Syntax
-        !> ZGETRS( TRANS, N, NRHS, A, LDA, IPIV, B, LDB, INFO )
-        !> Op(A) * X = B 
-        !> On output  B = X
-        GRUP = TRANSPOSE(udvlocal%U)
-        PHASE = Z1/ABS(Z1)
-        CALL udvlocal%dealloc
-        Deallocate(TPUP,TPUP1,TPUPM1, IPVT )
-
-#else
-
         USE MyMats
         USE QDRP_mod
         
@@ -438,7 +320,6 @@ module cgr1_mod
             CALL ZGEMM('N', 'C', N_size, N_size, N_size, alpha, RHS(1, 1), N_size, udvr%U(1,1), N_size, beta, GRUP(1, 1), N_size)
         ENDIF
         Deallocate(TPUP, DUP, IPVT, VISITED, RHS)
-#endif
         
       END SUBROUTINE CGR
       
@@ -507,4 +388,49 @@ module cgr1_mod
         Deallocate(sMat, rMat, ipiv)
       
       END SUBROUTINE CGRP
+
+
+      Subroutine Compute_overlap(Det_Vec, udvr, udvl)
+
+        Use UDV_State_mod
+
+        Implicit none
+
+        REAL    (Kind=Kind(0.d0)), Dimension(:), Intent(OUT)  ::  Det_Vec
+        CLASS(UDV_State), DIMENSION(:)  , ALLOCATABLE,  INTENT(INOUT) :: udvr, udvl
+
+        !> Local variables
+        Integer ::  N_size, NCON, I,  J, N_part, info, NSTM, N, nf, nst, nt, nt1, nf_eff
+        Integer, allocatable :: ipiv(:)
+        COMPLEX (Kind=Kind(0.d0)) :: alpha,beta, Z, Z1
+        TYPE(UDV_State) :: udvlocal
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  TP!, U, V
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable :: D
+
+        N_part=udvr%N_part
+        N_size=udvr%ndim
+        Det_vec = 0.d0
+        Allocate (TP(N_part,N_part), ipiv(N_part))
+        do nf_eff=1,N_FL_eff
+           nf=Calc_Fl_map(nf_eff)
+           alpha=1.d0
+           beta=0.d0
+           CALL ZGEMM('C','N',N_part,N_part,N_size,alpha,udvl(nf_eff)%U(1,1),N_size,udvr(nf_eff)%U(1,1),N_size,beta,TP(1,1),N_part)
+           ! ZGETRF computes an LU factorization of a general M-by-N matrix A
+           ! using partial pivoting with row interchanges.
+           call ZGETRF(N_part, N_part, TP(1,1), N_part, ipiv, info)
+           Z=1.d0
+           Do J=1,N_part
+              if (ipiv(J).ne.J) then
+                 Z = -Z
+              endif
+              Z =  Z * TP(J,J)
+           enddo
+           Det_vec(nf) = Det_vec(nf)+log(abs(Z))
+        enddo
+        Deallocate(TP,ipiv)
+        return
+
+      end subroutine Compute_overlap
+
 end module cgr1_mod

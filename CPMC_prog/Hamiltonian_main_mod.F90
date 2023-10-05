@@ -158,8 +158,8 @@
 
       Type (Operator),     dimension(:,:), allocatable, public :: Op_V
       Type (Operator),     dimension(:,:), allocatable, public :: Op_T
-      Type (WaveFunction), dimension(:),   allocatable, public :: WF_L
-      Type (WaveFunction), dimension(:),   allocatable, public :: WF_R
+      Type (WaveFunction), dimension(:,:), allocatable, public :: WF_L
+      Type (WaveFunction), dimension(:,:), allocatable, public :: WF_R
       Logical            , dimension(:),   allocatable, public :: Calc_Fl
       Integer            , dimension(:),   allocatable, public :: Calc_Fl_map
       Type (Fields)      , dimension(:),   allocatable, public :: nsigma

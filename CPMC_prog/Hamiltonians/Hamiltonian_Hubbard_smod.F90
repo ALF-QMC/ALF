@@ -240,6 +240,7 @@
           N_part = Ndim/2
           Call Predefined_TrialWaveFunction(Lattice_type ,Ndim,  List,Invlist,Latt, Latt_unit, &
                &                            N_part, N_FL,  WF_L, WF_R)
+          overlap(:) = cmplx(1.d0, 0.d0, kind(0.d0))
 
         end Subroutine Ham_Trial
 
