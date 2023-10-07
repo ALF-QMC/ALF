@@ -30,7 +30,7 @@ Program Main
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:)  , Allocatable   :: Phase_array
 
         Integer :: N_eqblk, N_blksteps, i_blk, j_step, N_blksteps_eff
-        Integer :: Nwrap, itv_pc, itv_Em
+        Integer :: Nwrap, itv_pc, itv_Em, ntau
         Real(Kind=Kind(0.d0)) :: CPU_MAX
         Character (len=64) :: file_seeds, file_para, file_dat, file_info, ham_name
         Integer :: Seed_in
@@ -159,6 +159,7 @@ Program Main
         CALL MPI_BCAST(ham_name             ,64,MPI_CHARACTER,0,MPI_COMM_i,ierr)
 #endif
 
+        Call Fields_init()
         Call Alloc_Ham(ham_name)
         Call ham%Ham_set()
 
@@ -189,6 +190,7 @@ Program Main
         File_seeds="seeds"
         Call Set_Random_number_Generator(File_seeds,Seed_in)
 
+        !! To do: modify nsigma structure
         allocate(nisgma(N_blk))
         do i_blk =1, N_blk
             call nsigma(i_blk)%make(N_op, nwrap)
@@ -300,10 +302,11 @@ Program Main
             call system_clock(count_bin_start)
             call ham%Init_obs(Ltau)
         
+            ntau = 1 ! ntau is to record the field for back propagation
             do i_blk =1, N_blk
                 
                 !! propagate the walkers:
-                call stepwlk(Phi, N_wlk, N_sites, w, O, E_blk(i_blk), W_blk(i_blk), H_k, Proj_k_half, flag_mea, Phi_T, N_up, N_par, U, fac_norm, aux_fld);
+                call stepwlk(Phi_trail(:,i_blk), Phi_0(:,i_blk), GR(:,i_blk), i_blk, n_op, ntau );
                 if ( mod(j_step,itv_modsvd) .eq. 0 ) call stblz(Phi, N_wlk, O, N_up, N_par); ! re-orthonormalize the walkers
                 if ( mod(j_step,itv_pc)     .eq. 0 ) call pop_cntrl(Phi, w, O, N_wlk, N_sites, N_par); ! population control
                 

@@ -259,11 +259,9 @@
     !> Specifiy the equal time and time displaced observables
     !> @details
     !--------------------------------------------------------------------
-          Subroutine  Alloc_obs_base(Ltau)
+          Subroutine  Alloc_obs_base
 
              Implicit none
-             !>  Ltau=1 if time displaced correlations are considered.
-             Integer, Intent(In) :: Ltau
              write(error_unit, *) "Warning: Alloc_obs not implemented."
           End Subroutine Alloc_obs_base
 
@@ -309,11 +307,9 @@
     !> @brief
     !> Prints out the bins.  No need to change this routine.
     !-------------------------------------------------------------------
-          Subroutine  Pr_obs_base(LTAU)
+          Subroutine  Pr_obs_base
     
              Implicit none
-    
-             Integer,  Intent(In) ::  Ltau
     
              !Local
              Integer :: I
@@ -336,10 +332,9 @@
     !> Initializes observables to zero before each bins.  No need to change
     !> this routine.
     !-------------------------------------------------------------------
-          Subroutine  Init_obs_base(Ltau)
+          Subroutine  Init_obs_base
     
              Implicit none
-             Integer, Intent(In) :: Ltau
     
              ! Local
              Integer :: I

@@ -322,15 +322,9 @@
 
 
 #if defined(MPI)
-#if defined(TEMPERING)
-            write(FILE1,'(A,I0,A)')      "Temp_",igroup,"/confin_0"
-            write(FILE_TG,'(A,I0,A,I0)') "Temp_",igroup,"/confin_",irank_g
-            write(FILE_info,'(A,I0,A)')  "Temp_",igroup,"/info"
-#else
             File1 = "confin_0"
             write(FILE_TG,'(A,I0)') "confin_",irank_g
             FILE_info="info"
-#endif
 #else
             File1   = "confin_0"
             FILE_TG = "confin_0"
