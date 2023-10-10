@@ -162,7 +162,7 @@
       Type (WaveFunction), dimension(:,:), allocatable, public :: WF_R
       Logical            , dimension(:),   allocatable, public :: Calc_Fl
       Integer            , dimension(:),   allocatable, public :: Calc_Fl_map
-      Type (Fields)      , dimension(:),   allocatable, public :: nsigma
+      Type (Fields)      , dimension(:),   allocatable, public :: nsigma_bp, nsigma_qr
       Integer      , public        :: Ndim
       Integer      , public        :: N_FL, N_FL_eff
       Integer      , public        :: N_SUN
@@ -171,8 +171,8 @@
       Logical      , public        :: Symm
       Logical      , public        :: reconstruction_needed
       
-      Complex (Kind=Kind(0.d0)), dimension(:), allocatable, public :: fac_norm
-      Complex (Kind=Kind(0.d0)), dimension(:), allocatable, public :: weight_k
+      Real    (Kind=Kind(0.d0)), dimension(:), allocatable, public :: weight_k
+      Real    (Kind=Kind(0.d0)), dimension(:), allocatable, public :: fac_norm
       Complex (Kind=Kind(0.d0)), dimension(:), allocatable, public :: Overlap
 
       !>    Privat Observables

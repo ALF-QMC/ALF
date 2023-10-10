@@ -108,7 +108,7 @@
           allocate( weight_k(N_blk) )
           allocate( fac_norm(N_blk) )
           allocate( overlap (N_blk) )
-          weight_k(:) = cmplx(1.d0, 0.d0, kind(0.d0))
+          weight_k(:) = 1.d0
 
           ! Setup the Bravais lattice
           Call Ham_Latt

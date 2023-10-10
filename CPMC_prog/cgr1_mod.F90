@@ -390,13 +390,14 @@ module cgr1_mod
       END SUBROUTINE CGRP
 
 
-      Subroutine Compute_overlap(Det_Vec, udvr, udvl)
+      Subroutine Compute_overlap(Phase_det, Det_Vec, udvr, udvl)
 
         Use UDV_State_mod
 
         Implicit none
 
-        REAL    (Kind=Kind(0.d0)), Dimension(:), Intent(OUT)  ::  Det_Vec
+        Complex (Kind=Kind(0.d0)), Dimension(:), Intent(OUT)  ::  Det_Vec
+        Complex (Kind=Kind(0.d0)), Dimension(:), Intent(OUT)  ::  Phase_det
         CLASS(UDV_State), DIMENSION(:)  , ALLOCATABLE,  INTENT(INOUT) :: udvr, udvl
 
         !> Local variables
@@ -426,7 +427,8 @@ module cgr1_mod
               endif
               Z =  Z * TP(J,J)
            enddo
-           Det_vec(nf) = Det_vec(nf)+log(abs(Z))
+           Phase_det(nf) = Z/abs(Z)
+           Det_vec  (nf) = Det_vec(nf)+log(Z)
         enddo
         Deallocate(TP,ipiv)
         return

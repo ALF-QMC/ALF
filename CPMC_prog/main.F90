@@ -30,7 +30,7 @@ Program Main
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:)  , Allocatable   :: Phase_array
 
         Integer :: N_eqblk, N_blksteps, i_blk, j_step, N_blksteps_eff
-        Integer :: Nwrap, itv_pc, itv_Em, ntau
+        Integer :: Nwrap, itv_pc, itv_Em, ntau_bp, ntau_qr, ltrot_bp
         Real(Kind=Kind(0.d0)) :: CPU_MAX
         Character (len=64) :: file_seeds, file_para, file_dat, file_info, ham_name
         Integer :: Seed_in
@@ -40,14 +40,14 @@ Program Main
         Logical :: file_exists
 #endif
         
-        NAMELIST /VAR_CPMC/ Nwrap, itv_pc, itv_Em, N_eqblk, N_blksteps, i_blk, j_step, CPU_MAX, N_blksteps
+        NAMELIST /VAR_CPMC/ Nwrap, ltrot_bp, itv_pc, itv_Em, N_eqblk, N_blksteps, i_blk, j_step, CPU_MAX, N_blksteps
 
         NAMELIST /VAR_HAM_NAME/ ham_name
 
         !  General
         Integer :: Ierr, I,nf, nf_eff, nst, n, N_op
         Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Z, Z1
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:)  , Allocatable   :: Phase
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:)  , Allocatable   :: Phase, Phase_alpha
         Real    (Kind=Kind(0.d0)) :: ZERO = 10D-8, X, X1
 
         ! Space for storage.
@@ -151,6 +151,7 @@ Program Main
 #ifdef MPI
         Endif
         CALL MPI_BCAST(Nwrap                ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(ltrot_bp             ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(itv_pc               ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(itv_Em               ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(N_eqblk              ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
@@ -178,7 +179,7 @@ Program Main
         reconstruction_needed=.false.
         If (N_FL_eff /= N_FL) reconstruction_needed=.true.
         !initialize the flavor map
-        allocate(Calc_Fl_map(N_FL_eff),Phase_array(N_FL,N_blk), Phase(N_blk))
+        allocate(Calc_Fl_map(N_FL_eff),Phase_array(N_FL,N_blk), Phase(N_blk), Phase_array(N_blk))
         N_FL_eff=0
         Do I=1,N_Fl
           if (Calc_Fl(I)) then
@@ -191,13 +192,17 @@ Program Main
         Call Set_Random_number_Generator(File_seeds,Seed_in)
 
         !! To do: modify nsigma structure
-        allocate(nisgma(N_blk))
+        allocate(nsigma_bp(N_blk))
+        allocate(nsigma_qr(N_blk))
         do i_blk =1, N_blk
-            call nsigma(i_blk)%make(N_op, nwrap)
+            call nsigma_bp(i_blk)%make(N_op, ltrot_bp)
+            call nsigma_qr(i_blk)%make(N_op, nwrap   )
             Do n = 1,N_op
-               nsigma(i_blk)%t(n)  = OP_V(n,1)%type
+               nsigma_bp(i_blk)%t(n)  = OP_V(n,1)%type
+               nsigma_qr(i_blk)%t(n)  = OP_V(n,1)%type
             Enddo
-            Call nsigma(i_blk)%in(Group_Comm)
+            Call nsigma_bp(i_blk)%in(Group_Comm)
+            Call nsigma_qr(i_blk)%in(Group_Comm)
         enddo
         
         Call Hop_mod_init
@@ -233,6 +238,7 @@ Program Main
               Write(50,*) 'N_eqblk                              : ', N_eqblk
               Write(50,*) 'N_blksteps                           : ', N_blksteps
               Write(50,*) 'Nwrap                                : ', Nwrap
+              Write(50,*) 'ltrot_bp                             : ', ltrot_bp
               Write(50,*) 'itv_pc                               : ', itv_pc
               Write(50,*) 'itv_Em                               : ', itv_Em
               Write(50,*) 'No CPU-time limitation '
@@ -267,6 +273,7 @@ Program Main
         Allocate( phi_trail(N_FL_eff, N_blk) , udvr(N_FL_eff, N_blk), phi_0(N_FL_eff, N_blk))
         
         Phase_array(:,:) = cmplx(1.d0, 0.d0, kind(0.D0))
+        Phase_alpha(:)   = cmplx(1.d0, 0.d0, kind(0.D0))
         
         ! init slater determinant
         do i_blk  = 1, N_blk
@@ -276,10 +283,6 @@ Program Main
                CALL phi_trial(nf_eff, i_blk)%init(ndim,'l',WF_L(nf)%P)
                CALL phi_0(nf_eff, i_blk)%init(ndim,'r',WF_R(nf)%P)
                
-               !Carry out U,D,V decomposition.
-               CALL udvr(nf_eff, i_blk)%decompose
-               CALL phi_trial(nf_eff, i_blk)%decompose
-               CALL phi_0(nf_eff, i_blk)%decompose
             enddo
 
             NVAR = 1
@@ -302,11 +305,14 @@ Program Main
             call system_clock(count_bin_start)
             call ham%Init_obs(Ltau)
         
-            ntau = 1 ! ntau is to record the field for back propagation
+            ntau_qr = 1 ! ntau_qr is to record the field for QR stablization
+            ntau_bp = 1 ! ntau_bp is to record the field for back propagation
             do i_blk =1, N_blk
                 
                 !! propagate the walkers:
-                call stepwlk(Phi_trail(:,i_blk), Phi_0(:,i_blk), GR(:,i_blk), i_blk, n_op, ntau );
+                call stepwlk(Phi_trail(:,i_blk), Phi_0(:,i_blk), GR(:,i_blk), Phase(i_blk), Phase_alpha(i_blk), i_blk, n_op, ntau_qr, ntau_bp );
+                ntau_qr = ntau_qr + 1; ntau_bp = ntau_bp + 1
+
                 if ( mod(j_step,itv_modsvd) .eq. 0 ) call stblz(Phi, N_wlk, O, N_up, N_par); ! re-orthonormalize the walkers
                 if ( mod(j_step,itv_pc)     .eq. 0 ) call pop_cntrl(Phi, w, O, N_wlk, N_sites, N_par); ! population control
                 
