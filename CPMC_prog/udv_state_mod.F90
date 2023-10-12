@@ -105,6 +105,7 @@ MODULE UDV_State_mod
             PROCEDURE :: testscale => testscale_UDV_state
 #if defined(MPI)
             PROCEDURE :: MPI_Sendrecv => MPI_Sendrecv_UDV_state
+            PROCEDURE :: MPI_sendrecv_general => MPI_Sendrecv_UDV_state_general
 #endif
             GENERIC :: ASSIGNMENT(=) => assign
     END TYPE UDV_State
@@ -623,6 +624,35 @@ CONTAINS
             &                source, recvtag, MPI_COMM_WORLD, STATUS, IERR)
 #endif
      END SUBROUTINE MPI_Sendrecv_UDV_state
+#endif
+
+#if defined(MPI)
+     SUBROUTINE MPI_Sendrecv_UDV_state_general(this, src, dest, sendtag, source, recvtag, STATUS, IERR)
+       Use mpi
+       Implicit None
+
+       CLASS(UDV_State), INTENT(INOUT) :: this
+       CLASS(UDV_State), INTENT(IN)    :: src
+       INTEGER, intent(in)  :: dest, sendtag, source, recvtag
+       Integer, intent(out) :: STATUS(MPI_STATUS_SIZE), IERR
+       INTEGER :: n
+
+       n = this%ndim * this%ndim
+       call mpi_send(src%U , n, MPI_COMPLEX16, source, recvtag, Group_comm,IERR)
+       call mpi_recv(this%U, n, MPI_COMPLEX16, dest  , sendtag, Group_comm,IERR)
+       
+       call mpi_send(src%V , n, MPI_COMPLEX16, source, recvtag+1033, Group_comm,IERR)
+       call mpi_recv(this%V, n, MPI_COMPLEX16, dest  , sendtag+1033, Group_comm,IERR)
+
+#if !defined(STABLOG)
+       call mpi_send(src%D , this%ndim, MPI_COMPLEX16, source, recvtag+2033, Group_comm,IERR)
+       call mpi_recv(this%D, this%ndim, MPI_COMPLEX16, dest  , sendtag+2033, Group_comm,IERR)
+#else
+       call mpi_send(src%L , this%ndim, MPI_COMPLEX16, source, recvtag+2033, Group_comm,IERR)
+       call mpi_recv(this%L, this%ndim, MPI_COMPLEX16, dest  , sendtag+2033, Group_comm,IERR)
+#endif
+
+     END SUBROUTINE MPI_Sendrecv_UDV_state_general
 #endif
 
    END MODULE UDV_State_mod

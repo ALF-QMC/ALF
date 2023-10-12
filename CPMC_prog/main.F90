@@ -110,6 +110,7 @@ Program Main
 #endif
 
 #ifdef MPI
+        mpi_per_parameter_set = Isize
         color = irank/mpi_per_parameter_set
         key   =  0
         call MPI_COMM_SPLIT(MPI_COMM_WORLD,color,key,Group_comm, ierr)
@@ -322,7 +323,7 @@ Program Main
                 ! population control
                 if ( mod(j_step, itv_pc) .eq. 0 ) then
                     !!to do list
-                    call population_control
+                    call population_control(phi_0, phase_alpha)
                 endif
                 
             enddo
@@ -338,6 +339,8 @@ Program Main
             Endif
 
         enddo
+
+        stop
         
         deallocate(Calc_Fl_map,Phase_array)
 

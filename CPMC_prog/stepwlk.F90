@@ -15,7 +15,7 @@
           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(IN)    :: phi_trial
           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_0
           COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:,:), Allocatable, INTENT(INOUT) :: GR
-          COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:,:), Allocatable, INTENT(INOUT) :: phase, phase_alpha
+          COMPLEX (Kind=Kind(0.d0)), Dimension(:)      , Allocatable, INTENT(INOUT) :: phase, phase_alpha
           Integer, INTENT(IN) :: N_op, ntau_qr, ntau_bp
 
           !Local 
@@ -90,7 +90,7 @@
                    Call Op_Wrapdo( GR(:,:,nf,i_wlk), Op_V(n,nf), 1.d0, Ndim, N_Type,1)
                 enddo
 
-                Call Upgrade(GR,n,PHASE, PHASE_alpha, spin, i_wlk )
+                Call Upgrade(GR(:,:,:,i_wlk),n,PHASE(i_wlk), PHASE_alpha(i_wlk), spin, i_wlk )
                 nsigma_qr(i_wlk)%f(n,ntau_qr) = spin
                 nsigma_bp(i_wlk)%f(n,ntau_bp) = spin
 
@@ -204,5 +204,128 @@
           fac_norm= exp( real(tot_ene, 0.d0, kind(0.d0))/tot_weight )
 
         END SUBROUTINE initial_wlk
+
+        SUBROUTINE population_control( phi_0, phase_alpha ) 
+#ifdef MPI
+        Use mpi
+#endif
+        Use Random_wrap
+        
+          Implicit none
+     
+          CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_0
+          COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(INOUT) :: phase_alpha
+          
+          !Local 
+          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, tot_Nwlk, it_wlk 
+          Integer :: i_t, i_st, i_ed, nu_wlk, i_src, i_wlk, j_src, j_wlk
+          Integer, Dimension(:), Allocatable :: weight_mpi
+          Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8, d_scal, sum_w, w_count, w_tmp(N_wlk)
+          Complex (Kind=Kind(0.d0)) :: Overlap_tmp(N_wlk), phase_alpha_tmp(N_wlk)
+          CLASS(UDV_State), Dimension(:,:), ALLOCATABLE :: phi_0_m
+
+#ifdef MPI
+          Integer        :: Isize, Irank, irank_g, isize_g, igroup
+          Integer        :: STATUS(MPI_STATUS_SIZE)
+          CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
+          CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+          call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+          call MPI_Comm_size(Group_Comm, isize_g, ierr)
+          igroup           = irank/isize_g
+#endif
+
+          ! temporary store
+          allocate(phi_0_m(N_FL_eff,N_wlk))
+          do i_wlk = 1, N_wlk
+            do nf_eff = 1, N_FL_eff
+               nf=Calc_Fl_map(nf_eff)
+               CALL phi_0_m(nf_eff, i_wlk)%init(ndim,'r',WF_R(nf)%P)
+            enddo
+          enddo
+
+          do nf_eff = 1, N_FL_eff
+             do i_wlk = 1, N_blk
+                call phi_0_m(nf_eff,i_wlk)%assign(phi_0(nf_eff,i_wlk))
+             enddo
+          enddo
+          Overlap_tmp=Overlap
+          phase_alpha_tmp=phase_alpha
+
+          ! population control
+          tot_Nwlk=N_wlk*isize_g
+          allocate(weight_mpi(tot_Nwlk))
+          if (irank_g == 0) then
+              weight_mpi(1:N_wlk)=weight_k(:)
+          endif
+          if (irank_g == 0) then
+              do it = 1, isize_g-1
+                 i_st=it*N_wlk+1
+                 i_ed=(it+1)*isize_g
+
+                 call mpi_send(weight_k,N_blk,MPI_REAL8,it,it+1024,Group_comm,IERR)
+                 call mpi_recv(w_tmp   ,N_blk,MPI_REAL8,0 ,it+1024,Group_comm,IERR)
+                 weight_mpi(i_st:i_ed)=w_tmp(:)
+              enddo
+          endif
+          CALL MPI_BCAST(weight_mpi, n_blk, MPI_REAL8, 0,MPI_COMM_WORLD,ierr)
+          
+          d_scal=dble(tot_Nwlk)/sum(weight_mpi)
+          sum_w=-ranf_wrap()
+          nu_wlk=0
+          do it_wlk=1, tot_Nwlk
+              i_src=(it_wlk-1)/N_wlk
+              i_wlk=it_wlk-N_wlk*i_src
+
+              sum_w=sum_w+weight_mpi(it_wlk)*d_scal
+              n=ceiling(sum_w);
+              do j=(nu_wlk+1), n
+                  j_src=(j-1)/N_wlk
+                  j_wlk=j-N_wlk*j_src
+                  if ( j_src .ne. i_src ) then
+                      if ( irank_g .eq. j_src ) then
+                        call mpi_send(overlap    (i_wlk),1,MPI_COMPLEX16,j_src,j_src+1024,Group_comm,IERR)
+                        call mpi_recv(overlap_tmp(j_wlk),1,MPI_COMPLEX16,i_src,j_src+1024,Group_comm,IERR)
+
+                        do nf_eff = 1, N_FL_eff
+                            call phi_0_m(nf_eff,j_wlk)%MPI_sendrecv_general(phi_0(nf_eff,i_wlk),j_src, &
+                                & j_src, i_src, j_src, status, ierr)
+                        enddo
+
+                        call mpi_send(phase_alpha    (i_wlk),1,MPI_COMPLEX16,j_src,j_src+1024,Group_comm,IERR)
+                        call mpi_recv(phase_alpha_tmp(j_wlk),1,MPI_COMPLEX16,i_src,j_src+1024,Group_comm,IERR)
+                      endif
+                  else
+                      if ( irank_g .eq. i_src ) then
+                        do nf_eff = 1, N_FL_eff
+                            call phi_0_m(nf_eff,j_wlk)%assign(phi_0(nf_eff,i_wlk))
+                        enddo
+                        Overlap_tmp(j_wlk)=Overlap(i_wlk) 
+                      endif
+                  endif
+              enddo
+              n_wlk=n
+          enddo
+
+          Overlap=Overlap_tmp
+          phase_alpha=phase_alpha_tmp
+          weight_k(:)=1
+          do nf_eff = 1, N_FL_eff
+             do i_wlk = 1, N_blk
+                call phi_0(nf_eff,i_wlk)%assign(phi_0_m(nf_eff,i_wlk))
+             enddo
+          enddo
+
+          ! deallocate tmp udv class
+          do i_wlk = 1, N_wlk
+            do nf_eff = 1, N_FL_eff
+               nf=Calc_Fl_map(nf_eff)
+               CALL phi_0_m(nf_eff, i_wlk)%dealloc
+            enddo
+          enddo
+
+          deallocate(weight_mpi)
+          deallocate(phi_0_m)
+
+        END SUBROUTINE population_control
         
     end Module stepwlk_mod

@@ -451,12 +451,6 @@ module Control
               Write(50,*) ' Average accepted cluster size: ', size_clust_Glob_ACC
            endif
            
-           if (trim(Global_update_scheme) == "HMC")   Then
-              Write(50,*) ' Acceptance_HMC              : ', ACC_HMC
-              Write(50,*) ' Mean Phase diff HMC         : ', XMEANP_HMC
-              Write(50,*) ' Max  Phase diff HMC         : ', XMAXP_HMC
-           Endif
-           
            Write(50,*) ' CPU Time                   : ', Time
            Close(50)
 #if defined(MPI)
