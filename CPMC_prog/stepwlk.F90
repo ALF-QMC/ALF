@@ -23,8 +23,6 @@
           Complex (Kind=Kind(0.d0)) :: Prev_Ratiotot, Overlap_old, Overlap_new
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
           Real (Kind=Kind(0.d0))    :: Zero = 1.0E-8
-          Character (Len=64)        :: Mode
-          Logical                   :: Acc, toggle1
           COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable :: Phase_array
           REAL    (Kind=Kind(0.d0)), Dimension(:), Allocatable :: Det_Vec
 
@@ -150,5 +148,44 @@
           endif
 
         END SUBROUTINE re_orthonormalize_walkers
+        
+        SUBROUTINE initial_wlk( phi_trial, phi_0, udvr, GR, phase, phase_alpha, i_wlk ) 
+          
+          Implicit none
+     
+          CLASS(UDV_State), Dimension(:), ALLOCATABLE, INTENT(INOUT) :: phi_trial, phi_0, udvr
+          COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable, INTENT(INOUT) :: GR
+          COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT) :: phase, phase_alpha
+          Integer, INTENT(IN) :: i_wlk
+
+          !Local 
+          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR
+          Complex (Kind=Kind(0.d0)) :: Prev_Ratiotot, Overlap_old, Overlap_new
+          Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
+          Real (Kind=Kind(0.d0))    :: Zero = 1.0E-8
+          COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable :: Phase_array
+          REAL    (Kind=Kind(0.d0)), Dimension(:), Allocatable :: Det_Vec
+
+          allocate(Phase_array(N_FL), Det_Vec(N_FL))
+
+          do nf_eff = 1, N_FL_eff
+             nf=Calc_Fl_map(nf_eff)
+             CALL udvr(nf_eff)%init(ndim,'r',WF_R(nf)%P)
+             CALL phi_trial(nf_eff)%init(ndim,'l',WF_L(nf)%P)
+             CALL phi_0(nf_eff)%init(ndim,'r',WF_R(nf)%P)
+             
+          enddo
+
+          NVAR = 1
+          do nf_eff = 1,N_Fl_eff
+             nf=Calc_Fl_map(nf_eff)
+             call CGR(Z, NVAR, GR(:,:,nf), phi_0(nf_eff), phi_trial(nf_eff))
+             Phase_array(nf)=Z
+          enddo
+          if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
+          Phase=product(Phase_array)
+          Phase=Phase**N_SUN
+
+        END SUBROUTINE initial_wlk
         
     end Module stepwlk_mod

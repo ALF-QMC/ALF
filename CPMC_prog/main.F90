@@ -282,23 +282,8 @@ Program Main
         tot_weight = 0.d0
         ! init slater determinant
         do i_wlk  = 1, N_wlk
-            do nf_eff = 1, N_FL_eff
-               nf=Calc_Fl_map(nf_eff)
-               CALL udvr(nf_eff, i_wlk)%init(ndim,'r',WF_R(nf)%P)
-               CALL phi_trial(nf_eff, i_wlk)%init(ndim,'l',WF_L(nf)%P)
-               CALL phi_0(nf_eff, i_wlk)%init(ndim,'r',WF_R(nf)%P)
-               
-            enddo
-
-            NVAR = 1
-            do nf_eff = 1,N_Fl_eff
-               nf=Calc_Fl_map(nf_eff)
-               call CGR(Z, NVAR, GR(:,:,nf, i_wlk), phi_0(nf_eff, i_wlk), phi_trial(nf_eff, i_wlk))
-               Phase_array(nf, i_wlk)=Z
-            enddo
-            if (reconstruction_needed) call ham%weight_reconstruction(Phase_array(:,i_wlk))
-            Phase(i_wlk)=product(Phase_array(:,i_wlk))
-            Phase(i_wlk)=Phase(i_wlk)**N_SUN
+            
+            call initial_wlk( phi_trial(i_wlk), phi_0(i_wlk), udvr(i_wlk), GR(:,:,:,i_wlk), phase(i_wlk), phase_alpha(i_wlk), i_wlk)
 
             tot_ene    = tot_ene    + ham%E0_local(n,ntau1, GR(:,:,:,i_wlk))*weight(i_wlk)
             tot_weight = tot_weight + weight(i_wlk)
