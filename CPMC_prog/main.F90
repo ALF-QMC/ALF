@@ -30,7 +30,7 @@ Program Main
         CLASS(UDV_State), DIMENSION(:,:), ALLOCATABLE :: phi_trial, udvr, phi_0
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:)  , Allocatable   :: Phase_array
 
-        Integer :: N_eqwlk, N_wlksteps, i_wlk, j_step, N_wlksteps_eff
+        Integer :: N_eqwlk, N_blksteps, i_wlk, j_step, N_blk_eff, i_blk, N_blk
         Integer :: Nwrap, itv_pc, itv_Em, ntau_bp, ntau_qr, ltrot_bp
         Real(Kind=Kind(0.d0)) :: CPU_MAX
         Character (len=64) :: file_seeds, file_para, file_dat, file_info, ham_name
@@ -41,7 +41,7 @@ Program Main
         Logical :: file_exists
 #endif
         
-        NAMELIST /VAR_CPMC/ Nwrap, ltrot_bp, itv_pc, itv_Em, N_eqwlk, N_wlksteps, i_wlk, j_step, CPU_MAX
+        NAMELIST /VAR_CPMC/ Nwrap, ltrot_bp, itv_pc, itv_Em, N_blk, N_blksteps, CPU_MAX
 
         NAMELIST /VAR_HAM_NAME/ ham_name
 
@@ -155,8 +155,8 @@ Program Main
         CALL MPI_BCAST(ltrot_bp             ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(itv_pc               ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(itv_Em               ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(N_eqwlk              ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(N_wlksteps           ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(N_blk                ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(N_blksteps           ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(CPU_MAX              ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(ham_name             ,64,MPI_CHARACTER,0,MPI_COMM_i,ierr)
 #endif
@@ -208,7 +208,7 @@ Program Main
         
         Call Hop_mod_init
 
-        IF (ABS(CPU_MAX) > Zero ) N_wlksteps = 10000000
+        IF (ABS(CPU_MAX) > Zero ) N_blk = 10000000
 
 #if defined(HDF5)
         file_dat = "data.h5"
@@ -236,8 +236,8 @@ Program Main
 #endif
            Open (Unit = 50,file=file_info,status="unknown",position="append")
            If ( abs(CPU_MAX) < ZERO ) then
-              Write(50,*) 'N_eqwlk                              : ', N_eqwlk
-              Write(50,*) 'N_wlksteps                           : ', N_wlksteps
+              Write(50,*) 'N_blk                                : ', N_blk
+              Write(50,*) 'N_blksteps                           : ', N_blksteps
               Write(50,*) 'Nwrap                                : ', Nwrap
               Write(50,*) 'ltrot_bp                             : ', ltrot_bp
               Write(50,*) 'itv_pc                               : ', itv_pc
@@ -275,67 +275,58 @@ Program Main
         
         Phase_array(:,:) = cmplx(1.d0, 0.d0, kind(0.D0))
         Phase_alpha(:)   = cmplx(1.d0, 0.d0, kind(0.D0))
-
-        weight_k(:) = 1.d0
+        weight_k   (:)   = 1.d0
         
-        tot_ene    = cmplx(0.d0,0.d0,kind(0.d0))
-        tot_weight = 0.d0
         ! init slater determinant
-        do i_wlk  = 1, N_wlk
-            
-            call initial_wlk( phi_trial(i_wlk), phi_0(i_wlk), udvr(i_wlk), GR(:,:,:,i_wlk), phase(i_wlk), phase_alpha(i_wlk), i_wlk)
-
-            tot_ene    = tot_ene    + ham%E0_local(n,ntau1, GR(:,:,:,i_wlk))*weight(i_wlk)
-            tot_weight = tot_weight + weight(i_wlk)
-
-        enddo
-        fac_norm= exp( real(tot_ene, 0.d0, kind(0.d0))/tot_weight )
+        call initial_wlk( phi_trial, phi_0, udvr, GR, phase )
 
         Call control_init(Group_Comm)
 
         !! main loop
         ntau_qr = 1 ! ntau_qr is to record the field for QR stablization
         ntau_bp = 1 ! ntau_bp is to record the field for back propagation
-        
-        do j_step=1, N_wlksteps
-            !! also add a function to init Green's function
+ 
+        do i_blk=1, N_blk
 
             call system_clock(count_bin_start)
             call ham%Init_obs          
+        
+            do j_step=1, N_blksteps
+                !! also add a function to init Green's function
 
-            do i_wlk =1, N_wlk
                 !! propagate the walkers:
-                call stepwlk(Phi_trail(:,i_wlk), Phi_0(:,i_wlk), GR(:,:,:,i_wlk), Phase(i_wlk), Phase_alpha(i_wlk), i_wlk, n_op, ntau_qr, ntau_bp );
-
-                ! QR decomposition for stablization
+                call stepwlk(Phi_trail, Phi_0, GR, Phase, Phase_alpha, n_op, ntau_qr, ntau_bp );
+                !! QR decomposition for stablization
                 if ( mod(ntau_qr,    Nwrap) .eq. 0 ) then
                     ntau_qr = 0
-                    call re_orthonormalize_walkers(Phi_0(:,i_wlk), i_wlk)
+                    call re_orthonormalize_walkers(Phi_0)
                 endif
-            enddo
-            
-            ! Measurement and update fac_norm
-            if ( mod(ntau_bp, ltrot_bp) .eq. 0 ) then
-                ntau_bp = 0
-                !!to do list
-                !call backpropagation 
-                tot_ene    = cmplx(0.d0,0.d0,kind(0.d0))
-                tot_weight = 0.d0
-                do i_wlk  = 1, N_wlk
-                    tot_ene    = tot_ene    + ham%E0_local(n,ntau1, GR(:,:,:,i_wlk))*weight(i_wlk)
-                    tot_weight = tot_weight + weight(i_wlk)
-                enddo
-                fac_norm= exp( real(tot_ene, 0.d0, kind(0.d0))/tot_weight )
-            endif
-            
-            ntau_qr = ntau_qr + 1; ntau_bp = ntau_bp + 1           
+                
+                ! Measurement and update fac_norm
+                if ( mod(ntau_bp, ltrot_bp) .eq. 0 ) then
+                    ntau_bp = 0
+                    !!to do list
+                    !call backpropagation 
+                    tot_ene    = cmplx(0.d0,0.d0,kind(0.d0))
+                    tot_weight = 0.d0
+                    do i_wlk  = 1, N_wlk
+                        tot_ene    = tot_ene    + ham%E0_local(n,ntau1, GR(:,:,:,i_wlk))*weight(i_wlk)
+                        tot_weight = tot_weight + weight(i_wlk)
+                    enddo
+                    fac_norm= exp( real(tot_ene, 0.d0, kind(0.d0))/tot_weight )
+                    write(*,*) j_step+(i_blk-1)*N_blksteps, real(tot_ene, 0.d0, kind(0.d0))/tot_weight 
+                endif
+                
+                ntau_qr = ntau_qr + 1; ntau_bp = ntau_bp + 1           
 
-            ! population control
-            if ( mod(j_step, itv_pc) .eq. 0 ) then
-                !!to do list
-                call population_control
-            endif
-            
+                ! population control
+                if ( mod(j_step, itv_pc) .eq. 0 ) then
+                    !!to do list
+                    call population_control
+                endif
+                
+            enddo
+
             !call ham%Pr_obs
             call system_clock(count_bin_end)
             prog_truncation = .false.
@@ -345,7 +336,7 @@ Program Main
             If (prog_truncation) then
                exit !exit the loop over the step index
             Endif
-        
+
         enddo
         
         deallocate(Calc_Fl_map,Phase_array)
