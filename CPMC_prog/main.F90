@@ -13,6 +13,7 @@ Program Main
         use iso_fortran_env, only: output_unit, error_unit
         use cgr1_mod
         use set_random
+        use stepwlk
 
 #ifdef MPI
         Use mpi
@@ -29,7 +30,7 @@ Program Main
         CLASS(UDV_State), DIMENSION(:,:), ALLOCATABLE :: phi_trial, udvr, phi_0
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:)  , Allocatable   :: Phase_array
 
-        Integer :: N_eqblk, N_blksteps, i_blk, j_step, N_blksteps_eff
+        Integer :: N_eqwlk, N_wlksteps, i_wlk, j_step, N_wlksteps_eff
         Integer :: Nwrap, itv_pc, itv_Em, ntau_bp, ntau_qr, ltrot_bp
         Real(Kind=Kind(0.d0)) :: CPU_MAX
         Character (len=64) :: file_seeds, file_para, file_dat, file_info, ham_name
@@ -40,13 +41,13 @@ Program Main
         Logical :: file_exists
 #endif
         
-        NAMELIST /VAR_CPMC/ Nwrap, ltrot_bp, itv_pc, itv_Em, N_eqblk, N_blksteps, i_blk, j_step, CPU_MAX, N_blksteps
+        NAMELIST /VAR_CPMC/ Nwrap, ltrot_bp, itv_pc, itv_Em, N_eqwlk, N_wlksteps, i_wlk, j_step, CPU_MAX
 
         NAMELIST /VAR_HAM_NAME/ ham_name
 
         !  General
         Integer :: Ierr, I,nf, nf_eff, nst, n, N_op
-        Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Z, Z1
+        Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Z, Z1, E0_iwlk
         COMPLEX (Kind=Kind(0.d0)), Dimension(:)  , Allocatable   :: Phase, Phase_alpha
         Real    (Kind=Kind(0.d0)) :: ZERO = 10D-8, X, X1
 
@@ -154,8 +155,8 @@ Program Main
         CALL MPI_BCAST(ltrot_bp             ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(itv_pc               ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(itv_Em               ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(N_eqblk              ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(N_blksteps           ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(N_eqwlk              ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(N_wlksteps           ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(CPU_MAX              ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(ham_name             ,64,MPI_CHARACTER,0,MPI_COMM_i,ierr)
 #endif
@@ -179,7 +180,7 @@ Program Main
         reconstruction_needed=.false.
         If (N_FL_eff /= N_FL) reconstruction_needed=.true.
         !initialize the flavor map
-        allocate(Calc_Fl_map(N_FL_eff),Phase_array(N_FL,N_blk), Phase(N_blk), Phase_array(N_blk))
+        allocate(Calc_Fl_map(N_FL_eff),Phase_array(N_FL,N_wlk), Phase(N_wlk), Phase_array(N_wlk))
         N_FL_eff=0
         Do I=1,N_Fl
           if (Calc_Fl(I)) then
@@ -192,22 +193,22 @@ Program Main
         Call Set_Random_number_Generator(File_seeds,Seed_in)
 
         !! To do: modify nsigma structure
-        allocate(nsigma_bp(N_blk))
-        allocate(nsigma_qr(N_blk))
-        do i_blk =1, N_blk
-            call nsigma_bp(i_blk)%make(N_op, ltrot_bp)
-            call nsigma_qr(i_blk)%make(N_op, nwrap   )
+        allocate(nsigma_bp(N_wlk))
+        allocate(nsigma_qr(N_wlk))
+        do i_wlk =1, N_wlk
+            call nsigma_bp(i_wlk)%make(N_op, ltrot_bp)
+            call nsigma_qr(i_wlk)%make(N_op, nwrap   )
             Do n = 1,N_op
-               nsigma_bp(i_blk)%t(n)  = OP_V(n,1)%type
-               nsigma_qr(i_blk)%t(n)  = OP_V(n,1)%type
+               nsigma_bp(i_wlk)%t(n)  = OP_V(n,1)%type
+               nsigma_qr(i_wlk)%t(n)  = OP_V(n,1)%type
             Enddo
-            Call nsigma_bp(i_blk)%in(Group_Comm)
-            Call nsigma_qr(i_blk)%in(Group_Comm)
+            Call nsigma_bp(i_wlk)%in(Group_Comm)
+            Call nsigma_qr(i_wlk)%in(Group_Comm)
         enddo
         
         Call Hop_mod_init
 
-        IF (ABS(CPU_MAX) > Zero ) N_blksteps = 10000000
+        IF (ABS(CPU_MAX) > Zero ) N_wlksteps = 10000000
 
 #if defined(HDF5)
         file_dat = "data.h5"
@@ -235,8 +236,8 @@ Program Main
 #endif
            Open (Unit = 50,file=file_info,status="unknown",position="append")
            If ( abs(CPU_MAX) < ZERO ) then
-              Write(50,*) 'N_eqblk                              : ', N_eqblk
-              Write(50,*) 'N_blksteps                           : ', N_blksteps
+              Write(50,*) 'N_eqwlk                              : ', N_eqwlk
+              Write(50,*) 'N_wlksteps                           : ', N_wlksteps
               Write(50,*) 'Nwrap                                : ', Nwrap
               Write(50,*) 'ltrot_bp                             : ', ltrot_bp
               Write(50,*) 'itv_pc                               : ', itv_pc
@@ -269,62 +270,88 @@ Program Main
         Call control_init(Group_Comm)
         Call ham%Alloc_obs
         
-        Allocate( GR(NDIM,NDIM,N_FL,N_blk) )
-        Allocate( phi_trail(N_FL_eff, N_blk) , udvr(N_FL_eff, N_blk), phi_0(N_FL_eff, N_blk))
+        Allocate( GR(NDIM,NDIM,N_FL,N_wlk) )
+        Allocate( phi_trail(N_FL_eff, N_wlk) , udvr(N_FL_eff, N_wlk), phi_0(N_FL_eff, N_wlk))
         
         Phase_array(:,:) = cmplx(1.d0, 0.d0, kind(0.D0))
         Phase_alpha(:)   = cmplx(1.d0, 0.d0, kind(0.D0))
+
+        weight_k(:) = 1.d0
         
+        tot_ene    = cmplx(0.d0,0.d0,kind(0.d0))
+        tot_weight = 0.d0
         ! init slater determinant
-        do i_blk  = 1, N_blk
+        do i_wlk  = 1, N_wlk
             do nf_eff = 1, N_FL_eff
                nf=Calc_Fl_map(nf_eff)
-               CALL udvr(nf_eff, i_blk)%init(ndim,'r',WF_R(nf)%P)
-               CALL phi_trial(nf_eff, i_blk)%init(ndim,'l',WF_L(nf)%P)
-               CALL phi_0(nf_eff, i_blk)%init(ndim,'r',WF_R(nf)%P)
+               CALL udvr(nf_eff, i_wlk)%init(ndim,'r',WF_R(nf)%P)
+               CALL phi_trial(nf_eff, i_wlk)%init(ndim,'l',WF_L(nf)%P)
+               CALL phi_0(nf_eff, i_wlk)%init(ndim,'r',WF_R(nf)%P)
                
             enddo
 
             NVAR = 1
             do nf_eff = 1,N_Fl_eff
                nf=Calc_Fl_map(nf_eff)
-               call CGR(Z, NVAR, GR(:,:,nf, i_blk), phi_0(nf_eff, i_blk), phi_trial(nf_eff, i_blk))
-               Phase_array(nf, i_blk)=Z
+               call CGR(Z, NVAR, GR(:,:,nf, i_wlk), phi_0(nf_eff, i_wlk), phi_trial(nf_eff, i_wlk))
+               Phase_array(nf, i_wlk)=Z
             enddo
-            if (reconstruction_needed) call ham%weight_reconstruction(Phase_array(:,i_blk))
-            Phase(i_blk)=product(Phase_array(:,i_blk))
-            Phase(i_blk)=Phase(i_blk)**N_SUN
+            if (reconstruction_needed) call ham%weight_reconstruction(Phase_array(:,i_wlk))
+            Phase(i_wlk)=product(Phase_array(:,i_wlk))
+            Phase(i_wlk)=Phase(i_wlk)**N_SUN
+
+            tot_ene    = tot_ene    + ham%E0_local(n,ntau1, GR(:,:,:,i_wlk))*weight(i_wlk)
+            tot_weight = tot_weight + weight(i_wlk)
+
         enddo
+        fac_norm= exp( real(tot_ene, 0.d0, kind(0.d0))/tot_weight )
 
         Call control_init(Group_Comm)
 
         !! main loop
-        do j_step=1, N_blksteps
+        ntau_qr = 1 ! ntau_qr is to record the field for QR stablization
+        ntau_bp = 1 ! ntau_bp is to record the field for back propagation
+        
+        do j_step=1, N_wlksteps
             !! also add a function to init Green's function
 
             call system_clock(count_bin_start)
-            call ham%Init_obs(Ltau)
-        
-            ntau_qr = 1 ! ntau_qr is to record the field for QR stablization
-            ntau_bp = 1 ! ntau_bp is to record the field for back propagation
-            do i_blk =1, N_blk
-                
-                !! propagate the walkers:
-                call stepwlk(Phi_trail(:,i_blk), Phi_0(:,i_blk), GR(:,i_blk), Phase(i_blk), Phase_alpha(i_blk), i_blk, n_op, ntau_qr, ntau_bp );
-                ntau_qr = ntau_qr + 1; ntau_bp = ntau_bp + 1
+            call ham%Init_obs          
 
-                if ( mod(j_step,itv_modsvd) .eq. 0 ) call stblz(Phi, N_wlk, O, N_up, N_par); ! re-orthonormalize the walkers
-                if ( mod(j_step,itv_pc)     .eq. 0 ) call pop_cntrl(Phi, w, O, N_wlk, N_sites, N_par); ! population control
-                
-                !! update the exponent of the pre-factor exp(-deltau*(H-E_T))
-                if ( mod(j_step,itv_Em)     .eq. 0 ) fac_norm=(real(E_blk(i_blk)/W_blk(i_blk))-0.5*U*N_par)*dtau;
-                if ( mod(j_step,itv_Em)     .eq. 0 ) then
-                If (reconstruction_needed) Call ham%GR_reconstruction( GR )
-                    CALL ham%Obser( GR, PHASE )
+            do i_wlk =1, N_wlk
+                !! propagate the walkers:
+                call stepwlk(Phi_trail(:,i_wlk), Phi_0(:,i_wlk), GR(:,:,:,i_wlk), Phase(i_wlk), Phase_alpha(i_wlk), i_wlk, n_op, ntau_qr, ntau_bp );
+
+                ! QR decomposition for stablization
+                if ( mod(ntau_qr,    Nwrap) .eq. 0 ) then
+                    ntau_qr = 0
+                    call re_orthonormalize_walkers(Phi_0(:,i_wlk), i_wlk)
                 endif
             enddo
             
-            call ham%Pr_obs
+            ! Measurement and update fac_norm
+            if ( mod(ntau_bp, ltrot_bp) .eq. 0 ) then
+                ntau_bp = 0
+                !!to do list
+                !call backpropagation 
+                tot_ene    = cmplx(0.d0,0.d0,kind(0.d0))
+                tot_weight = 0.d0
+                do i_wlk  = 1, N_wlk
+                    tot_ene    = tot_ene    + ham%E0_local(n,ntau1, GR(:,:,:,i_wlk))*weight(i_wlk)
+                    tot_weight = tot_weight + weight(i_wlk)
+                enddo
+                fac_norm= exp( real(tot_ene, 0.d0, kind(0.d0))/tot_weight )
+            endif
+            
+            ntau_qr = ntau_qr + 1; ntau_bp = ntau_bp + 1           
+
+            ! population control
+            if ( mod(j_step, itv_pc) .eq. 0 ) then
+                !!to do list
+                call population_control
+            endif
+            
+            !call ham%Pr_obs
             call system_clock(count_bin_end)
             prog_truncation = .false.
             if ( abs(CPU_MAX) > Zero ) then

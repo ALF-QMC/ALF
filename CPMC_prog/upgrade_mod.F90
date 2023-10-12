@@ -35,7 +35,7 @@ module upgrade_mod
    implicit none
    contains
 
-      Subroutine Upgrade(GR,N_op,PHASE,PHASE_ALPHA,Hs_new,i_blk)
+      Subroutine Upgrade(GR,N_op,PHASE,PHASE_ALPHA,Hs_new,i_wlk)
 
         Use Hamiltonian_main
         Use Random_wrap
@@ -46,7 +46,7 @@ module upgrade_mod
         Implicit none
 
         Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: GR(Ndim,Ndim, N_FL)
-        Integer                  , INTENT(IN)    :: N_op, i_blk
+        Integer                  , INTENT(IN)    :: N_op, i_wlk
         Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Phase, Phase_alpha
         Real    (Kind=Kind(0.d0)), INTENT(OUT)   :: Hs_new
 
@@ -159,7 +159,7 @@ module upgrade_mod
         sum_ratio = sum(ratio_field)
 
         if ( sum_ratio .le. 0.d0  ) then
-            weight(i_blk) = 0
+            weight(i_wlk) = 0
             Hs_new = field_list(1) ! random set up a Hs_new for output
         endif
         if ( sum_ratio .gt. 0.d0  ) then
@@ -178,8 +178,8 @@ module upgrade_mod
             nsigma_new%f(1,1)  = field_list(n_prop)
             
             !! update weight and overlap
-            weight_k(i_blk) = weight_k(i_blk)*sum_ratio
-            Overlap (i_blk) = Overlap (i_blk)*ratio_O(n_prop)
+            weight_k(i_wlk) = weight_k(i_wlk)*sum_ratio
+            Overlap (i_wlk) = Overlap (i_wlk)*ratio_O(n_prop)
 
             ! Update Green's function
             Phase = Phase * Ratiotot/sqrt(Ratiotot*conjg(Ratiotot))

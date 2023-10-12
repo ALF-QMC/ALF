@@ -144,6 +144,7 @@
         procedure, nopass :: ham_set => ham_set_base
         procedure, nopass :: Alloc_obs => Alloc_obs_base
         procedure, nopass :: Obser => Obser_base
+        procedure, nopass :: E0_local => E0_local_base
         procedure, nopass :: Pr_obs => Pr_obs_base
         procedure, nopass :: Init_obs => Init_obs_base
         procedure, nopass :: S0 => S0_base
@@ -166,13 +167,14 @@
       Integer      , public        :: Ndim
       Integer      , public        :: N_FL, N_FL_eff
       Integer      , public        :: N_SUN
-      Integer      , public        :: N_blk
+      Integer      , public        :: N_wlk
       Integer      , public        :: Group_Comm
       Logical      , public        :: Symm
       Logical      , public        :: reconstruction_needed
       
+      Real    (Kind=Kind(0.d0)), public :: tot_weight, fac_norm
+      Complex (Kind=Kind(0.d0)), public :: tot_ene
       Real    (Kind=Kind(0.d0)), dimension(:), allocatable, public :: weight_k
-      Real    (Kind=Kind(0.d0)), dimension(:), allocatable, public :: fac_norm
       Complex (Kind=Kind(0.d0)), dimension(:), allocatable, public :: Overlap
 
       !>    Privat Observables
@@ -285,13 +287,12 @@
     !>  Time slice
     !> \endverbatim
     !-------------------------------------------------------------------
-          subroutine Obser_base(GR,Phase,Ntau)
+          subroutine Obser_base(GR,Phase)
 
              Implicit none
 
              Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
              Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE
-             Integer, INTENT(IN)          :: Ntau
              Logical, save              :: first_call=.True.
              
              If  (first_call)    then 
@@ -299,6 +300,15 @@
                 first_call=.false.
              endif
           end Subroutine Obser_base
+
+          Complex (Kind=Kind(0.d0)) function E0_local_base(GR)
+            Implicit none
+             
+            Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
+            
+            E0_local_base = cmplx(0.d0, 0.d0, kind(0.d0))
+            
+          end function E0_local_base
 
     !--------------------------------------------------------------------
     !> @author

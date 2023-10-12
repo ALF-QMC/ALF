@@ -20,6 +20,7 @@
         procedure, nopass :: Alloc_obs
         procedure, nopass :: Obser
         procedure, nopass :: S0
+        procedure, nopass :: E0_local
 #ifdef HDF5
         procedure, nopass :: write_parameters_hdf5
 #endif
@@ -35,7 +36,7 @@
       !#PARAMETERS START# VAR_Model_Generic
       !Integer              :: N_SUN        = 1        ! Number of colors
       !Integer              :: N_FL         = 2        ! Number of flavors
-      !Integer              :: N_blk        = 1        ! Number of blocks
+      !Integer              :: N_wlk        = 1        ! Number of blocks
       real(Kind=Kind(0.d0)) :: Phi_X        = 0.d0     ! Twist along the L_1 direction, in units of the flux quanta
       real(Kind=Kind(0.d0)) :: Phi_Y        = 0.d0     ! Twist along the L_2 direction, in units of the flux quanta
       logical               :: Bulk         = .true.   ! Twist as a vector potential (.T.), or at the boundary (.F.)
@@ -105,10 +106,9 @@
           ! From dynamically generated file "Hamiltonian_Hubbard_read_write_parameters.F90"
           call read_parameters()
 
-          allocate( weight_k(N_blk) )
-          allocate( fac_norm(N_blk) )
-          allocate( overlap (N_blk) )
-          weight_k(:) = 1.d0
+          allocate( weight_k(N_wlk) )
+          allocate( fac_norm(N_wlk) )
+          allocate( overlap (N_wlk) )
 
           ! Setup the Bravais lattice
           Call Ham_Latt
@@ -429,5 +429,41 @@
         S0 = 1.d0
 
       end function S0
+
+      Complex (Kind=Kind(0.d0)) function E0_local(GR)
+        Implicit none
+
+        Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
+          
+        !Local
+        Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK
+        Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP,ZS, ZZ, ZXY
+        Integer :: I,J, imj, nf, dec, I1, J1, no_I, no_J,n
+        Real    (Kind=Kind(0.d0)) :: X
+          
+        Do nf = 1,N_FL
+           Do I = 1,Ndim
+              Do J = 1,Ndim
+                 GRC(I, J, nf) = -GR(J, I, nf)
+              Enddo
+              GRC(I, I, nf) = 1.D0 + GRC(I, I, nf)
+           Enddo
+        Enddo
+          
+        Zkin = cmplx(0.d0, 0.d0, kind(0.D0))
+        Call Predefined_Hoppings_Compute_Kin(Hopping_Matrix,List,Invlist, Latt, Latt_unit, GRC, ZKin)
+        Zkin = Zkin* dble(N_SUN)
+          
+        ZPot = cmplx(0.d0, 0.d0, kind(0.D0))
+        Do I = 1,Latt%N
+           do no_I = 1,Latt_unit%Norb
+              I1 = Invlist(I,no_I)
+              ZPot = ZPot + Grc(i1,i1,1) * Grc(i1,i1,2)* ham_U
+           enddo
+        Enddo
+
+        E0_local = (Zpot + ZKin)*dtau
+
+      end function E0_local
         
     end submodule ham_Hubbard_smod
