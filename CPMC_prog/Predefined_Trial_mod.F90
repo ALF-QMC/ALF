@@ -342,23 +342,6 @@
         If (Lattice_type .ne. "Honeycomb" )   &
              &     Call  Predefined_Hoppings_set_OPT(Hopping_Matrix_tmp,List,Invlist,Latt,  Latt_unit,  Dtau, Checkerboard, Symm, OP_tmp )
 
-
-!!$           Symm          = .false.
-!!$           !If (Lattice_type == "Square"  ) then
-!!$           !   Dimer    = 0.001d0
-!!$           !else
-!!$           Phi_X    = 0.01
-!!$           !endif
-!!$
-!!$           Call Predefined_Hopping(Lattice_type ,Ndim, List,Invlist,Latt, Latt_Unit, &
-!!$                &                    Dtau, Ham_T, Ham_Chem,  Phi_X, Phi_Y,  Bulk, N_Phi,&
-!!$                &                    N_FL,  Checkerboard, Symm,  OP_tmp, Dimer )
-!!$
-!!$
-!!$
-!!$        end Select
-
-
         Do nf = 1,N_FL
            Call Diag(Op_tmp(1,nf)%O,Op_tmp(1,nf)%U,Op_tmp(1,nf)%E)
            do I2=1,N_part

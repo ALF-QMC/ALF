@@ -20,9 +20,9 @@
 
           !Local 
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk
-          Complex (Kind=Kind(0.d0)) :: Prev_Ratiotot, Overlap_old, Overlap_new
+          Complex (Kind=Kind(0.d0)) :: Prev_Ratiotot, Overlap_old, Overlap_new, log_O_new, log_O_old
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
-          Real (Kind=Kind(0.d0))    :: Zero = 1.0E-8
+          Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8
           COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable :: Phase_array
           REAL    (Kind=Kind(0.d0)), Dimension(:), Allocatable :: Det_Vec
 
@@ -39,7 +39,7 @@
                  Det_Vec(:) = Det_Vec(:) * N_SUN
                  if (reconstruction_needed) call ham%weight_reconstruction(Det_Vec    )
                  if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
-                 Overlap_old = exp(sum(Det_Vec)) 
+                 log_O_old = sum(Det_Vec) 
 
                  ! Kinetic part
                  Do nf_eff = 1,N_FL_eff
@@ -62,15 +62,15 @@
                  Det_Vec(:) = Det_Vec(:) * N_SUN
                  if (reconstruction_needed) call ham%weight_reconstruction(Det_Vec    )
                  if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
-                 Overlap_new = exp(sum(Det_Vec)) 
+                 log_O_new = sum(Det_Vec) 
                  
                  Phase(i_wlk)=product(Phase_array)
                  Phase(i_wlk)=Phase(i_wlk)**N_SUN
 
-                 Overlap_ratio = real(Overlap_new/Overlap_old, kind(0.d0))
+                 Overlap_ratio = real(exp(log_O_new-log_O_old), kind(0.d0))
 
                  if ( Overlap_ratio .gt. Zero ) then
-                     Overlap (i_wlk) = Overlap_new
+                     Overlap (i_wlk) = exp(log_O_new)
                      weight_k(i_wlk) = weight_k(i_wlk)*Overlap_ratio
                  else
                      weight_k(i_wlk) = 0.d0
@@ -87,17 +87,17 @@
                 N_type = 2
                 do nf_eff = 1,N_FL_eff
                    nf=Calc_Fl_map(nf_eff)
-                   Call Op_Wrapdo( GR(:,:,nf,i_wlk), Op_V(n,nf), 1.d0, Ndim, N_Type,1)
+                   Call Op_Wrapup( GR(:,:,nf,i_wlk), Op_V(n,nf), 1.d0, Ndim, N_Type,1)
                 enddo
 
                 Call Upgrade(GR(:,:,:,i_wlk),n,PHASE(i_wlk), PHASE_alpha(i_wlk), spin, i_wlk )
                 nsigma_qr(i_wlk)%f(n,ntau_qr) = spin
                 nsigma_bp(i_wlk)%f(n,ntau_bp) = spin
 
-                N_type = 1
+                N_type = 2
                 do nf_eff = 1,N_FL_eff
                    nf=Calc_Fl_map(nf_eff)
-                   Call Op_Wrapdo( Gr(:,:,nf,i_wlk), Op_V(n,nf), spin, Ndim, N_Type, 1 )
+                   Call Op_Wrapdo( Gr(:,:,nf,i_wlk), Op_V(n,nf), 1.d0, Ndim, N_Type, 1 )
                 enddo
 
                 ! propagate slater determinant
@@ -147,7 +147,7 @@
               
               if (reconstruction_needed) call ham%weight_reconstruction(Det_D)
 
-              Overlap(i_wlk)=Overlap(i_wlk)/real(product(Det_D),0.d0,kind(0.d0))
+              Overlap(i_wlk)=Overlap(i_wlk)/product(Det_D)
               
               Phi_0(nf_eff,i_wlk)%D(:) = cmplx(1.d0, 0.d0, kind(0.d0))
 
@@ -171,9 +171,8 @@
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
           Real (Kind=Kind(0.d0))    :: Zero = 1.0E-8
           COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable :: Phase_array
-          REAL    (Kind=Kind(0.d0)), Dimension(:), Allocatable :: Det_Vec
 
-          allocate(Phase_array(N_FL), Det_Vec(N_FL))
+          allocate(Phase_array(N_FL))
           tot_ene    = cmplx(0.d0,0.d0,kind(0.d0))
           tot_weight = 0.d0
 
@@ -197,11 +196,11 @@
             Phase(i_wlk)=product(Phase_array)
             Phase(i_wlk)=Phase(i_wlk)**N_SUN
             
-            tot_ene    = tot_ene    + ham%E0_local(n,ntau1, GR(:,:,:,i_wlk))*weight(i_wlk)
+            tot_ene    = tot_ene    + ham%E0_local(GR(:,:,:,i_wlk))*weight(i_wlk)
             tot_weight = tot_weight + weight(i_wlk)
 
           enddo
-          fac_norm= exp( real(tot_ene, 0.d0, kind(0.d0))/tot_weight )
+          fac_norm= exp( real(tot_ene, kind(0.d0))/tot_weight )
 
         END SUBROUTINE initial_wlk
 
@@ -219,7 +218,7 @@
           !Local 
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, tot_Nwlk, it_wlk 
           Integer :: i_t, i_st, i_ed, nu_wlk, i_src, i_wlk, j_src, j_wlk
-          Integer, Dimension(:), Allocatable :: weight_mpi
+          Real    (Kind=Kind(0.d0)), Dimension(:), Allocatable :: weight_mpi
           Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8, d_scal, sum_w, w_count, w_tmp(N_wlk)
           Complex (Kind=Kind(0.d0)) :: Overlap_tmp(N_wlk), phase_alpha_tmp(N_wlk)
           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE :: phi_0_m
@@ -267,7 +266,7 @@
                  weight_mpi(i_st:i_ed)=w_tmp(:)
               enddo
           endif
-          CALL MPI_BCAST(weight_mpi, n_blk, MPI_REAL8, 0,MPI_COMM_WORLD,ierr)
+          CALL MPI_BCAST(weight_mpi, tot_Nwlk, MPI_REAL8, 0,MPI_COMM_WORLD,ierr)
           
           d_scal=dble(tot_Nwlk)/sum(weight_mpi)
           sum_w=-ranf_wrap()
@@ -303,7 +302,7 @@
                       endif
                   endif
               enddo
-              n_wlk=n
+              nu_wlk=n
           enddo
 
           Overlap=Overlap_tmp

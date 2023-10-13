@@ -51,6 +51,7 @@ Program Main
         COMPLEX (Kind=Kind(0.d0)), Dimension(:)  , Allocatable   :: Phase, Phase_alpha
         Real    (Kind=Kind(0.d0)) :: ZERO = 10D-8, X, X1
 
+        !! to do list, use for backward propagation
         ! Space for storage.
         CLASS(UDV_State), Dimension(:,:), ALLOCATABLE :: udvst
 
@@ -140,7 +141,7 @@ Program Main
 #endif
 
            ! This is a set of variables that  identical for each simulation.
-           Nwrap=0; Ltau=0; CPU_MAX = 0.d0;
+           Nwrap=0; CPU_MAX = 0.d0;
            OPEN(UNIT=5,FILE=file_para,STATUS='old',ACTION='read',IOSTAT=ierr)
            IF (ierr /= 0) THEN
               WRITE(error_unit,*) 'main: unable to open <parameters>', file_para, ierr
@@ -311,10 +312,10 @@ Program Main
                     tot_ene    = cmplx(0.d0,0.d0,kind(0.d0))
                     tot_weight = 0.d0
                     do i_wlk  = 1, N_wlk
-                        tot_ene    = tot_ene    + ham%E0_local(n,ntau1, GR(:,:,:,i_wlk))*weight(i_wlk)
+                        tot_ene    = tot_ene    + ham%E0_local(GR(:,:,:,i_wlk))*weight(i_wlk)
                         tot_weight = tot_weight + weight(i_wlk)
                     enddo
-                    fac_norm= exp( real(tot_ene, 0.d0, kind(0.d0))/tot_weight )
+                    fac_norm= exp( real(tot_ene, kind(0.d0))/tot_weight )
                     write(*,*) j_step+(i_blk-1)*N_blksteps, real(tot_ene, 0.d0, kind(0.d0))/tot_weight 
                 endif
                 

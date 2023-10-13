@@ -107,7 +107,6 @@
           call read_parameters()
 
           allocate( weight_k(N_wlk) )
-          allocate( fac_norm(N_wlk) )
           allocate( overlap (N_wlk) )
 
           ! Setup the Bravais lattice

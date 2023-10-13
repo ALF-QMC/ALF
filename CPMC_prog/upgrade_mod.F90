@@ -159,8 +159,8 @@ module upgrade_mod
         sum_ratio = sum(ratio_field)
 
         if ( sum_ratio .le. 0.d0  ) then
-            weight(i_wlk) = 0
-            Hs_new = field_list(1) ! random set up a Hs_new for output
+            weight_k(i_wlk) = 0
+            Hs_new = field_list(1) ! randomly set up a Hs_new for output
         endif
         if ( sum_ratio .gt. 0.d0  ) then
             !! Decide the field in the next propagation
@@ -181,7 +181,8 @@ module upgrade_mod
             weight_k(i_wlk) = weight_k(i_wlk)*sum_ratio
             Overlap (i_wlk) = Overlap (i_wlk)*ratio_O(n_prop)
 
-            ! Update Green's function
+            !! Compute the phase of the weight
+            Ratiotot=ratio_O(n_prop)*nsigma_new%Gama(1,1)
             Phase = Phase * Ratiotot/sqrt(Ratiotot*conjg(Ratiotot))
             do nf_eff = 1,N_Fl_eff
                nf=Calc_Fl_map(nf_eff)
@@ -189,6 +190,21 @@ module upgrade_mod
             enddo
             if (reconstruction_needed) call ham%weight_reconstruction(Phase_a_array)
             Phase_alpha=Phase_alpha*product(Phase_a_array)**N_SUN
+
+            !! Update Green's function
+            ! update delta
+            Do nf_eff = 1,N_FL_eff
+               nf=Calc_Fl_map(nf_eff)
+               g_loc = Op_V(n_op,nf)%g
+               if (op_v(n_op,nf)%get_g_t_alloc()) g_loc = Op_V(n_op,nf)%g_t(nt)
+               Z1 = g_loc * ( nsigma_new%Phi(1,1) )
+               op_dim_nf = Op_V(n_op,nf)%N_non_zero
+               Do m = 1,op_dim_nf
+                  myexp = exp( Z1* Op_V(n_op,nf)%E(m) )
+                  Z = myexp - 1.d0
+                  Delta(m,nf_eff) = Z
+               Enddo
+            Enddo
 
             Do nf_eff = 1,N_FL_eff
                nf=Calc_Fl_map(nf_eff)
@@ -262,6 +278,6 @@ module upgrade_mod
 
         Call nsigma_new%clear()
 
-      End Subroutine Upgrade2
+      End Subroutine Upgrade
 
 end module upgrade_mod
