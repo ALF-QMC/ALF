@@ -5,10 +5,11 @@
         Use Hop_mod
         Use UDV_State_mod
         use cgr1_mod
+        use upgrade_mod
         
         Contains
 
-        SUBROUTINE stepwlk( phi_trial, phi_0, GR, phase, phase_alpha, N_op, ntau_qr, ntau_bp ) 
+        SUBROUTINE stepwlk_move( phi_trial, phi_0, GR, phase, phase_alpha, N_op, ntau_qr, ntau_bp ) 
           
           Implicit none
      
@@ -20,11 +21,11 @@
 
           !Local 
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk
-          Complex (Kind=Kind(0.d0)) :: Prev_Ratiotot, Overlap_old, Overlap_new, log_O_new, log_O_old
+          Complex (Kind=Kind(0.d0)) :: Prev_Ratiotot, Overlap_old, Overlap_new, log_O_new, log_O_old, Z
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
           Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8
           COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable :: Phase_array
-          REAL    (Kind=Kind(0.d0)), Dimension(:), Allocatable :: Det_Vec
+          COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable :: Det_Vec
 
           allocate(Phase_array(N_FL), Det_Vec(N_FL))
 
@@ -35,7 +36,7 @@
                  ! update weight by fac_norm
                  weight_k(i_wlk)=weight_k(i_wlk)*exp(fac_norm);
                
-                 call Compute_overlap(Phase_array, Det_Vec, phi_0(:,i_wlk), phi_trail(:,i_wlk))
+                 call Compute_overlap(Phase_array, Det_Vec, phi_0(:,i_wlk), phi_trial(:,i_wlk))
                  Det_Vec(:) = Det_Vec(:) * N_SUN
                  if (reconstruction_needed) call ham%weight_reconstruction(Det_Vec    )
                  if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
@@ -51,14 +52,14 @@
                  NVAR = 1
                  do nf_eff = 1,N_Fl_eff
                     nf=Calc_Fl_map(nf_eff)
-                    call CGR(Z, NVAR, GR(:,:,nf,i_wlk), phi_0(nf_eff,i_wlk), phi_trail(nf_eff,i_wlk))
+                    call CGR(Z, NVAR, GR(:,:,nf,i_wlk), phi_0(nf_eff,i_wlk), phi_trial(nf_eff,i_wlk))
                     Phase_array(nf)=Z
                  enddo
                  if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
                  Phase(i_wlk)=product(Phase_array)
                  Phase(i_wlk)=Phase(i_wlk)**N_SUN
 
-                 call Compute_overlap(Phase_array, Det_Vec, phi_0(:,i_wlk), phi_trail(:,i_wlk))
+                 call Compute_overlap(Phase_array, Det_Vec, phi_0(:,i_wlk), phi_trial(:,i_wlk))
                  Det_Vec(:) = Det_Vec(:) * N_SUN
                  if (reconstruction_needed) call ham%weight_reconstruction(Det_Vec    )
                  if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
@@ -112,7 +113,7 @@
 
           enddo
 
-        END SUBROUTINE stepwlk
+        END SUBROUTINE stepwlk_move
 
 
         subroutine re_orthonormalize_walkers(Phi_0)
@@ -128,7 +129,7 @@
           
           if ( weight_k(i_wlk) .gt. Zero ) then
 
-              N_size = udvl%ndim
+              N_size = phi_0(1,1)%ndim
 
               !Carry out U,D,V decomposition.
               Do nf_eff = 1, N_FL_eff
@@ -167,7 +168,7 @@
 
           !Local 
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk
-          Complex (Kind=Kind(0.d0)) :: Prev_Ratiotot, Overlap_old, Overlap_new
+          Complex (Kind=Kind(0.d0)) :: Prev_Ratiotot, Overlap_old, Overlap_new, Z
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
           Real (Kind=Kind(0.d0))    :: Zero = 1.0E-8
           COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable :: Phase_array
@@ -196,8 +197,8 @@
             Phase(i_wlk)=product(Phase_array)
             Phase(i_wlk)=Phase(i_wlk)**N_SUN
             
-            tot_ene    = tot_ene    + ham%E0_local(GR(:,:,:,i_wlk))*weight(i_wlk)
-            tot_weight = tot_weight + weight(i_wlk)
+            tot_ene    = tot_ene    + ham%E0_local(GR(:,:,:,i_wlk))*weight_k(i_wlk)
+            tot_weight = tot_weight + weight_k(i_wlk)
 
           enddo
           fac_norm= exp( real(tot_ene, kind(0.d0))/tot_weight )
@@ -217,14 +218,14 @@
           
           !Local 
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, tot_Nwlk, it_wlk 
-          Integer :: i_t, i_st, i_ed, nu_wlk, i_src, i_wlk, j_src, j_wlk
+          Integer :: j, it, i_t, i_st, i_ed, nu_wlk, i_src, i_wlk, j_src, j_wlk
           Real    (Kind=Kind(0.d0)), Dimension(:), Allocatable :: weight_mpi
           Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8, d_scal, sum_w, w_count, w_tmp(N_wlk)
           Complex (Kind=Kind(0.d0)) :: Overlap_tmp(N_wlk), phase_alpha_tmp(N_wlk)
           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE :: phi_0_m
 
 #ifdef MPI
-          Integer        :: Isize, Irank, irank_g, isize_g, igroup
+          Integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
           Integer        :: STATUS(MPI_STATUS_SIZE)
           CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
           CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
@@ -243,7 +244,7 @@
           enddo
 
           do nf_eff = 1, N_FL_eff
-             do i_wlk = 1, N_blk
+             do i_wlk = 1, N_wlk
                 call phi_0_m(nf_eff,i_wlk)%assign(phi_0(nf_eff,i_wlk))
              enddo
           enddo
@@ -261,8 +262,8 @@
                  i_st=it*N_wlk+1
                  i_ed=(it+1)*isize_g
 
-                 call mpi_send(weight_k,N_blk,MPI_REAL8,it,it+1024,Group_comm,IERR)
-                 call mpi_recv(w_tmp   ,N_blk,MPI_REAL8,0 ,it+1024,Group_comm,IERR)
+                 call mpi_send(weight_k,N_wlk,MPI_REAL8,it,it+1024,Group_comm,IERR)
+                 call mpi_recv(w_tmp   ,N_wlk,MPI_REAL8,0 ,it+1024,Group_comm,IERR)
                  weight_mpi(i_st:i_ed)=w_tmp(:)
               enddo
           endif
@@ -309,7 +310,7 @@
           phase_alpha=phase_alpha_tmp
           weight_k(:)=1
           do nf_eff = 1, N_FL_eff
-             do i_wlk = 1, N_blk
+             do i_wlk = 1, N_wlk
                 call phi_0(nf_eff,i_wlk)%assign(phi_0_m(nf_eff,i_wlk))
              enddo
           enddo

@@ -53,7 +53,6 @@
       Use DynamicMatrixArray_mod
       Use ContainerElementBase_mod
       Use OpTTypes_mod
-      Use OpT_time_dependent_mod
       use iso_fortran_env, only: output_unit, error_unit
 
       ! Private variables
@@ -85,25 +84,19 @@
             
             Class(CmplxExpOpT), pointer :: cmplxexp => null()
             Class(RealExpOpT), pointer :: realexp => null()
-            Class(OpT_time_dependent), pointer :: time_dependent => null()
             
-            if (op%get_g_t_alloc()) then
-                allocate(time_dependent)
-                call time_dependent%init(op,symm)
-                call ExpOpT_vec%pushback(time_dependent)
+            if (Op_is_real(op)) then
+                ! branch for real operators
+                allocate(realexp) ! Yep, this is a manifest memory leak. Using the ptr we can allocate onto the same variable
+                call realexp%init(op)
+                call ExpOpT_vec%pushback(realexp)
             else
-                if (Op_is_real(op)) then
-                    ! branch for real operators
-                        allocate(realexp) ! Yep, this is a manifest memory leak. Using the ptr we can allocate onto the same variable
-                        call realexp%init(op)
-                        call ExpOpT_vec%pushback(realexp)
-                    else
-                    ! branch for complex operators
-                        allocate(cmplxexp)
-                        call cmplxexp%init(op)
-                        call ExpOpT_vec%pushback(cmplxexp)
-                    endif
+            ! branch for complex operators
+                allocate(cmplxexp)
+                call cmplxexp%init(op)
+                call ExpOpT_vec%pushback(cmplxexp)
             endif
+
         end subroutine
         
       

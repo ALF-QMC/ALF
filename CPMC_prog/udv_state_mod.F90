@@ -638,18 +638,18 @@ CONTAINS
        INTEGER :: n
 
        n = this%ndim * this%ndim
-       call mpi_send(src%U , n, MPI_COMPLEX16, dest  , sendtag, Group_comm,IERR)
-       call mpi_recv(this%U, n, MPI_COMPLEX16, source, recvtag, Group_comm,IERR)
+       call mpi_send(src%U , n, MPI_COMPLEX16, dest  , sendtag, MPI_COMM_WORLD,Status,IERR)
+       call mpi_recv(this%U, n, MPI_COMPLEX16, source, recvtag, MPI_COMM_WORLD,status,IERR)
        
-       call mpi_send(src%V , n, MPI_COMPLEX16, dest,   sendtag+1033, Group_comm,IERR)
-       call mpi_recv(this%V, n, MPI_COMPLEX16, source, recvtag+1033, Group_comm,IERR)
+       call mpi_send(src%V , n, MPI_COMPLEX16, dest,   sendtag+1033, MPI_COMM_WORLD,status,IERR)
+       call mpi_recv(this%V, n, MPI_COMPLEX16, source, recvtag+1033, MPI_COMM_WORLD,status,IERR)
 
 #if !defined(STABLOG)
-       call mpi_send(src%D , this%ndim, MPI_COMPLEX16, dest  , sendtag+2033, Group_comm,IERR)
-       call mpi_recv(this%D, this%ndim, MPI_COMPLEX16, source, recvtag+2033, Group_comm,IERR)
+       call mpi_send(src%D , this%ndim, MPI_COMPLEX16, dest  , sendtag+2033, MPI_COMM_WORLD,status,IERR)
+       call mpi_recv(this%D, this%ndim, MPI_COMPLEX16, source, recvtag+2033, MPI_COMM_WORLD,status,IERR)
 #else
-       call mpi_send(src%L , this%ndim, MPI_COMPLEX16, dest  , sendtag+2033, Group_comm,IERR)
-       call mpi_recv(this%L, this%ndim, MPI_COMPLEX16, source, recvtag+2033, Group_comm,IERR)
+       call mpi_send(src%L , this%ndim, MPI_COMPLEX16, dest  , sendtag+2033, MPI_COMM_WORLD,status,IERR)
+       call mpi_recv(this%L, this%ndim, MPI_COMPLEX16, source, recvtag+2033, MPI_COMM_WORLD,status,IERR)
 #endif
 
      END SUBROUTINE MPI_Sendrecv_UDV_state_general

@@ -13,7 +13,7 @@ Program Main
         use iso_fortran_env, only: output_unit, error_unit
         use cgr1_mod
         use set_random
-        use stepwlk
+        use stepwlk_mod
 
 #ifdef MPI
         Use mpi
@@ -28,13 +28,14 @@ Program Main
 
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:,:), Allocatable   :: GR
         CLASS(UDV_State), DIMENSION(:,:), ALLOCATABLE :: phi_trial, udvr, phi_0
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:)  , Allocatable   :: Phase_array
 
         Integer :: N_eqwlk, N_blksteps, i_wlk, j_step, N_blk_eff, i_blk, N_blk
         Integer :: Nwrap, itv_pc, itv_Em, ntau_bp, ntau_qr, ltrot_bp
         Real(Kind=Kind(0.d0)) :: CPU_MAX
         Character (len=64) :: file_seeds, file_para, file_dat, file_info, ham_name
         Integer :: Seed_in
+
+        integer :: mpi_per_parameter_set
 
 #ifdef HDF5
         INTEGER(HID_T) :: file_id
@@ -182,7 +183,7 @@ Program Main
         reconstruction_needed=.false.
         If (N_FL_eff /= N_FL) reconstruction_needed=.true.
         !initialize the flavor map
-        allocate(Calc_Fl_map(N_FL_eff),Phase_array(N_FL,N_wlk), Phase(N_wlk), Phase_array(N_wlk))
+        allocate(Calc_Fl_map(N_FL_eff), Phase(N_wlk))
         N_FL_eff=0
         Do I=1,N_Fl
           if (Calc_Fl(I)) then
@@ -273,9 +274,8 @@ Program Main
         Call ham%Alloc_obs
         
         Allocate( GR(NDIM,NDIM,N_FL,N_wlk) )
-        Allocate( phi_trail(N_FL_eff, N_wlk) , udvr(N_FL_eff, N_wlk), phi_0(N_FL_eff, N_wlk))
+        Allocate( phi_trial(N_FL_eff, N_wlk) , udvr(N_FL_eff, N_wlk), phi_0(N_FL_eff, N_wlk))
         
-        Phase_array(:,:) = cmplx(1.d0, 0.d0, kind(0.D0))
         Phase_alpha(:)   = cmplx(1.d0, 0.d0, kind(0.D0))
         weight_k   (:)   = 1.d0
         
@@ -297,7 +297,7 @@ Program Main
                 !! also add a function to init Green's function
 
                 !! propagate the walkers:
-                call stepwlk(Phi_trail, Phi_0, GR, Phase, Phase_alpha, n_op, ntau_qr, ntau_bp );
+                call stepwlk_move(Phi_trial, Phi_0, GR, Phase, Phase_alpha, n_op, ntau_qr, ntau_bp );
                 !! QR decomposition for stablization
                 if ( mod(ntau_qr,    Nwrap) .eq. 0 ) then
                     ntau_qr = 0
@@ -312,11 +312,11 @@ Program Main
                     tot_ene    = cmplx(0.d0,0.d0,kind(0.d0))
                     tot_weight = 0.d0
                     do i_wlk  = 1, N_wlk
-                        tot_ene    = tot_ene    + ham%E0_local(GR(:,:,:,i_wlk))*weight(i_wlk)
-                        tot_weight = tot_weight + weight(i_wlk)
+                        tot_ene    = tot_ene    + ham%E0_local(GR(:,:,:,i_wlk))*weight_k(i_wlk)
+                        tot_weight = tot_weight + weight_k(i_wlk)
                     enddo
                     fac_norm= exp( real(tot_ene, kind(0.d0))/tot_weight )
-                    write(*,*) j_step+(i_blk-1)*N_blksteps, real(tot_ene, 0.d0, kind(0.d0))/tot_weight 
+                    write(*,*) j_step+(i_blk-1)*N_blksteps, real(tot_ene, kind(0.d0))/tot_weight 
                 endif
                 
                 ntau_qr = ntau_qr + 1; ntau_bp = ntau_bp + 1           
@@ -343,7 +343,7 @@ Program Main
 
         stop
         
-        deallocate(Calc_Fl_map,Phase_array)
+        deallocate(Calc_Fl_map)
 
         ! Delete the file RUNNING since the simulation finished successfully
 #if defined(MPI)

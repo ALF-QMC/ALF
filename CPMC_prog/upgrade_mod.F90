@@ -107,13 +107,12 @@ module upgrade_mod
         do nu_c = 1, nu_spin
 
             nsigma_new%f(1,1)  = field_list(nu_c) !real(ns_new,kind=kind(0.d0))
-            S0_ratio           = ham%S0(n_op,1,field_list(nu_c))
+            S0_ratio           = ham%S0(n_op,1,dble(field_list(nu_c)))
             
             Do nf_eff = 1,N_FL_eff
                nf=Calc_Fl_map(nf_eff)
                !Z1 = Op_V(n_op,nf)%g * ( Phi_st(ns_new,Op_V(n_op,nf)%type) -  Phi_st(ns_old,Op_V(n_op,nf)%type))
                g_loc = Op_V(n_op,nf)%g
-               if (op_v(n_op,nf)%get_g_t_alloc()) g_loc = Op_V(n_op,nf)%g_t(nt)
                Z1 = g_loc * ( nsigma_new%Phi(1,1) )
                op_dim_nf = Op_V(n_op,nf)%N_non_zero
                Do m = 1,op_dim_nf
@@ -186,7 +185,7 @@ module upgrade_mod
             Phase = Phase * Ratiotot/sqrt(Ratiotot*conjg(Ratiotot))
             do nf_eff = 1,N_Fl_eff
                nf=Calc_Fl_map(nf_eff)
-               call Op_phase(Phase_a_array,OP_V,nsigma_new,nf)
+               call Op_phase(Phase_a_array(nf),OP_V,nsigma_new,nf)
             enddo
             if (reconstruction_needed) call ham%weight_reconstruction(Phase_a_array)
             Phase_alpha=Phase_alpha*product(Phase_a_array)**N_SUN
@@ -196,7 +195,6 @@ module upgrade_mod
             Do nf_eff = 1,N_FL_eff
                nf=Calc_Fl_map(nf_eff)
                g_loc = Op_V(n_op,nf)%g
-               if (op_v(n_op,nf)%get_g_t_alloc()) g_loc = Op_V(n_op,nf)%g_t(nt)
                Z1 = g_loc * ( nsigma_new%Phi(1,1) )
                op_dim_nf = Op_V(n_op,nf)%N_non_zero
                Do m = 1,op_dim_nf

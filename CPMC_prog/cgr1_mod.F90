@@ -393,12 +393,14 @@ module cgr1_mod
       Subroutine Compute_overlap(Phase_det, Det_Vec, udvr, udvl)
 
         Use UDV_State_mod
+        Use Hamiltonian_main
 
         Implicit none
 
         Complex (Kind=Kind(0.d0)), Dimension(:), Intent(OUT)  ::  Det_Vec
         Complex (Kind=Kind(0.d0)), Dimension(:), Intent(OUT)  ::  Phase_det
-        CLASS(UDV_State), DIMENSION(:)  , ALLOCATABLE,  INTENT(INOUT) :: udvr, udvl
+        CLASS(UDV_State),  INTENT(INOUT) :: udvr(N_FL_eff)
+        CLASS(UDV_State),  INTENT(IN   ) :: udvl(N_FL_eff)
 
         !> Local variables
         Integer ::  N_size, NCON, I,  J, N_part, info, NSTM, N, nf, nst, nt, nt1, nf_eff
@@ -408,8 +410,8 @@ module cgr1_mod
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  TP!, U, V
         COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable :: D
 
-        N_part=udvr%N_part
-        N_size=udvr%ndim
+        N_part=udvr(1)%N_part
+        N_size=udvr(1)%ndim
         Det_vec = 0.d0
         Allocate (TP(N_part,N_part), ipiv(N_part))
         do nf_eff=1,N_FL_eff
