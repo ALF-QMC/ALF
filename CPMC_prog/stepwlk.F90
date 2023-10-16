@@ -32,7 +32,7 @@
           do i_wlk = 1, N_wlk
 
              if ( weight_k(i_wlk) .gt. Zero ) then
-                   
+
                  ! update weight by fac_norm
                  weight_k(i_wlk)=weight_k(i_wlk)*exp(fac_norm);
                
@@ -83,13 +83,14 @@
              do n = 1, N_op
 
              if ( weight_k(i_wlk) .gt. Zero ) then
-                
+
                 ! upgrade Green's function
                 N_type = 2
                 do nf_eff = 1,N_FL_eff
                    nf=Calc_Fl_map(nf_eff)
                    Call Op_Wrapup( GR(:,:,nf,i_wlk), Op_V(n,nf), 1.d0, Ndim, N_Type,1)
                 enddo
+
                 Call Upgrade(GR(:,:,:,i_wlk),n,PHASE(i_wlk), PHASE_alpha(i_wlk), spin, i_wlk )
                 nsigma_qr(i_wlk)%f(n,ntau_qr) = spin
                 nsigma_bp(i_wlk)%f(n,ntau_bp) = spin
@@ -199,7 +200,7 @@
             tot_weight = tot_weight + weight_k(i_wlk)
 
           enddo
-          fac_norm= exp( real(tot_ene, kind(0.d0))/tot_weight )
+          fac_norm= real(tot_ene, kind(0.d0))/tot_weight
 
         END SUBROUTINE initial_wlk
 

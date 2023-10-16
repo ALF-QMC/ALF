@@ -284,15 +284,15 @@ Program Main
                         tot_ene    = tot_ene    + ham%E0_local(GR(:,:,:,i_wlk))*weight_k(i_wlk)
                         tot_weight = tot_weight + weight_k(i_wlk)
                     enddo
-                    fac_norm= exp( real(tot_ene, kind(0.d0))/tot_weight )
+                    fac_norm= real(tot_ene, kind(0.d0))/tot_weight
                     write(*,*) j_step+(i_blk-1)*N_blksteps, real(tot_ene, kind(0.d0))/tot_weight 
+
                 endif
                 
                 ntau_qr = ntau_qr + 1; ntau_bp = ntau_bp + 1           
 
                 ! population control
                 if ( mod(j_step, itv_pc) .eq. 0 ) then
-                    !!to do list
                     call population_control(phi_0, phase_alpha)
                 endif
                 
