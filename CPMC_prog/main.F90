@@ -154,7 +154,7 @@ Program Main
         reconstruction_needed=.false.
         If (N_FL_eff /= N_FL) reconstruction_needed=.true.
         !initialize the flavor map
-        allocate(Calc_Fl_map(N_FL_eff), Phase(N_wlk))
+        allocate(Calc_Fl_map(N_FL_eff), Phase(N_wlk), Phase_alpha(N_wlk))
         N_FL_eff=0
         Do I=1,N_Fl
           if (Calc_Fl(I)) then
@@ -176,10 +176,8 @@ Program Main
                nsigma_bp(i_wlk)%t(n)  = OP_V(n,1)%type
                nsigma_qr(i_wlk)%t(n)  = OP_V(n,1)%type
             Enddo
-            Call nsigma_bp(i_wlk)%in(Group_Comm)
-            Call nsigma_qr(i_wlk)%in(Group_Comm)
         enddo
-        
+
         Call Hop_mod_init
 
         IF (ABS(CPU_MAX) > Zero ) N_blk = 10000000

@@ -176,6 +176,24 @@ Contains
     
   end Subroutine Op_phase
   
+  Subroutine  Op_phase_general(Phase,OP_V_tmp,phi_tmp) 
+    Implicit none
+
+    Complex (Kind=Kind(0.d0)), Intent(out) :: Phase
+    Real    (Kind=Kind(0.d0)), Intent(in ) :: phi_tmp
+    Type (Operator),  Intent(In) :: Op_V_tmp
+    
+    !local
+    Real  (Kind=Kind(0.d0))      :: angle
+    Integer :: n, nt
+    complex (kind=kind(0.d0)) :: g_loc
+    
+    g_loc = Op_V_tmp%g
+    angle = Aimag( g_loc * Op_V_tmp%alpha ) * phi_tmp
+    Phase = CMPLX(cos(angle),sin(angle), Kind(0.D0))
+    
+  end Subroutine Op_phase_general
+
 !--------------------------------------------------------------------
 !> @author
 !> 

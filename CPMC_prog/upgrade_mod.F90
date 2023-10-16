@@ -66,8 +66,7 @@ module upgrade_mod
         Complex (Kind=Kind(0.D0)), Dimension(:, :), Allocatable :: Zarr, grarr
         Complex (Kind=Kind(0.D0)), Dimension(:), Allocatable :: sxv, syu
         
-        Integer, Dimension(:), Allocatable :: field_list
-        Real (Kind=Kind(0.D0)), Dimension(:), Allocatable :: ratio_field
+        Real (Kind=Kind(0.D0)), Dimension(:), Allocatable :: ratio_field, field_list
         Complex (Kind=Kind(0.D0)), Dimension(:), Allocatable :: ratio_O
 
         Call nsigma_new%make(1,1)
@@ -90,17 +89,17 @@ module upgrade_mod
             allocate(field_list(2))
             allocate(ratio_field(2))
             allocate(ratio_O(2))
-            field_list(1)=1; 
-            field_list(2)=2;
+            field_list(1)=1.d0; 
+            field_list(2)=2.d0;
             nu_spin=2
         elseif ( Op_V(n_op,nf)%Type .eq. 2 ) then
             allocate(field_list(4))
             allocate(ratio_field(4))
             allocate(ratio_O(4))
-            field_list(1)= 1; 
-            field_list(2)=-1; 
-            field_list(3)= 2; 
-            field_list(4)=-2; 
+            field_list(1)= 1.d0; 
+            field_list(2)=-1.d0; 
+            field_list(3)= 2.d0; 
+            field_list(4)=-2.d0; 
             nu_spin=4
         endif
 
@@ -185,7 +184,7 @@ module upgrade_mod
             Phase = Phase * Ratiotot/sqrt(Ratiotot*conjg(Ratiotot))
             do nf_eff = 1,N_Fl_eff
                nf=Calc_Fl_map(nf_eff)
-               call Op_phase(Phase_a_array(nf),OP_V,nsigma_new,nf)
+               call Op_phase_general(Phase_a_array(nf),OP_V(n_op,nf),nsigma_new%phi(1,1))
             enddo
             if (reconstruction_needed) call ham%weight_reconstruction(Phase_a_array)
             Phase_alpha=Phase_alpha*product(Phase_a_array)**N_SUN

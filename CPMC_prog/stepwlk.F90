@@ -90,7 +90,6 @@
                    nf=Calc_Fl_map(nf_eff)
                    Call Op_Wrapup( GR(:,:,nf,i_wlk), Op_V(n,nf), 1.d0, Ndim, N_Type,1)
                 enddo
-
                 Call Upgrade(GR(:,:,:,i_wlk),n,PHASE(i_wlk), PHASE_alpha(i_wlk), spin, i_wlk )
                 nsigma_qr(i_wlk)%f(n,ntau_qr) = spin
                 nsigma_bp(i_wlk)%f(n,ntau_bp) = spin
