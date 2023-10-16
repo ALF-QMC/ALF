@@ -238,13 +238,13 @@ Program Main
         if ( Irank_g == 0 ) then
 #endif
            Open (Unit = 50,file=file_info,status="unknown",position="append")
+           Write(50,*) 'Nwrap                                : ', Nwrap
+           Write(50,*) 'N_blk                                : ', N_blk
+           Write(50,*) 'N_blksteps                           : ', N_blksteps
+           Write(50,*) 'ltrot_bp                             : ', ltrot_bp
+           Write(50,*) 'itv_pc                               : ', itv_pc
+           Write(50,*) 'itv_Em                               : ', itv_Em
            If ( abs(CPU_MAX) < ZERO ) then
-              Write(50,*) 'N_blk                                : ', N_blk
-              Write(50,*) 'N_blksteps                           : ', N_blksteps
-              Write(50,*) 'Nwrap                                : ', Nwrap
-              Write(50,*) 'ltrot_bp                             : ', ltrot_bp
-              Write(50,*) 'itv_pc                               : ', itv_pc
-              Write(50,*) 'itv_Em                               : ', itv_Em
               Write(50,*) 'No CPU-time limitation '
            else
               Write(50,'(" Prog will stop after hours:",2x,F8.4)') CPU_MAX

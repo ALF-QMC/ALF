@@ -184,7 +184,6 @@
                CALL udvr(nf_eff, i_wlk)%init(ndim,'r',WF_R(nf)%P)
                CALL phi_trial(nf_eff, i_wlk)%init(ndim,'l',WF_L(nf)%P)
                CALL phi_0(nf_eff, i_wlk)%init(ndim,'r',WF_R(nf)%P)
-               
             enddo
 
             NVAR = 1
@@ -260,7 +259,7 @@
           if (irank_g == 0) then
               do it = 1, isize_g-1
                  i_st=it*N_wlk+1
-                 i_ed=(it+1)*isize_g
+                 i_ed=(it+1)*N_wlk
 
                  call mpi_send(weight_k,N_wlk,MPI_REAL8,it,it+1024,Group_comm,IERR)
                  call mpi_recv(w_tmp   ,N_wlk,MPI_REAL8,0 ,it+1024,Group_comm,IERR)
@@ -300,6 +299,7 @@
                             call phi_0_m(nf_eff,j_wlk)%assign(phi_0(nf_eff,i_wlk))
                         enddo
                         Overlap_tmp(j_wlk)=Overlap(i_wlk) 
+                        phase_alpha_tmp(j_wlk)=phase_alpha(i_wlk) 
                       endif
                   endif
               enddo
