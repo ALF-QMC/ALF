@@ -171,7 +171,7 @@ module upgrade_mod
                     n_prop = nu_c
                     exit
                 endif
-                st_r = st_r + ed_r
+                st_r = st_r + ratio_field(nu_c)/sum_ratio
             enddo
             nsigma_new%f(1,1)  = field_list(n_prop)
             
