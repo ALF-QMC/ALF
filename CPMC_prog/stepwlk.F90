@@ -261,8 +261,8 @@
                  i_st=it*N_wlk+1
                  i_ed=(it+1)*N_wlk
 
-                 call mpi_send(weight_k,N_wlk,MPI_REAL8,it,it+1024,Group_comm,IERR)
-                 call mpi_recv(w_tmp   ,N_wlk,MPI_REAL8,0 ,it+1024,Group_comm,IERR)
+                 call mpi_send(weight_k,N_wlk,MPI_REAL8,0 ,it+1024,Group_comm,IERR)
+                 call mpi_recv(w_tmp   ,N_wlk,MPI_REAL8,it,it+1024,Group_comm,IERR)
                  weight_mpi(i_st:i_ed)=w_tmp(:)
               enddo
           endif
