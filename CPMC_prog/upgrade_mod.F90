@@ -146,7 +146,7 @@ module upgrade_mod
 
             Ratiotot = Product(Ratio)
             Ratiotot = (Ratiotot**dble(N_SUN)) 
-            weight = S0_ratio * real(Ratiotot*nsigma_new%Gama(1,1), kind=Kind(0.d0))
+            weight = S0_ratio * real(Ratiotot*nsigma_new%px0(1,1), kind=Kind(0.d0))
             if ( weight .le. 0.d0 ) weight = 0.d0
             ratio_field(nu_c) = weight
 
@@ -180,7 +180,7 @@ module upgrade_mod
             Overlap (i_wlk) = Overlap (i_wlk)*ratio_O(n_prop)
 
             !! Compute the phase of the weight
-            Ratiotot=ratio_O(n_prop)*nsigma_new%Gama(1,1)
+            Ratiotot=ratio_O(n_prop)*nsigma_new%px0(1,1)
             Phase = Phase * Ratiotot/sqrt(Ratiotot*conjg(Ratiotot))
             do nf_eff = 1,N_Fl_eff
                nf=Calc_Fl_map(nf_eff)
