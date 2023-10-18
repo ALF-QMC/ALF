@@ -36,7 +36,7 @@
       !#PARAMETERS START# VAR_Model_Generic
       !Integer              :: N_SUN        = 1        ! Number of colors
       !Integer              :: N_FL         = 2        ! Number of flavors
-      !Integer              :: N_wlk        = 1        ! Number of blocks
+      !Integer              :: N_wlk        = 1        ! Number of walker
       real(Kind=Kind(0.d0)) :: Phi_X        = 0.d0     ! Twist along the L_1 direction, in units of the flux quanta
       real(Kind=Kind(0.d0)) :: Phi_Y        = 0.d0     ! Twist along the L_2 direction, in units of the flux quanta
       logical               :: Bulk         = .true.   ! Twist as a vector potential (.T.), or at the boundary (.F.)
@@ -53,6 +53,7 @@
       real(Kind=Kind(0.d0)) :: ham_T2     = 1.d0     ! For bilayer systems
       real(Kind=Kind(0.d0)) :: Ham_U2     = 4.d0     ! For bilayer systems
       real(Kind=Kind(0.d0)) :: ham_Tperp  = 1.d0     ! For bilayer systems
+      Integer               :: N_dope     = 0        ! Number of doping electrons
       !#PARAMETERS END#
 
       Type (Lattice),       target :: Latt
@@ -144,6 +145,8 @@
              Write(unit_info,*) 'dtau: ', dtau
              Write(unit_info,*) 'N_SUN         : ', N_SUN
              Write(unit_info,*) 'N_FL          : ', N_FL
+             Write(unit_info,*) 'N_wlk         : ', N_wlk
+             Write(unit_info,*) 'N_dope        : ', N_dope
              Write(unit_info,*) 't             : ', Ham_T
              Write(unit_info,*) 'Ham_U         : ', Ham_U
              Write(unit_info,*) 't2            : ', Ham_T2
@@ -236,7 +239,7 @@
 
           Integer :: N_part, nf
           ! Use predefined stuctures or set your own Trial  wave function
-          N_part = Ndim/2
+          N_part = Ndim/2-N_dope
           Call Predefined_TrialWaveFunction(Lattice_type ,Ndim,  List,Invlist,Latt, Latt_unit, &
                &                            N_part, N_FL,  WF_L, WF_R)
           overlap(:) = cmplx(1.d0, 0.d0, kind(0.d0))
