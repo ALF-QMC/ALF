@@ -11,13 +11,29 @@ if [ -d "$HDF5_DIR" ]; then
   exit 1
 fi
 
+command -v curl > /dev/null
+CURL_AVAIL=$?
+command -v wget > /dev/null
+WGET_AVAIL=$?
+
+if [ $CURL_AVAIL -ne 0 ] && [ $WGET_AVAIL -ne 0 ]; then
+  printf "\e[31m==== Neither curl nor wget available!                   =====\e[0m\n"
+  printf "\e[31m==== One of the two is required to download HDF5 source =====\e[0m\n"
+  exit 1
+fi
+
 # Create temporary directory
 tmpdir=$(mktemp -d 2>/dev/null || mktemp -d -t 'tmpdir')
 printf "\e[31mTemporary directory %s created\e[0m\n" "$tmpdir"
 cd "$tmpdir" || exit 1
 
 printf "\e[31m========== Downloading source ==========\e[0m\n"
-curl https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.10/hdf5-1.10.7/src/hdf5-1.10.7.tar.gz | tar xz
+
+if [ $CURL_AVAIL -eq 0 ]; then
+  curl https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.10/hdf5-1.10.7/src/hdf5-1.10.7.tar.gz | tar xz || exit 1
+else
+  wget -O- https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.10/hdf5-1.10.7/src/hdf5-1.10.7.tar.gz | tar xz || exit 1
+fi
 source_dir="hdf5-1.10.7"
 
 export CC FC CXX
