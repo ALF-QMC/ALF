@@ -42,6 +42,8 @@ module ContainerElementBase_mod
     contains
     procedure(rmultinterface), deferred :: rmult
     procedure(lmultinterface), deferred :: lmult
+    procedure(rmult1D2interface), deferred :: rmult1D2
+    procedure(lmult1D2interface), deferred :: lmult1D2
     procedure(rmultinvinterface), deferred :: rmultinv
     procedure(lmultinvinterface), deferred :: lmultinv
     procedure(adjointactioninterface), deferred :: adjointaction
@@ -64,6 +66,13 @@ module ContainerElementBase_mod
          Complex(kind=kind(0.d0)), intent(inout),  dimension(:,:) :: arg
          Integer, intent(in) :: t
       end subroutine
+      
+      subroutine rmult1D2interface(this, arg, t)
+         import ContainerElementBase
+         class(ContainerElementBase), intent(in) :: this
+         Complex(kind=kind(0.d0)), intent(inout),  dimension(:,:) :: arg
+         Integer, intent(in) :: t
+      end subroutine
 
     !--------------------------------------------------------------------
     !> @brief 
@@ -72,6 +81,13 @@ module ContainerElementBase_mod
     !> @param[in] this
     !--------------------------------------------------------------------
       subroutine lmultinterface(this, arg, t)
+         import ContainerElementBase
+         class(ContainerElementBase), intent(in) :: this
+         Complex(kind=kind(0.d0)), intent(inout),  dimension(:,:) :: arg
+         Integer, intent(in) :: t
+      end subroutine
+      
+      subroutine lmult1D2interface(this, arg, t)
          import ContainerElementBase
          class(ContainerElementBase), intent(in) :: this
          Complex(kind=kind(0.d0)), intent(inout),  dimension(:,:) :: arg

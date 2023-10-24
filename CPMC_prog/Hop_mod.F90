@@ -153,6 +153,25 @@
             call dummy%lmult(In, t)
           Enddo
         end Subroutine Hop_mod_mmthr
+        
+        Subroutine Hop_mod_mmthr_1D2(In,nf, t)
+
+          ! InOut:  In = e^{ -dtau T }.IN
+          Implicit none
+
+          Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
+          Integer, intent(IN) :: nf, t
+
+          !Local
+          Integer :: nc
+          class(ContainerElementBase), pointer :: dummy
+
+
+          do nc =  Ncheck,1,-1
+            dummy => ExpOpT_vec(nf)%at(nc)
+            call dummy%lmult1D2(In, t)
+          Enddo
+        end Subroutine Hop_mod_mmthr_1D2
 
         Subroutine Hop_mod_mmthr_m1(In,nf,t)
 
@@ -197,6 +216,24 @@
           Enddo
 
         end Subroutine Hop_mod_mmthl
+        
+        Subroutine Hop_mod_mmthl_1D2(In,nf, t)
+
+          ! InOut:  In = e^{ -dtau T }.IN
+          Implicit none
+
+          Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
+          Integer, intent(IN) :: nf, t
+
+          !Local
+          Integer :: nc
+          class(ContainerElementBase), pointer :: dummy
+
+          do nc =  Ncheck,1,-1
+            dummy => ExpOpT_vec(nf)%at(nc)
+            call dummy%rmult1D2(In, t)
+          Enddo
+        end Subroutine Hop_mod_mmthl_1D2
 
 !--------------------------------------------------------------------
 

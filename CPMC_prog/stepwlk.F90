@@ -42,10 +42,10 @@
                  if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
                  log_O_old = sum(Det_Vec) 
 
-                 ! Kinetic part
+                 !! Kinetic part exp(-/Delta/tau T/2)
                  Do nf_eff = 1,N_FL_eff
                     nf=Calc_Fl_map(nf_eff)
-                    Call Hop_mod_mmthr(phi_0(nf_eff, i_wlk)%U,nf,1)
+                    Call Hop_mod_mmthr_1D2(phi_0(nf_eff, i_wlk)%U,nf,1)
                  enddo
                  
                  ! Update Green's function
@@ -79,7 +79,7 @@
 
              endif
 
-             ! propagate with interaction
+             !! propagate with interaction
              do n = 1, N_op
 
              if ( weight_k(i_wlk) .gt. Zero ) then
@@ -110,6 +110,51 @@
              endif
 
              enddo
+             
+             if ( weight_k(i_wlk) .gt. Zero ) then
+                 
+                 call Compute_overlap(Phase_array, Det_Vec, phi_0(:,i_wlk), phi_trial(:,i_wlk))
+                 Det_Vec(:) = Det_Vec(:) * N_SUN
+                 if (reconstruction_needed) call ham%weight_reconstruction(Det_Vec    )
+                 if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
+                 log_O_old = sum(Det_Vec) 
+
+                 !! Kinetic part exp(-/Delta/tau T/2)
+                 Do nf_eff = 1,N_FL_eff
+                    nf=Calc_Fl_map(nf_eff)
+                    Call Hop_mod_mmthr_1D2(phi_0(nf_eff, i_wlk)%U,nf,1)
+                 enddo
+                 
+                 ! Update Green's function
+                 NVAR = 1
+                 do nf_eff = 1,N_Fl_eff
+                    nf=Calc_Fl_map(nf_eff)
+                    call CGR(Z, NVAR, GR(:,:,nf,i_wlk), phi_0(nf_eff,i_wlk), phi_trial(nf_eff,i_wlk))
+                    Phase_array(nf)=Z
+                 enddo
+                 if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
+                 Phase(i_wlk)=product(Phase_array)
+                 Phase(i_wlk)=Phase(i_wlk)**N_SUN
+
+                 call Compute_overlap(Phase_array, Det_Vec, phi_0(:,i_wlk), phi_trial(:,i_wlk))
+                 Det_Vec(:) = Det_Vec(:) * N_SUN
+                 if (reconstruction_needed) call ham%weight_reconstruction(Det_Vec    )
+                 if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
+                 log_O_new = sum(Det_Vec) 
+                 
+                 Phase(i_wlk)=product(Phase_array)
+                 Phase(i_wlk)=Phase(i_wlk)**N_SUN
+
+                 Overlap_ratio = real(exp(log_O_new-log_O_old), kind(0.d0))
+
+                 if ( Overlap_ratio .gt. Zero ) then
+                     Overlap (i_wlk) = exp(log_O_new)
+                     weight_k(i_wlk) = weight_k(i_wlk)*Overlap_ratio
+                 else
+                     weight_k(i_wlk) = 0.d0
+                 endif
+
+             endif
 
           enddo
 
