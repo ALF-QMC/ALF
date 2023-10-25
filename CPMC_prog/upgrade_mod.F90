@@ -52,7 +52,7 @@ module upgrade_mod
 
         ! Local ::
         Type   (Fields)   ::  nsigma_new
-        Complex (Kind=Kind(0.d0)) :: Ratio(N_FL), Ratiotot, Z1, Phase_a_array(N_FL)
+        Complex (Kind=Kind(0.d0)) :: Ratio(N_FL), Ratio_f(N_FL), Ratiotot, Z1, Phase_a_array(N_FL)
         Integer ::  n,m,nf, nf_eff, i, Op_dim, op_dim_nf, nu_spin, nu_c, n_prop
         Complex (Kind=Kind(0.d0)) :: Z, D_Mat, myexp, s1, s2
         Real    (Kind=Kind(0.d0)) :: S0_ratio
@@ -67,7 +67,7 @@ module upgrade_mod
         Complex (Kind=Kind(0.D0)), Dimension(:), Allocatable :: sxv, syu
         
         Real (Kind=Kind(0.D0)), Dimension(:), Allocatable :: ratio_field, field_list
-        Complex (Kind=Kind(0.D0)), Dimension(:), Allocatable :: ratio_O
+        Complex (Kind=Kind(0.D0)), Dimension(:), Allocatable :: ratio_O, ratio_G
 
         Call nsigma_new%make(1,1)
         
@@ -89,13 +89,14 @@ module upgrade_mod
             allocate(field_list(2))
             allocate(ratio_field(2))
             allocate(ratio_O(2))
+            allocate(ratio_G(2))
             field_list(1)=1.d0; 
             field_list(2)=2.d0;
             nu_spin=2
         elseif ( Op_V(n_op,nf)%Type .eq. 2 ) then
             allocate(field_list(4))
             allocate(ratio_field(4))
-            allocate(ratio_O(4))
+            allocate(ratio_G(4))
             field_list(1)= 1.d0; 
             field_list(2)=-1.d0; 
             field_list(3)= 2.d0; 
@@ -138,7 +139,8 @@ module upgrade_mod
                else
                   D_mat = Det(Mat,op_dim_nf)
                endif
-               Ratio(nf) =  D_Mat * exp( Z1*Op_V(n_op,nf)%alpha )
+               Ratio  (nf) =  D_Mat * exp( Z1*Op_V(n_op,nf)%alpha )
+               Ratio_f(nf) =  D_Mat
             Enddo
 
             !call reconstruct weight subroutine to fill the non-calculated blocks
@@ -151,6 +153,7 @@ module upgrade_mod
             ratio_field(nu_c) = weight
 
             ratio_O(nu_c) = Ratiotot
+            ratio_G(nu_c) = Product(Ratio_f)**dble(N_SUN)
 
         enddo
 
@@ -180,14 +183,14 @@ module upgrade_mod
             Overlap (i_wlk) = Overlap (i_wlk)*ratio_O(n_prop)
 
             !! Compute the phase of the weight
-            Ratiotot=ratio_O(n_prop)*nsigma_new%px0(1,1)
+            Ratiotot=ratio_G(n_prop)
             Phase = Phase * Ratiotot/sqrt(Ratiotot*conjg(Ratiotot))
             do nf_eff = 1,N_Fl_eff
                nf=Calc_Fl_map(nf_eff)
                call Op_phase_general(Phase_a_array(nf),OP_V(n_op,nf),nsigma_new%phi(1,1))
             enddo
             if (reconstruction_needed) call ham%weight_reconstruction(Phase_a_array)
-            Phase_alpha=Phase_alpha*product(Phase_a_array)**N_SUN
+            Phase_alpha=Phase_alpha*product(Phase_a_array)**dble(N_SUN)
 
             !! Update Green's function
             ! update delta
@@ -270,7 +273,7 @@ module upgrade_mod
         if (op_dim > 0) then
            deallocate ( Mat, Delta, u, v )
            deallocate ( y_v, xp_v, x_v )
-           deallocate ( ratio_field, field_list, ratio_O )
+           deallocate ( ratio_field, field_list, ratio_O, ratio_G )
         endif
 
         Call nsigma_new%clear()

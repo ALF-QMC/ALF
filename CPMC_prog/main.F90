@@ -293,7 +293,7 @@ Program Main
 
                 ! population control
                 if ( mod(j_step, itv_pc) .eq. 0 ) then
-                    call population_control(phi_0, phase_alpha)
+                    call population_control(phi_0, phase_alpha, phase)
                 endif
                 
             enddo

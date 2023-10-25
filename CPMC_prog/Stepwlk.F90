@@ -22,6 +22,7 @@
           !Local 
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk
           Complex (Kind=Kind(0.d0)) :: Prev_Ratiotot, Overlap_old, Overlap_new, log_O_new, log_O_old, Z
+          Complex (Kind=Kind(0.d0)) :: phase_new, phase_old
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
           Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8
           COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable :: Phase_array
@@ -41,6 +42,7 @@
                  if (reconstruction_needed) call ham%weight_reconstruction(Det_Vec    )
                  if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
                  log_O_old = sum(Det_Vec) 
+                 Phase_old = product(Phase_array)**dble(N_SUN)
 
                  !! Kinetic part exp(-/Delta/tau T/2)
                  Do nf_eff = 1,N_FL_eff
@@ -56,17 +58,15 @@
                     Phase_array(nf)=Z
                  enddo
                  if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
-                 Phase(i_wlk)=product(Phase_array)
-                 Phase(i_wlk)=Phase(i_wlk)**N_SUN
 
                  call Compute_overlap(Phase_array, Det_Vec, phi_0(:,i_wlk), phi_trial(:,i_wlk))
                  Det_Vec(:) = Det_Vec(:) * N_SUN
                  if (reconstruction_needed) call ham%weight_reconstruction(Det_Vec    )
                  if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
                  log_O_new = sum(Det_Vec) 
+                 Phase_new = product(Phase_array)**dble(N_SUN)
                  
-                 Phase(i_wlk)=product(Phase_array)
-                 Phase(i_wlk)=Phase(i_wlk)**N_SUN
+                 Phase(i_wlk)=Phase(i_wlk)*(Phase_new/Phase_old)
 
                  Overlap_ratio = real(exp(log_O_new-log_O_old), kind(0.d0))
 
@@ -118,6 +118,7 @@
                  if (reconstruction_needed) call ham%weight_reconstruction(Det_Vec    )
                  if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
                  log_O_old = sum(Det_Vec) 
+                 Phase_old = product(Phase_array)**dble(N_SUN)
 
                  !! Kinetic part exp(-/Delta/tau T/2)
                  Do nf_eff = 1,N_FL_eff
@@ -141,9 +142,9 @@
                  if (reconstruction_needed) call ham%weight_reconstruction(Det_Vec    )
                  if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
                  log_O_new = sum(Det_Vec) 
+                 Phase_new = product(Phase_array)**dble(N_SUN)
                  
-                 Phase(i_wlk)=product(Phase_array)
-                 Phase(i_wlk)=Phase(i_wlk)**N_SUN
+                 Phase(i_wlk)=Phase(i_wlk)*(Phase_new/Phase_old)
 
                  Overlap_ratio = real(exp(log_O_new-log_O_old), kind(0.d0))
 
@@ -249,7 +250,7 @@
 
         END SUBROUTINE initial_wlk
 
-        SUBROUTINE population_control( phi_0, phase_alpha ) 
+        SUBROUTINE population_control( phi_0, phase_alpha, phase ) 
 #ifdef MPI
         Use mpi
 #endif
@@ -259,13 +260,14 @@
      
           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_0
           COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(INOUT) :: phase_alpha
+          COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(INOUT) :: phase
           
           !Local 
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, it_wlk 
           Integer :: j, it, i_t, i_st, i_ed, nu_wlk, i_src, i_wlk, j_src, j_wlk
           Real    (Kind=Kind(0.d0)), Dimension(:), Allocatable :: weight_mpi
           Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8, d_scal, sum_w, w_count, w_tmp(N_wlk)
-          Complex (Kind=Kind(0.d0)) :: Overlap_tmp(N_wlk), phase_alpha_tmp(N_wlk)
+          Complex (Kind=Kind(0.d0)) :: Overlap_tmp(N_wlk), phase_alpha_tmp(N_wlk), phase_tmp(N_wlk)
           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE :: phi_0_m
 
 #ifdef MPI
@@ -294,6 +296,7 @@
           enddo
           Overlap_tmp=Overlap
           phase_alpha_tmp=phase_alpha
+          phase_tmp=phase
 
           ! population control
           allocate(weight_mpi(N_wlk_mpi))
@@ -336,6 +339,9 @@
 
                         call mpi_send(phase_alpha    (i_wlk),1,MPI_COMPLEX16,j_src,j_src+1024,Group_comm,IERR)
                         call mpi_recv(phase_alpha_tmp(j_wlk),1,MPI_COMPLEX16,i_src,j_src+1024,Group_comm,IERR)
+                        
+                        call mpi_send(phase    (i_wlk),1,MPI_COMPLEX16,j_src,j_src+1024,Group_comm,IERR)
+                        call mpi_recv(phase_tmp(j_wlk),1,MPI_COMPLEX16,i_src,j_src+1024,Group_comm,IERR)
                       endif
                   else
                       if ( irank_g .eq. i_src ) then
@@ -344,6 +350,7 @@
                         enddo
                         Overlap_tmp(j_wlk)=Overlap(i_wlk) 
                         phase_alpha_tmp(j_wlk)=phase_alpha(i_wlk) 
+                        phase_tmp(j_wlk)=phase(i_wlk) 
                       endif
                   endif
               enddo
@@ -352,6 +359,7 @@
 
           Overlap=Overlap_tmp
           phase_alpha=phase_alpha_tmp
+          phase=phase_tmp
           weight_k(:)=1
           do nf_eff = 1, N_FL_eff
              do i_wlk = 1, N_wlk
