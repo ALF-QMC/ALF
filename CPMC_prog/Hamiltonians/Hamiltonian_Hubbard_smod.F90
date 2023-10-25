@@ -109,6 +109,7 @@
 
           allocate( weight_k(N_wlk) )
           allocate( overlap (N_wlk) )
+          N_wlk_mpi=N_wlk*isize_g
 
           ! Setup the Bravais lattice
           Call Ham_Latt
@@ -146,6 +147,7 @@
              Write(unit_info,*) 'N_SUN         : ', N_SUN
              Write(unit_info,*) 'N_FL          : ', N_FL
              Write(unit_info,*) 'N_wlk         : ', N_wlk
+             Write(unit_info,*) 'N_wlk_mpi     : ', N_wlk_mpi
              Write(unit_info,*) 'N_dope        : ', N_dope
              Write(unit_info,*) 't             : ', Ham_T
              Write(unit_info,*) 'Ham_U         : ', Ham_U
@@ -319,6 +321,27 @@
              end select
              Call Obser_Vec_make(Obs_scal(I),N,Filename)
           enddo
+             
+          Allocate ( Obs_eq(5) )
+          Do I = 1,Size(Obs_eq,1)
+             select case (I)
+             case (1)
+                Filename = "Green"
+             case (2)
+                Filename = "SpinZ"
+             case (3)
+                Filename = "SpinXY"
+             case (4)
+                Filename = "SpinT"
+             case (5)
+                Filename = "Den"
+             case default
+                Write(6,*) ' Error in Alloc_obs '
+             end select
+             Nt = 1
+             Channel = '--'
+             Call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
+          enddo
 
         End Subroutine Alloc_obs
 
@@ -342,7 +365,7 @@
 !>  Time slice
 !> \endverbatim
 !-------------------------------------------------------------------
-        subroutine Obser(GR,Phase)
+        subroutine Obser(GR,Phase,weight_local)
 
           Use Predefined_Obs
 
@@ -350,6 +373,7 @@
 
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
           Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE
+          Real    (Kind=Kind(0.d0)), Intent(IN) :: weight_local
 
           !Local
           Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK
@@ -403,6 +427,11 @@
           Obs_scal(3)%Obs_vec(1)  =    Obs_scal(3)%Obs_vec(1) + Zrho * ZP*ZS
 
           Obs_scal(4)%Obs_vec(1)  =    Obs_scal(4)%Obs_vec(1) + (Zkin + Zpot)*ZP*ZS
+          
+          ! Standard two-point correlations
+          Call Predefined_Obs_eq_Green_measure  ( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(1) )
+          Call Predefined_Obs_eq_SpinMz_measure ( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(2),Obs_eq(3),Obs_eq(4) )
+          Call Predefined_Obs_eq_Den_measure    ( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(5) )
 
         end Subroutine Obser
 

@@ -168,6 +168,7 @@
       Integer      , public        :: N_FL, N_FL_eff
       Integer      , public        :: N_SUN
       Integer      , public        :: N_wlk
+      Integer      , public        :: N_wlk_mpi
       Integer      , public        :: Group_Comm
       Logical      , public        :: Symm
       Logical      , public        :: reconstruction_needed
@@ -179,6 +180,7 @@
 
       !>    Privat Observables
       Type (Obser_Vec ), dimension(:), allocatable :: Obs_scal
+      Type (Obser_Latt), dimension(:), allocatable :: Obs_eq
 
 #include "Hamiltonians_interface.h"
 !!$      This file will  be dynamically generated and appended
@@ -287,12 +289,13 @@
     !>  Time slice
     !> \endverbatim
     !-------------------------------------------------------------------
-          subroutine Obser_base(GR,Phase)
+          subroutine Obser_base(GR,Phase,weight_local)
 
              Implicit none
 
              Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
              Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE
+             Real    (Kind=Kind(0.d0)), Intent(IN) :: weight_local
              Logical, save              :: first_call=.True.
              
              If  (first_call)    then 
@@ -330,6 +333,12 @@
                   Call Print_bin_Vec(Obs_scal(I), Group_Comm)
                enddo
              endif
+             
+             if ( allocated(Obs_eq) ) then
+               Do I = 1,Size(Obs_eq,1)
+                  Call Print_bin_Latt(Obs_eq(I), Group_Comm)
+               enddo
+             endif
     
           end Subroutine Pr_obs_base
 
@@ -352,6 +361,12 @@
              if ( allocated(Obs_scal) ) then
                Do I = 1,Size(Obs_scal,1)
                   Call Obser_vec_Init(Obs_scal(I))
+               Enddo
+             endif
+             
+             if ( allocated(Obs_eq) ) then
+               Do I = 1,Size(Obs_eq,1)
+                  Call Obser_Latt_Init(Obs_eq(I))
                Enddo
              endif
 

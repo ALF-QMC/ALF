@@ -261,7 +261,7 @@
           COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(INOUT) :: phase_alpha
           
           !Local 
-          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, tot_Nwlk, it_wlk 
+          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, it_wlk 
           Integer :: j, it, i_t, i_st, i_ed, nu_wlk, i_src, i_wlk, j_src, j_wlk
           Real    (Kind=Kind(0.d0)), Dimension(:), Allocatable :: weight_mpi
           Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8, d_scal, sum_w, w_count, w_tmp(N_wlk)
@@ -296,8 +296,7 @@
           phase_alpha_tmp=phase_alpha
 
           ! population control
-          tot_Nwlk=N_wlk*isize_g
-          allocate(weight_mpi(tot_Nwlk))
+          allocate(weight_mpi(N_wlk_mpi))
           if (irank_g == 0) then
               weight_mpi(1:N_wlk)=weight_k(:)
           endif
@@ -311,12 +310,12 @@
                  weight_mpi(i_st:i_ed)=w_tmp(:)
               enddo
           endif
-          CALL MPI_BCAST(weight_mpi, tot_Nwlk, MPI_REAL8, 0,MPI_COMM_WORLD,ierr)
+          CALL MPI_BCAST(weight_mpi, N_wlk_mpi, MPI_REAL8, 0,MPI_COMM_WORLD,ierr)
           
-          d_scal=dble(tot_Nwlk)/sum(weight_mpi)
+          d_scal=dble(N_wlk_mpi)/sum(weight_mpi)
           sum_w=-ranf_wrap()
           nu_wlk=0
-          do it_wlk=1, tot_Nwlk
+          do it_wlk=1, N_wlk_mpi
               i_src=(it_wlk-1)/N_wlk
               i_wlk=it_wlk-N_wlk*i_src
 
