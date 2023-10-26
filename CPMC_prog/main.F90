@@ -26,8 +26,8 @@ Program Main
 
 #include "git.h"
 
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:,:), Allocatable   :: GR
-        CLASS(UDV_State), DIMENSION(:,:), ALLOCATABLE :: phi_trial, udvr, phi_0
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:,:), Allocatable   :: GR, GR_bp
+        CLASS(UDV_State), DIMENSION(:,:), ALLOCATABLE :: phi_trial, phi_0, phi_bp_l, phi_bp_r
 
         Integer :: N_eqwlk, N_blksteps, i_wlk, j_step, N_blk_eff, i_blk, N_blk
         Integer :: Nwrap, itv_pc, itv_Em, ntau_bp, ntau_qr, ltrot_bp
@@ -47,7 +47,7 @@ Program Main
         NAMELIST /VAR_HAM_NAME/ ham_name
 
         !  General
-        Integer :: Ierr, I,nf, nf_eff, nst, n, N_op
+        Integer :: Ierr, I,nf, nf_eff, nst, n, N_op, NVAR
         Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Z, Z1, E0_iwlk
         COMPLEX (Kind=Kind(0.d0)), Dimension(:)  , Allocatable   :: Phase, Phase_alpha
         Real    (Kind=Kind(0.d0)) :: ZERO = 10D-8, X, X1
@@ -242,14 +242,15 @@ Program Main
         Call control_init(Group_Comm)
         Call ham%Alloc_obs
         
-        Allocate( GR(NDIM,NDIM,N_FL,N_wlk) )
-        Allocate( phi_trial(N_FL_eff, N_wlk) , udvr(N_FL_eff, N_wlk), phi_0(N_FL_eff, N_wlk))
+        Allocate( GR(NDIM,NDIM,N_FL,N_wlk)  , GR_bp(NDIM,NDIM,N_FL,N_wlk)  )
+        Allocate( phi_trial(N_FL_eff, N_wlk), phi_0   (N_FL_eff, N_wlk))
+        Allocate( phi_bp_L (N_FL_eff, N_wlk), phi_bp_r(N_FL_eff, N_wlk))
         
         Phase_alpha(:)   = cmplx(1.d0, 0.d0, kind(0.D0))
         weight_k   (:)   = 1.d0
         
         ! init slater determinant
-        call initial_wlk( phi_trial, phi_0, udvr, GR, phase )
+        call initial_wlk( phi_trial, phi_0, GR, phase )
 
         Call control_init(Group_Comm)
 
@@ -263,42 +264,52 @@ Program Main
             call ham%Init_obs          
         
             do j_step=1, N_blksteps
-                !! also add a function to init Green's function
+                !! population control
+                if ( mod(j_step, itv_pc) .eq. 0 ) then
+                    call population_control(phi_0, phase_alpha, phase)
+                endif
 
                 !! propagate the walkers:
                 call stepwlk_move(Phi_trial, Phi_0, GR, Phase, Phase_alpha, n_op, ntau_qr, ntau_bp );
                 !! QR decomposition for stablization
                 if ( mod(ntau_qr,    Nwrap) .eq. 0 ) then
                     ntau_qr = 0
-                    call re_orthonormalize_walkers(Phi_0)
+                    call re_orthonormalize_walkers(Phi_0, 'R')
                 endif
                 
                 ! Measurement and update fac_norm
                 if ( mod(ntau_bp, ltrot_bp) .eq. 0 ) then
                     ntau_bp = 0
                     !!to do list
-                    !call backpropagation 
-                    tot_ene    = cmplx(0.d0,0.d0,kind(0.d0))
-                    tot_weight = 0.d0
-                    do i_wlk  = 1, N_wlk
-                        tot_ene    = tot_ene    + ham%E0_local(GR(:,:,:,i_wlk))*weight_k(i_wlk)
-                        tot_weight = tot_weight + weight_k(i_wlk)
+                    call backpropagation( phi_bp_l, nwrap )
+            
+                    do i_wlk = 1, N_wlk
+                       do nf_eff = 1,N_Fl_eff
+                          nf=Calc_Fl_map(nf_eff)
+                          NVAR = 1
+                          call CGR(Z, NVAR, GR_bp(:,:,nf,i_wlk), phi_bp_r(nf_eff,i_wlk), phi_bp_l(nf_eff,i_wlk))
+                       enddo
+                       CALL ham%Obser( GR_bp(:,:,:,i_wlk), PHASE(i_wlk), PHASE_alpha(i_wlk) )
                     enddo
-                    fac_norm= real(tot_ene, kind(0.d0))/tot_weight
-                    write(*,*) j_step+(i_blk-1)*N_blksteps, real(tot_ene, kind(0.d0))/tot_weight 
+
+                    !tot_ene    = cmplx(0.d0,0.d0,kind(0.d0))
+                    !tot_weight = 0.d0
+                    !do i_wlk  = 1, N_wlk
+                    !    tot_ene    = tot_ene    + ham%E0_local(GR(:,:,:,i_wlk))*weight_k(i_wlk)
+                    !    tot_weight = tot_weight + weight_k(i_wlk)
+                    !enddo
+                    !fac_norm= real(tot_ene, kind(0.d0))/tot_weight
+                    !write(*,*) j_step+(i_blk-1)*N_blksteps, real(tot_ene, kind(0.d0))/tot_weight 
 
                 endif
                 
-                ntau_qr = ntau_qr + 1; ntau_bp = ntau_bp + 1           
-
-                ! population control
-                if ( mod(j_step, itv_pc) .eq. 0 ) then
-                    call population_control(phi_0, phase_alpha, phase)
-                endif
+                if ( ntau_bp .eq. 0 ) call store_phi( phi_0, phi_bp_r )
                 
+                ntau_qr = ntau_qr + 1; ntau_bp = ntau_bp + 1
+
             enddo
 
-            !call ham%Pr_obs
+            call ham%Pr_obs
             call system_clock(count_bin_end)
             prog_truncation = .false.
             if ( abs(CPU_MAX) > Zero ) then

@@ -365,15 +365,14 @@
 !>  Time slice
 !> \endverbatim
 !-------------------------------------------------------------------
-        subroutine Obser(GR,Phase,weight_local)
+        subroutine Obser(GR,Phase,Phase_alpha)
 
           Use Predefined_Obs
 
           Implicit none
 
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
-          Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE
-          Real    (Kind=Kind(0.d0)), Intent(IN) :: weight_local
+          Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE, PHASE_ALPHA
 
           !Local
           Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK

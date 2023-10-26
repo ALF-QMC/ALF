@@ -21,61 +21,18 @@
 
           !Local 
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk
-          Complex (Kind=Kind(0.d0)) :: Prev_Ratiotot, Overlap_old, Overlap_new, log_O_new, log_O_old, Z
-          Complex (Kind=Kind(0.d0)) :: phase_new, phase_old
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
           Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8
-          COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable :: Phase_array
-          COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable :: Det_Vec
-
-          allocate(Phase_array(N_FL), Det_Vec(N_FL))
 
           do i_wlk = 1, N_wlk
 
+             !! Kinetic part exp(-/Delta/tau T/2)
              if ( weight_k(i_wlk) .gt. Zero ) then
 
                  ! update weight by fac_norm
                  weight_k(i_wlk)=weight_k(i_wlk)*exp(fac_norm);
-               
-                 call Compute_overlap(Phase_array, Det_Vec, phi_0(:,i_wlk), phi_trial(:,i_wlk))
-                 Det_Vec(:) = Det_Vec(:) * N_SUN
-                 if (reconstruction_needed) call ham%weight_reconstruction(Det_Vec    )
-                 if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
-                 log_O_old = sum(Det_Vec) 
-                 Phase_old = product(Phase_array)**dble(N_SUN)
-
-                 !! Kinetic part exp(-/Delta/tau T/2)
-                 Do nf_eff = 1,N_FL_eff
-                    nf=Calc_Fl_map(nf_eff)
-                    Call Hop_mod_mmthr_1D2(phi_0(nf_eff, i_wlk)%U,nf,1)
-                 enddo
                  
-                 ! Update Green's function
-                 NVAR = 1
-                 do nf_eff = 1,N_Fl_eff
-                    nf=Calc_Fl_map(nf_eff)
-                    call CGR(Z, NVAR, GR(:,:,nf,i_wlk), phi_0(nf_eff,i_wlk), phi_trial(nf_eff,i_wlk))
-                    Phase_array(nf)=Z
-                 enddo
-                 if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
-
-                 call Compute_overlap(Phase_array, Det_Vec, phi_0(:,i_wlk), phi_trial(:,i_wlk))
-                 Det_Vec(:) = Det_Vec(:) * N_SUN
-                 if (reconstruction_needed) call ham%weight_reconstruction(Det_Vec    )
-                 if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
-                 log_O_new = sum(Det_Vec) 
-                 Phase_new = product(Phase_array)**dble(N_SUN)
-                 
-                 Phase(i_wlk)=Phase(i_wlk)*(Phase_new/Phase_old)
-
-                 Overlap_ratio = real(exp(log_O_new-log_O_old), kind(0.d0))
-
-                 if ( Overlap_ratio .gt. Zero ) then
-                     Overlap (i_wlk) = exp(log_O_new)
-                     weight_k(i_wlk) = weight_k(i_wlk)*Overlap_ratio
-                 else
-                     weight_k(i_wlk) = 0.d0
-                 endif
+                 call half_K_propagation( phi_trial(:,i_wlk), phi_0(:,i_wlk), GR(:,:,:,i_wlk), phase(i_wlk), i_wlk )
 
              endif
 
@@ -88,7 +45,7 @@
                 N_type = 2
                 do nf_eff = 1,N_FL_eff
                    nf=Calc_Fl_map(nf_eff)
-                   Call Op_Wrapup( GR(:,:,nf,i_wlk), Op_V(n,nf), 1.d0, Ndim, N_Type,1)
+                   Call Op_Wrapdo( GR(:,:,nf,i_wlk), Op_V(n,nf), 1.d0, Ndim, N_Type,1)
                 enddo
 
                 Call Upgrade(GR(:,:,:,i_wlk),n,PHASE(i_wlk), PHASE_alpha(i_wlk), spin, i_wlk )
@@ -98,63 +55,22 @@
                 N_type = 2
                 do nf_eff = 1,N_FL_eff
                    nf=Calc_Fl_map(nf_eff)
-                   Call Op_Wrapdo( Gr(:,:,nf,i_wlk), Op_V(n,nf), 1.d0, Ndim, N_Type, 1 )
+                   Call Op_Wrapup( Gr(:,:,nf,i_wlk), Op_V(n,nf), 1.d0, Ndim, N_Type, 1 )
                 enddo
 
                 ! propagate slater determinant
                 Do nf_eff = 1,N_FL_eff
                     nf=Calc_Fl_map(nf_eff)
-                    Call Op_mmultR(phi_0(nf_eff,i_wlk)%U,Op_V(n,nf),spin,'n',nt)
+                    Call Op_mmultR(phi_0(nf_eff,i_wlk)%U,Op_V(n,nf),spin,'n',1)
                 enddo
 
              endif
 
              enddo
              
+             !! Kinetic part exp(-/Delta/tau T/2)
              if ( weight_k(i_wlk) .gt. Zero ) then
-                 
-                 call Compute_overlap(Phase_array, Det_Vec, phi_0(:,i_wlk), phi_trial(:,i_wlk))
-                 Det_Vec(:) = Det_Vec(:) * N_SUN
-                 if (reconstruction_needed) call ham%weight_reconstruction(Det_Vec    )
-                 if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
-                 log_O_old = sum(Det_Vec) 
-                 Phase_old = product(Phase_array)**dble(N_SUN)
-
-                 !! Kinetic part exp(-/Delta/tau T/2)
-                 Do nf_eff = 1,N_FL_eff
-                    nf=Calc_Fl_map(nf_eff)
-                    Call Hop_mod_mmthr_1D2(phi_0(nf_eff, i_wlk)%U,nf,1)
-                 enddo
-                 
-                 ! Update Green's function
-                 NVAR = 1
-                 do nf_eff = 1,N_Fl_eff
-                    nf=Calc_Fl_map(nf_eff)
-                    call CGR(Z, NVAR, GR(:,:,nf,i_wlk), phi_0(nf_eff,i_wlk), phi_trial(nf_eff,i_wlk))
-                    Phase_array(nf)=Z
-                 enddo
-                 if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
-                 Phase(i_wlk)=product(Phase_array)
-                 Phase(i_wlk)=Phase(i_wlk)**N_SUN
-
-                 call Compute_overlap(Phase_array, Det_Vec, phi_0(:,i_wlk), phi_trial(:,i_wlk))
-                 Det_Vec(:) = Det_Vec(:) * N_SUN
-                 if (reconstruction_needed) call ham%weight_reconstruction(Det_Vec    )
-                 if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
-                 log_O_new = sum(Det_Vec) 
-                 Phase_new = product(Phase_array)**dble(N_SUN)
-                 
-                 Phase(i_wlk)=Phase(i_wlk)*(Phase_new/Phase_old)
-
-                 Overlap_ratio = real(exp(log_O_new-log_O_old), kind(0.d0))
-
-                 if ( Overlap_ratio .gt. Zero ) then
-                     Overlap (i_wlk) = exp(log_O_new)
-                     weight_k(i_wlk) = weight_k(i_wlk)*Overlap_ratio
-                 else
-                     weight_k(i_wlk) = 0.d0
-                 endif
-
+                 call half_K_propagation( phi_trial(:,i_wlk), phi_0(:,i_wlk), GR(:,:,:,i_wlk), phase(i_wlk), i_wlk )
              endif
 
           enddo
@@ -162,9 +78,10 @@
         END SUBROUTINE stepwlk_move
 
 
-        subroutine re_orthonormalize_walkers(Phi_0)
+        subroutine re_orthonormalize_walkers(Phi_0, cop)
           
           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_0
+          Character, Intent(IN)    :: cop
           
           !Local 
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, N_size, I, i_wlk
@@ -194,9 +111,10 @@
               
               if (reconstruction_needed) call ham%weight_reconstruction(Det_D)
 
-              Overlap(i_wlk)=Overlap(i_wlk)/product(Det_D)
-              
               Phi_0(nf_eff,i_wlk)%D(:) = cmplx(1.d0, 0.d0, kind(0.d0))
+
+              ! update the overlap when normal propagation
+              if (cop == 'R') Overlap(i_wlk)=Overlap(i_wlk)/product(Det_D)
 
           endif
 
@@ -204,17 +122,17 @@
 
         END SUBROUTINE re_orthonormalize_walkers
         
-        SUBROUTINE initial_wlk( phi_trial, phi_0, udvr, GR, phase ) 
+        SUBROUTINE initial_wlk( phi_trial, phi_0, GR, phase )
           
           Implicit none
      
-          CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_trial, phi_0, udvr
+          CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_trial, phi_0
           COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:,:), Allocatable, INTENT(INOUT) :: GR
           COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(INOUT) :: phase
 
           !Local 
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk
-          Complex (Kind=Kind(0.d0)) :: Prev_Ratiotot, Overlap_old, Overlap_new, Z
+          Complex (Kind=Kind(0.d0)) :: Overlap_old, Overlap_new, Z
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
           Real (Kind=Kind(0.d0))    :: Zero = 1.0E-8
           COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable :: Phase_array
@@ -227,7 +145,6 @@
           
             do nf_eff = 1, N_FL_eff
                nf=Calc_Fl_map(nf_eff)
-               CALL udvr(nf_eff, i_wlk)%init(ndim,'r',WF_R(nf)%P)
                CALL phi_trial(nf_eff, i_wlk)%init(ndim,'l',WF_L(nf)%P)
                CALL phi_0(nf_eff, i_wlk)%init(ndim,'r',WF_R(nf)%P)
             enddo
@@ -379,5 +296,130 @@
           deallocate(phi_0_m)
 
         END SUBROUTINE population_control
+        
+        SUBROUTINE store_phi( phi_0, phi_bp_r )
+          
+          Implicit none
+     
+          CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_0, phi_bp_r
+
+          !Local 
+          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk
+          
+          do nf_eff = 1, N_FL_eff
+             do i_wlk = 1, N_wlk
+                call phi_bp_r(nf_eff,i_wlk)%assign(phi_0(nf_eff,i_wlk))
+             enddo
+          enddo
+
+        END SUBROUTINE store_phi
+
+        SUBROUTINE backpropagation( phi_bp_l, nwrap )
+          
+          Implicit none
+     
+          CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_bp_l
+          Integer, INTENT(IN) :: nwrap
+
+          !Local 
+          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, ltrot_bp, N_op
+          Complex (Kind=Kind(0.d0)) :: Z
+          Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
+          Real (Kind=Kind(0.d0))    :: Zero = 1.0E-8
+
+          N_op     = Size(OP_V,1)
+          ltrot_bp = size(nsigma_bp(1)%f, 2)
+            
+          !! initialization
+          do i_wlk = 1, N_wlk
+            do nf_eff = 1, N_FL_eff
+               nf=Calc_Fl_map(nf_eff)
+               CALL phi_bp_l(nf_eff, i_wlk)%init(ndim,'l',WF_L(nf)%P)
+            enddo
+          enddo
+
+          Do nt = ltrot_bp, 1, -1
+            
+             Do i_wlk = 1, N_wlk
+             Do nf_eff = 1,N_FL_eff
+                
+                nf=Calc_Fl_map(nf_eff)
+                Call Hop_mod_mmthl_1D2(phi_bp_l(nf_eff,i_wlk)%U,nf,1)
+
+                Do n = N_op,1,-1
+                   Call Op_mmultL(phi_bp_l(nf_eff,i_wlk)%U,Op_V(n,nf),nsigma_bp(i_wlk)%f(n,nt),'n',1)
+                enddo
+             
+                Call Hop_mod_mmthl_1D2(phi_bp_l(nf_eff,i_wlk)%U,nf,1)
+
+             enddo
+             Enddo
+             
+             if ( ( mod(nt, Nwrap) .eq. 0 ) .or. ( nt .eq. 1 ) ) then
+                 call re_orthonormalize_walkers(phi_bp_l, 'L')
+             endif
+
+          Enddo
+
+        END SUBROUTINE backpropagation
+        
+        SUBROUTINE half_K_propagation( phi_trial, phi_0, GR, phase, i_wlk )
+          
+          Implicit none
+     
+          CLASS(UDV_State), INTENT(IN   ) :: phi_trial(N_FL)
+          CLASS(UDV_State), INTENT(INOUT) :: phi_0    (N_FL)
+          COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT) :: GR(Ndim,Ndim,N_FL)
+          COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT) :: phase
+          Integer, INTENT(IN) :: i_wlk
+          
+          ! local
+          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR
+          Complex (Kind=Kind(0.d0)) :: Overlap_old, Overlap_new, log_O_new, log_O_old, Z
+          Complex (Kind=Kind(0.d0)) :: phase_new, phase_old
+          COMPLEX (Kind=Kind(0.d0)) :: Phase_array(N_FL), Det_Vec(N_FL)
+          Real    (Kind=Kind(0.d0)) :: Overlap_ratio
+          Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8
+          
+          call Compute_overlap(Phase_array, Det_Vec, phi_0, phi_trial)
+          Det_Vec(:) = Det_Vec(:) * N_SUN
+          if (reconstruction_needed) call ham%weight_reconstruction(Det_Vec    )
+          if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
+          log_O_old = sum(Det_Vec) 
+          Phase_old = product(Phase_array)**dble(N_SUN)
+
+          Do nf_eff = 1,N_FL_eff
+             nf=Calc_Fl_map(nf_eff)
+             Call Hop_mod_mmthr_1D2(phi_0(nf_eff)%U,nf,1)
+          enddo
+          
+          ! Update Green's function
+          NVAR = 1
+          do nf_eff = 1,N_Fl_eff
+             nf=Calc_Fl_map(nf_eff)
+             call CGR(Z, NVAR, GR(:,:,nf), phi_0(nf_eff), phi_trial(nf_eff))
+             Phase_array(nf)=Z
+          enddo
+          if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
+
+          call Compute_overlap(Phase_array, Det_Vec, phi_0, phi_trial)
+          Det_Vec(:) = Det_Vec(:) * N_SUN
+          if (reconstruction_needed) call ham%weight_reconstruction(Det_Vec    )
+          if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
+          log_O_new = sum(Det_Vec) 
+          Phase_new = product(Phase_array)**dble(N_SUN)
+          
+          Phase=Phase*(Phase_new/Phase_old)
+
+          Overlap_ratio = real(exp(log_O_new-log_O_old), kind(0.d0))
+
+          if ( Overlap_ratio .gt. Zero ) then
+              Overlap (i_wlk) = exp(log_O_new)
+              weight_k(i_wlk) = weight_k(i_wlk)*Overlap_ratio
+          else
+              weight_k(i_wlk) = 0.d0
+          endif
+
+        END SUBROUTINE half_K_propagation
         
     end Module stepwlk_mod
