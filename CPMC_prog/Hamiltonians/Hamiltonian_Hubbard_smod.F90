@@ -365,7 +365,7 @@
 !>  Time slice
 !> \endverbatim
 !-------------------------------------------------------------------
-        subroutine Obser(GR,Phase,Phase_alpha)
+        subroutine Obser(GR,Phase,Phase_alpha,i_wlk)
 
           Use Predefined_Obs
 
@@ -373,15 +373,18 @@
 
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
           Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE, PHASE_ALPHA
+          Integer, Intent(IN) :: i_wlk
 
           !Local
-          Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK
-          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP,ZS, ZZ, ZXY
+          Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK, PHASE_T
+          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP,ZS, ZZ, ZXY, ZW, Re_ZW
           Integer :: I,J, imj, nf, dec, I1, J1, no_I, no_J,n
           Real    (Kind=Kind(0.d0)) :: X
 
-          ZP = PHASE/Real(Phase, kind(0.D0))
-          ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
+          PHASE_T = PHASE * PHASE_ALPHA
+          ZP    = PHASE_T/Real(Phase_T, kind(0.D0))
+          Re_ZW = cmplx(weight_k(i_wlk),0.d0,kind(0,d0))
+          ZW = ZP*Re_ZW
           
           Do nf = 1,N_FL
              Do I = 1,Ndim
@@ -395,15 +398,15 @@
 
           ! Compute scalar observables.
           Do I = 1,Size(Obs_scal,1)
-             Obs_scal(I)%N         =  Obs_scal(I)%N + 1
-             Obs_scal(I)%Ave_sign  =  Obs_scal(I)%Ave_sign + Real(ZS,kind(0.d0))
+             Obs_scal(I)%N          =  Obs_scal(I)%N + 1
+             Obs_scal(I)%sum_weight =  Obs_scal(I)%sum_weight + Re_ZW
           Enddo
 
 
           Zkin = cmplx(0.d0, 0.d0, kind(0.D0))
           Call Predefined_Hoppings_Compute_Kin(Hopping_Matrix,List,Invlist, Latt, Latt_unit, GRC, ZKin)
           Zkin = Zkin* dble(N_SUN)
-          Obs_scal(1)%Obs_vec(1)  =    Obs_scal(1)%Obs_vec(1) + Zkin *ZP* ZS
+          Obs_scal(1)%Obs_vec(1)  =    Obs_scal(1)%Obs_vec(1) + Zkin *Re_ZW
 
 
           ZPot = cmplx(0.d0, 0.d0, kind(0.D0))
@@ -413,7 +416,7 @@
                 ZPot = ZPot + Grc(i1,i1,1) * Grc(i1,i1,2)* ham_U
              enddo
           Enddo
-          Obs_scal(2)%Obs_vec(1)  =  Obs_scal(2)%Obs_vec(1) + Zpot * ZP*ZS
+          Obs_scal(2)%Obs_vec(1)  =  Obs_scal(2)%Obs_vec(1) + Zpot *Re_ZW
 
 
           Zrho = cmplx(0.d0,0.d0, kind(0.D0))
@@ -423,14 +426,15 @@
              enddo
           enddo
           Zrho = Zrho* dble(N_SUN)
-          Obs_scal(3)%Obs_vec(1)  =    Obs_scal(3)%Obs_vec(1) + Zrho * ZP*ZS
 
-          Obs_scal(4)%Obs_vec(1)  =    Obs_scal(4)%Obs_vec(1) + (Zkin + Zpot)*ZP*ZS
+          Obs_scal(3)%Obs_vec(1)  =    Obs_scal(3)%Obs_vec(1) + Zrho * Re_ZW
+
+          Obs_scal(4)%Obs_vec(1)  =    Obs_scal(4)%Obs_vec(1) + (Zkin + Zpot)*Re_ZW
           
           ! Standard two-point correlations
-          Call Predefined_Obs_eq_Green_measure  ( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(1) )
-          Call Predefined_Obs_eq_SpinMz_measure ( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(2),Obs_eq(3),Obs_eq(4) )
-          Call Predefined_Obs_eq_Den_measure    ( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(5) )
+          Call Predefined_Obs_eq_Green_measure  ( Latt, Latt_unit, List, GR, GRC, N_SUN, ZP, Re_ZW, Obs_eq(1) )
+          Call Predefined_Obs_eq_SpinMz_measure ( Latt, Latt_unit, List, GR, GRC, N_SUN, ZP, Re_ZW, Obs_eq(2),Obs_eq(3),Obs_eq(4) )
+          Call Predefined_Obs_eq_Den_measure    ( Latt, Latt_unit, List, GR, GRC, N_SUN, ZP, Re_ZW, Obs_eq(5) )
 
         end Subroutine Obser
 

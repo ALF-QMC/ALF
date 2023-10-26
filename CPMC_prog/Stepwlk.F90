@@ -132,8 +132,8 @@
 
           !Local 
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk
-          Complex (Kind=Kind(0.d0)) :: Overlap_old, Overlap_new, Z
-          Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
+          Complex (Kind=Kind(0.d0)) :: Overlap_old, Overlap_new, Z, Z1
+          Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio, X1
           Real (Kind=Kind(0.d0))    :: Zero = 1.0E-8
           COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable :: Phase_array
 
@@ -163,7 +163,10 @@
             tot_weight = tot_weight + weight_k(i_wlk)
 
           enddo
-          fac_norm= real(tot_ene, kind(0.d0))/tot_weight
+
+          CALL MPI_REDUCE(tot_ene   ,Z1,I,MPI_COMPLEX16,MPI_SUM, 0,Group_comm,IERR)
+          CALL MPI_REDUCE(tot_weight,X1,I,MPI_REAL8    ,MPI_SUM, 0,Group_comm,IERR)
+          fac_norm= real(Z1, kind(0.d0))/X1
 
         END SUBROUTINE initial_wlk
 

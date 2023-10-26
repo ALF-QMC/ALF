@@ -48,7 +48,7 @@ Program Main
 
         !  General
         Integer :: Ierr, I,nf, nf_eff, nst, n, N_op, NVAR
-        Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Z, Z1, E0_iwlk
+        Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Z, Z1, E0_iwlk, Z_2
         COMPLEX (Kind=Kind(0.d0)), Dimension(:)  , Allocatable   :: Phase, Phase_alpha
         Real    (Kind=Kind(0.d0)) :: ZERO = 10D-8, X, X1
 
@@ -251,6 +251,8 @@ Program Main
         
         ! init slater determinant
         call initial_wlk( phi_trial, phi_0, GR, phase )
+        call store_phi  ( phi_0, phi_bp_r )
+        call ham%Init_obs          
 
         Call control_init(Group_Comm)
 
@@ -261,7 +263,6 @@ Program Main
         do i_blk=1, N_blk
 
             call system_clock(count_bin_start)
-            call ham%Init_obs          
         
             do j_step=1, N_blksteps
                 !! population control
@@ -283,33 +284,42 @@ Program Main
                     !!to do list
                     call backpropagation( phi_bp_l, nwrap )
             
+                    !! measurement
                     do i_wlk = 1, N_wlk
                        do nf_eff = 1,N_Fl_eff
                           nf=Calc_Fl_map(nf_eff)
                           NVAR = 1
                           call CGR(Z, NVAR, GR_bp(:,:,nf,i_wlk), phi_bp_r(nf_eff,i_wlk), phi_bp_l(nf_eff,i_wlk))
                        enddo
-                       CALL ham%Obser( GR_bp(:,:,:,i_wlk), PHASE(i_wlk), PHASE_alpha(i_wlk) )
+                       CALL ham%Obser( GR_bp(:,:,:,i_wlk), PHASE(i_wlk), PHASE_alpha(i_wlk), i_wlk )
                     enddo
+                    !! output print
+                    call ham%Pr_obs
+                    
+                    !! store phi_0 for the next measurement
+                    call store_phi( phi_0, phi_bp_r )
 
-                    !tot_ene    = cmplx(0.d0,0.d0,kind(0.d0))
-                    !tot_weight = 0.d0
-                    !do i_wlk  = 1, N_wlk
-                    !    tot_ene    = tot_ene    + ham%E0_local(GR(:,:,:,i_wlk))*weight_k(i_wlk)
-                    !    tot_weight = tot_weight + weight_k(i_wlk)
-                    !enddo
-                    !fac_norm= real(tot_ene, kind(0.d0))/tot_weight
-                    !write(*,*) j_step+(i_blk-1)*N_blksteps, real(tot_ene, kind(0.d0))/tot_weight 
+                    !! Update fac_norm
+                    tot_ene    = cmplx(0.d0,0.d0,kind(0.d0))
+                    tot_weight = 0.d0
+                    do i_wlk  = 1, N_wlk
+                        tot_ene    = tot_ene    + ham%E0_local(GR(:,:,:,i_wlk))*weight_k(i_wlk)
+                        tot_weight = tot_weight + weight_k(i_wlk)
+                    enddo
+                    CALL MPI_REDUCE(tot_ene   ,Z1,I,MPI_COMPLEX16,MPI_SUM, 0,Group_comm,IERR)
+                    CALL MPI_REDUCE(tot_weight,X1,I,MPI_REAL8    ,MPI_SUM, 0,Group_comm,IERR)
+
+                    fac_norm= real(Z1, kind(0.d0))/X1
+                    
+                    !! initial obs
+                    call ham%Init_obs          
 
                 endif
-                
-                if ( ntau_bp .eq. 0 ) call store_phi( phi_0, phi_bp_r )
                 
                 ntau_qr = ntau_qr + 1; ntau_bp = ntau_bp + 1
 
             enddo
 
-            call ham%Pr_obs
             call system_clock(count_bin_end)
             prog_truncation = .false.
             if ( abs(CPU_MAX) > Zero ) then
