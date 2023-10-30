@@ -306,8 +306,8 @@ Program Main
                         tot_ene    = tot_ene    + ham%E0_local(GR(:,:,:,i_wlk))*weight_k(i_wlk)
                         tot_weight = tot_weight + weight_k(i_wlk)
                     enddo
-                    CALL MPI_REDUCE(tot_ene   ,Z1,I,MPI_COMPLEX16,MPI_SUM, 0,Group_comm,IERR)
-                    CALL MPI_REDUCE(tot_weight,X1,I,MPI_REAL8    ,MPI_SUM, 0,Group_comm,IERR)
+                    CALL MPI_REDUCE(tot_ene   ,Z1,1,MPI_COMPLEX16,MPI_SUM, 0,Group_comm,IERR)
+                    CALL MPI_REDUCE(tot_weight,X1,1,MPI_REAL8    ,MPI_SUM, 0,Group_comm,IERR)
 
                     fac_norm= real(Z1, kind(0.d0))/X1
                     

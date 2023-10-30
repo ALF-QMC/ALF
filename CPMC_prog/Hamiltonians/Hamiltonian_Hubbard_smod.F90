@@ -383,7 +383,7 @@
 
           PHASE_T = PHASE * PHASE_ALPHA
           ZP    = PHASE_T/Real(Phase_T, kind(0.D0))
-          Re_ZW = cmplx(weight_k(i_wlk),0.d0,kind(0,d0))
+          Re_ZW = cmplx(weight_k(i_wlk),0.d0,kind(0.d0))
           ZW = ZP*Re_ZW
           
           Do nf = 1,N_FL

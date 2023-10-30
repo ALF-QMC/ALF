@@ -131,7 +131,7 @@
           COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(INOUT) :: phase
 
           !Local 
-          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk
+          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, ierr
           Complex (Kind=Kind(0.d0)) :: Overlap_old, Overlap_new, Z, Z1
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio, X1
           Real (Kind=Kind(0.d0))    :: Zero = 1.0E-8
@@ -164,8 +164,8 @@
 
           enddo
 
-          CALL MPI_REDUCE(tot_ene   ,Z1,I,MPI_COMPLEX16,MPI_SUM, 0,Group_comm,IERR)
-          CALL MPI_REDUCE(tot_weight,X1,I,MPI_REAL8    ,MPI_SUM, 0,Group_comm,IERR)
+          CALL MPI_REDUCE(tot_ene   ,Z1,1,MPI_COMPLEX16,MPI_SUM, 0,Group_comm,IERR)
+          CALL MPI_REDUCE(tot_weight,X1,1,MPI_REAL8    ,MPI_SUM, 0,Group_comm,IERR)
           fac_norm= real(Z1, kind(0.d0))/X1
 
         END SUBROUTINE initial_wlk
@@ -312,6 +312,7 @@
           do nf_eff = 1, N_FL_eff
              do i_wlk = 1, N_wlk
                 call phi_bp_r(nf_eff,i_wlk)%assign(phi_0(nf_eff,i_wlk))
+                call Phi_bp_r(nf_eff,i_wlk)%decompose
              enddo
           enddo
 

@@ -49,15 +49,6 @@
       use iso_fortran_env, only: output_unit, error_unit
 
       Implicit none
-      
-      INTERFACE Predefined_Obs_scal_Renyi_Ent
-        MODULE PROCEDURE Predefined_Obs_scal_Renyi_Ent_gen_all, Predefined_Obs_scal_Renyi_Ent_indep, &
-        & Predefined_Obs_scal_Renyi_Ent_gen_fl
-      END INTERFACE
-      INTERFACE Predefined_Obs_scal_Mutual_Inf
-        MODULE PROCEDURE Predefined_Obs_scal_Mutual_Inf_indep, Predefined_Obs_scal_Mutual_Inf_gen_fl, &
-        & Predefined_Obs_scal_Mutual_Inf_gen_all
-      END INTERFACE
 
     contains
 !-------------------------------------------------------------------

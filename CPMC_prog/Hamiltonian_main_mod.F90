@@ -289,12 +289,13 @@
     !>  Time slice
     !> \endverbatim
     !-------------------------------------------------------------------
-          subroutine Obser_base(GR,Phase,Phase_alpha)
+          subroutine Obser_base(GR,Phase,Phase_alpha,i_wlk)
 
              Implicit none
 
              Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
              Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE, PHASE_ALPHA
+             Integer                  , Intent(IN) :: i_wlk
              Logical, save              :: first_call=.True.
              
              If  (first_call)    then 

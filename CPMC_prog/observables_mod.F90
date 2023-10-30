@@ -94,6 +94,65 @@
        Contains
 
 !--------------------------------------------------------------------
+         Subroutine Obser_Latt_make(Obs, Nt, Filename, Latt, Latt_unit, Channel, dtau)
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Create lattice type observable
+!>
+!> @details
+!> Create lattice type observable. Be aware that Latt and Latt_unit don't get copied
+!> but linked, meaning changing them after making the observable still affects the
+!> observable.
+!>
+!> @param [INOUT] Obs, Type(Obser_Latt)
+!> \verbatim
+!>  Observable to define
+!> \endverbatim
+!> @param [IN] Nt, Integer
+!> \verbatim
+!>  Number of imaginary time points, set to 1 for equal time correlators.
+!> \endverbatim
+!> @param [IN] Filename, Character(len=64)
+!> \verbatim
+!>  Name of file in which the bins will be written out.
+!> \endverbatim
+!> @param [IN] Latt, Type(Lattice)
+!> \verbatim
+!>  Bravais lattice. Only gets linked, needs attribute target or pointer.
+!> \endverbatim
+!> @param [IN] Latt_unit, Type(Unit_cell)
+!> \verbatim
+!>  Unit cell. Only gets linked, needs attribute target or pointer.
+!> \endverbatim
+!> @param [IN] Channel, Character(len=2)
+!> \verbatim
+!>  MaxEnt channel. Only relevant for time displaced observables.
+!> \endverbatim
+!> @param [IN] dtau, Real(Kind=Kind(0.d0))
+!> \verbatim
+!>  Imaginary time step. Only relevant for time displaced observables.
+!> \endverbatim
+!-------------------------------------------------------------------
+           Implicit none
+           type(Obser_Latt), Intent(INOUT)      :: Obs
+           Integer,           Intent(IN)         :: Nt
+           Character(len=64), Intent(IN)         :: Filename
+           Type(Lattice),     Intent(IN), target :: Latt
+           Type(Unit_cell),   Intent(IN), target :: Latt_unit
+           Character(len=2),  Intent(IN)         :: Channel
+           Real(Kind=Kind(0.d0)),  Intent(IN)    :: dtau
+           Allocate (Obs%Obs_Latt(Latt%N, Nt, Latt_unit%Norb, Latt_unit%Norb))
+           Allocate (Obs%Obs_Latt0(Latt_unit%Norb))
+           Obs%File_Latt = Filename
+           Obs%Latt => Latt
+           Obs%Latt_unit => Latt_unit
+           Obs%Channel = Channel
+           Obs%dtau = dtau
+         end subroutine Obser_Latt_make
+!--------------------------------------------------------------------
 
          Subroutine Obser_Latt_Init(Obs)
            Implicit none
@@ -251,6 +310,7 @@
 
            If (Irank_g == 0 ) then
 #endif
+
               do nt = 1, Ntau
                  do no = 1, Obs%Latt_unit%Norb
                     do no1 = 1, Obs%Latt_unit%Norb
@@ -258,6 +318,9 @@
                     enddo
                  enddo
               enddo
+
+              Obs%Obs_Latt  = Obs%Obs_Latt /Obs%sum_weight
+              Obs%Obs_Latt0 = Obs%Obs_Latt0/Obs%sum_weight
 
 #if defined OBS_LEGACY
               write(File_aux, '(A,A)') trim(File_pr), "_info"
