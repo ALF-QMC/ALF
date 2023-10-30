@@ -351,13 +351,14 @@
              Do nf_eff = 1,N_FL_eff
                 
                 nf=Calc_Fl_map(nf_eff)
-                Call Hop_mod_mmthl_1D2(phi_bp_l(nf_eff,i_wlk)%U,nf,1)
+                Call Hop_mod_mmthlc_1D2(phi_bp_l(nf_eff,i_wlk)%U,nf,1)
 
                 Do n = N_op,1,-1
-                   Call Op_mmultL(phi_bp_l(nf_eff,i_wlk)%U,Op_V(n,nf),nsigma_bp(i_wlk)%f(n,nt),'n',1)
+
+                   Call Op_mmultR(phi_bp_l(nf_eff,i_wlk)%U,Op_V(n,nf),nsigma_bp(i_wlk)%f(n,nt),'c',1)
                 enddo
              
-                Call Hop_mod_mmthl_1D2(phi_bp_l(nf_eff,i_wlk)%U,nf,1)
+                Call Hop_mod_mmthlc_1D2(phi_bp_l(nf_eff,i_wlk)%U,nf,1)
 
              enddo
              Enddo

@@ -260,6 +260,29 @@
 
 !--------------------------------------------------------------------
 
+        Subroutine Hop_mod_mmthlc_1D2 (In,nf,t)
+
+
+          ! InOut:  In = IN * e^{ -dtau T }
+          Implicit none
+
+          Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
+          Integer :: nf
+          integer, intent(in) :: t
+
+          !Local
+          Integer :: nc
+          class(ContainerElementBase), pointer :: dummy
+
+          do nc =  1, Ncheck
+            dummy => ExpOpT_vec(nf)%at(nc)
+            call dummy%lmult1D2(In, t)
+          Enddo
+
+        end Subroutine Hop_mod_mmthlc_1D2
+
+!--------------------------------------------------------------------
+
         Subroutine Hop_mod_mmthl_m1 (In, nf,t)
 
 
