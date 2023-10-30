@@ -505,9 +505,11 @@
            X = cmplx(0.d0,0.d0,kind(0.d0))
            CALL MPI_REDUCE(Obs%sum_weight,X,I,MPI_COMPLEX16,MPI_SUM, 0,Group_comm,IERR)
            Obs%sum_weight = X/DBLE(ISIZE_g)
-
+              
            if (Irank_g == 0 ) then
 #endif
+
+           Obs%Obs_vec  = Obs%Obs_vec/Obs%sum_weight 
 
 #if defined OBS_LEGACY
               write(File_aux, '(A,A)') trim(File_pr), "_info"

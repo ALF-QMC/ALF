@@ -310,6 +310,7 @@ Program Main
                     CALL MPI_REDUCE(tot_weight,X1,1,MPI_REAL8    ,MPI_SUM, 0,Group_comm,IERR)
 
                     fac_norm= real(Z1, kind(0.d0))/X1
+                    !write(*,*) j_step+(i_blk-1)*N_blksteps, real(tot_ene, kind(0.d0))/tot_weight
                     
                     !! initial obs
                     call ham%Init_obs          
