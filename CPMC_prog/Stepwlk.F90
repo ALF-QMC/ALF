@@ -122,11 +122,11 @@
 
         END SUBROUTINE re_orthonormalize_walkers
         
-        SUBROUTINE initial_wlk( phi_trial, phi_0, GR, phase )
+        SUBROUTINE initial_wlk( phi_trial, phi_0, phi_bp_l, phi_bp_r, GR, phase )
           
           Implicit none
      
-          CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_trial, phi_0
+          CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_trial, phi_0, phi_bp_l, phi_bp_r
           COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:,:), Allocatable, INTENT(INOUT) :: GR
           COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(INOUT) :: phase
 
@@ -147,6 +147,8 @@
                nf=Calc_Fl_map(nf_eff)
                CALL phi_trial(nf_eff, i_wlk)%init(ndim,'l',WF_L(nf)%P)
                CALL phi_0(nf_eff, i_wlk)%init(ndim,'r',WF_R(nf)%P)
+               CALL phi_bp_l(nf_eff, i_wlk)%init(ndim,'l',WF_L(nf)%P)
+               CALL phi_bp_r(nf_eff, i_wlk)%init(ndim,'r',WF_R(nf)%P)
             enddo
 
             NVAR = 1
@@ -318,10 +320,11 @@
 
         END SUBROUTINE store_phi
 
-        SUBROUTINE backpropagation( phi_bp_l, nwrap )
+        SUBROUTINE backpropagation( phi_trial, phi_bp_l, nwrap )
           
           Implicit none
      
+          CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(IN   ) :: phi_trial
           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_bp_l
           Integer, INTENT(IN) :: nwrap
 
@@ -338,7 +341,7 @@
           do i_wlk = 1, N_wlk
             do nf_eff = 1, N_FL_eff
                nf=Calc_Fl_map(nf_eff)
-               CALL phi_bp_l(nf_eff, i_wlk)%init(ndim,'l',WF_L(nf)%P)
+               CALL phi_bp_l(nf_eff, i_wlk)%assign(phi_trial(nf_eff,i_wlk))
             enddo
           enddo
 

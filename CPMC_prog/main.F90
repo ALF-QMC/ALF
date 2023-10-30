@@ -250,9 +250,9 @@ Program Main
         weight_k   (:)   = 1.d0
         
         ! init slater determinant
-        call initial_wlk( phi_trial, phi_0, GR, phase )
+        call initial_wlk( phi_trial, phi_0, phi_bp_l, phi_bp_r, GR, phase )
         call store_phi  ( phi_0, phi_bp_r )
-        call ham%Init_obs          
+        call ham%Init_obs
 
         Call control_init(Group_Comm)
 
@@ -282,8 +282,8 @@ Program Main
                 if ( mod(ntau_bp, ltrot_bp) .eq. 0 ) then
                     ntau_bp = 0
                     !!to do list
-                    call backpropagation( phi_bp_l, nwrap )
-            
+                    call backpropagation( phi_trial, phi_bp_l, nwrap )
+
                     !! measurement
                     do i_wlk = 1, N_wlk
                        do nf_eff = 1,N_Fl_eff

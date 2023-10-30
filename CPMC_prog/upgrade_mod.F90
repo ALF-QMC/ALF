@@ -96,6 +96,7 @@ module upgrade_mod
         elseif ( Op_V(n_op,nf)%Type .eq. 2 ) then
             allocate(field_list(4))
             allocate(ratio_field(4))
+            allocate(ratio_O(4))
             allocate(ratio_G(4))
             field_list(1)= 1.d0; 
             field_list(2)=-1.d0; 
