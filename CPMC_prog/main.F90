@@ -282,7 +282,7 @@ Program Main
                 if ( mod(ntau_bp, ltrot_bp) .eq. 0 ) then
                     ntau_bp = 0
                     !!to do list
-                    call backpropagation( phi_trial, phi_bp_l, nwrap )
+                    call backpropagation( phi_bp_l, nwrap )
 
                     !! measurement
                     do i_wlk = 1, N_wlk

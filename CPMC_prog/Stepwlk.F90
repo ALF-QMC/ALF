@@ -322,11 +322,10 @@
 
         END SUBROUTINE store_phi
 
-        SUBROUTINE backpropagation( phi_trial, phi_bp_l, nwrap )
+        SUBROUTINE backpropagation( phi_bp_l, nwrap )
           
           Implicit none
      
-          CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(IN   ) :: phi_trial
           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_bp_l
           Integer, INTENT(IN) :: nwrap
 
@@ -343,7 +342,7 @@
           do i_wlk = 1, N_wlk
             do nf_eff = 1, N_FL_eff
                nf=Calc_Fl_map(nf_eff)
-               CALL phi_bp_l(nf_eff, i_wlk)%assign(phi_trial(nf_eff,i_wlk))
+               CALL phi_bp_l(nf_eff, i_wlk)%reset('l',WF_L(nf)%P)
             enddo
           enddo
 
