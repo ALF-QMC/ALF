@@ -291,15 +291,16 @@
            Obs%sum_weight = Obs%sum_weight/dble(Obs%N   )
 
 #if defined(MPI)
-           I = Obs%Latt%N * Ntau * Obs%Latt_unit%Norb * Obs%Latt_unit%Norb
-           Tmp = cmplx(0.d0, 0.d0, kind(0.D0))
-           CALL MPI_REDUCE(Obs%Obs_Latt,Tmp,I,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
-           Obs%Obs_Latt = Tmp/DBLE(ISIZE_g)
-
            I = 1
            X = cmplx(0.d0,0.d0,kind(0.d0))
            CALL MPI_REDUCE(Obs%sum_weight,X,I,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
            Obs%sum_weight = X/DBLE(ISIZE_g)
+           
+           I = Obs%Latt%N * Ntau * Obs%Latt_unit%Norb * Obs%Latt_unit%Norb
+           Tmp = cmplx(0.d0, 0.d0, kind(0.D0))
+           CALL MPI_REDUCE(Obs%Obs_Latt,Tmp,I,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
+           Obs%Obs_Latt = Tmp/DBLE(ISIZE_g)
+           Obs%Obs_Latt = Obs%Obs_Latt/Obs%sum_weight
 
            I = Obs%Latt_unit%Norb
            Allocate(Tmp1(Obs%Latt_unit%Norb))
@@ -319,7 +320,6 @@
                  enddo
               enddo
 
-              Obs%Obs_Latt  = Obs%Obs_Latt /Obs%sum_weight
               Obs%Obs_Latt0 = Obs%Obs_Latt0/Obs%sum_weight
 
 #if defined OBS_LEGACY
