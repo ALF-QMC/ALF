@@ -111,7 +111,9 @@
               
               if (reconstruction_needed) call ham%weight_reconstruction(Det_D)
 
-              Phi_0(nf_eff,i_wlk)%D(:) = cmplx(1.d0, 0.d0, kind(0.d0))
+              Do nf_eff = 1, N_FL_eff
+                 Phi_0(nf_eff,i_wlk)%D(:) = cmplx(1.d0, 0.d0, kind(0.d0))
+              enddo
 
               ! update the overlap when normal propagation
               if (cop == 'R') Overlap(i_wlk)=Overlap(i_wlk)/product(Det_D)
