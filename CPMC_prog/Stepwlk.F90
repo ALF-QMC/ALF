@@ -125,6 +125,9 @@
         END SUBROUTINE re_orthonormalize_walkers
         
         SUBROUTINE initial_wlk( phi_trial, phi_0, phi_bp_l, phi_bp_r, GR, phase )
+#ifdef MPI
+        Use mpi
+#endif
           
           Implicit none
      
@@ -133,11 +136,21 @@
           COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(INOUT) :: phase
 
           !Local 
-          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, ierr
+          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk
           Complex (Kind=Kind(0.d0)) :: Overlap_old, Overlap_new, Z, Z1
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio, X1
           Real (Kind=Kind(0.d0))    :: Zero = 1.0E-8
           COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable :: Phase_array
+
+#ifdef MPI
+          Integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
+          Integer        :: STATUS(MPI_STATUS_SIZE)
+          CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
+          CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+          call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+          call MPI_Comm_size(Group_Comm, isize_g, ierr)
+          igroup           = irank/isize_g
+#endif
 
           allocate(Phase_array(N_FL))
           tot_ene    = cmplx(0.d0,0.d0,kind(0.d0))
@@ -167,10 +180,14 @@
             tot_weight = tot_weight + weight_k(i_wlk)
 
           enddo
-
+          
           CALL MPI_REDUCE(tot_ene   ,Z1,1,MPI_COMPLEX16,MPI_SUM, 0,Group_comm,IERR)
           CALL MPI_REDUCE(tot_weight,X1,1,MPI_REAL8    ,MPI_SUM, 0,Group_comm,IERR)
-          fac_norm= real(Z1, kind(0.d0))/X1
+          
+          if (Irank_g == 0 ) then
+              fac_norm= real(Z1, kind(0.d0))/X1
+          endif
+          CALL MPI_BCAST(fac_norm, 1, MPI_REAL8, 0,MPI_COMM_WORLD,ierr)
 
         END SUBROUTINE initial_wlk
 

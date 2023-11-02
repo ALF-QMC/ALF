@@ -241,7 +241,7 @@ Program Main
 
         Call control_init(Group_Comm)
         Call ham%Alloc_obs
-        
+
         Allocate( GR(NDIM,NDIM,N_FL,N_wlk)  , GR_bp(NDIM,NDIM,N_FL,N_wlk)  )
         Allocate( phi_trial(N_FL_eff, N_wlk), phi_0   (N_FL_eff, N_wlk))
         Allocate( phi_bp_L (N_FL_eff, N_wlk), phi_bp_r(N_FL_eff, N_wlk))
@@ -309,8 +309,11 @@ Program Main
                     CALL MPI_REDUCE(tot_ene   ,Z1,1,MPI_COMPLEX16,MPI_SUM, 0,Group_comm,IERR)
                     CALL MPI_REDUCE(tot_weight,X1,1,MPI_REAL8    ,MPI_SUM, 0,Group_comm,IERR)
 
-                    fac_norm= real(Z1, kind(0.d0))/X1
-                    !write(*,*) j_step+(i_blk-1)*N_blksteps, real(tot_ene, kind(0.d0))/tot_weight
+                    if (Irank_g == 0 ) then
+                        fac_norm= real(Z1, kind(0.d0))/X1
+                        write(*,*) j_step+(i_blk-1)*N_blksteps, real(tot_ene, kind(0.d0))/tot_weight
+                    endif
+                    CALL MPI_BCAST(fac_norm, 1, MPI_REAL8, 0,MPI_COMM_WORLD,ierr)
                     
                     !! initial obs
                     call ham%Init_obs          
