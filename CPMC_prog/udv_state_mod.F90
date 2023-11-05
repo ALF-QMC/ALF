@@ -106,6 +106,8 @@ MODULE UDV_State_mod
 #if defined(MPI)
             PROCEDURE :: MPI_Sendrecv => MPI_Sendrecv_UDV_state
             PROCEDURE :: MPI_sendrecv_general => MPI_Sendrecv_UDV_state_general
+            PROCEDURE :: MPI_send_general => MPI_Send_UDV_state_general
+            PROCEDURE :: MPI_recv_general => MPI_recv_UDV_state_general
 #endif
             GENERIC :: ASSIGNMENT(=) => assign
     END TYPE UDV_State
@@ -627,6 +629,7 @@ CONTAINS
 #endif
 
 #if defined(MPI)
+
      SUBROUTINE MPI_Sendrecv_UDV_state_general(this, src, dest, sendtag, source, recvtag, STATUS, IERR)
        Use mpi
        Implicit None
@@ -653,6 +656,53 @@ CONTAINS
 #endif
 
      END SUBROUTINE MPI_Sendrecv_UDV_state_general
+
+
+     SUBROUTINE MPI_Send_UDV_state_general(this, dest, sendtag, IERR)
+       Use mpi
+       Implicit None
+
+       CLASS(UDV_State), INTENT(IN) :: this
+       INTEGER, intent(in)  :: dest, sendtag
+       Integer, intent(out) :: IERR
+       INTEGER :: n
+
+       n = this%ndim * this%ndim
+       call mpi_send(this%U , n, MPI_COMPLEX16, dest, sendtag      , MPI_COMM_WORLD,IERR)
+       
+       !call mpi_send(this%V , n, MPI_COMPLEX16, dest, sendtag+10033, MPI_COMM_WORLD,IERR)
+
+#if !defined(STABLOG)
+       call mpi_send(this%D , this%ndim, MPI_COMPLEX16, dest  , sendtag+20033, MPI_COMM_WORLD,IERR)
+#else
+       call mpi_send(this%L , this%ndim, MPI_COMPLEX16, dest  , sendtag+20033, MPI_COMM_WORLD,IERR)
+#endif
+
+     END SUBROUTINE MPI_Send_UDV_state_general
+
+     SUBROUTINE MPI_recv_UDV_state_general(this, source, recvtag, STATUS, IERR)
+       Use mpi
+       Implicit None
+
+       CLASS(UDV_State), INTENT(INOUT) :: this
+       INTEGER, intent(in)  :: source, recvtag
+       Integer, intent(out) :: STATUS(MPI_STATUS_SIZE), IERR
+       INTEGER :: n
+
+       n = this%ndim * this%ndim
+       call mpi_recv(this%U, n, MPI_COMPLEX16, source, recvtag      , MPI_COMM_WORLD,status,IERR)
+       
+       !call mpi_recv(this%V, n, MPI_COMPLEX16, source, recvtag+10033, MPI_COMM_WORLD,status,IERR)
+
+#if !defined(STABLOG)
+       call mpi_recv(this%D, this%ndim, MPI_COMPLEX16, source, recvtag+20033, MPI_COMM_WORLD,status,IERR)
+#else
+       call mpi_recv(this%L, this%ndim, MPI_COMPLEX16, source, recvtag+20033, MPI_COMM_WORLD,status,IERR)
+#endif
+
+     END SUBROUTINE MPI_recv_UDV_state_general
+
+
 #endif
 
    END MODULE UDV_State_mod

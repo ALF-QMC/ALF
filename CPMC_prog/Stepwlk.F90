@@ -249,7 +249,6 @@
           CALL MPI_REDUCE(weight_mpi,w_tmp,N_wlk_mpi,MPI_REAL8,MPI_SUM, 0,Group_comm,IERR)
           if (irank_g == 0) weight_mpi=w_tmp
           CALL MPI_BCAST (weight_mpi, N_wlk_mpi, MPI_REAL8, 0,MPI_COMM_WORLD,ierr)
-          write(*,*) 'new'
           
           d_scal=dble(N_wlk_mpi)/sum(weight_mpi)
           if (irank_g == 0) sum_w=-ranf_wrap()
@@ -278,97 +277,40 @@
                         do nf_eff = 1, N_FL_eff
                             call phi_0_m(nf_eff,j_wlk)%assign(phi_0(nf_eff,i_wlk))
                         enddo
-                        Overlap_tmp(j_wlk)=Overlap(i_wlk) 
+                        Overlap_tmp    (j_wlk)=Overlap    (i_wlk) 
+                        phase_tmp      (j_wlk)=phase      (i_wlk) 
                         phase_alpha_tmp(j_wlk)=phase_alpha(i_wlk) 
-                        phase_tmp(j_wlk)=phase(i_wlk) 
                       endif
                   endif
               enddo
               nu_wlk=n
           enddo
 
-
-          write(*,*) 'irank', weight_mpi, irank_g, n_exc
-          write(*,*) 'cc'   , pop_exc(1,:)
-
-          Z1=1.d0
-          Z2=1.d0
-
-          if ( irank_g .eq. 0 ) then
-             write(*,*) irank_g, 'f1'
-             call mpi_send(Z1,1,MPI_COMPLEX16,1,1,MPI_COMM_WORLD,IERR)
-             write(*,*) 'f2',ierr
-          endif
-          call mpi_recv(Z2,1,MPI_COMPLEX16,0,irank_g,MPI_COMM_WORLD,IERR)
-
-          !do it=1, n_exc
-          !   i_src = pop_exc(it,1); i_wlk = pop_exc(it,2)
-          !   j_src = pop_exc(it,3); j_wlk = pop_exc(it,4)
-          !   if ( irank_g .eq. 0 ) then
-          !      write(*,*) 0, overlap(i_wlk)
-          !      Z1 = overlap(i_wlk)
-          !      call mpi_send(Z1,1,MPI_COMPLEX16,1,1024,Group_comm,IERR)
-          !      write(*,*) 1
-          !   endif
-          !   if ( irank_g .eq. 1 ) then
-          !      write(*,*) 2, overlap_tmp(j_wlk)
-          !      call mpi_recv(Z2,1,MPI_COMPLEX16,0,1024,Group_comm,IERR)
-          !      overlap_tmp(j_wlk)=Z2
-          !      write(*,*) 3
-          !   endif
-          !   !CALL MPI_Sendrecv(overlap    (i_wlk), 1, MPI_COMPLEX16, j_src, 0, &
-          !   !         &        overlap_tmp(j_wlk), 1, MPI_COMPLEX16, i_src, 0, MPI_COMM_WORLD,STATUS,IERR)
-          !   !CALL MPI_Sendrecv(phase    (i_wlk), 1, MPI_COMPLEX16, j_src, 0, &
-          !   !         &        phase_tmp(j_wlk), 1, MPI_COMPLEX16, i_src, 0, MPI_COMM_WORLD,STATUS,IERR)
-          !enddo
-
-
-          !do it_wlk=1, N_wlk_mpi
-          !    i_src=(it_wlk-1)/N_wlk
-          !    i_wlk=it_wlk-N_wlk*i_src
-
-          !    sum_w=sum_w+weight_mpi(it_wlk)*d_scal
-          !    n=ceiling(sum_w);
-          !    do j=(nu_wlk+1), n
-          !        j_src=(j-1)/N_wlk
-          !        j_wlk=j-N_wlk*j_src
-          !        write(*,*) 333,'new'
-          !        if ( j_src .ne. i_src ) then
-
-          !            write(*,*) irank_g, overlap(i_wlk), overlap_tmp(j_wlk), 't1'
-          !            CALL MPI_Sendrecv(overlap    (i_wlk), 1, MPI_COMPLEX16, j_src, 0, &
-          !                     &        overlap_tmp(j_wlk), 1, MPI_COMPLEX16, i_src, 0, Group_comm,STATUS,IERR)
-          !            stop
-
-          !            do nf_eff = 1, N_FL_eff
-          !                call phi_0_m(nf_eff,j_wlk)%MPI_sendrecv_general(phi_0(nf_eff,i_wlk),j_src, &
-          !                    & j_src, i_src, j_src, status, ierr)
-          !            enddo
-
-          !            call mpi_send(phase_alpha    (i_wlk),1,MPI_COMPLEX16,j_src,j_src+1024,Group_comm,IERR)
-          !            call mpi_recv(phase_alpha_tmp(j_wlk),1,MPI_COMPLEX16,i_src,j_src+1024,Group_comm,IERR)
-          !            
-          !            call mpi_send(phase    (i_wlk),1,MPI_COMPLEX16,j_src,j_src+1024,Group_comm,IERR)
-          !            call mpi_recv(phase_tmp(j_wlk),1,MPI_COMPLEX16,i_src,j_src+1024,Group_comm,IERR)
-          !        else
-          !            write(*,*) irank_g, overlap(i_wlk), overlap_tmp(j_wlk), 't2'
-          !            if ( irank_g .eq. i_src ) then
-          !              do nf_eff = 1, N_FL_eff
-          !                  call phi_0_m(nf_eff,j_wlk)%assign(phi_0(nf_eff,i_wlk))
-          !              enddo
-          !              Overlap_tmp(j_wlk)=Overlap(i_wlk) 
-          !              phase_alpha_tmp(j_wlk)=phase_alpha(i_wlk) 
-          !              phase_tmp(j_wlk)=phase(i_wlk) 
-          !            endif
-          !        endif
-          !    enddo
-          !    nu_wlk=n
-          !enddo
+          do it=1, n_exc
+             i_src = pop_exc(it,1); i_wlk = pop_exc(it,2)
+             j_src = pop_exc(it,3); j_wlk = pop_exc(it,4)
+             if ( irank_g .eq. i_src ) then
+                call mpi_send(overlap    (i_wlk),1,MPI_COMPLEX16,j_src,it,Group_comm,IERR)
+                call mpi_send(phase      (i_wlk),1,MPI_COMPLEX16,j_src,it+10011,Group_comm,IERR)
+                call mpi_send(phase_alpha(i_wlk),1,MPI_COMPLEX16,j_src,it+20033,Group_comm,IERR)
+                do nf_eff = 1, N_FL_eff
+                    call phi_0(nf_eff,i_wlk)%MPI_send_general(j_src, it+30033, ierr)
+                enddo
+             endif
+             if ( irank_g .eq. j_src ) then
+                call mpi_recv(overlap_tmp    (j_wlk),1,MPI_COMPLEX16,i_src,it,Group_comm,STATUS,IERR)
+                call mpi_recv(phase_tmp      (j_wlk),1,MPI_COMPLEX16,i_src,it+10011,Group_comm,STATUS,IERR)
+                call mpi_recv(phase_alpha_tmp(j_wlk),1,MPI_COMPLEX16,i_src,it+20033,Group_comm,STATUS,IERR)
+                do nf_eff = 1, N_FL_eff
+                    call phi_0_m(nf_eff,j_wlk)%MPI_recv_general(i_src, it+30033, status, ierr)
+                enddo
+             endif
+          enddo
 
           Overlap=Overlap_tmp
           phase_alpha=phase_alpha_tmp
           phase=phase_tmp
-          weight_k(:)=1
+          weight_k(:)=1.d0
           do nf_eff = 1, N_FL_eff
              do i_wlk = 1, N_wlk
                 call phi_0(nf_eff,i_wlk)%assign(phi_0_m(nf_eff,i_wlk))
