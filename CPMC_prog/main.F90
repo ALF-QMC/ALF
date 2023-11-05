@@ -335,12 +335,17 @@ Program Main
 
         enddo
 
-        stop
-        
         deallocate(Calc_Fl_map)
+
+#if defined(MPI)  
+        ! Gracefully deallocate all shared MPI memory (thw whole chunks)
+        ! irrespective of where they actually have been used
+        call deallocate_all_shared_memory
+#endif
 
 #ifdef MPI
         CALL MPI_FINALIZE(ierr)
 #endif
+        stop
 
       end Program Main
