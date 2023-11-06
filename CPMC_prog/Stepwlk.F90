@@ -191,7 +191,7 @@
 
         END SUBROUTINE initial_wlk
 
-        SUBROUTINE population_control( phi_0, phase_alpha, phase ) 
+        SUBROUTINE population_control( phi_0, phi_bp_r, phase_alpha, phase ) 
 #ifdef MPI
           Use mpi
 #endif
@@ -199,17 +199,18 @@
         
           Implicit none
      
-          CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_0
+          CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_0, phi_bp_r
           COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(INOUT) :: phase_alpha
           COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(INOUT) :: phase
           
           !Local 
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, it_wlk, n_exc,pop_exc(N_wlk_mpi,4)
-          Integer :: j, it, i_t, i_st, i_ed, nu_wlk, i_src, i_wlk, j_src, j_wlk
+          Integer :: j, it, i_t, i_st, i_ed, nu_wlk, i_src, i_wlk, j_src, j_wlk, n1, n2
           Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8, d_scal, sum_w, w_count, w_tmp(N_wlk_mpi), weight_mpi(N_wlk_mpi)
           Complex (Kind=Kind(0.d0)) :: Overlap_tmp(N_wlk), phase_alpha_tmp(N_wlk), phase_tmp(N_wlk)
           Complex (Kind=Kind(0.d0)) :: Z1,Z2,Z3
-          CLASS(UDV_State), Dimension(:,:), ALLOCATABLE :: phi_0_m
+          Type (Fields)   , dimension(:)  , allocatable :: nsigma_store
+          CLASS(UDV_State), Dimension(:,:), ALLOCATABLE :: phi_0_m, phi_bp_m
 
 #ifdef MPI
           Integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
@@ -221,21 +222,37 @@
           igroup           = irank/isize_g
 #endif
 
-          ! temporary store
+          !! temporary store
+          !! store slater determinant
           pop_exc=0
-          allocate(phi_0_m(N_FL_eff,N_wlk))
+          allocate(phi_0_m (N_FL_eff,N_wlk))
+          allocate(phi_bp_m(N_FL_eff,N_wlk))
           do i_wlk = 1, N_wlk
             do nf_eff = 1, N_FL_eff
                nf=Calc_Fl_map(nf_eff)
-               CALL phi_0_m(nf_eff, i_wlk)%init(ndim,'r',WF_R(nf)%P)
+               CALL phi_0_m (nf_eff, i_wlk)%init(ndim,'r',WF_R(nf)%P)
+               CALL phi_bp_m(nf_eff, i_wlk)%init(ndim,'r',WF_R(nf)%P)
             enddo
           enddo
 
           do nf_eff = 1, N_FL_eff
              do i_wlk = 1, N_wlk
-                call phi_0_m(nf_eff,i_wlk)%assign(phi_0(nf_eff,i_wlk))
+                call phi_0_m (nf_eff,i_wlk)%assign(phi_0   (nf_eff,i_wlk))
+                call phi_bp_m(nf_eff,i_wlk)%assign(phi_bp_r(nf_eff,i_wlk))
              enddo
           enddo
+
+          !! store fields
+          n1 = size(nsigma_bp(1)%f,1)
+          n2 = size(nsigma_bp(1)%f,2)
+          allocate(nsigma_store(N_wlk))
+          do i_wlk =1, N_wlk
+              call nsigma_store(i_wlk)%make(n1, n2)
+              nsigma_store(i_wlk)%f = nsigma_bp(i_wlk)%f
+              nsigma_store(i_wlk)%t = nsigma_bp(i_wlk)%t
+          enddo
+
+          !! store phase and overlap
           Overlap_tmp=Overlap
           phase_alpha_tmp=phase_alpha
           phase_tmp=phase
@@ -275,11 +292,13 @@
                   else
                       if ( irank_g .eq. i_src ) then
                         do nf_eff = 1, N_FL_eff
-                            call phi_0_m(nf_eff,j_wlk)%assign(phi_0(nf_eff,i_wlk))
+                            call phi_0_m (nf_eff,j_wlk)%assign(phi_0   (nf_eff,i_wlk))
+                            call phi_bp_m(nf_eff,j_wlk)%assign(phi_bp_r(nf_eff,i_wlk))
                         enddo
                         Overlap_tmp    (j_wlk)=Overlap    (i_wlk) 
                         phase_tmp      (j_wlk)=phase      (i_wlk) 
                         phase_alpha_tmp(j_wlk)=phase_alpha(i_wlk) 
+                        nsigma_store(j_wlk)%f=nsigma_qr(i_wlk)%f
                       endif
                   endif
               enddo
@@ -294,16 +313,20 @@
                 call mpi_send(phase      (i_wlk),1,MPI_COMPLEX16,j_src,it+10*n_exc,Group_comm,IERR)
                 call mpi_send(phase_alpha(i_wlk),1,MPI_COMPLEX16,j_src,it+20*n_exc,Group_comm,IERR)
                 do nf_eff = 1, N_FL_eff
-                    call phi_0(nf_eff,i_wlk)%MPI_send_general(j_src, it+3*(nf_eff-1)+30*n_exc, ierr)
+                    call phi_0   (nf_eff,i_wlk)%MPI_send_general(j_src, it+3*(nf_eff-1)+30*n_exc, ierr)
+                    call phi_bp_r(nf_eff,i_wlk)%MPI_send_general(j_src, it+3*(nf_eff-1)+40*n_exc, ierr)
                 enddo
+                call mpi_send(nsigma_bp(i_wlk)%f,n1*n2,MPI_REAL8,j_src,it+50*n_exc,Group_comm,IERR)
              endif
              if ( irank_g .eq. j_src ) then
                 call mpi_recv(overlap_tmp    (j_wlk),1,MPI_COMPLEX16,i_src,it,Group_comm,STATUS,IERR)
                 call mpi_recv(phase_tmp      (j_wlk),1,MPI_COMPLEX16,i_src,it+10*n_exc,Group_comm,STATUS,IERR)
                 call mpi_recv(phase_alpha_tmp(j_wlk),1,MPI_COMPLEX16,i_src,it+20*n_exc,Group_comm,STATUS,IERR)
                 do nf_eff = 1, N_FL_eff
-                    call phi_0_m(nf_eff,j_wlk)%MPI_recv_general(i_src, it+3*(nf_eff-1)+30*n_exc, status, ierr)
+                    call phi_0_m (nf_eff,j_wlk)%MPI_recv_general(i_src, it+3*(nf_eff-1)+30*n_exc, status, ierr)
+                    call phi_bp_m(nf_eff,j_wlk)%MPI_recv_general(i_src, it+3*(nf_eff-1)+40*n_exc, status, ierr)
                 enddo
+                call mpi_send(nsigma_store(j_wlk)%f,n1*n2,MPI_REAL8,i_src,it+50*n_exc,Group_comm,STATUS,IERR)
              endif
           enddo
 
@@ -313,19 +336,32 @@
           weight_k(:)=1.d0
           do nf_eff = 1, N_FL_eff
              do i_wlk = 1, N_wlk
-                call phi_0(nf_eff,i_wlk)%assign(phi_0_m(nf_eff,i_wlk))
+                call phi_0   (nf_eff,i_wlk)%assign(phi_0_m (nf_eff,i_wlk))
+                call phi_bp_r(nf_eff,i_wlk)%assign(phi_bp_m(nf_eff,i_wlk))
              enddo
           enddo
+          
+          do i_wlk =1, N_wlk
+              nsigma_bp(i_wlk)%f = nsigma_store(i_wlk)%f
+              nsigma_bp(i_wlk)%t = nsigma_store(i_wlk)%t
+          enddo
+          
 
           ! deallocate tmp udv class
           do i_wlk = 1, N_wlk
             do nf_eff = 1, N_FL_eff
                nf=Calc_Fl_map(nf_eff)
-               CALL phi_0_m(nf_eff, i_wlk)%dealloc
+               CALL phi_0_m (nf_eff, i_wlk)%dealloc
+               CALL phi_bp_m(nf_eff, i_wlk)%dealloc
             enddo
           enddo
 
-          deallocate(phi_0_m)
+          do i_wlk =1, N_wlk
+              call nsigma_store(i_wlk)%clear
+          enddo
+
+          deallocate(phi_0_m, phi_bp_m)
+          deallocate(nsigma_store)
 
         END SUBROUTINE population_control
         

@@ -267,7 +267,7 @@ Program Main
             do j_step=1, N_blksteps
                 !! population control
                 if ( mod(j_step, itv_pc) .eq. 0 ) then
-                    call population_control(phi_0, phase_alpha, phase)
+                    call population_control(phi_0, phi_bp_r, phase_alpha, phase)
                 endif
 
                 !! propagate the walkers:
