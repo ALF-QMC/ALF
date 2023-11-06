@@ -298,7 +298,7 @@
                         Overlap_tmp    (j_wlk)=Overlap    (i_wlk) 
                         phase_tmp      (j_wlk)=phase      (i_wlk) 
                         phase_alpha_tmp(j_wlk)=phase_alpha(i_wlk) 
-                        nsigma_store(j_wlk)%f=nsigma_qr(i_wlk)%f
+                        nsigma_store(j_wlk)%f=nsigma_bp(i_wlk)%f
                       endif
                   endif
               enddo
