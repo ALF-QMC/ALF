@@ -249,13 +249,13 @@
 !>
 !
 !--------------------------------------------------------------------
-      Subroutine Set_Default_hopping_parameters_square(this, Ham_T_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL, &
+      Subroutine Set_Default_hopping_parameters_square(this, Ham_T_vec, Ham_T2_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL, &
            &                                           List, Invlist, Latt, Latt_unit )
 
         Implicit none
 
         Type  (Hopping_Matrix_type), allocatable     :: this(:)
-        Real (Kind=Kind(0.d0)), Intent(IN),Dimension(:)   :: Ham_T_vec, Ham_Chem_vec, Phi_x_vec, Phi_y_vec
+        Real (Kind=Kind(0.d0)), Intent(IN),Dimension(:)   :: Ham_T_vec, Ham_T2_vec, Ham_Chem_vec, Phi_x_vec, Phi_y_vec
         Integer, Intent(IN),Dimension(:)                  :: N_Phi_vec
         Integer, Intent(IN)                               :: N_FL
         Logical, Intent(IN)                               :: Bulk
@@ -266,7 +266,7 @@
 
         ! Local
         Integer :: nf,N_Bonds, nc, I, I1
-        Real (Kind = Kind(0.d0) ) :: Zero = 1.0E-8,  Ham_T_max
+        Real (Kind = Kind(0.d0) ) :: Zero = 1.0E-8,  Ham_T_max, Ham_T2_max
         Real (Kind = Kind(0.d0) ), allocatable :: Ham_T_perp_vec(:)
 
         
@@ -292,12 +292,15 @@
            Enddo
 
            do nf = 1,N_FL
-              this(nf)%N_bonds = 0
-              if ( abs(Ham_T_max) > Zero)  then
-                 this(nf)%N_bonds = 2
+              N_bonds = 0
+              N_bonds = N_bonds + 2
+              if ( abs(Ham_T2_max) > Zero) N_bonds = N_bonds + 2
+              this(nf)%N_bonds = N_bonds
+              if ( this(nf)%N_bonds .gt. 0  ) then
                  Allocate (this(nf)%List(this(nf)%N_bonds,4), &
                       &    this(nf)%T(this(nf)%N_bonds) )
                  nc = 0
+                
                  nc = nc + 1
                  this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
                  this(nf)%List(nc,1) = 1
@@ -311,6 +314,23 @@
                  this(nf)%List(nc,2) = 1
                  this(nf)%List(nc,3) = 1
                  this(nf)%List(nc,4) = 0
+                 
+                 If (abs(Ham_T2_max) > Zero ) Then
+                    nc = nc + 1
+                    this(nf)%T(nc)    = cmplx(-Ham_T2_vec(nf),0.d0,kind(0.d0))
+                    this(nf)%List(nc,1) = 1
+                    this(nf)%List(nc,2) = 1
+                    this(nf)%List(nc,3) = 1
+                    this(nf)%List(nc,4) = 1
+
+                    nc = nc + 1
+                    this(nf)%T(nc)    = cmplx(-Ham_T2_vec(nf),0.d0,kind(0.d0))
+                    this(nf)%List(nc,1) = 1
+                    this(nf)%List(nc,2) = 1
+                    this(nf)%List(nc,3) =-1
+                    this(nf)%List(nc,4) = 1
+                 endif
+
               Endif
               Allocate ( this(nf)%T_Loc(Latt_Unit%Norb) )
               do nc = 1,Latt_Unit%Norb
@@ -323,35 +343,81 @@
            enddo
 
            !Set Checkerboard
-           if ( Ham_T_max   > Zero ) then
-              this(1)%N_FAM  = 4
-              Allocate (this(1)%L_Fam(this(1)%N_FAM),  this(1)%Prop_Fam(this(1)%N_FAM))
-              this(1)%L_FAM  = Latt%N/2
-              this(1)%Prop_Fam= 1.d0
-              Allocate (this(1)%List_Fam(this(1)%N_FAM,this(1)%L_Fam(1),2))
-              this(1)%L_FAM  = 0
-              do I = 1,Latt%N
-                 if ( mod(Latt%List(I,1) + Latt%List(I,2),2) == 0 ) then
-                    Nf = 1
-                    this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I ! Unit cell
-                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 1 ! The bond (See above)
-                    Nf = 2
-                    this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
-                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 2
-                 else
-                    Nf = 3
-                    this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
-                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 1
-                    Nf = 4
-                    this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
-                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 2
-                 endif
-              enddo
+           this(1)%N_FAM  = 4
+           if ( abs(Ham_T2_max) > Zero ) this(1)%N_FAM  = 8
+           
+           Allocate (this(1)%L_Fam(this(1)%N_FAM), this(1)%Prop_Fam(this(1)%N_FAM))
+           this(1)%L_FAM  = Latt%N/2
+           this(1)%Prop_Fam= 1.d0
+           Allocate (this(1)%List_Fam(this(1)%N_FAM,this(1)%L_Fam(1),2))
+              
+           this(1)%L_FAM  = 0
+           do I = 1,Latt%N
+              if ( mod(Latt%List(I,1) + Latt%List(I,2),2) == 0 ) then
+                 Nf = 1
+                 this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 1
+                 Nf = 2
+                 this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 2
+              else
+                 Nf = 3
+                 this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 1
+                 Nf = 4
+                 this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 2
+              endif
+           enddo
+
+           if (abs(Ham_T2_Max)   >  Zero ) Then
+              if ( (mod(Latt%List(I,1) + Latt%List(I,2),2) == 0) .and. &
+                  & (mod(Latt%List(I,1),2) == 0 )  ) then
+                 Nf = 5
+                 this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 3
+                 
+                 this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = Latt%nnlist(I,1,0)
+                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 4
+              elseif ( (mod(Latt%List(I,1) + Latt%List(I,2),2) == 0) .and. &
+                  & (mod(Latt%List(I,1),2) .ne. 0 )  ) then
+                 Nf = 6
+                 this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 3
+                 
+                 this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = Latt%nnlist(I,1,0)
+                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 4
+              elseif ( (mod(Latt%List(I,1) + Latt%List(I,2),2) .ne. 0) .and. &
+                  & (mod(Latt%List(I,1),2) == 0 )  ) then
+                 Nf = 7
+                 this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 3
+                 
+                 this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = Latt%nnlist(I,1,0)
+                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 4
+              elseif ( (mod(Latt%List(I,1) + Latt%List(I,2),2) .ne. 0) .and. &
+                  & (mod(Latt%List(I,1),2) .ne. 0 )  ) then
+                 Nf = 8
+                 this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 3
+                 
+                 this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = Latt%nnlist(I,1,0)
+                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 4
+              endif
            endif
+
         endif
       end Subroutine Set_Default_hopping_parameters_square
 

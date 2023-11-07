@@ -301,8 +301,10 @@
               Enddo
            endif
         Case ("Square")
+           Ham_T_vec    = 1.d0
+           Ham_T2_vec   = -0.3d0
            Phi_X_vec    = 0.01
-           Call  Set_Default_hopping_parameters_square(Hopping_Matrix_tmp,Ham_T_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
+           Call  Set_Default_hopping_parameters_square(Hopping_Matrix_tmp,Ham_T_vec, Ham_T2_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
                 &                                      Bulk,  N_Phi_vec, N_FL, &
                 &                                      List, Invlist, Latt, Latt_unit )
         Case ("N_leg_ladder")
