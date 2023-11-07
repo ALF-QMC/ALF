@@ -286,9 +286,11 @@
            endif
            Allocate( this(N_FL) )
 
-           Ham_T_max = 0.d0
+           Ham_T_max  = 0.d0
+           Ham_T2_max = 0.d0
            Do nf = 1,N_FL
-              If ( Abs(Ham_T_vec(nf))   >  Ham_T_max )  Ham_T_max = Abs(Ham_T_vec(nf))
+              If ( Abs(Ham_T_vec(nf))   >  Ham_T_max )  Ham_T_max  = Abs(Ham_T_vec(nf) )
+              If ( Abs(Ham_T2_vec(nf))  >  Ham_T2_max)  Ham_T2_max = Abs(Ham_T2_vec(nf))
            Enddo
 
            do nf = 1,N_FL
@@ -375,48 +377,51 @@
            enddo
 
            if (abs(Ham_T2_Max)   >  Zero ) Then
-              if ( (mod(Latt%List(I,1) + Latt%List(I,2),2) == 0) .and. &
-                  & (mod(Latt%List(I,1),2) == 0 )  ) then
-                 Nf = 5
-                 this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 3
-                 
-                 this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = Latt%nnlist(I,1,0)
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 4
-              elseif ( (mod(Latt%List(I,1) + Latt%List(I,2),2) == 0) .and. &
-                  & (mod(Latt%List(I,1),2) .ne. 0 )  ) then
-                 Nf = 6
-                 this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 3
-                 
-                 this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = Latt%nnlist(I,1,0)
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 4
-              elseif ( (mod(Latt%List(I,1) + Latt%List(I,2),2) .ne. 0) .and. &
-                  & (mod(Latt%List(I,1),2) == 0 )  ) then
-                 Nf = 7
-                 this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 3
-                 
-                 this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = Latt%nnlist(I,1,0)
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 4
-              elseif ( (mod(Latt%List(I,1) + Latt%List(I,2),2) .ne. 0) .and. &
-                  & (mod(Latt%List(I,1),2) .ne. 0 )  ) then
-                 Nf = 8
-                 this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 3
-                 
-                 this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = Latt%nnlist(I,1,0)
-                 this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 4
-              endif
+              do I = 1,Latt%N
+                 if ( (mod(Latt%List(I,1) + Latt%List(I,2),2) == 0) .and. &
+                     & (mod(Latt%List(I,1),2) == 0 )  ) then
+                    Nf = 5
+                    this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 3
+                    
+                    this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = Latt%nnlist(I,1,0)
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 4
+                 elseif ( (mod(Latt%List(I,1) + Latt%List(I,2),2) == 0) .and. &
+                     & (mod(Latt%List(I,1),2) .ne. 0 )  ) then
+                    Nf = 6
+                    this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 3
+                    
+                    this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = Latt%nnlist(I,1,0)
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 4
+                 elseif ( (mod(Latt%List(I,1) + Latt%List(I,2),2) .ne. 0) .and. &
+                     & (mod(Latt%List(I,1),2) == 0 )  ) then
+                    Nf = 7
+                    this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 3
+                    
+                    this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = Latt%nnlist(I,1,0)
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 4
+                 elseif ( (mod(Latt%List(I,1) + Latt%List(I,2),2) .ne. 0) .and. &
+                     & (mod(Latt%List(I,1),2) .ne. 0 )  ) then
+                    Nf = 8
+                    this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 3
+                    
+                    this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = Latt%nnlist(I,1,0)
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 4
+                 endif
+              enddo
            endif
+
 
         endif
       end Subroutine Set_Default_hopping_parameters_square
