@@ -7,7 +7,7 @@
 #   HDF5_DIR: Diretory, in which HDF5 gets installed
 
 if [ -d "$HDF5_DIR" ]; then
-  printf "\e[31mDirectory %s already exists, aborting HDF5 installation.\e[0m\n" "$HDF5_DIR"
+  printf "\e[31mDirectory %s already exists, aborting HDF5 installation.\e[0m\n" "$HDF5_DIR" 1>&2
   exit 1
 fi
 
@@ -17,8 +17,8 @@ command -v wget > /dev/null
 WGET_AVAIL=$?
 
 if [ $CURL_AVAIL -ne 0 ] && [ $WGET_AVAIL -ne 0 ]; then
-  printf "\e[31m==== Neither curl nor wget available!                   =====\e[0m\n"
-  printf "\e[31m==== One of the two is required to download HDF5 source =====\e[0m\n"
+  printf "\e[31m==== Neither curl nor wget available!                   =====\e[0m\n" 1>&2
+  printf "\e[31m==== One of the two is required to download HDF5 source =====\e[0m\n" 1>&2
   exit 1
 fi
 
@@ -54,13 +54,13 @@ fi
 
 "$source_dir/configure" --prefix="$HDF5_DIR" --enable-fortran --enable-shared=no --enable-tests=no
 if ! make; then
-  printf "\e[31m=== Compilation with compilers %s %s in directory %s failed ===\e[0m\n" "$CC" "$FC" "$PWD"
+  printf "\e[31m=== Compilation with compilers %s %s in directory %s failed ===\e[0m\n" "$CC" "$FC" "$PWD" 1>&2
   rm -rf "$HDF5_DIR"
   exit 1
 fi
 #make check
 if ! make install; then
-  printf "\e[31m=== Installation of HDF5 in directory %s failed ===\e[0m\n" "$HDF5_DIR"
+  printf "\e[31m=== Installation of HDF5 in directory %s failed ===\e[0m\n" "$HDF5_DIR" 1>&2
   rm -rf "$HDF5_DIR"
   exit 1
 fi
