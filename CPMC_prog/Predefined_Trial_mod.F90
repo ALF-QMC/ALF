@@ -124,8 +124,9 @@
 
         Type(Operator),  dimension(:,:), allocatable  :: OP_tmp
         Type (Hopping_Matrix_type), allocatable       :: Hopping_Matrix_tmp(:)
-        Real (Kind=Kind(0.d0))                        :: Dtau, Ham_T, Ham_Chem, XB_X, XB_Y, Phi_X, Phi_Y, Dimer
-        Logical                                       :: Checkerboard, Symm, Kekule_Trial
+        Real (Kind=Kind(0.d0))                        :: Dtau, Ham_T, Ham_Chem, XB_X, XB_Y, Phi_X, Phi_Y, Dimer, mass
+        Real (Kind=Kind(0.d0))                        :: ham_U, sgn_i, sgn_updn
+        Logical                                       :: Checkerboard, Symm, Kekule_Trial, hatree_fock
 
         Type (Lattice)                                :: Latt_Kekule
         Real (Kind=Kind(0.d0))  :: A1_p(2), A2_p(2), L1_p(2), L2_p(2), x_p(2),x1_p(2), hop(3), del_p(2)
@@ -155,6 +156,7 @@
 
         Checkerboard  = .false.
         Kekule_Trial  = .false.
+        hatree_fock   = .true.
         Symm          = .false.
 
 
@@ -301,12 +303,60 @@
               Enddo
            endif
         Case ("Square")
-           Ham_T_vec    = 1.d0
-           Ham_T2_vec   = -0.3d0
-           Phi_X_vec    = 0.01
-           Call  Set_Default_hopping_parameters_square(Hopping_Matrix_tmp,Ham_T_vec, Ham_T2_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
-                &                                      Bulk,  N_Phi_vec, N_FL, &
-                &                                      List, Invlist, Latt, Latt_unit )
+           if ( hatree_fock ) then
+              Ham_T       = 1.d0
+              Ham_T2      =-0.3d0
+              Ham_U       = 8.d0
+              Allocate(Op_Tmp(1,N_FL))
+              do n = 1,N_FL
+                 Call Op_make(Op_Tmp(1,n),Ndim)
+                 Do I = 1,Latt%N
+                    I1 = Invlist(I,1)
+                    Do nc1 = 1,4
+                       select case (nc1)
+                       case (1)
+                          J1 = invlist(Latt%nnlist(I, 1, 0),1)
+                          Op_Tmp(1,n)%O(I1,J1) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+                          Op_Tmp(1,n)%O(J1,I1) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+                       case (2)
+                          J1 = invlist(Latt%nnlist(I, 0, 1),1)
+                          Op_Tmp(1,n)%O(I1,J1) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+                          Op_Tmp(1,n)%O(J1,I1) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+                       case (3)
+                          J1 = invlist(Latt%nnlist(I, 1, 1),1)
+                          Op_Tmp(1,n)%O(I1,J1) = cmplx(-Ham_T2,    0.d0, kind(0.D0))
+                          Op_Tmp(1,n)%O(J1,I1) = cmplx(-Ham_T2,    0.d0, kind(0.D0))
+                       case (4)
+                          J1 = invlist(Latt%nnlist(I,-1, 1),1)
+                          Op_Tmp(1,n)%O(I1,J1) = cmplx(-Ham_T2,    0.d0, kind(0.D0))
+                          Op_Tmp(1,n)%O(J1,I1) = cmplx(-Ham_T2,    0.d0, kind(0.D0))
+                       case default
+                          Write(error_unit,*) 'Error in  Predefined_TrialWaveFunction'
+                          CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+                       end select
+                    Enddo
+                    sgn_i = 1.d0
+                    if (  mod(Latt%List(I,1) + Latt%List(I,2),2) .eq. 0  ) sgn_i = -1.d0
+                    sgn_updn = 1.d0
+                    if ( n .eq. 2 ) sgn_updn = -1.d0
+                    mass = -2.d0*ham_U*0.97*sgn_i*sgn_updn
+                    Op_Tmp(1,n)%O(I1,I1) = cmplx(mass,    0.d0, kind(0.D0))
+                 enddo
+                 do I = 1,Ndim
+                    Op_Tmp(1,n)%P(i) = i
+                 Enddo
+                 Op_Tmp(1,n)%g    = cmplx(1.d0, 0.d0,kind(0.d0))
+                 Op_Tmp(1,n)%alpha= cmplx(0.d0,0.d0, kind(0.D0))
+                 Call Op_set(Op_Tmp(1,n))
+              Enddo
+           else
+               Ham_T_vec    = 1.d0
+               Ham_T2_vec   = -0.3d0
+               Phi_X_vec    = 0.01
+               Call  Set_Default_hopping_parameters_square(Hopping_Matrix_tmp,Ham_T_vec, Ham_T2_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
+                    &                                      Bulk,  N_Phi_vec, N_FL, &
+                    &                                      List, Invlist, Latt, Latt_unit )
+           endif
         Case ("N_leg_ladder")
            Ham_T_vec     = 1.d0
            Ham_Tperp_vec = 1.d0
@@ -341,7 +391,7 @@
         end Select
 
 
-        If (Lattice_type .ne. "Honeycomb" )   &
+        If ( (Lattice_type .ne. "Honeycomb") .and. ( .not. hatree_fock )  )   &
              &     Call  Predefined_Hoppings_set_OPT(Hopping_Matrix_tmp,List,Invlist,Latt,  Latt_unit,  Dtau, Checkerboard, Symm, OP_tmp )
 
         Do nf = 1,N_FL
