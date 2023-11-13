@@ -1083,12 +1083,12 @@ A.~R\"uegg, S.~D. Huber and M.~Sigrist,
 \newblock Phys. Rev. B \textbf{81}, 155118 (2010),
 \newblock \doi{10.1103/PhysRevB.81.155118}.
 
-\bibitem{Weber21a}
+\bibitem{Weber21}
 M.~Weber,
-\newblock \emph{Quantum monte carlo simulation of spin-boson models using
-  wormhole updates},
-\newblock Phys. Rev. B \textbf{105}, 165129 (2022),
-\newblock \doi{10.1103/PhysRevB.105.165129}.
+\newblock \emph{Valence bond order in a honeycomb antiferromagnet coupled to
+  quantum phonons},
+\newblock Phys. Rev. B \textbf{103}, L041105 (2021),
+\newblock \doi{10.1103/PhysRevB.103.L041105}.
 
 \bibitem{Weber17}
 M.~Weber, F.~F. Assaad and M.~Hohenadler,
@@ -1096,13 +1096,6 @@ M.~Weber, F.~F. Assaad and M.~Hohenadler,
   interactions},
 \newblock Phys. Rev. Lett. \textbf{119}, 097401 (2017),
 \newblock \doi{10.1103/PhysRevLett.119.097401}.
-
-\bibitem{Weber21}
-M.~Weber,
-\newblock \emph{Valence bond order in a honeycomb antiferromagnet coupled to
-  quantum phonons},
-\newblock Phys. Rev. B \textbf{103}, L041105 (2021),
-\newblock \doi{10.1103/PhysRevB.103.L041105}.
 
 \bibitem{Abendschein06}
 A.~Abendschein and F.~F. Assaad,

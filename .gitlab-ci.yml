@@ -208,14 +208,14 @@ build_hdf5_Intel-21:
     MACHINE: INTEL
 build_hdf5_Intel-Latest:
   extends: .build_hdf5_template
-  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/intel
+  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bookworm-intel
   needs: [build_hdf5_Intel-21]
   variables:
     MACHINE: INTEL
 
 build_hdf5_IntelLLVM:
   extends: .build_hdf5_template
-  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/intel
+  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bookworm-intel
   needs: []
   variables:
     MACHINE: INTELLLVM
