@@ -31,7 +31,7 @@ _PARAMS_GENERIC = OrderedDict([
                      'value': 0},
          'sequential': {'comment': 'Conventional updating scheme', 'value': True},
          'Langevin': {'comment': 'Langevin update', 'value': False},
-         'Leapfrog_steps': {'comment': 'Number of leapfrog steps',
+         'Leapfrog_steps': {'comment': 'Number of leapfrog iterations',
                             'value': 0},
          'N_HMC_sweeps': {'comment': 'Number of HMC sweeps',
                             'value': 1},

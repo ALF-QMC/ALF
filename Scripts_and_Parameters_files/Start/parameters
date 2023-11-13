@@ -54,7 +54,7 @@ Max_Force           = 5.0   ! Max Force for  Langevin
 
 HMC                 = .F.   ! HMC update
 N_HMC_sweeps        = 1     ! # of HMC updates between  sequential ones
-Leapfrog_steps      = 0     ! Number of leapfrog interations
+Leapfrog_steps      = 0     ! Number of leapfrog iterations
 
 Amplitude           = 1.d0  ! For update of  type=3,4  fields
 /
