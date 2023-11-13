@@ -137,7 +137,6 @@
         procedure, nopass :: Alloc_obs
         procedure, nopass :: Obser
         procedure, nopass :: ObserT
-        procedure, nopass :: S0
 #ifdef HDF5
         procedure, nopass :: write_parameters_hdf5
 #endif
@@ -844,31 +843,6 @@
           enddo
         end Subroutine OBSERT
 
-!--------------------------------------------------------------------
-!> @author
-!> ALF Collaboration
-!>
-!> @brief
-!> Single spin flip S0 ratio
-!> @details
-!> S0=exp(-S0(new))/exp(-S0(old)) where the new configuration correpsonds to the old one up to
-!> a spin flip of Operator n on time slice nt
-!> @details
-!--------------------------------------------------------------------
-      Real (Kind=Kind(0.d0)) function S0(n,nt,Hs_new)
-        Implicit none
-        !> Operator index
-        Integer, Intent(IN) :: n
-        !> Time slice
-        Integer, Intent(IN) :: nt
-        !> New local field on time slice nt and operator index n
-        Real (Kind=Kind(0.d0)), Intent(In) :: Hs_new
-
-        Integer :: nt1,I
-
-        S0 = 1.d0
-        
-      end function S0
 
 
     end submodule ham_Kondo_smod

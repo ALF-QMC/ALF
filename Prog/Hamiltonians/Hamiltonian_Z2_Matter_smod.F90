@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 - 2020 The ALF project
+!  Copyright (C) 2016 - 2023 The ALF project
 !
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -438,7 +438,7 @@
         Real (Kind=Kind(0.d0)) function S0(n,nt,Hs_new)
           Implicit none
           Integer, Intent(IN) :: n,nt
-          Real (Kind=Kind(0.d0)), Intent(In) :: Hs_new
+          complex (Kind=Kind(0.d0)), Intent(In) :: Hs_new
 
           !Local
           Integer :: nt1,I, F1,F2,I1,I2,I3,  n_orientation, n_m
@@ -538,7 +538,7 @@
           Implicit none
           Real (Kind= kind(0.d0)),INTENT(OUT) :: T0_Proposal_ratio, S0_ratio
           Integer                ,INTENT(OUT) :: Flip_list(:)
-          Real (Kind= Kind(0.d0)),INTENT(out) :: Flip_value(:)
+          Complex (Kind= Kind(0.d0)),INTENT(out) :: Flip_value(:)
           Integer, INTENT(OUT) :: Flip_length
           Integer, INTENT(IN)    :: ntau
 
@@ -589,14 +589,14 @@
                 CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
              end select
              Flip_list(n)  = n_op
-             Flip_value(n) = nsigma%flip(n_op,ntau)
+             Flip_value(n) = nsigma%flip(n_op,ntau)  
           enddo
           If ( I == Latt%N )   then
              Flip_length   = 5
              n             = 5
              n_op          = Field_list(Latt%N,3,4)
-             Flip_list(n)  = n_op
-             Flip_value(n) = nsigma%flip(n_op,ntau)
+             Flip_list (n) = n_op
+             Flip_value(n) = nsigma%flip(n_op,ntau)  
           endif
 
           If (Projector) then
@@ -638,21 +638,6 @@
           S0_ratio          =  S0_Matter
 
           Deallocate (Isigma1,Isigma2, Isigma3)
-!!$          Flip_length    = 1
-!!$          n_op = nranf(size(OP_V,1))
-!!$          Flip_list(1)   = n_op
-!!$          If ( OP_V(n_op,1)%type == 1 ) then
-!!$             ns = nsigma(n_op,ntau)
-!!$             T0_Proposal       =  1.d0 - 1.d0/(1.d0+S0(n_op,ntau)) ! No move prob
-!!$             T0_Proposal_ratio =  1.d0 / S0(n_op,ntau)
-!!$             S0_ratio          =  S0(n_op,ntau)
-!!$             Flip_value(1)     = - ns
-!!$          else
-!!$             Flip_value(1)     = NFLIPL(nsigma(n_op,ntau),nranf(3))
-!!$             T0_Proposal       = 1.d0
-!!$             T0_Proposal_ratio = 1.d0
-!!$             S0_ratio          = 1.d0
-!!$          endif
 
         end Subroutine Global_move_tau
 
@@ -1223,7 +1208,7 @@
 
         Implicit none
 
-        Real (Kind=Kind(0.d0)), allocatable, dimension(:,:), Intent(INOUT) :: Initial_field
+        Complex (Kind=Kind(0.d0)), allocatable, dimension(:,:), Intent(INOUT) :: Initial_field
 
         ! Local
         Integer :: I,nc, I1, nt, n_orientation, N_ops
@@ -1240,8 +1225,8 @@
            do nt = 1,Ltrot
               do I = 1,Latt%N
                  nc = Field_list(I,3,3)
-                 Initial_field(nc,nt) = 1.D0
-                 if ( ranf_wrap()  > 0.5D0 ) Initial_field(nc,nt)  = -1.D0
+                 Initial_field(nc,nt) = cmplx(1.D0, 0.d0,Kind(0.d0))
+                 if ( ranf_wrap()  > 0.5D0 ) Initial_field(nc,nt)  = cmplx(-1.D0,0.d0,Kind(0.d0))
               enddo
            enddo
         endif
@@ -1250,11 +1235,11 @@
            Do nt = 1,Ltrot
               Do I = 1, Latt%N
                  if (mod( Latt%list(i,1) + latt%list(i,2), 2 ) == 0 ) then
-                    Initial_field(Field_list(I,1,1),nt) =  1.d0
-                    Initial_field(Field_list(I,2,1),nt) = -1.d0
+                    Initial_field(Field_list(I,1,1),nt) =  cmplx( 1.d0, 0.d0, Kind(0.d0))
+                    Initial_field(Field_list(I,2,1),nt) =  cmplx(-1.d0, 0.d0, Kind(0.d0))
                  else
-                    Initial_field(Field_list(I,1,1),nt) =  1.d0
-                    Initial_field(Field_list(I,2,1),nt) =  1.d0
+                    Initial_field(Field_list(I,1,1),nt) =  cmplx(1.d0, 0.d0, Kind(0.d0))
+                    Initial_field(Field_list(I,2,1),nt) =  cmplx(1.d0, 0.d0, Kind(0.d0))
                  endif
               Enddo
            Enddo
@@ -1270,10 +1255,10 @@
                     nc = Field_list(I,n_orientation,2)
                     if (  n_orientation == 1 )  I1 = latt%nnlist(I,1,0)
                     if (  n_orientation == 2 )  I1 = latt%nnlist(I,0,1)
-                    Initial_field(nc,nt) = real(Isigma(I)*Isigma(I1), kind(0.d0))
+                    Initial_field(nc,nt) = cmplx(real(Isigma(I)*Isigma(I1), kind(0.d0)),0.d0,Kind(0.d0))
                  enddo
               Enddo
-              Initial_field(Field_list(Latt%N,3,4),nt) = real(Isigma(Latt%N), kind(0.d0))
+              Initial_field(Field_list(Latt%N,3,4),nt) = cmplx(real(Isigma(Latt%N), kind(0.d0)),0.d0,Kind(0.d0))
               do nc = 1,size(Initial_field,1)
                  nsigma%f(nc,nt) = Initial_field(nc,nt)
               enddo

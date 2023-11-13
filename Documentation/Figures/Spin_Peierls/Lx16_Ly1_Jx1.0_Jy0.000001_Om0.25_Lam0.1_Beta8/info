@@ -1,0 +1,33 @@
+ =====================================
+ Antiferromagnet
+ L1            :           16
+ L2            :            1
+ Finite temperture version
+ Beta          :    8.00000000000000     
+ dtau,Ltrot_eff:   0.100000000000000               80
+ N_SUN         :            2
+ N_FL          :            1
+ J_x           :    1.00000000000000     
+ J_y           :   1.000000000000000E-006
+ Ham_U         :    1.00000000000000     
+ Ham_h         :   0.000000000000000E+000
+ Ham_g         :    2.00000000000000     
+ Ham_Lambda    :   0.100000000000000     
+ Ham_omega0    :   0.250000000000000     
+ No initial configuration, Seed_in      538812
+ Sweeps                              :         1000
+ Bins                                :         1000
+ No CPU-time limitation 
+ Measure Int.                        :            1          80
+ Stabilization,Wrap                  :           10
+ Nstm                                :            8
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ Number of mpi-processes :            6
+ This executable represents commit 147a1d62 of branch Multiple_HS_fields_per_operator.
+  Precision Green  Mean, Max :   1.037134374183602E-014  4.013670531292267E-009
+  Precision Phase, Max       :   1.336532005395215E-010
+  Acceptance                 :   0.401073679296875     
+  Effective Acceptance       :   0.401073679296875     
+  CPU Time                   :    45968.8066358333     

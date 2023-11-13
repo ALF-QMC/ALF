@@ -31,10 +31,13 @@ _PARAMS_GENERIC = OrderedDict([
                      'value': 0},
          'sequential': {'comment': 'Conventional updating scheme', 'value': True},
          'Langevin': {'comment': 'Langevin update', 'value': False},
-         'Leapfrog_steps': {'comment': 'Number of leapfrog steps',
+         'Leapfrog_steps': {'comment': 'Number of leapfrog iterations',
                             'value': 0},
          'N_HMC_sweeps': {'comment': 'Number of HMC sweeps',
                             'value': 1},
+         'Amplitude':    {'comment': 'Width of the box distribution for update of '
+                                     'type t=3,4 fields.  Defaults  to 1.0.',
+                            'value': 1.0},
          'Ltau': {'comment': '1 to calculate time-displaced Green '
                              'functions; 0 otherwise.',
                   'value': 1},

@@ -114,7 +114,9 @@ Max_Force            = 1.5  ! Max force for  Langevin
 HMC                  = .F.  ! Flag for hybrid molecular dynamics  update
 N_HMC_sweeps         = 1    ! Number of hybrid molecular dynamic  updates between 
                             ! sequential sweep
-Leapfrog_steps       = 0    ! Number of leapfrog interations
+Leapfrog_steps       = 0    ! Number of leapfrog iterations 
+Amplitude            = 1.0  ! Width of the box distribution for update of 
+                            ! type t=3,4 fields.  Defaults  to 1.0.
 
 /
 

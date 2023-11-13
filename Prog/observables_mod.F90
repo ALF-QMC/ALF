@@ -269,7 +269,7 @@
 
            ! Local
            Integer :: Ns, Nt, no, no1, I, Ntau
-           Complex (Kind=Kind(0.d0)), pointer     :: Tmp(:,:,:,:)
+           Complex (Kind=Kind(0.d0)), allocatable, target :: Tmp(:,:,:,:)
            Real    (Kind=Kind(0.d0))              :: x_p(2)
            Complex (Kind=Kind(0.d0))              :: Sign_bin
            Character (len=64) :: File_pr,  File_suff, File_aux, tmp_str
