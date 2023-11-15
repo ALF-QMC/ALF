@@ -26,11 +26,11 @@ Program Main
 
 #include "git.h"
 
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:,:), Allocatable   :: GR, GR_bp
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:,:), Allocatable   :: GR
         CLASS(UDV_State), DIMENSION(:,:), ALLOCATABLE :: phi_trial, phi_0, phi_bp_l, phi_bp_r
 
         Integer :: N_eqwlk, N_blksteps, i_wlk, j_step, N_blk_eff, i_blk, N_blk
-        Integer :: Nwrap, itv_pc, itv_Em, ntau_bp, ntau_qr, ltrot_bp
+        Integer :: Nwrap, itv_pc, Ltau, ntau_bp, ntau_qr, ltrot_bp
         Real(Kind=Kind(0.d0)) :: CPU_MAX
         Character (len=64) :: file_seeds, file_para, file_dat, file_info, ham_name
         Integer :: Seed_in
@@ -42,7 +42,7 @@ Program Main
         Logical :: file_exists
 #endif
         
-        NAMELIST /VAR_CPMC/ Nwrap, ltrot_bp, itv_pc, itv_Em, N_blk, N_blksteps, CPU_MAX
+        NAMELIST /VAR_CPMC/ Nwrap, ltrot_bp, itv_pc, Ltau, N_blk, N_blksteps, CPU_MAX
 
         NAMELIST /VAR_HAM_NAME/ ham_name
 
@@ -128,7 +128,7 @@ Program Main
         CALL MPI_BCAST(Nwrap                ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(ltrot_bp             ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(itv_pc               ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(itv_Em               ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(Ltau                 ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(N_blk                ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(N_blksteps           ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(CPU_MAX              ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
@@ -169,6 +169,7 @@ Program Main
         !! To do: modify nsigma structure
         allocate(nsigma_bp(N_wlk))
         allocate(nsigma_qr(N_wlk))
+        if ( ltau .eq. 1 ) ltrot_bp = ltrot_bp + ltrot
         do i_wlk =1, N_wlk
             call nsigma_bp(i_wlk)%make(N_op, ltrot_bp)
             call nsigma_qr(i_wlk)%make(N_op, nwrap   )
@@ -212,7 +213,7 @@ Program Main
            Write(50,*) 'N_blksteps                           : ', N_blksteps
            Write(50,*) 'ltrot_bp                             : ', ltrot_bp
            Write(50,*) 'itv_pc                               : ', itv_pc
-           Write(50,*) 'itv_Em                               : ', itv_Em
+           Write(50,*) 'Ltau                                 : ', Ltau
            If ( abs(CPU_MAX) < ZERO ) then
               Write(50,*) 'No CPU-time limitation '
            else
@@ -240,9 +241,9 @@ Program Main
 #endif
 
         Call control_init(Group_Comm)
-        Call ham%Alloc_obs
+        Call ham%Alloc_obs(ltau)
 
-        Allocate( GR(NDIM,NDIM,N_FL,N_wlk)  , GR_bp(NDIM,NDIM,N_FL,N_wlk)  )
+        Allocate( GR(NDIM,NDIM,N_FL,N_wlk) )
         Allocate( phi_trial(N_FL_eff, N_wlk), phi_0   (N_FL_eff, N_wlk))
         Allocate( phi_bp_L (N_FL_eff, N_wlk), phi_bp_r(N_FL_eff, N_wlk))
         
@@ -252,7 +253,7 @@ Program Main
         ! init slater determinant
         call initial_wlk( phi_trial, phi_0, phi_bp_l, phi_bp_r, GR, phase )
         call store_phi  ( phi_0, phi_bp_r )
-        call ham%Init_obs
+        call ham%Init_obs(ltau)
 
         Call control_init(Group_Comm)
 
@@ -271,7 +272,7 @@ Program Main
                 endif
 
                 !! propagate the walkers:
-                call stepwlk_move(Phi_trial, Phi_0, GR, Phase, Phase_alpha, n_op, ntau_qr, ntau_bp );
+                call stepwlk_move(Phi_trial, Phi_0, GR, Phase, Phase_alpha, ntau_qr, ntau_bp );
                 !! QR decomposition for stablization
                 if ( mod(ntau_qr,    Nwrap) .eq. 0 ) then
                     ntau_qr = 0
@@ -281,42 +282,21 @@ Program Main
                 ! Measurement and update fac_norm
                 if ( mod(ntau_bp, ltrot_bp) .eq. 0 ) then
                     ntau_bp = 0
-                    !!to do list
-                    call backpropagation( phi_bp_l, nwrap )
 
-                    !! measurement
-                    do i_wlk = 1, N_wlk
-                       do nf_eff = 1,N_Fl_eff
-                          nf=Calc_Fl_map(nf_eff)
-                          NVAR = 1
-                          call CGR(Z, NVAR, GR_bp(:,:,nf,i_wlk), phi_bp_r(nf_eff,i_wlk), phi_bp_l(nf_eff,i_wlk))
-                       enddo
-                       CALL ham%Obser( GR_bp(:,:,:,i_wlk), PHASE(i_wlk), PHASE_alpha(i_wlk), i_wlk )
-                    enddo
+                    !!to do list
+                    call backpropagation( phi_bp_l, phi_bp_r, phase, phase_alpha, nwrap, ltau )
+
                     !! output print
-                    call ham%Pr_obs
+                    call ham%Pr_obs(ltau)
                     
                     !! store phi_0 for the next measurement
                     call store_phi( phi_0, phi_bp_r )
 
                     !! Update fac_norm
-                    tot_ene    = cmplx(0.d0,0.d0,kind(0.d0))
-                    tot_weight = 0.d0
-                    do i_wlk  = 1, N_wlk
-                        tot_ene    = tot_ene    + ham%E0_local(GR(:,:,:,i_wlk))*weight_k(i_wlk)
-                        tot_weight = tot_weight + weight_k(i_wlk)
-                    enddo
-                    CALL MPI_REDUCE(tot_ene   ,Z1,1,MPI_COMPLEX16,MPI_SUM, 0,Group_comm,IERR)
-                    CALL MPI_REDUCE(tot_weight,X1,1,MPI_REAL8    ,MPI_SUM, 0,Group_comm,IERR)
+                    call ham%update_fac_norm(GR, j_step+(i_blk-1)*N_blksteps)
 
-                    if (Irank_g == 0 ) then
-                        fac_norm= real(Z1, kind(0.d0))/X1
-                        write(*,*) j_step+(i_blk-1)*N_blksteps, real(tot_ene, kind(0.d0))/tot_weight
-                    endif
-                    CALL MPI_BCAST(fac_norm, 1, MPI_REAL8, 0,MPI_COMM_WORLD,ierr)
-                    
                     !! initial obs
-                    call ham%Init_obs          
+                    call ham%Init_obs(ltau)       
 
                 endif
                 

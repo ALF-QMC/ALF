@@ -46,6 +46,8 @@ module ContainerElementBase_mod
     procedure(lmult1D2interface), deferred :: lmult1D2
     procedure(rmultinvinterface), deferred :: rmultinv
     procedure(lmultinvinterface), deferred :: lmultinv
+    procedure(rmultinv1D2interface), deferred :: rmultinv1D2
+    procedure(lmultinv1D2interface), deferred :: lmultinv1D2
     procedure(adjointactioninterface), deferred :: adjointaction
     procedure(dump), deferred :: dump
     procedure(dealloc), deferred :: dealloc
@@ -106,6 +108,13 @@ module ContainerElementBase_mod
          Complex(kind=kind(0.d0)), intent(inout),  dimension(:,:) :: arg
          Integer, intent(in) :: t
       end subroutine
+      
+      subroutine rmultinv1D2interface(this, arg, t)
+         import ContainerElementBase
+         class(ContainerElementBase), intent(in) :: this
+         Complex(kind=kind(0.d0)), intent(inout),  dimension(:,:) :: arg
+         Integer, intent(in) :: t
+      end subroutine
 
     !--------------------------------------------------------------------
     !> @brief 
@@ -114,6 +123,13 @@ module ContainerElementBase_mod
     !> @param[in] this
     !--------------------------------------------------------------------
       subroutine lmultinvinterface(this, arg, t)
+         import ContainerElementBase
+         class(ContainerElementBase), intent(in) :: this
+         Complex(kind=kind(0.d0)), intent(inout),  dimension(:,:) :: arg
+         Integer, intent(in) :: t
+      end subroutine
+      
+      subroutine lmultinv1D2interface(this, arg, t)
          import ContainerElementBase
          class(ContainerElementBase), intent(in) :: this
          Complex(kind=kind(0.d0)), intent(inout),  dimension(:,:) :: arg

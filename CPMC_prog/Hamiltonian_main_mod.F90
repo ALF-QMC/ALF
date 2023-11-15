@@ -144,12 +144,16 @@
         procedure, nopass :: ham_set => ham_set_base
         procedure, nopass :: Alloc_obs => Alloc_obs_base
         procedure, nopass :: Obser => Obser_base
+        procedure, nopass :: ObserT => ObserT_base
         procedure, nopass :: E0_local => E0_local_base
+        procedure, nopass :: sum_weight => sum_weight_base
+        procedure, nopass :: update_fac_norm => update_fac_norm_base
         procedure, nopass :: Pr_obs => Pr_obs_base
         procedure, nopass :: Init_obs => Init_obs_base
         procedure, nopass :: S0 => S0_base
         procedure, nopass :: weight_reconstruction => weight_reconstruction_base
         procedure, nopass :: GR_reconstruction => GR_reconstruction_base
+        procedure, nopass :: GRT_reconstruction => GRT_reconstruction_base
 #ifdef HDF5
         procedure, nopass :: write_parameters_hdf5 => write_parameters_hdf5_base
 #endif
@@ -169,18 +173,19 @@
       Integer      , public        :: N_SUN
       Integer      , public        :: N_wlk
       Integer      , public        :: N_wlk_mpi
+      Integer      , public        :: ltrot
       Integer      , public        :: Group_Comm
       Logical      , public        :: Symm
       Logical      , public        :: reconstruction_needed
       
-      Real    (Kind=Kind(0.d0)), public :: tot_weight, fac_norm
-      Complex (Kind=Kind(0.d0)), public :: tot_ene
+      Real    (Kind=Kind(0.d0)), public :: fac_norm
       Real    (Kind=Kind(0.d0)), dimension(:), allocatable, public :: weight_k
       Complex (Kind=Kind(0.d0)), dimension(:), allocatable, public :: Overlap
 
       !>    Privat Observables
       Type (Obser_Vec ), dimension(:), allocatable :: Obs_scal
       Type (Obser_Latt), dimension(:), allocatable :: Obs_eq
+      Type (Obser_Latt), dimension(:), allocatable :: Obs_tau
 
 #include "Hamiltonians_interface.h"
 !!$      This file will  be dynamically generated and appended
@@ -263,9 +268,11 @@
     !> Specifiy the equal time and time displaced observables
     !> @details
     !--------------------------------------------------------------------
-          Subroutine  Alloc_obs_base
+          Subroutine  Alloc_obs_base(Ltau)
 
              Implicit none
+             !>  Ltau=1 if time displaced correlations are considered.
+             Integer, Intent(In) :: Ltau
              write(error_unit, *) "Warning: Alloc_obs not implemented."
           End Subroutine Alloc_obs_base
 
@@ -289,12 +296,12 @@
     !>  Time slice
     !> \endverbatim
     !-------------------------------------------------------------------
-          subroutine Obser_base(GR,Phase,Phase_alpha,i_wlk)
+          subroutine Obser_base(GR,Phase,Phase_alpha,i_wlk,sum_w)
 
              Implicit none
 
              Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
-             Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE, PHASE_ALPHA
+             Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE, PHASE_ALPHA, sum_w
              Integer                  , Intent(IN) :: i_wlk
              Logical, save              :: first_call=.True.
              
@@ -303,6 +310,46 @@
                 first_call=.false.
              endif
           end Subroutine Obser_base
+
+    !--------------------------------------------------------------------
+    !> @author
+    !> ALF Collaboration
+    !>
+    !> @brief
+    !> Computes time displaced  observables
+    !> @details
+    !> @param [IN] NT, Integer
+    !> \verbatim
+    !>  Imaginary time
+    !> \endverbatim
+    !> @param [IN] GT0, GTT, G00, GTT,  Complex(:,:,:)
+    !> \verbatim
+    !>  Green functions:
+    !>  GT0(I,J,nf) = <T c_{I,nf }(tau) c^{dagger}_{J,nf }(0  )>
+    !>  G0T(I,J,nf) = <T c_{I,nf }(0  ) c^{dagger}_{J,nf }(tau)>
+    !>  G00(I,J,nf) = <T c_{I,nf }(0  ) c^{dagger}_{J,nf }(0  )>
+    !>  GTT(I,J,nf) = <T c_{I,nf }(tau) c^{dagger}_{J,nf }(tau)>
+    !> \endverbatim
+    !> @param [IN] Phase   Complex
+    !> \verbatim
+    !>  Phase
+    !> \endverbatim
+    !-------------------------------------------------------------------
+          Subroutine ObserT_base(NT, GT0, G0T, G00, GTT, Phase,Phase_alpha,i_wlk,sum_w)
+             Implicit none
+    
+             Integer         , INTENT(IN) :: NT, i_wlk
+             Complex (Kind=Kind(0.d0)), INTENT(IN) :: GT0(Ndim,Ndim,N_FL), G0T(Ndim,Ndim,N_FL)
+             Complex (Kind=Kind(0.d0)), INTENT(IN) :: G00(Ndim,Ndim,N_FL), GTT(Ndim,Ndim,N_FL)
+             Complex (Kind=Kind(0.d0)), INTENT(IN) :: Phase, Phase_alpha, sum_w
+             Logical, save              :: first_call=.True.
+             
+             If  (first_call)    then 
+                write(error_unit, *) "Warning: ObserT not implemented."
+                first_call=.false.
+             endif
+    
+          end Subroutine ObserT_base
 
           Complex (Kind=Kind(0.d0)) function E0_local_base(GR)
             Implicit none
@@ -313,6 +360,23 @@
             
           end function E0_local_base
 
+          Complex (Kind=Kind(0.d0)) function sum_weight_base(PHASE, PHASE_ALPHA)
+            Implicit none
+             
+            COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(IN) :: phase, phase_alpha
+            
+            sum_weight_base = cmplx(0.d0, 0.d0, kind(0.d0))
+            
+          end function sum_weight_base
+
+          Subroutine update_fac_norm_base(GR, ntw)
+            Implicit none
+             
+            Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL,N_wlk)
+            Integer                  , INTENT(IN) :: ntw
+            
+          end subroutine update_fac_norm_base
+
     !--------------------------------------------------------------------
     !> @author
     !> ALF Collaboration
@@ -320,23 +384,28 @@
     !> @brief
     !> Prints out the bins.  No need to change this routine.
     !-------------------------------------------------------------------
-          Subroutine  Pr_obs_base
+          Subroutine  Pr_obs_base(LTAU)
     
              Implicit none
+             
+             Integer, Intent(In) :: Ltau
     
              !Local
              Integer :: I
-    
     
              if ( allocated(Obs_scal) ) then
                Do I = 1,Size(Obs_scal,1)
                   Call Print_bin_Vec(Obs_scal(I), Group_Comm)
                enddo
              endif
-             
              if ( allocated(Obs_eq) ) then
                Do I = 1,Size(Obs_eq,1)
                   Call Print_bin_Latt(Obs_eq(I), Group_Comm)
+               enddo
+             endif
+             if ( allocated(Obs_tau) ) then
+               Do I = 1,Size(Obs_tau,1)
+                  Call Print_bin_Latt(Obs_tau(I), Group_Comm)
                enddo
              endif
     
@@ -351,9 +420,11 @@
     !> Initializes observables to zero before each bins.  No need to change
     !> this routine.
     !-------------------------------------------------------------------
-          Subroutine  Init_obs_base
+          Subroutine  Init_obs_base(Ltau)
     
              Implicit none
+             
+             Integer, Intent(In) :: Ltau
     
              ! Local
              Integer :: I
@@ -369,6 +440,12 @@
                   Call Obser_Latt_Init(Obs_eq(I))
                Enddo
              endif
+             
+             if ( allocated(Obs_tau) ) then
+               Do I = 1,Size(Obs_tau,1)
+                  Call Obser_Latt_Init(Obs_tau(I))
+               Enddo
+             Endif
 
           end Subroutine Init_obs_base
     
@@ -410,6 +487,30 @@
             write(error_unit, *) "Warning: GR_reconstruction not implemented."
             CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
           end Subroutine GR_reconstruction_base
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Reconstructs dependent flavors of time displaced Greens function G0T and GT0
+!> @details
+!> This has to be overloaded in the Hamiltonian submodule.
+!> @param [INOUT] GT0, G0T,  Complex(:,:,:)
+!> \verbatim
+!>  Green functions:
+!>  GT0(I,J,nf) = <T c_{I,nf }(tau) c^{dagger}_{J,nf }(0  )>
+!>  G0T(I,J,nf) = <T c_{I,nf }(0  ) c^{dagger}_{J,nf }(tau)>
+!> \endverbatim
+!-------------------------------------------------------------------
+         Subroutine GRT_reconstruction_base(GT0, G0T)
+           Implicit none
+           
+           Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: GT0(Ndim,Ndim,N_FL), G0T(Ndim,Ndim,N_FL)
+           
+           write(error_unit, *) "Warning: GRT_reconstruction not implemented."
+           CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+         end Subroutine GRT_reconstruction_base
          
 #ifdef HDF5
          subroutine write_parameters_hdf5_base(filename)

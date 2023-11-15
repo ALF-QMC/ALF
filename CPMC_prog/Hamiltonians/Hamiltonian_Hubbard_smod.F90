@@ -21,6 +21,8 @@
         procedure, nopass :: Obser
         procedure, nopass :: S0
         procedure, nopass :: E0_local
+        procedure, nopass :: sum_weight
+        procedure, nopass :: update_fac_norm 
 #ifdef HDF5
         procedure, nopass :: write_parameters_hdf5
 #endif
@@ -42,6 +44,7 @@
       logical               :: Bulk         = .true.   ! Twist as a vector potential (.T.), or at the boundary (.F.)
       Integer               :: N_Phi        = 0        ! Total number of flux quanta traversing the lattice
       real(Kind=Kind(0.d0)) :: Dtau         = 0.1d0    ! Thereby Ltrot=Beta/dtau
+      Integer               :: Ltrot        = 10       ! length of imaginary time for dynamical measure
       logical               :: Checkerboard = .true.   ! Whether checkerboard decomposition is used
       !logical              :: Symm         = .true.   ! Whether symmetrization takes place
       !#PARAMETERS END#
@@ -296,10 +299,11 @@
 !> Specifiy the equal time and time displaced observables
 !> @details
 !--------------------------------------------------------------------
-        Subroutine  Alloc_obs
+        Subroutine  Alloc_obs(Ltau)
 
           Implicit none
           !>  Ltau=1 if time displaced correlations are considered.
+          Integer, Intent(In) :: Ltau
           Integer    ::  i, N, Nt
           Character (len=64) ::  Filename
           Character (len=2)  ::  Channel
@@ -342,6 +346,30 @@
              Channel = '--'
              Call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
           enddo
+          
+          If (Ltau == 1) then
+             ! Time-displaced correlators
+             Allocate ( Obs_tau(5) )
+             Do I = 1,Size(Obs_tau,1)
+                select case (I)
+                case (1)
+                   Channel = 'P' ; Filename = "Green"
+                case (2)
+                   Channel = 'PH'; Filename = "SpinZ"
+                case (3)
+                   Channel = 'PH'; Filename = "SpinXY"
+                case (4)
+                   Channel = 'PH'; Filename = "SpinT"
+                case (5)
+                   Channel = 'PH'; Filename = "Den"
+                case default
+                   Write(6,*) ' Error in Alloc_obs '
+                end select
+                Nt = Ltrot+1
+                Channel = 'T0'
+                Call Obser_Latt_make(Obs_tau(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
+             enddo
+          endif
 
         End Subroutine Alloc_obs
 
@@ -365,26 +393,27 @@
 !>  Time slice
 !> \endverbatim
 !-------------------------------------------------------------------
-        subroutine Obser(GR,Phase,Phase_alpha,i_wlk)
+        subroutine Obser(GR,Phase,Phase_alpha,i_wlk,sum_w)
 
           Use Predefined_Obs
 
           Implicit none
 
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
-          Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE, PHASE_ALPHA
+          Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE, PHASE_ALPHA, sum_w
           Integer, Intent(IN) :: i_wlk
 
           !Local
-          Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK, PHASE_T
-          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP,ZS, ZZ, ZXY, ZW, Re_ZW
+          Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK, PHASE_T, invsumw
+          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP,ZS, ZZ, ZXY, ZW, Re_ZW, Z_fac
           Integer :: I,J, imj, nf, dec, I1, J1, no_I, no_J,n
           Real    (Kind=Kind(0.d0)) :: X
 
           PHASE_T = PHASE * PHASE_ALPHA
           ZP    = PHASE_T/Real(Phase_T, kind(0.D0))
           Re_ZW = cmplx(weight_k(i_wlk),0.d0,kind(0.d0))
-          ZW = ZP*Re_ZW
+          ZW    = ZP*Re_ZW
+          Z_fac = ZW/sum_w
           
           Do nf = 1,N_FL
              Do I = 1,Ndim
@@ -398,15 +427,14 @@
 
           ! Compute scalar observables.
           Do I = 1,Size(Obs_scal,1)
-             Obs_scal(I)%N          =  Obs_scal(I)%N + 1
-             Obs_scal(I)%sum_weight =  Obs_scal(I)%sum_weight + Re_ZW
+             Obs_scal(I)%N         =  Obs_scal(I)%N + 1
+             Obs_scal(I)%Ave_sign  =  Obs_scal(I)%Ave_sign + 1.d0
           Enddo
-
 
           Zkin = cmplx(0.d0, 0.d0, kind(0.D0))
           Call Predefined_Hoppings_Compute_Kin(Hopping_Matrix,List,Invlist, Latt, Latt_unit, GRC, ZKin)
           Zkin = Zkin* dble(N_SUN)
-          Obs_scal(1)%Obs_vec(1)  =    Obs_scal(1)%Obs_vec(1) + Zkin *Re_ZW
+          Obs_scal(1)%Obs_vec(1)  =    Obs_scal(1)%Obs_vec(1) + Zkin *Z_fac
 
 
           ZPot = cmplx(0.d0, 0.d0, kind(0.D0))
@@ -416,7 +444,7 @@
                 ZPot = ZPot + Grc(i1,i1,1) * Grc(i1,i1,2)* ham_U
              enddo
           Enddo
-          Obs_scal(2)%Obs_vec(1)  =  Obs_scal(2)%Obs_vec(1) + Zpot *Re_ZW
+          Obs_scal(2)%Obs_vec(1)  =  Obs_scal(2)%Obs_vec(1) + Zpot *Z_fac
 
 
           Zrho = cmplx(0.d0,0.d0, kind(0.D0))
@@ -427,16 +455,71 @@
           enddo
           Zrho = Zrho* dble(N_SUN)
 
-          Obs_scal(3)%Obs_vec(1)  =    Obs_scal(3)%Obs_vec(1) + Zrho * Re_ZW
+          Obs_scal(3)%Obs_vec(1)  =    Obs_scal(3)%Obs_vec(1) + Zrho * Z_fac
 
-          Obs_scal(4)%Obs_vec(1)  =    Obs_scal(4)%Obs_vec(1) + (Zkin + Zpot)*Re_ZW
+          Obs_scal(4)%Obs_vec(1)  =    Obs_scal(4)%Obs_vec(1) + (Zkin + Zpot)*Z_fac
           
           ! Standard two-point correlations
-          Call Predefined_Obs_eq_Green_measure  ( Latt, Latt_unit, List, GR, GRC, N_SUN, ZP, Re_ZW, Obs_eq(1) )
-          Call Predefined_Obs_eq_SpinMz_measure ( Latt, Latt_unit, List, GR, GRC, N_SUN, ZP, Re_ZW, Obs_eq(2),Obs_eq(3),Obs_eq(4) )
-          Call Predefined_Obs_eq_Den_measure    ( Latt, Latt_unit, List, GR, GRC, N_SUN, ZP, Re_ZW, Obs_eq(5) )
+          Call Predefined_Obs_eq_Green_measure ( Latt, Latt_unit, List, GR, GRC, N_SUN, Z_fac, Obs_eq(1) )
+          Call Predefined_Obs_eq_SpinMz_measure( Latt, Latt_unit, List, GR, GRC, N_SUN, Z_fac, Obs_eq(2),Obs_eq(3),Obs_eq(4) )
+          Call Predefined_Obs_eq_Den_measure   ( Latt, Latt_unit, List, GR, GRC, N_SUN, Z_fac, Obs_eq(5) )
 
         end Subroutine Obser
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Computes time displaced  observables
+!> @details
+!> @param [IN] NT, Integer
+!> \verbatim
+!>  Imaginary time
+!> \endverbatim
+!> @param [IN] GT0, GTT, G00, GTT,  Complex(:,:,:)
+!> \verbatim
+!>  Green functions:
+!>  GT0(I,J,nf) = <T c_{I,nf }(tau) c^{dagger}_{J,nf }(0  )>
+!>  G0T(I,J,nf) = <T c_{I,nf }(0  ) c^{dagger}_{J,nf }(tau)>
+!>  G00(I,J,nf) = <T c_{I,nf }(0  ) c^{dagger}_{J,nf }(0  )>
+!>  GTT(I,J,nf) = <T c_{I,nf }(tau) c^{dagger}_{J,nf }(tau)>
+!> \endverbatim
+!> @param [IN] Phase   Complex
+!> \verbatim
+!>  Phase
+!> \endverbatim
+!-------------------------------------------------------------------
+        Subroutine ObserT(NT,  GT0,G0T,G00,GTT, Phase,Phase_alpha,i_wlk,sum_w)
+
+          Use Predefined_Obs
+
+          Implicit none
+
+          Integer         , INTENT(IN) :: NT
+          Complex (Kind=Kind(0.d0)), INTENT(IN) :: GT0(Ndim,Ndim,N_FL),G0T(Ndim,Ndim,N_FL),G00(Ndim,Ndim,N_FL),GTT(Ndim,Ndim,N_FL)
+          Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE, PHASE_ALPHA, sum_w
+          Integer, Intent(IN) :: i_wlk
+          
+          !Locals
+          Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY, ZW, Re_ZW, PHASE_T, Z_fac
+          Real    (Kind=Kind(0.d0)) :: X
+          Integer :: IMJ, I, J, I1, J1, no_I, no_J
+
+          PHASE_T = PHASE * PHASE_ALPHA
+          ZP    = PHASE_T/Real(Phase_T, kind(0.D0))
+          Re_ZW = cmplx(weight_k(i_wlk),0.d0,kind(0.d0))
+          ZW    = ZP*Re_ZW
+          Z_fac = ZW/sum_w
+
+          ! Standard two-point correlations
+
+          Call Predefined_Obs_tau_Green_measure  ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, Z_fac, Obs_tau(1) )
+          Call Predefined_Obs_tau_SpinMz_measure ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, Z_fac, Obs_tau(2),&
+               &                                   Obs_tau(3), Obs_tau(4) )
+          Call Predefined_Obs_tau_Den_measure    ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, Z_fac, Obs_tau(5) )
+
+        end Subroutine OBSERT
 
 !--------------------------------------------------------------------
 !> @author
@@ -499,5 +582,68 @@
         E0_local = (Zpot + ZKin)*dtau
 
       end function E0_local
+
+      Complex (Kind=Kind(0.d0)) function sum_weight(PHASE, PHASE_ALPHA)
+        Implicit none
+         
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(IN) :: phase, phase_alpha
+        
+        !local
+        Integer                   :: i_wlk, ierr
+        Real    (Kind=Kind(0.d0)) :: X1, tot_re_weight
+        Complex (Kind=Kind(0.d0)) :: Z1, Z2, PHASE_T, ZP
+        
+        Z1 = cmplx(0.d0, 0.d0, kind(0.d0))
+        Z2 = cmplx(0.d0, 0.d0, kind(0.d0))
+        do i_wlk  = 1, N_wlk
+            PHASE_T = PHASE(i_wlk) * PHASE_ALPHA(i_wlk)
+            ZP      = PHASE_T/Real(Phase_T, kind(0.D0))
+            Z1 = Z1 + cmplx(weight_k(i_wlk), 0.d0, kind(0.d0))*ZP
+        enddo
+        CALL MPI_REDUCE(Z1,Z2,1,MPI_COMPLEX16,MPI_SUM,0,Group_comm    ,IERR)
+        CALL MPI_BCAST (Z2,   1,MPI_COMPLEX16        ,0,MPI_COMM_WORLD,ierr)
+        
+        sum_weight = Z2
+        
+      end function sum_weight
+      
+      Subroutine update_fac_norm(GR, ntw)
+        Implicit none
+         
+        Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL,N_wlk)
+        Integer                  , INTENT(IN) :: ntw
+        
+        !local
+        Integer                   :: i_wlk
+        Real    (Kind=Kind(0.d0)) :: X1, tot_re_weight
+        Complex (Kind=Kind(0.d0)) :: tot_ene, Z1
+
+#ifdef MPI
+        Integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
+        Integer        :: STATUS(MPI_STATUS_SIZE)
+        CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
+        CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+        call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+        call MPI_Comm_size(Group_Comm, isize_g, ierr)
+        igroup           = irank/isize_g
+#endif
+        !! Update fac_norm
+        tot_ene       = cmplx(0.d0,0.d0,kind(0.d0))
+        tot_re_weight = 0.d0
+        do i_wlk  = 1, N_wlk
+            tot_ene       = tot_ene + ham%E0_local(GR(:,:,:,i_wlk))*weight_k(i_wlk)
+            tot_re_weight = tot_re_weight + weight_k(i_wlk)
+        enddo
+        CALL MPI_REDUCE(tot_ene      ,Z1,1,MPI_COMPLEX16,MPI_SUM, 0,Group_comm,IERR)
+        CALL MPI_REDUCE(tot_re_weight,X1,1,MPI_REAL8    ,MPI_SUM, 0,Group_comm,IERR)
+
+        if (Irank_g == 0 ) then
+            fac_norm= real(Z1, kind(0.d0))/X1
+            write(*,*) ntw, real(tot_ene, kind(0.d0))/tot_re_weight
+        endif
+        CALL MPI_BCAST(fac_norm, 1, MPI_REAL8, 0,MPI_COMM_WORLD,ierr)
+        
+      end subroutine update_fac_norm
+
         
     end submodule ham_Hubbard_smod

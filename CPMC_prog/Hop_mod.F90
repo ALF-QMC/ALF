@@ -194,6 +194,48 @@
 
         end Subroutine Hop_mod_mmthr_m1
 
+        Subroutine Hop_mod_mmthr_m1_1D2(In,nf,t)
+
+
+          ! InOut:  In = e^{  dtau T }.IN
+          Implicit none
+
+          Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
+          Integer :: nf
+          integer, intent(in) :: t
+
+          !Local
+          Integer :: nc
+          class(ContainerElementBase), pointer :: dummy
+
+          do nc =  1,Ncheck
+            dummy => ExpOpT_vec(nf)%at(nc)
+            call dummy%lmultinv1D2(In, t)
+          Enddo
+
+        end Subroutine Hop_mod_mmthr_m1_1D2
+        
+        Subroutine Hop_mod_mmthlc_m1_1D2(In,nf,t)
+
+
+          ! InOut:  In = e^{  dtau T }.IN
+          Implicit none
+
+          Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
+          Integer :: nf
+          integer, intent(in) :: t
+
+          !Local
+          Integer :: nc
+          class(ContainerElementBase), pointer :: dummy
+
+          do nc =  Ncheck, 1, -1
+            dummy => ExpOpT_vec(nf)%at(nc)
+            call dummy%lmultinv1D2(In, t)
+          Enddo
+
+        end Subroutine Hop_mod_mmthlc_m1_1D2
+
 !--------------------------------------------------------------------
 
         Subroutine Hop_mod_mmthl (In,nf,t)
@@ -304,23 +346,28 @@
 
         end Subroutine Hop_mod_mmthl_m1
 
-!!$        Subroutine  Hop_mod_test
-!!$
-!!$          Implicit none
-!!$
-!!$          Complex (Kind=Kind(0.d0)) ::  IN(Ndim,Ndim),Out(Ndim,Ndim)
-!!$          Complex (Kind=Kind(0.d0)) ::  Test(Ndim,Ndim)
-!!$
-!!$          Integer :: I,J
-!!$
-!!$          DO I = 1,Ndim
-!!$             DO J = 1,Ndim
-!!$                IN(J,I) = cmplx(Ranf(),Ranf())
-!!$             ENDDO
-!!$          ENDDO
-!!$
-!!$          !Write(6,*) IN
-!!$        end Subroutine Hop_mod_test
+!--------------------------------------------------------------------
+
+        Subroutine Hop_mod_mmthl_m1_1D2 (In, nf,t)
+
+
+          ! InOut:  In = IN * e^{ dtau T }
+          Implicit none
+
+          Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
+          Integer :: nf
+          integer, intent(in) :: t
+
+          !Local
+          Integer :: nc
+          class(ContainerElementBase), pointer :: dummy
+
+          do nc =  Ncheck,1,-1
+            dummy => ExpOpT_vec(nf)%at(nc)
+            call dummy%rmultinv1D2(In, t)
+          Enddo
+
+        end Subroutine Hop_mod_mmthl_m1_1D2
 
 !--------------------------------------------------------------------
 !> @author

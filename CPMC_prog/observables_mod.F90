@@ -54,7 +54,7 @@
 !>  < O_n >  n : =1, size(Obs,1)
           !private
           Integer                     :: N                    ! Number of measurements
-          complex   (Kind=Kind(0.d0)) :: sum_weight           ! sum of weight
+          real      (Kind=Kind(0.d0)) :: Ave_Sign             ! Averarge sign
           complex   (Kind=Kind(0.d0)), pointer :: Obs_vec(:)  ! Vector of observables
           Character (len=64) :: File_Vec                      ! Name of file in which the bins will be written out
           Character (len=64) :: analysis_mode                 ! How to analyze the observable
@@ -74,7 +74,7 @@
 !>  For equal   time correlation functions, tau runs from 1,1
 !>  For unequal time correlation functions, tau runs from 1,Ltrot+1
           Integer            :: N                                    ! Number of measurements
-          complex   (Kind=Kind(0.d0)) :: sum_weight                  ! sum of weight
+          Real      (Kind=Kind(0.d0)) :: Ave_Sign                    ! Averarge sign
           complex   (Kind=Kind(0.d0)), pointer :: Obs_Latt (:,:,:,:) ! i-j, tau, norb, norb
           complex   (Kind=Kind(0.d0)), pointer :: Obs_Latt0(:)       ! norb
           Character (len=64) :: File_Latt                            ! Name of file in which the bins will be written out
@@ -93,7 +93,6 @@
 
        Contains
 
-!--------------------------------------------------------------------
          Subroutine Obser_Latt_make(Obs, Nt, Filename, Latt, Latt_unit, Channel, dtau)
 !--------------------------------------------------------------------
 !> @author
@@ -157,10 +156,10 @@
          Subroutine Obser_Latt_Init(Obs)
            Implicit none
            class(Obser_Latt), intent(INOUT) :: Obs
-           Obs%Obs_Latt   = cmplx(0.d0,0.d0,kind(0.d0))
-           Obs%Obs_Latt0  = cmplx(0.d0,0.d0,kind(0.d0))
-           Obs%N          = 0
-           Obs%sum_weight = cmplx(0.d0,0.d0,kind(0.d0))
+           Obs%Obs_Latt  = cmplx(0.d0,0.d0,kind(0.d0))
+           Obs%Obs_Latt0 = cmplx(0.d0,0.d0,kind(0.d0))
+           Obs%N         = 0
+           Obs%Ave_Sign  = 0.d0
          end subroutine Obser_Latt_Init
 
 !--------------------------------------------------------------------
@@ -218,9 +217,9 @@
          Subroutine Obser_Vec_Init(Obs)
            Implicit none
            class(Obser_vec), intent(INOUT) :: Obs
-           Obs%Obs_vec    = cmplx(0.d0,0.d0,kind(0.d0))
-           Obs%N          = 0
-           Obs%sum_weight = cmplx(0.d0,0.d0,kind(0.d0))
+           Obs%Obs_vec = cmplx(0.d0,0.d0,kind(0.d0))
+           Obs%N       = 0
+           Obs%Ave_Sign= 0.d0
          end subroutine Obser_Vec_Init
 
 !--------------------------------------------------------------------
@@ -243,22 +242,23 @@
            Integer :: Ns, Nt, no, no1, I, Ntau
            Complex (Kind=Kind(0.d0)), pointer     :: Tmp(:,:,:,:)
            Real    (Kind=Kind(0.d0))              :: x_p(2)
-           Complex (Kind=Kind(0.d0))              :: wgt_bin
+           Complex (Kind=Kind(0.d0))              :: Sign_bin
            Character (len=64) :: File_pr,  File_suff, File_aux, tmp_str
            logical            :: File_exists
 #ifdef HDF5
            Character (len=7), parameter  :: File_h5 = "data.h5"
-           Character (len=64)            :: filename, groupname, obs_dsetname, bak_dsetname, wgt_dsetname
+           Character (len=64)            :: filename, groupname, obs_dsetname, bak_dsetname, sgn_dsetname
            INTEGER(HID_T)                :: file_id, group_id
            logical                       :: link_exists
            INTEGER                       :: hdferr
            INTEGER(HSIZE_T), allocatable :: dims(:)
            TYPE(C_PTR)                   :: dat_ptr
-           Complex(Kind=Kind(0.d0)), target :: wgt
+           real(Kind=Kind(0.d0)), target :: sgn
 #endif
 #ifdef MPI
            Complex (Kind=Kind(0.D0)), allocatable :: Tmp1(:)
-           Complex (Kind=Kind(0.d0)) :: Z, X
+           Complex (Kind=Kind(0.d0)) :: Z
+           Real    (Kind=Kind(0.d0)) :: X
            Integer         :: Ierr, Isize, Irank
            INTEGER         :: irank_g, isize_g, igroup
 
@@ -286,21 +286,20 @@
            filename = File_h5
 #endif
            Allocate (Tmp(Ns, Ntau, Obs%Latt_unit%Norb, Obs%Latt_unit%Norb))
-           Obs%Obs_Latt   = Obs%Obs_Latt  /dble(Obs%N   )
-           Obs%Obs_Latt0  = Obs%Obs_Latt0 /dble(Obs%N*Ns*Ntau)
-           Obs%sum_weight = Obs%sum_weight/dble(Obs%N   )
+           Obs%Obs_Latt  = Obs%Obs_Latt /dble(Obs%N   )
+           Obs%Obs_Latt0 = Obs%Obs_Latt0/dble(Obs%N*Ns*Ntau)
+           Obs%Ave_sign  = Obs%Ave_Sign /dble(Obs%N   )
 
 #if defined(MPI)
-           I = 1
-           X = cmplx(0.d0,0.d0,kind(0.d0))
-           CALL MPI_REDUCE(Obs%sum_weight,X,I,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
-           Obs%sum_weight = X/DBLE(ISIZE_g)
-           
            I = Obs%Latt%N * Ntau * Obs%Latt_unit%Norb * Obs%Latt_unit%Norb
            Tmp = cmplx(0.d0, 0.d0, kind(0.D0))
            CALL MPI_REDUCE(Obs%Obs_Latt,Tmp,I,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
            Obs%Obs_Latt = Tmp/DBLE(ISIZE_g)
-           Obs%Obs_Latt = Obs%Obs_Latt/Obs%sum_weight
+
+           I = 1
+           X = 0.d0
+           CALL MPI_REDUCE(Obs%Ave_sign,X,I,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
+           Obs%Ave_sign = X/DBLE(ISIZE_g)
 
            I = Obs%Latt_unit%Norb
            Allocate(Tmp1(Obs%Latt_unit%Norb))
@@ -319,8 +318,6 @@
                     enddo
                  enddo
               enddo
-
-              Obs%Obs_Latt0 = Obs%Obs_Latt0/Obs%sum_weight
 
 #if defined OBS_LEGACY
               write(File_aux, '(A,A)') trim(File_pr), "_info"
@@ -360,9 +357,9 @@
 
               Open(Unit=10, File=File_pr, status="unknown",  position="append")
               If ( Ntau == 1 ) then
-                 Write(10, '("(", E25.17E3, ",", E25.17E3, ")", 2(I11))') Obs%sum_weight, Obs%Latt_unit%Norb, Obs%Latt%N
+                 Write(10, '(E25.17E3, 2(I11))') Obs%Ave_sign, Obs%Latt_unit%Norb, Obs%Latt%N
               else
-                 Write(10, '("(", E25.17E3, ",", E25.17E3, ")", 3(I11), E26.17E3)') Obs%sum_weight, Obs%Latt_unit%Norb, Obs%Latt%N, Ntau, Obs%dtau
+                 Write(10, '(E25.17E3, 3(I11), E26.17E3)') Obs%Ave_sign, Obs%Latt_unit%Norb, Obs%Latt%N, Ntau, Obs%dtau
               endif
               Do no = 1, Obs%Latt_unit%Norb
                  Write(10, '("(", E25.17E3, ",", E25.17E3, ")")')  Obs%Obs_Latt0(no)
@@ -384,7 +381,7 @@
 #if defined HDF5
               write(obs_dsetname,'(A,A,A)') trim(groupname), "/obser"
               write(bak_dsetname,'(A,A,A)') trim(groupname), "/back"
-              write(wgt_dsetname,'(A,A,A)') trim(groupname), "/weight"
+              write(sgn_dsetname,'(A,A,A)') trim(groupname), "/sign"
 
               CALL h5fopen_f (filename, H5F_ACC_RDWR_F, file_id, hdferr)
 
@@ -412,10 +409,10 @@
                 CALL init_dset(file_id, bak_dsetname, dims, .true.)
                 deallocate( dims )
 
-                !Create Dataset for weight
-                allocate( dims(2) )
-                dims = [2, 0]
-                CALL init_dset(file_id, wgt_dsetname, dims, .true.)
+                !Create Dataset for sign
+                allocate( dims(1) )
+                dims = [0]
+                CALL init_dset(file_id, sgn_dsetname, dims, .False.)
                 deallocate( dims )
               endif
 
@@ -427,10 +424,10 @@
               dat_ptr = C_LOC(Obs%Obs_Latt0(1))
               CALL append_dat(file_id, bak_dsetname, dat_ptr)
 
-              !Write weight
-              wgt = Obs%sum_weight
-              dat_ptr = C_LOC(sum_weight)
-              CALL append_dat(file_id, wgt_dsetname, dat_ptr)
+              !Write sign
+              sgn = Obs%Ave_sign
+              dat_ptr = C_LOC(sgn)
+              CALL append_dat(file_id, sgn_dsetname, dat_ptr)
 
               CALL h5fclose_f(file_id, hdferr)
 #endif
@@ -464,19 +461,19 @@
 
 #if defined HDF5
            Character (len=7), parameter  :: File_h5 = "data.h5"
-           Character (len=64)            :: filename, groupname, obs_dsetname, wgt_dsetname
+           Character (len=64)            :: filename, groupname, obs_dsetname, sgn_dsetname
            INTEGER(HID_T)                :: file_id, group_id
            logical                       :: link_exists
            INTEGER                       :: hdferr
            INTEGER(HSIZE_T), allocatable :: dims(:)
            TYPE(C_PTR)                   :: dat_ptr
-           real(Kind=Kind(0.d0)), target :: wgt
+           real(Kind=Kind(0.d0)), target :: sgn
 #endif
 #if defined MPI
            Integer        :: Ierr, Isize, Irank, No
            INTEGER        :: irank_g, isize_g, igroup
            Complex  (Kind=Kind(0.d0)), allocatable :: Tmp(:)
-           Complex  (Kind=Kind(0.d0)) :: X
+           Real     (Kind=Kind(0.d0)) :: X
 
 
            CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
@@ -486,7 +483,7 @@
            igroup           = irank/isize_g
 #endif
            Obs%Obs_vec  = Obs%Obs_vec /dble(Obs%N)
-           Obs%sum_weight = Obs%sum_weight/dble(Obs%N)
+           Obs%Ave_sign = Obs%Ave_sign/dble(Obs%N)
            write(File_pr, '(A,A)') trim(Obs%File_Vec), "_scal"
 #if defined HDF5
            groupname = File_pr
@@ -502,14 +499,12 @@
            deallocate (Tmp )
 
            I = 1
-           X = cmplx(0.d0,0.d0,kind(0.d0))
-           CALL MPI_REDUCE(Obs%sum_weight,X,I,MPI_COMPLEX16,MPI_SUM, 0,Group_comm,IERR)
-           Obs%sum_weight = X/DBLE(ISIZE_g)
-              
+           X = 0.d0
+           CALL MPI_REDUCE(Obs%Ave_sign,X,I,MPI_REAL8,MPI_SUM, 0,Group_comm,IERR)
+           Obs%Ave_sign = X/DBLE(ISIZE_g)
+
            if (Irank_g == 0 ) then
 #endif
-
-           Obs%Obs_vec  = Obs%Obs_vec/Obs%sum_weight 
 
 #if defined OBS_LEGACY
               write(File_aux, '(A,A)') trim(File_pr), "_info"
@@ -527,17 +522,18 @@
                  close(10)
               endif
               Open (Unit=10,File=File_pr, status="unknown",  position="append")
+              !WRITE(10,*) size(Obs%Obs_vec,1)+1, (Obs%Obs_vec(I), I=1,size(Obs%Obs_vec,1)), Obs%Ave_sign
               write(10, '(I10)', advance='no') size(Obs%Obs_vec,1)+1
               do I=1,size(Obs%Obs_vec,1)
                  write(10, '(" (",E25.17E3,",",E25.17E3,")")', advance='no') Obs%Obs_vec(I)
               enddo
-              write(10, '(" (",E25.17E3,",",E25.17E3,")")') Obs%sum_weight
+              write(10, '(E26.17E3)') Obs%Ave_sign
               close(10)
 #endif
 
 #if defined HDF5
               write(obs_dsetname,'(A,A,A)') trim(groupname), "/obser"
-              write(wgt_dsetname,'(A,A,A)') trim(groupname), "/weight"
+              write(sgn_dsetname,'(A,A,A)') trim(groupname), "/sign"
 
               CALL h5fopen_f (filename, H5F_ACC_RDWR_F, file_id, hdferr)
 
@@ -559,10 +555,10 @@
                 CALL init_dset(file_id, obs_dsetname, dims, .true.)
                 deallocate( dims )
 
-                !Create Dataset for weight
+                !Create Dataset for sign
                 allocate( dims(1) )
-                dims = [2, 0]
-                CALL init_dset(file_id, wgt_dsetname, dims, .true.)
+                dims = [0]
+                CALL init_dset(file_id, sgn_dsetname, dims, .false.)
                 deallocate( dims )
               endif
 
@@ -570,10 +566,10 @@
               dat_ptr = C_LOC(Obs%Obs_vec(1))
               CALL append_dat(file_id, obs_dsetname, dat_ptr)
 
-              !Write weight
-              wgt = Obs%sum_weight
-              dat_ptr = C_LOC(wgt)
-              CALL append_dat(file_id, wgt_dsetname, dat_ptr)
+              !Write sign
+              sgn = Obs%Ave_sign
+              dat_ptr = C_LOC(sgn)
+              CALL append_dat(file_id, sgn_dsetname, dat_ptr)
 
               CALL h5fclose_f(file_id, hdferr)
 #endif

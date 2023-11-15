@@ -9,7 +9,7 @@
         
         Contains
 
-        SUBROUTINE stepwlk_move( phi_trial, phi_0, GR, phase, phase_alpha, N_op, ntau_qr, ntau_bp ) 
+        SUBROUTINE stepwlk_move( phi_trial, phi_0, GR, phase, phase_alpha, ntau_qr, ntau_bp ) 
           
           Implicit none
      
@@ -17,12 +17,14 @@
           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_0
           COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:,:), Allocatable, INTENT(INOUT) :: GR
           COMPLEX (Kind=Kind(0.d0)), Dimension(:)      , Allocatable, INTENT(INOUT) :: phase, phase_alpha
-          Integer, INTENT(IN) :: N_op, ntau_qr, ntau_bp
+          Integer, INTENT(IN) :: ntau_qr, ntau_bp
 
           !Local 
-          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk
+          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, N_op
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
           Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8
+
+          N_op     = Size(OP_V,1)
 
           do i_wlk = 1, N_wlk
 
@@ -137,9 +139,9 @@
 
           !Local 
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk
-          Complex (Kind=Kind(0.d0)) :: Overlap_old, Overlap_new, Z, Z1
+          Complex (Kind=Kind(0.d0)) :: Overlap_old, Overlap_new, Z, Z1, tot_ene
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio, X1
-          Real (Kind=Kind(0.d0))    :: Zero = 1.0E-8
+          Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8, tot_re_weight
           COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable :: Phase_array
 
 #ifdef MPI
@@ -154,7 +156,7 @@
 
           allocate(Phase_array(N_FL))
           tot_ene    = cmplx(0.d0,0.d0,kind(0.d0))
-          tot_weight = 0.d0
+          tot_re_weight = 0.d0
 
           do i_wlk = 1, N_wlk
           
@@ -176,13 +178,13 @@
             Phase(i_wlk)=product(Phase_array)
             Phase(i_wlk)=Phase(i_wlk)**N_SUN
             
-            tot_ene    = tot_ene    + ham%E0_local(GR(:,:,:,i_wlk))*weight_k(i_wlk)
-            tot_weight = tot_weight + weight_k(i_wlk)
+            tot_ene       = tot_ene       + ham%E0_local(GR(:,:,:,i_wlk))*weight_k(i_wlk)
+            tot_re_weight = tot_re_weight + weight_k(i_wlk)
 
           enddo
           
-          CALL MPI_REDUCE(tot_ene   ,Z1,1,MPI_COMPLEX16,MPI_SUM, 0,Group_comm,IERR)
-          CALL MPI_REDUCE(tot_weight,X1,1,MPI_REAL8    ,MPI_SUM, 0,Group_comm,IERR)
+          CALL MPI_REDUCE(tot_ene      ,Z1,1,MPI_COMPLEX16,MPI_SUM, 0,Group_comm,IERR)
+          CALL MPI_REDUCE(tot_re_weight,X1,1,MPI_REAL8    ,MPI_SUM, 0,Group_comm,IERR)
           
           if (Irank_g == 0 ) then
               fac_norm= real(Z1, kind(0.d0))/X1
@@ -383,16 +385,19 @@
 
         END SUBROUTINE store_phi
 
-        SUBROUTINE backpropagation( phi_bp_l, nwrap )
+        SUBROUTINE backpropagation( phi_bp_l, phi_bp_r, phase, phase_alpha, nwrap, ltau )
           
           Implicit none
      
-          CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_bp_l
-          Integer, INTENT(IN) :: nwrap
+          CLASS(UDV_State), Dimension(:,:)    , ALLOCATABLE, INTENT(INOUT) :: phi_bp_l, phi_bp_r
+          COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(INOUT) :: phase_alpha
+          COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(INOUT) :: phase
+          Integer, INTENT(IN) :: nwrap, ltau
 
           !Local 
+          Complex (Kind=Kind(0.d0)) :: GR_bp(NDIM,NDIM,N_FL,N_wlk)
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, ltrot_bp, N_op
-          Complex (Kind=Kind(0.d0)) :: Z
+          Complex (Kind=Kind(0.d0)) :: Z, Z_weight
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
           Real (Kind=Kind(0.d0))    :: Zero = 1.0E-8
 
@@ -407,6 +412,7 @@
             enddo
           enddo
 
+          !! backpropagation
           Do nt = ltrot_bp, 1, -1
             
              Do i_wlk = 1, N_wlk
@@ -419,7 +425,6 @@
                    Call Hop_mod_mmthlc_1D2(phi_bp_l(nf_eff,i_wlk)%U,nf,1)
 
                    Do n = N_op,1,-1
-
                       Call Op_mmultR(phi_bp_l(nf_eff,i_wlk)%U,Op_V(n,nf),nsigma_bp(i_wlk)%f(n,nt),'c',1)
                    enddo
                 
@@ -437,7 +442,152 @@
 
           Enddo
 
+          !! compute the total weight
+          Z_weight = ham%sum_weight(PHASE, PHASE_alpha)
+
+          !! equal time measurement
+          do i_wlk = 1, N_wlk
+             do nf_eff = 1,N_Fl_eff
+                nf=Calc_Fl_map(nf_eff)
+                NVAR = 1
+                call CGR(Z, NVAR, GR_bp(:,:,nf,i_wlk), phi_bp_r(nf_eff,i_wlk), phi_bp_l(nf_eff,i_wlk))
+             enddo
+             If (reconstruction_needed) Call ham%GR_reconstruction( GR_bp(:,:,:,i_wlk) )
+             CALL ham%Obser( GR_bp(:,:,:,i_wlk), PHASE(i_wlk), PHASE_alpha(i_wlk), i_wlk, Z_weight )
+          enddo
+
+          !! time dependence measurement
+          if ( ltau .eq. 1 ) then
+             call bp_measure_tau(phi_bp_l, phi_bp_r, phase, phase_alpha, nwrap )
+          endif
+
         END SUBROUTINE backpropagation
+
+        SUBROUTINE bp_measure_tau(phi_bp_l, phi_bp_r, phase, phase_alpha, nwrap )
+          
+          Implicit none
+     
+          CLASS(UDV_State), Dimension(:,:)    , ALLOCATABLE, INTENT(INOUT) :: phi_bp_l, phi_bp_r
+          COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(INOUT) :: phase_alpha
+          COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(INOUT) :: phase
+          Integer, INTENT(IN) :: nwrap
+
+          !Local 
+          Complex (Kind=Kind(0.d0)) :: Temp(NDIM,NDIM), GR(NDIM,NDIM,N_FL), GRC(NDIM,NDIM,N_FL)
+          Complex (Kind=Kind(0.d0)) :: GT0(NDIM,NDIM,N_FL,N_wlk), G00(NDIM,NDIM,N_FL,N_wlk)
+          Complex (Kind=Kind(0.d0)) :: GTT(NDIM,NDIM,N_FL,N_wlk), G0T(NDIM,NDIM,N_FL,N_wlk)
+          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, N_op, ntau, I
+          Complex (Kind=Kind(0.d0)) :: Z, Z_weight
+          Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
+          Real (Kind=Kind(0.d0))    :: Zero = 1.0E-8
+
+          !! initialization
+          
+          !! compute the total weight
+          Z_weight = ham%sum_weight(PHASE, PHASE_alpha)
+          
+          do i_wlk = 1, N_wlk
+             do nf_eff = 1, N_FL_eff
+                nf=Calc_Fl_map(nf_eff)
+                NVAR = 1
+                call CGR(Z, NVAR, GTT(:,:,nf,i_wlk), phi_bp_r(nf_eff,i_wlk), phi_bp_l(nf_eff,i_wlk))
+             enddo
+          enddo
+
+          G0T = GTT
+          GT0 = GTT
+          G0T = GTT
+          do i_wlk = 1, N_wlk
+          do nf_eff=1,N_FL_eff
+             nf=Calc_Fl_map(nf_eff)
+             do I=1,Ndim
+                G0T(I,I,nf,i_wlk)=G0T(I,I,nf,i_wlk)-1.d0
+             enddo
+          enddo
+          enddo
+          
+          ntau = 0
+          do i_wlk = 1, N_wlk
+            CALL ham%obserT(ntau,GT0(:,:,:,i_wlk),G0T(:,:,:,i_wlk),G00(:,:,:,i_wlk), & 
+                & GTT(:,:,:,i_wlk),PHASE(i_wlk), PHASE_ALPHA(i_wlk), i_wlk, Z_weight)
+          enddo
+
+          do ntau = 1, Ltrot
+             
+             !! call svd
+             if (  mod(ntau, Nwrap) .eq. 0 )  then
+                 call re_orthonormalize_walkers(phi_bp_l, 'L')
+                 call re_orthonormalize_walkers(phi_bp_r, 'L')
+          
+                 do i_wlk = 1, N_wlk
+                 
+                    do nf_eff = 1, N_FL_eff
+                       nf=Calc_Fl_map(nf_eff)
+                       NVAR = 1
+                       call CGR(Z, NVAR, GR(:,:,nf), phi_bp_r(nf_eff,i_wlk), phi_bp_l(nf_eff,i_wlk))
+                    enddo
+                    GTT(:,:,:,i_wlk) = GR
+                    
+                    GRC = -GR
+                    do nf_eff=1,N_FL_eff
+                       nf=Calc_Fl_map(nf_eff)
+                       do I=1,Ndim
+                          GRC(I,I,nf)=GRC(I,I,nf)+1.d0
+                       enddo
+                    enddo
+                  
+                    do nf_eff=1,N_FL_eff
+                       nf=Calc_Fl_map(nf_eff)
+                       CALL MMULT(TEMP,GR (:,:,nf),GT0(:,:,nf,i_wlk))
+                       GT0(:,:,nf,i_wlk) = TEMP
+                       CALL MMULT(TEMP,G0T(:,:,nf,i_wlk),GRC(:,:,nf))
+                       G0T(:,:,nf,i_wlk) = TEMP
+                    enddo
+
+                 enddo
+             endif
+
+             do i_wlk = 1, N_wlk
+                !! Propagate Green's function
+                CALL PROPR  (GT0(:,:,:,i_wlk),ntau,i_wlk)
+                CALL PROPRM1(G0T(:,:,:,i_wlk),ntau,i_wlk)
+                CALL PROPRM1(GTT(:,:,:,i_wlk),ntau,i_wlk)
+                CALL PROPR  (GTT(:,:,:,i_wlk),ntau,i_wlk)
+                
+                !! Propagate wave function
+                if ( weight_k(i_wlk) .gt. Zero ) then
+                
+                Do nf_eff = 1,N_FL_eff
+                   
+                   nf=Calc_Fl_map(nf_eff)
+                   Call Hop_mod_mmthr_1D2    (phi_bp_r(nf_eff,i_wlk)%U,nf,1)
+                   Call Hop_mod_mmthlc_m1_1D2(phi_bp_l(nf_eff,i_wlk)%U,nf,1)
+
+                   Do n = 1, N_op
+                      Call Op_mmultR(phi_bp_r(nf_eff,i_wlk)%U,Op_V(n,nf), nsigma_bp(i_wlk)%f(n,ntau),'n',1)
+                      Call Op_mmultR(phi_bp_l(nf_eff,i_wlk)%U,Op_V(n,nf),-nsigma_bp(i_wlk)%f(n,ntau),'c',1)
+                   enddo
+                
+                   Call Hop_mod_mmthr_1D2    (phi_bp_r(nf_eff,i_wlk)%U,nf,1)
+                   Call Hop_mod_mmthlc_m1_1D2(phi_bp_l(nf_eff,i_wlk)%U,nf,1)
+
+                enddo
+
+                endif
+
+                !! call reconstruction of non-calculated flavor blocks
+                If (reconstruction_needed) then
+                    Call ham%GR_reconstruction ( G00(:,:,:,i_wlk) )
+                    Call ham%GR_reconstruction ( GTT(:,:,:,i_wlk) )
+                    Call ham%GRT_reconstruction( GT0(:,:,:,i_wlk), G0T(:,:,:,i_wlk) )
+                endif
+                CALL ham%obserT(ntau,GT0(:,:,:,i_wlk),G0T(:,:,:,i_wlk),G00(:,:,:,i_wlk), & 
+                    & GTT(:,:,:,i_wlk),PHASE(i_wlk), PHASE_ALPHA(i_wlk), i_wlk, Z_weight)
+             enddo
+
+          enddo
+
+        END SUBROUTINE bp_measure_tau
         
         SUBROUTINE half_K_propagation( phi_trial, phi_0, GR, phase, i_wlk )
           
@@ -497,5 +647,54 @@
           endif
 
         END SUBROUTINE half_K_propagation
+
+        SUBROUTINE PROPR(AIN,NT,i_wlk) 
+
+          ! Ain =       B(NT-1, NT1) 
+          ! Aout= Ain = B(NT  , NT1)
+
+          Implicit none
+          Complex (Kind=Kind(0.D0)), intent(INOUT) :: Ain(Ndim,Ndim,N_FL)
+          Integer, INTENT(IN) :: NT, i_wlk
+
+          !Locals
+          Integer :: nf,nf_eff,n 
+
+          Do nf_eff = 1,N_FL_eff
+             nf=Calc_Fl_map(nf_eff)
+             Call Hop_mod_mmthr_1D2(Ain(:,:,nf),nf,nt)
+             Do n = 1,Size(Op_V,1)
+                Call Op_mmultR(Ain(:,:,nf),Op_V(n,nf),nsigma_bp(i_wlk)%f(n,nt),'n',nt)
+             ENDDO
+             Call Hop_mod_mmthr_1D2(Ain(:,:,nf),nf,nt)
+          Enddo
+
+        end SUBROUTINE PROPR
+
+
+        SUBROUTINE PROPRM1(AIN,NT,i_wlk)
+
+          !Ain = B^{-1}(NT-1, NT1) 
+          !Aout= B^{-1}(NT  , NT1)
+
+          Implicit none
+
+          !Arguments 
+          Complex (Kind=Kind(0.D0)), intent(Inout) ::  AIN(Ndim, Ndim, N_FL) 
+          Integer :: NT, i_wlk
+
+          ! Locals 
+          Integer :: nf,nf_eff, n 
+
+          do nf_eff = 1,N_FL_eff
+             nf=Calc_Fl_map(nf_eff)
+             Call Hop_mod_mmthl_m1_1D2(Ain(:,:,nf),nf,nt)
+             Do n =1,Size(Op_V,1)
+                Call Op_mmultL(Ain(:,:,nf),Op_V(n,nf),-nsigma_bp(i_wlk)%f(n,nt),'n',nt)
+             Enddo
+             Call Hop_mod_mmthl_m1_1D2(Ain(:,:,nf),nf,nt)
+          enddo
+
+        END SUBROUTINE PROPRM1
         
     end Module stepwlk_mod
