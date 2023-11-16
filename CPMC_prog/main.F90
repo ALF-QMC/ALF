@@ -215,7 +215,7 @@ Program Main
            Write(50,*) 'N_blksteps                           : ', N_blksteps
            Write(50,*) 'ltrot_bp                             : ', ltrot_bp
            Write(50,*) 'itv_pc                               : ', itv_pc
-           Write(50,*) 'Ltau                                 : ', Ltau
+           Write(50,*) 'ltau                                 : ', ltau
            If ( abs(CPU_MAX) < ZERO ) then
               Write(50,*) 'No CPU-time limitation '
            else

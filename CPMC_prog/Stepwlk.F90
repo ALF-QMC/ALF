@@ -550,7 +550,7 @@
           enddo
 
           NST=1
-          do ntau = 1, Ltrot
+          do ntau = 1, ltrot
              
              !! call svd
              if (  ntau .eq. stab_nt(nst) )  then

@@ -19,6 +19,7 @@
         procedure, nopass :: Ham_Set
         procedure, nopass :: Alloc_obs
         procedure, nopass :: Obser
+        procedure, nopass :: ObserT
         procedure, nopass :: S0
         procedure, nopass :: E0_local
         procedure, nopass :: sum_weight
@@ -39,12 +40,12 @@
       !Integer              :: N_SUN        = 1        ! Number of colors
       !Integer              :: N_FL         = 2        ! Number of flavors
       !Integer              :: N_wlk        = 1        ! Number of walker
+      !Integer              :: ltrot        = 10       ! length of imaginary time for dynamical measure
       real(Kind=Kind(0.d0)) :: Phi_X        = 0.d0     ! Twist along the L_1 direction, in units of the flux quanta
       real(Kind=Kind(0.d0)) :: Phi_Y        = 0.d0     ! Twist along the L_2 direction, in units of the flux quanta
       logical               :: Bulk         = .true.   ! Twist as a vector potential (.T.), or at the boundary (.F.)
       Integer               :: N_Phi        = 0        ! Total number of flux quanta traversing the lattice
       real(Kind=Kind(0.d0)) :: Dtau         = 0.1d0    ! Thereby Ltrot=Beta/dtau
-      Integer               :: Ltrot        = 10       ! length of imaginary time for dynamical measure
       logical               :: Checkerboard = .true.   ! Whether checkerboard decomposition is used
       !logical              :: Symm         = .true.   ! Whether symmetrization takes place
       !#PARAMETERS END#
@@ -147,6 +148,7 @@
              Write(unit_info,*) 'Checkerboard  : ', Checkerboard
              Write(unit_info,*) 'Symm. decomp  : ', Symm
              Write(unit_info,*) 'dtau: ', dtau
+             Write(unit_info,*) 'ltrot         : ', ltrot
              Write(unit_info,*) 'N_SUN         : ', N_SUN
              Write(unit_info,*) 'N_FL          : ', N_FL
              Write(unit_info,*) 'N_wlk         : ', N_wlk
