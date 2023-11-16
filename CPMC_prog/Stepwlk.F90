@@ -342,7 +342,7 @@
                     call phi_0_m (nf_eff,j_wlk)%MPI_recv_general(i_src, it+3*(nf_eff-1)+30*n_exc, status, ierr)
                     call phi_bp_m(nf_eff,j_wlk)%MPI_recv_general(i_src, it+3*(nf_eff-1)+40*n_exc, status, ierr)
                 enddo
-                call mpi_send(nsigma_store(j_wlk)%f,n1*n2,MPI_REAL8,i_src,it+50*n_exc,Group_comm,STATUS,IERR)
+                call mpi_recv(nsigma_store(j_wlk)%f,n1*n2,MPI_REAL8,i_src,it+50*n_exc,Group_comm,STATUS,IERR)
              endif
           enddo
 
