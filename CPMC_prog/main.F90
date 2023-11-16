@@ -268,6 +268,7 @@ Program Main
 
         !! main loop
         ntau_bp = 1 ! ntau_bp is to record the field for back propagation
+        NST     = 1
  
         do i_blk=1, N_blk
 
@@ -288,7 +289,7 @@ Program Main
                 endif
                 
                 ! Measurement and update fac_norm
-                if ( mod(ntau_bp, ltrot_bp) .eq. 0 ) then
+                if ( ntau_bp .eq. ltrot_bp ) then
                     ntau_bp = 0
                     NST     = 1
 

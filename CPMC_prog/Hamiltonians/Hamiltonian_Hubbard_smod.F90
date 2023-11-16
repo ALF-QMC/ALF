@@ -427,8 +427,10 @@
 
           ! Compute scalar observables.
           Do I = 1,Size(Obs_scal,1)
-             Obs_scal(I)%N         =  Obs_scal(I)%N + 1
-             Obs_scal(I)%Ave_sign  =  Obs_scal(I)%Ave_sign + 1.d0
+             if (  i_wlk .eq. 1 ) then
+                Obs_scal(I)%N         =  Obs_scal(I)%N + 1
+                Obs_scal(I)%Ave_sign  =  Obs_scal(I)%Ave_sign + 1.d0
+             endif
           Enddo
 
           Zkin = cmplx(0.d0, 0.d0, kind(0.D0))
@@ -460,9 +462,9 @@
           Obs_scal(4)%Obs_vec(1)  =    Obs_scal(4)%Obs_vec(1) + (Zkin + Zpot)*Z_fac
           
           ! Standard two-point correlations
-          Call Predefined_Obs_eq_Green_measure ( Latt, Latt_unit, List, GR, GRC, N_SUN, Z_fac, Obs_eq(1) )
-          Call Predefined_Obs_eq_SpinMz_measure( Latt, Latt_unit, List, GR, GRC, N_SUN, Z_fac, Obs_eq(2),Obs_eq(3),Obs_eq(4) )
-          Call Predefined_Obs_eq_Den_measure   ( Latt, Latt_unit, List, GR, GRC, N_SUN, Z_fac, Obs_eq(5) )
+          Call Predefined_Obs_eq_Green_measure ( Latt, Latt_unit, List, GR, GRC, N_SUN, i_wlk, Z_fac, Obs_eq(1) )
+          Call Predefined_Obs_eq_SpinMz_measure( Latt, Latt_unit, List, GR, GRC, N_SUN, i_wlk, Z_fac, Obs_eq(2),Obs_eq(3),Obs_eq(4) )
+          Call Predefined_Obs_eq_Den_measure   ( Latt, Latt_unit, List, GR, GRC, N_SUN, i_wlk, Z_fac, Obs_eq(5) )
 
         end Subroutine Obser
 
@@ -514,10 +516,10 @@
 
           ! Standard two-point correlations
 
-          Call Predefined_Obs_tau_Green_measure  ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, Z_fac, Obs_tau(1) )
-          Call Predefined_Obs_tau_SpinMz_measure ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, Z_fac, Obs_tau(2),&
+          Call Predefined_Obs_tau_Green_measure  ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, i_wlk, Z_fac, Obs_tau(1) )
+          Call Predefined_Obs_tau_SpinMz_measure ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, i_wlk, Z_fac, Obs_tau(2),&
                &                                   Obs_tau(3), Obs_tau(4) )
-          Call Predefined_Obs_tau_Den_measure    ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, Z_fac, Obs_tau(5) )
+          Call Predefined_Obs_tau_Den_measure    ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, i_wlk, Z_fac, Obs_tau(5) )
 
         end Subroutine OBSERT
 

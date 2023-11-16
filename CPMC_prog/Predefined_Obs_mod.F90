@@ -64,11 +64,11 @@
 !>       \sum_{a=1}{N^2 - 1 }  <c^{dag}_i T^a c_i  c^{dag}_j T^a  c_j>   = \sum_{a} Tr{T^a T^a} < c^{dag}_i c_j> < c_i c^{dag}_j> =
 !>       (N^2 -1)/2 < c^{dag}_i c_j> < c_i c^{dag}_j>
 !--------------------------------------------------------------------
-      Subroutine Predefined_Obs_eq_SpinSUN_measure( Latt, Latt_unit, List,  GR, GRC, N_SUN, Z_fac, Obs )
+      Subroutine Predefined_Obs_eq_SpinSUN_measure( Latt, Latt_unit, List, GR, GRC, N_SUN, i_wlk, Z_fac, Obs )
 
         Type (Lattice),       Intent(in)      :: Latt
         Type (Unit_cell),     Intent(in)      :: Latt_unit
-        Integer,              Intent(In)      :: N_SUN, LIST(:,:)
+        Integer,              Intent(In)      :: N_SUN, i_wlk, LIST(:,:)
         Complex (Kind=Kind(0.d0)), Intent(In) :: GR(:,:,:), GRC(:,:,:), Z_fac
         Type (Obser_Latt),    Intent(inout)   :: Obs
 
@@ -81,8 +81,10 @@
            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         endif
         ! Count and average sign
-        Obs%N        = Obs%N + 1
-        Obs%Ave_sign = Obs%Ave_sign + 1.d0
+        if ( i_wlk .eq. 1 ) then
+            Obs%N        = Obs%N + 1
+            Obs%Ave_sign = Obs%Ave_sign + 1.d0
+        endif
 
         ! Measure
         N_FL = Size(GR,3)
@@ -119,11 +121,11 @@
 !>     SpinXY=  2 ( <c^{dag}_i S^x c_i  c^{dag}_j S^x  c_j> +   <c^{dag}_i S^y c_i  c^{dag}_j S^y  c_j>)
 !>     SpinT =  (2 * SpinXY  +  SpinZ)/3
 !--------------------------------------------------------------------
-      Subroutine Predefined_Obs_eq_SpinMz_measure( Latt, Latt_unit, List,  GR, GRC, N_SUN, Z_fac, ObsZ, ObsXY, ObsXYZ )
+      Subroutine Predefined_Obs_eq_SpinMz_measure( Latt, Latt_unit, List,  GR, GRC, N_SUN, i_wlk, Z_fac, ObsZ, ObsXY, ObsXYZ )
 
         Type (Lattice),       Intent(in)      :: Latt
         Type (Unit_cell),     Intent(in)      :: Latt_unit
-        Integer,              Intent(In)      :: N_SUN, LIST(:,:)
+        Integer,              Intent(In)      :: N_SUN, i_wlk, LIST(:,:)
         Complex (Kind=Kind(0.d0)), Intent(In) :: GR(:,:,:), GRC(:,:,:), Z_fac
         Type (Obser_Latt),    Intent(inout)   :: ObsZ, ObsXY, ObsXYZ
 
@@ -137,12 +139,14 @@
            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         endif
         ! Count and average sign
-        ObsZ%N          = ObsZ%N   + 1
-        ObsZ%Ave_sign   = ObsZ%Ave_sign + 1.d0
-        ObsXY%N         = ObsXY%N  + 1
-        ObsXY%Ave_sign  = ObsXY%Ave_sign + 1.d0
-        ObsXYZ%N        = ObsXYZ%N + 1
-        ObsXYZ%Ave_sign = ObsXYZ%Ave_sign + 1.d0
+        if ( i_wlk .eq. 1 ) then
+            ObsZ%N          = ObsZ%N   + 1
+            ObsZ%Ave_sign   = ObsZ%Ave_sign + 1.d0
+            ObsXY%N         = ObsXY%N  + 1
+            ObsXY%Ave_sign  = ObsXY%Ave_sign + 1.d0
+            ObsXYZ%N        = ObsXYZ%N + 1
+            ObsXYZ%Ave_sign = ObsXYZ%Ave_sign + 1.d0
+        endif
 
         ! Measure
         N_FL = Size(GR,3)
@@ -182,11 +186,11 @@
 !>  \sum_{s=1}^{N_SUN} \sum_{nf=1}^{N_FL} < c^{dag}_{i,s,nf} c_{j,s,nf} >
 !>
 !--------------------------------------------------------------------
-      Subroutine Predefined_Obs_eq_Green_measure( Latt, Latt_unit, List,  GR, GRC, N_SUN, Z_fac, Obs )
+      Subroutine Predefined_Obs_eq_Green_measure( Latt, Latt_unit, List, GR, GRC, N_SUN, i_wlk, Z_fac, Obs )
 
         Type (Lattice),       Intent(in)      :: Latt
         Type (Unit_cell),     Intent(in)      :: Latt_unit
-        Integer,              Intent(In)      :: N_SUN, LIST(:,:)
+        Integer,              Intent(In)      :: N_SUN, i_wlk, LIST(:,:)
         Complex (Kind=Kind(0.d0)), Intent(In) :: GR(:,:,:), GRC(:,:,:), Z_fac
         Type (Obser_Latt),    Intent(inout)   :: Obs
 
@@ -199,8 +203,10 @@
            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         endif
         ! Count and average sign
-        Obs%N        = Obs%N + 1
-        Obs%Ave_sign = Obs%Ave_sign + 1.d0
+        if ( i_wlk .eq. 1 ) then
+            Obs%N        = Obs%N + 1
+            Obs%Ave_sign = Obs%Ave_sign + 1.d0
+        endif
 
         ! Measure
         N_FL = Size(GR,3)
@@ -236,11 +242,11 @@
 !>  Routine returns:
 !>  <N_i  N_j >  -  <N_i> < N_j>
 !--------------------------------------------------------------------
-      Subroutine Predefined_Obs_eq_Den_measure( Latt, Latt_unit, List,  GR, GRC, N_SUN, Z_fac, Obs )
+      Subroutine Predefined_Obs_eq_Den_measure( Latt, Latt_unit, List, GR, GRC, N_SUN, i_wlk, Z_fac, Obs )
 
         Type (Lattice),       Intent(in)      :: Latt
         Type (Unit_cell),     Intent(in)      :: Latt_unit
-        Integer,              Intent(In)      :: N_SUN, LIST(:,:)
+        Integer,              Intent(In)      :: N_SUN, i_wlk, LIST(:,:)
         Complex (Kind=Kind(0.d0)), Intent(In) :: GR(:,:,:), GRC(:,:,:), Z_fac
         Type (Obser_Latt),    Intent(inout)   :: Obs
 
@@ -253,8 +259,10 @@
            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         endif
         ! Count and average sign
-        Obs%N        = Obs%N + 1
-        Obs%Ave_sign = Obs%Ave_sign + 1.d0
+        if ( i_wlk .eq. 1 ) then
+            Obs%N        = Obs%N + 1
+            Obs%Ave_sign = Obs%Ave_sign + 1.d0
+        endif
 
         ! Measure
 
@@ -300,11 +308,11 @@
 !>  \sum_{s=1}^{N_SUN} \sum_{nf=1}^{N_FL} < c^{dag}_{i,s,nf}(tau) c_{j,s,nf} >
 !>
 !--------------------------------------------------------------------
-      Subroutine Predefined_Obs_tau_Green_measure( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, Z_fac, Obs )
+      Subroutine Predefined_Obs_tau_Green_measure( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT, N_SUN, i_wlk, Z_fac, Obs )
 
         Type (Lattice),       Intent(in)      :: Latt
         Type (Unit_cell),     Intent(in)      :: Latt_unit
-        Integer,              Intent(In)      :: N_SUN, LIST(:,:), NT
+        Integer,              Intent(In)      :: N_SUN, LIST(:,:), NT, i_wlk
         Complex (Kind=Kind(0.d0)), Intent(In) :: GT0(:,:,:), G0T(:,:,:), G00(:,:,:), GTT(:,:,:), Z_fac
         Type (Obser_Latt),    Intent(inout)   :: Obs
 
@@ -319,8 +327,10 @@
 
         ! Count and average sign
         If (NT == 0 ) then
-           Obs%N        = Obs%N + 1
-           Obs%Ave_sign = Obs%Ave_sign + 1.d0
+           if ( i_wlk .eq. 1 ) then
+               Obs%N        = Obs%N + 1
+               Obs%Ave_sign = Obs%Ave_sign + 1.d0
+           endif
         endif
 
         ! Measure
@@ -360,11 +370,11 @@
 !>     SpinT =  (2 * SpinXY  +  SpinZ)/3
 !>
 !--------------------------------------------------------------------
-      Subroutine Predefined_Obs_tau_SpinMz_measure( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, Z_fac, ObsZ, ObsXY, ObsXYZ )
+      Subroutine Predefined_Obs_tau_SpinMz_measure( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT, N_SUN, i_wlk, Z_fac, ObsZ, ObsXY, ObsXYZ )
 
         Type (Lattice),       Intent(in)      :: Latt
         Type (Unit_cell),     Intent(in)      :: Latt_unit
-        Integer,              Intent(In)      :: N_SUN, LIST(:,:), NT
+        Integer,              Intent(In)      :: N_SUN, LIST(:,:), NT, i_wlk
         Complex (Kind=Kind(0.d0)), Intent(In) :: GT0(:,:,:), G0T(:,:,:), G00(:,:,:), GTT(:,:,:), Z_fac
         Type (Obser_Latt),    Intent(inout)   :: ObsZ, ObsXY, ObsXYZ
 
@@ -380,13 +390,15 @@
            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         endif
         If (NT == 0 ) then
-           ! Count and average sign
-           ObsZ%N          = ObsZ%N + 1
-           ObsZ%Ave_sign   = ObsZ%Ave_sign + 1.d0
-           ObsXY%N         = ObsXY%N + 1
-           ObsXY%Ave_sign  = ObsXY%Ave_sign + 1.d0
-           ObsXYZ%N        = ObsXYZ%N + 1
-           ObsXYZ%Ave_sign = ObsXYZ%Ave_sign + 1.d0
+           if ( i_wlk .eq. 1 ) then
+                ! Count and average sign
+                ObsZ%N          = ObsZ%N + 1
+                ObsZ%Ave_sign   = ObsZ%Ave_sign + 1.d0
+                ObsXY%N         = ObsXY%N + 1
+                ObsXY%Ave_sign  = ObsXY%Ave_sign + 1.d0
+                ObsXYZ%N        = ObsXYZ%N + 1
+                ObsXYZ%Ave_sign = ObsXYZ%Ave_sign + 1.d0
+           endif
         endif
 
         ! Measure
@@ -427,11 +439,11 @@
 !>        <N_i (tau)  N_j >  -  <N_i> < N_j>
 !>
 !--------------------------------------------------------------------
-      Subroutine Predefined_Obs_tau_Den_measure( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, Z_fac, Obs )
+      Subroutine Predefined_Obs_tau_Den_measure( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT, N_SUN, i_wlk, Z_fac, Obs )
 
         Type (Lattice),       Intent(in)      :: Latt
         Type (Unit_cell),     Intent(in)      :: Latt_unit
-        Integer,              Intent(In)      :: N_SUN, LIST(:,:), NT
+        Integer,              Intent(In)      :: N_SUN, LIST(:,:), NT, i_wlk
         Complex (Kind=Kind(0.d0)), Intent(In) :: GT0(:,:,:), G0T(:,:,:), G00(:,:,:), GTT(:,:,:), Z_fac
         Type (Obser_Latt),    Intent(inout)   :: Obs
 
@@ -446,8 +458,10 @@
 
         ! Count and average sign
         If (NT == 0 ) then
-           Obs%N        = Obs%N + 1
-           Obs%Ave_sign = Obs%Ave_sign + 1.d0
+           if ( i_wlk .eq. 1 ) then
+                Obs%N        = Obs%N + 1
+                Obs%Ave_sign = Obs%Ave_sign + 1.d0
+           endif
         endif
         N_FL = Size(GT0,3)
         !Measure
