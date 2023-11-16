@@ -506,7 +506,7 @@
           Complex (Kind=Kind(0.d0)) :: GT0(NDIM,NDIM,N_FL,N_wlk), G00(NDIM,NDIM,N_FL,N_wlk)
           Complex (Kind=Kind(0.d0)) :: GTT(NDIM,NDIM,N_FL,N_wlk), G0T(NDIM,NDIM,N_FL,N_wlk)
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, N_op, ntau, I, nst, nstm
-          Complex (Kind=Kind(0.d0)) :: Z, Z_weight
+          Complex (Kind=Kind(0.d0)) :: Z, Z_weight, DETZ
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
           Real (Kind=Kind(0.d0))    :: Zero = 1.0E-8
 
@@ -520,12 +520,12 @@
           do i_wlk = 1, N_wlk
              do nf_eff = 1, N_FL_eff
                 nf=Calc_Fl_map(nf_eff)
-                NVAR = 1
-                call CGR(Z, NVAR, GTT(:,:,nf,i_wlk), phi_bp_r(nf_eff,i_wlk), phi_bp_l(nf_eff,i_wlk))
+                CALL CGRP(DetZ, GR(:,:,nf), phi_bp_r(nf_eff,i_wlk), phi_bp_l(nf_eff,i_wlk))
              enddo
+             GTT(:,:,:,i_wlk) = GR
           enddo
 
-          G0T = GTT
+          G00 = GTT
           GT0 = GTT
           G0T = GTT
           do i_wlk = 1, N_wlk
@@ -560,9 +560,8 @@
                  
                     do nf_eff = 1, N_FL_eff
                        nf=Calc_Fl_map(nf_eff)
-                       NVAR = 1
                        phi_bp_l(nf_eff, i_wlk) = udvst(nst, nf_eff, i_wlk) 
-                       call CGR(Z, NVAR, GR(:,:,nf), phi_bp_r(nf_eff,i_wlk), phi_bp_l(nf_eff,i_wlk))
+                       CALL CGRP(DetZ, GR(:,:,nf), phi_bp_r(nf_eff,i_wlk), phi_bp_l(nf_eff,i_wlk))
                     enddo
                     GTT(:,:,:,i_wlk) = GR
                     
