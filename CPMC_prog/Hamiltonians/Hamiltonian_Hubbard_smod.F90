@@ -641,7 +641,7 @@
 
         if (Irank_g == 0 ) then
             fac_norm= real(Z1, kind(0.d0))/X1
-            write(*,*) ntw, real(tot_ene, kind(0.d0))/tot_re_weight
+            write(*,*) ntw*dtau, real(tot_ene, kind(0.d0))/tot_re_weight
         endif
         CALL MPI_BCAST(fac_norm, 1, MPI_REAL8, 0,MPI_COMM_WORLD,ierr)
         

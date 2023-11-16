@@ -433,6 +433,16 @@
           !! backpropagation
           nst= nstm-1
           Do nt = ltrot_bp, 1, -1
+             
+             if ( nt .eq. stab_nt(nst) ) then
+                 call re_orthonormalize_walkers(phi_bp_l, 'L')
+                 Do i_wlk = 1, N_wlk
+                 Do nf_eff = 1,N_FL_eff
+                    udvst(nst, nf_eff, i_wlk) = phi_bp_l(nf_eff, i_wlk)
+                 ENDDO
+                 ENDDO
+                 nst = nst - 1
+             endif
             
              Do i_wlk = 1, N_wlk
 
@@ -455,16 +465,6 @@
 
              Enddo
              
-             if ( nt .eq. stab_nt(nst) ) then
-                 call re_orthonormalize_walkers(phi_bp_l, 'L')
-                 Do i_wlk = 1, N_wlk
-                 Do nf_eff = 1,N_FL_eff
-                    udvst(nst, nf_eff, i_wlk) = phi_bp_l(nf_eff, i_wlk)
-                 ENDDO
-                 ENDDO
-                 nst = nst - 1
-             endif
-
           Enddo
           
           !! svd at tau = 0
@@ -511,6 +511,7 @@
           Real (Kind=Kind(0.d0))    :: Zero = 1.0E-8
 
           !! initialization
+          N_op     = Size(OP_V,1)
           nstm     = Size(udvst, 1)
           
           !! compute the total weight
@@ -538,6 +539,12 @@
           
           ntau = 0
           do i_wlk = 1, N_wlk
+            !! call reconstruction of non-calculated flavor blocks
+            If (reconstruction_needed) then
+                Call ham%GR_reconstruction ( G00(:,:,:,i_wlk) )
+                Call ham%GR_reconstruction ( GTT(:,:,:,i_wlk) )
+                Call ham%GRT_reconstruction( GT0(:,:,:,i_wlk), G0T(:,:,:,i_wlk) )
+            endif
             CALL ham%obserT(ntau,GT0(:,:,:,i_wlk),G0T(:,:,:,i_wlk),G00(:,:,:,i_wlk), & 
                 & GTT(:,:,:,i_wlk),PHASE(i_wlk), PHASE_ALPHA(i_wlk), i_wlk, Z_weight)
           enddo
@@ -593,15 +600,12 @@
                    
                    nf=Calc_Fl_map(nf_eff)
                    Call Hop_mod_mmthr_1D2    (phi_bp_r(nf_eff,i_wlk)%U,nf,1)
-                   Call Hop_mod_mmthlc_m1_1D2(phi_bp_l(nf_eff,i_wlk)%U,nf,1)
 
                    Do n = 1, N_op
                       Call Op_mmultR(phi_bp_r(nf_eff,i_wlk)%U,Op_V(n,nf), nsigma_bp(i_wlk)%f(n,ntau),'n',1)
-                      Call Op_mmultR(phi_bp_l(nf_eff,i_wlk)%U,Op_V(n,nf),-nsigma_bp(i_wlk)%f(n,ntau),'c',1)
                    enddo
                 
                    Call Hop_mod_mmthr_1D2    (phi_bp_r(nf_eff,i_wlk)%U,nf,1)
-                   Call Hop_mod_mmthlc_m1_1D2(phi_bp_l(nf_eff,i_wlk)%U,nf,1)
 
                 enddo
 

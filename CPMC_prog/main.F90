@@ -262,7 +262,6 @@ Program Main
         ! init slater determinant
         call initial_wlk( phi_trial, phi_0, phi_bp_l, phi_bp_r, udvst, STAB_nt, GR, phase, nwrap )
         call store_phi  ( phi_0, phi_bp_r )
-        call ham%Init_obs(ltau)
 
         Call control_init(Group_Comm)
 
@@ -273,6 +272,9 @@ Program Main
         do i_blk=1, N_blk
 
             call system_clock(count_bin_start)
+            
+            !! initial obs
+            call ham%Init_obs(ltau)       
         
             do j_step=1, N_blksteps
                 !! population control
@@ -295,9 +297,6 @@ Program Main
 
                     !!to do list
                     call backpropagation( phi_bp_l, phi_bp_r, udvst, phase, phase_alpha, stab_nt, ltau )
-
-                    !! output print
-                    call ham%Pr_obs(ltau)
                     
                     !! store phi_0 for the next measurement
                     call store_phi( phi_0, phi_bp_r )
@@ -305,14 +304,16 @@ Program Main
                     !! Update fac_norm
                     call ham%update_fac_norm(GR, j_step+(i_blk-1)*N_blksteps)
 
-                    !! initial obs
-                    call ham%Init_obs(ltau)       
-
                 endif
                 
                 ntau_bp = ntau_bp + 1
 
             enddo
+            !! output print
+            call ham%Pr_obs(ltau)
+
+            !! Todo list
+            !! call phi_bp_l%out
 
             call system_clock(count_bin_end)
             prog_truncation = .false.
