@@ -325,24 +325,24 @@
              i_src = pop_exc(it,1); i_wlk = pop_exc(it,2)
              j_src = pop_exc(it,3); j_wlk = pop_exc(it,4)
              if ( irank_g .eq. i_src ) then
-                call mpi_send(overlap    (i_wlk),1,MPI_COMPLEX16,j_src,it,Group_comm,IERR)
-                call mpi_send(phase      (i_wlk),1,MPI_COMPLEX16,j_src,it+10*n_exc,Group_comm,IERR)
-                call mpi_send(phase_alpha(i_wlk),1,MPI_COMPLEX16,j_src,it+20*n_exc,Group_comm,IERR)
+                call mpi_send(overlap    (i_wlk),1,MPI_COMPLEX16,j_src,0,Group_comm,IERR)
+                call mpi_send(phase      (i_wlk),1,MPI_COMPLEX16,j_src,1,Group_comm,IERR)
+                call mpi_send(phase_alpha(i_wlk),1,MPI_COMPLEX16,j_src,2,Group_comm,IERR)
                 do nf_eff = 1, N_FL_eff
-                    call phi_0   (nf_eff,i_wlk)%MPI_send_general(j_src, it+3*(nf_eff-1)+30*n_exc, ierr)
-                    call phi_bp_r(nf_eff,i_wlk)%MPI_send_general(j_src, it+3*(nf_eff-1)+40*n_exc, ierr)
+                    call phi_0   (nf_eff,i_wlk)%MPI_send_general(j_src, 3, ierr)
+                    call phi_bp_r(nf_eff,i_wlk)%MPI_send_general(j_src, 6, ierr)
                 enddo
-                call mpi_send(nsigma_bp(i_wlk)%f,n1*n2,MPI_REAL8,j_src,it+50*n_exc,Group_comm,IERR)
+                call mpi_send(nsigma_bp(i_wlk)%f,n1*n2,MPI_REAL8,j_src,9,Group_comm,IERR)
              endif
              if ( irank_g .eq. j_src ) then
-                call mpi_recv(overlap_tmp    (j_wlk),1,MPI_COMPLEX16,i_src,it,Group_comm,STATUS,IERR)
-                call mpi_recv(phase_tmp      (j_wlk),1,MPI_COMPLEX16,i_src,it+10*n_exc,Group_comm,STATUS,IERR)
-                call mpi_recv(phase_alpha_tmp(j_wlk),1,MPI_COMPLEX16,i_src,it+20*n_exc,Group_comm,STATUS,IERR)
+                call mpi_recv(overlap_tmp    (j_wlk),1,MPI_COMPLEX16,i_src,0,Group_comm,STATUS,IERR)
+                call mpi_recv(phase_tmp      (j_wlk),1,MPI_COMPLEX16,i_src,1,Group_comm,STATUS,IERR)
+                call mpi_recv(phase_alpha_tmp(j_wlk),1,MPI_COMPLEX16,i_src,2,Group_comm,STATUS,IERR)
                 do nf_eff = 1, N_FL_eff
-                    call phi_0_m (nf_eff,j_wlk)%MPI_recv_general(i_src, it+3*(nf_eff-1)+30*n_exc, status, ierr)
-                    call phi_bp_m(nf_eff,j_wlk)%MPI_recv_general(i_src, it+3*(nf_eff-1)+40*n_exc, status, ierr)
+                    call phi_0_m (nf_eff,j_wlk)%MPI_recv_general(i_src, 3, status, ierr)
+                    call phi_bp_m(nf_eff,j_wlk)%MPI_recv_general(i_src, 6, status, ierr)
                 enddo
-                call mpi_recv(nsigma_store(j_wlk)%f,n1*n2,MPI_REAL8,i_src,it+50*n_exc,Group_comm,STATUS,IERR)
+                call mpi_recv(nsigma_store(j_wlk)%f,n1*n2,MPI_REAL8,i_src,9,Group_comm,STATUS,IERR)
              endif
           enddo
 
