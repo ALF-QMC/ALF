@@ -156,7 +156,7 @@
 
         Checkerboard  = .false.
         Kekule_Trial  = .false.
-        hatree_fock   = .true.
+        hatree_fock   = .false.
         Symm          = .false.
 
 
