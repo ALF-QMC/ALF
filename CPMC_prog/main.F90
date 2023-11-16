@@ -29,8 +29,8 @@ Program Main
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:,:), Allocatable   :: GR
         CLASS(UDV_State), DIMENSION(:,:), ALLOCATABLE :: phi_trial, phi_0, phi_bp_l, phi_bp_r
 
-        Integer :: N_eqwlk, N_blksteps, i_wlk, j_step, N_blk_eff, i_blk, N_blk
-        Integer :: Nwrap, itv_pc, Ltau, ntau_bp, ntau_qr, ltrot_bp
+        Integer :: N_eqwlk, N_blksteps, i_wlk, j_step, N_blk_eff, i_blk, N_blk, NSTM
+        Integer :: Nwrap, itv_pc, Ltau, ntau_bp, ltrot_bp
         Real(Kind=Kind(0.d0)) :: CPU_MAX
         Character (len=64) :: file_seeds, file_para, file_dat, file_info, ham_name
         Integer :: Seed_in
@@ -52,9 +52,11 @@ Program Main
         COMPLEX (Kind=Kind(0.d0)), Dimension(:)  , Allocatable   :: Phase, Phase_alpha
         Real    (Kind=Kind(0.d0)) :: ZERO = 10D-8, X, X1
 
-        !! to do list, use for backward propagation
+        ! Storage for  stabilization steps
+        Integer, dimension(:), allocatable :: Stab_nt 
+        
         ! Space for storage.
-        CLASS(UDV_State), Dimension(:,:), ALLOCATABLE :: udvst
+        CLASS(UDV_State), Dimension(:,:,:), ALLOCATABLE :: udvst
 
         ! For the truncation of the program:
         logical                   :: prog_truncation, run_file_exists
@@ -246,19 +248,25 @@ Program Main
         Allocate( GR(NDIM,NDIM,N_FL,N_wlk) )
         Allocate( phi_trial(N_FL_eff, N_wlk), phi_0   (N_FL_eff, N_wlk))
         Allocate( phi_bp_L (N_FL_eff, N_wlk), phi_bp_r(N_FL_eff, N_wlk))
+
+        If ( mod(ltrot_bp,nwrap) == 0  ) then
+           nstm = ltrot_bp/nwrap
+        else
+           nstm = ltrot_bp/nwrap + 1
+        endif
+        Allocate( udvst(NSTM, N_FL_eff, N_wlk))
         
         Phase_alpha(:)   = cmplx(1.d0, 0.d0, kind(0.D0))
         weight_k   (:)   = 1.d0
         
         ! init slater determinant
-        call initial_wlk( phi_trial, phi_0, phi_bp_l, phi_bp_r, GR, phase )
+        call initial_wlk( phi_trial, phi_0, phi_bp_l, phi_bp_r, udvst, STAB_nt, GR, phase, nwrap )
         call store_phi  ( phi_0, phi_bp_r )
         call ham%Init_obs(ltau)
 
         Call control_init(Group_Comm)
 
         !! main loop
-        ntau_qr = 1 ! ntau_qr is to record the field for QR stablization
         ntau_bp = 1 ! ntau_bp is to record the field for back propagation
  
         do i_blk=1, N_blk
@@ -272,19 +280,20 @@ Program Main
                 endif
 
                 !! propagate the walkers:
-                call stepwlk_move(Phi_trial, Phi_0, GR, Phase, Phase_alpha, ntau_qr, ntau_bp );
+                call stepwlk_move(Phi_trial, Phi_0, GR, Phase, Phase_alpha, ntau_bp );
                 !! QR decomposition for stablization
-                if ( mod(ntau_qr,    Nwrap) .eq. 0 ) then
-                    ntau_qr = 0
+                if ( ntau_bp .eq. Stab_nt(NST) ) then
                     call re_orthonormalize_walkers(Phi_0, 'R')
+                    NST = NST + 1
                 endif
                 
                 ! Measurement and update fac_norm
                 if ( mod(ntau_bp, ltrot_bp) .eq. 0 ) then
                     ntau_bp = 0
+                    NST     = 1
 
                     !!to do list
-                    call backpropagation( phi_bp_l, phi_bp_r, phase, phase_alpha, nwrap, ltau )
+                    call backpropagation( phi_bp_l, phi_bp_r, udvst, phase, phase_alpha, stab_nt, ltau )
 
                     !! output print
                     call ham%Pr_obs(ltau)
@@ -300,7 +309,7 @@ Program Main
 
                 endif
                 
-                ntau_qr = ntau_qr + 1; ntau_bp = ntau_bp + 1
+                ntau_bp = ntau_bp + 1
 
             enddo
 

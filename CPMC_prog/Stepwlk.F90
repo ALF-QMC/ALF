@@ -9,7 +9,7 @@
         
         Contains
 
-        SUBROUTINE stepwlk_move( phi_trial, phi_0, GR, phase, phase_alpha, ntau_qr, ntau_bp ) 
+        SUBROUTINE stepwlk_move( phi_trial, phi_0, GR, phase, phase_alpha, ntau_bp ) 
           
           Implicit none
      
@@ -17,7 +17,7 @@
           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_0
           COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:,:), Allocatable, INTENT(INOUT) :: GR
           COMPLEX (Kind=Kind(0.d0)), Dimension(:)      , Allocatable, INTENT(INOUT) :: phase, phase_alpha
-          Integer, INTENT(IN) :: ntau_qr, ntau_bp
+          Integer, INTENT(IN) :: ntau_bp
 
           !Local 
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, N_op
@@ -51,7 +51,6 @@
                 enddo
 
                 Call Upgrade(GR(:,:,:,i_wlk),n,PHASE(i_wlk), PHASE_alpha(i_wlk), spin, i_wlk )
-                nsigma_qr(i_wlk)%f(n,ntau_qr) = spin
                 nsigma_bp(i_wlk)%f(n,ntau_bp) = spin
 
                 N_type = 2
@@ -126,7 +125,7 @@
 
         END SUBROUTINE re_orthonormalize_walkers
         
-        SUBROUTINE initial_wlk( phi_trial, phi_0, phi_bp_l, phi_bp_r, GR, phase )
+        SUBROUTINE initial_wlk( phi_trial, phi_0, phi_bp_l, phi_bp_r, udvst, STAB_Nt, GR, phase, nwrap )
 #ifdef MPI
         Use mpi
 #endif
@@ -134,11 +133,14 @@
           Implicit none
      
           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_trial, phi_0, phi_bp_l, phi_bp_r
+          CLASS(UDV_State), Dimension(:,:,:), ALLOCATABLE, INTENT(INOUT) :: udvst
           COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:,:), Allocatable, INTENT(INOUT) :: GR
           COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(INOUT) :: phase
+          INTEGER, dimension(:)    ,allocatable,  INTENT(INOUT) :: Stab_nt
+          INTEGER, INTENT(IN) :: nwrap
 
           !Local 
-          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk
+          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, NSTM, NST, ltrot_bp
           Complex (Kind=Kind(0.d0)) :: Overlap_old, Overlap_new, Z, Z1, tot_ene
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio, X1
           Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8, tot_re_weight
@@ -154,14 +156,26 @@
           igroup           = irank/isize_g
 #endif
 
+          NSTM = Size(udvst, 1)
+          ltrot_bp = size(nsigma_bp(1)%f,2)
           allocate(Phase_array(N_FL))
           tot_ene    = cmplx(0.d0,0.d0,kind(0.d0))
           tot_re_weight = 0.d0
+
+          allocate ( Stab_nt(0:Nstm) )
+          Stab_nt(0) = 0
+          do n = 1,Nstm -1
+             Stab_nt(n) = nwrap*n
+          enddo
+          Stab_nt(Nstm) = ltrot_bp
 
           do i_wlk = 1, N_wlk
           
             do nf_eff = 1, N_FL_eff
                nf=Calc_Fl_map(nf_eff)
+               do n = 1, NSTM
+                  CALL udvst(n,nf_eff, i_wlk)%alloc(ndim)
+               ENDDO
                CALL phi_trial(nf_eff, i_wlk)%init(ndim,'l',WF_L(nf)%P)
                CALL phi_0(nf_eff, i_wlk)%init(ndim,'r',WF_R(nf)%P)
                CALL phi_bp_l(nf_eff, i_wlk)%init(ndim,'l',WF_L(nf)%P)
@@ -385,34 +399,39 @@
 
         END SUBROUTINE store_phi
 
-        SUBROUTINE backpropagation( phi_bp_l, phi_bp_r, phase, phase_alpha, nwrap, ltau )
+        SUBROUTINE backpropagation( phi_bp_l, phi_bp_r, udvst, phase, phase_alpha, Stab_nt, ltau )
           
           Implicit none
      
-          CLASS(UDV_State), Dimension(:,:)    , ALLOCATABLE, INTENT(INOUT) :: phi_bp_l, phi_bp_r
+          CLASS(UDV_State), Dimension(:,:)  , ALLOCATABLE, INTENT(INOUT) :: phi_bp_l, phi_bp_r
+          CLASS(UDV_State), Dimension(:,:,:), ALLOCATABLE, INTENT(INOUT) :: udvst
           COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(INOUT) :: phase_alpha
           COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(INOUT) :: phase
-          Integer, INTENT(IN) :: nwrap, ltau
+          INTEGER, dimension(:)    ,allocatable,  INTENT(IN) :: Stab_nt
+          Integer, INTENT(IN) :: ltau
 
           !Local 
           Complex (Kind=Kind(0.d0)) :: GR_bp(NDIM,NDIM,N_FL,N_wlk)
-          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, ltrot_bp, N_op
+          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, ltrot_bp, N_op, nstm, nst
           Complex (Kind=Kind(0.d0)) :: Z, Z_weight
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
           Real (Kind=Kind(0.d0))    :: Zero = 1.0E-8
 
           N_op     = Size(OP_V,1)
           ltrot_bp = size(nsigma_bp(1)%f, 2)
+          nstm     = Size(udvst, 1)
             
           !! initialization
           do i_wlk = 1, N_wlk
             do nf_eff = 1, N_FL_eff
                nf=Calc_Fl_map(nf_eff)
                CALL phi_bp_l(nf_eff, i_wlk)%reset('l',WF_L(nf)%P)
+               CALL udvst(NSTM, nf_eff, i_wlk)%reset('l',WF_L(nf)%P)
             enddo
           enddo
 
           !! backpropagation
+          nst= nstm-1
           Do nt = ltrot_bp, 1, -1
             
              Do i_wlk = 1, N_wlk
@@ -436,11 +455,20 @@
 
              Enddo
              
-             if ( ( mod(nt, Nwrap) .eq. 0 ) .or. ( nt .eq. 1 ) ) then
+             if ( nt .eq. stab_nt(nst) ) then
                  call re_orthonormalize_walkers(phi_bp_l, 'L')
+                 Do i_wlk = 1, N_wlk
+                 Do nf_eff = 1,N_FL_eff
+                    udvst(nst, nf_eff, i_wlk) = phi_bp_l(nf_eff, i_wlk)
+                 ENDDO
+                 ENDDO
+                 nst = nst - 1
              endif
 
           Enddo
+          
+          !! svd at tau = 0
+          call re_orthonormalize_walkers(phi_bp_l, 'L')
 
           !! compute the total weight
           Z_weight = ham%sum_weight(PHASE, PHASE_alpha)
@@ -458,30 +486,32 @@
 
           !! time dependence measurement
           if ( ltau .eq. 1 ) then
-             call bp_measure_tau(phi_bp_l, phi_bp_r, phase, phase_alpha, nwrap )
+             call bp_measure_tau(phi_bp_l, phi_bp_r, udvst, phase, phase_alpha, stab_nt )
           endif
 
         END SUBROUTINE backpropagation
 
-        SUBROUTINE bp_measure_tau(phi_bp_l, phi_bp_r, phase, phase_alpha, nwrap )
+        SUBROUTINE bp_measure_tau(phi_bp_l, phi_bp_r, udvst, phase, phase_alpha, stab_nt )
           
           Implicit none
      
-          CLASS(UDV_State), Dimension(:,:)    , ALLOCATABLE, INTENT(INOUT) :: phi_bp_l, phi_bp_r
+          CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_bp_l, phi_bp_r
+          CLASS(UDV_State), Dimension(:,:,:), ALLOCATABLE, INTENT(INOUT) :: udvst
           COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(INOUT) :: phase_alpha
           COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(INOUT) :: phase
-          Integer, INTENT(IN) :: nwrap
+          INTEGER, dimension(:)    ,allocatable,  INTENT(IN) :: Stab_nt
 
           !Local 
           Complex (Kind=Kind(0.d0)) :: Temp(NDIM,NDIM), GR(NDIM,NDIM,N_FL), GRC(NDIM,NDIM,N_FL)
           Complex (Kind=Kind(0.d0)) :: GT0(NDIM,NDIM,N_FL,N_wlk), G00(NDIM,NDIM,N_FL,N_wlk)
           Complex (Kind=Kind(0.d0)) :: GTT(NDIM,NDIM,N_FL,N_wlk), G0T(NDIM,NDIM,N_FL,N_wlk)
-          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, N_op, ntau, I
+          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, N_op, ntau, I, nst, nstm
           Complex (Kind=Kind(0.d0)) :: Z, Z_weight
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
           Real (Kind=Kind(0.d0))    :: Zero = 1.0E-8
 
           !! initialization
+          nstm     = Size(udvst, 1)
           
           !! compute the total weight
           Z_weight = ham%sum_weight(PHASE, PHASE_alpha)
@@ -512,11 +542,11 @@
                 & GTT(:,:,:,i_wlk),PHASE(i_wlk), PHASE_ALPHA(i_wlk), i_wlk, Z_weight)
           enddo
 
+          NST=1
           do ntau = 1, Ltrot
              
              !! call svd
-             if (  mod(ntau, Nwrap) .eq. 0 )  then
-                 call re_orthonormalize_walkers(phi_bp_l, 'L')
+             if (  ntau .eq. stab_nt(nst) )  then
                  call re_orthonormalize_walkers(phi_bp_r, 'L')
           
                  do i_wlk = 1, N_wlk
@@ -524,6 +554,7 @@
                     do nf_eff = 1, N_FL_eff
                        nf=Calc_Fl_map(nf_eff)
                        NVAR = 1
+                       phi_bp_l(nf_eff, i_wlk) = udvst(nst, nf_eff, i_wlk) 
                        call CGR(Z, NVAR, GR(:,:,nf), phi_bp_r(nf_eff,i_wlk), phi_bp_l(nf_eff,i_wlk))
                     enddo
                     GTT(:,:,:,i_wlk) = GR
@@ -545,6 +576,7 @@
                     enddo
 
                  enddo
+                 nst = nst + 1
              endif
 
              do i_wlk = 1, N_wlk
