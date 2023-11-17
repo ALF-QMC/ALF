@@ -434,16 +434,6 @@
           nst= nstm-1
           Do nt = ltrot_bp, 1, -1
              
-             if ( nt .eq. stab_nt(nst) ) then
-                 call re_orthonormalize_walkers(phi_bp_l, 'L')
-                 Do i_wlk = 1, N_wlk
-                 Do nf_eff = 1,N_FL_eff
-                    udvst(nst, nf_eff, i_wlk) = phi_bp_l(nf_eff, i_wlk)
-                 ENDDO
-                 ENDDO
-                 nst = nst - 1
-             endif
-            
              Do i_wlk = 1, N_wlk
 
                 if ( weight_k(i_wlk) .gt. Zero ) then
@@ -464,6 +454,16 @@
                 endif
 
              Enddo
+             
+             if ( nt .eq. stab_nt(nst) ) then
+                 call re_orthonormalize_walkers(phi_bp_l, 'L')
+                 Do i_wlk = 1, N_wlk
+                 Do nf_eff = 1,N_FL_eff
+                    udvst(nst, nf_eff, i_wlk) = phi_bp_l(nf_eff, i_wlk)
+                 ENDDO
+                 ENDDO
+                 nst = nst - 1
+             endif
              
           Enddo
           
