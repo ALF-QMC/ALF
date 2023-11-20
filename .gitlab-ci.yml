@@ -230,6 +230,9 @@ build:
         IMAGE_MINOR: [buster, bullseye, bookworm]
         MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
       - MACHINE: GNU
+        IMAGE_MINOR: [bookworm-mpich]
+        MODE: [MPI, TEMPERING, PARALLEL_PARAMS]
+      - MACHINE: GNU
         IMAGE_MINOR: [bullseye-openblas]
         MODE: [noMPI]
       - MACHINE: PGI
@@ -258,6 +261,9 @@ test:
       - MACHINE: GNU
         IMAGE_MINOR: [buster, bullseye, bookworm]
         MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
+      - MACHINE: GNU
+        IMAGE_MINOR: [bookworm-mpich]
+        MODE: [MPI, TEMPERING, PARALLEL_PARAMS]
       - MACHINE: GNU
         IMAGE_MINOR: [bullseye-openblas]
         MODE: [noMPI]
