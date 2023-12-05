@@ -732,4 +732,180 @@
 
         END SUBROUTINE PROPRM1
         
+#if defined HDF5
+        SUBROUTINE wavefunction_out_hdf5( phi_0, phase_alpha, Group_Comm )
+#ifdef MPI
+          Use mpi
+#endif
+#if defined HDF5
+          Use hdf5
+          use h5lt
+          Use alf_hdf5
+#endif
+          
+          Implicit none
+     
+          CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(IN) :: phi_0
+          Complex (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(IN) :: phase_alpha
+          Integer, INTENT(IN) :: Group_Comm
+
+          ! LOCAL
+          CHARACTER (LEN=64) :: FILE_TG, filename
+          Complex (Kind=Kind(0.d0)), dimension(:,:,:,:), allocatable :: phi0_out
+
+          INTEGER             :: K, hdferr, rank, nf, nw, n_part
+          INTEGER(HSIZE_T), allocatable :: dims(:), dimsc(:)
+          Logical             :: file_exists
+          INTEGER,ALLOCATABLE :: SEED_VEC(:)
+          INTEGER(HID_T)      :: file_id, crp_list, space_id, dset_id, memspace
+          Character (len=64)  :: dset_name
+          TYPE(C_PTR)         :: dat_ptr
+
+#if defined(MPI)
+          INTEGER        :: irank_g, isize_g, igroup, ISIZE, IRANK, IERR
+          CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
+          CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+          call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+          call MPI_Comm_size(Group_Comm, isize_g, ierr)
+          igroup           = irank/isize_g
+          write(filename,'(A,I0)') "phiout_",irank_g
+#else
+          filename = "phiout_0"
+#endif
+
+          write(filename,'(A,A)') trim(filename), ".h5"
+
+          CALL GET_SEED_LEN(K)
+          ALLOCATE(SEED_VEC(K))
+          CALL RANGET(SEED_VEC)
+            
+          n_part=phi_0(1,1)%n_part
+          allocate(phi0_out(ndim,n_part,n_fl_eff,n_wlk))
+          do nf = 1, N_FL_eff
+          do nw = 1, N_wlk
+              phi0_out(:,:,nf,nw)=phi_0(nf,nw)%U(:,:)
+          enddo
+          enddo
+
+          inquire (file=filename, exist=file_exists)
+          !IF (.not. file_exists) THEN
+              CALL h5fcreate_f(filename, H5F_ACC_TRUNC_F, file_id, hdferr)
+
+              !Create and write dataset for random seed
+              dset_name = "seed"
+              rank = 1
+              allocate( dims(1) )
+              dims(1) = K
+              CALL  h5ltmake_dataset_int_f(file_id, dset_name, rank, dims, SEED_VEC, hdferr)
+              deallocate( dims )
+              
+              !Create and write dataset for field phase
+              dset_name = "phasef"
+              rank = 2
+              allocate( dims(2), dimsc(2) )
+              dims  = [2, N_wlk]
+              dimsc = dims
+              dimsc(rank) = 1
+              CALL h5screate_simple_f(rank, dims, space_id, hdferr)
+              CALL h5pcreate_f(H5P_DATASET_CREATE_F, crp_list, hdferr)
+              CALL h5pset_chunk_f(crp_list, rank, dimsc, hdferr)
+#if defined HDF5_ZLIB
+                ! Set ZLIB / DEFLATE Compression using compression level HDF5_ZLIB
+              CALL h5pset_deflate_f(crp_list, HDF5_ZLIB, hdferr)
+#endif
+              !Create a dataset using cparms creation properties.
+              CALL h5dcreate_f(file_id, dset_name, H5T_NATIVE_DOUBLE, space_id, &
+                              dset_id, hdferr, crp_list )
+              dat_ptr = C_LOC(phase_alpha(1))
+              CALL h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
+              !Close objects
+              deallocate( dims, dimsc )
+              CALL h5sclose_f(space_id, hdferr)
+              CALL h5pclose_f(crp_list, hdferr)
+              CALL h5dclose_f( dset_id, hdferr)
+              
+              !Create and write dataset for real part of weight
+              dset_name = "weight_re"
+              rank = 2
+              allocate( dims(2), dimsc(2) )
+              dims  = [1, N_wlk]
+              dimsc = dims
+              dimsc(rank) = 1
+              CALL h5screate_simple_f(rank, dims, space_id, hdferr)
+              CALL h5pcreate_f(H5P_DATASET_CREATE_F, crp_list, hdferr)
+              CALL h5pset_chunk_f(crp_list, rank, dimsc, hdferr)
+#if defined HDF5_ZLIB
+                ! Set ZLIB / DEFLATE Compression using compression level HDF5_ZLIB
+              CALL h5pset_deflate_f(crp_list, HDF5_ZLIB, hdferr)
+#endif
+              !Create a dataset using cparms creation properties.
+              CALL h5dcreate_f(file_id, dset_name, H5T_NATIVE_DOUBLE, space_id, &
+                              dset_id, hdferr, crp_list )
+              dat_ptr = C_LOC(weight_k(1))
+              CALL h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
+              !Close objects
+              deallocate( dims, dimsc )
+              CALL h5sclose_f(space_id, hdferr)
+              CALL h5pclose_f(crp_list, hdferr)
+              CALL h5dclose_f( dset_id, hdferr)
+
+              !Create and write dataset for wave function
+              dset_name = "wavefunction"
+              rank = 5
+              allocate( dims(5), dimsc(5) )
+              dims  = [2,ndim,n_part,N_FL,N_wlk]
+              dimsc = dims
+              dimsc(rank) = 1
+              CALL h5screate_simple_f(rank, dims, space_id, hdferr)
+              CALL h5pcreate_f(H5P_DATASET_CREATE_F, crp_list, hdferr)
+              CALL h5pset_chunk_f(crp_list, rank, dimsc, hdferr)
+#if defined HDF5_ZLIB
+                ! Set ZLIB / DEFLATE Compression using compression level HDF5_ZLIB
+              CALL h5pset_deflate_f(crp_list, HDF5_ZLIB, hdferr)
+#endif
+              !Create a dataset using cparms creation properties.
+              CALL h5dcreate_f(file_id, dset_name, H5T_NATIVE_DOUBLE, space_id, &
+                              dset_id, hdferr, crp_list )
+              dat_ptr = C_LOC(phi0_out(1,1,1,1))
+              CALL h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
+              !Close objects
+              deallocate( dims, dimsc )
+              CALL h5sclose_f(space_id,  hdferr)
+              CALL h5pclose_f(crp_list,  hdferr)
+              CALL h5dclose_f( dset_id,  hdferr)
+
+              CALL h5fclose_f(file_id, hdferr)
+
+         !else
+!              !open file
+!              CALL h5fopen_f (filename, H5F_ACC_RDWR_F, file_id, hdferr)
+!
+!              !open and write random seed dataset
+!              dset_name = "seed"
+!              CALL h5dopen_f(file_id, dset_name, dset_id, hdferr)
+!              allocate( dims(1) )
+!              dims(1) = K
+!              CALL H5dwrite_f(dset_id, H5T_NATIVE_INTEGER, SEED_VEC, dims, hdferr)
+!              deallocate( dims )
+!              CALL h5dclose_f(dset_id,   hdferr)
+!
+!              !open and write configuration dataset
+!              dset_name = "configuration"
+!              CALL h5dopen_f(file_id, dset_name, dset_id, hdferr)
+!              allocate( dims(2) )
+!              dims(1) = SIZE(this%f,1)
+!              dims(2) = SIZE(this%f,2)
+!              CALL H5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, this%f, dims, hdferr)
+!              deallocate( dims )
+!              CALL h5dclose_f(dset_id,   hdferr)
+!
+!              CALL h5fclose_f(file_id, hdferr)
+         !endif
+
+         deallocate(SEED_VEC)
+         deallocate(phi0_out)
+
+        END SUBROUTINE wavefunction_out_hdf5
+#endif
+        
     end Module stepwlk_mod

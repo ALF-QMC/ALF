@@ -315,6 +315,13 @@ Program Main
             !! Todo list
             !! call phi_bp_l%out
 
+            !phase_alpha(1)=(3.32141,-2.132)
+            !phase_alpha(5)=(3.71,3.132)
+            !phase_alpha(4)=(2.1,7.8)
+            !write(*,*) phase_alpha
+            Call wavefunction_out_hdf5( phi_0, phase_alpha, Group_Comm )
+            !stop
+
             call system_clock(count_bin_end)
             prog_truncation = .false.
             if ( abs(CPU_MAX) > Zero ) then
