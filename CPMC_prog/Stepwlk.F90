@@ -731,7 +731,55 @@
           enddo
 
         END SUBROUTINE PROPRM1
-        
+ 
+
+        SUBROUTINE seed_vec_out( Group_Comm )
+#ifdef MPI
+          Use mpi
+#endif
+          Implicit none
+     
+          Integer, INTENT(IN) :: Group_Comm
+          
+          ! LOCAL
+          INTEGER             :: K, ii, intseed(2), seed_tmp(2)
+          CHARACTER (LEN=64)  :: FILE_TG, filename
+          INTEGER,ALLOCATABLE :: SEED_VEC(:), seed_output(:,:), s_tmp(:,:)
+
+#if defined(MPI)
+          INTEGER        :: irank_g, isize_g, igroup, ISIZE, IRANK, IERR
+          CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
+          CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+          call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+          call MPI_Comm_size(Group_Comm, isize_g, ierr)
+          igroup           = irank/isize_g
+#endif
+          filename = "seedvec_out"
+          
+          CALL GET_SEED_LEN(K)
+          ALLOCATE(SEED_VEC(K))
+          ALLOCATE(seed_output(K,isize_g))
+          ALLOCATE(s_tmp(K,isize_g))
+          seed_output(:,:)=0
+          CALL RANGET(SEED_VEC)
+
+          seed_output(:,irank_g+1)=SEED_VEC(:)
+          CALL MPI_REDUCE(seed_output,s_tmp,K*isize_g,MPI_Integer,MPI_SUM, 0,Group_comm,IERR)
+            
+          if ( irank_g .eq. 0 ) then
+                OPEN (UNIT = 10, FILE=filename, STATUS='UNKNOWN', ACTION='WRITE')
+                do ii = 1, isize_g
+                    WRITE(10,*) s_tmp(:,ii)
+                enddo
+                close(10)
+          endif
+
+          deallocate(seed_vec)
+          deallocate(seed_output)
+          deallocate(s_tmp)
+
+        end SUBROUTINE seed_vec_out
+
 #if defined HDF5
         SUBROUTINE wavefunction_out_hdf5( phi_0, phase_alpha, Group_Comm )
 #ifdef MPI
@@ -740,7 +788,6 @@
 #if defined HDF5
           Use hdf5
           use h5lt
-          Use alf_hdf5
 #endif
           
           Implicit none
@@ -756,8 +803,7 @@
           INTEGER             :: K, hdferr, rank, nf, nw, n_part
           INTEGER(HSIZE_T), allocatable :: dims(:), dimsc(:)
           Logical             :: file_exists
-          INTEGER,ALLOCATABLE :: SEED_VEC(:)
-          INTEGER(HID_T)      :: file_id, crp_list, space_id, dset_id, memspace
+          INTEGER(HID_T)      :: file_id, crp_list, space_id, dset_id, dataspace
           Character (len=64)  :: dset_name
           TYPE(C_PTR)         :: dat_ptr
 
@@ -768,16 +814,10 @@
           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
           call MPI_Comm_size(Group_Comm, isize_g, ierr)
           igroup           = irank/isize_g
-          write(filename,'(A,I0)') "phiout_",irank_g
-#else
-          filename = "phiout_0"
 #endif
+          filename = "phiout_0"
 
           write(filename,'(A,A)') trim(filename), ".h5"
-
-          CALL GET_SEED_LEN(K)
-          ALLOCATE(SEED_VEC(K))
-          CALL RANGET(SEED_VEC)
             
           n_part=phi_0(1,1)%n_part
           allocate(phi0_out(ndim,n_part,n_fl_eff,n_wlk))
@@ -788,16 +828,8 @@
           enddo
 
           inquire (file=filename, exist=file_exists)
-          !IF (.not. file_exists) THEN
+          IF (.not. file_exists) THEN
               CALL h5fcreate_f(filename, H5F_ACC_TRUNC_F, file_id, hdferr)
-
-              !Create and write dataset for random seed
-              dset_name = "seed"
-              rank = 1
-              allocate( dims(1) )
-              dims(1) = K
-              CALL  h5ltmake_dataset_int_f(file_id, dset_name, rank, dims, SEED_VEC, hdferr)
-              deallocate( dims )
               
               !Create and write dataset for field phase
               dset_name = "phasef"
@@ -874,35 +906,47 @@
               CALL h5pclose_f(crp_list,  hdferr)
               CALL h5dclose_f( dset_id,  hdferr)
 
+              !close file
               CALL h5fclose_f(file_id, hdferr)
 
-         !else
-!              !open file
-!              CALL h5fopen_f (filename, H5F_ACC_RDWR_F, file_id, hdferr)
-!
-!              !open and write random seed dataset
-!              dset_name = "seed"
-!              CALL h5dopen_f(file_id, dset_name, dset_id, hdferr)
-!              allocate( dims(1) )
-!              dims(1) = K
-!              CALL H5dwrite_f(dset_id, H5T_NATIVE_INTEGER, SEED_VEC, dims, hdferr)
-!              deallocate( dims )
-!              CALL h5dclose_f(dset_id,   hdferr)
-!
-!              !open and write configuration dataset
-!              dset_name = "configuration"
-!              CALL h5dopen_f(file_id, dset_name, dset_id, hdferr)
-!              allocate( dims(2) )
-!              dims(1) = SIZE(this%f,1)
-!              dims(2) = SIZE(this%f,2)
-!              CALL H5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, this%f, dims, hdferr)
-!              deallocate( dims )
-!              CALL h5dclose_f(dset_id,   hdferr)
-!
-!              CALL h5fclose_f(file_id, hdferr)
-         !endif
+         else
+              !open file
+              CALL h5fopen_f (filename, H5F_ACC_RDWR_F, file_id, hdferr)
 
-         deallocate(SEED_VEC)
+              !open and write field phase
+              dset_name = "phasef"
+              !Open the  dataset.
+              CALL h5dopen_f(file_id, dset_name, dset_id, hdferr)
+              dat_ptr = C_LOC(phase_alpha(1))
+              !Write data
+              CALL H5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
+              !close objects
+              CALL h5dclose_f(dset_id,   hdferr)
+
+              !open and write real weight
+              dset_name = "weight_re"
+              !Open the  dataset.
+              CALL h5dopen_f(file_id, dset_name, dset_id, hdferr)
+              dat_ptr = C_LOC(weight_k(1))
+              !Write data
+              CALL H5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
+              !close objects
+              CALL h5dclose_f(dset_id,   hdferr)
+              
+              !open and write real weight
+              dset_name = "wavefunction"
+              !Open the  dataset.
+              CALL h5dopen_f(file_id, dset_name, dset_id, hdferr)
+              dat_ptr = C_LOC(phi0_out(1,1,1,1))
+              !Write data
+              CALL H5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
+              !close objects
+              CALL h5dclose_f(dset_id,   hdferr)
+                
+              !close file
+              CALL h5fclose_f(file_id, hdferr)
+         endif
+
          deallocate(phi0_out)
 
         END SUBROUTINE wavefunction_out_hdf5
