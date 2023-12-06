@@ -79,12 +79,12 @@
 !-------------------------------------------------------------------
       Implicit none
       Character (len=*), intent(in) :: file
-      Complex (Kind=Kind(0.d0)), allocatable, intent(out) :: sgn(:)
+      Real    (Kind=Kind(0.d0)), allocatable, intent(out) :: sgn(:)
       Complex (Kind=Kind(0.d0)), pointer, intent(out) :: bins(:,:)
       Character (len=64), intent(out) :: analysis_mode
 
       Integer :: N, N1, I, Nobs, Nbins, stat
-      Complex (Kind=Kind(0.d0)) :: X
+      Real    (Kind=Kind(0.d0)) :: X
       Complex (Kind=Kind(0.d0)), Allocatable  :: tmp(:)
       Character (len=64) :: file_aux
       logical :: file_exists
@@ -162,7 +162,7 @@
       Implicit none
       Character (len=*), intent(in) :: filename
       Character (len=*), intent(in) :: groupname
-      Complex (Kind=Kind(0.d0)), allocatable, intent(out) :: sgn(:)
+      Real    (Kind=Kind(0.d0)), allocatable, intent(out) :: sgn(:)
       Complex (Kind=Kind(0.d0)), pointer, intent(out) :: bins(:,:)
       Character (len=64), intent(out) :: analysis_mode
 
@@ -262,7 +262,7 @@
 !-------------------------------------------------------------------
       Implicit none
       Character (len=*), intent(in) :: file
-      Complex (Kind=Kind(0.d0)), allocatable, intent(out) :: sgn(:)
+      Real    (Kind=Kind(0.d0)), allocatable, intent(out) :: sgn(:)
       Complex (Kind=Kind(0.d0)), pointer    , intent(out) :: bins(:,:,:,:,:)
       Complex (Kind=Kind(0.d0)), pointer    , intent(out) :: bins0(:,:)
       Type (Lattice)                        , intent(out) :: Latt
@@ -700,7 +700,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       Character (len=*), intent(in), optional :: filename_h5
 
       Character (len=64) :: name_obs2
-      Complex (Kind=Kind(0.d0)), allocatable :: sgn(:)
+      Real    (Kind=Kind(0.d0)), allocatable :: sgn(:)
       Complex (Kind=Kind(0.d0)), pointer :: Bins_raw(:,:,:,:,:), Bins0_raw(:,:)
       Type (Lattice)   :: Latt
       Type (Unit_cell) :: Latt_unit
@@ -727,7 +727,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
    Subroutine ana_tau(name_obs, sgn, bins_raw, bins0_raw, Latt, Latt_unit, dtau, Channel)
       Implicit none
       Character (len=64), intent(in) :: name_obs
-      Complex (Kind=Kind(0.d0)), allocatable, intent(in) :: sgn(:)
+      Real    (Kind=Kind(0.d0)), allocatable, intent(in) :: sgn(:)
       Complex (Kind=Kind(0.d0)), pointer    , intent(in) :: Bins_raw(:,:,:,:,:)
       Complex (Kind=Kind(0.d0)), pointer    , intent(in) :: Bins0_raw(:,:)
       Type (Lattice)                        , intent(in) :: Latt
@@ -972,7 +972,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       Character (len=*), intent(in) :: name_obs
       Character (len=*), intent(in), optional :: filename_h5
 
-      Complex (Kind=Kind(0.d0)), allocatable :: sgn(:)
+      Real    (Kind=Kind(0.d0)), allocatable :: sgn(:)
       Complex (Kind=Kind(0.d0)), pointer :: Bins_raw(:,:,:,:,:), Bins0_raw(:,:)
       Type (Lattice)   :: Latt
       Type (Unit_cell) :: Latt_unit
@@ -995,7 +995,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
    Subroutine ana_eq(name, sgn, bins_raw, bins0_raw, Latt, Latt_unit)
      Implicit none
      Character (len=*)                     , intent(in) :: name
-     Complex (Kind=Kind(0.d0)), allocatable, intent(in) :: sgn(:)
+     Real    (Kind=Kind(0.d0)), allocatable, intent(in) :: sgn(:)
      Complex (Kind=Kind(0.d0)), pointer    , intent(in) :: Bins_raw(:,:,:,:,:)
      Complex (Kind=Kind(0.d0)), pointer    , intent(in) :: Bins0_raw(:,:)
      Type (Lattice)                        , intent(in) :: Latt
@@ -1032,7 +1032,6 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       CLOSE(5)
 
       Nbins = size(bins_raw,5)
-      write(*,*) 'cc'
 
       Write(6, '(A22, I0)') "# of bins: ", Nbins
       Nbins  = Nbins - n_skip
@@ -1063,8 +1062,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       Bins0 = cmplx(0.d0,0.d0,kind(0.d0))
       do nb = 1, nbins + n_skip
          if (nb > n_skip ) then
-            !Phase(nb-n_skip) = cmplx(sgn(nb),0.d0,kind(0.d0))
-            Phase(nb-n_skip) = cmplx(1.d0,0.d0,kind(0.d0))
+            Phase(nb-n_skip) = cmplx(sgn(nb),0.d0,kind(0.d0))
             Do no = 1,Latt_unit%Norb
                if (N_Back == 1 ) Bins0(nb-n_skip,no) = Bins0_raw(no,nb)
             enddo
@@ -1074,6 +1072,17 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
                      bins(n,nb-n_skip)%el(no,no1) = Bins_raw(n,1,no,no1,nb)
                   enddo
                enddo
+!!$               FFA:  Legacy                
+!!$               Xk_p(:) = Xk_p_s(:,n)
+!!$               if ( sqrt(Xk_p(1)**2 + Xk_p(2)**2) < 1.D-6 ) then
+!!$                  do no = 1,Latt_unit%Norb
+!!$                     do no1 = 1,Latt_unit%Norb
+!!$                        bins(n,nb-n_skip)%el(no,no1)  =  bins(n,nb-n_skip)%el(no,no1) !-  &
+!!$                        ! &        cmplx(dble(Latt%N),0.d0,kind(0.d0))*Bins0(nb-n_skip,no)*Bins0(nb-n_skip,no1) &
+!!$                        ! &        /Phase(nb-n_skip)
+!!$                     enddo
+!!$                  enddo
+!!$               endif
             enddo
          endif
       enddo
@@ -1081,6 +1090,19 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
 
 
       Call Fourier_K_to_R(bins,bins_r,Latt)
+      
+!!$#ifdef test
+!!$      ! Setup symmetries for square lattice.
+!!$      do n = 1,Latt%N
+!!$         n1 = n
+!!$         Write(6, "(2(E26.17E3))") Xk_p(1,n1), Xk_p(2,n1)
+!!$         do m = 1,4
+!!$            n1 = Rot90(n1, Xk_p, Latt%N)
+!!$            Write(6, "(I11, 2(E26.17E3))") n1, Xk_p(1,n1), Xk_p(2,n1)
+!!$         enddo
+!!$         Write(6,*)
+!!$      enddo
+!!$#endif
       write(File_out,'(A,A)') trim(name), "JK"
       Open (Unit=33,File=File_out ,status="unknown")
       write(File_out,'(A,A)') trim(name), "JR"
@@ -1124,32 +1146,32 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       Close(33)
       Close(34)
 
-      !if ( N_auto > 0 ) then
-      !   ALLOCATE(AutoCorr(N_auto))
-      !   ALLOCATE(EN(Nbins))
-      !   Do n = 1,Latt%N
-      !      Xk_p = dble(Latt%listk(n,1))*Latt%b1_p + dble(Latt%listk(n,2))*Latt%b2_p
-      !      if (Xk_p(1) >= -1.d-8 .and. XK_p(2) >= -1.d-8) then
-      !         write(File_out,'(A,"_Auto_Tr_",F4.2,"_",F4.2)') trim(name), Xk_p(1), Xk_p(2)
-      !         OPEN (UNIT=21, FILE=File_out, STATUS='unknown')
-      !         WRITE(21,*)
-      !         do nb = 1,Nbins
-      !            Z=0
-      !            do no = 1,Latt_unit%Norb
-      !               Z = Z+bins  (n,nb)%el(no,no)
-      !            enddo
-      !            En(nb)=dble(Z)
-      !         enddo
-      !         Call AUTO_COR(En,AutoCorr)
-      !         do i = 1,N_auto
-      !            CALL ERRCALCJ(En,XM, XE,i)
-      !            write(21, "(I11, 2(E26.17E3))") i, AutoCorr(i), Xe
-      !         enddo
-      !         CLOSE(21)
-      !      endif
-      !   enddo
-      !   DEALLOCATE(AutoCorr)
-      !endif
+      if ( N_auto > 0 ) then
+         ALLOCATE(AutoCorr(N_auto))
+         ALLOCATE(EN(Nbins))
+         Do n = 1,Latt%N
+            Xk_p = dble(Latt%listk(n,1))*Latt%b1_p + dble(Latt%listk(n,2))*Latt%b2_p
+            if (Xk_p(1) >= -1.d-8 .and. XK_p(2) >= -1.d-8) then
+               write(File_out,'(A,"_Auto_Tr_",F4.2,"_",F4.2)') trim(name), Xk_p(1), Xk_p(2)
+               OPEN (UNIT=21, FILE=File_out, STATUS='unknown')
+               WRITE(21,*)
+               do nb = 1,Nbins
+                  Z=0
+                  do no = 1,Latt_unit%Norb
+                     Z = Z+bins  (n,nb)%el(no,no)
+                  enddo
+                  En(nb)=dble(Z)
+               enddo
+               Call AUTO_COR(En,AutoCorr)
+               do i = 1,N_auto
+                  CALL ERRCALCJ(En,XM, XE,i)
+                  write(21, "(I11, 2(E26.17E3))") i, AutoCorr(i), Xe
+               enddo
+               CLOSE(21)
+            endif
+         enddo
+         DEALLOCATE(AutoCorr)
+      endif
       
     end Subroutine ana_eq
 
@@ -1168,7 +1190,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       Character (len=*), intent(in) :: name_obs
       Character (len=*), intent(in), optional :: filename_h5
       
-      Complex (Kind=Kind(0.d0)), allocatable :: sgn_raw(:)
+      Real    (Kind=Kind(0.d0)), allocatable :: sgn_raw(:)
       Complex (Kind=Kind(0.d0)), pointer     :: Bins_raw(:,:)
       Character (len=64)                     :: analysis_mode
       
@@ -1188,14 +1210,13 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
     subroutine ana_vec(name, sgn_raw, bins_raw, analysis_mode)
       Implicit none
       Character (len=*), intent(in) :: name
-      Complex (Kind=Kind(0.d0)), allocatable, intent(inout) :: sgn_raw(:)
+      Real    (Kind=Kind(0.d0)), allocatable, intent(inout) :: sgn_raw(:)
       Complex (Kind=Kind(0.d0)), pointer,     intent(inout) :: bins_raw(:,:)
       Character (len=64),                     intent(in)    :: analysis_mode
       
-      Complex(Kind=Kind(0.d0)), DIMENSION(:),   ALLOCATABLE :: EN, sgn
-      Complex(Kind=Kind(0.d0)), DIMENSION(:,:),   ALLOCATABLE :: EN_f_arg
-      Real   (Kind=Kind(0.d0)) :: XM, XERR
-      Complex(Kind=Kind(0.d0)) :: ZM, ZERR
+      REAL    (Kind=Kind(0.d0)), DIMENSION(:),   ALLOCATABLE :: EN, sgn
+      REAL    (Kind=Kind(0.d0)), DIMENSION(:,:),   ALLOCATABLE :: EN_f_arg
+      REAL    (Kind=Kind(0.d0)) :: XM, XERR
       
       Complex (Kind=Kind(0.d0)), Allocatable  :: Bins(:,:)
       REAL    (Kind=Kind(0.d0)), Allocatable  :: AutoCorr(:)
@@ -1207,7 +1228,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       NAMELIST /VAR_errors/   N_skip, N_rebin, N_Cov, N_Back, N_auto
 
       !New Stuff for Autocorrelation
-      Complex(Kind=Kind(0.d0)), DIMENSION(:)  , ALLOCATABLE :: vec, vec_err
+      REAL(Kind=Kind(0.d0)), DIMENSION(:)  , ALLOCATABLE :: vec, vec_err
       
 !       abstract interface
 !          function func (X)
@@ -1281,13 +1302,37 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       WRITE(21,*) 'Effective number of bins, and bins: ', Nbins_eff/N_rebin, Nbins
       ALLOCATE (EN(Nbins_eff), EN_f_arg(data_range+1,Nbins_eff), vec(NOBS), vec_err(NOBS))
       DO IOBS = 1,Nobs_output
-         EN(:) = Bins(IOBS,:)
-         CALL ERRCALCJ(EN,ZM,ZERR,N_rebin)
-         vec    (IOBS) = ZM
-         vec_err(IOBS) = ZERR
+         EN(:) = Real(Bins(IOBS,:), kind(0.d0)) ! not used any more, too be deleted
+         EN_f_arg(:,:) = Real(Bins(IOBS:IOBS+data_range,:), kind(0.d0)) !+data_range
+         CALL ERRCALCJ(EN_f_arg,sgn,XM,XERR,N_Rebin,f_ptr)
+!          CALL ERRCALCJ(EN,sgn,XM,XERR,N_Rebin)
+         vec    (IOBS) = XM
+         vec_err(IOBS) = XERR
          WRITE(21,*)
-         WRITE(21, "(I11, 2(E26.17E3))") IOBS, dble(ZM),  dble(ZERR)
+         WRITE(21, "(I11, 2(E26.17E3))") IOBS, XM,  XERR
       ENDDO
+      CALL ERRCALCJ(sgn, XM,XERR,N_Rebin)
+      WRITE(21,*)
+      WRITE(21, "(I11, 2(E26.17E3))") Nobs_output+1, XM,  XERR
+      CLOSE(21)
+      
+      if(N_auto>0) then
+         ALLOCATE(AutoCorr(N_auto))
+         DO IOBS = 1,NOBS
+            write(File_out,'(A,A,I1.1)') trim(name), '_Auto_', iobs
+            write(*,*) File_out
+            OPEN (UNIT=21, FILE=File_out, STATUS='unknown')
+            WRITE(21,*)
+            EN(:) = Real(Bins(IOBS,:), kind(0.d0))
+            Call AUTO_COR(EN,AutoCorr)
+            do i = 1,N_auto
+               CALL ERRCALCJ(EN,XM,XERR,i)
+               write(21, "(I11, 2(E26.17E3))") i, AutoCorr(i), Xerr
+            enddo
+            CLOSE(21)
+         ENDDO
+         DEALLOCATE(AutoCorr)
+      endif
       
       DEALLOCATE (EN, EN_f_arg,vec,vec_err,sgn_raw,sgn,Bins_raw,Bins)
       
