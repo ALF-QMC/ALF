@@ -116,7 +116,7 @@ module upgrade_mod
         Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Prev_Ratiotot
         Integer                  , INTENT(IN)    :: N_op, Nt
         Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Phase
-        Real    (Kind=Kind(0.d0)), INTENT(IN)    :: Hs_new
+        Complex (Kind=Kind(0.d0)), INTENT(IN)    :: Hs_new
         Real    (Kind=Kind(0.d0)), INTENT(IN)    :: S0_ratio, T0_proposal_ratio
         Character (Len=64)       , INTENT(IN)    :: Mode
         Logical                  , INTENT(INOUT) :: toggle
@@ -156,7 +156,7 @@ module upgrade_mod
 
         ! Compute the ratio
         nf = 1
-        nsigma_new%f(1,1)  = Hs_new !real(ns_new,kind=kind(0.d0))
+        nsigma_new%f(1,1)  = Hs_new
         nsigma_new%t(1)    = Op_V(n_op,nf)%Type
         Do nf_eff = 1,N_FL_eff
            nf=Calc_Fl_map(nf_eff)

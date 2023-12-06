@@ -100,8 +100,8 @@ Contains
 
     !Local 
     Integer :: nf, nf_eff, N_Type, NTAU1,n, m
-    Complex (Kind=Kind(0.d0)) :: Prev_Ratiotot
-    Real    (Kind=Kind(0.d0)) :: T0_proposal,  T0_Proposal_ratio,  S0_ratio, spin, HS_new
+    Complex (Kind=Kind(0.d0)) :: Prev_Ratiotot, HS_Field, HS_New
+    Real    (Kind=Kind(0.d0)) :: T0_proposal,  T0_Proposal_ratio,  S0_ratio
     Character (Len=64)        :: Mode
     Logical                   :: Acc, toggle1
     
@@ -115,15 +115,15 @@ Contains
     Do n = Nt_sequential_start,Nt_sequential_end
        Do nf_eff = 1, N_FL_eff
           nf=Calc_Fl_map(nf_eff)
-          spin = nsigma%f(n,ntau1) ! Phi(nsigma(n,ntau1),Op_V(n,nf)%type)
+          HS_Field =  nsigma%f(n,ntau1) 
           N_type = 1
-          Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type,ntau1)
+          Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),HS_Field,Ndim,N_Type,ntau1)
        enddo
        nf = 1
        T0_proposal       = 1.5D0
        T0_Proposal_ratio = 1.D0
-       Hs_new            = nsigma%flip(n,ntau1) 
-       S0_ratio          = ham%S0(n,ntau1, Hs_New)
+       Hs_New =   nsigma%flip(n,ntau1) 
+       S0_ratio          = ham%S0(n,ntau1, Hs_New )
        if ( Propose_S0 ) then
           If ( Op_V(n,nf)%type == 1)  then
              T0_proposal       = 1.d0 - 1.d0/(1.d0+S0_ratio)
@@ -142,7 +142,7 @@ Contains
        do nf_eff = 1,N_FL_eff
           nf=Calc_Fl_map(nf_eff)
           N_type =  2
-          Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type,ntau1)
+          Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),HS_Field,Ndim,N_Type,ntau1)
        enddo
     Enddo
 
@@ -181,8 +181,8 @@ Contains
     
     ! Local
     Integer :: nf, nf_eff, N_Type, n, m
-    Complex (Kind=Kind(0.d0)) :: Prev_Ratiotot
-    Real    (Kind=Kind(0.d0)) :: T0_proposal,  T0_Proposal_ratio,  S0_ratio, spin, HS_new
+    Complex (Kind=Kind(0.d0)) :: Prev_Ratiotot, HS_Field, HS_New
+    Real    (Kind=Kind(0.d0)) :: T0_proposal,  T0_Proposal_ratio,  S0_ratio
     Character (Len=64)        :: Mode
     Logical                   :: Acc, toggle1
 
@@ -198,17 +198,17 @@ Contains
     Do n =  Nt_sequential_end, Nt_sequential_start, -1
        N_type = 2
        nf = 1
-       spin = nsigma%f(n,ntau) 
+       HS_Field = nsigma%f(n,ntau) 
        do nf_eff = 1,N_FL_eff
           nf=Calc_Fl_map(nf_eff)
-          Call Op_Wrapdo( Gr(:,:,nf), Op_V(n,nf), spin, Ndim, N_Type,ntau)
+          Call Op_Wrapdo( Gr(:,:,nf), Op_V(n,nf), HS_Field, Ndim, N_Type,ntau)
        enddo
        !Write(6,*) 'Upgrade : ', ntau,n 
        nf = 1
        T0_proposal       = 1.5D0
        T0_Proposal_ratio = 1.D0
-       Hs_new            =  nsigma%flip(n,ntau) 
-       S0_ratio          = ham%S0(n,ntau,Hs_new)
+       HS_new            = nsigma%flip(n,ntau) 
+       S0_ratio          = ham%S0(n,ntau,HS_new)
        if ( Propose_S0 ) then
           If ( Op_V(n,nf)%type == 1)  then
              T0_proposal       = 1.d0 - 1.d0/(1.d0+S0_ratio)
@@ -227,11 +227,11 @@ Contains
        !Call Upgrade(GR,n,ntau,PHASE,Op_V(n,1)%N_non_zero) 
        ! The spin has changed after the upgrade!
        nf = 1
-       spin = nsigma%f(n,ntau)  ! Phi(nsigma(n,ntau),Op_V(n,nf)%type)
+       HS_Field = nsigma%f(n,ntau)  
        N_type = 1
        do nf_eff = 1,N_FL_eff
           nf=Calc_Fl_map(nf_eff)
-          Call Op_Wrapdo( Gr(:,:,nf), Op_V(n,nf), spin, Ndim, N_Type, ntau )
+          Call Op_Wrapdo( Gr(:,:,nf), Op_V(n,nf), HS_Field, Ndim, N_Type, ntau )
        enddo
     enddo
     DO nf_eff = 1,N_FL_eff
@@ -269,7 +269,7 @@ Contains
 
     !Local 
     Integer :: n, nf, nf_eff, N_Type 
-    Real (Kind=Kind(0.d0)) :: spin
+    Complex (Kind=Kind(0.d0)) :: HS_Field
 
     If (m == m1)  then 
        return
@@ -278,14 +278,14 @@ Contains
        Do n = m+1,m1
           Do nf_eff = 1, N_FL_eff
              nf=Calc_Fl_map(nf_eff)
-             spin = nsigma%f(n,ntau) 
+             HS_Field = nsigma%f(n,ntau)
              N_type = 1
-             Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type,ntau)
+             Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),HS_Field,Ndim,N_Type,ntau)
           enddo
           do nf_eff = 1,N_FL_eff
              nf=Calc_Fl_map(nf_eff)
              N_type =  2
-             Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type,ntau)
+             Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),HS_Field,Ndim,N_Type,ntau)
           enddo
        Enddo
     elseif  (m1 < m ) then
@@ -293,18 +293,18 @@ Contains
        Do n =  m, m1+1 ,-1 
           N_type = 2
           nf = 1
-          spin = nsigma%f(n,ntau) 
+          HS_Field = nsigma%f(n,ntau)
           do nf_eff = 1,N_FL_eff
              nf=Calc_Fl_map(nf_eff)
-             Call Op_Wrapdo( Gr(:,:,nf), Op_V(n,nf), spin, Ndim, N_Type,ntau)
+             Call Op_Wrapdo( Gr(:,:,nf), Op_V(n,nf), HS_Field, Ndim, N_Type,ntau)
           enddo
           !Write(6,*) 'Upgrade : ', ntau,n 
           nf = 1
-          spin = nsigma%f(n,ntau) 
+          HS_Field= nsigma%f(n,ntau)
           N_type = 1
           do nf_eff = 1,N_FL_eff
              nf=Calc_Fl_map(nf_eff)
-             Call Op_Wrapdo( Gr(:,:,nf), Op_V(n,nf), spin, Ndim, N_Type, ntau )
+             Call Op_Wrapdo( Gr(:,:,nf), Op_V(n,nf), HS_Field, Ndim, N_Type, ntau )
           enddo
        enddo
     endif
@@ -354,12 +354,12 @@ Contains
 
     ! Space for local variables
     Integer                   :: n, Flip_length, nf, nf_eff, N_Type, ng_c, Flip_count
-    Real    (Kind=Kind(0.d0)) :: T0_Proposal_ratio, T0_proposal,S0_ratio, HS_new, spin
-    COMPLEX (Kind=Kind(0.d0)) :: Prev_Ratiotot 
+    Real    (Kind=Kind(0.d0)) :: T0_Proposal_ratio, T0_proposal,S0_ratio
+    COMPLEX (Kind=Kind(0.d0)) :: Prev_Ratiotot, HS_Field, HS_New 
     Logical                   :: Acc
     Character (Len=64)        :: Mode
     Integer,      allocatable :: Flip_list(:)
-    Real    (Kind=Kind(0.d0)), allocatable :: Flip_value(:), Flip_value_st(:)
+    Complex (Kind=Kind(0.d0)), allocatable :: Flip_value(:), Flip_value_st(:)
     Real    (Kind=Kind(0.d0)) :: Zero = 10D-8
 
     Allocate ( Flip_list(Size(Op_V,1)), Flip_value(Size(Op_V,1)), Flip_value_st(Size(Op_V,1)) )
@@ -386,9 +386,9 @@ Contains
              If ( Flip_count == 1 .and. Flip_length > 1 ) GR_st = Gr
              Do nf_eff = 1, N_FL_eff
                 nf=Calc_Fl_map(nf_eff)
-                spin = nsigma%f(n,ntau) 
+                HS_Field = nsigma%f(n,ntau)
                 N_type = 1
-                Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type,ntau)
+                Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),HS_Field,Ndim,N_Type,ntau)
              enddo
              nf = 1
              If (Flip_count <  Flip_length)  then 
@@ -399,7 +399,7 @@ Contains
                 do nf_eff = 1,N_FL_eff
                    nf=Calc_Fl_map(nf_eff)
                    N_type =  2
-                   Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type,ntau)
+                   Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),HS_Field,Ndim,N_Type,ntau)
                 enddo
              else
                 !Write(6,*)  "Call Up mode final", n,ntau
@@ -412,7 +412,7 @@ Contains
                 do nf_eff = 1,N_FL_eff
                    nf=Calc_Fl_map(nf_eff)
                    N_type =  2
-                   Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),Spin,Ndim,N_Type,ntau)
+                   Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),HS_Field,Ndim,N_Type,ntau)
                 enddo
              endif
              m = n
@@ -439,13 +439,15 @@ Contains
     ! Arguments
     Integer, INTENT(IN) :: Flip_length
     Integer, INTENT(INOUT), allocatable :: Flip_list(:)
-    Real   (Kind=Kind(0.d0)), INTENT(INOUT), allocatable :: Flip_value(:)
+    Complex   (Kind=Kind(0.d0)), INTENT(INOUT), allocatable :: Flip_value(:)
     
     ! Local
     integer :: swaps            ! number of swaps made in one pass
     integer :: nc               ! loop variable
-    integer :: temp             ! temporary holder for making swap
-    Real (Kind=Kind(0.d0))      :: X
+    integer :: temp, n          ! temporary holder for making swap
+    Complex (Kind=Kind(0.d0))      :: X
+
+    
     if ( Flip_length == 1 ) return 
     
     !Write(6,*) 'Before sort'
@@ -460,20 +462,20 @@ Contains
              temp              = Flip_list(nc  ) 
              Flip_list(nc)     = Flip_list(nc+1) 
              Flip_list(nc+1)   = temp
-             X                 = Flip_value(nc  ) 
-             Flip_value(nc)    = Flip_value(nc+1) 
+             X                   = Flip_value(nc   ) 
+             Flip_value(nc)    = Flip_value(nc+1 ) 
              Flip_value(nc+1)  = X
              swaps             = swaps + 1
           end if
        end do
        if ( swaps == 0 ) exit ! do count swaps
     end do
-
+    
     !Write(6,*) 'After sort'
     !DO nc = 1,Flip_length
     !   Write(6,*) Flip_list(nc),  Flip_value(nc)
     !Enddo
-
+    
   end subroutine Wrapgr_sort
   
 !----------------------------------------------------------------------------

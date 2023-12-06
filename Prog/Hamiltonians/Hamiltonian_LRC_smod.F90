@@ -482,13 +482,22 @@
           !> Time slice
           Integer, Intent(IN) :: nt
           !> New local field on time slice nt and operator index n
-          Real (Kind=Kind(0.d0)), Intent(In) :: Hs_new
+          Complex (Kind=Kind(0.d0)), Intent(In) :: Hs_new
+          
+          Integer :: nt1, I, ns 
+          Real (Kind=Kind(0.d0)) :: Y
+          Real (Kind=Kind(0.d0)),  Allocatable :: V(:) 
 
-          Integer :: nt1,I
-          !Write(6,*) "Hi1"
-
-          S0 = LRC_S0(n,dtau,nsigma%f(:,nt),Hs_new,N_SUN)
-
+          Allocate (V(size(nsigma%f,1)))
+          do I = 1,Size(V,1)
+             V(I)   =   real(nsigma%f(I,nt))
+          enddo
+          Y  =  Real(HS_new)
+          !S0 = LRC_S0(n,dtau,nsigma%f(:,nt),Hs_new,N_SUN)
+          S0  = LRC_S0(n,dtau,V,             Y,     N_SUN)
+          
+          Deallocate(V)
+          
         end function S0
 !--------------------------------------------------------------------
 !> @author
@@ -755,9 +764,9 @@
 
 
           Implicit none
-          Real (Kind = Kind(0.d0)),INTENT(OUT) :: T0_Proposal_ratio,  S0_ratio
-          Integer                , INTENT(OUT) :: Flip_list(:)
-          Real (Kind = Kind(0.d0)),INTENT(OUT) :: Flip_value(:)
+          Real (Kind = Kind(0.d0))   ,INTENT(OUT) :: T0_Proposal_ratio,  S0_ratio
+          Integer                    ,INTENT(OUT) :: Flip_list(:)
+          Complex (Kind = Kind(0.d0)),INTENT(OUT) :: Flip_value(:)
           Integer, INTENT(OUT) :: Flip_length
           Integer, INTENT(IN)    :: ntau
 
@@ -765,8 +774,20 @@
           ! Local
           Integer :: n_op, n, ns
           Real (Kind=Kind(0.d0)) :: T0_proposal
+          Real (Kind=Kind(0.d0)),  allocatable  ::  V(:),  V1(:)
 
-          Call LRC_draw_field(Percent_change, Dtau, nsigma%f(:,ntau), Flip_value,N_SUN)
+          n = Size(nsigma%f,1)
+          Allocate  (V(n),  V1(n) )
+          do ns = 1,n
+             V(ns)  = real(nsigma%f(ns,ntau))
+          enddo
+          !Call LRC_draw_field(Percent_change, Dtau, nsigma%f(:,ntau), Flip_value(:),N_SUN)
+          Call LRC_draw_field(Percent_change, Dtau, V, V1 ,N_SUN)
+          do ns = 1,n 
+             Flip_value(ns)  = cmplx( V1(ns),  0.d0,  Kind(0.d0))
+          enddo
+          deallocate  (V,  V1 )
+
           Do n = 1,Ndim
              Flip_list(n) = n
              !Write(6,*) Flip_value(n), nsigma%f(n,ntau)
@@ -826,7 +847,7 @@
           do n = 1,N_op
              if (OP_V(n,1)%type == 3 ) then
                 do nt = 1,Ltrot
-                   Forces_0(n,nt) = nsigma%f(n,nt)
+                   Forces_0(n,nt) = real(nsigma%f(n,nt), kind(0.d0) )
                 enddo
              endif
           enddo

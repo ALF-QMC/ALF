@@ -69,7 +69,7 @@ module wrapul_mod
         ! Working space.
         COMPLEX (Kind=Kind(0.d0)) ::  U1(Ndim,Ndim), V1(Ndim,Ndim), TMP(Ndim,Ndim), TMP1(Ndim,Ndim)
         COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta
-        Integer :: NT, NCON, n, nf, nf_eff
+        Integer :: NT, NCON, n, nf, nf_eff, sign=1
         Real    (Kind=Kind(0.d0)) ::  X
  
 
@@ -82,7 +82,7 @@ module wrapul_mod
            CALL INITD(TMP,Z_ONE)
            DO NT = NTAU1, NTAU+1 , -1
               Do n = Size(Op_V,1),1,-1
-                 Call Op_mmultL(Tmp,Op_V(n,nf),nsigma%f(n,nt),'n',nt)
+                 Call Op_mmultL(Tmp,Op_V(n,nf),nsigma%f(n,nt),'n',nt,sign)
               enddo
               !CALL MMULT( TMP1,Tmp,Exp_T(:,:,nf) )
               Call  Hop_mod_mmthl (Tmp,nf,nt)

@@ -158,7 +158,7 @@ Program Main
         Real(Kind=Kind(0.d0)) :: CPU_MAX
         Character (len=64) :: file_seeds, file_para, file_dat, file_info, ham_name
         Integer :: Seed_in
-        Real (Kind=Kind(0.d0)) , allocatable, dimension(:,:) :: Initial_field
+        Complex (Kind=Kind(0.d0)) , allocatable, dimension(:,:) :: Initial_field
 
         ! Space for choosing sampling scheme
         Logical :: Propose_S0, Tempering_calc_det
@@ -167,6 +167,7 @@ Program Main
         Integer :: Nt_sequential_start, Nt_sequential_end, mpi_per_parameter_set
         Integer :: N_Global_tau
         Logical :: Sequential
+        real (Kind=Kind(0.d0)) ::  Amplitude  !    Needed for  update of  type  3  and  4  fields.
 
 #ifdef HDF5
         INTEGER(HID_T) :: file_id
@@ -186,12 +187,13 @@ Program Main
              &               Propose_S0,Global_moves,  N_Global, Global_tau_moves, &
              &               Nt_sequential_start, Nt_sequential_end, N_Global_tau, &
              &               sequential, Langevin, HMC, Delta_t_Langevin_HMC, &
-             &               Max_Force, Leapfrog_steps, N_HMC_sweeps
+             &               Max_Force, Leapfrog_steps, N_HMC_sweeps, Amplitude
 
         NAMELIST /VAR_HAM_NAME/ ham_name
 
         !  General
-        Integer :: Ierr, I,nf, nf_eff, nst, n, N_op
+        Integer :: Ierr, I,nf, nf_eff, nst, n, n1, N_op
+        Logical :: Toggle,  Toggle1
         Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Phase, Z, Z1
         Real    (Kind=Kind(0.d0)) :: ZERO = 10D-8, X, X1
         Real    (Kind=Kind(0.d0)) :: Mc_step_weight
@@ -335,7 +337,7 @@ Program Main
            Propose_S0 = .false. ;  Global_moves = .false. ; N_Global = 0
            Global_tau_moves = .false.; sequential = .true.; Langevin = .false. ; HMC =.false.
            Delta_t_Langevin_HMC = 0.d0;  Max_Force = 0.d0 ; Leapfrog_steps = 0; N_HMC_sweeps = 1
-           Nt_sequential_start = 1 ;  Nt_sequential_end  = 0;  N_Global_tau  = 0
+           Nt_sequential_start = 1 ;  Nt_sequential_end  = 0;  N_Global_tau  = 0;  Amplitude = 1.d0
            OPEN(UNIT=5,FILE=file_para,STATUS='old',ACTION='read',IOSTAT=ierr)
            IF (ierr /= 0) THEN
               WRITE(error_unit,*) 'main: unable to open <parameters>', file_para, ierr
@@ -369,10 +371,11 @@ Program Main
         CALL MPI_BCAST(N_HMC_sweeps         ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Max_Force            ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Delta_t_Langevin_HMC ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(Amplitude            ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
 
         CALL MPI_BCAST(ham_name             ,64,MPI_CHARACTER,0,MPI_COMM_i,ierr)
 #endif
-        Call Fields_init()
+        Call Fields_init(Amplitude)
         Call Alloc_Ham(ham_name)
         leap_frog_bulk = .false.
         Call ham%Ham_set()
@@ -473,7 +476,8 @@ Program Main
         
         call nsigma%make(N_op, Ltrot)
         Do n = 1,N_op
-           nsigma%t(n)  = OP_V(n,1)%type
+           nsigma%t(n)              = OP_V(n,1)%type
+           nsigma%flip_protocol(n)  = OP_V(n,1)%flip_protocol
         Enddo
            
         File_seeds="seeds"
@@ -641,7 +645,30 @@ Program Main
               Write(50,*) 'Leapfrog_Steps: ', Leapfrog_Steps
               Write(50,*) 'HMC_Sweeps:     ', N_HMC_sweeps
            endif
-           
+
+           !Write out info  for  amplitude and flip_protocol
+           Toggle  = .false.
+           Do n = 1,N_op
+              if (nsigma%t(n) == 3 .or. nsigma%t(n) == 4)  Toggle = .true.
+           Enddo
+           if ( Toggle ) then
+              Write(50,*) 'Amplitude  for  t=3,4  vertices is  set to: ', Amplitude
+           endif
+           Toggle  = .false.
+           Do n = 1,N_op
+              if (nsigma%t(n) == 4)  Toggle = .true.
+           Enddo
+           If (Toggle)  then 
+              Write(50,"('Flip protocal  for  t=4  vertices is  set to')",advance="no")
+              do n1  =  1,4 
+                 Toggle1 = .false.
+                 do n =1,N_op
+                    if (nsigma%Flip_protocol(n)  ==  n1  .and. nsigma%t(n) == 4  )  Toggle1 = .true.
+                 enddo
+                 if  (Toggle1)   Write(50,"(I2,2x)",advance="no")   n1 
+              enddo
+              Write(50,*)
+           endif
            
 #if defined(MPI)
            Write(50,*) 'Number of mpi-processes : ', isize_g

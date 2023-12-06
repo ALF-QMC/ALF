@@ -81,6 +81,8 @@ Here, the HS fields take the values $l_{j,\tau} = \pm 2, \pm 1 $ and  $\phi_{i,\
 \subsubsection{The partition function}\label{sec:part}
 %------------------------------------------------------------
 
+In this  section and in  what  follows,  we  will  set  $\tilde{U}_k =0$.  An  explicit  example in which  this  feature  is  used  can  be  found in 
+Sec.~\ref{Spin_Peierls.Sec}   where   we  use  to  ALF-library  to  simulate  the    spin-Peierls  Heisenberg  Hamiltonian.  
 With the above, the partition function of the model (\ref{eqn:general_ham}) can be written as follows.
 \begin{align}\label{eqn:partition_1}
 Z &= \Tr{\left(e^{-\beta \hat{\mathcal{H}} }\right)}\nonumber\\
@@ -134,12 +136,12 @@ This corresponds to  an explicit SU($N_{\mathrm{col}}$) symmetry   for each  con
 In the auxiliary-field QMC approach, the single-particle Green function plays a crucial role.  It determines the Monte Carlo dynamics and is used to compute  observables. Consider the observable:
 \begin{equation}\label{eqn:obs}
 \langle \hat{O}  \rangle  = \frac{ \text{Tr}   \left[ e^{- \beta \hat{H}}  \hat{O}  \right] }{ \text{Tr}   \left[ e^{- \beta \hat{H}}  \right] } =   \sum_{C}   P(C) 
-   \langle \langle \hat{O}  \rangle \rangle_{(C)} ,
+   \langle \langle \hat{O}  \rangle \rangle_{C} ,
    \; \text{ where } 
   P(C)   = \frac{ e^{-S(C)}}{\sum_C e^{-S(C)}}\;
 \end{equation}
-and $\langle \langle \hat{O}  \rangle \rangle_{(C)} $ denotes the observed value of $\hat{O}$ for a given configuration $C$.
-For a given configuration $C$  one can use Wick's theorem to compute $O (C) $   from the knowledge of the single-particle Green function: 
+and $\langle \langle \hat{O}  \rangle \rangle_{C} $ denotes the observed value of $\hat{O}$ for a given configuration $C$.
+For a given configuration $C$  one can use Wick's theorem to compute $\langle \langle \hat{O}  \rangle \rangle_{C}$   from the knowledge of the single-particle Green function: 
 \begin{equation}
        G( x,\sigma,s, \tau |    x',\sigma',s', \tau')   =       \langle \langle \mathcal{T} \hat{c}^{\phantom\dagger}_{x \sigma s} (\tau)  \hat{c}^{\dagger}_{x' \sigma' s'} (\tau') \rangle \rangle_{C},
 \end{equation}
@@ -215,12 +217,12 @@ and with the definition
 \end{equation}
 the computation of the observable [Eq.~(\ref{eqn:obs})] is re-expressed as follows:
 \begin{align}\label{eqn:obs_rw}
-\langle \hat{O}  \rangle  &=  \frac{\sum_{C}  e^{-S(C)} \langle \langle \hat{O}  \rangle \rangle_{(C)} }{\sum_{C}  e^{-S(C)}}       \nonumber \\ 
-                          &=  \frac{\sum_{C}   \Re \left[e^{-S(C)} \right]    \frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}  \langle \langle \hat{O}  \rangle \rangle_{(C)} }{\sum_{C}   \Re \left[e^{-S(C)} \right]}    \nonumber \\ 
+\langle \hat{O}  \rangle  &=  \frac{\sum_{C}  e^{-S(C)} \langle \langle \hat{O}  \rangle \rangle_{C} }{\sum_{C}  e^{-S(C)}}       \nonumber \\ 
+                          &=  \frac{\sum_{C}   \Re \left[e^{-S(C)} \right]    \frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}  \langle \langle \hat{O}  \rangle \rangle_{C} }{\sum_{C}   \Re \left[e^{-S(C)} \right]}    \nonumber \\ 
           &=
    \frac{
      \left\{
-      \sum_{C}  \left| \Re \left[e^{-S(C)} \right]  \right|   \sgn(C)   \frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}  \langle \langle \hat{O}  \rangle \rangle_{(C)}  \right\}/
+      \sum_{C}  \left| \Re \left[e^{-S(C)} \right]  \right|   \sgn(C)   \frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}  \langle \langle \hat{O}  \rangle \rangle_{C}  \right\}/
             \sum_{C}  \left| \Re \left[ e^{-S(C)} \right] \right|  
           }  
           { 

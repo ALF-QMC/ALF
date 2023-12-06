@@ -1,0 +1,97 @@
+ =====================================
+ Antiferromagnet
+ L1            :           16
+ L2            :            1
+ Finite temperture version
+ Beta          :    8.00000000000000     
+ dtau,Ltrot_eff:   0.100000000000000               80
+ N_SUN         :            2
+ N_FL          :            1
+ J_x           :    1.00000000000000     
+ J_y           :   1.000000000000000E-006
+ Ham_U         :    1.00000000000000     
+ Ham_h         :   0.000000000000000E+000
+ Ham_g         :    2.00000000000000     
+ Ham_Lambda    :   0.300000000000000     
+ Ham_omega0    :   0.250000000000000     
+ No initial configuration, Seed_in      538812
+ Sweeps                              :         1000
+ Bins                                :          100
+ No CPU-time limitation 
+ Measure Int.                        :            1          80
+ Stabilization,Wrap                  :           10
+ Nstm                                :            8
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ Number of mpi-processes :            6
+ This executable represents commit 9581dce7 of branch Multiple_HS_fields_per_operator.
+  Precision Green  Mean, Max :   1.944734799369575E-014  8.174038528231893E-009
+  Precision Phase, Max       :   3.426392745612473E-009
+  Acceptance                 :   0.450351301432292     
+  Effective Acceptance       :   0.450351301432292     
+  CPU Time                   :    4202.34010650000     
+ =====================================
+ Antiferromagnet
+ L1            :           16
+ L2            :            1
+ Finite temperture version
+ Beta          :    8.00000000000000     
+ dtau,Ltrot_eff:   0.100000000000000               80
+ N_SUN         :            2
+ N_FL          :            1
+ J_x           :    1.00000000000000     
+ J_y           :   1.000000000000000E-006
+ Ham_U         :    1.00000000000000     
+ Ham_h         :   0.000000000000000E+000
+ Ham_g         :    2.00000000000000     
+ Ham_Lambda    :   0.300000000000000     
+ Ham_omega0    :   0.250000000000000     
+ Sweeps                              :         1000
+ Bins                                :          400
+ No CPU-time limitation 
+ Measure Int.                        :            1          80
+ Stabilization,Wrap                  :           10
+ Nstm                                :            8
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ Number of mpi-processes :            6
+ This executable represents commit 9581dce7 of branch Multiple_HS_fields_per_operator.
+  Precision Green  Mean, Max :   1.978520941730915E-014  7.034644265350302E-009
+  Precision Phase, Max       :   1.009643105352011E-009
+  Acceptance                 :   0.450455929931641     
+  Effective Acceptance       :   0.450455929931641     
+  CPU Time                   :    16630.7519266667     
+ =====================================
+ Antiferromagnet
+ L1            :           16
+ L2            :            1
+ Finite temperture version
+ Beta          :    8.00000000000000     
+ dtau,Ltrot_eff:   0.100000000000000               80
+ N_SUN         :            2
+ N_FL          :            1
+ J_x           :    1.00000000000000     
+ J_y           :   1.000000000000000E-006
+ Ham_U         :    1.00000000000000     
+ Ham_h         :   0.000000000000000E+000
+ Ham_g         :    2.00000000000000     
+ Ham_Lambda    :   0.300000000000000     
+ Ham_omega0    :   0.250000000000000     
+ Sweeps                              :         1000
+ Bins                                :         1000
+ No CPU-time limitation 
+ Measure Int.                        :            1          80
+ Stabilization,Wrap                  :           10
+ Nstm                                :            8
+ Ltau                                :            0
+ # of interacting Ops per time slice :           32
+ Default sequential updating 
+ Number of mpi-processes :            6
+ This executable represents commit 147a1d62 of branch Multiple_HS_fields_per_operator.
+  Precision Green  Mean, Max :   2.001787478986369E-014  1.583762854005932E-008
+  Precision Phase, Max       :   2.564177568220581E-009
+  Acceptance                 :   0.450412700651042     
+  Effective Acceptance       :   0.450412700651042     
+  CPU Time                   :    46975.2191306667     

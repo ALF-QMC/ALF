@@ -1,8 +1,28 @@
 # Log of backward compatibility changes and critical bugs
 
+## ALF 2.6
+ALF 2.6  released  on 2023-??-??
+
+### 2023-14-08    Hubbard  Stratonovich  fields  have be  updated  to  complex 
+
+Author:  F. Assaad
+Merge request !176 
+#### Breaking changes 
+
+1. Fields\_mod.F90
+    1.  nsigma%f       is now complex    rather than real 
+    2.  nsigma%phi    is now complex    rather than real 
+2. Hamilton\_main\_mod.F90 
+      1. Hamiltonian\_set\_nsigma\_base(Initial\_field): Initial\_field  is  now complex  not  real 
+      2. Delta\_S0\_global\_base(Nsigma\_old): Nsigma\_old  is  complex  rather  than real 
+      3.  S0\_base(n,nt,Hs\_new) : Hs\_new is  now  complex rather  than real
+      4. Global\_move\_tau\_base :  The array Flip\_value is  now  a  complex one-dimensional array.     
+
+
+
 ---
 ## ALF 2.5
-ALF 2.5 released on 2023-05-??
+ALF 2.5 released on 2023-06-05
 
 ### 2023-05-09 Use a RUNNING file to avoid multiple instances running in the same directory 
 
