@@ -798,11 +798,13 @@
 
           ! LOCAL
           CHARACTER (LEN=64) :: FILE_TG, filename
-          Complex (Kind=Kind(0.d0)), pointer :: phi0_out(:,:,:,:) 
+          Complex (Kind=Kind(0.d0)), pointer :: phi0_out(:,:,:,:)
           Complex (Kind=Kind(0.d0)), pointer :: phasef_out(:)
           Real    (Kind=Kind(0.d0)), pointer :: weight_out(:)
+          Complex (Kind=Kind(0.d0)), allocatable :: pf_tmp(:), p0_tmp(:,:,:,:), p1_tmp(:,:,:,:)
+          Real    (Kind=Kind(0.d0)), allocatable :: wt_tmp(:)
 
-          INTEGER             :: K, hdferr, rank, nf, nw, n_part
+          INTEGER             :: K, hdferr, rank, nf, nw, n_part, i0, i1, i2, i_st, i_ed, Ndt, ii
           INTEGER(HSIZE_T), allocatable :: dims(:), dimsc(:)
           Logical             :: file_exists
           INTEGER(HID_T)      :: file_id, crp_list, space_id, dset_id, dataspace
@@ -811,29 +813,64 @@
 
 #if defined(MPI)
           INTEGER        :: irank_g, isize_g, igroup, ISIZE, IRANK, IERR
+          Integer        :: STATUS(MPI_STATUS_SIZE)
           CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
           CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
           call MPI_Comm_size(Group_Comm, isize_g, ierr)
           igroup           = irank/isize_g
-          
-          write(filename,'(A,I0)') "phiout_", irank_g
-#else
-          filename = "phiout_0"
 #endif
+          filename = "phiout_0"
 
           write(filename,'(A,A)') trim(filename), ".h5"
             
           n_part=phi_0(1,1)%n_part
-          allocate(phi0_out(ndim,n_part,n_fl_eff,n_wlk))
+          
+          if (irank_g .eq. 0 ) then
+              allocate(phi0_out(ndim,n_part,n_fl_eff,n_wlk_mpi))
+              allocate(weight_out(N_wlk_mpi), phasef_out(N_wlk_mpi))
+          endif
+
+          allocate(p0_tmp(ndim,n_part,n_fl_eff,n_wlk))
+          allocate(p1_tmp(ndim,n_part,n_fl_eff,n_wlk))
+          allocate(wt_tmp(N_wlk))
+          allocate(pf_tmp(N_wlk))
+
           do nf = 1, N_FL_eff
           do nw = 1, N_wlk
-              phi0_out(:,:,nf,nw)=phi_0(nf,nw)%U(:,:)
+              p0_tmp(:,:,nf,nw)=phi_0(nf,nw)%U(:,:)
           enddo
           enddo
-          allocate(weight_out(N_wlk), phasef_out(N_wlk))
-          weight_out(:) = weight_k(:)
-          phasef_out(:) = phase_alpha(:)
+          
+          if ( irank_g .ne. 0 ) then
+              call mpi_send(phase_alpha,N_wlk,mpi_complex16, 0, 0, MPI_COMM_WORLD,IERR)
+              call mpi_send(weight_k   ,N_wlk,    mpi_real8, 0, 1, MPI_COMM_WORLD,IERR)
+              Ndt=N_FL_eff*N_wlk*ndim*n_part
+              call mpi_send(p0_tmp     ,  Ndt,mpi_complex16, 0, 2, MPI_COMM_WORLD,IERR)
+          else
+             do ii = 1, isize_g-1
+                i_st=ii*N_wlk+1
+                i_ed=(ii+1)*N_wlk
+
+                call mpi_recv(pf_tmp,N_wlk,mpi_complex16, ii, 0, MPI_COMM_WORLD,STATUS,IERR)
+                phasef_out(i_st:i_ed) = pf_tmp(:)
+                call mpi_recv(wt_tmp,N_wlk,    mpi_real8, ii, 1, MPI_COMM_WORLD,STATUS,IERR)
+                weight_out(i_st:i_ed) = wt_tmp(:)
+                Ndt=N_FL_eff*N_wlk*ndim*n_part
+                call mpi_recv(p1_tmp,  Ndt,mpi_complex16, ii, 2, MPI_COMM_WORLD,STATUS,IERR)
+                phi0_out(:,:,:,i_st:i_ed)=p1_tmp
+             ENDDO
+          ENDIF
+
+          if ( irank_g .eq. 0 ) then
+              i_st=1
+              i_ed=N_wlk
+              weight_out(i_st:i_ed) = weight_k(:)
+              phasef_out(i_st:i_ed) = phase_alpha(:)
+              phi0_out(:,:,:,i_st:i_ed)=p0_tmp
+          endif
+
+          if ( irank .eq. 0 ) then
 
           inquire (file=filename, exist=file_exists)
           IF (.not. file_exists) THEN
@@ -844,7 +881,7 @@
               dset_name = "phasef"
               rank = 2
               allocate( dims(2), dimsc(2) )
-              dims  = [2, N_wlk]
+              dims  = [2, N_wlk_mpi]
               dimsc = dims
               dimsc(rank) = 1
               CALL h5screate_simple_f(rank, dims, space_id, hdferr)
@@ -869,7 +906,7 @@
               dset_name = "weight_re"
               rank = 2
               allocate( dims(2), dimsc(2) )
-              dims  = [1, N_wlk]
+              dims  = [1, N_wlk_mpi]
               dimsc = dims
               dimsc(rank) = 1
               CALL h5screate_simple_f(rank, dims, space_id, hdferr)
@@ -894,7 +931,7 @@
               dset_name = "wavefunction"
               rank = 5
               allocate( dims(5), dimsc(5) )
-              dims  = [2,ndim,n_part,N_FL,N_wlk]
+              dims  = [2,ndim,n_part,N_FL,N_wlk_mpi]
               dimsc = dims
               dimsc(rank) = 1
               CALL h5screate_simple_f(rank, dims, space_id, hdferr)
@@ -956,7 +993,12 @@
               CALL h5fclose_f(file_id, hdferr)
          endif
 
-         deallocate(phi0_out, weight_out, phasef_out)
+         endif !irank 0
+
+         if (irank_g .eq. 0 ) then
+             deallocate(phi0_out, weight_out, phasef_out)
+         endif
+         deallocate(p0_tmp, p1_tmp, wt_tmp, pf_tmp)
 
         END SUBROUTINE wavefunction_out_hdf5
 #endif
