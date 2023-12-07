@@ -187,10 +187,10 @@ Program Main
 
 #if defined(HDF5)
         file_dat = "data.h5"
+        CALL h5open_f(ierr)
 #if defined(MPI)
         if ( Irank_g == 0 ) then
 #endif
-          CALL h5open_f(ierr)
           inquire (file=file_dat, exist=file_exists)
           IF (.not. file_exists) THEN
             ! Create HDF5 file

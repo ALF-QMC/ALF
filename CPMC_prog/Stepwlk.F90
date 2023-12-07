@@ -798,7 +798,9 @@
 
           ! LOCAL
           CHARACTER (LEN=64) :: FILE_TG, filename
-          Complex (Kind=Kind(0.d0)), dimension(:,:,:,:), allocatable :: phi0_out
+          Complex (Kind=Kind(0.d0)), pointer :: phi0_out(:,:,:,:) 
+          Complex (Kind=Kind(0.d0)), pointer :: phasef_out(:)
+          Real    (Kind=Kind(0.d0)), pointer :: weight_out(:)
 
           INTEGER             :: K, hdferr, rank, nf, nw, n_part
           INTEGER(HSIZE_T), allocatable :: dims(:), dimsc(:)
@@ -814,8 +816,11 @@
           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
           call MPI_Comm_size(Group_Comm, isize_g, ierr)
           igroup           = irank/isize_g
-#endif
+          
+          write(filename,'(A,I0)') "phiout_", irank_g
+#else
           filename = "phiout_0"
+#endif
 
           write(filename,'(A,A)') trim(filename), ".h5"
             
@@ -826,9 +831,13 @@
               phi0_out(:,:,nf,nw)=phi_0(nf,nw)%U(:,:)
           enddo
           enddo
+          allocate(weight_out(N_wlk), phasef_out(N_wlk))
+          weight_out(:) = weight_k(:)
+          phasef_out(:) = phase_alpha(:)
 
           inquire (file=filename, exist=file_exists)
           IF (.not. file_exists) THEN
+              CALL h5open_f(ierr)
               CALL h5fcreate_f(filename, H5F_ACC_TRUNC_F, file_id, hdferr)
               
               !Create and write dataset for field phase
@@ -848,7 +857,7 @@
               !Create a dataset using cparms creation properties.
               CALL h5dcreate_f(file_id, dset_name, H5T_NATIVE_DOUBLE, space_id, &
                               dset_id, hdferr, crp_list )
-              dat_ptr = C_LOC(phase_alpha(1))
+              dat_ptr = C_LOC(phasef_out(1))
               CALL h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
               !Close objects
               deallocate( dims, dimsc )
@@ -873,7 +882,7 @@
               !Create a dataset using cparms creation properties.
               CALL h5dcreate_f(file_id, dset_name, H5T_NATIVE_DOUBLE, space_id, &
                               dset_id, hdferr, crp_list )
-              dat_ptr = C_LOC(weight_k(1))
+              dat_ptr = C_LOC(weight_out(1))
               CALL h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
               !Close objects
               deallocate( dims, dimsc )
@@ -917,7 +926,7 @@
               dset_name = "phasef"
               !Open the  dataset.
               CALL h5dopen_f(file_id, dset_name, dset_id, hdferr)
-              dat_ptr = C_LOC(phase_alpha(1))
+              dat_ptr = C_LOC(phasef_out(1))
               !Write data
               CALL H5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
               !close objects
@@ -927,7 +936,7 @@
               dset_name = "weight_re"
               !Open the  dataset.
               CALL h5dopen_f(file_id, dset_name, dset_id, hdferr)
-              dat_ptr = C_LOC(weight_k(1))
+              dat_ptr = C_LOC(weight_out(1))
               !Write data
               CALL H5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
               !close objects
@@ -947,7 +956,7 @@
               CALL h5fclose_f(file_id, hdferr)
          endif
 
-         deallocate(phi0_out)
+         deallocate(phi0_out, weight_out, phasef_out)
 
         END SUBROUTINE wavefunction_out_hdf5
 #endif
