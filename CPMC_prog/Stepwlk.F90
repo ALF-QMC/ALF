@@ -997,6 +997,153 @@
          deallocate(p0_tmp, p1_tmp, wt_tmp, pf_tmp)
 
         END SUBROUTINE wavefunction_out_hdf5
+
+        SUBROUTINE wavefunction_in_hdf5( phi_0, Group_Comm )
+#ifdef MPI
+          Use mpi
+#endif
+#if defined HDF5
+          Use hdf5
+          use h5lt
+#endif
+          
+          Implicit none
+     
+          CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_0
+          Integer, INTENT(IN) :: Group_Comm
+
+          ! LOCAL
+          CHARACTER (LEN=64) :: FILE_TG, filename
+          Complex (Kind=Kind(0.d0)), pointer :: phi0_out(:,:,:,:)
+          Complex (Kind=Kind(0.d0)), pointer :: phasef_out(:)
+          Real    (Kind=Kind(0.d0)), pointer :: weight_out(:)
+          Complex (Kind=Kind(0.d0)), allocatable :: pf_tmp(:), p0_tmp(:,:,:,:), p1_tmp(:,:,:,:)
+          Real    (Kind=Kind(0.d0)), allocatable :: wt_tmp(:)
+
+          INTEGER             :: K, hdferr, rank, nf, nw, n_part, i0, i1, i2, i_st, i_ed, Ndt, ii, nwalk_in
+          INTEGER(HSIZE_T), allocatable :: dims(:), dimsc(:), maxdims(:)
+          Logical             :: file_exists
+          INTEGER(HID_T)      :: file_id, crp_list, space_id, dset_id, dataspace
+          Character (len=64)  :: dset_name
+          TYPE(C_PTR)         :: dat_ptr
+
+#if defined(MPI)
+          INTEGER        :: irank_g, isize_g, igroup, ISIZE, IRANK, IERR
+          Integer        :: STATUS(MPI_STATUS_SIZE)
+          CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
+          CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+          call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+          call MPI_Comm_size(Group_Comm, isize_g, ierr)
+          igroup           = irank/isize_g
+#endif
+          filename = "phiout_0"
+
+          write(filename,'(A,A)') trim(filename), ".h5"
+
+          n_part=phi_0(1,1)%n_part
+          
+          allocate(p0_tmp(ndim,n_part,n_fl_eff,n_wlk))
+          allocate(p1_tmp(ndim,n_part,n_fl_eff,n_wlk))
+          allocate(wt_tmp(N_wlk))
+          allocate(pf_tmp(N_wlk))
+          
+          if ( irank .eq. 0 ) then
+
+              !open file
+              CALL h5fopen_f (filename, H5F_ACC_RDWR_F, file_id, hdferr)
+
+              !open and read field phase
+              dset_name = "phasef"
+              !Open the  dataset.
+              CALL h5dopen_f(file_id, dset_name, dset_id, hdferr)
+              !Get dataspace's rank.
+              CALL h5sget_simple_extent_ndims_f(dset_id, rank, ierr)
+              allocate( dims(rank), maxdims(rank) )
+              !Get dataspace's dimensions.
+              CALL h5sget_simple_extent_dims_f(dataspace, dims, maxdims, ierr)
+              nwalk_in=dims(rank)
+              !! allocate !!
+              allocate(phi0_out(ndim,n_part,n_fl_eff,nwalk_in))
+              allocate(weight_out(nwalk_in), phasef_out(nwalk_in))
+              !!-----------!!
+              dat_ptr = C_LOC(phasef_out(1))
+              CALL h5dread_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
+              !close objects
+              CALL h5dclose_f(dset_id,   hdferr)
+              deallocate(dims, maxdims)
+
+
+              !open and read real weight
+              dset_name = "weight_re"
+              !Open the  dataset.
+              CALL h5dopen_f(file_id, dset_name, dset_id, hdferr)
+              dat_ptr = C_LOC(weight_out(1))
+              CALL h5dread_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
+              !close objects
+              CALL h5dclose_f(dset_id,   hdferr)
+              
+              !open and read real weight
+              dset_name = "wavefunction"
+              !Open the  dataset.
+              CALL h5dopen_f(file_id, dset_name, dset_id, hdferr)
+              dat_ptr = C_LOC(phi0_out(1,1,1,1))
+              !Write data
+              CALL h5dread_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
+              !close objects
+              CALL h5dclose_f(dset_id,   hdferr)
+                
+              !close file
+              CALL h5fclose_f(file_id, hdferr)
+
+         endif !irank 0
+
+         if ( irank_g .eq. 0 ) then
+            do ii = 1, isize_g-1
+               i_st=ii*N_wlk+1
+               i_ed=(ii+1)*N_wlk
+               
+               pf_tmp(:)=phasef_out(i_st:i_ed)
+               call mpi_send(pf_tmp,N_wlk,mpi_complex16, ii, 0, MPI_COMM_WORLD,IERR)
+               wt_tmp(:)=weight_out(i_st:i_ed)
+               call mpi_send(wt_tmp,N_wlk,    mpi_real8, ii, 1, MPI_COMM_WORLD,IERR)
+               Ndt=N_FL_eff*N_wlk*ndim*n_part
+               p1_tmp=phi0_out(:,:,:,i_st:i_ed)
+               call mpi_send(p1_tmp,  Ndt,mpi_complex16, ii, 2, MPI_COMM_WORLD,IERR)
+            ENDDO
+         else
+            call mpi_recv(pf_tmp,N_wlk,mpi_complex16, 0, 0, MPI_COMM_WORLD,STATUS,IERR)
+            phase_alpha(:) = pf_tmp(:)
+            call mpi_recv(wt_tmp,N_wlk,    mpi_real8, 0, 1, MPI_COMM_WORLD,STATUS,IERR)
+            weight_k(:)    = wt_tmp(:)
+            Ndt=N_FL_eff*N_wlk*ndim*n_part
+            call mpi_recv(p0_tmp,  Ndt,mpi_complex16, 0, 2, MPI_COMM_WORLD,STATUS,IERR)
+            do nf = 1, N_FL_eff
+            do nw = 1, N_wlk
+                phi_0(nf,nw)%U(:,:)=p0_tmp(:,:,nf,nw)
+            enddo
+            enddo
+         ENDIF
+
+         if ( irank_g .eq. 0 ) then
+             i_st=1
+             i_ed=N_wlk
+             weight_k(:)    = weight_out(i_st:i_ed)
+             phase_alpha(:) = phasef_out(i_st:i_ed)
+             do nf = 1, N_FL_eff
+             do nw = 1, N_wlk
+                 phi_0(nf,nw)%U(:,:)=p0_tmp(:,:,nf,nw)
+             enddo
+             enddo
+         endif
+
+
+         if (irank_g .eq. 0 ) then
+             deallocate(phi0_out, weight_out, phasef_out)
+         endif
+         deallocate(p0_tmp, p1_tmp, wt_tmp, pf_tmp)
+
+        END SUBROUTINE wavefunction_in_hdf5
+
 #endif
         
     end Module stepwlk_mod
