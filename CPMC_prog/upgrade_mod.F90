@@ -35,7 +35,7 @@ module upgrade_mod
    implicit none
    contains
 
-      Subroutine Upgrade(GR,N_op,PHASE,PHASE_ALPHA,Hs_new,i_wlk)
+      Subroutine Upgrade(GR,N_op,PHASE,Hs_new,i_wlk)
 
         Use Hamiltonian_main
         Use Random_wrap
@@ -47,7 +47,7 @@ module upgrade_mod
 
         Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: GR(Ndim,Ndim, N_FL)
         Integer                  , INTENT(IN)    :: N_op, i_wlk
-        Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Phase, Phase_alpha
+        Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Phase
         Real    (Kind=Kind(0.d0)), INTENT(OUT)   :: Hs_new
 
         ! Local ::
@@ -191,7 +191,7 @@ module upgrade_mod
                call Op_phase_general(Phase_a_array(nf),OP_V(n_op,nf),nsigma_new%phi(1,1))
             enddo
             if (reconstruction_needed) call ham%weight_reconstruction(Phase_a_array)
-            Phase_alpha=Phase_alpha*product(Phase_a_array)**dble(N_SUN)
+            Phase_alpha(i_wlk)=Phase_alpha(i_wlk)*product(Phase_a_array)**dble(N_SUN)
 
             !! Update Green's function
             ! update delta

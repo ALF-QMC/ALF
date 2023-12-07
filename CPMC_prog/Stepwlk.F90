@@ -9,14 +9,14 @@
         
         Contains
 
-        SUBROUTINE stepwlk_move( phi_trial, phi_0, GR, phase, phase_alpha, ntau_bp ) 
+        SUBROUTINE stepwlk_move( phi_trial, phi_0, GR, phase, ntau_bp ) 
           
           Implicit none
      
           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(IN)    :: phi_trial
           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_0
           COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:,:), Allocatable, INTENT(INOUT) :: GR
-          COMPLEX (Kind=Kind(0.d0)), Dimension(:)      , Allocatable, INTENT(INOUT) :: phase, phase_alpha
+          COMPLEX (Kind=Kind(0.d0)), Dimension(:)      , Allocatable, INTENT(INOUT) :: phase
           Integer, INTENT(IN) :: ntau_bp
 
           !Local 
@@ -50,7 +50,7 @@
                    Call Op_Wrapdo( GR(:,:,nf,i_wlk), Op_V(n,nf), 1.d0, Ndim, N_Type,1)
                 enddo
 
-                Call Upgrade(GR(:,:,:,i_wlk),n,PHASE(i_wlk), PHASE_alpha(i_wlk), spin, i_wlk )
+                Call Upgrade(GR(:,:,:,i_wlk),n,PHASE(i_wlk), spin, i_wlk )
                 nsigma_bp(i_wlk)%f(n,ntau_bp) = spin
 
                 N_type = 2
@@ -207,7 +207,7 @@
 
         END SUBROUTINE initial_wlk
 
-        SUBROUTINE population_control( phi_0, phi_bp_r, phase_alpha, phase ) 
+        SUBROUTINE population_control( phi_0, phi_bp_r, phase ) 
 #ifdef MPI
           Use mpi
 #endif
@@ -216,7 +216,6 @@
           Implicit none
      
           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_0, phi_bp_r
-          COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(INOUT) :: phase_alpha
           COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(INOUT) :: phase
           
           !Local 
@@ -253,8 +252,8 @@
 
           do nf_eff = 1, N_FL_eff
              do i_wlk = 1, N_wlk
-                call phi_0_m (nf_eff,i_wlk)%assign(phi_0   (nf_eff,i_wlk))
-                call phi_bp_m(nf_eff,i_wlk)%assign(phi_bp_r(nf_eff,i_wlk))
+                phi_0_m (nf_eff,i_wlk)=phi_0   (nf_eff,i_wlk)
+                phi_bp_m(nf_eff,i_wlk)=phi_bp_r(nf_eff,i_wlk)
              enddo
           enddo
 
@@ -308,8 +307,8 @@
                   else
                       if ( irank_g .eq. i_src ) then
                         do nf_eff = 1, N_FL_eff
-                            call phi_0_m (nf_eff,j_wlk)%assign(phi_0   (nf_eff,i_wlk))
-                            call phi_bp_m(nf_eff,j_wlk)%assign(phi_bp_r(nf_eff,i_wlk))
+                            phi_0_m (nf_eff,j_wlk)=phi_0   (nf_eff,i_wlk)
+                            phi_bp_m(nf_eff,j_wlk)=phi_bp_r(nf_eff,i_wlk)
                         enddo
                         Overlap_tmp    (j_wlk)=Overlap    (i_wlk) 
                         phase_tmp      (j_wlk)=phase      (i_wlk) 
@@ -352,8 +351,8 @@
           weight_k(:)=1.d0
           do nf_eff = 1, N_FL_eff
              do i_wlk = 1, N_wlk
-                call phi_0   (nf_eff,i_wlk)%assign(phi_0_m (nf_eff,i_wlk))
-                call phi_bp_r(nf_eff,i_wlk)%assign(phi_bp_m(nf_eff,i_wlk))
+                phi_0   (nf_eff,i_wlk)=phi_0_m (nf_eff,i_wlk)
+                phi_bp_r(nf_eff,i_wlk)=phi_bp_m(nf_eff,i_wlk)
              enddo
           enddo
           
@@ -392,20 +391,19 @@
           
           do nf_eff = 1, N_FL_eff
              do i_wlk = 1, N_wlk
-                call phi_bp_r(nf_eff,i_wlk)%assign(phi_0(nf_eff,i_wlk))
+                phi_bp_r(nf_eff,i_wlk)=phi_0(nf_eff,i_wlk)
                 call Phi_bp_r(nf_eff,i_wlk)%decompose
              enddo
           enddo
 
         END SUBROUTINE store_phi
 
-        SUBROUTINE backpropagation( phi_bp_l, phi_bp_r, udvst, phase, phase_alpha, Stab_nt, ltau )
+        SUBROUTINE backpropagation( phi_bp_l, phi_bp_r, udvst, phase, Stab_nt, ltau )
           
           Implicit none
      
           CLASS(UDV_State), Dimension(:,:)  , ALLOCATABLE, INTENT(INOUT) :: phi_bp_l, phi_bp_r
           CLASS(UDV_State), Dimension(:,:,:), ALLOCATABLE, INTENT(INOUT) :: udvst
-          COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(IN) :: phase_alpha
           COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(IN) :: phase
           INTEGER, dimension(:)    ,allocatable,  INTENT(IN) :: Stab_nt
           Integer, INTENT(IN) :: ltau
@@ -471,7 +469,7 @@
           call re_orthonormalize_walkers(phi_bp_l, 'L')
 
           !! compute the total weight
-          Z_weight = ham%sum_weight(PHASE, PHASE_alpha)
+          Z_weight = ham%sum_weight(PHASE)
 
           !! equal time measurement
           do i_wlk = 1, N_wlk
@@ -481,23 +479,22 @@
                 call CGR(Z, NVAR, GR_bp(:,:,nf,i_wlk), phi_bp_r(nf_eff,i_wlk), phi_bp_l(nf_eff,i_wlk))
              enddo
              If (reconstruction_needed) Call ham%GR_reconstruction( GR_bp(:,:,:,i_wlk) )
-             CALL ham%Obser( GR_bp(:,:,:,i_wlk), PHASE(i_wlk), PHASE_alpha(i_wlk), i_wlk, Z_weight )
+             CALL ham%Obser( GR_bp(:,:,:,i_wlk), PHASE(i_wlk), i_wlk, Z_weight )
           enddo
 
           !! time dependence measurement
           if ( ltau .eq. 1 ) then
-             call bp_measure_tau(phi_bp_l, phi_bp_r, udvst, phase, phase_alpha, stab_nt )
+             call bp_measure_tau(phi_bp_l, phi_bp_r, udvst, phase, stab_nt )
           endif
 
         END SUBROUTINE backpropagation
 
-        SUBROUTINE bp_measure_tau(phi_bp_l, phi_bp_r, udvst, phase, phase_alpha, stab_nt )
+        SUBROUTINE bp_measure_tau(phi_bp_l, phi_bp_r, udvst, phase, stab_nt )
           
           Implicit none
      
           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_bp_l, phi_bp_r
           CLASS(UDV_State), Dimension(:,:,:), ALLOCATABLE, INTENT(INOUT) :: udvst
-          COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(IN) :: phase_alpha
           COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(IN) :: phase
           INTEGER, dimension(:)    ,allocatable,  INTENT(IN) :: Stab_nt
 
@@ -515,7 +512,7 @@
           nstm     = Size(udvst, 1)
           
           !! compute the total weight
-          Z_weight = ham%sum_weight(PHASE, PHASE_alpha)
+          Z_weight = ham%sum_weight(PHASE)
           
           do i_wlk = 1, N_wlk
              do nf_eff = 1, N_FL_eff
@@ -546,7 +543,7 @@
                 Call ham%GRT_reconstruction( GT0(:,:,:,i_wlk), G0T(:,:,:,i_wlk) )
             endif
             CALL ham%obserT(ntau,GT0(:,:,:,i_wlk),G0T(:,:,:,i_wlk),G00(:,:,:,i_wlk), & 
-                & GTT(:,:,:,i_wlk),PHASE(i_wlk), PHASE_ALPHA(i_wlk), i_wlk, Z_weight)
+                & GTT(:,:,:,i_wlk),PHASE(i_wlk), i_wlk, Z_weight)
           enddo
 
           NST=1
@@ -617,7 +614,7 @@
                     Call ham%GRT_reconstruction( GT0(:,:,:,i_wlk), G0T(:,:,:,i_wlk) )
                 endif
                 CALL ham%obserT(ntau,GT0(:,:,:,i_wlk),G0T(:,:,:,i_wlk),G00(:,:,:,i_wlk), & 
-                    & GTT(:,:,:,i_wlk),PHASE(i_wlk), PHASE_ALPHA(i_wlk), i_wlk, Z_weight)
+                    & GTT(:,:,:,i_wlk),PHASE(i_wlk), i_wlk, Z_weight)
              enddo
 
           enddo
@@ -781,7 +778,7 @@
         end SUBROUTINE seed_vec_out
 
 #if defined HDF5
-        SUBROUTINE wavefunction_out_hdf5( phi_0, phase_alpha, Group_Comm )
+        SUBROUTINE wavefunction_out_hdf5( phi_0, Group_Comm )
 #ifdef MPI
           Use mpi
 #endif
@@ -793,7 +790,6 @@
           Implicit none
      
           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(IN) :: phi_0
-          Complex (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(IN) :: phase_alpha
           Integer, INTENT(IN) :: Group_Comm
 
           ! LOCAL

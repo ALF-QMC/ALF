@@ -111,8 +111,9 @@
           ! From dynamically generated file "Hamiltonian_Hubbard_read_write_parameters.F90"
           call read_parameters()
 
-          allocate( weight_k(N_wlk) )
-          allocate( overlap (N_wlk) )
+          allocate( weight_k   (N_wlk) )
+          allocate( phase_alpha(N_wlk) )
+          allocate( overlap    (N_wlk) )
           N_wlk_mpi=N_wlk*isize_g
 
           ! Setup the Bravais lattice
@@ -395,14 +396,14 @@
 !>  Time slice
 !> \endverbatim
 !-------------------------------------------------------------------
-        subroutine Obser(GR,Phase,Phase_alpha,i_wlk,sum_w)
+        subroutine Obser(GR,Phase,i_wlk,sum_w)
 
           Use Predefined_Obs
 
           Implicit none
 
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
-          Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE, PHASE_ALPHA, sum_w
+          Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE, sum_w
           Integer, Intent(IN) :: i_wlk
 
           !Local
@@ -411,7 +412,7 @@
           Integer :: I,J, imj, nf, dec, I1, J1, no_I, no_J,n
           Real    (Kind=Kind(0.d0)) :: X
 
-          PHASE_T = PHASE * PHASE_ALPHA
+          PHASE_T = PHASE * PHASE_ALPHA(i_wlk)
           ZP    = PHASE_T/Real(Phase_T, kind(0.D0))
           Re_ZW = cmplx(weight_k(i_wlk),0.d0,kind(0.d0))
           ZW    = ZP*Re_ZW
@@ -492,7 +493,7 @@
 !>  Phase
 !> \endverbatim
 !-------------------------------------------------------------------
-        Subroutine ObserT(NT,  GT0,G0T,G00,GTT, Phase,Phase_alpha,i_wlk,sum_w)
+        Subroutine ObserT(NT,  GT0,G0T,G00,GTT, Phase,i_wlk,sum_w)
 
           Use Predefined_Obs
 
@@ -500,7 +501,7 @@
 
           Integer         , INTENT(IN) :: NT
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: GT0(Ndim,Ndim,N_FL),G0T(Ndim,Ndim,N_FL),G00(Ndim,Ndim,N_FL),GTT(Ndim,Ndim,N_FL)
-          Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE, PHASE_ALPHA, sum_w
+          Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE, sum_w
           Integer, Intent(IN) :: i_wlk
           
           !Locals
@@ -508,7 +509,7 @@
           Real    (Kind=Kind(0.d0)) :: X
           Integer :: IMJ, I, J, I1, J1, no_I, no_J
 
-          PHASE_T = PHASE * PHASE_ALPHA
+          PHASE_T = PHASE * PHASE_ALPHA(i_wlk)
           ZP    = PHASE_T/Real(Phase_T, kind(0.D0))
           Re_ZW = cmplx(weight_k(i_wlk),0.d0,kind(0.d0))
           ZW    = ZP*Re_ZW
@@ -585,10 +586,10 @@
 
       end function E0_local
 
-      Complex (Kind=Kind(0.d0)) function sum_weight(PHASE, PHASE_ALPHA)
+      Complex (Kind=Kind(0.d0)) function sum_weight(PHASE)
         Implicit none
          
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(IN) :: phase, phase_alpha
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(IN) :: phase
         
         !local
         Integer                   :: i_wlk

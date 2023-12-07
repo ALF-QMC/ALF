@@ -180,6 +180,7 @@
       
       Real    (Kind=Kind(0.d0)), public :: fac_norm
       Real    (Kind=Kind(0.d0)), dimension(:), allocatable, public :: weight_k
+      Complex (Kind=Kind(0.d0)), dimension(:), allocatable, public :: phase_alpha
       Complex (Kind=Kind(0.d0)), dimension(:), allocatable, public :: Overlap
 
       !>    Privat Observables
@@ -296,12 +297,12 @@
     !>  Time slice
     !> \endverbatim
     !-------------------------------------------------------------------
-          subroutine Obser_base(GR,Phase,Phase_alpha,i_wlk,sum_w)
+          subroutine Obser_base(GR,Phase,i_wlk,sum_w)
 
              Implicit none
 
              Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
-             Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE, PHASE_ALPHA, sum_w
+             Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE, sum_w
              Integer                  , Intent(IN) :: i_wlk
              Logical, save              :: first_call=.True.
              
@@ -335,13 +336,13 @@
     !>  Phase
     !> \endverbatim
     !-------------------------------------------------------------------
-          Subroutine ObserT_base(NT, GT0, G0T, G00, GTT, Phase,Phase_alpha,i_wlk,sum_w)
+          Subroutine ObserT_base(NT, GT0, G0T, G00, GTT, Phase,i_wlk,sum_w)
              Implicit none
     
              Integer         , INTENT(IN) :: NT, i_wlk
              Complex (Kind=Kind(0.d0)), INTENT(IN) :: GT0(Ndim,Ndim,N_FL), G0T(Ndim,Ndim,N_FL)
              Complex (Kind=Kind(0.d0)), INTENT(IN) :: G00(Ndim,Ndim,N_FL), GTT(Ndim,Ndim,N_FL)
-             Complex (Kind=Kind(0.d0)), INTENT(IN) :: Phase, Phase_alpha, sum_w
+             Complex (Kind=Kind(0.d0)), INTENT(IN) :: Phase, sum_w
              Logical, save              :: first_call=.True.
              
              If  (first_call)    then 
@@ -360,10 +361,10 @@
             
           end function E0_local_base
 
-          Complex (Kind=Kind(0.d0)) function sum_weight_base(PHASE, PHASE_ALPHA)
+          Complex (Kind=Kind(0.d0)) function sum_weight_base(PHASE)
             Implicit none
              
-            COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(IN) :: phase, phase_alpha
+            COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(IN) :: phase
             
             sum_weight_base = cmplx(0.d0, 0.d0, kind(0.d0))
             

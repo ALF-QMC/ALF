@@ -49,7 +49,7 @@ Program Main
         !  General
         Integer :: Ierr, I,nf, nf_eff, nst, n, N_op, NVAR
         Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Z, Z1, E0_iwlk, Z_2
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:)  , Allocatable   :: Phase, Phase_alpha
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:)  , Allocatable   :: Phase
         Real    (Kind=Kind(0.d0)) :: ZERO = 10D-8, X, X1
 
         ! Storage for  stabilization steps
@@ -156,7 +156,7 @@ Program Main
         reconstruction_needed=.false.
         If (N_FL_eff /= N_FL) reconstruction_needed=.true.
         !initialize the flavor map
-        allocate(Calc_Fl_map(N_FL_eff), Phase(N_wlk), Phase_alpha(N_wlk))
+        allocate(Calc_Fl_map(N_FL_eff), Phase(N_wlk))
         N_FL_eff=0
         Do I=1,N_Fl
           if (Calc_Fl(I)) then
@@ -242,7 +242,6 @@ Program Main
         endif
 #endif
 
-        Call control_init(Group_Comm)
         Call ham%Alloc_obs(ltau)
 
         Allocate( GR(NDIM,NDIM,N_FL,N_wlk) )
@@ -279,11 +278,11 @@ Program Main
             do j_step=1, N_blksteps
                 !! population control
                 if ( mod(j_step, itv_pc) .eq. 0 ) then
-                    call population_control(phi_0, phi_bp_r, phase_alpha, phase)
+                    call population_control(phi_0, phi_bp_r, phase)
                 endif
 
                 !! propagate the walkers:
-                call stepwlk_move(Phi_trial, Phi_0, GR, Phase, Phase_alpha, ntau_bp );
+                call stepwlk_move(Phi_trial, Phi_0, GR, Phase, ntau_bp );
                 !! QR decomposition for stablization
                 if ( ntau_bp .eq. Stab_nt(NST) ) then
                     call re_orthonormalize_walkers(Phi_0, 'R')
@@ -296,7 +295,7 @@ Program Main
                     NST     = 1
 
                     !!to do list
-                    call backpropagation( phi_bp_l, phi_bp_r, udvst, phase, phase_alpha, stab_nt, ltau )
+                    call backpropagation( phi_bp_l, phi_bp_r, udvst, phase, stab_nt, ltau )
                     
                     !! store phi_0 for the next measurement
                     call store_phi( phi_0, phi_bp_r )
@@ -319,7 +318,7 @@ Program Main
             !phase_alpha(1)=(3.32141,-2.132)
             !phase_alpha(5)=(3.71,3.132)
             !phase_alpha(4)=(2.1,7.8)
-            Call wavefunction_out_hdf5( phi_0, phase_alpha, Group_Comm )
+            Call wavefunction_out_hdf5( phi_0, Group_Comm )
             !stop
 
             call system_clock(count_bin_end)
