@@ -145,6 +145,8 @@
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio, X1
           Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8, tot_re_weight
           COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable :: Phase_array
+          Character (LEN=64) :: FILE_TG, FILE_seeds
+          Logical ::   LCONF, LCONF_H5
 
 #ifdef MPI
           Integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
@@ -204,6 +206,12 @@
               fac_norm= real(Z1, kind(0.d0))/X1
           endif
           CALL MPI_BCAST(fac_norm, 1, MPI_REAL8, 0,MPI_COMM_WORLD,ierr)
+
+          file_tg = "phiin_0.h5"
+          INQUIRE (FILE=file_tg, EXIST=LCONF_H5)
+          IF (LCONF_H5) THEN
+              call wavefunction_in_hdf5( phi_0, file_tg )
+          endif
 
         END SUBROUTINE initial_wlk
 
@@ -730,13 +738,11 @@
         END SUBROUTINE PROPRM1
  
 
-        SUBROUTINE seed_vec_out( Group_Comm )
+        SUBROUTINE seed_vec_out
 #ifdef MPI
           Use mpi
 #endif
           Implicit none
-     
-          Integer, INTENT(IN) :: Group_Comm
           
           ! LOCAL
           INTEGER             :: K, ii, intseed(2), seed_tmp(2)
@@ -778,7 +784,7 @@
         end SUBROUTINE seed_vec_out
 
 #if defined HDF5
-        SUBROUTINE wavefunction_out_hdf5( phi_0, Group_Comm )
+        SUBROUTINE wavefunction_out_hdf5( phi_0 )
 #ifdef MPI
           Use mpi
 #endif
@@ -790,7 +796,6 @@
           Implicit none
      
           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(IN) :: phi_0
-          Integer, INTENT(IN) :: Group_Comm
 
           ! LOCAL
           CHARACTER (LEN=64) :: FILE_TG, filename
@@ -998,7 +1003,7 @@
 
         END SUBROUTINE wavefunction_out_hdf5
 
-        SUBROUTINE wavefunction_in_hdf5( phi_0, Group_Comm )
+        SUBROUTINE wavefunction_in_hdf5( phi_0, file_tg )
 #ifdef MPI
           Use mpi
 #endif
@@ -1010,10 +1015,10 @@
           Implicit none
      
           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_0
-          Integer, INTENT(IN) :: Group_Comm
+          CHARACTER (LEN=64), INTENT(IN)  :: FILE_TG
 
           ! LOCAL
-          CHARACTER (LEN=64) :: FILE_TG, filename
+          CHARACTER (LEN=64) :: filename
           Complex (Kind=Kind(0.d0)), pointer :: phi0_out(:,:,:,:)
           Complex (Kind=Kind(0.d0)), pointer :: phasef_out(:)
           Real    (Kind=Kind(0.d0)), pointer :: weight_out(:)
@@ -1036,9 +1041,7 @@
           call MPI_Comm_size(Group_Comm, isize_g, ierr)
           igroup           = irank/isize_g
 #endif
-          filename = "phiout_0"
-
-          write(filename,'(A,A)') trim(filename), ".h5"
+          filename = file_tg
 
           n_part=phi_0(1,1)%n_part
           
@@ -1056,8 +1059,10 @@
               dset_name = "phasef"
               !Open the  dataset.
               CALL h5dopen_f(file_id, dset_name, dset_id, hdferr)
+              !Get dataset's dataspace handle.
+              CALL h5dget_space_f(dset_id, dataspace, hdferr)
               !Get dataspace's rank.
-              CALL h5sget_simple_extent_ndims_f(dset_id, rank, ierr)
+              CALL h5sget_simple_extent_ndims_f(dataspace, rank, ierr)
               allocate( dims(rank), maxdims(rank) )
               !Get dataspace's dimensions.
               CALL h5sget_simple_extent_dims_f(dataspace, dims, maxdims, ierr)
@@ -1068,6 +1073,8 @@
               !!-----------!!
               dat_ptr = C_LOC(phasef_out(1))
               CALL h5dread_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
+              !close dataspace
+              CALL h5sclose_f(dataspace, hdferr)
               !close objects
               CALL h5dclose_f(dset_id,   hdferr)
               deallocate(dims, maxdims)
@@ -1127,6 +1134,8 @@
          if ( irank_g .eq. 0 ) then
              i_st=1
              i_ed=N_wlk
+             p0_tmp=phi0_out(:,:,:,i_st:i_ed)
+             
              weight_k(:)    = weight_out(i_st:i_ed)
              phase_alpha(:) = phasef_out(i_st:i_ed)
              do nf = 1, N_FL_eff
@@ -1135,7 +1144,6 @@
              enddo
              enddo
          endif
-
 
          if (irank_g .eq. 0 ) then
              deallocate(phi0_out, weight_out, phasef_out)

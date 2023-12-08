@@ -187,10 +187,10 @@ Program Main
 
 #if defined(HDF5)
         file_dat = "data.h5"
-        CALL h5open_f(ierr)
 #if defined(MPI)
         if ( Irank_g == 0 ) then
 #endif
+          CALL h5open_f(ierr)
           inquire (file=file_dat, exist=file_exists)
           IF (.not. file_exists) THEN
             ! Create HDF5 file
@@ -314,11 +314,11 @@ Program Main
             !! Todo list
             !! call phi_bp_l%out
 
-            call seed_vec_out(Group_Comm)
+            call seed_vec_out
             !phase_alpha(1)=(3.32141,-2.132)
             !phase_alpha(5)=(3.71,3.132)
             !phase_alpha(4)=(2.1,7.8)
-            Call wavefunction_out_hdf5( phi_0, Group_Comm )
+            Call wavefunction_out_hdf5( phi_0 )
             !stop
 
             call system_clock(count_bin_end)
