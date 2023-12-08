@@ -207,6 +207,12 @@
           endif
           CALL MPI_BCAST(fac_norm, 1, MPI_REAL8, 0,MPI_COMM_WORLD,ierr)
 
+          file_seeds = "seedvec_in"
+          INQUIRE (FILE=file_seeds, EXIST=LCONF)
+          IF (LCONF) THEN
+              call seed_vec_in(file_seeds)
+          endif
+
           file_tg = "phiin_0.h5"
           INQUIRE (FILE=file_tg, EXIST=LCONF_H5)
           IF (LCONF_H5) THEN
@@ -737,6 +743,64 @@
 
         END SUBROUTINE PROPRM1
  
+        SUBROUTINE seed_vec_in(file_tg)
+#ifdef MPI
+          Use mpi
+#endif
+          Implicit none
+          
+          CHARACTER (LEN=64), INTENT(IN)  :: FILE_TG
+          
+          ! LOCAL
+          INTEGER             :: K, ii, intseed(2), seed_tmp(2)
+          CHARACTER (LEN=64)  :: filename
+          INTEGER,ALLOCATABLE :: SEED_VEC(:), seed_output(:,:), s_tmp(:)
+
+#if defined(MPI)
+          INTEGER        :: irank_g, isize_g, igroup, ISIZE, IRANK, IERR
+          Integer        :: STATUS(MPI_STATUS_SIZE)
+          CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
+          CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+          call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+          call MPI_Comm_size(Group_Comm, isize_g, ierr)
+          igroup           = irank/isize_g
+#endif
+
+          filename=file_tg
+          
+          CALL GET_SEED_LEN(K)
+          ALLOCATE(SEED_VEC(K))
+          ALLOCATE(s_tmp(K))
+
+          if ( irank_g .eq. 0 ) then
+              ALLOCATE(seed_output(K,isize_g))
+              OPEN (UNIT = 10, FILE=filename, STATUS='OLD', ACTION='Read')
+              do ii = 1, isize_g
+                  read(10,*) seed_output(:,ii)
+              enddo
+              close(10)
+          ENDIF
+
+          if ( irank_g .ne. 0 ) then
+              call mpi_recv(seed_vec, K, mpi_integer, 0, 1, MPI_COMM_WORLD,STATUS,IERR)
+              call RANSET(SEED_VEC)
+          else
+             do ii = 1, isize_g-1
+                s_tmp(:)=seed_output(:,ii+1)
+                call mpi_send(s_tmp, K, mpi_integer, ii, 1, MPI_COMM_WORLD,IERR)
+             ENDDO
+          ENDIF
+            
+          if ( irank_g .eq. 0 ) then
+               SEED_VEC=seed_output(:,1)
+               call RANSET(SEED_VEC)
+               deallocate(seed_output)
+          endif
+
+          deallocate(seed_vec)
+          deallocate(s_tmp)
+
+        end SUBROUTINE seed_vec_in
 
         SUBROUTINE seed_vec_out
 #ifdef MPI
@@ -747,10 +811,11 @@
           ! LOCAL
           INTEGER             :: K, ii, intseed(2), seed_tmp(2)
           CHARACTER (LEN=64)  :: FILE_TG, filename
-          INTEGER,ALLOCATABLE :: SEED_VEC(:), seed_output(:,:), s_tmp(:,:)
+          INTEGER,ALLOCATABLE :: SEED_VEC(:), seed_output(:,:), s_tmp(:)
 
 #if defined(MPI)
           INTEGER        :: irank_g, isize_g, igroup, ISIZE, IRANK, IERR
+          Integer        :: STATUS(MPI_STATUS_SIZE)
           CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
           CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
@@ -761,24 +826,33 @@
           
           CALL GET_SEED_LEN(K)
           ALLOCATE(SEED_VEC(K))
-          ALLOCATE(seed_output(K,isize_g))
-          ALLOCATE(s_tmp(K,isize_g))
-          seed_output(:,:)=0
+          ALLOCATE(s_tmp(K))
           CALL RANGET(SEED_VEC)
 
-          seed_output(:,irank_g+1)=SEED_VEC(:)
-          CALL MPI_REDUCE(seed_output,s_tmp,K*isize_g,MPI_Integer,MPI_SUM, 0,Group_comm,IERR)
+          if ( irank_g .eq. 0 ) then
+              ALLOCATE(seed_output(K,isize_g))
+              seed_output(:,1)=SEED_VEC(:)
+          ENDIF
+
+          if ( irank_g .ne. 0 ) then
+              call mpi_send(seed_vec, K, mpi_integer, 0, 1, MPI_COMM_WORLD,IERR)
+          else
+             do ii = 1, isize_g-1
+                call mpi_recv(s_tmp, K, mpi_integer, ii, 1, MPI_COMM_WORLD,STATUS,IERR)
+                seed_output(:,ii+1) = s_tmp(:)
+             ENDDO
+          ENDIF
             
           if ( irank_g .eq. 0 ) then
-                OPEN (UNIT = 10, FILE=filename, STATUS='UNKNOWN', ACTION='WRITE')
-                do ii = 1, isize_g
-                    WRITE(10,*) s_tmp(:,ii)
-                enddo
-                close(10)
+               OPEN (UNIT = 10, FILE=filename, STATUS='UNKNOWN', ACTION='WRITE')
+               do ii = 1, isize_g
+                   WRITE(10,*) seed_output(:,ii)
+               enddo
+               close(10)
+               deallocate(seed_output)
           endif
 
           deallocate(seed_vec)
-          deallocate(seed_output)
           deallocate(s_tmp)
 
         end SUBROUTINE seed_vec_out
