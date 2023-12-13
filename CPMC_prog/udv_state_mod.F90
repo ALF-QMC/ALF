@@ -678,7 +678,7 @@ CONTAINS
        
        !call mpi_recv(this%V, n, MPI_COMPLEX16, source, recvtag+10033, MPI_COMM_WORLD,status,IERR)
 
-       call mpi_send(Zvec, this%ndim, MPI_COMPLEX16, source, recvtag+2, MPI_COMM_WORLD,status,IERR)
+       call mpi_recv(Zvec, this%ndim, MPI_COMPLEX16, source, recvtag+2, MPI_COMM_WORLD,status,IERR)
 #if !defined(STABLOG)
        !call mpi_recv(this%D, this%ndim, MPI_COMPLEX16, source, recvtag+20033, MPI_COMM_WORLD,status,IERR)
        this%D=Zvec(:)
@@ -688,7 +688,6 @@ CONTAINS
 #endif
 
      END SUBROUTINE MPI_recv_UDV_state_general
-
 
 #endif
 
