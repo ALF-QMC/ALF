@@ -60,10 +60,10 @@ Module MaxEnt_mod
             ENDDO
 
 
-            Open (Unit=50, File="Max_cl_log", Status="unknown")
+            Open (Unit=44, File="Max_cl_log", Status="unknown")
 
-            !Write(50,*) 'N E W   R U N'
-            !Write(50,*) '# of data points: ', NTAU
+            !Write(44,*) 'N E W   R U N'
+            !Write(44,*) '# of data points: ', NTAU
             !Write(6,*) 'N E W   R U N'
             ! Set the Default.
             ALPHA = Alpha_st
@@ -71,7 +71,7 @@ Module MaxEnt_mod
             XLAM = 0.d0
             if ( Present(Default) ) then
                DEF = Default
-               !Write(6,*) 'Default is present'
+               Write(44,*) 'Will use provided default'
             else
                XQ = 0.d0; XENT= 0.d0; CHISQ = 0.d0
                Call Maximize_Newton( XQMC,  COV, A, XKER, XQ,XENT,CHISQ)
@@ -79,7 +79,7 @@ Module MaxEnt_mod
                   DO
                      XQ = 0.d0; XENT= 0.d0; CHISQ = 0.d0
                      Call Maximize_Newton( XQMC,  COV, A, XKER, XQ,XENT,CHISQ)
-                     !Write(50,*) 'Default: ', Alpha, Chisq
+                     !Write(44,*) 'Default: ', Alpha, Chisq
                      !Write(6,*) 'Default: ', Alpha, Chisq
                      IF (CHISQ .GT. Tol_chi_def*NTAU .AND.  ALPHA.GT.100 )  THEN
                         ALPHA = ALPHA - ALPHA*0.1
@@ -102,7 +102,6 @@ Module MaxEnt_mod
                !   Write(13,*) NW, DEF(NW)
                !ENDDO
                !Write(6,*) 'Default Final: ', Alpha, Chisq
-
                DEF  = XMOM1/dble(NOM)
                !Write(6,*) 'Setting the default to a flat default'
             endif
@@ -114,7 +113,7 @@ Module MaxEnt_mod
             XLAM = 0.D0
             DO
                !WRITE(6,*)  'Starting classic  ', ALPHA
-               WRITE(50,*)  '========= Alpha:    ', ALPHA
+               WRITE(44,*)  '========= Alpha:    ', ALPHA
                XQ = 0.d0; XENT= 0.d0; CHISQ = 0.d0
                !write(6,*) 'Calling maximize'
                CALL MAXIMIZE_Newton( XQMC,  COV, A, XKER, XQ,XENT,CHISQ)
@@ -122,14 +121,14 @@ Module MaxEnt_mod
                IF (NFLAG.EQ.0) THEN
                   CALL CALCPR_ALP(XQMC,  COV, A, XKER,XQ,XENT,PR_ALP,XTRACE)
                   ALPHA_N = -XTRACE/(2.D0*XENT)
-                  WRITE(50,*) 'Max at:', ALPHA_N
+                  WRITE(44,*) 'Max at:', ALPHA_N
                   !WRITE(6,*) 'Max at:', ALPHA_N
                   !WRITE(6,*) 'Old_alp', ALPHA
                   DIFF1 =    ABS(ALPHA_N - ALPHA)
                ENDIF
                CALL SETA(A,XKER)
                CALL SETQ(A,XKER,XQMC, XQ,XENT,CHISQ)
-               WRITE(50,2006) ALPHA, XQ,XENT,CHISQ
+               WRITE(44,2006) ALPHA, XQ,XENT,CHISQ
                !WRITE(6,2006 ) ALPHA, XQ,XENT,CHISQ
                DIFF =  ALPHA_N - ALPHA
                IF ( ABS(DIFF) .GT.  0.1*ALPHA ) THEN
@@ -141,7 +140,7 @@ Module MaxEnt_mod
                ENDIF
                NCOUNT = NCOUNT + 1
                IF (NCOUNT .EQ. 100) THEN
-                  WRITE(50,*) 'NOT CONVERGED'
+                  WRITE(44,*) 'NOT CONVERGED'
                ENDIF
                IF ( ABS(DIFF1)/ABS(ALPHA_N).LT.0.01D0 .OR.  NCOUNT.GT.1000 ) Exit
                !&
@@ -149,11 +148,11 @@ Module MaxEnt_mod
            ENDDO
 
 
-           CLOSE(50)
+           CLOSE(44)
 
 2006       FORMAT('Res: Alpha, XQ,S,CHI: ', F24.12,2x,F24.12,2x,F24.12,2x,F24.12)
 
-
+           ALPHA_ST =  ALPHA 
             DEALLOCATE ( XLAM, SIG1, COVM1, UC, DEF )
             !Close(77)
           End Subroutine MaxEnt_T
@@ -228,7 +227,7 @@ Module MaxEnt_mod
             CALL   SETQ(A,XKER,XQMC, XQ,XENT,CHISQ)
 
             IF (NITER.GE.500) THEN
-               WRITE(50,*) 'Convergence problem:', Xnorm
+               WRITE(44,*) 'Convergence problem:', Xnorm
             ENDIF
 
             Deallocate (XLAM1, F)
@@ -296,7 +295,7 @@ Module MaxEnt_mod
             CALL  SETQ(A,XKER,XQMC, XQ,XENT,CHISQ)
 
             IF (NITER.GE.1000) THEN
-               WRITE(50,*) 'Convergence problem:', XNORM
+               WRITE(44,*) 'Convergence problem:', XNORM
             ENDIF
 
             Deallocate (XLAM1, GBAR)
@@ -680,10 +679,10 @@ Module MaxEnt_mod
             ENDDO
 
 
-            Open (Unit=50, File="info_Maxent", Status="unknown", position="append")
+            Open (Unit=44, File="info_Maxent", Status="unknown", position="append")
 
-            Write(50,*) 'N E W   R U N'
-            Write(50,*) '# of data points: ', NTAU
+            Write(44,*) 'N E W   R U N'
+            Write(44,*) '# of data points: ', NTAU
             Write(6,*) 'N E W   R U N'
             ! Set the Default.
             ALPHA     = Alpha_st
@@ -693,7 +692,7 @@ Module MaxEnt_mod
             IF (CHISQ .GT. Tol_chi_def*NTAU )  THEN
                DO
                   Call Maximize_Newton( XQMC,  COV, A, XKER, XQ,XENT,CHISQ)
-                  Write(50,*) 'Default: ', Alpha, Chisq
+                  Write(44,*) 'Default: ', Alpha, Chisq
                   Write(6,*) 'Default: ', Alpha, Chisq
                   IF (CHISQ .GT. Tol_chi_def*NTAU .AND.  ALPHA.GT.100 )  THEN
                      ALPHA = ALPHA - ALPHA*0.1
@@ -733,7 +732,7 @@ Module MaxEnt_mod
             OPEN (Unit=55,File="Tmp",status="unknown")
             DO
                !WRITE(6,*)  'Starting classic  ', ALPHA
-               WRITE(50,*)  '========= Alpha:    ', ALPHA
+               WRITE(44,*)  '========= Alpha:    ', ALPHA
                !write(6,*) 'Calling maximize'
                CALL MAXIMIZE_Newton( XQMC,  COV, A, XKER, XQ,XENT,CHISQ)
                !write(6,*) 'Return: Calling maximize'
@@ -742,13 +741,13 @@ Module MaxEnt_mod
                   IF (NTH.EQ.0)   XNORM = EXP(PR_ALP)
                   NTH = NTH + 1
                   !ALPHA_N = -XTRACE/(2.D0*XENT)
-                  WRITE(50,*) 'Max at:', ALPHA_N
+                  WRITE(44,*) 'Max at:', ALPHA_N
                   WRITE(6,*) 'Max at:', ALPHA_N
                   DIFF1 = ABS(ALPHA_N - ALPHA)
                !ENDIF
                CALL SETA(A,XKER)
                CALL SETQ(A,XKER,XQMC, XQ,XENT,CHISQ)
-               WRITE(50,2006) ALPHA, XQ,XENT,CHISQ
+               WRITE(44,2006) ALPHA, XQ,XENT,CHISQ
                WRITE(6,2006 ) ALPHA, XQ,XENT,CHISQ
                DIFF =  ALPHA_N - ALPHA
                ALPHA_OLD = ALPHA
@@ -763,7 +762,7 @@ Module MaxEnt_mod
                ENDIF
                NCOUNT = NCOUNT + 1
                IF (NCOUNT .EQ. 100) THEN
-                  WRITE(50,*) 'NOT CONVERGED'
+                  WRITE(44,*) 'NOT CONVERGED'
                ENDIF
                WRITE(55,*) ALPHA_OLD, EXP(PR_ALP)/XNORM, D_ALPHA
                XNORM_TOT = XNORM_TOT + D_ALPHA*(EXP(PR_ALP)/XNORM)
@@ -776,7 +775,7 @@ Module MaxEnt_mod
 
            A_ME  = A_ME/XNORM_TOT
            A = A_ME
-           WRITE(50,*) 'Tot Norm:',  XNORM_TOT
+           WRITE(44,*) 'Tot Norm:',  XNORM_TOT
            OPEN(Unit=55,File="Tmp", Status="unknown")
            OPEN(Unit=57,File="Pr_alpha", Status="unknown")
            do
@@ -787,7 +786,7 @@ Module MaxEnt_mod
 10         continue
            Close(55)
            Close(57)
-           CLOSE(50)
+           CLOSE(44)
 
 
 2006       FORMAT('Res: Alpha, XQ,S,CHI: ', F14.7,2x,F14.7,2x,F14.7,2x,F14.7)

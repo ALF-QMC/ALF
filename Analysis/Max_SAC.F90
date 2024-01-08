@@ -60,12 +60,12 @@
              Real (Kind=Kind(0.d0)), INTENT(IN), allocatable ::  Xtau(:)
              Real (Kind=Kind(0.d0)), INTENT(IN) :: Om_ST, Om_en, beta
           End Subroutine Set_Ker_classic
-          Subroutine Set_default(Default,beta,Channel, OM_st, Om_en, xmom1,Default_model_exists)
+          Subroutine Set_default(Default,beta,Channel, OM_st, Om_en, xmom1,Default_model_exists,Stochastic)
              Implicit none
              Real (Kind=Kind(0.d0)), INTENT(INOUT), allocatable ::  Default(:)
              Real (Kind=Kind(0.d0)), INTENT(IN) ::  beta, xmom1,  Om_st,  Om_en
              Character (Len=2), INTENT(IN)      :: Channel
-             Logical,  INTENT(IN)               :: Default_model_exists 
+             Logical,  INTENT(IN)               :: Default_model_exists, Stochastic
           End Subroutine Set_default
        end Interface
 
@@ -77,6 +77,7 @@
             &                                                 XKER_p, XKER_p_ph, Back_trans_p, XKER_T0, Back_trans_T0
        Character (Len=64)                                  :: command, File1, File2
        Complex (Kind=Kind(0.d0))                           :: Z
+       Logical                                             :: Test =.false.
        
 
        Integer                :: Ngamma, Ndis,  NBins, NSweeps, Nwarm, N_alpha, N_cov
@@ -133,7 +134,7 @@
        If (Stochastic) then 
           Open(unit=50,File='Info_MaxEnt',Status="unknown")
        else
-          Open(unit=50,File='Info_MaxEnt_Cl',Status="unknown")
+          Open(unit=50,File='Info_MaxEnt_cl',Status="unknown")
        endif
        write(50,*) 'Channel      :: ', Channel
        If (Channel == "PH" )  then
@@ -206,33 +207,28 @@
        If (  nbin_qmc > 2*Ntau .and. N_cov == 0  )   Write(50,*) 'Consider using the covariance. You seem to have enough bins'
        If (  nbin_qmc < 2*Ntau .and. N_cov == 1  )   Write(50,*) 'You do not seem to have enough bins for a reliable estimate of the covariance '
 
-
        !Store
        Allocate ( XCOV_st(NTAU,NTAU), XQMC_st(NTAU),XTAU_st(NTAU) )
        XCOV_st = XCOV
        XQMC_st = XQMC
        XTAU_st = XTAU
-       if (.not.Stochastic)  then 
-          Allocate (A_classic(Ndis), Default(Ndis), XKer_classic(size(Xqmc,1),Ndis))
-          If (Default_model_exists) then
-             Open(Unit=10,file="Default",status="unknown") 
-             read (10,*) Char 
-             rewind(10) 
-             If (Char == "X" )   then
-                do nw = 1,Ndis
-                  read(10,*) Char1,X, X1, Default(nw)
-                enddo
-             else 
-                do nw = 1,Ndis
-                  read(10,*) X,Default(nw)
-                enddo
-             endif
-             close(10)
+       Allocate (A_classic(Ndis), Default(Ndis), XKer_classic(size(Xqmc,1),Ndis))
+       If (Default_model_exists) then
+          Open(Unit=10,file="Default",status="unknown") 
+          read (10,*) Char 
+          rewind(10) 
+          If (Char == "X" )   then
+             do nw = 1,Ndis
+               read(10,*) Char1,X, X1, Default(nw)
+             enddo
+          else 
+             do nw = 1,Ndis
+               read(10,*) X,Default(nw)
+             enddo
           endif
-          Call Set_default(Default,beta,Channel, OM_st, Om_en, xmom1,Default_model_exists)
+          close(10)
        endif
-
-      
+       Call Set_default(Default,beta,Channel, OM_st, Om_en, xmom1,Default_model_exists,Stochastic)
       
        Allocate (Alpha_tot(N_alpha) )
        do nt = 1,N_alpha
@@ -243,13 +239,8 @@
        Select Case (Channel)
        Case ("PH")
           If  (Stochastic)  then
-             If (N_cov == 1 ) then
-                Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_ph, Back_Trans_ph, Beta, &
-                     &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, N_Cov)
-             else
-                Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_ph, Back_Trans_ph, Beta, &
-                    &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm)
-             endif
+             Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_ph, Back_Trans_ph, Beta, &
+                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, Default)
              ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
           else
              Call Set_Ker_classic(Xker_ph,Xker_classic,Om_st,Om_en,beta,xtau_st)
@@ -257,13 +248,8 @@
           endif 
        Case ("PP")
           If  (Stochastic) then
-             If (N_cov == 1 ) then
-                Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_pp, Back_Trans_pp, Beta, &
-                     &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, N_Cov)
-             else
-                Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_pp, Back_Trans_pp, Beta, &
-                      &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm)
-             endif
+             Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_pp, Back_Trans_pp, Beta, &
+                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm,Default)
              ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
           else
              Call Set_Ker_classic(Xker_pp,Xker_classic,Om_st,Om_en,beta,xtau_st)
@@ -272,21 +258,11 @@
        Case ("P")
           If  (Stochastic)  then
              If (Particle_channel_PH)  then
-                If (N_cov == 1 ) then
-                   Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_p_ph, Back_Trans_p, Beta, &
-                       &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, N_Cov)
-                else
-                   Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_p_ph, Back_Trans_p, Beta, &
-                        &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm)
-                endif
+                Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_p_ph, Back_Trans_p, Beta, &
+                     &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm,Default)
              else
-                If (N_cov == 1 ) then
-                   Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_p, Back_Trans_p, Beta, &
-                      &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, N_Cov)
-                else
-                   Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_p, Back_Trans_p, Beta, &
-                       &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm)
-                endif
+                Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_p, Back_Trans_p, Beta, &
+                     &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm,Default)
              endif 
              ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
           else  ! Classic
@@ -299,14 +275,9 @@
           endif  
        Case ("T0")
           If (Stochastic)  then
-             If (N_cov == 1 ) then
-                Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_T0, Back_Trans_T0, Beta, &
-                     &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, N_Cov)
-             else
-                Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_T0, Back_Trans_T0, Beta, &
-                    &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm)
-             endif
-            ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
+             Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_T0, Back_Trans_T0, Beta, &
+                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm,Default)
+             ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
           else
              Call Set_Ker_classic(Xker_T0,Xker_classic,Om_st,Om_en,beta,xtau_st)
              Call  MaxEnt( XQMC, XCOV, A_classic, XKER_classic, Alpha_classic_st, CHISQ ,DEFAULT)
@@ -392,6 +363,8 @@
              Write(11,"(F14.7,2x,F14.7,2x,F14.7,2x,F14.7)")  xtau_st(nt), xqmc_st(nt),  sqrt(xcov_st(nt,nt)), X
           enddo
           close(11)
+          Write(50,"('Final value of  alpha  and  CHISQ. ',F12.6,2x,F12.6)") Alpha_classic_st, CHISQ
+          close(50)
           Select Case (Channel)
              Case ("PH")
                 do  nw  = 1,Ndis
@@ -419,6 +392,9 @@
        ! Compute the real frequency Green function.
        delta = Dom
        pi = acos(-1.d0)
+       x  = 0.d0
+       x1 = 0.d0
+       x2 = 0.d0
        do nw = 1,Ndis
           Z = cmplx(0.d0,0.d0,Kind(0.d0))
           om = xom(nw)
@@ -427,12 +403,20 @@
              Z = Z + A(nwp)/cmplx( om -  omp, delta, kind(0.d0))
           enddo
           Z = Z * dom
-          write(43,"('X',2x,F14.7,2x,F16.8,2x,F16.8)") xom(nw), dble(Z), -Aimag(Z)/pi
+          x  = x  - Aimag(Z)/pi
+          x1 = x1 - om*Aimag(Z)/pi
+          x2 = x2 - om*om*Aimag(Z)/pi
+          If (Test)   then 
+            write(43,"('X',2x,F14.7,2x,F16.8,2x,F16.8,2x,F14.7,2x,F14.7,2x,F14.7)")  & 
+                & xom(nw), dble(Z), -Aimag(Z)/pi,  X*dom, x1*dom, x2*dom
+          else
+            write(43,"('X',2x,F14.7,2x,F16.8,2x,F16.8)")  & 
+                & xom(nw), dble(Z), -Aimag(Z)/pi
+          endif   
        enddo
        close(43)
 
      end Program MaxEnt_Wrapper
-
 
 
      Real (Kind=Kind(0.d0)) function XKER_ph(tau,om, beta)
@@ -611,7 +595,7 @@
     end Subroutine Set_Ker_classic
 
 
-   Subroutine Set_default(Default,beta,Channel, OM_st, Om_en, xmom1,Default_model_exists)
+   Subroutine Set_default(Default,beta,Channel, OM_st, Om_en, xmom1,Default_model_exists,Stochastic)
        use iso_fortran_env, only: output_unit, error_unit
        
        Implicit none
@@ -619,8 +603,7 @@
        Real (Kind=Kind(0.d0)), INTENT(INOUT), allocatable ::  Default(:)
        Real (Kind=Kind(0.d0)), INTENT(IN) ::  beta, xmom1,  Om_st,  Om_en
        Character (Len=2), INTENT(IN)      :: Channel
-       Logical,  INTENT(IN)               :: Default_model_exists 
-
+       Logical,  INTENT(IN)               :: Default_model_exists, Stochastic
        Integer :: Ndis, Nw
        Real (Kind = Kind(0.d0)) ::   Dom, X, Om,  Zero = 1.D-8
 
@@ -675,4 +658,6 @@
        enddo
        Write(10,'("# Testing  sum rule for  default : ", F14.7,2x,F14.7)' )  X, Xmom1
        close(10)
+       If  (Stochastic) Default = Default/dom
+
    end subroutine Set_default
