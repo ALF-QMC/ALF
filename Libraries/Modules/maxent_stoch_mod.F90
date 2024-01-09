@@ -17,26 +17,26 @@ Module MaxEnt_stoch_mod
        contains
          
          Subroutine MaxEnt_stoch(XQMC, Xtau, COV,Xmom1, XKER, Back_Trans_Aom, Beta_1, Alpha_tot,&
-              & Ngamma_1, OM_ST, OM_EN, Ndis_1, Nsweeps, NBins, NWarm, Default)
+              & Ngamma_1, OM_ST, OM_EN, Ndis_1, Nsweeps, NBins, NWarm, Default_provided)
 
            Implicit None
 
            Real (Kind=Kind(0.d0)), Dimension(:) :: XQMC, Xtau, Alpha_tot
            Real (Kind=Kind(0.d0)), Dimension(:,:) :: COV
-           Real (Kind=Kind(0.d0)), Dimension(:),  Intent(In), allocatable,   optional :: Default
+           Real (Kind=Kind(0.d0)), Dimension(:),  Intent(In), allocatable,   optional :: Default_provided
            Real (Kind=Kind(0.d0)), External :: XKER, Back_trans_Aom
-           Real (Kind=Kind(0.d0)) :: CHISQ, OM_ST, OM_EN, Beta_1, Xmom1, Err
+           Real (Kind=Kind(0.d0)) :: OM_ST, OM_EN, Beta_1, Xmom1, Err
            Integer :: Nsweeps, NBins, Ngamma_1, Ndis_1, nw, nt1
 
            ! Local
            Integer NSims, ns, nb, nc, Nwarm, nalp1, nalp2, Nex, p_star, Ndis_table, &
                 & io_error, io_error1, i, n, nc1, nx
            Real (Kind=Kind(0.d0)), Allocatable :: Xn_M_tot(:,:), En_M_tot(:), Xn_E_tot(:,:), En_E_tot(:), &
-                & Xn_tot(:,:,:), En_tot(:)
+                & Xn_tot(:,:,:), En_tot(:), Default(:)
            Real (Kind=Kind(0.d0)), Allocatable :: G_Mean(:), Xn_m(:), Xn_e(:), Xn(:,:), Vhelp(:), Default_table(:), A(:)
-           Real (Kind=Kind(0.d0)) :: En_M, X, Alpha, Acc_1, Acc_2, En, DeltaE, Ratio, D
+           Real (Kind=Kind(0.d0)) :: En_M, X, Alpha, Acc_1, Acc_2, En, DeltaE, Ratio
            Real (Kind=Kind(0.d0)) :: Aom, om, XMAX, tau
-           Real (Kind=Kind(0.d0)) :: CPUT, CPUTM
+           Real (Kind=Kind(0.d0)) :: CPUT
            Integer :: ICPU_1, ICPU_2, N_P_SEC
            Character (64) :: File_root, File1, File_conf, File_Aom
            Real (Kind=Kind(0.d0)), allocatable :: Xker_table(:,:), U(:,:), sigma(:)
@@ -103,10 +103,20 @@ Module MaxEnt_stoch_mod
            Allocate ( G_Mean(Ntau) )
            G_mean = 0.d0
            ! write(6,*) ' There are ', Ngamma,' delta-functions for a spectrum'
-           ! Write(6,*) ' Initializing'
-           ! D(om) = Xmom1/(Om_en_1 - Om_st_1)
-           IF (Present(Default)) Call Set_default_table(Default, Default_table, Xmom1)
-           D = Xmom1 / (Om_en_1 - Om_st_1)  !  Flat default with correct  sum-rule
+           
+           ! Setup  the  Default.
+           !D = Xmom1 / (Om_en_1 - Om_st_1)  !  Flat default with correct  sum-rule
+           allocate(Default(Ndis))
+           IF (.not.Present(Default_provided))  then 
+              Default  =  Xmom1 / (Om_en_1 - Om_st_1)  !  Flat default with correct  sum-rule
+           else
+              If (size(Default_provided,1) .ne. size(Default,1) )  then 
+                 write(error_unit,*) 'Default_provided in MaxEnt_stoch has wrong dimensions'
+                 CALL Terminate_on_error(ERROR_MAXENT,__FILE__,__LINE__)
+              endif
+              Default =  Default_provided
+           endif
+           Call Set_default_table(Default, Default_table, Xmom1)
            Call Get_seed_Len(L_seed)
            Allocate(Iseed_vec(L_seed))
            Iseed_vec = 0
@@ -383,10 +393,6 @@ Module MaxEnt_stoch_mod
             Logical ::  Test=.false.
          
 
-            If ( Size(Default,1) .ne. Ndis )   then 
-               write(error_unit,*) 'Default in MaxEnt_stoch has wrong dimensions'
-               CALL Terminate_on_error(ERROR_MAXENT,__FILE__,__LINE__)
-            endif
             dom = (Om_en_1 -  Om_st_1)/dble(Ndis)
             nw_d = 1
             f1 = Default(nw_d); f2 = Default(nw_d + 1) 

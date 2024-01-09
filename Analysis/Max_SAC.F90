@@ -131,33 +131,40 @@
        close(10)
 
        dtau = Xtau(2) - Xtau(1)
+       11 format(A20, ': ', A)
+       12 format(A20, ': ', I10)
+       13 format(A20, ': ', *(F14.7))
+       14 format(A20, ': ', (L1))
+       15 format((E26.17E3))
 
        If (Stochastic) then 
           Open(unit=50,File='Info_MaxEnt',Status="unknown")
        else
           Open(unit=50,File='Info_MaxEnt_cl',Status="unknown")
        endif
-       write(50,*) 'Channel      :: ', Channel
+       write(50,11) 'Channel', Channel
        If (Channel == "PH" )  then
-          Write(50,*)  'Om_start is set to zero. PH channel corresponds to symmetric data '
+          Write(50,"(A72)")  'Om_start is set to zero. PH channel corresponds to symmetric data '
           Om_st = 0.d0
        endif
-       Write(50, "('Covariance         :: ',I2)")  N_cov
-       Write(50, "('Om_st, Om_en       :: ',2x,F12.6,2x,F12.6)") Om_st, Om_en
-       Write(50, "('Delta Om           :: ',2x,F12.6)")  (Om_en - Om_st)/real(Ndis,kind(0.d0))
+       Write(50, 12) "Covariance", N_cov
+       Write(50, 13) "Om_st", Om_st
+       Write(50, 13) "Om_en", Om_en
+       Write(50, 13) "Delta Om",  (Om_en - Om_st)/real(Ndis,kind(0.d0))
+       Write(50, 14) "Default model exists",Default_model_exists 
        If (Stochastic) then
-         Write(50, "('Checkpoint         :: ',L1)")  Checkpoint
-         Write(50, "('Bins, Sweeps, Warm :: ',2x,I4,2x,I4,2x,I4)") NBins, NSweeps, Nwarm
+         Write(50, 14)  'Checkpoint' , Checkpoint
+         Write(50, 12) "Bins",    NBins
+         Write(50, 12) "Sweeps",  NSweeps
+         Write(50, 12) "Warm",    Nwarm
          If (N_alpha <= 10 ) then
             Write(error_unit,*) 'Not enough temperatures: N_alpha has to be bigger than 10'
             CALL Terminate_on_error(ERROR_MAXENT,__FILE__,__LINE__)
          Endif
-         Write(50, "('N_Alpha, Alpha_st,R:: ',2x,I4,F12.6,2x,F12.6)") N_alpha, alpha_st, R
-       else
-         Write(50, *)  "Classic  MaxEnt" 
-         If (Default_model_exists .and.  .not.Stochastic )  then
-            Write(50, *)  "Using  classic  MaxEnt  with provided default model"
-         endif
+         Write(50,'(A54)')  "Tempertaure  set:  1/T(n=1..N_alpha) = Alpha_st*R**(n)"
+         Write(50,12) "N_Alpha", N_alpha
+         Write(50,13) "Alpha_st",alpha_st
+         Write(50,13) "R", R
        endif
        Zero= 1.D-10
        pi = acos(-1.d0)
@@ -180,15 +187,17 @@
              if ( xcov(1,1) < zero )  ntau_st = 2
              Particle_channel_PH = .false.
           elseif (  Abs(Beta/2.d0  - real(ntau-1,kind=kind(0.d0))*dtau)  <  1.D-8 )  then
-             Write(50,*) "Detected that Tau_max = beta/2. Assuming particle-hole symmetry"
+             Write(50,"(A72)") "Detected Tau_max = beta/2. Assuming particle-hole symmetry"
              xmom1 =  pi*xqmc(1)
              if ( xcov(1,1) < zero )  ntau_st = 2
              Particle_channel_PH = .true.
              if (Om_st < Zero ) then
-                write(50,*) "Particle-hole symmetry in the partile-hole  channel  requires  OM_st > 0"
-                write(50,*) "Setting  OM_st=0"
+                write(50,"(A72)") "Partile-hole  channel  requires  OM_st > 0. Setting OM_st=0"
                 Om_st = 0.d0
              endif
+          else
+            Write(error_unit,*) 'Inconsistent  value of beta in  data  file' 
+            CALL Terminate_on_error(ERROR_MAXENT,__FILE__,__LINE__) 
           endif
        Case ("T0")
           xmom1 =  pi*xqmc(1)
@@ -200,13 +209,13 @@
        end Select
        Ntau_old = Ntau
        Call Rescale ( XCOV, XQMC,XTAU, Ntau_st, Ntau_en, Tolerance, NTAU)
-       Write(50,"('Data has been rescaled from Ntau  ',  I4,' to ', I4)")  NTAU_old, Ntau
+       Write(50,"(A32, I4,A4, I4)") trim('Data has been rescaled from Ntau'), NTAU_old,trim("to"), Ntau
        If ( Ntau <= 4 ) then
           write(error_unit,*) 'Not enough data!'
           CALL Terminate_on_error(ERROR_MAXENT,__FILE__,__LINE__)
        Endif
-       If (  nbin_qmc > 2*Ntau .and. N_cov == 0  )   Write(50,*) 'Consider using the covariance. You seem to have enough bins'
-       If (  nbin_qmc < 2*Ntau .and. N_cov == 1  )   Write(50,*) 'You do not seem to have enough bins for a reliable estimate of the covariance '
+       If (  nbin_qmc > 2*Ntau .and. N_cov == 0  )   Write(50,"(A72)") 'Consider using the covariance. You seem to have enough bins'
+       If (  nbin_qmc < 2*Ntau .and. N_cov == 1  )   Write(50,"(A72)") 'Not enough bins for a reliable estimate of the covariance '
 
        !Store
        Allocate ( XCOV_st(NTAU,NTAU), XQMC_st(NTAU),XTAU_st(NTAU) )
@@ -235,7 +244,8 @@
        do nt = 1,N_alpha
           alpha_tot(nt) = alpha_st*(R**(nt-1))
        enddo
-       write(50,"('First Moment, Beta  ',2x,F12.6,2x,F12.6)")  Xmom1, Beta
+       write(50,13) "First Moment",  Xmom1
+       write(50,13) "Beta", Beta
 
        Select Case (Channel)
        Case ("PH")
@@ -260,10 +270,10 @@
           If  (Stochastic)  then
              If (Particle_channel_PH)  then
                 Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_p_ph, Back_Trans_p, Beta, &
-                     &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm,Default)
+                     &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm ,Default)
              else
                 Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_p, Back_Trans_p, Beta, &
-                     &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm,Default)
+                     &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm ,Default)
              endif 
              ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
           else  ! Classic
@@ -301,7 +311,7 @@
           Do n = 1,N_alpha
              Read(10,*) X,X1,X2
           enddo
-          Write(50,"('Chisq at lowest temperature: 1/T, Chi^2, Error',2x,F12.6,2x,F12.6,2x,F12.6)") X,X1,X2
+          Write(50,13) "Best Chisq", X1
           close(50)
 
           Open (Unit = 10,File="Best_fit", Status ="unknown")
@@ -364,7 +374,8 @@
              Write(11,"(F14.7,2x,F14.7,2x,F14.7,2x,F14.7)")  xtau_st(nt), xqmc_st(nt),  sqrt(xcov_st(nt,nt)), X
           enddo
           close(11)
-          Write(50,"('Final value of  alpha  and  CHISQ. ',F12.6,2x,F12.6)") Alpha_classic_st, CHISQ
+          Write(50,13) "Final value of  alpha ", Alpha_classic_st
+          Write(50,13) "CHISQ" , CHISQ
           close(50)
           Select Case (Channel)
              Case ("PH")
