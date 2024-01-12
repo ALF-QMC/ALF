@@ -159,7 +159,7 @@ Module MaxEnt_mod
             XLAM = 0.D0
             DO
                !WRITE(6,*)  'Starting classic  ', ALPHA
-               WRITE(44,*)  '========= Alpha:    ', ALPHA
+               WRITE(44,*)  '========= 1/Alpha:    ', ALPHA
                XQ = 0.d0; XENT= 0.d0; CHISQ = 0.d0
                !write(6,*) 'Calling maximize'
                CALL MAXIMIZE_Newton( XQMC,  COV, A, XKER, XQ,XENT,CHISQ)
@@ -196,7 +196,7 @@ Module MaxEnt_mod
 
            CLOSE(44)
 
-2006       FORMAT('Res: Alpha, XQ,S,CHI: ', F24.12,2x,F24.12,2x,F24.12,2x,F24.12)
+2006       FORMAT('Res: 1/Alpha, XQ,S,CHI: ', F24.12,2x,F24.12,2x,F24.12,2x,F24.12)
 
            ALPHA_ST =  ALPHA 
             DEALLOCATE ( XLAM, SIG1, COVM1, UC, DEF )
@@ -778,7 +778,7 @@ Module MaxEnt_mod
             OPEN (Unit=55,File="Tmp",status="unknown")
             DO
                !WRITE(6,*)  'Starting classic  ', ALPHA
-               WRITE(44,*)  '========= Alpha:    ', ALPHA
+               WRITE(44,*)  '========= 1/Alpha:    ', ALPHA
                !write(6,*) 'Calling maximize'
                CALL MAXIMIZE_Newton( XQMC,  COV, A, XKER, XQ,XENT,CHISQ)
                !write(6,*) 'Return: Calling maximize'
@@ -787,7 +787,7 @@ Module MaxEnt_mod
                   IF (NTH.EQ.0)   XNORM = EXP(PR_ALP)
                   NTH = NTH + 1
                   !ALPHA_N = -XTRACE/(2.D0*XENT)
-                  WRITE(44,*) 'Max at:', ALPHA_N
+                  WRITE(44,*) 'Max at: 1/Alpha', ALPHA_N
                   WRITE(6,*) 'Max at:', ALPHA_N
                   DIFF1 = ABS(ALPHA_N - ALPHA)
                !ENDIF

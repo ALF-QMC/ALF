@@ -375,7 +375,7 @@
              Write(11,"(F14.7,2x,F14.7,2x,F14.7,2x,F14.7)")  xtau_st(nt), xqmc_st(nt),  sqrt(xcov_st(nt,nt)), X
           enddo
           close(11)
-          Write(50,13) "Final value of  alpha ", Alpha_classic_st
+          Write(50,13) "Final value of  alpha ", 1.d0/Alpha_classic_st
           Write(50,13) "CHISQ" , CHISQ
           close(50)
           Select Case (Channel)
