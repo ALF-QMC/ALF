@@ -1,7 +1,7 @@
 #set terminal postscript color eps 25 enhanced
-#set output "R_Plot_Name_Spectral.eps"
+#set output "R_Plot_Name.eps"
 set pm3d 
-set title "R_Plot_Name"
+set title "R_Plot_Title"
 set size 1.0,0.8
 set logscale cb
 set cbrange [0.01:10]
@@ -18,5 +18,5 @@ set pm3d corners2color c4
 #            '{/Symbol G}'  18  )
 plot "R_Plot_File" u 1:($2):($4)  w image t ""
 
-#!epstopdf R_Plot_Name_Spectral.eps
-#!open R_Plot_Name_Spectral.pdf
+#!epstopdf R_Plot_Name.eps
+#!open R_Plot_Name.pdf

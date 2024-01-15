@@ -31,12 +31,14 @@ if [[ "${Variable[3]}" == "true" ]] ; then
      export File_end="_Spectral.dat"
      export File_end_plot="_Spectral.gnu"
      export Green_file="Green"
-     export Plot_name="$File_sr"
+     export Plot_name="$File_sr"_Spectral
+     export Plot_Title="$File_sr"
 else
      export File_end="_Spectral_cl.dat"
      export File_end_plot="_Spectral_cl.gnu"
      export Green_file="Green_cl"
-     export Plot_name="$File_sr"_cl
+     export Plot_name="$File_sr"_Spectral_cl
+     export Plot_Title="$File_sr"_cl
 fi
 export Data_file=$File_sr$File_end
 if [ -f $Data_file ]; then
@@ -83,7 +85,9 @@ if [ ! -e ${Plot_File} ]; then
    (( n=n-1 ))
    sed s/"R_xrange"/$n/  $Plot_File  > tmp
    mv tmp $Plot_File
-   sed s/"R_Plot_File"/$Data_file/  $Plot_File  > tmp
+   sed s/"R_Plot_File"/$Data_file/  "$Plot_File"  > tmp
+   mv tmp $Plot_File
+   sed s/"R_Plot_Title"/$Plot_Title/  "$Plot_File"  > tmp
    mv tmp $Plot_File
 fi
 
