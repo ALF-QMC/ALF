@@ -45,6 +45,7 @@
 
 module Control
 
+    use files_mod
     Use MyMats
     use iso_fortran_env, only: output_unit, error_unit
     Implicit none
@@ -388,10 +389,10 @@ module Control
         call system_clock(count_CPU_end)
         time = (count_CPU_end-count_CPU_start)/dble(count_rate)
         if (count_CPU_end .lt. count_CPU_start) time = (count_max+count_CPU_end-count_CPU_start)/dble(count_rate)
-        If (trim(Global_update_scheme) == "Langevin") Force_mean =  Force_mean/real(Force_count,kind(0.d0)) 
+        If (str_to_upper(Global_update_scheme) == "LANGEVIN") Force_mean =  Force_mean/real(Force_count,kind(0.d0)) 
         
 #if defined(MPI)
-        If (trim(Global_update_scheme) == "Langevin")  then
+        If (str_to_upper(Global_update_scheme) == "LANGEVIN")  then
            X = 0.d0
            CALL MPI_REDUCE(Force_mean,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
            Force_mean= X/dble(Isize_g)
@@ -489,10 +490,10 @@ module Control
               Write(50,*) ' Average cluster size         : ', size_clust_Glob
               Write(50,*) ' Average accepted cluster size: ', size_clust_Glob_ACC
            endif
-           if (trim(Global_update_scheme) == "Langevin") &
+           if (str_to_upper(Global_update_scheme) == "LANGEVIN") &
                 &  Write(50,*) ' Langevin         Mean, Max : ', Force_mean,  Force_max
            
-           if (trim(Global_update_scheme) == "HMC")   Then
+           if (str_to_upper(Global_update_scheme) == "HMC")   Then
               Write(50,*) ' Acceptance_HMC              : ', ACC_HMC
               Write(50,*) ' Mean Phase diff HMC         : ', XMEANP_HMC
               Write(50,*) ' Max  Phase diff HMC         : ', XMAXP_HMC

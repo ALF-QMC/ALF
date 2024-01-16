@@ -780,7 +780,7 @@ Program Main
               If (Global_moves) Call Global_Updates(Phase, GR, udvr, udvl, Stab_nt, udvst,N_Global)
 
 
-              If (  trim(Langevin_HMC%get_Update_scheme()) == "Langevin" )  then
+              If ( str_to_upper(Langevin_HMC%get_Update_scheme()) == "LANGEVIN" )  then
                  !  Carry out a Langevin update and calculate equal time observables.
                  Call Langevin_HMC%update(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst, &
                       &                   LOBS_ST, LOBS_EN, LTAU)
@@ -797,7 +797,7 @@ Program Main
                  endif
               endif
 
-              If (  trim(Langevin_HMC%get_Update_scheme()) == "HMC" )  then
+              If (  str_to_upper(Langevin_HMC%get_Update_scheme()) == "HMC" )  then
                  if (Sequential) call Langevin_HMC%set_L_Forces(.False.)
                  Do n=1, N_HMC_sweeps
                      !  Carry out a Langevin update and calculate equal time observables.

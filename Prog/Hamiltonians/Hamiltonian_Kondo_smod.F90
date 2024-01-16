@@ -323,8 +323,8 @@
           Call Predefined_Latt(Lattice_type, L1,L2,Ndim, List,Invlist,Latt,Latt_Unit)
 
           !  Setup lattices for f-and c-sites.
-          Select case (Lattice_type)
-          Case ("Bilayer_square")
+          Select case (str_to_upper(Lattice_type))
+          Case ("BILAYER_SQUARE")
              Latt_Unit_f%Norb       = 1
              Latt_Unit_f%N_coord    = 2
              Allocate (Latt_Unit_f%Orb_pos_p(1,3))
@@ -337,7 +337,7 @@
              Latt_Unit_c%Orb_pos_p(1,:) =  0.d0
              Latt_Unit_c%Orb_pos_p(1,3) =  0.d0
 
-          Case ("Bilayer_honeycomb")
+          Case ("BILAYER_HONEYCOMB")
              Latt_Unit_f%Norb    = 2
              Latt_Unit_f%N_coord = 3
              Allocate (Latt_Unit_f%Orb_pos_p(2,3))
@@ -411,13 +411,13 @@
           Ham_Lambda_vec = Ham_Lambda
           N_Phi_vec      = N_Phi
 
-          Select case (Lattice_type)
-          Case ("Bilayer_square")
+          Select case (str_to_upper(Lattice_type))
+          Case ("BILAYER_SQUARE")
              Call  Set_Default_hopping_parameters_Bilayer_square(Hopping_Matrix,Ham_T_vec,Ham_T2_vec,Ham_Tperp_vec, Ham_Chem_vec, &
                   &                                              Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL,&
                   &                                              List, Invlist, Latt, Latt_unit )
 
-          Case ("Bilayer_honeycomb")
+          Case ("BILAYER_HONEYCOMB")
              Call  Set_Default_hopping_parameters_Bilayer_honeycomb(Hopping_Matrix,Ham_T_vec,Ham_T2_vec,Ham_Tperp_vec, Ham_Chem_vec, &
                   &                                                 Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL,&
                   &                                                 List, Invlist, Latt, Latt_unit )

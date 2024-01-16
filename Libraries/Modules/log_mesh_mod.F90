@@ -2,6 +2,7 @@
       Module Log_Mesh
         use iso_fortran_env, only: output_unit, error_unit
         use runtime_error_mod
+        use files_mod
 
         Type logmesh
            Real (Kind=Kind(0.d0))  :: Lambda, Center, Log_Lambda
@@ -38,7 +39,7 @@
 
           Mesh%Center     = Center
           Mesh%Range      = Rng
-          If (Type == "Log" ) Then
+          If (str_to_upper(Type) == "LOG" ) Then
              OM_st = Center - Rng
              OM_en = Center + Rng
              Mesh%Om_st = Om_st
@@ -62,7 +63,7 @@
                 Mesh%xom(Nw+3 +(Nw-n) ) =  Center  +   Rng * (Lambda**(-n))
              enddo
              Mesh%Precision = Mesh%Lambda**(-Mesh%Nw)
-          elseif (Type == "Lin" ) then
+          elseif (str_to_upper(Type) == "LIN" ) then
              Mesh%Type       = "Lin"
              If ( Present(Nw_1)  ) then
                 Nw   = Nw_1
@@ -110,7 +111,7 @@
           Real (Kind=Kind(0.d0))  :: X
           Integer        :: m
 
-          if ( Mesh%Type  == "Log" ) then
+          if ( str_to_upper(Mesh%Type)  == "LOG" ) then
              if ( X >  (Mesh%OM_en) .or.  X < (Mesh%Om_st) ) then
                 m = 0
              else
@@ -284,7 +285,7 @@
 
           Integer :: n
 
-          If (Mesh%Type == "Log" ) Then
+          If (str_to_upper(Mesh%Type) == "LOG" ) Then
              Open (Unit=10,File="Log_Mesh", status="unknown" )
              Write(10,*) '#    Log Mesh     : '
              Write(10,*) '#    Lambda       : ', Mesh%Lambda
@@ -298,7 +299,7 @@
              close(10)
           endif
 
-          If (Mesh%Type == "Lin" ) Then
+          If (str_to_upper(Mesh%Type) == "LIN" ) Then
              Open (Unit=10,File="Lin_Mesh", status="unknown" )
              Write(10,*) '#    Lin Mesh     : '
              Write(10,*) '#    Range        : ', Mesh%Range

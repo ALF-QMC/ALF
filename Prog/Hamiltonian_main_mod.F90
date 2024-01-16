@@ -126,6 +126,7 @@
 
     Module Hamiltonian_main
       Use runtime_error_mod
+      Use files_mod
       Use Operator_mod, only: Operator
       Use WaveFunction_mod, only: WaveFunction
       Use Observables
@@ -213,7 +214,7 @@
        Implicit none
        Character (len=64), intent(in) :: ham_name
 
-       Select Case (ham_name)
+       Select Case (str_to_upper(ham_name))
 #include "Hamiltonians_case.h"
 !!$       This file will be dynamically generated and appended
        Case default

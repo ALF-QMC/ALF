@@ -112,7 +112,7 @@
 
        Open(unit=50,File='Info_MaxEnt',Status="unknown")
        write(50,*) 'Channel      :: ', Channel
-       If (Channel == "ph" )  then
+       If (str_to_upper(Channel) == "PH" )  then
           Write(50,*)  'Om_start is set to zero. PH channel corresponds to symmetric data '
           Om_st = 0.d0
        endif
