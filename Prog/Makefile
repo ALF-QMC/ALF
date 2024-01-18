@@ -42,7 +42,8 @@ Hamiltonians_interface.h: Hamiltonians.list
 Hamiltonians_case.h: Hamiltonians.list
 	@rm -f "Hamiltonians_case.h"
 	@while read -r ham; do \
-		echo "Case ('$$ham')" >> "Hamiltonians_case.h"; \
+		ham_upper="$$(echo "$$ham" | tr '[:lower:]' '[:upper:]')"; \
+		echo "Case ('$$ham_upper')" >> "Hamiltonians_case.h"; \
 		echo "  call Ham_Alloc_$$ham()" >> "Hamiltonians_case.h"; \
 	done < Hamiltonians.list 
 

@@ -809,7 +809,7 @@ Module Global_mod
         endif
 
         NSTM = Size(udvst, 1)
-        If (storage == "Empty" ) then
+        If (str_to_upper(storage) == "EMPTY" ) then
            DO nf_eff = 1,N_FL_eff
               nf=Calc_Fl_map(nf_eff)
               if (Projector) then

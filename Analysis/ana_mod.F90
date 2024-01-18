@@ -39,6 +39,7 @@
 !
 !--------------------------------------------------------------------
       use iso_fortran_env, only: output_unit, error_unit
+      use Files_mod
       Use Errors
       Use MyMats
       Use Matrix
@@ -753,7 +754,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       NAMELIST /VAR_errors/ n_skip, N_rebin, N_Cov, N_Back, N_auto
 
       PartHole = .false.
-      if(Channel == 'PH') PartHole = .true.
+      if(str_to_upper(Channel) == 'PH') PartHole = .true.
       
       N_skip = 1
       N_rebin = 1
@@ -1256,15 +1257,15 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       Nobs  = size(bins_raw, 1)
       Nbins = size(bins_raw, 2)
       
-      if (analysis_mode=='identity') then
+      if (str_to_upper(analysis_mode) == 'IDENTITY') then
          f_ptr => identity
          Nobs_output = Nobs
          data_range  = 0
-      elseif(analysis_mode=='renyi_entropie') then
+      elseif(str_to_upper(analysis_mode) == 'RENYI_ENTROPIE') then
          f_ptr => entanglement
          Nobs_output = Nobs
          data_range  = 0
-      elseif(analysis_mode=='mutual_information') then
+      elseif(str_to_upper(analysis_mode) == 'MUTUAL_INFORMATION') then
          if (Nobs .ne. 3) then
             Write(error_unit,*) 'Evaluating the mutual information between A and B requires the &
                  &   entanglement entropies of A, B and the union of A and B, i.e. Nobs=4 (3 + 1 for the phase)'

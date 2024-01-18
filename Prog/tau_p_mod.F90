@@ -103,7 +103,7 @@
         LQ = ndim
 
         Mc_step_weight = 1.d0
-        if (trim(Langevin_HMC%get_Update_scheme())=="Langevin") Mc_step_weight =  Langevin_HMC%get_Delta_t_running()
+        if ( str_to_upper(Langevin_HMC%get_Update_scheme()) == "LANGEVIN" ) Mc_step_weight =  Langevin_HMC%get_Delta_t_running()
 
         
         ALLOCATE (  GRUPB(LQ,LQ,N_FL), GRUP(LQ,LQ,N_FL), G00UP(LQ,LQ,N_FL), G0TUP(LQ,LQ,N_FL), &
@@ -121,15 +121,16 @@
         GTTUP = GR ! On time slice Stab_nt(NST_IN)
         NT_ST = NST_IN
         do NT = Stab_nt(NT_ST)+1, Thtrot + 1
-           If  (trim(Langevin_HMC%get_Update_scheme())=="Langevin" &
-              & .or. trim(Langevin_HMC%get_Update_scheme())=="HMC") then            
+           If  ( str_to_upper(Langevin_HMC%get_Update_scheme()) == "LANGEVIN" &
+              & .or. str_to_upper(Langevin_HMC%get_Update_scheme()) == "HMC" ) then            
               Call Langevin_HMC%Wrap_Forces(GTTUP,NT)
            else
               CALL PROPRM1 (GTTUP,NT)
               CALL PROPR   (GTTUP,NT)
            endif
-           If ((trim(Langevin_HMC%get_Update_scheme())=="Langevin"  &
-              & .or. trim(Langevin_HMC%get_Update_scheme())=="HMC") .and. NT .ge. LOBS_ST .and. NT .le. LOBS_EN ) then
+           If (( str_to_upper(Langevin_HMC%get_Update_scheme()) == "LANGEVIN"  &
+              & .or. str_to_upper(Langevin_HMC%get_Update_scheme()) == "HMC" ) &
+              .and. NT .ge. LOBS_ST .and. NT .le. LOBS_EN ) then
               If (Symm) then
                  Call Hop_mod_Symm(GTTUP_T,GTTUP,nt)
                  !call reconstruction of non-calculated flavor blocks
@@ -224,8 +225,8 @@
            NT1 = NT + 1
            CALL PROPR  (GT0UP,NT1)
            CALL PROPRM1(G0TUP,NT1)
-           If  (trim(Langevin_HMC%get_Update_scheme())=="Langevin" &
-            & .or. trim(Langevin_HMC%get_Update_scheme())=="HMC") then
+           If  ( str_to_upper(Langevin_HMC%get_Update_scheme()) == "LANGEVIN" &
+            & .or. str_to_upper(Langevin_HMC%get_Update_scheme()) == "HMC") then
               Call Langevin_HMC%Wrap_Forces(GTTUP,NT1)
            else
               CALL PROPRM1 (GTTUP,NT1)
@@ -245,8 +246,8 @@
                   Call ham%GRT_reconstruction( GT0UP_T, G0TUP_T )
               endif
               Call ham%OBSERT (NTAU1,GT0UP_T,G0TUP_T,G00UP_T,GTTUP_T,PHASE,Mc_step_weight)
-              If ((trim(Langevin_HMC%get_Update_scheme())=="Langevin" &
-                   & .or. trim(Langevin_HMC%get_Update_scheme())=="HMC" )&
+              If (( str_to_upper(Langevin_HMC%get_Update_scheme()) == "LANGEVIN" &
+                   & .or. str_to_upper(Langevin_HMC%get_Update_scheme()) == "HMC" )&
                    &.and. NT1 .ge. LOBS_ST .and. NT1 .le. LOBS_EN ) CALL ham%Obser( GTTUP_T, PHASE, NT1, Mc_step_weight )
            else
               !call reconstruction of non-calculated flavor blocks
@@ -256,15 +257,15 @@
                   Call ham%GRT_reconstruction( GT0UP, G0TUP )
               endif
               Call ham%OBSERT (NTAU1,GT0UP,G0TUP,G00UP,GTTUP,PHASE,Mc_step_weight)
-              If ((trim(Langevin_HMC%get_Update_scheme())=="Langevin" &
-                   & .or. trim(Langevin_HMC%get_Update_scheme())=="HMC") &
+              If ((str_to_upper(Langevin_HMC%get_Update_scheme()) == "LANGEVIN" &
+                   & .or. str_to_upper(Langevin_HMC%get_Update_scheme()) == "HMC") &
                    & .and. NT1 .ge. LOBS_ST .and. NT1 .le. LOBS_EN ) CALL ham%Obser( GTTUP, PHASE, NT1, Mc_step_weight )
            endif
 
         ENDDO
 
-        If (trim(Langevin_HMC%get_Update_scheme())=="Langevin" &
-           & .or. trim(Langevin_HMC%get_Update_scheme())=="HMC") then   ! Finish calculating the forces
+        If (str_to_upper(Langevin_HMC%get_Update_scheme()) == "LANGEVIN" &
+           & .or. str_to_upper(Langevin_HMC%get_Update_scheme()) == "HMC") then   ! Finish calculating the forces
            DO NT = Ltrot-THTROT + 1, Ltrot - 1
               ! UR is on time slice NT
               IF ( NT .EQ. STAB_NT(NT_ST+1) ) THEN

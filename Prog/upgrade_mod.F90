@@ -203,13 +203,13 @@ module upgrade_mod
 
         !Write(6,*) Ratiotot
 
-        If      (mode  == "Final"       ) Then
+        If      ( str_to_upper(mode) == "FINAL"       ) Then
            !Write(6,*) "Up_I: ", Ratiotot
            Ratiotot = Ratiotot * Prev_Ratiotot
            !Write(6,*) "Up_f: ", Ratiotot
            Weight = S0_ratio * T0_proposal_ratio * abs(  real(Phase * Ratiotot, kind=Kind(0.d0))/real(Phase,kind=Kind(0.d0)) )
            !Write(6,*) Phase, Prev_Ratiotot, S0_ratio, T0_proposal_ratio, ns_old,ns_new
-        elseif  (mode == "Intermediate" ) Then
+        elseif  ( str_to_upper(mode) == "INTERMEDIATE" ) Then
            Weight = 1.5D0
            !Write(6,*) "Up_I: ", Ratiotot
            Prev_Ratiotot = Prev_Ratiotot*Ratiotot
@@ -221,7 +221,7 @@ module upgrade_mod
         toggle = .false.
         if ( Weight > ranf_wrap() )  Then
            toggle = .true.
-           If (mode == "Final"  )  Phase = Phase * Ratiotot/sqrt(Ratiotot*conjg(Ratiotot))
+           If ( str_to_upper(mode) == "FINAL"  )  Phase = Phase * Ratiotot/sqrt(Ratiotot*conjg(Ratiotot))
            !Write(6,*) 'Accepted : ', Ratiotot
 
            Do nf_eff = 1,N_FL_eff
@@ -292,7 +292,7 @@ module upgrade_mod
            deallocate ( y_v, xp_v, x_v )
         endif
 
-        If ( mode == "Final" )  then
+        If ( str_to_upper(mode) == "FINAL" )  then
            Call Control_upgrade(toggle)
            Call Control_upgrade_eff(toggle)
         endif

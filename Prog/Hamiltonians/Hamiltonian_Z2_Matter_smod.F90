@@ -152,9 +152,9 @@
           
           Call Ham_latt
 
-          if ( Model == "Z2_Matter" ) then
+          if ( str_to_upper(Model) == "Z2_MATTER" ) then
              N_FL = 1
-             If ( Lattice_type  /= "Square" ) then
+             If ( str_to_upper(Lattice_type)  /= "SQUARE" ) then
                 Write(error_unit,*) "Ham_set: Z2_Matter is only implemented for a square lattice"
                 CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
              Endif
@@ -179,7 +179,7 @@
           if (Projector) Thtrot = nint(theta/dtau)
           Ltrot = Ltrot+2*Thtrot
           
-          If  ( Model == "Z2_Matter" )  Call Setup_Ising_action_and_field_list
+          If  ( str_to_upper(Model) == "Z2_MATTER" )  Call Setup_Ising_action_and_field_list
           
           call Ham_V
            

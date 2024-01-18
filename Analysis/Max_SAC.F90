@@ -112,7 +112,7 @@
 
        Open(unit=50,File='Info_MaxEnt',Status="unknown")
        write(50,*) 'Channel      :: ', Channel
-       If (Channel == "ph" )  then
+       If (str_to_upper(Channel) == "PH" )  then
           Write(50,*)  'Om_start is set to zero. PH channel corresponds to symmetric data '
           Om_st = 0.d0
        endif
@@ -131,7 +131,7 @@
        pi = acos(-1.d0)
        Ntau_st = 1
        Ntau_en = Ntau
-       Select Case (Channel)
+       Select Case (str_to_upper(Channel))
        Case ("PH")
           xmom1 = pi * xqmc(1)
        Case ("PP")
@@ -177,7 +177,7 @@
        enddo
        write(50,"('First Moment, Beta  ',2x,F12.6,2x,F12.6)")  Xmom1, Beta
 
-       Select Case (Channel)
+       Select Case (str_to_upper(Channel))
        Case ("PH")
           If (N_cov == 1 ) then
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_ph, Back_Trans_ph, Beta, &
@@ -246,7 +246,7 @@
        do nt = 1,Ntau
           X = 0.d0
           tau = xtau_st(nt)
-          Select Case (Channel)
+          Select Case (str_to_upper(Channel))
           Case ("PH")
              do i = 1,Ngamma
                 X = X + alp_bf(i)*Xker_ph(tau,om_bf(i), beta)
