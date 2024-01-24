@@ -65,7 +65,7 @@
              Implicit none
              Real (Kind=Kind(0.d0)), INTENT(INOUT), allocatable ::  Default(:)
              Real (Kind=Kind(0.d0)), INTENT(IN) ::  beta, xmom1,  Om_st,  Om_en
-             Character (Len=2), INTENT(IN)      :: Channel
+             Character (Len=4), INTENT(IN)      :: Channel
              Logical,  INTENT(IN)               :: Default_model_exists, Stochastic
           End Subroutine Set_default
        end Interface
@@ -85,7 +85,7 @@
        Integer                :: N_skip, N_rebin, N_Back, N_auto, Norb
        Real (Kind=Kind(0.d0)) :: OM_st, OM_en,  alpha_st, R, Tolerance
        Logical                :: Checkpoint,  Stochastic, Default_model_exists, Particle_channel_PH
-       Character (Len=2)      :: Channel
+       Character (Len=4)      :: Channel
        Character (Len=1)      :: Char, Char1
        ! Space  for classic MaxEnt
        Real (Kind=Kind(0.d0)), allocatable ::  Xker_classic(:,:),  A_classic(:),  Default(:)
@@ -144,8 +144,8 @@
           Open(unit=50,File='Info_MaxEnt_cl',Status="unknown")
        endif
        write(50,11) 'Channel', Channel
-       If (str_to_upper(Channel) == "PH" )  then
-          Write(50,"(A72)")  'Om_start is set to zero. PH channel corresponds to symmetric data '
+       If (str_to_upper(Channel) == "PH" .or. str_to_upper(Channel) == "P_PH" )  then
+          Write(50,"(A72)")  'Om_start is set to zero. PH  and  P_PH channels corresponds to symmetric data'
           Om_st = 0.d0
        endif
        Write(50, 12) "Covariance", N_cov
@@ -177,29 +177,18 @@
        Case ("PP")
           xmom1 = 2.d0* pi * xqmc(1)
        Case ("P")
-          If (  Abs(Beta  - real(ntau-1,kind=kind(0.d0))*dtau)  <  1.D-8 )  then
-             xmom1 =  pi * ( xqmc(1) + xqmc(ntau) )
-             !  Remove the tau = beta point from the data since it is  correlated
-             !  due to the sum rule with  the tau=0 data point. Also if the tau = 0
-             !  data point has no fluctations (due to particle-hole symmetry for instance)
-             !  it will be removed.
-             Ntau_en = Ntau - 1
-             Ntau_st = 1
-             if ( xcov(1,1) < zero )  ntau_st = 2
-             Particle_channel_PH = .false.
-          elseif (  Abs(Beta/2.d0  - real(ntau-1,kind=kind(0.d0))*dtau)  <  1.D-8 )  then
-             Write(50,"(A72)") "Detected Tau_max = beta/2. Assuming particle-hole symmetry"
-             xmom1 =  pi*xqmc(1)
-             if ( xcov(1,1) < zero )  ntau_st = 2
-             Particle_channel_PH = .true.
-             if (Om_st < Zero ) then
-                write(50,"(A72)") "Partile-hole  channel  requires  OM_st > 0. Setting OM_st=0"
-                Om_st = 0.d0
-             endif
-          else
-            Write(error_unit,*) 'Inconsistent  value of beta in  data  file' 
-            CALL Terminate_on_error(ERROR_MAXENT,__FILE__,__LINE__) 
-          endif
+          xmom1 =  pi * ( xqmc(1) + xqmc(ntau) )
+          !  Remove the tau = beta point from the data since it is  correlated
+          !  due to the sum rule with  the tau=0 data point. Also if the tau = 0
+          !  data point has no fluctations (due to particle-hole symmetry for instance)
+          !  it will be removed.
+          Ntau_en = Ntau - 1
+          Ntau_st = 1
+          if ( xcov(1,1) < zero )  ntau_st = 2
+       Case ("P_PH")
+          xmom1 =  pi*xqmc(1)
+          if ( xcov(1,1) < zero )  ntau_st = 2
+          Particle_channel_PH = .true.
        Case ("T0")
           xmom1 =  pi*xqmc(1)
           Ntau_st = 1
@@ -269,20 +258,19 @@
           endif
        Case ("P")
           If  (Stochastic)  then
-             If (Particle_channel_PH)  then
-                Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_p_ph, Back_Trans_p, Beta, &
-                     &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm ,Default)
-             else
-                Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_p, Back_Trans_p, Beta, &
-                     &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm ,Default)
-             endif 
+             Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_p, Back_Trans_p, Beta, &
+                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm ,Default)
              ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
           else  ! Classic
-             If (Particle_channel_PH)  then
-               Call Set_Ker_classic(Xker_p_ph,Xker_classic,Om_st,Om_en,beta,xtau_st)
-             else 
-               Call Set_Ker_classic(Xker_p,Xker_classic,Om_st,Om_en,beta,xtau_st)
-             endif   
+             Call Set_Ker_classic(Xker_p,Xker_classic,Om_st,Om_en,beta,xtau_st)
+             Call  MaxEnt( XQMC, XCOV, A_classic, XKER_classic, Alpha_classic_st, CHISQ ,DEFAULT)
+          endif  
+       Case ("P_PH")
+          If  (Stochastic)  then
+             Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_p_ph, Back_Trans_p, Beta, &
+                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm ,Default)
+          else  ! Classic
+             Call Set_Ker_classic(Xker_p_ph,Xker_classic,Om_st,Om_en,beta,xtau_st)
              Call  MaxEnt( XQMC, XCOV, A_classic, XKER_classic, Alpha_classic_st, CHISQ ,DEFAULT)
           endif  
        Case ("T0")
@@ -335,16 +323,14 @@
                    do i = 1,Ngamma
                       X = X + alp_bf(i)*Xker_pp(tau,om_bf(i), beta)
                    enddo
+                Case ("P_PH")
+                   do i = 1,Ngamma
+                      X = X + alp_bf(i)*Xker_p_ph(tau,om_bf(i), beta)
+                   enddo
                 Case ("P")
-                   If (Particle_channel_PH)  then
-                     do i = 1,Ngamma
-                         X = X + alp_bf(i)*Xker_p_ph(tau,om_bf(i), beta)
-                     enddo
-                  else
-                     do i = 1,Ngamma
-                         X = X + alp_bf(i)*Xker_p(tau,om_bf(i), beta)
-                     enddo
-                  endif
+                   do i = 1,Ngamma
+                      X = X + alp_bf(i)*Xker_p(tau,om_bf(i), beta)
+                   enddo
                 Case ("T0")
                    do i = 1,Ngamma
                       X = X + alp_bf(i)*Xker_T0(tau,om_bf(i), beta)
@@ -394,6 +380,10 @@
                    A(nw) =  Back_trans_pp(A(nw), xom(nw), beta)
                 enddo
              Case ("P")
+                do  nw  = 1,Ndis
+                   A(nw) =  Back_trans_p(A(nw), xom(nw), beta)
+                enddo
+             Case ("P_PH")
                 do  nw  = 1,Ndis
                    A(nw) =  Back_trans_p(A(nw), xom(nw), beta)
                 enddo
@@ -624,7 +614,7 @@
 
        Real (Kind=Kind(0.d0)), INTENT(INOUT), allocatable ::  Default(:)
        Real (Kind=Kind(0.d0)), INTENT(IN) ::  beta, xmom1,  Om_st,  Om_en
-       Character (Len=2), INTENT(IN)      :: Channel
+       Character (Len=4), INTENT(IN)      :: Channel
        Logical,  INTENT(IN)               :: Default_model_exists, Stochastic
        Integer :: Ndis, Nw
        Real (Kind = Kind(0.d0)) ::   Dom, X, Om,  Zero = 1.D-8
@@ -632,7 +622,7 @@
        Ndis = size(Default,1)
        Dom = (OM_en - Om_st)/dble(Ndis)
        Select Case (str_to_upper(Channel))
-       case("P")
+       case("P", "P_PH")
          If (.not. Default_model_exists ) Default = Xmom1/(Om_en - Om_st)
          Default = Default*Dom
        case("PH")
