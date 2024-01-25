@@ -194,7 +194,7 @@
           Ntau_st = 1
           if ( xcov(1,1) < zero )  ntau_st = 2
        Case default
-          Write(error_unit,*) "Channel not yet implemented"
+          Write(error_unit,*) "Channel not yet implemented" // "'" // Channel // "'"
           CALL Terminate_on_error(ERROR_MAXENT,__FILE__,__LINE__)
        end Select
        Ntau_old = Ntau
@@ -283,7 +283,7 @@
              Call  MaxEnt( XQMC, XCOV, A_classic, XKER_classic, Alpha_classic_st, CHISQ ,DEFAULT)
           endif
        Case default
-          Write(error_unit,*) "Channel not yet implemented"
+          Write(error_unit,*) "Channel not yet implemented", Channel
           CALL Terminate_on_error(ERROR_MAXENT,__FILE__,__LINE__)
        end Select
 
@@ -336,7 +336,7 @@
                       X = X + alp_bf(i)*Xker_T0(tau,om_bf(i), beta)
                    enddo
                 Case default
-                   Write(error_unit,*) "Channel not yet implemented"
+                   Write(error_unit,*) "Channel not yet implemented", Channel
                    CALL Terminate_on_error(ERROR_MAXENT,__FILE__,__LINE__)
              end Select
              Write(11,"(F14.7,2x,F14.7,2x,F14.7,2x,F14.7)")  xtau_st(nt), xqmc_st(nt),  sqrt(xcov_st(nt,nt)), xmom1*X
@@ -392,7 +392,7 @@
                    A(nw) =  Back_trans_T0(A(nw), xom(nw), beta)
                 enddo
              Case default
-                Write(error_unit,*) "Channel not yet implemented"
+                Write(error_unit,*) "Channel not yet implemented", Channel
                 CALL Terminate_on_error(ERROR_MAXENT,__FILE__,__LINE__)
              end Select
           Open (Unit=43,File="Green_cl", Status="unknown", action="write")
@@ -658,7 +658,7 @@
          Default =  Default*Xmom1/X
          Default =  Default*dom
        case  default
-         Write(error_unit,*) "Channel not yet implemented for default model"
+         Write(error_unit,*) "Channel not yet implemented for default model", Channel
          CALL Terminate_on_error(ERROR_MAXENT,__FILE__,__LINE__)
        end Select
        Open (Unit=10,File="Default_used", status="Unknown")
