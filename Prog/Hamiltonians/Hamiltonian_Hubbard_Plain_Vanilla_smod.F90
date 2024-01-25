@@ -546,7 +546,7 @@
                 case (3)
                    Channel = 'PH'; Filename = "SpinXY"
                 case (4)
-                   Channel = 'P_PH'; Filename = "SpinT"
+                   Channel = 'PH'; Filename = "SpinT"
                 case (5)
                    Channel = 'PH'; Filename = "Den"
                 case default
