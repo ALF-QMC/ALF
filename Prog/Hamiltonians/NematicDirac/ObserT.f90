@@ -18,7 +18,7 @@
           Z_z_ising = 0.d0
           do I = 1,Latt%N
             do Ntau = 1, Ltrot
-              Z_z_ising = Z_z_ising + nsigma%f(I,Ntau)
+              Z_z_ising = Z_z_ising + real(nsigma%f(I,Ntau))
             enddo
           enddo
 

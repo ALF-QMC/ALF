@@ -888,7 +888,7 @@
              case default
                 Write(6,*) ' Error in Alloc_obs '
              end select
-             Call Obs_scal(I)%make(N,Filename)
+             Call Obser_Vec_make(Obs_scal(I),N,Filename)
           enddo
 
 
@@ -911,7 +911,7 @@
              end select
              Nt = 1
              Channel = '--'
-             Call Obs_eq(I)%make(Nt, Filename, Latt, Latt_unit, Channel, dtau)
+             Call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
           enddo
 
           If (Ltau == 1) then
@@ -930,7 +930,7 @@
                 end select
                 Nt = Ltrot+1
                 If(Projector) Channel = 'T0'
-                Call Obs_tau(I)%make(Nt, Filename, Latt, Latt_unit, Channel, dtau)
+                Call Obser_Latt_make(Obs_tau(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
              enddo
           endif
 

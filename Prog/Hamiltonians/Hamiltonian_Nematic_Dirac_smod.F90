@@ -576,7 +576,7 @@
           !> Time slice
           Integer, Intent(IN) :: nt
           !> New local field on time slice nt and operator index n
-          Real (Kind=Kind(0.d0)), Intent(In) :: Hs_new
+          complex (Kind=Kind(0.d0)), Intent(In) :: Hs_new
 
           Integer :: nt1,I
           S0 = 1.d0
@@ -601,7 +601,7 @@
           ! The user can set the initial configuration
 
           Implicit none
-         Real (Kind=Kind(0.d0)), allocatable, dimension(:,:), Intent(INOUT) :: Initial_field
+          complex (Kind=Kind(0.d0)), allocatable, dimension(:,:), Intent(INOUT) :: Initial_field
 
           Integer :: I, nt, ierr
 

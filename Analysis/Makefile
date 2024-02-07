@@ -1,6 +1,6 @@
 .PHONY : all tidy clean
 BINS= cov_scal.out cov_tau.out cov_tau_ph.out Max_SAC.out cov_eq.out cov_mut.out ana.out
-BINS_H5=ana_hdf5.out convert_scal.out convert_latt.out
+BINS_H5=ana_hdf5.out
 OBJS= cov_scal.o   cov_tau.o   cov_tau_ph.o   Max_SAC.o   cov_eq.o   cov_mut.o   ana.o ana_hdf5.o
 OBJS1=Predefined_Latt_mod.o ana_mod.o
 MODS=predefined_lattices.mod ana_mod.mod
