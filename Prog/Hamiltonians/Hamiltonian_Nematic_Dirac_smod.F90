@@ -573,7 +573,7 @@
             Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
             If ( L1 == 1 .or. L2 == 1 ) then
               Write(6,*) ' One dimensional systems not implemented '
-              Stop
+              CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
             endif
           case( 2 )
             Norb = 2
@@ -585,11 +585,11 @@
             Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
             If ( L1 == 1 .or. L2 == 1 ) then
               Write(6,*) ' One dimensional systems not implemented '
-              Stop
+              CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
             endif
           case default
             Write(6,*) "Lattice not yet implemented!"
-            Stop
+            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
           end select
 
           ! This is for the orbital structure.
@@ -734,7 +734,7 @@
                 Enddo
               case default
                 Write(6,*) ' This hopping is not yet implemented '
-                Stop
+                CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
               end select
 
                 Do I = 1,Ndim
@@ -907,7 +907,7 @@
             Enddo
           case default
             Write(6,*) ' This interaction is not yet implemented '
-            Stop
+            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
           end select
         end Subroutine Ham_V
 
@@ -994,7 +994,7 @@
 #endif
           case default
             Write(6,*) ' Error in  Hamiltonian_set_random_nsigma'
-            STOP
+            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
           end select
 
         end Subroutine Hamiltonian_set_nsigma
@@ -1042,7 +1042,7 @@
             enddo
           case default
             Write(6,*) ' Error in Setup_Ising_action '
-            Stop
+            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
           end select
 
           !print*, Global_J, Global_h
@@ -1237,7 +1237,7 @@
             nsigma%f(:,:) = -nsigma_old%f(:,:)
           case default
             write(*,*) "Error in Global_move: Unknown Global_type:", Global_type
-            stop
+            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
           end select
       
           write(*,*) Delta_S0_global(nsigma_old) * T0_Proposal_ratio
@@ -1524,7 +1524,7 @@
             N = latt%N
           case default
             Write(6,*) "Error in Delta_S0_global: Model not yet implemented!"
-            Stop
+            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
           end select
       
           Do I = 1,N
