@@ -146,7 +146,6 @@
         procedure, nopass :: Alloc_obs => Alloc_obs_base
         procedure, nopass :: Obser => Obser_base
         procedure, nopass :: ObserT => ObserT_base
-        procedure, nopass :: measure_hist => measure_hist_base
         procedure, nopass :: Pr_obs => Pr_obs_base
         procedure, nopass :: Init_obs => Init_obs_base
         procedure, nopass :: Global_move_tau => Global_move_tau_base
@@ -188,7 +187,6 @@
 
       !>    Privat Observables
       Type (Obser_Vec ), dimension(:), allocatable :: Obs_scal
-      Type (Obser_hist), dimension(:), allocatable :: Obs_hist
       Type (Obser_Latt), dimension(:), allocatable :: Obs_eq
       Type (Obser_Latt), dimension(:), allocatable :: Obs_tau
 
@@ -451,22 +449,6 @@
           end Subroutine ObserT_base
 
 
-!--------------------------------------------------------------------
-!> @author
-!> ALF Collaboration
-!>
-!> @brief
-!> Measures the histogram observables. Gets called once per sweep.
-!> Currently only works with pure Ising observables.
-!-------------------------------------------------------------------
-      Subroutine measure_hist_base(Phase)
-         Implicit none
-
-         Complex (Kind=Kind(0.d0)), Intent(IN) :: Phase
-
-      end Subroutine measure_hist_base
-
-
     !--------------------------------------------------------------------
     !> @author
     !> ALF Collaboration
@@ -488,11 +470,6 @@
                Do I = 1,Size(Obs_scal,1)
                   Call Print_bin_Vec(Obs_scal(I), Group_Comm)
                enddo
-             endif
-             if ( allocated(Obs_hist) ) then
-                Do I = 1,Size(Obs_hist,1)
-                   Call  Obs_hist(I)%print_bin(Group_Comm)
-                enddo
              endif
              if ( allocated(Obs_eq) ) then
                Do I = 1,Size(Obs_eq,1)
@@ -528,12 +505,6 @@
                Do I = 1,Size(Obs_scal,1)
                   Call Obser_vec_Init(Obs_scal(I))
                Enddo
-             endif
-
-             if ( allocated(Obs_hist) ) then
-                Do I = 1,Size(Obs_hist,1)
-                   Call Obs_hist(I)%init()
-                Enddo
              endif
     
              if ( allocated(Obs_eq) ) then

@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 - 2021 The ALF project
+!  Copyright (C) 2016 - 2020 The ALF project
 !
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -60,7 +60,7 @@
           Character (len=64) :: analysis_mode                 ! How to analyze the observable
           Character (len=64), allocatable :: description(:)   ! Optional short description
        contains
-          procedure :: make        => Obser_vec_make
+          !procedure :: make        => Obser_vec_make
           procedure :: init        => Obser_vec_init
           procedure :: print_bin   => print_bin_vec
           procedure :: measure     => Obser_vec_measure
@@ -90,35 +90,10 @@
                                            ! - PH  : finite temperature particle-hole
                                            ! - PP  : finite temperature particle-particle
        contains
-          procedure :: make        => Obser_latt_make
-          procedure :: make_norb   => Obser_latt_make_norb
+          !procedure :: make        => Obser_latt_make
           procedure :: init        => Obser_latt_init
           procedure :: print_bin   => print_bin_latt
        end type Obser_Latt
-
-
-       type :: Obser_hist
-!>  Defines histogram observable
-          private
-          Integer                     :: N        ! Number of measurements
-          real      (Kind=Kind(0.d0)) :: Ave_Sign ! Averarge sign
-          Character (len=64)          :: name     ! Name of file in which the bins will be written out
-
-          !real      (Kind=Kind(0.d0)) :: val ! temporary storage for value
-
-          integer                     :: N_classes        ! Number of classes, in which the observable gets counted
-          real      (Kind=Kind(0.d0)) :: upper, lower     ! Range, in which the observable should lie.
-          real      (Kind=Kind(0.d0)) :: d_class          ! width of one class
-
-          integer, allocatable        :: counts(:)        !
-          integer                     :: N_below, N_above ! Counts occurences outside of range
-
-       contains
-          procedure :: make        => Obser_hist_make
-          procedure :: init        => Obser_hist_init
-          procedure :: print_bin   => print_bin_hist
-          procedure :: measure     => Obser_hist_measure
-       end type Obser_hist
 
        Contains
 
@@ -165,7 +140,7 @@
 !> \endverbatim
 !-------------------------------------------------------------------
            Implicit none
-           class(Obser_Latt), Intent(INOUT)      :: Obs
+           type(Obser_Latt), Intent(INOUT)      :: Obs
            Integer,           Intent(IN)         :: Nt
            Character(len=64), Intent(IN)         :: Filename
            Type(Lattice),     Intent(IN), target :: Latt
@@ -180,30 +155,6 @@
            Obs%Channel = Channel
            Obs%dtau = dtau
          end subroutine Obser_Latt_make
-
-         Subroutine Obser_Latt_make_norb(Obs, Nt, Norb, Filename, Latt, Channel, dtau)
-            Implicit none
-            class(Obser_Latt), Intent(INOUT)      :: Obs
-            Integer,           Intent(IN)         :: Nt
-            Integer,           Intent(IN)         :: Norb
-            Character(len=64), Intent(IN)         :: Filename
-            Type(Lattice),     Intent(IN), target :: Latt
-            Character(len=2),  Intent(IN)         :: Channel
-            Real(Kind=Kind(0.d0)),  Intent(IN)    :: dtau
-           
-            allocate(Obs%Latt_unit)
-            Obs%Latt_unit%N_coord = 0
-            Obs%Latt_unit%Norb = Norb
-            allocate(Obs%Latt_unit%Orb_pos_p(Norb, 2))
-            Obs%Latt_unit%Orb_pos_p = 0.d0
-            
-            Allocate (Obs%Obs_Latt(Latt%N, Nt, Obs%Latt_unit%Norb, Obs%Latt_unit%Norb))
-            Allocate (Obs%Obs_Latt0(Obs%Latt_unit%Norb))
-            Obs%File_Latt = Filename
-            Obs%Latt => Latt
-            Obs%Channel = Channel
-            Obs%dtau = dtau
-         end subroutine Obser_Latt_make_norb
 !--------------------------------------------------------------------
 
          Subroutine Obser_Latt_Init(Obs)
@@ -247,7 +198,7 @@
 !> \endverbatim
 !-------------------------------------------------------------------
            Implicit none
-           class(Obser_vec), intent(INOUT) :: Obs
+           type(Obser_vec), intent(INOUT) :: Obs
            Integer, Intent(IN)             :: N
            Character (len=64), Intent(IN)  :: Filename
            Character (len=64), Intent(IN), optional :: analysis_mode
@@ -277,61 +228,6 @@
 
 !--------------------------------------------------------------------
 
-         Subroutine Obser_hist_make(obs, N_classes, upper, lower ,name)
-           Implicit none
-           class (Obser_hist)         , intent(INOUT) :: obs
-           Integer                    , Intent(IN)    :: N_classes
-           real      (Kind=Kind(0.d0)), Intent(IN)    :: upper, lower
-           Character (len=64)         , Intent(IN)    :: name
-
-           obs%N_classes = N_classes
-           obs%upper = upper
-           obs%lower = lower
-
-           obs%d_class = (upper - lower) / real(N_classes, Kind=Kind(0.d0))
-
-           Allocate ( obs%counts(N_classes) )
-           Obs%name = name
-         end subroutine Obser_hist_make
-!--------------------------------------------------------------------
-
-         Subroutine Obser_hist_Init(obs)
-           Implicit none
-           class (Obser_hist), intent(INOUT) :: obs
-           obs%N       = 0
-           obs%Ave_Sign= 0.d0
-
-           obs%counts(:) = 0
-           obs%N_below = 0
-           obs%N_above = 0
-         end subroutine Obser_hist_Init
-
-!--------------------------------------------------------------------
-
-         Subroutine  Obser_hist_measure(obs, value, sign_in)
-           Implicit none
-
-           class (Obser_hist),       Intent(Inout)   :: Obs
-           Real (Kind=Kind(0.d0)),   Intent(In)      :: value, sign_in
-
-           Integer :: n_x
-
-           obs%N = obs%N + 1
-           obs%Ave_sign  =  obs%Ave_sign + sign_in
-
-           n_x = ceiling( (value - obs%lower) / obs%d_class )
-           if ( n_x < 1 ) then
-              obs%N_below = obs%N_below + 1
-           elseif ( n_x > obs%N_classes ) then
-              obs%N_above = obs%N_above + 1
-           else
-              obs%counts(n_x) = obs%counts(n_x) + 1
-           endif
-
-         end Subroutine  Obser_hist_measure
-
-!--------------------------------------------------------------------
-
          Subroutine Obser_vec_measure(obs, value, Phase)
            Implicit none
 
@@ -355,167 +251,6 @@
            endif
 
          end Subroutine  Obser_vec_measure
-
-!--------------------------------------------------------------------
-
-         Subroutine Print_bin_hist(obs,Group_Comm)
-#if defined MPI
-           Use mpi
-#endif
-#if defined HDF5
-           Use hdf5
-           Use alf_hdf5
-#endif
-           Implicit none
-
-           class (Obser_hist), Intent(Inout) :: obs
-           Integer           , Intent(In)    :: Group_Comm
-
-           ! Local
-           Integer :: I
-           Character (len=64)           :: File_pr
-           real(Kind=Kind(0.d0)), pointer :: counts_out(:)
-           real(Kind=Kind(0.d0)), target :: N_above_out, N_below_out
-
-#if defined HDF5
-           Character (len=7), parameter  :: File_h5 = "data.h5"
-           Character (len=64)            :: filename, groupname, obs_dsetname, sgn_dsetname, above_dsetname, below_dsetname
-           INTEGER(HID_T)                :: file_id, group_id
-           logical                       :: link_exists
-           INTEGER                       :: hdferr
-           INTEGER(HSIZE_T), allocatable :: dims(:)
-           TYPE(C_PTR)                   :: dat_ptr
-           real(Kind=Kind(0.d0)), target :: sgn
-#endif
-#if defined MPI
-           Integer        :: Ierr, Isize, Irank, No
-           INTEGER        :: irank_g, isize_g, igroup
-           real     (Kind=Kind(0.d0)), allocatable :: Tmp(:)
-           Real     (Kind=Kind(0.d0)) :: X
-
-           CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-           CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-           call MPI_Comm_size(Group_Comm, isize_g, ierr)
-           igroup           = irank/isize_g
-#endif
-           allocate( counts_out(obs%N_classes) )
-           counts_out  = dble(Obs%counts ) / dble(Obs%N)
-           N_above_out = dble(Obs%N_above) / dble(Obs%N)
-           N_below_out = dble(Obs%N_below) / dble(Obs%N)
-           Obs%Ave_sign = Obs%Ave_sign/dble(Obs%N)
-           write(File_pr, '(A,A)') trim(Obs%name), "_hist"
-#if defined HDF5
-           groupname = File_pr
-           filename = File_h5
-#endif
-
-#if defined MPI
-           No = size(counts_out, 1)
-           Allocate (Tmp(No) )
-           Tmp = cmplx(0.d0,0.d0,kind(0.d0))
-           CALL MPI_REDUCE(counts_out,Tmp,No,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-           counts_out = Tmp/DBLE(ISIZE_g)
-           deallocate (Tmp )
-
-           I = 1
-           X = 0.d0
-           CALL MPI_REDUCE(Obs%Ave_sign,X,I,MPI_REAL8,MPI_SUM, 0,Group_comm,IERR)
-           Obs%Ave_sign = X/DBLE(ISIZE_g)
-
-           X = 0.d0
-           CALL MPI_REDUCE(N_above_out,X,I,MPI_REAL8,MPI_SUM, 0,Group_comm,IERR)
-           N_above_out = X/DBLE(ISIZE_g)
-
-           X = 0.d0
-           CALL MPI_REDUCE(N_below_out,X,I,MPI_REAL8,MPI_SUM, 0,Group_comm,IERR)
-           N_below_out = X/DBLE(ISIZE_g)
-
-           if (Irank_g == 0 ) then
-#endif
-
-#if defined TEMPERING
-              write(File_pr,'(A,I0,A,A,A)') "Temp_",igroup,"/",trim(Obs%name), "_hist"
-#if defined HDF5
-              write(filename ,'(A,I0,A,A)') "Temp_",igroup,"/",trim(File_h5)
-#endif
-#endif
-
-#if defined HDF5
-              write(obs_dsetname,'(A,A,A)') trim(groupname), "/obser"
-              write(sgn_dsetname,'(A,A,A)') trim(groupname), "/sign"
-              write(above_dsetname,'(A,A,A)') trim(groupname), "/above"
-              write(below_dsetname,'(A,A,A)') trim(groupname), "/below"
-
-              CALL h5fopen_f (filename, H5F_ACC_RDWR_F, file_id, hdferr)
-
-              !Check if observable already exists in hdf5 file
-              CALL h5lexists_f(file_id, groupname, link_exists, hdferr)
-
-              if ( .not. link_exists ) then
-                !Create Group for observable
-                CALL h5gcreate_f (file_id, groupname, group_id, hdferr)
-                call write_attribute(group_id, '.', "N_classes", obs%N_classes, hdferr)
-                call write_attribute(group_id, '.', "upper"    , obs%upper    , hdferr)
-                call write_attribute(group_id, '.', "lower"    , obs%lower    , hdferr)
-                CALL h5gclose_f  (group_id, hdferr)
-
-                !Create Dataset for data
-                allocate( dims(2) )
-                dims = (/size(counts_out,1), 0/)
-                CALL init_dset(file_id, obs_dsetname, dims, .false.)
-                deallocate( dims )
-
-                !Create Dataset for sign
-                allocate( dims(1) )
-                dims = (/0/)
-                CALL init_dset(file_id, sgn_dsetname, dims, .false.)
-                deallocate( dims )
-
-                !Create Dataset
-                allocate( dims(1) )
-                dims = (/0/)
-                CALL init_dset(file_id, above_dsetname, dims, .false.)
-                deallocate( dims )
-
-                !Create Dataset
-                allocate( dims(1) )
-                dims = (/0/)
-                CALL init_dset(file_id, below_dsetname, dims, .false.)
-                deallocate( dims )
-              endif
-
-              !Write data
-              dat_ptr = C_LOC(counts_out(1))
-              CALL append_dat(file_id, obs_dsetname, dat_ptr)
-
-              !Write sign
-              sgn = Obs%Ave_sign
-              dat_ptr = C_LOC(sgn)
-              CALL append_dat(file_id, sgn_dsetname, dat_ptr)
-
-              !Write
-              dat_ptr = C_LOC(N_above_out)
-              CALL append_dat(file_id, above_dsetname, dat_ptr)
-
-              !Write
-              dat_ptr = C_LOC(N_below_out)
-              CALL append_dat(file_id, below_dsetname, dat_ptr)
-
-              CALL h5fclose_f(file_id, hdferr)
-#else
-              Open (Unit=10,File=File_pr, status="unknown",  position="append")
-              WRITE(10,*) obs%N_classes, obs%upper, obs%lower, N_above_out, N_below_out, &
-                          & (counts_out(I), I=1,size(counts_out,1)), Obs%Ave_sign
-              close(10)
-#endif
-#if defined MPI
-           endif
-#endif
-           deallocate( counts_out )
-
-
-         end Subroutine Print_bin_hist
 
 !--------------------------------------------------------------------
 
