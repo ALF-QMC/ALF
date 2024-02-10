@@ -358,7 +358,7 @@
           DOM  =  (OM_En -  OM_St)/dble(Ndis)
           A =  A_classic/Dom
           do  nw  = 1,Ndis
-             xom(nw) =  OM_St +  dble(nw)*dom
+             xom(nw) =  OM_St +  dble(nw-1)*dom
           enddo
           Open (Unit = 11,File="Data_out_cl", Status ="unknown")
           Do Nt = 1,Ntau
