@@ -12,6 +12,22 @@ __copyright__ = "Copyright 2022, The ALF Project"
 __license__ = "GPL"
 
 
+def get_ham_names_ham_files(ham_list_file):
+    """Return list of Hamiltonian names and files"""
+    with open(ham_list_file, 'r', encoding='UTF-8') as f:
+        lines = [line.strip().split() for line in f.read().splitlines()
+                    if not line[0] == '#']
+    ham_names = []
+    ham_files = []
+    for line in lines:
+        ham_names.append(line[0])
+        try:
+            ham_files.append(line[1])
+        except IndexError:
+            ham_files.append(
+                'Hamiltonians/Hamiltonian_{}_smod.F90'.format(line[0]))
+    return ham_names, ham_files
+
 def parse(filename):
     """Parse Fortran file for parameter lists.
 
