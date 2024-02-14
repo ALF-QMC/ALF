@@ -1,0 +1,3 @@
+[submodule "Prog/Hamiltonians_external"]
+	path = Prog/Hamiltonians_external
+	url = https://git.physik.uni-wuerzburg.de/ALF/hamiltonians.git
