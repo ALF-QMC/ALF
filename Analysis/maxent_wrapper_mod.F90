@@ -30,7 +30,42 @@
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
 module MaxEnt_Wrapper_mod
+   Implicit none
    contains
+   subroutine read_tau_result(filename, N_cov, ntau, nbin_qmc, Beta, Norb, Channel, XCOV, XQMC, XTAU)
+      Implicit none
+      Character (Len=*), intent(in) :: filename
+      Integer          , intent(in) :: N_cov
+
+      Integer                            , intent(out) :: ntau, nbin_qmc, Norb
+      Real (Kind=Kind(0.d0))             , intent(out) :: beta
+      Character (Len=:),      allocatable, intent(out) :: Channel
+      Real (Kind=Kind(0.d0)), allocatable, intent(out) :: XCOV(:,:), XQMC(:), XTAU(:)
+
+      Character (len=64)     :: str_temp
+      Real (Kind=Kind(0.d0)) :: err
+      integer                :: nt, nt1
+
+      open (unit=10,File=filename, status="unknown")
+      read(10,*)  ntau, nbin_qmc, Beta, Norb,  str_temp
+      Channel  = trim(str_temp)
+      Allocate ( XCOV(NTAU,NTAU), XQMC(NTAU),XTAU(NTAU) )
+      XCOV  = 0.d0
+      Do nt = 1,NTAU
+         read(10,*)  xtau(nt), xqmc(nt), err
+         xcov(nt,nt) = err*err
+      Enddo
+      if (N_cov.eq.1) then
+         do nt = 1,ntau
+            do nt1 = 1,ntau
+               read(10,*) xcov(nt,nt1)
+            enddo
+         enddo
+      endif
+      close(10)
+   end subroutine read_tau_result
+
+
    Subroutine  Rescale ( XCOV, XQMC,XTAU, Ntau_st, Ntau_en, Tolerance,  Ntau)
 
       Implicit none

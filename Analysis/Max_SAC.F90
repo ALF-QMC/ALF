@@ -64,13 +64,12 @@ Program MaxEnt_Wrapper
        Logical                :: Checkpoint,  Stochastic, Default_model_exists, Particle_channel_PH
        Character (Len=:), allocatable :: Channel
        Character (Len=1)      :: Char, Char1
-       Character (len=64)     :: str_temp
        ! Space  for classic MaxEnt
        Real (Kind=Kind(0.d0)), allocatable ::  Xker_classic(:,:),  A_classic(:),  Default(:)
 
-       Integer                :: nt, nt1, io_error, n,nw, nwp, ntau, N_alpha_1, i,  nbin_qmc
+       Integer                :: nt, io_error, n,nw, nwp, ntau, N_alpha_1, i,  nbin_qmc
        Integer                :: ntau_st, ntau_en, ntau_new, Ntau_old
-       Real (Kind=Kind(0.d0)) :: dtau, pi, xmom1, x,x1,x2, tau, omp, om, Beta,err, delta, Dom
+       Real (Kind=Kind(0.d0)) :: dtau, pi, xmom1, x,x1,x2, tau, omp, om, Beta, delta, Dom
        Real (Kind=Kind(0.d0)) :: Zero, Alpha_classic_st=100000.d0
 
        NAMELIST /VAR_Max_Stoch/ Ngamma, Ndis,  NBins, NSweeps, Nwarm, N_alpha, &
@@ -92,23 +91,7 @@ Program MaxEnt_Wrapper
        
        INQUIRE(FILE="Default", EXIST=Default_model_exists)
 
-       open (unit=10,File="g_dat", status="unknown")
-       read(10,*)  ntau, nbin_qmc, Beta, Norb,  str_temp
-       Channel  = trim(str_temp)
-       Allocate ( XCOV(NTAU,NTAU), XQMC(NTAU),XTAU(NTAU) )
-       XCOV  = 0.d0
-       Do nt = 1,NTAU
-          read(10,*)  xtau(nt), xqmc(nt), err
-          xcov(nt,nt) = err*err
-       Enddo
-       if (N_cov.eq.1) then
-          do nt = 1,ntau
-             do nt1 = 1,ntau
-                read(10,*) xcov(nt,nt1)
-             enddo
-          enddo
-       endif
-       close(10)
+       call read_tau_result("g_dat", N_cov, ntau, nbin_qmc, Beta, Norb, Channel, XCOV, XQMC, XTAU)
 
        dtau = Xtau(2) - Xtau(1)
        11 format(A20, ': ', A)
