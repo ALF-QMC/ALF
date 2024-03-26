@@ -405,26 +405,26 @@ The back transformation  yields
  
 \subsection{ Integration  over  the  spectral  function   } 
 
-In many   case,  one  would like  to  compute  the   integration 
+In many cases,  one  would like  to  compute  the   integral
 \begin{equation}
 (F,A) = \int d \omega F(\omega) A(\omega)
 \end{equation} 
-for  a  user  defined  function $F(\omega) $   and  the  spectral  function  produced  in the   stochastic  MaxEnt.  An  example  
-where  this  can  become handy  is  the  calculation of  the    the    quantum  Fisher  information (QFI) \cite{Hauke16}  or susceptibilities. 
-As   seen   above,  the   stochastic MaxEnt,    encodes  the  image $n(x)$ as  a  set  of   Dirac $\delta$-functions  \ref{eqn:n_parametrization} thus  
-rendering the  integration   very  convenient to  carry  out.  Since we  stochastically  sample  the image, we  can equally  estimate  
+for  a  user  defined  function $F(\omega) $   and  the  spectral  function $A(\omega)$ produced  in the   stochastic  MaxEnt.  An example of an application
+where  this  can  come in handy  is  the  calculation of  the    quantum  Fisher  information (QFI) \cite{Hauke16}  or susceptibilities. 
+As   seen   above,  the   stochastic MaxEnt   encodes  the  image $n(x)$ as  a  set  of   Dirac $\delta$-functions  (Eq.~\eqref{eqn:n_parametrization}); thus  
+rendering the  integration   very  convenient to  carry  out.  Since we  stochastically  sample  the image, we  can easily estimate  
 the  fluctuations of  the result.    In fact,  
 \begin{equation}
-  (F,A)     =  M_0 \int_{0}^{1}d x  F(\Phi^{-1}(x)) n(x)  
+  (F,A)     =  M_0 \int_{0}^{1}d x  F(\Phi^{-1}(x)) n(x) . 
 \end{equation}
 The  function  $ F(\omega) $  is  provided  by  the  user  in the  call to  the stochastic  MaxEnt  routine.  The  program  then 
 computes $(F,A) $ at  the  given  sets  of   temperatures  $\alpha$ (see Eq.~\ref{eqn:Stoch_MaxEnt})   provided  by  the user.    
 
-One  can use  the above  to compute  very  efficiently susceptibilities   that  are   typically  of the form: 
+One  can use  the above  to   efficiently  compute susceptibilities---   typically  of the form: 
 \begin{equation}
    \chi  =   \int_{0}^{\beta } d \tau   g(\tau)      =   \int d  \omega \underbrace{ \int_{0}^{\beta}  d  \tau  K(\tau, \omega)  }_{\equiv F(\omega)}   \, A (\omega). 
 \end{equation}
-Here,  the   analytical  continuation is  used  as   an  optimal fit  function  to  the  imaginary time  data,  allowing to  minimize   finite  
+Here,  the   analytic  continuation is  used  as   an  optimal fit  function  to  the  imaginary time  data,  allowing the  minimization of   finite  
 discretization  time  errors. 
 
 Another  example is  the  quantum Fisher  information \cite{Hauke16}.  In the particle-hole channel,  this  quantity  reads: 
