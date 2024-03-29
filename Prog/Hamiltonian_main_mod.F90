@@ -189,6 +189,7 @@
       Type (Obser_Vec ), dimension(:), allocatable :: Obs_scal
       Type (Obser_Latt), dimension(:), allocatable :: Obs_eq
       Type (Obser_Latt), dimension(:), allocatable :: Obs_tau
+      Type (Obser_hist), dimension(:), allocatable :: Obs_hist
 
 
 #include "Hamiltonians_interface.h"
@@ -481,6 +482,11 @@
                   Call Print_bin_Latt(Obs_tau(I), Group_Comm)
                enddo
              endif
+             if ( allocated(Obs_hist) ) then
+                Do I = 1,Size(Obs_hist,1)
+                   Call  Obs_hist(I)%print_bin(Group_Comm)
+                enddo
+             endif
     
           end Subroutine Pr_obs_base
 
@@ -518,6 +524,12 @@
                   Call Obser_Latt_Init(Obs_tau(I))
                Enddo
              Endif
+
+             if ( allocated(Obs_hist) ) then
+                Do I = 1,Size(Obs_hist,1)
+                   Call Obs_hist(I)%init()
+                Enddo
+             endif
     
           end Subroutine Init_obs_base
 
