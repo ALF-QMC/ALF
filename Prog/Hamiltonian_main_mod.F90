@@ -144,6 +144,8 @@
         procedure, nopass :: ham_set => ham_set_base
         procedure, nopass :: Alloc_obs => Alloc_obs_base
         procedure, nopass :: Obser => Obser_base
+        procedure, nopass :: E_loc => E_loc_base
+        procedure, nopass :: weight_loc => weight_loc_base
         procedure, nopass :: ObserT => ObserT_base
         procedure, nopass :: Pr_obs => Pr_obs_base
         procedure, nopass :: Init_obs => Init_obs_base
@@ -205,6 +207,10 @@
 !!$         end subroutine Ham_Alloc_LRC
 !!$         module subroutine Ham_Alloc_Z2_Matter()
 !!$         end subroutine Ham_Alloc_Z2_Matter
+!!$         module subroutine Ham_Alloc_Anderson()
+!!$         end subroutine Ham_Alloc_Anderson
+!!$         module subroutine Ham_Alloc_Hubbard_optimization()
+!!$         end subroutine Ham_Alloc_Hubbard_optimization
 !!$      end interface
       
     contains
@@ -389,20 +395,31 @@
     !> \endverbatim
     !-------------------------------------------------------------------
           subroutine Obser_base(GR,Phase,Ntau, Mc_step_weight)
-
              Implicit none
-
              Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
              Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE
              Integer, INTENT(IN)          :: Ntau
              Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
              Logical, save              :: first_call=.True.
-             
              If  (first_call)    then 
                 write(error_unit, *) "Warning: Obser not implemented."
                 first_call=.false.
              endif
           end Subroutine Obser_base
+
+
+         Complex (Kind=Kind(0.d0)) function E_loc_base(GR)
+          Implicit none
+          complex (Kind=Kind(0.d0)), Intent(in) :: GR(Ndim,Ndim,N_FL)
+          E_loc_base = cmplx(0.d0, 0.d0, kind(0.d0))
+         end function E_loc_base
+
+
+        Complex (Kind=Kind(0.d0)) function weight_loc_base(weight)
+          Implicit none
+          complex (Kind=Kind(0.d0)), Intent(in) :: weight(:)
+          weight_loc_base = cmplx(0.d0, 0.d0, kind(0.d0))
+        end function weight_loc_base
 
 
     !--------------------------------------------------------------------

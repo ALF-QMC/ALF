@@ -140,6 +140,9 @@
         procedure, nopass :: Ham_Set
         procedure, nopass :: Alloc_obs
         procedure, nopass :: Obser
+        !procedure, nopass :: ObserT
+        procedure, nopass :: E_loc
+        procedure, nopass :: weight_loc
         procedure, nopass :: ObserT
         procedure, nopass :: weight_reconstruction
         procedure, nopass :: GR_reconstruction
@@ -166,9 +169,9 @@
       logical               :: Adiabatic= .false.   ! If  true,  and projector  true then adiabatic  switching on of  U. 
       real(Kind=Kind(0.d0)) :: Theta    = 10.d0     ! Projection parameter
       !logical              :: Symm     = .true.    ! Whether symmetrization takes place
-      Integer               :: N_part   = -1        ! Number of particles in trial wave function. If N_part < 0 -> N_part = L1*L2/2
+      Integer               :: N_part   = -1        ! Number of particles in trial wave function. If N_part < 0 -> N_part = L1*L2/2 
       !#PARAMETERS END#
-
+      
       Type (Lattice),       target :: Latt
       Type (Unit_cell),     target :: Latt_unit
       INTEGER :: nf_calc, nf_reconst
@@ -306,6 +309,9 @@
           
         End Subroutine Ham_Set
 
+! NAMELIST /VAR_VAFQMC/ Del_BCS,  M_AFM 
+ !real(Kind=Kind(0.d0)) :: Del_BCS    = 0.d0   !Varitional bcs  mean-field parameters for trial wave-functions
+ !real(Kind=Kind(0.d0)) :: M_AFM    = 0.d0     !Varitional antiferromagnetic  mean-field parameters for trial wave-functions 
 !--------------------------------------------------------------------
 !> @author
 !> ALF Collaboration
@@ -345,11 +351,15 @@
 !> @brief
 !> Sets  the Hopping
 !--------------------------------------------------------------------
+
          Subroutine Ham_Hop
 
          Implicit none
 
          Integer :: nf , I, Ix, Iy, nt
+         Real (Kind=Kind(0.d0)), allocatable :: hi(:), ti(:), lambdai(:)
+
+
          allocate(Op_T(1,N_FL))
          do nf = 1,N_FL
             Call Op_make(Op_T(1,nf),Ndim)
@@ -362,10 +372,12 @@
                   Op_T(1,nf)%O(I,  Iy) = cmplx(-Ham_T,    0.d0, kind(0.D0))
                   Op_T(1,nf)%O(Iy, I ) = cmplx(-Ham_T,    0.d0, kind(0.D0))
                endif
+
                Op_T(1,nf)%O(I,  I ) = cmplx(-Ham_chem, 0.d0, kind(0.D0))
                Op_T(1,nf)%P(I) = I
             Enddo
             If  (Adiabatic)   then
+               !call   time_dependent_vmfp(hi, ti, lambdai)
                Allocate(OP_T(1,nf)%g_t(Ltrot))
                Op_T(1,nf)%g_t  = -Dtau
                do  nt = 1, Thtrot
@@ -379,46 +391,56 @@
             Call Op_set(Op_T(1,nf))
          enddo
        end Subroutine Ham_Hop
+
 !--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Sets the interaction
+!--------------------------------------------------------------------
+       Subroutine Ham_V
 
-
-        Subroutine Ham_Hop1
-
+         Use Predefined_Int
          Implicit none
 
-         Integer :: nf , I, Ix, Iy, nt
-         allocate(Op_T(1,N_FL))
+         Integer :: nf, I, nt
+         Real (Kind=Kind(0.d0)) :: X
+         Real (Kind=Kind(0.d0)), allocatable :: hi(:), ti(:), lambdai(:)
+
+
+         Allocate(Op_V(Ndim,N_FL))
+
          do nf = 1,N_FL
-            Call Op_make(Op_T(1,nf),Ndim)
-            Do I = 1,Latt%N
-               Ix = Latt%nnlist(I,1,0)
-               Op_T(1,nf)%O(I,  Ix) = cmplx(-Ham_T,    0.d0, kind(0.D0))
-               Op_T(1,nf)%O(Ix, I ) = cmplx(-Ham_T,    0.d0, kind(0.D0))
-               If ( L2 > 1 ) then
-                  Iy = Latt%nnlist(I,0,1)
-                  Op_T(1,nf)%O(I,  Iy) = cmplx(-Ham_T,    0.d0, kind(0.D0))
-                  Op_T(1,nf)%O(Iy, I ) = cmplx(-Ham_T,    0.d0, kind(0.D0))
-               endif
-               Op_T(1,nf)%O(I,  I ) = cmplx(-Ham_chem, 0.d0, kind(0.D0))
-               Op_T(1,nf)%P(I) = I
-            Enddo
-            If  (Adiabatic)   then
-               Allocate(OP_T(1,nf)%g_t(Ltrot))
-               Op_T(1,nf)%g_t  = -Dtau
-               do  nt = 1, Thtrot
-                  Op_T(1,nf)%g_t(nt) = -Dtau*dble(nt)/dble(thtrot)
-                  Op_T(1,nf)%g_t(Ltrot-(nt-1))  = -Dtau*dble(nt)/dble(thtrot)
-               enddo
-            else
-            Op_T(1,nf)%g      = -Dtau
-            endif
-            Op_T(1,nf)%alpha  =  cmplx(0.d0,0.d0, kind(0.D0))
-            Call Op_set(Op_T(1,nf))
+            do i  = 1, Ndim
+               Call Op_make(Op_V(i,nf), 1)
+            enddo
          enddo
 
-       end Subroutine Ham_Hop1
-!--------------------------------------------------------------------
+         Do nf = 1,N_FL
+            X = 1.d0
+            if (nf == 2)  X = -1.d0
+            Do i = 1,Ndim
+               Op_V(i,nf)%P(1)   = I
+               Op_V(i,nf)%O(1,1) = cmplx(1.d0, 0.d0, kind(0.D0))
+               If  (Adiabatic)   then
+                  Allocate(OP_V(i,nf)%g_t(Ltrot))
+                  call   time_dependent_vmfp(hi, ti, lambdai)
+                  Op_V(i,nf)%g_t  = X*SQRT(CMPLX(DTAU*ham_U/2.d0, 0.D0, kind(0.D0)))
+                  do  nt = 1, Thtrot
+                     Op_V(i,nf)%g_t(nt)            = X*SQRT(CMPLX(DTAU*dble(nt)/dble(thtrot)*ham_U/2.d0, 0.D0, kind(0.D0)))
+                     Op_V(i,nf)%g_t(Ltrot-(nt-1))  = X*SQRT(CMPLX(DTAU*dble(nt)/dble(thtrot)*ham_U/2.d0, 0.D0, kind(0.D0)))
+                  enddo
+               else
+                  Op_V(i,nf)%g      = X*SQRT(CMPLX(DTAU*ham_U/2.d0, 0.D0, kind(0.D0)))
+               endif
+               Op_V(i,nf)%alpha  = cmplx(-0.5d0, 0.d0, kind(0.D0))
+               Op_V(i,nf)%type   = 2
+               Call Op_set( Op_V(i,nf) )
+            Enddo
+         Enddo
 
+       end Subroutine Ham_V
 
 
 
@@ -429,102 +451,52 @@
 !> @brief
 !> Sets the trial wave function
 !--------------------------------------------------------------------
-        Subroutine Ham_Trial()
+       Subroutine Ham_Trial()
 
-          Use Predefined_Trial
+         Use Predefined_Trial
 
-          Implicit none
+         Implicit none
 
-          Integer                              :: nf, Ix, Iy, I, n
-          Real (Kind=Kind(0.d0)), allocatable  :: H0(:,:),  U0(:,:), E0(:)
-          Real (Kind=Kind(0.d0))               :: Pi = acos(-1.d0), Delta = 0.01d0
+         Integer                              :: nf, Ix, Iy, I, n
+         Real (Kind=Kind(0.d0)), allocatable  :: H0(:,:),  U0(:,:), E0(:)
+         Real (Kind=Kind(0.d0))               :: Pi = acos(-1.d0), Delta = 0.01d0
 
-          Allocate(WF_L(N_FL),WF_R(N_FL))
-          do nf=1,N_FL
-             Call WF_alloc(WF_L(nf),Ndim,N_part)
-             Call WF_alloc(WF_R(nf),Ndim,N_part)
-          enddo
+         Allocate(WF_L(N_FL),WF_R(N_FL))
+         do nf=1,N_FL
+            Call WF_alloc(WF_L(nf),Ndim,N_part)
+            Call WF_alloc(WF_R(nf),Ndim,N_part)
+         enddo
 
 
-          Allocate(H0(Ndim,Ndim),  U0(Ndim, Ndim),  E0(Ndim) )
-          H0 = 0.d0; U0 = 0.d0;  E0=0.d0
-          Do I = 1,Latt%N
-             Ix = Latt%nnlist(I,1,0)
-             H0(I,  Ix) = -Ham_T*(1.d0   +   Delta*cos(Pi*real(Latt%list(I,1) + Latt%list(I,2),Kind(0.d0))))
-             H0(Ix, I ) = -Ham_T*(1.d0   +   Delta*cos(Pi*real(Latt%list(I,1) + Latt%list(I,2),Kind(0.d0))))
-             If (L2  > 1 ) Then
-                Iy = Latt%nnlist(I,0,1)
-                H0(I,  Iy) = -Ham_T *(1.d0  -   Delta)
-                H0(Iy, I ) = -Ham_T *(1.d0  -   Delta)
-             Endif
-          Enddo
-          Call  Diag(H0,U0,E0)
+         Allocate(H0(Ndim,Ndim),  U0(Ndim, Ndim),  E0(Ndim) )
+         H0 = 0.d0; U0 = 0.d0;  E0=0.d0
+         Do I = 1,Latt%N
+            Ix = Latt%nnlist(I,1,0)
+            H0(I,  Ix) = -Ham_T*(1.d0   +   Delta*cos(Pi*real(Latt%list(I,1) + Latt%list(I,2),Kind(0.d0))))
+            H0(Ix, I ) = -Ham_T*(1.d0   +   Delta*cos(Pi*real(Latt%list(I,1) + Latt%list(I,2),Kind(0.d0))))
+            If (L2  > 1 ) Then
+               Iy = Latt%nnlist(I,0,1)
+               H0(I,  Iy) = -Ham_T *(1.d0  -   Delta)
+               H0(Iy, I ) = -Ham_T *(1.d0  -   Delta)
+            Endif
+         Enddo
+         Call  Diag(H0,U0,E0)
 !!$          Do I = 1,Ndim
 !!$             Write(6,*) I,E0(I)
 !!$          Enddo
-          Do nf = 1,N_FL
-             do n=1,N_part
-                do I=1,Ndim
-                   WF_L(nf)%P(I,n)=U0(I,n)
-                   WF_R(nf)%P(I,n)=U0(I,n)
-                enddo
-             enddo
-             WF_L(nf)%Degen = E0(N_part+1) - E0(N_part)
-             WF_R(nf)%Degen = E0(N_part+1) - E0(N_part)
-          enddo
+         Do nf = 1,N_FL
+            do n=1,N_part
+               do I=1,Ndim
+                  WF_L(nf)%P(I,n)=U0(I,n)
+                  WF_R(nf)%P(I,n)=U0(I,n)
+               enddo
+            enddo
+            WF_L(nf)%Degen = E0(N_part+1) - E0(N_part)
+            WF_R(nf)%Degen = E0(N_part+1) - E0(N_part)
+         enddo
 
-          Deallocate(H0,  U0,  E0 )
-
-        end Subroutine Ham_Trial
-
-!--------------------------------------------------------------------
-!> @author
-!> ALF Collaboration
-!>
-!> @brief
-!> Sets the interaction
-!--------------------------------------------------------------------
-        Subroutine Ham_V
-
-          Use Predefined_Int
-          Implicit none
-
-          Integer :: nf, I, nt
-          Real (Kind=Kind(0.d0)) :: X
-
-
-          Allocate(Op_V(Ndim,N_FL))
-
-          do nf = 1,N_FL
-             do i  = 1, Ndim
-                Call Op_make(Op_V(i,nf), 1)
-             enddo
-          enddo
-
-          Do nf = 1,N_FL
-             X = 1.d0
-             if (nf == 2)  X = -1.d0
-             Do i = 1,Ndim
-                Op_V(i,nf)%P(1)   = I
-                Op_V(i,nf)%O(1,1) = cmplx(1.d0, 0.d0, kind(0.D0))
-                If  (Adiabatic)   then
-                   Allocate(OP_V(i,nf)%g_t(Ltrot))
-                   Op_V(i,nf)%g_t  = X*SQRT(CMPLX(DTAU*ham_U/2.d0, 0.D0, kind(0.D0)))
-                   do  nt = 1, Thtrot
-                      Op_V(i,nf)%g_t(nt)            = X*SQRT(CMPLX(DTAU*dble(nt)/dble(thtrot)*ham_U/2.d0, 0.D0, kind(0.D0)))
-                      Op_V(i,nf)%g_t(Ltrot-(nt-1))  = X*SQRT(CMPLX(DTAU*dble(nt)/dble(thtrot)*ham_U/2.d0, 0.D0, kind(0.D0)))
-                   enddo
-                else
-                   Op_V(i,nf)%g      = X*SQRT(CMPLX(DTAU*ham_U/2.d0, 0.D0, kind(0.D0)))
-                endif
-                Op_V(i,nf)%alpha  = cmplx(-0.5d0, 0.d0, kind(0.D0))
-                Op_V(i,nf)%type   = 2
-                Call Op_set( Op_V(i,nf) )
-             Enddo
-          Enddo
-
-        end Subroutine Ham_V
-
+         Deallocate(H0,  U0,  E0 )
+       end Subroutine Ham_Trial
 
 !--------------------------------------------------------------------
 !> @author
@@ -729,10 +701,6 @@
              enddo
              Obs_eq(5)%Obs_Latt0(1) = Obs_eq(5)%Obs_Latt0(1) + (GRC(I,I,1) + GRC(I,I,2)) *  ZP*ZS
           enddo
-
-
-
-
         end Subroutine Obser
 !--------------------------------------------------------------------
 !> @author
@@ -808,10 +776,8 @@
              Obs_tau(5)%Obs_Latt0(1) = Obs_tau(5)%Obs_Latt0(1) + &
                   &                   (cmplx(2.d0,0.d0,kind(0.d0)) -  GTT(I,I,1) - GTT(I,I,2))  *  ZP*ZS
           enddo
-
-
-
         end Subroutine OBSERT
+
 
 !--------------------------------------------------------------------
 !> @brief
@@ -913,4 +879,181 @@
          endif
       end Subroutine GRT_reconstruction
 
+
+
+
+
+      !Requirements of iterative optimization
+      !(1)local energy
+      !e_n({\boldsymbol \sigma}^\prime,{\boldsymbol \sigma}) = 
+      !\frac{ \big \langle \psi_\text{MF} \big| U^\dagger_n ({\boldsymbol \sigma}^\prime)  H U_n(\boldsymbol \sigma)\big| \psi_\text{MF} 
+      ! \big\rangle}{W_n({\boldsymbol \sigma}^\prime, {\boldsymbol \sigma})}
+      Complex (kind=kind(0.d0)) function E_loc(GR)
+         implicit none
+         Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
+         !Local
+         Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL)
+         Complex (Kind=Kind(0.d0)) :: Zkin, ZPot, Z, ZP,ZS, ZZ, ZXY
+         Integer :: I,J, imj, nf,  Ix, Iy
+
+         Do nf = 1,N_FL
+         Do I = 1,Ndim
+            Do J = 1,Ndim
+               GRC(I, J, nf) = -GR(J, I, nf)
+            Enddo
+            GRC(I, I, nf) = 1.D0 + GRC(I, I, nf)
+         Enddo
+      Enddo
+      ! GRC(i,j,nf) = < c^{dagger}_{i,nf } c_{j,nf } >
+
+         !Kinetic energy
+         Zkin = cmplx(0.d0, 0.d0, kind(0.D0))
+         Zkin = Zkin * dble(N_SUN)
+         Do I = 1,Latt%N
+            Ix = Latt%nnlist(I,1,0)
+            Zkin = Zkin  + GRC(I,Ix,1)  + GRC(Ix,I,1)  &
+               &       + GRC(I,Ix,2)  + GRC(Ix,I,2)
+         Enddo
+         If (L2 > 1) then
+            Do I = 1,Latt%N
+               Iy = Latt%nnlist(I,0,1)
+               Zkin = Zkin + GRC(I,Iy,2)  + GRC(Iy,I,2)   &
+                     &      + GRC(I,Iy,1)  + GRC(Iy,I,1)
+            Enddo
+         Endif
+         Zkin = Zkin * cmplx(-Ham_T,0.d0,Kind(0.d0))
+   
+         !Potential energy
+         ZPot = cmplx(0.d0, 0.d0, kind(0.D0))
+         Do I = 1,Ndim
+            ZPot = ZPot + Grc(I,I,1) * Grc(I,I,2)
+         Enddo
+         Zpot = Zpot * ham_U
+
+      ! Total local energy
+         E_loc =  (Zkin + Zpot)!
+      end function E_loc
+  
+
+      !(2)Weight in QMC simulations
+      !W_n( {\boldsymbol \sigma}^\prime, {\boldsymbol \sigma}) 
+      != \big\langle \psi_\text{MF} \big| U^\dagger_n({\boldsymbol \sigma^\prime}) U_n({\boldsymbol \sigma}) \big| \psi_\text{MF}  \big\rangle
+      !Complex (kind=kind(0.d0)) function weight_loc(phase, weight)
+      Complex (kind=kind(0.d0)) function weight_loc(weight)
+         implicit none
+         complex (Kind=Kind(0.d0)), Intent(in) :: weight(:)
+         !Total local weight!weight(nf_reconst) = conjg(Weight(nf_calc)) 
+         !weight_loc =   Weight(nf_calc)*abs(Weight(nf_calc))
+         weight_loc =  cmplx(0.d0, 0.d0, kind(0.D0))
+      end function weight_loc
+
+
+      !(3) Stochastic reconstruction matrix
+      !Fisher-information matrix
+      !S_{ij} = \big\langle \big \langle  \frac {\partial \log p_n}{\partial \alpha_i}  \frac {\partial \log p_n}{\partial \alpha_j} \big\rangle \big\rangle \big\rangle 
+      != \big\langle  \big\langle \big \langle  \text{Re}(O_i) \mathcal{R} (O_j) \big\rangle \big\rangle \big\rangle 
+      !\alpha_i-> Mean field parameters
+      !Complex (kind=kind(0.d0)) function Sr_mat(weight)
+         !implicit none
+         !complex (Kind=Kind(0.d0)), Intent(in) :: weight(:)
+         !Complex (Kind=Kind(0.d0)), INTENT(out) :: Sr_mat(N_mfp,N_mfp)
+         !Integer :: I,J
+         ! 
+         !Sr_mat(:,:) =  cmplx(0.d0,0.d0, kind(0.D0))
+         !Do I = 1,N_mfp
+         !   Do J = 1,N_mfp
+         !      Sr_mat(I,J) = weight(I)*weight(J)
+         !   enddo
+         !enddo
+      !end function Sr_mat
+
+
+
+
+      !(4) fixing the dtau and time dependent couplings
+      !dtau will be varitional parameter
+      ! beta is inverse temperature
+      ! dtau is imaginary time
+      ! U is hubbard U
+      ! n is the number of time slices
+      ! t_i i time dependent hopping
+      ! h_i is time dpendent interactions
+      ! time lambadi is time dependent interactions
+      !subroutine time_dependent_vmfp(beta, U, dtau, n, hi, ti, lambdai)
+      subroutine time_dependent_vmfp(hi, ti, lambdai)
+         implicit none
+         Real (Kind=Kind(0.d0)) :: gamma,gmin,gmax,fun_val
+         ! Local variables
+         integer :: i, itr, maxitr, ntl
+         Real (Kind=Kind(0.d0)) :: cost, eps, error, U
+         Real (Kind=Kind(0.d0)), allocatable :: hi(:), ti(:), lambdai(:)
+         !real, external:: fun
+ 
+         !ALF-> representations
+         !Ltrot  = nint(beta/dtau)
+         !Thtrot = nint(theta/dtau)!(T=0)
+         !Ltrot = Ltrot+2*Thtrot
+         !ham_U->U 
+         !np->ntl 
+         !dtau->dtau 
+         !beta->beta 
+         ntl = Ltrot
+         U = ham_U
+         allocate(hi(ntl), ti(ntl+1), lambdai(ntl))
+         ! Calculate threshhold
+         cost = beta / dtau / 2.0
+         eps = 1.0e-14
+         maxitr = 100
+         error = 1.0
+         if (cost > real( ntl)) then
+            gmin = 0.0
+            gmax = 1.0
+            itr = 0 
+            do while (error > eps .and. itr < maxitr)
+               gamma = (gmin + gmax) / 2.0
+               fun_val= fun(gamma,  ntl)
+               if (fun_val > cost) then
+                     gmin = gamma
+               else
+                     gmax = gamma
+               end if
+               error = abs(fun_val - cost)
+               itr = itr + 1
+              ! print *, ' itr,  error =', itr, error, gmin, gmax
+            end do
+         
+            ! Calculate hi
+            hi(ntl) = dtau
+            do i =  ntl - 1, 1, -1
+               hi(i) = hi(i + 1) / gamma
+            end do
+         else
+            gamma = 1.0
+            hi = beta / real( ntl) / 2.0
+         endif
+
+         do i=1, ntl
+            !print*,'i,hi(i)=',i,hi(i)
+            lambdai(i) = sqrt(U * hi(i))
+         enddo
+
+         ti(1) = hi(1) / 2.0
+         do i = 1,  ntl-1
+            ti(i+1) = (hi(i+1) + hi(i)) / 2.0
+         end do
+
+         ti(ntl + 1) = hi(ntl)
+      !   print*, ('t=',ti(i),i=1, ntl+1)
+      !   print*, ('h=',hi(i),i=1, ntl)
+      !   print*, ('l=',lambdai(i),i=1, ntl)
+      end subroutine time_dependent_vmfp
+
+      ! Function to fix constraint on time-dependent coupling
+      Real (Kind=Kind(0.d0)) function fun(p, nn)
+         integer :: nn
+         Real (Kind=Kind(0.d0)) :: p
+         Real (Kind=Kind(0.d0)) :: cost
+         cost = p**(nn - 1)
+         fun = (1.d0 - p * cost) / (1.d0 - p) / cost
+      end function fun
     end submodule ham_Hubbard_optimization_smod

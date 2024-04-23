@@ -146,7 +146,7 @@ Program Main
         Implicit none
 
 #include "git.h"
-
+        COMPLEX (Kind=Kind(0.d0)) ::  E_loc_out, weight_loc_out
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:)  , Allocatable   ::  TEST
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable    :: GR, GR_Tilde
         CLASS(UDV_State), DIMENSION(:), ALLOCATABLE :: udvl, udvr
@@ -996,6 +996,14 @@ Program Main
 
            ENDDO
            Call ham%Pr_obs(Ltau)
+           !!
+           !!
+           !!
+           !Local energy and weight-> to be written in a file
+           E_loc_out = ham%E_loc(GR)
+           weight_loc_out = ham%weight_loc(Phase_array)
+
+
 #if defined(TEMPERING)
            Call Global_Tempering_Pr
 #endif
