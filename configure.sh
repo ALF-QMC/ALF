@@ -56,7 +56,7 @@ set_hdf5_flags()
     fi
     case "$yn" in
       y|Y|"")
-        printf "${RED}Downloading and installing HDF5 in %s.${NC}\n" "$HDF5_DIR"
+        printf "${GREEN}Downloading and installing HDF5 in %s.${NC}\n" "$HDF5_DIR"
         CC="$CC" FC="$FC" CXX="$CXX" HDF5_DIR="$HDF5_DIR" "$ALF_DIR/HDF5/install_hdf5.sh" || return 1
       ;;
       *) 
@@ -127,8 +127,12 @@ set_intelcc()
 {
   if command -v icx > /dev/null; then
     INTELCC="icx"
-  else
+  elif command -v icc > /dev/null; then
     INTELCC="icc"
+  elif command -v gcc > /dev/null; then
+    INTELCC="gcc"
+  else
+    printf "${RED}\n==== Error: C compiler needed for HDF5. None of 'icx', 'icc', 'gcc' found ====${NC}\n\n" 1>&2
   fi
 }
 
@@ -136,8 +140,12 @@ set_intelcxx()
 {
   if command -v icpx > /dev/null; then
     INTELCXX="icpx"
-  else
+  elif command -v icpc > /dev/null; then
     INTELCXX="icpc"
+  elif command -v g++ > /dev/null; then
+    INTELCXX="g++"
+  else
+    printf "${RED}\n==== Error: C++ compiler needed for HDF5. None of 'icpx', 'icpc', 'g++' found ====${NC}\n\n" 1>&2
   fi
 }
 
@@ -185,6 +193,7 @@ NO_INTERACTIVE=""
 NO_FALLBACK=""
 
 RED='\033[0;31m'
+GREEN='\033[0;32m'
 NC='\033[0m' # No Color
 
 while [ "$#" -gt "0" ]; do
@@ -278,6 +287,7 @@ case $MODE in
     printf "To turn on parallel tempering, pass Tempering as the second argument.\n"
     PROGRAMMCONFIGURATION="-DMPI"
     INTELCOMPILER="mpiifort"
+    INTELLLVMCOMPILER="mpiifort -fc=ifx"
     GNUCOMPILER="mpifort"
     MPICOMP=1
   ;;
