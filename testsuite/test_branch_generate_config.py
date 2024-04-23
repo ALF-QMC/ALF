@@ -34,12 +34,13 @@ stages:
   stage: compile
   script:
     - if [ ! -O . ]; then sudo chown -R "$(id -u)" .; fi
-    - git clone https://git.physik.uni-wuerzburg.de/ALF/pyALF.git
-    - export PYTHONPATH="$PWD/pyALF:$PYTHONPATH"
-    - export PATH="$PWD/pyALF/py_alf/cli:$PATH"
+    - export PATH="$HOME/.local/bin:$PATH"
+    - git remote set-branches origin master $CI_COMMIT_BRANCH
+    - git fetch --depth=1
+    - pip install --no-deps pyALF
     - export ALF_DIR="$PWD"
     - . ./configure.sh $MACHINE noMPI HDF5 NO-INTERACTIVE
-    - alf_test_branch.py
+    - alf_test_branch
       --sim_pars $ALF_DIR/testsuite/test_branch_parameters.json
       --machine $MACHINE
       --mpi
@@ -65,8 +66,8 @@ stages:
   script:
     - if [ ! -O . ]; then sudo chown -R "$(id -u)" .; fi
     - START_DIR=$PWD
-    - git clone https://git.physik.uni-wuerzburg.de/ALF/pyALF.git
-    - export PYTHONPATH="$PWD/pyALF:$PYTHONPATH"
+    - export PATH="$HOME/.local/bin:$PATH"
+    - pip install --no-deps pyALF
     - cd ${START_DIR}/ALF_data/${TEST_NAME}
     - mpiexec -n 4 ./ALF.out
     - cd ${START_DIR}/ALF_data/${TEST_NAME}_test
@@ -92,11 +93,12 @@ stages:
   stage: analyze
   script:
     - if [ ! -O . ]; then sudo chown -R "$(id -u)" .; fi
-    - git clone https://git.physik.uni-wuerzburg.de/ALF/pyALF.git
-    - export PYTHONPATH="$PWD/pyALF:$PYTHONPATH"
-    - export PATH="$PWD/pyALF/py_alf/cli:$PATH"
+    - export PATH="$HOME/.local/bin:$PATH"
+    - git remote set-branches origin master $CI_COMMIT_BRANCH
+    - git fetch --depth=1
+    - pip install --no-deps pyALF
     - export ALF_DIR="$PWD"
-    - alf_test_branch.py
+    - alf_test_branch
       --sim_pars $ALF_DIR/testsuite/test_branch_parameters.json
       --machine $MACHINE
       --mpi
