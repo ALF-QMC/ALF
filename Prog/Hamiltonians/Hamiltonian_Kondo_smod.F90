@@ -147,6 +147,7 @@
       Character (len=64) :: Lattice_type = 'Bilayer_square'  ! Possible values: 'Bilayer_square', 'Bilayer_honeycomb'
       Integer            :: L1 = 6   ! Length in direction a_1
       Integer            :: L2 = 6   ! Length in direction a_2
+      Integer            :: L3 = 1   ! Length in direction a_3
       !#PARAMETERS END#
 
       !#PARAMETERS START# VAR_Model_Generic
@@ -320,7 +321,11 @@
           
           ! Use predefined stuctures or set your own lattice.
           
-          Call Predefined_Latt(Lattice_type, L1,L2,Ndim, List,Invlist,Latt,Latt_Unit)
+          if(L3 > 1) then
+            Call Predefined_Latt(Lattice_type, L1,L2,L3,Ndim, List,Invlist,Latt,Latt_Unit)
+          else
+            Call Predefined_Latt(Lattice_type, L1,L2,Ndim, List,Invlist,Latt,Latt_Unit)
+          endif
 
           !  Setup lattices for f-and c-sites.
           Select case (str_to_upper(Lattice_type))

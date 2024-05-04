@@ -154,6 +154,7 @@
       Character (len=64) :: Lattice_type = 'Square'  ! Possible Values: 'Square'
       Integer            :: L1 = 6   ! Length in direction a_1
       Integer            :: L2 = 6   ! Length in direction a_2
+      integer            :: L3 = 1   ! Length in direction a_3
       !#PARAMETERS END#
 
       !#PARAMETERS START# VAR_Hubbard_Plain_Vanilla
@@ -226,7 +227,7 @@
             write(output_unit,*) "Overriding Adiabatic=.True. from parameter files."
           endif
 
-          if (N_part < 0) N_part = L1*L2/2
+          if (N_part < 0) N_part = L1*L2*L3/2
           Ltrot  = nint(beta/dtau)
           Thtrot = 0
           if (Projector) Thtrot = nint(theta/dtau)
@@ -260,6 +261,7 @@
              Write(unit_info,*) 'Lattice is    : ', Lattice_type
              Write(unit_info,*) 'L1            : ', L1
              Write(unit_info,*) 'L2            : ', L2
+             Write(unit_info,*) 'L3            : ', L3
              Write(unit_info,*) '# of orbitals : ', Ndim
              Write(unit_info,*) 'Symm. decomp  : ', Symm
              if (Projector) then
@@ -317,7 +319,18 @@
 
 
           Implicit none
-          Real (Kind=Kind(0.d0))  :: a1_p(2), a2_p(2), L1_p(2), L2_p(2)
+          integer                 :: ncoord
+          if(L3 == 1) then
+            ncoord = 3
+          else 
+            ncoord = 2
+          endif
+            
+          if (L3 == 1) then
+            Real (Kind=Kind(0.d0))  :: a1_p(ncoord), a2_p(ncoord), L1_p(ncoord), L2_p(ncoord)
+          else
+            Real (Kind=Kind(0.d0))  :: a3_p(ncoord), L3_p(ncoord)
+          endif
           
           If (Lattice_Type /=  "Square")  then
              Write(6,*) 'The plain vanilla Hubbard model is only defined for the square lattice'
@@ -325,15 +338,34 @@
           Endif
           
           Latt_unit%Norb    = 1
-          Latt_unit%N_coord = 2
-          allocate(Latt_unit%Orb_pos_p(Latt_unit%Norb,2))
-          Latt_unit%Orb_pos_p(1, :) = [0.d0, 0.d0]
+          if (L3 == 1) then
+            Latt_unit%N_coord = 2
+            allocate(Latt_unit%Orb_pos_p(Latt_unit%Norb,2))
+            Latt_unit%Orb_pos_p(1, :) = [0.d0, 0.d0]
 
-          a1_p(1) =  1.0  ; a1_p(2) =  0.d0
-          a2_p(1) =  0.0  ; a2_p(2) =  1.d0
-          L1_p    =  dble(L1)*a1_p
-          L2_p    =  dble(L2)*a2_p
-          Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
+            a1_p(1) =  1.0  ; a1_p(2) =  0.d0
+            a2_p(1) =  0.0  ; a2_p(2) =  1.d0
+            L1_p    =  dble(L1)*a1_p
+            L2_p    =  dble(L2)*a2_p
+          else
+            Latt_unit%N_coord = 3
+            allocate(Latt_unit%Orb_pos_p(Latt_unit%Norb,3))
+            Latt_unit%Orb_pos_p(1, :) = [0.d0, 0.d0, 0.d0]
+
+            a1_p(1) =  1.0  ; a1_p(2) =  0.d0; a1_p(3) = 0.d0
+            a2_p(1) =  0.0  ; a2_p(2) =  1.d0; a2_p(3) = 0.d0
+            a3_p(1)  = 0.0  ; a3_p(2) =  0.d0; a3_p(3) = 1.d0
+            L1_p    =  dble(L1)*a1_p
+            L2_p    =  dble(L2)*a2_p
+            L3_p    =  dbl3(L3)*a3_p
+          endif
+
+
+          if (L3 == 1) then
+            Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
+          else 
+            Call Make_Lattice( L1_p, L2_p, L3_p, a1_p, a2_p, a3_p, Latt )
+          endif
          
           Ndim = Latt%N*Latt_unit%Norb
           
@@ -349,18 +381,31 @@
 
           Implicit none
 
-          Integer :: nf , I, Ix, Iy
+          Integer :: nf , I, Ix, Iy, Iz
           allocate(Op_T(1,N_FL))
           do nf = 1,N_FL
              Call Op_make(Op_T(1,nf),Ndim)
              Do I = 1,Latt%N
-                Ix = Latt%nnlist(I,1,0)
+                if(L3 > 1) then
+                  Ix = Latt%nnlist(I,1,0,0)
+                else
+                  Ix = Latt%nnlist(I,1,0)
+                endif
                 Op_T(1,nf)%O(I,  Ix) = cmplx(-Ham_T,    0.d0, kind(0.D0))
                 Op_T(1,nf)%O(Ix, I ) = cmplx(-Ham_T,    0.d0, kind(0.D0))
                 If ( L2 > 1 ) then
-                   Iy = Latt%nnlist(I,0,1)
+                    if(L3 > 1) then
+                     Iy = Latt%nnlist(I,0,1,0)
+                    else
+                     Iy = Latt%nnlist(I,0,1)
+                    endif
                    Op_T(1,nf)%O(I,  Iy) = cmplx(-Ham_T,    0.d0, kind(0.D0))
                    Op_T(1,nf)%O(Iy, I ) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+                endif
+                If ( L3 > 1 ) then
+                  Iz = Latt%nnlist(I,0,0,1)
+                  Op_T(1,nf)%O(I,  Iz) = cmplx(-Ham_T,    0.d0, kind(0.D0))
+                  Op_T(1,nf)%O(Iz, I ) = cmplx(-Ham_T,    0.d0, kind(0.D0))
                 endif
                 Op_T(1,nf)%O(I,  I ) = cmplx(-Ham_chem, 0.d0, kind(0.D0))
                 Op_T(1,nf)%P(i) = i
@@ -385,7 +430,7 @@
 
           Implicit none
 
-          Integer                              :: nf, Ix, Iy, I, n
+          Integer                              :: nf, Ix, Iy, Iz, I, n
           Real (Kind=Kind(0.d0)), allocatable  :: H0(:,:),  U0(:,:), E0(:)
           Real (Kind=Kind(0.d0))               :: Pi = acos(-1.d0), Delta = 0.01d0
 
@@ -399,13 +444,26 @@
           Allocate(H0(Ndim,Ndim),  U0(Ndim, Ndim),  E0(Ndim) )
           H0 = 0.d0; U0 = 0.d0;  E0=0.d0
           Do I = 1,Latt%N
-             Ix = Latt%nnlist(I,1,0)
+             if(L3 > 1) then
+               Ix = Latt%nnlist(I,1,0,0)
+             else
+               Ix = Latt%nnlist(I,1,0)
+             endif
              H0(I,  Ix) = -Ham_T*(1.d0   +   Delta*cos(Pi*real(Latt%list(I,1) + Latt%list(I,2),Kind(0.d0))))
              H0(Ix, I ) = -Ham_T*(1.d0   +   Delta*cos(Pi*real(Latt%list(I,1) + Latt%list(I,2),Kind(0.d0))))
              If (L2  > 1 ) Then
-                Iy = Latt%nnlist(I,0,1)
+               if(L3 > 1) then
+                  Iy = Latt%nnlist(I,0,1,0)
+                else
+                  Iy = Latt%nnlist(I,0,1)
+                endif
                 H0(I,  Iy) = -Ham_T *(1.d0  -   Delta)
                 H0(Iy, I ) = -Ham_T *(1.d0  -   Delta)
+             Endif
+             If (L3  > 1 ) Then
+                Iz = Latt%nnlist(I,0,0,1)
+                H0(I,  Iz) = -Ham_T *(1.d0  -   Delta)
+                H0(Iz, I ) = -Ham_T *(1.d0  -   Delta)
              Endif
           Enddo
           Call  Diag(H0,U0,E0)
@@ -594,7 +652,7 @@
           !Local
           Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK
           Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP,ZS, ZZ, ZXY, ZDen
-          Integer :: I,J, imj, nf,  Ix, Iy
+          Integer :: I,J, imj, nf,  Ix, Iy, Iz
           Real    (Kind=Kind(0.d0)) :: X
 
           ZP = PHASE/Real(Phase, kind(0.D0))
@@ -624,17 +682,32 @@
           Zkin = cmplx(0.d0, 0.d0, kind(0.D0))
           Zkin = Zkin* dble(N_SUN)
           Do I = 1,Latt%N
-             Ix = Latt%nnlist(I,1,0)
+             if(L3 > 1) then
+               Ix = Latt%nnlist(I,1,0,0)
+             else
+               Ix = Latt%nnlist(I,1,0)
+             endif
              Zkin = Zkin  + GRC(I,Ix,1)  + GRC(Ix,I,1)  &
                   &       + GRC(I,Ix,2)  + GRC(Ix,I,2)
           Enddo
           If (L2 > 1) then
              Do I = 1,Latt%N
-                Iy = Latt%nnlist(I,0,1)
+                if(L3 > 1) then
+                  Iy = Latt%nnlist(I,0,1,0)
+                else
+                  Iy = Latt%nnlist(I,0,1)
+                endif
                 Zkin = Zkin + GRC(I,Iy,2)  + GRC(Iy,I,2)   &
                      &      + GRC(I,Iy,1)  + GRC(Iy,I,1)
              Enddo
           Endif
+          If (L3 > 1) then
+            Do I = 1,Latt%N
+               Iz = Latt%nnlist(I,0,0,1)
+               Zkin = Zkin + GRC(I,Iz,2)  + GRC(Iz,I,2)   &
+                    &      + GRC(I,Iz,1)  + GRC(Iz,I,1)
+            Enddo
+         Endif
           Zkin = Zkin*cmplx(-Ham_T,0.d0,Kind(0.d0))
           Obs_scal(1)%Obs_vec(1)  =    Obs_scal(1)%Obs_vec(1) + Zkin *ZP* ZS
 

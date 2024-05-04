@@ -47,6 +47,10 @@
       use iso_fortran_env, only: output_unit, error_unit
       Implicit none
 
+      INTERFACE Predefined_Latt
+        MODULE PROCEDURE Predefined_Latt_2D, Predefined_Latt_3D
+      END INTERFACE
+
 
     contains
 !--------------------------------------------------------------------
@@ -96,7 +100,7 @@
 !>\endverbatim
 !>
 !-------------------------------------------------------------------
-      Subroutine Predefined_Latt(Lattice_type, L1, L2, Ndim, List, Invlist, Latt, Latt_Unit )
+      Subroutine Predefined_Latt_2D(Lattice_type, L1, L2, Ndim, List, Invlist, Latt, Latt_Unit )
 
         Implicit none
 
@@ -229,7 +233,143 @@
            Enddo
         Enddo
 
-      end Subroutine Predefined_Latt
+      end Subroutine Predefined_Latt_2D
+
+      !--------------------------------------------------------------------
+!> @author
+!> ALF-project
+!
+!> @brief
+!> Definition of  a set of lattices: Square,  Honeycomb, Pi_Flux
+!>
+!> @param [in]  Latttice_type
+!>\verbatim
+!> Character(64)
+!> Can take the values
+!> Square,  Honeycomb, Pi_Flux
+!> \endverbatim
+!> @param [in]  L1, L2
+!>\verbatim
+!>    Integer
+!>    Size of the lattice in units of the lattice constants
+!>\endverbatim
+!> @param [out]  Latt_unit
+!>\verbatim
+!>    Type (Unit_cell)
+!>    The unit cell. Contains Norb, N_coord and positions of orbitals.
+!>\endverbatim
+!> @param [out]  Ndim
+!>\verbatim
+!>    Integer
+!>    Number of orbitals
+!>\endverbatim
+!> @param [out]  List, Invlist
+!>\verbatim
+!>    Integer(:,:)
+!>    List(I=1.. Ndim,1)    =   Unit cell of site I
+!>    List(I=1.. Ndim,2)    =   Orbital index  of site I
+!>    Invlist(1..Unit_cell,1..Orbital) = site I
+!>\endverbatim
+!> @param [out]  Latt
+!>\verbatim
+!>    Type(Lattice)
+!>    Sets the lattice
+!>\endverbatim
+!> @param [out]  Latt_unit
+!>\verbatim
+!>    Type(Unit_cell)
+!>    Sets the lattice
+!>\endverbatim
+!>
+!-------------------------------------------------------------------
+      Subroutine Predefined_Latt_3D(Lattice_type, L1, L2, L3, Ndim, List, Invlist, Latt, Latt_Unit )
+
+         Implicit none
+ 
+         !Set the lattice
+         Character (len=64), Intent(IN)                     :: Lattice_type
+         Integer, Intent(IN)                                :: L1,L2,L3
+         Integer, Intent(OUT)                               :: Ndim
+         Integer, Intent(OUT), Dimension(:,:), allocatable  :: List, Invlist
+         Type(Unit_cell), Intent(Out)                       :: Latt_Unit
+         Type(Lattice), Intent(Out)                         :: Latt
+         Real (Kind=Kind(0.d0))  :: A1_p(3), a2_p(3), a3_p(3), L1_p(3), L2_p(3), L3_p(3)
+         Integer :: I, nc, no,n
+ 
+         ! this function will only be called if L3 > 1
+         If ( L2 > 1 .and. L1 > 1) then
+            Latt_Unit%N_coord   = 3
+         else
+            Write(error_unit,*) 'This is a one or two dimensional lattice'
+            Write(error_unit,*) 'Do not set L3 to be greater than 1 for such a lattice'
+            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+         endif
+
+         select case (Lattice_type)
+         case("Square")
+            Latt_Unit%Norb      = 1
+            Allocate (Latt_unit%Orb_pos_p(1,2))
+            Latt_Unit%Orb_pos_p(1,:) = 0.d0
+            a1_p(1) =  1.d0  ; a1_p(2) =  0.d0 ; a1_p(3) = 0.d0
+            a2_p(1) =  0.d0  ; a2_p(2) =  1.d0 ; a2_p(3) = 0.d0
+            a3_p(1) =  0.d0  ; a3_p(2) =  0.d0 ; a3_p(3) = 1.d0
+            L1_p    =  dble(L1)*a1_p
+            L2_p    =  dble(L2)*a2_p
+            L3_p    =  dble(L3)*a3_p
+            Call Make_Lattice( L1_p, L2_p, L3_p, a1_p, a2_p, a3_p, Latt )
+         case("Bilayer_square")
+            a1_p(1) =  1.d0  ; a1_p(2) =  0.d0 ; a1_p(3) = 0.d0
+            a2_p(1) =  0.d0  ; a2_p(2) =  1.d0 ; a2_p(3) = 0.d0
+            a3_p(1) =  0.d0  ; a3_p(2) =  0.d0 ; a3_p(3) = 1.d0
+            L1_p    =  dble(L1)*a1_p
+            L2_p    =  dble(L2)*a2_p
+            L3_p    =  dble(L3)*a3_p
+            Call Make_Lattice( L1_p, L2_p, L3_p, a1_p, a2_p, a3_p, Latt )
+ 
+            Latt_Unit%Norb     = 2
+            Latt_Unit%N_coord  = 3
+            Allocate (Latt_unit%Orb_pos_p(2,3))
+            do no = 1,2
+               Latt_Unit%Orb_pos_p(no,1) = 0.d0
+               Latt_Unit%Orb_pos_p(no,2) = 0.d0
+               Latt_Unit%Orb_pos_p(no,3) = real(1-no,kind(0.d0))
+            enddo
+         case("Pi_Flux")
+            !need to work on this one
+            Latt_Unit%Norb    = 2
+            Latt_Unit%N_coord = 6
+            a1_p(1) =  1.D0   ; a1_p(2) =   1.d0 ; a1_p(3) =   1.d0
+            a2_p(1) =  1.D0   ; a2_p(2) =  -1.d0 ; a2_p(3) =   1.d0
+            a3_p(1) =  1.D0   ; a3_p(2) =  -1.d0 ; a3_p(3) =   -1.d0
+            Allocate (Latt_Unit%Orb_pos_p(2,2))
+            Latt_Unit%Orb_pos_p(1,:) = 0.d0
+            Latt_Unit%Orb_pos_p(2,:) = (a1_p(:) - a2_p(:))/2.d0
+            L1_p    =  dble(L1) * (a1_p - a2_p)/2.d0
+            L2_p    =  dble(L2) * (a1_p + a2_p)/2.d0
+            L3_p    =  dble(L3) * ()
+            Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
+         case default
+            Write(error_unit,*) "Predefined_Latt: Lattice not yet implemented!"
+            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+         end select
+         ! Call Print_latt(Latt)
+         ! This is for the orbital structure.
+ 
+ 
+         Ndim = Latt%N*Latt_Unit%Norb
+         Allocate (List(Ndim,2), Invlist(Latt%N,Latt_Unit%Norb))
+         nc = 0
+         Do I = 1,Latt%N
+            Do no = 1,Latt_Unit%Norb
+               ! For the Honeycomb and pi-flux lattices no = 1,2 corresponds to the A,and B sublattice.
+               nc = nc + 1
+               List(nc,1) = I
+               List(nc,2) = no
+               Invlist(I,no) = nc
+            Enddo
+         Enddo
+ 
+       end Subroutine Predefined_Latt_3D
 
 
     end Module Predefined_Lattices

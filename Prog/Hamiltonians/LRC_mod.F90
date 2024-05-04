@@ -121,9 +121,49 @@
 !> Returns the  smallest ditance  betweem to points on a torus. 
 !>
 !> @details
-!>
+!>ADD INTERFACE
 !-------------------------------------------------------------------
-      Subroutine  Minimal_Distance(X1_p, X_p, L1_p, L2_p)
+
+      INTERFACE Minimal_Distance
+        !> Interface to Calc_Renyi_Ent function.
+        MODULE PROCEDURE Minimal_Distance3D, Minimal_Distance2D
+      END INTERFACE
+
+      Subroutine  Minimal_Distance3D(X1_p, X_p, L1_p, L2_p, L3_p)
+
+         Implicit none
+ 
+         Real (Kind=Kind(0.d0)),  Intent(IN)  :: X_p(:), L1_p(:), L2_p(:), L3_p(:)
+         Real (Kind=Kind(0.d0)),  Intent(OUT) :: X1_p(:)
+         
+         !Local
+         Integer :: n1, n2, n3, n1_min, n2_min, n3_min
+         Real (Kind=Kind(0.d0)) :: X1_norm, X_norm_min
+ 
+         n1_min = 0
+         n2_min = 0
+         X_norm_min = Xnorm(X_p)
+         do n1 = -3,3
+            do n2 = -3,3
+               do n3 = -3,3
+                  X1_p(:) = X_p(:) + real(n1,kind(0.d0))*L1_p(:) + real(n2,kind(0.d0))*L2_p(:) + real(n3,kind(0.d0))*L3_p(:)
+                  X1_Norm = Xnorm(X1_p)
+                  If ( X1_Norm < X_norm_min) then
+                     n1_min = n1
+                     n2_min = n2
+                     n3_min = n3
+                     X_Norm_min = X1_norm 
+                  endif
+               enddo
+            enddo
+         enddo
+         
+         X1_p(:) = X_p(:) + real(n1_min,kind(0.d0))*L1_p(:) + real(n2_min,kind(0.d0))*L2_p(:) + real(n2_min,kind(0.d0))*L3_p(:)
+         !Write(6,*)  X_p, X1_p
+         
+       end Subroutine Minimal_Distance3D
+
+      Subroutine  Minimal_Distance2D(X1_p, X_p, L1_p, L2_p)
 
         Implicit none
 
@@ -152,7 +192,7 @@
         X1_p(:) = X_p(:) + real(n1_min,kind(0.d0))*L1_p(:) + real(n2_min,kind(0.d0))*L2_p(:)
         !Write(6,*)  X_p, X1_p
         
-      end Subroutine Minimal_Distance
+      end Subroutine Minimal_Distance2D
 
 
 !--------------------------------------------------------------------

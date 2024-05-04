@@ -156,6 +156,7 @@
       Character (len=64) :: Lattice_type = 'Square'
       Integer            :: L1 = 6   ! Length in direction a_1
       Integer            :: L2 = 6   ! Length in direction a_2
+      Integer            :: L3 = 1   ! Length in direction a_3
       !#PARAMETERS END#
 
       !#PARAMETERS START# VAR_Model_Generic
@@ -332,7 +333,13 @@
           Real (Kind=Kind(0.d0)) ::  a1_p(2), a2_p(2), L1_p(2), L2_p(2) 
           Integer :: nc, no, I 
 
-          Call  Predefined_Latt(Lattice_type, L1, L2, Ndim, List, Invlist, Latt, Latt_Unit )
+          if(L3 > 1) then
+             write(error_unit,*)   " Error: Spin_Peierls cannot    "
+             write(error_unit,*)   " be used for 3d lattices "
+             CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+          else
+            Call Predefined_Latt(Lattice_type, L1,L2,Ndim, List,Invlist,Latt,Latt_Unit)
+          endif
 
           Latt_phi_unit%Norb = Latt_Unit%N_coord
           Allocate (Latt_phi_unit%Orb_pos_p(2,2))

@@ -79,6 +79,7 @@
       Character (len=64) :: Lattice_type = 'Square'  ! Possible Values: 'Square'
       Integer            :: L1 = 6   ! Length in direction a_1
       Integer            :: L2 = 6   ! Length in direction a_2
+      Integer            :: L3 = 1   ! Length in direction a_3
       !#PARAMETERS END#
 
       !#PARAMETERS START# VAR_Z2_Matter
@@ -162,7 +163,7 @@
              Write(error_unit,*) "Ham_set: Model not yet implemented!"
              CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
           endif
-          if (N_part < 0) N_part = L1*L2/2
+          if (N_part < 0) N_part = L1*L2*L3/2
           If (Abs(Ham_T) < Zero ) then
               Ham_J = 0.d0 ! Matter-Ising interction
               Ham_h = 0.d0
@@ -255,7 +256,11 @@
              Write(error_unit,*) 'Ham_Latt: One dimensional systems are not included '
              CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
           endif
-          Call Predefined_Latt(Lattice_type, L1,L2,Ndim, List,Invlist,Latt,Latt_Unit)
+          if(L3 > 1) then
+            Call Predefined_Latt(Lattice_type, L1,L2,L3,Ndim, List,Invlist,Latt,Latt_Unit)
+          else
+            Call Predefined_Latt(Lattice_type, L1,L2,Ndim, List,Invlist,Latt,Latt_Unit)
+          endif
 
 
         end Subroutine Ham_Latt
@@ -383,7 +388,7 @@
 
           Implicit none
           
-          Integer                              :: nf, Ix, Iy, I, n
+          Integer                              :: nf, Ix, Iy, Iz, I, n
           Real (Kind=Kind(0.d0)), allocatable  :: H0(:,:),  U0(:,:), E0(:)
           Real (Kind=Kind(0.d0))               :: Pi = acos(-1.d0), Delta = 0.01d0
           
@@ -396,16 +401,39 @@
           
           Allocate(H0(Ndim,Ndim),  U0(Ndim, Ndim),  E0(Ndim) )
           H0 = 0.d0; U0 = 0.d0;  E0=0.d0
-          Do I = 1,Latt%N
-             Ix = Latt%nnlist(I,1,0)
-             H0(I,  Ix) = -(1.d0   +   Delta*cos(Pi*real(Latt%list(I,1) + Latt%list(I,2),Kind(0.d0))))
-             H0(Ix, I ) = -(1.d0   +   Delta*cos(Pi*real(Latt%list(I,1) + Latt%list(I,2),Kind(0.d0))))
-             If (L2  > 1 ) Then
-                Iy = Latt%nnlist(I,0,1)
-                H0(I,  Iy) = -(1.d0  -   Delta)
-                H0(Iy, I ) = -(1.d0  -   Delta)
-             Endif
-          Enddo
+          If (L3 > 1) then
+            Do I = 1,Latt%N
+               Ix = Latt%nnlist(I,1,0,0)
+               H0(I,  Ix) = -(1.d0   +   Delta*cos(Pi*real(Latt%list(I,1) + Latt%list(I,2),Kind(0.d0))))
+               H0(Ix, I ) = -(1.d0   +   Delta*cos(Pi*real(Latt%list(I,1) + Latt%list(I,2),Kind(0.d0))))
+               Iy = Latt%nnlist(I,0,1,0)
+               H0(I,  Iy) = -(1.d0  -   Delta)
+               H0(Iy, I ) = -(1.d0  -   Delta)
+               Iz = Latt%nnlist(I,0,0,1)
+               H0(I,  Iz) = -(1.d0  -   Delta)
+               H0(Iz, I ) = -(1.d0  -   Delta)
+            Enddo
+          else
+            Do I = 1,Latt%N
+               Ix = Latt%nnlist(I,1,0)
+               H0(I,  Ix) = -(1.d0   +   Delta*cos(Pi*real(Latt%list(I,1) + Latt%list(I,2),Kind(0.d0))))
+               H0(Ix, I ) = -(1.d0   +   Delta*cos(Pi*real(Latt%list(I,1) + Latt%list(I,2),Kind(0.d0))))
+               If (L2  > 1 ) Then
+                  if(L3 > 1) then
+                     Iy = Latt%nnlist(I,0,1,0)
+                  else
+                     Iy = Latt%nnlist(I,0,1)
+                  endif
+                  H0(I,  Iy) = -(1.d0  -   Delta)
+                  H0(Iy, I ) = -(1.d0  -   Delta)
+               Endif
+               if(L3 > 1) then
+                  Iz = Latt%nnlist(I,0,0,1)
+                  H0(I,  Iz) = -(1.d0  -   Delta)
+                  H0(Iz, I ) = -(1.d0  -   Delta)
+               endif
+            Enddo
+          endif
           Call  Diag(H0,U0,E0)
 !!$          Do I = 1,Ndim
 !!$             Write(6,*) I,E0(I)
@@ -1299,22 +1327,43 @@
         Integer, allocatable, INTENT(INOUT)  :: Isigma(:)
 
         !Local
-        Integer :: I, I1, nx, ny
+        Integer :: I, I1, nx, ny, nz
 
         Isigma(Latt%N) = nsigma%i( Field_list(Latt%N,3,4), nt )
         I = Latt%N
-        do nx = 1,L1
-           do ny = 1,L2
-              I1 = latt%nnlist(I,0,1)
-              Isigma(I1)  = Isigma(I)*nsigma%i(Field_list(I,2,2),nt)
+        if(L3 > 1) then
+         do nx = 1,L1
+              do ny = 1,L2
+                  do nz = 1,L3
+                     I1 = latt%nnlist(I,0,0,1)
+                     Isigma(I1)  = Isigma(I)*nsigma%i(Field_list(I,3,2),nt)
+                     !Write(6,*) Latt%list(I,1), Latt%list(I,2), ' -> ', Latt%list(I1,1), Latt%list(I1,2)
+                     I = I1
+                  enddo
+                  I1 = latt%nnlist(I,0,1,0)
+                  Isigma(I1)  = Isigma(I)*nsigma%i(Field_list(I,2,2),nt)
+                  !Write(6,*) Latt%list(I,1), Latt%list(I,2), ' -> ', Latt%list(I1,1), Latt%list(I1,2)
+                  I = I1
+              enddo
+              I1          = latt%nnlist(I,1,0,0)
+              Isigma(I1)  = Isigma(I)*nsigma%i(Field_list(I,1,2),nt)
               !Write(6,*) Latt%list(I,1), Latt%list(I,2), ' -> ', Latt%list(I1,1), Latt%list(I1,2)
               I = I1
-           enddo
-           I1          = latt%nnlist(I,1,0)
-           Isigma(I1)  = Isigma(I)*nsigma%i(Field_list(I,1,2),nt)
-           !Write(6,*) Latt%list(I,1), Latt%list(I,2), ' -> ', Latt%list(I1,1), Latt%list(I1,2)
-           I = I1
+          enddo
+       else
+         do nx = 1,L1
+            do ny = 1,L2
+               I1 = latt%nnlist(I,0,1)
+               Isigma(I1)  = Isigma(I)*nsigma%i(Field_list(I,2,2),nt)
+                !Write(6,*) Latt%list(I,1), Latt%list(I,2), ' -> ', Latt%list(I1,1), Latt%list(I1,2)
+               I = I1
+            enddo
+            I1          = latt%nnlist(I,1,0)
+            Isigma(I1)  = Isigma(I)*nsigma%i(Field_list(I,1,2),nt)
+            !Write(6,*) Latt%list(I,1), Latt%list(I,2), ' -> ', Latt%list(I1,1), Latt%list(I1,2)
+            I = I1
         enddo
+       endif
 
       end Subroutine Hamiltonian_set_Z2_matter
 
