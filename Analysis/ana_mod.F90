@@ -273,7 +273,7 @@
       
 
       Character (len=64) :: file_aux, str_temp1,  str_temp2
-      Integer, allocatable :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
+      Integer, allocatable :: List(:,:), Invlist(:,:), Invlist3D(:,:,:)  ! For orbital structure of Unit cell
       Integer :: no, no1, n, nt, nb, Ntau, Ndim, Nbins, stat, Ndim_unit
       Real(Kind=Kind(0.d0)) :: X
       Real(Kind=Kind(0.d0)), allocatable :: Xk_p(:,:)
@@ -319,7 +319,11 @@
         open(Unit=10, File='parameters', status="old", action='read')
         read(10, NML=VAR_lattice)
         close(10)
-        Call Predefined_Latt(Lattice_type, L1, L2, Ndim, List, Invlist, Latt, Latt_Unit)
+        if(size(Latt%BZ1_p) == 2) then
+         Call Predefined_Latt(Lattice_type, L1, L2, Ndim, List, Invlist, Latt, Latt_Unit)
+        else
+         Call Predefined_Latt(Lattice_type, L1, L2, L3, Ndim, List, Invlist3D, Latt, Latt_Unit)
+        endif
         open(Unit=10, File=file, status="old", action='read')
         Read(10, *, iostat=stat) X, Latt_unit%Norb, Latt%N, Ntau, dtau
         if (stat /= 0) then

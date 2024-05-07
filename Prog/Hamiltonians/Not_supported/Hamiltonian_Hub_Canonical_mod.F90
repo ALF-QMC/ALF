@@ -26,7 +26,7 @@
       ! What is below is  private
       Type (Lattice),       private :: Latt
       Type (Unit_cell),     private :: Latt_unit
-      Integer,              private :: L1, L2, n_Lambda
+      Integer,              private :: L1, L2, L3, n_Lambda
       real (Kind=8),        private :: ham_T , ham_U,  Ham_chem, Lambda, RhoD
       real (Kind=8),        private :: Dtau, Beta, Phi_x, Theta
       Character (len=64),   private :: Model, Lattice_type
@@ -53,7 +53,7 @@
 
           integer :: ierr
 
-          NAMELIST /VAR_lattice/  L1, L2, Lattice_type, Model, Phi_x
+          NAMELIST /VAR_lattice/  L1, L2, L3, Lattice_type, Model, Phi_x
 
           NAMELIST /VAR_Hubbard/  ham_T, ham_chem, ham_U, Dtau, Beta, Lambda, n_Lambda, RhoD
 
@@ -72,6 +72,7 @@
           If (Irank == 0 ) then
 #endif
              Phi_x = 0.d0
+             L3    = 1
              OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
              IF (ierr /= 0) THEN
                 WRITE(error_unit,*) 'Ham_Set: unable to open <parameters>',ierr
@@ -84,6 +85,7 @@
           Endif
           CALL MPI_BCAST(L1          ,1  ,MPI_INTEGER,   0,MPI_COMM_WORLD,ierr)
           CALL MPI_BCAST(L2          ,1  ,MPI_INTEGER,   0,MPI_COMM_WORLD,ierr)
+          CALL MPI_BCAST(L3          ,1  ,MPI_INTEGER,   0,MPI_COMM_WORLD,ierr)
           CALL MPI_BCAST(Phi_x       ,1  ,MPI_REAL8  ,   0,MPI_COMM_WORLD,ierr)
           CALL MPI_BCAST(Model       ,64 ,MPI_CHARACTER, 0,MPI_COMM_WORLD,IERR)
           CALL MPI_BCAST(Lattice_type,64 ,MPI_CHARACTER, 0,MPI_COMM_WORLD,IERR)
@@ -130,7 +132,7 @@
              Open (Unit = 50,file="info",status="unknown",position="append")
              Write(50,*) '=============Canonical========='
              Write(50,*) 'Model is      : ', Model
-             Write(50,*) 'L1,L2         : ', L1,L2
+             Write(50,*) 'L1,L2,L3      : ', L1,L2,L3
              Write(50,*) 'Phi_x         : ', Phi_x
              Write(50,*) 'Beta          : ', Beta
              Write(50,*) 'dtau,Ltrot    : ', dtau,Ltrot
@@ -162,7 +164,11 @@
 
           Implicit none
           ! Use predefined stuctures or set your own lattice.
-          Call Predefined_Latt(Lattice_type, L1,L2,Ndim, List,Invlist,Latt,Latt_Unit)
+          if(L3 > 1) then
+            Call Predefined_Latt(Lattice_type, L1,L2,L3,Ndim, List,Invlist,Latt,Latt_Unit)
+          else
+            Call Predefined_Latt(Lattice_type, L1,L2,Ndim, List,Invlist,Latt,Latt_Unit)
+          endif
 
         end Subroutine Ham_Latt
 

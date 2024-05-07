@@ -150,42 +150,42 @@
         listr    = Latt%list
         listk    = Latt%listk
 
-        invlistr(1:L+1, 1:L+1, 1:L+1) = Latt%invlist(0:L, 0:L, 0:L) - 1
-        invlistr(1:L+1, L+2:2*L+1, 1:L+1) = Latt%invlist(0:L, -L:-1, 0:L) - 1
-        invlistr(L+2:2*L+1, 1:L+1, 1:L+1) = Latt%invlist(-L:-1, 0:L, 0:L) - 1
-        invlistr(L+2:2*L+1, L+2:2*L+1, 1:L+1) = Latt%invlist(-L:-1, -L:-1, 0:L) - 1
-        invlistr(1:L+1, 1:L+1, L+2:2*L+1) = Latt%invlist(0:L, 0:L, -L:-1) - 1
-        invlistr(1:L+1, L+2:2*L+1, L+2:2*L+1) = Latt%invlist(0:L, -L:-1, -L:-1) - 1
-        invlistr(L+2:2*L+1, 1:L+1, L+2:2*L+1) = Latt%invlist(-L:-1, 0:L, -L:-1) - 1
-        invlistr(L+2:2*L+1, L+2:2*L+1, L+2:2*L+1) = Latt%invlist(-L:-1, -L:-1, -L:-1) - 1
+        invlistr(1:L+1, 1:L+1, 1:L+1) = Latt%invlist3D(0:L, 0:L, 0:L) - 1
+        invlistr(1:L+1, L+2:2*L+1, 1:L+1) = Latt%invlist3D(0:L, -L:-1, 0:L) - 1
+        invlistr(L+2:2*L+1, 1:L+1, 1:L+1) = Latt%invlist3D(-L:-1, 0:L, 0:L) - 1
+        invlistr(L+2:2*L+1, L+2:2*L+1, 1:L+1) = Latt%invlist3D(-L:-1, -L:-1, 0:L) - 1
+        invlistr(1:L+1, 1:L+1, L+2:2*L+1) = Latt%invlist3D(0:L, 0:L, -L:-1) - 1
+        invlistr(1:L+1, L+2:2*L+1, L+2:2*L+1) = Latt%invlist3D(0:L, -L:-1, -L:-1) - 1
+        invlistr(L+2:2*L+1, 1:L+1, L+2:2*L+1) = Latt%invlist3D(-L:-1, 0:L, -L:-1) - 1
+        invlistr(L+2:2*L+1, L+2:2*L+1, L+2:2*L+1) = Latt%invlist3D(-L:-1, -L:-1, -L:-1) - 1
 
-        invlistk(1:L+1, 1:L+1, 1:L+1) = Latt%invlistk(0:L, 0:L, 0:L) - 1
-        invlistk(1:L+1, L+2:2*L+1, 1:L+1) = Latt%invlistk(0:L, -L:-1, 0:L) - 1
-        invlistk(L+2:2*L+1, 1:L+1, 1:L+1) = Latt%invlistk(-L:-1, 0:L, 0:L) - 1
-        invlistk(L+2:2*L+1, L+2:2*L+1, 1:L+1) = Latt%invlistk(-L:-1, -L:-1, 0:L) - 1
-        invlistk(1:L+1, 1:L+1, L+2:2*L+1) = Latt%invlistk(0:L, 0:L, -L:-1) - 1
-        invlistk(1:L+1, L+2:2*L+1, L+2:2*L+1) = Latt%invlistk(0:L, -L:-1, -L:-1) - 1
-        invlistk(L+2:2*L+1, 1:L+1, L+2:2*L+1) = Latt%invlistk(-L:-1, 0:L, -L:-1) - 1
-        invlistk(L+2:2*L+1, L+2:2*L+1, L+2:2*L+1) = Latt%invlistk(-L:-1, -L:-1, -L:-1) - 1
+        invlistk(1:L+1, 1:L+1, 1:L+1) = Latt%invlistk3D(0:L, 0:L, 0:L) - 1
+        invlistk(1:L+1, L+2:2*L+1, 1:L+1) = Latt%invlistk3D(0:L, -L:-1, 0:L) - 1
+        invlistk(L+2:2*L+1, 1:L+1, 1:L+1) = Latt%invlistk3D(-L:-1, 0:L, 0:L) - 1
+        invlistk(L+2:2*L+1, L+2:2*L+1, 1:L+1) = Latt%invlistk3D(-L:-1, -L:-1, 0:L) - 1
+        invlistk(1:L+1, 1:L+1, L+2:2*L+1) = Latt%invlistk3D(0:L, 0:L, -L:-1) - 1
+        invlistk(1:L+1, L+2:2*L+1, L+2:2*L+1) = Latt%invlistk3D(0:L, -L:-1, -L:-1) - 1
+        invlistk(L+2:2*L+1, 1:L+1, L+2:2*L+1) = Latt%invlistk3D(-L:-1, 0:L, -L:-1) - 1
+        invlistk(L+2:2*L+1, L+2:2*L+1, L+2:2*L+1) = Latt%invlistk3D(-L:-1, -L:-1, -L:-1) - 1
 
 
-        nnlistr(:, 1:2, 1:2, 1:2)  = Latt%nnlist(:, 0:1, 0:1, 0:1) - 1
-        nnlistr(:, 1:2, 3, 1:2)  = Latt%nnlist(:, 0:1, -1, 0:1) - 1
-        nnlistr(:, 3, 1:2, 1:2)  = Latt%nnlist(:, -1, 0:1, 0:1) - 1
-        nnlistr(:, 3, 3, 1:2)  = Latt%nnlist(:, -1, -1, 0:1) - 1
-        nnlistr(:, 1:2, 1:2, 3)  = Latt%nnlist(:, 0:1, 0:1, -1) - 1
-        nnlistr(:, 1:2, 3, 3)  = Latt%nnlist(:, 0:1, -1, -1) - 1
-        nnlistr(:, 3, 1:2, 3)  = Latt%nnlist(:, -1, 0:1, -1) - 1
-        nnlistr(:, 3, 3, 3)  = Latt%nnlist(:, -1, -1, -1) - 1
+        nnlistr(:, 1:2, 1:2, 1:2)  = Latt%nnlist3D(:, 0:1, 0:1, 0:1) - 1
+        nnlistr(:, 1:2, 3, 1:2)  = Latt%nnlist3D(:, 0:1, -1, 0:1) - 1
+        nnlistr(:, 3, 1:2, 1:2)  = Latt%nnlist3D(:, -1, 0:1, 0:1) - 1
+        nnlistr(:, 3, 3, 1:2)  = Latt%nnlist3D(:, -1, -1, 0:1) - 1
+        nnlistr(:, 1:2, 1:2, 3)  = Latt%nnlist3D(:, 0:1, 0:1, -1) - 1
+        nnlistr(:, 1:2, 3, 3)  = Latt%nnlist3D(:, 0:1, -1, -1) - 1
+        nnlistr(:, 3, 1:2, 3)  = Latt%nnlist3D(:, -1, 0:1, -1) - 1
+        nnlistr(:, 3, 3, 3)  = Latt%nnlist3D(:, -1, -1, -1) - 1
 
-        nnlistk(:, 1:2, 1:2, 1:2)  = Latt%nnlistk(:, 0:1, 0:1, 0:1) - 1
-        nnlistk(:, 1:2, 3, 1:2)  = Latt%nnlistk(:, 0:1, -1, 0:1) - 1
-        nnlistk(:, 3, 1:2, 1:2)  = Latt%nnlistk(:, -1, 0:1, 0:1) - 1
-        nnlistk(:, 3, 3, 1:2)  = Latt%nnlistk(:, -1, -1, 0:1) - 1
-        nnlistk(:, 1:2, 1:2, 3)  = Latt%nnlistk(:, 0:1, 0:1, -1) - 1
-        nnlistk(:, 1:2, 3, 3)  = Latt%nnlistk(:, 0:1, -1, -1) - 1
-        nnlistk(:, 3, 1:2, 3)  = Latt%nnlistk(:, -1, 0:1, -1) - 1
-        nnlistk(:, 3, 3, 3)  = Latt%nnlistk(:, -1, -1, -1) - 1
+        nnlistk(:, 1:2, 1:2, 1:2)  = Latt%nnlistk3D(:, 0:1, 0:1, 0:1) - 1
+        nnlistk(:, 1:2, 3, 1:2)  = Latt%nnlistk3D(:, 0:1, -1, 0:1) - 1
+        nnlistk(:, 3, 1:2, 1:2)  = Latt%nnlistk3D(:, -1, 0:1, 0:1) - 1
+        nnlistk(:, 3, 3, 1:2)  = Latt%nnlistk3D(:, -1, -1, 0:1) - 1
+        nnlistk(:, 1:2, 1:2, 3)  = Latt%nnlistk3D(:, 0:1, 0:1, -1) - 1
+        nnlistk(:, 1:2, 3, 3)  = Latt%nnlistk3D(:, 0:1, -1, -1) - 1
+        nnlistk(:, 3, 1:2, 3)  = Latt%nnlistk3D(:, -1, 0:1, -1) - 1
+        nnlistk(:, 3, 3, 3)  = Latt%nnlistk3D(:, -1, -1, -1) - 1
 
 
         imj      = Latt%imj - 1

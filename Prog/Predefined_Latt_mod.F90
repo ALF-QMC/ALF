@@ -208,6 +208,7 @@
            a2_p(1) =  1.D0   ; a2_p(2) =  -1.d0
            Allocate (Latt_Unit%Orb_pos_p(2,2))
            Latt_Unit%Orb_pos_p(1,:) = 0.d0
+           ! shouldn't this be a1_p+a2_p?
            Latt_Unit%Orb_pos_p(2,:) = (a1_p(:) - a2_p(:))/2.d0
            L1_p    =  dble(L1) * (a1_p - a2_p)/2.d0
            L2_p    =  dble(L2) * (a1_p + a2_p)/2.d0
@@ -308,7 +309,7 @@
          select case (Lattice_type)
          case("Square")
             Latt_Unit%Norb      = 1
-            Allocate (Latt_unit%Orb_pos_p(1,2))
+            Allocate (Latt_unit%Orb_pos_p(1,3))
             Latt_Unit%Orb_pos_p(1,:) = 0.d0
             a1_p(1) =  1.d0  ; a1_p(2) =  0.d0 ; a1_p(3) = 0.d0
             a2_p(1) =  0.d0  ; a2_p(2) =  1.d0 ; a2_p(3) = 0.d0
@@ -317,37 +318,26 @@
             L2_p    =  dble(L2)*a2_p
             L3_p    =  dble(L3)*a3_p
             Call Make_Lattice( L1_p, L2_p, L3_p, a1_p, a2_p, a3_p, Latt )
-         case("Bilayer_square")
-            a1_p(1) =  1.d0  ; a1_p(2) =  0.d0 ; a1_p(3) = 0.d0
-            a2_p(1) =  0.d0  ; a2_p(2) =  1.d0 ; a2_p(3) = 0.d0
-            a3_p(1) =  0.d0  ; a3_p(2) =  0.d0 ; a3_p(3) = 1.d0
-            L1_p    =  dble(L1)*a1_p
-            L2_p    =  dble(L2)*a2_p
-            L3_p    =  dble(L3)*a3_p
-            Call Make_Lattice( L1_p, L2_p, L3_p, a1_p, a2_p, a3_p, Latt )
- 
-            Latt_Unit%Norb     = 2
-            Latt_Unit%N_coord  = 3
-            Allocate (Latt_unit%Orb_pos_p(2,3))
-            do no = 1,2
-               Latt_Unit%Orb_pos_p(no,1) = 0.d0
-               Latt_Unit%Orb_pos_p(no,2) = 0.d0
-               Latt_Unit%Orb_pos_p(no,3) = real(1-no,kind(0.d0))
-            enddo
          case("Pi_Flux")
             !need to work on this one
-            Latt_Unit%Norb    = 2
-            Latt_Unit%N_coord = 6
-            a1_p(1) =  1.D0   ; a1_p(2) =   1.d0 ; a1_p(3) =   1.d0
-            a2_p(1) =  1.D0   ; a2_p(2) =  -1.d0 ; a2_p(3) =   1.d0
-            a3_p(1) =  1.D0   ; a3_p(2) =  -1.d0 ; a3_p(3) =   -1.d0
-            Allocate (Latt_Unit%Orb_pos_p(2,2))
+            Latt_Unit%Norb    = 4
+            Latt_Unit%N_coord = 12
+            a1_p(1) =  1.D0   ; a1_p(2) =   0.d0 ; a1_p(3) =   1.d0
+            a2_p(1) =  1.D0   ; a2_p(2) =  0.d0 ; a2_p(3) =   -1.d0
+            a3_p(1) =  0.D0   ; a3_p(2) =  1.d0 ; a3_p(3) =   1.d0
+            Allocate (Latt_Unit%Orb_pos_p(2,3))
             Latt_Unit%Orb_pos_p(1,:) = 0.d0
-            Latt_Unit%Orb_pos_p(2,:) = (a1_p(:) - a2_p(:))/2.d0
-            L1_p    =  dble(L1) * (a1_p - a2_p)/2.d0
+            Latt_Unit%Orb_pos_p(2,:) = 0.d0
+            Latt_Unit%Orb_pos_p(2,2) = 1.d0
+            Latt_Unit%Orb_pos_p(3,:) = 0.d0
+            Latt_Unit%Orb_pos_p(3,1) = 1.d0
+            Latt_Unit%Orb_pos_p(4,:) = 0.d0
+            Latt_Unit%Orb_pos_p(4,1) = 1.d0
+            Latt_Unit%Orb_pos_p(4,2) = 1.d0
+            L1_p    =  dble(L1) * (a3_p - (a1_p - a2_p)/2.0)/2.d0
             L2_p    =  dble(L2) * (a1_p + a2_p)/2.d0
-            L3_p    =  dble(L3) * ()
-            Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
+            L3_p    =  dble(L3) * (a1_p - a2_p)/2.d0
+            Call Make_Lattice( L1_p, L2_p, L3_p, a1_p, a2_p, a3_p, Latt )
          case default
             Write(error_unit,*) "Predefined_Latt: Lattice not yet implemented!"
             CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)

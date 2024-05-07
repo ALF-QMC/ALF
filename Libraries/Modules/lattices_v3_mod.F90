@@ -61,7 +61,8 @@
          Type Lattice
             Integer          :: N, Ns
             Integer, pointer :: list(:,:), invlist(:,:), nnlist(:,:,:), nnlistk(:,:,:), listk(:,:), &
-                 &              invlistk(:,:),  imj(:,:)
+                 &              invlistk(:,:),  imj(:,:), invlist3D(:,:,:), invlistk3D(:,:,:), &
+                 &              nnlist3D(:,:,:,:), nnlistk3D(:,:,:,:)
             Real (Kind=Kind(0.d0)), pointer :: a1_p(:), a2_p(:), a3_p(:), b1_p(:), b2_p(:), b3_p(:), &
                  &                    BZ1_p(:), BZ2_p(:), BZ3_p(:), &
                  &                    L1_p(:), L2_p(:), L3_p(:), b1_perp_p(:), b2_perp_p(:), b3_perp_p(:)
@@ -72,12 +73,6 @@
          end Interface
          Interface npbc
             module procedure npbc_I2D, npbc_R2D, npbc_I3D, npbc_R3D, npbc_R_B2D, npbc_R_B3D
-         end Interface
-         Interface Inv_K
-            module procedure Inv_K2D, Inv_K3D
-         end Interface
-         Interface Inv_R
-            module procedure Inv_R2D, Inv_R3D
          end Interface
          Interface Xnorm
             module procedure Xnorm_I, Xnorm_R
@@ -116,7 +111,7 @@
 
          ndim = size(L1_p)
          allocate (Latt%L3_p(ndim), Latt%L2_p(ndim), Latt%L1_p(ndim), Latt%a1_p(ndim) , Latt%a2_p(ndim), &
-              &    Latt%a3_p(ndim), Latt%b1_p(ndim), Latt%b2_p(ndim), Latt%b3_p(ndim) Latt%BZ1_p(ndim), &
+              &    Latt%a3_p(ndim), Latt%b1_p(ndim), Latt%b2_p(ndim), Latt%b3_p(ndim), Latt%BZ1_p(ndim), &
               &    Latt%BZ2_p(ndim), Latt%BZ3_p(ndim) )
          allocate (Latt%b1_perp_p(ndim), Latt%b2_perp_p(ndim), Latt%b3_perp_p(ndim) )
          Zero = 1.D-5
@@ -298,9 +293,9 @@
          !Write(6,*) L, LQ
 
 
-         Allocate ( Latt%List(LQ,ndim), Latt%Invlist(-L:L, -L:L, -L:L ) )
+         Allocate ( Latt%List(LQ,ndim), Latt%Invlist3D(-L:L, -L:L, -L:L ) )
          Latt%List = 0
-         Latt%Invlist = 0
+         Latt%Invlist3D = 0
          !Setting up real space lattice
          nc = 0
          do i1 = -L,L
@@ -334,16 +329,16 @@
                      Latt%list(nc,1) = i1
                      Latt%list(nc,2) = i2
                      Latt%list(nc,3) = i3
-                     Latt%invlist(i1, i2, i3 ) = nc
+                     Latt%invlist3D(i1, i2, i3 ) = nc
                   endif
                enddo
             enddo
          enddo
 
 
-         Allocate ( Latt%Listk(LQ,ndim), Latt%Invlistk(-L:L, -L:L, -L:L) )
+         Allocate ( Latt%Listk(LQ,ndim), Latt%Invlistk3D(-L:L, -L:L, -L:L) )
          Latt%Listk = 0
-         Latt%Invlistk = 0
+         Latt%Invlistk3D = 0
          nc = 0
          do m = -L,L
             do n = -L,L
@@ -377,7 +372,7 @@
                   Latt%listk(nc,1) = m
                   Latt%listk(nc,2) = n
                   Latt%listk(nc,3) = o
-                  Latt%invlistk(m,n,o) = nc
+                  Latt%invlistk3D(m,n,o) = nc
                endif
                enddo
             enddo
@@ -388,7 +383,7 @@
          endif
 
          !Setup nnlist
-         Allocate ( Latt%nnlist(LQ,-1:1,-1:1,-1:1) )
+         Allocate ( Latt%nnlist3D(LQ,-1:1,-1:1,-1:1) )
 
          do nr = 1, Latt%N
             do nd1 = -1,1
@@ -405,8 +400,8 @@
                      nnr1 =  nint ( Iscalar(Latt%BZ1_p,x_p) / (2.d0*pi) )
                      nnr2 =  nint ( Iscalar(Latt%BZ2_p,x_p) / (2.d0*pi) )
                      nnr3 =  nint ( Iscalar(Latt%BZ3_p,x_p) / (2.d0*pi) )
-                     nnr  = Latt%invlist(nnr1,nnr2,nnr3)
-                     Latt%nnlist(nr,nd1,nd2,nd3) = nnr
+                     nnr  = Latt%invlist3D(nnr1,nnr2,nnr3)
+                     Latt%nnlist3D(nr,nd1,nd2,nd3) = nnr
                      if ( nnr < 1  .or.  nnr > Latt%N ) then
                          write(6,*) "Error in nnlist ", nnr
                         x1_p =  dble(Latt%list(nr,1))*Latt%a1_p + dble(Latt%list(nr,2))*Latt%a2_p +&
@@ -421,15 +416,15 @@
          enddo
 
          !Setup nnlistk
-         Allocate ( Latt%nnlistk(LQ,-1:1,-1:1,-1:1) )
+         Allocate ( Latt%nnlistk3D(LQ,-1:1,-1:1,-1:1) )
          do nr = 1, Latt%N
             do nd1 = -1,1
                do nd2 = -1,1
                   do nd3 = -1,1
-                     d_p = dble(nd1)*b1_p + dble(nd2)*b2_p + dble(nd3)*n3_p
+                     d_p = dble(nd1)*b1_p + dble(nd2)*b2_p + dble(nd3)*b3_p
                      x_p  = dble(Latt%listk(nr,1))*Latt%b1_p + dble(Latt%listk(nr,2))*Latt%b2_p &
                            &+ dble(Latt%listk(nr,3))*Latt%b3_p + d_p
-                     Latt%nnlistk(nr,nd1,nd2,nd3)  = Inv_K(x_p,Latt)
+                     Latt%nnlistk3D(nr,nd1,nd2,nd3)  = Inv_K(x_p,Latt)
                   enddo
                enddo
             enddo
@@ -447,7 +442,7 @@
                imj_1 =  nint ( Iscalar(Latt%BZ1_p,d_p) / (2.d0*pi) )
                imj_2 =  nint ( Iscalar(Latt%BZ2_p,d_p) / (2.d0*pi) )
                imj_3 =  nint ( Iscalar(Latt%BZ3_p,d_p) / (2.d0*pi) )
-               imj   = Latt%invlist(imj_1,imj_2,imj_3)
+               imj   = Latt%invlist3D(imj_1,imj_2,imj_3)
                Latt%imj(nr,nr1) = imj
             enddo
          enddo
@@ -716,14 +711,16 @@
 
            if(size(Latt%a1_p).eq.3) then
             deallocate (Latt%L3_p, Latt%a3_p, Latt%b3_p, Latt%BZ3_p)
-            deallocate (Latt%b3_perp_p)
+            deallocate (Latt%b3_perp_p,Latt%Invlistk3D,Latt%Invlist3D)
+            deallocate (Latt%nnlist3D, Latt%nnlistk3D)
+           else
+            deallocate (Latt%Invlistk,Latt%Invlist, Latt%nnlistk, Latt%nnlist)
            endif
 
            deallocate (Latt%L2_p, Latt%L1_p, Latt%a1_p , Latt%a2_p, &
                 &    Latt%b1_p, Latt%b2_p, Latt%BZ1_p, Latt%BZ2_p )
            deallocate (Latt%b1_perp_p, Latt%b2_perp_p )
-           deallocate ( Latt%Listk, Latt%Invlistk, Latt%imj, Latt%nnlistk, &
-                &    Latt%nnlist,Latt%List, Latt%Invlist)
+           deallocate ( Latt%Listk, Latt%imj, Latt%List)
             
 
          end subroutine Clear_Lattice
@@ -1007,77 +1004,52 @@
           end subroutine npbc_R_B3D
 
  !********
-         integer Function Inv_K2D(XK_P,Latt)
+         integer Function Inv_K(XK_P,Latt)
 
            Implicit None
-           Real (Kind=Kind(0.d0))  :: XK_P(2)
-           Type (Lattice) :: Latt
-
-           Integer :: nkx, nky, nk
-           Real (Kind=Kind(0.d0)) :: XK1_P(2), XK2_P(2), Zero
-
-           call npbc(xk1_p, xk_p , Latt%BZ1_p, Latt%BZ2_p)
-           call npbc(xk2_p, xk1_p, Latt%BZ1_p, Latt%BZ2_p)
-
-           nkx = nint (Iscalar(XK2_P,Latt%b1_perp_p) )
-           nky = nint (Iscalar(XK2_P,Latt%b2_perp_p) )
-           nk = Latt%Invlistk(nkx,nky)
-
-           !Test
-           Zero  = 1.D-10
-           XK1_P = Latt%listk(nk,1)*latt%b1_p + Latt%listk(nk,2)*latt%b2_p
-           XK1_P = XK1_P - XK2_P
-           if (Xnorm(XK1_P)  < Zero ) then
-              Inv_K = nk
-           else
-              write(error_unit,*) 'Lattice: Error in Inv_K'
-              Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
-           endif
-
- !!$          nk = 1
- !!$          do
- !!$             XK1_P = Latt%listk(nk,1)*latt%b1_p + Latt%listk(nk,2)*latt%b2_p
- !!$             if (Xnorm(XK1_P - XK_P)  < Zero ) then
- !!$                Inv_K = nk
- !!$                exit
- !!$             elseif (nk < Latt%N) then
- !!$                nk = nk + 1
- !!$             else
- !!$                write(6,*) 'Error in Inv_K Lattice_new'
- !!$                Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
- !!$             endif
- !!$          enddo
-
-         end Function Inv_K2D
-
-
-         integer Function Inv_K3D(XK_P,Latt)
-
-           Implicit None
-           Real (Kind=Kind(0.d0))  :: XK_P(3)
+           Real (Kind=Kind(0.d0)), dimension(:), intent(inout)  :: XK_P
            Type (Lattice) :: Latt
 
            Integer :: nkx, nky, nkz, nk
-           Real (Kind=Kind(0.d0)) :: XK1_P(3), XK2_P(3), Zero
+           Real (Kind=Kind(0.d0)) :: XK1_P(2), XK2_P(2), XK1_P3(3), XK2_P3(3), Zero
 
-           call npbc(xk1_p, xk_p , Latt%BZ1_p, Latt%BZ2_p, Latt%BZ3_p)
-           call npbc(xk2_p, xk1_p, Latt%BZ1_p, Latt%BZ2_p, Latt%BZ3_p)
+           if(size(XK_P) ==2) then
+               call npbc(xk1_p, xk_p , Latt%BZ1_p, Latt%BZ2_p)
+               call npbc(xk2_p, xk1_p, Latt%BZ1_p, Latt%BZ2_p)
+               nkx = nint (Iscalar(XK2_P,Latt%b1_perp_p) )
+               nky = nint (Iscalar(XK2_P,Latt%b2_perp_p) )
+               nk = Latt%Invlistk(nkx,nky)
 
-           nkx = nint (Iscalar(XK2_P,Latt%b1_perp_p) )
-           nky = nint (Iscalar(XK2_P,Latt%b2_perp_p) )
-           nkz = nint (Iscalar(XK2_P,Latt%b3_perp_p) )
-           nk = Latt%Invlistk(nkx,nky,nkz)
-
-           !Test
-           Zero  = 1.D-10
-           XK1_P = Latt%listk(nk,1)*latt%b1_p + Latt%listk(nk,2)*latt%b2_p + Latt%listk(nk,3)*latt%b3_p
-           XK1_P = XK1_P - XK2_P
-           if (Xnorm(XK1_P)  < Zero ) then
-              Inv_K = nk
+               !Test
+               Zero  = 1.D-10
+               XK1_P = Latt%listk(nk,1)*latt%b1_p + Latt%listk(nk,2)*latt%b2_p
+               XK1_P = XK1_P - XK2_P
+               if (Xnorm(XK1_P)  < Zero ) then
+                  Inv_K = nk
            else
               write(error_unit,*) 'Lattice: Error in Inv_K'
               Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
            endif
+           else
+               call npbc(xk1_p3, xk_p , Latt%BZ1_p, Latt%BZ2_p, Latt%BZ3_p)
+               call npbc(xk2_p3, xk1_p3, Latt%BZ1_p, Latt%BZ2_p, Latt%BZ3_p)
+               nkx = nint (Iscalar(XK2_P3,Latt%b1_perp_p) )
+               nky = nint (Iscalar(XK2_P3,Latt%b2_perp_p) )
+               nkz = nint (Iscalar(XK2_P3,Latt%b3_perp_p) )
+               nk = Latt%Invlistk3D(nkx,nky,nkz)
+
+               Zero  = 1.D-10
+               XK1_P3 = Latt%listk(nk,1)*latt%b1_p + Latt%listk(nk,2)*latt%b2_p + Latt%listk(nk,3)*latt%b3_p
+               XK1_P3 = XK1_P3 - XK2_P3
+               if (Xnorm(XK1_P)  < Zero ) then
+                  Inv_K = nk
+               else
+                  write(error_unit,*) 'Lattice: Error in Inv_K'
+                  Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+               endif
+           endif
+
+           
 
  !!$          nk = 1
  !!$          do
@@ -1093,53 +1065,45 @@
  !!$             endif
  !!$          enddo
 
-         end Function Inv_K3D
+         end Function Inv_K
+
 
 
 
  !********
-         integer Function Inv_R2D(XR_P,Latt)
+         integer Function Inv_R(XR_P,Latt)
 
            Implicit None
-           Real (Kind=Kind(0.d0))  :: XR_P(2)
+           Real (Kind=Kind(0.d0)), dimension(:), intent(inout)  :: XR_P
            Type (Lattice) :: Latt
 
-           Real (Kind=Kind(0.d0)) :: XR1_P(2), XR2_P(2)
-
-           Integer :: n_1, n_2
-           Real (Kind=Kind(0.d0)) :: pi
-
-           pi = acos(-1.d0)
-           call npbc(xr1_p, xr_p , Latt%L1_p, Latt%L2_p)
-           call npbc(xr2_p, xr1_p, Latt%L1_p, Latt%L2_p)
-
-           n_1 =  nint ( Iscalar(Latt%BZ1_p,XR2_p) / (2.d0*pi) )
-           n_2 =  nint ( Iscalar(Latt%BZ2_p,XR2_p) / (2.d0*pi) )
-           Inv_R  = Latt%invlist(n_1,n_2)
-
-         end Function Inv_R2D
-
-         integer Function Inv_R3D(XR_P,Latt)
-
-           Implicit None
-           Real (Kind=Kind(0.d0))  :: XR_P(3)
-           Type (Lattice) :: Latt
-
-           Real (Kind=Kind(0.d0)) :: XR1_P(3), XR2_P(3), XR3_P(3)
+           Real (Kind=Kind(0.d0)) :: XR1_P(2), XR2_P(2), XR1_P3(3), XR2_P3(3), XR3_P3(3)
 
            Integer :: n_1, n_2, n_3
            Real (Kind=Kind(0.d0)) :: pi
 
            pi = acos(-1.d0)
-           call npbc(xr1_p, xr_p , Latt%L1_p, Latt%L2_p, Latt%L3_p)
-           call npbc(xr2_p, xr1_p, Latt%L1_p, Latt%L2_p, Latt%L3_p)
 
-           n_1 =  nint ( Iscalar(Latt%BZ1_p,XR2_p) / (2.d0*pi) )
-           n_2 =  nint ( Iscalar(Latt%BZ2_p,XR2_p) / (2.d0*pi) )
-           n_3 =  nint ( Iscalar(Latt%BZ3_p,XR3_p) / (2.d0*pi) )
-           Inv_R  = Latt%invlist(n_1,n_2,n_3)
+           if(size(XR_P)==2) then
+            call npbc(xr1_p, xr_p , Latt%L1_p, Latt%L2_p)
+            call npbc(xr2_p, xr1_p, Latt%L1_p, Latt%L2_p)
 
-         end Function Inv_R3D
+            n_1 =  nint ( Iscalar(Latt%BZ1_p,XR2_p) / (2.d0*pi) )
+            n_2 =  nint ( Iscalar(Latt%BZ2_p,XR2_p) / (2.d0*pi) )
+            Inv_R  = Latt%invlist(n_1,n_2)
+           else
+            call npbc(xr1_p3, xr_p , Latt%L1_p, Latt%L2_p, Latt%L3_p)
+            call npbc(xr2_p3, xr1_p3, Latt%L1_p, Latt%L2_p, Latt%L3_p)
+
+            n_1 =  nint ( Iscalar(Latt%BZ1_p,XR2_p3) / (2.d0*pi) )
+            n_2 =  nint ( Iscalar(Latt%BZ2_p,XR2_p3) / (2.d0*pi) )
+            n_3 =  nint ( Iscalar(Latt%BZ3_p,XR3_p3) / (2.d0*pi) )
+            Inv_R  = Latt%invlist3D(n_1,n_2,n_3)
+           endif
+
+         end Function Inv_R
+
+        
  !********
 
          integer function Iscalar_II(i_p, j_p)
@@ -1234,7 +1198,7 @@
            Open (Unit=56,file="Real_space_latt", status = "unknown")
            Open (Unit=57,file="K_space_latt", status = "unknown")
            Open (Unit=58,file="nn_latt", status = "unknown")
-           if (size(Latt%BZ1+p).eq.2) then
+           if (size(Latt%BZ1_p).eq.2) then
                do n = 1, Latt%n
                   i_p = dble(Latt%list(n,1))*Latt%a1_p + dble(Latt%list(n,2))*Latt%a2_p
                   write(56,"(F14.7,2x,F14.7)") i_p(1), i_p(2)
@@ -1264,7 +1228,7 @@
                      do nd2 = -1,1
                         do nd3 = -1,1
                            nd_p3 =   dble(nd1)*Latt%a1_p + dble(nd2)*Latt%a2_p + dble(nd3)*Latt%a3_p
-                           nnr = Latt%nnlist(n,nd1,nd2,nd3)
+                           nnr = Latt%nnlist3D(n,nd1,nd2,nd3)
                            !Write(6,*) 'nnr : ', nnr
                            i_p3 = dble(Latt%list(nnr,1))*Latt%a1_p + dble(Latt%list(nnr,2))*Latt%a2_p + dble(Latt%list(nnr,3))*Latt%a3_p
                            write(58,"('I+(',F12.6,',',F12.6,')=',2x,F14.7,2x,F14.7)") nd_p3(1),nd_p3(2),nd_p3(3),i_p3(1), i_p3(2),i_p3(3)
@@ -1436,7 +1400,7 @@
            Type (Lattice), intent(in)                 :: Latt
            Complex (Kind=Kind(0.d0)), Dimension(:,:)           :: Xin_K, Xout_R
            Complex (Kind=Kind(0.d0))                           :: Z
-           Real    (Kind=Kind(0.d0))                           :: XK_p(2), IR_p(2), XK_p(3), IR_p(3)
+           Real    (Kind=Kind(0.d0))                           :: XK_p(2), IR_p(2), XK_p3(3), IR_p3(3)
 
            Integer :: nb, LQ, nt, nr, nk
 
@@ -1466,7 +1430,7 @@
                      Z = cmplx(0.d0, 0.d0, kind(0.D0))
                      do nk = 1,LQ
                         XK_p3 =  dble(Latt%listk(nk,1))*Latt%b1_p + dble(Latt%listk(nk,2))*Latt%b2_p + dble(Latt%listk(nk,3))*Latt%b3_p
-                        Z = Z + cos(Iscalar(XK_p,IR_p))*Xin_K(nk,nt)
+                        Z = Z + cos(Iscalar(XK_p3,IR_p3))*Xin_K(nk,nt)
                      enddo
                      Xout_R(nr,nt) = Z/dble(LQ)
                   enddo
@@ -1483,7 +1447,7 @@
            Type (Lattice), intent(in)                 :: Latt
            Type (Mat_R ), Dimension(:,:)              :: Xin_R, Xout_K
            Real (Kind=Kind(0.d0)), Dimension(:,:), allocatable :: X_MAT
-           Real (Kind=Kind(0.d0))                              :: XK_p(2), IR_p(2), XK_p(3), IR_p(3)
+           Real (Kind=Kind(0.d0))                              :: XK_p(2), IR_p(2), XK_p3(3), IR_p3(3)
 
            Integer :: nb, norb, nk, nt, LQ, nr
 
@@ -1516,7 +1480,7 @@
                      X_MAT = 0.d0
                      do nr = 1,LQ
                         IR_p3 =  dble(Latt%list(nr,1))*Latt%a1_p + dble(Latt%list(nr,2))*Latt%a2_p + dble(Latt%list(nr,3))*Latt%a3_p
-                        X_MAT = X_MAT + cos(Iscalar(XK_p,IR_p))*Xin_R(nr,nt)%el
+                        X_MAT = X_MAT + cos(Iscalar(XK_p3,IR_p3))*Xin_R(nr,nt)%el
                      enddo
                      Xout_K(nk,nt)%el = X_MAT/dble(LQ)
                   enddo
@@ -1558,7 +1522,7 @@
                   X_MAT = 0.d0
                   do nr = 1,LQ
                      IR_p3 =  dble(Latt%list(nr,1))*Latt%a1_p + dble(Latt%list(nr,2))*Latt%a2_p + dble(Latt%list(nr,3))*Latt%a3_p
-                     X_MAT = X_MAT + cos(Iscalar(XK_p,IR_p))*Xin_R(nr)
+                     X_MAT = X_MAT + cos(Iscalar(XK_p3,IR_p3))*Xin_R(nr)
                   enddo
                   Xout_K(nk) = X_MAT/dble(LQ)
                enddo
@@ -1601,7 +1565,7 @@
                   X_MAT = cmplx(0.d0,0.d0, kind(0.D0))
                   do nr = 1,LQ
                      IR_p3 =  dble(Latt%list(nr,1))*Latt%a1_p + dble(Latt%list(nr,2))*Latt%a2_p + dble(Latt%list(nr,3))*Latt%a3_p
-                     ang = -Iscalar(XK_p,IR_p)
+                     ang = -Iscalar(XK_p3,IR_p3)
  !                   X_MAT = X_MAT + exp( cmplx(0.d0,-(Iscalar(XK_p,IR_p)), kind(0.D0)) ) *Xin_R(nr)
                      X_MAT = X_MAT + cmplx(cos(ang), sin(ang), kind(0.D0)) * Xin_R(nr)
                   enddo

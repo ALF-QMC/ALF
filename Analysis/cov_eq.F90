@@ -63,7 +63,7 @@
          Real (Kind=Kind(0.d0)) :: Pi, a1_p(2), a2_p(2), L1_p(2), L2_p(2), del_p(2)
          Real (Kind=Kind(0.d0)), allocatable :: AutoCorr(:),En(:)
 
-         Integer                :: L1, L2, I, N_auto, Ndim
+         Integer                :: L1, L2, L3, I, N_auto, Ndim
          Character (len=64)     :: Model, Lattice_type
          Type (Lattice)         :: Latt
          Integer , Dimension(:,:), allocatable  :: List, Invlist

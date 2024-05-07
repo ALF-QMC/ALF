@@ -403,13 +403,13 @@
           H0 = 0.d0; U0 = 0.d0;  E0=0.d0
           If (L3 > 1) then
             Do I = 1,Latt%N
-               Ix = Latt%nnlist(I,1,0,0)
+               Ix = Latt%nnlist3D(I,1,0,0)
                H0(I,  Ix) = -(1.d0   +   Delta*cos(Pi*real(Latt%list(I,1) + Latt%list(I,2),Kind(0.d0))))
                H0(Ix, I ) = -(1.d0   +   Delta*cos(Pi*real(Latt%list(I,1) + Latt%list(I,2),Kind(0.d0))))
-               Iy = Latt%nnlist(I,0,1,0)
+               Iy = Latt%nnlist3D(I,0,1,0)
                H0(I,  Iy) = -(1.d0  -   Delta)
                H0(Iy, I ) = -(1.d0  -   Delta)
-               Iz = Latt%nnlist(I,0,0,1)
+               Iz = Latt%nnlist3D(I,0,0,1)
                H0(I,  Iz) = -(1.d0  -   Delta)
                H0(Iz, I ) = -(1.d0  -   Delta)
             Enddo
@@ -420,7 +420,7 @@
                H0(Ix, I ) = -(1.d0   +   Delta*cos(Pi*real(Latt%list(I,1) + Latt%list(I,2),Kind(0.d0))))
                If (L2  > 1 ) Then
                   if(L3 > 1) then
-                     Iy = Latt%nnlist(I,0,1,0)
+                     Iy = Latt%nnlist3D(I,0,1,0)
                   else
                      Iy = Latt%nnlist(I,0,1)
                   endif
@@ -428,7 +428,7 @@
                   H0(Iy, I ) = -(1.d0  -   Delta)
                Endif
                if(L3 > 1) then
-                  Iz = Latt%nnlist(I,0,0,1)
+                  Iz = Latt%nnlist3D(I,0,0,1)
                   H0(I,  Iz) = -(1.d0  -   Delta)
                   H0(Iz, I ) = -(1.d0  -   Delta)
                endif
@@ -463,7 +463,7 @@
 !> a spin flip of Operator n on time slice nt
 !> @details
 !--------------------------------------------------------------------
-        Real (Kind=Kind(0.d0)) function S0(n,nt,Hs_new)
+        Real (Kind=Kind(0.d0)) function S0(n,nt,Hs_new) !3D: need to modify
           Implicit none
           Integer, Intent(IN) :: n,nt
           complex (Kind=Kind(0.d0)), Intent(In) :: Hs_new
@@ -1335,17 +1335,17 @@
          do nx = 1,L1
               do ny = 1,L2
                   do nz = 1,L3
-                     I1 = latt%nnlist(I,0,0,1)
+                     I1 = latt%nnlist3D(I,0,0,1)
                      Isigma(I1)  = Isigma(I)*nsigma%i(Field_list(I,3,2),nt)
                      !Write(6,*) Latt%list(I,1), Latt%list(I,2), ' -> ', Latt%list(I1,1), Latt%list(I1,2)
                      I = I1
                   enddo
-                  I1 = latt%nnlist(I,0,1,0)
+                  I1 = latt%nnlist3D(I,0,1,0)
                   Isigma(I1)  = Isigma(I)*nsigma%i(Field_list(I,2,2),nt)
                   !Write(6,*) Latt%list(I,1), Latt%list(I,2), ' -> ', Latt%list(I1,1), Latt%list(I1,2)
                   I = I1
               enddo
-              I1          = latt%nnlist(I,1,0,0)
+              I1          = latt%nnlist3D(I,1,0,0)
               Isigma(I1)  = Isigma(I)*nsigma%i(Field_list(I,1,2),nt)
               !Write(6,*) Latt%list(I,1), Latt%list(I,2), ' -> ', Latt%list(I1,1), Latt%list(I1,2)
               I = I1

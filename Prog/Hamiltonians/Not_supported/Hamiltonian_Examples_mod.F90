@@ -199,7 +199,7 @@
           ! Interaction                              -->  Model
           ! Simulation type                          -->  Finite  T or Projection  Symmetrize Trotter.
 
-          NAMELIST /VAR_Lattice/  L1, L2, Lattice_type, Model
+          NAMELIST /VAR_Lattice/  L1, L2, L3, Lattice_type, Model
 
           NAMELIST /VAR_Model_Generic/  Checkerboard, N_SUN, N_FL, Phi_X, Phi_Y, Symm, Bulk, N_Phi, Dtau, Beta, Theta, Projector
 
@@ -227,6 +227,7 @@
           Ham_T2       = 0.d0
           Ham_Tperp    = 0.d0
           Ham_U2       = 0.d0
+          L3           = 1
 
 
 #ifdef MPI
@@ -262,6 +263,7 @@
           Endif
           CALL MPI_BCAST(L1          ,1  ,MPI_INTEGER,   0,Group_Comm,ierr)
           CALL MPI_BCAST(L2          ,1  ,MPI_INTEGER,   0,Group_Comm,ierr)
+          CALL MPI_BCAST(L3          ,1  ,MPI_INTEGER,   0,Group_Comm,ierr)
           CALL MPI_BCAST(N_SUN       ,1  ,MPI_INTEGER,   0,Group_Comm,ierr)
           CALL MPI_BCAST(N_FL        ,1  ,MPI_INTEGER,   0,Group_Comm,ierr)
           CALL MPI_BCAST(N_Phi       ,1  ,MPI_INTEGER,   0,Group_Comm,ierr)
@@ -507,7 +509,11 @@
 
           Implicit none
           ! Use predefined stuctures or set your own lattice.
-          Call Predefined_Latt(Lattice_type, L1,L2,Ndim, List,Invlist,Latt,Latt_Unit)
+          if(L3 > 1) then
+            Call Predefined_Latt(Lattice_type, L1,L2,L3,Ndim, List,Invlist,Latt,Latt_Unit)
+          else
+            Call Predefined_Latt(Lattice_type, L1,L2,Ndim, List,Invlist,Latt,Latt_Unit)
+          endif
 
         end Subroutine Ham_Latt
 !--------------------------------------------------------------------

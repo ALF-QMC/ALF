@@ -30,7 +30,7 @@
 !>    Privat variables
       Type (Lattice),        private :: Latt
       Type (Unit_cell),      private :: Latt_unit
-      Integer,               private :: L1, L2
+      Integer,               private :: L1, L2, L3
       real (Kind=Kind(0.d0)),private :: ham_T , ham_U,  Ham_chem, Ham_h, Ham_J, Ham_xi, Ham_F
       real (Kind=Kind(0.d0)),private :: Dtau, Beta, Theta
       Character (len=64),    private :: Model, Lattice_type
@@ -62,7 +62,7 @@
 
           integer :: ierr
           Character (len=64) :: file_info, file_para
-          NAMELIST /VAR_lattice/  L1, L2, Lattice_type, Model
+          NAMELIST /VAR_lattice/  L1, L2, L3, Lattice_type, Model
 
 
           NAMELIST /VAR_Z2_Slave/  ham_T, ham_chem, ham_U, Dtau, Beta, &
@@ -82,6 +82,7 @@
           ! Global default values
           N_FL = 1; N_SUN = 2
           ham_T = 0.d0;  ham_U= 0.d0;   Ham_J= 0.d0;  Ham_F = 0.d0
+          L3 = 1;
 #ifdef MPI
           If (Irank_g == 0 ) then
 #endif
@@ -104,6 +105,7 @@
           Endif
           CALL MPI_BCAST(L1          ,1  ,MPI_INTEGER,   0,MPI_COMM_WORLD,ierr)
           CALL MPI_BCAST(L2          ,1  ,MPI_INTEGER,   0,MPI_COMM_WORLD,ierr)
+          CALL MPI_BCAST(L3          ,1  ,MPI_INTEGER,   0,MPI_COMM_WORLD,ierr)
           CALL MPI_BCAST(Model       ,64 ,MPI_CHARACTER, 0,MPI_COMM_WORLD,IERR)
           CALL MPI_BCAST(Lattice_type,64 ,MPI_CHARACTER, 0,MPI_COMM_WORLD,IERR)
           CALL MPI_BCAST(ham_T    ,1,MPI_REAL8,0,MPI_COMM_WORLD,ierr)
@@ -174,9 +176,15 @@
 
           Use Predefined_Lattices
 
+          if(L3 > 1) then
+            Call Predefined_Latt(Lattice_type, L1,L2,L3,Ndim, List,Invlist,Latt,Latt_Unit)
+          else
+            Call Predefined_Latt(Lattice_type, L1,L2,Ndim, List,Invlist,Latt,Latt_Unit)
+          endif
+
           Implicit none
           ! Use predefined stuctures or set your own lattice.
-          Call Predefined_Latt(Lattice_type, L1,L2,Ndim, List,Invlist,Latt,Latt_Unit)
+          
 
         end Subroutine Ham_Latt
 

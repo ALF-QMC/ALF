@@ -319,18 +319,9 @@
 
 
           Implicit none
-          integer                 :: ncoord
-          if(L3 == 1) then
-            ncoord = 3
-          else 
-            ncoord = 2
-          endif
-            
-          if (L3 == 1) then
-            Real (Kind=Kind(0.d0))  :: a1_p(ncoord), a2_p(ncoord), L1_p(ncoord), L2_p(ncoord)
-          else
-            Real (Kind=Kind(0.d0))  :: a3_p(ncoord), L3_p(ncoord)
-          endif
+          Real (Kind=Kind(0.d0))  :: a1_p(2), a2_p(2), L1_p(2), L2_p(2)
+          Real (Kind=Kind(0.d0))  :: a1_p3(3), a2_p3(3), a3_p3(3), L1_p3(3), L2_p3(3), L3_p3(3)
+
           
           If (Lattice_Type /=  "Square")  then
              Write(6,*) 'The plain vanilla Hubbard model is only defined for the square lattice'
@@ -352,19 +343,19 @@
             allocate(Latt_unit%Orb_pos_p(Latt_unit%Norb,3))
             Latt_unit%Orb_pos_p(1, :) = [0.d0, 0.d0, 0.d0]
 
-            a1_p(1) =  1.0  ; a1_p(2) =  0.d0; a1_p(3) = 0.d0
-            a2_p(1) =  0.0  ; a2_p(2) =  1.d0; a2_p(3) = 0.d0
-            a3_p(1)  = 0.0  ; a3_p(2) =  0.d0; a3_p(3) = 1.d0
-            L1_p    =  dble(L1)*a1_p
-            L2_p    =  dble(L2)*a2_p
-            L3_p    =  dbl3(L3)*a3_p
+            a1_p3(1) =  1.0  ; a1_p3(2) =  0.d0; a1_p3(3) = 0.d0
+            a2_p3(1) =  0.0  ; a2_p3(2) =  1.d0; a2_p3(3) = 0.d0
+            a3_p3(1)  = 0.0  ; a3_p3(2) =  0.d0; a3_p3(3) = 1.d0
+            L1_p3    =  dble(L1)*a1_p3
+            L2_p3    =  dble(L2)*a2_p3
+            L3_p3    =  dble(L3)*a3_p3
           endif
 
 
           if (L3 == 1) then
             Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
           else 
-            Call Make_Lattice( L1_p, L2_p, L3_p, a1_p, a2_p, a3_p, Latt )
+            Call Make_Lattice( L1_p3, L2_p3, L3_p3, a1_p3, a2_p3, a3_p3, Latt )
           endif
          
           Ndim = Latt%N*Latt_unit%Norb
@@ -387,7 +378,7 @@
              Call Op_make(Op_T(1,nf),Ndim)
              Do I = 1,Latt%N
                 if(L3 > 1) then
-                  Ix = Latt%nnlist(I,1,0,0)
+                  Ix = Latt%nnlist3D(I,1,0,0)
                 else
                   Ix = Latt%nnlist(I,1,0)
                 endif
@@ -395,7 +386,7 @@
                 Op_T(1,nf)%O(Ix, I ) = cmplx(-Ham_T,    0.d0, kind(0.D0))
                 If ( L2 > 1 ) then
                     if(L3 > 1) then
-                     Iy = Latt%nnlist(I,0,1,0)
+                     Iy = Latt%nnlist3D(I,0,1,0)
                     else
                      Iy = Latt%nnlist(I,0,1)
                     endif
@@ -403,7 +394,7 @@
                    Op_T(1,nf)%O(Iy, I ) = cmplx(-Ham_T,    0.d0, kind(0.D0))
                 endif
                 If ( L3 > 1 ) then
-                  Iz = Latt%nnlist(I,0,0,1)
+                  Iz = Latt%nnlist3D(I,0,0,1)
                   Op_T(1,nf)%O(I,  Iz) = cmplx(-Ham_T,    0.d0, kind(0.D0))
                   Op_T(1,nf)%O(Iz, I ) = cmplx(-Ham_T,    0.d0, kind(0.D0))
                 endif
@@ -445,7 +436,7 @@
           H0 = 0.d0; U0 = 0.d0;  E0=0.d0
           Do I = 1,Latt%N
              if(L3 > 1) then
-               Ix = Latt%nnlist(I,1,0,0)
+               Ix = Latt%nnlist3D(I,1,0,0)
              else
                Ix = Latt%nnlist(I,1,0)
              endif
@@ -453,7 +444,7 @@
              H0(Ix, I ) = -Ham_T*(1.d0   +   Delta*cos(Pi*real(Latt%list(I,1) + Latt%list(I,2),Kind(0.d0))))
              If (L2  > 1 ) Then
                if(L3 > 1) then
-                  Iy = Latt%nnlist(I,0,1,0)
+                  Iy = Latt%nnlist3D(I,0,1,0)
                 else
                   Iy = Latt%nnlist(I,0,1)
                 endif
@@ -461,7 +452,7 @@
                 H0(Iy, I ) = -Ham_T *(1.d0  -   Delta)
              Endif
              If (L3  > 1 ) Then
-                Iz = Latt%nnlist(I,0,0,1)
+                Iz = Latt%nnlist3D(I,0,0,1)
                 H0(I,  Iz) = -Ham_T *(1.d0  -   Delta)
                 H0(Iz, I ) = -Ham_T *(1.d0  -   Delta)
              Endif
@@ -683,7 +674,7 @@
           Zkin = Zkin* dble(N_SUN)
           Do I = 1,Latt%N
              if(L3 > 1) then
-               Ix = Latt%nnlist(I,1,0,0)
+               Ix = Latt%nnlist3D(I,1,0,0)
              else
                Ix = Latt%nnlist(I,1,0)
              endif
@@ -693,7 +684,7 @@
           If (L2 > 1) then
              Do I = 1,Latt%N
                 if(L3 > 1) then
-                  Iy = Latt%nnlist(I,0,1,0)
+                  Iy = Latt%nnlist3D(I,0,1,0)
                 else
                   Iy = Latt%nnlist(I,0,1)
                 endif
@@ -703,7 +694,7 @@
           Endif
           If (L3 > 1) then
             Do I = 1,Latt%N
-               Iz = Latt%nnlist(I,0,0,1)
+               Iz = Latt%nnlist3D(I,0,0,1)
                Zkin = Zkin + GRC(I,Iz,2)  + GRC(Iz,I,2)   &
                     &      + GRC(I,Iz,1)  + GRC(Iz,I,1)
             Enddo

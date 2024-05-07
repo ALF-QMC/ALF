@@ -56,6 +56,11 @@
       !> Space for the interaction matrix, orthogonal transformation, and spectrum.
       Real (Kind=Kind(0.d0)), allocatable,  Private :: V_int(:,:),  U_int(:,:), E_int(:), A_tmp(:), V_int_m1(:,:)
 
+      INTERFACE Minimal_Distance
+        !> Interface to Calc_Renyi_Ent function.
+        MODULE PROCEDURE Minimal_Distance3D, Minimal_Distance2D
+      END INTERFACE
+
     contains
 
 !--------------------------------------------------------------------
@@ -121,13 +126,10 @@
 !> Returns the  smallest ditance  betweem to points on a torus. 
 !>
 !> @details
-!>ADD INTERFACE
+!>
 !-------------------------------------------------------------------
 
-      INTERFACE Minimal_Distance
-        !> Interface to Calc_Renyi_Ent function.
-        MODULE PROCEDURE Minimal_Distance3D, Minimal_Distance2D
-      END INTERFACE
+      
 
       Subroutine  Minimal_Distance3D(X1_p, X_p, L1_p, L2_p, L3_p)
 
@@ -158,7 +160,7 @@
             enddo
          enddo
          
-         X1_p(:) = X_p(:) + real(n1_min,kind(0.d0))*L1_p(:) + real(n2_min,kind(0.d0))*L2_p(:) + real(n2_min,kind(0.d0))*L3_p(:)
+         X1_p(:) = X_p(:) + real(n1_min,kind(0.d0))*L1_p(:) + real(n2_min,kind(0.d0))*L2_p(:) + real(n3_min,kind(0.d0))*L3_p(:)
          !Write(6,*)  X_p, X1_p
          
        end Subroutine Minimal_Distance3D
@@ -222,37 +224,52 @@
 !-------------------------------------------------------------------
       Subroutine LRC_Print(Latt, Latt_unit, list, invlist)
 
-        Use Lattices_v3
-        Implicit none
+         Use Lattices_v3
+         Implicit none
 
-        !  Lattice
-        Type (Lattice)  , intent(in) :: Latt
-        !  Unit cell
-        Type (Unit_cell), intent(in) :: Latt_unit
-        !  List(I=1.. Ndim,1)    =   Unit cell of site I
-        !  List(I=1.. Ndim,2)    =   Orbital index  of site I
-        !  Invlist(Unit_cell,Orbital) = site I
-        Integer, intent(in), Dimension(:,:) :: List, Invlist
+         !  Lattice
+         Type (Lattice)  , intent(in) :: Latt
+         !  Unit cell
+         Type (Unit_cell), intent(in) :: Latt_unit
+         !  List(I=1.. Ndim,1)    =   Unit cell of site I
+         !  List(I=1.. Ndim,2)    =   Orbital index  of site I
+         !  Invlist(Unit_cell,Orbital) = site I
+         Integer, intent(in), Dimension(:,:) :: List, Invlist
 
-        ! Local
-        Integer :: I,J, no_J, Ju, no_I, Iu, I0, imj, Latt_dim
-        Real (Kind=Kind(0.d0)), allocatable :: X_p(:),  X0_p(:)
-        Real (Kind=Kind(0.d0)), allocatable :: A1_p(:), A2_p(:), L1_p(:), L2_p(:)
+         ! Local
+         Integer :: I,J, no_J, Ju, no_I, Iu, I0, imj, Latt_dim
+         Real (Kind=Kind(0.d0)), allocatable :: X_p(:),  X0_p(:)
+         Real (Kind=Kind(0.d0)), allocatable :: A1_p(:), A2_p(:), A3_p(:), L1_p(:), L2_p(:), L3_p(:)
 
         
 
-        Open (Unit = 25,file="Coulomb_Rep",status="unknown")
-
-        Latt_dim = Size(Latt_unit%Orb_pos_p,2)
-        Allocate ( X_p(Latt_dim), X0_p(Latt_dim), &
-             &     A1_p(Latt_dim), A2_p(Latt_dim), L1_p(Latt_dim), L2_p(Latt_dim) )
-        A1_p = 0.d0; A2_p = 0.d0; L1_p = 0.d0;  L2_p = 0.d0
-        do I = 1,  Size(Latt%a1_p,1)
-           A1_p(I) = Latt%a1_p(I)
-           A2_p(I) = Latt%a2_p(I)
-           L1_p(I) = Latt%L1_p(I)
-           L2_p(I) = Latt%L2_p(I)
-        enddo
+         Open (Unit = 25,file="Coulomb_Rep",status="unknown")
+         if(size(Latt%BZ1_p)==2) then
+            Latt_dim = Size(Latt_unit%Orb_pos_p,2) !does this not work for bilayers?
+            Allocate ( X_p(Latt_dim), X0_p(Latt_dim), &
+                &     A1_p(Latt_dim), A2_p(Latt_dim), L1_p(Latt_dim), L2_p(Latt_dim) )
+            A1_p = 0.d0; A2_p = 0.d0; L1_p = 0.d0;  L2_p = 0.d0 !may be larger dim than latt%a1
+            do I = 1,  Size(Latt%a1_p,1)
+               A1_p(I) = Latt%a1_p(I)
+               A2_p(I) = Latt%a2_p(I)
+               L1_p(I) = Latt%L1_p(I)
+               L2_p(I) = Latt%L2_p(I)
+            enddo
+         else
+            Latt_dim = Size(Latt_unit%Orb_pos_p,2)
+            Allocate ( X_p(Latt_dim), X0_p(Latt_dim), &
+                &     A1_p(Latt_dim), A2_p(Latt_dim), A3_p(Latt_dim), &
+                &     L1_p(Latt_dim), L2_p(Latt_dim), L3_p(Latt_dim) )
+            A1_p = 0.d0; A2_p = 0.d0; L1_p = 0.d0;  L2_p = 0.d0
+            do I = 1,  Size(Latt%a1_p,1)
+               A1_p(I) = Latt%a1_p(I)
+               A2_p(I) = Latt%a2_p(I)
+               A3_p(I) = Latt%a3_p(I)
+               L1_p(I) = Latt%L1_p(I)
+               L2_p(I) = Latt%L2_p(I)
+               L3_p(I) = Latt%L3_p(I)
+            enddo
+         endif
 
         Iu   = 1
         no_I = 1
@@ -263,11 +280,19 @@
                  do no_J = 1,Latt_unit%Norb
                     J    = invlist(Ju,no_J)
                     ImJ  = Latt%imj(Iu,Ju)
-                    X_p(:) = dble(Latt%list(Iu,1))*A1_p(:)  +  dble(Latt%list(Iu,2))*A2_p(:) + &
-                         &   Latt_unit%Orb_pos_p(no_i,:)   - &
-                         &   dble(Latt%list(Ju,1))*A1_p(:)  -  dble(Latt%list(Ju,2))*A2_p(:) - &
-                         &   Latt_unit%Orb_pos_p(no_j,:)
-                    Call  Minimal_distance(X0_p,X_p,L1_p, L2_p)
+                    if(size(Latt%BZ1_p)==2) then
+                        X_p(:) = dble(Latt%list(Iu,1))*A1_p(:)  +  dble(Latt%list(Iu,2))*A2_p(:) + &
+                           &   Latt_unit%Orb_pos_p(no_i,:)   - &
+                           &   dble(Latt%list(Ju,1))*A1_p(:)  -  dble(Latt%list(Ju,2))*A2_p(:) - &
+                           &   Latt_unit%Orb_pos_p(no_j,:)
+                        Call  Minimal_distance(X0_p,X_p,L1_p, L2_p)
+                    else
+                        X_p(:) = dble(Latt%list(Iu,1))*A1_p(:)  +  dble(Latt%list(Iu,2))*A2_p(:) + &
+                           &   dble(Latt%list(Iu,3))*A3_p(:) +Latt_unit%Orb_pos_p(no_i,:)   - &
+                           &   dble(Latt%list(Ju,1))*A1_p(:)  -  dble(Latt%list(Ju,2))*A2_p(:) - &
+                           &   dble(Latt%list(Ju,3))*A3_p(:) -Latt_unit%Orb_pos_p(no_j,:)
+                        Call  Minimal_distance(X0_p,X_p,L1_p, L2_p, L3_p)
+                    endif
                     Write(25,"(F16.8,2x,F16.8)") xnorm(x0_p), V_int(I,J)
                  enddo
               Enddo
@@ -280,7 +305,11 @@
         Enddo
         Close(25)
 
-        Deallocate ( X_p, X0_p, A1_p, A2_p, L1_p, L2_p )
+        if(size(Latt%BZ1_p)==2) then
+            Deallocate ( X_p, X0_p, A1_p, A2_p, L1_p, L2_p )
+        else
+         Deallocate ( X_p, X0_p, A1_p, A2_p, A3_p, L1_p, L2_p, L3_p )
+        endif
 
       end Subroutine LRC_Print
 !--------------------------------------------------------------------
@@ -337,22 +366,39 @@
         Integer ::   I,J,no_i,no_j, n, m, no, imj, Latt_dim 
         Real (Kind=Kind(0.d0)) ::d1, X, X_min, Xmean,Xmax, Xmax1
         Real (Kind=Kind(0.d0)), allocatable :: M_Tmp(:,:), M_Tmp1(:,:), X_p(:), X0_p(:), X1_p(:) 
-        Real (Kind=Kind(0.d0)), allocatable :: A1_p(:), A2_p(:), L1_p(:), L2_p(:)
+        Real (Kind=Kind(0.d0)), allocatable :: A1_p(:), A2_p(:), A3_p(:), L1_p(:), L2_p(:), L3_p(:)
         Logical :: L_test=.true.
 
-        Latt_dim = Size(Latt_unit%Orb_pos_p,2)
-        Allocate ( X_p(Latt_dim), X0_p(Latt_dim), X1_p(Latt_dim), &
-             &     A1_p(Latt_dim), A2_p(Latt_dim), L1_p(Latt_dim), L2_p(Latt_dim) )
-        A1_p = 0.d0; A2_p = 0.d0; L1_p = 0.d0;  L2_p = 0.d0
-        do I = 1,  Size(Latt%a1_p,1)
-           A1_p(I) = Latt%a1_p(I)
-           A2_p(I) = Latt%a2_p(I)
-           L1_p(I) = Latt%L1_p(I)
-           L2_p(I) = Latt%L2_p(I)
-        enddo
+         Latt_dim = Size(Latt_unit%Orb_pos_p,2)
+         if(size(Latt%BZ1_p)==2) then
+            Latt_dim = Size(Latt_unit%Orb_pos_p,2) !does this not work for bilayers?
+            Allocate ( X_p(Latt_dim), X0_p(Latt_dim), &
+               &     A1_p(Latt_dim), A2_p(Latt_dim), L1_p(Latt_dim), L2_p(Latt_dim) )
+            A1_p = 0.d0; A2_p = 0.d0; L1_p = 0.d0;  L2_p = 0.d0 !may be larger dim than latt%a1
+            do I = 1,  Size(Latt%a1_p,1)
+               A1_p(I) = Latt%a1_p(I)
+               A2_p(I) = Latt%a2_p(I)
+               L1_p(I) = Latt%L1_p(I)
+               L2_p(I) = Latt%L2_p(I)
+            enddo
+         else
+            Latt_dim = Size(Latt_unit%Orb_pos_p,2)
+            Allocate ( X_p(Latt_dim), X0_p(Latt_dim), &
+               &     A1_p(Latt_dim), A2_p(Latt_dim), A3_p(Latt_dim), &
+               &     L1_p(Latt_dim), L2_p(Latt_dim), L3_p(Latt_dim) )
+            A1_p = 0.d0; A2_p = 0.d0; L1_p = 0.d0;  L2_p = 0.d0
+            do I = 1,  Size(Latt%a1_p,1)
+               A1_p(I) = Latt%a1_p(I)
+               A2_p(I) = Latt%a2_p(I)
+               A3_p(I) = Latt%a3_p(I)
+               L1_p(I) = Latt%L1_p(I)
+               L2_p(I) = Latt%L2_p(I)
+               L3_p(I) = Latt%L3_p(I)
+            enddo
+         endif
         
-        ! Set d1, the minimal distance.
-        If (Latt_unit%Norb > 1 ) then
+         ! Set d1, the minimal distance.
+         If (Latt_unit%Norb > 1 ) then
            no = 2
            X_min = Xnorm(Latt_unit%Orb_pos_p(no,:))
            !X_min = sqrt( Latt_unit%Orb_pos_p(no,1)**2  + Latt_unit%Orb_pos_p(no,2)**2 )
@@ -362,13 +408,17 @@
               !X_min = sqrt( Latt_unit%Orb_pos_p(no,1)**2  + Latt_unit%Orb_pos_p(no,2)**2 )
               if (X_min <=  d1) d1 = X_min
            enddo
-        else
-           X_min  = Xnorm(Latt%a1_p)
-           !X_min  = sqrt( Latt%a1_p(1)**2  + Latt%a1_p(2)**2 )
-           d1     =  X_min
-           X_min  = Xnorm(Latt%a2_p)
+         else
+            X_min  = Xnorm(Latt%a1_p)
+            !X_min  = sqrt( Latt%a1_p(1)**2  + Latt%a1_p(2)**2 )
+            d1     =  X_min
+            X_min  = Xnorm(Latt%a2_p)
            !X_min = sqrt( Latt%a2_p(1)**2  + Latt%a2_p(2)**2 )
-           if (X_min <=  d1) d1 = X_min
+            if (X_min <=  d1) d1 = X_min
+            if(size(Latt%BZ1_p)==3) then
+               X_min  = Xnorm(Latt%a3_p)
+               if (X_min <=  d1) d1 = X_min
+            endif
         endif
 
         ! Allocate space
@@ -381,17 +431,31 @@
         ! Set Potential
         Do i = 1, Latt%N
            do j = 1, Latt%N
-              X0_p = dble(Latt%list(i,1))*A1_p + dble(Latt%list(i,2))*A2_p - &
-                   & dble(Latt%list(j,1))*A1_p - dble(Latt%list(j,2))*A2_p
-              do no_i = 1,Latt_unit%Norb
-                 do no_j = 1,Latt_unit%Norb
-                    n = invlist(i,no_i)
-                    m = invlist(j,no_j)
-                    X_p(:) = X0_p(:) +  Latt_unit%Orb_pos_p(no_i,:) - Latt_unit%Orb_pos_p(no_j,:)
-                    Call Minimal_Distance( X1_p, X_p, L1_p, L2_p )
-                    V_int(n,m) =   LRC_V_func(X1_p,Uhub,alpha,d1)
-                 enddo
-              enddo
+               if(size(Latt%BZ1_p==2)) then
+                  X0_p = dble(Latt%list(i,1))*A1_p + dble(Latt%list(i,2))*A2_p - &
+                      & dble(Latt%list(j,1))*A1_p - dble(Latt%list(j,2))*A2_p
+                  do no_i = 1,Latt_unit%Norb
+                     do no_j = 1,Latt_unit%Norb
+                        n = invlist(i,no_i)
+                        m = invlist(j,no_j)
+                        X_p(:) = X0_p(:) +  Latt_unit%Orb_pos_p(no_i,:) - Latt_unit%Orb_pos_p(no_j,:)
+                        Call Minimal_Distance( X1_p, X_p, L1_p, L2_p )
+                        V_int(n,m) =   LRC_V_func(X1_p,Uhub,alpha,d1)
+                     enddo
+                  enddo
+               else
+                  X0_p = dble(Latt%list(i,1))*A1_p + dble(Latt%list(i,2))*A2_p + dble(Latt%list(i,3))*A3_p - &
+                      & dble(Latt%list(j,1))*A1_p - dble(Latt%list(j,2))*A2_p - dble(Latt%list(j,3))*A3_p
+                  do no_i = 1,Latt_unit%Norb
+                     do no_j = 1,Latt_unit%Norb
+                        n = invlist(i,no_i)
+                        m = invlist(j,no_j)
+                        X_p(:) = X0_p(:) +  Latt_unit%Orb_pos_p(no_i,:) - Latt_unit%Orb_pos_p(no_j,:)
+                        Call Minimal_Distance( X1_p, X_p, L1_p, L2_p, L3_p )
+                        V_int(n,m) =   LRC_V_func(X1_p,Uhub,alpha,d1)
+                     enddo
+                  enddo
+               endif
            enddo
         enddo
         Call Diag(V_int,U_int,E_int)
@@ -436,7 +500,11 @@
            Deallocate (M_Tmp, M_tmp1)
         Endif
 
-        Deallocate ( X_p, X0_p, X1_p, A1_p, A2_p, L1_p, L2_p )
+        if(size(Latt%BZ1_p) == 2) then
+            Deallocate ( X_p, X0_p, X1_p, A1_p, A2_p, L1_p, L2_p )
+        else
+            Deallocate ( X_p, X0_p, X1_p, A1_p, A2_p, A3_p, L1_p, L2_p, L3_p )
+        endif
 
 
       end Subroutine LRC_Set_VIJ
