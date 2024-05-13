@@ -60,14 +60,14 @@ Module MaxEnt_stoch_mod
 
 !--------------------------------------------------------------------
          Subroutine MaxEnt_stoch(XQMC, Xtau, COV,Xmom1, XKER, Back_Trans_Aom, Beta_1, Alpha_tot,&
-              & Ngamma_1, OM_ST, OM_EN, Ndis_1, Nsweeps, NBins, NWarm, Default_provided)
+              & Ngamma_1, OM_ST, OM_EN, Ndis_1, Nsweeps, NBins, NWarm, F, Default_provided)
 
            Implicit None
 
            Real (Kind=Kind(0.d0)), Dimension(:) :: XQMC, Xtau, Alpha_tot
            Real (Kind=Kind(0.d0)), Dimension(:,:) :: COV
            Real (Kind=Kind(0.d0)), Dimension(:),  Intent(In), allocatable,   optional :: Default_provided
-           Real (Kind=Kind(0.d0)), External :: XKER, Back_trans_Aom
+           Real (Kind=Kind(0.d0)), External :: XKER, Back_trans_Aom, F
            Real (Kind=Kind(0.d0)) :: OM_ST, OM_EN, Beta_1, Xmom1, Err
            Integer :: Nsweeps, NBins, Ngamma_1, Ndis_1, nw, nt1
 
@@ -79,13 +79,15 @@ Module MaxEnt_stoch_mod
            Real (Kind=Kind(0.d0)), Allocatable :: G_Mean(:), Xn_m(:), Xn_e(:), Xn(:,:), Vhelp(:), Default_table(:), A(:)
            Real (Kind=Kind(0.d0)) :: En_M, X, Alpha, Acc_1, Acc_2, En, DeltaE, Ratio
            Real (Kind=Kind(0.d0)) :: Aom, om, XMAX, tau
-           Real (Kind=Kind(0.d0)) :: CPUT
+           Real (Kind=Kind(0.d0)) :: CPUT, F_A
            Integer :: ICPU_1, ICPU_2, N_P_SEC
            Character (64) :: File_root, File1, File_conf, File_Aom
            Real (Kind=Kind(0.d0)), allocatable :: Xker_table(:,:), U(:,:), sigma(:)
            ! Space for moments.
            Real (Kind=Kind(0.d0)), allocatable:: Mom_M_tot(:,:), Mom_E_tot(:,:)
+           Real (Kind=Kind(0.d0)), allocatable ::  F_A_m(:), F_A_e(:)
            
+
            Pi        = acos(-1.d0)
            NDis      = Ndis_1
            DeltaXMAX = 0.01
@@ -97,6 +99,7 @@ Module MaxEnt_stoch_mod
            NSims = Size(Alpha_tot,1)
            Allocate (Xn_tot(Ngamma,2,NSims))
            Allocate (En_m_tot(NSims), En_e_tot(NSims), En_tot(NSims) )
+           Allocate (F_A_m(NSims), F_A_e(NSims))
            Allocate (Xn_m_tot(NDis,NSims), Xn_e_tot(NDis,NSims) )
            Allocate (Mom_M_tot(4,Nsims), Mom_E_tot(4,Nsims) )
            Allocate (Xn(Ngamma,2))
@@ -175,7 +178,7 @@ Module MaxEnt_stoch_mod
                  do ng = 1,Ngamma
                     read(41,*) Xn_tot(ng,1,ns), Xn_tot(ng,2,ns)
                  enddo
-                 read(41,*) En_m_tot(ns), En_e_tot(ns)
+                 read(41,*) En_m_tot(ns), En_e_tot(ns), F_A_m(ns), F_A_e(ns)
               enddo
               read(42,*) nc
               do ns = 1,Nsims
@@ -198,6 +201,8 @@ Module MaxEnt_stoch_mod
               En_m_tot = 0.d0
               Xn_e_tot = 0.d0
               En_e_tot = 0.d0
+              F_A_m    = 0.d0
+              F_A_e    = 0.d0
               nc = 0
               Open (Unit=44,File='Max_stoch_log', Status="unknown", position="append")
               Write(44,*) ' No dump data '
@@ -247,6 +252,15 @@ Module MaxEnt_stoch_mod
                     enddo
                     En_m_tot(ns) = En_m_tot(ns) + En_m
                     En_e_tot(ns) = En_e_tot(ns) + En_m*En_m
+                    ! Compute  (F,A)
+                    F_A =  0.d0 
+                    do ng = 1,Ngamma
+                       F_A = F_A +   F(Phim1(Xn_tot(ng,1,ns)),beta) * Xn_tot(ng,2,Ns)
+                    enddo  
+                    F_A =  F_A *Xmom1
+                    F_A_m(ns) = F_A_m(ns) + F_A
+                    F_A_e(ns) = F_A_e(ns) + F_A*F_A
+                    ! End compute  (F,A)
                     ! Compute moments
                     if (ns.eq.1) nc1 = nc1 + 1
                     do n = 1,Size(Mom_M_tot,1)
@@ -305,7 +319,7 @@ Module MaxEnt_stoch_mod
               do ng = 1,Ngamma
                  write(41,*) Xn_tot(ng,1,ns), Xn_tot(ng,2,ns)
               enddo
-              write(41,*) En_m_tot(ns), En_e_tot(ns)
+              write(41,*) En_m_tot(ns), En_e_tot(ns), F_A_m(ns), F_A_e(ns)
            enddo
            write(42,*) nc
            do ns = 1,Nsims
@@ -317,6 +331,7 @@ Module MaxEnt_stoch_mod
            close(42)
            ! Stop dump
            Open(Unit=66,File="energies",status="unknown")
+           Open(Unit=67,File="(F,A).dat",status="unknown")
            do ns = 1,Nsims
               En_m_tot(ns) = En_m_tot(ns) / dble(nc)
               En_e_tot(ns) = En_e_tot(ns) / dble(nc)
@@ -327,8 +342,19 @@ Module MaxEnt_stoch_mod
                  En_e_tot(ns) = 0.d0
               endif
               write(66,*) Alpha_tot(ns), En_m_tot(ns), En_e_tot(ns)
+
+              F_A_m(ns) = F_A_m(ns) / dble(nc)
+              F_A_e(ns) = F_A_e(ns) / dble(nc)
+              F_A_e(ns) = ( F_A_e(ns) -F_A_m(ns)**2)/dble(nc)
+              if ( F_A_e(ns) .gt. 0.d0) then
+                 F_A_e(ns) = sqrt(F_A_e(ns))
+              else
+                 F_A_e(ns) = 0.d0
+              endif
+              write(67,*) Alpha_tot(ns), F_A_m(ns), F_A_e(ns)
            enddo
            close(66)
+           close(67)
            Open(Unit=66,File="moments",status="unknown")
            do ns = 1,Nsims
               do n = 1,Size(Mom_m_tot,1)
@@ -410,6 +436,7 @@ Module MaxEnt_stoch_mod
            DeAllocate (Xn_tot)
            DeAllocate (En_m_tot, En_e_tot, En_tot )
            DeAllocate (Xn_m_tot, Xn_e_tot )
+           DeAllocate (F_A_e, F_A_m)
            DeAllocate (Xn)
            DeAllocate (Xn_m, Xn_e)
            DeAllocate( G_Mean )

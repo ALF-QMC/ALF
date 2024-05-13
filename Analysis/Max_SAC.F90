@@ -75,7 +75,8 @@
        Real (Kind=Kind(0.d0)), Dimension(:,:), allocatable :: XCOV, XCOV_st
        Real (Kind=Kind(0.d0))                              :: X_moments(2), Xerr_moments(2), ChiSq
        Real (Kind=Kind(0.d0)), External                    :: XKER_ph, Back_trans_ph, XKER_pp, Back_trans_pp, &
-            &                                                 XKER_p, XKER_p_ph, Back_trans_p, XKER_T0, Back_trans_T0
+            &                                                 XKER_p, XKER_p_ph, Back_trans_p, XKER_T0, Back_trans_T0, &
+            &                                                 F, F_QFI_ph
        Character (Len=64)                                  :: command, File1, File2
        Complex (Kind=Kind(0.d0))                           :: Z
        Logical                                             :: Test =.false.
@@ -243,7 +244,7 @@
        Case ("PH")
           If  (Stochastic)  then
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_ph, Back_Trans_ph, Beta, &
-                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, Default)
+                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, F_QFI_ph, Default)
              ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
           else
              Call Set_Ker_classic(Xker_ph,Xker_classic,Om_st,Om_en,beta,xtau_st)
@@ -252,7 +253,7 @@
        Case ("PP")
           If  (Stochastic) then
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_pp, Back_Trans_pp, Beta, &
-                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm,Default)
+                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, F, Default)
              ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
           else
              Call Set_Ker_classic(Xker_pp,Xker_classic,Om_st,Om_en,beta,xtau_st)
@@ -261,7 +262,7 @@
        Case ("P")
           If  (Stochastic)  then
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_p, Back_Trans_p, Beta, &
-                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm ,Default)
+                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm , F, Default)
              ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
           else  ! Classic
              Call Set_Ker_classic(Xker_p,Xker_classic,Om_st,Om_en,beta,xtau_st)
@@ -270,7 +271,7 @@
        Case ("P_PH")
           If  (Stochastic)  then
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_p_ph, Back_Trans_p, Beta, &
-                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm ,Default)
+                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm ,F, Default)
           else  ! Classic
              Call Set_Ker_classic(Xker_p_ph,Xker_classic,Om_st,Om_en,beta,xtau_st)
              Call  MaxEnt( XQMC, XCOV, A_classic, XKER_classic, Alpha_classic_st, CHISQ ,DEFAULT)
@@ -278,7 +279,7 @@
        Case ("T0")
           If (Stochastic)  then
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_T0, Back_Trans_T0, Beta, &
-                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm,Default)
+                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm,F,Default)
              ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
           else
              Call Set_Ker_classic(Xker_T0,Xker_classic,Om_st,Om_en,beta,xtau_st)
@@ -479,6 +480,20 @@
 
      end function XKER_T0
 
+     Real (Kind=Kind(0.d0)) function F(om, beta)
+      Implicit None
+      real (Kind=Kind(0.d0)) ::  om, beta
+      F = 1.d0 
+     end function F
+
+     Real (Kind=Kind(0.d0)) function F_QFI_ph(om, beta)
+      Implicit None
+      real (Kind=Kind(0.d0)) ::  om, beta
+      real (Kind=Kind(0.d0)) :: pi
+      pi = 3.1415927
+      F_QFI_ph = (4.d0/pi) * ( (exp(beta*om) - 1.d0)/( exp(beta*om) + 1.d0 ) )**2
+
+     end function F_QFI_ph
 
      Real (Kind=Kind(0.d0)) function Back_trans_ph(Aom, om, beta)
 

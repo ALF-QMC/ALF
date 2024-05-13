@@ -3,6 +3,13 @@
 ## ALF 2.6
 ALF 2.6  released  on 2023-??-??
 
+### 2024-01-02  Implement new  function  $ (F,A) = \int d \omega F(\omega) A(\omega)$ in the stochastic maxent.
+Author:  F. Assaad
+Merge  request !196
+
+1. Function F  is included in  parameter  list  of  the  stochastic maxent  routine
+
+
 ### 2024-25-01    Both  Classic MaxEnt  and  Stochastic  analytical continuation are  available <br>
 
 Author:  J.Schwab and F. Assaad   <br>
