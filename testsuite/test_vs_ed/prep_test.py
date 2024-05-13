@@ -36,8 +36,8 @@ summarize:
   stage: compile
   script:
     - if [ ! -O . ]; then sudo chown -R "$(id -u)" .; fi
-    - git clone https://git.physik.uni-wuerzburg.de/ALF/pyALF.git
-    - export PYTHONPATH="$PWD/pyALF:$PYTHONPATH"
+    - export PATH="$HOME/.local/bin:$PATH"
+    - pip install --no-deps pyALF
     - cd $TEST_DIR
     - ../compile.py $MACHINE
   needs:
@@ -68,8 +68,8 @@ summarize:
 .analysis_template:
   stage: analyze
   script:
-    - git clone https://git.physik.uni-wuerzburg.de/ALF/pyALF.git
-    - export PYTHONPATH="$PWD/pyALF:$PYTHONPATH"
+    - export PATH="$HOME/.local/bin:$PATH"
+    - pip install --no-deps pyALF
     - cd $TEST_DIR
     - ../analysis.py
   artifacts:

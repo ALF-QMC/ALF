@@ -22,12 +22,25 @@ if [ $CURL_AVAIL -ne 0 ] && [ $WGET_AVAIL -ne 0 ]; then
   exit 1
 fi
 
+if ! command -v "$CC" > /dev/null; then
+  printf "\e[31m==== C compiler <%s> not available =====\e[0m\n" "$CC" 1>&2
+  exit 1
+fi
+if ! command -v "$FC" > /dev/null; then
+  printf "\e[31m==== FORTRAN compiler <%s> not available =====\e[0m\n" "$FC" 1>&2
+  exit 1
+fi
+if ! command -v "$CXX" > /dev/null; then
+  printf "\e[31m==== C++ compiler <%s> not available =====\e[0m\n" "$CXX" 1>&2
+  exit 1
+fi
+
 # Create temporary directory
 tmpdir=$(mktemp -d 2>/dev/null || mktemp -d -t 'tmpdir')
-printf "\e[31mTemporary directory %s created\e[0m\n" "$tmpdir"
+printf "\033[0;32mTemporary directory %s created\e[0m\n" "$tmpdir"
 cd "$tmpdir" || exit 1
 
-printf "\e[31m========== Downloading source ==========\e[0m\n"
+printf "\033[0;32m========== Downloading HDF5 source ==========\e[0m\n" 1>&2
 
 if [ $CURL_AVAIL -eq 0 ]; then
   curl https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.10/hdf5-1.10.7/src/hdf5-1.10.7.tar.gz | tar xz || exit 1
@@ -37,20 +50,7 @@ fi
 source_dir="hdf5-1.10.7"
 
 export CC FC CXX
-printf "\e[31m=== Build with the following compilers C: %s, Fortran: %s, C++: %s \e[0m\n" "$CC" "$FC" "$CXX"
-
-if ! command -v "$CC" > /dev/null; then
-  printf "\e[31m==== C compiler <%s> not available =====\e[0m\n" "$CC"
-  exit 1
-fi
-if ! command -v "$FC" > /dev/null; then
-  printf "\e[31m==== FORTRAN compiler <%s> not available =====\e[0m\n" "$FC"
-  exit 1
-fi
-if ! command -v "$CXX" > /dev/null; then
-  printf "\e[31m==== C++ compiler <%s> not available =====\e[0m\n" "$CXX"
-  exit 1
-fi
+printf "\033[0;32m=== Build with the following compilers C: %s, Fortran: %s, C++: %s \e[0m\n" "$CC" "$FC" "$CXX" 1>&2
 
 "$source_dir/configure" --prefix="$HDF5_DIR" --enable-fortran --enable-shared=no --enable-tests=no
 if ! make; then
@@ -66,4 +66,4 @@ if ! make install; then
 fi
 #make check-install
 
-printf "\e[31mYou can delete the temporary directory %s\e[0m\n" "$tmpdir"
+printf "\033[0;32mYou can delete the temporary directory %s\e[0m\n" "$tmpdir"
