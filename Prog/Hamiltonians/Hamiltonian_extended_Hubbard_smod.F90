@@ -436,7 +436,7 @@
           Implicit none
 
           Integer :: nf, I, I1, I2,  nc,  J, no,  N_ops, N_hubbard, N_Phi_loc
-          Real (Kind=Kind(0.d0)) :: X,  Zero = 1.D-10
+          Real (Kind=Kind(0.d0)) :: X,  Zero = 1.D-10,  V_eff
           Real (Kind=Kind(0.d0)), allocatable :: Ham_U_vec(:)
 
 
@@ -564,24 +564,20 @@
           
         !   allocate(Op_V(N,N_FL))
           do nf = 1,N_FL
-             ! (NEEDED since we don't want to include magnetic fields in the interaction)
-             N_Phi_loc = Bond_Matrix(nf)%N_Phi
-             Phi_X_loc = Bond_Matrix(nf)%Phi_X
-             Phi_Y_loc = Bond_Matrix(nf)%Phi_Y
              do nc = N_hubbard+1, Size(Op_V,1)
                 Call Op_make(Op_V(nc,nf),2)
              enddo
              nc = N_hubbard
+             Write(*,*) Bond_Matrix(1)%N_FAM,Bond_Matrix(1)%L_Fam(1) 
              Do n_f = 1, Bond_Matrix(1)%N_FAM
                 Do l_f = 1, Bond_Matrix(1)%L_Fam(n_f)
                    I    = Bond_Matrix(1)%List_Fam(n_f,l_f,1)
                    nb   = Bond_Matrix(1)%List_Fam(n_f,l_f,2)
-                   no_I = Bond_Matrix(nf)%list(Nb,1)
-                   no_J = Bond_Matrix(nf)%list(Nb,2)
-                   n_1  = Bond_Matrix(nf)%list(Nb,3)
-                   n_2  = Bond_Matrix(nf)%list(Nb,4)
+                   no_I = Bond_Matrix(1)%list(Nb,1)
+                   no_J = Bond_Matrix(1)%list(Nb,2)
+                   n_1  = Bond_Matrix(1)%list(Nb,3)
+                   n_2  = Bond_Matrix(1)%list(Nb,4)
                    J    = Latt%nnlist(I,n_1,n_2)
-                   Z    = Generic_hopping(I,no_I, n_1, n_2, no_J, N_Phi_loc, Phi_x_loc,Phi_y_loc, Bulk, Latt, Latt_Unit)
                    I1   = Invlist(I,no_I)
                    J1   = Invlist(J,no_J)
                    nc = nc + 1
@@ -590,16 +586,14 @@
                    Op_V(nc,nf)%O(1,1) = cmplx(1.d0, 0.d0, kind(0.D0))
                    Op_V(nc,nf)%O(2,2) = cmplx(1.d0, 0.d0, kind(0.D0))
                    Op_V(nc,nf)%alpha=cmplx(-1.d0,0.d0, kind(0.D0))
-                   IF ( dble(Bond_Matrix(nf)%T(Nb)) < 0) then
-                      Op_V(nc,nf)%alpha=cmplx(0.d0,0.d0, kind(0.D0))
+                   IF ( dble(Bond_Matrix(1)%T(Nb)) < 0) then
+                      Op_V(nc,nf)%alpha   =cmplx(0.d0,0.d0, kind(0.D0))
                       Op_V(nc,nf)%O(2,2) = cmplx(-1.d0, 0.d0, kind(0.D0) )
                    endif
-                   Op_V(nc,nf)%g = Sqrt(-Dtau*abs(Bond_Matrix(nf)%T(Nb))*Bond_Matrix(1)%Prop_Fam(n_f))
+                   V_eff = real(Bond_Matrix(1)%T(nb),Kind(0.d0)) *Bond_Matrix(1)%Prop_Fam(n_f)
+                   Op_V(nc,nf)%g = sqrt(cmplx(-Dtau*abs(V_eff),0.d0,Kind(0.d0)))
                    Op_V(nc,nf)%type=2
                    Call Op_set(Op_V(nc,nf))
-
-                   !  print*,-Dtau*Bond_Matrix(nf)%T(Nb)*Bond_Matrix(1)%Prop_Fam(n_f), -Dtau*abs(Ham_V1)/(2.d0*N_SUN)
-                   WRITE(*,*) Op_V(nc,nf)%g**2, -Dtau*abs(Bond_Matrix(nf)%T(Nb))/(2.d0*N_SUN)
                 enddo
              enddo
           enddo
@@ -822,31 +816,27 @@
                 enddo
              Enddo
           Endif
-          do nf = 1,N_FL
-             ! (NEEDED since we don't want to include magnetic fields in the interaction)
-             N_Phi_loc = Bond_Matrix(nf)%N_Phi
-             Phi_X_loc = Bond_Matrix(nf)%Phi_X
-             Phi_Y_loc = Bond_Matrix(nf)%Phi_Y
-             Do n_f = 1, Bond_Matrix(1)%N_FAM
-                Do l_f = 1, Bond_Matrix(1)%L_Fam(n_f)
-                   I    = Bond_Matrix(1)%List_Fam(n_f,l_f,1)
-                   nb   = Bond_Matrix(1)%List_Fam(n_f,l_f,2)
-                   no_I = Bond_Matrix(nf)%list(Nb,1)
-                   no_J = Bond_Matrix(nf)%list(Nb,2)
-                   n_1  = Bond_Matrix(nf)%list(Nb,3)
-                   n_2  = Bond_Matrix(nf)%list(Nb,4)
-                   J    = Latt%nnlist(I,n_1,n_2)
-                   ! sites of the bond
-                   I1   = Invlist(I,no_I)
-                   J1   = Invlist(J,no_J)
-                   ! interation strength on bond
-                   Z    = Bond_Matrix(nf)%T(Nb)*Bond_Matrix(1)%Prop_Fam(n_f)
-                   ! Z*<n_I1 n_J1> = Z*<c^{dagger}_{I1,nf} c_{I1,nf} c^{dagger}_{J1,nf} c_{J1,nf}>
-                   !! ATTENTION: THINK about nf, i.e., can I actually treat N_FL != 1?
-                enddo
-             enddo
-          enddo
-          Obs_scal(2)%Obs_vec(1)  =  Obs_scal(2)%Obs_vec(1) + Zpot * ZP*ZS
+         !  do nf = 1,N_FL
+         !     Do n_f = 1, Bond_Matrix(1)%N_FAM
+         !        Do l_f = 1, Bond_Matrix(1)%L_Fam(n_f)
+         !           I    = Bond_Matrix(1)%List_Fam(n_f,l_f,1)
+         !           nb   = Bond_Matrix(1)%List_Fam(n_f,l_f,2)
+         !           no_I = Bond_Matrix(nf)%list(Nb,1)
+         !           no_J = Bond_Matrix(nf)%list(Nb,2)
+         !           n_1  = Bond_Matrix(nf)%list(Nb,3)
+         !           n_2  = Bond_Matrix(nf)%list(Nb,4)
+         !           J    = Latt%nnlist(I,n_1,n_2)
+         !           ! sites of the bond
+         !           I1   = Invlist(I,no_I)
+         !           J1   = Invlist(J,no_J)
+         !           ! interation strength on bond
+         !           Z    = Bond_Matrix(nf)%T(Nb)*Bond_Matrix(1)%Prop_Fam(n_f)
+         !           ! Z*<n_I1 n_J1> = Z*<c^{dagger}_{I1,nf} c_{I1,nf} c^{dagger}_{J1,nf} c_{J1,nf}>
+         !           !! ATTENTION: THINK about nf, i.e., can I actually treat N_FL != 1?
+         !        enddo
+         !     enddo
+         !  enddo
+         !  Obs_scal(2)%Obs_vec(1)  =  Obs_scal(2)%Obs_vec(1) + Zpot * ZP*ZS
 
 
           Zrho = cmplx(0.d0,0.d0, kind(0.D0))
