@@ -2,7 +2,7 @@
 !  Input variables for a general ALF run
 !---------------------------------------------------------------------------------------
 &VAR_ham_name
-ham_name = "Hubbard"
+ham_name = "extended_Hubbard"
 /
 
 &VAR_lattice               !! Parameters defining the specific lattice and base model
@@ -30,7 +30,7 @@ Theta        = 10.d0        ! Projection parameter
 &VAR_QMC                   !! Variables for the QMC run
 Nwrap                = 10   ! Stabilization. Green functions will be computed from 
                             ! scratch after each time interval Nwrap*Dtau
-NSweep               = 20   ! Number of sweeps
+NSweep               = 5    ! Number of sweeps
 NBin                 = 5    ! Number of bins
 Ltau                 = 1    ! 1 to calculate time-displaced Green functions; 0 otherwise
 LOBS_ST              = 0    ! Start measurements at time slice LOBS_ST
@@ -168,6 +168,18 @@ Ham_Jy  = 1.0              ! J along  the  a_y  direction
 ham_U   = 1.0              ! Hubbard  U  to impose  the constraint
 ham_Lambda =  0.2          ! Electron-phonon  coupling
 Ham_omega0 =  0.25         ! Phonon   frequency
+/
+
+&VAR_extended_Hubbard      !! Variables for the Extended Hubbard
+ham_T      = 1.d0     ! Hopping parameter
+Ham_chem   = 0.d0     ! Chemical potential
+Ham_U      = 1.d0     ! Hubbard interaction
+Ham_V1     = 0.1d0     ! nearest neighbor interaction
+ham_T2     = 1.d0     ! For bilayer systems
+Ham_U2     = 0.d0     ! For bilayer systems
+Ham_V2     = 0.1d0     ! For bilayer systems
+ham_Tperp  = 1.d0     ! For bilayer systems
+Ham_Vperp  = 1.d0     ! For bilayer systems
 /
 
 ! slash terminates namelist statement - DO NOT REMOVE
