@@ -940,12 +940,13 @@
         !> Time slice
         Integer, Intent(IN) :: nt
         !> New local field on time slice nt and operator index n
-        Real (Kind=Kind(0.d0)), Intent(In) :: Hs_new
+        Complex (Kind=Kind(0.d0)), Intent(In) :: Hs_new
 
         Integer :: nt1,I
 
         if (Continuous) then
-           S0 = exp( (-Hs_new**2  + nsigma%f(n,nt)**2 ) /2.d0 ) 
+           S0 = exp( (-Real(Hs_new,Kind(0.d0))**2  +  & 
+                  &    Real(nsigma%f(n,nt),kind(0.d0))**2 ) /2.d0 ) 
         else
            S0 = 1.d0
         endif
@@ -974,7 +975,7 @@
           do n = 1,N_op
              if (OP_V(n,1)%type == 3 ) then
                 do nt = 1,Ltrot
-                   Forces_0(n,nt) = nsigma%f(n,nt)
+                   Forces_0(n,nt) = real(nsigma%f(n,nt), kind(0.d0))
                 enddo
              endif
           enddo
