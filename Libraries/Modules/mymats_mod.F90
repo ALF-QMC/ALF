@@ -119,10 +119,10 @@
          JOBVL  = "N"
          LDVL = 1
          LDVR = 1
-         IF (LR =="L") THEN
+         IF (LR == "L" .or. LR == 'l') THEN
             JOBVL ="V"
             LDVL  = N
-         ELSEIF (LR =="R") THEN
+         ELSEIF (LR == "R" .or. LR == 'r') THEN
             JOBVR ="V"
             LDVR = N
          ELSE
@@ -136,7 +136,7 @@
          CALL ZGEEV( JOBVL, JOBVR, N, A, LDA, W, VL, LDVL, VR, LDVR, &
               &      WORK, LWORK, RWORK, INFO )
 
-         IF (LR=="R")  THEN
+         IF (LR == "R" .or. LR == 'r')  THEN
             DO I = 1,N
                DO J = 1,N
                   U(I,J) = VR(I,J)
@@ -155,7 +155,7 @@
             XMAX = 0.d0
             DO I = 1,N
                DO J = 1,N
-                  IF (LR=="R")  THEN
+                  IF (LR == "R" .or. LR == 'r')  THEN
                      Z = - W(I)*U(I,J)
                      DO M = 1,N
                         Z = Z + Z_MAT(I,M)*U(M,J)

@@ -340,7 +340,7 @@
         Op_up%O(1,1) =  cmplx(        1.d0  ,0.d0, kind(0.D0))
         Op_up%O(2,2) =  cmplx(- Jz/Abs(Jz)  ,0.d0, kind(0.D0))
         Op_up%alpha  =  cmplx(0.d0, 0.d0, kind(0.D0))
-        Op_up%g      =  SQRT(CMPLX(DTAU*Jz/8.d0, 0.D0, kind(0.D0))) 
+        Op_up%g      =  SQRT(CMPLX(DTAU*Abs(Jz)/8.d0, 0.D0, kind(0.D0))) 
         Op_up%type   =  2
 
         Op_do%P(1)   =  I
@@ -348,7 +348,7 @@
         Op_do%O(1,1) =  cmplx(        1.d0  ,0.d0, kind(0.D0))
         Op_do%O(2,2) =  cmplx(- Jz/Abs(Jz)  ,0.d0, kind(0.D0))
         Op_do%alpha  =  cmplx(0.d0, 0.d0, kind(0.D0))
-        Op_do%g      = -SQRT(CMPLX(DTAU*Jz/8.d0, 0.D0, kind(0.D0))) 
+        Op_do%g      = -SQRT(CMPLX(DTAU*Abs(Jz)/8.d0, 0.D0, kind(0.D0))) 
         Op_do%type   =  2
 
         Call Op_set( Op_up ) 

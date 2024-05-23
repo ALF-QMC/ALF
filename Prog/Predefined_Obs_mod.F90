@@ -43,6 +43,7 @@
     Module Predefined_Obs
 
       use runtime_error_mod
+      use Operator_mod
       Use Observables
       Use Lattices_v3
       Use entanglement_mod
@@ -85,6 +86,11 @@
         Integer :: N_FL, I, I1, J, J1, no_I, no_J, imj
         Complex (Kind=Kind(0.d0)) :: ZZ
 
+
+        If ( Size(List,1) .ne. Size(GR,1) .or. Size(List,2) .ne. 2  )   then
+           Write(error_unit,*) 'List in  Predefined_Obs_eq_SpinSUN_measure has  wrong  dim.'
+           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+        endif
         If ( Obs%File_Latt .ne. "SpinZ" )   then
            Write(error_unit,*) 'Predefined_Obs_eq_SpinSUN_measure: Wrong filename'
            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
@@ -140,6 +146,12 @@
         Integer :: N_FL, I, I1, J, J1, no_I, no_J, imj
         Complex (Kind=Kind(0.d0)) :: ZXY, ZZ
 
+        If ( Size(List,1) .ne. Size(GR,1) .or. Size(List,2) .ne. 2 )   then
+           Write(error_unit,*) 'List in Predefined_Obs_eq_SpinMz_measure  has  wrong  dim.'
+           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+        endif
+
+        
         If ( ObsZ%File_Latt .ne. "SpinZ" .and. ObsXY%File_Latt .ne. "SpinXY" .and.  &
            & ObsXYZ%File_Latt .ne. "SpinT"  )   then
            Write(error_unit,*) 'Predefined_Obs_eq_SpinMz_measure: Wrong filename'
@@ -204,6 +216,11 @@
         Integer :: N_FL, I, I1, J, J1, no_I, no_J, imj,nf
         Complex (Kind=Kind(0.d0)) :: Z
 
+        If ( Size(List,1) .ne. Size(GR,1) .or. Size(List,2) .ne. 2 )   then
+           Write(error_unit,*) 'List in  Predefined_Obs_eq_Green_measure  has  wrong  dim.'
+           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+        endif
+
         If ( Obs%File_Latt .ne. "Green" )   then
            Write(error_unit,*) 'Predefined_Obs_eq_Green_measure: Wrong filename'
            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
@@ -257,6 +274,12 @@
         ! Local
         Integer :: N_FL, I, I1, J, J1, no_I, no_J, imj,nf
         Complex (Kind=Kind(0.d0)) :: ZI, ZJ, Z
+
+
+        If ( Size(List,1) .ne. Size(GR,1) .or. Size(List,2) .ne. 2 )   then
+           Write(error_unit,*) 'List in  Predefined_Obs_eq_Den_measure  has  wrong  dim.'
+           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+        endif
 
         If ( Obs%File_Latt .ne. "Den" )   then
            Write(error_unit,*) 'Predefined_Obs_eq_Den_measure: Wrong filename'
@@ -323,6 +346,12 @@
         Integer :: N_FL, I, I1, J, J1, no_I, no_J, imj,nf
         Complex (Kind=Kind(0.d0)) :: Z
 
+
+        If ( Size(List,1) .ne. Size(GT0,1) .or. Size(List,2) .ne. 2 )   then
+           Write(error_unit,*) 'List in  Predefined_Obs_tau_Green_measure  has  wrong  dim.'
+           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+        endif
+
         If ( Obs%File_Latt .ne. "Green" )   then
            Write(error_unit,*) 'Predefined_Obs_tau_Green_measure: Wrong filename'
            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
@@ -384,6 +413,10 @@
            Write(error_unit,*) 'Predefined_Obs_tau_SpinSUN_measure: Wrong filename'
            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         endif
+        If ( Size(List,1) .ne. Size(GT0,1) .or. Size(List,2) .ne. 2  )   then
+           Write(error_unit,*) 'List in  Predefined_Obs_tau_SpinSUN_measure  has  wrong  dim.'
+           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+        endif
 
         ! Count and average sign
         If (NT == 0 ) then
@@ -395,7 +428,7 @@
         N_FL = Size(GT0,3)
         Z =  cmplx(dble(N_SUN),0.d0, kind(0.D0))
         Do I1 = 1,Size(List,1)
-           I    = List(I1,1)
+           I   = List(I1,1)
            If (I > 0 ) then
               no_I = List(I1,2)
               Do J1 = 1,Size(List,1)
@@ -436,6 +469,11 @@
         ! Local
         Integer :: N_FL, I, I1, J, J1, no_I, no_J, imj,nf
         Complex (Kind=Kind(0.d0)) :: ZZ, ZXY
+
+        If ( Size(List,1) .ne. Size(GT0,1) .or. Size(List,2) .ne. 2 )   then
+           Write(error_unit,*) 'List in Predefined_Obs_tau_SpinMz_measure has  wrong  dim.'
+           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+        endif
 
 
         ! Count and average sign
@@ -503,7 +541,13 @@
         ! Local
         Integer :: N_FL, I, I1, J, J1, no_I, no_J, imj,nf
         Complex (Kind=Kind(0.d0)) :: Z, ZI, ZJ
+        
+        If ( Size(List,1) .ne. Size(GT0,1) .or. Size(List,2) .ne. 2 )   then
+           Write(error_unit,*) 'List in Predefined_Obs_tau_Den_measure has  wrong  dim.'
+           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+        endif
 
+        
         If ( Obs%File_Latt .ne. "Den" )   then
            Write(error_unit,*) 'Predefined_Obs_tau_Den_measure: Wrong filename'
            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
@@ -550,6 +594,72 @@
       end Subroutine Predefined_Obs_tau_Den_measure
       
 #include  "Cotunneling_dimer_obs.F90"
+!-------------------------------------------------------------------
+!> @Author
+!> ALF-project
+!
+!>  @brief
+!>  Let  OP_V  be  a  type  two  operator.  Then  this  function  returns:
+!>  
+!>  Routine returns:
+!>        << ( \sum_{s=1}^{N_FL} \sum_{sigma=1}^{N_SUN} [\sum_{x,y}( c^dag_{x,s,sig} V^{s}_{x,y} c^dag_{y,s,sig} ) + \alpha_s] )^2 >>
+!>
+!--------------------------------------------------------------------
+      Complex  (Kind=Kind(0.d0))  function  Predefined_Obs_V_Int(OP_Vint, GR, GRC, N_SUN )
+
+        Implicit none
+        type (Operator)          , Intent(In) :: OP_Vint(:) 
+        Integer                  , Intent(In) :: N_SUN
+        Complex (Kind=Kind(0.d0)), Intent(In) :: GR(:,:,:), GRC(:,:,:)
+
+        ! Local
+        Complex  (Kind=Kind(0.d0))  ::  Z,  Z_tmp,  ZC  
+        Integer  ::  N_FL, N,  I, J,  I1,  J1, nf
+        Real     (Kind=Kind(0.d0))  ::   Zero=1.0D-16
+
+        If ( OP_Vint(1)%type  .ne. 2 )   then
+           Write(error_unit,*) 'Predefined_Obs_V_Int  routine is   defined  fro  tpye  2  vertices.  '
+           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+        endif
+        
+        N_FL  =   Size(GR,3)
+        N     =   Size(OP_Vint(1)%O,1)
+
+        Z    =  cmplx(0.d0,0.d0,kind(0.d0))
+        do  nf  =  1,N_FL 
+           Z_tmp     =   cmplx(0.d0,0.d0,kind(0.d0))
+           do  J =  1,N 
+              do  I  =  1,N
+                 Z_tmp  =  Z_tmp  +   OP_Vint(nf)%O(i,j)  * GRC(OP_Vint(nf)%P(I), OP_Vint(nf)%P(J), nf)
+              enddo
+           enddo
+           Z =   Z   +  Z_tmp   +   OP_Vint(nf)%alpha
+        enddo
+        Z  =  Z*dble(N_SUN)
+
+        ZC  =  cmplx(0.d0,0.d0,kind(0.d0))
+        Do nf = 1, N_FL
+           Do  J =  1,N
+              Do I =  1,N
+                 Z_tmp  =   OP_Vint(nf)%O(I,J)
+                 If  (  real(Z_tmp*conjg(Z_tmp),  kind(0.d0)) >  Zero )  then
+                    Do J1 = 1,N
+                       Do I1  = 1,N
+                          ZC  =  ZC  +  Z_tmp*OP_Vint(nf)%O(I1,J1)* &
+                               &        GRC(OP_Vint(nf)%P(I),OP_Vint(nf)%P(J1),nf)*&
+                               &         GR(OP_Vint(nf)%P(J),OP_Vint(nf)%P(I1),nf)
+                       Enddo
+                    Enddo
+                 Endif
+              Enddo
+           Enddo
+        Enddo
+        ZC =  ZC * dble(N_SUN)
+        Predefined_Obs_V_Int =   Z*Z   + ZC 
+        
+      end function Predefined_Obs_V_Int
+
+      
       
       Subroutine Predefined_Obs_scal_Renyi_Ent_indep(GRC, List, Nsites, N_SUN, ZS, ZP, Obs )
 

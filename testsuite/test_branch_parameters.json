@@ -314,5 +314,26 @@
             "Propose_S0": false,
             "Nwrap": 10
         }
+    ],
+    "Spin_Peierls": [
+        "Spin_Peierls",
+        {
+            "Model": "Spin_Peierls",
+            "Lattice_type": "Square",
+            "L1": 6,
+            "L2": 6,
+            "Beta": 8.0,
+            "Projector": false,
+            "N_SUN": 2,
+            "N_FL": 1,
+            "Nsweep": 20,
+            "NBin": 5,
+            "Ltau": 1,
+	    "Ham_Jx": 1.0,
+	    "Ham_Jy": 1.0, 
+	    "ham_U": 1.5, 
+	    "ham_Lambda": 0.1, 
+	    "Ham_omega0": 0.5
+        }
     ]
 }

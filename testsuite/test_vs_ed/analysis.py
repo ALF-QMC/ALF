@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
-from py_alf import analysis
+from py_alf.analysis import analysis
 from py_alf.utils import find_sim_dirs
 from py_alf.ana import load_res
 

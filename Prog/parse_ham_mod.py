@@ -306,7 +306,7 @@ def create_read_write_par(filename, parameters, ham_name):
 
 def _to_value(dtype, value):
     if 'real' in dtype:
-        return float(value.replace('d', 'e'))
+        return float(value.replace('d', 'e').replace('D', 'e'))
     # if 'complex' in dtype:
     #     tmp = value.strip('()').split(',')
     #     if not len(tmp) == 2:

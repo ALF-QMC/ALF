@@ -54,7 +54,9 @@ Max_Force           = 5.0   ! Max Force for  Langevin
 
 HMC                 = .F.   ! HMC update
 N_HMC_sweeps        = 1     ! # of HMC updates between  sequential ones
-Leapfrog_steps      = 0     ! Number of leapfrog interations
+Leapfrog_steps      = 0     ! Number of leapfrog iterations
+
+Amplitude           = 1.d0  ! For update of  type=3,4  fields
 /
 
 &VAR_errors                !! Variables for analysis programs
@@ -90,6 +92,8 @@ Checkpoint = .F.            ! Whether to produce dump files, allowing the simula
                             ! to be resumed later on
 Tolerance  = 0.1d0          ! Data points for which the relative error exceeds the
                             ! tolerance threshold will be omitted.
+Stochastic =.true.          ! If  true,  then  stochastic MaxEnt is used
+                            ! If  false, then  classic  MaxEnt is used
 /
 
 &VAR_Hubbard               !! Variables for the specific model
@@ -157,4 +161,13 @@ Ham_g          = 1.0        ! tau^x-term for gauge
 Dtau           = 0.1d0      ! Thereby Ltrot=Beta/dtau
 Beta           = 10.d0      ! Inverse temperature
 /
+
+&VAR_Spin_Peierls         !! Variables for the  Spin-Peierls class
+ham_Jx  = 1.0              ! J along  the  a_x  direction
+Ham_Jy  = 1.0              ! J along  the  a_y  direction
+ham_U   = 1.0              ! Hubbard  U  to impose  the constraint
+ham_Lambda =  0.2          ! Electron-phonon  coupling
+Ham_omega0 =  0.25         ! Phonon   frequency
+/
+
 ! slash terminates namelist statement - DO NOT REMOVE

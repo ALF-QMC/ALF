@@ -587,7 +587,7 @@
           Integer, Intent(In) :: Ltau
           Integer    ::  i, N, Nt
           Character (len=64) ::  Filename
-          Character (len=2)  ::  Channel
+          Character (len=:), allocatable ::  Channel
 
           ! Scalar observables
           Allocate ( Obs_scal(6) )

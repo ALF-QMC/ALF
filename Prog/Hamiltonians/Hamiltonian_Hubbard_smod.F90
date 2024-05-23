@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 - 2020 The ALF project
+!  Copyright (C) 2016 - 2023 The ALF project
 !
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -366,23 +366,23 @@
           Ham_Lambda_vec = Ham_Lambda
           N_Phi_vec      = N_Phi
 
-          Select case (Lattice_type)
-          Case ("Square")
+          Select case (str_to_upper(Lattice_type))
+          Case ("SQUARE")
              Call  Set_Default_hopping_parameters_square(Hopping_Matrix,Ham_T_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
                   &                                      Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
-          Case ("N_leg_ladder")
+          Case ("N_LEG_LADDER")
              Call  Set_Default_hopping_parameters_n_leg_ladder(Hopping_Matrix, Ham_T_vec, Ham_Tperp_vec, Ham_Chem_vec, Phi_X_vec, &
                   &                                            Phi_Y_vec, Bulk,  N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
-          Case ("Honeycomb")
+          Case ("HONEYCOMB")
              Ham_Lambda = 0.d0
              Call  Set_Default_hopping_parameters_honeycomb(Hopping_Matrix, Ham_T_vec, Ham_Lambda_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
                   &                                         Bulk,  N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
-          Case ("Bilayer_square")
+          Case ("BILAYER_SQUARE")
              Call  Set_Default_hopping_parameters_Bilayer_square(Hopping_Matrix,Ham_T_vec,Ham_T2_vec,Ham_Tperp_vec, Ham_Chem_vec, &
                   &                                              Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL,&
                   &                                              List, Invlist, Latt, Latt_unit )
 
-          Case ("Bilayer_honeycomb")
+          Case ("BILAYER_HONEYCOMB")
              Call  Set_Default_hopping_parameters_Bilayer_honeycomb(Hopping_Matrix,Ham_T_vec,Ham_T2_vec,Ham_Tperp_vec, Ham_Chem_vec, &
                   &                                                 Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL,&
                   &                                                 List, Invlist, Latt, Latt_unit )
@@ -436,7 +436,7 @@
           Allocate (Ham_U_vec(Latt_unit%Norb))
 
           N_ops = 0
-          if ( Lattice_type == "Bilayer_square" .or. Lattice_type =="Bilayer_honeycomb" ) then
+          if ( str_to_upper(Lattice_type) == "BILAYER_SQUARE" .or. str_to_upper(Lattice_type) =="BILAYER_HONEYCOMB" ) then
              Do no = 1,  Latt_unit%Norb/2
                 Ham_U_vec(no                    ) = Ham_U
                 Ham_U_vec(no + Latt_unit%Norb/2 ) = Ham_U2
@@ -502,7 +502,7 @@
           Integer, Intent(In) :: Ltau
           Integer    ::  i, N, Nt
           Character (len=64) ::  Filename
-          Character (len=2)  ::  Channel
+          Character (len=:), allocatable ::  Channel
 
 
           ! Scalar observables
@@ -679,7 +679,7 @@
           ZPot = cmplx(0.d0, 0.d0, kind(0.D0))
           dec = 1
           If ( Mz  ) dec = 2
-          if ( Lattice_type == "Bilayer_square" .or. Lattice_type =="Bilayer_honeycomb" ) then
+          if ( str_to_upper(Lattice_type) == "BILAYER_SQUARE" .or. str_to_upper(Lattice_type) =="BILAYER_HONEYCOMB" ) then
              Do I = 1,Latt%N
                 do no_I = 1,Latt_unit%Norb
                    I1 = Invlist(I,no_I)
@@ -799,12 +799,12 @@
         !> Time slice
         Integer, Intent(IN) :: nt
         !> New local field on time slice nt and operator index n
-        Real (Kind=Kind(0.d0)), Intent(In) :: Hs_new
+        Complex  (Kind=Kind(0.d0)), Intent(In) :: Hs_new
 
         Integer :: nt1,I
 
         if (Continuous) then
-           S0 = exp( (-Hs_new**2  + nsigma%f(n,nt)**2 ) /2.d0 ) 
+           S0 = exp( (-real(Hs_new,kind(0.d0))**2  + real(nsigma%f(n,nt),Kind(0.d0))**2 ) /2.d0 ) 
         else
            S0 = 1.d0
         endif
@@ -833,7 +833,7 @@
           do n = 1,N_op
              if (OP_V(n,1)%type == 3 ) then
                 do nt = 1,Ltrot
-                   Forces_0(n,nt) = nsigma%f(n,nt)
+                   Forces_0(n,nt) = real(nsigma%f(n,nt)) 
                 enddo
              endif
           enddo
@@ -872,8 +872,8 @@
         S0_new=0.0d0
         Do t=1,ntau
            do f=1,nfield
-              S0_old = S0_old+nsigma_old%f(f,t)**2
-              S0_new = S0_new+nsigma%f(f,t)**2
+              S0_old = S0_old+real(nsigma_old%f(f,t),kind(0.d0))**2
+              S0_new = S0_new+real(    nsigma%f(f,t),kind(0.d0))**2
            enddo
         enddo
         S0_old = 0.5d0*S0_old

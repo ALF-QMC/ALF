@@ -137,7 +137,6 @@
         procedure, nopass :: Alloc_obs
         procedure, nopass :: Obser
         procedure, nopass :: ObserT
-        procedure, nopass :: S0
 #ifdef HDF5
         procedure, nopass :: write_parameters_hdf5
 #endif
@@ -180,8 +179,8 @@
       
       Type (Unit_cell), Target  :: Latt_unit_f  ! Unit cell for f  correlation functions
       Type (Unit_cell), Target  :: Latt_unit_c  ! Unit cell for c  correlation functions
-      Integer, allocatable      :: List_c(:,:), Invlist_c(:,:)  
-      Integer, allocatable      :: List_f(:,:), Invlist_f(:,:)  
+      Integer, allocatable      :: List_c(:,:)
+      Integer, allocatable      :: List_f(:,:)
 
 
     contains
@@ -324,8 +323,8 @@
           Call Predefined_Latt(Lattice_type, L1,L2,Ndim, List,Invlist,Latt,Latt_Unit)
 
           !  Setup lattices for f-and c-sites.
-          Select case (Lattice_type)
-          Case ("Bilayer_square")
+          Select case (str_to_upper(Lattice_type))
+          Case ("BILAYER_SQUARE")
              Latt_Unit_f%Norb       = 1
              Latt_Unit_f%N_coord    = 2
              Allocate (Latt_Unit_f%Orb_pos_p(1,3))
@@ -338,7 +337,7 @@
              Latt_Unit_c%Orb_pos_p(1,:) =  0.d0
              Latt_Unit_c%Orb_pos_p(1,3) =  0.d0
 
-          Case ("Bilayer_honeycomb")
+          Case ("BILAYER_HONEYCOMB")
              Latt_Unit_f%Norb    = 2
              Latt_Unit_f%N_coord = 3
              Allocate (Latt_Unit_f%Orb_pos_p(2,3))
@@ -359,25 +358,22 @@
 
           end Select
           
-          Allocate (List_f(Latt%N*Latt_Unit_f%Norb,2), Invlist_f(Latt%N,Latt_Unit_f%Norb))
-          nc = 0
+          Allocate (List_f(Ndim,2))  !  For measuring only on  f-lattice
+          List_f = 0
           Do I = 1,Latt%N
              Do no = 1,Latt_Unit_f%Norb
-                nc = nc + 1
-                List_f(nc,1) = I
-                List_f(nc,2) = no 
-                Invlist_f(I,no) =  Invlist(I,no + Latt_Unit%Norb/2)
+                list_f(Invlist(I,no + Latt_Unit%Norb/2),1)  =  I
+                list_f(Invlist(I,no + Latt_Unit%Norb/2),2)  =  no
              Enddo
           Enddo
           
-          Allocate (List_c(Latt%N*Latt_Unit_c%Norb,2), Invlist_c(Latt%N,Latt_Unit_c%Norb))
+          Allocate (List_c(Ndim,2) ) !  For measuring only on  c-lattice
+          List_c = 0 
           nc = 0
           Do I = 1,Latt%N
              Do no = 1,Latt_Unit_c%Norb
-                nc = nc + 1
-                List_c(nc,1) = I
-                List_c(nc,2) = no
-                Invlist_c(I,no) = Invlist(I,no )
+                List_c(Invlist(I,no ),1) = I
+                List_c(Invlist(I,no ),2) = no
              Enddo
           Enddo
           
@@ -415,13 +411,13 @@
           Ham_Lambda_vec = Ham_Lambda
           N_Phi_vec      = N_Phi
 
-          Select case (Lattice_type)
-          Case ("Bilayer_square")
+          Select case (str_to_upper(Lattice_type))
+          Case ("BILAYER_SQUARE")
              Call  Set_Default_hopping_parameters_Bilayer_square(Hopping_Matrix,Ham_T_vec,Ham_T2_vec,Ham_Tperp_vec, Ham_Chem_vec, &
                   &                                              Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL,&
                   &                                              List, Invlist, Latt, Latt_unit )
 
-          Case ("Bilayer_honeycomb")
+          Case ("BILAYER_HONEYCOMB")
              Call  Set_Default_hopping_parameters_Bilayer_honeycomb(Hopping_Matrix,Ham_T_vec,Ham_T2_vec,Ham_Tperp_vec, Ham_Chem_vec, &
                   &                                                 Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL,&
                   &                                                 List, Invlist, Latt, Latt_unit )
@@ -547,7 +543,7 @@
           Integer, Intent(In) :: Ltau
           Integer    ::  i, N, Nt
           Character (len=64) ::  Filename
-          Character (len=2)  ::  Channel
+          Character (len=:), allocatable ::  Channel
 
           
 
@@ -706,8 +702,8 @@
           ZJ  = cmplx(0.d0, 0.d0, kind(0.D0))
           Do I = 1,Latt%N
              Do no = 1, Latt_unit%Norb/2
-                I_c  = invlist_c(I,no )
-                I_f  = invlist_f(I,no )
+                I_c  = Invlist(I,no) 
+                I_f  = Invlist(I,no + Latt_Unit%Norb/2) 
                 ZJ = ZJ +  Z*2.d0*GRC(I_c,I_f,1)* GRC(I_f,I_c,1) +  GRC(I_c,I_c,1)* GR(I_f,I_f,1) + &
                      &     GR(I_c,I_c,1)* GRC(I_f,I_f,1)
              Enddo
@@ -726,14 +722,13 @@
           enddo
           Zrho = Zrho* dble(N_SUN)
           Obs_scal(3)%Obs_vec(1)  =    Obs_scal(3)%Obs_vec(1) + Zrho * ZP*ZS
-
           Obs_scal(4)%Obs_vec(1)  =    Obs_scal(4)%Obs_vec(1) + (Zkin + Zhubc + ZJ )*ZP*ZS
 
 
           ZCon = cmplx(0.d0, 0.d0, kind(0.D0))
           Do I = 1,Latt%N
-             Do no = 1, Latt_unit_f%Norb  ! Latt_unit%Norb/2 +1 , Latt_unit%Norb
-                I_f = invlist_f(I,no)
+             Do no = 1, Latt_unit%Norb/2  ! Latt_unit%Norb/2 +1 , Latt_unit%Norb
+                I_f  = Invlist(I,no + Latt_Unit%Norb/2) 
                 ZCon =  ZCon +  Z*( GRC(I_f,I_f,1) - 0.5d0)**2 +  GRC(I_f,I_f,1)* GR(I_f,I_f,1)
              Enddo
           Enddo
@@ -848,31 +843,6 @@
           enddo
         end Subroutine OBSERT
 
-!--------------------------------------------------------------------
-!> @author
-!> ALF Collaboration
-!>
-!> @brief
-!> Single spin flip S0 ratio
-!> @details
-!> S0=exp(-S0(new))/exp(-S0(old)) where the new configuration correpsonds to the old one up to
-!> a spin flip of Operator n on time slice nt
-!> @details
-!--------------------------------------------------------------------
-      Real (Kind=Kind(0.d0)) function S0(n,nt,Hs_new)
-        Implicit none
-        !> Operator index
-        Integer, Intent(IN) :: n
-        !> Time slice
-        Integer, Intent(IN) :: nt
-        !> New local field on time slice nt and operator index n
-        Real (Kind=Kind(0.d0)), Intent(In) :: Hs_new
-
-        Integer :: nt1,I
-
-        S0 = 1.d0
-        
-      end function S0
 
 
     end submodule ham_Kondo_smod

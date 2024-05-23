@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 - 2018 The ALF project
+!  Copyright (C) 2016 - 2023 The ALF project
 !
 !  This file is part of the ALF project.
 !
@@ -49,6 +49,9 @@
 !>       \phi_{n,\tau}(\pm 2) = \pm \sqrt{2  ( 3 + \sqrt{6} ) }  \f]
 !> For  type=3 the fields, f, are real and  \f$ \gamma_{n,\tau}(f)  = 1, \phi_{n,\tau}(f) = f \f$
 !>
+!> For  type=4   is  for  two  HS  fields  per  vertex,  encoded in the  real  and imaginary parts of f.
+!>                Re(f) = \pm 1, pm 2,  and   Im(f) is  real    with    
+!>                 gamma = gamma(Re(f))   and   phi = \sqrt{1 + aimag(f) } eta(real(f))  
 !--------------------------------------------------------------------
 
 
@@ -74,8 +77,10 @@
        Real (Kind=Kind(0.d0))  :: Amplitude
 
        Type Fields
-          Real    (Kind=Kind(0.d0)), allocatable    :: f(:,:)
-          Integer                  , allocatable    :: t(:)
+          Complex (Kind=Kind(0.d0)), allocatable    :: f(:,:)             ! Field
+          Integer                  , allocatable    :: t(:)               ! Type
+          Integer                  , allocatable    :: Flip_protocol(:)   ! Flip_protocol   Allows  for different  flip  protocols.
+                                                                          ! Used only  for  type  4.
         CONTAINS
           procedure  :: make  => Fields_make
           procedure  :: clear => Fields_clear
@@ -104,7 +109,7 @@
 !>
 !-------------------------------------------------------------------
 
-      Real (Kind=Kind(0.d0)) function  Fields_Phi(this,n_op,n_tau)
+      Complex (Kind=Kind(0.d0)) function  Fields_Phi(this,n_op,n_tau)
 
         Implicit none
         Class (Fields) :: this
@@ -113,11 +118,14 @@
 
         select case (this%t(n_op))
         case(1)
-           Fields_Phi = Phi_st(Nint(this%f(n_op,n_tau)),1)
+           Fields_Phi = cmplx(Phi_st(Nint(real(this%f(n_op,n_tau))),1), 0.d0,kind(0.d0))
         case(2)
-           Fields_Phi = Phi_st(Nint(this%f(n_op,n_tau)),2)
+           Fields_Phi = cmplx(Phi_st(Nint(real(this%f(n_op,n_tau))),2), 0.d0,kind(0.d0))
         case(3)
-           Fields_Phi = this%f(n_op,n_tau)
+           Fields_Phi = cmplx(real(this%f(n_op,n_tau),kind(0.d0))     , 0.d0,kind(0.d0))
+        case(4)
+           Fields_Phi = cmplx(Phi_st(Nint(real(this%f(n_op,n_tau))),2),0.d0,kind(0.d0)) * &
+                &       sqrt(cmplx( 1.d0 +  aimag(this%f(n_op,n_tau)), 0.d0,kind(0.d0)) )
         case default
            Write(error_unit,*) 'Error in Fields_Phi'
            CALL Terminate_on_error(ERROR_FIELDS,__FILE__,__LINE__)
@@ -142,9 +150,11 @@
         case(1)
            Fields_GAMA = 1.d0
         case(2)
-           Fields_GAMA = GAMA_st(Nint(this%f(n_op,n_tau)),2)
+           Fields_GAMA = GAMA_st(Nint(Real(this%f(n_op,n_tau))),2)
         case(3)
            Fields_GAMA = 1.d0
+        case(4)
+           Fields_GAMA = GAMA_st(Nint(Real(this%f(n_op,n_tau))),2)
         case default
            Write(error_unit,*) 'Error in Fields_GAMA'
            CALL Terminate_on_error(ERROR_FIELDS,__FILE__,__LINE__)
@@ -160,27 +170,53 @@
 !> Flips the field this(n_op,n_tau)
 !>
 !-------------------------------------------------------------------
-
-      Real (Kind=Kind(0.d0)) function Fields_flip(this,n_op,n_tau)
+      Complex (Kind=Kind(0.d0)) function  Fields_flip(this,n_op,n_tau)
 
         Implicit none
-        Class (Fields) :: this
-        Integer, INTENT(IN) ::  n_op, n_tau
+        Class (Fields)      :: this
+        Integer, INTENT(IN) :: n_op, n_tau
 
+       
         select case (this%t(n_op))
         case(1)
            Fields_flip = - this%f(n_op,n_tau)
         case (2)
-           Fields_flip =   Flip_st( nint(this%f(n_op,n_tau)),nranf(3))
+           Fields_flip =   cmplx(Flip_st( nint(real(this%f(n_op,n_tau))),nranf(3)),  0.d0,  Kind(0.d0) )
         case (3)
-           Fields_flip =   this%f(n_op,n_tau) + Amplitude*( ranf_wrap() - 0.5D0)
+           Fields_flip =   cmplx(real(this%f(n_op,n_tau)) + Amplitude*( ranf_wrap() - 0.5D0), 0.d0,  Kind(0.d0))
+        case (4)
+           Select case (this%Flip_Protocol(n_op))
+           case(1) ! Flip one of  the  two  fields randomly,  this is the  default
+              If (ranf_wrap() > 0.5D0 )  then 
+                 Fields_flip =   cmplx( Flip_st( nint(real(this%f(n_op,n_tau))),nranf(3))             , &
+                      &                 aimag(this%f(n_op,n_tau)), Kind(0.d0))
+              else
+                 Fields_flip =   cmplx( real(this%f(n_op,n_tau)) , &
+                      &                 aimag(this%f(n_op,n_tau)) +  Amplitude*( ranf_wrap() - 0.5D0) , Kind(0.d0))
+              endif
+           case(2) ! Flip both  fields
+              Fields_flip =   cmplx( Flip_st( nint(real(this%f(n_op,n_tau))),nranf(3))                , &
+                   &                 aimag(this%f(n_op,n_tau)) +  Amplitude*( ranf_wrap() - 0.5D0) , Kind(0.d0))
+              
+           case(3) ! Flip only  the  real  part
+              Fields_flip =   cmplx( Flip_st( nint(real(this%f(n_op,n_tau))),nranf(3))             , &
+                   &                 aimag(this%f(n_op,n_tau)), Kind(0.d0))
+           case(4) ! Flip only  the   impaginary  part
+              Fields_flip =   cmplx( real(this%f(n_op,n_tau)) , &
+                   &                 aimag(this%f(n_op,n_tau)) +  Amplitude*( ranf_wrap() - 0.5D0) , Kind(0.d0))
+           case default
+              Write(error_unit,*) 'No flip protocol provided for  field. '
+              CALL Terminate_on_error(ERROR_FIELDS,__FILE__,__LINE__)
+           end Select
+           
         case default
            Write(error_unit,*) 'Error in Fields. '
            CALL Terminate_on_error(ERROR_FIELDS,__FILE__,__LINE__)
         end select
-
-      end function Fields_Flip
-
+        
+      end function Fields_flip
+      
+!-------------------------------------------------------------------
 
       Integer function Fields_get_i(this,n_op,n_tau)
 
@@ -189,33 +225,35 @@
         Integer, INTENT(IN) ::  n_op, n_tau
 
         if ( this%t(n_op) == 1 .or.   this%t(n_op) == 2 ) then
-           Fields_get_i = NINT(this%f(n_op,n_tau))
+           Fields_get_i = NINT(Real(this%f(n_op,n_tau)))
         else
            Write(error_unit,*) "Error in fields"
            CALL Terminate_on_error(ERROR_FIELDS,__FILE__,__LINE__)
         endif
 
       end function Fields_get_i
-
-
+!-------------------------------------------------------------------
       Subroutine Fields_make(this,N_OP,N_tau)
         Implicit none
         Class (Fields), INTENT(INOUT)  :: this
         Integer, INTENT(IN)            :: N_OP, N_tau
 
         !Write(6,*) "Allocating  fields: ", N_op, N_tau
-        allocate (this%f(N_OP,N_tau), this%t(N_OP) )
+        allocate (this%f(N_OP,N_tau), this%t(N_OP), this%Flip_protocol(N_OP) )
 
-        this%f = 0.d0;  this%t = 0
+        
+        this%f = cmplx(0.d0,0.d0,kind(0.d0)) ;  this%t = 0; this%flip_protocol = 1
 
       end Subroutine Fields_make
-
+!-------------------------------------------------------------------
       Subroutine Fields_clear(this)
         Implicit none
         Class (Fields) :: this
 
-        deallocate (this%f, this%t )
+        deallocate (this%f, this%t,  this%Flip_protocol )
       end Subroutine Fields_clear
+
+!-------------------------------------------------------------------
 
       Subroutine Fields_init(Amplitude_in)
 
@@ -293,7 +331,7 @@
 !>
 !> @param [Optional]  Initial_field
 !> \verbatim
-!> Type Real
+!> Type Complex
 !> Initial field \endverbatim
 !--------------------------------------------------------------------
       Subroutine Fields_in(this,Group_Comm,Initial_field)
@@ -302,7 +340,7 @@
 
         Class (Fields)        , INTENT(INOUT) :: this
         Integer               , INTENT(IN   ) :: Group_Comm
-        Real (Kind=Kind(0.d0)), Dimension(:,:), Optional   :: Initial_field
+        Complex (Kind=Kind(0.d0)), Dimension(:,:), Optional   :: Initial_field
 
         ! LOCAL
         Integer                 :: I, I1, IERR, SEED_IN, K, NT
@@ -403,7 +441,8 @@
 #if defined MPI
                endif
 #endif
-         ENDIF
+            ENDIF
+            call Fields_test(this)
 
        end Subroutine Fields_in
 !--------------------------------------------------------------------
@@ -466,6 +505,70 @@
 !> ALF-project
 !>
 !> @brief
+!> Test if the field values are consistent with the field types.
+!>
+!> @details
+!>
+!> @param [INOUT] this
+!> \verbatim
+!> Type Fields
+!> \endverbatim
+!--------------------------------------------------------------------
+       Subroutine  Fields_test(this)
+
+         Implicit none
+
+         Class (Fields), INTENT(INOUT) :: this
+
+         Integer :: nt, I, I1
+
+         !Write(6,*) "Fields_set", size(this%f,1), size(this%f,2)
+         Do nt = 1,size(this%f,2)
+            Do I = 1,size(this%f,1)
+               Select Case(this%t(i))
+               Case(1)
+                  ! Field should be 1 or -1
+                  if (abs(this%f(I,nt))-1.d0 > 1e-8 .or. abs(aimag(this%f(I,nt))) > 1e-8) then
+                     write(error_unit, '("A","I0","A","I0","A","I0","A","I0")') &
+                       & "Field I=", I, " nt=", nt, "value=", this%f(I,nt), " does not fit to type ", this%t(i)
+                     CALL Terminate_on_error(ERROR_FIELDS,__FILE__,__LINE__)
+                  endif
+               Case(2)
+                  ! Field should be 1, -1, 2, or -2
+                  if ((abs(this%f(I,nt))-1.d0 > 1e-8 .and. abs(this%f(I,nt))-2.d0 > 1e-8) .or. abs(aimag(this%f(I,nt))) > 1e-8) then
+                     write(error_unit, '("A","I0","A","I0","A","I0","A","I0")') &
+                       & "Field I=", I, " nt=", nt, "value=", this%f(I,nt), " does not fit to type ", this%t(i)
+                     CALL Terminate_on_error(ERROR_FIELDS,__FILE__,__LINE__)
+                  endif
+               Case(3)
+                  ! Field should be real
+                  if (abs(aimag(this%f(I,nt))) > 0) then
+                     write(error_unit, '("A","I0","A","I0","A","I0","A","I0")') &
+                       & "Field I=", I, " nt=", nt, "value=", this%f(I,nt), " does not fit to type ", this%t(i)
+                     CALL Terminate_on_error(ERROR_FIELDS,__FILE__,__LINE__)
+                  endif
+               Case(4)
+                  ! Real part of Field should be 1, -1, 2, or -2
+                  if (abs(real(this%f(I,nt)))-1.d0 > 1e-8 .and. abs(real(this%f(I,nt)))-2.d0 > 1e-8) then
+                     write(error_unit, '("A","I0","A","I0","A","I0","A","I0")') &
+                       & "Real part of field I=", I, " nt=", nt, "value=", this%f(I,nt), " does not fit to type ", this%t(i)
+                     CALL Terminate_on_error(ERROR_FIELDS,__FILE__,__LINE__)
+                  endif
+               Case default
+                  write(error_unit, '("A","I0","A","I0")') "Field ", I, " has unrecongnized type ", this%t(i)
+                  CALL Terminate_on_error(ERROR_FIELDS,__FILE__,__LINE__)
+               end Select
+            enddo
+         enddo
+
+       end Subroutine Fields_test
+
+
+!--------------------------------------------------------------------
+       !> @author
+!> ALF-project
+!>
+!> @brief
 !> Sets the field.
 !>
 !> @details
@@ -482,16 +585,18 @@
 
          Class (Fields), INTENT(INOUT) :: this
 
-         Integer :: nt, I
+         Integer :: nt, I, I1
 
          !Write(6,*) "Fields_set", size(this%f,1), size(this%f,2)
          Do nt = 1,size(this%f,2)
             Do I = 1,size(this%f,1)
                if (this%t(i)  < 4 ) then
-                  this%f(I,nt)  = 1.d0
-                  if ( ranf_wrap() > 0.5D0 ) this%f(I,nt) = -1.d0
-               else
-                  this%f(I,nt)  = Amplitude*(ranf_wrap() - 0.5d0)
+                  this%f(I,nt)  = cmplx(1.d0,0.d0,kind(0.d0))
+                  if ( ranf_wrap() > 0.5D0 ) this%f(I,nt) = cmplx(-1.d0,0.d0,kind(0.d0))
+               else 
+                  I1 = 1
+                  if ( ranf_wrap() > 0.5D0 ) I1 = -1
+                  this%f(I,nt)  = cmplx(dble(I1),  Amplitude*( ranf_wrap() - 0.5D0) ,Kind(0.d0))
                endif
             enddo
          enddo
@@ -523,8 +628,9 @@
             Class (Fields)    , INTENT(INOUT) :: this
             CHARACTER (LEN=64), intent(in)    :: filename
 
-            INTEGER             :: K, I, NT, I1
-            INTEGER,ALLOCATABLE :: SEED_VEC(:)
+            INTEGER                :: K, I, NT, I1
+            INTEGER,ALLOCATABLE    :: SEED_VEC(:)
+            Real (Kind=Kind(0.d0)) :: X
 
             CALL GET_SEED_LEN(K)
             ALLOCATE(SEED_VEC(K))
@@ -536,8 +642,11 @@
                DO I = 1,SIZE(this%f,1)
                   IF (this%t(I) == 1 .or.  this%t(I) == 2) then
                      Read(10,*)  I1
-                     this%f(I,NT) = real(I1,kind(0.d0))
-                  else
+                     this%f(I,NT) = cmplx(real(I1,kind(0.d0)), 0.d0,kind(0.d0))
+                  elseif (this%t(I) == 3)   then
+                     Read(10,*)  X
+                     this%f(I,NT) = cmplx(X,0.d0,kind(0.d0))
+                  elseif (this%t(I) == 4)   then
                      Read(10,*)  this%f(I,NT)
                   Endif
                ENDDO
@@ -545,7 +654,7 @@
             CLOSE(10)
             DEALLOCATE(SEED_VEC)
         END SUBROUTINE Fields_read_conf
-
+!--------------------------------------------------------------------
 #if defined HDF5
         SUBROUTINE Fields_read_conf_h5(this, filename)
             IMPLICIT NONE
@@ -555,9 +664,14 @@
 
             INTEGER             :: K, hdferr
             INTEGER,ALLOCATABLE :: SEED_VEC(:)
-            INTEGER(HID_T)      :: file_id
+            INTEGER(HID_T)      :: file_id, dset_id, dataspace
             Character (len=64)  :: dset_name
             INTEGER(HSIZE_T), allocatable :: dims(:)
+
+            INTEGER :: rank
+            real    (Kind=Kind(0.d0)), allocatable :: f_tmp_real(:,:)
+            Complex (Kind=Kind(0.d0)), allocatable, target :: f_tmp_cplx(:,:)
+            TYPE(C_PTR)                   :: dat_ptr
 
             CALL GET_SEED_LEN(K)
             ALLOCATE(SEED_VEC(K))
@@ -574,12 +688,35 @@
 
             !Open and read configuration dataset
             dset_name = "configuration"
-            allocate( dims(2) )
-            dims(1) = SIZE(this%f,1)
-            dims(2) = SIZE(this%f,2)
-            CALL h5ltread_dataset_double_f(file_id, dset_name, this%f, dims, hdferr)
-            deallocate( dims )
+            !Open the  dataset.
+            CALL h5dopen_f(file_id, dset_name, dset_id, hdferr)
+      
+            !Get dataset's dataspace handle.
+            CALL h5dget_space_f(dset_id, dataspace, hdferr)
+      
+            !Get dataspace's rank.
+            CALL h5sget_simple_extent_ndims_f(dataspace, rank, hdferr)
+            if (rank == 2) then
+               ! rank=2 -> Read real config values
+               allocate( dims(2) )
+               dims = [SIZE(this%f,1), SIZE(this%f,2)]
+               allocate(f_tmp_real(dims(1), dims(2)))
+               CALL h5ltread_dataset_double_f(file_id, dset_name, f_tmp_real, dims, hdferr)
+               this%f(:,:) = f_tmp_real(:,:)
+               deallocate(dims, f_tmp_real)
+            else
+               ! Read complex config values
+               allocate( dims(3) )
+               dims = [2, SIZE(this%f,1), SIZE(this%f,2)]
+               allocate(f_tmp_cplx(SIZE(this%f,1), SIZE(this%f,2)))
+               dat_ptr = C_LOC(f_tmp_cplx(1,1))
+               CALL H5dread_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
+               this%f(:,:) = f_tmp_cplx(:,:)
+               deallocate(dims, f_tmp_cplx)
+            endif
 
+            CALL h5sclose_f(dataspace, hdferr)
+            CALL h5dclose_f(dset_id, hdferr)
             CALL h5fclose_f(file_id, hdferr)
         END SUBROUTINE Fields_read_conf_h5
 #endif
@@ -621,9 +758,11 @@
             DO NT = 1,size(this%f,2)
                DO I = 1,size(this%f,1)
                   if (this%t(i) ==  3 ) then
-                     WRITE(10,*) this%f(I,NT)
-                  else
-                     WRITE(10,*) nint(this%f(I,NT))
+                     WRITE(10,*) real(this%f(I,NT))
+                  elseif ( this%t(i) ==  1  .or. this%t(i) ==  2 ) then
+                     WRITE(10,*) nint(real(this%f(I,NT)))
+                  elseif ( this%t(i) ==  4  ) then
+                     WRITE(10,*) this%f(I,NT) 
                   endif
                ENDDO
             ENDDO
@@ -641,6 +780,8 @@
             INTEGER,ALLOCATABLE :: SEED_VEC(:)
             INTEGER(HID_T)      :: file_id, crp_list, space_id, dset_id
             Character (len=64)  :: dset_name
+            Complex (Kind=Kind(0.d0)), allocatable, target :: f_tmp(:,:)
+            TYPE(C_PTR) :: dat_ptr
 
 
             CALL GET_SEED_LEN(K)
@@ -661,10 +802,9 @@
 
                 !Create and write dataset for configuration
                 dset_name = "configuration"
-                rank = 2
-                allocate( dims(2) )
-                dims(1) = SIZE(this%f,1)
-                dims(2) = SIZE(this%f,2)
+                rank = 3
+                allocate( dims(rank) )
+                dims = [2, SIZE(this%f,1), SIZE(this%f,2)]
                 !Create Dataspace
                 CALL h5screate_simple_f(rank, dims, space_id, hdferr)
                 !Modify dataset creation properties, i.e. enable chunking
@@ -678,9 +818,12 @@
                 CALL h5dcreate_f(file_id, dset_name, H5T_NATIVE_DOUBLE, space_id, &
                                 dset_id, hdferr, crp_list )
                 !Write configuration
-                CALL H5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, this%f, dims, hdferr)
+                allocate(f_tmp(SIZE(this%f,1), SIZE(this%f,2)))
+                f_tmp(:,:) = this%f(:,:)
+                dat_ptr = C_LOC(f_tmp(1,1))
+                CALL H5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
                 !Close objects
-                deallocate( dims )
+                deallocate(dims, f_tmp)
                 CALL h5sclose_f(space_id, hdferr)
                 CALL h5pclose_f(crp_list, hdferr)
                 CALL h5dclose_f(dset_id,   hdferr)
@@ -701,11 +844,12 @@
                 !open and write configuration dataset
                 dset_name = "configuration"
                 CALL h5dopen_f(file_id, dset_name, dset_id, hdferr)
-                allocate( dims(2) )
-                dims(1) = SIZE(this%f,1)
-                dims(2) = SIZE(this%f,2)
-                CALL H5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, this%f, dims, hdferr)
-                deallocate( dims )
+                allocate(f_tmp(SIZE(this%f,1), SIZE(this%f,2)))
+                f_tmp(:,:) = this%f(:,:)
+                dat_ptr = C_LOC(f_tmp(1,1))
+                CALL H5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
+                !Close objects
+                deallocate(f_tmp)
                 CALL h5dclose_f(dset_id,   hdferr)
 
                 CALL h5fclose_f(file_id, hdferr)
