@@ -1,0 +1,124 @@
+\documentclass[10pt,Arial]{scrartcl}
+\usepackage{graphicx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage{bbm}            
+\usepackage[fleqn]{amsmath} 
+\usepackage{amssymb}
+\usepackage{wasysym}
+\usepackage{color}
+\usepackage{soul}
+\usepackage{xspace}
+\usepackage{bm}
+\usepackage{subfigure}
+\usepackage{tcolorbox}
+\usepackage{dsfont}
+\usepackage{footnote}
+\usepackage{alltt}
+\usepackage{xcolor}
+\usepackage{lmodern}
+\usepackage{listings}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{hyperref} 
+
+\definecolor{light-gray}{gray}{0.95}
+\definecolor{light-gray2}{gray}{0.88}
+\definecolor{comment-color}{rgb}{0.8,0.1,0.1}
+\definecolor{keyword-color}{rgb}{0.3,0.3,1}
+\sethlcolor{light-gray2}
+\newcommand*{\red}{\textcolor{red}}
+\newcommand*{\blue}{\textcolor{blue}}
+
+\lstdefinestyle{fortran}{
+  language={[03]Fortran},
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{keyword-color},
+  commentstyle=\color{comment-color},
+  morecomment=[l]{!\ },% Otherwise it's a comment only with space after !
+  breakatwhitespace=false,
+  keepspaces=true,
+  showstringspaces=false,
+  columns=fullflexible,
+  backgroundcolor=\color{light-gray},
+  frame=single,
+  xleftmargin=3.4pt,
+  xrightmargin=3.4pt
+}
+
+\newcommand{\ve}[1]{\boldsymbol{#1}}
+\def\Tr{\mathop{\mathrm{Tr}}}
+\def\Trf{\mathop{\mathrm{Tr}_{\mathrm{F}}}}
+\makesavenoteenv{tabular}
+\makesavenoteenv{table}
+\setkomafont{author}{\large}
+\setkomafont{date}{\large}
+
+\newcommand{\mycomment}[1]{{\color{blue} #1}}
+\newcommand{\FAcomment}[1]{{\color{red} #1}}
+
+
+\begin{document}
+%---------------------------------------------------------------------------------------------------------
+\title{ Extended Hubbard model: 
+\texttt{ Hamiltonian\_extended\_Hubbard\_smod.F90 } }
+\subtitle{}
+\author{}
+\date{}
+%---------------------------------------------------------------------------------------------------------
+\maketitle 
+The  Hamiltonian  that  we  will  consider here  is  given  by: 
+\begin{equation}
+\label{eqn:Ham_Ext_Hub}
+	\hat{H}  =       \sum_{ b =  \left< i,j \right>  } \sum_{\sigma=1}^{N}  \left(  
+  \hat{c}^{\dagger}_{i,\sigma} T^{\sigma}_{i,j}    \hat{c}^{\dagger}_{j,\sigma}  +  \text{H.c.} \right)
+  +  \sum_{ b=\left< i,j \right> }  
+  \frac{s_V V_{i,j}}{2N} \left( [n_{i} - N/2]  +  s_V [ n_{j}  - N/2 ]  \right)^2   +  
+  \sum_{i} \frac{U_i}{N} \left( n_i -  \frac{N}{2} \right)^2
+\end{equation}
+The  implementation supports all  standard ALF lattices and  the  hopping as  well as  the 
+interaction $V$  are  restricted to nearest neighbors.    The parameter file  for  this 
+specific model reads: 
+\begin{lstlisting}[style=fortran,escapechar=\#,breaklines=true]
+&VAR_extended_Hubbard      !! Variables for the Extended Hubbard
+ham_T      = 1.d0          ! Hopping parameter
+Ham_chem   = 0.d0          ! Chemical potential
+Ham_U      = 1.d0          ! Hubbard interaction
+Ham_V1     = 0.d0          ! nearest neighbor interaction
+ham_T2     = 1.d0          ! For bilayer systems
+Ham_U2     = 0.d0          ! For bilayer systems
+Ham_V2     = 0.d0          ! For bilayer systems
+ham_Tperp  = 0.d0          ! For bilayer systems
+Ham_Vperp  = 0.d0          ! For bilayer systems
+Ham_SV     = 1.0           ! = +/- 1: Sign convention for interaction
+/
+\end{lstlisting}
+In the above \texttt{Ham\_T, Ham\_V, Ham\_U} are the    nearest  neighbor  hopping, nearest  neighbor  interaction  and Hubbard repulsion on the the first layer.   \texttt{Ham\_T2, Ham\_V2, Ham\_U2}   are  the corresponding quantities  on the second layer.  \texttt{Ham\_Tperp, Ham\_Vperp}   define  the inter-layer couplings.  Finally $ Ham\_chem $  is  the chemical potential.   
+To use  this  Hamiltonian  you  have to specify: 
+\begin{lstlisting}[style=fortran,escapechar=\#,breaklines=true]
+&VAR_ham_name
+ham_name = "extended_Hubbard"
+/
+\end{lstlisting}
+in the \texttt{parameters}  file.
+
+In this formulation,  there is  some   \textit{  double counting  }  of  the  Hubbard  term.  In particular  expanding  the  square  $V$-term  gives  the  Hamiltonian:  
+\begin{equation}
+  \label{eqn:Ham_Ext_Hub_1}
+    \hat{H}  =       \sum_{b=\langle  i,j \rangle } \sum_{\sigma=1}^{N}   
+    \hat{c}^{\dagger}_{i,\sigma} T^{\sigma}_{i,j}    \hat{c}^{\dagger}_{j,\sigma}  + 
+    \sum_{b=\langle  i,j \rangle }  
+    \frac{V_{i,j}}{N} \left( [n_{i} - N/2] \right) \left([ n_{j}  - N/2 ]  \right)   +  
+    \sum_{i}  \frac{U^{eff}_i}{N} \left( n_i -  \frac{N}{2} \right)^2
+  \end{equation}
+  In the  above   
+  \begin{equation}
+    U^{eff}_{i}    = U_i +  \sum_{b = (n,m)} V_b  \left( \delta_{i,m} +  \delta_{i,n}\right)
+  \end{equation}
+  For  the  single  layer  lattices  with uniform $U$ and $V$,  $U^{eff} =   U  + Z V $ 
+  where  $Z=4$ ($Z=3$)   for  the square (honeycomb)  lattice.  
+
+  Note that  the potential and  total  energies  are   defined  as in the  Hamiltonian.   That is   the file  \texttt{Ener\_scalJ}   corresponds to  
+  $ \langle \hat{H}   \rangle $.
+
+\end{document}

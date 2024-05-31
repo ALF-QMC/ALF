@@ -174,10 +174,10 @@ Ham_omega0 =  0.25         ! Phonon   frequency
 ham_T      = 1.d0     ! Hopping parameter
 Ham_chem   = 0.d0     ! Chemical potential
 Ham_U      = 1.d0     ! Hubbard interaction
-Ham_V1     = 0.1d0     ! nearest neighbor interaction
+Ham_V1     = 0.1d0    ! nearest neighbor interaction
 ham_T2     = 1.d0     ! For bilayer systems
 Ham_U2     = 0.d0     ! For bilayer systems
-Ham_V2     = 0.1d0     ! For bilayer systems
+Ham_V2     = 0.1d0    ! For bilayer systems
 ham_Tperp  = 1.d0     ! For bilayer systems
 Ham_Vperp  = 1.d0     ! For bilayer systems
 /
