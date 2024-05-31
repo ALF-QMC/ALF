@@ -180,6 +180,7 @@ Ham_U2     = 0.d0     ! For bilayer systems
 Ham_V2     = 0.1d0    ! For bilayer systems
 ham_Tperp  = 1.d0     ! For bilayer systems
 Ham_Vperp  = 1.d0     ! For bilayer systems
+Ham_SV     = 1.d0     ! For  definition of interaction
 /
 
 ! slash terminates namelist statement - DO NOT REMOVE
