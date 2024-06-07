@@ -123,6 +123,7 @@
          Latt%a3_p = a3_p
 
 
+
          !Compute the Reciprocal lattice vectors.
          Allocate ( b1_p(ndim), b2_p(ndim), b3_p(ndim), xk_p(ndim), b_p(ndim) )
          Allocate ( BZ1_p(ndim), BZ2_p(ndim),  BZ3_p(ndim))
@@ -168,8 +169,6 @@
          Latt%BZ3_p = BZ3_p
 
 
-
-
          ! K-space Quantization  from periodicity in L1_p and L2_p
          X =  2.d0*pi / ( Iscalar(BZ1_p,L1_p) * ( Iscalar(BZ2_p,L2_p) * Iscalar(BZ3_p,L3_p) -   &
                &          Iscalar(BZ2_p,L1_p) * Iscalar(BZ1_p,L2_p) ) - &
@@ -180,7 +179,7 @@
          X = abs(X)
          !(L2g3 L3g2 n - L2g2 L3g3 n ) g1 + (-L2g3 L3g1 n + 
          !L2g1 L3g3 n ) g2 + (L2g2 L3g1 n - L2g1 L3g2 n ) g3
-         b3_p = X*( (Iscalar(BZ2_p,L2_p) * Iscalar(BZ3_p,L3_p)-Iscalar(BZ3_p,L2_p) * Iscalar(BZ2_p,L3_p)) * BZ1_p &
+         b1_p = X*( (Iscalar(BZ2_p,L2_p) * Iscalar(BZ3_p,L3_p)-Iscalar(BZ3_p,L2_p) * Iscalar(BZ2_p,L3_p)) * BZ1_p &
                & +  (Iscalar(BZ3_p,L2_p) * Iscalar(BZ1_p,L3_p)-Iscalar(BZ1_p,L2_p) * Iscalar(BZ3_p,L3_p)) * BZ2_p &
                & +  (Iscalar(BZ1_p,L2_p) * Iscalar(BZ2_p,L3_p)-Iscalar(BZ2_p,L2_p) * Iscalar(BZ1_p,L3_p)) * BZ3_p )
          !(-L1g3 L3g2 m + L1g2 L3g3 m ) g1 + (L1g3 L3g1 m  - 
@@ -197,6 +196,7 @@
          Latt%b1_p  = b1_p
          Latt%b2_p  = b2_p
          Latt%b3_p  = b3_p
+
 
 
          ! Setup the 3X3 matrix to determine  b1_perp_p, b2_perp_p, b3_perp_p
@@ -230,6 +230,8 @@
          Latt%b3_perp_p(1)      = Mat_inv(1,3)
          Latt%b3_perp_p(2)      = Mat_inv(2,3)
          Latt%b3_perp_p(3)      = Mat_inv(3,3)
+
+         !write(*,*) 'b1_perp_p, b2_perp_p, b3_perp_p,', Latt%b1_perp_p, Latt%b2_perp_p, Latt%b3_perp_p
 
          Deallocate ( Mat,  Mat_inv )
 
@@ -334,7 +336,6 @@
                enddo
             enddo
          enddo
-
 
          Allocate ( Latt%Listk(LQ,ndim), Latt%Invlistk3D(-L:L, -L:L, -L:L) )
          Latt%Listk = 0
@@ -1013,7 +1014,8 @@
            Integer :: nkx, nky, nkz, nk
            Real (Kind=Kind(0.d0)) :: XK1_P(2), XK2_P(2), XK1_P3(3), XK2_P3(3), Zero
 
-           if(size(XK_P) ==2) then
+
+           if(size(XK_P) .eq.2) then
                call npbc(xk1_p, xk_p , Latt%BZ1_p, Latt%BZ2_p)
                call npbc(xk2_p, xk1_p, Latt%BZ1_p, Latt%BZ2_p)
                nkx = nint (Iscalar(XK2_P,Latt%b1_perp_p) )
@@ -1026,11 +1028,8 @@
                XK1_P = XK1_P - XK2_P
                if (Xnorm(XK1_P)  < Zero ) then
                   Inv_K = nk
-           else
-              write(error_unit,*) 'Lattice: Error in Inv_K'
-              Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
-           endif
-           else
+               endif
+           else if(size(XK_P) .eq. 3) then
                call npbc(xk1_p3, xk_p , Latt%BZ1_p, Latt%BZ2_p, Latt%BZ3_p)
                call npbc(xk2_p3, xk1_p3, Latt%BZ1_p, Latt%BZ2_p, Latt%BZ3_p)
                nkx = nint (Iscalar(XK2_P3,Latt%b1_perp_p) )
@@ -1041,12 +1040,15 @@
                Zero  = 1.D-10
                XK1_P3 = Latt%listk(nk,1)*latt%b1_p + Latt%listk(nk,2)*latt%b2_p + Latt%listk(nk,3)*latt%b3_p
                XK1_P3 = XK1_P3 - XK2_P3
-               if (Xnorm(XK1_P)  < Zero ) then
+               if (Xnorm(XK1_P3)  < Zero ) then
                   Inv_K = nk
                else
                   write(error_unit,*) 'Lattice: Error in Inv_K'
                   Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
                endif
+           else
+               write(error_unit,*) 'Lattice: Error in Inv_K'
+               Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
            endif
 
            
