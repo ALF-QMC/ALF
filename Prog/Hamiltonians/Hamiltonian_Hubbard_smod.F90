@@ -184,7 +184,7 @@
       Type (Lattice),       target :: Latt
       Type (Unit_cell),     target :: Latt_unit
       Type (Hopping_Matrix_type), Allocatable :: Hopping_Matrix(:)
-      Integer, allocatable :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
+      Integer, allocatable :: List(:,:), Invlist(:,:) ! For orbital structure of Unit cell
 
     contains
       
@@ -370,6 +370,11 @@
           Ham_T2_vec     = Ham_T2
           Ham_Lambda_vec = Ham_Lambda
           N_Phi_vec      = N_Phi
+
+          if((str_to_upper(Lattice_type) .ne. "SQUARE") .and. (size(Latt%BZ1_p) .eq. 3)) then
+            Write(error_unit,*) 'Only square lattice possible in three dimensions '
+            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+          endif
 
           Select case (str_to_upper(Lattice_type))
           Case ("SQUARE")

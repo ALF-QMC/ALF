@@ -271,7 +271,7 @@
 
         
         
-        If ( Xnorm(Latt%L2_p - Latt%a2_p)  < Zero )  then
+        If ( (Xnorm(Latt%L2_p - Latt%a2_p)  < Zero) .and. (size(latt%BZ1_p) .eq. 2) )  then
            Allocate( Ham_T_perp_vec(N_FL) )
            Ham_T_perp_vec = 0.d0
            Call Set_Default_hopping_parameters_N_Leg_Ladder(this,Ham_T_vec, Ham_T_perp_vec, Ham_Chem_vec, Phi_X_vec, &
@@ -279,11 +279,19 @@
                 &                                           List, Invlist, Latt, Latt_unit )
            Deallocate ( Ham_T_perp_vec )
         else
-           If (  mod(nint(latt%L1_p(1)),2)  /=  0   .or.   mod(nint(latt%L2_p(2)),2)  /= 0 )  then
-              Write(error_unit,*) '*** For  the  square  lattice,  our  implementation of the checkerborad '
-              Write(error_unit,*) 'decomposition  requires even  values of L_1  and L_2  ***'
-              CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
-           endif
+           if (size(latt%BZ1_p) .eq. 3) then
+               If (  mod(nint(latt%L1_p(1)),2) /=  0 .or. mod(nint(latt%L2_p(2)),2)  /= 0 .or. mod(nint(latt%L3_p(3)),2)  /= 0 )  then
+                  Write(error_unit,*) '*** For  the  square  lattice,  our  implementation of the checkerborad '
+                  Write(error_unit,*) 'decomposition  requires even  values of L_1  and L_2  ***'
+                  CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+               endif
+            else
+               If (  mod(nint(latt%L1_p(1)),2)  /=  0   .or.   mod(nint(latt%L2_p(2)),2)  /= 0 )  then
+                  Write(error_unit,*) '*** For  the  square  lattice,  our  implementation of the checkerborad '
+                  Write(error_unit,*) 'decomposition  requires even  values of L_1  and L_2  ***'
+                  CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+               endif
+            endif
            Allocate( this(N_FL) )
 
            Ham_T_max = 0.d0
@@ -293,7 +301,35 @@
 
            do nf = 1,N_FL
               this(nf)%N_bonds = 0
-              if ( abs(Ham_T_max) > Zero)  then
+              if ( (abs(Ham_T_max) > Zero) .and. (size(latt%BZ1_p) .eq. 3))  then
+                 this(nf)%N_bonds = 3
+                 Allocate (this(nf)%List(this(nf)%N_bonds,5), &
+                      &    this(nf)%T(this(nf)%N_bonds) )
+                 nc = 0
+                 nc = nc + 1
+                 this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
+                 this(nf)%List(nc,1) = 1
+                 this(nf)%List(nc,2) = 1
+                 this(nf)%List(nc,3) = 0
+                 this(nf)%List(nc,4) = 1
+                 this(nf)%List(nc,5) = 0
+
+                 nc = nc + 1
+                 this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
+                 this(nf)%List(nc,1) = 1
+                 this(nf)%List(nc,2) = 1
+                 this(nf)%List(nc,3) = 1
+                 this(nf)%List(nc,4) = 0
+                 this(nf)%List(nc,5) = 0
+
+                 nc = nc + 1
+                 this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
+                 this(nf)%List(nc,1) = 1
+                 this(nf)%List(nc,2) = 1
+                 this(nf)%List(nc,3) = 0
+                 this(nf)%List(nc,4) = 0
+                 this(nf)%List(nc,5) = 1
+               else if(abs(Ham_T_max) > Zero) then
                  this(nf)%N_bonds = 2
                  Allocate (this(nf)%List(this(nf)%N_bonds,4), &
                       &    this(nf)%T(this(nf)%N_bonds) )
@@ -311,7 +347,8 @@
                  this(nf)%List(nc,2) = 1
                  this(nf)%List(nc,3) = 1
                  this(nf)%List(nc,4) = 0
-              Endif
+               Endif
+
               Allocate ( this(nf)%T_Loc(Latt_Unit%Norb) )
               do nc = 1,Latt_Unit%Norb
                  this(nf)%T_Loc(nc)  = cmplx(-Ham_Chem_vec(nf),0.d0,kind(0.d0))
@@ -323,7 +360,43 @@
            enddo
 
            !Set Checkerboard
-           if ( Ham_T_max   > Zero ) then
+           if ( (Ham_T_max   > Zero) .and. (size(latt%BZ1_p) .eq. 3) ) then
+              this(1)%N_FAM  = 6
+              Allocate (this(1)%L_Fam(this(1)%N_FAM),  this(1)%Prop_Fam(this(1)%N_FAM))
+              this(1)%L_FAM  = Latt%N/2
+              this(1)%Prop_Fam= 1.d0
+              Allocate (this(1)%List_Fam(this(1)%N_FAM,this(1)%L_Fam(1),2))
+              this(1)%L_FAM  = 0
+              do I = 1,Latt%N
+                 if ( mod(Latt%List(I,1) + Latt%List(I,2) + Latt%List(I,3),2) == 0 ) then
+                    Nf = 1
+                    this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I ! Unit cell
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 1 ! The bond (See above)
+                    Nf = 2
+                    this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 2
+                    Nf = 3
+                    this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 3
+                 else
+                    Nf = 4
+                    this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 1
+                    Nf = 5
+                    this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 2
+                    Nf = 6
+                    this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                    this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 3
+                 endif
+              enddo
+            else if(Ham_T_max   > Zero) then
               this(1)%N_FAM  = 4
               Allocate (this(1)%L_Fam(this(1)%N_FAM),  this(1)%Prop_Fam(this(1)%N_FAM))
               this(1)%L_FAM  = Latt%N/2
@@ -351,7 +424,7 @@
                     this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 2
                  endif
               enddo
-           endif
+            endif
         endif
       end Subroutine Set_Default_hopping_parameters_square
 
