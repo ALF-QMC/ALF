@@ -73,7 +73,7 @@ The  Hamiltonian  that  we  will  consider here  is  given  by:
 	\hat{H}  =       \sum_{ b =  \left< i,j \right>  } \sum_{\sigma=1}^{N}  \left(  
   \hat{c}^{\dagger}_{i,\sigma} T^{\sigma}_{i,j}    \hat{c}^{\dagger}_{j,\sigma}  +  \text{H.c.} \right)
   +  \sum_{ b=\left< i,j \right> }  
-  \frac{s_V V_{i,j}}{2N} \left( [n_{i} - N/2]  +  s_V [ n_{j}  - N/2 ]  \right)^2   +  
+  \frac{V_{i,j}}{2N} \left( [n_{i} - N/2]  +  s_V [ n_{j}  - N/2 ]  \right)^2   +  
   \sum_{i} \frac{U_i}{N} \left( n_i -  \frac{N}{2} \right)^2
 \end{equation}
 The  implementation supports all  standard ALF lattices and  the  hopping as  well as  the 
@@ -104,18 +104,18 @@ in the \texttt{parameters}  file.
 
 In this formulation,  there is  some   \textit{  double counting  }  of  the  Hubbard  term.  In particular  expanding  the  square  $V$-term  gives  the  Hamiltonian:  
 \begin{equation}
-  \label{eqn:Ham_Ext_Hub_1}
+  \label{eqn:Ham_Ext_Hub_0}
     \hat{H}  =       \sum_{b=\langle  i,j \rangle } \sum_{\sigma=1}^{N}   
     \hat{c}^{\dagger}_{i,\sigma} T^{\sigma}_{i,j}    \hat{c}^{\dagger}_{j,\sigma}  + 
     \sum_{b=\langle  i,j \rangle }  
-    \frac{V_{i,j}}{N} \left( [n_{i} - N/2] \right) \left([ n_{j}  - N/2 ]  \right)   +  
+    \frac{s_V V_{i,j}}{N} \left( [n_{i} - N/2] \right) \left([ n_{j}  - N/2 ]  \right)   +  
     \sum_{i}  \frac{U^{eff}_i}{N} \left( n_i -  \frac{N}{2} \right)^2
   \end{equation}
   In the  above   
   \begin{equation}
-    U^{eff}_{i}    = U_i +  \sum_{b = (n,m)} V_b  \left( \delta_{i,m} +  \delta_{i,n}\right)
+    U^{eff}_{i}    = U_i +  \frac{1}{2}\sum_{b = (n,m)} V_b  \left( \delta_{i,m} +  s_V^2\delta_{i,n}\right).
   \end{equation}
-  For  the  single  layer  lattices  with uniform $U$ and $V$,  $U^{eff} =   U  + Z V $ 
+  For  the  single  layer  lattices  with uniform $U$ and $V$, and  $s_V = 1$,  $U^{eff} =   U  + Z V $ 
   where  $Z=4$ ($Z=3$)   for  the square (honeycomb)  lattice.  
 
   Note that  the potential and  total  energies  are   defined  as in the  Hamiltonian.   That is   the file  \texttt{Ener\_scalJ}   corresponds to  

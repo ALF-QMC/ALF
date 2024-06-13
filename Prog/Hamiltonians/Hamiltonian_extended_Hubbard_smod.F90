@@ -146,7 +146,7 @@
       end type ham_extended_Hubbard
 
       !#PARAMETERS START# VAR_lattice
-      Character (len=64) :: Model = 'extended_Hubbard'  ! Value not relevant
+      Character (len=64) :: Model = 'Extended_Hubbard'  ! Value not relevant
       Character (len=64) :: Lattice_type = 'Square'
       Integer            :: L1 = 6   ! Length in direction a_1
       Integer            :: L2 = 6   ! Length in direction a_2
@@ -251,10 +251,6 @@
           else
              N_FL  = 1
           endif
-          If  (( Abs(Ham_SV)-1.d0 )  >  1.0D-8 ) then
-            Write(error_unit,*) 'Ham_Set: Ham_V has to  take the values  +/- 1 '
-            CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
-          endif   
 
           ! Setup the Bravais lattice
           Call  Ham_Latt
@@ -313,6 +309,7 @@
              Write(unit_info,*) 't             : ', Ham_T
              Write(unit_info,*) 'Ham_U         : ', Ham_U
              Write(unit_info,*) 'Ham_V1        : ', Ham_V1
+             Write(unit_info,*) 'Ham_SV        : ', Ham_SV
              if (Index(str_to_upper(Lattice_type),'BILAYER') > 0 )  then
                Write(unit_info,*) 't2            : ', Ham_T2
                Write(unit_info,*) 'Ham_U2        : ', Ham_U2
@@ -382,23 +379,23 @@
           Ham_Lambda_vec = Ham_Lambda
           N_Phi_vec      = N_Phi
 
-          Select case (Lattice_type)
-          Case ("Square")
+          Select case (str_to_upper(Lattice_type))
+          Case ("SQUARE")
              Call  Set_Default_hopping_parameters_square(Hopping_Matrix,Ham_T_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
                   &                                      Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
-          Case ("N_leg_ladder")
+          Case ("N_LEG_LADDER")
              Call  Set_Default_hopping_parameters_n_leg_ladder(Hopping_Matrix, Ham_T_vec, Ham_Tperp_vec, Ham_Chem_vec, Phi_X_vec, &
                   &                                            Phi_Y_vec, Bulk,  N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
-          Case ("Honeycomb")
+          Case ("HONEYCOMB")
              Ham_Lambda = 0.d0
              Call  Set_Default_hopping_parameters_honeycomb(Hopping_Matrix, Ham_T_vec, Ham_Lambda_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
                   &                                         Bulk,  N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
-          Case ("Bilayer_square")
+          Case ("BILAYER_SQUARE")
              Call  Set_Default_hopping_parameters_Bilayer_square(Hopping_Matrix,Ham_T_vec,Ham_T2_vec,Ham_Tperp_vec, Ham_Chem_vec, &
                   &                                              Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL,&
                   &                                              List, Invlist, Latt, Latt_unit )
 
-          Case ("Bilayer_honeycomb")
+          Case ("BILAYER_HONEYCOMB")
              Call  Set_Default_hopping_parameters_Bilayer_honeycomb(Hopping_Matrix,Ham_T_vec,Ham_T2_vec,Ham_Tperp_vec, Ham_Chem_vec, &
                   &                                                 Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL,&
                   &                                                 List, Invlist, Latt, Latt_unit )
@@ -476,22 +473,22 @@
 
 
           !Use predefined hoppings to manage the bonds since the interaction of the tV model is exactly on the hopping bonds
-          Select case (Lattice_type)
-          Case ("Square")
+          Select case (str_to_upper(Lattice_type))
+          Case ("SQUARE")
              Call  Set_Default_hopping_parameters_square(Bond_Matrix,Ham_V_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
                   &                                      Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
-          Case ("N_leg_ladder")
+          Case ("N_LEG_LADDER")
              Call  Set_Default_hopping_parameters_n_leg_ladder(Bond_Matrix, Ham_V_vec, Ham_Vperp_vec, Ham_Chem_vec, Phi_X_vec, &
                   &                                            Phi_Y_vec, Bulk,  N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
-          Case ("Honeycomb")
+          Case ("HONEYCOMB")
              Call  Set_Default_hopping_parameters_honeycomb(Bond_Matrix, Ham_V_vec, Ham_Lambda_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
                   &                                         Bulk,  N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
-          Case ("Bilayer_square")
+          Case ("BILAYER_SQUARE")
              Call  Set_Default_hopping_parameters_Bilayer_square(Bond_Matrix,Ham_V_vec,Ham_V2_vec,Ham_Vperp_vec, Ham_Chem_vec, &
                   &                                              Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL,&
                   &                                              List, Invlist, Latt, Latt_unit )
 
-          Case ("Bilayer_honeycomb")
+          Case ("BILAYER_HONEYCOMB")
              Call  Set_Default_hopping_parameters_Bilayer_honeycomb(Bond_Matrix,Ham_V_vec,Ham_V2_vec,Ham_Vperp_vec, Ham_Chem_vec, &
                   &                                                 Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL,&
                   &                                                 List, Invlist, Latt, Latt_unit )
@@ -499,7 +496,7 @@
           end Select
 
           N_ops = 0
-          if ( Lattice_type == "Bilayer_square" .or. Lattice_type =="Bilayer_honeycomb" ) then
+          if ( str_to_upper(Lattice_type) == "BILAYER_SQUARE" .or. str_to_upper(Lattice_type) =="BILAYER_HONEYCOMB" ) then
              Do no = 1,  Latt_unit%Norb/2
                 Ham_U_vec(no                    ) = Ham_U  
                 Ham_U_vec(no + Latt_unit%Norb/2 ) = Ham_U2 
@@ -556,7 +553,6 @@
                 Call Op_make(Op_V(nc,nf),2)
              enddo
              nc = N_hubbard
-             Write(*,*) Bond_Matrix(1)%N_FAM,Bond_Matrix(1)%L_Fam(1) 
              Do n_f = 1, Bond_Matrix(1)%N_FAM
                 Do l_f = 1, Bond_Matrix(1)%L_Fam(n_f)
                    I    = Bond_Matrix(1)%List_Fam(n_f,l_f,1)
@@ -573,8 +569,7 @@
                    Op_V(nc,nf)%P(2) = J1
                    Op_V(nc,nf)%O(1,1) = cmplx(  1.d0, 0.d0, kind(0.D0))
                    Op_V(nc,nf)%O(2,2) = cmplx(Ham_SV, 0.d0, kind(0.D0))
-                   If ( Ham_SV > 0.d0 )  Op_V(nc,nf)%alpha=cmplx(-1.d0,0.d0, kind(0.D0))
-                   V_eff = Ham_SV*real(Bond_Matrix(1)%T(nb),Kind(0.d0)) *Bond_Matrix(1)%Prop_Fam(n_f)
+                   V_eff = real(Bond_Matrix(1)%T(nb),Kind(0.d0)) *Bond_Matrix(1)%Prop_Fam(n_f)
                    Op_V(nc,nf)%g = sqrt(cmplx(-Dtau*V_eff,0.d0,Kind(0.d0)))
                    Op_V(nc,nf)%type=2
                    Call Op_set(Op_V(nc,nf))
@@ -815,7 +810,7 @@
                 I1   = Invlist(I,no_I)
                 J1   = Invlist(J,no_J)
                 ! interation strength on bond
-                ZV  =  Ham_SV*Bond_Matrix(1)%T(Nb)
+                ZV  =  Bond_Matrix(1)%T(Nb)
                 Z   =  ( dble(N_SUN) *  ( GRC(i,i,1) - cmplx(0.5,0.d0,Kind(0.d0) ))        + & 
                      &           Ham_Sv*( GRC(j,j,1) - cmplx(0.5,0.d0,Kind(0.d0) )) ) **2  + &
                      &   Ham_SV*dble(N_SUN) * GRC(I,J,1)*GR(I,J,1) 
