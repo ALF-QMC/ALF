@@ -135,6 +135,7 @@ Program Main
         use wrapul_mod
         use cgr1_mod
         use set_random
+        use QDRP_mod
 
 #ifdef MPI
         Use mpi
@@ -693,6 +694,9 @@ Program Main
 #if defined(QRREF)
            Write(50,*) 'QRREF is defined '
 #endif
+#if defined(MAGMA)
+           Write(50,*) 'Using MAGMA'
+#endif
 #if defined(TEMPERING) && !defined(PARALLEL_PARAMS)
            Write(50,*) '# of exchange steps  ',N_exchange_steps
            Write(50,*) 'Tempering frequency  ',N_Tempering_frequency
@@ -1079,6 +1083,13 @@ Program Main
 #if defined(MPI)
         endif
 #endif
+print*, 'QR  time', qr_get_time()
+print*, 'CGR time', cgr1_get_time()
+Open (Unit = 50, file=file_info, status="unknown", position="append")
+Write(50,*) 'QR  Time', qr_get_time()
+Write(50,*) 'CGR Time', cgr1_get_time()
+close(50)
+
 
 #ifdef MPI
         CALL MPI_FINALIZE(ierr)
