@@ -509,7 +509,12 @@
           endif
 
           do n_f = 1,Bond_Matrix(1)%N_FAM
-              N_ops = N_ops +  Bond_Matrix(1)%L_Fam(n_f)
+            if (Mz) then
+              ! We use real field for each kind of interaction: n_{i, sigma} n_{j, sigma'}
+              N_ops = N_ops + 4*Bond_Matrix(1)%L_Fam(n_f)
+            else
+              N_ops = N_ops + Bond_Matrix(1)%L_Fam(n_f)
+            endif
           enddo
 
           If ( Mz )  Then
@@ -546,36 +551,130 @@
                 Enddo
              Enddo
           Endif
-          N_hubbard=nc
-        
-          do nf = 1,N_FL
-             do nc = N_hubbard+1, Size(Op_V,1)
-                Call Op_make(Op_V(nc,nf),2)
-             enddo
-             nc = N_hubbard
-             Do n_f = 1, Bond_Matrix(1)%N_FAM
+
+          N_hubbard = nc
+          if (Mz) then
+            ! Create operator
+            do nf = 1,N_FL
+              do nc = N_hubbard + 1, Size(Op_V,1)
+                  call Op_make(Op_V(nc, nf), 1)
+              enddo
+            enddo
+
+            nc = N_hubbard + 1
+            write (*, *) N_ops
+            write (*,*) Bond_Matrix(1)%N_FAM, Bond_Matrix(1)%L_Fam(1)
+            do n_f = 1, Bond_Matrix(1)%N_FAM
+              do l_f = 1, Bond_Matrix(1)%L_Fam(n_f)
+                I    = Bond_Matrix(1)%List_Fam(n_f,l_f,1)
+                nb   = Bond_Matrix(1)%List_Fam(n_f,l_f,2)
+                no_I = Bond_Matrix(1)%list(Nb,1)
+                no_J = Bond_Matrix(1)%list(Nb,2)
+                n_1  = Bond_Matrix(1)%list(Nb,3)
+                n_2  = Bond_Matrix(1)%list(Nb,4)
+                J    = Latt%nnlist(I,n_1,n_2)
+                I1   = Invlist(I,no_I)
+                J1   = Invlist(J,no_J)
+
+                ! We now have to add interactions to each combination of fermion flavor and site
+                ! I_up J_dn
+                Op_V(nc, 1)%P(1) = I1
+                Op_V(nc, 1)%O(1,1) = cmplx(1.d0, 0.d0, kind(0.D0))
+                Op_V(nc, 1)%alpha = cmplx(-1.d0, 0.d0, kind(0.D0))
+                V_eff = real(Bond_Matrix(1)%T(nb),Kind(0.d0)) *Bond_Matrix(1)%Prop_Fam(n_f)
+                Op_V(nc, 1)%g = sqrt(cmplx(-Dtau*V_eff,0.d0,Kind(0.d0)))
+                Op_V(nc, 1)%type = 1
+
+                Op_V(nc, 2)%P(1) = J1
+                Op_V(nc, 2)%O(1,1) = cmplx(1.d0, 0.d0, kind(0.D0))
+                Op_V(nc, 2)%alpha = cmplx(-1.d0, 0.d0, kind(0.D0))
+                V_eff = real(Bond_Matrix(1)%T(nb),Kind(0.d0)) *Bond_Matrix(1)%Prop_Fam(n_f)
+                Op_V(nc, 2)%g = -sqrt(cmplx(-Dtau*V_eff,0.d0,Kind(0.d0)))
+                Op_V(nc, 2)%type = 1
+
+                ! I_dn J_up
+                Op_V(nc + 1, 2)%P(1) = I1
+                Op_V(nc + 1, 2)%O(1,1) = cmplx(1.d0, 0.d0, kind(0.D0))
+                Op_V(nc + 1, 2)%alpha = cmplx(-1.d0, 0.d0, kind(0.D0))
+                V_eff = real(Bond_Matrix(1)%T(nb),Kind(0.d0)) *Bond_Matrix(1)%Prop_Fam(n_f)
+                Op_V(nc + 1, 2)%g = sqrt(cmplx(-Dtau*V_eff,0.d0,Kind(0.d0)))
+                Op_V(nc + 1, 2)%type = 1
+
+                Op_V(nc + 1, 1)%P(1) = J1
+                Op_V(nc + 1, 1)%O(1,1) = cmplx(1.d0, 0.d0, kind(0.D0))
+                Op_V(nc + 1, 1)%alpha = cmplx(-1.d0, 0.d0, kind(0.D0))
+                V_eff = real(Bond_Matrix(1)%T(nb),Kind(0.d0)) *Bond_Matrix(1)%Prop_Fam(n_f)
+                Op_V(nc + 1, 1)%g = -sqrt(cmplx(-Dtau*V_eff,0.d0,Kind(0.d0)))
+                Op_V(nc + 1, 1)%type = 1
+
+                ! I_up J_up
+                ! TODO How to get neighbor interaction for the same flavor in both sites?
+                Op_V(nc + 2, 1)%P(1) = I1
+                Op_V(nc + 2, 1)%O(1,1) = cmplx(1.d0, 0.d0, kind(0.D0))
+                Op_V(nc + 2, 1)%alpha = cmplx(-1.d0, 0.d0, kind(0.D0))
+                V_eff = real(Bond_Matrix(1)%T(nb),Kind(0.d0)) *Bond_Matrix(1)%Prop_Fam(n_f)
+                Op_V(nc + 2, 1)%g = sqrt(cmplx(-Dtau*V_eff,0.d0,Kind(0.d0)))
+                Op_V(nc + 2, 1)%type = 1
+
+                Op_V(nc + 2, 1)%P(1) = J1
+                Op_V(nc + 2, 1)%O(1,1) = cmplx(1.d0, 0.d0, kind(0.D0))
+                Op_V(nc + 2, 1)%alpha = cmplx(-1.d0, 0.d0, kind(0.D0))
+                V_eff = real(Bond_Matrix(1)%T(nb),Kind(0.d0)) *Bond_Matrix(1)%Prop_Fam(n_f)
+                Op_V(nc + 2, 1)%g = -sqrt(cmplx(-Dtau*V_eff,0.d0,Kind(0.d0)))
+                Op_V(nc + 2, 1)%type = 1
+
+                ! I_dn J_dn
+                ! TODO How to get neighbor interaction for the same flavor in both sites?
+                Op_V(nc + 3, 2)%P(1) = I1
+                Op_V(nc + 3, 2)%O(1,1) = cmplx(1.d0, 0.d0, kind(0.D0))
+                Op_V(nc + 3, 2)%alpha = cmplx(-1.d0, 0.d0, kind(0.D0))
+                V_eff = real(Bond_Matrix(1)%T(nb),Kind(0.d0)) *Bond_Matrix(1)%Prop_Fam(n_f)
+                Op_V(nc + 3, 2)%g = sqrt(cmplx(-Dtau*V_eff,0.d0,Kind(0.d0)))
+                Op_V(nc + 3, 2)%type = 1
+
+                Op_V(nc + 3, 2)%P(1) = J1
+                Op_V(nc + 3, 2)%O(1,1) = cmplx(1.d0, 0.d0, kind(0.D0))
+                Op_V(nc + 3, 2)%alpha = cmplx(-1.d0, 0.d0, kind(0.D0))
+                V_eff = real(Bond_Matrix(1)%T(nb),Kind(0.d0)) *Bond_Matrix(1)%Prop_Fam(n_f)
+                Op_V(nc + 3, 2)%g = sqrt(cmplx(-Dtau*V_eff,0.d0,Kind(0.d0)))
+                Op_V(nc + 3, 2)%type = 1
+
+                nc = nc + 4
+
+              enddo
+            enddo
+
+          else
+            do nf = 1,N_FL
+              do nc = N_hubbard + 1, Size(Op_V,1)
+                  Call Op_make(Op_V(nc,nf), 2)
+              enddo
+
+              nc = N_hubbard
+              Do n_f = 1, Bond_Matrix(1)%N_FAM
                 Do l_f = 1, Bond_Matrix(1)%L_Fam(n_f)
-                   I    = Bond_Matrix(1)%List_Fam(n_f,l_f,1)
-                   nb   = Bond_Matrix(1)%List_Fam(n_f,l_f,2)
-                   no_I = Bond_Matrix(1)%list(Nb,1)
-                   no_J = Bond_Matrix(1)%list(Nb,2)
-                   n_1  = Bond_Matrix(1)%list(Nb,3)
-                   n_2  = Bond_Matrix(1)%list(Nb,4)
-                   J    = Latt%nnlist(I,n_1,n_2)
-                   I1   = Invlist(I,no_I)
-                   J1   = Invlist(J,no_J)
-                   nc = nc + 1
-                   Op_V(nc,nf)%P(1) = I1
-                   Op_V(nc,nf)%P(2) = J1
-                   Op_V(nc,nf)%O(1,1) = cmplx(  1.d0, 0.d0, kind(0.D0))
-                   Op_V(nc,nf)%O(2,2) = cmplx(Ham_SV, 0.d0, kind(0.D0))
-                   V_eff = real(Bond_Matrix(1)%T(nb),Kind(0.d0)) *Bond_Matrix(1)%Prop_Fam(n_f)
-                   Op_V(nc,nf)%g = sqrt(cmplx(-Dtau*V_eff,0.d0,Kind(0.d0)))
-                   Op_V(nc,nf)%type=2
-                   Call Op_set(Op_V(nc,nf))
+                  I    = Bond_Matrix(1)%List_Fam(n_f,l_f,1)
+                  nb   = Bond_Matrix(1)%List_Fam(n_f,l_f,2)
+                  no_I = Bond_Matrix(1)%list(Nb,1)
+                  no_J = Bond_Matrix(1)%list(Nb,2)
+                  n_1  = Bond_Matrix(1)%list(Nb,3)
+                  n_2  = Bond_Matrix(1)%list(Nb,4)
+                  J    = Latt%nnlist(I,n_1,n_2)
+                  I1   = Invlist(I,no_I)
+                  J1   = Invlist(J,no_J)
+                  nc = nc + 1
+                  Op_V(nc,nf)%P(1) = I1
+                  Op_V(nc,nf)%P(2) = J1
+                  Op_V(nc,nf)%O(1,1) = cmplx(  1.d0, 0.d0, kind(0.D0))
+                  Op_V(nc,nf)%O(2,2) = cmplx(Ham_SV, 0.d0, kind(0.D0))
+                  V_eff = real(Bond_Matrix(1)%T(nb),Kind(0.d0)) *Bond_Matrix(1)%Prop_Fam(n_f)
+                  Op_V(nc,nf)%g = sqrt(cmplx(-Dtau*V_eff,0.d0,Kind(0.d0)))
+                  Op_V(nc,nf)%type=2
+                  Call Op_set(Op_V(nc,nf))
                 enddo
-             enddo
-          enddo
+              enddo
+            enddo
+          endif
           
           Deallocate (Ham_V_vec, Ham_V2_vec, Ham_Vperp_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
                &                                   N_Phi_vec,  Ham_Lambda_vec )
