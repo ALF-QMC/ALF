@@ -22,6 +22,30 @@ program: git.h parse_parameters echo_compile_mods $(OBJS)
 	@echo "Link program"
 	$(ALF_FC) -o "ALF.out" $(OBJS) $(OHAM) $(ALF_LIB)
 
+FC = gfortran
+prefix=$(shell spack location -i magma)
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+fflags = -I${includedir} -fbacktrace -fopenmp -Wall -Wno-unused-function -I$(shell spack location -i cuda)/targets/x86_64-linux/include
+fflags += -DMAGMA
+fflags += -Wconversion -Werror -Wno-error=cpp -fcheck=all -g -fbacktrace -fmax-errors=10
+# fflags += -DMAGMA_GPU
+Libs = -fbacktrace -L${libdir} -lmagma_sparse -lmagma  $(shell spack location -i openblas)/lib/libopenblas.so -L$(shell spack location -i cuda)/lib64 -lcudart -lcublas -lcusparse
+# Libs += 
+
+test_qr: QDRP_decompose_mod_.o test_qr.o
+	$(FC) -o $@ $^ $(Libs)
+
+QDRP_decompose_mod_.o: QDRP_decompose_mod.F90
+	$(FC) -c -o $@ $(fflags) $^
+
+# QDRP_decompose_mod.o: QDRP_decompose_mod.F90
+# 	$(FC) -c -o $@ $(fflags) $^
+
+test_qr.o: test_qr.F90 QDRP_decompose_mod_.o
+	$(FC) -c -o $@ $(fflags) $<
+
 Hamiltonian_main_mod.o: Hamiltonians_interface.h Hamiltonians_case.h
 
 git.h:
@@ -46,6 +70,7 @@ tidy:
 
 clean: tidy
 	rm -f "ALF.out"
+	rm -f *.o *.mod
 
 echo_compile_mods:
 	@echo "Compiling program modules"

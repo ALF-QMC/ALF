@@ -12,6 +12,7 @@ Please choose one of the following MACHINEs:
  * SuperMUC-NG
  * JUWELS
  * FRITZ
+ * MAGMA
 Possible MODEs are:
  * MPI (default)
  * noMPI
@@ -201,8 +202,8 @@ INTELLLVMUSEFULFLAGS="-std08"
 
 
 # default optimization flags for GNU compiler
-GNUOPTFLAGS="-cpp -O3 -ffree-line-length-none -ffast-math"
-#GNUOPTFLAGS="-cpp -O0 -ffree-line-length-none"
+#GNUOPTFLAGS="-cpp -O3 -ffree-line-length-none -ffast-math"
+GNUOPTFLAGS="-cpp -O0 -ffree-line-length-none"
 # uncomment the next line if you want to use additional openmp parallelization
 GNUOPTFLAGS="${GNUOPTFLAGS} -fopenmp"
 # GNUDEVFLAGS="-Wconversion -Werror -fcheck=all -ffpe-trap=invalid,zero,overflow,underflow,denormal"
@@ -364,6 +365,22 @@ case $MACHINE in
     fi
   ;;
 
+  MAGMA)
+    export MAGMADIR="$(spack location -i magma)"
+    export CUDADIR="$(spack location -i cuda)"
+    export OPENBLASDIR="$(spack location -i openblas)"
+    F90OPTFLAGS="$GNUOPTFLAGS -DMAGMA -I$MAGMADIR/include -fbacktrace"
+    F90USEFULFLAGS="$GNUUSEFULFLAGS"
+    ALF_FC="$GNUCOMPILER"
+    # LIB_BLAS_LAPACK="-llapack -lblas -fopenmp"
+    LIB_BLAS_LAPACK="-L$MAGMADIR/lib -lmagma_sparse -lmagma \
+                    -L$CUDADIR/lib64 -lcublas -lcudart -lcusparse \
+                    -L$OPENBLASDIR/lib -lopenblas"
+    if [ "${HDF5_ENABLED}" = "1" ]; then
+      set_hdf5_flags gcc gfortran g++ || return 1
+    fi
+  ;;
+
   #Intel (as Hybrid code)
   INTEL)
     F90OPTFLAGS="$INTELOPTFLAGS"
@@ -408,7 +425,6 @@ case $MACHINE in
     if [ "${HDF5_ENABLED}" = "1" ]; then
       set_hdf5_flags pgcc pgfortran pgc++ || return 1
     fi
-
   ;;
 
   #LRZ enviroment
