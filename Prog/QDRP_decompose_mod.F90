@@ -38,8 +38,16 @@
 !> This constructs a decompostion Mat = Q D R P^* using a pivoted QR decomposition
 !--------------------------------------------------------------------
 Module QDRP_mod
+#ifdef MAGMA
+   use magma
+#endif
+   implicit none
+   real(Kind=Kind(0.d0)), private, save :: qr_time = 0
 
 Contains
+   real(Kind=Kind(0.d0)) function qr_get_time()
+      qr_get_time = qr_time
+   end function qr_get_time
 
 !--------------------------------------------------------------------
 !> @author 
@@ -68,18 +76,90 @@ Contains
       COMPLEX(Kind=Kind(0.d0)), Dimension(:), Intent(inout), Allocatable :: TAU
       COMPLEX(Kind=Kind(0.d0)), Dimension(:), Intent(INOUT), Allocatable :: WORK
       
-      COMPLEX(Kind=Kind(0.d0)), Dimension(:), Allocatable :: RWORK
-      COMPLEX(Kind=Kind(0.d0)) :: Z
+      Real(Kind=Kind(0.d0)), Dimension(:), Allocatable :: RWORK
+      COMPLEX(Kind=Kind(0.d0)) :: Z(1)
       Integer :: info, i, j
       Real(Kind=Kind(0.d0)) :: X
+
+      ! integer(Kind=Kind(0.d0)) :: count_CPU_start, count_CPU_end, count_rate
+      integer(Kind=Kind(0.d0)) :: count_CPU_start, count_CPU_middle, count_CPU_end, count_rate
+
+      ! print*, "QR called"
+      ! CALL SYSTEM_CLOCK(count_CPU_start, count_rate)
+
+
+#ifdef MAGMA
+      Integer,                  Allocatable :: IPVT_back(:)
+      COMPLEX(Kind=Kind(0.d0)), Allocatable :: Mat_back(:,:), TAU_back(:)
+#ifdef MAGMA_GPU
+      integer(kind=8) :: dMat, dWork, queue
+#endif
+#endif
       
       ALLOCATE(RWORK(2*Ndim))
+
       ! Query optimal amount of memory
-      call ZGEQP3(Ndim, N_part, Mat(1,1), Ndim, IPVT, TAU(1), Z, -1, RWORK(1), INFO)
-      LWORK = INT(DBLE(Z))
+#ifdef MAGMA
+      allocate(IPVT_back(N_part), Mat_back(Ndim, N_part), TAU_back(N_part))
+      IPVT_back = IPVT
+      Mat_back = Mat
+      call magmaf_zgeqp3(Ndim, N_part, Mat, Ndim, IPVT, TAU, Z, -1, RWORK, INFO)
+      LWORK = INT(DBLE(Z(1)))
+      print*, 'lwork magma', LWORK
+#else
+      call ZGEQP3(Ndim, N_part, Mat(1,1), Ndim, IPVT, TAU(1), Z(1), -1, RWORK(1), INFO)
+#endif
+      LWORK = INT(DBLE(Z(1)))
+      print*, 'lwork', LWORK
       ALLOCATE(WORK(LWORK))
       ! QR decomposition of Mat with full column pivoting, Mat * P = Q * R
+#ifdef MAGMA
+      ! call magmaf_zgeqp3(Ndim, N_part, Mat_back, Ndim, IPVT_back, TAU_back, WORK, LWORK, RWORK, INFO)
+      ! call magmaf_zgeqp3(Ndim, N_part, Mat, Ndim, IPVT, TAU, WORK, LWORK, RWORK, INFO)
+      print*, "call ZGEQP3"
+      CALL SYSTEM_CLOCK(count_CPU_start, count_rate)
+      call ZGEQP3(Ndim, N_part, Mat_back(1,1), Ndim, IPVT_back, TAU_back(1), WORK(1), LWORK, RWORK(1), INFO)
+      CALL SYSTEM_CLOCK(count_CPU_middle)
+#ifdef MAGMA_GPU
+      print*, 'magmaf_queue_create'
+      call magmaf_queue_create( 0, queue )
+      print*, 'magmaf_zsetmatrix'
+      call magmaf_zsetmatrix(Ndim, N_part, Mat, Ndim, dMat, Ndim, queue)
+      print*, 'magmaf_zmalloc'
+      info = magmaf_zmalloc(dWork, LWORK)
+      print*, 'magmaf_zgeqp3_gpu'
+      call magmaf_zgeqp3_gpu(Ndim, N_part, dMat, Ndim, IPVT, tau, dwork, lwork, rwork, INFO)
+      print*, 'magmaf_zgetmatrix'
+      call magmaf_zgetmatrix(Ndim, N_part, dMat, Ndim, Mat, Ndim, queue)
+      print*, 'magmaf_free'
+      info = magmaf_free(dMat)
+      info = magmaf_free(dWork)
+      print*, 'magmaf_queue_destroy'
+      call magmaf_queue_destroy( queue )
+      print*, 'fin'
+#else
+      print*, "call magmaf_zgeqp3"
+      call magmaf_zgeqp3(Ndim, N_part, Mat, Ndim, IPVT, tau, work, lwork, rwork, INFO)
+#endif
+      CALL SYSTEM_CLOCK(count_CPU_end)
+#else
       call ZGEQP3(Ndim, N_part, Mat(1,1), Ndim, IPVT, TAU(1), WORK(1), LWORK, RWORK(1), INFO)
+#endif
+
+#ifdef MAGMA
+      print*, "time CPU:", real(count_CPU_middle - count_CPU_start) / real(count_rate)
+      print*, "time GPU:", real(count_CPU_end - count_CPU_middle) / real(count_rate)
+      ! print*, 'aaa', Ndim, N_part
+      ! print*, 'foo', mat(1,1), IPVT(1:3)
+      ! print*, 'bar', mat_back(1,1), IPVT_back(1:3)
+      ! print*, 'baz', mat(1,1) - mat_back(1,1), IPVT(1:3) - IPVT_back(1:3)
+      ! print*, 'IPVT', IPVT
+      ! print*, 'IPVb', IPVT_back
+      if(maxval(abs(mat - mat_back)) > 1D-8) print*, 'mat', maxval(abs(mat - mat_back))
+      if(maxval(abs(tau - tau_back)) > 1D-8) print*, 'tau', maxval(abs(tau - tau_back))
+      if(maxval(abs(IPVT - IPVT_back)) > 0) print*, 'IPVT', maxval(abs(IPVT - IPVT_back))
+      deallocate(IPVT_back, Mat_back, TAU_back)
+#endif
       DEALLOCATE(RWORK)
       ! separate off D
       do i = 1, N_part
@@ -98,7 +178,10 @@ Contains
             Mat(i, j) = Mat(i, j) / X
          enddo
       enddo
+      ! CALL SYSTEM_CLOCK(count_CPU_end, count_rate)
+      ! qr_time = qr_time + real(count_CPU_end-count_CPU_start)/real(count_rate)
     END SUBROUTINE QDRP_decompose
+
     
     SUBROUTINE Pivot_phase(Phase, IPVT, N_size)
       Implicit none

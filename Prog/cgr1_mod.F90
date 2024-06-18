@@ -31,7 +31,12 @@
 
 module cgr1_mod
   implicit none
+  real(Kind=Kind(0.d0)), private, save :: cgr_time = 0
   contains
+      real(Kind=Kind(0.d0)) function cgr1_get_time()
+          cgr1_get_time = cgr_time
+      end function cgr1_get_time
+
 
       SUBROUTINE CGR(PHASE,NVAR, GRUP, udvr, udvl)
 
@@ -196,6 +201,11 @@ module cgr1_mod
         
         COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK
         LOGICAL :: FORWRD
+
+        integer(Kind=Kind(0.d0)) :: count_CPU_start, count_CPU_end, count_rate
+
+        ! print*, "CGR called"
+        CALL SYSTEM_CLOCK(count_CPU_start, count_rate)
         
         if(udvl%side .ne. "L" .and. udvl%side .ne. "l" ) then
           write(*,*) "calling wrong decompose"
@@ -439,6 +449,8 @@ module cgr1_mod
         ENDIF
         Deallocate(TPUP, DUP, IPVT, VISITED, RHS)
 #endif
+        CALL SYSTEM_CLOCK(count_CPU_end, count_rate)
+        cgr_time = cgr_time + real(count_CPU_end-count_CPU_start)/real(count_rate)
         
       END SUBROUTINE CGR
       
