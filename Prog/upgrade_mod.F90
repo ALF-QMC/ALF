@@ -110,6 +110,10 @@ module upgrade_mod
         Use Control
         Use Fields_mod
         use iso_fortran_env, only: output_unit, error_unit
+#ifdef GPU
+        use openacc
+        use cublas
+#endif
         Implicit none
 
         Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: GR(Ndim,Ndim, N_FL)
@@ -138,6 +142,14 @@ module upgrade_mod
         Complex (Kind=Kind(0.D0)), Dimension(:, :), Allocatable :: Zarr, grarr
         Complex (Kind=Kind(0.D0)), Dimension(:), Allocatable :: sxv, syu
 
+#ifdef GPU
+        integer :: istat
+        type(cublasHandle) :: h
+        istat = cublasCreate(h)
+        ! Force OpenACC kernels and cuBLAS to use the OpenACC stream.
+        istat = cublasSetStream(h, acc_get_cuda_stream(acc_async_sync))
+#endif
+
         toggle = .false.
         ! if ( abs(OP_V(n_op,1)%g) < 1.D-12 )   return
 
@@ -153,6 +165,10 @@ module upgrade_mod
            Allocate ( Mat(Op_dim,Op_Dim), Delta(Op_dim,N_FL_eff), u(Ndim,Op_dim), v(Ndim,Op_dim) )
            Allocate ( y_v(Ndim,Op_dim), xp_v(Ndim,Op_dim), x_v(Ndim,Op_dim) )
         endif
+
+#ifdef GPU
+!$acc data copyout(Mat, Delta, u, v, y_v, xp_v, x_v)
+#endif
 
         ! Compute the ratio
         nf = 1
@@ -223,7 +239,6 @@ module upgrade_mod
            toggle = .true.
            If ( str_to_upper(mode) == "FINAL"  )  Phase = Phase * Ratiotot/sqrt(Ratiotot*conjg(Ratiotot))
            !Write(6,*) 'Accepted : ', Ratiotot
-
            Do nf_eff = 1,N_FL_eff
               nf=Calc_Fl_map(nf_eff)
               ! Setup u(i,n), v(n,i)
@@ -246,6 +261,8 @@ module upgrade_mod
                 x_v(i, 1) = u(i, 1)/(1.d0 + v(i,1)*u(i,1) )
                 call zcopy(Ndim, v(:, 1), 1, y_v(:, 1), 1)
                 do n = 2,op_dim_nf
+                    !istat = cublaszcopy_v2(h, Ndim, u(:, n), 1, x_v(:, n), 1)
+                    !istat = cublaszcopy_v2(h, Ndim, v(:, n), 1, y_v(:, n), 1)
                     call zcopy(Ndim, u(:, n), 1, x_v(:, n), 1)
                     call zcopy(Ndim, v(:, n), 1, y_v(:, n), 1)
                     Z = 1.d0 + u( Op_V(n_op,nf)%P(n), n)*v(Op_V(n_op,nf)%P(n),n)
@@ -297,6 +314,9 @@ module upgrade_mod
            Call Control_upgrade_eff(toggle)
         endif
 
+#ifdef GPU
+!$acc end data
+#endif
         Call nsigma_new%clear()
 
       End Subroutine Upgrade2

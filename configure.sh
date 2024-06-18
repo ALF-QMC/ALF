@@ -178,9 +178,17 @@ GNUUSEFULFLAGS="-std=f2008"
 # default optimization flags for PGI compiler
 PGIOPTFLAGS="-Mpreprocess -O3 -Mfprelaxed -fast"
 # uncomment the next line if you want to use additional openmp parallelization
-PGIOPTFLAGS="${PGIOPTFLAGS} -mp"
+# PGIOPTFLAGS="${PGIOPTFLAGS} -mp"
+PGIOPTFLAGS="${PGIOPTFLAGS} -traceback"
 PGIDEVFLAGS="-Minform=inform -C -g -traceback"
 PGIUSEFULFLAGS=""
+
+# Additional PGI flags for NVIDIA GPUS
+NVGPUFLAGS="-cudalib=cublas -cuda -acc -gpu=sm_80"
+
+# Additional GNU flags for OpenACC (TODO)
+# https://gcc.gnu.org/wiki/OpenACC
+GNUGPUFLAGS="-fopenacc"
 
 MACHINE=""
 Machinev=0
@@ -378,7 +386,24 @@ case $MACHINE in
     if [ "${HDF5_ENABLED}" = "1" ]; then
       set_hdf5_flags pgcc pgfortran pgc++ || return 1
     fi
+  ;;
 
+  #NVIDIA GPU
+  NVGPU)
+    F90OPTFLAGS="$PGIOPTFLAGS $NVGPUFLAGS -DGPU"
+    F90USEFULFLAGS="$PGIUSEFULFLAGS"
+    if [ "$MPICOMP" -eq "0" ]; then
+      ALF_FC="pgfortran"
+    else
+      ALF_FC="mpifort"
+      printf "\n${RED}   !! Compiler set to 'mpifort' !!\n" 1>&2
+      printf "If this is not your PGI MPI compiler you have to set it manually through e.g.\n" 1>&2
+      printf "    'export ALF_FC=<mpicompiler>'${NC}\n" 1>&2
+    fi
+    LIB_BLAS_LAPACK="-llapack -lblas $NVGPUFLAGS"
+    if [ "${HDF5_ENABLED}" = "1" ]; then
+      set_hdf5_flags pgcc pgfortran pgc++ || return 1
+    fi
   ;;
 
   #LRZ enviroment
