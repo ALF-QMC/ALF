@@ -38,6 +38,10 @@
 !> This constructs a decompostion Mat = Q D R P^* using a pivoted QR decomposition
 !--------------------------------------------------------------------
 Module QDRP_mod
+#ifdef MAGMA
+   use magma
+#endif
+   implicit none
 
 Contains
 
@@ -68,18 +72,27 @@ Contains
       COMPLEX(Kind=Kind(0.d0)), Dimension(:), Intent(inout), Allocatable :: TAU
       COMPLEX(Kind=Kind(0.d0)), Dimension(:), Intent(INOUT), Allocatable :: WORK
       
-      COMPLEX(Kind=Kind(0.d0)), Dimension(:), Allocatable :: RWORK
-      COMPLEX(Kind=Kind(0.d0)) :: Z
+      Real(Kind=Kind(0.d0)), Dimension(:), Allocatable :: RWORK
+      COMPLEX(Kind=Kind(0.d0)) :: Z(1)
       Integer :: info, i, j
       Real(Kind=Kind(0.d0)) :: X
       
       ALLOCATE(RWORK(2*Ndim))
       ! Query optimal amount of memory
-      call ZGEQP3(Ndim, N_part, Mat(1,1), Ndim, IPVT, TAU(1), Z, -1, RWORK(1), INFO)
-      LWORK = INT(DBLE(Z))
+#ifdef MAGMA
+      call magmaf_zgeqp3(Ndim, N_part, Mat, Ndim, IPVT, TAU, Z, -1, RWORK, INFO)
+#else
+      call ZGEQP3(Ndim, N_part, Mat(1,1), Ndim, IPVT, TAU(1), Z(1), -1, RWORK(1), INFO)
+#endif
+      LWORK = INT(DBLE(Z(1)))
       ALLOCATE(WORK(LWORK))
+      print*, 'lwork', LWORK
       ! QR decomposition of Mat with full column pivoting, Mat * P = Q * R
+#ifdef MAGMA
+      call magmaf_zgeqp3(Ndim, N_part, Mat, Ndim, IPVT, TAU, WORK, LWORK, RWORK, INFO)
+#else
       call ZGEQP3(Ndim, N_part, Mat(1,1), Ndim, IPVT, TAU(1), WORK(1), LWORK, RWORK(1), INFO)
+#endif
       DEALLOCATE(RWORK)
       ! separate off D
       do i = 1, N_part
@@ -99,6 +112,52 @@ Contains
          enddo
       enddo
     END SUBROUTINE QDRP_decompose
+
+! #ifdef GPU
+!     SUBROUTINE QDRP_decompose_GPU(Ndim, N_part, Mat, D, IPVT, TAU)
+!       Implicit None
+!       Integer, intent(in) :: Ndim
+!       Integer, intent(in) :: N_part
+!       Integer, Dimension(:), intent(inout), Allocatable :: IPVT
+!       COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(inout) :: Mat
+!       COMPLEX(Kind=Kind(0.d0)), Dimension(:), Intent(inout) :: D
+!       COMPLEX(Kind=Kind(0.d0)), Dimension(:), Intent(inout), Allocatable :: TAU
+
+!       COMPLEX(Kind=Kind(0.d0)), Dimension(:), Allocatable :: WORK
+!       Integer, :: LWORK
+      
+!       COMPLEX(Kind=Kind(0.d0)), Dimension(:), Allocatable :: RWORK
+!       COMPLEX(Kind=Kind(0.d0)) :: Z
+!       Integer :: info, i, j
+!       Real(Kind=Kind(0.d0)) :: X
+      
+!       ALLOCATE(RWORK(2*Ndim))
+!       ! Query optimal amount of memory
+!       call magmaf_zgeqp3(Ndim, N_part, Mat(1,1), Ndim, IPVT, TAU(1), Z, -1, RWORK(1), INFO)
+!       LWORK = INT(DBLE(Z))
+!       ALLOCATE(WORK(LWORK))
+!       ! QR decomposition of Mat with full column pivoting, Mat * P = Q * R
+!       call magmaf_zgeqp3_gpu(Ndim, N_part, Mat(1,1), Ndim, IPVT, TAU(1), WORK(1), LWORK, RWORK(1), INFO)
+!       DEALLOCATE(RWORK)
+!       ! separate off D
+!       do i = 1, N_part
+!          ! plain diagonal entry
+!          X = ABS(Mat(i, i))
+!          !             ! a inf-norm
+!          !             X = TPUP(i, i+izamax(Ndim+1-i, TPUP(i, i), Ndim)-1)
+!          !             ! another inf-norm
+!          !             X = TPUP(i, i-1+izmax1(Ndim+1-i, TPUP(i, i), Ndim))
+!          !             ! 1-norm
+!          !            X = DZSUM1(N_size+1-i, TPUP(i, i), N_size)
+!          ! 2-norm
+!          !            X = DZNRM2(N_size+1-i, TPUP(i, i), N_size)
+!          D(i) = X
+!          do j = i, N_part
+!             Mat(i, j) = Mat(i, j) / X
+!          enddo
+!       enddo
+!     END SUBROUTINE QDRP_decompose_GPU
+! #endif
     
     SUBROUTINE Pivot_phase(Phase, IPVT, N_size)
       Implicit none

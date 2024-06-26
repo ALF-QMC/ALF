@@ -11,6 +11,7 @@ Please choose one of the following MACHINEs:
  * SuperMUC-NG
  * JUWELS
  * FRITZ
+ * MAGMA
 Possible MODEs are:
  * MPI (default)
  * noMPI
@@ -337,6 +338,22 @@ case $MACHINE in
     F90USEFULFLAGS="$GNUUSEFULFLAGS"
     ALF_FC="$GNUCOMPILER"
     LIB_BLAS_LAPACK="-llapack -lblas -fopenmp"
+    if [ "${HDF5_ENABLED}" = "1" ]; then
+      set_hdf5_flags gcc gfortran g++ || return 1
+    fi
+  ;;
+
+  MAGMA)
+    MAGMADIR="$(spack location -i magma)"
+    CUDADIR="$(spack location -i cuda)"
+    OPENBLASDIR="$(spack location -i openblas)"
+    F90OPTFLAGS="$GNUOPTFLAGS -DMAGMA -I$MAGMADIR/include"
+    F90USEFULFLAGS="$GNUUSEFULFLAGS"
+    ALF_FC="$GNUCOMPILER"
+    # LIB_BLAS_LAPACK="-llapack -lblas -fopenmp"
+    LIB_BLAS_LAPACK="-L$MAGMADIR/lib -lmagma_sparse -lmagma \
+                    -L$CUDADIR/lib64 -lcublas -lcudart -lcusparse \
+                    -L$OPENBLASDIR/lib -lopenblas"
     if [ "${HDF5_ENABLED}" = "1" ]; then
       set_hdf5_flags gcc gfortran g++ || return 1
     fi
