@@ -10,14 +10,14 @@ Merge request !204
 The lattice quantities `Norb` and `N_coord` were mistakenly mixed up in the HDF5 results file `data.h5`.
 This has been fixed and the script `Analysis/fix-latt.py` was added to repair existing result files.
 
-### 2024-01-02  Implement new  function  $ (F,A) = \int d \omega F(\omega) A(\omega)$ in the stochastic maxent.
+### 2024-02-01  Implement new  function  $ (F,A) = \int d \omega F(\omega) A(\omega)$ in the stochastic maxent.
 Author:  F. Assaad
 Merge  request !196
 
 1. Function F  is included in  parameter  list  of  the  stochastic maxent  routine
 
 
-### 2024-25-01    Both  Classic MaxEnt  and  Stochastic  analytical continuation are  available <br>
+### 2024-01-25    Both  Classic MaxEnt  and  Stochastic  analytical continuation are  available <br>
 
 Author:  J.Schwab and F. Assaad   <br>
 Merge requests: !190 and !194
@@ -29,7 +29,7 @@ Merge requests: !190 and !194
 3. There  is a  new  channel index  available P_PH for  single  particle  Green  functions  that are   particle-hole  symmetric. 
 
 
-### 2023-14-08    Hubbard  Stratonovich  fields  have be  updated  to  complex 
+### 2023-08-14    Hubbard  Stratonovich  fields  have be  updated  to  complex 
 
 Author:  F. Assaad
 Merge request !176 
