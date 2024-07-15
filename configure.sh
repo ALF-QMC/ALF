@@ -76,6 +76,11 @@ set_hdf5_flags()
   fi
 }
 
+set_hdf5_flags()
+{
+    export ALF_FC=h5fc
+}
+
 check_libs()
 {
     FC="$1" LIBS="$2"
