@@ -42,12 +42,13 @@ cd "$tmpdir" || exit 1
 
 printf "\033[0;32m========== Downloading HDF5 source ==========\e[0m\n" 1>&2
 
+H5_SRC="https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.14/hdf5-1.14.4/src/hdf5-1.14.4-3.tar.gz"
+source_dir="hdf5-1.14.4-3"
 if [ $CURL_AVAIL -eq 0 ]; then
-  curl https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.10/hdf5-1.10.7/src/hdf5-1.10.7.tar.gz | tar xz || exit 1
+  curl "$H5_SRC" | tar xz || exit 1
 else
-  wget -O- https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.10/hdf5-1.10.7/src/hdf5-1.10.7.tar.gz | tar xz || exit 1
+  wget -O- "$H5_SRC" | tar xz || exit 1
 fi
-source_dir="hdf5-1.10.7"
 
 export CC FC CXX
 printf "\033[0;32m=== Build with the following compilers C: %s, Fortran: %s, C++: %s \e[0m\n" "$CC" "$FC" "$CXX" 1>&2
