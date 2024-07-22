@@ -5,6 +5,10 @@
 #   FC: Fortran compiler
 #   CXX: C++ compiler
 #   HDF5_DIR: Diretory, in which HDF5 gets installed
+H5_major="$1"
+H5_minor="$2"
+H5_patch="$3"
+H5_suff="$4"
 
 if [ -d "$HDF5_DIR" ]; then
   printf "\e[31mDirectory %s already exists, aborting HDF5 installation.\e[0m\n" "$HDF5_DIR" 1>&2
@@ -42,8 +46,9 @@ cd "$tmpdir" || exit 1
 
 printf "\033[0;32m========== Downloading HDF5 source ==========\e[0m\n" 1>&2
 
-H5_SRC="https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.14/hdf5-1.14.4/src/hdf5-1.14.4-3.tar.gz"
-source_dir="hdf5-1.14.4-3"
+H5_SRC="https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-${H5_major}.${H5_minor}/hdf5-${H5_major}.${H5_minor}.${H5_patch}/src/hdf5-${H5_major}.${H5_minor}.${H5_patch}${H5_suff}.tar.gz"
+echo "From $H5_SRC"
+source_dir="hdf5-${H5_major}.${H5_minor}.${H5_patch}${H5_suff}"
 if [ $CURL_AVAIL -eq 0 ]; then
   curl "$H5_SRC" | tar xz || exit 1
 else
