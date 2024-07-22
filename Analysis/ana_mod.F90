@@ -276,7 +276,7 @@
       Integer, allocatable :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
       Integer :: no, no1, n, nt, nb, Ntau, Ndim, Nbins, stat, Ndim_unit
       Real(Kind=Kind(0.d0)) :: X
-      Real(Kind=Kind(0.d0)), allocatable :: Xk_p(:,:)
+      Real(Kind=Kind(0.d0)), allocatable :: Xk_p(:,:), Orb_pos_temp(:)
       Real(Kind=Kind(0.d0)) :: x_p(2), a1_p(2), a2_p(2), L1_p(2), L2_p(2)
       logical            :: file_exists
 
@@ -307,10 +307,12 @@
         read(10, 12) str_temp1, Latt_unit%N_coord
         read(10, 12) str_temp1, Latt_unit%Norb
         read(10, 12) str_temp1, Ndim_unit
-        allocate(Latt_unit%Orb_pos_p(Latt_unit%Norb, Ndim_unit))
+        allocate(Latt_unit%Orb_pos_p(Latt_unit%Norb, Ndim_unit), Orb_pos_temp(Ndim_unit))
         do no = 1, Latt_unit%Norb
-          read(10, 13) str_temp1, Latt_unit%Orb_pos_p(no,:)
+          read(10, 13) str_temp1, Orb_pos_temp
+          Latt_unit%Orb_pos_p(no,:) =  Orb_pos_temp
         enddo
+        deallocate(Orb_pos_temp)
         close(10)
         Call Make_Lattice(L1_p, L2_p, a1_p, a2_p, Latt)
         Ndim = Latt%N*Latt_Unit%Norb
