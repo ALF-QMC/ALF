@@ -764,6 +764,7 @@ Program Main
            call system_clock(count_bin_start)
 
            Call ham%Init_obs(Ltau)
+           Call Obser_vec_Init(Obs_acc_HMC)
 #if defined(TEMPERING)
            Call Global_Tempering_init_obs
 #endif
@@ -996,6 +997,7 @@ Program Main
 
            ENDDO
            Call ham%Pr_obs(Ltau)
+           Call Print_bin_Vec(Obs_acc_HMC, Group_Comm)
 #if defined(TEMPERING)
            Call Global_Tempering_Pr
 #endif
