@@ -84,6 +84,8 @@ module Control
 #endif
         Implicit none
         Integer       , INTENT(IN)               :: Group_Comm
+        Integer    ::  N
+        Character (len=64) ::  Filename
 
         XMEANG     = 0.d0
         XMEAN_tau  = 0.d0
@@ -109,7 +111,9 @@ module Control
         NC_Phase_HMC = 0
         NC_HMC_up    = 0
         ACC_HMC_up   = 0
-        Call Obser_Vec_make(Obs_acc_HMC,1,"Acc_HMC")
+        N=1
+        Filename="Acc_HMC"
+        Call Obser_Vec_make(Obs_acc_HMC,N,Filename)
         
         NC_Temp_up   = 0
         ACC_Temp_up  = 0
