@@ -639,9 +639,9 @@ CONTAINS
        INTEGER :: n
 
        !local
-       Complex (Kind=Kind(0.d0)) :: Ztmp(this%ndim,this%ndim), Ztmp2(this%ndim,this%ndim), Zvec(this%ndim)
+       Complex (Kind=Kind(0.d0)) :: Ztmp(this%ndim, this%N_part), Ztmp2(this%ndim, this%N_part), Zvec(this%N_part)
 
-       n = this%ndim * this%ndim
+       n = this%ndim * this%N_part
        !call mpi_send(this%U , n, MPI_COMPLEX16, dest, sendtag      , MPI_COMM_WORLD,IERR)
        Ztmp(:,:)=this%U 
        call mpi_send(Ztmp , n, MPI_COMPLEX16, dest, sendtag, MPI_COMM_WORLD,IERR)
@@ -655,7 +655,7 @@ CONTAINS
        !call mpi_send(this%L , this%ndim, MPI_COMPLEX16, dest  , sendtag+20033, MPI_COMM_WORLD,IERR)
        Zvec(:)=this%L
 #endif
-       call mpi_send(Zvec, this%ndim, MPI_COMPLEX16, dest, sendtag+2      , MPI_COMM_WORLD,IERR)
+       call mpi_send(Zvec, this%N_part, MPI_COMPLEX16, dest, sendtag+2      , MPI_COMM_WORLD,IERR)
 
      END SUBROUTINE MPI_Send_UDV_state_general
 
@@ -669,16 +669,16 @@ CONTAINS
        INTEGER :: n
 
        !local
-       Complex (Kind=Kind(0.d0)) :: Ztmp(this%ndim,this%ndim), Ztmp2(this%ndim,this%ndim), Zvec(this%ndim)
+       Complex (Kind=Kind(0.d0)) :: Ztmp(this%ndim,this%N_part), Ztmp2(this%ndim,this%N_part), Zvec(this%N_part)
 
-       n = this%ndim * this%ndim
+       n = this%ndim * this%N_part
        !call mpi_recv(this%U, n, MPI_COMPLEX16, source, recvtag      , MPI_COMM_WORLD,status,IERR)
        call mpi_recv(Ztmp , n, MPI_COMPLEX16, source, recvtag, MPI_COMM_WORLD,status,IERR)
        this%U=Ztmp(:,:)
        
        !call mpi_recv(this%V, n, MPI_COMPLEX16, source, recvtag+10033, MPI_COMM_WORLD,status,IERR)
 
-       call mpi_recv(Zvec, this%ndim, MPI_COMPLEX16, source, recvtag+2, MPI_COMM_WORLD,status,IERR)
+       call mpi_recv(Zvec, this%N_part, MPI_COMPLEX16, source, recvtag+2, MPI_COMM_WORLD,status,IERR)
 #if !defined(STABLOG)
        !call mpi_recv(this%D, this%ndim, MPI_COMPLEX16, source, recvtag+20033, MPI_COMM_WORLD,status,IERR)
        this%D=Zvec(:)

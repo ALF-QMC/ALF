@@ -15,7 +15,7 @@ MODS = control.mod fields_mod.mod hop_mod.mod observables.mod \
 	predefined_hoppings.mod  predefined_trial.mod qdrp_mod.mod \
 	udv_state_mod.mod  wavefunction_mod.mod hamiltonian.mod \
 	containerelementbase_mod.mod opttypes_mod.mod dynamicmatrixarray_mod.mod \
-	cgr1_mod.mod upgrade_mod.mod set_random.mod Stepwlk.mod
+	cgr1_mod.mod upgrade_mod.mod set_random.mod stepwlk_mod.mod
 
 program: git.h parse_parameters Hamiltonians_interface.h Hamiltonians_case.h echo_compile_mods $(OBJS)
 	make $(OHAM)

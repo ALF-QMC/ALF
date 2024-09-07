@@ -52,7 +52,6 @@
 
       Implicit none
 
-
     contains
 
 !--------------------------------------------------------------------
@@ -111,8 +110,6 @@
       Subroutine Predefined_TrialWaveFunction(Lattice_type, Ndim,  List,Invlist,Latt, Latt_unit, &
            &                                  N_part, N_FL,  WF_L, WF_R)
 
-
-
         Implicit none
         Character (len=64), Intent(IN)                :: Lattice_type
         Integer, Intent(IN)                           :: Ndim, N_FL, N_part
@@ -120,7 +117,6 @@
         Type(Lattice),   Intent(in)                   :: Latt
         Type(Unit_cell), Intent(in)                   :: Latt_Unit
         Type(WaveFunction), Intent(out), Dimension(:), allocatable :: WF_L, WF_R
-
 
         Type(Operator),  dimension(:,:), allocatable  :: OP_tmp
         Type (Hopping_Matrix_type), allocatable       :: Hopping_Matrix_tmp(:)
@@ -140,25 +136,19 @@
                &                                Ham_T2_vec(:)
         Integer, allocatable ::   N_Phi_vec(:)
 
-
-
         Allocate(WF_L(N_FL),WF_R(N_FL))
         do n=1,N_FL
            Call WF_alloc(WF_L(n),Ndim,N_part)
            Call WF_alloc(WF_R(n),Ndim,N_part)
         enddo
 
-
-
         Allocate (Ham_T_vec(N_FL), Ham_T2_vec(N_FL), Ham_Tperp_vec(N_FL), Ham_Chem_vec(N_FL), Phi_X_vec(N_FL), Phi_Y_vec(N_FL),&
              &                                    N_Phi_vec(N_FL) )
-
 
         Checkerboard  = .false.
         Kekule_Trial  = .false.
         hatree_fock   = .false.
         Symm          = .false.
-
 
         N_Phi       = 0
         Phi_X       = 0.d0
@@ -178,7 +168,6 @@
         Ham_T2_vec     = Ham_T2
         Ham_Chem_vec   = Ham_Chem
 
-
         Select case (Lattice_type)
 
         case ("Honeycomb")
@@ -188,12 +177,6 @@
               do n = 1,N_FL
                  Call Op_make(Op_Tmp(1,n),Ndim)
               enddo
-
-              If (test) then
-                 Open (Unit=31,status="Unknown", file="Tmp1_latt")
-                 Open (Unit=32,status="Unknown", file="Tmp2_latt")
-                 Open (Unit=33,status="Unknown", file="Tmp3_latt")
-              endif
               A1_p = 2.d0 * Latt%a1_p  - Latt%a2_p
               A2_p =        Latt%a1_p  + Latt%a2_p
               L1_p = Latt%L1_p
@@ -241,11 +224,6 @@
                        lp = 32
                        if (hop(nc1) > 1.d0 ) lp = 33
                        if (hop(nc1) < 1.d0 ) lp = 31
-                       If (test) then
-                          Write(lp,"(F14.7,2x,F14.7)")  x_p(1), x_p(2)
-                          Write(lp,"(F14.7,2x,F14.7)")  x1_p(1), x1_p(2)
-                          Write(lp,*)
-                       endif
                        do n = 1,N_FL
                           Op_Tmp(1,n)%O(I1,J1) =   cmplx( - hop(nc1),    0.d0, kind(0.D0))
                           Op_Tmp(1,n)%O(J1,I1) =   cmplx( - hop(nc1),    0.d0, kind(0.D0))
@@ -261,11 +239,6 @@
                  Op_Tmp(1,n)%alpha= cmplx(0.d0,0.d0, kind(0.D0))
                  Call Op_set(Op_Tmp(1,n))
               Enddo
-              If (test) then
-                 Close(31)
-                 Close(32)
-                 Close(33)
-              endif
            else
               Ham_T = 1.d0
               Ham_T1 = -delta*Ham_T
@@ -364,10 +337,6 @@
            Call  Set_Default_hopping_parameters_n_leg_ladder(Hopping_Matrix_tmp, Ham_T_vec, Ham_Tperp_vec, Ham_Chem_vec, Phi_X_vec, &
                 &                                            Phi_Y_vec, Bulk,  N_Phi_vec, N_FL, &
                 &                                            List, Invlist, Latt, Latt_unit )
-           !Case ("Honeycomb")
-           !   Ham_Lambda = 0.d0
-           !   Call  Set_Default_hopping_parameters_honeycomb(Hopping_Matrix_tmp, Ham_T, Ham_Lambda, Ham_Chem, Phi_X, Phi_Y, Bulk,  N_Phi, N_FL, &
-           !        &                                       List, Invlist, Latt, Latt_unit )
         Case ("Bilayer_square")
            Ham_T_vec     = 1.d0
            Ham_T2_vec    = 0.d0
@@ -408,19 +377,8 @@
 
         Do nf = 1,N_FL
            Call WF_overlap(WF_L(nf), WF_R(nf), Z_norm)
-           !Write(6,*) " Z_norm ", Z_norm
         enddo
 
-        If (test) then
-           DO  I = 1,NDim
-              Write(6,*) Op_tmp(1,1)%E(I)
-           enddo
-           Do I = 1,Ndim
-              do J = 1,Ndim
-                 Write(6,*) Op_tmp(1,1)%O(I,J)
-              enddo
-           enddo
-        endif
         Do nf = 1,N_FL
            Call Op_clear(OP_tmp(1,nf),Ndim)
         enddo
@@ -430,7 +388,5 @@
         Deallocate (Ham_T_vec, Ham_Tperp_vec, Ham_T2_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec,  N_Phi_vec )
 
       end Subroutine Predefined_TrialWaveFunction
-
-
 
      end Module Predefined_Trial
