@@ -258,7 +258,6 @@ Program Main
         
         Phase_alpha(:)   = cmplx(1.d0, 0.d0, kind(0.D0))
         weight_k   (:)   = 1.d0
-        abs_wk     (:)   = 1.d0
         
         ! init slater determinant
         call initial_wlk( phi_trial, phi_0, phi_bp_l, phi_bp_r, udvst, STAB_nt, GR, phase, nwrap )
@@ -287,7 +286,7 @@ Program Main
                 call stepwlk_move(Phi_trial, Phi_0, GR, Phase, ntau_bp );
                 !! QR decomposition for stablization
                 if ( ntau_bp .eq. Stab_nt(NST) ) then
-                    call re_orthonormalize_walkers(Phi_0, 'R')
+                    call re_orthonormalize_walkers(Phi_0, 'U')
                     NST = NST + 1
                 endif
                 

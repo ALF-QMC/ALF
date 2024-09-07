@@ -32,7 +32,7 @@
              if ( weight_k(i_wlk) .gt. Zero ) then
 
                  ! update weight by fac_norm
-                 weight_k(i_wlk)=weight_k(i_wlk)*exp(fac_norm);
+                 weight_k(i_wlk)=weight_k(i_wlk)*exp(fac_norm)
                  
                  call half_K_propagation( phi_trial(:,i_wlk), phi_0(:,i_wlk), GR(:,:,:,i_wlk), phase(i_wlk), i_wlk )
 
@@ -50,7 +50,7 @@
                    Call Op_Wrapdo( GR(:,:,nf,i_wlk), Op_V(n,nf), 1.d0, Ndim, N_Type,1)
                 enddo
 
-                Call Upgrade(GR(:,:,:,i_wlk),n,PHASE(i_wlk), spin, i_wlk )
+                call Upgrade(GR(:,:,:,i_wlk),n,PHASE(i_wlk), spin, i_wlk )
                 nsigma_bp(i_wlk)%f(n,ntau_bp) = spin
 
                 N_type = 2
@@ -78,7 +78,6 @@
 
         END SUBROUTINE stepwlk_move
 
-
         subroutine re_orthonormalize_walkers(Phi_0, cop)
           
           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_0
@@ -93,7 +92,7 @@
           
           if ( weight_k(i_wlk) .gt. Zero ) then
 
-              N_size = phi_0(1,1)%ndim
+              N_size = phi_0(1,1)%n_part
 
               !Carry out U,D,V decomposition.
               Do nf_eff = 1, N_FL_eff
@@ -115,9 +114,9 @@
               Do nf_eff = 1, N_FL_eff
                  Phi_0(nf_eff,i_wlk)%D(:) = cmplx(1.d0, 0.d0, kind(0.d0))
               enddo
-
+              
               ! update the overlap when normal propagation
-              if (cop == 'R') Overlap(i_wlk)=Overlap(i_wlk)/product(Det_D)
+              if (cop == 'U') Overlap(i_wlk)=Overlap(i_wlk)/product(Det_D)
 
           endif
 
@@ -141,8 +140,9 @@
 
           !Local 
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, NSTM, NST, ltrot_bp
-          Complex (Kind=Kind(0.d0)) :: Overlap_old, Overlap_new, Z, Z1, tot_ene
-          Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio, X1
+          Complex (Kind=Kind(0.d0)) :: Overlap_old, Overlap_new, Z, Z1,Z2, tot_ene, ZP, phase_T
+          Complex (Kind=Kind(0.d0)) :: tot_c_weight, el_tmp
+          Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio, X1, wtmp
           Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8, tot_re_weight
           COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable :: Phase_array
           Character (LEN=64) :: FILE_TG, FILE_seeds
@@ -173,50 +173,71 @@
 
           do i_wlk = 1, N_wlk
           
-            do nf_eff = 1, N_FL_eff
-               nf=Calc_Fl_map(nf_eff)
-               do n = 1, NSTM
-                  CALL udvst(n,nf_eff, i_wlk)%alloc(ndim)
-               ENDDO
-               CALL phi_trial(nf_eff, i_wlk)%init(ndim,'l',WF_L(nf)%P)
-               CALL phi_0(nf_eff, i_wlk)%init(ndim,'r',WF_R(nf)%P)
-               CALL phi_bp_l(nf_eff, i_wlk)%init(ndim,'l',WF_L(nf)%P)
-               CALL phi_bp_r(nf_eff, i_wlk)%init(ndim,'r',WF_R(nf)%P)
-            enddo
+             do nf_eff = 1, N_FL_eff
+                nf=Calc_Fl_map(nf_eff)
+                do n = 1, NSTM
+                   CALL udvst(n,nf_eff, i_wlk)%alloc(ndim)
+                ENDDO
+                CALL phi_trial(nf_eff, i_wlk)%init(ndim,'l',WF_L(nf)%P)
+                CALL phi_0(nf_eff, i_wlk)%init(ndim,'r',WF_R(nf)%P)
+                CALL phi_bp_l(nf_eff, i_wlk)%init(ndim,'l',WF_L(nf)%P)
+                CALL phi_bp_r(nf_eff, i_wlk)%init(ndim,'r',WF_R(nf)%P)
+             enddo
 
-            NVAR = 1
-            do nf_eff = 1,N_Fl_eff
-               nf=Calc_Fl_map(nf_eff)
-               call CGR(Z, NVAR, GR(:,:,nf,i_wlk), phi_0(nf_eff,i_wlk), phi_trial(nf_eff,i_wlk))
-               Phase_array(nf)=Z
-            enddo
-            if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
-            Phase(i_wlk)=product(Phase_array)
-            Phase(i_wlk)=Phase(i_wlk)**N_SUN
+          enddo
+          
+          file_tg = "trial_0.h5"
+          INQUIRE (FILE=file_tg, EXIST=LCONF_H5)
+          IF (LCONF_H5) THEN
+              if ( irank_g .eq. 0 ) write (*,*) "read input trial"
+              call trial_in_hdf5( phi_0, phi_trial, file_tg )
+          endif
+
+          file_tg = "phiin_0.h5"
+          INQUIRE (FILE=file_tg, EXIST=LCONF_H5)
+          IF (LCONF_H5) THEN
+              if ( irank_g .eq. 0 ) write (*,*) "read input walkers"
+              call wavefunction_in_hdf5( phi_0, file_tg )
+          endif
+
+          do i_wlk = 1, N_wlk
+
+             NVAR = 1
+             do nf_eff = 1,N_Fl_eff
+                nf=Calc_Fl_map(nf_eff)
+                call CGR(Z, NVAR, GR(:,:,nf,i_wlk), phi_0(nf_eff,i_wlk), phi_trial(nf_eff,i_wlk))
+                Phase_array(nf)=Z
+             enddo
+             if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
+             Phase(i_wlk)=product(Phase_array)
+             Phase(i_wlk)=Phase(i_wlk)**N_SUN
             
-            tot_ene       = tot_ene       + ham%E0_local(GR(:,:,:,i_wlk))*weight_k(i_wlk)
-            tot_re_weight = tot_re_weight + weight_k(i_wlk)
+             PHASE_T = PHASE(i_wlk) * PHASE_ALPHA(i_wlk)
+
+             if (weight_k(i_wlk) .le. 0.d0 ) weight_k(i_wlk) = 0.d0
+             wtmp   = weight_k(i_wlk)
+             el_tmp = dble(ham%E0_local(GR(:,:,:,i_wlk)))
+             
+             tot_ene       = tot_ene       + el_tmp*wtmp
+             tot_c_weight  = tot_c_weight  + wtmp
+             tot_re_weight = tot_re_weight + wtmp
 
           enddo
           
           CALL MPI_REDUCE(tot_ene      ,Z1,1,MPI_COMPLEX16,MPI_SUM, 0,Group_comm,IERR)
+          CALL MPI_REDUCE(tot_c_weight ,Z2,1,MPI_COMPLEX16,MPI_SUM, 0,Group_comm,IERR)
           CALL MPI_REDUCE(tot_re_weight,X1,1,MPI_REAL8    ,MPI_SUM, 0,Group_comm,IERR)
           
           if (Irank_g == 0 ) then
-              fac_norm= real(Z1, kind(0.d0))/X1
+              fac_norm= real(Z1/Z2, kind(0.d0))
           endif
           CALL MPI_BCAST(fac_norm, 1, MPI_REAL8, 0,MPI_COMM_WORLD,ierr)
 
           file_seeds = "seedvec_in"
           INQUIRE (FILE=file_seeds, EXIST=LCONF)
           IF (LCONF) THEN
+              if ( irank_g .eq. 0 ) write (*,*) "read input seeds"
               call seed_vec_in(file_seeds)
-          endif
-
-          file_tg = "phiin_0.h5"
-          INQUIRE (FILE=file_tg, EXIST=LCONF_H5)
-          IF (LCONF_H5) THEN
-              call wavefunction_in_hdf5( phi_0, file_tg )
           endif
 
         END SUBROUTINE initial_wlk
@@ -234,10 +255,10 @@
           
           !Local 
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, it_wlk, n_exc,pop_exc(N_wlk_mpi,4)
-          Integer :: j, it, i_t, i_st, i_ed, nu_wlk, i_src, i_wlk, j_src, j_wlk, n1, n2
+          Integer :: j, it, i_t, i_st, i_ed, nu_wlk, i_src, i_wlk, j_src, j_wlk, n1, n2, nrg, nfrg, ilabel
           Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8, d_scal, sum_w, w_count, w_tmp(N_wlk_mpi), weight_mpi(N_wlk_mpi)
-          Complex (Kind=Kind(0.d0)) :: Overlap_tmp(N_wlk), phase_alpha_tmp(N_wlk), phase_tmp(N_wlk)
-          Complex (Kind=Kind(0.d0)) :: Z1,Z2,Z3
+          Complex (Kind=Kind(0.d0)) :: overlap_tmp(N_wlk), phase_alpha_tmp(N_wlk), phase_tmp(N_wlk)
+          Complex (Kind=Kind(0.d0)) :: Z1,Z2,Z3, Z_s_array(3), Z_r_array(3)
           Type (Fields)   , dimension(:)  , allocatable :: nsigma_store
           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE :: phi_0_m, phi_bp_m
 
@@ -282,14 +303,15 @@
           enddo
 
           !! store phase and overlap
-          Overlap_tmp=Overlap
           phase_alpha_tmp=phase_alpha
           phase_tmp=phase
+          overlap_tmp=overlap
 
           ! population control
           weight_mpi(:)=0.d0
           i_st=irank_g*N_wlk+1
           i_ed=(irank_g+1)*N_wlk
+
           weight_mpi(i_st:i_ed)=weight_k(:)
           
           CALL MPI_REDUCE(weight_mpi,w_tmp,N_wlk_mpi,MPI_REAL8,MPI_SUM, 0,Group_comm,IERR)
@@ -324,9 +346,9 @@
                             phi_0_m (nf_eff,j_wlk)=phi_0   (nf_eff,i_wlk)
                             phi_bp_m(nf_eff,j_wlk)=phi_bp_r(nf_eff,i_wlk)
                         enddo
-                        Overlap_tmp    (j_wlk)=Overlap    (i_wlk) 
                         phase_tmp      (j_wlk)=phase      (i_wlk) 
                         phase_alpha_tmp(j_wlk)=phase_alpha(i_wlk) 
+                        overlap_tmp    (j_wlk)=overlap    (i_wlk) 
                         nsigma_store(j_wlk)%f=nsigma_bp(i_wlk)%f
                       endif
                   endif
@@ -334,34 +356,52 @@
               nu_wlk=n
           enddo
 
+          nrg = 2+N_fl_eff*6
+
           do it=1, n_exc
              i_src = pop_exc(it,1); i_wlk = pop_exc(it,2)
              j_src = pop_exc(it,3); j_wlk = pop_exc(it,4)
              if ( irank_g .eq. i_src ) then
-                call mpi_send(overlap    (i_wlk),1,MPI_COMPLEX16,j_src,0,Group_comm,IERR)
-                call mpi_send(phase      (i_wlk),1,MPI_COMPLEX16,j_src,1,Group_comm,IERR)
-                call mpi_send(phase_alpha(i_wlk),1,MPI_COMPLEX16,j_src,2,Group_comm,IERR)
+                Z_s_array(1) = phase      (i_wlk)
+                Z_s_array(2) = phase_alpha(i_wlk)
+                Z_s_array(3) = overlap    (i_wlk)
+                
+                ilabel = (it-1)*nrg
+                call mpi_send(Z_s_array,3,MPI_COMPLEX16,j_src,ilabel,Group_comm,IERR)
+                
                 do nf_eff = 1, N_FL_eff
-                    call phi_0   (nf_eff,i_wlk)%MPI_send_general(j_src, 3, ierr)
-                    call phi_bp_r(nf_eff,i_wlk)%MPI_send_general(j_src, 6, ierr)
+                    ilabel = (it-1)*nrg+(nf_eff-1)*6+1
+                    call phi_0   (nf_eff,i_wlk)%MPI_send_general(j_src,ilabel, ierr)
+                    ilabel = (it-1)*nrg+(nf_eff-1)*6+4
+                    call phi_bp_r(nf_eff,i_wlk)%MPI_send_general(j_src,ilabel, ierr)
                 enddo
-                call mpi_send(nsigma_bp(i_wlk)%f,n1*n2,MPI_REAL8,j_src,9,Group_comm,IERR)
+                
+                ilabel = (it-1)*nrg+(n_fl_eff)*6+1
+                call mpi_send(nsigma_bp(i_wlk)%f,n1*n2,MPI_REAL8,j_src,ilabel,Group_comm,IERR)
              endif
              if ( irank_g .eq. j_src ) then
-                call mpi_recv(overlap_tmp    (j_wlk),1,MPI_COMPLEX16,i_src,0,Group_comm,STATUS,IERR)
-                call mpi_recv(phase_tmp      (j_wlk),1,MPI_COMPLEX16,i_src,1,Group_comm,STATUS,IERR)
-                call mpi_recv(phase_alpha_tmp(j_wlk),1,MPI_COMPLEX16,i_src,2,Group_comm,STATUS,IERR)
+                ilabel = (it-1)*nrg
+                call mpi_recv(Z_r_array,3,MPI_COMPLEX16,i_src,ilabel,Group_comm,STATUS,IERR)
+                phase_tmp      (j_wlk) = Z_r_array(1) 
+                phase_alpha_tmp(j_wlk) = Z_r_array(2) 
+                overlap_tmp    (j_wlk) = Z_r_array(3) 
+                
                 do nf_eff = 1, N_FL_eff
-                    call phi_0_m (nf_eff,j_wlk)%MPI_recv_general(i_src, 3, status, ierr)
-                    call phi_bp_m(nf_eff,j_wlk)%MPI_recv_general(i_src, 6, status, ierr)
+                    ilabel = (it-1)*nrg+(nf_eff-1)*6+1
+                    call phi_0_m (nf_eff,j_wlk)%MPI_recv_general(i_src, ilabel, status, ierr)
+                    ilabel = (it-1)*nrg+(nf_eff-1)*6+4
+                    call phi_bp_m(nf_eff,j_wlk)%MPI_recv_general(i_src, ilabel, status, ierr)
                 enddo
-                call mpi_recv(nsigma_store(j_wlk)%f,n1*n2,MPI_REAL8,i_src,9,Group_comm,STATUS,IERR)
+                
+                ilabel = (it-1)*nrg+(n_fl_eff)*6+1
+                call mpi_recv(nsigma_store(j_wlk)%f,n1*n2,MPI_REAL8,i_src,ilabel,Group_comm,STATUS,IERR)
              endif
           enddo
 
-          Overlap=Overlap_tmp
           phase_alpha=phase_alpha_tmp
           phase=phase_tmp
+          overlap=overlap_tmp
+          ! reset weight
           weight_k(:)=1.d0
           do nf_eff = 1, N_FL_eff
              do i_wlk = 1, N_wlk
@@ -406,16 +446,17 @@
           do nf_eff = 1, N_FL_eff
              do i_wlk = 1, N_wlk
                 phi_bp_r(nf_eff,i_wlk)=phi_0(nf_eff,i_wlk)
-                call Phi_bp_r(nf_eff,i_wlk)%decompose
+                call phi_bp_r(nf_eff,i_wlk)%decompose
              enddo
           enddo
 
         END SUBROUTINE store_phi
 
-        SUBROUTINE backpropagation( phi_bp_l, phi_bp_r, udvst, phase, Stab_nt, ltau )
+        SUBROUTINE backpropagation( GR_mix, phi_bp_l, phi_bp_r, udvst, phase, Stab_nt, ltau )
           
           Implicit none
      
+          COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:,:), Allocatable, INTENT(IN) :: GR_mix
           CLASS(UDV_State), Dimension(:,:)  , ALLOCATABLE, INTENT(INOUT) :: phi_bp_l, phi_bp_r
           CLASS(UDV_State), Dimension(:,:,:), ALLOCATABLE, INTENT(INOUT) :: udvst
           COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(IN) :: phase
@@ -424,7 +465,7 @@
 
           !Local 
           Complex (Kind=Kind(0.d0)) :: GR_bp(NDIM,NDIM,N_FL,N_wlk)
-          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, ltrot_bp, N_op, nstm, nst
+          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, ltrot_bp, N_op, nstm, nst, ntau
           Complex (Kind=Kind(0.d0)) :: Z, Z_weight
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
           Real (Kind=Kind(0.d0))    :: Zero = 1.0E-8
@@ -432,23 +473,24 @@
           N_op     = Size(OP_V,1)
           ltrot_bp = size(nsigma_bp(1)%f, 2)
           nstm     = Size(udvst, 1)
-            
+        
           !! initialization
           do i_wlk = 1, N_wlk
             do nf_eff = 1, N_FL_eff
                nf=Calc_Fl_map(nf_eff)
                CALL phi_bp_l(nf_eff, i_wlk)%reset('l',WF_L(nf)%P)
-               CALL udvst(NSTM, nf_eff, i_wlk)%reset('l',WF_L(nf)%P)
+               CALL udvst(nstm, nf_eff, i_wlk)%reset('l',WF_L(nf)%P)
             enddo
           enddo
 
           !! backpropagation
           nst= nstm-1
           Do nt = ltrot_bp, 1, -1
+             ntau = nt-1
              
              Do i_wlk = 1, N_wlk
 
-                if ( weight_k(i_wlk) .gt. Zero ) then
+                if ( weight_k(i_wlk) .gt. Zero  ) then
                 
                 Do nf_eff = 1,N_FL_eff
                    
@@ -467,8 +509,8 @@
 
              Enddo
              
-             if ( nt .eq. stab_nt(nst) ) then
-                 call re_orthonormalize_walkers(phi_bp_l, 'L')
+             if ( ntau .eq. stab_nt(nst) .and. ntau .ne. 0 ) then
+                 call re_orthonormalize_walkers(phi_bp_l, 'N')
                  Do i_wlk = 1, N_wlk
                  Do nf_eff = 1,N_FL_eff
                     udvst(nst, nf_eff, i_wlk) = phi_bp_l(nf_eff, i_wlk)
@@ -480,12 +522,13 @@
           Enddo
           
           !! svd at tau = 0
-          call re_orthonormalize_walkers(phi_bp_l, 'L')
+          call re_orthonormalize_walkers(phi_bp_l, 'N')
 
           !! compute the total weight
           Z_weight = ham%sum_weight(PHASE)
 
           !! equal time measurement
+
           do i_wlk = 1, N_wlk
              do nf_eff = 1,N_Fl_eff
                 nf=Calc_Fl_map(nf_eff)
@@ -493,7 +536,7 @@
                 call CGR(Z, NVAR, GR_bp(:,:,nf,i_wlk), phi_bp_r(nf_eff,i_wlk), phi_bp_l(nf_eff,i_wlk))
              enddo
              If (reconstruction_needed) Call ham%GR_reconstruction( GR_bp(:,:,:,i_wlk) )
-             CALL ham%Obser( GR_bp(:,:,:,i_wlk), PHASE(i_wlk), i_wlk, Z_weight )
+             CALL ham%Obser( GR_bp(:,:,:,i_wlk), GR_mix(:,:,:,i_wlk),  PHASE(i_wlk), i_wlk, Z_weight )
           enddo
 
           !! time dependence measurement
@@ -562,10 +605,45 @@
 
           NST=1
           do ntau = 1, ltrot
+
+             do i_wlk = 1, N_wlk
+                !! Propagate wave function
+                if ( weight_k(i_wlk) .gt. Zero ) then
+
+                !! Propagate Green's function
+                CALL PROPR  (GT0(:,:,:,i_wlk),ntau,i_wlk)
+                CALL PROPRM1(G0T(:,:,:,i_wlk),ntau,i_wlk)
+                CALL PROPRM1(GTT(:,:,:,i_wlk),ntau,i_wlk)
+                CALL PROPR  (GTT(:,:,:,i_wlk),ntau,i_wlk)
+                
+                Do nf_eff = 1,N_FL_eff
+                   
+                   nf=Calc_Fl_map(nf_eff)
+                   call Hop_mod_mmthr_1D2    (phi_bp_r(nf_eff,i_wlk)%U,nf,1)
+
+                   Do n = 1, N_op
+                      call Op_mmultR(phi_bp_r(nf_eff,i_wlk)%U,Op_V(n,nf), nsigma_bp(i_wlk)%f(n,ntau),'n',1)
+                   enddo
+                
+                   call Hop_mod_mmthr_1D2    (phi_bp_r(nf_eff,i_wlk)%U,nf,1)
+
+                enddo
+
+                endif
+
+                !! call reconstruction of non-calculated flavor blocks
+                If (reconstruction_needed) then
+                    Call ham%GR_reconstruction ( G00(:,:,:,i_wlk) )
+                    Call ham%GR_reconstruction ( GTT(:,:,:,i_wlk) )
+                    Call ham%GRT_reconstruction( GT0(:,:,:,i_wlk), G0T(:,:,:,i_wlk) )
+                endif
+                CALL ham%obserT(ntau,GT0(:,:,:,i_wlk),G0T(:,:,:,i_wlk),G00(:,:,:,i_wlk), & 
+                    & GTT(:,:,:,i_wlk),PHASE(i_wlk), i_wlk, Z_weight)
+             enddo
              
              !! call svd
              if (  ntau .eq. stab_nt(nst) )  then
-                 call re_orthonormalize_walkers(phi_bp_r, 'L')
+                 call re_orthonormalize_walkers(phi_bp_r, 'N')
           
                  do i_wlk = 1, N_wlk
                  
@@ -595,41 +673,6 @@
                  enddo
                  nst = nst + 1
              endif
-
-             do i_wlk = 1, N_wlk
-                !! Propagate Green's function
-                CALL PROPR  (GT0(:,:,:,i_wlk),ntau,i_wlk)
-                CALL PROPRM1(G0T(:,:,:,i_wlk),ntau,i_wlk)
-                CALL PROPRM1(GTT(:,:,:,i_wlk),ntau,i_wlk)
-                CALL PROPR  (GTT(:,:,:,i_wlk),ntau,i_wlk)
-                
-                !! Propagate wave function
-                if ( weight_k(i_wlk) .gt. Zero ) then
-                
-                Do nf_eff = 1,N_FL_eff
-                   
-                   nf=Calc_Fl_map(nf_eff)
-                   Call Hop_mod_mmthr_1D2    (phi_bp_r(nf_eff,i_wlk)%U,nf,1)
-
-                   Do n = 1, N_op
-                      Call Op_mmultR(phi_bp_r(nf_eff,i_wlk)%U,Op_V(n,nf), nsigma_bp(i_wlk)%f(n,ntau),'n',1)
-                   enddo
-                
-                   Call Hop_mod_mmthr_1D2    (phi_bp_r(nf_eff,i_wlk)%U,nf,1)
-
-                enddo
-
-                endif
-
-                !! call reconstruction of non-calculated flavor blocks
-                If (reconstruction_needed) then
-                    Call ham%GR_reconstruction ( G00(:,:,:,i_wlk) )
-                    Call ham%GR_reconstruction ( GTT(:,:,:,i_wlk) )
-                    Call ham%GRT_reconstruction( GT0(:,:,:,i_wlk), G0T(:,:,:,i_wlk) )
-                endif
-                CALL ham%obserT(ntau,GT0(:,:,:,i_wlk),G0T(:,:,:,i_wlk),G00(:,:,:,i_wlk), & 
-                    & GTT(:,:,:,i_wlk),PHASE(i_wlk), i_wlk, Z_weight)
-             enddo
 
           enddo
 
@@ -683,10 +726,9 @@
           
           Phase=Phase*(Phase_new/Phase_old)
 
-          Overlap_ratio = real(exp(log_O_new-log_O_old), kind(0.d0))
-
-          if ( Overlap_ratio .gt. Zero ) then
-              Overlap (i_wlk) = exp(log_O_new)
+          overlap_ratio = real(exp(log_O_new-log_O_old), kind(0.d0))
+          if ( overlap_ratio .gt. Zero ) then
+              overlap (i_wlk) = log_O_new
               weight_k(i_wlk) = weight_k(i_wlk)*Overlap_ratio
           else
               weight_k(i_wlk) = 0.d0
@@ -958,7 +1000,6 @@
               allocate( dims(2), dimsc(2) )
               dims  = [2, N_wlk_mpi]
               dimsc = dims
-              dimsc(rank) = 1
               CALL h5screate_simple_f(rank, dims, space_id, hdferr)
               CALL h5pcreate_f(H5P_DATASET_CREATE_F, crp_list, hdferr)
               CALL h5pset_chunk_f(crp_list, rank, dimsc, hdferr)
@@ -983,7 +1024,6 @@
               allocate( dims(2), dimsc(2) )
               dims  = [1, N_wlk_mpi]
               dimsc = dims
-              dimsc(rank) = 1
               CALL h5screate_simple_f(rank, dims, space_id, hdferr)
               CALL h5pcreate_f(H5P_DATASET_CREATE_F, crp_list, hdferr)
               CALL h5pset_chunk_f(crp_list, rank, dimsc, hdferr)
@@ -1006,9 +1046,8 @@
               dset_name = "wavefunction"
               rank = 5
               allocate( dims(5), dimsc(5) )
-              dims  = [2,ndim,n_part,N_FL,N_wlk_mpi]
+              dims  = [2,ndim,n_part,N_FL_eff,N_wlk_mpi]
               dimsc = dims
-              dimsc(rank) = 1
               CALL h5screate_simple_f(rank, dims, space_id, hdferr)
               CALL h5pcreate_f(H5P_DATASET_CREATE_F, crp_list, hdferr)
               CALL h5pset_chunk_f(crp_list, rank, dimsc, hdferr)
@@ -1100,6 +1139,7 @@
           Real    (Kind=Kind(0.d0)), allocatable :: wt_tmp(:)
 
           INTEGER             :: K, hdferr, rank, nf, nw, n_part, i0, i1, i2, i_st, i_ed, Ndt, ii, nwalk_in
+          integer             :: nf_eff
           INTEGER(HSIZE_T), allocatable :: dims(:), dimsc(:), maxdims(:)
           Logical             :: file_exists
           INTEGER(HID_T)      :: file_id, crp_list, space_id, dset_id, dataspace
@@ -1226,6 +1266,102 @@
 
         END SUBROUTINE wavefunction_in_hdf5
 
+        SUBROUTINE trial_in_hdf5( phi_0_r, phi_0_l, file_tg )
+#ifdef MPI
+          Use mpi
+#endif
+#if defined HDF5
+          Use hdf5
+          use h5lt
+#endif
+          
+          Implicit none
+     
+          CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_0_r, phi_0_l
+          CHARACTER (LEN=64), INTENT(IN)  :: FILE_TG
+
+          ! LOCAL
+          CHARACTER (LEN=64) :: filename
+          Complex (Kind=Kind(0.d0)), pointer :: phi0_out(:,:,:)
+          Complex (Kind=Kind(0.d0)), allocatable :: p1_tmp(:,:,:)
+
+          INTEGER             :: K, hdferr, rank, nf, nw, n_part, i0, i1, i2, i_st, i_ed, Ndt, ii, nwalk_in
+          Integer             :: nf_eff
+          INTEGER(HSIZE_T), allocatable :: dims(:), dimsc(:), maxdims(:)
+          Logical             :: file_exists
+          INTEGER(HID_T)      :: file_id, crp_list, space_id, dset_id, dataspace
+          Character (len=64)  :: dset_name
+          TYPE(C_PTR)         :: dat_ptr
+
+#if defined(MPI)
+          INTEGER        :: irank_g, isize_g, igroup, ISIZE, IRANK, IERR
+          Integer        :: STATUS(MPI_STATUS_SIZE)
+          CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
+          CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+          call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+          call MPI_Comm_size(Group_Comm, isize_g, ierr)
+          igroup           = irank/isize_g
+#endif
+          filename = file_tg
+
+          n_part=phi_0_l(1,1)%n_part
+          
+          allocate(p1_tmp(ndim,n_part,n_fl_eff))
+          
+          if ( irank .eq. 0 ) then
+
+              !open file
+              CALL h5fopen_f (filename, H5F_ACC_RDWR_F, file_id, hdferr)
+
+              !! allocate !!
+              allocate(phi0_out(ndim,n_part,n_fl))
+              !!-----------!!
+              !open and read real weight
+              dset_name = "wavefunction"
+              !Open the  dataset.
+              CALL h5dopen_f(file_id, dset_name, dset_id, hdferr)
+              dat_ptr = C_LOC(phi0_out(1,1,1))
+              !Write data
+              CALL h5dread_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
+              !close objects
+              CALL h5dclose_f(dset_id,   hdferr)
+                
+              !close file
+              CALL h5fclose_f(file_id, hdferr)
+
+              do nf_eff = 1, N_FL_eff
+                 nf=Calc_Fl_map(nf_eff)
+                 p1_tmp(:,:,nf_eff)=phi0_out(:,:,nf)
+              enddo
+
+         endif !irank 0
+
+         if ( irank_g .eq. 0 ) then
+            do ii = 1, isize_g-1
+               Ndt=N_FL_eff*ndim*n_part
+               call mpi_send(p1_tmp,  Ndt,mpi_complex16, ii, 2, MPI_COMM_WORLD,IERR)
+            ENDDO
+         else
+            Ndt=N_FL_eff*ndim*n_part
+            call mpi_recv(p1_tmp,  Ndt,mpi_complex16, 0, 2, MPI_COMM_WORLD,STATUS,IERR)
+         ENDIF
+
+         do nf_eff = 1, N_FL_eff
+            nf=Calc_Fl_map(nf_eff)
+            do nw = 1, N_wlk
+                phi_0_l(nf_eff,nw)%U(:,:)=p1_tmp(:,:,nf_eff)
+                phi_0_r(nf_eff,nw)%U(:,:)=p1_tmp(:,:,nf_eff)
+            enddo
+            WF_L(nf)%P(:,:)=p1_tmp(:,:,nf_eff)
+            WF_R(nf)%P(:,:)=p1_tmp(:,:,nf_eff)
+         enddo
+
+         if (irank_g .eq. 0 ) then
+             deallocate(phi0_out)
+         endif
+         deallocate(p1_tmp)
+
+        END SUBROUTINE trial_in_hdf5
 #endif
         
     end Module stepwlk_mod

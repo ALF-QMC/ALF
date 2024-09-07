@@ -181,7 +181,6 @@
       
       Real    (Kind=Kind(0.d0)), public :: fac_norm
       Real    (Kind=Kind(0.d0)), dimension(:), allocatable, public :: weight_k
-      Real    (Kind=Kind(0.d0)), dimension(:), allocatable, public :: abs_wk
       Complex (Kind=Kind(0.d0)), dimension(:), allocatable, public :: phase_alpha
       Complex (Kind=Kind(0.d0)), dimension(:), allocatable, public :: overlap
 
