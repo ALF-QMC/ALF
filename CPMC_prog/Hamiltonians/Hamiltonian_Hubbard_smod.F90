@@ -312,7 +312,7 @@
           Character (len=2)  ::  Channel
 
           ! Scalar observables
-          Allocate ( Obs_scal(4) )
+          Allocate ( Obs_scal(6) )
           Do I = 1,Size(Obs_scal,1)
              select case (I)
              case (1)
@@ -323,6 +323,10 @@
                 N = 1;   Filename = "Part"
              case (4)
                 N = 1;   Filename = "Ener"
+             case (5)
+                N = ndim*ndim*n_fl;   Filename ="grc"
+             case (6)
+                N = ndim*ndim*n_fl;   Filename ="mixgrc"
              case default
                 Write(6,*) ' Error in Alloc_obs '
              end select
@@ -396,26 +400,27 @@
 !>  Time slice
 !> \endverbatim
 !-------------------------------------------------------------------
-        subroutine Obser(GR,Phase,i_wlk,sum_w)
+        subroutine Obser(GR,GR_mix,Phase,i_wlk,sum_w)
 
           Use Predefined_Obs
 
           Implicit none
 
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
+          Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR_mix(Ndim,Ndim,N_FL)
           Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE, sum_w
           Integer, Intent(IN) :: i_wlk
 
           !Local
-          Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK, PHASE_T, invsumw
+          Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK, PHASE_T, invsumw, zone, ztmp
           Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP,ZS, ZZ, ZXY, ZW, Re_ZW, Z_fac
-          Integer :: I,J, imj, nf, dec, I1, J1, no_I, no_J,n
+          Integer :: I,J, imj, nf, dec, I1, J1, no_I, no_J,n, nc
           Real    (Kind=Kind(0.d0)) :: X
 
           PHASE_T = PHASE * PHASE_ALPHA(i_wlk)
-          ZP    = PHASE_T/Real(Phase_T, kind(0.D0))
+          ZP      = PHASE_T/Real(Phase_T, kind(0.D0))
           Re_ZW = cmplx(weight_k(i_wlk),0.d0,kind(0.d0))
-          ZW    = ZP*Re_ZW
+          ZW    = Re_ZW*ZP
           Z_fac = ZW/sum_w*dble(N_wlk_mpi)
           
           Do nf = 1,N_FL
@@ -461,6 +466,30 @@
           Obs_scal(3)%Obs_vec(1)  =    Obs_scal(3)%Obs_vec(1) + Zrho * Z_fac
 
           Obs_scal(4)%Obs_vec(1)  =    Obs_scal(4)%Obs_vec(1) + (Zkin + Zpot)*Z_fac
+
+          nc = 0
+          Do nf = 1,N_FL
+             Do I = 1,Ndim
+             Do J = 1,Ndim
+                nc = nc + 1
+                ztmp = grc(i,j,nf)
+                Obs_scal(5)%Obs_vec(nc) = Obs_scal(5)%Obs_vec(nc) + ztmp*Z_fac
+             Enddo
+             Enddo
+          Enddo
+
+          nc = 0
+          Do nf = 1,N_FL
+             Do I = 1,Ndim
+             Do J = 1,Ndim
+                nc = nc + 1
+                zone = cmplx(0.d0,0.d0,kind(0.d0))
+                if ( I .eq. J ) zone = cmplx(1.d0,0.d0,kind(0.d0))
+                Ztmp = zone-GR_mix(J,I,nf)
+                Obs_scal(6)%Obs_vec(nc) = Obs_scal(6)%Obs_vec(nc) + ztmp*Z_fac
+             Enddo
+             Enddo
+          Enddo
           
           ! Standard two-point correlations
           Call Predefined_Obs_eq_Green_measure ( Latt, Latt_unit, List, GR, GRC, N_SUN, Z_fac, Obs_eq(1) )
@@ -510,9 +539,9 @@
           Integer :: IMJ, I, J, I1, J1, no_I, no_J
 
           PHASE_T = PHASE * PHASE_ALPHA(i_wlk)
-          ZP    = PHASE_T/Real(Phase_T, kind(0.D0))
+          ZP      = PHASE_T/Real(Phase_T, kind(0.D0))
           Re_ZW = cmplx(weight_k(i_wlk),0.d0,kind(0.d0))
-          ZW    = ZP*Re_ZW
+          ZW    = Re_ZW*ZP
           Z_fac = ZW/sum_w*dble(N_wlk_mpi)
 
           ! Standard two-point correlations
@@ -594,7 +623,7 @@
         !local
         Integer                   :: i_wlk
         Real    (Kind=Kind(0.d0)) :: X1, tot_re_weight
-        Complex (Kind=Kind(0.d0)) :: Z1, Z2, PHASE_T, ZP
+        Complex (Kind=Kind(0.d0)) :: Z1, Z2, PHASE_T, ZP, wtmp
 
 #ifdef MPI
         Integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
@@ -611,7 +640,8 @@
         do i_wlk  = 1, N_wlk
             PHASE_T = PHASE(i_wlk) * PHASE_ALPHA(i_wlk)
             ZP      = PHASE_T/Real(Phase_T, kind(0.D0))
-            Z1 = Z1 + cmplx(weight_k(i_wlk), 0.d0, kind(0.d0))*ZP
+            wtmp    = cmplx(weight_k(i_wlk), 0.d0, kind(0.d0))
+            Z1 = Z1 + wtmp*ZP
         enddo
         CALL MPI_REDUCE(Z1,Z2,1,MPI_COMPLEX16,MPI_SUM,0,Group_comm    ,IERR)
         CALL MPI_BCAST (Z2,   1,MPI_COMPLEX16        ,0,MPI_COMM_WORLD,ierr)
@@ -620,16 +650,18 @@
         
       end function sum_weight
       
-      Subroutine update_fac_norm(GR, ntw)
+      Subroutine update_fac_norm(GR, ntw, phase)
         Implicit none
          
         Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL,N_wlk)
         Integer                  , INTENT(IN) :: ntw
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(IN) :: phase
         
         !local
         Integer                   :: i_wlk
         Real    (Kind=Kind(0.d0)) :: X1, tot_re_weight
-        Complex (Kind=Kind(0.d0)) :: tot_ene, Z1
+        Complex (Kind=Kind(0.d0)) :: tot_ene, Z1, Z2, tot_c_weight, phase_T, ZP, wtmp, el_tmp
+        CHARACTER (LEN=64)  :: filename 
 
 #ifdef MPI
         Integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
@@ -640,23 +672,35 @@
         call MPI_Comm_size(Group_Comm, isize_g, ierr)
         igroup           = irank/isize_g
 #endif
+        filename = "E_local.dat"
+        
         !! Update fac_norm
         tot_ene       = cmplx(0.d0,0.d0,kind(0.d0))
+        tot_c_weight  = cmplx(0.d0,0.d0,kind(0.d0))
         tot_re_weight = 0.d0
         do i_wlk  = 1, N_wlk
-            tot_ene       = tot_ene + ham%E0_local(GR(:,:,:,i_wlk))*weight_k(i_wlk)
-            tot_re_weight = tot_re_weight + weight_k(i_wlk)
+            PHASE_T       = PHASE(i_wlk) * PHASE_ALPHA(i_wlk)
+            ZP     = cmplx(1.d0,0.d0, kind(0.D0))
+            wtmp   = weight_k(i_wlk)
+            el_tmp = dble(ham%E0_local(GR(:,:,:,i_wlk)))
+            tot_ene       = tot_ene + el_tmp*wtmp*ZP
+            tot_c_weight  = tot_c_weight  + wtmp*ZP
+            tot_re_weight = tot_re_weight + wtmp
         enddo
         CALL MPI_REDUCE(tot_ene      ,Z1,1,MPI_COMPLEX16,MPI_SUM, 0,Group_comm,IERR)
+        CALL MPI_REDUCE(tot_c_weight ,Z2,1,MPI_COMPLEX16,MPI_SUM, 0,Group_comm,IERR)
         CALL MPI_REDUCE(tot_re_weight,X1,1,MPI_REAL8    ,MPI_SUM, 0,Group_comm,IERR)
 
         if (Irank_g == 0 ) then
-            fac_norm= real(Z1, kind(0.d0))/X1
-            write(*,*) ntw*dtau, real(tot_ene, kind(0.d0))/tot_re_weight/dtau
+            !fac_norm= real(Z1, kind(0.d0))/X1
+            fac_norm= real(Z1/Z2, kind(0.d0))
+            OPEN (UNIT = 77, FILE=filename, STATUS='UNKNOWN', position="append")
+            !write(77,*) ntw*dtau, real(z1, kind(0.d0))/x1/dtau
+            write(77,*) ntw*dtau, real(z1/z2, kind(0.d0))/dtau
+            close(77)
         endif
         CALL MPI_BCAST(fac_norm, 1, MPI_REAL8, 0,MPI_COMM_WORLD,ierr)
         
       end subroutine update_fac_norm
-
         
     end submodule ham_Hubbard_smod
