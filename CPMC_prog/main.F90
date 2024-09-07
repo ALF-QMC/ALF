@@ -248,6 +248,7 @@ Program Main
         Allocate( phi_trial(N_FL_eff, N_wlk), phi_0   (N_FL_eff, N_wlk))
         Allocate( phi_bp_L (N_FL_eff, N_wlk), phi_bp_r(N_FL_eff, N_wlk))
 
+        ! we require ltrot_bp >= nwrap and ltrot_bp <= N_blksteps
         If ( mod(ltrot_bp,nwrap) == 0  ) then
            nstm = ltrot_bp/nwrap
         else
@@ -257,6 +258,7 @@ Program Main
         
         Phase_alpha(:)   = cmplx(1.d0, 0.d0, kind(0.D0))
         weight_k   (:)   = 1.d0
+        abs_wk     (:)   = 1.d0
         
         ! init slater determinant
         call initial_wlk( phi_trial, phi_0, phi_bp_l, phi_bp_r, udvst, STAB_nt, GR, phase, nwrap )
@@ -273,7 +275,7 @@ Program Main
             call system_clock(count_bin_start)
             
             !! initial obs
-            call ham%Init_obs(ltau)       
+            call ham%Init_obs(ltau)
         
             do j_step=1, N_blksteps
                 !! population control
@@ -294,14 +296,13 @@ Program Main
                     ntau_bp = 0
                     NST     = 1
 
-                    !!to do list
-                    call backpropagation( phi_bp_l, phi_bp_r, udvst, phase, stab_nt, ltau )
+                    call backpropagation( GR, phi_bp_l, phi_bp_r, udvst, phase, stab_nt, ltau )
                     
                     !! store phi_0 for the next measurement
                     call store_phi( phi_0, phi_bp_r )
 
                     !! Update fac_norm
-                    call ham%update_fac_norm(GR, j_step+(i_blk-1)*N_blksteps)
+                    call ham%update_fac_norm(GR, j_step+(i_blk-1)*N_blksteps, phase)
 
                 endif
                 
@@ -311,15 +312,16 @@ Program Main
             !! output print
             call ham%Pr_obs(ltau)
 
-            !! Todo list
-            !! call phi_bp_l%out
-
             call seed_vec_out
-            !phase_alpha(1)=(3.32141,-2.132)
-            !phase_alpha(5)=(3.71,3.132)
-            !phase_alpha(4)=(2.1,7.8)
+
+            !! for free projection
+            if ( freeproj ) then
+                do i_wlk =1, N_wlk
+                   weight_k(i_wlk)=abs_wk(i_wlk)*&
+                       & real(phase(i_wlk)*phase_alpha(i_wlk),kind(0.d0))
+                enddo
+            endif
             Call wavefunction_out_hdf5( phi_0 )
-            !stop
 
             call system_clock(count_bin_end)
             prog_truncation = .false.
@@ -339,6 +341,8 @@ Program Main
         ! irrespective of where they actually have been used
         call deallocate_all_shared_memory
 #endif
+
+        Call Control_Print(Group_Comm)
 
 #ifdef MPI
         CALL MPI_FINALIZE(ierr)

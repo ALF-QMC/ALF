@@ -108,7 +108,7 @@
         Type(Unit_cell), Intent(Out)                       :: Latt_Unit
         Type(Lattice), Intent(Out)                         :: Latt
         Real (Kind=Kind(0.d0))  :: A1_p(2), a2_p(2), L1_p(2), L2_p(2)
-        Integer :: I, nc, no,n
+        Integer :: I, nc, no,n, lx, ly, no_y, no_x
 
         select case (Lattice_type)
         case("Square")
@@ -194,20 +194,35 @@
            Latt_Unit%Orb_pos_p(3,3) = -1.d0
            Latt_Unit%Orb_pos_p(4,3) = -1.d0
         case("Pi_Flux")
-           If (L1==1 .or. L2==1 ) then
-              Write(error_unit, *) 'The Pi Flux lattice cannot be one-dimensional.'
-              CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
-           endif
            Latt_Unit%Norb    = 2
            Latt_Unit%N_coord = 4
-           a1_p(1) =  1.D0   ; a1_p(2) =   1.d0
-           a2_p(1) =  1.D0   ; a2_p(2) =  -1.d0
+           a1_p(1) = 1.d0; a1_p(2) = 0.d0
+           a2_p(1) = 0.d0; a2_p(2) = 1.d0
            Allocate (Latt_Unit%Orb_pos_p(2,2))
            Latt_Unit%Orb_pos_p(1,:) = 0.d0
-           Latt_Unit%Orb_pos_p(2,:) = (a1_p(:) - a2_p(:))/2.d0
-           L1_p    =  dble(L1) * (a1_p - a2_p)/2.d0
-           L2_p    =  dble(L2) * (a1_p + a2_p)/2.d0
+           Latt_Unit%Orb_pos_p(2,:) = 0.5d0
+           L1_p    =  dble(L1) * a1_p
+           L2_p    =  dble(L2) * a2_p
            Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
+        case("Pi_Flux_ob")
+           a1_p(1) = 1.d0; a1_p(2) = 0.d0
+           a2_p(1) = 0.d0; a2_p(2) = 1.d0
+           
+           L1_p    =  dble(L1) * a1_p
+           L2_p    =  dble( 1) * a2_p
+           Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
+
+           Latt_Unit%Norb    = 2*L2
+           Latt_Unit%N_coord = 2
+           Allocate (Latt_Unit%Orb_pos_p(2*L2,2))
+           Latt_unit%Orb_pos_p = 0.d0
+           do nc = 1, 2*L2
+              ly = (nc-1)/2+1
+              Latt_Unit%Orb_pos_p(nc,:) = 0.d0 + (ly-1)*a2_p(:)
+              if ( mod(nc,2) .eq. 0 ) then
+                  Latt_Unit%Orb_pos_p(nc,:) = Latt_Unit%Orb_pos_p(nc,:)+0.5d0
+              endif
+           enddo
         case default
            Write(error_unit,*) "Predefined_Latt: Lattice not yet implemented!"
            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)

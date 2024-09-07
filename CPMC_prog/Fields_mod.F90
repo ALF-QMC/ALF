@@ -70,7 +70,7 @@
 
        Private
        Real (Kind=Kind(0.d0))  :: Phi_st(-2:2,2),  Gama_st(-2:2,2)
-       Real (Kind=Kind(0.d0))  :: FLIP_st(-2:2,3), Px0(-2:2,2)
+       Real (Kind=Kind(0.d0))  :: FLIP_st(-2:2,3), Px0_st(-2:2,2)
        Real (Kind=Kind(0.d0))  :: Amplitude
 
        Type Fields
@@ -161,9 +161,9 @@
 
         select case (this%t(n_op))
         case(1)
-           Fields_Px0 = Px0(Nint(this%f(n_op,n_tau)),1)
+           Fields_Px0 = Px0_st(Nint(this%f(n_op,n_tau)),1)
         case(2)
-           Fields_Px0 = Px0(Nint(this%f(n_op,n_tau)),2)
+           Fields_Px0 = Px0_st(Nint(this%f(n_op,n_tau)),2)
         case default
            Write(error_unit,*) 'Error in Fields_GAMA'
            CALL Terminate_on_error(ERROR_FIELDS,__FILE__,__LINE__)
@@ -268,13 +268,13 @@
         tot_gama = GAMA_st(-2,2) + GAMA_st(2,2) + &
             & GAMA_st(-1,2) + GAMA_st(1,2)
 
-        Px0( :,:) = 0.d0
-        Px0( 1,1) = 0.5d0
-        Px0(-1,1) = 0.5d0
-        Px0(-2,2) = GAMA_st(-2,2)/tot_gama
-        Px0( 2,2) = GAMA_st( 2,2)/tot_gama
-        Px0(-1,2) = GAMA_st(-1,2)/tot_gama
-        Px0( 1,2) = GAMA_st( 1,2)/tot_gama
+        Px0_st( :,:) = 0.d0
+        Px0_st( 1,1) = 0.5d0
+        Px0_st(-1,1) = 0.5d0
+        Px0_st(-2,2) = GAMA_st(-2,2)/tot_gama
+        Px0_st( 2,2) = GAMA_st( 2,2)/tot_gama
+        Px0_st(-1,2) = GAMA_st(-1,2)/tot_gama
+        Px0_st( 1,2) = GAMA_st( 1,2)/tot_gama
 
         FLIP_st(-2,1) = -1.d0
         FLIP_st(-2,2) =  1.d0
