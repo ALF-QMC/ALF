@@ -314,13 +314,6 @@ Program Main
 
             call seed_vec_out
 
-            !! for free projection
-            if ( freeproj ) then
-                do i_wlk =1, N_wlk
-                   weight_k(i_wlk)=abs_wk(i_wlk)*&
-                       & real(phase(i_wlk)*phase_alpha(i_wlk),kind(0.d0))
-                enddo
-            endif
             Call wavefunction_out_hdf5( phi_0 )
 
             call system_clock(count_bin_end)

@@ -178,7 +178,6 @@
       Integer      , public        :: Group_Comm
       Logical      , public        :: Symm
       Logical      , public        :: reconstruction_needed
-      Logical      , public        :: freeproj
       
       Real    (Kind=Kind(0.d0)), public :: fac_norm
       Real    (Kind=Kind(0.d0)), dimension(:), allocatable, public :: weight_k
