@@ -164,8 +164,8 @@
 
       Type (Operator),     dimension(:,:), allocatable, public :: Op_V
       Type (Operator),     dimension(:,:), allocatable, public :: Op_T
-      Type (WaveFunction), dimension(:),   allocatable, public :: WF_L
-      Type (WaveFunction), dimension(:),   allocatable, public :: WF_R
+      Type (WaveFunction), dimension(:,:), allocatable, public :: WF_L
+      Type (WaveFunction), dimension(:,:), allocatable, public :: WF_R
       Logical            , dimension(:),   allocatable, public :: Calc_Fl
       Integer            , dimension(:),   allocatable, public :: Calc_Fl_map
       Type (Fields)      , dimension(:),   allocatable, public :: nsigma_bp, nsigma_qr
@@ -173,7 +173,10 @@
       Integer      , public        :: N_FL, N_FL_eff
       Integer      , public        :: N_SUN
       Integer      , public        :: N_wlk
+      Integer      , public        :: N_slat
+      Integer      , public        :: N_grc
       Integer      , public        :: N_wlk_mpi
+      Integer      , public        :: N_grc_mpi
       Integer      , public        :: ltrot
       Integer      , public        :: Group_Comm
       Logical      , public        :: Symm

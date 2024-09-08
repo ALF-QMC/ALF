@@ -130,16 +130,17 @@
           
           Implicit none
      
-          CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_trial, phi_0, phi_bp_l, phi_bp_r
+          CLASS(UDV_State), Dimension(:,:)  , ALLOCATABLE, INTENT(INOUT) :: phi_trial, phi_0, phi_bp_l, phi_bp_r
           CLASS(UDV_State), Dimension(:,:,:), ALLOCATABLE, INTENT(INOUT) :: udvst
           COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:,:), Allocatable, INTENT(INOUT) :: GR
           INTEGER, dimension(:)    ,allocatable,  INTENT(INOUT) :: Stab_nt
           INTEGER, INTENT(IN) :: nwrap
 
           !Local 
-          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, NSTM, NST, ltrot_bp
+          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, i_grc, NSTM, NST, ltrot_bp, ns
           Complex (Kind=Kind(0.d0)) :: Overlap_old, Overlap_new, Z, Z1,Z2, tot_ene, ZP
           Complex (Kind=Kind(0.d0)) :: tot_c_weight, el_tmp
+          complex (Kind=Kind(0.d0)) :: det_Vec(N_FL)
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio, X1, wtmp
           Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8, tot_re_weight
           Character (LEN=64) :: FILE_TG, FILE_seeds
@@ -168,26 +169,32 @@
           Stab_nt(Nstm) = ltrot_bp
 
           do i_wlk = 1, N_wlk
-          
              do nf_eff = 1, N_FL_eff
                 nf=Calc_Fl_map(nf_eff)
-                do n = 1, NSTM
-                   CALL udvst(n,nf_eff, i_wlk)%alloc(ndim)
-                ENDDO
-                CALL phi_trial(nf_eff, i_wlk)%init(ndim,'l',WF_L(nf)%P)
-                CALL phi_0(nf_eff, i_wlk)%init(ndim,'r',WF_R(nf)%P)
-                CALL phi_bp_l(nf_eff, i_wlk)%init(ndim,'l',WF_L(nf)%P)
-                CALL phi_bp_r(nf_eff, i_wlk)%init(ndim,'r',WF_R(nf)%P)
+                CALL phi_0   (nf_eff, i_wlk)%init(ndim,'r',WF_R(1,nf)%P)
+                CALL phi_bp_r(nf_eff, i_wlk)%init(ndim,'r',WF_R(1,nf)%P)
              enddo
-
           enddo
           
-          file_tg = "trial_0.h5"
-          INQUIRE (FILE=file_tg, EXIST=LCONF_H5)
-          IF (LCONF_H5) THEN
-              if ( irank_g .eq. 0 ) write (*,*) "read input trial"
-              call trial_in_hdf5( phi_0, phi_trial, file_tg )
-          endif
+          do i_grc = 1, N_grc
+             i_wlk = (i_grc-1)/N_slat+1      ! index for walker
+             ns    = i_grc-(i_wlk-1)*N_slat  ! index for slater det
+             do nf_eff = 1, N_FL_eff
+                nf=Calc_Fl_map(nf_eff)
+                do n = 1, nstm
+                   CALL udvst(n,nf_eff, i_grc)%alloc(ndim)
+                ENDDO
+                CALL phi_trial(nf_eff, i_grc)%init(ndim,'l',WF_L(ns,nf)%P)
+                CALL phi_bp_l (nf_eff, i_grc)%init(ndim,'l',WF_L(ns,nf)%P)
+             enddo
+          enddo
+          
+          !file_tg = "trial_0.h5"
+          !INQUIRE (FILE=file_tg, EXIST=LCONF_H5)
+          !IF (LCONF_H5) THEN
+          !    if ( irank_g .eq. 0 ) write (*,*) "read input trial"
+          !    call trial_in_hdf5( phi_0, phi_trial, file_tg )
+          !endif
 
           file_tg = "phiin_0.h5"
           INQUIRE (FILE=file_tg, EXIST=LCONF_H5)
@@ -196,19 +203,47 @@
               call wavefunction_in_hdf5( phi_0, file_tg )
           endif
 
+          !! initial overlap and green's function
           do i_wlk = 1, N_wlk
 
-             do nf_eff = 1,N_Fl_eff
-                nf=Calc_Fl_map(nf_eff)
-                call CGRP(Z, GR(:,:,nf,i_wlk), phi_0(nf_eff,i_wlk), phi_trial(nf_eff,i_wlk))
-             enddo
-
              if (weight_k(i_wlk) .le. 0.d0 ) weight_k(i_wlk) = 0.d0
-             wtmp   = weight_k(i_wlk)
-             el_tmp = dble(ham%E0_local(GR(:,:,:,i_wlk)))
+
+             do ns = 1, N_slat
+                 i_grc = ns+(i_wlk-1)*N_slat
+
+                 do nf_eff = 1,N_Fl_eff
+                    nf=Calc_Fl_map(nf_eff)
+                    call CGRP(Z, GR(:,:,nf,i_grc), phi_0(nf_eff,i_wlk), phi_trial(nf_eff,i_grc))
+                    det_vec(nf_eff) = Z
+                 enddo
+                 det_Vec(:) = det_Vec(:) * N_SUN
+                 if (reconstruction_needed) call ham%weight_reconstruction(det_Vec)
+                 overlap(i_grc) = sum(det_vec)
+             enddo
+          enddo
+
+          !! initial energy
+          tot_ene = 0.d0
+          tot_c_weight = 0.d0
+          do i_wlk = 1, N_wlk
              
-             tot_ene       = tot_ene       + el_tmp*wtmp
-             tot_c_weight  = tot_c_weight  + wtmp
+             if (weight_k(i_wlk) .ge. 0.d0 ) then
+
+             Z = 0.d0
+             do ns = 1, N_slat
+                 i_grc = ns+(i_wlk-1)*N_slat
+                 Z = Z + exp(overlap(i_grc))
+             enddo
+             
+             do ns = 1, N_slat
+                 i_grc = ns+(i_wlk-1)*N_slat
+                 el_tmp  = dble(ham%E0_local(GR(:,:,:,i_grc)))
+                 tot_ene = tot_ene + el_tmp*weight_k(i_wlk)*exp(overlap(i_grc))/Z
+             enddo
+             
+             tot_c_weight  = tot_c_weight  + weight_k(i_wlk)
+
+             endif
 
           enddo
           tot_re_weight = dble(tot_c_weight)
@@ -665,14 +700,11 @@
           ! local
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR
           Complex (Kind=Kind(0.d0)) :: Overlap_old, Overlap_new, log_O_new, log_O_old, Z
-          COMPLEX (Kind=Kind(0.d0)) :: Det_Vec(N_FL)
+          COMPLEX (Kind=Kind(0.d0)) :: det_Vec(N_FL)
           Real    (Kind=Kind(0.d0)) :: overlap_ratio, re_overlap
           Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8
           
-          call Compute_overlap(Det_Vec, phi_0, phi_trial)
-          Det_Vec(:) = Det_Vec(:) * N_SUN
-          if (reconstruction_needed) call ham%weight_reconstruction(Det_Vec)
-          log_O_old = sum(Det_Vec) 
+          log_O_old = overlap
 
           Do nf_eff = 1,N_FL_eff
              nf=Calc_Fl_map(nf_eff)
@@ -683,12 +715,12 @@
           do nf_eff = 1,N_Fl_eff
              nf=Calc_Fl_map(nf_eff)
              call CGRP(Z, GR(:,:,nf), phi_0(nf_eff), phi_trial(nf_eff))
+             det_vec(nf_eff) = Z
           enddo
 
-          call Compute_overlap(Det_Vec, phi_0, phi_trial)
-          Det_Vec(:) = Det_Vec(:) * N_SUN
-          if (reconstruction_needed) call ham%weight_reconstruction(Det_Vec)
-          log_O_new = sum(Det_Vec) 
+          det_Vec(:) = det_Vec(:) * N_SUN
+          if (reconstruction_needed) call ham%weight_reconstruction(det_Vec)
+          log_O_new = sum(det_Vec) 
 
           overlap_ratio = exp(log_O_new-log_O_old)
           re_overlap    = dble( overlap_ratio )

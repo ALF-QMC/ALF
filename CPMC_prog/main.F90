@@ -49,7 +49,6 @@ Program Main
         !  General
         Integer :: Ierr, I,nf, nf_eff, nst, n, N_op, NVAR
         Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Z, Z1, E0_iwlk, Z_2
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:)  , Allocatable   :: Phase
         Real    (Kind=Kind(0.d0)) :: ZERO = 10D-8, X, X1
 
         ! Storage for  stabilization steps
@@ -136,7 +135,6 @@ Program Main
         CALL MPI_BCAST(CPU_MAX              ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(ham_name             ,64,MPI_CHARACTER,0,MPI_COMM_i,ierr)
 #endif
-
         Call Fields_init()
         Call Alloc_Ham(ham_name)
         Call ham%Ham_set()
@@ -156,7 +154,7 @@ Program Main
         reconstruction_needed=.false.
         If (N_FL_eff /= N_FL) reconstruction_needed=.true.
         !initialize the flavor map
-        allocate(Calc_Fl_map(N_FL_eff), Phase(N_wlk))
+        allocate(Calc_Fl_map(N_FL_eff))
         N_FL_eff=0
         Do I=1,N_Fl
           if (Calc_Fl(I)) then
@@ -234,9 +232,6 @@ Program Main
 #if defined(STABLOG)
            Write(50,*) 'LOG is defined '
 #endif
-#if defined(QRREF)
-           Write(50,*) 'QRREF is defined '
-#endif
 
 #if defined(MPI)
         endif
@@ -244,9 +239,9 @@ Program Main
 
         Call ham%Alloc_obs(ltau)
 
-        Allocate( GR(NDIM,NDIM,N_FL,N_wlk) )
-        Allocate( phi_trial(N_FL_eff, N_wlk), phi_0   (N_FL_eff, N_wlk))
-        Allocate( phi_bp_L (N_FL_eff, N_wlk), phi_bp_r(N_FL_eff, N_wlk))
+        Allocate( GR(NDIM,NDIM,N_FL,N_grc) )
+        Allocate( phi_trial(N_FL_eff, N_slat), phi_0   (N_FL_eff, N_wlk))
+        Allocate( phi_bp_l (N_FL_eff, N_slat), phi_bp_r(N_FL_eff, N_wlk))
 
         ! we require ltrot_bp >= nwrap and ltrot_bp <= N_blksteps
         If ( mod(ltrot_bp,nwrap) == 0  ) then
@@ -254,13 +249,12 @@ Program Main
         else
            nstm = ltrot_bp/nwrap + 1
         endif
-        Allocate( udvst(NSTM, N_FL_eff, N_wlk))
+        Allocate( udvst(NSTM, N_FL_eff, N_grc))
         
-        Phase_alpha(:)   = cmplx(1.d0, 0.d0, kind(0.D0))
-        weight_k   (:)   = 1.d0
+        weight_k(:) = 1.d0
         
         ! init slater determinant
-        call initial_wlk( phi_trial, phi_0, phi_bp_l, phi_bp_r, udvst, STAB_nt, GR, phase, nwrap )
+        call initial_wlk( phi_trial, phi_0, phi_bp_l, phi_bp_r, udvst, STAB_nt, GR, nwrap )
         call store_phi  ( phi_0, phi_bp_r )
 
         Call control_init(Group_Comm)
@@ -279,11 +273,11 @@ Program Main
             do j_step=1, N_blksteps
                 !! population control
                 if ( mod(j_step, itv_pc) .eq. 0 ) then
-                    call population_control(phi_0, phi_bp_r, phase)
+                    call population_control(phi_0, phi_bp_r)
                 endif
 
                 !! propagate the walkers:
-                call stepwlk_move(Phi_trial, Phi_0, GR, Phase, ntau_bp );
+                call stepwlk_move(Phi_trial, Phi_0, GR, ntau_bp );
                 !! QR decomposition for stablization
                 if ( ntau_bp .eq. Stab_nt(NST) ) then
                     call re_orthonormalize_walkers(Phi_0, 'U')
@@ -295,13 +289,13 @@ Program Main
                     ntau_bp = 0
                     NST     = 1
 
-                    call backpropagation( GR, phi_bp_l, phi_bp_r, udvst, phase, stab_nt, ltau )
+                    call backpropagation( GR, phi_bp_l, phi_bp_r, udvst, stab_nt, ltau )
                     
                     !! store phi_0 for the next measurement
                     call store_phi( phi_0, phi_bp_r )
 
                     !! Update fac_norm
-                    call ham%update_fac_norm(GR, j_step+(i_blk-1)*N_blksteps, phase)
+                    call ham%update_fac_norm(GR, j_step+(i_blk-1)*N_blksteps)
 
                 endif
                 

@@ -47,18 +47,14 @@ Module WaveFunction_mod
 
   Implicit none
   
-
-  
   Type WaveFunction
      !> P is an Ndim x N_part matrix. N_part is the number of particles
      complex (Kind=Kind(0.d0)), allocatable :: P(:,:)
      !> Degeneracy of trial wave function 
      Real (Kind=Kind(0.d0)) :: Degen
   end type WaveFunction
-
   
 Contains
-
 
 !--------------------------------------------------------------------
 !> @author 
@@ -100,7 +96,6 @@ Contains
     WF_R%P  = Z_norm * WF_R%P
     
     Deallocate  (Mat) 
-    
     
   end subroutine WF_overlap
   

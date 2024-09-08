@@ -39,6 +39,7 @@
       !#PARAMETERS START# VAR_Model_Generic
       !Integer              :: N_SUN        = 1        ! Number of colors
       !Integer              :: N_FL         = 2        ! Number of flavors
+      !Integer              :: N_slat       = 1        ! Number of slater on trial wave function
       !Integer              :: N_wlk        = 1        ! Number of walker
       !Integer              :: ltrot        = 10       ! length of imaginary time for dynamical measure
       real(Kind=Kind(0.d0)) :: Phi_X        = 0.d0     ! Twist along the L_1 direction, in units of the flux quanta
@@ -111,9 +112,11 @@
           ! From dynamically generated file "Hamiltonian_Hubbard_read_write_parameters.F90"
           call read_parameters()
 
-          allocate( weight_k   (N_wlk) )
-          allocate( overlap    (N_wlk) )
+          allocate( weight_k(N_wlk) )
+          N_grc = N_slat*N_wlk
+          allocate( overlap(N_grc) )
           N_wlk_mpi=N_wlk*isize_g
+          N_grc_mpi=N_grc*isize_g
 
           ! Setup the Bravais lattice
           Call Ham_Latt
@@ -153,6 +156,9 @@
              Write(unit_info,*) 'N_FL          : ', N_FL
              Write(unit_info,*) 'N_wlk         : ', N_wlk
              Write(unit_info,*) 'N_wlk_mpi     : ', N_wlk_mpi
+             Write(unit_info,*) 'N_slat        : ', N_slat
+             Write(unit_info,*) 'N_grc         : ', N_grc
+             Write(unit_info,*) 'N_grc_mpi     : ', N_grc_mpi
              Write(unit_info,*) 'N_dope        : ', N_dope
              Write(unit_info,*) 't             : ', Ham_T
              Write(unit_info,*) 'Ham_U         : ', Ham_U
@@ -160,10 +166,6 @@
              Write(unit_info,*) 'Ham_U2        : ', Ham_U2
              Write(unit_info,*) 'Ham_tperp     : ', Ham_tperp
              Write(unit_info,*) 'Ham_chem      : ', Ham_chem
-             Do nf = 1,N_FL
-                Write(unit_info,*) 'Degen of right trial wave function: ', WF_R(nf)%Degen
-                Write(unit_info,*) 'Degen of left  trial wave function: ', WF_L(nf)%Degen
-             enddo
              Close(unit_info)
 #ifdef MPI
           Endif
@@ -223,6 +225,10 @@
           Case ("Square")
              Call  Set_Default_hopping_parameters_square(Hopping_Matrix,Ham_T_vec, Ham_T2_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
                   &                                      Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
+          Case ("Honeycomb")
+             Ham_Lambda = 0.d0
+             Call  Set_Default_hopping_parameters_honeycomb(Hopping_Matrix, Ham_T_vec, Ham_Lambda_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
+                  &                                         Bulk,  N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
           end Select
 
           Call  Predefined_Hoppings_set_OPT(Hopping_Matrix,List,Invlist,Latt,  Latt_unit,  Dtau, Checkerboard, Symm, OP_T )
@@ -247,8 +253,9 @@
           Integer :: N_part, nf
           ! Use predefined stuctures or set your own Trial  wave function
           N_part = Ndim/2-N_dope
+
           Call Predefined_TrialWaveFunction(Lattice_type ,Ndim,  List,Invlist,Latt, Latt_unit, &
-               &                            N_part, N_FL,  WF_L, WF_R)
+               &                            N_part, N_FL, N_slat, wf_l, wf_r)
           overlap(:) = cmplx(1.d0, 0.d0, kind(0.d0))
 
         end Subroutine Ham_Trial

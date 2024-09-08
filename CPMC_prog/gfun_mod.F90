@@ -46,15 +46,15 @@ module gfun_mod
 !> @param[in] udvl
 !
 !--------------------------------------------------------------------
-      SUBROUTINE CGRP(phase, GRUP, udvr, udvl)
+      SUBROUTINE CGRP(zdet, GRUP, udvr, udvl)
         Use UDV_State_mod
         CLASS(UDV_State), INTENT(IN) :: udvl, udvr
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Intent(OUT) :: GRUP
-        COMPLEX (Kind=Kind(0.d0)), Intent(OUT) :: phase
+        Complex (Kind=Kind(0.d0)), Intent(OUT)  :: zdet
 
         COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:,:) :: sMat, rMat
         INTEGER, allocatable :: ipiv(:)
-        COMPLEX (Kind=Kind(0.d0)) :: alpha, beta
+        COMPLEX (Kind=Kind(0.d0)) :: alpha, beta, phase
         INTEGER :: Ndim, N_part, info, n
 
         if((udvl%side .ne. "L") .and. (udvl%side .ne. "l") ) then
@@ -80,14 +80,17 @@ module gfun_mod
         ! ZGETRF computes an LU factorization of a general M-by-N matrix A
         ! using partial pivoting with row interchanges.
         call ZGETRF(N_part, N_part, sMat, N_part, ipiv, info)
-        phase=1.d0
+        ! obtain log of det
+        zdet  = 0.d0
+        phase = 1.d0
         Do n=1,N_part
-          if (ipiv(n).ne.n) then
-            phase = -phase * sMat(n,n)/abs(sMat(n,n))
-          else
-            phase =  phase * sMat(n,n)/abs(sMat(n,n))
-          endif
+           if (ipiv(n).ne.n) then
+              phase = -phase
+           endif
+           zdet = zdet + log(sMat(n,n))
         enddo
+        zdet = zdet + log(phase)
+
         rMat = conjg(transpose(udvl%U))
         call zgetrs('N', N_part, Ndim, sMat(1,1), N_part, ipiv, rMat(1,1), N_part, info)
         alpha=-1.d0
@@ -98,50 +101,5 @@ module gfun_mod
         Deallocate(sMat, rMat, ipiv)
       
       END SUBROUTINE CGRP
-
-      Subroutine Compute_overlap(Det_Vec, udvr, udvl)
-
-        Use UDV_State_mod
-        Use Hamiltonian_main
-
-        Implicit none
-
-        Complex (Kind=Kind(0.d0)), Dimension(:), Intent(OUT)  ::  Det_Vec
-        CLASS(UDV_State),  INTENT(INOUT) :: udvr(N_FL_eff)
-        CLASS(UDV_State),  INTENT(IN   ) :: udvl(N_FL_eff)
-
-        !> Local variables
-        Integer ::  N_size, NCON, I,  J, N_part, info, NSTM, N, nf, nst, nt, nt1, nf_eff
-        Integer, allocatable :: ipiv(:)
-        COMPLEX (Kind=Kind(0.d0)) :: alpha,beta, Z, Z1
-        TYPE(UDV_State) :: udvlocal
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  TP!, U, V
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable :: D
-
-        N_part=udvr(1)%N_part
-        N_size=udvr(1)%ndim
-        Det_vec = 0.d0
-        Allocate (TP(N_part,N_part), ipiv(N_part))
-        do nf_eff=1,N_FL_eff
-           nf=Calc_Fl_map(nf_eff)
-           alpha=1.d0
-           beta=0.d0
-           CALL ZGEMM('C','N',N_part,N_part,N_size,alpha,udvl(nf_eff)%U(1,1),N_size,udvr(nf_eff)%U(1,1),N_size,beta,TP(1,1),N_part)
-           ! ZGETRF computes an LU factorization of a general M-by-N matrix A
-           ! using partial pivoting with row interchanges.
-           call ZGETRF(N_part, N_part, TP(1,1), N_part, ipiv, info)
-           Z=1.d0
-           Do J=1,N_part
-              if (ipiv(J).ne.J) then
-                 Z = -Z
-              endif
-              Z =  Z * TP(J,J)
-           enddo
-           Det_vec  (nf) = Det_vec(nf)+log(Z)
-        enddo
-        Deallocate(TP,ipiv)
-        return
-
-      end subroutine Compute_overlap
 
 end module gfun_mod

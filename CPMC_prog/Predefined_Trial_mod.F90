@@ -108,15 +108,15 @@
 !>
 !------------------------------------------------------------------
       Subroutine Predefined_TrialWaveFunction(Lattice_type, Ndim,  List,Invlist,Latt, Latt_unit, &
-           &                                  N_part, N_FL,  WF_L, WF_R)
+           &                                  N_part, N_slat, N_FL, WF_L, WF_R)
 
         Implicit none
         Character (len=64), Intent(IN)                :: Lattice_type
-        Integer, Intent(IN)                           :: Ndim, N_FL, N_part
+        Integer, Intent(IN)                           :: Ndim, N_FL, N_slat, N_part
         Integer, Intent(IN), Dimension(:,:)           :: List, Invlist
         Type(Lattice),   Intent(in)                   :: Latt
         Type(Unit_cell), Intent(in)                   :: Latt_Unit
-        Type(WaveFunction), Intent(out), Dimension(:), allocatable :: WF_L, WF_R
+        Type(WaveFunction), Intent(out), Dimension(:,:), allocatable :: WF_L, WF_R
 
         Type(Operator),  dimension(:,:), allocatable  :: OP_tmp
         Type (Hopping_Matrix_type), allocatable       :: Hopping_Matrix_tmp(:)
@@ -128,7 +128,7 @@
         Real (Kind=Kind(0.d0))  :: A1_p(2), A2_p(2), L1_p(2), L2_p(2), x_p(2),x1_p(2), hop(3), del_p(2)
         Real (Kind=Kind(0.d0))  :: delta = 0.01, Ham_T1, Ham_T2, Ham_Tperp
 
-        Integer :: N, nf, I, I1, I2, nc, nc1, IK_u, I_u, J1, lp, J, N_Phi
+        Integer :: N, nf, I, I1, I2, nc, nc1, IK_u, I_u, J1, lp, J, N_Phi, ns
         Logical :: Test=.false. ,  Bulk =.true.
         Complex (Kind=Kind(0.d0)) :: Z_norm
 
@@ -136,10 +136,12 @@
                &                                Ham_T2_vec(:)
         Integer, allocatable ::   N_Phi_vec(:)
 
-        Allocate(WF_L(N_FL),WF_R(N_FL))
+        Allocate(WF_L(N_slat, N_FL),WF_R(N_slat, N_FL))
+        do ns=1,N_slat
         do n=1,N_FL
-           Call WF_alloc(WF_L(n),Ndim,N_part)
-           Call WF_alloc(WF_R(n),Ndim,N_part)
+           Call WF_alloc(WF_L(ns,n),Ndim,N_part)
+           Call WF_alloc(WF_R(ns,n),Ndim,N_part)
+        enddo
         enddo
 
         Allocate (Ham_T_vec(N_FL), Ham_T2_vec(N_FL), Ham_Tperp_vec(N_FL), Ham_Chem_vec(N_FL), Phi_X_vec(N_FL), Phi_Y_vec(N_FL),&
@@ -367,16 +369,28 @@
            Call Diag(Op_tmp(1,nf)%O,Op_tmp(1,nf)%U,Op_tmp(1,nf)%E)
            do I2=1,N_part
               do I1=1,Ndim
-                 WF_L(nf)%P(I1,I2)=Op_tmp(1,nf)%U(I1,I2)
-                 WF_R(nf)%P(I1,I2)=Op_tmp(1,nf)%U(I1,I2)
+                 WF_L(1,nf)%P(I1,I2)=Op_tmp(1,nf)%U(I1,I2)
+                 WF_R(1,nf)%P(I1,I2)=Op_tmp(1,nf)%U(I1,I2)
               enddo
            enddo
-           WF_L(nf)%Degen = Op_tmp(1,nf)%E(N_part+1) - Op_tmp(1,nf)%E(N_part)
-           WF_R(nf)%Degen = Op_tmp(1,nf)%E(N_part+1) - Op_tmp(1,nf)%E(N_part)
+           WF_L(1,nf)%Degen = Op_tmp(1,nf)%E(N_part+1) - Op_tmp(1,nf)%E(N_part)
+           WF_R(1,nf)%Degen = Op_tmp(1,nf)%E(N_part+1) - Op_tmp(1,nf)%E(N_part)
         enddo
 
         Do nf = 1,N_FL
-           Call WF_overlap(WF_L(nf), WF_R(nf), Z_norm)
+           Call WF_overlap(WF_L(1,nf), WF_R(1,nf), Z_norm)
+        enddo
+
+        WF_L(1,nf)%P(:,:) = WF_L(1,nf)%P(:,:)/sqrt(dble(N_slat)) 
+        WF_R(1,nf)%P(:,:) = WF_R(1,nf)%P(:,:)/sqrt(dble(N_slat))  
+
+        Do nf = 1, N_FL
+        do ns = 2, n_slat
+           WF_L(ns,nf)%Degen  = WF_L(1,nf)%Degen
+           WF_R(ns,nf)%Degen  = WF_R(1,nf)%Degen
+           WF_L(ns,nf)%P(:,:) = WF_L(1,nf)%P(:,:)
+           WF_R(ns,nf)%P(:,:) = WF_R(1,nf)%P(:,:)
+        enddo
         enddo
 
         Do nf = 1,N_FL
