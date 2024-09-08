@@ -35,7 +35,7 @@ module upgrade_mod
    implicit none
    contains
 
-      Subroutine Upgrade(GR,N_op,PHASE,Hs_new,i_wlk)
+      Subroutine Upgrade(GR,N_op,Hs_new,i_wlk)
 
         Use Hamiltonian_main
         Use Random_wrap
@@ -47,12 +47,11 @@ module upgrade_mod
 
         Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: GR(Ndim,Ndim, N_FL)
         Integer                  , INTENT(IN)    :: N_op, i_wlk
-        Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Phase
         Real    (Kind=Kind(0.d0)), INTENT(OUT)   :: Hs_new
 
         ! Local ::
         Type   (Fields)   ::  nsigma_new
-        Complex (Kind=Kind(0.d0)) :: Ratio(N_FL), Ratio_f(N_FL), Ratiotot, Z1, Phase_a_array(N_FL)
+        Complex (Kind=Kind(0.d0)) :: Ratio(N_FL), Ratio_f(N_FL), Ratiotot, Z1
         Integer ::  n,m,nf, nf_eff, i, Op_dim, op_dim_nf, nu_spin, nu_c, n_prop
         Complex (Kind=Kind(0.d0)) :: Z, D_Mat, myexp, s1, s2, ratioD
         Real    (Kind=Kind(0.d0)) :: S0_ratio
@@ -66,8 +65,8 @@ module upgrade_mod
         Complex (Kind=Kind(0.D0)), Dimension(:, :), Allocatable :: Zarr, grarr
         Complex (Kind=Kind(0.D0)), Dimension(:), Allocatable :: sxv, syu
         
-        Real (Kind=Kind(0.D0)), Dimension(:), Allocatable :: ratio_field, field_list
-        Complex (Kind=Kind(0.D0)), Dimension(:), Allocatable :: ratio_O, ratio_G
+        Real    (Kind=Kind(0.D0)), Dimension(:), Allocatable :: ratio_field, field_list
+        Complex (Kind=Kind(0.D0)), Dimension(:), Allocatable :: ratio_o
 
         Call nsigma_new%make(1,1)
         
@@ -88,16 +87,14 @@ module upgrade_mod
         if ( Op_V(n_op,nf)%Type .eq. 1 ) then
             allocate(field_list(2))
             allocate(ratio_field(2))
-            allocate(ratio_O(2))
-            allocate(ratio_G(2))
+            allocate(ratio_o(2))
             field_list(1)=1.d0; 
             field_list(2)=2.d0;
             nu_spin=2
         elseif ( Op_V(n_op,nf)%Type .eq. 2 ) then
             allocate(field_list(4))
             allocate(ratio_field(4))
-            allocate(ratio_O(4))
-            allocate(ratio_G(4))
+            allocate(ratio_o(4))
             field_list(1)= 1.d0; 
             field_list(2)=-1.d0; 
             field_list(3)= 2.d0; 
@@ -112,7 +109,6 @@ module upgrade_mod
             
             Do nf_eff = 1,N_FL_eff
                nf=Calc_Fl_map(nf_eff)
-               !Z1 = Op_V(n_op,nf)%g * ( Phi_st(ns_new,Op_V(n_op,nf)%type) -  Phi_st(ns_old,Op_V(n_op,nf)%type))
                g_loc = Op_V(n_op,nf)%g
                Z1 = g_loc * ( nsigma_new%Phi(1,1) )
                op_dim_nf = Op_V(n_op,nf)%N_non_zero
@@ -141,20 +137,17 @@ module upgrade_mod
                   D_mat = Det(Mat,op_dim_nf)
                endif
                Ratio  (nf) =  D_Mat * exp( Z1*Op_V(n_op,nf)%alpha )
-               Ratio_f(nf) =  D_Mat
             Enddo
 
             !call reconstruct weight subroutine to fill the non-calculated blocks
             if (reconstruction_needed) call ham%weight_reconstruction(Ratio)
 
             Ratiotot = Product(Ratio)
-            Ratiotot = (Ratiotot**dble(N_SUN)) 
-            weight = S0_ratio * real(Ratiotot*nsigma_new%px0(1,1), kind=Kind(0.d0))
+            Ratiotot = (Ratiotot**dble(N_SUN))
+            weight = S0_ratio * dble(Ratiotot*nsigma_new%px0(1,1))
             if ( weight .le. 0.d0 ) weight = 0.d0
             ratio_field(nu_c) = weight
-
-            ratio_O(nu_c) = Ratiotot
-            ratio_G(nu_c) = Product(Ratio_f)**dble(N_SUN)
+            ratio_o(nu_c) = Ratiotot*nsigma_new%Gama(1,1)
 
         enddo
 
@@ -181,17 +174,7 @@ module upgrade_mod
             
             !! update weight and overlap
             weight_k(i_wlk) = weight_k(i_wlk)*sum_ratio
-            overlap (i_wlk) = overlap (i_wlk) + log(ratio_O(n_prop))
-
-            !! Compute the phase of the weight
-            RatioD=ratio_G(n_prop)
-            Phase = Phase * RatioD/sqrt(RatioD*conjg(RatioD))
-            do nf_eff = 1,N_Fl_eff
-               nf=Calc_Fl_map(nf_eff)
-               call Op_phase_general(Phase_a_array(nf),OP_V(n_op,nf),nsigma_new%phi(1,1))
-            enddo
-            if (reconstruction_needed) call ham%weight_reconstruction(Phase_a_array)
-            Phase_alpha(i_wlk)=Phase_alpha(i_wlk)*product(Phase_a_array)**dble(N_SUN)
+            overlap (i_wlk) = overlap (i_wlk) + log(ratio_o(n_prop))
 
             !! Update Green's function
             ! update delta
@@ -274,7 +257,7 @@ module upgrade_mod
         if (op_dim > 0) then
            deallocate ( Mat, Delta, u, v )
            deallocate ( y_v, xp_v, x_v )
-           deallocate ( ratio_field, field_list, ratio_O, ratio_G )
+           deallocate ( ratio_field, field_list, ratio_o )
         endif
 
         Call nsigma_new%clear()

@@ -181,7 +181,6 @@
       
       Real    (Kind=Kind(0.d0)), public :: fac_norm
       Real    (Kind=Kind(0.d0)), dimension(:), allocatable, public :: weight_k
-      Complex (Kind=Kind(0.d0)), dimension(:), allocatable, public :: phase_alpha
       Complex (Kind=Kind(0.d0)), dimension(:), allocatable, public :: overlap
 
       !>    Privat Observables
@@ -289,22 +288,18 @@
     !> \verbatim
     !>  Green function: Gr(I,J,nf) = <c_{I,nf } c^{dagger}_{J,nf } > on time slice ntau
     !> \endverbatim
-    !> @param [IN] Phase   Complex
-    !> \verbatim
-    !>  Phase
-    !> \endverbatim
     !> @param [IN] Ntau Integer
     !> \verbatim
     !>  Time slice
     !> \endverbatim
     !-------------------------------------------------------------------
-          subroutine Obser_base(GR,GR_mix,Phase,i_wlk,sum_w)
+          subroutine Obser_base(GR,GR_mix,i_wlk,sum_w)
 
              Implicit none
 
              Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
              Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR_mix(Ndim,Ndim,N_FL)
-             Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE, sum_w
+             Complex (Kind=Kind(0.d0)), Intent(IN) :: sum_w
              Integer                  , Intent(IN) :: i_wlk
              Logical, save              :: first_call=.True.
              
@@ -333,18 +328,14 @@
     !>  G00(I,J,nf) = <T c_{I,nf }(0  ) c^{dagger}_{J,nf }(0  )>
     !>  GTT(I,J,nf) = <T c_{I,nf }(tau) c^{dagger}_{J,nf }(tau)>
     !> \endverbatim
-    !> @param [IN] Phase   Complex
-    !> \verbatim
-    !>  Phase
-    !> \endverbatim
     !-------------------------------------------------------------------
-          Subroutine ObserT_base(NT, GT0, G0T, G00, GTT, Phase,i_wlk,sum_w)
+          Subroutine ObserT_base(NT, GT0, G0T, G00, GTT, i_wlk,sum_w)
              Implicit none
     
              Integer         , INTENT(IN) :: NT, i_wlk
              Complex (Kind=Kind(0.d0)), INTENT(IN) :: GT0(Ndim,Ndim,N_FL), G0T(Ndim,Ndim,N_FL)
              Complex (Kind=Kind(0.d0)), INTENT(IN) :: G00(Ndim,Ndim,N_FL), GTT(Ndim,Ndim,N_FL)
-             Complex (Kind=Kind(0.d0)), INTENT(IN) :: Phase, sum_w
+             Complex (Kind=Kind(0.d0)), INTENT(IN) :: sum_w
              Logical, save              :: first_call=.True.
              
              If  (first_call)    then 
@@ -354,7 +345,7 @@
     
           end Subroutine ObserT_base
 
-          Complex (Kind=Kind(0.d0)) function E0_local_base(GR)
+          complex (Kind=Kind(0.d0)) function E0_local_base(GR)
             Implicit none
              
             Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
@@ -363,31 +354,27 @@
             
           end function E0_local_base
           
-          Complex (Kind=Kind(0.d0)) function localmeas_base(GR, phase)
+          complex (Kind=Kind(0.d0)) function localmeas_base(GR)
             Implicit none
              
             Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
-            Complex (Kind=Kind(0.d0)), INTENT(IN) :: Phase
             
             localmeas_base = cmplx(0.d0, 0.d0, kind(0.d0))
             
           end function localmeas_base
 
-          Complex (Kind=Kind(0.d0)) function sum_weight_base(PHASE)
+          complex (Kind=Kind(0.d0)) function sum_weight_base
             Implicit none
-             
-            COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(IN) :: phase
             
             sum_weight_base = cmplx(0.d0, 0.d0, kind(0.d0))
             
           end function sum_weight_base
 
-          Subroutine update_fac_norm_base(GR, ntw, phase)
+          Subroutine update_fac_norm_base(GR, ntw)
             Implicit none
              
-            Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL,N_wlk)
-            Integer                  , INTENT(IN) :: ntw
-            COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(IN) :: phase
+            complex (Kind=Kind(0.d0)), intent(in) :: GR(Ndim,Ndim,N_FL,N_wlk)
+            integer                  , intent(in) :: ntw
             
           end subroutine update_fac_norm_base
 
@@ -541,6 +528,5 @@
            
          end subroutine write_parameters_hdf5_base
 #endif
-         
 
     end Module Hamiltonian_main

@@ -4,19 +4,18 @@
         Use Control
         Use Hop_mod
         Use UDV_State_mod
-        use cgr1_mod
+        use gfun_mod
         use upgrade_mod
         
         Contains
 
-        SUBROUTINE stepwlk_move( phi_trial, phi_0, GR, phase, ntau_bp ) 
+        SUBROUTINE stepwlk_move( phi_trial, phi_0, GR, ntau_bp ) 
           
           Implicit none
      
           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(IN)    :: phi_trial
           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_0
           COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:,:), Allocatable, INTENT(INOUT) :: GR
-          COMPLEX (Kind=Kind(0.d0)), Dimension(:)      , Allocatable, INTENT(INOUT) :: phase
           Integer, INTENT(IN) :: ntau_bp
 
           !Local 
@@ -34,7 +33,7 @@
                  ! update weight by fac_norm
                  weight_k(i_wlk)=weight_k(i_wlk)*exp(fac_norm)
                  
-                 call half_K_propagation( phi_trial(:,i_wlk), phi_0(:,i_wlk), GR(:,:,:,i_wlk), phase(i_wlk), i_wlk )
+                 call half_K_propagation( phi_trial(:,i_wlk), phi_0(:,i_wlk), GR(:,:,:,i_wlk), i_wlk )
 
              endif
 
@@ -50,7 +49,7 @@
                    Call Op_Wrapdo( GR(:,:,nf,i_wlk), Op_V(n,nf), 1.d0, Ndim, N_Type,1)
                 enddo
 
-                call Upgrade(GR(:,:,:,i_wlk),n,PHASE(i_wlk), spin, i_wlk )
+                call Upgrade(GR(:,:,:,i_wlk),n,spin, i_wlk )
                 nsigma_bp(i_wlk)%f(n,ntau_bp) = spin
 
                 N_type = 2
@@ -71,7 +70,7 @@
              
              !! Kinetic part exp(-/Delta/tau T/2)
              if ( weight_k(i_wlk) .gt. Zero ) then
-                 call half_K_propagation( phi_trial(:,i_wlk), phi_0(:,i_wlk), GR(:,:,:,i_wlk), phase(i_wlk), i_wlk )
+                 call half_K_propagation( phi_trial(:,i_wlk), phi_0(:,i_wlk), GR(:,:,:,i_wlk), i_wlk )
              endif
 
           enddo
@@ -124,7 +123,7 @@
 
         END SUBROUTINE re_orthonormalize_walkers
         
-        SUBROUTINE initial_wlk( phi_trial, phi_0, phi_bp_l, phi_bp_r, udvst, STAB_Nt, GR, phase, nwrap )
+        SUBROUTINE initial_wlk( phi_trial, phi_0, phi_bp_l, phi_bp_r, udvst, STAB_Nt, GR, nwrap )
 #ifdef MPI
         Use mpi
 #endif
@@ -134,17 +133,15 @@
           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_trial, phi_0, phi_bp_l, phi_bp_r
           CLASS(UDV_State), Dimension(:,:,:), ALLOCATABLE, INTENT(INOUT) :: udvst
           COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:,:), Allocatable, INTENT(INOUT) :: GR
-          COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(INOUT) :: phase
           INTEGER, dimension(:)    ,allocatable,  INTENT(INOUT) :: Stab_nt
           INTEGER, INTENT(IN) :: nwrap
 
           !Local 
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, NSTM, NST, ltrot_bp
-          Complex (Kind=Kind(0.d0)) :: Overlap_old, Overlap_new, Z, Z1,Z2, tot_ene, ZP, phase_T
+          Complex (Kind=Kind(0.d0)) :: Overlap_old, Overlap_new, Z, Z1,Z2, tot_ene, ZP
           Complex (Kind=Kind(0.d0)) :: tot_c_weight, el_tmp
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio, X1, wtmp
           Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8, tot_re_weight
-          COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable :: Phase_array
           Character (LEN=64) :: FILE_TG, FILE_seeds
           Logical ::   LCONF, LCONF_H5
 
@@ -160,7 +157,6 @@
 
           NSTM = Size(udvst, 1)
           ltrot_bp = size(nsigma_bp(1)%f,2)
-          allocate(Phase_array(N_FL))
           tot_ene    = cmplx(0.d0,0.d0,kind(0.d0))
           tot_re_weight = 0.d0
 
@@ -202,17 +198,10 @@
 
           do i_wlk = 1, N_wlk
 
-             NVAR = 1
              do nf_eff = 1,N_Fl_eff
                 nf=Calc_Fl_map(nf_eff)
-                call CGR(Z, NVAR, GR(:,:,nf,i_wlk), phi_0(nf_eff,i_wlk), phi_trial(nf_eff,i_wlk))
-                Phase_array(nf)=Z
+                call CGRP(Z, GR(:,:,nf,i_wlk), phi_0(nf_eff,i_wlk), phi_trial(nf_eff,i_wlk))
              enddo
-             if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
-             Phase(i_wlk)=product(Phase_array)
-             Phase(i_wlk)=Phase(i_wlk)**N_SUN
-            
-             PHASE_T = PHASE(i_wlk) * PHASE_ALPHA(i_wlk)
 
              if (weight_k(i_wlk) .le. 0.d0 ) weight_k(i_wlk) = 0.d0
              wtmp   = weight_k(i_wlk)
@@ -220,16 +209,16 @@
              
              tot_ene       = tot_ene       + el_tmp*wtmp
              tot_c_weight  = tot_c_weight  + wtmp
-             tot_re_weight = tot_re_weight + wtmp
 
           enddo
+          tot_re_weight = dble(tot_c_weight)
           
           CALL MPI_REDUCE(tot_ene      ,Z1,1,MPI_COMPLEX16,MPI_SUM, 0,Group_comm,IERR)
-          CALL MPI_REDUCE(tot_c_weight ,Z2,1,MPI_COMPLEX16,MPI_SUM, 0,Group_comm,IERR)
           CALL MPI_REDUCE(tot_re_weight,X1,1,MPI_REAL8    ,MPI_SUM, 0,Group_comm,IERR)
           
           if (Irank_g == 0 ) then
-              fac_norm= real(Z1/Z2, kind(0.d0))
+              Z1 = Z1/X1
+              fac_norm= dble(Z1)
           endif
           CALL MPI_BCAST(fac_norm, 1, MPI_REAL8, 0,MPI_COMM_WORLD,ierr)
 
@@ -242,7 +231,7 @@
 
         END SUBROUTINE initial_wlk
 
-        SUBROUTINE population_control( phi_0, phi_bp_r, phase ) 
+        SUBROUTINE population_control( phi_0, phi_bp_r ) 
 #ifdef MPI
           Use mpi
 #endif
@@ -251,14 +240,13 @@
           Implicit none
      
           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_0, phi_bp_r
-          COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(INOUT) :: phase
           
           !Local 
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, it_wlk, n_exc,pop_exc(N_wlk_mpi,4)
           Integer :: j, it, i_t, i_st, i_ed, nu_wlk, i_src, i_wlk, j_src, j_wlk, n1, n2, nrg, nfrg, ilabel
           Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8, d_scal, sum_w, w_count, w_tmp(N_wlk_mpi), weight_mpi(N_wlk_mpi)
-          Complex (Kind=Kind(0.d0)) :: overlap_tmp(N_wlk), phase_alpha_tmp(N_wlk), phase_tmp(N_wlk)
-          Complex (Kind=Kind(0.d0)) :: Z1,Z2,Z3, Z_s_array(3), Z_r_array(3)
+          Complex (Kind=Kind(0.d0)) :: overlap_tmp(N_wlk)
+          Complex (Kind=Kind(0.d0)) :: Z1,Z2,Z3, Z_s_array(1), Z_r_array(1)
           Type (Fields)   , dimension(:)  , allocatable :: nsigma_store
           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE :: phi_0_m, phi_bp_m
 
@@ -302,9 +290,7 @@
               nsigma_store(i_wlk)%t = nsigma_bp(i_wlk)%t
           enddo
 
-          !! store phase and overlap
-          phase_alpha_tmp=phase_alpha
-          phase_tmp=phase
+          !! store overlap
           overlap_tmp=overlap
 
           ! population control
@@ -346,9 +332,7 @@
                             phi_0_m (nf_eff,j_wlk)=phi_0   (nf_eff,i_wlk)
                             phi_bp_m(nf_eff,j_wlk)=phi_bp_r(nf_eff,i_wlk)
                         enddo
-                        phase_tmp      (j_wlk)=phase      (i_wlk) 
-                        phase_alpha_tmp(j_wlk)=phase_alpha(i_wlk) 
-                        overlap_tmp    (j_wlk)=overlap    (i_wlk) 
+                        overlap_tmp(j_wlk)=overlap(i_wlk) 
                         nsigma_store(j_wlk)%f=nsigma_bp(i_wlk)%f
                       endif
                   endif
@@ -362,12 +346,10 @@
              i_src = pop_exc(it,1); i_wlk = pop_exc(it,2)
              j_src = pop_exc(it,3); j_wlk = pop_exc(it,4)
              if ( irank_g .eq. i_src ) then
-                Z_s_array(1) = phase      (i_wlk)
-                Z_s_array(2) = phase_alpha(i_wlk)
-                Z_s_array(3) = overlap    (i_wlk)
+                Z_s_array(1) = overlap(i_wlk)
                 
                 ilabel = (it-1)*nrg
-                call mpi_send(Z_s_array,3,MPI_COMPLEX16,j_src,ilabel,Group_comm,IERR)
+                call mpi_send(Z_s_array,1,MPI_COMPLEX16,j_src,ilabel,Group_comm,IERR)
                 
                 do nf_eff = 1, N_FL_eff
                     ilabel = (it-1)*nrg+(nf_eff-1)*6+1
@@ -381,10 +363,8 @@
              endif
              if ( irank_g .eq. j_src ) then
                 ilabel = (it-1)*nrg
-                call mpi_recv(Z_r_array,3,MPI_COMPLEX16,i_src,ilabel,Group_comm,STATUS,IERR)
-                phase_tmp      (j_wlk) = Z_r_array(1) 
-                phase_alpha_tmp(j_wlk) = Z_r_array(2) 
-                overlap_tmp    (j_wlk) = Z_r_array(3) 
+                call mpi_recv(Z_r_array,1,MPI_COMPLEX16,i_src,ilabel,Group_comm,STATUS,IERR)
+                overlap_tmp(j_wlk) = Z_r_array(1) 
                 
                 do nf_eff = 1, N_FL_eff
                     ilabel = (it-1)*nrg+(nf_eff-1)*6+1
@@ -398,8 +378,6 @@
              endif
           enddo
 
-          phase_alpha=phase_alpha_tmp
-          phase=phase_tmp
           overlap=overlap_tmp
           ! reset weight
           weight_k(:)=1.d0
@@ -452,14 +430,13 @@
 
         END SUBROUTINE store_phi
 
-        SUBROUTINE backpropagation( GR_mix, phi_bp_l, phi_bp_r, udvst, phase, Stab_nt, ltau )
+        SUBROUTINE backpropagation( GR_mix, phi_bp_l, phi_bp_r, udvst, Stab_nt, ltau )
           
           Implicit none
      
           COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:,:), Allocatable, INTENT(IN) :: GR_mix
           CLASS(UDV_State), Dimension(:,:)  , ALLOCATABLE, INTENT(INOUT) :: phi_bp_l, phi_bp_r
           CLASS(UDV_State), Dimension(:,:,:), ALLOCATABLE, INTENT(INOUT) :: udvst
-          COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(IN) :: phase
           INTEGER, dimension(:)    ,allocatable,  INTENT(IN) :: Stab_nt
           Integer, INTENT(IN) :: ltau
 
@@ -525,34 +502,32 @@
           call re_orthonormalize_walkers(phi_bp_l, 'N')
 
           !! compute the total weight
-          Z_weight = ham%sum_weight(PHASE)
+          Z_weight = ham%sum_weight
 
           !! equal time measurement
 
           do i_wlk = 1, N_wlk
              do nf_eff = 1,N_Fl_eff
                 nf=Calc_Fl_map(nf_eff)
-                NVAR = 1
-                call CGR(Z, NVAR, GR_bp(:,:,nf,i_wlk), phi_bp_r(nf_eff,i_wlk), phi_bp_l(nf_eff,i_wlk))
+                call CGRP(Z, GR_bp(:,:,nf,i_wlk), phi_bp_r(nf_eff,i_wlk), phi_bp_l(nf_eff,i_wlk))
              enddo
              If (reconstruction_needed) Call ham%GR_reconstruction( GR_bp(:,:,:,i_wlk) )
-             CALL ham%Obser( GR_bp(:,:,:,i_wlk), GR_mix(:,:,:,i_wlk),  PHASE(i_wlk), i_wlk, Z_weight )
+             CALL ham%Obser( GR_bp(:,:,:,i_wlk), GR_mix(:,:,:,i_wlk), i_wlk, Z_weight )
           enddo
 
           !! time dependence measurement
           if ( ltau .eq. 1 ) then
-             call bp_measure_tau(phi_bp_l, phi_bp_r, udvst, phase, stab_nt )
+             call bp_measure_tau(phi_bp_l, phi_bp_r, udvst, stab_nt )
           endif
 
         END SUBROUTINE backpropagation
 
-        SUBROUTINE bp_measure_tau(phi_bp_l, phi_bp_r, udvst, phase, stab_nt )
+        SUBROUTINE bp_measure_tau(phi_bp_l, phi_bp_r, udvst, stab_nt )
           
           Implicit none
      
           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_bp_l, phi_bp_r
           CLASS(UDV_State), Dimension(:,:,:), ALLOCATABLE, INTENT(INOUT) :: udvst
-          COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(IN) :: phase
           INTEGER, dimension(:)    ,allocatable,  INTENT(IN) :: Stab_nt
 
           !Local 
@@ -569,7 +544,7 @@
           nstm     = Size(udvst, 1)
           
           !! compute the total weight
-          Z_weight = ham%sum_weight(PHASE)
+          Z_weight = ham%sum_weight
           
           do i_wlk = 1, N_wlk
              do nf_eff = 1, N_FL_eff
@@ -600,7 +575,7 @@
                 Call ham%GRT_reconstruction( GT0(:,:,:,i_wlk), G0T(:,:,:,i_wlk) )
             endif
             CALL ham%obserT(ntau,GT0(:,:,:,i_wlk),G0T(:,:,:,i_wlk),G00(:,:,:,i_wlk), & 
-                & GTT(:,:,:,i_wlk),PHASE(i_wlk), i_wlk, Z_weight)
+                & GTT(:,:,:,i_wlk), i_wlk, Z_weight)
           enddo
 
           NST=1
@@ -638,7 +613,7 @@
                     Call ham%GRT_reconstruction( GT0(:,:,:,i_wlk), G0T(:,:,:,i_wlk) )
                 endif
                 CALL ham%obserT(ntau,GT0(:,:,:,i_wlk),G0T(:,:,:,i_wlk),G00(:,:,:,i_wlk), & 
-                    & GTT(:,:,:,i_wlk),PHASE(i_wlk), i_wlk, Z_weight)
+                    & GTT(:,:,:,i_wlk), i_wlk, Z_weight)
              enddo
              
              !! call svd
@@ -678,30 +653,26 @@
 
         END SUBROUTINE bp_measure_tau
         
-        SUBROUTINE half_K_propagation( phi_trial, phi_0, GR, phase, i_wlk )
+        SUBROUTINE half_K_propagation( phi_trial, phi_0, GR, i_wlk )
           
           Implicit none
      
           CLASS(UDV_State), INTENT(IN   ) :: phi_trial(N_FL)
           CLASS(UDV_State), INTENT(INOUT) :: phi_0    (N_FL)
           COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT) :: GR(Ndim,Ndim,N_FL)
-          COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT) :: phase
           Integer, INTENT(IN) :: i_wlk
           
           ! local
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR
           Complex (Kind=Kind(0.d0)) :: Overlap_old, Overlap_new, log_O_new, log_O_old, Z
-          Complex (Kind=Kind(0.d0)) :: phase_new, phase_old
-          COMPLEX (Kind=Kind(0.d0)) :: Phase_array(N_FL), Det_Vec(N_FL)
-          Real    (Kind=Kind(0.d0)) :: Overlap_ratio
+          COMPLEX (Kind=Kind(0.d0)) :: Det_Vec(N_FL)
+          Real    (Kind=Kind(0.d0)) :: overlap_ratio, re_overlap
           Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8
           
-          call Compute_overlap(Phase_array, Det_Vec, phi_0, phi_trial)
+          call Compute_overlap(Det_Vec, phi_0, phi_trial)
           Det_Vec(:) = Det_Vec(:) * N_SUN
-          if (reconstruction_needed) call ham%weight_reconstruction(Det_Vec    )
-          if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
+          if (reconstruction_needed) call ham%weight_reconstruction(Det_Vec)
           log_O_old = sum(Det_Vec) 
-          Phase_old = product(Phase_array)**dble(N_SUN)
 
           Do nf_eff = 1,N_FL_eff
              nf=Calc_Fl_map(nf_eff)
@@ -709,27 +680,21 @@
           enddo
           
           ! Update Green's function
-          NVAR = 1
           do nf_eff = 1,N_Fl_eff
              nf=Calc_Fl_map(nf_eff)
-             call CGR(Z, NVAR, GR(:,:,nf), phi_0(nf_eff), phi_trial(nf_eff))
-             Phase_array(nf)=Z
+             call CGRP(Z, GR(:,:,nf), phi_0(nf_eff), phi_trial(nf_eff))
           enddo
-          if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
 
-          call Compute_overlap(Phase_array, Det_Vec, phi_0, phi_trial)
+          call Compute_overlap(Det_Vec, phi_0, phi_trial)
           Det_Vec(:) = Det_Vec(:) * N_SUN
-          if (reconstruction_needed) call ham%weight_reconstruction(Det_Vec    )
-          if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
+          if (reconstruction_needed) call ham%weight_reconstruction(Det_Vec)
           log_O_new = sum(Det_Vec) 
-          Phase_new = product(Phase_array)**dble(N_SUN)
-          
-          Phase=Phase*(Phase_new/Phase_old)
 
-          overlap_ratio = real(exp(log_O_new-log_O_old), kind(0.d0))
-          if ( overlap_ratio .gt. Zero ) then
-              overlap (i_wlk) = log_O_new
-              weight_k(i_wlk) = weight_k(i_wlk)*Overlap_ratio
+          overlap_ratio = exp(log_O_new-log_O_old)
+          re_overlap    = dble( overlap_ratio )
+          if ( re_overlap .gt. zero ) then
+              overlap (i_wlk) = overlap (i_wlk) + (log_o_new - log_o_old)
+              weight_k(i_wlk) = weight_k(i_wlk)*re_overlap
           else
               weight_k(i_wlk) = 0.d0
           endif
@@ -916,9 +881,9 @@
           ! LOCAL
           CHARACTER (LEN=64) :: FILE_TG, filename
           Complex (Kind=Kind(0.d0)), pointer :: phi0_out(:,:,:,:)
-          Complex (Kind=Kind(0.d0)), pointer :: phasef_out(:)
+          Complex (Kind=Kind(0.d0)), pointer :: overlap_out(:)
           Real    (Kind=Kind(0.d0)), pointer :: weight_out(:)
-          Complex (Kind=Kind(0.d0)), allocatable :: pf_tmp(:), p0_tmp(:,:,:,:), p1_tmp(:,:,:,:)
+          Complex (Kind=Kind(0.d0)), allocatable :: otphi_tmp(:), p0_tmp(:,:,:,:), p1_tmp(:,:,:,:)
           Real    (Kind=Kind(0.d0)), allocatable :: wt_tmp(:)
 
           INTEGER             :: K, hdferr, rank, nf, nw, n_part, i0, i1, i2, i_st, i_ed, Ndt, ii
@@ -945,13 +910,13 @@
           
           if (irank_g .eq. 0 ) then
               allocate(phi0_out(ndim,n_part,n_fl_eff,n_wlk_mpi))
-              allocate(weight_out(N_wlk_mpi), phasef_out(N_wlk_mpi))
+              allocate(weight_out(N_wlk_mpi), overlap_out(N_wlk_mpi))
           endif
 
           allocate(p0_tmp(ndim,n_part,n_fl_eff,n_wlk))
           allocate(p1_tmp(ndim,n_part,n_fl_eff,n_wlk))
           allocate(wt_tmp(N_wlk))
-          allocate(pf_tmp(N_wlk))
+          allocate(otphi_tmp(N_wlk))
 
           do nf = 1, N_FL_eff
           do nw = 1, N_wlk
@@ -960,7 +925,7 @@
           enddo
           
           if ( irank_g .ne. 0 ) then
-              call mpi_send(phase_alpha,N_wlk,mpi_complex16, 0, 0, MPI_COMM_WORLD,IERR)
+              call mpi_send(overlap    ,N_wlk,mpi_complex16, 0, 0, MPI_COMM_WORLD,IERR)
               call mpi_send(weight_k   ,N_wlk,    mpi_real8, 0, 1, MPI_COMM_WORLD,IERR)
               Ndt=N_FL_eff*N_wlk*ndim*n_part
               call mpi_send(p0_tmp     ,  Ndt,mpi_complex16, 0, 2, MPI_COMM_WORLD,IERR)
@@ -969,8 +934,8 @@
                 i_st=ii*N_wlk+1
                 i_ed=(ii+1)*N_wlk
 
-                call mpi_recv(pf_tmp,N_wlk,mpi_complex16, ii, 0, MPI_COMM_WORLD,STATUS,IERR)
-                phasef_out(i_st:i_ed) = pf_tmp(:)
+                call mpi_recv(otphi_tmp,N_wlk,mpi_complex16, ii, 0, MPI_COMM_WORLD,STATUS,IERR)
+                overlap_out(i_st:i_ed) = otphi_tmp(:)
                 call mpi_recv(wt_tmp,N_wlk,    mpi_real8, ii, 1, MPI_COMM_WORLD,STATUS,IERR)
                 weight_out(i_st:i_ed) = wt_tmp(:)
                 Ndt=N_FL_eff*N_wlk*ndim*n_part
@@ -982,8 +947,8 @@
           if ( irank_g .eq. 0 ) then
               i_st=1
               i_ed=N_wlk
-              weight_out(i_st:i_ed) = weight_k(:)
-              phasef_out(i_st:i_ed) = phase_alpha(:)
+              weight_out (i_st:i_ed) = weight_k(:)
+              overlap_out(i_st:i_ed) = overlap(:)
               phi0_out(:,:,:,i_st:i_ed)=p0_tmp
           endif
 
@@ -994,8 +959,8 @@
               CALL h5open_f(ierr)
               CALL h5fcreate_f(filename, H5F_ACC_TRUNC_F, file_id, hdferr)
               
-              !Create and write dataset for field phase
-              dset_name = "phasef"
+              !Create and write dataset for field overlap
+              dset_name = "overlap"
               rank = 2
               allocate( dims(2), dimsc(2) )
               dims  = [2, N_wlk_mpi]
@@ -1010,7 +975,7 @@
               !Create a dataset using cparms creation properties.
               CALL h5dcreate_f(file_id, dset_name, H5T_NATIVE_DOUBLE, space_id, &
                               dset_id, hdferr, crp_list )
-              dat_ptr = C_LOC(phasef_out(1))
+              dat_ptr = C_LOC(overlap_out(1))
               CALL h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
               !Close objects
               deallocate( dims, dimsc )
@@ -1073,11 +1038,11 @@
               !open file
               CALL h5fopen_f (filename, H5F_ACC_RDWR_F, file_id, hdferr)
 
-              !open and write field phase
-              dset_name = "phasef"
+              !open and write field overlap
+              dset_name = "overlap"
               !Open the  dataset.
               CALL h5dopen_f(file_id, dset_name, dset_id, hdferr)
-              dat_ptr = C_LOC(phasef_out(1))
+              dat_ptr = C_LOC(overlap_out(1))
               !Write data
               CALL H5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
               !close objects
@@ -1110,9 +1075,9 @@
          endif !irank 0
 
          if (irank_g .eq. 0 ) then
-             deallocate(phi0_out, weight_out, phasef_out)
+             deallocate(phi0_out, weight_out, overlap_out)
          endif
-         deallocate(p0_tmp, p1_tmp, wt_tmp, pf_tmp)
+         deallocate(p0_tmp, p1_tmp, wt_tmp, otphi_tmp)
 
         END SUBROUTINE wavefunction_out_hdf5
 
@@ -1133,9 +1098,9 @@
           ! LOCAL
           CHARACTER (LEN=64) :: filename
           Complex (Kind=Kind(0.d0)), pointer :: phi0_out(:,:,:,:)
-          Complex (Kind=Kind(0.d0)), pointer :: phasef_out(:)
+          Complex (Kind=Kind(0.d0)), pointer :: overlap_out(:)
           Real    (Kind=Kind(0.d0)), pointer :: weight_out(:)
-          Complex (Kind=Kind(0.d0)), allocatable :: pf_tmp(:), p0_tmp(:,:,:,:), p1_tmp(:,:,:,:)
+          Complex (Kind=Kind(0.d0)), allocatable :: otphi_tmp(:), p0_tmp(:,:,:,:), p1_tmp(:,:,:,:)
           Real    (Kind=Kind(0.d0)), allocatable :: wt_tmp(:)
 
           INTEGER             :: K, hdferr, rank, nf, nw, n_part, i0, i1, i2, i_st, i_ed, Ndt, ii, nwalk_in
@@ -1162,15 +1127,15 @@
           allocate(p0_tmp(ndim,n_part,n_fl_eff,n_wlk))
           allocate(p1_tmp(ndim,n_part,n_fl_eff,n_wlk))
           allocate(wt_tmp(N_wlk))
-          allocate(pf_tmp(N_wlk))
+          allocate(otphi_tmp(N_wlk))
           
           if ( irank .eq. 0 ) then
 
               !open file
               CALL h5fopen_f (filename, H5F_ACC_RDWR_F, file_id, hdferr)
 
-              !open and read field phase
-              dset_name = "phasef"
+              !open and read field overlap
+              dset_name = "overlap"
               !Open the  dataset.
               CALL h5dopen_f(file_id, dset_name, dset_id, hdferr)
               !Get dataset's dataspace handle.
@@ -1183,9 +1148,9 @@
               nwalk_in=dims(rank)
               !! allocate !!
               allocate(phi0_out(ndim,n_part,n_fl_eff,nwalk_in))
-              allocate(weight_out(nwalk_in), phasef_out(nwalk_in))
+              allocate(weight_out(nwalk_in), overlap_out(nwalk_in))
               !!-----------!!
-              dat_ptr = C_LOC(phasef_out(1))
+              dat_ptr = C_LOC(overlap_out(1))
               CALL h5dread_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
               !close dataspace
               CALL h5sclose_f(dataspace, hdferr)
@@ -1223,8 +1188,8 @@
                i_st=ii*N_wlk+1
                i_ed=(ii+1)*N_wlk
                
-               pf_tmp(:)=phasef_out(i_st:i_ed)
-               call mpi_send(pf_tmp,N_wlk,mpi_complex16, ii, 0, MPI_COMM_WORLD,IERR)
+               otphi_tmp(:)=overlap_out(i_st:i_ed)
+               call mpi_send(otphi_tmp,N_wlk,mpi_complex16, ii, 0, MPI_COMM_WORLD,IERR)
                wt_tmp(:)=weight_out(i_st:i_ed)
                call mpi_send(wt_tmp,N_wlk,    mpi_real8, ii, 1, MPI_COMM_WORLD,IERR)
                Ndt=N_FL_eff*N_wlk*ndim*n_part
@@ -1232,8 +1197,8 @@
                call mpi_send(p1_tmp,  Ndt,mpi_complex16, ii, 2, MPI_COMM_WORLD,IERR)
             ENDDO
          else
-            call mpi_recv(pf_tmp,N_wlk,mpi_complex16, 0, 0, MPI_COMM_WORLD,STATUS,IERR)
-            phase_alpha(:) = pf_tmp(:)
+            call mpi_recv(otphi_tmp,N_wlk,mpi_complex16, 0, 0, MPI_COMM_WORLD,STATUS,IERR)
+            overlap(:) = otphi_tmp(:)
             call mpi_recv(wt_tmp,N_wlk,    mpi_real8, 0, 1, MPI_COMM_WORLD,STATUS,IERR)
             weight_k(:)    = wt_tmp(:)
             Ndt=N_FL_eff*N_wlk*ndim*n_part
@@ -1250,8 +1215,8 @@
              i_ed=N_wlk
              p0_tmp=phi0_out(:,:,:,i_st:i_ed)
              
-             weight_k(:)    = weight_out(i_st:i_ed)
-             phase_alpha(:) = phasef_out(i_st:i_ed)
+             weight_k(:) = weight_out(i_st:i_ed)
+             overlap (:) = overlap_out(i_st:i_ed)
              do nf = 1, N_FL_eff
              do nw = 1, N_wlk
                  phi_0(nf,nw)%U(:,:)=p0_tmp(:,:,nf,nw)
@@ -1260,9 +1225,9 @@
          endif
 
          if (irank_g .eq. 0 ) then
-             deallocate(phi0_out, weight_out, phasef_out)
+             deallocate(phi0_out, weight_out, overlap_out)
          endif
-         deallocate(p0_tmp, p1_tmp, wt_tmp, pf_tmp)
+         deallocate(p0_tmp, p1_tmp, wt_tmp, otphi_tmp)
 
         END SUBROUTINE wavefunction_in_hdf5
 

@@ -112,7 +112,6 @@
           call read_parameters()
 
           allocate( weight_k   (N_wlk) )
-          allocate( phase_alpha(N_wlk) )
           allocate( overlap    (N_wlk) )
           N_wlk_mpi=N_wlk*isize_g
 
@@ -391,16 +390,12 @@
 !> \verbatim
 !>  Green function: Gr(I,J,nf) = <c_{I,nf } c^{dagger}_{J,nf } > on time slice ntau
 !> \endverbatim
-!> @param [IN] Phase   Complex
-!> \verbatim
-!>  Phase
-!> \endverbatim
 !> @param [IN] Ntau Integer
 !> \verbatim
 !>  Time slice
 !> \endverbatim
 !-------------------------------------------------------------------
-        subroutine Obser(GR,GR_mix,Phase,i_wlk,sum_w)
+        subroutine Obser(GR,GR_mix,i_wlk,sum_w)
 
           Use Predefined_Obs
 
@@ -408,17 +403,16 @@
 
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR_mix(Ndim,Ndim,N_FL)
-          Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE, sum_w
+          Complex (Kind=Kind(0.d0)), Intent(IN) :: sum_w
           Integer, Intent(IN) :: i_wlk
 
           !Local
-          Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK, PHASE_T, invsumw, zone, ztmp
+          Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK, invsumw, zone, ztmp
           Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP,ZS, ZZ, ZXY, ZW, Re_ZW, Z_fac
           Integer :: I,J, imj, nf, dec, I1, J1, no_I, no_J,n, nc
           Real    (Kind=Kind(0.d0)) :: X
 
-          PHASE_T = PHASE * PHASE_ALPHA(i_wlk)
-          ZP      = PHASE_T/Real(Phase_T, kind(0.D0))
+          ZP    = 1.d0
           Re_ZW = cmplx(weight_k(i_wlk),0.d0,kind(0.d0))
           ZW    = Re_ZW*ZP
           Z_fac = ZW/sum_w*dble(N_wlk_mpi)
@@ -517,12 +511,8 @@
 !>  G00(I,J,nf) = <T c_{I,nf }(0  ) c^{dagger}_{J,nf }(0  )>
 !>  GTT(I,J,nf) = <T c_{I,nf }(tau) c^{dagger}_{J,nf }(tau)>
 !> \endverbatim
-!> @param [IN] Phase   Complex
-!> \verbatim
-!>  Phase
-!> \endverbatim
 !-------------------------------------------------------------------
-        Subroutine ObserT(NT,  GT0,G0T,G00,GTT, Phase,i_wlk,sum_w)
+        Subroutine ObserT(NT,  GT0,G0T,G00,GTT, i_wlk,sum_w)
 
           Use Predefined_Obs
 
@@ -530,16 +520,15 @@
 
           Integer         , INTENT(IN) :: NT
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: GT0(Ndim,Ndim,N_FL),G0T(Ndim,Ndim,N_FL),G00(Ndim,Ndim,N_FL),GTT(Ndim,Ndim,N_FL)
-          Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE, sum_w
+          Complex (Kind=Kind(0.d0)), Intent(IN) :: sum_w
           Integer, Intent(IN) :: i_wlk
           
           !Locals
-          Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY, ZW, Re_ZW, PHASE_T, Z_fac
+          Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY, ZW, Re_ZW, Z_fac
           Real    (Kind=Kind(0.d0)) :: X
           Integer :: IMJ, I, J, I1, J1, no_I, no_J
 
-          PHASE_T = PHASE * PHASE_ALPHA(i_wlk)
-          ZP      = PHASE_T/Real(Phase_T, kind(0.D0))
+          ZP    = 1.d0
           Re_ZW = cmplx(weight_k(i_wlk),0.d0,kind(0.d0))
           ZW    = Re_ZW*ZP
           Z_fac = ZW/sum_w*dble(N_wlk_mpi)
@@ -615,15 +604,13 @@
 
       end function E0_local
 
-      Complex (Kind=Kind(0.d0)) function sum_weight(PHASE)
+      Complex (Kind=Kind(0.d0)) function sum_weight
         Implicit none
-         
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(IN) :: phase
         
         !local
         Integer                   :: i_wlk
         Real    (Kind=Kind(0.d0)) :: X1, tot_re_weight
-        Complex (Kind=Kind(0.d0)) :: Z1, Z2, PHASE_T, ZP, wtmp
+        Complex (Kind=Kind(0.d0)) :: Z1, Z2, ZP, wtmp
 
 #ifdef MPI
         Integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
@@ -638,8 +625,7 @@
         Z1 = cmplx(0.d0, 0.d0, kind(0.d0))
         Z2 = cmplx(0.d0, 0.d0, kind(0.d0))
         do i_wlk  = 1, N_wlk
-            PHASE_T = PHASE(i_wlk) * PHASE_ALPHA(i_wlk)
-            ZP      = PHASE_T/Real(Phase_T, kind(0.D0))
+            ZP      = 1.d0
             wtmp    = cmplx(weight_k(i_wlk), 0.d0, kind(0.d0))
             Z1 = Z1 + wtmp*ZP
         enddo
@@ -650,17 +636,16 @@
         
       end function sum_weight
       
-      Subroutine update_fac_norm(GR, ntw, phase)
+      Subroutine update_fac_norm(GR, ntw)
         Implicit none
          
         Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL,N_wlk)
         Integer                  , INTENT(IN) :: ntw
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:), Allocatable, INTENT(IN) :: phase
         
         !local
         Integer                   :: i_wlk
         Real    (Kind=Kind(0.d0)) :: X1, tot_re_weight
-        Complex (Kind=Kind(0.d0)) :: tot_ene, Z1, Z2, tot_c_weight, phase_T, ZP, wtmp, el_tmp
+        Complex (Kind=Kind(0.d0)) :: tot_ene, Z1, Z2, tot_c_weight, ZP, wtmp, el_tmp
         CHARACTER (LEN=64)  :: filename 
 
 #ifdef MPI
@@ -679,21 +664,20 @@
         tot_c_weight  = cmplx(0.d0,0.d0,kind(0.d0))
         tot_re_weight = 0.d0
         do i_wlk  = 1, N_wlk
-            PHASE_T       = PHASE(i_wlk) * PHASE_ALPHA(i_wlk)
-            ZP     = cmplx(1.d0,0.d0, kind(0.D0))
+            ZP     = 1.d0
             wtmp   = weight_k(i_wlk)
             el_tmp = dble(ham%E0_local(GR(:,:,:,i_wlk)))
             tot_ene       = tot_ene + el_tmp*wtmp*ZP
             tot_c_weight  = tot_c_weight  + wtmp*ZP
-            tot_re_weight = tot_re_weight + wtmp
         enddo
-        CALL MPI_REDUCE(tot_ene      ,Z1,1,MPI_COMPLEX16,MPI_SUM, 0,Group_comm,IERR)
-        CALL MPI_REDUCE(tot_c_weight ,Z2,1,MPI_COMPLEX16,MPI_SUM, 0,Group_comm,IERR)
-        CALL MPI_REDUCE(tot_re_weight,X1,1,MPI_REAL8    ,MPI_SUM, 0,Group_comm,IERR)
+        tot_re_weight = dble( tot_c_weight )
+        
+        CALL MPI_REDUCE(tot_ene      ,z1,1,MPI_COMPLEX16,MPI_SUM, 0,Group_comm,IERR)
+        CALL MPI_REDUCE(tot_re_weight,x1,1,MPI_REAL8    ,MPI_SUM, 0,Group_comm,IERR)
 
         if (Irank_g == 0 ) then
-            !fac_norm= real(Z1, kind(0.d0))/X1
-            fac_norm= real(Z1/Z2, kind(0.d0))
+            z1 = z1/x1
+            fac_norm = dble(z1)
             OPEN (UNIT = 77, FILE=filename, STATUS='UNKNOWN', position="append")
             !write(77,*) ntw*dtau, real(z1, kind(0.d0))/x1/dtau
             write(77,*) ntw*dtau, real(z1/z2, kind(0.d0))/dtau

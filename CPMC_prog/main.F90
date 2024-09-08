@@ -11,7 +11,7 @@ Program Main
         Use Fields_mod
         Use WaveFunction_mod
         use iso_fortran_env, only: output_unit, error_unit
-        use cgr1_mod
+        use gfun_mod
         use set_random
         use stepwlk_mod
 
