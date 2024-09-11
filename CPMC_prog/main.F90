@@ -75,9 +75,22 @@ Program Main
         
         If (  Irank == 0 ) then
 #endif
-           write (*,*) "ALF Copyright (C) 2016 - 2022 The ALF project contributors"
-           write (*,*) "This Program comes with ABSOLUTELY NO WARRANTY; for details see license.GPL"
-           write (*,*) "This is free software, and you are welcome to redistribute it under certain conditions."
+            write(*,'(a)') ' ===================================================================================='
+            write(*,*)
+            write(*,'(a)') '          The auxiliary  field quantum monte carlo package                           '
+            write(*,*)
+            write(*,'(a)') '                 A      FFFFF   QQQ     M   M      CCCC                              '
+            write(*,'(a)') '                A A     F      Q   Q   M M M M    C                                  '
+            write(*,'(a)') '               AAAAA    FFFFF  Q   Q   M M M M    C                                  '
+            write(*,'(a)') '              A     A   F      Q   Q   M M M M    C                                  '
+            write(*,'(a)') '             A       A  F       QQQ   M   M   M    CCCC                              '
+            write(*,'(a)') '                                  \                                                  '
+            write(*,*)
+            write(*,*)
+            write(*,'(a)') '             written by Zihong Liu ( zihong.liu@tu-dresden.de )                      '
+            write(*,*)
+            write(*,'(a)') ' ------------------------------------------------------------------------------------'
+            write(*,*)
 
 #ifdef MPI
         endif
@@ -162,7 +175,7 @@ Program Main
              Calc_Fl_map(N_FL_eff)=I
           endif
         Enddo
-        
+
         File_seeds="seeds"
         Call Set_Random_number_Generator(File_seeds,Seed_in)
 
@@ -220,28 +233,25 @@ Program Main
               Write(50,'(" Prog will stop after hours:",2x,F8.4)') CPU_MAX
            endif
            Write(50,*) '# of interacting Ops per time slice : ', Size(OP_V,1)
-           
 #if defined(MPI)
            Write(50,*) 'Number of mpi-processes : ', isize_g
            if(use_mpi_shm) Write(50,*) 'Using mpi-shared memory in chunks of ', chunk_size_gb, 'GB.'
 #endif
-
 #if defined(STAB3)
            Write(50,*) 'STAB3 is defined '
 #endif
 #if defined(STABLOG)
            Write(50,*) 'LOG is defined '
 #endif
-
 #if defined(MPI)
         endif
 #endif
 
         Call ham%Alloc_obs(ltau)
 
-        Allocate( GR(NDIM,NDIM,N_FL,N_grc) )
-        Allocate( phi_trial(N_FL_eff, N_slat), phi_0   (N_FL_eff, N_wlk))
-        Allocate( phi_bp_l (N_FL_eff, N_slat), phi_bp_r(N_FL_eff, N_wlk))
+        allocate( gr(ndim,ndim,n_fl,n_grc) )
+        allocate( phi_trial(N_FL_eff, N_slat), phi_0   (N_FL_eff, N_wlk))
+        allocate( phi_bp_l (N_FL_eff, N_grc ), phi_bp_r(N_FL_eff, N_wlk))
 
         ! we require ltrot_bp >= nwrap and ltrot_bp <= N_blksteps
         If ( mod(ltrot_bp,nwrap) == 0  ) then

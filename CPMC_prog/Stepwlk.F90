@@ -9,229 +9,22 @@
         
         Contains
 
-        SUBROUTINE stepwlk_move( phi_trial, phi_0, GR, ntau_bp ) 
-          
-          Implicit none
-     
-          CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(IN)    :: phi_trial
-          CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_0
-          COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:,:), Allocatable, INTENT(INOUT) :: GR
-          Integer, INTENT(IN) :: ntau_bp
-
-          !Local 
-          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, N_op
-          Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
-          Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8
-
-          N_op     = Size(OP_V,1)
-
-          do i_wlk = 1, N_wlk
-             ! update weight by fac_norm
-             if ( weight_k(i_wlk) .gt. Zero ) weight_k(i_wlk)=weight_k(i_wlk)*exp(fac_norm)
-          enddo
-
-          call half_K_propagation( phi_trial, phi_0, GR )
-
-          !! propagate with interaction
-          call int_propagation( phi_trial, phi_0, GR )
-             
-          !! Kinetic part exp(-/Delta/tau T/2)
-          call half_K_propagation( phi_trial, phi_0, GR )
-
-        END SUBROUTINE stepwlk_move
-
-        subroutine int_propagation( phi_trial, phi_0, GR )
-          
-          Implicit none
-     
-          class(udv_state), intent(in   ), allocatable :: phi_trial(:,:)
-          class(udv_state), intent(inout), allocatable :: phi_0    (:,:)
-          complex (Kind=Kind(0.d0)), intent(inout), allocatable :: GR(:,:,:,:)
-
-          ! local
-          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, i_st, i_ed
-          Complex (Kind=Kind(0.d0)) :: Z
-          COMPLEX (Kind=Kind(0.d0)) :: det_Vec(N_FL)
-          Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8
-          
-          do i_wlk = 1, N_wlk
-          
-          if ( weight_k(i_wlk) .gt. Zero ) then
-
-             ! upgrade Green's function
-             do n = 1, N_op
-                
-                N_type = 2
-                do ns = 1, N_slat
-                   i_grc = ns+(i_wlk-1)*N_slat
-                   do nf_eff = 1,N_FL_eff
-                      nf=Calc_Fl_map(nf_eff)
-                      Call Op_Wrapdo( GR(:,:,nf,i_grc), Op_V(n,nf), 1.d0, Ndim, N_Type, 1)
-                   enddo
-                enddo
-
-                call Upgrade(GR, n, spin, i_wlk )
-                nsigma_bp(i_wlk)%f(n,ntau_bp) = spin
-
-                N_type = 2
-                do ns = 1, N_slat
-                   i_grc = ns+(i_wlk-1)*N_slat
-                   do nf_eff = 1,N_FL_eff
-                      nf=Calc_Fl_map(nf_eff)
-                      Call Op_Wrapup( Gr(:,:,nf,i_grc), Op_V(n,nf), 1.d0, Ndim, N_Type, 1 )
-                   enddo
-                enddo
-
-                ! propagate slater determinant
-                Do nf_eff = 1,N_FL_eff
-                    nf=Calc_Fl_map(nf_eff)
-                    Call Op_mmultR(phi_0(nf_eff,i_wlk)%U,Op_V(n,nf),spin,'n',1)
-                enddo
-             
-             enddo
-
-          endif
-
-          end do
-        
-        end subroutine int_propagation
-        
-        subroutine half_K_propagation( phi_trial, phi_0, GR )
-          
-          Implicit none
-     
-          class(udv_state), intent(in   ), allocatable :: phi_trial(:,:)
-          class(udv_state), intent(inout), allocatable :: phi_0    (:,:)
-          complex (Kind=Kind(0.d0)), intent(inout), allocatable :: GR(:,:,:,:)
-          
-          ! local
-          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, i_st, i_ed
-          Complex (Kind=Kind(0.d0)) :: Overlap_old, Overlap_new, Z, sum_o_new, sum_o_old
-          COMPLEX (Kind=Kind(0.d0)) :: det_Vec(N_FL), log_o_new(n_slat), log_o_old(n_slat), log_o_store(n_grc)
-          Real    (Kind=Kind(0.d0)) :: overlap_ratio, re_overlap
-          Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8
-          
-          log_o_store(:) = overlap(:)
-
-          do i_wlk = 1, N_wlk
-          
-          if ( weight_k(i_wlk) .gt. Zero ) then
-                
-             Do nf_eff = 1,N_FL_eff
-                nf=Calc_Fl_map(nf_eff)
-                Call Hop_mod_mmthr_1D2(phi_0(nf_eff)%U,nf,1)
-             enddo
-          
-             !! set the old log of overlap
-             i_st = 1+(i_wlk-1)*N_slat; i_ed = i_wlk*N_slat
-             log_o_old(:) = log_o_store(i_st:i_ed)
-
-             sum_o_new = 0.d0
-             sum_o_old = 0.d0
-             do ns = 1, N_slat
-                i_grc = ns+(i_wlk-1)*N_slat
-                ! Update Green's function
-                do nf_eff = 1,N_Fl_eff
-                   nf=Calc_Fl_map(nf_eff)
-                   call CGRP(Z, GR(:,:,nf,i_grc), phi_0(nf_eff,ns), phi_trial(nf_eff,i_wlk))
-                   det_vec(nf_eff) = Z
-                enddo
-                det_Vec(:) = det_Vec(:) * N_SUN
-                if (reconstruction_needed) call ham%weight_reconstruction(det_Vec)
-                log_O_new(ns) = sum(det_Vec)
-                sum_o_new = sum_o_new + exp(log_o_new(ns))
-                sum_o_old = sum_o_old + exp(log_o_old(ns))
-             enddo
-
-             overlap_ratio = sum_o_new/sum_o_old
-             re_overlap    = dble( overlap_ratio )
-             if ( re_overlap .gt. zero ) then
-                 overlap (i_st:i_ed) = log_o_new(:)
-                 weight_k(i_wlk) = weight_k(i_wlk)*re_overlap
-             else
-                 weight_k(i_wlk) = 0.d0
-             endif
-
-          endif
-
-          enddo
-
-        end subroutine half_K_propagation
-
-        subroutine re_orthonormalize_walkers(Phi_0, cop)
-          
-          CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_0
-          Character, Intent(IN)    :: cop
-          
-          !Local 
-          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, N_size, I, i_wlk
-          Integer :: ndistance, i_wlk_eff, i_st, i_ed
-          Real    (Kind=Kind(0.d0)) :: Overlap_ratio, Zero = 1.0E-8
-          Complex (Kind=Kind(0.d0)) :: Det_D(N_FL)
-
-          n_wlk_eff = size(phi_0,2)
-          ndistance = n_wlk_eff/n_wlk
-
-          do i_wlk_eff = 1, n_wlk_eff
-
-             i_wlk = (i_wlk_eff-1)/ndistance+1     ! index for walker
-             ns    = i_wlk_eff-(i_wlk-1)*ndistance ! index for slater det
-
-             if ( weight_k(i_wlk) .gt. Zero ) then
-
-                 N_size = phi_0(1,1)%n_part
-
-                 !Carry out U,D,V decomposition.
-                 Do nf_eff = 1, N_FL_eff
-                    nf=Calc_Fl_map(nf_eff)
-                    CALL Phi_0(nf_eff,i_wlk_eff)%decompose
-                 enddo
-                 
-                 Det_D = cmplx(0.d0, 0.d0, kind(0.d0))
-
-                 Do nf_eff = 1, N_FL_eff
-                    nf=Calc_Fl_map(nf_eff)
-                    DO I = 1,N_size
-                       Det_D(nf)=Det_D(nf)+log(Phi_0(nf_eff,i_wlk)%D(I))
-                    ENDDO
-                 enddo
-                 
-                 if (reconstruction_needed) call ham%weight_reconstruction(Det_D)
-
-                 Do nf_eff = 1, N_FL_eff
-                    Phi_0(nf_eff,i_wlk)%D(:) = cmplx(1.d0, 0.d0, kind(0.d0))
-                 enddo
-                 
-                 ! update the overlap when normal propagation
-                 if (cop == 'U') then
-                     i_st = (i_wlk_eff-1)*N_slat+1
-                     i_ed = i_wlk_eff*N_slat
-                     overlap(i_st:i_ed)=overlap(i_st:i_ed)-sum((Det_D)
-                 endif
-
-              endif
-
-          enddo
-
-        END SUBROUTINE re_orthonormalize_walkers
-        
-        SUBROUTINE initial_wlk( phi_trial, phi_0, phi_bp_l, phi_bp_r, udvst, STAB_Nt, GR, nwrap )
+        SUBROUTINE initial_wlk( phi_trial, phi_0, phi_bp_l, phi_bp_r, udvst, stab_nt, GR, nwrap )
 #ifdef MPI
           Use mpi
 #endif
-          
           Implicit none
      
-          CLASS(UDV_State), Dimension(:,:)  , ALLOCATABLE, INTENT(INOUT) :: phi_trial, phi_0, phi_bp_l, phi_bp_r
-          CLASS(UDV_State), Dimension(:,:,:), ALLOCATABLE, INTENT(INOUT) :: udvst
+          class(udv_state), Dimension(:,:)  , ALLOCATABLE, INTENT(INOUT) :: phi_trial, phi_0, phi_bp_l, phi_bp_r
+          class(udv_state), Dimension(:,:,:), ALLOCATABLE, INTENT(INOUT) :: udvst
           COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:,:), Allocatable, INTENT(INOUT) :: GR
-          INTEGER, dimension(:)    ,allocatable,  INTENT(INOUT) :: Stab_nt
+          INTEGER, dimension(:)    ,allocatable,  INTENT(INOUT) :: stab_nt
           INTEGER, INTENT(IN) :: nwrap
 
           !Local 
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, i_grc, NSTM, NST, ltrot_bp, ns
           Integer :: i_st, i_ed, ncslat
-          Complex (Kind=Kind(0.d0)) :: Overlap_old, Overlap_new, Z, Z1,Z2, tot_ene, ZP
+          Complex (Kind=Kind(0.d0)) :: overlap_old, overlap_new, Z, Z1,Z2, tot_ene, ZP
           Complex (Kind=Kind(0.d0)) :: tot_c_weight, el_tmp
           complex (Kind=Kind(0.d0)) :: det_Vec(N_FL)
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio, X1, wtmp
@@ -249,12 +42,12 @@
           igroup           = irank/isize_g
 #endif
 
-          NSTM = Size(udvst, 1)
+          nstm = Size(udvst, 1)
           ltrot_bp = size(nsigma_bp(1)%f,2)
-          tot_ene    = cmplx(0.d0,0.d0,kind(0.d0))
+          tot_ene  = cmplx(0.d0,0.d0,kind(0.d0))
           tot_re_weight = 0.d0
 
-          allocate ( Stab_nt(0:Nstm) )
+          allocate ( Stab_nt(0:nstm) )
           Stab_nt(0) = 0
           do n = 1,Nstm -1
              Stab_nt(n) = nwrap*n
@@ -269,16 +62,17 @@
              enddo
           enddo
           
-          do i_grc = 1, N_grc
-             i_wlk = (i_grc-1)/N_slat+1      ! index for walker
-             ns    = i_grc-(i_wlk-1)*N_slat  ! index for slater det
-             do nf_eff = 1, N_FL_eff
-                nf=Calc_Fl_map(nf_eff)
-                do n = 1, nstm
-                   CALL udvst(n,nf_eff, i_grc)%alloc(ndim)
-                ENDDO
-                CALL phi_trial(nf_eff, i_grc)%init(ndim,'l',WF_L(ns,nf)%P)
-                CALL phi_bp_l (nf_eff, i_grc)%init(ndim,'l',WF_L(ns,nf)%P)
+          do ns = 1, N_slat
+             call phi_trial(nf_eff, ns)%init(ndim,'l',WF_L(ns,nf)%P)
+             do i_wlk = 1, N_wlk
+                i_grc = ns+(i_wlk-1)*N_slat
+                do nf_eff = 1, N_FL_eff
+                   nf=Calc_Fl_map(nf_eff)
+                   do n = 1, nstm
+                      CALL udvst(n,nf_eff, i_grc)%alloc(ndim)
+                   ENDDO
+                   CALL phi_bp_l(nf_eff, i_grc)%init(ndim,'l',WF_L(ns,nf)%P)
+                enddo
              enddo
           enddo
           
@@ -306,12 +100,12 @@
 
                  do nf_eff = 1,N_Fl_eff
                     nf=Calc_Fl_map(nf_eff)
-                    call CGRP(Z, GR(:,:,nf,i_grc), phi_0(nf_eff,i_wlk), phi_trial(nf_eff,i_grc))
+                    call CGRP(Z, GR(:,:,nf,i_grc), phi_0(nf_eff,i_wlk), phi_trial(nf_eff,ns))
                     det_vec(nf_eff) = Z
                  enddo
                  det_Vec(:) = det_Vec(:) * N_SUN
                  if (reconstruction_needed) call ham%weight_reconstruction(det_Vec)
-                 overlap(i_grc) = sum(det_vec)
+                 IF ( .not. LCONF_H5) overlap(i_grc) = sum(det_vec)
              enddo
           enddo
 
@@ -362,6 +156,221 @@
 
         END SUBROUTINE initial_wlk
 
+        SUBROUTINE stepwlk_move( phi_trial, phi_0, GR, ntau_bp ) 
+          
+          Implicit none
+     
+          CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(IN)    :: phi_trial
+          CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_0
+          COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:,:), Allocatable, INTENT(INOUT) :: GR
+          Integer, INTENT(IN) :: ntau_bp
+
+          !Local 
+          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, N_op
+          Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
+          Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8
+
+          N_op = Size(OP_V,1)
+
+          do i_wlk = 1, N_wlk
+             ! update weight by fac_norm
+             if ( weight_k(i_wlk) .gt. Zero ) weight_k(i_wlk)=weight_k(i_wlk)*exp(fac_norm)
+          enddo
+
+          call half_K_propagation( phi_trial, phi_0, GR )
+
+          !! propagate with interaction
+          call int_propagation( phi_0, GR )
+             
+          !! Kinetic part exp(-/Delta/tau T/2)
+          call half_K_propagation( phi_trial, phi_0, GR )
+
+        END SUBROUTINE stepwlk_move
+
+        subroutine int_propagation( phi_0, GR )
+          
+          Implicit none
+     
+          class(udv_state), intent(inout), allocatable :: phi_0    (:,:)
+          complex (Kind=Kind(0.d0)), intent(inout), allocatable :: GR(:,:,:,:)
+
+          ! local
+          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, i_st, i_ed
+          Complex (Kind=Kind(0.d0)) :: Z, z_alpha
+          COMPLEX (Kind=Kind(0.d0)) :: det_Vec(N_FL)
+          Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8
+          
+          do i_wlk = 1, N_wlk
+          
+          if ( weight_k(i_wlk) .gt. Zero ) then
+
+             ! upgrade Green's function
+             z_alpha = 0.d0
+             do n = 1, N_op
+                
+                N_type = 2
+                do ns = 1, N_slat
+                   i_grc = ns+(i_wlk-1)*N_slat
+                   do nf_eff = 1,N_FL_eff
+                      nf=Calc_Fl_map(nf_eff)
+                      Call Op_Wrapdo( GR(:,:,nf,i_grc), Op_V(n,nf), 1.d0, Ndim, N_Type, 1)
+                   enddo
+                enddo
+
+                call Upgrade(GR, n, spin, i_wlk )
+                nsigma_bp(i_wlk)%f(n,ntau_bp) = spin
+
+                N_type = 2
+                do ns = 1, N_slat
+                   i_grc = ns+(i_wlk-1)*N_slat
+                   do nf_eff = 1,N_FL_eff
+                      nf=Calc_Fl_map(nf_eff)
+                      Call Op_Wrapup( Gr(:,:,nf,i_grc), Op_V(n,nf), 1.d0, Ndim, N_Type, 1 )
+                   enddo
+                enddo
+
+                ! propagate slater determinant
+                Do nf_eff = 1,N_FL_eff
+                    nf=Calc_Fl_map(nf_eff)
+                    Call Op_mmultR(phi_0(nf_eff,i_wlk)%U,Op_V(n,nf),spin,'n',1)
+                    ! store alpha factor in z_alpha
+                    z_alpha = z_alpha + &
+                        & op_v(n_op,nf)%g*op_v(n_op,nf)%alpha*nsigma_bp(i_wlk)%Phi(n,ntau_bp)
+                enddo
+             
+             enddo
+
+             ! rescale U matrix with z_alpha factor
+             Do nf_eff = 1,N_FL_eff
+                 nf=Calc_Fl_map(nf_eff)
+                 phi_0(nf_eff,i_wlk)%U(:,:) = exp(z_alpha)*phi_0(nf_eff,i_wlk)%U(:,:) 
+             enddo
+
+          endif
+
+          end do
+        
+        end subroutine int_propagation
+        
+        subroutine half_K_propagation( phi_trial, phi_0, GR )
+          
+          implicit none
+     
+          class(udv_state), intent(in   ), allocatable :: phi_trial(:,:)
+          class(udv_state), intent(inout), allocatable :: phi_0    (:,:)
+          complex (Kind=Kind(0.d0)), intent(inout), allocatable :: GR(:,:,:,:)
+          
+          ! local
+          integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, i_st, i_ed
+          complex (Kind=Kind(0.d0)) :: Overlap_old, Overlap_new, Z, sum_o_new, sum_o_old
+          complex (Kind=Kind(0.d0)) :: det_Vec(N_FL), log_o_new(n_slat), log_o_old(n_slat), log_o_store(n_grc)
+          real    (Kind=Kind(0.d0)) :: overlap_ratio, re_overlap
+          real    (Kind=Kind(0.d0)) :: zero = 1.0E-8
+          
+          log_o_store(:) = overlap(:)
+
+          do i_wlk = 1, N_wlk
+          
+          if ( weight_k(i_wlk) .gt. zero ) then
+                
+             Do nf_eff = 1,N_FL_eff
+                nf=Calc_Fl_map(nf_eff)
+                Call Hop_mod_mmthr_1D2(phi_0(nf_eff,i_wlk)%U,nf,1)
+             enddo
+          
+             !! set the old log of overlap
+             i_st = 1+(i_wlk-1)*N_slat; i_ed = i_wlk*N_slat
+             log_o_old(:) = log_o_store(i_st:i_ed)
+
+             sum_o_new = 0.d0
+             sum_o_old = 0.d0
+             do ns = 1, N_slat
+                i_grc = ns+(i_wlk-1)*N_slat
+                ! Update Green's function
+                do nf_eff = 1,N_Fl_eff
+                   nf=Calc_Fl_map(nf_eff)
+                   call CGRP(Z, GR(:,:,nf,i_grc), phi_0(nf_eff,i_wlk), phi_trial(nf_eff,ns))
+                   det_vec(nf) = Z
+                enddo
+                det_Vec(:) = det_Vec(:) * N_SUN
+                if (reconstruction_needed) call ham%weight_reconstruction(det_Vec)
+                log_o_new(ns) = sum(det_Vec)
+                sum_o_new = sum_o_new + exp(log_o_new(ns))
+                sum_o_old = sum_o_old + exp(log_o_old(ns))
+             enddo
+
+             overlap_ratio = sum_o_new/sum_o_old
+             re_overlap    = dble( overlap_ratio )
+             if ( re_overlap .gt. zero ) then
+                 overlap (i_st:i_ed) = log_o_new(:)
+                 weight_k(i_wlk) = weight_k(i_wlk)*re_overlap
+             else
+                 weight_k(i_wlk) = 0.d0
+             endif
+
+          endif
+
+          enddo
+
+        end subroutine half_K_propagation
+
+        subroutine re_orthonormalize_walkers(Phi_0, cop)
+          
+          CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_0
+          Character, Intent(IN)    :: cop
+          
+          !Local 
+          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, N_size, I, i_wlk
+          Integer :: ndistance, i_wlk_eff, i_st, i_ed
+          Real    (Kind=Kind(0.d0)) :: Overlap_ratio, Zero = 1.0E-8
+          Complex (Kind=Kind(0.d0)) :: det_D(N_FL)
+
+          n_wlk_eff = size(phi_0,2)
+          ndistance = n_wlk_eff/n_wlk
+
+          do i_wlk_eff = 1, n_wlk_eff
+
+             i_wlk = (i_wlk_eff-1)/ndistance+1     ! index for walker
+             ns    = i_wlk_eff-(i_wlk-1)*ndistance ! index for slater det
+
+             if ( weight_k(i_wlk) .gt. Zero ) then
+
+                 N_size = phi_0(1,1)%n_part
+
+                 !Carry out U,D,V decomposition.
+                 Do nf_eff = 1, N_FL_eff
+                    nf=Calc_Fl_map(nf_eff)
+                    CALL Phi_0(nf_eff,i_wlk_eff)%decompose
+                 enddo
+                 
+                 Det_D = cmplx(0.d0, 0.d0, kind(0.d0))
+
+                 Do nf_eff = 1, N_FL_eff
+                    nf=Calc_Fl_map(nf_eff)
+                    DO I = 1,N_size
+                       det_D(nf)=det_D(nf)+log(Phi_0(nf_eff,i_wlk)%D(I))
+                    ENDDO
+                 enddo
+                 
+                 if (reconstruction_needed) call ham%weight_reconstruction(Det_D)
+
+                 Do nf_eff = 1, N_FL_eff
+                    Phi_0(nf_eff,i_wlk)%D(:) = cmplx(1.d0, 0.d0, kind(0.d0))
+                 enddo
+                 
+                 ! update the overlap when normal propagation
+                 if (cop == 'U') then
+                     i_st = (i_wlk_eff-1)*N_slat+1
+                     i_ed = i_wlk_eff*N_slat
+                     overlap(i_st:i_ed)=overlap(i_st:i_ed)-sum((Det_D)
+                 endif
+
+              endif
+
+          enddo
+
+        END SUBROUTINE re_orthonormalize_walkers
+        
         SUBROUTINE population_control( phi_0, phi_bp_r ) 
 #ifdef MPI
           Use mpi
@@ -573,7 +582,9 @@
         END SUBROUTINE store_phi
 
         SUBROUTINE backpropagation( GR_mix, phi_bp_l, phi_bp_r, udvst, Stab_nt, ltau )
-          
+#ifdef MPI
+          Use mpi
+#endif
           Implicit none
      
           COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:,:), Allocatable, INTENT(IN) :: GR_mix
@@ -589,6 +600,16 @@
           Complex (Kind=Kind(0.d0)) :: z, z_weight, z_sum_overlap, exp_overlap(N_slat)
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
           Real (Kind=Kind(0.d0))    :: Zero = 1.0E-8
+
+#ifdef MPI
+          Integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
+          Integer        :: STATUS(MPI_STATUS_SIZE)
+          CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
+          CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+          call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+          call MPI_Comm_size(Group_Comm, isize_g, ierr)
+          igroup           = irank/isize_g
+#endif
 
           N_op     = Size(OP_V,1)
           ltrot_bp = size(nsigma_bp(1)%f, 2)
@@ -653,7 +674,7 @@
           z_weight = ham%sum_weight
 
           !! equal time measurement
-          act_mea = 0
+          act_mea = 0 + irank
           do i_wlk = 1, N_wlk
              i_st = 1+(i_wlk-1)*N_slat; i_ed = i_wlk*N_slat
              exp_overlap(:) = exp(overlap(i_st:i_ed))
@@ -678,7 +699,9 @@
         END SUBROUTINE backpropagation
 
         subroutine bp_measure_tau(phi_bp_l, phi_bp_r, udvst, stab_nt )
-          
+#ifdef MPI
+          Use mpi
+#endif
           Implicit none
      
           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_bp_l, phi_bp_r
@@ -693,6 +716,16 @@
           Complex (Kind=Kind(0.d0)) :: Z, Z_weight, DETZ, z_sum_overlap, exp_overlap(N_slat)
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
           Real (Kind=Kind(0.d0))    :: Zero = 1.0E-8
+
+#ifdef MPI
+          Integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
+          Integer        :: STATUS(MPI_STATUS_SIZE)
+          CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
+          CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+          call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+          call MPI_Comm_size(Group_Comm, isize_g, ierr)
+          igroup           = irank/isize_g
+#endif
 
           !! initialization
           N_op     = Size(OP_V,1)
@@ -724,7 +757,7 @@
           enddo
           
           ntau = 0
-          act_mea = 0
+          act_mea = 0 + irank
           do i_wlk = 1, N_wlk
              i_st = 1+(i_wlk-1)*N_slat; i_ed = i_wlk*N_slat
              exp_overlap(:) = exp(overlap(i_st:i_ed))
@@ -1040,10 +1073,9 @@
           Use hdf5
           use h5lt
 #endif
-          
           Implicit none
      
-          CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(IN) :: phi_0
+          class(udv_state), Dimension(:,:), ALLOCATABLE, INTENT(IN) :: phi_0
 
           ! LOCAL
           CHARACTER (LEN=64) :: FILE_TG, filename
@@ -1091,7 +1123,7 @@
               p0_tmp(:,:,nf,nw)=phi_0(nf,nw)%U(:,:)
           enddo
           enddo
-          
+
           if ( irank_g .ne. 0 ) then
               call mpi_send(overlap    ,N_grc,mpi_complex16, 0, 0, MPI_COMM_WORLD,IERR)
               call mpi_send(weight_k   ,N_wlk,    mpi_real8, 0, 1, MPI_COMM_WORLD,IERR)

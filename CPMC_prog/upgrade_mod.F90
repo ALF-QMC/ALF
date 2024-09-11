@@ -116,9 +116,9 @@ module upgrade_mod
                if (reconstruction_needed) call ham%weight_reconstruction(Ratio)
             
                ratiotot = Product(Ratio)**dble(N_SUN)
-               ratio_o(nu_c,N_slat) = ratiotot*nsigma_new%Gama(1,1)
+               ratio_o(nu_c,ns) = ratiotot
 
-               exp_o_new = exp_o_new + exp(overlap(i_grc))*ratio_o(nu_c,N_slat)
+               exp_o_new = exp_o_new + exp(overlap(i_grc))*ratio_o(nu_c,ns)
                exp_o_old = exp_o_old + exp(overlap(i_grc))
 
             enddo
@@ -135,8 +135,7 @@ module upgrade_mod
         if ( sum_ratio .le. 0.d0  ) then
             weight_k(i_wlk) = 0.d0
             Hs_new = field_list(1) ! randomly set up a Hs_new for output
-        endif
-        if ( sum_ratio .gt. 0.d0  ) then
+        else
             !! Decide the field in the next propagation
             n_prop = -1
             rand_nu = ranf_wrap()
@@ -172,7 +171,7 @@ module upgrade_mod
                
                i_grc = ns+(i_wlk-1)*N_slat
                !! update overlap
-               overlap (i_wlk) = overlap (i_wlk) + log(ratio_o(n_prop,i_grc))
+               overlap (i_grc) = overlap (i_grc) + log(ratio_o(n_prop,ns))
 
                Do nf_eff = 1,N_FL_eff
                   nf=Calc_Fl_map(nf_eff)

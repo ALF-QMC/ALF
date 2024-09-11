@@ -666,9 +666,9 @@
         Integer                  , INTENT(IN) :: ntw
         
         !local
-        Integer                   :: i_wlk
+        Integer                   :: i_wlk, ns, i_grc
         Real    (Kind=Kind(0.d0)) :: X1, tot_re_weight
-        Complex (Kind=Kind(0.d0)) :: tot_ene, Z1, Z2, tot_c_weight, ZP, wtmp, el_tmp
+        Complex (Kind=Kind(0.d0)) :: tot_ene, Z1, Z2, tot_c_weight, ZP, wtmp, el_tmp, Z
         CHARACTER (LEN=64)  :: filename 
 
 #ifdef MPI
@@ -681,29 +681,41 @@
         igroup           = irank/isize_g
 #endif
         filename = "E_local.dat"
-        
-        !! Update fac_norm
-        tot_ene       = cmplx(0.d0,0.d0,kind(0.d0))
-        tot_c_weight  = cmplx(0.d0,0.d0,kind(0.d0))
-        tot_re_weight = 0.d0
-        do i_wlk  = 1, N_wlk
-            ZP     = 1.d0
-            wtmp   = weight_k(i_wlk)
-            el_tmp = dble(ham%E0_local(GR(:,:,:,i_wlk)))
-            tot_ene       = tot_ene + el_tmp*wtmp*ZP
-            tot_c_weight  = tot_c_weight  + wtmp*ZP
-        enddo
-        tot_re_weight = dble( tot_c_weight )
-        
-        CALL MPI_REDUCE(tot_ene      ,z1,1,MPI_COMPLEX16,MPI_SUM, 0,Group_comm,IERR)
-        CALL MPI_REDUCE(tot_re_weight,x1,1,MPI_REAL8    ,MPI_SUM, 0,Group_comm,IERR)
 
+        !! initial energy
+        tot_ene      = 0.d0
+        tot_c_weight = 0.d0
+        do i_wlk = 1, N_wlk
+
+           if (weight_k(i_wlk) .ge. 0.d0 ) then
+
+           Z = 0.d0
+           do ns = 1, N_slat
+               i_grc = ns+(i_wlk-1)*N_slat
+               Z = Z + exp(overlap(i_grc))
+           enddo
+           
+           do ns = 1, N_slat
+               i_grc = ns+(i_wlk-1)*N_slat
+               el_tmp  = dble(ham%E0_local(GR(:,:,:,i_grc)))
+               tot_ene = tot_ene + el_tmp*weight_k(i_wlk)*exp(overlap(i_grc))/Z
+           enddo
+           
+           tot_c_weight  = tot_c_weight  + weight_k(i_wlk)
+
+           endif
+
+        enddo
+        tot_re_weight = dble(tot_c_weight)
+        
+        CALL MPI_REDUCE(tot_ene      ,Z1,1,MPI_COMPLEX16,MPI_SUM, 0,Group_comm,IERR)
+        CALL MPI_REDUCE(tot_re_weight,X1,1,MPI_REAL8    ,MPI_SUM, 0,Group_comm,IERR)
+        
         if (Irank_g == 0 ) then
-            z1 = z1/x1
-            fac_norm = dble(z1)
+            Z1 = Z1/X1
+            fac_norm= dble(Z1)
             OPEN (UNIT = 77, FILE=filename, STATUS='UNKNOWN', position="append")
-            !write(77,*) ntw*dtau, real(z1, kind(0.d0))/x1/dtau
-            write(77,*) ntw*dtau, real(z1/z2, kind(0.d0))/dtau
+            write(77,*) ntw*dtau,  dble(Z1)/dtau
             close(77)
         endif
         CALL MPI_BCAST(fac_norm, 1, MPI_REAL8, 0,MPI_COMM_WORLD,ierr)
