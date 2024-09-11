@@ -26,36 +26,60 @@
           N_op     = Size(OP_V,1)
 
           do i_wlk = 1, N_wlk
+             ! update weight by fac_norm
+             if ( weight_k(i_wlk) .gt. Zero ) weight_k(i_wlk)=weight_k(i_wlk)*exp(fac_norm)
+          enddo
 
-             !! Kinetic part exp(-/Delta/tau T/2)
-             if ( weight_k(i_wlk) .gt. Zero ) then
+          call half_K_propagation( phi_trial, phi_0, GR )
 
-                 ! update weight by fac_norm
-                 weight_k(i_wlk)=weight_k(i_wlk)*exp(fac_norm)
-                 
-                 call half_K_propagation( phi_trial(:,i_wlk), phi_0(:,i_wlk), GR(:,:,:,i_wlk), i_wlk )
+          !! propagate with interaction
+          call int_propagation( phi_trial, phi_0, GR )
+             
+          !! Kinetic part exp(-/Delta/tau T/2)
+          call half_K_propagation( phi_trial, phi_0, GR )
 
-             endif
+        END SUBROUTINE stepwlk_move
 
-             !! propagate with interaction
+        subroutine int_propagation( phi_trial, phi_0, GR )
+          
+          Implicit none
+     
+          class(udv_state), intent(in   ), allocatable :: phi_trial(:,:)
+          class(udv_state), intent(inout), allocatable :: phi_0    (:,:)
+          complex (Kind=Kind(0.d0)), intent(inout), allocatable :: GR(:,:,:,:)
+
+          ! local
+          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, i_st, i_ed
+          Complex (Kind=Kind(0.d0)) :: Z
+          COMPLEX (Kind=Kind(0.d0)) :: det_Vec(N_FL)
+          Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8
+          
+          do i_wlk = 1, N_wlk
+          
+          if ( weight_k(i_wlk) .gt. Zero ) then
+
+             ! upgrade Green's function
              do n = 1, N_op
-
-             if ( weight_k(i_wlk) .gt. Zero ) then
-
-                ! upgrade Green's function
+                
                 N_type = 2
-                do nf_eff = 1,N_FL_eff
-                   nf=Calc_Fl_map(nf_eff)
-                   Call Op_Wrapdo( GR(:,:,nf,i_wlk), Op_V(n,nf), 1.d0, Ndim, N_Type,1)
+                do ns = 1, N_slat
+                   i_grc = ns+(i_wlk-1)*N_slat
+                   do nf_eff = 1,N_FL_eff
+                      nf=Calc_Fl_map(nf_eff)
+                      Call Op_Wrapdo( GR(:,:,nf,i_grc), Op_V(n,nf), 1.d0, Ndim, N_Type, 1)
+                   enddo
                 enddo
 
-                call Upgrade(GR(:,:,:,i_wlk),n,spin, i_wlk )
+                call Upgrade(GR, n, spin, i_wlk )
                 nsigma_bp(i_wlk)%f(n,ntau_bp) = spin
 
                 N_type = 2
-                do nf_eff = 1,N_FL_eff
-                   nf=Calc_Fl_map(nf_eff)
-                   Call Op_Wrapup( Gr(:,:,nf,i_wlk), Op_V(n,nf), 1.d0, Ndim, N_Type, 1 )
+                do ns = 1, N_slat
+                   i_grc = ns+(i_wlk-1)*N_slat
+                   do nf_eff = 1,N_FL_eff
+                      nf=Calc_Fl_map(nf_eff)
+                      Call Op_Wrapup( Gr(:,:,nf,i_grc), Op_V(n,nf), 1.d0, Ndim, N_Type, 1 )
+                   enddo
                 enddo
 
                 ! propagate slater determinant
@@ -63,19 +87,76 @@
                     nf=Calc_Fl_map(nf_eff)
                     Call Op_mmultR(phi_0(nf_eff,i_wlk)%U,Op_V(n,nf),spin,'n',1)
                 enddo
-
-             endif
-
-             enddo
              
-             !! Kinetic part exp(-/Delta/tau T/2)
-             if ( weight_k(i_wlk) .gt. Zero ) then
-                 call half_K_propagation( phi_trial(:,i_wlk), phi_0(:,i_wlk), GR(:,:,:,i_wlk), i_wlk )
+             enddo
+
+          endif
+
+          end do
+        
+        end subroutine int_propagation
+        
+        subroutine half_K_propagation( phi_trial, phi_0, GR )
+          
+          Implicit none
+     
+          class(udv_state), intent(in   ), allocatable :: phi_trial(:,:)
+          class(udv_state), intent(inout), allocatable :: phi_0    (:,:)
+          complex (Kind=Kind(0.d0)), intent(inout), allocatable :: GR(:,:,:,:)
+          
+          ! local
+          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, i_st, i_ed
+          Complex (Kind=Kind(0.d0)) :: Overlap_old, Overlap_new, Z, sum_o_new, sum_o_old
+          COMPLEX (Kind=Kind(0.d0)) :: det_Vec(N_FL), log_o_new(n_slat), log_o_old(n_slat), log_o_store(n_grc)
+          Real    (Kind=Kind(0.d0)) :: overlap_ratio, re_overlap
+          Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8
+          
+          log_o_store(:) = overlap(:)
+
+          do i_wlk = 1, N_wlk
+          
+          if ( weight_k(i_wlk) .gt. Zero ) then
+                
+             Do nf_eff = 1,N_FL_eff
+                nf=Calc_Fl_map(nf_eff)
+                Call Hop_mod_mmthr_1D2(phi_0(nf_eff)%U,nf,1)
+             enddo
+          
+             !! set the old log of overlap
+             i_st = 1+(i_wlk-1)*N_slat; i_ed = i_wlk*N_slat
+             log_o_old(:) = log_o_store(i_st:i_ed)
+
+             sum_o_new = 0.d0
+             sum_o_old = 0.d0
+             do ns = 1, N_slat
+                i_grc = ns+(i_wlk-1)*N_slat
+                ! Update Green's function
+                do nf_eff = 1,N_Fl_eff
+                   nf=Calc_Fl_map(nf_eff)
+                   call CGRP(Z, GR(:,:,nf,i_grc), phi_0(nf_eff,ns), phi_trial(nf_eff,i_wlk))
+                   det_vec(nf_eff) = Z
+                enddo
+                det_Vec(:) = det_Vec(:) * N_SUN
+                if (reconstruction_needed) call ham%weight_reconstruction(det_Vec)
+                log_O_new(ns) = sum(det_Vec)
+                sum_o_new = sum_o_new + exp(log_o_new(ns))
+                sum_o_old = sum_o_old + exp(log_o_old(ns))
+             enddo
+
+             overlap_ratio = sum_o_new/sum_o_old
+             re_overlap    = dble( overlap_ratio )
+             if ( re_overlap .gt. zero ) then
+                 overlap (i_st:i_ed) = log_o_new(:)
+                 weight_k(i_wlk) = weight_k(i_wlk)*re_overlap
+             else
+                 weight_k(i_wlk) = 0.d0
              endif
+
+          endif
 
           enddo
 
-        END SUBROUTINE stepwlk_move
+        end subroutine half_K_propagation
 
         subroutine re_orthonormalize_walkers(Phi_0, cop)
           
@@ -84,40 +165,51 @@
           
           !Local 
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, N_size, I, i_wlk
+          Integer :: ndistance, i_wlk_eff, i_st, i_ed
           Real    (Kind=Kind(0.d0)) :: Overlap_ratio, Zero = 1.0E-8
           Complex (Kind=Kind(0.d0)) :: Det_D(N_FL)
 
-          do i_wlk = 1, N_wlk
-          
-          if ( weight_k(i_wlk) .gt. Zero ) then
+          n_wlk_eff = size(phi_0,2)
+          ndistance = n_wlk_eff/n_wlk
 
-              N_size = phi_0(1,1)%n_part
+          do i_wlk_eff = 1, n_wlk_eff
 
-              !Carry out U,D,V decomposition.
-              Do nf_eff = 1, N_FL_eff
-                 nf=Calc_Fl_map(nf_eff)
-                 CALL Phi_0(nf_eff,i_wlk)%decompose
-              enddo
-              
-              Det_D = cmplx(1.d0, 0.d0, kind(0.d0))
+             i_wlk = (i_wlk_eff-1)/ndistance+1     ! index for walker
+             ns    = i_wlk_eff-(i_wlk-1)*ndistance ! index for slater det
 
-              Do nf_eff = 1, N_FL_eff
-                 nf=Calc_Fl_map(nf_eff)
-                 DO I = 1,N_size
-                    Det_D(nf)=Det_D(nf)*Phi_0(nf_eff,i_wlk)%D(I)
-                 ENDDO
-              enddo
-              
-              if (reconstruction_needed) call ham%weight_reconstruction(Det_D)
+             if ( weight_k(i_wlk) .gt. Zero ) then
 
-              Do nf_eff = 1, N_FL_eff
-                 Phi_0(nf_eff,i_wlk)%D(:) = cmplx(1.d0, 0.d0, kind(0.d0))
-              enddo
-              
-              ! update the overlap when normal propagation
-              if (cop == 'U') Overlap(i_wlk)=Overlap(i_wlk)/product(Det_D)
+                 N_size = phi_0(1,1)%n_part
 
-          endif
+                 !Carry out U,D,V decomposition.
+                 Do nf_eff = 1, N_FL_eff
+                    nf=Calc_Fl_map(nf_eff)
+                    CALL Phi_0(nf_eff,i_wlk_eff)%decompose
+                 enddo
+                 
+                 Det_D = cmplx(0.d0, 0.d0, kind(0.d0))
+
+                 Do nf_eff = 1, N_FL_eff
+                    nf=Calc_Fl_map(nf_eff)
+                    DO I = 1,N_size
+                       Det_D(nf)=Det_D(nf)+log(Phi_0(nf_eff,i_wlk)%D(I))
+                    ENDDO
+                 enddo
+                 
+                 if (reconstruction_needed) call ham%weight_reconstruction(Det_D)
+
+                 Do nf_eff = 1, N_FL_eff
+                    Phi_0(nf_eff,i_wlk)%D(:) = cmplx(1.d0, 0.d0, kind(0.d0))
+                 enddo
+                 
+                 ! update the overlap when normal propagation
+                 if (cop == 'U') then
+                     i_st = (i_wlk_eff-1)*N_slat+1
+                     i_ed = i_wlk_eff*N_slat
+                     overlap(i_st:i_ed)=overlap(i_st:i_ed)-sum((Det_D)
+                 endif
+
+              endif
 
           enddo
 
@@ -125,7 +217,7 @@
         
         SUBROUTINE initial_wlk( phi_trial, phi_0, phi_bp_l, phi_bp_r, udvst, STAB_Nt, GR, nwrap )
 #ifdef MPI
-        Use mpi
+          Use mpi
 #endif
           
           Implicit none
@@ -138,11 +230,12 @@
 
           !Local 
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, i_grc, NSTM, NST, ltrot_bp, ns
+          Integer :: i_st, i_ed, ncslat
           Complex (Kind=Kind(0.d0)) :: Overlap_old, Overlap_new, Z, Z1,Z2, tot_ene, ZP
           Complex (Kind=Kind(0.d0)) :: tot_c_weight, el_tmp
           complex (Kind=Kind(0.d0)) :: det_Vec(N_FL)
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio, X1, wtmp
-          Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8, tot_re_weight
+          Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8, tot_re_weight, dz2
           Character (LEN=64) :: FILE_TG, FILE_seeds
           Logical ::   LCONF, LCONF_H5
 
@@ -222,8 +315,11 @@
              enddo
           enddo
 
+          !! rescale overlap
+          call rescale_overlap
+
           !! initial energy
-          tot_ene = 0.d0
+          tot_ene      = 0.d0
           tot_c_weight = 0.d0
           do i_wlk = 1, N_wlk
              
@@ -277,11 +373,13 @@
           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_0, phi_bp_r
           
           !Local 
-          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, it_wlk, n_exc,pop_exc(N_wlk_mpi,4)
-          Integer :: j, it, i_t, i_st, i_ed, nu_wlk, i_src, i_wlk, j_src, j_wlk, n1, n2, nrg, nfrg, ilabel
-          Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8, d_scal, sum_w, w_count, w_tmp(N_wlk_mpi), weight_mpi(N_wlk_mpi)
-          Complex (Kind=Kind(0.d0)) :: overlap_tmp(N_wlk)
-          Complex (Kind=Kind(0.d0)) :: Z1,Z2,Z3, Z_s_array(1), Z_r_array(1)
+          integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, it_wlk, n_exc,pop_exc(N_wlk_mpi,4)
+          integer :: j, it, i_t, i_st, i_ed, nu_wlk, i_src, i_wlk, j_src, j_wlk, n1, n2, nrg, nfrg, ilabel, ncslat
+          integer :: i_llim, i_rlim, j_llim, j_rlim
+          real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8, d_scal, sum_w, w_count, w_tmp(N_wlk_mpi), weight_mpi(N_wlk_mpi)
+          real    (Kind=Kind(0.d0)) :: exp_o_abs(n_slat), exp_o_phase(n_slat), dz2
+          complex (Kind=Kind(0.d0)) :: overlap_tmp(N_grc)
+          complex (Kind=Kind(0.d0)) :: Z1,Z2,Z3, Z_s_array(N_slat), Z_r_array(N_slat),zp
           Type (Fields)   , dimension(:)  , allocatable :: nsigma_store
           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE :: phi_0_m, phi_bp_m
 
@@ -326,7 +424,7 @@
           enddo
 
           !! store overlap
-          overlap_tmp=overlap
+          overlap_tmp(:)=overlap(:)
 
           ! population control
           weight_mpi(:)=0.d0
@@ -367,8 +465,11 @@
                             phi_0_m (nf_eff,j_wlk)=phi_0   (nf_eff,i_wlk)
                             phi_bp_m(nf_eff,j_wlk)=phi_bp_r(nf_eff,i_wlk)
                         enddo
-                        overlap_tmp(j_wlk)=overlap(i_wlk) 
                         nsigma_store(j_wlk)%f=nsigma_bp(i_wlk)%f
+
+                        i_llim = 1+(i_wlk-1)*N_slat; i_rlim = i_wlk*N_slat
+                        j_llim = 1+(j_wlk-1)*N_slat; j_rlim = j_wlk*N_slat
+                        overlap_tmp(j_llim:j_rlim)=overlap(i_llim:i_rlim) 
                       endif
                   endif
               enddo
@@ -381,7 +482,8 @@
              i_src = pop_exc(it,1); i_wlk = pop_exc(it,2)
              j_src = pop_exc(it,3); j_wlk = pop_exc(it,4)
              if ( irank_g .eq. i_src ) then
-                Z_s_array(1) = overlap(i_wlk)
+                i_llim = 1+(i_wlk-1)*N_slat; i_rlim = i_wlk*N_slat
+                Z_s_array(:) = overlap(i_llim:i_rlim)
                 
                 ilabel = (it-1)*nrg
                 call mpi_send(Z_s_array,1,MPI_COMPLEX16,j_src,ilabel,Group_comm,IERR)
@@ -398,8 +500,10 @@
              endif
              if ( irank_g .eq. j_src ) then
                 ilabel = (it-1)*nrg
-                call mpi_recv(Z_r_array,1,MPI_COMPLEX16,i_src,ilabel,Group_comm,STATUS,IERR)
-                overlap_tmp(j_wlk) = Z_r_array(1) 
+                call mpi_recv(Z_r_array,N_slat,MPI_COMPLEX16,i_src,ilabel,Group_comm,STATUS,IERR)
+                
+                j_llim = 1+(j_wlk-1)*N_slat; j_rlim = j_wlk*N_slat
+                overlap_tmp(j_llim:j_rlim) = Z_r_array(:) 
                 
                 do nf_eff = 1, N_FL_eff
                     ilabel = (it-1)*nrg+(nf_eff-1)*6+1
@@ -413,7 +517,7 @@
              endif
           enddo
 
-          overlap=overlap_tmp
+          overlap(:)=overlap_tmp(:)
           ! reset weight
           weight_k(:)=1.d0
           do nf_eff = 1, N_FL_eff
@@ -422,12 +526,14 @@
                 phi_bp_r(nf_eff,i_wlk)=phi_bp_m(nf_eff,i_wlk)
              enddo
           enddo
+
+          !! rescale overlap
+          call rescale_overlap
           
           do i_wlk =1, N_wlk
               nsigma_bp(i_wlk)%f = nsigma_store(i_wlk)%f
               nsigma_bp(i_wlk)%t = nsigma_store(i_wlk)%t
           enddo
-          
 
           ! deallocate tmp udv class
           do i_wlk = 1, N_wlk
@@ -459,6 +565,7 @@
           do nf_eff = 1, N_FL_eff
              do i_wlk = 1, N_wlk
                 phi_bp_r(nf_eff,i_wlk)=phi_0(nf_eff,i_wlk)
+                !! phi_bp_r is not used in propagation
                 call phi_bp_r(nf_eff,i_wlk)%decompose
              enddo
           enddo
@@ -476,9 +583,10 @@
           Integer, INTENT(IN) :: ltau
 
           !Local 
-          Complex (Kind=Kind(0.d0)) :: GR_bp(NDIM,NDIM,N_FL,N_wlk)
+          Complex (Kind=Kind(0.d0)) :: GR_bp(NDIM,NDIM,N_FL,N_grc)
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, ltrot_bp, N_op, nstm, nst, ntau
-          Complex (Kind=Kind(0.d0)) :: Z, Z_weight
+          Integer :: i_grc, i_st, i_ed
+          Complex (Kind=Kind(0.d0)) :: z, z_weight, z_sum_overlap, exp_overlap(N_slat)
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
           Real (Kind=Kind(0.d0))    :: Zero = 1.0E-8
 
@@ -487,12 +595,14 @@
           nstm     = Size(udvst, 1)
         
           !! initialization
-          do i_wlk = 1, N_wlk
-            do nf_eff = 1, N_FL_eff
-               nf=Calc_Fl_map(nf_eff)
-               CALL phi_bp_l(nf_eff, i_wlk)%reset('l',WF_L(nf)%P)
-               CALL udvst(nstm, nf_eff, i_wlk)%reset('l',WF_L(nf)%P)
-            enddo
+          do i_grc = 1, N_grc
+             i_wlk = (i_grc-1)/N_slat+1     ! index for walker
+             ns    = i_grc-(i_wlk-1)*N_slat ! index for slater det
+             do nf_eff = 1, N_FL_eff
+                nf=Calc_Fl_map(nf_eff)
+                CALL phi_bp_l   (nf_eff, i_grc)%reset('l',wf_l(ns,nf)%P)
+                CALL udvst(nstm, nf_eff, i_grc)%reset('l',wf_l(ns,nf)%P)
+             enddo
           enddo
 
           !! backpropagation
@@ -504,17 +614,20 @@
 
                 if ( weight_k(i_wlk) .gt. Zero  ) then
                 
-                Do nf_eff = 1,N_FL_eff
+                Do ns = 1, N_slat
+                   i_grc = ns+(i_wlk-1)*N_slat
+                   Do nf_eff = 1,N_FL_eff
+                      
+                      nf=Calc_Fl_map(nf_eff)
+                      Call Hop_mod_mmthlc_1D2(phi_bp_l(nf_eff,i_grc)%U,nf,1)
+
+                      Do n = N_op,1,-1
+                         Call Op_mmultR(phi_bp_l(nf_eff,i_grc)%U,Op_V(n,nf),nsigma_bp(i_wlk)%f(n,nt),'c',1)
+                      enddo
                    
-                   nf=Calc_Fl_map(nf_eff)
-                   Call Hop_mod_mmthlc_1D2(phi_bp_l(nf_eff,i_wlk)%U,nf,1)
+                      Call Hop_mod_mmthlc_1D2(phi_bp_l(nf_eff,i_grc)%U,nf,1)
 
-                   Do n = N_op,1,-1
-                      Call Op_mmultR(phi_bp_l(nf_eff,i_wlk)%U,Op_V(n,nf),nsigma_bp(i_wlk)%f(n,nt),'c',1)
                    enddo
-                
-                   Call Hop_mod_mmthlc_1D2(phi_bp_l(nf_eff,i_wlk)%U,nf,1)
-
                 enddo
 
                 endif
@@ -523,9 +636,9 @@
              
              if ( ntau .eq. stab_nt(nst) .and. ntau .ne. 0 ) then
                  call re_orthonormalize_walkers(phi_bp_l, 'N')
-                 Do i_wlk = 1, N_wlk
+                 Do i_grc = 1, N_grc
                  Do nf_eff = 1,N_FL_eff
-                    udvst(nst, nf_eff, i_wlk) = phi_bp_l(nf_eff, i_wlk)
+                    udvst(nst, nf_eff, i_grc) = phi_bp_l(nf_eff, i_grc)
                  ENDDO
                  ENDDO
                  nst = nst - 1
@@ -537,17 +650,23 @@
           call re_orthonormalize_walkers(phi_bp_l, 'N')
 
           !! compute the total weight
-          Z_weight = ham%sum_weight
+          z_weight = ham%sum_weight
 
           !! equal time measurement
 
           do i_wlk = 1, N_wlk
-             do nf_eff = 1,N_Fl_eff
-                nf=Calc_Fl_map(nf_eff)
-                call CGRP(Z, GR_bp(:,:,nf,i_wlk), phi_bp_r(nf_eff,i_wlk), phi_bp_l(nf_eff,i_wlk))
+             i_st = 1+(i_wlk-1)*N_slat; i_ed = i_wlk*N_slat
+             exp_overlap(:) = exp(overlap(i_st:i_ed))
+             z_sum_overlap = sum(exp_overlap(:))
+             Do ns = 1, N_slat
+                i_grc = ns+(i_wlk-1)*N_slat
+                do nf_eff = 1,N_Fl_eff
+                   nf=Calc_Fl_map(nf_eff)
+                   call CGRP(Z, GR_bp(:,:,nf,i_grc), phi_bp_r(nf_eff,i_wlk), phi_bp_l(nf_eff,i_grc))
+                enddo
+                If (reconstruction_needed) Call ham%GR_reconstruction( GR_bp(:,:,:,i_grc) )
+                CALL ham%Obser( GR_bp(:,:,:,i_grc), GR_mix(:,:,:,i_grc), i_wlk, i_grc, z_weight, z_sum_overlap )
              enddo
-             If (reconstruction_needed) Call ham%GR_reconstruction( GR_bp(:,:,:,i_wlk) )
-             CALL ham%Obser( GR_bp(:,:,:,i_wlk), GR_mix(:,:,:,i_wlk), i_wlk, Z_weight )
           enddo
 
           !! time dependence measurement
@@ -557,7 +676,7 @@
 
         END SUBROUTINE backpropagation
 
-        SUBROUTINE bp_measure_tau(phi_bp_l, phi_bp_r, udvst, stab_nt )
+        subroutine bp_measure_tau(phi_bp_l, phi_bp_r, udvst, stab_nt )
           
           Implicit none
      
@@ -567,10 +686,10 @@
 
           !Local 
           Complex (Kind=Kind(0.d0)) :: Temp(NDIM,NDIM), GR(NDIM,NDIM,N_FL), GRC(NDIM,NDIM,N_FL)
-          Complex (Kind=Kind(0.d0)) :: GT0(NDIM,NDIM,N_FL,N_wlk), G00(NDIM,NDIM,N_FL,N_wlk)
-          Complex (Kind=Kind(0.d0)) :: GTT(NDIM,NDIM,N_FL,N_wlk), G0T(NDIM,NDIM,N_FL,N_wlk)
+          Complex (Kind=Kind(0.d0)) :: GT0(NDIM,NDIM,N_FL,N_grc), G00(NDIM,NDIM,N_FL,N_grc)
+          Complex (Kind=Kind(0.d0)) :: GTT(NDIM,NDIM,N_FL,N_grc), G0T(NDIM,NDIM,N_FL,N_grc)
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, N_op, ntau, I, nst, nstm
-          Complex (Kind=Kind(0.d0)) :: Z, Z_weight, DETZ
+          Complex (Kind=Kind(0.d0)) :: Z, Z_weight, DETZ, z_sum_overlap, exp_overlap(N_slat)
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
           Real (Kind=Kind(0.d0))    :: Zero = 1.0E-8
 
@@ -581,36 +700,44 @@
           !! compute the total weight
           Z_weight = ham%sum_weight
           
-          do i_wlk = 1, N_wlk
+          do i_grc = 1, N_grc
+             i_wlk = (i_grc-1)/N_slat+1     ! index for walker
+             ns    = i_grc-(i_wlk-1)*N_slat ! index for slater det
              do nf_eff = 1, N_FL_eff
                 nf=Calc_Fl_map(nf_eff)
-                CALL CGRP(DetZ, GR(:,:,nf), phi_bp_r(nf_eff,i_wlk), phi_bp_l(nf_eff,i_wlk))
+                CALL CGRP(DetZ, GR(:,:,nf), phi_bp_r(nf_eff,i_wlk), phi_bp_l(nf_eff,i_grc))
              enddo
-             GTT(:,:,:,i_wlk) = GR
+             GTT(:,:,:,i_grc) = GR
           enddo
 
           G00 = GTT
           GT0 = GTT
           G0T = GTT
-          do i_wlk = 1, N_wlk
+          do i_grc = 1, N_grc
           do nf_eff=1,N_FL_eff
              nf=Calc_Fl_map(nf_eff)
              do I=1,Ndim
-                G0T(I,I,nf,i_wlk)=G0T(I,I,nf,i_wlk)-1.d0
+                G0T(I,I,nf,i_grc)=G0T(I,I,nf,i_grc)-1.d0
              enddo
           enddo
           enddo
           
           ntau = 0
           do i_wlk = 1, N_wlk
-            !! call reconstruction of non-calculated flavor blocks
-            If (reconstruction_needed) then
-                Call ham%GR_reconstruction ( G00(:,:,:,i_wlk) )
-                Call ham%GR_reconstruction ( GTT(:,:,:,i_wlk) )
-                Call ham%GRT_reconstruction( GT0(:,:,:,i_wlk), G0T(:,:,:,i_wlk) )
-            endif
-            CALL ham%obserT(ntau,GT0(:,:,:,i_wlk),G0T(:,:,:,i_wlk),G00(:,:,:,i_wlk), & 
-                & GTT(:,:,:,i_wlk), i_wlk, Z_weight)
+             i_st = 1+(i_wlk-1)*N_slat; i_ed = i_wlk*N_slat
+             exp_overlap(:) = exp(overlap(i_st:i_ed))
+             z_sum_overlap = sum(exp_overlap(:))
+             Do ns = 1, N_slat
+                i_grc = ns+(i_wlk-1)*N_slat
+                !! call reconstruction of non-calculated flavor blocks
+                If (reconstruction_needed) then
+                    Call ham%GR_reconstruction ( G00(:,:,:,i_grc) )
+                    Call ham%GR_reconstruction ( GTT(:,:,:,i_grc) )
+                    Call ham%GRT_reconstruction( GT0(:,:,:,i_grc), G0T(:,:,:,i_grc) )
+                endif
+                CALL ham%obserT( ntau,GT0(:,:,:,i_wlk),G0T(:,:,:,i_grc),G00(:,:,:,i_grc), & 
+                    & GTT(:,:,:,i_grc), i_wlk, i_grc, z_weight, z_sum_overlap )
+             enddo
           enddo
 
           NST=1
@@ -619,13 +746,18 @@
              do i_wlk = 1, N_wlk
                 !! Propagate wave function
                 if ( weight_k(i_wlk) .gt. Zero ) then
-
-                !! Propagate Green's function
-                CALL PROPR  (GT0(:,:,:,i_wlk),ntau,i_wlk)
-                CALL PROPRM1(G0T(:,:,:,i_wlk),ntau,i_wlk)
-                CALL PROPRM1(GTT(:,:,:,i_wlk),ntau,i_wlk)
-                CALL PROPR  (GTT(:,:,:,i_wlk),ntau,i_wlk)
                 
+                Do ns = 1, N_slat
+                   i_grc = ns+(i_wlk-1)*N_slat
+
+                   !! Propagate Green's function
+                   CALL PROPR  (GT0(:,:,:,i_grc),ntau,i_wlk)
+                   CALL PROPRM1(G0T(:,:,:,i_grc),ntau,i_wlk)
+                   CALL PROPRM1(GTT(:,:,:,i_grc),ntau,i_wlk)
+                   CALL PROPR  (GTT(:,:,:,i_grc),ntau,i_wlk)
+                
+                enddo
+                   
                 Do nf_eff = 1,N_FL_eff
                    
                    nf=Calc_Fl_map(nf_eff)
@@ -642,13 +774,19 @@
                 endif
 
                 !! call reconstruction of non-calculated flavor blocks
-                If (reconstruction_needed) then
-                    Call ham%GR_reconstruction ( G00(:,:,:,i_wlk) )
-                    Call ham%GR_reconstruction ( GTT(:,:,:,i_wlk) )
-                    Call ham%GRT_reconstruction( GT0(:,:,:,i_wlk), G0T(:,:,:,i_wlk) )
-                endif
-                CALL ham%obserT(ntau,GT0(:,:,:,i_wlk),G0T(:,:,:,i_wlk),G00(:,:,:,i_wlk), & 
-                    & GTT(:,:,:,i_wlk), i_wlk, Z_weight)
+                i_st = 1+(i_wlk-1)*N_slat; i_ed = i_wlk*N_slat
+                exp_overlap(:) = exp(overlap(i_st:i_ed))
+                z_sum_overlap = sum(exp_overlap(:))
+                do ns = 1, N_slat
+                   i_grc = ns+(i_wlk-1)*N_slat
+                   If (reconstruction_needed) then
+                       Call ham%GR_reconstruction ( G00(:,:,:,i_grc) )
+                       Call ham%GR_reconstruction ( GTT(:,:,:,i_grc) )
+                       Call ham%GRT_reconstruction( GT0(:,:,:,i_grc), G0T(:,:,:,i_grc) )
+                   endif
+                   CALL ham%obserT(ntau,GT0(:,:,:,i_grc),G0T(:,:,:,i_grc),G00(:,:,:,i_grc), & 
+                       & GTT(:,:,:,i_grc), i_wlk, i_grc, z_weight, z_sum_overlap)
+                enddo
              enddo
              
              !! call svd
@@ -657,27 +795,31 @@
           
                  do i_wlk = 1, N_wlk
                  
-                    do nf_eff = 1, N_FL_eff
-                       nf=Calc_Fl_map(nf_eff)
-                       phi_bp_l(nf_eff, i_wlk) = udvst(nst, nf_eff, i_wlk) 
-                       CALL CGRP(DetZ, GR(:,:,nf), phi_bp_r(nf_eff,i_wlk), phi_bp_l(nf_eff,i_wlk))
-                    enddo
-                    GTT(:,:,:,i_wlk) = GR
-                    
-                    GRC = -GR
-                    do nf_eff=1,N_FL_eff
-                       nf=Calc_Fl_map(nf_eff)
-                       do I=1,Ndim
-                          GRC(I,I,nf)=GRC(I,I,nf)+1.d0
+                    do ns = 1, N_slat
+                       i_grc = ns+(i_wlk-1)*N_slat
+                       do nf_eff = 1, N_FL_eff
+                          nf=Calc_Fl_map(nf_eff)
+                          phi_bp_l(nf_eff, i_grc) = udvst(nst, nf_eff, i_grc) 
+                          CALL CGRP(DetZ, GR(:,:,nf), phi_bp_r(nf_eff,i_wlk), phi_bp_l(nf_eff,i_grc))
                        enddo
-                    enddo
+                       GTT(:,:,:,i_grc) = GR
+                    
+                       GRC = -GR
+                       do nf_eff=1,N_FL_eff
+                          nf=Calc_Fl_map(nf_eff)
+                          do I=1,Ndim
+                             GRC(I,I,nf)=GRC(I,I,nf)+1.d0
+                          enddo
+                       enddo
                   
-                    do nf_eff=1,N_FL_eff
-                       nf=Calc_Fl_map(nf_eff)
-                       CALL MMULT(TEMP,GR (:,:,nf),GT0(:,:,nf,i_wlk))
-                       GT0(:,:,nf,i_wlk) = TEMP
-                       CALL MMULT(TEMP,G0T(:,:,nf,i_wlk),GRC(:,:,nf))
-                       G0T(:,:,nf,i_wlk) = TEMP
+                       do nf_eff=1,N_FL_eff
+                          nf=Calc_Fl_map(nf_eff)
+                          CALL MMULT(TEMP,GR (:,:,nf),GT0(:,:,nf,i_grc))
+                          GT0(:,:,nf,i_grc) = TEMP
+                          CALL MMULT(TEMP,G0T(:,:,nf,i_grc),GRC(:,:,nf))
+                          G0T(:,:,nf,i_grc) = TEMP
+                       enddo
+                    
                     enddo
 
                  enddo
@@ -686,52 +828,41 @@
 
           enddo
 
-        END SUBROUTINE bp_measure_tau
+        end subroutine bp_measure_tau
         
-        SUBROUTINE half_K_propagation( phi_trial, phi_0, GR, i_wlk )
+        subroutine rescale_overlap
           
           Implicit none
-     
-          CLASS(UDV_State), INTENT(IN   ) :: phi_trial(N_FL)
-          CLASS(UDV_State), INTENT(INOUT) :: phi_0    (N_FL)
-          COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT) :: GR(Ndim,Ndim,N_FL)
-          Integer, INTENT(IN) :: i_wlk
-          
-          ! local
-          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR
-          Complex (Kind=Kind(0.d0)) :: Overlap_old, Overlap_new, log_O_new, log_O_old, Z
-          COMPLEX (Kind=Kind(0.d0)) :: det_Vec(N_FL)
-          Real    (Kind=Kind(0.d0)) :: overlap_ratio, re_overlap
-          Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8
-          
-          log_O_old = overlap
+        
+          integer :: nf, nf_eff, n, m, nt, i_wlk, i_grc, ns
+          integer :: i_st, i_ed, ncslat
+          real    (Kind=Kind(0.d0)) :: exp_o_abs(n_slat), exp_o_phase(n_slat), dz2
+          complex (Kind=Kind(0.d0)) :: z1, zp
 
-          Do nf_eff = 1,N_FL_eff
-             nf=Calc_Fl_map(nf_eff)
-             Call Hop_mod_mmthr_1D2(phi_0(nf_eff)%U,nf,1)
+          do i_wlk = 1, N_wlk
+             i_st = 1+(i_wlk-1)*N_slat
+             i_ed = i_wlk*N_slat
+
+             ncslat = 0
+             do i_grc = i_st, i_ed
+                ncslat = ncslat + 1
+                z1 = exp(overlap(i_grc))
+                exp_o_abs  (ncslat) = abs(z1)
+                exp_o_phase(ncslat) = atan2(aimag(z1),real(z1))
+             enddo
+             dz2 = max(abs(z1(:)))
+             exp_o_abs(:) = exp_o_abs(:)/dz2
+
+             ncslat = 0
+             do i_grc = i_st, i_ed
+                ncslat = ncslat + 1
+                zp = cmplx(cos(exp_o_phase(ncslat)),sin(exp_o_phase(ncslat)), kind(0.d0))
+                z1 = zp*exp_o_abs(ncslat)
+                overlap(i_grc) = log(z1)
+             enddo
           enddo
-          
-          ! Update Green's function
-          do nf_eff = 1,N_Fl_eff
-             nf=Calc_Fl_map(nf_eff)
-             call CGRP(Z, GR(:,:,nf), phi_0(nf_eff), phi_trial(nf_eff))
-             det_vec(nf_eff) = Z
-          enddo
 
-          det_Vec(:) = det_Vec(:) * N_SUN
-          if (reconstruction_needed) call ham%weight_reconstruction(det_Vec)
-          log_O_new = sum(det_Vec) 
-
-          overlap_ratio = exp(log_O_new-log_O_old)
-          re_overlap    = dble( overlap_ratio )
-          if ( re_overlap .gt. zero ) then
-              overlap (i_wlk) = overlap (i_wlk) + (log_o_new - log_o_old)
-              weight_k(i_wlk) = weight_k(i_wlk)*re_overlap
-          else
-              weight_k(i_wlk) = 0.d0
-          endif
-
-        END SUBROUTINE half_K_propagation
+        end subroutine rescale_overlap
 
         SUBROUTINE PROPR(AIN,NT,i_wlk) 
 
@@ -919,6 +1050,7 @@
           Real    (Kind=Kind(0.d0)), allocatable :: wt_tmp(:)
 
           INTEGER             :: K, hdferr, rank, nf, nw, n_part, i0, i1, i2, i_st, i_ed, Ndt, ii
+          INTEGER             :: i_st2, i_ed2
           INTEGER(HSIZE_T), allocatable :: dims(:), dimsc(:)
           Logical             :: file_exists
           INTEGER(HID_T)      :: file_id, crp_list, space_id, dset_id, dataspace
@@ -942,13 +1074,13 @@
           
           if (irank_g .eq. 0 ) then
               allocate(phi0_out(ndim,n_part,n_fl_eff,n_wlk_mpi))
-              allocate(weight_out(N_wlk_mpi), overlap_out(N_wlk_mpi))
+              allocate(weight_out(N_wlk_mpi), overlap_out(N_grc_mpi))
           endif
 
           allocate(p0_tmp(ndim,n_part,n_fl_eff,n_wlk))
           allocate(p1_tmp(ndim,n_part,n_fl_eff,n_wlk))
           allocate(wt_tmp(N_wlk))
-          allocate(otphi_tmp(N_wlk))
+          allocate(otphi_tmp(N_grc))
 
           do nf = 1, N_FL_eff
           do nw = 1, N_wlk
@@ -957,17 +1089,17 @@
           enddo
           
           if ( irank_g .ne. 0 ) then
-              call mpi_send(overlap    ,N_wlk,mpi_complex16, 0, 0, MPI_COMM_WORLD,IERR)
+              call mpi_send(overlap    ,N_grc,mpi_complex16, 0, 0, MPI_COMM_WORLD,IERR)
               call mpi_send(weight_k   ,N_wlk,    mpi_real8, 0, 1, MPI_COMM_WORLD,IERR)
               Ndt=N_FL_eff*N_wlk*ndim*n_part
               call mpi_send(p0_tmp     ,  Ndt,mpi_complex16, 0, 2, MPI_COMM_WORLD,IERR)
           else
              do ii = 1, isize_g-1
-                i_st=ii*N_wlk+1
-                i_ed=(ii+1)*N_wlk
+                i_st=ii*N_wlk+1; i_st2=ii*N_grc+1
+                i_ed=(ii+1)*N_wlk; i_ed2=(ii+1)*N_grc
 
                 call mpi_recv(otphi_tmp,N_wlk,mpi_complex16, ii, 0, MPI_COMM_WORLD,STATUS,IERR)
-                overlap_out(i_st:i_ed) = otphi_tmp(:)
+                overlap_out(i_st2:i_ed2) = otphi_tmp(:)
                 call mpi_recv(wt_tmp,N_wlk,    mpi_real8, ii, 1, MPI_COMM_WORLD,STATUS,IERR)
                 weight_out(i_st:i_ed) = wt_tmp(:)
                 Ndt=N_FL_eff*N_wlk*ndim*n_part
@@ -977,10 +1109,10 @@
           ENDIF
 
           if ( irank_g .eq. 0 ) then
-              i_st=1
-              i_ed=N_wlk
+              i_st=1; i_st2=1
+              i_ed=N_wlk; i_ed2=N_grc
+              overlap_out(i_st2:i_ed2) = overlap(:)
               weight_out (i_st:i_ed) = weight_k(:)
-              overlap_out(i_st:i_ed) = overlap(:)
               phi0_out(:,:,:,i_st:i_ed)=p0_tmp
           endif
 
@@ -995,7 +1127,7 @@
               dset_name = "overlap"
               rank = 2
               allocate( dims(2), dimsc(2) )
-              dims  = [2, N_wlk_mpi]
+              dims  = [2, N_grc_mpi]
               dimsc = dims
               CALL h5screate_simple_f(rank, dims, space_id, hdferr)
               CALL h5pcreate_f(H5P_DATASET_CREATE_F, crp_list, hdferr)
@@ -1135,7 +1267,8 @@
           Complex (Kind=Kind(0.d0)), allocatable :: otphi_tmp(:), p0_tmp(:,:,:,:), p1_tmp(:,:,:,:)
           Real    (Kind=Kind(0.d0)), allocatable :: wt_tmp(:)
 
-          INTEGER             :: K, hdferr, rank, nf, nw, n_part, i0, i1, i2, i_st, i_ed, Ndt, ii, nwalk_in
+          INTEGER             :: K, hdferr, rank, nf, nw, n_part, i0, i1, i2, i_st, i_ed, Ndt, ii
+          INTEGER             :: nwalk_in, n_grc_in, i_st2, i_ed2
           integer             :: nf_eff
           INTEGER(HSIZE_T), allocatable :: dims(:), dimsc(:), maxdims(:)
           Logical             :: file_exists
@@ -1159,15 +1292,38 @@
           allocate(p0_tmp(ndim,n_part,n_fl_eff,n_wlk))
           allocate(p1_tmp(ndim,n_part,n_fl_eff,n_wlk))
           allocate(wt_tmp(N_wlk))
-          allocate(otphi_tmp(N_wlk))
+          allocate(otphi_tmp(N_grc))
           
           if ( irank .eq. 0 ) then
 
               !open file
               CALL h5fopen_f (filename, H5F_ACC_RDWR_F, file_id, hdferr)
 
-              !open and read field overlap
+              !open and read overlap
               dset_name = "overlap"
+              !Open the  dataset.
+              CALL h5dopen_f(file_id, dset_name, dset_id, hdferr)
+              !Get dataset's dataspace handle.
+              CALL h5dget_space_f(dset_id, dataspace, hdferr)
+              !Get dataspace's rank.
+              CALL h5sget_simple_extent_ndims_f(dataspace, rank, ierr)
+              allocate( dims(rank), maxdims(rank) )
+              !Get dataspace's dimensions.
+              CALL h5sget_simple_extent_dims_f(dataspace, dims, maxdims, ierr)
+              ngrc_in=dims(rank)
+              !! allocate !!
+              allocate(overlap_out(ngrc_in))
+              !!-----------!!
+              dat_ptr = C_LOC(overlap_out(1))
+              CALL h5dread_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
+              !close dataspace
+              CALL h5sclose_f(dataspace, hdferr)
+              !close objects
+              CALL h5dclose_f(dset_id,   hdferr)
+              deallocate(dims, maxdims)
+
+              !open and read weight
+              dset_name = "weight_re"
               !Open the  dataset.
               CALL h5dopen_f(file_id, dset_name, dset_id, hdferr)
               !Get dataset's dataspace handle.
@@ -1180,25 +1336,15 @@
               nwalk_in=dims(rank)
               !! allocate !!
               allocate(phi0_out(ndim,n_part,n_fl_eff,nwalk_in))
-              allocate(weight_out(nwalk_in), overlap_out(nwalk_in))
+              allocate(weight_out(nwalk_in))
               !!-----------!!
-              dat_ptr = C_LOC(overlap_out(1))
+              dat_ptr = C_LOC(weight_out(1))
               CALL h5dread_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
               !close dataspace
               CALL h5sclose_f(dataspace, hdferr)
               !close objects
               CALL h5dclose_f(dset_id,   hdferr)
               deallocate(dims, maxdims)
-
-
-              !open and read real weight
-              dset_name = "weight_re"
-              !Open the  dataset.
-              CALL h5dopen_f(file_id, dset_name, dset_id, hdferr)
-              dat_ptr = C_LOC(weight_out(1))
-              CALL h5dread_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
-              !close objects
-              CALL h5dclose_f(dset_id,   hdferr)
               
               !open and read real weight
               dset_name = "wavefunction"
@@ -1217,11 +1363,11 @@
 
          if ( irank_g .eq. 0 ) then
             do ii = 1, isize_g-1
-               i_st=ii*N_wlk+1
-               i_ed=(ii+1)*N_wlk
+               i_st=ii*N_wlk+1; i_st2=ii*N_grc+1
+               i_ed=(ii+1)*N_wlk; i_ed2=ii*N_grc+1
                
-               otphi_tmp(:)=overlap_out(i_st:i_ed)
-               call mpi_send(otphi_tmp,N_wlk,mpi_complex16, ii, 0, MPI_COMM_WORLD,IERR)
+               otphi_tmp(:)=overlap_out(i_st2:i_ed2)
+               call mpi_send(otphi_tmp,N_grc,mpi_complex16, ii, 0, MPI_COMM_WORLD,IERR)
                wt_tmp(:)=weight_out(i_st:i_ed)
                call mpi_send(wt_tmp,N_wlk,    mpi_real8, ii, 1, MPI_COMM_WORLD,IERR)
                Ndt=N_FL_eff*N_wlk*ndim*n_part
@@ -1229,7 +1375,7 @@
                call mpi_send(p1_tmp,  Ndt,mpi_complex16, ii, 2, MPI_COMM_WORLD,IERR)
             ENDDO
          else
-            call mpi_recv(otphi_tmp,N_wlk,mpi_complex16, 0, 0, MPI_COMM_WORLD,STATUS,IERR)
+            call mpi_recv(otphi_tmp,N_grc,mpi_complex16, 0, 0, MPI_COMM_WORLD,STATUS,IERR)
             overlap(:) = otphi_tmp(:)
             call mpi_recv(wt_tmp,N_wlk,    mpi_real8, 0, 1, MPI_COMM_WORLD,STATUS,IERR)
             weight_k(:)    = wt_tmp(:)
@@ -1243,12 +1389,12 @@
          ENDIF
 
          if ( irank_g .eq. 0 ) then
-             i_st=1
-             i_ed=N_wlk
+             i_st=1; i_st2=1
+             i_ed=N_wlk; i_ed2=N_grc
              p0_tmp=phi0_out(:,:,:,i_st:i_ed)
              
              weight_k(:) = weight_out(i_st:i_ed)
-             overlap (:) = overlap_out(i_st:i_ed)
+             overlap (:) = overlap_out(i_st2:i_ed2)
              do nf = 1, N_FL_eff
              do nw = 1, N_wlk
                  phi_0(nf,nw)%U(:,:)=p0_tmp(:,:,nf,nw)
