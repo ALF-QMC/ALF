@@ -402,7 +402,7 @@
 !>  Time slice
 !> \endverbatim
 !-------------------------------------------------------------------
-        subroutine Obser(GR,GR_mix,i_wlk,sum_w)
+        subroutine Obser(GR,GR_mix,i_wlk,i_grc,sum_w,sum_o,act_mea)
 
           Use Predefined_Obs
 
@@ -410,19 +410,18 @@
 
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR_mix(Ndim,Ndim,N_FL)
-          Complex (Kind=Kind(0.d0)), Intent(IN) :: sum_w
-          Integer, Intent(IN) :: i_wlk
+          Complex (Kind=Kind(0.d0)), Intent(IN) :: sum_w, sum_o
+          Integer, Intent(IN) :: i_wlk, i_grc, act_mea
 
           !Local
-          Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK, invsumw, zone, ztmp
+          Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK, invsumw, zone, ztmp, z_ol
           Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP,ZS, ZZ, ZXY, ZW, Re_ZW, Z_fac
           Integer :: I,J, imj, nf, dec, I1, J1, no_I, no_J,n, nc
           Real    (Kind=Kind(0.d0)) :: X
 
-          ZP    = 1.d0
-          Re_ZW = cmplx(weight_k(i_wlk),0.d0,kind(0.d0))
-          ZW    = Re_ZW*ZP
-          Z_fac = ZW/sum_w*dble(N_wlk_mpi)
+          Z_ol  = exp(overlap(i_grc))/sum_o
+          ZW    = cmplx(weight_k(i_wlk),0.d0,kind(0.d0))/sum_w
+          Z_fac = Z_ol*ZW
           
           Do nf = 1,N_FL
              Do I = 1,Ndim
@@ -435,10 +434,12 @@
           ! GRC(i,j,nf) = < c^{dagger}_{i,nf } c_{j,nf } >
 
           ! Compute scalar observables.
-          Do I = 1,Size(Obs_scal,1)
-             Obs_scal(I)%N         =  Obs_scal(I)%N + 1
-             Obs_scal(I)%Ave_sign  =  Obs_scal(I)%Ave_sign + 1.d0
-          Enddo
+          if ( act_mea .eq. 0 ) then
+              do I = 1,Size(Obs_scal,1)
+                 Obs_scal(I)%N         =  Obs_scal(I)%N + 1
+                 Obs_scal(I)%Ave_sign  =  Obs_scal(I)%Ave_sign + 1.d0
+              enddo
+          endif
 
           Zkin = cmplx(0.d0, 0.d0, kind(0.D0))
           Call Predefined_Hoppings_Compute_Kin(Hopping_Matrix,List,Invlist, Latt, Latt_unit, GRC, ZKin)
@@ -491,11 +492,19 @@
              Enddo
              Enddo
           Enddo
+
+          ! Compute the standard two-point correlations
+          if ( act_mea .eq. 0 ) then
+              Do I = 1, Size(Obs_eq,1)
+                 obs_eq(I)%N        = obs_eq(I)%N + 1
+                 obs_eq(I)%Ave_sign = obs_eq(I)%Ave_sign + 1.d0
+              enddo
+          endif
           
           ! Standard two-point correlations
-          Call Predefined_Obs_eq_Green_measure ( Latt, Latt_unit, List, GR, GRC, N_SUN, Z_fac, Obs_eq(1) )
-          Call Predefined_Obs_eq_SpinMz_measure( Latt, Latt_unit, List, GR, GRC, N_SUN, Z_fac, Obs_eq(2),Obs_eq(3),Obs_eq(4) )
-          Call Predefined_Obs_eq_Den_measure   ( Latt, Latt_unit, List, GR, GRC, N_SUN, Z_fac, Obs_eq(5) )
+          Call Predefined_Obs_eq_Green_measure ( Latt, Latt_unit, List, GR, GRC, N_SUN, act_mea, Z_fac, Obs_eq(1) )
+          Call Predefined_Obs_eq_SpinMz_measure( Latt, Latt_unit, List, GR, GRC, N_SUN, act_mea, Z_fac, Obs_eq(2),Obs_eq(3),Obs_eq(4) )
+          Call Predefined_Obs_eq_Den_measure   ( Latt, Latt_unit, List, GR, GRC, N_SUN, act_mea, Z_fac, Obs_eq(5) )
 
         end Subroutine Obser
 
@@ -519,7 +528,7 @@
 !>  GTT(I,J,nf) = <T c_{I,nf }(tau) c^{dagger}_{J,nf }(tau)>
 !> \endverbatim
 !-------------------------------------------------------------------
-        Subroutine ObserT(NT,  GT0,G0T,G00,GTT, i_wlk,sum_w)
+        Subroutine ObserT(NT,  GT0,G0T,G00,GTT, i_wlk,i_grc,sum_w,sum_o,act_mea)
 
           Use Predefined_Obs
 
@@ -527,25 +536,32 @@
 
           Integer         , INTENT(IN) :: NT
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: GT0(Ndim,Ndim,N_FL),G0T(Ndim,Ndim,N_FL),G00(Ndim,Ndim,N_FL),GTT(Ndim,Ndim,N_FL)
-          Complex (Kind=Kind(0.d0)), Intent(IN) :: sum_w
-          Integer, Intent(IN) :: i_wlk
+          Complex (Kind=Kind(0.d0)), Intent(IN) :: sum_w, sum_o
+          Integer, Intent(IN) :: i_wlk, act_mea
           
           !Locals
-          Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY, ZW, Re_ZW, Z_fac
+          Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY, ZW, Re_ZW, Z_fac, Z_ol
           Real    (Kind=Kind(0.d0)) :: X
           Integer :: IMJ, I, J, I1, J1, no_I, no_J
 
-          ZP    = 1.d0
-          Re_ZW = cmplx(weight_k(i_wlk),0.d0,kind(0.d0))
-          ZW    = Re_ZW*ZP
-          Z_fac = ZW/sum_w*dble(N_wlk_mpi)
+          Z_ol  = exp(overlap(i_grc))/sum_o
+          ZW    = cmplx(weight_k(i_wlk),0.d0,kind(0.d0))/sum_w
+          Z_fac = Z_ol*ZW
+
+          ! Compute the dynamic two-point correlations
+          if ( (act_mea .eq. 0) .and. (nt .eq. 0) ) then
+              Do I = 1, Size(Obs_tau,1)
+                 obs_tau(I)%N        = obs_tau(I)%N + 1
+                 obs_tau(I)%Ave_sign = obs_tau(I)%Ave_sign + 1.d0
+              enddo
+          endif
 
           ! Standard two-point correlations
 
-          Call Predefined_Obs_tau_Green_measure  ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, Z_fac, Obs_tau(1) )
-          Call Predefined_Obs_tau_SpinMz_measure ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, Z_fac, Obs_tau(2),&
+          Call Predefined_Obs_tau_Green_measure  ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT, N_SUN, act_mea, Z_fac, Obs_tau(1) )
+          Call Predefined_Obs_tau_SpinMz_measure ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT, N_SUN, act_mea, Z_fac, Obs_tau(2),&
                &                                   Obs_tau(3), Obs_tau(4) )
-          Call Predefined_Obs_tau_Den_measure    ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, Z_fac, Obs_tau(5) )
+          Call Predefined_Obs_tau_Den_measure    ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT, N_SUN, act_mea, Z_fac, Obs_tau(5) )
 
         end Subroutine OBSERT
 

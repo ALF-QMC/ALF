@@ -585,7 +585,7 @@
           !Local 
           Complex (Kind=Kind(0.d0)) :: GR_bp(NDIM,NDIM,N_FL,N_grc)
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, ltrot_bp, N_op, nstm, nst, ntau
-          Integer :: i_grc, i_st, i_ed
+          Integer :: i_grc, i_st, i_ed, act_mea
           Complex (Kind=Kind(0.d0)) :: z, z_weight, z_sum_overlap, exp_overlap(N_slat)
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
           Real (Kind=Kind(0.d0))    :: Zero = 1.0E-8
@@ -653,7 +653,7 @@
           z_weight = ham%sum_weight
 
           !! equal time measurement
-
+          act_mea = 0
           do i_wlk = 1, N_wlk
              i_st = 1+(i_wlk-1)*N_slat; i_ed = i_wlk*N_slat
              exp_overlap(:) = exp(overlap(i_st:i_ed))
@@ -665,7 +665,8 @@
                    call CGRP(Z, GR_bp(:,:,nf,i_grc), phi_bp_r(nf_eff,i_wlk), phi_bp_l(nf_eff,i_grc))
                 enddo
                 If (reconstruction_needed) Call ham%GR_reconstruction( GR_bp(:,:,:,i_grc) )
-                CALL ham%Obser( GR_bp(:,:,:,i_grc), GR_mix(:,:,:,i_grc), i_wlk, i_grc, z_weight, z_sum_overlap )
+                CALL ham%Obser( GR_bp(:,:,:,i_grc), GR_mix(:,:,:,i_grc), i_wlk, i_grc, z_weight, z_sum_overlap, act_mea )
+                act_mea = act_mea + 1
              enddo
           enddo
 
@@ -723,6 +724,7 @@
           enddo
           
           ntau = 0
+          act_mea = 0
           do i_wlk = 1, N_wlk
              i_st = 1+(i_wlk-1)*N_slat; i_ed = i_wlk*N_slat
              exp_overlap(:) = exp(overlap(i_st:i_ed))
@@ -736,7 +738,8 @@
                     Call ham%GRT_reconstruction( GT0(:,:,:,i_grc), G0T(:,:,:,i_grc) )
                 endif
                 CALL ham%obserT( ntau,GT0(:,:,:,i_wlk),G0T(:,:,:,i_grc),G00(:,:,:,i_grc), & 
-                    & GTT(:,:,:,i_grc), i_wlk, i_grc, z_weight, z_sum_overlap )
+                    & GTT(:,:,:,i_grc), i_wlk, i_grc, z_weight, z_sum_overlap, act_mea )
+                act_mea = act_mea + 1
              enddo
           enddo
 
@@ -786,6 +789,7 @@
                    endif
                    CALL ham%obserT(ntau,GT0(:,:,:,i_grc),G0T(:,:,:,i_grc),G00(:,:,:,i_grc), & 
                        & GTT(:,:,:,i_grc), i_wlk, i_grc, z_weight, z_sum_overlap)
+                   act_mea = act_mea + 1
                 enddo
              enddo
              

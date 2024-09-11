@@ -76,14 +76,6 @@
         Integer :: N_FL, I, I1, J, J1, no_I, no_J, imj
         Complex (Kind=Kind(0.d0)) :: ZZ
 
-        If ( Obs%File_Latt .ne. "SpinZ" )   then
-           Write(error_unit,*) 'Predefined_Obs_eq_SpinSUN_measure: Wrong filename'
-           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
-        endif
-        ! Count and average sign
-        Obs%N        = Obs%N + 1
-        Obs%Ave_sign = Obs%Ave_sign + 1.d0
-
         ! Measure
         N_FL = Size(GR,3)
         If (N_FL == 1)   then
@@ -130,19 +122,6 @@
         ! Local
         Integer :: N_FL, I, I1, J, J1, no_I, no_J, imj
         Complex (Kind=Kind(0.d0)) :: ZXY, ZZ
-
-        If ( ObsZ%File_Latt .ne. "SpinZ" .and. ObsXY%File_Latt .ne. "SpinXY" .and.  &
-           & ObsXYZ%File_Latt .ne. "SpinT"  )   then
-           Write(error_unit,*) 'Predefined_Obs_eq_SpinMz_measure: Wrong filename'
-           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
-        endif
-        ! Count and average sign
-        ObsZ%N          = ObsZ%N   + 1
-        ObsZ%Ave_sign   = ObsZ%Ave_sign + 1.d0
-        ObsXY%N         = ObsXY%N  + 1
-        ObsXY%Ave_sign  = ObsXY%Ave_sign + 1.d0
-        ObsXYZ%N        = ObsXYZ%N + 1
-        ObsXYZ%Ave_sign = ObsXYZ%Ave_sign + 1.d0
 
         ! Measure
         N_FL = Size(GR,3)
@@ -194,14 +173,6 @@
         Integer :: N_FL, I, I1, J, J1, no_I, no_J, imj,nf
         Complex (Kind=Kind(0.d0)) :: Z
 
-        If ( Obs%File_Latt .ne. "Green" )   then
-           Write(error_unit,*) 'Predefined_Obs_eq_Green_measure: Wrong filename'
-           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
-        endif
-        ! Count and average sign
-        Obs%N        = Obs%N + 1
-        Obs%Ave_sign = Obs%Ave_sign + 1.d0
-
         ! Measure
         N_FL = Size(GR,3)
         Do I1 = 1,Size(List,1)
@@ -247,14 +218,6 @@
         ! Local
         Integer :: N_FL, I, I1, J, J1, no_I, no_J, imj,nf
         Complex (Kind=Kind(0.d0)) :: ZI, ZJ, Z
-
-        If ( Obs%File_Latt .ne. "Den" )   then
-           Write(error_unit,*) 'Predefined_Obs_eq_Den_measure: Wrong filename'
-           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
-        endif
-        ! Count and average sign
-        Obs%N        = Obs%N + 1
-        Obs%Ave_sign = Obs%Ave_sign + 1.d0
 
         ! Measure
 
@@ -312,17 +275,6 @@
         Integer :: N_FL, I, I1, J, J1, no_I, no_J, imj,nf
         Complex (Kind=Kind(0.d0)) :: Z
 
-        If ( Obs%File_Latt .ne. "Green" )   then
-           Write(error_unit,*) 'Predefined_Obs_tau_Green_measure: Wrong filename'
-           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
-        endif
-
-        ! Count and average sign
-        If (NT == 0 ) then
-            Obs%N        = Obs%N + 1
-            Obs%Ave_sign = Obs%Ave_sign + 1.d0
-        endif
-
         ! Measure
         N_FL = Size(GT0,3)
         Do I1 = 1,Size(List,1) 
@@ -371,23 +323,6 @@
         ! Local
         Integer :: N_FL, I, I1, J, J1, no_I, no_J, imj,nf
         Complex (Kind=Kind(0.d0)) :: ZZ, ZXY
-
-
-        ! Count and average sign
-        If ( ObsZ%File_Latt .ne. "SpinZ" .and. ObsXY%File_Latt .ne. "SpinXY" .and.  &
-           & ObsXYZ%File_Latt .ne. "SpinT"  )   then
-           Write(error_unit,*) 'Predefined_Obs_tau_SpinMz_measure: Wrong filename'
-           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
-        endif
-        If (NT == 0 ) then
-            ! Count and average sign
-            ObsZ%N          = ObsZ%N + 1
-            ObsZ%Ave_sign   = ObsZ%Ave_sign + 1.d0
-            ObsXY%N         = ObsXY%N + 1
-            ObsXY%Ave_sign  = ObsXY%Ave_sign + 1.d0
-            ObsXYZ%N        = ObsXYZ%N + 1
-            ObsXYZ%Ave_sign = ObsXYZ%Ave_sign + 1.d0
-        endif
 
         ! Measure
         N_FL = Size(GT0,3)
@@ -439,16 +374,6 @@
         Integer :: N_FL, I, I1, J, J1, no_I, no_J, imj,nf
         Complex (Kind=Kind(0.d0)) :: Z, ZI, ZJ
 
-        If ( Obs%File_Latt .ne. "Den" )   then
-           Write(error_unit,*) 'Predefined_Obs_tau_Den_measure: Wrong filename'
-           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
-        endif
-
-        ! Count and average sign
-        If (NT == 0 ) then
-            Obs%N        = Obs%N + 1
-            Obs%Ave_sign = Obs%Ave_sign + 1.d0
-        endif
         N_FL = Size(GT0,3)
         !Measure
         Do I1 = 1,Size(List,1)
@@ -483,7 +408,5 @@
         enddo
 
       end Subroutine Predefined_Obs_tau_Den_measure
-      
-#include  "Cotunneling_dimer_obs.F90"
       
     End Module Predefined_Obs
