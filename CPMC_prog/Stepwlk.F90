@@ -309,7 +309,7 @@
           
           !Local 
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, N_size, I, i_wlk
-          Integer :: ndistance, i_wlk_eff, i_st, i_ed
+          Integer :: ndistance, i_wlk_eff, i_st, i_ed, n_wlk_eff, ns
           Real    (Kind=Kind(0.d0)) :: Overlap_ratio, Zero = 1.0E-8
           Complex (Kind=Kind(0.d0)) :: det_D(N_FL)
 
@@ -704,7 +704,7 @@
           Integer :: ns, i_grc, act_mea, i_st, i_ed
           Complex (Kind=Kind(0.d0)) :: Z, Z_weight, DETZ, z_sum_overlap, exp_overlap(N_slat)
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
-          Real (Kind=Kind(0.d0))    :: Zero = 1.0E-8
+          Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8
 
 #ifdef MPI
           Integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
@@ -862,30 +862,34 @@
         
           integer :: nf, nf_eff, n, m, nt, i_wlk, i_grc, ns
           integer :: i_st, i_ed, ncslat
-          real    (Kind=Kind(0.d0)) :: exp_o_abs(n_slat), exp_o_phase(n_slat), dz2
+          real    (Kind=Kind(0.d0)) :: log_o_abs(n_slat), log_o_phase(n_slat), dz2
+          real    (kind=kind(0.d0)) :: pi = acos(-1.d0), dre_o, zero = 1.0E-8
           complex (Kind=Kind(0.d0)) :: z1, zp
 
           do i_wlk = 1, N_wlk
+                
+             if ( weight_k(i_wlk) .gt. zero ) then
+
              i_st = 1+(i_wlk-1)*N_slat
              i_ed = i_wlk*N_slat
 
              ncslat = 0
              do i_grc = i_st, i_ed
                 ncslat = ncslat + 1
-                z1 = exp(overlap(i_grc))
-                exp_o_abs  (ncslat) = abs(z1)
-                exp_o_phase(ncslat) = atan2(aimag(z1),real(z1))
+                log_o_abs  (ncslat) = dble( overlap(i_grc) )
+                log_o_phase(ncslat) = mod( aimag( overlap(i_grc) ), 2.d0*pi )
              enddo
-             dz2 = maxval(exp_o_abs(:))
-             exp_o_abs(:) = exp_o_abs(:)/dz2
+
+             dz2 = maxval(log_o_abs(:))
 
              ncslat = 0
              do i_grc = i_st, i_ed
                 ncslat = ncslat + 1
-                zp = cmplx(cos(exp_o_phase(ncslat)),sin(exp_o_phase(ncslat)), kind(0.d0))
-                z1 = zp*exp_o_abs(ncslat)
-                overlap(i_grc) = log(z1)
+                dre_o =  log_o_abs(ncslat) - dz2
+                overlap(i_grc) = cmplx(dre_o,log_o_phase(ncslat), kind(0.d0))
              enddo
+
+             endif
           enddo
 
         end subroutine rescale_overlap
