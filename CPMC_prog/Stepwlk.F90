@@ -270,27 +270,36 @@
           ! local
           integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, i_st, i_ed, ns, i_grc
           complex (Kind=Kind(0.d0)) :: Overlap_old, Overlap_new, Z, sum_o_new, sum_o_old
-          complex (Kind=Kind(0.d0)) :: det_Vec(N_FL), log_o_new(n_slat), log_o_old(n_slat), log_o_store(n_grc)
+          complex (Kind=Kind(0.d0)) :: det_Vec(N_FL), log_o_new(n_slat), log_o_old(n_slat)
           real    (Kind=Kind(0.d0)) :: overlap_ratio, re_overlap
           real    (Kind=Kind(0.d0)) :: zero = 1.0E-8
           
-          log_o_store(:) = overlap(:)
-
           do i_wlk = 1, N_wlk
           
           if ( weight_k(i_wlk) .gt. zero ) then
-                
+             
+             sum_o_old = 0.d0
+             do ns = 1, N_slat
+                i_grc = ns+(i_wlk-1)*N_slat
+                ! Update Green's function
+                do nf_eff = 1,N_Fl_eff
+                   nf=Calc_Fl_map(nf_eff)
+                   call CGRP(Z, GR(:,:,nf,i_grc), phi_0(nf_eff,i_wlk), phi_trial(nf_eff,ns))
+                   det_vec(nf) = Z
+                enddo
+                det_Vec(:) = det_Vec(:) * N_SUN
+                if (reconstruction_needed) call ham%weight_reconstruction(det_Vec)
+                log_o_old(ns) = sum(det_Vec)
+                sum_o_old = sum_o_old + exp(log_o_old(ns))
+             enddo
+
+             !! multi exp(-\Delta\tau T/2)
              Do nf_eff = 1,N_FL_eff
                 nf=Calc_Fl_map(nf_eff)
                 Call Hop_mod_mmthr_1D2(phi_0(nf_eff,i_wlk)%U,nf,1)
              enddo
-          
-             !! set the old log of overlap
-             i_st = 1+(i_wlk-1)*N_slat; i_ed = i_wlk*N_slat
-             log_o_old(:) = log_o_store(i_st:i_ed)
 
              sum_o_new = 0.d0
-             sum_o_old = 0.d0
              do ns = 1, N_slat
                 i_grc = ns+(i_wlk-1)*N_slat
                 ! Update Green's function
@@ -303,13 +312,17 @@
                 if (reconstruction_needed) call ham%weight_reconstruction(det_Vec)
                 log_o_new(ns) = sum(det_Vec)
                 sum_o_new = sum_o_new + exp(log_o_new(ns))
-                sum_o_old = sum_o_old + exp(log_o_old(ns))
              enddo
 
              overlap_ratio = sum_o_new/sum_o_old
              re_overlap    = dble( overlap_ratio )
              if ( re_overlap .gt. zero ) then
-                 overlap (i_st:i_ed) = log_o_new(:)
+                 !! upgrade overlap
+                 do ns = 1, N_slat
+                    i_grc = ns+(i_wlk-1)*N_slat
+                    overlap(i_grc) = overlap(i_grc) + &
+                        & ( log_o_new(ns) - log_o_old(ns) )
+                 enddo
                  weight_k(i_wlk) = weight_k(i_wlk)*re_overlap
              else
                  weight_k(i_wlk) = 0.d0
