@@ -114,7 +114,6 @@
         procedure, nopass :: Obser => Obser_base
         procedure, nopass :: ObserT => ObserT_base
         procedure, nopass :: E0_local => E0_local_base
-        procedure, nopass :: localmeas => localmeas_base
         procedure, nopass :: sum_weight => sum_weight_base
         procedure, nopass :: update_fac_norm => update_fac_norm_base
         procedure, nopass :: Pr_obs => Pr_obs_base
@@ -264,14 +263,14 @@
     !>  Time slice
     !> \endverbatim
     !-------------------------------------------------------------------
-          subroutine Obser_base(GR,GR_mix,i_wlk,sum_w)
+          subroutine Obser_base(GR,GR_mix,i_wlk,i_grc,sum_w,sum_o,act_mea)
 
              Implicit none
 
              Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
              Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR_mix(Ndim,Ndim,N_FL)
-             Complex (Kind=Kind(0.d0)), Intent(IN) :: sum_w
-             Integer                  , Intent(IN) :: i_wlk
+             Complex (Kind=Kind(0.d0)), Intent(IN) :: sum_w, sum_o
+             Integer                  , Intent(IN) :: i_wlk, i_grc, act_mea
              Logical, save              :: first_call=.True.
              
              If  (first_call)    then 
@@ -300,13 +299,13 @@
     !>  GTT(I,J,nf) = <T c_{I,nf }(tau) c^{dagger}_{J,nf }(tau)>
     !> \endverbatim
     !-------------------------------------------------------------------
-          Subroutine ObserT_base(NT, GT0, G0T, G00, GTT, i_wlk,sum_w)
+          Subroutine ObserT_base(NT, GT0, G0T, G00, GTT, i_wlk,i_grc,sum_w,sum_o,act_mea)
              Implicit none
     
-             Integer         , INTENT(IN) :: NT, i_wlk
+             Integer         , INTENT(IN) :: NT, i_wlk, i_grc, act_mea
              Complex (Kind=Kind(0.d0)), INTENT(IN) :: GT0(Ndim,Ndim,N_FL), G0T(Ndim,Ndim,N_FL)
              Complex (Kind=Kind(0.d0)), INTENT(IN) :: G00(Ndim,Ndim,N_FL), GTT(Ndim,Ndim,N_FL)
-             Complex (Kind=Kind(0.d0)), INTENT(IN) :: sum_w
+             Complex (Kind=Kind(0.d0)), INTENT(IN) :: sum_w, sum_o
              Logical, save              :: first_call=.True.
              
              If  (first_call)    then 
@@ -324,24 +323,17 @@
             E0_local_base = cmplx(0.d0, 0.d0, kind(0.d0))
             
           end function E0_local_base
-          
-          complex (Kind=Kind(0.d0)) function localmeas_base(GR)
-            Implicit none
-             
-            Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
-            
-            localmeas_base = cmplx(0.d0, 0.d0, kind(0.d0))
-            
-          end function localmeas_base
 
-          complex (Kind=Kind(0.d0)) function sum_weight_base
+          subroutine sum_weight_base(z_sum_weight)
             Implicit none
             
-            sum_weight_base = cmplx(0.d0, 0.d0, kind(0.d0))
+            Complex (Kind=Kind(0.d0)), INTENT(out) :: z_sum_weight
             
-          end function sum_weight_base
+            z_sum_weight = cmplx(0.d0, 0.d0, kind(0.d0))
+            
+          end subroutine sum_weight_base
 
-          Subroutine update_fac_norm_base(GR, ntw)
+          subroutine update_fac_norm_base(GR, ntw)
             Implicit none
              
             complex (Kind=Kind(0.d0)), intent(in) :: GR(Ndim,Ndim,N_FL,N_wlk)

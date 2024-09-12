@@ -196,9 +196,12 @@
 
           ! local
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, i_st, i_ed
+          Integer :: n_op, ns, i_grc, ntau_bp
           Complex (Kind=Kind(0.d0)) :: Z, z_alpha
           COMPLEX (Kind=Kind(0.d0)) :: det_Vec(N_FL)
-          Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8
+          Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8, spin
+          
+          N_op     = Size(OP_V,1)
           
           do i_wlk = 1, N_wlk
           
@@ -261,7 +264,7 @@
           complex (Kind=Kind(0.d0)), intent(inout), allocatable :: GR(:,:,:,:)
           
           ! local
-          integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, i_st, i_ed
+          integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, i_st, i_ed, ns, i_grc
           complex (Kind=Kind(0.d0)) :: Overlap_old, Overlap_new, Z, sum_o_new, sum_o_old
           complex (Kind=Kind(0.d0)) :: det_Vec(N_FL), log_o_new(n_slat), log_o_old(n_slat), log_o_store(n_grc)
           real    (Kind=Kind(0.d0)) :: overlap_ratio, re_overlap
@@ -362,7 +365,7 @@
                  if (cop == 'U') then
                      i_st = (i_wlk_eff-1)*N_slat+1
                      i_ed = i_wlk_eff*N_slat
-                     overlap(i_st:i_ed)=overlap(i_st:i_ed)-sum((Det_D)
+                     overlap(i_st:i_ed)=overlap(i_st:i_ed)-sum(Det_D)
                  endif
 
               endif
@@ -410,8 +413,8 @@
           do i_wlk = 1, N_wlk
             do nf_eff = 1, N_FL_eff
                nf=Calc_Fl_map(nf_eff)
-               CALL phi_0_m (nf_eff, i_wlk)%init(ndim,'r',WF_R(nf)%P)
-               CALL phi_bp_m(nf_eff, i_wlk)%init(ndim,'r',WF_R(nf)%P)
+               CALL phi_0_m (nf_eff, i_wlk)%alloc(ndim,phi_0(1,1)%n_part)
+               CALL phi_bp_m(nf_eff, i_wlk)%alloc(ndim,phi_0(1,1)%n_part)
             enddo
           enddo
 
@@ -596,7 +599,7 @@
           !Local 
           Complex (Kind=Kind(0.d0)) :: GR_bp(NDIM,NDIM,N_FL,N_grc)
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, ltrot_bp, N_op, nstm, nst, ntau
-          Integer :: i_grc, i_st, i_ed, act_mea
+          Integer :: i_grc, i_st, i_ed, act_mea, ns
           Complex (Kind=Kind(0.d0)) :: z, z_weight, z_sum_overlap, exp_overlap(N_slat)
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
           Real (Kind=Kind(0.d0))    :: Zero = 1.0E-8
@@ -671,7 +674,7 @@
           call re_orthonormalize_walkers(phi_bp_l, 'N')
 
           !! compute the total weight
-          z_weight = ham%sum_weight
+          call ham%sum_weight(z_weight)
 
           !! equal time measurement
           act_mea = 0 + irank
@@ -713,6 +716,7 @@
           Complex (Kind=Kind(0.d0)) :: GT0(NDIM,NDIM,N_FL,N_grc), G00(NDIM,NDIM,N_FL,N_grc)
           Complex (Kind=Kind(0.d0)) :: GTT(NDIM,NDIM,N_FL,N_grc), G0T(NDIM,NDIM,N_FL,N_grc)
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, N_op, ntau, I, nst, nstm
+          Integer :: ns, i_grc, act_mea, i_st, i_ed
           Complex (Kind=Kind(0.d0)) :: Z, Z_weight, DETZ, z_sum_overlap, exp_overlap(N_slat)
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
           Real (Kind=Kind(0.d0))    :: Zero = 1.0E-8
@@ -732,7 +736,7 @@
           nstm     = Size(udvst, 1)
           
           !! compute the total weight
-          Z_weight = ham%sum_weight
+          call ham%sum_weight(z_weight)
           
           do i_grc = 1, N_grc
              i_wlk = (i_grc-1)/N_slat+1     ! index for walker
@@ -821,7 +825,7 @@
                        Call ham%GRT_reconstruction( GT0(:,:,:,i_grc), G0T(:,:,:,i_grc) )
                    endif
                    CALL ham%obserT(ntau,GT0(:,:,:,i_grc),G0T(:,:,:,i_grc),G00(:,:,:,i_grc), & 
-                       & GTT(:,:,:,i_grc), i_wlk, i_grc, z_weight, z_sum_overlap)
+                       & GTT(:,:,:,i_grc), i_wlk, i_grc, z_weight, z_sum_overlap, act_mea)
                    act_mea = act_mea + 1
                 enddo
              enddo
@@ -887,7 +891,7 @@
                 exp_o_abs  (ncslat) = abs(z1)
                 exp_o_phase(ncslat) = atan2(aimag(z1),real(z1))
              enddo
-             dz2 = max(abs(z1(:)))
+             dz2 = maxval(exp_o_abs(:))
              exp_o_abs(:) = exp_o_abs(:)/dz2
 
              ncslat = 0
@@ -1304,7 +1308,7 @@
           Real    (Kind=Kind(0.d0)), allocatable :: wt_tmp(:)
 
           INTEGER             :: K, hdferr, rank, nf, nw, n_part, i0, i1, i2, i_st, i_ed, Ndt, ii
-          INTEGER             :: nwalk_in, n_grc_in, i_st2, i_ed2
+          INTEGER             :: nwalk_in, ngrc_in, i_st2, i_ed2
           integer             :: nf_eff
           INTEGER(HSIZE_T), allocatable :: dims(:), dimsc(:), maxdims(:)
           Logical             :: file_exists
@@ -1531,8 +1535,8 @@
                 phi_0_l(nf_eff,nw)%U(:,:)=p1_tmp(:,:,nf_eff)
                 phi_0_r(nf_eff,nw)%U(:,:)=p1_tmp(:,:,nf_eff)
             enddo
-            WF_L(nf)%P(:,:)=p1_tmp(:,:,nf_eff)
-            WF_R(nf)%P(:,:)=p1_tmp(:,:,nf_eff)
+            WF_L(nf,1)%P(:,:)=p1_tmp(:,:,nf_eff)
+            WF_R(nf,1)%P(:,:)=p1_tmp(:,:,nf_eff)
          enddo
 
          if (irank_g .eq. 0 ) then

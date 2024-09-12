@@ -502,9 +502,9 @@
           endif
           
           ! Standard two-point correlations
-          Call Predefined_Obs_eq_Green_measure ( Latt, Latt_unit, List, GR, GRC, N_SUN, act_mea, Z_fac, Obs_eq(1) )
-          Call Predefined_Obs_eq_SpinMz_measure( Latt, Latt_unit, List, GR, GRC, N_SUN, act_mea, Z_fac, Obs_eq(2),Obs_eq(3),Obs_eq(4) )
-          Call Predefined_Obs_eq_Den_measure   ( Latt, Latt_unit, List, GR, GRC, N_SUN, act_mea, Z_fac, Obs_eq(5) )
+          Call Predefined_Obs_eq_Green_measure ( Latt, Latt_unit, List, GR, GRC, N_SUN, Z_fac, Obs_eq(1) )
+          Call Predefined_Obs_eq_SpinMz_measure( Latt, Latt_unit, List, GR, GRC, N_SUN, Z_fac, Obs_eq(2),Obs_eq(3),Obs_eq(4) )
+          Call Predefined_Obs_eq_Den_measure   ( Latt, Latt_unit, List, GR, GRC, N_SUN, Z_fac, Obs_eq(5) )
 
         end Subroutine Obser
 
@@ -537,7 +537,7 @@
           Integer         , INTENT(IN) :: NT
           Complex (Kind=Kind(0.d0)), INTENT(IN) :: GT0(Ndim,Ndim,N_FL),G0T(Ndim,Ndim,N_FL),G00(Ndim,Ndim,N_FL),GTT(Ndim,Ndim,N_FL)
           Complex (Kind=Kind(0.d0)), Intent(IN) :: sum_w, sum_o
-          Integer, Intent(IN) :: i_wlk, act_mea
+          Integer, Intent(IN) :: i_wlk, i_grc, act_mea
           
           !Locals
           Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY, ZW, Re_ZW, Z_fac, Z_ol
@@ -558,10 +558,10 @@
 
           ! Standard two-point correlations
 
-          Call Predefined_Obs_tau_Green_measure  ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT, N_SUN, act_mea, Z_fac, Obs_tau(1) )
-          Call Predefined_Obs_tau_SpinMz_measure ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT, N_SUN, act_mea, Z_fac, Obs_tau(2),&
+          Call Predefined_Obs_tau_Green_measure  ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT, N_SUN, Z_fac, Obs_tau(1) )
+          Call Predefined_Obs_tau_SpinMz_measure ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT, N_SUN, Z_fac, Obs_tau(2),&
                &                                   Obs_tau(3), Obs_tau(4) )
-          Call Predefined_Obs_tau_Den_measure    ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT, N_SUN, act_mea, Z_fac, Obs_tau(5) )
+          Call Predefined_Obs_tau_Den_measure    ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT, N_SUN, Z_fac, Obs_tau(5) )
 
         end Subroutine OBSERT
 
@@ -627,8 +627,10 @@
 
       end function E0_local
 
-      Complex (Kind=Kind(0.d0)) function sum_weight
+      subroutine sum_weight(z_sum_weight)
         Implicit none
+
+        Complex (Kind=Kind(0.d0)), INTENT(out) :: z_sum_weight
         
         !local
         Integer                   :: i_wlk
@@ -655,9 +657,9 @@
         CALL MPI_REDUCE(Z1,Z2,1,MPI_COMPLEX16,MPI_SUM,0,Group_comm    ,IERR)
         CALL MPI_BCAST (Z2,   1,MPI_COMPLEX16        ,0,MPI_COMM_WORLD,ierr)
         
-        sum_weight = Z2
+        z_sum_weight = Z2
         
-      end function sum_weight
+      end subroutine sum_weight
       
       Subroutine update_fac_norm(GR, ntw)
         Implicit none
