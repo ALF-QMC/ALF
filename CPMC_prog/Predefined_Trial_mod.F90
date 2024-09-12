@@ -76,7 +76,7 @@
 !>
 !------------------------------------------------------------------
       Subroutine Predefined_TrialWaveFunction(Lattice_type, Ndim,  List,Invlist,Latt, Latt_unit, &
-           &                                  N_part, N_slat, N_FL, WF_L, WF_R)
+           &                                  N_part, N_FL, N_slat, WF_L, WF_R)
 
         Implicit none
         Character (len=64), Intent(IN)                :: Lattice_type
@@ -104,11 +104,11 @@
                &                                Ham_T2_vec(:)
         Integer, allocatable ::   N_Phi_vec(:)
 
-        Allocate(WF_L(N_slat, N_FL),WF_R(N_slat, N_FL))
+        Allocate(WF_L(N_FL,N_slat),WF_R(N_FL,N_slat))
         do ns=1,N_slat
         do n=1,N_FL
-           Call WF_alloc(WF_L(ns,n),Ndim,N_part)
-           Call WF_alloc(WF_R(ns,n),Ndim,N_part)
+           Call WF_alloc(WF_L(n,ns),Ndim,N_part)
+           Call WF_alloc(WF_R(n,ns),Ndim,N_part)
         enddo
         enddo
 
@@ -337,27 +337,27 @@
            Call Diag(Op_tmp(1,nf)%O,Op_tmp(1,nf)%U,Op_tmp(1,nf)%E)
            do I2=1,N_part
               do I1=1,Ndim
-                 WF_L(1,nf)%P(I1,I2)=Op_tmp(1,nf)%U(I1,I2)
-                 WF_R(1,nf)%P(I1,I2)=Op_tmp(1,nf)%U(I1,I2)
+                 WF_L(nf,1)%P(I1,I2)=Op_tmp(1,nf)%U(I1,I2)
+                 WF_R(nf,1)%P(I1,I2)=Op_tmp(1,nf)%U(I1,I2)
               enddo
            enddo
-           WF_L(1,nf)%Degen = Op_tmp(1,nf)%E(N_part+1) - Op_tmp(1,nf)%E(N_part)
-           WF_R(1,nf)%Degen = Op_tmp(1,nf)%E(N_part+1) - Op_tmp(1,nf)%E(N_part)
+           WF_L(nf,1)%Degen = Op_tmp(1,nf)%E(N_part+1) - Op_tmp(1,nf)%E(N_part)
+           WF_R(nf,1)%Degen = Op_tmp(1,nf)%E(N_part+1) - Op_tmp(1,nf)%E(N_part)
         enddo
 
         Do nf = 1,N_FL
-           Call WF_overlap(WF_L(1,nf), WF_R(1,nf), Z_norm)
+           Call WF_overlap(WF_L(nf,1), WF_R(nf,1), Z_norm)
+           WF_L(nf,1)%P(:,:) = WF_L(nf,1)%P(:,:)/sqrt(dble(N_slat)) 
+           WF_R(nf,1)%P(:,:) = WF_R(nf,1)%P(:,:)/sqrt(dble(N_slat))  
         enddo
 
-        WF_L(1,nf)%P(:,:) = WF_L(1,nf)%P(:,:)/sqrt(dble(N_slat)) 
-        WF_R(1,nf)%P(:,:) = WF_R(1,nf)%P(:,:)/sqrt(dble(N_slat))  
 
         Do nf = 1, N_FL
         do ns = 2, n_slat
-           WF_L(ns,nf)%Degen  = WF_L(1,nf)%Degen
-           WF_R(ns,nf)%Degen  = WF_R(1,nf)%Degen
-           WF_L(ns,nf)%P(:,:) = WF_L(1,nf)%P(:,:)
-           WF_R(ns,nf)%P(:,:) = WF_R(1,nf)%P(:,:)
+           WF_L(nf,ns)%Degen  = WF_L(nf,1)%Degen
+           WF_R(nf,ns)%Degen  = WF_R(nf,1)%Degen
+           WF_L(nf,ns)%P(:,:) = WF_L(nf,1)%P(:,:)
+           WF_R(nf,ns)%P(:,:) = WF_R(nf,1)%P(:,:)
         enddo
         enddo
 

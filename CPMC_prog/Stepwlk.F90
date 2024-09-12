@@ -57,13 +57,16 @@
           do i_wlk = 1, N_wlk
              do nf_eff = 1, N_FL_eff
                 nf=Calc_Fl_map(nf_eff)
-                CALL phi_0   (nf_eff, i_wlk)%init(ndim,'r',WF_R(1,nf)%P)
-                CALL phi_bp_r(nf_eff, i_wlk)%init(ndim,'r',WF_R(1,nf)%P)
+                CALL phi_0   (nf_eff, i_wlk)%init(ndim,'r',WF_R(nf,1)%P)
+                CALL phi_bp_r(nf_eff, i_wlk)%init(ndim,'r',WF_R(nf,1)%P)
              enddo
           enddo
           
           do ns = 1, N_slat
-             call phi_trial(nf_eff, ns)%init(ndim,'l',WF_L(ns,nf)%P)
+             do nf_eff = 1, N_FL_eff
+                nf=Calc_Fl_map(nf_eff)
+                call phi_trial(nf_eff, ns)%init(ndim,'l',WF_L(nf,ns)%P)
+             enddo
              do i_wlk = 1, N_wlk
                 i_grc = ns+(i_wlk-1)*N_slat
                 do nf_eff = 1, N_FL_eff
@@ -71,7 +74,7 @@
                    do n = 1, nstm
                       CALL udvst(n,nf_eff, i_grc)%alloc(ndim)
                    ENDDO
-                   CALL phi_bp_l(nf_eff, i_grc)%init(ndim,'l',WF_L(ns,nf)%P)
+                   CALL phi_bp_l(nf_eff, i_grc)%init(ndim,'l',WF_L(nf,ns)%P)
                 enddo
              enddo
           enddo
@@ -180,28 +183,29 @@
           call half_K_propagation( phi_trial, phi_0, GR )
 
           !! propagate with interaction
-          call int_propagation( phi_0, GR )
+          call int_propagation( phi_0, GR, ntau_bp )
              
           !! Kinetic part exp(-/Delta/tau T/2)
           call half_K_propagation( phi_trial, phi_0, GR )
 
         END SUBROUTINE stepwlk_move
 
-        subroutine int_propagation( phi_0, GR )
+        subroutine int_propagation( phi_0, GR, ntau_bp )
           
           Implicit none
      
           class(udv_state), intent(inout), allocatable :: phi_0    (:,:)
           complex (Kind=Kind(0.d0)), intent(inout), allocatable :: GR(:,:,:,:)
+          integer, intent(in) :: ntau_bp
 
           ! local
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, i_st, i_ed
-          Integer :: n_op, ns, i_grc, ntau_bp
+          Integer :: n_op, ns, i_grc
           Complex (Kind=Kind(0.d0)) :: Z, z_alpha
           COMPLEX (Kind=Kind(0.d0)) :: det_Vec(N_FL)
           Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8, spin
           
-          N_op     = Size(OP_V,1)
+          N_op = Size(OP_V,1)
           
           do i_wlk = 1, N_wlk
           
@@ -624,8 +628,8 @@
              ns    = i_grc-(i_wlk-1)*N_slat ! index for slater det
              do nf_eff = 1, N_FL_eff
                 nf=Calc_Fl_map(nf_eff)
-                CALL phi_bp_l   (nf_eff, i_grc)%reset('l',wf_l(ns,nf)%P)
-                CALL udvst(nstm, nf_eff, i_grc)%reset('l',wf_l(ns,nf)%P)
+                CALL phi_bp_l   (nf_eff, i_grc)%reset('l',wf_l(nf,ns)%P)
+                CALL udvst(nstm, nf_eff, i_grc)%reset('l',wf_l(nf,ns)%P)
              enddo
           enddo
 
