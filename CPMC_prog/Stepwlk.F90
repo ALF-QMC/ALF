@@ -116,39 +116,7 @@
           call rescale_overlap
 
           !! initial energy
-          tot_ene      = 0.d0
-          tot_c_weight = 0.d0
-          do i_wlk = 1, N_wlk
-             
-             if (weight_k(i_wlk) .ge. 0.d0 ) then
-
-             Z = 0.d0
-             do ns = 1, N_slat
-                 i_grc = ns+(i_wlk-1)*N_slat
-                 Z = Z + exp(overlap(i_grc))
-             enddo
-             
-             do ns = 1, N_slat
-                 i_grc = ns+(i_wlk-1)*N_slat
-                 el_tmp  = dble(ham%E0_local(GR(:,:,:,i_grc)))
-                 tot_ene = tot_ene + el_tmp*weight_k(i_wlk)*exp(overlap(i_grc))/Z
-             enddo
-             
-             tot_c_weight  = tot_c_weight  + weight_k(i_wlk)
-
-             endif
-
-          enddo
-          tot_re_weight = dble(tot_c_weight)
-          
-          CALL MPI_REDUCE(tot_ene      ,Z1,1,MPI_COMPLEX16,MPI_SUM, 0,Group_comm,IERR)
-          CALL MPI_REDUCE(tot_re_weight,X1,1,MPI_REAL8    ,MPI_SUM, 0,Group_comm,IERR)
-          
-          if (Irank_g == 0 ) then
-              Z1 = Z1/X1
-              fac_norm= dble(Z1)
-          endif
-          CALL MPI_BCAST(fac_norm, 1, MPI_REAL8, 0,MPI_COMM_WORLD,ierr)
+          call ham%update_fac_norm(GR, 0)
 
           file_seeds = "seedvec_in"
           INQUIRE (FILE=file_seeds, EXIST=LCONF)
