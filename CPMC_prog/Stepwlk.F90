@@ -581,7 +581,7 @@
 #endif
           Implicit none
      
-          COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:,:), Allocatable, INTENT(IN) :: GR_mix
+          COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:,:), Allocatable, INTENT(INOUT) :: GR_mix
           CLASS(UDV_State), Dimension(:,:)  , ALLOCATABLE, INTENT(INOUT) :: phi_bp_l, phi_bp_r
           CLASS(UDV_State), Dimension(:,:,:), ALLOCATABLE, INTENT(INOUT) :: udvst
           INTEGER, dimension(:)    ,allocatable,  INTENT(IN) :: Stab_nt
@@ -673,13 +673,15 @@
              i_st = 1+(i_wlk-1)*N_slat; i_ed = i_wlk*N_slat
              exp_overlap(:) = exp(overlap(i_st:i_ed))
              z_sum_overlap = sum(exp_overlap(:))
+             write(*,*) dble(overlap(i_st:i_ed))
              Do ns = 1, N_slat
                 i_grc = ns+(i_wlk-1)*N_slat
                 do nf_eff = 1,N_Fl_eff
                    nf=Calc_Fl_map(nf_eff)
                    call CGRP(Z, GR_bp(:,:,nf,i_grc), phi_bp_r(nf_eff,i_wlk), phi_bp_l(nf_eff,i_grc))
                 enddo
-                If (reconstruction_needed) Call ham%GR_reconstruction( GR_bp(:,:,:,i_grc) )
+                If (reconstruction_needed) Call ham%GR_reconstruction( GR_bp (:,:,:,i_grc) )
+                If (reconstruction_needed) Call ham%GR_reconstruction( GR_mix(:,:,:,i_grc) )
                 CALL ham%Obser( GR_bp(:,:,:,i_grc), GR_mix(:,:,:,i_grc), i_wlk, i_grc, z_weight, z_sum_overlap, act_mea )
                 act_mea = act_mea + 1
              enddo
@@ -699,7 +701,7 @@
           Implicit none
      
           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_bp_l, phi_bp_r
-          CLASS(UDV_State), Dimension(:,:,:), ALLOCATABLE, INTENT(INOUT) :: udvst
+          CLASS(UDV_State), Dimension(:,:,:), ALLOCATABLE, INTENT(IN) :: udvst
           INTEGER, dimension(:)    ,allocatable,  INTENT(IN) :: Stab_nt
 
           !Local 
