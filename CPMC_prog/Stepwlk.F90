@@ -156,6 +156,9 @@
           !! Kinetic part exp(-/Delta/tau T/2)
           call half_K_propagation( phi_trial, phi_0, GR )
 
+          !! rescale overlap
+          call rescale_overlap
+
         END SUBROUTINE stepwlk_move
 
         subroutine int_propagation( phi_0, GR, ntau_bp )
@@ -347,11 +350,11 @@
                  enddo
                  
                  ! update the overlap when normal propagation
-                 if (cop == 'U') then
-                     i_st = (i_wlk_eff-1)*N_slat+1
-                     i_ed = i_wlk_eff*N_slat
-                     overlap(i_st:i_ed)=overlap(i_st:i_ed)-sum(Det_D)
-                 endif
+                 !if (cop == 'U') then
+                 !    i_st = (i_wlk_eff-1)*N_slat+1
+                 !    i_ed = i_wlk_eff*N_slat
+                 !    overlap(i_st:i_ed)=overlap(i_st:i_ed)-sum(Det_D)
+                 !endif
 
               endif
 
@@ -524,8 +527,8 @@
              enddo
           enddo
 
-          !! rescale overlap
-          call rescale_overlap
+          !!! rescale overlap
+          !call rescale_overlap
           
           do i_wlk =1, N_wlk
               nsigma_bp(i_wlk)%f = nsigma_store(i_wlk)%f
