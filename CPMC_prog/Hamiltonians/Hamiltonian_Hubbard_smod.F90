@@ -663,7 +663,7 @@
       Subroutine update_fac_norm(GR, ntw)
         Implicit none
          
-        Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL,N_wlk)
+        Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL,N_grc)
         Integer                  , INTENT(IN) :: ntw
         
         !local
