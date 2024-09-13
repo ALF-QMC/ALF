@@ -156,9 +156,6 @@
           !! Kinetic part exp(-/Delta/tau T/2)
           call half_K_propagation( phi_trial, phi_0, GR )
 
-          !! rescale overlap
-          call rescale_overlap
-
         END SUBROUTINE stepwlk_move
 
         subroutine int_propagation( phi_0, GR, ntau_bp )
@@ -312,8 +309,9 @@
           
           !Local 
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, N_size, I, i_wlk
-          Integer :: ndistance, i_wlk_eff, i_st, i_ed, n_wlk_eff, ns
-          Real    (Kind=Kind(0.d0)) :: Overlap_ratio, Zero = 1.0E-8
+          Integer :: ndistance, i_wlk_eff, i_st, i_ed, n_wlk_eff, ns, nrs, i_slat
+          real    (Kind=Kind(0.d0)) :: Overlap_ratio, Zero = 1.0E-8, pi=acos(-1.d0)
+          real    (Kind=Kind(0.d0)) :: re_o_am, re_o_ph
           Complex (Kind=Kind(0.d0)) :: det_D(N_FL)
 
           n_wlk_eff = size(phi_0,2)
@@ -349,12 +347,17 @@
                     Phi_0(nf_eff,i_wlk)%D(:) = cmplx(1.d0, 0.d0, kind(0.d0))
                  enddo
                  
-                 ! update the overlap when normal propagation
-                 !if (cop == 'U') then
-                 !    i_st = (i_wlk_eff-1)*N_slat+1
-                 !    i_ed = i_wlk_eff*N_slat
-                 !    overlap(i_st:i_ed)=overlap(i_st:i_ed)-sum(Det_D)
-                 !endif
+                 !!update the overlap when normal propagation
+                 if (cop == 'U') then
+                     i_slat = (i_wlk_eff-1)*N_slat
+                     do nrs = 1, N_slat
+                        i_slat = i_slat + 1
+                        overlap(i_slat)=overlap(i_slat)-sum(Det_D)
+                        re_o_am = dble( overlap(i_slat) )
+                        re_o_ph = mod(aimag( overlap(i_slat) ), 2*pi)
+                        overlap(i_slat) = dcmplx(re_o_am, re_o_ph)
+                     enddo
+                 endif
 
               endif
 
