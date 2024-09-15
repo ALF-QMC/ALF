@@ -254,26 +254,23 @@
            filename = File_h5
 #endif
            Allocate (Tmp(Ns, Ntau, Obs%Latt_unit%Norb, Obs%Latt_unit%Norb))
-           Obs%Obs_Latt  = Obs%Obs_Latt /dble(Obs%N   )
-           Obs%Obs_Latt0 = Obs%Obs_Latt0/dble(Obs%N*Ns*Ntau)
-           Obs%Ave_sign  = Obs%Ave_Sign /dble(Obs%N   )
 
 #if defined(MPI)
            I = Obs%Latt%N * Ntau * Obs%Latt_unit%Norb * Obs%Latt_unit%Norb
            Tmp = cmplx(0.d0, 0.d0, kind(0.D0))
            CALL MPI_REDUCE(Obs%Obs_Latt,Tmp,I,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
-           Obs%Obs_Latt = Tmp/DBLE(ISIZE_g)
+           Obs%Obs_Latt = Tmp/dble(Obs%N)
 
            I = 1
            X = 0.d0
            CALL MPI_REDUCE(Obs%Ave_sign,X,I,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-           Obs%Ave_sign = X/DBLE(ISIZE_g)
+           Obs%Ave_sign = X/dble(Obs%N)
 
            I = Obs%Latt_unit%Norb
            Allocate(Tmp1(Obs%Latt_unit%Norb))
            Tmp1 = cmplx(0.d0,0.d0,kind(0.d0))
            CALL MPI_REDUCE(Obs%Obs_Latt0,Tmp1,I,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
-           Obs%Obs_Latt0 = Tmp1/DBLE(ISIZE_g)
+           Obs%Obs_Latt0 = Tmp1/dble(Obs%N)
            Deallocate(Tmp1)
 
            If (Irank_g == 0 ) then
@@ -450,8 +447,6 @@
            call MPI_Comm_size(Group_Comm, isize_g, ierr)
            igroup           = irank/isize_g
 #endif
-           Obs%Obs_vec  = Obs%Obs_vec /dble(Obs%N)
-           Obs%Ave_sign = Obs%Ave_sign/dble(Obs%N)
            write(File_pr, '(A,A)') trim(Obs%File_Vec), "_scal"
 #if defined HDF5
            groupname = File_pr
@@ -463,13 +458,13 @@
            Allocate (Tmp(No) )
            Tmp = cmplx(0.d0,0.d0,kind(0.d0))
            CALL MPI_REDUCE(Obs%Obs_vec,Tmp,No,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
-           Obs%Obs_vec = Tmp/DBLE(ISIZE_g)
+           Obs%Obs_vec = Tmp/dble(Obs%N)
            deallocate (Tmp )
 
            I = 1
            X = 0.d0
            CALL MPI_REDUCE(Obs%Ave_sign,X,I,MPI_REAL8,MPI_SUM, 0,Group_comm,IERR)
-           Obs%Ave_sign = X/DBLE(ISIZE_g)
+           Obs%Ave_sign = X/dble(Obs%N)
 
            if (Irank_g == 0 ) then
 #endif
