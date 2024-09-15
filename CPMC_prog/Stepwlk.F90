@@ -489,7 +489,7 @@
                 Z_s_array(:) = overlap(i_llim:i_rlim)
                 
                 ilabel = (it-1)*nrg
-                call mpi_send(Z_s_array,1,MPI_COMPLEX16,j_src,ilabel,Group_comm,IERR)
+                call mpi_send(Z_s_array,N_slat,MPI_COMPLEX16,j_src,ilabel,Group_comm,IERR)
                 
                 do nf_eff = 1, N_FL_eff
                     ilabel = (it-1)*nrg+(nf_eff-1)*6+1
@@ -673,7 +673,6 @@
              i_st = 1+(i_wlk-1)*N_slat; i_ed = i_wlk*N_slat
              exp_overlap(:) = exp(overlap(i_st:i_ed))
              z_sum_overlap = sum(exp_overlap(:))
-             write(*,*) dble(overlap(i_st:i_ed))
              Do ns = 1, N_slat
                 i_grc = ns+(i_wlk-1)*N_slat
                 do nf_eff = 1,N_Fl_eff
@@ -1135,7 +1134,7 @@
                 i_st=ii*N_wlk+1; i_st2=ii*N_grc+1
                 i_ed=(ii+1)*N_wlk; i_ed2=(ii+1)*N_grc
 
-                call mpi_recv(otphi_tmp,N_wlk,mpi_complex16, ii, 0, MPI_COMM_WORLD,STATUS,IERR)
+                call mpi_recv(otphi_tmp,N_grc,mpi_complex16, ii, 0, MPI_COMM_WORLD,STATUS,IERR)
                 overlap_out(i_st2:i_ed2) = otphi_tmp(:)
                 call mpi_recv(wt_tmp,N_wlk,    mpi_real8, ii, 1, MPI_COMM_WORLD,STATUS,IERR)
                 weight_out(i_st:i_ed) = wt_tmp(:)
