@@ -29,8 +29,8 @@
           complex (Kind=Kind(0.d0)) :: det_Vec(N_FL)
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio, X1, wtmp
           Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8, tot_re_weight, dz2
-          Character (LEN=64) :: FILE_TG, FILE_seeds
-          Logical ::   LCONF, LCONF_H5
+          Character (LEN=64) :: FILE_TG, FILE_seeds, file_inst, file_antiinst
+          Logical ::   LCONF, LCONF_H5, lconf_inst, lconf_antiinst
 
 #ifdef MPI
           Integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
@@ -78,13 +78,15 @@
                 enddo
              enddo
           enddo
-          
-          !file_tg = "trial_0.h5"
-          !INQUIRE (FILE=file_tg, EXIST=LCONF_H5)
-          !IF (LCONF_H5) THEN
-          !    if ( irank_g .eq. 0 ) write (*,*) "read input trial"
-          !    call trial_in_hdf5( phi_0, phi_trial, file_tg )
-          !endif
+            
+          file_inst = 'trial_inst.h5'
+          file_antiinst = 'trial_antiinst.h5'
+          inquire(file=file_inst, exist=lconf_inst)
+          inquire(file=file_antiinst, exist=lconf_antiinst)
+          if ( lconf_inst .and. lconf_antiinst ) then
+              if ( irank_g .eq. 0 ) write (*,*) "read inst-anti inst config as trial wave function"
+              call trial_in_hdf5( phi_0, phi_trial, file_inst, file_antiinst )
+          endif
 
           file_tg = "phiin_0.h5"
           INQUIRE (FILE=file_tg, EXIST=LCONF_H5)
@@ -1445,7 +1447,7 @@
 
         END SUBROUTINE wavefunction_in_hdf5
 
-        SUBROUTINE trial_in_hdf5( phi_0_r, phi_0_l, file_tg )
+        subroutine trial_in_hdf5( phi_0_r, phi_0_l, file_inst, file_antiinst )
 #ifdef MPI
           Use mpi
 #endif
@@ -1457,15 +1459,18 @@
           Implicit none
      
           CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_0_r, phi_0_l
-          CHARACTER (LEN=64), INTENT(IN)  :: FILE_TG
+          CHARACTER (LEN=64), INTENT(IN)  :: file_inst, file_antiinst 
 
           ! LOCAL
           CHARACTER (LEN=64) :: filename
-          Complex (Kind=Kind(0.d0)), pointer :: phi0_out(:,:,:)
-          Complex (Kind=Kind(0.d0)), allocatable :: p1_tmp(:,:,:)
+          integer, allocatable :: ipiv(:)
+          Complex (kind=kind(0.d0)), pointer :: phi0_in(:,:,:)
+          Complex (kind=kind(0.d0)), allocatable :: p1_tmp(:,:,:), p2_tmp(:,:,:), log_zdet(:)
+          complex (kind=kind(0.d0)), allocatable, dimension(:,:) :: sMat
+          complex (kind=kind(0.d0)) :: alpha, beta, zdet, phase, t_overlap, z_norm
 
           INTEGER             :: K, hdferr, rank, nf, nw, n_part, i0, i1, i2, i_st, i_ed, Ndt, ii, nwalk_in
-          Integer             :: nf_eff
+          Integer             :: nf_eff, n_fl_in, ns, i_wlk, info, n
           INTEGER(HSIZE_T), allocatable :: dims(:), dimsc(:), maxdims(:)
           Logical             :: file_exists
           INTEGER(HID_T)      :: file_id, crp_list, space_id, dset_id, dataspace
@@ -1481,25 +1486,27 @@
           call MPI_Comm_size(Group_Comm, isize_g, ierr)
           igroup           = irank/isize_g
 #endif
-          filename = file_tg
-
           n_part=phi_0_l(1,1)%n_part
+
+          n_fl_in = 1
           
-          allocate(p1_tmp(ndim,n_part,n_fl_eff))
+          allocate(p1_tmp(ndim,n_part,n_fl))
+          allocate(p2_tmp(ndim,n_part,n_fl))
           
           if ( irank .eq. 0 ) then
 
+              !! inst
               !open file
-              CALL h5fopen_f (filename, H5F_ACC_RDWR_F, file_id, hdferr)
+              CALL h5fopen_f (file_inst, H5F_ACC_RDWR_F, file_id, hdferr)
 
               !! allocate !!
-              allocate(phi0_out(ndim,n_part,n_fl))
+              allocate(phi0_in(ndim,n_part,n_fl_in))
               !!-----------!!
               !open and read real weight
               dset_name = "wavefunction"
               !Open the  dataset.
               CALL h5dopen_f(file_id, dset_name, dset_id, hdferr)
-              dat_ptr = C_LOC(phi0_out(1,1,1))
+              dat_ptr = C_LOC(phi0_in(1,1,1))
               !Write data
               CALL h5dread_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
               !close objects
@@ -1508,37 +1515,100 @@
               !close file
               CALL h5fclose_f(file_id, hdferr)
 
+              !! store input
               do nf_eff = 1, N_FL_eff
                  nf=Calc_Fl_map(nf_eff)
-                 p1_tmp(:,:,nf_eff)=phi0_out(:,:,nf)
+                 p1_tmp(:,:,nf)=phi0_in(:,:,1)
+              enddo
+
+              !! anti-inst
+              !open file
+              CALL h5fopen_f (file_antiinst, H5F_ACC_RDWR_F, file_id, hdferr)
+
+              !!-----------!!
+              !open and read real weight
+              dset_name = "wavefunction"
+              !Open the  dataset.
+              CALL h5dopen_f(file_id, dset_name, dset_id, hdferr)
+              dat_ptr = C_LOC(phi0_in(1,1,1))
+              !Write data
+              CALL h5dread_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
+              !close objects
+              CALL h5dclose_f(dset_id,   hdferr)
+                
+              !close file
+              CALL h5fclose_f(file_id, hdferr)
+              
+              !! store input
+              do nf_eff = 1, N_FL_eff
+                 nf=Calc_Fl_map(nf_eff)
+                 p2_tmp(:,:,nf)=phi0_in(:,:,1)
               enddo
 
          endif !irank 0
 
          if ( irank_g .eq. 0 ) then
             do ii = 1, isize_g-1
-               Ndt=N_FL_eff*ndim*n_part
+               Ndt=N_FL*ndim*n_part
                call mpi_send(p1_tmp,  Ndt,mpi_complex16, ii, 2, MPI_COMM_WORLD,IERR)
+               call mpi_send(p2_tmp,  Ndt,mpi_complex16, ii, 3, MPI_COMM_WORLD,IERR)
             ENDDO
          else
-            Ndt=N_FL_eff*ndim*n_part
+            Ndt=N_FL*ndim*n_part
             call mpi_recv(p1_tmp,  Ndt,mpi_complex16, 0, 2, MPI_COMM_WORLD,STATUS,IERR)
+            call mpi_recv(p2_tmp,  Ndt,mpi_complex16, 0, 3, MPI_COMM_WORLD,STATUS,IERR)
          ENDIF
 
          do nf_eff = 1, N_FL_eff
             nf=Calc_Fl_map(nf_eff)
-            do nw = 1, N_wlk
-                phi_0_l(nf_eff,nw)%U(:,:)=p1_tmp(:,:,nf_eff)
-                phi_0_r(nf_eff,nw)%U(:,:)=p1_tmp(:,:,nf_eff)
+            phi_0_l(nf_eff,1)%U(:,:)=p1_tmp(:,:,nf)
+            phi_0_l(nf_eff,2)%U(:,:)=p2_tmp(:,:,nf)
+            WF_L(nf,1)%P(:,:)=p1_tmp(:,:,nf)
+            WF_L(nf,2)%P(:,:)=p2_tmp(:,:,nf)
+         enddo
+
+         !! normalization of overlap <\Psi_T | \phi_k^0>
+
+         allocate(sMat(n_part,n_part), ipiv(N_part), log_zdet(N_slat))
+         alpha=1.d0
+         beta=0.d0
+         log_zdet(:) = 0.d0
+         do ns = 1, n_slat
+         do nf_eff = 1, N_FL_eff
+            nf=Calc_Fl_map(nf_eff)
+            call zgemm('C','N',N_part,N_part,Ndim,alpha,phi_0_l(nf_eff,ns)%U(1,1),Ndim,phi_0_r(nf_eff,1)%U(1,1),ndim,beta,sMat(1,1),N_part)
+            ! ZGETRF computes an LU factorization of a general M-by-N matrix A
+            ! using partial pivoting with row interchanges.
+            call ZGETRF(N_part, N_part, smat, N_part, ipiv, info)
+            ! obtain log of det
+            zdet  = 0.d0
+            phase = 1.d0
+            Do n=1,N_part
+               if (ipiv(n).ne.n) then
+                  phase = -phase
+               endif
+               zdet = zdet + log(sMat(n,n))
             enddo
-            WF_L(nf,1)%P(:,:)=p1_tmp(:,:,nf_eff)
-            WF_R(nf,1)%P(:,:)=p1_tmp(:,:,nf_eff)
+            zdet = zdet + log(phase)
+
+            log_zdet(ns) = log_zdet(ns) + zdet
+         enddo
+         enddo
+
+         z_norm = dcmplx(1.d0,0.d0)/( exp(log_zdet(1)) + exp(log_zdet(2)) )
+         do i_wlk  = 1, n_wlk
+         do nf_eff = 1, N_FL_eff
+            nf=Calc_Fl_map(nf_eff)
+            phi_0_r(nf_eff,i_wlk)%U(:,:) = phi_0_r(nf_eff,i_wlk)%U(:,:)*z_norm
+         enddo
          enddo
 
          if (irank_g .eq. 0 ) then
-             deallocate(phi0_out)
+             deallocate(phi0_in)
          endif
          deallocate(p1_tmp)
+         deallocate(p2_tmp)
+         deallocate(smat, log_zdet, ipiv)
 
         END SUBROUTINE trial_in_hdf5
 #endif

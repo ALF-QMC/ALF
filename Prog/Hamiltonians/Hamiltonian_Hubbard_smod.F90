@@ -178,6 +178,7 @@
       real(Kind=Kind(0.d0)) :: ham_Tperp  = 1.d0     ! For bilayer systems
       logical               :: Mz         = .true.   ! When true, sets the M_z-Hubbard model: Nf=2, demands that N_sun is even, HS field couples to the z-component of magnetization; otherwise, HS field couples to the density
       logical               :: Continuous = .false.  ! Uses (T: continuous; F: discrete) HS transformation
+      Integer               :: N_dope     = 0        ! Number of doping electrons
       !#PARAMETERS END#
 
       Type (Lattice),       target :: Latt
@@ -305,6 +306,7 @@
              Write(unit_info,*) 'Ham_U2        : ', Ham_U2
              Write(unit_info,*) 'Ham_tperp     : ', Ham_tperp
              Write(unit_info,*) 'Ham_chem      : ', Ham_chem
+             Write(unit_info,*) 'N_dope        : ', N_dope
              if (Projector) then
                 Do nf = 1,N_FL
                    Write(unit_info,*) 'Degen of right trial wave function: ', WF_R(nf)%Degen
@@ -410,7 +412,7 @@
 
           Integer :: N_part, nf
           ! Use predefined stuctures or set your own Trial  wave function
-          N_part = Ndim/2
+          N_part = Ndim/2-N_dope
           Call Predefined_TrialWaveFunction(Lattice_type ,Ndim,  List,Invlist,Latt, Latt_unit, &
                &                            N_part, N_FL,  WF_L, WF_R)
 
