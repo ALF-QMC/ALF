@@ -836,6 +836,7 @@
                           nf=Calc_Fl_map(nf_eff)
                           phi_bp_l(nf_eff, i_grc) = udvst(nst, nf_eff, i_grc) 
                           CALL CGRP(DetZ, GR(:,:,nf), phi_bp_r(nf_eff,i_wlk), phi_bp_l(nf_eff,i_grc))
+                          Call Control_Precision_tau(GTT(:,:,nf,i_grc), GR(:,:,nf), Ndim)
                        enddo
                        GTT(:,:,:,i_grc) = GR
                     
