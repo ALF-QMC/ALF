@@ -888,14 +888,34 @@
           Endif
           If (Mz) then 
             ! To Do
+            Do n_f = 1, Bond_Matrix(1)%N_FAM
+               Do l_f = 1, Bond_Matrix(1)%L_Fam(n_f)
+                  I    = Bond_Matrix(1)%List_Fam(n_f,l_f,1)
+                  nb     = Bond_Matrix(1)%List_Fam(n_f,l_f,2)
+                  no_I = Bond_Matrix(1)%list(Nb,1)
+                  no_J = Bond_Matrix(1)%list(Nb,2)
+                  n_1  = Bond_Matrix(1)%list(Nb,3)
+                  n_2  = Bond_Matrix(1)%list(Nb,4)
+                  J    = Latt%nnlist(I,n_1,n_2)
+                  ! sites of the bond
+                  I1   = Invlist(I,no_I)
+                  J1   = Invlist(J,no_J)
+                  ! interation strength on bond
+                  ZV  =  2.d0*Bond_Matrix(1)%T(Nb)
+                  Z  =       ( GRC(I1,I1,1) + GRC(I1,I1,2) -  cmplx(1.d0,0.d0,Kind(0.d0)) ) *  &
+                       &     ( GRC(J1,J1,1) + GRC(J1,J1,2) -  cmplx(1.d0,0.d0,Kind(0.d0)) ) +  &
+                       &       GRC(I1,J1,1)*GR(I1,J1,1) +  GRC(I1,J1,2)*GR(I1,J1,2)             
+                  Zpot  =  Zpot + ZV*Z
+               enddo
+            enddo
           else
             Do n_f = 1, Bond_Matrix(1)%N_FAM
                Do l_f = 1, Bond_Matrix(1)%L_Fam(n_f)
-                   I    = Bond_Matrix(1)%List_Fam(n_f,l_f,1)
+                  I    = Bond_Matrix(1)%List_Fam(n_f,l_f,1)
                   nb     = Bond_Matrix(1)%List_Fam(n_f,l_f,2)
-                   no_I = Bond_Matrix(1)%list(Nb,1)
+                  no_I = Bond_Matrix(1)%list(Nb,1)
                   no_J = Bond_Matrix(1)%list(Nb,2)
-                   n_1  = Bond_Matrix(1)%list(Nb,3)
+                  n_1  = Bond_Matrix(1)%list(Nb,3)
                   n_2  = Bond_Matrix(1)%list(Nb,4)
                   J    = Latt%nnlist(I,n_1,n_2)
                   ! sites of the bond
@@ -903,9 +923,9 @@
                   J1   = Invlist(J,no_J)
                   ! interation strength on bond
                   ZV  =  Bond_Matrix(1)%T(Nb)
-                  Z   =  ( dble(N_SUN) *  ( GRC(i,i,1) - cmplx(0.5,0.d0,Kind(0.d0) ))        + & 
-                      &                  ( GRC(j,j,1) - cmplx(0.5,0.d0,Kind(0.d0) )) ) **2  + &
-                      &   dble(N_SUN) * GRC(I,J,1)*GR(I,J,1) 
+                  Z   =  ( dble(N_SUN) *  ( GRC(I1,I1,1) - cmplx(0.5,0.d0,Kind(0.d0) ))        + & 
+                      &                   ( GRC(J1,J1,1) - cmplx(0.5,0.d0,Kind(0.d0) )) ) **2  + &
+                      &   dble(N_SUN) * GRC(I1,J1,1)*GR(I1,J1,1) 
                   Zpot  =  Zpot  +  ZV*Z
                enddo
             enddo
