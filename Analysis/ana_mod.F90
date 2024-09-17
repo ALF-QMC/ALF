@@ -504,9 +504,9 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       call h5ltget_attribute_double_f(grp_id, '.', "L2", L2_p , ierr)
       Call Make_Lattice( L1_p, L2_p, a1_p, a2_p, Latt )
       
-      attr_name = "N_coord"
-      call read_attribute(grp_id, '.', attr_name, Latt_unit%Norb, ierr)
       attr_name = "Norb"
+      call read_attribute(grp_id, '.', attr_name, Latt_unit%Norb, ierr)
+      attr_name = "N_coord"
       call read_attribute(grp_id, '.', attr_name, Latt_unit%N_coord, ierr)
       attr_name = "Ndim"
       call read_attribute(grp_id, '.', attr_name, Ndim, ierr)
