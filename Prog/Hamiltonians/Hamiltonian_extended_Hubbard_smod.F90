@@ -197,7 +197,7 @@
 
 ! Dynamically generated on compile time from parameters list.
 ! Supplies the subroutines read_parameters and write_parameters_hdf5.
-#include "Hamiltonian_extended_Hubbard_read_write_parameters.F90"
+#include "Hamiltonian_Extended_Hubbard_read_write_parameters.F90"
 
 !--------------------------------------------------------------------
 !> @author
