@@ -146,7 +146,7 @@
       end type ham_extended_Hubbard
 
       !#PARAMETERS START# VAR_lattice
-      Character (len=64) :: Model = 'extended_Hubbard'  ! Value not relevant
+      Character (len=64) :: Model = 'Extended_Hubbard'  ! Value not relevant
       Character (len=64) :: Lattice_type = 'Square'
       Integer            :: L1 = 6   ! Length in direction a_1
       Integer            :: L2 = 6   ! Length in direction a_2
@@ -170,17 +170,17 @@
       !#PARAMETERS START# VAR_extended_Hubbard
       real(Kind=Kind(0.d0)) :: ham_T      = 1.d0     ! Hopping parameter
       real(Kind=Kind(0.d0)) :: Ham_chem   = 0.d0     ! Chemical potential
-      real(Kind=Kind(0.d0)) :: Ham_U      = 4.d0    ! Hubbard interaction
-      real(Kind=Kind(0.d0)) :: Ham_V1     = 1.d0    ! nearest neighbor interaction
+      real(Kind=Kind(0.d0)) :: Ham_U      = 4.d0     ! Hubbard interaction
+      real(Kind=Kind(0.d0)) :: Ham_V1     = 1.d0     ! nearest neighbor interaction
       real(Kind=Kind(0.d0)) :: ham_T2     = 1.d0     ! For bilayer systems
-      real(Kind=Kind(0.d0)) :: Ham_U2     = 4.d0    ! For bilayer systems
-      real(Kind=Kind(0.d0)) :: Ham_V2     = 1.d0    ! For bilayer systems
+      real(Kind=Kind(0.d0)) :: Ham_U2     = 4.d0     ! For bilayer systems
+      real(Kind=Kind(0.d0)) :: Ham_V2     = 1.d0     ! For bilayer systems
       real(Kind=Kind(0.d0)) :: ham_Tperp  = 1.d0     ! For bilayer systems
-      real(Kind=Kind(0.d0)) :: Ham_Vperp  = 1.d0    ! For bilayer systems
+      real(Kind=Kind(0.d0)) :: Ham_Vperp  = 1.d0     ! For bilayer systems
       !! ATTENTION !!
       !! Check if MZ can work!!
       logical               :: Mz         = .false.   ! When true, sets the M_z-Hubbard model: Nf=2, demands that N_sun is even, HS field couples to the z-component of magnetization; otherwise, HS field couples to the density
-      logical               :: Continuous = .false.  ! Uses (T: continuous; F: discrete) HS transformation
+      logical               :: Continuous = .false.   ! Uses (T: continuous; F: discrete) HS transformation
       !#PARAMETERS END#
 
       Type (Lattice),       target :: Latt
@@ -197,7 +197,7 @@
 
 ! Dynamically generated on compile time from parameters list.
 ! Supplies the subroutines read_parameters and write_parameters_hdf5.
-#include "Hamiltonian_extended_Hubbard_read_write_parameters.F90"
+#include "Hamiltonian_Extended_Hubbard_read_write_parameters.F90"
 
 !--------------------------------------------------------------------
 !> @author
@@ -239,14 +239,12 @@
           if (Projector) Thtrot = nint(theta/dtau)
           Ltrot = Ltrot+2*Thtrot
           If ( Mz ) then
-             N_FL  = 2
-             if (mod(N_SUN,2) .ne. 0 ) then
-                Write(error_unit,*) 'Ham_Set: N_SUN has to be even if Mz = True'
-                CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
-             endif
-             N_SUN = N_SUN / 2
+            N_SUN = 1
+            N_FL  = 2
+            !Write(error_unit,*) 'Ham_Set: Mz = True is not  yet  tested. '
+            !CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
           else
-             N_FL  = 1
+            N_FL  = 1
           endif
 
           ! Setup the Bravais lattice
@@ -270,7 +268,7 @@
 #endif
              Open(newunit=unit_info, file=file_info, status="unknown", position="append")
              Write(unit_info,*) '====================================='
-             Write(unit_info,*) 'Model is      : ', Model
+             Write(unit_info,*) 'Model is      :  Extended Hubbard Model' 
              Write(unit_info,*) 'Lattice is    : ', Lattice_type
              Write(unit_info,*) '# unit cells  : ', Latt%N 
              Write(unit_info,*) '# of orbitals : ', Latt_unit%Norb
@@ -282,9 +280,9 @@
                 Write(unit_info,*) 'Twist as boundary condition'
              endif
              If ( Mz )  then
-                Write(unit_info,*) 'HS  couples to z-component of spin'
+                Write(unit_info,*) 'HS couples to z-component of spin'
              else
-                Write(unit_info,*) 'HS  couples to density'
+                Write(unit_info,*) 'HS  ccouples to density'
              endif
              Write(unit_info,*) 'Checkerboard  : ', Checkerboard
              Write(unit_info,*) 'Symm. decomp  : ', Symm
@@ -306,11 +304,13 @@
              Write(unit_info,*) 't             : ', Ham_T
              Write(unit_info,*) 'Ham_U         : ', Ham_U
              Write(unit_info,*) 'Ham_V1        : ', Ham_V1
-             Write(unit_info,*) 't2            : ', Ham_T2
-             Write(unit_info,*) 'Ham_U2        : ', Ham_U2
-             Write(unit_info,*) 'Ham_V2        : ', Ham_V2
-             Write(unit_info,*) 'Ham_tperp     : ', Ham_tperp
-             Write(unit_info,*) 'Ham_Vperp     : ', Ham_Vperp
+             if (Index(str_to_upper(Lattice_type),'BILAYER') > 0 )  then
+               Write(unit_info,*) 't2            : ', Ham_T2
+               Write(unit_info,*) 'Ham_U2        : ', Ham_U2
+               Write(unit_info,*) 'Ham_V2        : ', Ham_V2
+               Write(unit_info,*) 'Ham_tperp     : ', Ham_tperp
+               Write(unit_info,*) 'Ham_Vperp     : ', Ham_Vperp
+             endif   
              Write(unit_info,*) 'Ham_chem      : ', Ham_chem
              if (Projector) then
                 Do nf = 1,N_FL
@@ -373,23 +373,23 @@
           Ham_Lambda_vec = Ham_Lambda
           N_Phi_vec      = N_Phi
 
-          Select case (Lattice_type)
-          Case ("Square")
+          Select case (str_to_upper(Lattice_type))
+          Case ("SQUARE")
              Call  Set_Default_hopping_parameters_square(Hopping_Matrix,Ham_T_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
                   &                                      Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
-          Case ("N_leg_ladder")
+          Case ("N_LEG_LADDER")
              Call  Set_Default_hopping_parameters_n_leg_ladder(Hopping_Matrix, Ham_T_vec, Ham_Tperp_vec, Ham_Chem_vec, Phi_X_vec, &
                   &                                            Phi_Y_vec, Bulk,  N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
-          Case ("Honeycomb")
+          Case ("HONEYCOMB")
              Ham_Lambda = 0.d0
              Call  Set_Default_hopping_parameters_honeycomb(Hopping_Matrix, Ham_T_vec, Ham_Lambda_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
                   &                                         Bulk,  N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
-          Case ("Bilayer_square")
+          Case ("BILAYER_SQUARE")
              Call  Set_Default_hopping_parameters_Bilayer_square(Hopping_Matrix,Ham_T_vec,Ham_T2_vec,Ham_Tperp_vec, Ham_Chem_vec, &
                   &                                              Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL,&
                   &                                              List, Invlist, Latt, Latt_unit )
 
-          Case ("Bilayer_honeycomb")
+          Case ("BILAYER_HONEYCOMB")
              Call  Set_Default_hopping_parameters_Bilayer_honeycomb(Hopping_Matrix,Ham_T_vec,Ham_T2_vec,Ham_Tperp_vec, Ham_Chem_vec, &
                   &                                                 Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL,&
                   &                                                 List, Invlist, Latt, Latt_unit )
@@ -436,9 +436,8 @@
           Implicit none
 
           Integer :: nf, I, I1, I2,  nc,  J, no,  N_ops, N_hubbard, N_Phi_loc
-          Real (Kind=Kind(0.d0)) :: X,  Zero = 1.D-10
+          Real (Kind=Kind(0.d0)) :: X,  Zero = 1.D-10,  V_eff
           Real (Kind=Kind(0.d0)), allocatable :: Ham_U_vec(:)
-
 
           Real (Kind=Kind(0.d0) ), allocatable :: Ham_V_vec(:), Ham_Vperp_vec(:), Ham_Chem_vec(:), Phi_X_vec(:), Phi_Y_vec(:),&
                &                                  Ham_V2_vec(:),  Ham_Lambda_vec(:)
@@ -457,32 +456,40 @@
                &                                   N_Phi_vec(N_FL), Ham_Lambda_vec(N_FL) )
 
           ! Here we consider no N_FL  dependence of the hopping parameters.
-          Ham_V_vec      = -Ham_V1/dble(2*N_SUN)
-          Ham_V2_vec     = -Ham_V2/dble(2*N_SUN)
-          Ham_Vperp_vec  = -Ham_Vperp/dble(2*N_SUN)
+
+          if (Mz) then
+            Ham_V_vec      = -Ham_V1   /dble(2*N_FL)    !  Hopping  is  defined as -t 
+            Ham_V2_vec     = -Ham_V2   /dble(2*N_FL)    !  The SU(2) spin symmetry is built into the flavor index
+            Ham_Vperp_vec  = -Ham_Vperp/dble(2*N_FL)
+          else
+            Ham_V_vec      = -Ham_V1   /dble(2*N_SUN)    !  Hopping  is  defined as -t 
+            Ham_V2_vec     = -Ham_V2   /dble(2*N_SUN)
+            Ham_Vperp_vec  = -Ham_Vperp/dble(2*N_SUN)
+          endif
           Ham_Chem_vec   = 0.0d0
           Phi_X_vec      = 0.d0
           Phi_Y_vec      = 0.d0
           Ham_Lambda_vec = 0.0d0
           N_Phi_vec      = 0
 
+
           !Use predefined hoppings to manage the bonds since the interaction of the tV model is exactly on the hopping bonds
-          Select case (Lattice_type)
-          Case ("Square")
+          Select case (str_to_upper(Lattice_type))
+          Case ("SQUARE")
              Call  Set_Default_hopping_parameters_square(Bond_Matrix,Ham_V_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
                   &                                      Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
-          Case ("N_leg_ladder")
+          Case ("N_LEG_LADDER")
              Call  Set_Default_hopping_parameters_n_leg_ladder(Bond_Matrix, Ham_V_vec, Ham_Vperp_vec, Ham_Chem_vec, Phi_X_vec, &
                   &                                            Phi_Y_vec, Bulk,  N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
-          Case ("Honeycomb")
+          Case ("HONEYCOMB")
              Call  Set_Default_hopping_parameters_honeycomb(Bond_Matrix, Ham_V_vec, Ham_Lambda_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
                   &                                         Bulk,  N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
-          Case ("Bilayer_square")
+          Case ("BILAYER_SQUARE")
              Call  Set_Default_hopping_parameters_Bilayer_square(Bond_Matrix,Ham_V_vec,Ham_V2_vec,Ham_Vperp_vec, Ham_Chem_vec, &
                   &                                              Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL,&
                   &                                              List, Invlist, Latt, Latt_unit )
 
-          Case ("Bilayer_honeycomb")
+          Case ("BILAYER_HONEYCOMB")
              Call  Set_Default_hopping_parameters_Bilayer_honeycomb(Bond_Matrix,Ham_V_vec,Ham_V2_vec,Ham_Vperp_vec, Ham_Chem_vec, &
                   &                                                 Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL,&
                   &                                                 List, Invlist, Latt, Latt_unit )
@@ -490,10 +497,10 @@
           end Select
 
           N_ops = 0
-          if ( Lattice_type == "Bilayer_square" .or. Lattice_type =="Bilayer_honeycomb" ) then
+          if ( str_to_upper(Lattice_type) == "BILAYER_SQUARE" .or. str_to_upper(Lattice_type) =="BILAYER_HONEYCOMB" ) then
              Do no = 1,  Latt_unit%Norb/2
-                Ham_U_vec(no                    ) = Ham_U -4*abs(ham_V1)-abs(ham_Vperp)
-                Ham_U_vec(no + Latt_unit%Norb/2 ) = Ham_U2-4*abs(ham_V2)-abs(ham_Vperp)
+                Ham_U_vec(no                    ) = Ham_U  
+                Ham_U_vec(no + Latt_unit%Norb/2 ) = Ham_U2 
              enddo
              If (abs(Ham_U ) > Zero ) N_ops = N_ops + Latt%N*Latt_unit%Norb/2
              If (abs(Ham_U2) > Zero ) N_ops = N_ops + Latt%N*Latt_unit%Norb/2
@@ -503,12 +510,16 @@
           endif
 
           do n_f = 1,Bond_Matrix(1)%N_FAM
-              N_ops = N_ops +  Bond_Matrix(1)%L_Fam(n_f)
+            if (Mz) then
+              ! We use real field for each kind of interaction: n_{i, sigma} n_{j, sigma'}
+              N_ops = N_ops + 4*Bond_Matrix(1)%L_Fam(n_f)
+            else
+              N_ops = N_ops + Bond_Matrix(1)%L_Fam(n_f)
+            endif
           enddo
+          Allocate(Op_V(N_ops,N_FL))
 
           If ( Mz )  Then
-             Allocate(Op_V(N_ops,N_FL))
-             Ham_U_vec = Ham_U_vec/real(N_SUN,kind(0.d0))
              nc = 0
              Do I1 = 1,Latt%N
                 do no = 1, Latt_unit%Norb
@@ -524,7 +535,6 @@
                 enddo
              enddo
           else
-             Allocate(Op_V(N_ops,N_FL))
              nc = 0
              Do I1 = 1,Latt%N
                 do no = 1, Latt_unit%Norb
@@ -540,69 +550,121 @@
                 Enddo
              Enddo
           Endif
-          N_hubbard=nc
 
+          N_hubbard = nc
+          ! nf is the flavor index. n_f is the familly index.
+          if (Mz) then
 
-        !   if ( N==0 ) then
-        !      ! It is a noninteracting model and then there is no need to setup the interaction apart from one vertex per flavor
-        !      ! for internal memory consistency (the code will always access the first vertex OP_V(1,:) hence it has to be allocated)
-        !      ! any vertex with zero coupling strength will do, ie, the hubbard interaction with U=0
-        !      allocate(Op_V(1,N_FL))
-        !      do nf = 1,N_FL
-        !         ! Fake hubbard interaction of weight 0.0 (last argument in the following call)
-        !         Call Predefined_Int_U_SUN(  OP_V(1,nf), 1, N_SUN, DTAU, 0.0d0  )
-        !      enddo
-        !      write(*,*) "No interaction present"
-        !      return
-        !   endif
-          
-        !   If (Symm) Call Symmetrize_families(Bond_Matrix)
-        !   N = 0
-        !   do n_f = 1,Bond_Matrix(1)%N_FAM
-        !      N = N +  Bond_Matrix(1)%L_Fam(n_f)
-        !   enddo
-          
-        !   allocate(Op_V(N,N_FL))
-          do nf = 1,N_FL
-             ! (NEEDED since we don't want to include magnetic fields in the interaction)
-             N_Phi_loc = Bond_Matrix(nf)%N_Phi
-             Phi_X_loc = Bond_Matrix(nf)%Phi_X
-             Phi_Y_loc = Bond_Matrix(nf)%Phi_Y
-             do nc = N_hubbard+1, Size(Op_V,1)
-                Call Op_make(Op_V(nc,nf),2)
-             enddo
-             nc = N_hubbard
-             Do n_f = 1, Bond_Matrix(1)%N_FAM
+            do n_f = 1, Bond_Matrix(1)%N_FAM
+               do l_f = 1, Bond_Matrix(1)%L_Fam(n_f)
+                  I    = Bond_Matrix(1)%List_Fam(n_f,l_f,1)
+                  nb   = Bond_Matrix(1)%List_Fam(n_f,l_f,2)
+                  no_I = Bond_Matrix(1)%list(Nb,1)
+                  no_J = Bond_Matrix(1)%list(Nb,2)
+                  n_1  = Bond_Matrix(1)%list(Nb,3)
+                  n_2  = Bond_Matrix(1)%list(Nb,4)
+                  J    = Latt%nnlist(I,n_1,n_2)
+                  I1   = Invlist(I,no_I)
+                  J1   = Invlist(J,no_J)
+                  ! Up-Up 
+                  nc = nc + 1
+                  do nf = 1,N_FL
+                     call Op_make(Op_V(nc, nf), 2)
+                     Op_V(nc, nf)%P(1) = I1
+                     Op_V(nc, nf)%P(2) = J1
+                     Op_V(nc, nf)%type = 2
+                  enddo
+                  Op_V(nc,1)%O(1,1) = cmplx( 1.d0, 0.d0, kind(0.D0))
+                  Op_V(nc,1)%O(2,2) = cmplx(-1.d0, 0.d0, kind(0.D0))
+                  V_eff = -real(Bond_Matrix(1)%T(nb),Kind(0.d0)) *Bond_Matrix(1)%Prop_Fam(n_f) 
+                  Op_V(nc, 1)%g = sqrt(cmplx(-Dtau*V_eff,0.d0,Kind(0.d0)))
+                  Call Op_set(Op_V(nc,1))
+                  Call Op_set(Op_V(nc,2))
+                  ! Do-Do  
+                  nc = nc + 1
+                  do nf = 1,N_FL
+                     call Op_make(Op_V(nc, nf), 2)
+                     Op_V(nc, nf)%P(1) = I1
+                     Op_V(nc, nf)%P(2) = J1
+                     Op_V(nc, nf)%type = 2
+                  enddo
+                  Op_V(nc,2)%O(1,1) = cmplx( 1.d0, 0.d0, kind(0.D0))
+                  Op_V(nc,2)%O(2,2) = cmplx(-1.d0, 0.d0, kind(0.D0))
+                  V_eff = -real(Bond_Matrix(1)%T(nb),Kind(0.d0)) *Bond_Matrix(1)%Prop_Fam(n_f) 
+                  Op_V(nc, 2)%g = sqrt(cmplx(-Dtau*V_eff,0.d0,Kind(0.d0)))
+                  Call Op_set(Op_V(nc,1))
+                  Call Op_set(Op_V(nc,2))
+                  ! Up-do
+                  nc = nc + 1
+                  do nf = 1,N_FL
+                     call Op_make(Op_V(nc, nf), 1)
+                     Op_V(nc, nf)%type = 2
+                  enddo
+                  Op_V(nc,1)%P(1) = I1
+                  Op_V(nc,1)%O(1,1) = cmplx( 1.d0, 0.d0, kind(0.D0))
+                  V_eff = -real(Bond_Matrix(1)%T(nb),Kind(0.d0)) *Bond_Matrix(1)%Prop_Fam(n_f) 
+                  Op_V(nc, 1)%g     = sqrt(cmplx(-Dtau*V_eff,0.d0,Kind(0.d0)))
+                  Op_V(nc, 1)%alpha = cmplx(-0.5D0,0.d0,Kind(0.d0))
+                  Op_V(nc,2)%P(1) = J1
+                  Op_V(nc,2)%O(1,1) = cmplx(-1.d0, 0.d0, kind(0.D0))
+                  V_eff = -real(Bond_Matrix(1)%T(nb),Kind(0.d0)) *Bond_Matrix(1)%Prop_Fam(n_f) 
+                  Op_V(nc, 2)%g     = sqrt(cmplx(-Dtau*V_eff,0.d0,Kind(0.d0)))
+                  Op_V(nc, 2)%alpha = cmplx( 0.5D0,0.d0,Kind(0.d0))
+                  Call Op_set(Op_V(nc,1))
+                  Call Op_set(Op_V(nc,2))
+                  ! Do-up
+                  nc = nc + 1
+                  do nf = 1,N_FL
+                     call Op_make(Op_V(nc, nf), 1)
+                     Op_V(nc, nf)%type = 2
+                  enddo
+                  Op_V(nc,2)%P(1) = I1
+                  Op_V(nc,2)%O(1,1) = cmplx( 1.d0, 0.d0, kind(0.D0))
+                  V_eff = -real(Bond_Matrix(1)%T(nb),Kind(0.d0)) *Bond_Matrix(1)%Prop_Fam(n_f) 
+                  Op_V(nc, 2)%g     = sqrt(cmplx(-Dtau*V_eff,0.d0,Kind(0.d0)))
+                  Op_V(nc, 2)%alpha = cmplx(-0.5D0,0.d0,Kind(0.d0))
+                  Op_V(nc,1)%P(1) = J1
+                  Op_V(nc,1)%O(1,1) = cmplx(-1.d0, 0.d0, kind(0.D0))
+                  V_eff = -real(Bond_Matrix(1)%T(nb),Kind(0.d0)) *Bond_Matrix(1)%Prop_Fam(n_f) 
+                  Op_V(nc, 1)%g     = sqrt(cmplx(-Dtau*V_eff,0.d0,Kind(0.d0)))
+                  Op_V(nc, 1)%alpha = cmplx( 0.5D0,0.d0,Kind(0.d0))
+                  Call Op_set(Op_V(nc,1))
+                  Call Op_set(Op_V(nc,2))
+               enddo
+            enddo
+          else
+            do nf = 1,N_FL
+              do nc = N_hubbard + 1, Size(Op_V,1)
+                  Call Op_make(Op_V(nc,nf), 2)
+              enddo
+
+              nc = N_hubbard
+              Do n_f = 1, Bond_Matrix(1)%N_FAM
                 Do l_f = 1, Bond_Matrix(1)%L_Fam(n_f)
-                   I    = Bond_Matrix(1)%List_Fam(n_f,l_f,1)
-                   nb   = Bond_Matrix(1)%List_Fam(n_f,l_f,2)
-                   no_I = Bond_Matrix(nf)%list(Nb,1)
-                   no_J = Bond_Matrix(nf)%list(Nb,2)
-                   n_1  = Bond_Matrix(nf)%list(Nb,3)
-                   n_2  = Bond_Matrix(nf)%list(Nb,4)
-                   J    = Latt%nnlist(I,n_1,n_2)
-                   Z    = Generic_hopping(I,no_I, n_1, n_2, no_J, N_Phi_loc, Phi_x_loc,Phi_y_loc, Bulk, Latt, Latt_Unit)
-                   I1   = Invlist(I,no_I)
-                   J1   = Invlist(J,no_J)
-                   nc = nc + 1
-                   Op_V(nc,nf)%P(1) = I1
-                   Op_V(nc,nf)%P(2) = J1
-                   Op_V(nc,nf)%O(1,1) = cmplx(1.d0, 0.d0, kind(0.D0))
-                   Op_V(nc,nf)%O(2,2) = cmplx(1.d0, 0.d0, kind(0.D0))
-                   Op_V(nc,nf)%alpha=cmplx(-1.d0,0.d0, kind(0.D0))
-                   IF ( dble(Bond_Matrix(nf)%T(Nb)) < 0) then
-                      Op_V(nc,nf)%alpha=cmplx(0.d0,0.d0, kind(0.D0))
-                      Op_V(nc,nf)%O(2,2) = cmplx(-1.d0, 0.d0, kind(0.D0) )
-                   endif
-                   Op_V(nc,nf)%g = Sqrt(-Dtau*abs(Bond_Matrix(nf)%T(Nb))*Bond_Matrix(1)%Prop_Fam(n_f))
-                   Op_V(nc,nf)%type=2
-                   Call Op_set(Op_V(nc,nf))
-
-                   !  print*,-Dtau*Bond_Matrix(nf)%T(Nb)*Bond_Matrix(1)%Prop_Fam(n_f), -Dtau*abs(Ham_V1)/(2.d0*N_SUN)
-                   WRITE(*,*) Op_V(nc,nf)%g**2, -Dtau*abs(Bond_Matrix(nf)%T(Nb))/(2.d0*N_SUN)
+                  I    = Bond_Matrix(1)%List_Fam(n_f,l_f,1)
+                  nb   = Bond_Matrix(1)%List_Fam(n_f,l_f,2)
+                  no_I = Bond_Matrix(1)%list(Nb,1)
+                  no_J = Bond_Matrix(1)%list(Nb,2)
+                  n_1  = Bond_Matrix(1)%list(Nb,3)
+                  n_2  = Bond_Matrix(1)%list(Nb,4)
+                  J    = Latt%nnlist(I,n_1,n_2)
+                  I1   = Invlist(I,no_I)
+                  J1   = Invlist(J,no_J)
+                  nc = nc + 1
+                  Op_V(nc,nf)%P(1) = I1
+                  Op_V(nc,nf)%P(2) = J1
+                  Op_V(nc,nf)%O(1,1) = cmplx(  1.d0, 0.d0, kind(0.D0))
+                  Op_V(nc,nf)%O(2,2) = cmplx(  1.d0, 0.d0, kind(0.D0))
+                  V_eff = real(Bond_Matrix(1)%T(nb),Kind(0.d0)) *Bond_Matrix(1)%Prop_Fam(n_f)
+                  Op_V(nc,nf)%g = sqrt(cmplx(-Dtau*V_eff,0.d0,Kind(0.d0)))
+                  Op_V(nc,nf)%alpha = cmplx(-1.d0,0.d0,Kind(0.d0))
+                  Op_V(nc,nf)%type=2
+                  !Write(6,*)  Op_V(nc,nf)%g
+                  Call Op_set(Op_V(nc,nf))
                 enddo
-             enddo
-          enddo
+              enddo
+            enddo
+          endif
           
           Deallocate (Ham_V_vec, Ham_V2_vec, Ham_Vperp_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
                &                                   N_Phi_vec,  Ham_Lambda_vec )
@@ -769,8 +831,8 @@
 
           !Local
           Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK
-          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP,ZS, ZZ, ZXY
-          Integer :: I,J, imj, nf, dec, I1, J1, no_I, no_J,n
+          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, ZV, Z, ZP,ZS, ZZ, ZXY
+          Integer :: I,J, imj, nf, dec, I1, I2, J1, no_I, no_J,n, l_f, n_1, n_2, n_f, nb 
           Real    (Kind=Kind(0.d0)) :: X
 
           ZP = PHASE/Real(Phase, kind(0.D0))
@@ -801,51 +863,73 @@
           Obs_scal(1)%Obs_vec(1)  =    Obs_scal(1)%Obs_vec(1) + Zkin *ZP* ZS
 
 
-          !! ATTENTION !!
-          !! Update energy to include V terms !!
           ZPot = cmplx(0.d0, 0.d0, kind(0.D0))
           dec = 1
           If ( Mz  ) dec = 2
           if ( Lattice_type == "Bilayer_square" .or. Lattice_type =="Bilayer_honeycomb" ) then
              Do I = 1,Latt%N
-                do no_I = 1,Latt_unit%Norb
+                do no_I = 1,Latt_unit%Norb/2
                    I1 = Invlist(I,no_I)
-                   if (no_I == 1)  ZPot = ZPot + Grc(i1,i1,1) * Grc(i1,i1, dec)* ham_U
-                   if (no_I == 2)  ZPot = ZPot + Grc(i1,i1,1) * Grc(i1,i1, dec)* ham_U2
+                   I2 = Invlist(I,no_I + Latt_unit%Norb/2) 
+                   ZPot = ZPot + Ham_U * ( dble(N_SUN)*  (Grc(i1,i1,1) - cmplx(0.5,0.d0,kind(0.d0)) )**2 +  &
+                           &               Grc(i1,i1,1) *  Gr(i1,i1,1)   )                               +  &      
+                                 Ham_U2* ( dble(N_SUN)*  (Grc(i2,i2,1) - cmplx(0.5,0.d0,kind(0.d0)) )**2 +  &
+                           &               Grc(i2,i2,1) *  Gr(i2,i2,1)   )                               
                 enddo
              Enddo
           else
              Do I = 1,Latt%N
                 do no_I = 1,Latt_unit%Norb
                    I1 = Invlist(I,no_I)
-                   ZPot = ZPot + Grc(i1,i1,1) * Grc(i1,i1, dec)* ham_U
+                   ZPot = ZPot +  Ham_U * ( dble(N_SUN)*  (Grc(i1,i1,1) - cmplx(0.5,0.d0,kind(0.d0)) )**2 +  &
+                   &               Grc(i1,i1,1) *  Gr(i1,i1,1)   )   
                 enddo
              Enddo
           Endif
-          do nf = 1,N_FL
-             ! (NEEDED since we don't want to include magnetic fields in the interaction)
-             N_Phi_loc = Bond_Matrix(nf)%N_Phi
-             Phi_X_loc = Bond_Matrix(nf)%Phi_X
-             Phi_Y_loc = Bond_Matrix(nf)%Phi_Y
-             Do n_f = 1, Bond_Matrix(1)%N_FAM
-                Do l_f = 1, Bond_Matrix(1)%L_Fam(n_f)
-                   I    = Bond_Matrix(1)%List_Fam(n_f,l_f,1)
-                   nb   = Bond_Matrix(1)%List_Fam(n_f,l_f,2)
-                   no_I = Bond_Matrix(nf)%list(Nb,1)
-                   no_J = Bond_Matrix(nf)%list(Nb,2)
-                   n_1  = Bond_Matrix(nf)%list(Nb,3)
-                   n_2  = Bond_Matrix(nf)%list(Nb,4)
-                   J    = Latt%nnlist(I,n_1,n_2)
-                   ! sites of the bond
-                   I1   = Invlist(I,no_I)
-                   J1   = Invlist(J,no_J)
-                   ! interation strength on bond
-                   Z    = Bond_Matrix(nf)%T(Nb)*Bond_Matrix(1)%Prop_Fam(n_f)
-                   ! Z*<n_I1 n_J1> = Z*<c^{dagger}_{I1,nf} c_{I1,nf} c^{dagger}_{J1,nf} c_{J1,nf}>
-                   !! ATTENTION: THINK about nf, i.e., can I actually treat N_FL != 1?
-                enddo
-             enddo
-          enddo
+          If (Mz) then 
+            ! To Do
+            Do n_f = 1, Bond_Matrix(1)%N_FAM
+               Do l_f = 1, Bond_Matrix(1)%L_Fam(n_f)
+                  I    = Bond_Matrix(1)%List_Fam(n_f,l_f,1)
+                  nb     = Bond_Matrix(1)%List_Fam(n_f,l_f,2)
+                  no_I = Bond_Matrix(1)%list(Nb,1)
+                  no_J = Bond_Matrix(1)%list(Nb,2)
+                  n_1  = Bond_Matrix(1)%list(Nb,3)
+                  n_2  = Bond_Matrix(1)%list(Nb,4)
+                  J    = Latt%nnlist(I,n_1,n_2)
+                  ! sites of the bond
+                  I1   = Invlist(I,no_I)
+                  J1   = Invlist(J,no_J)
+                  ! interation strength on bond
+                  ZV  =  2.d0*Bond_Matrix(1)%T(Nb)
+                  Z  =       ( GRC(I1,I1,1) + GRC(I1,I1,2) -  cmplx(1.d0,0.d0,Kind(0.d0)) ) *  &
+                       &     ( GRC(J1,J1,1) + GRC(J1,J1,2) -  cmplx(1.d0,0.d0,Kind(0.d0)) ) +  &
+                       &       GRC(I1,J1,1)*GR(I1,J1,1) +  GRC(I1,J1,2)*GR(I1,J1,2)             
+                  Zpot  =  Zpot + ZV*Z
+               enddo
+            enddo
+          else
+            Do n_f = 1, Bond_Matrix(1)%N_FAM
+               Do l_f = 1, Bond_Matrix(1)%L_Fam(n_f)
+                  I    = Bond_Matrix(1)%List_Fam(n_f,l_f,1)
+                  nb     = Bond_Matrix(1)%List_Fam(n_f,l_f,2)
+                  no_I = Bond_Matrix(1)%list(Nb,1)
+                  no_J = Bond_Matrix(1)%list(Nb,2)
+                  n_1  = Bond_Matrix(1)%list(Nb,3)
+                  n_2  = Bond_Matrix(1)%list(Nb,4)
+                  J    = Latt%nnlist(I,n_1,n_2)
+                  ! sites of the bond
+                  I1   = Invlist(I,no_I)
+                  J1   = Invlist(J,no_J)
+                  ! interation strength on bond
+                  ZV  =  Bond_Matrix(1)%T(Nb)
+                  Z   =  ( dble(N_SUN) *  ( GRC(I1,I1,1) - cmplx(0.5,0.d0,Kind(0.d0) ))        + & 
+                      &                   ( GRC(J1,J1,1) - cmplx(0.5,0.d0,Kind(0.d0) )) ) **2  + &
+                      &   dble(N_SUN) * GRC(I1,J1,1)*GR(I1,J1,1) 
+                  Zpot  =  Zpot  +  ZV*Z
+               enddo
+            enddo
+          endif
           Obs_scal(2)%Obs_vec(1)  =  Obs_scal(2)%Obs_vec(1) + Zpot * ZP*ZS
 
 
@@ -950,12 +1034,13 @@
         !> Time slice
         Integer, Intent(IN) :: nt
         !> New local field on time slice nt and operator index n
-        Real (Kind=Kind(0.d0)), Intent(In) :: Hs_new
+        Complex (Kind=Kind(0.d0)), Intent(In) :: Hs_new
 
         Integer :: nt1,I
 
         if (Continuous) then
-           S0 = exp( (-Hs_new**2  + nsigma%f(n,nt)**2 ) /2.d0 ) 
+           S0 = exp( (-Real(Hs_new,Kind(0.d0))**2  +  & 
+                  &    Real(nsigma%f(n,nt),kind(0.d0))**2 ) /2.d0 ) 
         else
            S0 = 1.d0
         endif
@@ -984,7 +1069,7 @@
           do n = 1,N_op
              if (OP_V(n,1)%type == 3 ) then
                 do nt = 1,Ltrot
-                   Forces_0(n,nt) = nsigma%f(n,nt)
+                   Forces_0(n,nt) = real(nsigma%f(n,nt), kind(0.d0))
                 enddo
              endif
           enddo

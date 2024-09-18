@@ -51,5 +51,22 @@ Module Files_mod
         character (len=64) :: file, file1
         write(File_add,'(A,A)') trim(file),Trim(file1)
       end function File_add
+      
+      function str_to_upper(strIn) result(strOut)
+           implicit none
+      
+           character(len=*), intent(in) :: strIn
+           character(len=len(trim(strIn))) :: strOut
+           integer :: i,j
+      
+           do i = 1, len(trim(strIn))
+                j = iachar(strIn(i:i))
+                if (j>= iachar("a") .and. j<=iachar("z") ) then
+                     strOut(i:i) = achar(iachar(strIn(i:i))-32)
+                else
+                     strOut(i:i) = strIn(i:i)
+                end if
+           end do
+      end function str_to_upper
 
 end Module Files_mod

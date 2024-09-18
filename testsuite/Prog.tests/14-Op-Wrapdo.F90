@@ -1,5 +1,6 @@
 ! compile with
-!gfortran  -Wall -std=f2003 -I ../../../Prog/  -I ../../../Libraries/Modules/ -L ../../../Libraries/Modules/ main.F90 ../../../Prog/Operator.o ../../../Prog/UDV_WRAP.o ../../../Libraries/Modules/modules_90.a -llapack -lblas
+!gfortran -std=f2003 -I ../../Prog/ -I ../../Libraries/Modules/ -L ../../Libraries/Modules/  14-Op-Wrapdo.F90 ../../Prog/Operator_mod.o ../../Prog/Fields_mod.o ../../Libraries/Modules/modules_90.a -llapack -lblas
+
 
 !
 !
@@ -14,13 +15,13 @@ Program OPWRAPDO
             Use Operator_mod
             Type (Operator), Intent (In) :: Op
             Complex (Kind=kind(0.D0)), allocatable, Intent (Inout) :: Mat (:,:)
-            Real (Kind=kind(0.D0)), Intent (In) :: spin
+            Complex (Kind=kind(0.D0)), Intent (In) :: spin
             Integer, Intent (In) :: N_Type, Ndim
          End Subroutine
       End Interface
 !
       Complex (Kind=Kind(0.D0)) :: Zre, Zim
-      Real (Kind=Kind(0.D0)) :: spin, nspin
+      Complex (Kind=Kind(0.D0)) :: spin
       Complex (Kind=Kind(0.D0)), Dimension (:, :), Allocatable :: VH, &
      & matnew, matold
       Complex (Kind=Kind(0.D0)), Dimension (:), Allocatable :: Expop, &
@@ -53,10 +54,9 @@ Program OPWRAPDO
             Op%alpha = 0.D0
             Call Op_set (Op)
 !
-            nspin = -1.d0
-            nsigma_single%f(1,1) = nspin
+            spin = -1.d0
+            nsigma_single%f(1,1) = spin
             nsigma_single%t(1) = Op%type 
-            spin = nsigma_single%Phi(1,1)
 !
             Do i = 1, Ndim
                Do n = 1, Ndim
@@ -65,9 +65,10 @@ Program OPWRAPDO
                End Do
             End Do
 !
-            Call Op_Wrapdo (matnew, Op, nspin, Ndim, N_Type,1)
+            Call Op_Wrapdo (matnew, Op, spin, Ndim, N_Type,1)
 !
 ! check against old version from Operator_FFA.F90
+            spin = nsigma_single%Phi(1,1) 
             Call Op_WrapdoFFA (matold, Op, spin, Ndim, N_Type)
 !
             Do i = 1, 3
@@ -110,7 +111,7 @@ Subroutine Op_WrapdoFFA (Mat, Op, spin, Ndim, N_Type)
       Integer, Intent (In) :: Ndim
       Type (Operator), Intent (In) :: Op
       Complex (Kind=kind(0.D0)), allocatable, Intent (Inout) :: Mat (:,:)
-      Real (Kind=kind(0.D0)), Intent (In) :: spin
+      Complex (Kind=kind(0.D0)), Intent (In) :: spin
       Integer, Intent (In) :: N_Type
 !
     ! Local
@@ -128,7 +129,7 @@ Subroutine Op_WrapdoFFA (Mat, Op, spin, Ndim, N_Type)
          VH = CMPLX (0.d0, 0.d0, kind(0.D0))
          Do m = 1, Op%n
             Z = CMPLX (1.d0, 0.d0, kind(0.D0))
-            If (m <= Op%N_non_Zero) Z = Exp (Op%g*CMPLX(Op%E(m)*spin, &
+            If (m <= Op%N_non_Zero) Z = Exp (Op%g*CMPLX(Op%E(m)*Real(spin,kind(0.d0)), &
            & 0.d0, kind(0.D0)))
             Do n = 1, Op%n
                Z1 = Z * conjg (Op%U(n, m))
@@ -146,7 +147,7 @@ Subroutine Op_WrapdoFFA (Mat, Op, spin, Ndim, N_Type)
          VH = CMPLX (0.d0, 0.d0, kind(0.D0))
          Do m = 1, Op%n
             Z = CMPLX (1.d0, 0.d0, kind(0.D0))
-            If (m <= Op%N_non_Zero) Z = Exp (-Op%g*CMPLX(Op%E(m)*spin, &
+            If (m <= Op%N_non_Zero) Z = Exp (-Op%g*CMPLX(Op%E(m)*Real(spin,kind(0.d0)), &
            & 0.d0, kind(0.D0)))
             Do n = 1, Op%n
                Z1 = Z * Op%U(n, m)

@@ -1,26 +1,26 @@
 ! compile with
-! gfortran -std=f2003 -I ../../Prog/ -I ../../Libraries/Modules/ -L ../../Libraries/Modules/ 11-Op-mmultR.F90  ../../Prog/Operator_mod.o ../../Prog/Fields_mod.o ../../Libraries/Modules/modules_90.a -llapack -lblas
+!gfortran -std=f2003 -I ../../Prog/ -I ../../Libraries/Modules/ -L ../../Libraries/Modules/ 11-Op-mmultR.F90  ../../Prog/Operator_mod.o ../../Prog/Fields_mod.o ../../Libraries/Modules/modules_90.a -llapack -lblas
 
-Program OPMULTTEST
+
+Program Opmulttest
 
         Use Operator_mod
         Use Fields_mod
         implicit none
 
-        Complex (Kind=Kind(0.D0)) :: Matnew(3,3), matold(3,3), VH(3,3), Z, Z1, Zre, Zim
-        Real (KIND = KIND(0.D0)) :: spin, nspin
-        Integer :: i, n, m, j, ndim , nt
+        Complex (Kind=Kind(0.D0)) :: Matnew(3,3), matold(3,3), VH(3,3), Z, Z1, Zre, Zim, nspin
+        Complex    (KIND = KIND(0.D0)) :: spin
+        Integer :: i, n, m, j, ndim , nt, n_type
         Type(Operator) :: Op
         Type (Fields) :: nsigma_single
     
-
         
-        Call nsigma_single%make(1,1)
         
 ! setup some test data
         Ndim = 3
 
-        do nt = 1, 2
+        Do n_type = 1,4
+
            Call Op_make(Op, 3)
            do i = 1, Op%N
               !             Op%E(i) = 2*i-3
@@ -29,28 +29,36 @@ Program OPMULTTEST
                  Op%O(i,n) = CMPLX(n+i, n-i, kind(0.D0))
               enddo
            enddo
-           Op%type=nt
+           
+           Op%type=n_type
            Op%N_non_zero = 2
            Op%g = 0.02D0
            call Op_set(Op)
-           nspin = -1.d0
-           nsigma_single%f(1,1) = nspin
+           Call nsigma_single%make(1,1)
            nsigma_single%t(1)   = Op%type
-           spin = nsigma_single%Phi(1,1)
+           Select case(n_type)
+           case (1) 
+              nsigma_single%f(1,1) = cmplx(real(1,kind=kind(0.d0)), 0.d0, kind(0.d0))
+           case (2) 
+              nsigma_single%f(1,1) = cmplx(real(2,kind=kind(0.d0)), 0.d0, kind(0.d0))
+           case (3) 
+              nsigma_single%f(1,1) = cmplx(3.14159267d0, 0.d0, kind(0.d0))
+           case (4) 
+              nsigma_single%f(1,1) = cmplx(-1.d0, 0.5d0, kind(0.d0))
+           end Select
            do i = 1,Ndim
               do n = 1,Ndim
                  matnew(i,n) = CMPLX(i,n, kind(0.D0))
                  matold(i,n) = CMPLX(i,n, kind(0.D0))
               enddo
            enddo
-           
-           Call Op_mmultR(matnew, Op, nspin, 'n',1)
+           Call Op_mmultR(matnew, Op, nsigma_single%f(1,1), 'n',1)
            
            ! check against old version from Operator_FFA.F90
            
            VH = 0.d0
            do n = 1,Op%N
-              Z1 = exp(Op%g*Op%E(n)*spin)
+              Z1 = exp(Op%g*Op%E(n)*nsigma_single%phi(1,1))
               Do m = 1,Op%N
                  Z =  conjg(Op%U(m,n))* Z1 
                  DO I = 1,Ndim
@@ -112,13 +120,13 @@ Program OPMULTTEST
               enddo
            enddo
            
-           Call Op_mmultR(matnew, Op, nspin, 'n',1)
+           Call Op_mmultR(matnew, Op, nsigma_single%f(1,1), 'n',1)
            
            ! check against old version from Operator_FFA.F90
            
            VH = 0.d0
            do n = 1,Op%N
-              Z1 = exp(Op%g*Op%E(n)*spin)
+              Z1 = exp(Op%g*Op%E(n)*nsigma_single%phi(1,1))
               Do m = 1,Op%N
                  Z =  conjg(Op%U(m,n))* Z1 
                  DO I = 1,Ndim
@@ -161,8 +169,9 @@ Program OPMULTTEST
               enddo
            enddo
            call Op_clear(Op, 3)
+           Call nsigma_single%clear()
+           
         enddo
-        Call nsigma_single%clear() 
-        
         write (*,*) "success"
+        
       end Program OPMULTTEST

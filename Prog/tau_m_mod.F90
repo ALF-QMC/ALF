@@ -81,7 +81,7 @@
            
            Mc_step_Weight  = 1.d0
            !needed for integration weight in Langevin, dt is taken care of by acceptance ratio for HMC
-           if (trim(Langevin_HMC%get_Update_scheme())=="Langevin") Mc_step_weight = Langevin_HMC%get_Delta_t_running()
+           if ( str_to_upper(Langevin_HMC%get_Update_scheme()) == "LANGEVIN" ) Mc_step_weight = Langevin_HMC%get_Delta_t_running()
            
            !Tau = 0
            Do nf_eff = 1, N_FL_eff
@@ -138,8 +138,8 @@
               NT1 = NT + 1
               CALL PROPR   (GT0,NT1)
               CALL PROPRM1 (G0T,NT1)
-              If  (trim(Langevin_HMC%get_Update_scheme())=="Langevin" &
-              & .or. trim(Langevin_HMC%get_Update_scheme())=="HMC") then
+              If  ( str_to_upper(Langevin_HMC%get_Update_scheme()) == "LANGEVIN" &
+              & .or. str_to_upper(Langevin_HMC%get_Update_scheme()) == "HMC" ) then
                  Call Langevin_HMC%Wrap_Forces(GTT,NT1)
               else
                  CALL PROPRM1 (GTT,NT1)
@@ -158,8 +158,8 @@
                      Call ham%GRT_reconstruction( GT0_T, G0T_T )
                  endif
                  CALL ham%OBSERT(NT1, GT0_T,G0T_T,G00_T,GTT_T,PHASE, Mc_step_weight)
-                 If ((trim(Langevin_HMC%get_Update_scheme())=="Langevin"  &
-                      & .or. trim(Langevin_HMC%get_Update_scheme())=="HMC") &
+                 If (( str_to_upper(Langevin_HMC%get_Update_scheme()) == "LANGEVIN"  &
+                      & .or. str_to_upper(Langevin_HMC%get_Update_scheme()) == "HMC" ) &
                       &  .and. NT1.ge.LOBS_ST .and. NT1.le.LOBS_EN ) CALL ham%Obser( GTT_T, PHASE, NT1, Mc_step_weight )
               Else
                  !call reconstruction of non-calculated flavor blocks
@@ -169,8 +169,8 @@
                      Call ham%GRT_reconstruction( GT0, G0T )
                  endif
                  CALL ham%OBSERT(NT1, GT0,G0T,G00,GTT,PHASE, Mc_step_weight)
-                 If ( (trim(Langevin_HMC%get_Update_scheme())=="Langevin" &
-                      & .or. trim(Langevin_HMC%get_Update_scheme())=="HMC") &
+                 If ( ( str_to_upper(Langevin_HMC%get_Update_scheme()) == "LANGEVIN" &
+                      & .or. str_to_upper(Langevin_HMC%get_Update_scheme()) == "HMC" ) &
                       & .and. NT1.ge.LOBS_ST .and. NT1.le.LOBS_EN ) CALL ham%Obser( GTT, PHASE, NT1, Mc_step_weight )
               Endif
               
@@ -242,7 +242,7 @@
 
            !Arguments 
            Complex (Kind=Kind(0.D0)), intent(Inout) ::  AIN(Ndim, Ndim, N_FL) 
-           Integer :: NT
+           Integer :: NT, sign = - 1
 
            ! Locals 
            Integer :: nf,nf_eff, n 
@@ -252,8 +252,7 @@
               !Call MMULT(HLP4,Ain(:,:,nf),Exp_T_M1(:,:,nf) )
               Call Hop_mod_mmthl_m1(Ain(:,:,nf),nf,nt)
               Do n =1,Size(Op_V,1)
-!                  X = -Phi(nsigma(n,nt),Op_V(n,nf)%type)
-                 Call Op_mmultL(Ain(:,:,nf),Op_V(n,nf),-nsigma%f(n,nt),'n',nt)
+                 Call Op_mmultL(Ain(:,:,nf),Op_V(n,nf),nsigma%f(n,nt),'n',nt,sign)
               Enddo
            enddo
 

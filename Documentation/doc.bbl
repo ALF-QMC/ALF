@@ -1083,6 +1083,37 @@ A.~R\"uegg, S.~D. Huber and M.~Sigrist,
 \newblock Phys. Rev. B \textbf{81}, 155118 (2010),
 \newblock \doi{10.1103/PhysRevB.81.155118}.
 
+\bibitem{Weber21}
+M.~Weber,
+\newblock \emph{Valence bond order in a honeycomb antiferromagnet coupled to
+  quantum phonons},
+\newblock Phys. Rev. B \textbf{103}, L041105 (2021),
+\newblock \doi{10.1103/PhysRevB.103.L041105}.
+
+\bibitem{Weber17}
+M.~Weber, F.~F. Assaad and M.~Hohenadler,
+\newblock \emph{Directed-loop quantum monte carlo method for retarded
+  interactions},
+\newblock Phys. Rev. Lett. \textbf{119}, 097401 (2017),
+\newblock \doi{10.1103/PhysRevLett.119.097401}.
+
+\bibitem{Jarrell96}
+M.~Jarrell and J.~Gubernatis,
+\newblock \emph{Bayesian inference and the analytic continuation of
+  imaginary-time quantum monte carlo data},
+\newblock Physics Reports \textbf{269}, 133 (1996).
+
+\bibitem{Linden95}
+W.~von~der Linden,
+\newblock Applied Physics A \textbf{60}, 155 (1995).
+
+\bibitem{Hauke16}
+P.~Hauke, M.~Heyl, L.~Tagliacozzo and P.~Zoller,
+\newblock \emph{Measuring multipartite entanglement through dynamic
+  susceptibilities},
+\newblock Nature Physics \textbf{12}(8), 778 (2016),
+\newblock \doi{10.1038/nphys3700}.
+
 \bibitem{Abendschein06}
 A.~Abendschein and F.~F. Assaad,
 \newblock \emph{Temperature dependence of spectral functions for the

@@ -1,32 +1,34 @@
 #!/bin/sh
 # This script sets necessary environment variables for compiling ALF.
 # You need to source it prior to executing make.
-USAGE="usage 'source configure.sh MACHINE MODE STAB' \n\
-    \n\
-Please choose one of the following MACHINEs:\n\
- * GNU\n\
- * Intel\n\
- * IntelLLVM or IntelX\n\
- * PGI\n\
- * SuperMUC-NG\n\
- * JUWELS\n\
- * FRITZ\n\
-Possible MODEs are:\n\
- * MPI (default)\n\
- * noMPI\n\
- * Tempering\n\
- * PARALLEL_PARAMS (shorthand PP)\n\
+USAGE="usage 'source configure.sh MACHINE MODE STAB'
+
+Please choose one of the following MACHINEs:
+ * GNU
+ * Intel
+ * IntelLLVM or IntelX
+ * PGI
+ * SuperMUC-NG
+ * JUWELS
+ * FRITZ
+Possible MODEs are:
+ * MPI (default)
+ * noMPI
+ * Tempering
+ * PARALLEL_PARAMS (shorthand PP)
 Possible STABs are:
- * <no-argument> (default)\n\
- * STAB1 (old)\n\
- * STAB2 (old)\n\
- * STAB3 (newest)\n\
- * LOG (increases accessible scales, e.g. in beta or interaction strength by solving NaN issues)\n\
-Further optional arguments: \n\
-  Devel: Compile with additional flags for development and debugging\n\
-  HDF5: Compile with HDF5\n\
-  NO-INTERACTIVE: Do not ask for user confirmation during excution of this script\n\
-To hand an additional flag to the compiler, export it in the varible ALF_FLAGS_EXT prior to sourcing this script.\n
+ * <no-argument> (default)
+ * STAB1 (old)
+ * STAB2 (old)
+ * STAB3 (newest)
+ * LOG (increases accessible scales, e.g. in beta or interaction strength by solving NaN issues)
+Further optional arguments: 
+  Devel: Compile with additional flags for development and debugging
+  HDF5: Compile with HDF5
+  NO-INTERACTIVE: Do not ask for user confirmation during excution of this script
+  NO-FALLBACK: Do not use a fallback option in case of an unknown/no machine,
+               but instead return with value 1
+To hand an additional flag to the compiler, export it in the varible ALF_FLAGS_EXT prior to sourcing this script.
 
 For more details check the documentation.\n"
 
@@ -54,7 +56,7 @@ set_hdf5_flags()
     fi
     case "$yn" in
       y|Y|"")
-        printf "${RED}Downloading and installing HDF5 in %s.${NC}\n" "$HDF5_DIR"
+        printf "${GREEN}Downloading and installing HDF5 in %s.${NC}\n" "$HDF5_DIR"
         CC="$CC" FC="$FC" CXX="$CXX" HDF5_DIR="$HDF5_DIR" "$ALF_DIR/HDF5/install_hdf5.sh" || return 1
       ;;
       *) 
@@ -125,8 +127,12 @@ set_intelcc()
 {
   if command -v icx > /dev/null; then
     INTELCC="icx"
-  else
+  elif command -v icc > /dev/null; then
     INTELCC="icc"
+  elif command -v gcc > /dev/null; then
+    INTELCC="gcc"
+  else
+    printf "${RED}\n==== Error: C compiler needed for HDF5. None of 'icx', 'icc', 'gcc' found ====${NC}\n\n" 1>&2
   fi
 }
 
@@ -134,8 +140,12 @@ set_intelcxx()
 {
   if command -v icpx > /dev/null; then
     INTELCXX="icpx"
-  else
+  elif command -v icpc > /dev/null; then
     INTELCXX="icpc"
+  elif command -v g++ > /dev/null; then
+    INTELCXX="g++"
+  else
+    printf "${RED}\n==== Error: C++ compiler needed for HDF5. None of 'icpx', 'icpc', 'g++' found ====${NC}\n\n" 1>&2
   fi
 }
 
@@ -166,7 +176,7 @@ GNUDEVFLAGS="-Wconversion -Werror -Wno-error=cpp -fcheck=all -g -fbacktrace -fma
 GNUUSEFULFLAGS="-std=f2008"
 
 # default optimization flags for PGI compiler
-PGIOPTFLAGS="-Mpreprocess -O1"
+PGIOPTFLAGS="-Mpreprocess -O3 -Mfprelaxed -fast"
 # uncomment the next line if you want to use additional openmp parallelization
 PGIOPTFLAGS="${PGIOPTFLAGS} -mp"
 PGIDEVFLAGS="-Minform=inform -C -g -traceback"
@@ -180,8 +190,10 @@ STAB=""
 stabv=0
 HDF5_ENABLED=""
 NO_INTERACTIVE=""
+NO_FALLBACK=""
 
 RED='\033[0;31m'
+GREEN='\033[0;32m'
 NC='\033[0m' # No Color
 
 while [ "$#" -gt "0" ]; do
@@ -214,6 +226,9 @@ while [ "$#" -gt "0" ]; do
     ;;
     NO-INTERACTIVE)
       NO_INTERACTIVE="1"
+    ;;
+    NO-FALLBACK)
+      NO_FALLBACK="1"
     ;;
     *)
       if [ "$Machinev" = "1" ]; then
@@ -272,6 +287,7 @@ case $MODE in
     printf "To turn on parallel tempering, pass Tempering as the second argument.\n"
     PROGRAMMCONFIGURATION="-DMPI"
     INTELCOMPILER="mpiifort"
+    INTELLLVMCOMPILER="mpiifort -fc=ifx"
     GNUCOMPILER="mpifort"
     MPICOMP=1
   ;;
@@ -414,6 +430,11 @@ case $MACHINE in
   ;;
   #Default (unknown machine)
   *)
+    if [ "$NO_FALLBACK" = "1" ]; then
+      printf "${RED}  !!     UNKNOW MACHINE     !!${NC}\n" 1>&2
+      printf "${RED}  !!  exiting configure.sh  !!${NC}\n" 1>&2
+      return 1
+    fi
     printf "\n" 1>&2
     printf "${RED}   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!${NC}\n" 1>&2
     printf "${RED}   !!               UNKNOW MACHINE               !!${NC}\n" 1>&2

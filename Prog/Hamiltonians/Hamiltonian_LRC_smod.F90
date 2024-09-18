@@ -289,11 +289,11 @@
              Write(unit_info,*) 'N_SUN         : ', N_SUN
              Write(unit_info,*) 'N_FL          : ', N_FL
              Write(unit_info,*) 't             : ', Ham_T
-             If (Lattice_type =="Bilayer_square" .or. Lattice_type =="Bilayer_honeycomb")  then
+             If (str_to_upper(Lattice_type) == "BILAYER_SQUARE" .or. str_to_upper(Lattice_type) =="BILAYER_HONEYCOMB")  then
                 Write(unit_info,*) 't2            : ', Ham_T2
                 Write(unit_info,*) 'tperp         : ', Ham_Tperp
              endif
-             If (Lattice_type =="N_leg_ladder")  then
+             If (str_to_upper(Lattice_type) == "N_LEG_LADDER")  then
                 Write(unit_info,*) 'tperp         : ', Ham_Tperp
              endif
              Write(unit_info,*) 'Ham_U         : ', Ham_U
@@ -379,23 +379,23 @@
           Ham_Lambda_vec = Ham_Lambda
           N_Phi_vec      = N_Phi
 
-          Select case (Lattice_type)
-          Case ("Square")
+          Select case (str_to_upper(Lattice_type))
+          Case ("SQUARE")
              Call  Set_Default_hopping_parameters_square(Hopping_Matrix,Ham_T_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
                   &                                      Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
-          Case ("N_leg_ladder")
+          Case ("N_LEG_LADDER")
              Call  Set_Default_hopping_parameters_n_leg_ladder(Hopping_Matrix, Ham_T_vec, Ham_Tperp_vec, Ham_Chem_vec, Phi_X_vec, &
                   &                                            Phi_Y_vec, Bulk,  N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
-          Case ("Honeycomb")
+          Case ("HONEYCOMB")
              Ham_Lambda = 0.d0
              Call  Set_Default_hopping_parameters_honeycomb(Hopping_Matrix, Ham_T_vec, Ham_Lambda_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
                   &                                         Bulk,  N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
-          Case ("Bilayer_square")
+          Case ("BILAYER_SQUARE")
              Call  Set_Default_hopping_parameters_Bilayer_square(Hopping_Matrix,Ham_T_vec,Ham_T2_vec,Ham_Tperp_vec, Ham_Chem_vec, &
                   &                                              Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL,&
                   &                                              List, Invlist, Latt, Latt_unit )
 
-          Case ("Bilayer_honeycomb")
+          Case ("BILAYER_HONEYCOMB")
              Call  Set_Default_hopping_parameters_Bilayer_honeycomb(Hopping_Matrix,Ham_T_vec,Ham_T2_vec,Ham_Tperp_vec, Ham_Chem_vec, &
                   &                                                 Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL,&
                   &                                                 List, Invlist, Latt, Latt_unit )
@@ -482,13 +482,22 @@
           !> Time slice
           Integer, Intent(IN) :: nt
           !> New local field on time slice nt and operator index n
-          Real (Kind=Kind(0.d0)), Intent(In) :: Hs_new
+          Complex (Kind=Kind(0.d0)), Intent(In) :: Hs_new
+          
+          Integer :: nt1, I, ns 
+          Real (Kind=Kind(0.d0)) :: Y
+          Real (Kind=Kind(0.d0)),  Allocatable :: V(:) 
 
-          Integer :: nt1,I
-          !Write(6,*) "Hi1"
-
-          S0 = LRC_S0(n,dtau,nsigma%f(:,nt),Hs_new,N_SUN)
-
+          Allocate (V(size(nsigma%f,1)))
+          do I = 1,Size(V,1)
+             V(I)   =   real(nsigma%f(I,nt))
+          enddo
+          Y  =  Real(HS_new)
+          !S0 = LRC_S0(n,dtau,nsigma%f(:,nt),Hs_new,N_SUN)
+          S0  = LRC_S0(n,dtau,V,             Y,     N_SUN)
+          
+          Deallocate(V)
+          
         end function S0
 !--------------------------------------------------------------------
 !> @author
@@ -505,7 +514,7 @@
           Integer, Intent(In) :: Ltau
           Integer    ::  i, N, Nt
           Character (len=64) ::  Filename
-          Character (len=2)  ::  Channel
+          Character (len=:), allocatable ::  Channel
 
 
           ! Scalar observables
@@ -755,9 +764,9 @@
 
 
           Implicit none
-          Real (Kind = Kind(0.d0)),INTENT(OUT) :: T0_Proposal_ratio,  S0_ratio
-          Integer                , INTENT(OUT) :: Flip_list(:)
-          Real (Kind = Kind(0.d0)),INTENT(OUT) :: Flip_value(:)
+          Real (Kind = Kind(0.d0))   ,INTENT(OUT) :: T0_Proposal_ratio,  S0_ratio
+          Integer                    ,INTENT(OUT) :: Flip_list(:)
+          Complex (Kind = Kind(0.d0)),INTENT(OUT) :: Flip_value(:)
           Integer, INTENT(OUT) :: Flip_length
           Integer, INTENT(IN)    :: ntau
 
@@ -765,8 +774,20 @@
           ! Local
           Integer :: n_op, n, ns
           Real (Kind=Kind(0.d0)) :: T0_proposal
+          Real (Kind=Kind(0.d0)),  allocatable  ::  V(:),  V1(:)
 
-          Call LRC_draw_field(Percent_change, Dtau, nsigma%f(:,ntau), Flip_value,N_SUN)
+          n = Size(nsigma%f,1)
+          Allocate  (V(n),  V1(n) )
+          do ns = 1,n
+             V(ns)  = real(nsigma%f(ns,ntau))
+          enddo
+          !Call LRC_draw_field(Percent_change, Dtau, nsigma%f(:,ntau), Flip_value(:),N_SUN)
+          Call LRC_draw_field(Percent_change, Dtau, V, V1 ,N_SUN)
+          do ns = 1,n 
+             Flip_value(ns)  = cmplx( V1(ns),  0.d0,  Kind(0.d0))
+          enddo
+          deallocate  (V,  V1 )
+
           Do n = 1,Ndim
              Flip_list(n) = n
              !Write(6,*) Flip_value(n), nsigma%f(n,ntau)
@@ -795,7 +816,7 @@
         Implicit none
         Integer, Intent(INOUT) :: Nt_sequential_start,Nt_sequential_end, N_Global_tau
 
-        If ( Model  == "LRC" )  then
+        If ( str_to_upper(Model)  == "LRC" )  then
            Nt_sequential_start = 1
            Nt_sequential_end   = 0
            N_Global_tau   = Nint(1.d0/Percent_change)
@@ -826,7 +847,7 @@
           do n = 1,N_op
              if (OP_V(n,1)%type == 3 ) then
                 do nt = 1,Ltrot
-                   Forces_0(n,nt) = nsigma%f(n,nt)
+                   Forces_0(n,nt) = real(nsigma%f(n,nt), kind(0.d0) )
                 enddo
              endif
           enddo

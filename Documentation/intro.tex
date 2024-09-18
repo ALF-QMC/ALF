@@ -40,8 +40,8 @@ For a given field configuration, integrating out fermionic degrees of freedom ge
 
 The approach we adopt lies between the above two \emph{extremes}.  We keep the fermionic determinant, but formulate  the problem so as to  work only with $N\times N$ matrices.    This 
 Blankenbecler,  Scalapino, Sugar (BSS)  algorithm scales linearly in  imaginary time $\beta$, but remains cubic in the volume $N$.    Furthermore, the algorithm can be formulated either in a projective manner \cite{Sugiyama86,Sorella89},  adequate to obtain zero temperature properties in the  canonical ensemble,  or at finite temperatures, in the  grand-canonical ensemble \cite{White89}.   
-\fa{The formulations of  the auxiliary-field approach  can  be  generalized  to   time  dependent   Hamiltonians.   This  
-allows    for  great  flexibility  and in particular  to  use  the  projective  algorithm  as  a  variational approach   \cite{Sorella21}. }
+The formulations of  the auxiliary-field approach  can  be  generalized  to   time  dependent   Hamiltonians.   This  
+allows    for  great  flexibility  and in particular  to  use  the  projective  algorithm  as  a  variational approach   \cite{Sorella21}. 
 In this documentation we summarize the essential aspects of the auxiliary-field QMC approach, and refer the reader to Refs.~\cite{Assaad02,Assaad08_rev} for complete reviews. 
 %In the following we show in detail how to implement a variety of models, run the code, and produce results for  equal-time and time-displaced correlation functions.
 
@@ -95,9 +95,26 @@ The class of solvable models includes  Hamiltonians $\hat{\mathcal{H}}$ that hav
 \sum\limits_{x,y}^{N_{\mathrm{dim}}}
 \hat{c}^{\dagger}_{x \sigma s} I_{xy}^{(k s)}\hat{c}^{\phantom\dagger}_{y \sigma s}
 \right) \equiv \sum\limits_{k=1}^{M_I} \hat{Z}_{k}    \hat{I}^{(k)} 
-\,.\label{eqn:general_ham_i}
+\, ,\label{eqn:general_ham_i} \, \\
+\hat{\mathcal{H}}_{Q}
+& = 
+\sum\limits_{k=1}^{M_Q} \tilde{U}_{k} \left( 1 +  \hat{Q}_k \right) 
+ \left\{
+\sum\limits_{\sigma=1}^{N_{\mathrm{col}}}
+\sum\limits_{s=1}^{N_{\mathrm{fl}}}
+\left[
+\left(
+\sum\limits_{x,y}^{N_{\mathrm{dim}}}
+\hat{c}^{\dagger}_{x \sigma s}\tilde{V}_{xy}^{(k s)}\hat{c}^{\phantom\dagger}_{y \sigma s}
+\right)
++\tilde{\alpha}_{k s} 
+\right]
+\right\}^{2} 
+\,.\label{eqn:general_ham_Q}
 \end{align}
-The indices and symbols used above have the following meaning:
+\fa{In light  of  the type 4  moves,  our    Hamiltonian is now  more   general.  This  does  make  things  more  complicated,  such  that we  may  want to 
+postpone  this  discussion just to  the   discussion of  the spin-Peierls  Hamiltonian. Or  we  could  include  this in  a   generalization of    $H_V$.   We  should  certainly   discuss  this. }
+The indices and symbols used above have the following meaning: 
 \begin{itemize}
 \item The number of fermion \emph{flavors} is set by $N_{\mathrm{fl}}$.  After the HS transformation, the action will be block diagonal in the flavor index. 
 \item The number of fermion \emph{colors} is set\footnote{Note that  in the code $ N_{\mathrm{col}} \equiv \texttt{N\_{SUN}} $.} by $N_{\mathrm{col}}$.    The Hamiltonian is invariant under  SU($N_{\mathrm{col}}$)  rotations.
@@ -113,12 +130,16 @@ The indices and symbols used above have the following meaning:
 \item $\alpha_{k s}$ is a complex number.
 
 \end{itemize}
-The bosonic  part of the general Hamiltonian (\ref{eqn:general_ham}) is $\hat{\mathcal{H}}_{0,I}+ \hat{\mathcal{H}}_{I}$ and  has the following properties:
+The bosonic  part of the general Hamiltonian (\ref{eqn:general_ham}) is 
+$ \hat{\mathcal{H}}_{0,I}+ \hat{\mathcal{H}}_{I} + + \hat{\mathcal{H}}_{Q}, $ and  has the following properties:
 \begin{itemize}
-\item $\hat{Z}_k$ couples to a general one-body term.  
-We will work in a basis where this operator is diagonal:  $\hat{Z}_k | \phi \rangle  =  \phi_k | \phi \rangle $. $\phi_k$ is a real  number   or an  Ising variable. 
-Hence   $\hat{Z}_k$ can correspond  to the Pauli matrix $\hat{\sigma}_{z}$ or to the position operator.  
-\item  The dynamics of the bosonic field  is given by $\hat{\mathcal{H}}_{0,I}$. This term is not specified here; 
+\item $\hat{Z}_k$  couples to a general one-body term  and     $\hat{Q}_k$   to  a    two-body   operator. 
+We will work in a basis where these operators are  diagonal:  $\hat{Z}_k | \phi \rangle  =  \phi_k | \phi \rangle $,  
+$\hat{Q}_k | \varphi \rangle  =  \varphi_k | \varphi \rangle $.   
+$\phi_k$ is a real  number   or an  Ising variable. 
+Hence   $\hat{Z}_k$ can correspond  to the Pauli matrix $\hat{\sigma}_{z}$ or to the position operator.    
+The  same applies  for  $\varphi_k$ 
+\item  The dynamics of the bosonic fields   is given by $\hat{\mathcal{H}}_{0,I}$. This term is not specified here; 
 it has to be specified by the user and becomes relevant when the Monte Carlo update probability is computed in the code
 \end{itemize}
 Note that the matrices  $\bm{T}^{(ks)}$,  $\bm{V}^{(ks)}$ and  $\bm{I}^{(ks)}$ explicitly depend on the flavor index $s$ but not on the color index $\sigma$. 

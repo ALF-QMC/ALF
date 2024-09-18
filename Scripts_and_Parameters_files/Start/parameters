@@ -2,7 +2,7 @@
 !  Input variables for a general ALF run
 !---------------------------------------------------------------------------------------
 &VAR_ham_name
-ham_name = "Hubbard"
+ham_name = "extended_Hubbard"
 /
 
 &VAR_lattice               !! Parameters defining the specific lattice and base model
@@ -30,7 +30,7 @@ Theta        = 10.d0        ! Projection parameter
 &VAR_QMC                   !! Variables for the QMC run
 Nwrap                = 10   ! Stabilization. Green functions will be computed from 
                             ! scratch after each time interval Nwrap*Dtau
-NSweep               = 20   ! Number of sweeps
+NSweep               = 5    ! Number of sweeps
 NBin                 = 5    ! Number of bins
 Ltau                 = 1    ! 1 to calculate time-displaced Green functions; 0 otherwise
 LOBS_ST              = 0    ! Start measurements at time slice LOBS_ST
@@ -54,7 +54,9 @@ Max_Force           = 5.0   ! Max Force for  Langevin
 
 HMC                 = .F.   ! HMC update
 N_HMC_sweeps        = 1     ! # of HMC updates between  sequential ones
-Leapfrog_steps      = 0     ! Number of leapfrog interations
+Leapfrog_steps      = 0     ! Number of leapfrog iterations
+
+Amplitude           = 1.d0  ! For update of  type=3,4  fields
 /
 
 &VAR_errors                !! Variables for analysis programs
@@ -90,6 +92,8 @@ Checkpoint = .F.            ! Whether to produce dump files, allowing the simula
                             ! to be resumed later on
 Tolerance  = 0.1d0          ! Data points for which the relative error exceeds the
                             ! tolerance threshold will be omitted.
+Stochastic =.true.          ! If  true,  then  stochastic MaxEnt is used
+                            ! If  false, then  classic  MaxEnt is used
 /
 
 &VAR_Hubbard               !! Variables for the specific model
@@ -157,4 +161,26 @@ Ham_g          = 1.0        ! tau^x-term for gauge
 Dtau           = 0.1d0      ! Thereby Ltrot=Beta/dtau
 Beta           = 10.d0      ! Inverse temperature
 /
+
+&VAR_Spin_Peierls         !! Variables for the  Spin-Peierls class
+ham_Jx  = 1.0              ! J along  the  a_x  direction
+Ham_Jy  = 1.0              ! J along  the  a_y  direction
+ham_U   = 1.0              ! Hubbard  U  to impose  the constraint
+ham_Lambda =  0.2          ! Electron-phonon  coupling
+Ham_omega0 =  0.25         ! Phonon   frequency
+/
+
+&VAR_extended_Hubbard      !! Variables for the Extended Hubbard
+ham_T      = 1.d0     ! Hopping parameter
+Ham_chem   = 0.d0     ! Chemical potential
+Ham_U      = 1.d0     ! Hubbard interaction
+Ham_V1     = 0.1d0    ! nearest neighbor interaction
+ham_T2     = 1.d0     ! For bilayer systems
+Ham_U2     = 0.d0     ! For bilayer systems
+Ham_V2     = 0.1d0    ! For bilayer systems
+ham_Tperp  = 1.d0     ! For bilayer systems
+Ham_Vperp  = 1.d0     ! For bilayer systems
+Mz         = .T.      ! HS type
+/
+
 ! slash terminates namelist statement - DO NOT REMOVE

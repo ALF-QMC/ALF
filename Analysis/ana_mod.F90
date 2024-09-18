@@ -39,6 +39,7 @@
 !
 !--------------------------------------------------------------------
       use iso_fortran_env, only: output_unit, error_unit
+      use Files_mod
       Use Errors
       Use MyMats
       Use Matrix
@@ -268,9 +269,10 @@
       Type (Lattice)                        , intent(out) :: Latt
       Type (Unit_cell)                      , intent(out) :: Latt_unit
       Real    (Kind=Kind(0.d0))             , intent(out) :: dtau
-      Character (len=2)                     , intent(out) :: Channel
+      Character (len=:), allocatable        , intent(out) :: Channel
+      
 
-      Character (len=64) :: file_aux, str_temp1
+      Character (len=64) :: file_aux, str_temp1,  str_temp2
       Integer, allocatable :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
       Integer :: no, no1, n, nt, nb, Ntau, Ndim, Nbins, stat, Ndim_unit
       Real(Kind=Kind(0.d0)) :: X
@@ -282,6 +284,7 @@
       Character (len=64)  :: Model, Lattice_type
       NAMELIST /VAR_Lattice/ L1, L2, Lattice_type, Model
 
+
       write(file_aux, '(A,A)') trim(file), "_info"
       inquire(file=file_aux, exist=file_exists)
       if(file_exists) then
@@ -290,7 +293,8 @@
         12 format(A22, I10)
         13 format(A22, *(E26.17E3))
         read(10, *)
-        read(10, 11) str_temp1, Channel
+        read(10, 11) str_temp1, str_temp2
+        Channel  = trim(str_temp2)
         read(10, 12) str_temp1, Ntau
         read(10, 13) str_temp1, dtau
         read(10, *)
@@ -444,7 +448,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       Type (Lattice)                        , intent(out) :: Latt
       Type (Unit_cell)                      , intent(out) :: Latt_unit
       Real    (Kind=Kind(0.d0))             , intent(out) :: dtau
-      Character (len=2)                     , intent(out) :: Channel
+      Character (len=*)                     , intent(out) :: Channel
 
       Integer    :: Nbins, Norb
 
@@ -705,7 +709,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       Type (Lattice)   :: Latt
       Type (Unit_cell) :: Latt_unit
       real    (Kind=Kind(0.d0)):: dtau
-      Character (len=2)      :: Channel
+      Character (len=:), allocatable :: Channel 
       Integer :: i
 
       i = len(trim(name_obs)) - 4
@@ -718,6 +722,8 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       else
         call read_latt(name_obs, sgn, bins_raw, bins0_raw, Latt, Latt_unit, dtau, Channel)
       endif
+
+      Write(6,*)  'Channel is ', Channel
 
       call ana_tau(name_obs2, sgn, bins_raw, bins0_raw, Latt, Latt_unit, dtau, Channel)
    end subroutine Cov_tau
@@ -733,7 +739,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       Type (Lattice)                        , intent(in) :: Latt
       Type (Unit_cell)                      , intent(in) :: Latt_unit
       Real    (Kind=Kind(0.d0))             , intent(in) :: dtau
-      Character (len=2)                     , intent(in) :: Channel
+      Character (len=*)                     , intent(in) :: Channel
 
       Logical :: PartHole,  L_Back
       Character (len=64) :: File_out, command
@@ -753,7 +759,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       NAMELIST /VAR_errors/ n_skip, N_rebin, N_Cov, N_Back, N_auto
 
       PartHole = .false.
-      if(Channel == 'PH') PartHole = .true.
+      if(str_to_upper(Channel) == 'PH' .or. str_to_upper(Channel) ==  'P_PH') PartHole = .true.
       
       N_skip = 1
       N_rebin = 1
@@ -844,8 +850,8 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
             write(command, '("mkdir -p ",A,"_",F4.2,"_",F4.2)') trim(name_obs), Xk_p(1,n), Xk_p(2,n)
             CALL EXECUTE_COMMAND_LINE(command)
             Open (Unit=10, File=File_out, status="unknown")
-            Write(10, '(2(I11), E26.17E3, I11, A3)') &
-                  & Lt_eff, nbins/N_rebin, real(lt-1,kind(0.d0))*dtau, Latt_unit%Norb, Channel
+            Write(10, '(2(I11), E26.17E3, I11, " ", A)') &
+                  & Lt_eff, nbins/N_rebin, real(lt-1,kind(0.d0))*dtau, Latt_unit%Norb, trim(Channel)
             do nt = 1, LT_eff
                Write(10, '(3(E26.17E3))') &
                      & dble(nt-1)*dtau,  dble(Xmean(nt)), sqrt(abs(dble(Xcov(nt,nt))))
@@ -881,8 +887,8 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       write(command, '("mkdir -p ",A,"_R0")') trim(name_obs)
       CALL EXECUTE_COMMAND_LINE(command)
       Open (Unit=10,File=File_out,status="unknown")
-      Write(10, '(2(I11), E26.17E3, I11, A3)') &
-            & LT_eff, nbins/N_rebin, real(lt-1,kind(0.d0))*dtau, Latt_unit%Norb, Channel
+      Write(10, '(2(I11), E26.17E3, I11, " ", A)') &
+            & LT_eff, nbins/N_rebin, real(lt-1,kind(0.d0))*dtau, Latt_unit%Norb, trim(Channel)
       do nt = 1, LT_eff
          Write(10, '(3(E26.17E3))') &
                & dble(nt-1)*dtau,  dble(Xmean(nt)), sqrt(abs(dble(Xcov(nt,nt))))
@@ -977,7 +983,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       Type (Lattice)   :: Latt
       Type (Unit_cell) :: Latt_unit
       Real (Kind=Kind(0.d0)) :: dtau
-      Character (len=2)      :: Channel
+      Character (len=:), allocatable      :: Channel
       
       if( present(filename_h5) ) then
 #ifdef HDF5
@@ -1256,15 +1262,15 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       Nobs  = size(bins_raw, 1)
       Nbins = size(bins_raw, 2)
       
-      if (analysis_mode=='identity') then
+      if (str_to_upper(analysis_mode) == 'IDENTITY') then
          f_ptr => identity
          Nobs_output = Nobs
          data_range  = 0
-      elseif(analysis_mode=='renyi_entropie') then
+      elseif(str_to_upper(analysis_mode) == 'RENYI_ENTROPIE') then
          f_ptr => entanglement
          Nobs_output = Nobs
          data_range  = 0
-      elseif(analysis_mode=='mutual_information') then
+      elseif(str_to_upper(analysis_mode) == 'MUTUAL_INFORMATION') then
          if (Nobs .ne. 3) then
             Write(error_unit,*) 'Evaluating the mutual information between A and B requires the &
                  &   entanglement entropies of A, B and the union of A and B, i.e. Nobs=4 (3 + 1 for the phase)'

@@ -209,7 +209,7 @@ Module Global_mod
               if (  ranf_wrap() > 0.5d0 ) n_step = -isize_g
               Do I = 0,Isize-1,2*isize_g
                  do n = 0,isize_g-1
-                    List_partner(npbc_tempering(I  + n             ,Isize)) =  npbc_tempering(I +  n   + n_step,Isize)
+                    List_partner(npbc_tempering(I  + n             ,Isize)) =  npbc_tempering(I + n   + n_step ,Isize)
                     List_partner(npbc_tempering(I  + n  + n_step  , Isize)) =  npbc_tempering(I + n            ,Isize)
                  enddo
               enddo
@@ -232,8 +232,8 @@ Module Global_mod
            !  Exchange configurations
            !  The types do not change --> no need to exchange them
            n = size(nsigma_old%f,1)*size(nsigma_old%f,2)
-           CALL MPI_Sendrecv(nsigma_old%f    , n, MPI_REAL8, List_partner(IRANK), 0, &
-                    &        nsigma%f        , n, MPI_REAL8, List_partner(IRANK), 0, MPI_COMM_WORLD,STATUS,IERR)
+           CALL MPI_Sendrecv(nsigma_old%f    , n, MPI_COMPLEX16, List_partner(IRANK), 0, &
+                    &        nsigma%f        , n, MPI_COMPLEX16, List_partner(IRANK), 0, MPI_COMM_WORLD,STATUS,IERR)
            CALL MPI_Sendrecv(nsigma_old_irank, 1, MPI_INTEGER, List_partner(IRANK), 0, &
                     &        nsigma_irank    , 1, MPI_INTEGER, List_partner(IRANK), 0, MPI_COMM_WORLD,STATUS,IERR)
 
@@ -715,11 +715,11 @@ Module Global_mod
               !X = X + nsigma%Phi(i,nt) - nsigma_old%Phi(i,nt)
               Do nf_eff = 1,N_FL_eff
                  nf=Calc_Fl_map(nf_eff)
-                 X =  nsigma%Phi(i,nt) - nsigma_old%Phi(i,nt)
+                 Z =  nsigma%Phi(i,nt) - nsigma_old%Phi(i,nt)
                  g_loc = Op_V(i,nf)%g
                  if ( Op_V(i,nf)%get_g_t_alloc()) g_loc = Op_V(i,nf)%g_t(nt)
                  !Z = Z * exp(cmplx( X*Real(N_SUN,Kind(0.d0)), 0.d0,kind(0.d0)) * Op_V(i,nf)%g * Op_V(i,nf)%alpha )
-                 Ratio_1_array(nf) = Ratio_1_array(nf) * exp(cmplx( X*Real(N_SUN,Kind(0.d0)), 0.d0,kind(0.d0)) * g_loc * Op_V(i,nf)%alpha )
+                 Ratio_1_array(nf) = Ratio_1_array(nf) * exp(Z*cmplx( Real(N_SUN,Kind(0.d0)), 0.d0,kind(0.d0)) * g_loc * Op_V(i,nf)%alpha )
               Enddo
            Enddo
         Enddo
@@ -809,7 +809,7 @@ Module Global_mod
         endif
 
         NSTM = Size(udvst, 1)
-        If (storage == "Empty" ) then
+        If (str_to_upper(storage) == "EMPTY" ) then
            DO nf_eff = 1,N_FL_eff
               nf=Calc_Fl_map(nf_eff)
               if (Projector) then

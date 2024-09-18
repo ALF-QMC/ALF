@@ -204,7 +204,7 @@
         !Local
         Complex (Kind=Kind(0.d0)) :: Z(N_FL), Z1, g_loc
         Integer ::  nf, I, J, n, N_type, nf_eff
-        Real(Kind=Kind(0.d0)) :: spin
+        Complex  (Kind=Kind(0.d0)) :: spin
 
         Do nf_eff = 1,N_FL_eff
            nf=Calc_FL_map(nf_eff)

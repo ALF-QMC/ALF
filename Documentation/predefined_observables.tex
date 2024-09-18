@@ -13,7 +13,35 @@ The types \texttt{Obser\_Vec} and \texttt{Obser\_Latt} described in Section~\ref
 The module \texttt{Predefined\_Obs} provides a set of standard equal-time and time-displaced observables, as described below.  
 It contains procedures and functions.   Procedures  provide a complete handling of the observable structure. That is, they take care, for example, of incrementing the counter and of the average sign. On the other hand, functions only provide the Wick decomposition result, and the handling of the observable structure is left to the user. 
 
-The predefined measurements methods take as input Green functions \texttt{GR}, \texttt{GT0}, \texttt{G0T}, \texttt{G00}, and \texttt{GTT}, defined in Sec.~\ref{sec:EqualTimeobs} and~\ref{sec:TimeDispObs}, as well as \texttt{N\_SUN}, time slice \texttt{Ntau}, lattice information, and so on -- see Table~\ref{table:predefined_obs}.
+The predefined measurements methods take as input Green functions \texttt{GR}, \texttt{GT0}, \texttt{G0T}, \texttt{G00}, and \texttt{GTT}, defined in Sec.~\ref{sec:EqualTimeobs} and~\ref{sec:TimeDispObs}, as well as \texttt{N\_SUN}, time slice \texttt{Ntau}, lattice information, and so on -- see Table~\ref{table:predefined_obs}. 
+
+As  mentioned in  Sec.~\ref{sec:obs}  and  summarized in  Table~\ref{table:Obser_latt}   the  lattice  and  unit-cell   objects  that  are  passed  in  the  following  routines,  are  tied  to  the  specific  observable   and  not    to  the  Hamiltonian.     For  example,    the  Hamiltonian   can be  defined on a    bilayer-honeycomb lattice,  with  associated  \textit{hamiltonian} lattice  \texttt{Latt\_ham},  unit-cell  \texttt{Latt\_unit\_ham},   and   lists \texttt{list\_ham}, \texttt{invlist\_ham},  whereas the  observable can be defined  on  a one  dimensional  \textit{observable} lattice  \texttt{Latt} with a   two orbitals per  unit  cell  \texttt{Unit\_cell}.     Recall  that  the  total number of  orbitals  reads
+\begin{lstlisting}[style=fortran]
+ Ndim  =  Latt_ham%N * Latt_unit_ham%Norb 
+\end{lstlisting}
+and  that  the  Green  functions  have  dimension  $ \texttt{Ndim}  \times   \texttt{Ndim}   \times   \texttt{N\_fl}  $.      The  array    \texttt{list(Ndim, 2)} is   defined  as  follows:  
+\begin{equation}
+	  \texttt{list(n,1)} =  
+\left\{ 
+\begin{array}{ll}
+0  &  \text{if  n   is  not  an  orbital of  the  \textit{observable} lattice }   \\
+i_{unit}   &  \text{otherwise. }  i_{unit} \text{ corresponds  to  the   unit  cell of the \textit{observable} lattice } 
+\end{array}
+\right. 	  
+\end{equation}
+\begin{equation}
+	  \texttt{list(n,2)} =  
+\left\{ 
+\begin{array}{ll}
+0    &  \text{if  n   is  not  an  orbital of  the \textit{observable}  lattice }   \\
+i_{orb}  &  \text{otherwise. }   i_{orb}  \text{ corresponds  to  the  orbital  of  the \textit{observable}  lattice } 
+\end{array}
+\right. 	  
+\end{equation}
+
+ 
+
+
 %
 \begin{table}[h]
 	\begin{center}
@@ -54,9 +82,9 @@ If \texttt{N\_FL = 1} then  this routine returns
 \begin{align}
 \texttt{Obs}(\ve{i}-\ve{j},n_{\ve{i}}, n_{\ve{j}})  = \frac{2N}{N^2-1}\sum_{a=1}^{N^2 - 1}  \langle \langle \ve{\hat{c}}^{\dagger}_{\vec{i}, n_{\ve{i}}} T^a \ve{\hat{c}}^{\phantom\dagger}_{\vec{i},n_{\ve{i}}}   \;   \ve{\hat{c}}^{\dagger}_{\vec{j},n_{\ve{j}}} T^a  \ve{\hat{c}}^{\phantom\dagger}_{\vec{j},n_{\ve{j}}}\rangle\rangle_C,
 \end{align}
-where $T^a$ are the generators of SU(N) satisfying the normalization conditions  $\Tr [ T^a  T^b ]= \delta_{a,b}/2$ , $\Tr [ T^a ] = 0 $,    
+where $T^a$ are the generators of SU(N) satisfying the normalization conditions  $\Tr [ T^a  T^b ]= \delta_{a,b}/2$, $\Tr [ T^a ] = 0 $,    
 $ \ve{\hat{c}}^{\dagger}_{\ve{j},n_{\ve{j}}}   =  \left(   \hat{c}^{\dagger}_{\ve{j}, n_{\ve{j}},1},   \cdots, \hat{c}^{\dagger}_{\ve{j},n_{\ve{j}},N}  \right)    $     is an N-flavored spinor,  
-$\ve{j}$   corresponds to the unit-cell index and $n_{\ve{j}}$    labels the orbital.
+$\ve{j}$   corresponds to the unit-cell index and $n_{\ve{j}}$    labels the orbital. \footnote{Recall  that   $  \langle \langle \bullet \rangle \rangle_C $   corresponds  to   the    expectation value  of  an  observable  for a  given  configuration of  fields  $C$  and  not  to the connected   part  of  the  observable, see Eq.~(\ref{eqn:obs}).}
 
 Using Wick's theorem, valid for a given configuration of fields, we obtain
 \begin{multline}
@@ -99,8 +127,8 @@ Call Predefined_Obs_eq_SpinMz_measure(Latt, Latt_unit, List, GR, GRC, N_SUN, ZS,
 \end{lstlisting}
 If \texttt{N\_FL=2} and \texttt{N\_SUN=1}, then the routine returns:
 \begin{align}
-&\texttt{ObsZ}\left(\ve{i}-\ve{j}, n_{\ve{i}},  n_{\ve{j}} \right)  =  \begin{multlined}[t]  4 \langle \langle \ve{\hat{c}}^{\dagger}_{\ve{i}, n_{\ve{i}}} S^z \ve{\hat{c}}^{\phantom\dagger}_{\ve{i}, n_{\ve{i}} }   \;  \ve{\hat{c}}^{\dagger}_{\ve{j}, n_{\ve{j}}} S^z  \ve{\hat{c}}^{\phantom\dagger}_{\ve{j}, n_{\ve{j}}}\rangle \rangle_{C} \\
--    4 \langle \langle \ve{\hat{c}}^{\dagger}_{\ve{i}, n_{\ve{i}}} S^z \ve{\hat{c}}^{\phantom\dagger}_{\ve{i}, n_{\ve{i}} } \rangle \rangle_{C}  \langle \langle \  \ve{\hat{c}}^{\dagger}_{\ve{j}, n_{\ve{j}}} S^z  \ve{\hat{c}}^{\phantom\dagger}_{\ve{j}, n_{\ve{j}}}\rangle \rangle_{C} ,  \end{multlined} \nonumber \\  
+&\texttt{ObsZ}\left(\ve{i}-\ve{j}, n_{\ve{i}},  n_{\ve{j}} \right)  =  \begin{multlined}[t]  4 \langle \langle \ve{\hat{c}}^{\dagger}_{\ve{i}, n_{\ve{i}}} S^z \ve{\hat{c}}^{\phantom\dagger}_{\ve{i}, n_{\ve{i}} }   \;  \ve{\hat{c}}^{\dagger}_{\ve{j}, n_{\ve{j}}} S^z  \ve{\hat{c}}^{\phantom\dagger}_{\ve{j}, n_{\ve{j}}}\rangle \rangle_{C},
+\end{multlined} \nonumber \\  
 &\texttt{ObsXY}\left(\ve{i}-\ve{j}, n_{\ve{i}},  n_{\ve{j}} \right)  =  2 \left( \langle \langle \ve{\hat{c}}^{\dagger}_{\ve{i}, n_{\ve{i}}} S^x \ve{\hat{c}}^{\phantom\dagger}_{\ve{i}, n_{\ve{i}} }   \;  \ve{\hat{c}}^{\dagger}_{\ve{j}, n_{\ve{j}}} S^x  
 \ve{\hat{c}}^{\phantom\dagger}_{\ve{j}, n_{\ve{j}}}\rangle \rangle_{C}  +
 \langle \langle \ve{\hat{c}}^{\dagger}_{\ve{i}, n_{\ve{i}}} S^y \ve{\hat{c}}^{\phantom\dagger}_{\ve{i}, n_{\ve{i}} }   \;  \ve{c}^{\dagger}_{\ve{j}, n_{\ve{j}}} S^y  \ve{\hat{c}}^{\phantom\dagger}_{\ve{j}, n_{\ve{j}}}\rangle \rangle_{C}  \right), \nonumber \\
@@ -124,6 +152,7 @@ i & 0
 \right), \label{eq:vecPaulimat}
 \end{equation}
 the Pauli spin  matrices. 
+Note  that  for each observable the  background   is  stored  in the $\texttt{Obs\_latt0}$ field, see Table~\ref{table:Obser_latt}.
 
 \subsubsection{Equal-time Green function}
 
@@ -146,14 +175,14 @@ Call Predefined_Obs_eq_Den_measure(Latt, Latt_unit, List, GR, GRC, N_SUN, ZS, ZP
 \end{lstlisting}
 Which returns:
 \begin{align}
-\texttt{Obs}(\ve{i}-\ve{j}, n_{\ve{i}}, n_{\ve{j}}) = \langle  \langle\hat{ N}_{\ve{i},n_{\ve{i}}}  \hat{N}_{\ve{j},n_{\ve{j}}}\rangle - \langle \hat{N}_{\ve{i},n_{\ve{i}}} \rangle  \langle \hat{N}_{\ve{j},n_{\ve{j}}}\rangle \rangle_C,
+\texttt{Obs}(\ve{i}-\ve{j}, n_{\ve{i}}, n_{\ve{j}}) = \langle  \langle\hat{ N}_{\ve{i},n_{\ve{i}}}  \hat{N}_{\ve{j},n_{\ve{j}}}\rangle \rangle \rangle_C,
 \end{align}
 where
 \begin{align}
 \label{Density_op.eq}
 \hat{N}_{\ve{i},n_{\ve{i}}}  = \sum_{\sigma=1}^{N_\text{col}} \sum_{s=1}^{N_\text{fl}}  \hat{c}^{\dagger}_{\ve{i},n_{\ve{i}},\sigma,s} \hat{c}^{\phantom\dagger}_{\ve{i}, n_{\ve{i}},\sigma,s}.
 \end{align}
-
+The  background,   $\langle  \langle\hat{ N}_{\ve{i},n_{\ve{i}}} \rangle \rangle_C$   is  stored  in  $\texttt{Obs0}$. 
 
 \subsubsection{Time-displaced Green function}
 
@@ -164,7 +193,7 @@ Call Predefined_Obs_tau_Green_measure(Latt, Latt_unit, List, NT, GT0, G0T, G00, 
 \end{lstlisting}
 Which returns:
 \begin{align}
-\texttt{Obs}(\ve{i} - \ve{j}, \tau, n_{\ve{i}},  n_{\ve{j}} )  = \sum_{\sigma=1}^{N_\text{col}} \sum_{s=1}^{N_\text{fl}} \langle \langle  \hat{c}^{\dagger}_{\ve{i},n_{\ve{i}},  \sigma,s}(\tau) \hat{c}^{\phantom\dagger}_{\ve{j}, n_{\ve{j}},\sigma,s} \rangle \rangle_{C}
+\texttt{Obs}(\ve{i} - \ve{j}, \tau, n_{\ve{i}},  n_{\ve{j}} )  = \sum_{\sigma=1}^{N_\text{col}} \sum_{s=1}^{N_\text{fl}} \langle \langle  \hat{c}^{\phantom\dagger}_{\ve{i},n_{\ve{i}},  \sigma,s}(\tau) \hat{c}^{\dagger}_{\ve{j}, n_{\ve{j}},\sigma,s} \rangle \rangle_{C}
 \end{align}
 
 
@@ -177,7 +206,7 @@ Call Predefined_Obs_tau_SpinSUN_measure(Latt, Latt_unit, List, NT, GT0, G0T, G00
                                         N_SUN, ZS, ZP, Obs)
 \end{lstlisting}
 \begin{align}
-\texttt{Obs}(\ve{i} - \ve{j}, \tau, n_{\ve{i}},  n_{\ve{j}} )= \frac{2N}{N^2-1}\sum_{a=1}^{N^2 - 1}  \langle \ve{\hat{c}}^{\dagger}_{\ve{i}, n_{\ve{i}}}(\tau) T^a \ve{\hat{c}}^{\phantom\dagger}_{\ve{i}, n_{\ve{i}}}(\tau)  \;
+\texttt{Obs}(\ve{i} - \ve{j}, \tau, n_{\ve{i}},  n_{\ve{j}} )= \frac{2N}{N^2-1}\sum_{a=1}^{N^2 - 1}  \langle \langle \ve{\hat{c}}^{\dagger}_{\ve{i}, n_{\ve{i}}}(\tau) T^a \ve{\hat{c}}^{\phantom\dagger}_{\ve{i}, n_{\ve{i}}}(\tau)  \;
     \ve{\hat{c}}^{\dagger}_{\ve{j}, n_{\ve{j}}} T^a \ve{\hat{c}}^{\phantom\dagger}_{\ve{j}, n_{\ve{j}}}    \rangle  \rangle_{C}
 \end{align}
 where $T^a$ are the generators of SU(N) (see Sec.~\ref{SU_N_equal_time.sec}  for more details).
@@ -192,8 +221,10 @@ Call Predefined_Obs_tau_SpinMz_measure(Latt, Latt_unit, List, NT, GT0, G0T, G00,
 \end{lstlisting}
 Which calculates the following observables:
 \begin{align}
-\texttt{ObsZ}(\ve{i} - \ve{j}, \tau, n_{\ve{i}},  n_{\ve{j}} ) &= \begin{multlined}[t] 4 \langle \langle \ve{\hat{c}}^{\dagger}_{\ve{i}, n_{\ve{i}}}(\tau)  S^z \ve{\hat{c}}^{\phantom\dagger}_{\ve{i}, n_{\ve{i}} }(\tau)   \;  \ve{\hat{c}}^{\dagger}_{\ve{j}, n_{\ve{j}}} S^z  \ve{\hat{c}}^{\phantom\dagger}_{\ve{j}, n_{\ve{j}}}\rangle \rangle_{C} \\  
-- 4 \langle \langle \ve{\hat{c}}^{\dagger}_{\ve{i}, n_{\ve{i}}} S^z \ve{\hat{c}}^{\phantom\dagger}_{\ve{i}, n_{\ve{i}} } \rangle \rangle_{C}  \langle \langle \  \ve{\hat{c}}^{\dagger}_{\ve{j}, n_{\ve{j}}} S^z  \ve{\hat{c}}^{\phantom\dagger}_{\ve{j}, n_{\ve{j}}}\rangle \rangle_{C}   \end{multlined} \nonumber \\  
+\texttt{ObsZ}(\ve{i} - \ve{j}, \tau, n_{\ve{i}},  n_{\ve{j}} ) &= \begin{multlined}[t] 4 \langle \langle \ve{\hat{c}}^{\dagger}_{\ve{i}, n_{\ve{i}}}(\tau)  S^z \ve{\hat{c}}^{\phantom\dagger}_{\ve{i}, n_{\ve{i}} }(\tau)   \;  \ve{\hat{c}}^{\dagger}_{\ve{j}, n_{\ve{j}}} S^z  \ve{\hat{c}}^{\phantom\dagger}_{\ve{j}, n_{\ve{j}}}\rangle \rangle_{C} 
+%\\  
+%- 4 \langle \langle \ve{\hat{c}}^{\dagger}_{\ve{i}, n_{\ve{i}}} S^z \ve{\hat{c}}^{\phantom\dagger}_{\ve{i}, n_{\ve{i}} } \rangle \rangle_{C}  \langle \langle \  \ve{\hat{c}}^{\dagger}_{\ve{j}, n_{\ve{j}}} S^z  \ve{\hat{c}}^{\phantom\dagger}_{\ve{j}, n_{\ve{j}}}\rangle \rangle_{C}   
+\end{multlined} \nonumber \\  
 \texttt{ObsXY} (\ve{i} - \ve{j}, \tau, n_{\ve{i}},  n_{\ve{j}} ) &=\begin{multlined}[t] 
 2 \left( \langle \langle \ve{\hat{c}}^{\dagger}_{\ve{i}, n_{\ve{i}}}(\tau) S^x \ve{\hat{c}}^{\phantom\dagger}_{\ve{i}, n_{\ve{i}} } (\tau)  \;  \ve{\hat{c}}^{\dagger}_{\ve{j}, n_{\ve{j}}} S^x  
 \ve{\hat{c}}^{\phantom\dagger}_{\ve{j}, n_{\ve{j}}}\rangle \rangle_{C}  \right.\\
@@ -211,7 +242,7 @@ Call Predefined_Obs_tau_Den_measure(Latt, Latt_unit, List,  NT, GT0, G0T, G00, G
 \end{lstlisting}
 Which returns:
 \begin{align}
-\texttt{Obs}(\ve{i} - \ve{j}, \tau, n_{\ve{i}},  n_{\ve{j}} ) = \langle  \langle \hat{ N}_{\ve{i},n_{\ve{i}}} (\tau)  \hat{N}_{\ve{j},n_{\ve{j}}}\rangle - \langle \hat{N}_{\ve{i},n_{\ve{i}}} \rangle  \langle \hat{N}_{\ve{j},n_{\ve{j}}}\rangle \rangle_C.
+\texttt{Obs}(\ve{i} - \ve{j}, \tau, n_{\ve{i}},  n_{\ve{j}} ) = \langle  \langle \hat{ N}_{\ve{i},n_{\ve{i}}} (\tau)  \hat{N}_{\ve{j},n_{\ve{j}}}\rangle\rangle_C. 
  \end{align}
  The density operator is defined in Eq.~\eqref{Density_op.eq}.
 
@@ -263,6 +294,43 @@ returns
 All routines  are programmed  for \texttt{N\_SUN = 2,4,6,8} at \texttt{N\_FL=1}.   The routines also handle the case of broken SU(2)  spin symmetry corresponding  to  \texttt{N\_FL=2}  and \texttt{N\_SUN=1}.   To carry out the Wick decomposition  and sums over  spin indices,  we use the  Mathematica  notebooks 
 \texttt{Dimer\-Dimer\_SU2\_NFL\_2.nb}  and \texttt{Dimer\-Dimer\_SUN\_NFL\_1.nb}.
 
+%-----------------------------------------------------------------------------------
+\subsubsection{Bond-Bond  correlations}
+%-----------------------------------------------------------------------------------
+The  function 
+\begin{lstlisting}[style=fortran]
+ Complex (Kind=Kind(0.d0)) function Predefined_Obs_dimer_kin_eq(I,M, J, N,  GR, GRC, 
+                                                                N_SUN, N_FL) 
+\end{lstlisting}
+returns:
+\begin{equation}  
+  \left< \left< \hat{K}_{i,m}  \hat{K}_{j,n}    \right>  \right>_C    \, \, \,   \text{with} \, \, \,  \hat{K}_{i,m}   = 
+  \sum_{s=1}^{N_{Fl}} \sum_{\sigma=1}^{N_{col}}  \hat{c}^{\dagger}_{i,s,\sigma}  \hat{c}^{\phantom\dagger}_{m,s, \sigma}   + \text{H.c.} 
+\end{equation}
+
+\noindent
+The  accompanying  function 
+\begin{lstlisting}[style=fortran]
+Complex (Kind=Kind(0.d0)) function Predefined_Obs_dimer_kin0_eq(I,M, GR, N_SUN, N_FL) 
+ \end{lstlisting} 
+computes  the  background:
+\begin{equation}
+	 \left< \left< \hat{K}_{i,m}    \right>  \right>_C.
+\end{equation}
+
+%-----------------------------------------------------------------------------------
+\subsubsection{Expectation value of perfect  squares}
+%-----------------------------------------------------------------------------------
+The  function
+\begin{lstlisting}[style=fortran]
+ Complex (Kind=Kind(0.d0)) function Predefined_Obs_V_Int(OP_Vint, GR, GRC, N_SUN )
+\end{lstlisting}
+returns,   for  a  \texttt{OP\_Vint\%type=2}      vertex,   the   expectation value: 
+\begin{equation}
+	\left< \left<     \left[  \sum_{s=1}^{N_{fl}} \sum_{\sigma=1}^{N_{col}}  \left(   \left(  \sum_{x,y} \hat{c}^{\dagger}_{x,s,\sigma}  V^{s}_{x,y} 
+	 \hat{c}^{\phantom\dagger}_{y,s,\sigma} \right)     +  \alpha_s \right)  \right] ^2    \right>  \right>_C
+\end{equation}
+The   function is   particularly  useful  in computing  the    total  energy  of  the model  at hand. 
 
 %-----------------------------------------------------------------------------------
 \subsubsection{Cotunneling for Kondo models}

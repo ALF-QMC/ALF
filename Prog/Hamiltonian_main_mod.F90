@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 - 2020 The ALF project
+!  Copyright (C) 2016 - 2023 The ALF project
 !
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@
 !     - We require the preservation of the above copyright notice and this license in all original files.
 !
 !     - We prohibit the misrepresentation of the origin of the original source files. To obtain
-!       the original source files please visit the homepage http://alf.physik.uni-wuerzburg.de .
+!       the original source files please visit the homepage http://alf.physik.uni-wuerzburg.de 
 !
 !     - If you make substantial changes to the program we require you to either consider contributing
 !       to the ALF project or to mark your material in a reasonable way as different from the original version
@@ -126,6 +126,7 @@
 
     Module Hamiltonian_main
       Use runtime_error_mod
+      Use files_mod
       Use Operator_mod, only: Operator
       Use WaveFunction_mod, only: WaveFunction
       Use Observables
@@ -213,7 +214,7 @@
        Implicit none
        Character (len=64), intent(in) :: ham_name
 
-       Select Case (ham_name)
+       Select Case (str_to_upper(ham_name))
 #include "Hamiltonians_case.h"
 !!$       This file will be dynamically generated and appended
        Case default
@@ -252,7 +253,7 @@
             !> Time slice
             Integer, Intent(IN) :: nt
             !> New local field on time slice nt and operator index n
-            Real (Kind=Kind(0.d0)), Intent(In) :: Hs_new
+            Complex (Kind=Kind(0.d0)), Intent(In) :: Hs_new
             
             S0_base = 1.d0
             If ( Op_V(n,1)%type == 1 ) then
@@ -339,7 +340,7 @@
 
              Logical, save              :: first_call=.True.
              integer                    :: field_id, tau, Nfields, Ntau
-             Real(kind=kind(0.0d0))     :: Hs_old
+             Complex (kind=kind(0.0d0)) :: Hs_old
 
              Delta_S0_global_base = 1.d0
              Nfields=size(nsigma_old%f,1)
@@ -348,7 +349,7 @@
                 do field_id=1,Nfields
                    ! S0 returns S0=exp(-S0(HS_old))/exp(-S0(nsigma))
                    ! purposly call ham%S0 instead of S0_base such that S0 may be provided in derived Hamiltonian
-                   Hs_old=nsigma_old%f(field_id,tau)
+                   Hs_old  =nsigma_old%f(field_id,tau)
                    ! note we need exp(-S0(new))/exp(-S0(old)) but nsigma is already the new config and we provide HS_old
                    ! in contrast to HS_new. Hence, S0 returns the inverse of whar we need!
                    Delta_S0_global_base=Delta_S0_global_base/ham%S0(field_id,tau,Hs_old)
@@ -561,9 +562,9 @@
                 &                     Flip_list, Flip_length,Flip_value,ntau)
 
              Implicit none
-             Real (Kind = Kind(0.d0)),INTENT(OUT) :: T0_Proposal_ratio,  S0_ratio
-             Integer                , INTENT(OUT) :: Flip_list(:)
-             Real (Kind = Kind(0.d0)),INTENT(OUT) :: Flip_value(:)
+             Real (Kind = Kind(0.d0)),   INTENT(OUT) :: T0_Proposal_ratio,  S0_ratio
+             Integer                   , INTENT(OUT) :: Flip_list(:)
+             Complex (Kind = Kind(0.d0)),INTENT(OUT) :: Flip_value(:)
              Integer, INTENT(OUT) :: Flip_length
              Integer, INTENT(IN)  :: ntau
              
@@ -571,24 +572,24 @@
              CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
           end Subroutine Global_move_tau_base
 
-    !--------------------------------------------------------------------
-    !> @author
-    !> ALF Collaboration
-    !>
-    !> @brief
-    !> The user can set the initial field.
-    !>
-    !> @details
-    !> @param[OUT] Initial_field Real(:,:)
-    !> \verbatim
-    !>  Upon entry Initial_field is not allocated. If alloacted then it will contain the
-    !>  the initial field
-    !> \endverbatim
-    !--------------------------------------------------------------------
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> The user can set the initial field.
+!>
+!> @details
+!> @param[OUT] Initial_field Real(:,:)
+!> \verbatim
+!>  Upon entry Initial_field is not allocated. If alloacted then it will contain the
+!>  the initial field
+!> \endverbatim
+!--------------------------------------------------------------------
           Subroutine  Hamiltonian_set_nsigma_base(Initial_field)
              Implicit none
 
-             Real (Kind=Kind(0.d0)), allocatable, dimension(:,:), Intent(INOUT) :: Initial_field
+             Complex (Kind=Kind(0.d0)), allocatable, dimension(:,:), Intent(INOUT) :: Initial_field
 
              !  Consider  when we implement  different debugging  levels
 !!$             write(output_unit,*)
@@ -599,17 +600,17 @@
           end Subroutine Hamiltonian_set_nsigma_base
 
 
-    !--------------------------------------------------------------------
-    !> @author
-    !> ALF Collaboration
-    !>
-    !> @brief
-    !> This routine allows to user to  determine the global_tau sampling parameters at run time
-    !> It is especially usefull if these parameters are dependent on other parameters.
-    !>
-    !> @details
-    !> \endverbatim
-    !--------------------------------------------------------------------
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> This routine allows to user to  determine the global_tau sampling parameters at run time
+!> It is especially usefull if these parameters are dependent on other parameters.
+!>
+!> @details
+!> \endverbatim
+!--------------------------------------------------------------------
           Subroutine Overide_global_tau_sampling_parameters_base(Nt_sequential_start,Nt_sequential_end,N_Global_tau)
 
              Implicit none
