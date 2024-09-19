@@ -1567,8 +1567,7 @@
          !! test whether overlap has minus sign
          alpha=1.d0
          beta=0.d0
-         log_zdet(:) = 0.d0
-         do ns = 1, n_slat
+         ctmp = 0.d0
          do nf_eff = 1, N_FL_eff
             nf=Calc_Fl_map(nf_eff)
             call zgemm('C','N',N_part,N_part,Ndim,alpha,p1_tmp(1,1,nf),Ndim,phi_0_r(nf_eff,1)%U(1,1),ndim,beta,smat(1,1),N_part)
@@ -1586,10 +1585,9 @@
             enddo
             zdet = zdet + log(phase)
 
-            log_zdet(ns) = log_zdet(ns) + zdet
+            ctmp = ctmp + zdet
          enddo
-         enddo
-         z_norm = exp(log_zdet(1)) + exp(log_zdet(2))
+         z_norm = exp(ctmp)
          d_norm = dble(z_norm)
          if (d_norm .lt. 0.d0) then
             c1 = dcmplx(0.d0,1.d0)

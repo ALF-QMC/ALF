@@ -16,6 +16,7 @@
       Use WaveFunction_mod
       Use MyMats
       Use Predefined_Hoppings
+      Use Random_wrap
       use iso_fortran_env, only: output_unit, error_unit
 
       Implicit none
@@ -89,7 +90,7 @@
         Type(Operator),  dimension(:,:), allocatable  :: OP_tmp
         Type (Hopping_Matrix_type), allocatable       :: Hopping_Matrix_tmp(:)
         Real (Kind=Kind(0.d0))                        :: Dtau, Ham_T, Ham_Chem, XB_X, XB_Y, Phi_X, Phi_Y, Dimer, mass
-        Real (Kind=Kind(0.d0))                        :: ham_U, sgn_i, sgn_updn
+        Real (Kind=Kind(0.d0))                        :: ham_U, sgn_i, sgn_updn, rmu
         Logical                                       :: Checkerboard, Symm, Kekule_Trial, hatree_fock
 
         Type (Lattice)                                :: Latt_Kekule
@@ -101,7 +102,7 @@
         Complex (Kind=Kind(0.d0)) :: Z_norm
 
         Real (Kind=Kind(0.d0) ), allocatable :: Ham_T_vec(:), Ham_Tperp_vec(:), Ham_Chem_vec(:), Phi_X_vec(:), Phi_Y_vec(:),&
-               &                                Ham_T2_vec(:)
+               &                                Ham_T2_vec(:), Ham_lambda_vec(:) 
         Integer, allocatable ::   N_Phi_vec(:)
 
         Allocate(WF_L(N_FL,N_slat),WF_R(N_FL,N_slat))
@@ -113,7 +114,7 @@
         enddo
 
         Allocate (Ham_T_vec(N_FL), Ham_T2_vec(N_FL), Ham_Tperp_vec(N_FL), Ham_Chem_vec(N_FL), Phi_X_vec(N_FL), Phi_Y_vec(N_FL),&
-             &                                    N_Phi_vec(N_FL) )
+             &    Ham_lambda_vec(N_FL), N_Phi_vec(N_FL) )
 
         Checkerboard  = .false.
         Kekule_Trial  = .false.
@@ -137,114 +138,51 @@
         Ham_Tperp_vec  = Ham_Tperp
         Ham_T2_vec     = Ham_T2
         Ham_Chem_vec   = Ham_Chem
+        Ham_lambda_vec = 0.d0
 
         Select case (Lattice_type)
 
         case ("Honeycomb")
-           If (Kekule_Trial) then
-              !  Kekule Mass term to avoid  degeneracy at half-filling.
-              Allocate(Op_Tmp(1,N_FL))
+           Ham_T = 1.d0
+           Allocate(Op_Tmp(1,N_FL))
+           do n = 1,N_FL
+              Call Op_make(Op_Tmp(1,n),Ndim)
+           Enddo
+           Do I = 1,Latt%N
+              I1 = Invlist(I,1)
+              Do nc1 = 1,Latt_unit%N_coord
+                 select case (nc1)
+                 case (1)
+                    J1 = invlist(I,2)
+                 case (2)
+                    J1 = invlist(Latt%nnlist(I,1,-1),2)
+                 case (3)
+                    J1 = invlist(Latt%nnlist(I,0,-1),2)
+                 case default
+                    Write(error_unit,*) 'Error in  Predefined_TrialWaveFunction'
+                    error stop 1
+                 end select
+                 delta = 0.01d0*ranf_wrap()
+                 do n = 1,N_FL
+                     Op_Tmp(1,n)%O(I1,J1) = cmplx(-Ham_T-delta,0.d0, kind(0.D0))
+                     Op_Tmp(1,n)%O(J1,I1) = cmplx(-Ham_T-delta,0.d0, kind(0.D0))
+                 Enddo
+              Enddo
               do n = 1,N_FL
-                 Call Op_make(Op_Tmp(1,n),Ndim)
+                 !rmu = 1.d0*ranf_wrap()
+                 rmu = 0.d0
+                 Op_Tmp(1,n)%O(I1,I1) = cmplx(rmu,0.d0, kind(0.D0))
               enddo
-              A1_p = 2.d0 * Latt%a1_p  - Latt%a2_p
-              A2_p =        Latt%a1_p  + Latt%a2_p
-              L1_p = Latt%L1_p
-              L2_p = Latt%L2_p
-              Call Make_Lattice( L1_p, L2_p, A1_p,  A2_p, Latt_Kekule)
-              Call Print_latt(Latt_Kekule)
+           enddo
+           do n = 1,N_FL
+              do I = 1,Ndim
+                 Op_Tmp(1,n)%P(i) = i
+              Enddo
+              Op_Tmp(1,n)%g    = cmplx(1.d0,0.d0,kind(0.d0))
+              Op_Tmp(1,n)%alpha= cmplx(0.d0,0.d0,kind(0.D0))
+              Call Op_set(Op_Tmp(1,n))
+           Enddo
 
-              DO I = 1, Latt_Kekule%N
-                 x_p = dble(Latt_Kekule%list(I,1))*Latt_Kekule%a1_p + dble(Latt_Kekule%list(I,2))*Latt_Kekule%a2_p
-                 IK_u   = Inv_R(x_p,Latt)
-                 do nc  = 1, 3
-                    select case (nc)
-                    case (1)
-                       I_u    =  IK_u
-                       hop(1) =  1.d0 + delta
-                       hop(2) =  1.d0 - delta
-                       hop(3) =  1.d0
-                    case (2)
-                       I_u    = Latt%nnlist(IK_u,0,1)
-                       hop(1) =  1.d0
-                       hop(2) =  1.d0 + delta
-                       hop(3) =  1.d0 - delta
-                    case (3)
-                       I_u     = Latt%nnlist(IK_u,1,0)
-                       hop(1) =  1.d0 - delta
-                       hop(2) =  1.d0
-                       hop(3) =  1.d0 + delta
-                    end select
-                    x_p = dble(Latt%list(I_u,1))*Latt%a1_p + dble(Latt%list(I_u,2))*Latt%a2_p
-                    I1 = invlist(I_u,1)
-                    do nc1 = 1,3
-                       select case (nc1)
-                       case (1)
-                          J1 = invlist(I_u,2)
-                          del_p(:)  =  Latt_unit%Orb_pos_p(2,:)
-                       case (2)
-                          J1 = invlist(Latt%nnlist(I_u,1,-1),2)
-                          del_p(:)   =  Latt%a1_p(:) - Latt%a2_p(:)  + Latt_unit%Orb_pos_p(2,:)
-                       case (3)
-                          J1 = invlist(Latt%nnlist(I_u,0,-1),2)
-                          del_p(:)   =  - Latt%a2_p(:) +  Latt_unit%Orb_pos_p(2,:)
-                       end select
-
-                       x1_p = X_p + del_p
-                       lp = 32
-                       if (hop(nc1) > 1.d0 ) lp = 33
-                       if (hop(nc1) < 1.d0 ) lp = 31
-                       do n = 1,N_FL
-                          Op_Tmp(1,n)%O(I1,J1) =   cmplx( - hop(nc1),    0.d0, kind(0.D0))
-                          Op_Tmp(1,n)%O(J1,I1) =   cmplx( - hop(nc1),    0.d0, kind(0.D0))
-                       enddo
-                    enddo
-                 enddo
-              Enddo
-              do n = 1,N_FL
-                 Do I = 1,Ndim
-                    Op_Tmp(1,n)%P(i) = i
-                 Enddo
-                 Op_Tmp(1,n)%g    = cmplx(1.d0, 0.d0,kind(0.d0))
-                 Op_Tmp(1,n)%alpha= cmplx(0.d0,0.d0, kind(0.D0))
-                 Call Op_set(Op_Tmp(1,n))
-              Enddo
-           else
-              Ham_T = 1.d0
-              Ham_T1 = -delta*Ham_T
-              Allocate(Op_Tmp(1,N_FL))
-              do n = 1,N_FL
-                 Call Op_make(Op_Tmp(1,n),Ndim)
-                 Do I = 1,Latt%N
-                    I1 = Invlist(I,1)
-                    Do nc1 = 1,Latt_unit%N_coord
-                       select case (nc1)
-                       case (1)
-                          J1 = invlist(I,2)
-                       case (2)
-                          J1 = invlist(Latt%nnlist(I,1,-1),2)
-                       case (3)
-                          J1 = invlist(Latt%nnlist(I,0,-1),2)
-                       case default
-                          Write(error_unit,*) 'Error in  Predefined_TrialWaveFunction'
-                          CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
-                       end select
-                       Op_Tmp(1,n)%O(I1,J1) = cmplx(-Ham_T,    0.d0, kind(0.D0))
-                       Op_Tmp(1,n)%O(J1,I1) = cmplx(-Ham_T,    0.d0, kind(0.D0))
-                    Enddo
-                    I1 = invlist(Latt%nnlist(I,1,-1),2)
-                    J1 = invlist(Latt%nnlist(I,0, 1),1)
-                    Op_Tmp(1,n)%O(I1,J1) = cmplx(-Ham_T1,    0.d0, kind(0.D0))
-                    Op_Tmp(1,n)%O(J1,I1) = cmplx(-Ham_T1,    0.d0, kind(0.D0))
-                 enddo
-                 do I = 1,Ndim
-                    Op_Tmp(1,n)%P(i) = i
-                 Enddo
-                 Op_Tmp(1,n)%g    = cmplx(1.d0, 0.d0,kind(0.d0))
-                 Op_Tmp(1,n)%alpha= cmplx(0.d0,0.d0, kind(0.D0))
-                 Call Op_set(Op_Tmp(1,n))
-              Enddo
-           endif
         Case ("Square")
            if ( hatree_fock ) then
               Ham_T       = 1.d0
