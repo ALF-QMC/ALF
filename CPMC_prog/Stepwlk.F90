@@ -1468,7 +1468,7 @@
           Complex (kind=kind(0.d0)), pointer :: phi0_in(:,:,:)
           Complex (kind=kind(0.d0)), allocatable :: p1_tmp(:,:,:), p2_tmp(:,:,:), log_zdet(:)
           complex (kind=kind(0.d0)), allocatable, dimension(:,:) :: sMat
-          complex (kind=kind(0.d0)) :: alpha, beta, zdet, phase, t_overlap, z_norm
+          complex (kind=kind(0.d0)) :: alpha, beta, zdet, phase, t_overlap, z_norm, c1, ctmp
           real    (kind=kind(0.d0)) :: d_norm
 
           INTEGER             :: K, hdferr, rank, nf, nw, n_part, i0, i1, i2, i_st, i_ed, Ndt, ii, nwalk_in
@@ -1561,19 +1561,54 @@
             call mpi_recv(p2_tmp,  Ndt,mpi_complex16, 0, 3, MPI_COMM_WORLD,STATUS,IERR)
          ENDIF
 
-         !! combine the trial wave function by 
-         !! | \Psi_T > = exp(i\pi/2)*| \Psi_T^1 > + exp(-i\pi/2)*| \Psi_T^2 >
+         !! allocate tmp matrix
+         allocate(smat(n_part,n_part), ipiv(N_part), log_zdet(N_slat))
+
+         !! test whether overlap has minus sign
+         alpha=1.d0
+         beta=0.d0
+         log_zdet(:) = 0.d0
+         do ns = 1, n_slat
          do nf_eff = 1, N_FL_eff
             nf=Calc_Fl_map(nf_eff)
-            phi_0_l(nf_eff,1)%U(:,:)=p1_tmp(:,:,nf)*dcmplx(0.d0, 1.d0)
-            phi_0_l(nf_eff,2)%U(:,:)=p2_tmp(:,:,nf)*dcmplx(0.d0,-1.d0)
-            WF_L(nf,1)%P(:,:)=p1_tmp(:,:,nf)*dcmplx(0.d0, 1.d0)
-            WF_L(nf,2)%P(:,:)=p2_tmp(:,:,nf)*dcmplx(0.d0,-1.d0)
+            call zgemm('C','N',N_part,N_part,Ndim,alpha,p1_tmp(1,1,nf),Ndim,phi_0_r(nf_eff,1)%U(1,1),ndim,beta,smat(1,1),N_part)
+            ! ZGETRF computes an LU factorization of a general M-by-N matrix A
+            ! using partial pivoting with row interchanges.
+            call ZGETRF(N_part, N_part, smat, N_part, ipiv, info)
+            ! obtain log of det
+            zdet  = 0.d0
+            phase = 1.d0
+            Do n=1,N_part
+               if (ipiv(n).ne.n) then
+                  phase = -phase
+               endif
+               zdet = zdet + log(smat(n,n))
+            enddo
+            zdet = zdet + log(phase)
+
+            log_zdet(ns) = log_zdet(ns) + zdet
+         enddo
+         enddo
+         z_norm = exp(log_zdet(1)) + exp(log_zdet(2))
+         d_norm = dble(z_norm)
+         if (d_norm .lt. 0.d0) then
+            c1 = dcmplx(0.d0,1.d0)
+         else
+            c1 = dcmplx(1.d0,0.d0)
+         endif
+
+         !! combine the trial wave function by 
+         !! | \Psi_T > = c1*| \Psi_T^1 > + c1^{\dagger}*| \Psi_T^2 >
+         do nf_eff = 1, N_FL_eff
+            nf=Calc_Fl_map(nf_eff)
+            phi_0_l(nf_eff,1)%U(:,:)=p1_tmp(:,:,nf)*c1
+            phi_0_l(nf_eff,2)%U(:,:)=p2_tmp(:,:,nf)*dconjg(c1)
+            WF_L(nf,1)%P(:,:)=p1_tmp(:,:,nf)*c1
+            WF_L(nf,2)%P(:,:)=p2_tmp(:,:,nf)*dconjg(c1)
          enddo
 
          !! normalization of overlap <\Psi_T | \phi_k^0>
 
-         allocate(smat(n_part,n_part), ipiv(N_part), log_zdet(N_slat))
          alpha=1.d0
          beta=0.d0
          log_zdet(:) = 0.d0
