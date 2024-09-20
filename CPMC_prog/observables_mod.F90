@@ -270,7 +270,7 @@
            Allocate(Tmp1(Obs%Latt_unit%Norb))
            Tmp1 = cmplx(0.d0,0.d0,kind(0.d0))
            CALL MPI_REDUCE(Obs%Obs_Latt0,Tmp1,I,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
-           Obs%Obs_Latt0 = Tmp1/dble(Obs%N)
+           Obs%Obs_Latt0 = Tmp1/dble(Obs%N*Ns*Ntau)
            Deallocate(Tmp1)
 
            If (Irank_g == 0 ) then
