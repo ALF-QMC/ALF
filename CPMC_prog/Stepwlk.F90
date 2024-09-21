@@ -771,7 +771,7 @@
                     Call ham%GR_reconstruction ( GTT(:,:,:,i_grc) )
                     Call ham%GRT_reconstruction( GT0(:,:,:,i_grc), G0T(:,:,:,i_grc) )
                 endif
-                CALL ham%obserT( ntau,GT0(:,:,:,i_wlk),G0T(:,:,:,i_grc),G00(:,:,:,i_grc), & 
+                CALL ham%obserT( ntau,GT0(:,:,:,i_grc),G0T(:,:,:,i_grc),G00(:,:,:,i_grc), & 
                     & GTT(:,:,:,i_grc), i_wlk, i_grc, z_weight, z_sum_overlap, act_mea )
                 act_mea = act_mea + 1
              enddo
