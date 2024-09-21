@@ -342,14 +342,14 @@
                  Do nf_eff = 1, N_FL_eff
                     nf=Calc_Fl_map(nf_eff)
                     DO I = 1,N_size
-                       det_D(nf)=det_D(nf)+log(Phi_0(nf_eff,i_wlk)%D(I))
+                       det_D(nf)=det_D(nf)+log(Phi_0(nf_eff,i_wlk_eff)%D(I))
                     ENDDO
                  enddo
                  
                  if (reconstruction_needed) call ham%weight_reconstruction(Det_D)
 
                  Do nf_eff = 1, N_FL_eff
-                    Phi_0(nf_eff,i_wlk)%D(:) = cmplx(1.d0, 0.d0, kind(0.d0))
+                    Phi_0(nf_eff,i_wlk_eff)%D(:) = cmplx(1.d0, 0.d0, kind(0.d0))
                  enddo
                  
                  !!!update the overlap when normal propagation
