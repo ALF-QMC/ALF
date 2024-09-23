@@ -1593,9 +1593,9 @@
          z_norm = exp(ctmp)
          d_norm = dble(z_norm)
          if (d_norm .lt. 0.d0) then
-            c1 = dcmplx(0.d0,1.d0)
+            c1 = cmplx(0.d0,1.d0,kind(1.d0))
          else
-            c1 = dcmplx(1.d0,0.d0)
+            c1 = cmplx(1.d0,0.d0,kind(1.d0))
          endif
 
          !! combine the trial wave function by 
@@ -1603,9 +1603,9 @@
          do nf_eff = 1, N_FL_eff
             nf=Calc_Fl_map(nf_eff)
             phi_0_l(nf_eff,1)%U(:,:)=p1_tmp(:,:,nf)*c1
-            phi_0_l(nf_eff,2)%U(:,:)=p2_tmp(:,:,nf)*dconjg(c1)
+            phi_0_l(nf_eff,2)%U(:,:)=p2_tmp(:,:,nf)*conjg(c1)
             WF_L(nf,1)%P(:,:)=p1_tmp(:,:,nf)*c1
-            WF_L(nf,2)%P(:,:)=p2_tmp(:,:,nf)*dconjg(c1)
+            WF_L(nf,2)%P(:,:)=p2_tmp(:,:,nf)*conjg(c1)
          enddo
 
          !! normalization of overlap <\Psi_T | \phi_k^0>
