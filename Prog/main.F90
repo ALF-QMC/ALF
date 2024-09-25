@@ -765,6 +765,9 @@ Program Main
 
            Call ham%Init_obs(Ltau)
            Call Obser_vec_Init(Obs_acc_HMC)
+           do n=0, size(Langevin_HMC%Obs_ESJD_HMC,1)-1
+              Call Obser_vec_Init(Langevin_HMC%Obs_ESJD_HMC(n))
+           enddo
 #if defined(TEMPERING)
            Call Global_Tempering_init_obs
 #endif
@@ -998,6 +1001,11 @@ Program Main
            ENDDO
            Call ham%Pr_obs(Ltau)
            Call Print_bin_Vec(Obs_acc_HMC, Group_Comm)
+           do n=0, size(Langevin_HMC%Obs_ESJD_HMC,1)-1
+              if (Langevin_HMC%Obs_ESJD_HMC(n)%N > 0) then
+                 Call Print_bin_Vec(Langevin_HMC%Obs_ESJD_HMC(n), Group_Comm)
+              endif
+           enddo
 #if defined(TEMPERING)
            Call Global_Tempering_Pr
 #endif

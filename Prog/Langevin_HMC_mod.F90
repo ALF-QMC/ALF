@@ -36,6 +36,7 @@
       Module Langevin_HMC_mod
         
         Use runtime_error_mod 
+        use observables
         Use Hamiltonian_main
         Use UDV_State_mod
         Use Control
@@ -70,6 +71,7 @@
            Real    (Kind=Kind(0.d0)), allocatable  :: Det_vec_old(:,:)
            Complex (Kind=Kind(0.d0)), allocatable  :: Phase_Det_old(:)
            Complex (Kind=Kind(0.d0)), allocatable  :: Forces  (:,:)
+           Type    (Obser_Vec ), allocatable, public       :: Obs_ESJD_HMC(:)
            
            Real    (Kind=Kind(0.d0)), allocatable  :: Forces_0(:,:)
          CONTAINS
@@ -540,6 +542,11 @@
               Phase_new = Phase_new*Phase_det_new(nf)
            Enddo
            Call Op_phase(Phase_new,OP_V,Nsigma,N_SUN)
+           X=ham%Jump_dist_HMC(nsigma%f, nsigma_old%f)
+         !   write(*,*) LF_steps, x, x/size(nsigma%f), weight
+           this%Obs_ESJD_HMC(LF_steps)%N         =  this%Obs_ESJD_HMC(LF_steps)%N + 1
+           this%Obs_ESJD_HMC(LF_steps)%Ave_sign  =  this%Obs_ESJD_HMC(LF_steps)%Ave_sign + 1.d0
+           this%Obs_ESJD_HMC(LF_steps)%Obs_vec(1) = this%Obs_ESJD_HMC(LF_steps)%Obs_vec(1) + x*weight
 
            TOGGLE = .false.
            if ( Weight > ranf_wrap() )  Then
@@ -605,6 +612,8 @@
         !Local
         Integer ::  IERR
         Logical ::  lexist
+        Integer    ::  N
+        Character (len=64) ::  Filename
 #ifdef MPI
         Real (Kind=Kind(0.d0)) :: X
         INTEGER                :: STATUS(MPI_STATUS_SIZE), ISIZE, IRANK
@@ -673,6 +682,12 @@
            this%L_Forces             = .False.
            this%Leapfrog_Steps       =  Leapfrog_steps
            this%Delta_t_running      =  1.0d0
+           allocate(this%Obs_ESJD_HMC(0:Leapfrog_steps))
+           N=1
+           do i=0,Leapfrog_steps
+              write(Filename,'(A,I0)') "ESJD_HMC_",i
+              Call Obser_Vec_make(this%Obs_ESJD_HMC(i),N,Filename)
+           enddo
          !   WRITE(error_unit,*) 'HMC  step is not yet implemented'
          !   CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         else
