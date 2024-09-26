@@ -373,6 +373,9 @@
           Case ("TRIANGULAR")
              Call  Set_Default_hopping_parameters_triangular(Hopping_Matrix,Ham_T_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
                   &                                      Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
+          Case ("KAGOME")
+             Call  Set_Default_hopping_parameters_kagome(Hopping_Matrix,Ham_T_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
+                  &                                      Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
           Case ("N_LEG_LADDER")
              Call  Set_Default_hopping_parameters_n_leg_ladder(Hopping_Matrix, Ham_T_vec, Ham_Tperp_vec, Ham_Chem_vec, Phi_X_vec, &
                   &                                            Phi_Y_vec, Bulk,  N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )

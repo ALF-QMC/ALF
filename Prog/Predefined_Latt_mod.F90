@@ -173,6 +173,22 @@
            L1_p    =  dble(L1) * a1_p
            L2_p    =  dble(L2) * a2_p
            Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
+         case("KAGOME")
+            If (L1==1 .or. L2==1 ) then
+               Write(error_unit,*) 'The kagome lattice cannot be one-dimensional.'
+               CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+            endif
+            Latt_Unit%Norb    = 3
+            Latt_Unit%N_coord = 1 ! This is badly  defined  for this lattice. 
+            a1_p(1) =  1.D0   ; a1_p(2) =  0.d0
+            a2_p(1) =  0.5D0  ; a2_p(2) =  sqrt(3.D0)/2.D0
+            Allocate (Latt_Unit%Orb_pos_p(3,2))
+            Latt_Unit%Orb_pos_p = 0.d0
+            Latt_Unit%Orb_pos_p(2,:) = a1_p(:)/2.d0
+            Latt_Unit%Orb_pos_p(3,:) = a2_p(:)/2.d0
+            L1_p    =  dble(L1) * a1_p
+            L2_p    =  dble(L2) * a2_p
+            Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
         case("HONEYCOMB")
            If (L1==1 .or. L2==1 ) then
               Write(error_unit,*) 'The Honeycomb lattice cannot be one-dimensional.'
