@@ -579,8 +579,8 @@
             this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
             this(nf)%List(nc,1) = 1
             this(nf)%List(nc,2) = 2
-            this(nf)%List(nc,3) = 1
-            this(nf)%List(nc,4) = -1
+            this(nf)%List(nc,3) = -1
+            this(nf)%List(nc,4) = 0
          Endif
          Allocate ( this(nf)%T_Loc(Latt_Unit%Norb) )
          do nc = 1,Latt_Unit%Norb
@@ -603,7 +603,7 @@
          do I = 1,Latt%N
             Do Nf = 1,this(1)%N_FAM 
                this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-               this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I ! Unit cell
+               this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I  ! Unit cell
                this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = Nf ! The bond (See above)
             enddo
          enddo

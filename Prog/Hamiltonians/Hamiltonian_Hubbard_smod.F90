@@ -256,6 +256,7 @@
 
           ! Setup the trival wave function, in case of a projector approach
           if (Projector) Call Ham_Trial()
+          Stop
 
 #ifdef MPI
           If (Irank_g == 0) then
