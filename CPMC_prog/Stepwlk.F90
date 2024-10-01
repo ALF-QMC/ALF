@@ -711,13 +711,14 @@
           integer, dimension(:), allocatable, intent(in) :: stab_nt
 
           !Local 
-          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, N_op, ntau, I, nst, nstm
-          Integer :: nsweep, nsw, ltrot_bp, nmea, ltrot_eff, i_slat, ns, i_grc
+          integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, N_op, ntau, I, nst, nstm
+          integer :: nsweep, nsw, ltrot_bp, nmea, ltrot_eff, i_slat, ns, i_grc
           Complex (Kind=Kind(0.d0)) :: z, z_weight, detz, z1, z2, zp, ztmp, z_avg, z_sgn_avg, ener_tmp
-          Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, overlap_ratio, hs_field
-          Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8
-          COMPLEX (Kind=Kind(0.d0)) :: gr(ndim,ndim,n_fl), gtt(ndim,ndim,n_fl,n_wlk)
-          CLASS(UDV_State), Dimension(:,:), allocatable :: phi_r_m
+          real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, overlap_ratio, hs_field
+          real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8
+          complex (Kind=Kind(0.d0)) :: gr(ndim,ndim,n_fl), gtt(ndim,ndim,n_fl,n_wlk)
+          complex (Kind=Kind(0.d0)) :: overlap_mc(n_grc), det_vec(n_fl), zph1, zph2
+          class(udv_state), dimension(:,:), allocatable :: phi_r_m
 
 #ifdef MPI
           Integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
@@ -735,6 +736,8 @@
           ltrot_bp = size(nsigma_bp(1)%f, 2)
           nsweep   = 100
           ltrot_eff = ltrot_bp - ltrot
+
+          overlap_mc(:) = overlap(:)
           
           !! allocate tmp wavefunction
           allocate(phi_r_m(N_FL_eff,N_wlk))
@@ -789,7 +792,7 @@
                     ! metropolis update
                     hs_new = nsigma_bp(i_wlk)%flip(n,ntau)
                     if ( ntau .le. ltrot_eff ) then
-                        !call upgrade_mc(gtt,n,ntau, hs_new, i_wlk )
+                        call upgrade_mc(gtt, n, ntau, hs_new, i_wlk, overlap_mc )
                     endif
        
                     n_type = 2
@@ -830,24 +833,34 @@
              !! call svd
              if (  ntau .eq. stab_nt(nst) )  then
                  call re_orthonormalize_walkers(phi_r_m, 'N')
-          
+
                  do i_wlk = 1, N_wlk
 
                  if ( weight_k(i_wlk) .gt. zero ) then
 
-                     do nf_eff = 1, N_FL_eff
-                        nf=Calc_Fl_map(nf_eff)
-                        do ns = 1, N_slat
-                           i_grc = ns+(i_wlk-1)*N_slat
+                     do ns = 1, N_slat
+                        i_grc = ns+(i_wlk-1)*N_slat
+                        do nf_eff = 1, N_FL_eff
+                           nf=Calc_Fl_map(nf_eff)
                            phi_l_m(nf_eff, i_grc) = udvst(nst, nf_eff, i_grc)
                            !! compute Green's function
                            call cgrp(z, gr(:,:,nf), phi_r_m(nf_eff,i_wlk), phi_l_m(nf_eff,i_grc))
+                           det_vec(nf_eff) = z
                            call control_precisiong(gr(:,:,nf),gtt(:,:,nf,i_grc),Ndim)
-                           !call control_precision_tau(gr(:,:,nf),gtt(:,:,nf,i_grc),Ndim)
                            gtt(:,:,nf,i_grc) = gr(:,:,nf)
                         enddo
-                        !! store on the first slat det storage
-                        i_grc = 1+(i_wlk-1)*N_slat
+                        det_Vec(:) = det_Vec(:) * N_SUN
+                        zph1 = aimag(sum(det_vec))
+                        zph2 = aimag(overlap_mc(i_grc))
+                        if (reconstruction_needed) call ham%weight_reconstruction(det_Vec)
+                        call control_Precisionp(zph1, zph2)
+                        overlap_mc(i_grc) = sum(det_vec)
+                     enddo
+
+                     !! store on the first slat det storage
+                     i_grc = 1+(i_wlk-1)*N_slat
+                     do nf_eff = 1, N_FL_eff
+                        nf=Calc_Fl_map(nf_eff)
                         udvst(nst, nf_eff, i_grc) = phi_r_m(nf_eff, i_wlk)
                      enddo
 
@@ -949,20 +962,30 @@
                  do i_wlk = 1, N_wlk
                     if ( weight_k(i_wlk) .gt. Zero ) then
                     
+                    !! read phi_r from the 1st slat det storage
+                    i_grc = 1+(i_wlk-1)*N_slat
                     do nf_eff = 1, N_FL_eff
                        nf=Calc_Fl_map(nf_eff)
-                       !! read phi_r from the 1st slat det storage
-                       i_grc = 1+(i_wlk-1)*N_slat
                        phi_r_m(nf_eff, i_wlk) = udvst(nst, nf_eff, i_grc)
-                       do ns = 1, N_slat
-                          i_grc = ns+(i_wlk-1)*N_slat
+                    enddo
+                    
+                    do ns = 1, N_slat
+                       i_grc = ns+(i_wlk-1)*N_slat
+                       do nf_eff = 1, N_FL_eff
+                          nf=Calc_Fl_map(nf_eff)
                           !! compute Green's function
                           call cgrp(z, gr(:,:,nf), phi_r_m(nf_eff,i_wlk), phi_l_m(nf_eff,i_grc))
+                          det_vec(nf_eff) = z
                           call control_precisiong(gr(:,:,nf),gtt(:,:,nf,i_grc),Ndim)
                           gtt(:,:,nf,i_grc) = gr(:,:,nf)
-                          !! store on the first slat det storage
                           udvst(nst, nf_eff, i_grc) = phi_l_m(nf_eff, i_grc)
                        enddo
+                       det_Vec(:) = det_Vec(:) * N_SUN
+                       zph1 = aimag(sum(det_vec))
+                       zph2 = aimag(overlap_mc(i_grc))
+                       if (reconstruction_needed) call ham%weight_reconstruction(det_Vec)
+                       call control_Precisionp(zph1, zph2)
+                       overlap_mc(i_grc) = sum(det_vec)
                     enddo
 
                     endif
@@ -981,13 +1004,24 @@
              do nf_eff = 1, N_FL_eff
                 nf=Calc_Fl_map(nf_eff)
                 call phi_r_m(nf_eff, i_wlk)%reset('r',phi_bp_r(nf_eff,i_wlk)%U)
-                do ns = 1, N_slat
-                   i_grc = ns+(i_wlk-1)*N_slat
+             enddo
+
+             do ns = 1, N_slat
+                i_grc = ns+(i_wlk-1)*N_slat
+                do nf_eff = 1, N_FL_eff
+                   nf=Calc_Fl_map(nf_eff)
                    !! compute Green's function
                    call cgrp(z, gr(:,:,nf), phi_r_m(nf_eff,i_wlk), phi_l_m(nf_eff,i_grc))
+                   det_vec(nf_eff) = z
                    call control_precisiong(gr(:,:,nf),gtt(:,:,nf,i_grc),Ndim)
                    gtt(:,:,nf,i_grc) = gr(:,:,nf)
                 enddo
+                det_Vec(:) = det_Vec(:) * N_SUN
+                zph1 = aimag(sum(det_vec))
+                zph2 = aimag(overlap_mc(i_grc))
+                if (reconstruction_needed) call ham%weight_reconstruction(det_Vec)
+                call control_Precisionp(zph1, zph2)
+                overlap_mc(i_grc) = sum(det_vec)
              enddo
              
              endif
