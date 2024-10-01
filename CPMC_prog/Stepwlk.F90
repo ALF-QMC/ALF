@@ -914,7 +914,7 @@
                     ! metropolis update
                     hs_new = nsigma_bp(i_wlk)%flip(n,ntau) 
                     if ( ntau .le. ltrot_eff ) then
-                        !call upgrade_mc(gtt,n,ntau, hs_new, i_wlk )
+                        call upgrade_mc(gtt, n, ntau, hs_new, i_wlk, overlap_mc )
                     endif
        
                     n_type = 1
