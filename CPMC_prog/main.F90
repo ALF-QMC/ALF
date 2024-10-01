@@ -30,7 +30,7 @@ Program Main
         CLASS(UDV_State), DIMENSION(:,:), ALLOCATABLE :: phi_trial, phi_0, phi_bp_l, phi_bp_r
 
         Integer :: N_eqwlk, N_blksteps, i_wlk, j_step, N_blk_eff, i_blk, N_blk, NSTM
-        Integer :: Nwrap, itv_pc, Ltau, ntau_bp, ltrot_bp
+        Integer :: Nwrap, itv_pc, Ltau, ntau_bp, ltrot_bp, nsweep, nwarmup
         Real(Kind=Kind(0.d0)) :: CPU_MAX
         Character (len=64) :: file_seeds, file_para, file_dat, file_info, ham_name
         Integer :: Seed_in
@@ -42,7 +42,7 @@ Program Main
         Logical :: file_exists
 #endif
         
-        NAMELIST /VAR_CPMC/ Nwrap, ltrot_bp, itv_pc, Ltau, N_blk, N_blksteps, CPU_MAX
+        NAMELIST /VAR_CPMC/ Nwrap, ltrot_bp, itv_pc, Ltau, N_blk, N_blksteps, Nsweep, Nwarmup, CPU_MAX
 
         NAMELIST /VAR_HAM_NAME/ ham_name
 
@@ -145,6 +145,8 @@ Program Main
         CALL MPI_BCAST(Ltau                 ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(N_blk                ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(N_blksteps           ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(Nsweep               ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(Nwarmup              ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(CPU_MAX              ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(ham_name             ,64,MPI_CHARACTER,0,MPI_COMM_i,ierr)
 #endif
@@ -224,6 +226,8 @@ Program Main
            Write(50,*) 'Nwrap                                : ', Nwrap
            Write(50,*) 'N_blk                                : ', N_blk
            Write(50,*) 'N_blksteps                           : ', N_blksteps
+           Write(50,*) 'Nsweep                               : ', Nsweep
+           Write(50,*) 'Nwarmup                              : ', Nwarmup
            Write(50,*) 'ltrot_bp                             : ', ltrot_bp
            Write(50,*) 'itv_pc                               : ', itv_pc
            Write(50,*) 'ltau                                 : ', ltau
@@ -299,7 +303,7 @@ Program Main
                     ntau_bp = 0
                     NST     = 1
 
-                    call backpropagation( GR, phi_bp_l, phi_bp_r, udvst, stab_nt, ltau )
+                    call backpropagation( GR, phi_bp_l, phi_bp_r, udvst, stab_nt, ltau, nsweep, nwarmup )
                     
                     !! store phi_0 for the next measurement
                     call store_phi( phi_0, phi_bp_r )

@@ -580,7 +580,7 @@
 
         END SUBROUTINE store_phi
 
-        SUBROUTINE backpropagation( GR_mix, phi_bp_l, phi_bp_r, udvst, Stab_nt, ltau )
+        SUBROUTINE backpropagation( GR_mix, phi_bp_l, phi_bp_r, udvst, Stab_nt, ltau, nsweep, nwarmup )
 #ifdef MPI
           Use mpi
 #endif
@@ -589,8 +589,8 @@
           COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:,:), Allocatable, INTENT(INOUT) :: GR_mix
           CLASS(UDV_State), Dimension(:,:)  , ALLOCATABLE, INTENT(INOUT) :: phi_bp_l, phi_bp_r
           CLASS(UDV_State), Dimension(:,:,:), ALLOCATABLE, INTENT(INOUT) :: udvst
-          INTEGER, dimension(:)    ,allocatable,  INTENT(IN) :: Stab_nt
-          Integer, INTENT(IN) :: ltau
+          INTEGER, dimension(:), allocatable,  INTENT(IN) :: Stab_nt
+          Integer, INTENT(IN) :: ltau, nsweep, nwarmup
 
           !Local 
           Complex (Kind=Kind(0.d0)) :: GR_bp(NDIM,NDIM,N_FL,N_grc)
@@ -697,11 +697,11 @@
           !endif
           
           ! metripolis sampling
-          call metropolis(phi_bp_r, phi_bp_l, udvst, stab_nt)
+          call metropolis(phi_bp_r, phi_bp_l, udvst, stab_nt, nsweep, nwarmup)
 
         end subroutine backpropagation
 
-        subroutine metropolis(phi_bp_r, phi_l_m, udvst, stab_nt)
+        subroutine metropolis(phi_bp_r, phi_l_m, udvst, stab_nt, nsweep, nwarmup)
           
           Implicit none
      
@@ -709,10 +709,11 @@
           class(udv_state), dimension(:,:)  , allocatable, intent(inout) :: phi_l_m
           class(udv_state), dimension(:,:,:), allocatable, intent(inout) :: udvst
           integer, dimension(:), allocatable, intent(in) :: stab_nt
+          integer, intent(in) :: nsweep, nwarmup
 
           !Local 
           integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, N_op, ntau, I, nst, nstm
-          integer :: nsweep, nsw, ltrot_bp, nmea, ltrot_eff, i_slat, ns, i_grc
+          integer :: nsw, ltrot_bp, nmea, ltrot_eff, i_slat, ns, i_grc
           Complex (Kind=Kind(0.d0)) :: z, z_weight, detz, z1, z2, zp, ztmp, z_avg, z_sgn_avg, ener_tmp
           real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, overlap_ratio, hs_field
           real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8
@@ -734,8 +735,7 @@
           n_op     = size(op_v , 1)
           nstm     = size(udvst, 1)
           ltrot_bp = size(nsigma_bp(1)%f, 2)
-          nsweep   = 100
-          ltrot_eff = ltrot_bp - ltrot
+          ltrot_eff = ltrot
 
           overlap_mc(:) = overlap(:)
           

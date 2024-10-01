@@ -437,7 +437,7 @@ module upgrade_mod
 
         deallocate(ratio_o)
 
-        call Control_upgrade(toggle)
+        call control_upgrade(toggle)
 
         call nsigma_new%clear()
 
