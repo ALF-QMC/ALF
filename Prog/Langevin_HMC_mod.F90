@@ -354,7 +354,7 @@
         Integer, intent(in) :: LOBS_ST, LOBS_EN, LTAU
 
         !Local
-        Integer                   :: N_op, n, nt, n1, n2, i, j, t_leap, nf
+        Integer                   :: N_op, n, nt, n1, n2, i, j, t_leap, nf, LF_steps
         Real    (Kind=Kind(0.d0)) :: X, Xmax,E_kin_old, E_kin_new,T0_Proposal_ratio, weight, cluster_size
         Logical                   :: Calc_Obser_eq, toggle
         Real    (Kind=Kind(0.d0)), allocatable :: Det_vec_old(:,:), Det_vec_new(:,:)
@@ -453,8 +453,9 @@
 #endif
 
            leap_frog_bulk=.true.
+           LF_steps=nranf(this%Leapfrog_Steps)
            !Start Leapfrog loop (Leapfrog_steps)
-           Do t_leap=1,this%Leapfrog_Steps
+           Do t_leap=1,LF_steps
                ! update phi by delta t
                this%Forces_0 = p_tilde
                call ham%Apply_B_HMC(this%Forces_0 ,.True.)
@@ -464,11 +465,11 @@
 #endif
 
                ! reset storage
-               if (t_leap == this%Leapfrog_Steps) leap_frog_bulk=.false.
+               if (t_leap == LF_steps) leap_frog_bulk=.false.
                Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
                ! if last step
                X=1.0d0
-               if (t_leap == this%Leapfrog_Steps) then
+               if (t_leap == LF_steps) then
                   ! calc det[phi']
                   Call Compute_Fermion_Det(Phase_det_new,Det_Vec_new, udvl, udvst, Stab_nt, storage)
                   ! LATER (optimization idea): save Phase, GR, udvr, udvl (move calc det out of the loop)
@@ -491,21 +492,21 @@
            p_tilde=-p_tilde
            !Do half step update of p
            p_tilde=p_tilde - 0.5*this%Delta_t_Langevin_HMC*this%Forces_0
-           write(2000+this%Leapfrog_Steps,*) nsigma%f
+           write(2000+LF_steps,*) nsigma%f
 
            !Start Leapfrog loop (Leapfrog_steps)
-           Do t_leap=1,this%Leapfrog_Steps
+           Do t_leap=1,LF_steps
                ! update phi by delta t
                this%Forces_0 = p_tilde
                call ham%Apply_B_HMC(this%Forces_0 ,.True.)
                nsigma%f=nsigma%f + this%Delta_t_Langevin_HMC*this%Forces_0
-               write(2000+this%Leapfrog_Steps-t_leap,*) nsigma%f
+               write(2000+LF_steps-t_leap,*) nsigma%f
 
                ! reset storage
                Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
                ! if last step
                X=1.0d0
-               if (t_leap == this%Leapfrog_Steps) then
+               if (t_leap == LF_steps) then
                   ! calc det[phi']
                   Call Compute_Fermion_Det(Phase_det_new,Det_Vec_new, udvl, udvst, Stab_nt, storage)
                   ! LATER (optimization idea): save Phase, GR, udvr, udvl (move calc det out of the loop)
