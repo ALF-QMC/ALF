@@ -850,8 +850,8 @@
                            gtt(:,:,nf,i_grc) = gr(:,:,nf)
                         enddo
                         det_Vec(:) = det_Vec(:) * N_SUN
-                        zph1 = aimag(sum(det_vec))
-                        zph2 = aimag(overlap_mc(i_grc))
+                        zph1 = exp(dcmplx(0.d0, aimag(sum(det_vec))))
+                        zph2 = exp(dcmplx(0.d0, aimag(overlap_mc(i_grc))))
                         if (reconstruction_needed) call ham%weight_reconstruction(det_Vec)
                         call control_Precisionp(zph1, zph2)
                         overlap_mc(i_grc) = sum(det_vec)
@@ -981,8 +981,8 @@
                           udvst(nst, nf_eff, i_grc) = phi_l_m(nf_eff, i_grc)
                        enddo
                        det_Vec(:) = det_Vec(:) * N_SUN
-                       zph1 = aimag(sum(det_vec))
-                       zph2 = aimag(overlap_mc(i_grc))
+                       zph1 = exp(dcmplx(0.d0, aimag(sum(det_vec))))
+                       zph2 = exp(dcmplx(0.d0, aimag(overlap_mc(i_grc))))
                        if (reconstruction_needed) call ham%weight_reconstruction(det_Vec)
                        call control_Precisionp(zph1, zph2)
                        overlap_mc(i_grc) = sum(det_vec)
@@ -1017,8 +1017,8 @@
                    gtt(:,:,nf,i_grc) = gr(:,:,nf)
                 enddo
                 det_Vec(:) = det_Vec(:) * N_SUN
-                zph1 = aimag(sum(det_vec))
-                zph2 = aimag(overlap_mc(i_grc))
+                zph1 = exp(dcmplx(0.d0, aimag(sum(det_vec))))
+                zph2 = exp(dcmplx(0.d0, aimag(overlap_mc(i_grc))))
                 if (reconstruction_needed) call ham%weight_reconstruction(det_Vec)
                 call control_Precisionp(zph1, zph2)
                 overlap_mc(i_grc) = sum(det_vec)
