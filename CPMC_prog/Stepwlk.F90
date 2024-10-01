@@ -697,15 +697,16 @@
           !endif
           
           ! metripolis sampling
-          call metropolis(phi_bp_r, udvst, stab_nt)
+          call metropolis(phi_bp_r, phi_bp_l, udvst, stab_nt)
 
         end subroutine backpropagation
 
-        subroutine metropolis(phi_bp_r, udvst, stab_nt)
+        subroutine metropolis(phi_bp_r, phi_l_m, udvst, stab_nt)
           
           Implicit none
      
           class(udv_state), dimension(:,:)  , allocatable, intent(in)    :: phi_bp_r
+          class(udv_state), dimension(:,:)  , allocatable, intent(inout) :: phi_l_m
           class(udv_state), dimension(:,:,:), allocatable, intent(inout) :: udvst
           integer, dimension(:), allocatable, intent(in) :: stab_nt
 
@@ -713,36 +714,29 @@
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, N_op, ntau, I, nst, nstm
           Integer :: nsweep, nsw, ltrot_bp, nmea, ltrot_eff, i_slat, ns, i_grc
           Complex (Kind=Kind(0.d0)) :: z, z_weight, detz, z1, z2, zp, ztmp, z_avg, z_sgn_avg, ener_tmp
-          Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio, hs_field
+          Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, overlap_ratio, hs_field
           Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8
           COMPLEX (Kind=Kind(0.d0)) :: gr(ndim,ndim,n_fl), gtt(ndim,ndim,n_fl,n_wlk)
-          COMPLEX (Kind=Kind(0.d0)) :: phase_mc(n_wlk), e0_mc(n_wlk), sgn_mc(n_wlk), overlap(n_grc)
-          CLASS(UDV_State), Dimension(:,:), allocatable :: phi_l_m, phi_r_m
+          CLASS(UDV_State), Dimension(:,:), allocatable :: phi_r_m
 
 #ifdef MPI
           Integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
           Integer        :: STATUS(MPI_STATUS_SIZE)
-          CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-          CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-          call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-          call MPI_Comm_size(Group_Comm, isize_g, ierr)
+          call mpi_comm_size(mpi_comm_world,isize,ierr)
+          call mpi_comm_rank(mpi_comm_world,irank,ierr)
+          call mpi_comm_rank(group_comm, irank_g, ierr)
+          call mpi_comm_size(group_comm, isize_g, ierr)
           igroup           = irank/isize_g
 #endif
 
           !! initialization
-          N_op     = size(op_v , 1)
+          n_op     = size(op_v , 1)
           nstm     = size(udvst, 1)
           ltrot_bp = size(nsigma_bp(1)%f, 2)
           nsweep   = 100
           ltrot_eff = ltrot_bp - ltrot
-
-          !! obs
-          nmea      = 0
-          e0_mc (:) = cmplx(0.d0,0.d0,kind(0.d0))
-          sgn_mc(:) = cmplx(0.d0,0.d0,kind(0.d0))
           
           !! allocate tmp wavefunction
-          allocate(phi_l_m(N_FL_eff,N_grc))
           allocate(phi_r_m(N_FL_eff,N_wlk))
 
           !! compute the total weight
@@ -756,7 +750,6 @@
              do i_grc = 1, N_grc
                 i_wlk  = (i_grc-1)/N_slat+1      ! index for walker
                 i_slat = i_grc-(i_wlk-1)*N_slat  ! index for slater det
-                call phi_l_m(nf_eff, i_grc)%init(ndim,'l',wf_l(nf,i_slat)%P)
                 !! init Green's function
                 call cgrp(z, gtt(:,:,nf,i_grc), phi_r_m(nf_eff,i_wlk), phi_l_m(nf_eff,i_grc))
              enddo
@@ -769,68 +762,68 @@
  
              do i_wlk = 1, N_wlk
 
-                if ( weight_k(i_wlk) .gt. zero ) then
+             if ( weight_k(i_wlk) .gt. zero ) then
 
-                    !! Propagate Green's function
-                    do ns = 1, N_slat
-                       i_grc = ns+(i_wlk-1)*N_slat
-                       do nf_eff = 1,N_FL_eff
-                          nf=Calc_Fl_map(nf_eff)
-                          call hop_mod_mmthr_1d2   (gtt(:,:,nf,i_grc),nf,1)
-                          call hop_mod_mmthl_m1_1d2(gtt(:,:,nf,i_grc),nf,1)
-                       enddo
-                    enddo
-
-                    do n = 1, n_op
-                       
-                       n_type = 1
-                       do ns = 1, N_slat
-                          i_grc = ns+(i_wlk-1)*N_slat
-                          do nf_eff = 1, N_FL_eff
-                             nf=Calc_Fl_map(nf_eff)
-                             hs_field = nsigma_bp(i_wlk)%f(n,ntau) 
-                             call op_wrapup(gtt(:,:,nf,i_grc),op_v(n,nf),hs_field,ndim,n_type,ntau)
-                          enddo
-                       enddo
-                        
-                       ! metropolis update
-                       hs_new = nsigma_bp(i_wlk)%flip(n,ntau)
-                       if ( ntau .le. ltrot_eff ) then
-                           !call upgrade_mc(gtt,n,ntau, hs_new, i_wlk )
-                       endif
-       
-                       n_type =  2
-                       do ns = 1, N_slat
-                          i_grc = ns+(i_wlk-1)*N_slat
-                          do nf_eff = 1,N_FL_eff
-                             nf=Calc_Fl_map(nf_eff)
-                             hs_field = nsigma_bp(i_wlk)%f(n,ntau) 
-                             call op_wrapup(gtt(:,:,nf,i_grc),op_v(n,nf),hs_field,ndim,n_type,ntau)
-                          enddo
-                       enddo
-
-                    enddo
-
-                    do ns = 1, N_slat
-                       i_grc = ns+(i_wlk-1)*N_slat
-                       do nf_eff = 1,N_FL_eff
-                          nf=Calc_Fl_map(nf_eff)
-                          call hop_mod_mmthr_1d2   (gtt(:,:,nf,i_grc),nf,1)
-                          call hop_mod_mmthl_m1_1d2(gtt(:,:,nf,i_grc),nf,1)
-                       enddo
-                    enddo
-                    
-                    !! Propagate wave function
+                 !! Propagate Green's function
+                 do ns = 1, N_slat
+                    i_grc = ns+(i_wlk-1)*N_slat
                     do nf_eff = 1,N_FL_eff
                        nf=Calc_Fl_map(nf_eff)
-                       call hop_mod_mmthr_1d2(phi_r_m(nf_eff,i_wlk)%U,nf,1)
-                       do n = 1, N_op
-                          call op_mmultr(phi_r_m(nf_eff,i_wlk)%U,op_v(n,nf), nsigma_bp(i_wlk)%f(n,ntau),'n',1)
+                       call hop_mod_mmthr_1d2   (gtt(:,:,nf,i_grc),nf,1)
+                       call hop_mod_mmthl_m1_1d2(gtt(:,:,nf,i_grc),nf,1)
+                    enddo
+                 enddo
+
+                 do n = 1, n_op
+                    
+                    n_type = 1
+                    do ns = 1, N_slat
+                       i_grc = ns+(i_wlk-1)*N_slat
+                       do nf_eff = 1, N_FL_eff
+                          nf=Calc_Fl_map(nf_eff)
+                          hs_field = nsigma_bp(i_wlk)%f(n,ntau) 
+                          call op_wrapup(gtt(:,:,nf,i_grc),op_v(n,nf),hs_field,ndim,n_type,ntau)
                        enddo
-                       call hop_mod_mmthr_1d2(phi_r_m(nf_eff,i_wlk)%U,nf,1)
+                    enddo
+                     
+                    ! metropolis update
+                    hs_new = nsigma_bp(i_wlk)%flip(n,ntau)
+                    if ( ntau .le. ltrot_eff ) then
+                        !call upgrade_mc(gtt,n,ntau, hs_new, i_wlk )
+                    endif
+       
+                    n_type = 2
+                    do ns = 1, N_slat
+                       i_grc = ns+(i_wlk-1)*N_slat
+                       do nf_eff = 1,N_FL_eff
+                          nf=Calc_Fl_map(nf_eff)
+                          hs_field = nsigma_bp(i_wlk)%f(n,ntau) 
+                          call op_wrapup(gtt(:,:,nf,i_grc),op_v(n,nf),hs_field,ndim,n_type,ntau)
+                       enddo
                     enddo
 
-                endif
+                 enddo
+
+                 do ns = 1, N_slat
+                    i_grc = ns+(i_wlk-1)*N_slat
+                    do nf_eff = 1,N_FL_eff
+                       nf=Calc_Fl_map(nf_eff)
+                       call hop_mod_mmthr_1d2   (gtt(:,:,nf,i_grc),nf,1)
+                       call hop_mod_mmthl_m1_1d2(gtt(:,:,nf,i_grc),nf,1)
+                    enddo
+                 enddo
+                 
+                 !! Propagate wave function
+                 do nf_eff = 1,N_FL_eff
+                    nf=Calc_Fl_map(nf_eff)
+                    call hop_mod_mmthr_1d2(phi_r_m(nf_eff,i_wlk)%U,nf,1)
+                    do n = 1, N_op
+                       call op_mmultr(phi_r_m(nf_eff,i_wlk)%U,op_v(n,nf),nsigma_bp(i_wlk)%f(n,ntau),'n',1)
+                    enddo
+                    call hop_mod_mmthr_1d2(phi_r_m(nf_eff,i_wlk)%U,nf,1)
+                 enddo
+
+             endif
 
              enddo
 
@@ -839,24 +832,27 @@
                  call re_orthonormalize_walkers(phi_r_m, 'N')
           
                  do i_wlk = 1, N_wlk
-                    if ( weight_k(i_wlk) .gt. zero ) then
 
-                    do nf_eff = 1, N_FL_eff
-                       nf=Calc_Fl_map(nf_eff)
-                       do ns = 1, N_slat
-                          i_grc = ns+(i_wlk-1)*N_slat
-                          phi_l_m(nf_eff, i_grc) = udvst(nst, nf_eff, i_grc)
-                          !! compute Green's function
-                          call cgrp(z, gr(:,:,nf), phi_r_m(nf_eff,i_wlk), phi_l_m(nf_eff,i_grc))
-                          Call control_precisiong(gr(:,:,nf),gtt(:,:,nf,i_grc),Ndim)
-                          gtt(:,:,nf,i_grc) = gr(:,:,nf)
-                       enddo
-                       !! store on the first slat det storage
-                       i_grc = 1+(i_wlk-1)*N_slat
-                       udvst(nst, nf_eff, i_grc) = phi_r_m(nf_eff, i_wlk)
-                    enddo
+                 if ( weight_k(i_wlk) .gt. zero ) then
 
-                    endif
+                     do nf_eff = 1, N_FL_eff
+                        nf=Calc_Fl_map(nf_eff)
+                        do ns = 1, N_slat
+                           i_grc = ns+(i_wlk-1)*N_slat
+                           phi_l_m(nf_eff, i_grc) = udvst(nst, nf_eff, i_grc)
+                           !! compute Green's function
+                           call cgrp(z, gr(:,:,nf), phi_r_m(nf_eff,i_wlk), phi_l_m(nf_eff,i_grc))
+                           call control_precisiong(gr(:,:,nf),gtt(:,:,nf,i_grc),Ndim)
+                           !call control_precision_tau(gr(:,:,nf),gtt(:,:,nf,i_grc),Ndim)
+                           gtt(:,:,nf,i_grc) = gr(:,:,nf)
+                        enddo
+                        !! store on the first slat det storage
+                        i_grc = 1+(i_wlk-1)*N_slat
+                        udvst(nst, nf_eff, i_grc) = phi_r_m(nf_eff, i_wlk)
+                     enddo
+
+                 endif
+
                  enddo
                  nst = nst + 1
              endif
@@ -877,71 +873,72 @@
              ntau1 = ntau - 1
           
              do i_wlk = 1, N_wlk
-                if ( weight_k(i_wlk) .gt. Zero ) then
-                
-                    !! Propagate Green's function
-                    Do ns = 1, N_slat
-                       i_grc = ns+(i_wlk-1)*N_slat
-                       do nf_eff = 1,N_FL_eff
-                          nf=Calc_Fl_map(nf_eff)
-                          Call hop_mod_mmthl_1d2   (gtt(:,:,nf,i_grc),nf,1)
-                          Call hop_mod_mmthr_m1_1d2(gtt(:,:,nf,i_grc),nf,1)
-                       enddo
+
+             if ( weight_k(i_wlk) .gt. Zero ) then
+             
+                 !! Propagate Green's function
+                 Do ns = 1, N_slat
+                    i_grc = ns+(i_wlk-1)*N_slat
+                    do nf_eff = 1,N_FL_eff
+                       nf=Calc_Fl_map(nf_eff)
+                       Call hop_mod_mmthl_1d2   (gtt(:,:,nf,i_grc),nf,1)
+                       Call hop_mod_mmthr_m1_1d2(gtt(:,:,nf,i_grc),nf,1)
                     enddo
+                 enddo
 
-                    do n = n_op, 1, -1
+                 do n = n_op, 1, -1
 
-                       n_type = 2
-                       do ns = 1, N_slat
-                          i_grc = ns+(i_wlk-1)*N_slat
-                          do nf_eff = 1, N_FL_eff
-                             nf=Calc_Fl_map(nf_eff)
-                             hs_field = nsigma_bp(i_wlk)%f(n,ntau) 
-                             call op_wrapdo(gtt(:,:,nf,i_grc),op_v(n,nf),hs_field,ndim,N_Type,ntau)
-                          enddo
-                       enddo
-                       
-                       ! metropolis update
-                       hs_new = nsigma_bp(i_wlk)%flip(n,ntau) 
-                       if ( ntau .le. ltrot_eff ) then
-                           !call upgrade_mc(gtt,n,ntau, hs_new, i_wlk )
-                       endif
-       
-                       n_type = 1
-                       hs_field = nsigma_bp(i_wlk)%f(n,ntau)  
-                       do ns = 1, N_slat
-                          i_grc = ns+(i_wlk-1)*N_slat
-                          do nf_eff = 1,N_FL_eff
-                             nf=Calc_Fl_map(nf_eff)
-                             call op_wrapdo(gtt(:,:,nf,i_grc),op_v(n,nf),hs_field,ndim,n_Type,ntau)
-                          enddo
-                       enddo
-
-                    enddo
-
+                    n_type = 2
                     do ns = 1, N_slat
                        i_grc = ns+(i_wlk-1)*N_slat
-                       do nf_eff = 1,N_FL_eff
+                       do nf_eff = 1, N_FL_eff
                           nf=Calc_Fl_map(nf_eff)
-                          call hop_mod_mmthl_1d2   (gtt(:,:,nf,i_grc),nf,1)
-                          call hop_mod_mmthr_m1_1d2(gtt(:,:,nf,i_grc),nf,1)
+                          hs_field = nsigma_bp(i_wlk)%f(n,ntau) 
+                          call op_wrapdo(gtt(:,:,nf,i_grc),op_v(n,nf),hs_field,ndim,N_Type,ntau)
                        enddo
                     enddo
                     
-                    !! Propagate wave function
+                    ! metropolis update
+                    hs_new = nsigma_bp(i_wlk)%flip(n,ntau) 
+                    if ( ntau .le. ltrot_eff ) then
+                        !call upgrade_mc(gtt,n,ntau, hs_new, i_wlk )
+                    endif
+       
+                    n_type = 1
+                    hs_field = nsigma_bp(i_wlk)%f(n,ntau)  
                     do ns = 1, N_slat
                        i_grc = ns+(i_wlk-1)*N_slat
                        do nf_eff = 1,N_FL_eff
                           nf=Calc_Fl_map(nf_eff)
-                          call hop_mod_mmthlc_1d2(phi_l_m(nf_eff,i_grc)%U,nf,1)
-                          do n = N_op,1,-1
-                             Call op_mmultr(phi_l_m(nf_eff,i_grc)%U,op_v(n,nf),nsigma_bp(i_wlk)%f(n,ntau),'c',1)
-                          enddo
-                          call hop_mod_mmthlc_1d2(phi_l_m(nf_eff,i_grc)%U,nf,1)
+                          call op_wrapdo(gtt(:,:,nf,i_grc),op_v(n,nf),hs_field,ndim,n_Type,ntau)
                        enddo
                     enddo
 
-                endif
+                 enddo
+
+                 do ns = 1, N_slat
+                    i_grc = ns+(i_wlk-1)*N_slat
+                    do nf_eff = 1,N_FL_eff
+                       nf=Calc_Fl_map(nf_eff)
+                       call hop_mod_mmthl_1d2   (gtt(:,:,nf,i_grc),nf,1)
+                       call hop_mod_mmthr_m1_1d2(gtt(:,:,nf,i_grc),nf,1)
+                    enddo
+                 enddo
+                 
+                 !! Propagate wave function
+                 do ns = 1, N_slat
+                    i_grc = ns+(i_wlk-1)*N_slat
+                    do nf_eff = 1,N_FL_eff
+                       nf=Calc_Fl_map(nf_eff)
+                       call hop_mod_mmthlc_1d2(phi_l_m(nf_eff,i_grc)%U,nf,1)
+                       do n = N_op,1,-1
+                          Call op_mmultr(phi_l_m(nf_eff,i_grc)%U,op_v(n,nf),nsigma_bp(i_wlk)%f(n,ntau),'c',1)
+                       enddo
+                       call hop_mod_mmthlc_1d2(phi_l_m(nf_eff,i_grc)%U,nf,1)
+                    enddo
+                 enddo
+
+             endif
 
              enddo
 
@@ -978,19 +975,20 @@
           call re_orthonormalize_walkers(phi_l_m, 'N')
 
           do i_wlk = 1, N_wlk
+
              if ( weight_k(i_wlk) .gt. zero ) then
              
-                 do nf_eff = 1, N_FL_eff
-                    nf=Calc_Fl_map(nf_eff)
-                    call phi_r_m(nf_eff, i_wlk)%reset('r',phi_bp_r(nf_eff,i_wlk)%U)
-                    do ns = 1, N_slat
-                       i_grc = ns+(i_wlk-1)*N_slat
-                       !! compute Green's function
-                       call cgrp(z, gr(:,:,nf), phi_r_m(nf_eff,i_wlk), phi_l_m(nf_eff,i_grc))
-                       call control_precisiong(gr(:,:,nf),gtt(:,:,nf,i_grc),Ndim)
-                       gtt(:,:,nf,i_grc) = gr(:,:,nf)
-                    enddo
-                 enddo
+             do nf_eff = 1, N_FL_eff
+                nf=Calc_Fl_map(nf_eff)
+                call phi_r_m(nf_eff, i_wlk)%reset('r',phi_bp_r(nf_eff,i_wlk)%U)
+                do ns = 1, N_slat
+                   i_grc = ns+(i_wlk-1)*N_slat
+                   !! compute Green's function
+                   call cgrp(z, gr(:,:,nf), phi_r_m(nf_eff,i_wlk), phi_l_m(nf_eff,i_grc))
+                   call control_precisiong(gr(:,:,nf),gtt(:,:,nf,i_grc),Ndim)
+                   gtt(:,:,nf,i_grc) = gr(:,:,nf)
+                enddo
+             enddo
              
              endif
           enddo
@@ -1012,14 +1010,10 @@
              do nf_eff = 1, N_FL_eff
                 nf=Calc_Fl_map(nf_eff)
                 call phi_r_m(nf_eff, i_wlk)%dealloc
-                do ns = 1, N_slat
-                   i_grc = ns+(i_wlk-1)*N_slat
-                   call phi_l_m(nf_eff, i_grc)%dealloc
-                enddo
              enddo
           enddo
 
-          deallocate(phi_r_m, phi_l_m)
+          deallocate(phi_r_m)
 
         end subroutine metropolis
 
