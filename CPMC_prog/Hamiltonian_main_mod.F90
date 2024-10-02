@@ -118,10 +118,14 @@
         procedure, nopass :: update_fac_norm => update_fac_norm_base
         procedure, nopass :: Pr_obs => Pr_obs_base
         procedure, nopass :: Init_obs => Init_obs_base
+        procedure, nopass :: Init_obs_mc => Init_obs_mc_base
         procedure, nopass :: S0 => S0_base
         procedure, nopass :: weight_reconstruction => weight_reconstruction_base
         procedure, nopass :: GR_reconstruction => GR_reconstruction_base
         procedure, nopass :: GRT_reconstruction => GRT_reconstruction_base
+        procedure, nopass :: bp_obsert => bp_obsert_base
+        procedure, nopass :: obsert_mc => obsert_mc_base
+
 #ifdef HDF5
         procedure, nopass :: write_parameters_hdf5 => write_parameters_hdf5_base
 #endif
@@ -430,6 +434,12 @@
              Endif
 
           end Subroutine Init_obs_base
+          
+          Subroutine Init_obs_mc_base
+    
+             Implicit none
+
+          end Subroutine Init_obs_mc_base
     
 !--------------------------------------------------------------------
 !> @brief

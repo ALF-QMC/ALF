@@ -697,19 +697,19 @@
           !endif
           
           ! metripolis sampling
-          call metropolis(phi_bp_r, phi_bp_l, udvst, stab_nt, nsweep, nwarmup)
+          call metropolis(phi_bp_r, phi_bp_l, udvst, stab_nt, nsweep, nwarmup, ltau)
 
           if ( ltau .eq. 1 ) then
              act_mea = 0 + irank
              do i_wlk = 1, N_wlk
-                call ham%bp_obsert_base(i_wlk, i_grc, z_weight, act_mea)
+                call ham%bp_obsert(i_wlk, i_grc, z_weight, act_mea)
                 act_mea = act_mea + 1
              enddo
           endif
 
         end subroutine backpropagation
 
-        subroutine metropolis(phi_bp_r, phi_l_m, udvst, stab_nt, nsweep, nwarmup)
+        subroutine metropolis(phi_bp_r, phi_l_m, udvst, stab_nt, nsweep, nwarmup, ltau)
           
           Implicit none
      
@@ -717,7 +717,7 @@
           class(udv_state), dimension(:,:)  , allocatable, intent(inout) :: phi_l_m
           class(udv_state), dimension(:,:,:), allocatable, intent(inout) :: udvst
           integer, dimension(:), allocatable, intent(in) :: stab_nt
-          integer, intent(in) :: nsweep, nwarmup
+          integer, intent(in) :: nsweep, nwarmup, ltau
 
           !Local 
           integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, N_op, ntau, I, nst, nstm
@@ -725,9 +725,10 @@
           Complex (Kind=Kind(0.d0)) :: z, z_weight, detz, z1, z2, zp, ztmp, z_avg, z_sgn_avg, ener_tmp
           real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, overlap_ratio, hs_field
           real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8
-          complex (Kind=Kind(0.d0)) :: gr(ndim,ndim,n_fl), gtt(ndim,ndim,n_fl,n_wlk)
+          complex (Kind=Kind(0.d0)) :: gr(ndim,ndim,n_fl)
           complex (Kind=Kind(0.d0)) :: overlap_mc(n_grc), det_vec(n_fl), zph1, zph2
           class(udv_state), dimension(:,:), allocatable :: phi_r_m
+          complex(Kind=Kind(0.d0)), dimension(:,:,:,:), allocatable :: gtt
 
 #ifdef MPI
           Integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
@@ -748,15 +749,11 @@
           overlap_mc(:) = overlap(:)
 
           !! init observables
-          do i_wlk = 1, n_wlk
-             call obser_latt_init(obs_grc   (i_wlk))
-             call obser_latt_init(obs_spinz (i_wlk))
-             call obser_latt_init(obs_spinxy(i_wlk))
-             call obser_latt_init(obs_spint (i_wlk))
-          enddo
+          if ( ltau .eq. 1 ) call ham%init_obs_mc
           
           !! allocate tmp wavefunction
           allocate(phi_r_m(N_FL_eff,N_wlk))
+          allocate(gtt(ndim,ndim,n_fl,n_grc))
 
           !! compute the total weight
           call ham%sum_weight(z_weight)
@@ -1053,7 +1050,7 @@
              enddo
           enddo
 
-          call mc_measure_dyn( udvst, gtt, phi_bp_r, stab_nt, overlap_mc )
+          if ( ltau .eq. 1 ) call mc_measure_dyn( udvst, gtt, phi_bp_r, stab_nt, overlap_mc )
 
           enddo
           
@@ -1066,6 +1063,7 @@
           enddo
 
           deallocate(phi_r_m)
+          deallocate(gtt)
 
         end subroutine metropolis
 
@@ -1077,7 +1075,7 @@
      
           complex(Kind=Kind(0.d0)), dimension(:,:,:,:), allocatable, intent(in) :: gr_in
           complex(Kind=Kind(0.d0)), intent(in) :: overlap_in(n_grc)
-          class(udv_state), dimension(:,:)  , allocatable, intent(in) :: phi_bp_r
+          class(udv_state), dimension(:,:)  , allocatable, intent(in) :: phi_r_in
           class(udv_state), dimension(:,:,:), allocatable, intent(in) :: udvst
           integer, dimension(:), allocatable, intent(in) :: stab_nt
 
@@ -1111,13 +1109,13 @@
           allocate(phi_r_mea(N_FL_eff,N_wlk))
           allocate(phi_l_mea(N_FL_eff,N_grc))
 
-          n_part = phi_bp_r(1,1)%n_part
+          n_part = phi_r_in(1,1)%n_part
 
           do nf_eff = 1, N_FL_eff
              nf=Calc_Fl_map(nf_eff)
              do i_wlk = 1, N_wlk
                 call phi_r_mea(nf_eff, i_wlk)%alloc(ndim,n_part)
-                phi_r_mea(nf_eff,i_wlk) = phi_bp_r(nf_eff,i_wlk)
+                phi_r_mea(nf_eff,i_wlk) = phi_r_in(nf_eff,i_wlk)
                 do ns = 1, n_slat
                    i_grc = ns+(i_wlk-1)*N_slat
                    call phi_l_mea(nf_eff, i_grc)%alloc(ndim,n_part)
@@ -1147,7 +1145,7 @@
                  call ham%grt_reconstruction( gt0(:,:,:,i_grc), g0t(:,:,:,i_grc) )
              endif
           enddo
-          call obsert_mc_base(ntau, gt0, g0t, g00, gtt, overlap_in)
+          call ham%obsert_mc(ntau, gt0, g0t, g00, gtt, overlap_in)
 
           NST=1
           do ntau = 1, ltrot
@@ -1186,7 +1184,7 @@
                        call ham%grt_reconstruction( gt0(:,:,:,i_grc), g0t(:,:,:,i_grc) )
                    endif
                 enddo
-                call obsert_mc_base(ntau, gt0, g0t, g00, gtt, overlap_in)
+                call ham%obsert_mc(ntau, gt0, g0t, g00, gtt, overlap_in)
 
              enddo
              

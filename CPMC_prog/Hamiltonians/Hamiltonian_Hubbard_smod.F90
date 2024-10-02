@@ -24,6 +24,9 @@
         procedure, nopass :: E0_local
         procedure, nopass :: sum_weight
         procedure, nopass :: update_fac_norm 
+        procedure, nopass :: bp_obsert
+        procedure, nopass :: obsert_mc
+        procedure, nopass :: init_obs_mc
 #ifdef HDF5
         procedure, nopass :: write_parameters_hdf5
 #endif
@@ -637,7 +640,10 @@
     
         end subroutine bp_obsert
           
-        subroutine obsert_mc_base(nt, gt0, g0t, g00, gtt, overlap_mc)
+        subroutine obsert_mc(nt, gt0, g0t, g00, gtt, overlap_mc)
+          
+          Use Predefined_Obs
+          
           Implicit none
     
           Integer, intent(IN) :: nt
@@ -647,42 +653,45 @@
           
           !Locals
           Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY, ZW, Re_ZW, Z_fac, Z_ol, phase, exp_overlap(N_slat)
+          Complex (Kind=Kind(0.d0)) :: sum_o
           Real    (Kind=Kind(0.d0)) :: X
-          Integer :: imj, i, j, i1, j1, no_i, no_j, i_grc, i_wlk, ns
+          Integer :: imj, i, j, i1, j1, no_i, no_j, i_grc, i_wlk, ns, i_st, i_ed
           
           do i_wlk = 1, n_wlk
              
              i_st = 1+(i_wlk-1)*N_slat; i_ed = i_wlk*N_slat
-             exp_overlap(:) = exp(overlap_in(i_st:i_ed))
+             exp_overlap(:) = exp(overlap_mc(i_st:i_ed))
              sum_o = sum(exp_overlap(:))
 
              phase = sum_o/abs(sum_o)
              zp = phase/dble(phase)
              zs = dble(phase)/abs(dble(Phase))
              
-             obs_grc   (i_wlk)%n = obs_grc   (i_wlk)%n + 1
-             obs_spinz (i_wlk)%n = obs_spinz (i_wlk)%n + 1
-             obs_spinxy(i_wlk)%n = obs_spinxy(i_wlk)%n + 1
-             obs_spint (i_wlk)%n = obs_spint (i_wlk)%n + 1
+             if ( nt .eq. 0 ) then
+                obs_grc   (i_wlk)%n = obs_grc   (i_wlk)%n + 1
+                obs_spinz (i_wlk)%n = obs_spinz (i_wlk)%n + 1
+                obs_spinxy(i_wlk)%n = obs_spinxy(i_wlk)%n + 1
+                obs_spint (i_wlk)%n = obs_spint (i_wlk)%n + 1
 
-             obs_grc   (i_wlk)%ave_sign = obs_grc   (i_wlk)%ave_sign + dble(zs)
-             obs_spinz (i_wlk)%ave_sign = obs_spinz (i_wlk)%ave_sign + dble(zs)
-             obs_spinxy(i_wlk)%ave_sign = obs_spinxy(i_wlk)%ave_sign + dble(zs)
-             obs_spint (i_wlk)%ave_sign = obs_spint (i_wlk)%ave_sign + dble(zs)
+                obs_grc   (i_wlk)%ave_sign = obs_grc   (i_wlk)%ave_sign + dble(zs)
+                obs_spinz (i_wlk)%ave_sign = obs_spinz (i_wlk)%ave_sign + dble(zs)
+                obs_spinxy(i_wlk)%ave_sign = obs_spinxy(i_wlk)%ave_sign + dble(zs)
+                obs_spint (i_wlk)%ave_sign = obs_spint (i_wlk)%ave_sign + dble(zs)
+             endif
 
              do ns = 1, n_slat
                 i_grc = ns+(i_wlk-1)*N_slat
-                z_fac = zp*zs*exp(overlap_in(i_grc))/sum_o
+                z_fac = zp*zs*exp(overlap_mc(i_grc))/sum_o
 
-                call predefined_obs_tau_green_measure ( Latt, Latt_unit, list, nt, gt0(:,:,i_grc),  &
-                    &  g0t(:,:,i_grc),g00(:,:,i_grc),gtt(:,:,i_grc), n_sun, z_fac, obs_grc(i_wlk) )
-                call predefined_obs_tau_spinmz_measure( Latt, Latt_unit, list, nt, gt0(:,:,i_grc),  &
-                    &  g0t(:,:,i_grc),g00(:,:,i_grc),gtt(:,:,i_grc), n_sun, z_fac, obs_spinz(i_wlk), &
+                call predefined_obs_tau_green_measure ( Latt, Latt_unit, list, nt, gt0(:,:,:,i_grc),  &
+                    &  g0t(:,:,:,i_grc),g00(:,:,:,i_grc),gtt(:,:,:,i_grc), n_sun, z_fac, obs_grc(i_wlk) )
+                call predefined_obs_tau_spinmz_measure( Latt, Latt_unit, list, nt, gt0(:,:,:,i_grc),  &
+                    &  g0t(:,:,:,i_grc),g00(:,:,:,i_grc),gtt(:,:,:,i_grc), n_sun, z_fac, obs_spinz(i_wlk), &
                     &  obs_spinxy(i_wlk), obs_spint(i_wlk) )
              enddo
           enddo
 
-       end subroutine obsert_mc_base
+       end subroutine obsert_mc
 
 !--------------------------------------------------------------------
 !> @author
@@ -842,5 +851,22 @@
         CALL MPI_BCAST(fac_norm, 1, MPI_REAL8, 0,MPI_COMM_WORLD,ierr)
         
       end subroutine update_fac_norm
+
+      subroutine init_obs_mc
+    
+         implicit none
+
+         !!local
+         integer :: i_wlk
+
+         !! init observables
+         do i_wlk = 1, n_wlk
+            call obs_grc   (i_wlk)%init
+            call obs_spinz (i_wlk)%init
+            call obs_spinxy(i_wlk)%init
+            call obs_spint (i_wlk)%init
+         enddo
+
+      end subroutine init_obs_mc
         
     end submodule ham_Hubbard_smod
