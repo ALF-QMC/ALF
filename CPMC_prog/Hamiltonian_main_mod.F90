@@ -314,6 +314,24 @@
              endif
     
           end Subroutine ObserT_base
+          
+          subroutine bp_obsert_base(i_wlk, i_grc,sum_w, act_mea)
+             Implicit none
+    
+             integer, intent(in) :: i_wlk, i_grc, act_mea
+             complex (Kind=Kind(0.d0)), intent(in) :: sum_w
+    
+          end subroutine bp_obsert_base
+          
+          subroutine obsert_mc_base(nt, gt0, g0t, g00, gtt, overlap_mc)
+             Implicit none
+    
+             Integer, intent(IN) :: nt
+             complex (Kind=Kind(0.d0)), intent(IN) :: gt0(ndim,ndim,n_fl,n_grc), g0t(ndim,ndim,n_fl,n_grc)
+             complex (Kind=Kind(0.d0)), intent(IN) :: g00(ndim,ndim,n_fl,n_grc), gtt(ndim,ndim,n_fl,n_grc)
+             complex (Kind=Kind(0.d0)), intent(IN) :: overlap_mc(n_grc)
+    
+          end subroutine obsert_mc_base
 
           complex (Kind=Kind(0.d0)) function E0_local_base(GR)
             Implicit none

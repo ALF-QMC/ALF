@@ -699,6 +699,14 @@
           ! metripolis sampling
           call metropolis(phi_bp_r, phi_bp_l, udvst, stab_nt, nsweep, nwarmup)
 
+          if ( ltau .eq. 1 ) then
+             act_mea = 0 + irank
+             do i_wlk = 1, N_wlk
+                call ham%bp_obsert_base(i_wlk, i_grc, z_weight, act_mea)
+                act_mea = act_mea + 1
+             enddo
+          endif
+
         end subroutine backpropagation
 
         subroutine metropolis(phi_bp_r, phi_l_m, udvst, stab_nt, nsweep, nwarmup)
@@ -738,6 +746,14 @@
           ltrot_eff = ltrot
 
           overlap_mc(:) = overlap(:)
+
+          !! init observables
+          do i_wlk = 1, n_wlk
+             call obser_latt_init(obs_grc   (i_wlk))
+             call obser_latt_init(obs_spinz (i_wlk))
+             call obser_latt_init(obs_spinxy(i_wlk))
+             call obser_latt_init(obs_spint (i_wlk))
+          enddo
           
           !! allocate tmp wavefunction
           allocate(phi_r_m(N_FL_eff,N_wlk))
@@ -1037,6 +1053,8 @@
              enddo
           enddo
 
+          call mc_measure_dyn( udvst, gtt, phi_bp_r, stab_nt, overlap_mc )
+
           enddo
           
           ! deallocate tmp udv class
@@ -1051,15 +1069,192 @@
 
         end subroutine metropolis
 
+        subroutine mc_measure_dyn( udvst, gr_in, phi_r_in, stab_nt, overlap_in )
+#ifdef MPI
+          Use mpi
+#endif
+          Implicit none
+     
+          complex(Kind=Kind(0.d0)), dimension(:,:,:,:), allocatable, intent(in) :: gr_in
+          complex(Kind=Kind(0.d0)), intent(in) :: overlap_in(n_grc)
+          class(udv_state), dimension(:,:)  , allocatable, intent(in) :: phi_bp_r
+          class(udv_state), dimension(:,:,:), allocatable, intent(in) :: udvst
+          integer, dimension(:), allocatable, intent(in) :: stab_nt
+
+          !Local 
+          Complex (Kind=Kind(0.d0)) :: temp(ndim,ndim), gr(ndim,ndim,n_fl), grc(ndim,ndim,n_fl)
+          Complex (Kind=Kind(0.d0)) :: gt0(ndim,ndim,n_fl,n_grc), g00(ndim,ndim,n_fl,n_grc)
+          Complex (Kind=Kind(0.d0)) :: gtt(ndim,ndim,n_fl,n_grc), g0t(ndim,ndim,n_fl,n_grc)
+          Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, N_op, ntau, I, nst, nstm
+          Integer :: ns, i_grc, act_mea, i_st, i_ed, n_part
+          Complex (Kind=Kind(0.d0)) :: Z, Z_weight, DETZ, z_sum_overlap, exp_overlap(N_slat)
+          Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
+          Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8
+          
+          class(udv_state), dimension(:,:), allocatable :: phi_r_mea, phi_l_mea
+
+#ifdef MPI
+          Integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
+          Integer        :: STATUS(MPI_STATUS_SIZE)
+          call mpi_comm_size(MPI_COMM_WORLD,ISIZE,IERR)
+          call mpi_comm_rank(MPI_COMM_WORLD,IRANK,IERR)
+          call mpi_comm_rank(Group_Comm, irank_g, ierr)
+          call mpi_comm_size(Group_Comm, isize_g, ierr)
+          igroup           = irank/isize_g
+#endif
+
+          !! initialization
+          n_op = size(op_v ,1)
+          nstm = size(udvst,1)
+
+          !! allocate tmp wavefunction
+          allocate(phi_r_mea(N_FL_eff,N_wlk))
+          allocate(phi_l_mea(N_FL_eff,N_grc))
+
+          n_part = phi_bp_r(1,1)%n_part
+
+          do nf_eff = 1, N_FL_eff
+             nf=Calc_Fl_map(nf_eff)
+             do i_wlk = 1, N_wlk
+                call phi_r_mea(nf_eff, i_wlk)%alloc(ndim,n_part)
+                phi_r_mea(nf_eff,i_wlk) = phi_bp_r(nf_eff,i_wlk)
+                do ns = 1, n_slat
+                   i_grc = ns+(i_wlk-1)*N_slat
+                   call phi_l_mea(nf_eff, i_grc)%alloc(ndim,n_part)
+                enddo
+             enddo
+          enddo
+
+          gtt = gr_in
+          g00 = gtt
+          gt0 = gtt
+          g0t = gtt
+          do i_grc = 1, N_grc
+          do nf_eff=1,N_FL_eff
+             nf=Calc_Fl_map(nf_eff)
+             do I=1,Ndim
+                g0t(I,I,nf,i_grc)=g0t(I,I,nf,i_grc)-1.d0
+             enddo
+          enddo
+          enddo
+          
+          ntau = 0
+          !! call reconstruction of non-calculated flavor blocks
+          do i_grc = 1, n_grc
+             If (reconstruction_needed) then
+                 call ham%gr_reconstruction ( g00(:,:,:,i_grc) )
+                 call ham%gr_reconstruction ( gtt(:,:,:,i_grc) )
+                 call ham%grt_reconstruction( gt0(:,:,:,i_grc), g0t(:,:,:,i_grc) )
+             endif
+          enddo
+          call obsert_mc_base(ntau, gt0, g0t, g00, gtt, overlap_in)
+
+          NST=1
+          do ntau = 1, ltrot
+
+             do i_wlk = 1, N_wlk
+                !! Propagate wave function
+                if ( weight_k(i_wlk) .gt. Zero ) then
+                
+                do ns = 1, N_slat
+                   i_grc = ns+(i_wlk-1)*N_slat
+
+                   !! Propagate Green's function
+                   call propr  (gt0(:,:,:,i_grc),ntau,i_wlk)
+                   call proprm1(g0t(:,:,:,i_grc),ntau,i_wlk)
+                   call proprm1(gtt(:,:,:,i_grc),ntau,i_wlk)
+                   call propr  (gtt(:,:,:,i_grc),ntau,i_wlk)
+                
+                enddo
+                   
+                Do nf_eff = 1,N_FL_eff
+                   nf=Calc_Fl_map(nf_eff)
+                   call Hop_mod_mmthr_1D2(phi_r_mea(nf_eff,i_wlk)%U,nf,1)
+                   Do n = 1, N_op
+                      call Op_mmultR(phi_r_mea(nf_eff,i_wlk)%U,Op_V(n,nf), nsigma_bp(i_wlk)%f(n,ntau),'n',1)
+                   enddo
+                   call Hop_mod_mmthr_1D2(phi_r_mea(nf_eff,i_wlk)%U,nf,1)
+                enddo
+
+                endif
+
+                !! call reconstruction of non-calculated flavor blocks
+                do i_grc = 1, n_grc
+                   If (reconstruction_needed) then
+                       call ham%gr_reconstruction ( g00(:,:,:,i_grc) )
+                       call ham%gr_reconstruction ( gtt(:,:,:,i_grc) )
+                       call ham%grt_reconstruction( gt0(:,:,:,i_grc), g0t(:,:,:,i_grc) )
+                   endif
+                enddo
+                call obsert_mc_base(ntau, gt0, g0t, g00, gtt, overlap_in)
+
+             enddo
+             
+             !! call svd
+             if (  ntau .eq. stab_nt(nst) )  then
+                 call re_orthonormalize_walkers(phi_r_mea, 'N')
+          
+                 do i_wlk = 1, N_wlk
+                 
+                    do ns = 1, N_slat
+                       i_grc = ns+(i_wlk-1)*N_slat
+                       do nf_eff = 1, N_FL_eff
+                          nf=Calc_Fl_map(nf_eff)
+                          phi_l_mea(nf_eff, i_grc) = udvst(nst, nf_eff, i_grc) 
+                          call cgrp(detz, gr(:,:,nf), phi_r_mea(nf_eff,i_wlk), phi_l_mea(nf_eff,i_grc))
+                          call control_precision_tau(gtt(:,:,nf,i_grc), gr(:,:,nf), Ndim)
+                       enddo
+                       gtt(:,:,:,i_grc) = gr
+                    
+                       grc = -gr
+                       do nf_eff=1,N_FL_eff
+                          nf=Calc_Fl_map(nf_eff)
+                          do I=1,Ndim
+                             grc(I,I,nf)=grc(I,I,nf)+1.d0
+                          enddo
+                       enddo
+                  
+                       do nf_eff=1,N_FL_eff
+                          nf=Calc_Fl_map(nf_eff)
+                          call mmult(temp,gr (:,:,nf),gt0(:,:,nf,i_grc))
+                          gt0(:,:,nf,i_grc) = temp
+                          call mmult(temp,g0t(:,:,nf,i_grc),grc(:,:,nf))
+                          g0t(:,:,nf,i_grc) = temp
+                       enddo
+                    
+                    enddo
+
+                 enddo
+                 nst = nst + 1
+             endif
+
+          enddo
+          
+          ! deallocate tmp udv class
+          do nf_eff = 1, N_FL_eff
+             nf=Calc_Fl_map(nf_eff)
+             do i_wlk = 1, N_wlk
+                call phi_r_mea(nf_eff, i_wlk)%dealloc
+                do ns = 1, n_slat
+                   i_grc = ns+(i_wlk-1)*N_slat
+                   call phi_l_mea(nf_eff, i_grc)%dealloc
+                enddo
+             enddo
+          enddo
+          
+          deallocate(phi_r_mea, phi_l_mea)
+
+        end subroutine mc_measure_dyn
+
         subroutine bp_measure_tau(phi_bp_l, phi_bp_r, udvst, stab_nt )
 #ifdef MPI
           Use mpi
 #endif
           Implicit none
      
-          CLASS(UDV_State), Dimension(:,:)  , ALLOCATABLE, INTENT(inout) :: phi_bp_l, phi_bp_r
-          CLASS(UDV_State), Dimension(:,:,:), ALLOCATABLE, INTENT(in) :: udvst
-          INTEGER, dimension(:)    ,allocatable,  INTENT(in) :: Stab_nt
+          CLASS(UDV_State), Dimension(:,:), ALLOCATABLE, INTENT(INOUT) :: phi_bp_l, phi_bp_r
+          CLASS(UDV_State), Dimension(:,:,:), ALLOCATABLE, INTENT(IN) :: udvst
+          INTEGER, dimension(:)    ,allocatable,  INTENT(IN) :: Stab_nt
 
           !Local 
           Complex (Kind=Kind(0.d0)) :: Temp(NDIM,NDIM), GR(NDIM,NDIM,N_FL), GRC(NDIM,NDIM,N_FL)

@@ -65,6 +65,12 @@
       Type (Unit_cell),     target :: Latt_unit
       Type (Hopping_Matrix_type), Allocatable :: Hopping_Matrix(:)
       Integer, allocatable :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
+      
+      !! mc obser
+      Type (obser_Latt), dimension(:), allocatable :: obs_grc
+      Type (obser_Latt), dimension(:), allocatable :: obs_spinz
+      Type (obser_Latt), dimension(:), allocatable :: obs_spinxy
+      Type (obser_Latt), dimension(:), allocatable :: obs_spint
 
     contains
       
@@ -381,6 +387,21 @@
                 Channel = 'T0'
                 Call Obser_Latt_make(Obs_tau(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
              enddo
+
+             Nt = Ltrot+1
+             Channel = 'T0'
+             Filename = "mc_obs"
+             allocate(obs_grc   (n_wlk))
+             allocate(obs_spinz (n_wlk))
+             allocate(obs_spinxy(n_wlk))
+             allocate(obs_spint (n_wlk))
+             do i = 1, n_wlk
+                call obser_latt_make(obs_grc   (i), nt, Filename, Latt, Latt_unit, channel, dtau)
+                call obser_latt_make(obs_spinz (i), nt, Filename, Latt, Latt_unit, channel, dtau)
+                call obser_latt_make(obs_spinxy(i), nt, Filename, Latt, Latt_unit, channel, dtau)
+                call obser_latt_make(obs_spint (i), nt, Filename, Latt, Latt_unit, channel, dtau)
+             enddo
+
           endif
 
         End Subroutine Alloc_obs
@@ -563,6 +584,105 @@
           Call Predefined_Obs_tau_Den_measure    ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT, N_SUN, Z_fac, Obs_tau(5) )
 
         end Subroutine OBSERT
+
+        subroutine bp_obsert(i_wlk, i_grc,sum_w, act_mea)
+           Implicit none
+    
+           integer, intent(in) :: i_wlk, i_grc, act_mea
+           complex (Kind=Kind(0.d0)), INTENT(IN) :: sum_w
+          
+           !Locals
+           Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY, ZW, Re_ZW, Z_fac, Z_ol
+           Real    (Kind=Kind(0.d0)) :: X
+           Integer :: IMJ, I, J, I1, J1, no_I, no_J, nt
+          
+           ZW = cmplx(weight_k(i_wlk),0.d0,kind(0.d0))/sum_w
+           Z_fac = ZW
+          
+           ! Compute the dynamic two-point correlations
+           if ( act_mea .eq. 0 ) then
+               Do I = 1, Size(Obs_tau,1)
+                  obs_tau(I)%N        = obs_tau(I)%N + 1
+                  obs_tau(I)%Ave_sign = obs_tau(I)%Ave_sign + 1.d0
+               enddo
+           endif
+
+           obs_grc(i_wlk)%ave_sign = obs_grc(i_wlk)%ave_sign/dble(obs_grc(i_wlk)%N)
+           obs_grc(i_wlk)%obs_latt(:,:,:,:) = &
+               & obs_grc(i_wlk)%obs_latt(:,:,:,:)/dble(obs_grc(i_wlk)%N)/obs_grc(i_wlk)%ave_sign
+
+           obs_tau(1)%obs_latt(:,:,:,:) = obs_tau(1)%obs_latt(:,:,:,:) + &
+               & obs_grc(i_wlk)%obs_latt(:,:,:,:)*z_fac
+           
+           obs_spinz(i_wlk)%ave_sign = obs_spinz(i_wlk)%ave_sign/dble(obs_spinz(i_wlk)%N)
+           obs_spinz(i_wlk)%obs_latt(:,:,:,:) = &
+               & obs_spinz(i_wlk)%obs_latt(:,:,:,:)/dble(obs_spinz(i_wlk)%N)/obs_spinz(i_wlk)%ave_sign
+           
+           obs_tau(2)%obs_latt(:,:,:,:) = obs_tau(2)%obs_latt(:,:,:,:) + &
+               & obs_spinz(i_wlk)%obs_latt(:,:,:,:)*z_fac
+           
+           obs_spinxy(i_wlk)%ave_sign = obs_spinxy(i_wlk)%ave_sign/dble(obs_spinxy(i_wlk)%N)
+           obs_spinxy(i_wlk)%obs_latt(:,:,:,:) = &
+               & obs_spinxy(i_wlk)%obs_latt(:,:,:,:)/dble(obs_spinxy(i_wlk)%N)/obs_spinxy(i_wlk)%ave_sign
+           
+           obs_tau(3)%obs_latt(:,:,:,:) = obs_tau(3)%obs_latt(:,:,:,:) + &
+               & obs_spinxy(i_wlk)%obs_latt(:,:,:,:)*z_fac
+           
+           obs_spint(i_wlk)%ave_sign = obs_spint(i_wlk)%ave_sign/dble(obs_spint(i_wlk)%N)
+           obs_spint(i_wlk)%obs_latt(:,:,:,:) = &
+               & obs_spint(i_wlk)%obs_latt(:,:,:,:)/dble(obs_spint(i_wlk)%N)/obs_spint(i_wlk)%ave_sign
+           
+           obs_tau(4)%obs_latt(:,:,:,:) = obs_tau(4)%obs_latt(:,:,:,:) + &
+               & obs_spint(i_wlk)%obs_latt(:,:,:,:)*z_fac
+    
+        end subroutine bp_obsert
+          
+        subroutine obsert_mc_base(nt, gt0, g0t, g00, gtt, overlap_mc)
+          Implicit none
+    
+          Integer, intent(IN) :: nt
+          complex (Kind=Kind(0.d0)), intent(IN) :: gt0(ndim,ndim,n_fl,n_grc), g0t(ndim,ndim,n_fl,n_grc)
+          complex (Kind=Kind(0.d0)), intent(IN) :: g00(ndim,ndim,n_fl,n_grc), gtt(ndim,ndim,n_fl,n_grc)
+          complex (Kind=Kind(0.d0)), intent(IN) :: overlap_mc(n_grc)
+          
+          !Locals
+          Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY, ZW, Re_ZW, Z_fac, Z_ol, phase, exp_overlap(N_slat)
+          Real    (Kind=Kind(0.d0)) :: X
+          Integer :: imj, i, j, i1, j1, no_i, no_j, i_grc, i_wlk, ns
+          
+          do i_wlk = 1, n_wlk
+             
+             i_st = 1+(i_wlk-1)*N_slat; i_ed = i_wlk*N_slat
+             exp_overlap(:) = exp(overlap_in(i_st:i_ed))
+             sum_o = sum(exp_overlap(:))
+
+             phase = sum_o/abs(sum_o)
+             zp = phase/dble(phase)
+             zs = dble(phase)/abs(dble(Phase))
+             
+             obs_grc   (i_wlk)%n = obs_grc   (i_wlk)%n + 1
+             obs_spinz (i_wlk)%n = obs_spinz (i_wlk)%n + 1
+             obs_spinxy(i_wlk)%n = obs_spinxy(i_wlk)%n + 1
+             obs_spint (i_wlk)%n = obs_spint (i_wlk)%n + 1
+
+             obs_grc   (i_wlk)%ave_sign = obs_grc   (i_wlk)%ave_sign + dble(zs)
+             obs_spinz (i_wlk)%ave_sign = obs_spinz (i_wlk)%ave_sign + dble(zs)
+             obs_spinxy(i_wlk)%ave_sign = obs_spinxy(i_wlk)%ave_sign + dble(zs)
+             obs_spint (i_wlk)%ave_sign = obs_spint (i_wlk)%ave_sign + dble(zs)
+
+             do ns = 1, n_slat
+                i_grc = ns+(i_wlk-1)*N_slat
+                z_fac = zp*zs*exp(overlap_in(i_grc))/sum_o
+
+                call predefined_obs_tau_green_measure ( Latt, Latt_unit, list, nt, gt0(:,:,i_grc),  &
+                    &  g0t(:,:,i_grc),g00(:,:,i_grc),gtt(:,:,i_grc), n_sun, z_fac, obs_grc(i_wlk) )
+                call predefined_obs_tau_spinmz_measure( Latt, Latt_unit, list, nt, gt0(:,:,i_grc),  &
+                    &  g0t(:,:,i_grc),g00(:,:,i_grc),gtt(:,:,i_grc), n_sun, z_fac, obs_spinz(i_wlk), &
+                    &  obs_spinxy(i_wlk), obs_spint(i_wlk) )
+             enddo
+          enddo
+
+       end subroutine obsert_mc_base
 
 !--------------------------------------------------------------------
 !> @author
