@@ -115,7 +115,7 @@
           enddo
 
           !! rescale overlap
-          call rescale_overlap
+          call rescale_overlap(overlap)
 
           !! initial energy
           call ham%update_fac_norm(GR, 0)
@@ -159,7 +159,7 @@
           call half_K_propagation( phi_trial, phi_0, GR )
 
           !! rescale overlap after each step
-          call rescale_overlap
+          call rescale_overlap(overlap)
 
         END SUBROUTINE stepwlk_move
 
@@ -536,7 +536,7 @@
           enddo
 
           !!! rescale overlap
-          !call rescale_overlap
+          !call rescale_overlap(overlap)
           
           do i_wlk =1, N_wlk
               nsigma_bp(i_wlk)%f = nsigma_store(i_wlk)%f
@@ -726,9 +726,10 @@
           real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, overlap_ratio, hs_field
           real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8
           complex (Kind=Kind(0.d0)) :: gr(ndim,ndim,n_fl)
-          complex (Kind=Kind(0.d0)) :: overlap_mc(n_grc), det_vec(n_fl), zph1, zph2
+          complex (Kind=Kind(0.d0)) :: det_vec(n_fl), zph1, zph2
           class(udv_state), dimension(:,:), allocatable :: phi_r_m
           complex(Kind=Kind(0.d0)), dimension(:,:,:,:), allocatable :: gtt
+          complex(Kind=Kind(0.d0)), dimension(:), allocatable :: overlap_mc
 
 #ifdef MPI
           Integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
@@ -746,6 +747,7 @@
           ltrot_bp = size(nsigma_bp(1)%f, 2)
           ltrot_eff = ltrot
 
+          allocate(overlap_mc(n_grc))
           overlap_mc(:) = overlap(:)
 
           !! init observables
@@ -880,6 +882,7 @@
                  endif
 
                  enddo
+                 call rescale_overlap(overlap_mc)
                  nst = nst + 1
              endif
 
@@ -1003,6 +1006,7 @@
 
                     endif
                  enddo
+                 call rescale_overlap(overlap_mc)
                  nst = nst - 1
              endif
 
@@ -1039,6 +1043,7 @@
              
              endif
           enddo
+          call rescale_overlap(overlap_mc)
           
           do ns = 1, N_slat
              do i_wlk = 1, N_wlk
@@ -1050,7 +1055,7 @@
              enddo
           enddo
 
-          if ( ltau .eq. 1 ) call mc_measure_dyn( udvst, gtt, phi_bp_r, stab_nt, overlap_mc )
+          if ( (ltau .eq. 1) .and. (nsw .gt. nwarmup) ) call mc_measure_dyn( udvst, gtt, phi_bp_r, stab_nt, overlap_mc )
 
           enddo
           
@@ -1064,6 +1069,7 @@
 
           deallocate(phi_r_m)
           deallocate(gtt)
+          deallocate(overlap_mc)
 
         end subroutine metropolis
 
@@ -1074,7 +1080,7 @@
           Implicit none
      
           complex(Kind=Kind(0.d0)), dimension(:,:,:,:), allocatable, intent(in) :: gr_in
-          complex(Kind=Kind(0.d0)), intent(in) :: overlap_in(n_grc)
+          complex(Kind=Kind(0.d0)), dimension(:), allocatable, intent(in) :: overlap_in
           class(udv_state), dimension(:,:)  , allocatable, intent(in) :: phi_r_in
           class(udv_state), dimension(:,:,:), allocatable, intent(in) :: udvst
           integer, dimension(:), allocatable, intent(in) :: stab_nt
@@ -1415,9 +1421,11 @@
 
         end subroutine bp_measure_tau
         
-        subroutine rescale_overlap
+        subroutine rescale_overlap(overlap_in)
           
           Implicit none
+          
+          complex(Kind=Kind(0.d0)), dimension(:), allocatable, intent(inout) :: overlap_in
         
           integer :: nf, nf_eff, n, m, nt, i_wlk, i_grc, ns
           integer :: i_st, i_ed, ncslat
@@ -1435,8 +1443,8 @@
              ncslat = 0
              do i_grc = i_st, i_ed
                 ncslat = ncslat + 1
-                log_o_abs  (ncslat) = dble( overlap(i_grc) )
-                log_o_phase(ncslat) = mod( aimag( overlap(i_grc) ), 2.d0*pi )
+                log_o_abs  (ncslat) = dble( overlap_in(i_grc) )
+                log_o_phase(ncslat) = mod( aimag( overlap_in(i_grc) ), 2.d0*pi )
              enddo
 
              dz2 = maxval(log_o_abs(:))
@@ -1445,7 +1453,7 @@
              do i_grc = i_st, i_ed
                 ncslat = ncslat + 1
                 dre_o =  log_o_abs(ncslat) - dz2
-                overlap(i_grc) = cmplx(dre_o,log_o_phase(ncslat), kind(0.d0))
+                overlap_in(i_grc) = cmplx(dre_o,log_o_phase(ncslat), kind(0.d0))
              enddo
 
              endif
