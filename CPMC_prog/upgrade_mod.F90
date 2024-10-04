@@ -344,7 +344,7 @@ module upgrade_mod
 
            !call reconstruct weight subroutine to fill the non-calculated blocks
            if (reconstruction_needed) call ham%weight_reconstruction(Ratio)
-           ratiotot = Product(Ratio)**dble(N_SUN)
+           ratiotot = Product(Ratio)**dble(N_SUN)*nsigma_new%Gama(1,1)/nsigma_bp(i_wlk)%Gama(n_op,nt)
            ratio_o(ns) = ratiotot
            
            exp_o_new = exp_o_new + exp(overlap_mc(i_grc))*ratio_o(ns)
