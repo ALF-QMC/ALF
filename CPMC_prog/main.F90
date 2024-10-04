@@ -30,7 +30,7 @@ Program Main
         CLASS(UDV_State), DIMENSION(:,:), ALLOCATABLE :: phi_trial, phi_0, phi_bp_l, phi_bp_r
 
         Integer :: N_eqwlk, N_blksteps, i_wlk, j_step, N_blk_eff, i_blk, N_blk, NSTM
-        Integer :: Nwrap, itv_pc, Ltau, ntau_bp, ltrot_bp, nsweep, nwarmup
+        Integer :: Nwrap, itv_pc, Ltau, lmetropolis, ntau_bp, ltrot_bp, nsweep, nwarmup
         Real(Kind=Kind(0.d0)) :: CPU_MAX
         Character (len=64) :: file_seeds, file_para, file_dat, file_info, ham_name
         Integer :: Seed_in
@@ -42,7 +42,7 @@ Program Main
         Logical :: file_exists
 #endif
         
-        NAMELIST /VAR_CPMC/ Nwrap, ltrot_bp, itv_pc, Ltau, N_blk, N_blksteps, Nsweep, Nwarmup, CPU_MAX
+        NAMELIST /VAR_CPMC/ Nwrap, ltrot_bp, itv_pc, Ltau, lmetropolis, N_blk, N_blksteps, Nsweep, Nwarmup, CPU_MAX
 
         NAMELIST /VAR_HAM_NAME/ ham_name
 
@@ -143,6 +143,7 @@ Program Main
         CALL MPI_BCAST(ltrot_bp             ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(itv_pc               ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Ltau                 ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(lmetropolis          ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(N_blk                ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(N_blksteps           ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Nsweep               ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
@@ -231,6 +232,7 @@ Program Main
            Write(50,*) 'ltrot_bp                             : ', ltrot_bp
            Write(50,*) 'itv_pc                               : ', itv_pc
            Write(50,*) 'ltau                                 : ', ltau
+           Write(50,*) 'lmetropolis                          : ', lmetropolis
            If ( abs(CPU_MAX) < ZERO ) then
               Write(50,*) 'No CPU-time limitation '
            else
@@ -251,7 +253,7 @@ Program Main
         endif
 #endif
 
-        Call ham%Alloc_obs(ltau)
+        Call ham%Alloc_obs(ltau, lmetropolis)
 
         allocate( gr(ndim,ndim,n_fl,n_grc) )
         allocate( phi_trial(N_FL_eff, N_slat), phi_0   (N_FL_eff, N_wlk))
@@ -303,7 +305,7 @@ Program Main
                     ntau_bp = 0
                     NST     = 1
 
-                    call backpropagation( GR, phi_bp_l, phi_bp_r, udvst, stab_nt, ltau, nsweep, nwarmup )
+                    call backpropagation( GR, phi_bp_l, phi_bp_r, udvst, stab_nt, ltau, lmetropolis, nsweep, nwarmup )
                     
                     !! store phi_0 for the next measurement
                     call store_phi( phi_0, phi_bp_r )

@@ -243,11 +243,11 @@
     !> Specifiy the equal time and time displaced observables
     !> @details
     !--------------------------------------------------------------------
-          Subroutine  Alloc_obs_base(Ltau)
+          Subroutine  Alloc_obs_base(Ltau, lmetropolis)
 
              Implicit none
              !>  Ltau=1 if time displaced correlations are considered.
-             Integer, Intent(In) :: Ltau
+             Integer, Intent(In) :: Ltau, lmetropolis
              write(error_unit, *) "Warning: Alloc_obs not implemented."
           End Subroutine Alloc_obs_base
 

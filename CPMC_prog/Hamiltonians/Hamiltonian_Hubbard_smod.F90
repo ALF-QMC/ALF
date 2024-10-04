@@ -316,11 +316,11 @@
 !> Specifiy the equal time and time displaced observables
 !> @details
 !--------------------------------------------------------------------
-        Subroutine  Alloc_obs(Ltau)
+        Subroutine  Alloc_obs(ltau, lmetropolis)
 
           Implicit none
           !>  Ltau=1 if time displaced correlations are considered.
-          Integer, Intent(In) :: Ltau
+          Integer, Intent(In) :: ltau, lmetropolis
           Integer    ::  i, N, Nt
           Character (len=64) ::  Filename
           Character (len=2)  ::  Channel
@@ -391,19 +391,21 @@
                 Call Obser_Latt_make(Obs_tau(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
              enddo
 
-             Nt = Ltrot+1
-             Channel = 'T0'
-             Filename = "mc_obs"
-             allocate(obs_grc   (n_wlk))
-             allocate(obs_spinz (n_wlk))
-             allocate(obs_spinxy(n_wlk))
-             allocate(obs_spint (n_wlk))
-             do i = 1, n_wlk
-                call obser_latt_make(obs_grc   (i), nt, Filename, Latt, Latt_unit, channel, dtau)
-                call obser_latt_make(obs_spinz (i), nt, Filename, Latt, Latt_unit, channel, dtau)
-                call obser_latt_make(obs_spinxy(i), nt, Filename, Latt, Latt_unit, channel, dtau)
-                call obser_latt_make(obs_spint (i), nt, Filename, Latt, Latt_unit, channel, dtau)
-             enddo
+             if ( lmetropolis ) then
+                Nt = Ltrot+1
+                Channel = 'T0'
+                Filename = "mc_obs"
+                allocate(obs_grc   (n_wlk))
+                allocate(obs_spinz (n_wlk))
+                allocate(obs_spinxy(n_wlk))
+                allocate(obs_spint (n_wlk))
+                do i = 1, n_wlk
+                   call obser_latt_make(obs_grc   (i), nt, Filename, Latt, Latt_unit, channel, dtau)
+                   call obser_latt_make(obs_spinz (i), nt, Filename, Latt, Latt_unit, channel, dtau)
+                   call obser_latt_make(obs_spinxy(i), nt, Filename, Latt, Latt_unit, channel, dtau)
+                   call obser_latt_make(obs_spint (i), nt, Filename, Latt, Latt_unit, channel, dtau)
+                enddo
+             endif
 
           endif
 

@@ -580,7 +580,7 @@
 
         END SUBROUTINE store_phi
 
-        SUBROUTINE backpropagation( GR_mix, phi_bp_l, phi_bp_r, udvst, Stab_nt, ltau, nsweep, nwarmup )
+        SUBROUTINE backpropagation( GR_mix, phi_bp_l, phi_bp_r, udvst, Stab_nt, ltau, lmetropolis, nsweep, nwarmup )
 #ifdef MPI
           Use mpi
 #endif
@@ -590,7 +590,7 @@
           CLASS(UDV_State), Dimension(:,:)  , ALLOCATABLE, INTENT(INOUT) :: phi_bp_l, phi_bp_r
           CLASS(UDV_State), Dimension(:,:,:), ALLOCATABLE, INTENT(INOUT) :: udvst
           INTEGER, dimension(:), allocatable,  INTENT(IN) :: Stab_nt
-          Integer, INTENT(IN) :: ltau, nsweep, nwarmup
+          Integer, INTENT(IN) :: ltau, lmetropolis, nsweep, nwarmup
 
           !Local 
           Complex (Kind=Kind(0.d0)) :: GR_bp(NDIM,NDIM,N_FL,N_grc)
@@ -691,20 +691,20 @@
              enddo
           enddo
 
-          !!! time dependence measurement
-          !if ( ltau .eq. 1 ) then
-          !   call bp_measure_tau(phi_bp_l, phi_bp_r, udvst, stab_nt )
-          !endif
-          
-          ! metripolis sampling
-          call metropolis(phi_bp_r, phi_bp_l, udvst, stab_nt, nsweep, nwarmup, ltau)
+          if ( lmetropolis .eq. 1 ) then
+              ! metripolis sampling
+              call metropolis(phi_bp_r, phi_bp_l, udvst, stab_nt, nsweep, nwarmup, ltau)
 
-          if ( ltau .eq. 1 ) then
-             act_mea = 0 + irank
-             do i_wlk = 1, N_wlk
-                call ham%bp_obsert(i_wlk, i_grc, z_weight, act_mea)
-                act_mea = act_mea + 1
-             enddo
+              if ( ltau .eq. 1 ) then
+                 act_mea = 0 + irank
+                 do i_wlk = 1, N_wlk
+                    call ham%bp_obsert(i_wlk, i_grc, z_weight, act_mea)
+                    act_mea = act_mea + 1
+                 enddo
+              endif
+          else
+              !! time dependence measurement if not call metropolis
+              if ( ltau .eq. 1 ) call bp_measure_tau(phi_bp_l, phi_bp_r, udvst, stab_nt )
           endif
 
         end subroutine backpropagation
