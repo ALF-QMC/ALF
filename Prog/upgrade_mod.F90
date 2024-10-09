@@ -29,11 +29,10 @@
 !     - If you make substantial changes to the program we require you to either consider contributing
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
-
 module upgrade_mod
    use runtime_error_mod
    implicit none
-   contains
+contains
 
 !--------------------------------------------------------------------
 !> @author
@@ -102,203 +101,201 @@ module upgrade_mod
 !>  *  The weight reads \f$ W(C)  =   \left[ \left( \prod_{n,\tau}  \exp \left[ g(n,\tau) \alpha(n,\tau) \phi(\sigma(n,\tau)) \right] \right) \det(M(C))\right]^{N_{SUN}} \prod_{n,\tau }\gamma(\sigma(n,\tau)) \f$
 !--------------------------------------------------------------------
 
-      Subroutine Upgrade2(GR,N_op,NT,PHASE,Hs_new, Prev_Ratiotot, S0_ratio, T0_proposal_ratio, toggle,  mode)
+   subroutine Upgrade2(GR, N_op, NT, PHASE, Hs_new, Prev_Ratiotot, S0_ratio, T0_proposal_ratio, toggle, mode)
 !--------------------------------------------------------------------
 
-        Use Hamiltonian_main
-        Use Random_wrap
-        Use Control
-        Use Fields_mod
-        use iso_fortran_env, only: output_unit, error_unit
-        Implicit none
+      use Hamiltonian_main
+      use Random_wrap
+      use Control
+      use Fields_mod
+      use iso_fortran_env, only: output_unit, error_unit
+      implicit none
 
-        Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: GR(Ndim,Ndim, N_FL)
-        Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Prev_Ratiotot
-        Integer                  , INTENT(IN)    :: N_op, Nt
-        Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Phase
-        Complex (Kind=Kind(0.d0)), INTENT(IN)    :: Hs_new
-        Real    (Kind=Kind(0.d0)), INTENT(IN)    :: S0_ratio, T0_proposal_ratio
-        Character (Len=64)       , INTENT(IN)    :: Mode
-        Logical                  , INTENT(INOUT) :: toggle
+      complex(Kind=kind(0.d0)), intent(INOUT) :: GR(Ndim, Ndim, N_FL)
+      complex(Kind=kind(0.d0)), intent(INOUT) :: Prev_Ratiotot
+      integer, intent(IN)    :: N_op, Nt
+      complex(Kind=kind(0.d0)), intent(INOUT) :: Phase
+      complex(Kind=kind(0.d0)), intent(IN)    :: Hs_new
+      real(Kind=kind(0.d0)), intent(IN)    :: S0_ratio, T0_proposal_ratio
+      character(Len=64), intent(IN)    :: Mode
+      logical, intent(INOUT) :: toggle
 
+      ! Local ::
+      type(Fields)   ::  nsigma_new
+      complex(Kind=kind(0.d0)) :: Ratio(N_FL), Ratiotot, Z1
+      integer ::  n, m, nf, nf_eff, i, Op_dim, op_dim_nf
+      complex(Kind=kind(0.d0)) :: Z, D_Mat, myexp, s1, s2
 
+      real(Kind=kind(0.d0)) :: Weight, tmp_r
+      complex(Kind=kind(0.d0)) :: alpha, beta, g_loc
+      complex(Kind=kind(0.d0)), dimension(:, :), allocatable :: Mat, Delta
+      complex(Kind=kind(0.d0)), dimension(:, :), allocatable :: u, v
+      complex(Kind=kind(0.d0)), dimension(:, :), allocatable :: y_v, xp_v
+      complex(Kind=kind(0.d0)), dimension(:, :), allocatable :: x_v
+      complex(Kind=kind(0.d0)), dimension(:, :), allocatable :: Zarr, grarr
+      complex(Kind=kind(0.d0)), dimension(:), allocatable :: sxv, syu
 
-        ! Local ::
-        Type   (Fields)   ::  nsigma_new
-        Complex (Kind=Kind(0.d0)) :: Ratio(N_FL), Ratiotot, Z1
-        Integer ::  n,m,nf, nf_eff, i, Op_dim, op_dim_nf
-        Complex (Kind=Kind(0.d0)) :: Z, D_Mat, myexp, s1, s2
+      toggle = .false.
+      ! if ( abs(OP_V(n_op,1)%g) < 1.D-12 )   return
 
-        Real    (Kind=Kind(0.d0)) :: Weight, tmp_r
-        Complex (Kind=Kind(0.d0)) :: alpha, beta, g_loc
-        Complex (Kind=Kind(0.d0)), Dimension(:, :), Allocatable :: Mat, Delta
-        Complex (Kind=Kind(0.d0)), Dimension(:, :), Allocatable :: u, v
-        Complex (Kind=Kind(0.d0)), Dimension(:, :), Allocatable :: y_v, xp_v
-        Complex (Kind=Kind(0.d0)), Dimension(:, :), Allocatable :: x_v
-        Complex (Kind=Kind(0.D0)), Dimension(:, :), Allocatable :: Zarr, grarr
-        Complex (Kind=Kind(0.D0)), Dimension(:), Allocatable :: sxv, syu
+      call nsigma_new%make(1, 1)
 
-        toggle = .false.
-        ! if ( abs(OP_V(n_op,1)%g) < 1.D-12 )   return
+      op_dim = Op_V(n_op, Calc_FL_map(1))%N_non_zero
+      do nf_eff = 2, N_FL_eff
+         nf = Calc_Fl_map(nf_eff)
+         if (op_dim < Op_V(n_op, nf)%N_non_zero) op_dim = Op_V(n_op, nf)%N_non_zero
+      end do
 
-        Call nsigma_new%make(1,1)
-        
-        op_dim=Op_V(n_op,Calc_FL_map(1))%N_non_zero
-        Do nf_eff = 2,N_FL_eff
-           nf=Calc_Fl_map(nf_eff)
-           if (op_dim<Op_V(n_op,nf)%N_non_zero) op_dim=Op_V(n_op,nf)%N_non_zero
-        Enddo
-        
-        if (op_dim > 0) then
-           Allocate ( Mat(Op_dim,Op_Dim), Delta(Op_dim,N_FL_eff), u(Ndim,Op_dim), v(Ndim,Op_dim) )
-           Allocate ( y_v(Ndim,Op_dim), xp_v(Ndim,Op_dim), x_v(Ndim,Op_dim) )
-        endif
+      if (op_dim > 0) then
+         allocate (Mat(Op_dim, Op_Dim), Delta(Op_dim, N_FL_eff), u(Ndim, Op_dim), v(Ndim, Op_dim))
+         allocate (y_v(Ndim, Op_dim), xp_v(Ndim, Op_dim), x_v(Ndim, Op_dim))
+      end if
 
-        ! Compute the ratio
-        nf = 1
-        nsigma_new%f(1,1)  = Hs_new
-        nsigma_new%t(1)    = Op_V(n_op,nf)%Type
-        Do nf_eff = 1,N_FL_eff
-           nf=Calc_Fl_map(nf_eff)
-           !Z1 = Op_V(n_op,nf)%g * ( Phi_st(ns_new,Op_V(n_op,nf)%type) -  Phi_st(ns_old,Op_V(n_op,nf)%type))
-           g_loc = Op_V(n_op,nf)%g
-           if (op_v(n_op,nf)%get_g_t_alloc()) g_loc = Op_V(n_op,nf)%g_t(nt)
-           Z1 = g_loc * ( nsigma_new%Phi(1,1) -  nsigma%Phi(n_op,nt) )
-           op_dim_nf = Op_V(n_op,nf)%N_non_zero
-           Do m = 1,op_dim_nf
-              myexp = exp( Z1* Op_V(n_op,nf)%E(m) )
-              Z = myexp - 1.d0
-              Delta(m,nf_eff) = Z
-              do n = 1,op_dim_nf
-                 Mat(n,m) = - Z * GR( Op_V(n_op,nf)%P(n), Op_V(n_op,nf)%P(m),nf )
-              Enddo
-              Mat(m,m) = myexp + Mat(m,m)
-           Enddo
-           If (op_dim_nf == 0 ) then
-              D_mat = 1.0d0
-           elseIf (op_dim_nf == 1 ) then
-              D_mat = Mat(1,1)
-           elseif (op_dim_nf == 2 ) then
-              s1 = Mat(1,1)*Mat(2,2)
-              s2 = Mat(2,1)*Mat(1,2)
-              If (Abs(s1) > Abs(s2)) then
-                D_mat = s1*(1.D0 - s2/s1)
-              else
-                D_mat = s2*(s1/s2 - 1.D0)
-              Endif
-              !  D_mat =  - Mat(2,1)*Mat(1,2)
-           else
-              D_mat = Det(Mat,op_dim_nf)
-           endif
-           Ratio(nf) =  D_Mat * exp( Z1*Op_V(n_op,nf)%alpha )
-        Enddo
+      ! Compute the ratio
+      nf = 1
+      nsigma_new%f(1, 1) = Hs_new
+      nsigma_new%t(1) = Op_V(n_op, nf)%type
+      do nf_eff = 1, N_FL_eff
+         nf = Calc_Fl_map(nf_eff)
+         !Z1 = Op_V(n_op,nf)%g * ( Phi_st(ns_new,Op_V(n_op,nf)%type) -  Phi_st(ns_old,Op_V(n_op,nf)%type))
+         g_loc = Op_V(n_op, nf)%g
+         if (op_v(n_op, nf)%get_g_t_alloc()) g_loc = Op_V(n_op, nf)%g_t(nt)
+         Z1 = g_loc*(nsigma_new%Phi(1, 1) - nsigma%Phi(n_op, nt))
+         op_dim_nf = Op_V(n_op, nf)%N_non_zero
+         do m = 1, op_dim_nf
+            myexp = exp(Z1*Op_V(n_op, nf)%E(m))
+            Z = myexp - 1.d0
+            Delta(m, nf_eff) = Z
+            do n = 1, op_dim_nf
+               Mat(n, m) = -Z*GR(Op_V(n_op, nf)%P(n), Op_V(n_op, nf)%P(m), nf)
+            end do
+            Mat(m, m) = myexp + Mat(m, m)
+         end do
+         if (op_dim_nf == 0) then
+            D_mat = 1.0d0
+         elseif (op_dim_nf == 1) then
+            D_mat = Mat(1, 1)
+         elseif (op_dim_nf == 2) then
+            s1 = Mat(1, 1)*Mat(2, 2)
+            s2 = Mat(2, 1)*Mat(1, 2)
+            if (abs(s1) > abs(s2)) then
+               D_mat = s1*(1.d0 - s2/s1)
+            else
+               D_mat = s2*(s1/s2 - 1.d0)
+            end if
+            !  D_mat =  - Mat(2,1)*Mat(1,2)
+         else
+            D_mat = Det(Mat, op_dim_nf)
+         end if
+         Ratio(nf) = D_Mat*exp(Z1*Op_V(n_op, nf)%alpha)
+      end do
 
-        !call reconstruct weight subroutine to fill the non-calculated blocks
-        if (reconstruction_needed) call ham%weight_reconstruction(Ratio)
+      !call reconstruct weight subroutine to fill the non-calculated blocks
+      if (reconstruction_needed) call ham%weight_reconstruction(Ratio)
 
-        Ratiotot = Product(Ratio)
-        nf = 1
-        !Ratiotot = (Ratiotot**dble(N_SUN)) * Gama_st(ns_new, Op_V(n_op,nf)%type)/Gama_st(ns_old, Op_V(n_op,nf)%type)
-        Ratiotot = (Ratiotot**dble(N_SUN)) * nsigma_new%Gama(1,1)/nsigma%Gama(n_op,nt)
+      Ratiotot = product(Ratio)
+      nf = 1
+      !Ratiotot = (Ratiotot**dble(N_SUN)) * Gama_st(ns_new, Op_V(n_op,nf)%type)/Gama_st(ns_old, Op_V(n_op,nf)%type)
+      Ratiotot = (Ratiotot**dble(N_SUN))*nsigma_new%Gama(1, 1)/nsigma%Gama(n_op, nt)
 
-        !Write(6,*) Ratiotot
+      !Write(6,*) Ratiotot
 
-        If      ( str_to_upper(mode) == "FINAL"       ) Then
-           !Write(6,*) "Up_I: ", Ratiotot
-           Ratiotot = Ratiotot * Prev_Ratiotot
-           !Write(6,*) "Up_f: ", Ratiotot
-           Weight = S0_ratio * T0_proposal_ratio * abs(  real(Phase * Ratiotot, kind=Kind(0.d0))/real(Phase,kind=Kind(0.d0)) )
-           !Write(6,*) Phase, Prev_Ratiotot, S0_ratio, T0_proposal_ratio, ns_old,ns_new
-        elseif  ( str_to_upper(mode) == "INTERMEDIATE" ) Then
-           Weight = 1.5D0
-           !Write(6,*) "Up_I: ", Ratiotot
-           Prev_Ratiotot = Prev_Ratiotot*Ratiotot
-        else
-           Write(error_unit,*) 'Error in upgrade2'
-           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
-        endif
+      if (str_to_upper(mode) == "FINAL") then
+         !Write(6,*) "Up_I: ", Ratiotot
+         Ratiotot = Ratiotot*Prev_Ratiotot
+         !Write(6,*) "Up_f: ", Ratiotot
+         Weight = S0_ratio*T0_proposal_ratio*abs(real(Phase*Ratiotot, kind=kind(0.d0))/real(Phase, kind=kind(0.d0)))
+         !Write(6,*) Phase, Prev_Ratiotot, S0_ratio, T0_proposal_ratio, ns_old,ns_new
+      elseif (str_to_upper(mode) == "INTERMEDIATE") then
+         Weight = 1.5d0
+         !Write(6,*) "Up_I: ", Ratiotot
+         Prev_Ratiotot = Prev_Ratiotot*Ratiotot
+      else
+         write (error_unit, *) 'Error in upgrade2'
+         call Terminate_on_error(ERROR_GENERIC, __FILE__, __LINE__)
+      end if
 
-        toggle = .false.
-        if ( Weight > ranf_wrap() )  Then
-           toggle = .true.
-           If ( str_to_upper(mode) == "FINAL"  )  Phase = Phase * Ratiotot/sqrt(Ratiotot*conjg(Ratiotot))
-           !Write(6,*) 'Accepted : ', Ratiotot
+      toggle = .false.
+      if (Weight > ranf_wrap()) then
+         toggle = .true.
+         if (str_to_upper(mode) == "FINAL") Phase = Phase*Ratiotot/sqrt(Ratiotot*conjg(Ratiotot))
+         !Write(6,*) 'Accepted : ', Ratiotot
 
-           Do nf_eff = 1,N_FL_eff
-              nf=Calc_Fl_map(nf_eff)
-              ! Setup u(i,n), v(n,i)
-              op_dim_nf = Op_V(n_op,nf)%N_non_zero
-              if (op_dim_nf > 0) then
-                beta = 0.D0
-                call zlaset('N', Ndim, op_dim_nf, beta, beta, u, size(u, 1))
-                call zlaset('N', Ndim, op_dim_nf, beta, beta, v, size(v, 1))
-                do n = 1,op_dim_nf
-                    u( Op_V(n_op,nf)%P(n), n) = Delta(n,nf_eff)
-                    do i = 1,Ndim
-                        v(i,n) = - GR( Op_V(n_op,nf)%P(n), i, nf )
-                    enddo
-                    v(Op_V(n_op,nf)%P(n), n)  = 1.d0 - GR( Op_V(n_op,nf)%P(n),  Op_V(n_op,nf)%P(n), nf)
-                enddo
+         do nf_eff = 1, N_FL_eff
+            nf = Calc_Fl_map(nf_eff)
+            ! Setup u(i,n), v(n,i)
+            op_dim_nf = Op_V(n_op, nf)%N_non_zero
+            if (op_dim_nf > 0) then
+               beta = 0.d0
+               call zlaset('N', Ndim, op_dim_nf, beta, beta, u, size(u, 1))
+               call zlaset('N', Ndim, op_dim_nf, beta, beta, v, size(v, 1))
+               do n = 1, op_dim_nf
+                  u(Op_V(n_op, nf)%P(n), n) = Delta(n, nf_eff)
+                  do i = 1, Ndim
+                     v(i, n) = -GR(Op_V(n_op, nf)%P(n), i, nf)
+                  end do
+                  v(Op_V(n_op, nf)%P(n), n) = 1.d0 - GR(Op_V(n_op, nf)%P(n), Op_V(n_op, nf)%P(n), nf)
+               end do
 
-                call zlaset('N', Ndim, op_dim_nf, beta, beta, x_v, size(x_v, 1))
-                call zlaset('N', Ndim, op_dim_nf, beta, beta, y_v, size(y_v, 1))
-                i = Op_V(n_op,nf)%P(1)
-                x_v(i, 1) = u(i, 1)/(1.d0 + v(i,1)*u(i,1) )
-                call zcopy(Ndim, v(:, 1), 1, y_v(:, 1), 1)
-                do n = 2,op_dim_nf
-                    call zcopy(Ndim, u(:, n), 1, x_v(:, n), 1)
-                    call zcopy(Ndim, v(:, n), 1, y_v(:, n), 1)
-                    Z = 1.d0 + u( Op_V(n_op,nf)%P(n), n)*v(Op_V(n_op,nf)%P(n),n)
-                    alpha = -1.D0
-                    Allocate(syu(n), sxv(n))
-                    call zgemv('T', NDim, n-1, alpha, y_v, Ndim, u(1,n), 1, beta , syu, 1)
-                    call zgemv('T', NDim, n-1, alpha, x_v, Ndim, v(1,n), 1, beta , sxv, 1)
-                    alpha = 1.D0
-                    call zgemv('N', NDim, n-1, alpha, x_v, Ndim, syu, 1, alpha, x_v(1, n), 1)
-                    call zgemv('N', NDim, n-1, alpha, y_v, Ndim, sxv, 1, alpha, y_v(1, n), 1)
-                    do m = 1,n-1
-                        Z = Z - syu(m)*sxv(m)
-                    enddo
-                    Z = 1.D0/Z
-                    call zscal(Ndim, Z, x_v(1, n), 1)
-                    Deallocate(syu, sxv)
-                enddo
-                IF (size(Op_V(n_op,nf)%P, 1) == 1) THEN
-                    CALL ZCOPY(Ndim, gr(1, Op_V(n_op,nf)%P(1), nf), 1, xp_v(1, 1), 1)
-                    Z = -x_v(Op_V(n_op,nf)%P(1), 1)
-                    CALL ZGERU(Ndim, Ndim, Z, xp_v(1,1), 1, y_v(1, 1), 1, gr(1,1,nf), Ndim)
-                ELSE
-                    Allocate (zarr(op_dim_nf, op_dim_nf), grarr(NDim, op_dim_nf))
-                    Zarr = x_v(Op_V(n_op,nf)%P(1:op_dim_nf), :)
-                    grarr = gr(:, Op_V(n_op,nf)%P(1:op_dim_nf), nf)
-                    beta  = 0.d0
-                    alpha = 1.D0
-                    CALL ZGEMM('N', 'N', NDim, op_dim_nf, op_dim_nf, alpha, grarr, Ndim, Zarr, op_dim_nf, beta, xp_v, Ndim)
-                    Deallocate(Zarr, grarr)
-                    beta  = cmplx ( 1.0d0, 0.0d0, kind(0.D0))
-                    alpha = -1.D0
-                    CALL ZGEMM('N','T',Ndim,Ndim,op_dim_nf,alpha,xp_v, Ndim, y_v, Ndim,beta,gr(1,1,nf), Ndim)
-                ENDIF
-              endif
+               call zlaset('N', Ndim, op_dim_nf, beta, beta, x_v, size(x_v, 1))
+               call zlaset('N', Ndim, op_dim_nf, beta, beta, y_v, size(y_v, 1))
+               i = Op_V(n_op, nf)%P(1)
+               x_v(i, 1) = u(i, 1)/(1.d0 + v(i, 1)*u(i, 1))
+               call zcopy(Ndim, v(:, 1), 1, y_v(:, 1), 1)
+               do n = 2, op_dim_nf
+                  call zcopy(Ndim, u(:, n), 1, x_v(:, n), 1)
+                  call zcopy(Ndim, v(:, n), 1, y_v(:, n), 1)
+                  Z = 1.d0 + u(Op_V(n_op, nf)%P(n), n)*v(Op_V(n_op, nf)%P(n), n)
+                  alpha = -1.d0
+                  allocate (syu(n), sxv(n))
+                  call zgemv('T', NDim, n - 1, alpha, y_v, Ndim, u(1, n), 1, beta, syu, 1)
+                  call zgemv('T', NDim, n - 1, alpha, x_v, Ndim, v(1, n), 1, beta, sxv, 1)
+                  alpha = 1.d0
+                  call zgemv('N', NDim, n - 1, alpha, x_v, Ndim, syu, 1, alpha, x_v(1, n), 1)
+                  call zgemv('N', NDim, n - 1, alpha, y_v, Ndim, sxv, 1, alpha, y_v(1, n), 1)
+                  do m = 1, n - 1
+                     Z = Z - syu(m)*sxv(m)
+                  end do
+                  Z = 1.d0/Z
+                  call zscal(Ndim, Z, x_v(1, n), 1)
+                  deallocate (syu, sxv)
+               end do
+               if (size(Op_V(n_op, nf)%P, 1) == 1) then
+                  call ZCOPY(Ndim, gr(1, Op_V(n_op, nf)%P(1), nf), 1, xp_v(1, 1), 1)
+                  Z = -x_v(Op_V(n_op, nf)%P(1), 1)
+                  call ZGERU(Ndim, Ndim, Z, xp_v(1, 1), 1, y_v(1, 1), 1, gr(1, 1, nf), Ndim)
+               else
+                  allocate (zarr(op_dim_nf, op_dim_nf), grarr(NDim, op_dim_nf))
+                  Zarr = x_v(Op_V(n_op, nf)%P(1:op_dim_nf), :)
+                  grarr = gr(:, Op_V(n_op, nf)%P(1:op_dim_nf), nf)
+                  beta = 0.d0
+                  alpha = 1.d0
+                  call ZGEMM('N', 'N', NDim, op_dim_nf, op_dim_nf, alpha, grarr, Ndim, Zarr, op_dim_nf, beta, xp_v, Ndim)
+                  deallocate (Zarr, grarr)
+                  beta = cmplx(1.0d0, 0.0d0, kind(0.d0))
+                  alpha = -1.d0
+                  call ZGEMM('N', 'T', Ndim, Ndim, op_dim_nf, alpha, xp_v, Ndim, y_v, Ndim, beta, gr(1, 1, nf), Ndim)
+               end if
+            end if
 
-           enddo
+         end do
 
-           ! Flip the spin
-           nsigma%f(n_op,nt) = nsigma_new%f(1,1) ! real(ns_new,Kind=kind(0.d0))
-        endif
-        
-        if (op_dim > 0) then
-           deallocate ( Mat, Delta, u, v )
-           deallocate ( y_v, xp_v, x_v )
-        endif
+         ! Flip the spin
+         nsigma%f(n_op, nt) = nsigma_new%f(1, 1) ! real(ns_new,Kind=kind(0.d0))
+      end if
 
-        If ( str_to_upper(mode) == "FINAL" )  then
-           Call Control_upgrade(toggle)
-           Call Control_upgrade_eff(toggle)
-        endif
+      if (op_dim > 0) then
+         deallocate (Mat, Delta, u, v)
+         deallocate (y_v, xp_v, x_v)
+      end if
 
-        Call nsigma_new%clear()
+      if (str_to_upper(mode) == "FINAL") then
+         call Control_upgrade(toggle)
+         call Control_upgrade_eff(toggle)
+      end if
 
-      End Subroutine Upgrade2
+      call nsigma_new%clear()
+
+   end subroutine Upgrade2
 
 end module upgrade_mod

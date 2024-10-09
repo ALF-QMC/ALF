@@ -29,13 +29,12 @@
 !     - If you make substantial changes to the program we require you to either consider contributing
 !       to the ALF project or to mark your material in a reasonable way as different from the original version
 
-
 !--------------------------------------------------------------------
 !> @author
 !> ALF-project
 !>
 !> @brief
-!> This File is a template for defining new models. 
+!> This File is a template for defining new models.
 !> One can define a new model class by copying this file, replacing alle occurences
 !> of ##NAME## by the Hamiltonian name, populating the subroutines below as needed
 !> adding the Hamiltonian name to the file Prog/Hamiltonians.list.
@@ -116,48 +115,48 @@
 !>
 !--------------------------------------------------------------------
 
-    submodule (Hamiltonian_main) ham_##NAME##_smod
+    submodule(Hamiltonian_main) ham_##NAME##_smod
 
-      Use Operator_mod
-      Use WaveFunction_mod
-      Use Lattices_v3
-      Use MyMats
-      Use Random_Wrap
-      Use Files_mod
-      Use Matrix
-      Use Observables
-      Use Fields_mod
-      Use Predefined_Hoppings
-      Use LRC_Mod
+       use Operator_mod
+       use WaveFunction_mod
+       use Lattices_v3
+       use MyMats
+       use Random_Wrap
+       use Files_mod
+       use Matrix
+       use Observables
+       use Fields_mod
+       use Predefined_Hoppings
+       use LRC_Mod
 
-      Implicit none
-      
-      type, extends(ham_base) :: ham_##NAME##
-      contains
-        ! Set Hamiltonian-specific procedures
-        procedure, nopass :: Ham_Set
-        procedure, nopass :: Alloc_obs
-        procedure, nopass :: Obser
-        procedure, nopass :: ObserT
-        ! procedure, nopass :: ##PROCEDURE_NAME##  ! Some other procedure defined in ham_base
+       implicit none
+
+       type, extends(ham_base) :: ham_##NAME##
+       contains
+          ! Set Hamiltonian-specific procedures
+          procedure, nopass :: Ham_Set
+          procedure, nopass :: Alloc_obs
+          procedure, nopass :: Obser
+          procedure, nopass :: ObserT
+          ! procedure, nopass :: ##PROCEDURE_NAME##  ! Some other procedure defined in ham_base
 #ifdef HDF5
-        procedure, nopass :: write_parameters_hdf5
+          procedure, nopass :: write_parameters_hdf5
 #endif
-      end type ham_##NAME##
+       end type ham_##NAME##
 
-      !#PARAMETERS START# VAR_##XYZ##
-      !#PARAMETERS END#
+       !#PARAMETERS START# VAR_##XYZ##
+       !#PARAMETERS END#
 
-      Type (Lattice),       target :: Latt
-      Type (Unit_cell),     target :: Latt_unit
-      Type (Hopping_Matrix_type), Allocatable :: Hopping_Matrix(:)
-      Integer, allocatable :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
+       type(Lattice), target :: Latt
+       type(Unit_cell), target :: Latt_unit
+       type(Hopping_Matrix_type), allocatable :: Hopping_Matrix(:)
+       integer, allocatable :: List(:, :), Invlist(:, :)  ! For orbital structure of Unit cell
 
     contains
-      
-      module Subroutine Ham_Alloc_##NAME##
-        allocate(ham_##NAME##::ham)
-      end Subroutine Ham_Alloc_##NAME##
+
+       module subroutine Ham_Alloc_##NAME##
+          allocate (ham_##NAME##::ham)
+       end subroutine Ham_Alloc_##NAME##
 
 ! Dynamically generated on compile time from parameters list.
 ! Supplies the subroutines read_parameters and write_parameters_hdf5.
@@ -170,58 +169,57 @@
 !> @brief
 !> Sets the Hamiltonian
 !--------------------------------------------------------------------
-      Subroutine Ham_Set
+       subroutine Ham_Set
 
 #if defined (MPI) || defined(TEMPERING)
-          Use mpi
+          use mpi
 #endif
-          Implicit none
+          implicit none
 
           integer                :: ierr, nf, unit_info
-          Character (len=64)     :: file_info
-
+          character(len=64)     :: file_info
 
 #ifdef MPI
-          Integer        :: Isize, Irank, irank_g, isize_g, igroup
-          Integer        :: STATUS(MPI_STATUS_SIZE)
-          CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-          CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+          integer        :: Isize, Irank, irank_g, isize_g, igroup
+          integer        :: STATUS(MPI_STATUS_SIZE)
+          call MPI_COMM_SIZE(MPI_COMM_WORLD, ISIZE, IERR)
+          call MPI_COMM_RANK(MPI_COMM_WORLD, IRANK, IERR)
           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
           call MPI_Comm_size(Group_Comm, isize_g, ierr)
-          igroup           = irank/isize_g
+          igroup = irank/isize_g
 #endif
 
 !           ! From dynamically generated file "Hamiltonian_##NAME##_read_write_parameters.F90"
 !           call read_parameters()
-! 
+!
 !           Ltrot = nint(beta/dtau)
 !           if (Projector) Thtrot = nint(theta/dtau)
 !           Ltrot = Ltrot+2*Thtrot
-! 
+!
 !           ! Setup the Bravais lattice
 !           call Ham_Latt
-! 
+!
 !           ! Setup the hopping / single-particle part
 !           call Ham_Hop
-! 
+!
 !           ! Setup the interaction.
 !           call Ham_V
-! 
+!
 !           ! Setup the trival wave function, in case of a projector approach
 !           if (Projector) Call Ham_Trial()
 
 #ifdef MPI
-          If (Irank_g == 0) then
+          if (Irank_g == 0) then
 #endif
              File_info = "info"
 #if defined(TEMPERING)
-             write(File_info,'(A,I0,A)') "Temp_",igroup,"/info"
+             write (File_info, '(A,I0,A)') "Temp_", igroup, "/info"
 #endif
-             Open(newunit=unit_info, file=file_info, status="unknown", position="append")
+             open (newunit=unit_info, file=file_info, status="unknown", position="append")
 !              Write(unit_info,*) '====================================='
 !              Write(unit_info,*) 'Model is      :  ##NAME##'
 !              Write(unit_info,*) 'Lattice is    : ', Lattice_type
-!              Write(unit_info,*) '# unit cells  : ', Latt%N 
+!              Write(unit_info,*) '# unit cells  : ', Latt%N
 !              Write(unit_info,*) '# of orbitals : ', Latt_unit%Norb
 !              Write(unit_info,*) 'Checkerboard  : ', Checkerboard
 !              Write(unit_info,*) 'Symm. decomp  : ', Symm
@@ -242,12 +240,11 @@
 !                    Write(unit_info,*) 'Degen of left  trial wave function: ', WF_L(nf)%Degen
 !                 enddo
 !              endif
-             Close(unit_info)
+             close (unit_info)
 #ifdef MPI
-          Endif
+          end if
 #endif
-        end Subroutine Ham_Set
-
+       end subroutine Ham_Set
 
 !--------------------------------------------------------------------
 !> @author
@@ -257,15 +254,14 @@
 !> Specifiy the equal time and time displaced observables
 !> @details
 !--------------------------------------------------------------------
-        Subroutine  Alloc_obs(Ltau)
+       subroutine Alloc_obs(Ltau)
 
-          Implicit none
+          implicit none
           !>  Ltau=1 if time displaced correlations are considered.
-          Integer, Intent(In) :: Ltau
-          Integer    ::  i, N, Nt
-          Character (len=64) ::  Filename
-          Character (len=:), allocatable ::  Channel
-
+          integer, intent(In) :: Ltau
+          integer    ::  i, N, Nt
+          character(len=64) ::  Filename
+          character(len=:), allocatable ::  Channel
 
 !           ! Scalar observables
 !           Allocate ( Obs_scal(4) )
@@ -284,7 +280,7 @@
 !             end select
 !             Call Obser_Vec_make(Obs_scal(I),N,Filename)
 !           enddo
-! 
+!
 !           ! Equal time correlators
 !           Allocate ( Obs_eq(3) )
 !           Do I = 1,Size(Obs_eq,1)
@@ -302,7 +298,7 @@
 !             Channel = '--'
 !             Call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
 !           enddo
-! 
+!
 !           If (Ltau == 1) then
 !             ! Time-displaced correlators
 !             Allocate ( Obs_tau(3) )
@@ -323,7 +319,7 @@
 !             enddo
 !           endif
 
-        End Subroutine Alloc_obs
+       end subroutine Alloc_obs
 
 !--------------------------------------------------------------------
 !> @author
@@ -345,45 +341,43 @@
 !>  Time slice
 !> \endverbatim
 !-------------------------------------------------------------------
-        subroutine Obser(GR,Phase,Ntau, Mc_step_weight)
+       subroutine Obser(GR, Phase, Ntau, Mc_step_weight)
 
-          Use Predefined_Obs
+          use Predefined_Obs
 
-          Implicit none
+          implicit none
 
-          Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
-          Complex (Kind=Kind(0.d0)), Intent(IN) :: PHASE
-          Integer,                   INTENT(IN) :: Ntau
-          Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
+          complex(Kind=kind(0.d0)), intent(IN) :: GR(Ndim, Ndim, N_FL)
+          complex(Kind=kind(0.d0)), intent(IN) :: PHASE
+          integer, intent(IN) :: Ntau
+          real(Kind=kind(0.d0)), intent(IN) :: Mc_step_weight
 
           !Local
-          Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL)
-          Complex (Kind=Kind(0.d0)) :: ZP, ZS, 
-          Integer :: I, J, nf
+          complex(Kind=kind(0.d0)) :: GRC(Ndim, Ndim, N_FL)
+          complex(Kind=kind(0.d0)) :: ZP, ZS,
+          integer :: I, J, nf
           ! Add local variables as needed
 
-          ZP = PHASE/Real(Phase, kind(0.D0))
-          ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
+          ZP = PHASE/real(Phase, kind(0.d0))
+          ZS = real(Phase, kind(0.d0))/abs(real(Phase, kind(0.d0)))
 
           ZS = ZS*Mc_step_weight
-          
-          Do nf = 1,N_FL
-             Do I = 1,Ndim
-                Do J = 1,Ndim
+
+          do nf = 1, N_FL
+             do I = 1, Ndim
+                do J = 1, Ndim
                    GRC(I, J, nf) = -GR(J, I, nf)
-                Enddo
-                GRC(I, I, nf) = 1.D0 + GRC(I, I, nf)
-             Enddo
-          Enddo
+                end do
+                GRC(I, I, nf) = 1.d0 + GRC(I, I, nf)
+             end do
+          end do
           ! GRC(i,j,nf) = < c^{dagger}_{i,nf } c_{j,nf } >
 
           ! Compute scalar observables.
 
-
           ! Compute equal-time correlations
 
-        end Subroutine Obser
-
+       end subroutine Obser
 
 !--------------------------------------------------------------------
 !> @author
@@ -409,27 +403,27 @@
 !>  Phase
 !> \endverbatim
 !-------------------------------------------------------------------
-        Subroutine ObserT(NT,  GT0,G0T,G00,GTT, PHASE,  Mc_step_weight)
+       subroutine ObserT(NT, GT0, G0T, G00, GTT, PHASE, Mc_step_weight)
 
-          Use Predefined_Obs
+          use Predefined_Obs
 
-          Implicit none
+          implicit none
 
-          Integer         , INTENT(IN) :: NT
-          Complex (Kind=Kind(0.d0)), INTENT(IN) :: GT0(Ndim,Ndim,N_FL),G0T(Ndim,Ndim,N_FL),G00(Ndim,Ndim,N_FL),GTT(Ndim,Ndim,N_FL)
-          Complex (Kind=Kind(0.d0)), INTENT(IN) :: Phase
-          Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
-          
+          integer, intent(IN) :: NT
+  complex(Kind=kind(0.d0)), intent(IN) :: GT0(Ndim, Ndim, N_FL), G0T(Ndim, Ndim, N_FL), G00(Ndim, Ndim, N_FL), GTT(Ndim, Ndim, N_FL)
+          complex(Kind=kind(0.d0)), intent(IN) :: Phase
+          real(Kind=kind(0.d0)), intent(IN) :: Mc_step_weight
+
           !Locals
-          Complex (Kind=Kind(0.d0)) :: ZP, ZS
+          complex(Kind=kind(0.d0)) :: ZP, ZS
           ! Add local variables as needed
 
-          ZP = PHASE/Real(Phase, kind(0.D0))
-          ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
-          ZS = ZS * Mc_step_weight
+          ZP = PHASE/real(Phase, kind(0.d0))
+          ZS = real(Phase, kind(0.d0))/abs(real(Phase, kind(0.d0)))
+          ZS = ZS*Mc_step_weight
 
           ! Compute observables
 
-        end Subroutine OBSERT
-        
+       end subroutine OBSERT
+
     end submodule ham_##NAME##_smod

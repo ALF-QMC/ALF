@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 - 2020 The ALF project
+!  Copyright (C) 2016 - 2023 The ALF project
 !
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -114,7 +114,7 @@
 !>
 !--------------------------------------------------------------------
 
-    submodule(Hamiltonian_main) ham_LRC_smod
+    submodule(Hamiltonian_main) ham_Hubbard_smod
 
        use Operator_mod
        use WaveFunction_mod
@@ -130,24 +130,23 @@
 
        implicit none
 
-       type, extends(ham_base) :: ham_LRC
+       type, extends(ham_base) :: ham_Hubbard
        contains
           ! Set Hamiltonian-specific procedures
           procedure, nopass :: Ham_Set
           procedure, nopass :: Alloc_obs
           procedure, nopass :: Obser
           procedure, nopass :: ObserT
-          procedure, nopass :: Global_move_tau
-          procedure, nopass :: Overide_global_tau_sampling_parameters
           procedure, nopass :: S0
           procedure, nopass :: Ham_Langevin_HMC_S0
+          procedure, nopass :: Delta_S0_global
 #ifdef HDF5
           procedure, nopass :: write_parameters_hdf5
 #endif
-       end type ham_LRC
+       end type ham_Hubbard
 
        !#PARAMETERS START# VAR_lattice
-       character(len=64) :: Model = 'LRC'  ! Possible values: 'LRC'
+       character(len=64) :: Model = 'Hubbard'  ! Value not relevant
        character(len=64) :: Lattice_type = 'Square'
        integer            :: L1 = 6   ! Length in direction a_1
        integer            :: L2 = 6   ! Length in direction a_2
@@ -168,34 +167,29 @@
        real(Kind=kind(0.d0)) :: Theta = 10.d0    ! Projection parameter
        !#PARAMETERS END#
 
-       !#PARAMETERS START# VAR_LRC
-       real(Kind=kind(0.d0)) :: ham_T = 1.d0   ! Hopping parameter
-       real(Kind=kind(0.d0)) :: ham_T2 = 1.d0   ! For bilayer systems
-       real(Kind=kind(0.d0)) :: ham_Tperp = 1.d0   ! For bilayer systems
-       real(Kind=kind(0.d0)) :: Ham_chem = 1.d0   ! Chemical potential
-       real(Kind=kind(0.d0)) :: Ham_U = 4.d0   ! On-site interaction
-       real(Kind=kind(0.d0)) :: ham_alpha = 0.1d0  ! Coulomb tail magnitude
-       real(Kind=kind(0.d0)) :: Percent_change = 0.1d0  ! Parameter P
+       !#PARAMETERS START# VAR_Hubbard
+       real(Kind=kind(0.d0)) :: ham_T = 1.d0     ! Hopping parameter
+       real(Kind=kind(0.d0)) :: ham_chem = 0.d0     ! Chemical potential
+       real(Kind=kind(0.d0)) :: ham_U = 4.d0     ! Hubbard interaction
+       real(Kind=kind(0.d0)) :: ham_T2 = 1.d0     ! For bilayer systems
+       real(Kind=kind(0.d0)) :: ham_U2 = 4.d0     ! For bilayer systems
+       real(Kind=kind(0.d0)) :: ham_Tperp = 1.d0     ! For bilayer systems
        !#PARAMETERS END#
 
        type(Lattice), target :: Latt
        type(Unit_cell), target :: Latt_unit
        type(Hopping_Matrix_type), allocatable :: Hopping_Matrix(:)
-       integer, allocatable     :: List(:, :), Invlist(:, :)  ! For orbital structure of Unit cell
-
-!>    Storage for the Ising action
-       real(Kind=kind(0.d0)) :: DW_Ising_tau(-1:1), DW_Ising_Space(-1:1)
-       integer, allocatable  :: L_bond(:, :), L_bond_inv(:, :), Ising_nnlist(:, :)
+       integer, allocatable :: List(:, :), Invlist(:, :)  ! For orbital structure of Unit cell
 
     contains
 
-       module subroutine Ham_Alloc_LRC
-          allocate (ham_LRC::ham)
-       end subroutine Ham_Alloc_LRC
+       module subroutine Ham_Alloc_hubbard
+          allocate (ham_Hubbard::ham)
+       end subroutine Ham_Alloc_hubbard
 
 ! Dynamically generated on compile time from parameters list.
 ! Supplies the subroutines read_parameters and write_parameters_hdf5.
-#include "Hamiltonian_LRC_read_write_parameters.F90"
+#include "Hamiltonian_Hubbard_read_write_parameters.F90"
 
 !--------------------------------------------------------------------
 !> @author
@@ -229,29 +223,34 @@
           igroup = irank/isize_g
 #endif
 
-          ! From dynamically generated file "Hamiltonian_LRC_read_write_parameters.F90"
+          ! From dynamically generated file "Hamiltonian_Hubbard_read_write_parameters.F90"
           call read_parameters()
 
-          if (Model .ne. 'LRC') then
-             write (error_unit, *) 'Wrong Hamiltonian', ierr
-             call Terminate_on_error(ERROR_HAMILTONIAN, __FILE__, __LINE__)
-          end if
-
           Ltrot = nint(beta/dtau)
-          Thtrot = 0
           if (Projector) Thtrot = nint(theta/dtau)
           Ltrot = Ltrot + 2*Thtrot
-          N_FL = 1
+          if (Mz) then
+             N_FL = 2
+             if (mod(N_SUN, 2) .ne. 0) then
+                write (error_unit, *) 'Ham_Set: N_SUN has to be even if Mz = True'
+                call Terminate_on_error(ERROR_HAMILTONIAN, __FILE__, __LINE__)
+             end if
+             N_SUN = N_SUN/2
+          else
+             N_FL = 1
+          end if
 
+          ! Setup the Bravais lattice
           call Ham_Latt
 
+          ! Setup the hopping / single-particle part
           call Ham_Hop
 
-          if (Projector) call Ham_Trial
-
-          call LRC_Set_VIJ(Latt, Latt_unit, Ham_U, Ham_alpha, list, invlist)
-
+          ! Setup the interaction.
           call Ham_V
+
+          ! Setup the trival wave function, in case of a projector approach
+          if (Projector) call Ham_Trial()
 
 #ifdef MPI
           if (Irank_g == 0) then
@@ -262,15 +261,21 @@
 #endif
              open (newunit=unit_info, file=file_info, status="unknown", position="append")
              write (unit_info, *) '====================================='
-             write (unit_info, *) 'Model is      : Long range Coulomb'
+             write (unit_info, *) 'Model is      : ', Model
              write (unit_info, *) 'Lattice is    : ', Lattice_type
-             write (unit_info, *) '# of orbitals : ', Ndim
+             write (unit_info, *) '# unit cells  : ', Latt%N
+             write (unit_info, *) '# of orbitals : ', Latt_unit%Norb
              write (unit_info, *) 'Flux_1        : ', Phi_X
              write (unit_info, *) 'Flux_2        : ', Phi_Y
              if (Bulk) then
                 write (unit_info, *) 'Twist as phase factor in bulk'
              else
                 write (unit_info, *) 'Twist as boundary condition'
+             end if
+             if (Mz) then
+                write (unit_info, *) 'HS  couples to z-component of spin'
+             else
+                write (unit_info, *) 'HS  couples to density'
              end if
              write (unit_info, *) 'Checkerboard  : ', Checkerboard
              write (unit_info, *) 'Symm. decomp  : ', Symm
@@ -283,19 +288,17 @@
                 write (unit_info, *) 'Beta          : ', Beta
              end if
              write (unit_info, *) 'dtau,Ltrot_eff: ', dtau, Ltrot
-             write (unit_info, *) 'N_SUN         : ', N_SUN
+             if (Mz) then
+                write (unit_info, *) 'N_SUN         : ', 2*N_SUN
+             else
+                write (unit_info, *) 'N_SUN         : ', N_SUN
+             end if
              write (unit_info, *) 'N_FL          : ', N_FL
              write (unit_info, *) 't             : ', Ham_T
-             if (str_to_upper(Lattice_type) == "BILAYER_SQUARE" .or. str_to_upper(Lattice_type) == "BILAYER_HONEYCOMB") then
-                write (unit_info, *) 't2            : ', Ham_T2
-                write (unit_info, *) 'tperp         : ', Ham_Tperp
-             end if
-             if (str_to_upper(Lattice_type) == "N_LEG_LADDER") then
-                write (unit_info, *) 'tperp         : ', Ham_Tperp
-             end if
              write (unit_info, *) 'Ham_U         : ', Ham_U
-             write (unit_info, *) 'Ham_alpha     : ', Ham_alpha
-             write (unit_info, *) 'Percent_change: ', Percent_change
+             write (unit_info, *) 't2            : ', Ham_T2
+             write (unit_info, *) 'Ham_U2        : ', Ham_U2
+             write (unit_info, *) 'Ham_tperp     : ', Ham_tperp
              write (unit_info, *) 'Ham_chem      : ', Ham_chem
              if (Projector) then
                 do nf = 1, N_FL
@@ -304,27 +307,9 @@
                 end do
              end if
              close (unit_info)
-             call LRC_Print(Latt, Latt_unit, list, invlist)
 #ifdef MPI
           end if
 #endif
-
-! #ifdef MPI
-!           If (Irank == 0 )  then
-! #endif
-! #if defined(STAB1)
-!              Write(50,*) 'STAB1 is defined '
-! #endif
-!
-! #if defined(QRREF)
-!              Write(50,*) 'QRREF is defined '
-! #endif
-!              close(50)
-!              Close(5)
-! #ifdef MPI
-!           endif
-! #endif
-
        end subroutine Ham_Set
 
 !--------------------------------------------------------------------
@@ -401,19 +386,6 @@
 
           call Predefined_Hoppings_set_OPT(Hopping_Matrix, List, Invlist, Latt, Latt_unit, Dtau, Checkerboard, Symm, OP_T)
 
-          !Call Predefined_Hopping(Lattice_type, Ndim, List,Invlist, Latt, Latt_unit, &
-          !     &                      Dtau, Ham_T, Ham_Chem,  Phi_X, Phi_Y, Bulk, N_Phi,   &
-          !      &                      N_FL,  Checkerboard, Symm, OP_T )
-          !Do Nth = 1,1
-          !   Do n = 1, size(OP_T(1,1)%E)
-          !      Write(31,"(I4,2x,F14.7)") n_Phi, OP_T(1,1)%E(n)
-          !   enddo
-          !
-          !   Call Op_clear (OP_T(1,1),N)
-          !   Deallocate (OP_T)
-          !Enddo
-          !Stop
-
           deallocate (Ham_T_vec, Ham_T2_vec, Ham_Tperp_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
                &                                   N_Phi_vec, Ham_Lambda_vec)
 
@@ -425,19 +397,20 @@
 !> @brief
 !> Sets the trial wave function
 !--------------------------------------------------------------------
-       subroutine Ham_Trial
+       subroutine Ham_Trial()
 
           use Predefined_Trial
 
           implicit none
-          integer :: N_part
 
+          integer :: N_part, nf
           ! Use predefined stuctures or set your own Trial  wave function
           N_part = Ndim/2
           call Predefined_TrialWaveFunction(Lattice_type, Ndim, List, Invlist, Latt, Latt_unit, &
                &                            N_part, N_FL, WF_L, WF_R)
 
        end subroutine Ham_Trial
+
 !--------------------------------------------------------------------
 !> @author
 !> ALF Collaboration
@@ -450,51 +423,63 @@
           use Predefined_Int
           implicit none
 
-          integer :: I
+          integer :: nf, I, I1, I2, nc, J, no, N_ops
+          real(Kind=kind(0.d0)) :: X, Zero = 1.d-10
+          real(Kind=kind(0.d0)), allocatable :: Ham_U_vec(:)
 
-          allocate (Op_V(Ndim, N_FL))
+          allocate (Ham_U_vec(Latt_unit%Norb))
 
-          do I = 1, Ndim
-             call Predefined_Int_LRC(OP_V(I, 1), I, DTAU)
-          end do
+          N_ops = 0
+          if (str_to_upper(Lattice_type) == "BILAYER_SQUARE" .or. str_to_upper(Lattice_type) == "BILAYER_HONEYCOMB") then
+             do no = 1, Latt_unit%Norb/2
+                Ham_U_vec(no) = Ham_U
+                Ham_U_vec(no + Latt_unit%Norb/2) = Ham_U2
+             end do
+             if (abs(Ham_U) > Zero) N_ops = N_ops + Latt%N*Latt_unit%Norb/2
+             if (abs(Ham_U2) > Zero) N_ops = N_ops + Latt%N*Latt_unit%Norb/2
+          else
+             Ham_U_vec(:) = Ham_U
+             if (abs(Ham_U) > Zero) N_ops = N_ops + Latt%N*Latt_unit%Norb
+          end if
+          if (Mz) then
+             allocate (Op_V(N_ops, N_FL))
+             Ham_U_vec = Ham_U_vec/real(N_SUN, kind(0.d0))
+             nc = 0
+             do I1 = 1, Latt%N
+                do no = 1, Latt_unit%Norb
+                   I = invlist(I1, no)
+                   if (abs(Ham_U_vec(no)) > Zero) then
+                      nc = nc + 1
+                      if (Continuous) then
+                         call Predefined_Int_U_MZ_continuous_HS(OP_V(nc, 1), OP_V(nc, 2), I, DTAU, Ham_U_vec(no))
+                      else
+                         call Predefined_Int_U_MZ(OP_V(nc, 1), OP_V(nc, 2), I, DTAU, Ham_U_vec(no))
+                      end if
+                   end if
+                end do
+             end do
+          else
+             allocate (Op_V(N_ops, N_FL))
+             nc = 0
+             do I1 = 1, Latt%N
+                do no = 1, Latt_unit%Norb
+                   I = invlist(I1, no)
+                   if (abs(Ham_U_vec(no)) > Zero) then
+                      nc = nc + 1
+                      if (Continuous) then
+                         call Predefined_Int_U_SUN_continuous_HS(OP_V(nc, 1), I, N_SUN, DTAU, Ham_U_vec(no))
+                      else
+                         call Predefined_Int_U_SUN(OP_V(nc, 1), I, N_SUN, DTAU, Ham_U_vec(no))
+                      end if
+                   end if
+                end do
+             end do
+          end if
+
+          deallocate (Ham_U_vec)
 
        end subroutine Ham_V
 
-!--------------------------------------------------------------------
-!> @author
-!> ALF Collaboration
-!>
-!> @brief
-!> Single spin flip S0 ratio
-!> @details
-!> S0=exp(-S0(new))/exp(-S0(old)) where the new configuration correpsonds to the old one up to
-!> a spin flip of Operator n on time slice nt
-!> @details
-!--------------------------------------------------------------------
-       real(Kind=kind(0.d0)) function S0(n, nt, Hs_new)
-          implicit none
-          !> Operator index
-          integer, intent(IN) :: n
-          !> Time slice
-          integer, intent(IN) :: nt
-          !> New local field on time slice nt and operator index n
-          complex(Kind=kind(0.d0)), intent(In) :: Hs_new
-
-          integer :: nt1, I, ns
-          real(Kind=kind(0.d0)) :: Y
-          real(Kind=kind(0.d0)), allocatable :: V(:)
-
-          allocate (V(size(nsigma%f, 1)))
-          do I = 1, size(V, 1)
-             V(I) = real(nsigma%f(I, nt))
-          end do
-          Y = real(HS_new)
-          !S0 = LRC_S0(n,dtau,nsigma%f(:,nt),Hs_new,N_SUN)
-          S0 = LRC_S0(n, dtau, V, Y, N_SUN)
-
-          deallocate (V)
-
-       end function S0
 !--------------------------------------------------------------------
 !> @author
 !> ALF Collaboration
@@ -531,41 +516,89 @@
           end do
 
           ! Equal time correlators
-          allocate (Obs_eq(3))
-          do I = 1, size(Obs_eq, 1)
-             select case (I)
-             case (1)
-                Filename = "Green"
-             case (2)
-                Filename = "SpinZ"
-             case (3)
-                Filename = "Den"
-             case default
-                write (6, *) ' Error in Alloc_obs '
-             end select
-             Nt = 1
-             Channel = '--'
-             call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
-          end do
-
-          if (Ltau == 1) then
-             ! Time-displaced correlators
-             allocate (Obs_tau(3))
-             do I = 1, size(Obs_tau, 1)
+          if (Mz) then
+             allocate (Obs_eq(5))
+             do I = 1, size(Obs_eq, 1)
                 select case (I)
                 case (1)
-                   Channel = 'P'; Filename = "Green"
+                   Filename = "Green"
                 case (2)
-                   Channel = 'PH'; Filename = "SpinZ"
+                   Filename = "SpinZ"
                 case (3)
-                   Channel = 'PH'; Filename = "Den"
+                   Filename = "SpinXY"
+                case (4)
+                   Filename = "SpinT"
+                case (5)
+                   Filename = "Den"
                 case default
                    write (6, *) ' Error in Alloc_obs '
                 end select
-                Nt = Ltrot + 1 - 2*Thtrot
-                if (Projector) Channel = 'T0'
-                call Obser_Latt_make(Obs_tau(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
+                Nt = 1
+                Channel = '--'
+                call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
              end do
+
+             if (Ltau == 1) then
+                ! Time-displaced correlators
+                allocate (Obs_tau(5))
+                do I = 1, size(Obs_tau, 1)
+                   select case (I)
+                   case (1)
+                      Channel = 'P'; Filename = "Green"
+                   case (2)
+                      Channel = 'PH'; Filename = "SpinZ"
+                   case (3)
+                      Channel = 'PH'; Filename = "SpinXY"
+                   case (4)
+                      Channel = 'PH'; Filename = "SpinT"
+                   case (5)
+                      Channel = 'PH'; Filename = "Den"
+                   case default
+                      write (6, *) ' Error in Alloc_obs '
+                   end select
+                   Nt = Ltrot + 1 - 2*Thtrot
+                   if (Projector) Channel = 'T0'
+                   call Obser_Latt_make(Obs_tau(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
+                end do
+             end if
+          else
+             ! Equal time correlators
+             allocate (Obs_eq(3))
+             do I = 1, size(Obs_eq, 1)
+                select case (I)
+                case (1)
+                   Filename = "Green"
+                case (2)
+                   Filename = "SpinZ"
+                case (3)
+                   Filename = "Den"
+                case default
+                   write (6, *) ' Error in Alloc_obs '
+                end select
+                Nt = 1
+                Channel = '--'
+                call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
+             end do
+
+             if (Ltau == 1) then
+                ! Time-displaced correlators
+                allocate (Obs_tau(3))
+                do I = 1, size(Obs_tau, 1)
+                   select case (I)
+                   case (1)
+                      Channel = 'P'; Filename = "Green"
+                   case (2)
+                      Channel = 'PH'; Filename = "SpinZ"
+                   case (3)
+                      Channel = 'PH'; Filename = "Den"
+                   case default
+                      write (6, *) ' Error in Alloc_obs '
+                   end select
+                   Nt = Ltrot + 1 - 2*Thtrot
+                   if (Projector) Channel = 'T0'
+                   call Obser_Latt_make(Obs_tau(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
+                end do
+             end if
           end if
 
        end subroutine Alloc_obs
@@ -609,6 +642,7 @@
 
           ZP = PHASE/real(Phase, kind(0.d0))
           ZS = real(Phase, kind(0.d0))/abs(real(Phase, kind(0.d0)))
+
           ZS = ZS*Mc_step_weight
 
           do nf = 1, N_FL
@@ -633,13 +667,24 @@
           Obs_scal(1)%Obs_vec(1) = Obs_scal(1)%Obs_vec(1) + Zkin*ZP*ZS
 
           ZPot = cmplx(0.d0, 0.d0, kind(0.d0))
-          Z = cmplx(dble(N_SUN), 0.d0, kind(0.d0))
-          do I = 1, Ndim
-             ZPot = ZPot + LRC_V_int(I, I)*Grc(i, i, 1)*Grc(i, i, 1)
-             do J = I + 1, Ndim
-                ZPot = ZPot + Z*LRC_V_int(I, J)*(Z*Grc(i, i, 1)*Grc(j, j, 1) + Grc(i, j, 1)*Gr(i, j, 1))
+          dec = 1
+          if (Mz) dec = 2
+          if (str_to_upper(Lattice_type) == "BILAYER_SQUARE" .or. str_to_upper(Lattice_type) == "BILAYER_HONEYCOMB") then
+             do I = 1, Latt%N
+                do no_I = 1, Latt_unit%Norb
+                   I1 = Invlist(I, no_I)
+                   if (no_I == 1) ZPot = ZPot + Grc(i1, i1, 1)*Grc(i1, i1, dec)*ham_U
+                   if (no_I == 2) ZPot = ZPot + Grc(i1, i1, 1)*Grc(i1, i1, dec)*ham_U2
+                end do
              end do
-          end do
+          else
+             do I = 1, Latt%N
+                do no_I = 1, Latt_unit%Norb
+                   I1 = Invlist(I, no_I)
+                   ZPot = ZPot + Grc(i1, i1, 1)*Grc(i1, i1, dec)*ham_U
+                end do
+             end do
+          end if
           Obs_scal(2)%Obs_vec(1) = Obs_scal(2)%Obs_vec(1) + Zpot*ZP*ZS
 
           Zrho = cmplx(0.d0, 0.d0, kind(0.d0))
@@ -654,11 +699,17 @@
           Obs_scal(4)%Obs_vec(1) = Obs_scal(4)%Obs_vec(1) + (Zkin + Zpot)*ZP*ZS
 
           ! Standard two-point correlations
-          call Predefined_Obs_eq_Green_measure(Latt, Latt_unit, List, GR, GRC, N_SUN, ZS, ZP, Obs_eq(1))
-          call Predefined_Obs_eq_SpinSUN_measure(Latt, Latt_unit, List, GR, GRC, N_SUN, ZS, ZP, Obs_eq(2))
-          call Predefined_Obs_eq_Den_measure(Latt, Latt_unit, List, GR, GRC, N_SUN, ZS, ZP, Obs_eq(3))
-       end subroutine Obser
+          if (Mz) then
+             call Predefined_Obs_eq_Green_measure(Latt, Latt_unit, List, GR, GRC, N_SUN, ZS, ZP, Obs_eq(1))
+             call Predefined_Obs_eq_SpinMz_measure(Latt, Latt_unit, List, GR, GRC, N_SUN, ZS, ZP, Obs_eq(2), Obs_eq(3), Obs_eq(4))
+             call Predefined_Obs_eq_Den_measure(Latt, Latt_unit, List, GR, GRC, N_SUN, ZS, ZP, Obs_eq(5))
+          else
+             call Predefined_Obs_eq_Green_measure(Latt, Latt_unit, List, GR, GRC, N_SUN, ZS, ZP, Obs_eq(1))
+             call Predefined_Obs_eq_SpinSUN_measure(Latt, Latt_unit, List, GR, GRC, N_SUN, ZS, ZP, Obs_eq(2))
+             call Predefined_Obs_eq_Den_measure(Latt, Latt_unit, List, GR, GRC, N_SUN, ZS, ZP, Obs_eq(3))
+          end if
 
+       end subroutine Obser
 !--------------------------------------------------------------------
 !> @author
 !> ALF Collaboration
@@ -705,9 +756,16 @@
 
           ! Standard two-point correlations
 
-          call Predefined_Obs_tau_Green_measure(Latt, Latt_unit, List, NT, GT0, G0T, G00, GTT, N_SUN, ZS, ZP, Obs_tau(1))
-          call Predefined_Obs_tau_SpinSUN_measure(Latt, Latt_unit, List, NT, GT0, G0T, G00, GTT, N_SUN, ZS, ZP, Obs_tau(2))
-          call Predefined_Obs_tau_Den_measure(Latt, Latt_unit, List, NT, GT0, G0T, G00, GTT, N_SUN, ZS, ZP, Obs_tau(3))
+          if (Mz) then
+             call Predefined_Obs_tau_Green_measure(Latt, Latt_unit, List, NT, GT0, G0T, G00, GTT, N_SUN, ZS, ZP, Obs_tau(1))
+             call Predefined_Obs_tau_SpinMz_measure(Latt, Latt_unit, List, NT, GT0, G0T, G00, GTT, N_SUN, ZS, ZP, Obs_tau(2),&
+                  &                                   Obs_tau(3), Obs_tau(4))
+             call Predefined_Obs_tau_Den_measure(Latt, Latt_unit, List, NT, GT0, G0T, G00, GTT, N_SUN, ZS, ZP, Obs_tau(5))
+          else
+             call Predefined_Obs_tau_Green_measure(Latt, Latt_unit, List, NT, GT0, G0T, G00, GTT, N_SUN, ZS, ZP, Obs_tau(1))
+             call Predefined_Obs_tau_SpinSUN_measure(Latt, Latt_unit, List, NT, GT0, G0T, G00, GTT, N_SUN, ZS, ZP, Obs_tau(2))
+             call Predefined_Obs_tau_Den_measure(Latt, Latt_unit, List, NT, GT0, G0T, G00, GTT, N_SUN, ZS, ZP, Obs_tau(3))
+          end if
 
        end subroutine OBSERT
 
@@ -716,99 +774,29 @@
 !> ALF Collaboration
 !>
 !> @brief
-!> Specify a global move on a given time slice tau.
-!>
+!> Single spin flip S0 ratio
 !> @details
-!> @param[in] ntau Integer
-!> \verbatim
-!>  Time slice
-!> \endverbatim
-!> @param[out] T0_Proposal_ratio, Real
-!> \verbatim
-!>  T0_Proposal_ratio = T0( sigma_new -> sigma ) /  T0( sigma -> sigma_new)
-!> \endverbatim
-!> @param[out] S0_ratio, Real
-!> \verbatim
-!>  S0_ratio = e^( S_0(sigma_new) ) / e^( S_0(sigma) )
-!> \endverbatim
-!> @param[out] Flip_length  Integer
-!> \verbatim
-!>  Number of flips stored in the first  Flip_length entries of the array Flip_values.
-!>  Has to be smaller than NDIM
-!> \endverbatim
-!> @param[out] Flip_list  Integer(Ndim)
-!> \verbatim
-!>  List of spins to be flipped: nsigma%f(Flip_list(1),ntau) ... nsigma%f(Flip_list(Flip_Length),ntau)
-!>  Note that Ndim = size(Op_V,1)
-!> \endverbatim
-!> @param[out] Flip_value  Real(Ndim)
-!> \verbatim
-!>  Flip_value(:)= nsigma%flip(Flip_list(:),ntau)
-!>  Note that Ndim = size(Op_V,1)
-!> \endverbatim
-!--------------------------------------------------------------------
-       subroutine Global_move_tau(T0_Proposal_ratio, S0_ratio, &
-            &                     Flip_list, Flip_length, Flip_value, ntau)
-
-          implicit none
-          real(Kind=kind(0.d0)), intent(OUT) :: T0_Proposal_ratio, S0_ratio
-          integer, intent(OUT) :: Flip_list(:)
-          complex(Kind=kind(0.d0)), intent(OUT) :: Flip_value(:)
-          integer, intent(OUT) :: Flip_length
-          integer, intent(IN)    :: ntau
-
-          ! Local
-          integer :: n_op, n, ns
-          real(Kind=kind(0.d0)) :: T0_proposal
-          real(Kind=kind(0.d0)), allocatable  ::  V(:), V1(:)
-
-          n = size(nsigma%f, 1)
-          allocate (V(n), V1(n))
-          do ns = 1, n
-             V(ns) = real(nsigma%f(ns, ntau))
-          end do
-          !Call LRC_draw_field(Percent_change, Dtau, nsigma%f(:,ntau), Flip_value(:),N_SUN)
-          call LRC_draw_field(Percent_change, Dtau, V, V1, N_SUN)
-          do ns = 1, n
-             Flip_value(ns) = cmplx(V1(ns), 0.d0, kind(0.d0))
-          end do
-          deallocate (V, V1)
-
-          do n = 1, Ndim
-             Flip_list(n) = n
-             !Write(6,*) Flip_value(n), nsigma%f(n,ntau)
-          end do
-          !Write(6,*)
-          Flip_length = Ndim
-          ! T0_Proposal_ration exactly cancels S0_ratio
-          T0_Proposal_ratio = 1.d0
-          S0_ratio = 1.d0
-
-       end subroutine Global_move_tau
-
-!--------------------------------------------------------------------
-!> @author
-!> ALF Collaboration
-!>
-!> @brief
-!> This routine allows to user to  determine the global_tau sampling parameters at run time
-!> It is especially usefull if these parameters are dependent on other parameters.
-!>
+!> S0=exp(-S0(new))/exp(-S0(old)) where the new configuration correpsonds to the old one up to
+!> a spin flip of Operator n on time slice nt
 !> @details
-!> \endverbatim
 !--------------------------------------------------------------------
-       subroutine Overide_global_tau_sampling_parameters(Nt_sequential_start, Nt_sequential_end, N_Global_tau)
-
+       real(Kind=kind(0.d0)) function S0(n, nt, Hs_new)
           implicit none
-          integer, intent(INOUT) :: Nt_sequential_start, Nt_sequential_end, N_Global_tau
+          !> Operator index
+          integer, intent(IN) :: n
+          !> Time slice
+          integer, intent(IN) :: nt
+          !> New local field on time slice nt and operator index n
+          complex(Kind=kind(0.d0)), intent(In) :: Hs_new
 
-          if (str_to_upper(Model) == "LRC") then
-             Nt_sequential_start = 1
-             Nt_sequential_end = 0
-             N_Global_tau = nint(1.d0/Percent_change)
+          integer :: nt1, I
+
+          if (Continuous) then
+             S0 = exp((-real(Hs_new, kind(0.d0))**2 + real(nsigma%f(n, nt), kind(0.d0))**2)/2.d0)
+          else
+             S0 = 1.d0
           end if
-
-       end subroutine Overide_global_tau_sampling_parameters
+       end function S0
 
 !--------------------------------------------------------------------
 !> @author
@@ -823,7 +811,6 @@
           implicit none
 
           real(Kind=kind(0.d0)), intent(inout), allocatable :: Forces_0(:, :)
-
           !Local
           integer :: N, N_op, nt
 
@@ -833,11 +820,54 @@
           do n = 1, N_op
              if (OP_V(n, 1)%type == 3) then
                 do nt = 1, Ltrot
-                   Forces_0(n, nt) = real(nsigma%f(n, nt), kind(0.d0))
+                   Forces_0(n, nt) = real(nsigma%f(n, nt))
                 end do
              end if
           end do
 
        end subroutine Ham_Langevin_HMC_S0
 
-    end submodule ham_LRC_smod
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Computes the ratio exp(S0(new))/exp(S0(old))
+!>
+!> @details
+!> This function computes the ratio \verbatim  e^{-S0(nsigma)}/e^{-S0(nsigma_old)} \endverbatim
+!> @param [IN] nsigma_old,  Type(Fields)
+!> \verbatim
+!>  Old configuration. The new configuration is stored in nsigma.
+!> \endverbatim
+!-------------------------------------------------------------------
+       real(Kind=kind(0.d0)) function Delta_S0_global(Nsigma_old)
+
+          !  This function computes the ratio:  e^{-S0(nsigma)}/e^{-S0(nsigma_old)}
+          implicit none
+
+          ! Arguments
+          type(Fields), intent(IN) :: nsigma_old
+          real(kind=kind(0.0d0))     :: S0_old, S0_new
+          integer                    :: f, t, nfield, ntau
+
+          Delta_S0_global = 1.d0
+          nfield = size(nsigma%f, 1)
+          ntau = size(nsigma%f, 2)
+          S0_old = 0.0d0
+          S0_new = 0.0d0
+          do t = 1, ntau
+             do f = 1, nfield
+                S0_old = S0_old + real(nsigma_old%f(f, t), kind(0.d0))**2
+                S0_new = S0_new + real(nsigma%f(f, t), kind(0.d0))**2
+             end do
+          end do
+          S0_old = 0.5d0*S0_old
+          S0_new = 0.5d0*S0_new
+          Delta_S0_global = exp(-S0_new + S0_old)
+          !   write(*,*) "S0 old:", S0_old, "S0 new:", S0_new
+          ! S0 = exp( (-Hs_new**2  + nsigma%f(n,nt)**2 ) /2.d0 )
+
+       end function Delta_S0_global
+
+    end submodule ham_Hubbard_smod
