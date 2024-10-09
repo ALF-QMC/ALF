@@ -114,7 +114,7 @@
 !>
 !--------------------------------------------------------------------
 
-    submodule(Hamiltonian_main) ham_Hubbard_smod
+    submodule(Hamiltonian_main) ham_bose_metal_smod
 
        use Operator_mod
        use WaveFunction_mod
@@ -130,23 +130,22 @@
 
        implicit none
 
-       type, extends(ham_base) :: ham_Hubbard
+       type, extends(ham_base) :: ham_bose_metal
        contains
           ! Set Hamiltonian-specific procedures
           procedure, nopass :: Ham_Set
           procedure, nopass :: Alloc_obs
           procedure, nopass :: Obser
           procedure, nopass :: ObserT
-          procedure, nopass :: S0
           procedure, nopass :: Ham_Langevin_HMC_S0
           procedure, nopass :: Delta_S0_global
 #ifdef HDF5
           procedure, nopass :: write_parameters_hdf5
 #endif
-       end type ham_Hubbard
+       end type ham_bose_metal
 
        !#PARAMETERS START# VAR_lattice
-       character(len=64) :: Model = 'Hubbard'  ! Value not relevant
+       character(len=64) :: Model = 'bose_metal'  ! Value not relevant
        character(len=64) :: Lattice_type = 'square_anisotropic'
        integer            :: L1 = 6   ! Length in direction a_1
        integer            :: L2 = 6   ! Length in direction a_2
@@ -172,6 +171,7 @@
        real(Kind=kind(0.d0)) :: ham_alpha = 1.d0     ! Hopping parameter
        real(Kind=kind(0.d0)) :: ham_chem  = 0.d0     ! Chemical potential
        real(Kind=kind(0.d0)) :: ham_U     = 4.d0     ! attractive Hubbard interaction
+       integer               :: N_dope    = 0
        !#PARAMETERS END#
 
        type(Lattice), target :: Latt
@@ -221,7 +221,6 @@
           igroup = irank/isize_g
 #endif
 
-          ! From dynamically generated file "Hamiltonian_Hubbard_read_write_parameters.F90"
           call read_parameters()
 
           Ltrot = nint(beta/dtau)
@@ -278,6 +277,7 @@
              write (unit_info, *) 'alpha         : ', ham_alpha
              write (unit_info, *) 'Ham_U         : ', Ham_U
              write (unit_info, *) 'Ham_chem      : ', Ham_chem
+             write (unit_info, *) 'N_dope        : ', N_dope
              if (Projector) then
                 do nf = 1, N_FL
                    write (unit_info, *) 'Degen of right trial wave function: ', WF_R(nf)%Degen
@@ -319,35 +319,38 @@
 
           real(Kind=kind(0.d0)) ::  Ham_Lambda = 0.d0
 
-          real(Kind=kind(0.d0)), allocatable :: Ham_T_vec(:), Ham_Tperp_vec(:), Ham_Chem_vec(:), Phi_X_vec(:), Phi_Y_vec(:),&
-               &                                  Ham_alpha_vec(:), Ham_Lambda_vec(:)
+          real(Kind=kind(0.d0)), allocatable :: Ham_tx_vec(:), Ham_Chem_vec(:), Phi_X_vec(:), Phi_Y_vec(:),&
+               &                                Ham_ty_vec(:), Ham_Lambda_vec(:)
           integer, allocatable ::   N_Phi_vec(:)
 
           ! Use predefined stuctures or set your own hopping
           integer :: n, nth
 
-          allocate (Ham_T_vec(N_FL), Ham_alpha_vec(N_FL), Ham_Tperp_vec(N_FL), Ham_Chem_vec(N_FL), Phi_X_vec(N_FL), Phi_Y_vec(N_FL),&
-               &                                   N_Phi_vec(N_FL), Ham_Lambda_vec(N_FL))
+          allocate (ham_tx_vec(N_FL), ham_ty_vec(N_FL), Ham_Chem_vec(N_FL), Phi_X_vec(N_FL), Phi_Y_vec(N_FL),&
+               &    N_Phi_vec(N_FL), Ham_Lambda_vec(N_FL))
 
           ! Here we consider no N_FL  dependence of the hopping parameters.
-          Ham_T_vec = Ham_T
-          Ham_alpha_vec = Ham_alpha
-          Ham_Chem_vec = Ham_Chem
-          Phi_X_vec = Phi_X
-          Phi_Y_vec = Phi_Y
-          N_Phi_vec = N_Phi
+          Ham_tx_vec = ham_t
+          Ham_ty_vec = ham_t
+          Ham_Chem_vec = ham_chem
+          Phi_X_vec = phi_X
+          Phi_Y_vec = phi_Y
+          N_Phi_vec = n_phi
+
+          ham_tx_vec(1) = ham_t;
+          ham_tx_vec(2) = ham_t*ham_alpha;
+          ham_ty_vec(1) = ham_t*ham_alpha;
+          ham_ty_vec(2) = ham_t;
 
           select case (str_to_upper(Lattice_type))
           case ("square_anisotropic")
-            call Set_Default_hopping_parameters_square_anisotropic(Hopping_Matrix, Ham_T_vec, Ham_alpha_vec, Ham_Tperp_vec, Ham_Chem_vec, &
-                   &                                              Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL,&
-                   &                                              List, Invlist, Latt, Latt_unit)
-
+            call set_hopping_parameters_square_anisotropic(Hopping_Matrix, ham_tx_vec, ham_ty_vec, Ham_Chem_vec, &
+                   & Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
           end select
 
           call Predefined_Hoppings_set_OPT(Hopping_Matrix, List, Invlist, Latt, Latt_unit, Dtau, Checkerboard, Symm, OP_T)
 
-          deallocate (Ham_T_vec, Ham_T2_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, N_Phi_vec)
+          deallocate (ham_tx_vec, ham_ty_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, N_Phi_vec)
 
        end subroutine Ham_Hop
 !--------------------------------------------------------------------
@@ -365,9 +368,9 @@
 
           integer :: N_part, nf
           ! Use predefined stuctures or set your own Trial  wave function
-          N_part = Ndim/2
+          N_part = ndim/2-n_dope
           call Predefined_TrialWaveFunction(Lattice_type, Ndim, List, Invlist, Latt, Latt_unit, &
-               &                            N_part, N_FL, WF_L, WF_R)
+               &                            N_part, ham_alpha, N_FL, WF_L, WF_R)
 
        end subroutine Ham_Trial
 
@@ -384,17 +387,17 @@
           implicit none
 
           integer :: nf, I, I1, I2, nc, J, no, N_ops
-          real(Kind=kind(0.d0)) :: X, Zero = 1.d-10
+          real(Kind=kind(0.d0)) :: X, zero = 1.d-10
 
           N_ops = 0
-          if (abs(Ham_U) > Zero) N_ops = N_ops + Latt%N*Latt_unit%Norb
+          if (abs(ham_u) > zero) N_ops = N_ops + Latt%N*Latt_unit%Norb
 
           allocate (Op_V(N_ops, N_FL))
           nc = 0
           do i1 = 1, latt%N
              do no = 1, latt_unit%norb
                 i = invlist(i1, no)
-                if (abs(Ham_U_vec(no)) > Zero) then
+                if (abs(ham_u) > zero) then
                    nc = nc + 1
                    do nf = 1, n_fl
                        call op_make( op_v(nc,nf), 1 )
@@ -407,8 +410,6 @@
                 end if
              end do
           end do
-
-          deallocate (Ham_U_vec)
 
        end subroutine Ham_V
 
@@ -531,7 +532,7 @@
           !Local
           complex(Kind=kind(0.d0)) :: grc(Ndim, Ndim, N_FL), ZK
           complex(Kind=kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP, ZS, ZZ, ZXY, zback
-          integer :: I, J, k, l, m, n, imj, nf, dec, i1, i2, i3, j1, j2, j3, no_I, no_J, n
+          integer :: I, J, k, l, m, n, imj, nf, dec, i1, i2, i3, j1, j2, j3, no_I, no_J
           real(Kind=kind(0.d0)) :: X
 
           ZP = PHASE/real(Phase, kind(0.d0))
@@ -663,9 +664,9 @@
           real(Kind=kind(0.d0)), intent(IN) :: Mc_step_weight
 
           !Locals
-          complex(Kind=kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY, zone
+          complex(Kind=kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY, zone, zback
           real(Kind=kind(0.d0)) :: X
-          integer :: IMJ, I, J, I1, J1, no_I, no_J
+          integer :: IMJ, I, J, k, l, m, n, i1, i2, i3, j1, j2, j3, no_I, no_J
 
           ZP = PHASE/real(Phase, kind(0.d0))
           ZS = real(Phase, kind(0.d0))/abs(real(Phase, kind(0.d0)))
@@ -795,4 +796,4 @@
 
        end function Delta_S0_global
 
-    end submodule ham_Hubbard_smod
+    end submodule ham_bose_metal_smod

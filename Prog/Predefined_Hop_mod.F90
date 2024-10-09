@@ -246,360 +246,55 @@ contains
 !>
 !
 !--------------------------------------------------------------------
-   subroutine Set_Default_hopping_parameters_square(this, Ham_T_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, &
-        &                                           List, Invlist, Latt, Latt_unit)
+   subroutine set_hopping_parameters_square_anisotropic(this, Ham_tx_vec, ham_ty_vec, Ham_Chem_vec, &
+           & Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
 
       implicit none
 
-      type(Hopping_Matrix_type), allocatable     :: this(:)
-      real(Kind=kind(0.d0)), intent(IN), dimension(:)   :: Ham_T_vec, Ham_Chem_vec, Phi_x_vec, Phi_y_vec
-      integer, intent(IN), dimension(:)                  :: N_Phi_vec
-      integer, intent(IN)                               :: N_FL
-      logical, intent(IN)                               :: Bulk
-      integer, intent(IN), dimension(:, :)               :: List, Invlist
-      type(Lattice), intent(in)            :: Latt
-      type(Unit_cell), intent(in)            :: Latt_unit
+      type(Hopping_Matrix_type), allocatable          :: this(:)
+      real(Kind=kind(0.d0)), intent(IN), dimension(:) :: Ham_tx_vec, Ham_ty_vec, Ham_Chem_vec
+      real(Kind=kind(0.d0)), intent(IN), dimension(:) :: Phi_x_vec, Phi_y_vec
+      integer, intent(IN), dimension(:)               :: N_Phi_vec
+      integer, intent(IN)                             :: N_FL
+      logical, intent(IN)                             :: Bulk
+      integer, intent(IN), dimension(:, :)            :: List, Invlist
+      type(Lattice), intent(in)   :: Latt
+      type(Unit_cell), intent(in) :: Latt_unit
 
       ! Local
       integer :: nf, N_Bonds, nc, I, I1
       real(Kind=kind(0.d0)) :: Zero = 1.0e-8, Ham_T_max
       real(Kind=kind(0.d0)), allocatable :: Ham_T_perp_vec(:)
 
-      if (Xnorm(Latt%L2_p - Latt%a2_p) < Zero) then
-         allocate (Ham_T_perp_vec(N_FL))
-         Ham_T_perp_vec = 0.d0
-         call Set_Default_hopping_parameters_N_Leg_Ladder(this, Ham_T_vec, Ham_T_perp_vec, Ham_Chem_vec, Phi_X_vec, &
-              &                                           Phi_Y_vec, Bulk, N_Phi_vec, N_FL, &
-              &                                           List, Invlist, Latt, Latt_unit)
-         deallocate (Ham_T_perp_vec)
-      else
-         if (mod(nint(latt%L1_p(1)), 2) /= 0 .or. mod(nint(latt%L2_p(2)), 2) /= 0) then
-            write (error_unit, *) '*** For  the  square  lattice,  our  implementation of the checkerborad '
-            write (error_unit, *) 'decomposition  requires even  values of L_1  and L_2  ***'
-            call Terminate_on_error(ERROR_GENERIC, __FILE__, __LINE__)
-         end if
-         allocate (this(N_FL))
+      allocate (this(N_FL))
 
-         Ham_T_max = 0.d0
-         do nf = 1, N_FL
-            if (abs(Ham_T_vec(nf)) > Ham_T_max) Ham_T_max = abs(Ham_T_vec(nf))
-         end do
+      Ham_T_max = 0.d0
+      do nf = 1, N_FL
+         if (abs(Ham_Tx_vec(nf)) > Ham_T_max) Ham_T_max = abs(Ham_Tx_vec(nf))
+      end do
 
-         do nf = 1, N_FL
-            this(nf)%N_bonds = 0
-            if (abs(Ham_T_max) > Zero) then
-               this(nf)%N_bonds = 2
-               allocate (this(nf)%List(this(nf)%N_bonds, 4), &
-                    &    this(nf)%T(this(nf)%N_bonds))
-               nc = 0
-               nc = nc + 1
-               this(nf)%T(nc) = cmplx(-Ham_T_vec(nf), 0.d0, kind(0.d0))
-               this(nf)%List(nc, 1) = 1
-               this(nf)%List(nc, 2) = 1
-               this(nf)%List(nc, 3) = 0
-               this(nf)%List(nc, 4) = 1
-
-               nc = nc + 1
-               this(nf)%T(nc) = cmplx(-Ham_T_vec(nf), 0.d0, kind(0.d0))
-               this(nf)%List(nc, 1) = 1
-               this(nf)%List(nc, 2) = 1
-               this(nf)%List(nc, 3) = 1
-               this(nf)%List(nc, 4) = 0
-            end if
-            allocate (this(nf)%T_Loc(Latt_Unit%Norb))
-            do nc = 1, Latt_Unit%Norb
-               this(nf)%T_Loc(nc) = cmplx(-Ham_Chem_vec(nf), 0.d0, kind(0.d0))
-            end do
-            this(nf)%N_Phi = N_Phi_vec(nf)
-            this(nf)%Phi_X = Phi_X_vec(nf)
-            this(nf)%Phi_Y = Phi_Y_vec(nf)
-            this(nf)%Bulk = Bulk
-         end do
-
-         !Set Checkerboard
-         if (Ham_T_max > Zero) then
-            this(1)%N_FAM = 4
-            allocate (this(1)%L_Fam(this(1)%N_FAM), this(1)%Prop_Fam(this(1)%N_FAM))
-            this(1)%L_FAM = Latt%N/2
-            this(1)%Prop_Fam = 1.d0
-            allocate (this(1)%List_Fam(this(1)%N_FAM, this(1)%L_Fam(1), 2))
-            this(1)%L_FAM = 0
-            do I = 1, Latt%N
-               if (mod(Latt%List(I, 1) + Latt%List(I, 2), 2) == 0) then
-                  Nf = 1
-                  this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                  this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I ! Unit cell
-                  this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 1 ! The bond (See above)
-                  Nf = 2
-                  this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                  this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
-                  this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 2
-               else
-                  Nf = 3
-                  this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                  this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
-                  this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 1
-                  Nf = 4
-                  this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                  this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
-                  this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 2
-               end if
-            end do
-         end if
-      end if
-   end subroutine Set_Default_hopping_parameters_square
-
-!--------------------------------------------------------------------
-!> @author
-!> ALF-project
-!>
-!> @brief
-!> Default hopping for n-leg-ladder.  Ham_T is the nearest neighbour hopping along the chain,  Ham_T_perp  the
-!> interrung hopping and H_chem the chemical potential.
-!>
-!
-!--------------------------------------------------------------------
-   subroutine Set_Default_hopping_parameters_N_Leg_Ladder  &
-        &               (this, Ham_T_vec, Ham_T_perp_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, Bulk, &
-        &                N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
-
-      implicit none
-
-      type(Hopping_Matrix_type), allocatable :: this(:)
-      integer, intent(IN)                   :: N_FL
-      real(Kind=kind(0.d0)), intent(IN), dimension(:)    :: Ham_T_vec, Ham_T_perp_vec, Ham_Chem_vec, Phi_x_vec, Phi_y_vec
-      integer, intent(IN), dimension(:)                   :: N_Phi_vec
-      logical, intent(IN)                                 :: Bulk
-      integer, intent(IN), dimension(:, :)   :: List, Invlist
-      type(Lattice), intent(in)            :: Latt
-      type(Unit_cell), intent(in)            :: Latt_unit
-
-      ! Local
-      integer :: nf, N_Bonds, nc, I, I1, n, no
-      real(Kind=kind(0.d0)) :: Zero = 1.0e-8
-
-      select case (Latt%N)
-      case (1)   !  Here the length of the  N_leg_ladder is unity such  that it
-         !  effectivley maps onto a one-dimensional chain with open boundary conditions.
-
-         allocate (this(N_FL))
-         do nf = 1, N_FL
-            this(nf)%N_bonds = Latt_unit%Norb - 1
-            allocate (this(nf)%List(this(nf)%N_bonds, 4), this(nf)%T(this(nf)%N_bonds))
-            nc = 0
-            do n = 1, Latt_unit%Norb - 1
-               nc = nc + 1
-               this(nf)%T(nc) = cmplx(-Ham_T_perp_vec(nf), 0.d0, kind(0.d0))
-               this(nf)%List(nc, 1) = n
-               this(nf)%List(nc, 2) = n + 1
-               this(nf)%List(nc, 3) = 0
-               this(nf)%List(nc, 4) = 0
-            end do
-
-            allocate (this(nf)%T_Loc(Latt_Unit%Norb))
-            do nc = 1, Latt_Unit%Norb
-               this(nf)%T_Loc(nc) = cmplx(-Ham_Chem_vec(nf), 0.d0, kind(0.d0))
-            end do
-            this(nf)%N_Phi = N_Phi_vec(nf)
-            this(nf)%Phi_X = Phi_X_vec(nf)
-            this(nf)%Phi_Y = Phi_Y_vec(nf)
-            this(nf)%Bulk = Bulk
-         end do
-
-         ! Set Checkerboard
-         if (Latt_Unit%Norb <= 2) then
-            this(1)%N_FAM = 1
-         else
-            this(1)%N_FAM = 2
-         end if
-         allocate (this(1)%L_Fam(this(1)%N_FAM), this(1)%Prop_Fam(this(1)%N_FAM))
-         this(1)%L_Fam = Latt_unit%Norb/2
-         this(1)%Prop_Fam = 1.d0
-         allocate (this(1)%List_Fam(this(1)%N_FAM, this(1)%L_Fam(1), 2))
-
-         this(1)%L_FAM = 0
-         do no = 1, Latt_unit%Norb - 1
-            if (mod(no, 2) == 1) then
-               Nf = 1
-               !Write(6,*)  NF, no
-               do I = 1, Latt%N
-                  this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                  this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
-                  this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = no
-               end do
-            else
-               Nf = 2
-               !Write(6,*)  NF, no
-               do I = 1, Latt%N
-                  this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                  this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
-                  this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = no
-               end do
-            end if
-         end do
-
-      case default
-         if (mod(nint(latt%L1_p(1)), 2) /= 0) then
-            write (error_unit, *) '*** For  the N_leg_ladder  lattice,  our  implementation of the checkerborad '
-            write (error_unit, *) 'decomposition  requires L_1 = 1 or  L_1   even ***'
-            call Terminate_on_error(ERROR_GENERIC, __FILE__, __LINE__)
-         end if
-
-         !Write(6,*) Ham_T_vec,  Ham_T_perp_vec, Ham_chem_vec
-         allocate (this(N_FL))
-         do nf = 1, N_FL
-            this(nf)%N_bonds = Latt_unit%Norb + (Latt_unit%Norb - 1)
+      do nf = 1, N_FL
+         this(nf)%N_bonds = 0
+         if (abs(Ham_T_max) > Zero) then
+            this(nf)%N_bonds = 2
             allocate (this(nf)%List(this(nf)%N_bonds, 4), &
                  &    this(nf)%T(this(nf)%N_bonds))
             nc = 0
-            do n = 1, Latt_unit%Norb
-               nc = nc + 1
-               this(nf)%T(nc) = cmplx(-Ham_T_vec(nf), 0.d0, kind(0.d0))
-               this(nf)%List(nc, 1) = n
-               this(nf)%List(nc, 2) = n
-               this(nf)%List(nc, 3) = 1
-               this(nf)%List(nc, 4) = 0
-            end do
 
-            do n = 1, Latt_unit%Norb - 1
-               nc = nc + 1
-               this(nf)%T(nc) = cmplx(-Ham_T_perp_vec(nf), 0.d0, kind(0.d0))
-               this(nf)%List(nc, 1) = n
-               this(nf)%List(nc, 2) = n + 1
-               this(nf)%List(nc, 3) = 0
-               this(nf)%List(nc, 4) = 0
-            end do
+            nc = nc + 1
+            this(nf)%T(nc) = cmplx(-Ham_tx_vec(nf), 0.d0, kind(0.d0))
+            this(nf)%List(nc, 1) = 1
+            this(nf)%List(nc, 2) = 1
+            this(nf)%List(nc, 3) = 1
+            this(nf)%List(nc, 4) = 0
+            nc = nc + 1
 
-            allocate (this(nf)%T_Loc(Latt_Unit%Norb))
-            do nc = 1, Latt_Unit%Norb
-               this(nf)%T_Loc(nc) = cmplx(-Ham_Chem_vec(nf), 0.d0, kind(0.d0))
-            end do
-            this(nf)%N_Phi = N_Phi_vec(nf)
-            this(nf)%Phi_X = Phi_X_vec(nf)
-            this(nf)%Phi_Y = Phi_Y_vec(nf)
-            this(nf)%Bulk = Bulk
-         end do
-
-         ! Write(6,*) Latt_unit%Norb
-         ! Set Checkerboard
-         if (Latt_Unit%Norb == 1) then
-            this(1)%N_FAM = 2
-         elseif (Latt_Unit%Norb == 2) then
-            this(1)%N_FAM = 3
-         else
-            this(1)%N_FAM = 4
+            this(nf)%T(nc) = cmplx(-Ham_ty_vec(nf), 0.d0, kind(0.d0))
+            this(nf)%List(nc, 1) = 1
+            this(nf)%List(nc, 2) = 1
+            this(nf)%List(nc, 3) = 0
+            this(nf)%List(nc, 4) = 1
          end if
-         allocate (this(1)%L_Fam(this(1)%N_FAM), this(1)%Prop_Fam(this(1)%N_FAM))
-         this(1)%L_Fam = Latt%N*Latt_unit%Norb/2
-         this(1)%Prop_Fam = 1.d0
-         allocate (this(1)%List_Fam(this(1)%N_FAM, this(1)%L_Fam(1), 2))
-
-         this(1)%L_FAM = 0
-         do I = 1, Latt%N
-            if (mod(Latt%List(I, 1), 2) == 0) then
-               Nf = 1
-               do no = 1, Latt_unit%Norb
-                  this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                  this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I ! Unit cell
-                  this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = no ! The bond (See above)
-               end do
-            else
-               Nf = 2
-               do no = 1, Latt_unit%Norb
-                  this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                  this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
-                  this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = no
-               end do
-            end if
-         end do
-         do no = 1, Latt_unit%Norb - 1
-            if (mod(no, 2) == 1) then
-               Nf = 3
-               !Write(6,*)  NF, no + Latt_unit%Norb
-               do I = 1, Latt%N
-                  this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                  this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
-                  this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = no + Latt_unit%Norb
-               end do
-            else
-               Nf = 4
-               !Write(6,*)  NF, no + Latt_unit%Norb
-               do I = 1, Latt%N
-                  this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                  this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
-                  this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = no + Latt_unit%Norb
-               end do
-            end if
-         end do
-      end select
-
-   end subroutine Set_Default_hopping_parameters_N_Leg_Ladder
-
-!--------------------------------------------------------------------
-!> @author
-!> ALF-project
-!>
-!> @brief
-!> Default hopping for Honeycomb lattice.  Ham_T is the nearest neighbour hopping along the chain, Lambda is  the
-!> Kane-Mele term and H_chem the chemical potential.  **Note**  The Kane-Mele term is not yet implemented.
-!>
-!
-!--------------------------------------------------------------------
-   subroutine Set_Default_hopping_parameters_honeycomb(this, Ham_T_vec, Ham_Lambda_vec, Ham_Chem_vec, Phi_X_vec, &
-        &                                              Phi_Y_vec, Bulk, N_Phi_vec, N_FL,&
-        &                                              List, Invlist, Latt, Latt_unit)
-
-      implicit none
-
-      type(Hopping_Matrix_type), allocatable            :: this(:)
-      real(Kind=kind(0.d0)), intent(IN), dimension(:), allocatable  :: Ham_T_vec, Ham_Chem_vec, Phi_x_vec, Phi_y_vec, Ham_Lambda_vec
-      integer, intent(IN), dimension(:), allocatable                 :: N_Phi_vec
-      integer, intent(IN)                                           :: N_FL
-      logical, intent(IN)                                           :: Bulk
-      integer, intent(IN), dimension(:, :)   :: List, Invlist
-      type(Lattice), intent(in)            :: Latt
-      type(Unit_cell), intent(in)            :: Latt_unit
-
-      ! Local
-      integer :: nf, N_Bonds, nc, I, I1, n, no
-      real(Kind=kind(0.d0)) :: Zero = 1.0e-8, Ham_Lambda_Max
-
-      !Write(6,*) Ham_T_vec, Ham_Chem_vec
-      Ham_Lambda_Max = 0.d0
-      do nf = 1, N_FL
-         if (abs(Ham_Lambda_vec(nf)) > Ham_Lambda_Max) Ham_Lambda_Max = abs(Ham_Lambda_vec(nf))
-      end do
-      if (abs(Ham_Lambda_max) > 0) then
-         write (error_unit, *) 'Kane Mele term is not yet implemented'
-         call Terminate_on_error(ERROR_GENERIC, __FILE__, __LINE__)
-      end if
-      allocate (this(N_FL))
-      do nf = 1, N_FL
-         this(nf)%N_bonds = 3
-         allocate (this(nf)%List(this(nf)%N_bonds, 4), &
-              &    this(nf)%T(this(nf)%N_bonds))
-         nc = 0
-         nc = nc + 1
-         this(nf)%T(nc) = cmplx(-Ham_T_vec(nf), 0.d0, kind(0.d0))
-         this(nf)%List(nc, 1) = 1
-         this(nf)%List(nc, 2) = 2
-         this(nf)%List(nc, 3) = 0
-         this(nf)%List(nc, 4) = 0
-
-         nc = nc + 1
-         this(nf)%T(nc) = cmplx(-Ham_T_vec(nf), 0.d0, kind(0.d0))
-         this(nf)%List(nc, 1) = 2
-         this(nf)%List(nc, 2) = 1
-         this(nf)%List(nc, 3) = 0
-         this(nf)%List(nc, 4) = 1
-
-         nc = nc + 1
-         this(nf)%T(nc) = cmplx(-Ham_T_vec(nf), 0.d0, kind(0.d0))
-         this(nf)%List(nc, 1) = 1
-         this(nf)%List(nc, 2) = 2
-         this(nf)%List(nc, 3) = 1
-         this(nf)%List(nc, 4) = -1
-
          allocate (this(nf)%T_Loc(Latt_Unit%Norb))
          do nc = 1, Latt_Unit%Norb
             this(nf)%T_Loc(nc) = cmplx(-Ham_Chem_vec(nf), 0.d0, kind(0.d0))
@@ -610,258 +305,13 @@ contains
          this(nf)%Bulk = Bulk
       end do
 
-      ! Set Checkerboard
-      this(1)%N_FAM = 3
-      allocate (this(1)%L_Fam(this(1)%N_FAM), this(1)%Prop_Fam(this(1)%N_FAM))
-      this(1)%L_FAM = Latt%N
-      this(1)%Prop_Fam = 1.d0
-      allocate (this(1)%List_Fam(this(1)%N_FAM, this(1)%L_Fam(1), 2))
-      do I = 1, Latt%N
-         do nf = 1, this(1)%N_FAM
-            this(1)%List_Fam(nf, I, 1) = I  ! Unit cell
-            this(1)%List_Fam(nf, I, 2) = nf ! The bond (See above)
-         end do
-      end do
-
-   end subroutine Set_Default_hopping_parameters_honeycomb
-
-!--------------------------------------------------------------------
-!> @author
-!> ALF-project
-!>
-!> @brief
-!> Default hopping for a bilayer square. Ham_T1, Ham_T2, are the nearest neighbour hopping on the first and second layer and
-!> Ham_T_perp   is the interlayer  hopping.
-!>
-!
-!--------------------------------------------------------------------
-   subroutine Set_Default_hopping_parameters_Bilayer_square(this, Ham_T1_vec, Ham_T2_vec, Ham_Tperp_vec, Ham_Chem_vec, &
-        &                                                   Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL,&
-        &                                                   List, Invlist, Latt, Latt_unit)
-
-      implicit none
-
-      type(Hopping_Matrix_type), allocatable            :: this(:)
-      real(Kind=kind(0.d0)), intent(IN), dimension(:)  :: Ham_T1_vec, Ham_T2_vec, Ham_Tperp_vec, Ham_Chem_vec, Phi_x_vec, Phi_y_vec
-      integer, intent(IN), dimension(:)                 :: N_Phi_vec
-      logical, intent(IN)                   :: Bulk
-      integer, intent(IN)                   :: N_FL
-      integer, intent(IN), dimension(:, :)   :: List, Invlist
-      type(Lattice), intent(in)            :: Latt
-      type(Unit_cell), intent(in)            :: Latt_unit
-
-      ! Local
-      integer :: nf, N_Bonds, nc, I, I1, No_Shift, n, nb
-      real(Kind=kind(0.d0)) :: Zero = 1.0e-8
-      logical :: Test = .false.
-      real(Kind=kind(0.d0))                :: Ham_T1_max, Ham_T2_max, Ham_Tperp_max
-
-      Ham_T1_max = 0.d0
-      Ham_T2_max = 0.d0
-      Ham_Tperp_max = 0.d0
-      do nf = 1, N_FL
-         if (abs(Ham_T1_vec(nf)) > Ham_T1_max) Ham_T1_max = abs(Ham_T1_vec(nf))
-         if (abs(Ham_T2_vec(nf)) > Ham_T2_max) Ham_T2_max = abs(Ham_T2_vec(nf))
-         if (abs(Ham_Tperp_vec(nf)) > Ham_Tperp_max) Ham_Tperp_max = abs(Ham_Tperp_vec(nf))
-      end do
-
-      if (nint(Latt%L2_p(2)) == 1) then
-         if (mod(nint(latt%L1_p(1)), 2) /= 0) then
-            write (error_unit, *) '*** For  the Bilayer square lattice,  our  implementation of the checkerborad '
-            write (error_unit, *) 'decomposition  requires L_1  to be  even ***'
-            call Terminate_on_error(ERROR_GENERIC, __FILE__, __LINE__)
-         end if
-         allocate (this(N_FL))
-         do nf = 1, N_FL
-            N_bonds = 0
-            N_bonds = N_bonds + 1
-            if (abs(Ham_Tperp_max) > Zero) N_bonds = N_bonds + 1
-            if (abs(Ham_T2_max) > Zero) N_bonds = N_bonds + 1
-            this(nf)%N_bonds = N_bonds
-            allocate (this(nf)%List(this(nf)%N_bonds, 4), &
-                 &    this(nf)%T(this(nf)%N_bonds))
-            nc = 0
-            nc = nc + 1
-            this(nf)%T(nc) = cmplx(-Ham_T1_vec(nf), 0.d0, kind(0.d0))
-            this(nf)%List(nc, 1) = 1
-            this(nf)%List(nc, 2) = 1
-            this(nf)%List(nc, 3) = 1
-            this(nf)%List(nc, 4) = 0
-
-            if (abs(Ham_Tperp_max) > Zero) then
-               nc = nc + 1
-               this(nf)%T(nc) = cmplx(-Ham_Tperp_vec(nf), 0.d0, kind(0.d0))
-               this(nf)%List(nc, 1) = 1
-               this(nf)%List(nc, 2) = 2
-               this(nf)%List(nc, 3) = 0
-               this(nf)%List(nc, 4) = 0
-            end if
-
-            if (abs(Ham_T2_max) > Zero) then
-               nc = nc + 1
-               this(nf)%T(nc) = cmplx(-Ham_T2_vec(nf), 0.d0, kind(0.d0))
-               this(nf)%List(nc, 1) = 2
-               this(nf)%List(nc, 2) = 2
-               this(nf)%List(nc, 3) = 1
-               this(nf)%List(nc, 4) = 0
-            end if
-
-            allocate (this(nf)%T_Loc(Latt_Unit%Norb))
-            do nc = 1, Latt_Unit%Norb
-               this(nf)%T_Loc(nc) = cmplx(-Ham_Chem_vec(nf), 0.d0, kind(0.d0))
-            end do
-            if (abs(Ham_T2_max) < Zero .and. abs(Ham_Tperp_max) < Zero) this(nf)%T_Loc(2) = cmplx(0.0, 0.d0, kind(0.d0))
-            this(nf)%N_Phi = N_Phi_vec(nf)
-            this(nf)%Phi_X = Phi_X_vec(nf)
-            this(nf)%Phi_Y = Phi_Y_vec(nf)
-            this(nf)%Bulk = Bulk
-         end do
-
-         ! Set Checkerboard
-         this(1)%N_FAM = 2
-         if (abs(Ham_Tperp_max) > Zero) this(1)%N_FAM = 3
-
-         allocate (this(1)%L_Fam(this(1)%N_FAM), this(1)%Prop_Fam(this(1)%N_FAM))
-         this(1)%Prop_Fam = 1.d0
-
-         No_Shift = 0
-         if (abs(Ham_Tperp_max) > Zero) No_Shift = 1
-         if (abs(Ham_T2_max) < Zero .and. abs(Ham_Tperp_max) < Zero) then
-            this(1)%L_FAM = Latt%N/2
-            allocate (this(1)%List_Fam(this(1)%N_FAM, Latt%N/2, 2))
-         elseif (abs(Ham_T2_max) < Zero .and. abs(Ham_Tperp_max) > Zero) then
-            this(1)%L_FAM = Latt%N/2
-            this(1)%L_Fam(3) = Latt%N
-            allocate (this(1)%List_Fam(this(1)%N_FAM, Latt%N, 2))
-         elseif (abs(Ham_T2_max) > Zero .and. abs(Ham_Tperp_max) < Zero) then
-            this(1)%L_FAM = Latt%N
-            allocate (this(1)%List_Fam(this(1)%N_FAM, Latt%N, 2))
-         elseif (abs(Ham_T2_max) > Zero .and. abs(Ham_Tperp_max) > Zero) then
-            this(1)%L_FAM = Latt%N
-            allocate (this(1)%List_Fam(this(1)%N_FAM, Latt%N, 2))
-         end if
-         this(1)%L_FAM = 0
-         do I = 1, Latt%N
-            if (mod(Latt%List(I, 1) + Latt%List(I, 2), 2) == 0) then
-               Nf = 1
-               this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I ! Unit cell
-               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 1 ! The bond (See above)
-               if (abs(Ham_T2_max) > Zero) then
-                  this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                  this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I ! Unit cell
-                  this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 2 + No_Shift ! The bond (See above)
-               end if
-            else
-               Nf = 2
-               this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
-               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 1
-               if (abs(Ham_T2_max) > Zero) then
-                  this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                  this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I ! Unit cell
-                  this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 2 + No_Shift ! The bond (See above)
-               end if
-            end if
-            if (abs(Ham_Tperp_max) > Zero) then
-               Nf = 3
-               this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
-               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 2
-            end if
-         end do
-      else
-         if (mod(nint(latt%L1_p(1)), 2) /= 0 .or. mod(nint(latt%L2_p(2)), 2) /= 0) then
-            write (error_unit, *) '*** For  the Bilayer square lattice,  our  implementation of the checkerborad '
-            write (error_unit, *) 'decomposition  requires L_1 and  L_2 to be  even ***'
-            call Terminate_on_error(ERROR_GENERIC, __FILE__, __LINE__)
-         end if
-
-         allocate (this(N_FL))
-         do nf = 1, N_FL
-            N_bonds = 0
-            N_bonds = N_bonds + 2
-            if (abs(Ham_Tperp_max) > Zero) N_bonds = N_bonds + 1
-            if (abs(Ham_T2_max) > Zero) N_bonds = N_bonds + 2
-            this(nf)%N_bonds = N_bonds
-            allocate (this(nf)%List(this(nf)%N_bonds, 4), &
-                 &    this(nf)%T(this(nf)%N_bonds))
-            nc = 0
-            nc = nc + 1
-            this(nf)%T(nc) = cmplx(-Ham_T1_vec(nf), 0.d0, kind(0.d0))
-            this(nf)%List(nc, 1) = 1
-            this(nf)%List(nc, 2) = 1
-            this(nf)%List(nc, 3) = 0
-            this(nf)%List(nc, 4) = 1
-
-            nc = nc + 1
-            this(nf)%T(nc) = cmplx(-Ham_T1_vec(nf), 0.d0, kind(0.d0))
-            this(nf)%List(nc, 1) = 1
-            this(nf)%List(nc, 2) = 1
-            this(nf)%List(nc, 3) = 1
-            this(nf)%List(nc, 4) = 0
-
-            if (abs(Ham_Tperp_max) > Zero) then
-               nc = nc + 1
-               this(nf)%T(nc) = cmplx(-Ham_Tperp_vec(nf), 0.d0, kind(0.d0))
-               this(nf)%List(nc, 1) = 1
-               this(nf)%List(nc, 2) = 2
-               this(nf)%List(nc, 3) = 0
-               this(nf)%List(nc, 4) = 0
-            end if
-
-            if (abs(Ham_T2_max) > Zero) then
-               nc = nc + 1
-               this(nf)%T(nc) = cmplx(-Ham_T2_vec(nf), 0.d0, kind(0.d0))
-               this(nf)%List(nc, 1) = 2
-               this(nf)%List(nc, 2) = 2
-               this(nf)%List(nc, 3) = 0
-               this(nf)%List(nc, 4) = 1
-
-               nc = nc + 1
-               this(nf)%T(nc) = cmplx(-Ham_T2_vec(nf), 0.d0, kind(0.d0))
-               this(nf)%List(nc, 1) = 2
-               this(nf)%List(nc, 2) = 2
-               this(nf)%List(nc, 3) = 1
-               this(nf)%List(nc, 4) = 0
-            end if
-
-            allocate (this(nf)%T_Loc(Latt_Unit%Norb))
-            do nc = 1, Latt_Unit%Norb
-               this(nf)%T_Loc(nc) = cmplx(-Ham_Chem_vec(nf), 0.d0, kind(0.d0))
-            end do
-            if (abs(Ham_T2_max) < Zero .and. abs(Ham_Tperp_max) < Zero) this(nf)%T_Loc(2) = cmplx(0.0, 0.d0, kind(0.d0))
-            this(nf)%N_Phi = N_Phi_vec(nf)
-            this(nf)%Phi_X = Phi_X_vec(nf)
-            this(nf)%Phi_Y = Phi_Y_vec(nf)
-            this(nf)%Bulk = Bulk
-         end do
-
-         ! Set Checkerboard
+      !Set Checkerboard
+      if (Ham_T_max > Zero) then
          this(1)%N_FAM = 4
-         if (abs(Ham_Tperp_max) > Zero) this(1)%N_FAM = 5
-
          allocate (this(1)%L_Fam(this(1)%N_FAM), this(1)%Prop_Fam(this(1)%N_FAM))
+         this(1)%L_FAM = Latt%N/2
          this(1)%Prop_Fam = 1.d0
-
-         No_Shift = 0
-         if (abs(Ham_Tperp_max) > Zero) No_Shift = 1
-
-         if (abs(Ham_T2_max) < Zero .and. abs(Ham_Tperp_max) < Zero) then
-            this(1)%L_FAM = Latt%N/2
-            allocate (this(1)%List_Fam(this(1)%N_FAM, Latt%N/2, 2))
-         elseif (abs(Ham_T2_max) < Zero .and. abs(Ham_Tperp_max) > Zero) then
-            this(1)%L_FAM = Latt%N/2
-            this(1)%L_Fam(5) = Latt%N
-            allocate (this(1)%List_Fam(this(1)%N_FAM, Latt%N, 2))
-         elseif (abs(Ham_T2_max) > Zero .and. abs(Ham_Tperp_max) < Zero) then
-            this(1)%L_FAM = Latt%N
-            allocate (this(1)%List_Fam(this(1)%N_FAM, Latt%N, 2))
-         elseif (abs(Ham_T2_max) > Zero .and. abs(Ham_Tperp_max) > Zero) then
-            this(1)%L_FAM = Latt%N
-            allocate (this(1)%List_Fam(this(1)%N_FAM, Latt%N, 2))
-            No_Shift = 1
-         end if
+         allocate (this(1)%List_Fam(this(1)%N_FAM, this(1)%L_Fam(1), 2))
          this(1)%L_FAM = 0
          do I = 1, Latt%N
             if (mod(Latt%List(I, 1) + Latt%List(I, 2), 2) == 0) then
@@ -869,257 +319,24 @@ contains
                this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
                this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I ! Unit cell
                this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 1 ! The bond (See above)
-               if (abs(Ham_T2_max) > Zero) then
-                  this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                  this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I ! Unit cell
-                  this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 3 + No_Shift ! The bond (See above)
-               end if
                Nf = 2
                this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
                this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
                this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 2
-               if (abs(Ham_T2_max) > Zero) then
-                  this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                  this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I ! Unit cell
-                  this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 4 + No_Shift ! The bond (See above)
-               end if
             else
                Nf = 3
                this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
                this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
                this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 1
-               if (abs(Ham_T2_max) > Zero) then
-                  this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                  this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I ! Unit cell
-                  this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 3 + No_Shift ! The bond (See above)
-               end if
                Nf = 4
                this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
                this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
                this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 2
-               if (abs(Ham_T2_max) > Zero) then
-                  this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-                  this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I ! Unit cell
-                  this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 4 + No_Shift ! The bond (See above)
-               end if
-            end if
-            if (abs(Ham_Tperp_max) > Zero) then
-               Nf = 5
-               this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
-               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 3
             end if
          end do
       end if
-      ! Test
-      if (Test) then
-         write (6, *) this(1)%N_FAM, this(1)%L_FAM
-         write (6, *) Ham_T1_max, Ham_T2_max, Ham_Tperp_max
-         do nf = 1, this(1)%N_FAM
-            do n = 1, this(1)%L_Fam(nf)
-               I = this(1)%List_Fam(Nf, n, 1)
-               nb = this(1)%List_Fam(Nf, n, 2)
-    Write(6,"(I3,2x,I3,2x,I3,2x,I3,2x,I3,2x,I3,2x,F6.3)")   Latt%list(I,1), Latt%list(I,2), this(1)%List(nb,1),this(1)%List(nb,2), &
-                    &this(1)%List(nb, 3), this(1)%List(nb, 4), real(this(1)%T(nb))
-            end do
-            write (6, *)
-         end do
-      end if
 
-   end subroutine Set_Default_hopping_parameters_Bilayer_square
-
-!--------------------------------------------------------------------
-!> @author
-!> ALF-project
-!>
-!> @brief
-!> Default hopping for a bilayer square. Ham_T1, Ham_T2, are the nearest neighbour hopping on the first and second layer and
-!> Ham_T_perp   is the interlayer  hopping.
-!>
-!
-!--------------------------------------------------------------------
-   subroutine Set_Default_hopping_parameters_Bilayer_honeycomb(this, Ham_T1_vec, Ham_T2_vec, Ham_Tperp_vec, Ham_Chem_vec, &
-        &                                                      Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL,&
-        &                                                      List, Invlist, Latt, Latt_unit)
-
-      implicit none
-
-      type(Hopping_Matrix_type), allocatable           :: this(:)
-      real(Kind=kind(0.d0)), intent(IN), dimension(:)  :: Ham_T1_vec, Ham_T2_vec, Ham_Tperp_vec, Ham_Chem_vec, Phi_x_vec, Phi_y_vec
-      integer, intent(IN), dimension(:)                 :: N_Phi_vec
-      integer, intent(IN)                   :: N_FL
-      logical, intent(IN)                   :: Bulk
-      integer, intent(IN), dimension(:, :)   :: List, Invlist
-      type(Lattice), intent(in)            :: Latt
-      type(Unit_cell), intent(in)            :: Latt_unit
-
-      real(Kind=kind(0.d0))                :: Ham_T1_max, Ham_T2_max, Ham_Tperp_max
-
-      ! Local
-      integer :: nf, N_Bonds, nc, I, I1, No_Shift, n, nb, no
-      real(Kind=kind(0.d0)) :: Zero = 1.0e-8
-      logical :: Test = .false.
-
-      Ham_T1_max = 0.d0
-      Ham_T2_max = 0.d0
-      Ham_Tperp_max = 0.d0
-      do nf = 1, N_FL
-         if (abs(Ham_T1_vec(nf)) > Ham_T1_max) Ham_T1_max = abs(Ham_T1_vec(nf))
-         if (abs(Ham_T2_vec(nf)) > Ham_T2_max) Ham_T2_max = abs(Ham_T2_vec(nf))
-         if (abs(Ham_Tperp_vec(nf)) > Ham_Tperp_max) Ham_Tperp_max = abs(Ham_Tperp_vec(nf))
-      end do
-
-!!$        If (abs(Ham_T1_max) < Zero ) Then
-!!$           Write(error_unit,*) 'At least Ham_T1 has to be bigger than zero'
-!!$           error stop 1
-!!$        endif
-
-      allocate (this(N_FL))
-      do nf = 1, N_FL
-         N_bonds = 0
-         N_bonds = N_bonds + 3
-         if (abs(Ham_Tperp_max) > Zero) N_bonds = N_bonds + 2
-         if (abs(Ham_T2_max) > Zero) N_bonds = N_bonds + 3
-         this(nf)%N_bonds = N_Bonds
-         allocate (this(nf)%List(this(nf)%N_bonds, 4), &
-              &    this(nf)%T(this(nf)%N_bonds))
-         nc = 0
-         nc = nc + 1
-         this(nf)%T(nc) = cmplx(-Ham_T1_vec(nf), 0.d0, kind(0.d0))
-         this(nf)%List(nc, 1) = 1
-         this(nf)%List(nc, 2) = 2
-         this(nf)%List(nc, 3) = 0
-         this(nf)%List(nc, 4) = 0
-
-         nc = nc + 1
-         this(nf)%T(nc) = cmplx(-Ham_T1_vec(nf), 0.d0, kind(0.d0))
-         this(nf)%List(nc, 1) = 2
-         this(nf)%List(nc, 2) = 1
-         this(nf)%List(nc, 3) = 0
-         this(nf)%List(nc, 4) = 1
-
-         nc = nc + 1
-         this(nf)%T(nc) = cmplx(-Ham_T1_vec(nf), 0.d0, kind(0.d0))
-         this(nf)%List(nc, 1) = 1
-         this(nf)%List(nc, 2) = 2
-         this(nf)%List(nc, 3) = 1
-         this(nf)%List(nc, 4) = -1
-
-         if (abs(Ham_Tperp_Max) > Zero) then
-            nc = nc + 1
-            this(nf)%T(nc) = cmplx(-Ham_Tperp_vec(nf), 0.d0, kind(0.d0))
-            this(nf)%List(nc, 1) = 1
-            this(nf)%List(nc, 2) = 3
-            this(nf)%List(nc, 3) = 0
-            this(nf)%List(nc, 4) = 0
-
-            nc = nc + 1
-            this(nf)%T(nc) = cmplx(-Ham_Tperp_vec(nf), 0.d0, kind(0.d0))
-            this(nf)%List(nc, 1) = 2
-            this(nf)%List(nc, 2) = 4
-            this(nf)%List(nc, 3) = 0
-            this(nf)%List(nc, 4) = 0
-         end if
-         if (abs(Ham_T2_Max) > Zero) then
-            nc = nc + 1
-            this(nf)%T(nc) = cmplx(-Ham_T2_vec(nf), 0.d0, kind(0.d0))
-            this(nf)%List(nc, 1) = 1 + 2
-            this(nf)%List(nc, 2) = 2 + 2
-            this(nf)%List(nc, 3) = 0
-            this(nf)%List(nc, 4) = 0
-
-            nc = nc + 1
-            this(nf)%T(nc) = cmplx(-Ham_T2_vec(nf), 0.d0, kind(0.d0))
-            this(nf)%List(nc, 1) = 2 + 2
-            this(nf)%List(nc, 2) = 1 + 2
-            this(nf)%List(nc, 3) = 0
-            this(nf)%List(nc, 4) = 1
-
-            nc = nc + 1
-            this(nf)%T(nc) = cmplx(-Ham_T2_vec(nf), 0.d0, kind(0.d0))
-            this(nf)%List(nc, 1) = 1 + 2
-            this(nf)%List(nc, 2) = 2 + 2
-            this(nf)%List(nc, 3) = 1
-            this(nf)%List(nc, 4) = -1
-         end if
-         allocate (this(nf)%T_Loc(Latt_Unit%Norb))
-         do nc = 1, Latt_Unit%Norb
-            this(nf)%T_Loc(nc) = cmplx(-Ham_Chem_vec(nf), 0.d0, kind(0.d0))
-         end do
-         if (abs(Ham_Tperp_Max) < Zero .and. abs(Ham_T2_Max) < Zero) then
-            this(nf)%T_Loc(3) = cmplx(0.d0, 0.d0, kind(0.d0))
-            this(nf)%T_Loc(4) = cmplx(0.d0, 0.d0, kind(0.d0))
-         end if
-         this(nf)%N_Phi = N_Phi_vec(nf)
-         this(nf)%Phi_X = Phi_X_vec(nf)
-         this(nf)%Phi_Y = Phi_Y_vec(nf)
-         this(nf)%Bulk = Bulk
-
-      end do
-
-      ! Set Checkerboard
-      this(1)%N_FAM = 3
-      if (abs(Ham_Tperp_Max) > Zero) this(1)%N_FAM = 4
-      allocate (this(1)%L_Fam(this(1)%N_FAM), this(1)%Prop_Fam(this(1)%N_FAM))
-      this(1)%Prop_Fam = 1.d0
-
-      No_Shift = 0
-      if (abs(Ham_Tperp_Max) > Zero) No_Shift = 2
-
-      if (abs(Ham_T2_Max) < Zero .and. abs(Ham_Tperp_Max) < Zero) then
-         this(1)%L_FAM = Latt%N
-         allocate (this(1)%List_Fam(this(1)%N_FAM, Latt%N, 2))
-      elseif (abs(Ham_T2_Max) < Zero .and. abs(Ham_Tperp_Max) > Zero) then
-         this(1)%L_FAM = Latt%N
-         this(1)%L_Fam(4) = 2*Latt%N
-         allocate (this(1)%List_Fam(this(1)%N_FAM, 2*Latt%N, 2))
-      elseif (abs(Ham_T2_Max) > Zero .and. abs(Ham_Tperp_Max) < Zero) then
-         this(1)%L_FAM = 2*Latt%N
-         allocate (this(1)%List_Fam(this(1)%N_FAM, 2*Latt%N, 2))
-      elseif (abs(Ham_T2_Max) > Zero .and. abs(Ham_Tperp_Max) > Zero) then
-         this(1)%L_FAM = 2*Latt%N
-         allocate (this(1)%List_Fam(this(1)%N_FAM, 2*Latt%N, 2))
-         No_Shift = 2
-      end if
-
-      do I = 1, Latt%N
-         do nf = 1, this(1)%N_FAM
-            this(1)%List_Fam(nf, I, 1) = I  ! Unit cell
-            this(1)%List_Fam(nf, I, 2) = nf ! The bond (See above)
-         end do
-      end do
-      if (abs(Ham_T2_Max) > Zero) then
-         do I = 1, Latt%N
-            do nf = 1, this(1)%N_FAM
-               this(1)%List_Fam(nf, I + Latt%N, 1) = I                   ! Unit cell
-               this(1)%List_Fam(nf, I + Latt%N, 2) = nf + 3 + No_Shift  ! The bond (See above)
-            end do
-         end do
-      end if
-      if (abs(Ham_Tperp_Max) > Zero) then
-         do no = 0, 1
-            do I = 1, Latt%N
-               this(1)%List_Fam(4, I + no*Latt%N, 1) = I       ! Unit cell
-               this(1)%List_Fam(4, I + no*Latt%N, 2) = 4 + no  ! The bond (See above)
-            end do
-         end do
-      end if
-      ! Test
-      if (Test) then
-         write (6, *) this(1)%N_FAM, this(1)%L_FAM
-         write (6, *) Ham_T1_Max, Ham_T2_Max, Ham_Tperp_Max
-         do nf = 1, this(1)%N_FAM
-            do n = 1, this(1)%L_Fam(nf)
-               I = this(1)%List_Fam(Nf, n, 1)
-               nb = this(1)%List_Fam(Nf, n, 2)
-    Write(6,"(I3,2x,I3,2x,I3,2x,I3,2x,I3,2x,I3,2x,F6.3)")   Latt%list(I,1), Latt%list(I,2), this(1)%List(nb,1),this(1)%List(nb,2), &
-                    &this(1)%List(nb, 3), this(1)%List(nb, 4), real(this(1)%T(nb))
-            end do
-            write (6, *)
-         end do
-      end if
-
-   end subroutine Set_Default_hopping_parameters_Bilayer_honeycomb
+   end subroutine set_hopping_parameters_square_anisotropic
 
 !--------------------------------------------------------------------
 !> @author
