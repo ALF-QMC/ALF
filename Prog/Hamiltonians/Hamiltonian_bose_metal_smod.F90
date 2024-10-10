@@ -700,7 +700,7 @@
                   z = gt0(i1,j1,1) + gt0(i1,j1,2)
                   obs_tau(1)%obs_Latt(imj,nt,no_i,no_j) = obs_tau(1)%obs_latt(imj,nt,no_i,no_j) + z*zp*zs
 
-                  z = -g0t(j1,i1,1)*gt0(i1,j1,1) - g0t(i1,j1,2)*gt0(i1,j1,2) + &
+                  z = -g0t(j1,i1,1)*gt0(i1,j1,1) - g0t(j1,i1,2)*gt0(i1,j1,2) + &
                       & (gtt(i1,i1,1) - gtt(i1,i1,2))*(g00(j1,j1,1) - g00(j1,j1,2))
                   obs_tau(2)%obs_Latt(imj,nt,no_i,no_j) = obs_tau(2)%obs_latt(imj,nt,no_i,no_j) + z*zp*zs
                   
