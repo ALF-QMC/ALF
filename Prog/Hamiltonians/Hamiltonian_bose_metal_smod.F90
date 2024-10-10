@@ -405,6 +405,7 @@
                        op_V(nc,nf)%g      = sqrt(cmplx(dtau*ham_u/dble(n_sun), 0.D0, kind(0.D0)))
                        op_v(nc,nf)%alpha  = cmplx(-0.5d0, 0.d0, kind(0.D0))
                        op_v(nc,nf)%type   = 2
+                       call op_set(op_v(nc,nf))
                    enddo
                 end if
              end do

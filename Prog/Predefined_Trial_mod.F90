@@ -210,7 +210,7 @@ contains
          call Terminate_on_error(ERROR_GENERIC, __FILE__, __LINE__)
       end select
 
-      call Predefined_Hoppings_set_OPT(Hopping_Matrix_tmp, List, Invlist, Latt, Latt_unit, Dtau, Checkerboard, Symm, OP_tmp)
+      !call Predefined_Hoppings_set_OPT(Hopping_Matrix_tmp, List, Invlist, Latt, Latt_unit, Dtau, Checkerboard, Symm, OP_tmp)
 
       do nf = 1, N_FL
          call Diag(Op_tmp(1, nf)%O, Op_tmp(1, nf)%U, Op_tmp(1, nf)%E)
