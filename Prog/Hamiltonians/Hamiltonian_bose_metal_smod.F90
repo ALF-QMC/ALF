@@ -341,7 +341,7 @@
           ham_ty_vec(1) = ham_t*ham_alpha;
           ham_ty_vec(2) = ham_t;
 
-          select case (str_to_upper(Lattice_type))
+          select case (Lattice_type)
           case ("square_anisotropic")
             call set_hopping_parameters_square_anisotropic(Hopping_Matrix, ham_tx_vec, ham_ty_vec, Ham_Chem_vec, &
                    & Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
@@ -448,7 +448,7 @@
           end do
 
           ! Equal time correlators
-          allocate (Obs_eq(3))
+          allocate (Obs_eq(6))
           do I = 1, size(Obs_eq, 1)
              select case (I)
              case (1)
@@ -473,7 +473,7 @@
 
           if (Ltau == 1) then
              ! Time-displaced correlators
-             allocate (Obs_tau(4))
+             allocate (Obs_tau(6))
              do I = 1, size(Obs_tau, 1)
                 select case (I)
                 case (1)
