@@ -145,8 +145,8 @@
        end type ham_bose_metal
 
        !#PARAMETERS START# VAR_lattice
-       character(len=64) :: Model = 'bose_metal'  ! Value not relevant
-       character(len=64) :: Lattice_type = 'square_anisotropic'
+       character(len=64) :: Model = "bose_metal"  ! Value not relevant
+       character(len=64) :: Lattice_type = "square_anisotropic"
        integer            :: L1 = 6   ! Length in direction a_1
        integer            :: L2 = 6   ! Length in direction a_2
        !#PARAMETERS END#
