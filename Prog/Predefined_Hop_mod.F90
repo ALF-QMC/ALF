@@ -274,27 +274,26 @@ contains
       end do
 
       do nf = 1, N_FL
-         this(nf)%N_bonds = 0
-         if (abs(Ham_T_max) > Zero) then
-            this(nf)%N_bonds = 2
-            allocate (this(nf)%List(this(nf)%N_bonds, 4), &
-                 &    this(nf)%T(this(nf)%N_bonds))
-            nc = 0
+         this(nf)%N_bonds = 2
 
-            nc = nc + 1
-            this(nf)%T(nc) = cmplx(-Ham_tx_vec(nf), 0.d0, kind(0.d0))
-            this(nf)%List(nc, 1) = 1
-            this(nf)%List(nc, 2) = 1
-            this(nf)%List(nc, 3) = 1
-            this(nf)%List(nc, 4) = 0
-            nc = nc + 1
+         allocate (this(nf)%List(this(nf)%N_bonds, 4), &
+              &    this(nf)%T(this(nf)%N_bonds))
+         nc = 0
 
-            this(nf)%T(nc) = cmplx(-Ham_ty_vec(nf), 0.d0, kind(0.d0))
-            this(nf)%List(nc, 1) = 1
-            this(nf)%List(nc, 2) = 1
-            this(nf)%List(nc, 3) = 0
-            this(nf)%List(nc, 4) = 1
-         end if
+         nc = nc + 1
+         this(nf)%T(nc) = cmplx(-Ham_tx_vec(nf), 0.d0, kind(0.d0))
+         this(nf)%List(nc, 1) = 1
+         this(nf)%List(nc, 2) = 1
+         this(nf)%List(nc, 3) = 1
+         this(nf)%List(nc, 4) = 0
+         nc = nc + 1
+
+         this(nf)%T(nc) = cmplx(-Ham_ty_vec(nf), 0.d0, kind(0.d0))
+         this(nf)%List(nc, 1) = 1
+         this(nf)%List(nc, 2) = 1
+         this(nf)%List(nc, 3) = 0
+         this(nf)%List(nc, 4) = 1
+
          allocate (this(nf)%T_Loc(Latt_Unit%Norb))
          do nc = 1, Latt_Unit%Norb
             this(nf)%T_Loc(nc) = cmplx(-Ham_Chem_vec(nf), 0.d0, kind(0.d0))
@@ -306,35 +305,33 @@ contains
       end do
 
       !Set Checkerboard
-      if (Ham_T_max > Zero) then
-         this(1)%N_FAM = 4
-         allocate (this(1)%L_Fam(this(1)%N_FAM), this(1)%Prop_Fam(this(1)%N_FAM))
-         this(1)%L_FAM = Latt%N/2
-         this(1)%Prop_Fam = 1.d0
-         allocate (this(1)%List_Fam(this(1)%N_FAM, this(1)%L_Fam(1), 2))
-         this(1)%L_FAM = 0
-         do I = 1, Latt%N
-            if (mod(Latt%List(I, 1) + Latt%List(I, 2), 2) == 0) then
-               Nf = 1
-               this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I ! Unit cell
-               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 1 ! The bond (See above)
-               Nf = 2
-               this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
-               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 2
-            else
-               Nf = 3
-               this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
-               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 1
-               Nf = 4
-               this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
-               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 2
-            end if
-         end do
-      end if
+      this(1)%N_FAM = 4
+      allocate (this(1)%L_Fam(this(1)%N_FAM), this(1)%Prop_Fam(this(1)%N_FAM))
+      this(1)%L_FAM = Latt%N/2
+      this(1)%Prop_Fam = 1.d0
+      allocate (this(1)%List_Fam(this(1)%N_FAM, this(1)%L_Fam(1), 2))
+      this(1)%L_FAM = 0
+      do I = 1, Latt%N
+         if (mod(Latt%List(I, 1) + Latt%List(I, 2), 2) == 0) then
+            Nf = 1
+            this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I ! Unit cell
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 1 ! The bond (See above)
+            Nf = 2
+            this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 2
+         else
+            Nf = 3
+            this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 1
+            Nf = 4
+            this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 2
+         end if
+      end do
 
    end subroutine set_hopping_parameters_square_anisotropic
 
