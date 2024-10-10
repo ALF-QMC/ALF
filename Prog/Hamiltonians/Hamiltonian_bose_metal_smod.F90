@@ -152,8 +152,8 @@
        !#PARAMETERS END#
 
        !#PARAMETERS START# VAR_Model_Generic
-       !Integer              :: N_SUN        = 2        ! Number of colors
-       !Integer              :: N_FL         = 1        ! Number of flavors
+       !Integer              :: N_SUN        = 1        ! Number of colors
+       !Integer              :: N_FL         = 2        ! Number of flavors
        real(Kind=kind(0.d0)) :: Phi_X = 0.d0     ! Twist along the L_1 direction, in units of the flux quanta
        real(Kind=kind(0.d0)) :: Phi_Y = 0.d0     ! Twist along the L_2 direction, in units of the flux quanta
        logical               :: Bulk = .true.   ! Twist as a vector potential (.T.), or at the boundary (.F.)
@@ -226,7 +226,6 @@
           Ltrot = nint(beta/dtau)
           if (Projector) Thtrot = nint(theta/dtau)
           Ltrot = Ltrot + 2*Thtrot
-          N_FL = 2
 
           ! Setup the Bravais lattice
           call Ham_Latt
