@@ -27,7 +27,7 @@
 \end{table}
 %
 
-The code package, summarized in Table~\ref{table:files}, consists of the program directories \path{Prog/}, \path{Libraries/}, \path{Analysis/}, and the directory \path{Scripts_and_Parameters_files/}, which contains supporting scripts and, in its subdirectory \path{Start}, the input files necessary for a run, described in the Sec.~\ref{sec:input}  as well as \path{Mathematica/}   that contains 
+The code package, summarized in Table~\ref{table:files}, consists of the program directories \path{Prog/},  \path{Libraries/}, \path{Analysis/}, and the directory \path{Scripts_and_Parameters_files/}, which contains supporting scripts and, in its subdirectory \path{Start}, the input files necessary for a run, described in the Sec.~\ref{sec:input}  as well as \path{Mathematica/}   that contains 
 Mathematica notebooks to  evaluate higher order correlation functions with Wicks theorem  as  described in Appendix  \ref{Wick_appendix}. \\
 The routines available in the directory \path{Analysis/} are described in Sec.~\ref{sec:analysis}, and the testsuite in Sec.~\ref{sec:compilation}. 
 
@@ -114,7 +114,9 @@ Max_Force            = 1.5  ! Max force for  Langevin
 HMC                  = .F.  ! Flag for hybrid molecular dynamics  update
 N_HMC_sweeps         = 1    ! Number of hybrid molecular dynamic  updates between 
                             ! sequential sweep
-Leapfrog_steps       = 0    ! Number of leapfrog interations
+Leapfrog_steps       = 0    ! Number of leapfrog iterations 
+Amplitude            = 1.0  ! Width of the box distribution for update of 
+                            ! type t=3,4 fields.  Defaults  to 1.0.
 
 /
 
@@ -138,21 +140,25 @@ Tempering_calc_det    = .T. ! Specifies whether the fermion weight has to be tak
                             ! get varied only enter the free bosonic action S_0
 /
 
-&VAR_Max_Stoch             !! Variables for Stochastic Maximum entropy
-Ngamma     = 400            ! Number of Dirac delta-functions for parametrization
+&VAR_Max_Stoch             !! Variables for  Maximum entropy
+                            ! The  attribute Stoch means  that this  parameter is 
+                            ! only  required for  the  stochastic  approach. 
+Ngamma     = 400            ! Number of delta-functions for parametrization (Stoch)
 Om_st      = -10.d0         ! Frequency range lower bound
 Om_en      = 10.d0          ! Frequency range upper bound
-NDis       = 2000           ! Number of boxes for histogram
-Nbins      = 250            ! Number of bins for Monte Carlo
-Nsweeps    = 70             ! Number of sweeps per bin
-NWarm      = 20             ! The Nwarm first bins will be ommitted
-N_alpha    = 14             ! Number of temperatures
-alpha_st   = 1.d0           ! Smallest inverse temperature increment for inverse
-R          = 1.2d0          ! temperature (see above) 
+NDis       = 2000           ! Number of boxes for histogram, frequency  discretization.  
+Nbins      = 250            ! Number of bins for Monte Carlo (Stoch)
+Nsweeps    = 70             ! Number of sweeps per bin  (Stoch)
+NWarm      = 20             ! The Nwarm first bins will be omitted (Stoch)
+N_alpha    = 14             ! Number of temperatures (Stoch)
+alpha_st   = 1.d0           ! Smallest inverse temperature increment for inverse (Stoch)
+R          = 1.2d0          ! temperature (see above) (Stoch) 
 Checkpoint = .F.            ! Whether to produce dump files, allowing the simulation
-                            ! to be resumed later on
+                            ! to be resumed later on (Stoch)
 Tolerance  = 0.1d0          ! Data points for which the relative error exceeds the
                             ! tolerance threshold will be omitted.
+Stochastic =.T.             ! If  true,  stochastic  maxent  is  called
+                            ! If  false, classic  maxent  is  called
 /
 
 &VAR_Hubbard               !! Variables for the specific model

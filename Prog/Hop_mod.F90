@@ -53,6 +53,7 @@
       Use DynamicMatrixArray_mod
       Use ContainerElementBase_mod
       Use OpTTypes_mod
+      Use OpT_time_dependent_mod
       use iso_fortran_env, only: output_unit, error_unit
 
       ! Private variables
@@ -84,18 +85,25 @@
             
             Class(CmplxExpOpT), pointer :: cmplxexp => null()
             Class(RealExpOpT), pointer :: realexp => null()
+            Class(OpT_time_dependent), pointer :: time_dependent => null()
             
-            if (Op_is_real(op)) then
-                ! branch for real operators
-                    allocate(realexp) ! Yep, this is a manifest memory leak. Using the ptr we can allocate onto the same variable
-                    call realexp%init(op)
-                    call ExpOpT_vec%pushback(realexp)
-                else
-                ! branch for complex operators
-                    allocate(cmplxexp)
-                    call cmplxexp%init(op)
-                    call ExpOpT_vec%pushback(cmplxexp)
-                endif
+            if (op%get_g_t_alloc()) then
+                allocate(time_dependent)
+                call time_dependent%init(op,symm)
+                call ExpOpT_vec%pushback(time_dependent)
+            else
+                if (Op_is_real(op)) then
+                    ! branch for real operators
+                        allocate(realexp) ! Yep, this is a manifest memory leak. Using the ptr we can allocate onto the same variable
+                        call realexp%init(op)
+                        call ExpOpT_vec%pushback(realexp)
+                    else
+                    ! branch for complex operators
+                        allocate(cmplxexp)
+                        call cmplxexp%init(op)
+                        call ExpOpT_vec%pushback(cmplxexp)
+                    endif
+            endif
         end subroutine
         
       
@@ -134,14 +142,14 @@
 
 !--------------------------------------------------------------------
 
-        Subroutine Hop_mod_mmthr(In,nf)
+        Subroutine Hop_mod_mmthr(In,nf, t)
 
 
           ! InOut:  In = e^{ -dtau T }.IN
           Implicit none
 
           Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
-          Integer, intent(IN) :: nf
+          Integer, intent(IN) :: nf, t
 
           !Local
           Integer :: nc
@@ -149,11 +157,11 @@
 
           do nc =  Ncheck,1,-1
             dummy => ExpOpT_vec(nf)%at(nc)
-            call dummy%lmult(In)
+            call dummy%lmult(In, t)
           Enddo
         end Subroutine Hop_mod_mmthr
 
-        Subroutine Hop_mod_mmthr_m1(In,nf)
+        Subroutine Hop_mod_mmthr_m1(In,nf,t)
 
 
           ! InOut:  In = e^{  dtau T }.IN
@@ -161,6 +169,7 @@
 
           Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
           Integer :: nf
+          integer, intent(in) :: t
 
           !Local
           Integer :: nc
@@ -168,14 +177,14 @@
 
           do nc =  1,Ncheck
             dummy => ExpOpT_vec(nf)%at(nc)
-            call dummy%lmultinv(In)
+            call dummy%lmultinv(In, t)
           Enddo
 
         end Subroutine Hop_mod_mmthr_m1
 
 !--------------------------------------------------------------------
 
-        Subroutine Hop_mod_mmthl (In,nf)
+        Subroutine Hop_mod_mmthl (In,nf,t)
 
 
           ! InOut:  In = IN * e^{ -dtau T }
@@ -183,21 +192,22 @@
 
           Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
           Integer :: nf
+          integer, intent(in) :: t
 
           !Local
           Integer :: nc
           class(ContainerElementBase), pointer :: dummy
 
-          do nc =  1, Ncheck
+          do nc = 1, Ncheck
             dummy => ExpOpT_vec(nf)%at(nc)
-            call dummy%rmult(In)
+            call dummy%rmult(In, t)
           Enddo
 
         end Subroutine Hop_mod_mmthl
 
 !--------------------------------------------------------------------
 
-        Subroutine Hop_mod_mmthlc (In,nf)
+        Subroutine Hop_mod_mmthlc (In,nf,t)
 
 
           ! InOut:  In = IN * e^{ -dtau T }
@@ -205,6 +215,7 @@
 
           Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
           Integer :: nf
+          integer, intent(in) :: t
 
           !Local
           Integer :: nc
@@ -212,14 +223,14 @@
 
           do nc =  1, Ncheck
             dummy => ExpOpT_vec(nf)%at(nc)
-            call dummy%lmult(In)
+            call dummy%lmult(In, t)
           Enddo
 
         end Subroutine Hop_mod_mmthlc
 
 !--------------------------------------------------------------------
 
-        Subroutine Hop_mod_mmthl_m1 (In, nf)
+        Subroutine Hop_mod_mmthl_m1 (In, nf,t)
 
 
           ! InOut:  In = IN * e^{ dtau T }
@@ -227,6 +238,7 @@
 
           Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
           Integer :: nf
+          integer, intent(in) :: t
 
           !Local
           Integer :: nc
@@ -234,7 +246,7 @@
 
           do nc =  Ncheck,1,-1
             dummy => ExpOpT_vec(nf)%at(nc)
-            call dummy%rmultinv(In)
+            call dummy%rmultinv(In, t)
           Enddo
 
         end Subroutine Hop_mod_mmthl_m1
@@ -266,11 +278,13 @@
 !>
 !
 !--------------------------------------------------------------------
-        Subroutine Hop_mod_Symm(Out,In)
+        Subroutine Hop_mod_Symm(Out,In,t1,t2)
 
           Implicit none
           COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:), Intent(Out):: Out
           COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:), Intent(IN):: In
+          integer, intent(in) :: t1
+          integer, optional, intent(in) :: t2
 
           Integer :: nf, nc, nf_eff
           class(ContainerElementBase), pointer :: dummy
@@ -280,7 +294,7 @@
              nf=Calc_Fl_map(nf_eff)
              do nc =  Ncheck,1,-1
                 dummy => ExpOpT_vec(nf)%at(nc)
-                call dummy%adjointaction(Out(:, :, nf))
+                call dummy%adjointaction(Out(:, :, nf), t1,t2)
              enddo
           enddo
 

@@ -77,11 +77,11 @@ module wrapur_mod
            CALL INITD(TMP,Z_ONE)
            DO NT = NTAU + 1, NTAU1
               !CALL MMULT(TMP1,Exp_T(:,:,nf) ,TMP)
-              Call Hop_mod_mmthr(TMP,nf)
+              Call Hop_mod_mmthr(TMP,nf,nt)
 !             TMP = TMP1
               Do n = 1,Size(Op_V,1)
 !                  X = Phi(nsigma(n,nt),Op_V(n,nf)%type)
-                 Call Op_mmultR(Tmp,Op_V(n,nf),nsigma%f(n,nt),'n')
+                 Call Op_mmultR(Tmp,Op_V(n,nf),nsigma%f(n,nt),'n',nt)
               ENDDO
            ENDDO
            CALL MMULT(TMP1,TMP, udvr(nf_eff)%U)
@@ -95,6 +95,8 @@ module wrapur_mod
            endif
            CALL UDV_WRAP_Pivot(TMP1(:,1:UDVR(nf_eff)%N_part), udvr(nf_eff)%U, udvr(nf_eff)%D, V1,NCON,Ndim,UDVR(nf_eff)%N_part)
            if(allocated(udvr(nf_eff)%V)) CALL MMULT(udvr(nf_eff)%V, V1, TMP)
+           ! Test if scales in D are appraoching the limit of double precision.
+           CALL UDVR(nf_eff)%testscale
         ENDDO
 #else
         Implicit None
@@ -110,13 +112,15 @@ module wrapur_mod
         Do nf_eff = 1,N_FL_eff
            nf=Calc_Fl_map(nf_eff)
            DO NT = NTAU + 1, NTAU1
-              Call Hop_mod_mmthR(UDVR(nf_eff)%U,nf)
+              Call Hop_mod_mmthR(UDVR(nf_eff)%U,nf,nt)
               Do n = 1,Size(Op_V,1)
-                 Call Op_mmultR(UDVR(nf_eff)%U,Op_V(n,nf),nsigma%f(n,nt),'n')
+                 Call Op_mmultR(UDVR(nf_eff)%U,Op_V(n,nf),nsigma%f(n,nt),'n',nt)
               ENDDO
            ENDDO
 
            CALL UDVR(nf_eff)%decompose
+           ! Test if scales in D are appraoching the limit of double precision.
+           CALL UDVR(nf_eff)%testscale
         ENDDO
 
 #endif

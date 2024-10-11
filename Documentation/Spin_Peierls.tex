@@ -1,0 +1,84 @@
+% Copyright (c) 2016 2023 The ALF project.
+% This is a part of the ALF project documentation.
+% The ALF project documentation by the ALF contributors is licensed
+% under a Creative Commons Attribution-ShareAlike 4.0 International License.
+% For the licensing details of the documentation see license.CCBYSA.
+% !TEX root = doc.tex 
+
+
+\subsection{Spin  Peierls   \texttt{ Hamiltonian\_Spin\_Peierls\_smod.F90 }} \label{Spin_Peierls.Sec}
+
+The  Hamiltonian  that  we  will  consider here  is  given  by: 
+\begin{equation}
+\label{eqn:Ham_SP}
+	\hat{H}_{SP}  =       \sum_{b=\langle  i, j \rangle }  J_b    \left( 1 + \hat{Q}_{b} \right)   \hat{\ve{S}}_i \cdot \hat{\ve{S}}_j    +  
+	   \frac{\hat{P}_{b} ^2 }{2M}   +    \frac{k}{2} \hat{Q}_{b} ^2 
+\end{equation}
+with 
+\begin{equation}
+    \left[   \hat{S}^{\alpha}_i , \hat{S}^{\beta}_j \right]   =    \delta_{i,j}  i  \sum_{\gamma=1}^{3} \epsilon^{\alpha  \beta \gamma}  \hat{S}_{\gamma},  \, \, \, \,  
+     \left(   \ve{\hat{S}}_i  \right)^2  = \frac{3}{4}, \, \, \, \,  \text{and} \,  \, \, \,  \left[ \hat{P}_b,  \hat{Q}_{b'}  \right]   =   \frac{ \delta_{b,b'} } {i}.      
+\end{equation}
+The model  is  defined  on a  square lattice,  and    the  sum  runs  over  nearest  neighbor  bonds $b = \langle  i, j \rangle $.    Including  a   coupling  constant  g  in  front   the  Einstein phonon   $ \hat{Q}_{\langle  i, j \rangle} $  is  superfluous  since it can   be  set  to  unity  by  carrying out  a  
+canonical  transformation of   $ \hat{Q}_{\langle  i, j \rangle} $.     
+
+To implement  the  spin-Peierls  Hamiltonian  in the ALF  library,  we   fermionize the  spin  degrees  of   freedom  and  use  the  relation 
+\begin{equation}
+      -\frac{1}{4} \left( \sum_{\sigma}   \hat{f}^{\dagger}_{i,\sigma}  \hat{f}^{\phantom\dagger}_{j,\sigma}    + \hat{f}^{\dagger}_{j,\sigma}  \hat{f}^{\phantom\dagger}_{i,\sigma}   \right)^2  +  \frac{1}{4}     =   \hat{\ve{S}}_i \cdot \hat{\ve{S}}_j   
+\end{equation}
+that   holds  in the odd parity,  $ (-1)^{ \sum_{\sigma} \hat{f}^{\dagger}_{i,\sigma}  \hat{f}^{\phantom\dagger}_{i,\sigma} }  = -1 $,  sector.  
+
+ In the  Monte Carlo  simulation,  we  enforce  the odd parity constraint  by   adding  a  Hubbard  U  term.  As  a  consequence,  the  fermion  Hamiltonian  we  consider  reads: 
+ \begin{equation}
+	\hat{H}_{QMC}  =       \sum_{b=\langle  i, j \rangle }  J_b   \left( 1 + \hat{Q}_{b} \right)  \left( \frac{1}{4}  -\frac{1}{4} \left( \sum_{\sigma}   \hat{f}^{\dagger}_{i,\sigma}  \hat{f}^{\phantom\dagger}_{j,\sigma}    + \hat{f}^{\dagger}_{j,\sigma}  \hat{f}^{\phantom\dagger}_{i,\sigma}   \right)^2    \right)    +  
+	   \frac{\hat{P}_{b} ^2 }{2M}   +    \frac{k}{2} \hat{Q}_{b} ^2      +   \frac{U}{2}\sum_i \left(   \hat{n}_i -1 \right)^2
+\end{equation}
+where  $\hat{n}_i  =  \sum_{\sigma} \hat{f}^{\dagger}_{i,\sigma}\hat{f}^{\phantom\dagger}_{i,\sigma}$.       As  for the Kondo  lattice  model,   
+$\left[ (-1)^{ \sum_{\sigma} \hat{f}^{\dagger}_{i,\sigma}  \hat{f}^{\phantom\dagger}_{i,\sigma} },  \hat{H}_{QMC}  \right]   = 0   $  such  that  the projection
+onto the  physical odd  parity  Hilbert  space   turns out  to be  very  efficient.   In this  Hilbert  space: 
+\begin{equation}
+   \left. \hat{H}_{QMC} \right|_{ (-1)^{ \sum_{\sigma} \hat{f}^{\dagger}_{i,\sigma}  \hat{f}^{\phantom\dagger}_{i,\sigma} }  = -1}  =  \hat{H}_{SP}.
+\end{equation}
+For  the Monte-Carlo  formulation,  we  consider  a  basis  where  $ \hat{Q}_b  | \phi \rangle =   \phi_b  | \phi \rangle $  such  that   after  Trotterization,  the  partition  function  reads: 
+\begin{eqnarray} 
+	Z     \propto   \sum_{l_{b,\tau}  l_{i,\tau}}  \int  \prod_{b,\tau} d \phi_{b,\tau}     & &   
+	  \prod_{b,\tau} \gamma(l_{b,\tau}) \prod_{i,\tau} \gamma(l_{i,\tau})  \,  \, 
+	  e^{-S_{\phi} }   \\  & &   \text{Tr}\left[  \prod_{\tau}     \prod_{b}  e^{ \sqrt{1 + \phi_{b,\tau}}  \sqrt{\Delta  \tau J/4}  \eta(l_{b,\tau})\hat{K}_b }  
+	    \prod_{i}  e^{ \eta(l_{i,\tau})  \sqrt{- U \Delta \tau / 2} \left(  \hat{n}_i -  1 \right)} \right]   \nonumber 
+\end{eqnarray}
+with 
+\begin{equation}
+	S_{\phi} =   \sum_{b, \tau}  \Delta  \tau \left[  \frac{M}{2} \frac{ \left(  \phi_{b,\tau + 1}  -  \phi_{b,\tau}  \right)^2 } {\Delta  \tau ^2  }  +  \frac{k}{2} \left(  
+	\phi_b +  \frac{J_b}{4 k} \right)^2   \right].
+\end{equation}
+In the  above,   each  site    hosts  a   discrete  HS  field  $l_{i,\tau} $  field  and   each  bond discrete bond,  $l_{b,\tau} $,   and   phonon  $\phi_{b,\tau}$  fields.   The  phonon  fields   satisfy  periodic   boundary  conditions in the  temporal   direction:  $ \phi_{b,L_{\text{Trotter}} + 1 }  = \phi_{b,1 }  $.  
+
+The  ALF  implementation of  the  above  Hamiltonian   is  straightforward,  and  provides  an  example  where  the  type  \texttt{t=4}  operators  introduced  in   \ref{sec:fields}   become   very  handy.   A plain  vanilla   implementation of  the  code can be  found in  \texttt{ Hamiltonian\_Spin\_Peierls\_smod.F90}. 
+It requires  \texttt{N\_FL=1} and   \texttt{N\_SUN = 2}    corresponding  to an  SU(2)  spin symmetric   implementation  and  does  not  include    
+a symmetric Trotter  decomposition.   Aside  from the  standard  parameters,  the  model  specific  name  space  reads: 
+\begin{lstlisting}[style=fortran,escapechar=\#,breaklines=true]
+&VAR_Spin_Peierls
+ham_Jx  = 1.0        !  Coupling in  x-direction
+Ham_Jy  = 1.0        !  Coupling in  y-direction
+ham_U   = 1.0        !  Hubbard  U  for  constraint.  Typically  beta U  = 10
+ham_Lambda =  0.1    !  Electron-phonon interaction
+Ham_omega0 =  0.25   !  Phonon  frequency 
+/
+\end{lstlisting}
+Here,   the   electron phonon interaction as  well as  the  phonon  frequency  are  defined  as  
+\begin{equation}
+	   \lambda  =   \frac{1}{2k}   \, \,  \text{and}   \, \,  \omega_0  =  \sqrt{ \frac{k}{M} }
+\end{equation}
+respectively.    
+
+We  have  tested  the  code  for  an  $L=16 $ chain    at  $ \beta J  = 8 $,  $\omega_0 = 0.25 $ and    various  values  of     the  electron-phonon  interaction.  As  can be seen  in   Fig.~\ref{Spin_Peierls.fig}   the  results  compare   remarkably  well  to  independent  calculations  based on the  so  called   SSE  algorithm  with  retarded interactions  \cite{Weber21}.    The  Hamiltonian  \texttt{Hamiltonian\_Spin\_Peierls\_smod.F90}    includes   spin-spin   correlations  as  well  as  phonon  correlations,  both  at  equal and   imaginary  time  displaced.  Scalar  observables  $\texttt{Phi\_scal}$  contain the  $\left<  \hat{Q}_b \right>$   for  bond  in the  x- and  y-directions.
+
+\begin{figure}
+\center 
+\includegraphics[width=0.49\textwidth]{Spin_Peierls/SP_Lambda0.pdf}
+\includegraphics[width=0.49\textwidth]{Spin_Peierls/SP_Lambda0.3.pdf}
+        \caption{   Simulations  of  the one-dimensional  spin-peierls  chain.   For  the ALF  simulations,  we  have  used $\Delta  \tau  J  = 0.1$.  The  
+        reference  data   was  produced    with the  SSE    algorithm   with  retarded  interaction  introduced  in  Ref.~\cite{Weber17}   and  adapted to   spin-Peierls problems  in \cite{Weber21}.   As  apparent  the  agreement is  excellent,  both for  the  Heisenberg  chain at   $\lambda = 0.0 $    and  at finite  electron phonon coupling,    $\lambda = 0.3 $      }  
+        \label{Spin_Peierls.fig}
+\end{figure}
+	

@@ -69,7 +69,7 @@ module wrapul_mod
         ! Working space.
         COMPLEX (Kind=Kind(0.d0)) ::  U1(Ndim,Ndim), V1(Ndim,Ndim), TMP(Ndim,Ndim), TMP1(Ndim,Ndim)
         COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta
-        Integer :: NT, NCON, n, nf, nf_eff
+        Integer :: NT, NCON, n, nf, nf_eff, sign=1
         Real    (Kind=Kind(0.d0)) ::  X
  
 
@@ -82,10 +82,10 @@ module wrapul_mod
            CALL INITD(TMP,Z_ONE)
            DO NT = NTAU1, NTAU+1 , -1
               Do n = Size(Op_V,1),1,-1
-                 Call Op_mmultL(Tmp,Op_V(n,nf),nsigma%f(n,nt),'n')
+                 Call Op_mmultL(Tmp,Op_V(n,nf),nsigma%f(n,nt),'n',nt,sign)
               enddo
               !CALL MMULT( TMP1,Tmp,Exp_T(:,:,nf) )
-              Call  Hop_mod_mmthl (Tmp,nf)
+              Call  Hop_mod_mmthl (Tmp,nf,nt)
               ! Tmp = Tmp1
            ENDDO
            
@@ -101,6 +101,8 @@ module wrapul_mod
            else
               CALL UDV_WRAP_Pivot(TMP1(:,1:UDVL(nf_eff)%N_part),udvl(nf_eff)%U,udvl(nf_eff)%D,V1,NCON,Ndim,UDVL(nf_eff)%N_part)
            endif
+           ! Test if scales in D are appraoching the limit of double precision.
+           CALL UDVL(nf_eff)%testscale
         ENDDO
 
 #else
@@ -117,13 +119,15 @@ module wrapul_mod
            nf=Calc_Fl_map(nf_eff)
            DO NT = NTAU1, NTAU+1 , -1
               Do n = Size(Op_V,1),1,-1
-                 Call Op_mmultR(udvl(nf_eff)%U,Op_V(n,nf),nsigma%f(n,nt),'c')
+                 Call Op_mmultR(udvl(nf_eff)%U,Op_V(n,nf),nsigma%f(n,nt),'c',nt)
               enddo
-              Call  Hop_mod_mmthlc (udvl(nf_eff)%U,nf)
+              Call  Hop_mod_mmthlc (udvl(nf_eff)%U,nf,nt)
            ENDDO
            
            !Carry out U,D,V decomposition.
            CALL UDVL(nf_eff)%decompose
+           ! Test if scales in D are appraoching the limit of double precision.
+           CALL UDVL(nf_eff)%testscale
         Enddo
 #endif
       END SUBROUTINE WRAPUL

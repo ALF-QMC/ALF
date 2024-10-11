@@ -1,31 +1,34 @@
 #!/bin/sh
 # This script sets necessary environment variables for compiling ALF.
 # You need to source it prior to executing make.
-USAGE="usage 'source configure.sh MACHINE MODE STAB' \n\
-    \n\
-Please choose one of the following MACHINEs:\n\
- * GNU\n\
- * Intel\n\
- * IntelLLVM or IntelX\n\
- * PGI\n\
- * SuperMUC-NG\n\
- * JUWELS\n\
- * FRITZ\n\
-Possible MODEs are:\n\
- * MPI (default)\n\
- * noMPI\n\
- * Tempering\n\
+USAGE="usage 'source configure.sh MACHINE MODE STAB'
+
+Please choose one of the following MACHINEs:
+ * GNU
+ * Intel
+ * IntelLLVM or IntelX
+ * PGI
+ * SuperMUC-NG
+ * JUWELS
+ * FRITZ
+Possible MODEs are:
+ * MPI (default)
+ * noMPI
+ * Tempering
+ * PARALLEL_PARAMS (shorthand PP)
 Possible STABs are:
- * <no-argument> (default)\n\
- * STAB1 (old)\n\
- * STAB2 (old)\n\
- * STAB3 (newest)\n\
- * LOG (increases accessible scales, e.g. in beta or interaction strength by solving NaN issues)\n\
-Further optional arguments: \n\
-  Devel: Compile with additional flags for development and debugging\n\
-  HDF5: Compile with HDF5\n\
-  NO-INTERACTIVE: Do not ask for user confirmation during excution of this script\n\
-To hand an additional flag to the compiler, export it in the varible ALF_FLAGS_EXT prior to sourcing this script.\n
+ * <no-argument> (default)
+ * STAB1 (old)
+ * STAB2 (old)
+ * STAB3 (newest)
+ * LOG (increases accessible scales, e.g. in beta or interaction strength by solving NaN issues)
+Further optional arguments: 
+  Devel: Compile with additional flags for development and debugging
+  HDF5: Compile with HDF5
+  NO-INTERACTIVE: Do not ask for user confirmation during excution of this script
+  NO-FALLBACK: Do not use a fallback option in case of an unknown/no machine,
+               but instead return with value 1
+To hand an additional flag to the compiler, export it in the varible ALF_FLAGS_EXT prior to sourcing this script.
 
 For more details check the documentation.\n"
 
@@ -53,7 +56,7 @@ set_hdf5_flags()
     fi
     case "$yn" in
       y|Y|"")
-        printf "${RED}Downloading and installing HDF5 in %s.${NC}\n" "$HDF5_DIR"
+        printf "${GREEN}Downloading and installing HDF5 in %s.${NC}\n" "$HDF5_DIR"
         CC="$CC" FC="$FC" CXX="$CXX" HDF5_DIR="$HDF5_DIR" "$ALF_DIR/HDF5/install_hdf5.sh" || return 1
       ;;
       *) 
@@ -80,16 +83,16 @@ check_libs()
     if command -v "$FC0" > /dev/null; then       # Compiler binary found
         if sh -c "$FC check_libs.f90 $LIBS -o check_libs.out"; then  # Compiling with $LIBS is successful
             ./check_libs.out || (
-              printf "${RED}\n==== Error: Execution of test program using compiler <%s> ====${NC}\n" "$FC"
-              printf "${RED}==== and linear algebra libraries <%s> not successful. ====${NC}\n\n" "$LIBS"
+              printf "${RED}\n==== Error: Execution of test program using compiler <%s> ====${NC}\n" "$FC" 1>&2
+              printf "${RED}==== and linear algebra libraries <%s> not successful. ====${NC}\n\n" "$LIBS" 1>&2
               return 1
               )
         else
-            printf "${RED}\n==== Error: Linear algebra libraries <%s> not found. ====${NC}\n\n" "$LIBS"
+            printf "${RED}\n==== Error: Linear algebra libraries <%s> not found. ====${NC}\n\n" "$LIBS" 1>&2
             return 1
         fi
     else
-        printf "${RED}\n==== Error: Compiler <%s> not found. ====${NC}\n\n" "$FC"
+        printf "${RED}\n==== Error: Compiler <%s> not found. ====${NC}\n\n" "$FC" 1>&2
         return 1
     fi
 }
@@ -97,7 +100,7 @@ check_libs()
 check_python()
 {
     if ! command -v python3 > /dev/null; then
-	printf "${RED}\n==== Error: Python 3 not found. =====${NC}\n\n"
+	printf "${RED}\n==== Error: Python 3 not found. =====${NC}\n\n" 1>&2
 	return 1
     fi
 }
@@ -116,7 +119,7 @@ find_mkl_flag()
       INTELMKL="-mkl"
     fi
   else 
-    printf "${RED}\n==== Error: MKL only supported for ifort compiler. ====${NC}\n\n" "$FC"
+    printf "${RED}\n==== Error: MKL only supported for ifort compiler. ====${NC}\n\n" "$FC" 1>&2
   fi
 }
 
@@ -124,8 +127,12 @@ set_intelcc()
 {
   if command -v icx > /dev/null; then
     INTELCC="icx"
-  else
+  elif command -v icc > /dev/null; then
     INTELCC="icc"
+  elif command -v gcc > /dev/null; then
+    INTELCC="gcc"
+  else
+    printf "${RED}\n==== Error: C compiler needed for HDF5. None of 'icx', 'icc', 'gcc' found ====${NC}\n\n" 1>&2
   fi
 }
 
@@ -133,8 +140,12 @@ set_intelcxx()
 {
   if command -v icpx > /dev/null; then
     INTELCXX="icpx"
-  else
+  elif command -v icpc > /dev/null; then
     INTELCXX="icpc"
+  elif command -v g++ > /dev/null; then
+    INTELCXX="g++"
+  else
+    printf "${RED}\n==== Error: C++ compiler needed for HDF5. None of 'icpx', 'icpc', 'g++' found ====${NC}\n\n" 1>&2
   fi
 }
 
@@ -151,7 +162,7 @@ INTELLLVMOPTFLAGS="-cpp -O3"
 INTELLLVMOPTFLAGS="-cpp -O3 -fp-model=fast=2 -no-prec-div -static -xHost -unroll -finline-functions -heap-arrays 1024 -no-wrap-margin"
 # uncomment the next line if you want to use additional openmp parallelization
 # INTELLLVMOPTFLAGS="${INTELLLVMOPTFLAGS} -qopenmp"
-INTELLLVMDEVFLAGS="-warn all -check all -g -traceback"
+INTELLLVMDEVFLAGS="-warn all -check all,nouninit -g -traceback"
 INTELLLVMUSEFULFLAGS="-std08"
 
 
@@ -165,7 +176,7 @@ GNUDEVFLAGS="-Wconversion -Werror -Wno-error=cpp -fcheck=all -g -fbacktrace -fma
 GNUUSEFULFLAGS="-std=f2008"
 
 # default optimization flags for PGI compiler
-PGIOPTFLAGS="-Mpreprocess -O1"
+PGIOPTFLAGS="-Mpreprocess -O3 -Mfprelaxed -fast"
 # uncomment the next line if you want to use additional openmp parallelization
 PGIOPTFLAGS="${PGIOPTFLAGS} -mp"
 PGIDEVFLAGS="-Minform=inform -C -g -traceback"
@@ -179,8 +190,10 @@ STAB=""
 stabv=0
 HDF5_ENABLED=""
 NO_INTERACTIVE=""
+NO_FALLBACK=""
 
 RED='\033[0;31m'
+GREEN='\033[0;32m'
 NC='\033[0m' # No Color
 
 while [ "$#" -gt "0" ]; do
@@ -189,14 +202,14 @@ while [ "$#" -gt "0" ]; do
   case "$ARG" in
     STAB1|STAB2|STAB3|LOG)
       if [ "$stabv" = "1" ]; then
-         printf "Additional STAB configuration found. Overwriting %s with %s .\n" "$STAB" "$ARG"
+         printf "Additional STAB configuration found. Overwriting %s with %s .\n" "$STAB" "$ARG" 1>&2
       fi
       STAB="$ARG"
       stabv="1"
     ;;
-    NOMPI|MPI|TEMPERING|SERIAL)
+    NOMPI|MPI|TEMPERING|SERIAL|PARALLEL_PARAMS|PP)
       if [ "$modev" = "1" ]; then
-         printf "Additional MODE configuration found. Overwriting %s with %s .\n" "$MODE" "$ARG"
+         printf "Additional MODE configuration found. Overwriting %s with %s .\n" "$MODE" "$ARG" 1>&2
       fi
       MODE="$ARG"
       modev="1"
@@ -214,9 +227,12 @@ while [ "$#" -gt "0" ]; do
     NO-INTERACTIVE)
       NO_INTERACTIVE="1"
     ;;
+    NO-FALLBACK)
+      NO_FALLBACK="1"
+    ;;
     *)
       if [ "$Machinev" = "1" ]; then
-         printf "Additional MACHINE / unrecognized configuration found. Overwriting %s with %s .\n" "$MACHINE" "$ARG"
+         printf "Additional MACHINE / unrecognized configuration found. Overwriting %s with %s .\n" "$MACHINE" "$ARG" 1>&2
       fi
       MACHINE="$ARG"
       Machinev="1"
@@ -241,7 +257,7 @@ case $MODE in
     printf "This requires also MPI parallization which is set as well.\n"
     PROGRAMMCONFIGURATION="-DMPI -DTEMPERING"
     INTELCOMPILER="mpiifort"
-    INTELLLVMCOMPILER="ifx"
+    INTELLLVMCOMPILER="mpiifort -fc=ifx"
     GNUCOMPILER="mpifort"
     MPICOMP=1
   ;;
@@ -254,6 +270,16 @@ case $MODE in
     GNUCOMPILER="mpifort"
     MPICOMP=1
   ;;
+ 
+  PARALLEL_PARAMS|PP)
+    printf "Activating parallel runs with different parameters.\n"
+    printf "This requires also MPI parallization which is set as well.\n"
+    PROGRAMMCONFIGURATION="-DMPI -DTEMPERING -DPARALLEL_PARAMS"
+    INTELCOMPILER="mpiifort"
+    INTELLLVMCOMPILER="mpiifort -fc=ifx"
+    GNUCOMPILER="mpifort"
+    MPICOMP=1
+  ;;
 
   *)
     printf "Activating ${RED}MPI parallization (default)${NC}.\n"
@@ -261,6 +287,7 @@ case $MODE in
     printf "To turn on parallel tempering, pass Tempering as the second argument.\n"
     PROGRAMMCONFIGURATION="-DMPI"
     INTELCOMPILER="mpiifort"
+    INTELLLVMCOMPILER="mpiifort -fc=ifx"
     GNUCOMPILER="mpifort"
     MPICOMP=1
   ;;
@@ -343,9 +370,9 @@ case $MACHINE in
       ALF_FC="pgfortran"
     else
       ALF_FC="mpifort"
-      printf "\n${RED}   !! Compiler set to 'mpifort' !!\n"
-      printf "If this is not your PGI MPI compiler you have to set it manually through:\n"
-      printf "    'export ALF_FC=<mpicompiler>'${NC}\n"
+      printf "\n${RED}   !! Compiler set to 'mpifort' !!\n" 1>&2
+      printf "If this is not your PGI MPI compiler you have to set it manually through e.g.\n" 1>&2
+      printf "    'export ALF_FC=<mpicompiler>'${NC}\n" 1>&2
     fi
     LIB_BLAS_LAPACK="-llapack -lblas"
     if [ "${HDF5_ENABLED}" = "1" ]; then
@@ -357,7 +384,7 @@ case $MACHINE in
   #LRZ enviroment
   SUPERMUC-NG|NG)
     module load hdf5/1.10.7-intel21
-    printf "\n${RED}   !!   unsetting  FORT_BLOCKSIZE  !!${NC}\n"
+    printf "\n${RED}   !!   unsetting  FORT_BLOCKSIZE  !!${NC}\n" 1>&2
     unset FORT_BLOCKSIZE
 
     F90OPTFLAGS="$INTELOPTFLAGS"
@@ -403,14 +430,19 @@ case $MACHINE in
   ;;
   #Default (unknown machine)
   *)
-    printf "\n"
-    printf "${RED}   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!${NC}\n"
-    printf "${RED}   !!               UNKNOW MACHINE               !!${NC}\n"
-    printf "${RED}   !!         IGNORING PARALLEL SETTINGS         !!${NC}\n"
-    printf "${RED}   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!${NC}\n"
-    printf "\n"
-    printf "Activating fallback option with gfortran for SERIAL JOB - Deactivating MPI.\n"
-    printf "\n"
+    if [ "$NO_FALLBACK" = "1" ]; then
+      printf "${RED}  !!     UNKNOW MACHINE     !!${NC}\n" 1>&2
+      printf "${RED}  !!  exiting configure.sh  !!${NC}\n" 1>&2
+      return 1
+    fi
+    printf "\n" 1>&2
+    printf "${RED}   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!${NC}\n" 1>&2
+    printf "${RED}   !!               UNKNOW MACHINE               !!${NC}\n" 1>&2
+    printf "${RED}   !!         IGNORING PARALLEL SETTINGS         !!${NC}\n" 1>&2
+    printf "${RED}   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!${NC}\n" 1>&2
+    printf "\n" 1>&2
+    printf "Activating fallback option with gfortran for SERIAL JOB - Deactivating MPI.\n" 1>&2
+    printf "\n" 1>&2
     printf "$USAGE"
     PROGRAMMCONFIGURATION=""
     F90OPTFLAGS="-cpp -O3 -ffree-line-length-none -ffast-math"

@@ -35,8 +35,9 @@
 !> ALF-project
 !
 !> @brief
-!> Reads in the VAR_QMC namelist from the file parameters, calls Ham_set and  carries out the sweeps. If the
-!> program is compiled with the Tempering flag on, then the VAR_TEMP namelist will also be read in.
+!> Reads in the VAR_QMC and VAR_HAM_NAME namelists from the file parameters, calls Ham_set and carries out the sweeps.
+!> If the program is compiled with the Tempering flag on, then the VAR_TEMP namelist will also be read in.
+!> If the PARALLEL_PARAMS is set, VAR_QMC and VAR_HAM_NAME are read from Temp_{igroup}/parameters instead.
 !>
 !> @details
 !> \verbatim
@@ -155,9 +156,9 @@ Program Main
         Integer :: Nwrap, NSweep, NBin, NBin_eff,Ltau, NSTM, NT, NT1, NVAR, LOBS_EN, LOBS_ST, NBC, NSW
         Integer :: NTAU, NTAU1
         Real(Kind=Kind(0.d0)) :: CPU_MAX
-        Character (len=64) :: file1, File_seeds
+        Character (len=64) :: file_seeds, file_para, file_dat, file_info, ham_name
         Integer :: Seed_in
-        Real (Kind=Kind(0.d0)) , allocatable, dimension(:,:) :: Initial_field
+        Complex (Kind=Kind(0.d0)) , allocatable, dimension(:,:) :: Initial_field
 
         ! Space for choosing sampling scheme
         Logical :: Propose_S0, Tempering_calc_det
@@ -166,6 +167,7 @@ Program Main
         Integer :: Nt_sequential_start, Nt_sequential_end, mpi_per_parameter_set
         Integer :: N_Global_tau
         Logical :: Sequential
+        real (Kind=Kind(0.d0)) ::  Amplitude  !    Needed for  update of  type  3  and  4  fields.
 
 #ifdef HDF5
         INTEGER(HID_T) :: file_id
@@ -185,11 +187,13 @@ Program Main
              &               Propose_S0,Global_moves,  N_Global, Global_tau_moves, &
              &               Nt_sequential_start, Nt_sequential_end, N_Global_tau, &
              &               sequential, Langevin, HMC, Delta_t_Langevin_HMC, &
-             &               Max_Force, Leapfrog_steps, N_HMC_sweeps
+             &               Max_Force, Leapfrog_steps, N_HMC_sweeps, Amplitude
 
+        NAMELIST /VAR_HAM_NAME/ ham_name
 
         !  General
-        Integer :: Ierr, I,nf, nf_eff, nst, n, N_op
+        Integer :: Ierr, I,nf, nf_eff, nst, n, n1, N_op
+        Logical :: Toggle,  Toggle1
         Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Phase, Z, Z1
         Real    (Kind=Kind(0.d0)) :: ZERO = 10D-8, X, X1
         Real    (Kind=Kind(0.d0)) :: Mc_step_weight
@@ -213,7 +217,7 @@ Program Main
         Real    (Kind=Kind(0.d0)) :: chunk_size_gb
 
 #ifdef MPI
-        Integer        :: Isize, Irank, Irank_g, Isize_g, color, key, igroup
+        Integer        :: Isize, Irank, Irank_g, Isize_g, color, key, igroup, MPI_COMM_i
 
         CALL MPI_INIT(ierr)
         CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
@@ -221,7 +225,7 @@ Program Main
         
         If (  Irank == 0 ) then
 #endif
-           write (*,*) "ALF Copyright (C) 2016 - 2021 The ALF project contributors"
+           write (*,*) "ALF Copyright (C) 2016 - 2022 The ALF project contributors"
            write (*,*) "This Program comes with ABSOLUTELY NO WARRANTY; for details see license.GPL"
            write (*,*) "This is free software, and you are welcome to redistribute it under certain conditions."
 
@@ -280,7 +284,12 @@ Program Main
 #elif !defined(TEMPERING)  && defined(MPI)
         mpi_per_parameter_set = Isize
 #elif defined(TEMPERING)  && !defined(MPI)
-        Write(6,*) 'Mpi has to be defined for tempering runs'
+        Write(error_unit,*) 'Mpi has to be defined for tempering runs'
+        CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+#endif
+#if defined(PARALLEL_PARAMS) && !defined(TEMPERING)
+        Write(error_unit,*) 'TEMPERING has to be defined for PARALLEL_PARAMS'
+        CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
 #endif
 
 #ifdef MPI
@@ -311,50 +320,88 @@ Program Main
 
 
 #ifdef MPI
+#ifdef PARALLEL_PARAMS
+        MPI_COMM_i = Group_Comm
+        If ( irank_g == 0 ) then
+           write(file_para,'(A,I0,A)') "Temp_", igroup, "/parameters"
+#else
+        MPI_COMM_i = MPI_COMM_WORLD
         If ( Irank == 0 ) then
+           file_para = "parameters"
+#endif
+#else
+           file_para = "parameters"
 #endif
            ! This is a set of variables that  identical for each simulation.
            Nwrap=0;  NSweep=0; NBin=0; Ltau=0; LOBS_EN = 0;  LOBS_ST = 0;  CPU_MAX = 0.d0
            Propose_S0 = .false. ;  Global_moves = .false. ; N_Global = 0
            Global_tau_moves = .false.; sequential = .true.; Langevin = .false. ; HMC =.false.
            Delta_t_Langevin_HMC = 0.d0;  Max_Force = 0.d0 ; Leapfrog_steps = 0; N_HMC_sweeps = 1
-           Nt_sequential_start = 1 ;  Nt_sequential_end  = 0;  N_Global_tau  = 0
-           OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
+           Nt_sequential_start = 1 ;  Nt_sequential_end  = 0;  N_Global_tau  = 0;  Amplitude = 1.d0
+           OPEN(UNIT=5,FILE=file_para,STATUS='old',ACTION='read',IOSTAT=ierr)
            IF (ierr /= 0) THEN
-              WRITE(error_unit,*) 'main: unable to open <parameters>',ierr
+              WRITE(error_unit,*) 'main: unable to open <parameters>', file_para, ierr
               CALL Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
            END IF
            READ(5,NML=VAR_QMC)
+           REWIND(5)
+           READ(5,NML=VAR_HAM_NAME)
            CLOSE(5)
            NBin_eff = NBin
 #ifdef MPI
         Endif
-        CALL MPI_BCAST(Nwrap                ,1 ,MPI_INTEGER  ,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(NSweep               ,1 ,MPI_INTEGER  ,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(NBin                 ,1 ,MPI_INTEGER  ,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(Ltau                 ,1 ,MPI_INTEGER  ,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(LOBS_EN              ,1 ,MPI_INTEGER  ,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(LOBS_ST              ,1 ,MPI_INTEGER  ,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(CPU_MAX              ,1 ,MPI_REAL8    ,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(Propose_S0           ,1 ,MPI_LOGICAL  ,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(Global_moves         ,1 ,MPI_LOGICAL  ,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(N_Global             ,1 ,MPI_Integer  ,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(Global_tau_moves     ,1 ,MPI_LOGICAL  ,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(Nt_sequential_start  ,1 ,MPI_Integer  ,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(Nt_sequential_end    ,1 ,MPI_Integer  ,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(N_Global_tau         ,1 ,MPI_Integer  ,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(sequential           ,1 ,MPI_LOGICAL  ,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(Langevin             ,1 ,MPI_LOGICAL  ,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(HMC                  ,1 ,MPI_LOGICAL  ,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(Leapfrog_steps       ,1 ,MPI_Integer  ,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(N_HMC_sweeps         ,1 ,MPI_Integer  ,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(Max_Force            ,1 ,MPI_REAL8    ,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(Delta_t_Langevin_HMC ,1 ,MPI_REAL8    ,0,MPI_COMM_WORLD,ierr)
+        CALL MPI_BCAST(Nwrap                ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(NSweep               ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(NBin                 ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(Ltau                 ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(LOBS_EN              ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(LOBS_ST              ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(CPU_MAX              ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(Propose_S0           ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(Global_moves         ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(N_Global             ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(Global_tau_moves     ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(Nt_sequential_start  ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(Nt_sequential_end    ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(N_Global_tau         ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(sequential           ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(Langevin             ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(HMC                  ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(Leapfrog_steps       ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(N_HMC_sweeps         ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(Max_Force            ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(Delta_t_Langevin_HMC ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(Amplitude            ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
+
+        CALL MPI_BCAST(ham_name             ,64,MPI_CHARACTER,0,MPI_COMM_i,ierr)
 #endif
-        Call Fields_init()
-        Call Alloc_Ham()
+        Call Fields_init(Amplitude)
+        Call Alloc_Ham(ham_name)
         leap_frog_bulk = .false.
         Call ham%Ham_set()
+        ! Test  if  user  has  specified  correct  array  size  for time dependent Hamiltonians
+        N_op = Size(OP_V,1)
+        do n = 1, N_op
+            do i = 1, N_Fl
+                if (Op_V(n,i)%get_g_t_alloc()) then
+                    if (size(Op_V(n,i)%g_t,1) /= Ltrot) then
+                        write(error_unit,*) "Array size of time-dependent coupling Op_V%g_t has to be Ltrot!"
+                        CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+                    endif
+                endif
+            enddo
+        enddo
+        do n = 1, size(Op_T,1)
+            do i = 1, N_Fl
+                if (Op_T(n,i)%get_g_t_alloc()) then
+                    if (size(Op_T(n,i)%g_t,1) /= Ltrot) then
+                        write(error_unit,*) "Array size of time-dependent coupling Op_T%g_t has to be Ltrot!"
+                        CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+                    endif
+                endif
+            enddo
+        enddo
+         
 
         ! Test if user has initialized Calc_FL array
         If ( .not. allocated(Calc_Fl)) then
@@ -427,11 +474,12 @@ Program Main
            Call ham%Overide_global_tau_sampling_parameters(Nt_sequential_start,Nt_sequential_end,N_Global_tau)
         endif
         
-        N_op = Size(OP_V,1)
         call nsigma%make(N_op, Ltrot)
         Do n = 1,N_op
-           nsigma%t(n)  = OP_V(n,1)%type
+           nsigma%t(n)              = OP_V(n,1)%type
+           nsigma%flip_protocol(n)  = OP_V(n,1)%flip_protocol
         Enddo
+           
         File_seeds="seeds"
         Call Set_Random_number_Generator(File_seeds,Seed_in)
         !Write(6,*) Seed_in
@@ -452,22 +500,22 @@ Program Main
         
 #if defined(HDF5)
 #if defined(TEMPERING)
-        write(File1,'(A,I0,A)') "Temp_",igroup,"/data.h5"
+        write(file_dat,'(A,I0,A)') "Temp_",igroup,"/data.h5"
 #else
-        File1 = "data.h5"
+        file_dat = "data.h5"
 #endif
 #if defined(MPI)
         if ( Irank_g == 0 ) then
 #endif
           CALL h5open_f(ierr)
-          inquire (file=File1, exist=file_exists)
+          inquire (file=file_dat, exist=file_exists)
           IF (.not. file_exists) THEN
             ! Create HDF5 file
-            CALL h5fcreate_f(File1, H5F_ACC_TRUNC_F, file_id, ierr)
+            CALL h5fcreate_f(file_dat, H5F_ACC_TRUNC_F, file_id, ierr)
             call h5ltset_attribute_string_f(file_id, '/', 'program_name', 'ALF', ierr)
             call h5fclose_f(file_id, ierr)
           endif
-          call ham%write_parameters_hdf5(File1)
+          call ham%write_parameters_hdf5(file_dat)
 
 #if defined(MPI)
         endif
@@ -552,15 +600,15 @@ Program Main
         endif
 
 #if defined(TEMPERING)
-        write(File1,'(A,I0,A)') "Temp_",igroup,"/info"
+        write(file_info,'(A,I0,A)') "Temp_",igroup,"/info"
 #else
-        File1 = "info"
+        file_info = "info"
 #endif
 
 #if defined(MPI)
         if ( Irank_g == 0 ) then
 #endif
-           Open (Unit = 50,file=file1,status="unknown",position="append")
+           Open (Unit = 50,file=file_info,status="unknown",position="append")
            Write(50,*) 'Sweeps                              : ', Nsweep
            If ( abs(CPU_MAX) < ZERO ) then
               Write(50,*) 'Bins                                : ', NBin
@@ -597,7 +645,30 @@ Program Main
               Write(50,*) 'Leapfrog_Steps: ', Leapfrog_Steps
               Write(50,*) 'HMC_Sweeps:     ', N_HMC_sweeps
            endif
-           
+
+           !Write out info  for  amplitude and flip_protocol
+           Toggle  = .false.
+           Do n = 1,N_op
+              if (nsigma%t(n) == 3 .or. nsigma%t(n) == 4)  Toggle = .true.
+           Enddo
+           if ( Toggle ) then
+              Write(50,*) 'Amplitude  for  t=3,4  vertices is  set to: ', Amplitude
+           endif
+           Toggle  = .false.
+           Do n = 1,N_op
+              if (nsigma%t(n) == 4)  Toggle = .true.
+           Enddo
+           If (Toggle)  then 
+              Write(50,"('Flip protocal  for  t=4  vertices is  set to')",advance="no")
+              do n1  =  1,4 
+                 Toggle1 = .false.
+                 do n =1,N_op
+                    if (nsigma%Flip_protocol(n)  ==  n1  .and. nsigma%t(n) == 4  )  Toggle1 = .true.
+                 enddo
+                 if  (Toggle1)   Write(50,"(I2,2x)",advance="no")   n1 
+              enddo
+              Write(50,*)
+           endif
            
 #if defined(MPI)
            Write(50,*) 'Number of mpi-processes : ', isize_g
@@ -622,7 +693,7 @@ Program Main
 #if defined(QRREF)
            Write(50,*) 'QRREF is defined '
 #endif
-#if defined(TEMPERING)
+#if defined(TEMPERING) && !defined(PARALLEL_PARAMS)
            Write(50,*) '# of exchange steps  ',N_exchange_steps
            Write(50,*) 'Tempering frequency  ',N_Tempering_frequency
            Write(50,*) 'Tempering Calc_det   ',Tempering_calc_det
@@ -699,7 +770,7 @@ Program Main
 
            DO NSW = 1, NSWEEP
 
-#if defined(TEMPERING)
+#if defined(TEMPERING) && !defined(PARALLEL_PARAMS)
               IF (MOD(NSW,N_Tempering_frequency) == 0) then
                  !Write(6,*) "Irank, Call tempering", Irank, NSW, N_exchange_steps
                  CALL Exchange_Step(Phase,GR,udvr, udvl,Stab_nt, udvst, N_exchange_steps, Tempering_calc_det)
@@ -709,7 +780,7 @@ Program Main
               If (Global_moves) Call Global_Updates(Phase, GR, udvr, udvl, Stab_nt, udvst,N_Global)
 
 
-              If (  trim(Langevin_HMC%get_Update_scheme()) == "Langevin" )  then
+              If ( str_to_upper(Langevin_HMC%get_Update_scheme()) == "LANGEVIN" )  then
                  !  Carry out a Langevin update and calculate equal time observables.
                  Call Langevin_HMC%update(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst, &
                       &                   LOBS_ST, LOBS_EN, LTAU)
@@ -726,7 +797,7 @@ Program Main
                  endif
               endif
 
-              If (  trim(Langevin_HMC%get_Update_scheme()) == "HMC" )  then
+              If (  str_to_upper(Langevin_HMC%get_Update_scheme()) == "HMC" )  then
                  if (Sequential) call Langevin_HMC%set_L_Forces(.False.)
                  Do n=1, N_HMC_sweeps
                      !  Carry out a Langevin update and calculate equal time observables.
@@ -808,7 +879,7 @@ Program Main
                        !write(*,*) "Phase before obser : ",phase
                        Mc_step_weight = 1.d0
                        If (Symm) then
-                          Call Hop_mod_Symm(GR_Tilde,GR)
+                          Call Hop_mod_Symm(GR_Tilde,GR,ntau1)
                           !reconstruction of NOT calculated block!!!
                           If (reconstruction_needed) Call ham%GR_reconstruction( GR_Tilde )
                           CALL ham%Obser( GR_Tilde, PHASE, Ntau1, Mc_step_weight )
@@ -838,7 +909,7 @@ Program Main
                        !write(*,*) "Phase before obser : ",phase
                        Mc_step_weight = 1.d0
                        If (Symm) then
-                          Call Hop_mod_Symm(GR_Tilde,GR)
+                          Call Hop_mod_Symm(GR_Tilde,GR,ntau1)
                           !reconstruction of NOT calculated block!!!
                           If (reconstruction_needed) Call ham%GR_reconstruction( GR_Tilde )
                           CALL ham%Obser( GR_Tilde, PHASE, Ntau1, Mc_step_weight )
@@ -934,7 +1005,7 @@ Program Main
            call system_clock(count_bin_end)
            prog_truncation = .false.
            if ( abs(CPU_MAX) > Zero ) then
-              Call make_truncation(prog_truncation,CPU_MAX,count_bin_start,count_bin_end)
+              Call make_truncation(prog_truncation,CPU_MAX,count_bin_start,count_bin_end,group_comm)
            endif
            If (prog_truncation) then
               Nbin_eff = nbc
@@ -984,11 +1055,11 @@ Program Main
 #endif
            if ( abs(CPU_MAX) > Zero ) then
 #if defined(TEMPERING)
-              write(File1,'(A,I0,A)') "Temp_",igroup,"/info"
+              write(file_info,'(A,I0,A)') "Temp_",igroup,"/info"
 #else
-              File1 = "info"
+              file_info = "info"
 #endif
-              Open (Unit=50,file=File1, status="unknown", position="append")
+              Open (Unit=50,file=file_info, status="unknown", position="append")
               Write(50,*)' Effective number of bins   : ', Nbin_eff
               Close(50)
            endif
@@ -997,6 +1068,7 @@ Program Main
 #endif
         
         Call Langevin_HMC%clean()
+        deallocate(Calc_Fl_map,Phase_array)
 
          ! Delete the file RUNNING since the simulation finished successfully
 #if defined(MPI)

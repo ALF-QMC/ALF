@@ -65,6 +65,7 @@ In the code, we define a structure called \path{Operator} that makes use of the 
     \hl{\texttt{Op\_X\%O}}       & \texttt{cmplx}   &  Matrix  $\bm{O}$  of dimension $N \times N$\\
     \hl{\texttt{Op\_X\%P}}       & \texttt{int}     &  Matrix $\bm{P}$  encoded as a vector of dimension $N$\\
     \hl{\texttt{Op\_X\%g}}       & \texttt{cmplx}   &  Coupling strength $g$ \\  
+     \hl{\texttt{Op\_X\%g\_t}}       & \texttt{cmplx}   &  Time dependent coupling strength $g(\tau)$ \\  
     \hl{\texttt{Op\_X\%alpha}}   & \texttt{cmplx}   &  Constant $\alpha$ \\
     \hl{\texttt{Op\_X\%type}}    & \texttt{int}     &  Sets the type of HS transformation (1: Ising; 2: discrete\\
              &   &    HS for perfect-square term; 3: continuous real field)  \\ 
@@ -92,17 +93,22 @@ In the code, we define a structure called \path{Operator} that makes use of the 
 \subsection{Handling of the fields: the \texttt{Fields} type} \label{sec:fields}
 %------------------------------------------------------------
 
-The partition function (see Sec.~\ref{sec:method}) consists of terms which, in general, can be written as $\gamma e^{g \phi \bm{X} }$, where $\bm{X}$ denotes an arbitrary operator, $g$ is a constant, and $\gamma$ and $\phi$ are fields. 
+The partition function (see Sec.~\ref{sec:method}) consists of terms which, in general, can be written as $\gamma e^{g \phi \bm{X} }$, where $\bm{X}$ denotes an arbitrary operator, $g$ is a constant, and $\gamma$ and $\phi$ are   functions  of  a  complex  field  $f$. 
 The ALF includes three different types of fields:
 \begin{itemize}
-\item[\texttt{t=1}]   This type is for an  Ising field, therefore $\gamma= 1$ and $ \phi = \pm 1$,
-\item[\texttt{t=2}]   This type is for the generic HS  transformation of Eq.~\eqref{HS_squares} where  $\gamma \equiv \gamma(l) $  and $ \phi = \eta(l)$  with $l = \pm 1, \pm 2$ [see Eq.~\eqref{eta_gamma_fields}],
-\item[\texttt{t=3}]   This type is for continuous fields, i.e., $\gamma= 1$  and $ \phi  \in \mathbb{R}$.
+\item[\texttt{t=1}]   This type is for an  Ising field, therefore $\gamma= 1$ and $ \phi = \Re f =  \pm 1$,
+\item[\texttt{t=2}]   This type is for the generic HS  transformation of Eq.~\eqref{HS_squares} where  $\gamma \equiv \gamma(\Re f) $  and $ \phi = \eta(\Re f)$  with $\Re f  = \pm 1, \pm 2$ [see Eq.~\eqref{eta_gamma_fields}],
+\item[\texttt{t=3}]   This type is for continuous fields, i.e., $\gamma= 1$  and $ \phi   =  \Re f  \in \mathbb R $.
+\item[\texttt{t=4}]    For  this  type  both  real and  imaginary  part  of   the  field   $\phi$ is  used.    It is  limited  to  the  
+form 
+	$\gamma \equiv \gamma(\Re f)$  and  $  \phi =   \sqrt{ 1 + \Im f}  \,   \eta(\Re f ) $, 
+with $ \Re{f} =  \pm 1, \pm 2$    and   $ \Im{f}  \in \mathbb{R} $.   This   type  is  useful     for  simulating    terms  of    the  form: $  g (1 +  \hat{Z})  \hat{O}^2 $  where 
+in a  basis   where  $\hat{Z} | f  \rangle  =     \Im  f   |  f  \rangle $  with  $ \Im f  \in \mathbb{R} $. 
 \end{itemize}
 %For an Ising term, we store type \texttt{t=1}, which sets $\gamma_{k,\tau} = 1$ and $\phi_{k,\tau}=s_{k,\tau} = \pm 1$. 
 %In the case of a perfect-square term, the fields results from the discrete HS transformation (\ref{HS_squares}) and we store \texttt{t=2}, which sets $\gamma_{k,\tau} = s_{k,\tau}$ and $\phi_{k,\tau}=\eta_{k,\tau}$ ). For continuous real fields $f$ we store \texttt{t=3}, which sets $\gamma_{k,\tau} = 1$ and $\phi_{k,\tau}=f$.
 
-For such auxiliary fields a dedicated type \texttt{Fields} is defined, whose components, listed in Table~\ref{table:Fields}, include the variables \texttt{Field\%f} and \texttt{Field\%t}, which store the field values and types, respectively, and functions such as \texttt{Field\%flip}, which flips the field values randomly. Before using this variable type, the routine \texttt{Fields\_init(Amplitude)} should be called (its argument is optional and the default value is of unity (see Sec.~\ref{sec:sequential}), in order for internal variables such as  $\eta(l)$ and $\gamma(l)$  [see Eq.~\eqref{eta_gamma_fields}] to be initialized.
+For such auxiliary fields a dedicated type \texttt{Fields} is defined, whose components, listed in Table~\ref{table:Fields}, include the variables \texttt{Field\%f} and \texttt{Field\%t}, which store the field values and types, respectively, and functions such as \texttt{Field\%flip}, which flips the field values randomly. Before using this variable type, the routine \texttt{Fields\_init(Amplitude)} should be called (its argument is optional and the default value is of unity (see Sec.~\ref{sec:sequential}), in order for internal variables such as  $\eta$ and $\gamma$  [see Eq.~\eqref{eta_gamma_fields}] to be initialized.
 
 
 %
@@ -111,19 +117,29 @@ For such auxiliary fields a dedicated type \texttt{Fields} is defined, whose com
 	\begin{tabular}{@{} p{0.25\columnwidth} p{0.05\columnwidth} p{\dimexpr0.67\columnwidth-2\tabcolsep\relax} @{}}\toprule
 		Component                          &                & Description    \\ \midrule
 		\textbf{Variable}                  &  \textbf{Type} &  \\ \midrule
-		\texttt{Field\%t(1:n\_op)}         &  \texttt{int}  & Sets the HS transformation type (1: Ising; 2: discrete HS for perfect-square term; 3: continuous real field). The index runs through the operator sequence \\
-		\texttt{Field\%f(1:n\_op, 1:Ltrot)} & \texttt{dble}  & Defines the auxiliary fields. The first index runs through the operator sequence and the second through the time slices. For \texttt{t=1}, $f = \pm 1$; for \texttt{t=2}, $f = \pm 1, \pm 2$; and for \texttt{t=3}, $f \in \mathbb{R}$ \\
-		\texttt{del}                       & \texttt{dble}  & Width $\Delta x$ of box distribution for initial \texttt{t=3} fields, with a default value of \texttt{1} \\
-		\texttt{amplitude}                 & \texttt{dble}  & Random flip width for fields of type \texttt{t=3}, defaults to \texttt{1} \vspace{8pt} \\ 
+		\texttt{Field\%t(1:n\_op)}     &  \texttt{int}   & Sets the HS transformation type (1: Ising; 2: discrete HS for perfect-square term; 3: continuous real field). The index runs through the operator sequence \\	
+		\texttt{Field\%f(1:n\_op, 1:Ltrot)} & \texttt{cmplx}  & Defines the auxiliary fields. The first index runs through the operator sequence and the second through the time slices. For \texttt{t=1}, $f = \pm 1$; for \texttt{t=2}, $f = \pm 1, \pm 2$;  for \texttt{t=3}, $f \in \mathbb{R}$; and  for \texttt{t=4},  $f \in \mathbb{C}$,    $ \text{Real}(f) = \pm 1, \pm 2 $, $\text{Im}(f) \in \mathbb{R} $  \\
+		\texttt{Field\%flip\_protocol(1:n\_op)}         &  \texttt{int}  & Gives  the possibility  to  choose  the  flipping  protocol of  the field for type \texttt{t=4}  fields.    
+		                          1:   real  or   imaginary  parts  of  the field  are   updated  with   0.5  probability (default)
+		                          2:   both real  and imaginary  parts  are  updated 
+		                          3:   only  real  part  4: only  imaginary  part. \\
+		\texttt{amplitude}                 & \texttt{dble}  & Random flip width for fields of types \texttt{t=3, 4},   defaults to \texttt{1} \vspace{8pt} \\ 
 		\multicolumn{2}{@{}l@{}}{ \textbf{Method(arguments)}}         &    \\ \midrule
 		%\multicolumn{2}{@{}l@{}}{ \texttt{Fields\_init(del)}}         & Initializes internal variables such as  $\eta(l)$, $\gamma(l)$  [see Eq.~\eqref{eta_gamma_fields}]; the variable $\texttt{del}=\Delta x$ (see above) is optional  \\
 		\multicolumn{2}{@{}l@{}}{ \texttt{Field\%make(n\_op,Ltrot)}}  & Reserves memory for the field \\
 		\multicolumn{2}{@{}l@{}}{ \texttt{Field\%clear()}}            & Clears field from memory \\
 		\multicolumn{2}{@{}l@{}}{ \texttt{Field\%set()}}              & Sets a random configuration \\
 		\multicolumn{2}{@{}l@{}}{ \texttt{Field\%flip(n,nt)}}         & Flips the field values randomly  for  field \texttt{n} on time slice \texttt{nt}.    For  \texttt{t=1} it flips the sign of the Ising spin.  For \texttt{t=2} it randomly choose one of the 
-		three other values of $l$. For  \texttt{t=3},  \texttt{f = f + amplitude*(ranf() -1/2)} \\
-		\multicolumn{2}{@{}l@{}}{ \texttt{Field\%phi(n,nt)}}          & Returns $\phi$ for the \texttt{n}-th operator at the time slice  \texttt{nt} \\
-		\multicolumn{2}{@{}l@{}}{ \texttt{Field\%gamma(n,nt)}}        & Returns $\gamma$ for the  \texttt{n}-th operator at the time slice  \texttt{nt}  \\
+		three other values of $l$. For  \texttt{t=3},  \texttt{f = f + amplitude*(ranf() -1/2)}.  For  $ \texttt{t=4} $,  the real part  is   flipped as for  
+		$ \texttt{t=2} $,  and  the imaginary  part  as  for  $ \texttt{t=3} $.  The  specifics  of  the  flip is encoded in the  \texttt{flip\_protocol}  variable   described  above. \\
+		\multicolumn{2}{@{}l@{}}{ \texttt{Field\%phi(n,nt)}}          & Returns $\phi$ for the \texttt{n}-th operator at the time slice  \texttt{nt}.  
+		 For \texttt{t=1, 3} $ \phi=f $; 
+		 for  \texttt{t=2} $\phi =  \eta(\Re{f})$ ;
+		 and  for   \texttt{t=4} $\phi =  \sqrt{1  +  \Im f}  \eta(\Re{f})$  \\
+		\multicolumn{2}{@{}l@{}}{ \texttt{Field\%gamma(n,nt)}}        &
+		 Returns $\gamma$ for the  \texttt{n}-th operator at the time slice  \texttt{nt}  
+		 For \texttt{t=1,3}  $\gamma= 1 $; 
+		 and for  \texttt{t=2,4} $\gamma=  \gamma(\Re{f})$  \\
 		\multicolumn{2}{@{}l@{}}{ \texttt{Field\%i(n,nt)}}            & Returns \texttt{Field\%f} rounded to nearest integer (if \texttt{t=1} or \texttt{2}) \\
 		\multicolumn{2}{@{} p{0.3\columnwidth} @{}}{ \texttt{Field\%in(Group\_Comm, In\_field)}} &      If  the file  \texttt{confin\_np} (or \texttt{confin\_np.h5}) exists  it reads the field configuration  from this file.   Otherwise if \texttt{In\_field}  is present it sets the fields to   \texttt{In\_field}.   
 		 If both  \texttt{confin\_np}(\texttt{.h5})  and  \texttt{In\_field}  are not provided it sets a random field by calling \texttt{Field\%set()}.
@@ -333,7 +349,8 @@ where $\alpha$ and $\beta$ are orbital indices and $\vec{i}$ and $\vec{j}$ latti
 		\\\bottomrule
 	\end{tabular}
 	\caption{Components of a variable of type \texttt{Obser\_latt} named \texttt{Obs}.
-	Be aware: The types marked with asterisks, $*$, are actually pointers, i.e., when the subroutine \texttt{Obser\_Latt\_make} creates an observable \texttt{Obs}, the variables \texttt{Latt} and \texttt{Latt\_unit} do not get copied but linked, meaning modifying them after the creation of \texttt{Obs} still affects the observable.}
+	Be aware: The types marked with asterisks, $*$, are actually pointers; when the subroutine \texttt{Obser\_Latt\_make} creates an observable \texttt{Obs}, the variables \texttt{Latt} and \texttt{Latt\_unit} do not get copied but a pointer to them is stored, implying that their modification
+after the creation of \texttt{Obs} still affects the observable.    Each  observable  can have its  own lattice  and  unit-cell  that  can  differ  from  the lattice  and  unit  cell  associated to the Hamiltonian. For  example,    when  simulation a  two-dimensional  Hubbard model,  one  can  define an observable on a one-dimensional sub-lattice.  We  refer  the   reader  to Sec.~\ref{sec:predefined_observales}     for  further   discussion on this    option.   }
 	\label{table:Obser_latt}
 \end{center}
 \end{table}
@@ -631,13 +648,17 @@ for any given $i$. Note that \texttt{Op\_V(i,n$_\mathrm{fl}$)} includes a consta
 For example, the particle-hole symmetry requires a non-zero shift $\alpha=1/2$ in the $M_z$ decoupling of the Hubbard interaction to map the upspin to the downspin.
 This acceleration is activated by allocating \texttt{Calc\_Fl} in \texttt{Ham\_set} and setting the `active' flavors $n_\mathrm{fl}$ to \texttt{.True.} and the symmetry-related flavors $\bar{n}_\mathrm{fl}$ to \texttt{.False.}.
 
-This symmetry allows one to reconstruct one flavor, say $\bar{n}_\mathrm{fl}$, from the other, $n_\mathrm{fl}$. For unitary symmetries, the weight is given by $Z(\bar{n}_\mathrm{fl})=Z(n_\mathrm{fl})$, while anti-unitary symmetries lead to $Z(\bar{n}_\mathrm{fl})=Z(n_\mathrm{fl})^*$. This relation has to be provided by the user in  \texttt{weight\_reconstruction}. Up to entry, all weights $Z(n_\mathrm{fl})$ have be explicitly calculated by ALF and the user has to fill all `inactive' flavors $\bar{n}_\mathrm{fl}$ of the array $Z$.
-Similarly, the subroutines \texttt{GR\_reconstruction} and \texttt{GRT\_reconstruction} have to be overridden to provide the symmetry reconstruction of the `inactive' flavors $\bar{n}_\mathrm{fl}$ of the equal-time and time-displaced Green functions out of $n_\mathrm{fl}$, respectively.   
 
-Finally  we  note  that   if  the projective  algorithm is  used  then   the  trial  wave  function  also has  to satisfy  the   aforementioned  symmetry.  
-In particular,  
-assume  that  the   trial wave function    corresponds  to the  ground state of a  single  particle  Hamiltonian,   $\hat{H}_T(n_\mathrm{fl}) $,  then  we  
-will require  that  
+This symmetry allows one to reconstruct one flavor, say $\bar{n}_\mathrm{fl}$, from the other, $n_\mathrm{fl}$. For unitary symmetries, the weight is given by $Z(\bar{n}_\mathrm{fl})=Z(n_\mathrm{fl})$, while anti-unitary symmetries lead to $Z(\bar{n}_\mathrm{fl})=Z(n_\mathrm{fl})^*$. This relation has to be provided by the user in  \texttt{weight\_reconstruction}. Up to entry, all weights $Z(n_\mathrm{fl})$ have be explicitly calculated by ALF and the user has to fill all `inactive' flavors $\bar{n}_\mathrm{fl}$ of the array $Z$.
+Similarly, the subroutines \texttt{GR\_reconstruction} and \texttt{GRT\_reconstruction} have to be overridden to provide the symmetry reconstruction of the `inactive' flavors $\bar{n}_\mathrm{fl}$ of the equal-time and time-displaced Green functions out of $n_\mathrm{fl}$, respectively.
+
+Finally  we  note  that   if  the projective  algorithm is  used  then   the  trial  wave  function  also has  to satisfy  the   aforementioned  symmetry.
+In particular,
+assume  that  the   trial wave function    corresponds  to the  ground state of a  single  particle  Hamiltonian,   $\hat{H}_T(n_\mathrm{fl}) $,  then  we
+will require  that
 \begin{equation}
-\mathcal{U}^{-1}   \hat{H}_T(n_\mathrm{fl})  \mathcal{U} = \hat{H}_T(\bar{n}_\mathrm{fl})  
+\mathcal{U}^{-1}   \hat{H}_T(n_\mathrm{fl})  \mathcal{U} = \hat{H}_T(\bar{n}_\mathrm{fl})
 \end{equation}
+
+\subsubsection{Time-dependent Hamiltonians}\label{sec:time}
+\input{time_dependence}

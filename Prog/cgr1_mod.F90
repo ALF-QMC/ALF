@@ -67,6 +67,7 @@ module cgr1_mod
         INTEGER         :: NVAR
  
         !Local
+        Logical, save :: Scale_warning_message = .true.
         TYPE(UDV_State) :: udvlocal
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable :: TPUP, TPUP1, TPUPM1
         INTEGER, Dimension(:), Allocatable :: IPVT
@@ -95,6 +96,12 @@ module cgr1_mod
         CALL udvlocal%alloc(N_size)
         !Write(6,*) 'In CGR', N_size
         CALL MMULT(udvlocal%V, udvr%V, udvl%V)
+        if ( dble(udvr%D(1)*udvlocal%V(1,1)*udvl%D(1)) > 0.1*huge(1.0d0) .and. Scale_warning_message) then
+           write(error_unit,*) 
+           write(error_unit,*) "Warning: Large number encountered; Generation of NaN's is imminent"
+           write(error_unit,*) "         Switching to LOG stablilization scheme is likely to help"
+           Scale_warning_message = .false.
+        endif
         DO J = 1,N_size
             TPUP(:,J) = udvr%D(:)*udvlocal%V(:,J)*udvl%D(J)
         ENDDO
@@ -179,6 +186,7 @@ module cgr1_mod
         INTEGER         :: NVAR
  
         !Local
+        Logical, save :: Scale_warning_message = .true.
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  TPUP, RHS
         COMPLEX (Kind=Kind(0.d0)), Dimension(:) , Allocatable ::  DUP
         INTEGER, Dimension(:), Allocatable :: IPVT, VISITED
@@ -213,6 +221,12 @@ module cgr1_mod
         
         CALL MMULT(TPUP, udvr%V, udvl%V)
 #if !(defined(STAB3) || defined(STABLOG))
+        if ( dble(udvr%D(1)*TPUP(1,1)*udvl%D(1) + RHS(1,1)) > 0.1*huge(1.0d0) .and. Scale_warning_message) then
+           write(error_unit,*) 
+           write(error_unit,*) "Warning: Large number encountered; Generation of NaN's is imminent"
+           write(error_unit,*) "         Switching to LOG stablilization scheme is likely to help"
+           Scale_warning_message = .false.
+        endif
         DO J = 1,N_size
             TPUP(:,J) = udvr%D(:) *TPUP(:,J)*udvl%D(J)
         ENDDO

@@ -294,9 +294,9 @@
             call h5LTset_attribute_double_f(group_id, dset_name, attr_name, Latt%L2_p, size_dat, ierr )
             
             attr_name = "N_coord"
-            call write_attribute(group_id, '.', attr_name, Latt_unit%Norb, ierr)
-            attr_name = "Norb"
             call write_attribute(group_id, '.', attr_name, Latt_unit%N_coord, ierr)
+            attr_name = "Norb"
+            call write_attribute(group_id, '.', attr_name, Latt_unit%Norb, ierr)
             attr_name = "Ndim"
             call write_attribute(group_id, '.', attr_name, size(Latt_unit%Orb_pos_p, 2), ierr)
             

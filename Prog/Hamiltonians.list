@@ -1,6 +1,12 @@
-Kondo
+# List of Hamiltonians to be included in the program.
+# Lines starting with "#" are ignored.
+# The location of the Hamiltonian file can be added after the name,
+# otherwise it defaults to "Hamiltonians/Hamiltonian_{hamiltonian_name}_smod.F90"
+# Files in the directory Hamiltonians.list.d will be treated as part of this file.
+Kondo Hamiltonians/Hamiltonian_Kondo_smod.F90
 Hubbard
 Hubbard_Plain_Vanilla
 tV
 LRC
 Z2_Matter
+Spin_Peierls

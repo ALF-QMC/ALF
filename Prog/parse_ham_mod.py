@@ -11,6 +11,35 @@ __author__ = "Jonas Schwab"
 __copyright__ = "Copyright 2022, The ALF Project"
 __license__ = "GPL"
 
+import glob
+
+
+def get_ham_names_ham_files(ham_list_file):
+    """Return list of Hamiltonian names and files.
+    
+    Also parses files in directory `ham_list_file` + '.d',
+    so usually ${ALF_DIR}/Prog/Hamiltonians.list and files in
+    ${ALF_DIR}/Prog/Hamiltonians.list.d
+    """
+    ham_list_files = [ham_list_file, *glob.glob(ham_list_file + '.d/*')]
+
+    lines = []
+    for file in ham_list_files:
+        with open(file, 'r', encoding='UTF-8') as f:
+            for line in f.read().splitlines():
+                if not line.strip()[0] == '#':
+                    lines.append(line.strip().split())
+
+    ham_names = []
+    ham_files = []
+    for line in lines:
+        ham_names.append(line[0])
+        try:
+            ham_files.append(line[1])
+        except IndexError:
+            ham_files.append(
+                'Hamiltonians/Hamiltonian_{}_smod.F90'.format(line[0]))
+    return ham_names, ham_files
 
 def parse(filename):
     """Parse Fortran file for parameter lists.
@@ -20,7 +49,7 @@ def parse(filename):
     line as '#PARAMETERS START#' is the namelist name.
     """
     parameters = {}
-    with open(filename, 'r') as f:
+    with open(filename, 'r', encoding='UTF-8') as f:
         lines = f.readlines()
 
     do_parse = False
@@ -74,7 +103,7 @@ def parse_line(line):
 
 
 def _max_len(dictionary):
-    return max([len(i) for i in dictionary])
+    return max(len(i) for i in dictionary)
 
 
 def _dtype_name(parameter):
@@ -218,7 +247,7 @@ def create_read_write_par(filename, parameters, ham_name):
 #endif
 """
 
-    f = open(filename, 'w')
+    f = open(filename, 'w', encoding='UTF-8')
     for line in TEMPLATE.splitlines(keepends=True):
         if '##NAMELIST##' in line:
             for nlist_name, nlist in parameters.items():
@@ -306,7 +335,7 @@ def create_read_write_par(filename, parameters, ham_name):
 
 def _to_value(dtype, value):
     if 'real' in dtype:
-        return float(value.replace('d', 'e'))
+        return float(value.replace('d', 'e').replace('D', 'e'))
     # if 'complex' in dtype:
     #     tmp = value.strip('()').split(',')
     #     if not len(tmp) == 2:

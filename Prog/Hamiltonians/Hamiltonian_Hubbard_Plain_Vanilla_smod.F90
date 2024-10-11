@@ -163,6 +163,7 @@
       real(Kind=Kind(0.d0)) :: Dtau     = 0.1d0     ! Thereby Ltrot=Beta/dtau
       real(Kind=Kind(0.d0)) :: Beta     = 5.d0      ! Inverse temperature
       !logical              :: Projector= .false.   ! Whether the projective algorithm is used
+      logical               :: Adiabatic= .false.   ! If  true,  and projector  true then adiabatic  switching on of  U. 
       real(Kind=Kind(0.d0)) :: Theta    = 10.d0     ! Projection parameter
       !logical              :: Symm     = .true.    ! Whether symmetrization takes place
       Integer               :: N_part   = -1        ! Number of particles in trial wave function. If N_part < 0 -> N_part = L1*L2/2
@@ -220,6 +221,11 @@
              Call Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
           endif
 
+          if ( (.not. projector) .and. adiabatic) then
+            write(output_unit,*) "Adiabatic mode is only implemented for projective code."
+            write(output_unit,*) "Overriding Adiabatic=.True. from parameter files."
+          endif
+
           if (N_part < 0) N_part = L1*L2/2
           Ltrot  = nint(beta/dtau)
           Thtrot = 0
@@ -261,6 +267,7 @@
                 Write(unit_info,*) 'Theta         : ', Theta
                 Write(unit_info,*) 'Tau_max       : ', beta
                 Write(unit_info,*) '# of particles: ', N_part
+                Write(unit_info,*) 'Adiabatic switching on of U: ', Adiabatic
              else
                 Write(unit_info,*) 'Finite temperture version'
                 Write(unit_info,*) 'Beta          : ', Beta
@@ -432,7 +439,7 @@
           Use Predefined_Int
           Implicit none
 
-          Integer :: nf, I
+          Integer :: nf, I, nt
           Real (Kind=Kind(0.d0)) :: X
 
 
@@ -450,13 +457,21 @@
              Do i = 1,Ndim
                 Op_V(i,nf)%P(1)   = I
                 Op_V(i,nf)%O(1,1) = cmplx(1.d0, 0.d0, kind(0.D0))
-                Op_V(i,nf)%g      = X*SQRT(CMPLX(DTAU*ham_U/2.d0, 0.D0, kind(0.D0)))
+                If  (Adiabatic)   then
+                   Allocate(OP_V(i,nf)%g_t(Ltrot))
+                   Op_V(i,nf)%g_t  = X*SQRT(CMPLX(DTAU*ham_U/2.d0, 0.D0, kind(0.D0)))
+                   do  nt = 1, Thtrot
+                      Op_V(i,nf)%g_t(nt)            = X*SQRT(CMPLX(DTAU*dble(nt)/dble(thtrot)*ham_U/2.d0, 0.D0, kind(0.D0)))
+                      Op_V(i,nf)%g_t(Ltrot-(nt-1))  = X*SQRT(CMPLX(DTAU*dble(nt)/dble(thtrot)*ham_U/2.d0, 0.D0, kind(0.D0)))
+                   enddo
+                else
+                   Op_V(i,nf)%g      = X*SQRT(CMPLX(DTAU*ham_U/2.d0, 0.D0, kind(0.D0)))
+                endif
                 Op_V(i,nf)%alpha  = cmplx(-0.5d0, 0.d0, kind(0.D0))
                 Op_V(i,nf)%type   = 2
                 Call Op_set( Op_V(i,nf) )
              Enddo
           Enddo
-
 
         end Subroutine Ham_V
 
@@ -476,7 +491,7 @@
           Integer, Intent(In) :: Ltau
           Integer    ::  i, N, Nt
           Character (len=64) ::  Filename
-          Character (len=2)  ::  Channel
+          Character (len=:), allocatable ::  Channel
 
 
           ! Scalar observables

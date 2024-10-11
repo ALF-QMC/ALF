@@ -660,6 +660,13 @@ S.~D{\"u}rr, Z.~Fodor, J.~Frison, C.~Hoelbling, R.~Hoffmann, S.~D. Katz,
 \newblock
   \eprint{http://science.sciencemag.org/content/322/5905/1224.full.pdf}.
 
+\bibitem{Sorella21}
+S.~Sorella,
+\newblock \emph{The phase diagram of the hubbard model by variational auxiliary
+  field quantum monte carlo},
+\newblock arXiv:2101.07045  (2021),
+\newblock \doi{10.48550/ARXIV.2101.07045}.
+
 \bibitem{Assaad02}
 F.~F. Assaad,
 \newblock \emph{Quantum monte carlo methods on lattices: The determinantal
@@ -994,6 +1001,13 @@ M.~B. {Thompson},
 \newblock arXiv:1011.0175  (2010),
 \newblock \eprint{https://arxiv.org/abs/1011.0175}.
 
+\bibitem{Parola91}
+A.~Parola, S.~Sorella, M.~Parrinello and E.~Tosatti,
+\newblock \emph{d-wave, dimer, and chiral states in the two-dimensional hubbard
+  model},
+\newblock Phys. Rev. B \textbf{43}, 6190 (1991),
+\newblock \doi{10.1103/PhysRevB.43.6190}.
+
 \bibitem{Milat04}
 I.~Milat, F.~Assaad and M.~Sigrist,
 \newblock \emph{Field induced magnetic ordering transition in kondo
@@ -1009,12 +1023,12 @@ M.~Bercx, T.~C. Lang and F.~F. Assaad,
 \newblock Phys. Rev. B \textbf{80}, 045412 (2009),
 \newblock \doi{10.1103/PhysRevB.80.045412}.
 
-\bibitem{Parola91}
-A.~Parola, S.~Sorella, M.~Parrinello and E.~Tosatti,
-\newblock \emph{d-wave, dimer, and chiral states in the two-dimensional hubbard
-  model},
-\newblock Phys. Rev. B \textbf{43}, 6190 (1991),
-\newblock \doi{10.1103/PhysRevB.43.6190}.
+\bibitem{Vaezi21}
+M.-S. Vaezi, A.-R. Negari, A.~Moharramipour and A.~Vaezi,
+\newblock \emph{Amelioration for the sign problem: An adiabatic quantum monte
+  carlo algorithm},
+\newblock Phys. Rev. Lett. \textbf{127}, 217003 (2021),
+\newblock \doi{10.1103/PhysRevLett.127.217003}.
 
 \bibitem{Schrieffer66}
 J.~R. Schrieffer and P.~A. Wolff,
@@ -1068,6 +1082,37 @@ A.~R\"uegg, S.~D. Huber and M.~Sigrist,
   fermions},
 \newblock Phys. Rev. B \textbf{81}, 155118 (2010),
 \newblock \doi{10.1103/PhysRevB.81.155118}.
+
+\bibitem{Weber21}
+M.~Weber,
+\newblock \emph{Valence bond order in a honeycomb antiferromagnet coupled to
+  quantum phonons},
+\newblock Phys. Rev. B \textbf{103}, L041105 (2021),
+\newblock \doi{10.1103/PhysRevB.103.L041105}.
+
+\bibitem{Weber17}
+M.~Weber, F.~F. Assaad and M.~Hohenadler,
+\newblock \emph{Directed-loop quantum monte carlo method for retarded
+  interactions},
+\newblock Phys. Rev. Lett. \textbf{119}, 097401 (2017),
+\newblock \doi{10.1103/PhysRevLett.119.097401}.
+
+\bibitem{Jarrell96}
+M.~Jarrell and J.~Gubernatis,
+\newblock \emph{Bayesian inference and the analytic continuation of
+  imaginary-time quantum monte carlo data},
+\newblock Physics Reports \textbf{269}, 133 (1996).
+
+\bibitem{Linden95}
+W.~von~der Linden,
+\newblock Applied Physics A \textbf{60}, 155 (1995).
+
+\bibitem{Hauke16}
+P.~Hauke, M.~Heyl, L.~Tagliacozzo and P.~Zoller,
+\newblock \emph{Measuring multipartite entanglement through dynamic
+  susceptibilities},
+\newblock Nature Physics \textbf{12}(8), 778 (2016),
+\newblock \doi{10.1038/nphys3700}.
 
 \bibitem{Abendschein06}
 A.~Abendschein and F.~F. Assaad,

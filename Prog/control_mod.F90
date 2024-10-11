@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 - 2020 The ALF project
+!  Copyright (C) 2016 - 2022 The ALF project
 !
 !  This file is part of the ALF project.
 !
@@ -45,6 +45,7 @@
 
 module Control
 
+    use files_mod
     Use MyMats
     use iso_fortran_env, only: output_unit, error_unit
     Implicit none
@@ -215,6 +216,52 @@ module Control
         Real    (Kind=Kind(0.d0)) :: XMAX, XMEAN
         Character (len=64) :: file1 
 
+        if (any(A /= A)) then
+#if defined(TEMPERING) 
+          write(File1,'(A,I0,A)') "Temp_",igroup,"/info"
+#else
+          File1 = "info"
+#endif
+          Open (Unit=50,file=file1, status="unknown", position="append")
+          write(50,*)
+#ifdef MPI
+          write(50,*) "Task", Irank_g, "of group", igroup, "reports:"
+#endif
+          write(50,*) "Green function A contains NaN, calculation is being aborted!"
+          write(50,*)
+          close(50)
+          write(error_unit,*)
+#ifdef MPI
+          write(error_unit,*) "Task", Irank_g, "of group", igroup, "reports:"
+#endif
+          write(error_unit,*) "Green function A contains NaN, calculation is being aborted!"
+          write(error_unit,*)
+          CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+        endif
+
+        if (any(B /= B)) then
+#if defined(TEMPERING) 
+          write(File1,'(A,I0,A)') "Temp_",igroup,"/info"
+#else
+          File1 = "info"
+#endif
+          Open (Unit=50,file=file1, status="unknown", position="append")
+          write(50,*)
+#ifdef MPI
+          write(50,*) "Task", Irank_g, "of group", igroup, "reports:"
+#endif
+          write(50,*) "Green function B contains NaN, calculation is being aborted!"
+          write(50,*)
+          close(50)
+          write(error_unit,*)
+#ifdef MPI
+          write(error_unit,*) "Task", Irank_g, "of group", igroup, "reports:"
+#endif
+          write(error_unit,*) "Green function B contains NaN, calculation is being aborted!"
+          write(error_unit,*)
+          CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+        endif
+
         NCG = NCG + 1
         CALL COMPARE(A, B, XMAX, XMEAN)
         IF (XMAX  >  10.d0) then
@@ -342,10 +389,10 @@ module Control
         call system_clock(count_CPU_end)
         time = (count_CPU_end-count_CPU_start)/dble(count_rate)
         if (count_CPU_end .lt. count_CPU_start) time = (count_max+count_CPU_end-count_CPU_start)/dble(count_rate)
-        If (trim(Global_update_scheme) == "Langevin") Force_mean =  Force_mean/real(Force_count,kind(0.d0)) 
+        If (str_to_upper(Global_update_scheme) == "LANGEVIN") Force_mean =  Force_mean/real(Force_count,kind(0.d0)) 
         
 #if defined(MPI)
-        If (trim(Global_update_scheme) == "Langevin")  then
+        If (str_to_upper(Global_update_scheme) == "LANGEVIN")  then
            X = 0.d0
            CALL MPI_REDUCE(Force_mean,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
            Force_mean= X/dble(Isize_g)
@@ -443,10 +490,10 @@ module Control
               Write(50,*) ' Average cluster size         : ', size_clust_Glob
               Write(50,*) ' Average accepted cluster size: ', size_clust_Glob_ACC
            endif
-           if (trim(Global_update_scheme) == "Langevin") &
+           if (str_to_upper(Global_update_scheme) == "LANGEVIN") &
                 &  Write(50,*) ' Langevin         Mean, Max : ', Force_mean,  Force_max
            
-           if (trim(Global_update_scheme) == "HMC")   Then
+           if (str_to_upper(Global_update_scheme) == "HMC")   Then
               Write(50,*) ' Acceptance_HMC              : ', ACC_HMC
               Write(50,*) ' Mean Phase diff HMC         : ', XMEANP_HMC
               Write(50,*) ' Max  Phase diff HMC         : ', XMAXP_HMC
@@ -461,8 +508,8 @@ module Control
       end Subroutine Control_Print
 
 
-      subroutine make_truncation(prog_truncation,cpu_max,count_bin_start,count_bin_end)
-      !!!!!!! Written by M. Bercx
+      subroutine make_truncation(prog_truncation,cpu_max,count_bin_start,count_bin_end, group_comm)
+      !!!!!!! Written by M. Bercx, edited by J. Schwab
       ! This subroutine checks if the conditions for a controlled termination of the program are met.
       ! The subroutine contains a hard-coded threshold (in unit of bins):
       ! if time_remain/time_bin_duration < threshold the program terminates.
@@ -474,18 +521,21 @@ module Control
       logical, intent(out)                 :: prog_truncation
       real(kind=kind(0.d0)), intent(in)    :: cpu_max
       integer(kind=kind(0.d0)), intent(in) :: count_bin_start, count_bin_end
+      integer, intent(in)                  :: group_comm
       real(kind=kind(0.d0))                :: count_alloc_end
       real(kind=kind(0.d0))                :: time_bin_duration,time_remain,bins_remain,threshold
 #ifdef MPI
       real(kind=kind(0.d0))                :: bins_remain_mpi
-      integer                              :: err_mpi,rank_mpi,tasks_mpi
+      integer                              :: err_mpi, irank, isize, irank_g, isize_g
 #endif
       threshold = 1.5d0
       prog_truncation = .false.
 
 #ifdef MPI
-      call mpi_comm_size(mpi_comm_world, tasks_mpi, err_mpi)
-      call mpi_comm_rank(mpi_comm_world, rank_mpi, err_mpi)
+      call mpi_comm_size(mpi_comm_world, isize, err_mpi)
+      call mpi_comm_rank(mpi_comm_world, irank, err_mpi)
+      call mpi_comm_size(group_comm, isize_g, err_mpi)
+      call mpi_comm_rank(group_comm, irank_g, err_mpi)
 #endif
       count_alloc_end   = count_CPU_start + cpu_max*3600*count_rate
       time_bin_duration = (count_bin_end-count_bin_start)/dble(count_rate)
@@ -497,16 +547,18 @@ module Control
       bins_remain       = time_remain/time_bin_duration
 
 #ifdef MPI
-      call mpi_reduce(bins_remain,bins_remain_mpi,1,mpi_double_precision,mpi_sum,0,mpi_comm_world,err_mpi)
-#endif
-
-#ifdef MPI
-      if (rank_mpi .eq. 0) bins_remain_mpi = bins_remain_mpi/tasks_mpi
-      call mpi_bcast(bins_remain_mpi,1, mpi_double_precision,0, mpi_comm_world,err_mpi)
-      if (bins_remain_mpi .lt. threshold) prog_truncation = .true.
+#ifdef PARALLEL_PARAMS
+      call mpi_reduce(bins_remain,bins_remain_mpi,1,mpi_double_precision,mpi_sum,0,group_comm,err_mpi)
+      if (irank_g .eq. 0) bins_remain_mpi = bins_remain_mpi/isize_g
+      call mpi_bcast(bins_remain_mpi,1, mpi_double_precision,0, group_comm,err_mpi)
 #else
-      if (bins_remain .lt. threshold) prog_truncation = .true.
+      call mpi_reduce(bins_remain,bins_remain_mpi,1,mpi_double_precision,mpi_sum,0,mpi_comm_world,err_mpi)
+      if (irank .eq. 0) bins_remain_mpi = bins_remain_mpi/isize
+      call mpi_bcast(bins_remain_mpi,1, mpi_double_precision,0, mpi_comm_world,err_mpi)
 #endif
+      bins_remain = bins_remain_mpi
+#endif
+      if (bins_remain .lt. threshold) prog_truncation = .true.
       end subroutine make_truncation
 
     end module control

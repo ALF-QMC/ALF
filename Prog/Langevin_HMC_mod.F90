@@ -169,7 +169,7 @@
            
            IF (NTAU1 .GE. LOBS_ST .AND. NTAU1 .LE. LOBS_EN .and. Calc_Obser_eq ) THEN
               If (Symm) then
-                 Call Hop_mod_Symm(GR_Tilde,GR)
+                 Call Hop_mod_Symm(GR_Tilde,GR,ntau1)
                  If (reconstruction_needed) Call ham%GR_reconstruction( GR_Tilde )
                  CALL ham%Obser( GR_Tilde, PHASE, Ntau1,this%Delta_t_running )
               else
@@ -202,14 +202,14 @@
 
         
         !Local
-        Complex (Kind=Kind(0.d0)) :: Z(N_FL), Z1
+        Complex (Kind=Kind(0.d0)) :: Z(N_FL), Z1, g_loc
         Integer ::  nf, I, J, n, N_type, nf_eff
-        Real(Kind=Kind(0.d0)) :: spin
+        Complex  (Kind=Kind(0.d0)) :: spin
 
         Do nf_eff = 1,N_FL_eff
            nf=Calc_FL_map(nf_eff)
-           CALL HOP_MOD_mmthr   (GR(:,:,nf), nf )
-           CALL HOP_MOD_mmthl_m1(GR(:,:,nf), nf )
+           CALL HOP_MOD_mmthr   (GR(:,:,nf), nf, nt1 )
+           CALL HOP_MOD_mmthl_m1(GR(:,:,nf), nf, nt1 )
         Enddo
         Do n = 1, size(OP_V,1) 
            this%Forces(n,nt1)  = cmplx(0.d0,0.d0,Kind(0.d0))
@@ -217,9 +217,9 @@
               nf=Calc_FL_map(nf_eff)
               spin = nsigma%f(n,nt1) ! Phi(nsigma(n,ntau1),Op_V(n,nf)%type)
               N_type = 1
-              Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type)
+              Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type,nt1)
               N_type =  2
-              Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type)
+              Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),spin,Ndim,N_Type,nt1)
            enddo
            !CHECK: Are we sure that only Forces representing continuous fields are finite?
            !CHECK: Is it good enough if the forces on discrete fields are zero such as they do not get updated during HMC?
@@ -239,8 +239,10 @@
               Enddo
               if (reconstruction_needed) call ham%weight_reconstruction(Z)
               Do nf = 1, N_Fl
+                 g_loc = Op_V(n,nf)%g
+                 if (Op_V(n,nf)%get_g_t_alloc() ) g_loc = Op_V(n,nf)%g_t(nt1)
                  this%Forces(n,nt1) =  this%Forces(n,nt1)  - &
-                      &    Op_V(n,nf)%g * Z(nf) *  cmplx(real(N_SUN,Kind(0.d0)), 0.d0, Kind(0.d0)) 
+                      &    g_loc * Z(nf) *  cmplx(real(N_SUN,Kind(0.d0)), 0.d0, Kind(0.d0))
               Enddo
            endif
         enddo

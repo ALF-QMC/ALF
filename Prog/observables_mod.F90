@@ -83,11 +83,12 @@
           Type (Lattice),       pointer :: Latt                      ! Pointer to Bravais lattice
           Type (Unit_cell),     pointer :: Latt_unit                 ! Pointer to unit cell
           Real      (Kind=Kind(0.d0))   :: dtau                      ! Imaginary time step
-          Character (len=2)  :: Channel    ! Type of observable. Possible values:
-                                           ! - T0: zero temperature
-                                           ! - P:  finite temperature particle
-                                           ! - PH: finite temperature particle-hole
-                                           ! - PP: finite temperature particle-particle
+          Character (len=:),  allocatable  :: Channel    ! Type of observable. Possible values:
+                                           ! - T0  : zero temperature
+                                           ! - P   : finite temperature particle
+                                           ! - P_PH: finite temperature particle   with particle-hole  symmetry
+                                           ! - PH  : finite temperature particle-hole
+                                           ! - PP  : finite temperature particle-particle
        contains
           !procedure :: make        => Obser_latt_make
           procedure :: init        => Obser_latt_init
@@ -129,7 +130,7 @@
 !> \verbatim
 !>  Unit cell. Only gets linked, needs attribute target or pointer.
 !> \endverbatim
-!> @param [IN] Channel, Character(len=2)
+!> @param [IN] Channel, Character(len=*)
 !> \verbatim
 !>  MaxEnt channel. Only relevant for time displaced observables.
 !> \endverbatim
@@ -144,7 +145,7 @@
            Character(len=64), Intent(IN)         :: Filename
            Type(Lattice),     Intent(IN), target :: Latt
            Type(Unit_cell),   Intent(IN), target :: Latt_unit
-           Character(len=2),  Intent(IN)         :: Channel
+           Character(len=*),  Intent(IN)         :: Channel
            Real(Kind=Kind(0.d0)),  Intent(IN)    :: dtau
            Allocate (Obs%Obs_Latt(Latt%N, Nt, Latt_unit%Norb, Latt_unit%Norb))
            Allocate (Obs%Obs_Latt0(Latt_unit%Norb))
@@ -269,7 +270,7 @@
 
            ! Local
            Integer :: Ns, Nt, no, no1, I, Ntau
-           Complex (Kind=Kind(0.d0)), pointer     :: Tmp(:,:,:,:)
+           Complex (Kind=Kind(0.d0)), allocatable, target :: Tmp(:,:,:,:)
            Real    (Kind=Kind(0.d0))              :: x_p(2)
            Complex (Kind=Kind(0.d0))              :: Sign_bin
            Character (len=64) :: File_pr,  File_suff, File_aux, tmp_str
@@ -361,6 +362,8 @@
                  11 format(A20, ': ', A)
                  12 format(A20, ': ', I10)
                  13 format(A20, ': ', *(E26.17E3))
+                 14 format(A20, ': ')
+                 15 format((E26.17E3))
                  open(10, file=File_aux, status='new')
                  write(tmp_str, '(A, A)') trim(Obs%File_Latt), trim(File_suff)
                  write(10, 11) 'Observable', trim(tmp_str)
@@ -379,7 +382,11 @@
                  write(10, 12) 'Ndim', size(Obs%Latt_unit%Orb_pos_p, 2)
                  do no = 1, Obs%Latt_unit%Norb
                     write(tmp_str, '("Orbital ",I0)') no
-                    write(10, 13) trim(tmp_str), Obs%Latt_unit%Orb_pos_p(no,:)
+                    write(10, 14, advance='no') trim(tmp_str)
+                    do i = 1, size(Obs%Latt_unit%Orb_pos_p, 2)
+                       write(10, 15, advance='no') Obs%Latt_unit%Orb_pos_p(no,i)
+                    enddo
+                    write(10, *)
                  enddo
                  close(10)
               endif

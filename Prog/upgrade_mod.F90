@@ -116,7 +116,7 @@ module upgrade_mod
         Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Prev_Ratiotot
         Integer                  , INTENT(IN)    :: N_op, Nt
         Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: Phase
-        Real    (Kind=Kind(0.d0)), INTENT(IN)    :: Hs_new
+        Complex (Kind=Kind(0.d0)), INTENT(IN)    :: Hs_new
         Real    (Kind=Kind(0.d0)), INTENT(IN)    :: S0_ratio, T0_proposal_ratio
         Character (Len=64)       , INTENT(IN)    :: Mode
         Logical                  , INTENT(INOUT) :: toggle
@@ -130,7 +130,7 @@ module upgrade_mod
         Complex (Kind=Kind(0.d0)) :: Z, D_Mat, myexp, s1, s2
 
         Real    (Kind=Kind(0.d0)) :: Weight, tmp_r
-        Complex (Kind=Kind(0.d0)) :: alpha, beta
+        Complex (Kind=Kind(0.d0)) :: alpha, beta, g_loc
         Complex (Kind=Kind(0.d0)), Dimension(:, :), Allocatable :: Mat, Delta
         Complex (Kind=Kind(0.d0)), Dimension(:, :), Allocatable :: u, v
         Complex (Kind=Kind(0.d0)), Dimension(:, :), Allocatable :: y_v, xp_v
@@ -156,12 +156,14 @@ module upgrade_mod
 
         ! Compute the ratio
         nf = 1
-        nsigma_new%f(1,1)  = Hs_new !real(ns_new,kind=kind(0.d0))
+        nsigma_new%f(1,1)  = Hs_new
         nsigma_new%t(1)    = Op_V(n_op,nf)%Type
         Do nf_eff = 1,N_FL_eff
            nf=Calc_Fl_map(nf_eff)
            !Z1 = Op_V(n_op,nf)%g * ( Phi_st(ns_new,Op_V(n_op,nf)%type) -  Phi_st(ns_old,Op_V(n_op,nf)%type))
-           Z1 = Op_V(n_op,nf)%g * ( nsigma_new%Phi(1,1) -  nsigma%Phi(n_op,nt) )
+           g_loc = Op_V(n_op,nf)%g
+           if (op_v(n_op,nf)%get_g_t_alloc()) g_loc = Op_V(n_op,nf)%g_t(nt)
+           Z1 = g_loc * ( nsigma_new%Phi(1,1) -  nsigma%Phi(n_op,nt) )
            op_dim_nf = Op_V(n_op,nf)%N_non_zero
            Do m = 1,op_dim_nf
               myexp = exp( Z1* Op_V(n_op,nf)%E(m) )
@@ -201,13 +203,13 @@ module upgrade_mod
 
         !Write(6,*) Ratiotot
 
-        If      (mode  == "Final"       ) Then
+        If      ( str_to_upper(mode) == "FINAL"       ) Then
            !Write(6,*) "Up_I: ", Ratiotot
            Ratiotot = Ratiotot * Prev_Ratiotot
            !Write(6,*) "Up_f: ", Ratiotot
            Weight = S0_ratio * T0_proposal_ratio * abs(  real(Phase * Ratiotot, kind=Kind(0.d0))/real(Phase,kind=Kind(0.d0)) )
            !Write(6,*) Phase, Prev_Ratiotot, S0_ratio, T0_proposal_ratio, ns_old,ns_new
-        elseif  (mode == "Intermediate" ) Then
+        elseif  ( str_to_upper(mode) == "INTERMEDIATE" ) Then
            Weight = 1.5D0
            !Write(6,*) "Up_I: ", Ratiotot
            Prev_Ratiotot = Prev_Ratiotot*Ratiotot
@@ -219,7 +221,7 @@ module upgrade_mod
         toggle = .false.
         if ( Weight > ranf_wrap() )  Then
            toggle = .true.
-           If (mode == "Final"  )  Phase = Phase * Ratiotot/sqrt(Ratiotot*conjg(Ratiotot))
+           If ( str_to_upper(mode) == "FINAL"  )  Phase = Phase * Ratiotot/sqrt(Ratiotot*conjg(Ratiotot))
            !Write(6,*) 'Accepted : ', Ratiotot
 
            Do nf_eff = 1,N_FL_eff
@@ -290,7 +292,7 @@ module upgrade_mod
            deallocate ( y_v, xp_v, x_v )
         endif
 
-        If ( mode == "Final" )  then
+        If ( str_to_upper(mode) == "FINAL" )  then
            Call Control_upgrade(toggle)
            Call Control_upgrade_eff(toggle)
         endif

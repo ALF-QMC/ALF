@@ -81,7 +81,7 @@
            
            Mc_step_Weight  = 1.d0
            !needed for integration weight in Langevin, dt is taken care of by acceptance ratio for HMC
-           if (trim(Langevin_HMC%get_Update_scheme())=="Langevin") Mc_step_weight = Langevin_HMC%get_Delta_t_running()
+           if ( str_to_upper(Langevin_HMC%get_Update_scheme()) == "LANGEVIN" ) Mc_step_weight = Langevin_HMC%get_Delta_t_running()
            
            !Tau = 0
            Do nf_eff = 1, N_FL_eff
@@ -100,10 +100,10 @@
            NT = 0
            ! In Module Hamiltonian
            If (Symm) then
-              Call Hop_mod_Symm(G00_T,G00)
-              Call Hop_mod_Symm(GTT_T,GTT)
-              Call Hop_mod_Symm(G0T_T,G0T)
-              Call Hop_mod_Symm(GT0_T,GT0)
+              Call Hop_mod_Symm(G00_T,G00,nt)
+              Call Hop_mod_Symm(GTT_T,GTT,nt)
+              Call Hop_mod_Symm(G0T_T,G0T,nt)
+              Call Hop_mod_Symm(GT0_T,GT0,nt)
               !call reconstruction of non-calculated flavor blocks
               If (reconstruction_needed) then
                   Call ham%GR_reconstruction( G00_T )
@@ -138,8 +138,8 @@
               NT1 = NT + 1
               CALL PROPR   (GT0,NT1)
               CALL PROPRM1 (G0T,NT1)
-              If  (trim(Langevin_HMC%get_Update_scheme())=="Langevin" &
-              & .or. trim(Langevin_HMC%get_Update_scheme())=="HMC") then
+              If  ( str_to_upper(Langevin_HMC%get_Update_scheme()) == "LANGEVIN" &
+              & .or. str_to_upper(Langevin_HMC%get_Update_scheme()) == "HMC" ) then
                  Call Langevin_HMC%Wrap_Forces(GTT,NT1)
               else
                  CALL PROPRM1 (GTT,NT1)
@@ -147,10 +147,10 @@
               endif
               ! In Module Hamiltonian
               If (Symm) then
-                 Call Hop_mod_Symm(G00_T,G00)
-                 Call Hop_mod_Symm(GTT_T,GTT)
-                 Call Hop_mod_Symm(G0T_T,G0T)
-                 Call Hop_mod_Symm(GT0_T,GT0)
+                 Call Hop_mod_Symm(G00_T,G00,0)
+                 Call Hop_mod_Symm(GTT_T,GTT,nt1)
+                 Call Hop_mod_Symm(G0T_T,G0T,Ltrot,nt1)
+                 Call Hop_mod_Symm(GT0_T,GT0,nt1,Ltrot)
                  !call reconstruction of non-calculated flavor blocks
                  If (reconstruction_needed) then
                      Call ham%GR_reconstruction( G00_T )
@@ -158,8 +158,8 @@
                      Call ham%GRT_reconstruction( GT0_T, G0T_T )
                  endif
                  CALL ham%OBSERT(NT1, GT0_T,G0T_T,G00_T,GTT_T,PHASE, Mc_step_weight)
-                 If ((trim(Langevin_HMC%get_Update_scheme())=="Langevin"  &
-                      & .or. trim(Langevin_HMC%get_Update_scheme())=="HMC") &
+                 If (( str_to_upper(Langevin_HMC%get_Update_scheme()) == "LANGEVIN"  &
+                      & .or. str_to_upper(Langevin_HMC%get_Update_scheme()) == "HMC" ) &
                       &  .and. NT1.ge.LOBS_ST .and. NT1.le.LOBS_EN ) CALL ham%Obser( GTT_T, PHASE, NT1, Mc_step_weight )
               Else
                  !call reconstruction of non-calculated flavor blocks
@@ -169,8 +169,8 @@
                      Call ham%GRT_reconstruction( GT0, G0T )
                  endif
                  CALL ham%OBSERT(NT1, GT0,G0T,G00,GTT,PHASE, Mc_step_weight)
-                 If ( (trim(Langevin_HMC%get_Update_scheme())=="Langevin" &
-                      & .or. trim(Langevin_HMC%get_Update_scheme())=="HMC") &
+                 If ( ( str_to_upper(Langevin_HMC%get_Update_scheme()) == "LANGEVIN" &
+                      & .or. str_to_upper(Langevin_HMC%get_Update_scheme()) == "HMC" ) &
                       & .and. NT1.ge.LOBS_ST .and. NT1.le.LOBS_EN ) CALL ham%Obser( GTT, PHASE, NT1, Mc_step_weight )
               Endif
               
@@ -222,10 +222,10 @@
 
            Do nf_eff = 1,N_FL_eff
               nf=Calc_Fl_map(nf_eff)
-              Call Hop_mod_mmthr(Ain(:,:,nf),nf)
+              Call Hop_mod_mmthr(Ain(:,:,nf),nf,nt)
               Do n = 1,Size(Op_V,1)
 !                  X = Phi(nsigma(n,nt),Op_V(n,nf)%type)
-                 Call Op_mmultR(Ain(:,:,nf),Op_V(n,nf),nsigma%f(n,nt),'n')
+                 Call Op_mmultR(Ain(:,:,nf),Op_V(n,nf),nsigma%f(n,nt),'n',nt)
               ENDDO
            Enddo
 
@@ -242,7 +242,7 @@
 
            !Arguments 
            Complex (Kind=Kind(0.D0)), intent(Inout) ::  AIN(Ndim, Ndim, N_FL) 
-           Integer :: NT
+           Integer :: NT, sign = - 1
 
            ! Locals 
            Integer :: nf,nf_eff, n 
@@ -250,10 +250,9 @@
            do nf_eff = 1,N_FL_eff
               nf=Calc_Fl_map(nf_eff)
               !Call MMULT(HLP4,Ain(:,:,nf),Exp_T_M1(:,:,nf) )
-              Call Hop_mod_mmthl_m1(Ain(:,:,nf),nf)
+              Call Hop_mod_mmthl_m1(Ain(:,:,nf),nf,nt)
               Do n =1,Size(Op_V,1)
-!                  X = -Phi(nsigma(n,nt),Op_V(n,nf)%type)
-                 Call Op_mmultL(Ain(:,:,nf),Op_V(n,nf),-nsigma%f(n,nt),'n')
+                 Call Op_mmultL(Ain(:,:,nf),Op_V(n,nf),nsigma%f(n,nt),'n',nt,sign)
               Enddo
            enddo
 

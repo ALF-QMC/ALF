@@ -12,7 +12,7 @@ program test
     Class(ContainerElementBase), pointer :: dummy
     Complex(kind=kind(0.d0)), allocatable, dimension(:,:) :: res
     Complex(kind=kind(0.d0)) :: alpha, zero
-    Integer :: i, j, nmax, ndimmax
+    Integer :: i, j, nmax, ndimmax, t
 
     nmax = 5
     ndimmax = 5
@@ -62,10 +62,11 @@ program test
 
 
     ! execute a loop over all stored objects
+    t = 0
     do i= 1, vec%length()
         dummy => vec%at(i) ! get object
-        call dummy%rmult(res) ! polymorphic dispatch to rmult
-        call dummy%lmult(res) ! polymorphic dispatch to lmult
+        call dummy%rmult(res, t) ! polymorphic dispatch to rmult
+        call dummy%lmult(res, t) ! polymorphic dispatch to lmult
 !     do k = 1, ndimmax
 !     write (*,*) (aimag(res(k,l)), l = 1,ndimmax )
 !     enddo

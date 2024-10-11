@@ -1,8 +1,54 @@
 # Log of backward compatibility changes and critical bugs
 
+## ALF 2.6
+ALF 2.6  released  on 2023-??-??
+
+### 2024-07-10 Fix: Lattice in data.h5: Mixup of Norb and N_coord
+Author: J. Schwab
+Merge request !204
+
+The lattice quantities `Norb` and `N_coord` were mistakenly mixed up in the HDF5 results file `data.h5`.
+This has been fixed and the script `Analysis/fix-latt.py` was added to repair existing result files.
+
+### 2024-02-01  Implement new  function  $ (F,A) = \int d \omega F(\omega) A(\omega)$ in the stochastic maxent.
+Author:  F. Assaad
+Merge  request !196
+
+1. Function F  is included in  parameter  list  of  the  stochastic maxent  routine
+
+
+### 2024-01-25    Both  Classic MaxEnt  and  Stochastic  analytical continuation are  available <br>
+
+Author:  J.Schwab and F. Assaad   <br>
+Merge requests: !190 and !194
+
+1. Both  approaches  allow  to  specify a  default model
+
+2. To toggle  between the  Stochastic  and Classic approaches  a  new  logical variable,   Stochastic, has  been  introduced  in  VAR_Max_Stoch  name  space.  The  default  value  is Stochastic=.True. such that the  code  functions as  in the previous  releases.
+
+3. There  is a  new  channel index  available P_PH for  single  particle  Green  functions  that are   particle-hole  symmetric. 
+
+
+### 2023-08-14    Hubbard  Stratonovich  fields  have be  updated  to  complex 
+
+Author:  F. Assaad
+Merge request !176 
+#### Breaking changes 
+
+1. Fields\_mod.F90
+    1.  nsigma%f       is now complex    rather than real 
+    2.  nsigma%phi    is now complex    rather than real 
+2. Hamilton\_main\_mod.F90 
+      1. Hamiltonian\_set\_nsigma\_base(Initial\_field): Initial\_field  is  now complex  not  real 
+      2. Delta\_S0\_global\_base(Nsigma\_old): Nsigma\_old  is  complex  rather  than real 
+      3.  S0\_base(n,nt,Hs\_new) : Hs\_new is  now  complex rather  than real
+      4. Global\_move\_tau\_base :  The array Flip\_value is  now  a  complex one-dimensional array.     
+
+
+
 ---
 ## ALF 2.5
-ALF 2.5 released on 2023-05-??
+ALF 2.5 released on 2023-06-05
 
 ### 2023-05-09 Use a RUNNING file to avoid multiple instances running in the same directory 
 
