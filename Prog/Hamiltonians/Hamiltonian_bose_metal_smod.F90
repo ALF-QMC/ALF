@@ -402,7 +402,7 @@
                        call op_make( op_v(nc,nf), 1 )
                        op_v(nc,nf)%p(1) = I
                        op_v(nc,nf)%o(1,1) = cmplx(1.d0, 0.d0, kind(0.D0)) 
-                       op_V(nc,nf)%g      = sqrt(cmplx(dtau*ham_u/dble(n_sun), 0.D0, kind(0.D0)))
+                       op_V(nc,nf)%g      = sqrt(cmplx(dtau*ham_u/2.d0, 0.D0, kind(0.D0)))
                        op_v(nc,nf)%alpha  = cmplx(-0.5d0, 0.d0, kind(0.D0))
                        op_v(nc,nf)%type   = 2
                        call op_set(op_v(nc,nf))
