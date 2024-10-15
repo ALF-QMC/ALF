@@ -2121,39 +2121,40 @@
          !! allocate tmp matrix
          allocate(smat(n_part,n_part), ipiv(N_part), log_zdet(N_slat))
 
-         !! test whether overlap has minus sign
-         alpha=1.d0
-         beta=0.d0
-         ctmp = 0.d0
-         do nf_eff = 1, N_FL_eff
-            nf=Calc_Fl_map(nf_eff)
-            call zgemm('C','N',N_part,N_part,Ndim,alpha,p1_tmp(1,1,nf),Ndim,phi_0_r(nf_eff,1)%U(1,1),ndim,beta,smat(1,1),N_part)
-            ! ZGETRF computes an LU factorization of a general M-by-N matrix A
-            ! using partial pivoting with row interchanges.
-            call ZGETRF(N_part, N_part, smat, N_part, ipiv, info)
-            ! obtain log of det
-            zdet  = 0.d0
-            phase = 1.d0
-            Do n=1,N_part
-               if (ipiv(n).ne.n) then
-                  phase = -phase
-               endif
-               zdet = zdet + log(smat(n,n))
-            enddo
-            zdet = zdet + log(phase)
+         !!! test whether overlap has minus sign
+         !alpha=1.d0
+         !beta=0.d0
+         !ctmp = 0.d0
+         !do nf_eff = 1, N_FL_eff
+         !   nf=Calc_Fl_map(nf_eff)
+         !   call zgemm('C','N',N_part,N_part,Ndim,alpha,p1_tmp(1,1,nf),Ndim,phi_0_r(nf_eff,1)%U(1,1),ndim,beta,smat(1,1),N_part)
+         !   ! ZGETRF computes an LU factorization of a general M-by-N matrix A
+         !   ! using partial pivoting with row interchanges.
+         !   call ZGETRF(N_part, N_part, smat, N_part, ipiv, info)
+         !   ! obtain log of det
+         !   zdet  = 0.d0
+         !   phase = 1.d0
+         !   Do n=1,N_part
+         !      if (ipiv(n).ne.n) then
+         !         phase = -phase
+         !      endif
+         !      zdet = zdet + log(smat(n,n))
+         !   enddo
+         !   zdet = zdet + log(phase)
 
-            ctmp = ctmp + zdet
-         enddo
-         z_norm = exp(ctmp)
-         d_norm = dble(z_norm)
-         if (d_norm .lt. 0.d0) then
-            c1 = cmplx(0.d0,1.d0,kind(1.d0))
-         else
-            c1 = cmplx(1.d0,0.d0,kind(1.d0))
-         endif
+         !   ctmp = ctmp + zdet
+         !enddo
+         !z_norm = exp(ctmp)
+         !d_norm = dble(z_norm)
+         !if (d_norm .lt. 0.d0) then
+         !   c1 = cmplx(0.d0,1.d0,kind(1.d0))
+         !else
+         !   c1 = cmplx(1.d0,0.d0,kind(1.d0))
+         !endif
 
          !! combine the trial wave function by 
          !! | \Psi_T > = c1*| \Psi_T^1 > + c1^{\dagger}*| \Psi_T^2 >
+         c1 = cmplx(1.d0,0.d0,kind(1.d0))
          do nf_eff = 1, N_FL_eff
             nf=Calc_Fl_map(nf_eff)
             phi_0_l(nf_eff,1)%U(:,:)=p1_tmp(:,:,nf)*c1
@@ -2190,8 +2191,10 @@
          enddo
 
          z_norm = exp(log_zdet(1)) + exp(log_zdet(2))
-         d_norm = dble(z_norm)
-         z_norm = (1.d0/d_norm)**(1.d0/dble(2*N_part))
+         !d_norm = dble(z_norm)
+         !z_norm = (1.d0/d_norm)**(1.d0/dble(2*N_part))
+         z_norm = (1.d0/z_norm)**(1.d0/dble(2*N_part))
+         if (irank_g .eq. 0 ) write(*,*) 'renormalized factor for input slater z_norm', z_norm
 
          do i_wlk  = 1, n_wlk
          do nf_eff = 1, N_FL_eff
