@@ -167,11 +167,11 @@
        !#PARAMETERS END#
 
        !#PARAMETERS START# VAR_bose_metal
-       real(Kind=kind(0.d0)) :: ham_t     = 1.d0     ! Hopping parameter
+       real(Kind=kind(0.d0)) :: ham_t = 1.d0     ! Hopping parameter
        real(Kind=kind(0.d0)) :: ham_alpha = 1.d0     ! Hopping parameter
-       real(Kind=kind(0.d0)) :: ham_chem  = 0.d0     ! Chemical potential
-       real(Kind=kind(0.d0)) :: ham_U     = 4.d0     ! attractive Hubbard interaction
-       integer               :: N_dope    = 0
+       real(Kind=kind(0.d0)) :: ham_chem = 0.d0     ! Chemical potential
+       real(Kind=kind(0.d0)) :: ham_U = 4.d0     ! attractive Hubbard interaction
+       integer               :: N_dope = 0
        !#PARAMETERS END#
 
        type(Lattice), target :: Latt
@@ -336,15 +336,14 @@
           Phi_Y_vec = phi_Y
           N_Phi_vec = n_phi
 
-          ham_tx_vec(1) = ham_t;
-          ham_tx_vec(2) = ham_t*ham_alpha;
-          ham_ty_vec(1) = ham_t*ham_alpha;
-          ham_ty_vec(2) = ham_t;
-
+          ham_tx_vec(1) = ham_t; 
+          ham_tx_vec(2) = ham_t*ham_alpha; 
+          ham_ty_vec(1) = ham_t*ham_alpha; 
+          ham_ty_vec(2) = ham_t; 
           select case (Lattice_type)
           case ("square_anisotropic")
-            call set_hopping_parameters_square_anisotropic(Hopping_Matrix, ham_tx_vec, ham_ty_vec, Ham_Chem_vec, &
-                   & Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
+             call set_hopping_parameters_square_anisotropic(Hopping_Matrix, ham_tx_vec, ham_ty_vec, Ham_Chem_vec, &
+                    & Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
           end select
 
           call Predefined_Hoppings_set_OPT(Hopping_Matrix, List, Invlist, Latt, Latt_unit, Dtau, Checkerboard, Symm, OP_T)
@@ -367,7 +366,7 @@
 
           integer :: N_part, nf
           ! Use predefined stuctures or set your own Trial  wave function
-          N_part = ndim/2-n_dope
+          N_part = ndim/2 - n_dope
           call Predefined_TrialWaveFunction(Lattice_type, Ndim, List, Invlist, Latt, Latt_unit, &
                &                            N_part, ham_alpha, N_FL, WF_L, WF_R)
 
@@ -399,14 +398,14 @@
                 if (abs(ham_u) > zero) then
                    nc = nc + 1
                    do nf = 1, n_fl
-                       call op_make( op_v(nc,nf), 1 )
-                       op_v(nc,nf)%p(1) = I
-                       op_v(nc,nf)%o(1,1) = cmplx(1.d0, 0.d0, kind(0.D0)) 
-                       op_V(nc,nf)%g      = sqrt(cmplx(dtau*ham_u/2.d0, 0.D0, kind(0.D0)))
-                       op_v(nc,nf)%alpha  = cmplx(-0.5d0, 0.d0, kind(0.D0))
-                       op_v(nc,nf)%type   = 2
-                       call op_set(op_v(nc,nf))
-                   enddo
+                      call op_make(op_v(nc, nf), 1)
+                      op_v(nc, nf)%p(1) = I
+                      op_v(nc, nf)%o(1, 1) = cmplx(1.d0, 0.d0, kind(0.d0))
+                      op_V(nc, nf)%g = sqrt(cmplx(dtau*ham_u/2.d0, 0.d0, kind(0.d0)))
+                      op_v(nc, nf)%alpha = cmplx(-0.5d0, 0.d0, kind(0.d0))
+                      op_v(nc, nf)%type = 2
+                      call op_set(op_v(nc, nf))
+                   end do
                 end if
              end do
           end do
@@ -555,12 +554,12 @@
              obs_scal(i)%n = obs_scal(i)%n + 1
              obs_scal(i)%ave_sign = obs_scal(i)%ave_sign + real(zs, kind(0.d0))
           end do
-          
+
           ! Compute the standard two-point correlations
-          Do i = 1, size(obs_eq,1)
-             obs_eq(i)%n        = obs_eq(i)%n + 1
-             obs_eq(i)%ave_sign = obs_eq(i)%ave_sign + real(zs,kind(0.d0))
-          enddo
+          do i = 1, size(obs_eq, 1)
+             obs_eq(i)%n = obs_eq(i)%n + 1
+             obs_eq(i)%ave_sign = obs_eq(i)%ave_sign + real(zs, kind(0.d0))
+          end do
 
           Zkin = cmplx(0.d0, 0.d0, kind(0.d0))
           call Predefined_Hoppings_Compute_Kin(Hopping_Matrix, List, Invlist, Latt, Latt_unit, GRC, ZKin)
@@ -591,43 +590,43 @@
 
           ! Standard two-point correlations
           do i1 = 1, ndim
-              i    = list(i1,1)
-              no_i = list(i1,2)
-              k    = latt%nnlist(i,1,0)
-              i2   = invlist(k,no_i)
-              m    = latt%nnlist(i,1,1)
-              i3   = invlist(m,no_i)
-              do j1 = 1, ndim
-                  j    = list(j1,1)
-                  no_j = list(j1,2)
-                  l    = latt%nnlist(j,1,0)
-                  j2   = invlist(l,no_j)
-                  n    = latt%nnlist(j,1,1)
-                  j3   = invlist(n,no_j)
+             i = list(i1, 1)
+             no_i = list(i1, 2)
+             k = latt%nnlist(i, 1, 0)
+             i2 = invlist(k, no_i)
+             m = latt%nnlist(i, 1, 1)
+             i3 = invlist(m, no_i)
+             do j1 = 1, ndim
+                j = list(j1, 1)
+                no_j = list(j1, 2)
+                l = latt%nnlist(j, 1, 0)
+                j2 = invlist(l, no_j)
+                n = latt%nnlist(j, 1, 1)
+                j3 = invlist(n, no_j)
 
-                  imj  = latt%imj(i, j)
-                  z = grc(i1,j1,1) + grc(i1,j1,2)
-                  obs_eq(1)%obs_Latt(imj,1,no_i,no_j) = obs_eq(1)%obs_latt(imj,1,no_i,no_j) + z*zp*zs
+                imj = latt%imj(i, j)
+                z = grc(i1, j1, 1) + grc(i1, j1, 2)
+                obs_eq(1)%obs_Latt(imj, 1, no_i, no_j) = obs_eq(1)%obs_latt(imj, 1, no_i, no_j) + z*zp*zs
 
-                  z = grc(i1,j1,1)*gr(i1,j1,1) + grc(i1,j1,2)*gr(i1,j1,2) + &
-                      & (grc(i1,i1,1) - grc(i1,i1,2))*(grc(j1,j1,1) - grc(j1,j1,2))
-                  obs_eq(2)%obs_Latt(imj,1,no_i,no_j) = obs_eq(2)%obs_latt(imj,1,no_i,no_j) + z*zp*zs
-                  
-                  z = grc(i1,j1,1)*gr(i1,j1,1) + grc(i1,j1,2)*gr(i1,j1,2) + &
-                      & (grc(i1,i1,2) + grc(i1,i1,1))*(grc(j1,j1,2) + grc(j1,j1,1))
-                  obs_eq(3)%obs_Latt(imj,1,no_i,no_j) = obs_eq(3)%obs_latt(imj,1,no_i,no_j) + z*zp*zs
-                  
-                  z = grc(i1,j1,1)*grc(i1,j1,2)! + gr(i1,j1,1)*gr(i1,j1,2)
-                  obs_eq(4)%obs_Latt(imj,1,no_i,no_j) = obs_eq(4)%obs_latt(imj,1,no_i,no_j) + z*zp*zs
-                  
-                  z = grc(i1,j1,1)*grc(i2,j2,2) + gr(i1,j1,1)*gr(i2,j2,2)
-                  obs_eq(5)%obs_Latt(imj,1,no_i,no_j) = obs_eq(5)%obs_latt(imj,1,no_i,no_j) + z*zp*zs
-                  
-                  z = grc(i1,j1,1)*grc(i3,j3,2) + gr(i1,j1,1)*gr(i3,j3,2)
-                  obs_eq(6)%obs_Latt(imj,1,no_i,no_j) = obs_eq(6)%obs_latt(imj,1,no_i,no_j) + z*zp*zs
-              end do
-              zback = grc(i1,i1,1) + grc(i1,i1,2) 
-              obs_eq(3)%obs_latt0(no_i) = obs_eq(3)%obs_Latt0(no_i) + zback*zp*zs
+                z = grc(i1, j1, 1)*gr(i1, j1, 1) + grc(i1, j1, 2)*gr(i1, j1, 2) + &
+                    & (grc(i1, i1, 1) - grc(i1, i1, 2))*(grc(j1, j1, 1) - grc(j1, j1, 2))
+                obs_eq(2)%obs_Latt(imj, 1, no_i, no_j) = obs_eq(2)%obs_latt(imj, 1, no_i, no_j) + z*zp*zs
+
+                z = grc(i1, j1, 1)*gr(i1, j1, 1) + grc(i1, j1, 2)*gr(i1, j1, 2) + &
+                    & (grc(i1, i1, 2) + grc(i1, i1, 1))*(grc(j1, j1, 2) + grc(j1, j1, 1))
+                obs_eq(3)%obs_Latt(imj, 1, no_i, no_j) = obs_eq(3)%obs_latt(imj, 1, no_i, no_j) + z*zp*zs
+
+                z = grc(i1, j1, 1)*grc(i1, j1, 2)! + gr(i1,j1,1)*gr(i1,j1,2)
+                obs_eq(4)%obs_Latt(imj, 1, no_i, no_j) = obs_eq(4)%obs_latt(imj, 1, no_i, no_j) + z*zp*zs
+
+                z = grc(i1, j1, 1)*grc(i2, j2, 2) + gr(i1, j1, 1)*gr(i2, j2, 2)
+                obs_eq(5)%obs_Latt(imj, 1, no_i, no_j) = obs_eq(5)%obs_latt(imj, 1, no_i, no_j) + z*zp*zs
+
+                z = grc(i1, j1, 1)*grc(i3, j3, 2) + gr(i1, j1, 1)*gr(i3, j3, 2)
+                obs_eq(6)%obs_Latt(imj, 1, no_i, no_j) = obs_eq(6)%obs_latt(imj, 1, no_i, no_j) + z*zp*zs
+             end do
+             zback = grc(i1, i1, 1) + grc(i1, i1, 2)
+             obs_eq(3)%obs_latt0(no_i) = obs_eq(3)%obs_Latt0(no_i) + zback*zp*zs
           end do
 
        end subroutine obser
@@ -674,54 +673,54 @@
           ZS = real(Phase, kind(0.d0))/abs(real(Phase, kind(0.d0)))
           ZS = ZS*Mc_step_weight
 
-          zone = cmplx(1.d0,0.d0,kind(0.d0))
+          zone = cmplx(1.d0, 0.d0, kind(0.d0))
 
           ! Standard two-point correlations
-          if (nt == 0 ) then
-          do i = 1, size(obs_tau,1)
-             obs_tau(i)%n        = obs_tau(i)%n + 1
-             obs_tau(i)%ave_sign = obs_tau(i)%ave_sign + real(zs,kind(0.d0))
-          enddo
-          endif
-          
+          if (nt == 0) then
+          do i = 1, size(obs_tau, 1)
+             obs_tau(i)%n = obs_tau(i)%n + 1
+             obs_tau(i)%ave_sign = obs_tau(i)%ave_sign + real(zs, kind(0.d0))
+          end do
+          end if
+
           do i1 = 1, ndim
-              i    = list(i1,1)
-              no_i = list(i1,2)
-              k    = latt%nnlist(i,1,0)
-              i2   = invlist(k,no_i)
-              m    = latt%nnlist(i,1,1)
-              i3   = invlist(m,no_i)
-              do j1 = 1, ndim
-                  j    = list(j1,1)
-                  no_j = list(j1,2)
-                  l    = latt%nnlist(j,1,0)
-                  j2   = invlist(l,no_j)
-                  n    = latt%nnlist(j,1,1)
-                  j3   = invlist(n,no_j)
+             i = list(i1, 1)
+             no_i = list(i1, 2)
+             k = latt%nnlist(i, 1, 0)
+             i2 = invlist(k, no_i)
+             m = latt%nnlist(i, 1, 1)
+             i3 = invlist(m, no_i)
+             do j1 = 1, ndim
+                j = list(j1, 1)
+                no_j = list(j1, 2)
+                l = latt%nnlist(j, 1, 0)
+                j2 = invlist(l, no_j)
+                n = latt%nnlist(j, 1, 1)
+                j3 = invlist(n, no_j)
 
-                  imj  = latt%imj(i, j)
-                  z = gt0(i1,j1,1) + gt0(i1,j1,2)
-                  obs_tau(1)%obs_Latt(imj,nt,no_i,no_j) = obs_tau(1)%obs_latt(imj,nt,no_i,no_j) + z*zp*zs
+                imj = latt%imj(i, j)
+                z = gt0(i1, j1, 1) + gt0(i1, j1, 2)
+                obs_tau(1)%obs_Latt(imj, nt, no_i, no_j) = obs_tau(1)%obs_latt(imj, nt, no_i, no_j) + z*zp*zs
 
-                  z = -g0t(j1,i1,1)*gt0(i1,j1,1) - g0t(j1,i1,2)*gt0(i1,j1,2) + &
-                      & (gtt(i1,i1,1) - gtt(i1,i1,2))*(g00(j1,j1,1) - g00(j1,j1,2))
-                  obs_tau(2)%obs_Latt(imj,nt,no_i,no_j) = obs_tau(2)%obs_latt(imj,nt,no_i,no_j) + z*zp*zs
-                  
-                  z = -g0t(j1,i1,1)*gt0(i1,j1,1) - g0t(j1,i1,2)*gt0(i1,j1,2) + &
-                      & (zone-gtt(i1,i1,1)+zone-gtt(i1,i1,2))*(zone-gtt(j1,j1,2)+zone-gtt(j1,j1,1))
-                  obs_tau(3)%obs_Latt(imj,nt,no_i,no_j) = obs_tau(3)%obs_latt(imj,nt,no_i,no_j) + z*zp*zs
-                  
-                  z = g0t(j1,i1,1)*g0t(j1,i1,2)! + gt0(i1,j1,1)*gt0(i1,j1,2)
-                  obs_tau(4)%obs_Latt(imj,nt,no_i,no_j) = obs_tau(4)%obs_latt(imj,nt,no_i,no_j) + z*zp*zs
-                  
-                  z = g0t(j1,i1,1)*g0t(j2,i2,2) + gt0(i1,j1,1)*gt0(i2,j2,2)
-                  obs_tau(5)%obs_Latt(imj,nt,no_i,no_j) = obs_tau(5)%obs_latt(imj,nt,no_i,no_j) + z*zp*zs
-                  
-                  z = g0t(j1,i1,1)*g0t(j3,i3,2) + gt0(i1,j1,1)*gt0(i3,j3,2)
-                  obs_tau(6)%obs_Latt(imj,nt,no_i,no_j) = obs_tau(6)%obs_latt(imj,nt,no_i,no_j) + z*zp*zs
-              end do
-              zback = zone - gtt(i1,i1,1) + zone - gtt(i1,i1,2) 
-              obs_tau(3)%obs_latt0(no_i) = obs_tau(3)%obs_Latt0(no_i) + zback*zp*zs
+                z = -g0t(j1, i1, 1)*gt0(i1, j1, 1) - g0t(j1, i1, 2)*gt0(i1, j1, 2) + &
+                    & (gtt(i1, i1, 1) - gtt(i1, i1, 2))*(g00(j1, j1, 1) - g00(j1, j1, 2))
+                obs_tau(2)%obs_Latt(imj, nt, no_i, no_j) = obs_tau(2)%obs_latt(imj, nt, no_i, no_j) + z*zp*zs
+
+                z = -g0t(j1, i1, 1)*gt0(i1, j1, 1) - g0t(j1, i1, 2)*gt0(i1, j1, 2) + &
+                    & (zone - gtt(i1, i1, 1) + zone - gtt(i1, i1, 2))*(zone - gtt(j1, j1, 2) + zone - gtt(j1, j1, 1))
+                obs_tau(3)%obs_Latt(imj, nt, no_i, no_j) = obs_tau(3)%obs_latt(imj, nt, no_i, no_j) + z*zp*zs
+
+                z = g0t(j1, i1, 1)*g0t(j1, i1, 2)! + gt0(i1,j1,1)*gt0(i1,j1,2)
+                obs_tau(4)%obs_Latt(imj, nt, no_i, no_j) = obs_tau(4)%obs_latt(imj, nt, no_i, no_j) + z*zp*zs
+
+                z = g0t(j1, i1, 1)*g0t(j2, i2, 2) + gt0(i1, j1, 1)*gt0(i2, j2, 2)
+                obs_tau(5)%obs_Latt(imj, nt, no_i, no_j) = obs_tau(5)%obs_latt(imj, nt, no_i, no_j) + z*zp*zs
+
+                z = g0t(j1, i1, 1)*g0t(j3, i3, 2) + gt0(i1, j1, 1)*gt0(i3, j3, 2)
+                obs_tau(6)%obs_Latt(imj, nt, no_i, no_j) = obs_tau(6)%obs_latt(imj, nt, no_i, no_j) + z*zp*zs
+             end do
+             zback = zone - gtt(i1, i1, 1) + zone - gtt(i1, i1, 2)
+             obs_tau(3)%obs_latt0(no_i) = obs_tau(3)%obs_Latt0(no_i) + zback*zp*zs
           end do
 
        end subroutine obsert

@@ -1,19 +1,19 @@
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !
-!> @brief 
+!> @brief
 !> This constructs a decompostion Mat = Q D R P^* using a pivoted QR decomposition
 !--------------------------------------------------------------------
-Module QDRP_mod
+module QDRP_mod
 
-Contains
+contains
 
 !--------------------------------------------------------------------
-!> @author 
+!> @author
 !> ALF-project
 !
-!> @brief 
+!> @brief
 !> ! This constructs a decompostion Mat = Q D R P^* using a pivoted QR decomposition
 !
 !> @param Ndim[in] The size of the involved matrices
@@ -25,34 +25,34 @@ Contains
 !> @param WORK[inout] work memory. We query and allocate it in this routine. Needs to be deallocated outside.
 !> @param LWORK[inout] optimal size of the work memory.
 !--------------------------------------------------------------------
-    SUBROUTINE QDRP_decompose(Ndim, N_part, Mat, D, IPVT, TAU, WORK, LWORK)
-      Implicit None
-      Integer, intent(in) :: Ndim
-      Integer, intent(in) :: N_part
-      Integer, intent(inout) :: LWORK
-      Integer, Dimension(:), intent(inout), Allocatable :: IPVT
-      COMPLEX(Kind=Kind(0.d0)), Dimension(:,:), Intent(inout) :: Mat
-      COMPLEX(Kind=Kind(0.d0)), Dimension(:), Intent(inout) :: D
-      COMPLEX(Kind=Kind(0.d0)), Dimension(:), Intent(inout), Allocatable :: TAU
-      COMPLEX(Kind=Kind(0.d0)), Dimension(:), Intent(INOUT), Allocatable :: WORK
-      
-      COMPLEX(Kind=Kind(0.d0)), Dimension(:), Allocatable :: RWORK
-      COMPLEX(Kind=Kind(0.d0)) :: Z
-      Integer :: info, i, j
-      Real(Kind=Kind(0.d0)) :: X
-      
-      ALLOCATE(RWORK(2*Ndim))
+   subroutine QDRP_decompose(Ndim, N_part, Mat, D, IPVT, TAU, WORK, LWORK)
+      implicit none
+      integer, intent(in) :: Ndim
+      integer, intent(in) :: N_part
+      integer, intent(inout) :: LWORK
+      integer, dimension(:), intent(inout), allocatable :: IPVT
+      complex(Kind=kind(0.d0)), dimension(:, :), intent(inout) :: Mat
+      complex(Kind=kind(0.d0)), dimension(:), intent(inout) :: D
+      complex(Kind=kind(0.d0)), dimension(:), intent(inout), allocatable :: TAU
+      complex(Kind=kind(0.d0)), dimension(:), intent(INOUT), allocatable :: WORK
+
+      complex(Kind=kind(0.d0)), dimension(:), allocatable :: RWORK
+      complex(Kind=kind(0.d0)) :: Z
+      integer :: info, i, j
+      real(Kind=kind(0.d0)) :: X
+
+      allocate (RWORK(2*Ndim))
       ! Query optimal amount of memory
-      call ZGEQP3(Ndim, N_part, Mat(1,1), Ndim, IPVT, TAU(1), Z, -1, RWORK(1), INFO)
-      LWORK = INT(DBLE(Z))
-      ALLOCATE(WORK(LWORK))
+      call ZGEQP3(Ndim, N_part, Mat(1, 1), Ndim, IPVT, TAU(1), Z, -1, RWORK(1), INFO)
+      LWORK = int(dble(Z))
+      allocate (WORK(LWORK))
       ! QR decomposition of Mat with full column pivoting, Mat * P = Q * R
-      call ZGEQP3(Ndim, N_part, Mat(1,1), Ndim, IPVT, TAU(1), WORK(1), LWORK, RWORK(1), INFO)
-      DEALLOCATE(RWORK)
+      call ZGEQP3(Ndim, N_part, Mat(1, 1), Ndim, IPVT, TAU(1), WORK(1), LWORK, RWORK(1), INFO)
+      deallocate (RWORK)
       ! separate off D
       do i = 1, N_part
          ! plain diagonal entry
-         X = ABS(Mat(i, i))
+         X = abs(Mat(i, i))
          !             ! a inf-norm
          !             X = TPUP(i, i+izamax(Ndim+1-i, TPUP(i, i), Ndim)-1)
          !             ! another inf-norm
@@ -63,20 +63,20 @@ Contains
          !            X = DZNRM2(N_size+1-i, TPUP(i, i), N_size)
          D(i) = X
          do j = i, N_part
-            Mat(i, j) = Mat(i, j) / X
-         enddo
-      enddo
-    END SUBROUTINE QDRP_decompose
-    
-    SUBROUTINE Pivot_phase(Phase, IPVT, N_size)
-      Implicit none
-      COMPLEX(kind=kind(0.d0)), Intent(INOUT) :: Phase
-      Integer, Dimension(:), Intent(IN)       :: IPVT
-      Integer,               Intent(IN)       :: N_size
-      
-      Integer:: i, next, L, VISITED(N_size)
-      
-      VISITED=0
+            Mat(i, j) = Mat(i, j)/X
+         end do
+      end do
+   end subroutine QDRP_decompose
+
+   subroutine Pivot_phase(Phase, IPVT, N_size)
+      implicit none
+      complex(kind=kind(0.d0)), intent(INOUT) :: Phase
+      integer, dimension(:), intent(IN)       :: IPVT
+      integer, intent(IN)       :: N_size
+
+      integer:: i, next, L, VISITED(N_size)
+
+      VISITED = 0
       do i = 1, N_size
          if (VISITED(i) .eq. 0) then
             next = i
@@ -85,12 +85,12 @@ Contains
                L = L + 1
                VISITED(next) = 1
                next = IPVT(next)
-            enddo
-            if(MOD(L, 2) .eq. 0) then
+            end do
+            if (mod(L, 2) .eq. 0) then
                PHASE = -PHASE
-            endif
-         endif
-      enddo
-    END SUBROUTINE Pivot_phase
-    
-  End Module QDRP_mod
+            end if
+         end if
+      end do
+   end subroutine Pivot_phase
+
+end module QDRP_mod

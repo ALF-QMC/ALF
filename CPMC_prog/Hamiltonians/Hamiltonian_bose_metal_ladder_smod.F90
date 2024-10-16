@@ -22,7 +22,7 @@
           procedure, nopass :: ObserT
           procedure, nopass :: E0_local
           procedure, nopass :: sum_weight
-          procedure, nopass :: update_fac_norm 
+          procedure, nopass :: update_fac_norm
 #ifdef HDF5
           procedure, nopass :: write_parameters_hdf5
 #endif
@@ -52,11 +52,11 @@
        !#PARAMETERS END#
 
        !#PARAMETERS START# VAR_bose_metal_ladder
-       real(Kind=kind(0.d0)) :: ham_t     = 1.d0     ! Hopping parameter
+       real(Kind=kind(0.d0)) :: ham_t = 1.d0     ! Hopping parameter
        real(Kind=kind(0.d0)) :: ham_alpha = 1.d0     ! Hopping parameter
-       real(Kind=kind(0.d0)) :: ham_chem  = 0.d0     ! Chemical potential
-       real(Kind=kind(0.d0)) :: ham_U     = 4.d0     ! attractive Hubbard interaction
-       integer               :: N_dope    = 0
+       real(Kind=kind(0.d0)) :: ham_chem = 0.d0     ! Chemical potential
+       real(Kind=kind(0.d0)) :: ham_U = 4.d0     ! attractive Hubbard interaction
+       integer               :: N_dope = 0
        !#PARAMETERS END#
 
        type(Lattice), target :: Latt
@@ -107,12 +107,12 @@
 #endif
 
           call read_parameters()
-          
-          allocate( weight_k(N_wlk) )
+
+          allocate (weight_k(N_wlk))
           N_grc = N_slat*N_wlk
-          allocate( overlap(N_grc) )
-          N_wlk_mpi=N_wlk*isize_g
-          N_grc_mpi=N_grc*isize_g
+          allocate (overlap(N_grc))
+          N_wlk_mpi = N_wlk*isize_g
+          N_grc_mpi = N_grc*isize_g
 
           ! Setup the Bravais lattice
           call Ham_Latt
@@ -159,8 +159,8 @@
              write (unit_info, *) 'Ham_chem      : ', Ham_chem
              write (unit_info, *) 'N_dope        : ', N_dope
              do nf = 1, N_FL
-                write (unit_info, *) 'Degen of right trial wave function: ', WF_R(nf,1)%Degen
-                write (unit_info, *) 'Degen of left  trial wave function: ', WF_L(nf,1)%Degen
+                write (unit_info, *) 'Degen of right trial wave function: ', WF_R(nf, 1)%Degen
+                write (unit_info, *) 'Degen of left  trial wave function: ', WF_L(nf, 1)%Degen
              end do
              close (unit_info)
 #ifdef MPI
@@ -215,11 +215,10 @@
           Phi_Y_vec = phi_Y
           N_Phi_vec = n_phi
 
-          ham_tx_vec(1) = ham_t;
-          ham_tx_vec(2) = ham_t*ham_alpha;
-          ham_ty_vec(1) = ham_t*ham_alpha;
-          ham_ty_vec(2) = ham_t;
-
+          ham_tx_vec(1) = ham_t; 
+          ham_tx_vec(2) = ham_t*ham_alpha; 
+          ham_ty_vec(1) = ham_t*ham_alpha; 
+          ham_ty_vec(2) = ham_t; 
           call set_hopping_parameters_n_ladder_anisotropic(Hopping_Matrix, ham_tx_vec, ham_ty_vec, Ham_Chem_vec, &
                  & Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
 
@@ -243,7 +242,7 @@
 
           integer :: N_part, nf
           ! Use predefined stuctures or set your own Trial  wave function
-          N_part = ndim/2-n_dope
+          N_part = ndim/2 - n_dope
           call Predefined_TrialWaveFunction(Lattice_type, Ndim, List, Invlist, Latt, Latt_unit, &
                &                            N_part, ham_alpha, N_FL, N_slat, WF_L, WF_R)
 
@@ -275,14 +274,14 @@
                 if (abs(ham_u) > zero) then
                    nc = nc + 1
                    do nf = 1, n_fl
-                       call op_make( op_v(nc,nf), 1 )
-                       op_v(nc,nf)%p(1) = I
-                       op_v(nc,nf)%o(1,1) = cmplx(1.d0, 0.d0, kind(0.D0)) 
-                       op_V(nc,nf)%g      = sqrt(cmplx(dtau*ham_u/2.d0, 0.D0, kind(0.D0)))
-                       op_v(nc,nf)%alpha  = cmplx(-0.5d0, 0.d0, kind(0.D0))
-                       op_v(nc,nf)%type   = 2
-                       call op_set(op_v(nc,nf))
-                   enddo
+                      call op_make(op_v(nc, nf), 1)
+                      op_v(nc, nf)%p(1) = I
+                      op_v(nc, nf)%o(1, 1) = cmplx(1.d0, 0.d0, kind(0.d0))
+                      op_V(nc, nf)%g = sqrt(cmplx(dtau*ham_u/2.d0, 0.d0, kind(0.d0)))
+                      op_v(nc, nf)%alpha = cmplx(-0.5d0, 0.d0, kind(0.d0))
+                      op_v(nc, nf)%type = 2
+                      call op_set(op_v(nc, nf))
+                   end do
                 end if
              end do
           end do
@@ -301,7 +300,7 @@
 
           implicit none
           !>  Ltau=1 if time displaced correlations are considered.
-          Integer, Intent(In) :: ltau, lmetropolis
+          integer, intent(In) :: ltau, lmetropolis
           integer    ::  i, N, Nt
           character(len=64) ::  Filename
           character(len=:), allocatable ::  Channel
@@ -388,14 +387,14 @@
 !>  Time slice
 !> \endverbatim
 !-------------------------------------------------------------------
-       subroutine obser(GR,GR_mix,i_wlk,i_grc,sum_w,sum_o,act_mea)
+       subroutine obser(GR, GR_mix, i_wlk, i_grc, sum_w, sum_o, act_mea)
 
           implicit none
 
-          Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
-          Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR_mix(Ndim,Ndim,N_FL)
-          Complex (Kind=Kind(0.d0)), Intent(IN) :: sum_w, sum_o
-          Integer, Intent(IN) :: i_wlk, i_grc, act_mea
+          complex(Kind=kind(0.d0)), intent(IN) :: GR(Ndim, Ndim, N_FL)
+          complex(Kind=kind(0.d0)), intent(IN) :: GR_mix(Ndim, Ndim, N_FL)
+          complex(Kind=kind(0.d0)), intent(IN) :: sum_w, sum_o
+          integer, intent(IN) :: i_wlk, i_grc, act_mea
 
           !Local
           complex(Kind=kind(0.d0)) :: grc(Ndim, Ndim, N_FL), ZK, zone, ztmp, z_ol
@@ -403,8 +402,8 @@
           integer :: I, J, k, l, m, n, imj, nf, dec, i1, i2, i3, j1, j2, j3, no_I, no_J, nc
           real(Kind=kind(0.d0)) :: X
 
-          Z_ol  = exp(overlap(i_grc))/sum_o
-          ZW    = cmplx(weight_k(i_wlk),0.d0,kind(0.d0))/sum_w
+          Z_ol = exp(overlap(i_grc))/sum_o
+          ZW = cmplx(weight_k(i_wlk), 0.d0, kind(0.d0))/sum_w
           Z_fac = Z_ol*ZW
 
           do nf = 1, N_FL
@@ -417,19 +416,19 @@
           end do
           ! GRC(i,j,nf) = < c^{dagger}_{i,nf } c_{j,nf } >
 
-          if ( act_mea .eq. 0 ) then
-              ! Compute scalar observables.
-              do i = 1, size(obs_scal, 1)
-                 obs_scal(i)%n = obs_scal(i)%n + 1
-                 obs_scal(i)%ave_sign = obs_scal(i)%ave_sign + real(zs, kind(0.d0))
-              end do
-              
-              ! Compute the standard two-point correlations
-              Do i = 1, size(obs_eq,1)
-                 obs_eq(i)%n        = obs_eq(i)%n + 1
-                 obs_eq(i)%ave_sign = obs_eq(i)%ave_sign + real(zs,kind(0.d0))
-              enddo
-          endif
+          if (act_mea .eq. 0) then
+             ! Compute scalar observables.
+             do i = 1, size(obs_scal, 1)
+                obs_scal(i)%n = obs_scal(i)%n + 1
+                obs_scal(i)%ave_sign = obs_scal(i)%ave_sign + real(zs, kind(0.d0))
+             end do
+
+             ! Compute the standard two-point correlations
+             do i = 1, size(obs_eq, 1)
+                obs_eq(i)%n = obs_eq(i)%n + 1
+                obs_eq(i)%ave_sign = obs_eq(i)%ave_sign + real(zs, kind(0.d0))
+             end do
+          end if
 
           Zkin = cmplx(0.d0, 0.d0, kind(0.d0))
           call Predefined_Hoppings_Compute_Kin(Hopping_Matrix, List, Invlist, Latt, Latt_unit, GRC, ZKin)
@@ -459,54 +458,54 @@
           Obs_scal(4)%Obs_vec(1) = Obs_scal(4)%Obs_vec(1) + (Zkin + Zpot)*Z_fac
 
           nc = 0
-          Do nf = 1,N_FL
-             Do I = 1,Ndim
-             Do J = 1,Ndim
+          do nf = 1, N_FL
+             do I = 1, Ndim
+             do J = 1, Ndim
                 nc = nc + 1
-                ztmp = grc(i,j,nf)
+                ztmp = grc(i, j, nf)
                 Obs_scal(5)%Obs_vec(nc) = Obs_scal(5)%Obs_vec(nc) + ztmp*Z_fac
-             Enddo
-             Enddo
-          Enddo
+             end do
+             end do
+          end do
 
           nc = 0
-          Do nf = 1,N_FL
-             Do I = 1,Ndim
-             Do J = 1,Ndim
+          do nf = 1, N_FL
+             do I = 1, Ndim
+             do J = 1, Ndim
                 nc = nc + 1
-                zone = cmplx(0.d0,0.d0,kind(0.d0))
-                if ( I .eq. J ) zone = cmplx(1.d0,0.d0,kind(0.d0))
-                Ztmp = zone-GR_mix(J,I,nf)
+                zone = cmplx(0.d0, 0.d0, kind(0.d0))
+                if (I .eq. J) zone = cmplx(1.d0, 0.d0, kind(0.d0))
+                Ztmp = zone - GR_mix(J, I, nf)
                 Obs_scal(6)%Obs_vec(nc) = Obs_scal(6)%Obs_vec(nc) + ztmp*Z_fac
-             Enddo
-             Enddo
-          Enddo
+             end do
+             end do
+          end do
 
           ! Standard two-point correlations
           do i1 = 1, ndim
-              i    = list(i1,1)
-              no_i = list(i1,2)
-              do j1 = 1, ndim
-                  j    = list(j1,1)
-                  no_j = list(j1,2)
+             i = list(i1, 1)
+             no_i = list(i1, 2)
+             do j1 = 1, ndim
+                j = list(j1, 1)
+                no_j = list(j1, 2)
 
-                  imj  = latt%imj(i, j)
-                  z = grc(i1,j1,1) + grc(i1,j1,2)
-                  obs_eq(1)%obs_Latt(imj,1,no_i,no_j) = obs_eq(1)%obs_latt(imj,1,no_i,no_j) + z*z_fac
+                imj = latt%imj(i, j)
+                z = grc(i1, j1, 1) + grc(i1, j1, 2)
+                obs_eq(1)%obs_Latt(imj, 1, no_i, no_j) = obs_eq(1)%obs_latt(imj, 1, no_i, no_j) + z*z_fac
 
-                  z = grc(i1,j1,1)*gr(i1,j1,1) + grc(i1,j1,2)*gr(i1,j1,2) + &
-                      & (grc(i1,i1,1) - grc(i1,i1,2))*(grc(j1,j1,1) - grc(j1,j1,2))
-                  obs_eq(2)%obs_Latt(imj,1,no_i,no_j) = obs_eq(2)%obs_latt(imj,1,no_i,no_j) + z*z_fac
-                  
-                  z = grc(i1,j1,1)*gr(i1,j1,1) + grc(i1,j1,2)*gr(i1,j1,2) + &
-                      & (grc(i1,i1,2) + grc(i1,i1,1))*(grc(j1,j1,2) + grc(j1,j1,1))
-                  obs_eq(3)%obs_Latt(imj,1,no_i,no_j) = obs_eq(3)%obs_latt(imj,1,no_i,no_j) + z*z_fac
-                  
-                  z = grc(i1,j1,1)*grc(i1,j1,2) + gr(i1,j1,1)*gr(i1,j1,2)
-                  obs_eq(4)%obs_Latt(imj,1,no_i,no_j) = obs_eq(4)%obs_latt(imj,1,no_i,no_j) + z*z_fac
-              end do
-              zback = grc(i1,i1,1) + grc(i1,i1,2) 
-              obs_eq(3)%obs_latt0(no_i) = obs_eq(3)%obs_Latt0(no_i) + zback*z_fac
+                z = grc(i1, j1, 1)*gr(i1, j1, 1) + grc(i1, j1, 2)*gr(i1, j1, 2) + &
+                    & (grc(i1, i1, 1) - grc(i1, i1, 2))*(grc(j1, j1, 1) - grc(j1, j1, 2))
+                obs_eq(2)%obs_Latt(imj, 1, no_i, no_j) = obs_eq(2)%obs_latt(imj, 1, no_i, no_j) + z*z_fac
+
+                z = grc(i1, j1, 1)*gr(i1, j1, 1) + grc(i1, j1, 2)*gr(i1, j1, 2) + &
+                    & (grc(i1, i1, 2) + grc(i1, i1, 1))*(grc(j1, j1, 2) + grc(j1, j1, 1))
+                obs_eq(3)%obs_Latt(imj, 1, no_i, no_j) = obs_eq(3)%obs_latt(imj, 1, no_i, no_j) + z*z_fac
+
+                z = grc(i1, j1, 1)*grc(i1, j1, 2) + gr(i1, j1, 1)*gr(i1, j1, 2)
+                obs_eq(4)%obs_Latt(imj, 1, no_i, no_j) = obs_eq(4)%obs_latt(imj, 1, no_i, no_j) + z*z_fac
+             end do
+             zback = grc(i1, i1, 1) + grc(i1, i1, 2)
+             obs_eq(3)%obs_latt0(no_i) = obs_eq(3)%obs_Latt0(no_i) + zback*z_fac
           end do
 
        end subroutine obser
@@ -541,189 +540,189 @@
           integer, intent(IN) :: NT
           complex(Kind=kind(0.d0)), intent(IN) :: gt0(ndim, ndim, n_fl), g0t(ndim, ndim, n_fl)
           complex(Kind=kind(0.d0)), intent(IN) :: g00(ndim, ndim, n_fl), gtt(ndim, ndim, n_fl)
-          Complex (Kind=Kind(0.d0)), Intent(IN) :: sum_w, sum_o
-          Integer, Intent(IN) :: i_wlk, i_grc, act_mea
+          complex(Kind=kind(0.d0)), intent(IN) :: sum_w, sum_o
+          integer, intent(IN) :: i_wlk, i_grc, act_mea
 
           !Locals
           complex(Kind=kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY, zone, zback, z_ol, zw, z_fac
           real(Kind=kind(0.d0)) :: X
           integer :: IMJ, I, J, k, l, m, n, i1, i2, i3, j1, j2, j3, no_I, no_J, nc
 
-          Z_ol  = exp(overlap(i_grc))/sum_o
-          ZW    = cmplx(weight_k(i_wlk),0.d0,kind(0.d0))/sum_w
+          Z_ol = exp(overlap(i_grc))/sum_o
+          ZW = cmplx(weight_k(i_wlk), 0.d0, kind(0.d0))/sum_w
           Z_fac = Z_ol*ZW
 
-          zone = cmplx(1.d0,0.d0,kind(0.d0))
+          zone = cmplx(1.d0, 0.d0, kind(0.d0))
 
           ! Standard two-point correlations
-          if ( (act_mea .eq. 0) .and. (nt .eq. 0) ) then
-              do i = 1, size(obs_tau,1)
-                 obs_tau(i)%n        = obs_tau(i)%n + 1
-                 obs_tau(i)%ave_sign = obs_tau(i)%ave_sign + real(zs,kind(0.d0))
-              enddo
-          endif
-          
+          if ((act_mea .eq. 0) .and. (nt .eq. 0)) then
+             do i = 1, size(obs_tau, 1)
+                obs_tau(i)%n = obs_tau(i)%n + 1
+                obs_tau(i)%ave_sign = obs_tau(i)%ave_sign + real(zs, kind(0.d0))
+             end do
+          end if
+
           do i1 = 1, ndim
-              i    = list(i1,1)
-              no_i = list(i1,2)
-              do j1 = 1, ndim
-                  j    = list(j1,1)
-                  no_j = list(j1,2)
+             i = list(i1, 1)
+             no_i = list(i1, 2)
+             do j1 = 1, ndim
+                j = list(j1, 1)
+                no_j = list(j1, 2)
 
-                  imj  = latt%imj(i, j)
-                  z = gt0(i1,j1,1) + gt0(i1,j1,2)
-                  obs_tau(1)%obs_Latt(imj,nt,no_i,no_j) = obs_tau(1)%obs_latt(imj,nt,no_i,no_j) + z*z_fac
+                imj = latt%imj(i, j)
+                z = gt0(i1, j1, 1) + gt0(i1, j1, 2)
+                obs_tau(1)%obs_Latt(imj, nt, no_i, no_j) = obs_tau(1)%obs_latt(imj, nt, no_i, no_j) + z*z_fac
 
-                  z = -g0t(j1,i1,1)*gt0(i1,j1,1) - g0t(j1,i1,2)*gt0(i1,j1,2) + &
-                      & (gtt(i1,i1,1) - gtt(i1,i1,2))*(g00(j1,j1,1) - g00(j1,j1,2))
-                  obs_tau(2)%obs_Latt(imj,nt,no_i,no_j) = obs_tau(2)%obs_latt(imj,nt,no_i,no_j) + z*z_fac
-                  
-                  z = -g0t(j1,i1,1)*gt0(i1,j1,1) - g0t(j1,i1,2)*gt0(i1,j1,2) + &
-                      & (zone-gtt(i1,i1,1)+zone-gtt(i1,i1,2))*(zone-gtt(j1,j1,2)+zone-gtt(j1,j1,1))
-                  obs_tau(3)%obs_Latt(imj,nt,no_i,no_j) = obs_tau(3)%obs_latt(imj,nt,no_i,no_j) + z*z_fac
-                  
-                  z = g0t(j1,i1,1)*g0t(j1,i1,2) + gt0(i1,j1,1)*gt0(i1,j1,2)
-                  obs_tau(4)%obs_Latt(imj,nt,no_i,no_j) = obs_tau(4)%obs_latt(imj,nt,no_i,no_j) + z*z_fac
-              end do
-              zback = zone - gtt(i1,i1,1) + zone - gtt(i1,i1,2) 
-              obs_tau(3)%obs_latt0(no_i) = obs_tau(3)%obs_Latt0(no_i) + zback*z_fac
+                z = -g0t(j1, i1, 1)*gt0(i1, j1, 1) - g0t(j1, i1, 2)*gt0(i1, j1, 2) + &
+                    & (gtt(i1, i1, 1) - gtt(i1, i1, 2))*(g00(j1, j1, 1) - g00(j1, j1, 2))
+                obs_tau(2)%obs_Latt(imj, nt, no_i, no_j) = obs_tau(2)%obs_latt(imj, nt, no_i, no_j) + z*z_fac
+
+                z = -g0t(j1, i1, 1)*gt0(i1, j1, 1) - g0t(j1, i1, 2)*gt0(i1, j1, 2) + &
+                    & (zone - gtt(i1, i1, 1) + zone - gtt(i1, i1, 2))*(zone - gtt(j1, j1, 2) + zone - gtt(j1, j1, 1))
+                obs_tau(3)%obs_Latt(imj, nt, no_i, no_j) = obs_tau(3)%obs_latt(imj, nt, no_i, no_j) + z*z_fac
+
+                z = g0t(j1, i1, 1)*g0t(j1, i1, 2) + gt0(i1, j1, 1)*gt0(i1, j1, 2)
+                obs_tau(4)%obs_Latt(imj, nt, no_i, no_j) = obs_tau(4)%obs_latt(imj, nt, no_i, no_j) + z*z_fac
+             end do
+             zback = zone - gtt(i1, i1, 1) + zone - gtt(i1, i1, 2)
+             obs_tau(3)%obs_latt0(no_i) = obs_tau(3)%obs_Latt0(no_i) + zback*z_fac
           end do
 
        end subroutine obsert
 
-       complex (Kind=Kind(0.d0)) function E0_local(GR)
-         Implicit none
+       complex(Kind=kind(0.d0)) function E0_local(GR)
+          implicit none
 
-         Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
-           
-         !Local
-         Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK
-         Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP,ZS, ZZ, ZXY
-         Integer :: I,J, imj, nf, dec, I1, J1, no_I, no_J,n
-         Real    (Kind=Kind(0.d0)) :: X
-           
-         Do nf = 1,N_FL
-            Do I = 1,Ndim
-               Do J = 1,Ndim
-                  GRC(I, J, nf) = -GR(J, I, nf)
-               Enddo
-               GRC(I, I, nf) = 1.D0 + GRC(I, I, nf)
-            Enddo
-         Enddo
-           
-         Zkin = cmplx(0.d0, 0.d0, kind(0.D0))
-         Call Predefined_Hoppings_Compute_Kin(Hopping_Matrix,List,Invlist, Latt, Latt_unit, GRC, ZKin)
-         Zkin = Zkin* dble(N_SUN)
-           
-         ZPot = cmplx(0.d0, 0.d0, kind(0.D0))
-         do I = 1, Latt%N
-            do no_I = 1, Latt_unit%Norb
-               I1 = Invlist(I, no_I)
-               ZPot = ZPot + 2.d0*Grc(i1, i1, 1)*Grc(i1, i1, 2) - &
-                   & Grc(i1, i1, 1) - Grc(i1, i1, 2) + 1.d0
-            end do
-         end do
-         zpot = zpot*(-ham_u/2.d0)
+          complex(Kind=kind(0.d0)), intent(IN) :: GR(Ndim, Ndim, N_FL)
 
-         E0_local = (Zpot + ZKin)*dtau
+          !Local
+          complex(Kind=kind(0.d0)) :: GRC(Ndim, Ndim, N_FL), ZK
+          complex(Kind=kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP, ZS, ZZ, ZXY
+          integer :: I, J, imj, nf, dec, I1, J1, no_I, no_J, n
+          real(Kind=kind(0.d0)) :: X
+
+          do nf = 1, N_FL
+             do I = 1, Ndim
+                do J = 1, Ndim
+                   GRC(I, J, nf) = -GR(J, I, nf)
+                end do
+                GRC(I, I, nf) = 1.d0 + GRC(I, I, nf)
+             end do
+          end do
+
+          Zkin = cmplx(0.d0, 0.d0, kind(0.d0))
+          call Predefined_Hoppings_Compute_Kin(Hopping_Matrix, List, Invlist, Latt, Latt_unit, GRC, ZKin)
+          Zkin = Zkin*dble(N_SUN)
+
+          ZPot = cmplx(0.d0, 0.d0, kind(0.d0))
+          do I = 1, Latt%N
+             do no_I = 1, Latt_unit%Norb
+                I1 = Invlist(I, no_I)
+                ZPot = ZPot + 2.d0*Grc(i1, i1, 1)*Grc(i1, i1, 2) - &
+                    & Grc(i1, i1, 1) - Grc(i1, i1, 2) + 1.d0
+             end do
+          end do
+          zpot = zpot*(-ham_u/2.d0)
+
+          E0_local = (Zpot + ZKin)*dtau
 
        end function E0_local
 
        subroutine sum_weight(z_sum_weight)
-         Implicit none
- 
-         Complex (Kind=Kind(0.d0)), INTENT(out) :: z_sum_weight
-         
-         !local
-         Integer                   :: i_wlk
-         Real    (Kind=Kind(0.d0)) :: X1, tot_re_weight
-         Complex (Kind=Kind(0.d0)) :: Z1, Z2, ZP, wtmp
- 
- #ifdef MPI
-         Integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
-         Integer        :: STATUS(MPI_STATUS_SIZE)
-         CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-         CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-         call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-         call MPI_Comm_size(Group_Comm, isize_g, ierr)
-         igroup           = irank/isize_g
- #endif
-         
-         Z1 = cmplx(0.d0, 0.d0, kind(0.d0))
-         Z2 = cmplx(0.d0, 0.d0, kind(0.d0))
-         do i_wlk  = 1, N_wlk
-             ZP      = 1.d0
-             wtmp    = cmplx(weight_k(i_wlk), 0.d0, kind(0.d0))
+          implicit none
+
+          complex(Kind=kind(0.d0)), intent(out) :: z_sum_weight
+
+          !local
+          integer                   :: i_wlk
+          real(Kind=kind(0.d0)) :: X1, tot_re_weight
+          complex(Kind=kind(0.d0)) :: Z1, Z2, ZP, wtmp
+
+#ifdef MPI
+          integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
+          integer        :: STATUS(MPI_STATUS_SIZE)
+          call MPI_COMM_SIZE(MPI_COMM_WORLD, ISIZE, IERR)
+          call MPI_COMM_RANK(MPI_COMM_WORLD, IRANK, IERR)
+          call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+          call MPI_Comm_size(Group_Comm, isize_g, ierr)
+          igroup = irank/isize_g
+#endif
+
+          Z1 = cmplx(0.d0, 0.d0, kind(0.d0))
+          Z2 = cmplx(0.d0, 0.d0, kind(0.d0))
+          do i_wlk = 1, N_wlk
+             ZP = 1.d0
+             wtmp = cmplx(weight_k(i_wlk), 0.d0, kind(0.d0))
              Z1 = Z1 + wtmp*ZP
-         enddo
-         CALL MPI_REDUCE(Z1,Z2,1,MPI_COMPLEX16,MPI_SUM,0,Group_comm    ,IERR)
-         CALL MPI_BCAST (Z2,   1,MPI_COMPLEX16        ,0,MPI_COMM_WORLD,ierr)
-         
-         z_sum_weight = Z2
-         
+          end do
+          call MPI_REDUCE(Z1, Z2, 1, MPI_COMPLEX16, MPI_SUM, 0, Group_comm, IERR)
+          call MPI_BCAST(Z2, 1, MPI_COMPLEX16, 0, MPI_COMM_WORLD, ierr)
+
+          z_sum_weight = Z2
+
        end subroutine sum_weight
 
        subroutine update_fac_norm(GR, ntw)
-         Implicit none
-          
-         Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL,N_grc)
-         Integer                  , INTENT(IN) :: ntw
-         
-         !local
-         Integer                   :: i_wlk, ns, i_grc
-         Real    (Kind=Kind(0.d0)) :: X1, tot_re_weight
-         Complex (Kind=Kind(0.d0)) :: tot_ene, Z1, Z2, tot_c_weight, ZP, wtmp, el_tmp, Z
-         CHARACTER (LEN=64)  :: filename 
- 
- #ifdef MPI
-         Integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
-         Integer        :: STATUS(MPI_STATUS_SIZE)
-         CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-         CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-         call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-         call MPI_Comm_size(Group_Comm, isize_g, ierr)
-         igroup           = irank/isize_g
- #endif
-         filename = "E_local.dat"
- 
+          implicit none
+
+          complex(Kind=kind(0.d0)), intent(IN) :: GR(Ndim, Ndim, N_FL, N_grc)
+          integer, intent(IN) :: ntw
+
+          !local
+          integer                   :: i_wlk, ns, i_grc
+          real(Kind=kind(0.d0)) :: X1, tot_re_weight
+          complex(Kind=kind(0.d0)) :: tot_ene, Z1, Z2, tot_c_weight, ZP, wtmp, el_tmp, Z
+          character(LEN=64)  :: filename
+
+#ifdef MPI
+          integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
+          integer        :: STATUS(MPI_STATUS_SIZE)
+          call MPI_COMM_SIZE(MPI_COMM_WORLD, ISIZE, IERR)
+          call MPI_COMM_RANK(MPI_COMM_WORLD, IRANK, IERR)
+          call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+          call MPI_Comm_size(Group_Comm, isize_g, ierr)
+          igroup = irank/isize_g
+#endif
+          filename = "E_local.dat"
+
          !! initial energy
-         tot_ene      = 0.d0
-         tot_c_weight = 0.d0
-         do i_wlk = 1, N_wlk
- 
-            if (weight_k(i_wlk) .ge. 0.d0 ) then
- 
-            Z = 0.d0
-            do ns = 1, N_slat
-                i_grc = ns+(i_wlk-1)*N_slat
-                Z = Z + exp(overlap(i_grc))
-            enddo
-            
-            do ns = 1, N_slat
-                i_grc = ns+(i_wlk-1)*N_slat
-                el_tmp  = dble(ham%E0_local(GR(:,:,:,i_grc)))
-                tot_ene = tot_ene + el_tmp*weight_k(i_wlk)*exp(overlap(i_grc))/Z
-            enddo
-            
-            tot_c_weight  = tot_c_weight  + weight_k(i_wlk)
- 
-            endif
- 
-         enddo
-         tot_re_weight = dble(tot_c_weight)
-         
-         CALL MPI_REDUCE(tot_ene      ,Z1,1,MPI_COMPLEX16,MPI_SUM, 0,Group_comm,IERR)
-         CALL MPI_REDUCE(tot_re_weight,X1,1,MPI_REAL8    ,MPI_SUM, 0,Group_comm,IERR)
-         
-         if (Irank_g == 0 ) then
+          tot_ene = 0.d0
+          tot_c_weight = 0.d0
+          do i_wlk = 1, N_wlk
+
+             if (weight_k(i_wlk) .ge. 0.d0) then
+
+                Z = 0.d0
+                do ns = 1, N_slat
+                   i_grc = ns + (i_wlk - 1)*N_slat
+                   Z = Z + exp(overlap(i_grc))
+                end do
+
+                do ns = 1, N_slat
+                   i_grc = ns + (i_wlk - 1)*N_slat
+                   el_tmp = dble(ham%E0_local(GR(:, :, :, i_grc)))
+                   tot_ene = tot_ene + el_tmp*weight_k(i_wlk)*exp(overlap(i_grc))/Z
+                end do
+
+                tot_c_weight = tot_c_weight + weight_k(i_wlk)
+
+             end if
+
+          end do
+          tot_re_weight = dble(tot_c_weight)
+
+          call MPI_REDUCE(tot_ene, Z1, 1, MPI_COMPLEX16, MPI_SUM, 0, Group_comm, IERR)
+          call MPI_REDUCE(tot_re_weight, X1, 1, MPI_REAL8, MPI_SUM, 0, Group_comm, IERR)
+
+          if (Irank_g == 0) then
              Z1 = Z1/X1
-             fac_norm= dble(Z1)
-             OPEN (UNIT = 77, FILE=filename, STATUS='UNKNOWN', position="append")
-             write(77,*) ntw*dtau,  dble(Z1)/dtau
-             close(77)
-         endif
-         CALL MPI_BCAST(fac_norm, 1, MPI_REAL8, 0,MPI_COMM_WORLD,ierr)
-         
+             fac_norm = dble(Z1)
+             open (UNIT=77, FILE=filename, STATUS='UNKNOWN', position="append")
+             write (77, *) ntw*dtau, dble(Z1)/dtau
+             close (77)
+          end if
+          call MPI_BCAST(fac_norm, 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
+
        end subroutine update_fac_norm
 
     end submodule ham_bose_metal_ladder_smod

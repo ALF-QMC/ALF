@@ -8,13 +8,13 @@
 !>
 !--------------------------------------------------------------------
 
-MODULE UDV_State_mod
-    use runtime_error_mod
-    use iso_fortran_env, only: output_unit, error_unit
+module UDV_State_mod
+   use runtime_error_mod
+   use iso_fortran_env, only: output_unit, error_unit
 
-    IMPLICIT NONE
-    PRIVATE
-    PUBLIC :: UDV_State
+   implicit none
+   private
+   public :: UDV_State
 
 !--------------------------------------------------------------------
 !> @author
@@ -49,38 +49,38 @@ MODULE UDV_State_mod
 !> \endverbatim
 !--------------------------------------------------------------------
 
-    TYPE UDV_State
-        COMPLEX (Kind=Kind(0.d0)), allocatable :: U(:, :), V(:, :)
+   type UDV_State
+      complex(Kind=kind(0.d0)), allocatable :: U(:, :), V(:, :)
 #if !defined(STABLOG)
-        COMPLEX (Kind=Kind(0.d0)), allocatable :: D(:)
+      complex(Kind=kind(0.d0)), allocatable :: D(:)
 #else
-        REAL    (Kind=Kind(0.d0)), allocatable :: L(:)
+      real(Kind=kind(0.d0)), allocatable :: L(:)
 #endif
-        INTEGER   :: ndim, n_part  ! ndim: number of orbitals per flavor. n_part: number of particles per flavor
-        CHARACTER :: side          ! side = R  for right propagation :   B       * P_R = U d v
-                                   ! side = L  for lesft propagation :   (P_L B)^{dag} = U d v^{dag}
-        CONTAINS
-            PROCEDURE :: alloc => alloc_UDV_state
-            PROCEDURE :: init => init_UDV_state
-            PROCEDURE :: dealloc => dealloc_UDV_state
-            PROCEDURE :: reset => reset_UDV_state
-            PROCEDURE :: assign => assign_UDV_state
-            PROCEDURE :: decompose => decompose_UDV_state
-            PROCEDURE :: print => print_UDV_state
-            PROCEDURE :: setscale => setscale_UDV_state
-            PROCEDURE :: getscale => getscale_UDV_state
-            PROCEDURE :: testscale => testscale_UDV_state
+      integer   :: ndim, n_part  ! ndim: number of orbitals per flavor. n_part: number of particles per flavor
+      character :: side          ! side = R  for right propagation :   B       * P_R = U d v
+      ! side = L  for lesft propagation :   (P_L B)^{dag} = U d v^{dag}
+   contains
+      procedure :: alloc => alloc_UDV_state
+      procedure :: init => init_UDV_state
+      procedure :: dealloc => dealloc_UDV_state
+      procedure :: reset => reset_UDV_state
+      procedure :: assign => assign_UDV_state
+      procedure :: decompose => decompose_UDV_state
+      procedure :: print => print_UDV_state
+      procedure :: setscale => setscale_UDV_state
+      procedure :: getscale => getscale_UDV_state
+      procedure :: testscale => testscale_UDV_state
 #if defined(MPI)
-            PROCEDURE :: MPI_Sendrecv => MPI_Sendrecv_UDV_state
-            PROCEDURE :: MPI_send_general => MPI_Send_UDV_state_general
-            PROCEDURE :: MPI_recv_general => MPI_recv_UDV_state_general
+      procedure :: MPI_Sendrecv => MPI_Sendrecv_UDV_state
+      procedure :: MPI_send_general => MPI_Send_UDV_state_general
+      procedure :: MPI_recv_general => MPI_recv_UDV_state_general
 #endif
-            GENERIC :: ASSIGNMENT(=) => assign
-    END TYPE UDV_State
+      generic :: assignment(=) => assign
+   end type UDV_State
 
-    logical, save :: trigger_scale_warning = .true.
+   logical, save :: trigger_scale_warning = .true.
 
-CONTAINS
+contains
 !--------------------------------------------------------------------
 !> @author
 !> ALF-project
@@ -97,26 +97,26 @@ CONTAINS
 !>If not present then t_part is set to t \endverbatim
 !>
 !-------------------------------------------------------------------
-     SUBROUTINE alloc_UDV_state(this, t, t_part)
-       IMPLICIT NONE
-       CLASS(UDV_State), INTENT(INOUT) :: this
-       INTEGER, INTENT(IN) :: t
-       INTEGER, INTENT(IN), OPTIONAL :: t_part
+   subroutine alloc_UDV_state(this, t, t_part)
+      implicit none
+      class(UDV_State), intent(INOUT) :: this
+      integer, intent(IN) :: t
+      integer, intent(IN), optional :: t_part
 
-       this%ndim = t
-       if( present(t_part) ) then
-          this%N_part=t_part
-          ALLOCATE(this%U(this%ndim, this%N_part))
-       else
-          this%N_part=t
-          ALLOCATE(this%U(this%ndim, this%N_part), this%V(this%N_part, this%N_part))
-       endif
+      this%ndim = t
+      if (present(t_part)) then
+         this%N_part = t_part
+         allocate (this%U(this%ndim, this%N_part))
+      else
+         this%N_part = t
+         allocate (this%U(this%ndim, this%N_part), this%V(this%N_part, this%N_part))
+      end if
 #if !defined(STABLOG)
-       ALLOCATE(this%D(this%N_part))
+      allocate (this%D(this%N_part))
 #else
-       ALLOCATE(this%L(this%N_part))
+      allocate (this%L(this%N_part))
 #endif
-     END SUBROUTINE alloc_UDV_state
+   end subroutine alloc_UDV_state
 
 !--------------------------------------------------------------------
 !> @author
@@ -134,30 +134,30 @@ CONTAINS
 !> \verbatim If present sets this%U = P  \endverbatim
 !>
 !-------------------------------------------------------------------
-     SUBROUTINE init_UDV_state(this, t, side, P)
-       IMPLICIT NONE
-       CLASS(UDV_State), INTENT(INOUT) :: this
-       INTEGER,   INTENT(IN) :: t
-       CHARACTER, INTENT(IN) :: side
-       COMPLEX(kind=kind(0.d0)), INTENT(IN), OPTIONAL :: P(:,:)
+   subroutine init_UDV_state(this, t, side, P)
+      implicit none
+      class(UDV_State), intent(INOUT) :: this
+      integer, intent(IN) :: t
+      character, intent(IN) :: side
+      complex(kind=kind(0.d0)), intent(IN), optional :: P(:, :)
 
-       this%side=side
-       if( present(P)) then
-          if ( t .ne. size(P,1) ) then
-             write(error_unit,*) "Mismatching Ndim between explicitly provided argument and implicitly provided size(P,1)"
-             CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
-          endif
-          if ( t < size(P,2) .or. size(P,2) < 0 ) then
-             write(error_unit,*) "Illegal number of particles provided as size(P,2) (0 <= N_part <= Ndim)"
-             CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
-          endif
-          CALL this%alloc(t,size(P,2))
-          CALL this%reset(side,P)
-       else
-          CALL this%alloc(t)
-          CALL this%reset(side)
-       endif
-     END SUBROUTINE init_UDV_state
+      this%side = side
+      if (present(P)) then
+         if (t .ne. size(P, 1)) then
+            write (error_unit, *) "Mismatching Ndim between explicitly provided argument and implicitly provided size(P,1)"
+            call Terminate_on_error(ERROR_GENERIC, __FILE__, __LINE__)
+         end if
+         if (t < size(P, 2) .or. size(P, 2) < 0) then
+            write (error_unit, *) "Illegal number of particles provided as size(P,2) (0 <= N_part <= Ndim)"
+            call Terminate_on_error(ERROR_GENERIC, __FILE__, __LINE__)
+         end if
+         call this%alloc(t, size(P, 2))
+         call this%reset(side, P)
+      else
+         call this%alloc(t)
+         call this%reset(side)
+      end if
+   end subroutine init_UDV_state
 
 !--------------------------------------------------------------------
 !> @author
@@ -171,18 +171,18 @@ CONTAINS
 !> @param [in]  scale_idx, Integer
 !>
 !-------------------------------------------------------------------
-     SUBROUTINE setscale_UDV_state(this, scale_val, scale_idx)
-       IMPLICIT NONE
-       CLASS(UDV_State), INTENT(INOUT) :: this
-       COMPLEX (Kind=Kind(0.d0)), INTENT(IN) :: scale_val
-       INTEGER, INTENT(IN) :: scale_idx
+   subroutine setscale_UDV_state(this, scale_val, scale_idx)
+      implicit none
+      class(UDV_State), intent(INOUT) :: this
+      complex(Kind=kind(0.d0)), intent(IN) :: scale_val
+      integer, intent(IN) :: scale_idx
 
 #if !defined(STABLOG)
-       this%D(scale_idx)=scale_val
+      this%D(scale_idx) = scale_val
 #else
-       this%L(scale_idx)=log(dble(scale_val))
+      this%L(scale_idx) = log(dble(scale_val))
 #endif
-     END SUBROUTINE setscale_UDV_state
+   end subroutine setscale_UDV_state
 
 !--------------------------------------------------------------------
 !> @author
@@ -195,18 +195,18 @@ CONTAINS
 !> @param [out]  scale_val, Complex
 !> @param [in]  scale_idx, Integer
 !-------------------------------------------------------------------
-     SUBROUTINE getscale_UDV_state(this, scale_val, scale_idx)
-       IMPLICIT NONE
-       CLASS(UDV_State), INTENT(IN) :: this
-       COMPLEX (Kind=Kind(0.d0)), INTENT(out) :: scale_val
-       INTEGER, INTENT(IN) :: scale_idx
+   subroutine getscale_UDV_state(this, scale_val, scale_idx)
+      implicit none
+      class(UDV_State), intent(IN) :: this
+      complex(Kind=kind(0.d0)), intent(out) :: scale_val
+      integer, intent(IN) :: scale_idx
 
 #if !defined(STABLOG)
-       scale_val=this%D(scale_idx)
+      scale_val = this%D(scale_idx)
 #else
-       scale_val=cmplx(exp(this%L(scale_idx)),0.d0,kind(0.d0))
+      scale_val = cmplx(exp(this%L(scale_idx)), 0.d0, kind(0.d0))
 #endif
-     END SUBROUTINE getscale_UDV_state
+   end subroutine getscale_UDV_state
 
 !--------------------------------------------------------------------
 !> @author
@@ -219,39 +219,39 @@ CONTAINS
 !>
 !> @param [in] this Class(UDV_state)
 !-------------------------------------------------------------------
-     SUBROUTINE testscale_UDV_state(this)
-       use runtime_error_mod
-       IMPLICIT NONE
-       CLASS(UDV_State), INTENT(IN) :: this
+   subroutine testscale_UDV_state(this)
+      use runtime_error_mod
+      implicit none
+      class(UDV_State), intent(IN) :: this
 
 #if !defined(STABLOG)
-       real (Kind=Kind(this%D(1))) :: dummy_dp
+      real(Kind=kind(this%D(1))) :: dummy_dp
 
-       ! Check if any scale is NaN
-       if ( any(this%D /= this%D) )  then
-          write(error_unit,*) 
-          write(error_unit,*) "Error: At least one scale is NaN."
-          write(error_unit,*) "       Switch to LOG is required."
-          call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
-       end if 
+      ! Check if any scale is NaN
+      if (any(this%D /= this%D)) then
+         write (error_unit, *)
+         write (error_unit, *) "Error: At least one scale is NaN."
+         write (error_unit, *) "       Switch to LOG is required."
+         call Terminate_on_error(ERROR_GENERIC, __FILE__, __LINE__)
+      end if
 
-       ! ATTENTION, the test assumes a (mostly) sorted array D [real and positive numbers]!
-       ! Check if largest scale is approaching the largest representable value
-       if ( dble(this%D(1)) > 0.1*huge(dummy_dp) .and. trigger_scale_warning) then
-          write(error_unit,*) 
-          write(error_unit,*) "Warning: Largest scale is approaching the largest representable value."
-          write(error_unit,*) "         Consider switching to LOG."
-          trigger_scale_warning = .false.
-       end if  
-       ! Check if myVariable is approaching the smallest representable value
-       if ( dble(this%D(this%n_part)) < 10.0*tiny(dummy_dp) .and. trigger_scale_warning) then
-          write(error_unit,*) 
-          write(error_unit,*) "Warning: Smallest scale is approaching the smalles representable value."
-          write(error_unit,*) "         Consider switching to LOG."
-          trigger_scale_warning = .false.
-       end if
+      ! ATTENTION, the test assumes a (mostly) sorted array D [real and positive numbers]!
+      ! Check if largest scale is approaching the largest representable value
+      if (dble(this%D(1)) > 0.1*huge(dummy_dp) .and. trigger_scale_warning) then
+         write (error_unit, *)
+         write (error_unit, *) "Warning: Largest scale is approaching the largest representable value."
+         write (error_unit, *) "         Consider switching to LOG."
+         trigger_scale_warning = .false.
+      end if
+      ! Check if myVariable is approaching the smallest representable value
+      if (dble(this%D(this%n_part)) < 10.0*tiny(dummy_dp) .and. trigger_scale_warning) then
+         write (error_unit, *)
+         write (error_unit, *) "Warning: Smallest scale is approaching the smalles representable value."
+         write (error_unit, *) "         Consider switching to LOG."
+         trigger_scale_warning = .false.
+      end if
 #endif
-     END SUBROUTINE testscale_UDV_state
+   end subroutine testscale_UDV_state
 
 !--------------------------------------------------------------------
 !> @author
@@ -262,19 +262,19 @@ CONTAINS
 !>
 !> @param [inout] this Class(UDV_State)
 !-------------------------------------------------------------------
-     SUBROUTINE dealloc_UDV_state(this)
-       IMPLICIT NONE
-       CLASS(UDV_State), INTENT(INOUT) :: this
+   subroutine dealloc_UDV_state(this)
+      implicit none
+      class(UDV_State), intent(INOUT) :: this
 
-       !V is only allocated in finite temperature version
-       IF(ALLOCATED(this%V)) DEALLOCATE(this%V)
-       DEALLOCATE(this%U)
+      !V is only allocated in finite temperature version
+      if (allocated(this%V)) deallocate (this%V)
+      deallocate (this%U)
 #if !defined(STABLOG)
-       DEALLOCATE(this%D)
+      deallocate (this%D)
 #else
-       DEALLOCATE(this%L)
+      deallocate (this%L)
 #endif
-     END SUBROUTINE dealloc_UDV_state
+   end subroutine dealloc_UDV_state
 
 !--------------------------------------------------------------------
 !> @author
@@ -288,32 +288,32 @@ CONTAINS
 !> @param [IN] side Character
 !> @param [IN] P(:,:), optional   Complex
 !-------------------------------------------------------------------
-     SUBROUTINE reset_UDV_state(this, side, P)
-       IMPLICIT NONE
-       CLASS(UDV_State), INTENT(INOUT) :: this
-       CHARACTER, INTENT(IN) ::side
-       COMPLEX (Kind=Kind(0.d0)), OPTIONAL :: P(:,:)
-       COMPLEX (Kind=Kind(0.d0)) :: alpha, beta
+   subroutine reset_UDV_state(this, side, P)
+      implicit none
+      class(UDV_State), intent(INOUT) :: this
+      character, intent(IN) ::side
+      complex(Kind=kind(0.d0)), optional :: P(:, :)
+      complex(Kind=kind(0.d0)) :: alpha, beta
 
-       alpha = 0.D0
-       beta = 1.D0
-       this%side=side
-       if( present(P) ) then
-          if(size(P,1) .ne. this%ndim .or. size(P,2) .ne. this%N_part) then
-             CALL this%dealloc
-             CALL this%alloc(size(P,1),size(P,2))
-          endif
-          CALL ZLACPY('A', this%ndim, this%N_part, P(1, 1), this%ndim, this%U(1, 1), this%ndim)
-       else
-          CALL ZLASET('A', this%ndim, this%ndim, alpha, beta, this%U(1, 1), this%ndim)
-          CALL ZLASET('A', this%ndim, this%ndim, alpha, beta, this%V(1, 1), this%ndim)
-       endif
+      alpha = 0.d0
+      beta = 1.d0
+      this%side = side
+      if (present(P)) then
+         if (size(P, 1) .ne. this%ndim .or. size(P, 2) .ne. this%N_part) then
+            call this%dealloc
+            call this%alloc(size(P, 1), size(P, 2))
+         end if
+         call ZLACPY('A', this%ndim, this%N_part, P(1, 1), this%ndim, this%U(1, 1), this%ndim)
+      else
+         call ZLASET('A', this%ndim, this%ndim, alpha, beta, this%U(1, 1), this%ndim)
+         call ZLASET('A', this%ndim, this%ndim, alpha, beta, this%V(1, 1), this%ndim)
+      end if
 #if !defined(STABLOG)
-       this%D = beta
+      this%D = beta
 #else
-       this%L = 0.d0
+      this%L = 0.d0
 #endif
-     END SUBROUTINE reset_UDV_state
+   end subroutine reset_UDV_state
 
 !--------------------------------------------------------------------
 !> @author
@@ -324,32 +324,32 @@ CONTAINS
 !>
 !> @param [inout] this Class(UVD_state)
 !-------------------------------------------------------------------
-     SUBROUTINE print_UDV_state(this)
-       IMPLICIT NONE
-       CLASS(UDV_State), INTENT(IN) :: this
-       INTEGER :: i
+   subroutine print_UDV_state(this)
+      implicit none
+      class(UDV_State), intent(IN) :: this
+      integer :: i
 
-       WRITE(*,*) "Side = ", this%side
-       WRITE(*,*) "NDim = ", this%ndim
-       WRITE(*,*) "N_part = ", this%N_part
-       DO i = 1, this%ndim
-          WRITE(*,*) this%U(i, :)
-       ENDDO
-       WRITE(*,*) "======================"
-       if( ALLOCATED(this%V)) then
-          DO i = 1, this%n_part
-             WRITE(*,*) this%V(i, :)
-          ENDDO
-       else
-          WRITE(*,*) "V is only stored in finite temperature version"
-       endif
-       WRITE(*,*) "======================"
+      write (*, *) "Side = ", this%side
+      write (*, *) "NDim = ", this%ndim
+      write (*, *) "N_part = ", this%N_part
+      do i = 1, this%ndim
+         write (*, *) this%U(i, :)
+      end do
+      write (*, *) "======================"
+      if (allocated(this%V)) then
+         do i = 1, this%n_part
+            write (*, *) this%V(i, :)
+         end do
+      else
+         write (*, *) "V is only stored in finite temperature version"
+      end if
+      write (*, *) "======================"
 #if !defined(STABLOG)
-       WRITE(*,*) this%D(:)
+      write (*, *) this%D(:)
 #else
-       WRITE(*,*) this%L(:)
+      write (*, *) this%L(:)
 #endif
-     END SUBROUTINE print_UDV_state
+   end subroutine print_UDV_state
 
 !--------------------------------------------------------------------
 !> @author
@@ -362,35 +362,35 @@ CONTAINS
 !> @param [in] src Class(UDV_state)
 !-------------------------------------------------------------------
 #if __INTEL_COMPILER_BUILD_DATE == 20190206 || __INTEL_COMPILER_BUILD_DATE == 20190416 || __INTEL_COMPILER_BUILD_DATE == 20190815
-     ! Handle bug in ifort 19.3, 19.4 and 19.5, that breaks ASSIGNMENT(=), IMPURE is an Intel keyword.
-     IMPURE ELEMENTAL SUBROUTINE assign_UDV_state(this, src)
+   ! Handle bug in ifort 19.3, 19.4 and 19.5, that breaks ASSIGNMENT(=), IMPURE is an Intel keyword.
+   IMPURE elemental subroutine assign_UDV_state(this, src)
 #else
-     SUBROUTINE assign_UDV_state(this, src)
+      subroutine assign_UDV_state(this, src)
 #endif
-       IMPLICIT NONE
-       CLASS(UDV_State), INTENT(INOUT) :: this
-       CLASS(UDV_State), INTENT(IN) :: src
+         implicit none
+         class(UDV_State), intent(INOUT) :: this
+         class(UDV_State), intent(IN) :: src
 
-       IF(this%ndim .ne. src%ndim .or. this%n_part .ne. src%n_part) call this%dealloc
-       this%ndim = src%ndim
-       this%n_part = src%n_part
-       this%side = src%side
+         if (this%ndim .ne. src%ndim .or. this%n_part .ne. src%n_part) call this%dealloc
+         this%ndim = src%ndim
+         this%n_part = src%n_part
+         this%side = src%side
 
-       IF(.not. ALLOCATED(this%U)) ALLOCATE(this%U(this%ndim, this%n_part))
-       IF(.not. ALLOCATED(this%V) .and. ALLOCATED(src%V)) ALLOCATE(this%V(this%n_part, this%n_part))
-       ASSOCIATE(ndim => src%ndim)
-         CALL ZLACPY('A', ndim, this%n_part, src%U(1, 1), ndim, this%U(1, 1), ndim)
-         if (ALLOCATED(src%V)) CALL ZLACPY('A', this%n_part, this%n_part, src%V(1, 1), &
-              & this%n_part, this%V(1, 1), this%n_part)
-       END ASSOCIATE
+         if (.not. allocated(this%U)) allocate (this%U(this%ndim, this%n_part))
+         if (.not. allocated(this%V) .and. allocated(src%V)) allocate (this%V(this%n_part, this%n_part))
+         associate (ndim => src%ndim)
+            call ZLACPY('A', ndim, this%n_part, src%U(1, 1), ndim, this%U(1, 1), ndim)
+            if (allocated(src%V)) call ZLACPY('A', this%n_part, this%n_part, src%V(1, 1), &
+                 & this%n_part, this%V(1, 1), this%n_part)
+         end associate
 #if !defined(STABLOG)
-       IF(.not. ALLOCATED(this%D)) ALLOCATE(this%D(this%n_part))
-       this%D = src%D
+         if (.not. allocated(this%D)) allocate (this%D(this%n_part))
+         this%D = src%D
 #else
-       IF(.not. ALLOCATED(this%L)) ALLOCATE(this%L(this%n_part))
-       this%L = src%L
+         if (.not. allocated(this%L)) allocate (this%L(this%n_part))
+         this%L = src%L
 #endif
-     END SUBROUTINE assign_UDV_state
+      end subroutine assign_UDV_state
 
 !--------------------------------------------------------------------
 !> @author
@@ -401,156 +401,156 @@ CONTAINS
 !>
 !> @details
 !> @param [inout] UDV Class(UDV_State)
-     !> \verbatim
-     !>  if UDV%side = r then
-     !>  On input  IN  = A * UDV%D * UDV%V  and A is  an arbitrary matrix stored in UDV%U.
-     !>                  UDV%D  and  UDV%V stem from previous calls to this routine.
-     !>  On outut  IN  = UDV%U * UDV%D * UDV%V
-     !>                  Here Det(V) = 1,  D is a real diagonal matrix, and U column orthornormal
-     !>
-     !>  if UDV%side = l then
-     !>  On input  IN  = A * UDV%D * (UDV%V)^{dag}  and A is  an arbitrary matrix stored in UDV%U.
-     !>                  UDV%D and  UDV%V stem from previous calls to this routine.
-     !>  On outut  IN  = UDV%U * UDV%D * (UDV%V)^{dag}
-     !>                  Here Det(V) = 1,  D is a real diagonal matrix, and U column orthornormal
-     !> \endverbatim
+      !> \verbatim
+      !>  if UDV%side = r then
+      !>  On input  IN  = A * UDV%D * UDV%V  and A is  an arbitrary matrix stored in UDV%U.
+      !>                  UDV%D  and  UDV%V stem from previous calls to this routine.
+      !>  On outut  IN  = UDV%U * UDV%D * UDV%V
+      !>                  Here Det(V) = 1,  D is a real diagonal matrix, and U column orthornormal
+      !>
+      !>  if UDV%side = l then
+      !>  On input  IN  = A * UDV%D * (UDV%V)^{dag}  and A is  an arbitrary matrix stored in UDV%U.
+      !>                  UDV%D and  UDV%V stem from previous calls to this routine.
+      !>  On outut  IN  = UDV%U * UDV%D * (UDV%V)^{dag}
+      !>                  Here Det(V) = 1,  D is a real diagonal matrix, and U column orthornormal
+      !> \endverbatim
 !>
 !-------------------------------------------------------------------
-     SUBROUTINE decompose_UDV_state(UDVR)
-       Use QDRP_mod
-       Use MyMats
-       Implicit None
-       CLASS(UDV_State), intent(inout) :: UDVR
-       COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: TAU, WORK
-       COMPLEX (Kind=Kind(0.d0)) ::  Z_ONE, beta, phase
-       INTEGER :: INFO, i, LWORK, Ndim, N_part
-       INTEGER, allocatable, Dimension(:) :: IPVT
+      subroutine decompose_UDV_state(UDVR)
+         use QDRP_mod
+         use MyMats
+         implicit none
+         class(UDV_State), intent(inout) :: UDVR
+         complex(Kind=kind(0.d0)), allocatable, dimension(:) :: TAU, WORK
+         complex(Kind=kind(0.d0)) ::  Z_ONE, beta, phase
+         integer :: INFO, i, LWORK, Ndim, N_part
+         integer, allocatable, dimension(:) :: IPVT
 #if defined(STABLOG)
-       REAL (Kind=Kind(0.d0)), allocatable, Dimension(:) :: tmpnorm
-       REAL (Kind=Kind(0.d0)) :: tmpL, DZNRM2
-       INTEGER :: J, PVT
-       COMPLEX (Kind=Kind(0.d0)), allocatable, Dimension(:) :: D
+         real(Kind=kind(0.d0)), allocatable, dimension(:) :: tmpnorm
+         real(Kind=kind(0.d0)) :: tmpL, DZNRM2
+         integer :: J, PVT
+         complex(Kind=kind(0.d0)), allocatable, dimension(:) :: D
 #else
-       LOGICAL :: FORWRD
+         logical :: FORWRD
 #endif
 
-       ! QR(TMP * U * D) * V
-       Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0))
-       Ndim = UDVR%ndim
-       N_part = UDVR%n_part
-       ALLOCATE(TAU(N_part), IPVT(N_part))
+         ! QR(TMP * U * D) * V
+         Z_ONE = cmplx(1.d0, 0.d0, kind(0.d0))
+         Ndim = UDVR%ndim
+         N_part = UDVR%n_part
+         allocate (TAU(N_part), IPVT(N_part))
 #if !defined(STABLOG)
-       ! TMP1 = TMP1 * D
-       If( ALLOCATED(UDVR%V) ) then
-          DO i = 1,N_part
-             UDVR%U(:, i) = UDVR%U(:, i)*UDVR%D(i)
-          ENDDO
-       endif
-       !use lapack internal pivoting
-       IPVT = 0
-       call QDRP_decompose(Ndim, N_part, UDVR%U, UDVR%D, IPVT, TAU, WORK, LWORK)
-       Phase=cmplx(1.d0,0.d0,kind(0.d0))
-       do i=1,N_part
-          Phase=Phase*UDVR%U(i,i)
-       enddo
-       Call Pivot_Phase(phase,IPVT,N_part)
-       if(udvr%side == "L" .or. udvr%side == "l" ) then
-          Phase=CONJG(Phase)
-       endif
-       beta=1/Phase
-       If( ALLOCATED(UDVR%V) ) then
-          !scale first row of R with 1/phase to set Det(R)=1 [=Det(V)]
-          call ZSCAL(N_part,beta,UDVR%U(1,1),Ndim)
-          ! Permute V. Since we multiply with V from the right we have to permute the rows.
-          ! A V = A P P^-1 V = Q R P^-1 V
-          FORWRD = .true.
-          if(udvr%side == "R" .or. udvr%side == "r" ) then
-             CALL ZLAPMR(FORWRD, N_part, N_part, UDVR%V, N_part, IPVT(1)) ! lapack 3.3
-          else
-             CALL ZLAPMT(FORWRD, N_part, N_part, UDVR%V, N_part, IPVT(1))
-          endif
-       endif
+         ! TMP1 = TMP1 * D
+         if (allocated(UDVR%V)) then
+            do i = 1, N_part
+               UDVR%U(:, i) = UDVR%U(:, i)*UDVR%D(i)
+            end do
+         end if
+         !use lapack internal pivoting
+         IPVT = 0
+         call QDRP_decompose(Ndim, N_part, UDVR%U, UDVR%D, IPVT, TAU, WORK, LWORK)
+         Phase = cmplx(1.d0, 0.d0, kind(0.d0))
+         do i = 1, N_part
+            Phase = Phase*UDVR%U(i, i)
+         end do
+         call Pivot_Phase(phase, IPVT, N_part)
+         if (udvr%side == "L" .or. udvr%side == "l") then
+            Phase = conjg(Phase)
+         end if
+         beta = 1/Phase
+         if (allocated(UDVR%V)) then
+            !scale first row of R with 1/phase to set Det(R)=1 [=Det(V)]
+            call ZSCAL(N_part, beta, UDVR%U(1, 1), Ndim)
+            ! Permute V. Since we multiply with V from the right we have to permute the rows.
+            ! A V = A P P^-1 V = Q R P^-1 V
+            FORWRD = .true.
+            if (udvr%side == "R" .or. udvr%side == "r") then
+               call ZLAPMR(FORWRD, N_part, N_part, UDVR%V, N_part, IPVT(1)) ! lapack 3.3
+            else
+               call ZLAPMT(FORWRD, N_part, N_part, UDVR%V, N_part, IPVT(1))
+            end if
+         end if
 #else
-       !manually perform pivoting (using the logscale if LOG is defined)
-       ALLOCATE(tmpnorm(N_part),D(N_part))
-       if ( ALLOCATED(UDVR%V) ) then
-          Do i=1,N_part
-             tmpnorm(i) = log(DZNRM2( Ndim, UDVR%U( 1, I ), 1 ))+UDVR%L(I)
-          enddo
-       else
-          Do i=1,N_part
-             tmpnorm(i) = log(DZNRM2( Ndim, UDVR%U( 1, I ), 1 ))
-          enddo
-       endif
-       ! TmpMat=UDVr%V
-       ! phase=det_c(tmpmat,ndim)
-       ! write(*,*) "Phase in:",phase
-       Phase=cmplx(1.d0,0.d0,kind(0.d0))
-       do i=1,N_part
-          PVT = I
-          do j=I+1,N_part
-             if( tmpnorm(J)>tmpnorm(PVT) ) PVT=J
-          enddo
-          IPVT(I)=PVT
-          IF( PVT.NE.I ) THEN
-             CALL ZSWAP( ndim, UDVR%U( 1, PVT ), 1, UDVR%U( 1, I ), 1 )
-             If( ALLOCATED(UDVR%V) ) then
-                if(udvr%side == "R" .or. udvr%side == "r" ) then
-                   CALL ZSWAP( N_part, UDVR%V( PVT, 1 ), N_part, UDVR%V( I, 1 ), N_part )
-                else
-                   CALL ZSWAP( N_part, UDVR%V( 1, PVT ), 1, UDVR%V( 1, I ), 1 )
-                endif
-             endif
-             tmpL=UDVR%L(I)
-             UDVR%L(I)=UDVR%L(PVT)
-             UDVR%L(PVT)=tmpL
-             tmpnorm( PVT ) = tmpnorm( I )
-             phase=-phase
-          END IF
-       enddo
-       !disable lapack internal pivoting
-       IPVT = 1
-       call QDRP_decompose(Ndim, N_part, UDVR%U, D, IPVT, TAU, WORK, LWORK)
-       do i=1,N_part
-          Phase=Phase*UDVR%U(i,i)
-       enddo
-       if(udvr%side == "L" .or. udvr%side == "l" ) then
-          Phase=CONJG(Phase)
-       endif
-       beta=1/Phase
-       If( ALLOCATED(UDVR%V) ) then
-          !scale first row of R with 1/phase to set Det(R)=1 [=Det(V)]
-          call ZSCAL(N_part,beta,UDVR%U(1,1),Ndim)
-          do i=1,N_part
-             do j=i+1,N_part
-                UDVR%U(i,j)=UDVR%U(i,j)*cmplx(exp(UDVR%L(j)-UDVR%L(I)),0.d0,kind(0.d0))
-             enddo
-             UDVR%L(I)=log(dble(D(I))) + UDVR%L(I)
-          enddo
-       else
-          do i=1,N_part
-             UDVR%L(I)=log(dble(D(I)))
-          enddo
-       endif
-       DEALLOCATE(D, tmpnorm)
+         !manually perform pivoting (using the logscale if LOG is defined)
+         allocate (tmpnorm(N_part), D(N_part))
+         if (allocated(UDVR%V)) then
+            do i = 1, N_part
+               tmpnorm(i) = log(DZNRM2(Ndim, UDVR%U(1, I), 1)) + UDVR%L(I)
+            end do
+         else
+            do i = 1, N_part
+               tmpnorm(i) = log(DZNRM2(Ndim, UDVR%U(1, I), 1))
+            end do
+         end if
+         ! TmpMat=UDVr%V
+         ! phase=det_c(tmpmat,ndim)
+         ! write(*,*) "Phase in:",phase
+         Phase = cmplx(1.d0, 0.d0, kind(0.d0))
+         do i = 1, N_part
+            PVT = I
+            do j = I + 1, N_part
+               if (tmpnorm(J) > tmpnorm(PVT)) PVT = J
+            end do
+            IPVT(I) = PVT
+            if (PVT .ne. I) then
+               call ZSWAP(ndim, UDVR%U(1, PVT), 1, UDVR%U(1, I), 1)
+               if (allocated(UDVR%V)) then
+                  if (udvr%side == "R" .or. udvr%side == "r") then
+                     call ZSWAP(N_part, UDVR%V(PVT, 1), N_part, UDVR%V(I, 1), N_part)
+                  else
+                     call ZSWAP(N_part, UDVR%V(1, PVT), 1, UDVR%V(1, I), 1)
+                  end if
+               end if
+               tmpL = UDVR%L(I)
+               UDVR%L(I) = UDVR%L(PVT)
+               UDVR%L(PVT) = tmpL
+               tmpnorm(PVT) = tmpnorm(I)
+               phase = -phase
+            end if
+         end do
+         !disable lapack internal pivoting
+         IPVT = 1
+         call QDRP_decompose(Ndim, N_part, UDVR%U, D, IPVT, TAU, WORK, LWORK)
+         do i = 1, N_part
+            Phase = Phase*UDVR%U(i, i)
+         end do
+         if (udvr%side == "L" .or. udvr%side == "l") then
+            Phase = conjg(Phase)
+         end if
+         beta = 1/Phase
+         if (allocated(UDVR%V)) then
+            !scale first row of R with 1/phase to set Det(R)=1 [=Det(V)]
+            call ZSCAL(N_part, beta, UDVR%U(1, 1), Ndim)
+            do i = 1, N_part
+               do j = i + 1, N_part
+                  UDVR%U(i, j) = UDVR%U(i, j)*cmplx(exp(UDVR%L(j) - UDVR%L(I)), 0.d0, kind(0.d0))
+               end do
+               UDVR%L(I) = log(dble(D(I))) + UDVR%L(I)
+            end do
+         else
+            do i = 1, N_part
+               UDVR%L(I) = log(dble(D(I)))
+            end do
+         end if
+         deallocate (D, tmpnorm)
 #endif
-       If( ALLOCATED(UDVR%V) ) then
-          if(UDVR%side == "R" .or. UDVR%side == "r" ) then
-             ! V = R * V
-             CALL ZTRMM('L', 'U', 'N', 'N', N_part, N_part, Z_ONE, UDVR%U, Ndim, UDVR%V, N_part)
-          else
-             ! V = V * R^dagger
-             CALL ZTRMM('R', 'U', 'C', 'N', N_part, N_part, Z_ONE, UDVR%U, Ndim, UDVR%V, N_part)
-          endif
-       endif
-       ! Generate explicitly U in the previously abused storage of U
-       CALL ZUNGQR(Ndim, N_part, N_part, UDVR%U, Ndim, TAU, WORK, LWORK, INFO)
-       ! scale first column of U to correct the scaling in V such that UDV is not changed
-       call ZSCAL(Ndim,phase,UDVR%U(1,1),1)
+         if (allocated(UDVR%V)) then
+            if (UDVR%side == "R" .or. UDVR%side == "r") then
+               ! V = R * V
+               call ZTRMM('L', 'U', 'N', 'N', N_part, N_part, Z_ONE, UDVR%U, Ndim, UDVR%V, N_part)
+            else
+               ! V = V * R^dagger
+               call ZTRMM('R', 'U', 'C', 'N', N_part, N_part, Z_ONE, UDVR%U, Ndim, UDVR%V, N_part)
+            end if
+         end if
+         ! Generate explicitly U in the previously abused storage of U
+         call ZUNGQR(Ndim, N_part, N_part, UDVR%U, Ndim, TAU, WORK, LWORK, INFO)
+         ! scale first column of U to correct the scaling in V such that UDV is not changed
+         call ZSCAL(Ndim, phase, UDVR%U(1, 1), 1)
 
-       DEALLOCATE(TAU, WORK, IPVT)
+         deallocate (TAU, WORK, IPVT)
 
-     END SUBROUTINE decompose_UDV_state
+      end subroutine decompose_UDV_state
 
 !--------------------------------------------------------------------
 !> @author
@@ -567,95 +567,95 @@ CONTAINS
 !> @param [in] recvtag
 !> @param [out] STATUS
 !> @param [out] IERR
- !-------------------------------------------------------------------
+      !-------------------------------------------------------------------
 
 #if defined(MPI)
-     SUBROUTINE MPI_Sendrecv_UDV_state(this, dest, sendtag, source, recvtag, STATUS, IERR)
-       Use mpi
-       Implicit None
+      subroutine MPI_Sendrecv_UDV_state(this, dest, sendtag, source, recvtag, STATUS, IERR)
+         use mpi
+         implicit none
 
-       CLASS(UDV_State), INTENT(INOUT) :: this
-       INTEGER, intent(in)  :: dest, sendtag, source, recvtag
-       Integer, intent(out) :: STATUS(MPI_STATUS_SIZE), IERR
-       INTEGER :: n
+         class(UDV_State), intent(INOUT) :: this
+         integer, intent(in)  :: dest, sendtag, source, recvtag
+         integer, intent(out) :: STATUS(MPI_STATUS_SIZE), IERR
+         integer :: n
 
-       n = this%ndim * this%ndim
-       CALL MPI_Sendrecv_replace(this%U, n, MPI_COMPLEX16, dest, sendtag, &
-            &                source, recvtag, MPI_COMM_WORLD, STATUS, IERR)
-       CALL MPI_Sendrecv_replace(this%V, n, MPI_COMPLEX16, dest, sendtag, &
-            &                source, recvtag, MPI_COMM_WORLD, STATUS, IERR)
+         n = this%ndim*this%ndim
+         call MPI_Sendrecv_replace(this%U, n, MPI_COMPLEX16, dest, sendtag, &
+              &                source, recvtag, MPI_COMM_WORLD, STATUS, IERR)
+         call MPI_Sendrecv_replace(this%V, n, MPI_COMPLEX16, dest, sendtag, &
+              &                source, recvtag, MPI_COMM_WORLD, STATUS, IERR)
 #if !defined(STABLOG)
-       CALL MPI_Sendrecv_replace(this%D, this%ndim, MPI_COMPLEX16, dest, sendtag, &
-            &                source, recvtag, MPI_COMM_WORLD, STATUS, IERR)
+         call MPI_Sendrecv_replace(this%D, this%ndim, MPI_COMPLEX16, dest, sendtag, &
+              &                source, recvtag, MPI_COMM_WORLD, STATUS, IERR)
 #else
-       CALL MPI_Sendrecv_replace(this%L, this%ndim, MPI_REAL8, dest, sendtag, &
-            &                source, recvtag, MPI_COMM_WORLD, STATUS, IERR)
+         call MPI_Sendrecv_replace(this%L, this%ndim, MPI_REAL8, dest, sendtag, &
+              &                source, recvtag, MPI_COMM_WORLD, STATUS, IERR)
 #endif
-     END SUBROUTINE MPI_Sendrecv_UDV_state
+      end subroutine MPI_Sendrecv_UDV_state
 #endif
 
 #if defined(MPI)
 
-     SUBROUTINE MPI_Send_UDV_state_general(this, dest, sendtag, IERR)
-       Use mpi
-       Implicit None
+      subroutine MPI_Send_UDV_state_general(this, dest, sendtag, IERR)
+         use mpi
+         implicit none
 
-       CLASS(UDV_State), INTENT(IN) :: this
-       INTEGER, intent(in)  :: dest, sendtag
-       Integer, intent(out) :: IERR
-       INTEGER :: n
+         class(UDV_State), intent(IN) :: this
+         integer, intent(in)  :: dest, sendtag
+         integer, intent(out) :: IERR
+         integer :: n
 
-       !local
-       Complex (Kind=Kind(0.d0)) :: Ztmp(this%ndim, this%N_part), Ztmp2(this%ndim, this%N_part), Zvec(this%N_part)
+         !local
+         complex(Kind=kind(0.d0)) :: Ztmp(this%ndim, this%N_part), Ztmp2(this%ndim, this%N_part), Zvec(this%N_part)
 
-       n = this%ndim * this%N_part
-       !call mpi_send(this%U , n, MPI_COMPLEX16, dest, sendtag      , MPI_COMM_WORLD,IERR)
-       Ztmp(:,:)=this%U 
-       call mpi_send(Ztmp , n, MPI_COMPLEX16, dest, sendtag, MPI_COMM_WORLD,IERR)
-       
-       !call mpi_send(this%V , n, MPI_COMPLEX16, dest, sendtag+10033, MPI_COMM_WORLD,IERR)
+         n = this%ndim*this%N_part
+         !call mpi_send(this%U , n, MPI_COMPLEX16, dest, sendtag      , MPI_COMM_WORLD,IERR)
+         Ztmp(:, :) = this%U
+         call mpi_send(Ztmp, n, MPI_COMPLEX16, dest, sendtag, MPI_COMM_WORLD, IERR)
+
+         !call mpi_send(this%V , n, MPI_COMPLEX16, dest, sendtag+10033, MPI_COMM_WORLD,IERR)
 
 #if !defined(STABLOG)
-       !call mpi_send(this%D , this%ndim, MPI_COMPLEX16, dest  , sendtag+20033, MPI_COMM_WORLD,IERR)
-       Zvec(:)=this%D
+         !call mpi_send(this%D , this%ndim, MPI_COMPLEX16, dest  , sendtag+20033, MPI_COMM_WORLD,IERR)
+         Zvec(:) = this%D
 #else
-       !call mpi_send(this%L , this%ndim, MPI_COMPLEX16, dest  , sendtag+20033, MPI_COMM_WORLD,IERR)
-       Zvec(:)=this%L
+         !call mpi_send(this%L , this%ndim, MPI_COMPLEX16, dest  , sendtag+20033, MPI_COMM_WORLD,IERR)
+         Zvec(:) = this%L
 #endif
-       call mpi_send(Zvec, this%N_part, MPI_COMPLEX16, dest, sendtag+2      , MPI_COMM_WORLD,IERR)
+         call mpi_send(Zvec, this%N_part, MPI_COMPLEX16, dest, sendtag + 2, MPI_COMM_WORLD, IERR)
 
-     END SUBROUTINE MPI_Send_UDV_state_general
+      end subroutine MPI_Send_UDV_state_general
 
-     SUBROUTINE MPI_recv_UDV_state_general(this, source, recvtag, STATUS, IERR)
-       Use mpi
-       Implicit None
+      subroutine MPI_recv_UDV_state_general(this, source, recvtag, STATUS, IERR)
+         use mpi
+         implicit none
 
-       CLASS(UDV_State), INTENT(INOUT) :: this
-       INTEGER, intent(in)  :: source, recvtag
-       Integer, intent(out) :: STATUS(MPI_STATUS_SIZE), IERR
-       INTEGER :: n
+         class(UDV_State), intent(INOUT) :: this
+         integer, intent(in)  :: source, recvtag
+         integer, intent(out) :: STATUS(MPI_STATUS_SIZE), IERR
+         integer :: n
 
-       !local
-       Complex (Kind=Kind(0.d0)) :: Ztmp(this%ndim,this%N_part), Ztmp2(this%ndim,this%N_part), Zvec(this%N_part)
+         !local
+         complex(Kind=kind(0.d0)) :: Ztmp(this%ndim, this%N_part), Ztmp2(this%ndim, this%N_part), Zvec(this%N_part)
 
-       n = this%ndim * this%N_part
-       !call mpi_recv(this%U, n, MPI_COMPLEX16, source, recvtag      , MPI_COMM_WORLD,status,IERR)
-       call mpi_recv(Ztmp , n, MPI_COMPLEX16, source, recvtag, MPI_COMM_WORLD,status,IERR)
-       this%U=Ztmp(:,:)
-       
-       !call mpi_recv(this%V, n, MPI_COMPLEX16, source, recvtag+10033, MPI_COMM_WORLD,status,IERR)
+         n = this%ndim*this%N_part
+         !call mpi_recv(this%U, n, MPI_COMPLEX16, source, recvtag      , MPI_COMM_WORLD,status,IERR)
+         call mpi_recv(Ztmp, n, MPI_COMPLEX16, source, recvtag, MPI_COMM_WORLD, status, IERR)
+         this%U = Ztmp(:, :)
 
-       call mpi_recv(Zvec, this%N_part, MPI_COMPLEX16, source, recvtag+2, MPI_COMM_WORLD,status,IERR)
+         !call mpi_recv(this%V, n, MPI_COMPLEX16, source, recvtag+10033, MPI_COMM_WORLD,status,IERR)
+
+         call mpi_recv(Zvec, this%N_part, MPI_COMPLEX16, source, recvtag + 2, MPI_COMM_WORLD, status, IERR)
 #if !defined(STABLOG)
-       !call mpi_recv(this%D, this%ndim, MPI_COMPLEX16, source, recvtag+20033, MPI_COMM_WORLD,status,IERR)
-       this%D=Zvec(:)
+         !call mpi_recv(this%D, this%ndim, MPI_COMPLEX16, source, recvtag+20033, MPI_COMM_WORLD,status,IERR)
+         this%D = Zvec(:)
 #else
-       !call mpi_recv(this%L, this%ndim, MPI_COMPLEX16, source, recvtag+20033, MPI_COMM_WORLD,status,IERR)
-       this%L=Zvec(:)
+         !call mpi_recv(this%L, this%ndim, MPI_COMPLEX16, source, recvtag+20033, MPI_COMM_WORLD,status,IERR)
+         this%L = Zvec(:)
 #endif
 
-     END SUBROUTINE MPI_recv_UDV_state_general
+      end subroutine MPI_recv_UDV_state_general
 
 #endif
 
-   END MODULE UDV_State_mod
+      end module UDV_State_mod

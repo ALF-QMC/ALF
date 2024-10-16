@@ -5,7 +5,7 @@
 !> @brief
 !> This module defines the interface between the Hamiltonians (= model and observables definition) and
 !> the Monte Carlo core. Hamiltonians are defined as submodules of this module. The Monte Carlo core
-!> has only access to public members of this module. For defining a new Hamiltonian named <new_ham_name>, 
+!> has only access to public members of this module. For defining a new Hamiltonian named <new_ham_name>,
 !> the user has to create the file Hamiltonians/Hamiltonian_<new_ham_name>_smod.F90 and add the line
 !> <new_ham_name> to Hamiltonians.list.
 
@@ -91,76 +91,75 @@
 !>
 !--------------------------------------------------------------------
 
+module Hamiltonian_main
+   use runtime_error_mod
+   use Operator_mod, only: operator
+   use WaveFunction_mod, only: WaveFunction
+   use Observables
+   use Fields_mod, only: Fields
+   use iso_fortran_env, only: output_unit, error_unit
 
-    Module Hamiltonian_main
-      Use runtime_error_mod
-      Use Operator_mod, only: Operator
-      Use WaveFunction_mod, only: WaveFunction
-      Use Observables
-      Use Fields_mod, only: Fields
-      use iso_fortran_env, only: output_unit, error_unit
-      
-    Implicit none
-    
-    private
-    public :: Alloc_Ham, ham_base, ham
+   implicit none
+
+   private
+   public :: Alloc_Ham, ham_base, ham
 #ifdef __PGI
-    public :: Obs_scal
+   public :: Obs_scal
 #endif
-      type ham_base
-      contains
-        procedure, nopass :: ham_set => ham_set_base
-        procedure, nopass :: Alloc_obs => Alloc_obs_base
-        procedure, nopass :: Obser => Obser_base
-        procedure, nopass :: ObserT => ObserT_base
-        procedure, nopass :: E0_local => E0_local_base
-        procedure, nopass :: sum_weight => sum_weight_base
-        procedure, nopass :: update_fac_norm => update_fac_norm_base
-        procedure, nopass :: Pr_obs => Pr_obs_base
-        procedure, nopass :: Init_obs => Init_obs_base
-        procedure, nopass :: Init_obs_mc => Init_obs_mc_base
-        procedure, nopass :: S0 => S0_base
-        procedure, nopass :: weight_reconstruction => weight_reconstruction_base
-        procedure, nopass :: GR_reconstruction => GR_reconstruction_base
-        procedure, nopass :: GRT_reconstruction => GRT_reconstruction_base
-        procedure, nopass :: bp_obsert => bp_obsert_base
-        procedure, nopass :: obsert_mc => obsert_mc_base
+   type ham_base
+   contains
+      procedure, nopass :: ham_set => ham_set_base
+      procedure, nopass :: Alloc_obs => Alloc_obs_base
+      procedure, nopass :: Obser => Obser_base
+      procedure, nopass :: ObserT => ObserT_base
+      procedure, nopass :: E0_local => E0_local_base
+      procedure, nopass :: sum_weight => sum_weight_base
+      procedure, nopass :: update_fac_norm => update_fac_norm_base
+      procedure, nopass :: Pr_obs => Pr_obs_base
+      procedure, nopass :: Init_obs => Init_obs_base
+      procedure, nopass :: Init_obs_mc => Init_obs_mc_base
+      procedure, nopass :: S0 => S0_base
+      procedure, nopass :: weight_reconstruction => weight_reconstruction_base
+      procedure, nopass :: GR_reconstruction => GR_reconstruction_base
+      procedure, nopass :: GRT_reconstruction => GRT_reconstruction_base
+      procedure, nopass :: bp_obsert => bp_obsert_base
+      procedure, nopass :: obsert_mc => obsert_mc_base
 
 #ifdef HDF5
-        procedure, nopass :: write_parameters_hdf5 => write_parameters_hdf5_base
+      procedure, nopass :: write_parameters_hdf5 => write_parameters_hdf5_base
 #endif
-      end type ham_base
-      
-      class(ham_base), allocatable :: ham
+   end type ham_base
 
-      Type (Operator),     dimension(:,:), allocatable, public :: Op_V
-      Type (Operator),     dimension(:,:), allocatable, public :: Op_T
-      Type (WaveFunction), dimension(:,:), allocatable, public :: WF_L
-      Type (WaveFunction), dimension(:,:), allocatable, public :: WF_R
-      Logical            , dimension(:),   allocatable, public :: Calc_Fl
-      Integer            , dimension(:),   allocatable, public :: Calc_Fl_map
-      Type (Fields)      , dimension(:),   allocatable, public :: nsigma_bp, nsigma_qr
-      Integer      , public        :: Ndim
-      Integer      , public        :: N_FL, N_FL_eff
-      Integer      , public        :: N_SUN
-      Integer      , public        :: N_wlk
-      Integer      , public        :: N_slat
-      Integer      , public        :: N_grc
-      Integer      , public        :: N_wlk_mpi
-      Integer      , public        :: N_grc_mpi
-      Integer      , public        :: ltrot
-      Integer      , public        :: Group_Comm
-      Logical      , public        :: Symm
-      Logical      , public        :: reconstruction_needed
-      
-      Real    (Kind=Kind(0.d0)), public :: fac_norm
-      Real    (Kind=Kind(0.d0)), dimension(:), allocatable, public :: weight_k
-      Complex (Kind=Kind(0.d0)), dimension(:), allocatable, public :: overlap
+   class(ham_base), allocatable :: ham
 
-      !>    Privat Observables
-      Type (Obser_Vec ), dimension(:), allocatable :: Obs_scal
-      Type (Obser_Latt), dimension(:), allocatable :: Obs_eq
-      Type (Obser_Latt), dimension(:), allocatable :: Obs_tau
+   type(operator), dimension(:, :), allocatable, public :: Op_V
+   type(operator), dimension(:, :), allocatable, public :: Op_T
+   type(WaveFunction), dimension(:, :), allocatable, public :: WF_L
+   type(WaveFunction), dimension(:, :), allocatable, public :: WF_R
+   logical, dimension(:), allocatable, public :: Calc_Fl
+   integer, dimension(:), allocatable, public :: Calc_Fl_map
+   type(Fields), dimension(:), allocatable, public :: nsigma_bp, nsigma_qr
+   integer, public        :: Ndim
+   integer, public        :: N_FL, N_FL_eff
+   integer, public        :: N_SUN
+   integer, public        :: N_wlk
+   integer, public        :: N_slat
+   integer, public        :: N_grc
+   integer, public        :: N_wlk_mpi
+   integer, public        :: N_grc_mpi
+   integer, public        :: ltrot
+   integer, public        :: Group_Comm
+   logical, public        :: Symm
+   logical, public        :: reconstruction_needed
+
+   real(Kind=kind(0.d0)), public :: fac_norm
+   real(Kind=kind(0.d0)), dimension(:), allocatable, public :: weight_k
+   complex(Kind=kind(0.d0)), dimension(:), allocatable, public :: overlap
+
+   !>    Privat Observables
+   type(Obser_Vec), dimension(:), allocatable :: Obs_scal
+   type(Obser_Latt), dimension(:), allocatable :: Obs_eq
+   type(Obser_Latt), dimension(:), allocatable :: Obs_tau
 
 #include "Hamiltonians_interface.h"
 !!$      This file will  be dynamically generated and appended
@@ -178,284 +177,281 @@
 !!$         module subroutine Ham_Alloc_Z2_Matter()
 !!$         end subroutine Ham_Alloc_Z2_Matter
 !!$      end interface
-      
-    contains
 
-    subroutine Alloc_Ham(ham_name)
-       Implicit none
-       Character (len=64), intent(in) :: ham_name
+contains
 
-       Select Case (ham_name)
+   subroutine Alloc_Ham(ham_name)
+      implicit none
+      character(len=64), intent(in) :: ham_name
+
+      select case (ham_name)
 #include "Hamiltonians_case.h"
 !!$       This file will be dynamically generated and appended
-       Case default
-          write(error_unit, '("A","A","A")') 'Hamiltonian ', ham_name, ' not yet implemented!'
-          CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
-       end Select
-    end subroutine Alloc_Ham
-    
-    !--------------------------------------------------------------------
-    !> @brief
-    !> Sets the Hamiltonian.
-    !> @details
-    !> This has to be overloaded in the Hamiltonian submodule.
-    !--------------------------------------------------------------------
-    subroutine Ham_Set_base()
+      case default
+         write (error_unit, '("A","A","A")') 'Hamiltonian ', ham_name, ' not yet implemented!'
+         call Terminate_on_error(ERROR_HAMILTONIAN, __FILE__, __LINE__)
+      end select
+   end subroutine Alloc_Ham
+
+   !--------------------------------------------------------------------
+   !> @brief
+   !> Sets the Hamiltonian.
+   !> @details
+   !> This has to be overloaded in the Hamiltonian submodule.
+   !--------------------------------------------------------------------
+   subroutine Ham_Set_base()
       implicit none
-      write(error_unit, *) 'Ham_set not defined!'
-      CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
-    end subroutine Ham_Set_base
-    
-    !--------------------------------------------------------------------
-    !> @author
-    !> ALF Collaboration
-    !>
-    !> @brief
-    !> Single spin flip S0 ratio
-    !> @details
-    !> S0=exp(-S0(new))/exp(-S0(old)) where the new configuration correpsonds to the old one up to
-    !> a spin flip of Operator n on time slice nt
-    !> @details
-    !--------------------------------------------------------------------
-          Real (Kind=Kind(0.d0)) function S0_base(n,nt,Hs_new)
-            Implicit none
-            !> Operator index
-            Integer, Intent(IN) :: n
-            !> Time slice
-            Integer, Intent(IN) :: nt
-            !> New local field on time slice nt and operator index n
-            Real (Kind=Kind(0.d0)), Intent(In) :: Hs_new
-            
-            S0_base = 1.d0
-            If ( Op_V(n,1)%type == 1 ) then
-               write(error_unit, *) 'function S0 not implemented'
-               CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
-            endif
-            
-          end function S0_base
+      write (error_unit, *) 'Ham_set not defined!'
+      call Terminate_on_error(ERROR_HAMILTONIAN, __FILE__, __LINE__)
+   end subroutine Ham_Set_base
 
+   !--------------------------------------------------------------------
+   !> @author
+   !> ALF Collaboration
+   !>
+   !> @brief
+   !> Single spin flip S0 ratio
+   !> @details
+   !> S0=exp(-S0(new))/exp(-S0(old)) where the new configuration correpsonds to the old one up to
+   !> a spin flip of Operator n on time slice nt
+   !> @details
+   !--------------------------------------------------------------------
+   real(Kind=kind(0.d0)) function S0_base(n, nt, Hs_new)
+      implicit none
+      !> Operator index
+      integer, intent(IN) :: n
+      !> Time slice
+      integer, intent(IN) :: nt
+      !> New local field on time slice nt and operator index n
+      real(Kind=kind(0.d0)), intent(In) :: Hs_new
 
-    !--------------------------------------------------------------------
-    !> @author
-    !> ALF Collaboration
-    !>
-    !> @brief
-    !> Specifiy the equal time and time displaced observables
-    !> @details
-    !--------------------------------------------------------------------
-          Subroutine  Alloc_obs_base(Ltau, lmetropolis)
+      S0_base = 1.d0
+      if (Op_V(n, 1)%type == 1) then
+         write (error_unit, *) 'function S0 not implemented'
+         call Terminate_on_error(ERROR_HAMILTONIAN, __FILE__, __LINE__)
+      end if
 
-             Implicit none
-             !>  Ltau=1 if time displaced correlations are considered.
-             Integer, Intent(In) :: Ltau, lmetropolis
-             write(error_unit, *) "Warning: Alloc_obs not implemented."
-          End Subroutine Alloc_obs_base
+   end function S0_base
 
-    !--------------------------------------------------------------------
-    !> @author
-    !> ALF Collaboration
-    !>
-    !> @brief
-    !> Computes equal time observables
-    !> @details
-    !> @param [IN] Gr   Complex(:,:,:)
-    !> \verbatim
-    !>  Green function: Gr(I,J,nf) = <c_{I,nf } c^{dagger}_{J,nf } > on time slice ntau
-    !> \endverbatim
-    !> @param [IN] Ntau Integer
-    !> \verbatim
-    !>  Time slice
-    !> \endverbatim
-    !-------------------------------------------------------------------
-          subroutine Obser_base(GR,GR_mix,i_wlk,i_grc,sum_w,sum_o,act_mea)
+   !--------------------------------------------------------------------
+   !> @author
+   !> ALF Collaboration
+   !>
+   !> @brief
+   !> Specifiy the equal time and time displaced observables
+   !> @details
+   !--------------------------------------------------------------------
+   subroutine Alloc_obs_base(Ltau, lmetropolis)
 
-             Implicit none
+      implicit none
+      !>  Ltau=1 if time displaced correlations are considered.
+      integer, intent(In) :: Ltau, lmetropolis
+      write (error_unit, *) "Warning: Alloc_obs not implemented."
+   end subroutine Alloc_obs_base
 
-             Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
-             Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR_mix(Ndim,Ndim,N_FL)
-             Complex (Kind=Kind(0.d0)), Intent(IN) :: sum_w, sum_o
-             Integer                  , Intent(IN) :: i_wlk, i_grc, act_mea
-             Logical, save              :: first_call=.True.
-             
-             If  (first_call)    then 
-                write(error_unit, *) "Warning: Obser not implemented."
-                first_call=.false.
-             endif
-          end Subroutine Obser_base
+   !--------------------------------------------------------------------
+   !> @author
+   !> ALF Collaboration
+   !>
+   !> @brief
+   !> Computes equal time observables
+   !> @details
+   !> @param [IN] Gr   Complex(:,:,:)
+   !> \verbatim
+   !>  Green function: Gr(I,J,nf) = <c_{I,nf } c^{dagger}_{J,nf } > on time slice ntau
+   !> \endverbatim
+   !> @param [IN] Ntau Integer
+   !> \verbatim
+   !>  Time slice
+   !> \endverbatim
+   !-------------------------------------------------------------------
+   subroutine Obser_base(GR, GR_mix, i_wlk, i_grc, sum_w, sum_o, act_mea)
 
-    !--------------------------------------------------------------------
-    !> @author
-    !> ALF Collaboration
-    !>
-    !> @brief
-    !> Computes time displaced  observables
-    !> @details
-    !> @param [IN] NT, Integer
-    !> \verbatim
-    !>  Imaginary time
-    !> \endverbatim
-    !> @param [IN] GT0, GTT, G00, GTT,  Complex(:,:,:)
-    !> \verbatim
-    !>  Green functions:
-    !>  GT0(I,J,nf) = <T c_{I,nf }(tau) c^{dagger}_{J,nf }(0  )>
-    !>  G0T(I,J,nf) = <T c_{I,nf }(0  ) c^{dagger}_{J,nf }(tau)>
-    !>  G00(I,J,nf) = <T c_{I,nf }(0  ) c^{dagger}_{J,nf }(0  )>
-    !>  GTT(I,J,nf) = <T c_{I,nf }(tau) c^{dagger}_{J,nf }(tau)>
-    !> \endverbatim
-    !-------------------------------------------------------------------
-          Subroutine ObserT_base(NT, GT0, G0T, G00, GTT, i_wlk,i_grc,sum_w,sum_o,act_mea)
-             Implicit none
-    
-             Integer         , INTENT(IN) :: NT, i_wlk, i_grc, act_mea
-             Complex (Kind=Kind(0.d0)), INTENT(IN) :: GT0(Ndim,Ndim,N_FL), G0T(Ndim,Ndim,N_FL)
-             Complex (Kind=Kind(0.d0)), INTENT(IN) :: G00(Ndim,Ndim,N_FL), GTT(Ndim,Ndim,N_FL)
-             Complex (Kind=Kind(0.d0)), INTENT(IN) :: sum_w, sum_o
-             Logical, save              :: first_call=.True.
-             
-             If  (first_call)    then 
-                write(error_unit, *) "Warning: ObserT not implemented."
-                first_call=.false.
-             endif
-    
-          end Subroutine ObserT_base
-          
-          subroutine bp_obsert_base(i_wlk, i_grc,sum_w, act_mea)
-             Implicit none
-    
-             integer, intent(in) :: i_wlk, i_grc, act_mea
-             complex (Kind=Kind(0.d0)), intent(in) :: sum_w
-    
-          end subroutine bp_obsert_base
-          
-          subroutine obsert_mc_base(nt, gt0, g0t, g00, gtt, overlap_mc)
-             Implicit none
-    
-             Integer, intent(IN) :: nt
-             complex (Kind=Kind(0.d0)), intent(IN) :: gt0(ndim,ndim,n_fl,n_grc), g0t(ndim,ndim,n_fl,n_grc)
-             complex (Kind=Kind(0.d0)), intent(IN) :: g00(ndim,ndim,n_fl,n_grc), gtt(ndim,ndim,n_fl,n_grc)
-             complex (Kind=Kind(0.d0)), intent(IN) :: overlap_mc(n_grc)
-    
-          end subroutine obsert_mc_base
+      implicit none
 
-          complex (Kind=Kind(0.d0)) function E0_local_base(GR)
-            Implicit none
-             
-            Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
-            
-            E0_local_base = cmplx(0.d0, 0.d0, kind(0.d0))
-            
-          end function E0_local_base
+      complex(Kind=kind(0.d0)), intent(IN) :: GR(Ndim, Ndim, N_FL)
+      complex(Kind=kind(0.d0)), intent(IN) :: GR_mix(Ndim, Ndim, N_FL)
+      complex(Kind=kind(0.d0)), intent(IN) :: sum_w, sum_o
+      integer, intent(IN) :: i_wlk, i_grc, act_mea
+      logical, save              :: first_call = .true.
 
-          subroutine sum_weight_base(z_sum_weight)
-            Implicit none
-            
-            Complex (Kind=Kind(0.d0)), INTENT(out) :: z_sum_weight
-            
-            z_sum_weight = cmplx(0.d0, 0.d0, kind(0.d0))
-            
-          end subroutine sum_weight_base
+      if (first_call) then
+         write (error_unit, *) "Warning: Obser not implemented."
+         first_call = .false.
+      end if
+   end subroutine Obser_base
 
-          subroutine update_fac_norm_base(GR, ntw)
-            Implicit none
-             
-            complex (Kind=Kind(0.d0)), intent(in) :: GR(Ndim,Ndim,N_FL,N_wlk)
-            integer                  , intent(in) :: ntw
-            
-          end subroutine update_fac_norm_base
+   !--------------------------------------------------------------------
+   !> @author
+   !> ALF Collaboration
+   !>
+   !> @brief
+   !> Computes time displaced  observables
+   !> @details
+   !> @param [IN] NT, Integer
+   !> \verbatim
+   !>  Imaginary time
+   !> \endverbatim
+   !> @param [IN] GT0, GTT, G00, GTT,  Complex(:,:,:)
+   !> \verbatim
+   !>  Green functions:
+   !>  GT0(I,J,nf) = <T c_{I,nf }(tau) c^{dagger}_{J,nf }(0  )>
+   !>  G0T(I,J,nf) = <T c_{I,nf }(0  ) c^{dagger}_{J,nf }(tau)>
+   !>  G00(I,J,nf) = <T c_{I,nf }(0  ) c^{dagger}_{J,nf }(0  )>
+   !>  GTT(I,J,nf) = <T c_{I,nf }(tau) c^{dagger}_{J,nf }(tau)>
+   !> \endverbatim
+   !-------------------------------------------------------------------
+   subroutine ObserT_base(NT, GT0, G0T, G00, GTT, i_wlk, i_grc, sum_w, sum_o, act_mea)
+      implicit none
 
-    !--------------------------------------------------------------------
-    !> @author
-    !> ALF Collaboration
-    !>
-    !> @brief
-    !> Prints out the bins.  No need to change this routine.
-    !-------------------------------------------------------------------
-          Subroutine  Pr_obs_base(LTAU)
-    
-             Implicit none
-             
-             Integer, Intent(In) :: Ltau
-    
-             !Local
-             Integer :: I
-    
-             if ( allocated(Obs_scal) ) then
-               Do I = 1,Size(Obs_scal,1)
-                  Call Print_bin_Vec(Obs_scal(I), Group_Comm)
-               enddo
-             endif
-             if ( allocated(Obs_eq) ) then
-               Do I = 1,Size(Obs_eq,1)
-                  Call Print_bin_Latt(Obs_eq(I), Group_Comm)
-               enddo
-             endif
-             if ( allocated(Obs_tau) ) then
-               Do I = 1,Size(Obs_tau,1)
-                  Call Print_bin_Latt(Obs_tau(I), Group_Comm)
-               enddo
-             endif
-    
-          end Subroutine Pr_obs_base
+      integer, intent(IN) :: NT, i_wlk, i_grc, act_mea
+      complex(Kind=kind(0.d0)), intent(IN) :: GT0(Ndim, Ndim, N_FL), G0T(Ndim, Ndim, N_FL)
+      complex(Kind=kind(0.d0)), intent(IN) :: G00(Ndim, Ndim, N_FL), GTT(Ndim, Ndim, N_FL)
+      complex(Kind=kind(0.d0)), intent(IN) :: sum_w, sum_o
+      logical, save              :: first_call = .true.
 
+      if (first_call) then
+         write (error_unit, *) "Warning: ObserT not implemented."
+         first_call = .false.
+      end if
 
-    !--------------------------------------------------------------------
-    !> @author
-    !> ALF Collaboration
-    !>
-    !> @brief
-    !> Initializes observables to zero before each bins.  No need to change
-    !> this routine.
-    !-------------------------------------------------------------------
-          Subroutine  Init_obs_base(Ltau)
-    
-             Implicit none
-             
-             Integer, Intent(In) :: Ltau
-    
-             ! Local
-             Integer :: I
-    
-             if ( allocated(Obs_scal) ) then
-               Do I = 1,Size(Obs_scal,1)
-                  Call Obser_vec_Init(Obs_scal(I))
-               Enddo
-             endif
-             
-             if ( allocated(Obs_eq) ) then
-               Do I = 1,Size(Obs_eq,1)
-                  Call Obser_Latt_Init(Obs_eq(I))
-               Enddo
-             endif
-             
-             if ( allocated(Obs_tau) ) then
-               Do I = 1,Size(Obs_tau,1)
-                  Call Obser_Latt_Init(Obs_tau(I))
-               Enddo
-             Endif
+   end subroutine ObserT_base
 
-          end Subroutine Init_obs_base
-          
-          Subroutine Init_obs_mc_base
-    
-             Implicit none
+   subroutine bp_obsert_base(i_wlk, i_grc, sum_w, act_mea)
+      implicit none
 
-          end Subroutine Init_obs_mc_base
-    
+      integer, intent(in) :: i_wlk, i_grc, act_mea
+      complex(Kind=kind(0.d0)), intent(in) :: sum_w
+
+   end subroutine bp_obsert_base
+
+   subroutine obsert_mc_base(nt, gt0, g0t, g00, gtt, overlap_mc)
+      implicit none
+
+      integer, intent(IN) :: nt
+      complex(Kind=kind(0.d0)), intent(IN) :: gt0(ndim, ndim, n_fl, n_grc), g0t(ndim, ndim, n_fl, n_grc)
+      complex(Kind=kind(0.d0)), intent(IN) :: g00(ndim, ndim, n_fl, n_grc), gtt(ndim, ndim, n_fl, n_grc)
+      complex(Kind=kind(0.d0)), intent(IN) :: overlap_mc(n_grc)
+
+   end subroutine obsert_mc_base
+
+   complex(Kind=kind(0.d0)) function E0_local_base(GR)
+      implicit none
+
+      complex(Kind=kind(0.d0)), intent(IN) :: GR(Ndim, Ndim, N_FL)
+
+      E0_local_base = cmplx(0.d0, 0.d0, kind(0.d0))
+
+   end function E0_local_base
+
+   subroutine sum_weight_base(z_sum_weight)
+      implicit none
+
+      complex(Kind=kind(0.d0)), intent(out) :: z_sum_weight
+
+      z_sum_weight = cmplx(0.d0, 0.d0, kind(0.d0))
+
+   end subroutine sum_weight_base
+
+   subroutine update_fac_norm_base(GR, ntw)
+      implicit none
+
+      complex(Kind=kind(0.d0)), intent(in) :: GR(Ndim, Ndim, N_FL, N_wlk)
+      integer, intent(in) :: ntw
+
+   end subroutine update_fac_norm_base
+
+   !--------------------------------------------------------------------
+   !> @author
+   !> ALF Collaboration
+   !>
+   !> @brief
+   !> Prints out the bins.  No need to change this routine.
+   !-------------------------------------------------------------------
+   subroutine Pr_obs_base(LTAU)
+
+      implicit none
+
+      integer, intent(In) :: Ltau
+
+      !Local
+      integer :: I
+
+      if (allocated(Obs_scal)) then
+         do I = 1, size(Obs_scal, 1)
+            call Print_bin_Vec(Obs_scal(I), Group_Comm)
+         end do
+      end if
+      if (allocated(Obs_eq)) then
+         do I = 1, size(Obs_eq, 1)
+            call Print_bin_Latt(Obs_eq(I), Group_Comm)
+         end do
+      end if
+      if (allocated(Obs_tau)) then
+         do I = 1, size(Obs_tau, 1)
+            call Print_bin_Latt(Obs_tau(I), Group_Comm)
+         end do
+      end if
+
+   end subroutine Pr_obs_base
+
+   !--------------------------------------------------------------------
+   !> @author
+   !> ALF Collaboration
+   !>
+   !> @brief
+   !> Initializes observables to zero before each bins.  No need to change
+   !> this routine.
+   !-------------------------------------------------------------------
+   subroutine Init_obs_base(Ltau)
+
+      implicit none
+
+      integer, intent(In) :: Ltau
+
+      ! Local
+      integer :: I
+
+      if (allocated(Obs_scal)) then
+         do I = 1, size(Obs_scal, 1)
+            call Obser_vec_Init(Obs_scal(I))
+         end do
+      end if
+
+      if (allocated(Obs_eq)) then
+         do I = 1, size(Obs_eq, 1)
+            call Obser_Latt_Init(Obs_eq(I))
+         end do
+      end if
+
+      if (allocated(Obs_tau)) then
+         do I = 1, size(Obs_tau, 1)
+            call Obser_Latt_Init(Obs_tau(I))
+         end do
+      end if
+
+   end subroutine Init_obs_base
+
+   subroutine Init_obs_mc_base
+
+      implicit none
+
+   end subroutine Init_obs_mc_base
+
 !--------------------------------------------------------------------
 !> @brief
 !> Reconstructs dependent flavors of the configuration's weight.
 !> @details
 !> This has to be overloaded in the Hamiltonian submodule.
 !--------------------------------------------------------------------
-          subroutine weight_reconstruction_base(weight)
-            implicit none
-            complex (Kind=Kind(0.d0)), Intent(inout) :: weight(:)
+   subroutine weight_reconstruction_base(weight)
+      implicit none
+      complex(Kind=kind(0.d0)), intent(inout) :: weight(:)
 
-            write(error_unit, *) 'weight_reconstruction not defined!'
-            CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
-            
-          end subroutine weight_reconstruction_base
+      write (error_unit, *) 'weight_reconstruction not defined!'
+      call Terminate_on_error(ERROR_HAMILTONIAN, __FILE__, __LINE__)
 
+   end subroutine weight_reconstruction_base
 
 !--------------------------------------------------------------------
 !> @author
@@ -470,15 +466,15 @@
 !>  Green function: Gr(I,J,nf) = <c_{I,nf } c^{dagger}_{J,nf } > on time slice ntau
 !> \endverbatim
 !-------------------------------------------------------------------
-          subroutine GR_reconstruction_base(GR)
-            
-            Implicit none
-            
-            Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: GR(Ndim,Ndim,N_FL)
-            
-            write(error_unit, *) "Warning: GR_reconstruction not implemented."
-            CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
-          end Subroutine GR_reconstruction_base
+   subroutine GR_reconstruction_base(GR)
+
+      implicit none
+
+      complex(Kind=kind(0.d0)), intent(INOUT) :: GR(Ndim, Ndim, N_FL)
+
+      write (error_unit, *) "Warning: GR_reconstruction not implemented."
+      call Terminate_on_error(ERROR_HAMILTONIAN, __FILE__, __LINE__)
+   end subroutine GR_reconstruction_base
 
 !--------------------------------------------------------------------
 !> @author
@@ -495,29 +491,29 @@
 !>  G0T(I,J,nf) = <T c_{I,nf }(0  ) c^{dagger}_{J,nf }(tau)>
 !> \endverbatim
 !-------------------------------------------------------------------
-         Subroutine GRT_reconstruction_base(GT0, G0T)
-           Implicit none
-           
-           Complex (Kind=Kind(0.d0)), INTENT(INOUT) :: GT0(Ndim,Ndim,N_FL), G0T(Ndim,Ndim,N_FL)
-           
-           write(error_unit, *) "Warning: GRT_reconstruction not implemented."
-           CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
-         end Subroutine GRT_reconstruction_base
-         
-#ifdef HDF5
-         subroutine write_parameters_hdf5_base(filename)
-           implicit none
-           
-           Character (len=64), intent(in) :: filename
+   subroutine GRT_reconstruction_base(GT0, G0T)
+      implicit none
 
-           write(output_unit,*)
-           write(output_unit,*) "ATTENTION:     Base implementation of write_parameters_hdf5 is getting calling!"
-           write(output_unit,*) "This routine does not actually store the parameters in the hdf5 file."
-           write(output_unit,*) "Usually, a python script is generating a model specific routine, granted that the Hamiltonian"
-           write(output_unit,*) "respects the design rule. Without parameters, the HDF5 file's compatibility with pyALF is limited."
-           write(output_unit,*)
-           
-         end subroutine write_parameters_hdf5_base
+      complex(Kind=kind(0.d0)), intent(INOUT) :: GT0(Ndim, Ndim, N_FL), G0T(Ndim, Ndim, N_FL)
+
+      write (error_unit, *) "Warning: GRT_reconstruction not implemented."
+      call Terminate_on_error(ERROR_HAMILTONIAN, __FILE__, __LINE__)
+   end subroutine GRT_reconstruction_base
+
+#ifdef HDF5
+   subroutine write_parameters_hdf5_base(filename)
+      implicit none
+
+      character(len=64), intent(in) :: filename
+
+      write (output_unit, *)
+      write (output_unit, *) "ATTENTION:     Base implementation of write_parameters_hdf5 is getting calling!"
+      write (output_unit, *) "This routine does not actually store the parameters in the hdf5 file."
+      write (output_unit, *) "Usually, a python script is generating a model specific routine, granted that the Hamiltonian"
+      write (output_unit, *) "respects the design rule. Without parameters, the HDF5 file's compatibility with pyALF is limited."
+      write (output_unit, *)
+
+   end subroutine write_parameters_hdf5_base
 #endif
 
-    end Module Hamiltonian_main
+end module Hamiltonian_main

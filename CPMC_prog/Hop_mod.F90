@@ -13,29 +13,29 @@
 !>
 !--------------------------------------------------------------------
 
-    Module Hop_mod
+module Hop_mod
 
-      Use Hamiltonian_main
-      Use Operator_mod
-      Use Random_wrap
-      Use DynamicMatrixArray_mod
-      Use ContainerElementBase_mod
-      Use OpTTypes_mod
-      use iso_fortran_env, only: output_unit, error_unit
+   use Hamiltonian_main
+   use Operator_mod
+   use Random_wrap
+   use DynamicMatrixArray_mod
+   use ContainerElementBase_mod
+   use OpTTypes_mod
+   use iso_fortran_env, only: output_unit, error_unit
 
-      ! Private variables
-      Type(DynamicMatrixArray), private, allocatable :: ExpOpT_vec(:) ! for now we have for simplicity for each flavour a vector
-      Integer, private, save ::  Ncheck
-      Real (Kind=Kind(0.d0)), private, save  :: Zero
+   ! Private variables
+   type(DynamicMatrixArray), private, allocatable :: ExpOpT_vec(:) ! for now we have for simplicity for each flavour a vector
+   integer, private, save ::  Ncheck
+   real(Kind=kind(0.d0)), private, save  :: Zero
 
-      Contains
+contains
 
 !--------------------------------------------------------------------
 !> @author
 !> ALF-project
 !
 !> @brief
-!> This function serves as a central entry point to collect the 
+!> This function serves as a central entry point to collect the
 !> processing that occurs in mapping an OpT input matrix to the internal
 !> matrix-like data structure.
 !
@@ -43,31 +43,30 @@
 !> @param op[in] an Operator that describes an OpT hopping matrix.
 !
 !--------------------------------------------------------------------
-        subroutine OpT_postprocess(ExpOpT_vec, op)
-            use Operator_mod
-            implicit none
-            
-            Type(DynamicMatrixArray), intent(inout) :: ExpOpT_vec
-            Type(Operator), intent(in) :: op
-            
-            Class(CmplxExpOpT), pointer :: cmplxexp => null()
-            Class(RealExpOpT), pointer :: realexp => null()
-            
-            if (Op_is_real(op)) then
-                ! branch for real operators
-                allocate(realexp) ! Yep, this is a manifest memory leak. Using the ptr we can allocate onto the same variable
-                call realexp%init(op)
-                call ExpOpT_vec%pushback(realexp)
-            else
-            ! branch for complex operators
-                allocate(cmplxexp)
-                call cmplxexp%init(op)
-                call ExpOpT_vec%pushback(cmplxexp)
-            endif
+   subroutine OpT_postprocess(ExpOpT_vec, op)
+      use Operator_mod
+      implicit none
 
-        end subroutine
-        
-      
+      type(DynamicMatrixArray), intent(inout) :: ExpOpT_vec
+      type(operator), intent(in) :: op
+
+      class(CmplxExpOpT), pointer :: cmplxexp => null()
+      class(RealExpOpT), pointer :: realexp => null()
+
+      if (Op_is_real(op)) then
+         ! branch for real operators
+         allocate (realexp) ! Yep, this is a manifest memory leak. Using the ptr we can allocate onto the same variable
+         call realexp%init(op)
+         call ExpOpT_vec%pushback(realexp)
+      else
+         ! branch for complex operators
+         allocate (cmplxexp)
+         call cmplxexp%init(op)
+         call ExpOpT_vec%pushback(cmplxexp)
+      end if
+
+   end subroutine
+
 !--------------------------------------------------------------------
 !> @author
 !> ALF-project
@@ -77,265 +76,255 @@
 !> We symmetrize the upper part of those matrices.
 !
 !--------------------------------------------------------------------
-        subroutine Hop_mod_init
-          use runtime_error_mod
-          Implicit none
+   subroutine Hop_mod_init
+      use runtime_error_mod
+      implicit none
 
-          Integer :: nc, nf
+      integer :: nc, nf
 
-          Ncheck = size(Op_T,1)
-          If ( size(Op_T,2) /= N_FL ) then
-             Write(error_unit,*) 'Hop_mod_init: Error in the number of flavors.'
-             CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
-          Endif
+      Ncheck = size(Op_T, 1)
+      if (size(Op_T, 2) /= N_FL) then
+         write (error_unit, *) 'Hop_mod_init: Error in the number of flavors.'
+         call Terminate_on_error(ERROR_GENERIC, __FILE__, __LINE__)
+      end if
 
-          allocate(ExpOpT_vec(N_FL))
+      allocate (ExpOpT_vec(N_FL))
 
-          do nf = 1,N_FL
-             call ExpOpT_vec(nf)%init()
-             do nc = 1,Ncheck
-                call OpT_postprocess(ExpOpT_vec(nf), Op_T(nc, nf))
-             enddo
-          enddo
+      do nf = 1, N_FL
+         call ExpOpT_vec(nf)%init()
+         do nc = 1, Ncheck
+            call OpT_postprocess(ExpOpT_vec(nf), Op_T(nc, nf))
+         end do
+      end do
 
-          Zero = 1.E-12
-        end subroutine Hop_mod_init
-
-!--------------------------------------------------------------------
-
-        Subroutine Hop_mod_mmthr(In,nf, t)
-
-
-          ! InOut:  In = e^{ -dtau T }.IN
-          Implicit none
-
-          Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
-          Integer, intent(IN) :: nf, t
-
-          !Local
-          Integer :: nc
-          class(ContainerElementBase), pointer :: dummy
-
-          do nc =  Ncheck,1,-1
-            dummy => ExpOpT_vec(nf)%at(nc)
-            call dummy%lmult(In, t)
-          Enddo
-        end Subroutine Hop_mod_mmthr
-        
-        Subroutine Hop_mod_mmthr_1D2(In,nf, t)
-
-          ! InOut:  In = e^{ -dtau T }.IN
-          Implicit none
-
-          Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
-          Integer, intent(IN) :: nf, t
-
-          !Local
-          Integer :: nc
-          class(ContainerElementBase), pointer :: dummy
-
-
-          do nc =  Ncheck,1,-1
-            dummy => ExpOpT_vec(nf)%at(nc)
-            call dummy%lmult1D2(In, t)
-          Enddo
-        end Subroutine Hop_mod_mmthr_1D2
-
-        Subroutine Hop_mod_mmthr_m1(In,nf,t)
-
-
-          ! InOut:  In = e^{  dtau T }.IN
-          Implicit none
-
-          Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
-          Integer :: nf
-          integer, intent(in) :: t
-
-          !Local
-          Integer :: nc
-          class(ContainerElementBase), pointer :: dummy
-
-          do nc =  1,Ncheck
-            dummy => ExpOpT_vec(nf)%at(nc)
-            call dummy%lmultinv(In, t)
-          Enddo
-
-        end Subroutine Hop_mod_mmthr_m1
-
-        Subroutine Hop_mod_mmthr_m1_1D2(In,nf,t)
-
-
-          ! InOut:  In = e^{  dtau T }.IN
-          Implicit none
-
-          Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
-          Integer :: nf
-          integer, intent(in) :: t
-
-          !Local
-          Integer :: nc
-          class(ContainerElementBase), pointer :: dummy
-
-          do nc =  1,Ncheck
-            dummy => ExpOpT_vec(nf)%at(nc)
-            call dummy%lmultinv1D2(In, t)
-          Enddo
-
-        end Subroutine Hop_mod_mmthr_m1_1D2
-        
-        Subroutine Hop_mod_mmthlc_m1_1D2(In,nf,t)
-
-
-          ! InOut:  In = e^{  dtau T }.IN
-          Implicit none
-
-          Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
-          Integer :: nf
-          integer, intent(in) :: t
-
-          !Local
-          Integer :: nc
-          class(ContainerElementBase), pointer :: dummy
-
-          do nc =  Ncheck, 1, -1
-            dummy => ExpOpT_vec(nf)%at(nc)
-            call dummy%lmultinv1D2(In, t)
-          Enddo
-
-        end Subroutine Hop_mod_mmthlc_m1_1D2
+      Zero = 1.e-12
+   end subroutine Hop_mod_init
 
 !--------------------------------------------------------------------
 
-        Subroutine Hop_mod_mmthl (In,nf,t)
+   subroutine Hop_mod_mmthr(In, nf, t)
 
+      ! InOut:  In = e^{ -dtau T }.IN
+      implicit none
 
-          ! InOut:  In = IN * e^{ -dtau T }
-          Implicit none
+      complex(Kind=kind(0.d0)), intent(INOUT)  :: IN(:, :)
+      integer, intent(IN) :: nf, t
 
-          Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
-          Integer :: nf
-          integer, intent(in) :: t
+      !Local
+      integer :: nc
+      class(ContainerElementBase), pointer :: dummy
 
-          !Local
-          Integer :: nc
-          class(ContainerElementBase), pointer :: dummy
+      do nc = Ncheck, 1, -1
+         dummy => ExpOpT_vec(nf)%at(nc)
+         call dummy%lmult(In, t)
+      end do
+   end subroutine Hop_mod_mmthr
 
-          do nc = 1, Ncheck
-            dummy => ExpOpT_vec(nf)%at(nc)
-            call dummy%rmult(In, t)
-          Enddo
+   subroutine Hop_mod_mmthr_1D2(In, nf, t)
 
-        end Subroutine Hop_mod_mmthl
-        
-        Subroutine Hop_mod_mmthl_1D2(In,nf, t)
+      ! InOut:  In = e^{ -dtau T }.IN
+      implicit none
 
-          ! InOut:  In = e^{ -dtau T }.IN
-          Implicit none
+      complex(Kind=kind(0.d0)), intent(INOUT)  :: IN(:, :)
+      integer, intent(IN) :: nf, t
 
-          Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
-          Integer, intent(IN) :: nf, t
+      !Local
+      integer :: nc
+      class(ContainerElementBase), pointer :: dummy
 
-          !Local
-          Integer :: nc
-          class(ContainerElementBase), pointer :: dummy
+      do nc = Ncheck, 1, -1
+         dummy => ExpOpT_vec(nf)%at(nc)
+         call dummy%lmult1D2(In, t)
+      end do
+   end subroutine Hop_mod_mmthr_1D2
 
-          do nc =  Ncheck,1,-1
-            dummy => ExpOpT_vec(nf)%at(nc)
-            call dummy%rmult1D2(In, t)
-          Enddo
-        end Subroutine Hop_mod_mmthl_1D2
+   subroutine Hop_mod_mmthr_m1(In, nf, t)
 
-!--------------------------------------------------------------------
+      ! InOut:  In = e^{  dtau T }.IN
+      implicit none
 
-        Subroutine Hop_mod_mmthlc (In,nf,t)
+      complex(Kind=kind(0.d0)), intent(INOUT)  :: IN(:, :)
+      integer :: nf
+      integer, intent(in) :: t
 
+      !Local
+      integer :: nc
+      class(ContainerElementBase), pointer :: dummy
 
-          ! InOut:  In = IN * e^{ -dtau T }
-          Implicit none
+      do nc = 1, Ncheck
+         dummy => ExpOpT_vec(nf)%at(nc)
+         call dummy%lmultinv(In, t)
+      end do
 
-          Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
-          Integer :: nf
-          integer, intent(in) :: t
+   end subroutine Hop_mod_mmthr_m1
 
-          !Local
-          Integer :: nc
-          class(ContainerElementBase), pointer :: dummy
+   subroutine Hop_mod_mmthr_m1_1D2(In, nf, t)
 
-          do nc =  1, Ncheck
-            dummy => ExpOpT_vec(nf)%at(nc)
-            call dummy%lmult(In, t)
-          Enddo
+      ! InOut:  In = e^{  dtau T }.IN
+      implicit none
 
-        end Subroutine Hop_mod_mmthlc
+      complex(Kind=kind(0.d0)), intent(INOUT)  :: IN(:, :)
+      integer :: nf
+      integer, intent(in) :: t
 
-!--------------------------------------------------------------------
+      !Local
+      integer :: nc
+      class(ContainerElementBase), pointer :: dummy
 
-        Subroutine Hop_mod_mmthlc_1D2 (In,nf,t)
+      do nc = 1, Ncheck
+         dummy => ExpOpT_vec(nf)%at(nc)
+         call dummy%lmultinv1D2(In, t)
+      end do
 
+   end subroutine Hop_mod_mmthr_m1_1D2
 
-          ! InOut:  In = IN * e^{ -dtau T }
-          Implicit none
+   subroutine Hop_mod_mmthlc_m1_1D2(In, nf, t)
 
-          Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
-          Integer :: nf
-          integer, intent(in) :: t
+      ! InOut:  In = e^{  dtau T }.IN
+      implicit none
 
-          !Local
-          Integer :: nc
-          class(ContainerElementBase), pointer :: dummy
+      complex(Kind=kind(0.d0)), intent(INOUT)  :: IN(:, :)
+      integer :: nf
+      integer, intent(in) :: t
 
-          do nc =  1, Ncheck
-            dummy => ExpOpT_vec(nf)%at(nc)
-            call dummy%lmult1D2(In, t)
-          Enddo
+      !Local
+      integer :: nc
+      class(ContainerElementBase), pointer :: dummy
 
-        end Subroutine Hop_mod_mmthlc_1D2
+      do nc = Ncheck, 1, -1
+         dummy => ExpOpT_vec(nf)%at(nc)
+         call dummy%lmultinv1D2(In, t)
+      end do
 
-!--------------------------------------------------------------------
-
-        Subroutine Hop_mod_mmthl_m1 (In, nf,t)
-
-
-          ! InOut:  In = IN * e^{ dtau T }
-          Implicit none
-
-          Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
-          Integer :: nf
-          integer, intent(in) :: t
-
-          !Local
-          Integer :: nc
-          class(ContainerElementBase), pointer :: dummy
-
-          do nc =  Ncheck,1,-1
-            dummy => ExpOpT_vec(nf)%at(nc)
-            call dummy%rmultinv(In, t)
-          Enddo
-
-        end Subroutine Hop_mod_mmthl_m1
+   end subroutine Hop_mod_mmthlc_m1_1D2
 
 !--------------------------------------------------------------------
 
-        Subroutine Hop_mod_mmthl_m1_1D2 (In, nf,t)
+   subroutine Hop_mod_mmthl(In, nf, t)
 
+      ! InOut:  In = IN * e^{ -dtau T }
+      implicit none
 
-          ! InOut:  In = IN * e^{ dtau T }
-          Implicit none
+      complex(Kind=kind(0.d0)), intent(INOUT)  :: IN(:, :)
+      integer :: nf
+      integer, intent(in) :: t
 
-          Complex (Kind=Kind(0.d0)), intent(INOUT)  :: IN(:,:)
-          Integer :: nf
-          integer, intent(in) :: t
+      !Local
+      integer :: nc
+      class(ContainerElementBase), pointer :: dummy
 
-          !Local
-          Integer :: nc
-          class(ContainerElementBase), pointer :: dummy
+      do nc = 1, Ncheck
+         dummy => ExpOpT_vec(nf)%at(nc)
+         call dummy%rmult(In, t)
+      end do
 
-          do nc =  Ncheck,1,-1
-            dummy => ExpOpT_vec(nf)%at(nc)
-            call dummy%rmultinv1D2(In, t)
-          Enddo
+   end subroutine Hop_mod_mmthl
 
-        end Subroutine Hop_mod_mmthl_m1_1D2
+   subroutine Hop_mod_mmthl_1D2(In, nf, t)
+
+      ! InOut:  In = e^{ -dtau T }.IN
+      implicit none
+
+      complex(Kind=kind(0.d0)), intent(INOUT)  :: IN(:, :)
+      integer, intent(IN) :: nf, t
+
+      !Local
+      integer :: nc
+      class(ContainerElementBase), pointer :: dummy
+
+      do nc = Ncheck, 1, -1
+         dummy => ExpOpT_vec(nf)%at(nc)
+         call dummy%rmult1D2(In, t)
+      end do
+   end subroutine Hop_mod_mmthl_1D2
+
+!--------------------------------------------------------------------
+
+   subroutine Hop_mod_mmthlc(In, nf, t)
+
+      ! InOut:  In = IN * e^{ -dtau T }
+      implicit none
+
+      complex(Kind=kind(0.d0)), intent(INOUT)  :: IN(:, :)
+      integer :: nf
+      integer, intent(in) :: t
+
+      !Local
+      integer :: nc
+      class(ContainerElementBase), pointer :: dummy
+
+      do nc = 1, Ncheck
+         dummy => ExpOpT_vec(nf)%at(nc)
+         call dummy%lmult(In, t)
+      end do
+
+   end subroutine Hop_mod_mmthlc
+
+!--------------------------------------------------------------------
+
+   subroutine Hop_mod_mmthlc_1D2(In, nf, t)
+
+      ! InOut:  In = IN * e^{ -dtau T }
+      implicit none
+
+      complex(Kind=kind(0.d0)), intent(INOUT)  :: IN(:, :)
+      integer :: nf
+      integer, intent(in) :: t
+
+      !Local
+      integer :: nc
+      class(ContainerElementBase), pointer :: dummy
+
+      do nc = 1, Ncheck
+         dummy => ExpOpT_vec(nf)%at(nc)
+         call dummy%lmult1D2(In, t)
+      end do
+
+   end subroutine Hop_mod_mmthlc_1D2
+
+!--------------------------------------------------------------------
+
+   subroutine Hop_mod_mmthl_m1(In, nf, t)
+
+      ! InOut:  In = IN * e^{ dtau T }
+      implicit none
+
+      complex(Kind=kind(0.d0)), intent(INOUT)  :: IN(:, :)
+      integer :: nf
+      integer, intent(in) :: t
+
+      !Local
+      integer :: nc
+      class(ContainerElementBase), pointer :: dummy
+
+      do nc = Ncheck, 1, -1
+         dummy => ExpOpT_vec(nf)%at(nc)
+         call dummy%rmultinv(In, t)
+      end do
+
+   end subroutine Hop_mod_mmthl_m1
+
+!--------------------------------------------------------------------
+
+   subroutine Hop_mod_mmthl_m1_1D2(In, nf, t)
+
+      ! InOut:  In = IN * e^{ dtau T }
+      implicit none
+
+      complex(Kind=kind(0.d0)), intent(INOUT)  :: IN(:, :)
+      integer :: nf
+      integer, intent(in) :: t
+
+      !Local
+      integer :: nc
+      class(ContainerElementBase), pointer :: dummy
+
+      do nc = Ncheck, 1, -1
+         dummy => ExpOpT_vec(nf)%at(nc)
+         call dummy%rmultinv1D2(In, t)
+      end do
+
+   end subroutine Hop_mod_mmthl_m1_1D2
 
 !--------------------------------------------------------------------
 !> @author
@@ -346,25 +335,25 @@
 !>
 !
 !--------------------------------------------------------------------
-        Subroutine Hop_mod_Symm(Out,In,t1,t2)
+   subroutine Hop_mod_Symm(Out, In, t1, t2)
 
-          Implicit none
-          COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:), Intent(Out):: Out
-          COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:), Intent(IN):: In
-          integer, intent(in) :: t1
-          integer, optional, intent(in) :: t2
+      implicit none
+      complex(Kind=kind(0.d0)), dimension(:, :, :), intent(Out):: Out
+      complex(Kind=kind(0.d0)), dimension(:, :, :), intent(IN):: In
+      integer, intent(in) :: t1
+      integer, optional, intent(in) :: t2
 
-          Integer :: nf, nc, nf_eff
-          class(ContainerElementBase), pointer :: dummy
+      integer :: nf, nc, nf_eff
+      class(ContainerElementBase), pointer :: dummy
 
-          Out = In
-          Do nf_eff = 1, N_FL_eff !size(In,3)
-             nf=Calc_Fl_map(nf_eff)
-             do nc =  Ncheck,1,-1
-                dummy => ExpOpT_vec(nf)%at(nc)
-                call dummy%adjointaction(Out(:, :, nf), t1,t2)
-             enddo
-          enddo
+      Out = In
+      do nf_eff = 1, N_FL_eff !size(In,3)
+         nf = Calc_Fl_map(nf_eff)
+         do nc = Ncheck, 1, -1
+            dummy => ExpOpT_vec(nf)%at(nc)
+            call dummy%adjointaction(Out(:, :, nf), t1, t2)
+         end do
+      end do
 
-        End Subroutine Hop_mod_Symm
-      end Module Hop_mod
+   end subroutine Hop_mod_Symm
+end module Hop_mod
