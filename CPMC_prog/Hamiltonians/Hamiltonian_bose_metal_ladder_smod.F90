@@ -306,7 +306,7 @@
           character(len=:), allocatable ::  Channel
 
           ! Scalar observables
-          allocate (Obs_scal(4))
+          allocate (Obs_scal(6))
           do I = 1, size(Obs_scal, 1)
              select case (I)
              case (1)
@@ -317,6 +317,10 @@
                 N = 1; Filename = "Part"
              case (4)
                 N = 1; Filename = "Ener"
+             case (5)
+                N = ndim*ndim*n_fl; Filename = "grc"
+             case (6)
+                N = ndim*ndim*n_fl; Filename = "mixgrc"
              case default
                 write (6, *) ' Error in Alloc_obs '
              end select
@@ -420,13 +424,13 @@
              ! Compute scalar observables.
              do i = 1, size(obs_scal, 1)
                 obs_scal(i)%n = obs_scal(i)%n + 1
-                obs_scal(i)%ave_sign = obs_scal(i)%ave_sign + real(zs, kind(0.d0))
+                obs_scal(i)%ave_sign = obs_scal(i)%ave_sign + 1.d0
              end do
 
              ! Compute the standard two-point correlations
              do i = 1, size(obs_eq, 1)
                 obs_eq(i)%n = obs_eq(i)%n + 1
-                obs_eq(i)%ave_sign = obs_eq(i)%ave_sign + real(zs, kind(0.d0))
+                obs_eq(i)%ave_sign = obs_eq(i)%ave_sign + 1.d0
              end do
           end if
 
@@ -558,7 +562,7 @@
           if ((act_mea .eq. 0) .and. (nt .eq. 0)) then
              do i = 1, size(obs_tau, 1)
                 obs_tau(i)%n = obs_tau(i)%n + 1
-                obs_tau(i)%ave_sign = obs_tau(i)%ave_sign + real(zs, kind(0.d0))
+                obs_tau(i)%ave_sign = obs_tau(i)%ave_sign + 1.d0
              end do
           end if
 
