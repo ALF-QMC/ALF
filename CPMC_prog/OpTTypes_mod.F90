@@ -1,0 +1,426 @@
+module OpTTypes_mod
+    use ContainerElementBase_mod
+    use Operator_mod
+    use mat_subroutines
+    implicit none
+
+    private
+    public :: RealExpOpT, CmplxExpOpT
+    
+    !--------------------------------------------------------------------
+    !> @author
+    !> ALF-project
+    !> @brief
+    !> Encapsulates operations for real exponentiated OpTs.
+    !>
+    !--------------------------------------------------------------------
+    type, extends(ContainerElementBase) :: RealExpOpT
+        Real(kind=kind(0.d0)), allocatable, dimension(:,:) :: mat, invmat, mat_1D2, invmat_1D2 !>We store the matrix in the class
+        Real(kind=kind(0.d0)) :: g, Zero
+        integer, allocatable :: P(:)
+        Integer :: Ndim_hop
+        
+    contains
+        procedure :: init => RealExpOpT_init ! initialize and allocate matrices
+        procedure :: dealloc => RealExpOpT_dealloc ! dealloc matrices
+        procedure :: rmult => RealExpOpT_rmult ! right multiplication with Op_T
+        procedure :: lmult => RealExpOpT_lmult
+        procedure :: rmult1D2 => RealExpOpT_rmult_1D2
+        procedure :: lmult1D2 => RealExpOpT_lmult_1D2
+        procedure :: rmultinv => RealExpOpT_rmultinv ! right multiplication with Op_T inverse
+        procedure :: lmultinv => RealExpOpT_lmultinv
+        procedure :: rmultinv1D2 => RealExpOpT_rmultinv_1D2 ! right multiplication with Op_T inverse
+        procedure :: lmultinv1D2 => RealExpOpT_lmultinv_1D2
+        procedure :: adjointaction => RealExpOpT_adjointaction
+        procedure :: dump => RealExpOpT_dump ! dump matrices for debugging to screen
+    end type RealExpOpT
+
+    !--------------------------------------------------------------------
+    !> @author
+    !> ALF-project
+    !> @brief
+    !> Encapsulates operations for complex exponentiated OpTs.
+    !>
+    !--------------------------------------------------------------------
+    type, extends(ContainerElementBase) :: CmplxExpOpT
+        Complex(kind=kind(0.d0)), allocatable, dimension(:,:) :: mat, invmat, mat_1D2, invmat_1D2 !>We store the matrix inclass
+        Complex(kind=kind(0.d0)) :: g
+        Real(kind=kind(0.d0)) :: Zero
+        integer, allocatable :: P(:)
+        Integer :: Ndim_hop
+    contains
+        procedure :: init => CmplxExpOpT_init ! initialize and allocate matrices
+        procedure :: dealloc => CmplxExpOpT_dealloc ! dealloc matrices
+        procedure :: rmult => CmplxExpOpT_rmult ! right multiplication with Op_T
+        procedure :: lmult => CmplxExpOpT_lmult
+        procedure :: rmult1D2 => CmplxExpOpT_rmult_1D2
+        procedure :: lmult1D2 => CmplxExpOpT_lmult_1D2
+        procedure :: rmultinv => CmplxExpOpT_rmultinv ! right multiplication with Op_T inverse
+        procedure :: lmultinv => CmplxExpOpT_lmultinv
+        procedure :: rmultinv1D2 => CmplxExpOpT_rmultinv1D2 ! right multiplication with Op_T inverse
+        procedure :: lmultinv1D2 => CmplxExpOpT_lmultinv1D2
+        procedure :: adjointaction => CmplxExpOpT_adjointaction
+        procedure :: dump => CmplxExpOpT_dump ! dump matrices for debugging to screen
+    end type CmplxExpOpT
+
+contains
+    subroutine RealExpOpT_init(this, Op_T)
+        class(RealExpOpT) :: this
+        Type(Operator), intent(in) :: Op_T
+        Complex(kind=kind(0.d0)), allocatable, dimension(:,:) :: cmat, cinvmat
+        Complex(kind=kind(0.d0)) :: cg
+        Integer :: i, j
+        
+        this%Zero = 1.E-12
+        this%Ndim_hop = Op_T%N
+        allocate(this%mat(this%Ndim_hop, this%Ndim_hop), this%invmat(this%Ndim_hop, this%Ndim_hop))
+        allocate(this%mat_1D2(this%Ndim_hop, this%Ndim_hop), this%invmat_1D2(this%Ndim_hop, this%Ndim_hop))
+        allocate(cmat(this%Ndim_hop, this%Ndim_hop), cinvmat(this%Ndim_hop, this%Ndim_hop))
+
+        cg = -Op_T%g
+        Call Op_exp(cg, Op_T, cinvmat)
+        cg = Op_T%g
+        Call Op_exp(cg, Op_T, cmat)
+        ! copy over the data to the real storage
+        this%mat = DBLE(cmat)
+        this%invmat = DBLE(cinvmat)
+        
+        cg = -Op_T%g/2.0
+        Call Op_exp(cg, Op_T, cinvmat)
+        cg = Op_T%g/2.0
+        Call Op_exp(cg, Op_T, cmat)
+        ! copy over the data to the real storage
+        this%mat_1D2 = DBLE(cmat)
+        this%invmat_1D2 = DBLE(cinvmat)
+        
+        DO i = 1, this%Ndim_hop
+            DO j = i, this%Ndim_hop
+                this%mat(i, j) = (this%mat(i, j) + this%mat(j, i))/2.D0
+                this%invmat(i, j) = (this%invmat(i, j) + this%invmat(j, i))/2.D0
+                
+                this%mat_1D2(i, j) = (this%mat_1D2(i, j) + this%mat_1D2(j, i))/2.D0
+                this%invmat_1D2(i, j) = (this%invmat_1D2(i, j) + this%invmat_1D2(j, i))/2.D0
+            ENDDO
+        ENDDO
+        this%P = Op_T%P ! copy all data locally to be consistent and less error prone
+        this%g = DBLE(Op_T%g)
+        deallocate(cmat, cinvmat)
+    end subroutine
+    
+    subroutine RealExpOpT_adjointaction(this, arg, t1, t2)
+        class(RealExpOpT), intent(in) :: this
+        Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
+        Integer :: n1, n2
+        Integer, intent(in) :: t1
+        Integer, optional, intent(in) :: t2
+        
+        n1 = size(arg,1)
+        n2 = size(arg,2)
+        If ( this%g*this%g > this%Zero ) then
+            call ZDSLSYMM('L', 'U', this%Ndim_hop, n1, n2, this%mat_1D2, this%P, arg)
+            call ZDSLSYMM('R', 'U', this%Ndim_hop, n1, n2, this%invmat_1D2, this%P, arg)
+        Endif
+    end subroutine
+    
+    subroutine RealExpOpT_rmult(this, arg, t)
+        class(RealExpOpT), intent(in) :: this
+        Complex(kind=kind(0.D0)), intent(inout),  dimension(:,:) :: arg
+        Integer :: n1, n2
+        Integer, intent(in) :: t
+        
+        n1 = size(arg,1)
+        n2 = size(arg,2)
+        If ( this%g*this%g > this%Zero ) then
+            call ZDSLSYMM('R', 'U', this%Ndim_hop, n1, n2, this%mat, this%P, arg)
+        Endif
+    end subroutine
+    
+    subroutine RealExpOpT_rmult_1D2(this, arg, t)
+        class(RealExpOpT), intent(in) :: this
+        Complex(kind=kind(0.D0)), intent(inout),  dimension(:,:) :: arg
+        Integer :: n1, n2
+        Integer, intent(in) :: t
+        
+        n1 = size(arg,1)
+        n2 = size(arg,2)
+        If ( this%g*this%g > this%Zero ) then
+            call ZDSLSYMM('R', 'U', this%Ndim_hop, n1, n2, this%mat_1D2, this%P, arg)
+        Endif
+    end subroutine
+    
+    subroutine RealExpOpT_rmultinv(this, arg, t)
+        class(RealExpOpT), intent(in) :: this
+        Complex(kind=kind(0.D0)), intent(inout),  dimension(:,:) :: arg
+        Integer :: n1, n2
+        Integer, intent(in) :: t
+        
+        n1 = size(arg,1)
+        n2 = size(arg,2)
+        If ( this%g*this%g > this%Zero ) then
+            call ZDSLSYMM('R', 'U', this%Ndim_hop, n1, n2, this%invmat, this%P, arg)
+        Endif
+    end subroutine
+ 
+    subroutine RealExpOpT_rmultinv_1D2(this, arg, t)
+        class(RealExpOpT), intent(in) :: this
+        Complex(kind=kind(0.D0)), intent(inout),  dimension(:,:) :: arg
+        Integer :: n1, n2
+        Integer, intent(in) :: t
+        
+        n1 = size(arg,1)
+        n2 = size(arg,2)
+        If ( this%g*this%g > this%Zero ) then
+            call ZDSLSYMM('R', 'U', this%Ndim_hop, n1, n2, this%invmat_1D2, this%P, arg)
+        Endif
+    end subroutine
+
+    subroutine RealExpOpT_lmult(this, arg, t)
+        class(RealExpOpT), intent(in) :: this
+        Complex(kind=kind(0.D0)), intent(inout),  dimension(:,:) :: arg
+        Integer, intent(in) :: t
+        integer :: n1, n2
+        
+        ! taken from mmthr
+        n1 = size(arg,1)
+        n2 = size(arg,2)
+        If ( this%g*this%g > this%Zero ) then
+            call ZDSLSYMM('L', 'U', this%Ndim_hop, n1, n2, this%mat, this%P, arg)
+        Endif
+    end subroutine
+    
+    subroutine RealExpOpT_lmult_1D2(this, arg, t)
+        class(RealExpOpT), intent(in) :: this
+        Complex(kind=kind(0.D0)), intent(inout),  dimension(:,:) :: arg
+        Integer, intent(in) :: t
+        integer :: n1, n2
+        
+        ! taken from mmthr
+        n1 = size(arg,1)
+        n2 = size(arg,2)
+        If ( this%g*this%g > this%Zero ) then
+            call ZDSLSYMM('L', 'U', this%Ndim_hop, n1, n2, this%mat_1D2, this%P, arg)
+        Endif
+    end subroutine
+    
+    subroutine RealExpOpT_lmultinv(this, arg, t)
+        class(RealExpOpT), intent(in) :: this
+        Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
+        Integer, intent(in) :: t
+        integer :: n1, n2
+        
+        n1 = size(arg,1)
+        n2 = size(arg,2)
+        If ( this%g*this%g > this%Zero ) then
+            call ZDSLSYMM('L', 'U', this%Ndim_hop, n1, n2, this%invmat, this%P, arg)
+        Endif
+    end subroutine
+    
+    subroutine RealExpOpT_lmultinv_1D2(this, arg, t)
+        class(RealExpOpT), intent(in) :: this
+        Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
+        Integer, intent(in) :: t
+        integer :: n1, n2
+        
+        n1 = size(arg,1)
+        n2 = size(arg,2)
+        If ( this%g*this%g > this%Zero ) then
+            call ZDSLSYMM('L', 'U', this%Ndim_hop, n1, n2, this%invmat_1D2, this%P, arg)
+        Endif
+    end subroutine
+    
+    subroutine CmplxExpOpT_init(this, Op_T)
+        class(CmplxExpOpT) :: this
+        Type(Operator), intent(in) :: Op_T
+        Integer :: i, j
+        
+        this%Zero = 1.E-12
+        this%Ndim_hop = Op_T%N
+        
+        allocate(this%mat(this%Ndim_hop, this%Ndim_hop), this%invmat(this%Ndim_hop, this%Ndim_hop))
+        allocate(this%mat_1D2(this%Ndim_hop, this%Ndim_hop), this%invmat_1D2(this%Ndim_hop, this%Ndim_hop))
+        
+        this%g = -Op_T%g/2.0
+        Call  Op_exp(this%g, Op_T, this%invmat_1D2)
+        this%g = Op_T%g/2.0
+        Call  Op_exp(this%g, Op_T, this%mat_1D2)
+        
+        this%g = -Op_T%g
+        Call  Op_exp(this%g, Op_T, this%invmat)
+        this%g = Op_T%g
+        Call  Op_exp(this%g, Op_T, this%mat)
+        
+        DO i = 1, this%Ndim_hop
+            DO j = i, this%Ndim_hop
+                this%mat(i, j) = (this%mat(i, j) + Conjg(this%mat(j, i)))/2.D0
+                this%invmat(i, j) = (this%invmat(i, j) + Conjg(this%invmat(j, i)))/2.D0
+                
+                this%mat_1D2(i, j) = (this%mat_1D2(i, j) + Conjg(this%mat_1D2(j, i)))/2.D0
+                this%invmat_1D2(i, j) = (this%invmat_1D2(i, j) + Conjg(this%invmat_1D2(j, i)))/2.D0
+            ENDDO
+        ENDDO
+        this%P = Op_T%P ! copy all data locally to be consistent and less error prone
+    end subroutine
+
+    subroutine CmplxExpOpT_adjointaction(this, arg, t1, t2)
+        class(CmplxExpOpT), intent(in) :: this
+        Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
+        Integer, intent(in) :: t1
+        Integer, optional, intent(in) :: t2
+        Integer :: n1, n2
+
+        n1 = size(arg,1)
+        n2 = size(arg,2)
+        If ( dble(this%g*conjg(this%g)) > this%Zero ) then            
+            call ZSLHEMM('L', 'U', this%Ndim_hop, n1, n2, this%mat_1D2, this%P, arg)
+            call ZSLHEMM('R', 'U', this%Ndim_hop, n1, n2, this%invmat_1D2, this%P, arg)
+        Endif
+        
+    end subroutine
+    
+    subroutine CmplxExpOpT_rmult(this, arg, t)
+        class(CmplxExpOpT), intent(in) :: this
+        Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
+        Integer, intent(in) :: t
+        Integer :: n1, n2
+        
+        ! taken from mmthl
+        n1 = size(arg,1)
+        n2 = size(arg,2)
+        If ( dble(this%g*conjg(this%g)) > this%Zero ) then
+            call ZSLHEMM('R', 'U', this%Ndim_hop, n1, n2, this%mat, this%P, arg)
+        Endif
+    end subroutine
+    
+    subroutine CmplxExpOpT_rmult_1D2(this, arg, t)
+        class(CmplxExpOpT), intent(in) :: this
+        Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
+        Integer, intent(in) :: t
+        Integer :: n1, n2
+        
+        ! taken from mmthl
+        n1 = size(arg,1)
+        n2 = size(arg,2)
+        If ( dble(this%g*conjg(this%g)) > this%Zero ) then
+            call ZSLHEMM('R', 'U', this%Ndim_hop, n1, n2, this%mat_1D2, this%P, arg)
+        Endif
+    end subroutine
+    
+    subroutine CmplxExpOpT_rmultinv(this, arg, t)
+        class(CmplxExpOpT), intent(in) :: this
+        Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
+        Integer, intent(in) :: t
+        Integer :: n1, n2
+        
+        ! taken from mmthl_m1
+        n1 = size(arg,1)
+        n2 = size(arg,2)
+        If ( dble(this%g*conjg(this%g)) > this%Zero ) then
+            call ZSLHEMM('R', 'U', this%Ndim_hop, n1, n2, this%invmat, this%P, arg)
+        Endif
+    end subroutine
+    
+    subroutine CmplxExpOpT_rmultinv1D2(this, arg, t)
+        class(CmplxExpOpT), intent(in) :: this
+        Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
+        Integer, intent(in) :: t
+        Integer :: n1, n2
+        
+        ! taken from mmthl_m1
+        n1 = size(arg,1)
+        n2 = size(arg,2)
+        If ( dble(this%g*conjg(this%g)) > this%Zero ) then
+            call ZSLHEMM('R', 'U', this%Ndim_hop, n1, n2, this%invmat_1D2, this%P, arg)
+        Endif
+    end subroutine
+    
+    subroutine CmplxExpOpT_lmult(this, arg, t)
+        class(CmplxExpOpT), intent(in) :: this
+        Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
+        Integer, intent(in) :: t
+        integer :: n1, n2
+        
+        ! taken from mmthr
+        n1 = size(arg,1)
+        n2 = size(arg,2)
+        If ( dble(this%g*conjg(this%g)) > this%Zero ) then
+            call ZSLHEMM('L', 'U', this%Ndim_hop, n1, n2, this%mat, this%P, arg)
+        Endif
+    end subroutine
+    
+    subroutine CmplxExpOpT_lmult_1D2(this, arg, t)
+        class(CmplxExpOpT), intent(in) :: this
+        Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
+        Integer, intent(in) :: t
+        integer :: n1, n2
+        
+        ! taken from mmthr
+        n1 = size(arg,1)
+        n2 = size(arg,2)
+        If ( dble(this%g*conjg(this%g)) > this%Zero ) then
+            call ZSLHEMM('L', 'U', this%Ndim_hop, n1, n2, this%mat_1D2, this%P, arg)
+        Endif
+    end subroutine
+    
+    subroutine CmplxExpOpT_lmultinv(this, arg, t)
+        class(CmplxExpOpT), intent(in) :: this
+        Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
+        Integer, intent(in) :: t
+        integer :: n1, n2
+        n1 = size(arg,1)
+        n2 = size(arg,2)
+        If ( dble(this%g*conjg(this%g)) > this%Zero ) then
+            call ZSLHEMM('L', 'U', this%Ndim_hop, n1, n2, this%invmat, this%P, arg)
+        Endif
+    end subroutine
+    
+    subroutine CmplxExpOpT_lmultinv1D2(this, arg, t)
+        class(CmplxExpOpT), intent(in) :: this
+        Complex(kind=kind(0.D0)), intent(inout), dimension(:,:) :: arg
+        Integer, intent(in) :: t
+        integer :: n1, n2
+        n1 = size(arg,1)
+        n2 = size(arg,2)
+        If ( dble(this%g*conjg(this%g)) > this%Zero ) then
+            call ZSLHEMM('L', 'U', this%Ndim_hop, n1, n2, this%invmat_1D2, this%P, arg)
+        Endif
+    end subroutine
+
+    subroutine CmplxExpOpT_dump(this)
+        class(CmplxExpOpT), intent(in) :: this
+        integer :: i,j
+
+        do i = 1, size(this%mat, 1)
+            write (*,*) (dble(this%mat(i,j)), j = 1,size(this%mat,2) )
+        enddo
+        write (*,*) "---------------"
+        do i = 1, size(this%mat, 1)
+            write (*,*) (dble(this%invmat(i,j)), j = 1,size(this%mat,2) )
+        enddo
+    end subroutine
+
+    subroutine RealExpOpT_dump(this)
+        class(RealExpOpT), intent(in) :: this
+        integer :: i,j
+
+        do i = 1, size(this%mat, 1)
+            write (*,*) (dble(this%mat(i,j)), j = 1,size(this%mat,2) )
+        enddo
+        write (*,*) "---------------"
+        do i = 1, size(this%mat, 1)
+            write (*,*) (dble(this%invmat(i,j)), j = 1,size(this%mat,2) )
+        enddo
+    end subroutine
+
+    subroutine CmplxExpOpT_dealloc(this)
+        class(CmplxExpOpT), intent(inout) :: this
+
+        deallocate(this%mat, this%invmat, this%mat_1D2, this%invmat_1D2, this%P)
+    end subroutine
+
+    subroutine RealExpOpT_dealloc(this)
+        class(RealExpOpT), intent(inout) :: this
+
+        deallocate(this%mat, this%invmat, this%mat_1D2, this%invmat_1D2, this%P)
+    end subroutine
+
+end module OpTTypes_mod
