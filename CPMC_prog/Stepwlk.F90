@@ -220,11 +220,12 @@ contains
 
             end do
 
-            ! rescale U matrix with z_alpha factor
-            do nf_eff = 1, N_FL_eff
-               nf = Calc_Fl_map(nf_eff)
-               phi_0(nf_eff, i_wlk)%U(:, :) = exp(z_alpha)*phi_0(nf_eff, i_wlk)%U(:, :)
-            end do
+            !! comment this since it would cause instability when z_alpha is real 
+            !! rescale U matrix with z_alpha factor
+            !do nf_eff = 1, N_FL_eff
+            !   nf = Calc_Fl_map(nf_eff)
+            !   phi_0(nf_eff, i_wlk)%U(:, :) = exp(z_alpha)*phi_0(nf_eff, i_wlk)%U(:, :)
+            !end do
 
          end if
 

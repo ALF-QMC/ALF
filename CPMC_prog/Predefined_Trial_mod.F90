@@ -156,8 +156,9 @@ contains
             !Phi_X_vec(2)   =-0.01
             !Phi_Y_vec(1)   = 0.02
             !Phi_Y_vec(2)   =-0.02
-  call Set_Default_hopping_parameters_honeycomb(Hopping_Matrix_tmp, Ham_T_vec, Ham_Lambda_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
-                                    &                                         Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
+            call Set_Default_hopping_parameters_honeycomb(Hopping_Matrix_tmp, Ham_T_vec, &
+                & Ham_Lambda_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, & 
+                & N_FL, List, Invlist, Latt, Latt_unit)
 
          else
 
@@ -284,59 +285,71 @@ contains
             &                                                 List, Invlist, Latt, Latt_unit)
 
       case ('N_leg_ladder')
-         allocate (op_tmp(1, n_fl))
-         do n = 1, n_fl
-            call op_make(op_tmp(1, n), ndim)
-            do i = 1, ndim
-               op_tmp(1, n)%P(i) = i
-            end do
-            op_tmp(1, n)%g = cmplx(1.d0, 0.d0, kind(0.d0))
-            op_tmp(1, n)%alpha = cmplx(0.d0, 0.d0, kind(0.d0))
-         end do
+         if ( l_cmplx_trial ) then
+            ham_tx_vec(1) = ham_t; 
+            ham_tx_vec(2) = ham_t*alpha; 
+            ham_ty_vec(1) = ham_t*alpha; 
+            ham_ty_vec(2) = ham_t; 
+            Phi_X_vec = 0.002
+            call set_hopping_parameters_n_ladder_anisotropic(Hopping_Matrix_tmp, ham_tx_vec, ham_ty_vec, Ham_Chem_vec, &
+                   & Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
+         else
 
-         do i = 1, latt%n
-            do no = 1, Latt_unit%Norb - 1
+            allocate (op_tmp(1, n_fl))
+            do n = 1, n_fl
+               call op_make(op_tmp(1, n), ndim)
+               do i = 1, ndim
+                  op_tmp(1, n)%P(i) = i
+               end do
+               op_tmp(1, n)%g = cmplx(1.d0, 0.d0, kind(0.d0))
+               op_tmp(1, n)%alpha = cmplx(0.d0, 0.d0, kind(0.d0))
+            end do
+
+            do i = 1, latt%n
+               do no = 1, Latt_unit%Norb - 1
+                  delta = 0.005d0*ranf_wrap()
+                  ham_t = 1.d0 + delta
+
+                  i1 = invlist(i, no)
+                  j1 = invlist(latt%nnlist(i, 1, 0), no)
+                  k1 = invlist(i, no + 1)
+
+                  ham_tx_vec(1) = ham_t; 
+                  ham_tx_vec(2) = ham_t*alpha; 
+                  ham_ty_vec(1) = ham_t*alpha; 
+                  ham_ty_vec(2) = ham_t; 
+                  do n = 1, n_fl
+                     op_tmp(1, n)%o(i1, j1) = cmplx(-ham_tx_vec(n), 0.d0, kind(0.d0))
+                     op_tmp(1, n)%o(j1, i1) = cmplx(-ham_tx_vec(n), 0.d0, kind(0.d0))
+                     op_tmp(1, n)%o(i1, k1) = cmplx(-ham_ty_vec(n), 0.d0, kind(0.d0))
+                     op_tmp(1, n)%o(k1, i1) = cmplx(-ham_ty_vec(n), 0.d0, kind(0.d0))
+                  end do
+               end do
                delta = 0.005d0*ranf_wrap()
                ham_t = 1.d0 + delta
-
+               no = Latt_unit%Norb
                i1 = invlist(i, no)
                j1 = invlist(latt%nnlist(i, 1, 0), no)
-               k1 = invlist(i, no + 1)
-
                ham_tx_vec(1) = ham_t; 
                ham_tx_vec(2) = ham_t*alpha; 
-               ham_ty_vec(1) = ham_t*alpha; 
-               ham_ty_vec(2) = ham_t; 
                do n = 1, n_fl
                   op_tmp(1, n)%o(i1, j1) = cmplx(-ham_tx_vec(n), 0.d0, kind(0.d0))
                   op_tmp(1, n)%o(j1, i1) = cmplx(-ham_tx_vec(n), 0.d0, kind(0.d0))
-                  op_tmp(1, n)%o(i1, k1) = cmplx(-ham_ty_vec(n), 0.d0, kind(0.d0))
-                  op_tmp(1, n)%o(k1, i1) = cmplx(-ham_ty_vec(n), 0.d0, kind(0.d0))
                end do
             end do
-            delta = 0.005d0*ranf_wrap()
-            ham_t = 1.d0 + delta
-            no = Latt_unit%Norb
-            i1 = invlist(i, no)
-            j1 = invlist(latt%nnlist(i, 1, 0), no)
-            ham_tx_vec(1) = ham_t; 
-            ham_tx_vec(2) = ham_t*alpha; 
-            do n = 1, n_fl
-               op_tmp(1, n)%o(i1, j1) = cmplx(-ham_tx_vec(n), 0.d0, kind(0.d0))
-               op_tmp(1, n)%o(j1, i1) = cmplx(-ham_tx_vec(n), 0.d0, kind(0.d0))
-            end do
-         end do
 
-         do n = 1, n_fl
-            call op_set(op_tmp(1, n))
-         end do
+            do n = 1, n_fl
+               call op_set(op_tmp(1, n))
+            end do
+
+        endif
 
       case default
          write (error_unit, *) 'No predefined trial wave function for this lattice.'
          call Terminate_on_error(ERROR_GENERIC, __FILE__, __LINE__)
       end select
 
-      if (l_cmplx_trial .and. (.not. hatree_fock) .and. (lattice_type .ne. "N_leg_ladder"))   &
+      if (l_cmplx_trial .and. (.not. hatree_fock) )   &
       &     call Predefined_Hoppings_set_OPT(Hopping_Matrix_tmp, List, Invlist, Latt, Latt_unit, Dtau, Checkerboard, Symm, OP_tmp)
 
       do nf = 1, N_FL
