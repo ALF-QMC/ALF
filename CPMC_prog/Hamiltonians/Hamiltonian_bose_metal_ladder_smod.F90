@@ -505,7 +505,7 @@
                     & (grc(i1, i1, 2) + grc(i1, i1, 1))*(grc(j1, j1, 2) + grc(j1, j1, 1))
                 obs_eq(3)%obs_Latt(imj, 1, no_i, no_j) = obs_eq(3)%obs_latt(imj, 1, no_i, no_j) + z*z_fac
 
-                z = grc(i1, j1, 1)*grc(i1, j1, 2) + gr(i1, j1, 1)*gr(i1, j1, 2)
+                z = grc(i1, j1, 1)*grc(i1, j1, 2)! + gr(i1, j1, 1)*gr(i1, j1, 2)
                 obs_eq(4)%obs_Latt(imj, 1, no_i, no_j) = obs_eq(4)%obs_latt(imj, 1, no_i, no_j) + z*z_fac
              end do
              zback = grc(i1, i1, 1) + grc(i1, i1, 2)
