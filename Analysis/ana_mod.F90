@@ -1204,6 +1204,9 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       if( present(filename_h5) ) then
 #ifdef HDF5
          call read_vec_hdf5(filename_h5, name_obs, sgn_raw, bins_raw, analysis_mode)
+         if ( (name_obs .eq. 'grc_scal') .or. (name_obs .eq. 'mixgrc_scal' ) ) then
+            call slatdet_ana(name_obs, sgn_raw, bins_raw)
+         endif
 #endif
       else
          call read_vec(name_obs, sgn_raw, bins_raw, analysis_mode)
@@ -1344,6 +1347,219 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       DEALLOCATE (EN, EN_f_arg,vec,vec_err,sgn_raw,sgn,Bins_raw,Bins)
       
     END subroutine ana_vec
+
+    subroutine slatdet_ana(name, sgn_raw, bins_raw)
+      Implicit none
+      Character (len=*), intent(in) :: name
+      Real    (Kind=Kind(0.d0)), allocatable, intent(inout) :: sgn_raw(:)
+      Complex (Kind=Kind(0.d0)), pointer,     intent(inout) :: bins_raw(:,:)
+      
+      Complex (Kind=Kind(0.d0)), DIMENSION(:)  , ALLOCATABLE :: V_data, phase
+      Integer                  , DIMENSION(:,:), ALLOCATABLE :: list_m
+      REAL    (Kind=Kind(0.d0)) :: XM
+      Type (Lattice)    :: Latt
+      Type (Unit_cell)  :: Latt_unit
+      
+      Complex (Kind=Kind(0.d0)), Allocatable  :: Bins(:,:), GRC(:,:,:), Uvec(:,:,:), GRC_H(:,:,:)
+      Complex (Kind=Kind(0.d0)), Allocatable  :: ZMat(:,:), Zmat2(:,:)
+      Complex (Kind=Kind(0.d0)), pointer      :: WF_P(:,:,:)
+      REAL    (Kind=Kind(0.d0)), Allocatable  :: Evec(:,:), Evec_tmp(:)
+      Real    (Kind=Kind(0.d0)) :: x_p(2), a1_p(2), a2_p(2), L1_p(2), L2_p(2)
+      Complex (Kind=Kind(0.d0)) :: Z, Xmean,XERR
+      Integer :: Nobs, Nobs_output, data_range, nc, nf, J, hdferr, rank
+      Integer :: Nbins, Nbins_eff, I, IOBS, N_Back, nb, i1, i2, ic2
+
+      !! model parameters
+      real(Kind=kind(0.d0)) :: ham_t = 1.d0     ! Hopping parameter
+      real(Kind=kind(0.d0)) :: ham_alpha = 1.d0     ! Hopping parameter
+      real(Kind=kind(0.d0)) :: ham_chem = 0.d0     ! Chemical potential
+      real(Kind=kind(0.d0)) :: ham_U = 4.d0     ! attractive Hubbard interaction
+      integer               :: N_dope = 0
+
+      Integer :: N_skip, N_rebin, N_Cov, ierr, N_auto, ndim, n_part
+      Character (len=64) :: File_out, filename
+      NAMELIST /VAR_errors/   N_skip, N_rebin, N_Cov, N_Back, N_auto
+      Integer             :: L1, L2, N_FL
+      Character (len=64)  :: Model, Lattice_type
+      NAMELIST /VAR_Lattice/ L1, L2, Lattice_type, Model
+      NAMELIST /VAR_bose_metal_ladder/  ham_t, ham_alpha, ham_chem, &
+           &     ham_U, N_dope
+
+
+      INTEGER(HSIZE_T), allocatable :: dims(:), dimsc(:)
+      Logical             :: file_exists
+      INTEGER(HID_T)      :: file_id, crp_list, space_id, dset_id, dataspace
+      Character (len=64)  :: dset_name
+      TYPE(C_PTR)         :: dat_ptr
+
+      procedure (func_r), pointer :: f_ptr => null ()
+
+      N_skip = 1
+      N_rebin = 1
+      N_Back = 1
+      N_auto = 0
+      N_Cov  = 0
+      OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
+      IF (ierr /= 0) THEN
+         Write(error_unit,*) 'unable to open <parameters>',ierr
+         error stop 1
+      END IF
+      rewind(5)
+      read(5,NML=VAR_Lattice)
+      rewind(5)
+      read(5,NML=VAR_errors)
+      rewind(5)
+      read(5,NML=VAR_bose_metal_ladder)
+      close(5)
+
+      Nobs  = size(bins_raw, 1)
+      Nbins = size(bins_raw, 2)
+      !!!Ndim  = Latt%N*Latt_Unit%Norb
+      Ndim  = L1*L2
+      N_part = Ndim/2-N_dope
+      
+      N_FL  = Nobs/Ndim/ndim
+
+      allocate(list_m(nobs,3))
+      nc = 0
+      Do nf = 1,N_FL
+         Do I = 1,Ndim
+         Do J = 1,Ndim
+            nc = nc + 1
+            list_m(nc,1)=I
+            list_m(nc,2)=J
+            list_m(nc,3)=nf
+         Enddo
+         Enddo
+      Enddo
+      
+      f_ptr => identity
+      Nobs_output = Nobs
+      data_range  = 0
+      
+      Write(6, '(A22, I0)') "# of bins: ", Nbins
+      Nbins_eff  = Nbins - n_skip
+      Write(6, '(A22, I0)') "Effective # of bins: ", Nbins_eff/N_rebin
+      N_auto=min(N_auto,Nbins_eff/3)
+      if(Nbins_eff/N_rebin < 2) then
+         Write(error_unit,*) "Effective # of bins smaller than 2. Analysis impossible!"
+         error stop 1
+      endif
+      
+      ! Allocate  space
+      Allocate( Bins(Nobs,Nbins_eff), phase(Nbins_eff) )
+      Allocate( Grc (Ndim,Ndim,n_fl), Uvec(ndim,ndim,n_fl), Zmat(ndim,ndim), Zmat2(ndim,ndim))
+      Allocate( Grc_H(Ndim,Ndim,n_fl))
+      Allocate( WF_P(Ndim,n_part,N_FL) )
+      Allocate( Evec(Ndim,n_fl), Evec_tmp(ndim))
+      Allocate( V_data(Nbins_eff) )
+      
+      do i =1,Nbins_eff
+         Bins(:,i) = Bins_raw(:,i+n_skip)
+         phase (i) = cmplx(sgn_raw(i+n_skip),0.d0,kind(0.d0))
+      enddo
+      
+      DO IOBS = 1,NOBS
+         do nb = 1,Nbins_eff
+            V_data(nb) = Bins(IOBS,nb) 
+         enddo
+         call ERRCALCJ( V_data, Phase, XMean, XERR, N_rebin )
+       
+         I  = list_m(iobs,1)
+         J  = list_m(iobs,2)
+         nf = list_m(iobs,3)
+         Grc(I,J,nf) = Xmean
+         
+      enddo
+
+      ! Hermitian part
+      Do nf = 1,N_FL
+         Do I = 1,Ndim
+         Do J = 1,Ndim
+             Grc_H(I,J,nf)=0.5d0*(Grc(I,J,nf)+conjg(Grc(J,I,nf)))
+         Enddo
+         Enddo
+      Enddo
+
+      do nf = 1, N_fl
+         !zmat(:,:)=Grc_H(:,:,nf)
+         zmat(:,:)=Grc(:,:,nf)
+         Call Diag(zmat, zmat2, evec_tmp)
+         uvec(:,:,nf)=zmat2
+         evec(:,nf)=evec_tmp
+      enddo
+
+      do nf = 1, N_fl
+         do i2=1,n_part
+            ic2 = ndim-(i2-1) 
+            do i1=1,ndim
+                WF_P(i1,i2,nf)=uvec(i1,ic2,nf)
+            enddo
+         enddo
+      enddo
+
+      write(Filename,'(A,A)') trim(name), "_slatd.h5"
+      !! output hdf5 slaterDet
+      inquire (file=filename, exist=file_exists)
+      IF (.not. file_exists) THEN
+          CALL h5open_f(ierr)
+          CALL h5fcreate_f(filename, H5F_ACC_TRUNC_F, file_id, hdferr)
+          
+          !Create and write dataset for wave function
+          dset_name = "wavefunction"
+          rank = 4
+          allocate( dims(4), dimsc(4) )
+          dims  = [2,ndim,n_part,N_FL]
+          dimsc = dims
+          CALL h5screate_simple_f(rank, dims, space_id, hdferr)
+          CALL h5pcreate_f(H5P_DATASET_CREATE_F, crp_list, hdferr)
+          CALL h5pset_chunk_f(crp_list, rank, dimsc, hdferr)
+#if defined HDF5_ZLIB
+             ! Set ZLIB / DEFLATE Compression using compression level HDF5_ZLIB
+           CALL h5pset_deflate_f(crp_list, HDF5_ZLIB, hdferr)
+#endif
+           !Create a dataset using cparms creation properties.
+           CALL h5dcreate_f(file_id, dset_name, H5T_NATIVE_DOUBLE, space_id, &
+                           dset_id, hdferr, crp_list )
+           dat_ptr = C_LOC(wf_p(1,1,1))
+           CALL h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
+           !Close objects
+           deallocate( dims, dimsc )
+           CALL h5sclose_f(space_id,  hdferr)
+           CALL h5pclose_f(crp_list,  hdferr)
+           CALL h5dclose_f( dset_id,  hdferr)
+
+           !close file
+           CALL h5fclose_f(file_id, hdferr)
+
+      else
+           !open file
+           CALL h5fopen_f (filename, H5F_ACC_RDWR_F, file_id, hdferr)
+
+           !open and write real weight
+           dset_name = "wavefunction"
+           !Open the  dataset.
+           CALL h5dopen_f(file_id, dset_name, dset_id, hdferr)
+           dat_ptr = C_LOC(wf_p(1,1,1))
+           !Write data
+           CALL H5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
+           !close objects
+           CALL h5dclose_f(dset_id,   hdferr)
+             
+           !close file
+           CALL h5fclose_f(file_id, hdferr)
+      endif
+      
+      write(File_out,'(A,A)') trim(name), "_eig.dat"
+      OPEN (UNIT=21, FILE=File_out, STATUS='unknown')
+      do I = 1, ndim
+         write(21, "(f26.17)") evec(I,1)
+      enddo
+      CLOSE(21)
+      
+      DEALLOCATE (Bins,phase, grc, uvec, zmat, zmat2, evec, evec_tmp, wf_p, grc_H)
+      
+    END subroutine slatdet_ana
     
     complex (Kind=Kind(0.d0)) function Background_eq(X)
       
