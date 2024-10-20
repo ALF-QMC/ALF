@@ -79,13 +79,11 @@ contains
          end do
       end do
 
-      file_inst = 'trial_inst.h5'
-      file_antiinst = 'trial_antiinst.h5'
-      inquire (file=file_inst, exist=lconf_inst)
-      inquire (file=file_antiinst, exist=lconf_antiinst)
-      if (lconf_inst .and. lconf_antiinst) then
-         if (irank_g .eq. 0) write (*, *) "read inst-anti inst config as trial wave function"
-         call trial_in_hdf5(phi_0, phi_trial, file_inst, file_antiinst)
+      file_inst = 'trial_0.h5'
+      inquire (file=file_tg, exist=lconf_h5)
+      if (lconf_h5) then
+         if (irank_g .eq. 0) write (*, *) "read input trial wave function"
+         call trial_in_hdf5(phi_0, phi_trial, file_tg)
       end if
 
       file_tg = "phiin_0.h5"
@@ -2005,7 +2003,7 @@ contains
 
    end subroutine wavefunction_in_hdf5
 
-   subroutine trial_in_hdf5(phi_0_r, phi_0_l, file_inst, file_antiinst)
+   subroutine trial_in_hdf5( phi_0_r, phi_0_l, file_tg )
 #ifdef MPI
       use mpi
 #endif
@@ -2013,202 +2011,92 @@ contains
       use hdf5
       use h5lt
 #endif
-
+          
       implicit none
-
-      class(UDV_State), dimension(:, :), allocatable, intent(INOUT) :: phi_0_r, phi_0_l
-      character(LEN=64), intent(IN)  :: file_inst, file_antiinst
+     
+      class(UDV_State), dimension(:,:), allocatable, intent(inout) :: phi_0_r, phi_0_l
+      character (LEN=64), intent(in)  :: file_tg
 
       ! LOCAL
-      character(LEN=64) :: filename
-      integer, allocatable :: ipiv(:)
-      complex(kind=kind(0.d0)), pointer :: phi0_in(:, :, :)
-      complex(kind=kind(0.d0)), allocatable :: p1_tmp(:, :, :), p2_tmp(:, :, :), log_zdet(:)
-      complex(kind=kind(0.d0)), allocatable, dimension(:, :) :: sMat
-      complex(kind=kind(0.d0)) :: alpha, beta, zdet, phase, t_overlap, z_norm, c1, ctmp
-      real(kind=kind(0.d0)) :: d_norm
+      CHARACTER (LEN=64) :: filename
+      Complex (Kind=Kind(0.d0)), pointer :: phi0_out(:,:,:)
+      Complex (Kind=Kind(0.d0)), allocatable :: p1_tmp(:,:,:)
 
-      integer             :: K, hdferr, rank, nf, nw, n_part, i0, i1, i2, i_st, i_ed, Ndt, ii, nwalk_in
-      integer             :: nf_eff, n_fl_in, ns, i_wlk, info, n
-      integer(HSIZE_T), allocatable :: dims(:), dimsc(:), maxdims(:)
-      logical             :: file_exists
-      integer(HID_T)      :: file_id, crp_list, space_id, dset_id, dataspace
-      character(len=64)  :: dset_name
-      type(c_ptr)         :: dat_ptr
+      INTEGER             :: K, hdferr, rank, nf, nw, n_part, i0, i1, i2, i_st, i_ed, Ndt, ii, nwalk_in
+      Integer             :: nf_eff
+      INTEGER(HSIZE_T), allocatable :: dims(:), dimsc(:), maxdims(:)
+      Logical             :: file_exists
+      INTEGER(HID_T)      :: file_id, crp_list, space_id, dset_id, dataspace
+      Character (len=64)  :: dset_name
+      TYPE(C_PTR)         :: dat_ptr
 
 #if defined(MPI)
-      integer        :: irank_g, isize_g, igroup, ISIZE, IRANK, IERR
-      integer        :: STATUS(MPI_STATUS_SIZE)
-      call MPI_COMM_SIZE(MPI_COMM_WORLD, ISIZE, IERR)
-      call MPI_COMM_RANK(MPI_COMM_WORLD, IRANK, IERR)
+      INTEGER        :: irank_g, isize_g, igroup, ISIZE, IRANK, IERR
+      Integer        :: STATUS(MPI_STATUS_SIZE)
+      CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
+      CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
       call MPI_Comm_rank(Group_Comm, irank_g, ierr)
       call MPI_Comm_size(Group_Comm, isize_g, ierr)
-      igroup = irank/isize_g
+      igroup           = irank/isize_g
 #endif
-      n_part = phi_0_l(1, 1)%n_part
+      filename = file_tg
 
-      n_fl_in = 1
+      n_part=phi_0_l(1,1)%n_part
+      
+      allocate(p1_tmp(ndim,n_part,n_fl_eff))
+      
+      if ( irank .eq. 0 ) then
 
-      allocate (p1_tmp(ndim, n_part, n_fl))
-      allocate (p2_tmp(ndim, n_part, n_fl))
+          !open file
+          CALL h5fopen_f (filename, H5F_ACC_RDWR_F, file_id, hdferr)
 
-      if (irank .eq. 0) then
+          !! allocate !!
+          allocate(phi0_out(ndim,n_part,n_fl))
+          !!-----------!!
+          !open and read real weight
+          dset_name = "wavefunction"
+          !Open the  dataset.
+          CALL h5dopen_f(file_id, dset_name, dset_id, hdferr)
+          dat_ptr = C_LOC(phi0_out(1,1,1))
+          !Write data
+          CALL h5dread_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
+          !close objects
+          CALL h5dclose_f(dset_id,   hdferr)
+            
+          !close file
+          CALL h5fclose_f(file_id, hdferr)
 
-              !! inst
-         !open file
-         call h5fopen_f(file_inst, H5F_ACC_RDWR_F, file_id, hdferr)
+          do nf_eff = 1, N_FL_eff
+             nf=Calc_Fl_map(nf_eff)
+             p1_tmp(:,:,nf_eff)=phi0_out(:,:,nf)
+          enddo
 
-              !! allocate !!
-         allocate (phi0_in(ndim, n_part, n_fl_in))
-              !!-----------!!
-         !open and read real weight
-         dset_name = "wavefunction"
-         !Open the  dataset.
-         call h5dopen_f(file_id, dset_name, dset_id, hdferr)
-         dat_ptr = c_loc(phi0_in(1, 1, 1))
-         !Write data
-         call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
-         !close objects
-         call h5dclose_f(dset_id, hdferr)
+      endif !irank 0
 
-         !close file
-         call h5fclose_f(file_id, hdferr)
-
-              !! store input
-         do nf_eff = 1, N_FL_eff
-            nf = Calc_Fl_map(nf_eff)
-            p1_tmp(:, :, nf) = phi0_in(:, :, 1)
-         end do
-
-              !! anti-inst
-         !open file
-         call h5fopen_f(file_antiinst, H5F_ACC_RDWR_F, file_id, hdferr)
-
-              !!-----------!!
-         !open and read real weight
-         dset_name = "wavefunction"
-         !Open the  dataset.
-         call h5dopen_f(file_id, dset_name, dset_id, hdferr)
-         dat_ptr = c_loc(phi0_in(1, 1, 1))
-         !Write data
-         call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
-         !close objects
-         call h5dclose_f(dset_id, hdferr)
-
-         !close file
-         call h5fclose_f(file_id, hdferr)
-
-              !! store input
-         do nf_eff = 1, N_FL_eff
-            nf = Calc_Fl_map(nf_eff)
-            p2_tmp(:, :, nf) = phi0_in(:, :, 1)
-         end do
-
-      end if !irank 0
-
-      if (irank_g .eq. 0) then
-         do ii = 1, isize_g - 1
-            Ndt = N_FL*ndim*n_part
-            call mpi_send(p1_tmp, Ndt, mpi_complex16, ii, 2, MPI_COMM_WORLD, IERR)
-            call mpi_send(p2_tmp, Ndt, mpi_complex16, ii, 3, MPI_COMM_WORLD, IERR)
-         end do
+      if ( irank_g .eq. 0 ) then
+         do ii = 1, isize_g-1
+            Ndt=N_FL_eff*ndim*n_part
+            call mpi_send(p1_tmp,  Ndt,mpi_complex16, ii, 2, MPI_COMM_WORLD,IERR)
+         ENDDO
       else
-         Ndt = N_FL*ndim*n_part
-         call mpi_recv(p1_tmp, Ndt, mpi_complex16, 0, 2, MPI_COMM_WORLD, STATUS, IERR)
-         call mpi_recv(p2_tmp, Ndt, mpi_complex16, 0, 3, MPI_COMM_WORLD, STATUS, IERR)
-      end if
+         Ndt=N_FL_eff*ndim*n_part
+         call mpi_recv(p1_tmp,  Ndt,mpi_complex16, 0, 2, MPI_COMM_WORLD,STATUS,IERR)
+      ENDIF
 
-         !! allocate tmp matrix
-      allocate (smat(n_part, n_part), ipiv(N_part), log_zdet(N_slat))
-
-         !! test whether overlap has minus sign
-      alpha = 1.d0
-      beta = 0.d0
-      ctmp = 0.d0
       do nf_eff = 1, N_FL_eff
-         nf = Calc_Fl_map(nf_eff)
-         call zgemm('C','N',N_part,N_part,Ndim,alpha,p1_tmp(1,1,nf),Ndim,phi_0_r(nf_eff,1)%U(1,1),ndim,beta,smat(1,1),N_part)
-         ! ZGETRF computes an LU factorization of a general M-by-N matrix A
-         ! using partial pivoting with row interchanges.
-         call ZGETRF(N_part, N_part, smat, N_part, ipiv, info)
-         ! obtain log of det
-         zdet = 0.d0
-         phase = 1.d0
-         do n = 1, N_part
-            if (ipiv(n) .ne. n) then
-               phase = -phase
-            end if
-            zdet = zdet + log(smat(n, n))
-         end do
-         zdet = zdet + log(phase)
+         nf=Calc_Fl_map(nf_eff)
+         do nw = 1, N_wlk
+             phi_0_r(nf_eff,nw)%U(:,:)=p1_tmp(:,:,nf_eff)
+         enddo
+         phi_0_l(nf_eff,1)%U(:,:)=p1_tmp(:,:,nf_eff)
+         WF_L(nf,1)%P(:,:)=p1_tmp(:,:,nf_eff)
+         WF_R(nf,1)%P(:,:)=p1_tmp(:,:,nf_eff)
+      enddo
 
-         ctmp = ctmp + zdet
-      end do
-      z_norm = exp(ctmp)
-      d_norm = dble(z_norm)
-      if (d_norm .lt. 0.d0) then
-         c1 = cmplx(0.d0, 1.d0, kind(1.d0))
-      else
-         c1 = cmplx(1.d0, 0.d0, kind(1.d0))
-      end if
-
-         !! combine the trial wave function by
-         !! | \Psi_T > = c1*| \Psi_T^1 > + c1^{\dagger}*| \Psi_T^2 >
-      do nf_eff = 1, N_FL_eff
-         nf = Calc_Fl_map(nf_eff)
-         phi_0_l(nf_eff, 1)%U(:, :) = p1_tmp(:, :, nf)*c1
-         phi_0_l(nf_eff, 2)%U(:, :) = p2_tmp(:, :, nf)*conjg(c1)
-         WF_L(nf, 1)%P(:, :) = p1_tmp(:, :, nf)*c1
-         WF_L(nf, 2)%P(:, :) = p2_tmp(:, :, nf)*conjg(c1)
-      end do
-
-         !! normalization of overlap <\Psi_T | \phi_k^0>
-
-      alpha = 1.d0
-      beta = 0.d0
-      log_zdet(:) = 0.d0
-      do ns = 1, n_slat
-      do nf_eff = 1, N_FL_eff
-         nf = Calc_Fl_map(nf_eff)
-     call zgemm('C','N',N_part,N_part,Ndim,alpha,phi_0_l(nf_eff,ns)%U(1,1),Ndim,phi_0_r(nf_eff,1)%U(1,1),ndim,beta,smat(1,1),N_part)
-         ! ZGETRF computes an LU factorization of a general M-by-N matrix A
-         ! using partial pivoting with row interchanges.
-         call ZGETRF(N_part, N_part, smat, N_part, ipiv, info)
-         ! obtain log of det
-         zdet = 0.d0
-         phase = 1.d0
-         do n = 1, N_part
-            if (ipiv(n) .ne. n) then
-               phase = -phase
-            end if
-            zdet = zdet + log(smat(n, n))
-         end do
-         zdet = zdet + log(phase)
-
-         log_zdet(ns) = log_zdet(ns) + zdet
-      end do
-      end do
-
-      z_norm = exp(log_zdet(1)) + exp(log_zdet(2))
-      if (irank_g .eq. 0) write (*, *) 'overlap for input slater', z_norm
-      !d_norm = dble(z_norm)
-      !z_norm = (1.d0/d_norm)**(1.d0/dble(2*N_part))
-      z_norm = (1.d0/z_norm)**(1.d0/dble(2*N_part))
-      if (irank_g .eq. 0) write (*, *) 'renormalized factor for input slater z_norm', z_norm
-
-      do i_wlk = 1, n_wlk
-      do nf_eff = 1, N_FL_eff
-         nf = Calc_Fl_map(nf_eff)
-         phi_0_r(nf_eff, i_wlk)%U(:, :) = phi_0_r(nf_eff, i_wlk)%U(:, :)*z_norm
-      end do
-      end do
-
-      if (irank_g .eq. 0) then
-         deallocate (phi0_in)
-      end if
-      deallocate (p1_tmp)
-      deallocate (p2_tmp)
-      deallocate (smat, log_zdet, ipiv)
+      if (irank_g .eq. 0 ) then
+          deallocate(phi0_out)
+      endif
+      deallocate(p1_tmp)
 
    end subroutine trial_in_hdf5
 #endif
