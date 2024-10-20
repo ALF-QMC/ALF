@@ -79,7 +79,7 @@ contains
          end do
       end do
 
-      file_inst = 'trial_0.h5'
+      file_tg = 'trial_0.h5'
       inquire (file=file_tg, exist=lconf_h5)
       if (lconf_h5) then
          if (irank_g .eq. 0) write (*, *) "read input trial wave function"
