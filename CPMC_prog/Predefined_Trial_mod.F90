@@ -98,21 +98,14 @@ contains
       real(Kind=kind(0.d0))  :: A1_p(2), A2_p(2), L1_p(2), L2_p(2), x_p(2), x1_p(2), hop(3), del_p(2)
       real(Kind=kind(0.d0))  :: delta = 0.01, Ham_T1, Ham_T2, Ham_Tperp
 
-      integer :: N, nf, I, I1, I2, nc, nc1, IK_u, I_u, J1, lp, J, N_Phi, ns, no, k1
+      integer :: N, nf, I, I1, I2, nc, nc1, IK_u, I_u, J1, lp, J, N_Phi, ns, no, k1, N_part_tot, Np_arr(2), i0, j0
       logical :: Test = .false., Bulk = .true.
       complex(Kind=kind(0.d0)) :: Z_norm
 
       real(Kind=kind(0.d0)), allocatable :: Ham_T_vec(:), Ham_Tperp_vec(:), Ham_Chem_vec(:), Phi_X_vec(:), Phi_Y_vec(:),&
              & ham_tx_vec(:), ham_ty_vec(:), Ham_T2_vec(:), Ham_lambda_vec(:)
       integer, allocatable ::   N_Phi_vec(:)
-
-      allocate (WF_L(N_FL, N_slat), WF_R(N_FL, N_slat))
-      do ns = 1, N_slat
-      do n = 1, N_FL
-         call WF_alloc(WF_L(n, ns), Ndim, N_part)
-         call WF_alloc(WF_R(n, ns), Ndim, N_part)
-      end do
-      end do
+      real(Kind=kind(0.d0)), allocatable :: eig_sort_arr(:,:)
 
       allocate (Ham_T_vec(N_FL), Ham_T2_vec(N_FL), Ham_Tperp_vec(N_FL), Ham_Chem_vec(N_FL), Phi_X_vec(N_FL), Phi_Y_vec(N_FL),&
            &    ham_tx_vec(N_FL), ham_ty_vec(N_FL), Ham_lambda_vec(N_FL), N_Phi_vec(N_FL))
@@ -143,146 +136,6 @@ contains
       Ham_lambda_vec = 0.d0
 
       select case (Lattice_type)
-
-      case ("Honeycomb")
-         if (l_cmplx_trial) then
-
-            Ham_T_vec = 1.d0
-            Ham_lambda_vec = 0.d0
-            Ham_Chem_vec = 0.d0
-            Phi_X_vec = 0.01
-            Phi_Y_vec = 0.02
-            !Phi_X_vec(1)   = 0.01
-            !Phi_X_vec(2)   =-0.01
-            !Phi_Y_vec(1)   = 0.02
-            !Phi_Y_vec(2)   =-0.02
-            call Set_Default_hopping_parameters_honeycomb(Hopping_Matrix_tmp, Ham_T_vec, &
-                & Ham_Lambda_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, & 
-                & N_FL, List, Invlist, Latt, Latt_unit)
-
-         else
-
-            Ham_T = 1.d0
-            allocate (Op_Tmp(1, N_FL))
-            do n = 1, N_FL
-               call Op_make(Op_Tmp(1, n), Ndim)
-            end do
-            do I = 1, Latt%N
-               I1 = Invlist(I, 1)
-               do nc1 = 1, Latt_unit%N_coord
-                  select case (nc1)
-                  case (1)
-                     J1 = invlist(I, 2)
-                  case (2)
-                     J1 = invlist(Latt%nnlist(I, 1, -1), 2)
-                  case (3)
-                     J1 = invlist(Latt%nnlist(I, 0, -1), 2)
-                  case default
-                     write (error_unit, *) 'Error in  Predefined_TrialWaveFunction'
-                     error stop 1
-                  end select
-                  delta = 0.005d0*ranf_wrap()
-                  delta = 0.d0
-                  do n = 1, N_FL
-                     Op_Tmp(1, n)%O(I1, J1) = cmplx(-Ham_T - delta, 0.d0, kind(0.d0))
-                     Op_Tmp(1, n)%O(J1, I1) = cmplx(-Ham_T - delta, 0.d0, kind(0.d0))
-                  end do
-               end do
-               do n = 1, N_FL
-                  rmu = 0.d0
-                  rmu = 0.002d0*(ranf_wrap() - 0.5d0)
-                  Op_Tmp(1, n)%O(I1, I1) = cmplx(rmu, 0.d0, kind(0.d0))
-               end do
-            end do
-            do n = 1, N_FL
-               do I = 1, Ndim
-                  op_tmp(1, n)%P(i) = i
-               end do
-               op_Tmp(1, n)%g = cmplx(1.d0, 0.d0, kind(0.d0))
-               op_Tmp(1, n)%alpha = cmplx(0.d0, 0.d0, kind(0.d0))
-               call op_set(Op_Tmp(1, n))
-            end do
-
-         end if
-
-      case ("Square")
-         if (hatree_fock) then
-            Ham_T = 1.d0
-            Ham_T2 = -0.3d0
-            Ham_U = 8.d0
-            allocate (Op_Tmp(1, N_FL))
-            do n = 1, N_FL
-               call Op_make(Op_Tmp(1, n), Ndim)
-               do I = 1, Latt%N
-                  I1 = Invlist(I, 1)
-                  do nc1 = 1, 4
-                     select case (nc1)
-                     case (1)
-                        J1 = invlist(Latt%nnlist(I, 1, 0), 1)
-                        Op_Tmp(1, n)%O(I1, J1) = cmplx(-Ham_T, 0.d0, kind(0.d0))
-                        Op_Tmp(1, n)%O(J1, I1) = cmplx(-Ham_T, 0.d0, kind(0.d0))
-                     case (2)
-                        J1 = invlist(Latt%nnlist(I, 0, 1), 1)
-                        Op_Tmp(1, n)%O(I1, J1) = cmplx(-Ham_T, 0.d0, kind(0.d0))
-                        Op_Tmp(1, n)%O(J1, I1) = cmplx(-Ham_T, 0.d0, kind(0.d0))
-                     case (3)
-                        J1 = invlist(Latt%nnlist(I, 1, 1), 1)
-                        Op_Tmp(1, n)%O(I1, J1) = cmplx(-Ham_T2, 0.d0, kind(0.d0))
-                        Op_Tmp(1, n)%O(J1, I1) = cmplx(-Ham_T2, 0.d0, kind(0.d0))
-                     case (4)
-                        J1 = invlist(Latt%nnlist(I, -1, 1), 1)
-                        Op_Tmp(1, n)%O(I1, J1) = cmplx(-Ham_T2, 0.d0, kind(0.d0))
-                        Op_Tmp(1, n)%O(J1, I1) = cmplx(-Ham_T2, 0.d0, kind(0.d0))
-                     case default
-                        write (error_unit, *) 'Error in  Predefined_TrialWaveFunction'
-                        call Terminate_on_error(ERROR_GENERIC, __FILE__, __LINE__)
-                     end select
-                  end do
-                  sgn_i = 1.d0
-                  if (mod(Latt%List(I, 1) + Latt%List(I, 2), 2) .eq. 0) sgn_i = -1.d0
-                  sgn_updn = 1.d0
-                  if (n .eq. 2) sgn_updn = -1.d0
-                  mass = -2.d0*ham_U*0.97*sgn_i*sgn_updn
-                  Op_Tmp(1, n)%O(I1, I1) = cmplx(mass, 0.d0, kind(0.d0))
-               end do
-               do I = 1, Ndim
-                  Op_Tmp(1, n)%P(i) = i
-               end do
-               Op_Tmp(1, n)%g = cmplx(1.d0, 0.d0, kind(0.d0))
-               Op_Tmp(1, n)%alpha = cmplx(0.d0, 0.d0, kind(0.d0))
-               call Op_set(Op_Tmp(1, n))
-            end do
-         else
-            Ham_T_vec = 1.d0
-            !Ham_T2_vec   = -0.3d0
-            Phi_X_vec = 0.01
-         call Set_Default_hopping_parameters_square(Hopping_Matrix_tmp, Ham_T_vec, Ham_T2_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
-                          &                                      Bulk, N_Phi_vec, N_FL, &
-                          &                                      List, Invlist, Latt, Latt_unit)
-         end if
-         !Case ("N_leg_ladder")
-         !   Ham_T_vec     = 1.d0
-         !   Ham_Tperp_vec = 1.d0
-         !   Phi_X_vec     = 0.01
-         !   Call  Set_Default_hopping_parameters_n_leg_ladder(Hopping_Matrix_tmp, Ham_T_vec, Ham_Tperp_vec, Ham_Chem_vec, Phi_X_vec, &
-         !        &                                            Phi_Y_vec, Bulk,  N_Phi_vec, N_FL, &
-         !        &                                            List, Invlist, Latt, Latt_unit )
-      case ("Bilayer_square")
-         Ham_T_vec = 1.d0
-         Ham_T2_vec = 0.d0
-         Ham_Tperp_vec = 1.d0
-         Phi_X_vec = 0.00
-        call Set_Default_hopping_parameters_Bilayer_square(Hopping_Matrix_tmp, Ham_T_vec, Ham_T2_vec, Ham_Tperp_vec, Ham_Chem_vec, &
-                  &                                              Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL,&
-                  &                                              List, Invlist, Latt, Latt_unit)
-      case ("Bilayer_honeycomb")
-         Ham_T_vec = 1.d0
-         Ham_T2_vec = 0.d0
-         Ham_Tperp_vec = 1.d0
-         Phi_X_vec = 0.00
-           Call  Set_Default_hopping_parameters_Bilayer_honeycomb(Hopping_Matrix_tmp,Ham_T_vec,Ham_T2_vec,Ham_Tperp_vec, Ham_Chem_vec, Phi_X_vec, &
-            &                                                 Phi_Y_vec, Bulk, N_Phi_vec, N_FL,&
-            &                                                 List, Invlist, Latt, Latt_unit)
 
       case ('N_leg_ladder')
          if ( l_cmplx_trial ) then
@@ -349,19 +202,57 @@ contains
          call Terminate_on_error(ERROR_GENERIC, __FILE__, __LINE__)
       end select
 
-      if (l_cmplx_trial .and. (.not. hatree_fock) )   &
+      if (l_cmplx_trial )   &
       &     call Predefined_Hoppings_set_OPT(Hopping_Matrix_tmp, List, Invlist, Latt, Latt_unit, Dtau, Checkerboard, Symm, OP_tmp)
 
       do nf = 1, N_FL
-         call Diag(Op_tmp(1, nf)%O, Op_tmp(1, nf)%U, Op_tmp(1, nf)%E)
-         do I2 = 1, N_part
-            do I1 = 1, Ndim
-               WF_L(nf, 1)%P(I1, I2) = Op_tmp(1, nf)%U(I1, I2)
-               WF_R(nf, 1)%P(I1, I2) = Op_tmp(1, nf)%U(I1, I2)
+         call Diag(op_tmp(1, nf)%o, op_tmp(1, nf)%u, op_tmp(1, nf)%e)
+      end do
+
+      !! sort eigen state
+      allocate(eig_sort_arr(3,n_fl*Ndim))
+      eig_sort_arr(:,:) = 0.d0
+      nc = 0
+      do nf = 1, N_fl
+          do i1 = 1, ndim
+              nc = nc + 1
+              eig_sort_arr(1,nc) = op_tmp(1, nf)%e(i1)
+              eig_sort_arr(1+nf,nc) = i1
+          enddo
+      enddo
+      call s_heapsort(n_fl*Ndim,3,eig_sort_arr)
+      
+      N_part_tot = 2*N_part
+      i0 = 0; j0 = 0
+      do nc = 1, N_part_tot
+          i1 = int(eig_sort_arr(nc,2))
+          if (i1 .ne. 0) then
+              i0 = i0 + 1
+          else
+              j0 = j0 + 1
+          endif
+      enddo
+      np_arr(1) = i0
+      np_arr(2) = j0
+
+      !! allocate wf
+      allocate (wf_l(n_fl, n_slat), wf_r(n_fl, n_slat))
+      do ns = 1, n_slat
+         do n=1,N_FL
+            call wf_alloc(wf_l(n, ns), ndim, np_arr(n))
+            call wf_alloc(wf_r(n, ns), ndim, np_arr(n))
+         enddo
+      end do
+
+      do nf = 1, N_FL
+         do i2 = 1, np_arr(nf)
+            do i1 = 1, ndim
+               wf_l(nf, 1)%p(i1,i2) = op_tmp(1, nf)%u(i1,i2)
+               wf_r(nf, 1)%p(i1,i2) = op_tmp(1, nf)%u(i1,i2)
             end do
          end do
-         WF_L(nf, 1)%Degen = Op_tmp(1, nf)%E(N_part + 1) - Op_tmp(1, nf)%E(N_part)
-         WF_R(nf, 1)%Degen = Op_tmp(1, nf)%E(N_part + 1) - Op_tmp(1, nf)%E(N_part)
+         wf_l(nf, 1)%degen = op_tmp(1, nf)%e(np_arr(nf) + 1) - op_tmp(1, nf)%e(np_arr(nf))
+         wf_r(nf, 1)%degen = op_tmp(1, nf)%e(np_arr(nf) + 1) - op_tmp(1, nf)%e(np_arr(nf))
       end do
 
       do nf = 1, N_FL
@@ -389,5 +280,140 @@ contains
       deallocate (ham_tx_vec, ham_ty_vec)
 
    end subroutine Predefined_TrialWaveFunction
+  
+   subroutine s_heapsort(n,width,brxyz)
+! modified from BSTATE code by Xiaoyan Xu 2013.9
+!########################################################################
+! Former discription
+!C---*----1----*----2----*----3----*----4----*----5----*----6----*----7
+!C-----CALL HPSORT(KG,IG1,IG2,IG3,GX,GY,GZ,GR)
+!      subroutine hpsort(kn,n,bxyz,br)
+!c                           @(#)hpsort.f 9.1 97/05/08 14:48:33 
+!C^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+!C     THIS SUBROUTINE SORTS THE ELEMENTS OF ARRAY BR IN ASCENDING
+!C     ORDER. THE CODE IS BASED UPON HEAPSORT ALGORITHM WHICH HAS
+!C     N*LOG(N) SCALING BEHAVIOUR, PARTICULARLY FAVOURABLE FOR LARGE
+!C     VECTORS BR
+!C                              STEFAN BL"UGEL, ISSP, NOV 1989
+!C^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+!########################################################################
+
+
+! description
+! This subroutine sorts the elements of array brxyz(width,n) in ascending order
+! based on brxyz(1,:).
+
+      IMPLICIT LOGICAL(A-Z)
+      integer n, width
+      real(kind=kind(0.d0)), dimension(width, n) :: brxyz
+      integer :: l, i, ii, iheap
+      real(kind=kind(0.d0)) :: brr
+      real(kind=kind(0.d0)), dimension(width-1) :: bxyz
+!     integer :: kn, n,l,i,ii,iheap
+!     real*8    bxyz(kn,3),br(*),brr,bxx,byy,bzz
+!C
+!C
+!C=====> BUILD-UP OF THE HEAP
+!C
+!C-----> LOOP OVER ALL HIERACHICAL LEVELS OF THE HEAP TREE
+!C
+      DO 10 L = N/2 , 1 , -1
+!         brr = br(l)
+         brr = brxyz(1,l)
+         bxyz = brxyz(2:width,l)
+!         bxx = bxyz(l,1)
+!         byy = bxyz(l,2)
+!         bzz = bxyz(l,3)
+         I   = L
+         II  = L + L
+!C
+!C-----> GO DOWN ALL THE HIERACHICAL LEVELS OF THE HEAP TREE
+!C
+  20    IF ( II .LE. N ) THEN
+!C
+!C-----> COMPARE NEIGHBOURING ELEMENTS
+           IF ( II .LT. N ) THEN
+              IF ( BRXYZ(1,II) .LT. BRXYZ(1,II+1) ) II = II + 1
+           ENDIF
+!C
+!C-----> COMPARE THE ELEMENTS OF TWO HIRACHICAL LEVELS
+!C       PROMOTE LARGER ONE, DEMOTE SMALLER ONE
+           IF ( BRR .LT. BRXYZ(1,II) ) THEN
+              BRXYZ(1,I) = BRXYZ(1,II)
+              brxyz(2:width,i) = brxyz(2:width,ii)
+!              bxyz(i,1) = bxyz(ii,1)
+!              bxyz(i,2) = bxyz(ii,2)
+!              bxyz(i,3) = bxyz(ii,3)
+              I     = II
+              II    = II + II
+           ELSE
+!C
+!C-----> THIS PART OF THE TREE IS ORDERED , STOP BY PUTTING II=N+1
+              II    = N + 1
+           END IF
+                                                GO TO 20
+        END IF
+!C-----> PUT ELEMENTS IN THE PROPER SLOT
+        brxyz(1,i) = brr
+        brxyz(2:width,i) = bxyz(:)
+!        bxyz(i,1) = bxx
+!        bxyz(i,2) = byy
+!        bxyz(i,3) = bzz
+  10  continue
+!C
+!C=====> NOW COLLECT ALL ELEMENTS FROM THE HEAP
+!C
+      DO 30 IHEAP = N , 1 , -1
+!C
+         brr = brxyz(1,iheap)
+         bxyz = brxyz(2:width,iheap)
+!         bxx = bxyz(iheap,1)
+!         byy = bxyz(iheap,2)
+!         bzz = bxyz(iheap,3)
+!C
+!C-----> THE FIRST ELEMENT IS ALWAYS THE LARGEST
+              brxyz(1,iheap) = brxyz(1,1)
+              brxyz(2:width,iheap) = brxyz(2:width,1)
+!              bxyz(iheap,1) = bxyz(1,1)
+!              bxyz(iheap,2) = bxyz(1,2)
+!              bxyz(iheap,3) = bxyz(1,3)
+!C-----> NOW LARGEST ELEMENT OF ALL BR(I) WITH 1<=I<=IHEAP IS STORED
+!C
+         I   = 1
+         II  = 2
+!C
+!C-----> NOW GENERATE LARGEST ELEMENT OF BR(I) WITH 1<=I<=IHEAP-1
+!C
+  40    IF ( II .LE. IHEAP - 1 ) THEN
+!C
+!C-----> COMPARE NEIGHBOURING ELEMENTS
+           IF ( II .LT. IHEAP - 1 ) THEN
+              IF ( BRXYZ(1,II) .LT. BRXYZ(1,II+1) ) II = II + 1
+           ENDIF
+!C
+!C-----> PROMOTE EACH ELEMENT OF THE TWIG OF BR UNTIL BRR > BR(I)
+           IF ( BRR .LT. BRXYZ(1,II) ) THEN
+              brxyz(1,i) = brxyz(1,ii)
+              brxyz(2:width,i) = brxyz(2:width,ii)
+!              bxyz(i,1) = bxyz(ii,1)
+!              bxyz(i,2) = bxyz(ii,2)
+!              bxyz(i,3) = bxyz(ii,3)
+              I     = II
+              II    = II + II
+           ELSE
+!C
+!C-----> THIS PART OF THE TREE IS PROMOTED , STOP BY PUTTING II=IHEAP+1
+              II    = IHEAP + 1
+           END IF
+                                                GO TO 40
+        END IF
+!C-----> PUT ELEMENTS IN THE PROPER SLOT
+        brxyz(1,i) = brr
+        brxyz(2:width,i) = bxyz(:)
+!        bxyz(i,1) = bxx
+!        bxyz(i,2) = byy
+!        bxyz(i,3) = bzz
+  30  continue
+  end subroutine s_heapsort
 
 end module Predefined_Trial
