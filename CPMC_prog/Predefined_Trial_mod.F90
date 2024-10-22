@@ -160,7 +160,7 @@ contains
 
             do i = 1, latt%n
                do no = 1, Latt_unit%Norb - 1
-                  delta = 0.005d0*ranf_wrap()
+                  delta = 0.01d0*ranf_wrap()
                   ham_t = 1.d0 + delta
 
                   i1 = invlist(i, no)
@@ -178,7 +178,7 @@ contains
                      op_tmp(1, n)%o(k1, i1) = cmplx(-ham_ty_vec(n), 0.d0, kind(0.d0))
                   end do
                end do
-               delta = 0.005d0*ranf_wrap()
+               delta = 0.01d0*ranf_wrap()
                ham_t = 1.d0 + delta
                no = Latt_unit%Norb
                i1 = invlist(i, no)
@@ -225,7 +225,7 @@ contains
       N_part_tot = 2*N_part
       i0 = 0; j0 = 0
       do nc = 1, N_part_tot
-          i1 = int(eig_sort_arr(nc,2))
+          i1 = int(eig_sort_arr(2,nc))
           if (i1 .ne. 0) then
               i0 = i0 + 1
           else
