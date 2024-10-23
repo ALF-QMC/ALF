@@ -235,6 +235,10 @@ contains
       np_arr(1) = i0
       np_arr(2) = j0
 
+      !! set unpolarized doping
+      np_arr(1) = N_part
+      np_arr(2) = N_part
+
       !! allocate wf
       allocate (wf_l(n_fl, n_slat), wf_r(n_fl, n_slat))
       do ns = 1, n_slat
@@ -255,25 +259,25 @@ contains
          wf_r(nf, 1)%degen = op_tmp(1, nf)%e(np_arr(nf) + 1) - op_tmp(1, nf)%e(np_arr(nf))
       end do
 
-      do nf = 1, N_FL
-         call WF_overlap(WF_L(nf, 1), WF_R(nf, 1), Z_norm)
-         WF_L(nf, 1)%P(:, :) = WF_L(nf, 1)%P(:, :)/sqrt(dble(N_slat))
-         WF_R(nf, 1)%P(:, :) = WF_R(nf, 1)%P(:, :)/sqrt(dble(N_slat))
+      do nf = 1, n_fl
+         call wf_overlap(wf_l(nf, 1), wf_r(nf, 1), Z_norm)
+         wf_l(nf, 1)%p(:, :) = wf_l(nf, 1)%p(:, :)/sqrt(dble(N_slat))
+         wf_r(nf, 1)%p(:, :) = wf_r(nf, 1)%p(:, :)/sqrt(dble(N_slat))
       end do
 
-      do nf = 1, N_FL
+      do nf = 1, n_fl
       do ns = 2, n_slat
-         WF_L(nf, ns)%Degen = WF_L(nf, 1)%Degen
-         WF_R(nf, ns)%Degen = WF_R(nf, 1)%Degen
-         WF_L(nf, ns)%P(:, :) = WF_L(nf, 1)%P(:, :)
-         WF_R(nf, ns)%P(:, :) = WF_R(nf, 1)%P(:, :)
+         wf_l(nf, ns)%degen = wf_l(nf, 1)%degen
+         wf_r(nf, ns)%degen = wf_r(nf, 1)%degen
+         wf_l(nf, ns)%p(:, :) = wf_l(nf, 1)%p(:, :)
+         wf_r(nf, ns)%p(:, :) = wf_r(nf, 1)%p(:, :)
       end do
       end do
 
       do nf = 1, N_FL
-         call Op_clear(OP_tmp(1, nf), Ndim)
+         call op_clear(op_tmp(1, nf), ndim)
       end do
-      deallocate (OP_tmp)
+      deallocate (op_tmp)
       call Predefined_hoppings_clear(Hopping_Matrix_tmp)
 
       deallocate (Ham_T_vec, Ham_Tperp_vec, Ham_T2_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, N_Phi_vec)
