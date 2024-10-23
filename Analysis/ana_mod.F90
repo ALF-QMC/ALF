@@ -1295,17 +1295,25 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       Write(6, '(A22, I0)') "Effective # of bins: ", Nbins_eff/N_rebin
       N_auto=min(N_auto,Nbins_eff/3)
       if(Nbins_eff/N_rebin < 2) then
-         Write(error_unit,*) "Effective # of bins smaller than 2. Analysis impossible!"
-         error stop 1
+         !Write(error_unit,*) "Effective # of bins smaller than 2. Analysis impossible!"
+         !error stop 1
       endif
       
       ! Allocate  space
-      Allocate ( Bins(Nobs,Nbins_eff), sgn(Nbins_eff) )
-      
-      do i =1,Nbins_eff
-         Bins(:,i) = Bins_raw(:,i+n_skip)
-         sgn(i) = sgn_raw(i+n_skip)
-      enddo
+      if (Nbins_eff .eq. 1) then
+          Nbins_eff=2
+          allocate ( Bins(Nobs,Nbins_eff), sgn(Nbins_eff) )
+          do i =1,Nbins_eff
+             Bins(:,i) = Bins_raw(:,1+n_skip)
+             sgn(i) = sgn_raw(1+n_skip)
+          enddo
+      else
+          allocate ( Bins(Nobs,Nbins_eff), sgn(Nbins_eff) )
+          do i =1,Nbins_eff
+             Bins(:,i) = Bins_raw(:,i+n_skip)
+             sgn(i) = sgn_raw(i+n_skip)
+          enddo
+      endif
       
       write(File_out,'(A,A)') trim(name), "J"
       OPEN (UNIT=21, FILE=File_out, STATUS='unknown')
@@ -1363,7 +1371,8 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       Complex (Kind=Kind(0.d0)), Allocatable  :: Bins(:,:), GRC(:,:,:), Uvec(:,:,:), GRC_H(:,:,:)
       Complex (Kind=Kind(0.d0)), Allocatable  :: ZMat(:,:), Zmat2(:,:)
       Complex (Kind=Kind(0.d0)), pointer      :: wf_p_up(:,:), wf_p_dn(:,:)
-      REAL    (Kind=Kind(0.d0)), Allocatable  :: Evec(:,:), Evec_tmp(:)
+      real    (Kind=Kind(0.d0)), Allocatable  :: Evec(:,:), Evec_tmp(:)
+      complex    (Kind=Kind(0.d0)), Allocatable  :: z_evec_tmp(:)
       Real    (Kind=Kind(0.d0)) :: x_p(2), a1_p(2), a2_p(2), L1_p(2), L2_p(2)
       Complex (Kind=Kind(0.d0)) :: Z, Xmean,XERR
       Integer :: Nobs, Nobs_output, data_range, nc, nf, J, hdferr, rank
@@ -1442,22 +1451,35 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       Write(6, '(A22, I0)') "Effective # of bins: ", Nbins_eff/N_rebin
       N_auto=min(N_auto,Nbins_eff/3)
       if(Nbins_eff/N_rebin < 2) then
-         Write(error_unit,*) "Effective # of bins smaller than 2. Analysis impossible!"
-         error stop 1
+         !Write(error_unit,*) "Effective # of bins smaller than 2. Analysis impossible!"
+         !error stop 1
+      endif
+
+      ! Allocate  space
+      if (Nbins_eff .eq. 1) then
+          Nbins_eff=2
+          allocate( Bins(Nobs,Nbins_eff), phase(Nbins_eff) )
+          allocate( V_data(Nbins_eff) )
+          do i =1,Nbins_eff
+             Bins(:,i) = Bins_raw(:,1+n_skip)
+             phase (i) = cmplx(sgn_raw(1+n_skip),0.d0,kind(0.d0))
+          enddo
+      else
+          allocate( Bins(Nobs,Nbins_eff), phase(Nbins_eff) )
+          allocate( V_data(Nbins_eff) )
+          do i =1,Nbins_eff
+             Bins(:,i) = Bins_raw(:,i+n_skip)
+             phase (i) = cmplx(sgn_raw(i+n_skip),0.d0,kind(0.d0))
+          enddo
       endif
       
       ! Allocate  space
-      Allocate( Bins(Nobs,Nbins_eff), phase(Nbins_eff) )
       Allocate( Grc (Ndim,Ndim,n_fl), Uvec(ndim,ndim,n_fl), Zmat(ndim,ndim), Zmat2(ndim,ndim))
       Allocate( Grc_H(Ndim,Ndim,n_fl))
       Allocate( wf_p_up(Ndim,n_part), wf_p_dn(ndim,n_part) )
       Allocate( Evec(Ndim,n_fl), Evec_tmp(ndim))
-      Allocate( V_data(Nbins_eff) )
+      allocate( z_evec_tmp(ndim)  )
       
-      do i =1,Nbins_eff
-         Bins(:,i) = Bins_raw(:,i+n_skip)
-         phase (i) = cmplx(sgn_raw(i+n_skip),0.d0,kind(0.d0))
-      enddo
       
       DO IOBS = 1,NOBS
          do nb = 1,Nbins_eff
@@ -1481,23 +1503,49 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
          Enddo
       Enddo
 
+      !! For mix estimator
       do nf = 1, N_fl
-         zmat(:,:)=Grc_H(:,:,nf)
-         !zmat(:,:)=Grc(:,:,nf)
-         Call Diag(zmat, zmat2, evec_tmp)
+         !zmat(:,:)=Grc_H(:,:,nf)
+         zmat(:,:)=Grc(:,:,nf)
+         !Call diag(zmat, zmat2, evec_tmp)
+         Call diag_gen(zmat, zmat2, z_evec_tmp, 'R', 0)
          uvec(:,:,nf)=zmat2
-         evec(:,nf)=evec_tmp
+         !evec(:,nf)=evec_tmp
+         evec(:,nf)=dble(z_evec_tmp)
       enddo
 
-      !do nf = 1, N_fl
-      do i2=1,n_part
-         ic2 = ndim-(i2-1) 
-         do i1=1,ndim
-             wf_p_up(i1,i2)=uvec(i1,ic2,1)
-             wf_p_dn(i1,i2)=uvec(i1,ic2,2)
-         enddo
+      !! spin up
+      nc=0
+      nf=1
+      do i2=1,ndim
+          if ( evec(i2,nf) .gt. 0.5 ) then
+            nc = nc + 1
+            do i1=1,ndim
+                wf_p_up(i1,nc)=uvec(i1,i2,nf)
+            enddo
+          endif
       enddo
+      !! spin dn
+      nc=0
+      nf=2
+      do i2=1,ndim
+          if ( evec(i2,nf) .gt. 0.5 ) then
+            nc = nc + 1
+            do i1=1,ndim
+                wf_p_dn(i1,nc)=uvec(i1,i2,nf)
+            enddo
+          endif
+      enddo
+
+      !!do nf = 1, N_fl
+      !do i2=1,n_part
+      !   ic2 = ndim-(i2-1) 
+      !   do i1=1,ndim
+      !       wf_p_up(i1,i2)=uvec(i1,ic2,1)
+      !       wf_p_dn(i1,i2)=uvec(i1,ic2,2)
+      !   enddo
       !enddo
+      !!enddo
 
       write(Filename,'(A,A)') trim(name), "_slatd.h5"
       !! output hdf5 slaterDet
