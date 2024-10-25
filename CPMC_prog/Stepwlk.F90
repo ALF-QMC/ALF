@@ -2083,7 +2083,7 @@ contains
       complex (Kind=Kind(0.d0)), allocatable :: p0_tmp(:,:), p1_tmp(:,:), p2_tmp(:,:), p3_tmp(:,:)
       complex (kind=kind(0.d0)), allocatable, dimension(:,:) :: smat_up, smat_dn
       complex (kind=kind(0.d0)) :: alpha, beta, zdet, z_norm_up, z_norm_dn, z_norm
-      real    (kind=kind(0.d0)) :: phase
+      complex (kind=kind(0.d0)) :: phase
       integer, allocatable :: ipiv_up(:), ipiv_dn(:)
 
       INTEGER             :: K, hdferr, rank, nf, nw, i0, i1, i2, i_st, i_ed, Ndt, ii, nwalk_in
