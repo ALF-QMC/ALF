@@ -168,8 +168,8 @@ contains
                   k1 = invlist(i, no + 1)
 
                   ham_tx_vec(1) = ham_t; 
-                  ham_tx_vec(2) = ham_t*alpha; 
-                  ham_ty_vec(1) = ham_t*alpha; 
+                  ham_tx_vec(2) = ham_t!*alpha; 
+                  ham_ty_vec(1) = ham_t!*alpha; 
                   ham_ty_vec(2) = ham_t; 
                   do n = 1, n_fl
                      op_tmp(1, n)%o(i1, j1) = cmplx(-ham_tx_vec(n), 0.d0, kind(0.d0))
@@ -184,7 +184,7 @@ contains
                i1 = invlist(i, no)
                j1 = invlist(latt%nnlist(i, 1, 0), no)
                ham_tx_vec(1) = ham_t; 
-               ham_tx_vec(2) = ham_t*alpha; 
+               ham_tx_vec(2) = ham_t!*alpha; 
                do n = 1, n_fl
                   op_tmp(1, n)%o(i1, j1) = cmplx(-ham_tx_vec(n), 0.d0, kind(0.d0))
                   op_tmp(1, n)%o(j1, i1) = cmplx(-ham_tx_vec(n), 0.d0, kind(0.d0))
