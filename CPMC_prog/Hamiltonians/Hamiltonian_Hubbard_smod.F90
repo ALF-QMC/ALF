@@ -391,7 +391,7 @@
                 Call Obser_Latt_make(Obs_tau(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
              enddo
 
-             if ( lmetropolis ) then
+             if ( lmetropolis .eq. 1 ) then
                 Nt = Ltrot+1
                 Channel = 'T0'
                 Filename = "mc_obs"
