@@ -590,10 +590,10 @@
 
         end Subroutine OBSERT
 
-        subroutine bp_obsert(i_wlk, i_grc,sum_w, act_mea)
+        subroutine bp_obsert(i_wlk, sum_w, act_mea)
            Implicit none
     
-           integer, intent(in) :: i_wlk, i_grc, act_mea
+           integer, intent(in) :: i_wlk, act_mea
            complex (Kind=Kind(0.d0)), INTENT(IN) :: sum_w
           
            !Locals
