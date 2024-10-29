@@ -317,10 +317,10 @@ contains
 
    end subroutine ObserT_base
 
-   subroutine bp_obsert_base(i_wlk, i_grc, sum_w, act_mea)
+   subroutine bp_obsert_base(i_wlk, sum_w, act_mea)
       implicit none
 
-      integer, intent(in) :: i_wlk, i_grc, act_mea
+      integer, intent(in) :: i_wlk, act_mea
       complex(Kind=kind(0.d0)), intent(in) :: sum_w
 
    end subroutine bp_obsert_base

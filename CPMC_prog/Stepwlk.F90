@@ -697,7 +697,7 @@ contains
          if (ltau .eq. 1) then
             act_mea = 0 + irank
             do i_wlk = 1, N_wlk
-               call ham%bp_obsert(i_wlk, i_grc, z_weight, act_mea)
+               call ham%bp_obsert(i_wlk, z_weight, act_mea)
                act_mea = act_mea + 1
             end do
          end if
