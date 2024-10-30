@@ -599,7 +599,7 @@
            !Locals
            Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY, ZW, Re_ZW, Z_fac, Z_ol
            Real    (Kind=Kind(0.d0)) :: X
-           Integer :: IMJ, I, J, I1, J1, no_I, no_J, nt
+           Integer :: IMJ, I, J, I1, J1, no_I, no_J, nt, N_mea, Ns, Ntau
           
            ZW = cmplx(weight_k(i_wlk),0.d0,kind(0.d0))/sum_w
            Z_fac = ZW
@@ -612,33 +612,52 @@
                enddo
            endif
 
-           obs_grc(i_wlk)%ave_sign = obs_grc(i_wlk)%ave_sign/dble(obs_grc(i_wlk)%N)
+           !!================ Green's function ==================!!
+           N_mea = obs_grc(i_wlk)%N
+           obs_grc(i_wlk)%ave_sign = obs_grc(i_wlk)%ave_sign/dble(N_mea)
            obs_grc(i_wlk)%obs_latt(:,:,:,:) = &
-               & obs_grc(i_wlk)%obs_latt(:,:,:,:)/dble(obs_grc(i_wlk)%N)/obs_grc(i_wlk)%ave_sign
+               & obs_grc(i_wlk)%obs_latt(:,:,:,:)/dble(N_mea)/obs_grc(i_wlk)%ave_sign
+           obs_grc(i_wlk)%obs_latt0(:) = obs_grc(i_wlk)%obs_latt0(:)/dble(N_mea)/obs_grc(i_wlk)%ave_sign
 
            obs_tau(1)%obs_latt(:,:,:,:) = obs_tau(1)%obs_latt(:,:,:,:) + &
                & obs_grc(i_wlk)%obs_latt(:,:,:,:)*z_fac
+           obs_tau(1)%obs_latt0(:) = obs_tau(1)%obs_latt0(:) + obs_grc(i_wlk)%obs_latt0(:)*z_fac
            
-           obs_spinz(i_wlk)%ave_sign = obs_spinz(i_wlk)%ave_sign/dble(obs_spinz(i_wlk)%N)
+           !!================ spinz ==================!!
+           N_mea = obs_spinz(i_wlk)%N
+           obs_spinz(i_wlk)%ave_sign = obs_spinz(i_wlk)%ave_sign/dble(N_mea)
            obs_spinz(i_wlk)%obs_latt(:,:,:,:) = &
-               & obs_spinz(i_wlk)%obs_latt(:,:,:,:)/dble(obs_spinz(i_wlk)%N)/obs_spinz(i_wlk)%ave_sign
+               & obs_spinz(i_wlk)%obs_latt(:,:,:,:)/dble(N_mea)/obs_spinz(i_wlk)%ave_sign
+           !! background
+           obs_spinz(i_wlk)%obs_latt0(:) = obs_spinz(i_wlk)%obs_latt0(:)/dble(N_mea)/obs_spinz(i_wlk)%ave_sign
            
            obs_tau(2)%obs_latt(:,:,:,:) = obs_tau(2)%obs_latt(:,:,:,:) + &
                & obs_spinz(i_wlk)%obs_latt(:,:,:,:)*z_fac
+           obs_tau(2)%obs_latt0(:) = obs_tau(2)%obs_latt0(:) + obs_spinz(i_wlk)%obs_latt0(:)*z_fac
            
-           obs_spinxy(i_wlk)%ave_sign = obs_spinxy(i_wlk)%ave_sign/dble(obs_spinxy(i_wlk)%N)
+           !!================ spinxy ==================!!
+           N_mea = obs_spinxy(i_wlk)%N
+           obs_spinxy(i_wlk)%ave_sign = obs_spinxy(i_wlk)%ave_sign/dble(N_mea)
            obs_spinxy(i_wlk)%obs_latt(:,:,:,:) = &
                & obs_spinxy(i_wlk)%obs_latt(:,:,:,:)/dble(obs_spinxy(i_wlk)%N)/obs_spinxy(i_wlk)%ave_sign
+           !! background
+           obs_spinxy(i_wlk)%obs_latt0(:) = obs_spinxy(i_wlk)%obs_latt0(:)/dble(N_mea)/obs_spinxy(i_wlk)%ave_sign
            
            obs_tau(3)%obs_latt(:,:,:,:) = obs_tau(3)%obs_latt(:,:,:,:) + &
                & obs_spinxy(i_wlk)%obs_latt(:,:,:,:)*z_fac
+           obs_tau(3)%obs_latt0(:) = obs_tau(3)%obs_latt0(:) + obs_spinxy(i_wlk)%obs_latt0(:)*z_fac
            
-           obs_spint(i_wlk)%ave_sign = obs_spint(i_wlk)%ave_sign/dble(obs_spint(i_wlk)%N)
+           !!================ spint ==================!!
+           N_mea = obs_spint(i_wlk)%N
+           obs_spint(i_wlk)%ave_sign = obs_spint(i_wlk)%ave_sign/dble(N_mea)
            obs_spint(i_wlk)%obs_latt(:,:,:,:) = &
-               & obs_spint(i_wlk)%obs_latt(:,:,:,:)/dble(obs_spint(i_wlk)%N)/obs_spint(i_wlk)%ave_sign
+               & obs_spint(i_wlk)%obs_latt(:,:,:,:)/dble(N_mea)/obs_spint(i_wlk)%ave_sign
+           !! background
+           obs_spint(i_wlk)%obs_latt0(:) = obs_spint(i_wlk)%obs_latt0(:)/dble(N_mea)/obs_spint(i_wlk)%ave_sign
            
            obs_tau(4)%obs_latt(:,:,:,:) = obs_tau(4)%obs_latt(:,:,:,:) + &
                & obs_spint(i_wlk)%obs_latt(:,:,:,:)*z_fac
+           obs_tau(4)%obs_latt0(:) = obs_tau(4)%obs_latt0(:) + obs_spint(i_wlk)%obs_latt0(:)*z_fac
     
         end subroutine bp_obsert
           
