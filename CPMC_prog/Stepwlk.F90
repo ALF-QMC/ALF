@@ -1188,9 +1188,9 @@ contains
                   call ham%grt_reconstruction(gt0(:, :, :, i_grc), g0t(:, :, :, i_grc))
                end if
             end do
-            call ham%obsert_mc(ntau, gt0, g0t, g00, gtt, overlap_in)
 
          end do
+         call ham%obsert_mc(ntau, gt0, g0t, g00, gtt, overlap_in)
 
              !! call svd
          if (ntau .eq. stab_nt(nst)) then
