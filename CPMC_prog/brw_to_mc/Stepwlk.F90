@@ -1218,7 +1218,7 @@
 
           !nst=1
           !do ntau = 1, ltrot
-          do ntau = thtrot+2, ltrot
+          do ntau = thtrot+2, ltrot+1
 
              do i_wlk = 1, N_wlk
                 !! Propagate wave function
