@@ -571,10 +571,12 @@
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk
           
           do nf_eff = 1, N_FL_eff
+             nf=Calc_Fl_map(nf_eff)
              do i_wlk = 1, N_wlk
-                phi_bp_r(nf_eff,i_wlk)=phi_0(nf_eff,i_wlk)
-                !! phi_bp_r is not used in propagation
-                call phi_bp_r(nf_eff,i_wlk)%decompose
+                !phi_bp_r(nf_eff,i_wlk)=phi_0(nf_eff,i_wlk)
+                !!! phi_bp_r is not used in propagation
+                !call phi_bp_r(nf_eff,i_wlk)%decompose
+                call phi_bp_r(nf_eff, i_wlk)%reset('r',wf_r(nf,1)%p)
              enddo
           enddo
 
@@ -806,9 +808,9 @@
                      
                     ! metropolis update
                     hs_new = nsigma_bp(i_wlk)%flip(n,ntau)
-                    if ( ntau .le. ltrot_eff ) then
+                    !if ( ntau .le. ltrot_eff ) then
                         call upgrade_mc(gtt, n, ntau, hs_new, i_wlk, overlap_mc )
-                    endif
+                    !endif
        
                     n_type = 2
                     do ns = 1, N_slat
@@ -929,9 +931,9 @@
                     
                     ! metropolis update
                     hs_new = nsigma_bp(i_wlk)%flip(n,ntau) 
-                    if ( ntau .le. ltrot_eff ) then
+                    !if ( ntau .le. ltrot_eff ) then
                         call upgrade_mc(gtt, n, ntau, hs_new, i_wlk, overlap_mc )
-                    endif
+                    !endif
        
                     n_type = 1
                     hs_field = nsigma_bp(i_wlk)%f(n,ntau)  
@@ -1090,7 +1092,7 @@
           Complex (Kind=Kind(0.d0)) :: gt0(ndim,ndim,n_fl,n_grc), g00(ndim,ndim,n_fl,n_grc)
           Complex (Kind=Kind(0.d0)) :: gtt(ndim,ndim,n_fl,n_grc), g0t(ndim,ndim,n_fl,n_grc)
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, N_op, ntau, I, nst, nstm
-          Integer :: ns, i_grc, act_mea, i_st, i_ed, n_part
+          Integer :: ns, i_grc, act_mea, i_st, i_ed, n_part, nst_in, thtrot
           Complex (Kind=Kind(0.d0)) :: Z, Z_weight, DETZ, z_sum_overlap, exp_overlap(N_slat)
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
           Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8
@@ -1130,6 +1132,67 @@
           enddo
 
           gtt = gr_in
+          nst = 1
+          nst_in = 0
+          thtrot = 40
+          do ntau = stab_nt(nst_in)+1, thtrot + 1
+
+             do i_wlk = 1, N_wlk
+                !! Propagate wave function
+                if ( weight_k(i_wlk) .gt. Zero ) then
+
+                do ns = 1, N_slat
+                   i_grc = ns+(i_wlk-1)*N_slat
+                   !! Propagate Green's function
+                   call proprm1(gtt(:,:,:,i_grc),ntau,i_wlk)
+                   call propr  (gtt(:,:,:,i_grc),ntau,i_wlk)
+                enddo
+                   
+                Do nf_eff = 1,N_FL_eff
+                   nf=Calc_Fl_map(nf_eff)
+                   call Hop_mod_mmthr_1D2(phi_r_mea(nf_eff,i_wlk)%U,nf,1)
+                   Do n = 1, N_op
+                      call Op_mmultR(phi_r_mea(nf_eff,i_wlk)%U,Op_V(n,nf), nsigma_bp(i_wlk)%f(n,ntau),'n',1)
+                   enddo
+                   call Hop_mod_mmthr_1D2(phi_r_mea(nf_eff,i_wlk)%U,nf,1)
+                enddo
+
+                endif
+
+             enddo
+
+             !! call reconstruction of non-calculated flavor blocks
+             do i_grc = 1, n_grc
+                If (reconstruction_needed) call ham%gr_reconstruction ( gtt(:,:,:,i_grc) )
+             enddo
+
+             !! call svd
+             if (  ntau .eq. stab_nt(nst) )  then
+                 call re_orthonormalize_walkers(phi_r_mea, 'N')
+          
+                 do i_wlk = 1, N_wlk
+                
+                    if ( weight_k(i_wlk) .gt. Zero ) then
+                 
+                    do ns = 1, N_slat
+                       i_grc = ns+(i_wlk-1)*N_slat
+                       do nf_eff = 1, N_FL_eff
+                          nf=Calc_Fl_map(nf_eff)
+                          phi_l_mea(nf_eff, i_grc) = udvst(nst, nf_eff, i_grc) 
+                          call cgrp(detz, gr(:,:,nf), phi_r_mea(nf_eff,i_wlk), phi_l_mea(nf_eff,i_grc))
+                          call control_precision_tau(gtt(:,:,nf,i_grc), gr(:,:,nf), Ndim)
+                       enddo
+                       gtt(:,:,:,i_grc) = gr
+                    enddo
+
+                    endif
+
+                 enddo
+                 nst = nst + 1
+             endif
+
+          enddo
+
           g00 = gtt
           gt0 = gtt
           g0t = gtt
@@ -1153,12 +1216,13 @@
           enddo
           call ham%obsert_mc(ntau, gt0, g0t, g00, gtt, overlap_in)
 
-          NST=1
-          do ntau = 1, ltrot
+          !nst=1
+          !do ntau = 1, ltrot
+          do ntau = thtrot+2, ltrot
 
              do i_wlk = 1, N_wlk
                 !! Propagate wave function
-                if ( weight_k(i_wlk) .gt. zero ) then
+                if ( weight_k(i_wlk) .gt. Zero ) then
                 
                 do ns = 1, N_slat
                    i_grc = ns+(i_wlk-1)*N_slat
@@ -1183,7 +1247,6 @@
                 endif
 
              enddo
-
              !! call reconstruction of non-calculated flavor blocks
              do i_grc = 1, n_grc
                 If (reconstruction_needed) then
@@ -1192,15 +1255,16 @@
                     call ham%grt_reconstruction( gt0(:,:,:,i_grc), g0t(:,:,:,i_grc) )
                 endif
              enddo
-             call ham%obsert_mc(ntau, gt0, g0t, g00, gtt, overlap_in)
+
+             ntau1 = ntau-(thtrot+1)
+             call ham%obsert_mc(ntau1, gt0, g0t, g00, gtt, overlap_in)
+             !call ham%obsert_mc(ntau, gt0, g0t, g00, gtt, overlap_in)
              
              !! call svd
              if (  ntau .eq. stab_nt(nst) )  then
                  call re_orthonormalize_walkers(phi_r_mea, 'N')
           
                  do i_wlk = 1, N_wlk
-                
-                    if ( weight_k(i_wlk) .gt. zero ) then
                  
                     do ns = 1, N_slat
                        i_grc = ns+(i_wlk-1)*N_slat
@@ -1229,8 +1293,6 @@
                        enddo
                     
                     enddo
-
-                    endif
 
                  enddo
                  nst = nst + 1
@@ -1338,7 +1400,7 @@
 
              do i_wlk = 1, N_wlk
                 !! Propagate wave function
-                if ( weight_k(i_wlk) .gt. zero ) then
+                if ( weight_k(i_wlk) .gt. Zero ) then
                 
                 Do ns = 1, N_slat
                    i_grc = ns+(i_wlk-1)*N_slat
@@ -1388,8 +1450,6 @@
                  call re_orthonormalize_walkers(phi_bp_r, 'N')
           
                  do i_wlk = 1, N_wlk
-                
-                    if ( weight_k(i_wlk) .gt. zero ) then
                  
                     do ns = 1, N_slat
                        i_grc = ns+(i_wlk-1)*N_slat
@@ -1418,8 +1478,6 @@
                        enddo
                     
                     enddo
-
-                    endif
 
                  enddo
                  nst = nst + 1
