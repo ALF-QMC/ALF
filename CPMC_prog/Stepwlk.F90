@@ -1156,7 +1156,7 @@ contains
 
          do i_wlk = 1, N_wlk
                 !! Propagate wave function
-            if (weight_k(i_wlk) .gt. Zero) then
+            if (weight_k(i_wlk) .gt. zero) then
 
                do ns = 1, N_slat
                   i_grc = ns + (i_wlk - 1)*N_slat
@@ -1180,15 +1180,15 @@ contains
 
             end if
 
-                !! call reconstruction of non-calculated flavor blocks
-            do i_grc = 1, n_grc
-               if (reconstruction_needed) then
-                  call ham%gr_reconstruction(g00(:, :, :, i_grc))
-                  call ham%gr_reconstruction(gtt(:, :, :, i_grc))
-                  call ham%grt_reconstruction(gt0(:, :, :, i_grc), g0t(:, :, :, i_grc))
-               end if
-            end do
+         end do
 
+             !! call reconstruction of non-calculated flavor blocks
+         do i_grc = 1, n_grc
+            if (reconstruction_needed) then
+               call ham%gr_reconstruction(g00(:, :, :, i_grc))
+               call ham%gr_reconstruction(gtt(:, :, :, i_grc))
+               call ham%grt_reconstruction(gt0(:, :, :, i_grc), g0t(:, :, :, i_grc))
+            end if
          end do
          call ham%obsert_mc(ntau, gt0, g0t, g00, gtt, overlap_in)
 
@@ -1197,6 +1197,8 @@ contains
             call re_orthonormalize_walkers(phi_r_mea, 'N')
 
             do i_wlk = 1, N_wlk
+            
+               if (weight_k(i_wlk) .gt. zero) then
 
                do ns = 1, N_slat
                   i_grc = ns + (i_wlk - 1)*N_slat
@@ -1225,6 +1227,8 @@ contains
                   end do
 
                end do
+
+               endif
 
             end do
             nst = nst + 1
@@ -1332,7 +1336,7 @@ contains
 
          do i_wlk = 1, N_wlk
                 !! Propagate wave function
-            if (weight_k(i_wlk) .gt. Zero) then
+            if (weight_k(i_wlk) .gt. zero) then
 
                do ns = 1, N_slat
                   i_grc = ns + (i_wlk - 1)*N_slat
@@ -1382,6 +1386,8 @@ contains
             call re_orthonormalize_walkers(phi_bp_r, 'N')
 
             do i_wlk = 1, N_wlk
+            
+               if (weight_k(i_wlk) .gt. zero) then
 
                do ns = 1, N_slat
                   i_grc = ns + (i_wlk - 1)*N_slat
@@ -1410,6 +1416,8 @@ contains
                   end do
 
                end do
+
+               endif
 
             end do
             nst = nst + 1
