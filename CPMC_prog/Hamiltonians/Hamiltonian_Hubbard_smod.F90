@@ -175,6 +175,12 @@
              Write(unit_info,*) 'Ham_U2        : ', Ham_U2
              Write(unit_info,*) 'Ham_tperp     : ', Ham_tperp
              Write(unit_info,*) 'Ham_chem      : ', Ham_chem
+             do nf = 1, N_FL
+                write (unit_info, *) 'Flavor of:  ', nf
+                write (unit_info, *) 'Degen of right trial wave function: ', wf_r(nf, 1)%degen
+                write (unit_info, *) 'Degen of left  trial wave function: ', wf_l(nf, 1)%degen
+                write (unit_info, *) 'number of particle for flavor:  ', size(wf_l(nf,1)%P,2)
+             end do
              Close(unit_info)
 #ifdef MPI
           Endif
