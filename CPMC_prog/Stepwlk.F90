@@ -2021,8 +2021,8 @@ contains
 
       if (irank_g .eq. 0) then
          do ii = 1, isize_g - 1
-            i_st = ii*N_wlk + 1; i_st2 = ii*N_grc + 1
-            i_ed = (ii + 1)*N_wlk; i_ed2 = ii*N_grc + 1
+            i_st = ii*N_wlk+1  ; i_st2=ii*N_grc+1
+            i_ed = (ii+1)*N_wlk; i_ed2=(ii+1)*N_grc
 
             otphi_tmp(:) = overlap_out(i_st2:i_ed2)
             call mpi_send(otphi_tmp, N_grc, mpi_complex16, ii, 0, MPI_COMM_WORLD, IERR)
@@ -2051,7 +2051,7 @@ contains
       end if
 
       if (irank_g .eq. 0) then
-         i_st = 1; i_st2 = 1
+         i_st = 1    ; i_st2 = 1
          i_ed = N_wlk; i_ed2 = N_grc
          p0_tmp = phi0_up_out(:, :, i_st:i_ed)
          p1_tmp = phi0_dn_out(:, :, i_st:i_ed)
