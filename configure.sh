@@ -357,12 +357,12 @@ case $MACHINE in
     F90OPTFLAGS="$INTELLLVMOPTFLAGS"
     F90USEFULFLAGS="$INTELLLVMUSEFULFLAGS"
     ALF_FC="$INTELLLVMCOMPILER"
-    find_mkl_flag || return 1
+    INTELMKL="-qmkl"
     LIB_BLAS_LAPACK="${INTELMKL}"
     if [ "${HDF5_ENABLED}" = "1" ]; then
       set_intelcc
       set_intelcxx
-      set_hdf5_flags "$INTELCC" ifort "$INTELCXX" || return 1
+      set_hdf5_flags "$INTELCC" ifx "$INTELCXX" || return 1
     fi
   ;;
 
