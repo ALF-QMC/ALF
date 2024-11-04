@@ -19,3 +19,5 @@ Check_Stopcommands:
     - git fetch --depth=1
     - pip install --no-deps pyALF
     - git branch
+    - git checkout $CI_COMMIT_BRANCH
+    - git branch
