@@ -75,12 +75,6 @@ Check_Stopcommands:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bookworm-buildd
   stage: lint
   needs: []
-  except:
-    changes:
-      - .gitignore
-      - CITATION
-      - README.md
-      - license.*
   script:
     - git branch
     - '! grep -irn -e "^\s*error\s*stop" -e "^\s*stop" --include="*.F90" 
