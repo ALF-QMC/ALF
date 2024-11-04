@@ -13,4 +13,9 @@ default:
 Check_Stopcommands:
   image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/pyalf-requirements/bookworm
   script:
+    - if [ ! -O . ]; then sudo chown -R "$(id -u)" .; fi
+    - export PATH="$HOME/.local/bin:$PATH"
+    - git remote set-branches origin master $CI_COMMIT_BRANCH
+    - git fetch --depth=1
+    - pip install --no-deps pyALF
     - git branch
