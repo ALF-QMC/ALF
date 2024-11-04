@@ -82,6 +82,7 @@ Check_Stopcommands:
       - README.md
       - license.*
   script:
+    - git branch
     - '! grep -irn -e "^\s*error\s*stop" -e "^\s*stop" --include="*.F90" 
       --exclude-dir=Analysis --exclude-dir=HDF5 --exclude-dir=testsuite 
       --exclude-dir=Not\_supported --exclude="runtime\_error\_mod.F90"'
