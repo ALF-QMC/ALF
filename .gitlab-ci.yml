@@ -206,16 +206,16 @@ build_hdf5_Intel-21:
   needs: []
   variables:
     MACHINE: INTEL
-build_hdf5_Intel-Latest:
+build_hdf5_Intel-2024.2:
   extends: .build_hdf5_template
-  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bookworm-intel
+  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bookworm-intel-2024.2
   needs: [build_hdf5_Intel-21]
   variables:
     MACHINE: INTEL
 
-build_hdf5_IntelLLVM:
+build_hdf5_IntelLLVM-2024.2:
   extends: .build_hdf5_template
-  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bookworm-intel
+  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bookworm-intel-2024.2
   needs: []
   variables:
     MACHINE: INTELLLVM
@@ -236,10 +236,10 @@ build:
         IMAGE_MINOR: bullseye-pgi-21-03
         MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
       - MACHINE: INTEL
-        IMAGE_MINOR: [bullseye-intel, bookworm-intel]
+        IMAGE_MINOR: [bullseye-intel, bookworm-intel-2024.2]
         MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
       - MACHINE: INTELLLVM
-        IMAGE_MINOR: bookworm-intel
+        IMAGE_MINOR: bookworm-intel-2024.2
         MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
 
 build_mac:
@@ -265,10 +265,10 @@ test:
         IMAGE_MINOR: bullseye-pgi-21-03
         MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
       - MACHINE: INTEL
-        IMAGE_MINOR: [bullseye-intel, bookworm-intel]
+        IMAGE_MINOR: [bullseye-intel, bookworm-intel-2024.2]
         MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
       - MACHINE: INTELLLVM
-        IMAGE_MINOR: bookworm-intel
+        IMAGE_MINOR: bookworm-intel-2024.2
         MODE: [noMPI]
 
 test_mac:
