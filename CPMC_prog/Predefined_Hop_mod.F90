@@ -320,6 +320,95 @@ contains
       end do
 
    end subroutine set_hopping_parameters_n_ladder_anisotropic
+   
+   subroutine set_hopping_parameters_square_anisotropic(this, Ham_tx_vec, ham_ty_vec, Ham_Chem_vec, &
+           & Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
+
+      implicit none
+
+      type(Hopping_Matrix_type), allocatable          :: this(:)
+      real(Kind=kind(0.d0)), intent(IN), dimension(:) :: Ham_tx_vec, Ham_ty_vec, Ham_Chem_vec
+      real(Kind=kind(0.d0)), intent(IN), dimension(:) :: Phi_x_vec, Phi_y_vec
+      integer, intent(IN), dimension(:)               :: N_Phi_vec
+      integer, intent(IN)                             :: N_FL
+      logical, intent(IN)                             :: Bulk
+      integer, intent(IN), dimension(:, :)            :: List, Invlist
+      type(Lattice), intent(in)   :: Latt
+      type(Unit_cell), intent(in) :: Latt_unit
+
+      ! Local
+      integer :: nf, N_Bonds, nc, I, I1
+      real(Kind=kind(0.d0)) :: Zero = 1.0e-8, Ham_T_max
+      real(Kind=kind(0.d0)), allocatable :: Ham_T_perp_vec(:)
+
+      allocate (this(N_FL))
+
+      Ham_T_max = 0.d0
+      do nf = 1, N_FL
+         if (abs(Ham_Tx_vec(nf)) > Ham_T_max) Ham_T_max = abs(Ham_Tx_vec(nf))
+      end do
+
+      do nf = 1, N_FL
+         this(nf)%N_bonds = 2
+
+         allocate (this(nf)%List(this(nf)%N_bonds, 4), &
+              &    this(nf)%T(this(nf)%N_bonds))
+         nc = 0
+
+         nc = nc + 1
+         this(nf)%T(nc) = cmplx(-Ham_tx_vec(nf), 0.d0, kind(0.d0))
+         this(nf)%List(nc, 1) = 1
+         this(nf)%List(nc, 2) = 1
+         this(nf)%List(nc, 3) = 1
+         this(nf)%List(nc, 4) = 0
+         nc = nc + 1
+
+         this(nf)%T(nc) = cmplx(-Ham_ty_vec(nf), 0.d0, kind(0.d0))
+         this(nf)%List(nc, 1) = 1
+         this(nf)%List(nc, 2) = 1
+         this(nf)%List(nc, 3) = 0
+         this(nf)%List(nc, 4) = 1
+
+         allocate (this(nf)%T_Loc(Latt_Unit%Norb))
+         do nc = 1, Latt_Unit%Norb
+            this(nf)%T_Loc(nc) = cmplx(-Ham_Chem_vec(nf), 0.d0, kind(0.d0))
+         end do
+         this(nf)%N_Phi = N_Phi_vec(nf)
+         this(nf)%Phi_X = Phi_X_vec(nf)
+         this(nf)%Phi_Y = Phi_Y_vec(nf)
+         this(nf)%Bulk = Bulk
+      end do
+
+      !Set Checkerboard
+      this(1)%N_FAM = 4
+      allocate (this(1)%L_Fam(this(1)%N_FAM), this(1)%Prop_Fam(this(1)%N_FAM))
+      this(1)%L_FAM = Latt%N/2
+      this(1)%Prop_Fam = 1.d0
+      allocate (this(1)%List_Fam(this(1)%N_FAM, this(1)%L_Fam(1), 2))
+      this(1)%L_FAM = 0
+      do I = 1, Latt%N
+         if (mod(Latt%List(I, 1) + Latt%List(I, 2), 2) == 0) then
+            Nf = 1
+            this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I ! Unit cell
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 1 ! The bond (See above)
+            Nf = 2
+            this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 2
+         else
+            Nf = 3
+            this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 1
+            Nf = 4
+            this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 2
+         end if
+      end do
+
+   end subroutine set_hopping_parameters_square_anisotropic
 
 !--------------------------------------------------------------------
 !> @author
