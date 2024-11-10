@@ -349,9 +349,9 @@
              case (4)
                 Filename = "swave"
              case (5)
-                Filename = "dwave"
-             case (6)
                 Filename = "dxywave"
+             case (6)
+                Filename = "dwave"
              case (7)
                 Filename = "pxwave"
              case (8)
