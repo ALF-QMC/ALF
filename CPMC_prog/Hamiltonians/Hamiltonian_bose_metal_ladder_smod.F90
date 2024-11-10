@@ -579,18 +579,18 @@
 
                 imj = latt%imj(i, j)
                 z = gt0(i1, j1, 1) + gt0(i1, j1, 2)
-                obs_tau(1)%obs_Latt(imj, nt, no_i, no_j) = obs_tau(1)%obs_latt(imj, nt, no_i, no_j) + z*z_fac
+                obs_tau(1)%obs_Latt(imj, nt+1, no_i, no_j) = obs_tau(1)%obs_latt(imj, nt+1, no_i, no_j) + z*z_fac
 
                 z = -g0t(j1, i1, 1)*gt0(i1, j1, 1) - g0t(j1, i1, 2)*gt0(i1, j1, 2) + &
                     & (gtt(i1, i1, 1) - gtt(i1, i1, 2))*(g00(j1, j1, 1) - g00(j1, j1, 2))
-                obs_tau(2)%obs_Latt(imj, nt, no_i, no_j) = obs_tau(2)%obs_latt(imj, nt, no_i, no_j) + z*z_fac
+                obs_tau(2)%obs_Latt(imj, nt+1, no_i, no_j) = obs_tau(2)%obs_latt(imj, nt+1, no_i, no_j) + z*z_fac
 
                 z = -g0t(j1, i1, 1)*gt0(i1, j1, 1) - g0t(j1, i1, 2)*gt0(i1, j1, 2) + &
                     & (zone - gtt(i1, i1, 1) + zone - gtt(i1, i1, 2))*(zone - gtt(j1, j1, 2) + zone - gtt(j1, j1, 1))
-                obs_tau(3)%obs_Latt(imj, nt, no_i, no_j) = obs_tau(3)%obs_latt(imj, nt, no_i, no_j) + z*z_fac
+                obs_tau(3)%obs_Latt(imj, nt+1, no_i, no_j) = obs_tau(3)%obs_latt(imj, nt+1, no_i, no_j) + z*z_fac
 
                 z = g0t(j1, i1, 1)*g0t(j1, i1, 2) + gt0(i1, j1, 1)*gt0(i1, j1, 2)
-                obs_tau(4)%obs_Latt(imj, nt, no_i, no_j) = obs_tau(4)%obs_latt(imj, nt, no_i, no_j) + z*z_fac
+                obs_tau(4)%obs_Latt(imj, nt+1, no_i, no_j) = obs_tau(4)%obs_latt(imj, nt+1, no_i, no_j) + z*z_fac
              end do
              zback = gtt(i1, i1, 2) - gtt(i1, i1, 1)
              obs_tau(2)%obs_latt0(no_i) = obs_tau(2)%obs_Latt0(no_i) + zback*z_fac
