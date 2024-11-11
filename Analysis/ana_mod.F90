@@ -1391,7 +1391,9 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       Integer             :: L1, L2, N_FL
       Character (len=64)  :: Model, Lattice_type
       NAMELIST /VAR_Lattice/ L1, L2, Lattice_type, Model
-      NAMELIST /VAR_bose_metal_ladder/  ham_t, ham_alpha, ham_chem, &
+      !NAMELIST /VAR_bose_metal_ladder/  ham_t, ham_alpha, ham_chem, &
+      !     &     ham_U, N_dope
+      NAMELIST /VAR_bose_metal/  ham_t, ham_alpha, ham_chem, &
            &     ham_U, N_dope
 
 
@@ -1418,7 +1420,8 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       rewind(5)
       read(5,NML=VAR_errors)
       rewind(5)
-      read(5,NML=VAR_bose_metal_ladder)
+      !read(5,NML=VAR_bose_metal_ladder)
+      read(5,NML=VAR_bose_metal)
       close(5)
 
       Nobs  = size(bins_raw, 1)
