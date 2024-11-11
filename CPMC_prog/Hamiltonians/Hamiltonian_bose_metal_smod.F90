@@ -574,7 +574,7 @@
                       &  + grc(ipxmy,j1,1)*grc(i1,jmxpy,2) + grc(imxpy,j1,1)*grc(i1,jmxpy,2)
 
                   obs_eq(5)%obs_Latt(imj,1,no_i,no_j) = obs_eq(5)%obs_latt(imj,1,no_i,no_j) &
-                      & + (ztmp1+ztmp2+ztmp3+ztmp4)*z_fac
+                      & + (ztmp1+ztmp2+ztmp3+ztmp4)*(1.d0/8.d0)*z_fac
                   
                   !! d_{x^2-y^2}
                   !! \Delta_{x^2-y^2} = c^{i,\uparrow}c^{i\pm x,\dnarrow}-c^{i,\uparrow}c^{i\pm y,\dnarrow}
@@ -620,7 +620,7 @@
                       &  + grc(ipy,j1,1)*grc(i1,jmy,2) + grc(imy,j1,1)*grc(i1,jmy,2)
 
                   obs_eq(6)%obs_Latt(imj,1,no_i,no_j) = obs_eq(6)%obs_latt(imj,1,no_i,no_j) & 
-                      & + (ztmp1+ztmp2+ztmp3+ztmp4)*z_fac
+                      & + (ztmp1+ztmp2+ztmp3+ztmp4)*(1.d0/8.d0)*z_fac
                   
                   !! d_{x^2+y^2}
                   !! \Delta_{x^2+y^2} = c^{i,\uparrow}c^{i\pm x,\dnarrow}+c^{i,\uparrow}c^{i\pm y,\dnarrow}
@@ -666,7 +666,7 @@
                       &  + grc(ipy,j1,1)*grc(i1,jmy,2) + grc(imy,j1,1)*grc(i1,jmy,2)
 
                   obs_eq(7)%obs_Latt(imj,1,no_i,no_j) = & 
-                      & obs_eq(7)%obs_latt(imj,1,no_i,no_j) + (ztmp1+ztmp2+ztmp3+ztmp4)*z_fac
+                      & obs_eq(7)%obs_latt(imj,1,no_i,no_j) + (ztmp1+ztmp2+ztmp3+ztmp4)*(1.d0/8.d0)*z_fac
                   
                   !! p_x
                   !! \Delta_{x} = c^{i,\uparrow}c^{i+x,\uparrow}-c^{i,\uparrow}c^{i-x,\uparrow}+
@@ -685,7 +685,7 @@
                       &   - grc(imy,jpy,2)*grc(i1,j1,2) + grc(imy,jmy,2)*grc(i1,j1,2)
 
                   obs_eq(8)%obs_Latt(imj,1,no_i,no_j) = &
-                      & obs_eq(8)%obs_latt(imj,1,no_i,no_j) + (ztmp1+ztmp2)*z_fac
+                      & obs_eq(8)%obs_latt(imj,1,no_i,no_j) + (ztmp1+ztmp2)*(1.d0/8.d0)*z_fac
                   
                   !! p_x+ip_y
                   !! \Delta_{x+iy} = i\Delta_x+\Delta_y
@@ -699,7 +699,7 @@
                       &   - z1j*grc(imy,jpx,2)*grc(i1,j1,2) + z1j*grc(imy,jmx,2)*grc(i1,j1,2)
                   
                   obs_eq(9)%obs_Latt(imj,1,no_i,no_j) = & 
-                      & obs_eq(9)%obs_latt(imj,1,no_i,no_j) + (ztmp1+ztmp2+ztmp)*z_fac
+                      & obs_eq(9)%obs_latt(imj,1,no_i,no_j) + (ztmp1+ztmp2+ztmp)*(1.d0/8.d0)*z_fac
                   
               end do
               zback = grc(i1, i1, 2) - grc(i1, i1, 1)
