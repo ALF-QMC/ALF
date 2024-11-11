@@ -353,9 +353,9 @@
              case (6)
                 Filename = "dwave"
              case (7)
-                Filename = "pxwave"
+                Filename = "dswave"
              case (8)
-                Filename = "pywave"
+                Filename = "pxpywave"
              case (9)
                 Filename = "pxipywave"
              case default
@@ -420,7 +420,7 @@
           integer, intent(IN) :: i_wlk, i_grc, act_mea
 
           !Local
-          complex(Kind=kind(0.d0)) :: grc(Ndim, Ndim, N_FL), ZK, zone, ztmp, z_ol, zero, ztmp1, ztmp2
+          complex(Kind=kind(0.d0)) :: grc(Ndim, Ndim, N_FL), ZK, zone, ztmp, z_ol, zero, ztmp1, ztmp2, ztmp3, ztmp4
           complex(Kind=kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP, ZS, ZZ, ZXY, zback, zw, z_fac, z1j
           integer :: I, J, k, l, m, n, imj, nf, dec, i1, ipx, ipy, imx, imy, j1, jpx, jpy, jmx, jmy, no_I, no_J, nc
           integer :: ipxpy, ipxmy, imxpy, imxmy, jpxpy, jpxmy, jmxpy, jmxmy
@@ -537,7 +537,7 @@
                   jpxpy = invlist(latt%nnlist(j,1, 1),no_j); jmxmy = invlist(latt%nnlist(j,-1,-1),no_j);
                   jpxmy = invlist(latt%nnlist(j,1,-1),no_j); jmxpy = invlist(latt%nnlist(j,-1, 1),no_j);
                   
-                  ztmp =   grc(ipxpy,jpxpy,2)*grc(i1,j1,1) + grc(imxmy,jpxpy,2)*grc(i1,j1,1) &
+                  ztmp1 =  grc(ipxpy,jpxpy,2)*grc(i1,j1,1) + grc(imxmy,jpxpy,2)*grc(i1,j1,1) &
                       &  + grc(ipxpy,jmxmy,2)*grc(i1,j1,1) + grc(imxmy,jmxmy,2)*grc(i1,j1,1) &
                       &  - grc(ipxpy,jpxmy,2)*grc(i1,j1,1) - grc(imxmy,jpxmy,2)*grc(i1,j1,1) &
                       &  - grc(ipxpy,jmxpy,2)*grc(i1,j1,1) - grc(imxmy,jmxpy,2)*grc(i1,j1,1) &
@@ -545,8 +545,36 @@
                       &  - grc(ipxmy,jmxmy,2)*grc(i1,j1,1) - grc(imxpy,jmxmy,2)*grc(i1,j1,1) &
                       &  + grc(ipxmy,jpxmy,2)*grc(i1,j1,1) + grc(imxpy,jpxmy,2)*grc(i1,j1,1) &
                       &  + grc(ipxmy,jmxpy,2)*grc(i1,j1,1) + grc(imxpy,jmxpy,2)*grc(i1,j1,1)
+                  
+                  ztmp2 =  grc(ipxpy,jpxpy,1)*grc(i1,j1,2) + grc(imxmy,jpxpy,1)*grc(i1,j1,2) &
+                      &  + grc(ipxpy,jmxmy,1)*grc(i1,j1,2) + grc(imxmy,jmxmy,1)*grc(i1,j1,2) &
+                      &  - grc(ipxpy,jpxmy,1)*grc(i1,j1,2) - grc(imxmy,jpxmy,1)*grc(i1,j1,2) &
+                      &  - grc(ipxpy,jmxpy,1)*grc(i1,j1,2) - grc(imxmy,jmxpy,1)*grc(i1,j1,2) &
+                      &  - grc(ipxmy,jpxpy,1)*grc(i1,j1,2) - grc(imxpy,jpxpy,1)*grc(i1,j1,2) &
+                      &  - grc(ipxmy,jmxmy,1)*grc(i1,j1,2) - grc(imxpy,jmxmy,1)*grc(i1,j1,2) &
+                      &  + grc(ipxmy,jpxmy,1)*grc(i1,j1,2) + grc(imxpy,jpxmy,1)*grc(i1,j1,2) &
+                      &  + grc(ipxmy,jmxpy,1)*grc(i1,j1,2) + grc(imxpy,jmxpy,1)*grc(i1,j1,2)
+                  
+                  ztmp3 =  grc(ipxpy,j1,2)*grc(i1,jpxpy,1) + grc(imxmy,j1,2)*grc(i1,jpxpy,1) &
+                      &  + grc(ipxpy,j1,2)*grc(i1,jmxmy,1) + grc(imxmy,j1,2)*grc(i1,jmxmy,1) &
+                      &  - grc(ipxpy,j1,2)*grc(i1,jpxmy,1) - grc(imxmy,j1,2)*grc(i1,jpxmy,1) &
+                      &  - grc(ipxpy,j1,2)*grc(i1,jmxpy,1) - grc(imxmy,j1,2)*grc(i1,jmxpy,1) &
+                      &  - grc(ipxmy,j1,2)*grc(i1,jpxpy,1) - grc(imxpy,j1,2)*grc(i1,jpxpy,1) &
+                      &  - grc(ipxmy,j1,2)*grc(i1,jmxmy,1) - grc(imxpy,j1,2)*grc(i1,jmxmy,1) &
+                      &  + grc(ipxmy,j1,2)*grc(i1,jpxmy,1) + grc(imxpy,j1,2)*grc(i1,jpxmy,1) &
+                      &  + grc(ipxmy,j1,2)*grc(i1,jmxpy,1) + grc(imxpy,j1,2)*grc(i1,jmxpy,1)
+                  
+                  ztmp4 =  grc(ipxpy,j1,1)*grc(i1,jpxpy,2) + grc(imxmy,j1,1)*grc(i1,jpxpy,2) &
+                      &  + grc(ipxpy,j1,1)*grc(i1,jmxmy,2) + grc(imxmy,j1,1)*grc(i1,jmxmy,2) &
+                      &  - grc(ipxpy,j1,1)*grc(i1,jpxmy,2) - grc(imxmy,j1,1)*grc(i1,jpxmy,2) &
+                      &  - grc(ipxpy,j1,1)*grc(i1,jmxpy,2) - grc(imxmy,j1,1)*grc(i1,jmxpy,2) &
+                      &  - grc(ipxmy,j1,1)*grc(i1,jpxpy,2) - grc(imxpy,j1,1)*grc(i1,jpxpy,2) &
+                      &  - grc(ipxmy,j1,1)*grc(i1,jmxmy,2) - grc(imxpy,j1,1)*grc(i1,jmxmy,2) &
+                      &  + grc(ipxmy,j1,1)*grc(i1,jpxmy,2) + grc(imxpy,j1,1)*grc(i1,jpxmy,2) &
+                      &  + grc(ipxmy,j1,1)*grc(i1,jmxpy,2) + grc(imxpy,j1,1)*grc(i1,jmxpy,2)
 
-                  obs_eq(5)%obs_Latt(imj,1,no_i,no_j) = obs_eq(5)%obs_latt(imj,1,no_i,no_j) + ztmp*z_fac
+                  obs_eq(5)%obs_Latt(imj,1,no_i,no_j) = obs_eq(5)%obs_latt(imj,1,no_i,no_j) &
+                      & + (ztmp1+ztmp2+ztmp3+ztmp4)*z_fac
                   
                   !! d_{x^2-y^2}
                   !! \Delta_{x^2-y^2} = c^{i,\uparrow}c^{i\pm x,\dnarrow}-c^{i,\uparrow}c^{i\pm y,\dnarrow}
@@ -555,7 +583,7 @@
                   jpx = invlist(latt%nnlist(j, 1,0),no_j); jpy = invlist(latt%nnlist(j,0, 1),no_j)
                   jmx = invlist(latt%nnlist(j,-1,0),no_j); jmy = invlist(latt%nnlist(j,0,-1),no_j)
 
-                  ztmp =   grc(ipx,jpx,2)*grc(i1,j1,1) + grc(imx,jpx,2)*grc(i1,j1,1) &
+                  ztmp1 =  grc(ipx,jpx,2)*grc(i1,j1,1) + grc(imx,jpx,2)*grc(i1,j1,1) &
                       &  + grc(ipx,jmx,2)*grc(i1,j1,1) + grc(imx,jmx,2)*grc(i1,j1,1) &
                       &  - grc(ipx,jpy,2)*grc(i1,j1,1) - grc(imx,jpy,2)*grc(i1,j1,1) &
                       &  - grc(ipx,jmy,2)*grc(i1,j1,1) - grc(imx,jmy,2)*grc(i1,j1,1) &
@@ -563,8 +591,82 @@
                       &  - grc(ipy,jmx,2)*grc(i1,j1,1) - grc(imy,jmx,2)*grc(i1,j1,1) &
                       &  + grc(ipy,jpy,2)*grc(i1,j1,1) + grc(imy,jpy,2)*grc(i1,j1,1) &
                       &  + grc(ipy,jmy,2)*grc(i1,j1,1) + grc(imy,jmy,2)*grc(i1,j1,1)
+                  
+                  ztmp2 =  grc(ipx,jpx,1)*grc(i1,j1,2) + grc(imx,jpx,1)*grc(i1,j1,2) &
+                      &  + grc(ipx,jmx,1)*grc(i1,j1,2) + grc(imx,jmx,1)*grc(i1,j1,2) &
+                      &  - grc(ipx,jpy,1)*grc(i1,j1,2) - grc(imx,jpy,1)*grc(i1,j1,2) &
+                      &  - grc(ipx,jmy,1)*grc(i1,j1,2) - grc(imx,jmy,1)*grc(i1,j1,2) &
+                      &  - grc(ipy,jpx,1)*grc(i1,j1,2) - grc(imy,jpx,1)*grc(i1,j1,2) &
+                      &  - grc(ipy,jmx,1)*grc(i1,j1,2) - grc(imy,jmx,1)*grc(i1,j1,2) &
+                      &  + grc(ipy,jpy,1)*grc(i1,j1,2) + grc(imy,jpy,1)*grc(i1,j1,2) &
+                      &  + grc(ipy,jmy,1)*grc(i1,j1,2) + grc(imy,jmy,1)*grc(i1,j1,2)
+                  
+                  ztmp3 =  grc(ipx,j1,2)*grc(i1,jpx,1) + grc(imx,j1,2)*grc(i1,jpx,1) &
+                      &  + grc(ipx,j1,2)*grc(i1,jmx,1) + grc(imx,j1,2)*grc(i1,jmx,1) &
+                      &  - grc(ipx,j1,2)*grc(i1,jpy,1) - grc(imx,j1,2)*grc(i1,jpy,1) &
+                      &  - grc(ipx,j1,2)*grc(i1,jmy,1) - grc(imx,j1,2)*grc(i1,jmy,1) &
+                      &  - grc(ipy,j1,2)*grc(i1,jpx,1) - grc(imy,j1,2)*grc(i1,jpx,1) &
+                      &  - grc(ipy,j1,2)*grc(i1,jmx,1) - grc(imy,j1,2)*grc(i1,jmx,1) &
+                      &  + grc(ipy,j1,2)*grc(i1,jpy,1) + grc(imy,j1,2)*grc(i1,jpy,1) &
+                      &  + grc(ipy,j1,2)*grc(i1,jmy,1) + grc(imy,j1,2)*grc(i1,jmy,1)
+                  
+                  ztmp4 =  grc(ipx,j1,1)*grc(i1,jpx,2) + grc(imx,j1,1)*grc(i1,jpx,2) &
+                      &  + grc(ipx,j1,1)*grc(i1,jmx,2) + grc(imx,j1,1)*grc(i1,jmx,2) &
+                      &  - grc(ipx,j1,1)*grc(i1,jpy,2) - grc(imx,j1,1)*grc(i1,jpy,2) &
+                      &  - grc(ipx,j1,1)*grc(i1,jmy,2) - grc(imx,j1,1)*grc(i1,jmy,2) &
+                      &  - grc(ipy,j1,1)*grc(i1,jpx,2) - grc(imy,j1,1)*grc(i1,jpx,2) &
+                      &  - grc(ipy,j1,1)*grc(i1,jmx,2) - grc(imy,j1,1)*grc(i1,jmx,2) &
+                      &  + grc(ipy,j1,1)*grc(i1,jpy,2) + grc(imy,j1,1)*grc(i1,jpy,2) &
+                      &  + grc(ipy,j1,1)*grc(i1,jmy,2) + grc(imy,j1,1)*grc(i1,jmy,2)
 
-                  obs_eq(6)%obs_Latt(imj,1,no_i,no_j) = obs_eq(6)%obs_latt(imj,1,no_i,no_j) + ztmp*z_fac
+                  obs_eq(6)%obs_Latt(imj,1,no_i,no_j) = obs_eq(6)%obs_latt(imj,1,no_i,no_j) & 
+                      & + (ztmp1+ztmp2+ztmp3+ztmp4)*z_fac
+                  
+                  !! d_{x^2+y^2}
+                  !! \Delta_{x^2+y^2} = c^{i,\uparrow}c^{i\pm x,\dnarrow}+c^{i,\uparrow}c^{i\pm y,\dnarrow}
+                  ipx = invlist(latt%nnlist(i, 1,0),no_i); ipy = invlist(latt%nnlist(i,0, 1),no_i)
+                  imx = invlist(latt%nnlist(i,-1,0),no_i); imy = invlist(latt%nnlist(i,0,-1),no_i)
+                  jpx = invlist(latt%nnlist(j, 1,0),no_j); jpy = invlist(latt%nnlist(j,0, 1),no_j)
+                  jmx = invlist(latt%nnlist(j,-1,0),no_j); jmy = invlist(latt%nnlist(j,0,-1),no_j)
+
+                  ztmp1 =  grc(ipx,jpx,2)*grc(i1,j1,1) + grc(imx,jpx,2)*grc(i1,j1,1) &
+                      &  + grc(ipx,jmx,2)*grc(i1,j1,1) + grc(imx,jmx,2)*grc(i1,j1,1) &
+                      &  + grc(ipx,jpy,2)*grc(i1,j1,1) + grc(imx,jpy,2)*grc(i1,j1,1) &
+                      &  + grc(ipx,jmy,2)*grc(i1,j1,1) + grc(imx,jmy,2)*grc(i1,j1,1) &
+                      &  + grc(ipy,jpx,2)*grc(i1,j1,1) + grc(imy,jpx,2)*grc(i1,j1,1) &
+                      &  + grc(ipy,jmx,2)*grc(i1,j1,1) + grc(imy,jmx,2)*grc(i1,j1,1) &
+                      &  + grc(ipy,jpy,2)*grc(i1,j1,1) + grc(imy,jpy,2)*grc(i1,j1,1) &
+                      &  + grc(ipy,jmy,2)*grc(i1,j1,1) + grc(imy,jmy,2)*grc(i1,j1,1)
+                  
+                  ztmp2 =  grc(ipx,jpx,1)*grc(i1,j1,2) + grc(imx,jpx,1)*grc(i1,j1,2) &
+                      &  + grc(ipx,jmx,1)*grc(i1,j1,2) + grc(imx,jmx,1)*grc(i1,j1,2) &
+                      &  + grc(ipx,jpy,1)*grc(i1,j1,2) + grc(imx,jpy,1)*grc(i1,j1,2) &
+                      &  + grc(ipx,jmy,1)*grc(i1,j1,2) + grc(imx,jmy,1)*grc(i1,j1,2) &
+                      &  + grc(ipy,jpx,1)*grc(i1,j1,2) + grc(imy,jpx,1)*grc(i1,j1,2) &
+                      &  + grc(ipy,jmx,1)*grc(i1,j1,2) + grc(imy,jmx,1)*grc(i1,j1,2) &
+                      &  + grc(ipy,jpy,1)*grc(i1,j1,2) + grc(imy,jpy,1)*grc(i1,j1,2) &
+                      &  + grc(ipy,jmy,1)*grc(i1,j1,2) + grc(imy,jmy,1)*grc(i1,j1,2)
+                  
+                  ztmp3 =  grc(ipx,j1,2)*grc(i1,jpx,1) + grc(imx,j1,2)*grc(i1,jpx,1) &
+                      &  + grc(ipx,j1,2)*grc(i1,jmx,1) + grc(imx,j1,2)*grc(i1,jmx,1) &
+                      &  + grc(ipx,j1,2)*grc(i1,jpy,1) + grc(imx,j1,2)*grc(i1,jpy,1) &
+                      &  + grc(ipx,j1,2)*grc(i1,jmy,1) + grc(imx,j1,2)*grc(i1,jmy,1) &
+                      &  + grc(ipy,j1,2)*grc(i1,jpx,1) + grc(imy,j1,2)*grc(i1,jpx,1) &
+                      &  + grc(ipy,j1,2)*grc(i1,jmx,1) + grc(imy,j1,2)*grc(i1,jmx,1) &
+                      &  + grc(ipy,j1,2)*grc(i1,jpy,1) + grc(imy,j1,2)*grc(i1,jpy,1) &
+                      &  + grc(ipy,j1,2)*grc(i1,jmy,1) + grc(imy,j1,2)*grc(i1,jmy,1)
+                  
+                  ztmp4 =  grc(ipx,j1,1)*grc(i1,jpx,2) + grc(imx,j1,1)*grc(i1,jpx,2) &
+                      &  + grc(ipx,j1,1)*grc(i1,jmx,2) + grc(imx,j1,1)*grc(i1,jmx,2) &
+                      &  + grc(ipx,j1,1)*grc(i1,jpy,2) + grc(imx,j1,1)*grc(i1,jpy,2) &
+                      &  + grc(ipx,j1,1)*grc(i1,jmy,2) + grc(imx,j1,1)*grc(i1,jmy,2) &
+                      &  + grc(ipy,j1,1)*grc(i1,jpx,2) + grc(imy,j1,1)*grc(i1,jpx,2) &
+                      &  + grc(ipy,j1,1)*grc(i1,jmx,2) + grc(imy,j1,1)*grc(i1,jmx,2) &
+                      &  + grc(ipy,j1,1)*grc(i1,jpy,2) + grc(imy,j1,1)*grc(i1,jpy,2) &
+                      &  + grc(ipy,j1,1)*grc(i1,jmy,2) + grc(imy,j1,1)*grc(i1,jmy,2)
+
+                  obs_eq(7)%obs_Latt(imj,1,no_i,no_j) = & 
+                      & obs_eq(7)%obs_latt(imj,1,no_i,no_j) + (ztmp1+ztmp2+ztmp3+ztmp4)*z_fac
                   
                   !! p_x
                   !! \Delta_{x} = c^{i,\uparrow}c^{i+x,\uparrow}-c^{i,\uparrow}c^{i-x,\uparrow}+
@@ -573,8 +675,6 @@
                       &   + grc(ipx,jpx,2)*grc(i1,j1,2) - grc(ipx,jmx,2)*grc(i1,j1,2) &
                       &   - grc(imx,jpx,1)*grc(i1,j1,1) + grc(imx,jmx,1)*grc(i1,j1,1) &
                       &   - grc(imx,jpx,2)*grc(i1,j1,2) + grc(imx,jmx,2)*grc(i1,j1,2)
-
-                  obs_eq(7)%obs_Latt(imj,1,no_i,no_j) = obs_eq(7)%obs_latt(imj,1,no_i,no_j) + ztmp1*z_fac
                   
                   !! p_y
                   !! \Delta_{y} = c^{i,\uparrow}c^{i+y,\uparrow}-c^{i,\uparrow}c^{i-y,\uparrow}+
@@ -584,7 +684,8 @@
                       &   - grc(imy,jpy,1)*grc(i1,j1,1) + grc(imy,jmy,1)*grc(i1,j1,1) &
                       &   - grc(imy,jpy,2)*grc(i1,j1,2) + grc(imy,jmy,2)*grc(i1,j1,2)
 
-                  obs_eq(8)%obs_Latt(imj,1,no_i,no_j) = obs_eq(8)%obs_latt(imj,1,no_i,no_j) + ztmp2*z_fac
+                  obs_eq(8)%obs_Latt(imj,1,no_i,no_j) = &
+                      & obs_eq(8)%obs_latt(imj,1,no_i,no_j) + (ztmp1+ztmp2)*z_fac
                   
                   !! p_x+ip_y
                   !! \Delta_{x+iy} = i\Delta_x+\Delta_y
