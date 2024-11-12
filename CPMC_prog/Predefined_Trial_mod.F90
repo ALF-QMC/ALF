@@ -180,7 +180,7 @@
                          error stop 1
                       end select
                       delta = 0.005d0*ranf_wrap()
-                      delta = 0.d0
+                      !delta = 0.d0
                       do n = 1,N_FL
                           Op_Tmp(1,n)%O(I1,J1) = cmplx(-Ham_T-delta,0.d0, kind(0.D0))
                           Op_Tmp(1,n)%O(J1,I1) = cmplx(-Ham_T-delta,0.d0, kind(0.D0))
@@ -188,7 +188,7 @@
                    enddo
                    do n = 1,N_FL
                       rmu = 0.d0
-                      rmu = 0.002d0*(ranf_wrap()-0.5d0)
+                      !rmu = 0.002d0*(ranf_wrap()-0.5d0)
                       Op_Tmp(1,n)%O(I1,I1) = cmplx(rmu,0.d0, kind(0.D0))
                    enddo
                 enddo
