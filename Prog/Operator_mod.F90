@@ -49,17 +49,17 @@ Module Operator_mod
   Implicit none
   
   abstract interface
-   function O_V(Z) RESULT(O)
+   function O_V_template(Z) RESULT(O)
       Implicit none
       Complex (Kind=Kind(0.d0)), INTENT(IN) :: Z
       Complex (Kind=Kind(0.d0)), allocatable :: O(:,:) 
-   end Function O_V
-   function O_expV(Z,X) RESULT(O)
+   end Function O_V_template
+   function O_expV_template(Z,X) RESULT(O)
       Implicit none
       Complex (Kind=Kind(0.d0)), INTENT(IN) :: Z
       Real    (Kind=Kind(0.d0)), INTENT(IN) :: X
       Complex (Kind=Kind(0.d0)), allocatable :: O(:,:) 
-   end Function O_expV
+   end Function O_expV_template
   end interface 
 
   Type Operator
@@ -76,8 +76,8 @@ Module Operator_mod
      complex (Kind=Kind(0.d0)) :: alpha                     !> operator shift
      Integer          :: Type                               !> Type of the operator: 1=Ising; 2=discrete HS; 3=continuous scalar HS, 4=  Complex for  three  bondy term.
      Integer          :: Flip_protocol=1                    !> Flip protocol  for  local  updates.  Only  relevant  for  type =3  fields. 
-     procedure(O_V), POINTER, nopass :: O_V_func      =>  null() !>  Returns: O_V_func(Z)     Z complex
-     procedure(O_V), POINTER, nopass :: O_expV_func   =>  null() !>  Returns: exp(-dtau O_V_func(Z))  
+     procedure(O_V_template), POINTER, nopass :: O_V_func      =>  null() !>  Returns: O_V_func(Z)     Z complex
+     procedure(O_expV_template), POINTER, nopass :: O_expV_func   =>  null() !>  Returns: exp(-dtau O_V_func(Z))  
 
      ! P is an N X Ndim matrix such that  P.T*O*P*  =  A  
      ! P has only one non-zero entry per column which is specified by P

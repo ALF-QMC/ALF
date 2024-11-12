@@ -394,7 +394,7 @@
 !> ALF Collaboration
 !>
 !> @brief
-!> Sets functions  interaction vertices for  U(1) gauge theory
+!> Sets O_V_func   =  sigma_x real(e^{z}) - sigma_y Im(e^{Z}) 
 !--------------------------------------------------------------------
       function O_V_func(Z) RESULT(O)
 
@@ -408,6 +408,27 @@
          O(1,2)  =  exp(Z)
          O(2,1)  =  conjg(O(1,2))
       End Function O_V_func
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Sets exp(-Dtau O_V_func)
+!> Use e^{a \vec{e} \cdot \vec{\sigma} }  = cos(a) +  sin(a)vec{e} \cdot \vec{\sigma} 
+!> Here  \vec{e}  is a unit vector.
+!--------------------------------------------------------------------
+      function O_expV_func(Z) RESULT(O)
+
+         Implicit none
+         Complex (Kind=Kind(0.d0)), INTENT(IN) :: Z
+         Complex (Kind=Kind(0.d0)), allocatable :: O(:,:)
+
+         Allocate (O(2,2))
+      
+         O = cmplx(0.d0,0.d0,kind(0.d0))
+         O(1,2)  =  exp(Z)
+         O(2,1)  =  conjg(O(1,2))
+      End Function O_expV_func
 !--------------------------------------------------------------------
 !> @author
 !> ALF Collaboration
