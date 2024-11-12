@@ -102,15 +102,11 @@ A suite of tests for individual parts of the code (subroutines, functions, opera
 \begin{lstlisting}[style=bash,morekeywords={make,cmake,ctest}]
 
 source configure.sh GNU Devel noMPI
-gfortran -v
-make lib
-make ana
-make program
+make all
 cd testsuite
 cmake -E make_directory tests
 cd tests
-cmake -G "Unix Makefiles" -DCMAKE_Fortran_FLAGS_RELEASE=${F90OPTFLAGS} \
--DCMAKE_BUILD_TYPE=RELEASE ..
+cmake ..
 cmake --build . --target all --config Release
 ctest -VV -O log.txt
 \end{lstlisting}
