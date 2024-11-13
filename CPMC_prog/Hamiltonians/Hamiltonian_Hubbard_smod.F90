@@ -68,6 +68,8 @@
       Type (Unit_cell),     target :: Latt_unit
       Type (Hopping_Matrix_type), Allocatable :: Hopping_Matrix(:)
       Integer, allocatable :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
+      Integer, allocatable :: del_list(:,:,:)
+      complex (Kind=Kind(0.d0)), allocatable :: ff_s(:,:,:)
       
       !! mc obser
       Type (obser_Latt), dimension(:), allocatable :: obs_grc
@@ -199,8 +201,98 @@
           Use Predefined_Lattices
 
           Implicit none
+
+          integer :: i, no, a0, a1, a2, b0, b1, b2, k, k1, k2, ntype
+          real    (kind=kind(0.d0)) :: pi = acos(-1.d0)
+
           ! Use predefined stuctures or set your own lattice.
-          Call Predefined_Latt(Lattice_type, L1,L2,Ndim, List,Invlist,Latt,Latt_Unit)
+          call Predefined_Latt(lattice_type, L1,L2,Ndim, List,Invlist,Latt,Latt_Unit)
+
+          if ( latt_unit%norb .gt. 1) then
+
+            allocate(del_list(latt%n,latt_unit%norb,3))
+            del_list=0
+            do i = 1, latt%N
+                do no = 1, latt_unit%norb
+                   select case (no)
+                   case (1)
+                      a0 = invlist(i,2)
+                      del_list(i,no,1) = a0
+                      a1 = invlist(latt%nnlist(i,0,-1),2)
+                      del_list(i,no,2) = a1
+                      a2 = invlist(latt%nnlist(i,1,-1),2)
+                      del_list(i,no,3) = a2
+                   case (2)
+                      b0 = invlist(i,1)
+                      del_list(i,no,1) = a0
+                      b1 = invlist(latt%nnlist(i, 0,1),1)
+                      del_list(i,no,2) = a1
+                      b2 = invlist(latt%nnlist(i,-1,1),1)
+                      del_list(i,no,3) = a2
+                   end select
+                enddo
+            enddo
+
+            !! s wave 1, p1 wave 2,   p2 wave 3, p+ip wave 4
+            !! d1wave 5, d2 wave 6, d+id wave 7,    f wave 8
+            allocate(ff_s(latt_unit%n_coord, latt_unit%norb ,8))
+            do ntype = 1, 8
+                select case(ntype)
+                case (1)
+                    ff_s(:,:,ntype) =  1.d0
+                case (2)
+                    ff_s(1,1,ntype) =  1.d0
+                    ff_s(2,1,ntype) = -1.d0
+                    ff_s(3,1,ntype) =  0.d0
+                    ff_s(1,2,ntype) = -1.d0
+                    ff_s(2,2,ntype) =  1.d0
+                    ff_s(3,2,ntype) =  0.d0
+                case (3)
+                    ff_s(1,1,ntype) =  1.d0
+                    ff_s(2,1,ntype) =  0.d0
+                    ff_s(3,1,ntype) = -1.d0
+                    ff_s(1,2,ntype) = -1.d0
+                    ff_s(2,2,ntype) =  0.d0
+                    ff_s(3,2,ntype) =  1.d0
+                case (4)
+                    ff_s(1,1,ntype) =  1.d0
+                    ff_s(2,1,ntype) =  exp(cmplx(0,2.d0*pi/3.d0,kind(0.d0)))
+                    ff_s(3,1,ntype) =  exp(cmplx(0,4.d0*pi/3.d0,kind(0.d0)))
+                    ff_s(1,2,ntype) = -1.d0
+                    ff_s(2,2,ntype) = -exp(cmplx(0,2.d0*pi/3.d0,kind(0.d0)))
+                    ff_s(3,2,ntype) = -exp(cmplx(0,4.d0*pi/3.d0,kind(0.d0)))
+                case (5)
+                    ff_s(1,1,ntype) =  1.d0
+                    ff_s(2,1,ntype) = -1.d0
+                    ff_s(3,1,ntype) =  0.d0
+                    ff_s(1,2,ntype) =  1.d0
+                    ff_s(2,2,ntype) = -1.d0
+                    ff_s(3,2,ntype) =  0.d0
+                case (6)
+                    ff_s(1,1,ntype) =  1.d0
+                    ff_s(2,1,ntype) =  0.d0
+                    ff_s(3,1,ntype) = -1.d0
+                    ff_s(1,2,ntype) =  1.d0
+                    ff_s(2,2,ntype) =  0.d0
+                    ff_s(3,2,ntype) = -1.d0
+                case (7)
+                    ff_s(1,1,ntype) =  1.d0
+                    ff_s(2,1,ntype) =  exp(cmplx(0,2.d0*pi/3.d0,kind(0.d0)))
+                    ff_s(3,1,ntype) =  exp(cmplx(0,4.d0*pi/3.d0,kind(0.d0)))
+                    ff_s(1,2,ntype) =  1.d0
+                    ff_s(2,2,ntype) =  exp(cmplx(0,2.d0*pi/3.d0,kind(0.d0)))
+                    ff_s(3,2,ntype) =  exp(cmplx(0,4.d0*pi/3.d0,kind(0.d0)))
+                case (8)
+                    ff_s(1,1,ntype) =  1.d0
+                    ff_s(2,1,ntype) =  1.d0
+                    ff_s(3,1,ntype) =  1.d0
+                    ff_s(1,2,ntype) = -1.d0
+                    ff_s(2,2,ntype) = -1.d0
+                    ff_s(3,2,ntype) = -1.d0
+                end select
+            enddo
+
+          endif
 
         end Subroutine Ham_Latt
 !--------------------------------------------------------------------
@@ -353,7 +445,7 @@
              Call Obser_Vec_make(Obs_scal(I),N,Filename)
           enddo
              
-          Allocate ( Obs_eq(5) )
+          Allocate ( Obs_eq(17) )
           Do I = 1,Size(Obs_eq,1)
              select case (I)
              case (1)
@@ -366,6 +458,30 @@
                 Filename = "SpinT"
              case (5)
                 Filename = "Den"
+             case (6)
+                Filename = "swave"
+             case (7)
+                Filename = "p11wave"
+             case (8)
+                Filename = "p13wave"
+             case (9)
+                Filename = "p21wave"
+             case (10)
+                Filename = "p23wave"
+             case (11)
+                Filename = "pip1wave"
+             case (12)
+                Filename = "pip3wave"
+             case (13)
+                Filename = "d1wave"
+             case (14)
+                Filename = "d2wave"
+             case (15)
+                Filename = "didwave"
+             case (16)
+                Filename = "f1wave"
+             case (17)
+                Filename = "f3wave"
              case default
                 Write(6,*) ' Error in Alloc_obs '
              end select
@@ -433,33 +549,35 @@
 !>  Time slice
 !> \endverbatim
 !-------------------------------------------------------------------
-        subroutine Obser(GR,GR_mix,i_wlk,i_grc,sum_w,sum_o,act_mea)
+        subroutine obser(gr,gr_mix,i_wlk,i_grc,sum_w,sum_o,act_mea)
 
-          Use Predefined_Obs
+          use Predefined_Obs
 
           Implicit none
 
-          Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
-          Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR_mix(Ndim,Ndim,N_FL)
-          Complex (Kind=Kind(0.d0)), Intent(IN) :: sum_w, sum_o
-          Integer, Intent(IN) :: i_wlk, i_grc, act_mea
+          complex (Kind=Kind(0.d0)), INTENT(IN) :: gr(ndim,ndim,n_fl)
+          complex (Kind=Kind(0.d0)), INTENT(IN) :: gr_mix(ndim,ndim,n_fl)
+          complex (Kind=Kind(0.d0)), Intent(IN) :: sum_w, sum_o
+          integer, Intent(IN) :: i_wlk, i_grc, act_mea
 
           !Local
-          Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK, invsumw, zone, ztmp, z_ol
-          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP,ZS, ZZ, ZXY, ZW, Re_ZW, Z_fac
-          Integer :: I,J, imj, nf, dec, I1, J1, no_I, no_J,n, nc
-          Real    (Kind=Kind(0.d0)) :: X
+          complex (Kind=Kind(0.d0)) :: grc(ndim,ndim,n_fl), ZK, invsumw, zone, ztmp, z_ol
+          complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP,ZS, ZZ, ZXY, ZW, Re_ZW, Z_fac
+          complex (Kind=Kind(0.d0)) :: ztmp1, ztmp2, ztmp3, cpair(12)
+          integer :: I,J, imj, nf, dec, I1, J1, no_I, no_J,n, nc, n_link, k, k1, k2
+          integer :: idl(3), jdl(3)
+          real    (Kind=Kind(0.d0)) :: X
 
           Z_ol  = exp(overlap(i_grc))/sum_o
           ZW    = cmplx(weight_k(i_wlk),0.d0,kind(0.d0))/sum_w
           Z_fac = Z_ol*ZW
           
-          Do nf = 1,N_FL
-             Do I = 1,Ndim
-                Do J = 1,Ndim
-                   GRC(I, J, nf) = -GR(J, I, nf)
+          Do nf = 1, n_fl
+             Do I = 1, ndim
+                Do J = 1, ndim
+                   grc(i,j,nf) = -gr(j,i,nf)
                 Enddo
-                GRC(I, I, nf) = 1.D0 + GRC(I, I, nf)
+                grc(i,i,nf) = 1.D0 + grc(i,i,nf)
              Enddo
           Enddo
           ! GRC(i,j,nf) = < c^{dagger}_{i,nf } c_{j,nf } >
@@ -467,77 +585,173 @@
           ! Compute scalar observables.
           if ( act_mea .eq. 0 ) then
               do I = 1,Size(Obs_scal,1)
-                 Obs_scal(I)%N         =  Obs_scal(I)%N + 1
-                 Obs_scal(I)%Ave_sign  =  Obs_scal(I)%Ave_sign + 1.d0
+                 obs_scal(i)%n         =  obs_scal(i)%n + 1
+                 obs_scal(i)%ave_sign  =  obs_scal(i)%ave_sign + 1.d0
               enddo
           endif
 
-          Zkin = cmplx(0.d0, 0.d0, kind(0.D0))
+          zkin = cmplx(0.d0, 0.d0, kind(0.D0))
           Call Predefined_Hoppings_Compute_Kin(Hopping_Matrix,List,Invlist, Latt, Latt_unit, GRC, ZKin)
-          Zkin = Zkin* dble(N_SUN)
-          Obs_scal(1)%Obs_vec(1)  =    Obs_scal(1)%Obs_vec(1) + Zkin *Z_fac
+          zkin = zkin* dble(n_sun)
+          obs_scal(1)%obs_vec(1) = obs_scal(1)%obs_vec(1) + zkin*z_fac
 
-
-          ZPot = cmplx(0.d0, 0.d0, kind(0.D0))
-          Do I = 1,Latt%N
-             do no_I = 1,Latt_unit%Norb
-                I1 = Invlist(I,no_I)
-                ZPot = ZPot + Grc(i1,i1,1) * Grc(i1,i1,2)* ham_U
+          zpot = cmplx(0.d0, 0.d0, kind(0.D0))
+          Do i = 1, latt%n
+             do no_i = 1, latt_unit%norb
+                i1 = Invlist(i,no_i)
+                zpot = zpot + grc(i1,i1,1) * grc(i1,i1,2)* ham_u
              enddo
           Enddo
-          Obs_scal(2)%Obs_vec(1)  =  Obs_scal(2)%Obs_vec(1) + Zpot *Z_fac
+          obs_scal(2)%obs_vec(1) = obs_scal(2)%obs_vec(1) + zpot*z_fac
 
-
-          Zrho = cmplx(0.d0,0.d0, kind(0.D0))
-          Do nf = 1,N_FL
-             Do I = 1,Ndim
-                Zrho = Zrho + Grc(i,i,nf)
+          zrho = cmplx(0.d0,0.d0, kind(0.D0))
+          Do nf = 1, n_fl
+             Do i = 1,ndim
+                zrho = zrho + grc(i,i,nf)
              enddo
           enddo
-          Zrho = Zrho* dble(N_SUN)
+          zrho = zrho* dble(n_sun)
 
-          Obs_scal(3)%Obs_vec(1)  =    Obs_scal(3)%Obs_vec(1) + Zrho * Z_fac
+          obs_scal(3)%obs_vec(1) = obs_scal(3)%obs_vec(1) + zrho * z_fac
 
-          Obs_scal(4)%Obs_vec(1)  =    Obs_scal(4)%Obs_vec(1) + (Zkin + Zpot)*Z_fac
+          obs_scal(4)%obs_vec(1) = obs_scal(4)%obs_vec(1) + (zkin + zpot)*z_fac
 
           nc = 0
-          Do nf = 1,N_FL
-             Do I = 1,Ndim
-             Do J = 1,Ndim
+          Do nf = 1, n_fl
+             Do i = 1, ndim
+             Do j = 1, ndim
                 nc = nc + 1
                 ztmp = grc(i,j,nf)
-                Obs_scal(5)%Obs_vec(nc) = Obs_scal(5)%Obs_vec(nc) + ztmp*Z_fac
+                obs_scal(5)%obs_vec(nc) = obs_scal(5)%obs_vec(nc) + ztmp*z_fac
              Enddo
              Enddo
           Enddo
 
           nc = 0
-          Do nf = 1,N_FL
-             Do I = 1,Ndim
-             Do J = 1,Ndim
+          Do nf = 1, n_fl
+             Do i = 1, ndim
+             Do j = 1, ndim
                 nc = nc + 1
                 zone = cmplx(0.d0,0.d0,kind(0.d0))
-                if ( I .eq. J ) zone = cmplx(1.d0,0.d0,kind(0.d0))
-                Ztmp = zone-GR_mix(J,I,nf)
-                Obs_scal(6)%Obs_vec(nc) = Obs_scal(6)%Obs_vec(nc) + ztmp*Z_fac
+                if ( i .eq. j ) zone = cmplx(1.d0,0.d0,kind(0.d0))
+                ztmp = zone - gr_mix(j,i,nf)
+                obs_scal(6)%obs_vec(nc) = obs_scal(6)%obs_vec(nc) + ztmp*z_fac
              Enddo
              Enddo
           Enddo
 
           ! Compute the standard two-point correlations
           if ( act_mea .eq. 0 ) then
-              Do I = 1, Size(Obs_eq,1)
-                 obs_eq(I)%N        = obs_eq(I)%N + 1
-                 obs_eq(I)%Ave_sign = obs_eq(I)%Ave_sign + 1.d0
+              Do i = 1, Size(obs_eq,1)
+                 obs_eq(i)%n        = obs_eq(i)%n + 1
+                 obs_eq(i)%ave_sign = obs_eq(i)%ave_sign + 1.d0
               enddo
           endif
           
           ! Standard two-point correlations
-          Call Predefined_Obs_eq_Green_measure ( Latt, Latt_unit, List, GR, GRC, N_SUN, Z_fac, Obs_eq(1) )
-          Call Predefined_Obs_eq_SpinMz_measure( Latt, Latt_unit, List, GR, GRC, N_SUN, Z_fac, Obs_eq(2),Obs_eq(3),Obs_eq(4) )
-          Call Predefined_Obs_eq_Den_measure   ( Latt, Latt_unit, List, GR, GRC, N_SUN, Z_fac, Obs_eq(5) )
+          call predefined_obs_eq_green_measure ( Latt, Latt_unit, List, GR, GRC, N_SUN, Z_fac, Obs_eq(1) )
+          call predefined_obs_eq_spinmz_measure( Latt, Latt_unit, List, GR, GRC, N_SUN, Z_fac, Obs_eq(2),Obs_eq(3),Obs_eq(4) )
+          call predefined_obs_eq_den_measure   ( Latt, Latt_unit, List, GR, GRC, N_SUN, Z_fac, Obs_eq(5) )
+          
+          ! pairing for honeycomb
+          do i1 = 1, ndim
+              i    = list(i1,1)
+              no_i = list(i1,2)
 
-        end Subroutine Obser
+              idl(:) = del_list(i,no_i,:)
+
+              do j1 = 1, ndim
+                  j    = list(j1,1)
+                  no_j = list(j1,2)
+
+                  jdl(:) = del_list(j,no_j,:)
+
+                  imj  = latt%imj(i, j)
+
+                  cpair(:) = cmplx(0.d0,0.d0,kind(0.d0))
+                  do k = 1, latt_unit%n_coord*latt_unit%n_coord
+
+                     k2 = (k-1)/latt_unit%n_coord
+                     k1 = k-k1*latt_unit%n_coord-1
+
+                     !! swave
+                     cpair(1) = cpair(1) + ff_s(k1,no_i,1)*ff_s(k2,no_j,1)* &
+                         & (  gr(i1,j1,1)*gr(idl(k1),jdl(k2),2) + gr(i1,j1,2)*gr(idl(k1),jdl(k2),1)  &
+                         &  + gr(i1,jdl(k2),1)*gr(idl(k1),j1,2) + gr(i1,jdl(k2),2)*gr(idl(k1),j1,1) )
+                     
+                     !! p11wave
+                     cpair(2) = cpair(2) + ff_s(k1,no_i,2)*ff_s(k2,no_j,2)* &
+                         & (  gr(i1,j1,1)*gr(idl(k1),jdl(k2),1) + gr(i1,j1,2)*gr(idl(k1),jdl(k2),2) &
+                         &  - gr(i1,jdl(k2),1)*gr(idl(k1),j1,1) - gr(i1,jdl(k2),2)*gr(idl(k1),j1,2) )
+                     
+                     !! p13wave
+                     cpair(3) = cpair(3) + ff_s(k1,no_i,2)*ff_s(k2,no_j,2)* &
+                         & (  gr(i1,j1,1)*gr(idl(k1),jdl(k2),2) + gr(i1,j1,2)*gr(idl(k1),jdl(k2),1) &
+                         &  - gr(i1,jdl(k2),1)*gr(idl(k1),j1,2) - gr(i1,jdl(k2),2)*gr(idl(k1),j1,1) )
+                     
+                     !! p21wave
+                     cpair(4) = cpair(4) + ff_s(k1,no_i,3)*ff_s(k2,no_j,3)* &
+                         & (  gr(i1,j1,1)*gr(idl(k1),jdl(k2),1) + gr(i1,j1,2)*gr(idl(k1),jdl(k2),2) &
+                         &  - gr(i1,jdl(k2),1)*gr(idl(k1),j1,1) - gr(i1,jdl(k2),2)*gr(idl(k1),j1,2) )
+                     
+                     !! p23wave
+                     cpair(5) = cpair(5) + ff_s(k1,no_i,3)*ff_s(k2,no_j,3)* &
+                         & (  gr(i1,j1,1)*gr(idl(k1),jdl(k2),2) + gr(i1,j1,2)*gr(idl(k1),jdl(k2),1) &
+                         &  - gr(i1,jdl(k2),1)*gr(idl(k1),j1,2) - gr(i1,jdl(k2),2)*gr(idl(k1),j1,1) )
+                     
+                     !! pip1wave
+                     cpair(6) = cpair(6) + ff_s(k1,no_i,4)*ff_s(k2,no_j,4)* &
+                         & (  gr(i1,j1,1)*gr(idl(k1),jdl(k2),1) + gr(i1,j1,2)*gr(idl(k1),jdl(k2),2) &
+                         &  - gr(i1,jdl(k2),1)*gr(idl(k1),j1,1) - gr(i1,jdl(k2),2)*gr(idl(k1),j1,2) )
+                     
+                     !! pip3wave
+                     cpair(7) = cpair(7) + ff_s(k1,no_i,4)*ff_s(k2,no_j,4)* &
+                         & (  gr(i1,j1,1)*gr(idl(k1),jdl(k2),2) + gr(i1,j1,2)*gr(idl(k1),jdl(k2),1) &
+                         &  - gr(i1,jdl(k2),1)*gr(idl(k1),j1,2) - gr(i1,jdl(k2),2)*gr(idl(k1),j1,1) )
+
+                     !! d1wave
+                     cpair(8) = cpair(8) + ff_s(k1,no_i,5)*ff_s(k2,no_j,5)* &
+                         & (  gr(i1,j1,1)*gr(idl(k1),jdl(k2),2) + gr(i1,j1,2)*gr(idl(k1),jdl(k2),1)  &
+                         &  + gr(i1,jdl(k2),1)*gr(idl(k1),j1,2) + gr(i1,jdl(k2),2)*gr(idl(k1),j1,1) )
+                     
+                     !! d2wave
+                     cpair(9) = cpair(9) + ff_s(k1,no_i,6)*ff_s(k2,no_j,6)* &
+                         & (  gr(i1,j1,1)*gr(idl(k1),jdl(k2),2) + gr(i1,j1,2)*gr(idl(k1),jdl(k2),1)  &
+                         &  + gr(i1,jdl(k2),1)*gr(idl(k1),j1,2) + gr(i1,jdl(k2),2)*gr(idl(k1),j1,1) )
+                     
+                     !! didwave
+                     cpair(10) = cpair(10) + ff_s(k1,no_i,7)*ff_s(k2,no_j,7)* &
+                         & (  gr(i1,j1,1)*gr(idl(k1),jdl(k2),2) + gr(i1,j1,2)*gr(idl(k1),jdl(k2),1)  &
+                         &  + gr(i1,jdl(k2),1)*gr(idl(k1),j1,2) + gr(i1,jdl(k2),2)*gr(idl(k1),j1,1) )
+                     
+                     !! f1wave
+                     cpair(11) = cpair(11) + ff_s(k1,no_i,8)*ff_s(k2,no_j,8)* &
+                         & (  gr(i1,j1,1)*gr(idl(k1),jdl(k2),1) + gr(i1,j1,2)*gr(idl(k1),jdl(k2),2) &
+                         &  - gr(i1,jdl(k2),1)*gr(idl(k1),j1,1) - gr(i1,jdl(k2),2)*gr(idl(k1),j1,2) )
+                     
+                     !! f3wave
+                     cpair(12) = cpair(12) + ff_s(k1,no_i,8)*ff_s(k2,no_j,8)* &
+                         & (  gr(i1,j1,1)*gr(idl(k1),jdl(k2),2) + gr(i1,j1,2)*gr(idl(k1),jdl(k2),1) &
+                         &  - gr(i1,jdl(k2),1)*gr(idl(k1),j1,2) - gr(i1,jdl(k2),2)*gr(idl(k1),j1,1) )
+
+                  enddo
+
+                  obs_eq(6 )%obs_Latt(imj,1,no_i,no_j) = obs_eq(6 )%obs_latt(imj,1,no_i,no_j) + cpair(1 )*z_fac
+                  obs_eq(7 )%obs_Latt(imj,1,no_i,no_j) = obs_eq(7 )%obs_latt(imj,1,no_i,no_j) + cpair(2 )*z_fac
+                  obs_eq(8 )%obs_Latt(imj,1,no_i,no_j) = obs_eq(8 )%obs_latt(imj,1,no_i,no_j) + cpair(3 )*z_fac
+                  obs_eq(9 )%obs_Latt(imj,1,no_i,no_j) = obs_eq(9 )%obs_latt(imj,1,no_i,no_j) + cpair(4 )*z_fac
+                  obs_eq(10)%obs_Latt(imj,1,no_i,no_j) = obs_eq(10)%obs_latt(imj,1,no_i,no_j) + cpair(5 )*z_fac
+                  obs_eq(11)%obs_Latt(imj,1,no_i,no_j) = obs_eq(11)%obs_latt(imj,1,no_i,no_j) + cpair(6 )*z_fac
+                  obs_eq(12)%obs_Latt(imj,1,no_i,no_j) = obs_eq(12)%obs_latt(imj,1,no_i,no_j) + cpair(7 )*z_fac
+                  obs_eq(13)%obs_Latt(imj,1,no_i,no_j) = obs_eq(13)%obs_latt(imj,1,no_i,no_j) + cpair(8 )*z_fac
+                  obs_eq(14)%obs_Latt(imj,1,no_i,no_j) = obs_eq(14)%obs_latt(imj,1,no_i,no_j) + cpair(9 )*z_fac
+                  obs_eq(15)%obs_Latt(imj,1,no_i,no_j) = obs_eq(15)%obs_latt(imj,1,no_i,no_j) + cpair(10)*z_fac
+                  obs_eq(16)%obs_Latt(imj,1,no_i,no_j) = obs_eq(16)%obs_latt(imj,1,no_i,no_j) + cpair(11)*z_fac
+                  obs_eq(17)%obs_Latt(imj,1,no_i,no_j) = obs_eq(17)%obs_latt(imj,1,no_i,no_j) + cpair(12)*z_fac
+              enddo
+          enddo
+
+        end subroutine obser
 
 !--------------------------------------------------------------------
 !> @author
@@ -559,9 +773,9 @@
 !>  GTT(I,J,nf) = <T c_{I,nf }(tau) c^{dagger}_{J,nf }(tau)>
 !> \endverbatim
 !-------------------------------------------------------------------
-        Subroutine ObserT(NT,  GT0,G0T,G00,GTT, i_wlk,i_grc,sum_w,sum_o,act_mea)
+        subroutine obserT(NT,  GT0,G0T,G00,GTT, i_wlk,i_grc,sum_w,sum_o,act_mea)
 
-          Use Predefined_Obs
+          use Predefined_Obs
 
           Implicit none
 
