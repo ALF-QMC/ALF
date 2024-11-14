@@ -672,7 +672,8 @@
                   do k = 1, latt_unit%n_coord*latt_unit%n_coord
 
                      k2 = (k-1)/latt_unit%n_coord
-                     k1 = k-k2*latt_unit%n_coord-1
+                     k1 = k-k2*latt_unit%n_coord
+                     k2 = k2 + 1
 
                      !! swave
                      cpair(1) = cpair(1) + ff_s(k1,no_i,1)*ff_s(k2,no_j,1)* &
