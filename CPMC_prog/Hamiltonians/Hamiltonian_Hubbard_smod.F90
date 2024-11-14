@@ -676,62 +676,62 @@
                      k2 = k2 + 1
 
                      !! swave
-                     cpair(1) = cpair(1) + ff_s(k1,no_i,1)*ff_s(k2,no_j,1)* &
+                     cpair(1) = cpair(1) + ff_s(k1,no_i,1)*conjg(ff_s(k2,no_j,1))* &
                          & (  gr(i1,j1,1)*gr(idl(k1),jdl(k2),2) + gr(i1,j1,2)*gr(idl(k1),jdl(k2),1)  &
                          &  + gr(i1,jdl(k2),1)*gr(idl(k1),j1,2) + gr(i1,jdl(k2),2)*gr(idl(k1),j1,1) )
                      
                      !! p11wave
-                     cpair(2) = cpair(2) + ff_s(k1,no_i,2)*ff_s(k2,no_j,2)* &
+                     cpair(2) = cpair(2) + ff_s(k1,no_i,2)*conjg(ff_s(k2,no_j,2))* &
                          & (  gr(i1,j1,1)*gr(idl(k1),jdl(k2),1) + gr(i1,j1,2)*gr(idl(k1),jdl(k2),2) &
                          &  - gr(i1,jdl(k2),1)*gr(idl(k1),j1,1) - gr(i1,jdl(k2),2)*gr(idl(k1),j1,2) )
                      
                      !! p13wave
-                     cpair(3) = cpair(3) + ff_s(k1,no_i,2)*ff_s(k2,no_j,2)* &
+                     cpair(3) = cpair(3) + ff_s(k1,no_i,2)*conjg(ff_s(k2,no_j,2))* &
                          & (  gr(i1,j1,1)*gr(idl(k1),jdl(k2),2) + gr(i1,j1,2)*gr(idl(k1),jdl(k2),1) &
                          &  - gr(i1,jdl(k2),1)*gr(idl(k1),j1,2) - gr(i1,jdl(k2),2)*gr(idl(k1),j1,1) )
                      
                      !! p21wave
-                     cpair(4) = cpair(4) + ff_s(k1,no_i,3)*ff_s(k2,no_j,3)* &
+                     cpair(4) = cpair(4) + ff_s(k1,no_i,3)*conjg(ff_s(k2,no_j,3))* &
                          & (  gr(i1,j1,1)*gr(idl(k1),jdl(k2),1) + gr(i1,j1,2)*gr(idl(k1),jdl(k2),2) &
                          &  - gr(i1,jdl(k2),1)*gr(idl(k1),j1,1) - gr(i1,jdl(k2),2)*gr(idl(k1),j1,2) )
                      
                      !! p23wave
-                     cpair(5) = cpair(5) + ff_s(k1,no_i,3)*ff_s(k2,no_j,3)* &
+                     cpair(5) = cpair(5) + ff_s(k1,no_i,3)*conjg(ff_s(k2,no_j,3))* &
                          & (  gr(i1,j1,1)*gr(idl(k1),jdl(k2),2) + gr(i1,j1,2)*gr(idl(k1),jdl(k2),1) &
                          &  - gr(i1,jdl(k2),1)*gr(idl(k1),j1,2) - gr(i1,jdl(k2),2)*gr(idl(k1),j1,1) )
                      
                      !! pip1wave
-                     cpair(6) = cpair(6) + ff_s(k1,no_i,4)*ff_s(k2,no_j,4)* &
+                     cpair(6) = cpair(6) + ff_s(k1,no_i,4)*conjg(ff_s(k2,no_j,4))* &
                          & (  gr(i1,j1,1)*gr(idl(k1),jdl(k2),1) + gr(i1,j1,2)*gr(idl(k1),jdl(k2),2) &
                          &  - gr(i1,jdl(k2),1)*gr(idl(k1),j1,1) - gr(i1,jdl(k2),2)*gr(idl(k1),j1,2) )
                      
                      !! pip3wave
-                     cpair(7) = cpair(7) + ff_s(k1,no_i,4)*ff_s(k2,no_j,4)* &
+                     cpair(7) = cpair(7) + ff_s(k1,no_i,4)*conjg(ff_s(k2,no_j,4))* &
                          & (  gr(i1,j1,1)*gr(idl(k1),jdl(k2),2) + gr(i1,j1,2)*gr(idl(k1),jdl(k2),1) &
                          &  - gr(i1,jdl(k2),1)*gr(idl(k1),j1,2) - gr(i1,jdl(k2),2)*gr(idl(k1),j1,1) )
 
                      !! d1wave
-                     cpair(8) = cpair(8) + ff_s(k1,no_i,5)*ff_s(k2,no_j,5)* &
+                     cpair(8) = cpair(8) + ff_s(k1,no_i,5)*conjg(ff_s(k2,no_j,5))* &
                          & (  gr(i1,j1,1)*gr(idl(k1),jdl(k2),2) + gr(i1,j1,2)*gr(idl(k1),jdl(k2),1)  &
                          &  + gr(i1,jdl(k2),1)*gr(idl(k1),j1,2) + gr(i1,jdl(k2),2)*gr(idl(k1),j1,1) )
                      
                      !! d2wave
-                     cpair(9) = cpair(9) + ff_s(k1,no_i,6)*ff_s(k2,no_j,6)* &
+                     cpair(9) = cpair(9) + ff_s(k1,no_i,6)*conjg(ff_s(k2,no_j,6))* &
                          & (  gr(i1,j1,1)*gr(idl(k1),jdl(k2),2) + gr(i1,j1,2)*gr(idl(k1),jdl(k2),1)  &
                          &  + gr(i1,jdl(k2),1)*gr(idl(k1),j1,2) + gr(i1,jdl(k2),2)*gr(idl(k1),j1,1) )
                      
                      !! didwave
-                     cpair(10) = cpair(10) + ff_s(k1,no_i,7)*ff_s(k2,no_j,7)* &
+                     cpair(10) = cpair(10) + ff_s(k1,no_i,7)*conjg(ff_s(k2,no_j,7))* &
                          & (  gr(i1,j1,1)*gr(idl(k1),jdl(k2),2) + gr(i1,j1,2)*gr(idl(k1),jdl(k2),1)  &
                          &  + gr(i1,jdl(k2),1)*gr(idl(k1),j1,2) + gr(i1,jdl(k2),2)*gr(idl(k1),j1,1) )
                      
                      !! f1wave
-                     cpair(11) = cpair(11) + ff_s(k1,no_i,8)*ff_s(k2,no_j,8)* &
+                     cpair(11) = cpair(11) + ff_s(k1,no_i,8)*conjg(ff_s(k2,no_j,8))* &
                          & (  gr(i1,j1,1)*gr(idl(k1),jdl(k2),1) + gr(i1,j1,2)*gr(idl(k1),jdl(k2),2) &
                          &  - gr(i1,jdl(k2),1)*gr(idl(k1),j1,1) - gr(i1,jdl(k2),2)*gr(idl(k1),j1,2) )
                      
                      !! f3wave
-                     cpair(12) = cpair(12) + ff_s(k1,no_i,8)*ff_s(k2,no_j,8)* &
+                     cpair(12) = cpair(12) + ff_s(k1,no_i,8)*conjg(ff_s(k2,no_j,8))* &
                          & (  gr(i1,j1,1)*gr(idl(k1),jdl(k2),2) + gr(i1,j1,2)*gr(idl(k1),jdl(k2),1) &
                          &  - gr(i1,jdl(k2),1)*gr(idl(k1),j1,2) - gr(i1,jdl(k2),2)*gr(idl(k1),j1,1) )
 
