@@ -24,6 +24,11 @@ Program Main
 #endif
         Implicit none
 
+!! setting hdf5 compress level
+#ifndef HDF5_ZLIB
+#define HDF5_ZLIB 9
+#endif
+
 #include "git.h"
 
         COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:,:), Allocatable   :: GR
@@ -323,7 +328,7 @@ Program Main
 
             call seed_vec_out
 
-            Call wavefunction_out_hdf5( phi_0 )
+            call wavefunction_out_hdf5( phi_0 )
 
             call system_clock(count_bin_end)
             prog_truncation = .false.
