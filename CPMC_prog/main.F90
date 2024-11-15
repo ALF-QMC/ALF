@@ -24,6 +24,11 @@ program Main
 #endif
    implicit none
 
+!! setting hdf5 compress level
+#ifndef HDF5_ZLIB
+#define HDF5_ZLIB 9
+#endif
+
 #include "git.h"
 
    complex(Kind=kind(0.d0)), dimension(:, :, :, :), allocatable   :: GR
