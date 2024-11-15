@@ -224,11 +224,11 @@
                       del_list(i,no,3) = a2
                    case (2)
                       b0 = invlist(i,1)
-                      del_list(i,no,1) = a0
+                      del_list(i,no,1) = b0
                       b1 = invlist(latt%nnlist(i, 0,1),1)
-                      del_list(i,no,2) = a1
+                      del_list(i,no,2) = b1
                       b2 = invlist(latt%nnlist(i,-1,1),1)
-                      del_list(i,no,3) = a2
+                      del_list(i,no,3) = b2
                    end select
                 enddo
             enddo
