@@ -1736,10 +1736,10 @@
               CALL h5screate_simple_f(rank, dims, space_id, hdferr)
               CALL h5pcreate_f(H5P_DATASET_CREATE_F, crp_list, hdferr)
               CALL h5pset_chunk_f(crp_list, rank, dimsc, hdferr)
-#if defined HDF5_ZLIB
-                ! Set ZLIB / DEFLATE Compression using compression level HDF5_ZLIB
-              CALL h5pset_deflate_f(crp_list, HDF5_ZLIB, hdferr)
-#endif
+!!#if defined HDF5_ZLIB
+!!                ! Set ZLIB / DEFLATE Compression using compression level HDF5_ZLIB
+!!              CALL h5pset_deflate_f(crp_list, HDF5_ZLIB, hdferr)
+!!#endif
               !Create a dataset using cparms creation properties.
               CALL h5dcreate_f(file_id, dset_name, H5T_NATIVE_DOUBLE, space_id, &
                               dset_id, hdferr, crp_list )
@@ -1760,10 +1760,10 @@
               CALL h5screate_simple_f(rank, dims, space_id, hdferr)
               CALL h5pcreate_f(H5P_DATASET_CREATE_F, crp_list, hdferr)
               CALL h5pset_chunk_f(crp_list, rank, dimsc, hdferr)
-#if defined HDF5_ZLIB
-                ! Set ZLIB / DEFLATE Compression using compression level HDF5_ZLIB
-              CALL h5pset_deflate_f(crp_list, HDF5_ZLIB, hdferr)
-#endif
+!!#if defined HDF5_ZLIB
+!!                ! Set ZLIB / DEFLATE Compression using compression level HDF5_ZLIB
+!!              CALL h5pset_deflate_f(crp_list, HDF5_ZLIB, hdferr)
+!!#endif
               !Create a dataset using cparms creation properties.
               CALL h5dcreate_f(file_id, dset_name, H5T_NATIVE_DOUBLE, space_id, &
                               dset_id, hdferr, crp_list )
