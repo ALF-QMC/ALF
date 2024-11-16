@@ -1789,7 +1789,7 @@ contains
             !Create and write dataset for wave function
             dset_name = "phi_trial_up"
             rank = 4
-            allocate (dims(5), dimsc(5))
+            allocate (dims(4), dimsc(4))
             dims = [2, ndim, n_part_1, N_wlk_mpi]
             dimsc = dims
             call h5screate_simple_f(rank, dims, space_id, hdferr)
@@ -1812,7 +1812,7 @@ contains
             
             dset_name = "phi_trial_dn"
             rank = 4
-            allocate (dims(5), dimsc(5))
+            allocate (dims(4), dimsc(4))
             dims = [2, ndim, n_part_2, N_wlk_mpi]
             dimsc = dims
             call h5screate_simple_f(rank, dims, space_id, hdferr)
