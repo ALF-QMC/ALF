@@ -244,14 +244,15 @@
           integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, i_st, i_ed, ns, i_grc
           complex (Kind=Kind(0.d0)) :: Overlap_old, Overlap_new, Z, sum_o_new, sum_o_old
           complex (Kind=Kind(0.d0)) :: det_Vec(N_FL), log_o_new(n_slat), log_o_old(n_slat)
-          real    (Kind=Kind(0.d0)) :: overlap_ratio, re_overlap
+          real    (Kind=Kind(0.d0)) :: overlap_ratio, re_overlap, re_o_max
           real    (Kind=Kind(0.d0)) :: zero = 1.0E-8
-          
+
           do i_wlk = 1, N_wlk
           
           if ( weight_k(i_wlk) .gt. zero ) then
+
+             re_o_max = 0.d0
              
-             sum_o_old = 0.d0
              do ns = 1, N_slat
                 i_grc = ns+(i_wlk-1)*N_slat
                 ! Update Green's function
@@ -263,7 +264,7 @@
                 det_Vec(:) = det_Vec(:) * N_SUN
                 if (reconstruction_needed) call ham%weight_reconstruction(det_Vec)
                 log_o_old(ns) = sum(det_Vec)
-                sum_o_old = sum_o_old + exp(log_o_old(ns))
+                if ( dble(log_o_old(ns)) .gt. re_o_max ) re_o_max = dble(log_o_old(ns))
              enddo
 
              !! multi exp(-\Delta\tau T/2)
@@ -272,7 +273,6 @@
                 Call Hop_mod_mmthr_1D2(phi_0(nf_eff,i_wlk)%U,nf,1)
              enddo
 
-             sum_o_new = 0.d0
              do ns = 1, N_slat
                 i_grc = ns+(i_wlk-1)*N_slat
                 ! Update Green's function
@@ -284,7 +284,14 @@
                 det_Vec(:) = det_Vec(:) * N_SUN
                 if (reconstruction_needed) call ham%weight_reconstruction(det_Vec)
                 log_o_new(ns) = sum(det_Vec)
-                sum_o_new = sum_o_new + exp(log_o_new(ns))
+                if ( dble(log_o_new(ns)) .gt. re_o_max ) re_o_max = dble(log_o_new(ns))
+             enddo
+
+             sum_o_old = 0.d0
+             sum_o_new = 0.d0
+             do ns = 1, N_slat
+                sum_o_old = sum_o_old + exp(log_o_old(ns)-cmplx(re_o_max,0.d0,kind(0.d0)))
+                sum_o_new = sum_o_new + exp(log_o_new(ns)-cmplx(re_o_max,0.d0,kind(0.d0)))
              enddo
 
              overlap_ratio = sum_o_new/sum_o_old
