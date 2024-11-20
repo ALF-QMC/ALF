@@ -210,7 +210,7 @@
              rdx = rix - ix; rdy = riy - iy
              ndx = abs(rdx); ndy = abs(rdy)
              nsi = i1
-             a1 = rdx/ndx; a2 = rdy/ndy
+             a1 = sign(1,rdx); a2 = sign(1,rdy)
              do nx = 1, ndx;
                 nsi = latt%nnlist(nsi,a1,0)
              enddo
@@ -238,7 +238,7 @@
                 rdx = rix - ix; rdy = riy - iy
                 ndx = abs(rdx); ndy = abs(rdy)
                 nsi = i1
-                a1 = rdx/ndx; a2 = rdy/ndy
+                a1 = sign(1,rdx); a2 = sign(1,rdy)
                 do nx = 1, ndx;
                    nsi = latt%nnlist(nsi,a1,0)
                 enddo
@@ -266,9 +266,9 @@
              enddo
           enddo
             
-          !! d wave 1, p wave 2
-          allocate(ff_s(4,1,2))
-          do ntype = 1, 2
+          !! d wave 1, px wave 2, py wave 3
+          allocate(ff_s(4,1,3))
+          do ntype = 1, 3
               select case(ntype)
               case (1)
                   ff_s(1,1,ntype) =  1.d0
@@ -278,6 +278,11 @@
               case (2)
                   ff_s(1,1,ntype) =  1.d0
                   ff_s(2,1,ntype) = -1.d0
+                  ff_s(3,1,ntype) =  0.d0
+                  ff_s(4,1,ntype) =  0.d0
+              case (3)
+                  ff_s(1,1,ntype) =  0.d0
+                  ff_s(2,1,ntype) =  0.d0
                   ff_s(3,1,ntype) =  1.d0
                   ff_s(4,1,ntype) = -1.d0
               end select
@@ -432,7 +437,7 @@
           end do
 
           ! Equal time correlators
-          allocate (Obs_eq(7))
+          allocate (Obs_eq(8))
           do I = 1, size(Obs_eq, 1)
              select case (I)
              case (1)
@@ -448,7 +453,9 @@
              case (6)
                 Filename = "dwave"
              case (7)
-                Filename = "pwave"
+                Filename = "pxwave"
+             case (8)
+                Filename = "pywave"
              case default
                 write (6, *) ' Error in Alloc_obs '
              end select
@@ -512,7 +519,7 @@
 
           !Local
           complex(Kind=kind(0.d0)) :: grc(Ndim, Ndim, N_FL), ZK, zone, ztmp, z_ol, zero, ztmp1, ztmp2, ztmp3, ztmp4
-          complex(Kind=kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP, ZS, ZZ, ZXY, zback, zw, z_fac, z1j, cpair(3)
+          complex(Kind=kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP, ZS, ZZ, ZXY, zback, zw, z_fac, z1j, cpair(4)
           integer :: I, J, k, l, m, n, imj, nf, dec, i1, ipx, ipy, imx, imy, j1, jpx, jpy, jmx, jmy, no_I, no_J, nc
           integer :: idl(4), jdl(4), irdl(4), jrdl(4), rsi, rsj, k1, k2
           real(Kind=kind(0.d0)) :: X
@@ -648,11 +655,16 @@
                      cpair(3) = cpair(3) + 0.25d0*ff_s(k1,no_i,2)*conjg(ff_s(k2,no_j,2))* &
                          & (   grc(i1,j1,1)*grc(idl(k1),jdl(k2),1) + grc(i1,j1,2)*grc(idl(k1),jdl(k2),2) &
                          &   - grc(i1,jdl(k2),1)*grc(idl(k1),j1,1) - grc(i1,jdl(k2),2)*grc(idl(k1),j1,2) )
+                     
+                     cpair(4) = cpair(4) + 0.25d0*ff_s(k1,no_i,3)*conjg(ff_s(k2,no_j,3))* &
+                         & (   grc(i1,j1,1)*grc(idl(k1),jdl(k2),1) + grc(i1,j1,2)*grc(idl(k1),jdl(k2),2) &
+                         &   - grc(i1,jdl(k2),1)*grc(idl(k1),j1,1) - grc(i1,jdl(k2),2)*grc(idl(k1),j1,2) )
 
                   enddo
                   obs_eq(5)%obs_Latt(imj,1,no_i,no_j) = obs_eq(5)%obs_latt(imj,1,no_i,no_j) + cpair(1)*z_fac
                   obs_eq(6)%obs_Latt(imj,1,no_i,no_j) = obs_eq(6)%obs_latt(imj,1,no_i,no_j) + cpair(2)*z_fac
                   obs_eq(7)%obs_Latt(imj,1,no_i,no_j) = obs_eq(7)%obs_latt(imj,1,no_i,no_j) + cpair(3)*z_fac
+                  obs_eq(8)%obs_Latt(imj,1,no_i,no_j) = obs_eq(8)%obs_latt(imj,1,no_i,no_j) + cpair(4)*z_fac
                   
               end do
               zback = grc(i1, i1, 2) - grc(i1, i1, 1)
