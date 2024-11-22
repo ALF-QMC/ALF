@@ -28,7 +28,7 @@
           Complex (Kind=Kind(0.d0)) :: tot_c_weight, el_tmp
           complex (Kind=Kind(0.d0)) :: det_Vec(N_FL)
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio, X1, wtmp
-          Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8, tot_re_weight, dz2
+          Real    (Kind=Kind(0.d0)) :: zero = 1.0E-12, tot_re_weight, dz2
           Character (LEN=64) :: FILE_TG, FILE_seeds, file_inst, file_antiinst
           Logical ::   LCONF, LCONF_H5, lconf_inst, lconf_antiinst
 
@@ -141,7 +141,7 @@
           !Local 
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, N_op
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
-          Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8
+          Real    (Kind=Kind(0.d0)) :: zero = 1.0E-12
 
           N_op = Size(OP_V,1)
 
@@ -176,7 +176,7 @@
           Integer :: n_op, ns, i_grc
           Complex (Kind=Kind(0.d0)) :: Z, z_alpha
           COMPLEX (Kind=Kind(0.d0)) :: det_Vec(N_FL)
-          Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8, spin
+          Real    (Kind=Kind(0.d0)) :: zero = 1.0E-12, spin
           
           N_op = Size(OP_V,1)
           
@@ -245,7 +245,7 @@
           complex (Kind=Kind(0.d0)) :: Overlap_old, Overlap_new, Z, sum_o_new, sum_o_old
           complex (Kind=Kind(0.d0)) :: det_Vec(N_FL), log_o_new(n_slat), log_o_old(n_slat)
           real    (Kind=Kind(0.d0)) :: overlap_ratio, re_overlap, re_o_max
-          real    (Kind=Kind(0.d0)) :: zero = 1.0E-8
+          real    (Kind=Kind(0.d0)) :: zero = 1.0E-12
 
           do i_wlk = 1, N_wlk
           
@@ -322,7 +322,7 @@
           !Local 
           Integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, N_size, I, i_wlk
           Integer :: ndistance, i_wlk_eff, i_st, i_ed, n_wlk_eff, ns, nrs, i_slat
-          real    (Kind=Kind(0.d0)) :: Overlap_ratio, Zero = 1.0E-8, pi=acos(-1.d0)
+          real    (Kind=Kind(0.d0)) :: Overlap_ratio, zero = 1.0E-12, pi=acos(-1.d0)
           real    (Kind=Kind(0.d0)) :: re_o_am, re_o_ph
           Complex (Kind=Kind(0.d0)) :: det_D(N_FL)
 
@@ -391,7 +391,7 @@
           integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, it_wlk, n_exc,pop_exc(N_wlk_mpi,4)
           integer :: j, it, i_t, i_st, i_ed, nu_wlk, i_src, i_wlk, j_src, j_wlk, n1, n2, nrg, nfrg, ilabel, ncslat
           integer :: i_llim, i_rlim, j_llim, j_rlim
-          real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8, d_scal, sum_w, w_count, w_tmp(N_wlk_mpi), weight_mpi(N_wlk_mpi)
+          real    (Kind=Kind(0.d0)) :: zero = 1.0E-12, d_scal, sum_w, w_count, w_tmp(N_wlk_mpi), weight_mpi(N_wlk_mpi)
           real    (Kind=Kind(0.d0)) :: exp_o_abs(n_slat), exp_o_phase(n_slat), dz2
           complex (Kind=Kind(0.d0)) :: overlap_tmp(N_grc)
           complex (Kind=Kind(0.d0)) :: Z1,Z2,Z3, Z_s_array(N_slat), Z_r_array(N_slat),zp
@@ -605,7 +605,7 @@
           Integer :: i_grc, i_st, i_ed, act_mea, ns
           Complex (Kind=Kind(0.d0)) :: z, z_weight, z_sum_overlap, exp_overlap(N_slat)
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
-          Real (Kind=Kind(0.d0))    :: Zero = 1.0E-8
+          Real (Kind=Kind(0.d0))    :: zero = 1.0E-12
 
 #ifdef MPI
           Integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
@@ -731,7 +731,7 @@
           integer :: nsw, ltrot_bp, nmea, ltrot_eff, i_slat, ns, i_grc
           Complex (Kind=Kind(0.d0)) :: z, z_weight, detz, z1, z2, zp, ztmp, z_avg, z_sgn_avg, ener_tmp
           real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, overlap_ratio, hs_field
-          real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8
+          real    (Kind=Kind(0.d0)) :: zero = 1.0E-12
           complex (Kind=Kind(0.d0)) :: gr(ndim,ndim,n_fl)
           complex (Kind=Kind(0.d0)) :: det_vec(n_fl), zph1, zph2
           class(udv_state), dimension(:,:), allocatable :: phi_r_m
@@ -1100,7 +1100,7 @@
           Integer :: ns, i_grc, act_mea, i_st, i_ed, n_part
           Complex (Kind=Kind(0.d0)) :: Z, Z_weight, DETZ, z_sum_overlap, exp_overlap(N_slat)
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
-          Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8
+          Real    (Kind=Kind(0.d0)) :: zero = 1.0E-12
           
           class(udv_state), dimension(:,:), allocatable :: phi_r_mea, phi_l_mea
 
@@ -1279,7 +1279,7 @@
           Integer :: ns, i_grc, act_mea, i_st, i_ed
           Complex (Kind=Kind(0.d0)) :: Z, Z_weight, DETZ, z_sum_overlap, exp_overlap(N_slat)
           Real    (Kind=Kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
-          Real    (Kind=Kind(0.d0)) :: Zero = 1.0E-8
+          Real    (Kind=Kind(0.d0)) :: zero = 1.0E-12
 
 #ifdef MPI
           Integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
@@ -1445,7 +1445,7 @@
           integer :: nf, nf_eff, n, m, nt, i_wlk, i_grc, ns
           integer :: i_st, i_ed, ncslat
           real    (Kind=Kind(0.d0)) :: log_o_abs(n_slat), log_o_phase(n_slat), dz2
-          real    (kind=kind(0.d0)) :: pi = acos(-1.d0), dre_o, zero = 1.0E-8
+          real    (kind=kind(0.d0)) :: pi = acos(-1.d0), dre_o, zero = 1.0E-12
           complex (Kind=Kind(0.d0)) :: z1, zp
 
           do i_wlk = 1, N_wlk
