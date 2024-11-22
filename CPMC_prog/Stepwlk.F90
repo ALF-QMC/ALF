@@ -28,7 +28,7 @@ contains
       complex(Kind=kind(0.d0)) :: tot_c_weight, el_tmp
       complex(Kind=kind(0.d0)) :: det_Vec(N_FL)
       real(Kind=kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio, X1, wtmp
-      real(Kind=kind(0.d0)) :: Zero = 1.0e-8, tot_re_weight, dz2
+      real(Kind=kind(0.d0)) :: zero = 1.0e-12, tot_re_weight, dz2
       character(LEN=64) :: FILE_TG, FILE_seeds, file_inst, file_antiinst
       logical ::   LCONF, LCONF_H5, lconf_inst, lconf_antiinst
 
@@ -139,13 +139,13 @@ contains
       !Local
       integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, N_op
       real(Kind=kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
-      real(Kind=kind(0.d0)) :: Zero = 1.0e-8
+      real(Kind=kind(0.d0)) :: zero = 1.0e-12
 
       N_op = size(OP_V, 1)
 
       do i_wlk = 1, N_wlk
          ! update weight by fac_norm
-         if (weight_k(i_wlk) .gt. Zero) weight_k(i_wlk) = weight_k(i_wlk)*exp(fac_norm)
+         if (weight_k(i_wlk) .gt. zero) weight_k(i_wlk) = weight_k(i_wlk)*exp(fac_norm)
       end do
 
       call half_K_propagation(phi_trial, phi_0, GR)
@@ -174,13 +174,13 @@ contains
       integer :: n_op, ns, i_grc
       complex(Kind=kind(0.d0)) :: Z, z_alpha
       complex(Kind=kind(0.d0)) :: det_Vec(N_FL)
-      real(Kind=kind(0.d0)) :: Zero = 1.0e-8, spin
+      real(Kind=kind(0.d0)) :: zero = 1.0e-12, spin
 
       N_op = size(OP_V, 1)
 
       do i_wlk = 1, N_wlk
 
-         if (weight_k(i_wlk) .gt. Zero) then
+         if (weight_k(i_wlk) .gt. zero) then
 
             ! upgrade Green's function
             z_alpha = 0.d0
@@ -244,7 +244,7 @@ contains
       complex(Kind=kind(0.d0)) :: Overlap_old, Overlap_new, Z, sum_o_new, sum_o_old
       complex(Kind=kind(0.d0)) :: det_Vec(N_FL), log_o_new(n_slat), log_o_old(n_slat)
       real(Kind=kind(0.d0)) :: overlap_ratio, re_overlap, re_o_max
-      real(Kind=kind(0.d0)) :: zero = 1.0e-8
+      real(Kind=kind(0.d0)) :: zero = 1.0e-12
 
       do i_wlk = 1, N_wlk
 
@@ -321,7 +321,7 @@ contains
       !Local
       integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, N_size, I, i_wlk
       integer :: ndistance, i_wlk_eff, i_st, i_ed, n_wlk_eff, ns, nrs, i_slat
-      real(Kind=kind(0.d0)) :: Overlap_ratio, Zero = 1.0e-8, pi = acos(-1.d0)
+      real(Kind=kind(0.d0)) :: Overlap_ratio, zero = 1.0e-12, pi = acos(-1.d0)
       real(Kind=kind(0.d0)) :: re_o_am, re_o_ph
       complex(Kind=kind(0.d0)) :: det_D(N_FL)
 
@@ -333,7 +333,7 @@ contains
          i_wlk = (i_wlk_eff - 1)/ndistance + 1     ! index for walker
          ns = i_wlk_eff - (i_wlk - 1)*ndistance ! index for slater det
 
-         if (weight_k(i_wlk) .gt. Zero) then
+         if (weight_k(i_wlk) .gt. zero) then
 
             !Carry out U,D,V decomposition.
             do nf_eff = 1, N_FL_eff
@@ -389,7 +389,7 @@ contains
       integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, it_wlk, n_exc, pop_exc(N_wlk_mpi, 4)
       integer :: j, it, i_t, i_st, i_ed, nu_wlk, i_src, i_wlk, j_src, j_wlk, n1, n2, nrg, nfrg, ilabel, ncslat
       integer :: i_llim, i_rlim, j_llim, j_rlim, n_part
-      real(Kind=kind(0.d0)) :: Zero = 1.0e-8, d_scal, sum_w, w_count, w_tmp(N_wlk_mpi), weight_mpi(N_wlk_mpi)
+      real(Kind=kind(0.d0)) :: zero = 1.0e-12, d_scal, sum_w, w_count, w_tmp(N_wlk_mpi), weight_mpi(N_wlk_mpi)
       real(Kind=kind(0.d0)) :: exp_o_abs(n_slat), exp_o_phase(n_slat), dz2
       complex(Kind=kind(0.d0)) :: overlap_tmp(N_grc)
       complex(Kind=kind(0.d0)) :: Z1, Z2, Z3, Z_s_array(N_slat), Z_r_array(N_slat), zp
@@ -604,7 +604,7 @@ contains
       integer :: i_grc, i_st, i_ed, act_mea, ns
       complex(Kind=kind(0.d0)) :: z, z_weight, z_sum_overlap, exp_overlap(N_slat)
       real(Kind=kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
-      real(Kind=kind(0.d0))    :: Zero = 1.0e-8
+      real(Kind=kind(0.d0))    :: zero = 1.0e-12
 
 #ifdef MPI
       integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
@@ -638,7 +638,7 @@ contains
 
          do i_wlk = 1, N_wlk
 
-            if (weight_k(i_wlk) .gt. Zero) then
+            if (weight_k(i_wlk) .gt. zero) then
 
                do ns = 1, N_slat
                   i_grc = ns + (i_wlk - 1)*N_slat
@@ -730,7 +730,7 @@ contains
       integer :: nsw, ltrot_bp, nmea, ltrot_eff, i_slat, ns, i_grc
       complex(Kind=kind(0.d0)) :: z, z_weight, detz, z1, z2, zp, ztmp, z_avg, z_sgn_avg, ener_tmp
       real(Kind=kind(0.d0)) :: S0_ratio, spin, HS_new, overlap_ratio, hs_field
-      real(Kind=kind(0.d0)) :: Zero = 1.0e-8
+      real(Kind=kind(0.d0)) :: zero = 1.0e-12
       complex(Kind=kind(0.d0)) :: gr(ndim, ndim, n_fl)
       complex(Kind=kind(0.d0)) :: det_vec(n_fl), zph1, zph2
       class(udv_state), dimension(:, :), allocatable :: phi_r_m
@@ -909,7 +909,7 @@ contains
 
             do i_wlk = 1, N_wlk
 
-               if (weight_k(i_wlk) .gt. Zero) then
+               if (weight_k(i_wlk) .gt. zero) then
 
                  !! Propagate Green's function
                   do ns = 1, N_slat
@@ -982,7 +982,7 @@ contains
                call re_orthonormalize_walkers(phi_l_m, 'N')
 
                do i_wlk = 1, N_wlk
-                  if (weight_k(i_wlk) .gt. Zero) then
+                  if (weight_k(i_wlk) .gt. zero) then
 
                     !! read phi_r from the 1st slat det storage
                      i_grc = 1 + (i_wlk - 1)*N_slat
@@ -1099,7 +1099,7 @@ contains
       integer :: ns, i_grc, act_mea, i_st, i_ed, n_part
       complex(Kind=kind(0.d0)) :: Z, Z_weight, DETZ, z_sum_overlap, exp_overlap(N_slat)
       real(Kind=kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
-      real(Kind=kind(0.d0)) :: Zero = 1.0e-8
+      real(Kind=kind(0.d0)) :: zero = 1.0e-12
 
       class(udv_state), dimension(:, :), allocatable :: phi_r_mea, phi_l_mea
 
@@ -1277,7 +1277,7 @@ contains
       integer :: ns, i_grc, act_mea, i_st, i_ed
       complex(Kind=kind(0.d0)) :: Z, Z_weight, DETZ, z_sum_overlap, exp_overlap(N_slat)
       real(Kind=kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
-      real(Kind=kind(0.d0)) :: Zero = 1.0e-8
+      real(Kind=kind(0.d0)) :: zero = 1.0e-12
 
 #ifdef MPI
       integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
@@ -1443,7 +1443,7 @@ contains
       integer :: nf, nf_eff, n, m, nt, i_wlk, i_grc, ns
       integer :: i_st, i_ed, ncslat
       real(Kind=kind(0.d0)) :: log_o_abs(n_slat), log_o_phase(n_slat), dz2
-      real(kind=kind(0.d0)) :: pi = acos(-1.d0), dre_o, zero = 1.0e-8
+      real(kind=kind(0.d0)) :: pi = acos(-1.d0), dre_o, zero = 1.0e-12
       complex(Kind=kind(0.d0)) :: z1, zp
 
       do i_wlk = 1, N_wlk
