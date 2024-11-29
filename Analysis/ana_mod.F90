@@ -276,7 +276,7 @@
       Integer, allocatable :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
       Integer :: no, no1, n, nt, nb, Ntau, Ndim, Nbins, stat, Ndim_unit
       Real(Kind=Kind(0.d0)) :: X
-      Real(Kind=Kind(0.d0)), allocatable :: Xk_p(:,:)
+      Real(Kind=Kind(0.d0)), allocatable :: Xk_p(:,:), Orb_pos_temp(:)
       Real(Kind=Kind(0.d0)) :: x_p(2), a1_p(2), a2_p(2), L1_p(2), L2_p(2)
       logical            :: file_exists
 
@@ -307,10 +307,12 @@
         read(10, 12) str_temp1, Latt_unit%N_coord
         read(10, 12) str_temp1, Latt_unit%Norb
         read(10, 12) str_temp1, Ndim_unit
-        allocate(Latt_unit%Orb_pos_p(Latt_unit%Norb, Ndim_unit))
+        allocate(Latt_unit%Orb_pos_p(Latt_unit%Norb, Ndim_unit), Orb_pos_temp(Ndim_unit))
         do no = 1, Latt_unit%Norb
-          read(10, 13) str_temp1, Latt_unit%Orb_pos_p(no,:)
+          read(10, 13) str_temp1, Orb_pos_temp
+          Latt_unit%Orb_pos_p(no,:) =  Orb_pos_temp
         enddo
+        deallocate(Orb_pos_temp)
         close(10)
         Call Make_Lattice(L1_p, L2_p, a1_p, a2_p, Latt)
         Ndim = Latt%N*Latt_Unit%Norb
@@ -458,6 +460,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       INTEGER(HID_T)                :: file_id, dset_id, grp_id, dataspace
       TYPE(C_PTR)                   :: dat_ptr
       Real (Kind=Kind(0.d0))        :: a1_p(2), a2_p(2), L1_p(2), L2_p(2)
+      Real (Kind=Kind(0.d0)), allocatable :: Orb_pos_temp(:)
 
       write(obs_dsetname,'(2A)') trim(name), "/obser"
       write(bak_dsetname,'(2A)') trim(name), "/back"
@@ -515,12 +518,14 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       call read_attribute(grp_id, '.', attr_name, Latt_unit%N_coord, ierr)
       attr_name = "Ndim"
       call read_attribute(grp_id, '.', attr_name, Ndim, ierr)
-      allocate(Latt_unit%Orb_pos_p(Latt_unit%Norb, Ndim))
+      allocate(Latt_unit%Orb_pos_p(Latt_unit%Norb, Ndim), Orb_pos_temp(Ndim))
       
       do no = 1, Latt_unit%Norb
          write(attr_name, '("Orbital", I0)') no
-         call  h5ltget_attribute_double_f(grp_id, '.', attr_name, Latt_unit%Orb_pos_p(no,:), ierr )
+         call  h5ltget_attribute_double_f(grp_id, '.', attr_name, Orb_pos_temp, ierr )
+         Latt_unit%Orb_pos_p(no,:) = Orb_pos_temp
       enddo
+      deallocate(Orb_pos_temp)
 
       Allocate ( Bins(Nunit,Ntau,Norb,Norb,Nbins), Bins0(Norb,Nbins), sgn(Nbins) )
 

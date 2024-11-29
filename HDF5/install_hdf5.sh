@@ -52,7 +52,7 @@ source_dir="hdf5-1.10.7"
 export CC FC CXX
 printf "\033[0;32m=== Build with the following compilers C: %s, Fortran: %s, C++: %s \e[0m\n" "$CC" "$FC" "$CXX" 1>&2
 
-"$source_dir/configure" --prefix="$HDF5_DIR" --enable-fortran --enable-shared=no --enable-tests=no
+"$source_dir/configure" --prefix="$HDF5_DIR" --libdir="$HDF5_DIR/lib" --enable-fortran --enable-shared=no --enable-tests=no
 if ! make; then
   printf "\e[31m=== Compilation with compilers %s %s in directory %s failed ===\e[0m\n" "$CC" "$FC" "$PWD" 1>&2
   rm -rf "$HDF5_DIR"

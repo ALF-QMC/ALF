@@ -996,7 +996,7 @@ Program Main
 
            ENDDO
            Call ham%Pr_obs(Ltau)
-#if defined(TEMPERING)
+#if defined(TEMPERING) && !defined(PARALLEL_PARAMS)
            Call Global_Tempering_Pr
 #endif
 

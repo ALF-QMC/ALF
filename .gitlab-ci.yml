@@ -37,19 +37,6 @@ stages:
       - HDF5
     policy: pull-push
 
-.build_template:
-  stage: build
-  variables:
-    MACHINE: GNU
-    MODE: noMPI
-  needs: []
-  script:
-    - ls HDF5
-    - . configure.sh $MACHINE $MODE $CONFIG_ARGS
-    - echo $ALF_FC
-    - $ALF_FC -v
-    - make all
-
 .test_template:
   stage: test
   variables:
@@ -58,12 +45,30 @@ stages:
   needs: []
   script:
     - ls HDF5
-    - . configure.sh $MACHINE Devel $MODE $CONFIG_ARGS
+    - . configure.sh $MACHINE $DEVEL $MODE $CONFIG_ARGS
     - echo $ALF_FC
     - $ALF_FC -v
     - make all
-    - mkdir testsuite/tests
-    - cd testsuite/tests
+    - if echo "$MODE" | grep -iq -e "TEMPERING" -e "PARALLEL_PARAMS"; then
+        cp -r Scripts_and_Parameters_files/Start_Tempering run;
+      else
+        cp -r Scripts_and_Parameters_files/Start run;
+      fi
+    - cd run
+    - if echo "$MODE" | grep -iq -e "serial" -e "noMPI"; then
+        "$ALF_DIR/Prog/ALF.out";
+      else
+        mpiexec -n 4 "$ALF_DIR/Prog/ALF.out";
+      fi
+    - if echo "$MODE" | grep -iq -e "TEMPERING" -e "PARALLEL_PARAMS"; then cd Temp_0; fi
+    - if echo "$CONFIG_ARGS" | grep -iq "HDF5"; then
+        "$ALF_DIR/Analysis/ana_hdf5.out";
+      else 
+        "$ALF_DIR/Analysis/ana.out" *;
+      fi
+    - mkdir "$ALF_DIR/testsuite/tests"
+    - cd "$ALF_DIR/testsuite/tests"
+    - if echo $ALF_FC | grep -q "mpiifort -fc=ifx"; then exit 0; fi
     - cmake ..
     - cmake --build . --target all --config Release
     - ctest -VV -O log.txt
@@ -206,49 +211,20 @@ build_hdf5_Intel-21:
   needs: []
   variables:
     MACHINE: INTEL
-build_hdf5_Intel-Latest:
+build_hdf5_Intel-2024.2:
   extends: .build_hdf5_template
-  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bookworm-intel
+  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bookworm-intel-2024.2
   needs: [build_hdf5_Intel-21]
   variables:
     MACHINE: INTEL
 
-build_hdf5_IntelLLVM:
+build_hdf5_IntelLLVM-2024.2:
   extends: .build_hdf5_template
-  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bookworm-intel
+  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bookworm-intel-2024.2
   needs: []
   variables:
     MACHINE: INTELLLVM
 
-
-build:
-  extends: .build_template
-  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/$IMAGE_MINOR
-  parallel:
-    matrix:
-      - MACHINE: GNU
-        IMAGE_MINOR: [buster, bullseye, bookworm]
-        MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
-      - MACHINE: GNU
-        IMAGE_MINOR: [bullseye-openblas]
-        MODE: [noMPI]
-      - MACHINE: PGI
-        IMAGE_MINOR: bullseye-pgi-21-03
-        MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
-      - MACHINE: INTEL
-        IMAGE_MINOR: [bullseye-intel, bookworm-intel]
-        MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
-      - MACHINE: INTELLLVM
-        IMAGE_MINOR: bookworm-intel
-        MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
-
-build_mac:
-  extends: .build_template
-  tags: [macos]
-  parallel:
-    matrix:
-      - MACHINE: GNU
-        MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
 
 test:
   extends: .test_template
@@ -258,18 +234,28 @@ test:
       - MACHINE: GNU
         IMAGE_MINOR: [buster, bullseye, bookworm]
         MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
+        DEVEL: ["", Devel]
+        CONFIG_ARGS: ["", "HDF5"]
       - MACHINE: GNU
         IMAGE_MINOR: [bullseye-openblas]
         MODE: [noMPI]
+        DEVEL: ["", Devel]
+        CONFIG_ARGS: ["", "HDF5"]
       - MACHINE: PGI
         IMAGE_MINOR: bullseye-pgi-21-03
         MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
+        DEVEL: ["", Devel]
+        CONFIG_ARGS: ["", "HDF5"]
       - MACHINE: INTEL
-        IMAGE_MINOR: [bullseye-intel, bookworm-intel]
+        IMAGE_MINOR: [bullseye-intel, bookworm-intel-2024.2]
         MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
+        DEVEL: ["", Devel]
+        CONFIG_ARGS: ["", "HDF5"]
       - MACHINE: INTELLLVM
-        IMAGE_MINOR: bookworm-intel
-        MODE: [noMPI]
+        IMAGE_MINOR: bookworm-intel-2024.2
+        MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
+        DEVEL: ["", Devel]
+        CONFIG_ARGS: ["", "HDF5"]
 
 test_mac:
   extends: .test_template
@@ -278,6 +264,7 @@ test_mac:
     matrix:
       - MACHINE: GNU
         MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
+        DEVEL: ["", Devel]
 
 valgrind_GNU-Bullseye:
   image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bullseye
