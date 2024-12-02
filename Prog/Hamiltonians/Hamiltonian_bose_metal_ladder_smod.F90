@@ -380,7 +380,7 @@
           ! Use predefined stuctures or set your own Trial  wave function
           N_part = ndim/2-n_dope
           call Predefined_TrialWaveFunction(Lattice_type, Ndim, List, Invlist, Latt, Latt_unit, &
-               &                            N_part, ham_ar, N_FL, WF_L, WF_R)
+               &                            N_part, ham_alpha, N_FL, WF_L, WF_R)
 
        end subroutine Ham_Trial
 
