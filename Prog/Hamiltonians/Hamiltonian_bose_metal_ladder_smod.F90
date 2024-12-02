@@ -171,12 +171,16 @@
        real(Kind=kind(0.d0)) :: ham_alpha = 1.d0     ! Hopping parameter
        real(Kind=kind(0.d0)) :: ham_chem  = 0.d0     ! Chemical potential
        real(Kind=kind(0.d0)) :: ham_U     = 4.d0     ! attractive Hubbard interaction
+       real(Kind=kind(0.d0)) :: ham_tr    = 1.d0     ! Hopping parameter
+       real(Kind=kind(0.d0)) :: ham_ar    = 1.d0     ! Hopping parameter
+       real(Kind=kind(0.d0)) :: ham_ur    = 4.d0     ! attractive Hubbard interaction
        integer               :: N_dope    = 0
        !#PARAMETERS END#
 
        type(Lattice), target :: Latt
        type(Unit_cell), target :: Latt_unit
        type(Hopping_Matrix_type), allocatable :: Hopping_Matrix(:)
+       type(Hopping_Matrix_type), allocatable :: Hopping_Matrix_re(:)
        integer, allocatable :: List(:, :), Invlist(:, :)  ! For orbital structure of Unit cell
 
     contains
@@ -277,6 +281,9 @@
              write (unit_info, *) 'Ham_U         : ', Ham_U
              write (unit_info, *) 'Ham_chem      : ', Ham_chem
              write (unit_info, *) 'N_dope        : ', N_dope
+             write (unit_info, *) 'tr            : ', ham_tr
+             write (unit_info, *) 'ar            : ', ham_ar
+             write (unit_info, *) 'ham_ur        : ', Ham_ur
              if (Projector) then
                 do nf = 1, N_FL
                    write (unit_info, *) 'Degen of right trial wave function: ', WF_R(nf)%Degen
@@ -343,6 +350,13 @@
 
           call set_hopping_parameters_n_ladder_anisotropic(Hopping_Matrix, ham_tx_vec, ham_ty_vec, Ham_Chem_vec, &
                  & Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
+          
+          ham_tx_vec(1) = ham_tr;
+          ham_tx_vec(2) = ham_tr*ham_ar;
+          ham_ty_vec(1) = ham_tr*ham_ar;
+          ham_ty_vec(2) = ham_tr;
+          call set_hopping_parameters_n_ladder_anisotropic(Hopping_Matrix_re, ham_tx_vec, ham_ty_vec, Ham_Chem_vec, &
+              & Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
 
           call Predefined_Hoppings_set_OPT(Hopping_Matrix, List, Invlist, Latt, Latt_unit, Dtau, Checkerboard, Symm, OP_T)
 
@@ -366,7 +380,7 @@
           ! Use predefined stuctures or set your own Trial  wave function
           N_part = ndim/2-n_dope
           call Predefined_TrialWaveFunction(Lattice_type, Ndim, List, Invlist, Latt, Latt_unit, &
-               &                            N_part, ham_alpha, N_FL, WF_L, WF_R)
+               &                            N_part, ham_ar, N_FL, WF_L, WF_R)
 
        end subroutine Ham_Trial
 
@@ -551,16 +565,16 @@
              obs_eq(i)%ave_sign = obs_eq(i)%ave_sign + real(zs,kind(0.d0))
           enddo
 
-          Zkin = cmplx(0.d0, 0.d0, kind(0.d0))
-          call Predefined_Hoppings_Compute_Kin(Hopping_Matrix, List, Invlist, Latt, Latt_unit, GRC, ZKin)
-          Zkin = Zkin*dble(N_SUN)
-          Obs_scal(1)%Obs_vec(1) = Obs_scal(1)%Obs_vec(1) + Zkin*ZP*ZS
+          zkin = cmplx(0.d0, 0.d0, kind(0.d0))
+          call predefined_hoppings_compute_kin(Hopping_Matrix_re, List, Invlist, Latt, Latt_unit, GRC, ZKin)
+          zkin = zkin*dble(n_sun)
+          obs_scal(1)%obs_vec(1) = obs_scal(1)%obs_vec(1) + zkin*ZP*ZS
 
           ZPot = cmplx(0.d0, 0.d0, kind(0.d0))
           do I = 1, Latt%N
              do no_I = 1, Latt_unit%Norb
                 I1 = Invlist(I, no_I)
-                ZPot = ZPot - Grc(i1, i1, 1)*Grc(i1, i1, 2)*ham_U
+                zpot = zpot - grc(i1, i1, 1)*grc(i1, i1, 2)*ham_ur
              end do
           end do
           Obs_scal(2)%Obs_vec(1) = Obs_scal(2)%Obs_vec(1) + Zpot*ZP*ZS
