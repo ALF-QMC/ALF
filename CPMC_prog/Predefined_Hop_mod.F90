@@ -235,6 +235,11 @@ contains
 
       do nf = 1, N_FL
          this(nf)%N_bonds = latt_unit%norb + (latt_unit%norb - 1)
+         !!===========================!!
+         !! PBC
+         !!===========================!!
+         this(nf)%N_bonds = this(nf)%N_bonds + 1
+         !!===========================!!
 
          allocate (this(nf)%List(this(nf)%N_bonds, 4), &
               &    this(nf)%T(this(nf)%N_bonds))
@@ -257,6 +262,17 @@ contains
             this(nf)%List(nc, 3) = 0
             this(nf)%List(nc, 4) = 0
          end do
+         
+         !!===========================!!
+         !! PBC
+         !!===========================!!
+         nc = nc + 1
+         this(nf)%T(nc) = cmplx(-ham_ty_vec(nf), 0.d0, kind(0.d0))
+         this(nf)%List(nc, 1) = Latt_unit%Norb 
+         this(nf)%List(nc, 2) = 1
+         this(nf)%List(nc, 3) = 0
+         this(nf)%List(nc, 4) = 0
+         !!===========================!!
 
          allocate (this(nf)%T_Loc(Latt_Unit%Norb))
          do nc = 1, Latt_Unit%Norb
@@ -299,7 +315,17 @@ contains
             end do
          end if
       end do
-      do no = 1, Latt_unit%Norb - 1
+
+
+      !!===========================!!
+      !! OBC
+      !!===========================!!
+      !!do no = 1, Latt_unit%Norb - 1
+      !!===========================!!
+      !! PBC
+      !!===========================!!
+      do no = 1, Latt_unit%Norb 
+      !!===========================!!
          if (mod(no, 2) == 1) then
             Nf = 3
             !Write(6,*)  NF, no + Latt_unit%Norb

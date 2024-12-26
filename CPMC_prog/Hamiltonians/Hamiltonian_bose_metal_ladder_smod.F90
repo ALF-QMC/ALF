@@ -330,7 +330,7 @@
           end do
 
           ! Equal time correlators
-          allocate (Obs_eq(4))
+          allocate (Obs_eq(6))
           do I = 1, size(Obs_eq, 1)
              select case (I)
              case (1)
@@ -341,6 +341,10 @@
                 Filename = "Den"
              case (4)
                 Filename = "swave"
+             case (5)
+                Filename = "Green_up"
+             case (6)
+                Filename = "Green_dn"
              case default
                 write (6, *) ' Error in Alloc_obs '
              end select
@@ -509,6 +513,12 @@
 
                 z = grc(i1, j1, 1)*grc(i1, j1, 2)! + gr(i1, j1, 1)*gr(i1, j1, 2)
                 obs_eq(4)%obs_Latt(imj, 1, no_i, no_j) = obs_eq(4)%obs_latt(imj, 1, no_i, no_j) + z*z_fac
+                
+                z = grc(i1, j1, 1)
+                obs_eq(5)%obs_Latt(imj, 1, no_i, no_j) = obs_eq(5)%obs_latt(imj, 1, no_i, no_j) + z*z_fac
+                
+                z = grc(i1, j1, 2)
+                obs_eq(6)%obs_Latt(imj, 1, no_i, no_j) = obs_eq(6)%obs_latt(imj, 1, no_i, no_j) + z*z_fac
              end do
              zback = grc(i1, i1, 2) - grc(i1, i1, 1)
              obs_eq(2)%obs_latt0(no_i) = obs_eq(2)%obs_Latt0(no_i) + zback*z_fac
