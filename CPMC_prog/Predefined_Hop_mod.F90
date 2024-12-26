@@ -291,6 +291,11 @@ contains
          this(1)%N_FAM = 3
       else
          this(1)%N_FAM = 4
+         !!===========================!!
+         !! PBC
+         !!===========================!!
+         this(1)%N_FAM = this(1)%N_FAM + 1
+         !!===========================!!
       end if
       allocate (this(1)%L_Fam(this(1)%N_FAM), this(1)%Prop_Fam(this(1)%N_FAM))
       this(1)%L_Fam = Latt%N*Latt_unit%Norb/2
@@ -316,16 +321,7 @@ contains
          end if
       end do
 
-
-      !!===========================!!
-      !! OBC
-      !!===========================!!
-      !!do no = 1, Latt_unit%Norb - 1
-      !!===========================!!
-      !! PBC
-      !!===========================!!
-      do no = 1, Latt_unit%Norb 
-      !!===========================!!
+      do no = 1, Latt_unit%Norb - 1
          if (mod(no, 2) == 1) then
             Nf = 3
             !Write(6,*)  NF, no + Latt_unit%Norb
@@ -344,6 +340,17 @@ contains
             end do
          end if
       end do
+            
+      !!===========================!!
+      !! PBC
+      !!===========================!!
+      Nf = 5
+      do I = 1, Latt%N
+         this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+         this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
+         this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 2*Latt_unit%Norb
+      end do
+      !!===========================!!
 
    end subroutine set_hopping_parameters_n_ladder_anisotropic
    
