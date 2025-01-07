@@ -855,12 +855,12 @@
                   z = g0t(j1,i1,1)*g0t(j1,i1,2) + gt0(i1,j1,1)*gt0(i1,j1,2)
                   obs_tau(4)%obs_Latt(imj,nt,no_i,no_j) = obs_tau(4)%obs_latt(imj,nt,no_i,no_j) + z*zp*zs
                   
-                  z =     ( t_up**2 * ( g0t(j,ipx,1)*gt0(i,jpx,1) - g0t(j,ipx,1)*gt0(i,jmx,1)   +   &
-                      &                 g0t(j,imx,1)*gt0(i,jmx,1) - g0t(j,imx,1)*gt0(i,jpx,1) ) +   &
-                      &     t_dn**2 * ( g0t(j,ipx,2)*gt0(i,jpx,2) - g0t(j,ipx,2)*gt0(i,jmx,2)   +   &
-                      &                 g0t(j,imx,2)*gt0(i,jmx,2) - g0t(j,imx,2)*gt0(i,jpx,2) ) )   &
-                      &  -( t_up*(gtt(i,ipx,1)-gtt(i,imx,1)) + t_dn*(gtt(i,ipx,2)-gtt(i,imx,2)) ) * &
-                      &   ( t_up*(g00(j,jpx,1)-g00(j,jmx,1)) + t_dn*(g00(j,jpx,2)-g00(j,jmx,2)) )
+                  z =     ( t_up**2 * ( g0t(jpx,i1,1)*gt0(ipx,j1,1) - g0t(jmx,i1,1)*gt0(ipx,j1,1)   +   &
+                      &                 g0t(jmx,i1,1)*gt0(imx,j1,1) - g0t(jpx,i1,1)*gt0(imx,j1,1) ) +   &
+                            t_dn**2 * ( g0t(jpx,i1,2)*gt0(ipx,j1,2) - g0t(jmx,i1,2)*gt0(ipx,j1,2)   +   &
+                      &                 g0t(jmx,i1,2)*gt0(imx,j1,2) - g0t(jpx,i1,2)*gt0(imx,j1,2) ) )   &
+                      &  -( t_up*(gtt(ipx,i1,1)-gtt(imx,i1,1)) + t_dn*(gtt(ipx,i1,2)-gtt(imx,i1,2)) ) * &
+                      &   ( t_up*(g00(jpx,j1,1)-g00(jmx,j1,1)) + t_dn*(g00(jpx,j1,2)-g00(jmx,j1,2)) )
 
                   obs_tau(5)%obs_Latt(imj,nt,no_i,no_j) = obs_tau(5)%obs_latt(imj,nt,no_i,no_j) + z*zp*zs
                   
