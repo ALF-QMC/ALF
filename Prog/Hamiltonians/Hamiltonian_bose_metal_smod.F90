@@ -178,6 +178,9 @@
        type(Unit_cell), target :: Latt_unit
        type(Hopping_Matrix_type), allocatable :: Hopping_Matrix(:)
        integer, allocatable :: List(:, :), Invlist(:, :)  ! For orbital structure of Unit cell
+       
+       Integer, allocatable :: rot_del_list(:,:,:), rot_list(:,:), del_list(:,:,:)
+       complex (Kind=Kind(0.d0)), allocatable :: ff_s(:,:,:)
 
     contains
 
@@ -301,8 +304,106 @@
           use Predefined_Lattices
 
           implicit none
+
+          integer :: i, i1, no, a0, a1, a2, b0, b1, b2, k, k1, k2, ntype, j1
+          integer :: ix, iy, rix, riy, rdx, rdy, ndx, ndy, nsi, nx, ny
+          real    (kind=kind(0.d0)) :: pi = acos(-1.d0)
+
           ! Use predefined stuctures or set your own lattice.
           call Predefined_Latt(Lattice_type, L1, L2, Ndim, List, Invlist, Latt, Latt_Unit)
+          
+          allocate(rot_del_list(latt%n,latt_unit%norb,4))
+          allocate(del_list    (latt%n,latt_unit%norb,4))
+          allocate(rot_list    (latt%n,latt_unit%norb  ))
+
+          del_list=0
+          rot_list=0
+          rot_del_list=0
+
+          !! rotation mapping
+          do i1 = 1, latt%n
+             ix  = latt%list(i1,1); iy = latt%list(i1,2)
+             rix = iy; riy = -ix
+             rdx = rix - ix; rdy = riy - iy
+             ndx = abs(rdx); ndy = abs(rdy)
+             nsi = i1
+             a1 = sign(1,rdx); a2 = sign(1,rdy)
+             do nx = 1, ndx;
+                nsi = latt%nnlist(nsi,a1,0)
+             enddo
+             do ny = 1, ndy;
+                nsi = latt%nnlist(nsi,0,a2)
+             enddo
+             rot_list(i1,1) = nsi
+          enddo
+          
+          !! rotation + delta mapping
+          do ntype = 1, 4
+             do j1 = 1, latt%n
+                select case(ntype)
+                case(1)
+                    i1 = latt%nnlist(j1, 1, 0)
+                case(2)
+                    i1 = latt%nnlist(j1,-1, 0)
+                case(3)
+                    i1 = latt%nnlist(j1, 0, 1)
+                case(4)
+                    i1 = latt%nnlist(j1, 0,-1)
+                end select
+                ix  = latt%list(i1,1); iy = latt%list(i1,2)
+                rix = iy; riy = -ix
+                rdx = rix - ix; rdy = riy - iy
+                ndx = abs(rdx); ndy = abs(rdy)
+                nsi = i1
+                a1 = sign(1,rdx); a2 = sign(1,rdy)
+                do nx = 1, ndx;
+                   nsi = latt%nnlist(nsi,a1,0)
+                enddo
+                do ny = 1, ndy;
+                   nsi = latt%nnlist(nsi,0,a2)
+                enddo
+                rot_del_list(j1,1,ntype) = nsi
+             enddo
+          enddo
+          
+          !! delta mapping
+          do ntype = 1, 4
+             do j1 = 1, latt%n
+                select case(ntype)
+                case(1)
+                    i1 = latt%nnlist(j1, 1, 0)
+                case(2)
+                    i1 = latt%nnlist(j1,-1, 0)
+                case(3)
+                    i1 = latt%nnlist(j1, 0, 1)
+                case(4)
+                    i1 = latt%nnlist(j1, 0,-1)
+                end select
+                del_list(j1,1,ntype) = i1
+             enddo
+          enddo
+            
+          !! d wave 1, px wave 2, py wave 3
+          allocate(ff_s(4,1,3))
+          do ntype = 1, 3
+              select case(ntype)
+              case (1)
+                  ff_s(1,1,ntype) =  1.d0
+                  ff_s(2,1,ntype) =  1.d0
+                  ff_s(3,1,ntype) = -1.d0
+                  ff_s(4,1,ntype) = -1.d0
+              case (2)
+                  ff_s(1,1,ntype) =  1.d0
+                  ff_s(2,1,ntype) = -1.d0
+                  ff_s(3,1,ntype) =  0.d0
+                  ff_s(4,1,ntype) =  0.d0
+              case (3)
+                  ff_s(1,1,ntype) =  0.d0
+                  ff_s(2,1,ntype) =  0.d0
+                  ff_s(3,1,ntype) =  1.d0
+                  ff_s(4,1,ntype) = -1.d0
+              end select
+          enddo
 
        end subroutine Ham_Latt
 !--------------------------------------------------------------------
@@ -449,7 +550,7 @@
           end do
 
           ! Equal time correlators
-          allocate (Obs_eq(6))
+          allocate (Obs_eq(9))
           do I = 1, size(Obs_eq, 1)
              select case (I)
              case (1)
@@ -461,9 +562,15 @@
              case (4)
                 Filename = "swave"
              case (5)
-                Filename = "dwave"
+                Filename = "sfflo"
              case (6)
-                Filename = "dxywave"
+                Filename = "dwave"
+             case (7)
+                Filename = "pxwave"
+             case (8)
+                Filename = "pywave"
+             case (9)
+                Filename = "pwave"
              case default
                 write (6, *) ' Error in Alloc_obs '
              end select
@@ -474,7 +581,7 @@
 
           if (Ltau == 1) then
              ! Time-displaced correlators
-             allocate (Obs_tau(6))
+             allocate (Obs_tau(5))
              do I = 1, size(Obs_tau, 1)
                 select case (I)
                 case (1)
@@ -486,9 +593,7 @@
                 case (4)
                    Channel = 'PH'; Filename = "swave"
                 case (5)
-                   Channel = 'PH'; Filename = "dwave"
-                case (6)
-                   Channel = 'PH'; Filename = "dxywave"
+                   Channel = 'PH'; Filename = "jxjx"
                 case default
                    write (6, *) ' Error in Alloc_obs '
                 end select
@@ -530,9 +635,10 @@
           real(Kind=kind(0.d0)), intent(IN) :: Mc_step_weight
 
           !Local
-          complex(Kind=kind(0.d0)) :: grc(Ndim, Ndim, N_FL), ZK
-          complex(Kind=kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP, ZS, ZZ, ZXY, zback
+          complex(Kind=kind(0.d0)) :: grc(Ndim, Ndim, N_FL), ZK, ztmp
+          complex(Kind=kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP, ZS, ZZ, ZXY, zback, z1j, cpair(4)
           integer :: I, J, k, l, m, n, imj, nf, dec, i1, i2, i3, j1, j2, j3, no_I, no_J
+          integer :: idl(4), jdl(4), irdl(4), jrdl(4), rsi, rsj, k1, k2
           real(Kind=kind(0.d0)) :: X
 
           ZP = PHASE/real(Phase, kind(0.d0))
@@ -588,42 +694,77 @@
           Obs_scal(4)%Obs_vec(1) = Obs_scal(4)%Obs_vec(1) + (Zkin + Zpot)*ZP*ZS
 
           ! Standard two-point correlations
+          z1j = cmplx(0.d0,1.d0,kind(0.d0))
           do i1 = 1, ndim
               i    = list(i1,1)
               no_i = list(i1,2)
-              k    = latt%nnlist(i,1,0)
-              i2   = invlist(k,no_i)
-              m    = latt%nnlist(i,1,1)
-              i3   = invlist(m,no_i)
+
+              rsi = rot_list(i,no_i)
+              idl(:) = del_list(i,no_i,:) 
+              irdl(:) = rot_del_list(i,no_i,:) 
+
               do j1 = 1, ndim
                   j    = list(j1,1)
                   no_j = list(j1,2)
-                  l    = latt%nnlist(j,1,0)
-                  j2   = invlist(l,no_j)
-                  n    = latt%nnlist(j,1,1)
-                  j3   = invlist(n,no_j)
+              
+                  rsj = rot_list(j,no_j)
+                  jdl(:) = del_list(j,no_j,:) 
+                  jrdl(:) = rot_del_list(j,no_j,:) 
 
                   imj  = latt%imj(i, j)
-                  z = grc(i1,j1,1) + grc(i1,j1,2)
-                  obs_eq(1)%obs_Latt(imj,1,no_i,no_j) = obs_eq(1)%obs_latt(imj,1,no_i,no_j) + z*zp*zs
+                  ztmp = grc(i1,j1,1) + grc(i1,j1,2)
+                  obs_eq(1)%obs_Latt(imj,1,no_i,no_j) = obs_eq(1)%obs_latt(imj,1,no_i,no_j) + ztmp*zp*zs
 
-                  z = grc(i1,j1,1)*gr(i1,j1,1) + grc(i1,j1,2)*gr(i1,j1,2) + &
+                  ztmp = grc(i1,j1,1)*gr(i1,j1,1) + grc(i1,j1,2)*gr(i1,j1,2) + &
                       & (grc(i1,i1,1) - grc(i1,i1,2))*(grc(j1,j1,1) - grc(j1,j1,2))
-                  obs_eq(2)%obs_Latt(imj,1,no_i,no_j) = obs_eq(2)%obs_latt(imj,1,no_i,no_j) + z*zp*zs
+                  obs_eq(2)%obs_Latt(imj,1,no_i,no_j) = obs_eq(2)%obs_latt(imj,1,no_i,no_j) + ztmp*zp*zs
                   
-                  z = grc(i1,j1,1)*gr(i1,j1,1) + grc(i1,j1,2)*gr(i1,j1,2) + &
+                  ztmp = grc(i1,j1,1)*gr(i1,j1,1) + grc(i1,j1,2)*gr(i1,j1,2) + &
                       & (grc(i1,i1,2) + grc(i1,i1,1))*(grc(j1,j1,2) + grc(j1,j1,1))
-                  obs_eq(3)%obs_Latt(imj,1,no_i,no_j) = obs_eq(3)%obs_latt(imj,1,no_i,no_j) + z*zp*zs
+                  obs_eq(3)%obs_Latt(imj,1,no_i,no_j) = obs_eq(3)%obs_latt(imj,1,no_i,no_j) + ztmp*zp*zs
                   
-                  z = grc(i1,j1,1)*grc(i1,j1,2) + gr(i1,j1,1)*gr(i1,j1,2)
-                  obs_eq(4)%obs_Latt(imj,1,no_i,no_j) = obs_eq(4)%obs_latt(imj,1,no_i,no_j) + z*zp*zs
+                  !! s wave
+                  ztmp = grc(i1,j1,1)*grc(i1,j1,2)
+                  obs_eq(4)%obs_Latt(imj,1,no_i,no_j) = obs_eq(4)%obs_latt(imj,1,no_i,no_j) + ztmp*zp*zs
                   
-                  z = grc(i1,j1,1)*grc(i2,j2,2) + gr(i1,j1,1)*gr(i2,j2,2)
-                  obs_eq(5)%obs_Latt(imj,1,no_i,no_j) = obs_eq(5)%obs_latt(imj,1,no_i,no_j) + z*zp*zs
+                  cpair(:) = cmplx(0.d0,0.d0,kind(0.d0))
+
+                  !! sfflo
+                  cpair(1) = cpair(1) + grc(i1,j1,1)*grc(rsi,rsj,2) + grc(i1,j1,2)*grc(rsi,rsj,1) &
+                      &               + grc(i1,rsj,1)*grc(rsi,j1,2) + grc(i1,rsj,2)*grc(rsi,j1,1)
+
+                  !! 4x4 nn bonds
+                  do k = 1, 16
+
+                     k2 = (k-1)/4
+                     k1 = k-k2*4
+                     k2 = k2 + 1
+
+                     cpair(2) = cpair(2) + 0.25d0*ff_s(k1,no_i,1)*conjg(ff_s(k2,no_j,1))* &
+                         & (   grc(i1,j1,1)*grc(irdl(k1),jrdl(k2),2) + grc(i1,j1,2)*grc(irdl(k1),jrdl(k2),1) &
+                         &   + grc(i1,jrdl(k2),1)*grc(irdl(k1),j1,2) + grc(i1,jrdl(k2),2)*grc(irdl(k1),j1,1) )
+
+                     cpair(3) = cpair(3) + 0.25d0*ff_s(k1,no_i,2)*conjg(ff_s(k2,no_j,2))* &
+                         & (   grc(i1,j1,1)*grc(idl(k1),jdl(k2),1) + grc(i1,j1,2)*grc(idl(k1),jdl(k2),2) &
+                         &   - grc(i1,jdl(k2),1)*grc(idl(k1),j1,1) - grc(i1,jdl(k2),2)*grc(idl(k1),j1,2) )
+                     
+                     cpair(4) = cpair(4) + 0.25d0*ff_s(k1,no_i,3)*conjg(ff_s(k2,no_j,3))* &
+                         & (   grc(i1,j1,1)*grc(idl(k1),jdl(k2),1) + grc(i1,j1,2)*grc(idl(k1),jdl(k2),2) &
+                         &   - grc(i1,jdl(k2),1)*grc(idl(k1),j1,1) - grc(i1,jdl(k2),2)*grc(idl(k1),j1,2) )
+
+                  enddo
+                  obs_eq(5)%obs_Latt(imj,1,no_i,no_j) = obs_eq(5)%obs_latt(imj,1,no_i,no_j) + cpair(1)*zp*zs
+                  obs_eq(6)%obs_Latt(imj,1,no_i,no_j) = obs_eq(6)%obs_latt(imj,1,no_i,no_j) + cpair(2)*zp*zs
+                  obs_eq(7)%obs_Latt(imj,1,no_i,no_j) = obs_eq(7)%obs_latt(imj,1,no_i,no_j) + cpair(3)*zp*zs
+                  obs_eq(8)%obs_Latt(imj,1,no_i,no_j) = obs_eq(8)%obs_latt(imj,1,no_i,no_j) + cpair(4)*zp*zs
                   
-                  z = grc(i1,j1,1)*grc(i3,j3,2) + gr(i1,j1,1)*gr(i3,j3,2)
-                  obs_eq(6)%obs_Latt(imj,1,no_i,no_j) = obs_eq(6)%obs_latt(imj,1,no_i,no_j) + z*zp*zs
+                  obs_eq(9)%obs_Latt(imj,1,no_i,no_j) = obs_eq(9)%obs_latt(imj,1,no_i,no_j) + &
+                      & ( grc(i1,j1,1)*grc(idl(1),jdl(1),2) + grc(i1,j1,2)*grc(idl(1),jdl(1),1)  &
+                      & - grc(i1,jdl(1),1)*grc(idl(1),j1,2) - grc(i1,jdl(1),2)*grc(idl(1),j1,1) )*zp*zs
+                  
               end do
+              zback = grc(i1, i1, 2) - grc(i1, i1, 1)
+              obs_eq(2)%obs_latt0(no_i) = obs_eq(2)%obs_Latt0(no_i) + zback*zp*zs
               zback = grc(i1,i1,1) + grc(i1,i1,2) 
               obs_eq(3)%obs_latt0(no_i) = obs_eq(3)%obs_Latt0(no_i) + zback*zp*zs
           end do
@@ -664,15 +805,17 @@
           real(Kind=kind(0.d0)), intent(IN) :: Mc_step_weight
 
           !Locals
-          complex(Kind=kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY, zone, zback
+          complex(Kind=kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY, zone, zback, t_up, t_dn
           real(Kind=kind(0.d0)) :: X
-          integer :: IMJ, I, J, k, l, m, n, i1, i2, i3, j1, j2, j3, no_I, no_J
+          integer :: IMJ, I, J, k, l, m, n, i1, i2, i3, j1, j2, j3, jpx, jmx, ipx, imx, no_I, no_J
 
           ZP = PHASE/real(Phase, kind(0.d0))
           ZS = real(Phase, kind(0.d0))/abs(real(Phase, kind(0.d0)))
           ZS = ZS*Mc_step_weight
 
           zone = cmplx(1.d0,0.d0,kind(0.d0))
+          t_up = ham_t
+          t_dn = ham_t*ham_alpha
 
           ! Standard two-point correlations
           if (nt == 0 ) then
@@ -685,17 +828,17 @@
           do i1 = 1, ndim
               i    = list(i1,1)
               no_i = list(i1,2)
-              k    = latt%nnlist(i,1,0)
-              i2   = invlist(k,no_i)
-              m    = latt%nnlist(i,1,1)
-              i3   = invlist(m,no_i)
+              k    = latt%nnlist(i, 1,0)
+              ipx  = invlist(k,no_i)
+              m    = latt%nnlist(i,-1,0)
+              imx  = invlist(m,no_i)
               do j1 = 1, ndim
                   j    = list(j1,1)
                   no_j = list(j1,2)
-                  l    = latt%nnlist(j,1,0)
-                  j2   = invlist(l,no_j)
-                  n    = latt%nnlist(j,1,1)
-                  j3   = invlist(n,no_j)
+                  l    = latt%nnlist(j, 1,0)
+                  jpx  = invlist(l,no_j)
+                  n    = latt%nnlist(j,-1,0)
+                  jmx  = invlist(n,no_j)
 
                   imj  = latt%imj(i, j)
                   z = gt0(i1,j1,1) + gt0(i1,j1,2)
@@ -712,11 +855,15 @@
                   z = g0t(j1,i1,1)*g0t(j1,i1,2) + gt0(i1,j1,1)*gt0(i1,j1,2)
                   obs_tau(4)%obs_Latt(imj,nt,no_i,no_j) = obs_tau(4)%obs_latt(imj,nt,no_i,no_j) + z*zp*zs
                   
-                  z = g0t(j1,i1,1)*g0t(j2,i2,2) + gt0(i1,j1,1)*gt0(i2,j2,2)
+                  z =     ( t_up**2 * ( g0t(j,ipx,1)*gt0(i,jpx,1) - g0t(j,ipx,1)*gt0(i,jmx,1)   +   &
+                      &                 g0t(j,imx,1)*gt0(i,jmx,1) - g0t(j,imx,1)*gt0(i,jpx,1) ) +   &
+                      &     t_dn**2 * ( g0t(j,ipx,2)*gt0(i,jpx,2) - g0t(j,ipx,2)*gt0(i,jmx,2)   +   &
+                      &                 g0t(j,imx,2)*gt0(i,jmx,2) - g0t(j,imx,2)*gt0(i,jpx,2) ) )   &
+                      &  -( t_up*(gtt(i,ipx,1)-gtt(i,imx,1)) + t_dn*(gtt(i,ipx,2)-gtt(i,imx,2)) ) * &
+                      &   ( t_up*(g00(j,jpx,1)-g00(j,jmx,1)) + t_dn*(g00(j,jpx,2)-g00(j,jmx,2)) )
+
                   obs_tau(5)%obs_Latt(imj,nt,no_i,no_j) = obs_tau(5)%obs_latt(imj,nt,no_i,no_j) + z*zp*zs
                   
-                  z = g0t(j1,i1,1)*g0t(j3,i3,2) + gt0(i1,j1,1)*gt0(i3,j3,2)
-                  obs_tau(6)%obs_Latt(imj,nt,no_i,no_j) = obs_tau(6)%obs_latt(imj,nt,no_i,no_j) + z*zp*zs
               end do
               zback = zone - gtt(i1,i1,1) + zone - gtt(i1,i1,2) 
               obs_tau(3)%obs_latt0(no_i) = obs_tau(3)%obs_Latt0(no_i) + zback*zp*zs
