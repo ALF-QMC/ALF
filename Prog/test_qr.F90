@@ -23,6 +23,7 @@ program main
     implicit none
 
     integer :: Ndim, N_part, nargs
+    ! integer :: N_reps=10, i_rep
     integer :: Lwork
     complex(kind=kind(0.d0)), allocatable :: Mat(:,:), tau(:), work(:), D(:)
     integer, allocatable :: IPVT(:)
@@ -44,10 +45,23 @@ program main
 
     print*, Ndim, N_part
 
-    allocate(mat(Ndim, N_part), D(N_part), IPVT(N_part), tau(N_part))
-    print*, "fill matrix"
-    call zfill_matrix(Ndim, N_part, mat)
 
-    print*, 'decompose'
-    call QDRP_decompose(Ndim, N_part, Mat, D, IPVT, TAU, WORK, LWORK)
+    allocate(mat(Ndim, N_part), D(N_part), IPVT(N_part), tau(N_part))
+
+    OPEN (UNIT = 10, FILE='mat', STATUS='UNKNOWN', ACTION='READ')
+    read(10, *) Mat
+    close(10)
+    OPEN (UNIT = 10, FILE='IPVT', STATUS='UNKNOWN', ACTION='READ')
+    read(10, *) IPVT
+    close(10)
+
+    ! do i_rep=1, N_reps
+    !    print*, "fill matrix", i_rep
+    !    call zfill_matrix(Ndim, N_part, mat)
+    !    IPVT = 0
+
+        print*, 'decompose'
+        call QDRP_decompose(Ndim, N_part, Mat, D, IPVT, TAU, WORK, LWORK)
+        deallocate(work)
+    ! enddo
 End program
