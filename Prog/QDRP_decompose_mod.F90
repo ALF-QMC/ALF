@@ -81,12 +81,8 @@ Contains
       Integer :: info, i, j
       Real(Kind=Kind(0.d0)) :: X
 
-      ! integer(Kind=Kind(0.d0)) :: count_CPU_start, count_CPU_end, count_rate
+      integer(Kind=Kind(0.d0)) :: count_CPU_start_tot, count_CPU_end_tot, count_rate_tot
       integer(Kind=Kind(0.d0)) :: count_CPU_start, count_CPU_middle, count_CPU_end, count_rate
-
-      ! print*, "QR called"
-      ! CALL SYSTEM_CLOCK(count_CPU_start, count_rate)
-
 
 #ifdef MAGMA
       Integer,                  Allocatable :: IPVT_back(:)
@@ -95,8 +91,17 @@ Contains
       integer(kind=8) :: dMat, dWork, queue
 #endif
 #endif
+
+      print*, "QR called"
+      CALL SYSTEM_CLOCK(count_CPU_start_tot, count_rate_tot)
       
       ALLOCATE(RWORK(2*Ndim))
+      OPEN (UNIT = 10, FILE='mat', STATUS='UNKNOWN', ACTION='WRITE')
+      write(10, *) Mat
+      close(10)
+      OPEN (UNIT = 10, FILE='IPVT', STATUS='UNKNOWN', ACTION='WRITE')
+      write(10, *) IPVT
+      close(10)
 
       ! Query optimal amount of memory
 #ifdef MAGMA
@@ -108,6 +113,10 @@ Contains
       print*, 'lwork magma', LWORK
 #else
       call ZGEQP3(Ndim, N_part, Mat(1,1), Ndim, IPVT, TAU(1), Z(1), -1, RWORK(1), INFO)
+      ! call zgeqr(Ndim, N_part, Mat(1,1), Ndim, tau(1), N_part, WORK, LWORK, info)
+      ! do i=1, N_part
+      !       IPVT(i) = i
+      ! enddo
 #endif
       LWORK = INT(DBLE(Z(1)))
       print*, 'lwork', LWORK
@@ -138,6 +147,12 @@ Contains
       call magmaf_queue_destroy( queue )
       print*, 'fin'
 #else
+      OPEN (UNIT = 10, FILE='mat2', STATUS='UNKNOWN', ACTION='WRITE')
+      write(10, *) Mat
+      close(10)
+      OPEN (UNIT = 10, FILE='IPVT2', STATUS='UNKNOWN', ACTION='WRITE')
+      write(10, *) IPVT
+      close(10)
       print*, "call magmaf_zgeqp3"
       call magmaf_zgeqp3(Ndim, N_part, Mat, Ndim, IPVT, tau, work, lwork, rwork, INFO)
 #endif
@@ -178,8 +193,8 @@ Contains
             Mat(i, j) = Mat(i, j) / X
          enddo
       enddo
-      ! CALL SYSTEM_CLOCK(count_CPU_end, count_rate)
-      ! qr_time = qr_time + real(count_CPU_end-count_CPU_start)/real(count_rate)
+      CALL SYSTEM_CLOCK(count_CPU_end_tot, count_rate_tot)
+      qr_time = qr_time + real(count_CPU_end_tot-count_CPU_start_tot)/real(count_rate_tot)
     END SUBROUTINE QDRP_decompose
 
     
