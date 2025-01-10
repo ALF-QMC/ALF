@@ -124,6 +124,7 @@ module Hamiltonian_main
       procedure, nopass :: GRT_reconstruction => GRT_reconstruction_base
       procedure, nopass :: bp_obsert => bp_obsert_base
       procedure, nopass :: obsert_mc => obsert_mc_base
+      procedure, nopass :: set_xloc => set_xloc_base
 
 #ifdef HDF5
       procedure, nopass :: write_parameters_hdf5 => write_parameters_hdf5_base
@@ -138,7 +139,7 @@ module Hamiltonian_main
    type(WaveFunction), dimension(:, :), allocatable, public :: WF_R
    logical, dimension(:), allocatable, public :: Calc_Fl
    integer, dimension(:), allocatable, public :: Calc_Fl_map
-   type(Fields), dimension(:), allocatable, public :: nsigma_bp, nsigma_qr
+   type(Fields), dimension(:), allocatable, public :: nsigma_bp
    integer, public        :: Ndim
    integer, public        :: N_FL, N_FL_eff
    integer, public        :: N_SUN
@@ -152,14 +153,15 @@ module Hamiltonian_main
    logical, public        :: Symm
    logical, public        :: reconstruction_needed
 
-   real(Kind=kind(0.d0)), public :: fac_norm
-   real(Kind=kind(0.d0)), dimension(:), allocatable, public :: weight_k
+   complex(Kind=kind(0.d0)), public :: fac_norm
+   complex(Kind=kind(0.d0)), dimension(:), allocatable, public :: weight_k
    complex(Kind=kind(0.d0)), dimension(:), allocatable, public :: overlap
+   complex(Kind=Kind(0.d0)), dimension(:), allocatable, public :: x_local
 
    !>    Privat Observables
-   type(Obser_Vec), dimension(:), allocatable :: Obs_scal
-   type(Obser_Latt), dimension(:), allocatable :: Obs_eq
-   type(Obser_Latt), dimension(:), allocatable :: Obs_tau
+   type(obser_Vec) , dimension(:), allocatable :: obs_scal
+   type(obser_Latt), dimension(:), allocatable :: obs_eq
+   type(obser_Latt), dimension(:), allocatable :: obs_tau
 
 #include "Hamiltonians_interface.h"
 !!$      This file will  be dynamically generated and appended
@@ -241,11 +243,10 @@ contains
    !> Specifiy the equal time and time displaced observables
    !> @details
    !--------------------------------------------------------------------
-   subroutine Alloc_obs_base(Ltau, lmetropolis)
+   subroutine Alloc_obs_base
 
       implicit none
       !>  Ltau=1 if time displaced correlations are considered.
-      integer, intent(In) :: Ltau, lmetropolis
       write (error_unit, *) "Warning: Alloc_obs not implemented."
    end subroutine Alloc_obs_base
 
@@ -343,6 +344,13 @@ contains
       E0_local_base = cmplx(0.d0, 0.d0, kind(0.d0))
 
    end function E0_local_base
+
+   subroutine set_xloc_base(GR)
+     Implicit none
+      
+     Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
+     
+   end subroutine set_xloc_base
 
    subroutine sum_weight_base(z_sum_weight)
       implicit none
