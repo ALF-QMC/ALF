@@ -118,10 +118,7 @@ module Hamiltonian_main
       procedure, nopass :: Pr_obs => Pr_obs_base
       procedure, nopass :: Init_obs => Init_obs_base
       procedure, nopass :: Init_obs_mc => Init_obs_mc_base
-      procedure, nopass :: S0 => S0_base
-      procedure, nopass :: weight_reconstruction => weight_reconstruction_base
-      procedure, nopass :: GR_reconstruction => GR_reconstruction_base
-      procedure, nopass :: GRT_reconstruction => GRT_reconstruction_base
+      procedure, nopass :: s0 => s0_base
       procedure, nopass :: bp_obsert => bp_obsert_base
       procedure, nopass :: obsert_mc => obsert_mc_base
       procedure, nopass :: set_xloc => set_xloc_base
@@ -137,11 +134,9 @@ module Hamiltonian_main
    type(operator), dimension(:, :), allocatable, public :: Op_T
    type(WaveFunction), dimension(:, :), allocatable, public :: WF_L
    type(WaveFunction), dimension(:, :), allocatable, public :: WF_R
-   logical, dimension(:), allocatable, public :: Calc_Fl
-   integer, dimension(:), allocatable, public :: Calc_Fl_map
    type(Fields), dimension(:), allocatable, public :: nsigma_bp
    integer, public        :: Ndim
-   integer, public        :: N_FL, N_FL_eff
+   integer, public        :: N_FL
    integer, public        :: N_SUN
    integer, public        :: N_wlk
    integer, public        :: N_slat
@@ -151,7 +146,6 @@ module Hamiltonian_main
    integer, public        :: ltrot
    integer, public        :: Group_Comm
    logical, public        :: Symm
-   logical, public        :: reconstruction_needed
 
    complex(Kind=kind(0.d0)), public :: fac_norm
    complex(Kind=kind(0.d0)), dimension(:), allocatable, public :: weight_k
@@ -445,68 +439,6 @@ contains
       implicit none
 
    end subroutine Init_obs_mc_base
-
-!--------------------------------------------------------------------
-!> @brief
-!> Reconstructs dependent flavors of the configuration's weight.
-!> @details
-!> This has to be overloaded in the Hamiltonian submodule.
-!--------------------------------------------------------------------
-   subroutine weight_reconstruction_base(weight)
-      implicit none
-      complex(Kind=kind(0.d0)), intent(inout) :: weight(:)
-
-      write (error_unit, *) 'weight_reconstruction not defined!'
-      call Terminate_on_error(ERROR_HAMILTONIAN, __FILE__, __LINE__)
-
-   end subroutine weight_reconstruction_base
-
-!--------------------------------------------------------------------
-!> @author
-!> ALF Collaboration
-!>
-!> @brief
-!> Reconstructs dependent flavors of equal time Greens function
-!> @details
-!> This has to be overloaded in the Hamiltonian submodule.
-!> @param [INOUT] Gr   Complex(:,:,:)
-!> \verbatim
-!>  Green function: Gr(I,J,nf) = <c_{I,nf } c^{dagger}_{J,nf } > on time slice ntau
-!> \endverbatim
-!-------------------------------------------------------------------
-   subroutine GR_reconstruction_base(GR)
-
-      implicit none
-
-      complex(Kind=kind(0.d0)), intent(INOUT) :: GR(Ndim, Ndim, N_FL)
-
-      write (error_unit, *) "Warning: GR_reconstruction not implemented."
-      call Terminate_on_error(ERROR_HAMILTONIAN, __FILE__, __LINE__)
-   end subroutine GR_reconstruction_base
-
-!--------------------------------------------------------------------
-!> @author
-!> ALF Collaboration
-!>
-!> @brief
-!> Reconstructs dependent flavors of time displaced Greens function G0T and GT0
-!> @details
-!> This has to be overloaded in the Hamiltonian submodule.
-!> @param [INOUT] GT0, G0T,  Complex(:,:,:)
-!> \verbatim
-!>  Green functions:
-!>  GT0(I,J,nf) = <T c_{I,nf }(tau) c^{dagger}_{J,nf }(0  )>
-!>  G0T(I,J,nf) = <T c_{I,nf }(0  ) c^{dagger}_{J,nf }(tau)>
-!> \endverbatim
-!-------------------------------------------------------------------
-   subroutine GRT_reconstruction_base(GT0, G0T)
-      implicit none
-
-      complex(Kind=kind(0.d0)), intent(INOUT) :: GT0(Ndim, Ndim, N_FL), G0T(Ndim, Ndim, N_FL)
-
-      write (error_unit, *) "Warning: GRT_reconstruction not implemented."
-      call Terminate_on_error(ERROR_HAMILTONIAN, __FILE__, __LINE__)
-   end subroutine GRT_reconstruction_base
 
 #ifdef HDF5
    subroutine write_parameters_hdf5_base(filename)

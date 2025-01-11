@@ -19,7 +19,7 @@ program Main
 
 #include "git.h"
 
-   complex(Kind=kind(0.d0)), dimension(:, :, :, :), allocatable   :: GR
+   complex(Kind=kind(0.d0)), dimension(:, :, :, :), allocatable   :: gr
    class(UDV_State), dimension(:, :), allocatable :: phi_trial, phi_0, phi_bp_l, phi_bp_r
 
    integer :: N_eqwlk, N_blksteps, i_wlk, j_step, N_blk_eff, i_blk, N_blk, NSTM
@@ -39,7 +39,7 @@ program Main
    namelist /VAR_HAM_NAME/ ham_name
 
    !  General
-   integer :: Ierr, I, nf, nf_eff, nst, n, N_op, NVAR
+   integer :: Ierr, I, nf, nst, n, N_op, NVAR
    complex(Kind=kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.d0)), Z, Z1, E0_iwlk, Z_2
    real(Kind=kind(0.d0)) :: ZERO = 10d-8, X, X1
 
@@ -205,9 +205,9 @@ program Main
 
    call ham%alloc_obs
 
-   allocate (gr(ndim, ndim, n_fl, n_grc))
-   allocate (phi_trial(N_FL_eff, N_slat), phi_0(N_FL_eff, N_wlk))
-   allocate (phi_bp_l(N_FL_eff, N_grc), phi_bp_r(N_FL_eff, N_wlk))
+   allocate (gr(2*ndim, 2*ndim, n_fl, n_grc))
+   allocate (phi_trial(n_fl, N_slat), phi_0   (n_fl, N_wlk))
+   allocate (phi_bp_l (n_fl, N_grc ), phi_bp_r(n_fl, N_wlk))
 
    ! we require ltrot_bp >= nwrap and ltrot_bp <= N_blksteps
    if (mod(ltrot_bp, nwrap) == 0) then
@@ -215,15 +215,15 @@ program Main
    else
       nstm = ltrot_bp/nwrap + 1
    end if
-   allocate (udvst(nstm, N_FL_eff, N_grc))
+   allocate (udvst(nstm, n_fl, N_grc))
 
    ! init slater determinant
    call initial_wlk(phi_trial, phi_0, phi_bp_l, phi_bp_r, udvst, STAB_nt, GR, nwrap)
-   call store_phi(phi_0, phi_bp_r)
+   call store_phi  (phi_0, phi_bp_r)
 
    call control_init(Group_Comm)
 
-        !! main loop
+   !! main loop
    ntau_bp = 1 ! ntau_bp is to record the field for back propagation
    nst = 1
 
@@ -240,9 +240,9 @@ program Main
             call population_control(phi_0, phi_bp_r)
          end if
 
-                !! propagate the walkers:
+         !! propagate the walkers:
          call stepwlk_move(Phi_trial, Phi_0, GR, ntau_bp); 
-                !! QR decomposition for stablization
+         !! QR decomposition for stablization
          if (ntau_bp .eq. stab_nt(nst)) then
             call re_orthonormalize_walkers(Phi_0, 'U')
             nst = nst + 1
@@ -283,8 +283,6 @@ program Main
       end if
 
    end do
-
-   deallocate (Calc_Fl_map)
 
 #if defined(MPI)
    ! Gracefully deallocate all shared MPI memory (thw whole chunks)

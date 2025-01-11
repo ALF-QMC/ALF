@@ -343,12 +343,11 @@ contains
       integer, intent(in) :: t1
       integer, optional, intent(in) :: t2
 
-      integer :: nf, nc, nf_eff
+      integer :: nf, nc
       class(ContainerElementBase), pointer :: dummy
 
       Out = In
-      do nf_eff = 1, N_FL_eff !size(In,3)
-         nf = Calc_Fl_map(nf_eff)
+      do nf = 1, N_FL !size(In,3)
          do nc = Ncheck, 1, -1
             dummy => ExpOpT_vec(nf)%at(nc)
             call dummy%adjointaction(Out(:, :, nf), t1, t2)

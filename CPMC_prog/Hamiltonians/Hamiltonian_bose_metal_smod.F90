@@ -769,6 +769,9 @@
           if ( irank_g .eq. 0 ) then
               allocate(weight_mpi(N_wlk_mpi))
               allocate(w_arr     (N_wlk    ))
+              i_st = 1
+              i_ed = N_wlk
+              weight_mpi(i_st:i_ed) = weight_k(:)
           endif
 
           if ( irank_g .eq. 0 ) then
@@ -833,6 +836,9 @@
           if ( irank_g .eq. 0 ) then
               allocate(weight_mpi(N_wlk_mpi))
               allocate(w_arr     (N_wlk    ))
+              i_st = 1
+              i_ed = N_wlk
+              weight_mpi(i_st:i_ed) = weight_k(:)
           endif
 
           if ( irank_g .eq. 0 ) then
