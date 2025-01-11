@@ -147,10 +147,10 @@ module Hamiltonian_main
    integer, public        :: Group_Comm
    logical, public        :: Symm
 
-   complex(Kind=kind(0.d0)), public :: fac_norm
-   complex(Kind=kind(0.d0)), dimension(:), allocatable, public :: weight_k
-   complex(Kind=kind(0.d0)), dimension(:), allocatable, public :: overlap
-   complex(Kind=Kind(0.d0)), dimension(:), allocatable, public :: x_local
+   complex(kind=kind(0.d0)), public :: fac_norm
+   complex(kind=kind(0.d0)), dimension(:), allocatable, public :: weight_k
+   complex(kind=kind(0.d0)), dimension(:), allocatable, public :: overlap
+   complex(kind=kind(0.d0)), dimension(:), allocatable, public :: x_local
 
    !>    Privat Observables
    type(obser_Vec) , dimension(:), allocatable :: obs_scal
