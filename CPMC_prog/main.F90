@@ -5,6 +5,7 @@ program Main
    use Control
    use UDV_State_mod
    use stepwlk_mod
+   use fields_mod
    use BRW_init_mod
    use iso_fortran_env, only: output_unit, error_unit
 
@@ -141,6 +142,7 @@ program Main
    call MPI_BCAST(ham_name, 64, MPI_CHARACTER, 0, MPI_COMM_i, ierr)
 #endif
    call Alloc_Ham(ham_name)
+   call Fields_init()
    call ham%Ham_set()
    call initial_setup(ltrot_bp, nwrap, ltau)
 

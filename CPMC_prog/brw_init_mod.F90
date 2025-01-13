@@ -4,7 +4,6 @@ module BRW_init_mod
    use udv_state_mod
    use gfun_mod
    use set_random
-   use fields_mod
    use operator_mod
 #ifdef MPI
    use mpi
@@ -24,8 +23,6 @@ contains
        integer :: n_op, i, seed_in, i_wlk, n
        character(len=64) :: file_seeds
    
-       call Fields_init()
-
        n_op = size(op_v, 1)
 
        File_seeds = "seeds"
