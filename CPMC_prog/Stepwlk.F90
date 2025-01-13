@@ -336,8 +336,8 @@ contains
           max_re_w = maxval(dble(weight_mpi))
           weight_mpi(:) = weight_mpi(:) - max_re_w
           do i_wlk = 1, n_wlk_mpi
-              ang_w = aimag(weight_k(i_wlk)) 
-              re_lw = dble (weight_k(i_wlk))
+              ang_w = aimag(weight_mpi(i_wlk)) 
+              re_lw = dble (weight_mpi(i_wlk))
               re_weight(i_wlk) = 0.d0
               if ( cos(ang_w) .gt. 0.d0 ) re_weight(i_wlk) = exp(re_lw)*cos(ang_w)
           enddo
