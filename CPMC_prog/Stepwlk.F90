@@ -477,7 +477,7 @@ contains
 
    end subroutine store_phi
 
-   subroutine backpropagation(GR_mix, phi_bp_l, phi_bp_r, udvst, Stab_nt, ltau, lmetropolis, nsweep, nwarmup)
+   subroutine backpropagation(GR_mix, phi_bp_l, phi_bp_r, udvst, Stab_nt, ltau)
 #ifdef MPI
       use mpi
 #endif
@@ -487,12 +487,12 @@ contains
       class(UDV_State), dimension(:, :), allocatable, intent(INOUT) :: phi_bp_l, phi_bp_r
       class(UDV_State), dimension(:, :, :), allocatable, intent(INOUT) :: udvst
       integer, dimension(:), allocatable, intent(IN) :: Stab_nt
-      integer, intent(IN) :: ltau, lmetropolis, nsweep, nwarmup
+      integer, intent(IN) :: ltau
 
       !Local
       complex(Kind=kind(0.d0)) :: GR_bp(NDIM, NDIM, N_FL, N_grc)
       integer :: nf, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, ltrot_bp, N_op, nstm, nst, ntau
-      integer :: i_grc, i_st, i_ed, act_mea, ns
+      integer :: i_grc, i_st, i_ed, ns
       complex(Kind=kind(0.d0)) :: z, z_weight, z_sum_overlap, exp_overlap(N_slat)
       real(Kind=kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
       real(Kind=kind(0.d0))    :: zero = 1.0e-12, sign_w, ang_w, re_lw, re_we
@@ -569,16 +569,17 @@ contains
       call ham%sum_weight(z_weight)
 
           !! equal time measurement
-      act_mea = 0 + irank
+      if ( irank .eq. 0 ) call ham%count_obs
+
       do i_wlk = 1, N_wlk
          
          sign_w = cos(aimag(weight_k(i_wlk)))
-         if ( sign_w .gt. zero ) then
-                
+         if ( sign_w .gt. zero ) then 
+         
              ang_w = aimag(weight_k(i_wlk)) 
              re_lw = dble (weight_k(i_wlk))
              re_we = exp(re_lw)*cos(ang_w)
-         
+             
              i_st = 1 + (i_wlk - 1)*N_slat; i_ed = i_wlk*N_slat
              exp_overlap(:) = exp(overlap(i_st:i_ed))
              z_sum_overlap = sum(exp_overlap(:))
@@ -587,11 +588,11 @@ contains
                 do nf = 1, N_Fl
                    call CGRP(Z, GR_bp(:, :, nf, i_grc), phi_bp_r(nf, i_wlk), phi_bp_l(nf, i_grc))
                 end do
-                call ham%Obser(GR_bp(:, :, :, i_grc), GR_mix(:, :, :, i_grc), i_grc, re_we, z_weight, z_sum_overlap, act_mea)
-                act_mea = act_mea + 1
+                call ham%obser(gr_bp(:, :, :, i_grc), gr_mix(:, :, :, i_grc), i_grc, re_we, z_weight, z_sum_overlap)
              end do
-
+     
          endif
+
       end do
 
            !! time dependence measurement if not call metropolis
@@ -614,7 +615,7 @@ contains
       complex(Kind=kind(0.d0)) :: GT0(NDIM, NDIM, N_FL, N_grc), G00(NDIM, NDIM, N_FL, N_grc)
       complex(Kind=kind(0.d0)) :: GTT(NDIM, NDIM, N_FL, N_grc), G0T(NDIM, NDIM, N_FL, N_grc)
       integer :: nf, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, N_op, ntau, I, nst, nstm
-      integer :: ns, i_grc, act_mea, i_st, i_ed
+      integer :: ns, i_grc, i_st, i_ed
       complex(Kind=kind(0.d0)) :: Z, Z_weight, DETZ, z_sum_overlap, exp_overlap(N_slat)
       real(Kind=kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
       real(Kind=kind(0.d0)) :: zero = 1.0e-12, sign_w, ang_w, re_lw, re_we
@@ -661,27 +662,26 @@ contains
       end do
 
       ntau = 0
-      act_mea = 0 + irank
       do i_wlk = 1, N_wlk
          
          sign_w = cos(aimag(weight_k(i_wlk)))
          if ( sign_w .gt. zero ) then
-                
+         
              ang_w = aimag(weight_k(i_wlk)) 
              re_lw = dble (weight_k(i_wlk))
              re_we = exp(re_lw)*cos(ang_w)
-         
+             
              i_st = 1 + (i_wlk - 1)*N_slat; i_ed = i_wlk*N_slat
              exp_overlap(:) = exp(overlap(i_st:i_ed))
              z_sum_overlap = sum(exp_overlap(:))
              do ns = 1, N_slat
                 i_grc = ns + (i_wlk - 1)*N_slat
-                call ham%obserT(ntau, gt0(:, :, :, i_grc), g0t(:, :, :, i_grc), g00(:, :, :, i_grc), &
-                    & gtt(:, :, :, i_grc), i_grc, re_we, z_weight, z_sum_overlap, act_mea)
-                act_mea = act_mea + 1
+                call ham%obsert(ntau, gt0(:, :, :, i_grc), g0t(:, :, :, i_grc), g00(:, :, :, i_grc), &
+                    & gtt(:, :, :, i_grc), i_grc, re_we, z_weight, z_sum_overlap)
              end do
 
          endif
+
       end do
 
       NST = 1
@@ -719,20 +719,20 @@ contains
 
             !! measure
             if ( sign_w .gt. zero ) then
-             
-                ang_w = aimag(weight_k(i_wlk)) 
-                re_lw = dble (weight_k(i_wlk))
-                re_we = exp(re_lw)*cos(ang_w)
 
-                i_st = 1 + (i_wlk - 1)*N_slat; i_ed = i_wlk*N_slat
-                exp_overlap(:) = exp(overlap(i_st:i_ed))
-                z_sum_overlap = sum(exp_overlap(:))
-                do ns = 1, N_slat
-                   i_grc = ns + (i_wlk - 1)*N_slat
-                   call ham%obserT(ntau, GT0(:, :, :, i_grc), G0T(:, :, :, i_grc), G00(:, :, :, i_grc), &
-                       & GTT(:, :, :, i_grc), i_grc, re_we, z_weight, z_sum_overlap, act_mea)
-                   act_mea = act_mea + 1
-                end do
+                 ang_w = aimag(weight_k(i_wlk)) 
+                 re_lw = dble (weight_k(i_wlk))
+                 re_we = exp(re_lw)*cos(ang_w)
+
+                 i_st = 1 + (i_wlk - 1)*N_slat; i_ed = i_wlk*N_slat
+                 exp_overlap(:) = exp(overlap(i_st:i_ed))
+                 z_sum_overlap = sum(exp_overlap(:))
+                 do ns = 1, N_slat
+                    i_grc = ns + (i_wlk - 1)*N_slat
+                    call ham%obsert(ntau, gt0(:, :, :, i_grc), g0t(:, :, :, i_grc), g00(:, :, :, i_grc), &
+                        & gtt(:, :, :, i_grc), i_grc, re_we, z_weight, z_sum_overlap)
+                 end do
+
             endif
 
          end do

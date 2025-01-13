@@ -116,6 +116,7 @@ module Hamiltonian_main
       procedure, nopass :: sum_weight => sum_weight_base
       procedure, nopass :: update_fac_norm => update_fac_norm_base
       procedure, nopass :: Pr_obs => Pr_obs_base
+      procedure, nopass :: Count_obs => Count_obs_base
       procedure, nopass :: Init_obs => Init_obs_base
       procedure, nopass :: Init_obs_mc => Init_obs_mc_base
       procedure, nopass :: s0 => s0_base
@@ -235,11 +236,11 @@ contains
    !> Specifiy the equal time and time displaced observables
    !> @details
    !--------------------------------------------------------------------
-   subroutine Alloc_obs_base(Ltau, lmetropolis)
+   subroutine Alloc_obs_base(Ltau)
 
       implicit none
       !>  Ltau=1 if time displaced correlations are considered.
-      integer, intent(In) :: Ltau, lmetropolis
+      integer, intent(In) :: Ltau
       write (error_unit, *) "Warning: Alloc_obs not implemented."
    end subroutine Alloc_obs_base
 
@@ -259,7 +260,7 @@ contains
    !>  Time slice
    !> \endverbatim
    !-------------------------------------------------------------------
-   subroutine Obser_base(GR, GR_mix, i_grc, re_w, sum_w, sum_o, act_mea)
+   subroutine Obser_base(GR, GR_mix, i_grc, re_w, sum_w, sum_o)
 
       implicit none
 
@@ -267,7 +268,7 @@ contains
       complex(Kind=kind(0.d0)), intent(IN) :: GR_mix(Ndim, Ndim, N_FL)
       complex(Kind=kind(0.d0)), intent(IN) :: sum_w, sum_o
       real   (Kind=kind(0.d0)), intent(IN) :: re_w
-      integer, intent(IN) :: i_grc, act_mea
+      integer, intent(IN) :: i_grc
       logical, save              :: first_call = .true.
 
       if (first_call) then
@@ -296,10 +297,10 @@ contains
    !>  GTT(I,J,nf) = <T c_{I,nf }(tau) c^{dagger}_{J,nf }(tau)>
    !> \endverbatim
    !-------------------------------------------------------------------
-   subroutine ObserT_base(NT, GT0, G0T, G00, GTT, i_grc, re_w, sum_w, sum_o, act_mea)
+   subroutine ObserT_base(NT, GT0, G0T, G00, GTT, i_grc, re_w, sum_w, sum_o)
       implicit none
 
-      integer, intent(IN) :: NT, i_grc, act_mea
+      integer, intent(IN) :: NT, i_grc
       complex(Kind=kind(0.d0)), intent(IN) :: GT0(Ndim, Ndim, N_FL), G0T(Ndim, Ndim, N_FL)
       complex(Kind=kind(0.d0)), intent(IN) :: G00(Ndim, Ndim, N_FL), GTT(Ndim, Ndim, N_FL)
       complex(Kind=kind(0.d0)), intent(IN) :: sum_w, sum_o
@@ -313,10 +314,10 @@ contains
 
    end subroutine ObserT_base
 
-   subroutine bp_obsert_base(i_wlk, sum_w, act_mea)
+   subroutine bp_obsert_base(i_wlk, sum_w)
       implicit none
 
-      integer, intent(in) :: i_wlk, act_mea
+      integer, intent(in) :: i_wlk
       complex(Kind=kind(0.d0)), intent(in) :: sum_w
 
    end subroutine bp_obsert_base
@@ -390,6 +391,34 @@ contains
       end if
 
    end subroutine Pr_obs_base
+   
+   subroutine Count_obs_base
+
+      implicit none
+
+      !Local
+      integer :: I
+
+      if (allocated(obs_scal)) then
+         do i = 1, size(obs_scal, 1)
+            obs_scal(i)%n = obs_scal(i)%n + 1
+            obs_scal(i)%ave_sign = obs_scal(i)%ave_sign + 1.d0
+         end do
+      end if
+      if (allocated(obs_eq)) then
+         do i = 1, size(obs_eq, 1)
+            obs_eq(i)%n = obs_eq(i)%n + 1
+            obs_eq(i)%ave_sign = obs_eq(i)%ave_sign + 1.d0
+         end do
+      end if
+      if (allocated(obs_tau)) then
+         do i = 1, size(obs_tau, 1)
+            obs_tau(i)%n = obs_tau(i)%n + 1
+            obs_tau(i)%ave_sign = obs_tau(i)%ave_sign + 1.d0
+         end do
+      end if
+
+   end subroutine Count_obs_base
 
    !--------------------------------------------------------------------
    !> @author

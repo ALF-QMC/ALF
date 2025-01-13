@@ -146,7 +146,7 @@ contains
          nsigma_new%f(1, 1) = field_list(n_prop)
 
             !! update weight
-         weight_k(i_wlk) = weight_k(i_wlk) + sum_ratio
+         weight_k(i_wlk) = weight_k(i_wlk) + log(sum_ratio)
 
             !! Update Green's function
          ! update delta

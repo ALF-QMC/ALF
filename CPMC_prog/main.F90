@@ -22,8 +22,8 @@ program Main
    complex(Kind=kind(0.d0)), dimension(:, :, :, :), allocatable   :: gr
    class(UDV_State), dimension(:, :), allocatable :: phi_trial, phi_0, phi_bp_l, phi_bp_r
 
-   integer :: N_eqwlk, N_blksteps, i_wlk, j_step, N_blk_eff, i_blk, N_blk, NSTM
-   integer :: Nwrap, itv_pc, Ltau, lmetropolis, ntau_bp, ltrot_bp, nsweep, nwarmup
+   integer :: N_blk, N_blksteps, i_wlk, j_step, N_blk_eff, i_blk, NSTM
+   integer :: Nwrap, itv_pc, ltau, ntau_bp, ltrot_bp
    real(Kind=kind(0.d0)) :: CPU_MAX
    character(len=64) :: file_para, file_dat, file_info, ham_name
 
@@ -34,13 +34,13 @@ program Main
    logical :: file_exists
 #endif
 
-   namelist /VAR_CPMC/ Nwrap, ltrot_bp, itv_pc, Ltau, lmetropolis, N_blk, N_blksteps, Nsweep, Nwarmup, CPU_MAX
+   namelist /VAR_CPMC/ Nwrap, ltrot_bp, itv_pc, Ltau, N_blk, N_blksteps, CPU_MAX
 
    namelist /VAR_HAM_NAME/ ham_name
 
    !  General
    integer :: Ierr, I, nf, nst, n, N_op, NVAR
-   complex(Kind=kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.d0)), Z, Z1, E0_iwlk, Z_2
+   complex(Kind=kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.d0)), Z, Z1, Z_2
    real(Kind=kind(0.d0)) :: ZERO = 10d-8, X, X1
 
    ! Storage for  stabilization steps
@@ -135,11 +135,8 @@ program Main
    call MPI_BCAST(ltrot_bp, 1, MPI_INTEGER, 0, MPI_COMM_i, ierr)
    call MPI_BCAST(itv_pc, 1, MPI_INTEGER, 0, MPI_COMM_i, ierr)
    call MPI_BCAST(Ltau, 1, MPI_INTEGER, 0, MPI_COMM_i, ierr)
-   call MPI_BCAST(lmetropolis, 1, MPI_INTEGER, 0, MPI_COMM_i, ierr)
    call MPI_BCAST(N_blk, 1, MPI_INTEGER, 0, MPI_COMM_i, ierr)
    call MPI_BCAST(N_blksteps, 1, MPI_INTEGER, 0, MPI_COMM_i, ierr)
-   call MPI_BCAST(Nsweep, 1, MPI_INTEGER, 0, MPI_COMM_i, ierr)
-   call MPI_BCAST(Nwarmup, 1, MPI_INTEGER, 0, MPI_COMM_i, ierr)
    call MPI_BCAST(CPU_MAX, 1, MPI_REAL8, 0, MPI_COMM_i, ierr)
    call MPI_BCAST(ham_name, 64, MPI_CHARACTER, 0, MPI_COMM_i, ierr)
 #endif
@@ -177,12 +174,9 @@ program Main
       write (50, *) 'Nwrap                                : ', Nwrap
       write (50, *) 'N_blk                                : ', N_blk
       write (50, *) 'N_blksteps                           : ', N_blksteps
-      write (50, *) 'Nsweep                               : ', Nsweep
-      write (50, *) 'Nwarmup                              : ', Nwarmup
       write (50, *) 'ltrot_bp                             : ', ltrot_bp
       write (50, *) 'itv_pc                               : ', itv_pc
       write (50, *) 'ltau                                 : ', ltau
-      write (50, *) 'lmetropolis                          : ', lmetropolis
       if (abs(CPU_MAX) < ZERO) then
          write (50, *) 'No CPU-time limitation '
       else
@@ -203,7 +197,7 @@ program Main
    end if
 #endif
 
-   call ham%alloc_obs(ltau, lmetropolis)
+   call ham%alloc_obs(ltau)
 
    allocate (gr(ndim, ndim, n_fl, n_grc))
    allocate (phi_trial(n_fl, N_slat), phi_0   (n_fl, N_wlk))
@@ -253,7 +247,7 @@ program Main
             ntau_bp = 0
             NST = 1
 
-            call backpropagation(GR, phi_bp_l, phi_bp_r, udvst, stab_nt, ltau, lmetropolis, nsweep, nwarmup)
+            call backpropagation(GR, phi_bp_l, phi_bp_r, udvst, stab_nt, ltau)
 
                     !! store phi_0 for the next measurement
             call store_phi(phi_0, phi_bp_r)
