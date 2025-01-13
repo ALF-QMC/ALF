@@ -20,9 +20,9 @@ contains
       ! Local ::
       type(Fields)   ::  nsigma_new
       complex(Kind=kind(0.d0)) :: Ratio(N_FL), Ratio_f(N_FL), ratiotot, Z1, exp_o_new, exp_o_old
-      integer ::  n, ns, m, nf, nf_eff, i, Op_dim, op_dim_nf, nu_spin, nu_c, n_prop, i_grc
+      integer ::  n, ns, m, nf, i, Op_dim, op_dim_nf, nu_spin, nu_c, n_prop, i_grc
       complex(Kind=kind(0.d0)) :: Z, D_Mat, myexp, s1, s2, ratioD
-      real(Kind=kind(0.d0)) :: S0_ratio
+      real(Kind=kind(0.d0)) :: S0_ratio, pi = acos(-1.d0)
 
       real(Kind=kind(0.d0)) :: Weight, st_r, ed_r, sum_ratio, rand_nu
       complex(Kind=kind(0.d0)) :: alpha, beta, g_loc
@@ -38,14 +38,13 @@ contains
 
       call nsigma_new%make(1, 1)
 
-      op_dim = Op_V(n_op, Calc_FL_map(1))%N_non_zero
-      do nf_eff = 2, N_FL_eff
-         nf = Calc_Fl_map(nf_eff)
-         if (op_dim < Op_V(n_op, nf)%N_non_zero) op_dim = Op_V(n_op, nf)%N_non_zero
+      op_dim = op_v(n_op, 1)%N_non_zero
+      do nf = 2, N_FL
+         if (op_dim < op_V(n_op, nf)%N_non_zero) op_dim = op_v(n_op, nf)%N_non_zero
       end do
 
       if (op_dim > 0) then
-         allocate (Mat(Op_dim, Op_Dim), Delta(Op_dim, N_FL_eff), u(Ndim, Op_dim), v(Ndim, Op_dim))
+         allocate (Mat(Op_dim, Op_Dim), Delta(Op_dim, N_FL), u(Ndim, Op_dim), v(Ndim, Op_dim))
          allocate (y_v(Ndim, Op_dim), xp_v(Ndim, Op_dim), x_v(Ndim, Op_dim))
       end if
 
@@ -80,15 +79,14 @@ contains
          do ns = 1, N_slat
             i_grc = ns + (i_wlk - 1)*N_slat
 
-            do nf_eff = 1, N_FL_eff
-               nf = Calc_Fl_map(nf_eff)
+            do nf = 1, N_FL
                g_loc = Op_V(n_op, nf)%g
                Z1 = g_loc*(nsigma_new%Phi(1, 1))
                op_dim_nf = Op_V(n_op, nf)%N_non_zero
                do m = 1, op_dim_nf
                   myexp = exp(Z1*Op_V(n_op, nf)%E(m))
                   Z = myexp - 1.d0
-                  Delta(m, nf_eff) = Z
+                  Delta(m, nf) = Z
                   do n = 1, op_dim_nf
                      Mat(n, m) = -Z*GR(Op_V(n_op, nf)%P(n), Op_V(n_op, nf)%P(m), nf, i_grc)
                   end do
@@ -112,9 +110,6 @@ contains
                Ratio(nf) = D_Mat*exp(Z1*Op_V(n_op, nf)%alpha)
             end do
 
-            !call reconstruct weight subroutine to fill the non-calculated blocks
-            if (reconstruction_needed) call ham%weight_reconstruction(Ratio)
-
             ratiotot = product(Ratio)**dble(N_SUN)
             ratio_o(nu_c, ns) = ratiotot
 
@@ -133,7 +128,7 @@ contains
       sum_ratio = sum(ratio_field)
 
       if (sum_ratio .le. 0.d0) then
-         weight_k(i_wlk) = 0.d0
+         weight_k(i_wlk) = cmplx(0.d0,pi,kind(0.d0))
          Hs_new = field_list(1) ! randomly set up a Hs_new for output
       else
             !! Decide the field in the next propagation
@@ -151,19 +146,18 @@ contains
          nsigma_new%f(1, 1) = field_list(n_prop)
 
             !! update weight
-         weight_k(i_wlk) = weight_k(i_wlk)*sum_ratio
+         weight_k(i_wlk) = weight_k(i_wlk) + sum_ratio
 
             !! Update Green's function
          ! update delta
-         do nf_eff = 1, N_FL_eff
-            nf = Calc_Fl_map(nf_eff)
+         do nf = 1, N_FL
             g_loc = Op_V(n_op, nf)%g
             Z1 = g_loc*(nsigma_new%Phi(1, 1))
             op_dim_nf = Op_V(n_op, nf)%N_non_zero
             do m = 1, op_dim_nf
                myexp = exp(Z1*Op_V(n_op, nf)%E(m))
                Z = myexp - 1.d0
-               Delta(m, nf_eff) = Z
+               Delta(m, nf) = Z
             end do
          end do
 
@@ -173,8 +167,7 @@ contains
                !! update overlap
             overlap(i_grc) = overlap(i_grc) + log(ratio_o(n_prop, ns))
 
-            do nf_eff = 1, N_FL_eff
-               nf = Calc_Fl_map(nf_eff)
+            do nf = 1, N_FL
                ! Setup u(i,n), v(n,i)
                op_dim_nf = Op_V(n_op, nf)%N_non_zero
                if (op_dim_nf > 0) then
@@ -182,7 +175,7 @@ contains
                   call zlaset('N', Ndim, op_dim_nf, beta, beta, u, size(u, 1))
                   call zlaset('N', Ndim, op_dim_nf, beta, beta, v, size(v, 1))
                   do n = 1, op_dim_nf
-                     u(Op_V(n_op, nf)%P(n), n) = Delta(n, nf_eff)
+                     u(Op_V(n_op, nf)%P(n), n) = Delta(n, nf)
                      do i = 1, Ndim
                         v(i, n) = -GR(Op_V(n_op, nf)%P(n), i, nf, i_grc)
                      end do
@@ -266,7 +259,7 @@ contains
       ! Local ::
       type(Fields)   ::  nsigma_new
       complex(Kind=kind(0.d0)) :: Ratio(N_FL), Ratio_f(N_FL), Ratiotot, Z1, Phase_a_array(N_FL)
-      integer ::  n, m, nf, nf_eff, i, Op_dim, op_dim_nf, nu_spin, nu_c, n_prop, ratioD, ns, i_grc
+      integer ::  n, m, nf, i, Op_dim, op_dim_nf, nu_spin, nu_c, n_prop, ratioD, ns, i_grc
       complex(Kind=kind(0.d0)) :: Z, D_Mat, myexp, s1, s2
       logical                   :: toggle
 
@@ -287,14 +280,13 @@ contains
       allocate (ratio_o(N_slat))
       call nsigma_new%make(1, 1)
 
-      op_dim = Op_V(n_op, Calc_FL_map(1))%N_non_zero
-      do nf_eff = 2, N_FL_eff
-         nf = Calc_Fl_map(nf_eff)
-         if (op_dim < Op_V(n_op, nf)%N_non_zero) op_dim = Op_V(n_op, nf)%N_non_zero
+      op_dim = op_v(n_op, 1)%N_non_zero
+      do nf = 2, N_FL
+         if (op_dim < Op_V(n_op, nf)%N_non_zero) op_dim = op_v(n_op, nf)%N_non_zero
       end do
 
       if (op_dim > 0) then
-         allocate (Mat(Op_dim, Op_Dim), Delta(Op_dim, N_FL_eff), u(Ndim, Op_dim), v(Ndim, Op_dim))
+         allocate (Mat(Op_dim, Op_Dim), Delta(Op_dim, N_FL), u(Ndim, Op_dim), v(Ndim, Op_dim))
          allocate (y_v(Ndim, Op_dim), xp_v(Ndim, Op_dim), x_v(Ndim, Op_dim))
       end if
 
@@ -310,15 +302,14 @@ contains
       do ns = 1, N_slat
          i_grc = ns + (i_wlk - 1)*N_slat
 
-         do nf_eff = 1, N_FL_eff
-            nf = Calc_Fl_map(nf_eff)
+         do nf = 1, N_FL
             g_loc = op_v(n_op, nf)%g
             Z1 = g_loc*(nsigma_new%Phi(1, 1) - nsigma_bp(i_wlk)%Phi(n_op, nt))
             op_dim_nf = Op_V(n_op, nf)%N_non_zero
             do m = 1, op_dim_nf
                myexp = exp(Z1*Op_V(n_op, nf)%E(m))
                Z = myexp - 1.d0
-               Delta(m, nf_eff) = Z
+               Delta(m, nf) = Z
                do n = 1, op_dim_nf
                   Mat(n, m) = -Z*GR(Op_V(n_op, nf)%P(n), Op_V(n_op, nf)%P(m), nf, i_grc)
                end do
@@ -342,8 +333,6 @@ contains
             Ratio(nf) = D_Mat*exp(Z1*Op_V(n_op, nf)%alpha)
          end do
 
-         !call reconstruct weight subroutine to fill the non-calculated blocks
-         if (reconstruction_needed) call ham%weight_reconstruction(Ratio)
          ratiotot = product(Ratio)**dble(N_SUN)*nsigma_new%Gama(1, 1)/nsigma_bp(i_wlk)%Gama(n_op, nt)
          ratio_o(ns) = ratiotot
 
@@ -367,15 +356,14 @@ contains
               !! update overlap
             overlap_mc(i_grc) = overlap_mc(i_grc) + log(ratio_o(ns))
 
-            do nf_eff = 1, N_FL_eff
-               nf = Calc_Fl_map(nf_eff)
+            do nf = 1, N_FL
                op_dim_nf = Op_V(n_op, nf)%N_non_zero
                if (op_dim_nf > 0) then
                   beta = 0.d0
                   call zlaset('N', Ndim, op_dim_nf, beta, beta, u, size(u, 1))
                   call zlaset('N', Ndim, op_dim_nf, beta, beta, v, size(v, 1))
                   do n = 1, op_dim_nf
-                     u(Op_V(n_op, nf)%P(n), n) = Delta(n, nf_eff)
+                     u(Op_V(n_op, nf)%P(n), n) = Delta(n, nf)
                      do i = 1, Ndim
                         v(i, n) = -gr(Op_V(n_op, nf)%P(n), i, nf, i_grc)
                      end do

@@ -508,14 +508,15 @@
 !>  Time slice
 !> \endverbatim
 !-------------------------------------------------------------------
-       subroutine obser(GR, GR_mix, i_wlk, i_grc, sum_w, sum_o, act_mea)
+       subroutine obser(GR, GR_mix, i_grc, re_w, sum_w, sum_o, act_mea)
 
           implicit none
 
-          complex(Kind=kind(0.d0)), intent(IN) :: GR(Ndim, Ndim, N_FL)
-          complex(Kind=kind(0.d0)), intent(IN) :: GR_mix(Ndim, Ndim, N_FL)
-          complex(Kind=kind(0.d0)), intent(IN) :: sum_w, sum_o
-          integer, intent(IN) :: i_wlk, i_grc, act_mea
+          complex(kind=kind(0.d0)), intent(in) :: GR(Ndim, Ndim, N_FL)
+          complex(kind=kind(0.d0)), intent(in) :: GR_mix(Ndim, Ndim, N_FL)
+          complex(kind=kind(0.d0)), intent(in) :: sum_w, sum_o
+          real   (kind=kind(0.d0)), intent(in) :: re_w
+          integer, intent(in) :: i_grc, act_mea
 
           !Local
           complex(Kind=kind(0.d0)) :: grc(Ndim, Ndim, N_FL), ZK, zone, ztmp, z_ol, zero, ztmp1, ztmp2, ztmp3, ztmp4
@@ -525,7 +526,7 @@
           real(Kind=kind(0.d0)) :: X
 
           Z_ol = exp(overlap(i_grc))/sum_o
-          ZW = cmplx(weight_k(i_wlk), 0.d0, kind(0.d0))/sum_w
+          ZW = cmplx(re_w, 0.d0, kind(0.d0))/sum_w
           Z_fac = Z_ol*ZW
 
           do nf = 1, N_FL
@@ -698,15 +699,16 @@
 !>  Phase
 !> \endverbatim
 !-------------------------------------------------------------------
-       subroutine obsert(nt, gt0, g0t, g00, gtt, i_wlk, i_grc, sum_w, sum_o, act_mea)
+       subroutine obsert(nt, gt0, g0t, g00, gtt, i_grc, re_w, sum_w, sum_o, act_mea)
 
           implicit none
 
-          integer, intent(IN) :: nt
-          complex(Kind=kind(0.d0)), intent(IN) :: gt0(ndim, ndim, n_fl), g0t(ndim, ndim, n_fl)
-          complex(Kind=kind(0.d0)), intent(IN) :: g00(ndim, ndim, n_fl), gtt(ndim, ndim, n_fl)
-          complex(Kind=kind(0.d0)), intent(IN) :: sum_w, sum_o
-          integer, intent(IN) :: i_wlk, i_grc, act_mea
+          integer, intent(in) :: nt
+          complex(kind=kind(0.d0)), intent(in) :: gt0(ndim, ndim, n_fl), g0t(ndim, ndim, n_fl)
+          complex(kind=kind(0.d0)), intent(in) :: g00(ndim, ndim, n_fl), gtt(ndim, ndim, n_fl)
+          complex(kind=kind(0.d0)), intent(in) :: sum_w, sum_o
+          real   (kind=kind(0.d0)), intent(in) :: re_w
+          integer, intent(in) :: i_grc, act_mea
 
           !Locals
           complex(Kind=kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY, zone, zback, z_ol, zw, z_fac, zero
@@ -714,7 +716,7 @@
           integer :: IMJ, I, J, k, l, m, n, i1, ip1, ipx, ipy, imx, imy, j1, jpx, jpy, jmx, jmy, no_I, no_J, nc
 
           Z_ol = exp(overlap(i_grc))/sum_o
-          ZW = cmplx(weight_k(i_wlk), 0.d0, kind(0.d0))/sum_w
+          ZW = cmplx(re_w, 0.d0, kind(0.d0))/sum_w
           Z_fac = Z_ol*ZW
 
           zone = cmplx(1.d0, 0.d0, kind(0.d0))
@@ -758,6 +760,9 @@
 
        end subroutine obsert
        
+       !!========================================================================!!
+       !!     compute local energy of a given walker
+       !!========================================================================!!
        complex(Kind=kind(0.d0)) function E0_local(gr)
           implicit none
 
@@ -792,19 +797,24 @@
           end do
           zpot = zpot*(-ham_u/2.d0)
 
-          E0_local = (Zpot + ZKin)*dtau
+          E0_local = Zpot + ZKin
 
        end function E0_local
 
+       !!===================================================================!!
+       !!     compute the sum of the weight and rescale weight
+       !!===================================================================!!
        subroutine sum_weight(z_sum_weight)
           implicit none
 
           complex(Kind=kind(0.d0)), intent(out) :: z_sum_weight
 
           !local
-          integer                   :: i_wlk
-          real(Kind=kind(0.d0)) :: X1, tot_re_weight
-          complex(Kind=kind(0.d0)) :: Z1, Z2, ZP, wtmp
+          integer :: i_wlk, ii, i_st, i_ed
+          real   (Kind=kind(0.d0)) :: X1, tot_re_weight, max_re_w, ang_w, re_lw
+          complex(Kind=kind(0.d0)) :: Z1, Z2, wtmp
+          
+          real(Kind=kind(0.d0)), allocatable :: weight_mpi(:), w_arr(:)
 
 #ifdef MPI
           integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
@@ -815,32 +825,63 @@
           call MPI_Comm_size(Group_Comm, isize_g, ierr)
           igroup = irank/isize_g
 #endif
+          
+          if ( irank_g .eq. 0 ) then
+              allocate(weight_mpi(N_wlk_mpi))
+              allocate(w_arr     (N_wlk    ))
+              i_st = 1
+              i_ed = N_wlk
+              weight_mpi(i_st:i_ed) = weight_k(:)
+          endif
+          
+          if ( irank_g .eq. 0 ) then
+              do ii = 1, isize_g - 1
+                 i_st = ii*N_wlk + 1
+                 i_ed = (ii + 1)*N_wlk
+                 call mpi_recv(w_arr, n_wlk, MPI_COMPLEX16, ii, 1, group_comm, status, ierr)
+                 weight_mpi(i_st:i_ed) = w_arr
+              enddo
+          else
+              call mpi_send(weight_k, n_wlk, MPI_COMPLEX16, 0, 1, group_comm, ierr)
+          endif
+          
+          if ( irank_g .eq. 0 ) then
+              max_re_w = maxval(dble(weight_mpi))
+              deallocate(weight_mpi, w_arr)
+          endif
+          call MPI_BCAST(max_re_w, 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
 
           Z1 = cmplx(0.d0, 0.d0, kind(0.d0))
           Z2 = cmplx(0.d0, 0.d0, kind(0.d0))
           do i_wlk = 1, N_wlk
-             ZP = 1.d0
-             wtmp = cmplx(weight_k(i_wlk), 0.d0, kind(0.d0))
-             Z1 = Z1 + wtmp*ZP
+             weight_k(i_wlk) = weight_k(i_wlk) - max_re_w
+             ang_w = aimag(weight_k(i_wlk)) 
+             re_lw = dble (weight_k(i_wlk))
+             !! Real part of the weight
+             if ( cos(ang_w) .gt. 0.d0 ) Z1 = Z1 + exp(re_lw)*cos(ang_w)
           end do
           call MPI_REDUCE(Z1, Z2, 1, MPI_COMPLEX16, MPI_SUM, 0, Group_comm, IERR)
-          call MPI_BCAST(Z2, 1, MPI_COMPLEX16, 0, MPI_COMM_WORLD, ierr)
+          call MPI_BCAST (Z2, 1, MPI_COMPLEX16, 0, MPI_COMM_WORLD, ierr)
 
           z_sum_weight = Z2
 
        end subroutine sum_weight
 
-       subroutine update_fac_norm(GR, ntw)
+       !!===================================================================!!
+       !!     update the normalization factor
+       !!===================================================================!!
+       subroutine update_fac_norm(gr, ntw)
           implicit none
 
-          complex(Kind=kind(0.d0)), intent(IN) :: GR(Ndim, Ndim, N_FL, N_grc)
+          complex(Kind=kind(0.d0)), intent(IN) :: gr(ndim, ndim, n_fl, n_grc)
           integer, intent(IN) :: ntw
 
           !local
-          integer                   :: i_wlk, ns, i_grc
-          real(Kind=kind(0.d0)) :: X1, tot_re_weight
-          complex(Kind=kind(0.d0)) :: tot_ene, Z1, Z2, tot_c_weight, ZP, wtmp, el_tmp, Z
+          integer :: i_wlk, ii, i_st, i_ed, ns, i_grc
+          real   (Kind=kind(0.d0)) :: X1, re_w_tmp, max_re_w, ang_w, re_lw
+          complex(Kind=kind(0.d0)) :: Z1, Z2, wtmp, el_tmp, Z, tot_ene, zr1, zr2
           character(LEN=64)  :: filename
+          real(Kind=kind(0.d0)), allocatable :: weight_mpi(:), w_arr(:)
 
 #ifdef MPI
           integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
@@ -853,43 +894,68 @@
 #endif
           filename = "E_local.dat"
 
-         !! initial energy
-          tot_ene = 0.d0
-          tot_c_weight = 0.d0
+          if ( irank_g .eq. 0 ) then
+              allocate(weight_mpi(N_wlk_mpi))
+              allocate(w_arr     (N_wlk    ))
+              i_st = 1
+              i_ed = N_wlk
+              weight_mpi(i_st:i_ed) = weight_k(:)
+          endif
+
+          if ( irank_g .eq. 0 ) then
+              do ii = 1, isize_g - 1
+                 i_st = ii*N_wlk + 1
+                 i_ed = (ii + 1)*N_wlk
+                 call mpi_recv(w_arr, n_wlk, MPI_COMPLEX16, ii, 1, group_comm, status, ierr)
+                 weight_mpi(i_st:i_ed) = w_arr
+              enddo
+          else
+              call mpi_send(weight_k, n_wlk, MPI_COMPLEX16, 0, 1, group_comm, ierr)
+          endif
+          
+          if ( irank_g .eq. 0 ) then
+              max_re_w = maxval(dble(weight_mpi))
+              deallocate(weight_mpi, w_arr)
+          endif
+          call MPI_BCAST(max_re_w, 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
+      
+          Z1 = cmplx(0.d0, 0.d0, kind(0.d0))
+          Z2 = cmplx(0.d0, 0.d0, kind(0.d0))
           do i_wlk = 1, N_wlk
+             weight_k(i_wlk) = weight_k(i_wlk) - max_re_w
+             ang_w = aimag(weight_k(i_wlk)) 
+             re_lw = dble (weight_k(i_wlk))
+             !! Real part of the weight
+             if ( cos(ang_w) .gt. 0.d0 ) then
+                 z = 0.d0
+                 do ns = 1, N_slat
+                    i_grc = ns + (i_wlk - 1)*N_slat
+                    z = z + exp(overlap(i_grc))
+                 end do
 
-             if (weight_k(i_wlk) .ge. 0.d0) then
-
-                Z = 0.d0
-                do ns = 1, N_slat
-                   i_grc = ns + (i_wlk - 1)*N_slat
-                   Z = Z + exp(overlap(i_grc))
-                end do
-
-                do ns = 1, N_slat
-                   i_grc = ns + (i_wlk - 1)*N_slat
-                   el_tmp = dble(ham%E0_local(GR(:, :, :, i_grc)))
-                   tot_ene = tot_ene + el_tmp*weight_k(i_wlk)*exp(overlap(i_grc))/Z
-                end do
-
-                tot_c_weight = tot_c_weight + weight_k(i_wlk)
-
-             end if
-
+                 !! real part of mix estimated energy
+                 tot_ene = cmplx(0.d0, 0.d0, kind(0.d0))
+                 do ns = 1, N_slat
+                    i_grc = ns + (i_wlk - 1)*N_slat
+                    el_tmp = dble(ham%E0_local(GR(:, :, :, i_grc)))
+                    tot_ene = tot_ene + el_tmp*exp(overlap(i_grc))/Z
+                 end do
+                 re_w_tmp = exp(re_lw)*cos(ang_w)
+                 z1 = z1 + re_w_tmp
+                 z2 = z2 + re_w_tmp*tot_ene
+             endif
           end do
-          tot_re_weight = dble(tot_c_weight)
-
-          call MPI_REDUCE(tot_ene, Z1, 1, MPI_COMPLEX16, MPI_SUM, 0, Group_comm, IERR)
-          call MPI_REDUCE(tot_re_weight, X1, 1, MPI_REAL8, MPI_SUM, 0, Group_comm, IERR)
-
-          if (Irank_g == 0) then
-             Z1 = Z1/X1
-             fac_norm = dble(Z1)
+          call mpi_reduce(z1, zr1, 1, MPI_COMPLEX16, MPI_SUM, 0, Group_comm, ierr)
+          call mpi_reduce(z2, zr2, 1, MPI_COMPLEX16, MPI_SUM, 0, Group_comm, ierr)
+          
+          if ( irank_g == 0 ) then
+             zr2 = zr2/zr1
+             fac_norm = dble(zr2)*dtau
              open (UNIT=77, FILE=filename, STATUS='UNKNOWN', position="append")
-             write (77, *) ntw*dtau, dble(Z1)/dtau
+             write (77, *) ntw*dtau, dble(zr2)
              close (77)
           end if
-          call MPI_BCAST(fac_norm, 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
+          call MPI_BCAST(fac_norm, 1, MPI_COMPLEX16, 0, MPI_COMM_WORLD, ierr)
 
        end subroutine update_fac_norm
 

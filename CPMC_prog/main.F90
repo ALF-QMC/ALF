@@ -1,19 +1,12 @@
 program Main
 
    use runtime_error_mod
-   use Operator_mod
-   use Lattices_v3
-   use MyMats
    use Hamiltonian_main
    use Control
-   use Hop_mod
    use UDV_State_mod
-   use Fields_mod
-   use WaveFunction_mod
-   use iso_fortran_env, only: output_unit, error_unit
-   use gfun_mod
-   use set_random
    use stepwlk_mod
+   use BRW_init_mod
+   use iso_fortran_env, only: output_unit, error_unit
 
 #ifdef MPI
    use mpi
@@ -26,14 +19,13 @@ program Main
 
 #include "git.h"
 
-   complex(Kind=kind(0.d0)), dimension(:, :, :, :), allocatable   :: GR
+   complex(Kind=kind(0.d0)), dimension(:, :, :, :), allocatable   :: gr
    class(UDV_State), dimension(:, :), allocatable :: phi_trial, phi_0, phi_bp_l, phi_bp_r
 
    integer :: N_eqwlk, N_blksteps, i_wlk, j_step, N_blk_eff, i_blk, N_blk, NSTM
    integer :: Nwrap, itv_pc, Ltau, lmetropolis, ntau_bp, ltrot_bp, nsweep, nwarmup
    real(Kind=kind(0.d0)) :: CPU_MAX
-   character(len=64) :: file_seeds, file_para, file_dat, file_info, ham_name
-   integer :: Seed_in
+   character(len=64) :: file_para, file_dat, file_info, ham_name
 
    integer :: mpi_per_parameter_set
 
@@ -47,7 +39,7 @@ program Main
    namelist /VAR_HAM_NAME/ ham_name
 
    !  General
-   integer :: Ierr, I, nf, nf_eff, nst, n, N_op, NVAR
+   integer :: Ierr, I, nf, nst, n, N_op, NVAR
    complex(Kind=kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.d0)), Z, Z1, E0_iwlk, Z_2
    real(Kind=kind(0.d0)) :: ZERO = 10d-8, X, X1
 
@@ -151,53 +143,11 @@ program Main
    call MPI_BCAST(CPU_MAX, 1, MPI_REAL8, 0, MPI_COMM_i, ierr)
    call MPI_BCAST(ham_name, 64, MPI_CHARACTER, 0, MPI_COMM_i, ierr)
 #endif
-   call Fields_init()
    call Alloc_Ham(ham_name)
    call ham%Ham_set()
+   call initial_setup(ltrot_bp, nwrap, ltau)
 
-   N_op = size(OP_V, 1)
-
-   ! Test if user has initialized Calc_FL array
-   if (.not. allocated(Calc_Fl)) then
-      allocate (Calc_Fl(N_FL))
-      Calc_Fl = .true.
-   end if
-   ! Count number of flavors to be calculated
-   N_FL_eff = 0
-   do I = 1, N_Fl
-      if (Calc_Fl(I)) N_FL_eff = N_FL_eff + 1
-   end do
-   reconstruction_needed = .false.
-   if (N_FL_eff /= N_FL) reconstruction_needed = .true.
-   !initialize the flavor map
-   allocate (Calc_Fl_map(N_FL_eff))
-   N_FL_eff = 0
-   do I = 1, N_Fl
-      if (Calc_Fl(I)) then
-         N_FL_eff = N_FL_eff + 1
-         Calc_Fl_map(N_FL_eff) = I
-      end if
-   end do
-
-   File_seeds = "seeds"
-   call Set_Random_number_Generator(File_seeds, Seed_in)
-
-        !! To do: modify nsigma structure
-   allocate (nsigma_bp(N_wlk))
-   allocate (nsigma_qr(N_wlk))
-   if (ltau .eq. 1) ltrot_bp = ltrot_bp + ltrot
-   do i_wlk = 1, N_wlk
-      call nsigma_bp(i_wlk)%make(N_op, ltrot_bp)
-      call nsigma_qr(i_wlk)%make(N_op, nwrap)
-      do n = 1, N_op
-         nsigma_bp(i_wlk)%t(n) = OP_V(n, 1)%type
-         nsigma_qr(i_wlk)%t(n) = OP_V(n, 1)%type
-      end do
-   end do
-
-   call Hop_mod_init
-
-   if (abs(CPU_MAX) > Zero) N_blk = 10000000
+   if (abs(cpu_max) > zero) N_blk = 10000000
 
 #if defined(HDF5)
    file_dat = "data.h5"
@@ -253,11 +203,11 @@ program Main
    end if
 #endif
 
-   call ham%Alloc_obs(ltau, lmetropolis)
+   call ham%alloc_obs(ltau, lmetropolis)
 
    allocate (gr(ndim, ndim, n_fl, n_grc))
-   allocate (phi_trial(N_FL_eff, N_slat), phi_0(N_FL_eff, N_wlk))
-   allocate (phi_bp_l(N_FL_eff, N_grc), phi_bp_r(N_FL_eff, N_wlk))
+   allocate (phi_trial(n_fl, N_slat), phi_0   (n_fl, N_wlk))
+   allocate (phi_bp_l (n_fl, N_grc ), phi_bp_r(n_fl, N_wlk))
 
    ! we require ltrot_bp >= nwrap and ltrot_bp <= N_blksteps
    if (mod(ltrot_bp, nwrap) == 0) then
@@ -265,19 +215,17 @@ program Main
    else
       nstm = ltrot_bp/nwrap + 1
    end if
-   allocate (udvst(NSTM, N_FL_eff, N_grc))
-
-   weight_k(:) = 1.d0
+   allocate (udvst(nstm, n_fl, N_grc))
 
    ! init slater determinant
    call initial_wlk(phi_trial, phi_0, phi_bp_l, phi_bp_r, udvst, STAB_nt, GR, nwrap)
-   call store_phi(phi_0, phi_bp_r)
+   call store_phi  (phi_0, phi_bp_r)
 
    call control_init(Group_Comm)
 
-        !! main loop
+   !! main loop
    ntau_bp = 1 ! ntau_bp is to record the field for back propagation
-   NST = 1
+   nst = 1
 
    do i_blk = 1, N_blk
 
@@ -292,12 +240,12 @@ program Main
             call population_control(phi_0, phi_bp_r)
          end if
 
-                !! propagate the walkers:
+         !! propagate the walkers:
          call stepwlk_move(Phi_trial, Phi_0, GR, ntau_bp); 
-                !! QR decomposition for stablization
-         if (ntau_bp .eq. Stab_nt(NST)) then
+         !! QR decomposition for stablization
+         if (ntau_bp .eq. stab_nt(nst)) then
             call re_orthonormalize_walkers(Phi_0, 'U')
-            NST = NST + 1
+            nst = nst + 1
          end if
 
          ! Measurement and update fac_norm
@@ -335,8 +283,6 @@ program Main
       end if
 
    end do
-
-   deallocate (Calc_Fl_map)
 
 #if defined(MPI)
    ! Gracefully deallocate all shared MPI memory (thw whole chunks)
