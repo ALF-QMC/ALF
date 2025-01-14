@@ -1508,52 +1508,52 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
 
       !! For mix estimator
       do nf = 1, N_fl
-         zmat(:,:)=Grc_H(:,:,nf)
-         Call diag(zmat, zmat2, evec_tmp)
-         uvec(:,:,nf)=zmat2
-         evec(:,nf)=evec_tmp
-         
-         !zmat(:,:)=Grc(:,:,nf)
-         !!call diag_gen(zmat, zmat2, z_evec_tmp, 'R', 0)
-         !call diag_gen(zmat, zmat2, z_evec_tmp, 'L', 0)
+         !zmat(:,:)=Grc_H(:,:,nf)
+         !Call diag(zmat, zmat2, evec_tmp)
          !uvec(:,:,nf)=zmat2
-         !evec(:,nf)=dble(z_evec_tmp)
+         !evec(:,nf)=evec_tmp
+         
+         zmat(:,:)=Grc(:,:,nf)
+         !call diag_gen(zmat, zmat2, z_evec_tmp, 'R', 0)
+         call diag_gen(zmat, zmat2, z_evec_tmp, 'L', 0)
+         uvec(:,:,nf)=zmat2
+         evec(:,nf)=dble(z_evec_tmp)
       enddo
       
-      !!do nf = 1, N_fl
-      do i2=1,n_part
-         ic2 = ndim-(i2-1) 
-         do i1=1,ndim
-             wf_p_up(i1,i2)=uvec(i1,ic2,1)
-             wf_p_dn(i1,i2)=uvec(i1,ic2,2)
-         enddo
-      enddo
-      !!enddo
+      !!!do nf = 1, N_fl
+      !do i2=1,n_part
+      !   ic2 = ndim-(i2-1) 
+      !   do i1=1,ndim
+      !       wf_p_up(i1,i2)=uvec(i1,ic2,1)
+      !       wf_p_dn(i1,i2)=uvec(i1,ic2,2)
+      !   enddo
+      !enddo
+      !!!enddo
 
-      !!! spin up
-      !nc=0
-      !nf=1
-      !do i2=1,ndim
-      !    if ( evec(i2,nf) .gt. 0.5 ) then
-      !      nc = nc + 1
-      !      do i1=1,ndim
-      !          !wf_p_up(i1,nc)=uvec(i1,i2,nf)
-      !          wf_p_up(i1,nc)=conjg(uvec(i2,i1,nf))
-      !      enddo
-      !    endif
-      !enddo
-      !!! spin dn
-      !nc=0
-      !nf=2
-      !do i2=1,ndim
-      !    if ( evec(i2,nf) .gt. 0.5 ) then
-      !      nc = nc + 1
-      !      do i1=1,ndim
-      !          !wf_p_dn(i1,nc)=uvec(i1,i2,nf)
-      !          wf_p_dn(i1,nc)=conjg(uvec(i2,i1,nf))
-      !      enddo
-      !    endif
-      !enddo
+      !! spin up
+      nc=0
+      nf=1
+      do i2=1,ndim
+          if ( evec(i2,nf) .gt. 0.5 ) then
+            nc = nc + 1
+            do i1=1,ndim
+                !wf_p_up(i1,nc)=uvec(i1,i2,nf)
+                wf_p_up(i1,nc)=conjg(uvec(i2,i1,nf))
+            enddo
+          endif
+      enddo
+      !! spin dn
+      nc=0
+      nf=2
+      do i2=1,ndim
+          if ( evec(i2,nf) .gt. 0.5 ) then
+            nc = nc + 1
+            do i1=1,ndim
+                !wf_p_dn(i1,nc)=uvec(i1,i2,nf)
+                wf_p_dn(i1,nc)=conjg(uvec(i2,i1,nf))
+            enddo
+          endif
+      enddo
 
       write(Filename,'(A,A)') trim(name), "_slatd.h5"
       !! output hdf5 slaterDet

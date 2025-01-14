@@ -600,11 +600,9 @@ contains
       ! LOCAL
       character (LEN=64) :: filename
       complex (Kind=Kind(0.d0)), pointer :: phi0_up_out(:,:), phi0_dn_out(:,:)
-      complex (Kind=Kind(0.d0)), allocatable :: p0_tmp(:,:), p1_tmp(:,:), p2_tmp(:,:), p3_tmp(:,:)
-      complex (kind=kind(0.d0)), allocatable, dimension(:,:) :: smat_up, smat_dn
+      complex (Kind=Kind(0.d0)), allocatable :: p0_tmp(:,:), p1_tmp(:,:)
       complex (kind=kind(0.d0)) :: alpha, beta, zdet, z_norm_up, z_norm_dn, z_norm
       complex (kind=kind(0.d0)) :: phase
-      integer, allocatable :: ipiv_up(:), ipiv_dn(:)
 
       INTEGER             :: K, hdferr, rank, nf, nw, i0, i1, i2, i_st, i_ed, Ndt, ii, nwalk_in
       Integer             :: n_part_1, n_part_2, n, info
@@ -630,8 +628,6 @@ contains
       
       allocate(p0_tmp(ndim,n_part_1))
       allocate(p1_tmp(ndim,n_part_2))
-      allocate(p2_tmp(ndim,n_part_1))
-      allocate(p3_tmp(ndim,n_part_2))
       
       if ( irank .eq. 0 ) then
 
@@ -664,8 +660,22 @@ contains
           !close file
           call h5fclose_f(file_id, hdferr)
 
-          p0_tmp(:,:)=phi0_up_out(:,:)
-          p1_tmp(:,:)=phi0_dn_out(:,:)
+          !! QR decomposition
+          !! here we assume single SD as trial wave function
+          phi_0_l(1,1)%U(:,:) = phi0_up_out(:,:)
+          phi_0_l(1,1)%D = cmplx(1.d0,0.d0,kind(0.d0))
+          call phi_0_l(1, 1)%decompose
+          phi_0_l(1,1)%D = cmplx(1.d0,0.d0,kind(0.d0))
+          
+          phi_0_l(2,1)%U(:,:) = phi0_dn_out(:,:)
+          phi_0_l(2,1)%D = cmplx(1.d0,0.d0,kind(0.d0))
+          call phi_0_l(2, 1)%decompose
+          phi_0_l(2,1)%D = cmplx(1.d0,0.d0,kind(0.d0))
+
+          p0_tmp(:,:) = phi_0_l(1,1)%U(:,:)
+          p1_tmp(:,:) = phi_0_l(2,1)%U(:,:)
+          
+          deallocate(phi0_up_out, phi0_dn_out)
 
       endif !irank 0
 
@@ -683,79 +693,21 @@ contains
          call mpi_recv(p1_tmp,  Ndt,mpi_complex16, 0, 3, MPI_COMM_WORLD,STATUS,IERR)
       ENDIF
 
-      p2_tmp = p0_tmp
-      p3_tmp = p1_tmp
-
-      !! allocate tmp matrix
-      allocate(smat_up(n_part_1,n_part_1), smat_dn(n_part_2,n_part_2))
-      allocate(ipiv_up(n_part_1), ipiv_dn(n_part_2) )
-
-      !! compute overlap
-      alpha = 1.d0
-      beta  = 0.d0
-      call zgemm('C','N',n_part_1,n_part_1,ndim,alpha,p0_tmp(1,1), ndim, p2_tmp(1,1), &
-          & ndim,beta,smat_up(1,1), n_part_1)
-      ! ZGETRF computes an LU factorization of a general M-by-N matrix A
-      ! using partial pivoting with row interchanges.
-      call zgetrf(n_part_1, n_part_1, smat_up, n_part_1, ipiv_up, info)
-      ! obtain log of det
-      zdet  = 0.d0
-      phase = 1.d0
-      do n = 1, n_part_1
-         if (ipiv_up(n).ne.n) then
-            phase = -phase
-         endif
-         zdet = zdet + log(smat_up(n,n))
-      enddo
-      zdet = zdet + log(phase)
-      z_norm_up = exp(zdet)
-      if (irank_g .eq. 0 ) write(*,*) '======================================================================'
-      if (irank_g .eq. 0 ) write(*,*) 'overlap for input slater spin up', z_norm_up
-      z_norm_up = (1.d0/z_norm_up)**(1.d0/dble(N_part_1))
-      if (irank_g .eq. 0 ) write(*,*) 'renormalized factor for input slater z_norm spin up', z_norm_up
-      if (irank_g .eq. 0 ) write(*,*) '======================================================================'
-
-      call zgemm('C','N',n_part_2,n_part_2,ndim,alpha,p1_tmp(1,1), ndim, p3_tmp(1,1), &
-          & ndim, beta, smat_dn(1,1), n_part_2)
-      ! ZGETRF computes an LU factorization of a general M-by-N matrix A
-      ! using partial pivoting with row interchanges.
-      call zgetrf(n_part_2, n_part_2, smat_dn, n_part_2, ipiv_dn, info)
-      ! obtain log of det
-      zdet  = 0.d0
-      phase = 1.d0
-      do n=1,n_part_2
-         if (ipiv_dn(n).ne.n) then
-            phase = -phase
-         endif
-         zdet = zdet + log(smat_dn(n,n))
-      enddo
-      zdet = zdet + log(phase)
-      z_norm_dn = exp(zdet)
-      if (irank_g .eq. 0 ) write(*,*) '======================================================================'
-      if (irank_g .eq. 0 ) write(*,*) 'overlap for input slater spin dn', z_norm_dn
-      z_norm_dn = (1.d0/z_norm_dn)**(1.d0/dble(n_part_2))
-      if (irank_g .eq. 0 ) write(*,*) 'renormalized factor for input slater z_norm spin dn', z_norm_dn
-      if (irank_g .eq. 0 ) write(*,*) '======================================================================'
-
-      do nw = 1, N_wlk
-          phi_0_r(1,nw)%U(:,:)=p2_tmp(:,:)*z_norm_up
-          phi_0_r(2,nw)%U(:,:)=p3_tmp(:,:)*z_norm_dn
-      enddo
-      !! here we assume single SD as trial wave function
-      WF_L(1,1)%P(:,:)=p0_tmp(:,:)
-      WF_R(1,1)%P(:,:)=p0_tmp(:,:)
+      !! init phi_0_r phi_0_l and wavefunction wf_l, wf_r for each threads
+      wf_l(1,1)%P(:,:)=p0_tmp(:,:)
+      wf_r(1,1)%P(:,:)=p0_tmp(:,:)
+      
+      wf_l(2,1)%P(:,:)=p1_tmp(:,:)
+      wf_r(2,1)%P(:,:)=p1_tmp(:,:)
+      
       phi_0_l(1,1)%U(:,:)=p0_tmp(:,:)
-
-      WF_L(2,1)%P(:,:)=p1_tmp(:,:)
-      WF_R(2,1)%P(:,:)=p1_tmp(:,:)
       phi_0_l(2,1)%U(:,:)=p1_tmp(:,:)
-
-      if (irank_g .eq. 0 ) then
-          deallocate(phi0_up_out, phi0_dn_out)
-      endif
-      deallocate(p0_tmp, p1_tmp, p2_tmp, p3_tmp)
-      deallocate(ipiv_up, ipiv_dn)
-      deallocate(smat_up, smat_dn)
+      do nw = 1, N_wlk
+         call phi_0_r(1,nw)%reset('r', p0_tmp)
+         call phi_0_r(2,nw)%reset('r', p1_tmp)
+      enddo
+      
+      deallocate(p0_tmp, p1_tmp)
 
    end subroutine trial_in_hdf5
 #endif
