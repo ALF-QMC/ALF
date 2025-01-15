@@ -52,6 +52,7 @@ Module Wrapgr_mod
   Use Hamiltonian_main
   Use Hop_mod
   use upgrade_mod
+  use Langevin_HMC_mod
 
   Implicit none
 
@@ -78,7 +79,7 @@ Contains
   end Subroutine Wrapgr_dealloc
 
 !--------------------------------------------------------------------
-  SUBROUTINE WRAPGRUP(GR,NTAU,PHASE,Propose_S0,Nt_sequential_start, Nt_sequential_end, N_Global_tau)
+  SUBROUTINE WRAPGRUP(GR,NTAU,PHASE,Propose_S0,Propose_Langevin, Delta_t_Langevin_HMC,Nt_sequential_start, Nt_sequential_end, N_Global_tau)
 !--------------------------------------------------------------------
 !> @author 
 !> ALF-project
@@ -95,8 +96,9 @@ Contains
     COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT), allocatable ::  GR(:,:,:)
     COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT) ::  PHASE
     INTEGER, INTENT(IN) :: NTAU
-    LOGICAL, INTENT(IN) :: Propose_S0
+    LOGICAL, INTENT(IN) :: Propose_S0, Propose_Langevin
     INTEGER, INTENT(IN) :: Nt_sequential_start, Nt_sequential_end, N_Global_tau
+    Real    (kind=Kind(0.d0)), intent(in) :: Delta_t_Langevin_HMC
 
     !Local 
     Integer :: nf, nf_eff, N_Type, NTAU1,n, m
@@ -157,7 +159,7 @@ Contains
 
 
 !--------------------------------------------------------------------    
-  SUBROUTINE WRAPGRDO(GR,NTAU,PHASE,Propose_S0,Nt_sequential_start, Nt_sequential_end, N_Global_tau)
+  SUBROUTINE WRAPGRDO(GR,NTAU,PHASE,Propose_S0,Propose_Langevin, Delta_t_Langevin_HMC,Nt_sequential_start, Nt_sequential_end, N_Global_tau)
 !--------------------------------------------------------------------
 !> @author 
 !> ALF-project
@@ -176,8 +178,9 @@ Contains
     COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT), allocatable :: GR(:,:,:)
     COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT) :: PHASE
     Integer, INTENT(IN) :: NTAU
-    LOGICAL, INTENT(IN) :: Propose_S0
+    LOGICAL, INTENT(IN) :: Propose_S0, Propose_Langevin
     INTEGER, INTENT(IN) :: Nt_sequential_start, Nt_sequential_end, N_Global_tau
+    real    (kind=kind(0.d0)), intent(in) :: Delta_t_Langevin_HMC
     
     ! Local
     Integer :: nf, nf_eff, N_Type, n, m

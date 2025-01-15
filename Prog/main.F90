@@ -81,6 +81,11 @@
 !>  If true, spin flips are proposed with probability exp(-S_0(C')). See documentation.
 !>  Default:  Propose_S0=.false.
 !> \endverbatim
+!> @param Propose_Langevin Logical
+!> \verbatim
+!>  If true, moves of continuous fields (type 3) are proposed according to Langevin equation.
+!>  Default:  Propose_Langevin=.false.
+!> \endverbatim
 !> @param Global_moves Logical
 !> \verbatim
 !>  If true, global moves will be carried out.
@@ -161,7 +166,7 @@ Program Main
         Complex (Kind=Kind(0.d0)) , allocatable, dimension(:,:) :: Initial_field
 
         ! Space for choosing sampling scheme
-        Logical :: Propose_S0, Tempering_calc_det
+        Logical :: Propose_S0, Tempering_calc_det, Propose_Langevin
         Logical :: Global_moves, Global_tau_moves
         Integer :: N_Global
         Integer :: Nt_sequential_start, Nt_sequential_end, mpi_per_parameter_set
@@ -187,7 +192,8 @@ Program Main
              &               Propose_S0,Global_moves,  N_Global, Global_tau_moves, &
              &               Nt_sequential_start, Nt_sequential_end, N_Global_tau, &
              &               sequential, Langevin, HMC, Delta_t_Langevin_HMC, &
-             &               Max_Force, Leapfrog_steps, N_HMC_sweeps, Amplitude
+             &               Max_Force, Leapfrog_steps, N_HMC_sweeps, Amplitude, &
+             &               Propose_Langevin
 
         NAMELIST /VAR_HAM_NAME/ ham_name
 
@@ -334,7 +340,7 @@ Program Main
 #endif
            ! This is a set of variables that  identical for each simulation.
            Nwrap=0;  NSweep=0; NBin=0; Ltau=0; LOBS_EN = 0;  LOBS_ST = 0;  CPU_MAX = 0.d0
-           Propose_S0 = .false. ;  Global_moves = .false. ; N_Global = 0
+           Propose_S0 = .false. ;  Global_moves = .false. ; N_Global = 0; Propose_Langevin = .false.
            Global_tau_moves = .false.; sequential = .true.; Langevin = .false. ; HMC =.false.
            Delta_t_Langevin_HMC = 0.d0;  Max_Force = 0.d0 ; Leapfrog_steps = 0; N_HMC_sweeps = 1
            Nt_sequential_start = 1 ;  Nt_sequential_end  = 0;  N_Global_tau  = 0;  Amplitude = 1.d0
@@ -358,6 +364,7 @@ Program Main
         CALL MPI_BCAST(LOBS_ST              ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(CPU_MAX              ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Propose_S0           ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(Propose_Langevin     ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Global_moves         ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(N_Global             ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Global_tau_moves     ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
@@ -623,6 +630,10 @@ Program Main
            Write(50,*) '# of interacting Ops per time slice : ', Size(OP_V,1)
            If ( Propose_S0 ) &
                 &  Write(50,*) 'Propose Ising moves according to  bare Ising action'
+           If ( Propose_Langevin ) then
+              Write(50,*) 'Propose continuous moves according to  Langevin equation'
+              Write(50,*) 'Langevin del_t: ', Delta_t_Langevin_HMC
+           Endif
            If ( Global_moves ) Then
               Write(50,*) 'Global moves are enabled   '
               Write(50,*) '# of global moves / sweep :', N_Global
@@ -844,7 +855,7 @@ Program Main
                  NST = 1
                  DO NTAU = 0, LTROT-1
                     NTAU1 = NTAU + 1
-                    CALL WRAPGRUP(GR,NTAU,PHASE,Propose_S0, Nt_sequential_start, Nt_sequential_end, N_Global_tau)
+                    CALL WRAPGRUP(GR,NTAU,PHASE,Propose_S0,Propose_Langevin, Delta_t_Langevin_HMC, Nt_sequential_start, Nt_sequential_end, N_Global_tau)
                     
                     If (NTAU1 == Stab_nt(NST) ) then
                        NT1 = Stab_nt(NST-1)
@@ -903,7 +914,7 @@ Program Main
                  NST = NSTM-1
                  DO NTAU = LTROT,1,-1
                     NTAU1 = NTAU - 1
-                    CALL WRAPGRDO(GR,NTAU, PHASE,Propose_S0,Nt_sequential_start, Nt_sequential_end, N_Global_tau)
+                    CALL WRAPGRDO(GR,NTAU, PHASE,Propose_S0,Propose_Langevin, Delta_t_Langevin_HMC,Nt_sequential_start, Nt_sequential_end, N_Global_tau)
                     IF (NTAU1.GE. LOBS_ST .AND. NTAU1.LE. LOBS_EN ) THEN
                        !write(*,*) "GR before obser sum: ",sum(GR(:,:,1))
                        !write(*,*) "Phase before obser : ",phase
