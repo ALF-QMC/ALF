@@ -103,10 +103,15 @@ Contains
     !Local 
     Integer :: nf, nf_eff, N_Type, NTAU1,n, m
     Complex (Kind=Kind(0.d0)) :: Prev_Ratiotot, HS_Field, HS_New
+    Complex (Kind=Kind(0.d0)) :: force_old, force_new, phase_st, nsigma_st
     Real    (Kind=Kind(0.d0)) :: T0_proposal,  T0_Proposal_ratio,  S0_ratio
+    real    (kind=kind(0.d0)), allocatable :: forces_0(:,:)
+    real    (kind=kind(0.d0)) :: pi = acos(-1.d0), force_0_old, force_0_new, weight
     Character (Len=64)        :: Mode
     Logical                   :: Acc, toggle1
-    
+
+    if (Propose_Langevin) allocate( forces_0(size(nsigma%f,1),size(nsigma%f,2)))
+
     ! Wrap up, upgrade ntau1.  with B^{1}(tau1) 
     NTAU1 = NTAU + 1
     Do nf_eff = 1,N_FL_eff
@@ -115,16 +120,35 @@ Contains
        CALL HOP_MOD_mmthl_m1(GR(:,:,nf), nf, ntau1 )
     Enddo
     Do n = Nt_sequential_start,Nt_sequential_end
+       if (Propose_Langevin .and. Op_V(n,1)%type == 3) then
+          Gr_st = Gr
+          nsigma_st = nsigma%f(n,ntau1)
+          phase_st = Phase
+       endif
        Do nf_eff = 1, N_FL_eff
           nf=Calc_Fl_map(nf_eff)
           HS_Field =  nsigma%f(n,ntau1) 
           N_type = 1
           Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),HS_Field,Ndim,N_Type,ntau1)
+          if (Propose_Langevin .and. Op_V(n,1)%type == 3) then
+             Gr_st(:,:,nf) = Gr(:,:,nf)
+             N_type =  2
+             Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),HS_Field,Ndim,N_Type,ntau1)
+          endif
        enddo
        nf = 1
        T0_proposal       = 1.5D0
        T0_Proposal_ratio = 1.D0
-       Hs_New =   nsigma%flip(n,ntau1) 
+       if (Propose_Langevin .and. Op_V(n,nf)%type == 3) then
+          force_old = calculate_force(n,ntau1,Gr)
+          Call ham%Ham_Langevin_HMC_S0( forces_0)
+          force_0_old = forces_0(n,ntau1)
+          HS_New =  nsigma%f(n,ntau1)  -  ( force_0_old +  &
+              &  real( Phase*force_old,kind(0.d0)) / Real(Phase,kind(0.d0)) ) * Delta_t_Langevin_HMC + &
+              &  sqrt( 2.d0 * Delta_t_Langevin_HMC) * rang_wrap()
+       else
+          Hs_New =   nsigma%flip(n,ntau1)
+       Endif
        S0_ratio          = ham%S0(n,ntau1, Hs_New )
        if ( Propose_S0 ) then
           If ( Op_V(n,nf)%type == 1)  then
@@ -133,20 +157,62 @@ Contains
           endif
        Endif
        If ( T0_proposal > ranf_wrap() ) Then
-          !Write(6,*) 'Hi', n, Op_V(n,nf)%type, T0_Proposal_ratio, S0_ratio  
-          mode = "Final"
-          Prev_Ratiotot = cmplx(1.d0,0.d0,kind(0.d0))
-          Call Upgrade2(GR,n,ntau1,PHASE,HS_new, Prev_Ratiotot, S0_ratio,T0_Proposal_ratio, Acc, mode ) 
+          if (Propose_Langevin .and. Op_V(n,1)%type == 3) then
+             mode = "Intermediate"
+             Prev_Ratiotot = cmplx(1.d0,0.d0,kind(0.d0))
+             Gr = Gr_st
+             Call Upgrade2(GR,n,ntau1,PHASE,HS_new, Prev_Ratiotot, S0_ratio,T0_Proposal_ratio, Acc, mode )
+             phase = Phase * Prev_Ratiotot/sqrt(Prev_Ratiotot*conjg(Prev_Ratiotot))
+
+             do nf_eff = 1,N_FL_eff
+                nf=Calc_Fl_map(nf_eff)
+                N_type =  2
+                Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),HS_Field,Ndim,N_Type,ntau1)
+             enddo
+
+             Call ham%Ham_Langevin_HMC_S0( forces_0)
+             force_0_new = forces_0(n,ntau1)
+             force_new = calculate_force(n,ntau1,GR)
+
+             t0_Proposal_ratio = exp(-0.25d0/Delta_t_Langevin_HMC * (Abs(nsigma_st - hs_new + &
+               & Delta_t_Langevin_HMC*(force_0_new +  real( Phase*force_new,kind(0.d0)) / Real(Phase,kind(0.d0))) )**2 -  &
+               & Abs(hs_new - nsigma_st + Delta_t_Langevin_HMC*(force_0_old + real( phase_st*force_old,kind(0.d0)) / Real(phase_st,kind(0.d0)))  )**2 ) )
+
+
+             weight = S0_ratio * T0_proposal_ratio * abs(  real(Phase_st * Prev_Ratiotot, kind=Kind(0.d0))/real(Phase_st,kind=Kind(0.d0)) )
+
+             if (weight > ranf_wrap()) then
+                acc = .true.
+             else
+                acc = .false.
+                nsigma%f(n,ntau1) = nsigma_st
+                Gr = Gr_st
+                phase = phase_st
+             endif
+
+             Call Control_upgrade(acc)
+             Call Control_upgrade_eff(acc)
+
+          else
+             !Write(6,*) 'Hi', n, Op_V(n,nf)%type, T0_Proposal_ratio, S0_ratio
+             mode = "Final"
+             Prev_Ratiotot = cmplx(1.d0,0.d0,kind(0.d0))
+             Call Upgrade2(GR,n,ntau1,PHASE,HS_new, Prev_Ratiotot, S0_ratio,T0_Proposal_ratio, Acc, mode )
+          endif
        else
           toggle1 = .false.
           Call Control_upgrade_eff(toggle1)
        Endif
-       do nf_eff = 1,N_FL_eff
-          nf=Calc_Fl_map(nf_eff)
-          N_type =  2
-          Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),HS_Field,Ndim,N_Type,ntau1)
-       enddo
+       if (.not. (Propose_Langevin .and. Op_V(n,1)%type == 3 .and. acc)) then
+          do nf_eff = 1,N_FL_eff
+             nf=Calc_Fl_map(nf_eff)
+             N_type =  2
+             Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),HS_Field,Ndim,N_Type,ntau1)
+          enddo
+       endif
     Enddo
+
+    if (Propose_Langevin)  deallocate(forces_0)
 
     If ( N_Global_tau > 0 ) then 
        m         = Nt_sequential_end
@@ -185,10 +251,15 @@ Contains
     ! Local
     Integer :: nf, nf_eff, N_Type, n, m
     Complex (Kind=Kind(0.d0)) :: Prev_Ratiotot, HS_Field, HS_New
+    Complex (Kind=Kind(0.d0)) :: force_old, force_new, phase_st, nsigma_st
     Real    (Kind=Kind(0.d0)) :: T0_proposal,  T0_Proposal_ratio,  S0_ratio
+    real    (kind=kind(0.d0)), allocatable :: forces_0(:,:)
+    complex (kind=kind(0.d0)), allocatable :: Gr_tmp(:,:,:)
+    real    (kind=kind(0.d0)) :: pi = acos(-1.d0), force_0_old, force_0_new, weight
     Character (Len=64)        :: Mode
     Logical                   :: Acc, toggle1
 
+    if (Propose_Langevin) allocate( forces_0(size(nsigma%f,1),size(nsigma%f,2)), gr_tmp(ndim,ndim,n_fl))
 
     If ( N_Global_tau > 0 ) then 
        m         = Size(OP_V,1)
@@ -199,6 +270,11 @@ Contains
 
     
     Do n =  Nt_sequential_end, Nt_sequential_start, -1
+       if (Propose_Langevin .and. Op_V(n,1)%type == 3) then
+          Gr_st = Gr
+          nsigma_st = nsigma%f(n,ntau)
+          phase_st = phase
+       endif
        N_type = 2
        nf = 1
        HS_Field = nsigma%f(n,ntau) 
@@ -210,7 +286,16 @@ Contains
        nf = 1
        T0_proposal       = 1.5D0
        T0_Proposal_ratio = 1.D0
-       HS_new            = nsigma%flip(n,ntau) 
+       if ( Propose_Langevin .and. Op_V(n,nf)%type == 3)  then
+          force_old = calculate_force(n,ntau,Gr_st)
+          Call ham%Ham_Langevin_HMC_S0( forces_0)
+          force_0_old = forces_0(n,ntau)
+          HS_New =  nsigma%f(n,ntau)  -  ( force_0_old +  &
+            &  real( Phase*force_old,kind(0.d0)) / Real(Phase,kind(0.d0)) ) * Delta_t_Langevin_HMC + &
+            &  sqrt( 2.d0 * Delta_t_Langevin_HMC) * rang_wrap()
+       else
+          HS_new            = nsigma%flip(n,ntau)
+       endif
        S0_ratio          = ham%S0(n,ntau,HS_new)
        if ( Propose_S0 ) then
           If ( Op_V(n,nf)%type == 1)  then
@@ -219,9 +304,49 @@ Contains
           endif
        Endif
        If ( T0_proposal > ranf_wrap() ) Then
-          mode = "Final"
-          Prev_Ratiotot = cmplx(1.d0,0.d0,kind(0.d0))
-          Call Upgrade2(GR,n,ntau,PHASE,HS_new, Prev_Ratiotot, S0_ratio,T0_Proposal_ratio, Acc, mode ) 
+          if (Propose_Langevin .and. Op_V(n,1)%type == 3) then
+             mode = "Intermediate"
+             Prev_Ratiotot = cmplx(1.d0,0.d0,kind(0.d0))
+             Gr_st = Gr
+             Call Upgrade2(GR,n,ntau,PHASE,HS_new, Prev_Ratiotot, S0_ratio,T0_Proposal_ratio, Acc, mode )
+             phase = Phase * Prev_Ratiotot/sqrt(Prev_Ratiotot*conjg(Prev_Ratiotot))
+
+             Gr_tmp = Gr
+             N_type = 2
+             do nf_eff = 1,N_FL_eff
+                nf=Calc_Fl_map(nf_eff)
+                Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),HS_Field,Ndim,N_Type,ntau)
+             enddo
+
+             Call ham%Ham_Langevin_HMC_S0( forces_0)
+             force_0_new = forces_0(n,ntau)
+             force_new = calculate_force(n,ntau,GR)
+
+             t0_Proposal_ratio = exp(-0.25d0/Delta_t_Langevin_HMC * (Abs(nsigma_st - hs_new + &
+                 & Delta_t_Langevin_HMC*(force_0_new +  real( Phase*force_new,kind(0.d0)) / Real(Phase,kind(0.d0))) )**2 -  &
+                 & Abs(hs_new - nsigma_st + Delta_t_Langevin_HMC*(force_0_old + real( phase_st*force_old,kind(0.d0)) / Real(phase_st,kind(0.d0)))  )**2 ) )
+
+             weight = S0_ratio * T0_proposal_ratio * abs(  real(Phase_st * Prev_Ratiotot, kind=Kind(0.d0))/real(Phase_st,kind=Kind(0.d0)) )
+
+             if (weight > ranf_wrap()) then
+                acc = .true.
+                N_type = 2
+                Gr = Gr_tmp
+             else
+                acc = .false.
+                nsigma%f(n,ntau) = nsigma_st
+                Gr = Gr_st
+                phase = phase_st
+             endif
+
+             Call Control_upgrade(acc)
+             Call Control_upgrade_eff(acc)
+
+          else
+             mode = "Final"
+             Prev_Ratiotot = cmplx(1.d0,0.d0,kind(0.d0))
+             Call Upgrade2(GR,n,ntau,PHASE,HS_new, Prev_Ratiotot, S0_ratio,T0_Proposal_ratio, Acc, mode )
+          endif
        else
           toggle1 = .false.
           Call Control_upgrade_eff(toggle1)
@@ -242,6 +367,8 @@ Contains
        Call Hop_mod_mmthl   (GR(:,:,nf), nf,ntau)
        Call Hop_mod_mmthr_m1(GR(:,:,nf), nf,ntau)
     enddo
+
+    if (Propose_Langevin)  deallocate(forces_0,gr_tmp)
     
   end SUBROUTINE WRAPGRDO
   

@@ -501,7 +501,7 @@ Program Main
         Call Hop_mod_init
 
         IF (ABS(CPU_MAX) > Zero ) NBIN = 10000000
-        If (N_Global_tau > 0) then
+        If (N_Global_tau > 0 .or. Propose_Langevin) then
            Call Wrapgr_alloc
         endif
         
@@ -604,6 +604,16 @@ Program Main
 
         if ( Sequential .and. Nt_sequential_end < Nt_sequential_start ) then
          write(output_unit,*) "Warning: Nt_sequential_end is smaller than Nt_sequential_start"
+        endif
+
+        if ( Propose_Langevin ) then
+         Do n = 1,N_op
+          if ( nsigma%t(n) /= 3 ) then
+           write(output_unit,*) "Warning: Propose_Langevin only works for type 3 fields."
+           write(output_unit,*) "Overwriting Propose_Langevin=.True. from parameter files for fields that are not type 3."
+           exit
+          endif
+         enddo
         endif
 
 #if defined(TEMPERING)
@@ -1041,7 +1051,7 @@ Program Main
         DEALLOCATE(udvl, udvr, udvst)
         DEALLOCATE(GR, TEST, Stab_nt,GR_Tilde)
         if (Projector) DEALLOCATE(WF_R, WF_L)
-        If (N_Global_tau > 0) then
+        If (N_Global_tau > 0 .or. Propose_Langevin) then
            Call Wrapgr_dealloc
         endif
         do nf = 1, N_FL
