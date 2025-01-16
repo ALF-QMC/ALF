@@ -1370,7 +1370,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       
       Complex (Kind=Kind(0.d0)), Allocatable  :: Bins(:,:), GRC(:,:,:), Uvec(:,:,:), GRC_H(:,:,:)
       Complex (Kind=Kind(0.d0)), Allocatable  :: ZMat(:,:), Zmat2(:,:)
-      Complex (Kind=Kind(0.d0)), pointer      :: wf_p_up(:,:), wf_p_dn(:,:)
+      Complex (Kind=Kind(0.d0)), pointer      :: wf_p(:,:)
       real    (Kind=Kind(0.d0)), Allocatable  :: Evec(:,:), Evec_tmp(:)
       complex    (Kind=Kind(0.d0)), Allocatable  :: z_evec_tmp(:)
       Real    (Kind=Kind(0.d0)) :: x_p(2), a1_p(2), a2_p(2), L1_p(2), L2_p(2)
@@ -1479,7 +1479,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       ! Allocate  space
       Allocate( Grc (Ndim,Ndim,n_fl), Uvec(ndim,ndim,n_fl), Zmat(ndim,ndim), Zmat2(ndim,ndim))
       Allocate( Grc_H(Ndim,Ndim,n_fl))
-      Allocate( wf_p_up(Ndim,n_part), wf_p_dn(ndim,n_part) )
+      Allocate( wf_p(Ndim,n_part) )
       Allocate( Evec(Ndim,n_fl), Evec_tmp(ndim))
       allocate( z_evec_tmp(ndim)  )
       
@@ -1524,33 +1524,20 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       !do i2=1,n_part
       !   ic2 = ndim-(i2-1) 
       !   do i1=1,ndim
-      !       wf_p_up(i1,i2)=uvec(i1,ic2,1)
-      !       wf_p_dn(i1,i2)=uvec(i1,ic2,2)
+      !       wf_p(i1,i2)=uvec(i1,ic2,1)
       !   enddo
       !enddo
       !!!enddo
 
-      !! spin up
+      !! nf=1 case
       nc=0
       nf=1
       do i2=1,ndim
           if ( evec(i2,nf) .gt. 0.5 ) then
             nc = nc + 1
             do i1=1,ndim
-                !wf_p_up(i1,nc)=uvec(i1,i2,nf)
-                wf_p_up(i1,nc)=conjg(uvec(i2,i1,nf))
-            enddo
-          endif
-      enddo
-      !! spin dn
-      nc=0
-      nf=2
-      do i2=1,ndim
-          if ( evec(i2,nf) .gt. 0.5 ) then
-            nc = nc + 1
-            do i1=1,ndim
-                !wf_p_dn(i1,nc)=uvec(i1,i2,nf)
-                wf_p_dn(i1,nc)=conjg(uvec(i2,i1,nf))
+                !wf_p(i1,nc)=uvec(i1,i2,nf)
+                wf_p(i1,nc)=conjg(uvec(i2,i1,nf))
             enddo
           endif
       enddo
@@ -1563,7 +1550,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
           CALL h5fcreate_f(filename, H5F_ACC_TRUNC_F, file_id, hdferr)
           
           !Create and write dataset for wave function
-          dset_name= "phi_trial_up"
+          dset_name= "phi_trial"
           rank = 3
           allocate( dims(3), dimsc(3) )
           dims  = [2,ndim,n_part]
@@ -1578,30 +1565,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
           !Create a dataset using cparms creation properties.
           CALL h5dcreate_f(file_id, dset_name, H5T_NATIVE_DOUBLE, space_id, &
                           dset_id, hdferr, crp_list )
-          dat_ptr = C_LOC(wf_p_up(1,1))
-          CALL h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
-          !Close objects
-          deallocate( dims, dimsc )
-          CALL h5sclose_f(space_id,  hdferr)
-          CALL h5pclose_f(crp_list,  hdferr)
-          CALL h5dclose_f( dset_id,  hdferr)
-          
-          dset_name= "phi_trial_dn"
-          rank = 3
-          allocate( dims(3), dimsc(3) )
-          dims  = [2,ndim,n_part]
-          dimsc = dims
-          CALL h5screate_simple_f(rank, dims, space_id, hdferr)
-          CALL h5pcreate_f(H5P_DATASET_CREATE_F, crp_list, hdferr)
-          CALL h5pset_chunk_f(crp_list, rank, dimsc, hdferr)
-#if defined HDF5_ZLIB
-             ! Set ZLIB / DEFLATE Compression using compression level HDF5_ZLIB
-          call h5pset_deflate_f(crp_list, HDF5_ZLIB, hdferr)
-#endif
-          !Create a dataset using cparms creation properties.
-          CALL h5dcreate_f(file_id, dset_name, H5T_NATIVE_DOUBLE, space_id, &
-                          dset_id, hdferr, crp_list )
-          dat_ptr = C_LOC(wf_p_dn(1,1))
+          dat_ptr = C_LOC(wf_p(1,1))
           CALL h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
           !Close objects
           deallocate( dims, dimsc )
@@ -1617,19 +1581,10 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
            CALL h5fopen_f (filename, H5F_ACC_RDWR_F, file_id, hdferr)
 
            !open and write real weight
-           dset_name= "phi_trial_up"
+           dset_name= "phi_trial"
            !Open the  dataset.
            CALL h5dopen_f(file_id, dset_name, dset_id, hdferr)
-           dat_ptr = C_LOC(wf_p_up(1,1))
-           !Write data
-           CALL H5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
-           !close objects
-           CALL h5dclose_f(dset_id,   hdferr)
-           
-           dset_name= "phi_trial_dn"
-           !Open the  dataset.
-           CALL h5dopen_f(file_id, dset_name, dset_id, hdferr)
-           dat_ptr = C_LOC(wf_p_dn(1,1))
+           dat_ptr = C_LOC(wf_p(1,1))
            !Write data
            CALL H5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
            !close objects
@@ -1639,18 +1594,14 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
            CALL h5fclose_f(file_id, hdferr)
       endif
       
-      write(File_out,'(A,A)') trim(name), "_eig_up.dat"
+      write(File_out,'(A,A)') trim(name), "_eig.dat"
       OPEN (UNIT=21, FILE=File_out, STATUS='unknown')
-      write(File_out,'(A,A)') trim(name), "_eig_dn.dat"
-      OPEN (UNIT=22, FILE=File_out, STATUS='unknown')
       do I = 1, ndim
          write(21, "(f26.17)") evec(I,1)
-         write(22, "(f26.17)") evec(I,2)
       enddo
       CLOSE(21)
-      CLOSE(22)
       
-      DEALLOCATE (Bins,phase, grc, uvec, zmat, zmat2, evec, evec_tmp, wf_p_up, wf_p_dn, grc_H)
+      DEALLOCATE (Bins,phase, grc, uvec, zmat, zmat2, evec, evec_tmp, wf_p, grc_H)
       
     END subroutine slatdet_ana
     

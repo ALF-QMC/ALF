@@ -30,14 +30,14 @@
 
        !#PARAMETERS START# VAR_lattice
        character(len=64) :: Model = "bose_metal"  ! Value not relevant
-       character(len=64) :: Lattice_type = "square_anisotropic"
+       character(len=64) :: Lattice_type = "bilayer_square"
        integer            :: L1 = 6   ! Length in direction a_1
        integer            :: L2 = 6   ! Length in direction a_2
        !#PARAMETERS END#
 
        !#PARAMETERS START# VAR_Model_Generic
        !Integer              :: N_SUN        = 1        ! Number of colors
-       !Integer              :: N_FL         = 2        ! Number of flavors
+       !Integer              :: N_FL         = 1        ! Number of flavors
        !Integer              :: N_slat       = 1        ! Number of slater on trial wave function
        !Integer              :: N_wlk        = 1        ! Number of walker
        !Integer              :: ltrot        = 10       ! length of imaginary time for dynamical measure
@@ -63,8 +63,11 @@
        type(Unit_cell), target :: Latt_unit
        type(Hopping_Matrix_type), allocatable :: Hopping_Matrix(:)
        integer, allocatable :: List(:, :), Invlist(:, :)  ! For orbital structure of Unit cell
-       Integer, allocatable :: rot_del_list(:,:,:), rot_list(:,:), del_list(:,:,:)
-       complex (Kind=Kind(0.d0)), allocatable :: ff_s(:,:,:)
+       Integer, allocatable :: rot_del_list(:,:), rot_list(:), del_list(:,:)
+       complex (Kind=Kind(0.d0)), allocatable :: ff_s(:,:)
+      
+       Type (Unit_cell), Target  :: Latt_unit_p  ! Unit cell for f  correlation functions
+       Integer, allocatable      :: List_p(:,:), Invlist_p(:,:)
 
     contains
 
@@ -189,15 +192,33 @@
           implicit none
           
           integer :: i, i1, no, a0, a1, a2, b0, b1, b2, k, k1, k2, ntype, j1
-          integer :: ix, iy, rix, riy, rdx, rdy, ndx, ndy, nsi, nx, ny
+          integer :: ix, iy, rix, riy, rdx, rdy, ndx, ndy, nsi, nx, ny, nc
           real    (kind=kind(0.d0)) :: pi = acos(-1.d0)
           
           ! Use predefined stuctures or set your own lattice.
           call Predefined_Latt(Lattice_type, L1, L2, Ndim, List, Invlist, Latt, Latt_Unit)
+          
+          !! pairing lattice
+          latt_unit_p%norb    = 1
+          latt_unit_p%n_coord = 2
+          Allocate (Latt_Unit_p%Orb_pos_p(1,3))
+          latt_unit_p%Orb_pos_p(1,:) =  0.d0
+          latt_unit_p%Orb_pos_p(1,3) = -1.d0
+          
+          allocate (list_p(latt%N*latt_unit_p%norb,2), invlist_p(latt%n,latt_unit_p%norb)) ! For measuring only on p-lattice
+          nc = 0
+          do I = 1,Latt%N
+             do no = 1,latt_unit_p%norb
+                 nc = nc + 1
+                 list_p(nc,1) = i
+                 list_p(nc,2) = no
+                 invlist_p(i,no) = invlist(i,no)
+             enddo
+          enddo
             
-          allocate(rot_del_list(latt%n,latt_unit%norb,4))
-          allocate(del_list    (latt%n,latt_unit%norb,4))
-          allocate(rot_list    (latt%n,latt_unit%norb  ))
+          allocate(rot_del_list(latt%n,4))
+          allocate(del_list    (latt%n,4))
+          allocate(rot_list    (latt%n  ))
 
           del_list=0
           rot_list=0
@@ -217,7 +238,7 @@
              do ny = 1, ndy;
                 nsi = latt%nnlist(nsi,0,a2)
              enddo
-             rot_list(i1,1) = nsi
+             rot_list(i1) = nsi
           enddo
           
           !! rotation + delta mapping
@@ -245,7 +266,7 @@
                 do ny = 1, ndy;
                    nsi = latt%nnlist(nsi,0,a2)
                 enddo
-                rot_del_list(j1,1,ntype) = nsi
+                rot_del_list(j1,ntype) = nsi
              enddo
           enddo
           
@@ -262,29 +283,29 @@
                 case(4)
                     i1 = latt%nnlist(j1, 0,-1)
                 end select
-                del_list(j1,1,ntype) = i1
+                del_list(j1,ntype) = i1
              enddo
           enddo
             
           !! d wave 1, px wave 2, py wave 3
-          allocate(ff_s(4,1,3))
+          allocate(ff_s(4,3))
           do ntype = 1, 3
               select case(ntype)
               case (1)
-                  ff_s(1,1,ntype) =  1.d0
-                  ff_s(2,1,ntype) =  1.d0
-                  ff_s(3,1,ntype) = -1.d0
-                  ff_s(4,1,ntype) = -1.d0
+                  ff_s(1,ntype) =  1.d0
+                  ff_s(2,ntype) =  1.d0
+                  ff_s(3,ntype) = -1.d0
+                  ff_s(4,ntype) = -1.d0
               case (2)
-                  ff_s(1,1,ntype) =  1.d0
-                  ff_s(2,1,ntype) = -1.d0
-                  ff_s(3,1,ntype) =  0.d0
-                  ff_s(4,1,ntype) =  0.d0
+                  ff_s(1,ntype) =  1.d0
+                  ff_s(2,ntype) = -1.d0
+                  ff_s(3,ntype) =  0.d0
+                  ff_s(4,ntype) =  0.d0
               case (3)
-                  ff_s(1,1,ntype) =  0.d0
-                  ff_s(2,1,ntype) =  0.d0
-                  ff_s(3,1,ntype) =  1.d0
-                  ff_s(4,1,ntype) = -1.d0
+                  ff_s(1,ntype) =  0.d0
+                  ff_s(2,ntype) =  0.d0
+                  ff_s(3,ntype) =  1.d0
+                  ff_s(4,ntype) = -1.d0
               end select
           enddo
 
@@ -303,14 +324,14 @@
           real(Kind=kind(0.d0)) ::  Ham_Lambda = 0.d0
 
           real(Kind=kind(0.d0)), allocatable :: Ham_tx_vec(:), Ham_Chem_vec(:), Phi_X_vec(:), Phi_Y_vec(:),&
-               &                                Ham_ty_vec(:), Ham_Lambda_vec(:)
+               &                                Ham_ty_vec(:), ham_tp_vec(:), Ham_Lambda_vec(:)
           integer, allocatable ::   N_Phi_vec(:)
 
           ! Use predefined stuctures or set your own hopping
           integer :: n, nth
 
           allocate (ham_tx_vec(N_FL), ham_ty_vec(N_FL), Ham_Chem_vec(N_FL), Phi_X_vec(N_FL), Phi_Y_vec(N_FL),&
-               &    N_Phi_vec(N_FL), Ham_Lambda_vec(N_FL))
+               &    N_Phi_vec(N_FL), Ham_Lambda_vec(N_FL), ham_tp_vec(n_fl))
 
           ! Here we consider no N_FL  dependence of the hopping parameters.
           Ham_tx_vec = ham_t
@@ -321,19 +342,18 @@
           N_Phi_vec = n_phi
 
           ham_tx_vec(1) = ham_t;
-          ham_tx_vec(2) = ham_t*ham_alpha;
           ham_ty_vec(1) = ham_t*ham_alpha;
-          ham_ty_vec(2) = ham_t;
+          ham_tp_vec(1) = 0.d0
 
           select case (Lattice_type)
           case ("square_anisotropic")
-            call set_hopping_parameters_square_anisotropic(Hopping_Matrix, ham_tx_vec, ham_ty_vec, Ham_Chem_vec, &
+            call set_hopping_parameters_bilayer_square(Hopping_Matrix, ham_tx_vec, ham_ty_vec, ham_tp_vec, Ham_Chem_vec, &
                    & Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
           end select
 
           call Predefined_Hoppings_set_OPT(Hopping_Matrix, List, Invlist, Latt, Latt_unit, Dtau, Checkerboard, Symm, OP_T)
 
-          deallocate (ham_tx_vec, ham_ty_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, N_Phi_vec)
+          deallocate (ham_tx_vec, ham_ty_vec, ham_tp_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, N_Phi_vec)
 
        end subroutine Ham_Hop
 !--------------------------------------------------------------------
@@ -343,7 +363,7 @@
 !> @brief
 !> Sets the trial wave function
 !--------------------------------------------------------------------
-       subroutine Ham_Trial()
+       subroutine Ham_Trial
 
           use Predefined_Trial
 
@@ -373,27 +393,26 @@
           real(Kind=kind(0.d0)) :: X, zero = 1.d-10
 
           N_ops = 0
-          if (abs(ham_u) > zero) N_ops = N_ops + Latt%N*Latt_unit%Norb
+          if (abs(ham_u) > zero) N_ops = N_ops + Latt%N
 
           allocate (op_v(n_ops, n_fl))
-          nc = 0
-          do i1 = 1, latt%N
-             do no = 1, latt_unit%norb
-                i = invlist(i1, no)
-                if (abs(ham_u) > zero) then
-                   nc = nc + 1
-                   do nf = 1, n_fl
-                       call op_make( op_v(nc,nf), 1 )
-                       op_v(nc,nf)%p(1) = I
-                       op_v(nc,nf)%o(1,1) = cmplx(1.d0, 0.d0, kind(0.D0)) 
-                       op_V(nc,nf)%g      = sqrt(cmplx(dtau*ham_u/2.d0, 0.D0, kind(0.D0)))
-                       op_v(nc,nf)%alpha  = cmplx(-0.5d0, 0.d0, kind(0.D0))
-                       op_v(nc,nf)%type   = 2
-                       call op_set(op_v(nc,nf))
-                   enddo
-                end if
+          if (abs(ham_u) > zero) then
+             nc = 0
+             do i1 = 1, latt%N
+                 nc = nc + 1
+                 i = invlist(i1, 1)
+                 j = invlist(i1, 2)
+                 call op_make(op_v(nc,nf),2)
+                 op_v(nc,nf)%p(1) = I
+                 op_v(nc,nf)%p(2) = J
+                 op_v(nc,nf)%o(1,2) = cmplx( 1.d0, 0.d0, kind(0.D0)) 
+                 op_v(nc,nf)%o(2,1) = cmplx(-1.d0, 0.d0, kind(0.D0)) 
+                 op_V(nc,nf)%g      = sqrt(cmplx(dtau*ham_u/2.d0, 0.D0, kind(0.D0)))
+                 op_v(nc,nf)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
+                 op_v(nc,nf)%type   = 2
+                 call op_set(op_v(nc,nf))
              end do
-          end do
+          end if
 
        end subroutine Ham_V
 
@@ -415,8 +434,8 @@
           character(len=:), allocatable ::  Channel
 
           ! Scalar observables
-          allocate (Obs_scal(6))
-          do I = 1, size(Obs_scal, 1)
+          allocate (obs_scal(6))
+          do I = 1, size(obs_scal, 1)
              select case (I)
              case (1)
                 N = 1; Filename = "Kin"
@@ -433,19 +452,19 @@
              case default
                 write (6, *) ' Error in Alloc_obs '
              end select
-             call obser_Vec_make(Obs_scal(I), N, Filename)
+             call obser_Vec_make(obs_scal(I), N, Filename)
           end do
 
           ! Equal time correlators
-          allocate (Obs_eq(8))
-          do I = 1, size(Obs_eq, 1)
+          allocate (obs_eq(8))
+          do I = 1, size(obs_eq, 1)
              select case (I)
              case (1)
                 Filename = "Green"
              case (2)
-                Filename = "SpinZ"
-             case (3)
                 Filename = "Den"
+             case (3)
+                Filename = "SpinZ"
              case (4)
                 Filename = "swave"
              case (5)
@@ -461,28 +480,26 @@
              end select
              Nt = 1
              Channel = '--'
-             call obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
+             if ( I .ge. 3 ) then
+                call obser_Latt_make(obs_eq(I), nt, Filename, Latt, Latt_unit_p, Channel, dtau)
+             else
+                call obser_Latt_make(obs_eq(I), nt, Filename, Latt, Latt_unit  , Channel, dtau)
+             endif
           end do
 
           if (Ltau == 1) then
              ! Time-displaced correlators
-             allocate (Obs_tau(4))
-             do I = 1, size(Obs_tau, 1)
+             allocate (obs_tau(1))
+             do I = 1, size(obs_tau, 1)
                 select case (I)
                 case (1)
                    Channel = 'P'; Filename = "Green"
-                case (2)
-                   Channel = 'PH'; Filename = "SpinZ"
-                case (3)
-                   Channel = 'PH'; Filename = "Den"
-                case (4)
-                   Channel = 'PH'; Filename = "swave"
                 case default
                    write (6, *) ' Error in Alloc_obs '
                 end select
-                Nt = Ltrot + 1
-                Channel = 'T0'
-                call obser_Latt_make(Obs_tau(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
+                nt = ltrot + 1
+                channel = 'T0'
+                call obser_Latt_make(obs_tau(I), nt, Filename, Latt, Latt_unit_p, Channel, dtau)
              end do
           end if
 
@@ -522,7 +539,8 @@
           complex(Kind=kind(0.d0)) :: grc(Ndim, Ndim, N_FL), ZK, zone, ztmp, z_ol, zero, ztmp1, ztmp2, ztmp3, ztmp4
           complex(Kind=kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP, ZS, ZZ, ZXY, zback, zw, z_fac, z1j, cpair(4)
           integer :: I, J, k, l, m, n, imj, nf, dec, i1, ipx, ipy, imx, imy, j1, jpx, jpy, jmx, jmy, no_I, no_J, nc
-          integer :: idl(4), jdl(4), irdl(4), jrdl(4), rsi, rsj, k1, k2
+          integer :: i2, j2, idelta_1, jdelta_1, idelta_2, jdelta_2
+          integer :: idl(4), jdl(4), irdl(4), jrdl(4), rsi, rsj, k1, k2, rsi1, rsi2, rsj1, rsj2
           real(Kind=kind(0.d0)) :: X
 
           Z_ol = exp(overlap(i_grc))/sum_o
@@ -544,89 +562,107 @@
           Zkin = Zkin*dble(N_SUN)
           Obs_scal(1)%Obs_vec(1) = Obs_scal(1)%Obs_vec(1) + Zkin*Z_fac
 
-          ZPot = cmplx(0.d0, 0.d0, kind(0.d0))
+          zpot = cmplx(0.d0, 0.d0, kind(0.d0))
           do I = 1, Latt%N
-             do no_I = 1, Latt_unit%Norb
-                I1 = Invlist(I, no_I)
-                ZPot = ZPot - Grc(i1, i1, 1)*Grc(i1, i1, 2)*ham_U
+             i1 = Invlist(i,1)
+             i2 = Invlist(i,2)
+             zpot = zpot + 2.d0*( grc(i1,i1,1)*grc(i2,i2,1) + grc(i1,i2,1)*gr(i1,i2,1) ) - &
+                 & grc(i1,i1,1) - grc(i2,i2,1) + 1.d0
+          end do
+          zpot = zpot*(-ham_u/2.d0)
+          obs_scal(2)%Obs_vec(1) = obs_scal(2)%obs_vec(1) + zpot*z_fac
+
+          zrho = cmplx(0.d0, 0.d0, kind(0.d0))
+          do nf = 1, n_fl
+             do I = 1, ndim
+                zrho = zrho + grc(i, i, nf)
              end do
           end do
-          Obs_scal(2)%Obs_vec(1) = Obs_scal(2)%Obs_vec(1) + Zpot*Z_fac
+          zrho = zrho*dble(N_SUN)
+          obs_scal(3)%obs_vec(1) = obs_scal(3)%obs_vec(1) + zrho*z_fac
 
-          Zrho = cmplx(0.d0, 0.d0, kind(0.d0))
-          do nf = 1, N_FL
-             do I = 1, Ndim
-                Zrho = Zrho + Grc(i, i, nf)
-             end do
-          end do
-          Zrho = Zrho*dble(N_SUN)
-          Obs_scal(3)%Obs_vec(1) = Obs_scal(3)%Obs_vec(1) + Zrho*Z_fac
-
-          Obs_scal(4)%Obs_vec(1) = Obs_scal(4)%Obs_vec(1) + (Zkin + Zpot)*Z_fac
+          obs_scal(4)%obs_vec(1) = obs_scal(4)%obs_vec(1) + (zkin + zpot)*z_fac
 
           nc = 0
-          do nf = 1, N_FL
-             do I = 1, Ndim
-             do J = 1, Ndim
+          do nf = 1, n_fl
+             do I = 1, ndim
+             do J = 1, ndim
                 nc = nc + 1
                 ztmp = grc(i, j, nf)
-                Obs_scal(5)%Obs_vec(nc) = Obs_scal(5)%Obs_vec(nc) + ztmp*Z_fac
+                obs_scal(5)%obs_vec(nc) = obs_scal(5)%obs_vec(nc) + ztmp*z_fac
              end do
              end do
           end do
 
           nc = 0
-          do nf = 1, N_FL
-             do I = 1, Ndim
-             do J = 1, Ndim
+          do nf = 1, n_fl
+             do I = 1, ndim
+             do J = 1, ndim
                 nc = nc + 1
                 zone = cmplx(0.d0, 0.d0, kind(0.d0))
                 if (I .eq. J) zone = cmplx(1.d0, 0.d0, kind(0.d0))
-                Ztmp = zone - GR_mix(J, I, nf)
-                Obs_scal(6)%Obs_vec(nc) = Obs_scal(6)%Obs_vec(nc) + ztmp*Z_fac
+                ztmp = zone - gr_mix(J, I, nf)
+                obs_scal(6)%obs_vec(nc) = obs_scal(6)%obs_vec(nc) + ztmp*z_fac
              end do
              end do
           end do
 
           ! Standard two-point correlations
           z1j = cmplx(0.d0,1.d0,kind(0.d0))
-          do i1 = 1, ndim
-              i    = list(i1,1)
-              no_i = list(i1,2)
+          do i = 1, latt%n
 
-              rsi = rot_list(i,no_i)
-              idl(:) = del_list(i,no_i,:) 
-              irdl(:) = rot_del_list(i,no_i,:) 
+              rsi = rot_list(i)
+              idl(:) = del_list(i,:) 
+              irdl(:) = rot_del_list(i,:) 
 
-              do j1 = 1, ndim
-                  j    = list(j1,1)
-                  no_j = list(j1,2)
+              do j = 1, latt%n
               
-                  rsj = rot_list(j,no_j)
-                  jdl(:) = del_list(j,no_j,:) 
-                  jrdl(:) = rot_del_list(j,no_j,:) 
+                  rsj = rot_list(j)
+                  jdl(:) = del_list(j,:) 
+                  jrdl(:) = rot_del_list(j,:) 
 
                   imj  = latt%imj(i, j)
-                  ztmp = grc(i1,j1,1) + grc(i1,j1,2)
-                  obs_eq(1)%obs_Latt(imj,1,no_i,no_j) = obs_eq(1)%obs_latt(imj,1,no_i,no_j) + ztmp*z_fac
-
-                  ztmp = grc(i1,j1,1)*gr(i1,j1,1) + grc(i1,j1,2)*gr(i1,j1,2) + &
-                      & (grc(i1,i1,1) - grc(i1,i1,2))*(grc(j1,j1,1) - grc(j1,j1,2))
-                  obs_eq(2)%obs_Latt(imj,1,no_i,no_j) = obs_eq(2)%obs_latt(imj,1,no_i,no_j) + ztmp*z_fac
                   
-                  ztmp = grc(i1,j1,1)*gr(i1,j1,1) + grc(i1,j1,2)*gr(i1,j1,2) + &
-                      & (grc(i1,i1,2) + grc(i1,i1,1))*(grc(j1,j1,2) + grc(j1,j1,1))
-                  obs_eq(3)%obs_Latt(imj,1,no_i,no_j) = obs_eq(3)%obs_latt(imj,1,no_i,no_j) + ztmp*z_fac
+                  do k = 1, 4
+                     no_i = (k-1)/2
+                     no_j = k-no_i*2
+                     no_i = no_i + 1
+              
+                     i1 = invlist(i,no_i)
+                     j1 = invlist(j,no_j)
+                  
+                     !! Green
+                     ztmp = grc(i1,j1,1)
+                     obs_eq(1)%obs_Latt(imj,1,no_i,no_j) = obs_eq(1)%obs_latt(imj,1,no_i,no_j) + ztmp*z_fac
+                     
+                     !! Den
+                     ztmp = grc(i1,j1,1)*gr(i1,j1,1) + grc(i1,i1,1)*grc(j1,j1,1)
+                     obs_eq(2)%obs_Latt(imj,1,no_i,no_j) = obs_eq(2)%obs_latt(imj,1,no_i,no_j) + ztmp*z_fac
+                  enddo
+
+                  !! SpinZ
+                  i1 = invlist(i,1); j1 = invlist(j,1) !! spin up
+                  i2 = invlist(i,2); j2 = invlist(j,2) !! spin dn
+
+                  ztmp =   grc(i1,j1,1)*gr(i1,j1,1) + grc(i1,i1,1)*grc(j1,j1,1) &
+                      &  + grc(i2,j2,1)*gr(i2,j2,1) + grc(i2,i2,1)*grc(j2,j2,1) &
+                      &  - grc(i1,j2,1)*gr(i1,j2,1) - grc(i1,i1,1)*grc(j2,j2,1) &
+                      &  - grc(i2,j1,1)*gr(i2,j1,1) - grc(i2,i2,1)*grc(j1,j1,1)
+                  obs_eq(2)%obs_Latt(imj,1,1,1) = obs_eq(2)%obs_latt(imj,1,1,1) + ztmp*z_fac
                   
                   !! s wave
-                  ztmp = grc(i1,j1,1)*grc(i1,j1,2)
-                  obs_eq(4)%obs_Latt(imj,1,no_i,no_j) = obs_eq(4)%obs_latt(imj,1,no_i,no_j) + ztmp*z_fac
+                  ztmp = grc(i1,j1,1)*grc(i2,j2,1) - grc(i1,j2,1)*grc(i2,j1,1)
+                  obs_eq(4)%obs_Latt(imj,1,1,1) = obs_eq(4)%obs_latt(imj,1,1,1) + ztmp*z_fac
                   
                   cpair(:) = cmplx(0.d0,0.d0,kind(0.d0))
 
                   !! sfflo
-                  cpair(1) = cpair(1) + grc(i1,j1,1)*grc(rsi,rsj,2) + grc(i1,j1,2)*grc(rsi,rsj,1) &
-                      &               + grc(i1,rsj,1)*grc(rsi,j1,2) + grc(i1,rsj,2)*grc(rsi,j1,1)
+                  rsi1 = invlist(rsi,1); rsj1 = invlist(rsj,1) !! spin up
+                  rsi2 = invlist(rsi,2); rsj2 = invlist(rsj,2) !! spin dn
+                  cpair(1) = cpair(1) + grc(i1,j1,1)*grc(rsi2,rsj2,1) - grc(i1,rsj2,1)*grc(rsi2,j1,1) &
+                      &               + grc(i2,j2,1)*grc(rsi1,rsj1,1) - grc(i2,rsj1,1)*grc(rsi1,j2,1) &
+                      &               - grc(i1,j2,1)*grc(rsi2,rsj1,1) + grc(i1,rsj1,1)*grc(rsi2,j2,1) &
+                      &               - grc(i2,j1,1)*grc(rsi1,rsj2,1) + grc(i2,rsj2,1)*grc(rsi1,j1,1)
 
                   !! 4x4 nn bonds
                   do k = 1, 16
@@ -635,17 +671,32 @@
                      k1 = k-k2*4
                      k2 = k2 + 1
 
-                     cpair(2) = cpair(2) + 0.25d0*ff_s(k1,no_i,1)*conjg(ff_s(k2,no_j,1))* &
-                         & (   grc(i1,j1,1)*grc(irdl(k1),jrdl(k2),2) + grc(i1,j1,2)*grc(irdl(k1),jrdl(k2),1) &
-                         &   + grc(i1,jrdl(k2),1)*grc(irdl(k1),j1,2) + grc(i1,jrdl(k2),2)*grc(irdl(k1),j1,1) )
+                     !! d fflo
+                     idelta_1 = invlist(irdl(k1),1); jdelta_1 = invlist(jrdl(k2),1) !! spin up
+                     idelta_2 = invlist(irdl(k1),2); jdelta_2 = invlist(jrdl(k2),2) !! spin dn
 
-                     cpair(3) = cpair(3) + 0.25d0*ff_s(k1,no_i,2)*conjg(ff_s(k2,no_j,2))* &
-                         & (   grc(i1,j1,1)*grc(idl(k1),jdl(k2),1) + grc(i1,j1,2)*grc(idl(k1),jdl(k2),2) &
-                         &   - grc(i1,jdl(k2),1)*grc(idl(k1),j1,1) - grc(i1,jdl(k2),2)*grc(idl(k1),j1,2) )
+                     cpair(2) = cpair(2) + 0.25d0*ff_s(k1,1)*conjg(ff_s(k2,1))* &
+                         & (   grc(i1,j1,1)*grc(idelta_2,jdelta_2,1) + grc(i2,j2,1)*grc(idelta_1,jdelta_1,1) &
+                         &   - grc(i1,jdelta_2,1)*grc(idelta_2,j1,1) - grc(i2,jdelta_2,1)*grc(idelta_1,j2,1) &
+                         &   - grc(i1,j2,1)*grc(idelta_2,jdelta_1,1) - grc(i2,j1,1)*grc(idelta_1,jdelta_2,1) &
+                         &   + grc(i1,jdelta_1,1)*grc(idelta_2,j2,1) + grc(i2,jdelta_2,1)*grc(idelta_1,j1,1) )
+
+                     !! px wave
+                     idelta_1 = invlist(idl(k1),1); jdelta_1 = invlist(jdl(k2),1) !! spin up
+                     idelta_2 = invlist(idl(k1),2); jdelta_2 = invlist(jdl(k2),2) !! spin dn
                      
-                     cpair(4) = cpair(4) + 0.25d0*ff_s(k1,no_i,3)*conjg(ff_s(k2,no_j,3))* &
-                         & (   grc(i1,j1,1)*grc(idl(k1),jdl(k2),1) + grc(i1,j1,2)*grc(idl(k1),jdl(k2),2) &
-                         &   - grc(i1,jdl(k2),1)*grc(idl(k1),j1,1) - grc(i1,jdl(k2),2)*grc(idl(k1),j1,2) )
+                     cpair(3) = cpair(3) + 0.25d0*ff_s(k1,2)*conjg(ff_s(k2,2))* &
+                         & (   grc(i1,j2,1)*grc(idelta_1,jdelta_2,1) - grc(i1,jdelta_2,1)*grc(idelta_1,j2,1) &
+                         &   + grc(i2,j1,1)*grc(idelta_2,jdelta_1,1) - grc(i2,jdelta_1,1)*grc(idelta_2,j1,1) &
+                         &   + grc(i1,j1,1)*grc(idelta_1,jdelta_1,1) + grc(i2,j2,1)*grc(idelta_2,jdelta_2,1) &
+                         &   - grc(i1,jdelta_1,1)*grc(idelta_1,j1,1) - grc(i2,jdelta_2,1)*grc(idelta_2,j2,1) )
+                     
+                     !! py wave
+                     cpair(4) = cpair(4) + 0.25d0*ff_s(k1,3)*conjg(ff_s(k2,3))* &
+                         & (   grc(i1,j2,1)*grc(idelta_1,jdelta_2,1) - grc(i1,jdelta_2,1)*grc(idelta_1,j2,1) &
+                         &   + grc(i2,j1,1)*grc(idelta_2,jdelta_1,1) - grc(i2,jdelta_1,1)*grc(idelta_2,j1,1) &
+                         &   + grc(i1,j1,1)*grc(idelta_1,jdelta_1,1) + grc(i2,j2,1)*grc(idelta_2,jdelta_2,1) &
+                         &   - grc(i1,jdelta_1,1)*grc(idelta_1,j1,1) - grc(i2,jdelta_2,1)*grc(idelta_2,j2,1) )
 
                   enddo
                   obs_eq(5)%obs_Latt(imj,1,no_i,no_j) = obs_eq(5)%obs_latt(imj,1,no_i,no_j) + cpair(1)*z_fac
@@ -654,10 +705,11 @@
                   obs_eq(8)%obs_Latt(imj,1,no_i,no_j) = obs_eq(8)%obs_latt(imj,1,no_i,no_j) + cpair(4)*z_fac
                   
               end do
-              zback = grc(i1, i1, 2) - grc(i1, i1, 1)
-              obs_eq(2)%obs_latt0(no_i) = obs_eq(2)%obs_Latt0(no_i) + zback*z_fac
-              zback = grc(i1,i1,1) + grc(i1,i1,2) 
-              obs_eq(3)%obs_latt0(no_i) = obs_eq(3)%obs_Latt0(no_i) + zback*z_fac
+              do no_i = 1, latt_unit%norb
+                  i1 = invlist(i,no_i)
+                  zback = grc(i1,i1,1)
+                  obs_eq(2)%obs_latt0(no_i) = obs_eq(2)%obs_Latt0(no_i) + zback*z_fac
+              enddo
           end do
 
        end subroutine obser
@@ -708,33 +760,27 @@
           zone = cmplx(1.d0, 0.d0, kind(0.d0))
 
           ! Standard two-point correlations
-          do i1 = 1, ndim
-              i    = list(i1,1)
-              no_i = list(i1,2)
+          do i = 1, latt%n
 
-              do j1 = 1, ndim
-                  j    = list(j1,1)
-                  no_j = list(j1,2)
+              do j = 1, latt%n
 
                   imj  = latt%imj(i, j)
-                  z = gt0(i1,j1,1) + gt0(i1,j1,2)
-                  obs_tau(1)%obs_Latt(imj,nt+1,no_i,no_j) = obs_tau(1)%obs_latt(imj,nt+1,no_i,no_j) + z*z_fac
+                  
+                  do k = 1, 4
+                     no_i = (k-1)/2
+                     no_j = k-no_i*2
+                     no_i = no_i + 1
+              
+                     i1 = invlist(i,no_i)
+                     j1 = invlist(j,no_j)
+                  
+                     !! Green
+                     z = gt0(i1,j1,1)
+                     obs_tau(1)%obs_Latt(imj,nt+1,no_i,no_j) = obs_tau(1)%obs_latt(imj,nt+1,no_i,no_j) + z*z_fac
 
-                  z = -g0t(j1,i1,1)*gt0(i1,j1,1) - g0t(j1,i1,2)*gt0(i1,j1,2) + &
-                      & (gtt(i1,i1,1) - gtt(i1,i1,2))*(g00(j1,j1,1) - g00(j1,j1,2))
-                  obs_tau(2)%obs_Latt(imj,nt+1,no_i,no_j) = obs_tau(2)%obs_latt(imj,nt+1,no_i,no_j) + z*z_fac
-                  
-                  z = -g0t(j1,i1,1)*gt0(i1,j1,1) - g0t(j1,i1,2)*gt0(i1,j1,2) + &
-                      & (zone-gtt(i1,i1,1)+zone-gtt(i1,i1,2))*(zone-gtt(j1,j1,2)+zone-gtt(j1,j1,1))
-                  obs_tau(3)%obs_Latt(imj,nt+1,no_i,no_j) = obs_tau(3)%obs_latt(imj,nt+1,no_i,no_j) + z*z_fac
-                  
-                  z = g0t(j1,i1,1)*g0t(j1,i1,2)! + gt0(i1,j1,1)*gt0(i1,j1,2)
-                  obs_tau(4)%obs_Latt(imj,nt+1,no_i,no_j) = obs_tau(4)%obs_latt(imj,nt+1,no_i,no_j) + z*z_fac
+                  enddo
+
               end do
-              zback = gtt(i1, i1, 2) - gtt(i1, i1, 1)
-              obs_tau(2)%obs_latt0(no_i) = obs_tau(2)%obs_Latt0(no_i) + zback*z_fac
-              zback = zone - gtt(i1,i1,1) + zone - gtt(i1,i1,2) 
-              obs_tau(3)%obs_latt0(no_i) = obs_tau(3)%obs_Latt0(no_i) + zback*z_fac
           end do
 
        end subroutine obsert
@@ -750,7 +796,7 @@
           !Local
           complex(Kind=kind(0.d0)) :: grc(ndim, ndim, n_fl), ZK
           complex(Kind=kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP, ZS, ZZ, ZXY
-          integer :: I, J, imj, nf, dec, I1, J1, no_I, no_J, n
+          integer :: I, J, imj, nf, dec, I1, J1, i2, no_I, no_J, n
           real(Kind=kind(0.d0)) :: X
 
           do nf = 1, N_FL
@@ -768,11 +814,10 @@
 
           ZPot = cmplx(0.d0, 0.d0, kind(0.d0))
           do I = 1, Latt%N
-             do no_I = 1, Latt_unit%Norb
-                I1 = Invlist(I, no_I)
-                ZPot = ZPot + 2.d0*Grc(i1, i1, 1)*Grc(i1, i1, 2) - &
-                    & Grc(i1, i1, 1) - Grc(i1, i1, 2) + 1.d0
-             end do
+             i1 = Invlist(i,1)
+             i2 = Invlist(i,2)
+             zpot = zpot + 2.d0*( grc(i1,i1,1)*grc(i2,i2,1) + grc(i1,i2,1)*gr(i1,i2,1) ) - &
+                 & grc(i1,i1,1) - grc(i2,i2,1)! + 1.d0
           end do
           zpot = zpot*(-ham_u/2.d0)
 
