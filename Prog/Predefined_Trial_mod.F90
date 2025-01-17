@@ -128,7 +128,7 @@ contains
       real(Kind=kind(0.d0))  :: A1_p(2), A2_p(2), L1_p(2), L2_p(2), x_p(2), x1_p(2), hop(3), del_p(2)
       real(Kind=kind(0.d0))  :: delta = 0.01, ham_tx, ham_ty, Ham_T1, Ham_T2, Ham_Tperp
 
-      integer :: N, nf, I, I1, I2, nc, nc1, IK_u, I_u, J1, lp, J, k, k1, N_Phi, no
+      integer :: N, nf, I, I1, I2, nc, nc1, IK_u, I_u, J1, lp, J, k, k1, N_Phi, no, j2, k2
       logical :: Test = .false., Bulk = .true.
       complex(Kind=kind(0.d0)) :: Z_norm
 
@@ -168,6 +168,49 @@ contains
       Ham_Chem_vec = Ham_Chem
 
       select case (Lattice_type)
+      
+      case ('bilayer_square')
+           allocate(op_tmp(1,n_fl))
+           do n = 1,n_fl
+              call op_make(op_tmp(1,n),ndim)
+              do i = 1,ndim
+                 op_tmp(1,n)%P(i) = i
+              enddo
+              op_tmp(1,n)%g    = cmplx(1.d0,0.d0,kind(0.d0))
+              op_tmp(1,n)%alpha= cmplx(0.d0,0.d0,kind(0.D0))
+           enddo
+
+           do i = 1,latt%n
+              delta = 0.005d0*ranf_wrap()
+              ham_t = 1.d0+delta
+
+              i1 = invlist(i,1)
+              j1 = invlist(latt%nnlist(i,1,0),1)
+              k1 = invlist(latt%nnlist(i,0,1),1)
+              
+              i2 = invlist(i,2)
+              j2 = invlist(latt%nnlist(i,1,0),2)
+              k2 = invlist(latt%nnlist(i,0,1),2)
+              
+              ham_tx_vec(1) = ham_t;
+              ham_ty_vec(1) = ham_t*alpha;
+              
+              do n = 1, n_fl
+                 op_tmp(1,n)%o(i1,j1) = cmplx(-ham_tx_vec(n),0.d0, kind(0.D0))
+                 op_tmp(1,n)%o(j1,i1) = cmplx(-ham_tx_vec(n),0.d0, kind(0.D0))
+                 op_tmp(1,n)%o(i1,k1) = cmplx(-ham_ty_vec(n),0.d0, kind(0.D0))
+                 op_tmp(1,n)%o(k1,i1) = cmplx(-ham_ty_vec(n),0.d0, kind(0.D0))
+                 
+                 op_tmp(1,n)%o(i2,j2) = cmplx(-ham_ty_vec(n),0.d0, kind(0.D0))
+                 op_tmp(1,n)%o(j2,i2) = cmplx(-ham_ty_vec(n),0.d0, kind(0.D0))
+                 op_tmp(1,n)%o(i2,k2) = cmplx(-ham_tx_vec(n),0.d0, kind(0.D0))
+                 op_tmp(1,n)%o(k2,i2) = cmplx(-ham_tx_vec(n),0.d0, kind(0.D0))
+              enddo
+           enddo
+
+           do n = 1, n_fl
+              call op_set(op_tmp(1,n))
+           enddo
 
       case ('square_anisotropic')
            Allocate(op_tmp(1,n_fl))
@@ -182,7 +225,7 @@ contains
 
            do i = 1,latt%n
               delta = 0.005d0*ranf_wrap()
-              ham_t = 1.d0+delta
+              ham_t = 1.d0!+delta
 
               i1 = invlist(i,1)
               j1 = invlist(latt%nnlist(i,1,0),1)

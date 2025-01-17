@@ -1,119 +1,3 @@
-!  Copyright (C) 2016 - 2023 The ALF project
-!
-!     The ALF project is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     The ALF project is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with ALF.  If not, see http://www.gnu.org/licenses/.
-!
-!     Under Section 7 of GPL version 3 we require you to fulfill the following additional terms:
-!
-!     - It is our hope that this program makes a contribution to the scientific community. Being
-!       part of that community we feel that it is reasonable to require you to give an attribution
-!       back to the original authors if you have benefitted from this program.
-!       Guidelines for a proper citation can be found on the project's homepage
-!       http://alf.physik.uni-wuerzburg.de
-!
-!     - We require the preservation of the above copyright notice and this license in all original files.
-!
-!     - We prohibit the misrepresentation of the origin of the original source files. To obtain
-!       the original source files please visit the homepage http://alf.physik.uni-wuerzburg.de .
-!
-!     - If you make substantial changes to the program we require you to either consider contributing
-!       to the ALF project or to mark your material in a reasonable way as different from the original version
-
-!--------------------------------------------------------------------
-!> @author
-!> ALF-project
-!>
-!> @brief
-!> This module defines the  Hamiltonian and observables.  Here, we have included a
-!> set of predefined Hamiltonians. They include the Hubbard and SU(N) tV models
-!> on honeycomb, pi-flux and square lattices.
-
-!> @details
-!> The public variables of this module are the following
-!>
-!>
-!> @param [public] OP_V
-!> \verbatim
-!> Type (Operator), dimension(:,:), allocatable
-!> List of operators of type=1,2 and 3 describing the sequence of interactions on a time slice.
-!> The first index runs over this sequence. The second corresponds to the flavor index.  \endverbatim
-!>
-!> @param [public] OP_T
-!> \verbatim
-!> Type (Operator), dimension(:,:), allocatable
-!> Sequence of  operators  accounting for the  hopping on a  time slice. This can include  various
-!> checkerboard decompositions. The first index runs over this sequence. The second corresponds to
-!> the flavor index. \endverbatim
-!> *  The progagation reads:
-!> \f$ \prod_{\tau} \; \;  \prod_{n=1}^{N_V}e^{V_n(\tau)}  \prod_{n=1}^{N_T}e^{T_n}  \f$.  That is
-!> first the hopping and then the potential energy.
-!>
-!>@param [public] WF_L
-!> \verbatim Type (WaveFunction), dimension(:),   allocatable
-!> Left trial wave function.  \endverbatim
-!>
-!> @param [public] WF_R
-!> \verbatim Type (WaveFunction), dimension(:),   allocatable
-!> Right trial wave function.   For both wave functions the index runs over the flavor index. \endverbatim
-!>
-!> @param [public]  nsigma
-!> \verbatim Type(Fields)
-!> Contains all auxiliary fields in the variable f(:,:). The first index runs through the operator
-!> sequence. The second through the time slices.   \endverbatim
-!
-!> @param [public]  Ndim
-!> \verbatim Integer
-!> Total number of orbitals. e.g. # unit cells * # orbitals per unit cell.  \endverbatim
-!
-!> @param [public]  N_FL
-!> \verbatim Integer
-!> # of flavors.  Propagation is block diagonal in flavors.  \endverbatim
-!
-!> @param [public]  N_SUN
-!> \verbatim Integer
-!> # of colors.  Propagation is color independent.  \endverbatim
-!>
-!> @param [public] Ltrot
-!> \verbatim Integer
-!> Available measurment interval in units of Delta Tau. \endverbatim
-!>
-!> @param [public] Thtrot
-!>  \verbatim Integer
-!> Effective projection parameter in units of Delta Tau.  (Only relevant if projective option is turned on) \endverbatim
-!>
-!> @param [public] Projector
-!> \verbatim Logical
-!> Flag for projector. If true then the total number of time slices will correspond to Ltrot + 2*Thtrot \endverbatim
-!>
-!> @param [public] Group_Comm
-!> \verbatim Integer
-!> Defines MPI communicator  \endverbatim
-!
-!> @param [public] Symm
-!> \verbatim Logical  \endverbatim
-!> If set to true then the green functions will be symmetrized
-!> before being  sent to the Obser, ObserT subroutines.
-!> In particular, the transformation,  \f$ \tilde{G} =  e^{-\Delta \tau T /2 } G e^{\Delta \tau T /2 } \f$
-!> will be carried out  and \f$ \tilde{G} \f$  will be sent to the Obser and ObserT subroutines.  Note that
-!> if you want to use this  feature, then you have to be sure the hopping and interaction terms are decomposed
-!> symmetrically. If Symm is true, the propagation reads:
-!> \f$ \prod_{\tau} \; \;  \prod_{n=N_T}^{1}e^{T_n/2} \prod_{n=1}^{N_V}e^{V_n(\tau)}  \prod_{n=1}^{N_T}e^{T_n/2}  \f$
-!>
-!>
-!> You still have to add some docu for the other private variables in this module.
-!>
-!--------------------------------------------------------------------
-
     submodule(Hamiltonian_main) ham_bose_metal_smod
 
        use Operator_mod
@@ -126,7 +10,6 @@
        use Observables
        use Fields_mod
        use Predefined_Hoppings
-       use LRC_Mod
 
        implicit none
 
@@ -137,8 +20,6 @@
           procedure, nopass :: Alloc_obs
           procedure, nopass :: Obser
           procedure, nopass :: ObserT
-          procedure, nopass :: Ham_Langevin_HMC_S0
-          procedure, nopass :: Delta_S0_global
 #ifdef HDF5
           procedure, nopass :: write_parameters_hdf5
 #endif
@@ -146,14 +27,14 @@
 
        !#PARAMETERS START# VAR_lattice
        character(len=64) :: Model = "bose_metal"  ! Value not relevant
-       character(len=64) :: Lattice_type = "square_anisotropic"
+       character(len=64) :: Lattice_type = "bilayer_square"
        integer            :: L1 = 6   ! Length in direction a_1
        integer            :: L2 = 6   ! Length in direction a_2
        !#PARAMETERS END#
 
        !#PARAMETERS START# VAR_Model_Generic
        !Integer              :: N_SUN        = 1        ! Number of colors
-       !Integer              :: N_FL         = 2        ! Number of flavors
+       !Integer              :: N_FL         = 1        ! Number of flavors
        real(Kind=kind(0.d0)) :: Phi_X = 0.d0     ! Twist along the L_1 direction, in units of the flux quanta
        real(Kind=kind(0.d0)) :: Phi_Y = 0.d0     ! Twist along the L_2 direction, in units of the flux quanta
        logical               :: Bulk = .true.   ! Twist as a vector potential (.T.), or at the boundary (.F.)
@@ -179,8 +60,11 @@
        type(Hopping_Matrix_type), allocatable :: Hopping_Matrix(:)
        integer, allocatable :: List(:, :), Invlist(:, :)  ! For orbital structure of Unit cell
        
-       Integer, allocatable :: rot_del_list(:,:,:), rot_list(:,:), del_list(:,:,:)
-       complex (Kind=Kind(0.d0)), allocatable :: ff_s(:,:,:)
+       Integer, allocatable :: rot_del_list(:,:), rot_list(:), del_list(:,:)
+       complex (Kind=Kind(0.d0)), allocatable :: ff_s(:,:)
+      
+       Type (Unit_cell), Target  :: Latt_unit_p  ! Unit cell for f  correlation functions
+       Integer, allocatable      :: List_p(:,:), Invlist_p(:,:)
 
     contains
 
@@ -225,7 +109,7 @@
 #endif
 
           call read_parameters()
-
+          
           Ltrot = nint(beta/dtau)
           if (Projector) Thtrot = nint(theta/dtau)
           Ltrot = Ltrot + 2*Thtrot
@@ -304,17 +188,35 @@
           use Predefined_Lattices
 
           implicit none
-
+          
           integer :: i, i1, no, a0, a1, a2, b0, b1, b2, k, k1, k2, ntype, j1
-          integer :: ix, iy, rix, riy, rdx, rdy, ndx, ndy, nsi, nx, ny
+          integer :: ix, iy, rix, riy, rdx, rdy, ndx, ndy, nsi, nx, ny, nc
           real    (kind=kind(0.d0)) :: pi = acos(-1.d0)
-
+          
           ! Use predefined stuctures or set your own lattice.
           call Predefined_Latt(Lattice_type, L1, L2, Ndim, List, Invlist, Latt, Latt_Unit)
           
-          allocate(rot_del_list(latt%n,latt_unit%norb,4))
-          allocate(del_list    (latt%n,latt_unit%norb,4))
-          allocate(rot_list    (latt%n,latt_unit%norb  ))
+          !! pairing lattice
+          latt_unit_p%norb    = 1
+          latt_unit_p%n_coord = 2
+          allocate (Latt_Unit_p%Orb_pos_p(1,3))
+          latt_unit_p%Orb_pos_p(1,:) =  0.d0
+          latt_unit_p%Orb_pos_p(1,3) = -1.d0
+          
+          allocate (list_p(latt%N*latt_unit_p%norb,2), invlist_p(latt%n,latt_unit_p%norb)) ! For measuring only on p-lattice
+          nc = 0
+          do I = 1,Latt%N
+             do no = 1,latt_unit_p%norb
+                 nc = nc + 1
+                 list_p(nc,1) = i
+                 list_p(nc,2) = no
+                 invlist_p(i,no) = invlist(i,no)
+             enddo
+          enddo
+            
+          allocate(rot_del_list(latt%n,4))
+          allocate(del_list    (latt%n,4))
+          allocate(rot_list    (latt%n  ))
 
           del_list=0
           rot_list=0
@@ -334,7 +236,7 @@
              do ny = 1, ndy;
                 nsi = latt%nnlist(nsi,0,a2)
              enddo
-             rot_list(i1,1) = nsi
+             rot_list(i1) = nsi
           enddo
           
           !! rotation + delta mapping
@@ -362,7 +264,7 @@
                 do ny = 1, ndy;
                    nsi = latt%nnlist(nsi,0,a2)
                 enddo
-                rot_del_list(j1,1,ntype) = nsi
+                rot_del_list(j1,ntype) = nsi
              enddo
           enddo
           
@@ -379,29 +281,29 @@
                 case(4)
                     i1 = latt%nnlist(j1, 0,-1)
                 end select
-                del_list(j1,1,ntype) = i1
+                del_list(j1,ntype) = i1
              enddo
           enddo
             
           !! d wave 1, px wave 2, py wave 3
-          allocate(ff_s(4,1,3))
+          allocate(ff_s(4,3))
           do ntype = 1, 3
               select case(ntype)
               case (1)
-                  ff_s(1,1,ntype) =  1.d0
-                  ff_s(2,1,ntype) =  1.d0
-                  ff_s(3,1,ntype) = -1.d0
-                  ff_s(4,1,ntype) = -1.d0
+                  ff_s(1,ntype) =  1.d0
+                  ff_s(2,ntype) =  1.d0
+                  ff_s(3,ntype) = -1.d0
+                  ff_s(4,ntype) = -1.d0
               case (2)
-                  ff_s(1,1,ntype) =  1.d0
-                  ff_s(2,1,ntype) = -1.d0
-                  ff_s(3,1,ntype) =  0.d0
-                  ff_s(4,1,ntype) =  0.d0
+                  ff_s(1,ntype) =  1.d0
+                  ff_s(2,ntype) = -1.d0
+                  ff_s(3,ntype) =  0.d0
+                  ff_s(4,ntype) =  0.d0
               case (3)
-                  ff_s(1,1,ntype) =  0.d0
-                  ff_s(2,1,ntype) =  0.d0
-                  ff_s(3,1,ntype) =  1.d0
-                  ff_s(4,1,ntype) = -1.d0
+                  ff_s(1,ntype) =  0.d0
+                  ff_s(2,ntype) =  0.d0
+                  ff_s(3,ntype) =  1.d0
+                  ff_s(4,ntype) = -1.d0
               end select
           enddo
 
@@ -420,14 +322,14 @@
           real(Kind=kind(0.d0)) ::  Ham_Lambda = 0.d0
 
           real(Kind=kind(0.d0)), allocatable :: Ham_tx_vec(:), Ham_Chem_vec(:), Phi_X_vec(:), Phi_Y_vec(:),&
-               &                                Ham_ty_vec(:), Ham_Lambda_vec(:)
+               &                                Ham_ty_vec(:), ham_tp_vec(:), Ham_Lambda_vec(:)
           integer, allocatable ::   N_Phi_vec(:)
 
           ! Use predefined stuctures or set your own hopping
           integer :: n, nth
 
           allocate (ham_tx_vec(N_FL), ham_ty_vec(N_FL), Ham_Chem_vec(N_FL), Phi_X_vec(N_FL), Phi_Y_vec(N_FL),&
-               &    N_Phi_vec(N_FL), Ham_Lambda_vec(N_FL))
+               &    N_Phi_vec(N_FL), Ham_Lambda_vec(N_FL), ham_tp_vec(n_fl))
 
           ! Here we consider no N_FL  dependence of the hopping parameters.
           Ham_tx_vec = ham_t
@@ -438,19 +340,18 @@
           N_Phi_vec = n_phi
 
           ham_tx_vec(1) = ham_t;
-          ham_tx_vec(2) = ham_t*ham_alpha;
           ham_ty_vec(1) = ham_t*ham_alpha;
-          ham_ty_vec(2) = ham_t;
+          ham_tp_vec(1) = 0.d0
 
           select case (Lattice_type)
-          case ("square_anisotropic")
-            call set_hopping_parameters_square_anisotropic(Hopping_Matrix, ham_tx_vec, ham_ty_vec, Ham_Chem_vec, &
+          case ("bilayer_square")
+            call set_hopping_parameters_bilayer_square(Hopping_Matrix, ham_tx_vec, ham_ty_vec, ham_tp_vec, Ham_Chem_vec, &
                    & Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
           end select
 
           call Predefined_Hoppings_set_OPT(Hopping_Matrix, List, Invlist, Latt, Latt_unit, Dtau, Checkerboard, Symm, OP_T)
 
-          deallocate (ham_tx_vec, ham_ty_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, N_Phi_vec)
+          deallocate (ham_tx_vec, ham_ty_vec, ham_tp_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, N_Phi_vec)
 
        end subroutine Ham_Hop
 !--------------------------------------------------------------------
@@ -460,7 +361,7 @@
 !> @brief
 !> Sets the trial wave function
 !--------------------------------------------------------------------
-       subroutine Ham_Trial()
+       subroutine Ham_Trial
 
           use Predefined_Trial
 
@@ -490,27 +391,28 @@
           real(Kind=kind(0.d0)) :: X, zero = 1.d-10
 
           N_ops = 0
-          if (abs(ham_u) > zero) N_ops = N_ops + Latt%N*Latt_unit%Norb
+          if (abs(ham_u) > zero) N_ops = N_ops + Latt%N
 
-          allocate (Op_V(N_ops, N_FL))
-          nc = 0
-          do i1 = 1, latt%N
-             do no = 1, latt_unit%norb
-                i = invlist(i1, no)
-                if (abs(ham_u) > zero) then
-                   nc = nc + 1
-                   do nf = 1, n_fl
-                       call op_make( op_v(nc,nf), 1 )
-                       op_v(nc,nf)%p(1) = I
-                       op_v(nc,nf)%o(1,1) = cmplx(1.d0, 0.d0, kind(0.D0)) 
-                       op_V(nc,nf)%g      = sqrt(cmplx(dtau*ham_u/2.d0, 0.D0, kind(0.D0)))
-                       op_v(nc,nf)%alpha  = cmplx(-0.5d0, 0.d0, kind(0.D0))
-                       op_v(nc,nf)%type   = 2
-                       call op_set(op_v(nc,nf))
-                   enddo
-                end if
+          allocate (op_v(n_ops, n_fl))
+          if (abs(ham_u) > zero) then
+             nc = 0
+             do nf = 1, n_fl
+             do i1 = 1, latt%N
+                 nc = nc + 1
+                 i = invlist(i1, 1)
+                 j = invlist(i1, 2)
+                 call op_make(op_v(nc,nf),2)
+                 op_v(nc,nf)%p(1) = I
+                 op_v(nc,nf)%p(2) = J
+                 op_v(nc,nf)%o(1,2) = cmplx(0.d0, -1.d0, kind(0.D0)) 
+                 op_v(nc,nf)%o(2,1) = cmplx(0.d0,  1.d0, kind(0.D0)) 
+                 op_V(nc,nf)%g      = cmplx(0.d0, sqrt(dtau*ham_u/2.d0), kind(0.D0))
+                 op_v(nc,nf)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
+                 op_v(nc,nf)%type   = 2
+                 call op_set(op_v(nc,nf))
              end do
-          end do
+             end do
+          end if
 
        end subroutine Ham_V
 
@@ -522,18 +424,18 @@
 !> Specifiy the equal time and time displaced observables
 !> @details
 !--------------------------------------------------------------------
-       subroutine Alloc_obs(Ltau)
+       subroutine alloc_obs(ltau)
 
           implicit none
           !>  Ltau=1 if time displaced correlations are considered.
-          integer, intent(In) :: Ltau
+          integer, intent(In) :: ltau
           integer    ::  i, N, Nt
           character(len=64) ::  Filename
           character(len=:), allocatable ::  Channel
 
           ! Scalar observables
-          allocate (Obs_scal(4))
-          do I = 1, size(Obs_scal, 1)
+          allocate (obs_scal(4))
+          do I = 1, size(obs_scal, 1)
              select case (I)
              case (1)
                 N = 1; Filename = "Kin"
@@ -546,19 +448,19 @@
              case default
                 write (6, *) ' Error in Alloc_obs '
              end select
-             call Obser_Vec_make(Obs_scal(I), N, Filename)
+             call obser_Vec_make(obs_scal(I), N, Filename)
           end do
 
           ! Equal time correlators
-          allocate (Obs_eq(9))
-          do I = 1, size(Obs_eq, 1)
+          allocate (obs_eq(8))
+          do I = 1, size(obs_eq, 1)
              select case (I)
              case (1)
                 Filename = "Green"
              case (2)
-                Filename = "SpinZ"
-             case (3)
                 Filename = "Den"
+             case (3)
+                Filename = "SpinZ"
              case (4)
                 Filename = "swave"
              case (5)
@@ -569,41 +471,35 @@
                 Filename = "pxwave"
              case (8)
                 Filename = "pywave"
-             case (9)
-                Filename = "pwave"
              case default
                 write (6, *) ' Error in Alloc_obs '
              end select
              Nt = 1
              Channel = '--'
-             call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
+             if ( I .ge. 3 ) then
+                call obser_Latt_make(obs_eq(I), nt, Filename, Latt, Latt_unit_p, Channel, dtau)
+             else
+                call obser_Latt_make(obs_eq(I), nt, Filename, Latt, Latt_unit  , Channel, dtau)
+             endif
           end do
 
           if (Ltau == 1) then
              ! Time-displaced correlators
-             allocate (Obs_tau(5))
-             do I = 1, size(Obs_tau, 1)
+             allocate (obs_tau(1))
+             do I = 1, size(obs_tau, 1)
                 select case (I)
                 case (1)
                    Channel = 'P'; Filename = "Green"
-                case (2)
-                   Channel = 'PH'; Filename = "SpinZ"
-                case (3)
-                   Channel = 'PH'; Filename = "Den"
-                case (4)
-                   Channel = 'PH'; Filename = "swave"
-                case (5)
-                   Channel = 'PH'; Filename = "jxjx"
                 case default
                    write (6, *) ' Error in Alloc_obs '
                 end select
-                Nt = Ltrot + 1 - 2*Thtrot
+                nt = Ltrot + 1 - 2*Thtrot
                 if (Projector) Channel = 'T0'
-                call Obser_Latt_make(Obs_tau(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
+                call obser_Latt_make(obs_tau(I), nt, Filename, Latt, Latt_unit, Channel, dtau)
              end do
           end if
 
-       end subroutine Alloc_obs
+       end subroutine alloc_obs
 
 !--------------------------------------------------------------------
 !> @author
@@ -625,20 +521,21 @@
 !>  Time slice
 !> \endverbatim
 !-------------------------------------------------------------------
-       subroutine obser(GR, Phase, Ntau, Mc_step_weight)
+       subroutine obser(gr, Phase, Ntau, Mc_step_weight)
 
           implicit none
 
-          complex(Kind=kind(0.d0)), intent(IN) :: GR(Ndim, Ndim, N_FL)
+          complex(kind=kind(0.d0)), intent(in) :: gr(Ndim, Ndim, N_FL)
           complex(Kind=kind(0.d0)), intent(IN) :: PHASE
           integer, intent(IN)          :: Ntau
           real(Kind=kind(0.d0)), intent(IN) :: Mc_step_weight
 
           !Local
-          complex(Kind=kind(0.d0)) :: grc(Ndim, Ndim, N_FL), ZK, ztmp
-          complex(Kind=kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP, ZS, ZZ, ZXY, zback, z1j, cpair(4)
-          integer :: I, J, k, l, m, n, imj, nf, dec, i1, i2, i3, j1, j2, j3, no_I, no_J
-          integer :: idl(4), jdl(4), irdl(4), jrdl(4), rsi, rsj, k1, k2
+          complex(Kind=kind(0.d0)) :: grc(Ndim, Ndim, N_FL), ZK, zone, ztmp, z_ol, zero, ztmp1, ztmp2, ztmp3, ztmp4
+          complex(Kind=kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP, ZS, ZZ, ZXY, zback, zw, z_fac, z1j, cpair(4)
+          integer :: I, J, k, l, m, n, imj, nf, dec, i1, ipx, ipy, imx, imy, j1, jpx, jpy, jmx, jmy, no_I, no_J, nc
+          integer :: i2, j2, idelta_1, jdelta_1, idelta_2, jdelta_2
+          integer :: idl(4), jdl(4), irdl(4), jrdl(4), rsi, rsj, k1, k2, rsi1, rsi2, rsj1, rsj2
           real(Kind=kind(0.d0)) :: X
 
           ZP = PHASE/real(Phase, kind(0.d0))
@@ -655,7 +552,7 @@
              end do
           end do
           ! GRC(i,j,nf) = < c^{dagger}_{i,nf } c_{j,nf } >
-
+          
           ! Compute scalar observables.
           do i = 1, size(obs_scal, 1)
              obs_scal(i)%n = obs_scal(i)%n + 1
@@ -673,65 +570,83 @@
           Zkin = Zkin*dble(N_SUN)
           Obs_scal(1)%Obs_vec(1) = Obs_scal(1)%Obs_vec(1) + Zkin*ZP*ZS
 
-          ZPot = cmplx(0.d0, 0.d0, kind(0.d0))
+          zpot = cmplx(0.d0, 0.d0, kind(0.d0))
           do I = 1, Latt%N
-             do no_I = 1, Latt_unit%Norb
-                I1 = Invlist(I, no_I)
-                ZPot = ZPot - Grc(i1, i1, 1)*Grc(i1, i1, 2)*ham_U
+             i1 = Invlist(i,1)
+             i2 = Invlist(i,2)
+             zpot = zpot + 2.d0*( grc(i1,i1,1)*grc(i2,i2,1) + grc(i1,i2,1)*gr(i1,i2,1) ) - &
+                 & grc(i1,i1,1) - grc(i2,i2,1) + 1.d0
+          end do
+          zpot = zpot*(-ham_u/2.d0)
+          obs_scal(2)%Obs_vec(1) = obs_scal(2)%obs_vec(1) + zpot*ZP*ZS
+
+          zrho = cmplx(0.d0, 0.d0, kind(0.d0))
+          do nf = 1, n_fl
+             do I = 1, ndim
+                zrho = zrho + grc(i, i, nf)
              end do
           end do
-          Obs_scal(2)%Obs_vec(1) = Obs_scal(2)%Obs_vec(1) + Zpot*ZP*ZS
+          zrho = zrho*dble(N_SUN)
+          obs_scal(3)%obs_vec(1) = obs_scal(3)%obs_vec(1) + zrho*ZP*ZS
 
-          Zrho = cmplx(0.d0, 0.d0, kind(0.d0))
-          do nf = 1, N_FL
-             do I = 1, Ndim
-                Zrho = Zrho + Grc(i, i, nf)
-             end do
-          end do
-          Zrho = Zrho*dble(N_SUN)
-          Obs_scal(3)%Obs_vec(1) = Obs_scal(3)%Obs_vec(1) + Zrho*ZP*ZS
-
-          Obs_scal(4)%Obs_vec(1) = Obs_scal(4)%Obs_vec(1) + (Zkin + Zpot)*ZP*ZS
+          obs_scal(4)%obs_vec(1) = obs_scal(4)%obs_vec(1) + (zkin + zpot)*ZP*ZS
 
           ! Standard two-point correlations
           z1j = cmplx(0.d0,1.d0,kind(0.d0))
-          do i1 = 1, ndim
-              i    = list(i1,1)
-              no_i = list(i1,2)
+          do i = 1, latt%n
 
-              rsi = rot_list(i,no_i)
-              idl(:) = del_list(i,no_i,:) 
-              irdl(:) = rot_del_list(i,no_i,:) 
+              rsi = rot_list(i)
+              idl(:) = del_list(i,:) 
+              irdl(:) = rot_del_list(i,:) 
 
-              do j1 = 1, ndim
-                  j    = list(j1,1)
-                  no_j = list(j1,2)
+              do j = 1, latt%n
               
-                  rsj = rot_list(j,no_j)
-                  jdl(:) = del_list(j,no_j,:) 
-                  jrdl(:) = rot_del_list(j,no_j,:) 
+                  rsj = rot_list(j)
+                  jdl(:) = del_list(j,:) 
+                  jrdl(:) = rot_del_list(j,:) 
 
                   imj  = latt%imj(i, j)
-                  ztmp = grc(i1,j1,1) + grc(i1,j1,2)
-                  obs_eq(1)%obs_Latt(imj,1,no_i,no_j) = obs_eq(1)%obs_latt(imj,1,no_i,no_j) + ztmp*zp*zs
-
-                  ztmp = grc(i1,j1,1)*gr(i1,j1,1) + grc(i1,j1,2)*gr(i1,j1,2) + &
-                      & (grc(i1,i1,1) - grc(i1,i1,2))*(grc(j1,j1,1) - grc(j1,j1,2))
-                  obs_eq(2)%obs_Latt(imj,1,no_i,no_j) = obs_eq(2)%obs_latt(imj,1,no_i,no_j) + ztmp*zp*zs
                   
-                  ztmp = grc(i1,j1,1)*gr(i1,j1,1) + grc(i1,j1,2)*gr(i1,j1,2) + &
-                      & (grc(i1,i1,2) + grc(i1,i1,1))*(grc(j1,j1,2) + grc(j1,j1,1))
-                  obs_eq(3)%obs_Latt(imj,1,no_i,no_j) = obs_eq(3)%obs_latt(imj,1,no_i,no_j) + ztmp*zp*zs
+                  do k = 1, 4
+                     no_i = (k-1)/2
+                     no_j = k-no_i*2
+                     no_i = no_i + 1
+              
+                     i1 = invlist(i,no_i)
+                     j1 = invlist(j,no_j)
+                  
+                     !! Green
+                     ztmp = grc(i1,j1,1)
+                     obs_eq(1)%obs_Latt(imj,1,no_i,no_j) = obs_eq(1)%obs_latt(imj,1,no_i,no_j) + ztmp*ZP*ZS
+                     
+                     !! Den
+                     ztmp = grc(i1,j1,1)*gr(i1,j1,1) + grc(i1,i1,1)*grc(j1,j1,1)
+                     obs_eq(2)%obs_Latt(imj,1,no_i,no_j) = obs_eq(2)%obs_latt(imj,1,no_i,no_j) + ztmp*ZP*ZS
+                  enddo
+
+                  !! SpinZ
+                  i1 = invlist(i,1); j1 = invlist(j,1) !! spin up
+                  i2 = invlist(i,2); j2 = invlist(j,2) !! spin dn
+
+                  ztmp =   grc(i1,j1,1)*gr(i1,j1,1) + grc(i1,i1,1)*grc(j1,j1,1) &
+                      &  + grc(i2,j2,1)*gr(i2,j2,1) + grc(i2,i2,1)*grc(j2,j2,1) &
+                      &  - grc(i1,j2,1)*gr(i1,j2,1) - grc(i1,i1,1)*grc(j2,j2,1) &
+                      &  - grc(i2,j1,1)*gr(i2,j1,1) - grc(i2,i2,1)*grc(j1,j1,1)
+                  obs_eq(3)%obs_Latt(imj,1,1,1) = obs_eq(3)%obs_latt(imj,1,1,1) + ztmp*ZP*ZS
                   
                   !! s wave
-                  ztmp = grc(i1,j1,1)*grc(i1,j1,2)
-                  obs_eq(4)%obs_Latt(imj,1,no_i,no_j) = obs_eq(4)%obs_latt(imj,1,no_i,no_j) + ztmp*zp*zs
+                  ztmp = grc(i1,j1,1)*grc(i2,j2,1) - grc(i1,j2,1)*grc(i2,j1,1)
+                  obs_eq(4)%obs_Latt(imj,1,1,1) = obs_eq(4)%obs_latt(imj,1,1,1) + ztmp*ZP*ZS
                   
                   cpair(:) = cmplx(0.d0,0.d0,kind(0.d0))
 
                   !! sfflo
-                  cpair(1) = cpair(1) + grc(i1,j1,1)*grc(rsi,rsj,2) + grc(i1,j1,2)*grc(rsi,rsj,1) &
-                      &               + grc(i1,rsj,1)*grc(rsi,j1,2) + grc(i1,rsj,2)*grc(rsi,j1,1)
+                  rsi1 = invlist(rsi,1); rsj1 = invlist(rsj,1) !! spin up
+                  rsi2 = invlist(rsi,2); rsj2 = invlist(rsj,2) !! spin dn
+                  cpair(1) = cpair(1) + grc(i1,j1,1)*grc(rsi2,rsj2,1) - grc(i1,rsj2,1)*grc(rsi2,j1,1) &
+                      &               + grc(i2,j2,1)*grc(rsi1,rsj1,1) - grc(i2,rsj1,1)*grc(rsi1,j2,1) &
+                      &               - grc(i1,j2,1)*grc(rsi2,rsj1,1) + grc(i1,rsj1,1)*grc(rsi2,j2,1) &
+                      &               - grc(i2,j1,1)*grc(rsi1,rsj2,1) + grc(i2,rsj2,1)*grc(rsi1,j1,1)
 
                   !! 4x4 nn bonds
                   do k = 1, 16
@@ -740,33 +655,45 @@
                      k1 = k-k2*4
                      k2 = k2 + 1
 
-                     cpair(2) = cpair(2) + 0.25d0*ff_s(k1,no_i,1)*conjg(ff_s(k2,no_j,1))* &
-                         & (   grc(i1,j1,1)*grc(irdl(k1),jrdl(k2),2) + grc(i1,j1,2)*grc(irdl(k1),jrdl(k2),1) &
-                         &   + grc(i1,jrdl(k2),1)*grc(irdl(k1),j1,2) + grc(i1,jrdl(k2),2)*grc(irdl(k1),j1,1) )
+                     !! d fflo
+                     idelta_1 = invlist(irdl(k1),1); jdelta_1 = invlist(jrdl(k2),1) !! spin up
+                     idelta_2 = invlist(irdl(k1),2); jdelta_2 = invlist(jrdl(k2),2) !! spin dn
 
-                     cpair(3) = cpair(3) + 0.25d0*ff_s(k1,no_i,2)*conjg(ff_s(k2,no_j,2))* &
-                         & (   grc(i1,j1,1)*grc(idl(k1),jdl(k2),1) + grc(i1,j1,2)*grc(idl(k1),jdl(k2),2) &
-                         &   - grc(i1,jdl(k2),1)*grc(idl(k1),j1,1) - grc(i1,jdl(k2),2)*grc(idl(k1),j1,2) )
+                     cpair(2) = cpair(2) + 0.25d0*ff_s(k1,1)*conjg(ff_s(k2,1))* &
+                         & (   grc(i1,j1,1)*grc(idelta_2,jdelta_2,1) + grc(i2,j2,1)*grc(idelta_1,jdelta_1,1) &
+                         &   - grc(i1,jdelta_2,1)*grc(idelta_2,j1,1) - grc(i2,jdelta_1,1)*grc(idelta_1,j2,1) &
+                         &   - grc(i1,j2,1)*grc(idelta_2,jdelta_1,1) - grc(i2,j1,1)*grc(idelta_1,jdelta_2,1) &
+                         &   + grc(i1,jdelta_1,1)*grc(idelta_2,j2,1) + grc(i2,jdelta_2,1)*grc(idelta_1,j1,1) )
+
+                     !! px wave
+                     idelta_1 = invlist(idl(k1),1); jdelta_1 = invlist(jdl(k2),1) !! spin up
+                     idelta_2 = invlist(idl(k1),2); jdelta_2 = invlist(jdl(k2),2) !! spin dn
                      
-                     cpair(4) = cpair(4) + 0.25d0*ff_s(k1,no_i,3)*conjg(ff_s(k2,no_j,3))* &
-                         & (   grc(i1,j1,1)*grc(idl(k1),jdl(k2),1) + grc(i1,j1,2)*grc(idl(k1),jdl(k2),2) &
-                         &   - grc(i1,jdl(k2),1)*grc(idl(k1),j1,1) - grc(i1,jdl(k2),2)*grc(idl(k1),j1,2) )
+                     cpair(3) = cpair(3) + 0.25d0*ff_s(k1,2)*conjg(ff_s(k2,2))* &
+                         & (   grc(i1,j2,1)*grc(idelta_1,jdelta_2,1) - grc(i1,jdelta_2,1)*grc(idelta_1,j2,1) &
+                         &   + grc(i2,j1,1)*grc(idelta_2,jdelta_1,1) - grc(i2,jdelta_1,1)*grc(idelta_2,j1,1) &
+                         &   + grc(i1,j1,1)*grc(idelta_1,jdelta_1,1) + grc(i2,j2,1)*grc(idelta_2,jdelta_2,1) &
+                         &   - grc(i1,jdelta_1,1)*grc(idelta_1,j1,1) - grc(i2,jdelta_2,1)*grc(idelta_2,j2,1) )
+                     
+                     !! py wave
+                     cpair(4) = cpair(4) + 0.25d0*ff_s(k1,3)*conjg(ff_s(k2,3))* &
+                         & (   grc(i1,j2,1)*grc(idelta_1,jdelta_2,1) - grc(i1,jdelta_2,1)*grc(idelta_1,j2,1) &
+                         &   + grc(i2,j1,1)*grc(idelta_2,jdelta_1,1) - grc(i2,jdelta_1,1)*grc(idelta_2,j1,1) &
+                         &   + grc(i1,j1,1)*grc(idelta_1,jdelta_1,1) + grc(i2,j2,1)*grc(idelta_2,jdelta_2,1) &
+                         &   - grc(i1,jdelta_1,1)*grc(idelta_1,j1,1) - grc(i2,jdelta_2,1)*grc(idelta_2,j2,1) )
 
                   enddo
-                  obs_eq(5)%obs_Latt(imj,1,no_i,no_j) = obs_eq(5)%obs_latt(imj,1,no_i,no_j) + cpair(1)*zp*zs
-                  obs_eq(6)%obs_Latt(imj,1,no_i,no_j) = obs_eq(6)%obs_latt(imj,1,no_i,no_j) + cpair(2)*zp*zs
-                  obs_eq(7)%obs_Latt(imj,1,no_i,no_j) = obs_eq(7)%obs_latt(imj,1,no_i,no_j) + cpair(3)*zp*zs
-                  obs_eq(8)%obs_Latt(imj,1,no_i,no_j) = obs_eq(8)%obs_latt(imj,1,no_i,no_j) + cpair(4)*zp*zs
-                  
-                  obs_eq(9)%obs_Latt(imj,1,no_i,no_j) = obs_eq(9)%obs_latt(imj,1,no_i,no_j) + &
-                      & ( grc(i1,j1,1)*grc(idl(1),jdl(1),2) + grc(i1,j1,2)*grc(idl(1),jdl(1),1)  &
-                      & - grc(i1,jdl(1),1)*grc(idl(1),j1,2) - grc(i1,jdl(1),2)*grc(idl(1),j1,1) )*zp*zs
+                  obs_eq(5)%obs_Latt(imj,1,1,1) = obs_eq(5)%obs_latt(imj,1,1,1) + cpair(1)*ZP*ZS
+                  obs_eq(6)%obs_Latt(imj,1,1,1) = obs_eq(6)%obs_latt(imj,1,1,1) + cpair(2)*ZP*ZS
+                  obs_eq(7)%obs_Latt(imj,1,1,1) = obs_eq(7)%obs_latt(imj,1,1,1) + cpair(3)*ZP*ZS
+                  obs_eq(8)%obs_Latt(imj,1,1,1) = obs_eq(8)%obs_latt(imj,1,1,1) + cpair(4)*ZP*ZS
                   
               end do
-              zback = grc(i1, i1, 2) - grc(i1, i1, 1)
-              obs_eq(2)%obs_latt0(no_i) = obs_eq(2)%obs_Latt0(no_i) + zback*zp*zs
-              zback = grc(i1,i1,1) + grc(i1,i1,2) 
-              obs_eq(3)%obs_latt0(no_i) = obs_eq(3)%obs_Latt0(no_i) + zback*zp*zs
+              do no_i = 1, latt_unit%norb
+                  i1 = invlist(i,no_i)
+                  zback = grc(i1,i1,1)
+                  obs_eq(2)%obs_latt0(no_i) = obs_eq(2)%obs_Latt0(no_i) + zback*zp*zs
+              enddo
           end do
 
        end subroutine obser
@@ -805,17 +732,15 @@
           real(Kind=kind(0.d0)), intent(IN) :: Mc_step_weight
 
           !Locals
-          complex(Kind=kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY, zone, zback, t_up, t_dn
+          complex(Kind=kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY, zone, zback, z_ol, zw, z_fac, zero
           real(Kind=kind(0.d0)) :: X
-          integer :: IMJ, I, J, k, l, m, n, i1, i2, i3, j1, j2, j3, jpx, jmx, ipx, imx, no_I, no_J
+          integer :: IMJ, I, J, k, l, m, n, i1, ip1, ipx, ipy, imx, imy, j1, jpx, jpy, jmx, jmy, no_I, no_J, nc
 
           ZP = PHASE/real(Phase, kind(0.d0))
           ZS = real(Phase, kind(0.d0))/abs(real(Phase, kind(0.d0)))
           ZS = ZS*Mc_step_weight
 
-          zone = cmplx(1.d0,0.d0,kind(0.d0))
-          t_up = ham_t
-          t_dn = ham_t*ham_alpha
+          zone = cmplx(1.d0, 0.d0, kind(0.d0))
 
           ! Standard two-point correlations
           if (nt == 0 ) then
@@ -824,123 +749,30 @@
              obs_tau(i)%ave_sign = obs_tau(i)%ave_sign + real(zs,kind(0.d0))
           enddo
           endif
-          
-          do i1 = 1, ndim
-              i    = list(i1,1)
-              no_i = list(i1,2)
-              k    = latt%nnlist(i, 1,0)
-              ipx  = invlist(k,no_i)
-              m    = latt%nnlist(i,-1,0)
-              imx  = invlist(m,no_i)
-              do j1 = 1, ndim
-                  j    = list(j1,1)
-                  no_j = list(j1,2)
-                  l    = latt%nnlist(j, 1,0)
-                  jpx  = invlist(l,no_j)
-                  n    = latt%nnlist(j,-1,0)
-                  jmx  = invlist(n,no_j)
+
+          do i = 1, latt%n
+
+              do j = 1, latt%n
 
                   imj  = latt%imj(i, j)
-                  z = gt0(i1,j1,1) + gt0(i1,j1,2)
-                  obs_tau(1)%obs_Latt(imj,nt+1,no_i,no_j) = obs_tau(1)%obs_latt(imj,nt+1,no_i,no_j) + z*zp*zs
+                  
+                  do k = 1, 4
+                     no_i = (k-1)/2
+                     no_j = k-no_i*2
+                     no_i = no_i + 1
+              
+                     i1 = invlist(i,no_i)
+                     j1 = invlist(j,no_j)
+                  
+                     !! Green
+                     z = gt0(i1,j1,1)
+                     obs_tau(1)%obs_Latt(imj,nt+1,no_i,no_j) = obs_tau(1)%obs_latt(imj,nt+1,no_i,no_j) + z*zp*zs
 
-                  z = -g0t(j1,i1,1)*gt0(i1,j1,1) - g0t(j1,i1,2)*gt0(i1,j1,2) + &
-                      & (gtt(i1,i1,1) - gtt(i1,i1,2))*(g00(j1,j1,1) - g00(j1,j1,2))
-                  obs_tau(2)%obs_Latt(imj,nt+1,no_i,no_j) = obs_tau(2)%obs_latt(imj,nt+1,no_i,no_j) + z*zp*zs
-                  
-                  z = -g0t(j1,i1,1)*gt0(i1,j1,1) - g0t(j1,i1,2)*gt0(i1,j1,2) + &
-                      & (zone-gtt(i1,i1,1)+zone-gtt(i1,i1,2))*(zone-gtt(j1,j1,2)+zone-gtt(j1,j1,1))
-                  obs_tau(3)%obs_Latt(imj,nt+1,no_i,no_j) = obs_tau(3)%obs_latt(imj,nt+1,no_i,no_j) + z*zp*zs
-                  
-                  z = g0t(j1,i1,1)*g0t(j1,i1,2) + gt0(i1,j1,1)*gt0(i1,j1,2)
-                  obs_tau(4)%obs_Latt(imj,nt+1,no_i,no_j) = obs_tau(4)%obs_latt(imj,nt+1,no_i,no_j) + z*zp*zs
-                  
-                  z =     ( t_up**2 * ( g0t(jpx,i1,1)*gt0(ipx,j1,1) - g0t(jmx,i1,1)*gt0(ipx,j1,1)   +   &
-                      &                 g0t(jmx,i1,1)*gt0(imx,j1,1) - g0t(jpx,i1,1)*gt0(imx,j1,1) ) +   &
-                            t_dn**2 * ( g0t(jpx,i1,2)*gt0(ipx,j1,2) - g0t(jmx,i1,2)*gt0(ipx,j1,2)   +   &
-                      &                 g0t(jmx,i1,2)*gt0(imx,j1,2) - g0t(jpx,i1,2)*gt0(imx,j1,2) ) )   &
-                      &  -( t_up*(gtt(ipx,i1,1)-gtt(imx,i1,1)) + t_dn*(gtt(ipx,i1,2)-gtt(imx,i1,2)) ) * &
-                      &   ( t_up*(g00(jpx,j1,1)-g00(jmx,j1,1)) + t_dn*(g00(jpx,j1,2)-g00(jmx,j1,2)) )
+                  enddo
 
-                  obs_tau(5)%obs_Latt(imj,nt+1,no_i,no_j) = obs_tau(5)%obs_latt(imj,nt+1,no_i,no_j) + z*zp*zs
-                  
               end do
-              zback = zone - gtt(i1,i1,1) + zone - gtt(i1,i1,2) 
-              obs_tau(3)%obs_latt0(no_i) = obs_tau(3)%obs_Latt0(no_i) + zback*zp*zs
           end do
 
        end subroutine obsert
-
-!--------------------------------------------------------------------
-!> @author
-!> ALF Collaboration
-!>
-!> @brief
-!>   Forces_0  = \partial S_0 / \partial s  are calculated and returned to  main program.
-!>
-!-------------------------------------------------------------------
-       subroutine Ham_Langevin_HMC_S0(Forces_0)
-
-          implicit none
-
-          real(Kind=kind(0.d0)), intent(inout), allocatable :: Forces_0(:, :)
-          !Local
-          integer :: N, N_op, nt
-
-          ! Compute \partial S_0 / \partial s
-          N_op = size(nsigma%f, 1)
-          Forces_0 = 0.d0
-          do n = 1, N_op
-             if (OP_V(n, 1)%type == 3) then
-                do nt = 1, Ltrot
-                   Forces_0(n, nt) = real(nsigma%f(n, nt))
-                end do
-             end if
-          end do
-
-       end subroutine Ham_Langevin_HMC_S0
-
-!--------------------------------------------------------------------
-!> @author
-!> ALF Collaboration
-!>
-!> @brief
-!> Computes the ratio exp(S0(new))/exp(S0(old))
-!>
-!> @details
-!> This function computes the ratio \verbatim  e^{-S0(nsigma)}/e^{-S0(nsigma_old)} \endverbatim
-!> @param [IN] nsigma_old,  Type(Fields)
-!> \verbatim
-!>  Old configuration. The new configuration is stored in nsigma.
-!> \endverbatim
-!-------------------------------------------------------------------
-       real(Kind=kind(0.d0)) function Delta_S0_global(Nsigma_old)
-
-          !  This function computes the ratio:  e^{-S0(nsigma)}/e^{-S0(nsigma_old)}
-          implicit none
-
-          ! Arguments
-          type(Fields), intent(IN) :: nsigma_old
-          real(kind=kind(0.0d0))     :: S0_old, S0_new
-          integer                    :: f, t, nfield, ntau
-
-          Delta_S0_global = 1.d0
-          nfield = size(nsigma%f, 1)
-          ntau = size(nsigma%f, 2)
-          S0_old = 0.0d0
-          S0_new = 0.0d0
-          do t = 1, ntau
-             do f = 1, nfield
-                S0_old = S0_old + real(nsigma_old%f(f, t), kind(0.d0))**2
-                S0_new = S0_new + real(nsigma%f(f, t), kind(0.d0))**2
-             end do
-          end do
-          S0_old = 0.5d0*S0_old
-          S0_new = 0.5d0*S0_new
-          Delta_S0_global = exp(-S0_new + S0_old)
-          !   write(*,*) "S0 old:", S0_old, "S0 new:", S0_new
-          ! S0 = exp( (-Hs_new**2  + nsigma%f(n,nt)**2 ) /2.d0 )
-
-       end function Delta_S0_global
 
     end submodule ham_bose_metal_smod

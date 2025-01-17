@@ -150,7 +150,7 @@ contains
             Latt_Unit%Orb_pos_p(no, 1) = 0.d0
             Latt_Unit%Orb_pos_p(no, 2) = real(no - 1, kind(0.d0))
          end do
-      case ("Bilayer_square")
+      case ("bilayer_square")
          a1_p(1) = 1.0; a1_p(2) = 0.d0
          a2_p(1) = 0.0; a2_p(2) = 1.d0
          L1_p = dble(L1)*a1_p
