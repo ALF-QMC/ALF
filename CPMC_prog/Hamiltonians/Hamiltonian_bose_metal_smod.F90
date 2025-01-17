@@ -406,9 +406,9 @@
                  call op_make(op_v(nc,nf),2)
                  op_v(nc,nf)%p(1) = I
                  op_v(nc,nf)%p(2) = J
-                 op_v(nc,nf)%o(1,2) = cmplx( 1.d0, 0.d0, kind(0.D0)) 
-                 op_v(nc,nf)%o(2,1) = cmplx(-1.d0, 0.d0, kind(0.D0)) 
-                 op_V(nc,nf)%g      = sqrt(cmplx(dtau*ham_u/2.d0, 0.D0, kind(0.D0)))
+                 op_v(nc,nf)%o(1,2) = cmplx(0.d0, -1.d0, kind(0.D0)) 
+                 op_v(nc,nf)%o(2,1) = cmplx(0.d0,  1.d0, kind(0.D0)) 
+                 op_V(nc,nf)%g      = cmplx(0.d0, sqrt(dtau*ham_u/2.d0), kind(0.D0))
                  op_v(nc,nf)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
                  op_v(nc,nf)%type   = 2
                  call op_set(op_v(nc,nf))
