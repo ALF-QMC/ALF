@@ -346,7 +346,7 @@
           ham_tp_vec(1) = 0.d0
 
           select case (Lattice_type)
-          case ("square_anisotropic")
+          case ("bilayer_square")
             call set_hopping_parameters_bilayer_square(Hopping_Matrix, ham_tx_vec, ham_ty_vec, ham_tp_vec, Ham_Chem_vec, &
                    & Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
           end select
@@ -398,6 +398,7 @@
           allocate (op_v(n_ops, n_fl))
           if (abs(ham_u) > zero) then
              nc = 0
+             do nf = 1, n_fl
              do i1 = 1, latt%N
                  nc = nc + 1
                  i = invlist(i1, 1)
@@ -411,6 +412,7 @@
                  op_v(nc,nf)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
                  op_v(nc,nf)%type   = 2
                  call op_set(op_v(nc,nf))
+             end do
              end do
           end if
 
@@ -499,7 +501,7 @@
                 end select
                 nt = ltrot + 1
                 channel = 'T0'
-                call obser_Latt_make(obs_tau(I), nt, Filename, Latt, Latt_unit_p, Channel, dtau)
+                call obser_Latt_make(obs_tau(I), nt, Filename, Latt, Latt_unit, Channel, dtau)
              end do
           end if
 
@@ -699,10 +701,10 @@
                          &   - grc(i1,jdelta_1,1)*grc(idelta_1,j1,1) - grc(i2,jdelta_2,1)*grc(idelta_2,j2,1) )
 
                   enddo
-                  obs_eq(5)%obs_Latt(imj,1,no_i,no_j) = obs_eq(5)%obs_latt(imj,1,no_i,no_j) + cpair(1)*z_fac
-                  obs_eq(6)%obs_Latt(imj,1,no_i,no_j) = obs_eq(6)%obs_latt(imj,1,no_i,no_j) + cpair(2)*z_fac
-                  obs_eq(7)%obs_Latt(imj,1,no_i,no_j) = obs_eq(7)%obs_latt(imj,1,no_i,no_j) + cpair(3)*z_fac
-                  obs_eq(8)%obs_Latt(imj,1,no_i,no_j) = obs_eq(8)%obs_latt(imj,1,no_i,no_j) + cpair(4)*z_fac
+                  obs_eq(5)%obs_Latt(imj,1,1,1) = obs_eq(5)%obs_latt(imj,1,1,1) + cpair(1)*z_fac
+                  obs_eq(6)%obs_Latt(imj,1,1,1) = obs_eq(6)%obs_latt(imj,1,1,1) + cpair(2)*z_fac
+                  obs_eq(7)%obs_Latt(imj,1,1,1) = obs_eq(7)%obs_latt(imj,1,1,1) + cpair(3)*z_fac
+                  obs_eq(8)%obs_Latt(imj,1,1,1) = obs_eq(8)%obs_latt(imj,1,1,1) + cpair(4)*z_fac
                   
               end do
               do no_i = 1, latt_unit%norb

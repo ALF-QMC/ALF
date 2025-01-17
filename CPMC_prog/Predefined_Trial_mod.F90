@@ -110,6 +110,14 @@ contains
 
       allocate (Ham_T_vec(N_FL), Ham_T2_vec(N_FL), Ham_Tperp_vec(N_FL), Ham_Chem_vec(N_FL), Phi_X_vec(N_FL), Phi_Y_vec(N_FL),&
            &    ham_tx_vec(N_FL), ham_ty_vec(N_FL), Ham_lambda_vec(N_FL), N_Phi_vec(N_FL))
+        
+       allocate(wf_l(n_fl,n_slat),wf_r(n_fl,n_slat))
+       do ns=1,n_slat
+       do n=1,n_fl
+          call wf_alloc(wf_l(n,ns),ndim,n_part)
+          call wf_alloc(wf_r(n,ns),ndim,n_part)
+       enddo
+       enddo
 
       Checkerboard = .false.
       Kekule_Trial = .false.
