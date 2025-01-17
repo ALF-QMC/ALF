@@ -648,7 +648,7 @@
                       &  + grc(i2,j2,1)*gr(i2,j2,1) + grc(i2,i2,1)*grc(j2,j2,1) &
                       &  - grc(i1,j2,1)*gr(i1,j2,1) - grc(i1,i1,1)*grc(j2,j2,1) &
                       &  - grc(i2,j1,1)*gr(i2,j1,1) - grc(i2,i2,1)*grc(j1,j1,1)
-                  obs_eq(2)%obs_Latt(imj,1,1,1) = obs_eq(2)%obs_latt(imj,1,1,1) + ztmp*z_fac
+                  obs_eq(3)%obs_Latt(imj,1,1,1) = obs_eq(3)%obs_latt(imj,1,1,1) + ztmp*z_fac
                   
                   !! s wave
                   ztmp = grc(i1,j1,1)*grc(i2,j2,1) - grc(i1,j2,1)*grc(i2,j1,1)
@@ -677,7 +677,7 @@
 
                      cpair(2) = cpair(2) + 0.25d0*ff_s(k1,1)*conjg(ff_s(k2,1))* &
                          & (   grc(i1,j1,1)*grc(idelta_2,jdelta_2,1) + grc(i2,j2,1)*grc(idelta_1,jdelta_1,1) &
-                         &   - grc(i1,jdelta_2,1)*grc(idelta_2,j1,1) - grc(i2,jdelta_2,1)*grc(idelta_1,j2,1) &
+                         &   - grc(i1,jdelta_2,1)*grc(idelta_2,j1,1) - grc(i2,jdelta_1,1)*grc(idelta_1,j2,1) &
                          &   - grc(i1,j2,1)*grc(idelta_2,jdelta_1,1) - grc(i2,j1,1)*grc(idelta_1,jdelta_2,1) &
                          &   + grc(i1,jdelta_1,1)*grc(idelta_2,j2,1) + grc(i2,jdelta_2,1)*grc(idelta_1,j1,1) )
 

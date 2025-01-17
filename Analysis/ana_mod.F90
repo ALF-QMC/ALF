@@ -1426,8 +1426,8 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
 
       Nobs  = size(bins_raw, 1)
       Nbins = size(bins_raw, 2)
-      !!!Ndim  = Latt%N*Latt_Unit%Norb
-      Ndim  = L1*L2
+      !Ndim  = Latt%N*Latt_Unit%Norb
+      Ndim  = L1*L2*2
       N_part = Ndim/2-N_dope
       
       N_FL  = Nobs/Ndim/ndim
