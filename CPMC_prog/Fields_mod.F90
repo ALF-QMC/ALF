@@ -1,59 +1,3 @@
-!  Copyright (C) 2016 - 2023 The ALF project
-!
-!  This file is part of the ALF project.
-!
-!     The ALF project is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     The ALF project is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with ALF.  If not, see http://www.gnu.org/licenses/.
-!
-!     Under Section 7 of GPL version 3 we require you to fulfill the following additional terms:
-!
-!     - It is our hope that this program makes a contribution to the scientific community. Being
-!       part of that community we feel that it is reasonable to require you to give an attribution
-!       back to the original authors if you have benefitted from this program.
-!       Guidelines for a proper citation can be found on the project's homepage
-!       http://alf.physik.uni-wuerzburg.de .
-!
-!     - We require the preservation of the above copyright notice and this license in all original files.
-!
-!     - We prohibit the misrepresentation of the origin of the original source files. To obtain
-!       the original source files please visit the homepage http://alf.physik.uni-wuerzburg.de .
-!
-!     - If you make substantial changes to the program we require you to either consider contributing
-!       to the ALF project or to mark your material in a reasonable way as different from the original version.
-
-!--------------------------------------------------------------------
-!> @author
-!> ALF-project
-!>
-!> @brief
-!> Handles Hubbard Stratonovitch fields.
-!>
-!> @details
-!> A general operator has the form: \f$ \gamma_{n,\tau} e^{ \phi_{n,\tau} g \hat{O}_{n,\tau} }  \f$.
-!>
-!> For  type=1 the fields, f, take two  integer values, \f$\pm 1 \f$ and  \f$ \gamma_{n,\tau}(f) = 1,  \phi_{n,\tau}(f) = f \f$
-!>
-!> For  type=2 the fields, f, take four integer values \f$\pm 1, \pm 2 \f$ and
-!>     \f[ \gamma_{n,\tau}(\pm 1)  = 1 + \sqrt{6}/3,
-!>      \gamma_{n,\tau}(\pm 2)  = 1 - \sqrt{6}/3,  \phi_{n,\tau}(\pm 1) = \pm \sqrt{2  ( 3 - \sqrt{6} ) },
-!>       \phi_{n,\tau}(\pm 2) = \pm \sqrt{2  ( 3 + \sqrt{6} ) }  \f]
-!> For  type=3 the fields, f, are real and  \f$ \gamma_{n,\tau}(f)  = 1, \phi_{n,\tau}(f) = f \f$
-!>
-!> For  type=4   is  for  two  HS  fields  per  vertex,  encoded in the  real  and imaginary parts of f.
-!>                Re(f) = \pm 1, pm 2,  and   Im(f) is  real    with
-!>                 gamma = gamma(Re(f))   and   phi = \sqrt{1 + aimag(f) } eta(real(f))
-!--------------------------------------------------------------------
-
 module Fields_mod
 
 #ifdef MPI
@@ -121,9 +65,6 @@ contains
          Fields_Phi = cmplx(Phi_st(nint(real(this%f(n_op, n_tau))), 2), 0.d0, kind(0.d0))
       case (3)
          Fields_Phi = this%f(n_op, n_tau)
-      case (4)
-         Fields_Phi = cmplx(Phi_st(nint(real(this%f(n_op, n_tau))), 2), 0.d0, kind(0.d0))* &
-              &       sqrt(cmplx(1.d0 + aimag(this%f(n_op, n_tau)), 0.d0, kind(0.d0)))
       case default
          write (error_unit, *) 'Error in Fields_Phi'
          call Terminate_on_error(ERROR_FIELDS, __FILE__, __LINE__)
@@ -151,8 +92,6 @@ contains
          Fields_GAMA = GAMA_st(nint(real(this%f(n_op, n_tau))), 2)
       case (3)
          Fields_GAMA = 1.d0
-      case (4)
-         Fields_GAMA = GAMA_st(nint(real(this%f(n_op, n_tau))), 2)
       case default
          write (error_unit, *) 'Error in Fields_GAMA'
          call Terminate_on_error(ERROR_FIELDS, __FILE__, __LINE__)
@@ -181,31 +120,6 @@ contains
          Fields_flip = cmplx(Flip_st(nint(real(this%f(n_op, n_tau))), nranf(3)), 0.d0, kind(0.d0))
       case (3)
          Fields_flip = cmplx(real(this%f(n_op, n_tau)) + Amplitude*(ranf_wrap() - 0.5d0), 0.d0, kind(0.d0))
-      case (4)
-         select case (this%Flip_Protocol(n_op))
-         case (1) ! Flip one of  the  two  fields randomly,  this is the  default
-            if (ranf_wrap() > 0.5d0) then
-               Fields_flip = cmplx(Flip_st(nint(real(this%f(n_op, n_tau))), nranf(3)), &
-                    &                 aimag(this%f(n_op, n_tau)), kind(0.d0))
-            else
-               Fields_flip = cmplx(real(this%f(n_op, n_tau)), &
-                    &                 aimag(this%f(n_op, n_tau)) + Amplitude*(ranf_wrap() - 0.5d0), kind(0.d0))
-            end if
-         case (2) ! Flip both  fields
-            Fields_flip = cmplx(Flip_st(nint(real(this%f(n_op, n_tau))), nranf(3)), &
-                 &                 aimag(this%f(n_op, n_tau)) + Amplitude*(ranf_wrap() - 0.5d0), kind(0.d0))
-
-         case (3) ! Flip only  the  real  part
-            Fields_flip = cmplx(Flip_st(nint(real(this%f(n_op, n_tau))), nranf(3)), &
-                 &                 aimag(this%f(n_op, n_tau)), kind(0.d0))
-         case (4) ! Flip only  the   impaginary  part
-            Fields_flip = cmplx(real(this%f(n_op, n_tau)), &
-                 &                 aimag(this%f(n_op, n_tau)) + Amplitude*(ranf_wrap() - 0.5d0), kind(0.d0))
-         case default
-            write (error_unit, *) 'No flip protocol provided for  field. '
-            call Terminate_on_error(ERROR_FIELDS, __FILE__, __LINE__)
-         end select
-
       case default
          write (error_unit, *) 'Error in Fields. '
          call Terminate_on_error(ERROR_FIELDS, __FILE__, __LINE__)
@@ -215,20 +129,6 @@ contains
 
 !-------------------------------------------------------------------
 
-   integer function Fields_get_i(this, n_op, n_tau)
-
-      implicit none
-      class(Fields) :: this
-      integer, intent(IN) ::  n_op, n_tau
-
-      if (this%t(n_op) == 1 .or. this%t(n_op) == 2) then
-         Fields_get_i = nint(real(this%f(n_op, n_tau)))
-      else
-         write (error_unit, *) "Error in fields"
-         call Terminate_on_error(ERROR_FIELDS, __FILE__, __LINE__)
-      end if
-
-   end function Fields_get_i
 !-------------------------------------------------------------------
    subroutine Fields_make(this, N_OP, N_tau)
       implicit none
@@ -353,15 +253,9 @@ contains
 #endif
 
 #if defined(MPI)
-#if defined(TEMPERING)
-      write (FILE1, '(A,I0,A)') "Temp_", igroup, "/confin_0"
-      write (FILE_TG, '(A,I0,A,I0)') "Temp_", igroup, "/confin_", irank_g
-      write (FILE_info, '(A,I0,A)') "Temp_", igroup, "/info"
-#else
       File1 = "confin_0"
       write (FILE_TG, '(A,I0)') "confin_", irank_g
       FILE_info = "info"
-#endif
 #else
       File1 = "confin_0"
       FILE_TG = "confin_0"
@@ -435,7 +329,6 @@ contains
             end if
 #endif
          end if
-         call Fields_test(this)
 
          end subroutine Fields_in
 !--------------------------------------------------------------------
@@ -476,11 +369,7 @@ contains
             call MPI_Comm_size(Group_Comm, isize_g, ierr)
             igroup = irank/isize_g
             !Write(6,*) "Group, rank :", igroup, irank_g
-#if defined(TEMPERING)
-            write (FILE_TG, '(A,I0,A,I0)') "Temp_", igroup, "/confout_", irank_g
-#else
             write (FILE_TG, '(A,I0)') "confout_", irank_g
-#endif
 #else
             FILE_TG = "confout_0"
 #endif
@@ -491,69 +380,6 @@ contains
             call this%write_conf(FILE_TG)
 
          end subroutine Fields_out
-
-!--------------------------------------------------------------------
-!> @author
-!> ALF-project
-!>
-!> @brief
-!> Test if the field values are consistent with the field types.
-!>
-!> @details
-!>
-!> @param [INOUT] this
-!> \verbatim
-!> Type Fields
-!> \endverbatim
-!--------------------------------------------------------------------
-         subroutine Fields_test(this)
-
-            implicit none
-
-            class(Fields), intent(INOUT) :: this
-
-            integer :: nt, I, I1
-
-            !Write(6,*) "Fields_set", size(this%f,1), size(this%f,2)
-            do nt = 1, size(this%f, 2)
-               do I = 1, size(this%f, 1)
-                  select case (this%t(i))
-                  case (1)
-                     ! Field should be 1 or -1
-                     if (abs(this%f(I, nt)) - 1.d0 > 1e-8 .or. abs(aimag(this%f(I, nt))) > 1e-8) then
-                        write (error_unit, '("A","I0","A","I0","A","I0","A","I0")') &
-                          & "Field I=", I, " nt=", nt, "value=", this%f(I, nt), " does not fit to type ", this%t(i)
-                        call Terminate_on_error(ERROR_FIELDS, __FILE__, __LINE__)
-                     end if
-                  case (2)
-                     ! Field should be 1, -1, 2, or -2
-           if ((abs(this%f(I, nt)) - 1.d0 > 1e-8 .and. abs(this%f(I, nt)) - 2.d0 > 1e-8) .or. abs(aimag(this%f(I, nt))) > 1e-8) then
-                        write (error_unit, '("A","I0","A","I0","A","I0","A","I0")') &
-                          & "Field I=", I, " nt=", nt, "value=", this%f(I, nt), " does not fit to type ", this%t(i)
-                        call Terminate_on_error(ERROR_FIELDS, __FILE__, __LINE__)
-                     end if
-                  case (3)
-                     ! Field should be real
-                     if (abs(aimag(this%f(I, nt))) > 0) then
-                        write (error_unit, '("A","I0","A","I0","A","I0","A","I0")') &
-                          & "Field I=", I, " nt=", nt, "value=", this%f(I, nt), " does not fit to type ", this%t(i)
-                        call Terminate_on_error(ERROR_FIELDS, __FILE__, __LINE__)
-                     end if
-                  case (4)
-                     ! Real part of Field should be 1, -1, 2, or -2
-                     if (abs(real(this%f(I, nt))) - 1.d0 > 1e-8 .and. abs(real(this%f(I, nt))) - 2.d0 > 1e-8) then
-                        write (error_unit, '("A","I0","A","I0","A","I0","A","I0")') &
-                          & "Real part of field I=", I, " nt=", nt, "value=", this%f(I, nt), " does not fit to type ", this%t(i)
-                        call Terminate_on_error(ERROR_FIELDS, __FILE__, __LINE__)
-                     end if
-                  case default
-                     write (error_unit, '("A","I0","A","I0")') "Field ", I, " has unrecongnized type ", this%t(i)
-                     call Terminate_on_error(ERROR_FIELDS, __FILE__, __LINE__)
-                  end select
-               end do
-            end do
-
-         end subroutine Fields_test
 
 !--------------------------------------------------------------------
          !> @author

@@ -55,11 +55,11 @@ contains
       call ZGEMM('C', 'N', N_part, N_part, Ndim, alpha, WF_L%P(1, 1), Ndim, WF_R%P(1, 1), Ndim, beta, Mat(1, 1), N_part)
       ! Mat = (WL_L%P)^{dagger} WL_L%R
 
-      z_norm = Det(Mat, N_part)
+      Z_norm = Det(Mat, N_part)
 
-      z_norm = (cmplx(1.d0, 0.d0, kind(0.d0))/Z_norm)**(1.d0/real(N_part, kind(0.d0)))
+      Z_norm = (cmplx(1.d0, 0.d0, kind(0.d0))/Z_norm)**(1.d0/real(N_part, kind(0.d0)))
 
-      wf_r%p = z_norm*wf_r%P
+      WF_R%P = Z_norm*WF_R%P
 
       deallocate (Mat)
 

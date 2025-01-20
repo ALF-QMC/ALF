@@ -147,11 +147,7 @@ contains
       character(len=64) :: file1
 
       if (any(A /= A)) then
-#if defined(TEMPERING)
-         write (File1, '(A,I0,A)') "Temp_", igroup, "/info"
-#else
          File1 = "info"
-#endif
          open (Unit=50, file=file1, status="unknown", position="append")
          write (50, *)
 #ifdef MPI
@@ -170,11 +166,7 @@ contains
       end if
 
       if (any(B /= B)) then
-#if defined(TEMPERING)
-         write (File1, '(A,I0,A)') "Temp_", igroup, "/info"
-#else
          File1 = "info"
-#endif
          open (Unit=50, file=file1, status="unknown", position="append")
          write (50, *)
 #ifdef MPI
@@ -195,11 +187,7 @@ contains
       NCG = NCG + 1
       call COMPARE(A, B, XMAX, XMEAN)
       if (XMAX > 10.d0) then
-#if defined(TEMPERING)
-         write (File1, '(A,I0,A)') "Temp_", igroup, "/info"
-#else
          File1 = "info"
-#endif
          open (Unit=50, file=file1, status="unknown", position="append")
          write (50, *)
 #ifdef MPI
@@ -369,11 +357,7 @@ contains
 
 #endif
 
-#if defined(TEMPERING)
-      write (File1, '(A,I0,A)') "Temp_", igroup, "/info"
-#else
       File1 = "info"
-#endif
 
 #if defined(MPI)
       if (Irank_g == 0) then
@@ -395,9 +379,6 @@ contains
          if (NC_eff_up > 0) then
             write (50, *) ' Effective Acceptance       : ', ACC_eff
          end if
-#if defined(TEMPERING)
-         write (50, *) ' Acceptance Tempering       : ', ACC_Temp
-#endif
          if (ACC_Glob > 1.d-200) then
             write (50, *) ' Acceptance_Glob              : ', ACC_Glob
             write (50, *) ' Mean Phase diff Glob         : ', XMEANP_Glob

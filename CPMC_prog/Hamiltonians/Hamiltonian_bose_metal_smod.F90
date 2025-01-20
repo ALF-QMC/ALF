@@ -32,8 +32,8 @@
        !#PARAMETERS START# VAR_lattice
        character(len=64) :: Model = "bose_metal"  ! Value not relevant
        character(len=64) :: Lattice_type = "square_anisotropic"
-       integer           :: L1 = 6   ! Length in direction a_1
-       integer           :: L2 = 6   ! Length in direction a_2
+       integer            :: L1 = 6   ! Length in direction a_1
+       integer            :: L2 = 6   ! Length in direction a_2
        !#PARAMETERS END#
 
        !#PARAMETERS START# VAR_Model_Generic
@@ -410,10 +410,11 @@
 !> Specifiy the equal time and time displaced observables
 !> @details
 !--------------------------------------------------------------------
-       subroutine alloc_obs
+       subroutine alloc_obs(ltau)
 
           implicit none
           !>  Ltau=1 if time displaced correlations are considered.
+          integer, intent(In) :: ltau
           integer    ::  i, N, Nt
           character(len=64) ::  Filename
           character(len=:), allocatable ::  Channel
@@ -437,11 +438,11 @@
              case default
                 write (6, *) ' Error in Alloc_obs '
              end select
-             call Obser_Vec_make(Obs_scal(I), N, Filename)
+             call obser_Vec_make(Obs_scal(I), N, Filename)
           end do
 
           ! Equal time correlators
-          allocate (Obs_eq(8))
+          allocate (Obs_eq(9))
           do I = 1, size(Obs_eq, 1)
              select case (I)
              case (1)
@@ -460,15 +461,17 @@
                 Filename = "pxwave"
              case (8)
                 Filename = "pywave"
+             case (9)
+                Filename = "pzwave"
              case default
                 write (6, *) ' Error in Alloc_obs '
              end select
              Nt = 1
              Channel = '--'
-             call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
+             call obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
           end do
 
-       end subroutine Alloc_obs
+       end subroutine alloc_obs
 
 !--------------------------------------------------------------------
 !> @author
@@ -490,14 +493,15 @@
 !>  Time slice
 !> \endverbatim
 !-------------------------------------------------------------------
-       subroutine obser(GR, GR_mix, i_wlk, i_grc, sum_w, sum_o, act_mea)
+       subroutine obser(gr, gr_mix, i_grc, re_w, sum_w, sum_o)
 
           implicit none
 
-          complex(Kind=kind(0.d0)), intent(IN) :: GR(Ndim, Ndim, N_FL)
-          complex(Kind=kind(0.d0)), intent(IN) :: GR_mix(Ndim, Ndim, N_FL)
-          complex(Kind=kind(0.d0)), intent(IN) :: sum_w, sum_o
-          integer, intent(IN) :: i_wlk, i_grc, act_mea
+          complex(kind=kind(0.d0)), intent(in) :: gr(Ndim, Ndim, N_FL)
+          complex(kind=kind(0.d0)), intent(in) :: gr_mix(Ndim, Ndim, N_FL)
+          complex(kind=kind(0.d0)), intent(in) :: sum_w, sum_o
+          real   (kind=kind(0.d0)), intent(in) :: re_w
+          integer, intent(in) :: i_grc
 
           !Local
           complex(Kind=kind(0.d0)) :: grc(Ndim, Ndim, N_FL), ZK, zone, ztmp, z_ol, zero, ztmp1, ztmp2, ztmp3, ztmp4
@@ -507,7 +511,7 @@
           real(Kind=kind(0.d0)) :: X
 
           Z_ol = exp(overlap(i_grc))/sum_o
-          ZW = cmplx(weight_k(i_wlk), 0.d0, kind(0.d0))/sum_w
+          ZW = cmplx(re_w, 0.d0, kind(0.d0))/sum_w
           Z_fac = Z_ol*ZW
 
           do nf = 1, N_FL
@@ -519,20 +523,6 @@
              end do
           end do
           ! GRC(i,j,nf) = < c^{dagger}_{i,nf } c_{j,nf } >
-
-          if (act_mea .eq. 0) then
-             ! Compute scalar observables.
-             do i = 1, size(obs_scal, 1)
-                obs_scal(i)%n = obs_scal(i)%n + 1
-                obs_scal(i)%ave_sign = obs_scal(i)%ave_sign + 1.d0
-             end do
-
-             ! Compute the standard two-point correlations
-             do i = 1, size(obs_eq, 1)
-                obs_eq(i)%n = obs_eq(i)%n + 1
-                obs_eq(i)%ave_sign = obs_eq(i)%ave_sign + 1.d0
-             end do
-          end if
 
           Zkin = cmplx(0.d0, 0.d0, kind(0.d0))
           call Predefined_Hoppings_Compute_Kin(Hopping_Matrix, List, Invlist, Latt, Latt_unit, GRC, ZKin)
@@ -647,6 +637,9 @@
                   obs_eq(6)%obs_Latt(imj,1,no_i,no_j) = obs_eq(6)%obs_latt(imj,1,no_i,no_j) + cpair(2)*z_fac
                   obs_eq(7)%obs_Latt(imj,1,no_i,no_j) = obs_eq(7)%obs_latt(imj,1,no_i,no_j) + cpair(3)*z_fac
                   obs_eq(8)%obs_Latt(imj,1,no_i,no_j) = obs_eq(8)%obs_latt(imj,1,no_i,no_j) + cpair(4)*z_fac
+                  obs_eq(9)%obs_Latt(imj,1,no_i,no_j) = obs_eq(9)%obs_latt(imj,1,no_i,no_j) + &
+                      & ( grc(i1,j1,1)*grc(idl(1),jdl(1),2) + grc(i1,j1,2)*grc(idl(1),jdl(1),1)  &
+                      & - grc(i1,jdl(1),1)*grc(idl(1),j1,2) - grc(i1,jdl(1),2)*grc(idl(1),j1,1) )*z_fac
                   
               end do
               zback = grc(i1, i1, 2) - grc(i1, i1, 1)
@@ -694,10 +687,10 @@
           end do
           zpot = zpot*(-ham_u/2.d0)
 
-          E0_local = zpot + zkin
+          E0_local = Zpot + ZKin
 
        end function E0_local
-
+       
        !!========================================================================!!
        !!     set up the shift of auxillary field for importance sampling
        !!========================================================================!!
@@ -740,7 +733,6 @@
          
        end subroutine set_xloc
 
-
        !!===================================================================!!
        !!     compute the sum of the weight and rescale weight
        !!===================================================================!!
@@ -753,8 +745,8 @@
           integer :: i_wlk, ii, i_st, i_ed
           real   (Kind=kind(0.d0)) :: X1, tot_re_weight, max_re_w, ang_w, re_lw
           complex(Kind=kind(0.d0)) :: Z1, Z2, wtmp
-
-          real(Kind=kind(0.d0)), allocatable :: weight_mpi(:), w_arr(:)
+          
+          complex(Kind=kind(0.d0)), allocatable :: weight_mpi(:), w_arr(:)
 
 #ifdef MPI
           integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
@@ -765,7 +757,7 @@
           call MPI_Comm_size(Group_Comm, isize_g, ierr)
           igroup = irank/isize_g
 #endif
-
+          
           if ( irank_g .eq. 0 ) then
               allocate(weight_mpi(N_wlk_mpi))
               allocate(w_arr     (N_wlk    ))
@@ -773,7 +765,7 @@
               i_ed = N_wlk
               weight_mpi(i_st:i_ed) = weight_k(:)
           endif
-
+          
           if ( irank_g .eq. 0 ) then
               do ii = 1, isize_g - 1
                  i_st = ii*N_wlk + 1
@@ -790,18 +782,20 @@
               deallocate(weight_mpi, w_arr)
           endif
           call MPI_BCAST(max_re_w, 1, MPI_REAL8, 0, MPI_COMM_WORLD, ierr)
-      
+
           Z1 = cmplx(0.d0, 0.d0, kind(0.d0))
           Z2 = cmplx(0.d0, 0.d0, kind(0.d0))
           do i_wlk = 1, N_wlk
-             weight_k(i_wlk) = weight_k(i_wlk) - max_re_w
              ang_w = aimag(weight_k(i_wlk)) 
-             re_lw = dble (weight_k(i_wlk))
              !! Real part of the weight
-             if ( cos(ang_w) .gt. 0.d0 ) Z1 = Z1 + exp(re_lw)*cos(ang_w)
+             if ( cos(ang_w) .gt. 0.d0 ) then 
+                 weight_k(i_wlk) = weight_k(i_wlk) - max_re_w
+                 re_lw = dble (weight_k(i_wlk))
+                 z1 = z1 + exp(re_lw)*cos(ang_w)
+             endif
           end do
           call MPI_REDUCE(Z1, Z2, 1, MPI_COMPLEX16, MPI_SUM, 0, Group_comm, IERR)
-          call MPI_BCAST(Z2, 1, MPI_COMPLEX16, 0, MPI_COMM_WORLD, ierr)
+          call MPI_BCAST (Z2, 1, MPI_COMPLEX16, 0, MPI_COMM_WORLD, ierr)
 
           z_sum_weight = Z2
 
@@ -820,8 +814,8 @@
           integer :: i_wlk, ii, i_st, i_ed, ns, i_grc
           real   (Kind=kind(0.d0)) :: X1, re_w_tmp, max_re_w, ang_w, re_lw
           complex(Kind=kind(0.d0)) :: Z1, Z2, wtmp, el_tmp, Z, tot_ene, zr1, zr2
-
-          real(Kind=kind(0.d0)), allocatable :: weight_mpi(:), w_arr(:)
+          character(LEN=64)  :: filename
+          complex(Kind=kind(0.d0)), allocatable :: weight_mpi(:), w_arr(:)
 
 #ifdef MPI
           integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
@@ -832,6 +826,7 @@
           call MPI_Comm_size(Group_Comm, isize_g, ierr)
           igroup = irank/isize_g
 #endif
+          filename = "E_local.dat"
 
           if ( irank_g .eq. 0 ) then
               allocate(weight_mpi(N_wlk_mpi))
@@ -861,11 +856,12 @@
           Z1 = cmplx(0.d0, 0.d0, kind(0.d0))
           Z2 = cmplx(0.d0, 0.d0, kind(0.d0))
           do i_wlk = 1, N_wlk
-             weight_k(i_wlk) = weight_k(i_wlk) - max_re_w
              ang_w = aimag(weight_k(i_wlk)) 
-             re_lw = dble (weight_k(i_wlk))
              !! Real part of the weight
              if ( cos(ang_w) .gt. 0.d0 ) then
+                 weight_k(i_wlk) = weight_k(i_wlk) - max_re_w
+                 re_lw = dble (weight_k(i_wlk))
+                 
                  z = 0.d0
                  do ns = 1, N_slat
                     i_grc = ns + (i_wlk - 1)*N_slat

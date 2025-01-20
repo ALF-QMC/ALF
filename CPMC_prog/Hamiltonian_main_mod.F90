@@ -1,96 +1,3 @@
-!--------------------------------------------------------------------
-!> @author
-!> ALF-project
-!>
-!> @brief
-!> This module defines the interface between the Hamiltonians (= model and observables definition) and
-!> the Monte Carlo core. Hamiltonians are defined as submodules of this module. The Monte Carlo core
-!> has only access to public members of this module. For defining a new Hamiltonian named <new_ham_name>,
-!> the user has to create the file Hamiltonians/Hamiltonian_<new_ham_name>_smod.F90 and add the line
-!> <new_ham_name> to Hamiltonians.list.
-
-!> @details
-!> The public variables of this module are the following
-!>
-!>
-!> @param [public] ham
-!> \verbatim
-!> class(ham_base), allocatable
-!> Object that contains all the Hamiltonian-specific procedures needed by the Monte Carlo core.
-!> The procedures can be overloaded in the Hamiltonians. \endverbatim
-!>
-!> @param [public] OP_V
-!> \verbatim
-!> Type (Operator), dimension(:,:), allocatable
-!> List of operators of type=1,2 and 3 describing the sequence of interactions on a time slice.
-!> The first index runs over this sequence. The second corresponds to the flavor index.  \endverbatim
-!>
-!> @param [public] OP_T
-!> \verbatim
-!> Type (Operator), dimension(:,:), allocatable
-!> Sequence of  operators  accounting for the  hopping on a  time slice. This can include  various
-!> checkerboard decompositions. The first index runs over this sequence. The second corresponds to
-!> the flavor index. \endverbatim
-!> *  The progagation reads:
-!> \f$ \prod_{\tau} \; \;  \prod_{n=1}^{N_V}e^{V_n(\tau)}  \prod_{n=1}^{N_T}e^{T_n}  \f$.  That is
-!> first the hopping and then the potential energy.
-!>
-!>@param [public] WF_L
-!> \verbatim Type (WaveFunction), dimension(:),   allocatable
-!> Left trial wave function.  \endverbatim
-!>
-!> @param [public] WF_R
-!> \verbatim Type (WaveFunction), dimension(:),   allocatable
-!> Right trial wave function.   For both wave functions the index runs over the flavor index. \endverbatim
-!>
-!> @param [public]  nsigma
-!> \verbatim Type(Fields)
-!> Contains all auxiliary fields in the variable f(:,:). The first index runs through the operator
-!> sequence. The second through the time slices.   \endverbatim
-!
-!> @param [public]  Ndim
-!> \verbatim Integer
-!> Total number of orbitals. e.g. # unit cells * # orbitals per unit cell.  \endverbatim
-!
-!> @param [public]  N_FL
-!> \verbatim Integer
-!> # of flavors.  Propagation is block diagonal in flavors.  \endverbatim
-!
-!> @param [public]  N_SUN
-!> \verbatim Integer
-!> # of colors.  Propagation is color independent.  \endverbatim
-!>
-!> @param [public] Ltrot
-!> \verbatim Integer
-!> Available measurment interval in units of Delta Tau. \endverbatim
-!>
-!> @param [public] Thtrot
-!>  \verbatim Integer
-!> Effective projection parameter in units of Delta Tau.  (Only relevant if projective option is turned on) \endverbatim
-!>
-!> @param [public] Projector
-!> \verbatim Logical
-!> Flag for projector. If true then the total number of time slices will correspond to Ltrot + 2*Thtrot \endverbatim
-!>
-!> @param [public] Group_Comm
-!> \verbatim Integer
-!> Defines MPI communicator  \endverbatim
-!
-!> @param [public] Symm
-!> \verbatim Logical  \endverbatim
-!> If set to true then the green functions will be symmetrized
-!> before being  sent to the Obser, ObserT subroutines.
-!> In particular, the transformation,  \f$ \tilde{G} =  e^{-\Delta \tau T /2 } G e^{\Delta \tau T /2 } \f$
-!> will be carried out  and \f$ \tilde{G} \f$  will be sent to the Obser and ObserT subroutines.  Note that
-!> if you want to use this  feature, then you have to be sure the hopping and interaction terms are decomposed
-!> symmetrically. If Symm is true, the propagation reads:
-!> \f$ \prod_{\tau} \; \;  \prod_{n=N_T}^{1}e^{T_n/2} \prod_{n=1}^{N_V}e^{V_n(\tau)}  \prod_{n=1}^{N_T}e^{T_n/2}  \f$
-!>
-!>
-!> You still have to add some docu for the other private variables in this module.
-!>
-!--------------------------------------------------------------------
-
 module Hamiltonian_main
    use runtime_error_mod
    use Operator_mod, only: operator
@@ -116,11 +23,9 @@ module Hamiltonian_main
       procedure, nopass :: sum_weight => sum_weight_base
       procedure, nopass :: update_fac_norm => update_fac_norm_base
       procedure, nopass :: Pr_obs => Pr_obs_base
+      procedure, nopass :: Count_obs => Count_obs_base
       procedure, nopass :: Init_obs => Init_obs_base
-      procedure, nopass :: Init_obs_mc => Init_obs_mc_base
       procedure, nopass :: s0 => s0_base
-      procedure, nopass :: bp_obsert => bp_obsert_base
-      procedure, nopass :: obsert_mc => obsert_mc_base
       procedure, nopass :: set_xloc => set_xloc_base
 
 #ifdef HDF5
@@ -147,32 +52,17 @@ module Hamiltonian_main
    integer, public        :: Group_Comm
    logical, public        :: Symm
 
-   complex(kind=kind(0.d0)), public :: fac_norm
-   complex(kind=kind(0.d0)), dimension(:), allocatable, public :: weight_k
-   complex(kind=kind(0.d0)), dimension(:), allocatable, public :: overlap
+   complex(Kind=kind(0.d0)), public :: fac_norm
+   complex(Kind=kind(0.d0)), dimension(:), allocatable, public :: weight_k
+   complex(Kind=kind(0.d0)), dimension(:), allocatable, public :: overlap
    complex(kind=kind(0.d0)), dimension(:), allocatable, public :: x_local
 
    !>    Privat Observables
-   type(obser_Vec) , dimension(:), allocatable :: obs_scal
-   type(obser_Latt), dimension(:), allocatable :: obs_eq
-   type(obser_Latt), dimension(:), allocatable :: obs_tau
+   type(Obser_Vec),  dimension(:), allocatable :: obs_scal
+   type(Obser_Latt), dimension(:), allocatable :: obs_eq
+   type(Obser_Latt), dimension(:), allocatable :: obs_tau
 
 #include "Hamiltonians_interface.h"
-!!$      This file will  be dynamically generated and appended
-!!$      interface
-!!$         module subroutine Ham_Alloc_Kondo()
-!!$         end subroutine Ham_Alloc_Kondo
-!!$         module subroutine Ham_Alloc_Hubbard()
-!!$         end subroutine Ham_Alloc_Hubbard
-!!$         module subroutine Ham_Alloc_Hubbard_Plain_Vanilla()
-!!$         end subroutine Ham_Alloc_Hubbard_Plain_Vanilla
-!!$         module subroutine Ham_Alloc_tV()
-!!$         end subroutine Ham_Alloc_tV
-!!$         module subroutine Ham_Alloc_LRC()
-!!$         end subroutine Ham_Alloc_LRC
-!!$         module subroutine Ham_Alloc_Z2_Matter()
-!!$         end subroutine Ham_Alloc_Z2_Matter
-!!$      end interface
 
 contains
 
@@ -237,10 +127,11 @@ contains
    !> Specifiy the equal time and time displaced observables
    !> @details
    !--------------------------------------------------------------------
-   subroutine Alloc_obs_base
+   subroutine Alloc_obs_base(Ltau)
 
       implicit none
       !>  Ltau=1 if time displaced correlations are considered.
+      integer, intent(In) :: Ltau
       write (error_unit, *) "Warning: Alloc_obs not implemented."
    end subroutine Alloc_obs_base
 
@@ -260,14 +151,15 @@ contains
    !>  Time slice
    !> \endverbatim
    !-------------------------------------------------------------------
-   subroutine Obser_base(GR, GR_mix, i_wlk, i_grc, sum_w, sum_o, act_mea)
+   subroutine Obser_base(GR, GR_mix, i_grc, re_w, sum_w, sum_o)
 
       implicit none
 
       complex(Kind=kind(0.d0)), intent(IN) :: GR(Ndim, Ndim, N_FL)
       complex(Kind=kind(0.d0)), intent(IN) :: GR_mix(Ndim, Ndim, N_FL)
       complex(Kind=kind(0.d0)), intent(IN) :: sum_w, sum_o
-      integer, intent(IN) :: i_wlk, i_grc, act_mea
+      real   (Kind=kind(0.d0)), intent(IN) :: re_w
+      integer, intent(IN) :: i_grc
       logical, save              :: first_call = .true.
 
       if (first_call) then
@@ -296,13 +188,14 @@ contains
    !>  GTT(I,J,nf) = <T c_{I,nf }(tau) c^{dagger}_{J,nf }(tau)>
    !> \endverbatim
    !-------------------------------------------------------------------
-   subroutine ObserT_base(NT, GT0, G0T, G00, GTT, i_wlk, i_grc, sum_w, sum_o, act_mea)
+   subroutine ObserT_base(NT, GT0, G0T, G00, GTT, i_grc, re_w, sum_w, sum_o)
       implicit none
 
-      integer, intent(IN) :: NT, i_wlk, i_grc, act_mea
+      integer, intent(IN) :: NT, i_grc
       complex(Kind=kind(0.d0)), intent(IN) :: GT0(Ndim, Ndim, N_FL), G0T(Ndim, Ndim, N_FL)
       complex(Kind=kind(0.d0)), intent(IN) :: G00(Ndim, Ndim, N_FL), GTT(Ndim, Ndim, N_FL)
       complex(Kind=kind(0.d0)), intent(IN) :: sum_w, sum_o
+      real   (Kind=kind(0.d0)), intent(IN) :: re_w
       logical, save              :: first_call = .true.
 
       if (first_call) then
@@ -311,24 +204,6 @@ contains
       end if
 
    end subroutine ObserT_base
-
-   subroutine bp_obsert_base(i_wlk, sum_w, act_mea)
-      implicit none
-
-      integer, intent(in) :: i_wlk, act_mea
-      complex(Kind=kind(0.d0)), intent(in) :: sum_w
-
-   end subroutine bp_obsert_base
-
-   subroutine obsert_mc_base(nt, gt0, g0t, g00, gtt, overlap_mc)
-      implicit none
-
-      integer, intent(IN) :: nt
-      complex(Kind=kind(0.d0)), intent(IN) :: gt0(ndim, ndim, n_fl, n_grc), g0t(ndim, ndim, n_fl, n_grc)
-      complex(Kind=kind(0.d0)), intent(IN) :: g00(ndim, ndim, n_fl, n_grc), gtt(ndim, ndim, n_fl, n_grc)
-      complex(Kind=kind(0.d0)), intent(IN) :: overlap_mc(n_grc)
-
-   end subroutine obsert_mc_base
 
    complex(Kind=kind(0.d0)) function E0_local_base(GR)
       implicit none
@@ -358,7 +233,7 @@ contains
    subroutine update_fac_norm_base(GR, ntw)
       implicit none
 
-      complex(Kind=kind(0.d0)), intent(in) :: GR(Ndim, Ndim, N_FL, N_wlk)
+      complex(Kind=kind(0.d0)), intent(in) :: GR(Ndim, Ndim, N_FL, N_grc)
       integer, intent(in) :: ntw
 
    end subroutine update_fac_norm_base
@@ -396,6 +271,34 @@ contains
       end if
 
    end subroutine Pr_obs_base
+   
+   subroutine Count_obs_base
+
+      implicit none
+
+      !Local
+      integer :: I
+
+      if (allocated(obs_scal)) then
+         do i = 1, size(obs_scal, 1)
+            obs_scal(i)%n = obs_scal(i)%n + 1
+            obs_scal(i)%ave_sign = obs_scal(i)%ave_sign + 1.d0
+         end do
+      end if
+      if (allocated(obs_eq)) then
+         do i = 1, size(obs_eq, 1)
+            obs_eq(i)%n = obs_eq(i)%n + 1
+            obs_eq(i)%ave_sign = obs_eq(i)%ave_sign + 1.d0
+         end do
+      end if
+      if (allocated(obs_tau)) then
+         do i = 1, size(obs_tau, 1)
+            obs_tau(i)%n = obs_tau(i)%n + 1
+            obs_tau(i)%ave_sign = obs_tau(i)%ave_sign + 1.d0
+         end do
+      end if
+
+   end subroutine Count_obs_base
 
    !--------------------------------------------------------------------
    !> @author
@@ -433,12 +336,6 @@ contains
       end if
 
    end subroutine Init_obs_base
-
-   subroutine Init_obs_mc_base
-
-      implicit none
-
-   end subroutine Init_obs_mc_base
 
 #ifdef HDF5
    subroutine write_parameters_hdf5_base(filename)
