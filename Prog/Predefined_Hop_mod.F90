@@ -1485,6 +1485,20 @@
 
       end Subroutine Symmetrize_Families
 
+
+      Logical pure function is_pinned_vertex(I, J, N_pinned_vertices, pinned_vertices)
+         integer, intent(in) :: I, J, N_pinned_vertices, pinned_vertices(N_pinned_vertices, 2)
+         integer :: n
+
+         is_pinned_vertex = .false.
+         do n = 1, N_pinned_vertices
+            if ((I == pinned_vertices(n,1) .and. J == pinned_vertices(n,2)) .or. &
+                (I == pinned_vertices(n,1) .and. J == pinned_vertices(n,2))) then
+               is_pinned_vertex = .true.
+            endif
+         enddo
+      end function is_pinned_vertex
+
 !--------------------------------------------------------------------
 !> @author
 !> ALF-project
@@ -1494,7 +1508,7 @@
 !> the routine allocates and sets OP_T.
 !
 !--------------------------------------------------------------------
-      Subroutine Predefined_Hoppings_set_OPT(this,List,Invlist,Latt,  Latt_unit,  Dtau,Checkerboard, Symm,  OP_T )
+      Subroutine Predefined_Hoppings_set_OPT(this,List,Invlist,Latt,  Latt_unit,  Dtau,Checkerboard, Symm, OP_T, pinned_vertices, pinning_factor)
 
         Implicit none
 
@@ -1504,11 +1518,15 @@
         Type(Unit_cell),Intent(in)                          :: Latt_unit
         Real (Kind=Kind(0.d0)), Intent(In)                  :: Dtau
         Logical, Intent(IN)                                 :: Checkerboard, Symm
-
+        
         Type(Operator), Intent(Out),  dimension(:,:), allocatable  :: Op_T
-
-
-
+        
+        ! Indices of pinned vertices. Shape [N_pinned_vertices, 2]
+        Integer, Intent(IN), optional                       :: pinned_vertices(:,:)
+        ! Factor, by which the vertex matrix elements will get multiplied.
+        Real (Kind=Kind(0.d0)), Intent(IN), optional        :: pinning_factor
+        
+        
         ! Local
         Integer                           :: Ndim, N_FL, N_Phi, I, J, I1, J1, no_I, no_J, nf
         Integer                           :: n_1, n_2, Nb, n_f,l_f, n_l, N, nc, orb
@@ -1516,6 +1534,21 @@
         Logical                           :: Bulk
         Complex(Kind=Kind(0.d0))          :: Z
 
+        Integer                           :: N_pinned_vertices
+
+        if( (present(pinned_vertices) .and. .not.present(pinning_factor)) .or. &
+            (.not.present(pinned_vertices) .and. present(pinning_factor)) ) then
+           write(error_unit, *) 'Both pinned_vertices and pinning_factor need to be supplied for pinning.'
+           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+        endif
+
+        if(present(pinned_vertices)) N_pinned_vertices = size(pinned_vertices, 1)
+        if(size(pinned_vertices, 2) .ne. 2) then
+           write(error_unit, *) 'Second dimension of pinned_vertices has to be 2.'
+           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+        endif
+
+        
         N_FL =  size(this,1)
         !Write(6,*)  'N_FL ', N_FL
         Ndim =  Latt%N * Latt_Unit%Norb
@@ -1570,6 +1603,9 @@
                        Z    = Generic_hopping(I,no_I, n_1, n_2, no_J, N_Phi, Phi_x,Phi_y, Bulk, Latt, Latt_Unit)
                        I1   = Invlist(I,no_I)
                        J1   = Invlist(J,no_J)
+                       if(present(pinned_vertices)) then
+                          if(is_pinned_vertex(I1, J1, N_pinned_vertices, pinned_vertices)) Z = Z*pinning_factor
+                       endif
                        Op_T(1,nf)%O(I1,J1) = this(nf)%T(Nb)*Z
                        Op_T(1,nf)%O(J1,I1) = Conjg(this(nf)%T(Nb)*Z)
                     enddo
@@ -1630,6 +1666,9 @@
                        n_2  = this(nf)%list(Nb,4)
                        J    = Latt%nnlist(I,n_1,n_2)
                        Z    = Generic_hopping(I,no_I, n_1, n_2, no_J, N_Phi, Phi_x,Phi_y, Bulk, Latt, Latt_Unit)
+                       if(present(pinned_vertices)) then
+                          if(is_pinned_vertex(I1, J1, N_pinned_vertices, pinned_vertices)) Z = Z*pinning_factor
+                       endif
                        I1   = Invlist(I,no_I)
                        J1   = Invlist(J,no_J)
                        nc = nc + 1
