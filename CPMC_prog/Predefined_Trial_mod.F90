@@ -145,7 +145,7 @@ contains
 
       select case (Lattice_type)
 
-      case ("qbt_ob")
+      case ("Pi_Flux_ob")
          Ham_T_vec = 1.d0
          Ham_T2_vec = 0.5d0
          call set_hopping_parameters_pi_flux_qbt_ob(Hopping_Matrix_tmp, Ham_T_vec, Ham_T2_vec, Ham_Chem_vec, &

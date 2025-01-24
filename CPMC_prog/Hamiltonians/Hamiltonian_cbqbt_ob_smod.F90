@@ -1143,7 +1143,7 @@
                 end do
              end do
           end do
-          zpot = -zn*(ham_v*zv1 + ham_v2*zv2)
+          zpot = zn*(ham_v*zv1 + ham_v2*zv2)
 
           E0_local = zpot + zkin
 
