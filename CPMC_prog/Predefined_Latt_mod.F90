@@ -74,24 +74,41 @@ contains
       integer, intent(OUT), dimension(:, :), allocatable  :: List, Invlist
       type(Unit_cell), intent(Out)                       :: Latt_Unit
       type(Lattice), intent(Out)                         :: Latt
-      real(Kind=kind(0.d0))  :: A1_p(2), a2_p(2), L1_p(2), L2_p(2)
+      real(Kind=kind(0.d0))  :: A1_p(2), a2_p(2), a3_p(2), L1_p(2), L2_p(2)
       integer :: I, nc, no, n, lx, ly, no_y, no_x
 
       select case (Lattice_type)
-      case ("bilayer_square")
-         a1_p(1) = 1.0; a1_p(2) = 0.d0
-         a2_p(1) = 0.0; a2_p(2) = 1.d0
+      case ("Pi_Flux")
+         Latt_Unit%Norb = 2
+         Latt_Unit%N_coord = 4
+         a1_p(1) = 1.d0; a1_p(2) = 0.d0
+         a2_p(1) = 0.d0; a2_p(2) = 1.d0
+         allocate (Latt_Unit%Orb_pos_p(2, 2))
+         Latt_Unit%Orb_pos_p(1, :) = 0.d0
+         Latt_Unit%Orb_pos_p(2, :) = 0.5d0
          L1_p = dble(L1)*a1_p
          L2_p = dble(L2)*a2_p
          call Make_Lattice(L1_p, L2_p, a1_p, a2_p, Latt)
+      case ("Pi_Flux_ob")
+         a1_p(1) = 1.d0; a1_p(2) = 0.d0
+         a2_p(1) = 0.d0; a2_p(2) = 1.d0
+         !! for sublattice vec
+         a3_p(1) = 1.d0/sqrt(2.d0); a3_p(2) = 1.d0/sqrt(2.d0)
 
-         Latt_Unit%Norb = 2
+         L1_p = dble(L1)*a1_p
+         L2_p = dble(1)*a2_p
+         call Make_Lattice(L1_p, L2_p, a1_p, a2_p, Latt)
+
+         Latt_Unit%Norb = 2*L2
          Latt_Unit%N_coord = 2
-         allocate (Latt_unit%Orb_pos_p(2, 3))
-         do no = 1, 2
-            Latt_Unit%Orb_pos_p(no, 1) = 0.d0
-            Latt_Unit%Orb_pos_p(no, 2) = 0.d0
-            Latt_Unit%Orb_pos_p(no, 3) = real(1 - no, kind(0.d0))
+         allocate (Latt_Unit%Orb_pos_p(2*L2, 2))
+         Latt_unit%Orb_pos_p = 0.d0
+         do nc = 1, 2*L2
+            ly = (nc - 1)/2+1
+            Latt_Unit%Orb_pos_p(nc, :) = 0.d0 + dble(ly-1)*a2_p(:) 
+            if (mod(nc, 2) .eq. 0) then
+               Latt_Unit%Orb_pos_p(nc, :) = Latt_Unit%Orb_pos_p(nc, :) + a3_p(:)
+            end if
          end do
       case default
          write (error_unit, *) "Predefined_Latt: Lattice not yet implemented!"
