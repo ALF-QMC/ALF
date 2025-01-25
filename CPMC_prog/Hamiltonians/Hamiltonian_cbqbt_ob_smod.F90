@@ -1,4 +1,4 @@
-    submodule(Hamiltonian_main) ham_bose_metal_smod
+    submodule(Hamiltonian_main) ham_cbqbt_smod
 
        use Operator_mod
        use WaveFunction_mod
@@ -1310,4 +1310,4 @@
 
        end subroutine update_fac_norm
 
-    end submodule ham_bose_metal_smod
+    end submodule ham_cbqbt_smod
