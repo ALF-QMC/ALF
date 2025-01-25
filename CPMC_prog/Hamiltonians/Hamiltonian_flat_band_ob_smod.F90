@@ -1,4 +1,4 @@
-    submodule(Hamiltonian_main) ham_flat_band_smod
+    submodule(Hamiltonian_main) ham_flat_band_ob_smod
 
        use Operator_mod
        use WaveFunction_mod
@@ -680,11 +680,11 @@
              end do
           end do
 
-          nc = 0
           if (abs(ham_v3) > Zero) then
 
              do nf = 1, n_fl
 
+                nc = 0
                 do n_b_t = 1, lly
                    n_cb = bond_map(n_b_t)
                    do J0 = 1, l_bond(n_cb)
@@ -1061,7 +1061,7 @@
                    I1 = site_map(i0)
                    J1 = site_map(j0)
                    if (bond_list(nb, nc, 1) .ne. 1) then
-                      zv1 = zv1 + (grc(I1, I1, nf)*grc(J1, J1, nf) + grc(I1, J1, nf)*gr(I1, J1, nf)) - &
+                      zv3 = zv3 + (grc(I1, I1, nf)*grc(J1, J1, nf) + grc(I1, J1, nf)*gr(I1, J1, nf)) - &
                                 & 0.5d0*(grc(I1, I1, nf) + grc(J1, J1, nf))
                    end if
                 end do
@@ -1234,4 +1234,4 @@
 
        end subroutine update_fac_norm
 
-    end submodule ham_flat_band_smod
+    end submodule ham_flat_band_ob_smod
