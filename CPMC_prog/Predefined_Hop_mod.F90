@@ -206,13 +206,13 @@ contains
       deallocate (all_bonds)
    end function test_checkerboard_decomposition
 
-   subroutine set_hopping_parameters_pi_flux_qbt_ob(this, Ham_T_vec, Ham_T2_vec, Ham_Chem_vec, &
-           & Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
+   subroutine set_hopping_parameters_pi_flux_ob(this, Ham_T_vec, Ham_T2_vec, Ham_T3_vec, &
+           & Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
 
       implicit none
 
       type(Hopping_Matrix_type), allocatable          :: this(:)
-      real(Kind=kind(0.d0)), intent(IN), dimension(:)   :: Ham_T_vec, Ham_T2_vec, Ham_Chem_vec, Phi_x_vec, Phi_y_vec
+      real(Kind=kind(0.d0)), intent(IN), dimension(:)   :: Ham_T_vec, Ham_T2_vec, Ham_T3_vec, Ham_Chem_vec, Phi_x_vec, Phi_y_vec
       integer, intent(IN), dimension(:)                  :: N_Phi_vec
       integer, intent(IN)                               :: N_FL
       logical, intent(IN)                               :: Bulk
@@ -241,6 +241,7 @@ contains
       do nf = 1, N_FL
          if (abs(Ham_T_vec(nf)) > Ham_T_max) Ham_T_max = abs(Ham_T_vec(nf))
          if (abs(Ham_T2_vec(nf)) > Ham_T2_max) Ham_T2_max = abs(Ham_T2_vec(nf))
+         if (abs(Ham_T3_vec(nf)) > Ham_T3_max) Ham_T3_max = abs(Ham_T3_vec(nf))
       end do
 
       do nf = 1, N_FL
@@ -248,6 +249,7 @@ contains
          N_bonds_tmp = 0
          if (abs(Ham_T_max) > Zero) N_bonds_tmp = N_bonds_tmp + 4
          if (abs(Ham_T2_max) > Zero) N_bonds_tmp = N_bonds_tmp + 4
+         if (abs(Ham_T3_max) > Zero) N_bonds_tmp = N_bonds_tmp + 4
          this(nf)%N_bonds = N_bonds_tmp*ly
          allocate (this(nf)%List(this(nf)%N_bonds, 4), &
               &    this(nf)%T(this(nf)%N_bonds))
@@ -262,7 +264,7 @@ contains
                nc = nc + 1
                ly_bond(nc) = iy
                inv_ly_bond(iy, 1) = nc
-               this(nf)%T(nc) = cmplx(-Ham_T_vec(nf), 0.d0, kind(0.d0))
+               this(nf)%T(nc) = cmplx(-Ham_T_vec(nf), 0.d0, kind(0.d0))*exp(cmplx(0.d0, pi/4, kind(0.d0)))
                this(nf)%List(nc, 1) = 1 + (iy - 1)*2
                this(nf)%List(nc, 2) = 2 + (iy - 1)*2
                this(nf)%List(nc, 3) = 0
@@ -271,7 +273,7 @@ contains
                nc = nc + 1
                ly_bond(nc) = iy
                inv_ly_bond(iy, 2) = nc
-               this(nf)%T(nc) = cmplx(-Ham_T_vec(nf), 0.d0, kind(0.d0))
+               this(nf)%T(nc) = cmplx(-Ham_T_vec(nf), 0.d0, kind(0.d0))*exp(cmplx(0.d0, pi/4, kind(0.d0)))
                this(nf)%List(nc, 1) = 2 + (iy - 1)*2
                this(nf)%List(nc, 2) = 1 + (iy - 1)*2
                this(nf)%List(nc, 3) = 1
@@ -284,7 +286,7 @@ contains
                nc = nc + 1
                ly_bond(nc) = iy
                inv_ly_bond(iy, 3) = nc
-               this(nf)%T(nc) = cmplx(-Ham_T_vec(nf), 0.d0, kind(0.d0))
+               this(nf)%T(nc) = cmplx(-Ham_T_vec(nf), 0.d0, kind(0.d0))*exp(cmplx(0.d0, pi/4, kind(0.d0)))
                this(nf)%List(nc, 1) = 2 + (iy - 1)*2
                this(nf)%List(nc, 2) = 1 + iy*2
                this(nf)%List(nc, 3) = 0
@@ -293,7 +295,7 @@ contains
                nc = nc + 1
                ly_bond(nc) = iy
                inv_ly_bond(iy, 4) = nc
-               this(nf)%T(nc) = cmplx(-Ham_T_vec(nf), 0.d0, kind(0.d0))
+               this(nf)%T(nc) = cmplx(-Ham_T_vec(nf), 0.d0, kind(0.d0))*exp(cmplx(0.d0, -pi/4, kind(0.d0)))
                this(nf)%List(nc, 1) = 2 + (iy - 1)*2
                this(nf)%List(nc, 2) = 1 + iy*2
                this(nf)%List(nc, 3) = 1
@@ -308,7 +310,7 @@ contains
             nc = nc + 1
             ly_bond(nc) = ly
             inv_ly_bond(ly, 3) = nc
-            !this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
+            !this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))*exp(cmplx(0.d0,pi/4,kind(0.d0)))
             this(nf)%T(nc) = cmplx(0.d0, 0.d0, kind(0.d0))
             this(nf)%List(nc, 1) = 2 + (ly - 1)*2
             this(nf)%List(nc, 2) = 1
@@ -318,7 +320,7 @@ contains
             nc = nc + 1
             ly_bond(nc) = ly
             inv_ly_bond(ly, 4) = nc
-            !this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
+            !this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))*exp(cmplx(0.d0,-pi/4,kind(0.d0)))
             this(nf)%T(nc) = cmplx(0.d0, 0.d0, kind(0.d0))
             this(nf)%List(nc, 1) = 2 + (ly - 1)*2
             this(nf)%List(nc, 2) = 1
@@ -397,6 +399,96 @@ contains
          end if
          !--------------------------------!
 
+         do iy = 1, ly - 1
+            if (abs(Ham_T3_max) > Zero) then ! hop t3
+               nc = nc + 1
+               ly_bond(nc) = iy
+               inv_ly_bond(iy, 9) = nc
+               this(nf)%T(nc) = cmplx(-Ham_T3_vec(nf), 0.d0, kind(0.d0))
+               this(nf)%List(nc, 1) = 1 + (iy - 1)*2
+               this(nf)%List(nc, 2) = 1 + iy*2
+               this(nf)%List(nc, 3) = 1
+               this(nf)%List(nc, 4) = 0
+
+               nc = nc + 1
+               ly_bond(nc) = iy
+               inv_ly_bond(iy, 10) = nc
+               this(nf)%T(nc) = cmplx(-Ham_T3_vec(nf), 0.d0, kind(0.d0))
+               this(nf)%List(nc, 1) = 2 + (iy - 1)*2
+               this(nf)%List(nc, 2) = 2 + iy*2
+               this(nf)%List(nc, 3) = 1
+               this(nf)%List(nc, 4) = 0
+            end if
+         end do
+
+         do iy = 1, ly - 1
+            if (abs(Ham_T3_max) > Zero) then ! hop t3
+               nc = nc + 1
+               ly_bond(nc) = iy
+               inv_ly_bond(iy, 11) = nc
+               this(nf)%T(nc) = cmplx(-Ham_T3_vec(nf), 0.d0, kind(0.d0))
+               this(nf)%List(nc, 1) = 1 + iy*2
+               this(nf)%List(nc, 2) = 1 + (iy - 1)*2
+               this(nf)%List(nc, 3) = 1
+               this(nf)%List(nc, 4) = 0
+
+               nc = nc + 1
+               ly_bond(nc) = iy
+               inv_ly_bond(iy, 12) = nc
+               this(nf)%T(nc) = cmplx(-Ham_T3_vec(nf), 0.d0, kind(0.d0))
+               this(nf)%List(nc, 1) = 2 + iy*2
+               this(nf)%List(nc, 2) = 2 + (iy - 1)*2
+               this(nf)%List(nc, 3) = 1
+               this(nf)%List(nc, 4) = 0
+            end if
+         end do
+
+         !--------------------------------!
+         ! Periodic
+         !--------------------------------!
+         if (abs(Ham_T3_max) > Zero) then ! hop t3
+            nc = nc + 1
+            ly_bond(nc) = ly
+            inv_ly_bond(ly, 9) = nc
+            !this(nf)%T(nc)    = cmplx(-Ham_T3_vec(nf),0.d0,kind(0.d0))
+            this(nf)%T(nc) = cmplx(0.d0, 0.d0, kind(0.d0))
+            this(nf)%List(nc, 1) = 1 + (ly - 1)*2
+            this(nf)%List(nc, 2) = 1
+            this(nf)%List(nc, 3) = 1
+            this(nf)%List(nc, 4) = 0
+
+            nc = nc + 1
+            ly_bond(nc) = ly
+            inv_ly_bond(ly, 10) = nc
+            !this(nf)%T(nc)    = cmplx(-Ham_T3_vec(nf),0.d0,kind(0.d0))
+            this(nf)%T(nc) = cmplx(0.d0, 0.d0, kind(0.d0))
+            this(nf)%List(nc, 1) = 2 + (ly - 1)*2
+            this(nf)%List(nc, 2) = 2
+            this(nf)%List(nc, 3) = 1
+            this(nf)%List(nc, 4) = 0
+
+            nc = nc + 1
+            ly_bond(nc) = ly
+            inv_ly_bond(ly, 11) = nc
+            !this(nf)%T(nc)    = cmplx(-Ham_T3_vec(nf),0.d0,kind(0.d0))
+            this(nf)%T(nc) = cmplx(0.d0, 0.d0, kind(0.d0))
+            this(nf)%List(nc, 1) = 1
+            this(nf)%List(nc, 2) = 1 + (ly - 1)*2
+            this(nf)%List(nc, 3) = 1
+            this(nf)%List(nc, 4) = 0
+
+            nc = nc + 1
+            ly_bond(nc) = ly
+            inv_ly_bond(ly, 12) = nc
+            !this(nf)%T(nc)    = cmplx(-Ham_T3_vec(nf),0.d0,kind(0.d0))
+            this(nf)%T(nc) = cmplx(0.d0, 0.d0, kind(0.d0))
+            this(nf)%List(nc, 1) = 2
+            this(nf)%List(nc, 2) = 2 + (ly - 1)*2
+            this(nf)%List(nc, 3) = 1
+            this(nf)%List(nc, 4) = 0
+         end if
+         !--------------------------------!
+
          ! local
          allocate (this(nf)%T_Loc(Latt_Unit%Norb))
          do nc = 1, Latt_Unit%Norb
@@ -412,6 +504,7 @@ contains
       this(1)%N_FAM = 0
       if (Ham_T_max > Zero) this(1)%N_FAM = this(1)%N_FAM + 4
       if (Ham_T2_max > Zero) this(1)%N_FAM = this(1)%N_FAM + 4 + amx + amy
+      if (Ham_T3_max > Zero) this(1)%N_FAM = this(1)%N_FAM + 4 + 2*amy
       allocate (this(1)%L_Fam(this(1)%N_FAM), this(1)%Prop_Fam(this(1)%N_FAM))
       this(1)%Prop_Fam = 1.d0
       this(1)%L_FAM = lx*ly
@@ -474,7 +567,7 @@ contains
          !--------------------------------!
          do I = 1, amx
          do iy = 1, ly
-            Nf = 9
+            Nf = 13
             this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
             this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = Latt%N ! Unit cell
             this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = inv_ly_bond(iy, 5) ! The bond (See above)
@@ -515,7 +608,7 @@ contains
          !--------------------------------!
          do iy = 1, amy
          do I = 1, Latt%N
-            Nf = 10
+            Nf = 14
             this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
             this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I ! Unit cell
             this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = inv_ly_bond(ly, 7) ! The bond (See above)
@@ -529,9 +622,84 @@ contains
 
       end if
 
+      if (Ham_T3_max > Zero) then
+         do I = 1, Latt%N
+         do iy = 1, ly - amy
+            if (mod(iy, 2) == 0) then
+               Nf = 9
+               this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I ! Unit cell
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = inv_ly_bond(iy, 9) ! The bond (See above)
+
+               this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I  ! Unit cell
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = inv_ly_bond(iy, 10) ! The bond (See above)
+            end if
+
+            if (mod(iy, 2) .ne. 0) then
+               Nf = 10
+               this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I ! Unit cell
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = inv_ly_bond(iy, 9) ! The bond (See above)
+
+               this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I  ! Unit cell
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = inv_ly_bond(iy, 10) ! The bond (See above)
+            end if
+
+            if (mod(iy, 2) == 0) then
+               Nf = 11
+               this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I  ! Unit cell
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = inv_ly_bond(iy, 11) ! The bond (See above)
+
+               this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I  ! Unit cell
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = inv_ly_bond(iy, 12) ! The bond (See above)
+            end if
+
+            if (mod(iy, 2) .ne. 0) then
+               Nf = 12
+               this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I  ! Unit cell
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = inv_ly_bond(iy, 11) ! The bond (See above)
+
+               this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I  ! Unit cell
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = inv_ly_bond(iy, 12) ! The bond (See above)
+            end if
+         end do
+         end do
+
+         !--------------------------------!
+         do I = 1, Latt%N
+         do J = 1, amy
+            Nf = 15
+            this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I ! Unit cell
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = inv_ly_bond(ly, 9) ! The bond (See above)
+
+            this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = inv_ly_bond(ly, 10)
+
+            Nf = 16
+            this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = inv_ly_bond(ly, 11)
+
+            this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = inv_ly_bond(ly, 12)
+         end do
+         end do
+         !--------------------------------!
+
+      end if
+
       deallocate (ly_bond, inv_ly_bond)
 
-   end subroutine set_hopping_parameters_pi_flux_qbt_ob
+   end subroutine set_hopping_parameters_pi_flux_ob
 
 !--------------------------------------------------------------------
 !> @author

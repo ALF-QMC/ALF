@@ -1,4 +1,4 @@
-    submodule(Hamiltonian_main) ham_bose_metal_smod
+    submodule(Hamiltonian_main) ham_flat_band_smod
 
        use Operator_mod
        use WaveFunction_mod
@@ -13,7 +13,7 @@
 
        implicit none
 
-       type, extends(ham_base) :: ham_cbqbt_ob
+       type, extends(ham_base) :: ham_flat_band_ob
        contains
           ! Set Hamiltonian-specific procedures
           procedure, nopass :: Ham_Set
@@ -26,7 +26,7 @@
 #ifdef HDF5
           procedure, nopass :: write_parameters_hdf5
 #endif
-       end type ham_cbqbt_ob
+       end type ham_flat_band_ob
 
        !#PARAMETERS START# VAR_lattice
        character(len=64) :: Model = ""  ! Value not relevant
@@ -50,7 +50,7 @@
        !logical              :: Symm         = .true.   ! Whether symmetrization takes place
        !#PARAMETERS END#
 
-       !#PARAMETERS START# VAR_cbqbt_ob
+       !#PARAMETERS START# VAR_flat_band_ob
        real(Kind=kind(0.d0)) :: ham_t = 1.d0     ! Hopping parameter
        real(Kind=kind(0.d0)) :: ham_t2 = 1.d0     ! Hopping parameter
        real(Kind=kind(0.d0)) :: ham_t3 = 1.d0     ! Hopping parameter
@@ -66,7 +66,7 @@
        type(Hopping_Matrix_type), allocatable :: Hopping_Matrix(:)
        integer, allocatable :: List(:, :), Invlist(:, :)  ! For orbital structure of Unit cell
        integer, allocatable   :: bond_list(:, :, :), l_bond(:)    ! bond list
-       integer, allocatable   :: bond_map_v1(:), bond_map_v2(:) ! bond list
+       integer, allocatable   :: bond_map(:)
 
        integer, allocatable      :: site_map(:), inv_site_map(:)
 
@@ -77,13 +77,13 @@
 
     contains
 
-       module subroutine Ham_Alloc_cbqbt_ob
-          allocate (ham_cbqbt_ob::ham)
-       end subroutine Ham_Alloc_cbqbt_ob
+       module subroutine Ham_Alloc_flat_band_ob
+          allocate (ham_flat_band_ob::ham)
+       end subroutine Ham_Alloc_flat_band_ob
 
 ! Dynamically generated on compile time from parameters list.
 ! Supplies the subroutines read_parameters and write_parameters_hdf5.
-#include "Hamiltonian_cbqbt_ob_read_write_parameters.F90"
+#include "Hamiltonian_flat_band_ob_read_write_parameters.F90"
 
 !--------------------------------------------------------------------
 !> @author
@@ -124,6 +124,9 @@
           allocate (overlap(N_grc))
           N_wlk_mpi = N_wlk*isize_g
           N_grc_mpi = N_grc*isize_g
+
+          ham_t2 = ham_t2*1.d0/(2.d0 + sqrt(2.d0))
+          ham_t3 = ham_t3*1.d0/(2.d0 + 2.d0*sqrt(2.d0))
 
           ! Setup the Bravais lattice
           call Ham_Latt
@@ -267,7 +270,7 @@
 
           select case (Lattice_type)
           case ("Pi_Flux_ob")
-             call set_hopping_parameters_pi_flux_qbt_ob(Hopping_Matrix, ham_t_vec, ham_t2_vec, ham_chem_vec, &
+             call set_hopping_parameters_pi_flux_ob(Hopping_Matrix, Ham_T_vec, Ham_T2_vec, Ham_T3_vec, Ham_Chem_vec, &
                  & Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
           end select
 
@@ -659,114 +662,67 @@
              end do
              if (amy .eq. 1) N_ops = N_ops + 2*l_bond(12 + 2 + amx) + 2*l_bond(12 + 3 + amx)
           end if
-          allocate (Op_V(N_ops, N_FL))
+          allocate (op_v(N_ops, N_FL))
 
-          lly = 4
-          allocate (bond_map_v1(lly)) ! for V_1
-          lly = 4 + amx + amy
-          allocate (bond_map_v2(lly)) ! for V_2
-
-          nc = 1
+          lly = 4 + 2*amy
+          allocate (bond_map(lly)) ! for V_3
           do J1 = 1, 4
-             bond_map_v1(J1) = J1
-             bond_map_v2(J1) = J1 + 4
+             bond_map(J1) = 12 - (J1 - 1)
           end do
-
-          do J1 = 1, amx
-             bond_map_v2(4 + amx) = 12 + amx
-          end do
-          do J1 = 1, amy
-             bond_map_v2(4 + amx + amy) = 12 + amx + amy
-          end do
+          if (amy .eq. 1) then
+             bond_map(5) = 12 + amx + 2
+             bond_map(6) = 12 + amx + 3
+          end if
 
           do nf = 1, N_FL
-             do nc = 1, size(Op_V, 1)
-                call Op_make(Op_V(nc, nf), 2)
+             do nc = 1, size(op_v, 1)
+                call op_make(op_v(nc, nf), 2)
              end do
           end do
 
           nc = 0
-          if (abs(Ham_V) > Zero) then
-             nf = 1
-             lly = size(bond_map_v1)
-             do n_b_t = 1, lly
-                n_cb = bond_map_v1(n_b_t)
-                do J0 = 1, l_bond(n_cb)
-                   I = bond_list(n_cb, J0, 2)
-                   J = bond_list(n_cb, J0, 3)
-                   nc = nc + 1
-                   Op_V(nc, nf)%P(1) = site_map(I)
-                   Op_V(nc, nf)%P(2) = site_map(J)
-                   Op_V(nc, nf)%O(1, 1) = cmplx(1.d0, 0.d0, kind(0.d0))
-                   Op_V(nc, nf)%O(2, 2) = cmplx(-1.d0, 0.d0, kind(0.d0))
-                   Op_V(nc, nf)%g = sqrt(cmplx(0.5d0*0.5d0*dtau*Ham_V, 0.d0, kind(0.d0)))
-                   Op_V(nc, nf)%alpha = cmplx(0.d0, 0.d0, kind(0.d0))
-                   Op_V(nc, nf)%type = 2
-                   call Op_set(Op_V(nc, nf))
-                end do
-             end do
-          end if
+          if (abs(ham_v3) > Zero) then
 
-          if (abs(Ham_V2) > Zero) then
-             nf = 1
-             lly = size(bond_map_v2)
-             do n_b_t = 1, lly
-                n_cb = bond_map_v2(n_b_t)
-                do J0 = 1, l_bond(n_cb)
-                   I = bond_list(n_cb, J0, 2)
-                   J = bond_list(n_cb, J0, 3)
-                   nc = nc + 1
-                   Op_V(nc, nf)%P(1) = site_map(I)
-                   Op_V(nc, nf)%P(2) = site_map(J)
-                   Op_V(nc, nf)%O(1, 1) = cmplx(1.d0, 0.d0, kind(0.d0))
-                   Op_V(nc, nf)%O(2, 2) = cmplx(-1.d0, 0.d0, kind(0.d0))
-                   Op_V(nc, nf)%g = sqrt(cmplx(0.5d0*0.5d0*dtau*Ham_V2, 0.d0, kind(0.d0)))
-                   if (bond_list(n_cb, J0, 1) .eq. 1) Op_V(nc, nf)%g = cmplx(0.d0, 0.d0, kind(0.d0))
-                   Op_V(nc, nf)%alpha = cmplx(0.d0, 0.d0, kind(0.d0))
-                   Op_V(nc, nf)%type = 2
-                   call Op_set(Op_V(nc, nf))
+             do nf = 1, n_fl
+
+                do n_b_t = 1, lly
+                   n_cb = bond_map(n_b_t)
+                   do J0 = 1, l_bond(n_cb)
+                      I = bond_list(n_cb, J0, 2)
+                      J = bond_list(n_cb, J0, 3)
+                      nc = nc + 1
+                      op_v(nc, nf)%P(1) = site_map(I); 
+                      op_v(nc, nf)%P(2) = site_map(J)
+                      op_v(nc, nf)%O(1, 1) = cmplx(1.d0, 0.d0, kind(0.d0))
+                      op_v(nc, nf)%O(2, 2) = cmplx(-1.d0, 0.d0, kind(0.d0))
+                      op_v(nc, nf)%g = sqrt(cmplx(0.5d0*0.5d0*dtau*ham_v3, 0.d0, kind(0.d0)))
+                      if (bond_list(n_cb, J0, 1) .eq. 1) op_v(nc, nf)%g = cmplx(0.d0, 0.d0, kind(0.d0))
+                      op_v(nc, nf)%alpha = cmplx(0.d0, 0.d0, kind(0.d0))
+                      op_v(nc, nf)%type = 2
+                      call op_set(op_v(nc, nf))
+                   end do
                 end do
+
+                do n_b_t = lly, 1, -1
+                   n_cb = bond_map(n_b_t)
+                   do J0 = l_bond(n_cb), 1, -1
+                      I = bond_list(n_cb, J0, 2)
+                      J = bond_list(n_cb, J0, 3)
+                      nc = nc + 1
+                      op_v(nc, nf)%P(1) = site_map(I); 
+                      op_v(nc, nf)%P(2) = site_map(J)
+                      op_v(nc, nf)%O(1, 1) = cmplx(1.d0, 0.d0, kind(0.d0))
+                      op_v(nc, nf)%O(2, 2) = cmplx(-1.d0, 0.d0, kind(0.d0))
+                      op_v(nc, nf)%g = sqrt(cmplx(0.5d0*0.5d0*dtau*ham_v3, 0.d0, kind(0.d0)))
+                      if (bond_list(n_cb, J0, 1) .eq. 1) op_v(nc, nf)%g = cmplx(0.d0, 0.d0, kind(0.d0))
+                      op_v(nc, nf)%alpha = cmplx(0.d0, 0.d0, kind(0.d0))
+                      op_v(nc, nf)%type = 2
+                      call op_set(op_v(nc, nf))
+                   end do
+                end do
+
              end do
 
-             do n_b_t = lly, 1, -1
-                n_cb = bond_map_v2(n_b_t)
-                do J0 = l_bond(n_cb), 1, -1
-                   I = bond_list(n_cb, J0, 2)
-                   J = bond_list(n_cb, J0, 3)
-                   nc = nc + 1
-                   Op_V(nc, nf)%P(1) = site_map(I)
-                   Op_V(nc, nf)%P(2) = site_map(J)
-                   Op_V(nc, nf)%O(1, 1) = cmplx(1.d0, 0.d0, kind(0.d0))
-                   Op_V(nc, nf)%O(2, 2) = cmplx(-1.d0, 0.d0, kind(0.d0))
-                   Op_V(nc, nf)%g = sqrt(cmplx(0.5d0*0.5d0*dtau*Ham_V2, 0.d0, kind(0.d0)))
-                   if (bond_list(n_cb, J0, 1) .eq. 1) Op_V(nc, nf)%g = cmplx(0.d0, 0.d0, kind(0.d0))
-                   Op_V(nc, nf)%alpha = cmplx(0.d0, 0.d0, kind(0.d0))
-                   Op_V(nc, nf)%type = 2
-                   call Op_set(Op_V(nc, nf))
-                end do
-             end do
-          end if
-
-          if (abs(Ham_V) > Zero) then
-             nf = 1
-             lly = size(bond_map_v1)
-             do n_b_t = lly, 1, -1
-                n_cb = bond_map_v1(n_b_t)
-                do J0 = l_bond(n_cb), 1, -1
-                   I = bond_list(n_cb, J0, 2)
-                   J = bond_list(n_cb, J0, 3)
-                   nc = nc + 1
-                   Op_V(nc, nf)%P(1) = site_map(I)
-                   Op_V(nc, nf)%P(2) = site_map(J)
-                   Op_V(nc, nf)%O(1, 1) = cmplx(1.d0, 0.d0, kind(0.d0))
-                   Op_V(nc, nf)%O(2, 2) = cmplx(-1.d0, 0.d0, kind(0.d0))
-                   Op_V(nc, nf)%g = sqrt(cmplx(0.5d0*0.5d0*dtau*Ham_V, 0.d0, kind(0.d0)))
-                   if (bond_list(n_cb, J0, 1) .eq. 1) Op_V(nc, nf)%g = cmplx(0.d0, 0.d0, kind(0.d0))
-                   Op_V(nc, nf)%alpha = cmplx(0.d0, 0.d0, kind(0.d0))
-                   Op_V(nc, nf)%type = 2
-                   call Op_set(Op_V(nc, nf))
-                end do
-             end do
           end if
 
        end subroutine Ham_Vint
@@ -876,7 +832,7 @@
 
           !Local
           complex(Kind=kind(0.d0)) :: grc(Ndim, Ndim, N_FL), ZK, zone, ztmp, z_ol, zero, ztmp1, ztmp2, ztmp3, ztmp4
-          complex(Kind=kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP, ZS, ZZ, ZXY, zback, zw, z_fac, z1j, zn, zv1, zv2
+          complex(Kind=kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP, ZS, ZZ, ZXY, zback, zw, z_fac, z1j, zn, zv1, zv2, zv3
           integer :: I, J, k, l, m, n, imj, nf, dec, i1, ipx, ipy, imx, imy, j1, jpx, jpy, jmx, jmy, no_I, no_J, nc
           integer :: i2, j2, lly, nb_r, nb, i0, j0
           real(Kind=kind(0.d0)) :: X
@@ -902,41 +858,25 @@
 
           zn = cmplx(dble(N_sun), 0.d0, kind(0.d0))
           zpot = cmplx(0.d0, 0.d0, kind(0.d0))
-          zv1 = cmplx(0.d0, 0.d0, kind(0.d0))
-          zv2 = cmplx(0.d0, 0.d0, kind(0.d0))
+          zv3 = cmplx(0.d0, 0.d0, kind(0.d0))
 
           do nf = 1, N_FL
-             lly = size(bond_map_v1, 1)
+             lly = size(bond_map, 1)
              do nb_r = 1, lly
-                nb = bond_map_v1(nb_r)
+                nb = bond_map(nb_r)
                 do nc = 1, l_bond(nb)
                    I0 = bond_list(nb, nc, 2)
                    J0 = bond_list(nb, nc, 3)
                    I1 = site_map(i0)
                    J1 = site_map(j0)
                    if (bond_list(nb, nc, 1) .ne. 1) then
-                      zv1 = zv1 + (grc(I1, I1, nf)*grc(J1, J1, nf) + grc(I1, J1, nf)*gr(I1, J1, nf)) - &
+                      zv3 = zv3 + (grc(I1, I1, nf)*grc(J1, J1, nf) + grc(I1, J1, nf)*gr(I1, J1, nf)) - &
                                 & 0.5d0*(grc(I1, I1, nf) + grc(J1, J1, nf)) + 0.25d0
                    end if
                 end do
              end do
-
-             lly = size(bond_map_v2, 1)
-             do nb_r = 1, lly
-                nb = bond_map_v2(nb_r)
-                do nc = 1, l_bond(nb)
-                   I0 = bond_list(nb, nc, 2)
-                   J0 = bond_list(nb, nc, 3)
-                   I1 = site_map(i0)
-                   J1 = site_map(j0)
-                   if (bond_list(nb, nc, 1) .ne. 1) then
-                      zv2 = zv2 + (grc(I1, I1, nf)*grc(J1, J1, nf) + grc(I1, J1, nf)*gr(I1, J1, nf)) - &
-                                 & 0.5d0*(grc(I1, I1, nf) + grc(J1, J1, nf)) + 0.25d0
-                   end if
-                end do
-             end do
           end do
-          zpot = zn*(ham_v*zv1 + ham_v2*zv2)
+          zpot = zn*ham_v3*zv3
 
           zrho = cmplx(0.d0, 0.d0, kind(0.d0))
           do nf = 1, n_fl
@@ -1088,7 +1028,7 @@
           complex(Kind=kind(0.d0)), intent(IN) :: gr(ndim, ndim, n_fl)
 
           !Local
-          complex(Kind=kind(0.d0)) :: grc(ndim, ndim, n_fl), ZK, zn, zv1, zv2
+          complex(Kind=kind(0.d0)) :: grc(ndim, ndim, n_fl), ZK, zn, zv1, zv2, zv3
           complex(Kind=kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP, ZS, ZZ, ZXY
           integer :: I, J, imj, nf, dec, I1, J1, i2, no_I, no_J, n, i0, j0
           integer :: nb, nb_r, lly, nc
@@ -1109,13 +1049,12 @@
 
           zn = cmplx(dble(N_sun), 0.d0, kind(0.d0))
           zpot = cmplx(0.d0, 0.d0, kind(0.d0))
-          zv1 = cmplx(0.d0, 0.d0, kind(0.d0))
-          zv2 = cmplx(0.d0, 0.d0, kind(0.d0))
+          zv3 = cmplx(0.d0, 0.d0, kind(0.d0))
 
           do nf = 1, N_FL
-             lly = size(bond_map_v1, 1)
+             lly = size(bond_map, 1)
              do nb_r = 1, lly
-                nb = bond_map_v1(nb_r)
+                nb = bond_map(nb_r)
                 do nc = 1, l_bond(nb)
                    I0 = bond_list(nb, nc, 2)
                    J0 = bond_list(nb, nc, 3)
@@ -1127,23 +1066,8 @@
                    end if
                 end do
              end do
-
-             lly = size(bond_map_v2, 1)
-             do nb_r = 1, lly
-                nb = bond_map_v2(nb_r)
-                do nc = 1, l_bond(nb)
-                   I0 = bond_list(nb, nc, 2)
-                   J0 = bond_list(nb, nc, 3)
-                   I1 = site_map(i0)
-                   J1 = site_map(j0)
-                   if (bond_list(nb, nc, 1) .ne. 1) then
-                      zv2 = zv2 + (grc(I1, I1, nf)*grc(J1, J1, nf) + grc(I1, J1, nf)*gr(I1, J1, nf)) - &
-                                 & 0.5d0*(grc(I1, I1, nf) + grc(J1, J1, nf))
-                   end if
-                end do
-             end do
           end do
-          zpot = zn*(ham_v*zv1 + ham_v2*zv2)
+          zpot = zn*ham_v3*zv3
 
           E0_local = zpot + zkin
 
@@ -1310,4 +1234,4 @@
 
        end subroutine update_fac_norm
 
-    end submodule ham_bose_metal_smod
+    end submodule ham_flat_band_smod

@@ -1,13 +1,3 @@
-!--------------------------------------------------------------------
-!> @author
-!> ALF-project
-!>
-!> @brief
-!> This module provides a set of predefined trial wave functions.
-!>
-!
-!--------------------------------------------------------------------
-
 module Predefined_Trial
 
    use runtime_error_mod
@@ -23,59 +13,6 @@ module Predefined_Trial
 
 contains
 
-!--------------------------------------------------------------------
-!> @author
-!> ALF-project
-!>
-!> @brief
-!>    Sets the trial wave function corresponding to the solution of the non-interacting
-!>    tight binding Hamiltonian on the given lattice. Twisted boundary conditions (Phi_X=0.01)
-!>    are implemented so as to generate a non-degenerate trial wave functions.
-!> @param [in]  Lattice_type
-!>    Character(64)
-!> \verbatim
-!>    Square,  Honeycomb, Pi_Flux
-!> \endverbatim
-!> @param [in]  Latt_unit
-!>    Type(Unit_cell)
-!> \verbatim
-!>     Contains number of orbitals per unit cell and positions, as well as coordination number
-!> \endverbatim
-!> @param [in]  Ndim
-!>    Integer
-!> \verbatim
-!>     Number of orbitals
-!> \endverbatim
-!> @param [in]  List, Invlist
-!>    Integer(:,:)
-!> \verbatim
-!>    List(I=1.. Ndim,1)    =   Unit cell of site I
-!>    List(I=1.. Ndim,2)    =   Orbital index  of site I
-!>    Invlist(Unit_cell,Orbital) = site I
-!> \endverbatim
-!> @param [in]    Latt
-!>    Type(Lattice)
-!> \verbatim
-!>    The Lattice
-!> \endverbatim
-!> @param [in]  N_part
-!>    Integer
-!> \verbatim
-!>    Particle number for each flavor
-!> \endverbatim
-!> @param [in]  N_FL
-!>    Integer
-!> \verbatim
-!>    Flavor
-!> \endverbatim
-!> @param [out]  WF_L, WF_R
-!>    Type(Wavefunction)(N_FL)
-!> \verbatim
-!>    Wavefunction
-!>    Also sets the degeneracy:  E(N_part + 1) - E(N_part). Energy eigenvalues are ordered in ascending order.
-!> \endverbatim
-!>
-!------------------------------------------------------------------
    subroutine Predefined_TrialWaveFunction(Lattice_type, Ndim, List, Invlist, Latt, Latt_unit, &
         &                                  N_part, N_FL, N_slat, WF_L, WF_R)
 
@@ -103,12 +40,12 @@ contains
       complex(Kind=kind(0.d0)) :: Z_norm
 
       real(Kind=kind(0.d0)), allocatable :: Ham_T_vec(:), Ham_Tperp_vec(:), Ham_Chem_vec(:), Phi_X_vec(:), Phi_Y_vec(:),&
-             & ham_tx_vec(:), ham_ty_vec(:), Ham_T2_vec(:), Ham_lambda_vec(:)
+             & ham_tx_vec(:), ham_ty_vec(:), Ham_T2_vec(:), ham_t3_vec(:), Ham_lambda_vec(:)
       integer, allocatable ::   N_Phi_vec(:)
       real(Kind=kind(0.d0)), allocatable :: eig_sort_arr(:, :)
 
-      allocate (Ham_T_vec(N_FL), Ham_T2_vec(N_FL), Ham_Tperp_vec(N_FL), Ham_Chem_vec(N_FL), Phi_X_vec(N_FL), Phi_Y_vec(N_FL),&
-           &    ham_tx_vec(N_FL), ham_ty_vec(N_FL), Ham_lambda_vec(N_FL), N_Phi_vec(N_FL))
+      allocate (Ham_T_vec(N_FL), Ham_T2_vec(N_FL), ham_t3_vec(n_fl), Ham_Tperp_vec(N_FL), Ham_Chem_vec(N_FL), &
+           &    Phi_X_vec(N_FL), Phi_Y_vec(N_FL), ham_tx_vec(N_FL), ham_ty_vec(N_FL), Ham_lambda_vec(N_FL), N_Phi_vec(N_FL))
 
       allocate (wf_l(n_fl, n_slat), wf_r(n_fl, n_slat))
       do ns = 1, n_slat
@@ -147,8 +84,9 @@ contains
 
       case ("Pi_Flux_ob")
          Ham_T_vec = 1.d0
-         Ham_T2_vec = 0.5d0
-         call set_hopping_parameters_pi_flux_qbt_ob(Hopping_Matrix_tmp, Ham_T_vec, Ham_T2_vec, Ham_Chem_vec, &
+         Ham_T2_vec = 1.d0/(2.d0 + sqrt(2.d0))
+         Ham_T3_vec = -1.d0/(2.d0 + 2.d0*sqrt(2.d0))
+         call Set_hopping_parameters_pi_flux_ob(Hopping_Matrix_tmp, Ham_T_vec, Ham_T2_vec, Ham_T3_vec, Ham_Chem_vec, &
              & Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
 
       case default
@@ -158,14 +96,14 @@ contains
 
       call Predefined_Hoppings_set_OPT(Hopping_Matrix_tmp, List, Invlist, Latt, Latt_unit, Dtau, Checkerboard, Symm, OP_tmp)
 
-      !! add stagger mass to avoid the degeneracy of qbt
-      stag_mass = 0.02
+      !! add random stagger mass to avoid the degeneracy of qbt
       do nf = 1, N_FL
          do I = 1, Latt%N
          do J = 1, Latt_unit%norb
             Ix = latt%list(I, 1)
             stag_sgn = 1.d0
             if (mod(J, 2) .eq. 0) stag_sgn = -1.d0
+            stag_mass = 0.02d0*ranf_wrap()
             I1 = invlist(I, J)
             !! onsite sublattice mass
             op_tmp(1, nf)%o(I1, I1) = stag_sgn*stag_mass
@@ -206,7 +144,8 @@ contains
       deallocate (op_tmp)
       call Predefined_hoppings_clear(Hopping_Matrix_tmp)
 
-      deallocate (Ham_T_vec, Ham_Tperp_vec, Ham_T2_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, N_Phi_vec)
+      deallocate (ham_t_vec, ham_tperp_vec, ham_t2_vec, ham_t3_vec)
+      deallocate (ham_chem_vec, phi_x_vec, phi_y_vec, N_Phi_vec)
       deallocate (ham_tx_vec, ham_ty_vec)
 
    end subroutine Predefined_TrialWaveFunction

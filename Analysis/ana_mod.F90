@@ -1394,7 +1394,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       Integer             :: L1, L2, N_FL
       Character (len=64)  :: Model, Lattice_type
       NAMELIST /VAR_Lattice/ L1, L2, Lattice_type, Model
-      NAMELIST /VAR_cbqbt_ob/  ham_t, ham_t2, ham_t3, ham_V, ham_V2, &
+      NAMELIST /VAR_flat_band_ob/  ham_t, ham_t2, ham_t3, ham_V, ham_V2, &
            &     ham_V3, ham_chem, N_dope
 
 
@@ -1421,7 +1421,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       rewind(5)
       read(5,NML=VAR_errors)
       rewind(5)
-      read(5,NML=VAR_cbqbt_ob)
+      read(5,NML=VAR_flat_band_ob)
       close(5)
 
       Nobs  = size(bins_raw, 1)
