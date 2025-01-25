@@ -877,6 +877,7 @@
              end do
           end do
           zpot = zn*ham_v3*zv3
+          obs_scal(2)%obs_vec(1) = obs_scal(2)%obs_vec(1) + zpot*z_fac
 
           zrho = cmplx(0.d0, 0.d0, kind(0.d0))
           do nf = 1, n_fl
