@@ -1380,9 +1380,12 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
 
       !! model parameters
       real(Kind=kind(0.d0)) :: ham_t = 1.d0     ! Hopping parameter
-      real(Kind=kind(0.d0)) :: ham_alpha = 1.d0     ! Hopping parameter
+      real(Kind=kind(0.d0)) :: ham_t2 = 1.d0     ! Hopping parameter
+      real(Kind=kind(0.d0)) :: ham_t3 = 1.d0     ! Hopping parameter
+      real(Kind=kind(0.d0)) :: ham_V = 1.d0     ! V interaction
+      real(Kind=kind(0.d0)) :: ham_V2 = 0.d0     ! V interaction
+      real(Kind=kind(0.d0)) :: ham_V3 = 0.d0     ! V interaction
       real(Kind=kind(0.d0)) :: ham_chem = 0.d0     ! Chemical potential
-      real(Kind=kind(0.d0)) :: ham_U = 4.d0     ! attractive Hubbard interaction
       integer               :: N_dope = 0
 
       Integer :: N_skip, N_rebin, N_Cov, ierr, N_auto, ndim, n_part
@@ -1391,10 +1394,8 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       Integer             :: L1, L2, N_FL
       Character (len=64)  :: Model, Lattice_type
       NAMELIST /VAR_Lattice/ L1, L2, Lattice_type, Model
-      !NAMELIST /VAR_bose_metal_ladder/  ham_t, ham_alpha, ham_chem, &
-      !     &     ham_U, N_dope
-      NAMELIST /VAR_bose_metal/  ham_t, ham_alpha, ham_chem, &
-           &     ham_U, N_dope
+      NAMELIST /VAR_cbqbt_ob/  ham_t, ham_t2, ham_t3, ham_V, ham_V2, &
+           &     ham_V3, ham_chem, N_dope
 
 
       INTEGER(HSIZE_T), allocatable :: dims(:), dimsc(:)
@@ -1420,8 +1421,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       rewind(5)
       read(5,NML=VAR_errors)
       rewind(5)
-      !read(5,NML=VAR_bose_metal_ladder)
-      read(5,NML=VAR_bose_metal)
+      read(5,NML=VAR_cbqbt_ob)
       close(5)
 
       Nobs  = size(bins_raw, 1)
