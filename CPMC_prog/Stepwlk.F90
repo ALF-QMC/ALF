@@ -215,7 +215,7 @@
                     Call Op_mmultR(phi_0(nf_eff,i_wlk)%U,Op_V(n,nf),spin,'n',1)
                     ! store alpha factor in z_alpha
                     z_alpha = z_alpha + &
-                        & op_v(n_op,nf)%g*op_v(n_op,nf)%alpha*nsigma_bp(i_wlk)%Phi(n,ntau_bp)
+                        & op_v(n,nf)%g*op_v(n,nf)%alpha*nsigma_bp(i_wlk)%Phi(n,ntau_bp)
                 enddo
              
              enddo
