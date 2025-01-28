@@ -1,12 +1,12 @@
-program Main
+program main
 
    use runtime_error_mod
-   use Hamiltonian_main
-   use Control
-   use UDV_State_mod
+   use hamiltonian_main
+   use control
+   use udv_state_mod
    use stepwlk_mod
    use fields_mod
-   use BRW_init_mod
+   use brw_init_mod
    use iso_fortran_env, only: output_unit, error_unit
 
 #ifdef MPI
@@ -24,7 +24,7 @@ program Main
    class(UDV_State), dimension(:, :), allocatable :: phi_trial, phi_0, phi_bp_l, phi_bp_r
 
    integer :: N_blk, N_blksteps, i_wlk, j_step, N_blk_eff, i_blk, NSTM
-   integer :: Nwrap, itv_pc, ltau, ntau_bp, ltrot_bp
+   integer :: Nwrap, itv_pc, ltau, ntau_bp, ltrot_bp, ntn
    real(Kind=kind(0.d0)) :: CPU_MAX
    character(len=64) :: file_para, file_dat, file_info, ham_name
 
@@ -225,7 +225,7 @@ program Main
 
    ! init slater determinant
    call initial_wlk(phi_trial, phi_0, phi_bp_l, phi_bp_r, &
-       & udvst, STAB_nt, gr, kappa, kappa_bar, nwrap)
+       & udvst, stab_nt, gr, kappa, kappa_bar, nwrap)
    call store_phi  (phi_0, phi_bp_r)
 
    call control_init(Group_Comm)
@@ -248,25 +248,26 @@ program Main
          end if
 
          !! propagate the walkers:
-         call stepwlk_move(Phi_trial, Phi_0, GR, ntau_bp); 
+         call stepwlk_move(phi_trial, phi_0, gr, kappa, kappa_bar, ntau_bp); 
          !! QR decomposition for stablization
          if (ntau_bp .eq. stab_nt(nst)) then
-            call re_orthonormalize_walkers(Phi_0, 'U')
+            call re_orthonormalize_walkers(phi_0, 'U')
             nst = nst + 1
          end if
 
          ! Measurement and update fac_norm
          if (ntau_bp .eq. ltrot_bp) then
             ntau_bp = 0
-            NST = 1
+            nst = 1
 
-            call backpropagation(GR, phi_bp_l, phi_bp_r, udvst, stab_nt, ltau)
+            call backpropagation(phi_bp_l, phi_bp_r, udvst, stab_nt, ltau)
 
                     !! store phi_0 for the next measurement
             call store_phi(phi_0, phi_bp_r)
 
                     !! Update fac_norm
-            call ham%update_fac_norm(GR, j_step + (i_blk - 1)*N_blksteps)
+            ntn = j_step + (i_blk - 1)*N_blksteps
+            call ham%update_fac_norm(gr, kappa, kappa_bar, ntn)
 
          end if
 
@@ -304,4 +305,4 @@ program Main
 #endif
    stop
 
-end program Main
+end program main

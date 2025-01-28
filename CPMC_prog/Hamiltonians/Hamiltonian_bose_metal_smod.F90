@@ -420,8 +420,8 @@
           character(len=:), allocatable ::  Channel
 
           ! Scalar observables
-          allocate (Obs_scal(6))
-          do I = 1, size(Obs_scal, 1)
+          allocate (obs_scal(5))
+          do I = 1, size(obs_scal, 1)
              select case (I)
              case (1)
                 N = 1; Filename = "Kin"
@@ -433,8 +433,6 @@
                 N = 1; Filename = "Ener"
              case (5)
                 N = ndim*ndim*n_fl; Filename = "grc"
-             case (6)
-                N = ndim*ndim*n_fl; Filename = "mixgrc"
              case default
                 write (6, *) ' Error in Alloc_obs '
              end select
@@ -442,7 +440,7 @@
           end do
 
           ! Equal time correlators
-          allocate (Obs_eq(9))
+          allocate (Obs_eq(4))
           do I = 1, size(Obs_eq, 1)
              select case (I)
              case (1)
@@ -453,16 +451,6 @@
                 Filename = "Den"
              case (4)
                 Filename = "swave"
-             case (5)
-                Filename = "sfflo"
-             case (6)
-                Filename = "dwave"
-             case (7)
-                Filename = "pxwave"
-             case (8)
-                Filename = "pywave"
-             case (9)
-                Filename = "pzwave"
              case default
                 write (6, *) ' Error in Alloc_obs '
              end select
@@ -527,7 +515,7 @@
           Zkin = cmplx(0.d0, 0.d0, kind(0.d0))
           call Predefined_Hoppings_Compute_Kin(Hopping_Matrix, List, Invlist, Latt, Latt_unit, GRC, ZKin)
           Zkin = Zkin*dble(N_SUN)
-          Obs_scal(1)%Obs_vec(1) = Obs_scal(1)%Obs_vec(1) + Zkin*Z_fac
+          obs_scal(1)%Obs_vec(1) = Obs_scal(1)%Obs_vec(1) + Zkin*Z_fac
 
           ZPot = cmplx(0.d0, 0.d0, kind(0.d0))
           do I = 1, Latt%N
@@ -536,7 +524,7 @@
                 ZPot = ZPot - Grc(i1, i1, 1)*Grc(i1, i1, 2)*ham_U
              end do
           end do
-          Obs_scal(2)%Obs_vec(1) = Obs_scal(2)%Obs_vec(1) + Zpot*Z_fac
+          obs_scal(2)%Obs_vec(1) = Obs_scal(2)%Obs_vec(1) + Zpot*Z_fac
 
           Zrho = cmplx(0.d0, 0.d0, kind(0.d0))
           do nf = 1, N_FL
@@ -545,9 +533,9 @@
              end do
           end do
           Zrho = Zrho*dble(N_SUN)
-          Obs_scal(3)%Obs_vec(1) = Obs_scal(3)%Obs_vec(1) + Zrho*Z_fac
+          obs_scal(3)%Obs_vec(1) = Obs_scal(3)%Obs_vec(1) + Zrho*Z_fac
 
-          Obs_scal(4)%Obs_vec(1) = Obs_scal(4)%Obs_vec(1) + (Zkin + Zpot)*Z_fac
+          obs_scal(4)%Obs_vec(1) = Obs_scal(4)%Obs_vec(1) + (Zkin + Zpot)*Z_fac
 
           nc = 0
           do nf = 1, N_FL
@@ -556,19 +544,6 @@
                 nc = nc + 1
                 ztmp = grc(i, j, nf)
                 Obs_scal(5)%Obs_vec(nc) = Obs_scal(5)%Obs_vec(nc) + ztmp*Z_fac
-             end do
-             end do
-          end do
-
-          nc = 0
-          do nf = 1, N_FL
-             do I = 1, Ndim
-             do J = 1, Ndim
-                nc = nc + 1
-                zone = cmplx(0.d0, 0.d0, kind(0.d0))
-                if (I .eq. J) zone = cmplx(1.d0, 0.d0, kind(0.d0))
-                Ztmp = zone - GR_mix(J, I, nf)
-                Obs_scal(6)%Obs_vec(nc) = Obs_scal(6)%Obs_vec(nc) + ztmp*Z_fac
              end do
              end do
           end do
@@ -607,40 +582,6 @@
                   ztmp = grc(i1,j1,1)*grc(i1,j1,2)
                   obs_eq(4)%obs_Latt(imj,1,no_i,no_j) = obs_eq(4)%obs_latt(imj,1,no_i,no_j) + ztmp*z_fac
                   
-                  cpair(:) = cmplx(0.d0,0.d0,kind(0.d0))
-
-                  !! sfflo
-                  cpair(1) = cpair(1) + grc(i1,j1,1)*grc(rsi,rsj,2) + grc(i1,j1,2)*grc(rsi,rsj,1) &
-                      &               + grc(i1,rsj,1)*grc(rsi,j1,2) + grc(i1,rsj,2)*grc(rsi,j1,1)
-
-                  !! 4x4 nn bonds
-                  do k = 1, 16
-
-                     k2 = (k-1)/4
-                     k1 = k-k2*4
-                     k2 = k2 + 1
-
-                     cpair(2) = cpair(2) + 0.25d0*ff_s(k1,no_i,1)*conjg(ff_s(k2,no_j,1))* &
-                         & (   grc(i1,j1,1)*grc(irdl(k1),jrdl(k2),2) + grc(i1,j1,2)*grc(irdl(k1),jrdl(k2),1) &
-                         &   + grc(i1,jrdl(k2),1)*grc(irdl(k1),j1,2) + grc(i1,jrdl(k2),2)*grc(irdl(k1),j1,1) )
-
-                     cpair(3) = cpair(3) + 0.25d0*ff_s(k1,no_i,2)*conjg(ff_s(k2,no_j,2))* &
-                         & (   grc(i1,j1,1)*grc(idl(k1),jdl(k2),1) + grc(i1,j1,2)*grc(idl(k1),jdl(k2),2) &
-                         &   - grc(i1,jdl(k2),1)*grc(idl(k1),j1,1) - grc(i1,jdl(k2),2)*grc(idl(k1),j1,2) )
-                     
-                     cpair(4) = cpair(4) + 0.25d0*ff_s(k1,no_i,3)*conjg(ff_s(k2,no_j,3))* &
-                         & (   grc(i1,j1,1)*grc(idl(k1),jdl(k2),1) + grc(i1,j1,2)*grc(idl(k1),jdl(k2),2) &
-                         &   - grc(i1,jdl(k2),1)*grc(idl(k1),j1,1) - grc(i1,jdl(k2),2)*grc(idl(k1),j1,2) )
-
-                  enddo
-                  obs_eq(5)%obs_Latt(imj,1,no_i,no_j) = obs_eq(5)%obs_latt(imj,1,no_i,no_j) + cpair(1)*z_fac
-                  obs_eq(6)%obs_Latt(imj,1,no_i,no_j) = obs_eq(6)%obs_latt(imj,1,no_i,no_j) + cpair(2)*z_fac
-                  obs_eq(7)%obs_Latt(imj,1,no_i,no_j) = obs_eq(7)%obs_latt(imj,1,no_i,no_j) + cpair(3)*z_fac
-                  obs_eq(8)%obs_Latt(imj,1,no_i,no_j) = obs_eq(8)%obs_latt(imj,1,no_i,no_j) + cpair(4)*z_fac
-                  obs_eq(9)%obs_Latt(imj,1,no_i,no_j) = obs_eq(9)%obs_latt(imj,1,no_i,no_j) + &
-                      & ( grc(i1,j1,1)*grc(idl(1),jdl(1),2) + grc(i1,j1,2)*grc(idl(1),jdl(1),1)  &
-                      & - grc(i1,jdl(1),1)*grc(idl(1),j1,2) - grc(i1,jdl(1),2)*grc(idl(1),j1,1) )*z_fac
-                  
               end do
               zback = grc(i1, i1, 2) - grc(i1, i1, 1)
               obs_eq(2)%obs_latt0(no_i) = obs_eq(2)%obs_Latt0(no_i) + zback*z_fac
@@ -653,10 +594,12 @@
        !!========================================================================!!
        !!     compute local energy of a given walker
        !!========================================================================!!
-       complex(Kind=kind(0.d0)) function E0_local(gr)
+       complex(Kind=kind(0.d0)) function E0_local(gr, kappa, kappa_bar)
           implicit none
 
-          complex(Kind=kind(0.d0)), intent(IN) :: gr(ndim, ndim, n_fl)
+          complex(Kind=kind(0.d0)), intent(in) :: gr       (ndim, ndim, n_fl, n_grc)
+          complex(Kind=kind(0.d0)), intent(in) :: kappa    (ndim, ndim, n_fl, n_grc)
+          complex(Kind=kind(0.d0)), intent(in) :: kappa_bar(ndim, ndim, n_fl, n_grc)
 
           !Local
           complex(Kind=kind(0.d0)) :: grc(ndim, ndim, n_fl), ZK
@@ -673,9 +616,9 @@
              end do
           end do
 
-          Zkin = cmplx(0.d0, 0.d0, kind(0.d0))
+          zkin = cmplx(0.d0, 0.d0, kind(0.d0))
           call Predefined_Hoppings_Compute_Kin(Hopping_Matrix, List, Invlist, Latt, Latt_unit, GRC, ZKin)
-          Zkin = Zkin*dble(N_SUN)
+          zkin = Zkin*dble(N_SUN)
 
           ZPot = cmplx(0.d0, 0.d0, kind(0.d0))
           do I = 1, Latt%N
@@ -694,10 +637,12 @@
        !!========================================================================!!
        !!     set up the shift of auxillary field for importance sampling
        !!========================================================================!!
-       subroutine set_xloc(gr)
+       subroutine set_xloc(gr,kappa,kappa_bar)
          Implicit none
           
-         complex (kind=kind(0.d0)), intent(in) :: gr(Ndim,Ndim,N_FL)
+         complex(Kind=kind(0.d0)), intent(in) :: gr       (ndim, ndim, n_fl, n_grc)
+         complex(Kind=kind(0.d0)), intent(in) :: kappa    (ndim, ndim, n_fl, n_grc)
+         complex(Kind=kind(0.d0)), intent(in) :: kappa_bar(ndim, ndim, n_fl, n_grc)
          
          ! local
          complex (kind=kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK, Zn, ztmp
@@ -804,11 +749,13 @@
        !!===================================================================!!
        !!     update the normalization factor
        !!===================================================================!!
-       subroutine update_fac_norm(gr, ntw)
+       subroutine update_fac_norm(gr, kappa, kappa_bar, ntw)
           implicit none
 
-          complex(Kind=kind(0.d0)), intent(IN) :: gr(ndim, ndim, n_fl, n_grc)
-          integer, intent(IN) :: ntw
+          complex(Kind=kind(0.d0)), intent(in) :: gr       (ndim, ndim, n_fl, n_grc)
+          complex(Kind=kind(0.d0)), intent(in) :: kappa    (ndim, ndim, n_fl, n_grc)
+          complex(Kind=kind(0.d0)), intent(in) :: kappa_bar(ndim, ndim, n_fl, n_grc)
+          integer, intent(in) :: ntw
 
           !local
           integer :: i_wlk, ii, i_st, i_ed, ns, i_grc
@@ -872,7 +819,8 @@
                  tot_ene = cmplx(0.d0, 0.d0, kind(0.d0))
                  do ns = 1, N_hfb
                     i_grc = ns + (i_wlk - 1)*N_hfb
-                    el_tmp = dble(ham%E0_local(GR(:, :, :, i_grc)))
+                    el_tmp = dble(ham%E0_local(gr(:,:,:,i_grc), & 
+                        & kappa(:,:,:,i_grc), kappa_bar(:,:,:,i_grc)))
                     tot_ene = tot_ene + el_tmp*exp(overlap(i_grc))/Z
                  end do
                  re_w_tmp = exp(re_lw)*cos(ang_w)

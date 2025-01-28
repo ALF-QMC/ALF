@@ -9,21 +9,22 @@ module stepwlk_mod
 
 contains
 
-   subroutine stepwlk_move(phi_trial, phi_0, GR, ntau_bp)
+   subroutine stepwlk_move(phi_trial, phi_0, gr, kappa, kappa_bar, ntau_bp)
 
       implicit none
 
-      class(UDV_State), dimension(:, :), allocatable, intent(IN)    :: phi_trial
-      class(UDV_State), dimension(:, :), allocatable, intent(INOUT) :: phi_0
-      complex(Kind=kind(0.d0)), dimension(:, :, :, :), allocatable, intent(INOUT) :: GR
-      integer, intent(IN) :: ntau_bp
+      class(udv_state), dimension(:, :), allocatable, intent(in   ) :: phi_trial
+      class(udv_state), dimension(:, :), allocatable, intent(inout) :: phi_0
+      complex(Kind=kind(0.d0)), dimension(:, :, :, :), allocatable, intent(inout) :: gr
+      complex(Kind=kind(0.d0)), dimension(:, :, :, :), allocatable, intent(inout) :: kappa, kappa_bar
+      integer, intent(in) :: ntau_bp
 
       !Local
       integer :: nf, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, N_op
-      real(Kind=kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
-      real(Kind=kind(0.d0)) :: zero = 1.0e-12, sign_w
+      real(kind=kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
+      real(kind=kind(0.d0)) :: zero = 1.0e-12, sign_w
 
-      N_op = size(OP_V, 1)
+      n_op = size(op_v, 1)
 
       do i_wlk = 1, N_wlk
          ! update weight by fac_norm
@@ -31,35 +32,35 @@ contains
          if (sign_w .gt. zero) weight_k(i_wlk) = weight_k(i_wlk) + fac_norm
       end do
 
-      call half_K_propagation(phi_trial, phi_0, GR)
+      call half_K_propagation(phi_trial, phi_0)
 
           !! propagate with interaction
-      call int_propagation(phi_0, GR, ntau_bp)
+      call int_propagation(phi_0, ntau_bp)
 
           !! Kinetic part exp(-/Delta/tau T/2)
-      call half_K_propagation(phi_trial, phi_0, GR)
-
-          !! rescale overlap after each step
-      call rescale_overlap(overlap)
+      call half_K_propagation(phi_trial, phi_0)
+      
+          !! update weight, Green's function and force basis after propagation 
+      call update_weight_and_overlap(phi_trial, phi_0, gr, kappa, kappa_bar, ntau_bp)
 
    end subroutine stepwlk_move
 
-   subroutine int_propagation(phi_0, GR, ntau_bp)
+   subroutine int_propagation(phi_0, ntau_bp)
 
+      use random_wrap
       implicit none
 
       class(udv_state), intent(inout), allocatable :: phi_0(:, :)
-      complex(Kind=kind(0.d0)), intent(inout), allocatable :: GR(:, :, :, :)
       integer, intent(in) :: ntau_bp
 
       ! local
       integer :: nf, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, i_st, i_ed
       integer :: n_op, ns, i_grc
-      complex(Kind=kind(0.d0)) :: Z, z_alpha
+      complex(Kind=kind(0.d0)) :: Z, z_alpha, cspin
       complex(Kind=kind(0.d0)) :: det_Vec(N_FL)
       real(Kind=kind(0.d0)) :: sign_w, spin, zero = 1.0e-12
 
-      N_op = size(OP_V, 1)
+      n_op = size(op_v, 1)
 
       do i_wlk = 1, N_wlk
 
@@ -68,42 +69,26 @@ contains
 
             ! upgrade Green's function
             z_alpha = 0.d0
-            do n = 1, N_op
+            do n = 1, n_op
 
-               N_type = 2
-               do ns = 1, N_hfb
-                  i_grc = ns + (i_wlk - 1)*N_hfb
-                  do nf = 1, N_FL
-                     call op_wrapdo(gr(:, :, nf, i_grc), op_v(n, nf), 1.d0, ndim, n_Type, 1)
-                  end do
-               end do
-
-               call upgrade(gr, n, spin, i_wlk)
-               nsigma_bp(i_wlk)%f(n, ntau_bp) = spin
-
-               N_type = 2
-               do ns = 1, N_hfb
-                  i_grc = ns + (i_wlk - 1)*N_hfb
-                  do nf = 1, N_FL
-                     call op_wrapup(gr(:, :, nf, i_grc), op_v(n, nf), 1.d0, ndim, n_Type, 1)
-                  end do
-               end do
+               spin = rang_wrap()
+               cspin = spin - x_local(n)
+               nsigma_bp(i_wlk)%f(n, ntau_bp) = cspin
 
                ! propagate slater determinant
                do nf = 1, N_FL
-                  call op_mmultr(phi_0(nf, i_wlk)%u, op_v(n, nf), spin, 'n', 1)
+                  call op_mmultr(phi_0(nf, i_wlk)%u, op_v(n, nf), nsigma_bp(i_wlk)%f(n, ntau_bp), 'n', 1)
                   ! store alpha factor in z_alpha
                   z_alpha = z_alpha + &
-                      & op_v(n_op, nf)%g*op_v(n_op, nf)%alpha*nsigma_bp(i_wlk)%Phi(n, ntau_bp)
+                      & op_v(n, nf)%g*op_v(n, nf)%alpha*nsigma_bp(i_wlk)%phi(n, ntau_bp)
                end do
 
             end do
 
-            !!! comment this since it would cause instability when z_alpha is real 
-            !!! rescale U matrix with z_alpha factor
-            !!do nf = 1, N_FL
-            !!   phi_0(nf, i_wlk)%U(:, :) = exp(z_alpha)*phi_0(nf, i_wlk)%U(:, :)
-            !!end do
+            ! rescale U matrix with z_alpha factor
+            do nf = 1, n_fl
+                phi_0(nf, i_wlk)%u(:,:) = exp(z_alpha)*phi_0(nf, i_wlk)%u(:,:) 
+            enddo
 
          end if
 
@@ -111,18 +96,16 @@ contains
 
    end subroutine int_propagation
 
-   subroutine half_K_propagation(phi_trial, phi_0, GR)
+   subroutine half_K_propagation(phi_trial, phi_0)
 
       implicit none
 
       class(udv_state), intent(in), allocatable :: phi_trial(:, :)
       class(udv_state), intent(inout), allocatable :: phi_0(:, :)
-      complex(Kind=kind(0.d0)), intent(inout), allocatable :: GR(:, :, :, :)
 
       ! local
       integer :: nf, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, i_st, i_ed, ns, i_grc
-      complex(Kind=kind(0.d0)) :: Overlap_old, Overlap_new, Z, sum_o_new, sum_o_old
-      complex(Kind=kind(0.d0)) :: det_Vec(N_FL), log_o_new(n_hfb), log_o_old(n_hfb)
+      complex(Kind=kind(0.d0)) :: overlap_old, overlap_new, Z, sum_o_new, sum_o_old
       real(Kind=kind(0.d0)) :: overlap_ratio, re_overlap, re_o_max
       real(Kind=kind(0.d0)) :: zero = 1.0e-12, sign_w, pi = acos(-1.d0)
 
@@ -131,67 +114,99 @@ contains
          sign_w = cos(aimag(weight_k(i_wlk)))
          if ( sign_w .gt. zero ) then
 
-            re_o_max = 0.d0
-
-            do ns = 1, N_hfb
-               i_grc = ns + (i_wlk - 1)*N_hfb
-               ! Update Green's function
-               do nf = 1, N_Fl
-                  call CGRP(Z, GR(:, :, nf, i_grc), phi_0(nf, i_wlk), phi_trial(nf, ns))
-                  det_vec(nf) = Z
-               end do
-               det_Vec(:) = det_Vec(:)*N_SUN
-               log_o_old(ns) = sum(det_Vec)
-               if ( dble(log_o_old(ns)) .gt. re_o_max ) re_o_max = dble(log_o_old(ns))
-            end do
-
              !! multi exp(-\Delta\tau T/2)
-            do nf = 1, N_FL
-               call Hop_mod_mmthr_1D2(phi_0(nf, i_wlk)%U, nf, 1)
+            do nf = 1, n_fl
+               call Hop_mod_mmthr_1D2(phi_0(nf, i_wlk)%u, nf, 1)
             end do
-
-            do ns = 1, N_hfb
-               i_grc = ns + (i_wlk - 1)*N_hfb
-               ! Update Green's function
-               do nf = 1, N_Fl
-                  call CGRP(Z, GR(:, :, nf, i_grc), phi_0(nf, i_wlk), phi_trial(nf, ns))
-                  det_vec(nf) = Z
-               end do
-               det_Vec(:) = det_Vec(:)*N_SUN
-               log_o_new(ns) = sum(det_Vec)
-               if ( dble(log_o_new(ns)) .gt. re_o_max ) re_o_max = dble(log_o_new(ns))
-            end do
-
-            sum_o_old = 0.d0
-            sum_o_new = 0.d0
-            do ns = 1, N_hfb
-               sum_o_old = sum_o_old + exp(log_o_old(ns)-cmplx(re_o_max,0.d0,kind(0.d0)))
-               sum_o_new = sum_o_new + exp(log_o_new(ns)-cmplx(re_o_max,0.d0,kind(0.d0)))
-            enddo
-
-            overlap_ratio = sum_o_new/sum_o_old
-            re_overlap = dble(overlap_ratio)
-            if (re_overlap .gt. zero) then
-                 !! upgrade overlap
-               do ns = 1, N_hfb
-                  i_grc = ns + (i_wlk - 1)*N_hfb
-                  overlap(i_grc) = overlap(i_grc) + &
-                      & (log_o_new(ns) - log_o_old(ns))
-               end do
-               weight_k(i_wlk) = weight_k(i_wlk) + log(re_overlap)
-            else
-               weight_k(i_wlk) = cmplx(0.d0,pi,kind(0.d0))
-            end if
 
          end if
 
       end do
 
    end subroutine half_K_propagation
+      
+   subroutine update_weight_and_overlap(phi_trial, phi_0, gr, kappa, kappa_bar, ntau_bp)
+
+      implicit none
+
+      class(udv_state), dimension(:, :), allocatable, intent(in   ) :: phi_trial
+      class(udv_state), dimension(:, :), allocatable, intent(inout) :: phi_0
+      complex(Kind=kind(0.d0)), dimension(:, :, :, :), allocatable, intent(inout) :: gr
+      complex(Kind=kind(0.d0)), dimension(:, :, :, :), allocatable, intent(inout) :: kappa, kappa_bar
+      integer, intent(in) :: ntau_bp
+      
+      !Local
+      integer :: nf, n_type, ntau1, n, ns, m, nt, NVAR, i_wlk, N_op, i_st, i_ed, i_grc
+      real(kind=kind(0.d0)) :: zero = 1.0e-12, sign_w, spin, hs_new, costheta
+      real(Kind=kind(0.d0)) :: overlap_ratio, re_overlap, re_o_max, logcostheta
+      complex(kind=kind(0.d0)) :: gauss_spin, detO, sum_o_new, sum_o_old, s_d_hs, x_bar
+      complex(Kind=kind(0.d0)) :: det_Vec(n_fl), log_o_new(n_slat), log_o_old(n_slat), c_log_I
+
+      do i_wlk = 1, N_wlk
+
+         sign_w = cos(aimag(weight_k(i_wlk)))
+         if ( sign_w .gt. zero ) then
+
+             re_o_max = 0.d0
+             
+             !! < BCS | phi^n_k >
+             do ns = 1, n_hfb
+                i_grc = ns + (i_wlk - 1)*n_slat
+                log_o_old(ns) = overlap(i_grc)
+                if ( dble(log_o_old(ns)) .gt. re_o_max ) re_o_max = dble(log_o_old(ns))
+             enddo
+
+             !! < BCS | phi^{n+1}_k >
+             !! upgrade Green's function
+             do ns = 1, N_hfb
+                i_grc = ns + (i_wlk - 1)*N_hfb
+
+                call cgrp(detO, gr(:, :, :, i_grc), kappa(:, :, :, i_grc), kappa_bar(:, :, :, i_grc), &
+                    &     phi_0(1, i_wlk), phi_0(2, i_wlk), phi_trial(1, ns))
+                overlap(i_grc) = detO*n_sun
+                log_o_new(ns) = overlap(i_grc)
+                if ( dble(log_o_new(ns)) .gt. re_o_max ) re_o_max = dble(log_o_new(ns))
+            enddo
+
+            !! < BCS | phi^{n+1}_k >/< BCS | phi^{n}_k >
+            sum_o_old = 0.d0
+            sum_o_new = 0.d0
+            do ns = 1, N_slat
+               sum_o_old = sum_o_old + exp(log_o_old(ns)-cmplx(re_o_max,0.d0,kind(0.d0)))
+               sum_o_new = sum_o_new + exp(log_o_new(ns)-cmplx(re_o_max,0.d0,kind(0.d0)))
+            enddo
+            overlap_ratio = sum_o_new/sum_o_old
+            
+            !! \prod_i \frac{p(x(i)-\bar{x}(i))}{p(x(i))}
+            s_d_hs = 0.d0
+            do n = 1, n_op
+               x_bar = nsigma_bp(i_wlk)%f(n,ntau_bp) + x_local(n)
+               s_d_hs = s_d_hs + x_bar*x_local(n) - x_local(n)*x_local(n)/2.d0
+            enddo
+
+            !! logarithmic of I = < BCS | phi^{n+1}_k >/< BCS | phi^{n}_k >*\prod_i \frac{p(x(i)-\bar{x}(i))}{p(x(i))}
+            c_log_I = log(overlap_ratio) + s_d_hs
+            costheta = cos(aimag(c_log_I))
+            if ( costheta .gt. zero ) then
+               logcostheta = log(costheta)
+               weight_k(i_wlk) = weight_k(i_wlk) + dble(c_log_I) + logcostheta
+
+               call ham%set_xloc(gr, kappa, kappa_bar)
+            else
+               weight_k(i_wlk) = cmplx(0.d0,pi,kind(0.d0))
+            endif
+
+         endif
+
+      enddo
+   
+   end subroutine update_weight_and_overlap
 
    subroutine re_orthonormalize_walkers(Phi_0, cop)
+      
+      implicit none
 
-      class(UDV_State), dimension(:, :), allocatable, intent(INOUT) :: phi_0
+      class(udv_state), dimension(:, :), allocatable, intent(INOUT) :: phi_0
       character, intent(IN)    :: cop
 
       !Local
@@ -229,18 +244,6 @@ contains
             do nf = 1, N_FL
                Phi_0(nf, i_wlk_eff)%D(:) = cmplx(1.d0, 0.d0, kind(0.d0))
             end do
-
-                 !!!update the overlap when normal propagation
-            !if (cop == 'U') then
-            !    i_slat = (i_wlk_eff-1)*N_hfb
-            !    do nrs = 1, N_hfb
-            !       i_slat = i_slat + 1
-            !       overlap(i_slat)=overlap(i_slat)-sum(Det_D)
-            !       re_o_am = dble( overlap(i_slat) )
-            !       re_o_ph = mod(aimag( overlap(i_slat) ), 2*pi)
-            !       overlap(i_slat) = dcmplx(re_o_am, re_o_ph)
-            !    enddo
-            !endif
 
          end if
 
@@ -477,20 +480,19 @@ contains
 
    end subroutine store_phi
 
-   subroutine backpropagation(GR_mix, phi_bp_l, phi_bp_r, udvst, Stab_nt, ltau)
+   subroutine backpropagation(phi_bp_l, phi_bp_r, udvst, stab_nt, ltau)
 #ifdef MPI
       use mpi
 #endif
       implicit none
 
-      complex(Kind=kind(0.d0)), dimension(:, :, :, :), allocatable, intent(INOUT) :: GR_mix
       class(UDV_State), dimension(:, :), allocatable, intent(INOUT) :: phi_bp_l, phi_bp_r
       class(UDV_State), dimension(:, :, :), allocatable, intent(INOUT) :: udvst
       integer, dimension(:), allocatable, intent(IN) :: Stab_nt
       integer, intent(IN) :: ltau
 
       !Local
-      complex(Kind=kind(0.d0)) :: GR_bp(NDIM, NDIM, N_FL, N_grc)
+      complex(Kind=kind(0.d0)) :: gr_bp(NDIM, NDIM, N_FL, N_grc)
       integer :: nf, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, ltrot_bp, N_op, nstm, nst, ntau
       integer :: i_grc, i_st, i_ed, ns
       complex(Kind=kind(0.d0)) :: z, z_weight, z_sum_overlap, exp_overlap(N_hfb)
@@ -507,138 +509,94 @@ contains
       igroup = irank/isize_g
 #endif
 
-      N_op = size(OP_V, 1)
-      ltrot_bp = size(nsigma_bp(1)%f, 2)
-      nstm = size(udvst, 1)
-
-          !! initialization
-      do i_grc = 1, N_grc
-         i_wlk = (i_grc - 1)/N_hfb + 1     ! index for walker
-         ns = i_grc - (i_wlk - 1)*N_hfb ! index for slater det
-         do nf = 1, N_FL
-            call phi_bp_l(nf, i_grc)%reset('l', wf_l(nf, ns)%P)
-            call udvst(nstm, nf, i_grc)%reset('l', wf_l(nf, ns)%P)
-         end do
-      end do
-
-          !! backpropagation
-      nst = nstm - 1
-      do nt = ltrot_bp, 1, -1
-         ntau = nt - 1
-
-         do i_wlk = 1, N_wlk
-
-            sign_w = cos(aimag(weight_k(i_wlk)))
-            if ( sign_w .gt. zero ) then
-             
-                do ns = 1, N_hfb
-                   i_grc = ns + (i_wlk - 1)*N_hfb
-                   do nf = 1, N_FL
-
-                      call Hop_mod_mmthlc_1D2(phi_bp_l(nf, i_grc)%U, nf, 1)
-
-                      do n = N_op, 1, -1
-                         call Op_mmultR(phi_bp_l(nf, i_grc)%U, Op_V(n, nf), nsigma_bp(i_wlk)%f(n, nt), 'c', 1)
-                      end do
-
-                      call Hop_mod_mmthlc_1D2(phi_bp_l(nf, i_grc)%U, nf, 1)
-
-                   end do
-                end do
-
-            end if
-
-         end do
-
-         if (ntau .eq. stab_nt(nst) .and. ntau .ne. 0) then
-            call re_orthonormalize_walkers(phi_bp_l, 'N')
-            do i_grc = 1, N_grc
-            do nf = 1, N_FL
-               udvst(nst, nf, i_grc) = phi_bp_l(nf, i_grc)
-            end do
-            end do
-            nst = nst - 1
-         end if
-
-      end do
-
-          !! svd at tau = 0
-      call re_orthonormalize_walkers(phi_bp_l, 'N')
-
-          !! compute the total weight
-      call ham%sum_weight(z_weight)
-
-          !! equal time measurement
-      if ( irank .eq. 0 ) call ham%count_obs
-
-      do i_wlk = 1, N_wlk
-         
-         sign_w = cos(aimag(weight_k(i_wlk)))
-         if ( sign_w .gt. zero ) then 
-         
-             ang_w = aimag(weight_k(i_wlk)) 
-             re_lw = dble (weight_k(i_wlk))
-             re_we = exp(re_lw)*cos(ang_w)
-             
-             i_st = 1 + (i_wlk - 1)*N_hfb; i_ed = i_wlk*N_hfb
-             exp_overlap(:) = exp(overlap(i_st:i_ed))
-             z_sum_overlap = sum(exp_overlap(:))
-             do ns = 1, N_hfb
-                i_grc = ns + (i_wlk - 1)*N_hfb
-                do nf = 1, N_Fl
-                   call CGRP(Z, GR_bp(:, :, nf, i_grc), phi_bp_r(nf, i_wlk), phi_bp_l(nf, i_grc))
-                end do
-                call ham%obser(gr_bp(:, :, :, i_grc), gr_mix(:, :, :, i_grc), i_grc, re_we, z_weight, z_sum_overlap)
-             end do
-     
-         endif
-
-      end do
-
-           !! time dependence measurement if not call metropolis
-      !if (ltau .eq. 1) call bp_measure_tau(phi_bp_l, phi_bp_r, udvst, stab_nt)
+!      N_op = size(OP_V, 1)
+!      ltrot_bp = size(nsigma_bp(1)%f, 2)
+!      nstm = size(udvst, 1)
+!
+!          !! initialization
+!      do i_grc = 1, N_grc
+!         i_wlk = (i_grc - 1)/N_hfb + 1     ! index for walker
+!         ns = i_grc - (i_wlk - 1)*N_hfb ! index for slater det
+!         do nf = 1, N_FL
+!            call phi_bp_l(nf, i_grc)%reset('l', wf_l(nf, ns)%P)
+!            call udvst(nstm, nf, i_grc)%reset('l', wf_l(nf, ns)%P)
+!         end do
+!      end do
+!
+!          !! backpropagation
+!      nst = nstm - 1
+!      do nt = ltrot_bp, 1, -1
+!         ntau = nt - 1
+!
+!         do i_wlk = 1, N_wlk
+!
+!            sign_w = cos(aimag(weight_k(i_wlk)))
+!            if ( sign_w .gt. zero ) then
+!             
+!                do ns = 1, N_hfb
+!                   i_grc = ns + (i_wlk - 1)*N_hfb
+!                   do nf = 1, N_FL
+!
+!                      call Hop_mod_mmthlc_1D2(phi_bp_l(nf, i_grc)%U, nf, 1)
+!
+!                      do n = N_op, 1, -1
+!                         call Op_mmultR(phi_bp_l(nf, i_grc)%U, Op_V(n, nf), nsigma_bp(i_wlk)%f(n, nt), 'c', 1)
+!                      end do
+!
+!                      call Hop_mod_mmthlc_1D2(phi_bp_l(nf, i_grc)%U, nf, 1)
+!
+!                   end do
+!                end do
+!
+!            end if
+!
+!         end do
+!
+!         if (ntau .eq. stab_nt(nst) .and. ntau .ne. 0) then
+!            call re_orthonormalize_walkers(phi_bp_l, 'N')
+!            do i_grc = 1, N_grc
+!            do nf = 1, N_FL
+!               udvst(nst, nf, i_grc) = phi_bp_l(nf, i_grc)
+!            end do
+!            end do
+!            nst = nst - 1
+!         end if
+!
+!      end do
+!
+!          !! svd at tau = 0
+!      call re_orthonormalize_walkers(phi_bp_l, 'N')
+!
+!          !! compute the total weight
+!      call ham%sum_weight(z_weight)
+!
+!          !! equal time measurement
+!      if ( irank .eq. 0 ) call ham%count_obs
+!
+!      do i_wlk = 1, N_wlk
+!         
+!         sign_w = cos(aimag(weight_k(i_wlk)))
+!         if ( sign_w .gt. zero ) then 
+!         
+!             ang_w = aimag(weight_k(i_wlk)) 
+!             re_lw = dble (weight_k(i_wlk))
+!             re_we = exp(re_lw)*cos(ang_w)
+!             
+!             i_st = 1 + (i_wlk - 1)*N_hfb; i_ed = i_wlk*N_hfb
+!             exp_overlap(:) = exp(overlap(i_st:i_ed))
+!             z_sum_overlap = sum(exp_overlap(:))
+!             do ns = 1, N_hfb
+!                i_grc = ns + (i_wlk - 1)*N_hfb
+!                do nf = 1, N_Fl
+!                   call CGRP(Z, GR_bp(:, :, nf, i_grc), phi_bp_r(nf, i_wlk), phi_bp_l(nf, i_grc))
+!                end do
+!                call ham%obser(gr_bp(:, :, :, i_grc), gr_mix(:, :, :, i_grc), i_grc, re_we, z_weight, z_sum_overlap)
+!             end do
+!     
+!         endif
+!
+!      end do
 
    end subroutine backpropagation
-
-   subroutine rescale_overlap(overlap_in)
-
-      implicit none
-
-      complex(Kind=kind(0.d0)), dimension(:), allocatable, intent(inout) :: overlap_in
-
-      integer :: nf, n, m, nt, i_wlk, i_grc, ns
-      integer :: i_st, i_ed, ncslat
-      real(Kind=kind(0.d0)) :: log_o_abs(n_hfb), log_o_phase(n_hfb), dz2
-      real(kind=kind(0.d0)) :: pi = acos(-1.d0), dre_o, zero = 1.0e-12, sign_w
-      complex(Kind=kind(0.d0)) :: z1, zp
-
-      do i_wlk = 1, N_wlk
-
-         sign_w = cos(aimag(weight_k(i_wlk)))
-         if ( sign_w .gt. zero ) then
-
-            i_st = 1 + (i_wlk - 1)*N_hfb
-            i_ed = i_wlk*N_hfb
-
-            ncslat = 0
-            do i_grc = i_st, i_ed
-               ncslat = ncslat + 1
-               log_o_abs(ncslat) = dble(overlap_in(i_grc))
-               log_o_phase(ncslat) = mod(aimag(overlap_in(i_grc)), 2.d0*pi)
-            end do
-
-            dz2 = maxval(log_o_abs(:))
-
-            ncslat = 0
-            do i_grc = i_st, i_ed
-               ncslat = ncslat + 1
-               dre_o = log_o_abs(ncslat) - dz2
-               overlap_in(i_grc) = cmplx(dre_o, log_o_phase(ncslat), kind(0.d0))
-            end do
-
-         end if
-      end do
-
-   end subroutine rescale_overlap
 
 end module stepwlk_mod

@@ -134,8 +134,9 @@ contains
          end do
       end do
 
-          !! initial energy
-      call ham%update_fac_norm(gr, 0)
+          !! initial energy and force basis
+      call ham%update_fac_norm(gr, kappa, kappa_bar, 0)
+      call ham%set_xloc       (gr, kappa, kappa_bar)
 
       file_seeds = "seedvec_in"
       inquire (FILE=file_seeds, EXIST=LCONF)
@@ -158,14 +159,14 @@ contains
 
       ! LOCAL
       character(LEN=64) :: FILE_TG, filename
-      complex(Kind=kind(0.d0)), pointer :: phi0_up_out(:, :, :), phi0_dn_out(:, :, :)
+      complex(Kind=kind(0.d0)), pointer :: phi0_out(:, :, :, :)
       complex(Kind=kind(0.d0)), pointer :: overlap_out(:)
       complex(Kind=kind(0.d0)), pointer :: weight_out(:)
-      complex(Kind=kind(0.d0)), allocatable :: otphi_tmp(:), p0_tmp(:, :, :), p1_tmp(:, :, :)
+      complex(Kind=kind(0.d0)), allocatable :: otphi_tmp(:), p0_tmp(:, :, :, :), p1_tmp(:, :, :, :)
       complex(Kind=kind(0.d0)), allocatable :: wt_tmp(:)
 
       integer             :: K, hdferr, rank, nf, nw, i0, i1, i2, i_st, i_ed, Ndt, ii
-      integer             :: i_st2, i_ed2, n_part_1, n_part_2
+      integer             :: i_st2, i_ed2, n_part
       integer(HSIZE_T), allocatable :: dims(:), dimsc(:)
       logical             :: file_exists
       integer(HID_T)      :: file_id, crp_list, space_id, dset_id, dataspace
@@ -185,34 +186,29 @@ contains
 
       write (filename, '(A,A)') trim(filename), ".h5"
       
-      n_part_1 = phi_0(1, 1)%n_part
-      n_part_2 = phi_0(2, 1)%n_part
+      n_part = phi_0(1, 1)%n_part
 
       if (irank_g .eq. 0) then
-         allocate (phi0_up_out(ndim, n_part_1, n_wlk_mpi))
-         allocate (phi0_dn_out(ndim, n_part_2, n_wlk_mpi))
-         allocate (weight_out(N_wlk_mpi), overlap_out(N_grc_mpi))
+         allocate(phi0_out(ndim,n_part,n_fl,n_wlk_mpi))
+         allocate(weight_out(N_wlk_mpi), overlap_out(N_grc_mpi))
       end if
 
-      allocate (p0_tmp(ndim, n_part_1, n_wlk))
-      allocate (p1_tmp(ndim, n_part_2, n_wlk))
+      allocate (p0_tmp(ndim, n_part, n_fl, n_wlk))
+      allocate (p1_tmp(ndim, n_part, n_fl, n_wlk))
       allocate (wt_tmp(N_wlk))
       allocate (otphi_tmp(N_grc))
 
-      if (irank_g .ne. 0) then
-          do nw = 1, N_wlk
-             p0_tmp(:, :, nw) = phi_0(1, nw)%U(:, :)
-             p1_tmp(:, :, nw) = phi_0(2, nw)%U(:, :)
-          end do
-      endif
+      do nf = 1, N_FL
+      do nw = 1, N_wlk
+          p0_tmp(:,:,nf,nw)=phi_0(nf,nw)%U(:,:)
+      enddo
+      enddo
 
       if (irank_g .ne. 0) then
          call mpi_send(overlap, N_grc, mpi_complex16, 0, 0, MPI_COMM_WORLD, IERR)
          call mpi_send(weight_k, N_wlk, mpi_complex16, 0, 1, MPI_COMM_WORLD, IERR)
-         Ndt = N_wlk*ndim*n_part_1
-         call mpi_send(p0_tmp, Ndt, mpi_complex16, 0, 2, MPI_COMM_WORLD, IERR)
-         Ndt = N_wlk*ndim*n_part_2
-         call mpi_send(p1_tmp, Ndt, mpi_complex16, 0, 3, MPI_COMM_WORLD, IERR)
+         Ndt=N_FL*N_wlk*ndim*n_part
+         call mpi_send(p0_tmp,  Ndt,mpi_complex16, 0, 2, MPI_COMM_WORLD,IERR)
       else
          do ii = 1, isize_g - 1
             i_st = ii*N_wlk + 1; i_st2 = ii*N_grc + 1
@@ -222,12 +218,9 @@ contains
             overlap_out(i_st2:i_ed2) = otphi_tmp(:)
             call mpi_recv(wt_tmp, N_wlk, mpi_complex16, ii, 1, MPI_COMM_WORLD, STATUS, IERR)
             weight_out(i_st:i_ed) = wt_tmp(:)
-            Ndt = N_wlk*ndim*n_part_1
-            call mpi_recv(p0_tmp, Ndt, mpi_complex16, ii, 2, MPI_COMM_WORLD, STATUS, IERR)
-            phi0_up_out(:, :, i_st:i_ed) = p0_tmp
-            Ndt = N_wlk*ndim*n_part_2
-            call mpi_recv(p1_tmp, Ndt, mpi_complex16, ii, 3, MPI_COMM_WORLD, STATUS, IERR)
-            phi0_dn_out(:, :, i_st:i_ed) = p1_tmp
+            Ndt=N_FL*N_wlk*ndim*n_part
+            call mpi_recv(p1_tmp,  Ndt,mpi_complex16, ii, 2, MPI_COMM_WORLD,STATUS,IERR)
+            phi0_out(:,:,:,i_st:i_ed)=p1_tmp
          end do
       end if
 
@@ -236,13 +229,7 @@ contains
           i_ed = N_wlk; i_ed2 = N_grc
           overlap_out(i_st2:i_ed2) = overlap(:)
           weight_out(i_st:i_ed) = weight_k(:)
-
-          do nw = 1, N_wlk
-             p0_tmp(:, :, nw) = phi_0(1, nw)%U(:, :)
-             p1_tmp(:, :, nw) = phi_0(2, nw)%U(:, :)
-          end do
-          phi0_up_out(:, :, i_st:i_ed) = p0_tmp
-          phi0_dn_out(:, :, i_st:i_ed) = p1_tmp
+          phi0_out(:,:,:,i_st:i_ed)=p0_tmp
       end if
 
       if (irank .eq. 0) then
@@ -301,22 +288,22 @@ contains
             call h5dclose_f(dset_id, hdferr)
 
             !Create and write dataset for wave function
-            dset_name = "phi_trial_up"
-            rank = 4
-            allocate (dims(4), dimsc(4))
-            dims = [2, ndim, n_part_1, N_wlk_mpi]
+            dset_name = "wavefunction"
+            rank = 5
+            allocate (dims(5), dimsc(5))
+            dims = [2, ndim, n_part, N_FL, N_wlk_mpi]
             dimsc = dims
             call h5screate_simple_f(rank, dims, space_id, hdferr)
             call h5pcreate_f(H5P_DATASET_CREATE_F, crp_list, hdferr)
             call h5pset_chunk_f(crp_list, rank, dimsc, hdferr)
-!!#if defined HDF5_ZLIB
-!!            ! Set ZLIB / DEFLATE Compression using compression level HDF5_ZLIB
-!!            call h5pset_deflate_f(crp_list, HDF5_ZLIB, hdferr)
-!!#endif
+#if defined HDF5_ZLIB
+                ! Set ZLIB / DEFLATE Compression using compression level HDF5_ZLIB
+            call h5pset_deflate_f(crp_list, HDF5_ZLIB, hdferr)
+#endif
             !Create a dataset using cparms creation properties.
             call h5dcreate_f(file_id, dset_name, H5T_NATIVE_DOUBLE, space_id, &
                              dset_id, hdferr, crp_list)
-            dat_ptr = c_loc(phi0_up_out(1, 1, 1))
+            dat_ptr = c_loc(phi0_out(1,1,1,1))
             call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
             !Close objects
             deallocate (dims, dimsc)
@@ -324,29 +311,6 @@ contains
             call h5pclose_f(crp_list, hdferr)
             call h5dclose_f(dset_id, hdferr)
             
-            dset_name = "phi_trial_dn"
-            rank = 4
-            allocate (dims(4), dimsc(4))
-            dims = [2, ndim, n_part_2, N_wlk_mpi]
-            dimsc = dims
-            call h5screate_simple_f(rank, dims, space_id, hdferr)
-            call h5pcreate_f(H5P_DATASET_CREATE_F, crp_list, hdferr)
-            call h5pset_chunk_f(crp_list, rank, dimsc, hdferr)
-!!#if defined HDF5_ZLIB
-!!            ! Set ZLIB / DEFLATE Compression using compression level HDF5_ZLIB
-!!            call h5pset_deflate_f(crp_list, HDF5_ZLIB, hdferr)
-!!#endif
-            !Create a dataset using cparms creation properties.
-            call h5dcreate_f(file_id, dset_name, H5T_NATIVE_DOUBLE, space_id, &
-                             dset_id, hdferr, crp_list)
-            dat_ptr = c_loc(phi0_dn_out(1, 1, 1))
-            call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
-            !Close objects
-            deallocate (dims, dimsc)
-            call h5sclose_f(space_id, hdferr)
-            call h5pclose_f(crp_list, hdferr)
-            call h5dclose_f(dset_id, hdferr)
-
             !close file
             call h5fclose_f(file_id, hdferr)
 
@@ -375,19 +339,10 @@ contains
             call h5dclose_f(dset_id, hdferr)
 
             !open and write wave function
-            dset_name= "phi_trial_up"
+            dset_name = "wavefunction"
             !Open the  dataset.
             call h5dopen_f(file_id, dset_name, dset_id, hdferr)
-            dat_ptr = c_loc(phi0_up_out(1, 1, 1))
-            !Write data
-            call H5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
-            !close objects
-            call h5dclose_f(dset_id, hdferr)
-            
-            dset_name= "phi_trial_dn"
-            !Open the  dataset.
-            call h5dopen_f(file_id, dset_name, dset_id, hdferr)
-            dat_ptr = c_loc(phi0_dn_out(1, 1, 1))
+            dat_ptr = c_loc(phi0_out(1,1,1,1))
             !Write data
             call H5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
             !close objects
@@ -400,7 +355,7 @@ contains
       end if !irank 0
 
       if (irank_g .eq. 0) then
-         deallocate (phi0_up_out, phi0_dn_out, weight_out, overlap_out)
+         deallocate (phi0_out, weight_out, overlap_out)
       end if
       deallocate (p0_tmp, p1_tmp, wt_tmp, otphi_tmp)
 
@@ -419,14 +374,14 @@ contains
 
       ! LOCAL
       character(LEN=64) :: filename
-      complex(Kind=kind(0.d0)), pointer :: phi0_up_out(:, :, :), phi0_dn_out(:, :, :)
+      complex(Kind=kind(0.d0)), pointer :: phi0_out(:,:,:,:)
       complex(Kind=kind(0.d0)), pointer :: overlap_out(:)
       complex(Kind=kind(0.d0)), pointer :: weight_out(:)
-      complex(Kind=kind(0.d0)), allocatable :: otphi_tmp(:), p0_tmp(:, :, :), p1_tmp(:, :, :)
+      complex(Kind=kind(0.d0)), allocatable :: otphi_tmp(:), p0_tmp(:,:,:,:), p1_tmp(:,:,:,:)
       complex(Kind=kind(0.d0)), allocatable :: wt_tmp(:)
 
       integer             :: K, hdferr, rank, nf, nw, i0, i1, i2, i_st, i_ed, Ndt, ii
-      integer             :: nwalk_in, ngrc_in, i_st2, i_ed2, n_part_1, n_part_2
+      integer             :: nwalk_in, ngrc_in, i_st2, i_ed2, n_part
       integer(HSIZE_T), allocatable :: dims(:), dimsc(:), maxdims(:)
       logical             :: file_exists
       integer(HID_T)      :: file_id, crp_list, space_id, dset_id, dataspace
@@ -444,11 +399,10 @@ contains
 #endif
       filename = file_tg
 
-      n_part_1 = phi_0(1, 1)%n_part
-      n_part_2 = phi_0(2, 1)%n_part
+      n_part = phi_0(1, 1)%n_part
 
-      allocate (p0_tmp(ndim, n_part_1, n_wlk))
-      allocate (p1_tmp(ndim, n_part_2, n_wlk))
+      allocate (p0_tmp(ndim, n_part, n_fl, n_wlk))
+      allocate (p1_tmp(ndim, n_part, n_fl, n_wlk))
       allocate (wt_tmp(N_wlk))
       allocate (otphi_tmp(N_grc))
 
@@ -493,8 +447,7 @@ contains
          call h5sget_simple_extent_dims_f(dataspace, dims, maxdims, ierr)
          nwalk_in = dims(rank)
               !! allocate !!
-         allocate (phi0_up_out(ndim, n_part_1, nwalk_in))
-         allocate (phi0_dn_out(ndim, n_part_2, nwalk_in))
+         allocate (phi0_out(ndim, n_part, n_fl, nwalk_in))
          allocate (weight_out (nwalk_in))
               !!-----------!!
          dat_ptr = c_loc(weight_out(1))
@@ -506,19 +459,10 @@ contains
          deallocate (dims, maxdims)
 
          !open and read trial wave function
-         dset_name= "phi_trial_up"
+         dset_name = "wavefunction"
          !Open the  dataset.
          call h5dopen_f(file_id, dset_name, dset_id, hdferr)
-         dat_ptr = c_loc(phi0_up_out(1, 1, 1))
-         !Write data
-         call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
-         !close objects
-         call h5dclose_f(dset_id, hdferr)
-         
-         dset_name= "phi_trial_dn"
-         !Open the  dataset.
-         call h5dopen_f(file_id, dset_name, dset_id, hdferr)
-         dat_ptr = c_loc(phi0_dn_out(1, 1, 1))
+         dat_ptr = C_LOC(phi0_out(1,1,1,1))
          !Write data
          call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
          !close objects
@@ -538,44 +482,40 @@ contains
             call mpi_send(otphi_tmp, N_grc, mpi_complex16, ii, 0, MPI_COMM_WORLD, IERR)
             wt_tmp(:) = weight_out(i_st:i_ed)
             call mpi_send(wt_tmp, N_wlk, mpi_complex16, ii, 1, MPI_COMM_WORLD, IERR)
-            Ndt = N_wlk*ndim*n_part_1
-            p0_tmp = phi0_up_out(:, :, i_st:i_ed)
-            call mpi_send(p0_tmp, Ndt, mpi_complex16, ii, 2, MPI_COMM_WORLD, IERR)
-            Ndt = N_wlk*ndim*n_part_2
-            p1_tmp = phi0_dn_out(:, :, i_st:i_ed)
-            call mpi_send(p1_tmp, Ndt, mpi_complex16, ii, 3, MPI_COMM_WORLD, IERR)
+            Ndt = N_FL*N_wlk*ndim*n_part
+            p1_tmp = phi0_out(:,:,:,i_st:i_ed)
+            call mpi_send(p1_tmp, Ndt, mpi_complex16, ii, 2, MPI_COMM_WORLD, IERR)
          end do
       else
          call mpi_recv(otphi_tmp, N_grc, mpi_complex16, 0, 0, MPI_COMM_WORLD, STATUS, IERR)
          overlap(:) = otphi_tmp(:)
          call mpi_recv(wt_tmp, N_wlk, mpi_complex16, 0, 1, MPI_COMM_WORLD, STATUS, IERR)
          weight_k(:) = wt_tmp(:)
-         Ndt = N_wlk*ndim*n_part_1
+         Ndt = N_FL*N_wlk*ndim*n_part
          call mpi_recv(p0_tmp, Ndt, mpi_complex16, 0, 2, MPI_COMM_WORLD, STATUS, IERR)
-         Ndt = N_wlk*ndim*n_part_2
-         call mpi_recv(p1_tmp, Ndt, mpi_complex16, 0, 3, MPI_COMM_WORLD, STATUS, IERR)
+         do nf = 1, N_FL
          do nw = 1, N_wlk
-            phi_0(1, nw)%U(:, :) = p0_tmp(:, :, nw)
-            phi_0(2, nw)%U(:, :) = p1_tmp(:, :, nw)
-         end do
+             phi_0(nf,nw)%U(:,:)=p0_tmp(:,:,nf,nw)
+         enddo
+         enddo
       end if
 
       if (irank_g .eq. 0) then
          i_st = 1    ; i_st2 = 1
          i_ed = N_wlk; i_ed2 = N_grc
-         p0_tmp = phi0_up_out(:, :, i_st:i_ed)
-         p1_tmp = phi0_dn_out(:, :, i_st:i_ed)
+         p0_tmp = phi0_out(:, :, :, i_st:i_ed)
 
          weight_k(:) = weight_out(i_st:i_ed)
          overlap(:) = overlap_out(i_st2:i_ed2)
+         do nf = 1, N_FL
          do nw = 1, N_wlk
-            phi_0(1, nw)%U(:, :) = p0_tmp(:, :, nw)
-            phi_0(2, nw)%U(:, :) = p1_tmp(:, :, nw)
+            phi_0(nf,nw)%U(:, :) = p0_tmp(:, :, nf, nw)
+         end do
          end do
       end if
 
       if (irank_g .eq. 0) then
-         deallocate (phi0_up_out, phi0_dn_out, weight_out, overlap_out)
+         deallocate (phi0_out, weight_out, overlap_out)
       end if
       deallocate (p0_tmp, p1_tmp, wt_tmp, otphi_tmp)
 
@@ -592,117 +532,90 @@ contains
       class(udv_state), dimension(:,:), allocatable, intent(inout) :: phi_0_r, phi_0_l
       character (LEN=64), intent(in)  :: file_tg
 
-      ! LOCAL
-      character (LEN=64) :: filename
-      complex (Kind=Kind(0.d0)), pointer :: phi0_up_out(:,:), phi0_dn_out(:,:)
-      complex (Kind=Kind(0.d0)), allocatable :: p0_tmp(:,:), p1_tmp(:,:)
-      complex (kind=kind(0.d0)) :: alpha, beta, zdet, z_norm_up, z_norm_dn, z_norm
-      complex (kind=kind(0.d0)) :: phase
-
-      INTEGER             :: K, hdferr, rank, nf, nw, i0, i1, i2, i_st, i_ed, Ndt, ii, nwalk_in
-      Integer             :: n_part_1, n_part_2, n, info
-      INTEGER(HSIZE_T), allocatable :: dims(:), dimsc(:), maxdims(:)
-      Logical             :: file_exists
-      INTEGER(HID_T)      :: file_id, crp_list, space_id, dset_id, dataspace
-      Character (len=64)  :: dset_name
-      TYPE(C_PTR)         :: dat_ptr
-
-#if defined(MPI)
-      INTEGER        :: irank_g, isize_g, igroup, ISIZE, IRANK, IERR
-      Integer        :: STATUS(MPI_STATUS_SIZE)
-      CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-      CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-      call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-      call MPI_Comm_size(Group_Comm, isize_g, ierr)
-      igroup           = irank/isize_g
-#endif
-      filename = file_tg
-
-      n_part_1 = phi_0_l(1, 1)%n_part
-      n_part_2 = phi_0_l(2, 1)%n_part
-      
-      allocate(p0_tmp(ndim,n_part_1))
-      allocate(p1_tmp(ndim,n_part_2))
-      
-      if ( irank .eq. 0 ) then
-
-          !open file
-          CALL h5fopen_f (filename, H5F_ACC_RDWR_F, file_id, hdferr)
-
-          !! allocate !!
-          allocate(phi0_up_out(ndim,n_part_1))
-          allocate(phi0_dn_out(ndim,n_part_2))
-          !!-----------!!
-          !open and read wave function
-          dset_name= "phi_trial_up"
-          !Open the  dataset.
-          call h5dopen_f(file_id, dset_name, dset_id, hdferr)
-          dat_ptr = c_loc(phi0_up_out(1,1))
-          !Write data
-          call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
-          !close objects
-          call h5dclose_f(dset_id,   hdferr)
-          
-          dset_name= "phi_trial_dn"
-          !Open the  dataset.
-          call h5dopen_f(file_id, dset_name, dset_id, hdferr)
-          dat_ptr = c_loc(phi0_dn_out(1,1))
-          !Write data
-          call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
-          !close objects
-          call h5dclose_f(dset_id,   hdferr)
-            
-          !close file
-          call h5fclose_f(file_id, hdferr)
-
-          !! QR decomposition
-          !! here we assume single SD as trial wave function
-          phi_0_l(1,1)%U(:,:) = phi0_up_out(:,:)
-          phi_0_l(1,1)%D = cmplx(1.d0,0.d0,kind(0.d0))
-          call phi_0_l(1, 1)%decompose
-          phi_0_l(1,1)%D = cmplx(1.d0,0.d0,kind(0.d0))
-          
-          phi_0_l(2,1)%U(:,:) = phi0_dn_out(:,:)
-          phi_0_l(2,1)%D = cmplx(1.d0,0.d0,kind(0.d0))
-          call phi_0_l(2, 1)%decompose
-          phi_0_l(2,1)%D = cmplx(1.d0,0.d0,kind(0.d0))
-
-          p0_tmp(:,:) = phi_0_l(1,1)%U(:,:)
-          p1_tmp(:,:) = phi_0_l(2,1)%U(:,:)
-          
-          deallocate(phi0_up_out, phi0_dn_out)
-
-      endif !irank 0
-
-      if ( irank_g .eq. 0 ) then
-         do ii = 1, isize_g-1
-            Ndt=ndim*n_part_1
-            call mpi_send(p0_tmp,  Ndt,mpi_complex16, ii, 2, MPI_COMM_WORLD,IERR)
-            Ndt=ndim*n_part_2
-            call mpi_send(p1_tmp,  Ndt,mpi_complex16, ii, 3, MPI_COMM_WORLD,IERR)
-         ENDDO
-      else
-         Ndt=ndim*n_part_1
-         call mpi_recv(p0_tmp,  Ndt,mpi_complex16, 0, 2, MPI_COMM_WORLD,STATUS,IERR)
-         Ndt=ndim*n_part_2
-         call mpi_recv(p1_tmp,  Ndt,mpi_complex16, 0, 3, MPI_COMM_WORLD,STATUS,IERR)
-      ENDIF
-
-      !! init phi_0_r phi_0_l and wavefunction wf_l, wf_r for each threads
-      wf_l(1,1)%P(:,:)=p0_tmp(:,:)
-      wf_r(1,1)%P(:,:)=p0_tmp(:,:)
-      
-      wf_l(2,1)%P(:,:)=p1_tmp(:,:)
-      wf_r(2,1)%P(:,:)=p1_tmp(:,:)
-      
-      phi_0_l(1,1)%U(:,:)=p0_tmp(:,:)
-      phi_0_l(2,1)%U(:,:)=p1_tmp(:,:)
-      do nw = 1, N_wlk
-         call phi_0_r(1,nw)%reset('r', p0_tmp)
-         call phi_0_r(2,nw)%reset('r', p1_tmp)
-      enddo
-      
-      deallocate(p0_tmp, p1_tmp)
+!!      ! LOCAL
+!!      character (LEN=64) :: filename
+!!      complex (Kind=Kind(0.d0)), pointer :: phi0_in(:,:)
+!!      complex (Kind=Kind(0.d0)), allocatable :: p0_tmp(:,:), p1_tmp(:,:)
+!!      complex (kind=kind(0.d0)) :: alpha, beta, zdet, z_norm_up, z_norm_dn, z_norm
+!!      complex (kind=kind(0.d0)) :: phase
+!!
+!!      INTEGER             :: K, hdferr, rank, nf, nw, i0, i1, i2, i_st, i_ed, Ndt, ii, nwalk_in
+!!      Integer             :: n_part, n, info
+!!      INTEGER(HSIZE_T), allocatable :: dims(:), dimsc(:), maxdims(:)
+!!      Logical             :: file_exists
+!!      INTEGER(HID_T)      :: file_id, crp_list, space_id, dset_id, dataspace
+!!      Character (len=64)  :: dset_name
+!!      TYPE(C_PTR)         :: dat_ptr
+!!
+!!#if defined(MPI)
+!!      INTEGER        :: irank_g, isize_g, igroup, ISIZE, IRANK, IERR
+!!      Integer        :: STATUS(MPI_STATUS_SIZE)
+!!      CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
+!!      CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+!!      call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+!!      call MPI_Comm_size(Group_Comm, isize_g, ierr)
+!!      igroup           = irank/isize_g
+!!#endif
+!!      filename = file_tg
+!!
+!!      n_part = phi_0_l(1, 1)%n_part
+!!      
+!!      allocate(p0_tmp(ndim,n_part))
+!!      
+!!      if ( irank .eq. 0 ) then
+!!
+!!          !open file
+!!          CALL h5fopen_f (filename, H5F_ACC_RDWR_F, file_id, hdferr)
+!!
+!!          !! allocate !!
+!!          allocate(phi0_in(ndim,n_part))
+!!          !!-----------!!
+!!          !open and read wave function
+!!          dset_name= "phi_trial"
+!!          !Open the  dataset.
+!!          call h5dopen_f(file_id, dset_name, dset_id, hdferr)
+!!          dat_ptr = c_loc(phi0_in(1,1))
+!!          !Write data
+!!          call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
+!!          !close objects
+!!          call h5dclose_f(dset_id, hdferr)
+!!            
+!!          !close file
+!!          call h5fclose_f(file_id, hdferr)
+!!
+!!          !! QR decomposition
+!!          !! here we assume single SD as trial wave function
+!!          phi_0_l(1,1)%U(:,:) = phi0_in(:,:)
+!!          phi_0_l(1,1)%D = cmplx(1.d0,0.d0,kind(0.d0))
+!!          call phi_0_l(1, 1)%decompose
+!!          phi_0_l(1,1)%D = cmplx(1.d0,0.d0,kind(0.d0))
+!!
+!!          p0_tmp(:,:) = phi_0_l(1,1)%U(:,:)
+!!          
+!!          deallocate(phi0_in)
+!!
+!!      endif !irank 0
+!!
+!!      if ( irank_g .eq. 0 ) then
+!!         do ii = 1, isize_g-1
+!!            Ndt=ndim*n_part
+!!            call mpi_send(p0_tmp, Ndt, mpi_complex16, ii, 2, MPI_COMM_WORLD,IERR)
+!!         ENDDO
+!!      else
+!!         Ndt=ndim*n_part
+!!         call mpi_recv(p0_tmp, Ndt, mpi_complex16, 0, 2, MPI_COMM_WORLD,STATUS,IERR)
+!!      ENDIF
+!!
+!!      !! init phi_0_r phi_0_l and wavefunction wf_l, wf_r for each threads
+!!      wf_l(1,1)%P(:,:)=p0_tmp(:,:)
+!!      wf_r(1,1)%P(:,:)=p0_tmp(:,:)
+!!      
+!!      phi_0_l(1,1)%U(:,:)=p0_tmp(:,:)
+!!      do nw = 1, N_wlk
+!!         call phi_0_r(1,nw)%reset('r', p0_tmp)
+!!      enddo
+!!      
+!!      deallocate(p0_tmp)
 
    end subroutine trial_in_hdf5
 #endif

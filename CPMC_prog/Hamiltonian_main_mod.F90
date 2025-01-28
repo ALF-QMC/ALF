@@ -151,7 +151,7 @@ contains
    !>  Time slice
    !> \endverbatim
    !-------------------------------------------------------------------
-   subroutine Obser_base(GR, GR_mix, i_grc, re_w, sum_w, sum_o)
+   subroutine obser_base(GR, GR_mix, i_grc, re_w, sum_w, sum_o)
 
       implicit none
 
@@ -166,7 +166,7 @@ contains
          write (error_unit, *) "Warning: Obser not implemented."
          first_call = .false.
       end if
-   end subroutine Obser_base
+   end subroutine obser_base
 
    !--------------------------------------------------------------------
    !> @author
@@ -188,7 +188,7 @@ contains
    !>  GTT(I,J,nf) = <T c_{I,nf }(tau) c^{dagger}_{J,nf }(tau)>
    !> \endverbatim
    !-------------------------------------------------------------------
-   subroutine ObserT_base(NT, GT0, G0T, G00, GTT, i_grc, re_w, sum_w, sum_o)
+   subroutine obserT_base(NT, GT0, G0T, G00, GTT, i_grc, re_w, sum_w, sum_o)
       implicit none
 
       integer, intent(IN) :: NT, i_grc
@@ -203,21 +203,25 @@ contains
          first_call = .false.
       end if
 
-   end subroutine ObserT_base
+   end subroutine obserT_base
 
-   complex(Kind=kind(0.d0)) function E0_local_base(GR)
+   complex(Kind=kind(0.d0)) function E0_local_base(gr, kappa, kappa_bar)
       implicit none
 
-      complex(Kind=kind(0.d0)), intent(IN) :: GR(Ndim, Ndim, N_FL)
+      complex (Kind=Kind(0.d0)), INTENT(IN) :: gr       (ndim,ndim,n_fl)
+      complex (Kind=Kind(0.d0)), INTENT(IN) :: kappa    (ndim,ndim,n_fl)
+      complex (Kind=Kind(0.d0)), INTENT(IN) :: kappa_bar(ndim,ndim,n_fl)
 
       E0_local_base = cmplx(0.d0, 0.d0, kind(0.d0))
 
    end function E0_local_base
 
-   subroutine set_xloc_base(GR)
+   subroutine set_xloc_base(gr, kappa, kappa_bar)
      Implicit none
       
-     Complex (Kind=Kind(0.d0)), INTENT(IN) :: GR(Ndim,Ndim,N_FL)
+     Complex (Kind=Kind(0.d0)), INTENT(IN) :: gr       (ndim,ndim,n_fl)
+     Complex (Kind=Kind(0.d0)), INTENT(IN) :: kappa    (ndim,ndim,n_fl)
+     Complex (Kind=Kind(0.d0)), INTENT(IN) :: kappa_bar(ndim,ndim,n_fl)
      
    end subroutine set_xloc_base
 
@@ -230,10 +234,12 @@ contains
 
    end subroutine sum_weight_base
 
-   subroutine update_fac_norm_base(GR, ntw)
+   subroutine update_fac_norm_base(gr, kappa, kappa_bar, ntw)
       implicit none
 
-      complex(Kind=kind(0.d0)), intent(in) :: GR(Ndim, Ndim, N_FL, N_grc)
+      complex(Kind=kind(0.d0)), intent(in) :: gr       (ndim, ndim, n_fl, n_grc)
+      complex(Kind=kind(0.d0)), intent(in) :: kappa    (ndim, ndim, n_fl, n_grc)
+      complex(Kind=kind(0.d0)), intent(in) :: kappa_bar(ndim, ndim, n_fl, n_grc)
       integer, intent(in) :: ntw
 
    end subroutine update_fac_norm_base
