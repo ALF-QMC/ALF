@@ -35,52 +35,60 @@ contains
 !
 !--------------------------------------------------------------------
 
-   subroutine WF_overlap(WF_L, WF_R, Z_norm)
+   subroutine wf_overlap(wf_l, wf_r, z_norm)
       implicit none
-      type(WaveFunction), intent(IN)     :: WF_L
-      type(WaveFunction), intent(INOUT)     :: WF_R
-      complex(Kind=kind(0.d0)), intent(OUT) :: Z_norm
+      type(WaveFunction), dimension(:), allocatable, intent(inout) :: wf_l
+      type(WaveFunction), dimension(:), allocatable, intent(in)    :: wf_r
+      complex(Kind=kind(0.d0)), intent(out) :: z_norm
 
       ! Local
-      integer :: N_Part, Ndim, n, ne
-      complex(Kind=kind(0.d0)), allocatable ::  mat(:, :)
+      integer :: N_Part, Ndim, n, ne, n_fl, nf
+      complex(Kind=kind(0.d0)), allocatable :: tmp_mat1(:,:), tmp_mat2(:,:)
       complex(Kind=kind(0.d0)) :: alpha, beta
 
-      N_part = size(WF_R%P, 2)
-      Ndim = size(WF_R%P, 1)
-      allocate (Mat(N_part, N_Part))
+      N_fl   = size(wf_r  , 2)
+      N_part = size(wf_r%p, 2)
+      Ndim   = size(wf_r%p, 1)
+      allocate (tmp_mat1(ndim, n_part), tmp_mat2(n_part,n_part))
 
       alpha = 1.d0
       beta = 0.d0
-      call ZGEMM('C', 'N', N_part, N_part, Ndim, alpha, WF_L%P(1, 1), Ndim, WF_R%P(1, 1), Ndim, beta, Mat(1, 1), N_part)
+      !! Z^{\dagger}*\phi_{\uparrow}
+      call zgemm('c', 'n', ndim, n_part, ndim, alpha, wf_l(1)%p(1,1), ndim, wf_r(1)%p(1,1), ndim, beta, tmp_mat1(1, 1), n_part)
+      !! \phi^{T}_{\downarrow}Z^{\dagger}*\phi_{\uparrow}
+      call zgemm('c', 'n', n_part, ndim, n_part, alpha, wf_r(2)%p(1,1), ndim, tmp_mat1(1,1), n_part, beta, tmp_mat2(1, 1), n_part)
       ! Mat = (WL_L%P)^{dagger} WL_L%R
 
-      Z_norm = Det(Mat, N_part)
+      z_norm = det(tmp_mat2, N_part)
 
-      Z_norm = (cmplx(1.d0, 0.d0, kind(0.d0))/Z_norm)**(1.d0/real(N_part, kind(0.d0)))
+      z_norm = cmplx(-1.d0,0.d0,kind(0.d0))**(dble(n_part)*dble(n_part-1)*0.5d0) * z_norm
 
-      WF_R%P = Z_norm*WF_R%P
+      z_norm = (cmplx(1.d0, 0.d0, kind(0.d0))/z_norm)**(1.d0/real(n_part, kind(0.d0)))
 
-      deallocate (Mat)
+      wf_l(1)%p = z_norm*wf_l(1)%p
+      !wf_r(1)%p =       z_norm *wf_r(1)%p
+      !wf_r(2)%p = conjg(z_norm)*wf_r(2)%p
 
-   end subroutine WF_overlap
+      deallocate (tmp_mat1, tmp_mat2)
+
+   end subroutine wf_overlap
 
 !--------------------------------------------------------------------
 
-   pure subroutine WF_alloc(WF, Ndim, N_part)
+   pure subroutine wf_alloc(WF, Ndim, N_part)
       implicit none
       type(WaveFunction), intent(INOUT) :: WF
       integer, intent(IN) :: Ndim, N_part
       allocate (WF%P(Ndim, N_part))
       WF%P = cmplx(0.d0, 0.d0, kind(0.d0))
-   end subroutine WF_alloc
+   end subroutine wf_alloc
 
 !--------------------------------------------------------------------
 
-   pure subroutine WF_clear(WF)
+   pure subroutine wf_clear(WF)
       implicit none
       type(WaveFunction), intent(INOUT) :: WF
       deallocate (WF%P)
-   end subroutine WF_clear
+   end subroutine wf_clear
 
 end module WaveFunction_mod

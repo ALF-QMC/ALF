@@ -37,14 +37,14 @@ module Hamiltonian_main
 
    type(operator), dimension(:, :), allocatable, public :: Op_V
    type(operator), dimension(:, :), allocatable, public :: Op_T
-   type(WaveFunction), dimension(:, :), allocatable, public :: WF_L
-   type(WaveFunction), dimension(:, :), allocatable, public :: WF_R
+   type(WaveFunction), dimension(:), allocatable, public :: WF_L
+   type(WaveFunction), dimension(:), allocatable, public :: WF_R
    type(Fields), dimension(:), allocatable, public :: nsigma_bp
    integer, public        :: Ndim
    integer, public        :: N_FL
    integer, public        :: N_SUN
    integer, public        :: N_wlk
-   integer, public        :: N_slat
+   integer, public        :: N_hfb
    integer, public        :: N_grc
    integer, public        :: N_wlk_mpi
    integer, public        :: N_grc_mpi

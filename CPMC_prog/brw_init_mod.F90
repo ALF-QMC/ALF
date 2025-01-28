@@ -45,24 +45,25 @@ contains
    
    end subroutine initial_setup
 
-   subroutine initial_wlk(phi_trial, phi_0, phi_bp_l, phi_bp_r, udvst, stab_nt, gr, nwrap)
+   subroutine initial_wlk(phi_trial, phi_0, phi_bp_l, phi_bp_r, udvst, & 
+           & stab_nt, gr, kappa, kappa_bar, nwrap)
       
       implicit none
 
       class(udv_state), dimension(:, :), allocatable, intent(INOUT) :: phi_trial, phi_0, phi_bp_l, phi_bp_r
       class(udv_state), dimension(:, :, :), allocatable, intent(INOUT) :: udvst
-      complex(Kind=kind(0.d0)), dimension(:, :, :, :), allocatable, intent(INOUT) :: gr
+      complex(Kind=kind(0.d0)), dimension(:, :, :, :), allocatable, intent(INOUT) :: gr, kappa, kappa_bar
       integer, dimension(:), allocatable, intent(INOUT) :: stab_nt
       integer, intent(IN) :: nwrap
 
       !Local
       integer :: nf, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, i_grc, NSTM, NST, ltrot_bp, ns
       integer :: i_st, i_ed, ncslat
-      complex(Kind=kind(0.d0)) :: overlap_old, overlap_new, Z, Z1, Z2, tot_ene, ZP
+      complex(Kind=kind(0.d0)) :: overlap_old, overlap_new, Z, Z1, Z2, ZP
       complex(Kind=kind(0.d0)) :: tot_c_weight, el_tmp
-      complex(Kind=kind(0.d0)) :: det_Vec(N_FL)
+      complex(Kind=kind(0.d0)) :: det_Vec(N_FL), detO
       real(Kind=kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio, X1, wtmp, sign_w
-      real(Kind=kind(0.d0)) :: zero = 1.0e-12, tot_re_weight, dz2
+      real(Kind=kind(0.d0)) :: zero = 1.0e-12, dz2
       character(LEN=64) :: FILE_TG, FILE_seeds, file_inst, file_antiinst
       logical ::   LCONF, LCONF_H5, lconf_inst, lconf_antiinst
 
@@ -78,8 +79,6 @@ contains
 
       nstm = size(udvst, 1)
       ltrot_bp = size(nsigma_bp(1)%f, 2)
-      tot_ene = cmplx(0.d0, 0.d0, kind(0.d0))
-      tot_re_weight = 0.d0
 
       allocate (Stab_nt(0:nstm))
       Stab_nt(0) = 0
@@ -90,23 +89,22 @@ contains
 
       do i_wlk = 1, N_wlk
          do nf = 1, N_FL
-            call phi_0   (nf, i_wlk)%init(ndim, 'r', WF_R(nf, 1)%P)
-            call phi_bp_r(nf, i_wlk)%init(ndim, 'r', WF_R(nf, 1)%P)
+            call phi_0   (nf, i_wlk)%init(ndim, 'r', wf_r(nf)%P)
+            call phi_bp_r(nf, i_wlk)%init(ndim, 'r', wf_r(nf)%P)
          end do
       end do
 
-      do ns = 1, N_slat
-         do nf = 1, N_FL
-            call phi_trial(nf, ns)%init(ndim, 'l', WF_L(nf, ns)%P)
-         end do
+      do ns = 1, N_hfb
+         call phi_trial(1, ns)%init(ndim, 'l', wf_l(ns)%P)
+         
          do i_wlk = 1, N_wlk
-            i_grc = ns + (i_wlk - 1)*N_slat
+            i_grc = ns + (i_wlk - 1)*N_hfb
             do nf = 1, N_FL
                do n = 1, nstm
                   call udvst(n, nf, i_grc)%alloc(ndim)
                end do
-               call phi_bp_l(nf, i_grc)%init(ndim, 'l', wf_l(nf, ns)%P)
             end do
+            call phi_bp_l(1, i_grc)%init(ndim, 'l', wf_l(ns)%P)
          end do
       end do
 
@@ -127,15 +125,12 @@ contains
           !! initial overlap and green's function
       do i_wlk = 1, N_wlk
 
-         do ns = 1, N_slat
-            i_grc = ns + (i_wlk - 1)*N_slat
+         do ns = 1, N_hfb
+            i_grc = ns + (i_wlk - 1)*N_hfb
 
-            do nf = 1, N_Fl
-               call cgrp(Z, gr(:, :, nf, i_grc), phi_0(nf, i_wlk), phi_trial(nf, ns))
-               det_vec(nf) = Z
-            end do
-            det_vec(:) = det_Vec(:)*N_SUN
-            if (.not. LCONF_H5) overlap(i_grc) = sum(det_vec)
+            call cgrp(detO, gr(:, :, :, i_grc), kappa(:, :, :, i_grc), kappa_bar(:, :, :, i_grc), &
+                &     phi_0(1, i_wlk), phi_0(2, i_wlk), phi_trial(1, ns))
+            if (.not. LCONF_H5) overlap(i_grc) = detO*n_sun
          end do
       end do
 

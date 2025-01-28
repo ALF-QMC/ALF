@@ -20,7 +20,7 @@ program Main
 
 #include "git.h"
 
-   complex(Kind=kind(0.d0)), dimension(:, :, :, :), allocatable   :: gr
+   complex(Kind=kind(0.d0)), dimension(:, :, :, :), allocatable   :: gr, kappa, kappa_bar
    class(UDV_State), dimension(:, :), allocatable :: phi_trial, phi_0, phi_bp_l, phi_bp_r
 
    integer :: N_blk, N_blksteps, i_wlk, j_step, N_blk_eff, i_blk, NSTM
@@ -201,9 +201,19 @@ program Main
 
    call ham%alloc_obs(ltau)
 
-   allocate (gr(ndim, ndim, n_fl, n_grc))
-   allocate (phi_trial(n_fl, N_slat), phi_0   (n_fl, N_wlk))
-   allocate (phi_bp_l (n_fl, N_grc ), phi_bp_r(n_fl, N_wlk))
+   !! gr => <c^{\dagger}_i c_j>
+   !! kappa => <c_i c_j>
+   !! kappa_bar => <c^{\dagger}_i c^{\dagger}_j>
+   !! the factor 2 comes from spin
+   allocate (gr       (ndim, ndim, n_fl, n_grc))
+   allocate (kappa    (ndim, ndim, n_fl, n_grc))
+   allocate (kappa_bar(ndim, ndim, n_fl, n_grc))
+   !! LHS is BCS trial
+   allocate (phi_trial(1, N_hfb))
+   allocate (phi_bp_l (1, N_grc))
+   !! RHS is slater determinant
+   allocate (phi_0    (n_fl, N_wlk))
+   allocate (phi_bp_r (n_fl, N_wlk))
 
    ! we require ltrot_bp >= nwrap and ltrot_bp <= N_blksteps
    if (mod(ltrot_bp, nwrap) == 0) then
@@ -214,7 +224,8 @@ program Main
    allocate (udvst(nstm, n_fl, N_grc))
 
    ! init slater determinant
-   call initial_wlk(phi_trial, phi_0, phi_bp_l, phi_bp_r, udvst, STAB_nt, GR, nwrap)
+   call initial_wlk(phi_trial, phi_0, phi_bp_l, phi_bp_r, &
+       & udvst, STAB_nt, gr, kappa, kappa_bar, nwrap)
    call store_phi  (phi_0, phi_bp_r)
 
    call control_init(Group_Comm)

@@ -39,7 +39,7 @@
        !#PARAMETERS START# VAR_Model_Generic
        !Integer              :: N_SUN        = 1        ! Number of colors
        !Integer              :: N_FL         = 2        ! Number of flavors
-       !Integer              :: N_slat       = 1        ! Number of slater on trial wave function
+       !Integer              :: N_hfb        = 1        ! Number of slater on trial wave function
        !Integer              :: N_wlk        = 1        ! Number of walker
        !Integer              :: ltrot        = 10       ! length of imaginary time for dynamical measure
        real(Kind=kind(0.d0)) :: Phi_X = 0.d0     ! Twist along the L_1 direction, in units of the flux quanta
@@ -112,7 +112,7 @@
           call read_parameters()
 
           allocate (weight_k(N_wlk))
-          N_grc = N_slat*N_wlk
+          N_grc = N_hfb*N_wlk
           allocate (overlap(N_grc))
           N_wlk_mpi = N_wlk*isize_g
           N_grc_mpi = N_grc*isize_g
@@ -156,7 +156,7 @@
              write (unit_info, *) 'N_FL          : ', N_FL
              write (unit_info, *) 'N_wlk         : ', N_wlk
              write (unit_info, *) 'N_wlk_mpi     : ', N_wlk_mpi
-             write (unit_info, *) 'N_slat        : ', N_slat
+             write (unit_info, *) 'N_hfb         : ', N_hfb
              write (unit_info, *) 'N_grc         : ', N_grc
              write (unit_info, *) 'N_grc_mpi     : ', N_grc_mpi
              write (unit_info, *) 't             : ', ham_t
@@ -354,7 +354,7 @@
           ! Use predefined stuctures or set your own Trial  wave function
           N_part = ndim/2-n_dope
           call Predefined_TrialWaveFunction(Lattice_type, Ndim, List, Invlist, Latt, Latt_unit, &
-               &                            N_part, ham_alpha, N_FL, N_slat, WF_L, WF_R)
+               &                            N_part, ham_alpha, N_FL, N_hfb, WF_L, WF_R)
 
        end subroutine Ham_Trial
 
@@ -863,15 +863,15 @@
                  re_lw = dble (weight_k(i_wlk))
                  
                  z = 0.d0
-                 do ns = 1, N_slat
-                    i_grc = ns + (i_wlk - 1)*N_slat
+                 do ns = 1, N_hfb
+                    i_grc = ns + (i_wlk - 1)*N_hfb
                     z = z + exp(overlap(i_grc))
                  end do
 
                  !! real part of mix estimated energy
                  tot_ene = cmplx(0.d0, 0.d0, kind(0.d0))
-                 do ns = 1, N_slat
-                    i_grc = ns + (i_wlk - 1)*N_slat
+                 do ns = 1, N_hfb
+                    i_grc = ns + (i_wlk - 1)*N_hfb
                     el_tmp = dble(ham%E0_local(GR(:, :, :, i_grc)))
                     tot_ene = tot_ene + el_tmp*exp(overlap(i_grc))/Z
                  end do
