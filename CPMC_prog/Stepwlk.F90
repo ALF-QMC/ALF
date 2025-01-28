@@ -94,7 +94,7 @@ contains
                   call op_mmultr(phi_0(nf, i_wlk)%u, op_v(n, nf), spin, 'n', 1)
                   ! store alpha factor in z_alpha
                   z_alpha = z_alpha + &
-                      & op_v(n_op, nf)%g*op_v(n_op, nf)%alpha*nsigma_bp(i_wlk)%Phi(n, ntau_bp)
+                      & op_v(n, nf)%g*op_v(n, nf)%alpha*nsigma_bp(i_wlk)%Phi(n, ntau_bp)
                end do
 
             end do
