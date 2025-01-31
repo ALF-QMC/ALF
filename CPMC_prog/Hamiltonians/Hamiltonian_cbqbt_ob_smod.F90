@@ -74,6 +74,11 @@
        type(Lattice), target  :: Latt_p
        type(Unit_cell), target  :: Latt_p_unit
        integer, allocatable          :: List_p(:, :), Invlist_p(:, :)
+      
+       ! obs
+       type(Unit_cell), target  :: Latt_unit_qah, Latt_unit_bnds  ! ab sublattice 
+       integer, allocatable     :: List_qah  (:,:), Invlist_qah  (:,:,:)  
+       integer, allocatable     :: List_bnds(:,:), Invlist_bnds(:,:,:)
 
     contains
 
@@ -199,7 +204,8 @@
           implicit none
 
           integer :: i, j, i1, no, a0, a1, a2, b0, b1, b2, k, k1, k2, ntype, j1, ndim_p
-          integer :: ix, iy, rix, riy, rdx, rdy, ndx, ndy, nsi, nx, ny, nc, nc1
+          integer :: ix, iy, nx, ny, nc, nc1, n, ly, ry
+          integer :: no_tmp, no1_tmp, I_nn1
           real(kind=kind(0.d0)) :: pi = acos(-1.d0)
           character(len=64) :: Lattice_type_2d
 
@@ -228,6 +234,240 @@
           end do
           Ix = latt_p%nnlist(Ix, 1, 0)
           end do
+          
+          !!=========================================================!!
+          !!  QAH correlation
+          !!=========================================================!!
+          Latt_Unit_qah%norb    = (L2-1)*4+2
+          Latt_Unit_qah%n_coord = 2
+          allocate (Latt_unit_qah%orb_pos_p(Latt_Unit_qah%norb,3))
+          Latt_unit_qah%orb_pos_p = 0.d0
+          do n = 1,Latt_Unit_qah%Norb 
+             Latt_Unit_qah%Orb_pos_p(n,3) = real(n-1,kind(0.d0))
+          enddo
+
+          allocate (List_qah (Latt%N*Latt_Unit_qah%Norb,2))
+          allocate (Invlist_qah(Latt%N,Latt_Unit_qah%Norb,3))
+          
+          Ly = L2
+          
+          nc=0
+          do I = 1, Latt%N
+             
+             no=0
+             do ry = 2, Ly
+                 !! bond in plaqutte 1
+                 no = no + 1
+                 I_nn1 = latt%nnlist(I,1,0)
+                 no_tmp  = (ry-1)*2+1
+                 no1_tmp = (ry-1)*2+2
+                 I1 = invlist(I,no_tmp )
+                 J1 = invlist(I,no1_tmp)
+                 
+                 nc = nc + 1
+                 list_qah(nc, 1) = I
+                 list_qah(nc, 2) = no
+                 invlist_qah(I ,no, 1) = I1
+                 invlist_qah(I ,no, 2) = J1
+                 invlist_qah(I ,no, 3) = nc
+             
+                 !! bond in plaqutte 2
+                 no = no + 1
+                 I_nn1 = latt%nnlist(I,1,0)
+                 no_tmp  = (ry-1)*2
+                 no1_tmp = (ry-1)*2+1
+                 I1 = invlist(I,no_tmp )
+                 J1 = invlist(I,no1_tmp)
+                 
+                 nc = nc + 1
+                 list_qah(nc, 1) = I
+                 list_qah(nc, 2) = no
+                 invlist_qah(I ,no, 1) = I1
+                 invlist_qah(I ,no, 2) = J1
+                 invlist_qah(I ,no, 3) = nc
+             
+                 !! bond in plaqutte 3
+                 no = no + 1
+                 I_nn1 = latt%nnlist(I,1,0)
+                 no_tmp  = (ry-1)*2+1
+                 no1_tmp = (ry-1)*2
+                 I1 = invlist(I_nn1,no_tmp )
+                 J1 = invlist(I    ,no1_tmp)
+                 
+                 nc = nc + 1
+                 list_qah(nc, 1) = I
+                 list_qah(nc, 2) = no
+                 invlist_qah(I ,no, 1) = I1
+                 invlist_qah(I ,no, 2) = J1
+                 invlist_qah(I ,no, 3) = nc
+             
+                 !! bond in plaqutte 4
+                 no = no + 1
+                 I_nn1 = latt%nnlist(I,1,0)
+                 no_tmp  = (ry-1)*2+2
+                 no1_tmp = (ry-1)*2+1
+                 I1 = invlist(I    ,no_tmp )
+                 J1 = invlist(I_nn1,no1_tmp)
+                 
+                 nc = nc + 1
+                 list_qah(nc, 1) = I
+                 list_qah(nc, 2) = no
+                 invlist_qah(I ,no, 1) = I1
+                 invlist_qah(I ,no, 2) = J1
+                 invlist_qah(I ,no, 3) = nc
+             enddo
+
+             !!=========================!!
+             !! open boundary condition
+             !!=========================!!
+             ry = 1
+             
+             no = no + 1
+             I_nn1 = latt%nnlist(I,1,0)
+             no_tmp  = (ry-1)*2+1
+             no1_tmp = (ry-1)*2+2
+             I1 = invlist(I,no_tmp )
+             J1 = invlist(I,no1_tmp)
+             
+             nc = nc + 1
+             list_qah(nc, 1) = I
+             list_qah(nc, 2) = no
+             invlist_qah(I ,no, 1) = I1
+             invlist_qah(I ,no, 2) = J1
+             invlist_qah(I ,no, 3) = nc
+          
+             no = no + 1
+             I_nn1 = latt%nnlist(I,1,0)
+             no_tmp  = (ry-1)*2+2
+             no1_tmp = (ry-1)*2+1
+             I1 = invlist(I    ,no_tmp )
+             J1 = invlist(I_nn1,no1_tmp)
+             
+             nc = nc + 1
+             list_qah(nc, 1) = I
+             list_qah(nc, 2) = no
+             invlist_qah(I ,no, 1) = I1
+             invlist_qah(I ,no, 2) = J1
+             invlist_qah(I ,no, 3) = nc
+
+          enddo
+          
+          !!=========================================================!!
+          !! Bond semetic correlation
+          !!=========================================================!!
+          Latt_Unit_bnds%Norb    = (L2-1)*4 + 2
+          Latt_Unit_bnds%N_coord = 2
+          allocate (Latt_Unit_bnds%orb_pos_p(Latt_Unit_bnds%Norb,3))
+          Latt_unit_bnds%orb_pos_p = 0.d0
+          do n = 1,Latt_Unit_bnds%norb 
+             Latt_Unit_bnds%orb_pos_p(n,3) = real(n-1,kind(0.d0))
+          enddo
+
+          allocate (List_bnds   (Latt%N*Latt_Unit_bnds%Norb,2))
+          allocate (Invlist_bnds(Latt%N,Latt_Unit_bnds%Norb,3))
+          
+          Ly = L2
+          
+          nc=0
+          do I = 1, Latt%N
+             
+             no=0
+             do ry = 1, Ly-1
+                 !! sub lattice a, direction x
+                 no = no + 1
+                 I_nn1 = latt%nnlist(I,1,0)
+                 no_tmp  = (ry-1)*2+1
+                 no1_tmp = (ry-1)*2+1
+                 I1 = invlist(I,no_tmp )
+                 J1 = invlist(I,no1_tmp)
+                 
+                 nc = nc + 1
+                 list_bnds(nc, 1) = I
+                 list_bnds(nc, 2) = no
+                 invlist_bnds(I ,no, 1) = I1
+                 invlist_bnds(I ,no, 2) = J1
+                 invlist_bnds(I ,no, 3) = nc
+             
+                 !! sub lattice b, direction x
+                 no = no + 1
+                 I_nn1 = latt%nnlist(I,1,0)
+                 no_tmp  = (ry-1)*2+2
+                 no1_tmp = (ry-1)*2+2
+                 I1 = invlist(I,no_tmp )
+                 J1 = invlist(I,no1_tmp)
+                 
+                 nc = nc + 1
+                 list_bnds(nc, 1) = I
+                 list_bnds(nc, 2) = no
+                 invlist_bnds(I ,no, 1) = I1
+                 invlist_bnds(I ,no, 2) = J1
+                 invlist_bnds(I ,no, 3) = nc
+             
+                 !! sub lattice a, direction y
+                 no = no + 1
+                 no_tmp  = (ry-1)*2+1
+                 no1_tmp = ry*2+1
+                 I1 = invlist(I, no_tmp )
+                 J1 = invlist(I, no1_tmp)
+                 
+                 nc = nc + 1
+                 list_bnds(nc, 1) = I
+                 list_bnds(nc, 2) = no
+                 invlist_bnds(I ,no, 1) = I1
+                 invlist_bnds(I ,no, 2) = J1
+                 invlist_bnds(I ,no, 3) = nc
+             
+                 !! sub lattice b, direction y
+                 no = no + 1
+                 no_tmp  = (ry-1)*2+2
+                 no1_tmp = ry*2+2
+                 I1 = invlist(I,no_tmp )
+                 J1 = invlist(I,no1_tmp)
+                 
+                 nc = nc + 1
+                 list_bnds(nc, 1) = I
+                 list_bnds(nc, 2) = no
+                 invlist_bnds(I ,no, 1) = I1
+                 invlist_bnds(I ,no, 2) = J1
+                 invlist_bnds(I ,no, 3) = nc
+             enddo
+
+             !!=========================!!
+             !! open boundary condition
+             !!=========================!!
+             ry = ly
+             
+             !! sub lattice a, direction x
+             no = no + 1
+             I_nn1 = latt%nnlist(I,1,0)
+             no_tmp  = (ry-1)*2+1
+             no1_tmp = (ry-1)*2+1
+             I1 = invlist(I    ,no_tmp )
+             J1 = invlist(I_nn1,no1_tmp)
+             
+             nc = nc + 1
+             list_bnds(nc, 1) = I
+             list_bnds(nc, 2) = no
+             invlist_bnds(I ,no, 1) = I1
+             invlist_bnds(I ,no, 2) = J1
+             invlist_bnds(I ,no, 3) = nc
+          
+             !! sub lattice b, direction x
+             no = no + 1
+             I_nn1 = latt%nnlist(I,1,0)
+             no_tmp  = (ry-1)*2+2
+             no1_tmp = (ry-1)*2+2
+             I1 = invlist(I    ,no_tmp )
+             J1 = invlist(I_nn1,no1_tmp)
+             
+             nc = nc + 1
+             list_bnds(nc, 1) = I
+             list_bnds(nc, 2) = no
+             invlist_bnds(I ,no, 1) = I1
+             invlist_bnds(I ,no, 2) = J1
+             invlist_bnds(I ,no, 3) = nc
+
+          enddo
 
        end subroutine Ham_Latt
 !--------------------------------------------------------------------
@@ -811,19 +1051,29 @@
           end do
 
           ! Equal time correlators
-          allocate (obs_eq(2))
+          allocate (obs_eq(4))
           do I = 1, size(obs_eq, 1)
              select case (I)
              case (1)
                 Filename = "Green"
              case (2)
                 Filename = "Den"
+             case (3)
+                Filename = "QAH"
+             case (4)
+                Filename = "BNDS"
              case default
                 write (6, *) ' Error in Alloc_obs '
              end select
              Nt = 1
              Channel = '--'
-             call obser_Latt_make(obs_eq(I), nt, Filename, Latt, Latt_unit, Channel, dtau)
+             if ( I .le. 2 ) then
+                call obser_Latt_make(obs_eq(I), nt, Filename, Latt, Latt_unit, Channel, dtau)
+             elseif ( I == 3 ) then
+                call obser_Latt_make(obs_eq(I), nt, Filename, Latt, Latt_unit_qah, Channel, dtau)
+             elseif ( I == 4 ) then
+                call obser_Latt_make(obs_eq(I), nt, Filename, Latt, Latt_unit_bnds, Channel, dtau)
+             endif
           end do
 
           if (Ltau == 1) then
@@ -878,7 +1128,7 @@
           complex(Kind=kind(0.d0)) :: grc(Ndim, Ndim, N_FL), ZK, zone, ztmp, z_ol, zero, ztmp1, ztmp2, ztmp3, ztmp4
           complex(Kind=kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP, ZS, ZZ, ZXY, zback, zw, z_fac, z1j, zn, zv1, zv2
           integer :: I, J, k, l, m, n, imj, nf, dec, i1, ipx, ipy, imx, imy, j1, jpx, jpy, jmx, jmy, no_I, no_J, nc
-          integer :: i2, j2, lly, nb_r, nb, i0, j0
+          integer :: i2, j2, lly, nb_r, nb, i0, j0, m1, n1
           real(Kind=kind(0.d0)) :: X
 
           Z_ol = exp(overlap(i_grc))/sum_o
@@ -998,6 +1248,36 @@
                    ztmp = grc(i1, j1, 1)*gr(i1, j1, 1) + grc(i1, i1, 1)*grc(j1, j1, 1)
                    obs_eq(2)%obs_Latt(imj, 1, no_i, no_j) = obs_eq(2)%obs_latt(imj, 1, no_i, no_j) + ztmp*z_fac
                 end do
+                
+                do k = 1, latt_unit_qah%norb*latt_unit_qah%norb
+                   no_i = (k - 1)/latt_unit_qah%norb
+                   no_j = k - no_i*latt_unit_qah%norb
+                   no_i = no_i + 1
+
+                   !! QAH
+                   i1 = invlist_qah(i, no_i, 1)
+                   j1 = invlist_qah(i, no_i, 2)
+                   m1 = invlist_qah(j, no_j, 1)
+                   n1 = invlist_qah(j, no_j, 2)
+                   ztmp =   grc(i1,j1,1)*grc(m1,n1,1) + grc(i1,n1,1)*gr(j1,m1,1) &
+                       &  + grc(j1,i1,1)*grc(n1,m1,1) + grc(i1,n1,1)*gr(j1,m1,1) &
+                       &  - grc(i1,j1,1)*grc(n1,m1,1) + grc(i1,m1,1)*gr(j1,n1,1) & 
+                       &  - grc(j1,i1,1)*grc(m1,n1,1) + grc(j1,n1,1)*gr(i1,m1,1)  
+                   
+                   obs_eq(3)%obs_Latt(imj, 1, no_i, no_j) = obs_eq(3)%obs_latt(imj, 1, no_i, no_j) - ztmp*z_fac
+                   
+                   !! BNDS
+                   i1 = invlist_bnds(i, no_i, 1)
+                   j1 = invlist_bnds(i, no_i, 2)
+                   m1 = invlist_bnds(j, no_j, 1)
+                   n1 = invlist_bnds(j, no_j, 2)
+                   ztmp =   grc(i1,j1,1)*grc(m1,n1,1) + grc(i1,n1,1)*gr(j1,m1,1) &
+                       &  + grc(j1,i1,1)*grc(n1,m1,1) + grc(i1,n1,1)*gr(j1,m1,1) &
+                       &  + grc(i1,j1,1)*grc(n1,m1,1) + grc(i1,m1,1)*gr(j1,n1,1) & 
+                       &  + grc(j1,i1,1)*grc(m1,n1,1) + grc(j1,n1,1)*gr(i1,m1,1)  
+                   
+                   obs_eq(4)%obs_Latt(imj, 1, no_i, no_j) = obs_eq(4)%obs_latt(imj, 1, no_i, no_j) + ztmp*z_fac
+                enddo
 
              end do
              do no_i = 1, latt_unit%norb
