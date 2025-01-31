@@ -93,7 +93,7 @@ contains
          a1_p(1) = 1.d0; a1_p(2) = 0.d0
          a2_p(1) = 0.d0; a2_p(2) = 1.d0
          !! for sublattice vec
-         a3_p(1) = 1.d0/sqrt(2.d0); a3_p(2) = 1.d0/sqrt(2.d0)
+         a3_p(1) = 0.5d0; a3_p(2) = 0.5d0
 
          L1_p = dble(L1)*a1_p
          L2_p = dble(1)*a2_p
