@@ -1260,7 +1260,7 @@
                    m1 = invlist_qah(j, no_j, 1)
                    n1 = invlist_qah(j, no_j, 2)
                    ztmp =   grc(i1,j1,1)*grc(m1,n1,1) + grc(i1,n1,1)*gr(j1,m1,1) &
-                       &  + grc(j1,i1,1)*grc(n1,m1,1) + grc(i1,n1,1)*gr(j1,m1,1) &
+                       &  + grc(j1,i1,1)*grc(n1,m1,1) + grc(j1,m1,1)*gr(i1,n1,1) &
                        &  - grc(i1,j1,1)*grc(n1,m1,1) - grc(i1,m1,1)*gr(j1,n1,1) & 
                        &  - grc(j1,i1,1)*grc(m1,n1,1) - grc(j1,n1,1)*gr(i1,m1,1)  
                    
@@ -1272,7 +1272,7 @@
                    m1 = invlist_bnds(j, no_j, 1)
                    n1 = invlist_bnds(j, no_j, 2)
                    ztmp =   grc(i1,j1,1)*grc(m1,n1,1) + grc(i1,n1,1)*gr(j1,m1,1) &
-                       &  + grc(j1,i1,1)*grc(n1,m1,1) + grc(i1,n1,1)*gr(j1,m1,1) &
+                       &  + grc(j1,i1,1)*grc(n1,m1,1) + grc(j1,m1,1)*gr(i1,n1,1) &
                        &  + grc(i1,j1,1)*grc(n1,m1,1) + grc(i1,m1,1)*gr(j1,n1,1) & 
                        &  + grc(j1,i1,1)*grc(m1,n1,1) + grc(j1,n1,1)*gr(i1,m1,1)  
                    
