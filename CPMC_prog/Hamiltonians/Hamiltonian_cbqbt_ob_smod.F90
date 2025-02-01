@@ -256,7 +256,7 @@
              
              no=0
              do ry = 2, Ly
-                 !! bond in plaqutte 1
+                 !! bond 1 in plaqutte
                  no = no + 1
                  I_nn1 = latt%nnlist(I,1,0)
                  no_tmp  = (ry-1)*2+1
@@ -271,7 +271,7 @@
                  invlist_qah(I ,no, 2) = J1
                  invlist_qah(I ,no, 3) = nc
              
-                 !! bond in plaqutte 2
+                 !! bond 2 in plaqutte
                  no = no + 1
                  I_nn1 = latt%nnlist(I,1,0)
                  no_tmp  = (ry-1)*2
@@ -286,7 +286,7 @@
                  invlist_qah(I ,no, 2) = J1
                  invlist_qah(I ,no, 3) = nc
              
-                 !! bond in plaqutte 3
+                 !! bond 3 in plaqutte
                  no = no + 1
                  I_nn1 = latt%nnlist(I,1,0)
                  no_tmp  = (ry-1)*2+1
@@ -301,7 +301,7 @@
                  invlist_qah(I ,no, 2) = J1
                  invlist_qah(I ,no, 3) = nc
              
-                 !! bond in plaqutte 4
+                 !! bond 4 in plaqutte
                  no = no + 1
                  I_nn1 = latt%nnlist(I,1,0)
                  no_tmp  = (ry-1)*2+2
@@ -378,8 +378,8 @@
                  I_nn1 = latt%nnlist(I,1,0)
                  no_tmp  = (ry-1)*2+1
                  no1_tmp = (ry-1)*2+1
-                 I1 = invlist(I,no_tmp )
-                 J1 = invlist(I,no1_tmp)
+                 I1 = invlist(I    ,no_tmp )
+                 J1 = invlist(I_nn1,no1_tmp)
                  
                  nc = nc + 1
                  list_bnds(nc, 1) = I
@@ -393,8 +393,8 @@
                  I_nn1 = latt%nnlist(I,1,0)
                  no_tmp  = (ry-1)*2+2
                  no1_tmp = (ry-1)*2+2
-                 I1 = invlist(I,no_tmp )
-                 J1 = invlist(I,no1_tmp)
+                 I1 = invlist(I    ,no_tmp )
+                 J1 = invlist(I_nn1,no1_tmp)
                  
                  nc = nc + 1
                  list_bnds(nc, 1) = I
