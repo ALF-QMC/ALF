@@ -1261,8 +1261,8 @@
                    n1 = invlist_qah(j, no_j, 2)
                    ztmp =   grc(i1,j1,1)*grc(m1,n1,1) + grc(i1,n1,1)*gr(j1,m1,1) &
                        &  + grc(j1,i1,1)*grc(n1,m1,1) + grc(i1,n1,1)*gr(j1,m1,1) &
-                       &  - grc(i1,j1,1)*grc(n1,m1,1) + grc(i1,m1,1)*gr(j1,n1,1) & 
-                       &  - grc(j1,i1,1)*grc(m1,n1,1) + grc(j1,n1,1)*gr(i1,m1,1)  
+                       &  - grc(i1,j1,1)*grc(n1,m1,1) - grc(i1,m1,1)*gr(j1,n1,1) & 
+                       &  - grc(j1,i1,1)*grc(m1,n1,1) - grc(j1,n1,1)*gr(i1,m1,1)  
                    
                    obs_eq(3)%obs_Latt(imj, 1, no_i, no_j) = obs_eq(3)%obs_latt(imj, 1, no_i, no_j) - ztmp*z_fac
                    
