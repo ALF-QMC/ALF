@@ -1245,6 +1245,8 @@
                 ipx = invlist(latt%nnlist(i,1,0),no_i)
                 jpx = invlist(latt%nnlist(j,1,0),no_j)
                 
+                if ( mod(no_i+no_j,2) .eq. 0 ) then
+
                 i1 = i0; j1 = ipx
                 m1 = j0; n1 = jpx
                 ztmp1 =   grc(i1,j1,1)*grc(m1,n1,1) + grc(i1,n1,1)*gr(j1,m1,1) &
@@ -1289,6 +1291,8 @@
                 endif
                 
                 zbnds =  zbnds + ztmp1 + ztmp2 - ztmp3 - ztmp4
+
+                endif
 
                 ztmp5 = grc(i0,i0,1)*grc(j0,j0,1) + grc(i0,j0,1)*gr(i0,j0,1)
                 rsgn=1.d0-dble(mod(no_i+no_j,2))*2.d0
