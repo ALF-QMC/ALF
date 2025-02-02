@@ -103,12 +103,12 @@ contains
       complex(Kind=kind(0.d0)) :: Z_norm
 
       real(Kind=kind(0.d0)), allocatable :: Ham_T_vec(:), Ham_Tperp_vec(:), Ham_Chem_vec(:), Phi_X_vec(:), Phi_Y_vec(:),&
-             & ham_tx_vec(:), ham_ty_vec(:), Ham_T2_vec(:), Ham_lambda_vec(:)
+             & ham_tx_vec(:), ham_ty_vec(:), Ham_T2_vec(:), Ham_lambda_vec(:), Ham_T3_vec(:) 
       integer, allocatable ::   N_Phi_vec(:)
       real(Kind=kind(0.d0)), allocatable :: eig_sort_arr(:, :)
 
       allocate (Ham_T_vec(N_FL), Ham_T2_vec(N_FL), Ham_Tperp_vec(N_FL), Ham_Chem_vec(N_FL), Phi_X_vec(N_FL), Phi_Y_vec(N_FL),&
-           &    ham_tx_vec(N_FL), ham_ty_vec(N_FL), Ham_lambda_vec(N_FL), N_Phi_vec(N_FL))
+           &    ham_tx_vec(N_FL), ham_ty_vec(N_FL), Ham_lambda_vec(N_FL), N_Phi_vec(N_FL), Ham_T3_vec(N_FL) )
 
       allocate (wf_l(n_fl, n_slat), wf_r(n_fl, n_slat))
       do ns = 1, n_slat
@@ -140,6 +140,7 @@ contains
       Ham_T_vec = Ham_T
       Ham_Tperp_vec = Ham_Tperp
       Ham_T2_vec = Ham_T2
+      Ham_T3_vec = 0.d0
       Ham_Chem_vec = Ham_Chem
       Ham_lambda_vec = 0.d0
 
@@ -148,7 +149,11 @@ contains
       case ("Pi_Flux_ob")
          Ham_T_vec = 1.d0
          Ham_T2_vec = 0.5d0
-         call set_hopping_parameters_pi_flux_qbt_ob(Hopping_Matrix_tmp, Ham_T_vec, Ham_T2_vec, Ham_Chem_vec, &
+         !call set_hopping_parameters_pi_flux_qbt_ob(Hopping_Matrix_tmp, Ham_T_vec, Ham_T2_vec, Ham_Chem_vec, &
+         !    & Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
+         
+         ham_t3_vec = 0.0d0
+         call Set_hopping_parameters_pi_flux_ob(Hopping_Matrix_tmp, Ham_T_vec, Ham_T2_vec, Ham_T3_vec, Ham_Chem_vec, &
              & Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
 
       case default
@@ -158,20 +163,20 @@ contains
 
       call Predefined_Hoppings_set_OPT(Hopping_Matrix_tmp, List, Invlist, Latt, Latt_unit, Dtau, Checkerboard, Symm, OP_tmp)
 
-      !! add stagger mass to avoid the degeneracy of qbt
-      stag_mass = 0.02
-      do nf = 1, N_FL
-         do I = 1, Latt%N
-         do J = 1, Latt_unit%norb
-            Ix = latt%list(I, 1)
-            stag_sgn = 1.d0
-            if (mod(J, 2) .eq. 0) stag_sgn = -1.d0
-            I1 = invlist(I, J)
-            !! onsite sublattice mass
-            op_tmp(1, nf)%o(I1, I1) = stag_sgn*stag_mass
-         end do
-         end do
-      end do
+      !!! add stagger mass to avoid the degeneracy of qbt
+      !stag_mass = 0.02
+      !do nf = 1, N_FL
+      !   do I = 1, Latt%N
+      !   do J = 1, Latt_unit%norb
+      !      Ix = latt%list(I, 1)
+      !      stag_sgn = 1.d0
+      !      if (mod(J, 2) .eq. 0) stag_sgn = -1.d0
+      !      I1 = invlist(I, J)
+      !      !! onsite sublattice mass
+      !      op_tmp(1, nf)%o(I1, I1) = stag_sgn*stag_mass
+      !   end do
+      !   end do
+      !end do
 
       do nf = 1, N_FL
          call diag(op_tmp(1, nf)%o, op_tmp(1, nf)%u, op_tmp(1, nf)%e)
@@ -207,7 +212,7 @@ contains
       call Predefined_hoppings_clear(Hopping_Matrix_tmp)
 
       deallocate (Ham_T_vec, Ham_Tperp_vec, Ham_T2_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, N_Phi_vec)
-      deallocate (ham_tx_vec, ham_ty_vec)
+      deallocate (ham_tx_vec, ham_ty_vec, ham_t3_vec)
 
    end subroutine Predefined_TrialWaveFunction
 
