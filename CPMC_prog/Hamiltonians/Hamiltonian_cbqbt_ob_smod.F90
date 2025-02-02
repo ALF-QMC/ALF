@@ -1029,7 +1029,7 @@
           character(len=:), allocatable ::  Channel
 
           ! Scalar observables
-          allocate (obs_scal(6))
+          allocate (obs_scal(9))
           do I = 1, size(obs_scal, 1)
              select case (I)
              case (1)
@@ -1041,8 +1041,14 @@
              case (4)
                 N = 1; Filename = "Ener"
              case (5)
-                N = ndim*ndim*n_fl; Filename = "grc"
+                N = 1; Filename = "qah"
              case (6)
+                N = 1; Filename = "bnds"
+             case (7)
+                N = 1; Filename = "sni"
+             case (8)
+                N = ndim*ndim*n_fl; Filename = "grc"
+             case (9)
                 N = ndim*ndim*n_fl; Filename = "mixgrc"
              case default
                 write (6, *) ' Error in Alloc_obs '
@@ -1126,10 +1132,10 @@
 
           !Local
           complex(Kind=kind(0.d0)) :: grc(Ndim, Ndim, N_FL), ZK, zone, ztmp, z_ol, zero, ztmp1, ztmp2, ztmp3, ztmp4
-          complex(Kind=kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP, ZS, ZZ, ZXY, zback, zw, z_fac, z1j, zn, zv1, zv2
-          integer :: I, J, k, l, m, n, imj, nf, dec, i1, ipx, ipy, imx, imy, j1, jpx, jpy, jmx, jmy, no_I, no_J, nc
-          integer :: i2, j2, lly, nb_r, nb, i0, j0, m1, n1
-          real(Kind=kind(0.d0)) :: X
+          complex(Kind=kind(0.d0)) :: Zrho, Zkin, ZPot, Z, zqah, zbnds, zsni, zback, zw, z_fac, z1j, zn, zv1, zv2, ztmp5
+          integer :: I, J, k, l, m, n, imj, nf, dec, i1, j1, no_I, no_J, nc, i3, j3, m2, n2, m3, n3
+          integer :: i2, j2, lly, nb_r, nb, i0, j0, m1, n1, nb_qah, ipx, jpx, ipy, jpy, nc1, nc2
+          real(Kind=kind(0.d0)) :: X, rsgn
 
           Z_ol = exp(overlap(i_grc))/sum_o
           ZW = cmplx(re_w, 0.d0, kind(0.d0))/sum_w
@@ -1200,13 +1206,109 @@
 
           obs_scal(4)%obs_vec(1) = obs_scal(4)%obs_vec(1) + (zkin + zpot)*z_fac
 
+          !! set reference site
+          zqah  = cmplx(0.d0,0.d0, kind(0.D0))
+          i = 1; 
+          nb_qah = latt_unit_qah%norb/2
+
+          i1 = invlist_qah(i, nb_qah, 1)
+          j1 = invlist_qah(i, nb_qah, 2)
+          
+          do j = 1,latt%N
+             do no_j = 1, Latt_Unit_qah%Norb
+                m1 = invlist_qah(j, no_j, 1)
+                n1 = invlist_qah(j, no_j, 2)
+                
+                ztmp =   grc(i1,j1,1)*grc(m1,n1,1) + grc(i1,n1,1)*gr(j1,m1,1) &
+                    &  + grc(j1,i1,1)*grc(n1,m1,1) + grc(j1,m1,1)*gr(i1,n1,1) &
+                    &  - grc(i1,j1,1)*grc(n1,m1,1) - grc(i1,m1,1)*gr(j1,n1,1) & 
+                    &  - grc(j1,i1,1)*grc(m1,n1,1) - grc(j1,n1,1)*gr(i1,m1,1)  
+                zqah =  zqah - ztmp
+             enddo
+          enddo
+          zqah = zqah/dble(latt_unit_qah%norb*latt%n) 
+          obs_scal(5)%obs_vec(1) = obs_scal(5)%obs_vec(1) + zqah*z_fac
+          
+          zbnds = cmplx(0.d0,0.d0, kind(0.D0))
+          zsni  = cmplx(0.d0,0.d0, kind(0.D0))
+          nc1 = 0; nc2 = 0
+          do i = 1,latt%N
+          do j = 1,latt%N
+             do k = 1, latt_unit%norb*latt_unit%norb
+                no_i = (k - 1)/latt_unit%norb
+                no_j = k - no_i*latt_unit%norb
+                no_i = no_i + 1
+                   
+                i0 = invlist(i, no_i)   
+                j0 = invlist(j, no_j)
+
+                ipx = invlist(latt%nnlist(i,1,0),no_i)
+                jpx = invlist(latt%nnlist(j,1,0),no_j)
+                
+                i1 = i0; j1 = ipx
+                m1 = j0; n1 = jpx
+                ztmp1 =   grc(i1,j1,1)*grc(m1,n1,1) + grc(i1,n1,1)*gr(j1,m1,1) &
+                    &   + grc(j1,i1,1)*grc(n1,m1,1) + grc(j1,m1,1)*gr(i1,n1,1) &
+                    &   + grc(i1,j1,1)*grc(n1,m1,1) + grc(i1,m1,1)*gr(j1,n1,1) & 
+                    &   + grc(j1,i1,1)*grc(m1,n1,1) + grc(j1,n1,1)*gr(i1,m1,1)  
+                nc1 = nc1 + 1
+                
+                ztmp4 = 0.d0
+                if ( (no_i+2) .le. latt_unit%norb ) then
+                    ipy = invlist(i, no_i+2)
+                    i1 = i0; j1 = ipy
+                    m1 = j0; n1 = jpx
+                    ztmp4 =   grc(i1,j1,1)*grc(m1,n1,1) + grc(i1,n1,1)*gr(j1,m1,1) &
+                        &   + grc(j1,i1,1)*grc(n1,m1,1) + grc(j1,m1,1)*gr(i1,n1,1) &
+                        &   + grc(i1,j1,1)*grc(n1,m1,1) + grc(i1,m1,1)*gr(j1,n1,1) & 
+                        &   + grc(j1,i1,1)*grc(m1,n1,1) + grc(j1,n1,1)*gr(i1,m1,1)  
+                    nc1 = nc1 + 1
+                endif
+                
+                ztmp3 = 0.d0
+                if ( (no_j+2) .le. latt_unit%norb ) then
+                    jpy = invlist(j, no_j+2)
+                    i1 = i0; j1 = ipx
+                    m1 = j0; n1 = jpy
+                    ztmp3 =   grc(i1,j1,1)*grc(m1,n1,1) + grc(i1,n1,1)*gr(j1,m1,1) &
+                        &   + grc(j1,i1,1)*grc(n1,m1,1) + grc(j1,m1,1)*gr(i1,n1,1) &
+                        &   + grc(i1,j1,1)*grc(n1,m1,1) + grc(i1,m1,1)*gr(j1,n1,1) & 
+                        &   + grc(j1,i1,1)*grc(m1,n1,1) + grc(j1,n1,1)*gr(i1,m1,1)  
+                    nc1 = nc1 + 1
+                endif
+                
+                ztmp2 = 0.d0
+                if ( ( (no_i+2) .le. latt_unit%norb ) .and. ( (no_j+2) .le. latt_unit%norb ) ) then
+                    i1 = i0; j1 = ipy
+                    m1 = j0; n1 = jpy
+                    ztmp2 =   grc(i1,j1,1)*grc(m1,n1,1) + grc(i1,n1,1)*gr(j1,m1,1) &
+                        &   + grc(j1,i1,1)*grc(n1,m1,1) + grc(j1,m1,1)*gr(i1,n1,1) &
+                        &   + grc(i1,j1,1)*grc(n1,m1,1) + grc(i1,m1,1)*gr(j1,n1,1) & 
+                        &   + grc(j1,i1,1)*grc(m1,n1,1) + grc(j1,n1,1)*gr(i1,m1,1)  
+                    nc1 = nc1 + 1
+                endif
+                
+                zbnds =  zbnds + ztmp1 + ztmp2 - ztmp3 - ztmp4
+
+                ztmp5 = grc(i0,i0,1)*grc(j0,j0,1) + grc(i0,j0,1)*gr(i0,j0,1)
+                rsgn=1.d0-dble(mod(no_i+no_j,2))*2.d0
+                zsni = zsni + rsgn*ztmp5
+                nc2 = nc2 + 1
+             enddo
+          enddo
+          enddo
+          zbnds = zbnds/dble(nc1)
+          obs_scal(6)%obs_vec(1) = obs_scal(6)%obs_vec(1) + zbnds*z_fac
+          zsni = zsni/dble(nc2)
+          obs_scal(7)%obs_vec(1) = obs_scal(7)%obs_vec(1) + zsni*z_fac
+
           nc = 0
           do nf = 1, n_fl
              do I = 1, ndim
              do J = 1, ndim
                 nc = nc + 1
                 ztmp = grc(i, j, nf)
-                obs_scal(5)%obs_vec(nc) = obs_scal(5)%obs_vec(nc) + ztmp*z_fac
+                obs_scal(8)%obs_vec(nc) = obs_scal(5)%obs_vec(nc) + ztmp*z_fac
              end do
              end do
           end do
@@ -1219,7 +1321,7 @@
                 zone = cmplx(0.d0, 0.d0, kind(0.d0))
                 if (I .eq. J) zone = cmplx(1.d0, 0.d0, kind(0.d0))
                 ztmp = zone - gr_mix(J, I, nf)
-                obs_scal(6)%obs_vec(nc) = obs_scal(6)%obs_vec(nc) + ztmp*z_fac
+                obs_scal(9)%obs_vec(nc) = obs_scal(6)%obs_vec(nc) + ztmp*z_fac
              end do
              end do
           end do
