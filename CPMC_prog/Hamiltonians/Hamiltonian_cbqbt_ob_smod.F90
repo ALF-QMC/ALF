@@ -1232,74 +1232,44 @@
           zbnds = cmplx(0.d0,0.d0, kind(0.D0))
           zsni  = cmplx(0.d0,0.d0, kind(0.D0))
           nc1 = 0; nc2 = 0
+
           do i = 1,latt%N
-          do j = 1,latt%N
-             do k = 1, latt_unit%norb*latt_unit%norb
-                no_i = (k - 1)/latt_unit%norb
-                no_j = k - no_i*latt_unit%norb
-                no_i = no_i + 1
-                   
-                i0 = invlist(i, no_i)   
-                j0 = invlist(j, no_j)
 
-                ipx = invlist(latt%nnlist(i,1,0),no_i)
-                jpx = invlist(latt%nnlist(j,1,0),no_j)
-                
-                if ( mod(no_i+no_j,2) .eq. 0 ) then
-
-                i1 = i0; j1 = ipx
-                m1 = j0; n1 = jpx
-                ztmp1 =   grc(i1,j1,1)*grc(m1,n1,1) + grc(i1,n1,1)*gr(j1,m1,1) &
-                    &   + grc(j1,i1,1)*grc(n1,m1,1) + grc(j1,m1,1)*gr(i1,n1,1) &
-                    &   + grc(i1,j1,1)*grc(n1,m1,1) + grc(i1,m1,1)*gr(j1,n1,1) & 
-                    &   + grc(j1,i1,1)*grc(m1,n1,1) + grc(j1,n1,1)*gr(i1,m1,1)  
-                nc1 = nc1 + 1
-                
-                ztmp4 = 0.d0
-                if ( (no_i+2) .le. latt_unit%norb ) then
-                    ipy = invlist(i, no_i+2)
-                    i1 = i0; j1 = ipy
-                    m1 = j0; n1 = jpx
-                    ztmp4 =   grc(i1,j1,1)*grc(m1,n1,1) + grc(i1,n1,1)*gr(j1,m1,1) &
-                        &   + grc(j1,i1,1)*grc(n1,m1,1) + grc(j1,m1,1)*gr(i1,n1,1) &
-                        &   + grc(i1,j1,1)*grc(n1,m1,1) + grc(i1,m1,1)*gr(j1,n1,1) & 
-                        &   + grc(j1,i1,1)*grc(m1,n1,1) + grc(j1,n1,1)*gr(i1,m1,1)  
-                    nc1 = nc1 + 1
-                endif
-                
-                ztmp3 = 0.d0
-                if ( (no_j+2) .le. latt_unit%norb ) then
-                    jpy = invlist(j, no_j+2)
-                    i1 = i0; j1 = ipx
-                    m1 = j0; n1 = jpy
-                    ztmp3 =   grc(i1,j1,1)*grc(m1,n1,1) + grc(i1,n1,1)*gr(j1,m1,1) &
-                        &   + grc(j1,i1,1)*grc(n1,m1,1) + grc(j1,m1,1)*gr(i1,n1,1) &
-                        &   + grc(i1,j1,1)*grc(n1,m1,1) + grc(i1,m1,1)*gr(j1,n1,1) & 
-                        &   + grc(j1,i1,1)*grc(m1,n1,1) + grc(j1,n1,1)*gr(i1,m1,1)  
-                    nc1 = nc1 + 1
-                endif
-                
-                ztmp2 = 0.d0
-                if ( ( (no_i+2) .le. latt_unit%norb ) .and. ( (no_j+2) .le. latt_unit%norb ) ) then
-                    i1 = i0; j1 = ipy
-                    m1 = j0; n1 = jpy
-                    ztmp2 =   grc(i1,j1,1)*grc(m1,n1,1) + grc(i1,n1,1)*gr(j1,m1,1) &
-                        &   + grc(j1,i1,1)*grc(n1,m1,1) + grc(j1,m1,1)*gr(i1,n1,1) &
-                        &   + grc(i1,j1,1)*grc(n1,m1,1) + grc(i1,m1,1)*gr(j1,n1,1) & 
-                        &   + grc(j1,i1,1)*grc(m1,n1,1) + grc(j1,n1,1)*gr(i1,m1,1)  
-                    nc1 = nc1 + 1
-                endif
-                
-                zbnds =  zbnds + ztmp1 + ztmp2 - ztmp3 - ztmp4
-
-                endif
-
-                ztmp5 = grc(i0,i0,1)*grc(j0,j0,1) + grc(i0,j0,1)*gr(i0,j0,1)
-                rsgn=1.d0-dble(mod(no_i+no_j,2))*2.d0
-                zsni = zsni + rsgn*ztmp5
-                nc2 = nc2 + 1
+             do k = 1, l2-1
+                 !! a sublattice
+                 no_i = 2*(k-1)+1
+                 i0 = invlist(i, no_i)   
+                 ipx = invlist(latt%nnlist(i,1,0),no_i  )
+                 ipy = invlist(i,no_i+2)
+                 
+                 zbnds =  zbnds + abs(abs(grc(i0,ipy,1))-abs(grc(i0,ipx,1)))
+                 nc1 = nc1 + 1
+                 
+                 !! b sublattice
+                 no_i = 2*(k-1)+2
+                 i0 = invlist(i, no_i)   
+                 ipx = invlist(latt%nnlist(i,1,0),no_i  )
+                 ipy = invlist(i,no_i+2)
+                 
+                 zbnds =  zbnds + abs(abs(grc(i0,ipy,1))-abs(grc(i0,ipx,1)))
+                 nc1 = nc1 + 1
              enddo
-          enddo
+
+             do j = 1,latt%N
+                do k = 1, latt_unit%norb*latt_unit%norb
+                   no_i = (k - 1)/latt_unit%norb
+                   no_j = k - no_i*latt_unit%norb
+                   no_i = no_i + 1
+                      
+                   i0 = invlist(i, no_i)   
+                   j0 = invlist(j, no_j)
+
+                   ztmp5 = grc(i0,i0,1)*grc(j0,j0,1) + grc(i0,j0,1)*gr(i0,j0,1)
+                   rsgn=1.d0-dble(mod(no_i+no_j,2))*2.d0
+                   zsni = zsni + rsgn*ztmp5
+                   nc2 = nc2 + 1
+                enddo
+             enddo
           enddo
           zbnds = zbnds/dble(nc1)
           obs_scal(6)%obs_vec(1) = obs_scal(6)%obs_vec(1) + zbnds*z_fac
