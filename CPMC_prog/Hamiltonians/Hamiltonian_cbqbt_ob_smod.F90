@@ -1133,8 +1133,8 @@
           !Local
           complex(Kind=kind(0.d0)) :: grc(Ndim, Ndim, N_FL), ZK, zone, ztmp, z_ol, zero, ztmp1, ztmp2, ztmp3, ztmp4
           complex(Kind=kind(0.d0)) :: Zrho, Zkin, ZPot, Z, zqah, zbnds, zsni, zback, zw, z_fac, z1j, zn, zv1, zv2, ztmp5
-          integer :: I, J, k, l, m, n, imj, nf, dec, i1, j1, no_I, no_J, nc, i3, j3, m2, n2, m3, n3
-          integer :: i2, j2, lly, nb_r, nb, i0, j0, m1, n1, nb_qah, ipx, jpx, ipy, jpy, nc1, nc2
+          integer :: I, J, k, l, m, n, imj, nf, i1, j1, no_I, no_J, nc, i3, j3, m2, n2, m3, n3, no_min, no_max, nb_r
+          integer :: i2, j2, lly, dlly, nb, i0, j0, m1, n1, nb_qah, ipx, jpx, ipy, jpy, nc1, nc2, lmax, lmin
           real(Kind=kind(0.d0)) :: X, rsgn
 
           Z_ol = exp(overlap(i_grc))/sum_o
@@ -1207,26 +1207,41 @@
           obs_scal(4)%obs_vec(1) = obs_scal(4)%obs_vec(1) + (zkin + zpot)*z_fac
 
           !! set reference site
+          lly = L2/2
+          dlly = L1/2
+          lmin = lly-dlly
+          lmax = lmin + L1 - 1
+
           zqah  = cmplx(0.d0,0.d0, kind(0.D0))
-          i = 1; 
-          nb_qah = latt_unit_qah%norb/2
+          i = 1;
+          !! qah orbital count from ly=2
+          nb_qah = (lly-1)*4+1
+
+          no_min = (lmin-1)*4+1
+          no_max = (lmax-1)*4+4
 
           i1 = invlist_qah(i, nb_qah, 1)
           j1 = invlist_qah(i, nb_qah, 2)
           
+          nc1 = 0
           do j = 1,latt%N
              do no_j = 1, Latt_Unit_qah%Norb
-                m1 = invlist_qah(j, no_j, 1)
-                n1 = invlist_qah(j, no_j, 2)
-                
-                ztmp =   grc(i1,j1,1)*grc(m1,n1,1) + grc(i1,n1,1)*gr(j1,m1,1) &
-                    &  + grc(j1,i1,1)*grc(n1,m1,1) + grc(j1,m1,1)*gr(i1,n1,1) &
-                    &  - grc(i1,j1,1)*grc(n1,m1,1) - grc(i1,m1,1)*gr(j1,n1,1) & 
-                    &  - grc(j1,i1,1)*grc(m1,n1,1) - grc(j1,n1,1)*gr(i1,m1,1)  
-                zqah =  zqah - ztmp
+
+                if ( (no_j .ge. no_min) .and. (no_j .le. no_max) ) then
+                    m1 = invlist_qah(j, no_j, 1)
+                    n1 = invlist_qah(j, no_j, 2)
+                    
+                    ztmp =   grc(i1,j1,1)*grc(m1,n1,1) + grc(i1,n1,1)*gr(j1,m1,1) &
+                        &  + grc(j1,i1,1)*grc(n1,m1,1) + grc(j1,m1,1)*gr(i1,n1,1) &
+                        &  - grc(i1,j1,1)*grc(n1,m1,1) - grc(i1,m1,1)*gr(j1,n1,1) & 
+                        &  - grc(j1,i1,1)*grc(m1,n1,1) - grc(j1,n1,1)*gr(i1,m1,1)  
+                    zqah =  zqah - ztmp
+                    nc1 = nc1 + 1
+                endif
+
              enddo
           enddo
-          zqah = zqah/dble(latt_unit_qah%norb*latt%n) 
+          zqah = zqah/dble(nc1) 
           obs_scal(5)%obs_vec(1) = obs_scal(5)%obs_vec(1) + zqah*z_fac
           
           zbnds = cmplx(0.d0,0.d0, kind(0.D0))
@@ -1236,23 +1251,27 @@
           do i = 1,latt%N
 
              do k = 1, l2-1
-                 !! a sublattice
-                 no_i = 2*(k-1)+1
-                 i0 = invlist(i, no_i)   
-                 ipx = invlist(latt%nnlist(i,1,0),no_i  )
-                 ipy = invlist(i,no_i+2)
-                 
-                 zbnds =  zbnds + abs(abs(grc(i0,ipy,1))-abs(grc(i0,ipx,1)))
-                 nc1 = nc1 + 1
-                 
-                 !! b sublattice
-                 no_i = 2*(k-1)+2
-                 i0 = invlist(i, no_i)   
-                 ipx = invlist(latt%nnlist(i,1,0),no_i  )
-                 ipy = invlist(i,no_i+2)
-                 
-                 zbnds =  zbnds + abs(abs(grc(i0,ipy,1))-abs(grc(i0,ipx,1)))
-                 nc1 = nc1 + 1
+
+                 if ( ( (k-1) .ge. lmin ) .and. ( (k-1) .le. lmax ) ) then
+                    !! a sublattice
+                    no_i = 2*(k-1)+1
+                    i0 = invlist(i, no_i)   
+                    ipx = invlist(latt%nnlist(i,1,0),no_i  )
+                    ipy = invlist(i,no_i+2)
+                    
+                    zbnds =  zbnds + abs(grc(i0,ipy,1)+grc(ipy,i0,1))-abs(grc(i0,ipx,1)+grc(ipx,i0,1))
+
+                    nc1 = nc1 + 1
+                    
+                    !! b sublattice
+                    no_i = 2*(k-1)+2
+                    i0 = invlist(i, no_i)   
+                    ipx = invlist(latt%nnlist(i,1,0),no_i  )
+                    ipy = invlist(i,no_i+2)
+                    
+                    zbnds =  zbnds + abs(grc(i0,ipy,1)+grc(ipy,i0,1))-abs(grc(i0,ipx,1)+grc(ipx,i0,1))
+                    nc1 = nc1 + 1
+                 endif
              enddo
 
              do j = 1,latt%N
@@ -1260,14 +1279,21 @@
                    no_i = (k - 1)/latt_unit%norb
                    no_j = k - no_i*latt_unit%norb
                    no_i = no_i + 1
-                      
+
+                   i2 = (no_i-1)/2
+                   j2 = (no_j-1)/2
+                       
                    i0 = invlist(i, no_i)   
                    j0 = invlist(j, no_j)
 
-                   ztmp5 = grc(i0,i0,1)*grc(j0,j0,1) + grc(i0,j0,1)*gr(i0,j0,1)
-                   rsgn=1.d0-dble(mod(no_i+no_j,2))*2.d0
-                   zsni = zsni + rsgn*ztmp5
-                   nc2 = nc2 + 1
+                   if ( ( i2 .ge. lmin ) .and. ( i2 .le. lmax ) .and. &
+                     &  ( j2 .ge. lmin ) .and. ( j2 .le. lmax ) ) then
+                       ztmp5 = grc(i0,i0,1)*grc(j0,j0,1) + grc(i0,j0,1)*gr(i0,j0,1)
+                       rsgn=1.d0-dble(mod(no_i+no_j,2))*2.d0
+                       zsni = zsni + rsgn*ztmp5
+                       nc2 = nc2 + 1
+                   endif
+
                 enddo
              enddo
           enddo
