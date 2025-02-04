@@ -1259,8 +1259,7 @@
                     ipx = invlist(latt%nnlist(i,1,0),no_i  )
                     ipy = invlist(i,no_i+2)
                     
-                    zbnds =  zbnds + abs(grc(i0,ipy,1)+grc(ipy,i0,1))-abs(grc(i0,ipx,1)+grc(ipx,i0,1))
-
+                    zbnds =  zbnds + abs(grc(i0,ipx,1))-abs(grc(i0,ipy,1))
                     nc1 = nc1 + 1
                     
                     !! b sublattice
@@ -1269,7 +1268,7 @@
                     ipx = invlist(latt%nnlist(i,1,0),no_i  )
                     ipy = invlist(i,no_i+2)
                     
-                    zbnds =  zbnds + abs(grc(i0,ipy,1)+grc(ipy,i0,1))-abs(grc(i0,ipx,1)+grc(ipx,i0,1))
+                    zbnds =  zbnds + abs(grc(i0,ipx,1))-abs(grc(i0,ipy,1))
                     nc1 = nc1 + 1
                  endif
              enddo
