@@ -147,14 +147,16 @@ contains
       select case (Lattice_type)
 
       case ("Pi_Flux_ob")
+          !! real trial
          Ham_T_vec = 1.d0
          Ham_T2_vec = 0.5d0
-         !call set_hopping_parameters_pi_flux_qbt_ob(Hopping_Matrix_tmp, Ham_T_vec, Ham_T2_vec, Ham_Chem_vec, &
-         !    & Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
-         
-         ham_t3_vec = 0.0d0
-         call Set_hopping_parameters_pi_flux_ob(Hopping_Matrix_tmp, Ham_T_vec, Ham_T2_vec, Ham_T3_vec, Ham_Chem_vec, &
+         call set_hopping_parameters_pi_flux_qbt_ob(Hopping_Matrix_tmp, Ham_T_vec, Ham_T2_vec, Ham_Chem_vec, &
              & Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
+         
+          !! cmplx trial
+         !!ham_t3_vec = 0.0d0
+         !!call Set_hopping_parameters_pi_flux_ob(Hopping_Matrix_tmp, Ham_T_vec, Ham_T2_vec, Ham_T3_vec, Ham_Chem_vec, &
+         !!    & Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
 
       case default
          write (error_unit, *) 'No predefined trial wave function for this lattice.'
@@ -163,20 +165,20 @@ contains
 
       call Predefined_Hoppings_set_OPT(Hopping_Matrix_tmp, List, Invlist, Latt, Latt_unit, Dtau, Checkerboard, Symm, OP_tmp)
 
-      !!! add stagger mass to avoid the degeneracy of qbt
-      !stag_mass = 0.02
-      !do nf = 1, N_FL
-      !   do I = 1, Latt%N
-      !   do J = 1, Latt_unit%norb
-      !      Ix = latt%list(I, 1)
-      !      stag_sgn = 1.d0
-      !      if (mod(J, 2) .eq. 0) stag_sgn = -1.d0
-      !      I1 = invlist(I, J)
-      !      !! onsite sublattice mass
-      !      op_tmp(1, nf)%o(I1, I1) = stag_sgn*stag_mass
-      !   end do
-      !   end do
-      !end do
+      !! add stagger mass to avoid the degeneracy of qbt
+      stag_mass = 0.02
+      do nf = 1, N_FL
+         do I = 1, Latt%N
+         do J = 1, Latt_unit%norb
+            Ix = latt%list(I, 1)
+            stag_sgn = 1.d0
+            if (mod(J, 2) .eq. 0) stag_sgn = -1.d0
+            I1 = invlist(I, J)
+            !! onsite sublattice mass
+            op_tmp(1, nf)%o(I1, I1) = stag_sgn*stag_mass
+         end do
+         end do
+      end do
 
       do nf = 1, N_FL
          call diag(op_tmp(1, nf)%o, op_tmp(1, nf)%u, op_tmp(1, nf)%e)
