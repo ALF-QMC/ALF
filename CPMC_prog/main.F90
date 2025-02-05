@@ -210,10 +210,10 @@ program main
    allocate (kappa_bar(ndim, ndim, n_fl, n_grc))
    !! LHS is BCS trial
    allocate (phi_trial(1, N_hfb))
-   allocate (phi_bp_l (1, N_grc))
+   allocate (phi_bp_l (1, N_hfb))
    !! RHS is slater determinant
-   allocate (phi_0    (n_fl, N_wlk))
-   allocate (phi_bp_r (n_fl, N_wlk))
+   allocate (phi_0    (n_fl, n_wlk))
+   allocate (phi_bp_r (n_fl, n_wlk))
 
    ! we require ltrot_bp >= nwrap and ltrot_bp <= N_blksteps
    if (mod(ltrot_bp, nwrap) == 0) then
@@ -245,6 +245,7 @@ program main
                 !! population control
          if (mod(j_step, itv_pc) .eq. 0) then
             call population_control(phi_0, phi_bp_r)
+            call initial_gfun_and_xloc(phi_trial, phi_0, gr, kappa, kappa_bar)
          end if
 
          !! propagate the walkers:

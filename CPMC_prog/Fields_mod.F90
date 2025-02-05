@@ -30,7 +30,6 @@ module Fields_mod
       procedure  :: set => Fields_set
       procedure  :: out => Fields_out
       procedure  :: in => Fields_in
-      procedure  :: i => Fields_get_i
       procedure  :: Phi => Fields_Phi
       procedure  :: Gama => Fields_Gama
       procedure  :: Flip => Fields_Flip

@@ -2,19 +2,6 @@ module gfun_mod
    implicit none
 contains
 
-!--------------------------------------------------------------------
-!> @author
-!> ALF-project
-!
-!> @brief
-!> Computes the Green's function in the projective implementation.
-!
-!> @param[out] PHASE
-!> @param[out] GRUP
-!> @param[in] udvr
-!> @param[in] udvl
-!
-!--------------------------------------------------------------------
    subroutine cgrp(zdet, gr, kappa, kappa_bar, phir_up, phir_dn, phil)
       use udv_state_mod
       class(udv_state), intent(in) :: phil, phir_up, phir_dn
@@ -46,7 +33,7 @@ contains
           &    phir_up%u(1,1), ndim, beta, zphi1(1, 1), n_part)
       
       !! Qmat = \phi^{T}_{\dn}Z^{\dagger}*\phi_{\up}
-      call zgemm('c', 'n', n_part, ndim, n_part, alpha, phir_dn%%u(1,1), ndim, & 
+      call zgemm('c', 'n', n_part, ndim, n_part, alpha, phir_dn%u(1,1), ndim, & 
           &    tmp_mat1(1,1), n_part, beta, qmat(1, 1), n_part)
       
       !! zpih2 = Z^{*}*\phi_{\dn}
@@ -65,7 +52,7 @@ contains
          if (ipiv(n) .ne. n) then
             phase = -phase
          end if
-         zdet = zdet + log(sMat(n, n))
+         zdet = zdet + log(qmat(n, n))
       end do
       zdet = zdet + log(phase)
       pfa_phase = cmplx(-1.d0,0.d0,kind(0.d0))**(dble(n_part)*dble(n_part-1)*0.5d0) 

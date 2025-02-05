@@ -17,10 +17,8 @@
        contains
           ! Set Hamiltonian-specific procedures
           procedure, nopass :: Ham_Set
-          procedure, nopass :: Alloc_obs
-          procedure, nopass :: Obser
-          procedure, nopass :: ObserT
-          procedure, nopass :: E0_local
+          procedure, nopass :: alloc_obs
+          procedure, nopass :: e0_local
           procedure, nopass :: set_xloc
           procedure, nopass :: sum_weight
           procedure, nopass :: update_fac_norm
@@ -166,9 +164,8 @@
              write (unit_info, *) 'N_dope        : ', N_dope
              do nf = 1, N_FL
                 write (unit_info, *) 'Flavor of:  ', nf
-                write (unit_info, *) 'Degen of right trial wave function: ', wf_r(nf, 1)%degen
-                write (unit_info, *) 'Degen of left  trial wave function: ', wf_l(nf, 1)%degen
-                write (unit_info, *) 'number of particle for flavor:  ', size(wf_l(nf,1)%P,2)
+                write (unit_info, *) 'Degen of initial SD walker: ', wf_r(nf)%degen
+                write (unit_info, *) 'number of particle for flavor:  ', size(wf_r(nf)%P,2)
              end do
              close (unit_info)
 #ifdef MPI
@@ -396,9 +393,9 @@
              end do
           end do
 
-          allocate(x_local(size(op_v,1)))
+          allocate(x_local(size(op_v,1),n_wlk))
           ! initial field shift
-          x_local = cmplx(0.d0,0.d0,kind(0.d0))
+          x_local(:,:) = cmplx(0.d0,0.d0,kind(0.d0))
 
        end subroutine Ham_V
 
@@ -420,7 +417,7 @@
           character(len=:), allocatable ::  Channel
 
           ! Scalar observables
-          allocate (obs_scal(5))
+          allocate (obs_scal(4))
           do I = 1, size(obs_scal, 1)
              select case (I)
              case (1)
@@ -431,8 +428,6 @@
                 N = 1; Filename = "Part"
              case (4)
                 N = 1; Filename = "Ener"
-             case (5)
-                N = ndim*ndim*n_fl; Filename = "grc"
              case default
                 write (6, *) ' Error in Alloc_obs '
              end select
@@ -460,146 +455,16 @@
           end do
 
        end subroutine alloc_obs
-
-!--------------------------------------------------------------------
-!> @author
-!> ALF Collaboration
-!>
-!> @brief
-!> Computes equal time observables
-!> @details
-!> @param [IN] Gr   Complex(:,:,:)
-!> \verbatim
-!>  Green function: Gr(I,J,nf) = <c_{I,nf } c^{dagger}_{J,nf } > on time slice ntau
-!> \endverbatim
-!> @param [IN] Phase   Complex
-!> \verbatim
-!>  Phase
-!> \endverbatim
-!> @param [IN] Ntau Integer
-!> \verbatim
-!>  Time slice
-!> \endverbatim
-!-------------------------------------------------------------------
-       subroutine obser(gr, gr_mix, i_grc, re_w, sum_w, sum_o)
-
-          implicit none
-
-          complex(kind=kind(0.d0)), intent(in) :: gr(Ndim, Ndim, N_FL)
-          complex(kind=kind(0.d0)), intent(in) :: gr_mix(Ndim, Ndim, N_FL)
-          complex(kind=kind(0.d0)), intent(in) :: sum_w, sum_o
-          real   (kind=kind(0.d0)), intent(in) :: re_w
-          integer, intent(in) :: i_grc
-
-          !Local
-          complex(Kind=kind(0.d0)) :: grc(Ndim, Ndim, N_FL), ZK, zone, ztmp, z_ol, zero, ztmp1, ztmp2, ztmp3, ztmp4
-          complex(Kind=kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP, ZS, ZZ, ZXY, zback, zw, z_fac, z1j, cpair(4)
-          integer :: I, J, k, l, m, n, imj, nf, dec, i1, ipx, ipy, imx, imy, j1, jpx, jpy, jmx, jmy, no_I, no_J, nc
-          integer :: idl(4), jdl(4), irdl(4), jrdl(4), rsi, rsj, k1, k2
-          real(Kind=kind(0.d0)) :: X
-
-          Z_ol = exp(overlap(i_grc))/sum_o
-          ZW = cmplx(re_w, 0.d0, kind(0.d0))/sum_w
-          Z_fac = Z_ol*ZW
-
-          do nf = 1, N_FL
-             do I = 1, Ndim
-                do J = 1, Ndim
-                   grc(I, J, nf) = -gr(J, I, nf)
-                end do
-                grc(I, I, nf) = 1.d0 + grc(I, I, nf)
-             end do
-          end do
-          ! GRC(i,j,nf) = < c^{dagger}_{i,nf } c_{j,nf } >
-
-          Zkin = cmplx(0.d0, 0.d0, kind(0.d0))
-          call Predefined_Hoppings_Compute_Kin(Hopping_Matrix, List, Invlist, Latt, Latt_unit, GRC, ZKin)
-          Zkin = Zkin*dble(N_SUN)
-          obs_scal(1)%Obs_vec(1) = Obs_scal(1)%Obs_vec(1) + Zkin*Z_fac
-
-          ZPot = cmplx(0.d0, 0.d0, kind(0.d0))
-          do I = 1, Latt%N
-             do no_I = 1, Latt_unit%Norb
-                I1 = Invlist(I, no_I)
-                ZPot = ZPot - Grc(i1, i1, 1)*Grc(i1, i1, 2)*ham_U
-             end do
-          end do
-          obs_scal(2)%Obs_vec(1) = Obs_scal(2)%Obs_vec(1) + Zpot*Z_fac
-
-          Zrho = cmplx(0.d0, 0.d0, kind(0.d0))
-          do nf = 1, N_FL
-             do I = 1, Ndim
-                Zrho = Zrho + Grc(i, i, nf)
-             end do
-          end do
-          Zrho = Zrho*dble(N_SUN)
-          obs_scal(3)%Obs_vec(1) = Obs_scal(3)%Obs_vec(1) + Zrho*Z_fac
-
-          obs_scal(4)%Obs_vec(1) = Obs_scal(4)%Obs_vec(1) + (Zkin + Zpot)*Z_fac
-
-          nc = 0
-          do nf = 1, N_FL
-             do I = 1, Ndim
-             do J = 1, Ndim
-                nc = nc + 1
-                ztmp = grc(i, j, nf)
-                Obs_scal(5)%Obs_vec(nc) = Obs_scal(5)%Obs_vec(nc) + ztmp*Z_fac
-             end do
-             end do
-          end do
-
-          ! Standard two-point correlations
-          z1j = cmplx(0.d0,1.d0,kind(0.d0))
-          do i1 = 1, ndim
-              i    = list(i1,1)
-              no_i = list(i1,2)
-
-              rsi = rot_list(i,no_i)
-              idl(:) = del_list(i,no_i,:) 
-              irdl(:) = rot_del_list(i,no_i,:) 
-
-              do j1 = 1, ndim
-                  j    = list(j1,1)
-                  no_j = list(j1,2)
-              
-                  rsj = rot_list(j,no_j)
-                  jdl(:) = del_list(j,no_j,:) 
-                  jrdl(:) = rot_del_list(j,no_j,:) 
-
-                  imj  = latt%imj(i, j)
-                  ztmp = grc(i1,j1,1) + grc(i1,j1,2)
-                  obs_eq(1)%obs_Latt(imj,1,no_i,no_j) = obs_eq(1)%obs_latt(imj,1,no_i,no_j) + ztmp*z_fac
-
-                  ztmp = grc(i1,j1,1)*gr(i1,j1,1) + grc(i1,j1,2)*gr(i1,j1,2) + &
-                      & (grc(i1,i1,1) - grc(i1,i1,2))*(grc(j1,j1,1) - grc(j1,j1,2))
-                  obs_eq(2)%obs_Latt(imj,1,no_i,no_j) = obs_eq(2)%obs_latt(imj,1,no_i,no_j) + ztmp*z_fac
-                  
-                  ztmp = grc(i1,j1,1)*gr(i1,j1,1) + grc(i1,j1,2)*gr(i1,j1,2) + &
-                      & (grc(i1,i1,2) + grc(i1,i1,1))*(grc(j1,j1,2) + grc(j1,j1,1))
-                  obs_eq(3)%obs_Latt(imj,1,no_i,no_j) = obs_eq(3)%obs_latt(imj,1,no_i,no_j) + ztmp*z_fac
-                  
-                  !! s wave
-                  ztmp = grc(i1,j1,1)*grc(i1,j1,2)
-                  obs_eq(4)%obs_Latt(imj,1,no_i,no_j) = obs_eq(4)%obs_latt(imj,1,no_i,no_j) + ztmp*z_fac
-                  
-              end do
-              zback = grc(i1, i1, 2) - grc(i1, i1, 1)
-              obs_eq(2)%obs_latt0(no_i) = obs_eq(2)%obs_Latt0(no_i) + zback*z_fac
-              zback = grc(i1,i1,1) + grc(i1,i1,2) 
-              obs_eq(3)%obs_latt0(no_i) = obs_eq(3)%obs_Latt0(no_i) + zback*z_fac
-          end do
-
-       end subroutine obser
        
        !!========================================================================!!
        !!     compute local energy of a given walker
        !!========================================================================!!
-       complex(Kind=kind(0.d0)) function E0_local(gr, kappa, kappa_bar)
+       complex(Kind=kind(0.d0)) function e0_local(gr, kappa, kappa_bar)
           implicit none
 
-          complex(Kind=kind(0.d0)), intent(in) :: gr       (ndim, ndim, n_fl, n_grc)
-          complex(Kind=kind(0.d0)), intent(in) :: kappa    (ndim, ndim, n_fl, n_grc)
-          complex(Kind=kind(0.d0)), intent(in) :: kappa_bar(ndim, ndim, n_fl, n_grc)
+          complex(Kind=kind(0.d0)), intent(in) :: gr       (ndim, ndim, n_fl)
+          complex(Kind=kind(0.d0)), intent(in) :: kappa    (ndim, ndim, n_fl)
+          complex(Kind=kind(0.d0)), intent(in) :: kappa_bar(ndim, ndim, n_fl)
 
           !Local
           complex(Kind=kind(0.d0)) :: grc(ndim, ndim, n_fl), ZK
@@ -607,6 +472,7 @@
           integer :: I, J, imj, nf, dec, I1, J1, no_I, no_J, n
           real(Kind=kind(0.d0)) :: X
 
+          !! grc_{i,j} = <c^{\dagger}_i c_j>
           do nf = 1, N_FL
              do I = 1, Ndim
                 do J = 1, Ndim
@@ -617,22 +483,52 @@
           end do
 
           zkin = cmplx(0.d0, 0.d0, kind(0.d0))
-          call Predefined_Hoppings_Compute_Kin(Hopping_Matrix, List, Invlist, Latt, Latt_unit, GRC, ZKin)
-          zkin = Zkin*dble(N_SUN)
+          call Predefined_Hoppings_Compute_Kin(Hopping_Matrix, List, Invlist, Latt, Latt_unit, gr, zkin)
+          zkin = zkin*dble(n_sun)
 
-          ZPot = cmplx(0.d0, 0.d0, kind(0.d0))
+          zpot = cmplx(0.d0, 0.d0, kind(0.d0))
           do I = 1, Latt%N
              do no_I = 1, Latt_unit%Norb
                 I1 = Invlist(I, no_I)
-                ZPot = ZPot + 2.d0*Grc(i1, i1, 1)*Grc(i1, i1, 2) - &
-                    & Grc(i1, i1, 1) - Grc(i1, i1, 2) + 1.d0
+                zpot = zpot + 2.d0*gr(i1, i1, 1)*gr(i1, i1, 2) + &
+                    & 2.d0*kappa_bar(i1,i1,1)*kappa(i1,i1,2) & 
+                    & - gr(i1, i1, 1) - gr(i1, i1, 2) + 1.d0
              end do
           end do
           zpot = zpot*(-ham_u/2.d0)
 
-          E0_local = Zpot + ZKin
+          e0_local = zpot + zkin
 
-       end function E0_local
+       end function e0_local
+       
+       !!========================================================================!!
+       !!     compute local shift of auxillary field 
+       !!========================================================================!!
+       complex(Kind=kind(0.d0)) function xbar_loc_compute(gr,nc)
+          implicit none
+
+          complex(Kind=kind(0.d0)), intent(in) :: gr(ndim, ndim, n_fl)
+          integer, intent(in) :: nc
+         
+          complex(Kind=kind(0.d0)) :: ztmp
+          integer :: nf, i, j, i1, j1, i_grc, n, I0, J0, n_op
+         
+          ztmp = cmplx(0.d0,0.d0,kind(0.d0))
+          do nf = 1,N_FL
+             do I = 1,op_v(nc,nf)%N
+             do J = 1,op_v(nc,nf)%N
+                I1 = op_v(nc,nf)%P(I)
+                J1 = op_v(nc,nf)%P(J)
+
+                ztmp = ztmp - op_v(nc,nf)%g*gr(I1,J1,nf)*op_v(nc,nf)%o(I,J) 
+             enddo
+             enddo
+             ztmp = ztmp - op_v(nc,nf)%g*op_v(nc,nf)%alpha
+          enddo
+             
+          xbar_loc_compute = ztmp
+       
+       end function xbar_loc_compute
        
        !!========================================================================!!
        !!     set up the shift of auxillary field for importance sampling
@@ -645,35 +541,40 @@
          complex(Kind=kind(0.d0)), intent(in) :: kappa_bar(ndim, ndim, n_fl, n_grc)
          
          ! local
-         complex (kind=kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK, Zn, ztmp
-         complex (kind=kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP,ZS, ZZ, ZXY
-         integer :: I,J, imj, nf, dec, I1, J1, no_I, no_J,n, I0, J0, n_op, nc
+         complex (kind=kind(0.d0)) :: ZK, Zn, ztmp, x_tmp(n_hfb)
+         complex (kind=kind(0.d0)) :: ztmp1
+         integer :: i_wlk, nf, i, j, i1, j1, i_grc, n, I0, J0, n_op, nc, ns
+         real(Kind=kind(0.d0)) :: sign_w, pi = acos(-1.d0), zero = 1.0e-12, re_o_max
 
          n_op = size(op_v,1)
-         
-         Do nf = 1,N_FL
-            Do I = 1,Ndim
-               Do J = 1,Ndim
-                  GRC(I, J, nf) = -GR(J, I, nf)
-               Enddo
-               GRC(I, I, nf) = 1.D0 + GRC(I, I, nf)
-            Enddo
-         Enddo
+      
+         do i_wlk = 1, n_wlk
 
-         do nc = 1, n_op
-            ztmp = cmplx(0.d0,0.d0,kind(0.d0))
-            Do nf = 1,N_FL
-               Do I = 1,Op_V(nc,nf)%N
-               Do J = 1,Op_V(nc,nf)%N
-                  I1 = Op_V(nc,nf)%P(I)
-                  J1 = Op_V(nc,nf)%P(J)
+            sign_w = cos(aimag(weight_k(i_wlk)))
+            if ( sign_w .gt. zero ) then
 
-                  ztmp = ztmp - op_v(nc,nf)%g*grc(I1,J1,nf)*op_v(nc,nf)%o(I,J) 
+            do nc = 1, n_op
+               
+               !! the max real part of the overlap
+               re_o_max = 0.d0
+               do ns = 1, n_hfb
+                  i_grc = ns + (i_wlk - 1)*n_hfb
+                  if ( dble(overlap(i_grc)) .gt. re_o_max ) re_o_max = dble(overlap(i_grc))
                enddo
-               enddo
-               ztmp = ztmp - op_v(nc,nf)%g*op_v(nc,nf)%alpha
+
+               ztmp = 0.d0
+               do ns = 1, N_hfb
+                  i_grc = ns + (i_wlk - 1)*N_hfb
+                  x_tmp(n_hfb) = & 
+                      & xbar_loc_compute(gr(:,:,:,i_grc),nc)*exp(overlap(i_grc)-re_o_max)
+                  ztmp = ztmp + exp(overlap(i_grc)-re_o_max)
+               end do
+               
+               x_local(nc,i_wlk) = sum(x_tmp(:))/ztmp
             enddo
-            x_local(nc) = ztmp
+
+            endif
+         
          enddo
          
        end subroutine set_xloc
@@ -759,7 +660,7 @@
 
           !local
           integer :: i_wlk, ii, i_st, i_ed, ns, i_grc
-          real   (Kind=kind(0.d0)) :: X1, re_w_tmp, max_re_w, ang_w, re_lw
+          real   (Kind=kind(0.d0)) :: X1, re_w_tmp, max_re_w, ang_w, re_lw, re_o_max
           complex(Kind=kind(0.d0)) :: Z1, Z2, wtmp, el_tmp, Z, tot_ene, zr1, zr2
           character(LEN=64)  :: filename
           complex(Kind=kind(0.d0)), allocatable :: weight_mpi(:), w_arr(:)
@@ -809,10 +710,17 @@
                  weight_k(i_wlk) = weight_k(i_wlk) - max_re_w
                  re_lw = dble (weight_k(i_wlk))
                  
+                 !! the max real part of the overlap
+                 re_o_max = 0.d0
+                 do ns = 1, n_hfb
+                    i_grc = ns + (i_wlk - 1)*n_hfb
+                    if ( dble(overlap(i_grc)) .gt. re_o_max ) re_o_max = dble(overlap(i_grc))
+                 enddo
+
                  z = 0.d0
                  do ns = 1, N_hfb
                     i_grc = ns + (i_wlk - 1)*N_hfb
-                    z = z + exp(overlap(i_grc))
+                    z = z + exp(overlap(i_grc)-re_o_max)
                  end do
 
                  !! real part of mix estimated energy
@@ -821,7 +729,7 @@
                     i_grc = ns + (i_wlk - 1)*N_hfb
                     el_tmp = dble(ham%E0_local(gr(:,:,:,i_grc), & 
                         & kappa(:,:,:,i_grc), kappa_bar(:,:,:,i_grc)))
-                    tot_ene = tot_ene + el_tmp*exp(overlap(i_grc))/Z
+                    tot_ene = tot_ene + el_tmp*exp(overlap(i_grc)-re_o_max)/Z
                  end do
                  re_w_tmp = exp(re_lw)*cos(ang_w)
                  z1 = z1 + re_w_tmp

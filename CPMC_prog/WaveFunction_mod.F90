@@ -46,9 +46,9 @@ contains
       complex(Kind=kind(0.d0)), allocatable :: tmp_mat1(:,:), tmp_mat2(:,:)
       complex(Kind=kind(0.d0)) :: alpha, beta
 
-      N_fl   = size(wf_r  , 2)
-      N_part = size(wf_r%p, 2)
-      Ndim   = size(wf_r%p, 1)
+      N_fl   = size(wf_r, 1)
+      N_part = size(wf_r(1)%p, 2)
+      Ndim   = size(wf_r(1)%p, 1)
       allocate (tmp_mat1(ndim, n_part), tmp_mat2(n_part,n_part))
 
       alpha = 1.d0

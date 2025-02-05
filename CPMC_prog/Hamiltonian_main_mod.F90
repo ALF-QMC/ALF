@@ -10,15 +10,11 @@ module Hamiltonian_main
 
    private
    public :: Alloc_Ham, ham_base, ham
-#ifdef __PGI
-   public :: Obs_scal
-#endif
    type ham_base
    contains
       procedure, nopass :: ham_set => ham_set_base
       procedure, nopass :: Alloc_obs => Alloc_obs_base
       procedure, nopass :: Obser => Obser_base
-      procedure, nopass :: ObserT => ObserT_base
       procedure, nopass :: E0_local => E0_local_base
       procedure, nopass :: sum_weight => sum_weight_base
       procedure, nopass :: update_fac_norm => update_fac_norm_base
@@ -55,7 +51,7 @@ module Hamiltonian_main
    complex(Kind=kind(0.d0)), public :: fac_norm
    complex(Kind=kind(0.d0)), dimension(:), allocatable, public :: weight_k
    complex(Kind=kind(0.d0)), dimension(:), allocatable, public :: overlap
-   complex(kind=kind(0.d0)), dimension(:), allocatable, public :: x_local
+   complex(kind=kind(0.d0)), dimension(:,:), allocatable, public :: x_local
 
    !>    Privat Observables
    type(Obser_Vec),  dimension(:), allocatable :: obs_scal
@@ -144,19 +140,20 @@ contains
    !> @details
    !> @param [IN] Gr   Complex(:,:,:)
    !> \verbatim
-   !>  Green function: Gr(I,J,nf) = <c_{I,nf } c^{dagger}_{J,nf } > on time slice ntau
+   !>  Green function: Gr(I,J,nf) = <c^{\dagger}_{I,nf } c_{J,nf } > on time slice ntau
    !> \endverbatim
    !> @param [IN] Ntau Integer
    !> \verbatim
    !>  Time slice
    !> \endverbatim
    !-------------------------------------------------------------------
-   subroutine obser_base(GR, GR_mix, i_grc, re_w, sum_w, sum_o)
+   subroutine obser_base(gr, kappa, kappa_bar, i_grc, re_w, sum_w, sum_o)
 
       implicit none
 
-      complex(Kind=kind(0.d0)), intent(IN) :: GR(Ndim, Ndim, N_FL)
-      complex(Kind=kind(0.d0)), intent(IN) :: GR_mix(Ndim, Ndim, N_FL)
+      complex(Kind=kind(0.d0)), intent(IN) :: gr       (ndim, ndim, n_fl)
+      complex(Kind=Kind(0.d0)), intent(IN) :: kappa    (ndim, ndim, n_fl)
+      complex(Kind=Kind(0.d0)), intent(IN) :: kappa_bar(ndim, ndim, n_fl)
       complex(Kind=kind(0.d0)), intent(IN) :: sum_w, sum_o
       real   (Kind=kind(0.d0)), intent(IN) :: re_w
       integer, intent(IN) :: i_grc
@@ -167,43 +164,6 @@ contains
          first_call = .false.
       end if
    end subroutine obser_base
-
-   !--------------------------------------------------------------------
-   !> @author
-   !> ALF Collaboration
-   !>
-   !> @brief
-   !> Computes time displaced  observables
-   !> @details
-   !> @param [IN] NT, Integer
-   !> \verbatim
-   !>  Imaginary time
-   !> \endverbatim
-   !> @param [IN] GT0, GTT, G00, GTT,  Complex(:,:,:)
-   !> \verbatim
-   !>  Green functions:
-   !>  GT0(I,J,nf) = <T c_{I,nf }(tau) c^{dagger}_{J,nf }(0  )>
-   !>  G0T(I,J,nf) = <T c_{I,nf }(0  ) c^{dagger}_{J,nf }(tau)>
-   !>  G00(I,J,nf) = <T c_{I,nf }(0  ) c^{dagger}_{J,nf }(0  )>
-   !>  GTT(I,J,nf) = <T c_{I,nf }(tau) c^{dagger}_{J,nf }(tau)>
-   !> \endverbatim
-   !-------------------------------------------------------------------
-   subroutine obserT_base(NT, GT0, G0T, G00, GTT, i_grc, re_w, sum_w, sum_o)
-      implicit none
-
-      integer, intent(IN) :: NT, i_grc
-      complex(Kind=kind(0.d0)), intent(IN) :: GT0(Ndim, Ndim, N_FL), G0T(Ndim, Ndim, N_FL)
-      complex(Kind=kind(0.d0)), intent(IN) :: G00(Ndim, Ndim, N_FL), GTT(Ndim, Ndim, N_FL)
-      complex(Kind=kind(0.d0)), intent(IN) :: sum_w, sum_o
-      real   (Kind=kind(0.d0)), intent(IN) :: re_w
-      logical, save              :: first_call = .true.
-
-      if (first_call) then
-         write (error_unit, *) "Warning: ObserT not implemented."
-         first_call = .false.
-      end if
-
-   end subroutine obserT_base
 
    complex(Kind=kind(0.d0)) function E0_local_base(gr, kappa, kappa_bar)
       implicit none
@@ -219,9 +179,9 @@ contains
    subroutine set_xloc_base(gr, kappa, kappa_bar)
      Implicit none
       
-     Complex (Kind=Kind(0.d0)), INTENT(IN) :: gr       (ndim,ndim,n_fl)
-     Complex (Kind=Kind(0.d0)), INTENT(IN) :: kappa    (ndim,ndim,n_fl)
-     Complex (Kind=Kind(0.d0)), INTENT(IN) :: kappa_bar(ndim,ndim,n_fl)
+     Complex (Kind=Kind(0.d0)), INTENT(IN) :: gr       (ndim,ndim,n_fl,n_grc)
+     Complex (Kind=Kind(0.d0)), INTENT(IN) :: kappa    (ndim,ndim,n_fl,n_grc)
+     Complex (Kind=Kind(0.d0)), INTENT(IN) :: kappa_bar(ndim,ndim,n_fl,n_grc)
      
    end subroutine set_xloc_base
 

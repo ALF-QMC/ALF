@@ -30,9 +30,9 @@ contains
       type(Hopping_Matrix_type), allocatable       :: Hopping_Matrix_tmp(:)
       real(Kind=kind(0.d0))                        :: Dtau, Ham_T, Ham_Chem, Phi_X, Phi_Y, Dimer, mass
       logical                                       :: Checkerboard, Symm, Kekule_Trial, hatree_fock, l_cmplx_trial
-      real(Kind=kind(0.d0))  :: delta = 0.01, Ham_T1, Ham_T2, Ham_Tperp
+      real(Kind=kind(0.d0))  :: delta = 0.01, Ham_T1, Ham_T2, Ham_Tperp, kx, ky
       real(Kind=kind(0.d0))  :: sc_modu, epsilon_k, xi_k, k_p(2), r_p(2), r1_p(2), dr_p(2), ang
-      integer :: N, nf, I, I1, I2, nc, nc1, J1, lp, J, K, N_Phi, ns, no, k1, N_part_tot, i0, j0, kx, ky
+      integer :: N, nf, I, I1, I2, nc, nc1, J1, lp, J, K, N_Phi, ns, no, k1, N_part_tot, i0, j0
       logical :: Test = .false., Bulk = .true.
       complex(Kind=kind(0.d0)) :: Z_norm, ztmp
       real(Kind=kind(0.d0)), allocatable :: Ham_T_vec(:), Ham_Tperp_vec(:), Ham_Chem_vec(:), Phi_X_vec(:), Phi_Y_vec(:),&
@@ -164,9 +164,9 @@ contains
           xi_k = sqrt(epsilon_k**2 + sc_modu**2)
           
           !!!u_k
-          uk_bg_vec(i) = cmplx(sqrt(0.5d0*(1.d0+epsilon_k/xi_k)), 0.d0, kind(0,d0))
+          uk_bg_vec(i) = cmplx(sqrt(0.5d0*(1.d0+epsilon_k/xi_k)), 0.d0, kind(0.d0))
           !!!v_k
-          vk_bg_vec(i) = cmplx(sqrt(0.5d0*(1.d0-epsilon_k/xi_k)), 0.d0, kind(0,d0))
+          vk_bg_vec(i) = cmplx(sqrt(0.5d0*(1.d0-epsilon_k/xi_k)), 0.d0, kind(0.d0))
       enddo
       
       do i = 1, latt%n
@@ -180,13 +180,14 @@ contains
          do k = 1, latt%n
             k_p = dble(Latt%listk(k,1))*Latt%b1_p + dble(Latt%listk(k,2))*Latt%b2_p
             ang = -(k_p(1)*dr_p(1)+k_p(2)*dr_p(2))
-            ztmp = ztmp + cmplx(cos(ang), sin(ang), kind(0.D0))*uk_bg_vec(k)/vk_bg_vec(k)
+            ztmp = ztmp + cmplx(cos(ang), sin(ang), kind(0.d0))*uk_bg_vec(k)/vk_bg_vec(k)
          enddo
          ztmp = ztmp/dble(latt%n)
          F_ssc(i,j) = ztmp
       enddo
       enddo
 
+      !! In our model ndim = latt%n
       do ns=1,n_hfb
          wf_l(ns)%p(:,:) = F_ssc(:,:)
       enddo

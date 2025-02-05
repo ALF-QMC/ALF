@@ -134,7 +134,7 @@ contains
          end do
       end do
 
-          !! initial energy and force basis
+          !! initial energy and force bias
       call ham%update_fac_norm(gr, kappa, kappa_bar, 0)
       call ham%set_xloc       (gr, kappa, kappa_bar)
 
@@ -146,6 +146,38 @@ contains
       end if
 
    end subroutine initial_wlk
+   
+   subroutine initial_gfun_and_xloc(phi_trial, phi_0, gr, kappa, kappa_bar)
+      
+      implicit none
+
+      class(udv_state), dimension(:, :), allocatable, intent(in) :: phi_trial, phi_0
+      complex(Kind=kind(0.d0)), dimension(:, :, :, :), allocatable, intent(inout) :: gr, kappa, kappa_bar
+
+      !Local
+      integer :: i_st, i_ed, i_grc, i_wlk, ns
+      complex(Kind=kind(0.d0)) :: deto
+      real(Kind=kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio, X1, wtmp
+      real(Kind=kind(0.d0)) :: zero = 1.0e-12, sign_w
+      
+      do i_wlk = 1, N_wlk
+
+         sign_w = cos(aimag(weight_k(i_wlk)))
+         if ( sign_w .gt. zero ) then
+
+             do ns = 1, n_hfb
+                i_grc = ns + (i_wlk - 1)*n_hfb
+                call cgrp(detO, gr(:, :, :, i_grc), kappa(:, :, :, i_grc), kappa_bar(:, :, :, i_grc), &
+                    &     phi_0(1, i_wlk), phi_0(2, i_wlk), phi_trial(1, ns))
+             enddo
+
+         endif
+
+      enddo
+
+      call ham%set_xloc(gr, kappa, kappa_bar)
+   
+   end subroutine initial_gfun_and_xloc
 
 #if defined HDF5
    subroutine wavefunction_out_hdf5(phi_0)

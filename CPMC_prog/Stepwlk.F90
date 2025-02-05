@@ -40,7 +40,7 @@ contains
           !! Kinetic part exp(-/Delta/tau T/2)
       call half_K_propagation(phi_trial, phi_0)
       
-          !! update weight, Green's function and force basis after propagation 
+          !! update weight, Green's function and force bias after propagation 
       call update_weight_and_overlap(phi_trial, phi_0, gr, kappa, kappa_bar, ntau_bp)
 
    end subroutine stepwlk_move
@@ -62,7 +62,7 @@ contains
 
       n_op = size(op_v, 1)
 
-      do i_wlk = 1, N_wlk
+      do i_wlk = 1, n_wlk
 
          sign_w = cos(aimag(weight_k(i_wlk)))
          if ( sign_w .gt. zero ) then
@@ -72,7 +72,7 @@ contains
             do n = 1, n_op
 
                spin = rang_wrap()
-               cspin = spin - x_local(n)
+               cspin = spin - x_local(n,i_wlk)
                nsigma_bp(i_wlk)%f(n, ntau_bp) = cspin
 
                ! propagate slater determinant
@@ -107,7 +107,7 @@ contains
       integer :: nf, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, i_st, i_ed, ns, i_grc
       complex(Kind=kind(0.d0)) :: overlap_old, overlap_new, Z, sum_o_new, sum_o_old
       real(Kind=kind(0.d0)) :: overlap_ratio, re_overlap, re_o_max
-      real(Kind=kind(0.d0)) :: zero = 1.0e-12, sign_w, pi = acos(-1.d0)
+      real(Kind=kind(0.d0)) :: zero = 1.0e-12, sign_w
 
       do i_wlk = 1, N_wlk
 
@@ -137,10 +137,10 @@ contains
       
       !Local
       integer :: nf, n_type, ntau1, n, ns, m, nt, NVAR, i_wlk, N_op, i_st, i_ed, i_grc
-      real(kind=kind(0.d0)) :: zero = 1.0e-12, sign_w, spin, hs_new, costheta
+      real(kind=kind(0.d0)) :: zero = 1.0e-12, sign_w, spin, hs_new, costheta, pi = acos(-1.d0)
       real(Kind=kind(0.d0)) :: overlap_ratio, re_overlap, re_o_max, logcostheta
       complex(kind=kind(0.d0)) :: gauss_spin, detO, sum_o_new, sum_o_old, s_d_hs, x_bar
-      complex(Kind=kind(0.d0)) :: det_Vec(n_fl), log_o_new(n_slat), log_o_old(n_slat), c_log_I
+      complex(Kind=kind(0.d0)) :: det_Vec(n_fl), log_o_new(n_hfb), log_o_old(n_hfb), c_log_I
 
       do i_wlk = 1, N_wlk
 
@@ -151,7 +151,7 @@ contains
              
              !! < BCS | phi^n_k >
              do ns = 1, n_hfb
-                i_grc = ns + (i_wlk - 1)*n_slat
+                i_grc = ns + (i_wlk - 1)*n_hfb
                 log_o_old(ns) = overlap(i_grc)
                 if ( dble(log_o_old(ns)) .gt. re_o_max ) re_o_max = dble(log_o_old(ns))
              enddo
@@ -171,7 +171,7 @@ contains
             !! < BCS | phi^{n+1}_k >/< BCS | phi^{n}_k >
             sum_o_old = 0.d0
             sum_o_new = 0.d0
-            do ns = 1, N_slat
+            do ns = 1, N_hfb
                sum_o_old = sum_o_old + exp(log_o_old(ns)-cmplx(re_o_max,0.d0,kind(0.d0)))
                sum_o_new = sum_o_new + exp(log_o_new(ns)-cmplx(re_o_max,0.d0,kind(0.d0)))
             enddo
@@ -180,8 +180,11 @@ contains
             !! \prod_i \frac{p(x(i)-\bar{x}(i))}{p(x(i))}
             s_d_hs = 0.d0
             do n = 1, n_op
-               x_bar = nsigma_bp(i_wlk)%f(n,ntau_bp) + x_local(n)
-               s_d_hs = s_d_hs + x_bar*x_local(n) - x_local(n)*x_local(n)/2.d0
+            do ns = 1, N_hfb
+               i_grc = ns + (i_wlk - 1)*n_hfb
+               x_bar = nsigma_bp(i_wlk)%f(n,ntau_bp) + x_local(n,i_wlk)
+               s_d_hs = s_d_hs + x_bar*x_local(n,i_wlk) - x_local(n,i_wlk)*x_local(n,i_wlk)/2.d0
+            enddo
             enddo
 
             !! logarithmic of I = < BCS | phi^{n+1}_k >/< BCS | phi^{n}_k >*\prod_i \frac{p(x(i)-\bar{x}(i))}{p(x(i))}
@@ -190,8 +193,6 @@ contains
             if ( costheta .gt. zero ) then
                logcostheta = log(costheta)
                weight_k(i_wlk) = weight_k(i_wlk) + dble(c_log_I) + logcostheta
-
-               call ham%set_xloc(gr, kappa, kappa_bar)
             else
                weight_k(i_wlk) = cmplx(0.d0,pi,kind(0.d0))
             endif
@@ -199,6 +200,8 @@ contains
          endif
 
       enddo
+
+      call ham%set_xloc(gr, kappa, kappa_bar)
    
    end subroutine update_weight_and_overlap
 
@@ -213,7 +216,7 @@ contains
       integer :: nf, N_Type, NTAU1, n, m, nt, NVAR, N_size, I, i_wlk
       integer :: ndistance, i_wlk_eff, i_st, i_ed, n_wlk_eff, ns, nrs, i_slat
       real(Kind=kind(0.d0)) :: Overlap_ratio, zero = 1.0e-12, pi = acos(-1.d0)
-      real(Kind=kind(0.d0)) :: re_o_am, re_o_ph
+      real(Kind=kind(0.d0)) :: re_o_am, re_o_ph, sign_w
       complex(Kind=kind(0.d0)) :: det_D(N_FL)
 
       n_wlk_eff = size(phi_0, 2)
@@ -259,7 +262,7 @@ contains
 
       implicit none
 
-      class(UDV_State), dimension(:, :), allocatable, intent(INOUT) :: phi_0, phi_bp_r
+      class(udv_state), dimension(:, :), allocatable, intent(inout) :: phi_0, phi_bp_r
 
       !Local
       integer :: nf, N_Type, NTAU1, n, m, nt, NVAR, it_wlk, n_exc, pop_exc(N_wlk_mpi, 4)
@@ -268,7 +271,7 @@ contains
       real(Kind=kind(0.d0)) :: zero = 1.0e-12, d_scal, sum_w, w_count, re_weight(N_wlk_mpi), ang_w, re_lw
       real(Kind=kind(0.d0)) :: exp_o_abs(n_hfb), exp_o_phase(n_hfb), dz2, max_re_w
       complex(Kind=kind(0.d0)), allocatable :: w_arr(:), weight_mpi(:)
-      complex(Kind=kind(0.d0)) :: overlap_tmp(N_grc)
+      complex(Kind=kind(0.d0)) :: overlap_tmp(n_grc)
       complex(Kind=kind(0.d0)) :: Z1, Z2, Z3, Z_s_array(N_hfb), Z_r_array(N_hfb), zp
       type(Fields), dimension(:), allocatable :: nsigma_store
       class(UDV_State), dimension(:, :), allocatable :: phi_0_m, phi_bp_m
@@ -486,13 +489,13 @@ contains
 #endif
       implicit none
 
-      class(UDV_State), dimension(:, :), allocatable, intent(INOUT) :: phi_bp_l, phi_bp_r
-      class(UDV_State), dimension(:, :, :), allocatable, intent(INOUT) :: udvst
-      integer, dimension(:), allocatable, intent(IN) :: Stab_nt
-      integer, intent(IN) :: ltau
+      class(udv_state), dimension(:, :), allocatable, intent(inout) :: phi_bp_l, phi_bp_r
+      class(udv_state), dimension(:, :, :), allocatable, intent(inout) :: udvst
+      integer, dimension(:), allocatable, intent(in) :: stab_nt
+      integer, intent(in) :: ltau
 
       !Local
-      complex(Kind=kind(0.d0)) :: gr_bp(NDIM, NDIM, N_FL, N_grc)
+      complex(Kind=kind(0.d0)) :: gr_bp(NDIM, NDIM, N_FL, n_grc)
       integer :: nf, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, ltrot_bp, N_op, nstm, nst, ntau
       integer :: i_grc, i_st, i_ed, ns
       complex(Kind=kind(0.d0)) :: z, z_weight, z_sum_overlap, exp_overlap(N_hfb)
