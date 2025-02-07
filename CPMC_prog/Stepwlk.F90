@@ -180,11 +180,8 @@ contains
             !! \prod_i \frac{p(x(i)-\bar{x}(i))}{p(x(i))}
             s_d_hs = 0.d0
             do n = 1, n_op
-            do ns = 1, N_hfb
-               i_grc = ns + (i_wlk - 1)*n_hfb
                x_bar = nsigma_bp(i_wlk)%f(n,ntau_bp) + x_local(n,i_wlk)
                s_d_hs = s_d_hs + x_bar*x_local(n,i_wlk) - x_local(n,i_wlk)*x_local(n,i_wlk)/2.d0
-            enddo
             enddo
 
             !! logarithmic of I = < BCS | phi^{n+1}_k >/< BCS | phi^{n}_k >*\prod_i \frac{p(x(i)-\bar{x}(i))}{p(x(i))}
