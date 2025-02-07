@@ -252,7 +252,7 @@ program main
          call stepwlk_move(phi_trial, phi_0, gr, kappa, kappa_bar, ntau_bp); 
          !! QR decomposition for stablization
          if (ntau_bp .eq. stab_nt(nst)) then
-            call re_orthonormalize_walkers(phi_0, 'U')
+            call re_orthonormalize_walkers(phi_0)
             nst = nst + 1
          end if
 
