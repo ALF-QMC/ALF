@@ -37,8 +37,8 @@ contains
 
    subroutine wf_overlap(wf_l, wf_r, z_norm)
       implicit none
-      type(WaveFunction), dimension(:), allocatable, intent(inout) :: wf_l
-      type(WaveFunction), dimension(:), allocatable, intent(in)    :: wf_r
+      type(WaveFunction), dimension(:), allocatable, intent(in)    :: wf_l
+      type(WaveFunction), dimension(:), allocatable, intent(inout) :: wf_r
       complex(Kind=kind(0.d0)), intent(out) :: z_norm
 
       ! Local
@@ -54,20 +54,19 @@ contains
       alpha = 1.d0
       beta = 0.d0
       !! Z^{\dagger}*\phi_{\uparrow}
-      call zgemm('c', 'n', ndim, n_part, ndim, alpha, wf_l(1)%p(1,1), ndim, wf_r(1)%p(1,1), ndim, beta, tmp_mat1(1, 1), n_part)
+      call zgemm('c', 'n', ndim, n_part, ndim, alpha, wf_l(1)%p(1,1), ndim, wf_r(1)%p(1,1), ndim, beta, tmp_mat1(1, 1), ndim)
       !! \phi^{T}_{\downarrow}Z^{\dagger}*\phi_{\uparrow}
-      call zgemm('c', 'n', n_part, ndim, n_part, alpha, wf_r(2)%p(1,1), ndim, tmp_mat1(1,1), n_part, beta, tmp_mat2(1, 1), n_part)
-      ! Mat = (WL_L%P)^{dagger} WL_L%R
+      call zgemm('t', 'n', n_part, n_part, ndim, alpha, wf_r(2)%p(1,1), ndim, tmp_mat1(1,1), ndim, beta, tmp_mat2(1, 1), n_part)
 
       z_norm = det(tmp_mat2, N_part)
 
       z_norm = cmplx(-1.d0,0.d0,kind(0.d0))**(dble(n_part)*dble(n_part-1)*0.5d0) * z_norm
 
-      z_norm = (cmplx(1.d0, 0.d0, kind(0.d0))/z_norm)**(1.d0/real(n_part, kind(0.d0)))
+      z_norm = (cmplx(1.d0, 0.d0, kind(0.d0))/z_norm)**(1.d0/dble(2*n_part))
 
-      wf_l(1)%p = z_norm*wf_l(1)%p
-      !wf_r(1)%p =       z_norm *wf_r(1)%p
-      !wf_r(2)%p = conjg(z_norm)*wf_r(2)%p
+      !wf_l(1)%p = z_norm*wf_l(1)%p
+      wf_r(1)%p = z_norm*wf_r(1)%p(:,:)
+      wf_r(2)%p = z_norm*wf_r(2)%p(:,:)
 
       deallocate (tmp_mat1, tmp_mat2)
 

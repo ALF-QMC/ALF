@@ -205,34 +205,27 @@ contains
    
    end subroutine update_weight_and_overlap
 
-   subroutine re_orthonormalize_walkers(Phi_0, cop)
+   subroutine re_orthonormalize_walkers(Phi_0)
       
       implicit none
 
       class(udv_state), dimension(:, :), allocatable, intent(INOUT) :: phi_0
-      character, intent(IN)    :: cop
 
       !Local
       integer :: nf, N_Type, NTAU1, n, m, nt, NVAR, N_size, I, i_wlk
-      integer :: ndistance, i_wlk_eff, i_st, i_ed, n_wlk_eff, ns, nrs, i_slat
+      integer :: ndistance, i_st, i_ed, ns, nrs, i_slat, i_grc
       real(Kind=kind(0.d0)) :: Overlap_ratio, zero = 1.0e-12, pi = acos(-1.d0)
       real(Kind=kind(0.d0)) :: re_o_am, re_o_ph, sign_w
       complex(Kind=kind(0.d0)) :: det_D(N_FL)
 
-      n_wlk_eff = size(phi_0, 2)
-      ndistance = n_wlk_eff/n_wlk
-
-      do i_wlk_eff = 1, n_wlk_eff
-
-         i_wlk = (i_wlk_eff - 1)/ndistance + 1     ! index for walker
-         ns = i_wlk_eff - (i_wlk - 1)*ndistance ! index for slater det
+      do i_wlk = 1, n_wlk
 
          sign_w = cos(aimag(weight_k(i_wlk)))
          if (sign_w .gt. zero) then
 
             !Carry out U,D,V decomposition.
             do nf = 1, N_FL
-               call Phi_0(nf, i_wlk_eff)%decompose
+               call Phi_0(nf, i_wlk)%decompose
             end do
 
             Det_D = cmplx(0.d0, 0.d0, kind(0.d0))
@@ -240,12 +233,18 @@ contains
             do nf = 1, N_FL
                N_size = phi_0(nf, 1)%n_part
                do I = 1, N_size
-                  det_D(nf) = det_D(nf) + log(Phi_0(nf, i_wlk_eff)%D(I))
+                  det_D(nf) = det_D(nf) + log(Phi_0(nf, i_wlk)%D(I))
                end do
             end do
 
+            !! update overlap
+            do ns = 1, n_hfb
+                i_grc = ns + (i_wlk - 1)*N_hfb
+                overlap(i_grc) = overlap(i_grc) - sum(det_D(:))
+            enddo
+
             do nf = 1, N_FL
-               Phi_0(nf, i_wlk_eff)%D(:) = cmplx(1.d0, 0.d0, kind(0.d0))
+               Phi_0(nf, i_wlk)%D(:) = cmplx(1.d0, 0.d0, kind(0.d0))
             end do
 
          end if

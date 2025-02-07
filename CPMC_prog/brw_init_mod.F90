@@ -96,6 +96,7 @@ contains
 
       do ns = 1, N_hfb
          call phi_trial(1, ns)%init(ndim, 'l', wf_l(ns)%P)
+         call phi_bp_l (1, ns)%init(ndim, 'l', wf_l(ns)%P)
          
          do i_wlk = 1, N_wlk
             i_grc = ns + (i_wlk - 1)*N_hfb
@@ -104,7 +105,6 @@ contains
                   call udvst(n, nf, i_grc)%alloc(ndim)
                end do
             end do
-            call phi_bp_l(1, i_grc)%init(ndim, 'l', wf_l(ns)%P)
          end do
       end do
 

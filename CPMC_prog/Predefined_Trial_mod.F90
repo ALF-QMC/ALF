@@ -169,6 +169,7 @@ contains
           vk_bg_vec(i) = cmplx(sqrt(0.5d0*(1.d0-epsilon_k/xi_k)), 0.d0, kind(0.d0))
       enddo
       
+      f_ssc(:,:) = 0.d0
       do i = 1, latt%n
       do j = 1, latt%n
          r_p  = dble(Latt%listk(i,1))*Latt%a1_p + dble(Latt%listk(i,2))*Latt%a2_p
@@ -180,7 +181,7 @@ contains
          do k = 1, latt%n
             k_p = dble(Latt%listk(k,1))*Latt%b1_p + dble(Latt%listk(k,2))*Latt%b2_p
             ang = -(k_p(1)*dr_p(1)+k_p(2)*dr_p(2))
-            ztmp = ztmp + cmplx(cos(ang), sin(ang), kind(0.d0))*uk_bg_vec(k)/vk_bg_vec(k)
+            ztmp = ztmp + cmplx(cos(ang), sin(ang), kind(0.d0))*vk_bg_vec(k)/uk_bg_vec(k)
          enddo
          ztmp = ztmp/dble(latt%n)
          F_ssc(i,j) = ztmp
