@@ -121,9 +121,9 @@ contains
 
       ! local
       integer :: nf, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, i_st, i_ed, ns, i_grc
-      complex(Kind=kind(0.d0)) :: Overlap_old, Overlap_new, Z, sum_o_new, sum_o_old
+      complex(Kind=kind(0.d0)) :: Overlap_old, Overlap_new, Z, sum_o_new, sum_o_old, overlap_ratio
       complex(Kind=kind(0.d0)) :: det_Vec(N_FL), log_o_new(n_slat), log_o_old(n_slat)
-      real(Kind=kind(0.d0)) :: overlap_ratio, re_overlap, re_o_max
+      real(Kind=kind(0.d0)) :: re_overlap, re_o_max
       real(Kind=kind(0.d0)) :: zero = 1.0e-12, sign_w, pi = acos(-1.d0)
 
       do i_wlk = 1, N_wlk
