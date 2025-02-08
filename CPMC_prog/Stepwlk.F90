@@ -24,8 +24,6 @@ contains
       real(kind=kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio
       real(kind=kind(0.d0)) :: zero = 1.0e-12, sign_w
 
-      n_op = size(op_v, 1)
-
       do i_wlk = 1, N_wlk
          ! update weight by fac_norm
          sign_w = cos(aimag(weight_k(i_wlk)))
@@ -68,9 +66,9 @@ contains
          if ( sign_w .gt. zero ) then
 
             ! upgrade Green's function
-            z_alpha = 0.d0
             do n = 1, n_op
 
+                !! sample gaussian field
                spin = rang_wrap()
                cspin = spin - x_local(n,i_wlk)
                nsigma_bp(i_wlk)%f(n, ntau_bp) = cspin
@@ -78,17 +76,9 @@ contains
                ! propagate slater determinant
                do nf = 1, N_FL
                   call op_mmultr(phi_0(nf, i_wlk)%u, op_v(n, nf), nsigma_bp(i_wlk)%f(n, ntau_bp), 'n', 1)
-                  ! store alpha factor in z_alpha
-                  z_alpha = z_alpha + &
-                      & op_v(n, nf)%g*op_v(n, nf)%alpha*nsigma_bp(i_wlk)%phi(n, ntau_bp)
                end do
 
             end do
-
-            ! rescale U matrix with z_alpha factor
-            do nf = 1, n_fl
-                phi_0(nf, i_wlk)%u(:,:) = exp(z_alpha)*phi_0(nf, i_wlk)%u(:,:) 
-            enddo
 
          end if
 
@@ -138,9 +128,11 @@ contains
       !Local
       integer :: nf, n_type, ntau1, n, ns, m, nt, NVAR, i_wlk, N_op, i_st, i_ed, i_grc
       real(kind=kind(0.d0)) :: zero = 1.0e-12, sign_w, spin, hs_new, costheta, pi = acos(-1.d0)
-      real(Kind=kind(0.d0)) :: overlap_ratio, re_overlap, re_o_max, logcostheta
-      complex(kind=kind(0.d0)) :: gauss_spin, detO, sum_o_new, sum_o_old, s_d_hs, x_bar
-      complex(Kind=kind(0.d0)) :: det_Vec(n_fl), log_o_new(n_hfb), log_o_old(n_hfb), c_log_I
+      real(Kind=kind(0.d0)) :: re_overlap, re_o_max, logcostheta
+      complex(kind=kind(0.d0)) :: gauss_spin, detO, sum_o_new, sum_o_old, s_d_hs, x_bar, overlap_ratio
+      complex(Kind=kind(0.d0)) :: det_Vec(n_fl), log_o_new(n_hfb), log_o_old(n_hfb), c_log_I, z_alpha
+
+      n_op = size(op_v, 1)
 
       do i_wlk = 1, N_wlk
 
@@ -180,12 +172,21 @@ contains
             !! \prod_i \frac{p(x(i)-\bar{x}(i))}{p(x(i))}
             s_d_hs = 0.d0
             do n = 1, n_op
-               x_bar = nsigma_bp(i_wlk)%f(n,ntau_bp) + x_local(n,i_wlk)
+               x_bar = nsigma_bp(i_wlk)%phi(n,ntau_bp) + x_local(n,i_wlk)
                s_d_hs = s_d_hs + x_bar*x_local(n,i_wlk) - x_local(n,i_wlk)*x_local(n,i_wlk)/2.d0
+            enddo
+            
+            !! alpha factor from operators
+            z_alpha = 0.d0
+            do n = 1, n_op
+               do nf = 1, n_fl
+                  z_alpha = z_alpha + &
+                      & op_v(n, nf)%g*op_v(n, nf)%alpha*nsigma_bp(i_wlk)%phi(n, ntau_bp)
+               enddo
             enddo
 
             !! logarithmic of I = < BCS | phi^{n+1}_k >/< BCS | phi^{n}_k >*\prod_i \frac{p(x(i)-\bar{x}(i))}{p(x(i))}
-            c_log_I = log(overlap_ratio) + s_d_hs
+            c_log_I = log(overlap_ratio) + s_d_hs + z_alpha
             costheta = cos(aimag(c_log_I))
             if ( costheta .gt. zero ) then
                logcostheta = log(costheta)

@@ -383,9 +383,11 @@
                    do nf = 1, n_fl
                        call op_make( op_v(nc,nf), 1 )
                        op_v(nc,nf)%p(1) = I
+                       
                        op_v(nc,nf)%o(1,1) = cmplx(1.d0, 0.d0, kind(0.D0)) 
                        op_V(nc,nf)%g      = sqrt(cmplx(dtau*ham_u/2.d0, 0.D0, kind(0.D0)))
                        op_v(nc,nf)%alpha  = cmplx(-0.5d0, 0.d0, kind(0.D0))
+                       
                        op_v(nc,nf)%type   = 3
                        call op_set(op_v(nc,nf))
                    enddo
@@ -485,14 +487,15 @@
           zkin = cmplx(0.d0, 0.d0, kind(0.d0))
           call Predefined_Hoppings_Compute_Kin(Hopping_Matrix, List, Invlist, Latt, Latt_unit, gr, zkin)
           zkin = zkin*dble(n_sun)
-
+          
           zpot = cmplx(0.d0, 0.d0, kind(0.d0))
           do I = 1, Latt%N
              do no_I = 1, Latt_unit%Norb
                 I1 = Invlist(I, no_I)
-                zpot = zpot + 2.d0*gr(i1, i1, 1)*gr(i1, i1, 2) + &
-                    & 2.d0*kappa_bar(i1,i1,1)*kappa(i1,i1,2) & 
-                    & - gr(i1, i1, 1) - gr(i1, i1, 2) + 1.d0
+                !zpot = zpot + 2.d0*gr(i1, i1, 1)*gr(i1, i1, 2) - &
+                !    & 2.d0*kappa_bar(i1,i1,1)*kappa(i1,i1,1) & 
+                !    & - gr(i1, i1, 1) - gr(i1, i1, 2) + 1.d0
+                zpot = zpot + 2.d0*gr(i1, i1, 1)*gr(i1, i1, 2) - 2.d0*kappa_bar(i1,i1,1)*kappa(i1,i1,1)
              end do
           end do
           zpot = zpot*(-ham_u/2.d0)
@@ -520,7 +523,7 @@
                 I1 = op_v(nc,nf)%P(I)
                 J1 = op_v(nc,nf)%P(J)
 
-                ztmp = ztmp - op_v(nc,nf)%g*gr(I1,J1,nf)*op_v(nc,nf)%o(I,J) 
+                ztmp = ztmp - op_v(nc,nf)%g*gr(I1,J1,nf)*op_v(nc,nf)%o(I,J)
              enddo
              enddo
              ztmp = ztmp - op_v(nc,nf)%g*op_v(nc,nf)%alpha
