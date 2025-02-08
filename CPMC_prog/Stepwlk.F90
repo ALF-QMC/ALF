@@ -242,9 +242,9 @@
           
           ! local
           integer :: nf, nf_eff, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, i_st, i_ed, ns, i_grc
-          complex (Kind=Kind(0.d0)) :: Overlap_old, Overlap_new, Z, sum_o_new, sum_o_old
+          complex (Kind=Kind(0.d0)) :: Overlap_old, Overlap_new, Z, sum_o_new, sum_o_old, overlap_ratio
           complex (Kind=Kind(0.d0)) :: det_Vec(N_FL), log_o_new(n_slat), log_o_old(n_slat)
-          real    (Kind=Kind(0.d0)) :: overlap_ratio, re_overlap, re_o_max
+          real    (Kind=Kind(0.d0)) :: re_overlap, re_o_max
           real    (Kind=Kind(0.d0)) :: zero = 1.0E-12
 
           do i_wlk = 1, N_wlk
