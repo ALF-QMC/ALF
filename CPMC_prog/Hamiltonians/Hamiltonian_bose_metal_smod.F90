@@ -385,7 +385,7 @@
                        op_v(nc,nf)%p(1) = I
                        
                        op_v(nc,nf)%o(1,1) = cmplx(1.d0, 0.d0, kind(0.D0)) 
-                       op_V(nc,nf)%g      = sqrt(cmplx(dtau*ham_u/2.d0, 0.D0, kind(0.D0)))
+                       op_V(nc,nf)%g      = sqrt(cmplx(dtau*ham_u, 0.D0, kind(0.D0)))
                        op_v(nc,nf)%alpha  = cmplx(-0.5d0, 0.d0, kind(0.D0))
                        
                        op_v(nc,nf)%type   = 3
