@@ -103,12 +103,12 @@ contains
       complex(Kind=kind(0.d0)) :: Z_norm
 
       real(Kind=kind(0.d0)), allocatable :: Ham_T_vec(:), Ham_Tperp_vec(:), Ham_Chem_vec(:), Phi_X_vec(:), Phi_Y_vec(:),&
-             & ham_tx_vec(:), ham_ty_vec(:), Ham_T2_vec(:), Ham_lambda_vec(:), Ham_T3_vec(:) 
+             & ham_tx_vec(:), ham_ty_vec(:), Ham_T2_vec(:), Ham_lambda_vec(:), Ham_T3_vec(:)
       integer, allocatable ::   N_Phi_vec(:)
       real(Kind=kind(0.d0)), allocatable :: eig_sort_arr(:, :)
 
       allocate (Ham_T_vec(N_FL), Ham_T2_vec(N_FL), Ham_Tperp_vec(N_FL), Ham_Chem_vec(N_FL), Phi_X_vec(N_FL), Phi_Y_vec(N_FL),&
-           &    ham_tx_vec(N_FL), ham_ty_vec(N_FL), Ham_lambda_vec(N_FL), N_Phi_vec(N_FL), Ham_T3_vec(N_FL) )
+           &    ham_tx_vec(N_FL), ham_ty_vec(N_FL), Ham_lambda_vec(N_FL), N_Phi_vec(N_FL), Ham_T3_vec(N_FL))
 
       allocate (wf_l(n_fl, n_slat), wf_r(n_fl, n_slat))
       do ns = 1, n_slat
@@ -152,11 +152,18 @@ contains
          Ham_T2_vec = 0.5d0
          call set_hopping_parameters_pi_flux_qbt_ob(Hopping_Matrix_tmp, Ham_T_vec, Ham_T2_vec, Ham_Chem_vec, &
              & Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
-         
+
           !! cmplx trial
          !!ham_t3_vec = 0.0d0
          !!call Set_hopping_parameters_pi_flux_ob(Hopping_Matrix_tmp, Ham_T_vec, Ham_T2_vec, Ham_T3_vec, Ham_Chem_vec, &
          !!    & Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
+
+      case ("Pi_Flux")
+          !! real trial
+         Ham_T_vec = 1.d0
+         Ham_T2_vec = 0.5d0
+         call set_hopping_parameters_pi_flux_qbt(Hopping_Matrix_tmp, Ham_T_vec, Ham_T2_vec, Ham_Chem_vec, &
+             & Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
 
       case default
          write (error_unit, *) 'No predefined trial wave function for this lattice.'

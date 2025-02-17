@@ -1,4 +1,4 @@
-    submodule(Hamiltonian_main) ham_cbqbt_ob_smod
+    submodule(Hamiltonian_main) ham_cbqbt_smod
 
        use Operator_mod
        use WaveFunction_mod
@@ -13,7 +13,7 @@
 
        implicit none
 
-       type, extends(ham_base) :: ham_cbqbt_ob
+       type, extends(ham_base) :: ham_cbqbt
        contains
           ! Set Hamiltonian-specific procedures
           procedure, nopass :: Ham_Set
@@ -26,11 +26,11 @@
 #ifdef HDF5
           procedure, nopass :: write_parameters_hdf5
 #endif
-       end type ham_cbqbt_ob
+       end type ham_cbqbt
 
        !#PARAMETERS START# VAR_lattice
        character(len=64) :: Model = ""  ! Value not relevant
-       character(len=64) :: Lattice_type = "Pi_Flux_ob"
+       character(len=64) :: Lattice_type = "Pi_Flux"
        integer            :: L1 = 6   ! Length in direction a_1
        integer            :: L2 = 6   ! Length in direction a_2
        !#PARAMETERS END#
@@ -50,7 +50,7 @@
        !logical              :: Symm         = .true.   ! Whether symmetrization takes place
        !#PARAMETERS END#
 
-       !#PARAMETERS START# VAR_cbqbt_ob
+       !#PARAMETERS START# VAR_cbqbt
        real(Kind=kind(0.d0)) :: ham_t = 1.d0     ! Hopping parameter
        real(Kind=kind(0.d0)) :: ham_t2 = 1.d0     ! Hopping parameter
        real(Kind=kind(0.d0)) :: ham_t3 = 1.d0     ! Hopping parameter
@@ -68,27 +68,20 @@
        integer, allocatable   :: bond_list(:, :, :), l_bond(:)    ! bond list
        integer, allocatable   :: bond_map_v1(:), bond_map_v2(:) ! bond list
 
-       integer, allocatable      :: site_map(:), inv_site_map(:)
-
-       ! 2d reference lattice
-       type(Lattice), target  :: Latt_p
-       type(Unit_cell), target  :: Latt_p_unit
-       integer, allocatable          :: List_p(:, :), Invlist_p(:, :)
-      
        ! obs
-       type(Unit_cell), target  :: Latt_unit_qah, Latt_unit_bnds  ! ab sublattice 
-       integer, allocatable     :: List_qah  (:,:), Invlist_qah  (:,:,:)  
-       integer, allocatable     :: List_bnds(:,:), Invlist_bnds(:,:,:)
+       type(Unit_cell), target  :: Latt_unit_qah, Latt_unit_bnds  ! ab sublattice
+       integer, allocatable     :: List_qah(:, :), Invlist_qah(:, :, :)
+       integer, allocatable     :: List_bnds(:, :), Invlist_bnds(:, :, :)
 
     contains
 
-       module subroutine Ham_Alloc_cbqbt_ob
-          allocate (ham_cbqbt_ob::ham)
-       end subroutine Ham_Alloc_cbqbt_ob
+       module subroutine Ham_Alloc_cbqbt
+          allocate (ham_cbqbt::ham)
+       end subroutine Ham_Alloc_cbqbt
 
 ! Dynamically generated on compile time from parameters list.
 ! Supplies the subroutines read_parameters and write_parameters_hdf5.
-#include "Hamiltonian_cbqbt_ob_read_write_parameters.F90"
+#include "Hamiltonian_cbqbt_read_write_parameters.F90"
 
 !--------------------------------------------------------------------
 !> @author
@@ -205,269 +198,108 @@
 
           integer :: i, j, i1, no, a0, a1, a2, b0, b1, b2, k, k1, k2, ntype, j1, ndim_p
           integer :: ix, iy, nx, ny, nc, nc1, n, ly, ry
-          integer :: no_tmp, no1_tmp, I_nn1
+          integer :: no_tmp, no1_tmp, I_nn1, I_nn2
           real(kind=kind(0.d0)) :: pi = acos(-1.d0)
           character(len=64) :: Lattice_type_2d
 
           ! Use predefined stuctures or set your own lattice.
           call Predefined_Latt(Lattice_type, L1, L2, Ndim, List, Invlist, Latt, Latt_Unit)
 
-          Lattice_type_2d = 'Pi_Flux'
-          call Predefined_Latt(Lattice_type_2d, L1, L2, ndim_p, List_p, Invlist_p, Latt_p, Latt_p_Unit)
-
-          if (ndim_p .ne. ndim) then
-             write (6, *) ' Error in set lattice mapping ', ndim, ndim_p
-             error stop 1
-          end if
-
-          ! map open boundary and periodic boundary
-          allocate (site_map(ndim), inv_site_map(ndim))
-          Ix = 1
-          do I = 1, L1
-          do J = 1, L2
-             do K = 1, Latt_p_Unit%Norb
-                nc1 = K + (J - 1)*Latt_p_Unit%Norb
-                site_map(Invlist_p(Ix, K)) = invlist(I, nc1)
-                inv_site_map(invlist(I, nc1)) = invlist_p(Ix, K)
-             end do
-             Ix = latt_p%nnlist(Ix, 0, 1)
-          end do
-          Ix = latt_p%nnlist(Ix, 1, 0)
-          end do
-          
           !!=========================================================!!
           !!  QAH correlation
           !!=========================================================!!
-          Latt_Unit_qah%norb    = (L2-1)*4+2
+          Latt_Unit_qah%norb = 4
           Latt_Unit_qah%n_coord = 2
-          allocate (Latt_unit_qah%orb_pos_p(Latt_Unit_qah%norb,3))
+          allocate (Latt_unit_qah%orb_pos_p(Latt_Unit_qah%norb, 3))
           Latt_unit_qah%orb_pos_p = 0.d0
-          do n = 1,Latt_Unit_qah%Norb 
-             Latt_Unit_qah%Orb_pos_p(n,3) = real(n-1,kind(0.d0))
-          enddo
+          do n = 1, Latt_Unit_qah%Norb
+             Latt_Unit_qah%Orb_pos_p(n, 3) = real(n - 1, kind(0.d0))
+          end do
 
-          allocate (List_qah (Latt%N*Latt_Unit_qah%Norb,2))
-          allocate (Invlist_qah(Latt%N,Latt_Unit_qah%Norb,3))
-          
-          Ly = L2
-          
-          nc=0
+          allocate (List_qah(Latt%N*Latt_Unit_qah%Norb, 2))
+          allocate (Invlist_qah(Latt%N, Latt_Unit_qah%Norb, 3))
+
+          nc = 0
           do I = 1, Latt%N
-             
-             no=0
-             do ry = 2, Ly
-                 !! bond 1 in plaqutte
-                 no = no + 1
-                 I_nn1 = latt%nnlist(I,1,0)
-                 no_tmp  = (ry-1)*2+1
-                 no1_tmp = (ry-1)*2+2
-                 I1 = invlist(I,no_tmp )
-                 J1 = invlist(I,no1_tmp)
-                 
-                 nc = nc + 1
-                 list_qah(nc, 1) = I
-                 list_qah(nc, 2) = no
-                 invlist_qah(I ,no, 1) = I1
-                 invlist_qah(I ,no, 2) = J1
-                 invlist_qah(I ,no, 3) = nc
-             
-                 !! bond 2 in plaqutte
-                 no = no + 1
-                 I_nn1 = latt%nnlist(I,1,0)
-                 no_tmp  = (ry-1)*2
-                 no1_tmp = (ry-1)*2+1
-                 I1 = invlist(I,no_tmp )
-                 J1 = invlist(I,no1_tmp)
-                 
-                 nc = nc + 1
-                 list_qah(nc, 1) = I
-                 list_qah(nc, 2) = no
-                 invlist_qah(I ,no, 1) = I1
-                 invlist_qah(I ,no, 2) = J1
-                 invlist_qah(I ,no, 3) = nc
-             
-                 !! bond 3 in plaqutte
-                 no = no + 1
-                 I_nn1 = latt%nnlist(I,1,0)
-                 no_tmp  = (ry-1)*2+1
-                 no1_tmp = (ry-1)*2
-                 I1 = invlist(I_nn1,no_tmp )
-                 J1 = invlist(I    ,no1_tmp)
-                 
-                 nc = nc + 1
-                 list_qah(nc, 1) = I
-                 list_qah(nc, 2) = no
-                 invlist_qah(I ,no, 1) = I1
-                 invlist_qah(I ,no, 2) = J1
-                 invlist_qah(I ,no, 3) = nc
-             
-                 !! bond 4 in plaqutte
-                 no = no + 1
-                 I_nn1 = latt%nnlist(I,1,0)
-                 no_tmp  = (ry-1)*2+2
-                 no1_tmp = (ry-1)*2+1
-                 I1 = invlist(I    ,no_tmp )
-                 J1 = invlist(I_nn1,no1_tmp)
-                 
-                 nc = nc + 1
-                 list_qah(nc, 1) = I
-                 list_qah(nc, 2) = no
-                 invlist_qah(I ,no, 1) = I1
-                 invlist_qah(I ,no, 2) = J1
-                 invlist_qah(I ,no, 3) = nc
-             enddo
 
-             !!=========================!!
-             !! open boundary condition
-             !!=========================!!
-             ry = 1
-             
-             no = no + 1
-             I_nn1 = latt%nnlist(I,1,0)
-             no_tmp  = (ry-1)*2+1
-             no1_tmp = (ry-1)*2+2
-             I1 = invlist(I,no_tmp )
-             J1 = invlist(I,no1_tmp)
-             
-             nc = nc + 1
-             list_qah(nc, 1) = I
-             list_qah(nc, 2) = no
-             invlist_qah(I ,no, 1) = I1
-             invlist_qah(I ,no, 2) = J1
-             invlist_qah(I ,no, 3) = nc
-          
-             no = no + 1
-             I_nn1 = latt%nnlist(I,1,0)
-             no_tmp  = (ry-1)*2+2
-             no1_tmp = (ry-1)*2+1
-             I1 = invlist(I    ,no_tmp )
-             J1 = invlist(I_nn1,no1_tmp)
-             
-             nc = nc + 1
-             list_qah(nc, 1) = I
-             list_qah(nc, 2) = no
-             invlist_qah(I ,no, 1) = I1
-             invlist_qah(I ,no, 2) = J1
-             invlist_qah(I ,no, 3) = nc
+             I_nn1 = latt%nnlist(I, 1, 0)
+             I_nn2 = latt%nnlist(I, 0, -1)
 
-          enddo
-          
+             do no = 1, Latt_unit_qah%Norb
+
+                select case (no)
+                case (1)
+                   i1 = invlist(I, 1)
+                   j1 = invlist(I, 2)
+                case (2)
+                   i1 = invlist(I_nn2, 2)
+                   j1 = invlist(I, 1)
+                case (3)
+                   i1 = invlist(I_nn1, 1)
+                   j1 = invlist(I_nn2, 2)
+                case (4)
+                   i1 = invlist(I, 2)
+                   j1 = invlist(I_nn1, 1)
+                end select
+
+                nc = nc + 1
+                list_qah(nc, 1) = I
+                list_qah(nc, 2) = no
+                invlist_qah(I, no, 1) = I1
+                invlist_qah(I, no, 2) = J1
+                invlist_qah(I, no, 3) = nc
+
+             end do
+
+          end do
+
           !!=========================================================!!
           !! Bond semetic correlation
           !!=========================================================!!
-          Latt_Unit_bnds%Norb    = (L2-1)*4 + 2
+          Latt_Unit_bnds%Norb = 4
           Latt_Unit_bnds%N_coord = 2
-          allocate (Latt_Unit_bnds%orb_pos_p(Latt_Unit_bnds%Norb,3))
+          allocate (Latt_Unit_bnds%orb_pos_p(Latt_Unit_bnds%Norb, 3))
           Latt_unit_bnds%orb_pos_p = 0.d0
-          do n = 1,Latt_Unit_bnds%norb 
-             Latt_Unit_bnds%orb_pos_p(n,3) = real(n-1,kind(0.d0))
-          enddo
+          do n = 1, Latt_Unit_bnds%norb
+             Latt_Unit_bnds%orb_pos_p(n, 3) = real(n - 1, kind(0.d0))
+          end do
 
-          allocate (List_bnds   (Latt%N*Latt_Unit_bnds%Norb,2))
-          allocate (Invlist_bnds(Latt%N,Latt_Unit_bnds%Norb,3))
-          
-          Ly = L2
-          
-          nc=0
+          allocate (List_bnds(Latt%N*Latt_Unit_bnds%Norb, 2))
+          allocate (Invlist_bnds(Latt%N, Latt_Unit_bnds%Norb, 3))
+
+          nc = 0
           do I = 1, Latt%N
-             
-             no=0
-             do ry = 1, Ly-1
-                 !! sub lattice a, direction x
-                 no = no + 1
-                 I_nn1 = latt%nnlist(I,1,0)
-                 no_tmp  = (ry-1)*2+1
-                 no1_tmp = (ry-1)*2+1
-                 I1 = invlist(I    ,no_tmp )
-                 J1 = invlist(I_nn1,no1_tmp)
-                 
-                 nc = nc + 1
-                 list_bnds(nc, 1) = I
-                 list_bnds(nc, 2) = no
-                 invlist_bnds(I ,no, 1) = I1
-                 invlist_bnds(I ,no, 2) = J1
-                 invlist_bnds(I ,no, 3) = nc
-             
-                 !! sub lattice b, direction x
-                 no = no + 1
-                 I_nn1 = latt%nnlist(I,1,0)
-                 no_tmp  = (ry-1)*2+2
-                 no1_tmp = (ry-1)*2+2
-                 I1 = invlist(I    ,no_tmp )
-                 J1 = invlist(I_nn1,no1_tmp)
-                 
-                 nc = nc + 1
-                 list_bnds(nc, 1) = I
-                 list_bnds(nc, 2) = no
-                 invlist_bnds(I ,no, 1) = I1
-                 invlist_bnds(I ,no, 2) = J1
-                 invlist_bnds(I ,no, 3) = nc
-             
-                 !! sub lattice a, direction y
-                 no = no + 1
-                 no_tmp  = (ry-1)*2+1
-                 no1_tmp = ry*2+1
-                 I1 = invlist(I, no_tmp )
-                 J1 = invlist(I, no1_tmp)
-                 
-                 nc = nc + 1
-                 list_bnds(nc, 1) = I
-                 list_bnds(nc, 2) = no
-                 invlist_bnds(I ,no, 1) = I1
-                 invlist_bnds(I ,no, 2) = J1
-                 invlist_bnds(I ,no, 3) = nc
-             
-                 !! sub lattice b, direction y
-                 no = no + 1
-                 no_tmp  = (ry-1)*2+2
-                 no1_tmp = ry*2+2
-                 I1 = invlist(I,no_tmp )
-                 J1 = invlist(I,no1_tmp)
-                 
-                 nc = nc + 1
-                 list_bnds(nc, 1) = I
-                 list_bnds(nc, 2) = no
-                 invlist_bnds(I ,no, 1) = I1
-                 invlist_bnds(I ,no, 2) = J1
-                 invlist_bnds(I ,no, 3) = nc
-             enddo
 
-             !!=========================!!
-             !! open boundary condition
-             !!=========================!!
-             ry = ly
-             
-             !! sub lattice a, direction x
-             no = no + 1
-             I_nn1 = latt%nnlist(I,1,0)
-             no_tmp  = (ry-1)*2+1
-             no1_tmp = (ry-1)*2+1
-             I1 = invlist(I    ,no_tmp )
-             J1 = invlist(I_nn1,no1_tmp)
-             
-             nc = nc + 1
-             list_bnds(nc, 1) = I
-             list_bnds(nc, 2) = no
-             invlist_bnds(I ,no, 1) = I1
-             invlist_bnds(I ,no, 2) = J1
-             invlist_bnds(I ,no, 3) = nc
-          
-             !! sub lattice b, direction x
-             no = no + 1
-             I_nn1 = latt%nnlist(I,1,0)
-             no_tmp  = (ry-1)*2+2
-             no1_tmp = (ry-1)*2+2
-             I1 = invlist(I    ,no_tmp )
-             J1 = invlist(I_nn1,no1_tmp)
-             
-             nc = nc + 1
-             list_bnds(nc, 1) = I
-             list_bnds(nc, 2) = no
-             invlist_bnds(I ,no, 1) = I1
-             invlist_bnds(I ,no, 2) = J1
-             invlist_bnds(I ,no, 3) = nc
+             I_nn1 = latt%nnlist(I, 1, 0)
+             I_nn2 = latt%nnlist(I, 0, 1)
 
-          enddo
+             do no = 1, Latt_unit_bnds%Norb
+
+                select case (no)
+                case (1)
+                   i1 = invlist(I, 1)
+                   j1 = invlist(I_nn1, 1)
+                case (2)
+                   i1 = invlist(I, 1)
+                   j1 = invlist(I_nn2, 1)
+                case (3)
+                   i1 = invlist(I, 2)
+                   j1 = invlist(I_nn1, 2)
+                case (4)
+                   i1 = invlist(I, 2)
+                   j1 = invlist(I_nn2, 2)
+                end select
+
+                nc = nc + 1
+                list_bnds(nc, 1) = I
+                list_bnds(nc, 2) = no
+                invlist_bnds(I, no, 1) = I1
+                invlist_bnds(I, no, 2) = J1
+                invlist_bnds(I, no, 3) = nc
+
+             end do
+
+          end do
 
        end subroutine Ham_Latt
 !--------------------------------------------------------------------
@@ -506,8 +338,8 @@
           N_Phi_vec = N_Phi
 
           select case (Lattice_type)
-          case ("Pi_Flux_ob")
-             call set_hopping_parameters_pi_flux_qbt_ob(Hopping_Matrix, ham_t_vec, ham_t2_vec, ham_chem_vec, &
+          case ("Pi_Flux")
+             call set_hopping_parameters_pi_flux_qbt(Hopping_Matrix, ham_t_vec, ham_t2_vec, ham_chem_vec, &
                  & Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
           end select
 
@@ -547,11 +379,10 @@
 !--------------------------------------------------------------------
        subroutine Ham_Vint
 
-          use Predefined_Int
           implicit none
 
           integer                           :: I, J, I1, J1, no_I, no_J, nf, n_b, n_ops, amx, amy, npxy
-          integer                           :: dx, dy, dnb, lly, n_b_t, ly_1, ly_n
+          integer                           :: dx, dy, dnb, lly, n_b_t, k1, nc0
           integer                           :: n_1, n_2, Nb, n_f, l_f, n_l, N, nc, I0, J0, n_cb, nu_bond
           complex(Kind=kind(0.d0))          :: Z
           real(Kind=kind(0.d0))             :: Zero = 1.0e-6
@@ -560,228 +391,209 @@
           amy = mod(l2, 2)
 
           nu_bond = 12 + amx + 3*amy
-          allocate (bond_list(nu_bond, Latt_p%N, 3))
+          allocate (bond_list(nu_bond, Latt%N, 3))
           allocate (l_bond(nu_bond))
 
           l_bond = 0
-
-          i0 = 1
-          ly_1 = latt_p%list(i0, 2)
-          i0 = latt_p%nnlist(i0, 0, -1)
-          ly_n = latt_p%list(i0, 2)
 
           ! set bond list
           do n_b = 1, 12
              nc = 0
              select case (n_b)
              case (1)
-                do I = 1, Latt_p%N
+                do I = 1, Latt%N
                    nc = nc + 1
-                   bond_list(n_b, nc, 1) = 0; 
-                   bond_list(n_b, nc, 2) = Invlist_p(I, 1); 
-                   bond_list(n_b, nc, 3) = invlist_p(I, 2)
+                   bond_list(n_b, nc, 1) = I; 
+                   bond_list(n_b, nc, 2) = Invlist(I, 1); 
+                   bond_list(n_b, nc, 3) = invlist(I, 2)
                 end do
                 l_bond(n_b) = nc
              case (2)
-                do I = 1, Latt_p%N
+                do I = 1, Latt%N
                    nc = nc + 1
-                   bond_list(n_b, nc, 1) = 0; 
-                   bond_list(n_b, nc, 2) = Invlist_p(I, 2); 
-                   bond_list(n_b, nc, 3) = invlist_p(Latt_p%nnlist(I, 1, 0), 1)
+                   bond_list(n_b, nc, 1) = I; 
+                   bond_list(n_b, nc, 2) = Invlist(I, 2); 
+                   bond_list(n_b, nc, 3) = invlist(Latt%nnlist(I, 1, 0), 1)
                 end do
                 l_bond(n_b) = nc
              case (3)
-                do I = 1, Latt_p%N
+                do I = 1, Latt%N
                    nc = nc + 1
-                   bond_list(n_b, nc, 1) = 0; 
-                   if (latt_p%list(I, 2) .eq. ly_n) bond_list(n_b, nc, 1) = 1; 
-                   bond_list(n_b, nc, 2) = Invlist_p(I, 2); 
-                   bond_list(n_b, nc, 3) = invlist_p(Latt_p%nnlist(I, 1, 1), 1)
+                   bond_list(n_b, nc, 1) = I; 
+                   bond_list(n_b, nc, 2) = Invlist(I, 2); 
+                   bond_list(n_b, nc, 3) = invlist(Latt%nnlist(I, 1, 1), 1)
                 end do
                 l_bond(n_b) = nc
              case (4)
-                do I = 1, Latt_p%N
+                do I = 1, Latt%N
                    nc = nc + 1
-                   bond_list(n_b, nc, 1) = 0; 
-                   if (latt_p%list(I, 2) .eq. ly_n) bond_list(n_b, nc, 1) = 1; 
-                   bond_list(n_b, nc, 2) = Invlist_p(I, 2); 
-                   bond_list(n_b, nc, 3) = invlist_p(Latt_p%nnlist(I, 0, 1), 1)
+                   bond_list(n_b, nc, 1) = I; 
+                   bond_list(n_b, nc, 2) = Invlist(I, 2); 
+                   bond_list(n_b, nc, 3) = invlist(Latt%nnlist(I, 0, 1), 1)
                 end do
                 l_bond(n_b) = nc
              case (5)
                 i0 = 1
                 do dx = 1, L1 - amx
                 do dy = 1, L2
-                   if (mod(latt_p%list(i0, 1), 2) == 0) then
+                   if (mod(latt%list(i0, 1), 2) == 0) then
                       nc = nc + 1
-                      bond_list(n_b, nc, 1) = 0; 
-                      bond_list(n_b, nc, 2) = Invlist_p(I0, 1); 
-                      bond_list(n_b, nc, 3) = invlist_p(Latt_p%nnlist(I0, 1, 0), 1)
+                      bond_list(n_b, nc, 1) = I0; 
+                      bond_list(n_b, nc, 2) = Invlist(I0, 1); 
+                      bond_list(n_b, nc, 3) = invlist(Latt%nnlist(I0, 1, 0), 1)
 
                       nc = nc + 1
-                      bond_list(n_b, nc, 1) = 0; 
-                      bond_list(n_b, nc, 2) = Invlist_p(I0, 2); 
-                      bond_list(n_b, nc, 3) = invlist_p(Latt_p%nnlist(I0, 1, 0), 2)
+                      bond_list(n_b, nc, 1) = I0; 
+                      bond_list(n_b, nc, 2) = Invlist(I0, 2); 
+                      bond_list(n_b, nc, 3) = invlist(Latt%nnlist(I0, 1, 0), 2)
                    end if
 
-                   i0 = latt_p%nnlist(I0, 0, 1)
+                   i0 = latt%nnlist(I0, 0, 1)
                 end do
-                i0 = latt_p%nnlist(I0, 1, 0)
+                i0 = latt%nnlist(I0, 1, 0)
                 end do
                 l_bond(n_b) = nc
              case (6)
                 i0 = 1
                 do dx = 1, L1 - amx
                 do dy = 1, L2
-                   if (mod(latt_p%list(i0, 1), 2) .ne. 0) then
+                   if (mod(latt%list(i0, 1), 2) .ne. 0) then
                       nc = nc + 1
-                      bond_list(n_b, nc, 1) = 0; 
-                      bond_list(n_b, nc, 2) = Invlist_p(I0, 1); 
-                      bond_list(n_b, nc, 3) = invlist_p(Latt_p%nnlist(I0, 1, 0), 1)
+                      bond_list(n_b, nc, 1) = I0; 
+                      bond_list(n_b, nc, 2) = Invlist(I0, 1); 
+                      bond_list(n_b, nc, 3) = invlist(Latt%nnlist(I0, 1, 0), 1)
 
                       nc = nc + 1
-                      bond_list(n_b, nc, 1) = 0; 
-                      bond_list(n_b, nc, 2) = Invlist_p(I0, 2); 
-                      bond_list(n_b, nc, 3) = invlist_p(Latt_p%nnlist(I0, 1, 0), 2)
+                      bond_list(n_b, nc, 1) = I0; 
+                      bond_list(n_b, nc, 2) = Invlist(I0, 2); 
+                      bond_list(n_b, nc, 3) = invlist(Latt%nnlist(I0, 1, 0), 2)
                    end if
 
-                   i0 = latt_p%nnlist(I0, 0, 1)
+                   i0 = latt%nnlist(I0, 0, 1)
                 end do
-                i0 = latt_p%nnlist(I0, 1, 0)
+                i0 = latt%nnlist(I0, 1, 0)
                 end do
                 l_bond(n_b) = nc
              case (7)
                 i0 = 1
                 do dy = 1, L2 - amy
                 do dx = 1, L1
-                   if (mod(latt_p%list(i0, 2), 2) == 0) then
+                   if (mod(latt%list(i0, 2), 2) == 0) then
                       nc = nc + 1
-                      bond_list(n_b, nc, 1) = 0; 
-                      if (latt_p%list(I0, 2) .eq. ly_n) bond_list(n_b, nc, 1) = 1; 
-                      bond_list(n_b, nc, 2) = Invlist_p(I0, 1); 
-                      bond_list(n_b, nc, 3) = invlist_p(Latt_p%nnlist(I0, 0, 1), 1)
+                      bond_list(n_b, nc, 1) = I0; 
+                      bond_list(n_b, nc, 2) = Invlist(I0, 1); 
+                      bond_list(n_b, nc, 3) = invlist(Latt%nnlist(I0, 0, 1), 1)
 
                       nc = nc + 1
-                      bond_list(n_b, nc, 1) = 0; 
-                      if (latt_p%list(I0, 2) .eq. ly_n) bond_list(n_b, nc, 1) = 1; 
-                      bond_list(n_b, nc, 2) = Invlist_p(I0, 2); 
-                      bond_list(n_b, nc, 3) = invlist_p(Latt_p%nnlist(I0, 0, 1), 2)
+                      bond_list(n_b, nc, 1) = I0; 
+                      bond_list(n_b, nc, 2) = Invlist(I0, 2); 
+                      bond_list(n_b, nc, 3) = invlist(Latt%nnlist(I0, 0, 1), 2)
                    end if
-                   i0 = latt_p%nnlist(I0, 1, 0)
+                   i0 = latt%nnlist(I0, 1, 0)
                 end do
-                i0 = latt_p%nnlist(I0, 0, 1)
+                i0 = latt%nnlist(I0, 0, 1)
                 end do
                 l_bond(n_b) = nc
              case (8)
                 i0 = 1
                 do dy = 1, L2 - amy
                 do dx = 1, L1
-                   if (mod(latt_p%list(i0, 2), 2) .ne. 0) then
+                   if (mod(latt%list(i0, 2), 2) .ne. 0) then
                       nc = nc + 1
-                      bond_list(n_b, nc, 1) = 0; 
-                      if (latt_p%list(I0, 2) .eq. ly_n) bond_list(n_b, nc, 1) = 1; 
-                      bond_list(n_b, nc, 2) = Invlist_p(I0, 1); 
-                      bond_list(n_b, nc, 3) = invlist_p(Latt_p%nnlist(I0, 0, 1), 1)
+                      bond_list(n_b, nc, 1) = I0; 
+                      bond_list(n_b, nc, 2) = Invlist(I0, 1); 
+                      bond_list(n_b, nc, 3) = invlist(Latt%nnlist(I0, 0, 1), 1)
 
                       nc = nc + 1
-                      bond_list(n_b, nc, 1) = 0; 
-                      if (latt_p%list(I0, 2) .eq. ly_n) bond_list(n_b, nc, 1) = 1; 
-                      bond_list(n_b, nc, 2) = Invlist_p(I0, 2); 
-                      bond_list(n_b, nc, 3) = invlist_p(Latt_p%nnlist(I0, 0, 1), 2)
+                      bond_list(n_b, nc, 1) = I0; 
+                      bond_list(n_b, nc, 2) = Invlist(I0, 2); 
+                      bond_list(n_b, nc, 3) = invlist(Latt%nnlist(I0, 0, 1), 2)
                    end if
-                   i0 = latt_p%nnlist(I0, 1, 0)
+                   i0 = latt%nnlist(I0, 1, 0)
                 end do
-                i0 = latt_p%nnlist(I0, 0, 1)
+                i0 = latt%nnlist(I0, 0, 1)
                 end do
                 l_bond(n_b) = nc
              case (9)
                 i0 = 1
                 do dy = 1, L2 - amy
                 do dx = 1, L1
-                   if (mod(latt_p%list(i0, 2), 2) == 0) then
+                   if (mod(latt%list(i0, 2), 2) == 0) then
                       nc = nc + 1
-                      bond_list(n_b, nc, 1) = 0; 
-                      if (latt_p%list(I0, 2) .eq. ly_n) bond_list(n_b, nc, 1) = 1; 
-                      bond_list(n_b, nc, 2) = Invlist_p(I0, 1); 
-                      bond_list(n_b, nc, 3) = invlist_p(Latt_p%nnlist(I0, 1, 1), 1)
+                      bond_list(n_b, nc, 1) = I0; 
+                      bond_list(n_b, nc, 2) = Invlist(I0, 1); 
+                      bond_list(n_b, nc, 3) = invlist(Latt%nnlist(I0, 1, 1), 1)
 
                       nc = nc + 1
-                      bond_list(n_b, nc, 1) = 0; 
-                      if (latt_p%list(I0, 2) .eq. ly_n) bond_list(n_b, nc, 1) = 1; 
-                      bond_list(n_b, nc, 2) = Invlist_p(I0, 2); 
-                      bond_list(n_b, nc, 3) = invlist_p(Latt_p%nnlist(I0, 1, 1), 2)
+                      bond_list(n_b, nc, 1) = I0; 
+                      bond_list(n_b, nc, 2) = Invlist(I0, 2); 
+                      bond_list(n_b, nc, 3) = invlist(Latt%nnlist(I0, 1, 1), 2)
                    end if
-                   i0 = latt_p%nnlist(I0, 1, 0)
+                   i0 = latt%nnlist(I0, 1, 0)
                 end do
-                i0 = latt_p%nnlist(I0, 0, 1)
+                i0 = latt%nnlist(I0, 0, 1)
                 end do
                 l_bond(n_b) = nc
              case (10)
                 i0 = 1
                 do dy = 1, L2 - amy
                 do dx = 1, L1
-                   if (mod(latt_p%list(i0, 2), 2) .ne. 0) then
+                   if (mod(latt%list(i0, 2), 2) .ne. 0) then
                       nc = nc + 1
-                      bond_list(n_b, nc, 1) = 0; 
-                      if (latt_p%list(I0, 2) .eq. ly_n) bond_list(n_b, nc, 1) = 1; 
-                      bond_list(n_b, nc, 2) = Invlist_p(I0, 1); 
-                      bond_list(n_b, nc, 3) = invlist_p(Latt_p%nnlist(I0, 1, 1), 1)
+                      bond_list(n_b, nc, 1) = I0; 
+                      bond_list(n_b, nc, 2) = Invlist(I0, 1); 
+                      bond_list(n_b, nc, 3) = invlist(Latt%nnlist(I0, 1, 1), 1)
 
                       nc = nc + 1
-                      bond_list(n_b, nc, 1) = 0; 
-                      if (latt_p%list(I0, 2) .eq. ly_n) bond_list(n_b, nc, 1) = 1; 
-                      bond_list(n_b, nc, 2) = Invlist_p(I0, 2); 
-                      bond_list(n_b, nc, 3) = invlist_p(Latt_p%nnlist(I0, 1, 1), 2)
+                      bond_list(n_b, nc, 1) = I0; 
+                      bond_list(n_b, nc, 2) = Invlist(I0, 2); 
+                      bond_list(n_b, nc, 3) = invlist(Latt%nnlist(I0, 1, 1), 2)
                    end if
-                   i0 = latt_p%nnlist(I0, 1, 0)
+                   i0 = latt%nnlist(I0, 1, 0)
                 end do
-                i0 = latt_p%nnlist(I0, 0, 1)
+                i0 = latt%nnlist(I0, 0, 1)
                 end do
                 l_bond(n_b) = nc
              case (11)
                 i0 = 1
-                i0 = latt_p%nnlist(I0, 0, 1)
+                i0 = latt%nnlist(I0, 0, 1)
                 do dy = 1, L2 - amy
                 do dx = 1, L1
-                   if (mod(latt_p%list(i0, 2), 2) == 0) then
+                   if (mod(latt%list(i0, 2), 2) == 0) then
                       nc = nc + 1
-                      bond_list(n_b, nc, 1) = 0; 
-                      if (latt_p%list(I0, 2) .eq. ly_1) bond_list(n_b, nc, 1) = 1; 
-                      bond_list(n_b, nc, 2) = Invlist_p(I0, 1); 
-                      bond_list(n_b, nc, 3) = invlist_p(Latt_p%nnlist(I0, 1, -1), 1)
+                      bond_list(n_b, nc, 1) = I0; 
+                      bond_list(n_b, nc, 2) = Invlist(I0, 1); 
+                      bond_list(n_b, nc, 3) = invlist(Latt%nnlist(I0, 1, -1), 1)
 
                       nc = nc + 1
-                      bond_list(n_b, nc, 1) = 0; 
-                      if (latt_p%list(I0, 2) .eq. ly_1) bond_list(n_b, nc, 1) = 1; 
-                      bond_list(n_b, nc, 2) = Invlist_p(I0, 2); 
-                      bond_list(n_b, nc, 3) = invlist_p(Latt_p%nnlist(I0, 1, -1), 2)
+                      bond_list(n_b, nc, 1) = I0; 
+                      bond_list(n_b, nc, 2) = Invlist(I0, 2); 
+                      bond_list(n_b, nc, 3) = invlist(Latt%nnlist(I0, 1, -1), 2)
                    end if
-                   i0 = latt_p%nnlist(I0, 1, 0)
+                   i0 = latt%nnlist(I0, 1, 0)
                 end do
-                i0 = latt_p%nnlist(I0, 0, 1)
+                i0 = latt%nnlist(I0, 0, 1)
                 end do
                 l_bond(n_b) = nc
              case (12)
                 i0 = 1
-                i0 = latt_p%nnlist(I0, 0, 1)
+                i0 = latt%nnlist(I0, 0, 1)
                 do dy = 1, L2 - amy
                 do dx = 1, L1
-                   if (mod(latt_p%list(i0, 2), 2) .ne. 0) then
+                   if (mod(latt%list(i0, 2), 2) .ne. 0) then
                       nc = nc + 1
-                      bond_list(n_b, nc, 1) = 0; 
-                      if (latt_p%list(I0, 2) .eq. ly_1) bond_list(n_b, nc, 1) = 1; 
-                      bond_list(n_b, nc, 2) = Invlist_p(I0, 1); 
-                      bond_list(n_b, nc, 3) = invlist_p(Latt_p%nnlist(I0, 1, -1), 1)
+                      bond_list(n_b, nc, 1) = I0; 
+                      bond_list(n_b, nc, 2) = Invlist(I0, 1); 
+                      bond_list(n_b, nc, 3) = invlist(Latt%nnlist(I0, 1, -1), 1)
 
                       nc = nc + 1
-                      bond_list(n_b, nc, 1) = 0; 
-                      if (latt_p%list(I0, 2) .eq. ly_1) bond_list(n_b, nc, 1) = 1; 
-                      bond_list(n_b, nc, 2) = Invlist_p(I0, 2); 
-                      bond_list(n_b, nc, 3) = invlist_p(Latt_p%nnlist(I0, 1, -1), 2)
+                      bond_list(n_b, nc, 1) = I0; 
+                      bond_list(n_b, nc, 2) = Invlist(I0, 2); 
+                      bond_list(n_b, nc, 3) = invlist(Latt%nnlist(I0, 1, -1), 2)
                    end if
-                   i0 = latt_p%nnlist(I0, 1, 0)
+                   i0 = latt%nnlist(I0, 1, 0)
                 end do
-                i0 = latt_p%nnlist(I0, 0, 1)
+                i0 = latt%nnlist(I0, 0, 1)
                 end do
                 l_bond(n_b) = nc
              end select
@@ -792,21 +604,21 @@
              n_b = n_b + 1
              i0 = 1
              do dx = 1, L1 - amx
-                i0 = latt_p%nnlist(I0, 1, 0)
+                i0 = latt%nnlist(I0, 1, 0)
              end do
              nc = 0
              do dy = 1, L2
                 nc = nc + 1
-                bond_list(n_b, nc, 1) = 0; 
-                bond_list(n_b, nc, 2) = Invlist_p(I0, 1); 
-                bond_list(n_b, nc, 3) = invlist_p(Latt_p%nnlist(I0, 1, 0), 1)
+                bond_list(n_b, nc, 1) = I0; 
+                bond_list(n_b, nc, 2) = Invlist(I0, 1); 
+                bond_list(n_b, nc, 3) = invlist(Latt%nnlist(I0, 1, 0), 1)
 
                 nc = nc + 1
-                bond_list(n_b, nc, 1) = 0; 
-                bond_list(n_b, nc, 2) = Invlist_p(I0, 2); 
-                bond_list(n_b, nc, 3) = invlist_p(Latt_p%nnlist(I0, 1, 0), 2)
+                bond_list(n_b, nc, 1) = I0; 
+                bond_list(n_b, nc, 2) = Invlist(I0, 2); 
+                bond_list(n_b, nc, 3) = invlist(Latt%nnlist(I0, 1, 0), 2)
 
-                i0 = latt_p%nnlist(I0, 0, 1)
+                i0 = latt%nnlist(I0, 0, 1)
              end do
              l_bond(n_b) = nc
           end do
@@ -815,46 +627,42 @@
              n_b = n_b + 1
              i0 = 1
              do dy = 1, L2 - amy
-                i0 = latt_p%nnlist(I0, 0, 1)
+                i0 = latt%nnlist(I0, 0, 1)
              end do
              nc = 0
              do dx = 1, L1
                 nc = nc + 1
-                bond_list(n_b, nc, 1) = 0; 
-                if (latt_p%list(I0, 2) .eq. ly_n) bond_list(n_b, nc, 1) = 1; 
-                bond_list(n_b, nc, 2) = Invlist_p(I0, 1); 
-                bond_list(n_b, nc, 3) = invlist_p(Latt_p%nnlist(I0, 0, 1), 1)
+                bond_list(n_b, nc, 1) = I0; 
+                bond_list(n_b, nc, 2) = Invlist(I0, 1); 
+                bond_list(n_b, nc, 3) = invlist(Latt%nnlist(I0, 0, 1), 1)
 
                 nc = nc + 1
-                bond_list(n_b, nc, 1) = 0; 
-                if (latt_p%list(I0, 2) .eq. ly_n) bond_list(n_b, nc, 1) = 1; 
-                bond_list(n_b, nc, 2) = Invlist_p(I0, 2); 
-                bond_list(n_b, nc, 3) = invlist_p(Latt_p%nnlist(I0, 0, 1), 2)
+                bond_list(n_b, nc, 1) = I0; 
+                bond_list(n_b, nc, 2) = Invlist(I0, 2); 
+                bond_list(n_b, nc, 3) = invlist(Latt%nnlist(I0, 0, 1), 2)
 
-                i0 = latt_p%nnlist(I0, 1, 0)
+                i0 = latt%nnlist(I0, 1, 0)
              end do
              l_bond(n_b) = nc
 
              n_b = n_b + 1
              i0 = 1
              do dy = 1, L2 - amy
-                i0 = latt_p%nnlist(I0, 0, 1)
+                i0 = latt%nnlist(I0, 0, 1)
              end do
              nc = 0
              do dx = 1, L1
                 nc = nc + 1
-                bond_list(n_b, nc, 1) = 0; 
-                if (latt_p%list(I0, 2) .eq. ly_n) bond_list(n_b, nc, 1) = 1; 
-                bond_list(n_b, nc, 2) = Invlist_p(I0, 1); 
-                bond_list(n_b, nc, 3) = invlist_p(Latt_p%nnlist(I0, 1, 1), 1)
+                bond_list(n_b, nc, 1) = I0; 
+                bond_list(n_b, nc, 2) = Invlist(I0, 1); 
+                bond_list(n_b, nc, 3) = invlist(Latt%nnlist(I0, 1, 1), 1)
 
                 nc = nc + 1
-                bond_list(n_b, nc, 1) = 0; 
-                if (latt_p%list(I0, 2) .eq. ly_n) bond_list(n_b, nc, 1) = 1; 
-                bond_list(n_b, nc, 2) = Invlist_p(I0, 2); 
-                bond_list(n_b, nc, 3) = invlist_p(Latt_p%nnlist(I0, 1, 1), 2)
+                bond_list(n_b, nc, 1) = I0; 
+                bond_list(n_b, nc, 2) = Invlist(I0, 2); 
+                bond_list(n_b, nc, 3) = invlist(Latt%nnlist(I0, 1, 1), 2)
 
-                i0 = latt_p%nnlist(I0, 1, 0)
+                i0 = latt%nnlist(I0, 1, 0)
              end do
              l_bond(n_b) = nc
 
@@ -863,18 +671,16 @@
              nc = 0
              do dx = 1, L1
                 nc = nc + 1
-                bond_list(n_b, nc, 1) = 0; 
-                if (latt_p%list(I0, 2) .eq. ly_1) bond_list(n_b, nc, 1) = 1; 
-                bond_list(n_b, nc, 2) = Invlist_p(I0, 1); 
-                bond_list(n_b, nc, 3) = invlist_p(Latt_p%nnlist(I0, 1, -1), 1)
+                bond_list(n_b, nc, 1) = I0; 
+                bond_list(n_b, nc, 2) = Invlist(I0, 1); 
+                bond_list(n_b, nc, 3) = invlist(Latt%nnlist(I0, 1, -1), 1)
 
                 nc = nc + 1
-                bond_list(n_b, nc, 1) = 0; 
-                if (latt_p%list(I0, 2) .eq. ly_1) bond_list(n_b, nc, 1) = 1; 
-                bond_list(n_b, nc, 2) = Invlist_p(I0, 2); 
-                bond_list(n_b, nc, 3) = invlist_p(Latt_p%nnlist(I0, 1, -1), 2)
+                bond_list(n_b, nc, 1) = I0; 
+                bond_list(n_b, nc, 2) = Invlist(I0, 2); 
+                bond_list(n_b, nc, 3) = invlist(Latt%nnlist(I0, 1, -1), 2)
 
-                i0 = latt_p%nnlist(I0, 1, 0)
+                i0 = latt%nnlist(I0, 1, 0)
              end do
              l_bond(n_b) = nc
 
@@ -920,12 +726,12 @@
           end do
 
           do nf = 1, N_FL
-             do nc = 1, size(Op_V, 1)
-                call Op_make(Op_V(nc, nf), 2)
+             do nc = 1, size(op_V, 1)
+                call op_make(op_V(nc, nf), 2)
              end do
           end do
-
           nc = 0
+
           if (abs(Ham_V) > Zero) then
              nf = 1
              lly = size(bond_map_v1)
@@ -935,14 +741,13 @@
                    I = bond_list(n_cb, J0, 2)
                    J = bond_list(n_cb, J0, 3)
                    nc = nc + 1
-                   Op_V(nc, nf)%P(1) = site_map(I)
-                   Op_V(nc, nf)%P(2) = site_map(J)
-                   Op_V(nc, nf)%O(1, 1) = cmplx(1.d0, 0.d0, kind(0.d0))
-                   Op_V(nc, nf)%O(2, 2) = cmplx(-1.d0, 0.d0, kind(0.d0))
-                   Op_V(nc, nf)%g = sqrt(cmplx(0.5d0*0.5d0*dtau*Ham_V, 0.d0, kind(0.d0)))
-                   Op_V(nc, nf)%alpha = cmplx(0.d0, 0.d0, kind(0.d0))
-                   Op_V(nc, nf)%type = 2
-                   call Op_set(Op_V(nc, nf))
+                   op_V(nc, nf)%P(1) = I; op_V(nc, nf)%P(2) = J
+                   op_V(nc, nf)%O(1, 1) = cmplx(1.d0, 0.d0, kind(0.d0))
+                   op_V(nc, nf)%O(2, 2) = cmplx(-1.d0, 0.d0, kind(0.d0))
+                   op_V(nc, nf)%g = sqrt(cmplx(0.5d0*0.5d0*dtau*Ham_V, 0.d0, kind(0.d0)))
+                   op_V(nc, nf)%alpha = cmplx(0.d0, 0.d0, kind(0.d0))
+                   op_V(nc, nf)%type = 2
+                   call op_set(op_V(nc, nf))
                 end do
              end do
           end if
@@ -956,15 +761,13 @@
                    I = bond_list(n_cb, J0, 2)
                    J = bond_list(n_cb, J0, 3)
                    nc = nc + 1
-                   Op_V(nc, nf)%P(1) = site_map(I)
-                   Op_V(nc, nf)%P(2) = site_map(J)
-                   Op_V(nc, nf)%O(1, 1) = cmplx(1.d0, 0.d0, kind(0.d0))
-                   Op_V(nc, nf)%O(2, 2) = cmplx(-1.d0, 0.d0, kind(0.d0))
-                   Op_V(nc, nf)%g = sqrt(cmplx(0.5d0*0.5d0*dtau*Ham_V2, 0.d0, kind(0.d0)))
-                   if (bond_list(n_cb, J0, 1) .eq. 1) Op_V(nc, nf)%g = cmplx(0.d0, 0.d0, kind(0.d0))
-                   Op_V(nc, nf)%alpha = cmplx(0.d0, 0.d0, kind(0.d0))
-                   Op_V(nc, nf)%type = 2
-                   call Op_set(Op_V(nc, nf))
+                   op_V(nc, nf)%P(1) = I; op_V(nc, nf)%P(2) = J
+                   op_V(nc, nf)%O(1, 1) = cmplx(1.d0, 0.d0, kind(0.d0))
+                   op_V(nc, nf)%O(2, 2) = cmplx(-1.d0, 0.d0, kind(0.d0))
+                   op_V(nc, nf)%g = sqrt(cmplx(0.5d0*0.5d0*dtau*Ham_V2, 0.d0, kind(0.d0)))
+                   op_V(nc, nf)%alpha = cmplx(0.d0, 0.d0, kind(0.d0))
+                   op_V(nc, nf)%type = 2
+                   call op_set(op_V(nc, nf))
                 end do
              end do
 
@@ -974,15 +777,13 @@
                    I = bond_list(n_cb, J0, 2)
                    J = bond_list(n_cb, J0, 3)
                    nc = nc + 1
-                   Op_V(nc, nf)%P(1) = site_map(I)
-                   Op_V(nc, nf)%P(2) = site_map(J)
-                   Op_V(nc, nf)%O(1, 1) = cmplx(1.d0, 0.d0, kind(0.d0))
-                   Op_V(nc, nf)%O(2, 2) = cmplx(-1.d0, 0.d0, kind(0.d0))
-                   Op_V(nc, nf)%g = sqrt(cmplx(0.5d0*0.5d0*dtau*Ham_V2, 0.d0, kind(0.d0)))
-                   if (bond_list(n_cb, J0, 1) .eq. 1) Op_V(nc, nf)%g = cmplx(0.d0, 0.d0, kind(0.d0))
-                   Op_V(nc, nf)%alpha = cmplx(0.d0, 0.d0, kind(0.d0))
-                   Op_V(nc, nf)%type = 2
-                   call Op_set(Op_V(nc, nf))
+                   op_V(nc, nf)%P(1) = I; op_V(nc, nf)%P(2) = J
+                   op_V(nc, nf)%O(1, 1) = cmplx(1.d0, 0.d0, kind(0.d0))
+                   op_V(nc, nf)%O(2, 2) = cmplx(-1.d0, 0.d0, kind(0.d0))
+                   op_V(nc, nf)%g = sqrt(cmplx(0.5d0*0.5d0*dtau*Ham_V2, 0.d0, kind(0.d0)))
+                   op_V(nc, nf)%alpha = cmplx(0.d0, 0.d0, kind(0.d0))
+                   op_V(nc, nf)%type = 2
+                   call op_set(op_V(nc, nf))
                 end do
              end do
           end if
@@ -996,15 +797,13 @@
                    I = bond_list(n_cb, J0, 2)
                    J = bond_list(n_cb, J0, 3)
                    nc = nc + 1
-                   Op_V(nc, nf)%P(1) = site_map(I)
-                   Op_V(nc, nf)%P(2) = site_map(J)
-                   Op_V(nc, nf)%O(1, 1) = cmplx(1.d0, 0.d0, kind(0.d0))
-                   Op_V(nc, nf)%O(2, 2) = cmplx(-1.d0, 0.d0, kind(0.d0))
-                   Op_V(nc, nf)%g = sqrt(cmplx(0.5d0*0.5d0*dtau*Ham_V, 0.d0, kind(0.d0)))
-                   if (bond_list(n_cb, J0, 1) .eq. 1) Op_V(nc, nf)%g = cmplx(0.d0, 0.d0, kind(0.d0))
-                   Op_V(nc, nf)%alpha = cmplx(0.d0, 0.d0, kind(0.d0))
-                   Op_V(nc, nf)%type = 2
-                   call Op_set(Op_V(nc, nf))
+                   op_V(nc, nf)%P(1) = I; op_V(nc, nf)%P(2) = J
+                   op_V(nc, nf)%O(1, 1) = cmplx(1.d0, 0.d0, kind(0.d0))
+                   op_V(nc, nf)%O(2, 2) = cmplx(-1.d0, 0.d0, kind(0.d0))
+                   op_V(nc, nf)%g = sqrt(cmplx(0.5d0*0.5d0*dtau*Ham_V, 0.d0, kind(0.d0)))
+                   op_V(nc, nf)%alpha = cmplx(0.d0, 0.d0, kind(0.d0))
+                   op_V(nc, nf)%type = 2
+                   call op_set(op_V(nc, nf))
                 end do
              end do
           end if
@@ -1073,13 +872,13 @@
              end select
              Nt = 1
              Channel = '--'
-             if ( I .le. 2 ) then
+             if (I .le. 2) then
                 call obser_Latt_make(obs_eq(I), nt, Filename, Latt, Latt_unit, Channel, dtau)
-             elseif ( I == 3 ) then
+             elseif (I == 3) then
                 call obser_Latt_make(obs_eq(I), nt, Filename, Latt, Latt_unit_qah, Channel, dtau)
-             elseif ( I == 4 ) then
+             elseif (I == 4) then
                 call obser_Latt_make(obs_eq(I), nt, Filename, Latt, Latt_unit_bnds, Channel, dtau)
-             endif
+             end if
           end do
 
           if (Ltau == 1) then
@@ -1133,8 +932,8 @@
           !Local
           complex(Kind=kind(0.d0)) :: grc(Ndim, Ndim, N_FL), ZK, zone, ztmp, z_ol, zero, ztmp1, ztmp2, ztmp3, ztmp4
           complex(Kind=kind(0.d0)) :: Zrho, Zkin, ZPot, Z, zqah, zbnds, zsni, zback, zw, z_fac, z1j, zn, zv1, zv2, ztmp5
-          integer :: I, J, k, l, m, n, imj, nf, i1, j1, no_I, no_J, nc, i3, j3, m2, n2, m3, n3, no_min, no_max, nb_r
-          integer :: i2, j2, lly, dlly, nb, i0, j0, m1, n1, nb_qah, ipx, jpx, ipy, jpy, nc1, nc2, lmax, lmin
+          integer :: I, J, k, l, m, n, imj, nf, i1, j1, no_I, no_J, nc, i3, j3, m2, n2, m3, n3, nb_r
+          integer :: i2, j2, lly, dlly, nb, i0, j0, m1, n1, nb_qah, ipx, jpx, ipy, jpy, nc1, nc2, is, js
           real(Kind=kind(0.d0)) :: X, rsgn
 
           Z_ol = exp(overlap(i_grc))/sum_o
@@ -1166,14 +965,10 @@
              do nb_r = 1, lly
                 nb = bond_map_v1(nb_r)
                 do nc = 1, l_bond(nb)
-                   I0 = bond_list(nb, nc, 2)
-                   J0 = bond_list(nb, nc, 3)
-                   I1 = site_map(i0)
-                   J1 = site_map(j0)
-                   if (bond_list(nb, nc, 1) .ne. 1) then
-                      zv1 = zv1 + (grc(I1, I1, nf)*grc(J1, J1, nf) + grc(I1, J1, nf)*gr(I1, J1, nf)) - &
-                                & 0.5d0*(grc(I1, I1, nf) + grc(J1, J1, nf)) + 0.25d0
-                   end if
+                   I1 = bond_list(nb, nc, 2)
+                   J1 = bond_list(nb, nc, 3)
+                   zv1 = zv1 + (grc(I1, I1, nf)*grc(J1, J1, nf) + grc(I1, J1, nf)*gr(I1, J1, nf)) - &
+                             & 0.5d0*(grc(I1, I1, nf) + grc(J1, J1, nf)) + 0.25d0
                 end do
              end do
 
@@ -1181,14 +976,10 @@
              do nb_r = 1, lly
                 nb = bond_map_v2(nb_r)
                 do nc = 1, l_bond(nb)
-                   I0 = bond_list(nb, nc, 2)
-                   J0 = bond_list(nb, nc, 3)
-                   I1 = site_map(i0)
-                   J1 = site_map(j0)
-                   if (bond_list(nb, nc, 1) .ne. 1) then
-                      zv2 = zv2 + (grc(I1, I1, nf)*grc(J1, J1, nf) + grc(I1, J1, nf)*gr(I1, J1, nf)) - &
-                                 & 0.5d0*(grc(I1, I1, nf) + grc(J1, J1, nf)) + 0.25d0
-                   end if
+                   I1 = bond_list(nb, nc, 2)
+                   J1 = bond_list(nb, nc, 3)
+                   zv2 = zv2 + (grc(I1, I1, nf)*grc(J1, J1, nf) + grc(I1, J1, nf)*gr(I1, J1, nf)) - &
+                              & 0.5d0*(grc(I1, I1, nf) + grc(J1, J1, nf)) + 0.25d0
                 end do
              end do
           end do
@@ -1206,96 +997,69 @@
 
           obs_scal(4)%obs_vec(1) = obs_scal(4)%obs_vec(1) + (zkin + zpot)*z_fac
 
-          !! set reference site
-          lly = L2/2
-          dlly = L1/2
-          lmin = lly-dlly
-          lmax = lmin + L1 - 1
+          zqah = cmplx(0.d0, 0.d0, kind(0.d0))
+          zbnds = cmplx(0.d0, 0.d0, kind(0.d0))
+          zsni = cmplx(0.d0, 0.d0, kind(0.d0))
+          !! set reference bond
+          is = 1
+          nb_qah = 1
 
-          zqah  = cmplx(0.d0,0.d0, kind(0.D0))
-          i = 1;
-          !! qah orbital count from ly=2
-          nb_qah = (lly-1)*4+1
+          do nf = 1, N_FL
+             nb = 0; nc1 = 0; nc2 = 0
+             do js = 1, latt%N
 
-          no_min = (lmin-1)*4+1
-          no_max = (lmax-1)*4+4
+                imj = latt%imj(is, js)
 
-          i1 = invlist_qah(i, nb_qah, 1)
-          j1 = invlist_qah(i, nb_qah, 2)
-          
-          nc1 = 0
-          do j = 1,latt%N
-             do no_j = 1, Latt_Unit_qah%Norb
+                !! QAH
+                do no_j = 1, Latt_Unit_qah%Norb
 
-                if ( (no_j .ge. no_min) .and. (no_j .le. no_max) ) then
-                    m1 = invlist_qah(j, no_j, 1)
-                    n1 = invlist_qah(j, no_j, 2)
-                    
-                    ztmp =   grc(i1,j1,1)*grc(m1,n1,1) + grc(i1,n1,1)*gr(j1,m1,1) &
-                        &  + grc(j1,i1,1)*grc(n1,m1,1) + grc(j1,m1,1)*gr(i1,n1,1) &
-                        &  - grc(i1,j1,1)*grc(n1,m1,1) - grc(i1,m1,1)*gr(j1,n1,1) & 
-                        &  - grc(j1,i1,1)*grc(m1,n1,1) - grc(j1,n1,1)*gr(i1,m1,1)  
-                    zqah =  zqah - ztmp
-                    nc1 = nc1 + 1
-                endif
+                   i1 = invlist_qah(is, nb_qah, 1)
+                   j1 = invlist_qah(is, nb_qah, 2)
+                   m1 = invlist_qah(js, no_j, 1)
+                   n1 = invlist_qah(js, no_j, 2)
 
-             enddo
-          enddo
-          zqah = zqah/dble(nc1) 
+                   ztmp = grc(i1, j1, nf)*grc(m1, n1, nf) + grc(i1, n1, nf)*gr(j1, m1, nf) &
+                       &  + grc(j1, i1, nf)*grc(n1, m1, nf) + grc(j1, m1, nf)*gr(i1, n1, nf) &
+                       &  - grc(i1, j1, nf)*grc(n1, m1, nf) - grc(i1, m1, nf)*gr(j1, n1, nf) &
+                       &  - grc(j1, i1, nf)*grc(m1, n1, nf) - grc(j1, n1, nf)*gr(i1, m1, nf)
+                   zqah = zqah - ztmp
+
+                   nb = nb + 1
+                end do
+
+                !! BNDS
+                i1 = js
+                do no_i = 1, Latt_Unit%Norb
+                   i0 = invlist(i1, no_i)
+                   ipx = invlist(latt%nnlist(i1, 1, 0), no_i)
+                   ipy = invlist(latt%nnlist(i1, 0, 1), no_i)
+
+                   zbnds = zbnds + abs(grc(i0, ipx, 1)) - abs(grc(i0, ipy, 1))
+                   nc1 = nc1 + 1
+                end do
+
+                !! SNI
+                i1 = js
+                do j1 = 1, latt%N
+                   do k = 1, latt_unit%norb*latt_unit%norb
+                      no_i = (k - 1)/latt_unit%norb
+                      no_j = k - no_i*latt_unit%norb
+                      no_i = no_i + 1
+
+                      i0 = invlist(i1, no_i)
+                      j0 = invlist(j1, no_j)
+
+                      ztmp5 = grc(i0, i0, 1)*grc(j0, j0, 1) + grc(i0, j0, 1)*gr(i0, j0, 1)
+                      rsgn = 1.d0 - dble(mod(no_i + no_j, 2))*2.d0
+                      zsni = zsni + rsgn*ztmp5
+                      nc2 = nc2 + 1
+                   end do
+                end do
+
+             end do
+          end do
+          zqah = zqah/dble(nb)
           obs_scal(5)%obs_vec(1) = obs_scal(5)%obs_vec(1) + zqah*z_fac
-          
-          zbnds = cmplx(0.d0,0.d0, kind(0.D0))
-          zsni  = cmplx(0.d0,0.d0, kind(0.D0))
-          nc1 = 0; nc2 = 0
-
-          do i = 1,latt%N
-
-             do k = 1, l2-1
-
-                 if ( ( (k-1) .ge. lmin ) .and. ( (k-1) .le. lmax ) ) then
-                    !! a sublattice
-                    no_i = 2*(k-1)+1
-                    i0 = invlist(i, no_i)   
-                    ipx = invlist(latt%nnlist(i,1,0),no_i  )
-                    ipy = invlist(i,no_i+2)
-                    
-                    zbnds =  zbnds + abs(grc(i0,ipx,1))-abs(grc(i0,ipy,1))
-                    nc1 = nc1 + 1
-                    
-                    !! b sublattice
-                    no_i = 2*(k-1)+2
-                    i0 = invlist(i, no_i)   
-                    ipx = invlist(latt%nnlist(i,1,0),no_i  )
-                    ipy = invlist(i,no_i+2)
-                    
-                    zbnds =  zbnds + abs(grc(i0,ipx,1))-abs(grc(i0,ipy,1))
-                    nc1 = nc1 + 1
-                 endif
-             enddo
-
-             do j = 1,latt%N
-                do k = 1, latt_unit%norb*latt_unit%norb
-                   no_i = (k - 1)/latt_unit%norb
-                   no_j = k - no_i*latt_unit%norb
-                   no_i = no_i + 1
-
-                   i2 = (no_i-1)/2
-                   j2 = (no_j-1)/2
-                       
-                   i0 = invlist(i, no_i)   
-                   j0 = invlist(j, no_j)
-
-                   if ( ( i2 .ge. lmin ) .and. ( i2 .le. lmax ) .and. &
-                     &  ( j2 .ge. lmin ) .and. ( j2 .le. lmax ) ) then
-                       ztmp5 = grc(i0,i0,1)*grc(j0,j0,1) + grc(i0,j0,1)*gr(i0,j0,1)
-                       rsgn=1.d0-dble(mod(no_i+no_j,2))*2.d0
-                       zsni = zsni + rsgn*ztmp5
-                       nc2 = nc2 + 1
-                   endif
-
-                enddo
-             enddo
-          enddo
           zbnds = zbnds/dble(nc1)
           obs_scal(6)%obs_vec(1) = obs_scal(6)%obs_vec(1) + zbnds*z_fac
           zsni = zsni/dble(nc2)
@@ -1349,7 +1113,7 @@
                    ztmp = grc(i1, j1, 1)*gr(i1, j1, 1) + grc(i1, i1, 1)*grc(j1, j1, 1)
                    obs_eq(2)%obs_Latt(imj, 1, no_i, no_j) = obs_eq(2)%obs_latt(imj, 1, no_i, no_j) + ztmp*z_fac
                 end do
-                
+
                 do k = 1, latt_unit_qah%norb*latt_unit_qah%norb
                    no_i = (k - 1)/latt_unit_qah%norb
                    no_j = k - no_i*latt_unit_qah%norb
@@ -1360,25 +1124,25 @@
                    j1 = invlist_qah(i, no_i, 2)
                    m1 = invlist_qah(j, no_j, 1)
                    n1 = invlist_qah(j, no_j, 2)
-                   ztmp =   grc(i1,j1,1)*grc(m1,n1,1) + grc(i1,n1,1)*gr(j1,m1,1) &
-                       &  + grc(j1,i1,1)*grc(n1,m1,1) + grc(j1,m1,1)*gr(i1,n1,1) &
-                       &  - grc(i1,j1,1)*grc(n1,m1,1) - grc(i1,m1,1)*gr(j1,n1,1) & 
-                       &  - grc(j1,i1,1)*grc(m1,n1,1) - grc(j1,n1,1)*gr(i1,m1,1)  
-                   
+                   ztmp = grc(i1, j1, 1)*grc(m1, n1, 1) + grc(i1, n1, 1)*gr(j1, m1, 1) &
+                       &  + grc(j1, i1, 1)*grc(n1, m1, 1) + grc(j1, m1, 1)*gr(i1, n1, 1) &
+                       &  - grc(i1, j1, 1)*grc(n1, m1, 1) - grc(i1, m1, 1)*gr(j1, n1, 1) &
+                       &  - grc(j1, i1, 1)*grc(m1, n1, 1) - grc(j1, n1, 1)*gr(i1, m1, 1)
+
                    obs_eq(3)%obs_Latt(imj, 1, no_i, no_j) = obs_eq(3)%obs_latt(imj, 1, no_i, no_j) - ztmp*z_fac
-                   
+
                    !! BNDS
                    i1 = invlist_bnds(i, no_i, 1)
                    j1 = invlist_bnds(i, no_i, 2)
                    m1 = invlist_bnds(j, no_j, 1)
                    n1 = invlist_bnds(j, no_j, 2)
-                   ztmp =   grc(i1,j1,1)*grc(m1,n1,1) + grc(i1,n1,1)*gr(j1,m1,1) &
-                       &  + grc(j1,i1,1)*grc(n1,m1,1) + grc(j1,m1,1)*gr(i1,n1,1) &
-                       &  + grc(i1,j1,1)*grc(n1,m1,1) + grc(i1,m1,1)*gr(j1,n1,1) & 
-                       &  + grc(j1,i1,1)*grc(m1,n1,1) + grc(j1,n1,1)*gr(i1,m1,1)  
-                   
+                   ztmp = grc(i1, j1, 1)*grc(m1, n1, 1) + grc(i1, n1, 1)*gr(j1, m1, 1) &
+                       &  + grc(j1, i1, 1)*grc(n1, m1, 1) + grc(j1, m1, 1)*gr(i1, n1, 1) &
+                       &  + grc(i1, j1, 1)*grc(n1, m1, 1) + grc(i1, m1, 1)*gr(j1, n1, 1) &
+                       &  + grc(j1, i1, 1)*grc(m1, n1, 1) + grc(j1, n1, 1)*gr(i1, m1, 1)
+
                    obs_eq(4)%obs_Latt(imj, 1, no_i, no_j) = obs_eq(4)%obs_latt(imj, 1, no_i, no_j) + ztmp*z_fac
-                enddo
+                end do
 
              end do
              do no_i = 1, latt_unit%norb
@@ -1499,14 +1263,10 @@
              do nb_r = 1, lly
                 nb = bond_map_v1(nb_r)
                 do nc = 1, l_bond(nb)
-                   I0 = bond_list(nb, nc, 2)
-                   J0 = bond_list(nb, nc, 3)
-                   I1 = site_map(i0)
-                   J1 = site_map(j0)
-                   if (bond_list(nb, nc, 1) .ne. 1) then
-                      zv1 = zv1 + (grc(I1, I1, nf)*grc(J1, J1, nf) + grc(I1, J1, nf)*gr(I1, J1, nf)) - &
-                                & 0.5d0*(grc(I1, I1, nf) + grc(J1, J1, nf))
-                   end if
+                   I1 = bond_list(nb, nc, 2)
+                   J1 = bond_list(nb, nc, 3)
+                   zv1 = zv1 + (grc(I1, I1, nf)*grc(J1, J1, nf) + grc(I1, J1, nf)*gr(I1, J1, nf)) - &
+                             & 0.5d0*(grc(I1, I1, nf) + grc(J1, J1, nf))
                 end do
              end do
 
@@ -1514,14 +1274,10 @@
              do nb_r = 1, lly
                 nb = bond_map_v2(nb_r)
                 do nc = 1, l_bond(nb)
-                   I0 = bond_list(nb, nc, 2)
-                   J0 = bond_list(nb, nc, 3)
-                   I1 = site_map(i0)
-                   J1 = site_map(j0)
-                   if (bond_list(nb, nc, 1) .ne. 1) then
-                      zv2 = zv2 + (grc(I1, I1, nf)*grc(J1, J1, nf) + grc(I1, J1, nf)*gr(I1, J1, nf)) - &
-                                 & 0.5d0*(grc(I1, I1, nf) + grc(J1, J1, nf))
-                   end if
+                   I1 = bond_list(nb, nc, 2)
+                   J1 = bond_list(nb, nc, 3)
+                   zv2 = zv2 + (grc(I1, I1, nf)*grc(J1, J1, nf) + grc(I1, J1, nf)*gr(I1, J1, nf)) - &
+                              & 0.5d0*(grc(I1, I1, nf) + grc(J1, J1, nf))
                 end do
              end do
           end do
@@ -1692,4 +1448,4 @@
 
        end subroutine update_fac_norm
 
-    end submodule ham_cbqbt_ob_smod
+    end submodule ham_cbqbt_smod
