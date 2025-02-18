@@ -237,6 +237,250 @@ contains
       deallocate (all_bonds)
    end function test_checkerboard_decomposition
 
+   subroutine set_hopping_parameters_pi_flux_qbt(this, Ham_T_vec, Ham_T2_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL, &
+     &                                           List, Invlist, Latt, Latt_unit)
+
+      implicit none
+
+      type(Hopping_Matrix_type), allocatable          :: this(:)
+      real(Kind=kind(0.d0)), intent(IN), dimension(:)   :: Ham_T_vec, Ham_T2_vec, Ham_Chem_vec, Phi_x_vec, Phi_y_vec
+      integer, intent(IN), dimension(:)                  :: N_Phi_vec
+      integer, intent(IN)                               :: N_FL
+      logical, intent(IN)                               :: Bulk
+      integer, intent(IN), dimension(:, :)               :: List, Invlist
+      type(Lattice), intent(in)            :: Latt
+      type(Unit_cell), intent(in)            :: Latt_unit
+
+      ! Local
+      integer :: nf, N_Bonds, nc, I, I1, amx, amy, i0, ix, iy, dx, dy, l1, l2
+      real(Kind=kind(0.d0)) :: Zero = 1.0e-8, Pi = acos(-1.d0), Ham_T_max, Ham_T2_max, Ham_T3_max
+      real(Kind=kind(0.d0)), allocatable :: Ham_T_perp_vec(:)
+
+      allocate (this(N_FL))
+
+      l1 = int(Latt%L1_p(1)/Latt%a1_p(1))
+      l2 = int(Latt%L2_p(2)/Latt%a2_p(2))
+      amx = mod(l1, 2)
+      amy = mod(l2, 2)
+
+      Ham_T_max = 0.d0
+      Ham_T2_max = 0.d0
+      do nf = 1, N_FL
+         if (abs(Ham_T_vec(nf)) > Ham_T_max) Ham_T_max = abs(Ham_T_vec(nf))
+         if (abs(Ham_T2_vec(nf)) > Ham_T2_max) Ham_T2_max = abs(Ham_T2_vec(nf))
+      end do
+
+      do nf = 1, N_FL
+         this(nf)%N_bonds = 0
+         if (abs(Ham_T_max) > Zero) this(nf)%N_bonds = this(nf)%N_bonds + 4
+         if (abs(Ham_T2_max) > Zero) this(nf)%N_bonds = this(nf)%N_bonds + 4
+         allocate (this(nf)%List(this(nf)%N_bonds, 4), &
+              &    this(nf)%T(this(nf)%N_bonds))
+      end do
+
+      do nf = 1, N_FL
+         nc = 0
+         if (abs(Ham_T_max) > Zero) then ! hop t1
+            nc = nc + 1
+            this(nf)%T(nc) = cmplx(-Ham_T_vec(nf), 0.d0, kind(0.d0))
+            this(nf)%List(nc, 1) = 1
+            this(nf)%List(nc, 2) = 2
+            this(nf)%List(nc, 3) = 0
+            this(nf)%List(nc, 4) = 0
+
+            nc = nc + 1
+            this(nf)%T(nc) = cmplx(-Ham_T_vec(nf), 0.d0, kind(0.d0))
+            this(nf)%List(nc, 1) = 2
+            this(nf)%List(nc, 2) = 1
+            this(nf)%List(nc, 3) = 1
+            this(nf)%List(nc, 4) = 0
+
+            nc = nc + 1
+            this(nf)%T(nc) = cmplx(-Ham_T_vec(nf), 0.d0, kind(0.d0))
+            this(nf)%List(nc, 1) = 2
+            this(nf)%List(nc, 2) = 1
+            this(nf)%List(nc, 3) = 0
+            this(nf)%List(nc, 4) = 1
+
+            nc = nc + 1
+            this(nf)%T(nc) = cmplx(-Ham_T_vec(nf), 0.d0, kind(0.d0))
+            this(nf)%List(nc, 1) = 2
+            this(nf)%List(nc, 2) = 1
+            this(nf)%List(nc, 3) = 1
+            this(nf)%List(nc, 4) = 1
+         end if
+
+         if (abs(Ham_T2_max) > Zero) then ! hop t2
+            nc = nc + 1
+            this(nf)%T(nc) = cmplx(-Ham_T2_vec(nf), 0.d0, kind(0.d0))
+            this(nf)%List(nc, 1) = 1
+            this(nf)%List(nc, 2) = 1
+            this(nf)%List(nc, 3) = 1
+            this(nf)%List(nc, 4) = 0
+
+            nc = nc + 1
+            this(nf)%T(nc) = cmplx(Ham_T2_vec(nf), 0.d0, kind(0.d0))
+            this(nf)%List(nc, 1) = 2
+            this(nf)%List(nc, 2) = 2
+            this(nf)%List(nc, 3) = 1
+            this(nf)%List(nc, 4) = 0
+
+            nc = nc + 1
+            this(nf)%T(nc) = cmplx(-Ham_T2_vec(nf), 0.d0, kind(0.d0))
+            this(nf)%List(nc, 1) = 2
+            this(nf)%List(nc, 2) = 2
+            this(nf)%List(nc, 3) = 0
+            this(nf)%List(nc, 4) = 1
+
+            nc = nc + 1
+            this(nf)%T(nc) = cmplx(Ham_T2_vec(nf), 0.d0, kind(0.d0))
+            this(nf)%List(nc, 1) = 1
+            this(nf)%List(nc, 2) = 1
+            this(nf)%List(nc, 3) = 0
+            this(nf)%List(nc, 4) = 1
+         end if
+
+         ! local
+         allocate (this(nf)%T_Loc(Latt_Unit%Norb))
+         do nc = 1, Latt_Unit%Norb
+            this(nf)%T_Loc(nc) = cmplx(-Ham_Chem_vec(nf), 0.d0, kind(0.d0))
+         end do
+         this(nf)%N_Phi = N_Phi_vec(nf)
+         this(nf)%Phi_X = Phi_X_vec(nf)
+         this(nf)%Phi_Y = Phi_Y_vec(nf)
+         this(nf)%Bulk = Bulk
+      end do
+
+      !Set Checkerboard
+      this(1)%N_FAM = 0
+      if (Ham_T_max > Zero) this(1)%N_FAM = this(1)%N_FAM + 4
+      if (Ham_T2_max > Zero) this(1)%N_FAM = this(1)%N_FAM + 4 + amx + amy
+      allocate (this(1)%L_Fam(this(1)%N_FAM), this(1)%Prop_Fam(this(1)%N_FAM))
+      this(1)%Prop_Fam = 1.d0
+      this(1)%L_FAM = Latt%N
+      allocate (this(1)%List_Fam(this(1)%N_FAM, this(1)%L_Fam(1), 2))
+      this(1)%L_FAM = 0
+
+      if (Ham_T_max > Zero) then
+         do I = 1, Latt%N
+            Nf = 1
+            this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I ! Unit cell
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 1 ! The bond (See above)
+
+            Nf = 2
+            this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 2
+
+            Nf = 3
+            this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 3
+
+            Nf = 4
+            this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 4
+         end do
+      end if
+
+      if (Ham_T2_max > Zero) then
+         i0 = 1
+         do dx = 1, L1 - amx
+         do dy = 1, L2
+            if (mod(latt%list(i0, 1), 2) == 0) then
+               Nf = 5
+               this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I0 ! Unit cell
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 5 ! The bond (See above)
+
+               this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I0 ! Unit cell
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 6 ! The bond (See above)
+            end if
+
+            if (mod(latt%list(i0, 1), 2) .ne. 0) then
+               Nf = 6
+               this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I0 ! Unit cell
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 5 ! The bond (See above)
+
+               this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I0 ! Unit cell
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 6 ! The bond (See above)
+            end if
+            i0 = latt%nnlist(I0, 0, 1)
+         end do
+         i0 = latt%nnlist(I0, 1, 0)
+         end do
+
+         do dx = 1, amx
+         do dy = 1, L2
+
+            Nf = 9
+            this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I0 ! Unit cell
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 5 ! The bond (See above)
+
+            this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I0 ! Unit cell
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 6 ! The bond (See above)
+
+            i0 = latt%nnlist(I0, 0, 1)
+         end do
+         i0 = latt%nnlist(I0, 1, 0)
+         end do
+
+         i0 = 1
+         do dy = 1, L2 - amy
+         do dx = 1, L1
+            if (mod(Latt%List(i0, 2), 2) == 0) then
+               Nf = 7
+               this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I0 ! Unit cell
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 7 ! The bond (See above)
+
+               this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I0 ! Unit cell
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 8 ! The bond (See above)
+            end if
+
+            if (mod(Latt%List(i0, 2), 2) .ne. 0) then
+               Nf = 8
+               this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I0 ! Unit cell
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 7 ! The bond (See above)
+
+               this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I0 ! Unit cell
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 8 ! The bond (See above)
+            end if
+            i0 = latt%nnlist(I0, 1, 0)
+         end do
+         i0 = latt%nnlist(I0, 0, 1)
+         end do
+
+         do dy = 1, amy
+         do dx = 1, L1
+            Nf = 10
+            this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I0 ! Unit cell
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 7 ! The bond (See above)
+
+            this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I0 ! Unit cell
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = 8 ! The bond (See above)
+
+            i0 = latt%nnlist(I0, 1, 0)
+         end do
+         i0 = latt%nnlist(I0, 0, 1)
+         end do
+
+      end if
+
+   end subroutine set_hopping_parameters_pi_flux_qbt
+
    subroutine set_hopping_parameters_bilayer_square(this, Ham_T1_vec, Ham_T2_vec, Ham_Tperp_vec, Ham_Chem_vec, &
         &                                                   Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL,&
         &                                                   List, Invlist, Latt, Latt_unit)
@@ -518,7 +762,7 @@ contains
       type(Unit_cell), intent(in) :: Latt_unit
 
       ! Local
-      integer :: n,nf, N_Bonds, nc, I, I1, no
+      integer :: n, nf, N_Bonds, nc, I, I1, no
       real(Kind=kind(0.d0)) :: Zero = 1.0e-8, Ham_T_max
       real(Kind=kind(0.d0)), allocatable :: Ham_T_perp_vec(:)
 
@@ -530,29 +774,29 @@ contains
       end do
 
       do nf = 1, N_FL
-         this(nf)%N_bonds = latt_unit%norb + (latt_unit%norb-1)
+         this(nf)%N_bonds = latt_unit%norb + (latt_unit%norb - 1)
 
          allocate (this(nf)%List(this(nf)%N_bonds, 4), &
               &    this(nf)%T(this(nf)%N_bonds))
          nc = 0
 
-         do n = 1,Latt_unit%Norb
+         do n = 1, Latt_unit%Norb
             nc = nc + 1
-            this(nf)%T(nc)    = cmplx(-ham_tx_vec(nf),0.d0,kind(0.d0))
-            this(nf)%List(nc,1) = n
-            this(nf)%List(nc,2) = n
-            this(nf)%List(nc,3) = 1
-            this(nf)%List(nc,4) = 0
-         enddo
-              
-         do n = 1,Latt_unit%Norb -1
+            this(nf)%T(nc) = cmplx(-ham_tx_vec(nf), 0.d0, kind(0.d0))
+            this(nf)%List(nc, 1) = n
+            this(nf)%List(nc, 2) = n
+            this(nf)%List(nc, 3) = 1
+            this(nf)%List(nc, 4) = 0
+         end do
+
+         do n = 1, Latt_unit%Norb - 1
             nc = nc + 1
-            this(nf)%T(nc)    = cmplx(-ham_ty_vec(nf),0.d0,kind(0.d0))
-            this(nf)%List(nc,1) = n
-            this(nf)%List(nc,2) = n + 1
-            this(nf)%List(nc,3) = 0
-            this(nf)%List(nc,4) = 0
-         enddo
+            this(nf)%T(nc) = cmplx(-ham_ty_vec(nf), 0.d0, kind(0.d0))
+            this(nf)%List(nc, 1) = n
+            this(nf)%List(nc, 2) = n + 1
+            this(nf)%List(nc, 3) = 0
+            this(nf)%List(nc, 4) = 0
+         end do
 
          allocate (this(nf)%T_Loc(Latt_Unit%Norb))
          do nc = 1, Latt_Unit%Norb
@@ -565,55 +809,55 @@ contains
       end do
 
       !Set Checkerboard
-      If ( Latt_Unit%Norb == 1 ) then
+      if (Latt_Unit%Norb == 1) then
          this(1)%N_FAM = 2
-      elseif ( Latt_Unit%Norb == 2 ) then
+      elseif (Latt_Unit%Norb == 2) then
          this(1)%N_FAM = 3
       else
          this(1)%N_FAM = 4
-      endif
+      end if
       allocate (this(1)%L_Fam(this(1)%N_FAM), this(1)%Prop_Fam(this(1)%N_FAM))
-      this(1)%L_Fam    = Latt%N*Latt_unit%Norb/2
-      this(1)%Prop_Fam= 1.d0
-      Allocate ( this(1)%List_Fam(this(1)%N_FAM,this(1)%L_Fam(1),2) )
+      this(1)%L_Fam = Latt%N*Latt_unit%Norb/2
+      this(1)%Prop_Fam = 1.d0
+      allocate (this(1)%List_Fam(this(1)%N_FAM, this(1)%L_Fam(1), 2))
 
-      this(1)%L_FAM  = 0
-      do I = 1,Latt%N
-         if ( mod(Latt%List(I,1),2) == 0 ) then
+      this(1)%L_FAM = 0
+      do I = 1, Latt%N
+         if (mod(Latt%List(I, 1), 2) == 0) then
             Nf = 1
-            do no = 1,Latt_unit%Norb
+            do no = 1, Latt_unit%Norb
                this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-               this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I ! Unit cell
-               this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = no ! The bond (See above)
-            enddo
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I ! Unit cell
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = no ! The bond (See above)
+            end do
          else
             Nf = 2
-            do no = 1,Latt_unit%Norb
+            do no = 1, Latt_unit%Norb
                this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-               this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
-               this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = no
-            enddo
-         endif
-      enddo
-      do no = 1,Latt_unit%Norb - 1
-         if (mod(no,2) == 1 ) then
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = no
+            end do
+         end if
+      end do
+      do no = 1, Latt_unit%Norb - 1
+         if (mod(no, 2) == 1) then
             Nf = 3
             !Write(6,*)  NF, no + Latt_unit%Norb
-            do I = 1,Latt%N
+            do I = 1, Latt%N
                this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-               this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
-               this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = no + Latt_unit%Norb
-            enddo
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = no + Latt_unit%Norb
+            end do
          else
             Nf = 4
             !Write(6,*)  NF, no + Latt_unit%Norb
-            do I = 1,Latt%N
+            do I = 1, Latt%N
                this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
-               this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
-               this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = no + Latt_unit%Norb
-            enddo
-         endif
-      enddo
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = I
+               this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = no + Latt_unit%Norb
+            end do
+         end if
+      end do
 
    end subroutine set_hopping_parameters_n_ladder_anisotropic
 

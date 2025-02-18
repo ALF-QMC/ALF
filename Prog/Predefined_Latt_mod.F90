@@ -127,6 +127,17 @@ contains
          L1_p = dble(L1)*a1_p
          L2_p = dble(L2)*a2_p
          call Make_Lattice(L1_p, L2_p, a1_p, a2_p, Latt)
+     case ("Pi_Flux")
+         Latt_Unit%Norb    = 2
+         Latt_Unit%N_coord = 4
+         a1_p(1) = 1.d0; a1_p(2) = 0.d0
+         a2_p(1) = 0.d0; a2_p(2) = 1.d0
+         Allocate (Latt_Unit%Orb_pos_p(2,2))
+         Latt_Unit%Orb_pos_p(1,:) = 0.d0
+         Latt_Unit%Orb_pos_p(2,:) = 0.5d0
+         L1_p    =  dble(L1) * a1_p
+         L2_p    =  dble(L2) * a2_p
+         Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
      case ("square_anisotropic")
          Latt_Unit%Norb = 1
          allocate (Latt_unit%Orb_pos_p(1, 2))
@@ -200,21 +211,6 @@ contains
          end do
          Latt_Unit%Orb_pos_p(3, 3) = -1.d0
          Latt_Unit%Orb_pos_p(4, 3) = -1.d0
-      case ("Pi_Flux")
-         if (L1 == 1 .or. L2 == 1) then
-            write (error_unit, *) 'The Pi Flux lattice cannot be one-dimensional.'
-            call Terminate_on_error(ERROR_GENERIC, __FILE__, __LINE__)
-         end if
-         Latt_Unit%Norb = 2
-         Latt_Unit%N_coord = 4
-         a1_p(1) = 1.d0; a1_p(2) = 1.d0
-         a2_p(1) = 1.d0; a2_p(2) = -1.d0
-         allocate (Latt_Unit%Orb_pos_p(2, 2))
-         Latt_Unit%Orb_pos_p(1, :) = 0.d0
-         Latt_Unit%Orb_pos_p(2, :) = (a1_p(:) - a2_p(:))/2.d0
-         L1_p = dble(L1)*(a1_p - a2_p)/2.d0
-         L2_p = dble(L2)*(a1_p + a2_p)/2.d0
-         call Make_Lattice(L1_p, L2_p, a1_p, a2_p, Latt)
       case default
          write (error_unit, *) "Predefined_Latt: Lattice not yet implemented!"
          call Terminate_on_error(ERROR_GENERIC, __FILE__, __LINE__)

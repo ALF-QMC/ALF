@@ -202,6 +202,7 @@ contains
          stag_mass = 0.005
          do nf = 1, N_FL
             I = 1
+            I = latt%nnlist(I,1,1)
             do no = 1, Latt_unit%norb
                 I1 = invlist(I, no)
                 J1 = invlist(latt%nnlist(I,1,0), no)

@@ -3,5 +3,4 @@
 # The location of the Hamiltonian file can be added after the name,
 # otherwise it defaults to "Hamiltonians/Hamiltonian_{hamiltonian_name}_smod.F90"
 # Files in the directory Hamiltonians.list.d will be treated as part of this file.
-bose_metal
-bose_metal_ladder
+qbt
