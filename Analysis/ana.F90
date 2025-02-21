@@ -53,10 +53,17 @@
       
       
       use ana_mod
+#ifdef _OPENMP
+      use check_omp_num_threads_mod
+#endif
       implicit none
       Integer                         :: i, n, nargs
       Character (len=64)              :: name
       Character (len=64), allocatable :: names(:)
+
+#ifdef _OPENMP
+      call check_omp_num_threads()
+#endif
       
       nargs = COMMAND_ARGUMENT_COUNT()
       allocate( names(nargs) )

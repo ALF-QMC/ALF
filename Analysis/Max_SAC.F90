@@ -46,6 +46,9 @@ Program MaxEnt_Wrapper
        Use MaxEnt_mod
        use MaxEnt_Wrapper_mod
        use iso_fortran_env, only: output_unit, error_unit
+#ifdef _OPENMP
+       use check_omp_num_threads_mod
+#endif
 
        Implicit  None
 
@@ -78,6 +81,10 @@ Program MaxEnt_Wrapper
             &                   Stochastic
 
        NAMELIST /VAR_errors/    N_skip, N_rebin, N_cov,  N_Back, N_auto
+
+#ifdef _OPENMP
+       call check_omp_num_threads()
+#endif
 
        Stochastic = .true. !  This is  the  default
        open(unit=30,file='parameters',status='old',action='read', iostat=io_error)

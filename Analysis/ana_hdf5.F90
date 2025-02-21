@@ -43,12 +43,19 @@
 !--------------------------------------------------------------------
       use hdf5
       use ana_mod
+#ifdef _OPENMP
+      use check_omp_num_threads_mod
+#endif
       implicit none
       Integer                         :: i, hdferr, nargs, storage_type, nlinks, max_corder
       Character (len=64)              :: File_out, File_in, name
       Character (len=64), allocatable :: names(:)
       INTEGER(HID_T)                  :: file_id, group_id
       INTEGER(HSIZE_T)                :: n
+
+#ifdef _OPENMP
+      call check_omp_num_threads()
+#endif
 
       File_in = 'data.h5'
       
