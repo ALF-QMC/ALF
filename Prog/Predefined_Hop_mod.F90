@@ -1509,6 +1509,33 @@
          enddo
       end function get_i_pinned_vertex
 
+      subroutine write_pinning_notice_to_info()
+         Character (len=64) :: file_info
+         integer :: unit_info
+#ifdef MPI
+         integer :: Ierr, Isize, Irank, irank_g, isize_g, igroup
+         CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
+         CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+         call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+         call MPI_Comm_size(Group_Comm, isize_g, ierr)
+         igroup           = irank/isize_g
+#endif
+#if defined(TEMPERING)
+         write(file_info,'(A,I0,A)') "Temp_",igroup,"/info"
+#else
+         file_info = "info"
+#endif
+#if defined(MPI)
+         If (Irank_g == 0 ) then
+#endif
+            Open (newunit=unit_info, file=file_info, status="unknown", position="append")
+            Write(unit_info,*) ' Pinning is used. Results will not have translation symmetry.'
+            close(unit_info)
+#if defined(MPI)
+         endif
+#endif
+      end subroutine write_pinning_notice_to_info
+
 !--------------------------------------------------------------------
 !> @author
 !> ALF-project
@@ -1559,6 +1586,8 @@
 
         if(present(pinned_vertices)) N_pinned_vertices = size(pinned_vertices, 1)
         if(present(pinned_vertices)) then
+           write(error_unit, *) 'Warning: you are using pinning, results will not have translation symmetry.'
+           call write_pinning_notice_to_info()
            if(size(pinned_vertices, 2) .ne. 2) then
              write(error_unit, *) 'Second dimension of pinned_vertices has to be 2.'
              CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
