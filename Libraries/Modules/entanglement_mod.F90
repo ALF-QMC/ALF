@@ -32,7 +32,7 @@
 Module entanglement_mod
 
 #ifndef MPI
-#warning "You are compiling entanglement without MPI. No results possible"
+#warning "You are compiling entanglement without MPI. No Renyi entropy results possible, all other observables still work!"
 #endif
 
 !--------------------------------------------------------------------
@@ -240,6 +240,7 @@ Module entanglement_mod
 #ifdef MPI
           Use mpi
 #endif
+          use iso_fortran_env, only: error_unit
   
           Implicit none
           
@@ -253,6 +254,7 @@ Module entanglement_mod
           Integer          :: J, IERR, INFO, N_FL, nf, N_FL_half
           Integer         , Dimension(:,:), Allocatable :: List_tmp
           Integer         , Dimension(2)              :: Nsites_tmp,nf_list,N_SUN_tmp
+          Logical, save :: First_call = .True.
           
           EXTERNAL ZGEMM
           EXTERNAL ZGETRF
@@ -311,6 +313,10 @@ Module entanglement_mod
           ! This mechanisms leads to some syncronization, but I (Johannes) am lacking a better way to treat odd number of tasks.
 #else
           Calc_Renyi_Ent_indep=0.0d0
+          if (First_call) then
+            write(error_unit,*) "Entanglement module compiled without MPI, no Renyi entropy results possible!"
+            First_call = .false.
+          endif
 #endif
               
           End function Calc_Renyi_Ent_indep
@@ -346,6 +352,7 @@ Module entanglement_mod
 #ifdef MPI
           Use mpi
 #endif
+          use iso_fortran_env, only: error_unit
 
           Implicit none
           
@@ -361,6 +368,7 @@ Module entanglement_mod
           Integer         , Dimension(:), Allocatable :: SortedFlavors ! new
           Integer         , Dimension(:,:), Allocatable :: List_tmp
           Integer         , Dimension(2)              :: Nsites_tmp,nf_list,N_SUN_tmp
+          Logical, save :: First_call = .True.
           
           EXTERNAL ZGEMM
           EXTERNAL ZGETRF
@@ -440,6 +448,10 @@ Module entanglement_mod
           ! This mechanisms leads to some syncronization, but I (Johannes) am lacking a better way to treat odd number of tasks.
 #else
           Calc_Renyi_Ent_gen_fl=0.0d0
+          if (First_call) then
+            write(error_unit,*) "Entanglement module compiled without MPI, no Renyi entropy results possible!"
+            First_call = .false.
+          endif
 #endif
             
         End function Calc_Renyi_Ent_gen_fl
@@ -473,6 +485,7 @@ Module entanglement_mod
 #ifdef MPI
           Use mpi
 #endif
+          use iso_fortran_env, only: error_unit
 
           Implicit none
           
@@ -488,6 +501,7 @@ Module entanglement_mod
           Integer         , Dimension(:), Allocatable :: SortedFlavors,N_SUN_fl,df_list
           Integer         , Dimension(:,:), Allocatable :: List_tmp, eff_ind, eff_ind_inv
           Integer         , Dimension(2)              :: Nsites_tmp,nf_list,N_SUN_tmp
+          Logical, save :: First_call = .True.
           
           EXTERNAL ZGEMM
           EXTERNAL ZGETRF
@@ -586,6 +600,10 @@ Module entanglement_mod
           ! This mechanisms leads to some syncronization, but I (Johannes) am lacking a better way to treat odd number of tasks.
 #else
           Calc_Renyi_Ent_gen_all=0.0d0
+          if (First_call) then
+            write(error_unit,*) "Entanglement module compiled without MPI, no Renyi entropy results possible!"
+            First_call = .false.
+          endif
 #endif
 
             
