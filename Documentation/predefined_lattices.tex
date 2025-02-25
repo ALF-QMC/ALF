@@ -15,7 +15,7 @@ The types \texttt{Lattice} and \texttt{Unit\_cell}, described in Section~\ref{se
 \begin{figure}
         \begin{center}
                 \includegraphics[width=\textwidth]{Lattices_all.pdf}
-                \caption{Predefined lattices in ALF: (a) square, (b) bilayer square, (c) 3-leg ladder, (d) honeycomb, and (e) bilayer honeycomb. Nontrivial unit cells are shown as gray regions, while gray sites belong to the second layer in bilayer systems.   The links between the orbitals denote the hopping matrix elements and we have assumed, for the purpose of the plot, the absence of hopping in the second layer for bilayer systems. The color coding of the links denotes the checkerboard decomposition.}
+                \caption{Predefined lattices in ALF: (a) square, (b) bilayer square, (c) 3-leg ladder, (d) honeycomb, (e) bilayer honeycomb (f) triangular and (g) kagome. Nontrivial unit cells are shown as gray regions, while gray sites belong to the second layer in bilayer systems.   The links between the orbitals denote the hopping matrix elements and we have assumed, for the purpose of the plot, the absence of hopping in the second layer for bilayer systems. The color coding of the links denotes the checkerboard decomposition.}
                 \label{fig_predefined_lattices}
         \end{center}
 \end{figure}
@@ -162,6 +162,37 @@ L2_p    =  dble(L2)*a2_p
 Call Make_Lattice( L1_p, L2_p, a1_p, a2_p, Latt )
 \end{lstlisting}
 
+\subsubsection{Triangular lattice, Fig.~\ref{fig_predefined_lattices}(f)}
+The \texttt{"Triangular"}\index{\texttt{Triangular}} configuration sets:
+\begin{lstlisting}[style=fortran]
+Latt_Unit%Norb    = 1
+Latt_Unit%N_coord = 3
+a1_p(1) =  1.D0   ; a1_p(2) =  0.d0
+a2_p(1) =  0.5D0  ; a2_p(2) =  sqrt(3.D0)/2.D0
+Allocate (Latt_Unit%Orb_pos_p(1,2))
+Latt_Unit%Orb_pos_p = 0.d0
+L1_p    =  dble(L1) * a1_p
+L2_p    =  dble(L2) * a2_p
+Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
+\end{lstlisting}
+This lattice is only implemented  for the Hubbard model. 
+
+\subsubsection{Kagome lattice, Fig.~\ref{fig_predefined_lattices}(g)}
+The \texttt{"Kagome"}\index{\texttt{Kagome}} configuration sets:
+\begin{lstlisting}[style=fortran]
+Latt_Unit%Norb    = 3
+Latt_Unit%N_coord = 4 
+a1_p(1) =  1.D0   ; a1_p(2) =  0.d0
+a2_p(1) =  0.5D0  ; a2_p(2) =  sqrt(3.D0)/2.D0
+Allocate (Latt_Unit%Orb_pos_p(3,2))
+Latt_Unit%Orb_pos_p = 0.d0
+Latt_Unit%Orb_pos_p(2,:) = a1_p(:)/2.d0
+Latt_Unit%Orb_pos_p(3,:) = a2_p(:)/2.d0
+L1_p    =  dble(L1) * a1_p
+L2_p    =  dble(L2) * a2_p
+Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
+\end{lstlisting}
+This lattice is only implemented  for the Hubbard model. 
 
 \subsubsection{$\pi$-Flux lattice (deprecated)}
 

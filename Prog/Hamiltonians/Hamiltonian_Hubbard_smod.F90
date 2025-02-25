@@ -301,9 +301,11 @@
              Write(unit_info,*) 'N_FL          : ', N_FL
              Write(unit_info,*) 't             : ', Ham_T
              Write(unit_info,*) 'Ham_U         : ', Ham_U
-             Write(unit_info,*) 't2            : ', Ham_T2
-             Write(unit_info,*) 'Ham_U2        : ', Ham_U2
-             Write(unit_info,*) 'Ham_tperp     : ', Ham_tperp
+             if (Index(str_to_upper(Lattice_type),'BILAYER') > 0 )  then
+               Write(unit_info,*) 't2            : ', Ham_T2
+               Write(unit_info,*) 'Ham_U2        : ', Ham_U2
+               Write(unit_info,*) 'Ham_tperp     : ', Ham_tperp
+             endif
              Write(unit_info,*) 'Ham_chem      : ', Ham_chem
              if (Projector) then
                 Do nf = 1,N_FL
@@ -370,6 +372,12 @@
           Case ("SQUARE")
              Call  Set_Default_hopping_parameters_square(Hopping_Matrix,Ham_T_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
                   &                                      Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
+          Case ("TRIANGULAR")
+             Call  Set_Default_hopping_parameters_triangular(Hopping_Matrix,Ham_T_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
+                  &                                      Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
+          Case ("KAGOME")
+             Call  Set_Default_hopping_parameters_kagome(Hopping_Matrix,Ham_T_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
+                  &                                      Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
           Case ("N_LEG_LADDER")
              Call  Set_Default_hopping_parameters_n_leg_ladder(Hopping_Matrix, Ham_T_vec, Ham_Tperp_vec, Ham_Chem_vec, Phi_X_vec, &
                   &                                            Phi_Y_vec, Bulk,  N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
@@ -386,7 +394,9 @@
              Call  Set_Default_hopping_parameters_Bilayer_honeycomb(Hopping_Matrix,Ham_T_vec,Ham_T2_vec,Ham_Tperp_vec, Ham_Chem_vec, &
                   &                                                 Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL,&
                   &                                                 List, Invlist, Latt, Latt_unit )
-
+          Case Default 
+             Write(error_unit,*) 'Your lattice is not supported for the Hubbard model. '
+             CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
           end Select
 
           Call  Predefined_Hoppings_set_OPT(Hopping_Matrix,List,Invlist,Latt,  Latt_unit,  Dtau, Checkerboard, Symm, OP_T )

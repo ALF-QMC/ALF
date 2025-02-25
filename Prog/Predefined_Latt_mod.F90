@@ -44,6 +44,7 @@
 
       use runtime_error_mod
       Use Lattices_v3
+      Use files_mod
       use iso_fortran_env, only: output_unit, error_unit
       Implicit none
 
@@ -110,8 +111,8 @@
         Real (Kind=Kind(0.d0))  :: A1_p(2), a2_p(2), L1_p(2), L2_p(2)
         Integer :: I, nc, no,n
 
-        select case (Lattice_type)
-        case("Square")
+        select case (str_to_upper(Lattice_type))
+        case("SQUARE")
            If ( L2==1 .and. L1 > 1 ) then
               Latt_Unit%N_coord   = 1
            elseif (L2 >1 .and. L1 > 1) then
@@ -129,7 +130,7 @@
            L1_p    =  dble(L1)*a1_p
            L2_p    =  dble(L2)*a2_p
            Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
-        case("N_leg_ladder")
+        case("N_LEG_LADDER")
            a1_p(1) =  1.0  ; a1_p(2) =  0.d0
            a2_p(1) =  0.0  ; a2_p(2) =  1.d0
            L1_p    =  dble(L1)*a1_p
@@ -143,7 +144,7 @@
               Latt_Unit%Orb_pos_p(no,1) = 0.d0
               Latt_Unit%Orb_pos_p(no,2) = real(no-1,kind(0.d0))
            enddo
-        case("Bilayer_square")
+        case("BILAYER_SQUARE")
            a1_p(1) =  1.0  ; a1_p(2) =  0.d0
            a2_p(1) =  0.0  ; a2_p(2) =  1.d0
            L1_p    =  dble(L1)*a1_p
@@ -158,8 +159,37 @@
               Latt_Unit%Orb_pos_p(no,2) = 0.d0
               Latt_Unit%Orb_pos_p(no,3) = real(1-no,kind(0.d0))
            enddo
-
-        case("Honeycomb")
+        case("TRIANGULAR")
+           If (L1==1 .or. L2==1 ) then
+              Write(error_unit,*) 'The triangular lattice cannot be one-dimensional.'
+              CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+           endif
+           Latt_Unit%Norb    = 1
+           Latt_Unit%N_coord = 3
+           a1_p(1) =  1.D0   ; a1_p(2) =  0.d0
+           a2_p(1) =  0.5D0  ; a2_p(2) =  sqrt(3.D0)/2.D0
+           Allocate (Latt_Unit%Orb_pos_p(1,2))
+           Latt_Unit%Orb_pos_p = 0.d0
+           L1_p    =  dble(L1) * a1_p
+           L2_p    =  dble(L2) * a2_p
+           Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
+         case("KAGOME")
+            If (L1==1 .or. L2==1 ) then
+               Write(error_unit,*) 'The kagome lattice cannot be one-dimensional.'
+               CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+            endif
+            Latt_Unit%Norb    = 3
+            Latt_Unit%N_coord = 4 
+            a1_p(1) =  1.D0   ; a1_p(2) =  0.d0
+            a2_p(1) =  0.5D0  ; a2_p(2) =  sqrt(3.D0)/2.D0
+            Allocate (Latt_Unit%Orb_pos_p(3,2))
+            Latt_Unit%Orb_pos_p = 0.d0
+            Latt_Unit%Orb_pos_p(2,:) = a1_p(:)/2.d0
+            Latt_Unit%Orb_pos_p(3,:) = a2_p(:)/2.d0
+            L1_p    =  dble(L1) * a1_p
+            L2_p    =  dble(L2) * a2_p
+            Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
+        case("HONEYCOMB")
            If (L1==1 .or. L2==1 ) then
               Write(error_unit,*) 'The Honeycomb lattice cannot be one-dimensional.'
               CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
@@ -174,7 +204,7 @@
            L1_p    =  dble(L1) * a1_p
            L2_p    =  dble(L2) * a2_p
            Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
-        case("Bilayer_honeycomb")
+        case("BILAYER_HONEYCOMB")
            a1_p(1) =  1.D0   ; a1_p(2) =  0.d0
            a2_p(1) =  0.5D0  ; a2_p(2) =  sqrt(3.D0)/2.D0
            L1_p    =  dble(L1)*a1_p
@@ -193,7 +223,7 @@
            Enddo
            Latt_Unit%Orb_pos_p(3,3) = -1.d0
            Latt_Unit%Orb_pos_p(4,3) = -1.d0
-        case("Pi_Flux")
+        case("PI_FLUX")
            If (L1==1 .or. L2==1 ) then
               Write(error_unit, *) 'The Pi Flux lattice cannot be one-dimensional.'
               CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)

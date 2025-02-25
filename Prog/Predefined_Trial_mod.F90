@@ -49,6 +49,7 @@
       Use MyMats
       Use Predefined_Hoppings
       use iso_fortran_env, only: output_unit, error_unit
+      use Files_mod
 
       Implicit none
 
@@ -129,11 +130,11 @@
 
         Type (Lattice)                                :: Latt_Kekule
         Real (Kind=Kind(0.d0))  :: A1_p(2), A2_p(2), L1_p(2), L2_p(2), x_p(2),x1_p(2), hop(3), del_p(2)
-        Real (Kind=Kind(0.d0))  :: delta = 0.01, Ham_T1, Ham_T2, Ham_Tperp
+        Real (Kind=Kind(0.d0))  :: delta = 0.01, Ham_T1, Ham_T2, Ham_Tperp, dom, om
 
-        Integer :: N, nf, I, I1, I2, nc, nc1, IK_u, I_u, J1, lp, J, N_Phi
+        Integer :: N, nf, I, I1, I2, nc, nc1, IK_u, I_u, J1, lp, J, N_Phi,  den_file, Nom = 200 , nw
         Logical :: Test=.false. ,  Bulk =.true.
-        Complex (Kind=Kind(0.d0)) :: Z_norm
+        Complex (Kind=Kind(0.d0)) :: Z_norm, Z
 
         Real (Kind=Kind(0.d0) ), allocatable :: Ham_T_vec(:), Ham_Tperp_vec(:), Ham_Chem_vec(:), Phi_X_vec(:), Phi_Y_vec(:),&
                &                                Ham_T2_vec(:)
@@ -177,9 +178,9 @@
         Ham_Chem_vec   = Ham_Chem
 
 
-        Select case (Lattice_type)
+        Select case (str_to_upper(Lattice_type))
 
-        case ("Honeycomb")
+        case ("HONEYCOMB")
            If (Kekule_Trial) then
               !  Kekule Mass term to avoid  degeneracy at half-filling.
               Allocate(Op_Tmp(1,N_FL))
@@ -300,12 +301,20 @@
                  Call Op_set(Op_Tmp(1,n))
               Enddo
            endif
-        Case ("Square")
+        Case ("SQUARE")
            Phi_X_vec    = 0.01
            Call  Set_Default_hopping_parameters_square(Hopping_Matrix_tmp,Ham_T_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
                 &                                      Bulk,  N_Phi_vec, N_FL, &
                 &                                      List, Invlist, Latt, Latt_unit )
-        Case ("N_leg_ladder")
+        Case ("TRIANGULAR")
+           Call  Set_Default_hopping_parameters_triangular(Hopping_Matrix_tmp,Ham_T_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
+                &                                      Bulk,  N_Phi_vec, N_FL, &
+                &                                      List, Invlist, Latt, Latt_unit )
+        Case ("KAGOME")
+           Call  Set_Default_hopping_parameters_kagome(Hopping_Matrix_tmp,Ham_T_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
+                &                                      Bulk,  N_Phi_vec, N_FL, &
+                &                                      List, Invlist, Latt, Latt_unit )
+        Case ("N_LEG_LADDER")
            Ham_T_vec     = 1.d0
            Ham_Tperp_vec = 1.d0
            Phi_X_vec     = 0.01
@@ -316,7 +325,7 @@
            !   Ham_Lambda = 0.d0
            !   Call  Set_Default_hopping_parameters_honeycomb(Hopping_Matrix_tmp, Ham_T, Ham_Lambda, Ham_Chem, Phi_X, Phi_Y, Bulk,  N_Phi, N_FL, &
            !        &                                       List, Invlist, Latt, Latt_unit )
-        Case ("Bilayer_square")
+        Case ("BILAYER_SQUARE")
            Ham_T_vec     = 1.d0
            Ham_T2_vec    = 0.d0
            Ham_Tperp_vec = 1.d0
@@ -324,7 +333,7 @@
            Call  Set_Default_hopping_parameters_Bilayer_square(Hopping_Matrix_tmp,Ham_T_vec,Ham_T2_vec,Ham_Tperp_vec, Ham_Chem_vec, &
                 &                                              Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL,&
                 &                                              List, Invlist, Latt, Latt_unit )
-        Case ("Bilayer_honeycomb")
+        Case ("BILAYER_HONEYCOMB")
            Ham_T_vec     = 1.d0
            Ham_T2_vec    = 0.d0
            Ham_Tperp_vec = 1.d0
@@ -332,31 +341,13 @@
            Call  Set_Default_hopping_parameters_Bilayer_honeycomb(Hopping_Matrix_tmp,Ham_T_vec,Ham_T2_vec,Ham_Tperp_vec, Ham_Chem_vec, Phi_X_vec, &
                 &                                                 Phi_Y_vec, Bulk,  N_Phi_vec, N_FL,&
                 &                                                 List, Invlist, Latt, Latt_unit )
-
         case default
            Write(error_unit,*) 'No predefined trial wave function for this lattice.'
            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         end Select
 
-
-        If (Lattice_type .ne. "Honeycomb" )   &
+        If (str_to_upper(Lattice_type) .ne. "HONEYCOMB" )   &
              &     Call  Predefined_Hoppings_set_OPT(Hopping_Matrix_tmp,List,Invlist,Latt,  Latt_unit,  Dtau, Checkerboard, Symm, OP_tmp )
-
-
-!!$           Symm          = .false.
-!!$           !If (Lattice_type == "Square"  ) then
-!!$           !   Dimer    = 0.001d0
-!!$           !else
-!!$           Phi_X    = 0.01
-!!$           !endif
-!!$
-!!$           Call Predefined_Hopping(Lattice_type ,Ndim, List,Invlist,Latt, Latt_Unit, &
-!!$                &                    Dtau, Ham_T, Ham_Chem,  Phi_X, Phi_Y,  Bulk, N_Phi,&
-!!$                &                    N_FL,  Checkerboard, Symm,  OP_tmp, Dimer )
-!!$
-!!$
-!!$
-!!$        end Select
 
 
         Do nf = 1,N_FL
@@ -380,11 +371,19 @@
            DO  I = 1,NDim
               Write(6,*) Op_tmp(1,1)%E(I)
            enddo
-           Do I = 1,Ndim
-              do J = 1,Ndim
-                 Write(6,*) Op_tmp(1,1)%O(I,J)
-              enddo
-           enddo
+           Open(newunit=den_file, file="Den_H0", status="unknown")
+           delta = 2.d0 * Acos(-1.d0)/(Iscalar(Latt%L1_p,Latt%BZ1_p))
+           dom =(Op_tmp(1,1)%E(ndim) - Op_tmp(1,1)%E(1)) / dble(Nom)
+           om = Op_tmp(1,1)%E(1)
+           do nw = 1,Nom + 1
+               Z = cmplx(0.d0,0.d0,kind(0.d0))
+               Do I  = 1,NDim 
+                  Z  =  Z  + 1.d0/cmplx(om - Op_tmp(1,1)%E(I),delta, kind=kind(0.d0))
+               enddo
+               Write(den_file,"(F14.7,2x,F14.7)") om, - Aimag(Z)/(dble(Ndim)*acos(-1.d0))
+               om = om + dom
+           enddo  
+           close(den_file)
         endif
         Do nf = 1,N_FL
            Call Op_clear(OP_tmp(1,nf),Ndim)

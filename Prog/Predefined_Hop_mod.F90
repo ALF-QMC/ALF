@@ -360,6 +360,261 @@
 !> ALF-project
 !>
 !> @brief
+!> Default hopping for the triangular lattice.  Ham_T is the nearest
+!> neighbour hopping and Ham_Chem the chemical potential.
+!>
+!
+!--------------------------------------------------------------------
+      Subroutine Set_Default_hopping_parameters_triangular(this, Ham_T_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL, &
+         &                                           List, Invlist, Latt, Latt_unit )
+
+      Implicit none
+
+      Type  (Hopping_Matrix_type), allocatable     :: this(:)
+      Real (Kind=Kind(0.d0)), Intent(IN),Dimension(:)   :: Ham_T_vec, Ham_Chem_vec, Phi_x_vec, Phi_y_vec
+      Integer, Intent(IN),Dimension(:)                  :: N_Phi_vec
+      Integer, Intent(IN)                               :: N_FL
+      Logical, Intent(IN)                               :: Bulk
+      Integer, Intent(IN), Dimension(:,:)               :: List, Invlist
+      Type(Lattice),  Intent(in)            :: Latt
+      Type(Unit_cell),Intent(in)            :: Latt_unit
+
+
+      ! Local
+      Integer :: nf,N_Bonds, nc, I, I1
+      Real (Kind = Kind(0.d0) ) :: Zero = 1.0E-8,  Ham_T_max, x_p(2)
+
+         !Write(6,*)   Iscalar(Latt%L1_p,Latt%BZ1_p)/(2.d0*acos(-1.d0)),Iscalar(Latt%L2_p,Latt%BZ2_p)/(2.d0*acos(-1.d0)) 
+      
+         If (  mod(nint(Iscalar(Latt%L1_p,Latt%BZ1_p)/(2.d0*acos(-1.d0))),2)  /=  0   .or. & 
+             & mod(nint(Iscalar(Latt%L2_p,Latt%BZ2_p)/(2.d0*acos(-1.d0))),2)  /= 0 )  then
+            Write(error_unit,*) '*** For  the  triangular  lattice,  our  implementation of the checkerborad '
+            Write(error_unit,*) 'decomposition  requires even  values of L_1  and L_2  ***'
+            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+         endif
+         Allocate( this(N_FL) )
+
+         Ham_T_max = 0.d0
+         Do nf = 1,N_FL
+            If ( Abs(Ham_T_vec(nf))   >  Ham_T_max )  Ham_T_max = Abs(Ham_T_vec(nf))
+         Enddo
+
+         do nf = 1,N_FL
+            this(nf)%N_bonds = 0
+            if ( abs(Ham_T_max) > Zero)  then
+               this(nf)%N_bonds = 3
+               Allocate (this(nf)%List(this(nf)%N_bonds,4), &
+                    &    this(nf)%T(this(nf)%N_bonds) )
+               nc = 0
+               nc = nc + 1
+               this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
+               this(nf)%List(nc,1) = 1
+               this(nf)%List(nc,2) = 1
+               this(nf)%List(nc,3) = 1
+               this(nf)%List(nc,4) = 0
+
+               nc = nc + 1
+               this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
+               this(nf)%List(nc,1) = 1
+               this(nf)%List(nc,2) = 1
+               this(nf)%List(nc,3) = 0
+               this(nf)%List(nc,4) = 1
+
+               nc = nc + 1
+               this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
+               this(nf)%List(nc,1) = 1
+               this(nf)%List(nc,2) = 1
+               this(nf)%List(nc,3) =-1
+               this(nf)%List(nc,4) = 1
+            Endif
+            Allocate ( this(nf)%T_Loc(Latt_Unit%Norb) )
+            do nc = 1,Latt_Unit%Norb
+               this(nf)%T_Loc(nc)  = cmplx(-Ham_Chem_vec(nf),0.d0,kind(0.d0))
+            enddo
+            this(nf)%N_Phi =  N_Phi_vec(nf)
+            this(nf)%Phi_X =  Phi_X_vec(nf)
+            this(nf)%Phi_Y =  Phi_Y_vec(nf)
+            this(nf)%Bulk  =  Bulk
+         enddo
+
+         ! Do I = 1,Latt%N 
+         !    write(10,*)  Latt%List(I,1)*Latt%a1_p  +Latt%List(I,2)*Latt%a2_p  
+         !    if ( mod(Latt%List(I,1) + Latt%List(I,2),2) == 0 ) then
+         !       write(11,*)  Latt%List(I,1)*Latt%a1_p  +Latt%List(I,2)*Latt%a2_p  
+         !    endif
+         !    if ( mod(Latt%List(I,1),2) == 0 ) then
+         !       write(12,*)  Latt%List(I,1)*Latt%a1_p  +Latt%List(I,2)*Latt%a2_p  
+         !    endif
+         ! enddo
+
+         !Set Checkerboard
+         if ( Ham_T_max   > Zero ) then
+            this(1)%N_FAM  = 6
+            Allocate (this(1)%L_Fam(this(1)%N_FAM),  this(1)%Prop_Fam(this(1)%N_FAM))
+            this(1)%L_FAM  = Latt%N/2
+            this(1)%Prop_Fam= 1.d0
+            Allocate (this(1)%List_Fam(this(1)%N_FAM,this(1)%L_Fam(1),2))
+            this(1)%L_FAM  = 0
+            do I = 1,Latt%N
+               if ( mod(Latt%List(I,1) + Latt%List(I,2),2) == 0 ) then
+                  Nf = 1
+                  this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                  this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I ! Unit cell
+                  this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 1 ! The bond (See above)
+                  Nf = 2
+                  this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                  this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                  this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 2
+               else
+                  Nf = 4
+                  this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                  this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                  this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 1
+                  Nf = 5
+                  this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                  this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                  this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 2
+               endif
+               if ( mod(Latt%List(I,1), 2) == 0 ) then
+                  Nf = 3
+                  this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                  this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                  this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 3
+               else
+                  Nf = 6
+                  this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                  this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                  this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 3
+               endif 
+            enddo
+         endif
+
+    end Subroutine Set_Default_hopping_parameters_triangular
+!--------------------------------------------------------------------
+!> @author
+!> ALF-project
+!>
+!> @brief
+!> Default hopping for the kagome lattice.  Ham_T is the nearest
+!> neighbour hopping and Ham_Chem the chemical potential.
+!>
+!
+!--------------------------------------------------------------------
+    Subroutine Set_Default_hopping_parameters_kagome(this, Ham_T_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL, &
+      &                                           List, Invlist, Latt, Latt_unit )
+
+   Implicit none
+
+   Type  (Hopping_Matrix_type), allocatable     :: this(:)
+   Real (Kind=Kind(0.d0)), Intent(IN),Dimension(:)   :: Ham_T_vec, Ham_Chem_vec, Phi_x_vec, Phi_y_vec
+   Integer, Intent(IN),Dimension(:)                  :: N_Phi_vec
+   Integer, Intent(IN)                               :: N_FL
+   Logical, Intent(IN)                               :: Bulk
+   Integer, Intent(IN), Dimension(:,:)               :: List, Invlist
+   Type(Lattice),  Intent(in)            :: Latt
+   Type(Unit_cell),Intent(in)            :: Latt_unit
+
+
+   ! Local
+   Integer :: nf,N_Bonds, nc, I, I1
+   Real (Kind = Kind(0.d0) ) :: Zero = 1.0E-8,  Ham_T_max, x_p(2)
+
+      !Write(6,*)   Iscalar(Latt%L1_p,Latt%BZ1_p)/(2.d0*acos(-1.d0)),Iscalar(Latt%L2_p,Latt%BZ2_p)/(2.d0*acos(-1.d0)) 
+
+      Allocate( this(N_FL) )
+
+      Ham_T_max = 0.d0
+      Do nf = 1,N_FL
+         If ( Abs(Ham_T_vec(nf))   >  Ham_T_max )  Ham_T_max = Abs(Ham_T_vec(nf))
+      Enddo
+
+      ! List(N_b,1) = no_1
+      ! List(N_b,2) = no_2
+      ! List(N_b,3) = n_1
+      ! List(N_b,4) = n_2
+      ! H_[(i,no_1),(i + n_1 a_1 + n_2 a_2,no_2)] = T(N_b)   
+      do nf = 1,N_FL
+         this(nf)%N_bonds = 0
+         if ( abs(Ham_T_max) > Zero)  then
+            this(nf)%N_bonds = 6
+            Allocate (this(nf)%List(this(nf)%N_bonds,4), &
+                 &    this(nf)%T(this(nf)%N_bonds) )
+            nc = 0
+            nc = nc + 1
+            this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
+            this(nf)%List(nc,1) = 1
+            this(nf)%List(nc,2) = 2
+            this(nf)%List(nc,3) = 0
+            this(nf)%List(nc,4) = 0
+
+            nc = nc + 1
+            this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
+            this(nf)%List(nc,1) = 1
+            this(nf)%List(nc,2) = 3
+            this(nf)%List(nc,3) = 0
+            this(nf)%List(nc,4) = 0
+
+            nc = nc + 1
+            this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
+            this(nf)%List(nc,1) = 2
+            this(nf)%List(nc,2) = 3
+            this(nf)%List(nc,3) = 0
+            this(nf)%List(nc,4) = 0
+
+            nc = nc + 1
+            this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
+            this(nf)%List(nc,1) = 3
+            this(nf)%List(nc,2) = 1
+            this(nf)%List(nc,3) = 0
+            this(nf)%List(nc,4) = 1
+
+            nc = nc + 1
+            this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
+            this(nf)%List(nc,1) = 3
+            this(nf)%List(nc,2) = 2
+            this(nf)%List(nc,3) = -1
+            this(nf)%List(nc,4) = 1
+
+            nc = nc + 1
+            this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
+            this(nf)%List(nc,1) = 1
+            this(nf)%List(nc,2) = 2
+            this(nf)%List(nc,3) = -1
+            this(nf)%List(nc,4) = 0
+         Endif
+         Allocate ( this(nf)%T_Loc(Latt_Unit%Norb) )
+         do nc = 1,Latt_Unit%Norb
+            this(nf)%T_Loc(nc)  = cmplx(-Ham_Chem_vec(nf),0.d0,kind(0.d0))
+         enddo
+         this(nf)%N_Phi =  N_Phi_vec(nf)
+         this(nf)%Phi_X =  Phi_X_vec(nf)
+         this(nf)%Phi_Y =  Phi_Y_vec(nf)
+         this(nf)%Bulk  =  Bulk
+      enddo
+
+      !Set Checkerboard
+      if ( Ham_T_max   > Zero ) then
+         this(1)%N_FAM  = 6
+         Allocate (this(1)%L_Fam(this(1)%N_FAM),  this(1)%Prop_Fam(this(1)%N_FAM))
+         this(1)%L_FAM  = Latt%N
+         this(1)%Prop_Fam= 1.d0
+         Allocate (this(1)%List_Fam(this(1)%N_FAM,this(1)%L_Fam(1),2))
+         this(1)%L_FAM  = 0
+         do I = 1,Latt%N
+            Do Nf = 1,this(1)%N_FAM 
+               this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+               this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I  ! Unit cell
+               this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = Nf ! The bond (See above)
+            enddo
+         enddo
+      endif
+
+ end Subroutine Set_Default_hopping_parameters_kagome
+!--------------------------------------------------------------------
+!> @author
+!> ALF-project
+!>
+!> @brief
 !> Default hopping for n-leg-ladder.  Ham_T is the nearest neighbour hopping along the chain,  Ham_T_perp  the
 !> interrung hopping and H_chem the chemical potential.
 !>

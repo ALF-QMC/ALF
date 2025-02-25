@@ -289,6 +289,11 @@
           Ham_k  =  1.d0/ (2.d0*Ham_Lambda)  !Lambda  =  g^2/2k = 1/2k
           Ham_M  =  Ham_k/(Ham_Omega0**2)    !Omega_0 =  sqrt{k/M}
           
+          If ( str_to_upper(Lattice_type) /=  "SQUARE" ) then 
+             write(error_unit,*)   " The Spin Peierls code, only runs for the square lattice"   
+             CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__) 
+          endif
+          
           If  ( Ham_h <=  1.D-8 )  SU2_Symm = .true.
           If (SU2_Symm   .and. N_FL  .ne. 1 .and.  N_SUN .ne. 2 )  then  
              write(error_unit,*)   " SU(2)  symmetry is present    "
