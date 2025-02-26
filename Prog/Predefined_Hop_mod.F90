@@ -1550,15 +1550,14 @@
                '. Results will not have translation symmetry.'
 #else
          file_info = "info"
-         If (Irank_g == 0 ) write(error_unit, *) &
-               'Warning: you are using pinning, results will not have translation symmetry.'
+#ifdef MPI
+         If (Irank_g == 0) &
 #endif
+            write(error_unit, *) 'Warning: you are using pinning, results will not have translation symmetry.'
+#endif
+
 #if defined(MPI)
          If (Irank_g == 0 ) then
-#if defined(TEMPERING)
-            
-#
-#endif
 #endif
             Open (newunit=unit_info, file=file_info, status="unknown", position="append")
             Write(unit_info,*) ' Pinning is used. Results will not have translation symmetry.'
