@@ -186,9 +186,10 @@
 
 
       !>    Privat Observables
-      Type (Obser_Vec ), dimension(:), allocatable :: Obs_scal
-      Type (Obser_Latt), dimension(:), allocatable :: Obs_eq
-      Type (Obser_Latt), dimension(:), allocatable :: Obs_tau
+      Type (Obser_Vec       ), dimension(:), allocatable :: Obs_scal
+      Type (Obser_Latt_local), dimension(:), allocatable :: Obs_local
+      Type (Obser_Latt      ), dimension(:), allocatable :: Obs_eq
+      Type (Obser_Latt      ), dimension(:), allocatable :: Obs_tau
 
 
 #include "Hamiltonians_interface.h"
@@ -471,6 +472,11 @@
                   Call Print_bin_Vec(Obs_scal(I), Group_Comm)
                enddo
              endif
+             if ( allocated(Obs_local) ) then
+               Do I = 1,Size(Obs_local,1)
+                  Call Print_bin_Latt_Local(Obs_Local(I), Group_Comm)
+               enddo
+             endif
              if ( allocated(Obs_eq) ) then
                Do I = 1,Size(Obs_eq,1)
                   Call Print_bin_Latt(Obs_eq(I), Group_Comm)
@@ -507,6 +513,13 @@
                Enddo
              endif
     
+             if ( allocated(Obs_local) ) then
+               Write(6,*) 'Hi'
+               Do I = 1,Size(Obs_local,1)
+                  Call Obser_Latt_Local_Init(Obs_local(I))
+               Enddo
+             Endif
+
              if ( allocated(Obs_eq) ) then
                Do I = 1,Size(Obs_eq,1)
                   Call Obser_Latt_Init(Obs_eq(I))
