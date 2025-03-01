@@ -599,7 +599,7 @@
             real(Kind=Kind(0.d0)), target :: sgn
 #endif
 #ifdef MPI
-            Complex (Kind=Kind(0.D0)), allocatable :: Tmp1(:)
+            Complex (Kind=Kind(0.D0)), allocatable :: Tmp(:)
             Complex (Kind=Kind(0.d0)) :: Z
             Real    (Kind=Kind(0.d0)) :: X
             Integer         :: Ierr, Isize, Irank
@@ -633,6 +633,7 @@
 
 #if defined(MPI)
             I = Obs%Latt%N * Ntau * Obs%Latt_unit%Norb
+            Allocate (Tmp(I))
             Tmp = cmplx(0.d0, 0.d0, kind(0.D0))
             CALL MPI_REDUCE(Obs%Obs_Latt,Tmp,I,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
             Obs%Obs_Latt = Tmp/DBLE(ISIZE_g)
@@ -641,7 +642,7 @@
             X = 0.d0
             CALL MPI_REDUCE(Obs%Ave_sign,X,I,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
             Obs%Ave_sign = X/DBLE(ISIZE_g)
-            Deallocate(Tmp1)
+            Deallocate(Tmp)
 
             If (Irank_g == 0 ) then
 #endif
