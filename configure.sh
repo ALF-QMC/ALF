@@ -44,7 +44,11 @@ set_hdf5_flags()
   $FC -o get_compiler_version.out get_compiler_version.F90
   compiler_vers=$(./get_compiler_version.out | sed 's/[ ,()]/_/g')
   
-  HDF5_DIR="$ALF_DIR/HDF5/$compiler_vers"
+  H5_major=1
+  H5_minor=14
+  H5_patch=5
+  H5_suff=""
+  HDF5_DIR="$ALF_DIR/HDF5/${compiler_vers}"
   if [ ! -d "$HDF5_DIR" ]; then
     printf "\nHDF5 is not yet installed for compiler '%s'.\n" "$compiler_vers"
     printf "ALF does never use global HDF5 libraries, but installs it locally in subfolders of '%s/HDF5'.\n" "$ALF_DIR"
@@ -57,7 +61,7 @@ set_hdf5_flags()
     case "$yn" in
       y|Y|"")
         printf "${GREEN}Downloading and installing HDF5 in %s.${NC}\n" "$HDF5_DIR"
-        CC="$CC" FC="$FC" CXX="$CXX" HDF5_DIR="$HDF5_DIR" "$ALF_DIR/HDF5/install_hdf5.sh" || return 1
+        CC="$CC" FC="$FC" CXX="$CXX" HDF5_DIR="$HDF5_DIR" "$ALF_DIR/HDF5/install_hdf5.sh" ${H5_major} ${H5_minor} ${H5_patch} ${H5_suff} || return 1
       ;;
       *) 
         printf "Skipping installation of HDF5.\n"
