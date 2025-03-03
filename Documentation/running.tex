@@ -199,8 +199,13 @@ If the autocorrelation time  is smaller than the effective bin size, the error s
 		Output               &  \\\midrule
 		\texttt{X\_scalJ}    & Jackknife mean and error of \texttt{X}, where  \texttt{X} stands for \texttt{Kin, Pot, Part}, or \texttt{Ener}\\
 		\texttt{Y\_eqJR} and \texttt{Y\_eqJK} & Jackknife mean and error of \texttt{Y}, which stands for \texttt{Green, SpinZ, SpinXY}, or \texttt{Den}. The suffixes \texttt{R} and \texttt{K} refer to real and reciprocal space, respectively\\
+		\texttt{Y\_eq\_eJK} & Jackknife mean and error of \texttt{Y}, which stands for \texttt{Green, SpinZ, SpinXY}, or \texttt{Den}. The file contains the analysis in the extended zone scheme 
+		(See Eq.~\ref{eq:extended_zone})\\	
 		\texttt{Y\_R0/g\_R0} & Time-resolved and spatially local Jackknife mean and error of \texttt{Y}, where \texttt{Y} stands for \texttt{Green, SpinZ, SpinXY}, and \texttt{Den}\\
 		\texttt{Y\_kx\_ky/g\_kx\_ky} & Time resolved and $\vec{k}$-dependent Jackknife mean and error of \texttt{Y}, where \texttt{Y} stands for \texttt{Green, SpinZ, SpinXY}, and \texttt{Den}\\
+		\texttt{Y\_e\_kx\_ky/g\_kx\_ky} & Time resolved and $\vec{k}$-dependent Jackknife mean and error of \texttt{Y}, where \texttt{Y} stands for \texttt{Green, SpinZ, SpinXY}, and \texttt{Den}.
+		The file contains the analysis in the extended zone scheme 
+		(See Eq.~\ref{eq:extended_zone})\\
 		\texttt{Part\_scal\_Auto} & Autocorrelation functions $S_{\hat{O}}(t_{\textrm{Auto}})$ in the range $t_{\text{Auto}}=[0,\textrm{\path{N_auto}}]$ for the observable $\hat{O}$ \\\bottomrule
 	\end{tabular}
 	\caption{Standard input and output files of the error analysis program \texttt{ana.out}. \label{table:analysis_files}}
@@ -216,8 +221,22 @@ The analysis output files listed in Table \ref{table:analysis_files} and are for
 		OBS :  2    <mean(sign)>   <error(sign)>
 	\end{alltt} }
 	
-	\item For the equal-time correlation functions \texttt{Y}, the formatting of the output files \texttt{Y\_eqJR} and \texttt{Y\_eqJK} follows the structure:
+	\item For the equal-time correlation functions  in   real  space,  \texttt{Y}, the formatting of the output files \texttt{Y\_eqJR}  follows the structure:
 	{\small \begin{alltt}
+		do i = 1, N_unit_cell
+		   <r_x(i)>   <r_y(i)>
+		   do alpha = 1, N_orbital
+		      do beta  = 1, N_orbital
+		         alpha  beta  Re<mean(Y)>  Re<error(Y)>  Im<mean(Y)>  Im<error(Y)>
+		      enddo
+		   enddo
+		enddo
+	\end{alltt} }
+	where \texttt{Re} and \texttt{Im} refer to the real and imaginary part, respectively.   
+		
+	\item  The  format  for   equal  time  correlations in  Fourier  space  depends  upon    the   boolean  variable   \texttt{Extended\_Zone}.  
+	 For  \texttt{Extended\_Zone=.F.} ,   the  format  reads: 
+	 {\small \begin{alltt}
 		do i = 1, N_unit_cell
 		   <k_x(i)>   <k_y(i)>
 		   do alpha = 1, N_orbital
@@ -227,7 +246,28 @@ The analysis output files listed in Table \ref{table:analysis_files} and are for
 		   enddo
 		enddo
 	\end{alltt} }
-	where \texttt{Re} and \texttt{Im} refer to the real and imaginary part, respectively.
+	where \texttt{Re} and \texttt{Im} refer to the real and imaginary part, respectively.  The  Fourier   transformation  is   
+	defined  in Eq.~\ref{eq:fourier_transform}.  
+
+	For  \texttt{Extended\_Zone=.T.} ,   the  format  reads: 
+	 {\small \begin{alltt}
+		do n = 0, N_BZ_Zones -1 
+		   do m = 0, N_BZ_Zones 	-1
+		        do  i  =  1,N_unit_cell 
+		              <k_x(i) +  n b_1 + m b_2 >   <k_y(i) + n b_1 +  m b_2 >   & 
+		                     &    Re<mean(Y)>  Re<error(Y)>  Im<mean(Y)>  Im<error(Y)>
+		        enddo
+		   enddo
+		enddo
+	\end{alltt} }
+	In  this  case,  the  Fourier  transformation is    defined  as: 
+	\begin{equation}
+		S( \ve{k} +  n \ve{b}_1  + m \ve{b}_2)   =    \sum_{\alpha,\beta} e^{- i \left( \ve{k} +  n \ve{b}_1  + m \ve{b}_2 \right) \cdot   \left( \ve{r}_{\alpha} -  \ve{r}_{\beta} \right)  } S_{\alpha,\beta}(\ve{k} ).  
+		\label{eq:extended_zone}
+	\end{equation}   
+	The  positions  of  the orbitals, $\ve{r}_{\alpha}$  within the  unit  cell  are   read in from  the  file  \text{Y\_info},  $\ve{b}_1$, $\ve{b}_2$, are  the  
+	reciprocal lattice  vectors  and  the Fourier  transform is  defined in equation  Eq.~\ref{eq:fourier_transform}.
+	The naming of the output files equally depend upon the boolean variable \texttt{Extended\_Zone} (see table \ref{table:analysis_files}).
 	
 	\item The imaginary-time displaced correlation functions \texttt{Y} are written to the output files \texttt{g\_R0} inside folders \texttt{Y\_R0}, when measured locally in space; 
 	and to the output files \texttt{g\_kx\_ky} inside folders \texttt{Y\_kx\_ky} when they are measured $\vec{k}$-resolved (where $\vec{k}=(\texttt{kx}, \texttt{ky})$). 
@@ -239,7 +279,8 @@ The analysis output files listed in Table \ref{table:analysis_files} and are for
 		enddo
 	\end{alltt} }
 	where \texttt{Tr} corresponds to the trace over the orbital degrees of freedom.   For particle-hole quantities at finite temperature,  $\tau$ runs from 
-	$0$ to $\beta/2$.   In all other cases it runs from $0$ to $\beta$. 
+	$0$ to $\beta/2$.   In all other cases it runs from $0$ to $\beta$.     The  above  is  valid   for  \texttt{Extended\_Zone=.F.}.   If \texttt{Extended\_Zone=.T.} then   \texttt{Tr[Y] }    is  replaced the  Fourier   transform in the  extended  zone  scheme  as   defined  above   but  for 
+	time  displaced  correlation   functions. 
 	
 	\item The file  \texttt{Y\_tauJK}    contains the susceptibilities defined as: 
 	\begin{equation}

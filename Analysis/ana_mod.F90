@@ -43,7 +43,7 @@
       Use Errors
       Use MyMats
       Use Matrix
-      Use Lattices_v3, only: Unit_cell, Lattice, Make_lattice, Fourier_K_to_R, Inv_K
+      Use Lattices_v3,         only: Unit_cell, Lattice, Make_lattice, Fourier_K_to_R, Inv_K
       Use Predefined_Lattices, only: Predefined_Latt
 #ifdef HDF5
       use hdf5
@@ -747,31 +747,33 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       Real    (Kind=Kind(0.d0))             , intent(in) :: dtau
       Character (len=*)                     , intent(in) :: Channel
 
-      Logical :: PartHole,  L_Back
-      Character (len=64) :: File_out, command
+      Logical :: PartHole, L_Back, Extended_Zone
+      Character (len=64) :: File_out, command,  xk1_str,  xk2_str 
       Real    (Kind=Kind(0.d0)), parameter :: Zero=1.D-8
-      Integer :: N_skip, N_rebin, N_Cov, N_Back, N_auto
+      Integer :: N_skip, N_rebin, N_Cov, N_Back, N_auto, N_BZ_Zones
       Integer :: Nbins, LT, Lt_eff,  n_mk
-      Integer :: nb, no, no1, no2, n, nt, nt1, ierr, Norb
+      Integer :: nb, no, no1, no2, n,i, nt, nt1, ierr, Norb,  NBZ_1,  NBZ_2
       Complex (Kind=Kind(0.d0)) :: Z, Zmean, Zerr
       Real    (Kind=Kind(0.d0)), allocatable :: Phase(:)
       Complex (Kind=Kind(0.d0)), allocatable :: V_help_loc(:,:,:,:), Bins_help(:,:,:,:) 
-      Real    (Kind=Kind(0.d0)), allocatable :: Xk_p(:,:),  Xk_p1(:) 
+      Real    (Kind=Kind(0.d0)), allocatable :: Xk_p(:,:),  Xk_p1(:), Xk_extended_p(:), X
       Complex (Kind=Kind(0.d0)), allocatable :: V_help_suscep(:,:,:,:), Weights(:) 
       Complex (Kind=Kind(0.d0)), allocatable :: Background(:,:)
       Complex (Kind=Kind(0.d0)), allocatable :: Xmean(:), Xcov(:,:),  Xmean_st(:),  Xerr_st(:)
 
 
-      NAMELIST /VAR_errors/ n_skip, N_rebin, N_Cov, N_Back, N_auto
+      NAMELIST /VAR_errors/ n_skip, N_rebin, N_Cov, N_Back, N_auto, N_BZ_Zones, Extended_Zone
 
       PartHole = .false.
       if(str_to_upper(Channel) == 'PH' .or. str_to_upper(Channel) ==  'P_PH') PartHole = .true.
       
-      N_skip = 1
+      N_skip  = 1
       N_rebin = 1
-      N_Back = 1
-      N_auto = 0
-      N_Cov  = 0
+      N_Back  = 1
+      N_auto  = 0
+      N_Cov   = 0
+      Extended_Zone = .false.
+      N_BZ_Zones = Latt_unit%Norb
       OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
       IF (ierr /= 0) THEN
          Write(error_unit,*) 'unable to open <parameters>',ierr
@@ -779,6 +781,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       END IF
       READ(5,NML=VAR_errors)
       CLOSE(5)
+      if (.not. Extended_Zone) N_BZ_Zones = 1
 
       Nbins = size(bins_raw,5)
       LT    = size(bins_raw,2)
@@ -801,7 +804,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
 
       ! Allocate  space
       Norb = Latt_unit%Norb
-      Allocate (  Phase(Nbins), Xk_p(2,Latt%N), Xk_p1(2),  &
+      Allocate (  Phase(Nbins), Xk_p(2,Latt%N), Xk_p1(2), Xk_extended_p(2),   &
             &     V_help_loc(Lt_eff,Norb,Norb,Nbins), &
             &     background(Norb,Nbins))
       Allocate ( Bins_help(Lt_eff,Norb,Norb,Nbins)  )
@@ -823,6 +826,8 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       !!  Normalization:  \sum_q e^{iqr} ( <O_n(r,t) O_m(0)> - <O_n><O_m> ) =
       !!                  \sum_q e^{iqr}  <O_n(r,t) O_m(0)>  - N \delta_{q,0} <O_n><O_m>
       V_help_loc = cmplx(0.d0,0.d0,kind(0.d0))
+      Allocate( Weights(Norb) )
+
       do n = 1,Latt%N
          XK_p1  =  - xk_p(:,n)
          n_mk   =   Inv_K(XK_P1,Latt)
@@ -838,39 +843,60 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
                      else
                         bins_help(nt,no1,no2,nb) =  bins_raw(n,nt,no1,no2,nb+n_skip)
                      endif
-                     V_help_loc(nt,no1,no2,nb) =  V_help_loc(nt,no1,no2,nb) +  bins_help(nt,no1,no2,nb)  !  For local 
+                     V_help_loc(nt,no1,no2,nb)   =  V_help_loc(nt,no1,no2,nb) +  bins_help(nt,no1,no2,nb)  !  For local 
                   enddo
                enddo
             enddo
          enddo
          
-         if (  Xk_p(1,n) >= -zero .and. XK_p(2,n) >= -zero ) then
-            if ( sqrt(Xk_p(1,n)**2 + Xk_p(2,n)**2) < 1.D-6 .and. N_Back == 1 ) then
-               L_back  = .true. 
-               call COV(bins_help, phase, Xcov, Xmean, background, L_back, N_rebin  )
-            else
-               L_back  = .false.
-               call COV(bins_help, phase, Xcov, Xmean, background, L_back, N_rebin )
-            endif
-            write(File_out,'(A,"_",F4.2,"_",F4.2,"/g_dat")') trim(name_obs), Xk_p(1,n), Xk_p(2,n)
-            write(command, '("mkdir -p ",A,"_",F4.2,"_",F4.2)') trim(name_obs), Xk_p(1,n), Xk_p(2,n)
-            CALL EXECUTE_COMMAND_LINE(command)
-            Open (Unit=10, File=File_out, status="unknown")
-            Write(10, '(2(I11), E26.17E3, I11, " ", A)') &
-                  & Lt_eff, nbins/N_rebin, real(lt-1,kind(0.d0))*dtau, Latt_unit%Norb, trim(Channel)
-            do nt = 1, LT_eff
-               Write(10, '(3(E26.17E3))') &
-                     & dble(nt-1)*dtau,  dble(Xmean(nt)), sqrt(abs(dble(Xcov(nt,nt))))
+         Do  NBZ_1 =  0, N_BZ_Zones - 1 
+            Do NBZ_2 = 0, N_BZ_Zones - 1
+               Xk_Extended_p(:)  =   Xk_p(:,n) +  NBZ_1 * Latt%BZ1_p +  NBZ_2 * Latt%BZ2_p
+               if ( Xk_Extended_p(1) >= -zero .and. XK_Extended_p(2) >= -zero ) then
+                  L_back  = .false. 
+                  if ( sqrt(Xk_extended_p(1)**2 + Xk_extended_p(2)**2) < 1.D-6 .and. N_Back == 1 )   L_back  = .true.
+                  ! Set   weights
+                  If (Extended_Zone)  then
+                     do  no  =  1,Norb
+                        X =  0.d0
+                        do i  =  1,size(Latt%BZ1_p,1)
+                           X  =  X + Xk_Extended_p(i)*Latt_unit%Orb_pos_p(no,i) 
+                        enddo
+                        Weights(no)  =  exp(cmplx(0.d0, X , kind(0.d0) ) )
+                     enddo
+                     call COV(bins_help, phase, Xcov, Xmean, background, L_back, N_rebin, weights )
+                  else
+                     call COV(bins_help, phase, Xcov, Xmean, background, L_back, N_rebin  )
+                  endif
+                  write(xk1_str,"(F5.2)")  abs(Xk_Extended_p(1))
+                  write(xk2_str,"(F5.2)")  abs(Xk_Extended_p(2))
+                  !Write(6,*) 'Xk1 = ', Xk_Extended_p(1), 'Xk2 = ', Xk_Extended_p(2)
+                  If (Extended_Zone)  then
+                     write(File_out,'(A,"_e_",A,"_",A,"/g_dat")'   ) trim(name_obs), trim(adjustl(Xk1_str)), trim(adjustl(Xk2_str)) 
+                     write(command, '("mkdir -p ",A,"_e_",A,"_",A)') trim(name_obs), trim(adjustl(Xk1_str)), trim(adjustl(Xk2_str)) 
+                  else
+                     write(File_out,'(A,"_",A,"_",A,"/g_dat")'   ) trim(name_obs), trim(adjustl(Xk1_str)), trim(adjustl(Xk2_str)) 
+                     write(command, '("mkdir -p ",A,"_",A,"_",A)') trim(name_obs), trim(adjustl(Xk1_str)), trim(adjustl(Xk2_str)) 
+                  endif
+                  CALL EXECUTE_COMMAND_LINE(command)
+                  Open (Unit=10, File=File_out, status="unknown")
+                  Write(10, '(2(I11), E26.17E3, I11, A3)') &
+                       & Lt_eff, nbins/N_rebin, real(lt-1,kind(0.d0))*dtau, Latt_unit%Norb, Channel
+                  do nt = 1, LT_eff
+                     Write(10, '(3(E26.17E3))') &
+                          & dble(nt-1)*dtau,  dble(Xmean(nt)), sqrt(abs(dble(Xcov(nt,nt))))
+                  enddo
+                  If (N_cov == 1) Then ! print covarariance
+                     Do nt = 1,LT_eff
+                        Do nt1 = 1,LT_eff
+                           Write(10, '(E25.17E3)') dble(Xcov(nt,nt1))
+                        Enddo
+                     Enddo
+                  Endif
+                  close(10)
+               endif
             enddo
-            If (N_cov == 1) Then ! print covarariance
-               Do nt = 1,LT_eff
-                  Do nt1 = 1,LT_eff
-                     Write(10, '(E25.17E3)') dble(Xcov(nt,nt1))
-                  Enddo
-               Enddo
-            Endif
-            close(10)
-         endif
+         enddo
       enddo
 
 
@@ -882,14 +908,10 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       enddo
       !!  Normalization:   <O_n(0,t) O_m(0)> - <O_n><O_m> 
       V_help_loc =  V_help_loc/dble(Latt%N)
-      if (N_Back == 1) then
-         L_back  = .true. 
-         call COV(V_help_loc, phase, Xcov, Xmean, background, L_back, N_rebin  )
-      else
-         L_back  = .false. 
-         call COV(V_help_loc, phase, Xcov, Xmean, background, L_back, N_rebin  )
-      endif
-      write(File_out,'(A,"_R0/g_dat")') trim(name_obs)
+      L_Back = .false.
+      if (N_Back == 1) L_back = .true. 
+      call COV(V_help_loc, phase, Xcov, Xmean, background, L_back, N_rebin  )
+      write(File_out,'(A,"_R0/g_dat")'      ) trim(name_obs)
       write(command, '("mkdir -p ",A,"_R0")') trim(name_obs)
       CALL EXECUTE_COMMAND_LINE(command)
       Open (Unit=10,File=File_out,status="unknown")
@@ -897,7 +919,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
             & LT_eff, nbins/N_rebin, real(lt-1,kind(0.d0))*dtau, Latt_unit%Norb, trim(Channel)
       do nt = 1, LT_eff
          Write(10, '(3(E26.17E3))') &
-               & dble(nt-1)*dtau,  dble(Xmean(nt)), sqrt(abs(dble(Xcov(nt,nt))))
+              & dble(nt-1)*dtau,  dble(Xmean(nt)), sqrt(abs(dble(Xcov(nt,nt))))
       enddo
       If (N_cov == 1) Then ! Print  covariance
          Do nt = 1,LT_eff
@@ -910,7 +932,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       Deallocate( Xmean, Xcov, V_help_loc) 
 
       ! Do susceptibilities ===============================
-      Allocate(V_help_suscep(1,Norb,Norb,Nbins), Weights(Norb) )
+      Allocate(V_help_suscep(1,Norb,Norb,Nbins) )
       Allocate(Xmean(1), Xcov(1,1), Xmean_st(Latt%N), Xerr_st(Latt%N) ) 
       Weights=cmplx(1.d0,0.d0,kind(0.d0))
       Z = Latt%N*(Lt_eff -1)
@@ -932,19 +954,15 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
                   do no1 = 1,Latt_unit%Norb
                      Z = Z + cmplx(0.5d0,0.d0,Kind(0.d0)) * ( bins_raw(n,nt,no,no1,nb+n_skip) + bins_raw(n,nt+1,no,no1,nb+n_skip) )
                      V_help_suscep(1,no,no1,nb) =  V_help_suscep(1,no,no1,nb) +  &
-                          &   cmplx(0.5d0,0.d0,Kind(0.d0)) * ( bins_raw(n,nt,no,no1,nb+n_skip) + bins_raw(n,nt+1,no,no1,nb+n_skip) ) 
+                          &  cmplx(0.5d0,0.d0,Kind(0.d0)) * ( bins_raw(n,nt,no,no1,nb+n_skip) + bins_raw(n,nt+1,no,no1,nb+n_skip) ) 
                   enddo
                enddo
             enddo
          enddo
          if (PartHole)  V_help_suscep   =  V_help_suscep * cmplx(2.d0,0.d0,Kind(0.d0))
-         if ( sqrt(Xk_p(1,n)**2 + Xk_p(2,n)**2) < 1.D-6 .and. N_Back == 1 ) then
-            L_back  = .true. 
-            call COV(V_help_suscep, phase, Xcov, Xmean, background, L_back, N_rebin, Weights  )
-         else
-            L_back  = .false. 
-            call COV(V_help_suscep, phase, Xcov, Xmean, background, L_back, N_rebin, Weights  )
-         endif
+         L_back  = .false. 
+         if ( sqrt(Xk_p(1,n)**2 + Xk_p(2,n)**2) < 1.D-6 .and. N_Back == 1 )  L_back  = .true. 
+         call COV(V_help_suscep, phase, Xcov, Xmean, background, L_back, N_rebin, Weights  )
          Xmean_st(n) = Xmean(1)*dtau
          Xerr_st(n)  =  Sqrt(Xcov(1,1))*dtau
       enddo
@@ -958,11 +976,10 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       enddo
       Close(33)
       deallocate(Xmean, Xcov,Xmean_st, Xerr_st,V_Help_suscep, Weights) 
-      ! EndDo susceptibilities ===============================
-
+      ! End susceptibilities ===============================
 
       ! Deallocate space ===============================
-      Deallocate ( Phase, Xk_p,  Xk_p1, Bins_help)
+      Deallocate ( Phase, Xk_p,  Xk_p1,Xk_extended_p,  Bins_help)
       Deallocate ( background)
 
    end Subroutine ana_tau
@@ -1014,27 +1031,31 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
      Type (Unit_cell)                      , intent(in) :: Latt_unit
      
      Character (len=64) :: File_out
-     Integer :: N_skip, N_rebin, N_Cov, N_Back, N_auto
+     Integer :: N_skip, N_rebin, N_Cov, N_Back, N_auto, N_BZ_Zones
+     Logical :: Extended_Zone, L_back
      Integer :: Nbins
-     Integer :: i, n, nb, no, no1, ierr
+     Integer :: i, n, nb, no, no1, no2, ierr, NBZ_1, NBZ_2
      Type  (Mat_C), allocatable :: Bins (:,:), Bins_R(:,:)
      Complex (Kind=Kind(0.d0)), allocatable :: Phase(:)
-     Complex (Kind=Kind(0.d0)), allocatable :: V_help(:,:), V_help_R(:,:)
+     Complex (Kind=Kind(0.d0)), allocatable :: V_help(:,:), V_help_R(:,:), Bins_help(:,:,:,:), Background(:,:), &
+          &                                    Xmean_v(:), Xcov(:,:), Weights(:) 
      Complex (Kind=Kind(0.d0)), allocatable :: Bins0(:,:)
-     Real (Kind=Kind(0.d0)), allocatable :: Xk_p_s(:,:)
-     Real (Kind=Kind(0.d0)), allocatable :: AutoCorr(:),En(:)
-     Real    (Kind=Kind(0.d0)) :: Xk_p(2), Xr_p(2)
+     Real    (Kind=Kind(0.d0)), allocatable :: Xk_p_s(:,:), Phase_R(:) 
+     Real    (Kind=Kind(0.d0)), allocatable :: AutoCorr(:),En(:)
+     Real    (Kind=Kind(0.d0)) :: Xk_p(2), Xr_p(2),  Xk_extended_p(2) 
      Complex (Kind=Kind(0.d0)) :: Z, Xmean, Xerr, Xmean_r, Xerr_r
-     Real (Kind=Kind(0.d0)) :: Xm,Xe
+     Real    (Kind=Kind(0.d0)) :: Xm,Xe, X
      procedure (func_c), pointer :: f_ptr => Background_eq
      
-      NAMELIST /VAR_errors/ N_skip, N_rebin, N_Cov, N_Back, N_auto
+      NAMELIST /VAR_errors/ N_skip, N_rebin, N_Cov, N_Back, N_auto, N_BZ_Zones, Extended_Zone
 
       N_skip = 1
       N_rebin = 1
       N_Back = 1
       N_auto = 0
       N_Cov  = 0
+      N_BZ_Zones =  Latt_unit%Norb
+      Extended_Zone = .false.
       OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
       IF (ierr /= 0) THEN
          Write(error_unit,*) 'unable to open <parameters>',ierr
@@ -1042,6 +1063,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       END IF
       READ(5,NML=VAR_errors)
       CLOSE(5)
+      if (.not. Extended_Zone) N_BZ_Zones = 1
 
       Nbins = size(bins_raw,5)
 
@@ -1055,7 +1077,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       endif
 
       ! Allocate  space
-      Allocate( bins(Latt%N,Nbins), bins_r(Latt%N,Nbins), Phase(Nbins) )
+      Allocate( bins(Latt%N,Nbins), bins_r(Latt%N,Nbins), Phase(Nbins), Phase_R(Nbins) )
       Allocate( V_help(3,Nbins), V_help_R(3,Nbins), Bins0(Nbins, Latt_unit%Norb) )
       Do n = 1,Latt%N
          do nb = 1,nbins
@@ -1074,7 +1096,9 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       Bins0 = cmplx(0.d0,0.d0,kind(0.d0))
       do nb = 1, nbins + n_skip
          if (nb > n_skip ) then
-            Phase(nb-n_skip) = cmplx(sgn(nb),0.d0,kind(0.d0))
+            Phase  (nb-n_skip) = cmplx(sgn(nb),0.d0,kind(0.d0))
+            Phase_R(nb-n_skip) = sgn(nb)
+            
             Do no = 1,Latt_unit%Norb
                if (N_Back == 1 ) Bins0(nb-n_skip,no) = Bins0_raw(no,nb)
             enddo
@@ -1084,65 +1108,100 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
                      bins(n,nb-n_skip)%el(no,no1) = Bins_raw(n,1,no,no1,nb)
                   enddo
                enddo
-!!$               FFA:  Legacy                
-!!$               Xk_p(:) = Xk_p_s(:,n)
-!!$               if ( sqrt(Xk_p(1)**2 + Xk_p(2)**2) < 1.D-6 ) then
-!!$                  do no = 1,Latt_unit%Norb
-!!$                     do no1 = 1,Latt_unit%Norb
-!!$                        bins(n,nb-n_skip)%el(no,no1)  =  bins(n,nb-n_skip)%el(no,no1) !-  &
-!!$                        ! &        cmplx(dble(Latt%N),0.d0,kind(0.d0))*Bins0(nb-n_skip,no)*Bins0(nb-n_skip,no1) &
-!!$                        ! &        /Phase(nb-n_skip)
-!!$                     enddo
-!!$                  enddo
-!!$               endif
             enddo
          endif
       enddo
       N_auto=min(N_auto,Nbins/3)
 
+      ! K-space
+      !!Normalization:  \sum_q e^{iqr} ( <O_n(r) O_m(0)> - <O_n><O_m> ) =
+      !!                \sum_q e^{iqr}  < O_n(r) O_m(0)> - N \delta_{q,0} <O_n><O_m>
+      If (Extended_zone) then
+         write(File_out,'(A,"_e",A)') trim(name), "JK"
+         Open (Unit=33,File=File_out ,status="unknown")
+      else
+         write(File_out,'(A,A)') trim(name), "JK"
+         Open (Unit=33,File=File_out ,status="unknown")
+      Endif
+      If (Extended_zone) then
+         Allocate  (background(Latt_unit%Norb,Nbins), Xcov(1,1),  Xmean_v(1), &
+              &      bins_help(1,Latt_unit%Norb, Latt_unit%Norb, Nbins), Weights(Latt_unit%Norb)  ) 
+         do nb = 1, nbins
+            do no = 1,Latt_unit%Norb
+               background(no,nb) = Bins0_raw(no,nb+n_skip)*sqrt(dble(Latt%N))
+            enddo
+         enddo
+         Do  NBZ_1 =  0, N_BZ_Zones - 1 
+            Do NBZ_2 = 0, N_BZ_Zones - 1
+               Write(33,"(A,2I2)") "# Brillouin zone ", NBZ_1, NBZ_2
+               do  n = 1,  Latt%N 
+                  Xk_Extended_p(:)  =   Xk_p_s(:,n) +  NBZ_1 * Latt%BZ1_p +  NBZ_2 * Latt%BZ2_p
+                  L_back  = .false. 
+                  if ( sqrt(Xk_Extended_p(1)**2 + Xk_Extended_p(2)**2) < 1.D-6 .and. N_Back == 1 )   L_back  = .true.
+                  do no  =  1,Latt_unit%Norb
+                     X =  0.d0
+                     do i  =  1,size(Latt%BZ1_p,1)
+                        X  =  X + Xk_Extended_p(i)*Latt_unit%Orb_pos_p(no,i) 
+                     enddo
+                     Weights(no)  =  exp( cmplx(0.d0, X , kind(0.d0) ) )
+                  enddo
+                  do nb =  1,Nbins
+                     do no1 =  1, Latt_unit%Norb
+                        do no2  =  1, Latt_unit%Norb
+                           bins_help(1,no1,no2,nb) =  Bins_raw(n,1,no1,no2,nb+n_skip)
+                        enddo
+                     enddo
+                  enddo
+                  call COV(bins_help, phase_R, Xcov, Xmean_v, background, L_back, N_rebin, weights )
+                  Xerr =  sqrt(xcov(1,1))
+                  Write(33, "(6(E26.17E3))") &
+                       &  Xk_Extended_p(1), Xk_Extended_p(2), dble(XMean_v(1)), dble(XErr), aimag(XMean_v(1)), aimag(XERR)
 
+               enddo
+            enddo
+         enddo
+         deallocate (background, Xcov, Xmean_v, bins_help, Weights) 
+      else
+         Do n = 1,Latt%N
+            Xk_p = dble(Latt%listk(n,1))*Latt%b1_p + dble(Latt%listk(n,2))*Latt%b2_p
+            Write(33, '(2(E26.17E3))')  Xk_p(1), Xk_p(2)
+            Do no = 1,Latt_unit%Norb
+               do no1 = 1,Latt_unit%Norb
+                  do nb = 1,Nbins
+                     V_help(1,nb) = bins  (n,nb)%el(no,no1)
+                  enddo
+                  if ( sqrt(Xk_p(1)**2 + Xk_p(2)**2) < 1.D-6 ) then
+                     do nb = 1,Nbins
+                        V_help(2,nb) = Bins0(nb,no)*Latt%N
+                        V_help(3,nb) = Bins0(nb,no1)
+                     enddo
+                  else
+                     do nb = 1,Nbins
+                        V_help(2,nb) = 0.0d0
+                        V_help(3,nb) = 0.0d0
+                     enddo
+                  endif
+                  call ERRCALCJ( V_help, Phase,XMean, XERR, N_rebin, f_ptr )
+                  Write(33, "(2(I11), 4(E26.17E3))") &
+                       &  no, no1, dble(XMean), dble(XERR), aimag(XMean), aimag(XERR)
+               enddo
+            enddo
+         enddo
+      endif
+      Close(33)
+
+      !Real  space 
       Call Fourier_K_to_R(bins,bins_r,Latt)
-      
-!!$#ifdef test
-!!$      ! Setup symmetries for square lattice.
-!!$      do n = 1,Latt%N
-!!$         n1 = n
-!!$         Write(6, "(2(E26.17E3))") Xk_p(1,n1), Xk_p(2,n1)
-!!$         do m = 1,4
-!!$            n1 = Rot90(n1, Xk_p, Latt%N)
-!!$            Write(6, "(I11, 2(E26.17E3))") n1, Xk_p(1,n1), Xk_p(2,n1)
-!!$         enddo
-!!$         Write(6,*)
-!!$      enddo
-!!$#endif
-      write(File_out,'(A,A)') trim(name), "JK"
-      Open (Unit=33,File=File_out ,status="unknown")
       write(File_out,'(A,A)') trim(name), "JR"
       Open (Unit=34,File=File_out ,status="unknown")
       Do n = 1,Latt%N
-         Xk_p = dble(Latt%listk(n,1))*Latt%b1_p + dble(Latt%listk(n,2))*Latt%b2_p
          Xr_p = dble(Latt%list (n,1))*Latt%a1_p + dble(Latt%list (n,2))*Latt%a2_p
-         Write(33, '(2(E26.17E3))')  Xk_p(1), Xk_p(2)
          Write(34, '(2(E26.17E3))')  Xr_p(1), Xr_p(2)
          Do no = 1,Latt_unit%Norb
             do no1 = 1,Latt_unit%Norb
                do nb = 1,Nbins
                   V_help(1,nb) = bins  (n,nb)%el(no,no1)
                enddo
-               if ( sqrt(Xk_p(1)**2 + Xk_p(2)**2) < 1.D-6 ) then
-                  do nb = 1,Nbins
-                     V_help(2,nb) = Bins0(nb,no)*Latt%N
-                     V_help(3,nb) = Bins0(nb,no1)
-                  enddo
-               else
-                  do nb = 1,Nbins
-                     V_help(2,nb) = 0.0d0
-                     V_help(3,nb) = 0.0d0
-                  enddo
-               endif
-               call ERRCALCJ( V_help, Phase,XMean, XERR, N_rebin, f_ptr )
-               Write(33, "(2(I11), 4(E26.17E3))") &
-                     &  no, no1, dble(XMean), dble(XERR), aimag(XMean), aimag(XERR)
                do nb = 1,Nbins
                   V_help_r(1,nb) = bins_r(n,nb)%el(no,no1)
                   V_help_r(2,nb) = Bins0(nb,no)
@@ -1154,8 +1213,6 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
             enddo
          enddo
       enddo
-
-      Close(33)
       Close(34)
 
       if ( N_auto > 0 ) then
@@ -1233,11 +1290,15 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       Complex (Kind=Kind(0.d0)), Allocatable  :: Bins(:,:)
       REAL    (Kind=Kind(0.d0)), Allocatable  :: AutoCorr(:)
       Integer :: Nobs, Nobs_output, data_range
-      Integer :: Nbins, Nbins_eff, I, IOBS, N_Back
+      Integer :: Nbins, Nbins_eff, I, IOBS, N_Back, N_BZ_Zones
+      Logical :: Extended_Zone
+      
+
+      
 
       Integer :: N_skip, N_rebin, N_Cov, ierr, N_auto
       Character (len=64) :: File_out
-      NAMELIST /VAR_errors/   N_skip, N_rebin, N_Cov, N_Back, N_auto
+      NAMELIST /VAR_errors/   N_skip, N_rebin, N_Cov, N_Back, N_auto, N_BZ_Zones, Extended_Zone 
 
       !New Stuff for Autocorrelation
       REAL(Kind=Kind(0.d0)), DIMENSION(:)  , ALLOCATABLE :: vec, vec_err

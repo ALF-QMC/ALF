@@ -235,6 +235,7 @@ such that
 
 The \path{Lattice} module also handles the Fourier transformation.  For example,  the  subroutine  \path{Fourier_R_to_K}   carries out the  transformation: 
 \begin{equation}
+\label{eq:fourier_transform}
 	S(\vec{k}, :,:,:) =  \frac{1}{N_\text{unit-cell}}  \sum_{\vec{i},\vec{j}}   e^{-i \vec{k} \cdot \left( \vec{i}-\vec{j} \right)} S(\vec{i}  - \vec{j}, :,:,:)
 \end{equation}
 and  \path{Fourier_K_to_R}  the  inverse Fourier transform 

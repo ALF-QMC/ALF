@@ -75,12 +75,14 @@ Program MaxEnt_Wrapper
        Integer                :: ntau_st, ntau_en, ntau_new, Ntau_old
        Real (Kind=Kind(0.d0)) :: dtau, pi, xmom1, x,x1,x2, tau, omp, om, Beta,err, delta, Dom
        Real (Kind=Kind(0.d0)) :: Zero, Alpha_classic_st=100000.d0
+       Integer ::  N_BZ_Zones     =  1 
+       Logical ::  Extended_Zone = .false.
 
        NAMELIST /VAR_Max_Stoch/ Ngamma, Ndis,  NBins, NSweeps, Nwarm, N_alpha, &
             &                   OM_st, OM_en,  alpha_st, R,  Checkpoint, Tolerance, &
             &                   Stochastic
 
-       NAMELIST /VAR_errors/    N_skip, N_rebin, N_cov,  N_Back, N_auto
+       NAMELIST /VAR_errors/    N_skip, N_rebin, N_cov,  N_Back, N_auto,  N_BZ_Zones,  Extended_Zone
 
 #ifdef _OPENMP
        call check_omp_num_threads()
