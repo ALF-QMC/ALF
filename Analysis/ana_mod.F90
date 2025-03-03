@@ -870,8 +870,14 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
                   endif
                   write(xk1_str,"(F5.2)")  abs(Xk_Extended_p(1))
                   write(xk2_str,"(F5.2)")  abs(Xk_Extended_p(2))
-                  write(File_out,'(A,"_",A,"_",A,"/g_dat")'   ) trim(name_obs), trim(adjustl(Xk1_str)), trim(adjustl(Xk2_str)) 
-                  write(command, '("mkdir -p ",A,"_",A,"_",A)') trim(name_obs), trim(adjustl(Xk1_str)), trim(adjustl(Xk2_str)) 
+                  !Write(6,*) 'Xk1 = ', Xk_Extended_p(1), 'Xk2 = ', Xk_Extended_p(2)
+                  If (Extended_Zone)  then
+                     write(File_out,'(A,"_e_",A,"_",A,"/g_dat")'   ) trim(name_obs), trim(adjustl(Xk1_str)), trim(adjustl(Xk2_str)) 
+                     write(command, '("mkdir -p ",A,"_e_",A,"_",A)') trim(name_obs), trim(adjustl(Xk1_str)), trim(adjustl(Xk2_str)) 
+                  else
+                     write(File_out,'(A,"_",A,"_",A,"/g_dat")'   ) trim(name_obs), trim(adjustl(Xk1_str)), trim(adjustl(Xk2_str)) 
+                     write(command, '("mkdir -p ",A,"_",A,"_",A)') trim(name_obs), trim(adjustl(Xk1_str)), trim(adjustl(Xk2_str)) 
+                  endif
                   CALL EXECUTE_COMMAND_LINE(command)
                   Open (Unit=10, File=File_out, status="unknown")
                   Write(10, '(2(I11), E26.17E3, I11, A3)') &
@@ -1110,8 +1116,13 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       ! K-space
       !!Normalization:  \sum_q e^{iqr} ( <O_n(r) O_m(0)> - <O_n><O_m> ) =
       !!                \sum_q e^{iqr}  < O_n(r) O_m(0)> - N \delta_{q,0} <O_n><O_m>
-      write(File_out,'(A,A)') trim(name), "JK"
-      Open (Unit=33,File=File_out ,status="unknown")
+      If (Extended_zone) then
+         write(File_out,'(A,"_e",A)') trim(name), "JK"
+         Open (Unit=33,File=File_out ,status="unknown")
+      else
+         write(File_out,'(A,A)') trim(name), "JK"
+         Open (Unit=33,File=File_out ,status="unknown")
+      Endif
       If (Extended_zone) then
          Allocate  (background(Latt_unit%Norb,Nbins), Xcov(1,1),  Xmean_v(1), &
               &      bins_help(1,Latt_unit%Norb, Latt_unit%Norb, Nbins), Weights(Latt_unit%Norb)  ) 
