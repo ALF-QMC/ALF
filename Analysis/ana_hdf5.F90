@@ -1,4 +1,4 @@
-!  Copyright (C) 2020-2021 The ALF project
+!  Copyright (C) 2020-2025 The ALF project
 !
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -103,6 +103,18 @@
          endif
       enddo
       
+      do n=1, size(names)
+         name = names(n)
+         i = len(trim(name)) -5
+         if ( i > 1 ) then
+            if ( name(i:) == '_local' ) then
+               print *, ''
+               print '(A,A)', "analyzing equal time local observables ", name
+               call Cov_local(name,File_in)
+            endif
+         endif
+      enddo
+
       do n=1, size(names)
          name = names(n)
          i = len(trim(name)) -3

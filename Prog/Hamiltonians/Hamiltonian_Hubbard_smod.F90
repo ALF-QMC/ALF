@@ -532,7 +532,11 @@
              end select
              Call Obser_Vec_make(Obs_scal(I),N,Filename)
           enddo
-
+          ! Local quantities 
+          Allocate ( Obs_local(1) )
+          Filename = "Double"
+          Channel = "--"
+          Call Obser_Latt_Local_make(Obs_local(1), 1, Filename, Latt, Latt_unit, Channel, dtau)
           ! Equal time correlators
           If ( Mz ) Then
              Allocate ( Obs_eq(5) )
@@ -718,6 +722,20 @@
           Obs_scal(3)%Obs_vec(1)  =    Obs_scal(3)%Obs_vec(1) + Zrho * ZP*ZS
 
           Obs_scal(4)%Obs_vec(1)  =    Obs_scal(4)%Obs_vec(1) + (Zkin + Zpot)*ZP*ZS
+
+          ! Compute local observables.
+          Do I = 1,Size(Obs_local,1)
+             Obs_local(I)%N         =  Obs_local(I)%N + 1
+             Obs_local(I)%Ave_sign  =  Obs_local(I)%Ave_sign + Real(ZS,kind(0.d0))
+          Enddo
+          Do I = 1,Latt%N
+            do no_I = 1,Latt_unit%Norb
+               I1 = Invlist(I,no_I)
+               Obs_Local(1)%Obs_Latt(I,1,no_I) = Obs_Local(1)%Obs_Latt(I,1,no_I)  + & 
+               &       Grc(i1,i1,1) * Grc(i1,i1, dec)*ZP*ZS
+            enddo
+          Enddo
+
 
           ! Standard two-point correlations
           If ( Mz ) then

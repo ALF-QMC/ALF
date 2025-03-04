@@ -1,4 +1,4 @@
-!  Copyright (C) 2019 The ALF project
+!  Copyright (C) 2019-2025 The ALF project
 !
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -219,15 +219,317 @@
 #endif
 
 !==============================================================================
+Subroutine read_local(file, sgn, bins, Latt, Latt_unit, dtau, Channel)
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Reads in bins of local-type observables (at present just equal time ) from file
+!>
+!> @param [IN] file Character(len=64)
+!> \verbatim
+!>  Name of file that gets read in
+!> \endverbatim
+!> @param [OUT] sgn Real(:)
+!> \verbatimam
+!>  Sign of bins
+!> \endverbatim
+!> @param [OUT] bins Complex(:,:,:,:,:)
+!> \verbatim
+!>  Monte Carlo bins of correlation
+!> @param [OUT] Latt Type(Lattice)
+!> \verbatim
+!>  Bravais lattice
+!> \endverbatim
+!> @param [OUT] Latt_unit Type(Unit_cell)
+!> \verbatim
+!>  Unit cell
+!> \endverbatim
+!> @param [OUT] dtau Real
+!> \verbatim
+!>  Size of imaginary time step
+!> \endverbatim
+!> @param [OUT] file Character(len=2)
+!> \verbatim
+!>  MaxEnt Channel. Relevant for timedisplaced correlation.
+!> \endverbatim
+!-------------------------------------------------------------------
+      Implicit none
+      Character (len=*), intent(in) :: file
+      Real    (Kind=Kind(0.d0)), allocatable, intent(out) :: sgn(:)
+      Complex (Kind=Kind(0.d0)), pointer    , intent(out) :: bins(:,:,:,:)
+      Type (Lattice)                        , intent(out) :: Latt
+      Type (Unit_cell)                      , intent(out) :: Latt_unit
+      Real    (Kind=Kind(0.d0))             , intent(out) :: dtau
+      Character (len=:), allocatable        , intent(out) :: Channel
+      
+
+      Character (len=64) :: file_aux, str_temp1,  str_temp2
+      Integer, allocatable :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
+      Integer :: no, no1, n, nt, nb, Ntau, Ndim, Nbins, stat, Ndim_unit
+      Real(Kind=Kind(0.d0)) :: X
+      Real(Kind=Kind(0.d0)), allocatable :: Xr_p(:,:), Orb_pos_temp(:)
+      Real(Kind=Kind(0.d0)) :: x_p(2), a1_p(2), a2_p(2), L1_p(2), L2_p(2)
+      logical            :: file_exists
+
+      Integer             :: L1, L2
+      Character (len=64)  :: Model, Lattice_type
+      NAMELIST /VAR_Lattice/ L1, L2, Lattice_type, Model
 
 
+      write(file_aux, '(A,A)') trim(file), "_info"
+      inquire(file=file_aux, exist=file_exists)
+      if(file_exists) then
+        open(Unit=10, File=file_aux, status="old", action='read')
+        11 format(A22, A)
+        12 format(A22, I10)
+        13 format(A22, *(E26.17E3))
+        read(10, *)
+        read(10, 11) str_temp1, str_temp2
+        Channel  = trim(str_temp2)
+        read(10, 12) str_temp1, Ntau
+        read(10, 13) str_temp1, dtau
+        read(10, *)
+        read(10, 12) str_temp1, Latt%N
+        read(10, 13) str_temp1, L1_p
+        read(10, 13) str_temp1, L2_p
+        read(10, 13) str_temp1, a1_p
+        read(10, 13) str_temp1, a2_p
+        read(10, *)
+        read(10, 12) str_temp1, Latt_unit%N_coord
+        read(10, 12) str_temp1, Latt_unit%Norb
+        read(10, 12) str_temp1, Ndim_unit
+        allocate(Latt_unit%Orb_pos_p(Latt_unit%Norb, Ndim_unit), Orb_pos_temp(Ndim_unit))
+        do no = 1, Latt_unit%Norb
+          read(10, 13) str_temp1, Orb_pos_temp
+          Latt_unit%Orb_pos_p(no,:) =  Orb_pos_temp
+        enddo
+        deallocate(Orb_pos_temp)
+        close(10)
+        Call Make_Lattice(L1_p, L2_p, a1_p, a2_p, Latt)
+        Ndim = Latt%N*Latt_Unit%Norb
+      else
+        Channel = '--'
+        open(Unit=10, File='parameters', status="old", action='read')
+        read(10, NML=VAR_lattice)
+        close(10)
+        Call Predefined_Latt(Lattice_type, L1, L2, Ndim, List, Invlist, Latt, Latt_Unit)
+        open(Unit=10, File=file, status="old", action='read')
+        Read(10, *, iostat=stat) X, Latt_unit%Norb, Latt%N, Ntau, dtau
+        if (stat /= 0) then
+           rewind(10)
+           Ntau = 1
+           dtau = -1.d0
+           Read(10, *) X, Latt_unit%Norb, Latt%N
+        endif
+        close(10)
+      endif
+
+      ! Determine the number of bins.
+      open(Unit=10, File=file, status="old", action='read')
+      nbins = 0
+      do
+         if(Ntau == 1) then
+            read(10, *, iostat=stat) X, Latt_unit%Norb, Latt%N
+         else
+            read(10, *, iostat=stat) X, Latt_unit%Norb, Latt%N, Ntau, dtau
+         endif
+         if (stat /= 0) exit
+         do n = 1, Latt%N
+            Read(10,*)
+            do nt = 1, Ntau
+               do no = 1, Latt_unit%Norb
+                  read(10,*)
+               enddo
+            enddo
+         enddo
+         nbins = nbins + 1
+      enddo
+      rewind(10)
+
+      ! Allocate  space
+      Allocate(bins(Latt%N, Ntau, Latt_unit%Norb, Nbins))
+      Allocate(sgn(Nbins), Xr_p(2, Latt%N) )
+
+      do nb = 1, nbins
+         if(Ntau == 1) then
+            read(10, *) sgn(nb), Latt_unit%Norb, Latt%N
+         else
+            read(10, *) sgn(nb), Latt_unit%Norb, Latt%N, Ntau, dtau
+         endif
+         do n = 1, Latt%N
+            Read(10,*) Xr_p(1,n), Xr_p(2,n)
+            do nt = 1, Ntau
+               do no = 1, Latt_unit%Norb
+                  read(10,*) bins(n,nt,no,nb)
+               enddo
+            enddo
+         enddo
+      enddo
+      close(10)
+
+      do n = 1, Latt%N
+         x_p = dble(Latt%list(n,1))*Latt%a1_p + dble(Latt%list(n,2))*Latt%a2_p
+         x   = (x_p(1)-Xr_p(1,n))**2 + (x_p(2)-Xr_p(2,n))**2
+         if ( x > 0.00001 ) then
+            Write(error_unit,*) "Error in read_local: momenta do not fit", x, x_p, Xr_p(1,n)
+            error stop
+         endif
+      enddo
+
+   End Subroutine read_local
+!==============================================================================
+#ifdef HDF5
+Subroutine read_local_hdf5(filename, name, sgn, bins, Latt, Latt_unit, dtau, Channel)
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Reads in bins of lattice-type observables (both equal time and timedisplaced)
+!> from HDF5 file data.h5
+!>
+!> @param [IN] name Character(len=64)
+!> \verbatim
+!>  Name of observable that gets read in
+!> \endverbatim
+!> @param [OUT] sgn Real(:)
+!> \verbatimam
+!>  Sign of bins
+!> \endverbatim
+!> @param [OUT] bins Complex(:,:,:,:,:)
+!> \verbatim
+!>  Monte Carlo bins of correlation
+!> @param [OUT] Latt Type(Lattice)
+!> \verbatim
+!>  Bravais lattice
+!> \endverbatim
+!> @param [OUT] Latt_unit Type(Unit_cell)
+!> \verbatim
+!>  Unit cell
+!> \endverbatim
+!> @param [OUT] dtau Real
+!> \verbatim
+!>  Size of imaginary time step
+!> \endverbatim
+!> @param [OUT] file Character(len=2)
+!> \verbatim
+!>  MaxEnt Channel. Relevant for timedisplaced correlation.
+!> \endverbatim
+!-------------------------------------------------------------------
+      Implicit none
+      Character (len=*), intent(in) :: filename
+      Character (len=*), intent(in) :: name
+      Real    (Kind=Kind(0.d0)), allocatable, intent(out) :: sgn(:)
+      Complex (Kind=Kind(0.d0)), pointer    , intent(out) :: Bins(:,:,:,:)
+      Type (Lattice)                        , intent(out) :: Latt
+      Type (Unit_cell)                      , intent(out) :: Latt_unit
+      Real    (Kind=Kind(0.d0))             , intent(out) :: dtau
+      Character (len=:), allocatable        , intent(out) :: Channel
+
+      Integer    :: Nbins, Norb
+
+      Character (len=64) :: obs_dsetname, sgn_dsetname, par_dsetname, attr_name, str_temp
+      INTEGER                       :: ierr, rank, Nunit, Ntau, Ndim, no
+      INTEGER(HSIZE_T), allocatable :: dims(:), maxdims(:)
+      INTEGER(HID_T)                :: file_id, dset_id, grp_id, dataspace
+      TYPE(C_PTR)                   :: dat_ptr
+      Real (Kind=Kind(0.d0))        :: a1_p(2), a2_p(2), L1_p(2), L2_p(2)
+      Real (Kind=Kind(0.d0)), allocatable :: Orb_pos_temp(:)
+
+      write(obs_dsetname,'(2A)') trim(name), "/obser"
+      write(sgn_dsetname,'(2A)') trim(name), "/sign"
+
+      !Initialize HDF5
+      CALL h5open_f(ierr)
+
+      !Open HDF5 file
+      CALL h5fopen_f (filename, H5F_ACC_RDONLY_F, file_id, ierr)
+
+      !Open the dataset.
+      CALL h5dopen_f(file_id, obs_dsetname, dset_id, ierr)
+
+      !Get dataset's dataspace handle.
+      CALL h5dget_space_f(dset_id, dataspace, ierr)
+
+      !Get dataspace's rank.
+      CALL h5sget_simple_extent_ndims_f(dataspace, rank, ierr)
+      allocate( dims(rank), maxdims(rank) )
+
+      !Get dataspace's dimensions.
+      CALL h5sget_simple_extent_dims_f(dataspace, dims, maxdims, ierr)
+      if ( rank == 4 ) then
+         Nunit = int( dims(2) )
+         Ntau  = 1
+         Norb  = int( dims(3) )
+         Nbins = int( dims(4) )
+      else
+         Nunit = int( dims(2) )
+         Ntau  = int( dims(3) )
+         Norb  = int( dims(4) )
+         Nbins = int( dims(5) )
+      endif
+      deallocate( dims )
+
+      CALL h5gopen_f(file_id, name, grp_id, ierr)
+      call read_attribute(grp_id, '.', "dtau", dtau, ierr)
+      call read_attribute(grp_id, '.', "Channel", str_temp, ierr)
+      Channel = str_temp
+      call h5gclose_f(grp_id, ierr)
+
+      par_dsetname = "lattice"
+      write(par_dsetname, '(A, "/lattice")') trim(name)
+      CALL h5gopen_f(file_id, par_dsetname, grp_id, ierr)
+      call h5ltget_attribute_double_f(grp_id, '.', "a1", a1_p , ierr)
+      call h5ltget_attribute_double_f(grp_id, '.', "a2", a2_p , ierr)
+      call h5ltget_attribute_double_f(grp_id, '.', "L1", L1_p , ierr)
+      call h5ltget_attribute_double_f(grp_id, '.', "L2", L2_p , ierr)
+      Call Make_Lattice( L1_p, L2_p, a1_p, a2_p, Latt )
+      
+      attr_name = "Norb"
+      call read_attribute(grp_id, '.', attr_name, Latt_unit%Norb, ierr)
+      attr_name = "N_coord"
+      call read_attribute(grp_id, '.', attr_name, Latt_unit%N_coord, ierr)
+      attr_name = "Ndim"
+      call read_attribute(grp_id, '.', attr_name, Ndim, ierr)
+      allocate(Latt_unit%Orb_pos_p(Latt_unit%Norb, Ndim), Orb_pos_temp(Ndim))
+      
+      do no = 1, Latt_unit%Norb
+         write(attr_name, '("Orbital", I0)') no
+         call  h5ltget_attribute_double_f(grp_id, '.', attr_name, Orb_pos_temp, ierr )
+         Latt_unit%Orb_pos_p(no,:) = Orb_pos_temp
+      enddo
+      deallocate(Orb_pos_temp)
+
+      Allocate ( Bins(Nunit,Ntau,Norb,Nbins), sgn(Nbins) )
+
+      dat_ptr = C_LOC(Bins(1,1,1,1))
+      CALL h5dopen_f(file_id, obs_dsetname, dset_id, ierr)
+      CALL h5dget_space_f(dset_id, dataspace, ierr)
+      CALL H5dread_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, ierr, &
+                     mem_space_id = dataspace, file_space_id = dataspace)
+      call h5dclose_f(dset_id, ierr)
+
+      allocate( dims(1) )
+      dims(1) = Nbins
+      CALL h5dopen_f(file_id, sgn_dsetname, dset_id, ierr)
+      CALL H5dread_f(dset_id, H5T_NATIVE_DOUBLE, sgn, dims, ierr)
+      call h5dclose_f(dset_id, ierr)
+      deallocate( dims )
+
+      call h5fclose_f(file_id, ierr)
+
+   End Subroutine read_local_hdf5
+#endif
+!==============================================================================
    Subroutine read_latt(file, sgn, bins, bins0, Latt, Latt_unit, dtau, Channel)
 !--------------------------------------------------------------------
 !> @author
 !> ALF Collaboration
 !>
 !> @brief
-!> Reads in bins of lattice-type observables (both equal time and timedisplaced) from file
+!> Reads in bins of lattice-type observables (both equal time and time displaced) from file
 !>
 !> @param [IN] file Character(len=64)
 !> \verbatim
@@ -398,7 +700,6 @@
    End Subroutine read_latt
 
 !==============================================================================
-
 #ifdef HDF5
 Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dtau, Channel)
 !--------------------------------------------------------------------
@@ -984,6 +1285,109 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
 
    end Subroutine ana_tau
 
+!==============================================================================
+subroutine Cov_local(name_obs, filename_h5)
+   !--------------------------------------------------------------------
+   !> @author
+   !> ALF-project
+   !
+   !> @brief
+   !> Analysis program for equal time observables.
+   !>
+   !
+   !--------------------------------------------------------------------
+   
+   Implicit none
+   Character (len=*), intent(in) :: name_obs
+   Character (len=*), intent(in), optional :: filename_h5
+   
+   Real    (Kind=Kind(0.d0)), allocatable :: sgn(:)
+   Complex (Kind=Kind(0.d0)), pointer :: Bins_raw(:,:,:,:)
+   Type (Lattice)   :: Latt
+   Type (Unit_cell) :: Latt_unit
+   Real (Kind=Kind(0.d0)) :: dtau
+   Character (len=:), allocatable      :: Channel
+   
+   if( present(filename_h5) ) then
+#ifdef HDF5
+      Write(6,*) 'Reading from HDF5 file:', filename_h5
+      call read_local_hdf5(filename_h5, name_obs, sgn, bins_raw, Latt, Latt_unit, dtau, Channel)
+#endif
+   else
+      call read_local(name_obs, sgn, bins_raw,  Latt, Latt_unit, dtau, Channel)
+   endif
+   call ana_local(name_obs, sgn, bins_raw, Latt, Latt_unit)
+end subroutine Cov_local
+
+!==============================================================================
+Subroutine ana_local(name, sgn, bins_raw, Latt, Latt_unit)
+   Implicit none
+   Character (len=*)                     , intent(in) :: name
+   Real    (Kind=Kind(0.d0)), allocatable, intent(in) :: sgn(:)
+   Complex (Kind=Kind(0.d0)), pointer    , intent(in) :: Bins_raw(:,:,:,:)
+   Type (Lattice)                        , intent(in) :: Latt
+   Type (Unit_cell)                      , intent(in) :: Latt_unit
+   
+   Character (len=64) :: File_out
+   Integer :: N_skip, N_rebin, N_Cov, N_Back, N_auto
+   Integer :: Nbins, N_BZ_Zones
+   Logical :: Extended_Zone
+   Integer :: i, n, nb, no, no1, ierr
+   Complex (Kind=Kind(0.d0)), allocatable :: Phase(:)
+   Complex (Kind=Kind(0.d0)), allocatable :: V_help(:)
+   Real    (Kind=Kind(0.d0)) :: Xr_p(2)
+   Complex (Kind=Kind(0.d0)) :: Z, Xmean, Xerr, Xmean_r, Xerr_r
+   Real (Kind=Kind(0.d0)) :: Xm,Xe
+   
+   NAMELIST /VAR_errors/ N_skip, N_rebin, N_Cov, N_Back, N_auto, N_BZ_Zones, Extended_Zone
+
+   N_skip = 1
+   N_rebin = 1
+   N_Back = 1
+   N_auto = 0
+   N_Cov  = 0
+   OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
+   IF (ierr /= 0) THEN
+      Write(error_unit,*) 'unable to open <parameters>',ierr
+      error stop 1
+   END IF
+   READ(5,NML=VAR_errors)
+   CLOSE(5)
+
+   Nbins = size(bins_raw,4)
+   Write(6, '(A22, I0)') "# of bins: ", Nbins
+   Nbins  = Nbins - n_skip
+   Write(6, '(A22, I0)') "Effective # of bins: ", Nbins/N_rebin
+   N_auto=min(N_auto,Nbins/3)
+   if(Nbins/N_rebin < 2) then
+      Write(error_unit,*) "Effective # of bins smaller than 2. Analysis impossible!"
+      error stop 1
+   endif
+
+   Allocate ( Phase(Nbins), V_help(Nbins) )
+
+   do nb = 1,Nbins
+     Phase(nb) = cmplx(sgn(nb + N_skip),0.d0,kind(0.d0))
+   enddo
+   write(File_out,'(A,A)') trim(name), "J"
+   Open (Unit=34,File=File_out ,status="unknown")
+   Do n = 1,Latt%N
+      Xr_p = dble(Latt%list (n,1))*Latt%a1_p + dble(Latt%list (n,2))*Latt%a2_p
+      Write(34, '(2(E26.17E3))')  Xr_p(1), Xr_p(2)
+      Do no = 1,Latt_unit%Norb
+         do nb = 1, Nbins 
+            V_help(nb) = bins_raw(n,1,no,nb + N_skip) 
+         enddo
+         call ERRCALCJ( V_help, Phase, XMean, XERR, N_rebin)
+         Write(34, "((I11), 4(E26.17E3))") &
+               &  no, dble(XMean), dble(XERR), aimag(XMean), aimag(XERR)
+      enddo
+   enddo
+   Close(34)
+
+   deallocate( Phase, V_help)
+
+  end Subroutine ana_local
 !==============================================================================
 
    subroutine Cov_eq(name_obs, filename_h5)
