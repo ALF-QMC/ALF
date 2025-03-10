@@ -186,33 +186,35 @@ contains
          !! add stagger mass to avoid the degeneracy of qbt
          stag_mass = 0.005
          do nf = 1, N_FL
-            !do I = 1, Latt%N
-            I = 1
-            do no = 1, Latt_unit%norb
-               stag_sgn = 1.d0
-               if (mod(no, 2) .eq. 0) stag_sgn = -1.d0
-               I1 = invlist(I, no)
-               !! onsite sublattice mass
-               op_tmp(1, nf)%o(I1, I1) = stag_sgn*stag_mass
+            !I = 1
+            do I = 1, Latt%N
+                do no = 1, Latt_unit%norb
+                   stag_sgn = 1.d0
+                   if (mod(no, 2) .eq. 0) stag_sgn = -1.d0
+                   I1 = invlist(I, no)
+                   !! onsite sublattice mass
+                   op_tmp(1, nf)%o(I1, I1) = stag_sgn*stag_mass
+                end do
             end do
-            !end do
          end do
 
          !! pinning field
          stag_mass = 0.005
          do nf = 1, N_FL
             I = 1
-            I = latt%nnlist(I,1,1)
-            do no = 1, Latt_unit%norb
-                I1 = invlist(I, no)
-                J1 = invlist(latt%nnlist(I,1,0), no)
-                !! Hopping amplitude
-                stag_sgn = -1.d0
-                if (mod(no, 2) .eq. 0) stag_sgn = 1.d0
-                op_tmp(1, nf)%o(I1, J1) = op_tmp(1, nf)%o(I1, J1) + &
-                    & stag_sgn*stag_mass
-                op_tmp(1, nf)%o(J1, I1) = op_tmp(1, nf)%o(J1, I1) + &
-                    & stag_sgn*stag_mass
+            do J = 1, Latt%N
+               do no = 1, Latt_unit%norb
+                   I1 = invlist(I, no)
+                   J1 = invlist(latt%nnlist(I,1,0), no)
+                   !! Hopping amplitude
+                   stag_sgn = -1.d0
+                   if (mod(no, 2) .eq. 0) stag_sgn = 1.d0
+                   op_tmp(1, nf)%o(I1, J1) = op_tmp(1, nf)%o(I1, J1) + &
+                       & stag_sgn*stag_mass
+                   op_tmp(1, nf)%o(J1, I1) = op_tmp(1, nf)%o(J1, I1) + &
+                       & stag_sgn*stag_mass
+               enddo
+               I = latt%nnlist(I,0,1)
             enddo
          enddo
 
