@@ -215,9 +215,9 @@ contains
                        & stag_sgn*stag_mass
                    op_tmp(1, nf)%o(J1, I1) = op_tmp(1, nf)%o(J1, I1) + &
                        & stag_sgn*stag_mass
-                   op_tmp(1, nf)%o(I1, K1) = op_tmp(1, nf)%o(I1, J1) + &
+                   op_tmp(1, nf)%o(I1, K1) = op_tmp(1, nf)%o(I1, K1) + &
                        & stag_sgn*stag_mass
-                   op_tmp(1, nf)%o(K1, I1) = op_tmp(1, nf)%o(J1, I1) + &
+                   op_tmp(1, nf)%o(K1, I1) = op_tmp(1, nf)%o(K1, I1) + &
                        & stag_sgn*stag_mass
                enddo
                I = latt%nnlist(I,0,1)
