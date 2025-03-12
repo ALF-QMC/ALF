@@ -184,7 +184,7 @@ contains
          call Predefined_Hoppings_set_OPT(Hopping_Matrix_tmp, List, Invlist, Latt, Latt_unit, Dtau, Checkerboard, Symm, OP_tmp)
       
          !! add stagger mass to avoid the degeneracy of qbt
-         stag_mass = 0.01
+         stag_mass = 0.02
          do nf = 1, N_FL
             I = 1
             !do I = 1, Latt%N
@@ -199,7 +199,7 @@ contains
          end do
 
          !! pinning field
-         stag_mass = 0.01
+         stag_mass = 0.02
          do nf = 1, N_FL
             I = 1
             I = latt%nnlist(I,1,1)
@@ -207,12 +207,17 @@ contains
                do no = 1, Latt_unit%norb
                    I1 = invlist(I, no)
                    J1 = invlist(latt%nnlist(I,1,0), no)
+                   K1 = invlist(latt%nnlist(I,0,1), no)
                    !! Hopping amplitude
                    stag_sgn = -1.d0
                    if (mod(no, 2) .eq. 0) stag_sgn = 1.d0
                    op_tmp(1, nf)%o(I1, J1) = op_tmp(1, nf)%o(I1, J1) + &
                        & stag_sgn*stag_mass
                    op_tmp(1, nf)%o(J1, I1) = op_tmp(1, nf)%o(J1, I1) + &
+                       & stag_sgn*stag_mass
+                   op_tmp(1, nf)%o(I1, K1) = op_tmp(1, nf)%o(I1, J1) + &
+                       & stag_sgn*stag_mass
+                   op_tmp(1, nf)%o(K1, I1) = op_tmp(1, nf)%o(J1, I1) + &
                        & stag_sgn*stag_mass
                enddo
                I = latt%nnlist(I,0,1)
