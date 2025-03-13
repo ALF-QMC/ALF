@@ -1,8 +1,9 @@
-.PHONY : all cleanmodules cleanqrref clean
+.PHONY : all cleanmodules cleanqrref cleanpfapack clean
 
 all:
 	(cd Modules;  make )
 	(cd libqrref; make )
+	(cd pfapack; make )
 
 cleanmodules:
 	cd Modules; make clean
@@ -10,4 +11,7 @@ cleanmodules:
 cleanqrref:
 	cd libqrref; make clean
 
-clean: cleanmodules cleanqrref
+cleanpfapack:
+	cd pfapack; make clean
+
+clean: cleanmodules cleanqrref cleanpfapack

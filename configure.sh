@@ -150,7 +150,8 @@ set_intelcxx()
 }
 
 # default optimization flags for Intel compiler
-INTELOPTFLAGS="-cpp -O3 -fp-model fast=2 -xHost -unroll -finline-functions -ipo -ip -heap-arrays 1024 -no-wrap-margin"
+#INTELOPTFLAGS="-cpp -O3 -fp-model fast=2 -xHost -unroll -finline-functions -ipo -ip -heap-arrays 1024 -no-wrap-margin"
+INTELOPTFLAGS="-cpp -O3 -heap-arrays 1024 -no-wrap-margin"
 # INTELOPTFLAGS="-cpp -O3 "
 #INTELOPTFLAGS="$INTELOPTFLAGS -traceback"
 # uncomment the next line if you want to use additional openmp parallelization
@@ -158,8 +159,8 @@ INTELOPTFLAGS="${INTELOPTFLAGS} -parallel -qopenmp"
 INTELDEVFLAGS="-warn all -check all -g -traceback"
 INTELUSEFULFLAGS="-std08"
 
-INTELLLVMOPTFLAGS="-cpp -O3"
-INTELLLVMOPTFLAGS="-cpp -O3 -fp-model=fast=2 -no-prec-div -static -xHost -unroll -finline-functions -heap-arrays 1024 -no-wrap-margin"
+INTELLLVMOPTFLAGS="-cpp -O3 -heap-arrays 1024 -no-wrap-margin"
+#INTELLLVMOPTFLAGS="-cpp -O3 -fp-model=fast=2 -no-prec-div -static -xHost -unroll -finline-functions -heap-arrays 1024 -no-wrap-margin"
 # uncomment the next line if you want to use additional openmp parallelization
 # INTELLLVMOPTFLAGS="${INTELLLVMOPTFLAGS} -qopenmp"
 INTELLLVMDEVFLAGS="-warn all -check all,nouninit -g -traceback"
@@ -463,8 +464,8 @@ check_python || return 1
 PROGRAMMCONFIGURATION="$STABCONFIGURATION $PROGRAMMCONFIGURATION"
 
 Libs="$ALF_DIR/Libraries"
-ALF_INC="-I${Libs}/Modules"
-ALF_LIB="${Libs}/Modules/modules_90.a ${LIB_BLAS_LAPACK} ${Libs}/libqrref/libqrref.a"
+ALF_INC="-I${Libs}/Modules -I${Libs}/pfapack"
+ALF_LIB="${Libs}/Modules/modules_90.a ${Libs}/pfapack/libpfapack.a ${LIB_BLAS_LAPACK} ${Libs}/libqrref/libqrref.a"
 if [ "${HDF5_ENABLED}" = "1" ]; then
   echo; echo "HDF5 enabled"
   ALF_INC="${ALF_INC} ${INC_HDF5}"
