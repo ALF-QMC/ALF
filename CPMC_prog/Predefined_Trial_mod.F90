@@ -178,6 +178,7 @@ contains
           !! real trial
          Ham_T_vec = 1.d0
          Ham_T2_vec = 0.5d0
+         !Phi_Y_vec = 0.01
          call set_hopping_parameters_pi_flux_qbt(Hopping_Matrix_tmp, Ham_T_vec, Ham_T2_vec, Ham_Chem_vec, &
              & Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
       
@@ -186,10 +187,10 @@ contains
          !! add stagger mass to avoid the degeneracy of qbt
          l_width = int(latt%l2_p(2)/latt%a2_p(2))
 
-         stag_mass = 0.02
+         stag_mass = 0.005
          do nf = 1, N_FL
             I = 1
-            do J = 1, l_width
+            do J = 1, 1!l_width
                do no = 1, Latt_unit%norb
                   stag_sgn = 1.d0
                   if (mod(no, 2) .eq. 0) stag_sgn = -1.d0
@@ -202,11 +203,11 @@ contains
          end do
 
          !! pinning field
-         stag_mass = 0.02
+         stag_mass = 0.005
          do nf = 1, N_FL
             I = 1
-            !I = latt%nnlist(I,1,1)
-            do J = 1, l_width
+            I = latt%nnlist(I,1,1)
+            do J = 1, 1!l_width
                do no = 1, Latt_unit%norb
                    I1 = invlist(I, no)
                    J1 = invlist(latt%nnlist(I,1,0), no)
