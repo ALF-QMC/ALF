@@ -30,6 +30,9 @@ Further optional arguments:
                but instead return with value 1
 To hand an additional flag to the compiler, export it in the varible ALF_FLAGS_EXT prior to sourcing this script.
 
+ALF usually self-compiles HDF5 and stores the library in subdirectories of ALF/HDF5.
+This behavior can be changed by setting the environment variable ALF_HDF5_DIR.
+
 For more details check the documentation.\n"
 
 STABCONFIGURATION=""
@@ -48,7 +51,12 @@ set_hdf5_flags()
   H5_minor=14
   H5_patch=5
   H5_suff=""
-  HDF5_DIR="$ALF_DIR/HDF5/${compiler_vers}"
+  if [ -n "${ALF_HDF5_DIR+x}" ]; then
+    printf "\nUsing custom HDF5 directory '%s'\n" "${ALF_HDF5_DIR}"
+    HDF5_DIR="${ALF_HDF5_DIR}/${compiler_vers}"
+  else
+    HDF5_DIR="$ALF_DIR/HDF5/${compiler_vers}"
+  fi
   if [ ! -d "$HDF5_DIR" ]; then
     printf "\nHDF5 is not yet installed for compiler '%s'.\n" "$compiler_vers"
     printf "ALF does never use global HDF5 libraries, but installs it locally in subfolders of '%s/HDF5'.\n" "$ALF_DIR"

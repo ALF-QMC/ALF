@@ -92,6 +92,12 @@ Related auxiliary directories, object files and executables can be removed by ex
 			\texttt{Devel}  &  Compile with additional flags for development and debugging\\
 			\texttt{HDF5}  &  Compile with HDF5 -- automatically downloads and installs HDF5 if not present\\
 			\texttt{NO-INTERACTIVE} & Do not ask for user confirmation during execution of this script\\
+			\vspace{7pt}\\
+			
+			\textbf{Environment Variables} & These are not arguments, but rather environment variables that will be recognized by \texttt{configure.sh}  \\\midrule
+			\texttt{ALF\_FLAGS\_EXT}  & Hand these additional flags to the compiler\\
+			\texttt{ALF\_HDF5\_DIR}  & ALF usually self-compiles HDF5 and stores the library in subdirectories of \texttt{ALF/HDF5}.
+			                         This behavior can be changed by setting the environment variable \texttt{ALF\_HDF5\_DIR}.\\
 			\bottomrule
 		\end{tabular}
 		\caption{Available arguments for the script \texttt{configure.sh}, called before compilation of the package: predefined machines, parallelization modes, and stabilization schemes (see also Sec.~\ref{sec:optimize}).} \label{table:configureHPC}
