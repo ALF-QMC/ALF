@@ -235,7 +235,7 @@ The analysis output files listed in Table \ref{table:analysis_files} and are for
 	where \texttt{Re} and \texttt{Im} refer to the real and imaginary part, respectively.   
 		
 	\item  The  format  for   equal  time  correlations in  Fourier  space  depends  upon    the   boolean  variable   \texttt{Extended\_Zone}.  
-	 For  \texttt{Extended\_Zone=.F.} ,   the  format  reads: 
+	 For  \texttt{Extended\_Zone=.F.},   the  format  reads: 
 	 {\small \begin{alltt}
 		do i = 1, N_unit_cell
 		   <k_x(i)>   <k_y(i)>
@@ -249,7 +249,7 @@ The analysis output files listed in Table \ref{table:analysis_files} and are for
 	where \texttt{Re} and \texttt{Im} refer to the real and imaginary part, respectively.  The  Fourier   transformation  is   
 	defined  in Eq.~\ref{eq:fourier_transform}.  
 
-	For  \texttt{Extended\_Zone=.T.} ,   the  format  reads: 
+	For  \texttt{Extended\_Zone=.T.},   the  format  reads: 
 	 {\small \begin{alltt}
 		do n = 0, N_BZ_Zones -1 
 		   do m = 0, N_BZ_Zones 	-1
@@ -279,8 +279,7 @@ The analysis output files listed in Table \ref{table:analysis_files} and are for
 		enddo
 	\end{alltt} }
 	where \texttt{Tr} corresponds to the trace over the orbital degrees of freedom.   For particle-hole quantities at finite temperature,  $\tau$ runs from 
-	$0$ to $\beta/2$.   In all other cases it runs from $0$ to $\beta$.     The  above  is  valid   for  \texttt{Extended\_Zone=.F.}.   If \texttt{Extended\_Zone=.T.} then   \texttt{Tr[Y] }    is  replaced the  Fourier   transform in the  extended  zone  scheme  as   defined  above   but  for 
-	time  displaced  correlation   functions. 
+	$0$ to $\beta/2$.   In all other cases it runs from $0$ to $\beta$.     The  above  is  valid   for  \texttt{Extended\_Zone=.F.}.   If \texttt{Extended\_Zone=.T.} then   \texttt{Tr[Y] }    is  replaced by the  Fourier   transform in the  extended  zone  scheme  as   defined  above,   but  for time-displaced  correlation   functions. 
 	
 	\item The file  \texttt{Y\_tauJK}    contains the susceptibilities defined as: 
 	\begin{equation}
