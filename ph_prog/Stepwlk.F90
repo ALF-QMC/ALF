@@ -891,7 +891,7 @@ contains
       do nf = 1, N_FL
          call Hop_mod_mmthl_m1_1D2(Ain(:, :, nf), nf, nt)
          do n = 1, size(Op_V, 1)
-            call Op_mmultL(Ain(:, :, nf), Op_V(n, nf), -nsigma_bp(i_wlk)%f(n, nt), 'n', nt)
+            call Op_mmultL(Ain(:, :, nf), Op_V(n, nf), nsigma_bp(i_wlk)%f(n, nt), 'n', nt, -1)
          end do
          call Hop_mod_mmthl_m1_1D2(Ain(:, :, nf), nf, nt)
       end do
