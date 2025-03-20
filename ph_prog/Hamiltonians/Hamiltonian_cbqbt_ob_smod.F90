@@ -1009,6 +1009,10 @@
                 end do
              end do
           end if
+          
+          allocate(x_local(size(op_v,1),n_wlk))
+          ! initial field shift
+          x_local(:,:) = cmplx(0.d0,0.d0,kind(0.d0))
 
        end subroutine Ham_Vint
 
