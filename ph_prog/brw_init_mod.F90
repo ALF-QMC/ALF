@@ -58,11 +58,11 @@ contains
       !Local
       integer :: nf, N_Type, NTAU1, n, m, nt, NVAR, i_wlk, i_grc, NSTM, NST, ltrot_bp, ns
       integer :: i_st, i_ed, ncslat
-      complex(Kind=kind(0.d0)) :: overlap_old, overlap_new, Z, Z1, Z2, tot_ene, ZP
+      complex(Kind=kind(0.d0)) :: overlap_old, overlap_new, Z, Z1, Z2, ZP
       complex(Kind=kind(0.d0)) :: tot_c_weight, el_tmp
       complex(Kind=kind(0.d0)) :: det_Vec(N_FL)
       real(Kind=kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio, X1, wtmp, sign_w
-      real(Kind=kind(0.d0)) :: zero = 1.0e-12, tot_re_weight, dz2
+      real(Kind=kind(0.d0)) :: zero = 1.0e-12, dz2
       character(LEN=64) :: FILE_TG, FILE_seeds, file_inst, file_antiinst
       logical ::   LCONF, LCONF_H5, lconf_inst, lconf_antiinst
 
@@ -78,8 +78,6 @@ contains
 
       nstm = size(udvst, 1)
       ltrot_bp = size(nsigma_bp(1)%f, 2)
-      tot_ene = cmplx(0.d0, 0.d0, kind(0.d0))
-      tot_re_weight = 0.d0
 
       allocate (Stab_nt(0:nstm))
       Stab_nt(0) = 0
@@ -141,6 +139,7 @@ contains
 
           !! initial energy
       call ham%update_fac_norm(gr, 0)
+      call ham%set_xloc(gr)
 
       file_seeds = "seedvec_in"
       inquire (FILE=file_seeds, EXIST=LCONF)
@@ -150,6 +149,40 @@ contains
       end if
 
    end subroutine initial_wlk
+
+   subroutine initial_gfun_and_xloc(phi_trial, phi_0, gr)
+      
+      implicit none
+
+      class(udv_state), dimension(:, :), allocatable, intent(in) :: phi_trial, phi_0
+      complex(Kind=kind(0.d0)), dimension(:, :, :, :), allocatable, intent(inout) :: gr
+
+      !Local
+      integer :: i_st, i_ed, i_grc, i_wlk, ns, nf
+      complex(Kind=kind(0.d0)) :: det_vec(n_fl), ztmp
+      real(Kind=kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio, X1, wtmp
+      real(Kind=kind(0.d0)) :: zero = 1.0e-12, sign_w
+      
+      do i_wlk = 1, N_wlk
+
+         sign_w = cos(aimag(weight_k(i_wlk)))
+         if ( sign_w .gt. zero ) then
+
+             do ns = 1, n_slat
+                i_grc = ns + (i_wlk - 1)*n_slat
+                do nf = 1, N_Fl
+                    call cgrp(ztmp, gr(:, :, nf, i_grc), phi_0(nf, i_wlk), phi_trial(nf, ns))
+                    det_vec(nf) = ztmp
+                enddo
+             enddo
+
+         endif
+
+      enddo
+
+      call ham%set_xloc(gr)
+   
+   end subroutine initial_gfun_and_xloc
 
 #if defined HDF5
    subroutine wavefunction_out_hdf5(phi_0)

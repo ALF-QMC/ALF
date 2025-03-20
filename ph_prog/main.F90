@@ -24,7 +24,7 @@ program Main
    class(UDV_State), dimension(:, :), allocatable :: phi_trial, phi_0, phi_bp_l, phi_bp_r
 
    integer :: N_blk, N_blksteps, i_wlk, j_step, N_blk_eff, i_blk, NSTM
-   integer :: Nwrap, itv_pc, ltau, ntau_bp, ltrot_bp
+   integer :: Nwrap, itv_pc, ltau, ntau_bp, ltrot_bp, ntn
    real(Kind=kind(0.d0)) :: CPU_MAX
    character(len=64) :: file_para, file_dat, file_info, ham_name
 
@@ -234,6 +234,7 @@ program Main
                 !! population control
          if (mod(j_step, itv_pc) .eq. 0) then
             call population_control(phi_0, phi_bp_r)
+            call initial_gfun_and_xloc(phi_trial, phi_0, gr)
          end if
 
          !! propagate the walkers:
@@ -255,7 +256,8 @@ program Main
             call store_phi(phi_0, phi_bp_r)
 
                     !! Update fac_norm
-            call ham%update_fac_norm(GR, j_step + (i_blk - 1)*N_blksteps)
+            ntn = j_step + (i_blk - 1)*N_blksteps
+            call ham%update_fac_norm(GR, ntn)
 
          end if
 

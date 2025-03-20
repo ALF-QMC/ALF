@@ -122,6 +122,7 @@ module Hamiltonian_main
       procedure, nopass :: s0 => s0_base
       procedure, nopass :: bp_obsert => bp_obsert_base
       procedure, nopass :: obsert_mc => obsert_mc_base
+      procedure, nopass :: set_xloc => set_xloc_base
 
 #ifdef HDF5
       procedure, nopass :: write_parameters_hdf5 => write_parameters_hdf5_base
@@ -150,6 +151,7 @@ module Hamiltonian_main
    complex(Kind=kind(0.d0)), public :: fac_norm
    complex(Kind=kind(0.d0)), dimension(:), allocatable, public :: weight_k
    complex(Kind=kind(0.d0)), dimension(:), allocatable, public :: overlap
+   complex(kind=kind(0.d0)), dimension(:,:), allocatable, public :: x_local
 
    !>    Privat Observables
    type(Obser_Vec),  dimension(:), allocatable :: obs_scal
@@ -260,14 +262,14 @@ contains
    !>  Time slice
    !> \endverbatim
    !-------------------------------------------------------------------
-   subroutine Obser_base(GR, GR_mix, i_grc, re_w, sum_w, sum_o)
+   subroutine obser_base(GR, GR_mix, i_grc, re_w, sum_w, re_o_max, sum_o)
 
       implicit none
 
       complex(Kind=kind(0.d0)), intent(IN) :: GR(Ndim, Ndim, N_FL)
       complex(Kind=kind(0.d0)), intent(IN) :: GR_mix(Ndim, Ndim, N_FL)
       complex(Kind=kind(0.d0)), intent(IN) :: sum_w, sum_o
-      real   (Kind=kind(0.d0)), intent(IN) :: re_w
+      real   (Kind=kind(0.d0)), intent(IN) :: re_w, re_o_max
       integer, intent(IN) :: i_grc
       logical, save              :: first_call = .true.
 
@@ -297,14 +299,14 @@ contains
    !>  GTT(I,J,nf) = <T c_{I,nf }(tau) c^{dagger}_{J,nf }(tau)>
    !> \endverbatim
    !-------------------------------------------------------------------
-   subroutine ObserT_base(NT, GT0, G0T, G00, GTT, i_grc, re_w, sum_w, sum_o)
+   subroutine ObserT_base(NT, GT0, G0T, G00, GTT, i_grc, re_w, sum_w, re_o_max, sum_o)
       implicit none
 
       integer, intent(IN) :: NT, i_grc
       complex(Kind=kind(0.d0)), intent(IN) :: GT0(Ndim, Ndim, N_FL), G0T(Ndim, Ndim, N_FL)
       complex(Kind=kind(0.d0)), intent(IN) :: G00(Ndim, Ndim, N_FL), GTT(Ndim, Ndim, N_FL)
       complex(Kind=kind(0.d0)), intent(IN) :: sum_w, sum_o
-      real   (Kind=kind(0.d0)), intent(IN) :: re_w
+      real   (Kind=kind(0.d0)), intent(IN) :: re_w, re_o_max
       logical, save              :: first_call = .true.
 
       if (first_call) then
@@ -340,6 +342,13 @@ contains
       E0_local_base = cmplx(0.d0, 0.d0, kind(0.d0))
 
    end function E0_local_base
+   
+   subroutine set_xloc_base(gr)
+     Implicit none
+      
+     complex (Kind=Kind(0.d0)), INTENT(IN) :: gr(ndim,ndim,n_fl,n_grc)
+     
+   end subroutine set_xloc_base
 
    subroutine sum_weight_base(z_sum_weight)
       implicit none
