@@ -1541,18 +1541,9 @@
           complex(Kind=kind(0.d0)), intent(in) :: gr(ndim, ndim, n_fl)
           integer, intent(in) :: nc
          
-          complex(Kind=kind(0.d0)) :: ztmp, grc(ndim,ndim,n_fl)
+          complex(Kind=kind(0.d0)) :: ztmp, zgrc_ij
           integer :: nf, i, j, i1, j1, i_grc, n, I0, J0, n_op
 
-          do nf = 1, N_FL
-             do I = 1, Ndim
-                do J = 1, Ndim
-                   grc(I, J, nf) = -gr(J, I, nf)
-                end do
-                grc(I, I, nf) = 1.d0 + grc(I, I, nf)
-             end do
-          end do
-         
           ztmp = cmplx(0.d0,0.d0,kind(0.d0))
           do nf = 1,N_FL
              do I = 1,op_v(nc,nf)%N
@@ -1560,7 +1551,10 @@
                 I1 = op_v(nc,nf)%p(i)
                 J1 = op_v(nc,nf)%p(j)
 
-                ztmp = ztmp - op_v(nc,nf)%g*grc(I1,J1,nf)*op_v(nc,nf)%o(I,J)
+                zgrc_ij = -gr(J1,I1,nf)
+                if ( I1 .eq. J1 ) zgrc_ij = zgrc_ij + 1.d0
+
+                ztmp = ztmp - op_v(nc,nf)%g*zgrc_ij*op_v(nc,nf)%o(I,J)
              enddo
              enddo
              ztmp = ztmp - op_v(nc,nf)%g*op_v(nc,nf)%alpha
