@@ -1,23 +1,3 @@
-!--------------------------------------------------------------------
-!> @author
-!> ALF-project
-!>
-!> @brief
-!> Handles Hubbard Stratonovitch fields.
-!>
-!> @details
-!> A general operator has the form: \f$ \gamma_{n,\tau} e^{ \phi_{n,\tau} g \hat{O}_{n,\tau} }  \f$.
-!>
-!> For  type=1 the fields, f, take two  integer values, \f$\pm 1 \f$ and  \f$ \gamma_{n,\tau}(f) = 1,  \phi_{n,\tau}(f) = f \f$
-!>
-!> For  type=2 the fields, f, take four integer values \f$\pm 1, \pm 2 \f$ and
-!>     \f[ \gamma_{n,\tau}(\pm 1)  = 1 + \sqrt{6}/3,
-!>      \gamma_{n,\tau}(\pm 2)  = 1 - \sqrt{6}/3,  \phi_{n,\tau}(\pm 1) = \pm \sqrt{2  ( 3 - \sqrt{6} ) },
-!>       \phi_{n,\tau}(\pm 2) = \pm \sqrt{2  ( 3 + \sqrt{6} ) }  \f]
-!> For  type=3 the fields, f, are real and  \f$ \gamma_{n,\tau}(f)  = 1, \phi_{n,\tau}(f) = f \f$
-!>
-!--------------------------------------------------------------------
-
 module Fields_mod
 
 #ifdef MPI
@@ -36,22 +16,22 @@ module Fields_mod
 
    private
    real(Kind=kind(0.d0))  :: Phi_st(-2:2, 2), Gama_st(-2:2, 2)
-   real(Kind=kind(0.d0))  :: FLIP_st(-2:2, 3), Px0_st(-2:2, 2)
+   real(Kind=kind(0.d0))  :: FLIP_st(-2:2, 3)
    real(Kind=kind(0.d0))  :: Amplitude
 
    type Fields
-      real(Kind=kind(0.d0)), allocatable    :: f(:, :)
-      integer, allocatable    :: t(:)
+      complex(Kind=kind(0.d0)), allocatable    :: f(:, :)             ! Field
+      integer, allocatable    :: t(:)               ! Type
+      integer, allocatable    :: Flip_protocol(:)   ! Flip_protocol   Allows  for different  flip  protocols.
+      ! Used only  for  type  4.
    contains
       procedure  :: make => Fields_make
       procedure  :: clear => Fields_clear
       procedure  :: set => Fields_set
       procedure  :: out => Fields_out
       procedure  :: in => Fields_in
-      procedure  :: i => Fields_get_i
       procedure  :: Phi => Fields_Phi
       procedure  :: Gama => Fields_Gama
-      procedure  :: Px0 => Fields_Px0
       procedure  :: Flip => Fields_Flip
       procedure, private  :: read_conf => Fields_read_conf
 #if defined HDF5
@@ -71,7 +51,7 @@ contains
 !>
 !-------------------------------------------------------------------
 
-   real(Kind=kind(0.d0)) function Fields_Phi(this, n_op, n_tau)
+   complex(Kind=kind(0.d0)) function Fields_Phi(this, n_op, n_tau)
 
       implicit none
       class(Fields) :: this
@@ -79,9 +59,9 @@ contains
 
       select case (this%t(n_op))
       case (1)
-         Fields_Phi = Phi_st(nint(this%f(n_op, n_tau)), 1)
+         Fields_Phi = cmplx(Phi_st(nint(real(this%f(n_op, n_tau))), 1), 0.d0, kind(0.d0))
       case (2)
-         Fields_Phi = Phi_st(nint(this%f(n_op, n_tau)), 2)
+         Fields_Phi = cmplx(Phi_st(nint(real(this%f(n_op, n_tau))), 2), 0.d0, kind(0.d0))
       case (3)
          Fields_Phi = this%f(n_op, n_tau)
       case default
@@ -108,7 +88,7 @@ contains
       case (1)
          Fields_GAMA = 1.d0
       case (2)
-         Fields_GAMA = GAMA_st(nint(this%f(n_op, n_tau)), 2)
+         Fields_GAMA = GAMA_st(nint(real(this%f(n_op, n_tau))), 2)
       case (3)
          Fields_GAMA = 1.d0
       case default
@@ -118,24 +98,6 @@ contains
 
    end function Fields_Gama
 
-   real(Kind=kind(0.d0)) function Fields_Px0(this, n_op, n_tau)
-
-      implicit none
-      class(Fields) :: this
-      integer, intent(IN) ::  n_op, n_tau
-
-      select case (this%t(n_op))
-      case (1)
-         Fields_Px0 = Px0_st(nint(this%f(n_op, n_tau)), 1)
-      case (2)
-         Fields_Px0 = Px0_st(nint(this%f(n_op, n_tau)), 2)
-      case default
-         write (error_unit, *) 'Error in Fields_GAMA'
-         call Terminate_on_error(ERROR_FIELDS, __FILE__, __LINE__)
-      end select
-
-   end function Fields_Px0
-
 !-------------------------------------------------------------------
 !> @author
 !> ALF-project
@@ -144,60 +106,49 @@ contains
 !> Flips the field this(n_op,n_tau)
 !>
 !-------------------------------------------------------------------
-
-   real(Kind=kind(0.d0)) function Fields_flip(this, n_op, n_tau)
+   complex(Kind=kind(0.d0)) function Fields_flip(this, n_op, n_tau)
 
       implicit none
-      class(Fields) :: this
-      integer, intent(IN) ::  n_op, n_tau
+      class(Fields)      :: this
+      integer, intent(IN) :: n_op, n_tau
 
       select case (this%t(n_op))
       case (1)
          Fields_flip = -this%f(n_op, n_tau)
       case (2)
-         Fields_flip = Flip_st(nint(this%f(n_op, n_tau)), nranf(3))
+         Fields_flip = cmplx(Flip_st(nint(real(this%f(n_op, n_tau))), nranf(3)), 0.d0, kind(0.d0))
       case (3)
-         Fields_flip = this%f(n_op, n_tau) + Amplitude*(ranf_wrap() - 0.5d0)
+         Fields_flip = cmplx(real(this%f(n_op, n_tau)) + Amplitude*(ranf_wrap() - 0.5d0), 0.d0, kind(0.d0))
       case default
          write (error_unit, *) 'Error in Fields. '
          call Terminate_on_error(ERROR_FIELDS, __FILE__, __LINE__)
       end select
 
-   end function Fields_Flip
+   end function Fields_flip
 
-   integer function Fields_get_i(this, n_op, n_tau)
+!-------------------------------------------------------------------
 
-      implicit none
-      class(Fields) :: this
-      integer, intent(IN) ::  n_op, n_tau
-
-      if (this%t(n_op) == 1 .or. this%t(n_op) == 2) then
-         Fields_get_i = nint(this%f(n_op, n_tau))
-      else
-         write (error_unit, *) "Error in fields"
-         call Terminate_on_error(ERROR_FIELDS, __FILE__, __LINE__)
-      end if
-
-   end function Fields_get_i
-
+!-------------------------------------------------------------------
    subroutine Fields_make(this, N_OP, N_tau)
       implicit none
       class(Fields), intent(INOUT)  :: this
       integer, intent(IN)            :: N_OP, N_tau
 
       !Write(6,*) "Allocating  fields: ", N_op, N_tau
-      allocate (this%f(N_OP, N_tau), this%t(N_OP))
+      allocate (this%f(N_OP, N_tau), this%t(N_OP), this%Flip_protocol(N_OP))
 
-      this%f = 0.d0; this%t = 0
+      this%f = cmplx(0.d0, 0.d0, kind(0.d0)); this%t = 0; this%flip_protocol = 1
 
    end subroutine Fields_make
-
+!-------------------------------------------------------------------
    subroutine Fields_clear(this)
       implicit none
       class(Fields) :: this
 
-      deallocate (this%f, this%t)
+      deallocate (this%f, this%t, this%Flip_protocol)
    end subroutine Fields_clear
+
+!-------------------------------------------------------------------
 
    subroutine Fields_init(Amplitude_in)
 
@@ -207,7 +158,6 @@ contains
 
       !Local
       integer :: n
-      real(Kind=kind(0.d0)) :: tot_gama
 
       Amplitude = 1.d0
       if (present(Amplitude_in)) Amplitude = Amplitude_in
@@ -228,16 +178,6 @@ contains
       GAMA_st(2, 2) = 1.d0 - sqrt(6.d0)/3.d0
       GAMA_st(-1, 2) = 1.d0 + sqrt(6.d0)/3.d0
       GAMA_st(1, 2) = 1.d0 + sqrt(6.d0)/3.d0
-      tot_gama = GAMA_st(-2, 2) + GAMA_st(2, 2) + &
-          & GAMA_st(-1, 2) + GAMA_st(1, 2)
-
-      Px0_st(:, :) = 0.d0
-      Px0_st(1, 1) = 0.5d0
-      Px0_st(-1, 1) = 0.5d0
-      Px0_st(-2, 2) = GAMA_st(-2, 2)/tot_gama
-      Px0_st(2, 2) = GAMA_st(2, 2)/tot_gama
-      Px0_st(-1, 2) = GAMA_st(-1, 2)/tot_gama
-      Px0_st(1, 2) = GAMA_st(1, 2)/tot_gama
 
       FLIP_st(-2, 1) = -1.d0
       FLIP_st(-2, 2) = 1.d0
@@ -284,7 +224,7 @@ contains
 !>
 !> @param [Optional]  Initial_field
 !> \verbatim
-!> Type Real
+!> Type Complex
 !> Initial field \endverbatim
 !--------------------------------------------------------------------
    subroutine Fields_in(this, Group_Comm, Initial_field)
@@ -293,7 +233,7 @@ contains
 
       class(Fields), intent(INOUT) :: this
       integer, intent(IN) :: Group_Comm
-      real(Kind=kind(0.d0)), dimension(:, :), optional   :: Initial_field
+      complex(Kind=kind(0.d0)), dimension(:, :), optional   :: Initial_field
 
       ! LOCAL
       integer                 :: I, I1, IERR, SEED_IN, K, NT
@@ -428,11 +368,7 @@ contains
             call MPI_Comm_size(Group_Comm, isize_g, ierr)
             igroup = irank/isize_g
             !Write(6,*) "Group, rank :", igroup, irank_g
-#if defined(TEMPERING)
-            write (FILE_TG, '(A,I0,A,I0)') "Temp_", igroup, "/confout_", irank_g
-#else
             write (FILE_TG, '(A,I0)') "confout_", irank_g
-#endif
 #else
             FILE_TG = "confout_0"
 #endif
@@ -445,7 +381,7 @@ contains
          end subroutine Fields_out
 
 !--------------------------------------------------------------------
-!> @author
+         !> @author
 !> ALF-project
 !>
 !> @brief
@@ -465,16 +401,18 @@ contains
 
             class(Fields), intent(INOUT) :: this
 
-            integer :: nt, I
+            integer :: nt, I, I1
 
             !Write(6,*) "Fields_set", size(this%f,1), size(this%f,2)
             do nt = 1, size(this%f, 2)
                do I = 1, size(this%f, 1)
                   if (this%t(i) < 4) then
-                     this%f(I, nt) = 1.d0
-                     if (ranf_wrap() > 0.5d0) this%f(I, nt) = -1.d0
+                     this%f(I, nt) = cmplx(1.d0, 0.d0, kind(0.d0))
+                     if (ranf_wrap() > 0.5d0) this%f(I, nt) = cmplx(-1.d0, 0.d0, kind(0.d0))
                   else
-                     this%f(I, nt) = Amplitude*(ranf_wrap() - 0.5d0)
+                     I1 = 1
+                     if (ranf_wrap() > 0.5d0) I1 = -1
+                     this%f(I, nt) = cmplx(dble(I1), Amplitude*(ranf_wrap() - 0.5d0), kind(0.d0))
                   end if
                end do
             end do
@@ -506,8 +444,9 @@ contains
             class(Fields), intent(INOUT) :: this
             character(LEN=64), intent(in)    :: filename
 
-            integer             :: K, I, NT, I1
-            integer, allocatable :: SEED_VEC(:)
+            integer                :: K, I, NT, I1
+            integer, allocatable    :: SEED_VEC(:)
+            real(Kind=kind(0.d0)) :: X
 
             call GET_SEED_LEN(K)
             allocate (SEED_VEC(K))
@@ -519,8 +458,11 @@ contains
                do I = 1, size(this%f, 1)
                   if (this%t(I) == 1 .or. this%t(I) == 2) then
                      read (10, *) I1
-                     this%f(I, NT) = real(I1, kind(0.d0))
-                  else
+                     this%f(I, NT) = cmplx(real(I1, kind(0.d0)), 0.d0, kind(0.d0))
+                  elseif (this%t(I) == 3) then
+                     read (10, *) X
+                     this%f(I, NT) = cmplx(X, 0.d0, kind(0.d0))
+                  elseif (this%t(I) == 4) then
                      read (10, *) this%f(I, NT)
                   end if
                end do
@@ -528,7 +470,7 @@ contains
             close (10)
             deallocate (SEED_VEC)
          end subroutine Fields_read_conf
-
+!--------------------------------------------------------------------
 #if defined HDF5
          subroutine Fields_read_conf_h5(this, filename)
             implicit none
@@ -538,9 +480,14 @@ contains
 
             integer             :: K, hdferr
             integer, allocatable :: SEED_VEC(:)
-            integer(HID_T)      :: file_id
+            integer(HID_T)      :: file_id, dset_id, dataspace
             character(len=64)  :: dset_name
             integer(HSIZE_T), allocatable :: dims(:)
+
+            integer :: rank
+            real(Kind=kind(0.d0)), allocatable :: f_tmp_real(:, :)
+            complex(Kind=kind(0.d0)), allocatable, target :: f_tmp_cplx(:, :)
+            type(c_ptr)                   :: dat_ptr
 
             call GET_SEED_LEN(K)
             allocate (SEED_VEC(K))
@@ -557,12 +504,35 @@ contains
 
             !Open and read configuration dataset
             dset_name = "configuration"
-            allocate (dims(2))
-            dims(1) = size(this%f, 1)
-            dims(2) = size(this%f, 2)
-            call h5ltread_dataset_double_f(file_id, dset_name, this%f, dims, hdferr)
-            deallocate (dims)
+            !Open the  dataset.
+            call h5dopen_f(file_id, dset_name, dset_id, hdferr)
 
+            !Get dataset's dataspace handle.
+            call h5dget_space_f(dset_id, dataspace, hdferr)
+
+            !Get dataspace's rank.
+            call h5sget_simple_extent_ndims_f(dataspace, rank, hdferr)
+            if (rank == 2) then
+               ! rank=2 -> Read real config values
+               allocate (dims(2))
+               dims = [size(this%f, 1), size(this%f, 2)]
+               allocate (f_tmp_real(dims(1), dims(2)))
+               call h5ltread_dataset_double_f(file_id, dset_name, f_tmp_real, dims, hdferr)
+               this%f(:, :) = f_tmp_real(:, :)
+               deallocate (dims, f_tmp_real)
+            else
+               ! Read complex config values
+               allocate (dims(3))
+               dims = [2, size(this%f, 1), size(this%f, 2)]
+               allocate (f_tmp_cplx(size(this%f, 1), size(this%f, 2)))
+               dat_ptr = c_loc(f_tmp_cplx(1, 1))
+               call H5dread_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
+               this%f(:, :) = f_tmp_cplx(:, :)
+               deallocate (dims, f_tmp_cplx)
+            end if
+
+            call h5sclose_f(dataspace, hdferr)
+            call h5dclose_f(dset_id, hdferr)
             call h5fclose_f(file_id, hdferr)
          end subroutine Fields_read_conf_h5
 #endif
@@ -603,9 +573,11 @@ contains
             do NT = 1, size(this%f, 2)
                do I = 1, size(this%f, 1)
                   if (this%t(i) == 3) then
+                     write (10, *) real(this%f(I, NT))
+                  elseif (this%t(i) == 1 .or. this%t(i) == 2) then
+                     write (10, *) nint(real(this%f(I, NT)))
+                  elseif (this%t(i) == 4) then
                      write (10, *) this%f(I, NT)
-                  else
-                     write (10, *) nint(this%f(I, NT))
                   end if
                end do
             end do
@@ -623,6 +595,8 @@ contains
             integer, allocatable :: SEED_VEC(:)
             integer(HID_T)      :: file_id, crp_list, space_id, dset_id
             character(len=64)  :: dset_name
+            complex(Kind=kind(0.d0)), allocatable, target :: f_tmp(:, :)
+            type(c_ptr) :: dat_ptr
 
             call GET_SEED_LEN(K)
             allocate (SEED_VEC(K))
@@ -642,10 +616,9 @@ contains
 
                !Create and write dataset for configuration
                dset_name = "configuration"
-               rank = 2
-               allocate (dims(2))
-               dims(1) = size(this%f, 1)
-               dims(2) = size(this%f, 2)
+               rank = 3
+               allocate (dims(rank))
+               dims = [2, size(this%f, 1), size(this%f, 2)]
                !Create Dataspace
                call h5screate_simple_f(rank, dims, space_id, hdferr)
                !Modify dataset creation properties, i.e. enable chunking
@@ -659,9 +632,12 @@ contains
                call h5dcreate_f(file_id, dset_name, H5T_NATIVE_DOUBLE, space_id, &
                                 dset_id, hdferr, crp_list)
                !Write configuration
-               call H5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, this%f, dims, hdferr)
+               allocate (f_tmp(size(this%f, 1), size(this%f, 2)))
+               f_tmp(:, :) = this%f(:, :)
+               dat_ptr = c_loc(f_tmp(1, 1))
+               call H5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
                !Close objects
-               deallocate (dims)
+               deallocate (dims, f_tmp)
                call h5sclose_f(space_id, hdferr)
                call h5pclose_f(crp_list, hdferr)
                call h5dclose_f(dset_id, hdferr)
@@ -682,11 +658,12 @@ contains
                !open and write configuration dataset
                dset_name = "configuration"
                call h5dopen_f(file_id, dset_name, dset_id, hdferr)
-               allocate (dims(2))
-               dims(1) = size(this%f, 1)
-               dims(2) = size(this%f, 2)
-               call H5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, this%f, dims, hdferr)
-               deallocate (dims)
+               allocate (f_tmp(size(this%f, 1), size(this%f, 2)))
+               f_tmp(:, :) = this%f(:, :)
+               dat_ptr = c_loc(f_tmp(1, 1))
+               call H5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
+               !Close objects
+               deallocate (f_tmp)
                call h5dclose_f(dset_id, hdferr)
 
                call h5fclose_f(file_id, hdferr)
