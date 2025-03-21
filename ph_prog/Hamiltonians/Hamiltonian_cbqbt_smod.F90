@@ -807,6 +807,10 @@
                 end do
              end do
           end if
+          
+          allocate(x_local(size(op_v,1),n_wlk))
+          ! initial field shift
+          x_local(:,:) = cmplx(0.d0,0.d0,kind(0.d0))
 
        end subroutine Ham_Vint
 
@@ -919,14 +923,14 @@
 !>  Time slice
 !> \endverbatim
 !-------------------------------------------------------------------
-       subroutine obser(gr, gr_mix, i_grc, re_w, sum_w, sum_o)
+       subroutine obser(gr, gr_mix, i_grc, re_w, sum_w, re_o_max, sum_o)
 
           implicit none
 
           complex(kind=kind(0.d0)), intent(in) :: gr(Ndim, Ndim, N_FL)
           complex(kind=kind(0.d0)), intent(in) :: gr_mix(Ndim, Ndim, N_FL)
           complex(kind=kind(0.d0)), intent(in) :: sum_w, sum_o
-          real(kind=kind(0.d0)), intent(in) :: re_w
+          real(kind=kind(0.d0)), intent(in) :: re_w, re_o_max
           integer, intent(in) :: i_grc
 
           !Local
@@ -936,7 +940,7 @@
           integer :: i2, j2, lly, dlly, nb, i0, j0, m1, n1, nb_qah, ipx, jpx, ipy, jpy, nc1, nc2, is, js
           real(Kind=kind(0.d0)) :: X, rsgn
 
-          Z_ol = exp(overlap(i_grc))/sum_o
+          Z_ol = exp(overlap(i_grc)-re_o_max)/sum_o
           ZW = cmplx(re_w, 0.d0, kind(0.d0))/sum_w
           Z_fac = Z_ol*ZW
 
@@ -1177,7 +1181,7 @@
 !>  Phase
 !> \endverbatim
 !-------------------------------------------------------------------
-       subroutine obsert(nt, gt0, g0t, g00, gtt, i_grc, re_w, sum_w, sum_o)
+       subroutine obsert(nt, gt0, g0t, g00, gtt, i_grc, re_w, sum_w, re_o_max, sum_o)
 
           implicit none
 
@@ -1185,7 +1189,7 @@
           complex(kind=kind(0.d0)), intent(in) :: gt0(ndim, ndim, n_fl), g0t(ndim, ndim, n_fl)
           complex(kind=kind(0.d0)), intent(in) :: g00(ndim, ndim, n_fl), gtt(ndim, ndim, n_fl)
           complex(kind=kind(0.d0)), intent(in) :: sum_w, sum_o
-          real(kind=kind(0.d0)), intent(in) :: re_w
+          real(kind=kind(0.d0)), intent(in) :: re_w, re_o_max
           integer, intent(in) :: i_grc
 
           !Locals
@@ -1193,7 +1197,7 @@
           real(Kind=kind(0.d0)) :: X
           integer :: IMJ, I, J, k, l, m, n, i1, ip1, ipx, ipy, imx, imy, j1, jpx, jpy, jmx, jmy, no_I, no_J, nc
 
-          Z_ol = exp(overlap(i_grc))/sum_o
+          Z_ol = exp(overlap(i_grc)-re_o_max)/sum_o
           ZW = cmplx(re_w, 0.d0, kind(0.d0))/sum_w
           Z_fac = Z_ol*ZW
 
@@ -1287,6 +1291,85 @@
 
        end function E0_local
 
+       !!========================================================================!!
+       !!     compute local shift of auxillary field 
+       !!========================================================================!!
+       complex(Kind=kind(0.d0)) function xbar_loc_compute(gr,nc)
+          implicit none
+
+          complex(Kind=kind(0.d0)), intent(in) :: gr(ndim, ndim, n_fl)
+          integer, intent(in) :: nc
+         
+          complex(Kind=kind(0.d0)) :: ztmp, zgrc_ij
+          integer :: nf, i, j, i1, j1, i_grc, n, I0, J0, n_op
+
+          ztmp = cmplx(0.d0,0.d0,kind(0.d0))
+          do nf = 1,N_FL
+             do I = 1,op_v(nc,nf)%N
+             do J = 1,op_v(nc,nf)%N
+                I1 = op_v(nc,nf)%p(i)
+                J1 = op_v(nc,nf)%p(j)
+
+                zgrc_ij = -gr(J1,I1,nf)
+                if ( I1 .eq. J1 ) zgrc_ij = zgrc_ij + 1.d0
+
+                ztmp = ztmp - op_v(nc,nf)%g*zgrc_ij*op_v(nc,nf)%o(I,J)
+             enddo
+             enddo
+             ztmp = ztmp - op_v(nc,nf)%g*op_v(nc,nf)%alpha
+          enddo
+             
+          xbar_loc_compute = ztmp
+       
+       end function xbar_loc_compute
+
+       !!========================================================================!!
+       !!     set up the shift of auxillary field for importance sampling
+       !!========================================================================!!
+       subroutine set_xloc(gr)
+         Implicit none
+          
+         complex(Kind=kind(0.d0)), intent(in) :: gr(ndim, ndim, n_fl, n_grc)
+         
+         ! local
+         complex (kind=kind(0.d0)) :: ZK, Zn, ztmp, x_tmp(n_slat)
+         complex (kind=kind(0.d0)) :: ztmp1
+         integer :: i_wlk, nf, i, j, i1, j1, i_grc, n, I0, J0, n_op, nc, ns
+         real(Kind=kind(0.d0)) :: sign_w, pi = acos(-1.d0), zero = 1.0e-12, re_o_max
+
+         n_op = size(op_v,1)
+      
+         do i_wlk = 1, n_wlk
+
+            sign_w = cos(aimag(weight_k(i_wlk)))
+            if ( sign_w .gt. zero ) then
+
+            do nc = 1, n_op
+               
+               !! the max real part of the overlap
+               re_o_max = 0.d0
+               do ns = 1, n_slat
+                  i_grc = ns + (i_wlk - 1)*n_slat
+                  if ( dble(overlap(i_grc)) .gt. re_o_max ) re_o_max = dble(overlap(i_grc))
+               enddo
+
+               ztmp = 0.d0
+               do ns = 1, n_slat
+                  i_grc = ns + (i_wlk - 1)*n_slat
+                  x_tmp(n_slat) = & 
+                      & xbar_loc_compute(gr(:,:,:,i_grc),nc)*exp(overlap(i_grc)-re_o_max)
+                  ztmp = ztmp + exp(overlap(i_grc)-re_o_max)
+               end do
+               
+               x_local(nc,i_wlk) = sum(x_tmp(:))/ztmp
+            enddo
+
+            endif
+         
+         enddo
+         
+       end subroutine set_xloc
+
        !!===================================================================!!
        !!     compute the sum of the weight and rescale weight
        !!===================================================================!!
@@ -1366,7 +1449,7 @@
 
           !local
           integer :: i_wlk, ii, i_st, i_ed, ns, i_grc
-          real(Kind=kind(0.d0)) :: X1, re_w_tmp, max_re_w, ang_w, re_lw
+          real(Kind=kind(0.d0)) :: X1, re_w_tmp, max_re_w, ang_w, re_lw, re_o_max
           complex(Kind=kind(0.d0)) :: Z1, Z2, wtmp, el_tmp, Z, tot_ene, zr1, zr2
           character(LEN=64)  :: filename
           complex(Kind=kind(0.d0)), allocatable :: weight_mpi(:), w_arr(:)
@@ -1416,10 +1499,17 @@
                 weight_k(i_wlk) = weight_k(i_wlk) - max_re_w
                 re_lw = dble(weight_k(i_wlk))
 
+                !! the max real part of the overlap
+                re_o_max = 0.d0
+                do ns = 1, n_slat
+                   i_grc = ns + (i_wlk - 1)*n_slat
+                   if ( dble(overlap(i_grc)) .gt. re_o_max ) re_o_max = dble(overlap(i_grc))
+                enddo
+
                 z = 0.d0
                 do ns = 1, N_slat
                    i_grc = ns + (i_wlk - 1)*N_slat
-                   z = z + exp(overlap(i_grc))
+                   z = z + exp(overlap(i_grc)-re_o_max)
                 end do
 
                  !! real part of mix estimated energy
@@ -1427,7 +1517,7 @@
                 do ns = 1, N_slat
                    i_grc = ns + (i_wlk - 1)*N_slat
                    el_tmp = dble(ham%E0_local(GR(:, :, :, i_grc)))
-                   tot_ene = tot_ene + el_tmp*exp(overlap(i_grc))/Z
+                   tot_ene = tot_ene + el_tmp*exp(overlap(i_grc)-re_o_max)/Z
                 end do
                 re_w_tmp = exp(re_lw)*cos(ang_w)
                 z1 = z1 + re_w_tmp
