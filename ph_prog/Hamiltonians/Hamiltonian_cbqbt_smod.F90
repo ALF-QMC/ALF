@@ -17,10 +17,11 @@
        contains
           ! Set Hamiltonian-specific procedures
           procedure, nopass :: Ham_Set
-          procedure, nopass :: Alloc_obs
+          procedure, nopass :: alloc_obs
           procedure, nopass :: Obser
           procedure, nopass :: ObserT
-          procedure, nopass :: E0_local
+          procedure, nopass :: e0_local
+          procedure, nopass :: set_xloc
           procedure, nopass :: sum_weight
           procedure, nopass :: update_fac_norm
 #ifdef HDF5
@@ -744,9 +745,9 @@
                    op_V(nc, nf)%P(1) = I; op_V(nc, nf)%P(2) = J
                    op_V(nc, nf)%O(1, 1) = cmplx(1.d0, 0.d0, kind(0.d0))
                    op_V(nc, nf)%O(2, 2) = cmplx(-1.d0, 0.d0, kind(0.d0))
-                   op_V(nc, nf)%g = sqrt(cmplx(0.5d0*0.5d0*dtau*Ham_V, 0.d0, kind(0.d0)))
+                   op_V(nc, nf)%g = sqrt(cmplx(0.5d0*dtau*Ham_V, 0.d0, kind(0.d0)))
                    op_V(nc, nf)%alpha = cmplx(0.d0, 0.d0, kind(0.d0))
-                   op_V(nc, nf)%type = 2
+                   op_V(nc, nf)%type = 3
                    call op_set(op_V(nc, nf))
                 end do
              end do
@@ -764,9 +765,9 @@
                    op_V(nc, nf)%P(1) = I; op_V(nc, nf)%P(2) = J
                    op_V(nc, nf)%O(1, 1) = cmplx(1.d0, 0.d0, kind(0.d0))
                    op_V(nc, nf)%O(2, 2) = cmplx(-1.d0, 0.d0, kind(0.d0))
-                   op_V(nc, nf)%g = sqrt(cmplx(0.5d0*0.5d0*dtau*Ham_V2, 0.d0, kind(0.d0)))
+                   op_V(nc, nf)%g = sqrt(cmplx(0.5d0*dtau*Ham_V2, 0.d0, kind(0.d0)))
                    op_V(nc, nf)%alpha = cmplx(0.d0, 0.d0, kind(0.d0))
-                   op_V(nc, nf)%type = 2
+                   op_V(nc, nf)%type = 3
                    call op_set(op_V(nc, nf))
                 end do
              end do
@@ -780,9 +781,9 @@
                    op_V(nc, nf)%P(1) = I; op_V(nc, nf)%P(2) = J
                    op_V(nc, nf)%O(1, 1) = cmplx(1.d0, 0.d0, kind(0.d0))
                    op_V(nc, nf)%O(2, 2) = cmplx(-1.d0, 0.d0, kind(0.d0))
-                   op_V(nc, nf)%g = sqrt(cmplx(0.5d0*0.5d0*dtau*Ham_V2, 0.d0, kind(0.d0)))
+                   op_V(nc, nf)%g = sqrt(cmplx(0.5d0*dtau*Ham_V2, 0.d0, kind(0.d0)))
                    op_V(nc, nf)%alpha = cmplx(0.d0, 0.d0, kind(0.d0))
-                   op_V(nc, nf)%type = 2
+                   op_V(nc, nf)%type = 3
                    call op_set(op_V(nc, nf))
                 end do
              end do
@@ -800,9 +801,9 @@
                    op_V(nc, nf)%P(1) = I; op_V(nc, nf)%P(2) = J
                    op_V(nc, nf)%O(1, 1) = cmplx(1.d0, 0.d0, kind(0.d0))
                    op_V(nc, nf)%O(2, 2) = cmplx(-1.d0, 0.d0, kind(0.d0))
-                   op_V(nc, nf)%g = sqrt(cmplx(0.5d0*0.5d0*dtau*Ham_V, 0.d0, kind(0.d0)))
+                   op_V(nc, nf)%g = sqrt(cmplx(0.5d0*dtau*Ham_V, 0.d0, kind(0.d0)))
                    op_V(nc, nf)%alpha = cmplx(0.d0, 0.d0, kind(0.d0))
-                   op_V(nc, nf)%type = 2
+                   op_V(nc, nf)%type = 3
                    call op_set(op_V(nc, nf))
                 end do
              end do
