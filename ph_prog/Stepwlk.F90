@@ -127,7 +127,7 @@ contains
       !Local
       integer :: nf, n_type, ntau1, n, ns, m, nt, NVAR, i_wlk, N_op, i_st, i_ed, i_grc
       real(kind=kind(0.d0)) :: zero = 1.0e-12, sign_w, spin, hs_new, costheta, pi = acos(-1.d0)
-      real(Kind=kind(0.d0)) :: re_overlap, re_o_max, logcostheta
+      real(Kind=kind(0.d0)) :: re_overlap, re_o_max, logcostheta, arg_angle
       complex(kind=kind(0.d0)) :: gauss_spin, ztmp, sum_o_new, sum_o_old, s_d_hs, x_bar, overlap_ratio
       complex(Kind=kind(0.d0)) :: det_Vec(n_fl), log_o_new(n_slat), log_o_old(n_slat), c_log_I, z_alpha
 
@@ -169,6 +169,10 @@ contains
                sum_o_new = sum_o_new + exp(log_o_new(ns)-cmplx(re_o_max,0.d0,kind(0.d0)))
             enddo
             overlap_ratio = sum_o_new/sum_o_old
+
+            !! angle of ratio of overlap
+            arg_angle = aimag(log(overlap_ratio))
+            costheta = cos(arg_angle)
             
             !! \prod_i \frac{p(x(i)-\bar{x}(i))}{p(x(i))}
             s_d_hs = 0.d0
@@ -188,7 +192,6 @@ contains
 
             !! logarithmic of I = < BCS | phi^{n+1}_k >/< BCS | phi^{n}_k >*\prod_i \frac{p(x(i)-\bar{x}(i))}{p(x(i))}
             c_log_I = log(overlap_ratio) + s_d_hs + z_alpha
-            costheta = cos(aimag(c_log_I))
             if ( costheta .gt. zero ) then
                logcostheta = log(costheta)
                weight_k(i_wlk) = weight_k(i_wlk) + dble(c_log_I) + logcostheta
