@@ -13,10 +13,10 @@ contains
 
       implicit none
 
-      class(udv_state), dimension(:, :), allocatable, intent(in   ) :: phi_trial
+      class(udv_state), dimension(:)   , allocatable, intent(in   ) :: phi_trial
       class(udv_state), dimension(:, :), allocatable, intent(inout) :: phi_0
-      complex(Kind=kind(0.d0)), dimension(:, :, :, :), allocatable, intent(inout) :: gr
-      complex(Kind=kind(0.d0)), dimension(:, :, :, :), allocatable, intent(inout) :: kappa, kappa_bar
+      complex(Kind=kind(0.d0)), dimension(:, :, :), allocatable, intent(inout) :: gr
+      complex(Kind=kind(0.d0)), dimension(:, :, :), allocatable, intent(inout) :: kappa, kappa_bar
       integer, intent(in) :: ntau_bp
 
       !Local
@@ -30,13 +30,13 @@ contains
          if (sign_w .gt. zero) weight_k(i_wlk) = weight_k(i_wlk) + fac_norm
       end do
 
-      call half_K_propagation(phi_trial, phi_0)
+      call half_K_propagation(phi_0)
 
           !! propagate with interaction
       call int_propagation(phi_0, ntau_bp)
 
           !! Kinetic part exp(-/Delta/tau T/2)
-      call half_K_propagation(phi_trial, phi_0)
+      call half_K_propagation(phi_0)
       
           !! update weight, Green's function and force bias after propagation 
       call update_weight_and_overlap(phi_trial, phi_0, gr, kappa, kappa_bar, ntau_bp)
@@ -86,11 +86,10 @@ contains
 
    end subroutine int_propagation
 
-   subroutine half_K_propagation(phi_trial, phi_0)
+   subroutine half_K_propagation(phi_0)
 
       implicit none
 
-      class(udv_state), intent(in), allocatable :: phi_trial(:, :)
       class(udv_state), intent(inout), allocatable :: phi_0(:, :)
 
       ! local
@@ -119,10 +118,10 @@ contains
 
       implicit none
 
-      class(udv_state), dimension(:, :), allocatable, intent(in   ) :: phi_trial
+      class(udv_state), dimension(:)   , allocatable, intent(in   ) :: phi_trial
       class(udv_state), dimension(:, :), allocatable, intent(inout) :: phi_0
-      complex(Kind=kind(0.d0)), dimension(:, :, :, :), allocatable, intent(inout) :: gr
-      complex(Kind=kind(0.d0)), dimension(:, :, :, :), allocatable, intent(inout) :: kappa, kappa_bar
+      complex(Kind=kind(0.d0)), dimension(:, :, :), allocatable, intent(inout) :: gr
+      complex(Kind=kind(0.d0)), dimension(:, :, :), allocatable, intent(inout) :: kappa, kappa_bar
       integer, intent(in) :: ntau_bp
       
       !Local
@@ -153,8 +152,8 @@ contains
              do ns = 1, N_hfb
                 i_grc = ns + (i_wlk - 1)*N_hfb
 
-                call cgrp(detO, gr(:, :, :, i_grc), kappa(:, :, :, i_grc), kappa_bar(:, :, :, i_grc), &
-                    &     phi_0(1, i_wlk), phi_0(2, i_wlk), phi_trial(1, ns))
+                call cgrp(detO, gr(:, :, i_grc), kappa(:, :, i_grc), kappa_bar(:, :, i_grc), &
+                    &     phi_0(1, i_wlk), phi_0(2, i_wlk), phi_trial(ns))
                 overlap(i_grc) = detO*n_sun
                 log_o_new(ns) = overlap(i_grc)
                 if ( dble(log_o_new(ns)) .gt. re_o_max ) re_o_max = dble(log_o_new(ns))
@@ -168,6 +167,10 @@ contains
                sum_o_new = sum_o_new + exp(log_o_new(ns)-cmplx(re_o_max,0.d0,kind(0.d0)))
             enddo
             overlap_ratio = sum_o_new/sum_o_old
+
+            !! angle of ratio of overlap
+            arg_angle = aimag(log(overlap_ratio))
+            costheta = cos(arg_angle)
             
             !! \prod_i \frac{p(x(i)-\bar{x}(i))}{p(x(i))}
             s_d_hs = 0.d0
@@ -187,7 +190,6 @@ contains
 
             !! logarithmic of I = < BCS | phi^{n+1}_k >/< BCS | phi^{n}_k >*\prod_i \frac{p(x(i)-\bar{x}(i))}{p(x(i))}
             c_log_I = log(overlap_ratio) + s_d_hs + z_alpha
-            costheta = cos(aimag(c_log_I))
             if ( costheta .gt. zero ) then
                logcostheta = log(costheta)
                weight_k(i_wlk) = weight_k(i_wlk) + dble(c_log_I) + logcostheta
@@ -223,15 +225,15 @@ contains
 
             !Carry out U,D,V decomposition.
             do nf = 1, N_FL
-               call Phi_0(nf, i_wlk)%decompose
+               call phi_0(nf, i_wlk)%decompose
             end do
 
-            Det_D = cmplx(0.d0, 0.d0, kind(0.d0))
+            det_D = cmplx(0.d0, 0.d0, kind(0.d0))
 
             do nf = 1, N_FL
                N_size = phi_0(nf, 1)%n_part
                do I = 1, N_size
-                  det_D(nf) = det_D(nf) + log(Phi_0(nf, i_wlk)%D(I))
+                  det_D(nf) = det_D(nf) + log(phi_0(nf, i_wlk)%D(I))
                end do
             end do
 
@@ -242,7 +244,7 @@ contains
             enddo
 
             do nf = 1, N_FL
-               Phi_0(nf, i_wlk)%D(:) = cmplx(1.d0, 0.d0, kind(0.d0))
+               phi_0(nf, i_wlk)%D(:) = cmplx(1.d0, 0.d0, kind(0.d0))
             end do
 
          end if
@@ -408,7 +410,7 @@ contains
             end do
 
             ilabel = (it - 1)*nrg + (n_fl)*6 + 1
-            call mpi_send(nsigma_bp(i_wlk)%f, n1*n2, MPI_REAL8, j_src, ilabel, Group_comm, IERR)
+            call mpi_send(nsigma_bp(i_wlk)%f, n1*n2, MPI_COMPLEX16, j_src, ilabel, Group_comm, IERR)
          end if
          if (irank_g .eq. j_src) then
             ilabel = (it - 1)*nrg
@@ -425,7 +427,7 @@ contains
             end do
 
             ilabel = (it - 1)*nrg + (n_fl)*6 + 1
-            call mpi_recv(nsigma_store(j_wlk)%f, n1*n2, MPI_REAL8, i_src, ilabel, Group_comm, STATUS, IERR)
+            call mpi_recv(nsigma_store(j_wlk)%f, n1*n2, MPI_COMPLEX16, i_src, ilabel, Group_comm, STATUS, IERR)
          end if
       end do
 
@@ -486,8 +488,8 @@ contains
 #endif
       implicit none
 
-      class(udv_state), dimension(:, :), allocatable, intent(inout) :: phi_bp_l, phi_bp_r
-      class(udv_state), dimension(:, :, :), allocatable, intent(inout) :: udvst
+      class(udv_state), dimension(:)   , allocatable, intent(inout) :: phi_bp_l, phi_bp_r
+      class(udv_state), dimension(:, :), allocatable, intent(inout) :: udvst
       integer, dimension(:), allocatable, intent(in) :: stab_nt
       integer, intent(in) :: ltau
 
@@ -508,94 +510,6 @@ contains
       call MPI_Comm_size(Group_Comm, isize_g, ierr)
       igroup = irank/isize_g
 #endif
-
-!      N_op = size(OP_V, 1)
-!      ltrot_bp = size(nsigma_bp(1)%f, 2)
-!      nstm = size(udvst, 1)
-!
-!          !! initialization
-!      do i_grc = 1, N_grc
-!         i_wlk = (i_grc - 1)/N_hfb + 1     ! index for walker
-!         ns = i_grc - (i_wlk - 1)*N_hfb ! index for slater det
-!         do nf = 1, N_FL
-!            call phi_bp_l(nf, i_grc)%reset('l', wf_l(nf, ns)%P)
-!            call udvst(nstm, nf, i_grc)%reset('l', wf_l(nf, ns)%P)
-!         end do
-!      end do
-!
-!          !! backpropagation
-!      nst = nstm - 1
-!      do nt = ltrot_bp, 1, -1
-!         ntau = nt - 1
-!
-!         do i_wlk = 1, N_wlk
-!
-!            sign_w = cos(aimag(weight_k(i_wlk)))
-!            if ( sign_w .gt. zero ) then
-!             
-!                do ns = 1, N_hfb
-!                   i_grc = ns + (i_wlk - 1)*N_hfb
-!                   do nf = 1, N_FL
-!
-!                      call Hop_mod_mmthlc_1D2(phi_bp_l(nf, i_grc)%U, nf, 1)
-!
-!                      do n = N_op, 1, -1
-!                         call Op_mmultR(phi_bp_l(nf, i_grc)%U, Op_V(n, nf), nsigma_bp(i_wlk)%f(n, nt), 'c', 1)
-!                      end do
-!
-!                      call Hop_mod_mmthlc_1D2(phi_bp_l(nf, i_grc)%U, nf, 1)
-!
-!                   end do
-!                end do
-!
-!            end if
-!
-!         end do
-!
-!         if (ntau .eq. stab_nt(nst) .and. ntau .ne. 0) then
-!            call re_orthonormalize_walkers(phi_bp_l, 'N')
-!            do i_grc = 1, N_grc
-!            do nf = 1, N_FL
-!               udvst(nst, nf, i_grc) = phi_bp_l(nf, i_grc)
-!            end do
-!            end do
-!            nst = nst - 1
-!         end if
-!
-!      end do
-!
-!          !! svd at tau = 0
-!      call re_orthonormalize_walkers(phi_bp_l, 'N')
-!
-!          !! compute the total weight
-!      call ham%sum_weight(z_weight)
-!
-!          !! equal time measurement
-!      if ( irank .eq. 0 ) call ham%count_obs
-!
-!      do i_wlk = 1, N_wlk
-!         
-!         sign_w = cos(aimag(weight_k(i_wlk)))
-!         if ( sign_w .gt. zero ) then 
-!         
-!             ang_w = aimag(weight_k(i_wlk)) 
-!             re_lw = dble (weight_k(i_wlk))
-!             re_we = exp(re_lw)*cos(ang_w)
-!             
-!             i_st = 1 + (i_wlk - 1)*N_hfb; i_ed = i_wlk*N_hfb
-!             exp_overlap(:) = exp(overlap(i_st:i_ed))
-!             z_sum_overlap = sum(exp_overlap(:))
-!             do ns = 1, N_hfb
-!                i_grc = ns + (i_wlk - 1)*N_hfb
-!                do nf = 1, N_Fl
-!                   call CGRP(Z, GR_bp(:, :, nf, i_grc), phi_bp_r(nf, i_wlk), phi_bp_l(nf, i_grc))
-!                end do
-!                call ham%obser(gr_bp(:, :, :, i_grc), gr_mix(:, :, :, i_grc), i_grc, re_we, z_weight, z_sum_overlap)
-!             end do
-!     
-!         endif
-!
-!      end do
 
    end subroutine backpropagation
 
