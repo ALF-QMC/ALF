@@ -178,7 +178,8 @@ contains
             s_d_hs = 0.d0
             do n = 1, n_op
                x_bar = nsigma_bp(i_wlk)%phi(n,ntau_bp) + x_local(n,i_wlk)
-               s_d_hs = s_d_hs + x_bar*x_local(n,i_wlk) - x_local(n,i_wlk)*x_local(n,i_wlk)/2.d0
+               ztmp = x_bar*x_local(n,i_wlk) - x_local(n,i_wlk)*x_local(n,i_wlk)/2.d0
+               if (abs(op_v(n,1)%g) .gt. zero ) s_d_hs = s_d_hs + ztmp
             enddo
             
             !! alpha factor from operators
