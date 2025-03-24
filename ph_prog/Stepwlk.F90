@@ -815,47 +815,6 @@ contains
 
    end subroutine bp_measure_tau
 
-   subroutine rescale_overlap(overlap_in)
-
-      implicit none
-
-      complex(Kind=kind(0.d0)), dimension(:), allocatable, intent(inout) :: overlap_in
-
-      integer :: nf, n, m, nt, i_wlk, i_grc, ns
-      integer :: i_st, i_ed, ncslat
-      real(Kind=kind(0.d0)) :: log_o_abs(n_slat), log_o_phase(n_slat), dz2
-      real(kind=kind(0.d0)) :: pi = acos(-1.d0), dre_o, zero = 1.0e-12, sign_w
-      complex(Kind=kind(0.d0)) :: z1, zp
-
-      do i_wlk = 1, N_wlk
-
-         sign_w = cos(aimag(weight_k(i_wlk)))
-         if ( sign_w .gt. zero ) then
-
-            i_st = 1 + (i_wlk - 1)*N_slat
-            i_ed = i_wlk*N_slat
-
-            ncslat = 0
-            do i_grc = i_st, i_ed
-               ncslat = ncslat + 1
-               log_o_abs(ncslat) = dble(overlap_in(i_grc))
-               log_o_phase(ncslat) = mod(aimag(overlap_in(i_grc)), 2.d0*pi)
-            end do
-
-            dz2 = maxval(log_o_abs(:))
-
-            ncslat = 0
-            do i_grc = i_st, i_ed
-               ncslat = ncslat + 1
-               dre_o = log_o_abs(ncslat) - dz2
-               overlap_in(i_grc) = cmplx(dre_o, log_o_phase(ncslat), kind(0.d0))
-            end do
-
-         end if
-      end do
-
-   end subroutine rescale_overlap
-
    subroutine PROPR(AIN, NT, i_wlk)
 
       ! Ain =       B(NT-1, NT1)
