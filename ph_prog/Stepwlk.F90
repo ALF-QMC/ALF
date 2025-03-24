@@ -419,7 +419,7 @@ contains
             end do
 
             ilabel = (it - 1)*nrg + (n_fl)*6 + 1
-            call mpi_send(nsigma_bp(i_wlk)%f, n1*n2, MPI_REAL8, j_src, ilabel, Group_comm, IERR)
+            call mpi_send(nsigma_bp(i_wlk)%f, n1*n2, MPI_COMPLEX16, j_src, ilabel, Group_comm, IERR)
          end if
          if (irank_g .eq. j_src) then
             ilabel = (it - 1)*nrg
@@ -436,7 +436,7 @@ contains
             end do
 
             ilabel = (it - 1)*nrg + (n_fl)*6 + 1
-            call mpi_recv(nsigma_store(j_wlk)%f, n1*n2, MPI_REAL8, i_src, ilabel, Group_comm, STATUS, IERR)
+            call mpi_recv(nsigma_store(j_wlk)%f, n1*n2, MPI_COMPLEX16, i_src, ilabel, Group_comm, STATUS, IERR)
          end if
       end do
 
