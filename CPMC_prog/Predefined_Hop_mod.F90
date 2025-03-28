@@ -252,6 +252,13 @@ contains
                 this(nf)%List(nc, 2) = sj
                 this(nf)%List(nc, 3) = 0
                 this(nf)%List(nc, 4) = 0
+
+                !!=====================================!!
+                !! OBC
+                !!=====================================!!
+                if ( (iy .eq. l2) .and. (nf .eq. 1) ) then
+                    this(nf)%T(nc) = cmplx(0.d0, 0.d0, kind(0.d0))
+                endif
             endif
          enddo
          enddo
@@ -269,6 +276,13 @@ contains
                 this(nf)%List(nc, 2) = sj
                 this(nf)%List(nc, 3) = 0
                 this(nf)%List(nc, 4) = 0
+                
+                !!=====================================!!
+                !! OBC
+                !!=====================================!!
+                if ( (iy .eq. l2) .and. (nf .eq. 1) ) then
+                    this(nf)%T(nc) = cmplx(0.d0, 0.d0, kind(0.d0))
+                endif
             endif
          enddo
          enddo
@@ -286,6 +300,13 @@ contains
                 this(nf)%List(nc, 2) = sj
                 this(nf)%List(nc, 3) = 0
                 this(nf)%List(nc, 4) = 0
+                
+                !!=====================================!!
+                !! OBC
+                !!=====================================!!
+                if ( (ix .eq. l1) .and. (nf .eq. 2) ) then
+                    this(nf)%T(nc) = cmplx(0.d0, 0.d0, kind(0.d0))
+                endif
             endif
          enddo
          enddo
@@ -303,6 +324,13 @@ contains
                 this(nf)%List(nc, 2) = sj
                 this(nf)%List(nc, 3) = 0
                 this(nf)%List(nc, 4) = 0
+                
+                !!=====================================!!
+                !! OBC
+                !!=====================================!!
+                if ( (ix .eq. l1) .and. (nf .eq. 2) ) then
+                    this(nf)%T(nc) = cmplx(0.d0, 0.d0, kind(0.d0))
+                endif
             endif
          enddo
          enddo
