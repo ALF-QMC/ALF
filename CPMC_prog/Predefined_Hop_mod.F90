@@ -206,6 +206,137 @@ contains
       deallocate (all_bonds)
    end function test_checkerboard_decomposition
 
+   subroutine set_hopping_parameters_square_ob(this, Ham_tx_vec, ham_ty_vec, Ham_Chem_vec, &
+           & Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, L1, L2, List, Invlist, Latt, Latt_unit)
+
+      implicit none
+
+      type(Hopping_Matrix_type), allocatable          :: this(:)
+      real(Kind=kind(0.d0)), intent(IN), dimension(:) :: Ham_tx_vec, Ham_ty_vec, Ham_Chem_vec
+      real(Kind=kind(0.d0)), intent(IN), dimension(:) :: Phi_x_vec, Phi_y_vec
+      integer, intent(IN), dimension(:)               :: N_Phi_vec
+      integer, intent(IN)                             :: N_FL, L1, L2
+      logical, intent(IN)                             :: Bulk
+      integer, intent(IN), dimension(:, :)            :: List, Invlist
+      type(Lattice), intent(in)   :: Latt
+      type(Unit_cell), intent(in) :: Latt_unit
+
+      ! Local
+      integer :: n, nf, N_Bonds, nc, I, I1, no, ix, iy, si, sj, idx, idy, nr
+      real(Kind=kind(0.d0)) :: Zero = 1.0e-8, Ham_T_max
+
+      allocate (this(N_FL))
+
+      Ham_T_max = 0.d0
+      do nf = 1, N_FL
+         if (abs(Ham_Tx_vec(nf)) > Ham_T_max) Ham_T_max = abs(Ham_Tx_vec(nf))
+      end do
+
+      do nf = 1, N_FL
+         this(nf)%N_bonds = 2*latt_unit%norb
+
+         allocate (this(nf)%List(this(nf)%N_bonds, 4), &
+              &    this(nf)%T(this(nf)%N_bonds))
+         nc = 0
+
+         do iy = 1, l2
+         do ix = 1, l1
+            si = (iy-1)*l1+ix
+            idx = mod(ix,l1) + 1  
+            idy = iy
+            sj = (idy-1)*l1+idx
+            if ( mod(ix+iy,2) .eq. 0 ) then
+                nc = nc + 1
+                this(nf)%T(nc) = cmplx(-ham_tx_vec(nf), 0.d0, kind(0.d0))
+                this(nf)%List(nc, 1) = si
+                this(nf)%List(nc, 2) = sj
+                this(nf)%List(nc, 3) = 0
+                this(nf)%List(nc, 4) = 0
+            endif
+         enddo
+         enddo
+         
+         do iy = 1, l2
+         do ix = 1, l1
+            si = (iy-1)*l1+ix
+            idx = mod(ix,l1) + 1  
+            idy = iy
+            sj = (idy-1)*l1+idx
+            if ( mod(ix+iy,2) .ne. 0 ) then
+                nc = nc + 1
+                this(nf)%T(nc) = cmplx(-ham_tx_vec(nf), 0.d0, kind(0.d0))
+                this(nf)%List(nc, 1) = si
+                this(nf)%List(nc, 2) = sj
+                this(nf)%List(nc, 3) = 0
+                this(nf)%List(nc, 4) = 0
+            endif
+         enddo
+         enddo
+
+         do iy = 1, l2
+         do ix = 1, l1
+            si = (iy-1)*l1+ix
+            idx = ix
+            idy = mod(iy,l2) + 1  
+            sj = (idy-1)*l1+idx
+            if ( mod(ix+iy,2) .eq. 0 ) then
+                nc = nc + 1
+                this(nf)%T(nc) = cmplx(-ham_ty_vec(nf), 0.d0, kind(0.d0))
+                this(nf)%List(nc, 1) = si
+                this(nf)%List(nc, 2) = sj
+                this(nf)%List(nc, 3) = 0
+                this(nf)%List(nc, 4) = 0
+            endif
+         enddo
+         enddo
+
+         do iy = 1, l2
+         do ix = 1, l1
+            si = (iy-1)*l1+ix
+            idx = ix
+            idy = mod(iy,l2) + 1  
+            sj = (idy-1)*l1+idx
+            if ( mod(ix+iy,2) .ne. 0 ) then
+                nc = nc + 1
+                this(nf)%T(nc) = cmplx(-ham_ty_vec(nf), 0.d0, kind(0.d0))
+                this(nf)%List(nc, 1) = si
+                this(nf)%List(nc, 2) = sj
+                this(nf)%List(nc, 3) = 0
+                this(nf)%List(nc, 4) = 0
+            endif
+         enddo
+         enddo
+
+         allocate (this(nf)%T_Loc(Latt_Unit%Norb))
+         do nc = 1, Latt_Unit%Norb
+            this(nf)%T_Loc(nc) = cmplx(-Ham_Chem_vec(nf), 0.d0, kind(0.d0))
+         end do
+         this(nf)%N_Phi = N_Phi_vec(nf)
+         this(nf)%Phi_X = Phi_X_vec(nf)
+         this(nf)%Phi_Y = Phi_Y_vec(nf)
+         this(nf)%Bulk = Bulk
+      end do
+
+      !Set Checkerboard
+      this(1)%N_FAM = 4
+      allocate (this(1)%L_Fam(this(1)%N_FAM), this(1)%Prop_Fam(this(1)%N_FAM))
+      this(1)%L_Fam = Latt_unit%Norb/2
+      this(1)%Prop_Fam = 1.d0
+      allocate (this(1)%List_Fam(this(1)%N_FAM, this(1)%L_Fam(1), 2))
+
+      this(1)%L_FAM = 0
+      no = 0
+      do nf = 1, 4
+         do nr = 1, Latt_unit%Norb/2
+            no = no + 1
+            this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 1) = 1 ! Unit cell
+            this(1)%List_Fam(Nf, this(1)%L_Fam(Nf), 2) = no ! The bond (See above)
+         enddo
+      enddo
+
+   end subroutine set_hopping_parameters_square_ob
+
    subroutine set_hopping_parameters_n_ladder_anisotropic(this, Ham_tx_vec, ham_ty_vec, Ham_Chem_vec, &
            & Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
 

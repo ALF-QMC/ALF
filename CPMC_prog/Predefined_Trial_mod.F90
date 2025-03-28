@@ -96,9 +96,10 @@ contains
 
       type(Lattice)                                :: Latt_Kekule
       real(Kind=kind(0.d0))  :: A1_p(2), A2_p(2), L1_p(2), L2_p(2), x_p(2), x1_p(2), hop(3), del_p(2)
-      real(Kind=kind(0.d0))  :: delta = 0.01, Ham_T1, Ham_T2, Ham_Tperp
+      real(Kind=kind(0.d0))  :: delta = 0.01, Ham_T1, Ham_T2, Ham_Tperp, stag_sgn, stag_mass
 
       integer :: N, nf, I, I1, I2, nc, nc1, IK_u, I_u, J1, lp, J, N_Phi, ns, no, k1, N_part_tot, Np_arr(2), i0, j0
+      integer :: L1, L2, no_eff
       logical :: Test = .false., Bulk = .true.
       complex(Kind=kind(0.d0)) :: Z_norm
 
@@ -137,6 +138,33 @@ contains
 
       select case (Lattice_type)
       
+      case ('square_ob')
+           L1 = int(sqrt(dble(ndim)))
+           L2 = L1
+
+           ham_tx_vec(1) = ham_t;
+           ham_tx_vec(2) = ham_t*alpha;
+           ham_ty_vec(1) = ham_t*alpha;
+           ham_ty_vec(2) = ham_t;
+           call set_hopping_parameters_square_ob(Hopping_Matrix_tmp, ham_tx_vec, ham_ty_vec, Ham_Chem_vec, &
+                  & Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, L1, L2, List, Invlist, Latt, Latt_unit)
+            
+           call Predefined_Hoppings_set_OPT(Hopping_Matrix_tmp, List, Invlist, Latt, Latt_unit, Dtau, Checkerboard, Symm, OP_tmp)
+
+           stag_mass = 0.005
+           do nf = 1, N_FL
+              do j = 1, L2
+              do i = 1, L1
+                  no_eff = (j1-1)*L2+i1
+                  I1 = invlist(1, no_eff)
+                  stag_sgn = 1.d0
+                  if (mod(i+j, 2) .eq. 0) stag_sgn = -1.d0
+                  !! onsite sublattice mass
+                  op_tmp(1, nf)%o(I1, I1) = stag_sgn*stag_mass
+              enddo
+              enddo
+           enddo
+
       case ('square_anisotropic')
            Allocate(op_tmp(1,n_fl))
            do n = 1,n_fl
@@ -182,6 +210,7 @@ contains
             Phi_X_vec = 0.002
             call set_hopping_parameters_n_ladder_anisotropic(Hopping_Matrix_tmp, ham_tx_vec, ham_ty_vec, Ham_Chem_vec, &
                    & Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
+            call Predefined_Hoppings_set_OPT(Hopping_Matrix_tmp, List, Invlist, Latt, Latt_unit, Dtau, Checkerboard, Symm, OP_tmp)
          else
 
             allocate (op_tmp(1, n_fl))
@@ -246,9 +275,6 @@ contains
          write (error_unit, *) 'No predefined trial wave function for this lattice.'
          call Terminate_on_error(ERROR_GENERIC, __FILE__, __LINE__)
       end select
-
-      if (l_cmplx_trial )   &
-      &     call Predefined_Hoppings_set_OPT(Hopping_Matrix_tmp, List, Invlist, Latt, Latt_unit, Dtau, Checkerboard, Symm, OP_tmp)
 
       do nf = 1, N_FL
          call Diag(op_tmp(1, nf)%o, op_tmp(1, nf)%u, op_tmp(1, nf)%e)
