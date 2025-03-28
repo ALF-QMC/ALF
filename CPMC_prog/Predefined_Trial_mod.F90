@@ -155,7 +155,7 @@ contains
            do nf = 1, N_FL
               do j = 1, L2
               do i = 1, L1
-                  no_eff = (j1-1)*L2+i1
+                  no_eff = (j-1)*L2+i
                   I1 = invlist(1, no_eff)
                   stag_sgn = 1.d0
                   if (mod(i+j, 2) .eq. 0) stag_sgn = -1.d0
