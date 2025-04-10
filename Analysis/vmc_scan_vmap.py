@@ -82,7 +82,6 @@ def build_hamiltonian(phi1, phi2, rows, cols, values, bond_pairs1, bond_pairs2, 
     for k, (i1, i2) in enumerate(bond_pairs2):
         H = H.at[i1, i1].add(-V2 * phi2[k])
         H = H.at[i2, i2].add(+V2 * phi2[k])
-    H = H + 1e-8 * jnp.eye(Nsite)
     return H
 
 def total_density_matrix(H, Nelec):
@@ -184,7 +183,7 @@ if __name__ == "__main__":
         Nelec=16,
         V1_range=(0.0, 4.0),
         V2_range=(0.0, 4.0),
-        dV1=0.1, dV2=0.1,
+        dV1=0.01, dV2=0.01,
         pbc=True
     )
 
