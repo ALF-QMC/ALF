@@ -1400,7 +1400,9 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       Integer             :: L1, L2, N_FL
       Character (len=64)  :: Model, Lattice_type
       NAMELIST /VAR_Lattice/ L1, L2, Lattice_type, Model
-      NAMELIST /VAR_cbqbt_ob/  ham_t, ham_t2, ham_t3, ham_V, ham_V2, &
+      !!NAMELIST /VAR_cbqbt_ob/  ham_t, ham_t2, ham_t3, ham_V, ham_V2, &
+      !!     &     ham_V3, ham_chem, N_dope
+      NAMELIST /VAR_cbqbt/  ham_t, ham_t2, ham_t3, ham_V, ham_V2, &
            &     ham_V3, ham_chem, N_dope
 
 
@@ -1427,7 +1429,8 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       rewind(5)
       read(5,NML=VAR_errors)
       rewind(5)
-      read(5,NML=VAR_cbqbt_ob)
+      !!read(5,NML=VAR_cbqbt_ob)
+      read(5,NML=VAR_cbqbt)
       close(5)
 
       Nobs  = size(bins_raw, 1)
@@ -1519,27 +1522,12 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
          !uvec(:,:,nf)=zmat2
          !evec(:,nf)=evec_tmp
          
-         zmat(:,:)=grc(:,:,nf)
-         call diag_gen(zmat, zmat2, z_evec_tmp, 'R', 0)
-         !call diag_gen(zmat, zmat2, z_evec_tmp, 'L', 0)
+         zmat(:,:)=Grc(:,:,nf)
+         !call diag_gen(zmat, zmat2, z_evec_tmp, 'R', 0)
+         call diag_gen(zmat, zmat2, z_evec_tmp, 'L', 0)
          uvec(:,:,nf)=zmat2
          evec(:,nf)=dble(z_evec_tmp)
-         do i2=1,ndim
-            write(*,*) evec(i2,nf)
-         enddo
       enddo
-      stop
-      
-      !!!! For real estimator
-      !!do nf = 1, N_fl
-      !!   call udv(grc(:,:,nf), zmat, z_evec_tmp, zmat2, 0)
-      !!   uvec(:,:,nf)=zmat
-      !!   evec(:,nf)=dble(z_evec_tmp)
-      !!     do i2=1,ndim
-      !!      write(*,*) evec(i2,nf)
-      !!   enddo
-      !!enddo
-      !!stop
       
       !!!do nf = 1, N_fl
       !do i2=1,n_part
