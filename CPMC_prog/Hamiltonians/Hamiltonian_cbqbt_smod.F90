@@ -828,7 +828,7 @@
           character(len=:), allocatable ::  Channel
 
           ! Scalar observables
-          allocate (obs_scal(9))
+          allocate (obs_scal(10))
           do I = 1, size(obs_scal, 1)
              select case (I)
              case (1)
@@ -849,6 +849,8 @@
                 N = ndim*ndim*n_fl; Filename = "grc"
              case (9)
                 N = ndim*ndim*n_fl; Filename = "mixgrc"
+             case (10)
+                N = ndim*n_fl; Filename = "ndeni"
              case default
                 write (6, *) ' Error in Alloc_obs '
              end select
@@ -1086,6 +1088,30 @@
                 ztmp = zone - gr_mix(J, I, nf)
                 obs_scal(9)%obs_vec(nc) = obs_scal(9)%obs_vec(nc) + ztmp*z_fac
              end do
+             end do
+          end do
+          
+          nc = 0
+          is = 1
+          do nf = 1, n_fl
+             do i1 = 1, L1
+             do i2 = 1, L2
+
+                nc = nc + 1
+                n1 = invlist(is, 1)
+                ztmp = cmplx(1.d0, 0.d0, kind(0.d0)) - gr(n1, n1, nf)
+                obs_scal(10)%obs_vec(nc) = obs_scal(10)%obs_vec(nc) + ztmp*z_fac
+                
+                nc = nc + 1
+                n1 = invlist(is, 2)
+                ztmp = cmplx(1.d0, 0.d0, kind(0.d0)) - gr(n1, n1, nf)
+                obs_scal(10)%obs_vec(nc) = obs_scal(10)%obs_vec(nc) + ztmp*z_fac
+
+                !! i -> i+y
+                is = latt%nnlist(is, 0, 1)
+             end do
+             !! i -> i+x
+             is = latt%nnlist(is, 1, 0)
              end do
           end do
 

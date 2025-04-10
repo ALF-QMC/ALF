@@ -1,13 +1,3 @@
-!--------------------------------------------------------------------
-!> @author
-!> ALF-project
-!>
-!> @brief
-!> This module provides a set of predefined trial wave functions.
-!>
-!
-!--------------------------------------------------------------------
-
 module Predefined_Trial
 
    use runtime_error_mod
@@ -23,59 +13,6 @@ module Predefined_Trial
 
 contains
 
-!--------------------------------------------------------------------
-!> @author
-!> ALF-project
-!>
-!> @brief
-!>    Sets the trial wave function corresponding to the solution of the non-interacting
-!>    tight binding Hamiltonian on the given lattice. Twisted boundary conditions (Phi_X=0.01)
-!>    are implemented so as to generate a non-degenerate trial wave functions.
-!> @param [in]  Lattice_type
-!>    Character(64)
-!> \verbatim
-!>    Square,  Honeycomb, Pi_Flux
-!> \endverbatim
-!> @param [in]  Latt_unit
-!>    Type(Unit_cell)
-!> \verbatim
-!>     Contains number of orbitals per unit cell and positions, as well as coordination number
-!> \endverbatim
-!> @param [in]  Ndim
-!>    Integer
-!> \verbatim
-!>     Number of orbitals
-!> \endverbatim
-!> @param [in]  List, Invlist
-!>    Integer(:,:)
-!> \verbatim
-!>    List(I=1.. Ndim,1)    =   Unit cell of site I
-!>    List(I=1.. Ndim,2)    =   Orbital index  of site I
-!>    Invlist(Unit_cell,Orbital) = site I
-!> \endverbatim
-!> @param [in]    Latt
-!>    Type(Lattice)
-!> \verbatim
-!>    The Lattice
-!> \endverbatim
-!> @param [in]  N_part
-!>    Integer
-!> \verbatim
-!>    Particle number for each flavor
-!> \endverbatim
-!> @param [in]  N_FL
-!>    Integer
-!> \verbatim
-!>    Flavor
-!> \endverbatim
-!> @param [out]  WF_L, WF_R
-!>    Type(Wavefunction)(N_FL)
-!> \verbatim
-!>    Wavefunction
-!>    Also sets the degeneracy:  E(N_part + 1) - E(N_part). Energy eigenvalues are ordered in ascending order.
-!> \endverbatim
-!>
-!------------------------------------------------------------------
    subroutine Predefined_TrialWaveFunction(Lattice_type, Ndim, List, Invlist, Latt, Latt_unit, &
         &                                  N_part, N_FL, N_slat, WF_L, WF_R)
 
@@ -95,17 +32,18 @@ contains
 
       type(Lattice)                                :: Latt_Kekule
       real(Kind=kind(0.d0))  :: A1_p(2), A2_p(2), L1_p(2), L2_p(2), x_p(2), x1_p(2), hop(3), del_p(2)
-      real(Kind=kind(0.d0))  :: delta = 0.01, Ham_T1, Ham_T2, Ham_Tperp
+      real(Kind=kind(0.d0))  :: delta = 0.01, Ham_T1, Ham_T2, Ham_Tperp, v1_eff, v2_eff, dtmp
 
       integer :: N, nf, I, I1, I2, nc, nc1, IK_u, I_u, J1, lp, J, N_Phi, ns, no, k1, N_part_tot, Np_arr(2), i0, j0
-      integer :: j2, k2, ix, l_width
-      logical :: Test = .false., Bulk = .true.
+      integer :: j2, k2, ix, l_width, ierr, nx, ny, nn_bond(4,2), nnn_bond(4,2)
+      logical :: Test = .false., Bulk = .true., lconf
       complex(Kind=kind(0.d0)) :: Z_norm
 
       real(Kind=kind(0.d0)), allocatable :: Ham_T_vec(:), Ham_Tperp_vec(:), Ham_Chem_vec(:), Phi_X_vec(:), Phi_Y_vec(:),&
              & ham_tx_vec(:), ham_ty_vec(:), Ham_T2_vec(:), Ham_lambda_vec(:), Ham_T3_vec(:)
       integer, allocatable ::   N_Phi_vec(:)
-      real(Kind=kind(0.d0)), allocatable :: eig_sort_arr(:, :)
+      real(Kind=kind(0.d0)), allocatable :: ni_in(:)
+      character(len=64) :: file_tg
 
       allocate (Ham_T_vec(N_FL), Ham_T2_vec(N_FL), Ham_Tperp_vec(N_FL), Ham_Chem_vec(N_FL), Phi_X_vec(N_FL), Phi_Y_vec(N_FL),&
            &    ham_tx_vec(N_FL), ham_ty_vec(N_FL), Ham_lambda_vec(N_FL), N_Phi_vec(N_FL), Ham_T3_vec(N_FL))
@@ -143,6 +81,26 @@ contains
       Ham_T3_vec = 0.d0
       Ham_Chem_vec = Ham_Chem
       Ham_lambda_vec = 0.d0
+
+      nx = int(latt%l1_p(1)/latt%a1_p(1))
+      ny = int(latt%l2_p(2)/latt%a2_p(2))
+      file_tg = "u_eff_in.dat"
+      inquire (file=file_tg, exist=lconf)
+      allocate(ni_in(ndim))
+      if (lconf) then
+         open (unit=5, file=file_tg, status='old', action='read', iostat=ierr)
+         read (5, *) v1_eff, v2_eff
+         i1 = 1
+         do i = 1, nx
+         do j = 1, ny
+            read (5, *) dtmp
+            ni_in(i1) = dtmp
+            i1 = latt%nnlist(i1, 0, 1)
+         enddo
+         i1 = latt%nnlist(i1, 1, 0)
+         enddo
+         close(5)
+      endif
 
       select case (Lattice_type)
 
@@ -184,49 +142,86 @@ contains
       
          call Predefined_Hoppings_set_OPT(Hopping_Matrix_tmp, List, Invlist, Latt, Latt_unit, Dtau, Checkerboard, Symm, OP_tmp)
       
-         !! add stagger mass to avoid the degeneracy of qbt
-         l_width = int(latt%l2_p(2)/latt%a2_p(2))
+         if (lconf) then
+            do nf = 1, N_FL
+            do I = 1, latt%N
 
-         stag_mass = 0.005
-         do nf = 1, N_FL
-            I = 1
-            do J = 1, 1!l_width
-               do no = 1, Latt_unit%norb
-                  stag_sgn = 1.d0
-                  if (mod(no, 2) .eq. 0) stag_sgn = -1.d0
-                  I1 = invlist(I, no)
-                  !! onsite sublattice mass
-                  op_tmp(1, nf)%o(I1, I1) = stag_sgn*stag_mass
-               end do
-               I = latt%nnlist(I,0,1)
-            end do
-         end do
+                i1 = invlist(i, 1) !! a sublattice
+                i2 = invlist(i, 2) !! b sublattice
 
-         !! pinning field
-         stag_mass = 0.005
-         do nf = 1, N_FL
-            I = 1
-            I = latt%nnlist(I,1,1)
-            do J = 1, 1!l_width
-               do no = 1, Latt_unit%norb
-                   I1 = invlist(I, no)
-                   J1 = invlist(latt%nnlist(I,1,0), no)
-                   K1 = invlist(latt%nnlist(I,0,1), no)
-                   !! Hopping amplitude
-                   stag_sgn = -1.d0
-                   if (mod(no, 2) .eq. 0) stag_sgn = 1.d0
-                   op_tmp(1, nf)%o(I1, J1) = op_tmp(1, nf)%o(I1, J1) + &
-                       & stag_sgn*stag_mass
-                   op_tmp(1, nf)%o(J1, I1) = op_tmp(1, nf)%o(J1, I1) + &
-                       & stag_sgn*stag_mass
-                   op_tmp(1, nf)%o(I1, K1) = op_tmp(1, nf)%o(I1, K1) + &
-                       & stag_sgn*stag_mass
-                   op_tmp(1, nf)%o(K1, I1) = op_tmp(1, nf)%o(K1, I1) + &
-                       & stag_sgn*stag_mass
-               enddo
-               I = latt%nnlist(I,0,1)
+                nn_bond(:,2) = i2; 
+                nn_bond(1,1) = i1; 
+                nn_bond(2,1) = invlist(latt%nnlist(i,1,0),1);
+                nn_bond(3,1) = invlist(latt%nnlist(i,0,1),1); 
+                nn_bond(4,1) = invlist(latt%nnlist(i,1,1),1);
+
+                do k1 = 1, 4
+                   op_tmp(1,nf)%o(nn_bond(k1,1),nn_bond(k1,2)) = & 
+                       & op_tmp(1,nf)%o(nn_bond(k1,1),nn_bond(k1,2)) & 
+                       & - v1_eff*(ni_in(nn_bond(k1,1))-ni_in(nn_bond(k1,2)))
+                enddo
+                
+                nnn_bond(1,1) = i1; nnn_bond(1,2) = invlist(latt%nnlist(i,1,0),1);
+                nnn_bond(2,1) = i2; nnn_bond(2,2) = invlist(latt%nnlist(i,1,0),2);
+                nnn_bond(3,1) = i1; nnn_bond(3,2) = invlist(latt%nnlist(i,0,1),1);
+                nnn_bond(4,1) = i2; nnn_bond(4,2) = invlist(latt%nnlist(i,0,1),2);
+                
+                do k1 = 1, 4
+                   op_tmp(1,nf)%o(nnn_bond(k1,1),nnn_bond(k1,2)) = & 
+                       & op_tmp(1,nf)%o(nnn_bond(k1,1),nnn_bond(k1,2)) & 
+                       & - v2_eff*(ni_in(nnn_bond(k1,1))-ni_in(nnn_bond(k1,2)))
+                enddo
+
             enddo
-         enddo
+            enddo
+
+         else
+
+            !! add stagger mass to avoid the degeneracy of qbt
+            l_width = int(latt%l2_p(2)/latt%a2_p(2))
+
+            stag_mass = 0.005
+            do nf = 1, N_FL
+               I = 1
+               do J = 1, 1!l_width
+                  do no = 1, Latt_unit%norb
+                     stag_sgn = 1.d0
+                     if (mod(no, 2) .eq. 0) stag_sgn = -1.d0
+                     I1 = invlist(I, no)
+                     !! onsite sublattice mass
+                     op_tmp(1, nf)%o(I1, I1) = stag_sgn*stag_mass
+                  end do
+                  I = latt%nnlist(I,0,1)
+               end do
+            end do
+
+            !! pinning field
+            stag_mass = 0.005
+            do nf = 1, N_FL
+               I = 1
+               I = latt%nnlist(I,1,1)
+               do J = 1, 1!l_width
+                  do no = 1, Latt_unit%norb
+                      I1 = invlist(I, no)
+                      J1 = invlist(latt%nnlist(I,1,0), no)
+                      K1 = invlist(latt%nnlist(I,0,1), no)
+                      !! Hopping amplitude
+                      stag_sgn = -1.d0
+                      if (mod(no, 2) .eq. 0) stag_sgn = 1.d0
+                      op_tmp(1, nf)%o(I1, J1) = op_tmp(1, nf)%o(I1, J1) + &
+                          & stag_sgn*stag_mass
+                      op_tmp(1, nf)%o(J1, I1) = op_tmp(1, nf)%o(J1, I1) + &
+                          & stag_sgn*stag_mass
+                      op_tmp(1, nf)%o(I1, K1) = op_tmp(1, nf)%o(I1, K1) + &
+                          & stag_sgn*stag_mass
+                      op_tmp(1, nf)%o(K1, I1) = op_tmp(1, nf)%o(K1, I1) + &
+                          & stag_sgn*stag_mass
+                  enddo
+                  I = latt%nnlist(I,0,1)
+               enddo
+            enddo
+
+         endif
 
       case default
          write (error_unit, *) 'No predefined trial wave function for this lattice.'
@@ -268,6 +263,7 @@ contains
 
       deallocate (Ham_T_vec, Ham_Tperp_vec, Ham_T2_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, N_Phi_vec)
       deallocate (ham_tx_vec, ham_ty_vec, ham_t3_vec)
+      deallocate (ni_in)
 
    end subroutine Predefined_TrialWaveFunction
 

@@ -1234,7 +1234,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       Integer :: Nbins, Nbins_eff, I, IOBS, N_Back
 
       Integer :: N_skip, N_rebin, N_Cov, ierr, N_auto
-      Character (len=64) :: File_out
+      Character (len=64) :: File_out, file_tg
       NAMELIST /VAR_errors/   N_skip, N_rebin, N_Cov, N_Back, N_auto
 
       !New Stuff for Autocorrelation
@@ -1318,6 +1318,10 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       write(File_out,'(A,A)') trim(name), "J"
       OPEN (UNIT=21, FILE=File_out, STATUS='unknown')
       WRITE(21,*) 'Effective number of bins, and bins: ', Nbins_eff/N_rebin, Nbins
+
+      write(File_tg,'(A,A)') trim(name), "_list"
+      open (unit=23, file=File_tg, status='unknown')
+
       ALLOCATE (EN(Nbins_eff), EN_f_arg(data_range+1,Nbins_eff), vec(NOBS), vec_err(NOBS))
       DO IOBS = 1,Nobs_output
          EN(:) = Real(Bins(IOBS,:), kind(0.d0)) ! not used any more, too be deleted
@@ -1328,11 +1332,13 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
          vec_err(IOBS) = XERR
          WRITE(21,*)
          WRITE(21, "(I11, 2(E26.17E3))") IOBS, XM,  XERR
+         WRITE(23, "(E26.17E3)") XM
       ENDDO
       CALL ERRCALCJ(sgn, XM,XERR,N_Rebin)
       WRITE(21,*)
       WRITE(21, "(I11, 2(E26.17E3))") Nobs_output+1, XM,  XERR
       CLOSE(21)
+      CLOSE(23)
       
       if(N_auto>0) then
          ALLOCATE(AutoCorr(N_auto))
@@ -1513,12 +1519,27 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
          !uvec(:,:,nf)=zmat2
          !evec(:,nf)=evec_tmp
          
-         zmat(:,:)=Grc(:,:,nf)
-         !call diag_gen(zmat, zmat2, z_evec_tmp, 'R', 0)
-         call diag_gen(zmat, zmat2, z_evec_tmp, 'L', 0)
+         zmat(:,:)=grc(:,:,nf)
+         call diag_gen(zmat, zmat2, z_evec_tmp, 'R', 0)
+         !call diag_gen(zmat, zmat2, z_evec_tmp, 'L', 0)
          uvec(:,:,nf)=zmat2
          evec(:,nf)=dble(z_evec_tmp)
+         do i2=1,ndim
+            write(*,*) evec(i2,nf)
+         enddo
       enddo
+      stop
+      
+      !!!! For real estimator
+      !!do nf = 1, N_fl
+      !!   call udv(grc(:,:,nf), zmat, z_evec_tmp, zmat2, 0)
+      !!   uvec(:,:,nf)=zmat
+      !!   evec(:,nf)=dble(z_evec_tmp)
+      !!     do i2=1,ndim
+      !!      write(*,*) evec(i2,nf)
+      !!   enddo
+      !!enddo
+      !!stop
       
       !!!do nf = 1, N_fl
       !do i2=1,n_part

@@ -142,6 +142,12 @@ def grid_search_V(n_in, Lx, Ly, t1, t2p, Nelec, V1_range, V2_range, dV1, dV2, pb
     best_V1 = V1_vals[best_i]
     best_V2 = V2_vals[best_j]
 
+    # 在找到最优 (V1, V2) 后，计算其 n_out
+    phi1_in, phi2_in = compute_phi_from_density(n_in, bond_pairs1, bond_pairs2)
+    H_best = build_hamiltonian(phi1_in, phi2_in, rows, cols, values, bond_pairs1, bond_pairs2, best_V1, best_V2, Nsite)
+    n_matrix_best = total_density_matrix(H_best, Nelec)
+    n_out_best = jnp.real(jnp.diag(n_matrix_best))
+
     print(f"\nBest V: V1 = {best_V1:.3f}, V2 = {best_V2:.3f}, Loss = {best_loss:.6e}")
     end = time.perf_counter()
     print(f"Total runtime = {end - start:.4f} s")
@@ -162,22 +168,28 @@ def grid_search_V(n_in, Lx, Ly, t1, t2p, Nelec, V1_range, V2_range, dV1, dV2, pb
     plt.savefig("results/loss_heatmap.png", dpi=150)
     plt.show()
 
-    return float(best_V1), float(best_V2)
+    return float(best_V1), float(best_V2), n_out_best
 
 
 if __name__ == "__main__":
     import time
     start = time.perf_counter()
-    filename = "density.dat"
+    filename = "ndeni_scal_list"
     n_in = jnp.array(np.loadtxt(filename))
 
-    best_V = grid_search_V(
+    best_V1, best_V2, n_out_best = grid_search_V(
         n_in=n_in,
-        Lx=12, Ly=12,
+        Lx=4, Ly=4,
         t1=1.0, t2p=0.5,
         Nelec=16,
-        V1_range=(0.0, 10.0),
-        V2_range=(0.0, 10.0),
+        V1_range=(0.0, 4.0),
+        V2_range=(0.0, 4.0),
         dV1=0.1, dV2=0.1,
         pbc=True
     )
+
+    # 将结果打印到 "u_eff_in.dat"
+    with open("u_eff_in.dat", "w") as f:
+        f.write(f"{best_V1:.12f} {best_V2:.12f} \n")
+        for val in n_out_best:
+            f.write(f"{val:.12f} \n")
