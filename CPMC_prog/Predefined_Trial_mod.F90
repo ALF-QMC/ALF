@@ -190,7 +190,6 @@ contains
 
             enddo
             enddo
-            stop
 
          else
 
