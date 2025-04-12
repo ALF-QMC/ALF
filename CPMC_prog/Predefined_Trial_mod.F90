@@ -166,11 +166,11 @@ contains
                 do k1 = 1, 4
                    op_tmp(1,nf)%o(nn_bond(k1,1),nn_bond(k1,1)) = & 
                        & op_tmp(1,nf)%o(nn_bond(k1,1),nn_bond(k1,1)) & 
-                       & - v1_eff*ni_in(nn_bond(k1,1))
+                       & - v1_eff*(ni_in(nn_bond(k1,1))-ni_in(nn_bond(k1,2)))
                    
                    op_tmp(1,nf)%o(nn_bond(k1,2),nn_bond(k1,2)) = & 
                        & op_tmp(1,nf)%o(nn_bond(k1,2),nn_bond(k1,2)) & 
-                       & + v1_eff*ni_in(nn_bond(k1,2))
+                       & + v1_eff*(ni_in(nn_bond(k1,1))-ni_in(nn_bond(k1,2)))
                 enddo
                 
                 nnn_bond(1,1) = i1; nnn_bond(1,2) = invlist(latt%nnlist(i,1,0),1);
@@ -181,15 +181,16 @@ contains
                 do k1 = 1, 4
                    op_tmp(1,nf)%o(nnn_bond(k1,1),nnn_bond(k1,1)) = & 
                        & op_tmp(1,nf)%o(nnn_bond(k1,1),nnn_bond(k1,1)) & 
-                       & - v2_eff*ni_in(nnn_bond(k1,1))
+                       & - v2_eff*(ni_in(nnn_bond(k1,1))-ni_in(nnn_bond(k1,2)))
                    
                    op_tmp(1,nf)%o(nnn_bond(k1,2),nnn_bond(k1,2)) = & 
                        & op_tmp(1,nf)%o(nnn_bond(k1,2),nnn_bond(k1,2)) & 
-                       & + v2_eff*ni_in(nnn_bond(k1,2))
+                       & + v2_eff*(ni_in(nnn_bond(k1,1))-ni_in(nnn_bond(k1,2)))
                 enddo
 
             enddo
             enddo
+            stop
 
          else
 
