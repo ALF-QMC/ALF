@@ -43,6 +43,9 @@ Program repack_latt
 !--------------------------------------------------------------------
   
   use ana_mod
+#ifdef _OPENMP
+  use check_omp_num_threads_mod
+#endif
   Implicit none
   
   INTEGER :: i, nb, no, no1, nt
@@ -54,6 +57,10 @@ Program repack_latt
   Integer                                :: Norb, Nunit, Ntau, Nbins
   Real    (Kind=Kind(0.d0))              :: dtau, X_p(2)
   Type (Lattice)    :: Latt
+
+#ifdef _OPENMP
+  call check_omp_num_threads()
+#endif
   
   i = 1
   CALL GET_COMMAND_ARGUMENT(i, File_in)

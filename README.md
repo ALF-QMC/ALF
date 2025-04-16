@@ -7,7 +7,7 @@
 
 -> Interested contributors please check our [CONTRIBUTING.md](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/blob/master/CONTRIBUTING.md) guidelines.
 
--> This is the **development** version of ALF, the latest stable version is [ALF 2.4](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/tree/ALF-2.4/).
+-> This is the **development** version of ALF, the latest stable version is [ALF 2.5](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/tree/ALF-2.5/).
 
 ## Description ##
 

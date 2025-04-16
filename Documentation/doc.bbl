@@ -3,7 +3,8 @@
 \providecommand{\urlprefix}{URL }
 \expandafter\ifx\csname urlstyle\endcsname\relax
   \providecommand{\doi}[1]{doi:\discretionary{}{}{}#1}\else
-  \providecommand{\doi}{doi:\discretionary{}{}{}\begingroup \urlstyle{rm}\Url}\fi
+  \providecommand{\doi}{doi:\discretionary{}{}{}\begingroup
+  \urlstyle{rm}\Url}\fi
 \providecommand{\eprint}[2][]{\url{#2}}
 
 \bibitem{Blankenbecler81}
@@ -20,13 +21,15 @@ S.~White, D.~Scalapino, R.~Sugar, E.~Loh, J.~Gubernatis and R.~Scalettar,
 
 \bibitem{Sugiyama86}
 G.~Sugiyama and S.~Koonin,
-\newblock \emph{Auxiliary field monte-carlo for quantum many-body ground states},
+\newblock \emph{Auxiliary field monte-carlo for quantum many-body ground
+  states},
 \newblock Annals of Physics \textbf{168}(1), 1  (1986),
 \newblock \doi{10.1016/0003-4916(86)90107-7}.
 
 \bibitem{Sorella89}
 S.~Sorella, S.~Baroni, R.~Car and M.~Parrinello,
-\newblock \emph{A novel technique for the simulation of interacting fermion systems},
+\newblock \emph{A novel technique for the simulation of interacting fermion
+  systems},
 \newblock Europhysics Letters ({EPL}) \textbf{8}(7), 663 (1989),
 \newblock \doi{10.1209/0295-5075/8/7/014}.
 
@@ -38,8 +41,11 @@ S.~Duane, A.~D. Kennedy, B.~J. Pendleton and D.~Roweth,
 
 \bibitem{Assaad08_rev}
 F.~Assaad and H.~Evertz,
-\newblock \emph{World-line and determinantal quantum monte carlo methods for spins, phonons and electrons},
-\newblock In H.~Fehske, R.~Schneider and A.~Wei{\ss}e, eds., \emph{Computational Many-Particle Physics}, vol. 739 of \emph{Lecture Notes in Physics}, pp. 277--356. Springer, Berlin Heidelberg,
+\newblock \emph{World-line and determinantal quantum monte carlo methods for
+  spins, phonons and electrons},
+\newblock In H.~Fehske, R.~Schneider and A.~Wei{\ss}e, eds.,
+  \emph{Computational Many-Particle Physics}, vol. 739 of \emph{Lecture Notes
+  in Physics}, pp. 277--356. Springer, Berlin Heidelberg,
 \newblock ISBN 978-3-540-74685-0,
 \newblock \doi{10.1007/978-3-540-74686-7_10} (2008).
 
@@ -51,56 +57,68 @@ D.~J. Scalapino,
 \newblock \doi{10.1007/978-0-387-68734-6_13} (2007).
 
 \bibitem{LeBlanc15}
-J.~P.~F. LeBlanc, A.~E. Antipov, F.~Becca, I.~W. Bulik, G.~K.-L. Chan, C.-M. Chung, Y.~Deng, M.~Ferrero, T.~M. Henderson, C.~A. Jim\'enez-Hoyos, E.~Kozik, X.-W. Liu \emph{et~al.},
-\newblock \emph{Solutions of the two-dimensional hubbard model: Benchmarks and results from a wide range of numerical algorithms},
+J.~P.~F. LeBlanc, A.~E. Antipov, F.~Becca, I.~W. Bulik, G.~K.-L. Chan, C.-M.
+  Chung, Y.~Deng, M.~Ferrero, T.~M. Henderson, C.~A. Jim\'enez-Hoyos, E.~Kozik,
+  X.-W. Liu \emph{et~al.},
+\newblock \emph{Solutions of the two-dimensional hubbard model: Benchmarks and
+  results from a wide range of numerical algorithms},
 \newblock Phys. Rev. X \textbf{5}, 041041 (2015),
 \newblock \doi{10.1103/PhysRevX.5.041041}.
 
 \bibitem{Hohenadler10}
 M.~Hohenadler, T.~C. Lang and F.~F. Assaad,
-\newblock \emph{Correlation effects in quantum spin-hall insulators: A quantum monte carlo study},
+\newblock \emph{Correlation effects in quantum spin-hall insulators: A quantum
+  monte carlo study},
 \newblock Phys. Rev. Lett. \textbf{106}, 100403 (2011),
 \newblock \doi{10.1103/PhysRevLett.106.100403}.
 
 \bibitem{Zheng11}
 D.~Zheng, G.-M. Zhang and C.~Wu,
-\newblock \emph{Particle-hole symmetry and interaction effects in the kane-mele-hubbard model},
+\newblock \emph{Particle-hole symmetry and interaction effects in the
+  kane-mele-hubbard model},
 \newblock Phys. Rev. B \textbf{84}, 205121 (2011),
 \newblock \doi{10.1103/PhysRevB.84.205121}.
 
 \bibitem{Assaad12}
 F.~F. Assaad, M.~Bercx and M.~Hohenadler,
-\newblock \emph{Topological invariant and quantum spin models from magnetic $\pi$ fluxes in correlated topological insulators},
+\newblock \emph{Topological invariant and quantum spin models from magnetic
+  $\pi$ fluxes in correlated topological insulators},
 \newblock Phys. Rev. X \textbf{3}, 011015 (2013),
 \newblock \doi{10.1103/PhysRevX.3.011015}.
 
 \bibitem{Hofmann19}
 J.~S. Hofmann, F.~F. Assaad, R.~Queiroz and E.~Khalaf,
-\newblock \emph{Search for correlation-induced adiabatic paths between distinct topological insulators},
+\newblock \emph{Search for correlation-induced adiabatic paths between distinct
+  topological insulators},
 \newblock Phys. Rev. Research \textbf{2}, 023390 (2020),
 \newblock \doi{10.1103/PhysRevResearch.2.023390}.
 
 \bibitem{Assaad13}
 F.~F. Assaad and I.~F. Herbut,
-\newblock \emph{Pinning the order: The nature of quantum criticality in the hubbard model on honeycomb lattice},
+\newblock \emph{Pinning the order: The nature of quantum criticality in the
+  hubbard model on honeycomb lattice},
 \newblock Phys. Rev. X \textbf{3}, 031010 (2013),
 \newblock \doi{10.1103/PhysRevX.3.031010}.
 
 \bibitem{Toldin14}
 F.~Parisen~Toldin, M.~Hohenadler, F.~F. Assaad and I.~F. Herbut,
-\newblock \emph{Fermionic quantum criticality in honeycomb and $\pi$-flux hubbard models: Finite-size scaling of renormalization-group-invariant observables from quantum monte carlo},
+\newblock \emph{Fermionic quantum criticality in honeycomb and $\pi$-flux
+  hubbard models: Finite-size scaling of renormalization-group-invariant
+  observables from quantum monte carlo},
 \newblock Phys. Rev. B \textbf{91}, 165108 (2015),
 \newblock \doi{10.1103/PhysRevB.91.165108}.
 
 \bibitem{Otsuka16}
 Y.~Otsuka, S.~Yunoki and S.~Sorella,
-\newblock \emph{Universal quantum criticality in the metal-insulator transition of two-dimensional interacting dirac electrons},
+\newblock \emph{Universal quantum criticality in the metal-insulator transition
+  of two-dimensional interacting dirac electrons},
 \newblock Phys. Rev. X \textbf{6}, 011029 (2016),
 \newblock \doi{10.1103/PhysRevX.6.011029}.
 
 \bibitem{Chandrasekharan13}
 S.~Chandrasekharan and A.~Li,
-\newblock \emph{Quantum critical behavior in three dimensional lattice gross-neveu models},
+\newblock \emph{Quantum critical behavior in three dimensional lattice
+  gross-neveu models},
 \newblock Phys. Rev. D \textbf{88}, 021701 (2013),
 \newblock \doi{10.1103/PhysRevD.88.021701}.
 
@@ -112,7 +130,8 @@ V.~Ayyar and S.~Chandrasekharan,
 
 \bibitem{Liu18}
 Y.~Liu, Z.~Wang, T.~Sato, M.~Hohenadler, C.~Wang, W.~Guo and F.~F. Assaad,
-\newblock \emph{Superconductivity from the condensation of topological defects in a quantum spin-hall insulator},
+\newblock \emph{Superconductivity from the condensation of topological defects
+  in a quantum spin-hall insulator},
 \newblock Nature Communications \textbf{10}(1), 2658 (2019),
 \newblock \doi{10.1038/s41467-019-10372-0}.
 
@@ -123,51 +142,62 @@ Z.-X. Li, Y.-F. Jiang, S.-K. Jian and H.~Yao,
 \newblock \doi{10.1038/s41467-017-00167-6}.
 
 \bibitem{Raczkowski2019}
-M.~Raczkowski, R.~Peters, T.~T. Ph\`ung, N.~Takemori, F.~F. Assaad, A.~Honecker and J.~Vahedi,
-\newblock \emph{Hubbard model on the honeycomb lattice: From static and dynamical mean-field theories to lattice quantum monte carlo simulations},
+M.~Raczkowski, R.~Peters, T.~T. Ph\`ung, N.~Takemori, F.~F. Assaad, A.~Honecker
+  and J.~Vahedi,
+\newblock \emph{Hubbard model on the honeycomb lattice: From static and
+  dynamical mean-field theories to lattice quantum monte carlo simulations},
 \newblock Phys. Rev. B \textbf{101}, 125103 (2020),
 \newblock \doi{10.1103/PhysRevB.101.125103}.
 
 \bibitem{Assaad16}
 F.~F. Assaad and T.~Grover,
-\newblock \emph{Simple fermionic model of deconfined phases and phase transitions},
+\newblock \emph{Simple fermionic model of deconfined phases and phase
+  transitions},
 \newblock Phys. Rev. X \textbf{6}, 041049 (2016),
 \newblock \doi{10.1103/PhysRevX.6.041049}.
 
 \bibitem{SatoT17}
 T.~Sato, M.~Hohenadler and F.~F. Assaad,
-\newblock \emph{Dirac fermions with competing orders: Non-landau transition with emergent symmetry},
+\newblock \emph{Dirac fermions with competing orders: Non-landau transition
+  with emergent symmetry},
 \newblock Phys. Rev. Lett. \textbf{119}, 197203 (2017),
 \newblock \doi{10.1103/PhysRevLett.119.197203}.
 
 \bibitem{Sato20}
 T.~{Sato}, M.~{Hohenadler}, T.~{Grover}, J.~{McGreevy} and F.~F. {Assaad},
-\newblock \emph{{Topological terms on topological defects: a quantum Monte Carlo study}},
+\newblock \emph{{Topological terms on topological defects: a quantum Monte
+  Carlo study}},
 \newblock arXiv e-prints arXiv:2005.08996 (2020),
 \newblock \eprint{https://arxiv.org/abs/2005.08996}.
 
 \bibitem{Wang20}
-Z.~{Wang}, Y.~{Liu}, T.~{Sato}, M.~{Hohenadler}, C.~{Wang}, W.~{Guo} and F.~F. {Assaad},
-\newblock \emph{{Doping-induced quantum spin Hall insulator to superconductor transition}},
+Z.~{Wang}, Y.~{Liu}, T.~{Sato}, M.~{Hohenadler}, C.~{Wang}, W.~{Guo} and F.~F.
+  {Assaad},
+\newblock \emph{{Doping-induced quantum spin Hall insulator to superconductor
+  transition}},
 \newblock arXiv e-prints arXiv:2006.13239 (2020),
 \newblock \eprint{https://arxiv.org/abs/2006.13239}.
 
 \bibitem{Gazit16}
 S.~Gazit, M.~Randeria and A.~Vishwanath,
-\newblock \emph{Emergent dirac fermions and broken symmetries in confined and deconfined phases of z2 gauge theories},
+\newblock \emph{Emergent dirac fermions and broken symmetries in confined and
+  deconfined phases of z2 gauge theories},
 \newblock Nat. Phys. \textbf{13}(5), 484 (2017),
 \newblock \doi{10.1038/nphys4028}.
 
 \bibitem{Gazit18}
 S.~Gazit, F.~F. Assaad, S.~Sachdev, A.~Vishwanath and C.~Wang,
-\newblock \emph{Confinement transition of z2 gauge theories coupled to massless fermions: Emergent quantum chromodynamics and so(5) symmetry},
+\newblock \emph{Confinement transition of z2 gauge theories coupled to massless
+  fermions: Emergent quantum chromodynamics and so(5) symmetry},
 \newblock Proceedings of the National Academy of Sciences  (2018),
 \newblock \doi{10.1073/pnas.1806338115},
-\newblock \eprint{http://www.pnas.org/content/early/2018/07/06/1806338115.full.pdf}.
+\newblock
+  \eprint{http://www.pnas.org/content/early/2018/07/06/1806338115.full.pdf}.
 
 \bibitem{Xu18}
 X.~Y. Xu, Y.~Qi, L.~Zhang, F.~F. Assaad, C.~Xu and Z.~Y. Meng,
-\newblock \emph{Monte carlo study of lattice compact quantum electrodynamics with fermionic matter: The parent state of quantum phases},
+\newblock \emph{Monte carlo study of lattice compact quantum electrodynamics
+  with fermionic matter: The parent state of quantum phases},
 \newblock Phys. Rev. X \textbf{9}, 021022 (2019),
 \newblock \doi{10.1103/PhysRevX.9.021022}.
 
@@ -179,7 +209,8 @@ M.~Hohenadler and F.~F. Assaad,
 
 \bibitem{Hohenadler19}
 M.~Hohenadler and F.~F. Assaad,
-\newblock \emph{Orthogonal metal in the hubbard model with liberated slave spins},
+\newblock \emph{Orthogonal metal in the hubbard model with liberated slave
+  spins},
 \newblock Phys. Rev. B \textbf{100}, 125133 (2019),
 \newblock \doi{10.1103/PhysRevB.100.125133}.
 
@@ -191,43 +222,50 @@ S.~{Gazit}, F.~F. {Assaad} and S.~{Sachdev},
 
 \bibitem{Assaad99a}
 F.~F. Assaad,
-\newblock \emph{Quantum monte carlo simulations of the half-filled two-dimensional kondo lattice model},
+\newblock \emph{Quantum monte carlo simulations of the half-filled
+  two-dimensional kondo lattice model},
 \newblock Phys. Rev. Lett. \textbf{83}, 796 (1999),
 \newblock \doi{10.1103/PhysRevLett.83.796}.
 
 \bibitem{Capponi00}
 S.~Capponi and F.~F. Assaad,
-\newblock \emph{Spin and charge dynamics of the ferromagnetic and antiferromagnetic two-dimensional half-filled kondo lattice model},
+\newblock \emph{Spin and charge dynamics of the ferromagnetic and
+  antiferromagnetic two-dimensional half-filled kondo lattice model},
 \newblock Phys. Rev. B \textbf{63}, 155114 (2001),
 \newblock \doi{10.1103/PhysRevB.63.155114}.
 
 \bibitem{SatoT17_1}
 T.~Sato, F.~F. Assaad and T.~Grover,
-\newblock \emph{Quantum monte carlo simulation of frustrated kondo lattice models},
+\newblock \emph{Quantum monte carlo simulation of frustrated kondo lattice
+  models},
 \newblock Phys. Rev. Lett. \textbf{120}, 107201 (2018),
 \newblock \doi{10.1103/PhysRevLett.120.107201}.
 
 \bibitem{Hofmann18}
 J.~S. Hofmann, F.~F. Assaad and T.~Grover,
-\newblock \emph{Fractionalized fermi liquid in a frustrated kondo lattice model},
+\newblock \emph{Fractionalized fermi liquid in a frustrated kondo lattice
+  model},
 \newblock Phys. Rev. B \textbf{100}, 035118 (2019),
 \newblock \doi{10.1103/PhysRevB.100.035118}.
 
 \bibitem{Danu19}
 B.~Danu, F.~F. Assaad and F.~Mila,
-\newblock \emph{Exploring the kondo effect of an extended impurity with chains of co adatoms in a magnetic field},
+\newblock \emph{Exploring the kondo effect of an extended impurity with chains
+  of co adatoms in a magnetic field},
 \newblock Phys. Rev. Lett. \textbf{123}, 176601 (2019),
 \newblock \doi{10.1103/PhysRevLett.123.176601}.
 
 \bibitem{Danu20}
 B.~Danu, M.~Vojta, F.~F. Assaad and T.~Grover,
-\newblock \emph{Kondo breakdown in a spin-$1/2$ chain of adatoms on a dirac semimetal},
+\newblock \emph{Kondo breakdown in a spin-$1/2$ chain of adatoms on a dirac
+  semimetal},
 \newblock Phys. Rev. Lett. \textbf{125}, 206602 (2020),
 \newblock \doi{10.1103/PhysRevLett.125.206602}.
 
 \bibitem{Schattner15}
 Y.~Schattner, S.~Lederer, S.~A. Kivelson and E.~Berg,
-\newblock \emph{Ising nematic quantum critical point in a metal: A monte carlo study},
+\newblock \emph{Ising nematic quantum critical point in a metal: A monte carlo
+  study},
 \newblock Phys. Rev. X \textbf{6}, 031028 (2016),
 \newblock \doi{10.1103/PhysRevX.6.031028}.
 
@@ -239,75 +277,89 @@ O.~{Grossman}, J.~S. {Hofmann}, T.~{Holder} and E.~{Berg},
 
 \bibitem{Xu16c}
 X.~Y. Xu, K.~Sun, Y.~Schattner, E.~Berg and Z.~Y. Meng,
-\newblock \emph{Non-fermi liquid at ($2+1$)$\mathrm{D}$ ferromagnetic quantum critical point},
+\newblock \emph{Non-fermi liquid at ($2+1$)$\mathrm{D}$ ferromagnetic quantum
+  critical point},
 \newblock Phys. Rev. X \textbf{7}, 031058 (2017),
 \newblock \doi{10.1103/PhysRevX.7.031058}.
 
 \bibitem{LiuZH19}
 Z.~H. Liu, G.~Pan, X.~Y. Xu, K.~Sun and Z.~Y. Meng,
-\newblock \emph{Itinerant quantum critical point with fermion pockets and hotspots},
-\newblock Proceedings of the National Academy of Sciences \textbf{116}(34), 16760 (2019),
+\newblock \emph{Itinerant quantum critical point with fermion pockets and
+  hotspots},
+\newblock Proceedings of the National Academy of Sciences \textbf{116}(34),
+  16760 (2019),
 \newblock \doi{10.1073/pnas.1901751116},
 \newblock \eprint{https://www.pnas.org/content/116/34/16760.full.pdf}.
 
 \bibitem{Berg12}
 E.~Berg, M.~A. Metlitski and S.~Sachdev,
-\newblock \emph{Sign-problem--free quantum monte carlo of the onset of antiferromagnetism in metals},
+\newblock \emph{Sign-problem--free quantum monte carlo of the onset of
+  antiferromagnetism in metals},
 \newblock Science \textbf{338}(6114), 1606 (2012),
 \newblock \doi{10.1126/science.1227769},
 \newblock \eprint{http://www.sciencemag.org/content/338/6114/1606.full.pdf}.
 
 \bibitem{Tang14_1}
 H.-K. Tang, X.~Yang, J.~Sun and H.-Q. Lin,
-\newblock \emph{Berezinskii-kosterlitz-thoules phase transition of spin-orbit coupled fermi gas in optical lattice},
+\newblock \emph{Berezinskii-kosterlitz-thoules phase transition of spin-orbit
+  coupled fermi gas in optical lattice},
 \newblock {EPL} (Europhysics Letters) \textbf{107}(4), 40003 (2014),
 \newblock \doi{10.1209/0295-5075/107/40003}.
 
 \bibitem{Hofmann20}
 J.~S. Hofmann, E.~Berg and D.~Chowdhury,
-\newblock \emph{Superconductivity, pseudogap, and phase separation in topological flat bands},
+\newblock \emph{Superconductivity, pseudogap, and phase separation in
+  topological flat bands},
 \newblock Phys. Rev. B \textbf{102}, 201112 (2020),
 \newblock \doi{10.1103/PhysRevB.102.201112}.
 
 \bibitem{Peri20}
 V.~Peri, Z.~Song, B.~A. Bernevig and S.~D. Huber,
-\newblock \emph{Fragile topology and flat-band superconductivity in the strong-coupling regime},
+\newblock \emph{Fragile topology and flat-band superconductivity in the
+  strong-coupling regime},
 \newblock arXiv:2008.02288  (2020),
 \newblock \eprint{https://arxiv.org/abs/2008.02288}.
 
 \bibitem{Assaad04}
 F.~F. Assaad,
-\newblock \emph{Phase diagram of the half-filled two-dimensional $\mathrm{SU}(n)$ hubbard-heisenberg model: A quantum monte carlo study},
+\newblock \emph{Phase diagram of the half-filled two-dimensional
+  $\mathrm{SU}(n)$ hubbard-heisenberg model: A quantum monte carlo study},
 \newblock Phys. Rev. B \textbf{71}, 075103 (2005),
 \newblock \doi{10.1103/PhysRevB.71.075103}.
 
 \bibitem{Lang13}
 T.~C. Lang, Z.~Y. Meng, A.~Muramatsu, S.~Wessel and F.~F. Assaad,
-\newblock \emph{Dimerized solids and resonating plaquette order in $\mathrm{SU}(n)$-dirac fermions},
+\newblock \emph{Dimerized solids and resonating plaquette order in
+  $\mathrm{SU}(n)$-dirac fermions},
 \newblock Phys. Rev. Lett. \textbf{111}, 066401 (2013),
 \newblock \doi{10.1103/PhysRevLett.111.066401}.
 
 \bibitem{Kim_F17}
 F.~H. Kim, K.~Penc, P.~Nataf and F.~Mila,
-\newblock \emph{Linear flavor-wave theory for fully antisymmetric su($n$) irreducible representations},
+\newblock \emph{Linear flavor-wave theory for fully antisymmetric su($n$)
+  irreducible representations},
 \newblock Phys. Rev. B \textbf{96}, 205142 (2017),
 \newblock \doi{10.1103/PhysRevB.96.205142}.
 
 \bibitem{WangD14}
 D.~Wang, Y.~Li, Z.~Cai, Z.~Zhou, Y.~Wang and C.~Wu,
-\newblock \emph{Competing orders in the 2d half-filled $\mathrm{SU}(2n)$ hubbard model through the pinning-field quantum monte carlo simulations},
+\newblock \emph{Competing orders in the 2d half-filled $\mathrm{SU}(2n)$
+  hubbard model through the pinning-field quantum monte carlo simulations},
 \newblock Phys. Rev. Lett. \textbf{112}, 156403 (2014),
 \newblock \doi{10.1103/PhysRevLett.112.156403}.
 
 \bibitem{Kim_F18}
 F.~H. Kim, F.~F. Assaad, K.~Penc and F.~Mila,
-\newblock \emph{Dimensional crossover in the su(4) heisenberg model in the six-dimensional antisymmetric self-conjugate representation revealed by quantum monte carlo and linear flavor-wave theory},
+\newblock \emph{Dimensional crossover in the su(4) heisenberg model in the
+  six-dimensional antisymmetric self-conjugate representation revealed by
+  quantum monte carlo and linear flavor-wave theory},
 \newblock Phys. Rev. B \textbf{100}, 085103 (2019),
 \newblock \doi{10.1103/PhysRevB.100.085103}.
 
 \bibitem{Raczkowski20}
 M.~Raczkowski and F.~F. Assaad,
-\newblock \emph{Phase diagram and dynamics of the $\mathrm{SU}(n)$ symmetric kondo lattice model},
+\newblock \emph{Phase diagram and dynamics of the $\mathrm{SU}(n)$ symmetric
+  kondo lattice model},
 \newblock Phys. Rev. Research \textbf{2}, 013276 (2020),
 \newblock \doi{10.1103/PhysRevResearch.2.013276}.
 
@@ -318,34 +370,43 @@ M.~Hohenadler, F.~Parisen~Toldin, I.~F. Herbut and F.~F. Assaad,
 \newblock \doi{10.1103/PhysRevB.90.085146}.
 
 \bibitem{Tang15}
-H.-K. Tang, E.~Laksono, J.~N.~B. Rodrigues, P.~Sengupta, F.~F. Assaad and S.~Adam,
-\newblock \emph{Interaction-driven metal-insulator transition in strained graphene},
+H.-K. Tang, E.~Laksono, J.~N.~B. Rodrigues, P.~Sengupta, F.~F. Assaad and
+  S.~Adam,
+\newblock \emph{Interaction-driven metal-insulator transition in strained
+  graphene},
 \newblock Phys. Rev. Lett. \textbf{115}, 186602 (2015),
 \newblock \doi{10.1103/PhysRevLett.115.186602}.
 
 \bibitem{Tang17}
-H.-K. Tang, J.~N. Leaw, J.~N.~B. Rodrigues, I.~F. Herbut, P.~Sengupta, F.~F. Assaad and S.~Adam,
-\newblock \emph{The role of electron-electron interactions in two-dimensional dirac fermions},
+H.-K. Tang, J.~N. Leaw, J.~N.~B. Rodrigues, I.~F. Herbut, P.~Sengupta, F.~F.
+  Assaad and S.~Adam,
+\newblock \emph{The role of electron-electron interactions in two-dimensional
+  dirac fermions},
 \newblock Science \textbf{361}(6402), 570 (2018),
 \newblock \doi{10.1126/science.aao2934},
 \newblock \eprint{http://science.sciencemag.org/content/361/6402/570.full.pdf}.
 
 \bibitem{Raczkowski17}
 M.~Raczkowski and F.~F. Assaad,
-\newblock \emph{Interplay between the edge-state magnetism and long-range coulomb interaction in zigzag graphene nanoribbons: Quantum monte carlo study},
+\newblock \emph{Interplay between the edge-state magnetism and long-range
+  coulomb interaction in zigzag graphene nanoribbons: Quantum monte carlo
+  study},
 \newblock Phys. Rev. B \textbf{96}, 115155 (2017),
 \newblock \doi{10.1103/PhysRevB.96.115155}.
 
 \bibitem{Leaw19}
-J.~N. {Leaw}, H.-K. {Tang}, P.~{Sengupta}, F.~F. {Assaad}, I.~F. {Herbut} and S.~{Adam},
-\newblock \emph{{Electronic ground state in bilayer graphene with realistic Coulomb interactions}},
+J.~N. {Leaw}, H.-K. {Tang}, P.~{Sengupta}, F.~F. {Assaad}, I.~F. {Herbut} and
+  S.~{Adam},
+\newblock \emph{{Electronic ground state in bilayer graphene with realistic
+  Coulomb interactions}},
 \newblock Phys.~Rev.~B \textbf{100}(12), 125116 (2019),
 \newblock \doi{10.1103/PhysRevB.100.125116},
 \newblock \eprint{1903.06177}.
 
 \bibitem{Rigol03}
 M.~Rigol, A.~Muramatsu, G.~G. Batrouni and R.~T. Scalettar,
-\newblock \emph{Local quantum criticality in confined fermions on optical lattices},
+\newblock \emph{Local quantum criticality in confined fermions on optical
+  lattices},
 \newblock Phys. Rev. Lett. \textbf{91}, 130403 (2003),
 \newblock \doi{10.1103/PhysRevLett.91.130403}.
 
@@ -357,37 +418,44 @@ D.~Lee,
 
 \bibitem{WangZ17}
 Z.~Wang, F.~F. Assaad and F.~Parisen~Toldin,
-\newblock \emph{Finite-size effects in canonical and grand-canonical quantum monte carlo simulations for fermions},
+\newblock \emph{Finite-size effects in canonical and grand-canonical quantum
+  monte carlo simulations for fermions},
 \newblock Phys. Rev. E \textbf{96}, 042131 (2017),
 \newblock \doi{10.1103/PhysRevE.96.042131}.
 
 \bibitem{Shen20}
 T.~Shen, Y.~Liu, Y.~Yu and B.~Rubenstein,
-\newblock \emph{Finite temperature auxiliary field quantum monte carlo in the canonical ensemble},
+\newblock \emph{Finite temperature auxiliary field quantum monte carlo in the
+  canonical ensemble},
 \newblock arXiv:2010.09813  (2020),
 \newblock \eprint{https://arxiv.org/abs/2010.09813}.
 
 \bibitem{Grover13}
 T.~Grover,
-\newblock \emph{Entanglement of interacting fermions in quantum monte~carlo calculations},
+\newblock \emph{Entanglement of interacting fermions in quantum monte~carlo
+  calculations},
 \newblock Phys. Rev. Lett. \textbf{111}, 130402 (2013),
 \newblock \doi{10.1103/PhysRevLett.111.130402}.
 
 \bibitem{Broecker14}
 P.~Broecker and S.~Trebst,
-\newblock \emph{R{\'{e}}nyi entropies of interacting fermions from determinantal quantum monte carlo simulations},
-\newblock Journal of Statistical Mechanics: Theory and Experiment \textbf{2014}(8), P08015 (2014),
+\newblock \emph{R{\'{e}}nyi entropies of interacting fermions from
+  determinantal quantum monte carlo simulations},
+\newblock Journal of Statistical Mechanics: Theory and Experiment
+  \textbf{2014}(8), P08015 (2014),
 \newblock \doi{10.1088/1742-5468/2014/08/p08015}.
 
 \bibitem{Assaad13a}
 F.~F. Assaad, T.~C. Lang and F.~Parisen~Toldin,
-\newblock \emph{Entanglement spectra of interacting fermions in quantum monte carlo simulations},
+\newblock \emph{Entanglement spectra of interacting fermions in quantum monte
+  carlo simulations},
 \newblock Phys. Rev. B \textbf{89}, 125121 (2014),
 \newblock \doi{10.1103/PhysRevB.89.125121}.
 
 \bibitem{Assaad15}
 F.~F. Assaad,
-\newblock \emph{Stable quantum monte carlo simulations for entanglement spectra of interacting fermions},
+\newblock \emph{Stable quantum monte carlo simulations for entanglement spectra
+  of interacting fermions},
 \newblock Phys. Rev. B \textbf{91}, 125146 (2015),
 \newblock \doi{10.1103/PhysRevB.91.125146}.
 
@@ -412,31 +480,36 @@ F.~Parisen~Toldin and F.~F. Assaad,
 
 \bibitem{Chen18}
 C.~Chen, X.~Y. Xu, J.~Liu, G.~Batrouni, R.~Scalettar and Z.~Y. Meng,
-\newblock \emph{Symmetry-enforced self-learning monte carlo method applied to the holstein model},
+\newblock \emph{Symmetry-enforced self-learning monte carlo method applied to
+  the holstein model},
 \newblock Phys. Rev. B \textbf{98}, 041102 (2018),
 \newblock \doi{10.1103/PhysRevB.98.041102}.
 
 \bibitem{Chen19}
 C.~Chen, X.~Y. Xu, Z.~Y. Meng and M.~Hohenadler,
-\newblock \emph{Charge-density-wave transitions of dirac fermions coupled to phonons},
+\newblock \emph{Charge-density-wave transitions of dirac fermions coupled to
+  phonons},
 \newblock Phys. Rev. Lett. \textbf{122}, 077601 (2019),
 \newblock \doi{10.1103/PhysRevLett.122.077601}.
 
 \bibitem{Bradley20}
 O.~Bradley, G.~G. Batrouni and R.~T. Scalettar,
-\newblock \emph{Superconductivity and charge density wave order in the 2d holstein model},
+\newblock \emph{Superconductivity and charge density wave order in the 2d
+  holstein model},
 \newblock arXiv:2011.11703  (2020),
 \newblock \eprint{https://arxiv.org/abs/2011.11703}.
 
 \bibitem{Ippoliti18}
 M.~Ippoliti, R.~S.~K. Mong, F.~F. Assaad and M.~P. Zaletel,
-\newblock \emph{Half-filled landau levels: A continuum and sign-free regularization for three-dimensional quantum critical points},
+\newblock \emph{Half-filled landau levels: A continuum and sign-free
+  regularization for three-dimensional quantum critical points},
 \newblock Phys. Rev. B \textbf{98}, 235108 (2018),
 \newblock \doi{10.1103/PhysRevB.98.235108}.
 
 \bibitem{WangZ20}
 Z.~Wang, R.~S.~K. Mong and F.~F. Zaletel, Michael P. and.~Assaad,
-\newblock \emph{Phases of the (2+1) dimensional so(5) non-linear sigma model with topological term},
+\newblock \emph{Phases of the (2+1) dimensional so(5) non-linear sigma model
+  with topological term},
 \newblock arXiv:2003.08368 \eprint{https://arxiv.org/abs/2003.08368}.
 
 \bibitem{Pan20}
@@ -446,32 +519,39 @@ G.~Pan, W.~Wang, A.~Davis, Y.~Wang and Z.~Y. Meng,
 \newblock \eprint{https://arxiv.org/abs/2001.06586}.
 
 \bibitem{HZhang20}
-H.~Zhang, Z.~Zhao, D.~Gautreau, M.~Raczkowski, A.~Saha, V.~O. Garlea, H.~Cao, T.~Hong, H.~O. Jeschke, S.~D. Mahanti, T.~Birol, F.~F. Assaad \emph{et~al.},
-\newblock \emph{Coexistence and interaction of spinons and magnons in an antiferromagnet with alternating antiferromagnetic and ferromagnetic quantum spin chains},
+H.~Zhang, Z.~Zhao, D.~Gautreau, M.~Raczkowski, A.~Saha, V.~O. Garlea, H.~Cao,
+  T.~Hong, H.~O. Jeschke, S.~D. Mahanti, T.~Birol, F.~F. Assaad \emph{et~al.},
+\newblock \emph{Coexistence and interaction of spinons and magnons in an
+  antiferromagnet with alternating antiferromagnetic and ferromagnetic quantum
+  spin chains},
 \newblock Phys. Rev. Lett. \textbf{125}, 037204 (2020),
 \newblock \doi{10.1103/PhysRevLett.125.037204}.
 
 \bibitem{Wu04}
 C.~Wu and S.-C. Zhang,
-\newblock \emph{Sufficient condition for absence of the sign problem in the fermionic quantum monte carlo algorithm},
+\newblock \emph{Sufficient condition for absence of the sign problem in the
+  fermionic quantum monte carlo algorithm},
 \newblock Phys. Rev. B \textbf{71}, 155115 (2005),
 \newblock \doi{10.1103/PhysRevB.71.155115}.
 
 \bibitem{Huffman14}
 E.~F. Huffman and S.~Chandrasekharan,
-\newblock \emph{Solution to sign problems in half-filled spin-polarized electronic systems},
+\newblock \emph{Solution to sign problems in half-filled spin-polarized
+  electronic systems},
 \newblock Phys. Rev. B \textbf{89}, 111101 (2014),
 \newblock \doi{10.1103/PhysRevB.89.111101}.
 
 \bibitem{Yao14a}
 Z.-X. Li, Y.-F. Jiang and H.~Yao,
-\newblock \emph{Solving the fermion sign problem in quantum monte carlo simulations by majorana representation},
+\newblock \emph{Solving the fermion sign problem in quantum monte carlo
+  simulations by majorana representation},
 \newblock Phys. Rev. B \textbf{91}, 241117 (2015),
 \newblock \doi{10.1103/PhysRevB.91.241117}.
 
 \bibitem{Wei16}
 Z.~C. Wei, C.~Wu, Y.~Li, S.~Zhang and T.~Xiang,
-\newblock \emph{Majorana positivity and the fermion sign problem of quantum monte carlo simulations},
+\newblock \emph{Majorana positivity and the fermion sign problem of quantum
+  monte carlo simulations},
 \newblock Phys. Rev. Lett. \textbf{116}, 250601 (2016),
 \newblock \doi{10.1103/PhysRevLett.116.250601}.
 
@@ -483,27 +563,33 @@ J.~Hubbard,
 
 \bibitem{Troyer05}
 M.~Troyer and U.-J. Wiese,
-\newblock \emph{Computational complexity and fundamental limitations to fermionic quantum monte carlo simulations},
+\newblock \emph{Computational complexity and fundamental limitations to
+  fermionic quantum monte carlo simulations},
 \newblock Phys. Rev. Lett. \textbf{94}, 170201 (2005),
 \newblock \doi{10.1103/PhysRevLett.94.170201}.
 
 \bibitem{Duane85}
 S.~Duane and J.~B. Kogut,
-\newblock \emph{Hybrid stochastic differential equations applied to quantum chromodynamics},
+\newblock \emph{Hybrid stochastic differential equations applied to quantum
+  chromodynamics},
 \newblock Phys. Rev. Lett. \textbf{55}, 2774 (1985),
 \newblock \doi{10.1103/PhysRevLett.55.2774}.
 
 \bibitem{Hirsch83}
 J.~Hirsch,
-\newblock \emph{Discrete hubbard-stratonovich transformation for fermion lattice models},
+\newblock \emph{Discrete hubbard-stratonovich transformation for fermion
+  lattice models},
 \newblock Phys. Rev. B \textbf{28}, 4059 (1983),
 \newblock \doi{10.1103/PhysRevB.28.4059}.
 
 \bibitem{Sokal89}
 A.~D. Sokal,
-\newblock \emph{{M}onte {C}arlo methods in statistical mechanics: Foundations and new algorithms},
+\newblock \emph{{M}onte {C}arlo methods in statistical mechanics: Foundations
+  and new algorithms},
 \newblock \doi{10.1007/978-1-4899-0319-8_6},
-\newblock Lecture notes from Cours de Troisi\`eme Cycle de la Physique en Suisse Romande. Updated in 1996 for the Carg\`ese Summer School on ``Functional Integration: Basics and Applications'' (1989).
+\newblock Lecture notes from Cours de Troisi\`eme Cycle de la Physique en
+  Suisse Romande. Updated in 1996 for the Carg\`ese Summer School on
+  ``Functional Integration: Basics and Applications'' (1989).
 
 \bibitem{Evertz93}
 H.~G. Evertz, G.~Lana and M.~Marcu,
@@ -530,20 +616,25 @@ J.~E. Hirsch and R.~M. Fye,
 \newblock \doi{10.1103/PhysRevLett.56.2521}.
 
 \bibitem{Gull_rev}
-E.~Gull, A.~J. Millis, A.~I. Lichtenstein, A.~N. Rubtsov, M.~Troyer and P.~Werner,
-\newblock \emph{Continuous-time monte~carlo methods for quantum impurity models},
+E.~Gull, A.~J. Millis, A.~I. Lichtenstein, A.~N. Rubtsov, M.~Troyer and
+  P.~Werner,
+\newblock \emph{Continuous-time monte~carlo methods for quantum impurity
+  models},
 \newblock Rev. Mod. Phys. \textbf{83}, 349 (2011),
 \newblock \doi{10.1103/RevModPhys.83.349}.
 
 \bibitem{Assaad14_rev}
 F.~F. Assaad,
-\newblock \emph{DMFT at 25: Infinite Dimensions: Lecture Notes of the Autumn School on Correlated Electrons}, vol.~4, chap. 7. Continuous-time QMC Solvers for Electronic Systems in Fermionic and Bosonic Baths,
+\newblock \emph{DMFT at 25: Infinite Dimensions: Lecture Notes of the Autumn
+  School on Correlated Electrons}, vol.~4, chap. 7. Continuous-time QMC Solvers
+  for Electronic Systems in Fermionic and Bosonic Baths,
 \newblock Verlag des Forschungszentrum J{\"u}lich, J{\"u}lich,
 \newblock ISBN 978-3-89336-953-9 (2014).
 
 \bibitem{Assaad07}
 F.~F. Assaad and T.~C. Lang,
-\newblock \emph{Diagrammatic determinantal quantum monte carlo methods: Projective schemes and applications to the hubbard-holstein model},
+\newblock \emph{Diagrammatic determinantal quantum monte carlo methods:
+  Projective schemes and applications to the hubbard-holstein model},
 \newblock Phys. Rev. B \textbf{76}, 035116 (2007),
 \newblock \doi{10.1103/PhysRevB.76.035116}.
 
@@ -555,50 +646,63 @@ R.~T. Scalettar, D.~J. Scalapino and R.~L. Sugar,
 
 \bibitem{Beyl17}
 S.~Beyl, F.~Goth and F.~F. Assaad,
-\newblock \emph{Revisiting the hybrid quantum monte carlo method for hubbard and electron-phonon models},
+\newblock \emph{Revisiting the hybrid quantum monte carlo method for hubbard
+  and electron-phonon models},
 \newblock Phys. Rev. B \textbf{97}, 085144 (2018),
 \newblock \doi{10.1103/PhysRevB.97.085144}.
 
 \bibitem{Durr08}
-S.~D{\"u}rr, Z.~Fodor, J.~Frison, C.~Hoelbling, R.~Hoffmann, S.~D. Katz, S.~Krieg, T.~Kurth, L.~Lellouch, T.~Lippert, K.~K. Szabo and G.~Vulvert,
+S.~D{\"u}rr, Z.~Fodor, J.~Frison, C.~Hoelbling, R.~Hoffmann, S.~D. Katz,
+  S.~Krieg, T.~Kurth, L.~Lellouch, T.~Lippert, K.~K. Szabo and G.~Vulvert,
 \newblock \emph{Ab initio determination of light hadron masses},
 \newblock Science \textbf{322}(5905), 1224 (2008),
 \newblock \doi{10.1126/science.1163233},
-\newblock \eprint{http://science.sciencemag.org/content/322/5905/1224.full.pdf}.
+\newblock
+  \eprint{http://science.sciencemag.org/content/322/5905/1224.full.pdf}.
 
 \bibitem{Sorella21}
 S.~Sorella,
-\newblock \emph{The phase diagram of the hubbard model by variational auxiliary field quantum monte carlo},
+\newblock \emph{The phase diagram of the hubbard model by variational auxiliary
+  field quantum monte carlo},
 \newblock arXiv:2101.07045  (2021),
 \newblock \doi{10.48550/ARXIV.2101.07045}.
 
 \bibitem{Assaad02}
 F.~F. Assaad,
-\newblock \emph{Quantum monte carlo methods on lattices: The determinantal method},
-\newblock In J.~Grotendorst, D.~Marx and A.~Muramatsu., eds., \emph{Lecture notes of the Winter School on Quantum Simulations of Complex Many-Body Systems: From Theory to Algorithms.}, vol.~10, pp. 99--155. Publication Series of the John von Neumann Institute for Computing, J\"ulich (2002).
+\newblock \emph{Quantum monte carlo methods on lattices: The determinantal
+  method},
+\newblock In J.~Grotendorst, D.~Marx and A.~Muramatsu., eds., \emph{Lecture
+  notes of the Winter School on Quantum Simulations of Complex Many-Body
+  Systems: From Theory to Algorithms.}, vol.~10, pp. 99--155. Publication
+  Series of the John von Neumann Institute for Computing, J\"ulich (2002).
 
 \bibitem{Motome97}
 Y.~Motome and M.~Imada,
-\newblock \emph{A quantum monte carlo method and its applications to multi-orbital hubbard models},
+\newblock \emph{A quantum monte carlo method and its applications to
+  multi-orbital hubbard models},
 \newblock Journal of the Physical Society of Japan \textbf{66}(7), 1872 (1997),
 \newblock \doi{10.1143/JPSJ.66.1872},
 \newblock \eprint{http://dx.doi.org/10.1143/JPSJ.66.1872}.
 
 \bibitem{Assaad97}
 F.~F. Assaad, M.~Imada and D.~J. Scalapino,
-\newblock \emph{Charge and spin structures of a ${d}_{{x}^{2}\ensuremath{-}{y}^{2}}$ superconductor in the proximity of an antiferromagnetic mott insulator},
+\newblock \emph{Charge and spin structures of a
+  ${d}_{{x}^{2}\ensuremath{-}{y}^{2}}$ superconductor in the proximity of an
+  antiferromagnetic mott insulator},
 \newblock Phys. Rev. B \textbf{56}, 15001 (1997),
 \newblock \doi{10.1103/PhysRevB.56.15001}.
 
 \bibitem{Sandvik98}
 A.~Sandvik,
-\newblock \emph{Stochastic method for analytic continuation of quantum monte carlo data},
+\newblock \emph{Stochastic method for analytic continuation of quantum monte
+  carlo data},
 \newblock Phys. Rev. B \textbf{57}, 10287 (1998),
 \newblock \doi{10.1103/PhysRevB.57.10287}.
 
 \bibitem{Beach04a}
 K.~S.~D. {Beach},
-\newblock \emph{{Identifying the maximum entropy method as a special limit of stochastic analytic continuation}},
+\newblock \emph{{Identifying the maximum entropy method as a special limit of
+  stochastic analytic continuation}},
 \newblock eprint arXiv:cond-mat/0403055  (2004),
 \newblock \eprint{https://arxiv.org/abs/cond-mat/0403055}.
 
@@ -610,43 +714,50 @@ R.~M. Fye,
 
 \bibitem{Iazzi15}
 M.~Iazzi and M.~Troyer,
-\newblock \emph{Efficient continuous-time quantum monte carlo algorithm for fermionic lattice models},
+\newblock \emph{Efficient continuous-time quantum monte carlo algorithm for
+  fermionic lattice models},
 \newblock Phys. Rev. B \textbf{91}, 241118 (2015),
 \newblock \doi{10.1103/PhysRevB.91.241118}.
 
 \bibitem{Rombouts99}
 S.~M.~A. Rombouts, K.~Heyde and N.~Jachowicz,
-\newblock \emph{Quantum monte carlo method for fermions, free of discretization errors},
+\newblock \emph{Quantum monte carlo method for fermions, free of discretization
+  errors},
 \newblock Phys. Rev. Lett. \textbf{82}, 4155 (1999),
 \newblock \doi{10.1103/PhysRevLett.82.4155}.
 
 \bibitem{Gull08}
 E.~Gull, P.~Werner, O.~Parcollet and M.~Troyer,
-\newblock \emph{Continuous-time auxiliary-field monte carlo for quantum impurity models},
+\newblock \emph{Continuous-time auxiliary-field monte carlo for quantum
+  impurity models},
 \newblock {EPL} (Europhysics Letters) \textbf{82}(5), 57003 (2008),
 \newblock \doi{10.1209/0295-5075/82/57003}.
 
 \bibitem{Rombouts98}
 S.~Rombouts, K.~Heyde and N.~Jachowicz,
-\newblock \emph{A discrete hubbard-stratonovich decomposition for general, fermionic two-body interactions},
+\newblock \emph{A discrete hubbard-stratonovich decomposition for general,
+  fermionic two-body interactions},
 \newblock Physics Letters A \textbf{242}, 271  (1998),
 \newblock \doi{10.1016/S0375-9601(98)00197-2}.
 
 \bibitem{Rost12}
 D.~Rost, E.~V. Gorelik, F.~Assaad and N.~Bl\"umer,
-\newblock \emph{Momentum-dependent pseudogaps in the half-filled two-dimensional hubbard model},
+\newblock \emph{Momentum-dependent pseudogaps in the half-filled
+  two-dimensional hubbard model},
 \newblock Phys. Rev. B \textbf{86}, 155109 (2012),
 \newblock \doi{10.1103/PhysRevB.86.155109}.
 
 \bibitem{Rost13}
 D.~Rost, F.~Assaad and N.~Bl\"umer,
-\newblock \emph{Quasi-continuous-time impurity solver for the dynamical mean-field theory with linear scaling in the inverse temperature},
+\newblock \emph{Quasi-continuous-time impurity solver for the dynamical
+  mean-field theory with linear scaling in the inverse temperature},
 \newblock Phys. Rev. E \textbf{87}, 053305 (2013),
 \newblock \doi{10.1103/PhysRevE.87.053305}.
 
 \bibitem{Bluemer08}
 N.~{Bl{\"u}mer},
-\newblock \emph{{Multigrid Hirsch-Fye quantum Monte Carlo method for dynamical mean-field theory}},
+\newblock \emph{{Multigrid Hirsch-Fye quantum Monte Carlo method for dynamical
+  mean-field theory}},
 \newblock arXiv:0801.1222  (2008),
 \newblock \eprint{https://arxiv.org/abs/0801.1222}.
 
@@ -658,13 +769,16 @@ L.~Wang, Y.-H. Liu and M.~Troyer,
 
 \bibitem{Huffman17}
 E.~Huffman and S.~Chandrasekharan,
-\newblock \emph{Fermion bag approach to hamiltonian lattice field theories in continuous time},
+\newblock \emph{Fermion bag approach to hamiltonian lattice field theories in
+  continuous time},
 \newblock Phys. Rev. D \textbf{96}, 114502 (2017),
 \newblock \doi{10.1103/PhysRevD.96.114502}.
 
 \bibitem{huffman2019}
 E.~Huffman and S.~Chandrasekharan,
-\newblock \emph{Fermion-bag inspired hamiltonian lattice field theory for fermionic quantum criticality} (2019), \eprint{https://arxiv.org/abs/1912.12823}.
+\newblock \emph{Fermion-bag inspired hamiltonian lattice field theory for
+  fermionic quantum criticality} (2019),
+  \eprint{https://arxiv.org/abs/1912.12823}.
 
 \bibitem{goth2020}
 F.~Goth,
@@ -674,8 +788,10 @@ F.~Goth,
 
 \bibitem{Peschel03}
 I.~Peschel,
-\newblock \emph{Calculation of reduced density matrices from correlation functions},
-\newblock Journal of Physics A: Mathematical and General \textbf{36}(14), L205 (2003),
+\newblock \emph{Calculation of reduced density matrices from correlation
+  functions},
+\newblock Journal of Physics A: Mathematical and General \textbf{36}(14), L205
+  (2003),
 \newblock \doi{10.1088/0305-4470/36/14/101}.
 
 \bibitem{Wan20}
@@ -689,7 +805,8 @@ D.~Hangleiter, I.~Roth, D.~Nagaj and J.~Eisert,
 \newblock \emph{Easing the monte carlo sign problem},
 \newblock Science Advances \textbf{6}(33) (2020),
 \newblock \doi{10.1126/sciadv.abb8341},
-\newblock \eprint{https://advances.sciencemag.org/content/6/33/eabb8341.full.pdf}.
+\newblock
+  \eprint{https://advances.sciencemag.org/content/6/33/eabb8341.full.pdf}.
 
 \bibitem{LiuJ17}
 J.~Liu, Y.~Qi, Z.~Y. Meng and L.~Fu,
@@ -699,13 +816,15 @@ J.~Liu, Y.~Qi, Z.~Y. Meng and L.~Fu,
 
 \bibitem{Xu17a}
 X.~Y. Xu, Y.~Qi, J.~Liu, L.~Fu and Z.~Y. Meng,
-\newblock \emph{Self-learning quantum monte carlo method in interacting fermion systems},
+\newblock \emph{Self-learning quantum monte carlo method in interacting fermion
+  systems},
 \newblock Phys. Rev. B \textbf{96}, 041119 (2017),
 \newblock \doi{10.1103/PhysRevB.96.041119}.
 
 \bibitem{Hukushima96}
 K.~Hukushima and K.~Nemoto,
-\newblock \emph{Exchange monte carlo method and application to spin glass simulations},
+\newblock \emph{Exchange monte carlo method and application to spin glass
+  simulations},
 \newblock Journal of the Physical Society of Japan \textbf{65}(6), 1604 (1996),
 \newblock \doi{10.1143/JPSJ.65.1604},
 \newblock \eprint{http://dx.doi.org/10.1143/JPSJ.65.1604}.
@@ -713,7 +832,9 @@ K.~Hukushima and K.~Nemoto,
 \bibitem{Greyer91}
 C.~J. Geyer,
 \newblock \emph{Markov chain monte carlo maximum likelihood},
-\newblock In \emph{Computing Science and Statistics: Proceedings of the 23rd Symposium on the Interface}, pp. 156--163. American Statistical Association, New York (1991).
+\newblock In \emph{Computing Science and Statistics: Proceedings of the 23rd
+  Symposium on the Interface}, pp. 156--163. American Statistical Association,
+  New York (1991).
 
 \bibitem{Gardiner}
 C.~W. Gardiner,
@@ -721,7 +842,8 @@ C.~W. Gardiner,
 \newblock Springer (1985).
 
 \bibitem{Batrouni85}
-G.~G. Batrouni, G.~R. Katz, A.~S. Kronfeld, G.~P. Lepage, B.~Svetitsky and K.~G. Wilson,
+G.~G. Batrouni, G.~R. Katz, A.~S. Kronfeld, G.~P. Lepage, B.~Svetitsky and
+  K.~G. Wilson,
 \newblock \emph{Langevin simulations of lattice field theories},
 \newblock Phys. Rev. D \textbf{32}, 2736 (1985),
 \newblock \doi{10.1103/PhysRevD.32.2736}.
@@ -733,8 +855,10 @@ G.~G. Batrouni and R.~T. Scalettar,
 \newblock \doi{10.1103/PhysRevB.99.035114}.
 
 \bibitem{Davies86}
-C.~Davies, G.~Batrouni, G.~Katz, A.~Kronfeld, P.~Lepage, P.~Rossi, B.~Svetitsky and K.~Wilson,
-\newblock \emph{Langevin simulations of lattice field theories using fourier acceleration},
+C.~Davies, G.~Batrouni, G.~Katz, A.~Kronfeld, P.~Lepage, P.~Rossi, B.~Svetitsky
+  and K.~Wilson,
+\newblock \emph{Langevin simulations of lattice field theories using fourier
+  acceleration},
 \newblock Journal of Statistical Physics \textbf{43}(5), 1073 (1986),
 \newblock \doi{10.1007/BF02628331}.
 
@@ -746,7 +870,8 @@ U.~Wolff,
 
 \bibitem{Imada88}
 M.~Imada,
-\newblock \emph{A fermion simulation algorithm by molecular dynamics techique combined with monte carlo method},
+\newblock \emph{A fermion simulation algorithm by molecular dynamics techique
+  combined with monte carlo method},
 \newblock Journal of the Physical Society of Japan \textbf{57}(8), 2689 (1988),
 \newblock \doi{10.1143/JPSJ.57.2689},
 \newblock \eprint{https://doi.org/10.1143/JPSJ.57.2689}.
@@ -759,21 +884,27 @@ S.~Beyl,
 
 \bibitem{Loh1989}
 E.~Loh, J.~Gubernatis, R.~Scalettar, R.~Sugar and S.~White,
-\newblock \emph{Stable matrix-multiplication algorithms for low-temperature numerical simulations of fermions},
-\newblock In \emph{Interacting Electrons in Reduced Dimensions}, pp. 55--60. Springer,
+\newblock \emph{Stable matrix-multiplication algorithms for low-temperature
+  numerical simulations of fermions},
+\newblock In \emph{Interacting Electrons in Reduced Dimensions}, pp. 55--60.
+  Springer,
 \newblock ISBN 978-1-4613-0565-1,
 \newblock \doi{10.1007/978-1-4613-0565-1} (1989).
 
 \bibitem{Loh2005}
-E.~Y. LOH, J.~E. GUBERNATIS, R.~T. SCALETTAR, S.~R. WHITE, D.~J. SCALAPINO and R.~L. SUGAR,
-\newblock \emph{Numerical stability and the sign problem in the determinant quantum monte carlo method},
-\newblock International Journal of Modern Physics C \textbf{16}(08), 1319 (2005),
+E.~Y. LOH, J.~E. GUBERNATIS, R.~T. SCALETTAR, S.~R. WHITE, D.~J. SCALAPINO and
+  R.~L. SUGAR,
+\newblock \emph{Numerical stability and the sign problem in the determinant
+  quantum monte carlo method},
+\newblock International Journal of Modern Physics C \textbf{16}(08), 1319
+  (2005),
 \newblock \doi{10.1142/S0129183105007911},
 \newblock \eprint{https://doi.org/10.1142/S0129183105007911}.
 
 \bibitem{Bai2011}
 Z.~Bai, C.~Lee, R.-C. Li and S.~Xu,
-\newblock \emph{Stable solutions of linear systems involving long chain of matrix multiplications},
+\newblock \emph{Stable solutions of linear systems involving long chain of
+  matrix multiplications},
 \newblock Linear Algebra and its Applications \textbf{435}(3), 659 (2011),
 \newblock \doi{10.1016/j.laa.2010.06.023}.
 
@@ -786,13 +917,16 @@ C.~Bauer,
 \bibitem{Demmel1992}
 J.~Demmel and K.~Veselić,
 \newblock \emph{Jacobi’s method is more accurate than qr},
-\newblock SIAM Journal on Matrix Analysis and Applications \textbf{13}(4), 1204 (1992),
+\newblock SIAM Journal on Matrix Analysis and Applications \textbf{13}(4), 1204
+  (1992),
 \newblock \doi{10.1137/0613074},
 \newblock \eprint{https://doi.org/10.1137/0613074}.
 
 \bibitem{Dongarra2018}
-J.~Dongarra, M.~Gates, A.~Haidar, J.~Kurzak, P.~Luszczek, S.~Tomov and I.~Yamazaki,
-\newblock \emph{The singular value decomposition: Anatomy of optimizing an algorithm for extreme scale},
+J.~Dongarra, M.~Gates, A.~Haidar, J.~Kurzak, P.~Luszczek, S.~Tomov and
+  I.~Yamazaki,
+\newblock \emph{The singular value decomposition: Anatomy of optimizing an
+  algorithm for extreme scale},
 \newblock SIAM Review \textbf{60}(4), 808 (2018),
 \newblock \doi{10.1137/17M1117732},
 \newblock \eprint{https://doi.org/10.1137/17M1117732}.
@@ -805,13 +939,15 @@ A.~van~der Sluis,
 
 \bibitem{Feldbach00}
 M.~Feldbacher and F.~F. Assaad,
-\newblock \emph{Efficient calculation of imaginary-time-displaced correlation functions in the projector auxiliary-field quantum monte carlo algorithm},
+\newblock \emph{Efficient calculation of imaginary-time-displaced correlation
+  functions in the projector auxiliary-field quantum monte carlo algorithm},
 \newblock Phys. Rev. B \textbf{63}, 073105 (2001),
 \newblock \doi{10.1103/PhysRevB.63.073105}.
 
 \bibitem{Ixert14}
 D.~Ixert, F.~F. Assaad and K.~P. Schmidt,
-\newblock \emph{Mott physics in the half-filled hubbard model on a family of vortex-full square lattices},
+\newblock \emph{Mott physics in the half-filled hubbard model on a family of
+  vortex-full square lattices},
 \newblock Phys. Rev. B \textbf{90}, 195133 (2014),
 \newblock \doi{10.1103/PhysRevB.90.195133}.
 
@@ -834,12 +970,15 @@ C.~J. Geyer,
 
 \bibitem{neal1993}
 R.~M. Neal,
-\newblock \emph{Probabilistic inference using Markov chain Monte Carlo methods},
-\newblock Department of Computer Science, University of Toronto Toronto, Ontario, Canada (1993).
+\newblock \emph{Probabilistic inference using Markov chain Monte Carlo
+  methods},
+\newblock Department of Computer Science, University of Toronto Toronto,
+  Ontario, Canada (1993).
 
 \bibitem{Bercx17}
 M.~Bercx, J.~S. Hofmann, F.~F. Assaad and T.~C. Lang,
-\newblock \emph{Spontaneous particle-hole symmetry breaking of correlated fermions on the lieb lattice},
+\newblock \emph{Spontaneous particle-hole symmetry breaking of correlated
+  fermions on the lieb lattice},
 \newblock Phys. Rev. B \textbf{95}, 035108 (2017),
 \newblock \doi{10.1103/PhysRevB.95.035108}.
 
@@ -851,7 +990,8 @@ B.~Efron and C.~Stein,
 
 \bibitem{Chakravarty88}
 S.~Chakravarty, B.~I. Halperin and D.~R. Nelson,
-\newblock \emph{Low-temperature behavior of two-dimensional quantum antiferromagnets},
+\newblock \emph{Low-temperature behavior of two-dimensional quantum
+  antiferromagnets},
 \newblock Phys. Rev. Lett. \textbf{60}, 1057 (1988),
 \newblock \doi{10.1103/PhysRevLett.60.1057}.
 
@@ -863,25 +1003,30 @@ M.~B. {Thompson},
 
 \bibitem{Parola91}
 A.~Parola, S.~Sorella, M.~Parrinello and E.~Tosatti,
-\newblock \emph{d-wave, dimer, and chiral states in the two-dimensional hubbard model},
+\newblock \emph{d-wave, dimer, and chiral states in the two-dimensional hubbard
+  model},
 \newblock Phys. Rev. B \textbf{43}, 6190 (1991),
 \newblock \doi{10.1103/PhysRevB.43.6190}.
 
 \bibitem{Milat04}
 I.~Milat, F.~Assaad and M.~Sigrist,
-\newblock \emph{Field induced magnetic ordering transition in kondo insulators},
-\newblock The European Physical Journal B - Condensed Matter and Complex Systems \textbf{38}(4), 571 (2004),
+\newblock \emph{Field induced magnetic ordering transition in kondo
+  insulators},
+\newblock The European Physical Journal B - Condensed Matter and Complex
+  Systems \textbf{38}(4), 571 (2004),
 \newblock \doi{10.1140/epjb/e2004-00154-5}.
 
 \bibitem{Bercx09}
 M.~Bercx, T.~C. Lang and F.~F. Assaad,
-\newblock \emph{Magnetic field induced semimetal-to-canted-antiferromagnet transition on the honeycomb lattice},
+\newblock \emph{Magnetic field induced semimetal-to-canted-antiferromagnet
+  transition on the honeycomb lattice},
 \newblock Phys. Rev. B \textbf{80}, 045412 (2009),
 \newblock \doi{10.1103/PhysRevB.80.045412}.
 
 \bibitem{Vaezi21}
 M.-S. Vaezi, A.-R. Negari, A.~Moharramipour and A.~Vaezi,
-\newblock \emph{Amelioration for the sign problem: An adiabatic quantum monte carlo algorithm},
+\newblock \emph{Amelioration for the sign problem: An adiabatic quantum monte
+  carlo algorithm},
 \newblock Phys. Rev. Lett. \textbf{127}, 217003 (2021),
 \newblock \doi{10.1103/PhysRevLett.127.217003}.
 
@@ -893,7 +1038,8 @@ J.~R. Schrieffer and P.~A. Wolff,
 
 \bibitem{Costi00}
 T.~A. Costi,
-\newblock \emph{Kondo effect in a magnetic field and the magnetoresistivity of kondo alloys},
+\newblock \emph{Kondo effect in a magnetic field and the magnetoresistivity of
+  kondo alloys},
 \newblock Phys. Rev. Lett. \textbf{85}, 1504 (2000),
 \newblock \doi{10.1103/PhysRevLett.85.1504}.
 
@@ -910,14 +1056,17 @@ M.~Maltseva, M.~Dzero and P.~Coleman,
 \newblock \doi{10.1103/PhysRevLett.103.206402}.
 
 \bibitem{Vekic95}
-M.~Veki\ifmmode~\acute{c}\else \'{c}\fi{}, J.~W. Cannon, D.~J. Scalapino, R.~T. Scalettar and R.~L. Sugar,
-\newblock \emph{Competition between antiferromagnetic order and spin-liquid behavior in the two-dimensional periodic anderson model at half filling},
+M.~Veki\ifmmode~\acute{c}\else \'{c}\fi{}, J.~W. Cannon, D.~J. Scalapino, R.~T.
+  Scalettar and R.~L. Sugar,
+\newblock \emph{Competition between antiferromagnetic order and spin-liquid
+  behavior in the two-dimensional periodic anderson model at half filling},
 \newblock Phys. Rev. Lett. \textbf{74}, 2367 (1995),
 \newblock \doi{10.1103/PhysRevLett.74.2367}.
 
 \bibitem{Li16}
 Z.-X. Li, Y.-F. Jiang and H.~Yao,
-\newblock \emph{Majorana-time-reversal symmetries: A fundamental principle for sign-problem-free quantum monte carlo simulations},
+\newblock \emph{Majorana-time-reversal symmetries: A fundamental principle for
+  sign-problem-free quantum monte carlo simulations},
 \newblock Phys. Rev. Lett. \textbf{117}, 267002 (2016),
 \newblock \doi{10.1103/PhysRevLett.117.267002}.
 
@@ -929,25 +1078,29 @@ K.~S.~D. Beach, P.~A. Lee and P.~Monthoux,
 
 \bibitem{Ruegg10}
 A.~R\"uegg, S.~D. Huber and M.~Sigrist,
-\newblock \emph{${\mathsf{z}}_{2}$-slave-spin theory for strongly correlated fermions},
+\newblock \emph{${\mathsf{z}}_{2}$-slave-spin theory for strongly correlated
+  fermions},
 \newblock Phys. Rev. B \textbf{81}, 155118 (2010),
 \newblock \doi{10.1103/PhysRevB.81.155118}.
 
 \bibitem{Weber21}
 M.~Weber,
-\newblock \emph{Valence bond order in a honeycomb antiferromagnet coupled to quantum phonons},
+\newblock \emph{Valence bond order in a honeycomb antiferromagnet coupled to
+  quantum phonons},
 \newblock Phys. Rev. B \textbf{103}, L041105 (2021),
 \newblock \doi{10.1103/PhysRevB.103.L041105}.
 
 \bibitem{Weber17}
 M.~Weber, F.~F. Assaad and M.~Hohenadler,
-\newblock \emph{Directed-loop quantum monte carlo method for retarded interactions},
+\newblock \emph{Directed-loop quantum monte carlo method for retarded
+  interactions},
 \newblock Phys. Rev. Lett. \textbf{119}, 097401 (2017),
 \newblock \doi{10.1103/PhysRevLett.119.097401}.
 
 \bibitem{Jarrell96}
 M.~Jarrell and J.~Gubernatis,
-\newblock \emph{Bayesian inference and the analytic continuation of imaginary-time quantum monte carlo data},
+\newblock \emph{Bayesian inference and the analytic continuation of
+  imaginary-time quantum monte carlo data},
 \newblock Physics Reports \textbf{269}, 133 (1996).
 
 \bibitem{Linden95}
@@ -956,13 +1109,15 @@ W.~von~der Linden,
 
 \bibitem{Hauke16}
 P.~Hauke, M.~Heyl, L.~Tagliacozzo and P.~Zoller,
-\newblock \emph{Measuring multipartite entanglement through dynamic susceptibilities},
+\newblock \emph{Measuring multipartite entanglement through dynamic
+  susceptibilities},
 \newblock Nature Physics \textbf{12}(8), 778 (2016),
 \newblock \doi{10.1038/nphys3700}.
 
 \bibitem{Abendschein06}
 A.~Abendschein and F.~F. Assaad,
-\newblock \emph{Temperature dependence of spectral functions for the one-dimensional hubbard model: Comparison with experiments},
+\newblock \emph{Temperature dependence of spectral functions for the
+  one-dimensional hubbard model: Comparison with experiments},
 \newblock Phys. Rev. B \textbf{73}, 165119 (2006),
 \newblock \doi{10.1103/PhysRevB.73.165119}.
 
@@ -974,7 +1129,8 @@ A.~N. Rubtsov, V.~V. Savkin and A.~I. Lichtenstein,
 
 \bibitem{Jureca16}
 {J\"ulich Supercomputing Centre},
-\newblock \emph{{JURECA: General-purpose supercomputer at J\"ulich Supercomputing Centre}},
+\newblock \emph{{JURECA: General-purpose supercomputer at J\"ulich
+  Supercomputing Centre}},
 \newblock Journal of large-scale research facilities \textbf{2}, A62 (2016),
 \newblock \doi{10.17815/jlsrf-2-121}.
 

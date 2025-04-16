@@ -1,4 +1,4 @@
-% Copyright (c) 2016 The ALF project.
+% Copyright (c) 2016-2025 The ALF project.
 % This is a part of the ALF project documentation.
 % The ALF project documentation by the ALF contributors is licensed
 % under a Creative Commons Attribution-ShareAlike 4.0 International License.
@@ -127,6 +127,9 @@ N_Cov   = 0                 ! If set to 1 covariance computed for non-equal-time
                             ! correlation functions
 N_auto   = 0                ! If > 0  triggers  calculation of autocorrelation 
 N_Back   = 1                ! If set to 1, substract background in correlation functions
+Extended_zone =  .F.        ! Allows for Fourier analysis in extended zone scheme 
+N_BZ_Zones    =   1         ! Number of Brillouin zones that will be covered if extended 
+                            ! zone scheme is activated. Default = Norb
 /  
 
 &VAR_TEMP                  !! Variables for parallel tempering
@@ -199,8 +202,8 @@ The output of the measured data is organized in bins. One bin corresponds to the
    \path{X_scal}      & Results of equal-time measurements of scalar observables. \\
    & The placeholder \path{X} stands for the observables \path{Kin}, \path{Pot}, \path{Part}, and \path{Ener} \\
    \path{X_scal_info} & Info on how to analyze the observable and optionally a description.\\
-   \path{Y_eq, Y_tau} & Results of equal-time and time-displaced measurements of correlation functions. The placeholder \path{Y} stands for \path{Green}, \path{SpinZ}, \path{SpinXY}, \path{Den}, etc. \\   
-   \path{Y_eq_info, Y_tau_info} & Additional info, like Bravais lattice and unit cell, for equal-time and time-displaced observables \\
+   \path{Y_eq, Y_tau, Y_local} & Results of equal-time and time-displaced measurements of correlation functions. The placeholder \path{Y} stands for \path{Green}, \path{SpinZ}, \path{SpinXY}, \path{Den}, etc. \\   
+   \path{Y_eq_info, Y_tau_info, Y_local} & Additional info, like Bravais lattice and unit cell, for equal-time and time-displaced observables \\
    \path{confout_<thread#>} & Output files (one per MPI instance) for the HS and bosonic configuration \\\bottomrule
    \end{tabular}
    \caption{Overview of the standard output files if compiled without HDF5. See Sec.~\ref{sec:obs} for the definitions of observables and correlation functions and Table~\ref{table:output_hdf5} for HDF5 output. \label{table:output}}

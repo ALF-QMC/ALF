@@ -30,6 +30,9 @@ Further optional arguments:
                but instead return with value 1
 To hand an additional flag to the compiler, export it in the varible ALF_FLAGS_EXT prior to sourcing this script.
 
+ALF usually self-compiles HDF5 and stores the library in subdirectories of ALF/HDF5.
+This behavior can be changed by setting the environment variable ALF_HDF5_DIR.
+
 For more details check the documentation.\n"
 
 STABCONFIGURATION=""
@@ -44,7 +47,16 @@ set_hdf5_flags()
   $FC -o get_compiler_version.out get_compiler_version.F90
   compiler_vers=$(./get_compiler_version.out | sed 's/[ ,()]/_/g')
   
-  HDF5_DIR="$ALF_DIR/HDF5/$compiler_vers"
+  H5_major=1
+  H5_minor=14
+  H5_patch=5
+  H5_suff=""
+  if [ -n "${ALF_HDF5_DIR+x}" ]; then
+    printf "\nUsing custom HDF5 directory '%s'\n" "${ALF_HDF5_DIR}"
+    HDF5_DIR="${ALF_HDF5_DIR}/${compiler_vers}"
+  else
+    HDF5_DIR="$ALF_DIR/HDF5/${compiler_vers}"
+  fi
   if [ ! -d "$HDF5_DIR" ]; then
     printf "\nHDF5 is not yet installed for compiler '%s'.\n" "$compiler_vers"
     printf "ALF does never use global HDF5 libraries, but installs it locally in subfolders of '%s/HDF5'.\n" "$ALF_DIR"
@@ -57,7 +69,7 @@ set_hdf5_flags()
     case "$yn" in
       y|Y|"")
         printf "${GREEN}Downloading and installing HDF5 in %s.${NC}\n" "$HDF5_DIR"
-        CC="$CC" FC="$FC" CXX="$CXX" HDF5_DIR="$HDF5_DIR" "$ALF_DIR/HDF5/install_hdf5.sh" || return 1
+        CC="$CC" FC="$FC" CXX="$CXX" HDF5_DIR="$HDF5_DIR" "$ALF_DIR/HDF5/install_hdf5.sh" ${H5_major} ${H5_minor} ${H5_patch} ${H5_suff} || return 1
       ;;
       *) 
         printf "Skipping installation of HDF5.\n"
@@ -353,12 +365,12 @@ case $MACHINE in
     F90OPTFLAGS="$INTELLLVMOPTFLAGS"
     F90USEFULFLAGS="$INTELLLVMUSEFULFLAGS"
     ALF_FC="$INTELLLVMCOMPILER"
-    find_mkl_flag || return 1
+    INTELMKL="-qmkl"
     LIB_BLAS_LAPACK="${INTELMKL}"
     if [ "${HDF5_ENABLED}" = "1" ]; then
       set_intelcc
       set_intelcxx
-      set_hdf5_flags "$INTELCC" ifort "$INTELCXX" || return 1
+      set_hdf5_flags "$INTELCC" ifx "$INTELCXX" || return 1
     fi
   ;;
 

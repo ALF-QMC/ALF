@@ -218,9 +218,9 @@ build_hdf5_Intel-2024.2:
   variables:
     MACHINE: INTEL
 
-build_hdf5_IntelLLVM-2024.2:
+build_hdf5_IntelLLVM:
   extends: .build_hdf5_template
-  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bookworm-intel-2024.2
+  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bookworm-intel
   needs: []
   variables:
     MACHINE: INTELLLVM
@@ -252,7 +252,7 @@ test:
         DEVEL: ["", Devel]
         CONFIG_ARGS: ["", "HDF5"]
       - MACHINE: INTELLLVM
-        IMAGE_MINOR: bookworm-intel-2024.2
+        IMAGE_MINOR: bookworm-intel
         MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
         DEVEL: ["", Devel]
         CONFIG_ARGS: ["", "HDF5"]

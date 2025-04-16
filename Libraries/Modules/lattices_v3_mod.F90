@@ -557,10 +557,14 @@
          end function Iscalar_IR
  !********
 
-         pure Real (Kind=Kind(0.d0))  function Iscalar_RR(x_p, y_p)
+         Real (Kind=Kind(0.d0))  function Iscalar_RR(x_p, y_p)
            Implicit none
            Real (Kind = Kind(0.D0)), dimension(:), intent(in) ::  x_p, y_p
-           Iscalar_RR = dot_product(x_p, y_p)
+           Integer :: i
+           Iscalar_RR = 0.d0
+           do i = 1,  size(x_p)
+              Iscalar_RR = Iscalar_RR + x_p(i)*y_p(i)
+           enddo
          end function Iscalar_RR
 
  !********

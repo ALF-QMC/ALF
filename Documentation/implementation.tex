@@ -235,6 +235,7 @@ such that
 
 The \path{Lattice} module also handles the Fourier transformation.  For example,  the  subroutine  \path{Fourier_R_to_K}   carries out the  transformation: 
 \begin{equation}
+\label{eq:fourier_transform}
 	S(\vec{k}, :,:,:) =  \frac{1}{N_\text{unit-cell}}  \sum_{\vec{i},\vec{j}}   e^{-i \vec{k} \cdot \left( \vec{i}-\vec{j} \right)} S(\vec{i}  - \vec{j}, :,:,:)
 \end{equation}
 and  \path{Fourier_K_to_R}  the  inverse Fourier transform 
@@ -269,7 +270,7 @@ The total  number of orbitals  is then given by \texttt{Ndim=Lattice\%N*Unit\_ce
 
 
 %--------------------------------------------------------------------------------------------
-\subsection{The observable types \texttt{Obser\_Vec} and \texttt{Obser\_Latt}}\label{sec:obs}
+\subsection{The observable types \texttt{Obser\_Vec}, \texttt{Obser\_Local} and \texttt{Obser\_Latt}}\label{sec:obs}
 %--------------------------------------------------------------------------------------------
 
 Our definition  of the model includes observables [Eq.~(\ref{eqn:obs_rw})]. We define two observable types: \texttt{Obser\_vec}  for an array of \emph{scalar} observables
@@ -322,6 +323,42 @@ This suffix  is important to facilitate automatic analyses of the data at the en
 Furthermore, the file \texttt{File\_Vec}\emph{\_scal\_info} is created (if it does not exist yet), which contains a string that specifies how to analyze the observable and an optional description.
 
 %------------------------------------------------------------
+\subsubsection{Local observables}
+%------------------------------------------------------------
+Local observables are stored in the data type \texttt{Obser\_Local} described in Table \ref{table:Obser_local}. This data structure is useful for dealing with local observables of the form  $\hat{O}_{i,\alpha} $, where $i$ is a lattice site and $\alpha$ an orbital index. No translation symmetry is  implied such that it is possible to use it in conjunction with pinning fields \cite{Assaad13}.   Note that this routine is only implemented for equal-time correlation functions.
+
+Consider a variable  \texttt{Obs} of type  \texttt{Obser\_local}. At the beginning of each bin a call to  \texttt{Obser\_Latt\_Init} in the module \texttt{observables\_mod.F90}  will  initialize  the elements of \texttt{Obs} to zero.    Each time the main program calls the   \texttt{Obser} routines  at time slice $\tau$ one accumulates $ \langle \langle \hat{O}_{\vec{i},\alpha} (\tau)  \rangle \rangle_{C} \allowbreak \frac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}  \sgn(C) $   in  \texttt{Obs\%Obs\_latt($\vec{i},1,\alpha$)}  
+At the end of each bin, a call to \texttt{Print\_bin\_Local} in the module  \texttt{observables\_mod.F90}   will append the result of the bin in the specified  file \texttt{Obs\%File\_Latt}.  The routine does not carry out a Fourier transformation and prints the data in real space. 
+We have adopted the following naming conventions:
+For equal-time observables, defined by having the second dimension of the array  \texttt{Obs\%Obs\_local($\vec{i},\tau,\alpha$)}   set to unity, 
+the routine \texttt{Print\_bin\_Latt}  attaches the suffix \emph{\_eq} to \texttt{Obs\%File\_Latt}.  Time displaced local observables are not yet implemented. 
+Furthermore, \texttt{Print\_bin\_Latt} will create a corresponding info file with suffix \emph{\_eq\_info}, if not already present. The info file contains the channel, number of imaginary time steps, length of one imaginary time step, unit cell and the vectors defining the Bravais lattice.
+
+%
+\begin{table}[h!]
+	\begin{center}
+	\begin{tabular}{@{} p{0.22\columnwidth}  l  p{0.30\columnwidth} p{0.26\columnwidth} @{}}\toprule
+		Variable  &  Type      &  Description &  Contribution \\\midrule
+		\texttt{Obs\%N}                       &  \texttt{int}        &   Number of measurements &    $+1$\\
+		\texttt{Obs\%Ave\_sign} &  \texttt{dble}  &    Cumulated sign [Eq.~(\ref{eqn:sign_rw})] & $\sgn(C)$  \\
+		\texttt{Obs\%Obs\_latt($\vec{i}, \allowbreak \tau,\alpha$)}        & \texttt{cmplx}      &    Cumulated correlation function & 
+      $ \begin{multlined}[t] \langle \langle \hat{O}_{\vec{i},\alpha} (\tau) \rangle \rangle_{C} \times\\[-0.5ex] \tfrac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}  \sgn(C) \end{multlined}$  
+      \\
+		\texttt{Obs\%File\_Latt}           &   \texttt{char}   &    Name of output file  &
+		\\
+		\texttt{Obs\%Latt} & \texttt{Lattice}$^*$ & Bravais lattice [Tab.~\ref{table:lattice}] & \\
+		\texttt{Obs\%Latt\_unit} & \texttt{Unit\_cell}$^*$ & Unit cell [Tab.~\ref{table:unit_cell}] & \\
+		\texttt{Obs\%dtau} & \texttt{dble} & Imaginary time step & \\
+		\texttt{Obs\%Channel} & \texttt{char} & Channel for Maximum Entropy &
+		\\\bottomrule
+	\end{tabular}
+	\caption{Components of a variable of type \texttt{Obser\_local} named \texttt{Obs}. 
+	Be aware: The types marked with asterisks, $*$, are actually pointers; when the subroutine \texttt{Obser\_Latt\_make} creates an observable \texttt{Obs}, the variables \texttt{Latt} and \texttt{Latt\_unit} do not get copied but a pointer to them is stored, implying that their modification
+after the creation of \texttt{Obs} still affects the observable.    Each  observable  can have its  own lattice  and  unit-cell  that  can  differ  from  the lattice  and  unit  cell  associated to the Hamiltonian. For  example,    when  simulation a  two-dimensional  Hubbard model,  one  can  define an observable on a one-dimensional sub-lattice. We refer the reader to Sec.~\ref{sec:predefined_observales} for further discussion on this option.}
+	\label{table:Obser_local}
+\end{center}
+\end{table}
+%%------------------------------------------------------------
 \subsubsection{Equal-time and time-displaced correlation functions}
 %------------------------------------------------------------
 
@@ -332,26 +369,27 @@ The data type \texttt{Obser\_latt} (see Table~\ref{table:Obser_latt}) is useful 
 \end{align}
 where $\alpha$ and $\beta$ are orbital indices and $\vec{i}$ and $\vec{j}$ lattice positions.
 %
+%
 \begin{table}[h!]
-	\begin{center}
-	\begin{tabular}{@{} p{0.22\columnwidth}  l  p{0.30\columnwidth} p{0.26\columnwidth} @{}}\toprule
-		Variable  &  Type      &  Description &  Contribution \\\midrule
-		\texttt{Obs\%N}                       &  \texttt{int}        &   Number of measurements &    $+1$\\
-		\texttt{Obs\%Ave\_sign} &  \texttt{dble}  &    Cumulated sign [Eq.~(\ref{eqn:sign_rw})] & $\sgn(C)$  \\
-		\texttt{Obs\%Obs\_latt($\vec{i}$-$\vec{j},\allowbreak\tau,\alpha,\beta$}        & \texttt{cmplx}      &    Cumulated correlation function [Eq.~(\ref{eqn:obs_rw})] & $ \begin{multlined}[t] \langle \langle \hat{O}_{\vec{i},\alpha} (\tau) \hat{O}_{\vec{j},\beta} \rangle \rangle_{C} \times\\[-0.5ex] \tfrac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}  \sgn(C) \end{multlined}$  \\
-		\texttt{Obs\%Obs\_latt0($\alpha$)}        & \texttt{cmplx}      &    Cumulated expected value [Eq.~(\ref{eqn:obs_rw})] &  $ \begin{multlined}[t] \langle \langle \hat{O}_{\vec{i},\alpha} \rangle \rangle_{C} \times\\[-0.5ex] \tfrac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]} \sgn(C) \end{multlined}$ \\
-		\texttt{Obs\%File\_Latt}           &   \texttt{char}   &    Name of output file  &
-		\\
-		\texttt{Obs\%Latt} & \texttt{Lattice}$^*$ & Bravais lattice [Tab.~\ref{table:lattice}] & \\
-		\texttt{Obs\%Latt\_unit} & \texttt{Unit\_cell}$^*$ & Unit cell [Tab.~\ref{table:unit_cell}] & \\
-		\texttt{Obs\%dtau} & \texttt{dble} & Imaginary time step & \\
-		\texttt{Obs\%Channel} & \texttt{char} & Channel for Maximum Entropy &
-		\\\bottomrule
-	\end{tabular}
-	\caption{Components of a variable of type \texttt{Obser\_latt} named \texttt{Obs}.
-	Be aware: The types marked with asterisks, $*$, are actually pointers; when the subroutine \texttt{Obser\_Latt\_make} creates an observable \texttt{Obs}, the variables \texttt{Latt} and \texttt{Latt\_unit} do not get copied but a pointer to them is stored, implying that their modification
+   \begin{center}
+   \begin{tabular}{@{} p{0.22\columnwidth}  l  p{0.30\columnwidth} p{0.26\columnwidth} @{}}\toprule
+           Variable  &  Type      &  Description &  Contribution \\\midrule
+           \texttt{Obs\%N}                       &  \texttt{int}        &   Number of measurements &    $+1$\\
+           \texttt{Obs\%Ave\_sign} &  \texttt{dble}  &    Cumulated sign [Eq.~(\ref{eqn:sign_rw})] & $\sgn(C)$  \\
+           \texttt{Obs\%Obs\_latt($\vec{i}$-$\vec{j},\allowbreak\tau,\alpha,\beta$)}        & \texttt{cmplx}      &    Cumulated correlation function [Eq.~(\ref{eqn:obs_rw})] & $ \begin{multlined}[t] \langle \langle \hat{O}_{\vec{i},\alpha} (\tau) \hat{O}_{\vec{j},\beta} \rangle \rangle_{C} \times\\[-0.5ex] \tfrac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]}  \sgn(C) \end{multlined}$  \\
+           \texttt{Obs\%Obs\_latt0($\alpha$)}        & \texttt{cmplx}      &    Cumulated expected value [Eq.~(\ref{eqn:obs_rw})] &  $ \begin{multlined}[t] \langle \langle \hat{O}_{\vec{i},\alpha} \rangle \rangle_{C} \times\\[-0.5ex] \tfrac{e^{-S(C)}} {\Re \left[e^{-S(C)} \right]} \sgn(C) \end{multlined}$ \\
+           \texttt{Obs\%File\_Latt}           &   \texttt{char}   &    Name of output file  &
+           \\
+           \texttt{Obs\%Latt} & \texttt{Lattice}$^*$ & Bravais lattice [Tab.~\ref{table:lattice}] & \\
+           \texttt{Obs\%Latt\_unit} & \texttt{Unit\_cell}$^*$ & Unit cell [Tab.~\ref{table:unit_cell}] & \\
+           \texttt{Obs\%dtau} & \texttt{dble} & Imaginary time step & \\
+           \texttt{Obs\%Channel} & \texttt{char} & Channel for Maximum Entropy &
+           \\\bottomrule
+   \end{tabular}
+   \caption{Components of a variable of type \texttt{Obser\_latt} named \texttt{Obs}.
+   Be aware: The types marked with asterisks, $*$, are actually pointers; when the subroutine \texttt{Obser\_Latt\_make} creates an observable \texttt{Obs}, the variables \texttt{Latt} and \texttt{Latt\_unit} do not get copied but a pointer to them is stored, implying that their modification
 after the creation of \texttt{Obs} still affects the observable.    Each  observable  can have its  own lattice  and  unit-cell  that  can  differ  from  the lattice  and  unit  cell  associated to the Hamiltonian. For  example,    when  simulation a  two-dimensional  Hubbard model,  one  can  define an observable on a one-dimensional sub-lattice.  We  refer  the   reader  to Sec.~\ref{sec:predefined_observales}     for  further   discussion on this    option.   }
-	\label{table:Obser_latt}
+   \label{table:Obser_latt}
 \end{center}
 \end{table}
 %
