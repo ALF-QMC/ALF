@@ -106,12 +106,22 @@
 !>  Number of global_tau moves that will be carried out per time-slice.
 !>  Default: N_Global_tau=0
 !> \endverbatim
+!> @param Global_Langevin_tau_moves Logical
+!> \verbatim
+!>  If true, global Langevin moves on a given time slice will be carried out
+!>  Default: Global_Langevin_tau_moves=.false.
+!> \endverbatim
+!> @param N_Global_Langevin_tau Integer
+!> \verbatim
+!>  Number of global_langevin_tau moves that will be carried out per time-slice.
+!>  Default: N_Global_Langevin_tau=0
+!> \endverbatim
 !> @param Nt_sequential_start  Integer
 !> @param Nt_sequential_end  Integer
 !> \verbatim
 !> Interval over which one will carry out sequential updating on a single time slice.
 !> Default: Nt_sequential_start = 1  Nt_sequential_end=size(OP_V,1)). This default is
-!> automatically if Global_tau_moves=.false.
+!> automatically if Global_tau_moves=.false. and Global_Langevin_tau_moves=.false.
 !> \endverbatim
 
 !--------------------------------------------------------------------
@@ -167,10 +177,10 @@ Program Main
 
         ! Space for choosing sampling scheme
         Logical :: Propose_S0, Tempering_calc_det, Propose_Langevin
-        Logical :: Global_moves, Global_tau_moves
+        Logical :: Global_moves, Global_tau_moves, Global_Langevin_tau_moves
         Integer :: N_Global
         Integer :: Nt_sequential_start, Nt_sequential_end, mpi_per_parameter_set
-        Integer :: N_Global_tau
+        Integer :: N_Global_tau, N_Global_Langevin_tau
         Logical :: Sequential
         real (Kind=Kind(0.d0)) ::  Amplitude  !    Needed for  update of  type  3  and  4  fields.
 
@@ -190,6 +200,7 @@ Program Main
 
         NAMELIST /VAR_QMC/   Nwrap, NSweep, NBin, Ltau, LOBS_EN, LOBS_ST, CPU_MAX, &
              &               Propose_S0,Global_moves,  N_Global, Global_tau_moves, &
+             &               Global_Langevin_tau_moves, N_Global_Langevin_tau, &
              &               Nt_sequential_start, Nt_sequential_end, N_Global_tau, &
              &               sequential, Langevin, HMC, Delta_t_Langevin_HMC, &
              &               Max_Force, Leapfrog_steps, N_HMC_sweeps, Amplitude, &
@@ -342,6 +353,7 @@ Program Main
            Nwrap=0;  NSweep=0; NBin=0; Ltau=0; LOBS_EN = 0;  LOBS_ST = 0;  CPU_MAX = 0.d0
            Propose_S0 = .false. ;  Global_moves = .false. ; N_Global = 0; Propose_Langevin = .false.
            Global_tau_moves = .false.; sequential = .true.; Langevin = .false. ; HMC =.false.
+           Global_Langevin_tau_moves = .false.; N_Global_Langevin_tau = 0
            Delta_t_Langevin_HMC = 0.d0;  Max_Force = 0.d0 ; Leapfrog_steps = 0; N_HMC_sweeps = 1
            Nt_sequential_start = 1 ;  Nt_sequential_end  = 0;  N_Global_tau  = 0;  Amplitude = 1.d0
            OPEN(UNIT=5,FILE=file_para,STATUS='old',ACTION='read',IOSTAT=ierr)
@@ -368,9 +380,11 @@ Program Main
         CALL MPI_BCAST(Global_moves         ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(N_Global             ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Global_tau_moves     ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(Global_Langevin_tau_moves,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Nt_sequential_start  ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Nt_sequential_end    ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(N_Global_tau         ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(N_Global_Langevin_tau,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(sequential           ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Langevin             ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(HMC                  ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
@@ -471,6 +485,10 @@ Program Main
               LOBS_EN =  Ltrot
            endif
         endif
+        if ( Global_Langevin_tau_moves ) then
+           N_Global_tau        = 0
+        else
+           N_Global_langevin_tau = 0
         If ( .not. Global_tau_moves )  then
            ! This  corresponds to the default updating scheme
            Nt_sequential_start = 1
@@ -479,6 +497,7 @@ Program Main
         else
            !  Gives the possibility to set parameters in the Hamiltonian file
            Call ham%Overide_global_tau_sampling_parameters(Nt_sequential_start,Nt_sequential_end,N_Global_tau)
+        endif
         endif
         
         call nsigma%make(N_op, Ltrot)
@@ -501,7 +520,7 @@ Program Main
         Call Hop_mod_init
 
         IF (ABS(CPU_MAX) > Zero ) NBIN = 10000000
-        If (N_Global_tau > 0 .or. Propose_Langevin) then
+        If (N_Global_tau > 0 .or. N_Global_Langevin_tau > 0 .or. Propose_Langevin) then
            Call Wrapgr_alloc
         endif
         
@@ -569,6 +588,10 @@ Program Main
                      write(output_unit,*) "Langevin mode does not allow global tau updates."
                      write(output_unit,*) "Overriding Global_tau_moves=.True. from parameter files."
                   endif
+                  if (Global_Langevin_tau_moves) then
+                     write(output_unit,*) "Langevin mode does not allow global Langevin tau updates."
+                     write(output_unit,*) "Overriding Global_Langevin_tau_moves=.True. from parameter files."
+                  endif
 #if defined(TEMPERING)
                   if ( N_exchange_steps > 0 ) then
                      write(output_unit,*) "Langevin mode does not allow tempering updates."
@@ -582,6 +605,7 @@ Program Main
                HMC = .False.
                Global_moves = .False.
                Global_tau_moves = .False.
+               Global_Langevin_tau_moves = .False.
 #if defined(TEMPERING)
                N_exchange_steps = 0
 #endif
@@ -595,6 +619,19 @@ Program Main
            write(output_unit,*) "Warning: Sequential = .False. and Global_tau_moves = .True."
            write(output_unit,*) "in the parameter file. Global tau updates will not occur if"
            write(output_unit,*) "Sequential is set to .False. ."
+        endif
+
+        if ( .not. Sequential .and. Global_Langevin_tau_moves) then
+           write(output_unit,*) "Warning: Sequential = .False. and Global_Langevin_tau_moves = .True."
+           write(output_unit,*) "in the parameter file. Global Langevin tau updates will not occur if"
+           write(output_unit,*) "Sequential is set to .False. ."
+        endif
+
+        if ( Global_tau_moves .and. Global_Langevin_tau_moves) then
+           write(output_unit,*) "Warning: Global_tau_moves = .True. and Global_Langevin_tau_moves = .True."
+           write(output_unit,*) "in the parameter file. If both Global tau updates and global Langevin tau"
+           write(output_unit,*) "are .True., Global_tau_moves will be overwritten."
+           Global_tau_moves = .false.
         endif
 
         if ( .not. Sequential .and. .not. HMC .and. .not. Langevin .and. .not. Global_moves) then
@@ -649,7 +686,11 @@ Program Main
               Write(50,*) '# of global moves / sweep :', N_Global
            Endif
            if ( sequential ) then
-               If ( Global_tau_moves ) Then
+               If ( Global_Langevin_tau_moves ) Then
+                  Write(50,*) 'Nt_sequential_start: ', Nt_sequential_start
+                  Write(50,*) 'Nt_sequential_end  : ', Nt_sequential_end
+                  Write(50,*) 'N_Global_Langevin_tau   : ', N_Global_Langevin_tau
+               elseif ( Global_tau_moves ) Then
                   Write(50,*) 'Nt_sequential_start: ', Nt_sequential_start
                   Write(50,*) 'Nt_sequential_end  : ', Nt_sequential_end
                   Write(50,*) 'N_Global_tau       : ', N_Global_tau
@@ -865,7 +906,7 @@ Program Main
                  NST = 1
                  DO NTAU = 0, LTROT-1
                     NTAU1 = NTAU + 1
-                    CALL WRAPGRUP(GR,NTAU,PHASE,Propose_S0,Propose_Langevin, Delta_t_Langevin_HMC, Nt_sequential_start, Nt_sequential_end, N_Global_tau)
+                    CALL WRAPGRUP(GR,NTAU,PHASE,Propose_S0,Propose_Langevin, Delta_t_Langevin_HMC, Nt_sequential_start, Nt_sequential_end, N_Global_tau, N_Global_Langevin_tau)
                     
                     If (NTAU1 == Stab_nt(NST) ) then
                        NT1 = Stab_nt(NST-1)
@@ -924,7 +965,7 @@ Program Main
                  NST = NSTM-1
                  DO NTAU = LTROT,1,-1
                     NTAU1 = NTAU - 1
-                    CALL WRAPGRDO(GR,NTAU, PHASE,Propose_S0,Propose_Langevin, Delta_t_Langevin_HMC,Nt_sequential_start, Nt_sequential_end, N_Global_tau)
+                    CALL WRAPGRDO(GR,NTAU, PHASE,Propose_S0,Propose_Langevin, Delta_t_Langevin_HMC,Nt_sequential_start, Nt_sequential_end, N_Global_tau, N_Global_Langevin_tau)
                     IF (NTAU1.GE. LOBS_ST .AND. NTAU1.LE. LOBS_EN ) THEN
                        !write(*,*) "GR before obser sum: ",sum(GR(:,:,1))
                        !write(*,*) "Phase before obser : ",phase
@@ -1051,7 +1092,7 @@ Program Main
         DEALLOCATE(udvl, udvr, udvst)
         DEALLOCATE(GR, TEST, Stab_nt,GR_Tilde)
         if (Projector) DEALLOCATE(WF_R, WF_L)
-        If (N_Global_tau > 0 .or. Propose_Langevin) then
+        If (N_Global_tau > 0 .or. N_Global_Langevin_tau > 0 .or. Propose_Langevin) then
            Call Wrapgr_dealloc
         endif
         do nf = 1, N_FL

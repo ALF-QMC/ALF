@@ -56,6 +56,10 @@ Module Wrapgr_mod
 
   Implicit none
 
+  INTERFACE wrapgr_sort
+    MODULE PROCEDURE  wrapgr_sort_value, wrapgr_sort_langevin
+  END INTERFACE
+
   
   !> Privat 
   Complex (Kind=Kind(0.d0)),  private, allocatable ::  GR_ST(:,:,:)
@@ -79,7 +83,7 @@ Contains
   end Subroutine Wrapgr_dealloc
 
 !--------------------------------------------------------------------
-  SUBROUTINE WRAPGRUP(GR,NTAU,PHASE,Propose_S0,Propose_Langevin, Delta_t_Langevin_HMC,Nt_sequential_start, Nt_sequential_end, N_Global_tau)
+  SUBROUTINE WRAPGRUP(GR,NTAU,PHASE,Propose_S0,Propose_Langevin, Delta_t_Langevin_HMC,Nt_sequential_start, Nt_sequential_end, N_Global_tau, N_global_Langevin_tau)
 !--------------------------------------------------------------------
 !> @author 
 !> ALF-project
@@ -97,7 +101,7 @@ Contains
     COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT) ::  PHASE
     INTEGER, INTENT(IN) :: NTAU
     LOGICAL, INTENT(IN) :: Propose_S0, Propose_Langevin
-    INTEGER, INTENT(IN) :: Nt_sequential_start, Nt_sequential_end, N_Global_tau
+    INTEGER, INTENT(IN) :: Nt_sequential_start, Nt_sequential_end, N_Global_tau, N_global_Langevin_tau
     Real    (kind=Kind(0.d0)), intent(in) :: Delta_t_Langevin_HMC
 
     !Local 
@@ -221,11 +225,18 @@ Contains
        Call Wrapgr_PlaceGR(GR,m, Size(OP_V,1), ntau1)
     Endif
 
+    If ( N_Global_Langevin_tau > 0 ) then
+       m         = Nt_sequential_end
+       !if ( Nt_sequential_start >  Nt_sequential_end ) m = Nt_sequential_start
+       Call Wrapgr_Langevin_update(GR,m,ntau1, PHASE, N_Global_Langevin_tau, Delta_t_Langevin_HMC )
+       Call Wrapgr_PlaceGR(GR,m, Size(OP_V,1), ntau1)
+    Endif
+
   END SUBROUTINE WRAPGRUP
 
 
 !--------------------------------------------------------------------    
-  SUBROUTINE WRAPGRDO(GR,NTAU,PHASE,Propose_S0,Propose_Langevin, Delta_t_Langevin_HMC,Nt_sequential_start, Nt_sequential_end, N_Global_tau)
+  SUBROUTINE WRAPGRDO(GR,NTAU,PHASE,Propose_S0,Propose_Langevin, Delta_t_Langevin_HMC,Nt_sequential_start, Nt_sequential_end, N_Global_tau, N_global_Langevin_tau)
 !--------------------------------------------------------------------
 !> @author 
 !> ALF-project
@@ -245,7 +256,7 @@ Contains
     COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT) :: PHASE
     Integer, INTENT(IN) :: NTAU
     LOGICAL, INTENT(IN) :: Propose_S0, Propose_Langevin
-    INTEGER, INTENT(IN) :: Nt_sequential_start, Nt_sequential_end, N_Global_tau
+    INTEGER, INTENT(IN) :: Nt_sequential_start, Nt_sequential_end, N_Global_tau, N_global_Langevin_tau
     real    (kind=kind(0.d0)), intent(in) :: Delta_t_Langevin_HMC
     
     ! Local
@@ -265,6 +276,13 @@ Contains
        m         = Size(OP_V,1)
        !Write(6,*) 'Call Ran_up ', m,ntau
        Call Wrapgr_Random_update(GR,m,ntau, PHASE, N_Global_tau )
+       Call Wrapgr_PlaceGR(GR,m, Nt_sequential_end, ntau)
+    Endif
+
+    If ( N_global_Langevin_tau > 0 ) then
+       m         = Size(OP_V,1)
+       !Write(6,*) 'Call Ran_up ', m,ntau
+       Call Wrapgr_Langevin_update(GR,m,ntau, PHASE, N_global_Langevin_tau, Delta_t_Langevin_HMC )
        Call Wrapgr_PlaceGR(GR,m, Nt_sequential_end, ntau)
     Endif
 
@@ -563,8 +581,161 @@ Contains
 
   end Subroutine Wrapgr_Random_update
 
+
+!--------------------------------------------------------------------
+  Subroutine  Wrapgr_Langevin_update( GR,m,ntau, PHASE, N_global_Langevin_tau, Delta_t_Langevin_HMC )
+!--------------------------------------------------------------------
+!> @author
+!> ALF-project
+!
+!> @brief
+!> On input:
+!> GR(tau,m) as defined in  Global_tau_mod_PlaceGR and the direction of updating scheme
+!> direction=u --> You are visiting the time slices from tau = 1  to tau =Ltrot
+!> direction=d --> You are visiting the time slices from tau = Ltrot   to tau = 1
+!>
+!> The routine calls
+!> Global_Langevin_move_tau(Flip_list, Flip_length,ntau)
+!> in the Hamiltonian module and then carries out the update
+!>
+!> On output
+!>
+!> Flip_length==1
+!>        Green function is on  GR(tau,Flip_list(1) +1 )  if direction = u
+!>        Green function is on  GR(tau,Flip_list(1) -1 )  if direction = d
+!>        This is valid if the move has or has not been accepted.
+!>
+!> Flip_length > 1
+!>        Let m_min = min(Flip_list), m_max = max(Flip_list)
+!>        direction = u -->  On output Green on m_max is accepted. Green is on m_min if not accepted.
+!>        direction = d -->  On output Green on m_min if accepted. Green is on m_max if not accepted.
+!--------------------------------------------------------------------
+        
+    Implicit none
+
+    ! Arguments
+    COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:), INTENT(INOUT), allocatable :: GR
+    Integer,           INTENT(INOUT) :: m
+    Integer,           INTENT(IN)    :: ntau, N_global_Langevin_tau
+    Complex  (Kind=Kind(0.d0)), INTENT(INOUT) :: PHASE
+    Real    (kind=Kind(0.d0)), intent(in) :: Delta_t_Langevin_HMC
+    
+
+
+    ! Space for local variables
+    Integer                   :: n, Flip_length, nf, nf_eff, N_Type, ng_c, Flip_count
+    Real    (Kind=Kind(0.d0)) :: T0_Proposal_ratio, T0_proposal,S0_ratio
+    COMPLEX (Kind=Kind(0.d0)) :: Prev_Ratiotot, HS_Field, HS_New, Phase_st
+    Logical                   :: Acc
+    Character (Len=64)        :: Mode
+    Integer,      allocatable :: Flip_list(:)
+    Complex (Kind=Kind(0.d0)), allocatable :: Flip_value(:), Flip_value_st(:), forces_old(:), forces_new(:)
+    Real    (Kind=Kind(0.d0)) :: Zero = 10D-8, weight
+    real    (kind=kind(0.d0)), allocatable :: Forces_0_old(:), Forces_0_new(:), forces_0(:,:)
+
+    Allocate ( Flip_list(Size(Op_V,1)), Flip_value(Size(Op_V,1)), Flip_value_st(Size(Op_V,1)) )
+    Allocate ( Forces_old(Size(Op_V,1)), Forces_new(Size(Op_V,1)), Forces_0_old(Size(Op_V,1)), Forces_0_new(Size(Op_V,1)))
+    allocate( forces_0(size(nsigma%f,1),size(nsigma%f,2)))
+
+    Do ng_c = 1,N_global_Langevin_tau
+       ! New configuration
+       Call ham%Global_Langevin_move_tau(Flip_list, Flip_length,ntau )
+       !Write(6,*)  "Calling global move",  m, Flip_list(1), nsigma(Flip_list(1),ntau)
+       ! Order the list
+       Call wrapgr_sort(Flip_length,Flip_list)
+       Phase_st = Phase
+       Do Flip_count = 1, Flip_length
+          Flip_value_st(Flip_count)  = nsigma%f( Flip_list(Flip_count), ntau  )
+       Enddo
+       !Write(6,*) "-----", Flip_length
+       !Calculate forces with current nsigma
+       call ham%ham_langevin_HMC_S0( forces_0)
+       do Flip_count = 1,Flip_length
+          n = Flip_list(Flip_count)
+          !Write(6,*)  "PlaceGR",  m, n-1,ntau
+          Call Wrapgr_PlaceGR(GR,m, n, ntau)
+          !Write(6,*)  "Back from PlaceGR",  m, n-1,ntau
+          If ( Flip_count == 1 ) GR_st = Gr
+          forces_old(Flip_count)   = calculate_force(n,ntau,GR)
+          forces_0_old(Flip_count) = forces_0(n,ntau)
+          flip_value(Flip_count) = nsigma%f(n,ntau) - ( forces_0_old(flip_count) +  &
+            &  real( Phase*forces_old(flip_count),kind(0.d0)) / Real(Phase,kind(0.d0)) ) * Delta_t_Langevin_HMC + &
+            &  sqrt( 2.d0 * Delta_t_Langevin_HMC) * rang_wrap()
+          m = n
+       enddo
+
+       !Update Greens function
+       S0_ratio = 1.d0
+       Prev_Ratiotot = cmplx(1.d0,0.d0,kind(0.d0))
+       do Flip_count = 1,Flip_length
+          n = Flip_list(Flip_count)
+          !Write(6,*)  "PlaceGR",  m, n-1,ntau
+          Call Wrapgr_PlaceGR(GR,m, n-1, ntau)
+          !Write(6,*)  "Back from PlaceGR",  m, n-1,ntau
+          Do nf_eff = 1, N_FL_eff
+             nf=Calc_Fl_map(nf_eff)
+             HS_Field = nsigma%f(n,ntau)
+             N_type = 1
+             Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),HS_Field,Ndim,N_Type,ntau)
+          enddo
+          nf = 1
+          mode = "Intermediate"
+          HS_new = Flip_value(Flip_count)
+          S0_ratio = S0_ratio * ham%S0(n,ntau,hs_new)
+          Call Upgrade2(GR,n,ntau,PHASE, HS_new , &
+                &        Prev_Ratiotot, S0_ratio, T0_Proposal_ratio, Acc, mode )
+          do nf_eff = 1,N_FL_eff
+             nf=Calc_Fl_map(nf_eff)
+             N_type =  2
+             Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),HS_Field,Ndim,N_Type,ntau)
+           enddo
+           m = n
+        enddo
+
+       !Calculate forces with new nsigma
+       t0_proposal_ratio = 1.d0
+       call ham%ham_langevin_HMC_S0( forces_0)
+       do Flip_count = 1, Flip_length
+          n = Flip_list(Flip_count)
+          !Write(6,*)  "PlaceGR",  m, n-1,ntau
+          Call Wrapgr_PlaceGR(GR,m, n, ntau)
+          !Write(6,*)  "Back from PlaceGR",  m, n-1,ntau
+          forces_new(Flip_count)   = calculate_force(n,ntau,GR)
+          forces_0_new(Flip_count) = forces_0(n,ntau)
+          t0_Proposal_ratio = t0_proposal_ratio * exp(-0.25d0/Delta_t_Langevin_HMC * ( &
+              & Abs(Flip_value_st(Flip_count) - Flip_value(Flip_count) + Delta_t_Langevin_HMC*(forces_0_new(Flip_count) + &
+              & real( Phase*forces_new(Flip_count),kind(0.d0))    / Real(Phase,kind(0.d0)))     )**2 -  &
+              & Abs(Flip_value(Flip_count) - Flip_value_st(Flip_count) + Delta_t_Langevin_HMC*(forces_0_old(Flip_count) + &
+              & real( phase_st*forces_old(Flip_count),kind(0.d0)) / Real(phase_st,kind(0.d0)))  )**2 ) )
+          m = n
+       enddo
+      
+       weight = S0_ratio * T0_proposal_ratio * abs(  real(Phase_st * Prev_Ratiotot, kind=Kind(0.d0))/real(Phase_st,kind=Kind(0.d0)) )
+
+       if (weight > ranf_wrap()) then
+          acc = .true.
+       else
+          acc = .false.
+          Gr = Gr_st
+          phase = phase_st
+          m = Flip_list(1)
+          Do Flip_count = 1, Flip_length
+             nsigma%f( Flip_list(Flip_count), ntau  ) = Flip_value_st(Flip_count)
+          Enddo
+       endif
+
+       Call Control_upgrade(acc)
+       Call Control_upgrade_eff(acc)
+
+    Enddo
+    
+    Deallocate ( Flip_list, Flip_value, Flip_value_st )
+    
+
+  end Subroutine Wrapgr_Langevin_update
+
 !----------------------------------------------------------------------------
-  subroutine Wrapgr_sort(Flip_length,Flip_list,Flip_value)
+  subroutine Wrapgr_sort_value(Flip_length,Flip_list,Flip_value)
 
     ! Arguments
     Integer, INTENT(IN) :: Flip_length
@@ -606,7 +777,47 @@ Contains
     !   Write(6,*) Flip_list(nc),  Flip_value(nc)
     !Enddo
     
-  end subroutine Wrapgr_sort
+  end subroutine Wrapgr_sort_value
+
+!----------------------------------------------------------------------------
+  subroutine Wrapgr_sort_langevin(Flip_length,Flip_list)
+
+    ! Arguments
+    Integer, INTENT(IN) :: Flip_length
+    Integer, INTENT(INOUT), allocatable :: Flip_list(:)
+    
+    ! Local
+    integer :: swaps            ! number of swaps made in one pass
+    integer :: nc               ! loop variable
+    integer :: temp, n          ! temporary holder for making swap
+
+    
+    if ( Flip_length == 1 ) return
+    
+    !Write(6,*) 'Before sort'
+    !DO nc = 1,Flip_length
+    !   Write(6,*) Flip_list(nc)
+    !Enddo
+
+    do
+       swaps      = 0           ! Initially, we've made no swaps
+       do nc = 1, (Flip_length - 1)
+          if ( Flip_list(nc)  >  Flip_list(nc+1) ) then
+             temp              = Flip_list(nc  )
+             Flip_list(nc)     = Flip_list(nc+1)
+             Flip_list(nc+1)   = temp
+             swaps             = swaps + 1
+          end if
+       end do
+       if ( swaps == 0 ) exit ! do count swaps
+    end do
+    
+    !Write(6,*) 'After sort'
+    !DO nc = 1,Flip_length
+    !   Write(6,*) Flip_list(nc)
+    !Enddo
+    
+  end subroutine Wrapgr_sort_langevin
   
 !----------------------------------------------------------------------------
   

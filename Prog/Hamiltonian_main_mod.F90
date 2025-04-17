@@ -149,6 +149,7 @@
         procedure, nopass :: Pr_obs => Pr_obs_base
         procedure, nopass :: Init_obs => Init_obs_base
         procedure, nopass :: Global_move_tau => Global_move_tau_base
+        procedure, nopass :: Global_Langevin_move_tau => Global_Langevin_move_tau_base
         procedure, nopass :: Hamiltonian_set_nsigma => Hamiltonian_set_nsigma_base
         procedure, nopass :: Overide_global_tau_sampling_parameters => Overide_global_tau_sampling_parameters_base
         procedure, nopass :: Global_move => Global_move_base
@@ -583,6 +584,40 @@
              write(error_unit, *) 'Global_move_tau not implemented'
              CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
           end Subroutine Global_move_tau_base
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Specify a global langevin move on a given time slice tau.
+!>
+!> @details
+!> @param[in] ntau Integer
+!> \verbatim
+!>  Time slice
+!> \endverbatim
+!> @param[out] Flip_length  Integer
+!> \verbatim
+!>  Number of flips stored in the first  Flip_length entries of the array Flip_values.
+!>  Has to be smaller than NDIM
+!> \endverbatim
+!> @param[out] Flip_list  Integer(Ndim)
+!> \verbatim
+!>  List of spins to be flipped: nsigma%f(Flip_list(1),ntau) ... nsigma%f(Flip_list(Flip_Length),ntau)
+!>  Note that Ndim = size(Op_V,1)
+!> \endverbatim
+!--------------------------------------------------------------------
+      Subroutine Global_Langevin_move_tau_base(Flip_list, Flip_length,ntau)
+
+         Implicit none
+         Integer                   , INTENT(OUT) :: Flip_list(:)
+         Integer, INTENT(OUT) :: Flip_length
+         Integer, INTENT(IN)  :: ntau
+         
+         write(error_unit, *) 'Global_Langevin_move_tau not implemented'
+         CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+      end Subroutine Global_Langevin_move_tau_base
 
 !--------------------------------------------------------------------
 !> @author
