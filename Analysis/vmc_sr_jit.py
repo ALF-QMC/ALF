@@ -69,180 +69,6 @@ def batched_log_psi_grad(M, xs):
         return jnp.zeros_like(M, dtype=M.dtype).at[x, :].set(subM_inv)
     return vmap(log_psi_grad, in_axes=(None, 0))(M, xs)
 
-#@jax.jit
-#def sr_update_real(params, xs, Ws, t_edges, V_edges, lr=0.05, damping=1e-4):
-#    M = reconstruct_M(params)
-#    D = M.shape[0] * M.shape[1]
-#
-#    # Sampling stride
-#    stride = 10
-#    xs = xs[::stride]
-#    Ws = Ws[::stride]
-#
-#    xs = xs.reshape(-1, xs.shape[-1])
-#    Ws = Ws.reshape(-1, Ws.shape[-2], Ws.shape[-1])
-#    n_samples = xs.shape[0]
-#
-#    grad_logs = batched_log_psi_grad(M, xs)
-#    grad_logs_flat = grad_logs.reshape((n_samples, -1))  # shape: (n_samples, D)
-#
-#    grad_logs_combined = jnp.concatenate([
-#        grad_logs_flat,
-#        1j * grad_logs_flat,
-#    ], axis=1)  # shape: (n_samples, 2D)
-#
-#    E_loc = local_energy_from_W(xs, Ws, t_edges, V_edges)
-#    O_mean = jnp.mean(grad_logs_combined, axis=0, keepdims=True)
-#    E_mean = jnp.mean(E_loc)
-#    ElO = jnp.mean(jnp.conj(E_loc)[:, None] * grad_logs_combined, axis=0)
-#
-#    grad_E = -2.0 * jnp.real(ElO - jnp.conj(E_mean) * O_mean.squeeze())
-#
-#    O_centered = grad_logs_combined - O_mean
-#    S = jnp.real((jnp.conj(O_centered).T @ O_centered) / n_samples)
-#
-#    # Preconditioned S
-#    #diag_S = jnp.clip(jnp.diag(S), a_min=1e-8)  # avoid divide-by-zero
-#    diag_S = jnp.diag(S)  # avoid divide-by-zero
-#    scales = jnp.sqrt(diag_S)
-#    S_pc = S / (scales[:, None] * scales[None, :])
-#    S_pc += damping * jnp.eye(S.shape[0])
-#
-#    grad_E_pc = grad_E / scales
-#    delta_pc = jnp.linalg.solve(S_pc, grad_E_pc)
-#    delta = delta_pc / scales
-#
-#    delta_real = delta[:D].reshape(M.shape)
-#    delta_imag = delta[D:].reshape(M.shape)
-#
-#    return {
-#        "real": params["real"] + lr * delta_real,
-#        "imag": params["imag"] + lr * delta_imag,
-#    }
-
-### -----------------------------
-### SR optimization step (real parameters)
-### -----------------------------
-##
-##def sr_update_real(params, xs, Ws, t_edges, V_edges, lr=0.05, damping=1e-4, batch_size=1000):
-##    M = reconstruct_M(params)
-##    D = M.shape[0] * M.shape[1]
-##
-##    # Sampling stride
-##    stride = 10
-##    xs = xs[::stride]
-##    Ws = Ws[::stride]
-##
-##    xs = xs.reshape(-1, xs.shape[-1])
-##    Ws = Ws.reshape(-1, Ws.shape[-2], Ws.shape[-1])
-##    n_samples = xs.shape[0]
-##
-##    S_accum = jnp.zeros((2 * D, 2 * D))
-##    grad_E_accum = jnp.zeros((2 * D,))
-##    count = 0
-##
-##    for i in range(0, n_samples, batch_size):
-##        xs_batch = xs[i:i+batch_size]
-##        Ws_batch = Ws[i:i+batch_size]
-##        n_b = xs_batch.shape[0]
-##
-##        grad_logs = batched_log_psi_grad(M, xs_batch)
-##        grad_logs_flat = grad_logs.reshape((n_b, -1))
-##
-##        grad_logs_combined = jnp.concatenate([
-##            grad_logs_flat,
-##            1j * grad_logs_flat,
-##        ], axis=1)  # shape: (n_b, 2D)
-##
-##        E_loc = local_energy_from_W(xs_batch, Ws_batch, t_edges, V_edges)
-##        O_mean = jnp.mean(grad_logs_combined, axis=0, keepdims=True)
-##        E_mean = jnp.mean(E_loc)
-##        ElO = jnp.mean(jnp.conj(E_loc)[:, None] * grad_logs_combined, axis=0)
-##
-##        grad_E = -2.0 * jnp.real(ElO - jnp.conj(E_mean) * O_mean.squeeze())
-##        O_centered = grad_logs_combined - O_mean
-##
-##        S_b = jnp.real((jnp.conj(O_centered).T @ O_centered) / n_b)
-##
-##        S_accum += S_b * n_b
-##        grad_E_accum += grad_E * n_b
-##        count += n_b
-##
-##    S = S_accum / count
-##    grad_E = grad_E_accum / count
-##
-##    diag_S = jnp.clip(jnp.diag(S), a_min=1e-10)
-##    scales = jnp.sqrt(diag_S)
-##    S_pc = S / (scales[:, None] * scales[None, :])
-##    S_pc += damping * jnp.eye(S.shape[0])
-##
-##    grad_E_pc = grad_E / scales
-##    delta_pc = jnp.linalg.solve(S_pc, grad_E_pc)
-##    delta = delta_pc / scales
-##
-##    delta_real = delta[:D].reshape(M.shape)
-##    delta_imag = delta[D:].reshape(M.shape)
-##
-##    return {
-##        "real": params["real"] + lr * delta_real,
-##        "imag": params["imag"] + lr * delta_imag,
-##    }
-
-##def sr_update_real_minibatch(params, xs, Ws, t_edges, V_edges, batch_size=1000, lr=0.05, damping=1e-4):
-##    M = reconstruct_M(params)
-##    D = M.shape[0] * M.shape[1]
-##
-##    xs = xs.reshape(-1, xs.shape[-1])
-##    Ws = Ws.reshape(-1, Ws.shape[-2], Ws.shape[-1])
-##    n_samples = xs.shape[0]
-##    n_batches = n_samples // batch_size
-##
-##    def batch_fn(carry, idx):
-##        grad_E_sum, S_sum = carry
-##        start = idx * batch_size
-##        xs_b = jax.lax.dynamic_slice(xs, (start, 0), (batch_size, xs.shape[1]))
-##        Ws_b = jax.lax.dynamic_slice(Ws, (start, 0, 0), (batch_size, Ws.shape[1], Ws.shape[2]))
-##
-##        grad_logs = batched_log_psi_grad(M, xs_b)
-##        grad_logs_flat = grad_logs.reshape((batch_size, -1))
-##        grad_logs_combined = jnp.concatenate([grad_logs_flat, 1j * grad_logs_flat], axis=1)
-##
-##        E_loc = local_energy_from_W(xs_b, Ws_b, t_edges, V_edges)
-##        O_mean = jnp.mean(grad_logs_combined, axis=0, keepdims=True)
-##        E_mean = jnp.mean(E_loc)
-##        ElO = jnp.mean(jnp.conj(E_loc)[:, None] * grad_logs_combined, axis=0)
-##
-##        grad_E = -2.0 * jnp.real(ElO - jnp.conj(E_mean) * O_mean.squeeze())
-##        O_centered = grad_logs_combined - O_mean
-##        S = jnp.real((jnp.conj(O_centered).T @ O_centered) / batch_size)
-##
-##        return (grad_E_sum + grad_E, S_sum + S), None
-##
-##    (grad_E_total, S_total), _ = jax.lax.scan(batch_fn,
-##                                              (jnp.zeros(2 * D), jnp.zeros((2 * D, 2 * D))),
-##                                              jnp.arange(n_batches))
-##    grad_E_total /= n_batches
-##    S_total /= n_batches
-##
-##    diag_S = jnp.clip(jnp.diag(S_total), a_min=1e-10)
-##    scales = jnp.sqrt(diag_S)
-##    S_pc = S_total / (scales[:, None] * scales[None, :])
-##    S_pc += damping * jnp.eye(S_pc.shape[0])
-##
-##    grad_E_pc = grad_E_total / scales
-##    delta_pc = jnp.linalg.solve(S_pc, grad_E_pc)
-##    delta = delta_pc / scales
-##
-##    delta_real = delta[:D].reshape(M.shape)
-##    delta_imag = delta[D:].reshape(M.shape)
-##
-##    return {
-##        "real": params["real"] + lr * delta_real,
-##        "imag": params["imag"] + lr * delta_imag,
-##    }
-##
-##    from jax import jit
-
 @partial(jax.jit, static_argnames=['batch_size'])
 def sr_update_real_minibatch(params, xs, Ws, t_edges, V_edges, batch_size=1000, lr=0.05, damping=1e-4):
     M = reconstruct_M(params)
@@ -487,72 +313,49 @@ def build_free_slater(Lx, Ly, t1, t2, m):
     return M0
 
 # -----------------------------
-# Training loop
+# Training loop (segmented)
 # -----------------------------
-def train(M_init, t_edges, V_edges, n_iter=100, n_walkers=64, n_steps=20, lr=0.05, \
+def train_segment(params, t_edges, V_edges, n_iter=100, n_walkers=64, n_steps=20, lr=0.05, \
         n_thermal=50, batch_size=1000, key=jax.random.PRNGKey(42)):
-    N, Nf = M_init.shape
-    params = {
-        "real": M_init.real,
-        "imag": M_init.imag,
-    }
+    N, Nf = params["real"].shape
 
-    # 预分配 train loop 的 key
     key, key_train = jax.random.split(key)
     train_keys = jax.random.split(key_train, n_iter)
 
     for step in range(n_iter):
-        # 每一步分出 key_init, key_thermal, key_sample
         key_step = train_keys[step]
         key_init, key_thermal, key_sample = jax.random.split(key_step, 3)
 
-        # 构造当前 Slater matrix 并正交化
         M = reconstruct_M(params).astype(jnp.complex64)
-        #M, _ = jnp.linalg.qr(M)
-        #params = {
-        #    "real": M.real,
-        #    "imag": M.imag,
-        #}
 
-        # 初始化 walker
         walker_state = init_walker_states(M, N, Nf, n_walkers, key_init)
-
-        # 热化
         walker_state, _ = sample_batch_rank1_stable(M, walker_state, n_thermal, key=key_thermal, reset_interval=50)
-
-        # Metropolis 采样
         walker_state, (xs, _, _, Ws) = sample_batch_rank1_stable(M, walker_state, n_steps, key=key_sample, reset_interval=50)
 
-        # 重整为 [n_samples, ...]
         xs = xs.reshape(-1, xs.shape[-1])
         Ws = Ws.reshape(-1, Ws.shape[-2], Ws.shape[-1])
         n_samples = (xs.shape[0] // batch_size) * batch_size
         xs = xs[:n_samples]
         Ws = Ws[:n_samples]
 
-        # SR 优化
-        ##params = sr_update_real(params, xs, Ws, t_edges, V_edges, lr=lr)
         params = sr_update_real_minibatch(params, xs, Ws, t_edges, V_edges, \
                 batch_size=int(batch_size), lr=lr)
 
-        # 计算能量
-        flat_xs = xs.reshape(-1, xs.shape[-1])      # shape: (n_steps * n_walkers, Nf)
-        flat_Ws = Ws.reshape(-1, Ws.shape[-2], Ws.shape[-1])  # shape: (n_steps * n_walkers, N, Nf)
+        flat_xs = xs.reshape(-1, xs.shape[-1])
+        flat_Ws = Ws.reshape(-1, Ws.shape[-2], Ws.shape[-1])
         energies = local_energy_from_W(flat_xs, flat_Ws, t_edges, V_edges)
         E_mean = jnp.mean(energies)
 
-        # 粒子数统计
         counts = jnp.sum(vmap(lambda x: jnp.bincount(x, length=N))(flat_xs), axis=0)
         N_tot = jnp.sum(counts) / (n_walkers * n_steps)
 
         print(f"Step {step:3d}: E = {E_mean:.6f}, N = {N_tot:.4f}")
 
-    return reconstruct_M(params)
+    return params
 
 # -----------------------------
 # Main function
 # -----------------------------
-
 def main():
     Lx, Ly = 4, 4
     t1, t2, V1, V2 = 1.0, 0.5, 0.0, 0.0
@@ -591,12 +394,36 @@ def main():
 
     M0 = build_free_slater(Lx, Ly, t1, t2, m)
 
+    ## random init
+    np.random.seed(2143)  # 设置种子保证可重复
+    N, Nf = M0.shape
+    M_real = np.random.randn(N, Nf)
+    M_imag = np.random.randn(N, Nf)
+    MR0 = M_real + 1j * M_imag
+    M0, _ = jnp.linalg.qr(MR0)
+
     t_edges = jnp.array(t_edges)  # shape (n_t, 3)
     V_edges = jnp.array(V_edges)  # shape (n_v, 3)
-    
-    M_final = train(M0, t_edges, V_edges, n_iter=2, n_walkers=20, n_steps=50, \
-            lr=1e-2, n_thermal=11, batch_size=1, key=key)
+
+    params = {"real": M0.real, "imag": M0.imag}
+    n_outer = 5  # blocks
+    n_inner = 4  # iterations per block
+
+    for i in range(n_outer):
+        print(f"========== Outer loop {i+1}/{n_outer} ==========")
+        key, subkey = jax.random.split(key)
+        params = train_segment(params, t_edges, V_edges, n_iter=n_inner, n_walkers=20, n_steps=50, \
+                               lr=1e-2, n_thermal=20, batch_size=20, key=subkey)
+
+        # Optional: save checkpoint
+        jnp.savez(f"checkpoint_block_{i+1}.npz", real=params["real"], imag=params["imag"])
+
+        # clear trace cache
+        jax.clear_caches()
+
+    M_final = reconstruct_M(params)
     return M_final
 
 if __name__ == "__main__":
     main()
+
