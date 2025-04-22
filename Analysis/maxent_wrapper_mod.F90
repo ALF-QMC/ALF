@@ -302,8 +302,12 @@ contains
          Do  nw = 1, Ndis
              Om = Om_st + dble(nw)*dom
              !  Default(om) : sigma(om) -> A(om)
-             !  Default(om)*om = chi''(om) = (1 - exp(-beta*om))*S(om) = (1 - exp(-beta*om))/(1 + exp(-beta*om))*A(om)
-             Default(nw)  = om*(1.d0 + exp(-beta*om))/( 1.d0 - exp(-beta*om) ) * Default(nw)
+             !  Default(om)*om = chi''(om) = (1 - exp(-beta*om))*S(om) = (1 - exp(-beta*om))/(1 + exp(-beta*om))*A(om)           
+             if ( abs(om) < zero ) then
+                Default(nw) = Default(nw)*2.d0/ beta 
+             else
+                Default(nw)  = Default(nw) * (om *( 1.d0 + exp(-beta*om) ) )/ (1.d0 - exp(-beta*om) ) 
+            endif           
              X = X + Default(nw) 
          enddo
          X = X*dom
