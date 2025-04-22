@@ -8,8 +8,25 @@ from jax.scipy.linalg import eigh
 from joblib import Parallel, delayed
 import os
 import csv
+import time
+from concurrent.futures import ProcessPoolExecutor
+import multiprocessing as mp
 
 jax.config.update("jax_enable_x64", True)
+
+###concurrent.futures
+#mp.set_start_method('spawn', force=True)
+#def parallel_run(batch, batch_size):
+#    with ProcessPoolExecutor(max_workers=batch_size) as executor:
+#        results = list(executor.map(vmc_trial_worker, batch))
+#    return results
+
+##multiprocessing
+def parallel_run(batch, batch_size):
+    ctx = mp.get_context('spawn')
+    with ctx.Pool(processes=batch_size) as pool:
+        results = pool.map(vmc_trial_worker, batch)
+    return results
 
 # -----------------------------------------
 # Utils
@@ -26,10 +43,15 @@ def compute_G(M):
     Q, _ = jnp.linalg.qr(M)
     return Q @ Q.conj().T
 
-def save_phi_to_h5(h5file, key, M):
+# Safe HDF5 save function
+def save_phi_to_h5_safe(filename, key, M):
     M = np.asarray(M, dtype=np.complex128)
     data = np.stack([M.real, M.imag], axis=-1)
-    h5file.create_dataset(key, data=data, dtype=np.float64)
+    with h5py.File(filename, "a") as f_h5:
+        if key in f_h5:
+            print(f"HDF5 key '{key}' already exists, skipping write.")
+        else:
+            f_h5.create_dataset(key, data=data, dtype=np.float64)
 
 def save_partial_result(loss, params, label):
     fname = f"trial_{label.replace('=','').replace('.','p')}.npz"
@@ -131,7 +153,7 @@ def vmc_trial_worker(args):
             best_loss = loss
             best_params = params
 
-    save_partial_result(best_loss, best_params, label)
+    #save_partial_result(best_loss, best_params, label)
     return float(best_loss), np.array(best_params), label
 
 def run_trials_with_refinement(
@@ -143,7 +165,7 @@ def run_trials_with_refinement(
     trials = []
 
     m_list = jnp.linspace(0.01, 1.21, 24)
-    seed_list = range(0, 130, 13)
+    seed_list = range(0, 2600, 13)
 
     for m in m_list:
         H0 = make_free_hamiltonian(N, nn_bonds, nnn_bonds, nn_dirs, nnn_dirs, sublattices, t1, t2, m)
@@ -166,7 +188,8 @@ def run_trials_with_refinement(
     rough_results = []
     for i in range(0, len(task_args), batch_size):
         batch = task_args[i:i+batch_size]
-        results = Parallel(n_jobs=batch_size, backend="threading")(delayed(vmc_trial_worker)(args) for args in batch)
+        #results = Parallel(n_jobs=batch_size)(delayed(vmc_trial_worker)(args) for args in batch)
+        results = parallel_run(batch, batch_size)
         rough_results.extend(results)
 
     sorted_results = sorted(rough_results, key=lambda x: x[0])
@@ -203,20 +226,71 @@ def sweep_v1(t1, t2, V2, V1_list, **kwargs):
             key = f"t1_{t1:.3f}_V1_{V1:.3f}"
             save_phi_to_h5(f_h5, key, M_best)
             writer.writerow([t1, t2, V1, V2, energy.item(), staggered_order.item(), key])
+            
+            # clear trace cache
+            jax.clear_caches()
+
+def sweep_v1(t1, t2, V2, V1_list, mode="append", **kwargs):
+    Lx, Ly = kwargs['Lx'], kwargs['Ly']
+    N, coords, sublattices = make_checkerboard_lattice(Lx, Ly)
+
+    # 检查已完成的 V1 列表
+    done_V1 = set()
+    if os.path.exists("results_summary.csv") and mode == "append":
+        with open("results_summary.csv", "r") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                if float(row["t1"]) == t1 and float(row["t2"]) == t2 and float(row["V2"]) == V2:
+                    done_V1.add(float(row["V1"]))
+
+    # 确定 CSV 写入模式
+    csv_mode = "a" if os.path.exists("results_summary.csv") and mode == "append" else "w"
+
+    with open("results_summary.csv", csv_mode, newline="") as f_csv:
+        writer = csv.writer(f_csv)
+        if csv_mode == "w":
+            writer.writerow(["t1", "t2", "V1", "V2", "energy", "staggered_order", "filename"])
+
+        for V1 in V1_list:
+            if V1 in done_V1:
+                print(f"=== Skipping V1={V1} (already in CSV) ===")
+                continue
+
+            print(f"\n=== Optimizing for V1={V1} ===")
+            M_best = run_trials_with_refinement(t1=t1, t2=t2, V1=V1, V2=V2, **kwargs)
+            G_best = compute_G(M_best)
+            nn_bonds, nnn_bonds, nn_dirs, nnn_dirs = get_bond_lists(Lx, Ly)
+            energy = energy_wick(G_best, nn_bonds, nnn_bonds, nnn_dirs, V1, V2, t1, t2)
+            staggered_order = compute_staggered_order(G_best, sublattices)
+
+            key = f"t1_{t1:.3f}_V1_{V1:.3f}"
+
+            # 安全写入 HDF5
+            save_phi_to_h5_safe("all_phi_trials.h5", key, M_best)
+
+            writer.writerow([t1, t2, V1, V2, energy.item(), staggered_order.item(), key])
+
+            # 清理 JAX 缓存
+            jax.clear_caches()
 
 # -----------------------------------------
 if __name__ == '__main__':
+    start_time = time.time()
+
     sweep_v1(
         t1=1.0,
         t2=0.5,
         V2=0.0,
-        V1_list=[0.2, 0.4, 0.6, 0.8, 1.0],
+        V1_list=[0.28, 0.48],
         Lx=4,
         Ly=4,
-        rough_iter=200,
+        rough_iter=300,
         refine_iter=1000,
-        top_k=3,
-        batch_size=12,
+        top_k=20,
+        batch_size=8,
         lr=1e-2
     )
 
+    end_time = time.time()
+    elapsed = end_time - start_time
+    print(f"\nTotal elapsed time: {elapsed/60:.2f} minutes ({elapsed:.1f} seconds)")
