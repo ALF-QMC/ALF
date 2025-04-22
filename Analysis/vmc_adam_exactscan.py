@@ -175,7 +175,7 @@ def run_trials_with_refinement(
     trials = []
 
     m_list = jnp.linspace(0.01, 1.01, 21)
-    seed_list = range(0, 260, 13)
+    seed_list = range(0, 2600, 13)
 
     for m in m_list:
         H0 = make_free_hamiltonian(N, nn_bonds, nnn_bonds, nn_dirs, nnn_dirs, sublattices, t1, t2, m)
@@ -205,13 +205,23 @@ def run_trials_with_refinement(
     sorted_results = sorted(rough_results, key=lambda x: x[0])
     top_results = sorted_results[:top_k]
 
-    refined = []
+    ##refined = []
+    ##for loss, params_arr, label in top_results:
+    ##    M_init = unpack(jnp.array(params_arr), N, Nf)
+    ##    refined_loss, refined_params, _ = vmc_trial_worker(
+    ##        (label + "_refined", M_init, N, Nf, nn_bonds, nnn_bonds, nnn_dirs, t1, t2, V1, V2, lr, refine_iter)
+    ##    )
+    ##    refined.append((refined_loss, refined_params, label + "_refined"))
+
+    refine_task_args = []
     for loss, params_arr, label in top_results:
         M_init = unpack(jnp.array(params_arr), N, Nf)
-        refined_loss, refined_params, _ = vmc_trial_worker(
+        refine_task_args.append(
             (label + "_refined", M_init, N, Nf, nn_bonds, nnn_bonds, nnn_dirs, t1, t2, V1, V2, lr, refine_iter)
         )
-        refined.append((refined_loss, refined_params, label + "_refined"))
+    
+    refined = parallel_run(refine_task_args, batch_size=min(batch_size, len(refine_task_args)))
+
 
     best_loss, best_params, best_label = min(refined, key=lambda x: x[0])
     M_best = unpack(jnp.array(best_params), N, Nf)
