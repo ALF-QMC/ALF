@@ -183,6 +183,8 @@ Program Main
         Integer :: N_Global_tau, N_Global_Langevin_tau
         Logical :: Sequential
         real (Kind=Kind(0.d0)) ::  Amplitude  !    Needed for  update of  type  3  and  4  fields.
+        Integer,   allocatable :: Flip_list(:)
+        integer :: Flip_length, flip_count
 
 #ifdef HDF5
         INTEGER(HID_T) :: file_id
@@ -651,6 +653,20 @@ Program Main
            exit
           endif
          enddo
+        endif
+      
+        if (Global_Langevin_tau_moves ) then
+           allocate(Flip_list(size(nsigma%t,1)))
+           do ntau = 1, Ltrot
+              call ham%Global_Langevin_move_tau(Flip_list, Flip_length,ntau )
+              do flip_count = 1, Flip_length
+                 if ( nsigma%t(flip_list(flip_count)) /= 3) then
+                    WRITE(error_unit,*) 'For the Global Langevin tau updated, all fields defined in the Hamiltonian file have to be of type 3'
+                    CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+                 endif
+              enddo
+           enddo
+           deallocate(Flip_list)
         endif
 
 #if defined(TEMPERING)

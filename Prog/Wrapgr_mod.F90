@@ -637,12 +637,13 @@ Contains
     Allocate ( Forces_old(Size(Op_V,1)), Forces_new(Size(Op_V,1)), Forces_0_old(Size(Op_V,1)), Forces_0_new(Size(Op_V,1)))
     allocate( forces_0(size(nsigma%f,1),size(nsigma%f,2)))
 
+    ! New configuration
+    Call ham%Global_Langevin_move_tau(Flip_list, Flip_length,ntau )
+    !Write(6,*)  "Calling global move",  m, Flip_list(1), nsigma(Flip_list(1),ntau)
+    ! Order the list
+    Call wrapgr_sort(Flip_length,Flip_list)
+
     Do ng_c = 1,N_global_Langevin_tau
-       ! New configuration
-       Call ham%Global_Langevin_move_tau(Flip_list, Flip_length,ntau )
-       !Write(6,*)  "Calling global move",  m, Flip_list(1), nsigma(Flip_list(1),ntau)
-       ! Order the list
-       Call wrapgr_sort(Flip_length,Flip_list)
        Phase_st = Phase
        Do Flip_count = 1, Flip_length
           Flip_value_st(Flip_count)  = nsigma%f( Flip_list(Flip_count), ntau  )
