@@ -127,9 +127,15 @@ contains
      Real (Kind=Kind(0.d0)) function Back_trans_ph_c(Aom, om, beta)
        Implicit None
        real (Kind=Kind(0.d0)) ::  Aom, om, beta
-
-       Back_trans_ph_c = Aom*(1.d0 - exp(-beta*om) )/(1.d0 + exp(-beta*om) )/om
-       ! This gives sigma(q,om) = A(q,om)*(1 + e^(-beta om))/(1 - e^(-beta om))/om
+       real (Kind=Kind(0.d0)) :: Zero
+       
+       Zero = 1.D-8
+       if ( abs(om) < zero ) then
+          Back_trans_ph_c = beta * Aom/2.d0
+       else
+          Back_trans_ph_c = Aom * (1.d0 - exp(-beta*om) ) / (om *( 1.d0 + exp(-beta*om) ) )
+          ! This gives sigma(q,om) = A(q,om)*(1 + e^(-beta om))/(1 - e^(-beta om))/om
+       endif
 
      end function BACK_TRANS_PH_C
 
