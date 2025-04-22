@@ -53,6 +53,16 @@ def save_phi_to_h5_safe(filename, key, M):
         else:
             f_h5.create_dataset(key, data=data, dtype=np.float64)
 
+# write CSV
+def append_to_csv(filename, header, row):
+    file_exists = os.path.exists(filename)
+    mode = 'a' if file_exists else 'w'
+    with open(filename, mode, newline="") as f_csv:
+        writer = csv.writer(f_csv)
+        if not file_exists:
+            writer.writerow(header)
+        writer.writerow(row)
+
 def save_partial_result(loss, params, label):
     fname = f"trial_{label.replace('=','').replace('.','p')}.npz"
     np.savez(fname, loss=loss, params=params)
@@ -164,8 +174,8 @@ def run_trials_with_refinement(
     nn_bonds, nnn_bonds, nn_dirs, nnn_dirs = get_bond_lists(Lx, Ly)
     trials = []
 
-    m_list = jnp.linspace(0.01, 1.21, 24)
-    seed_list = range(0, 2600, 13)
+    m_list = jnp.linspace(0.01, 1.01, 21)
+    seed_list = range(0, 260, 13)
 
     for m in m_list:
         H0 = make_free_hamiltonian(N, nn_bonds, nnn_bonds, nn_dirs, nnn_dirs, sublattices, t1, t2, m)
@@ -208,70 +218,45 @@ def run_trials_with_refinement(
     return M_best
 
 # -----------------------------------------
-def sweep_v1(t1, t2, V2, V1_list, **kwargs):
-    Lx, Ly = kwargs['Lx'], kwargs['Ly']
-    N, coords, sublattices = make_checkerboard_lattice(Lx, Ly)
-
-    with open("results_summary.csv", "w", newline="") as f_csv, h5py.File("all_phi_trials.h5", "w") as f_h5:
-        writer = csv.writer(f_csv)
-        writer.writerow(["t1", "t2", "V1", "V2", "energy", "staggered_order", "filename"])
-
-        for V1 in V1_list:
-            print(f"\n=== Optimizing for V1={V1} ===")
-            M_best = run_trials_with_refinement(t1=t1, t2=t2, V1=V1, V2=V2, **kwargs)
-            G_best = compute_G(M_best)
-            nn_bonds, nnn_bonds, nn_dirs, nnn_dirs = get_bond_lists(Lx, Ly)
-            energy = energy_wick(G_best, nn_bonds, nnn_bonds, nnn_dirs, V1, V2, t1, t2)
-            staggered_order = compute_staggered_order(G_best, sublattices)
-            key = f"t1_{t1:.3f}_V1_{V1:.3f}"
-            save_phi_to_h5(f_h5, key, M_best)
-            writer.writerow([t1, t2, V1, V2, energy.item(), staggered_order.item(), key])
-            
-            # clear trace cache
-            jax.clear_caches()
-
 def sweep_v1(t1, t2, V2, V1_list, mode="append", **kwargs):
     Lx, Ly = kwargs['Lx'], kwargs['Ly']
     N, coords, sublattices = make_checkerboard_lattice(Lx, Ly)
 
-    # 检查已完成的 V1 列表
+    csv_file = "results_summary.csv"
+    h5_file = "all_phi_trials.h5"
+    header = ["t1", "t2", "V1", "V2", "energy", "staggered_order", "filename"]
+
+    # 读取已完成的 V1 列表，避免重复计算
     done_V1 = set()
-    if os.path.exists("results_summary.csv") and mode == "append":
-        with open("results_summary.csv", "r") as f:
+    if os.path.exists(csv_file) and mode == "append":
+        with open(csv_file, "r") as f:
             reader = csv.DictReader(f)
             for row in reader:
                 if float(row["t1"]) == t1 and float(row["t2"]) == t2 and float(row["V2"]) == V2:
                     done_V1.add(float(row["V1"]))
 
-    # 确定 CSV 写入模式
-    csv_mode = "a" if os.path.exists("results_summary.csv") and mode == "append" else "w"
+    for V1 in V1_list:
+        if V1 in done_V1:
+            print(f"=== Skipping V1={V1} (already in CSV) ===")
+            continue
 
-    with open("results_summary.csv", csv_mode, newline="") as f_csv:
-        writer = csv.writer(f_csv)
-        if csv_mode == "w":
-            writer.writerow(["t1", "t2", "V1", "V2", "energy", "staggered_order", "filename"])
+        print(f"\n=== Optimizing for V1={V1} ===")
+        M_best = run_trials_with_refinement(t1=t1, t2=t2, V1=V1, V2=V2, **kwargs)
+        G_best = compute_G(M_best)
+        nn_bonds, nnn_bonds, nn_dirs, nnn_dirs = get_bond_lists(Lx, Ly)
+        energy = energy_wick(G_best, nn_bonds, nnn_bonds, nnn_dirs, V1, V2, t1, t2)
+        staggered_order = compute_staggered_order(G_best, sublattices)
 
-        for V1 in V1_list:
-            if V1 in done_V1:
-                print(f"=== Skipping V1={V1} (already in CSV) ===")
-                continue
+        key = f"t1_{t1:.3f}_V1_{V1:.3f}"
 
-            print(f"\n=== Optimizing for V1={V1} ===")
-            M_best = run_trials_with_refinement(t1=t1, t2=t2, V1=V1, V2=V2, **kwargs)
-            G_best = compute_G(M_best)
-            nn_bonds, nnn_bonds, nn_dirs, nnn_dirs = get_bond_lists(Lx, Ly)
-            energy = energy_wick(G_best, nn_bonds, nnn_bonds, nnn_dirs, V1, V2, t1, t2)
-            staggered_order = compute_staggered_order(G_best, sublattices)
+        # 安全写入 HDF5
+        save_phi_to_h5_safe(h5_file, key, M_best)
 
-            key = f"t1_{t1:.3f}_V1_{V1:.3f}"
+        # 安全写入 CSV
+        append_to_csv(csv_file, header, [t1, t2, V1, V2, energy.item(), staggered_order.item(), key])
 
-            # 安全写入 HDF5
-            save_phi_to_h5_safe("all_phi_trials.h5", key, M_best)
-
-            writer.writerow([t1, t2, V1, V2, energy.item(), staggered_order.item(), key])
-
-            # 清理 JAX 缓存
-            jax.clear_caches()
+        # 清理 JAX 缓存
+        jax.clear_caches()
 
 # -----------------------------------------
 if __name__ == '__main__':
@@ -281,13 +266,13 @@ if __name__ == '__main__':
         t1=1.0,
         t2=0.5,
         V2=0.0,
-        V1_list=[0.28, 0.48],
+        V1_list=[0.28, 0.48, 0.60],
         Lx=4,
         Ly=4,
         rough_iter=300,
         refine_iter=1000,
-        top_k=20,
-        batch_size=8,
+        top_k=50,
+        batch_size=16,
         lr=1e-2
     )
 
