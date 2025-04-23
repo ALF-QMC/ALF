@@ -237,11 +237,14 @@ Program MaxEnt_Wrapper
           endif
        Case ("PH_C")
           If  (Stochastic)  then
-             Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_ph_c, Back_Trans_ph_c, Beta, &
-                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, F_QFI_ph_c, Default)
+             Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_ph, Back_trans_pp, Beta, &
+                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, F, Default)
+             ! Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_ph_c, Back_Trans_ph_c, Beta, &
+                  ! &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, F_QFI_ph_c, Default)
              ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
           else
-             Call Set_Ker_classic(Xker_ph_c,Xker_classic,Om_st,Om_en,beta,xtau_st)
+             ! Call Set_Ker_classic(Xker_ph_c,Xker_classic,Om_st,Om_en,beta,xtau_st)
+             Call Set_Ker_classic(XKER_ph,Xker_classic,Om_st,Om_en,beta,xtau_st)
              Call  MaxEnt( XQMC, XCOV, A_classic, XKER_classic, Alpha_classic_st, CHISQ ,DEFAULT)
           endif       
        Case ("PP")
@@ -318,7 +321,8 @@ Program MaxEnt_Wrapper
                    enddo
                 Case ("PH_C")
                    do i = 1,Ngamma
-                      X = X + alp_bf(i)*Xker_ph_c(tau,om_bf(i), beta)
+                      ! X = X + alp_bf(i)*Xker_ph_c(tau,om_bf(i), beta)
+                      X = X + alp_bf(i)*Xker_ph(tau,om_bf(i), beta)
                    enddo
                 Case ("PP")
                    do i = 1,Ngamma
@@ -378,7 +382,8 @@ Program MaxEnt_Wrapper
                 enddo
              Case ("PH_C")
                 do  nw  = 1,Ndis
-                   A(nw) =  Back_trans_ph_c(A(nw), xom(nw), beta)
+                   ! A(nw) =  Back_trans_ph_c(A(nw), xom(nw), beta)
+                   A(nw) =  Back_trans_pp(A(nw), xom(nw), beta)
                 enddo
              Case ("PP")
                 do  nw  = 1,Ndis
