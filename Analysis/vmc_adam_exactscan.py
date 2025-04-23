@@ -11,6 +11,7 @@ import csv
 import time
 from concurrent.futures import ProcessPoolExecutor
 import multiprocessing as mp
+from functools import partial
 
 jax.config.update("jax_enable_x64", True)
 
@@ -106,7 +107,9 @@ def get_bond_lists(Lx, Ly):
             nnn_bonds += [(ia, ja_x), (ia, ja_y), (ib, jb_x), (ib, jb_y)]
             nnn_dirs += [(0, 'x'), (0, 'y'), (1, 'x'), (1, 'y')]
 
-    return list(set(nn_bonds)), nnn_bonds, nn_dirs, nnn_dirs
+    #return list(set(nn_bonds)), nnn_bonds, nn_dirs, nnn_dirs
+    return tuple(set(nn_bonds)), tuple(nnn_bonds), tuple(nn_dirs), tuple(nnn_dirs)
+
 
 # -----------------------------------------
 # Hamiltonian and Energy
@@ -137,33 +140,34 @@ def energy_wick(G, nn_bonds, nnn_bonds, nnn_dirs, V1, V2, t1, t2):
         E_int += V * ((ni - 0.5)*(nj - 0.5) - G[i, j]*G[j, i])
     return jnp.real(E_kin + E_int)
 
+@partial(jax.jit, static_argnums=(2, 3, 4, 5, 6, 7, 8, 9, 10))
+def step(params, opt_state, N, Nf, nn_bonds, nnn_bonds, nnn_dirs, t1, t2, V2, lr, V1):
+    M = unpack(params, N, Nf)
+    G = compute_G(M)
+    loss = energy_wick(G, nn_bonds, nnn_bonds, nnn_dirs, V1, V2, t1, t2)
+    grads = jax.grad(lambda p: energy_wick(
+        compute_G(unpack(p, N, Nf)),
+        nn_bonds, nnn_bonds, nnn_dirs, V1, V2, t1, t2
+    ))(params)
+    updates, opt_state = optax.adam(lr).update(grads, opt_state)
+    return optax.apply_updates(params, updates), opt_state, loss
+
 # -----------------------------------------
 # Worker for parallel
 # -----------------------------------------
 def vmc_trial_worker(args):
     label, M_init, N, Nf, nn_bonds, nnn_bonds, nnn_dirs, t1, t2, V1, V2, lr, n_iter = args
     params = pack(M_init)
-    opt = optax.adam(lr)
-    opt_state = opt.init(params)
-
-    @jax.jit
-    def step(params, opt_state):
-        M = unpack(params, N, Nf)
-        G = compute_G(M)
-        loss = energy_wick(G, nn_bonds, nnn_bonds, nnn_dirs, V1, V2, t1, t2)
-        grads = jax.grad(lambda p: energy_wick(compute_G(unpack(p, N, Nf)), nn_bonds, nnn_bonds, nnn_dirs, V1, V2, t1, t2))(params)
-        updates, opt_state = opt.update(grads, opt_state)
-        return optax.apply_updates(params, updates), opt_state, loss
+    opt_state = optax.adam(lr).init(params)
 
     best_loss = jnp.inf
     best_params = None
     for _ in range(n_iter):
-        params, opt_state, loss = step(params, opt_state)
+        params, opt_state, loss = step(params, opt_state, N, Nf, nn_bonds, nnn_bonds, nnn_dirs, t1, t2, V2, lr, V1)
         if loss < best_loss:
             best_loss = loss
             best_params = params
 
-    #save_partial_result(best_loss, best_params, label)
     return float(best_loss), np.array(best_params), label
 
 def run_trials_with_refinement(
@@ -276,7 +280,7 @@ if __name__ == '__main__':
         t1=1.0,
         t2=0.5,
         V2=0.0,
-        V1_list=[0.28, 0.48, 0.60],
+        V1_list=[0.29],
         Lx=4,
         Ly=4,
         rough_iter=300,
