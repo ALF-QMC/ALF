@@ -197,7 +197,7 @@
           implicit none
 
           integer :: i, j, i1, no, a0, a1, a2, b0, b1, b2, k, k1, k2, ntype, j1, ndim_p
-          integer :: ix, iy, nx, ny, nc, nc1, n, ly, ry
+          integer :: ix, iy, nx, ny, nc, nc1, n, ly, ry, i0, i2
           integer :: no_tmp, no1_tmp, I_nn1, I_nn2
           real(kind=kind(0.d0)) :: pi = acos(-1.d0)
           character(len=64) :: Lattice_type_2d
@@ -300,6 +300,28 @@
              end do
 
           end do
+
+          !!====================!!
+          !! site map
+          !!====================!!
+          allocate(site_map(ndim))
+          i0 = 1
+          nc = 0
+          do i2 = 1, L2
+              do i1 = 1, L1
+                 k1 = invlist(i0, 1)
+                 k2 = invlist(i0, 2)
+                 
+                 nc = nc + 1
+                 site_map(nc) = k1
+                 
+                 nc = nc + 1
+                 site_map(nc) = k2
+                 
+                 i0 = latt%nnlist(i0,1,0)
+              enddo
+              i0 = latt%nnlist(i0,0,1)
+          enddo
 
        end subroutine Ham_Latt
 !--------------------------------------------------------------------
@@ -1094,8 +1116,8 @@
           nc = 0
           is = 1
           do nf = 1, n_fl
-             do i1 = 1, L1
              do i2 = 1, L2
+             do i1 = 1, L1
 
                 nc = nc + 1
                 n1 = invlist(is, 1)
@@ -1107,11 +1129,11 @@
                 ztmp = cmplx(1.d0, 0.d0, kind(0.d0)) - gr(n1, n1, nf)
                 obs_scal(10)%obs_vec(nc) = obs_scal(10)%obs_vec(nc) + ztmp*z_fac
 
-                !! i -> i+y
-                is = latt%nnlist(is, 0, 1)
+                !! i -> i+x
+                is = latt%nnlist(is, 1, 0)
              end do
-             !! i -> i+x
-             is = latt%nnlist(is, 1, 0)
+             !! i -> i+y
+             is = latt%nnlist(is, 0, 1)
              end do
           end do
 

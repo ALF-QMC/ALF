@@ -150,6 +150,8 @@ module Hamiltonian_main
    complex(Kind=kind(0.d0)), public :: fac_norm
    complex(Kind=kind(0.d0)), dimension(:), allocatable, public :: weight_k
    complex(Kind=kind(0.d0)), dimension(:), allocatable, public :: overlap
+   
+   integer, dimension(:), allocatable, public :: site_map
 
    !>    Privat Observables
    type(Obser_Vec),  dimension(:), allocatable :: obs_scal

@@ -63,8 +63,8 @@ contains
       complex(Kind=kind(0.d0)) :: det_Vec(N_FL)
       real(Kind=kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio, X1, wtmp, sign_w
       real(Kind=kind(0.d0)) :: zero = 1.0e-12, tot_re_weight, dz2
-      character(LEN=64) :: FILE_TG, FILE_seeds, file_inst, file_antiinst
-      logical ::   LCONF, LCONF_H5, lconf_inst, lconf_antiinst
+      character(LEN=64) :: FILE_TG, FILE_seeds, file_inst, file_antiinst, file_vmc
+      logical ::   LCONF, LCONF_H5, lconf_inst, lconf_antiinst, lconf_vmc
 
 #ifdef MPI
       integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
@@ -110,12 +110,20 @@ contains
          end do
       end do
 
-      file_tg = 'trial_0.h5'
+      file_vmc = 'trial_vmc.h5'
+      file_tg  = 'trial_0.h5'
+
       inquire (file=file_tg, exist=lconf_h5)
+      inquire (file=file_vmc, exist=lconf_vmc)
+
       if (lconf_h5) then
-         if (irank_g .eq. 0) write (*, *) "read input trial wave function"
-         call trial_in_hdf5(phi_0, phi_trial, file_tg)
+         if (irank_g .eq. 0) write (*, *) "Reading trial wave function from output of CPMC", file_tg
+         call trial_in_hdf5(phi_0, phi_trial, file_tg, 0)
+      else if (lconf_vmc) then
+         if (irank_g .eq. 0) write (*, *) "Reading trial wave function from vmc results", file_vmc
+         call trial_in_hdf5(phi_0, phi_trial, file_vmc, 1)
       end if
+
 
       file_tg = "phiin_0.h5"
       inquire (FILE=file_tg, EXIST=LCONF_H5)
@@ -525,7 +533,7 @@ contains
 
    end subroutine wavefunction_in_hdf5
 
-   subroutine trial_in_hdf5( phi_0_r, phi_0_l, file_tg )
+   subroutine trial_in_hdf5( phi_0_r, phi_0_l, file_tg, isort )
 #if defined HDF5
       use hdf5
       use h5lt
@@ -535,6 +543,7 @@ contains
      
       class(udv_state), dimension(:,:), allocatable, intent(inout) :: phi_0_r, phi_0_l
       character (LEN=64), intent(in)  :: file_tg
+      integer, intent(in) :: isort
 
       ! LOCAL
       character (LEN=64) :: filename
@@ -589,7 +598,11 @@ contains
 
           !! QR decomposition
           !! here we assume single SD as trial wave function
-          phi_0_l(1,1)%U(:,:) = phi0_in(:,:)
+          if ( isort .eq. 0 ) then
+            phi_0_l(1,1)%U(:,:) = phi0_in(:,:)
+          else
+            phi_0_l(1,1)%U(:,:) = phi0_in(site_map,:)
+          endif
           phi_0_l(1,1)%D = cmplx(1.d0,0.d0,kind(0.d0))
           call phi_0_l(1, 1)%decompose
           phi_0_l(1,1)%D = cmplx(1.d0,0.d0,kind(0.d0))

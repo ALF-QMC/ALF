@@ -87,28 +87,28 @@ contains
       file_tg = "u_eff_in.dat"
       inquire (file=file_tg, exist=lconf)
       allocate(ni_in(ndim))
-      if (lconf) then
-         open (unit=5, file=file_tg, status='old', action='read', iostat=ierr)
-         read (5, *) v1_eff, v2_eff
-         i1 = 1
-         do i = 1, nx
-         do j = 1, ny
-             !! a sublattice
-            read (5, *) dtmp
-            i2 = invlist(i1,1)
-            ni_in(i2) = dtmp
-            
-             !! b sublattice
-            read (5, *) dtmp
-            i2 = invlist(i1,2)
-            ni_in(i2) = dtmp
-            
-            i1 = latt%nnlist(i1, 0, 1)
-         enddo
-         i1 = latt%nnlist(i1, 1, 0)
-         enddo
-         close(5)
-      endif
+      !!if (lconf) then
+      !!   open (unit=5, file=file_tg, status='old', action='read', iostat=ierr)
+      !!   read (5, *) v1_eff, v2_eff
+      !!   i1 = 1
+      !!   do i = 1, nx
+      !!   do j = 1, ny
+      !!       !! a sublattice
+      !!      read (5, *) dtmp
+      !!      i2 = invlist(i1,1)
+      !!      ni_in(i2) = dtmp
+      !!      
+      !!       !! b sublattice
+      !!      read (5, *) dtmp
+      !!      i2 = invlist(i1,2)
+      !!      ni_in(i2) = dtmp
+      !!      
+      !!      i1 = latt%nnlist(i1, 0, 1)
+      !!   enddo
+      !!   i1 = latt%nnlist(i1, 1, 0)
+      !!   enddo
+      !!   close(5)
+      !!endif
 
       select case (Lattice_type)
 
@@ -150,48 +150,48 @@ contains
       
          call Predefined_Hoppings_set_OPT(Hopping_Matrix_tmp, List, Invlist, Latt, Latt_unit, Dtau, Checkerboard, Symm, OP_tmp)
       
-         if (lconf) then
-            do nf = 1, N_FL
-            do I = 1, latt%N
+         !!if (lconf) then
+         !!   do nf = 1, N_FL
+         !!   do I = 1, latt%N
 
-                i1 = invlist(i, 1) !! a sublattice
-                i2 = invlist(i, 2) !! b sublattice
+         !!       i1 = invlist(i, 1) !! a sublattice
+         !!       i2 = invlist(i, 2) !! b sublattice
 
-                nn_bond(:,2) = i2; 
-                nn_bond(1,1) = i1; 
-                nn_bond(2,1) = invlist(latt%nnlist(i,1,0),1);
-                nn_bond(3,1) = invlist(latt%nnlist(i,0,1),1); 
-                nn_bond(4,1) = invlist(latt%nnlist(i,1,1),1);
+         !!       nn_bond(:,2) = i2; 
+         !!       nn_bond(1,1) = i1; 
+         !!       nn_bond(2,1) = invlist(latt%nnlist(i,1,0),1);
+         !!       nn_bond(3,1) = invlist(latt%nnlist(i,0,1),1); 
+         !!       nn_bond(4,1) = invlist(latt%nnlist(i,1,1),1);
 
-                do k1 = 1, 4
-                   op_tmp(1,nf)%o(nn_bond(k1,1),nn_bond(k1,1)) = & 
-                       & op_tmp(1,nf)%o(nn_bond(k1,1),nn_bond(k1,1)) & 
-                       & - v1_eff*(ni_in(nn_bond(k1,1))-ni_in(nn_bond(k1,2)))
-                   
-                   op_tmp(1,nf)%o(nn_bond(k1,2),nn_bond(k1,2)) = & 
-                       & op_tmp(1,nf)%o(nn_bond(k1,2),nn_bond(k1,2)) & 
-                       & + v1_eff*(ni_in(nn_bond(k1,1))-ni_in(nn_bond(k1,2)))
-                enddo
-                
-                nnn_bond(1,1) = i1; nnn_bond(1,2) = invlist(latt%nnlist(i,1,0),1);
-                nnn_bond(2,1) = i2; nnn_bond(2,2) = invlist(latt%nnlist(i,1,0),2);
-                nnn_bond(3,1) = i1; nnn_bond(3,2) = invlist(latt%nnlist(i,0,1),1);
-                nnn_bond(4,1) = i2; nnn_bond(4,2) = invlist(latt%nnlist(i,0,1),2);
-                
-                do k1 = 1, 4
-                   op_tmp(1,nf)%o(nnn_bond(k1,1),nnn_bond(k1,1)) = & 
-                       & op_tmp(1,nf)%o(nnn_bond(k1,1),nnn_bond(k1,1)) & 
-                       & - v2_eff*(ni_in(nnn_bond(k1,1))-ni_in(nnn_bond(k1,2)))
-                   
-                   op_tmp(1,nf)%o(nnn_bond(k1,2),nnn_bond(k1,2)) = & 
-                       & op_tmp(1,nf)%o(nnn_bond(k1,2),nnn_bond(k1,2)) & 
-                       & + v2_eff*(ni_in(nnn_bond(k1,1))-ni_in(nnn_bond(k1,2)))
-                enddo
+         !!       do k1 = 1, 4
+         !!          op_tmp(1,nf)%o(nn_bond(k1,1),nn_bond(k1,1)) = & 
+         !!              & op_tmp(1,nf)%o(nn_bond(k1,1),nn_bond(k1,1)) & 
+         !!              & + v1_eff*(ni_in(nn_bond(k1,2))-0.5d0)
+         !!          
+         !!          op_tmp(1,nf)%o(nn_bond(k1,2),nn_bond(k1,2)) = & 
+         !!              & op_tmp(1,nf)%o(nn_bond(k1,2),nn_bond(k1,2)) & 
+         !!              & + v1_eff*(ni_in(nn_bond(k1,1))-0.5d0)
+         !!       enddo
+         !!       
+         !!       nnn_bond(1,1) = i1; nnn_bond(1,2) = invlist(latt%nnlist(i,1,0),1);
+         !!       nnn_bond(2,1) = i2; nnn_bond(2,2) = invlist(latt%nnlist(i,1,0),2);
+         !!       nnn_bond(3,1) = i1; nnn_bond(3,2) = invlist(latt%nnlist(i,0,1),1);
+         !!       nnn_bond(4,1) = i2; nnn_bond(4,2) = invlist(latt%nnlist(i,0,1),2);
+         !!       
+         !!       do k1 = 1, 4
+         !!          op_tmp(1,nf)%o(nnn_bond(k1,1),nnn_bond(k1,1)) = & 
+         !!              & op_tmp(1,nf)%o(nnn_bond(k1,1),nnn_bond(k1,1)) & 
+         !!              & + v2_eff*(ni_in(nnn_bond(k1,2))-0.5d0)
+         !!          
+         !!          op_tmp(1,nf)%o(nnn_bond(k1,2),nnn_bond(k1,2)) = & 
+         !!              & op_tmp(1,nf)%o(nnn_bond(k1,2),nnn_bond(k1,2)) & 
+         !!              & + v2_eff*(ni_in(nnn_bond(k1,1))-0.5d0)
+         !!       enddo
 
-            enddo
-            enddo
+         !!   enddo
+         !!   enddo
 
-         else
+         !!else
 
             !! add stagger mass to avoid the degeneracy of qbt
             l_width = int(latt%l2_p(2)/latt%a2_p(2))
@@ -237,7 +237,7 @@ contains
                enddo
             enddo
 
-         endif
+         !!endif
 
       case default
          write (error_unit, *) 'No predefined trial wave function for this lattice.'
