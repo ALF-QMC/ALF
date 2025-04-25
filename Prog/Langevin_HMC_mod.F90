@@ -53,12 +53,13 @@
 
         Private
         
-        Public :: Langevin_HMC, Langevin_HMC_type, Langevin_HMC_Reset_storage, calculate_Force
+        Public :: Langevin_HMC, Metropolis_Langevin, Langevin_HMC_type, Langevin_HMC_Reset_storage, calculate_Force
         
         enum, bind(c)
            enumerator :: Scheme_none = 0
            enumerator :: Scheme_Langevin = 1 
            enumerator :: Scheme_HMC = 2
+           enumerator :: Scheme_MALA = 3
         end enum
         Type Langevin_HMC_type
            private
@@ -85,7 +86,7 @@
            procedure  ::    calc_Forces          => Langevin_HMC_Forces
         end type Langevin_HMC_type
 
-        Type (Langevin_HMC_type) :: Langevin_HMC
+        Type (Langevin_HMC_type) :: Langevin_HMC, Metropolis_Langevin
 
            
       Contains
@@ -361,6 +362,8 @@
         Type    (Fields)           :: nsigma_old
         Character (Len=64)         :: storage
         Complex (Kind=Kind(0.d0))  :: Ratio(2), Phase_old, Ratiotot,Phase_new, Z
+        Complex (Kind=Kind(0.d0)), allocatable  :: Forces_old  (:,:)
+        Real    (Kind=Kind(0.d0)), allocatable  :: Forces_0_old(:,:)
         
 
         select case (this%scheme) !(trim(this%Update_scheme))
@@ -537,9 +540,11 @@
 
            Phase_new = cmplx(1.d0,0.d0,kind=kind(0.d0))
            Do nf = 1,N_Fl
+              call Op_phase(Phase_det_new(nf),Op_V,Nsigma,nf)
               Phase_new = Phase_new*Phase_det_new(nf)
            Enddo
-           Call Op_phase(Phase_new,OP_V,Nsigma,N_SUN)
+           Phase_new=Phase_new**N_SUN
+!           Call Op_phase(Phase_new,OP_V,Nsigma,N_SUN)
 
            TOGGLE = .false.
            if ( Weight > ranf_wrap() )  Then
@@ -570,6 +575,92 @@
            Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
            !if accepted 
            ! LATER (optimization idea) restore Phase, GR, udvr, udvl and don't reset storage
+        case(Scheme_MALA) !("MALA")
+
+           n1 = size(nsigma%f,1)
+           n2 = size(nsigma%f,2)
+           call nsigma_old%make(n1, n2)
+           nsigma_old%f = nsigma%f
+           nsigma_old%t = nsigma%t
+           Phase_old    = Phase
+
+           Allocate ( Phase_Det_new(N_FL_eff), Det_vec_new(NDIM,N_FL_eff))
+           Allocate ( Phase_Det_old(N_FL_eff), Det_vec_old(NDIM,N_FL_eff))
+           Allocate ( Forces_old(n1,n2)  , Forces_0_old(n1,n2) )
+
+           storage = "Full"
+           If ( .not. this%L_Forces) then
+             Call Compute_Fermion_Det(Phase_det_old,Det_Vec_old, udvl, udvst, Stab_nt, storage)
+           else
+             Det_vec_old = this%Det_vec_old
+             Phase_det_old = this%Phase_det_old
+           endif
+
+           Calc_Obser_eq = .false.
+           If ( .not. this%L_Forces) then
+              Call this%calc_Forces(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst,&
+              &  LOBS_ST, LOBS_EN, Calc_Obser_eq )
+           endif
+           Call ham%Ham_Langevin_HMC_S0( this%Forces_0)
+           forces_old   = this%Forces
+           forces_0_old = this%Forces_0
+           
+         
+           do n = 1, n1
+              if (OP_V(n,1)%type == 3 ) then
+                 do nt = 1, n2
+                    nsigma%f(n,nt)   = nsigma%f(n,nt)  -  ( this%Forces_0(n,nt) +  &
+                         &  real( Phase*this%Forces(n,nt),kind(0.d0)) / Real(Phase,kind(0.d0)) ) * this%Delta_t_Langevin_HMC + &
+                         &  sqrt( 2.d0 * this%Delta_t_Langevin_HMC) * rang_wrap()
+                 enddo
+              endif
+           enddo
+
+           Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
+           Call Compute_Fermion_Det(Phase_det_new,Det_Vec_new, udvl, udvst, Stab_nt, storage)
+           Call this%calc_Forces(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst,&
+                   &  LOBS_ST, LOBS_EN, Calc_Obser_eq )
+           Call ham%Ham_Langevin_HMC_S0( this%Forces_0)
+
+           t0_proposal_ratio = 1.d0
+           do n = 1, n1
+              if (OP_V(n,1)%type == 3 ) then
+                 do nt = 1, n2
+                    t0_proposal_ratio = t0_proposal_ratio * &
+                      & exp(-0.25d0/this%Delta_t_Langevin_HMC * (Abs(nsigma_old%f(n,nt) - nsigma%f(n,nt) + &
+                      & this%Delta_t_Langevin_HMC*(this%forces_0(n,nt) +  real( Phase*this%forces(n,nt),kind(0.d0)) / Real(Phase,kind(0.d0))) )**2 -  &
+                      & Abs(nsigma%f(n,nt) - nsigma_old%f(n,nt) + this%Delta_t_Langevin_HMC*(forces_0_old(n,nt) + real( phase_old*forces_old(n,nt),kind(0.d0)) / Real(phase_old,kind(0.d0)))  )**2 ) )
+                 enddo
+              endif
+           enddo
+
+           Ratiotot = Compute_Ratio_Global(Phase_Det_old, Phase_Det_new, &
+                &                          Det_vec_old, Det_vec_new, nsigma_old, T0_Proposal_ratio, Ratio)
+           Weight = abs(  real( Phase_old * Ratiotot, kind=Kind(0.d0))/real(Phase_old,kind=Kind(0.d0)) )
+
+
+           TOGGLE = .false.
+           if ( Weight > ranf_wrap() )  Then
+              TOGGLE = .true.
+              this%Det_vec_old   = Det_vec_new
+              this%Phase_Det_old = Phase_det_new
+           else
+              this%Det_vec_old   = Det_vec_old
+              this%Phase_Det_old = Phase_det_old
+              nsigma%t = nsigma_old%t
+              nsigma%f = nsigma_old%f
+           endif
+
+           Z = Phase_old * Ratiotot/ABS(Ratiotot)
+           Call Control_PrecisionP_MALA(Z,Phase)
+           Call Control_upgrade_MALA(TOGGLE)
+
+           Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
+
+           deAllocate ( Phase_Det_new, Det_vec_new )
+           deAllocate ( Phase_Det_old, Det_vec_old )
+           deAllocate ( Forces_old   , Forces_0_old)
+
         case default
            WRITE(error_unit,*) 'Unknown Global_update_scheme ', trim(this%Update_scheme) 
            WRITE(error_unit,*) 'Global_update_scheme is Langevin or HMC'
@@ -589,7 +680,7 @@
 !--------------------------------------------------------------------
 
       
-      SUBROUTINE  Langevin_HMC_setup(this,Langevin,HMC, Delta_t_Langevin_HMC, Max_Force, Leapfrog_steps )
+      SUBROUTINE  Langevin_HMC_setup(this,Langevin,HMC, MALA, Delta_t_Langevin_HMC, Max_Force, Leapfrog_steps )
 
         Implicit none
 
@@ -598,7 +689,7 @@
 
         class (Langevin_HMC_type) :: this
 
-        Logical                  , Intent(in)   :: Langevin, HMC
+        Logical                  , Intent(in)   :: Langevin, HMC, MALA
         Integer                  , Intent(in)   :: Leapfrog_steps
         Real    (Kind=Kind(0.d0)), Intent(in)   :: Delta_t_Langevin_HMC, Max_Force
 
@@ -675,6 +766,25 @@
            this%Delta_t_running      =  1.0d0
          !   WRITE(error_unit,*) 'HMC  step is not yet implemented'
          !   CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+        elseif (MALA) then
+           !  Check that all  fields are of type 3
+           !  Check: Shouldn't have to be all type 3 --should be able to update discrete sequentially
+           Nr = size(nsigma%f,1)
+           Nt = size(nsigma%f,2)
+           Do i = 1, Nr
+              if ( nsigma%t(i) /= 3 ) then
+                 WRITE(error_unit,*) 'For the current MALA runs, all fields have to be of type 3'
+                 CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+              endif
+           enddo
+           Allocate ( this%Forces(Nr,Nt),  this%Forces_0(Nr,Nt) )
+           Allocate ( this%Det_vec_old(NDIM,N_FL), this%Phase_Det_old(N_FL) )
+           this%Update_scheme        =  "MALA"
+           this%scheme               =  Scheme_MALA
+           this%Delta_t_Langevin_HMC =  Delta_t_Langevin_HMC
+           this%Max_Force            =  Max_Force
+           this%L_Forces             = .False.
+           this%Delta_t_running      =  1.0d0
         else
            this%Update_scheme        =  "None"
         endif
@@ -732,6 +842,9 @@
            Deallocate ( this%Det_vec_old, this%Phase_Det_old )
          !   WRITE(error_unit,*) 'HMC  step is not yet implemented'
          !   CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+        case(Scheme_MALA)
+           Deallocate ( this%Forces, this%Forces_0 )
+           Deallocate ( this%Det_vec_old, this%Phase_Det_old )
         case default
         end select
       end SUBROUTINE Langevin_HMC_clear
@@ -794,12 +907,12 @@
 !> @brief
 !>       Sets the update_scheme
 !--------------------------------------------------------------------
-      subroutine Langevin_HMC_set_Update_scheme(this, Langevin, HMC )
+      subroutine Langevin_HMC_set_Update_scheme(this, Langevin, HMC, MALA )
         Implicit none
         
         class (Langevin_HMC_type) :: this
         
-        Logical, intent(in) :: Langevin, HMC
+        Logical, intent(in) :: Langevin, HMC, MALA
 
         If (Langevin) then
            this%Update_scheme        =  "Langevin"
@@ -807,6 +920,9 @@
         elseif (HMC)  then
            this%Update_scheme        =  "HMC"
            this%scheme               =  Scheme_HMC
+        elseif (MALA) then
+           this%Update_scheme        =  "MALA"
+           this%scheme               =  Scheme_MALA
         else
            this%Update_scheme        =  "None"
            this%scheme               =  Scheme_none

@@ -191,9 +191,9 @@ Program Main
         Logical :: file_exists
 #endif
         !  Space for reading in Langevin & HMC  parameters
-        Logical                      :: Langevin,  HMC
-        Integer                      :: Leapfrog_Steps, N_HMC_sweeps
-        Real  (Kind=Kind(0.d0))      :: Delta_t_Langevin_HMC, Max_Force
+        Logical                      :: Langevin,  HMC, MALA
+        Integer                      :: Leapfrog_Steps, N_HMC_sweeps, N_MALA_sweeps
+        Real  (Kind=Kind(0.d0))      :: Delta_t_Langevin_HMC, Max_Force, Delta_t_MALA
           
 #if defined(TEMPERING)
         Integer :: N_exchange_steps, N_Tempering_frequency
@@ -204,9 +204,9 @@ Program Main
              &               Propose_S0,Global_moves,  N_Global, Global_tau_moves, &
              &               Global_Langevin_tau_moves, N_Global_Langevin_tau, &
              &               Nt_sequential_start, Nt_sequential_end, N_Global_tau, &
-             &               sequential, Langevin, HMC, Delta_t_Langevin_HMC, &
+             &               sequential, Langevin, HMC, MALA, Delta_t_Langevin_HMC, &
              &               Max_Force, Leapfrog_steps, N_HMC_sweeps, Amplitude, &
-             &               Propose_Langevin
+             &               Propose_Langevin, Delta_t_MALA, N_MALA_sweeps
 
         NAMELIST /VAR_HAM_NAME/ ham_name
 
@@ -355,6 +355,7 @@ Program Main
            Nwrap=0;  NSweep=0; NBin=0; Ltau=0; LOBS_EN = 0;  LOBS_ST = 0;  CPU_MAX = 0.d0
            Propose_S0 = .false. ;  Global_moves = .false. ; N_Global = 0; Propose_Langevin = .false.
            Global_tau_moves = .false.; sequential = .true.; Langevin = .false. ; HMC =.false.
+           MALA = .false.; Delta_t_MALA = 0.d0; N_MALA_sweeps = 1
            Global_Langevin_tau_moves = .false.; N_Global_Langevin_tau = 0
            Delta_t_Langevin_HMC = 0.d0;  Max_Force = 0.d0 ; Leapfrog_steps = 0; N_HMC_sweeps = 1
            Nt_sequential_start = 1 ;  Nt_sequential_end  = 0;  N_Global_tau  = 0;  Amplitude = 1.d0
@@ -390,10 +391,13 @@ Program Main
         CALL MPI_BCAST(sequential           ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Langevin             ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(HMC                  ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(MALA                 ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Leapfrog_steps       ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(N_HMC_sweeps         ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(N_MALA_sweeps        ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Max_Force            ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Delta_t_Langevin_HMC ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(Delta_t_MALA         ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Amplitude            ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
 
         CALL MPI_BCAST(ham_name             ,64,MPI_CHARACTER,0,MPI_COMM_i,ierr)
@@ -582,6 +586,10 @@ Program Main
                      write(output_unit,*) "Langevin mode does not allow HMC updates."
                      write(output_unit,*) "Overriding HMC=.True. from parameter files."
                   endif
+                  if (MALA) then
+                     write(output_unit,*) "Langevin mode does not allow MALA updates."
+                     write(output_unit,*) "Overriding MALA=.True. from parameter files."
+                  endif
                   if (Global_moves) then 
                      write(output_unit,*) "Langevin mode does not allow global updates."
                      write(output_unit,*) "Overriding Global_moves=.True. from parameter files."
@@ -605,6 +613,7 @@ Program Main
 #endif
                Sequential = .False.
                HMC = .False.
+               MALA = .False.
                Global_moves = .False.
                Global_tau_moves = .False.
                Global_Langevin_tau_moves = .False.
@@ -612,9 +621,14 @@ Program Main
                N_exchange_steps = 0
 #endif
            endif
-           Call Langevin_HMC%make(Langevin, HMC , Delta_t_Langevin_HMC, Max_Force, Leapfrog_steps)
+           Call Langevin_HMC%make(Langevin, HMC , .False., Delta_t_Langevin_HMC, Max_Force, Leapfrog_steps)
         else
-           Call Langevin_HMC%set_Update_scheme(Langevin, HMC )
+           Call Langevin_HMC%set_Update_scheme(Langevin, HMC, .False. )
+        endif
+        if (MALA) then
+           Call Metropolis_Langevin%make(.False., .False. , MALA, Delta_t_MALA, Max_Force, Leapfrog_steps)
+        else
+           Call Metropolis_Langevin%set_Update_scheme(.False., .False., MALA )
         endif
 
         if ( .not. Sequential .and. Global_tau_moves) then
@@ -636,8 +650,8 @@ Program Main
            Global_tau_moves = .false.
         endif
 
-        if ( .not. Sequential .and. .not. HMC .and. .not. Langevin .and. .not. Global_moves) then
-         write(output_unit,*) "Warning: no updates will occur as Sequential, HMC, Langevin, and"
+        if ( .not. Sequential .and. .not. HMC .and. .not. Langevin .and. .not. Global_moves .and. .not. MALA) then
+         write(output_unit,*) "Warning: no updates will occur as Sequential, HMC, Langevin, MALA, and"
          write(output_unit,*) "Global_moves are all .False. in the parameter file."
         endif
 
@@ -722,6 +736,10 @@ Program Main
               Write(50,*) 'HMC del_t     : ', Delta_t_Langevin_HMC
               Write(50,*) 'Leapfrog_Steps: ', Leapfrog_Steps
               Write(50,*) 'HMC_Sweeps:     ', N_HMC_sweeps
+           endif
+           if ( MALA ) then
+              Write(50,*) 'MALA del_t    : ', Delta_t_MALA
+              Write(50,*) 'MALA_Sweeps   : ', N_MALA_sweeps
            endif
 
            !Write out info  for  amplitude and flip_protocol
@@ -904,6 +922,37 @@ Program Main
                        Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
                     endif
                     call Langevin_HMC%set_L_Forces(.true.)
+                 endif
+              endif
+
+              If (  str_to_upper(Metropolis_Langevin%get_Update_scheme()) == "MALA" )  then
+                 if (Sequential .and. str_to_upper(Langevin_HMC%get_Update_scheme()) /= "HMC" ) call Metropolis_Langevin%set_L_Forces(.False.)
+                 Do n=1, N_MALA_sweeps
+                     Call Metropolis_Langevin%update(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst, &
+                          &                   LOBS_ST, LOBS_EN, LTAU)
+                     if (n /= N_MALA_sweeps) then
+                        Call Metropolis_Langevin%calc_Forces(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst,&
+                             &  LOBS_ST, LOBS_EN, .True. )
+                        Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
+                        call Metropolis_Langevin%set_L_Forces(.true.)
+                     endif
+                 enddo
+
+                 !Do time-displaced measurements if needed, else set Calc_Obser_eq=.True. for the very first leapfrog ONLY
+                 If ( .not. sequential) then
+                    IF ( LTAU == 1 ) then
+                       If (Projector) then
+                          NST = 0
+                          Call Tau_p ( udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, NST, LOBS_ST, LOBS_EN)
+                       else
+                          Call Tau_m( udvst, GR, PHASE, NSTM, NWRAP, STAB_NT, LOBS_ST, LOBS_EN )
+                       endif
+                    else
+                       Call Metropolis_Langevin%calc_Forces(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst,&
+                       &  LOBS_ST, LOBS_EN, .True. )
+                       Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
+                    endif
+                    call Metropolis_Langevin%set_L_Forces(.true.)
                  endif
               endif
 
@@ -1146,6 +1195,7 @@ Program Main
 #endif
         
         Call Langevin_HMC%clean()
+        Call Metropolis_Langevin%clean()
         deallocate(Calc_Fl_map,Phase_array)
 
          ! Delete the file RUNNING since the simulation finished successfully

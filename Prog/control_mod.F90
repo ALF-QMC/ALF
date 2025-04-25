@@ -58,11 +58,14 @@ module Control
     Integer (Kind=kind(0.d0)),  private, save :: NC_Glob_up, ACC_Glob_up
     Integer (Kind=kind(0.d0)),  private, save :: NC_HMC_up, ACC_HMC_up
     Integer (Kind=kind(0.d0)),  private, save :: NC_Temp_up, ACC_Temp_up
+    Integer (Kind=kind(0.d0)),  private, save :: NC_MALA_up, ACC_MALA_up
     real    (Kind=Kind(0.d0)),  private, save :: XMAXP_Glob, XMEANP_Glob
     Integer (Kind=Kind(0.d0)),  private, save :: NC_Phase_GLob
 
     real    (Kind=Kind(0.d0)),  private, save :: XMAXP_HMC, XMEANP_HMC
     Integer (Kind=Kind(0.d0)),  private, save :: NC_Phase_HMC
+    real    (Kind=Kind(0.d0)),  private, save :: XMAXP_MALA, XMEANP_MALA
+    Integer (Kind=Kind(0.d0)),  private, save :: NC_Phase_MALA
 
     
     real    (Kind=Kind(0.d0)),  private, save :: size_clust_Glob_up, size_clust_Glob_ACC_up
@@ -92,6 +95,8 @@ module Control
         XMAXP_Glob = 0.d0
         XMEANP_HMC = 0.d0
         XMAXP_HMC  = 0.d0
+        XMEANP_MALA= 0.d0
+        XMAXP_MALA = 0.d0
 
         
         NCG          = 0
@@ -107,6 +112,10 @@ module Control
         NC_Phase_HMC = 0
         NC_HMC_up    = 0
         ACC_HMC_up   = 0
+
+        NC_Phase_MALA= 0
+        NC_MALA_up   = 0
+        ACC_MALA_up  = 0
         
         NC_Temp_up   = 0
         ACC_Temp_up  = 0
@@ -202,6 +211,15 @@ module Control
            ACC_HMC_up = ACC_HMC_up + 1
         endif
       end Subroutine Control_upgrade_HMC
+
+      Subroutine Control_upgrade_MALA(toggle)
+        Implicit none
+        Logical :: toggle
+        NC_MALA_up = NC_MALA_up + 1
+        if (toggle) then
+           ACC_MALA_up = ACC_MALA_up + 1
+        endif
+      end Subroutine Control_upgrade_MALA
 
 
       Subroutine Control_PrecisionG(A,B,Ndim)
@@ -340,6 +358,16 @@ module Control
         NC_Phase_HMC = NC_Phase_HMC + 1
       End Subroutine Control_PrecisionP_HMC
 
+      Subroutine Control_PrecisionP_MALA(Z,Z1)
+        Implicit none
+        Complex (Kind=Kind(0.D0)), INTENT(IN) :: Z,Z1
+        Real    (Kind=Kind(0.D0)) :: X
+        X = ABS(Z-Z1)
+        if ( X > XMAXP_MALA ) XMAXP_MALA = X
+        XMEANP_MALA = XMEANP_MALA + X
+        NC_Phase_MALA = NC_Phase_MALA + 1
+      End Subroutine Control_PrecisionP_MALA
+
 
       Subroutine Control_Print(Group_Comm, Global_update_scheme)
 #ifdef MPI
@@ -352,7 +380,7 @@ module Control
                 
 
         Character (len=64) :: file1
-        Real (Kind=Kind(0.d0)) :: Time, Acc, Acc_eff, Acc_Glob, Acc_Temp, size_clust_Glob, size_clust_Glob_ACC, Acc_HMC
+        Real (Kind=Kind(0.d0)) :: Time, Acc, Acc_eff, Acc_Glob, Acc_Temp, size_clust_Glob, size_clust_Glob_ACC, Acc_HMC, Acc_MALA
 #ifdef MPI
         REAL (Kind=Kind(0.d0))  :: X
         Integer        :: Ierr, Isize, Irank, irank_g, isize_g, igroup
@@ -379,6 +407,10 @@ module Control
         ACC_HMC = 0.d0
         IF (NC_HMC_up    > 0 )  then
            ACC_HMC    = dble(ACC_HMC_up)/dble(NC_HMC_up)
+        endif
+        ACC_MALA = 0.d0
+        IF (NC_MALA_up    > 0 )  then
+           ACC_MALA    = dble(ACC_MALA_up)/dble(NC_MALA_up)
         endif
 
         
@@ -414,6 +446,9 @@ module Control
         X = 0.d0
         CALL MPI_REDUCE(ACC_Temp ,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
         ACC_Temp  = X/dble(Isize_g)
+        X = 0.d0
+        CALL MPI_REDUCE(ACC_MALA,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
+        ACC_MALA = X/dble(Isize_g)
 
         X = 0.d0
         CALL MPI_REDUCE(size_clust_Glob,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
@@ -451,6 +486,9 @@ module Control
 
         CALL MPI_REDUCE(XMAXP_HMC,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
         XMAXP_HMC = X
+
+        CALL MPI_REDUCE(XMAXP_MALA,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
+        XMAXP_MALA = X
 
 #endif
 
@@ -497,6 +535,12 @@ module Control
               Write(50,*) ' Acceptance_HMC              : ', ACC_HMC
               Write(50,*) ' Mean Phase diff HMC         : ', XMEANP_HMC
               Write(50,*) ' Max  Phase diff HMC         : ', XMAXP_HMC
+           Endif
+
+           if (NC_MALA_up > 0)   Then
+              Write(50,*) ' Acceptance_MALA             : ', ACC_MALA
+              Write(50,*) ' Mean Phase diff MALA        : ', XMEANP_MALA
+              Write(50,*) ' Max  Phase diff MALA        : ', XMAXP_MALA
            Endif
            
            Write(50,*) ' CPU Time                   : ', Time
