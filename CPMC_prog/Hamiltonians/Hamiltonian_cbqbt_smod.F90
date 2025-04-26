@@ -1042,13 +1042,17 @@
                    m1 = invlist_qah(js, no_j, 1)
                    n1 = invlist_qah(js, no_j, 2)
 
-                   ztmp = grc(i1, j1, nf)*grc(m1, n1, nf) + grc(i1, n1, nf)*gr(j1, m1, nf) &
-                       &  + grc(j1, i1, nf)*grc(n1, m1, nf) + grc(j1, m1, nf)*gr(i1, n1, nf) &
-                       &  - grc(i1, j1, nf)*grc(n1, m1, nf) - grc(i1, m1, nf)*gr(j1, n1, nf) &
-                       &  - grc(j1, i1, nf)*grc(m1, n1, nf) - grc(j1, n1, nf)*gr(i1, m1, nf)
-                   zqah = zqah - ztmp
+                   if ( (m1 /= i1 .and. m1 /= j1) .and. (n1 /= i1 .and. n1 /= j1) ) then
 
-                   nb = nb + 1
+                      ztmp =   grc(i1, j1, nf)*grc(m1, n1, nf) + grc(i1, n1, nf)*gr(j1, m1, nf) &
+                          &  + grc(j1, i1, nf)*grc(n1, m1, nf) + grc(j1, m1, nf)*gr(i1, n1, nf) &
+                          &  - grc(i1, j1, nf)*grc(n1, m1, nf) - grc(i1, m1, nf)*gr(j1, n1, nf) &
+                          &  - grc(j1, i1, nf)*grc(m1, n1, nf) - grc(j1, n1, nf)*gr(i1, m1, nf)
+                      zqah = zqah - ztmp
+
+                      nb = nb + 1
+                   end if
+                
                 end do
 
                 !! BNDS
