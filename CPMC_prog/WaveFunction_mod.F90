@@ -64,6 +64,39 @@ contains
       deallocate (Mat)
 
    end subroutine WF_overlap
+   
+   subroutine wf_overlap_twoslatD(wf_l_1, wf_l_2, wf_r, z_norm)
+      implicit none
+      type(WaveFunction), intent(IN)        :: wf_l_1, wf_l_2
+      type(WaveFunction), intent(INOUT)     :: wf_r
+      complex(Kind=kind(0.d0)), intent(OUT) :: z_norm
+
+      ! Local
+      integer :: N_Part, Ndim, n, ne
+      complex(Kind=kind(0.d0)), allocatable ::  mat(:, :)
+      complex(Kind=kind(0.d0)) :: alpha, beta
+
+      n_part = size(wf_r%p, 2)
+      ndim = size(wf_r%p, 1)
+      allocate (mat(n_part, n_Part))
+
+      alpha = 1.d0
+      beta = 0.d0
+      call ZGEMM('C', 'N', N_part, N_part, Ndim, alpha, wf_l_1%p(1, 1), Ndim, wf_r%p(1, 1), Ndim, beta, Mat(1, 1), N_part)
+      ! Mat = (WL_L%P)^{dagger} WL_L%R
+
+      z_norm = det(Mat, N_part)
+      
+      call ZGEMM('C', 'N', N_part, N_part, Ndim, alpha, wf_l_2%p(1, 1), Ndim, wf_r%p(1, 1), Ndim, beta, Mat(1, 1), N_part)
+      z_norm = z_norm + det(Mat, N_part)
+
+      Z_norm = (cmplx(1.d0, 0.d0, kind(0.d0))/Z_norm)**(1.d0/real(N_part, kind(0.d0)))
+
+      WF_R%P = Z_norm*WF_R%P
+
+      deallocate (Mat)
+
+   end subroutine wf_overlap_twoslatD
 
 !--------------------------------------------------------------------
 
