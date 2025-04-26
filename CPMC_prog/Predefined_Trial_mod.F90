@@ -150,12 +150,12 @@ contains
          do I2 = 1, N_part
             do I1 = 1, Ndim
                wf_l(nf, 1)%p(I1, I2) = op_tmp (1, nf)%u(I1, I2)
-               wf_l(nf, 2)%p(I1, I2) = op_tmp2(1, nf)%u(I1, I2)
+               if ( n_slat .eq. 2 ) wf_l(nf, 2)%p(I1, I2) = op_tmp2(1, nf)%u(I1, I2)
                wf_r(nf, 1)%p(I1, I2) = op_tmp (1, nf)%u(I1, I2)
             end do
          end do
          wf_l(nf, 1)%degen = op_tmp (1, nf)%e(N_part + 1) - op_tmp (1, nf)%e(N_part)
-         wf_l(nf, 2)%degen = op_tmp2(1, nf)%e(N_part + 1) - op_tmp2(1, nf)%e(N_part)
+         if ( n_slat .eq. 2 ) wf_l(nf, 2)%degen = op_tmp2(1, nf)%e(N_part + 1) - op_tmp2(1, nf)%e(N_part)
          wf_r(nf, 1)%degen = op_tmp (1, nf)%e(N_part + 1) - op_tmp (1, nf)%e(N_part)
       end do
 

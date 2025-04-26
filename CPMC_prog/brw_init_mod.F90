@@ -63,8 +63,8 @@ contains
       complex(Kind=kind(0.d0)) :: det_Vec(N_FL)
       real(Kind=kind(0.d0)) :: S0_ratio, spin, HS_new, Overlap_ratio, X1, wtmp, sign_w
       real(Kind=kind(0.d0)) :: zero = 1.0e-12, tot_re_weight, dz2
-      character(LEN=64) :: FILE_TG, FILE_seeds, file_inst, file_antiinst, file_vmc
-      logical ::   LCONF, LCONF_H5, lconf_inst, lconf_antiinst, lconf_vmc
+      character(LEN=64) :: FILE_TG, FILE_seeds, file_inst, file_antiinst, file_tg2
+      logical ::   LCONF, LCONF_H5, lconf_inst, lconf_antiinst, lconf_2
 
 #ifdef MPI
       integer        :: Isize, Irank, irank_g, isize_g, igroup, ierr
@@ -110,20 +110,23 @@ contains
          end do
       end do
 
-      file_vmc = 'trial_vmc.h5'
       file_tg  = 'trial_0.h5'
-
       inquire (file=file_tg, exist=lconf_h5)
-      inquire (file=file_vmc, exist=lconf_vmc)
+      file_tg2 = 'trial_1.h5'
+      inquire (file=file_tg2, exist=lconf_2)
 
-      if (lconf_h5) then
-         if (irank_g .eq. 0) write (*, *) "Reading trial wave function from output of CPMC", file_tg
-         call trial_in_hdf5(phi_0, phi_trial, file_tg, 0)
-      else if (lconf_vmc) then
-         if (irank_g .eq. 0) write (*, *) "Reading trial wave function from vmc results", file_vmc
-         call trial_in_hdf5(phi_0, phi_trial, file_vmc, 1)
-      end if
-
+      if ( n_slat .eq. 1 ) then
+        if (lconf_h5) then
+           if (irank_g .eq. 0) write (*, *) "Reading trial wave function from output of CPMC ", file_tg
+           call trial_in_hdf5(phi_0, phi_trial, file_tg)
+        end if
+      else
+        if ( lconf_h5 .and. lconf_2 ) then
+           if (irank_g .eq. 0) write (*, *) "Reading slat D from output of CPMC ", file_tg
+           if (irank_g .eq. 0) write (*, *) "Reading slat D from output of CPMC ", file_tg2
+           call trial_in_2slatD_hdf5(phi_0, phi_trial, file_tg, file_tg2)
+        endif
+      endif
 
       file_tg = "phiin_0.h5"
       inquire (FILE=file_tg, EXIST=LCONF_H5)
@@ -533,7 +536,7 @@ contains
 
    end subroutine wavefunction_in_hdf5
 
-   subroutine trial_in_hdf5( phi_0_r, phi_0_l, file_tg, isort )
+   subroutine trial_in_hdf5( phi_0_r, phi_0_l, file_tg )
 #if defined HDF5
       use hdf5
       use h5lt
@@ -543,7 +546,6 @@ contains
      
       class(udv_state), dimension(:,:), allocatable, intent(inout) :: phi_0_r, phi_0_l
       character (LEN=64), intent(in)  :: file_tg
-      integer, intent(in) :: isort
 
       ! LOCAL
       character (LEN=64) :: filename
@@ -598,11 +600,7 @@ contains
 
           !! QR decomposition
           !! here we assume single SD as trial wave function
-          if ( isort .eq. 0 ) then
-            phi_0_l(1,1)%U(:,:) = phi0_in(:,:)
-          else
-            phi_0_l(1,1)%U(:,:) = phi0_in(site_map,:)
-          endif
+          phi_0_l(1,1)%U(:,:) = phi0_in(:,:)
           phi_0_l(1,1)%D = cmplx(1.d0,0.d0,kind(0.d0))
           call phi_0_l(1, 1)%decompose
           phi_0_l(1,1)%D = cmplx(1.d0,0.d0,kind(0.d0))
@@ -635,6 +633,137 @@ contains
       deallocate(p0_tmp)
 
    end subroutine trial_in_hdf5
+
+   subroutine trial_in_2slatD_hdf5(phi_0_r, phi_0_l, file_tg, file_tg2)
+      use wavefunction_mod
+#if defined HDF5
+      use hdf5
+      use h5lt
+#endif
+          
+      implicit none
+     
+      class(udv_state), dimension(:,:), allocatable, intent(inout) :: phi_0_r, phi_0_l
+      character (LEN=64), intent(in)  :: file_tg, file_tg2
+
+      ! LOCAL
+      character (LEN=64) :: filename
+      complex (Kind=Kind(0.d0)), pointer :: phi0_in(:,:)
+      complex (Kind=Kind(0.d0)), allocatable :: p0_tmp(:,:), p1_tmp(:,:)
+      complex (kind=kind(0.d0)) :: alpha, beta, zdet, z_norm_up, z_norm_dn, z_norm
+      complex (kind=kind(0.d0)) :: phase
+
+      INTEGER             :: K, hdferr, rank, nf, nw, i0, i1, i2, i_st, i_ed, Ndt, ii, nwalk_in
+      Integer             :: n_part, n, info
+      INTEGER(HSIZE_T), allocatable :: dims(:), dimsc(:), maxdims(:)
+      Logical             :: file_exists
+      INTEGER(HID_T)      :: file_id, crp_list, space_id, dset_id, dataspace
+      Character (len=64)  :: dset_name
+      TYPE(C_PTR)         :: dat_ptr
+
+#if defined(MPI)
+      INTEGER        :: irank_g, isize_g, igroup, ISIZE, IRANK, IERR
+      Integer        :: STATUS(MPI_STATUS_SIZE)
+      CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
+      CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+      call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+      call MPI_Comm_size(Group_Comm, isize_g, ierr)
+      igroup           = irank/isize_g
+#endif
+
+      n_part = phi_0_l(1, 1)%n_part
+      
+      allocate(p0_tmp(ndim,n_part))
+      allocate(p1_tmp(ndim,n_part))
+      
+      if ( irank .eq. 0 ) then
+          !! allocate !!
+          allocate(phi0_in(ndim,n_part))
+
+          !open file
+          CALL h5fopen_f (file_tg, H5F_ACC_RDWR_F, file_id, hdferr)
+          !!-----------!!
+          !open and read wave function
+          dset_name= "phi_trial"
+          !Open the  dataset.
+          call h5dopen_f(file_id, dset_name, dset_id, hdferr)
+          dat_ptr = c_loc(phi0_in(1,1))
+          !Write data
+          call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
+          !close objects
+          call h5dclose_f(dset_id, hdferr)
+            
+          !close file
+          call h5fclose_f(file_id, hdferr)
+
+          !! QR decomposition
+          !! here we assume single SD as trial wave function
+          phi_0_l(1,1)%U(:,:) = phi0_in(:,:)
+          phi_0_l(1,1)%D = cmplx(1.d0,0.d0,kind(0.d0))
+          call phi_0_l(1, 1)%decompose
+          phi_0_l(1,1)%D = cmplx(1.d0,0.d0,kind(0.d0))
+
+          p0_tmp(:,:) = phi_0_l(1,1)%U(:,:)
+
+          !!-------------------------------------------------------------------!!
+          !open file
+          CALL h5fopen_f (file_tg2, H5F_ACC_RDWR_F, file_id, hdferr)
+          !!-----------!!
+          !open and read wave function
+          dset_name= "phi_trial"
+          !Open the  dataset.
+          call h5dopen_f(file_id, dset_name, dset_id, hdferr)
+          dat_ptr = c_loc(phi0_in(1,1))
+          !Write data
+          call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, dat_ptr, hdferr)
+          !close objects
+          call h5dclose_f(dset_id, hdferr)
+            
+          !close file
+          call h5fclose_f(file_id, hdferr)
+
+          !! QR decomposition
+          !! here we assume single SD as trial wave function
+          phi_0_l(1,2)%U(:,:) = phi0_in(:,:)
+          phi_0_l(1,2)%D = cmplx(1.d0,0.d0,kind(0.d0))
+          call phi_0_l(1, 2)%decompose
+          phi_0_l(1,2)%D = cmplx(1.d0,0.d0,kind(0.d0))
+
+          p1_tmp(:,:) = phi_0_l(1,2)%U(:,:)
+          
+          deallocate(phi0_in)
+
+      endif !irank 0
+
+      if ( irank_g .eq. 0 ) then
+         do ii = 1, isize_g-1
+            Ndt=ndim*n_part
+            call mpi_send(p0_tmp, Ndt, mpi_complex16, ii, 2, MPI_COMM_WORLD,IERR)
+            call mpi_send(p1_tmp, Ndt, mpi_complex16, ii, 3, MPI_COMM_WORLD,IERR)
+         ENDDO
+      else
+         Ndt=ndim*n_part
+         call mpi_recv(p0_tmp, Ndt, mpi_complex16, 0, 2, MPI_COMM_WORLD,STATUS,IERR)
+         call mpi_recv(p1_tmp, Ndt, mpi_complex16, 0, 3, MPI_COMM_WORLD,STATUS,IERR)
+      ENDIF
+
+      !! init phi_0_r phi_0_l and wavefunction wf_l, wf_r for each threads
+      wf_l(1,1)%P(:,:)=p0_tmp(:,:)
+      wf_l(1,2)%P(:,:)=p1_tmp(:,:)
+      
+      phi_0_l(1,1)%U(:,:)=p0_tmp(:,:)
+      phi_0_l(1,2)%U(:,:)=p1_tmp(:,:)
+
+      call wf_overlap_twoslatD( wf_l(1, 1), wf_l(1, 2), wf_r(1, 1), z_norm )
+
+      do nw = 1, N_wlk
+         call phi_0_r(1,nw)%reset('r', wf_r(1,1)%P)
+      enddo
+      
+      deallocate(p0_tmp)
+
+   end subroutine trial_in_2slatD_hdf5
+
 #endif
 
    subroutine seed_vec_in(file_tg)

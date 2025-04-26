@@ -1093,17 +1093,18 @@
           zsni = zsni/dble(nc2)
           obs_scal(7)%obs_vec(1) = obs_scal(7)%obs_vec(1) + zsni*z_fac
 
-          nc = 0
-          do nf = 1, n_fl
-             do I = 1, ndim
-             do J = 1, ndim
-                nc = nc + 1
-                ztmp = grc(i, j, nf)
-                obs_scal(8)%obs_vec(nc) = obs_scal(8)%obs_vec(nc) + ztmp*z_fac
-             end do
-             end do
-          end do
-
+          !!nc = 0
+          !!do nf = 1, n_fl
+          !!   do I = 1, ndim
+          !!   do J = 1, ndim
+          !!      nc = nc + 1
+          !!      ztmp = grc(i, j, nf)
+          !!      obs_scal(8)%obs_vec(nc) = obs_scal(8)%obs_vec(nc) + ztmp*z_fac
+          !!   end do
+          !!   end do
+          !!end do
+          
+          if ( mod(i_grc,2) .eq. 0 ) then
           nc = 0
           do nf = 1, n_fl
              do I = 1, ndim
@@ -1112,10 +1113,27 @@
                 zone = cmplx(0.d0, 0.d0, kind(0.d0))
                 if (I .eq. J) zone = cmplx(1.d0, 0.d0, kind(0.d0))
                 ztmp = zone - gr_mix(J, I, nf)
-                obs_scal(9)%obs_vec(nc) = obs_scal(9)%obs_vec(nc) + ztmp*z_fac
+                obs_scal(8)%obs_vec(nc) = obs_scal(8)%obs_vec(nc) + ztmp*zw
              end do
              end do
           end do
+          endif
+
+          if ( mod(i_grc,2) .eq. 1 ) then
+          nc = 0
+          do nf = 1, n_fl
+             do I = 1, ndim
+             do J = 1, ndim
+                nc = nc + 1
+                zone = cmplx(0.d0, 0.d0, kind(0.d0))
+                if (I .eq. J) zone = cmplx(1.d0, 0.d0, kind(0.d0))
+                ztmp = zone - gr_mix(J, I, nf)
+                !!obs_scal(9)%obs_vec(nc) = obs_scal(9)%obs_vec(nc) + ztmp*z_fac
+                obs_scal(9)%obs_vec(nc) = obs_scal(9)%obs_vec(nc) + ztmp*zw
+             end do
+             end do
+          end do
+          endif
           
           nc = 0
           is = 1
