@@ -1231,12 +1231,16 @@
                     m1 = invlist_qah(j, no_j, 1)
                     n1 = invlist_qah(j, no_j, 2)
                     
-                    ztmp =   grc(i1,j1,1)*grc(m1,n1,1) + grc(i1,n1,1)*gr(j1,m1,1) &
-                        &  + grc(j1,i1,1)*grc(n1,m1,1) + grc(j1,m1,1)*gr(i1,n1,1) &
-                        &  - grc(i1,j1,1)*grc(n1,m1,1) - grc(i1,m1,1)*gr(j1,n1,1) & 
-                        &  - grc(j1,i1,1)*grc(m1,n1,1) - grc(j1,n1,1)*gr(i1,m1,1)  
-                    zqah =  zqah - ztmp
-                    nc1 = nc1 + 1
+                    if ( (m1 /= i1 .and. m1 /= j1) .and. (n1 /= i1 .and. n1 /= j1) ) then
+
+                        ztmp =   grc(i1,j1,1)*grc(m1,n1,1) + grc(i1,n1,1)*gr(j1,m1,1) &
+                            &  + grc(j1,i1,1)*grc(n1,m1,1) + grc(j1,m1,1)*gr(i1,n1,1) &
+                            &  - grc(i1,j1,1)*grc(n1,m1,1) - grc(i1,m1,1)*gr(j1,n1,1) & 
+                            &  - grc(j1,i1,1)*grc(m1,n1,1) - grc(j1,n1,1)*gr(i1,m1,1)  
+                        zqah =  zqah - ztmp
+
+                        nc1 = nc1 + 1
+                    endif
                 endif
 
              enddo
