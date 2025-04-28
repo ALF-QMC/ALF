@@ -216,7 +216,7 @@ def run_optimization_with_ninit(n_init, Lx, Ly, t1, t2p, V1, V2, Nelec, maxiter=
     interaction1 = V1 * np.sum(n_expect[bond_pairs1[:,0]] * n_expect[bond_pairs1[:,1]])
     interaction2 = V2 * np.sum(n_expect[bond_pairs2[:,0]] * n_expect[bond_pairs2[:,1]])
     const_term = (V1/4) * bond_pairs1.shape[0] + (V2/4) * bond_pairs2.shape[0]
-    energy = np.trace(H @ n_matrix).real - 0.5 * (interaction1 + interaction2) + const_term
+    energy = np.trace(H @ n_matrix).real - (interaction1 + interaction2) + const_term
 
     return n_final, energy, n_expect, slater_matrix 
 
