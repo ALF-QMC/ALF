@@ -364,6 +364,7 @@
         Complex (Kind=Kind(0.d0))  :: Ratio(2), Phase_old, Ratiotot,Phase_new, Z
         Complex (Kind=Kind(0.d0)), allocatable  :: Forces_old  (:,:)
         Real    (Kind=Kind(0.d0)), allocatable  :: Forces_0_old(:,:)
+        Integer,      allocatable :: Flip_list(:,:)
         
 
         select case (this%scheme) !(trim(this%Update_scheme))
@@ -587,6 +588,7 @@
            Allocate ( Phase_Det_new(N_FL_eff), Det_vec_new(NDIM,N_FL_eff))
            Allocate ( Phase_Det_old(N_FL_eff), Det_vec_old(NDIM,N_FL_eff))
            Allocate ( Forces_old(n1,n2)  , Forces_0_old(n1,n2) )
+           Allocate ( Flip_list(Size(nsigma%f,1),size(nsigma%f,2)) )
 
            storage = "Full"
            If ( .not. this%L_Forces) then
@@ -605,13 +607,16 @@
            forces_old   = this%Forces
            forces_0_old = this%Forces_0
            
+           call ham%Global_MALA_move(Flip_list)
          
            do n = 1, n1
               if (OP_V(n,1)%type == 3 ) then
                  do nt = 1, n2
-                    nsigma%f(n,nt)   = nsigma%f(n,nt)  -  ( this%Forces_0(n,nt) +  &
-                         &  real( Phase*this%Forces(n,nt),kind(0.d0)) / Real(Phase,kind(0.d0)) ) * this%Delta_t_Langevin_HMC + &
-                         &  sqrt( 2.d0 * this%Delta_t_Langevin_HMC) * rang_wrap()
+                    if ( flip_list(n,nt) == 1 ) then
+                       nsigma%f(n,nt)   = nsigma%f(n,nt)  -  ( this%Forces_0(n,nt) +  &
+                            &  real( Phase*this%Forces(n,nt),kind(0.d0)) / Real(Phase,kind(0.d0)) ) * this%Delta_t_Langevin_HMC + &
+                            &  sqrt( 2.d0 * this%Delta_t_Langevin_HMC) * rang_wrap()
+                    endif
                  enddo
               endif
            enddo
@@ -626,10 +631,12 @@
            do n = 1, n1
               if (OP_V(n,1)%type == 3 ) then
                  do nt = 1, n2
-                    t0_proposal_ratio = t0_proposal_ratio * &
-                      & exp(-0.25d0/this%Delta_t_Langevin_HMC * (Abs(nsigma_old%f(n,nt) - nsigma%f(n,nt) + &
-                      & this%Delta_t_Langevin_HMC*(this%forces_0(n,nt) +  real( Phase*this%forces(n,nt),kind(0.d0)) / Real(Phase,kind(0.d0))) )**2 -  &
-                      & Abs(nsigma%f(n,nt) - nsigma_old%f(n,nt) + this%Delta_t_Langevin_HMC*(forces_0_old(n,nt) + real( phase_old*forces_old(n,nt),kind(0.d0)) / Real(phase_old,kind(0.d0)))  )**2 ) )
+                    if ( flip_list(n,nt) == 1 ) then
+                       t0_proposal_ratio = t0_proposal_ratio * &
+                         & exp(-0.25d0/this%Delta_t_Langevin_HMC * (Abs(nsigma_old%f(n,nt) - nsigma%f(n,nt) + &
+                         & this%Delta_t_Langevin_HMC*(this%forces_0(n,nt) +  real( Phase*this%forces(n,nt),kind(0.d0)) / Real(Phase,kind(0.d0))) )**2 -  &
+                         & Abs(nsigma%f(n,nt) - nsigma_old%f(n,nt) + this%Delta_t_Langevin_HMC*(forces_0_old(n,nt) + real( phase_old*forces_old(n,nt),kind(0.d0)) / Real(phase_old,kind(0.d0)))  )**2 ) )
+                    endif
                  enddo
               endif
            enddo
@@ -657,9 +664,10 @@
 
            Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
 
-           deAllocate ( Phase_Det_new, Det_vec_new )
-           deAllocate ( Phase_Det_old, Det_vec_old )
-           deAllocate ( Forces_old   , Forces_0_old)
+           deallocate ( Phase_Det_new, Det_vec_new )
+           deallocate ( Phase_Det_old, Det_vec_old )
+           deallocate ( Forces_old   , Forces_0_old)
+           deallocate ( Flip_list )
 
         case default
            WRITE(error_unit,*) 'Unknown Global_update_scheme ', trim(this%Update_scheme) 
@@ -767,14 +775,15 @@
          !   WRITE(error_unit,*) 'HMC  step is not yet implemented'
          !   CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         elseif (MALA) then
-           !  Check that all  fields are of type 3
-           !  Check: Shouldn't have to be all type 3 --should be able to update discrete sequentially
            Nr = size(nsigma%f,1)
            Nt = size(nsigma%f,2)
            Do i = 1, Nr
               if ( nsigma%t(i) /= 3 ) then
-                 WRITE(error_unit,*) 'For the current MALA runs, all fields have to be of type 3'
-                 CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+                 write(output_unit,*)
+                 WRITE(output_unit,*) 'ATTENTION:    Not all fields are of type 3.'
+                 WRITE(output_unit,*) 'Fields that are not of type 3 will not be updated in MALA updates.'
+                 write(output_unit,*)
+                 exit
               endif
            enddo
            Allocate ( this%Forces(Nr,Nt),  this%Forces_0(Nr,Nt) )
