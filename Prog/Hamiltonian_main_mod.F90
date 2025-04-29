@@ -157,6 +157,7 @@
         procedure, nopass :: Delta_S0_global => Delta_S0_global_base
         procedure, nopass :: S0 => S0_base
         procedure, nopass :: Ham_Langevin_HMC_S0 => Ham_Langevin_HMC_S0_base
+        procedure, nopass :: Ham_Langevin_HMC_S0_single => Ham_Langevin_HMC_S0_single_base
         procedure, nopass :: weight_reconstruction => weight_reconstruction_base
         procedure, nopass :: GR_reconstruction => GR_reconstruction_base
         procedure, nopass :: GRT_reconstruction => GRT_reconstruction_base
@@ -742,6 +743,38 @@
             ! Johannes: I would actually like to terminate the code. I cannot come up with a scenario where Forces_0=0 is correct!
             
           end Subroutine Ham_Langevin_HMC_S0_base
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!>   Forces_0(n,nt)  = \partial S_0 / \partial s(n,nt)  are calculated and returned to  main program.
+!>
+!-------------------------------------------------------------------
+        Subroutine Ham_Langevin_HMC_S0_single_base(Force_0,n,nt)
+
+          Implicit none
+
+          Real (Kind=Kind(0.d0)), Intent(inout) :: Force_0
+          integer , intent(in) :: n, nt
+
+          logical, save                                      :: first_call=.True.
+
+          Force_0  = 0.d0
+
+          if (first_call) then
+             write(output_unit,*)
+             write(output_unit,*) "ATTENTION:     Base implementation of Ham_Langevin_HMC_S0_single is getting calling!"
+             write(output_unit,*) "This assumes trivial S0 action and is likely incorrect!"
+             write(output_unit,*) "Consider overwritting this routine according to the model in your Hamiltonian."
+             write(output_unit,*) "Suppressing further printouts of this message."
+             write(output_unit,*)
+             first_call=.False.
+          endif
+          ! Johannes: I would actually like to terminate the code. I cannot come up with a scenario where Forces_0=0 is correct!
+          
+        end Subroutine Ham_Langevin_HMC_S0_single_base
 
 
   !--------------------------------------------------------------------

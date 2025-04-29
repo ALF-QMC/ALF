@@ -109,12 +109,9 @@ Contains
     Complex (Kind=Kind(0.d0)) :: Prev_Ratiotot, HS_Field, HS_New
     Complex (Kind=Kind(0.d0)) :: force_old, force_new, phase_st, nsigma_st
     Real    (Kind=Kind(0.d0)) :: T0_proposal,  T0_Proposal_ratio,  S0_ratio
-    real    (kind=kind(0.d0)), allocatable :: forces_0(:,:)
     real    (kind=kind(0.d0)) :: pi = acos(-1.d0), force_0_old, force_0_new, weight
     Character (Len=64)        :: Mode
     Logical                   :: Acc, toggle1
-
-    if (Propose_Langevin) allocate( forces_0(size(nsigma%f,1),size(nsigma%f,2)))
 
     ! Wrap up, upgrade ntau1.  with B^{1}(tau1) 
     NTAU1 = NTAU + 1
@@ -145,8 +142,7 @@ Contains
        T0_Proposal_ratio = 1.D0
        if (Propose_Langevin .and. Op_V(n,nf)%type == 3) then
           force_old = calculate_force(n,ntau1,Gr)
-          Call ham%Ham_Langevin_HMC_S0( forces_0)
-          force_0_old = forces_0(n,ntau1)
+          Call ham%Ham_Langevin_HMC_S0_single( force_0_old,n, ntau1)
           HS_New =  nsigma%f(n,ntau1)  -  ( force_0_old +  &
               &  real( Phase*force_old,kind(0.d0)) / Real(Phase,kind(0.d0)) ) * Delta_t_Langevin_HMC + &
               &  sqrt( 2.d0 * Delta_t_Langevin_HMC) * rang_wrap()
@@ -174,8 +170,7 @@ Contains
                 Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),HS_Field,Ndim,N_Type,ntau1)
              enddo
 
-             Call ham%Ham_Langevin_HMC_S0( forces_0)
-             force_0_new = forces_0(n,ntau1)
+             Call ham%Ham_Langevin_HMC_S0_single( force_0_new,n,ntau1)
              force_new = calculate_force(n,ntau1,GR)
 
              t0_Proposal_ratio = exp(-0.25d0/Delta_t_Langevin_HMC * (Abs(nsigma_st - hs_new + &
@@ -215,8 +210,6 @@ Contains
           enddo
        endif
     Enddo
-
-    if (Propose_Langevin)  deallocate(forces_0)
 
     If ( N_Global_tau > 0 ) then 
        m         = Nt_sequential_end
@@ -264,13 +257,10 @@ Contains
     Complex (Kind=Kind(0.d0)) :: Prev_Ratiotot, HS_Field, HS_New
     Complex (Kind=Kind(0.d0)) :: force_old, force_new, phase_st, nsigma_st
     Real    (Kind=Kind(0.d0)) :: T0_proposal,  T0_Proposal_ratio,  S0_ratio
-    real    (kind=kind(0.d0)), allocatable :: forces_0(:,:)
     complex (kind=kind(0.d0)), allocatable :: Gr_tmp(:,:,:)
     real    (kind=kind(0.d0)) :: pi = acos(-1.d0), force_0_old, force_0_new, weight
     Character (Len=64)        :: Mode
     Logical                   :: Acc, toggle1
-
-    if (Propose_Langevin) allocate( forces_0(size(nsigma%f,1),size(nsigma%f,2)), gr_tmp(ndim,ndim,n_fl))
 
     If ( N_Global_tau > 0 ) then 
        m         = Size(OP_V,1)
@@ -306,8 +296,7 @@ Contains
        T0_Proposal_ratio = 1.D0
        if ( Propose_Langevin .and. Op_V(n,nf)%type == 3)  then
           force_old = calculate_force(n,ntau,Gr_st)
-          Call ham%Ham_Langevin_HMC_S0( forces_0)
-          force_0_old = forces_0(n,ntau)
+          Call ham%Ham_Langevin_HMC_S0_single( force_0_old, n,ntau)
           HS_New =  nsigma%f(n,ntau)  -  ( force_0_old +  &
             &  real( Phase*force_old,kind(0.d0)) / Real(Phase,kind(0.d0)) ) * Delta_t_Langevin_HMC + &
             &  sqrt( 2.d0 * Delta_t_Langevin_HMC) * rang_wrap()
@@ -336,8 +325,7 @@ Contains
                 Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),HS_Field,Ndim,N_Type,ntau)
              enddo
 
-             Call ham%Ham_Langevin_HMC_S0( forces_0)
-             force_0_new = forces_0(n,ntau)
+             Call ham%Ham_Langevin_HMC_S0_single( force_0_new,n,ntau)
              force_new = calculate_force(n,ntau,GR)
 
              t0_Proposal_ratio = exp(-0.25d0/Delta_t_Langevin_HMC * (Abs(nsigma_st - hs_new + &
@@ -385,8 +373,6 @@ Contains
        Call Hop_mod_mmthl   (GR(:,:,nf), nf,ntau)
        Call Hop_mod_mmthr_m1(GR(:,:,nf), nf,ntau)
     enddo
-
-    if (Propose_Langevin)  deallocate(forces_0,gr_tmp)
     
   end SUBROUTINE WRAPGRDO
   
@@ -624,19 +610,17 @@ Contains
 
     ! Space for local variables
     Integer                   :: n, Flip_length, nf, nf_eff, N_Type, ng_c, Flip_count
-    Real    (Kind=Kind(0.d0)) :: T0_Proposal_ratio, T0_proposal,S0_ratio
+    Real    (Kind=Kind(0.d0)) :: T0_Proposal_ratio, T0_proposal,S0_ratio, force_0
     COMPLEX (Kind=Kind(0.d0)) :: Prev_Ratiotot, HS_Field, HS_New, Phase_st
     Logical                   :: Acc
     Character (Len=64)        :: Mode
     Integer,      allocatable :: Flip_list(:)
     Complex (Kind=Kind(0.d0)), allocatable :: Flip_value(:), Flip_value_st(:), forces_old(:), forces_new(:)
     Real    (Kind=Kind(0.d0)) :: Zero = 10D-8, weight
-    real    (kind=kind(0.d0)), allocatable :: Forces_0_old(:), Forces_0_new(:), forces_0(:,:)
+    real    (kind=kind(0.d0)), allocatable :: Forces_0_old(:), Forces_0_new(:)
 
     Allocate ( Flip_list(Size(Op_V,1)), Flip_value(Size(Op_V,1)), Flip_value_st(Size(Op_V,1)) )
     Allocate ( Forces_old(Size(Op_V,1)), Forces_new(Size(Op_V,1)), Forces_0_old(Size(Op_V,1)), Forces_0_new(Size(Op_V,1)))
-    allocate( forces_0(size(nsigma%f,1),size(nsigma%f,2)))
-
 
     Do ng_c = 1,N_global_Langevin_tau
        Phase_st = Phase
@@ -650,7 +634,6 @@ Contains
        Enddo
        !Write(6,*) "-----", Flip_length
        !Calculate forces with current nsigma
-       call ham%ham_langevin_HMC_S0( forces_0)
        do Flip_count = 1,Flip_length
           n = Flip_list(Flip_count)
           !Write(6,*)  "PlaceGR",  m, n-1,ntau
@@ -658,7 +641,8 @@ Contains
           !Write(6,*)  "Back from PlaceGR",  m, n-1,ntau
           If ( Flip_count == 1 ) GR_st = Gr
           forces_old(Flip_count)   = calculate_force(n,ntau,GR)
-          forces_0_old(Flip_count) = forces_0(n,ntau)
+          call ham%Ham_Langevin_HMC_S0_single (force_0,n,ntau)
+          forces_0_old(Flip_count) = force_0
           flip_value(Flip_count) = nsigma%f(n,ntau) - ( forces_0_old(flip_count) +  &
             &  real( Phase*forces_old(flip_count),kind(0.d0)) / Real(Phase,kind(0.d0)) ) * Delta_t_Langevin_HMC + &
             &  sqrt( 2.d0 * Delta_t_Langevin_HMC) * rang_wrap()
@@ -695,14 +679,14 @@ Contains
 
        !Calculate forces with new nsigma
        t0_proposal_ratio = 1.d0
-       call ham%ham_langevin_HMC_S0( forces_0)
        do Flip_count = 1, Flip_length
           n = Flip_list(Flip_count)
           !Write(6,*)  "PlaceGR",  m, n-1,ntau
           Call Wrapgr_PlaceGR(GR,m, n, ntau)
           !Write(6,*)  "Back from PlaceGR",  m, n-1,ntau
           forces_new(Flip_count)   = calculate_force(n,ntau,GR)
-          forces_0_new(Flip_count) = forces_0(n,ntau)
+          call ham%Ham_Langevin_HMC_S0_single (force_0,n,ntau)
+          forces_0_new(Flip_count) = force_0
           t0_Proposal_ratio = t0_proposal_ratio * exp(-0.25d0/Delta_t_Langevin_HMC * ( &
               & Abs(Flip_value_st(Flip_count) - Flip_value(Flip_count) + Delta_t_Langevin_HMC*(forces_0_new(Flip_count) + &
               & real( Phase*forces_new(Flip_count),kind(0.d0))    / Real(Phase,kind(0.d0)))     )**2 -  &
