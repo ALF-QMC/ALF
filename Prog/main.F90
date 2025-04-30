@@ -183,8 +183,6 @@ Program Main
         Integer :: N_Global_tau, N_Global_tau_MALA
         Logical :: Sequential
         real (Kind=Kind(0.d0)) ::  Amplitude  !    Needed for  update of  type  3  and  4  fields.
-        Integer,   allocatable :: Flip_list(:)
-        integer :: Flip_length, flip_count
 
 #ifdef HDF5
         INTEGER(HID_T) :: file_id
@@ -496,19 +494,16 @@ Program Main
               LOBS_EN =  Ltrot
            endif
         endif
-        if ( Global_tau_MALA_moves ) then
-           N_Global_tau        = 0
+        if ( .not. Global_tau_moves      ) N_Global_tau      = 0
+        if ( .not. Global_tau_MALA_moves ) N_Global_tau_MALA = 0
+        if ( Global_tau_moves .or. Global_tau_MALA_moves ) then
+           !  Gives the possibility to set parameters in the Hamiltonian file
+           Call ham%Overide_global_tau_sampling_parameters(Nt_sequential_start,Nt_sequential_end, &
+                           &     N_Global_tau,N_Global_tau_MALA)
         else
-           N_Global_tau_MALA = 0
-        If ( .not. Global_tau_moves )  then
            ! This  corresponds to the default updating scheme
            Nt_sequential_start = 1
            Nt_sequential_end   = Size(OP_V,1)
-           N_Global_tau        = 0
-        else
-           !  Gives the possibility to set parameters in the Hamiltonian file
-           Call ham%Overide_global_tau_sampling_parameters(Nt_sequential_start,Nt_sequential_end,N_Global_tau)
-        endif
         endif
         
         call nsigma%make(N_op, Ltrot)
@@ -648,13 +643,6 @@ Program Main
            write(output_unit,*) "Sequential is set to .False. ."
         endif
 
-        if ( Global_tau_moves .and. Global_tau_MALA_moves) then
-           write(output_unit,*) "Warning: Global_tau_moves = .True. and Global_tau_MALA_moves = .True."
-           write(output_unit,*) "in the parameter file. If both Global tau updates and global Langevin tau"
-           write(output_unit,*) "are .True., Global_tau_moves will be overwritten."
-           Global_tau_moves = .false.
-        endif
-
         if ( .not. Sequential .and. .not. HMC .and. .not. Langevin .and. .not. Global_moves .and. .not. MALA) then
          write(output_unit,*) "Warning: no updates will occur as Sequential, HMC, Langevin, MALA, and"
          write(output_unit,*) "Global_moves are all .False. in the parameter file."
@@ -664,28 +652,17 @@ Program Main
          write(output_unit,*) "Warning: Nt_sequential_end is smaller than Nt_sequential_start"
         endif
 
-        if ( Propose_MALA ) then
+        if ( Propose_MALA .or. Global_tau_MALA_moves) then
          Do n = 1,N_op
           if ( nsigma%t(n) /= 3 ) then
-           write(output_unit,*) "Warning: Propose_MALA only works for type 3 fields."
-           write(output_unit,*) "Overwriting Propose_MALA=.True. from parameter files for fields that are not type 3."
+             write(output_unit,*)
+             WRITE(output_unit,*) 'Warning:    Not all fields are of type 3.'
+             WRITE(output_unit,*) 'Fields that are not of type 3 will not be updated in MALA updates.'
+             write(output_unit,*)
+             exit
            exit
           endif
          enddo
-        endif
-      
-        if (Global_tau_MALA_moves ) then
-           allocate(Flip_list(size(nsigma%t,1)))
-           do ntau = 1, Ltrot
-              call ham%Global_Langevin_move_tau(Flip_list, Flip_length,ntau )
-              do flip_count = 1, Flip_length
-                 if ( nsigma%t(flip_list(flip_count)) /= 3) then
-                    WRITE(error_unit,*) 'For the Global Langevin tau updated, all fields defined in the Hamiltonian file have to be of type 3'
-                    CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
-                 endif
-              enddo
-           enddo
-           deallocate(Flip_list)
         endif
 
 #if defined(TEMPERING)

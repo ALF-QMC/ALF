@@ -780,7 +780,7 @@
            Do i = 1, Nr
               if ( nsigma%t(i) /= 3 ) then
                  write(output_unit,*)
-                 WRITE(output_unit,*) 'ATTENTION:    Not all fields are of type 3.'
+                 WRITE(output_unit,*) 'Warning:    Not all fields are of type 3.'
                  WRITE(output_unit,*) 'Fields that are not of type 3 will not be updated in MALA updates.'
                  write(output_unit,*)
                  exit

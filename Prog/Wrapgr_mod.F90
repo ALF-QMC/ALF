@@ -212,19 +212,16 @@ Contains
        endif
     Enddo
 
+    m         = Nt_sequential_end
     If ( N_Global_tau > 0 ) then 
-       m         = Nt_sequential_end
        !if ( Nt_sequential_start >  Nt_sequential_end ) m = Nt_sequential_start
        Call Wrapgr_Random_update(GR,m,ntau1, PHASE, N_Global_tau )
-       Call Wrapgr_PlaceGR(GR,m, Size(OP_V,1), ntau1)
     Endif
-
     If ( N_Global_tau_MALA > 0 ) then
-       m         = Nt_sequential_end
        !if ( Nt_sequential_start >  Nt_sequential_end ) m = Nt_sequential_start
        Call Wrapgr_Langevin_update(GR,m,ntau1, PHASE, N_Global_tau_MALA, Delta_t_MALA_global_tau )
-       Call Wrapgr_PlaceGR(GR,m, Size(OP_V,1), ntau1)
     Endif
+    if ( N_Global_tau > 0 .or. N_Global_tau_MALA > 0 ) Call Wrapgr_PlaceGR(GR,m, Size(OP_V,1), ntau1)
 
   END SUBROUTINE WRAPGRUP
 
@@ -264,19 +261,17 @@ Contains
     Character (Len=64)        :: Mode
     Logical                   :: Acc, toggle1
 
+    m         = Size(OP_V,1)
     If ( N_Global_tau > 0 ) then 
-       m         = Size(OP_V,1)
        !Write(6,*) 'Call Ran_up ', m,ntau
        Call Wrapgr_Random_update(GR,m,ntau, PHASE, N_Global_tau )
-       Call Wrapgr_PlaceGR(GR,m, Nt_sequential_end, ntau)
     Endif
 
     If ( N_Global_tau_MALA > 0 ) then
-       m         = Size(OP_V,1)
        !Write(6,*) 'Call Ran_up ', m,ntau
        Call Wrapgr_Langevin_update(GR,m,ntau, PHASE, N_Global_tau_MALA, Delta_t_MALA_global_tau )
-       Call Wrapgr_PlaceGR(GR,m, Nt_sequential_end, ntau)
     Endif
+    if ( N_Global_tau > 0 .or. N_Global_tau_MALA > 0 ) Call Wrapgr_PlaceGR(GR,m, Nt_sequential_end, ntau)
 
     
     Do n =  Nt_sequential_end, Nt_sequential_start, -1
