@@ -601,7 +601,7 @@ contains
           if ( isort .eq. 0 ) then
             phi_0_l(1,1)%U(:,:) = phi0_in(:,:)
           else
-            phi_0_l(1,1)%U(:,:) = phi0_in(site_map,:)
+            phi_0_l(1,1)%U(:,:) = phi0_in(site_map_d,:)
           endif
           phi_0_l(1,1)%D = cmplx(1.d0,0.d0,kind(0.d0))
           call phi_0_l(1, 1)%decompose
