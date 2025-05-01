@@ -33,6 +33,10 @@ def main():
 
             V1, V2 = parse_v1_v2(group_name)
             diff = np.mean((target_density - n_mean) ** 2)
+            if (target_density[0] <= 0.50):
+                n_tmp = np.array(group["n_mean"])
+                n_swap = n_tmp[..., ::-1]
+                n_mean = n_swap.reshape(-1)
 
             V1_list.append(V1)
             V2_list.append(V2)
@@ -119,4 +123,3 @@ def plot_loss(V1_list, V2_list, loss_list):
 
 if __name__ == "__main__":
     main()
-

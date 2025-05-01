@@ -42,15 +42,15 @@ def merge_h5_files(tmp_dir, final_file):
 def get_index(ix, iy, sublattice, Lx, Ly):
     return 2 * (ix * Ly + iy) + sublattice
 
-def build_checkerboard_neighbors(Lx, Ly, t1=1.0, t2p=0.2, pbc=True):
+def build_checkerboard_neighbors(Lx, Ly, t1=1.0, t2p=0.2, pbc_x=True, pbc_y=True):
     rows, cols, values = [], [], []
     for ix in range(Lx):
         for iy in range(Ly):
             jb = get_index(ix, iy, 1, Lx, Ly)
             offsets = [(0, 0), (0, 1), (1, 0), (1, 1)]
             for dx, dy in offsets:
-                ia_x = (ix + dx) % Lx if pbc else ix + dx
-                ia_y = (iy + dy) % Ly if pbc else iy + dy
+                ia_x = (ix + dx) % Lx if pbc_x else ix + dx
+                ia_y = (iy + dy) % Ly if pbc_y else iy + dy
                 if 0 <= ia_x < Lx and 0 <= ia_y < Ly:
                     ia = get_index(ia_x, ia_y, 0, Lx, Ly)
                     rows += [ia, jb]
@@ -59,8 +59,8 @@ def build_checkerboard_neighbors(Lx, Ly, t1=1.0, t2p=0.2, pbc=True):
     for ix in range(Lx):
         for iy in range(Ly):
             for dx, dy, sign in [(1, 0, 1.0), (0, 1, -1.0)]:
-                ix2 = (ix + dx) % Lx if pbc else ix + dx
-                iy2 = (iy + dy) % Ly if pbc else iy + dy
+                ix2 = (ix + dx) % Lx if pbc_x else ix + dx
+                iy2 = (iy + dy) % Ly if pbc_y else iy + dy
                 if 0 <= ix2 < Lx and 0 <= iy2 < Ly:
                     for s in [0, 1]:
                         i1 = get_index(ix, iy, s, Lx, Ly)
@@ -71,27 +71,27 @@ def build_checkerboard_neighbors(Lx, Ly, t1=1.0, t2p=0.2, pbc=True):
                         values += [-factor * t2p, -factor * t2p]
     return np.array(rows), np.array(cols), np.array(values)
 
-def build_bond_mapping(Lx, Ly, pbc=True):
+def build_bond_mapping(Lx, Ly, pbc_x=True, pbc_y=True):
     bond_list = []
     for ix in range(Lx):
         for iy in range(Ly):
             jb = get_index(ix, iy, 1, Lx, Ly)
             offsets = [(0, 0), (0, 1), (1, 0), (1, 1)]
             for dx, dy in offsets:
-                ia_x = (ix + dx) % Lx if pbc else ix + dx
-                ia_y = (iy + dy) % Ly if pbc else iy + dy
+                ia_x = (ix + dx) % Lx if pbc_x else ix + dx
+                ia_y = (iy + dy) % Ly if pbc_y else iy + dy
                 if 0 <= ia_x < Lx and 0 <= ia_y < Ly:
                     ia = get_index(ia_x, ia_y, 0, Lx, Ly)
                     bond_list.append((ia, jb))
     return np.array(bond_list, dtype=np.int32)
 
-def build_bond_mapping_v2(Lx, Ly, pbc=True):
+def build_bond_mapping_v2(Lx, Ly, pbc_x=True, pbc_y=True):
     bond_list = []
     for ix in range(Lx):
         for iy in range(Ly):
             for dx, dy in [(1, 0), (0, 1)]:
-                ix2 = (ix + dx) % Lx if pbc else ix + dx
-                iy2 = (iy + dy) % Ly if pbc else iy + dy
+                ix2 = (ix + dx) % Lx if pbc_x else ix + dx
+                iy2 = (iy + dy) % Ly if pbc_y else iy + dy
                 if 0 <= ix2 < Lx and 0 <= iy2 < Ly:
                     ia1 = get_index(ix, iy, 0, Lx, Ly)
                     ia2 = get_index(ix2, iy2, 0, Lx, Ly)
@@ -101,17 +101,6 @@ def build_bond_mapping_v2(Lx, Ly, pbc=True):
                     ib2 = get_index(ix2, iy2, 1, Lx, Ly)
                     bond_list.append((ib1, ib2))
     return np.array(bond_list, dtype=np.int32)
-
-#def build_hamiltonian(n_expect, rows, cols, values, bond_pairs1, bond_pairs2, V1, V2, Nsite):
-#    H = np.zeros((Nsite, Nsite))
-#    H[rows, cols] = values
-#    for ia, ib in bond_pairs1:
-#        H[ia, ia] += V1 * n_expect[ib] - V1 * 0.5
-#        H[ib, ib] += V1 * n_expect[ia] - V1 * 0.5
-#    for i1, i2 in bond_pairs2:
-#        H[i1, i1] += V2 * n_expect[i2] - V2 * 0.5
-#        H[i2, i2] += V2 * n_expect[i1] - V2 * 0.5
-#    return H
 
 def build_hamiltonian(n_expect, rows, cols, values, bond_pairs1, bond_pairs2, V1, V2, Nsite, Lx, Ly, h_pin=1e-5):
     H = np.zeros((Nsite, Nsite))
@@ -192,11 +181,12 @@ def generate_initial_state(state_type, Lx, Ly, rng, amp_params=(0.3,0.7), noise_
     n_init = np.clip(n_init + noise, 0.0, 1.0)
     return n_init
 
-def run_optimization_with_ninit(n_init, Lx, Ly, t1, t2p, V1, V2, Nelec, maxiter=500, pbc=True, alpha=0.5):
+def run_optimization_with_ninit(n_init, Lx, Ly, t1, t2p, V1, V2, Nelec, \
+        maxiter=500, pbc_x=False, pbc_y=True, alpha=0.5):
     Nsite = int(2 * Lx * Ly)
-    bond_pairs1 = build_bond_mapping(Lx, Ly, pbc)
-    bond_pairs2 = build_bond_mapping_v2(Lx, Ly, pbc)
-    rows, cols, values = build_checkerboard_neighbors(Lx, Ly, t1, t2p, pbc)
+    bond_pairs1 = build_bond_mapping(Lx, Ly, pbc_x, pbc_y)
+    bond_pairs2 = build_bond_mapping_v2(Lx, Ly, pbc_x, pbc_y)
+    rows, cols, values = build_checkerboard_neighbors(Lx, Ly, t1, t2p, pbc_x, pbc_y)
 
     n_expect = n_init
     for i in range(maxiter):
@@ -294,11 +284,14 @@ if __name__ == "__main__":
     parser.add_argument("--nproc", type=int, default=2, help="Number of processes")
     args = parser.parse_args()
 
-    Lx, Ly = 4, 4
-    params_base = dict(t1=1.0, t2p=0.5, Nelec=16, maxiter=500, pbc=True)
+    Lx, Ly = 6, 6
+    params_base = dict(t1=1.0, t2p=0.5, Nelec=36, maxiter=500, pbc_x=False, pbc_y=True)
 
-    V1_list = np.linspace(0.1, 2, 10)
+    V1_list = np.linspace(0.01, 2, 400)
     V2_list = [0.00]
+    #V2_list = np.linspace(0.01, 2, 40)
+    #V2_list = np.linspace(0.01, 2, 200)
+    #V2_list = np.linspace(0.01, 2, 200)
 
     initial_state_configs = [
         ("y-stripe",  [(0.3, 0.7),(0.4,0.6)]),
@@ -308,7 +301,7 @@ if __name__ == "__main__":
         ("random",   [])
     ]
 
-    num_random_trials = 5
+    num_random_trials = 20
     random_keys = [get_random_key(seed=100 + i*32148975167) for i in range(num_random_trials)]
 
     os.makedirs(TMP_DIR, exist_ok=True)
