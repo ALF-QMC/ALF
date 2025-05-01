@@ -204,7 +204,7 @@
           implicit none
 
           integer :: i, j, i1, no, a0, a1, a2, b0, b1, b2, k, k1, k2, ntype, j1, ndim_p
-          integer :: ix, iy, nx, ny, nc, nc1, n, ly, ry
+          integer :: ix, iy, nx, ny, nc, nc1, n, ly, ry, i0, i2
           integer :: no_tmp, no1_tmp, I_nn1
           real(kind=kind(0.d0)) :: pi = acos(-1.d0)
           character(len=64) :: Lattice_type_2d
@@ -467,6 +467,31 @@
              invlist_bnds(I ,no, 2) = J1
              invlist_bnds(I ,no, 3) = nc
 
+          enddo
+          
+          !!====================!!
+          !! site map
+          !!====================!!
+          allocate(site_map_d(ndim))
+          i0 = 1
+          nc = 0
+          do i2 = 1, L2
+          do i1 = 1, L1
+            
+             no_tmp  = (i2-1)*2+1
+             no1_tmp = (i2-1)*2+2
+
+             k1 = invlist(i0, no_tmp )
+             k2 = invlist(i0, no1_tmp)
+             
+             nc = nc + 1
+             site_map_d(nc) = k1
+             
+             nc = nc + 1
+             site_map_d(nc) = k2
+             
+             i0 = latt%nnlist(i0,1,0)
+          enddo
           enddo
 
        end subroutine Ham_Latt
@@ -1029,7 +1054,7 @@
           character(len=:), allocatable ::  Channel
 
           ! Scalar observables
-          allocate (obs_scal(9))
+          allocate (obs_scal(10))
           do I = 1, size(obs_scal, 1)
              select case (I)
              case (1)
@@ -1050,6 +1075,8 @@
                 N = ndim*ndim*n_fl; Filename = "grc"
              case (9)
                 N = ndim*ndim*n_fl; Filename = "mixgrc"
+             case (10)
+                N = ndim*n_fl; Filename = "ndeni"
              case default
                 write (6, *) ' Error in Alloc_obs '
              end select
@@ -1134,7 +1161,7 @@
           complex(Kind=kind(0.d0)) :: grc(Ndim, Ndim, N_FL), ZK, zone, ztmp, z_ol, zero, ztmp1, ztmp2, ztmp3, ztmp4
           complex(Kind=kind(0.d0)) :: Zrho, Zkin, ZPot, Z, zqah, zbnds, zsni, zback, zw, z_fac, z1j, zn, zv1, zv2, ztmp5
           integer :: I, J, k, l, m, n, imj, nf, i1, j1, no_I, no_J, nc, i3, j3, m2, n2, m3, n3, no_min, no_max, nb_r
-          integer :: i2, j2, lly, dlly, nb, i0, j0, m1, n1, nb_qah, ipx, jpx, ipy, jpy, nc1, nc2, lmax, lmin
+          integer :: i2, j2, lly, dlly, nb, i0, j0, m1, n1, nb_qah, ipx, jpx, ipy, jpy, nc1, nc2, lmax, lmin, is
           real(Kind=kind(0.d0)) :: X, rsgn
 
           Z_ol = exp(overlap(i_grc))/sum_o
@@ -1325,6 +1352,31 @@
                 if (I .eq. J) zone = cmplx(1.d0, 0.d0, kind(0.d0))
                 ztmp = zone - gr_mix(J, I, nf)
                 obs_scal(9)%obs_vec(nc) = obs_scal(9)%obs_vec(nc) + ztmp*z_fac
+             end do
+             end do
+          end do
+          
+          nc = 0
+          is = 1
+          do nf = 1, n_fl
+             do i2 = 1, L2
+             do i1 = 1, L1
+
+                no_i = (i2-1)*2+1
+                no_j = (i2-1)*2+2 
+
+                nc = nc + 1
+                n1 = invlist(is, no_i)
+                ztmp = cmplx(1.d0, 0.d0, kind(0.d0)) - gr(n1, n1, nf)
+                obs_scal(10)%obs_vec(nc) = obs_scal(10)%obs_vec(nc) + ztmp*z_fac
+                
+                nc = nc + 1
+                n1 = invlist(is, no_j)
+                ztmp = cmplx(1.d0, 0.d0, kind(0.d0)) - gr(n1, n1, nf)
+                obs_scal(10)%obs_vec(nc) = obs_scal(10)%obs_vec(nc) + ztmp*z_fac
+
+                !! i -> i+x
+                is = latt%nnlist(is, 1, 0)
              end do
              end do
           end do

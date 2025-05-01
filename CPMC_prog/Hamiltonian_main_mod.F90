@@ -151,7 +151,7 @@ module Hamiltonian_main
    complex(Kind=kind(0.d0)), dimension(:), allocatable, public :: weight_k
    complex(Kind=kind(0.d0)), dimension(:), allocatable, public :: overlap
    
-   integer, dimension(:), allocatable, public :: site_map
+   integer, dimension(:), allocatable, public :: site_map_d
 
    !>    Privat Observables
    type(Obser_Vec),  dimension(:), allocatable :: obs_scal

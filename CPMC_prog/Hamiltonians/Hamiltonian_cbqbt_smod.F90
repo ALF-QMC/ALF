@@ -304,7 +304,7 @@
           !!====================!!
           !! site map
           !!====================!!
-          allocate(site_map(ndim))
+          allocate(site_map_d(ndim))
           i0 = 1
           nc = 0
           do i1 = 1, L1
@@ -313,10 +313,10 @@
              k2 = invlist(i0, 2)
              
              nc = nc + 1
-             site_map(nc) = k1
+             site_map_d(nc) = k1
              
              nc = nc + 1
-             site_map(nc) = k2
+             site_map_d(nc) = k2
              
              i0 = latt%nnlist(i0,0,1)
           enddo
