@@ -32,11 +32,11 @@ def main():
             n_mean = np.array(group["n_mean"]).reshape(-1)
 
             V1, V2 = parse_v1_v2(group_name)
-            diff = np.mean((target_density - n_mean) ** 2)
             if (target_density[0] <= 0.50):
                 n_tmp = np.array(group["n_mean"])
                 n_swap = n_tmp[..., ::-1]
                 n_mean = n_swap.reshape(-1)
+            diff = np.mean((target_density - n_mean) ** 2)
 
             V1_list.append(V1)
             V2_list.append(V2)
