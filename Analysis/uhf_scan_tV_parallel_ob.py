@@ -262,7 +262,8 @@ def worker_task(args):
             n_init = generate_initial_state(state_type, Lx, Ly, key, amp_params=amp if amp else (0.3,0.7))
             n_mean, energy, n_expect, slater = run_optimization_with_ninit(
                 n_init, Lx, Ly, t1=params_base['t1'], t2p=params_base['t2p'],
-                V1=v1, V2=v2, Nelec=params_base['Nelec'], maxiter=params_base['maxiter'], pbc=params_base['pbc']
+                V1=v1, V2=v2, Nelec=params_base['Nelec'], maxiter=params_base['maxiter'], 
+                pbc_x=params_base['pbc_x'], pbc_y=params_base['pbc_y']
             )
             if energy < best_energy:
                 best_energy = energy
@@ -284,11 +285,12 @@ if __name__ == "__main__":
     parser.add_argument("--nproc", type=int, default=2, help="Number of processes")
     args = parser.parse_args()
 
-    Lx, Ly = 6, 6
-    params_base = dict(t1=1.0, t2p=0.5, Nelec=36, maxiter=500, pbc_x=False, pbc_y=True)
+    Lx, Ly = 4, 4
+    params_base = dict(t1=1.0, t2p=0.5, Nelec=16, maxiter=10000, pbc_x=False, pbc_y=True)
 
     V1_list = np.linspace(0.01, 2, 400)
     V2_list = [0.00]
+    V1_list = [0.00]
     #V2_list = np.linspace(0.01, 2, 40)
     #V2_list = np.linspace(0.01, 2, 200)
     #V2_list = np.linspace(0.01, 2, 200)
@@ -301,7 +303,7 @@ if __name__ == "__main__":
         ("random",   [])
     ]
 
-    num_random_trials = 20
+    num_random_trials = 1
     random_keys = [get_random_key(seed=100 + i*32148975167) for i in range(num_random_trials)]
 
     os.makedirs(TMP_DIR, exist_ok=True)
