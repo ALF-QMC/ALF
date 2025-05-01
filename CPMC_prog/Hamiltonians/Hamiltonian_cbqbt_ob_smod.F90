@@ -475,14 +475,14 @@
           allocate(site_map_d(ndim))
           i0 = 1
           nc = 0
-          do i2 = 1, L2
+          do i2 = L2, 1, -1
           do i1 = 1, L1
             
-             no_tmp  = (i2-1)*2+1
-             no1_tmp = (i2-1)*2+2
+             no_tmp  = (i2-1)*2+2
+             no1_tmp = (i2-1)*2+1
 
              k1 = invlist(i0, no_tmp )
-             k2 = invlist(i0, no1_tmp)
+             k2 = invlist(latt%nnlist(i0,1,0), no1_tmp)
              
              nc = nc + 1
              site_map_d(nc) = k1
@@ -1359,11 +1359,11 @@
           nc = 0
           is = 1
           do nf = 1, n_fl
-             do i2 = 1, L2
+             do i2 = L2, 1, -1
              do i1 = 1, L1
 
-                no_i = (i2-1)*2+1
-                no_j = (i2-1)*2+2 
+                no_i  = (i2-1)*2+2
+                no_j = (i2-1)*2+1
 
                 nc = nc + 1
                 n1 = invlist(is, no_i)
@@ -1371,7 +1371,7 @@
                 obs_scal(10)%obs_vec(nc) = obs_scal(10)%obs_vec(nc) + ztmp*z_fac
                 
                 nc = nc + 1
-                n1 = invlist(is, no_j)
+                n1 = invlist(latt%nnlist(is,1,0), no_j)
                 ztmp = cmplx(1.d0, 0.d0, kind(0.d0)) - gr(n1, n1, nf)
                 obs_scal(10)%obs_vec(nc) = obs_scal(10)%obs_vec(nc) + ztmp*z_fac
 
