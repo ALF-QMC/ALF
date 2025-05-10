@@ -850,7 +850,7 @@
           character(len=:), allocatable ::  Channel
 
           ! Scalar observables
-          allocate (obs_scal(10))
+          allocate (obs_scal(11))
           do I = 1, size(obs_scal, 1)
              select case (I)
              case (1)
@@ -873,6 +873,8 @@
                 N = ndim*ndim*n_fl; Filename = "mixgrc"
              case (10)
                 N = ndim*n_fl; Filename = "ndeni"
+             case (11)
+                N = 1; Filename = "e0mix"
              case default
                 write (6, *) ' Error in Alloc_obs '
              end select
@@ -955,6 +957,7 @@
 
           !Local
           complex(Kind=kind(0.d0)) :: grc(Ndim, Ndim, N_FL), ZK, zone, ztmp, z_ol, zero, ztmp1, ztmp2, ztmp3, ztmp4
+          complex(Kind=kind(0.d0)) :: grc_mix(Ndim, Ndim, N_FL)
           complex(Kind=kind(0.d0)) :: Zrho, Zkin, ZPot, Z, zqah, zbnds, zsni, zback, zw, z_fac, z1j, zn, zv1, zv2, ztmp5
           integer :: I, J, k, l, m, n, imj, nf, i1, j1, no_I, no_J, nc, i3, j3, m2, n2, m3, n3, nb_r
           integer :: i2, j2, lly, dlly, nb, i0, j0, m1, n1, nb_qah, ipx, jpx, ipy, jpy, nc1, nc2, is, js
@@ -963,20 +966,22 @@
           Z_ol = exp(overlap(i_grc))/sum_o
           ZW = cmplx(re_w, 0.d0, kind(0.d0))/sum_w
           Z_fac = Z_ol*ZW
-
+            
           do nf = 1, N_FL
              do I = 1, Ndim
                 do J = 1, Ndim
                    grc(I, J, nf) = -gr(J, I, nf)
+                   grc_mix(i, j, nf) = -gr_mix(j, i, nf)
                 end do
                 grc(I, I, nf) = 1.d0 + grc(I, I, nf)
+                grc_mix(i, i, nf) = 1.d0 + grc_mix(i, i, nf)
              end do
           end do
           ! GRC(i,j,nf) = < c^{dagger}_{i,nf } c_{j,nf } >
 
-          Zkin = cmplx(0.d0, 0.d0, kind(0.d0))
+          zkin = cmplx(0.d0, 0.d0, kind(0.d0))
           call Predefined_Hoppings_Compute_Kin(Hopping_Matrix, List, Invlist, Latt, Latt_unit, GRC, ZKin)
-          Zkin = Zkin*dble(N_SUN)
+          zkin = Zkin*dble(N_SUN)
           Obs_scal(1)%Obs_vec(1) = Obs_scal(1)%Obs_vec(1) + Zkin*Z_fac
 
           zn = cmplx(dble(N_sun), 0.d0, kind(0.d0))
@@ -1020,6 +1025,46 @@
           obs_scal(3)%obs_vec(1) = obs_scal(3)%obs_vec(1) + zrho*z_fac
 
           obs_scal(4)%obs_vec(1) = obs_scal(4)%obs_vec(1) + (zkin + zpot)*z_fac
+
+          !!----------------------------------------------!!
+          !! mix energy
+          !!----------------------------------------------!!
+          zkin = cmplx(0.d0, 0.d0, kind(0.d0))
+          call Predefined_Hoppings_Compute_Kin(Hopping_Matrix, List, Invlist, Latt, Latt_unit, grc_mix, zkin)
+          
+          zn = cmplx(dble(n_sun), 0.d0, kind(0.d0))
+          zpot = cmplx(0.d0, 0.d0, kind(0.d0))
+          zv1 = cmplx(0.d0, 0.d0, kind(0.d0))
+          zv2 = cmplx(0.d0, 0.d0, kind(0.d0))
+
+          do nf = 1, N_FL
+             lly = size(bond_map_v1, 1)
+             do nb_r = 1, lly
+                nb = bond_map_v1(nb_r)
+                do nc = 1, l_bond(nb)
+                   I1 = bond_list(nb, nc, 2)
+                   J1 = bond_list(nb, nc, 3)
+                   zv1 = zv1 + (grc_mix(I1, I1, nf)*grc_mix(J1, J1, nf) + & 
+                       & grc_mix(I1, J1, nf)*gr_mix(I1, J1, nf)) - &
+                       & 0.5d0*(grc_mix(I1, I1, nf) + grc_mix(J1, J1, nf)) + 0.25d0
+                end do
+             end do
+
+             lly = size(bond_map_v2, 1)
+             do nb_r = 1, lly
+                nb = bond_map_v2(nb_r)
+                do nc = 1, l_bond(nb)
+                   I1 = bond_list(nb, nc, 2)
+                   J1 = bond_list(nb, nc, 3)
+                   zv2 = zv2 + (grc_mix(I1, I1, nf)*grc_mix(J1, J1, nf) + &
+                       & grc_mix(I1, J1, nf)*gr_mix(I1, J1, nf)) - &
+                       & 0.5d0*(grc_mix(I1, I1, nf) + grc_mix(J1, J1, nf)) + 0.25d0
+                end do
+             end do
+          end do
+          zpot = zn*(ham_v*zv1 + ham_v2*zv2)
+          obs_scal(11)%obs_vec(1) = obs_scal(11)%obs_vec(1) + (zkin + zpot)*z_fac
+          !!----------------------------------------------!!
 
           zqah = cmplx(0.d0, 0.d0, kind(0.d0))
           zbnds = cmplx(0.d0, 0.d0, kind(0.d0))
