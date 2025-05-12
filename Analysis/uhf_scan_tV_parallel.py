@@ -4,7 +4,9 @@ import numpy as np
 import h5py
 import time
 import logging
-from multiprocessing import Pool, current_process
+#from multiprocessing import Pool, current_process
+from multiprocessing import current_process
+from joblib import Parallel, delayed
 import argparse
 import os
 import shutil
@@ -102,17 +104,6 @@ def build_bond_mapping_v2(Lx, Ly, pbc=True):
                     bond_list.append((ib1, ib2))
     return np.array(bond_list, dtype=np.int32)
 
-#def build_hamiltonian(n_expect, rows, cols, values, bond_pairs1, bond_pairs2, V1, V2, Nsite):
-#    H = np.zeros((Nsite, Nsite))
-#    H[rows, cols] = values
-#    for ia, ib in bond_pairs1:
-#        H[ia, ia] += V1 * n_expect[ib] - V1 * 0.5
-#        H[ib, ib] += V1 * n_expect[ia] - V1 * 0.5
-#    for i1, i2 in bond_pairs2:
-#        H[i1, i1] += V2 * n_expect[i2] - V2 * 0.5
-#        H[i2, i2] += V2 * n_expect[i1] - V2 * 0.5
-#    return H
-
 def build_hamiltonian(n_expect, rows, cols, values, bond_pairs1, bond_pairs2, V1, V2, Nsite, Lx, Ly, h_pin=1e-5):
     H = np.zeros((Nsite, Nsite))
     H[rows, cols] = values
@@ -201,7 +192,6 @@ def run_optimization_with_ninit(n_init, Lx, Ly, t1, t2p, V1, V2, Nelec, maxiter=
     n_expect = n_init
     for i in range(maxiter):
         pin_idx = get_index(0, 0, 0, Lx, Ly)
-        #H = build_hamiltonian(n_expect, rows, cols, values, bond_pairs1, bond_pairs2, V1, V2, Nsite)
         H = build_hamiltonian(n_expect, rows, cols, values, bond_pairs1, bond_pairs2, V1, V2, Nsite, Lx, Ly, h_pin=1e-5)
         n_matrix, slater_matrix = total_density_matrix(H, Nelec)
         flat_n_new = np.real(np.diag(n_matrix))
@@ -231,6 +221,19 @@ def compute_staggered_CDW(n_mean):
                 total += idx_factor * (n_mean[ix, iy, s] - 0.5)
     Nsite = Lx * Ly * 2
     return total / Nsite
+
+def compute_diag_stripe(n_mean):
+    """
+    测量沿对角线方向 (x + y) 的电荷条纹序：(-1)^{x + y} * (n_i - 0.5)
+    """
+    Lx, Ly, _ = n_mean.shape
+    total = 0.0
+    for ix in range(Lx):
+        for iy in range(Ly):
+            for s in [0, 1]:
+                idx_factor = (-1) ** (ix + iy)
+                total += idx_factor * (n_mean[ix, iy, s] - 0.5)
+    return total / (2 * Lx * Ly)
 
 # ===== 核心计算函数：检测最终文件并写独立临时文件 =====
 def worker_task(args):
@@ -279,6 +282,7 @@ def worker_task(args):
                 best_result = dict(n_mean=n_mean, slater=slater)
 
     stagger_cdw = compute_staggered_CDW(best_result['n_mean'])
+    diag_stripe = compute_diag_stripe(best_result["n_mean"])
 
     with h5py.File(tmp_file, "a") as h5file:
         grp = h5file.create_group(group_key)
@@ -286,6 +290,7 @@ def worker_task(args):
         grp.create_dataset("energy", data=best_energy)
         grp.create_dataset("stagger_cdw", data=stagger_cdw)
         grp.create_dataset("slater", data=best_result['slater'])
+        grp.create_dataset("diag_stripe", data=diag_stripe)
 
     logger.info(f"{proc_name} | Saved: {group_key} | Energy = {best_energy:.6f} | CDW = {stagger_cdw:.6f}")
 
@@ -295,7 +300,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     Lx, Ly = 4, 4
-    params_base = dict(t1=1.0, t2p=0.5, Nelec=16, maxiter=500, pbc=True)
+    params_base = dict(t1=1.0, t2p=0.5, Nelec=16, maxiter=20000, pbc=True)
 
     V1_list = np.linspace(0.1, 2, 10)
     V2_list = [0.00]
@@ -318,10 +323,16 @@ if __name__ == "__main__":
         for v2 in V2_list:
             tasks.append( (v1, v2, params_base, initial_state_configs, random_keys, Lx, Ly) )
 
-    logger.info(f"Total tasks: {len(tasks)} | Using {args.nproc} processes.")
+    #logger.info(f"Total tasks: {len(tasks)} | Using {args.nproc} processes.")
 
-    with Pool(processes=args.nproc) as pool:
-        pool.map(worker_task, tasks)
+    #with Pool(processes=args.nproc) as pool:
+    #    pool.map(worker_task, tasks)
+    
+    logger.info(f"Total tasks: {len(tasks)} | Using {args.nproc} joblib workers...")
+
+    Parallel(n_jobs=args.nproc, backend="loky", verbose=10)(
+        delayed(worker_task)(task) for task in tasks
+    )
 
     merge_h5_files(TMP_DIR, FINAL_H5)
 

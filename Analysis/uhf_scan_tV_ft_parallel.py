@@ -356,7 +356,7 @@ if __name__ == "__main__":
             for T in T_list:
                 tasks.append((v1, v2, T, params_base, initial_state_configs, random_keys, Lx, Ly))
 
-    logger.info(f"Total tasks: {len(tasks)} | Using {args.nproc} processes.")
+    #logger.info(f"Total tasks: {len(tasks)} | Using {args.nproc} processes.")
 
     #with Pool(processes=args.nproc) as pool:
     #    for _ in pool.imap_unordered(worker_task, tasks):
