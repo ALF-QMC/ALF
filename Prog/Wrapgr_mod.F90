@@ -673,6 +673,7 @@ Contains
            enddo
            m = n
         enddo
+        phase = Phase * Prev_Ratiotot/sqrt(Prev_Ratiotot*conjg(Prev_Ratiotot))
 
        !Calculate forces with new nsigma
        t0_proposal_ratio = 1.d0
