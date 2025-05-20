@@ -5,6 +5,7 @@
 # Files in the directory Hamiltonians.list.d will be treated as part of this file.
 Kondo Hamiltonians/Hamiltonian_Kondo_smod.F90
 Hubbard
+Hubbard_SU2
 Hubbard_Plain_Vanilla
 tV
 LRC
