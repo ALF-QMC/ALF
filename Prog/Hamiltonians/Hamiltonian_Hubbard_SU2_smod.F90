@@ -245,7 +245,8 @@
           ! Setup the Bravais lattice
           Call  Ham_Latt
           Allocate(n_quant(Latt%N,2))  ! n_quant(i,1) =\phi_i, n_quant(i,2) =\theta_i
-          n_quant = 0.d0
+          n_quant(:,2) = acos(-1.d0)/4.d0
+          n_quant(:,1) = 0.d0
 
           ! Setup the hopping / single-particle part
           Call  Ham_Hop
