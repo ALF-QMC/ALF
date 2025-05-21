@@ -749,6 +749,9 @@
           !Local
           Integer :: N, N_op,nt
           
+          ! For  Xinyue 
+          ! call Get_spin_fluctuation_configuration(Phi)  
+          ! Returns Real: Phi(1..Latt%N, 1..Ltrot, 3) 
           ! Compute \partial S_0 / \partial s
           N_op = size(nsigma%f,1)
           Forces_0  = 0.d0
