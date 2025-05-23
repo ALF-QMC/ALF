@@ -105,8 +105,7 @@
 !> 
 !--------------------------------------------------------------------
         
-      SUBROUTINE  Langevin_HMC_Forces(this, Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst, LOBS_ST, LOBS_EN, &
-                     & Calc_Obser_eq, calc_prec)
+      SUBROUTINE  Langevin_HMC_Forces(this, Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst, LOBS_ST, LOBS_EN,Calc_Obser_eq)
         Implicit none
         
         class (Langevin_HMC_type) :: this
@@ -117,8 +116,7 @@
         COMPLEX (Kind=Kind(0.d0)), intent(inout), allocatable, dimension(:,:,:) :: GR, GR_Tilde
         Integer, intent(in),  dimension(:), allocatable :: Stab_nt
         Integer, intent(in) :: LOBS_ST, LOBS_EN
-        Logical, intent(in) :: Calc_Obser_eq
-        logical, intent(in), optional :: calc_prec
+        Logical, intent(in) :: Calc_Obser_eq 
         
 
         !Local
@@ -158,18 +156,14 @@
                  IF (NTAU1 .GT. LTROT/2) NVAR = 2
                  TEST(:,:) = GR(:,:,nf)
                  CALL CGR(Z1, NVAR, GR(:,:,nf), UDVR(nf_eff), UDVL(nf_eff))
-                 if ( .not. present(calc_prec) .or. calc_prec ) then
-                    Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
-                 endif
+                 Call Control_PrecisionG(GR(:,:,nf),Test,Ndim)
                  call Op_phase(Z1,OP_V,Nsigma,nf) 
                  Phase_array(nf)=Z1
               ENDDO
               if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
               Z=product(Phase_array)
-              Z=Z**N_SUN
-              if ( .not. present(calc_prec) .or. calc_prec ) then
-                 Call Control_PrecisionP(Z,Phase)
-              endif
+              Z=Z**N_SUN 
+              Call Control_PrecisionP(Z,Phase)
               Phase = Z
               NST = NST + 1
            ENDIF
@@ -630,7 +624,7 @@
            Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
            Call Compute_Fermion_Det(Phase_det_new,Det_Vec_new, udvl, udvst, Stab_nt, storage)
            Call this%calc_Forces(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst,&
-                   &  LOBS_ST, LOBS_EN, Calc_Obser_eq, calc_prec = .false. )
+                   &  LOBS_ST, LOBS_EN, Calc_Obser_eq )
            Call ham%Ham_Langevin_HMC_S0( this%Forces_0)
 
            t0_proposal_ratio = 1.d0
