@@ -414,9 +414,9 @@
 
          Latt_unit%N_coord = 2
 
-         do nc = 1, size(latt_unit%orb_pos_p,1)
-         print *, "latt_unit%Orb_pos_p", latt_unit%Orb_pos_p(nc,:)
-         enddo
+!         do nc = 1, size(latt_unit%orb_pos_p,1)
+!         print *, "latt_unit%Orb_pos_p", latt_unit%Orb_pos_p(nc,:)
+!         enddo
 
 
         end Subroutine Ham_Latt
@@ -509,11 +509,11 @@
             endif
          enddo
 
-         print *, irank_g, n_hop
-         do nh = 1, n_hop
-            print *, irank_g, hop_list(nh,:), hop_diag(nh)
-            print *, irank_g, ham_t(nh)
-         enddo
+!         print *, irank_g, n_hop
+!         do nh = 1, n_hop
+!            print *, irank_g, hop_list(nh,:), hop_diag(nh)
+!            print *, irank_g, ham_t(nh)
+!         enddo
 
         end subroutine read_hop
 
@@ -538,7 +538,7 @@
              if ( hop_diag(nh) == 0 .and. abs(dble (ham_t(nh))) > ham_t_max ) ham_t_max = abs(dble (ham_t(nh)))
              if ( hop_diag(nh) == 0 .and. abs(aimag(ham_t(nh))) > ham_t_max ) ham_t_max = abs(aimag(ham_t(nh)))
           enddo
-          print *, "ham_t_max", ham_t_max
+!          print *, "ham_t_max", ham_t_max
 
           do nf = 1, N_Fl
              Hopping_Matrix(N_Fl)%N_bonds = 0
@@ -581,13 +581,13 @@
              hopping_matrix(nf)%Phi_Y =  Phi_Y
              hopping_matrix(nf)%Bulk  =  Bulk
              
-             do nc = 1, size(hopping_matrix(nf)%T)
-                print *, "list, T", nc, hopping_matrix(nf)%list(nc,:), hopping_matrix(nf)%T(nc)
-             enddo
-
-             do no = 1, size(hopping_matrix(nf)%t_loc)
-                print *, "t_loc", no, hopping_matrix(nf)%t_loc(no)
-             enddo
+!             do nc = 1, size(hopping_matrix(nf)%T)
+!                print *, "list, T", nc, hopping_matrix(nf)%list(nc,:), hopping_matrix(nf)%T(nc)
+!             enddo
+!
+!             do no = 1, size(hopping_matrix(nf)%t_loc)
+!                print *, "t_loc", no, hopping_matrix(nf)%t_loc(no)
+!             enddo
 
           enddo
 
