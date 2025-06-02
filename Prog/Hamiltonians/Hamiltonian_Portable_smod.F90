@@ -144,6 +144,12 @@
         procedure, nopass :: write_parameters_hdf5
 #endif
       end type ham_Portable
+      
+      type interaction_type
+         integer, allocatable                   :: int_list(:,:)
+         integer                   :: N_orbitals
+         complex (kind=kind(0.d0)), allocatable :: c_int(:)
+      end type interaction_type
 
 
       !#PARAMETERS START# VAR_Model_Generic
@@ -175,6 +181,12 @@
       integer :: N_diag
       complex (kind=kind(0.d0)), allocatable :: Ham_t(:)
       integer, allocatable                   :: hop_list(:,:), hop_diag(:)
+
+      !Variables for interaction
+      integer :: N_ops
+      real (kind=kind(0.d0)), allocatable :: ham_U(:)
+      complex (kind=kind(0.d0)), allocatable :: alpha_int(:)
+      type (interaction_type),  allocatable    :: interaction(:)
 
 
     contains
@@ -232,19 +244,22 @@
            ! read in information for lattice from file geometry.txt
            call read_latt
 
-           ! read in information for hopping from file hoppings.txt
-           call read_hop
-           
            ! Setup the Bravais lattice
            call Ham_Latt
- 
+
+           ! read in information for hopping from file hoppings.txt
+           call read_hop
+
            ! Setup the hopping / single-particle part
            call Ham_Hop
-! 
+
+           ! read in information for interaction from file potentials.txt
+           call read_int
+ 
            ! Setup the interaction.
            call Ham_V
-! 
-!           ! Setup the trival wave function, in case of a projector approach
+ 
+           ! Setup the trival wave function, in case of a projector approach
 !           if (Projector) Call Ham_Trial()
 
 #ifdef MPI
@@ -605,6 +620,157 @@
 !> ALF Collaboration
 !>
 !> @brief
+!> Sets  the  Lattice
+!--------------------------------------------------------------------
+
+        Subroutine read_int
+
+#if defined (MPI) || defined(TEMPERING)
+          Use mpi
+#endif
+
+          implicit none
+ 
+          integer                :: ierr, unit_int, mk, no, n, i1, i2, no1, s1, j1, j2, no2, s2, i
+          Character (len=64)     :: file_int
+          real (kind=kind(0.d0)) :: u, x, y
+
+
+
+#ifdef MPI
+          Integer        :: Isize, Irank, irank_g, isize_g, igroup
+          Integer        :: STATUS(MPI_STATUS_SIZE)
+          CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
+          CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+          call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+          call MPI_Comm_size(Group_Comm, isize_g, ierr)
+          igroup           = irank/isize_g
+
+   
+          If (Irank_g == 0) then
+#endif
+             File_int = "potentials.txt"
+#if defined(TEMPERING)
+             write(File_int,'(A,I0,A)') "Temp_",igroup,"/potentials.txt"
+#endif
+             Open(newunit=unit_int, file=file_int, status="old", action="read", iostat=ierr)
+             IF (ierr /= 0) THEN
+                WRITE(error_unit,*) 'unable to open <potentials.txt>', ierr
+                Call Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
+             END IF
+
+             read(unit_int,*) N_ops
+
+             allocate( ham_u(N_ops), alpha_int(N_ops), interaction(N_ops) )
+
+             do no = 1, N_ops
+                read(unit_int,*) mk, u, x, y
+                ham_u(no)     = u
+                alpha_int(no) = cmplx( x, y, kind(0.d0) )
+
+                allocate( interaction(no)%int_list(mk,8), interaction(no)%c_int(mk) )
+                
+
+                do n = 1, mk
+                   read(unit_int,*) i, i1, i2, no1, s1, j1, j2, no2, s2, x, y
+                   interaction(no)%int_list(n,1) = i1
+                   interaction(no)%int_list(n,2) = i2
+                   interaction(no)%int_list(n,3) = no1
+                   interaction(no)%int_list(n,4) = s1
+                   interaction(no)%int_list(n,5) = j1
+                   interaction(no)%int_list(n,6) = j2
+                   interaction(no)%int_list(n,7) = no2
+                   interaction(no)%int_list(n,8) = s2
+                   interaction(no)%c_int(n)      = cmplx( x, y, kind(0.d0) )
+                enddo
+             enddo
+
+             Close(unit_int)
+
+
+#ifdef MPI
+          Endif
+
+          CALL MPI_BCAST(n_ops       ,  1              ,MPI_INTEGER  ,0,Group_Comm,ierr)
+          if (irank_g /= 0) allocate( ham_u(N_ops), alpha_int(N_ops), interaction(N_ops) )
+          CALL MPI_BCAST(ham_u       ,  size(ham_u,1)  ,MPI_REAL8    ,0,Group_Comm,ierr)
+          CALL MPI_BCAST(alpha_int   ,  size(alpha_int),MPI_COMPLEX16,0,Group_Comm,ierr)
+      
+          do no = 1, N_ops
+             if (irank_g == 0) mk = size(interaction(no)%int_list,1)
+             CALL MPI_BCAST(mk       ,  1              ,MPI_INTEGER  ,0,Group_Comm,ierr)
+             if (irank_g /= 0) allocate( interaction(no)%int_list(mk,8), interaction(no)%c_int(mk) )
+             CALL MPI_BCAST(interaction(no)%int_list   ,size(interaction(no)%int_list),MPI_INTEGER  ,0,Group_Comm,ierr)
+             CALL MPI_BCAST(interaction(no)%c_int      ,   size(interaction(no)%c_int),MPI_COMPLEX16,0,Group_Comm,ierr)
+          enddo
+
+!          print *, irank_g, n_ops
+!          do no = 1, N_ops
+!             print *, irank_g, ham_u(no), alpha_int(no)
+!             print *, irank_g, no, size(interaction(no)%int_list,1)
+!             do n = 1, size(interaction(no)%int_list,1)
+!                print *, irank_g, n, interaction(no)%int_list(n,:)
+!                print *, irank_g, n, interaction(no)%c_int(n)
+!             enddo
+!          enddo
+
+
+ 
+#endif
+
+
+          call get_number_of_orbitals_per_interaction
+        
+
+
+        end subroutine read_int
+
+!--------------------------------------------------------------------
+  
+        subroutine get_number_of_orbitals_per_interaction
+
+           implicit none
+
+           integer :: no, i, j1, j2, mk, n, no1, no2, nc, N_orbitals
+           integer, allocatable :: orbitals_tmp(:)
+
+           i = 1
+
+           do no = 1, N_ops
+              mk = size(interaction(no)%int_list,1 )
+              allocate( orbitals_tmp(2*mk))
+              orbitals_tmp = 0
+
+              nc   = 0
+              N_orbitals = 0
+              do n = 1, mk
+
+                 nc = nc + 1
+                 j1  = latt%nnlist( i, interaction(no)%int_list(n,1), interaction(no)%int_list(n,2) )
+                 no1 = (interaction(no)%int_list(n,3)+1) + interaction(no)%int_list(n,4)*Norb
+                 if (.not. any(orbitals_tmp == invlist(j1,no1))) N_orbitals = N_orbitals + 1
+                 orbitals_tmp(nc) = invlist(j1,no1)
+
+                 nc = nc + 1
+                 j2 = latt%nnlist( i, interaction(no)%int_list(n,5), interaction(no)%int_list(n,6) )
+                 no2 = (interaction(no)%int_list(n,7)+1) + interaction(no)%int_list(n,8)*Norb
+                 if (.not. any(orbitals_tmp == invlist(j2,no2))) N_orbitals = N_orbitals + 1
+                 orbitals_tmp(nc) = invlist(j2,no2)
+
+              enddo
+
+              interaction(no)%N_orbitals = N_orbitals
+
+              deallocate ( orbitals_tmp )
+           enddo
+      
+        end subroutine get_number_of_orbitals_per_interaction
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
 !> Sets the interaction
 !--------------------------------------------------------------------
         Subroutine Ham_V
@@ -612,14 +778,56 @@
           Use Predefined_Int
           Implicit none
 
-          Integer :: nf, I, nt
+          Integer :: nf, I, nt, no, nc, i1, i2, no1, no2, mk, n, j1, j2
+          integer :: nc_o, x1(1), x2(1)
+          integer, allocatable :: orbitals_tmp(:)
           Real (Kind=Kind(0.d0)) :: X
 
-allocate(Op_V(1,N_FL))
-do nf = 1,N_FL
-   ! Fake hubbard interaction of weight 0.0 (last argument in the following call)
-   Call Predefined_Int_U_SUN(  OP_V(1,nf), 1, N_SUN, DTAU, 0.0d0  )
-enddo
+          allocate (OP_V(N_ops*Latt%N,N_Fl))
+
+          nc = 0
+          do i = 1, Latt%N
+             do no = 1, n_ops
+                nc = nc + 1
+                do nf = 1, N_Fl
+                   call Op_make(OP_V(nc,nf), interaction(no)%N_orbitals)
+                   mk = size(interaction(no)%int_list,1)
+                   allocate (orbitals_tmp(interaction(no)%N_orbitals))
+                   orbitals_tmp = 0
+   
+                   nc_o = 0
+                   do n = 1, mk
+                      i1  = latt%nnlist( i, interaction(no)%int_list(n,1), interaction(no)%int_list(n,2) )
+                      no1 = (interaction(no)%int_list(n,3)+1) + interaction(no)%int_list(n,4)*Norb
+                      j1  = invlist(i1,no1)
+                      if (.not. any(orbitals_tmp == j1 )) then
+                         nc_o = nc_o + 1
+                         orbitals_tmp(nc_o) = j1
+                      endif
+                      x1 = findloc(orbitals_tmp,j1)
+            
+                      i2  = latt%nnlist( i, interaction(no)%int_list(n,5), interaction(no)%int_list(n,6) )
+                      no2 = (interaction(no)%int_list(n,7)+1) + interaction(no)%int_list(n,8)*Norb
+                      j2  = invlist(i2,no2)
+                      if (.not. any(orbitals_tmp == j2 )) then
+                         nc_o = nc_o + 1
+                         orbitals_tmp(nc_o) = j2
+                      endif
+                      x2 = findloc(orbitals_tmp,j2)
+
+                      Op_V(nc,nf)%O(x1(1),x2(1)) =        interaction(no)%c_int(n)
+                      Op_V(nc,nf)%O(x2(1),x1(1)) = CONJG( interaction(no)%c_int(n) )
+                   enddo
+
+                   Op_V(nc,nf)%g = sqrt(cmplx(-dtau*ham_u(no), 0.d0, kind(0.d0) ))
+                   Op_V(nc,nf)%P = orbitals_tmp
+                   Op_V(nc,nf)%alpha = alpha_int(no)
+                   Op_V(nc,nf)%type  = 2
+                   call Op_set( OP_V(nc,nf) )
+                   deallocate(orbitals_tmp)
+                enddo
+             enddo
+          enddo
 
         end Subroutine Ham_V
 
@@ -660,24 +868,24 @@ enddo
              Call Obser_Vec_make(Obs_scal(I),N,Filename)
            enddo
  
-!           ! Equal time correlators
-!           Allocate ( Obs_eq(3) )
-!           Do I = 1,Size(Obs_eq,1)
-!             select case (I)
-!             case (1)
-!               Filename = "Green"
-!             case (2)
-!               Filename = "SpinZ"
-!             case (3)
-!               Filename = "Den"
-!             case default
-!               Write(6,*) ' Error in Alloc_obs '
-!             end select
-!             Nt = 1
-!             Channel = '--'
-!             Call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
-!           enddo
-! 
+           ! Equal time correlators
+           Allocate ( Obs_eq(1) )
+           Do I = 1,Size(Obs_eq,1)
+             select case (I)
+             case (1)
+               Filename = "Green"
+             case (2)
+               Filename = "SpinZ"
+             case (3)
+               Filename = "Den"
+             case default
+               Write(6,*) ' Error in Alloc_obs '
+             end select
+             Nt = 1
+             Channel = '--'
+             Call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
+           enddo
+ 
 !           If (Ltau == 1) then
 !             ! Time-displaced correlators
 !             Allocate ( Obs_tau(3) )
@@ -735,7 +943,7 @@ enddo
           Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL)
           Complex (Kind=Kind(0.d0)) :: ZP, ZS
           Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot
-          Integer :: I, J, nf
+          Integer :: I, J, nf, i1, no_i, i2
           ! Add local variables as needed
 
           ZP = PHASE/Real(Phase, kind(0.D0))
@@ -766,6 +974,15 @@ enddo
 
 
           ZPot = cmplx(0.d0, 0.d0, kind(0.D0))
+          Do I = 1,Latt%N
+             do no_I = 1,Norb
+                I1 = Invlist(I,no_I)
+                I2 = I1
+                if (N_Spin == 2) I2 = Invlist(I,no_I+Norb)
+                ZPot = ZPot + 2.d0*Grc(i1,i1,1) * Grc(i2,i2, 1) - (GRC(I1,I1,1) + GRC(I2,I2,1)) + 1.d0
+             enddo
+          Enddo
+          Zpot = ZPot * ham_u(1)
           Obs_scal(2)%Obs_vec(1)  =  Obs_scal(2)%Obs_vec(1) + Zpot * ZP*ZS
 
 
@@ -782,6 +999,7 @@ enddo
 
 
           ! Compute equal-time correlations
+          Call Predefined_Obs_eq_Green_measure  ( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(1) )
 
         end Subroutine Obser
 
