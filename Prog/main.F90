@@ -191,7 +191,7 @@ Program Main
         !  Space for reading in Langevin & HMC  parameters
         Logical                      :: Langevin,  HMC, MALA
         Integer                      :: Leapfrog_Steps, N_HMC_sweeps, N_MALA_sweeps
-        Real  (Kind=Kind(0.d0))      :: Delta_t_Langevin_HMC, Max_Force
+        Real  (Kind=Kind(0.d0))      :: Delta_t_Langevin_HMC, Max_Force, MAX_Force_MALA_global
         real  (kind=kind(0.d0))      :: Delta_t_MALA_sequential, Delta_t_MALA_global_tau, Delta_t_MALA_global
           
 #if defined(TEMPERING)
@@ -206,7 +206,8 @@ Program Main
              &               sequential, Langevin, HMC, MALA, Delta_t_Langevin_HMC, &
              &               Max_Force, Leapfrog_steps, N_HMC_sweeps, Amplitude, &
              &               Propose_MALA, delta_t_MALA_global, N_MALA_sweeps, &
-             &               Delta_t_MALA_sequential, Delta_t_MALA_global_tau
+             &               Delta_t_MALA_sequential, Delta_t_MALA_global_tau, &
+             &               MAX_Force_MALA_global
 
         NAMELIST /VAR_HAM_NAME/ ham_name
 
@@ -357,7 +358,7 @@ Program Main
            Global_tau_moves = .false.; sequential = .true.; Langevin = .false. ; HMC =.false.
            MALA = .false.; delta_t_MALA_global = 0.d0; N_MALA_sweeps = 1
            Delta_t_MALA_sequential = 0.d0; Delta_t_MALA_global_tau = 0.d0
-           Global_tau_MALA_moves = .false.; N_Global_tau_MALA = 0
+           Global_tau_MALA_moves = .false.; N_Global_tau_MALA = 0; MAX_Force_MALA_global = 0.d0
            Delta_t_Langevin_HMC = 0.d0;  Max_Force = 0.d0 ; Leapfrog_steps = 0; N_HMC_sweeps = 1
            Nt_sequential_start = 1 ;  Nt_sequential_end  = 0;  N_Global_tau  = 0;  Amplitude = 1.d0
            OPEN(UNIT=5,FILE=file_para,STATUS='old',ACTION='read',IOSTAT=ierr)
@@ -388,7 +389,7 @@ Program Main
         CALL MPI_BCAST(Nt_sequential_start  ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Nt_sequential_end    ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(N_Global_tau         ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(N_Global_tau_MALA,1  ,MPI_Integer  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(N_Global_tau_MALA    ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(sequential           ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Langevin             ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(HMC                  ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
@@ -397,6 +398,7 @@ Program Main
         CALL MPI_BCAST(N_HMC_sweeps         ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(N_MALA_sweeps        ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Max_Force            ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(MAX_Force_MALA_global,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Delta_t_Langevin_HMC ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(delta_t_MALA_global  ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Delta_t_MALA_sequential,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
@@ -626,7 +628,7 @@ Program Main
            Call Langevin_HMC%set_Update_scheme(Langevin, HMC, .False. )
         endif
         if (MALA) then
-           Call Metropolis_Langevin%make(.False., .False. , MALA, delta_t_MALA_global, Max_Force, Leapfrog_steps)
+           Call Metropolis_Langevin%make(.False., .False. , MALA, delta_t_MALA_global, MAX_Force_MALA_global, Leapfrog_steps)
         else
            Call Metropolis_Langevin%set_Update_scheme(.False., .False., MALA )
         endif
@@ -723,6 +725,7 @@ Program Main
            if ( MALA ) then
               Write(50,*) 'MALA global del_t  : ', delta_t_MALA_global
               Write(50,*) 'MALA_Sweeps        : ', N_MALA_sweeps
+              Write(50,*) 'Max Force MALA global     : ', MAX_Force_MALA_global
            endif
 
            !Write out info  for  amplitude and flip_protocol
@@ -1162,7 +1165,7 @@ Program Main
         call deallocate_all_shared_memory
 #endif
 
-        Call Control_Print(Group_Comm, Langevin_HMC%get_Update_scheme())
+        Call Control_Print(Group_Comm, Langevin_HMC%get_Update_scheme(), MALA)
 
 #if defined(MPI)
         If (Irank_g == 0 ) then
