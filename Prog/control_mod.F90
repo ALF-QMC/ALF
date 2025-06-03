@@ -72,6 +72,9 @@ module Control
 
     real    (Kind=Kind(0.d0)),  private, save :: Force_max, Force_mean
     Integer, private, save  :: Force_Count
+    real    (Kind=Kind(0.d0)),  private, save :: Force_max_MALA_sequential , Force_mean_MALA_sequential
+    real    (Kind=Kind(0.d0)),  private, save :: Force_0_max_MALA_sequential, Force_0_mean_MALA_sequential
+    Integer, private, save  :: Force_Count_MALA_sequential
     real    (Kind=Kind(0.d0)),  private, save :: Force_max_MALA_global_tau, Force_mean_MALA_global_tau
     real    (Kind=Kind(0.d0)),  private, save :: Force_0_max_MALA_global_tau, Force_0_mean_MALA_global_tau
     Integer, private, save  :: Force_Count_MALA_global_tau
@@ -133,6 +136,12 @@ module Control
         Force_mean = 0.d0
         Force_count = 0
 
+        Force_max_MALA_sequential    = 0.d0
+        Force_mean_MALA_sequential   = 0.d0
+        Force_0_max_MALA_sequential  = 0.d0
+        Force_0_mean_MALA_sequential = 0.d0
+        Force_Count_MALA_sequential  = 0
+
         Force_max_MALA_global_tau    = 0.d0
         Force_mean_MALA_global_tau   = 0.d0
         Force_0_max_MALA_global_tau  = 0.d0
@@ -189,7 +198,7 @@ module Control
 
 !-------------------------------------------------------------
 
-      Subroutine Control_MALA_Global(Forces, forces_0, flip_list, Group_Comm)
+      Subroutine Control_MALA_Global(Forces, forces_0, flip_list)
 
 
         Implicit none
@@ -197,7 +206,6 @@ module Control
         Complex (Kind=Kind(0.d0)), Intent(In)  :: Forces(:,:)
         Real (Kind=Kind(0.d0)), Intent(In)     :: Forces_0(:,:)
         integer, intent(in) :: flip_list(:,:)
-        Integer, Intent(IN) :: Group_Comm
         
         Integer :: n1,n2, n, nt
         Real (Kind = Kind(0.d0) ) :: X, Y
@@ -227,7 +235,7 @@ module Control
 
 !-------------------------------------------------------------
 
-      Subroutine Control_MALA_Global_tau(Forces, forces_0, flip_length, Group_Comm)
+      Subroutine Control_MALA_Global_tau(Forces, forces_0, flip_length)
 
 
         Implicit none
@@ -235,7 +243,6 @@ module Control
         Complex (Kind=Kind(0.d0)), Intent(In)  :: Forces(:)
         Real (Kind=Kind(0.d0)), Intent(In)     :: Forces_0(:)
         integer, intent(in) :: flip_length
-        Integer, Intent(IN) :: Group_Comm
         
         Integer :: n
         Real (Kind = Kind(0.d0) ) :: X, Y
@@ -256,6 +263,25 @@ module Control
         
       end Subroutine Control_MALA_Global_tau
 
+!-------------------------------------------------------------
+
+      Subroutine Control_MALA_sequential(Force, force_0)
+
+
+        Implicit none
+        
+        Complex (Kind=Kind(0.d0)), Intent(In)  :: Force
+        Real (Kind=Kind(0.d0)), Intent(In)     :: Force_0
+        
+        Force_Count_MALA_sequential = Force_Count_MALA_sequential + 1
+        If ( abs( Real(Force,kind(0.d0))) >=  Force_max_MALA_sequential  ) &
+           &  Force_max_MALA_sequential = abs( Real(Force,kind(0.d0)))
+        If ( abs( Real(Force_0,kind(0.d0))) >=  Force_0_max_MALA_sequential  ) &
+           &  Force_0_max_MALA_sequential = abs( Real(Force_0,kind(0.d0)))
+        Force_mean_MALA_sequential   = Force_mean_MALA_sequential    +  abs( Real(Force,kind(0.d0)) )
+        Force_0_mean_MALA_sequential = Force_0_mean_MALA_sequential  +  abs( Real(Force_0,kind(0.d0)) )
+        
+      end Subroutine Control_MALA_sequential
       
       Subroutine Control_upgrade(toggle)
         Implicit none
@@ -456,7 +482,7 @@ module Control
       End Subroutine Control_PrecisionP_MALA
 
 
-      Subroutine Control_Print(Group_Comm, Global_update_scheme, MALA, Global_tau_MALA_moves)
+      Subroutine Control_Print(Group_Comm, Global_update_scheme, MALA, Global_tau_MALA_moves, Propose_MALA)
 #ifdef MPI
         Use mpi
 #endif
@@ -464,7 +490,7 @@ module Control
 
         Integer, Intent(IN) :: Group_Comm
         Character (Len = 64), Intent(IN) :: Global_update_scheme
-        Logical, intent(in) :: MALA, Global_tau_MALA_moves
+        Logical, intent(in) :: MALA, Global_tau_MALA_moves, Propose_MALA
                 
 
         Character (len=64) :: file1
@@ -510,6 +536,10 @@ module Control
         time = (count_CPU_end-count_CPU_start)/dble(count_rate)
         if (count_CPU_end .lt. count_CPU_start) time = (count_max+count_CPU_end-count_CPU_start)/dble(count_rate)
         If (str_to_upper(Global_update_scheme) == "LANGEVIN") Force_mean =  Force_mean/real(Force_count,kind(0.d0))
+        If (Propose_MALA) then
+           Force_mean_MALA_sequential   =  Force_mean_MALA_sequential/real(Force_Count_MALA_sequential,kind(0.d0))
+           Force_0_mean_MALA_sequential =  Force_0_mean_MALA_sequential/real(Force_Count_MALA_sequential,kind(0.d0))
+        endif
         If (Global_tau_MALA_moves) then
            Force_mean_MALA_global_tau   =  Force_mean_MALA_global_tau/real(Force_Count_MALA_global_tau,kind(0.d0))
            Force_0_mean_MALA_global_tau =  Force_0_mean_MALA_global_tau/real(Force_Count_MALA_global_tau,kind(0.d0))
@@ -526,6 +556,18 @@ module Control
            Force_mean= X/dble(Isize_g)
            CALL MPI_REDUCE(Force_max,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
            Force_max= X
+        endif
+        If (Propose_MALA)  then
+           X = 0.d0
+           CALL MPI_REDUCE(Force_mean_MALA_sequential,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
+           Force_mean_MALA_sequential= X/dble(Isize_g)
+           CALL MPI_REDUCE(Force_max_MALA_sequential,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
+           Force_max_MALA_sequential= X
+           X = 0.d0
+           CALL MPI_REDUCE(Force_0_mean_MALA_sequential,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
+           Force_0_mean_MALA_sequential= X/dble(Isize_g)
+           CALL MPI_REDUCE(Force_0_max_MALA_sequential,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
+           Force_0_max_MALA_sequential= X
         endif
         If (Global_tau_MALA_moves)  then
            X = 0.d0
@@ -655,6 +697,11 @@ module Control
               Write(50,*) ' Acceptance_HMC              : ', ACC_HMC
               Write(50,*) ' Mean Phase diff HMC         : ', XMEANP_HMC
               Write(50,*) ' Max  Phase diff HMC         : ', XMAXP_HMC
+           Endif
+
+           if (Propose_MALA)   Then
+               Write(50,*) ' Sequential MALA Force        Mean, Max : ', Force_mean_MALA_sequential,    Force_max_MALA_sequential
+               Write(50,*) ' Sequential MALA Force_0      Mean, Max : ', Force_0_mean_MALA_sequential,  Force_0_max_MALA_sequential
            Endif
 
            if (Global_tau_MALA_moves)   Then

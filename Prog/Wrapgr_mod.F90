@@ -84,7 +84,8 @@ Contains
 
 !--------------------------------------------------------------------
   SUBROUTINE WRAPGRUP(GR,NTAU,PHASE,Propose_S0,Propose_MALA, Delta_t_MALA_sequential,Nt_sequential_start, &
-             &        Nt_sequential_end, N_Global_tau, N_Global_tau_MALA, Delta_t_MALA_global_tau, Max_Force_MALA_global_tau)
+             &        Nt_sequential_end, N_Global_tau, N_Global_tau_MALA, Delta_t_MALA_global_tau,  &
+             &        Max_Force_MALA_sequential, Max_Force_MALA_global_tau)
 !--------------------------------------------------------------------
 !> @author 
 !> ALF-project
@@ -104,7 +105,7 @@ Contains
     LOGICAL, INTENT(IN) :: Propose_S0, Propose_MALA
     INTEGER, INTENT(IN) :: Nt_sequential_start, Nt_sequential_end, N_Global_tau, N_Global_tau_MALA
     Real    (kind=Kind(0.d0)), intent(in) :: Delta_t_MALA_sequential, Delta_t_MALA_global_tau
-    real    (kind=kind(0.d0)), intent(in) :: Max_Force_MALA_global_tau
+    real    (kind=kind(0.d0)), intent(in) :: Max_Force_MALA_sequential, Max_Force_MALA_global_tau
 
     !Local 
     Integer :: nf, nf_eff, N_Type, NTAU1,n, m
@@ -112,6 +113,7 @@ Contains
     Complex (Kind=Kind(0.d0)) :: force_old, force_new, phase_st, nsigma_st
     Real    (Kind=Kind(0.d0)) :: T0_proposal,  T0_Proposal_ratio,  S0_ratio
     real    (kind=kind(0.d0)) :: pi = acos(-1.d0), force_0_old, force_0_new, weight
+    real    (kind=kind(0.d0)) :: Delta_t_running, Xmax
     Character (Len=64)        :: Mode
     Logical                   :: Acc, toggle1
 
@@ -145,9 +147,14 @@ Contains
        if (Propose_MALA .and. Op_V(n,nf)%type == 3) then
           force_old = calculate_force(n,ntau1,Gr)
           Call ham%Ham_Langevin_HMC_S0_single( force_0_old,n, ntau1)
+          call Control_MALA_sequential(force_old, force_0_old)
+          Xmax = abs(dble(force_old))
+          if (abs(force_0_old) > Xmax) Xmax = abs(force_0_old)
+          Delta_t_running = Delta_t_MALA_sequential
+          if (Xmax > Max_Force_MALA_sequential) Delta_t_running = Max_Force_MALA_sequential*Delta_t_MALA_sequential/Xmax
           HS_New =  nsigma%f(n,ntau1)  -  ( force_0_old +  &
-              &  real( Phase*force_old,kind(0.d0)) / Real(Phase,kind(0.d0)) ) * Delta_t_MALA_sequential + &
-              &  sqrt( 2.d0 * Delta_t_MALA_sequential) * rang_wrap()
+              &  real( Phase*force_old,kind(0.d0)) / Real(Phase,kind(0.d0)) ) * Delta_t_running + &
+              &  sqrt( 2.d0 * Delta_t_running) * rang_wrap()
        else
           Hs_New =   nsigma%flip(n,ntau1)
        Endif
@@ -175,9 +182,9 @@ Contains
              Call ham%Ham_Langevin_HMC_S0_single( force_0_new,n,ntau1)
              force_new = calculate_force(n,ntau1,GR)
 
-             t0_Proposal_ratio = exp(-0.25d0/Delta_t_MALA_sequential * (Abs(nsigma_st - hs_new + &
-               & Delta_t_MALA_sequential*(force_0_new +  real( Phase*force_new,kind(0.d0)) / Real(Phase,kind(0.d0))) )**2 -  &
-               & Abs(hs_new - nsigma_st + Delta_t_MALA_sequential*(force_0_old + real( phase_st*force_old,kind(0.d0)) / Real(phase_st,kind(0.d0)))  )**2 ) )
+             t0_Proposal_ratio = exp(-0.25d0/Delta_t_running * (Abs(nsigma_st - hs_new + &
+               & Delta_t_running*(force_0_new +  real( Phase*force_new,kind(0.d0)) / Real(Phase,kind(0.d0))) )**2 -  &
+               & Abs(hs_new - nsigma_st + Delta_t_running*(force_0_old + real( phase_st*force_old,kind(0.d0)) / Real(phase_st,kind(0.d0)))  )**2 ) )
 
 
              weight = S0_ratio * T0_proposal_ratio * abs(  real(Phase_st * Prev_Ratiotot, kind=Kind(0.d0))/real(Phase_st,kind=Kind(0.d0)) )
@@ -229,7 +236,8 @@ Contains
 
 !--------------------------------------------------------------------    
   SUBROUTINE WRAPGRDO(GR,NTAU,PHASE,Propose_S0,Propose_MALA, Delta_t_MALA_sequential,Nt_sequential_start, &
-             &        Nt_sequential_end, N_Global_tau, N_Global_tau_MALA, Delta_t_MALA_global_tau, Max_Force_MALA_global_tau)
+             &        Nt_sequential_end, N_Global_tau, N_Global_tau_MALA, Delta_t_MALA_global_tau,  &
+             &        Max_Force_MALA_sequential, Max_Force_MALA_global_tau)
 !--------------------------------------------------------------------
 !> @author 
 !> ALF-project
@@ -251,7 +259,7 @@ Contains
     LOGICAL, INTENT(IN) :: Propose_S0, Propose_MALA
     INTEGER, INTENT(IN) :: Nt_sequential_start, Nt_sequential_end, N_Global_tau, N_Global_tau_MALA
     real    (kind=kind(0.d0)), intent(in) :: Delta_t_MALA_sequential, Delta_t_MALA_global_tau
-    real    (kind=kind(0.d0)), intent(in) :: Max_Force_MALA_global_tau
+    real    (kind=kind(0.d0)), intent(in) :: Max_Force_MALA_sequential, Max_Force_MALA_global_tau
     
     ! Local
     Integer :: nf, nf_eff, N_Type, n, m
@@ -260,6 +268,7 @@ Contains
     Real    (Kind=Kind(0.d0)) :: T0_proposal,  T0_Proposal_ratio,  S0_ratio
     complex (kind=kind(0.d0)), allocatable :: Gr_tmp(:,:,:)
     real    (kind=kind(0.d0)) :: pi = acos(-1.d0), force_0_old, force_0_new, weight
+    real    (kind=kind(0.d0)) :: Delta_t_running, Xmax
     Character (Len=64)        :: Mode
     Logical                   :: Acc, toggle1
 
@@ -296,9 +305,14 @@ Contains
        if ( Propose_MALA .and. Op_V(n,nf)%type == 3)  then
           force_old = calculate_force(n,ntau,Gr_st)
           Call ham%Ham_Langevin_HMC_S0_single( force_0_old, n,ntau)
+          call Control_MALA_sequential(force_old, force_0_old)
+          Xmax = abs(dble(force_old))
+          if (abs(force_0_old) > Xmax) Xmax = abs(force_0_old)
+          Delta_t_running = Delta_t_MALA_sequential
+          if (Xmax > Max_Force_MALA_sequential) Delta_t_running = Max_Force_MALA_sequential*Delta_t_MALA_sequential/Xmax
           HS_New =  nsigma%f(n,ntau)  -  ( force_0_old +  &
-            &  real( Phase*force_old,kind(0.d0)) / Real(Phase,kind(0.d0)) ) * Delta_t_MALA_sequential + &
-            &  sqrt( 2.d0 * Delta_t_MALA_sequential) * rang_wrap()
+            &  real( Phase*force_old,kind(0.d0)) / Real(Phase,kind(0.d0)) ) * Delta_t_running + &
+            &  sqrt( 2.d0 * Delta_t_running) * rang_wrap()
        else
           HS_new            = nsigma%flip(n,ntau)
        endif
@@ -327,9 +341,9 @@ Contains
              Call ham%Ham_Langevin_HMC_S0_single( force_0_new,n,ntau)
              force_new = calculate_force(n,ntau,GR)
 
-             t0_Proposal_ratio = exp(-0.25d0/Delta_t_MALA_sequential * (Abs(nsigma_st - hs_new + &
-                 & Delta_t_MALA_sequential*(force_0_new +  real( Phase*force_new,kind(0.d0)) / Real(Phase,kind(0.d0))) )**2 -  &
-                 & Abs(hs_new - nsigma_st + Delta_t_MALA_sequential*(force_0_old + real( phase_st*force_old,kind(0.d0)) / Real(phase_st,kind(0.d0)))  )**2 ) )
+             t0_Proposal_ratio = exp(-0.25d0/Delta_t_running * (Abs(nsigma_st - hs_new + &
+                 & Delta_t_running*(force_0_new +  real( Phase*force_new,kind(0.d0)) / Real(Phase,kind(0.d0))) )**2 -  &
+                 & Abs(hs_new - nsigma_st + Delta_t_running*(force_0_old + real( phase_st*force_old,kind(0.d0)) / Real(phase_st,kind(0.d0)))  )**2 ) )
 
              weight = S0_ratio * T0_proposal_ratio * abs(  real(Phase_st * Prev_Ratiotot, kind=Kind(0.d0))/real(Phase_st,kind=Kind(0.d0)) )
 
@@ -654,7 +668,7 @@ Contains
        Delta_t_running = Delta_t_MALA_global_tau
        If (Xmax > Max_Force) Delta_t_running = Max_Force*Delta_t_MALA_global_tau/Xmax
 
-       call Control_MALA_Global_tau(Forces_old, forces_0_old, flip_length, Group_Comm)
+       call Control_MALA_Global_tau(Forces_old, forces_0_old, flip_length)
 
        do Flip_count = 1,Flip_length
           n = Flip_list(Flip_count)

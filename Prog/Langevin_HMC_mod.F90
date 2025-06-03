@@ -610,7 +610,7 @@
            
            call ham%Global_MALA_move(Flip_list)
 
-           call Control_MALA_Global(forces_old, forces_0_old, flip_list, Group_Comm)
+           call Control_MALA_Global(forces_old, forces_0_old, flip_list)
 
            Xmax = 0.d0
            do n = 1,n1
