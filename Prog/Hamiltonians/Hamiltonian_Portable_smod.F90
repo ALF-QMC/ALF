@@ -167,20 +167,12 @@
       Type (Unit_cell),     target :: Latt_unit
       Type (Hopping_Matrix_type), Allocatable :: Hopping_Matrix(:)
       Integer, allocatable :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
-      logical  :: translation_symmetry
 
       integer :: n_spin
 
       ! variables for lattice
       integer  :: Norb
-      Integer :: L1, L2
-      Real (Kind=Kind(0.d0))  :: a1_p(3), a2_p(3), a3_p(3)
-      real (kind=kind(0.d0)), allocatable :: Orb_a_p(:,:)
-
-      !variables for hopping
-      integer :: N_diag
-      complex (kind=kind(0.d0)), allocatable :: Ham_t(:)
-      integer, allocatable                   :: hop_list(:,:), hop_diag(:)
+      Integer  :: L1, L2
 
       !Variables for interaction
       integer :: N_ops
@@ -235,26 +227,16 @@
            N_FL   = 1
            N_spin = 2
 
-           translation_symmetry = .true.
            Ltrot = nint(beta/dtau)
 !           Thtrot = 0
 !           if (Projector) Thtrot = nint(theta/dtau)
 !           Ltrot = Ltrot+2*Thtrot
- 
-           ! read in information for lattice from file geometry.txt
-           call read_latt
 
            ! Setup the Bravais lattice
            call Ham_Latt
 
-           ! read in information for hopping from file hoppings.txt
-           call read_hop
-
            ! Setup the hopping / single-particle part
            call Ham_Hop
-
-           ! read in information for interaction from file potentials.txt
-           call read_int
  
            ! Setup the interaction.
            call Ham_V
@@ -308,13 +290,16 @@
 !> Sets  the  Lattice
 !--------------------------------------------------------------------
 
-        Subroutine read_latt
+        Subroutine read_latt(a_p, Orb_pos)
 
 #if defined (MPI) || defined(TEMPERING)
           Use mpi
 #endif
 
           implicit none
+
+          Real (Kind=Kind(0.d0)), intent(out)  :: a_p(3,3)
+          real (kind=kind(0.d0)), allocatable, intent(out) :: Orb_pos(:,:)
  
           integer                :: ierr, unit_latt, no, i
           Character (len=64)     :: file_latt
@@ -344,15 +329,15 @@
              END IF
 
              read(unit_latt,*) L1, L2
-             read(unit_latt,*) a1_p
-             read(unit_latt,*) a2_p
-             read(unit_latt,*) a3_p
+             read(unit_latt,*) a_p(1,:)
+             read(unit_latt,*) a_p(2,:)
+             read(unit_latt,*) a_p(3,:)
              read(unit_latt,*) norb
 
-             allocate(Orb_a_p(Norb,3))
+             allocate(Orb_pos(Norb,3))
 
              do no = 1, Norb
-                read(unit_latt,*) i, Orb_a_p(no,:)
+                read(unit_latt,*) i, Orb_pos(no,:)
              enddo
 
              Close(unit_latt)
@@ -361,13 +346,11 @@
 
           CALL MPI_BCAST(L1       ,  1           ,MPI_INTEGER  ,0,Group_Comm,ierr)
           CALL MPI_BCAST(L2       ,  1           ,MPI_INTEGER  ,0,Group_Comm,ierr)
-          CALL MPI_BCAST(a1_p     ,  size(a1_p,1),MPI_REAL8    ,0,Group_Comm,ierr)
-          CALL MPI_BCAST(a2_p     ,  size(a2_p,1),MPI_REAL8    ,0,Group_Comm,ierr)
-          CALL MPI_BCAST(a3_p     ,  size(a3_p,1),MPI_REAL8    ,0,Group_Comm,ierr)
+          CALL MPI_BCAST(a_p      ,  size(a_p)   ,MPI_REAL8    ,0,Group_Comm,ierr)
           CALL MPI_BCAST(Norb     ,  1           ,MPI_INTEGER  ,0,Group_Comm,ierr)
       
-          if (irank_g /= 0) allocate(Orb_a_p(Norb,3))
-          CALL MPI_BCAST(Orb_a_p,  size(Orb_a_p) ,MPI_REAL8    ,0,Group_Comm,ierr)
+          if (irank_g /= 0) allocate(Orb_pos(Norb,3))
+          CALL MPI_BCAST(Orb_pos,  size(Orb_pos) ,MPI_REAL8    ,0,Group_Comm,ierr)
 #endif
 
 
@@ -384,10 +367,14 @@
 
 
           Implicit none
-          Real (Kind=Kind(0.d0))  :: d1_p(2), d2_p(2), L1_p(2), L2_p(2)
+          Real (Kind=Kind(0.d0))  :: a1_p(2), a2_p(2), L1_p(2), L2_p(2)
           integer :: no, ns, nc, i
           Real (Kind = Kind(0.d0) ) :: Zero = 1.0E-8
+          Real (Kind=Kind(0.d0))  :: a_p(3,3)
+          real (kind=kind(0.d0)), allocatable :: Orb_pos(:,:)
 
+          ! read in information for lattice from file geometry.txt
+          call read_latt(a_p, Orb_pos)
 
           latt_unit%Norb = N_spin*Norb
           allocate(latt_unit%Orb_pos_p(latt_unit%Norb,3))
@@ -398,20 +385,20 @@
           do ns = 1, N_spin
              do no = 1, Norb
                 nc = nc + 1
-                latt_unit%Orb_pos_p(nc,:) = Orb_a_p(no,1)*a1_p + Orb_a_p(no,2)*a2_p + (Orb_a_p(no,3)-dble(ns-1))*a3_p
+                latt_unit%Orb_pos_p(nc,:) = Orb_pos(no,1)*a_p(1,:) + Orb_pos(no,2)*a_p(2,:) + (Orb_pos(no,3)-dble(ns-1))*a_p(3,:)
              enddo
           enddo
 
-          d1_p = a1_p(1:2)
-          d2_p = a2_p(1:2)
-          if (abs(a1_p(3)) > zero .or. abs(a2_p(3)) > zero ) then
+          a1_p = a_p(1,1:2)
+          a2_p = a_p(2,1:2)
+          if (abs(a_p(1,3)) > zero .or. abs(a_p(2,3)) > zero ) then
              Write(error_unit,*) 'Unit cell vectors three dimensional, but ALF does not support three-dimensional lattices'
              CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
           endif
 
-          L1_p    =  dble(L1)*d1_p
-          L2_p    =  dble(L2)*d2_p
-          Call Make_Lattice( L1_p, L2_p, d1_p,  d2_p, latt )
+          L1_p    =  dble(L1)*a1_p
+          L2_p    =  dble(L2)*a2_p
+          Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, latt )
 
           Ndim = latt%N*latt_unit%Norb
 
@@ -426,13 +413,7 @@
              enddo
          enddo
 
-
-         Latt_unit%N_coord = 2
-
-!         do nc = 1, size(latt_unit%orb_pos_p,1)
-!         print *, "latt_unit%Orb_pos_p", latt_unit%Orb_pos_p(nc,:)
-!         enddo
-
+!         Latt_unit%N_coord = 2
 
         end Subroutine Ham_Latt
 
@@ -445,19 +426,21 @@
 !> Sets  the  Lattice
 !--------------------------------------------------------------------
 
-        Subroutine read_hop
+        Subroutine read_hop(ham_t, hop_list)
 
 #if defined (MPI) || defined(TEMPERING)
           Use mpi
 #endif
 
           implicit none
+
+          complex (kind=kind(0.d0)), allocatable, intent(out) :: Ham_t(:)
+          integer, allocatable, intent(out)                   :: hop_list(:,:)
  
           integer                :: ierr, unit_hop, n_hop, nh, i
           integer                :: no1, no2, s1, s2, n1, n2
           Character (len=64)     :: file_hop
           real (kind=kind(0.d0)) :: x, y
-          logical                :: diag
 
 
 #ifdef MPI
@@ -509,27 +492,6 @@
  
 #endif
 
-         ! if hop_diag(i) = 1 : hopping is     on-site (chemical potential)
-         ! if hop_diag(i) = 0 : hopping is not on-site
-         allocate( hop_diag(n_hop) )
-         hop_diag = 0
-
-         N_diag = 0
-         do nh = 1, n_hop
-            diag = hop_list(nh,1) == hop_list(nh,3) .and. hop_list(nh,2) == hop_list(nh,4) .and. &
-                    &  hop_list(nh,5) == 0 .and. hop_list(nh,6) == 0
-            if (diag) then
-               hop_diag(nh) = 1
-               N_diag = N_diag + 1
-            endif
-         enddo
-
-!         print *, irank_g, n_hop
-!         do nh = 1, n_hop
-!            print *, irank_g, hop_list(nh,:), hop_diag(nh)
-!            print *, irank_g, ham_t(nh)
-!         enddo
-
         end subroutine read_hop
 
 !--------------------------------------------------------------------
@@ -543,8 +505,31 @@
 
           Implicit none
 
-          Integer :: nf , I, Ix, Iy, nh, nc, no
+          Integer :: nf , I, Ix, Iy, nh, nc, no, n_hop
           real (kind=kind(0.d0)) :: ham_t_max, Zero = 1.0E-8
+          integer :: N_diag
+          complex (kind=kind(0.d0)), allocatable :: Ham_t(:)
+          integer, allocatable                   :: hop_list(:,:), hop_diag(:)
+          logical                :: diag
+
+          ! read in information for hopping from file hoppings.txt
+          call read_hop(ham_t, hop_list)
+
+          n_hop = size(ham_t,1)
+          ! if hop_diag(i) = 1 : hopping is     on-site (chemical potential)
+          ! if hop_diag(i) = 0 : hopping is not on-site
+          allocate( hop_diag(n_hop) )
+          hop_diag = 0
+
+          N_diag = 0
+          do nh = 1, n_hop
+             diag = hop_list(nh,1) == hop_list(nh,3) .and. hop_list(nh,2) == hop_list(nh,4) .and. &
+                     &  hop_list(nh,5) == 0 .and. hop_list(nh,6) == 0
+             if (diag) then
+                hop_diag(nh) = 1
+                N_diag = N_diag + 1
+             endif
+          enddo
 
           allocate(Hopping_Matrix(N_Fl))
 
@@ -553,7 +538,6 @@
              if ( hop_diag(nh) == 0 .and. abs(dble (ham_t(nh))) > ham_t_max ) ham_t_max = abs(dble (ham_t(nh)))
              if ( hop_diag(nh) == 0 .and. abs(aimag(ham_t(nh))) > ham_t_max ) ham_t_max = abs(aimag(ham_t(nh)))
           enddo
-!          print *, "ham_t_max", ham_t_max
 
           do nf = 1, N_Fl
              Hopping_Matrix(N_Fl)%N_bonds = 0
@@ -595,22 +579,10 @@
              hopping_matrix(nf)%Phi_X =  Phi_X
              hopping_matrix(nf)%Phi_Y =  Phi_Y
              hopping_matrix(nf)%Bulk  =  Bulk
-             
-!             do nc = 1, size(hopping_matrix(nf)%T)
-!                print *, "list, T", nc, hopping_matrix(nf)%list(nc,:), hopping_matrix(nf)%T(nc)
-!             enddo
-!
-!             do no = 1, size(hopping_matrix(nf)%t_loc)
-!                print *, "t_loc", no, hopping_matrix(nf)%t_loc(no)
-!             enddo
 
           enddo
 
-
           Call  Predefined_Hoppings_set_OPT(Hopping_Matrix,List,Invlist,Latt,  Latt_unit,  Dtau, .false.,  .false. , OP_T )
-
-
-
 
         end Subroutine Ham_Hop
 
@@ -634,7 +606,6 @@
           integer                :: ierr, unit_int, mk, no, n, i1, i2, no1, s1, j1, j2, no2, s2, i
           Character (len=64)     :: file_int
           real (kind=kind(0.d0)) :: u, x, y
-
 
 
 #ifdef MPI
@@ -687,7 +658,6 @@
 
              Close(unit_int)
 
-
 #ifdef MPI
           Endif
 
@@ -704,24 +674,9 @@
              CALL MPI_BCAST(interaction(no)%c_int      ,   size(interaction(no)%c_int),MPI_COMPLEX16,0,Group_Comm,ierr)
           enddo
 
-!          print *, irank_g, n_ops
-!          do no = 1, N_ops
-!             print *, irank_g, ham_u(no), alpha_int(no)
-!             print *, irank_g, no, size(interaction(no)%int_list,1)
-!             do n = 1, size(interaction(no)%int_list,1)
-!                print *, irank_g, n, interaction(no)%int_list(n,:)
-!                print *, irank_g, n, interaction(no)%c_int(n)
-!             enddo
-!          enddo
-
-
- 
 #endif
 
-
           call get_number_of_orbitals_per_interaction
-        
-
 
         end subroutine read_int
 
@@ -779,9 +734,11 @@
           Implicit none
 
           Integer :: nf, I, nt, no, nc, i1, i2, no1, no2, mk, n, j1, j2
-          integer :: nc_o, x1(1), x2(1)
+          integer :: nc_o, x1, x2, x
           integer, allocatable :: orbitals_tmp(:)
-          Real (Kind=Kind(0.d0)) :: X
+
+          ! read in information for interaction from file potentials.txt
+          call read_int
 
           allocate (OP_V(N_ops*Latt%N,N_Fl))
 
@@ -800,23 +757,37 @@
                       i1  = latt%nnlist( i, interaction(no)%int_list(n,1), interaction(no)%int_list(n,2) )
                       no1 = (interaction(no)%int_list(n,3)+1) + interaction(no)%int_list(n,4)*Norb
                       j1  = invlist(i1,no1)
-                      if (.not. any(orbitals_tmp == j1 )) then
+                      x1  = -1
+                      do x = 1, nc_o
+                         if (orbitals_tmp(x) == j1) then
+                            x1 = x
+                            exit
+                         endif
+                      enddo
+                      if (x1 == -1) then
                          nc_o = nc_o + 1
                          orbitals_tmp(nc_o) = j1
+                         x1 = nc_o
                       endif
-                      x1 = findloc(orbitals_tmp,j1)
             
                       i2  = latt%nnlist( i, interaction(no)%int_list(n,5), interaction(no)%int_list(n,6) )
                       no2 = (interaction(no)%int_list(n,7)+1) + interaction(no)%int_list(n,8)*Norb
                       j2  = invlist(i2,no2)
-                      if (.not. any(orbitals_tmp == j2 )) then
+                      x2  = -1
+                      do x = 1, nc_o
+                         if (orbitals_tmp(x) == j2) then
+                            x2 = x
+                            exit
+                         endif
+                      enddo
+                      if (x2 == -1) then
                          nc_o = nc_o + 1
                          orbitals_tmp(nc_o) = j2
+                         x2 = nc_o
                       endif
-                      x2 = findloc(orbitals_tmp,j2)
 
-                      Op_V(nc,nf)%O(x1(1),x2(1)) =        interaction(no)%c_int(n)
-                      Op_V(nc,nf)%O(x2(1),x1(1)) = CONJG( interaction(no)%c_int(n) )
+                      Op_V(nc,nf)%O(x1,x2) =        interaction(no)%c_int(n)
+                      Op_V(nc,nf)%O(x2,x1) = CONJG( interaction(no)%c_int(n) )
                    enddo
 
                    Op_V(nc,nf)%g = sqrt(cmplx(-dtau*ham_u(no), 0.d0, kind(0.d0) ))
