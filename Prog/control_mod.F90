@@ -72,6 +72,9 @@ module Control
 
     real    (Kind=Kind(0.d0)),  private, save :: Force_max, Force_mean
     Integer, private, save  :: Force_Count
+    real    (Kind=Kind(0.d0)),  private, save :: Force_max_MALA_global_tau, Force_mean_MALA_global_tau
+    real    (Kind=Kind(0.d0)),  private, save :: Force_0_max_MALA_global_tau, Force_0_mean_MALA_global_tau
+    Integer, private, save  :: Force_Count_MALA_global_tau
     real    (Kind=Kind(0.d0)),  private, save :: Force_max_MALA_global, Force_mean_MALA_global
     real    (Kind=Kind(0.d0)),  private, save :: Force_0_max_MALA_global, Force_0_mean_MALA_global
     Integer, private, save  :: Force_Count_MALA_global
@@ -130,11 +133,17 @@ module Control
         Force_mean = 0.d0
         Force_count = 0
 
-        Force_max_MALA_global   = 0.d0
-        Force_mean_MALA_global  = 0.d0
-        Force_0_max_MALA_global   = 0.d0
-        Force_0_mean_MALA_global  = 0.d0
-        Force_Count_MALA_global = 0
+        Force_max_MALA_global_tau    = 0.d0
+        Force_mean_MALA_global_tau   = 0.d0
+        Force_0_max_MALA_global_tau  = 0.d0
+        Force_0_mean_MALA_global_tau = 0.d0
+        Force_Count_MALA_global_tau  = 0
+
+        Force_max_MALA_global    = 0.d0
+        Force_mean_MALA_global   = 0.d0
+        Force_0_max_MALA_global  = 0.d0
+        Force_0_mean_MALA_global = 0.d0
+        Force_Count_MALA_global  = 0
         
 #ifdef MPI
         CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
@@ -190,7 +199,7 @@ module Control
         integer, intent(in) :: flip_list(:,:)
         Integer, Intent(IN) :: Group_Comm
         
-        Integer :: n1,n2, n, nt, nc
+        Integer :: n1,n2, n, nt
         Real (Kind = Kind(0.d0) ) :: X, Y
 
         n1 =  size(Forces,1)
@@ -215,6 +224,37 @@ module Control
         Force_0_mean_MALA_global = Force_0_mean_MALA_global  +  Y
         
       end Subroutine Control_MALA_Global
+
+!-------------------------------------------------------------
+
+      Subroutine Control_MALA_Global_tau(Forces, forces_0, flip_length, Group_Comm)
+
+
+        Implicit none
+        
+        Complex (Kind=Kind(0.d0)), Intent(In)  :: Forces(:)
+        Real (Kind=Kind(0.d0)), Intent(In)     :: Forces_0(:)
+        integer, intent(in) :: flip_length
+        Integer, Intent(IN) :: Group_Comm
+        
+        Integer :: n
+        Real (Kind = Kind(0.d0) ) :: X, Y
+
+        X  = 0.d0
+        Y  = 0.d0
+        do  n = 1,flip_length
+           Force_Count_MALA_global_tau = Force_Count_MALA_global_tau + 1
+           If ( abs( Real(Forces(n),kind(0.d0))) >=  Force_max_MALA_global_tau  ) &
+             &  Force_max_MALA_global_tau = abs( Real(Forces(n),kind(0.d0)))
+           X  = X + abs( Real(Forces(n),kind(0.d0)) )
+           If ( abs( Real(Forces_0(n),kind(0.d0))) >=  Force_0_max_MALA_global_tau  ) &
+             &  Force_0_max_MALA_global_tau = abs( Real(Forces_0(n),kind(0.d0)))
+           Y  = Y + abs( Real(Forces_0(n),kind(0.d0)) )
+        enddo
+        Force_mean_MALA_global_tau   = Force_mean_MALA_global_tau    +  X
+        Force_0_mean_MALA_global_tau = Force_0_mean_MALA_global_tau  +  Y
+        
+      end Subroutine Control_MALA_Global_tau
 
       
       Subroutine Control_upgrade(toggle)
@@ -416,7 +456,7 @@ module Control
       End Subroutine Control_PrecisionP_MALA
 
 
-      Subroutine Control_Print(Group_Comm, Global_update_scheme, MALA)
+      Subroutine Control_Print(Group_Comm, Global_update_scheme, MALA, Global_tau_MALA_moves)
 #ifdef MPI
         Use mpi
 #endif
@@ -424,7 +464,7 @@ module Control
 
         Integer, Intent(IN) :: Group_Comm
         Character (Len = 64), Intent(IN) :: Global_update_scheme
-        Logical, intent(in) :: MALA
+        Logical, intent(in) :: MALA, Global_tau_MALA_moves
                 
 
         Character (len=64) :: file1
@@ -470,6 +510,10 @@ module Control
         time = (count_CPU_end-count_CPU_start)/dble(count_rate)
         if (count_CPU_end .lt. count_CPU_start) time = (count_max+count_CPU_end-count_CPU_start)/dble(count_rate)
         If (str_to_upper(Global_update_scheme) == "LANGEVIN") Force_mean =  Force_mean/real(Force_count,kind(0.d0))
+        If (Global_tau_MALA_moves) then
+           Force_mean_MALA_global_tau   =  Force_mean_MALA_global_tau/real(Force_Count_MALA_global_tau,kind(0.d0))
+           Force_0_mean_MALA_global_tau =  Force_0_mean_MALA_global_tau/real(Force_Count_MALA_global_tau,kind(0.d0))
+        endif
         If (MALA) then
            Force_mean_MALA_global   =  Force_mean_MALA_global/real(Force_Count_MALA_global,kind(0.d0))
            Force_0_mean_MALA_global =  Force_0_mean_MALA_global/real(Force_Count_MALA_global,kind(0.d0))
@@ -482,6 +526,18 @@ module Control
            Force_mean= X/dble(Isize_g)
            CALL MPI_REDUCE(Force_max,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
            Force_max= X
+        endif
+        If (Global_tau_MALA_moves)  then
+           X = 0.d0
+           CALL MPI_REDUCE(Force_mean_MALA_global_tau,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
+           Force_mean_MALA_global_tau= X/dble(Isize_g)
+           CALL MPI_REDUCE(Force_max_MALA_global_tau,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
+           Force_max_MALA_global_tau= X
+           X = 0.d0
+           CALL MPI_REDUCE(Force_0_mean_MALA_global_tau,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
+           Force_0_mean_MALA_global_tau= X/dble(Isize_g)
+           CALL MPI_REDUCE(Force_0_max_MALA_global_tau,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
+           Force_0_max_MALA_global_tau= X
         endif
         If (MALA)  then
            X = 0.d0
@@ -599,6 +655,11 @@ module Control
               Write(50,*) ' Acceptance_HMC              : ', ACC_HMC
               Write(50,*) ' Mean Phase diff HMC         : ', XMEANP_HMC
               Write(50,*) ' Max  Phase diff HMC         : ', XMAXP_HMC
+           Endif
+
+           if (Global_tau_MALA_moves)   Then
+               Write(50,*) ' Global tau MALA Force        Mean, Max : ', Force_mean_MALA_global_tau,    Force_max_MALA_global_tau
+               Write(50,*) ' Global tau MALA Force_0      Mean, Max : ', Force_0_mean_MALA_global_tau,  Force_0_max_MALA_global_tau
            Endif
 
            if (MALA)   Then

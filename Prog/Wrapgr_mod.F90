@@ -84,7 +84,7 @@ Contains
 
 !--------------------------------------------------------------------
   SUBROUTINE WRAPGRUP(GR,NTAU,PHASE,Propose_S0,Propose_MALA, Delta_t_MALA_sequential,Nt_sequential_start, &
-             &        Nt_sequential_end, N_Global_tau, N_Global_tau_MALA, Delta_t_MALA_global_tau)
+             &        Nt_sequential_end, N_Global_tau, N_Global_tau_MALA, Delta_t_MALA_global_tau, Max_Force_MALA_global_tau)
 !--------------------------------------------------------------------
 !> @author 
 !> ALF-project
@@ -104,6 +104,7 @@ Contains
     LOGICAL, INTENT(IN) :: Propose_S0, Propose_MALA
     INTEGER, INTENT(IN) :: Nt_sequential_start, Nt_sequential_end, N_Global_tau, N_Global_tau_MALA
     Real    (kind=Kind(0.d0)), intent(in) :: Delta_t_MALA_sequential, Delta_t_MALA_global_tau
+    real    (kind=kind(0.d0)), intent(in) :: Max_Force_MALA_global_tau
 
     !Local 
     Integer :: nf, nf_eff, N_Type, NTAU1,n, m
@@ -219,7 +220,7 @@ Contains
     Endif
     If ( N_Global_tau_MALA > 0 ) then
        !if ( Nt_sequential_start >  Nt_sequential_end ) m = Nt_sequential_start
-       Call Wrapgr_Langevin_update(GR,m,ntau1, PHASE, N_Global_tau_MALA, Delta_t_MALA_global_tau )
+       Call Wrapgr_Langevin_update(GR,m,ntau1, PHASE, N_Global_tau_MALA, Delta_t_MALA_global_tau, Max_Force_MALA_global_tau )
     Endif
     if ( N_Global_tau > 0 .or. N_Global_tau_MALA > 0 ) Call Wrapgr_PlaceGR(GR,m, Size(OP_V,1), ntau1)
 
@@ -228,7 +229,7 @@ Contains
 
 !--------------------------------------------------------------------    
   SUBROUTINE WRAPGRDO(GR,NTAU,PHASE,Propose_S0,Propose_MALA, Delta_t_MALA_sequential,Nt_sequential_start, &
-             &        Nt_sequential_end, N_Global_tau, N_Global_tau_MALA, Delta_t_MALA_global_tau)
+             &        Nt_sequential_end, N_Global_tau, N_Global_tau_MALA, Delta_t_MALA_global_tau, Max_Force_MALA_global_tau)
 !--------------------------------------------------------------------
 !> @author 
 !> ALF-project
@@ -250,6 +251,7 @@ Contains
     LOGICAL, INTENT(IN) :: Propose_S0, Propose_MALA
     INTEGER, INTENT(IN) :: Nt_sequential_start, Nt_sequential_end, N_Global_tau, N_Global_tau_MALA
     real    (kind=kind(0.d0)), intent(in) :: Delta_t_MALA_sequential, Delta_t_MALA_global_tau
+    real    (kind=kind(0.d0)), intent(in) :: Max_Force_MALA_global_tau
     
     ! Local
     Integer :: nf, nf_eff, N_Type, n, m
@@ -269,7 +271,7 @@ Contains
 
     If ( N_Global_tau_MALA > 0 ) then
        !Write(6,*) 'Call Ran_up ', m,ntau
-       Call Wrapgr_Langevin_update(GR,m,ntau, PHASE, N_Global_tau_MALA, Delta_t_MALA_global_tau )
+       Call Wrapgr_Langevin_update(GR,m,ntau, PHASE, N_Global_tau_MALA, Delta_t_MALA_global_tau, Max_Force_MALA_global_tau )
     Endif
     if ( N_Global_tau > 0 .or. N_Global_tau_MALA > 0 ) Call Wrapgr_PlaceGR(GR,m, Nt_sequential_end, ntau)
 
@@ -566,7 +568,7 @@ Contains
 
 
 !--------------------------------------------------------------------
-  Subroutine  Wrapgr_Langevin_update( GR,m,ntau, PHASE, N_Global_tau_MALA, Delta_t_MALA_global_tau )
+  Subroutine  Wrapgr_Langevin_update( GR,m,ntau, PHASE, N_Global_tau_MALA, Delta_t_MALA_global_tau, Max_Force )
 !--------------------------------------------------------------------
 !> @author
 !> ALF-project
@@ -602,6 +604,7 @@ Contains
     Integer,           INTENT(IN)    :: ntau, N_Global_tau_MALA
     Complex  (Kind=Kind(0.d0)), INTENT(INOUT) :: PHASE
     Real    (kind=Kind(0.d0)), intent(in) :: Delta_t_MALA_global_tau
+    real    (kind=kind(0.d0)), intent(in) :: Max_Force
     
 
 
@@ -615,6 +618,7 @@ Contains
     Complex (Kind=Kind(0.d0)), allocatable :: Flip_value(:), Flip_value_st(:), forces_old(:), forces_new(:)
     Real    (Kind=Kind(0.d0)) :: Zero = 10D-8, weight
     real    (kind=kind(0.d0)), allocatable :: Forces_0_old(:), Forces_0_new(:)
+    Real    (Kind=Kind(0.d0)) :: X, Xmax, Delta_t_running
 
     Allocate ( Flip_list(Size(Op_V,1)), Flip_value(Size(Op_V,1)), Flip_value_st(Size(Op_V,1)) )
     Allocate ( Forces_old(Size(Op_V,1)), Forces_new(Size(Op_V,1)), Forces_0_old(Size(Op_V,1)), Forces_0_new(Size(Op_V,1)))
@@ -631,6 +635,7 @@ Contains
        Enddo
        !Write(6,*) "-----", Flip_length
        !Calculate forces with current nsigma
+       Xmax = 0.d0
        do Flip_count = 1,Flip_length
           n = Flip_list(Flip_count)
           !Write(6,*)  "PlaceGR",  m, n-1,ntau
@@ -640,10 +645,22 @@ Contains
           forces_old(Flip_count)   = calculate_force(n,ntau,GR)
           call ham%Ham_Langevin_HMC_S0_single (force_0,n,ntau)
           forces_0_old(Flip_count) = force_0
-          flip_value(Flip_count) = nsigma%f(n,ntau) - ( forces_0_old(flip_count) +  &
-            &  real( Phase*forces_old(flip_count),kind(0.d0)) / Real(Phase,kind(0.d0)) ) * Delta_t_MALA_global_tau + &
-            &  sqrt( 2.d0 * Delta_t_MALA_global_tau) * rang_wrap()
+          X = abs(dble(forces_old(Flip_count)))
+          if (X > Xmax) Xmax = X
+          X = abs(force_0)
+          if (X > Xmax) Xmax = X
           m = n
+       enddo
+       Delta_t_running = Delta_t_MALA_global_tau
+       If (Xmax > Max_Force) Delta_t_running = Max_Force*Delta_t_MALA_global_tau/Xmax
+
+       call Control_MALA_Global_tau(Forces_old, forces_0_old, flip_length, Group_Comm)
+
+       do Flip_count = 1,Flip_length
+          n = Flip_list(Flip_count)
+          flip_value(Flip_count) = nsigma%f(n,ntau) - ( forces_0_old(flip_count) +  &
+            &  real( Phase*forces_old(flip_count),kind(0.d0)) / Real(Phase,kind(0.d0)) ) * Delta_t_running + &
+            &  sqrt( 2.d0 * Delta_t_running) * rang_wrap()
        enddo
 
        !Update Greens function
@@ -685,10 +702,10 @@ Contains
           forces_new(Flip_count)   = calculate_force(n,ntau,GR)
           call ham%Ham_Langevin_HMC_S0_single (force_0,n,ntau)
           forces_0_new(Flip_count) = force_0
-          t0_Proposal_ratio = t0_proposal_ratio * exp(-0.25d0/Delta_t_MALA_global_tau * ( &
-              & Abs(Flip_value_st(Flip_count) - Flip_value(Flip_count) + Delta_t_MALA_global_tau*(forces_0_new(Flip_count) + &
+          t0_Proposal_ratio = t0_proposal_ratio * exp(-0.25d0/Delta_t_running * ( &
+              & Abs(Flip_value_st(Flip_count) - Flip_value(Flip_count) + Delta_t_running*(forces_0_new(Flip_count) + &
               & real( Phase*forces_new(Flip_count),kind(0.d0))    / Real(Phase,kind(0.d0)))     )**2 -  &
-              & Abs(Flip_value(Flip_count) - Flip_value_st(Flip_count) + Delta_t_MALA_global_tau*(forces_0_old(Flip_count) + &
+              & Abs(Flip_value(Flip_count) - Flip_value_st(Flip_count) + Delta_t_running*(forces_0_old(Flip_count) + &
               & real( phase_st*forces_old(Flip_count),kind(0.d0)) / Real(phase_st,kind(0.d0)))  )**2 ) )
           m = n
        enddo
