@@ -1087,7 +1087,7 @@
           Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL)
           Complex (Kind=Kind(0.d0)) :: ZP, ZS
           Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Zlocal, ZZ, ZDen
-          Integer :: I, J, nf, i1, no_i, i2, no, n, no_1, no_2, j1, j, no_j, j2, imj, m
+          Integer :: I, J, nf, i1, no_i, i2, no, n, no_1, no_2, j1, no_j, j2, imj, m
           integer :: x1, x2, y1, y2, no_i1, no_i2, no_j1, no_j2
           ! Add local variables as needed
 
