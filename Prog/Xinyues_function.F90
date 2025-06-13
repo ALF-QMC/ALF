@@ -1,7 +1,14 @@
-      subroutine Get_spin_fluctuation_configuration(Phi,L1,Latt%N,Dtau,Beta)
+      subroutine Get_spin_fluctuation_configuration(Phi,Dtau,Beta,L1)
+
+
+        ! This subroutine generates a random configuration of spin fluctuation
+        ! Phi(L1,L1,3,Ltrot)   Ltrot = Beta/Dtau
+        ! Phi(ix,iy,alpha,tau) is the field on time slice  tau  that couples to the sigma^{\alpha} Pauli matrix at 
+        ! site \vec{i} = ix*a_1 + iy*a_2 
 
         implicit none
         real*8::  Dtau,Beta
+        Type(Lattice), Intent(In)                         :: Latt
         integer:: Ltrot,L1,Latt%N
         integer, parameter:: nm=Latt%N*Ltrot*3   ! total number of degree of freedom
         integer, parameter:: nh=nm/2      ! number of gaussian pairs
