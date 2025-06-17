@@ -1,58 +1,64 @@
-      subroutine Get_spin_fluctuation_configuration(Phi,Dtau,Beta,L1)
+      subroutine Get_spin_fluctuation_configuration(Phi,Beta,Ltrot,L1)
 
+        !For Dtau is not directly used in the subroutine,input
+        !Beta and Ltrot instead.
 
         ! This subroutine generates a random configuration of spin fluctuation
         ! Phi(L1,L1,3,Ltrot)   Ltrot = Beta/Dtau
-        ! Phi(ix,iy,alpha,tau) is the field on time slice  tau  that couples to the sigma^{\alpha} Pauli matrix at 
-        ! site \vec{i} = ix*a_1 + iy*a_2 
+        ! Phi(ix,iy,alpha,tau) is the field on time slice  tau  that couples to the sigma^{\alpha} Pauli matrix at
+        ! site \vec{i} = ix*a_1 + iy*a_2
 
         implicit none
-        real*8::  Dtau,Beta
-        Type(Lattice), Intent(In)                         :: Latt
-        integer:: Ltrot,L1,Latt%N
-        integer, parameter:: nm=Latt%N*Ltrot*3   ! total number of degree of freedom
-        integer, parameter:: nh=nm/2      ! number of gaussian pairs
-        integer, parameter:: bzl=-L1/2+1  ! lower boundary of BZ
-        integer, parameter:: bzh=L1/2     ! upper boundary of BZ
-        integer, parameter:: bwl=-Ltrot/2+1  ! lower boundary of wBZ
-        integer, parameter:: bwh=Ltrot/2     ! upper boundary of wBZ
-       
-        complex*16 pwl(L1,L1)
-        complex*16 pww(Ltrot,Ltrot)
-        real*8,  parameter:: pi=dacos(-1.d0)
-        real*8,  parameter:: sq2=dsqrt(2.d0)
-        real*8,  parameter:: chi0_inv=1.d0/beta ! set beta*chi0_inv=1
-        real*8,  parameter:: xi=3.d0    ! correlatio length
-        real*8,  parameter:: wsf=1.d0  ! measured in uint of k_BT
-        real*8,  parameter:: factor=Beta*chi0_inv/xi**2/Ltrot
-        integer  inl(bzl:bzh),inw(bwl:bwh)
+        integer, intent(in)  :: Ltrot , L1
+        real (kind=kind(0.d0)), intent(in)  :: Beta
+        real (kind=kind(0.d0)), intent(out) :: Phi(L1,L1,3,Ltrot)
+
+        integer::nm,nh,bzl,bzh,bwl,bwh
+        complex (kind=kind(0.d0)):: pwl(L1,L1)
+        complex (kind=kind(0.d0)):: pww(Ltrot,Ltrot)
+        real (kind=kind(0.d0)),  parameter:: pi=dacos(-1.d0)
+        real (kind=kind(0.d0)),  parameter:: sq2=dsqrt(2.d0)
+        real (kind=kind(0.d0)),  parameter:: xi=3.d0    ! correlatio length
+        real (kind=kind(0.d0)),  parameter:: wsf=1.d0  ! measured in uint of k_BT
+        real (kind=kind(0.d0)) :: chi0_inv,factor
+        integer  inl(-L1/2+1:L1/2),inw(-Ltrot/2+1:Ltrot/2)
         integer i,j,k,l,inq,inq1,ins
-        real*8  gauss(nm)
-        real*8  u,v,r,theta,x,y,rq
-        real*8  cqx,cqy,wtv,phase,sumr
+        real (kind=kind(0.d0)) ::  gauss(L1*L1*Ltrot*3)
+        real (kind=kind(0.d0)) ::  u,v,r,theta,x,y,rq
+        real (kind=kind(0.d0)) :: cqx,cqy,wtv,phase,sumr
         integer qx,qy,wt,qx1,qx2
         integer qxb,qyb,wtb,dist
-        integer occ(Latt%N*Ltrot)
-        complex*16  phiq(Latt%N*Ltrot,3)
-        complex*16  phi1(L1,L1*Ltrot)
-        complex*16  phi2(Ltrot,Latt%N)
-        real*8  Phi(Latt%N*Ltrot,3)
+        integer occ(L1*L1*Ltrot)
+        complex (kind=kind(0.d0)):: phiq(L1*L1*Ltrot,3)
+        complex (kind=kind(0.d0)):: phi1(L1,L1*Ltrot)
+        complex (kind=kind(0.d0)) :: phi2(Ltrot,L1*L1)
+        real (kind=kind(0.d0)):: phir(L1*L1*Ltrot,3)
+
+        nm=L1*L1*Ltrot*3   ! total number of degree of freedom
+        nh=nm/2      ! number of gaussian pairs
+        bzl=-L1/2+1  ! lower boundary of BZ
+        bzh=L1/2     ! upper boundary of BZ
+        bwl=-Ltrot/2+1  ! lower boundary of wBZ
+        bwh=Ltrot/2     ! upper boundary of wBZ
+        chi0_inv=1.d0/beta ! set beta*chi0_inv=1
+        factor=Beta*chi0_inv/xi**2/Ltrot
+
 
         do i=1,L1
         do qx=bzl,bzh
         inq=(qx-bzl)+1
         phase=(2.d0*pi*qx*i)/L1
-        pwl(i,inq)=dcmplx(dcos(phase),dsin(phase))
+        pwl(i,inq)=cmplx(dcos(phase),dsin(phase),kind=kind(0.d0))
         end do
         end do
 
         !generating factors for FT in advance
-        !needs to be rearranged into the subroutine.
+        
         do k=1,Ltrot
         do wt=bwl,bwh
         inq=(wt-bwl)+1
         phase=(2.d0*pi*wt*k)/Ltrot
-        pww(k,inq)=dcmplx(dcos(phase),dsin(phase))
+        pww(k,inq)=cmplx(dcos(phase),dsin(phase),kind=kind(0.d0))
         end do
         end do
 
@@ -102,18 +108,18 @@
 
         if(occ(inq).eq.0)then
         if(dist.eq.0)then
-        phiq(inq,1)=dcmplx(gauss(k),0.d0)/rq
-        phiq(inq,2)=dcmplx(gauss(k+1),0.d0)/rq
-        phiq(inq,3)=dcmplx(gauss(k+2),0.d0)/rq
+        phiq(inq,1)=cmplx(gauss(k),0.d0,kind=kind(0.d0))/rq
+        phiq(inq,2)=cmplx(gauss(k+1),0.d0,kind=kind(0.d0))/rq
+        phiq(inq,3)=cmplx(gauss(k+2),0.d0,kind=kind(0.d0))/rq
         k=k+3
         occ(inq)=1
         else
-        phiq(inq,1)=dcmplx(gauss(k),gauss(k+1))/rq/sq2
-        phiq(inq1,1)=dcmplx(gauss(k),-gauss(k+1))/rq/sq2
-        phiq(inq,2)=dcmplx(gauss(k+2),gauss(k+3))/rq/sq2
-        phiq(inq1,2)=dcmplx(gauss(k+2),-gauss(k+3))/rq/sq2
-        phiq(inq,3)=dcmplx(gauss(k+4),gauss(k+5))/rq/sq2
-        phiq(inq1,3)=dcmplx(gauss(k+4),-gauss(k+5))/rq/sq2
+        phiq(inq,1)=cmplx(gauss(k),gauss(k+1),kind=kind(0.d0))/rq/sq2
+        phiq(inq1,1)=cmplx(gauss(k),-gauss(k+1),kind=kind(0.d0))/rq/sq2
+        phiq(inq,2)=cmplx(gauss(k+2),gauss(k+3),kind=kind(0.d0))/rq/sq2
+        phiq(inq1,2)=cmplx(gauss(k+2),-gauss(k+3),kind=kind(0.d0))/rq/sq2
+        phiq(inq,3)=cmplx(gauss(k+4),gauss(k+5),kind=kind(0.d0))/rq/sq2
+        phiq(inq1,3)=cmplx(gauss(k+4),-gauss(k+5),kind=kind(0.d0))/rq/sq2
         k=k+6
         occ(inq)=1
         occ(inq1)=1
@@ -131,8 +137,7 @@
         do wt=bwl,bwh
         qx2=(qy-bzl)*Ltrot+(wt-bwl)+1
         inq=((qx-bzl)*L1+(qy-bzl))*Ltrot+(wt-bwl)+1
-        phi1(qx1,qx2)=phiq(inq,l) 
-        rq1(qx1,qx2)=rq0(inq)!
+        phi1(qx1,qx2)=phiq(inq,l)
         end do
         end do
         end do
@@ -198,11 +203,17 @@
 
         end do
 
-        Phi=dreal(phiq)/dsqrt(1.d0*Latt%N*Ltrot)
-        
+        phir=real(phiq,kind=kind(0.d0))/sqrt(real(L1*L1*Ltrot,kind=kind(0.d0)))
+
+        do i=1,L1
+        do j=1,L1
+        do k=1,Ltrot
+        inq=(i-1)*L1*Ltrot+(j-1)*Ltrot+(k-1)+1
+        Phi(i,j,:,k)=phir(inq,:)
+        enddo
+        enddo
+        enddo
         
         return
 
         end
-
-

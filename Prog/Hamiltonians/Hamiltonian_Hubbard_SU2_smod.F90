@@ -209,9 +209,17 @@
           Use mpi
 #endif
           Implicit none
+         Interface 
+            subroutine Get_spin_fluctuation_configuration(Phi,Beta,Ltrot,L)
+               integer, intent(in)  :: Ltrot , L
+               real (kind=kind(0.d0)), intent(in)  :: Beta
+               real (kind=kind(0.d0)), intent(out) :: Phi(L,L,3,Ltrot)  
+            end subroutine Get_spin_fluctuation_configuration
+         End Interface
 
-          integer                :: ierr, nf, unit_info
+          integer                :: ierr, nf, unit_info, n
           Character (len=64)     :: file_info
+         Real (Kind=Kind(0.d0)), allocatable :: Phi(:,:,:,:)
 
 
           ! L1, L2, Lattice_type, List(:,:), Invlist(:,:) -->  Lattice information
@@ -245,7 +253,13 @@
           ! Setup the Bravais lattice
           Call  Ham_Latt
           Allocate(n_quant(Latt%N,2))  ! n_quant(i,1) =\phi_i, n_quant(i,2) =\theta_i
-          n_quant(:,2) = acos(-1.d0)/4.d0
+          n_quant(:,2) = acos(-1.d0)/2.d0
+          n_quant(:,1) = acos(-1.d0)/2.d0
+
+          n_quant(:,2) = 0.d0
+          n_quant(:,1) = 0.d0
+
+          n_quant(:,2) = acos(-1.d0)/2.d0 
           n_quant(:,1) = 0.d0
 
           ! Setup the hopping / single-particle part
@@ -313,6 +327,12 @@
 #ifdef MPI
           Endif
 #endif
+          Allocate (Phi(L1,L1,3,Ltrot))
+          do n = 1,10 
+           Call Get_spin_fluctuation_configuration(Phi,Beta,Ltrot,L1)
+           Write(6,*) Phi(1,1,1,1)
+          enddo
+
         end Subroutine Ham_Set
 
 !--------------------------------------------------------------------
@@ -743,11 +763,32 @@
 !-------------------------------------------------------------------
         Subroutine Ham_Langevin_HMC_S0(Forces_0)
 
-          Implicit none
 
-          Real (Kind=Kind(0.d0)), Intent(inout), allocatable :: Forces_0(:,:)
+         implicit none
+
+         Interface 
+            subroutine Get_spin_fluctuation_configuration(Phi,Beta,Ltrot,L)
+               integer, intent(in)  :: Ltrot , L
+               real (kind=kind(0.d0)), intent(in)  :: Beta
+               real (kind=kind(0.d0)), intent(out) :: Phi(L,L,3,Ltrot)  
+            end subroutine Get_spin_fluctuation_configuration
+         End Interface
+
+        !For Dtau is not directly used in the subroutine,input
+        !Beta and Ltrot instead.
+
+        ! This subroutine generates a random configuration of spin fluctuation
+        ! Phi(L1,L1,3,Ltrot)   Ltrot = Beta/Dtau
+        ! Phi(ix,iy,alpha,tau) is the field on time slice  tau  that couples to the sigma^{\alpha} Pauli matrix at
+        ! site \vec{i} = ix*a_1 + iy*a_2
+
+         Real (Kind=Kind(0.d0)), Intent(inout), allocatable :: Forces_0(:,:)
+
           !Local
           Integer :: N, N_op,nt
+
+          
+         
           
           ! For  Xinyue 
           ! call Get_spin_fluctuation_configuration(Phi, Inputs)  
