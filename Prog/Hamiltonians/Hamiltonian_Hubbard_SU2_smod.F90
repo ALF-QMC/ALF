@@ -478,7 +478,7 @@
                   Op_V(N_ops,N_FL)%P(2)   = invlist(I,2) 
                   Op_V(N_ops,N_FL)%O(1,2) = cmplx(1.d0 ,  0.d0, kind(0.D0)) 
                   Op_V(N_ops,N_FL)%O(2,1) = cmplx(1.d0 ,  0.d0, kind(0.D0))
-                  Op_V(N_ops,N_FL)%g      =  Dtau * Ham_U ! sqrt( cmplx(DTAU*Ham_U*X*X/2.d0,0.d0, kind(0.D0)) )
+                  Op_V(N_ops,N_FL)%g      =  Dtau ! sqrt( cmplx(DTAU*Ham_U*X*X/2.d0,0.d0, kind(0.D0)) )
                   Op_V(N_ops,N_FL)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
                   Op_V(N_ops,N_FL)%type   = 3
                   Call Op_set( Op_V(N_ops,N_FL))
@@ -491,7 +491,7 @@
                   Op_V(N_ops,N_FL)%P(2)   = invlist(I,2) 
                   Op_V(N_ops,N_FL)%O(1,2) = cmplx(0.d0 , -1.d0, kind(0.D0)) 
                   Op_V(N_ops,N_FL)%O(2,1) = cmplx(0.d0 ,  1.d0, kind(0.D0))
-                  Op_V(N_ops,N_FL)%g      =  Dtau*Ham_U !sqrt( cmplx(DTAU*Ham_U*X*X/2.d0,0.d0, kind(0.D0)) )
+                  Op_V(N_ops,N_FL)%g      =  Dtau !sqrt( cmplx(DTAU*Ham_U*X*X/2.d0,0.d0, kind(0.D0)) )
                   Op_V(N_ops,N_FL)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
                   Op_V(N_ops,N_FL)%type   = 3
                   Call Op_set( Op_V(N_ops,N_FL))
@@ -504,7 +504,7 @@
                   Op_V(N_ops,N_FL)%P(2)   = invlist(I,2) 
                   Op_V(N_ops,N_FL)%O(1,1) = cmplx( 1.d0 , 0.d0, kind(0.D0)) 
                   Op_V(N_ops,N_FL)%O(2,2) = cmplx(-1.d0 , 0.d0, kind(0.D0))
-                  Op_V(N_ops,N_FL)%g      = Dtau*Ham_U !sqrt( cmplx(DTAU*Ham_U*X*X/2.d0,0.d0, kind(0.D0)) )
+                  Op_V(N_ops,N_FL)%g      = Dtau !sqrt( cmplx(DTAU*Ham_U*X*X/2.d0,0.d0, kind(0.D0)) )
                   Op_V(N_ops,N_FL)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
                   Op_V(N_ops,N_FL)%type   = 3
                   Call Op_set( Op_V(N_ops,N_FL))
