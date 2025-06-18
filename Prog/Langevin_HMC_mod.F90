@@ -361,7 +361,7 @@
         Type    (Fields)           :: nsigma_old
         Character (Len=64)         :: storage
         Complex (Kind=Kind(0.d0))  :: Ratio(2), Phase_old, Ratiotot,Phase_new, Z
-        
+        Logical :: Xinyue =.true.
 
         select case (this%scheme) !(trim(this%Update_scheme))
         case(Scheme_Langevin) !("Langevin")
@@ -374,32 +374,41 @@
            Call Control_Langevin   ( this%Forces,Group_Comm )
            
            Call ham%Ham_Langevin_HMC_S0( this%Forces_0)
-           ! check: should this be going over all the operators?
-           N_op = size(nsigma%f,1)
-           !  Determine running time step
-           Xmax = 0.d0
-           do n = 1,N_op
-              do nt = 1,Ltrot
-                 X = abs(Real(this%Forces  (n,nt), Kind(0.d0)))
-                 if (X > Xmax) Xmax = X
-                 X = abs(Real(this%Forces_0(n,nt), Kind(0.d0)))
-                 if (X > Xmax) Xmax = X
-              enddo
-           enddo
-           this%Delta_t_running = this%Delta_t_Langevin_HMC 
-           If ( Xmax >  this%Max_Force ) this%Delta_t_running = this%Max_Force &
+           If (Xinyue) then
+            N_op = size(nsigma%f,1)
+            do n = 1,N_op
+               do nt = 1,Ltrot
+                  nsigma%f(n,nt)   =  this%Forces_0(n,nt) 
+               enddo
+            enddo
+           else
+            ! check: should this be going over all the operators?
+            N_op = size(nsigma%f,1)
+            !  Determine running time step
+            Xmax = 0.d0
+            do n = 1,N_op
+               do nt = 1,Ltrot
+                  X = abs(Real(this%Forces  (n,nt), Kind(0.d0)))
+                  if (X > Xmax) Xmax = X
+                  X = abs(Real(this%Forces_0(n,nt), Kind(0.d0)))
+                  if (X > Xmax) Xmax = X
+               enddo
+            enddo
+            this%Delta_t_running = this%Delta_t_Langevin_HMC 
+            If ( Xmax >  this%Max_Force ) this%Delta_t_running = this%Max_Force &
                 &                              * this%Delta_t_Langevin_HMC / Xmax
            
-           ! check: I think this already ensures only continuous fields are updated
-           do n = 1,N_op
-              if (OP_V(n,1)%type == 3 ) then
-                 do nt = 1,Ltrot
-                    nsigma%f(n,nt)   = nsigma%f(n,nt)  -  ( this%Forces_0(n,nt) +  &
+            ! check: I think this already ensures only continuous fields are updated
+            do n = 1,N_op
+               if (OP_V(n,1)%type == 3 ) then
+                  do nt = 1,Ltrot
+                     nsigma%f(n,nt)   = nsigma%f(n,nt)  -  ( this%Forces_0(n,nt) +  &
                          &  real( Phase*this%Forces(n,nt),kind(0.d0)) / Real(Phase,kind(0.d0)) ) * this%Delta_t_running + &
                          &  sqrt( 2.d0 * this%Delta_t_running) * rang_wrap()
-                 enddo
-              endif
-           enddo
+                  enddo
+               endif
+            enddo
+           endif
            Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
            this%L_Forces = .False. 
         case(Scheme_HMC) !("HMC")

@@ -175,7 +175,7 @@
       real(Kind=Kind(0.d0)) :: Ham_U      = 4.d0     ! Hubbard interaction
       real(Kind=Kind(0.d0)) :: ham_T2     = 1.d0     ! For bilayer systems
       real(Kind=Kind(0.d0)) :: Ham_U2     = 4.d0     ! For bilayer systems
-      real(Kind=Kind(0.d0)) :: ham_Tperp  = 1.d0     ! For bilayer systems
+      real(Kind=Kind(0.d0)) :: ham_Tperp  = 0.d0     ! For bilayer systems
       logical               :: Mz         = .true.   ! When true, sets the M_z-Hubbard model: Nf=2, demands that N_sun is even, HS field couples to the z-component of magnetization; otherwise, HS field couples to the density
       logical               :: Continuous = .false.  ! Uses (T: continuous; F: discrete) HS transformation
       !#PARAMETERS END#
@@ -184,7 +184,9 @@
       Type (Unit_cell),     target :: Latt_unit
       Type (Hopping_Matrix_type), Allocatable :: Hopping_Matrix(:)
       Integer, allocatable :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
+      Integer, allocatable :: List_op(:,:)             ! For operator list
       Real (Kind=Kind(0.d0)), allocatable :: n_quant(:,:)
+      Real (Kind=Kind(0.d0)), allocatable :: Phi(:,:,:,:)
 
     contains
       
@@ -194,7 +196,7 @@
 
 ! Dynamically generated on compile time from parameters list.
 ! Supplies the subroutines read_parameters and write_parameters_hdf5.
-#include "Hamiltonian_Hubbard_read_write_parameters.F90"
+#include "Hamiltonian_Hubbard_SU2_read_write_parameters.F90"
 
 !--------------------------------------------------------------------
 !> @author
@@ -219,7 +221,6 @@
 
           integer                :: ierr, nf, unit_info, n
           Character (len=64)     :: file_info
-         Real (Kind=Kind(0.d0)), allocatable :: Phi(:,:,:,:)
 
 
           ! L1, L2, Lattice_type, List(:,:), Invlist(:,:) -->  Lattice information
@@ -247,6 +248,10 @@
           N_FL  = 1
           If (str_to_upper(Lattice_type) /= "BILAYER_SQUARE" ) then 
             write(error_unit,*) 'Your lattice is not supported for the Hubbard model. '
+            CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+          endif
+          If (L1 /= L2) then
+            Write(error_unit,*) 'L1 and L2 have to be equal in this code.'
             CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
           endif
 
@@ -327,10 +332,10 @@
 #ifdef MPI
           Endif
 #endif
-          Allocate (Phi(L1,L1,3,Ltrot))
+          Allocate (Phi(L1,L2,3,Ltrot))
           do n = 1,10 
            Call Get_spin_fluctuation_configuration(Phi,Beta,Ltrot,L1)
-           Write(6,*) Phi(1,1,1,1)
+           Write(6,*) Phi(L1,L2,3,Ltrot)
           enddo
 
         end Subroutine Ham_Set
@@ -460,6 +465,8 @@
           N_ops = Latt%N*3
           Allocate(Op_V(N_ops,N_FL))
           N_ops = 0
+          Allocate (List_op(Latt%N,3))
+
           Do I = 1, Latt%N
             Do s = 1,3
                select case (s)
@@ -471,10 +478,11 @@
                   Op_V(N_ops,N_FL)%P(2)   = invlist(I,2) 
                   Op_V(N_ops,N_FL)%O(1,2) = cmplx(1.d0 ,  0.d0, kind(0.D0)) 
                   Op_V(N_ops,N_FL)%O(2,1) = cmplx(1.d0 ,  0.d0, kind(0.D0))
-                  Op_V(N_ops,N_FL)%g      = sqrt( cmplx(DTAU*Ham_U*X*X/2.d0,0.d0, kind(0.D0)) )
+                  Op_V(N_ops,N_FL)%g      =  Dtau * Ham_U ! sqrt( cmplx(DTAU*Ham_U*X*X/2.d0,0.d0, kind(0.D0)) )
                   Op_V(N_ops,N_FL)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
-                  Op_V(N_ops,N_FL)%type   = 2
+                  Op_V(N_ops,N_FL)%type   = 3
                   Call Op_set( Op_V(N_ops,N_FL))
+                  List_op(I,1)= N_ops
                case(2)
                   x = sin(n_quant(i,1))*sin(n_quant(i,2))
                   N_ops = N_ops + 1
@@ -483,10 +491,11 @@
                   Op_V(N_ops,N_FL)%P(2)   = invlist(I,2) 
                   Op_V(N_ops,N_FL)%O(1,2) = cmplx(0.d0 , -1.d0, kind(0.D0)) 
                   Op_V(N_ops,N_FL)%O(2,1) = cmplx(0.d0 ,  1.d0, kind(0.D0))
-                  Op_V(N_ops,N_FL)%g      = sqrt( cmplx(DTAU*Ham_U*X*X/2.d0,0.d0, kind(0.D0)) )
+                  Op_V(N_ops,N_FL)%g      =  Dtau*Ham_U !sqrt( cmplx(DTAU*Ham_U*X*X/2.d0,0.d0, kind(0.D0)) )
                   Op_V(N_ops,N_FL)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
-                  Op_V(N_ops,N_FL)%type   = 2
+                  Op_V(N_ops,N_FL)%type   = 3
                   Call Op_set( Op_V(N_ops,N_FL))
+                  List_op(I,2)= N_ops
                case(3)
                   x = cos(n_quant(i,2))
                   N_ops = N_ops + 1
@@ -495,10 +504,11 @@
                   Op_V(N_ops,N_FL)%P(2)   = invlist(I,2) 
                   Op_V(N_ops,N_FL)%O(1,1) = cmplx( 1.d0 , 0.d0, kind(0.D0)) 
                   Op_V(N_ops,N_FL)%O(2,2) = cmplx(-1.d0 , 0.d0, kind(0.D0))
-                  Op_V(N_ops,N_FL)%g      = sqrt( cmplx(DTAU*Ham_U*X*X/2.d0,0.d0, kind(0.D0)) )
+                  Op_V(N_ops,N_FL)%g      = Dtau*Ham_U !sqrt( cmplx(DTAU*Ham_U*X*X/2.d0,0.d0, kind(0.D0)) )
                   Op_V(N_ops,N_FL)%alpha  = cmplx(0.d0, 0.d0, kind(0.D0))
-                  Op_V(N_ops,N_FL)%type   = 2
+                  Op_V(N_ops,N_FL)%type   = 3
                   Call Op_set( Op_V(N_ops,N_FL))
+                  List_op(I,3)= N_ops
                end select
             Enddo
           Enddo
@@ -784,25 +794,43 @@
 
          Real (Kind=Kind(0.d0)), Intent(inout), allocatable :: Forces_0(:,:)
 
-          !Local
-          Integer :: N, N_op,nt
+         !Local
+         Integer :: N, N_op,nt
+         real (Kind=Kind(0.d0)) :: x_p(2), Xmax
+         Integer :: I1, I2, I, ns
 
-          
          
-          
-          ! For  Xinyue 
-          ! call Get_spin_fluctuation_configuration(Phi, Inputs)  
-          ! Returns Real: Phi(1..Latt%N, 1..Ltrot, 3)  P(Phi) = e^S_eff(Phi) / \int d Phi e^S_eff(Phi)
-          ! Compute \partial S_0 / \partial s
-          N_op = size(nsigma%f,1)
-          Forces_0  = 0.d0
-          do n = 1,N_op
-             if (OP_V(n,1)%type == 3 ) then
-                do nt = 1,Ltrot
-                   Forces_0(n,nt) = real(nsigma%f(n,nt)) 
-                enddo
-             endif
-          enddo
+         
+         ! For  Xinyue 
+         ! call Get_spin_fluctuation_configuration(Phi, Inputs)  
+         ! Returns Real: Phi(1..Latt%N, 1..Ltrot, 3)  P(Phi) = e^S_eff(Phi) / \int d Phi e^S_eff(Phi)
+         ! Compute \partial S_0 / \partial s
+         Call Get_spin_fluctuation_configuration(Phi,Beta,Ltrot,L1)
+         
+         Xmax = 0.d0
+         Do I1 = 1,L1
+            Do I2 = 1,L2
+               x_p = real(I1,kind=kind(0.d0))*latt%a1_p + real(I2,kind=kind(0.d0))*latt%a2_p
+               I = Inv_R(x_p,Latt)
+               do ns = 1,3
+                  Do nt = 1,Ltrot
+                     Forces_0(List_op(I,ns),nt) =  Phi(I1,I2,ns,nt)
+                     if (abs(Forces_0(List_op(I,ns),nt)) > Xmax) Xmax = abs(Forces_0(List_op(I,ns),nt))
+                  Enddo
+               Enddo
+            Enddo
+         Enddo 
+         Write(6,*) " Hi there I'm in Ham_Langevin_HMC_S0 subroutine " , Xmax
+
+         !N_op = size(nsigma%f,1)
+         !Forces_0  = 0.d0
+         !do n = 1,N_op
+         !   if (OP_V(n,1)%type == 3 ) then
+         !      do nt = 1,Ltrot
+         !         Forces_0(n,nt) = real(nsigma%f(n,nt)) 
+         !      enddo
+         !   endif
+         !enddo
           
         end Subroutine Ham_Langevin_HMC_S0
 
