@@ -665,7 +665,7 @@
           Do I = 1,Latt%N
             I_up = Invlist(I,1)
             I_do = Invlist(I,2)
-            Zpot = Zpot + ( Grc(I_up,I_up,1) * Grc(I_do,I_do,1) + Grc(I_up,I_do,1)* Gr(I_do,I_up,1) )* ham_U
+            Zpot = Zpot + ( Grc(I_up,I_up,1) * Grc(I_do,I_do,1) + Grc(I_up,I_do,1)* Gr(I_up,I_do,1) )* ham_U
             Obs_scal(2)%Obs_vec(1)  =  Obs_scal(2)%Obs_vec(1) + Zpot * ZP*ZS
           enddo
 
