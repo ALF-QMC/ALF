@@ -174,10 +174,12 @@
       real(Kind=Kind(0.d0)) :: Ham_chem   = 0.d0     ! Chemical potential
       real(Kind=Kind(0.d0)) :: Ham_U      = 4.d0     ! Hubbard interaction
       real(Kind=Kind(0.d0)) :: ham_T2     = 1.d0     ! For bilayer systems
-      real(Kind=Kind(0.d0)) :: Ham_U2     = 4.d0     ! For bilayer systems
+      real(Kind=Kind(0.d0)) :: Ham_U2     = 0.d0     ! For bilayer systems
       real(Kind=Kind(0.d0)) :: ham_Tperp  = 0.d0     ! For bilayer systems
       logical               :: Mz         = .true.   ! When true, sets the M_z-Hubbard model: Nf=2, demands that N_sun is even, HS field couples to the z-component of magnetization; otherwise, HS field couples to the density
       logical               :: Continuous = .false.  ! Uses (T: continuous; F: discrete) HS transformation
+      real (Kind=Kind(0.d0)) :: Ham_xi    = 1.d0 ! Correlation length for the spin fluctuation configuration
+      real (Kind=Kind(0.d0)) :: Ham_wsf   = 1.d0 ! 
       !#PARAMETERS END#
 
       Type (Lattice),       target :: Latt
@@ -212,9 +214,9 @@
 #endif
           Implicit none
          Interface 
-            subroutine Get_spin_fluctuation_configuration(Phi,Beta,Ltrot,L)
+            subroutine Get_spin_fluctuation_configuration(Phi,Beta,Ltrot,L,Ham_U,Ham_xi, Ham_wsf)
                integer, intent(in)  :: Ltrot , L
-               real (kind=kind(0.d0)), intent(in)  :: Beta
+               real (kind=kind(0.d0)), intent(in)  :: Beta,Ham_U,Ham_xi, Ham_wsf
                real (kind=kind(0.d0)), intent(out) :: Phi(L,L,3,Ltrot)  
             end subroutine Get_spin_fluctuation_configuration
          End Interface
@@ -316,10 +318,12 @@
              Write(unit_info,*) 'N_FL          : ', N_FL
              Write(unit_info,*) 't             : ', Ham_T
              Write(unit_info,*) 'Ham_U         : ', Ham_U
+             Write(unit_info,*) 'Ham_xi        : ', Ham_xi
+             Write(unit_info,*) 'Ham_wsf       : ', Ham_wsf
              if (Index(str_to_upper(Lattice_type),'BILAYER') > 0 )  then
-               Write(unit_info,*) 't2            : ', Ham_T2
-               Write(unit_info,*) 'Ham_U2        : ', Ham_U2
-               Write(unit_info,*) 'Ham_tperp     : ', Ham_tperp
+               !Write(unit_info,*) 't2            : ', Ham_T2
+               !Write(unit_info,*) 'Ham_U2        : ', Ham_U2
+               !Write(unit_info,*) 'Ham_tperp     : ', Ham_tperp
              endif
              Write(unit_info,*) 'Ham_chem      : ', Ham_chem
              if (Projector) then
@@ -334,7 +338,7 @@
 #endif
           Allocate (Phi(L1,L2,3,Ltrot))
           do n = 1,10 
-           Call Get_spin_fluctuation_configuration(Phi,Beta,Ltrot,L1)
+           call Get_spin_fluctuation_configuration(Phi,Beta,Ltrot,L1,Ham_U,Ham_xi, Ham_wsf)
            Write(6,*) Phi(L1,L2,3,Ltrot)
           enddo
 
@@ -777,9 +781,9 @@
          implicit none
 
          Interface 
-            subroutine Get_spin_fluctuation_configuration(Phi,Beta,Ltrot,L)
+            subroutine Get_spin_fluctuation_configuration(Phi,Beta,Ltrot,L,Ham_U,Ham_xi, Ham_wsf)
                integer, intent(in)  :: Ltrot , L
-               real (kind=kind(0.d0)), intent(in)  :: Beta
+               real (kind=kind(0.d0)), intent(in)  :: Beta,Ham_U,Ham_xi, Ham_wsf
                real (kind=kind(0.d0)), intent(out) :: Phi(L,L,3,Ltrot)  
             end subroutine Get_spin_fluctuation_configuration
          End Interface
@@ -805,7 +809,7 @@
          ! call Get_spin_fluctuation_configuration(Phi, Inputs)  
          ! Returns Real: Phi(1..Latt%N, 1..Ltrot, 3)  P(Phi) = e^S_eff(Phi) / \int d Phi e^S_eff(Phi)
          ! Compute \partial S_0 / \partial s
-         Call Get_spin_fluctuation_configuration(Phi,Beta,Ltrot,L1)
+         Call Get_spin_fluctuation_configuration(Phi,Beta,Ltrot,L1,Ham_U,Ham_xi, Ham_wsf)
          
          Xmax = 0.d0
          Do I1 = 1,L1

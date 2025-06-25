@@ -1,4 +1,4 @@
-      subroutine Get_spin_fluctuation_configuration(Phi,Beta,Ltrot,L1)
+      subroutine Get_spin_fluctuation_configuration(Phi,Beta,Ltrot,L1,Ham_U,xi,wsf)
 
         !For Dtau is not directly used in the subroutine,input
         !Beta and Ltrot instead.
@@ -10,16 +10,14 @@
 
         implicit none
         integer, intent(in)  :: Ltrot , L1
-        real (kind=kind(0.d0)), intent(in)  :: Beta
+        real (kind=kind(0.d0)), intent(in)  :: Beta,Ham_U,xi,wsf
+        !U still appears in GF, therefore is needed.
         real (kind=kind(0.d0)), intent(out) :: Phi(L1,L1,3,Ltrot)
-
         integer::nm,nh,bzl,bzh,bwl,bwh
         complex (kind=kind(0.d0)):: pwl(L1,L1)
         complex (kind=kind(0.d0)):: pww(Ltrot,Ltrot)
         real (kind=kind(0.d0)),  parameter:: pi=dacos(-1.d0)
         real (kind=kind(0.d0)),  parameter:: sq2=dsqrt(2.d0)
-        real (kind=kind(0.d0)),  parameter:: xi=3.d0    ! correlatio length
-        real (kind=kind(0.d0)),  parameter:: wsf=1.d0  ! measured in uint of k_BT
         real (kind=kind(0.d0)) :: chi0_inv,factor
         integer  inl(-L1/2+1:L1/2),inw(-Ltrot/2+1:Ltrot/2)
         integer i,j,k,l,inq,inq1,ins
@@ -42,6 +40,7 @@
         bwh=Ltrot/2     ! upper boundary of wBZ
         chi0_inv=1.d0/beta ! set beta*chi0_inv=1
         factor=Beta*chi0_inv/xi**2/Ltrot
+       
 
 
         do i=1,L1
@@ -213,6 +212,8 @@
         enddo
         enddo
         enddo
+
+        Phi=Phi*Ham_U*2.d0/3.d0
         
         return
 
