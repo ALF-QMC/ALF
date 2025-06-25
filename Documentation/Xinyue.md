@@ -5,6 +5,7 @@ Dear Xinyue, could you please type in  the exact action that you want to simulat
 $$
   \hat{H} = \cdots
 $$
+Hi
 
 We can use this file to exchange notes. 
 
