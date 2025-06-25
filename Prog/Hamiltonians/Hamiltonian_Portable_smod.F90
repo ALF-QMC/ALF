@@ -182,9 +182,9 @@
 
       !Variables for interaction
       integer :: N_ops
-      real (kind=kind(0.d0)), allocatable      :: ham_U(:)
+      real (kind=kind(0.d0)),    allocatable   :: ham_U(:)
       complex (kind=kind(0.d0)), allocatable   :: alpha_int(:)
-      type (interaction_type),  allocatable    :: interaction(:)
+      type (interaction_type),   allocatable   :: interaction(:)
 
       !Variables for observables
       integer :: N_obs_scal_ph, N_obs_eq_ph
@@ -312,6 +312,7 @@
  
           integer                :: ierr, unit_latt, no, i
           Character (len=64)     :: file_latt
+          real (kind=kind(0.d0)) :: x, y, z
 
 
 
@@ -338,15 +339,17 @@
              END IF
 
              read(unit_latt,*) L1, L2
-             read(unit_latt,*) a_p(1,:)
-             read(unit_latt,*) a_p(2,:)
-             read(unit_latt,*) a_p(3,:)
+             do i = 1, size(a_p,1)
+                read(unit_latt,*) x, y, z
+                a_p(i,1) = x; a_p(i,2) = y; a_p(i,3) = z
+             enddo
              read(unit_latt,*) norb
 
              allocate(Orb_pos(Norb,3))
 
              do no = 1, Norb
-                read(unit_latt,*) i, Orb_pos(no,:)
+                read(unit_latt,*) i, x, y, z
+                Orb_pos(no,1) = x; Orb_pos(no,2) = y; Orb_pos(no,3) = z
              enddo
 
              Close(unit_latt)
@@ -882,7 +885,7 @@
           do no = 1, N_obs_scal_ph
              CALL MPI_BCAST(obs_scal_ph(no)%file   , 64,MPI_CHARACTER,0,Group_Comm,ierr)
              CALL MPI_BCAST(obs_scal_ph(no)%mk     ,  1,MPI_INTEGER  ,0,Group_Comm,ierr)
-             if (irank_g /= 0) allocate( obs_scal_ph(no)%list(mk,6), obs_scal_ph(no)%el(mk) )
+             if (irank_g /= 0) allocate( obs_scal_ph(no)%list(obs_scal_ph(no)%mk,6), obs_scal_ph(no)%el(obs_scal_ph(no)%mk) )
              CALL MPI_BCAST(obs_scal_ph(no)%list   ,  size(obs_scal_ph(no)%list),MPI_INTEGER  ,0,Group_Comm,ierr)
              CALL MPI_BCAST(obs_scal_ph(no)%el     ,  size(obs_scal_ph(no)%el)  ,MPI_COMPLEX16,0,Group_Comm,ierr)
           enddo
@@ -965,7 +968,7 @@
           do no = 1, N_obs_eq_ph
              CALL MPI_BCAST(obs_eq_ph(no)%file   , 64,MPI_CHARACTER,0,Group_Comm,ierr)
              CALL MPI_BCAST(obs_eq_ph(no)%mk     ,  1,MPI_INTEGER  ,0,Group_Comm,ierr)
-             if (irank_g /= 0) allocate( obs_eq_ph(no)%list(mk,8), obs_eq_ph(no)%el(mk) )
+             if (irank_g /= 0) allocate( obs_eq_ph(no)%list(obs_eq_ph(no)%mk,8), obs_eq_ph(no)%el(obs_eq_ph(no)%mk) )
              CALL MPI_BCAST(obs_eq_ph(no)%list   ,  size(obs_eq_ph(no)%list),MPI_INTEGER  ,0,Group_Comm,ierr)
              CALL MPI_BCAST(obs_eq_ph(no)%el     ,  size(obs_eq_ph(no)%el)  ,MPI_COMPLEX16,0,Group_Comm,ierr)
           enddo
@@ -1139,13 +1142,8 @@
 
 
           ZPot = cmplx(0.d0, 0.d0, kind(0.D0))
-          Do I = 1,Latt%N
-             do no_I = 1,Norb
-                I1 = Invlist(I,no_I)
-                I2 = I1
-                if (N_Spin == 2) I2 = Invlist(I,no_I+Norb)
-                ZPot = ZPot + 2.d0*Grc(i1,i1,1) * Grc(i2,i2, 1) - (GRC(I1,I1,1) + GRC(I2,I2,1)) + 1.d0
-             enddo
+          Do I = 1, size(op_v,1)
+             Zpot = Zpot + Predefined_Obs_V_Int(OP_V(i,:), GR, GRC, N_SUN )
           Enddo
           Zpot = ZPot * ham_u(1)
           Obs_scal(N_obs_scal_ph+2)%Obs_vec(1)  =  Obs_scal(N_obs_scal_ph+2)%Obs_vec(1) + Zpot * ZP*ZS
