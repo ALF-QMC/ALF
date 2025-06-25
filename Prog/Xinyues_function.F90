@@ -1,5 +1,7 @@
       subroutine Get_spin_fluctuation_configuration(Phi,Beta,Ltrot,L1,Ham_U,xi,wsf)
 
+        Use Random_wrap
+
         !For Dtau is not directly used in the subroutine,input
         !Beta and Ltrot instead.
 
@@ -64,8 +66,8 @@
 
         k=1
         do i=1,nh
-        call random_number(u)
-        call random_number(v)
+        u = ranf_wrap() !call random_number(u)
+        v = ranf_wrap() !call random_number(v)
         r=dsqrt(-2.d0*dlog(1.d0-u))
         theta=v*2.d0*pi
         x=r*dcos(theta)

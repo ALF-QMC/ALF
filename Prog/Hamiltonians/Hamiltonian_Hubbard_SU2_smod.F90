@@ -183,7 +183,7 @@
       !#PARAMETERS END#
 
       Type (Lattice),       target :: Latt
-      Type (Unit_cell),     target :: Latt_unit
+      Type (Unit_cell),     target :: Latt_unit, Latt_unit_obs
       Type (Hopping_Matrix_type), Allocatable :: Hopping_Matrix(:)
       Integer, allocatable :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
       Integer, allocatable :: List_op(:,:)             ! For operator list
@@ -358,6 +358,10 @@
           Implicit none
           ! Use predefined stuctures or set your own lattice.
           Call Predefined_Latt(Lattice_type, L1,L2,Ndim, List,Invlist,Latt,Latt_Unit)
+          Latt_unit_obs%Norb    = 1
+          Latt_unit_obs%N_coord = 2
+          allocate(Latt_unit_obs%Orb_pos_p(Latt_unit_obs%Norb,2))
+          Latt_unit_obs%Orb_pos_p(1, :) = [0.d0, 0.d0]
 
         end Subroutine Ham_Latt
 !--------------------------------------------------------------------
@@ -571,13 +575,13 @@
          enddo 
          If (Ltau == 1) then
             ! Time-displaced correlators
-            Allocate ( Obs_tau(3) )
+            Allocate ( Obs_tau(2) )
             Do I = 1,Size(Obs_tau,1)
                select case (I)
                case (1)
                   Channel = 'P' ; Filename = "Green"
                case (2)
-                  Channel = 'PH'; Filename = "SpinZ"
+                  Channel = 'PH'; Filename = "Spin"
                case (3)
                   Channel = 'PH'; Filename = "Den"
                case default
@@ -585,7 +589,7 @@
                end select
                Nt = Ltrot+1-2*Thtrot
                If(Projector) Channel = 'T0'
-               Call Obser_Latt_make(Obs_tau(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
+               Call Obser_Latt_make(Obs_tau(I), Nt, Filename, Latt, Latt_unit_obs, Channel, dtau)
             enddo
          endif
 
@@ -714,26 +718,55 @@
           Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
           
           !Locals
-          Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS, ZZ, ZXY
+          Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS,  Z_kron
           Real    (Kind=Kind(0.d0)) :: X
-          Integer :: IMJ, I, J, I1, J1, no_I, no_J
+          Integer :: IMJ, I, J, I1, J1, ns,nsp, imj
+          Integer :: Isp, Is, Js, Jsp
 
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
           ZS = ZS * Mc_step_weight
 
+          If (NT == 0 ) then
+             Do I = 1,Size(Obs_tau,1)
+                Obs_tau(I)%N         =  Obs_tau(I)%N + 1
+                Obs_tau(I)%Ave_sign  =  Obs_tau(I)%Ave_sign + Real(ZS,kind(0.d0))
+             Enddo
+          Endif
+          Do I = 1,Latt%N
+            Do J = 1,Latt%N
+               imj = latt%imj(I,J)
+               Z = cmplx(0.d0,0.d0,Kind(0.d0))
+               Do ns = 1,Latt_unit%Norb
+                  Do nsp = 1,Latt_unit%Norb
+                     Z_kron = cmplx(0.d0,0.d0,kind(0.d0))
+                     If (ns == nsp) Z_kron= cmplx(1.d0,0.d0,kind(0.d0))
+                     Is  = List(I,ns )
+                     Isp = List(I,nsp)
+                     Js  = List(J,ns )
+                     Jsp = List(J,nsp)
+                     Z = Z + 0.5d0*(Z_kron - GTT(Is,Isp,1))*(Z_kron - G00(Jsp,Js,1)) & 
+                     &     - 0.5d0*G0T(Jsp,Isp,1)*GT0(IS,Js,1)                       &
+                     &     -0.25d0*(1.d0 - GTT(Isp,Isp,1)) *(1.d0 - G00(Js,Js,1))    & 
+                     &     +0.25d0*G0T(JS,Isp,1) * GT0(Isp,Js,1) 
+                  Enddo
+               Enddo
+               Obs_tau(2)%Obs_Latt(imj,NT+1,1,1) =  Obs_tau(2)%Obs_Latt(imj,NT+1,1,1) +  Z *ZP*ZS
+            enddo
+          enddo
+
           ! Standard two-point correlations
 
-          If ( Mz ) then
-             Call Predefined_Obs_tau_Green_measure  ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(1) )
-             Call Predefined_Obs_tau_SpinMz_measure ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(2),&
-                  &                                   Obs_tau(3), Obs_tau(4) )
-             Call Predefined_Obs_tau_Den_measure    ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(5) )
-          Else
-             Call Predefined_Obs_tau_Green_measure  ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(1) )
-             Call Predefined_Obs_tau_SpinSUN_measure( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(2) )
-             Call Predefined_Obs_tau_Den_measure    ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(3) )
-          endif
+          !If ( Mz ) then
+          !  Call Predefined_Obs_tau_Green_measure  ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(1) )
+          !  Call Predefined_Obs_tau_SpinMz_measure ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(2),&
+          !       &                                   Obs_tau(3), Obs_tau(4) )
+          !  Call Predefined_Obs_tau_Den_measure    ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(5) )
+          !Else
+          !   Call Predefined_Obs_tau_Green_measure  ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(1) )
+          !   Call Predefined_Obs_tau_SpinSUN_measure( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(2) )
+          !   Call Predefined_Obs_tau_Den_measure    ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(3) )
+          !endif
 
         end Subroutine OBSERT
 
