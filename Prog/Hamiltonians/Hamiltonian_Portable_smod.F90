@@ -129,6 +129,7 @@
       Use Fields_mod
       Use Predefined_Hoppings
       Use LRC_Mod
+      Use Hamiltonian_Portable_input_mod
 
       Implicit none
       
@@ -174,11 +175,7 @@
       Type (Hopping_Matrix_type), Allocatable :: Hopping_Matrix(:)
       Integer, allocatable :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
 
-      integer :: n_spin
-
-      ! variables for lattice
-      integer  :: Norb
-      Integer  :: L1, L2
+      integer :: n_spin, Norb
 
       !Variables for interaction
       integer :: N_ops
@@ -290,84 +287,6 @@
 #endif
         end Subroutine Ham_Set
 
-
-!--------------------------------------------------------------------
-!> @author
-!> ALF Collaboration
-!>
-!> @brief
-!> Sets  the  Lattice
-!--------------------------------------------------------------------
-
-        Subroutine read_latt(a_p, Orb_pos)
-
-#if defined (MPI) || defined(TEMPERING)
-          Use mpi
-#endif
-
-          implicit none
-
-          Real (Kind=Kind(0.d0)), intent(out)  :: a_p(3,3)
-          real (kind=kind(0.d0)), allocatable, intent(out) :: Orb_pos(:,:)
- 
-          integer                :: ierr, unit_latt, no, i
-          Character (len=64)     :: file_latt
-          real (kind=kind(0.d0)) :: x, y, z
-
-
-
-#ifdef MPI
-          Integer        :: Isize, Irank, irank_g, isize_g, igroup
-          Integer        :: STATUS(MPI_STATUS_SIZE)
-          CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-          CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-          call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-          call MPI_Comm_size(Group_Comm, isize_g, ierr)
-          igroup           = irank/isize_g
-
-
-          If (Irank_g == 0) then
-#endif
-             File_latt = "geometry.txt"
-#if defined(TEMPERING)
-             write(File_latt,'(A,I0,A)') "Temp_",igroup,"/geometry.txt"
-#endif
-             Open(newunit=unit_latt, file=file_latt, status="old", action="read", iostat=ierr)
-             IF (ierr /= 0) THEN
-                WRITE(error_unit,*) 'unable to open <geometry.txt>', ierr
-                Call Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
-             END IF
-
-             read(unit_latt,*) L1, L2
-             do i = 1, size(a_p,1)
-                read(unit_latt,*) x, y, z
-                a_p(i,1) = x; a_p(i,2) = y; a_p(i,3) = z
-             enddo
-             read(unit_latt,*) norb
-
-             allocate(Orb_pos(Norb,3))
-
-             do no = 1, Norb
-                read(unit_latt,*) i, x, y, z
-                Orb_pos(no,1) = x; Orb_pos(no,2) = y; Orb_pos(no,3) = z
-             enddo
-
-             Close(unit_latt)
-#ifdef MPI
-          Endif
-
-          CALL MPI_BCAST(L1       ,  1           ,MPI_INTEGER  ,0,Group_Comm,ierr)
-          CALL MPI_BCAST(L2       ,  1           ,MPI_INTEGER  ,0,Group_Comm,ierr)
-          CALL MPI_BCAST(a_p      ,  size(a_p)   ,MPI_REAL8    ,0,Group_Comm,ierr)
-          CALL MPI_BCAST(Norb     ,  1           ,MPI_INTEGER  ,0,Group_Comm,ierr)
-      
-          if (irank_g /= 0) allocate(Orb_pos(Norb,3))
-          CALL MPI_BCAST(Orb_pos,  size(Orb_pos) ,MPI_REAL8    ,0,Group_Comm,ierr)
-#endif
-
-
-        end subroutine read_latt
-
 !--------------------------------------------------------------------
 !> @author
 !> ALF Collaboration
@@ -380,40 +299,33 @@
 
           Implicit none
           Real (Kind=Kind(0.d0))  :: a1_p(2), a2_p(2), L1_p(2), L2_p(2)
-          integer :: no, ns, nc, i
-          Real (Kind = Kind(0.d0) ) :: Zero = 1.0E-8
+          integer :: no, ns, nc, i, L1, L2
           Real (Kind=Kind(0.d0))  :: a_p(3,3)
           real (kind=kind(0.d0)), allocatable :: Orb_pos(:,:)
 
           ! read in information for lattice from file geometry.txt
-          call read_latt(a_p, Orb_pos)
+          ! L1, L2, Norb, a_p, Orb_pos
+          call read_latt(L1, L2, Norb, a_p, Orb_pos, Group_Comm)
 
           latt_unit%Norb = N_spin*Norb
+!          Latt_Unit%N_coord = ?
+          a1_p(1) = a_p(1,1); a1_p(2) = a_p(1,2)
+          a2_p(1) = a_p(2,1); a2_p(2) = a_p(2,2)
           allocate(latt_unit%Orb_pos_p(latt_unit%Norb,3))
           nc = 0
-          ! numbering of orbitals
-          ! latt_unit%Orb_pos_p(i       ,:) for i = 1, Norb : "spatial" orbitals for first  spin kind (up  )
-          ! latt_unit%Orb_pos_p(Norb + i,:) for i = 1, Norb :                        second           (down)
+          ! numbering of orbitals:
+          ! latt_unit%Orb_pos_p( (ns-1)*Norb + no       ,:) for no = 1, Norb : "spatial" orbitals for N_spin = ns
           do ns = 1, N_spin
              do no = 1, Norb
                 nc = nc + 1
-                latt_unit%Orb_pos_p(nc,:) = Orb_pos(no,1)*a_p(1,:) + Orb_pos(no,2)*a_p(2,:) + (Orb_pos(no,3)-dble(ns-1))*a_p(3,:)
+                latt_unit%Orb_pos_p(nc,:) = Orb_pos(no,1)*a_p(1,:) + Orb_pos(no,2)*a_p(2,:) + Orb_pos(no,3)*a_p(3,:)
              enddo
           enddo
-
-          a1_p = a_p(1,1:2)
-          a2_p = a_p(2,1:2)
-          if (abs(a_p(1,3)) > zero .or. abs(a_p(2,3)) > zero ) then
-             Write(error_unit,*) 'Unit cell vectors three dimensional, but ALF does not support three-dimensional lattices'
-             CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
-          endif
-
-          L1_p    =  dble(L1)*a1_p
-          L2_p    =  dble(L2)*a2_p
+          L1_p    =  dble(L1) * a1_p
+          L2_p    =  dble(L2) * a2_p
           Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, latt )
 
           Ndim = latt%N*latt_unit%Norb
-
           allocate ( list(ndim,2), Invlist(latt%N,latt_unit%Norb) )
           nc = 0
           do i = 1, latt%N
@@ -424,8 +336,6 @@
                 invlist(i,no) = nc
              enddo
          enddo
-
-!         Latt_unit%N_coord = 2
 
         end Subroutine Ham_Latt
 
