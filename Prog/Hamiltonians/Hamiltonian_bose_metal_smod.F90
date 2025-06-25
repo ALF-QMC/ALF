@@ -382,7 +382,7 @@
                 del_list(j1,1,ntype) = i1
              enddo
           enddo
-            
+
           !! d wave 1, px wave 2, py wave 3
           allocate(ff_s(4,1,3))
           do ntype = 1, 3
@@ -741,8 +741,8 @@
                      k2 = k2 + 1
 
                      cpair(2) = cpair(2) + 0.25d0*ff_s(k1,no_i,1)*conjg(ff_s(k2,no_j,1))* &
-                         & (   grc(i1,j1,1)*grc(irdl(k1),jrdl(k2),2) + grc(i1,j1,2)*grc(irdl(k1),jrdl(k2),1) &
-                         &   + grc(i1,jrdl(k2),1)*grc(irdl(k1),j1,2) + grc(i1,jrdl(k2),2)*grc(irdl(k1),j1,1) )
+                         & (   grc(i1,j1,1)*grc(idl(k1),jdl(k2),2) + grc(i1,j1,2)*grc(idl(k1),jdl(k2),1) &
+                         &   + grc(i1,jdl(k2),1)*grc(idl(k1),j1,2) + grc(i1,jdl(k2),2)*grc(idl(k1),j1,1) )
 
                      cpair(3) = cpair(3) + 0.25d0*ff_s(k1,no_i,2)*conjg(ff_s(k2,no_j,2))* &
                          & (   grc(i1,j1,1)*grc(idl(k1),jdl(k2),1) + grc(i1,j1,2)*grc(idl(k1),jdl(k2),2) &
