@@ -119,4 +119,81 @@ module Hamiltonian_Portable_input_mod
 
         end subroutine read_latt
 
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Reads  the  hopping parameters
+!--------------------------------------------------------------------
+
+        Subroutine read_hop(t, list, Group_Comm)
+
+#if defined (MPI) || defined(TEMPERING)
+          Use mpi
+#endif
+
+          implicit none
+
+          complex (kind=kind(0.d0)), allocatable, intent(out) :: t(:)
+          integer, allocatable, intent(out)                   :: list(:,:)
+          integer, intent(in)      :: Group_Comm
+
+          integer                :: ierr, unit_hop, n_hop, nh, i
+          integer                :: no1, no2, s1, s2, n1, n2
+          Character (len=64)     :: file_hop
+          real (kind=kind(0.d0)) :: x, y
+
+
+#ifdef MPI
+          Integer        :: Isize, Irank, irank_g, isize_g, igroup
+          Integer        :: STATUS(MPI_STATUS_SIZE)
+          CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
+          CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+          call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+          call MPI_Comm_size(Group_Comm, isize_g, ierr)
+          igroup           = irank/isize_g
+
+
+          If (Irank_g == 0) then
+#endif
+             File_hop = "hoppings.txt"
+#if defined(TEMPERING)
+             write(File_hop,'(A,I0,A)') "Temp_",igroup,"/hoppings.txt"
+#endif
+             Open(newunit=unit_hop, file=file_hop, status="old", action="read", iostat=ierr)
+             IF (ierr /= 0) THEN
+                WRITE(error_unit,*) 'unable to open <hoppings.txt>', ierr
+                Call Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
+             END IF
+
+             read(unit_hop,*) n_hop
+             
+             allocate( t(n_hop), list(n_hop,6) )
+      
+             do nh = 1, n_hop
+                read(unit_hop,*) i, no1, s1, n1, n2, no2, s2, x, y
+                list(nh,1) = no1
+                list(nh,2) = s1
+                list(nh,3) = n1
+                list(nh,4) = n2
+                list(nh,5) = no2
+                list(nh,6) = s2
+                t(nh)      = cmplx( x, y, kind(0.d0))
+             enddo
+
+             Close(unit_hop)
+#ifdef MPI
+          Endif
+
+          CALL MPI_BCAST(n_hop       ,  1             ,MPI_INTEGER  ,0,Group_Comm,ierr)
+
+          if ( irank_g /= 0 ) allocate( t(n_hop), list(n_hop,6) )
+          CALL MPI_BCAST(list    ,  size(list),MPI_INTEGER  ,0,Group_Comm,ierr)
+          CALL MPI_BCAST(t       ,  size(t)   ,MPI_COMPLEX16,0,Group_Comm,ierr)
+ 
+#endif
+
+        end subroutine read_hop
+
 end module Hamiltonian_Portable_input_mod

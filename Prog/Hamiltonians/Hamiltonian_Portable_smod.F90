@@ -146,11 +146,11 @@
 #endif
       end type ham_Portable
       
-      type interaction_type
-         integer, allocatable                   :: int_list(:,:)
+      type operator_matrix
          integer                   :: N_orbitals
-         complex (kind=kind(0.d0)), allocatable :: c_int(:)
-      end type interaction_type
+         integer, allocatable                   :: list(:,:)
+         complex (kind=kind(0.d0)), allocatable :: g(:)
+      end type operator_matrix
 
       type obs_ph_type
          Character (len=64)   :: File
@@ -181,7 +181,7 @@
       integer :: N_ops
       real (kind=kind(0.d0)),    allocatable   :: ham_U(:)
       complex (kind=kind(0.d0)), allocatable   :: alpha_int(:)
-      type (interaction_type),   allocatable   :: interaction(:)
+      type (operator_matrix),   allocatable   :: interaction(:)
 
       !Variables for observables
       integer :: N_obs_scal_ph, N_obs_eq_ph
@@ -339,83 +339,6 @@
 
         end Subroutine Ham_Latt
 
-
-!--------------------------------------------------------------------
-!> @author
-!> ALF Collaboration
-!>
-!> @brief
-!> Sets  the  Lattice
-!--------------------------------------------------------------------
-
-        Subroutine read_hop(ham_t, hop_list)
-
-#if defined (MPI) || defined(TEMPERING)
-          Use mpi
-#endif
-
-          implicit none
-
-          complex (kind=kind(0.d0)), allocatable, intent(out) :: Ham_t(:)
-          integer, allocatable, intent(out)                   :: hop_list(:,:)
- 
-          integer                :: ierr, unit_hop, n_hop, nh, i
-          integer                :: no1, no2, s1, s2, n1, n2
-          Character (len=64)     :: file_hop
-          real (kind=kind(0.d0)) :: x, y
-
-
-#ifdef MPI
-          Integer        :: Isize, Irank, irank_g, isize_g, igroup
-          Integer        :: STATUS(MPI_STATUS_SIZE)
-          CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-          CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-          call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-          call MPI_Comm_size(Group_Comm, isize_g, ierr)
-          igroup           = irank/isize_g
-
-
-          If (Irank_g == 0) then
-#endif
-             File_hop = "hoppings.txt"
-#if defined(TEMPERING)
-             write(File_hop,'(A,I0,A)') "Temp_",igroup,"/hoppings.txt"
-#endif
-             Open(newunit=unit_hop, file=file_hop, status="old", action="read", iostat=ierr)
-             IF (ierr /= 0) THEN
-                WRITE(error_unit,*) 'unable to open <hoppings.txt>', ierr
-                Call Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
-             END IF
-
-             read(unit_hop,*) n_hop
-             
-             allocate( ham_t(n_hop), hop_list(n_hop,6) )
-      
-             do nh = 1, n_hop
-                read(unit_hop,*) i, no1, s1, n1, n2, no2, s2, x, y
-                hop_list(nh,1) = no1
-                hop_list(nh,2) = s1
-                hop_list(nh,3) = no2
-                hop_list(nh,4) = s2
-                hop_list(nh,5) = n1
-                hop_list(nh,6) = n2
-                ham_t(nh)      = cmplx( x, y, kind(0.d0))
-             enddo
-
-             Close(unit_hop)
-#ifdef MPI
-          Endif
-
-          CALL MPI_BCAST(n_hop       ,  1             ,MPI_INTEGER  ,0,Group_Comm,ierr)
-
-          if ( irank_g /= 0 ) allocate( ham_t(n_hop), hop_list(n_hop,6) )
-          CALL MPI_BCAST(hop_list    ,  size(hop_list),MPI_INTEGER  ,0,Group_Comm,ierr)
-          CALL MPI_BCAST(ham_t       ,  size(ham_t)   ,MPI_COMPLEX16,0,Group_Comm,ierr)
- 
-#endif
-
-        end subroutine read_hop
-
 !--------------------------------------------------------------------
 !> @author
 !> ALF Collaboration
@@ -427,26 +350,26 @@
 
           Implicit none
 
-          Integer :: nf , I, Ix, Iy, nh, nc, no, n_hop
+          Integer                :: nf , I, Ix, Iy, nh, nc, no, n_hop
           real (kind=kind(0.d0)) :: ham_t_max, Zero = 1.0E-8
-          integer :: N_diag
-          complex (kind=kind(0.d0)), allocatable :: Ham_t(:)
-          integer, allocatable                   :: hop_list(:,:), hop_diag(:)
+          integer                :: N_diag
+          integer, allocatable   :: hop_diag(:)
           logical                :: diag
+          type (operator_matrix)   :: hopping
 
           ! read in information for hopping from file hoppings.txt
-          call read_hop(ham_t, hop_list)
+          call read_hop(hopping%g, hopping%list, Group_Comm)
 
-          n_hop = size(ham_t,1)
+          n_hop = size(hopping%g,1)
+
           ! if hop_diag(i) = 1 : hopping is     on-site (chemical potential)
           ! if hop_diag(i) = 0 : hopping is not on-site
           allocate( hop_diag(n_hop) )
-          hop_diag = 0
-
-          N_diag = 0
+          hop_diag = 0; N_diag = 0
           do nh = 1, n_hop
-             diag = hop_list(nh,1) == hop_list(nh,3) .and. hop_list(nh,2) == hop_list(nh,4) .and. &
-                     &  hop_list(nh,5) == 0 .and. hop_list(nh,6) == 0
+             diag = hopping%list(nh,1) == hopping%list(nh,5) .and. &
+                  & hopping%list(nh,2) == hopping%list(nh,6) .and. &
+                  & hopping%list(nh,3) == 0 .and. hopping%list(nh,4) == 0
              if (diag) then
                 hop_diag(nh) = 1
                 N_diag = N_diag + 1
@@ -456,46 +379,45 @@
           allocate(Hopping_Matrix(N_Fl))
 
           ham_t_max = 0.d0
-          do nh = 1, size(ham_t,1)
-             if ( hop_diag(nh) == 0 .and. abs(dble (ham_t(nh))) > ham_t_max ) ham_t_max = abs(dble (ham_t(nh)))
-             if ( hop_diag(nh) == 0 .and. abs(aimag(ham_t(nh))) > ham_t_max ) ham_t_max = abs(aimag(ham_t(nh)))
+          do nh = 1, n_hop
+             if ( hop_diag(nh) == 0 .and. abs(hopping%g(nh)) > ham_t_max ) ham_t_max = abs(hopping%g(nh))
           enddo
 
           do nf = 1, N_Fl
-             Hopping_Matrix(N_Fl)%N_bonds = 0
+             Hopping_Matrix(nf)%N_bonds = 0
              if ( abs(ham_t_max) > zero ) then
-                hopping_matrix(nf)%N_bonds = size(hop_list,1) - N_diag
+                hopping_matrix(nf)%N_bonds = n_hop - N_diag
                 allocate (hopping_matrix(nf)%List(hopping_matrix(nf)%N_bonds,4) )
                 allocate (hopping_matrix(nf)%t(hopping_matrix(nf)%N_bonds) )
 
-                allocate ( hopping_matrix(nf)%T_loc(Latt_unit%Norb) )
-                hopping_matrix(nf)%T_loc = cmplx( 0.d0, 0.d0, kind(0.d0) )
-
                 nc = 0
-                do nh = 1, size(ham_t,1)
+                do nh = 1, n_hop
                    if (hop_diag(nh) == 0) then
 
-                      nc = nc + 1
-                      hopping_matrix(nf)%T(nc) = - ham_t(nh)
-                      ! hopping_matrix(nf)%list(:,1) : orbital 1 = (orbital 1 of potential.txt + 1) + (spin of orbital 1)*(number of "spatial" orbitals)
-                      ! hopping_matrix(nf)%list(:,2) : orbital 2 = (orbital 2 of potential.txt + 1) + (spin of orbital 2)*(number of "spatial" orbitals)
+                      ! hopping_matrix(nf)%list(:,1) : orbital 1 = (orbital 1 of potentials.txt + 1) + (spin of orbital 1)*(number of "spatial" orbitals)
+                      ! hopping_matrix(nf)%list(:,2) : orbital 2 = (orbital 2 of potentials.txt + 1) + (spin of orbital 2)*(number of "spatial" orbitals)
                       ! hopping_matrix(nf)%list(:,3) : shift of unit cell with vector a_1
                       ! hopping_matrix(nf)%list(:,4) : shift of unit cell with vector a_2
-                      ! orbital I of potential.txt + 1 : orbitals in ALF start at 1 and in potential.txt at 0
-                      hopping_matrix(nf)%list(nc,1) = (hop_list(nh,1)+1) + hop_list(nh,2)*Norb
-                      hopping_matrix(nf)%list(nc,2) = (hop_list(nh,3)+1) + hop_list(nh,4)*Norb
-                      hopping_matrix(nf)%list(nc,3) = hop_list(nh,5)
-                      hopping_matrix(nf)%list(nc,4) = hop_list(nh,6)
+                      ! orbital I of potentials.txt + 1 : orbitals in ALF start at 1 and in potentials.txt at 0
+                      nc = nc + 1
+                      hopping_matrix(nf)%T(nc) = - hopping%g(nh)
+                      hopping_matrix(nf)%list(nc,1) = (hopping%list(nh,1)+1) + hopping%list(nh,2)*Norb
+                      hopping_matrix(nf)%list(nc,2) = (hopping%list(nh,5)+1) + hopping%list(nh,6)*Norb
+                      hopping_matrix(nf)%list(nc,3) = hopping%list(nh,3)
+                      hopping_matrix(nf)%list(nc,4) = hopping%list(nh,4)
                
-                  else
-
-                     no = (hop_list(nh,1)+1) + hop_list(nh,2)*Norb
-                     hopping_matrix(nf)%t_loc(no) = ham_t(nh)
-
-                  endif
+                   endif
                 enddo
-
              endif
+
+             allocate ( hopping_matrix(nf)%T_loc(Latt_unit%Norb) )
+             hopping_matrix(nf)%T_loc = cmplx( 0.d0, 0.d0, kind(0.d0) )
+             do nh = 1, n_hop
+                if (hop_diag(nh) == 1) then
+                   no = (hopping%list(nh,1)+1) + hopping%list(nh,2)*Norb
+                   hopping_matrix(nf)%t_loc(no) = - hopping%g(nh)
+                endif
+             enddo
 
              hopping_matrix(nf)%N_Phi =  N_Phi
              hopping_matrix(nf)%Phi_X =  Phi_X
@@ -561,20 +483,20 @@
                 ham_u(no)     = u
                 alpha_int(no) = cmplx( x, y, kind(0.d0) )
 
-                allocate( interaction(no)%int_list(mk,8), interaction(no)%c_int(mk) )
+                allocate( interaction(no)%list(mk,8), interaction(no)%g(mk) )
                 
 
                 do n = 1, mk
                    read(unit_int,*) i, i1, i2, no1, s1, j1, j2, no2, s2, x, y
-                   interaction(no)%int_list(n,1) = i1
-                   interaction(no)%int_list(n,2) = i2
-                   interaction(no)%int_list(n,3) = no1
-                   interaction(no)%int_list(n,4) = s1
-                   interaction(no)%int_list(n,5) = j1
-                   interaction(no)%int_list(n,6) = j2
-                   interaction(no)%int_list(n,7) = no2
-                   interaction(no)%int_list(n,8) = s2
-                   interaction(no)%c_int(n)      = cmplx( x, y, kind(0.d0) )
+                   interaction(no)%list(n,1) = i1
+                   interaction(no)%list(n,2) = i2
+                   interaction(no)%list(n,3) = no1
+                   interaction(no)%list(n,4) = s1
+                   interaction(no)%list(n,5) = j1
+                   interaction(no)%list(n,6) = j2
+                   interaction(no)%list(n,7) = no2
+                   interaction(no)%list(n,8) = s2
+                   interaction(no)%g(n)      = cmplx( x, y, kind(0.d0) )
                 enddo
              enddo
 
@@ -589,11 +511,11 @@
           CALL MPI_BCAST(alpha_int   ,  size(alpha_int),MPI_COMPLEX16,0,Group_Comm,ierr)
       
           do no = 1, N_ops
-             if (irank_g == 0) mk = size(interaction(no)%int_list,1)
+             if (irank_g == 0) mk = size(interaction(no)%list,1)
              CALL MPI_BCAST(mk       ,  1              ,MPI_INTEGER  ,0,Group_Comm,ierr)
-             if (irank_g /= 0) allocate( interaction(no)%int_list(mk,8), interaction(no)%c_int(mk) )
-             CALL MPI_BCAST(interaction(no)%int_list   ,size(interaction(no)%int_list),MPI_INTEGER  ,0,Group_Comm,ierr)
-             CALL MPI_BCAST(interaction(no)%c_int      ,   size(interaction(no)%c_int),MPI_COMPLEX16,0,Group_Comm,ierr)
+             if (irank_g /= 0) allocate( interaction(no)%list(mk,8), interaction(no)%g(mk) )
+             CALL MPI_BCAST(interaction(no)%list   ,size(interaction(no)%list),MPI_INTEGER  ,0,Group_Comm,ierr)
+             CALL MPI_BCAST(interaction(no)%g      ,   size(interaction(no)%g),MPI_COMPLEX16,0,Group_Comm,ierr)
           enddo
 
 #endif
@@ -614,7 +536,7 @@
            i = 1
 
            do no = 1, N_ops
-              mk = size(interaction(no)%int_list,1 )
+              mk = size(interaction(no)%list,1 )
               allocate( orbitals_tmp(2*mk))
               orbitals_tmp = 0
 
@@ -623,14 +545,14 @@
               do n = 1, mk
 
                  nc = nc + 1
-                 j1  = latt%nnlist( i, interaction(no)%int_list(n,1), interaction(no)%int_list(n,2) )
-                 no1 = (interaction(no)%int_list(n,3)+1) + interaction(no)%int_list(n,4)*Norb
+                 j1  = latt%nnlist( i, interaction(no)%list(n,1), interaction(no)%list(n,2) )
+                 no1 = (interaction(no)%list(n,3)+1) + interaction(no)%list(n,4)*Norb
                  if (.not. any(orbitals_tmp == invlist(j1,no1))) N_orbitals = N_orbitals + 1
                  orbitals_tmp(nc) = invlist(j1,no1)
 
                  nc = nc + 1
-                 j2 = latt%nnlist( i, interaction(no)%int_list(n,5), interaction(no)%int_list(n,6) )
-                 no2 = (interaction(no)%int_list(n,7)+1) + interaction(no)%int_list(n,8)*Norb
+                 j2 = latt%nnlist( i, interaction(no)%list(n,5), interaction(no)%list(n,6) )
+                 no2 = (interaction(no)%list(n,7)+1) + interaction(no)%list(n,8)*Norb
                  if (.not. any(orbitals_tmp == invlist(j2,no2))) N_orbitals = N_orbitals + 1
                  orbitals_tmp(nc) = invlist(j2,no2)
 
@@ -670,14 +592,14 @@
                 nc = nc + 1
                 do nf = 1, N_Fl
                    call Op_make(OP_V(nc,nf), interaction(no)%N_orbitals)
-                   mk = size(interaction(no)%int_list,1)
+                   mk = size(interaction(no)%list,1)
                    allocate (orbitals_tmp(interaction(no)%N_orbitals))
                    orbitals_tmp = 0
    
                    nc_o = 0
                    do n = 1, mk
-                      i1  = latt%nnlist( i, interaction(no)%int_list(n,1), interaction(no)%int_list(n,2) )
-                      no1 = (interaction(no)%int_list(n,3)+1) + interaction(no)%int_list(n,4)*Norb
+                      i1  = latt%nnlist( i, interaction(no)%list(n,1), interaction(no)%list(n,2) )
+                      no1 = (interaction(no)%list(n,3)+1) + interaction(no)%list(n,4)*Norb
                       j1  = invlist(i1,no1)
                       x1  = -1
                       do x = 1, nc_o
@@ -692,8 +614,8 @@
                          x1 = nc_o
                       endif
             
-                      i2  = latt%nnlist( i, interaction(no)%int_list(n,5), interaction(no)%int_list(n,6) )
-                      no2 = (interaction(no)%int_list(n,7)+1) + interaction(no)%int_list(n,8)*Norb
+                      i2  = latt%nnlist( i, interaction(no)%list(n,5), interaction(no)%list(n,6) )
+                      no2 = (interaction(no)%list(n,7)+1) + interaction(no)%list(n,8)*Norb
                       j2  = invlist(i2,no2)
                       x2  = -1
                       do x = 1, nc_o
@@ -708,8 +630,8 @@
                          x2 = nc_o
                       endif
 
-                      Op_V(nc,nf)%O(x1,x2) =        interaction(no)%c_int(n)
-                      Op_V(nc,nf)%O(x2,x1) = CONJG( interaction(no)%c_int(n) )
+                      Op_V(nc,nf)%O(x1,x2) =        interaction(no)%g(n)
+                      Op_V(nc,nf)%O(x2,x1) = CONJG( interaction(no)%g(n) )
                    enddo
 
                    Op_V(nc,nf)%g = sqrt(cmplx(-dtau*ham_u(no), 0.d0, kind(0.d0) ))
