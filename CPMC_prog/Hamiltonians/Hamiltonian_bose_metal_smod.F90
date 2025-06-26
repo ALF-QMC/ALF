@@ -63,7 +63,7 @@
        type(Unit_cell), target :: Latt_unit
        type(Hopping_Matrix_type), allocatable :: Hopping_Matrix(:)
        integer, allocatable :: List(:, :), Invlist(:, :)  ! For orbital structure of Unit cell
-       Integer, allocatable :: rot_del_list(:,:,:), rot_list(:,:), del_list(:,:,:)
+       Integer, allocatable :: rot_del_list(:,:,:), rot_list(:,:), del_list(:,:,:), del_diag_list(:,:,:)
        complex (Kind=Kind(0.d0)), allocatable :: ff_s(:,:,:)
 
     contains
@@ -195,9 +195,10 @@
           ! Use predefined stuctures or set your own lattice.
           call Predefined_Latt(Lattice_type, L1, L2, Ndim, List, Invlist, Latt, Latt_Unit)
             
-          allocate(rot_del_list(latt%n,latt_unit%norb,4))
-          allocate(del_list    (latt%n,latt_unit%norb,4))
-          allocate(rot_list    (latt%n,latt_unit%norb  ))
+          allocate(rot_del_list (latt%n,latt_unit%norb,4))
+          allocate(del_list     (latt%n,latt_unit%norb,4))
+          allocate(del_diag_list(latt%n,latt_unit%norb,4))
+          allocate(rot_list     (latt%n,latt_unit%norb  ))
 
           del_list=0
           rot_list=0
@@ -255,14 +256,19 @@
                 select case(ntype)
                 case(1)
                     i1 = latt%nnlist(j1, 1, 0)
+                    k1 = latt%nnlist(j1, 1, 1)
                 case(2)
                     i1 = latt%nnlist(j1,-1, 0)
+                    k1 = latt%nnlist(j1,-1,-1)
                 case(3)
                     i1 = latt%nnlist(j1, 0, 1)
+                    k1 = latt%nnlist(j1, 1,-1)
                 case(4)
                     i1 = latt%nnlist(j1, 0,-1)
+                    k1 = latt%nnlist(j1,-1, 1)
                 end select
                 del_list(j1,1,ntype) = i1
+                del_diag_list(j1,1,ntype) = k1
              enddo
           enddo
             
@@ -456,6 +462,10 @@
                 Filename = "pxwave"
              case (8)
                 Filename = "pywave"
+             case (9)
+                Filename = "ddwave"
+             case (10)
+                Filename = "pwave"
              case default
                 write (6, *) ' Error in Alloc_obs '
              end select
@@ -522,7 +532,7 @@
           complex(Kind=kind(0.d0)) :: grc(Ndim, Ndim, N_FL), ZK, zone, ztmp, z_ol, zero, ztmp1, ztmp2, ztmp3, ztmp4
           complex(Kind=kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP, ZS, ZZ, ZXY, zback, zw, z_fac, z1j, cpair(4)
           integer :: I, J, k, l, m, n, imj, nf, dec, i1, ipx, ipy, imx, imy, j1, jpx, jpy, jmx, jmy, no_I, no_J, nc
-          integer :: idl(4), jdl(4), irdl(4), jrdl(4), rsi, rsj, k1, k2
+          integer :: idl(4), jdl(4), irdl(4), iddl(4), jddl(4), jrdl(4), rsi, rsj, k1, k2
           real(Kind=kind(0.d0)) :: X
 
           Z_ol = exp(overlap(i_grc))/sum_o
@@ -595,16 +605,18 @@
               no_i = list(i1,2)
 
               rsi = rot_list(i,no_i)
-              idl(:) = del_list(i,no_i,:) 
-              irdl(:) = rot_del_list(i,no_i,:) 
+              idl(:)  = del_list     (i,no_i,:) 
+              iddl(:) = del_diag_list(i,no_i,:) 
+              irdl(:) = rot_del_list (i,no_i,:) 
 
               do j1 = 1, ndim
                   j    = list(j1,1)
                   no_j = list(j1,2)
               
                   rsj = rot_list(j,no_j)
-                  jdl(:) = del_list(j,no_j,:) 
-                  jrdl(:) = rot_del_list(j,no_j,:) 
+                  jdl (:) = del_list     (j,no_j,:) 
+                  jddl(:) = del_diag_list(j,no_j,:) 
+                  jrdl(:) = rot_del_list (j,no_j,:) 
 
                   imj  = latt%imj(i, j)
                   ztmp = grc(i1,j1,1) + grc(i1,j1,2)
@@ -636,8 +648,8 @@
                      k2 = k2 + 1
 
                      cpair(2) = cpair(2) + 0.25d0*ff_s(k1,no_i,1)*conjg(ff_s(k2,no_j,1))* &
-                         & (   grc(i1,j1,1)*grc(irdl(k1),jrdl(k2),2) + grc(i1,j1,2)*grc(irdl(k1),jrdl(k2),1) &
-                         &   + grc(i1,jrdl(k2),1)*grc(irdl(k1),j1,2) + grc(i1,jrdl(k2),2)*grc(irdl(k1),j1,1) )
+                         & (   grc(i1,j1,1)*grc(idl(k1),jdl(k2),2) + grc(i1,j1,2)*grc(idl(k1),jdl(k2),1) &
+                         &   + grc(i1,jdl(k2),1)*grc(idl(k1),j1,2) + grc(i1,jdl(k2),2)*grc(idl(k1),j1,1) )
 
                      cpair(3) = cpair(3) + 0.25d0*ff_s(k1,no_i,2)*conjg(ff_s(k2,no_j,2))* &
                          & (   grc(i1,j1,1)*grc(idl(k1),jdl(k2),1) + grc(i1,j1,2)*grc(idl(k1),jdl(k2),2) &
@@ -646,12 +658,21 @@
                      cpair(4) = cpair(4) + 0.25d0*ff_s(k1,no_i,3)*conjg(ff_s(k2,no_j,3))* &
                          & (   grc(i1,j1,1)*grc(idl(k1),jdl(k2),1) + grc(i1,j1,2)*grc(idl(k1),jdl(k2),2) &
                          &   - grc(i1,jdl(k2),1)*grc(idl(k1),j1,1) - grc(i1,jdl(k2),2)*grc(idl(k1),j1,2) )
+                     
+                     cpair(5) = cpair(5) + 0.25d0*ff_s(k1,no_i,1)*conjg(ff_s(k2,no_j,1))* &
+                         & (   grc(i1,j1,1)*grc(iddl(k1),jddl(k2),2) + grc(i1,j1,2)*grc(iddl(k1),jddl(k2),1) &
+                         &   + grc(i1,jddl(k2),1)*grc(iddl(k1),j1,2) + grc(i1,jddl(k2),2)*grc(iddl(k1),j1,1) )
 
                   enddo
                   obs_eq(5)%obs_Latt(imj,1,no_i,no_j) = obs_eq(5)%obs_latt(imj,1,no_i,no_j) + cpair(1)*z_fac
                   obs_eq(6)%obs_Latt(imj,1,no_i,no_j) = obs_eq(6)%obs_latt(imj,1,no_i,no_j) + cpair(2)*z_fac
                   obs_eq(7)%obs_Latt(imj,1,no_i,no_j) = obs_eq(7)%obs_latt(imj,1,no_i,no_j) + cpair(3)*z_fac
                   obs_eq(8)%obs_Latt(imj,1,no_i,no_j) = obs_eq(8)%obs_latt(imj,1,no_i,no_j) + cpair(4)*z_fac
+                  obs_eq(9)%obs_Latt(imj,1,no_i,no_j) = obs_eq(9)%obs_latt(imj,1,no_i,no_j) + cpair(5)*z_fac
+                  
+                  obs_eq(10)%obs_Latt(imj,1,no_i,no_j) = obs_eq(10)%obs_latt(imj,1,no_i,no_j) + &
+                      & ( grc(i1,j1,1)*grc(idl(1),jdl(1),2) + grc(i1,j1,2)*grc(idl(1),jdl(1),1)  &
+                      & - grc(i1,jdl(1),1)*grc(idl(1),j1,2) - grc(i1,jdl(1),2)*grc(idl(1),j1,1) )*z_fac
                   
               end do
               zback = grc(i1, i1, 2) - grc(i1, i1, 1)
