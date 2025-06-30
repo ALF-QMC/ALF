@@ -146,13 +146,6 @@
 #endif
       end type ham_Portable
 
-      type obs_ph_type
-         Character (len=64)   :: File
-         integer              :: N_orbitals, mk
-         integer, allocatable :: list(:,:)
-         complex (kind=kind(0.d0)), allocatable :: el(:)
-      end type obs_ph_type
-
       !#PARAMETERS START# VAR_Model_Generic
       !Integer              :: N_SUN        = 2        ! Number of colors
       !Integer              :: N_FL         = 1        ! Number of flavors
@@ -171,13 +164,8 @@
 
       integer :: n_spin, Norb
 
-      !Variables for interaction
-      real (kind=kind(0.d0)),    allocatable   :: ham_U(:)
-      complex (kind=kind(0.d0)), allocatable   :: alpha_int(:)
-
       !Variables for observables
-      integer :: N_obs_scal_ph, N_obs_eq_ph
-      type (obs_ph_type), allocatable :: obs_scal_ph(:), obs_eq_ph(:)
+      type (operator_matrix), allocatable :: obs_scal_ph(:), obs_eq_ph(:)
 
     contains
       
@@ -580,86 +568,6 @@
 
         end Subroutine Ham_V
 
-
-!--------------------------------------------------------------------
-
-        Subroutine read_obs_scal
-
-#if defined (MPI) || defined(TEMPERING)
-          Use mpi
-#endif
-
-          implicit none
- 
-          integer                :: ierr, unit_obs, mk, no, n
-          integer                :: i, no1, s1, n1, n2, no2, s2
-          Character (len=64)     :: file_obs, file
-          real (kind=kind(0.d0)) :: x, y
-
-
-#ifdef MPI
-          Integer        :: Isize, Irank, irank_g, isize_g, igroup
-          Integer        :: STATUS(MPI_STATUS_SIZE)
-          CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-          CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-          call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-          call MPI_Comm_size(Group_Comm, isize_g, ierr)
-          igroup           = irank/isize_g
-
-   
-          If (Irank_g == 0) then
-#endif
-             File_obs = "obs_local_ph.txt"
-#if defined(TEMPERING)
-             write(File_obs,'(A,I0,A)') "Temp_",igroup,"/obs_local_ph.txt"
-#endif
-             Open(newunit=unit_obs, file=file_obs, status="old", action="read", iostat=ierr)
-             IF (ierr /= 0) THEN
-                WRITE(error_unit,*) 'unable to open <obs_local_ph.txt>', ierr
-                Call Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
-             END IF
-
-             !local scalar observables
-             read(unit_obs,*) N_obs_scal_ph
-             allocate(obs_scal_ph(N_obs_scal_ph))
-      
-             do no = 1, N_obs_scal_ph
-                read(unit_obs,*) file, mk
-                obs_scal_ph(no)%file = file
-                obs_scal_ph(no)%mk   = mk
-                allocate( obs_scal_ph(no)%list(mk,6), obs_scal_ph(no)%el(mk) )
-                
-                do n = 1, mk
-                   read(unit_obs,*) i, no1, s1, n1, n2, no2, s2, x, y
-                   obs_scal_ph(no)%list(n,1) = no1
-                   obs_scal_ph(no)%list(n,2) = s1
-                   obs_scal_ph(no)%list(n,3) = no2
-                   obs_scal_ph(no)%list(n,4) = s2
-                   obs_scal_ph(no)%list(n,5) = n1
-                   obs_scal_ph(no)%list(n,6) = n2
-                   obs_scal_ph(no)%el(n)     = cmplx(x, y, kind(0.d0))
-                enddo
-             enddo
-
-             Close(unit_obs)
-
-#ifdef MPI
-          Endif
-
-          CALL MPI_BCAST(N_obs_scal_ph                     ,  1,MPI_INTEGER  ,0,Group_Comm,ierr)
-          if (irank_g /= 0) allocate(obs_scal_ph(N_obs_scal_ph))
-          do no = 1, N_obs_scal_ph
-             CALL MPI_BCAST(obs_scal_ph(no)%file   , 64,MPI_CHARACTER,0,Group_Comm,ierr)
-             CALL MPI_BCAST(obs_scal_ph(no)%mk     ,  1,MPI_INTEGER  ,0,Group_Comm,ierr)
-             if (irank_g /= 0) allocate( obs_scal_ph(no)%list(obs_scal_ph(no)%mk,6), obs_scal_ph(no)%el(obs_scal_ph(no)%mk) )
-             CALL MPI_BCAST(obs_scal_ph(no)%list   ,  size(obs_scal_ph(no)%list),MPI_INTEGER  ,0,Group_Comm,ierr)
-             CALL MPI_BCAST(obs_scal_ph(no)%el     ,  size(obs_scal_ph(no)%el)  ,MPI_COMPLEX16,0,Group_Comm,ierr)
-          enddo
-
-#endif
-
-        end subroutine read_obs_scal
-
 !--------------------------------------------------------------------
 
         Subroutine read_obs_eq
@@ -670,7 +578,7 @@
 
           implicit none
  
-          integer                :: ierr, unit_obs, mk, no, n
+          integer                :: ierr, unit_obs, mk, no, n, N_obs
           integer                :: i, no1, s1, i1, i2, j1, j2, no2, s2
           Character (len=64)     :: file_obs, file
           real (kind=kind(0.d0)) :: x, y
@@ -699,14 +607,13 @@
              END IF
          
              !local correlation functions
-             read(unit_obs,*) N_obs_eq_ph
-             allocate(obs_eq_ph(N_obs_eq_ph))
+             read(unit_obs,*) N_obs
+             allocate(obs_eq_ph(N_obs))
 
-             do no = 1, N_obs_eq_ph
+             do no = 1, N_obs
                 read(unit_obs,*) file, mk
                 obs_eq_ph(no)%file = file
-                obs_eq_ph(no)%mk   = mk
-                allocate( obs_eq_ph(no)%list(mk,8), obs_eq_ph(no)%el(mk) )
+                allocate( obs_eq_ph(no)%list(mk,8), obs_eq_ph(no)%g(mk) )
 
                 do n = 1, mk
                    read(unit_obs,*) i, i1, i2, no1, s1, j1, j2, no2, s2, x, y
@@ -718,7 +625,7 @@
                    obs_eq_ph(no)%list(n,6) = j2
                    obs_eq_ph(no)%list(n,7) = no2
                    obs_eq_ph(no)%list(n,8) = s2
-                   obs_eq_ph(no)%el(n)     = cmplx( x, y, kind(0.d0) )
+                   obs_eq_ph(no)%g(n)      = cmplx( x, y, kind(0.d0) )
                 enddo
              enddo
 
@@ -729,14 +636,15 @@
 #ifdef MPI
           Endif
 
-          CALL MPI_BCAST(N_obs_eq_ph                     ,  1,MPI_INTEGER  ,0,Group_Comm,ierr)
-          if (irank_g /= 0) allocate(obs_eq_ph(N_obs_eq_ph))
-          do no = 1, N_obs_eq_ph
+          CALL MPI_BCAST(N_obs                     ,  1,MPI_INTEGER  ,0,Group_Comm,ierr)
+          if (irank_g /= 0) allocate(obs_eq_ph(N_obs))
+          do no = 1, N_obs
              CALL MPI_BCAST(obs_eq_ph(no)%file   , 64,MPI_CHARACTER,0,Group_Comm,ierr)
-             CALL MPI_BCAST(obs_eq_ph(no)%mk     ,  1,MPI_INTEGER  ,0,Group_Comm,ierr)
-             if (irank_g /= 0) allocate( obs_eq_ph(no)%list(obs_eq_ph(no)%mk,8), obs_eq_ph(no)%el(obs_eq_ph(no)%mk) )
+             if (irank_g == 0) mk = size(obs_eq_ph(no)%list,1)
+             CALL MPI_BCAST(mk                   ,  1                       ,MPI_INTEGER  ,0,Group_Comm,ierr)
+             if (irank_g /= 0) allocate( obs_eq_ph(no)%list(mk,8), obs_eq_ph(no)%g(mk) )
              CALL MPI_BCAST(obs_eq_ph(no)%list   ,  size(obs_eq_ph(no)%list),MPI_INTEGER  ,0,Group_Comm,ierr)
-             CALL MPI_BCAST(obs_eq_ph(no)%el     ,  size(obs_eq_ph(no)%el)  ,MPI_COMPLEX16,0,Group_Comm,ierr)
+             CALL MPI_BCAST(obs_eq_ph(no)%g     ,  size(obs_eq_ph(no)%g)  ,MPI_COMPLEX16,0,Group_Comm,ierr)
           enddo
 
 
@@ -757,11 +665,12 @@
           Implicit none
           !>  Ltau=1 if time displaced correlations are considered.
           Integer, Intent(In) :: Ltau
-          Integer    ::  i, N, Nt
+          Integer    ::  i, N, Nt, N_obs_scal_ph, N_obs_eq_ph
           Character (len=64) ::  Filename
           Character (len=:), allocatable ::  Channel
 
-           call read_obs_scal
+           call read_obs_scal_ph(obs_scal_ph,Group_Comm)
+           N_obs_scal_ph = size(obs_scal_ph,1)
 
            ! Scalar observables
            Allocate ( Obs_scal(N_obs_scal_ph+4) )
@@ -781,6 +690,7 @@
            enddo
 
            call read_obs_eq
+           N_obs_eq_ph = size(obs_eq_ph,1)
  
            ! Equal time correlators
            Allocate ( Obs_eq(3+N_obs_eq_ph) )
@@ -857,7 +767,7 @@
           Complex (Kind=Kind(0.d0)) :: ZP, ZS
           Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Zlocal, ZZ, ZDen
           Integer :: I, J, nf, i1, no_i, i2, no, n, no_1, no_2, j1, no_j, j2, imj, m
-          integer :: x1, x2, y1, y2, no_i1, no_i2, no_j1, no_j2
+          integer :: x1, x2, y1, y2, no_i1, no_i2, no_j1, no_j2, N_obs_scal_ph, N_obs_eq_ph
           ! Add local variables as needed
 
           ZP = PHASE/Real(Phase, kind(0.D0))
@@ -880,20 +790,23 @@
              Obs_scal(I)%Ave_sign  =  Obs_scal(I)%Ave_sign + Real(ZS,kind(0.d0))
           Enddo
 
+          N_obs_scal_ph = size(obs_scal_ph,1)
+          N_obs_eq_ph   = size(obs_eq_ph,  1)
+
           do no = 1, N_obs_scal_ph
              Zlocal = cmplx(0.d0, 0.d0, kind(0.d0))
       
              do i = 1, Latt%N
-                do n = 1, obs_scal_ph(no)%mk
+                do n = 1, size(obs_scal_ph(no)%list,1)
                    no_1 = (obs_scal_ph(no)%list(n,1)+1) + obs_scal_ph(no)%list(n,2)*Norb
                    i1   = invlist(i,no_1)
                
-                   j    = latt%nnlist(i,obs_scal_ph(no)%list(n,5),obs_scal_ph(no)%list(n,6))
-                   no_2 = (obs_scal_ph(no)%list(n,3)+1) + obs_scal_ph(no)%list(n,4)*Norb
+                   j    = latt%nnlist(i,obs_scal_ph(no)%list(n,3),obs_scal_ph(no)%list(n,4))
+                   no_2 = (obs_scal_ph(no)%list(n,5)+1) + obs_scal_ph(no)%list(n,6)*Norb
                    j1   = invlist(j,no_2)
 
-                   Zlocal = Zlocal +       obs_scal_ph(no)%el(n) *GRC(i1,j1,1)
-                   Zlocal = Zlocal + conjg(obs_scal_ph(no)%el(n))*GRC(j1,i1,1)
+                   Zlocal = Zlocal +       obs_scal_ph(no)%g(n) *GRC(i1,j1,1)
+                   Zlocal = Zlocal + conjg(obs_scal_ph(no)%g(n))*GRC(j1,i1,1)
                 enddo
              enddo
    
@@ -932,7 +845,7 @@
 
 
              do I = 1, Latt%N
-                do n = 1, obs_eq_ph(no)%mk
+                do n = 1, size(obs_eq_ph(no)%list,1)
                    i1    = latt%nnlist(i,obs_eq_ph(no)%list(n,1),obs_eq_ph(no)%list(n,2))
                    no_i1 = (obs_eq_ph(no)%list(n,3)+1) + obs_eq_ph(no)%list(n,4)*Norb
                    x1    = invlist(i1,no_i1)
@@ -941,7 +854,7 @@
                    x2    = invlist(i2,no_i2)
                    do J = 1, Latt%N
                       imj = Latt%imj(I,J)
-                      do m = 1, obs_eq_ph(no)%mk
+                      do m = 1, size(obs_eq_ph(no)%list,1)
                          j1    = latt%nnlist(j,obs_eq_ph(no)%list(m,1),obs_eq_ph(no)%list(m,2))
                          no_j1 = (obs_eq_ph(no)%list(m,3)+1) + obs_eq_ph(no)%list(m,4)*Norb
                          y1    = invlist(j1,no_j1)
@@ -950,20 +863,20 @@
                          y2    = invlist(j2,no_j2)
 
                          Zlocal = cmplx(0.d0, 0.d0, kind(0.d0))
-                         Zlocal = Zlocal +       obs_eq_ph(no)%el(n) *      obs_eq_ph(no)%el(m) * &
+                         Zlocal = Zlocal +       obs_eq_ph(no)%g(n) *      obs_eq_ph(no)%g(m) * &
                                     &   (GRC(x1,x2,1)*GRC(y1,y2,1) + GRC(x1,y2,1)*GR(x2,y1,1))
-                         Zlocal = Zlocal +       obs_eq_ph(no)%el(n) *conjg(obs_eq_ph(no)%el(m))* &
+                         Zlocal = Zlocal +       obs_eq_ph(no)%g(n) *conjg(obs_eq_ph(no)%g(m))* &
                                     &   (GRC(x1,x2,1)*GRC(y2,y1,1) + GRC(x1,y1,1)*GR(x2,y2,1))
-                         Zlocal = Zlocal + conjg(obs_eq_ph(no)%el(n))*      obs_eq_ph(no)%el(m) * &
+                         Zlocal = Zlocal + conjg(obs_eq_ph(no)%g(n))*      obs_eq_ph(no)%g(m) * &
                                     &   (GRC(x2,x1,1)*GRC(y1,y2,1) + GRC(x2,y2,1)*GR(x1,y1,1))
-                         Zlocal = Zlocal + conjg(obs_eq_ph(no)%el(n))*conjg(obs_eq_ph(no)%el(m))* &
+                         Zlocal = Zlocal + conjg(obs_eq_ph(no)%g(n))*conjg(obs_eq_ph(no)%g(m))* &
                                     &   (GRC(x2,x1,1)*GRC(y2,y1,1) + GRC(x2,y1,1)*GR(x1,y2,1))
                          
                          Obs_eq(no)%Obs_latt(imj,1,1,1) = Obs_eq(no)%Obs_latt(imj,1,1,1) + Zlocal*ZP*ZS
                       enddo
                    enddo
                    Obs_eq(no)%Obs_latt0(1) = Obs_eq(no)%Obs_latt0(1) +  &
-                           &     (obs_eq_ph(no)%el(n)*GRC(x1,x2,1) + conjg(obs_eq_ph(no)%el(n))*GRC(x2,x1,1))*ZP*ZS
+                           &     (obs_eq_ph(no)%g(n)*GRC(x1,x2,1) + conjg(obs_eq_ph(no)%g(n))*GRC(x2,x1,1))*ZP*ZS
                 enddo
              enddo
 
