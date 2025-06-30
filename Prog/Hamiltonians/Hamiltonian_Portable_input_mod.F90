@@ -45,6 +45,14 @@ module Hamiltonian_Portable_input_mod
 
    implicit none
 
+   type operator_matrix
+      integer                   :: N_orbitals
+      real (kind=kind(0.d0))    :: u
+      complex (kind=kind(0.d0)) :: alpha
+      integer, allocatable                   :: list(:,:)
+      complex (kind=kind(0.d0)), allocatable :: g(:)
+   end type operator_matrix
+
    contains
 
 !--------------------------------------------------------------------
@@ -117,6 +125,15 @@ module Hamiltonian_Portable_input_mod
           CALL MPI_BCAST(Orb_pos,  size(Orb_pos) ,MPI_REAL8    ,0,Group_Comm,ierr)
 #endif
 
+          If (L1 < 1 .or. L2 < 1) then
+             Write(error_unit,*) 'The lattice sizes L1 and L2 have to be positive integers.'
+             CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+          endif
+          If (Norb < 1) then
+             Write(error_unit,*) 'The number of orbitals per unit cell Norb has to be a positive integer.'
+             CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+          endif
+
         end subroutine read_latt
 
 !--------------------------------------------------------------------
@@ -127,7 +144,7 @@ module Hamiltonian_Portable_input_mod
 !> Reads  the  hopping parameters
 !--------------------------------------------------------------------
 
-        Subroutine read_hop(t, list, Group_Comm)
+        Subroutine read_hop(this, Group_Comm)
 
 #if defined (MPI) || defined(TEMPERING)
           Use mpi
@@ -135,8 +152,7 @@ module Hamiltonian_Portable_input_mod
 
           implicit none
 
-          complex (kind=kind(0.d0)), allocatable, intent(out) :: t(:)
-          integer, allocatable, intent(out)                   :: list(:,:)
+          type (operator_matrix), intent(out) :: this
           integer, intent(in)      :: Group_Comm
 
           integer                :: ierr, unit_hop, n_hop, nh, i
@@ -169,17 +185,17 @@ module Hamiltonian_Portable_input_mod
 
              read(unit_hop,*) n_hop
              
-             allocate( t(n_hop), list(n_hop,6) )
+             allocate( this%g(n_hop), this%list(n_hop,6) )
       
              do nh = 1, n_hop
                 read(unit_hop,*) i, no1, s1, n1, n2, no2, s2, x, y
-                list(nh,1) = no1
-                list(nh,2) = s1
-                list(nh,3) = n1
-                list(nh,4) = n2
-                list(nh,5) = no2
-                list(nh,6) = s2
-                t(nh)      = cmplx( x, y, kind(0.d0))
+                this%list(nh,1) = no1
+                this%list(nh,2) = s1
+                this%list(nh,3) = n1
+                this%list(nh,4) = n2
+                this%list(nh,5) = no2
+                this%list(nh,6) = s2
+                this%g(nh)      = cmplx( x, y, kind(0.d0))
              enddo
 
              Close(unit_hop)
@@ -188,12 +204,107 @@ module Hamiltonian_Portable_input_mod
 
           CALL MPI_BCAST(n_hop       ,  1             ,MPI_INTEGER  ,0,Group_Comm,ierr)
 
-          if ( irank_g /= 0 ) allocate( t(n_hop), list(n_hop,6) )
-          CALL MPI_BCAST(list    ,  size(list),MPI_INTEGER  ,0,Group_Comm,ierr)
-          CALL MPI_BCAST(t       ,  size(t)   ,MPI_COMPLEX16,0,Group_Comm,ierr)
+          if ( irank_g /= 0 ) allocate( this%g(n_hop), this%list(n_hop,6) )
+          CALL MPI_BCAST(this%list    ,  size(this%list),MPI_INTEGER  ,0,Group_Comm,ierr)
+          CALL MPI_BCAST(this%g       ,  size(this%g)   ,MPI_COMPLEX16,0,Group_Comm,ierr)
  
 #endif
 
         end subroutine read_hop
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Reads in   the  interaction parameters
+!--------------------------------------------------------------------
+
+        Subroutine read_int(this,Group_Comm)
+
+#if defined (MPI) || defined(TEMPERING)
+          Use mpi
+#endif
+
+          implicit none
+
+          type (operator_matrix), allocatable, intent(out) :: this(:)
+          integer, intent(in)    :: Group_Comm
+ 
+          integer                :: ierr, unit_int, mk, no, n, i1, i2
+          integer                :: no1, s1, j1, j2, no2, s2, i, N_ops
+          Character (len=64)     :: file_int
+          real (kind=kind(0.d0)) :: u, x, y
+
+
+#ifdef MPI
+          Integer        :: Isize, Irank, irank_g, isize_g, igroup
+          Integer        :: STATUS(MPI_STATUS_SIZE)
+          CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
+          CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+          call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+          call MPI_Comm_size(Group_Comm, isize_g, ierr)
+          igroup           = irank/isize_g
+
+   
+          If (Irank_g == 0) then
+#endif
+             File_int = "potentials.txt"
+#if defined(TEMPERING)
+             write(File_int,'(A,I0,A)') "Temp_",igroup,"/potentials.txt"
+#endif
+             Open(newunit=unit_int, file=file_int, status="old", action="read", iostat=ierr)
+             IF (ierr /= 0) THEN
+                WRITE(error_unit,*) 'unable to open <potentials.txt>', ierr
+                Call Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
+             END IF
+
+             read(unit_int,*) N_ops
+
+             allocate( this(N_ops) )
+
+             do no = 1, N_ops
+                read(unit_int,*) mk, u, x, y
+                this(no)%u     = u
+                this(no)%alpha = cmplx( x, y, kind(0.d0) )
+
+                allocate( this(no)%list(mk,8), this(no)%g(mk) )
+                
+
+                do n = 1, mk
+                   read(unit_int,*) i, i1, i2, no1, s1, j1, j2, no2, s2, x, y
+                   this(no)%list(n,1) = i1
+                   this(no)%list(n,2) = i2
+                   this(no)%list(n,3) = no1
+                   this(no)%list(n,4) = s1
+                   this(no)%list(n,5) = j1
+                   this(no)%list(n,6) = j2
+                   this(no)%list(n,7) = no2
+                   this(no)%list(n,8) = s2
+                   this(no)%g(n)      = cmplx( x, y, kind(0.d0) )
+                enddo
+             enddo
+
+             Close(unit_int)
+
+#ifdef MPI
+          Endif
+
+          CALL MPI_BCAST(n_ops       ,  1              ,MPI_INTEGER  ,0,Group_Comm,ierr)
+          if (irank_g /= 0) allocate( this(N_ops) )
+      
+          do no = 1, N_ops
+             CALL MPI_BCAST(this(no)%alpha  ,     1    ,MPI_COMPLEX16,0,Group_Comm,ierr)
+             CALL MPI_BCAST(this(no)%u      ,     1    ,MPI_REAL8    ,0,Group_Comm,ierr)
+             if (irank_g == 0) mk = size(this(no)%list,1)
+             CALL MPI_BCAST(mk       ,  1              ,MPI_INTEGER  ,0,Group_Comm,ierr)
+             if (irank_g /= 0) allocate( this(no)%list(mk,8), this(no)%g(mk) )
+             CALL MPI_BCAST(this(no)%list   ,size(this(no)%list),MPI_INTEGER  ,0,Group_Comm,ierr)
+             CALL MPI_BCAST(this(no)%g      ,   size(this(no)%g),MPI_COMPLEX16,0,Group_Comm,ierr)
+          enddo
+
+#endif
+
+        end subroutine read_int
 
 end module Hamiltonian_Portable_input_mod

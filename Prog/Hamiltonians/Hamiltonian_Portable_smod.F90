@@ -145,12 +145,6 @@
         procedure, nopass :: write_parameters_hdf5
 #endif
       end type ham_Portable
-      
-      type operator_matrix
-         integer                   :: N_orbitals
-         integer, allocatable                   :: list(:,:)
-         complex (kind=kind(0.d0)), allocatable :: g(:)
-      end type operator_matrix
 
       type obs_ph_type
          Character (len=64)   :: File
@@ -178,10 +172,8 @@
       integer :: n_spin, Norb
 
       !Variables for interaction
-      integer :: N_ops
       real (kind=kind(0.d0)),    allocatable   :: ham_U(:)
       complex (kind=kind(0.d0)), allocatable   :: alpha_int(:)
-      type (operator_matrix),   allocatable   :: interaction(:)
 
       !Variables for observables
       integer :: N_obs_scal_ph, N_obs_eq_ph
@@ -358,7 +350,7 @@
           type (operator_matrix)   :: hopping
 
           ! read in information for hopping from file hoppings.txt
-          call read_hop(hopping%g, hopping%list, Group_Comm)
+          call read_hop(hopping, Group_Comm)
 
           n_hop = size(hopping%g,1)
 
@@ -430,140 +422,121 @@
 
         end Subroutine Ham_Hop
 
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> returns the number of interacting orbitals for every interaction term
+!--------------------------------------------------------------------
+  
+        subroutine get_number_of_orbitals_per_interaction(this)
+
+           implicit none
+
+           type (operator_matrix), allocatable, intent(inout) :: this(:)
+
+           integer :: no, i, j1, j2, mk, n, no1, no2, nc, N_orbitals, x1, x2
+           integer, allocatable :: orbitals_tmp(:)
+
+           i = 1
+
+           do no = 1, size(this,1)
+              mk = size(this(no)%list,1 )
+              allocate( orbitals_tmp(2*mk))
+              orbitals_tmp = 0
+              nc   = 0
+              N_orbitals = 0
+
+              do n = 1, mk
+                 nc  = nc + 1
+                 j1  = latt%nnlist( i, this(no)%list(n,1), this(no)%list(n,2) )
+                 no1 = (this(no)%list(n,3)+1) + this(no)%list(n,4)*Norb
+                 x1  = invlist(j1,no1)
+                 if (.not. any(orbitals_tmp == x1)) N_orbitals = N_orbitals + 1
+                 orbitals_tmp(nc) = x1
+
+                 nc  = nc + 1
+                 j2  = latt%nnlist( i, this(no)%list(n,5), this(no)%list(n,6) )
+                 no2 = (this(no)%list(n,7)+1) + this(no)%list(n,8)*Norb
+                 x2  = invlist(j2,no2)
+                 if (.not. any(orbitals_tmp == x2)) N_orbitals = N_orbitals + 1
+                 orbitals_tmp(nc) = x2
+              enddo
+
+              this(no)%N_orbitals = N_orbitals
+              deallocate ( orbitals_tmp )
+           enddo
+      
+        end subroutine get_number_of_orbitals_per_interaction
 
 !--------------------------------------------------------------------
 !> @author
 !> ALF Collaboration
 !>
 !> @brief
-!> Sets  the  Lattice
+!> sets the matrix O and corresponding P for a given interaction term
 !--------------------------------------------------------------------
 
-        Subroutine read_int
-
-#if defined (MPI) || defined(TEMPERING)
-          Use mpi
-#endif
-
-          implicit none
- 
-          integer                :: ierr, unit_int, mk, no, n, i1, i2, no1, s1, j1, j2, no2, s2, i
-          Character (len=64)     :: file_int
-          real (kind=kind(0.d0)) :: u, x, y
-
-
-#ifdef MPI
-          Integer        :: Isize, Irank, irank_g, isize_g, igroup
-          Integer        :: STATUS(MPI_STATUS_SIZE)
-          CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-          CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-          call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-          call MPI_Comm_size(Group_Comm, isize_g, ierr)
-          igroup           = irank/isize_g
-
-   
-          If (Irank_g == 0) then
-#endif
-             File_int = "potentials.txt"
-#if defined(TEMPERING)
-             write(File_int,'(A,I0,A)') "Temp_",igroup,"/potentials.txt"
-#endif
-             Open(newunit=unit_int, file=file_int, status="old", action="read", iostat=ierr)
-             IF (ierr /= 0) THEN
-                WRITE(error_unit,*) 'unable to open <potentials.txt>', ierr
-                Call Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
-             END IF
-
-             read(unit_int,*) N_ops
-
-             allocate( ham_u(N_ops), alpha_int(N_ops), interaction(N_ops) )
-
-             do no = 1, N_ops
-                read(unit_int,*) mk, u, x, y
-                ham_u(no)     = u
-                alpha_int(no) = cmplx( x, y, kind(0.d0) )
-
-                allocate( interaction(no)%list(mk,8), interaction(no)%g(mk) )
-                
-
-                do n = 1, mk
-                   read(unit_int,*) i, i1, i2, no1, s1, j1, j2, no2, s2, x, y
-                   interaction(no)%list(n,1) = i1
-                   interaction(no)%list(n,2) = i2
-                   interaction(no)%list(n,3) = no1
-                   interaction(no)%list(n,4) = s1
-                   interaction(no)%list(n,5) = j1
-                   interaction(no)%list(n,6) = j2
-                   interaction(no)%list(n,7) = no2
-                   interaction(no)%list(n,8) = s2
-                   interaction(no)%g(n)      = cmplx( x, y, kind(0.d0) )
-                enddo
-             enddo
-
-             Close(unit_int)
-
-#ifdef MPI
-          Endif
-
-          CALL MPI_BCAST(n_ops       ,  1              ,MPI_INTEGER  ,0,Group_Comm,ierr)
-          if (irank_g /= 0) allocate( ham_u(N_ops), alpha_int(N_ops), interaction(N_ops) )
-          CALL MPI_BCAST(ham_u       ,  size(ham_u,1)  ,MPI_REAL8    ,0,Group_Comm,ierr)
-          CALL MPI_BCAST(alpha_int   ,  size(alpha_int),MPI_COMPLEX16,0,Group_Comm,ierr)
-      
-          do no = 1, N_ops
-             if (irank_g == 0) mk = size(interaction(no)%list,1)
-             CALL MPI_BCAST(mk       ,  1              ,MPI_INTEGER  ,0,Group_Comm,ierr)
-             if (irank_g /= 0) allocate( interaction(no)%list(mk,8), interaction(no)%g(mk) )
-             CALL MPI_BCAST(interaction(no)%list   ,size(interaction(no)%list),MPI_INTEGER  ,0,Group_Comm,ierr)
-             CALL MPI_BCAST(interaction(no)%g      ,   size(interaction(no)%g),MPI_COMPLEX16,0,Group_Comm,ierr)
-          enddo
-
-#endif
-
-          call get_number_of_orbitals_per_interaction
-
-        end subroutine read_int
-
-!--------------------------------------------------------------------
-  
-        subroutine get_number_of_orbitals_per_interaction
+        Subroutine set_op_v_matrix(i,op,this)
 
            implicit none
 
-           integer :: no, i, j1, j2, mk, n, no1, no2, nc, N_orbitals
-           integer, allocatable :: orbitals_tmp(:)
+           integer, intent(in) :: i
+           type (operator), intent(inout)      :: op
+           type (operator_matrix), intent(in)  :: this
 
-           i = 1
+           integer, allocatable :: p(:)
+           integer :: i1, no1, j1, x, i2, no2, j2, nc, mk
+           integer :: x1, x2, n
 
-           do no = 1, N_ops
-              mk = size(interaction(no)%list,1 )
-              allocate( orbitals_tmp(2*mk))
-              orbitals_tmp = 0
+           mk = size(this%list,1)
+           allocate (p(this%N_orbitals))
+           p = 0
+           nc = 0
+           do n = 1, mk
 
-              nc   = 0
-              N_orbitals = 0
-              do n = 1, mk
-
-                 nc = nc + 1
-                 j1  = latt%nnlist( i, interaction(no)%list(n,1), interaction(no)%list(n,2) )
-                 no1 = (interaction(no)%list(n,3)+1) + interaction(no)%list(n,4)*Norb
-                 if (.not. any(orbitals_tmp == invlist(j1,no1))) N_orbitals = N_orbitals + 1
-                 orbitals_tmp(nc) = invlist(j1,no1)
-
-                 nc = nc + 1
-                 j2 = latt%nnlist( i, interaction(no)%list(n,5), interaction(no)%list(n,6) )
-                 no2 = (interaction(no)%list(n,7)+1) + interaction(no)%list(n,8)*Norb
-                 if (.not. any(orbitals_tmp == invlist(j2,no2))) N_orbitals = N_orbitals + 1
-                 orbitals_tmp(nc) = invlist(j2,no2)
-
+              i1  = latt%nnlist( i, this%list(n,1), this%list(n,2) )
+              no1 = (this%list(n,3)+1) + this%list(n,4)*Norb
+              j1  = invlist(i1,no1)
+              x1  = -1
+              do x = 1, nc
+                 if (p(x) == j1) then
+                    x1 = x
+                    exit
+                 endif
               enddo
+              if (x1 == -1) then
+                 nc = nc + 1
+                 p(nc) = j1
+                 x1 = nc
+              endif
 
-              interaction(no)%N_orbitals = N_orbitals
+              i2  = latt%nnlist( i, this%list(n,5), this%list(n,6) )
+              no2 = (this%list(n,7)+1) + this%list(n,8)*Norb
+              j2  = invlist(i2,no2)
+              x2  = -1
+              do x = 1, nc
+                 if (p(x) == j2) then
+                    x2 = x
+                    exit
+                 endif
+              enddo
+              if (x2 == -1) then
+                 nc = nc + 1
+                 p(nc) = j2
+                 x2 = nc
+              endif
 
-              deallocate ( orbitals_tmp )
+              Op%O(x1,x2) =        this%g(n)
+              Op%O(x2,x1) = CONJG( this%g(n) )
+
            enddo
-      
-        end subroutine get_number_of_orbitals_per_interaction
+
+           Op%P = p
+           deallocate(p)
+
+        end subroutine set_op_v_matrix
 
 !--------------------------------------------------------------------
 !> @author
@@ -577,13 +550,15 @@
           Use Predefined_Int
           Implicit none
 
-          Integer :: nf, I, nt, no, nc, i1, i2, no1, no2, mk, n, j1, j2
-          integer :: nc_o, x1, x2, x
-          integer, allocatable :: orbitals_tmp(:)
+          Integer :: nf, I, nt, no, nc, i1, i2, no1, no2, n, j1, j2
+          integer :: nc_o, x1, x2, x, N_ops
+          type (operator_matrix),   allocatable   :: interaction(:)
 
           ! read in information for interaction from file potentials.txt
-          call read_int
+          call read_int(interaction, Group_Comm)
+          call get_number_of_orbitals_per_interaction(interaction)
 
+          N_ops = size(interaction,1)
           allocate (OP_V(N_ops*Latt%N,N_Fl))
 
           nc = 0
@@ -592,54 +567,13 @@
                 nc = nc + 1
                 do nf = 1, N_Fl
                    call Op_make(OP_V(nc,nf), interaction(no)%N_orbitals)
-                   mk = size(interaction(no)%list,1)
-                   allocate (orbitals_tmp(interaction(no)%N_orbitals))
-                   orbitals_tmp = 0
    
-                   nc_o = 0
-                   do n = 1, mk
-                      i1  = latt%nnlist( i, interaction(no)%list(n,1), interaction(no)%list(n,2) )
-                      no1 = (interaction(no)%list(n,3)+1) + interaction(no)%list(n,4)*Norb
-                      j1  = invlist(i1,no1)
-                      x1  = -1
-                      do x = 1, nc_o
-                         if (orbitals_tmp(x) == j1) then
-                            x1 = x
-                            exit
-                         endif
-                      enddo
-                      if (x1 == -1) then
-                         nc_o = nc_o + 1
-                         orbitals_tmp(nc_o) = j1
-                         x1 = nc_o
-                      endif
-            
-                      i2  = latt%nnlist( i, interaction(no)%list(n,5), interaction(no)%list(n,6) )
-                      no2 = (interaction(no)%list(n,7)+1) + interaction(no)%list(n,8)*Norb
-                      j2  = invlist(i2,no2)
-                      x2  = -1
-                      do x = 1, nc_o
-                         if (orbitals_tmp(x) == j2) then
-                            x2 = x
-                            exit
-                         endif
-                      enddo
-                      if (x2 == -1) then
-                         nc_o = nc_o + 1
-                         orbitals_tmp(nc_o) = j2
-                         x2 = nc_o
-                      endif
-
-                      Op_V(nc,nf)%O(x1,x2) =        interaction(no)%g(n)
-                      Op_V(nc,nf)%O(x2,x1) = CONJG( interaction(no)%g(n) )
-                   enddo
-
-                   Op_V(nc,nf)%g = sqrt(cmplx(-dtau*ham_u(no), 0.d0, kind(0.d0) ))
-                   Op_V(nc,nf)%P = orbitals_tmp
-                   Op_V(nc,nf)%alpha = alpha_int(no)
+                   call set_op_v_matrix(i,op_v(nc,nf),interaction(no))
+                   Op_V(nc,nf)%g = sqrt(cmplx(-dtau*interaction(no)%u, 0.d0, kind(0.d0) ))
+                   Op_V(nc,nf)%alpha = interaction(no)%alpha
                    Op_V(nc,nf)%type  = 2
                    call Op_set( OP_V(nc,nf) )
-                   deallocate(orbitals_tmp)
+            
                 enddo
              enddo
           enddo
@@ -972,12 +906,10 @@
           Zkin = Zkin* dble(N_SUN)
           Obs_scal(N_obs_scal_ph+1)%Obs_vec(1)  =    Obs_scal(N_obs_scal_ph+1)%Obs_vec(1) + Zkin *ZP* ZS
 
-
           ZPot = cmplx(0.d0, 0.d0, kind(0.D0))
           Do I = 1, size(op_v,1)
-             Zpot = Zpot + Predefined_Obs_V_Int(OP_V(i,:), GR, GRC, N_SUN )
+             Zpot = Zpot + Predefined_Obs_V_Int(OP_V(i,:), GR, GRC, N_SUN )*(-Op_V(i,1)%g**2/dtau)
           Enddo
-          Zpot = ZPot * ham_u(1)
           Obs_scal(N_obs_scal_ph+2)%Obs_vec(1)  =  Obs_scal(N_obs_scal_ph+2)%Obs_vec(1) + Zpot * ZP*ZS
 
 
