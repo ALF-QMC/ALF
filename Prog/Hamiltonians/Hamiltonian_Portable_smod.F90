@@ -569,90 +569,6 @@
         end Subroutine Ham_V
 
 !--------------------------------------------------------------------
-
-        Subroutine read_obs_eq
-
-#if defined (MPI) || defined(TEMPERING)
-          Use mpi
-#endif
-
-          implicit none
- 
-          integer                :: ierr, unit_obs, mk, no, n, N_obs
-          integer                :: i, no1, s1, i1, i2, j1, j2, no2, s2
-          Character (len=64)     :: file_obs, file
-          real (kind=kind(0.d0)) :: x, y
-
-
-#ifdef MPI
-          Integer        :: Isize, Irank, irank_g, isize_g, igroup
-          Integer        :: STATUS(MPI_STATUS_SIZE)
-          CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-          CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-          call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-          call MPI_Comm_size(Group_Comm, isize_g, ierr)
-          igroup           = irank/isize_g
-
-   
-          If (Irank_g == 0) then
-#endif
-             File_obs = "obs_corr_ph.txt"
-#if defined(TEMPERING)
-             write(File_obs,'(A,I0,A)') "Temp_",igroup,"/obs_corr_ph.txt"
-#endif
-             Open(newunit=unit_obs, file=file_obs, status="old", action="read", iostat=ierr)
-             IF (ierr /= 0) THEN
-                WRITE(error_unit,*) 'unable to open <obs_corr_ph.txt>', ierr
-                Call Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
-             END IF
-         
-             !local correlation functions
-             read(unit_obs,*) N_obs
-             allocate(obs_eq_ph(N_obs))
-
-             do no = 1, N_obs
-                read(unit_obs,*) file, mk
-                obs_eq_ph(no)%file = file
-                allocate( obs_eq_ph(no)%list(mk,8), obs_eq_ph(no)%g(mk) )
-
-                do n = 1, mk
-                   read(unit_obs,*) i, i1, i2, no1, s1, j1, j2, no2, s2, x, y
-                   obs_eq_ph(no)%list(n,1) = i1
-                   obs_eq_ph(no)%list(n,2) = i2
-                   obs_eq_ph(no)%list(n,3) = no1
-                   obs_eq_ph(no)%list(n,4) = s1
-                   obs_eq_ph(no)%list(n,5) = j1
-                   obs_eq_ph(no)%list(n,6) = j2
-                   obs_eq_ph(no)%list(n,7) = no2
-                   obs_eq_ph(no)%list(n,8) = s2
-                   obs_eq_ph(no)%g(n)      = cmplx( x, y, kind(0.d0) )
-                enddo
-             enddo
-
-         
-
-             Close(unit_obs)
-
-#ifdef MPI
-          Endif
-
-          CALL MPI_BCAST(N_obs                     ,  1,MPI_INTEGER  ,0,Group_Comm,ierr)
-          if (irank_g /= 0) allocate(obs_eq_ph(N_obs))
-          do no = 1, N_obs
-             CALL MPI_BCAST(obs_eq_ph(no)%file   , 64,MPI_CHARACTER,0,Group_Comm,ierr)
-             if (irank_g == 0) mk = size(obs_eq_ph(no)%list,1)
-             CALL MPI_BCAST(mk                   ,  1                       ,MPI_INTEGER  ,0,Group_Comm,ierr)
-             if (irank_g /= 0) allocate( obs_eq_ph(no)%list(mk,8), obs_eq_ph(no)%g(mk) )
-             CALL MPI_BCAST(obs_eq_ph(no)%list   ,  size(obs_eq_ph(no)%list),MPI_INTEGER  ,0,Group_Comm,ierr)
-             CALL MPI_BCAST(obs_eq_ph(no)%g     ,  size(obs_eq_ph(no)%g)  ,MPI_COMPLEX16,0,Group_Comm,ierr)
-          enddo
-
-
-#endif
-
-        end subroutine read_obs_eq
-
-!--------------------------------------------------------------------
 !> @author
 !> ALF Collaboration
 !>
@@ -689,7 +605,7 @@
              Call Obser_Vec_make(Obs_scal(I),N,Filename)
            enddo
 
-           call read_obs_eq
+           call read_obs_eq(obs_eq_ph,Group_Comm)
            N_obs_eq_ph = size(obs_eq_ph,1)
  
            ! Equal time correlators
@@ -871,7 +787,6 @@
                                     &   (GRC(x2,x1,1)*GRC(y1,y2,1) + GRC(x2,y2,1)*GR(x1,y1,1))
                          Zlocal = Zlocal + conjg(obs_eq_ph(no)%g(n))*conjg(obs_eq_ph(no)%g(m))* &
                                     &   (GRC(x2,x1,1)*GRC(y2,y1,1) + GRC(x2,y1,1)*GR(x1,y2,1))
-                         
                          Obs_eq(no)%Obs_latt(imj,1,1,1) = Obs_eq(no)%Obs_latt(imj,1,1,1) + Zlocal*ZP*ZS
                       enddo
                    enddo

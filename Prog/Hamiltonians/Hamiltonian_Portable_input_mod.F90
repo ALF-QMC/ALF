@@ -46,7 +46,7 @@ module Hamiltonian_Portable_input_mod
    implicit none
 
    type operator_matrix
-      Character (len=64)   :: File
+      Character (len=64)        :: File              ! file name for observables
       integer                   :: N_orbitals
       real (kind=kind(0.d0))    :: u
       complex (kind=kind(0.d0)) :: alpha
@@ -161,7 +161,6 @@ module Hamiltonian_Portable_input_mod
           Character (len=64)     :: file_hop
           real (kind=kind(0.d0)) :: x, y
 
-
 #ifdef MPI
           Integer        :: Isize, Irank, irank_g, isize_g, igroup
           Integer        :: STATUS(MPI_STATUS_SIZE)
@@ -170,7 +169,6 @@ module Hamiltonian_Portable_input_mod
           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
           call MPI_Comm_size(Group_Comm, isize_g, ierr)
           igroup           = irank/isize_g
-
 
           If (Irank_g == 0) then
 #endif
@@ -237,7 +235,6 @@ module Hamiltonian_Portable_input_mod
           Character (len=64)     :: file_int
           real (kind=kind(0.d0)) :: u, x, y
 
-
 #ifdef MPI
           Integer        :: Isize, Irank, irank_g, isize_g, igroup
           Integer        :: STATUS(MPI_STATUS_SIZE)
@@ -246,7 +243,6 @@ module Hamiltonian_Portable_input_mod
           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
           call MPI_Comm_size(Group_Comm, isize_g, ierr)
           igroup           = irank/isize_g
-
    
           If (Irank_g == 0) then
 #endif
@@ -270,7 +266,6 @@ module Hamiltonian_Portable_input_mod
                 this(no)%alpha = cmplx( x, y, kind(0.d0) )
 
                 allocate( this(no)%list(mk,8), this(no)%g(mk) )
-                
 
                 do n = 1, mk
                    read(unit_int,*) i, i1, i2, no1, s1, j1, j2, no2, s2, x, y
@@ -332,7 +327,6 @@ module Hamiltonian_Portable_input_mod
           Character (len=64)     :: file_obs, file
           real (kind=kind(0.d0)) :: x, y
 
-
 #ifdef MPI
           Integer        :: Isize, Irank, irank_g, isize_g, igroup
           Integer        :: STATUS(MPI_STATUS_SIZE)
@@ -342,7 +336,6 @@ module Hamiltonian_Portable_input_mod
           call MPI_Comm_size(Group_Comm, isize_g, ierr)
           igroup           = irank/isize_g
 
-   
           If (Irank_g == 0) then
 #endif
              File_obs = "obs_scal_ph.txt"
@@ -394,5 +387,94 @@ module Hamiltonian_Portable_input_mod
 #endif
 
         end subroutine read_obs_scal_ph
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Reads in correlation functions in the particle-hole channel
+!--------------------------------------------------------------------
+
+        Subroutine read_obs_eq(this,Group_Comm)
+
+#if defined (MPI) || defined(TEMPERING)
+          Use mpi
+#endif
+
+          implicit none
+
+          type (operator_matrix), allocatable, intent(out) :: this(:)
+          integer, intent(in) :: Group_Comm
+ 
+          integer                :: ierr, unit_obs, mk, no, n, N_obs
+          integer                :: i, no1, s1, i1, i2, j1, j2, no2, s2
+          Character (len=64)     :: file_obs, file
+          real (kind=kind(0.d0)) :: x, y
+
+#ifdef MPI
+          Integer        :: Isize, Irank, irank_g, isize_g, igroup
+          Integer        :: STATUS(MPI_STATUS_SIZE)
+          CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
+          CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+          call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+          call MPI_Comm_size(Group_Comm, isize_g, ierr)
+          igroup           = irank/isize_g
+
+   
+          If (Irank_g == 0) then
+#endif
+             File_obs = "obs_corr_ph.txt"
+#if defined(TEMPERING)
+             write(File_obs,'(A,I0,A)') "Temp_",igroup,"/obs_corr_ph.txt"
+#endif
+             Open(newunit=unit_obs, file=file_obs, status="old", action="read", iostat=ierr)
+             IF (ierr /= 0) THEN
+                WRITE(error_unit,*) 'unable to open <obs_corr_ph.txt>', ierr
+                Call Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
+             END IF
+         
+             !local correlation functions
+             read(unit_obs,*) N_obs
+             allocate(this(N_obs))
+
+             do no = 1, N_obs
+                read(unit_obs,*) file, mk
+                this(no)%file  = file
+                allocate( this(no)%list(mk,8), this(no)%g(mk) )
+
+                do n = 1, mk
+                   read(unit_obs,*) i, i1, i2, no1, s1, j1, j2, no2, s2, x, y
+                   this(no)%list(n,1) = i1
+                   this(no)%list(n,2) = i2
+                   this(no)%list(n,3) = no1
+                   this(no)%list(n,4) = s1
+                   this(no)%list(n,5) = j1
+                   this(no)%list(n,6) = j2
+                   this(no)%list(n,7) = no2
+                   this(no)%list(n,8) = s2
+                   this(no)%g(n)      = cmplx( x, y, kind(0.d0) )
+                enddo
+             enddo
+
+             Close(unit_obs)
+
+#ifdef MPI
+          Endif
+
+          CALL MPI_BCAST(N_obs             ,  1,MPI_INTEGER  ,0,Group_Comm,ierr)
+          if (irank_g /= 0) allocate(this(N_obs))
+          do no = 1, N_obs
+             CALL MPI_BCAST(this(no)%file  , 64,MPI_CHARACTER,0,Group_Comm,ierr)
+             if (irank_g == 0) mk = size(this(no)%list,1)
+             CALL MPI_BCAST(mk             ,  1                  ,MPI_INTEGER  ,0,Group_Comm,ierr)
+             if (irank_g /= 0) allocate( this(no)%list(mk,8), this(no)%g(mk) )
+             CALL MPI_BCAST(this(no)%list  ,  size(this(no)%list),MPI_INTEGER  ,0,Group_Comm,ierr)
+             CALL MPI_BCAST(this(no)%g     ,  size(this(no)%g)   ,MPI_COMPLEX16,0,Group_Comm,ierr)
+          enddo
+
+#endif
+
+        end subroutine read_obs_eq
 
 end module Hamiltonian_Portable_input_mod
