@@ -46,12 +46,35 @@ module Hamiltonian_Portable_input_mod
    implicit none
 
    type operator_matrix
-      Character (len=64)        :: File              ! file name for observables
+      ! file      : only for observables , file name in the form of <file>_scal, <file>_eq or <file>_tau
+      ! list      :                        list that contains information for shift of unit cells, orbitals, and spin
+      !                                    i) hoppings.txt, obs_scal_ph.txt:
+      !                                       list(:,1) = orbital 1
+      !                                       list(:,2) = spin 1
+      !                                       list(:,3) = shift of unit cell with vector a_1
+      !                                       list(:,4) = shift of unit cell with vector a_2
+      !                                       list(:,5) = orbital 2
+      !                                       list(:,6) = spin 2
+      !                                    i) potentials.txt, obs_corr_ph.txt:
+      !                                       list(:,1) = shift 1 of unit cell with vector a_1
+      !                                       list(:,2) = shift 1 of unit cell with vector a_1
+      !                                       list(:,3) = orbital 1
+      !                                       list(:,4) = spin 1
+      !                                       list(:,5) = shift 2 of unit cell with vector a_1
+      !                                       list(:,6) = shift 2 of unit cell with vector a_1
+      !                                       list(:,7) = orbital 2
+      !                                       list(:,8) = spin 2
+      ! g         :                        matrix elements for hopping, interaction, observables
+      ! N_orbitals: only for interactions, number of interacting orbitals per interaction term, determines the effective dimension
+      !                                    of the operator in Op_make(OP_V, N_orbitals)
+      ! u         : only for interactions, prefactor U_k of interaction terms
+      ! alpha     : only for interactions, complex shift \alpha_k in interaction term
+      Character (len=64)        :: File
+      integer, allocatable                   :: list(:,:)
+      complex (kind=kind(0.d0)), allocatable :: g(:)
       integer                   :: N_orbitals
       real (kind=kind(0.d0))    :: u
       complex (kind=kind(0.d0)) :: alpha
-      integer, allocatable                   :: list(:,:)
-      complex (kind=kind(0.d0)), allocatable :: g(:)
    end type operator_matrix
 
    contains
