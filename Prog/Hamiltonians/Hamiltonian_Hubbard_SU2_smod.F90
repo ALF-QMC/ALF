@@ -636,6 +636,9 @@
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
 
           ZS = ZS*Mc_step_weight
+          ZS = cmplx(1.d0,0.d0, kind(0.D0)) ! Xinyue is sampling a positive definite distribution. 
+          ZP = cmplx(1.d0,0.d0, kind(0.D0)) ! Xinyue is sampling a positive definite distribution. 
+
           
           Do nf = 1,N_FL
              Do I = 1,Ndim
@@ -677,9 +680,9 @@
           enddo
 
           Zrho = Zrho* dble(N_SUN)
-          Obs_scal(3)%Obs_vec(1)  =    Obs_scal(3)%Obs_vec(1) + Zrho * ZP*ZS
+          Obs_scal(3)%Obs_vec(1)  =    Obs_scal(3)%Obs_vec(1) + Zrho * ZP *ZS
 
-          Obs_scal(4)%Obs_vec(1)  =    Obs_scal(4)%Obs_vec(1) + (Zkin + Zpot)*ZP*ZS
+          Obs_scal(4)%Obs_vec(1)  =    Obs_scal(4)%Obs_vec(1) + (Zkin + Zpot)*ZP *ZS
 
         end Subroutine Obser
 !--------------------------------------------------------------------
@@ -726,11 +729,13 @@
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
           ZS = ZS * Mc_step_weight
+          ZS = cmplx(1.d0,0.d0, kind(0.D0)) ! Xinyue is sampling a positive definite distribution. 
+          ZP = cmplx(1.d0,0.d0, kind(0.D0)) ! Xinyue is sampling a positive definite distribution. 
 
           If (NT == 0 ) then
              Do I = 1,Size(Obs_tau,1)
                 Obs_tau(I)%N         =  Obs_tau(I)%N + 1
-                Obs_tau(I)%Ave_sign  =  Obs_tau(I)%Ave_sign + Real(ZS,kind(0.d0))
+                Obs_tau(I)%Ave_sign  =  Obs_tau(I)%Ave_sign +  Real(ZS,kind(0.d0))
              Enddo
           Endif
           Do I = 1,Latt%N
