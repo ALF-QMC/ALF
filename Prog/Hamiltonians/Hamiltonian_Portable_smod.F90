@@ -165,7 +165,7 @@
       integer :: n_spin, Norb
 
       !Variables for observables
-      type (operator_matrix), allocatable :: obs_scal_ph(:), obs_eq_ph(:)
+      type (operator_matrix), allocatable :: obs_scal_ph(:), obs_corr_ph(:)
 
     contains
       
@@ -581,7 +581,7 @@
           Implicit none
           !>  Ltau=1 if time displaced correlations are considered.
           Integer, Intent(In) :: Ltau
-          Integer    ::  i, N, Nt, N_obs_scal_ph, N_obs_eq_ph
+          Integer    ::  i, N, Nt, N_obs_scal_ph, N_obs_corr_ph
           Character (len=64) ::  Filename
           Character (len=:), allocatable ::  Channel
 
@@ -605,45 +605,44 @@
              Call Obser_Vec_make(Obs_scal(I),N,Filename)
            enddo
 
-           call read_obs_eq(obs_eq_ph,Group_Comm)
-           N_obs_eq_ph = size(obs_eq_ph,1)
+           call read_obs_corr(obs_corr_ph,Group_Comm)
+           N_obs_corr_ph = size(obs_corr_ph,1)
  
            ! Equal time correlators
-           Allocate ( Obs_eq(3+N_obs_eq_ph) )
+           Allocate ( Obs_eq(3+N_obs_corr_ph) )
            Do I = 1,Size(Obs_eq,1)
-             if (i <= N_obs_eq_ph) then
-                Filename = obs_eq_ph(i)%File
-             elseif (i == N_obs_eq_ph+1) then
-               Filename = "Green"
-             elseif (i == N_obs_eq_ph+2) then
-               Filename = "SpinZ"
-             elseif (i == N_obs_eq_ph+3) then
-               Filename = "Den"
+             if (i <= N_obs_corr_ph) then
+                Filename = obs_corr_ph(i)%File
+             elseif (i == N_obs_corr_ph+1) then
+                Filename = "Green"
+             elseif (i == N_obs_corr_ph+2) then
+                Filename = "SpinZ"
+             elseif (i == N_obs_corr_ph+3) then
+                Filename = "Den"
              endif
              Nt = 1
              Channel = '--'
              Call Obser_Latt_make(Obs_eq(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
            enddo
  
-!           If (Ltau == 1) then
-!             ! Time-displaced correlators
-!             Allocate ( Obs_tau(3) )
-!             Do I = 1,Size(Obs_tau,1)
-!               select case (I)
-!               case (1)
-!                 Channel = 'P' ; Filename = "Green"
-!               case (2)
-!                 Channel = 'PH'; Filename = "SpinZ"
-!               case (3)
-!                 Channel = 'PH'; Filename = "Den"
-!               case default
-!                 Write(6,*) ' Error in Alloc_obs '
-!               end select
-!               Nt = Ltrot+1-2*Thtrot
-!               If(Projector) Channel = 'T0'
-!               Call Obser_Latt_make(Obs_tau(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
-!             enddo
-!           endif
+           If (Ltau == 1) then
+             ! Time-displaced correlators
+             Allocate ( Obs_tau(3+N_obs_corr_ph) )
+             Do I = 1,Size(Obs_tau,1)
+                if (i <= N_obs_corr_ph) then
+                   Channel = 'PH'; Filename = obs_corr_ph(i)%File
+                elseif (i == N_obs_corr_ph+1) then
+                   Channel = 'P' ; Filename = "Green"
+                elseif (i == N_obs_corr_ph+2) then
+                   Channel = 'PH'; Filename = "SpinZ"
+                elseif (i == N_obs_corr_ph+3) then
+                   Channel = 'PH'; Filename = "Den"
+                endif
+               Nt = Ltrot+1-2*Thtrot
+               If(Projector) Channel = 'T0'
+               Call Obser_Latt_make(Obs_tau(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
+             enddo
+           endif
 
         End Subroutine Alloc_obs
 
@@ -681,9 +680,9 @@
           !Local
           Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL)
           Complex (Kind=Kind(0.d0)) :: ZP, ZS
-          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Zlocal, ZZ, ZDen
+          Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Zlocal, ZZ, ZDen, Zeq
           Integer :: I, J, nf, i1, no_i, i2, no, n, no_1, no_2, j1, no_j, j2, imj, m
-          integer :: x1, x2, y1, y2, no_i1, no_i2, no_j1, no_j2, N_obs_scal_ph, N_obs_eq_ph
+          integer :: x1, x2, y1, y2, no_i1, no_i2, no_j1, no_j2, N_obs_scal_ph, N_obs_corr_ph
           ! Add local variables as needed
 
           ZP = PHASE/Real(Phase, kind(0.D0))
@@ -707,7 +706,7 @@
           Enddo
 
           N_obs_scal_ph = size(obs_scal_ph,1)
-          N_obs_eq_ph   = size(obs_eq_ph,  1)
+          N_obs_corr_ph   = size(obs_corr_ph,  1)
 
           do no = 1, N_obs_scal_ph
              Zlocal = cmplx(0.d0, 0.d0, kind(0.d0))
@@ -755,56 +754,52 @@
 
 
           ! Compute equal-time correlations
-          Do no = 1, N_obs_eq_ph
+          Do no = 1, N_obs_corr_ph
              Obs_eq(no)%N        = Obs_eq(no)%N + 1
              Obs_eq(no)%Ave_sign = Obs_eq(no)%Ave_sign + real(ZS,kind(0.d0))
 
-
              do I = 1, Latt%N
-                do n = 1, size(obs_eq_ph(no)%list,1)
-                   i1    = latt%nnlist(i,obs_eq_ph(no)%list(n,1),obs_eq_ph(no)%list(n,2))
-                   no_i1 = (obs_eq_ph(no)%list(n,3)+1) + obs_eq_ph(no)%list(n,4)*Norb
+                do n = 1, size(obs_corr_ph(no)%list,1)
+                   i1    = latt%nnlist(i,obs_corr_ph(no)%list(n,1),obs_corr_ph(no)%list(n,2))
+                   no_i1 = (obs_corr_ph(no)%list(n,3)+1) + obs_corr_ph(no)%list(n,4)*Norb
                    x1    = invlist(i1,no_i1)
-                   i2    = latt%nnlist(i,obs_eq_ph(no)%list(n,5),obs_eq_ph(no)%list(n,6))
-                   no_i2 = (obs_eq_ph(no)%list(n,7)+1) + obs_eq_ph(no)%list(n,8)*Norb
+                   i2    = latt%nnlist(i,obs_corr_ph(no)%list(n,5),obs_corr_ph(no)%list(n,6))
+                   no_i2 = (obs_corr_ph(no)%list(n,7)+1) + obs_corr_ph(no)%list(n,8)*Norb
                    x2    = invlist(i2,no_i2)
                    do J = 1, Latt%N
                       imj = Latt%imj(I,J)
-                      do m = 1, size(obs_eq_ph(no)%list,1)
-                         j1    = latt%nnlist(j,obs_eq_ph(no)%list(m,1),obs_eq_ph(no)%list(m,2))
-                         no_j1 = (obs_eq_ph(no)%list(m,3)+1) + obs_eq_ph(no)%list(m,4)*Norb
+                      do m = 1, size(obs_corr_ph(no)%list,1)
+                         j1    = latt%nnlist(j,obs_corr_ph(no)%list(m,1),obs_corr_ph(no)%list(m,2))
+                         no_j1 = (obs_corr_ph(no)%list(m,3)+1) + obs_corr_ph(no)%list(m,4)*Norb
                          y1    = invlist(j1,no_j1)
-                         j2    = latt%nnlist(j,obs_eq_ph(no)%list(m,5),obs_eq_ph(no)%list(m,6))
-                         no_j2 = (obs_eq_ph(no)%list(m,7)+1) + obs_eq_ph(no)%list(m,8)*Norb
+                         j2    = latt%nnlist(j,obs_corr_ph(no)%list(m,5),obs_corr_ph(no)%list(m,6))
+                         no_j2 = (obs_corr_ph(no)%list(m,7)+1) + obs_corr_ph(no)%list(m,8)*Norb
                          y2    = invlist(j2,no_j2)
 
-                         Zlocal = cmplx(0.d0, 0.d0, kind(0.d0))
-                         Zlocal = Zlocal +       obs_eq_ph(no)%g(n) *      obs_eq_ph(no)%g(m) * &
+                         Zeq = cmplx(0.d0, 0.d0, kind(0.d0))
+                         Zeq = Zeq +       obs_corr_ph(no)%g(n) *      obs_corr_ph(no)%g(m) * &
                                     &   (GRC(x1,x2,1)*GRC(y1,y2,1) + GRC(x1,y2,1)*GR(x2,y1,1))
-                         Zlocal = Zlocal +       obs_eq_ph(no)%g(n) *conjg(obs_eq_ph(no)%g(m))* &
+                         Zeq = Zeq +       obs_corr_ph(no)%g(n) *conjg(obs_corr_ph(no)%g(m))* &
                                     &   (GRC(x1,x2,1)*GRC(y2,y1,1) + GRC(x1,y1,1)*GR(x2,y2,1))
-                         Zlocal = Zlocal + conjg(obs_eq_ph(no)%g(n))*      obs_eq_ph(no)%g(m) * &
+                         Zeq = Zeq + conjg(obs_corr_ph(no)%g(n))*      obs_corr_ph(no)%g(m) * &
                                     &   (GRC(x2,x1,1)*GRC(y1,y2,1) + GRC(x2,y2,1)*GR(x1,y1,1))
-                         Zlocal = Zlocal + conjg(obs_eq_ph(no)%g(n))*conjg(obs_eq_ph(no)%g(m))* &
+                         Zeq = Zeq + conjg(obs_corr_ph(no)%g(n))*conjg(obs_corr_ph(no)%g(m))* &
                                     &   (GRC(x2,x1,1)*GRC(y2,y1,1) + GRC(x2,y1,1)*GR(x1,y2,1))
-                         Obs_eq(no)%Obs_latt(imj,1,1,1) = Obs_eq(no)%Obs_latt(imj,1,1,1) + Zlocal*ZP*ZS
+                         Obs_eq(no)%Obs_latt(imj,1,1,1) = Obs_eq(no)%Obs_latt(imj,1,1,1) + Zeq*ZP*ZS
                       enddo
                    enddo
                    Obs_eq(no)%Obs_latt0(1) = Obs_eq(no)%Obs_latt0(1) +  &
-                           &     (obs_eq_ph(no)%g(n)*GRC(x1,x2,1) + conjg(obs_eq_ph(no)%g(n))*GRC(x2,x1,1))*ZP*ZS
+                           &     (obs_corr_ph(no)%g(n)*GRC(x1,x2,1) + conjg(obs_corr_ph(no)%g(n))*GRC(x2,x1,1))*ZP*ZS
                 enddo
              enddo
-
           enddo
 
+          Call Predefined_Obs_eq_Green_measure  ( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(N_obs_corr_ph+1) )
 
-
-          Call Predefined_Obs_eq_Green_measure  ( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(N_obs_eq_ph+1) )
-
-          Obs_eq(N_obs_eq_ph+2)%N        = Obs_eq(N_obs_eq_ph+2)%N + 1
-          Obs_eq(N_obs_eq_ph+2)%Ave_sign = Obs_eq(N_obs_eq_ph+2)%Ave_sign + real(ZS,kind(0.d0))
-          Obs_eq(N_obs_eq_ph+3)%N        = Obs_eq(N_obs_eq_ph+3)%N + 1
-          Obs_eq(N_obs_eq_ph+3)%Ave_sign = Obs_eq(N_obs_eq_ph+3)%Ave_sign + real(ZS,kind(0.d0))
+          Obs_eq(N_obs_corr_ph+2)%N        = Obs_eq(N_obs_corr_ph+2)%N + 1
+          Obs_eq(N_obs_corr_ph+2)%Ave_sign = Obs_eq(N_obs_corr_ph+2)%Ave_sign + real(ZS,kind(0.d0))
+          Obs_eq(N_obs_corr_ph+3)%N        = Obs_eq(N_obs_corr_ph+3)%N + 1
+          Obs_eq(N_obs_corr_ph+3)%Ave_sign = Obs_eq(N_obs_corr_ph+3)%Ave_sign + real(ZS,kind(0.d0))
 
           do I = 1, latt%N
              do no_i = 1, Norb
@@ -816,13 +811,13 @@
                       j1 = invlist(j,no_j)
                       j2 = invlist(j,no_j+Norb)
                       ZZ = (GRC(i1,i1,1)-GRC(i2,i2,1))*(GRC(j1,j1,1)-GRC(j2,j2,1)) + GRC(I1,j1,1)*GR(i1,j1,1) + GRC(I2,j2,1)*GR(i2,j2,1)
-                      Obs_eq(N_obs_eq_ph+2)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(N_obs_eq_ph+2)%Obs_Latt(imj,1,no_I,no_J) + ZZ*ZP*ZS
+                      Obs_eq(N_obs_corr_ph+2)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(N_obs_corr_ph+2)%Obs_Latt(imj,1,no_I,no_J) + ZZ*ZP*ZS
                       ZDen = (GRC(i1,i1,1)+GRC(I2,i2,1))*(GRC(j1,j1,1)+GRC(j2,j2,1)) + GRC(I1,j1,1)*GR(i1,j1,1) + GRC(I2,j2,1)*GR(i2,j2,1)
-                      Obs_eq(N_obs_eq_ph+3)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(N_obs_eq_ph+3)%Obs_Latt(imj,1,no_I,no_J) + ZDen*ZP*ZS
+                      Obs_eq(N_obs_corr_ph+3)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(N_obs_corr_ph+3)%Obs_Latt(imj,1,no_I,no_J) + ZDen*ZP*ZS
                    enddo
                 enddo
-                Obs_eq(N_obs_eq_ph+2)%Obs_Latt0(no_I) =  Obs_eq(N_obs_eq_ph+2)%Obs_Latt0(no_I) + (GRC(i1,i1,1)-GRC(i2,i2,1))*ZP*ZS
-                Obs_eq(N_obs_eq_ph+3)%Obs_Latt0(no_I) =  Obs_eq(N_obs_eq_ph+3)%Obs_Latt0(no_I) + (GRC(i1,i1,1)+GRC(i2,i2,1))*ZP*ZS
+                Obs_eq(N_obs_corr_ph+2)%Obs_Latt0(no_I) =  Obs_eq(N_obs_corr_ph+2)%Obs_Latt0(no_I) + (GRC(i1,i1,1)-GRC(i2,i2,1))*ZP*ZS
+                Obs_eq(N_obs_corr_ph+3)%Obs_Latt0(no_I) =  Obs_eq(N_obs_corr_ph+3)%Obs_Latt0(no_I) + (GRC(i1,i1,1)+GRC(i2,i2,1))*ZP*ZS
              enddo
           enddo
 
@@ -865,14 +860,93 @@
           Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
           
           !Locals
-          Complex (Kind=Kind(0.d0)) :: ZP, ZS
+          Complex (Kind=Kind(0.d0)) :: ZP, ZS, Zden, ZZ, Ztau, dx1_x2, dy1_y2
+          Integer :: N_obs_corr_ph, i1, i2, j1, j2, no_i, no_j, i, j, imj, no
+          Integer :: n, no_i1, x1, no_i2, x2, m, no_j1, y1, no_j2, y2
           ! Add local variables as needed
 
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
           ZS = ZS * Mc_step_weight
 
+          N_obs_corr_ph = size(obs_corr_ph,1)
+   
           ! Compute observables
+          Do no = 1, N_obs_corr_ph
+             if (nt == 0) then
+                Obs_tau(no)%N        = Obs_tau(no)%N + 1
+                Obs_tau(no)%Ave_sign = Obs_tau(no)%Ave_sign + real(ZS,kind(0.d0))
+             endif
+
+             do I = 1, Latt%N
+                do n = 1, size(obs_corr_ph(no)%list,1)
+                   i1     = latt%nnlist(i,obs_corr_ph(no)%list(n,1),obs_corr_ph(no)%list(n,2))
+                   no_i1  = (obs_corr_ph(no)%list(n,3)+1) + obs_corr_ph(no)%list(n,4)*Norb
+                   x1     = invlist(i1,no_i1)
+                   i2     = latt%nnlist(i,obs_corr_ph(no)%list(n,5),obs_corr_ph(no)%list(n,6))
+                   no_i2  = (obs_corr_ph(no)%list(n,7)+1) + obs_corr_ph(no)%list(n,8)*Norb
+                   x2     = invlist(i2,no_i2)
+                   dx1_x2 = cmplx(0.d0, 0.d0, kind(0.d0))
+                   if (x1 == x2) dx1_x2 = cmplx(1.d0, 0.d0, kind(0.d0))
+                   do J = 1, Latt%N
+                      imj = Latt%imj(I,J)
+                      do m = 1, size(obs_corr_ph(no)%list,1)
+                         j1    = latt%nnlist(j,obs_corr_ph(no)%list(m,1),obs_corr_ph(no)%list(m,2))
+                         no_j1 = (obs_corr_ph(no)%list(m,3)+1) + obs_corr_ph(no)%list(m,4)*Norb
+                         y1    = invlist(j1,no_j1)
+                         j2    = latt%nnlist(j,obs_corr_ph(no)%list(m,5),obs_corr_ph(no)%list(m,6))
+                         no_j2 = (obs_corr_ph(no)%list(m,7)+1) + obs_corr_ph(no)%list(m,8)*Norb
+                         y2    = invlist(j2,no_j2)
+                         dy1_y2 = cmplx(0.d0, 0.d0, kind(0.d0))
+                         if (y1 == y2) dy1_y2 = cmplx(1.d0, 0.d0, kind(0.d0))
+
+                         Ztau = cmplx(0.d0, 0.d0, kind(0.d0))
+                         Ztau = Ztau +       obs_corr_ph(no)%g(n) *      obs_corr_ph(no)%g(m) * &
+                                    &   ((dx1_x2 - GTT(x2,x1,1))*(dy1_y2 - G00(y2,y1,1)) - G0T(y2,x1,1)*GT0(x2,y1,1))
+                         Ztau = Ztau +       obs_corr_ph(no)%g(n) *conjg(obs_corr_ph(no)%g(m))* &
+                                    &   ((dx1_x2 - GTT(x2,x1,1))*(dy1_y2 - G00(y1,y2,1)) - G0T(y1,x1,1)*GT0(x2,y2,1))
+                         Ztau = Ztau + conjg(obs_corr_ph(no)%g(n))*      obs_corr_ph(no)%g(m) * &
+                                    &   ((dx1_x2 - GTT(x1,x2,1))*(dy1_y2 - G00(y2,y1,1)) - G0T(y2,x2,1)*GT0(x1,y1,1))
+                         Ztau = Ztau + conjg(obs_corr_ph(no)%g(n))*conjg(obs_corr_ph(no)%g(m))* &
+                                    &   ((dx1_x2 - GTT(x1,x2,1))*(dy1_y2 - G00(y1,y2,1)) - G0T(y1,x2,1)*GT0(x1,y2,1))
+                         Obs_tau(no)%Obs_latt(imj,nt+1,1,1) = Obs_tau(no)%Obs_latt(imj,nt+1,1,1) + Ztau*ZP*ZS
+                      enddo
+                   enddo
+                   Obs_tau(no)%Obs_latt0(1) = Obs_tau(no)%Obs_latt0(1) +  &
+                           &     (obs_corr_ph(no)%g(n)*(dx1_x2 - GTT(x2,x1,1)) + conjg(obs_corr_ph(no)%g(n))*(dx1_x2 - GTT(x1,x2,1)))*ZP*ZS
+                enddo
+             enddo
+          enddo
+
+          call Predefined_Obs_tau_Green_measure( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(N_obs_corr_ph+1) )
+
+          if (nt == 0) then
+             Obs_tau(N_obs_corr_ph+2)%N        = Obs_tau(N_obs_corr_ph+2)%N + 1
+             Obs_tau(N_obs_corr_ph+2)%Ave_sign = Obs_tau(N_obs_corr_ph+2)%Ave_sign + real(ZS,kind(0.d0))
+             Obs_tau(N_obs_corr_ph+3)%N        = Obs_tau(N_obs_corr_ph+3)%N + 1
+             Obs_tau(N_obs_corr_ph+3)%Ave_sign = Obs_tau(N_obs_corr_ph+3)%Ave_sign + real(ZS,kind(0.d0))
+          endif
+
+          do I = 1, latt%N
+             do no_i = 1, Norb
+                i1 = invlist(i,no_i)
+                i2 = invlist(i,no_i+Norb)
+                do j = 1, Latt%N
+                   imj  = latt%imj(I,J)
+                   do no_j = 1, Norb
+                      j1 = invlist(j,no_j)
+                      j2 = invlist(j,no_j+Norb)
+                      ZZ = (GTT(I1,I1,1)-GTT(I2,I2,1))*(G00(J1,J1,1)-G00(J2,J2,1)) - G0T(J1,I1,1)*GT0(I1,j1,1) - G0T(J2,I2,1)*GT0(I2,j2,1)
+                      Obs_tau(N_obs_corr_ph+2)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(N_obs_corr_ph+2)%Obs_Latt(imj,nt+1,no_I,no_J) + ZZ*ZP*ZS
+
+                      ZDen = (2.d0 - GTT(I1,I1,1) - GTT(I2,I2,1))*(2.d0 - G00(J1,J1,1) - G00(J2,J2,1)) - G0T(J1,I1,1)*GT0(I1,j1,1) - G0T(J2,I2,1)*GT0(I2,j2,1)
+                      Obs_tau(N_obs_corr_ph+3)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(N_obs_corr_ph+3)%Obs_Latt(imj,nt+1,no_I,no_J) + ZDen*ZP*ZS
+                   enddo
+                enddo
+                Obs_tau(N_obs_corr_ph+2)%Obs_Latt0(no_I) =  Obs_tau(N_obs_corr_ph+2)%Obs_Latt0(no_I) - (GTT(i1,i1,1) - GTT(i2,i2,1))*ZP*ZS
+                Obs_tau(N_obs_corr_ph+3)%Obs_Latt0(no_I) =  Obs_tau(N_obs_corr_ph+3)%Obs_Latt0(no_I) + (2.d0 - GTT(i1,i1,1) - GTT(i2,i2,1))*ZP*ZS
+             enddo
+          enddo
 
         end Subroutine OBSERT
         

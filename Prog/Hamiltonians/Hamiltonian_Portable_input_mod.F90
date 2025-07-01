@@ -419,7 +419,7 @@ module Hamiltonian_Portable_input_mod
 !> Reads in correlation functions in the particle-hole channel
 !--------------------------------------------------------------------
 
-        Subroutine read_obs_eq(this,Group_Comm)
+        Subroutine read_obs_corr(this,Group_Comm)
 
 #if defined (MPI) || defined(TEMPERING)
           Use mpi
@@ -498,6 +498,6 @@ module Hamiltonian_Portable_input_mod
 
 #endif
 
-        end subroutine read_obs_eq
+        end subroutine read_obs_corr
 
 end module Hamiltonian_Portable_input_mod
