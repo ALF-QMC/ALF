@@ -724,13 +724,16 @@
           Complex (Kind=Kind(0.d0)) :: Z, ZP, ZS,  Z_kron
           Real    (Kind=Kind(0.d0)) :: X
           Integer :: IMJ, I, J, I1, J1, ns,nsp, imj
-          Integer :: Isp, Is, Js, Jsp
+          Integer :: Isp, Is, Js, Jsp, NTP1
 
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
           ZS = ZS * Mc_step_weight
           ZS = cmplx(1.d0,0.d0, kind(0.D0)) ! Xinyue is sampling a positive definite distribution. 
           ZP = cmplx(1.d0,0.d0, kind(0.D0)) ! Xinyue is sampling a positive definite distribution. 
+
+          NTP1 = NT + 1
+          if (NT == Ltrot)  NTP1 = 1
 
           If (NT == 0 ) then
              Do I = 1,Size(Obs_tau,1)
@@ -759,7 +762,7 @@
                Obs_tau(2)%Obs_Latt(imj,NT+1,1,1) =  Obs_tau(2)%Obs_Latt(imj,NT+1,1,1) +  Z *ZP*ZS
                Z = cmplx(0.d0,0.d0,kind(0.d0))
                do ns = 1,3
-                  Z = Z + nsigma%f(List_op(J,ns),NT+1)*nsigma%f(List_op(I,ns),1)
+                  Z = Z + nsigma%f(List_op(J,ns),NTP1)*nsigma%f(List_op(I,ns),1)
                enddo
                Obs_tau(3)%Obs_Latt(imj,NT+1,1,1) =  Obs_tau(3)%Obs_Latt(imj,NT+1,1,1) +  Z *ZP*ZS
             enddo
