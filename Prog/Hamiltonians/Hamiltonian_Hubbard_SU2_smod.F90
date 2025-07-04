@@ -575,7 +575,7 @@
          enddo 
          If (Ltau == 1) then
             ! Time-displaced correlators
-            Allocate ( Obs_tau(2) )
+            Allocate ( Obs_tau(3) )
             Do I = 1,Size(Obs_tau,1)
                select case (I)
                case (1)
@@ -583,7 +583,7 @@
                case (2)
                   Channel = 'PH'; Filename = "Spin"
                case (3)
-                  Channel = 'PH'; Filename = "Den"
+                  Channel = 'PH'; Filename = "Phi"
                case default
                   Write(6,*) ' Error in Alloc_obs '
                end select
@@ -757,6 +757,11 @@
                   Enddo
                Enddo
                Obs_tau(2)%Obs_Latt(imj,NT+1,1,1) =  Obs_tau(2)%Obs_Latt(imj,NT+1,1,1) +  Z *ZP*ZS
+               Z = cmplx(0.d0,0.d0,kind(0.d0))
+               do ns = 1,3
+                  Z = Z + nsigma%f(List_op(J,ns),NT+1)*nsigma%f(List_op(I,ns),1)
+               enddo
+               Obs_tau(3)%Obs_Latt(imj,NT+1,1,1) =  Obs_tau(3)%Obs_Latt(imj,NT+1,1,1) +  Z *ZP*ZS
             enddo
           enddo
 
@@ -862,7 +867,7 @@
                Enddo
             Enddo
          Enddo 
-         Write(6,*) " Hi there I'm in Ham_Langevin_HMC_S0 subroutine " , Xmax
+         !Write(6,*) " Hi there I'm in Ham_Langevin_HMC_S0 subroutine " , Xmax
 
          !N_op = size(nsigma%f,1)
          !Forces_0  = 0.d0
