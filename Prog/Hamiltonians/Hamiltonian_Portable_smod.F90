@@ -162,10 +162,8 @@
       Type (Hopping_Matrix_type), Allocatable :: Hopping_Matrix(:)
       Integer, allocatable :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
 
-      integer :: n_spin, Norb
-
       !Variables for observables
-      type (operator_matrix), allocatable :: obs_scal_ph(:), obs_corr_ph(:)
+      type (operator_matrix), allocatable :: obs_scal_ph(:,:), obs_corr_ph(:,:)
 
     contains
       
@@ -207,11 +205,6 @@
 
            ! From dynamically generated file "Hamiltonian_Portable_read_write_parameters.F90"
            call read_parameters()
-   
-           !For now fix N_SUN and N_FL
-           N_SUN  = 1
-           N_FL   = 1
-           N_spin = 2
 
            Ltrot = nint(beta/dtau)
 !           Thtrot = 0
@@ -279,7 +272,7 @@
 
           Implicit none
           Real (Kind=Kind(0.d0))  :: a1_p(2), a2_p(2), L1_p(2), L2_p(2)
-          integer :: no, ns, nc, i, L1, L2
+          integer :: no, nc, i, L1, L2, norb
           Real (Kind=Kind(0.d0))  :: a_p(3,3)
           real (kind=kind(0.d0)), allocatable :: Orb_pos(:,:)
 
@@ -287,19 +280,16 @@
           ! L1, L2, Norb, a_p, Orb_pos
           call read_latt(L1, L2, Norb, a_p, Orb_pos, Group_Comm)
 
-          latt_unit%Norb = N_spin*Norb
+          latt_unit%Norb = Norb
 !          Latt_Unit%N_coord = ?
           a1_p(1) = a_p(1,1); a1_p(2) = a_p(1,2)
           a2_p(1) = a_p(2,1); a2_p(2) = a_p(2,2)
           allocate(latt_unit%Orb_pos_p(latt_unit%Norb,3))
           nc = 0
           ! numbering of orbitals:
-          ! latt_unit%Orb_pos_p( (ns-1)*Norb + no       ,:) for no = 1, Norb : "spatial" orbitals for N_spin = ns
-          do ns = 1, N_spin
-             do no = 1, Norb
-                nc = nc + 1
-                latt_unit%Orb_pos_p(nc,:) = Orb_pos(no,1)*a_p(1,:) + Orb_pos(no,2)*a_p(2,:) + Orb_pos(no,3)*a_p(3,:)
-             enddo
+          do no = 1, Norb
+             nc = nc + 1
+             latt_unit%Orb_pos_p(nc,:) = Orb_pos(no,1)*a_p(1,:) + Orb_pos(no,2)*a_p(2,:) + Orb_pos(no,3)*a_p(3,:)
           enddo
           L1_p    =  dble(L1) * a1_p
           L2_p    =  dble(L2) * a2_p
@@ -335,35 +325,36 @@
           integer                :: N_diag
           integer, allocatable   :: hop_diag(:)
           logical                :: diag
-          type (operator_matrix)   :: hopping
+          type (operator_matrix), allocatable   :: hopping(:)
 
           ! read in information for hopping from file hoppings.txt
+          allocate(hopping(N_Fl))
           call read_hop(hopping, Group_Comm)
-
-          n_hop = size(hopping%g,1)
-
-          ! if hop_diag(i) = 1 : hopping is     on-site (chemical potential)
-          ! if hop_diag(i) = 0 : hopping is not on-site
-          allocate( hop_diag(n_hop) )
-          hop_diag = 0; N_diag = 0
-          do nh = 1, n_hop
-             diag = hopping%list(nh,1) == hopping%list(nh,5) .and. &
-                  & hopping%list(nh,2) == hopping%list(nh,6) .and. &
-                  & hopping%list(nh,3) == 0 .and. hopping%list(nh,4) == 0
-             if (diag) then
-                hop_diag(nh) = 1
-                N_diag = N_diag + 1
-             endif
-          enddo
 
           allocate(Hopping_Matrix(N_Fl))
 
-          ham_t_max = 0.d0
-          do nh = 1, n_hop
-             if ( hop_diag(nh) == 0 .and. abs(hopping%g(nh)) > ham_t_max ) ham_t_max = abs(hopping%g(nh))
-          enddo
-
           do nf = 1, N_Fl
+
+             n_hop = size(hopping(nf)%g,1)
+
+             ! if hop_diag(i) = 1 : hopping is     on-site (chemical potential)
+             ! if hop_diag(i) = 0 : hopping is not on-site
+             allocate( hop_diag(n_hop) )
+             hop_diag = 0; N_diag = 0
+             do nh = 1, n_hop
+                diag = hopping(nf)%list(nh,1) == hopping(nf)%list(nh,4) .and. &
+                     & hopping(nf)%list(nh,2) == 0 .and. hopping(nf)%list(nh,3) == 0
+                if (diag) then
+                   hop_diag(nh) = 1
+                   N_diag = N_diag + 1
+                endif
+             enddo
+
+             ham_t_max = 0.d0
+             do nh = 1, n_hop
+                if ( hop_diag(nh) == 0 .and. abs(hopping(nf)%g(nh)) > ham_t_max ) ham_t_max = abs(hopping(nf)%g(nh))
+             enddo
+
              Hopping_Matrix(nf)%N_bonds = 0
              if ( abs(ham_t_max) > zero ) then
                 hopping_matrix(nf)%N_bonds = n_hop - N_diag
@@ -374,17 +365,12 @@
                 do nh = 1, n_hop
                    if (hop_diag(nh) == 0) then
 
-                      ! hopping_matrix(nf)%list(:,1) : orbital 1 = (orbital 1 of potentials.txt + 1) + (spin of orbital 1)*(number of "spatial" orbitals)
-                      ! hopping_matrix(nf)%list(:,2) : orbital 2 = (orbital 2 of potentials.txt + 1) + (spin of orbital 2)*(number of "spatial" orbitals)
-                      ! hopping_matrix(nf)%list(:,3) : shift of unit cell with vector a_1
-                      ! hopping_matrix(nf)%list(:,4) : shift of unit cell with vector a_2
-                      ! orbital I of potentials.txt + 1 : orbitals in ALF start at 1 and in potentials.txt at 0
                       nc = nc + 1
-                      hopping_matrix(nf)%T(nc) = - hopping%g(nh)
-                      hopping_matrix(nf)%list(nc,1) = (hopping%list(nh,1)+1) + hopping%list(nh,2)*Norb
-                      hopping_matrix(nf)%list(nc,2) = (hopping%list(nh,5)+1) + hopping%list(nh,6)*Norb
-                      hopping_matrix(nf)%list(nc,3) = hopping%list(nh,3)
-                      hopping_matrix(nf)%list(nc,4) = hopping%list(nh,4)
+                      hopping_matrix(nf)%T(nc) = - hopping(nf)%g(nh)
+                      hopping_matrix(nf)%list(nc,1) = hopping(nf)%list(nh,1)+1
+                      hopping_matrix(nf)%list(nc,2) = hopping(nf)%list(nh,4)+1
+                      hopping_matrix(nf)%list(nc,3) = hopping(nf)%list(nh,2)
+                      hopping_matrix(nf)%list(nc,4) = hopping(nf)%list(nh,3)
                
                    endif
                 enddo
@@ -394,8 +380,8 @@
              hopping_matrix(nf)%T_loc = cmplx( 0.d0, 0.d0, kind(0.d0) )
              do nh = 1, n_hop
                 if (hop_diag(nh) == 1) then
-                   no = (hopping%list(nh,1)+1) + hopping%list(nh,2)*Norb
-                   hopping_matrix(nf)%t_loc(no) = - hopping%g(nh)
+                   no = hopping(nf)%list(nh,1)+1
+                   hopping_matrix(nf)%t_loc(no) = - hopping(nf)%g(nh)
                 endif
              enddo
 
@@ -403,6 +389,8 @@
              hopping_matrix(nf)%Phi_X =  Phi_X
              hopping_matrix(nf)%Phi_Y =  Phi_Y
              hopping_matrix(nf)%Bulk  =  Bulk
+
+             deallocate(hop_diag)
 
           enddo
 
@@ -422,38 +410,40 @@
 
            implicit none
 
-           type (operator_matrix), allocatable, intent(inout) :: this(:)
+           type (operator_matrix), allocatable, intent(inout) :: this(:,:)
 
-           integer :: no, i, j1, j2, mk, n, no1, no2, nc, N_orbitals, x1, x2
+           integer :: no, i, j1, j2, mk, n, no1, no2, nc, N_orbitals, x1, x2, nf
            integer, allocatable :: orbitals_tmp(:)
 
            i = 1
 
            do no = 1, size(this,1)
-              mk = size(this(no)%list,1 )
-              allocate( orbitals_tmp(2*mk))
-              orbitals_tmp = 0
-              nc   = 0
-              N_orbitals = 0
+              do nf = 1, size(this,2)
+                 mk = size(this(no,nf)%list,1 )
+                 allocate( orbitals_tmp(2*mk))
+                 orbitals_tmp = 0
+                 nc   = 0
+                 N_orbitals = 0
 
-              do n = 1, mk
-                 nc  = nc + 1
-                 j1  = latt%nnlist( i, this(no)%list(n,1), this(no)%list(n,2) )
-                 no1 = (this(no)%list(n,3)+1) + this(no)%list(n,4)*Norb
-                 x1  = invlist(j1,no1)
-                 if (.not. any(orbitals_tmp == x1)) N_orbitals = N_orbitals + 1
-                 orbitals_tmp(nc) = x1
+                 do n = 1, mk
+                    nc  = nc + 1
+                    j1  = latt%nnlist( i, this(no,nf)%list(n,1), this(no,nf)%list(n,2) )
+                    no1 = (this(no,nf)%list(n,3)+1)
+                    x1  = invlist(j1,no1)
+                    if (.not. any(orbitals_tmp == x1)) N_orbitals = N_orbitals + 1
+                    orbitals_tmp(nc) = x1
 
-                 nc  = nc + 1
-                 j2  = latt%nnlist( i, this(no)%list(n,5), this(no)%list(n,6) )
-                 no2 = (this(no)%list(n,7)+1) + this(no)%list(n,8)*Norb
-                 x2  = invlist(j2,no2)
-                 if (.not. any(orbitals_tmp == x2)) N_orbitals = N_orbitals + 1
-                 orbitals_tmp(nc) = x2
+                    nc  = nc + 1
+                    j2  = latt%nnlist( i, this(no,nf)%list(n,4), this(no,nf)%list(n,5) )
+                    no2 = (this(no,nf)%list(n,6)+1)
+                    x2  = invlist(j2,no2)
+                    if (.not. any(orbitals_tmp == x2)) N_orbitals = N_orbitals + 1
+                    orbitals_tmp(nc) = x2
+                 enddo
+
+                 this(no,nf)%N_orbitals = N_orbitals
+                 deallocate ( orbitals_tmp )
               enddo
-
-              this(no)%N_orbitals = N_orbitals
-              deallocate ( orbitals_tmp )
            enddo
       
         end subroutine get_number_of_orbitals_per_interaction
@@ -485,7 +475,7 @@
            do n = 1, mk
 
               i1  = latt%nnlist( i, this%list(n,1), this%list(n,2) )
-              no1 = (this%list(n,3)+1) + this%list(n,4)*Norb
+              no1 = (this%list(n,3)+1)
               j1  = invlist(i1,no1)
               x1  = -1
               do x = 1, nc
@@ -500,8 +490,8 @@
                  x1 = nc
               endif
 
-              i2  = latt%nnlist( i, this%list(n,5), this%list(n,6) )
-              no2 = (this%list(n,7)+1) + this%list(n,8)*Norb
+              i2  = latt%nnlist( i, this%list(n,4), this%list(n,5) )
+              no2 = (this%list(n,6)+1)
               j2  = invlist(i2,no2)
               x2  = -1
               do x = 1, nc
@@ -540,10 +530,10 @@
 
           Integer :: nf, I, nt, no, nc, i1, i2, no1, no2, n, j1, j2
           integer :: nc_o, x1, x2, x, N_ops
-          type (operator_matrix),   allocatable   :: interaction(:)
+          type (operator_matrix),   allocatable   :: interaction(:,:)
 
           ! read in information for interaction from file potentials.txt
-          call read_int(interaction, Group_Comm)
+          call read_int(interaction, N_Fl, Group_Comm)
           call get_number_of_orbitals_per_interaction(interaction)
 
           N_ops = size(interaction,1)
@@ -554,11 +544,11 @@
              do no = 1, n_ops
                 nc = nc + 1
                 do nf = 1, N_Fl
-                   call Op_make(OP_V(nc,nf), interaction(no)%N_orbitals)
+                   call Op_make(OP_V(nc,nf), interaction(no,nf)%N_orbitals)
    
-                   call set_op_v_matrix(i,op_v(nc,nf),interaction(no))
-                   Op_V(nc,nf)%g = sqrt(cmplx(-dtau*interaction(no)%u, 0.d0, kind(0.d0) ))
-                   Op_V(nc,nf)%alpha = interaction(no)%alpha
+                   call set_op_v_matrix(i,op_v(nc,nf),interaction(no,nf))
+                   Op_V(nc,nf)%g = sqrt(cmplx(-dtau*interaction(no,1)%u, 0.d0, kind(0.d0) ))
+                   Op_V(nc,nf)%alpha = interaction(no,nf)%alpha
                    Op_V(nc,nf)%type  = 2
                    call Op_set( OP_V(nc,nf) )
             
@@ -585,14 +575,14 @@
           Character (len=64) ::  Filename
           Character (len=:), allocatable ::  Channel
 
-           call read_obs_scal_ph(obs_scal_ph,Group_Comm)
+           call read_obs_scal_ph(obs_scal_ph,N_Fl,Group_Comm)
            N_obs_scal_ph = size(obs_scal_ph,1)
 
            ! Scalar observables
            Allocate ( Obs_scal(N_obs_scal_ph+4) )
            Do I = 1, Size(Obs_scal,1)
              if (i <= N_obs_scal_ph   ) then
-                N = 1;   Filename = obs_scal_ph(i)%file
+                N = 1;   Filename = obs_scal_ph(i,1)%file
              elseif (i == N_obs_scal_ph+1 ) then
                 N = 1;   Filename = "Kin"
              elseif (i == N_obs_scal_ph+2 ) then
@@ -605,14 +595,14 @@
              Call Obser_Vec_make(Obs_scal(I),N,Filename)
            enddo
 
-           call read_obs_corr(obs_corr_ph,Group_Comm)
+           call read_obs_corr(obs_corr_ph,N_Fl,Group_Comm)
            N_obs_corr_ph = size(obs_corr_ph,1)
  
            ! Equal time correlators
            Allocate ( Obs_eq(3+N_obs_corr_ph) )
            Do I = 1,Size(Obs_eq,1)
              if (i <= N_obs_corr_ph) then
-                Filename = obs_corr_ph(i)%File
+                Filename = obs_corr_ph(i,1)%File
              elseif (i == N_obs_corr_ph+1) then
                 Filename = "Green"
              elseif (i == N_obs_corr_ph+2) then
@@ -630,7 +620,7 @@
              Allocate ( Obs_tau(3+N_obs_corr_ph) )
              Do I = 1,Size(Obs_tau,1)
                 if (i <= N_obs_corr_ph) then
-                   Channel = 'PH'; Filename = obs_corr_ph(i)%File
+                   Channel = 'PH'; Filename = obs_corr_ph(i,1)%File
                 elseif (i == N_obs_corr_ph+1) then
                    Channel = 'P' ; Filename = "Green"
                 elseif (i == N_obs_corr_ph+2) then
@@ -679,16 +669,18 @@
 
           !Local
           Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL)
-          Complex (Kind=Kind(0.d0)) :: ZP, ZS
+          Complex (Kind=Kind(0.d0)) :: ZP, ZS, ZN
           Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Zlocal, ZZ, ZDen, Zeq
           Integer :: I, J, nf, i1, no_i, i2, no, n, no_1, no_2, j1, no_j, j2, imj, m
-          integer :: x1, x2, y1, y2, no_i1, no_i2, no_j1, no_j2, N_obs_scal_ph, N_obs_corr_ph
+          integer :: x1, x2, y1, y2, no_i1, no_i2, no_j1, no_j2, nf1, nf2
+          integer :: N_obs_scal_ph, N_obs_corr_ph
           ! Add local variables as needed
 
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
 
           ZS = ZS*Mc_step_weight
+          ZN = cmplx(dble(N_SUN), 0.d0, kind(0.d0))
           
           Do nf = 1,N_FL
              Do I = 1,Ndim
@@ -712,20 +704,22 @@
              Zlocal = cmplx(0.d0, 0.d0, kind(0.d0))
       
              do i = 1, Latt%N
-                do n = 1, size(obs_scal_ph(no)%list,1)
-                   no_1 = (obs_scal_ph(no)%list(n,1)+1) + obs_scal_ph(no)%list(n,2)*Norb
-                   i1   = invlist(i,no_1)
+                do nf = 1, N_Fl
+                   do n = 1, size(obs_scal_ph(no,nf)%list,1)
+                      i1   = latt%nnlist(i,obs_scal_ph(no,nf)%list(n,1),obs_scal_ph(no,nf)%list(n,2))
+                      no_1 = (obs_scal_ph(no,nf)%list(n,3)+1)
+                      x1   = invlist(i1,no_1)
                
-                   j    = latt%nnlist(i,obs_scal_ph(no)%list(n,3),obs_scal_ph(no)%list(n,4))
-                   no_2 = (obs_scal_ph(no)%list(n,5)+1) + obs_scal_ph(no)%list(n,6)*Norb
-                   j1   = invlist(j,no_2)
+                      i2   = latt%nnlist(i,obs_scal_ph(no,nf)%list(n,4),obs_scal_ph(no,nf)%list(n,5))
+                      no_2 = (obs_scal_ph(no,nf)%list(n,6)+1)
+                      x2   = invlist(i2,no_2)
 
-                   Zlocal = Zlocal +       obs_scal_ph(no)%g(n) *GRC(i1,j1,1)
-                   Zlocal = Zlocal + conjg(obs_scal_ph(no)%g(n))*GRC(j1,i1,1)
+                      Zlocal = Zlocal +       obs_scal_ph(no,nf)%g(n) *GRC(x1,x2,nf)
+                   enddo
                 enddo
              enddo
    
-             Obs_scal(no)%Obs_vec(1)  =    Obs_scal(no)%Obs_vec(1) + Zlocal *ZP* ZS
+             Obs_scal(no)%Obs_vec(1)  =    Obs_scal(no)%Obs_vec(1) + ZN*Zlocal *ZP* ZS
           enddo
 
 
@@ -759,37 +753,35 @@
              Obs_eq(no)%Ave_sign = Obs_eq(no)%Ave_sign + real(ZS,kind(0.d0))
 
              do I = 1, Latt%N
-                do n = 1, size(obs_corr_ph(no)%list,1)
-                   i1    = latt%nnlist(i,obs_corr_ph(no)%list(n,1),obs_corr_ph(no)%list(n,2))
-                   no_i1 = (obs_corr_ph(no)%list(n,3)+1) + obs_corr_ph(no)%list(n,4)*Norb
-                   x1    = invlist(i1,no_i1)
-                   i2    = latt%nnlist(i,obs_corr_ph(no)%list(n,5),obs_corr_ph(no)%list(n,6))
-                   no_i2 = (obs_corr_ph(no)%list(n,7)+1) + obs_corr_ph(no)%list(n,8)*Norb
-                   x2    = invlist(i2,no_i2)
-                   do J = 1, Latt%N
-                      imj = Latt%imj(I,J)
-                      do m = 1, size(obs_corr_ph(no)%list,1)
-                         j1    = latt%nnlist(j,obs_corr_ph(no)%list(m,1),obs_corr_ph(no)%list(m,2))
-                         no_j1 = (obs_corr_ph(no)%list(m,3)+1) + obs_corr_ph(no)%list(m,4)*Norb
-                         y1    = invlist(j1,no_j1)
-                         j2    = latt%nnlist(j,obs_corr_ph(no)%list(m,5),obs_corr_ph(no)%list(m,6))
-                         no_j2 = (obs_corr_ph(no)%list(m,7)+1) + obs_corr_ph(no)%list(m,8)*Norb
-                         y2    = invlist(j2,no_j2)
+                do nf1 = 1, N_Fl
+                   do n = 1, size(obs_corr_ph(no,nf1)%list,1)
+                      i1    = latt%nnlist(i,obs_corr_ph(no,nf1)%list(n,1),obs_corr_ph(no,nf1)%list(n,2))
+                      no_i1 = (obs_corr_ph(no,nf1)%list(n,3)+1)
+                      x1    = invlist(i1,no_i1)
+                      i2    = latt%nnlist(i,obs_corr_ph(no,nf1)%list(n,4),obs_corr_ph(no,nf1)%list(n,5))
+                      no_i2 = (obs_corr_ph(no,nf1)%list(n,6)+1)
+                      x2    = invlist(i2,no_i2)
+                      do J = 1, Latt%N
+                         imj = Latt%imj(I,J)
+                         do nf2 = 1, N_Fl
+                            do m = 1, size(obs_corr_ph(no,nf2)%list,1)
+                               j1    = latt%nnlist(j,obs_corr_ph(no,nf2)%list(m,1),obs_corr_ph(no,nf2)%list(m,2))
+                               no_j1 = (obs_corr_ph(no,nf2)%list(m,3)+1)
+                               y1    = invlist(j1,no_j1)
+                               j2    = latt%nnlist(j,obs_corr_ph(no,nf2)%list(m,4),obs_corr_ph(no,nf2)%list(m,5))
+                               no_j2 = (obs_corr_ph(no,nf2)%list(m,6)+1)
+                               y2    = invlist(j2,no_j2)
 
-                         Zeq = cmplx(0.d0, 0.d0, kind(0.d0))
-                         Zeq = Zeq +       obs_corr_ph(no)%g(n) *      obs_corr_ph(no)%g(m) * &
-                                    &   (GRC(x1,x2,1)*GRC(y1,y2,1) + GRC(x1,y2,1)*GR(x2,y1,1))
-                         Zeq = Zeq +       obs_corr_ph(no)%g(n) *conjg(obs_corr_ph(no)%g(m))* &
-                                    &   (GRC(x1,x2,1)*GRC(y2,y1,1) + GRC(x1,y1,1)*GR(x2,y2,1))
-                         Zeq = Zeq + conjg(obs_corr_ph(no)%g(n))*      obs_corr_ph(no)%g(m) * &
-                                    &   (GRC(x2,x1,1)*GRC(y1,y2,1) + GRC(x2,y2,1)*GR(x1,y1,1))
-                         Zeq = Zeq + conjg(obs_corr_ph(no)%g(n))*conjg(obs_corr_ph(no)%g(m))* &
-                                    &   (GRC(x2,x1,1)*GRC(y2,y1,1) + GRC(x2,y1,1)*GR(x1,y2,1))
-                         Obs_eq(no)%Obs_latt(imj,1,1,1) = Obs_eq(no)%Obs_latt(imj,1,1,1) + Zeq*ZP*ZS
+                               Zeq = cmplx(0.d0, 0.d0, kind(0.d0))
+                               Zeq = Zeq + obs_corr_ph(no,nf1)%g(n) * obs_corr_ph(no,nf2)%g(m) * ZN*ZN * GRC(x1,x2,nf1) * GRC(y1,y2,nf2)
+                               if (nf1 == nf2) Zeq = Zeq + obs_corr_ph(no,nf1)%g(n) * obs_corr_ph(no,nf2)%g(m) * ZN * GRC(x1,y2,nf1) * GR(x2,y1,nf1)
+                               Obs_eq(no)%Obs_latt(imj,1,1,1) = Obs_eq(no)%Obs_latt(imj,1,1,1) + Zeq*ZP*ZS
+                            enddo
+                         enddo
                       enddo
+                      Obs_eq(no)%Obs_latt0(1) = Obs_eq(no)%Obs_latt0(1) +  &
+                              &     (obs_corr_ph(no,nf1)%g(n)* ZN * GRC(x1,x2,nf1) )*ZP*ZS
                    enddo
-                   Obs_eq(no)%Obs_latt0(1) = Obs_eq(no)%Obs_latt0(1) +  &
-                           &     (obs_corr_ph(no)%g(n)*GRC(x1,x2,1) + conjg(obs_corr_ph(no)%g(n))*GRC(x2,x1,1))*ZP*ZS
                 enddo
              enddo
           enddo
@@ -801,23 +793,24 @@
           Obs_eq(N_obs_corr_ph+3)%N        = Obs_eq(N_obs_corr_ph+3)%N + 1
           Obs_eq(N_obs_corr_ph+3)%Ave_sign = Obs_eq(N_obs_corr_ph+3)%Ave_sign + real(ZS,kind(0.d0))
 
+          nf1 = 1
+          nf2 = 1
+          if (n_fl == 2) nf2 = 2
           do I = 1, latt%N
-             do no_i = 1, Norb
+             do no_i = 1, Latt_unit%Norb
                 i1 = invlist(i,no_i)
-                i2 = invlist(i,no_i+Norb)
                 do j = 1, Latt%N
                    imj  = latt%imj(I,J)
-                   do no_j = 1, Norb
+                   do no_j = 1, Latt_unit%Norb
                       j1 = invlist(j,no_j)
-                      j2 = invlist(j,no_j+Norb)
-                      ZZ = (GRC(i1,i1,1)-GRC(i2,i2,1))*(GRC(j1,j1,1)-GRC(j2,j2,1)) + GRC(I1,j1,1)*GR(i1,j1,1) + GRC(I2,j2,1)*GR(i2,j2,1)
+                      ZZ = (GRC(i1,i1,nf1)-GRC(i1,i1,nf2))*(GRC(j1,j1,nf1)-GRC(j1,j1,nf2)) + GRC(I1,j1,nf1)*GR(i1,j1,nf1) + GRC(I1,j1,nf2)*GR(i1,j1,nf2)
                       Obs_eq(N_obs_corr_ph+2)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(N_obs_corr_ph+2)%Obs_Latt(imj,1,no_I,no_J) + ZZ*ZP*ZS
-                      ZDen = (GRC(i1,i1,1)+GRC(I2,i2,1))*(GRC(j1,j1,1)+GRC(j2,j2,1)) + GRC(I1,j1,1)*GR(i1,j1,1) + GRC(I2,j2,1)*GR(i2,j2,1)
+                      ZDen = (GRC(i1,i1,nf1)+GRC(I1,i1,nf2))*(GRC(j1,j1,nf1)+GRC(j1,j1,nf2)) + GRC(I1,j1,nf1)*GR(i1,j1,nf1) + GRC(I1,j1,nf2)*GR(i1,j1,nf2)
                       Obs_eq(N_obs_corr_ph+3)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(N_obs_corr_ph+3)%Obs_Latt(imj,1,no_I,no_J) + ZDen*ZP*ZS
                    enddo
                 enddo
-                Obs_eq(N_obs_corr_ph+2)%Obs_Latt0(no_I) =  Obs_eq(N_obs_corr_ph+2)%Obs_Latt0(no_I) + (GRC(i1,i1,1)-GRC(i2,i2,1))*ZP*ZS
-                Obs_eq(N_obs_corr_ph+3)%Obs_Latt0(no_I) =  Obs_eq(N_obs_corr_ph+3)%Obs_Latt0(no_I) + (GRC(i1,i1,1)+GRC(i2,i2,1))*ZP*ZS
+                Obs_eq(N_obs_corr_ph+2)%Obs_Latt0(no_I) =  Obs_eq(N_obs_corr_ph+2)%Obs_Latt0(no_I) + (GRC(i1,i1,nf1)-GRC(i1,i1,nf2))*ZP*ZS
+                Obs_eq(N_obs_corr_ph+3)%Obs_Latt0(no_I) =  Obs_eq(N_obs_corr_ph+3)%Obs_Latt0(no_I) + (GRC(i1,i1,nf1)+GRC(i1,i1,nf2))*ZP*ZS
              enddo
           enddo
 
@@ -860,14 +853,15 @@
           Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
           
           !Locals
-          Complex (Kind=Kind(0.d0)) :: ZP, ZS, Zden, ZZ, Ztau, dx1_x2, dy1_y2
+          Complex (Kind=Kind(0.d0)) :: ZP, ZS, Zden, ZZ, Ztau, ZN, dx1_x2, dy1_y2
           Integer :: N_obs_corr_ph, i1, i2, j1, j2, no_i, no_j, i, j, imj, no
-          Integer :: n, no_i1, x1, no_i2, x2, m, no_j1, y1, no_j2, y2
+          Integer :: n, no_i1, x1, no_i2, x2, m, no_j1, y1, no_j2, y2, nf1, nf2
           ! Add local variables as needed
 
           ZP = PHASE/Real(Phase, kind(0.D0))
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
           ZS = ZS * Mc_step_weight
+          ZN = cmplx(dble(N_SUN), 0.d0, kind(0.d0))
 
           N_obs_corr_ph = size(obs_corr_ph,1)
    
@@ -879,41 +873,40 @@
              endif
 
              do I = 1, Latt%N
-                do n = 1, size(obs_corr_ph(no)%list,1)
-                   i1     = latt%nnlist(i,obs_corr_ph(no)%list(n,1),obs_corr_ph(no)%list(n,2))
-                   no_i1  = (obs_corr_ph(no)%list(n,3)+1) + obs_corr_ph(no)%list(n,4)*Norb
-                   x1     = invlist(i1,no_i1)
-                   i2     = latt%nnlist(i,obs_corr_ph(no)%list(n,5),obs_corr_ph(no)%list(n,6))
-                   no_i2  = (obs_corr_ph(no)%list(n,7)+1) + obs_corr_ph(no)%list(n,8)*Norb
-                   x2     = invlist(i2,no_i2)
-                   dx1_x2 = cmplx(0.d0, 0.d0, kind(0.d0))
-                   if (x1 == x2) dx1_x2 = cmplx(1.d0, 0.d0, kind(0.d0))
-                   do J = 1, Latt%N
-                      imj = Latt%imj(I,J)
-                      do m = 1, size(obs_corr_ph(no)%list,1)
-                         j1    = latt%nnlist(j,obs_corr_ph(no)%list(m,1),obs_corr_ph(no)%list(m,2))
-                         no_j1 = (obs_corr_ph(no)%list(m,3)+1) + obs_corr_ph(no)%list(m,4)*Norb
-                         y1    = invlist(j1,no_j1)
-                         j2    = latt%nnlist(j,obs_corr_ph(no)%list(m,5),obs_corr_ph(no)%list(m,6))
-                         no_j2 = (obs_corr_ph(no)%list(m,7)+1) + obs_corr_ph(no)%list(m,8)*Norb
-                         y2    = invlist(j2,no_j2)
-                         dy1_y2 = cmplx(0.d0, 0.d0, kind(0.d0))
-                         if (y1 == y2) dy1_y2 = cmplx(1.d0, 0.d0, kind(0.d0))
-
-                         Ztau = cmplx(0.d0, 0.d0, kind(0.d0))
-                         Ztau = Ztau +       obs_corr_ph(no)%g(n) *      obs_corr_ph(no)%g(m) * &
-                                    &   ((dx1_x2 - GTT(x2,x1,1))*(dy1_y2 - G00(y2,y1,1)) - G0T(y2,x1,1)*GT0(x2,y1,1))
-                         Ztau = Ztau +       obs_corr_ph(no)%g(n) *conjg(obs_corr_ph(no)%g(m))* &
-                                    &   ((dx1_x2 - GTT(x2,x1,1))*(dy1_y2 - G00(y1,y2,1)) - G0T(y1,x1,1)*GT0(x2,y2,1))
-                         Ztau = Ztau + conjg(obs_corr_ph(no)%g(n))*      obs_corr_ph(no)%g(m) * &
-                                    &   ((dx1_x2 - GTT(x1,x2,1))*(dy1_y2 - G00(y2,y1,1)) - G0T(y2,x2,1)*GT0(x1,y1,1))
-                         Ztau = Ztau + conjg(obs_corr_ph(no)%g(n))*conjg(obs_corr_ph(no)%g(m))* &
-                                    &   ((dx1_x2 - GTT(x1,x2,1))*(dy1_y2 - G00(y1,y2,1)) - G0T(y1,x2,1)*GT0(x1,y2,1))
-                         Obs_tau(no)%Obs_latt(imj,nt+1,1,1) = Obs_tau(no)%Obs_latt(imj,nt+1,1,1) + Ztau*ZP*ZS
+                do nf1 = 1, N_FL
+                   do n = 1, size(obs_corr_ph(no,nf1)%list,1)
+                      i1     = latt%nnlist(i,obs_corr_ph(no,nf1)%list(n,1),obs_corr_ph(no,nf1)%list(n,2))
+                      no_i1  = (obs_corr_ph(no,nf1)%list(n,3)+1)
+                      x1     = invlist(i1,no_i1)
+                      i2     = latt%nnlist(i,obs_corr_ph(no,nf1)%list(n,4),obs_corr_ph(no,nf1)%list(n,5))
+                      no_i2  = (obs_corr_ph(no,nf1)%list(n,6)+1)
+                      x2     = invlist(i2,no_i2)
+                      dx1_x2 = cmplx(0.d0, 0.d0, kind(0.d0))
+                      if (x1 == x2) dx1_x2 = cmplx(1.d0, 0.d0, kind(0.d0))
+                      do J = 1, Latt%N
+                         imj = Latt%imj(I,J)
+                         do nf2 = 1, N_Fl
+                            do m = 1, size(obs_corr_ph(no,nf2)%list,1)
+                               j1    = latt%nnlist(j,obs_corr_ph(no,nf2)%list(m,1),obs_corr_ph(no,nf2)%list(m,2))
+                               no_j1 = (obs_corr_ph(no,nf2)%list(m,3)+1)
+                               y1    = invlist(j1,no_j1)
+                               j2    = latt%nnlist(j,obs_corr_ph(no,nf2)%list(m,4),obs_corr_ph(no,nf2)%list(m,5))
+                               no_j2 = (obs_corr_ph(no,nf2)%list(m,6)+1)
+                               y2    = invlist(j2,no_j2)
+                               dy1_y2 = cmplx(0.d0, 0.d0, kind(0.d0))
+                               if (y1 == y2) dy1_y2 = cmplx(1.d0, 0.d0, kind(0.d0))
+!
+                               Ztau = cmplx(0.d0, 0.d0, kind(0.d0))
+                               Ztau = Ztau +  obs_corr_ph(no,nf1)%g(n) * obs_corr_ph(no,nf2)%g(m) * &
+                                    &  ZN*ZN* ((dx1_x2 - GTT(x2,x1,nf1))*(dy1_y2 - G00(y2,y1,nf2)))
+                               if (nf1 == nf2) Ztau = Ztau - obs_corr_ph(no,nf1)%g(n) * obs_corr_ph(no,nf2)%g(m) * ZN * (G0T(y2,x1,1)*GT0(x2,y1,1))
+                               Obs_tau(no)%Obs_latt(imj,nt+1,1,1) = Obs_tau(no)%Obs_latt(imj,nt+1,1,1) + Ztau*ZP*ZS
+                            enddo
+                         enddo
                       enddo
+                      Obs_tau(no)%Obs_latt0(1) = Obs_tau(no)%Obs_latt0(1) +  &
+                               &     (obs_corr_ph(no,nf1)%g(n)*ZN*(dx1_x2 - GTT(x2,x1,nf1)) )*ZP*ZS
                    enddo
-                   Obs_tau(no)%Obs_latt0(1) = Obs_tau(no)%Obs_latt0(1) +  &
-                           &     (obs_corr_ph(no)%g(n)*(dx1_x2 - GTT(x2,x1,1)) + conjg(obs_corr_ph(no)%g(n))*(dx1_x2 - GTT(x1,x2,1)))*ZP*ZS
                 enddo
              enddo
           enddo
@@ -927,24 +920,25 @@
              Obs_tau(N_obs_corr_ph+3)%Ave_sign = Obs_tau(N_obs_corr_ph+3)%Ave_sign + real(ZS,kind(0.d0))
           endif
 
+          nf1 = 1
+          nf2 = 1
+          if (N_Fl == 2) nf2 = 2
           do I = 1, latt%N
-             do no_i = 1, Norb
+             do no_i = 1, Latt_unit%Norb
                 i1 = invlist(i,no_i)
-                i2 = invlist(i,no_i+Norb)
                 do j = 1, Latt%N
                    imj  = latt%imj(I,J)
-                   do no_j = 1, Norb
+                   do no_j = 1, Latt_unit%Norb
                       j1 = invlist(j,no_j)
-                      j2 = invlist(j,no_j+Norb)
-                      ZZ = (GTT(I1,I1,1)-GTT(I2,I2,1))*(G00(J1,J1,1)-G00(J2,J2,1)) - G0T(J1,I1,1)*GT0(I1,j1,1) - G0T(J2,I2,1)*GT0(I2,j2,1)
+                      ZZ = (GTT(I1,I1,nf1)-GTT(I1,I1,nf2))*(G00(J1,J1,nf1)-G00(J1,J1,nf2)) - G0T(J1,I1,nf1)*GT0(I1,j1,nf1) - G0T(J1,I1,nf2)*GT0(I1,j1,nf2)
                       Obs_tau(N_obs_corr_ph+2)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(N_obs_corr_ph+2)%Obs_Latt(imj,nt+1,no_I,no_J) + ZZ*ZP*ZS
 
-                      ZDen = (2.d0 - GTT(I1,I1,1) - GTT(I2,I2,1))*(2.d0 - G00(J1,J1,1) - G00(J2,J2,1)) - G0T(J1,I1,1)*GT0(I1,j1,1) - G0T(J2,I2,1)*GT0(I2,j2,1)
+                      ZDen = (2.d0 - GTT(I1,I1,nf1) - GTT(I1,I1,nf2))*(2.d0 - G00(J1,J1,nf1) - G00(J1,J1,nf2)) - G0T(J1,I1,nf1)*GT0(I1,j1,nf1) - G0T(J1,I1,nf2)*GT0(I1,j1,nf2)
                       Obs_tau(N_obs_corr_ph+3)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(N_obs_corr_ph+3)%Obs_Latt(imj,nt+1,no_I,no_J) + ZDen*ZP*ZS
                    enddo
                 enddo
-                Obs_tau(N_obs_corr_ph+2)%Obs_Latt0(no_I) =  Obs_tau(N_obs_corr_ph+2)%Obs_Latt0(no_I) - (GTT(i1,i1,1) - GTT(i2,i2,1))*ZP*ZS
-                Obs_tau(N_obs_corr_ph+3)%Obs_Latt0(no_I) =  Obs_tau(N_obs_corr_ph+3)%Obs_Latt0(no_I) + (2.d0 - GTT(i1,i1,1) - GTT(i2,i2,1))*ZP*ZS
+                Obs_tau(N_obs_corr_ph+2)%Obs_Latt0(no_I) =  Obs_tau(N_obs_corr_ph+2)%Obs_Latt0(no_I) - (GTT(i1,i1,nf1) - GTT(i1,i1,nf2))*ZP*ZS
+                Obs_tau(N_obs_corr_ph+3)%Obs_Latt0(no_I) =  Obs_tau(N_obs_corr_ph+3)%Obs_Latt0(no_I) + (2.d0 - GTT(i1,i1,nf1) - GTT(i1,i1,nf2))*ZP*ZS
              enddo
           enddo
 

@@ -48,22 +48,18 @@ module Hamiltonian_Portable_input_mod
    type operator_matrix
       ! file      : only for observables , file name in the form of <file>_scal, <file>_eq or <file>_tau
       ! list      :                        list that contains information for shift of unit cells, orbitals, and spin
-      !                                    i) hoppings.txt, obs_scal_ph.txt:
+      !                                    i) hoppings.txt:
       !                                       list(:,1) = orbital 1
-      !                                       list(:,2) = spin 1
-      !                                       list(:,3) = shift of unit cell with vector a_1
-      !                                       list(:,4) = shift of unit cell with vector a_2
-      !                                       list(:,5) = orbital 2
-      !                                       list(:,6) = spin 2
-      !                                    i) potentials.txt, obs_corr_ph.txt:
+      !                                       list(:,2) = shift of unit cell with vector a_1
+      !                                       list(:,3) = shift of unit cell with vector a_2
+      !                                       list(:,4) = orbital 2
+      !                                    i) potentials.txt, obs_scal_ph.txt, obs_corr_ph.txt:
       !                                       list(:,1) = shift 1 of unit cell with vector a_1
       !                                       list(:,2) = shift 1 of unit cell with vector a_1
       !                                       list(:,3) = orbital 1
-      !                                       list(:,4) = spin 1
+      !                                       list(:,4) = shift 2 of unit cell with vector a_1
       !                                       list(:,5) = shift 2 of unit cell with vector a_1
-      !                                       list(:,6) = shift 2 of unit cell with vector a_1
-      !                                       list(:,7) = orbital 2
-      !                                       list(:,8) = spin 2
+      !                                       list(:,6) = orbital 2
       ! g         :                        matrix elements for hopping, interaction, observables
       ! N_orbitals: only for interactions, number of interacting orbitals per interaction term, determines the effective dimension
       !                                    of the operator in Op_make(OP_V, N_orbitals)
@@ -146,7 +142,7 @@ module Hamiltonian_Portable_input_mod
           CALL MPI_BCAST(a_p      ,  size(a_p)   ,MPI_REAL8    ,0,Group_Comm,ierr)
           CALL MPI_BCAST(Norb     ,  1           ,MPI_INTEGER  ,0,Group_Comm,ierr)
           if (irank_g /= 0) allocate(Orb_pos(Norb,3))
-          CALL MPI_BCAST(Orb_pos,  size(Orb_pos) ,MPI_REAL8    ,0,Group_Comm,ierr)
+          CALL MPI_BCAST(Orb_pos  ,size(Orb_pos) ,MPI_REAL8    ,0,Group_Comm,ierr)
 #endif
 
           If (L1 < 1 .or. L2 < 1) then
@@ -176,11 +172,11 @@ module Hamiltonian_Portable_input_mod
 
           implicit none
 
-          type (operator_matrix), intent(out) :: this
+          type (operator_matrix), intent(out) :: this(:)
           integer, intent(in)      :: Group_Comm
 
           integer                :: ierr, unit_hop, n_hop, nh, i
-          integer                :: no1, no2, s1, s2, n1, n2
+          integer                :: no1, no2, n1, n2, nf
           Character (len=64)     :: file_hop
           real (kind=kind(0.d0)) :: x, y
 
@@ -205,30 +201,35 @@ module Hamiltonian_Portable_input_mod
                 Call Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
              END IF
 
-             read(unit_hop,*) n_hop
+             do nf = 1, size(this,1)
+
+                read(unit_hop,*) n_hop
              
-             allocate( this%g(n_hop), this%list(n_hop,6) )
+                allocate( this(nf)%g(n_hop), this(nf)%list(n_hop,4) )
       
-             do nh = 1, n_hop
-                read(unit_hop,*) i, no1, s1, n1, n2, no2, s2, x, y
-                this%list(nh,1) = no1
-                this%list(nh,2) = s1
-                this%list(nh,3) = n1
-                this%list(nh,4) = n2
-                this%list(nh,5) = no2
-                this%list(nh,6) = s2
-                this%g(nh)      = cmplx( x, y, kind(0.d0))
+                do nh = 1, n_hop
+                   read(unit_hop,*) i, no1, n1, n2, no2, x, y
+                   this(nf)%list(nh,1) = no1
+                   this(nf)%list(nh,2) = n1
+                   this(nf)%list(nh,3) = n2
+                   this(nf)%list(nh,4) = no2
+                   this(nf)%g(nh)      = cmplx( x, y, kind(0.d0))
+                enddo
+
              enddo
 
              Close(unit_hop)
 #ifdef MPI
           Endif
 
-          CALL MPI_BCAST(n_hop       ,  1             ,MPI_INTEGER  ,0,Group_Comm,ierr)
+          do nf = 1, size(this,1)
+             if ( irank_g == 0 ) n_hop = size(this(nf)%list,1)
+             CALL MPI_BCAST(n_hop        ,  1                ,MPI_INTEGER  ,0,Group_Comm,ierr)
 
-          if ( irank_g /= 0 ) allocate( this%g(n_hop), this%list(n_hop,6) )
-          CALL MPI_BCAST(this%list    ,  size(this%list),MPI_INTEGER  ,0,Group_Comm,ierr)
-          CALL MPI_BCAST(this%g       ,  size(this%g)   ,MPI_COMPLEX16,0,Group_Comm,ierr)
+             if ( irank_g /= 0 ) allocate( this(nf)%g(n_hop), this(nf)%list(n_hop,4) )
+             CALL MPI_BCAST(this(nf)%list,size(this(nf)%list),MPI_INTEGER  ,0,Group_Comm,ierr)
+             CALL MPI_BCAST(this(nf)%g   ,size(this(nf)%g)   ,MPI_COMPLEX16,0,Group_Comm,ierr)
+          enddo
  
 #endif
 
@@ -242,7 +243,7 @@ module Hamiltonian_Portable_input_mod
 !> Reads in   the  interaction parameters
 !--------------------------------------------------------------------
 
-        Subroutine read_int(this,Group_Comm)
+        Subroutine read_int(this,N_fl,Group_Comm)
 
 #if defined (MPI) || defined(TEMPERING)
           Use mpi
@@ -250,11 +251,11 @@ module Hamiltonian_Portable_input_mod
 
           implicit none
 
-          type (operator_matrix), allocatable, intent(out) :: this(:)
-          integer, intent(in)    :: Group_Comm
+          type (operator_matrix), allocatable, intent(out) :: this(:,:)
+          integer, intent(in)    :: Group_Comm, N_FL
  
           integer                :: ierr, unit_int, mk, no, n, i1, i2
-          integer                :: no1, s1, j1, j2, no2, s2, i, N_ops
+          integer                :: no1, j1, j2, no2, i, N_ops, nf
           Character (len=64)     :: file_int
           real (kind=kind(0.d0)) :: u, x, y
 
@@ -281,26 +282,27 @@ module Hamiltonian_Portable_input_mod
 
              read(unit_int,*) N_ops
 
-             allocate( this(N_ops) )
+             allocate( this(N_ops,N_Fl) )
 
              do no = 1, N_ops
-                read(unit_int,*) mk, u, x, y
-                this(no)%u     = u
-                this(no)%alpha = cmplx( x, y, kind(0.d0) )
+                read(unit_int,*) u
+                this(no,1)%u   = u
+                do nf = 1, N_Fl
+                   read(unit_int,*) mk, x, y
+                   this(no,nf)%alpha = cmplx( x, y, kind(0.d0) )
 
-                allocate( this(no)%list(mk,8), this(no)%g(mk) )
+                   allocate( this(no,nf)%list(mk,6), this(no,nf)%g(mk) )
 
-                do n = 1, mk
-                   read(unit_int,*) i, i1, i2, no1, s1, j1, j2, no2, s2, x, y
-                   this(no)%list(n,1) = i1
-                   this(no)%list(n,2) = i2
-                   this(no)%list(n,3) = no1
-                   this(no)%list(n,4) = s1
-                   this(no)%list(n,5) = j1
-                   this(no)%list(n,6) = j2
-                   this(no)%list(n,7) = no2
-                   this(no)%list(n,8) = s2
-                   this(no)%g(n)      = cmplx( x, y, kind(0.d0) )
+                   do n = 1, mk
+                      read(unit_int,*) i, i1, i2, no1, j1, j2, no2, x, y
+                      this(no,nf)%list(n,1) = i1
+                      this(no,nf)%list(n,2) = i2
+                      this(no,nf)%list(n,3) = no1
+                      this(no,nf)%list(n,4) = j1
+                      this(no,nf)%list(n,5) = j2
+                      this(no,nf)%list(n,6) = no2
+                      this(no,nf)%g(n)      = cmplx( x, y, kind(0.d0) )
+                   enddo
                 enddo
              enddo
 
@@ -309,17 +311,20 @@ module Hamiltonian_Portable_input_mod
 #ifdef MPI
           Endif
 
-          CALL MPI_BCAST(n_ops       ,  1              ,MPI_INTEGER  ,0,Group_Comm,ierr)
-          if (irank_g /= 0) allocate( this(N_ops) )
+          CALL MPI_BCAST(n_ops          ,  1  ,MPI_INTEGER  ,0,Group_Comm,ierr)
+          if (irank_g /= 0) allocate( this(N_ops,N_Fl) )
       
           do no = 1, N_ops
-             CALL MPI_BCAST(this(no)%alpha  ,     1    ,MPI_COMPLEX16,0,Group_Comm,ierr)
-             CALL MPI_BCAST(this(no)%u      ,     1    ,MPI_REAL8    ,0,Group_Comm,ierr)
-             if (irank_g == 0) mk = size(this(no)%list,1)
-             CALL MPI_BCAST(mk       ,  1              ,MPI_INTEGER  ,0,Group_Comm,ierr)
-             if (irank_g /= 0) allocate( this(no)%list(mk,8), this(no)%g(mk) )
-             CALL MPI_BCAST(this(no)%list   ,size(this(no)%list),MPI_INTEGER  ,0,Group_Comm,ierr)
-             CALL MPI_BCAST(this(no)%g      ,   size(this(no)%g),MPI_COMPLEX16,0,Group_Comm,ierr)
+             CALL MPI_BCAST(this(no,1)%u,  1  ,MPI_REAL8    ,0,Group_Comm,ierr)
+             do nf = 1, N_Fl
+                CALL MPI_BCAST(this(no,nf)%alpha,  1                   ,MPI_COMPLEX16,0,Group_Comm,ierr)
+             
+                if (irank_g == 0) mk = size(this(no,nf)%list,1)
+                CALL MPI_BCAST(mk               ,  1                   ,MPI_INTEGER  ,0,Group_Comm,ierr)
+                if (irank_g /= 0) allocate( this(no,nf)%list(mk,6), this(no,nf)%g(mk) )
+                CALL MPI_BCAST(this(no,nf)%list ,size(this(no,nf)%list),MPI_INTEGER  ,0,Group_Comm,ierr)
+                CALL MPI_BCAST(this(no,nf)%g    ,size(this(no,nf)%g)   ,MPI_COMPLEX16,0,Group_Comm,ierr)
+             enddo
           enddo
 
 #endif
@@ -334,7 +339,7 @@ module Hamiltonian_Portable_input_mod
 !> Reads in scalar observables in the particle-hole channel
 !--------------------------------------------------------------------
 
-        Subroutine read_obs_scal_ph(this,Group_Comm)
+        Subroutine read_obs_scal_ph(this,N_FL,Group_Comm)
 
 #if defined (MPI) || defined(TEMPERING)
           Use mpi
@@ -342,11 +347,11 @@ module Hamiltonian_Portable_input_mod
 
           implicit none
 
-          type (operator_matrix), allocatable, intent(out) :: this(:)
-          integer, intent(in) :: Group_Comm
+          type (operator_matrix), allocatable, intent(out) :: this(:,:)
+          integer, intent(in) :: Group_Comm, N_FL
  
           integer                :: ierr, unit_obs, mk, no, n, N_obs
-          integer                :: i, no1, s1, n1, n2, no2, s2
+          integer                :: i, no1, no2, nf, i1, i2, j1, j2
           Character (len=64)     :: file_obs, file
           real (kind=kind(0.d0)) :: x, y
 
@@ -372,22 +377,25 @@ module Hamiltonian_Portable_input_mod
              END IF
 
              read(unit_obs,*) N_obs
-             allocate(this(N_obs))
+             allocate(this(N_obs,N_Fl))
       
              do no = 1, N_obs
-                read(unit_obs,*) file, mk
-                this(no)%file = file
-                allocate( this(no)%list(mk,6), this(no)%g(mk) )
+                read(unit_obs,*) file
+                this(no,1)%file = file
+                do nf = 1, N_Fl
+                   read(unit_obs,*) mk
+                   allocate( this(no,nf)%list(mk,6), this(no,nf)%g(mk) )
                 
-                do n = 1, mk
-                   read(unit_obs,*) i, no1, s1, n1, n2, no2, s2, x, y
-                   this(no)%list(n,1) = no1
-                   this(no)%list(n,2) = s1
-                   this(no)%list(n,3) = n1
-                   this(no)%list(n,4) = n2
-                   this(no)%list(n,5) = no2
-                   this(no)%list(n,6) = s2
-                   this(no)%g(n)     = cmplx(x, y, kind(0.d0))
+                   do n = 1, mk
+                      read(unit_obs,*) i, i1, i2, no1, j1, j2, no2, x, y
+                      this(no,nf)%list(n,1) = i1
+                      this(no,nf)%list(n,2) = i2
+                      this(no,nf)%list(n,3) = no1
+                      this(no,nf)%list(n,4) = j1
+                      this(no,nf)%list(n,5) = j2
+                      this(no,nf)%list(n,6) = no2
+                      this(no,nf)%g(n)     = cmplx(x, y, kind(0.d0))
+                   enddo
                 enddo
              enddo
 
@@ -396,15 +404,17 @@ module Hamiltonian_Portable_input_mod
 #ifdef MPI
           Endif
 
-          CALL MPI_BCAST(N_obs                     ,  1,MPI_INTEGER  ,0,Group_Comm,ierr)
-          if (irank_g /= 0) allocate(this(N_obs))
+          CALL MPI_BCAST(N_obs                 ,  1,MPI_INTEGER  ,0,Group_Comm,ierr)
+          if (irank_g /= 0) allocate(this(N_obs,N_FL))
           do no = 1, N_obs
-             CALL MPI_BCAST(this(no)%file   , 64,MPI_CHARACTER,0,Group_Comm,ierr)
-             if (irank_g == 0) mk = size(this(no)%list,1)
-             CALL MPI_BCAST(mk              ,  1                  ,MPI_INTEGER  ,0,Group_Comm,ierr)
-             if (irank_g /= 0) allocate( this(no)%list(mk,6), this(no)%g(mk) )
-             CALL MPI_BCAST(this(no)%list   ,  size(this(no)%list),MPI_INTEGER  ,0,Group_Comm,ierr)
-             CALL MPI_BCAST(this(no)%g      ,  size(this(no)%g)   ,MPI_COMPLEX16,0,Group_Comm,ierr)
+             CALL MPI_BCAST(this(no,1)%file    , 64,MPI_CHARACTER,0,Group_Comm,ierr)
+             do nf = 1, N_Fl
+                if (irank_g == 0) mk = size(this(no,nf)%list,1)
+                CALL MPI_BCAST(mk              ,  1                   ,MPI_INTEGER  ,0,Group_Comm,ierr)
+                if (irank_g /= 0) allocate( this(no,nf)%list(mk,6), this(no,nf)%g(mk) )
+                CALL MPI_BCAST(this(no,nf)%list,size(this(no,nf)%list),MPI_INTEGER  ,0,Group_Comm,ierr)
+                CALL MPI_BCAST(this(no,nf)%g   ,size(this(no,nf)%g)   ,MPI_COMPLEX16,0,Group_Comm,ierr)
+             enddo
           enddo
 
 #endif
@@ -419,7 +429,7 @@ module Hamiltonian_Portable_input_mod
 !> Reads in correlation functions in the particle-hole channel
 !--------------------------------------------------------------------
 
-        Subroutine read_obs_corr(this,Group_Comm)
+        Subroutine read_obs_corr(this,N_fl,Group_Comm)
 
 #if defined (MPI) || defined(TEMPERING)
           Use mpi
@@ -427,11 +437,11 @@ module Hamiltonian_Portable_input_mod
 
           implicit none
 
-          type (operator_matrix), allocatable, intent(out) :: this(:)
-          integer, intent(in) :: Group_Comm
+          type (operator_matrix), allocatable, intent(out) :: this(:,:)
+          integer, intent(in) :: Group_Comm, N_Fl
  
-          integer                :: ierr, unit_obs, mk, no, n, N_obs
-          integer                :: i, no1, s1, i1, i2, j1, j2, no2, s2
+          integer                :: ierr, unit_obs, mk, no, n, N_obs, nf
+          integer                :: i, no1, i1, i2, j1, j2, no2
           Character (len=64)     :: file_obs, file
           real (kind=kind(0.d0)) :: x, y
 
@@ -459,24 +469,25 @@ module Hamiltonian_Portable_input_mod
          
              !local correlation functions
              read(unit_obs,*) N_obs
-             allocate(this(N_obs))
+             allocate(this(N_obs,N_Fl))
 
              do no = 1, N_obs
-                read(unit_obs,*) file, mk
-                this(no)%file  = file
-                allocate( this(no)%list(mk,8), this(no)%g(mk) )
+                read(unit_obs,*) file
+                this(no,1)%file  = file
+                do nf = 1, N_FL
+                   read(unit_obs,*) mk
+                   allocate( this(no,nf)%list(mk,6), this(no,nf)%g(mk) )
 
-                do n = 1, mk
-                   read(unit_obs,*) i, i1, i2, no1, s1, j1, j2, no2, s2, x, y
-                   this(no)%list(n,1) = i1
-                   this(no)%list(n,2) = i2
-                   this(no)%list(n,3) = no1
-                   this(no)%list(n,4) = s1
-                   this(no)%list(n,5) = j1
-                   this(no)%list(n,6) = j2
-                   this(no)%list(n,7) = no2
-                   this(no)%list(n,8) = s2
-                   this(no)%g(n)      = cmplx( x, y, kind(0.d0) )
+                   do n = 1, mk
+                      read(unit_obs,*) i, i1, i2, no1, j1, j2, no2, x, y
+                      this(no,nf)%list(n,1) = i1
+                      this(no,nf)%list(n,2) = i2
+                      this(no,nf)%list(n,3) = no1
+                      this(no,nf)%list(n,4) = j1
+                      this(no,nf)%list(n,5) = j2
+                      this(no,nf)%list(n,6) = no2
+                      this(no,nf)%g(n)      = cmplx( x, y, kind(0.d0) )
+                   enddo
                 enddo
              enddo
 
@@ -485,15 +496,17 @@ module Hamiltonian_Portable_input_mod
 #ifdef MPI
           Endif
 
-          CALL MPI_BCAST(N_obs             ,  1,MPI_INTEGER  ,0,Group_Comm,ierr)
-          if (irank_g /= 0) allocate(this(N_obs))
+          CALL MPI_BCAST(N_obs                 ,  1,MPI_INTEGER  ,0,Group_Comm,ierr)
+          if (irank_g /= 0) allocate(this(N_obs,N_FL))
           do no = 1, N_obs
-             CALL MPI_BCAST(this(no)%file  , 64,MPI_CHARACTER,0,Group_Comm,ierr)
-             if (irank_g == 0) mk = size(this(no)%list,1)
-             CALL MPI_BCAST(mk             ,  1                  ,MPI_INTEGER  ,0,Group_Comm,ierr)
-             if (irank_g /= 0) allocate( this(no)%list(mk,8), this(no)%g(mk) )
-             CALL MPI_BCAST(this(no)%list  ,  size(this(no)%list),MPI_INTEGER  ,0,Group_Comm,ierr)
-             CALL MPI_BCAST(this(no)%g     ,  size(this(no)%g)   ,MPI_COMPLEX16,0,Group_Comm,ierr)
+             CALL MPI_BCAST(this(no,1)%file    , 64,MPI_CHARACTER,0,Group_Comm,ierr)
+             do nf = 1, N_Fl
+                if (irank_g == 0) mk = size(this(no,nf)%list,1)
+                CALL MPI_BCAST(mk              ,  1                     ,MPI_INTEGER  ,0,Group_Comm,ierr)
+                if (irank_g /= 0) allocate( this(no,nf)%list(mk,6), this(no,nf)%g(mk) )
+                CALL MPI_BCAST(this(no,nf)%list,  size(this(no,nf)%list),MPI_INTEGER  ,0,Group_Comm,ierr)
+                CALL MPI_BCAST(this(no,nf)%g   ,  size(this(no,nf)%g)   ,MPI_COMPLEX16,0,Group_Comm,ierr)
+             enddo
           enddo
 
 #endif
