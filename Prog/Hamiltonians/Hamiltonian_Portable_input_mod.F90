@@ -46,25 +46,46 @@ module Hamiltonian_Portable_input_mod
    implicit none
 
    type operator_matrix
-      ! file      : only for observables , file name in the form of <file>_scal, <file>_eq or <file>_tau
-      ! list      :                        list that contains information for shift of unit cells, orbitals, and spin
-      !                                    i) hoppings.txt:
-      !                                       list(:,1) = orbital 1
-      !                                       list(:,2) = shift of unit cell with vector a_1
-      !                                       list(:,3) = shift of unit cell with vector a_2
-      !                                       list(:,4) = orbital 2
-      !                                    i) potentials.txt, obs_scal_ph.txt, obs_corr_ph.txt:
-      !                                       list(:,1) = shift 1 of unit cell with vector a_1
-      !                                       list(:,2) = shift 1 of unit cell with vector a_1
-      !                                       list(:,3) = orbital 1
-      !                                       list(:,4) = shift 2 of unit cell with vector a_1
-      !                                       list(:,5) = shift 2 of unit cell with vector a_1
-      !                                       list(:,6) = orbital 2
-      ! g         :                        matrix elements for hopping, interaction, observables
-      ! N_orbitals: only for interactions, number of interacting orbitals per interaction term, determines the effective dimension
-      !                                    of the operator in Op_make(OP_V, N_orbitals)
-      ! u         : only for interactions, prefactor U_k of interaction terms
-      ! alpha     : only for interactions, complex shift \alpha_k in interaction term
+      ! a) hopping <hoppings.txt>:
+      ! \hat{H}_t = - \sum_R \sum_s \sum_{\sigma} \sum_n ( \hat{c}^{\dagger}_{x,s,\sigma} T_{n,s} \hat{c}_{y,s,\sigma} + h.c. )
+      ! with x = (R, \mu_1^{n,s}) and y = (R + n_1^{n,s} a_1 + n_2^{n,s} a_2, \mu_2^{n,s})
+      !
+      ! b) interaction <potentials.txt>:
+      ! \hat{H}_I = \sum_R \sum_k U_k { \sum_s \sum_{\sigma} [ \sum_n ( \hat{c}^{\dagger}_{x,s,\sigma} g_{k,n,s} \hat{c}_{y,s,\sigma} + h.c. ) + \alpha_{k,s} ] }^2
+      ! with x = (R + n_{1,1}^{k,n,s} a_1 + n_{1,2}^{k,n,s} a_2, \mu_1^{k,n,s}) and y = (R + n_{2,1}^{k,n,s} a_1 + n_{2,2}^{k,n,s} a_2, \mu_2^{k,n,s})
+      !
+      ! c) scalar observable in particle-hole channel <obs_scal_ph.txt>:
+      ! \sum_R \langle \hat{O}_R \rangle
+      ! with \hat{O}_R = \sum_s \sum_{\sigma} \sum_n ( \hat{c}^{\dagger}_{x,s,\sigma} O_{k,n,s} \hat{c}_{y,s,\sigma} )
+      ! with x and y as in b)
+      !
+      ! d) correlation function in particle-hole channel <obs_corr_ph.txt>:
+      ! \sum_{R_1,R_2} ( \langle \hat{O}_{R_1} \hat{O}_{R_2} \rangle - \langle \hat{O}_{R_1} \rangle \langle \hat{O}_{R_2} \rangle )
+      ! with \hat{O}_R as in c)
+      !
+      ! file      : only for observables c) and d)
+      !             file name in the form of <file>_scal, <file>_eq or <file>_tau
+      ! list      : list that contains information for shift of unit cells, orbitals, and spin
+      !             i)  hoppings.txt:
+      !                 list(n,1) = orbital 1 \mu_1^{n,s}
+      !                 list(n,2) = shift of unit cell with vector a_1 n_1^{n,s}
+      !                 list(n,3) = shift of unit cell with vector a_2 n_2^{n,s}
+      !                 list(n,4) = orbital 2 \mu_2^{n,s}
+      !             ii) potentials.txt, obs_scal_ph.txt, obs_corr_ph.txt:
+      !                 list(n,1) = shift 1 of unit cell with vector a_1 n_{1,1}^{k,n,s}
+      !                 list(n,2) = shift 1 of unit cell with vector a_2 n_{1,2}^{k,n,s}
+      !                 list(n,3) = orbital 1 \mu_1^{k,n,s}
+      !                 list(n,4) = shift 2 of unit cell with vector a_1 n_{2,1}^{k,n,s}
+      !                 list(n,5) = shift 2 of unit cell with vector a_2 n_{2,2}^{k,n,s}
+      !                 list(n,6) = orbital 2 \mu_2^{k,n,s}
+      ! g         : matrix elements for hopping (T_{n,s}), interaction (g_{k,n,s}), observables (O_{k,n,s})
+      ! N_orbitals: only for interactions b)
+      !             number of interacting orbitals per interaction term, determines the effective dimension
+      !             of the operator in Op_make(OP_V, N_orbitals)
+      ! u         : only for interactions b)
+      !             prefactor U_k of interaction terms
+      ! alpha     : only for interactions b)
+      !             complex shift \alpha_{k,s} in interaction term
       Character (len=64)        :: File
       integer, allocatable                   :: list(:,:)
       complex (kind=kind(0.d0)), allocatable :: g(:)
