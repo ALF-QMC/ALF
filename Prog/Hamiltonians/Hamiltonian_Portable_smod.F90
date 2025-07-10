@@ -352,7 +352,7 @@
 
              ham_t_max = 0.d0
              do nh = 1, n_hop
-                if ( hop_diag(nh) == 0 .and. abs(hopping(nf)%g(nh)) > ham_t_max ) ham_t_max = abs(hopping(nf)%g(nh))
+                if ( hop_diag(nh) == 0 .and. abs(hopping(nf)%g(nh,1)) > ham_t_max ) ham_t_max = abs(hopping(nf)%g(nh,1))
              enddo
 
              Hopping_Matrix(nf)%N_bonds = 0
@@ -366,7 +366,7 @@
                    if (hop_diag(nh) == 0) then
 
                       nc = nc + 1
-                      hopping_matrix(nf)%T(nc) = - hopping(nf)%g(nh)
+                      hopping_matrix(nf)%T(nc) = - hopping(nf)%g(nh,1)
                       hopping_matrix(nf)%list(nc,1) = hopping(nf)%list(nh,1)+1
                       hopping_matrix(nf)%list(nc,2) = hopping(nf)%list(nh,4)+1
                       hopping_matrix(nf)%list(nc,3) = hopping(nf)%list(nh,2)
@@ -381,7 +381,7 @@
              do nh = 1, n_hop
                 if (hop_diag(nh) == 1) then
                    no = hopping(nf)%list(nh,1)+1
-                   hopping_matrix(nf)%t_loc(no) = - hopping(nf)%g(nh)
+                   hopping_matrix(nf)%t_loc(no) = - hopping(nf)%g(nh,1)
                 endif
              enddo
 
@@ -506,8 +506,8 @@
                  x2 = nc
               endif
 
-              Op%O(x1,x2) =        this%g(n)
-              Op%O(x2,x1) = CONJG( this%g(n) )
+              Op%O(x1,x2) =        this%g(n,1)
+              Op%O(x2,x1) = CONJG( this%g(n,1) )
 
            enddo
 
@@ -574,15 +574,16 @@
           Integer    ::  i, N, Nt, N_obs_scal_ph, N_obs_corr_ph
           Character (len=64) ::  Filename
           Character (len=:), allocatable ::  Channel
+          Character (len=64), allocatable ::  File(:)
 
-           call read_obs_scal_ph(obs_scal_ph,N_Fl,Group_Comm)
+           call read_obs_scal_ph(obs_scal_ph,file,N_Fl,N_SUN,Group_Comm)
            N_obs_scal_ph = size(obs_scal_ph,1)
 
            ! Scalar observables
            Allocate ( Obs_scal(N_obs_scal_ph+4) )
            Do I = 1, Size(Obs_scal,1)
              if (i <= N_obs_scal_ph   ) then
-                N = 1;   Filename = obs_scal_ph(i,1)%file
+                N = 1;   Filename = file(i)
              elseif (i == N_obs_scal_ph+1 ) then
                 N = 1;   Filename = "Kin"
              elseif (i == N_obs_scal_ph+2 ) then
@@ -595,14 +596,16 @@
              Call Obser_Vec_make(Obs_scal(I),N,Filename)
            enddo
 
-           call read_obs_corr(obs_corr_ph,N_Fl,Group_Comm)
+           deallocate(file)
+
+           call read_obs_corr(obs_corr_ph,file,N_Fl,N_SUN,Group_Comm)
            N_obs_corr_ph = size(obs_corr_ph,1)
  
            ! Equal time correlators
            Allocate ( Obs_eq(3+N_obs_corr_ph) )
            Do I = 1,Size(Obs_eq,1)
              if (i <= N_obs_corr_ph) then
-                Filename = obs_corr_ph(i,1)%File
+                Filename = file(i)
              elseif (i == N_obs_corr_ph+1) then
                 Filename = "Green"
              elseif (i == N_obs_corr_ph+2) then
@@ -620,7 +623,7 @@
              Allocate ( Obs_tau(3+N_obs_corr_ph) )
              Do I = 1,Size(Obs_tau,1)
                 if (i <= N_obs_corr_ph) then
-                   Channel = 'PH'; Filename = obs_corr_ph(i,1)%File
+                   Channel = 'PH'; Filename = file(i)
                 elseif (i == N_obs_corr_ph+1) then
                    Channel = 'P' ; Filename = "Green"
                 elseif (i == N_obs_corr_ph+2) then
@@ -633,6 +636,8 @@
                Call Obser_Latt_make(Obs_tau(I), Nt, Filename, Latt, Latt_unit, Channel, dtau)
              enddo
            endif
+
+           deallocate(file)
 
         End Subroutine Alloc_obs
 
@@ -669,10 +674,10 @@
 
           !Local
           Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL)
-          Complex (Kind=Kind(0.d0)) :: ZP, ZS, ZN
+          Complex (Kind=Kind(0.d0)) :: ZP, ZS, ZN, Zg1, Zg2, Zgg
           Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Zlocal, ZZ, ZDen, Zeq
           Integer :: I, J, nf, i1, no_i, i2, no, n, no_1, no_2, j1, no_j, j2, imj, m
-          integer :: x1, x2, y1, y2, no_i1, no_i2, no_j1, no_j2, nf1, nf2
+          integer :: x1, x2, y1, y2, no_i1, no_i2, no_j1, no_j2, nf1, nf2, ns
           integer :: N_obs_scal_ph, N_obs_corr_ph
           ! Add local variables as needed
 
@@ -714,12 +719,14 @@
                       no_2 = (obs_scal_ph(no,nf)%list(n,6)+1)
                       x2   = invlist(i2,no_2)
 
-                      Zlocal = Zlocal +       obs_scal_ph(no,nf)%g(n) *GRC(x1,x2,nf)
+                      do ns = 1, 2
+                         Zlocal = Zlocal +       obs_scal_ph(no,nf)%g(n,ns) *GRC(x1,x2,nf)
+                      enddo
                    enddo
                 enddo
              enddo
    
-             Obs_scal(no)%Obs_vec(1)  =    Obs_scal(no)%Obs_vec(1) + ZN*Zlocal *ZP* ZS
+             Obs_scal(no)%Obs_vec(1)  =    Obs_scal(no)%Obs_vec(1) + Zlocal *ZP* ZS
           enddo
 
 
@@ -761,6 +768,11 @@
                       i2    = latt%nnlist(i,obs_corr_ph(no,nf1)%list(n,4),obs_corr_ph(no,nf1)%list(n,5))
                       no_i2 = (obs_corr_ph(no,nf1)%list(n,6)+1)
                       x2    = invlist(i2,no_i2)
+                     
+                      Zg1 = cmplx(0.d0, 0.d0, kind(0.d0))
+                      do ns = 1, 2
+                         Zg1 = Zg1 + obs_corr_ph(no,nf1)%g(n,ns)
+                      enddo
                       do J = 1, Latt%N
                          imj = Latt%imj(I,J)
                          do nf2 = 1, N_Fl
@@ -772,15 +784,20 @@
                                no_j2 = (obs_corr_ph(no,nf2)%list(m,6)+1)
                                y2    = invlist(j2,no_j2)
 
+                               Zg2 = cmplx(0.d0, 0.d0, kind(0.d0))
+                               Zgg = cmplx(0.d0, 0.d0, kind(0.d0))
+                               do ns = 1, 2
+                                  Zg2 = Zg2 + obs_corr_ph(no,nf2)%g(m,ns)
+                                  if (nf1 == nf2) Zgg = Zgg + obs_corr_ph(no,nf1)%g(n,ns) * obs_corr_ph(no,nf2)%g(m,ns)
+                               enddo
                                Zeq = cmplx(0.d0, 0.d0, kind(0.d0))
-                               Zeq = Zeq + obs_corr_ph(no,nf1)%g(n) * obs_corr_ph(no,nf2)%g(m) * ZN*ZN * GRC(x1,x2,nf1) * GRC(y1,y2,nf2)
-                               if (nf1 == nf2) Zeq = Zeq + obs_corr_ph(no,nf1)%g(n) * obs_corr_ph(no,nf2)%g(m) * ZN * GRC(x1,y2,nf1) * GR(x2,y1,nf1)
+                               Zeq = Zeq + Zg1 * Zg2 * GRC(x1,x2,nf1) * GRC(y1,y2,nf2)
+                               if (nf1 == nf2) Zeq = Zeq +  Zgg * GRC(x1,y2,nf1) * GR(x2,y1,nf1)
                                Obs_eq(no)%Obs_latt(imj,1,1,1) = Obs_eq(no)%Obs_latt(imj,1,1,1) + Zeq*ZP*ZS
                             enddo
                          enddo
                       enddo
-                      Obs_eq(no)%Obs_latt0(1) = Obs_eq(no)%Obs_latt0(1) +  &
-                              &     (obs_corr_ph(no,nf1)%g(n)* ZN * GRC(x1,x2,nf1) )*ZP*ZS
+                      Obs_eq(no)%Obs_latt0(1) = Obs_eq(no)%Obs_latt0(1) + Zg1 * GRC(x1,x2,nf1) *ZP*ZS
                    enddo
                 enddo
              enddo
@@ -803,14 +820,20 @@
                    imj  = latt%imj(I,J)
                    do no_j = 1, Latt_unit%Norb
                       j1 = invlist(j,no_j)
-                      ZZ = (GRC(i1,i1,nf1)-GRC(i1,i1,nf2))*(GRC(j1,j1,nf1)-GRC(j1,j1,nf2)) + GRC(I1,j1,nf1)*GR(i1,j1,nf1) + GRC(I1,j1,nf2)*GR(i1,j1,nf2)
-                      Obs_eq(N_obs_corr_ph+2)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(N_obs_corr_ph+2)%Obs_Latt(imj,1,no_I,no_J) + ZZ*ZP*ZS
-                      ZDen = (GRC(i1,i1,nf1)+GRC(I1,i1,nf2))*(GRC(j1,j1,nf1)+GRC(j1,j1,nf2)) + GRC(I1,j1,nf1)*GR(i1,j1,nf1) + GRC(I1,j1,nf2)*GR(i1,j1,nf2)
-                      Obs_eq(N_obs_corr_ph+3)%Obs_Latt(imj,1,no_I,no_J) =  Obs_eq(N_obs_corr_ph+3)%Obs_Latt(imj,1,no_I,no_J) + ZDen*ZP*ZS
+                      ZZ = (GRC(i1,i1,nf1)-GRC(i1,i1,nf2))*(GRC(j1,j1,nf1)-GRC(j1,j1,nf2)) + &
+                         &  GRC(I1,j1,nf1)*GR(i1,j1,nf1) + GRC(I1,j1,nf2)*GR(i1,j1,nf2)
+                      Obs_eq(N_obs_corr_ph+2)%Obs_Latt(imj,1,no_I,no_J) = Obs_eq(N_obs_corr_ph+2)%Obs_Latt(imj,1,no_I,no_J) + &
+                         & ZZ*ZP*ZS
+                      ZDen = (GRC(i1,i1,nf1)+GRC(I1,i1,nf2))*(GRC(j1,j1,nf1)+GRC(j1,j1,nf2)) + &
+                           &  GRC(I1,j1,nf1)*GR(i1,j1,nf1) + GRC(I1,j1,nf2)*GR(i1,j1,nf2)
+                      Obs_eq(N_obs_corr_ph+3)%Obs_Latt(imj,1,no_I,no_J) = Obs_eq(N_obs_corr_ph+3)%Obs_Latt(imj,1,no_I,no_J) + &
+                           & ZDen*ZP*ZS
                    enddo
                 enddo
-                Obs_eq(N_obs_corr_ph+2)%Obs_Latt0(no_I) =  Obs_eq(N_obs_corr_ph+2)%Obs_Latt0(no_I) + (GRC(i1,i1,nf1)-GRC(i1,i1,nf2))*ZP*ZS
-                Obs_eq(N_obs_corr_ph+3)%Obs_Latt0(no_I) =  Obs_eq(N_obs_corr_ph+3)%Obs_Latt0(no_I) + (GRC(i1,i1,nf1)+GRC(i1,i1,nf2))*ZP*ZS
+                Obs_eq(N_obs_corr_ph+2)%Obs_Latt0(no_I) =  Obs_eq(N_obs_corr_ph+2)%Obs_Latt0(no_I) + &
+                                                        &   (GRC(i1,i1,nf1)-GRC(i1,i1,nf2))*ZP*ZS
+                Obs_eq(N_obs_corr_ph+3)%Obs_Latt0(no_I) =  Obs_eq(N_obs_corr_ph+3)%Obs_Latt0(no_I) + &
+                                                        &   (GRC(i1,i1,nf1)+GRC(i1,i1,nf2))*ZP*ZS
              enddo
           enddo
 
@@ -854,7 +877,8 @@
           
           !Locals
           Complex (Kind=Kind(0.d0)) :: ZP, ZS, Zden, ZZ, Ztau, ZN, dx1_x2, dy1_y2
-          Integer :: N_obs_corr_ph, i1, i2, j1, j2, no_i, no_j, i, j, imj, no
+          Complex (Kind=Kind(0.d0)) :: Zg1, Zg2, Zgg
+          Integer :: N_obs_corr_ph, i1, i2, j1, j2, no_i, no_j, i, j, imj, no, ns
           Integer :: n, no_i1, x1, no_i2, x2, m, no_j1, y1, no_j2, y2, nf1, nf2
           ! Add local variables as needed
 
@@ -883,6 +907,11 @@
                       x2     = invlist(i2,no_i2)
                       dx1_x2 = cmplx(0.d0, 0.d0, kind(0.d0))
                       if (x1 == x2) dx1_x2 = cmplx(1.d0, 0.d0, kind(0.d0))
+
+                      Zg1 = cmplx(0.d0, 0.d0, kind(0.d0))
+                      do ns = 1, size(obs_corr_ph(no,nf1)%g,2)
+                         Zg1 = Zg1 + obs_corr_ph(no,nf1)%g(n,ns)
+                      enddo
                       do J = 1, Latt%N
                          imj = Latt%imj(I,J)
                          do nf2 = 1, N_Fl
@@ -895,23 +924,29 @@
                                y2    = invlist(j2,no_j2)
                                dy1_y2 = cmplx(0.d0, 0.d0, kind(0.d0))
                                if (y1 == y2) dy1_y2 = cmplx(1.d0, 0.d0, kind(0.d0))
-!
+
+                               Zg2 = cmplx(0.d0, 0.d0, kind(0.d0))
+                               Zgg = cmplx(0.d0, 0.d0, kind(0.d0))
+                               do ns = 1, size(obs_corr_ph(no,nf2)%g,2)
+                                  Zg2 = Zg2 + obs_corr_ph(no,nf2)%g(m,ns)
+                                  if (nf1 == nf2) Zgg = Zgg + obs_corr_ph(no,nf1)%g(n,ns) * obs_corr_ph(no,nf2)%g(m,ns)
+                               enddo
+
                                Ztau = cmplx(0.d0, 0.d0, kind(0.d0))
-                               Ztau = Ztau +  obs_corr_ph(no,nf1)%g(n) * obs_corr_ph(no,nf2)%g(m) * &
-                                    &  ZN*ZN* ((dx1_x2 - GTT(x2,x1,nf1))*(dy1_y2 - G00(y2,y1,nf2)))
-                               if (nf1 == nf2) Ztau = Ztau - obs_corr_ph(no,nf1)%g(n) * obs_corr_ph(no,nf2)%g(m) * ZN * (G0T(y2,x1,1)*GT0(x2,y1,1))
+                               Ztau = Ztau + Zg1 * Zg2 * ((dx1_x2 - GTT(x2,x1,nf1))*(dy1_y2 - G00(y2,y1,nf2)))
+                               if (nf1 == nf2) Ztau = Ztau - Zgg * (G0T(y2,x1,1)*GT0(x2,y1,1))
                                Obs_tau(no)%Obs_latt(imj,nt+1,1,1) = Obs_tau(no)%Obs_latt(imj,nt+1,1,1) + Ztau*ZP*ZS
                             enddo
                          enddo
                       enddo
-                      Obs_tau(no)%Obs_latt0(1) = Obs_tau(no)%Obs_latt0(1) +  &
-                               &     (obs_corr_ph(no,nf1)%g(n)*ZN*(dx1_x2 - GTT(x2,x1,nf1)) )*ZP*ZS
+                      Obs_tau(no)%Obs_latt0(1) = Obs_tau(no)%Obs_latt0(1) + Zg1*(dx1_x2 - GTT(x2,x1,nf1)) *ZP*ZS
                    enddo
                 enddo
              enddo
           enddo
 
-          call Predefined_Obs_tau_Green_measure( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(N_obs_corr_ph+1) )
+          call Predefined_Obs_tau_Green_measure( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, &
+                  &   Obs_tau(N_obs_corr_ph+1) )
 
           if (nt == 0) then
              Obs_tau(N_obs_corr_ph+2)%N        = Obs_tau(N_obs_corr_ph+2)%N + 1
@@ -930,15 +965,21 @@
                    imj  = latt%imj(I,J)
                    do no_j = 1, Latt_unit%Norb
                       j1 = invlist(j,no_j)
-                      ZZ = (GTT(I1,I1,nf1)-GTT(I1,I1,nf2))*(G00(J1,J1,nf1)-G00(J1,J1,nf2)) - G0T(J1,I1,nf1)*GT0(I1,j1,nf1) - G0T(J1,I1,nf2)*GT0(I1,j1,nf2)
-                      Obs_tau(N_obs_corr_ph+2)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(N_obs_corr_ph+2)%Obs_Latt(imj,nt+1,no_I,no_J) + ZZ*ZP*ZS
+                      ZZ = (GTT(I1,I1,nf1)-GTT(I1,I1,nf2))*(G00(J1,J1,nf1)-G00(J1,J1,nf2)) - &
+                         &  G0T(J1,I1,nf1)*GT0(I1,j1,nf1) - G0T(J1,I1,nf2)*GT0(I1,j1,nf2)
+                      Obs_tau(N_obs_corr_ph+2)%Obs_Latt(imj,nt+1,no_I,no_J) =  &
+                         &    Obs_tau(N_obs_corr_ph+2)%Obs_Latt(imj,nt+1,no_I,no_J) + ZZ*ZP*ZS
 
-                      ZDen = (2.d0 - GTT(I1,I1,nf1) - GTT(I1,I1,nf2))*(2.d0 - G00(J1,J1,nf1) - G00(J1,J1,nf2)) - G0T(J1,I1,nf1)*GT0(I1,j1,nf1) - G0T(J1,I1,nf2)*GT0(I1,j1,nf2)
-                      Obs_tau(N_obs_corr_ph+3)%Obs_Latt(imj,nt+1,no_I,no_J) =  Obs_tau(N_obs_corr_ph+3)%Obs_Latt(imj,nt+1,no_I,no_J) + ZDen*ZP*ZS
+                      ZDen = (2.d0 - GTT(I1,I1,nf1) - GTT(I1,I1,nf2))*(2.d0 - G00(J1,J1,nf1) - G00(J1,J1,nf2)) - &
+                           &  G0T(J1,I1,nf1)*GT0(I1,j1,nf1) - G0T(J1,I1,nf2)*GT0(I1,j1,nf2)
+                      Obs_tau(N_obs_corr_ph+3)%Obs_Latt(imj,nt+1,no_I,no_J) =  &
+                           &  Obs_tau(N_obs_corr_ph+3)%Obs_Latt(imj,nt+1,no_I,no_J) + ZDen*ZP*ZS
                    enddo
                 enddo
-                Obs_tau(N_obs_corr_ph+2)%Obs_Latt0(no_I) =  Obs_tau(N_obs_corr_ph+2)%Obs_Latt0(no_I) - (GTT(i1,i1,nf1) - GTT(i1,i1,nf2))*ZP*ZS
-                Obs_tau(N_obs_corr_ph+3)%Obs_Latt0(no_I) =  Obs_tau(N_obs_corr_ph+3)%Obs_Latt0(no_I) + (2.d0 - GTT(i1,i1,nf1) - GTT(i1,i1,nf2))*ZP*ZS
+                Obs_tau(N_obs_corr_ph+2)%Obs_Latt0(no_I) = Obs_tau(N_obs_corr_ph+2)%Obs_Latt0(no_I) - &
+                                                         & (GTT(i1,i1,nf1) - GTT(i1,i1,nf2))*ZP*ZS
+                Obs_tau(N_obs_corr_ph+3)%Obs_Latt0(no_I) = Obs_tau(N_obs_corr_ph+3)%Obs_Latt0(no_I) + &
+                                                         & (2.d0 - GTT(i1,i1,nf1) - GTT(i1,i1,nf2))*ZP*ZS
              enddo
           enddo
 
