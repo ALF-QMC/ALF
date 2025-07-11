@@ -56,7 +56,7 @@ module Hamiltonian_Portable_input_mod
       !
       ! c) scalar observable in particle-hole channel <obs_scal_ph.txt>:
       ! \sum_R \langle \hat{O}_R \rangle
-      ! with \hat{O}_R = \sum_s \sum_{\sigma} \sum_n ( \hat{c}^{\dagger}_{x,s,\sigma} O_{k,n,s} \hat{c}_{y,s,\sigma} )
+      ! with \hat{O}_R = \sum_s \sum_{\sigma} \sum_n ( \hat{c}^{\dagger}_{x,s,\sigma} O_{k,n,s,\sigma} \hat{c}_{y,s,\sigma} )
       ! with x and y as in b)
       !
       ! d) correlation function in particle-hole channel <obs_corr_ph.txt>:
@@ -76,17 +76,13 @@ module Hamiltonian_Portable_input_mod
       !                 list(n,4) = shift 2 of unit cell with vector a_1 n_{2,1}^{k,n,s}
       !                 list(n,5) = shift 2 of unit cell with vector a_2 n_{2,2}^{k,n,s}
       !                 list(n,6) = orbital 2 \mu_2^{k,n,s}
-      ! g         : matrix elements for hopping (T_{n,s}), interaction (g_{k,n,s}), observables (O_{k,n,s})
-      ! N_orbitals: only for interactions b)
-      !             number of interacting orbitals per interaction term, determines the effective dimension
-      !             of the operator in Op_make(OP_V, N_orbitals)
+      ! g         : matrix elements for hopping (T_{n,s}), interaction (g_{k,n,s}), observables (O_{k,n,s,\sigma})
       ! u         : only for interactions b)
       !             prefactor U_k of interaction terms
       ! alpha     : only for interactions b)
       !             complex shift \alpha_{k,s} in interaction term
       integer, allocatable                   :: list(:,:)
       complex (kind=kind(0.d0)), allocatable :: g(:,:)
-      integer                   :: N_orbitals
       real (kind=kind(0.d0))    :: u
       complex (kind=kind(0.d0)) :: alpha
    end type operator_matrix
@@ -372,8 +368,7 @@ module Hamiltonian_Portable_input_mod
           integer                :: ierr, unit_obs, mk, no, n, N_obs
           integer                :: i, no1, no2, nf, i1, i2, j1, j2, ns
           Character (len=64)     :: file_obs, file
-!          real (kind=kind(0.d0)), allocatable :: x(:), y(:)
-          real (kind=kind(0.d0)) :: x1, x2, y1, y2
+          real (kind=kind(0.d0)), allocatable :: x(:), y(:)
 
 #ifdef MPI
           Integer        :: Isize, Irank, irank_g, isize_g, igroup
@@ -396,7 +391,7 @@ module Hamiltonian_Portable_input_mod
                 Call Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
              END IF
 
-!             allocate(x(N_SUN), y(N_SUN))
+             allocate(x(N_SUN), y(N_SUN))
 
              read(unit_obs,*) N_obs
              allocate(this(N_obs,N_Fl),filenames(N_obs))
@@ -406,27 +401,26 @@ module Hamiltonian_Portable_input_mod
                 filenames(no) = file
                 do nf = 1, N_Fl
                    read(unit_obs,*) mk
-                   allocate( this(no,nf)%list(mk,6), this(no,nf)%g(mk,2) )
+                   allocate( this(no,nf)%list(mk,6), this(no,nf)%g(mk,N_SUN) )
                 
                    do n = 1, mk
-                      read(unit_obs,*) i, i1, i2, no1, j1, j2, no2, x1, y1, x2, y2
+                      read(unit_obs,*) i, i1, i2, no1, j1, j2, no2, (x(ns), y(ns), ns=1, N_SUN)
                       this(no,nf)%list(n,1) = i1
                       this(no,nf)%list(n,2) = i2
                       this(no,nf)%list(n,3) = no1
                       this(no,nf)%list(n,4) = j1
                       this(no,nf)%list(n,5) = j2
                       this(no,nf)%list(n,6) = no2
-!                      do ns = 1, N_SUN
-                         this(no,nf)%g(n,1)     = cmplx(x1, y1, kind(0.d0))
-                         this(no,nf)%g(n,2)     = cmplx(x2, y2, kind(0.d0))
-!                      enddo
+                      do ns = 1, N_SUN
+                         this(no,nf)%g(n,ns) = cmplx(x(ns), y(ns), kind(0.d0))
+                      enddo
                    enddo
                 enddo
              enddo
 
              Close(unit_obs)
 
-!             deallocate(x,y)
+             deallocate(x,y)
 
 #ifdef MPI
           Endif
@@ -438,15 +432,13 @@ module Hamiltonian_Portable_input_mod
              do nf = 1, N_Fl
                 if (irank_g == 0) mk = size(this(no,nf)%list,1)
                 CALL MPI_BCAST(mk              ,  1                   ,MPI_INTEGER  ,0,Group_Comm,ierr)
-                if (irank_g /= 0) allocate( this(no,nf)%list(mk,6), this(no,nf)%g(mk,2) )
+                if (irank_g /= 0) allocate( this(no,nf)%list(mk,6), this(no,nf)%g(mk,N_SUN) )
                 CALL MPI_BCAST(this(no,nf)%list,size(this(no,nf)%list),MPI_INTEGER  ,0,Group_Comm,ierr)
                 CALL MPI_BCAST(this(no,nf)%g   ,size(this(no,nf)%g)   ,MPI_COMPLEX16,0,Group_Comm,ierr)
              enddo
           enddo
 
 #endif
-
-      print *, size(filenames)
 
         end subroutine read_obs_scal_ph
 
@@ -473,8 +465,7 @@ module Hamiltonian_Portable_input_mod
           integer                :: ierr, unit_obs, mk, no, n, N_obs, nf
           integer                :: i, no1, i1, i2, j1, j2, no2, ns
           Character (len=64)     :: file_obs, file
-!          real (kind=kind(0.d0)), allocatable :: x(:), y(:)
-          real (kind=kind(0.d0)) :: x1, y1, x2, y2
+          real (kind=kind(0.d0)), allocatable :: x(:), y(:)
 
 #ifdef MPI
           Integer        :: Isize, Irank, irank_g, isize_g, igroup
@@ -498,7 +489,7 @@ module Hamiltonian_Portable_input_mod
                 Call Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
              END IF
    
-!             allocate(x(N_SUN), y(N_SUN))
+             allocate(x(N_SUN), y(N_SUN))
          
              read(unit_obs,*) N_obs
              allocate(this(N_obs,N_Fl),filenames(N_obs))
@@ -508,27 +499,26 @@ module Hamiltonian_Portable_input_mod
                 filenames(no)  = file
                 do nf = 1, N_FL
                    read(unit_obs,*) mk
-                   allocate( this(no,nf)%list(mk,6), this(no,nf)%g(mk,2) )
+                   allocate( this(no,nf)%list(mk,6), this(no,nf)%g(mk,N_SUN) )
 
                    do n = 1, mk
-                      read(unit_obs,*) i, i1, i2, no1, j1, j2, no2, x1, y1, x2, y2
+                      read(unit_obs,*) i, i1, i2, no1, j1, j2, no2, (x(ns), y(ns), ns=1, N_SUN)
                       this(no,nf)%list(n,1) = i1
                       this(no,nf)%list(n,2) = i2
                       this(no,nf)%list(n,3) = no1
                       this(no,nf)%list(n,4) = j1
                       this(no,nf)%list(n,5) = j2
                       this(no,nf)%list(n,6) = no2
-!                      do ns = 1, N_SUN
-                         this(no,nf)%g(n,1)      = cmplx( x1, y1, kind(0.d0) )
-                         this(no,nf)%g(n,2)      = cmplx( x2, y2, kind(0.d0) )
-!                      enddo
+                      do ns = 1, N_SUN
+                         this(no,nf)%g(n,ns) = cmplx(x(ns), y(ns), kind(0.d0))
+                      enddo
                    enddo
                 enddo
              enddo
 
              Close(unit_obs)
 
-!             deallocate(x, y)
+             deallocate(x, y)
 
 #ifdef MPI
           Endif
@@ -540,7 +530,7 @@ module Hamiltonian_Portable_input_mod
              do nf = 1, N_Fl
                 if (irank_g == 0) mk = size(this(no,nf)%list,1)
                 CALL MPI_BCAST(mk              ,  1                     ,MPI_INTEGER  ,0,Group_Comm,ierr)
-                if (irank_g /= 0) allocate( this(no,nf)%list(mk,6), this(no,nf)%g(mk,2) )
+                if (irank_g /= 0) allocate( this(no,nf)%list(mk,6), this(no,nf)%g(mk,N_SUN) )
                 CALL MPI_BCAST(this(no,nf)%list,  size(this(no,nf)%list),MPI_INTEGER  ,0,Group_Comm,ierr)
                 CALL MPI_BCAST(this(no,nf)%g   ,  size(this(no,nf)%g)   ,MPI_COMPLEX16,0,Group_Comm,ierr)
              enddo

@@ -406,11 +406,12 @@
 !> returns the number of interacting orbitals for every interaction term
 !--------------------------------------------------------------------
   
-        subroutine get_number_of_orbitals_per_interaction(this)
+        subroutine get_number_of_orbitals_per_interaction(this,orbitals)
 
            implicit none
 
            type (operator_matrix), allocatable, intent(inout) :: this(:,:)
+           integer, intent(inout) :: orbitals(:,:)
 
            integer :: no, i, j1, j2, mk, n, no1, no2, nc, N_orbitals, x1, x2, nf
            integer, allocatable :: orbitals_tmp(:)
@@ -441,7 +442,7 @@
                     orbitals_tmp(nc) = x2
                  enddo
 
-                 this(no,nf)%N_orbitals = N_orbitals
+                 orbitals(no,nf) = N_orbitals
                  deallocate ( orbitals_tmp )
               enddo
            enddo
@@ -456,11 +457,11 @@
 !> sets the matrix O and corresponding P for a given interaction term
 !--------------------------------------------------------------------
 
-        Subroutine set_op_v_matrix(i,op,this)
+        Subroutine set_op_v_matrix(i,op,this,orbital)
 
            implicit none
 
-           integer, intent(in) :: i
+           integer, intent(in) :: i, orbital
            type (operator), intent(inout)      :: op
            type (operator_matrix), intent(in)  :: this
 
@@ -469,7 +470,7 @@
            integer :: x1, x2, n
 
            mk = size(this%list,1)
-           allocate (p(this%N_orbitals))
+           allocate (p(orbital))
            p = 0
            nc = 0
            do n = 1, mk
@@ -531,22 +532,23 @@
           Integer :: nf, I, nt, no, nc, i1, i2, no1, no2, n, j1, j2
           integer :: nc_o, x1, x2, x, N_ops
           type (operator_matrix),   allocatable   :: interaction(:,:)
+          integer, allocatable :: orbitals(:,:)
 
           ! read in information for interaction from file potentials.txt
           call read_int(interaction, N_Fl, Group_Comm)
-          call get_number_of_orbitals_per_interaction(interaction)
-
           N_ops = size(interaction,1)
-          allocate (OP_V(N_ops*Latt%N,N_Fl))
+          allocate (OP_V(N_ops*Latt%N,N_Fl), orbitals(N_ops,N_Fl))
+
+          call get_number_of_orbitals_per_interaction(interaction,orbitals)
 
           nc = 0
           do i = 1, Latt%N
              do no = 1, n_ops
                 nc = nc + 1
                 do nf = 1, N_Fl
-                   call Op_make(OP_V(nc,nf), interaction(no,nf)%N_orbitals)
+                   call Op_make(OP_V(nc,nf), orbitals(no,nf))
    
-                   call set_op_v_matrix(i,op_v(nc,nf),interaction(no,nf))
+                   call set_op_v_matrix(i,op_v(nc,nf),interaction(no,nf),orbitals(no,nf))
                    Op_V(nc,nf)%g = sqrt(cmplx(-dtau*interaction(no,1)%u, 0.d0, kind(0.d0) ))
                    Op_V(nc,nf)%alpha = interaction(no,nf)%alpha
                    Op_V(nc,nf)%type  = 2
@@ -719,8 +721,8 @@
                       no_2 = (obs_scal_ph(no,nf)%list(n,6)+1)
                       x2   = invlist(i2,no_2)
 
-                      do ns = 1, 2
-                         Zlocal = Zlocal +       obs_scal_ph(no,nf)%g(n,ns) *GRC(x1,x2,nf)
+                      do ns = 1, N_SUN
+                         Zlocal = Zlocal +   obs_scal_ph(no,nf)%g(n,ns) *GRC(x1,x2,nf)
                       enddo
                    enddo
                 enddo
@@ -769,8 +771,8 @@
                       no_i2 = (obs_corr_ph(no,nf1)%list(n,6)+1)
                       x2    = invlist(i2,no_i2)
                      
-                      Zg1 = cmplx(0.d0, 0.d0, kind(0.d0))
-                      do ns = 1, 2
+                      Zg1 = cmplx( 0.d0, 0.d0, kind(0.d0) )
+                      do ns = 1, N_SUN
                          Zg1 = Zg1 + obs_corr_ph(no,nf1)%g(n,ns)
                       enddo
                       do J = 1, Latt%N
@@ -784,12 +786,13 @@
                                no_j2 = (obs_corr_ph(no,nf2)%list(m,6)+1)
                                y2    = invlist(j2,no_j2)
 
-                               Zg2 = cmplx(0.d0, 0.d0, kind(0.d0))
-                               Zgg = cmplx(0.d0, 0.d0, kind(0.d0))
-                               do ns = 1, 2
+                               Zg2 = cmplx( 0.d0, 0.d0, kind(0.d0) )
+                               Zgg = cmplx( 0.d0, 0.d0, kind(0.d0) )
+                               do ns = 1, N_SUN
                                   Zg2 = Zg2 + obs_corr_ph(no,nf2)%g(m,ns)
                                   if (nf1 == nf2) Zgg = Zgg + obs_corr_ph(no,nf1)%g(n,ns) * obs_corr_ph(no,nf2)%g(m,ns)
                                enddo
+
                                Zeq = cmplx(0.d0, 0.d0, kind(0.d0))
                                Zeq = Zeq + Zg1 * Zg2 * GRC(x1,x2,nf1) * GRC(y1,y2,nf2)
                                if (nf1 == nf2) Zeq = Zeq +  Zgg * GRC(x1,y2,nf1) * GR(x2,y1,nf1)
@@ -909,7 +912,7 @@
                       if (x1 == x2) dx1_x2 = cmplx(1.d0, 0.d0, kind(0.d0))
 
                       Zg1 = cmplx(0.d0, 0.d0, kind(0.d0))
-                      do ns = 1, size(obs_corr_ph(no,nf1)%g,2)
+                      do ns = 1, N_SUN
                          Zg1 = Zg1 + obs_corr_ph(no,nf1)%g(n,ns)
                       enddo
                       do J = 1, Latt%N
@@ -927,7 +930,7 @@
 
                                Zg2 = cmplx(0.d0, 0.d0, kind(0.d0))
                                Zgg = cmplx(0.d0, 0.d0, kind(0.d0))
-                               do ns = 1, size(obs_corr_ph(no,nf2)%g,2)
+                               do ns = 1, N_SUN
                                   Zg2 = Zg2 + obs_corr_ph(no,nf2)%g(m,ns)
                                   if (nf1 == nf2) Zgg = Zgg + obs_corr_ph(no,nf1)%g(n,ns) * obs_corr_ph(no,nf2)%g(m,ns)
                                enddo
