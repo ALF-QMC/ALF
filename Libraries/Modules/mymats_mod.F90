@@ -1340,10 +1340,11 @@
         Complex(Kind=Kind(0.d0)), intent(inout) :: mat(:,:)
 
         integer :: i, info, LDmat
-        integer :: ipiv(N)
+        integer, allocatable :: ipiv(:)
 
         integer :: sgn
 
+        allocate(ipiv(N))
         ipiv = 0
 
         !Lapack LU decomposition

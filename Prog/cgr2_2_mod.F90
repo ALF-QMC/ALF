@@ -234,11 +234,13 @@ module cgr2_2_mod
         Complex (Kind=Kind(0.d0)), intent(inout) :: GRT0(LQ,LQ), GR0T(LQ,LQ), GR00(LQ,LQ), GRTT(LQ,LQ)
 
         ! Local::
-        Complex  (Kind=Kind(0.d0)) :: V1INV(LQ,LQ)
-        Complex  (Kind=Kind(0.d0)) :: D3B(2*LQ)
+        Complex  (Kind=Kind(0.d0)), allocatable :: V1INV(:,:)
+        Complex  (Kind=Kind(0.d0)), allocatable :: D3B(:)
         Complex  (Kind=Kind(0.d0)) :: Z, alpha, beta
         Complex(Kind = Kind(0.D0)), allocatable, Dimension(:, :) :: MYU2, HLPB1, HLPB2, U3B, V3B
         Integer :: LQ2, I,J, NCON
+
+        allocate( V1INV(LQ,LQ), D3B(2*LQ) )
         
         if(udv1%side .ne. "L" .and. udv1%side .ne. "l" ) then
           write(*,*) "calling wrong decompose"
@@ -302,7 +304,8 @@ module cgr2_2_mod
                  HLPB2(I+LQ, J    ) =  udv1%D(I)*conjg(udv1%U(J,I))!udv1%U(I,J)
               ENDDO
            ENDDO
-           HLPB1 = CT(HLPB2)
+           ! HLPB1 = CT(HLPB2)
+           HLPB1 = conjg(transpose(HLPB2))
            
            !CALL UDV_wrap(HLPB1,U3B,D3B,V3B,NCON)
            CALL UDV_wrap_Pivot(HLPB1,U3B,D3B,V3B,NCON,LQ2,LQ2)
@@ -396,7 +399,8 @@ module cgr2_2_mod
                  HLPB2(I+LQ, J    ) = -D2m(I)*udv2%V(I,J)
               ENDDO
            ENDDO
-           HLPB1 = CT(HLPB2)
+           ! HLPB1 = CT(HLPB2)
+           HLPB1 = conjg(transpose(HLPB2))
            call QDRP_decompose(LQ2, LQ2, HLPB1, D3, IPVT, TAU, WORK, LWORK)
            call solve_extended_System(HLPB2, V1INV, MYU2, HLPB1, D3, TAU, IPVT, LQ, WORK, LWORK)
            call get_blocks(GR00, GR0T, GRT0, GRTT, HLPB2, LQ)
@@ -410,7 +414,8 @@ module cgr2_2_mod
                  HLPB2(I+LQ, J    ) =  D1m(I)*conjg(udv1%U(J,I))!udv1%U(I,J)
               ENDDO
            ENDDO
-           HLPB1 = CT(HLPB2)
+           ! HLPB1 = CT(HLPB2)
+           HLPB1 = conjg(transpose(HLPB2))
            call QDRP_decompose(LQ2, LQ2, HLPB1, D3, IPVT, TAU, WORK, LWORK)
            call solve_extended_System(HLPB2, MYU2, V1INV, HLPB1, D3, TAU, IPVT, LQ, WORK, LWORK)
            call get_blocks(GRTT, GRT0, GR0T, GR00, HLPB2, LQ)
