@@ -355,7 +355,7 @@
         !Local
         Integer                   :: N_op, n, nt, n1, n2, i, j, t_leap, nf
         Real    (Kind=Kind(0.d0)) :: X, Xmax,E_kin_old, E_kin_new,T0_Proposal_ratio, weight, cluster_size
-        Real    (kind=kind(0.d0)) :: Delta_t_running
+        Real    (kind=kind(0.d0)) :: Delta_t_running_old, Delta_t_running_new
         Logical                   :: Calc_Obser_eq, toggle
         Real    (Kind=Kind(0.d0)), allocatable :: Det_vec_old(:,:), Det_vec_new(:,:)
         Complex (Kind=Kind(0.d0)), allocatable :: Phase_Det_new(:), Phase_Det_old(:)
@@ -623,16 +623,16 @@
                  endif
               enddo
            enddo
-           Delta_t_running = this%Delta_t_Langevin_HMC
-           If (Xmax > this%Max_Force) Delta_t_running = this%Max_Force*this%Delta_t_Langevin_HMC/Xmax
+           Delta_t_running_old = this%Delta_t_Langevin_HMC
+           If (Xmax > this%Max_Force) Delta_t_running_old = this%Max_Force*this%Delta_t_Langevin_HMC/Xmax
 
            do n = 1, n1
               if (OP_V(n,1)%type == 3 ) then
                  do nt = 1, n2
                     if ( flip_list(n,nt) == 1 ) then
                        nsigma%f(n,nt)   = nsigma%f(n,nt)  -  ( this%Forces_0(n,nt) +  &
-                            &  real( Phase*this%Forces(n,nt),kind(0.d0)) / Real(Phase,kind(0.d0)) ) * Delta_t_running + &
-                            &  sqrt( 2.d0 * Delta_t_running) * rang_wrap()
+                            &  real( Phase*this%Forces(n,nt),kind(0.d0)) / Real(Phase,kind(0.d0)) ) * Delta_t_running_old + &
+                            &  sqrt( 2.d0 * Delta_t_running_old) * rang_wrap()
                     endif
                  enddo
               endif
@@ -643,17 +643,32 @@
            Call this%calc_Forces(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst,&
                    &  LOBS_ST, LOBS_EN, Calc_Obser_eq )
            Call ham%Ham_Langevin_HMC_S0( this%Forces_0)
+           call Control_MALA_Global(this%forces, this%forces_0, flip_list)
+
+           Xmax = 0.d0
+           do n = 1,n1
+              do nt = 1,n2
+                 if ( flip_list(n,nt) == 1 ) then
+                    X = abs(Real(this%Forces  (n,nt), Kind(0.d0)))
+                    if (X > Xmax) Xmax = X
+                    X = abs(Real(this%Forces_0(n,nt), Kind(0.d0)))
+                    if (X > Xmax) Xmax = X
+                 endif
+              enddo
+           enddo
+           Delta_t_running_new = this%Delta_t_Langevin_HMC
+           If (Xmax > this%Max_Force) Delta_t_running_new = this%Max_Force*this%Delta_t_Langevin_HMC/Xmax
 
            t0_proposal_ratio = 1.d0
            do n = 1, n1
               if (OP_V(n,1)%type == 3 ) then
                  do nt = 1, n2
                     if ( flip_list(n,nt) == 1 ) then
-                       t0_proposal_ratio = t0_proposal_ratio * &
-                         & exp(-0.25d0/Delta_t_running * (Abs(nsigma_old%f(n,nt) - nsigma%f(n,nt) + &
-                         & Delta_t_running*(this%forces_0(n,nt) +  real( Phase*this%forces(n,nt),kind(0.d0)) &
-                         &   / Real(Phase,kind(0.d0))) )**2 -  &
-                         & Abs(nsigma%f(n,nt) - nsigma_old%f(n,nt) + Delta_t_running*(forces_0_old(n,nt) + &
+                       t0_proposal_ratio = t0_proposal_ratio * sqrt(Delta_t_running_old/Delta_t_running_new) * &
+                         & exp(-0.25d0/Delta_t_running_new * (Abs(nsigma_old%f(n,nt) - nsigma%f(n,nt) + &
+                         & Delta_t_running_new*(this%forces_0(n,nt) +  real( Phase*this%forces(n,nt),kind(0.d0)) &
+                         &   / Real(Phase,kind(0.d0))) )**2 ) + 0.25d0/Delta_t_running_old * ( &
+                         & Abs(nsigma%f(n,nt) - nsigma_old%f(n,nt) + Delta_t_running_old*(forces_0_old(n,nt) + &
                          & real( phase_old*forces_old(n,nt),kind(0.d0)) / Real(phase_old,kind(0.d0)))  )**2 ) )
                     endif
                  enddo
