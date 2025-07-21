@@ -855,19 +855,19 @@
 !>  Old configuration. The new configuration is stored in nsigma.
 !> \endverbatim
 !-------------------------------------------------------------------
-        Real (Kind=kind(0.d0)) Function Delta_S0_global(Nsigma_old, log_delta)
+        subroutine Delta_S0_global(Nsigma_old, exp_delta_S0, delta_S0)
 
         !  This function computes the ratio:  e^{-S0(nsigma)}/e^{-S0(nsigma_old)}
         Implicit none
 
         ! Arguments
         Type (Fields),  INTENT(IN) :: nsigma_old
-        Real (kind=kind(0.d0)), intent(inout) :: log_delta
+        Real (kind=kind(0.d0)), intent(out) :: exp_delta_S0, delta_S0
 
         real(kind=kind(0.0d0))     :: S0_old, S0_new
         integer                    :: f, t, nfield, ntau
 
-        Delta_S0_global = 1.d0
+        exp_delta_S0 = 1.d0
         nfield=size(nsigma%f,1)
         ntau=size(nsigma%f,2)
         S0_old=0.0d0
@@ -880,11 +880,11 @@
         enddo
         S0_old = 0.5d0*S0_old
         S0_new = 0.5d0*S0_new
-        log_delta = -S0_new+S0_old
-        Delta_S0_global = exp(-S0_new+S0_old)
+        delta_S0 = -S0_new+S0_old
+        exp_delta_S0 = exp(delta_S0)
       !   write(*,*) "S0 old:", S0_old, "S0 new:", S0_new
             ! S0 = exp( (-Hs_new**2  + nsigma%f(n,nt)**2 ) /2.d0 ) 
 
-     end Function Delta_S0_global
+     end subroutine Delta_S0_global
         
     end submodule ham_Hubbard_smod

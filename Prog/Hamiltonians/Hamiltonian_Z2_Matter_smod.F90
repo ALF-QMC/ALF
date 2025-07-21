@@ -655,21 +655,21 @@
 !>  Old configuration. The new configuration is stored in nsigma.
 !> \endverbatim
 !-------------------------------------------------------------------
-        Real (Kind=kind(0.d0)) Function Delta_S0_global(Nsigma_old, log_delta)
+        subroutine Delta_S0_global(Nsigma_old, exp_delta_S0, delta_S0)
 
           !>  This function computes the ratio:  e^{-S0(nsigma)}/e^{-S0(nsigma_old)}
           Implicit none
 
           !> Arguments
           type (Fields),  Intent(IN)  :: nsigma_old
-          Real (kind=kind(0.d0)), intent(inout) :: log_delta
+          Real (kind=kind(0.d0)), intent(out) :: exp_delta_S0, delta_S0
 
           !> Local
           Integer :: I,n,n1,n2,n3,n4,nt,nt1, nc_F, nc_J, nc_h_p, nc_h_m, n1_m, n4_m
 
 
-          Delta_S0_global = 1.d0
-          log_delta=0.d0
+          exp_delta_S0 = 1.d0
+          delta_S0=0.d0
           If ( Model == "Z2_Matter" ) then
              nc_F = 0
              nc_J = 0
@@ -717,11 +717,11 @@
 
                 enddo
              enddo
-             Delta_S0_global = ( sinh(Dtau*Ham_h)**nc_h_m ) * (cosh(Dtau*Ham_h)**nc_h_p) * &
+             exp_delta_S0 = ( sinh(Dtau*Ham_h)**nc_h_m ) * (cosh(Dtau*Ham_h)**nc_h_p) * &
                   &            exp( -Dtau*(Ham_K*real(nc_F,kind(0.d0)) + Ham_J*real(nc_J,kind(0.d0))))
-             log_delta = log(Delta_S0_global) ! This can be done better
+             delta_S0 = log(exp_delta_S0) ! This can be done better
           endif
-        end Function Delta_S0_global
+        end subroutine Delta_S0_global
 
 !--------------------------------------------------------------------
 !> @author

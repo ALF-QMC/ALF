@@ -330,20 +330,20 @@
     !>  Old configuration. The new configuration is stored in nsigma.
     !> \endverbatim
     !-------------------------------------------------------------------
-          Real (Kind=kind(0.d0)) Function Delta_S0_global_base(Nsigma_old, log_delta)
+          subroutine Delta_S0_global_base(Nsigma_old, exp_delta_S0, delta_S0)
 
              !  This function computes the ratio:  e^{-S0(nsigma)}/e^{-S0(nsigma_old)}
              Implicit none
 
              ! Arguments
              Type (Fields),  INTENT(IN) :: nsigma_old
-             Real (kind=kind(0.d0)), intent(inout) :: log_delta
+             Real (kind=kind(0.d0)), intent(out) :: exp_delta_S0, delta_S0
 
              Logical, save              :: first_call=.True.
              integer                    :: field_id, tau, Nfields, Ntau
              Complex (kind=kind(0.0d0)) :: Hs_old
 
-             Delta_S0_global_base = 1.d0
+             exp_delta_S0 = 1.d0
              Nfields=size(nsigma_old%f,1)
              Ntau=size(nsigma_old%f,2)
              do tau=1,Ntau
@@ -353,10 +353,10 @@
                    Hs_old  =nsigma_old%f(field_id,tau)
                    ! note we need exp(-S0(new))/exp(-S0(old)) but nsigma is already the new config and we provide HS_old
                    ! in contrast to HS_new. Hence, S0 returns the inverse of whar we need!
-                   Delta_S0_global_base=Delta_S0_global_base/ham%S0(field_id,tau,Hs_old)
+                   exp_delta_S0=exp_delta_S0/ham%S0(field_id,tau,Hs_old)
                 enddo
              enddo
-             log_delta = log(Delta_S0_global_base)
+             delta_S0 = log(exp_delta_S0)
 
              if (first_call) then
                 write(output_unit,*)
@@ -368,7 +368,7 @@
                 first_call=.False.
              endif
 
-          end Function Delta_S0_global_base
+          end subroutine Delta_S0_global_base
 
 
     !--------------------------------------------------------------------
