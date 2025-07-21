@@ -1,7 +1,7 @@
 # Log of backward compatibility changes and critical bugs
 
 ## ALF 2.6
-ALF 2.6  released  on 2023-??-??
+ALF 2.6  (to be) released on 2025-??-??
 
 ### 2024-07-10 Fix: Lattice in data.h5: Mixup of Norb and N_coord
 Author: J. Schwab

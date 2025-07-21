@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.11)
+cmake_minimum_required(VERSION 3.5)
 Project(matmod.tests C Fortran)
 
 add_executable(1-diag-real-matrix 1-diag-real-matrix.F90)
