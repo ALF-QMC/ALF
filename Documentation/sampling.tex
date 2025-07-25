@@ -74,7 +74,7 @@ In the following we use one of our examples, the Hubbard model on a square latti
 In order to determine the autocorrelation time, we calculate the correlation function
 \begin{equation}
 \label{eqn:autocorrel}
-	S_{\hat{O}}(t_{\textrm{Auto}})=\sum_{i=1}^{N_{\textrm{Bin}}-t_{\textrm{Auto}}}\frac{\left(O_i-\left\langle \hat{O}\right\rangle \right)\left(O_{i+t_{\textrm{Auto}}}-\left\langle \hat{O}\right\rangle \right)}{\left(O_i-\left\langle \hat{O}\right\rangle \right)\left(O_{i}-\left\langle \hat{O}\right\rangle \right)}\, ,
+	S_{\hat{O}}(t_{\textrm{Auto}})=\frac{\sum_{i=1}^{N_{\textrm{Bin}}-t_{\textrm{Auto}}}\left(O_i-\left\langle \hat{O}\right\rangle \right)\left(O_{i+t_{\textrm{Auto}}}-\left\langle \hat{O}\right\rangle \right)}{\sum_{i=1}^{N_{\textrm{Bin}}-t_{\textrm{Auto}}}\left(O_i-\left\langle \hat{O}\right\rangle \right)\left(O_{i}-\left\langle \hat{O}\right\rangle \right)}\, ,
 \end{equation}
 where $O_i$ refers to the Monte Carlo estimate of the observable $\hat{O}$ in the $i^{\text{th}}$ bin. This function typically shows an exponential decay and the decay rate defines the autocorrelation time.
 %
