@@ -35,7 +35,7 @@
 !> ALF-project
 !>
 !> @brief
-!> This File is a template for defining new models. 
+!> This File is a template for defining new models.
 !> One can define a new model class by copying this file, replacing alle occurences
 !> of ##NAME## by the Hamiltonian name, populating the subroutines below as needed
 !> adding the Hamiltonian name to the file Prog/Hamiltonians.list.
@@ -163,7 +163,7 @@
       Integer, allocatable :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
 
       !Variables for observables
-      type (operator_matrix), allocatable :: obs_scal_ph(:,:), obs_corr_ph(:,:)
+      type (operator_matrix), allocatable :: obs_scal_ph(:), obs_corr_ph(:)
 
     contains
       
@@ -352,7 +352,7 @@
 
              ham_t_max = 0.d0
              do nh = 1, n_hop
-                if ( hop_diag(nh) == 0 .and. abs(hopping(nf)%g(nh,1)) > ham_t_max ) ham_t_max = abs(hopping(nf)%g(nh,1))
+                if ( hop_diag(nh) == 0 .and. abs(hopping(nf)%g(nh)) > ham_t_max ) ham_t_max = abs(hopping(nf)%g(nh))
              enddo
 
              Hopping_Matrix(nf)%N_bonds = 0
@@ -366,7 +366,7 @@
                    if (hop_diag(nh) == 0) then
 
                       nc = nc + 1
-                      hopping_matrix(nf)%T(nc) = - hopping(nf)%g(nh,1)
+                      hopping_matrix(nf)%T(nc) = - hopping(nf)%g(nh)
                       hopping_matrix(nf)%list(nc,1) = hopping(nf)%list(nh,1)+1
                       hopping_matrix(nf)%list(nc,2) = hopping(nf)%list(nh,4)+1
                       hopping_matrix(nf)%list(nc,3) = hopping(nf)%list(nh,2)
@@ -381,7 +381,7 @@
              do nh = 1, n_hop
                 if (hop_diag(nh) == 1) then
                    no = hopping(nf)%list(nh,1)+1
-                   hopping_matrix(nf)%t_loc(no) = - hopping(nf)%g(nh,1)
+                   hopping_matrix(nf)%t_loc(no) = - hopping(nf)%g(nh)
                 endif
              enddo
 
@@ -507,8 +507,8 @@
                  x2 = nc
               endif
 
-              Op%O(x1,x2) =        this%g(n,1)
-              Op%O(x2,x1) = CONJG( this%g(n,1) )
+              Op%O(x1,x2) =        this%g(n)
+              Op%O(x2,x1) = CONJG( this%g(n) )
 
            enddo
 
@@ -578,7 +578,9 @@
           Character (len=:), allocatable ::  Channel
           Character (len=64), allocatable ::  File(:)
 
-           call read_obs_scal_ph(obs_scal_ph,file,N_Fl,N_SUN,Group_Comm)
+          !Additional observables like Kin, Pot, SpinZ, Green, ... for debugging
+
+           call read_obs_scal_ph(obs_scal_ph,file,Group_Comm)
            N_obs_scal_ph = size(obs_scal_ph,1)
 
            ! Scalar observables
@@ -600,7 +602,7 @@
 
            deallocate(file)
 
-           call read_obs_corr(obs_corr_ph,file,N_Fl,N_SUN,Group_Comm)
+           call read_obs_corr(obs_corr_ph,file,Group_Comm)
            N_obs_corr_ph = size(obs_corr_ph,1)
  
            ! Equal time correlators
@@ -676,11 +678,13 @@
 
           !Local
           Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL)
-          Complex (Kind=Kind(0.d0)) :: ZP, ZS, ZN, Zg1, Zg2, Zgg
+          Complex (Kind=Kind(0.d0)) :: ZP, ZS, ZN
           Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Zlocal, ZZ, ZDen, Zeq
           Integer :: I, J, nf, i1, no_i, i2, no, n, no_1, no_2, j1, no_j, j2, imj, m
-          integer :: x1, x2, y1, y2, no_i1, no_i2, no_j1, no_j2, nf1, nf2, ns
+          integer :: x1, x2, y1, y2, no_i1, no_i2, no_j1, no_j2, nf1, nf2, ns1, ns2
+          integer :: nf3, nf4, ns3, ns4, x3, x4
           integer :: N_obs_scal_ph, N_obs_corr_ph
+          logical :: nonzero
           ! Add local variables as needed
 
           ZP = PHASE/Real(Phase, kind(0.D0))
@@ -711,27 +715,25 @@
              Zlocal = cmplx(0.d0, 0.d0, kind(0.d0))
       
              do i = 1, Latt%N
-                do nf = 1, N_Fl
-                   do n = 1, size(obs_scal_ph(no,nf)%list,1)
-                      i1   = latt%nnlist(i,obs_scal_ph(no,nf)%list(n,1),obs_scal_ph(no,nf)%list(n,2))
-                      no_1 = (obs_scal_ph(no,nf)%list(n,3)+1)
-                      x1   = invlist(i1,no_1)
-               
-                      i2   = latt%nnlist(i,obs_scal_ph(no,nf)%list(n,4),obs_scal_ph(no,nf)%list(n,5))
-                      no_2 = (obs_scal_ph(no,nf)%list(n,6)+1)
-                      x2   = invlist(i2,no_2)
+                do n = 1, size(obs_scal_ph(no)%list,1)
+                   i1   = latt%nnlist(i,obs_scal_ph(no)%list(n,1),obs_scal_ph(no)%list(n,2))
+                   no_1 = obs_scal_ph(no)%list(n,3)
+                   x1   = invlist(i1,no_1)
 
-                      do ns = 1, N_SUN
-                         Zlocal = Zlocal +   obs_scal_ph(no,nf)%g(n,ns) *GRC(x1,x2,nf)
-                      enddo
-                   enddo
+                   nf   = obs_scal_ph(no)%list(n,4)
+               
+                   i2   = latt%nnlist(i,obs_scal_ph(no)%list(n,5),obs_scal_ph(no)%list(n,6))
+                   no_2 = obs_scal_ph(no)%list(n,7)
+                   x2   = invlist(i2,no_2)
+
+                   Zlocal = Zlocal +   obs_scal_ph(no)%g(n) *GRC(x1,x2,nf)
                 enddo
              enddo
    
-             Obs_scal(no)%Obs_vec(1)  =    Obs_scal(no)%Obs_vec(1) + Zlocal *ZP* ZS
+             Obs_scal(no)%Obs_vec(1)  =    Obs_scal(no)%Obs_vec(1) + Zlocal * dble(N_SUN) * ZP*ZS
           enddo
 
-
+          !Additional observables like Kin, Pot, SpinZ, Green, ... for debugging
           Zkin = cmplx(0.d0, 0.d0, kind(0.D0))
           Call Predefined_Hoppings_Compute_Kin(Hopping_Matrix,List,Invlist, Latt, Latt_unit, GRC, ZKin)
           Zkin = Zkin* dble(N_SUN)
@@ -762,50 +764,36 @@
              Obs_eq(no)%Ave_sign = Obs_eq(no)%Ave_sign + real(ZS,kind(0.d0))
 
              do I = 1, Latt%N
-                do nf1 = 1, N_Fl
-                   do n = 1, size(obs_corr_ph(no,nf1)%list,1)
-                      i1    = latt%nnlist(i,obs_corr_ph(no,nf1)%list(n,1),obs_corr_ph(no,nf1)%list(n,2))
-                      no_i1 = (obs_corr_ph(no,nf1)%list(n,3)+1)
-                      x1    = invlist(i1,no_i1)
-                      i2    = latt%nnlist(i,obs_corr_ph(no,nf1)%list(n,4),obs_corr_ph(no,nf1)%list(n,5))
-                      no_i2 = (obs_corr_ph(no,nf1)%list(n,6)+1)
-                      x2    = invlist(i2,no_i2)
-                     
-                      Zg1 = cmplx( 0.d0, 0.d0, kind(0.d0) )
-                      do ns = 1, N_SUN
-                         Zg1 = Zg1 + obs_corr_ph(no,nf1)%g(n,ns)
-                      enddo
-                      do J = 1, Latt%N
-                         imj = Latt%imj(I,J)
-                         do nf2 = 1, N_Fl
-                            do m = 1, size(obs_corr_ph(no,nf2)%list,1)
-                               j1    = latt%nnlist(j,obs_corr_ph(no,nf2)%list(m,1),obs_corr_ph(no,nf2)%list(m,2))
-                               no_j1 = (obs_corr_ph(no,nf2)%list(m,3)+1)
-                               y1    = invlist(j1,no_j1)
-                               j2    = latt%nnlist(j,obs_corr_ph(no,nf2)%list(m,4),obs_corr_ph(no,nf2)%list(m,5))
-                               no_j2 = (obs_corr_ph(no,nf2)%list(m,6)+1)
-                               y2    = invlist(j2,no_j2)
+                do n = 1, size(obs_corr_ph(no)%list,1)
+                   call set_sites_observables(obs_corr_ph(no)%list(n,:),i,x1,nf1,ns1,x2,nf2,ns2)
 
-                               Zg2 = cmplx( 0.d0, 0.d0, kind(0.d0) )
-                               Zgg = cmplx( 0.d0, 0.d0, kind(0.d0) )
-                               do ns = 1, N_SUN
-                                  Zg2 = Zg2 + obs_corr_ph(no,nf2)%g(m,ns)
-                                  if (nf1 == nf2) Zgg = Zgg + obs_corr_ph(no,nf1)%g(n,ns) * obs_corr_ph(no,nf2)%g(m,ns)
-                               enddo
+                   do J = 1, Latt%N
+                      imj = Latt%imj(I,J)
+                      Zeq = cmplx(0.d0, 0.d0, kind(0.d0))
+                      do m = 1, size(obs_corr_ph(no)%list,1)
+                         call set_sites_observables(obs_corr_ph(no)%list(m,:),j,x3,nf3,ns3,x4,nf4,ns4)
 
-                               Zeq = cmplx(0.d0, 0.d0, kind(0.d0))
-                               Zeq = Zeq + Zg1 * Zg2 * GRC(x1,x2,nf1) * GRC(y1,y2,nf2)
-                               if (nf1 == nf2) Zeq = Zeq +  Zgg * GRC(x1,y2,nf1) * GR(x2,y1,nf1)
-                               Obs_eq(no)%Obs_latt(imj,1,1,1) = Obs_eq(no)%Obs_latt(imj,1,1,1) + Zeq*ZP*ZS
-                            enddo
-                         enddo
+                         nonzero = (nf1 == nf2 .and. ns1 == ns2) .and. (nf3 == nf4 .and. ns3 == ns4)
+                         if (nonzero) then
+                            Zeq = Zeq + obs_corr_ph(no)%g(n)*obs_corr_ph(no)%g(m) * GRC(x1,x2,nf1)*GRC(x3,x4,nf3)
+                         endif
+
+                         nonzero = (nf1 == nf4 .and. ns1 == ns4) .and. (nf2 == nf3 .and. ns2 == ns3)
+                         if (nonzero) then
+                            Zeq = Zeq + obs_corr_ph(no)%g(n)*obs_corr_ph(no)%g(m) * GRC(x1,x4,nf1)*GR (x2,x3,nf2)
+                         endif
+
                       enddo
-                      Obs_eq(no)%Obs_latt0(1) = Obs_eq(no)%Obs_latt0(1) + Zg1 * GRC(x1,x2,nf1) *ZP*ZS
+                      Obs_eq(no)%Obs_latt(imj,1,1,1) = Obs_eq(no)%Obs_latt(imj,1,1,1) + Zeq*ZP*ZS
                    enddo
+                   if (nf1 == nf2 .and. ns1 == ns2) then
+                      Obs_eq(no)%Obs_latt0(1) = Obs_eq(no)%Obs_latt0(1) + obs_corr_ph(no)%g(n) * GRC(x1,x2,nf1) *ZP*ZS
+                   endif
                 enddo
              enddo
           enddo
 
+          !Additional observables like Kin, Pot, SpinZ, Green, ... for debugging
           Call Predefined_Obs_eq_Green_measure  ( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(N_obs_corr_ph+1) )
 
           Obs_eq(N_obs_corr_ph+2)%N        = Obs_eq(N_obs_corr_ph+2)%N + 1
@@ -879,10 +867,11 @@
           Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
           
           !Locals
-          Complex (Kind=Kind(0.d0)) :: ZP, ZS, Zden, ZZ, Ztau, ZN, dx1_x2, dy1_y2
-          Complex (Kind=Kind(0.d0)) :: Zg1, Zg2, Zgg
+          Complex (Kind=Kind(0.d0)) :: ZP, ZS, Zden, ZZ, Ztau, ZN, dx1_x2, dx3_x4
           Integer :: N_obs_corr_ph, i1, i2, j1, j2, no_i, no_j, i, j, imj, no, ns
           Integer :: n, no_i1, x1, no_i2, x2, m, no_j1, y1, no_j2, y2, nf1, nf2
+          Integer :: x3, x4, nf3, nf4, ns1, ns2, ns3, ns4
+          Logical :: nonzero
           ! Add local variables as needed
 
           ZP = PHASE/Real(Phase, kind(0.D0))
@@ -900,54 +889,39 @@
              endif
 
              do I = 1, Latt%N
-                do nf1 = 1, N_FL
-                   do n = 1, size(obs_corr_ph(no,nf1)%list,1)
-                      i1     = latt%nnlist(i,obs_corr_ph(no,nf1)%list(n,1),obs_corr_ph(no,nf1)%list(n,2))
-                      no_i1  = (obs_corr_ph(no,nf1)%list(n,3)+1)
-                      x1     = invlist(i1,no_i1)
-                      i2     = latt%nnlist(i,obs_corr_ph(no,nf1)%list(n,4),obs_corr_ph(no,nf1)%list(n,5))
-                      no_i2  = (obs_corr_ph(no,nf1)%list(n,6)+1)
-                      x2     = invlist(i2,no_i2)
-                      dx1_x2 = cmplx(0.d0, 0.d0, kind(0.d0))
-                      if (x1 == x2) dx1_x2 = cmplx(1.d0, 0.d0, kind(0.d0))
+                do n = 1, size(obs_corr_ph(no)%list,1)
+                   call set_sites_observables(obs_corr_ph(no)%list(n,:),i,x1,nf1,ns1,x2,nf2,ns2)
+                   dx1_x2 = cmplx(0.d0, 0.d0, kind(0.d0))
+                   if (x1 == x2) dx1_x2 = cmplx(1.d0, 0.d0, kind(0.d0))
 
-                      Zg1 = cmplx(0.d0, 0.d0, kind(0.d0))
-                      do ns = 1, N_SUN
-                         Zg1 = Zg1 + obs_corr_ph(no,nf1)%g(n,ns)
+                   do J = 1, Latt%N
+                      imj = Latt%imj(I,J)
+                      Ztau = cmplx(0.d0, 0.d0, kind(0.d0))
+                      do m = 1, size(obs_corr_ph(no)%list,1)
+                         call set_sites_observables(obs_corr_ph(no)%list(m,:),j,x3,nf3,ns3,x4,nf4,ns4)
+                         dx3_x4 = cmplx(0.d0, 0.d0, kind(0.d0))
+                         if (x3 == x4) dx3_x4 = cmplx(1.d0, 0.d0, kind(0.d0))
+
+                         nonzero = (nf1 == nf2 .and. ns1 == ns2) .and. (nf3 == nf4 .and. ns3 == ns4)
+                         if (nonzero) then
+                            Ztau = Ztau + obs_corr_ph(no)%g(n) * obs_corr_ph(no)%g(m) * ((dx1_x2 - GTT(x2,x1,nf1))*(dx3_x4 - G00(x4,x3,nf3)))
+                         endif
+
+                         nonzero = (nf1 == nf4 .and. ns1 == ns4) .and. (nf2 == nf3 .and. ns2 == ns3)
+                         if (nonzero) then
+                            Ztau = Ztau - obs_corr_ph(no)%g(n) * &
+                               & obs_corr_ph(no)%g(m) * G0T(x4,x1,nf1)*GT0(x2,x3,nf2)
+                         endif
+
                       enddo
-                      do J = 1, Latt%N
-                         imj = Latt%imj(I,J)
-                         do nf2 = 1, N_Fl
-                            do m = 1, size(obs_corr_ph(no,nf2)%list,1)
-                               j1    = latt%nnlist(j,obs_corr_ph(no,nf2)%list(m,1),obs_corr_ph(no,nf2)%list(m,2))
-                               no_j1 = (obs_corr_ph(no,nf2)%list(m,3)+1)
-                               y1    = invlist(j1,no_j1)
-                               j2    = latt%nnlist(j,obs_corr_ph(no,nf2)%list(m,4),obs_corr_ph(no,nf2)%list(m,5))
-                               no_j2 = (obs_corr_ph(no,nf2)%list(m,6)+1)
-                               y2    = invlist(j2,no_j2)
-                               dy1_y2 = cmplx(0.d0, 0.d0, kind(0.d0))
-                               if (y1 == y2) dy1_y2 = cmplx(1.d0, 0.d0, kind(0.d0))
-
-                               Zg2 = cmplx(0.d0, 0.d0, kind(0.d0))
-                               Zgg = cmplx(0.d0, 0.d0, kind(0.d0))
-                               do ns = 1, N_SUN
-                                  Zg2 = Zg2 + obs_corr_ph(no,nf2)%g(m,ns)
-                                  if (nf1 == nf2) Zgg = Zgg + obs_corr_ph(no,nf1)%g(n,ns) * obs_corr_ph(no,nf2)%g(m,ns)
-                               enddo
-
-                               Ztau = cmplx(0.d0, 0.d0, kind(0.d0))
-                               Ztau = Ztau + Zg1 * Zg2 * ((dx1_x2 - GTT(x2,x1,nf1))*(dy1_y2 - G00(y2,y1,nf2)))
-                               if (nf1 == nf2) Ztau = Ztau - Zgg * (G0T(y2,x1,1)*GT0(x2,y1,1))
-                               Obs_tau(no)%Obs_latt(imj,nt+1,1,1) = Obs_tau(no)%Obs_latt(imj,nt+1,1,1) + Ztau*ZP*ZS
-                            enddo
-                         enddo
-                      enddo
-                      Obs_tau(no)%Obs_latt0(1) = Obs_tau(no)%Obs_latt0(1) + Zg1*(dx1_x2 - GTT(x2,x1,nf1)) *ZP*ZS
+                      Obs_tau(no)%Obs_latt(imj,nt+1,1,1) = Obs_tau(no)%Obs_latt(imj,nt+1,1,1) + Ztau*ZP*ZS
                    enddo
+                   Obs_tau(no)%Obs_latt0(1) = Obs_tau(no)%Obs_latt0(1) + obs_corr_ph(no)%g(n)*(dx1_x2 - GTT(x2,x1,nf1)) *ZP*ZS
                 enddo
              enddo
           enddo
 
+          !Additional observables like Kin, Pot, SpinZ, Green, ... for debugging
           call Predefined_Obs_tau_Green_measure( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, &
                   &   Obs_tau(N_obs_corr_ph+1) )
 
@@ -987,5 +961,35 @@
           enddo
 
         end Subroutine OBSERT
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> sets site, flavor and color of both c operators for a given term of an observable
+!--------------------------------------------------------------------
+
+        Subroutine  set_sites_observables(list,i,site1,flavor1,color1,site2,flavor2,color2)
+
+           implicit none
+           integer, intent(in)  :: list(:), i
+           integer, intent(out) :: site1, flavor1, color1, site2, flavor2, color2
+
+           integer :: i1, no_i1, i2, no_i2
+
+           i1      = latt%nnlist(i,list(1),list(2))
+           no_i1   = list(3)
+           site1   = invlist(i1,no_i1)
+           flavor1 = list(4)
+           color1  = list(5)
+
+           i2      = latt%nnlist(i,list(6),list(7))
+           no_i2   = list(8)
+           site2   = invlist(i2,no_i2)
+           flavor2 = list(9)
+           color2  = list(10)
+
+        end subroutine set_sites_observables
         
     end submodule ham_Portable_smod
