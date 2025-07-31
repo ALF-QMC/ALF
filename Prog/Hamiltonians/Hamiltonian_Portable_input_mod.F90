@@ -56,27 +56,47 @@ module Hamiltonian_Portable_input_mod
       !
       ! c) scalar observable in particle-hole channel <obs_scal_ph.txt>:
       ! \sum_R \langle \hat{O}_R \rangle
-      ! with \hat{O}_R = \sum_s \sum_{\sigma} \sum_n ( \hat{c}^{\dagger}_{x,s,\sigma} O_{k,n,s,\sigma} \hat{c}_{y,s,\sigma} )
-      ! with x and y as in b)
+      ! with \hat{O}_R =  \sum_n \sum_sigma ( \hat{c}^{\dagger}_{x,s_n,\sigma} O_{n} \hat{c}_{y,s_n,\sigma} )
+      ! with x = (R + n_{1,1}^{n} a_1 + n_{1,2}^{n} a_2, \mu_1^{n}) and y = (R + n_{2,1}^{n} a_1 + n_{2,2}^{n} a_2, \mu_2^{n})
       !
       ! d) correlation function in particle-hole channel <obs_corr_ph.txt>:
       ! \sum_{R_1,R_2} ( \langle \hat{O}_{R_1} \hat{O}_{R_2} \rangle - \langle \hat{O}_{R_1} \rangle \langle \hat{O}_{R_2} \rangle )
-      ! with \hat{O}_R as in c)
+      ! with \hat{O}_R =  \sum_n ( \hat{c}^{\dagger}_{x,s_{n,1},\sigma_{n,1}} O_{n} \hat{c}_{y,s_{n,2},\sigma_{n,2}} )
+      ! with x and y as defined in c)
       !
       ! list      : list that contains information for shift of unit cells, orbitals, and spin
-      !             i)  hoppings.txt:
-      !                 list(n,1) = orbital 1 \mu_1^{n,s}
-      !                 list(n,2) = shift of unit cell with vector a_1 n_1^{n,s}
-      !                 list(n,3) = shift of unit cell with vector a_2 n_2^{n,s}
-      !                 list(n,4) = orbital 2 \mu_2^{n,s}
-      !             ii) potentials.txt, obs_scal_ph.txt, obs_corr_ph.txt:
-      !                 list(n,1) = shift 1 of unit cell with vector a_1 n_{1,1}^{k,n,s}
-      !                 list(n,2) = shift 1 of unit cell with vector a_2 n_{1,2}^{k,n,s}
-      !                 list(n,3) = orbital 1 \mu_1^{k,n,s}
-      !                 list(n,4) = shift 2 of unit cell with vector a_1 n_{2,1}^{k,n,s}
-      !                 list(n,5) = shift 2 of unit cell with vector a_2 n_{2,2}^{k,n,s}
-      !                 list(n,6) = orbital 2 \mu_2^{k,n,s}
-      ! g         : matrix elements for hopping (T_{n,s}), interaction (g_{k,n,s}), observables (O_{k,n,s,\sigma})
+      !             i)   hoppings.txt:
+      !                  list(n,1)  = orbital 1 \mu_1^{n,s}
+      !                  list(n,2)  = shift of unit cell with vector a_1 n_1^{n,s}
+      !                  list(n,3)  = shift of unit cell with vector a_2 n_2^{n,s}
+      !                  list(n,4)  = orbital 2 \mu_2^{n,s}
+      !             ii)  potentials.txt:
+      !                  list(n,1)  = shift 1 of unit cell with vector a_1 n_{1,1}^{k,n,s}
+      !                  list(n,2)  = shift 1 of unit cell with vector a_2 n_{1,2}^{k,n,s}
+      !                  list(n,3)  = orbital 1 \mu_1^{k,n,s}
+      !                  list(n,4)  = shift 2 of unit cell with vector a_1 n_{2,1}^{k,n,s}
+      !                  list(n,5)  = shift 2 of unit cell with vector a_2 n_{2,2}^{k,n,s}
+      !                  list(n,6)  = orbital 2 \mu_2^{k,n,s}
+      !             iii) obs_scal_ph.txt:
+      !                  list(n,1)  = shift 1 of unit cell with vector a_1 n_{1,1}^{n}
+      !                  list(n,2)  = shift 1 of unit cell with vector a_2 n_{1,2}^{n}
+      !                  list(n,3)  = orbital 1 \mu_1^{n}
+      !                  list(n,4)  = flavor 1 s_n
+      !                  list(n,5)  = shift 2 of unit cell with vector a_1 n_{2,1}^{n}
+      !                  list(n,6)  = shift 2 of unit cell with vector a_2 n_{2,2}^{n}
+      !                  list(n,7)  = orbital 2 \mu_2^{n}
+      !             iv)  obs_corr_ph.txt:
+      !                  list(n,1)  = shift 1 of unit cell with vector a_1 n_{1,1}^{n}
+      !                  list(n,2)  = shift 1 of unit cell with vector a_2 n_{1,2}^{n}
+      !                  list(n,3)  = orbital 1 \mu_1^{n}
+      !                  list(n,4)  = flavor 1 s_{n,1}
+      !                  list(n,5)  = color 1 \sigma_{n,1}
+      !                  list(n,6)  = shift 2 of unit cell with vector a_1 n_{2,1}^{n}
+      !                  list(n,7)  = shift 2 of unit cell with vector a_2 n_{2,2}^{n}
+      !                  list(n,8)  = orbital 2 \mu_2^{n}
+      !                  list(n,9)  = flavor 2 s_{n,2}
+      !                  list(n,10) = color 2 \sigma_{n,2}
+      ! g         : matrix elements for hopping (T_{n,s}), interaction (g_{k,n,s}), observables (O_{n})
       ! u         : only for interactions b)
       !             prefactor U_k of interaction terms
       ! alpha     : only for interactions b)
