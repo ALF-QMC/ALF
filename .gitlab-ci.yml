@@ -136,6 +136,7 @@ create_doc:
     - doxygen doxygen/Doxyfile
     - cd Documentation
     - latexmk -pdf doc.tex
+    - make doc.html
 
 pages:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bookworm-buildd
