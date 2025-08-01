@@ -108,6 +108,8 @@ Once you have run the configuration script, change directory to Libraries, and t
 
 We have about 30 tests that test various parts of the program in the folder testsuite.
 As testing framework we employ CTest.
+To run the tests, the ALF package must first be compiled, which can be done with a minimal setup by executing
+- source configure.sh gnu nompi
 From the subfolder testsuite the tests can be run as follows
 - mkdir tests
 - cd tests
