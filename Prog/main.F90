@@ -113,7 +113,8 @@
 
 
 Program Main
-
+        
+        Use MC_runtime_var
         Use runtime_error_mod
         Use Operator_mod
         Use Lattices_v3
@@ -124,7 +125,6 @@ Program Main
         Use Tau_p_mod
         Use Hop_mod
         Use Global_mod
-        Use UDV_State_mod
         Use Wrapgr_mod
         Use Fields_mod
         Use WaveFunction_mod
@@ -139,6 +139,7 @@ Program Main
 #ifdef MPI
         Use mpi
 #endif
+
 #ifdef HDF5
         use hdf5
         use h5lt
@@ -146,75 +147,22 @@ Program Main
         Implicit none
 
 #include "git.h"
+       COMPLEX (Kind=Kind(0.d0)), Dimension(:,:)  , Allocatable   ::  TEST
+       COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable    :: GR, GR_Tilde
+       CLASS(UDV_State), DIMENSION(:), ALLOCATABLE :: udvl, udvr
+       COMPLEX (Kind=Kind(0.d0)), Dimension(:)  , Allocatable   :: Phase_array
 
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:)  , Allocatable   ::  TEST
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable    :: GR, GR_Tilde
-        CLASS(UDV_State), DIMENSION(:), ALLOCATABLE :: udvl, udvr
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:)  , Allocatable   :: Phase_array
-
-
-        Integer :: Nwrap, NSweep, NBin, NBin_eff,Ltau, NSTM, NT, NT1, NVAR, LOBS_EN, LOBS_ST, NBC, NSW
-        Integer :: NTAU, NTAU1
-        Real(Kind=Kind(0.d0)) :: CPU_MAX
-        Character (len=64) :: file_seeds, file_para, file_dat, file_info, ham_name
-        Integer :: Seed_in
-        Complex (Kind=Kind(0.d0)) , allocatable, dimension(:,:) :: Initial_field
-
-        ! Space for choosing sampling scheme
-        Logical :: Propose_S0, Tempering_calc_det
-        Logical :: Global_moves, Global_tau_moves
-        Integer :: N_Global
-        Integer :: Nt_sequential_start, Nt_sequential_end, mpi_per_parameter_set
-        Integer :: N_Global_tau
-        Logical :: Sequential
-        real (Kind=Kind(0.d0)) ::  Amplitude  !    Needed for  update of  type  3  and  4  fields.
 
 #ifdef HDF5
         INTEGER(HID_T) :: file_id
         Logical :: file_exists
 #endif
-        !  Space for reading in Langevin & HMC  parameters
-        Logical                      :: Langevin,  HMC
-        Integer                      :: Leapfrog_Steps, N_HMC_sweeps
-        Real  (Kind=Kind(0.d0))      :: Delta_t_Langevin_HMC, Max_Force
+        
           
 #if defined(TEMPERING)
         Integer :: N_exchange_steps, N_Tempering_frequency
         NAMELIST /VAR_TEMP/  N_exchange_steps, N_Tempering_frequency, mpi_per_parameter_set, Tempering_calc_det
 #endif
-
-        NAMELIST /VAR_QMC/   Nwrap, NSweep, NBin, Ltau, LOBS_EN, LOBS_ST, CPU_MAX, &
-             &               Propose_S0,Global_moves,  N_Global, Global_tau_moves, &
-             &               Nt_sequential_start, Nt_sequential_end, N_Global_tau, &
-             &               sequential, Langevin, HMC, Delta_t_Langevin_HMC, &
-             &               Max_Force, Leapfrog_steps, N_HMC_sweeps, Amplitude
-
-        NAMELIST /VAR_HAM_NAME/ ham_name
-
-        !  General
-        Integer :: Ierr, I,nf, nf_eff, nst, n, n1, N_op
-        Logical :: Toggle,  Toggle1
-        Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Phase, Z, Z1
-        Real    (Kind=Kind(0.d0)) :: ZERO = 10D-8, X, X1
-        Real    (Kind=Kind(0.d0)) :: Mc_step_weight
-
-        ! Storage for  stabilization steps
-        Integer, dimension(:), allocatable :: Stab_nt 
-
-        ! Space for storage.
-        CLASS(UDV_State), Dimension(:,:), ALLOCATABLE :: udvst
-
-        ! For tests
-        Real (Kind=Kind(0.d0)) :: Weight, Weight_tot
-
-        ! For the truncation of the program:
-        logical                   :: prog_truncation, run_file_exists
-        integer (kind=kind(0.d0)) :: count_bin_start, count_bin_end
-        
-        ! For MPI shared memory
-        character(64), parameter :: name="ALF_SHM_CHUNK_SIZE_GB"
-        character(64) :: chunk_size_str
-        Real    (Kind=Kind(0.d0)) :: chunk_size_gb
 
 #ifdef MPI
         Integer        :: Isize, Irank, Irank_g, Isize_g, color, key, igroup, MPI_COMM_i
