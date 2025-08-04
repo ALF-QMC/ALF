@@ -114,7 +114,7 @@
 
 Program Main
         
-        Use MC_runtime_var
+        Use QMC_runtime_var
         Use runtime_error_mod
         Use Operator_mod
         Use Lattices_v3

@@ -29,7 +29,7 @@
 !     - If you make substantial changes to the program we require you to either consider contributing
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
-Module MC_runtime_var
+Module QMC_runtime_var
 
         Use UDV_State_mod
 
@@ -90,4 +90,4 @@ Module MC_runtime_var
         character(64) :: chunk_size_str
         Real    (Kind=Kind(0.d0)) :: chunk_size_gb
 
-end Module MC_runtime_var
+end Module QMC_runtime_var
