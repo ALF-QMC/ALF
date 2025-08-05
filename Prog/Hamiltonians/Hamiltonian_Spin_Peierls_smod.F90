@@ -96,10 +96,6 @@
 !> @param [public] Projector
 !> \verbatim Logical
 !> Flag for projector. If true then the total number of time slices will correspond to Ltrot + 2*Thtrot \endverbatim
-!>
-!> @param [public] Group_Comm
-!> \verbatim Integer
-!> Defines MPI communicator  \endverbatim
 !
 !> @param [public] Symm
 !> \verbatim Logical  \endverbatim
@@ -212,25 +208,9 @@
 !> Sets the Hamiltonian
 !--------------------------------------------------------------------
       Subroutine Ham_Set
-
-#if defined (MPI) || defined(TEMPERING)
-          Use mpi
-#endif
           Implicit none
 
-          integer                :: ierr, nf, unit_info
-          Character (len=64)     :: file_info
-
-
-#ifdef MPI
-          Integer        :: Isize, Irank, irank_g, isize_g, igroup
-          Integer        :: STATUS(MPI_STATUS_SIZE)
-          CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-          CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-          call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-          call MPI_Comm_size(Group_Comm, isize_g, ierr)
-          igroup           = irank/isize_g
-#endif
+          integer                :: unit_info
 
 !         ! From dynamically generated file "Hamiltonian_Spin_Peierls_read_write_parameters.F90"
           call read_parameters()
@@ -249,14 +229,8 @@
 !           ! Setup the trival wave function, in case of a projector approach
 !           if (Projector) Call Ham_Trial()
 
-#ifdef MPI
-          If (Irank_g == 0) then
-#endif
-             File_info = "info"
-#if defined(TEMPERING)
-             write(File_info,'(A,I0,A)') "Temp_",igroup,"/info"
-#endif
-             Open(newunit=unit_info, file=file_info, status="unknown", position="append")
+          If (is_group_main_process()) then
+             Open(newunit=unit_info, file=get_file_info(), status="unknown", position="append")
              
              Write(unit_info,*) '====================================='
              Write(unit_info,*) 'Antiferromagnet'
@@ -282,9 +256,7 @@
              Write(unit_info,*) 'Ham_omega0    : ', Ham_omega0
              
              Close(unit_info)
-#ifdef MPI
           Endif
-#endif
 
           Ham_k  =  1.d0/ (2.d0*Ham_Lambda)  !Lambda  =  g^2/2k = 1/2k
           Ham_M  =  Ham_k/(Ham_Omega0**2)    !Omega_0 =  sqrt{k/M}

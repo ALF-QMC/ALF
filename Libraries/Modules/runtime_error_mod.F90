@@ -41,7 +41,7 @@ Module runtime_error_mod
   !--------------------------------------------------------------------
 
 #if defined(MPI)
-          Use mpi
+          Use mpi_f08
 #endif
           use iso_fortran_env, only: output_unit, error_unit
 
@@ -84,9 +84,6 @@ Module runtime_error_mod
               character(len=*), intent(in) :: filename
               integer,          intent(in) :: linenum
               
-#if defined(MPI)
-              Integer             :: ierr
-#endif
               Character(len=100)  :: error_message
               
               Select Case(error_code)
@@ -122,7 +119,7 @@ Module runtime_error_mod
 #if !defined(MPI)
                 error stop error_code
 #else
-                call MPI_ABORT(MPI_COMM_WORLD,error_code,ierr)
+                call MPI_ABORT(MPI_COMM_WORLD,error_code)
 #endif
               end if
               

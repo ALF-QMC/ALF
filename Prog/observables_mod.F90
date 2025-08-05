@@ -48,6 +48,15 @@
        Use runtime_error_mod
        Use Lattices_v3, only: Unit_cell, Lattice
        use iso_fortran_env, only: output_unit, error_unit
+       Use Lattices_v3
+#if defined HDF5
+       Use hdf5
+       Use alf_hdf5
+#endif
+#if defined MPI
+       Use mpi_f08
+#endif
+       use alf_mpi_mod
 
 !--------------------------------------------------------------------       
        Type :: Obser_Vec
@@ -344,19 +353,10 @@
 
 !--------------------------------------------------------------------
 
-         Subroutine  Print_bin_Latt(Obs, Group_Comm)
-           Use Lattices_v3
-#if defined HDF5
-           Use hdf5
-           Use alf_hdf5
-#endif
-#if defined MPI
-           Use mpi
-#endif
+         Subroutine  Print_bin_Latt(Obs)
            Implicit none
 
            class(Obser_Latt),        Intent(Inout)   :: Obs
-           Integer,                  Intent(In)      :: Group_Comm
 
            ! Local
            Integer :: Ns, Nt, no, no1, I, Ntau
@@ -379,14 +379,6 @@
            Complex (Kind=Kind(0.D0)), allocatable :: Tmp1(:)
            Complex (Kind=Kind(0.d0)) :: Z
            Real    (Kind=Kind(0.d0)) :: X
-           Integer         :: Ierr, Isize, Irank
-           INTEGER         :: irank_g, isize_g, igroup
-
-           CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-           CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-           call MPI_Comm_size(Group_Comm, isize_g, ierr)
-           igroup           = irank/isize_g
 #endif
 
            Ns    = Size(Obs%Obs_Latt,1)
@@ -413,27 +405,27 @@
 #if defined(MPI)
            I = Obs%Latt%N * Ntau * Obs%Latt_unit%Norb * Obs%Latt_unit%Norb
            Tmp = cmplx(0.d0, 0.d0, kind(0.D0))
-           CALL MPI_REDUCE(Obs%Obs_Latt,Tmp,I,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
-           Obs%Obs_Latt = Tmp/DBLE(ISIZE_g)
+           CALL MPI_REDUCE(Obs%Obs_Latt,Tmp,I,MPI_COMPLEX16,MPI_SUM, 0, get_group_comm())
+           Obs%Obs_Latt = Tmp/DBLE(get_isize_g())
 
            I = 1
            X = 0.d0
-           CALL MPI_REDUCE(Obs%Ave_sign,X,I,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-           Obs%Ave_sign = X/DBLE(ISIZE_g)
+           CALL MPI_REDUCE(Obs%Ave_sign,X,I,MPI_REAL8,MPI_SUM, 0, get_group_comm())
+           Obs%Ave_sign = X/DBLE(get_isize_g())
 
            I = Obs%Latt_unit%Norb
            Allocate(Tmp1(Obs%Latt_unit%Norb))
            Tmp1 = cmplx(0.d0,0.d0,kind(0.d0))
-           CALL MPI_REDUCE(Obs%Obs_Latt0,Tmp1,I,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
-           Obs%Obs_Latt0 = Tmp1/DBLE(ISIZE_g)
+           CALL MPI_REDUCE(Obs%Obs_Latt0,Tmp1,I,MPI_COMPLEX16,MPI_SUM, 0, get_group_comm())
+           Obs%Obs_Latt0 = Tmp1/DBLE(get_isize_g())
            Deallocate(Tmp1)
 
-           If (Irank_g == 0 ) then
+           If (is_group_main_process()) then
 #endif
 #if defined TEMPERING
-              write(File_pr ,'(A,I0,A,A,A)') "Temp_",igroup,"/",trim(Obs%File_Latt),trim(File_suff )
+              write(File_pr ,'(A,I0,A,A,A)') "Temp_",get_igroup(),"/",trim(Obs%File_Latt),trim(File_suff )
 #if defined HDF5
-              write(filename ,'(A,I0,A,A)') "Temp_",igroup,"/",trim(File_h5)
+              write(filename ,'(A,I0,A,A)') "Temp_",get_igroup(),"/",trim(File_h5)
 #endif
 #endif
 
@@ -566,20 +558,10 @@
          End Subroutine Print_bin_Latt
          
 !--------------------------------------------------------------------
-         Subroutine  Print_bin_Latt_Local(Obs, Group_Comm)
-            Use Lattices_v3
-
-#if defined HDF5
-            Use hdf5
-            Use alf_hdf5
-#endif
-#if defined MPI
-            Use mpi
-#endif
+         Subroutine  Print_bin_Latt_Local(Obs)
             Implicit none
 
             class(Obser_Latt_Local),   Intent(Inout)   :: Obs
-            Integer,                   Intent(In)      :: Group_Comm
 
             ! Local
             Integer :: Ns, Nt, no, no1, I, Ntau
@@ -601,14 +583,6 @@
             Complex (Kind=Kind(0.D0)), allocatable :: Tmp(:,:,:)
             Complex (Kind=Kind(0.d0)) :: Z
             Real    (Kind=Kind(0.d0)) :: X
-            Integer         :: Ierr, Isize, Irank
-            INTEGER         :: irank_g, isize_g, igroup
-
-            CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-            CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-            call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-            call MPI_Comm_size(Group_Comm, isize_g, ierr)
-            igroup           = irank/isize_g
 #endif
 
             Ns    = Size(Obs%Obs_Latt,1)
@@ -634,21 +608,21 @@
             Allocate (Tmp(Obs%Latt%N, Ntau, Obs%Latt_unit%Norb))
             I = Obs%Latt%N * Ntau * Obs%Latt_unit%Norb
             Tmp = cmplx(0.d0, 0.d0, kind(0.D0))
-            CALL MPI_REDUCE(Obs%Obs_Latt,Tmp,I,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
-            Obs%Obs_Latt = Tmp/DBLE(ISIZE_g)
+            CALL MPI_REDUCE(Obs%Obs_Latt,Tmp,I,MPI_COMPLEX16,MPI_SUM, 0, get_group_comm())
+            Obs%Obs_Latt = Tmp/DBLE(get_isize_g())
 
             I = 1
             X = 0.d0
-            CALL MPI_REDUCE(Obs%Ave_sign,X,I,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-            Obs%Ave_sign = X/DBLE(ISIZE_g)
+            CALL MPI_REDUCE(Obs%Ave_sign,X,I,MPI_REAL8,MPI_SUM, 0, get_group_comm())
+            Obs%Ave_sign = X/DBLE(get_isize_g())
             Deallocate(Tmp)
 
-            If (Irank_g == 0 ) then
+            If ( is_group_main_process() ) then
 #endif
 #if defined TEMPERING
-               write(File_pr ,'(A,I0,A,A,A)') "Temp_",igroup,"/",trim(Obs%File_Latt),trim(File_suff )
+               write(File_pr ,'(A,I0,A,A,A)') "Temp_",get_igroup(),"/",trim(Obs%File_Latt),trim(File_suff )
 #if defined HDF5
-               write(filename ,'(A,I0,A,A)') "Temp_",igroup,"/",trim(File_h5)
+               write(filename ,'(A,I0,A,A)') "Temp_",get_igroup(),"/",trim(File_h5)
 #endif
 #endif
 
@@ -758,18 +732,10 @@
 
 !--------------------------------------------------------------------
 
-         Subroutine  Print_bin_Vec(Obs,Group_Comm)
-#if defined MPI
-           Use mpi
-#endif
-#if defined HDF5
-           Use hdf5
-           Use alf_hdf5
-#endif
+         Subroutine  Print_bin_Vec(Obs)
            Implicit none
 
            class(Obser_vec), intent(Inout) :: Obs
-           Integer, INTENT(IN)  :: Group_Comm
 
            ! Local
            Integer :: I
@@ -787,17 +753,9 @@
            real(Kind=Kind(0.d0)), target :: sgn
 #endif
 #if defined MPI
-           Integer        :: Ierr, Isize, Irank, No
-           INTEGER        :: irank_g, isize_g, igroup
            Complex  (Kind=Kind(0.d0)), allocatable :: Tmp(:)
            Real     (Kind=Kind(0.d0)) :: X
-
-
-           CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-           CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-           call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-           call MPI_Comm_size(Group_Comm, isize_g, ierr)
-           igroup           = irank/isize_g
+           integer :: No
 #endif
            Obs%Obs_vec  = Obs%Obs_vec /dble(Obs%N)
            Obs%Ave_sign = Obs%Ave_sign/dble(Obs%N)
@@ -811,16 +769,16 @@
            No = size(Obs%Obs_vec, 1)
            Allocate (Tmp(No) )
            Tmp = cmplx(0.d0,0.d0,kind(0.d0))
-           CALL MPI_REDUCE(Obs%Obs_vec,Tmp,No,MPI_COMPLEX16,MPI_SUM, 0,Group_Comm,IERR)
-           Obs%Obs_vec = Tmp/DBLE(ISIZE_g)
+           CALL MPI_REDUCE(Obs%Obs_vec,Tmp,No,MPI_COMPLEX16,MPI_SUM, 0, get_group_comm())
+           Obs%Obs_vec = Tmp/DBLE(get_mpi_per_parameter_set())
            deallocate (Tmp )
 
            I = 1
            X = 0.d0
-           CALL MPI_REDUCE(Obs%Ave_sign,X,I,MPI_REAL8,MPI_SUM, 0,Group_comm,IERR)
-           Obs%Ave_sign = X/DBLE(ISIZE_g)
+           CALL MPI_REDUCE(Obs%Ave_sign,X,I,MPI_REAL8,MPI_SUM, 0, get_group_comm())
+           Obs%Ave_sign = X/DBLE(get_mpi_per_parameter_set())
 
-           if (Irank_g == 0 ) then
+           if (is_group_main_process()) then
 #endif
 
 #if defined TEMPERING

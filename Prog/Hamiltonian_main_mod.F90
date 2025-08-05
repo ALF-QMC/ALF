@@ -103,10 +103,6 @@
 !> @param [public] Projector
 !> \verbatim Logical
 !> Flag for projector. If true then the total number of time slices will correspond to Ltrot + 2*Thtrot \endverbatim
-!>
-!> @param [public] Group_Comm
-!> \verbatim Integer
-!> Defines MPI communicator  \endverbatim
 !
 !> @param [public] Symm
 !> \verbatim Logical  \endverbatim
@@ -129,7 +125,8 @@
       Use files_mod
       Use Operator_mod, only: Operator
       Use WaveFunction_mod, only: WaveFunction
-      Use global_parameters_mod, only: Group_Comm
+      use alf_mpi_mod
+      use alf_filenames_mod
       Use Observables
       Use Fields_mod, only: Fields
       use iso_fortran_env, only: output_unit, error_unit
@@ -469,22 +466,22 @@
     
              if ( allocated(Obs_scal) ) then
                Do I = 1,Size(Obs_scal,1)
-                  Call Print_bin_Vec(Obs_scal(I), Group_Comm)
+                  Call Print_bin_Vec(Obs_scal(I))
                enddo
              endif
              if ( allocated(Obs_local) ) then
                Do I = 1,Size(Obs_local,1)
-                  Call Print_bin_Latt_Local(Obs_Local(I), Group_Comm)
+                  Call Print_bin_Latt_Local(Obs_Local(I))
                enddo
              endif
              if ( allocated(Obs_eq) ) then
                Do I = 1,Size(Obs_eq,1)
-                  Call Print_bin_Latt(Obs_eq(I), Group_Comm)
+                  Call Print_bin_Latt(Obs_eq(I))
                enddo
              endif
              if ( allocated(Obs_tau) ) then
                Do I = 1,Size(Obs_tau,1)
-                  Call Print_bin_Latt(Obs_tau(I), Group_Comm)
+                  Call Print_bin_Latt(Obs_tau(I))
                enddo
              endif
     

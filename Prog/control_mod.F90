@@ -47,6 +47,7 @@ module Control
 
     use files_mod
     Use MyMats
+    use alf_mpi_mod
     use iso_fortran_env, only: output_unit, error_unit
     Implicit none
 
@@ -69,19 +70,12 @@ module Control
 
     real    (Kind=Kind(0.d0)),  private, save :: Force_max, Force_mean
     Integer, private, save  :: Force_Count
-#ifdef MPI
-    Integer                  ,  private, save :: Ierr, Isize, Irank, irank_g, isize_g, igroup
-#endif
 
     
     Contains
 
-      subroutine control_init(Group_Comm)
-#ifdef MPI
-        Use mpi
-#endif
+      subroutine control_init()
         Implicit none
-        Integer       , INTENT(IN)               :: Group_Comm
 
         XMEANG     = 0.d0
         XMEAN_tau  = 0.d0
@@ -118,27 +112,18 @@ module Control
         Force_mean = 0.d0
         Force_count = 0
         
-#ifdef MPI
-        CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-        CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-        call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-        call MPI_Comm_size(Group_Comm, isize_g, ierr)
-        igroup           = irank/isize_g
-#endif
-        
         call system_clock(count_CPU_start,count_rate,count_max)
       end subroutine control_init
 
 
 !-------------------------------------------------------------
 
-      Subroutine Control_Langevin(Forces, Group_Comm)
+      Subroutine Control_Langevin(Forces)
 
 
         Implicit none
         
         Complex (Kind=Kind(0.d0)), Intent(In)  :: Forces(:,:)
-        Integer, Intent(IN) :: Group_Comm
         
         Integer :: n1,n2, n, nt 
         Real (Kind = Kind(0.d0) ) :: X
@@ -205,9 +190,6 @@ module Control
 
 
       Subroutine Control_PrecisionG(A,B,Ndim)
-#ifdef MPI
-        Use mpi
-#endif
         use runtime_error_mod
         Implicit none
 
@@ -218,21 +200,21 @@ module Control
 
         if (any(A /= A)) then
 #if defined(TEMPERING) 
-          write(File1,'(A,I0,A)') "Temp_",igroup,"/info"
+          write(File1,'(A,I0,A)') "Temp_",get_igroup(),"/info"
 #else
           File1 = "info"
 #endif
           Open (Unit=50,file=file1, status="unknown", position="append")
           write(50,*)
 #ifdef MPI
-          write(50,*) "Task", Irank_g, "of group", igroup, "reports:"
+          write(50,*) "Task", get_irank_g(), "of group", get_igroup(), "reports:"
 #endif
           write(50,*) "Green function A contains NaN, calculation is being aborted!"
           write(50,*)
           close(50)
           write(error_unit,*)
 #ifdef MPI
-          write(error_unit,*) "Task", Irank_g, "of group", igroup, "reports:"
+          write(error_unit,*) "Task", get_irank_g(), "of group", get_igroup(), "reports:"
 #endif
           write(error_unit,*) "Green function A contains NaN, calculation is being aborted!"
           write(error_unit,*)
@@ -241,21 +223,21 @@ module Control
 
         if (any(B /= B)) then
 #if defined(TEMPERING) 
-          write(File1,'(A,I0,A)') "Temp_",igroup,"/info"
+          write(File1,'(A,I0,A)') "Temp_",get_igroup(),"/info"
 #else
           File1 = "info"
 #endif
           Open (Unit=50,file=file1, status="unknown", position="append")
           write(50,*)
 #ifdef MPI
-          write(50,*) "Task", Irank_g, "of group", igroup, "reports:"
+          write(50,*) "Task", get_irank_g(), "of group", get_igroup(), "reports:"
 #endif
           write(50,*) "Green function B contains NaN, calculation is being aborted!"
           write(50,*)
           close(50)
           write(error_unit,*)
 #ifdef MPI
-          write(error_unit,*) "Task", Irank_g, "of group", igroup, "reports:"
+          write(error_unit,*) "Task", get_irank_g(), "of group", get_igroup(), "reports:"
 #endif
           write(error_unit,*) "Green function B contains NaN, calculation is being aborted!"
           write(error_unit,*)
@@ -266,14 +248,14 @@ module Control
         CALL COMPARE(A, B, XMAX, XMEAN)
         IF (XMAX  >  10.d0) then
 #if defined(TEMPERING) 
-          write(File1,'(A,I0,A)') "Temp_",igroup,"/info"
+          write(File1,'(A,I0,A)') "Temp_",get_igroup(),"/info"
 #else
           File1 = "info"
 #endif
           Open (Unit=50,file=file1, status="unknown", position="append")
           write(50,*)
 #ifdef MPI
-          write(50,*) "Task", Irank_g, "of group", igroup, "reports:"
+          write(50,*) "Task", get_irank_g(), "of group", get_igroup(), "reports:"
 #endif
           write(50,*) XMAX, " is exceeding the threshold of 10 for G difference!"
           write(50,*) (XmeanG+Xmean)/ncg, " is the average deviation!"
@@ -282,7 +264,7 @@ module Control
           close(50)
           write(error_unit,*)
 #ifdef MPI
-          write(error_unit,*) "Task", Irank_g, "of group", igroup, "reports:"
+          write(error_unit,*) "Task", get_irank_g(), "of group", get_igroup(), "reports:"
 #endif
           write(error_unit,*) XMAX, " is exceeding the threshold of 10 for G difference!"
           write(error_unit,*) (XmeanG+Xmean)/ncg, " is the average deviation!"
@@ -341,13 +323,9 @@ module Control
       End Subroutine Control_PrecisionP_HMC
 
 
-      Subroutine Control_Print(Group_Comm, Global_update_scheme)
-#ifdef MPI
-        Use mpi
-#endif
+      Subroutine Control_Print(Global_update_scheme)
         Implicit none
 
-        Integer, Intent(IN) :: Group_Comm
         Character (Len = 64), Intent(IN) :: Global_update_scheme
                 
 
@@ -355,13 +333,6 @@ module Control
         Real (Kind=Kind(0.d0)) :: Time, Acc, Acc_eff, Acc_Glob, Acc_Temp, size_clust_Glob, size_clust_Glob_ACC, Acc_HMC
 #ifdef MPI
         REAL (Kind=Kind(0.d0))  :: X
-        Integer        :: Ierr, Isize, Irank, irank_g, isize_g, igroup
-
-        CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-        CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-        call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-        call MPI_Comm_size(Group_Comm, isize_g, ierr)
-        igroup           = irank/isize_g
 #endif
 
         ACC = 0.d0
@@ -394,75 +365,73 @@ module Control
 #if defined(MPI)
         If (str_to_upper(Global_update_scheme) == "LANGEVIN")  then
            X = 0.d0
-           CALL MPI_REDUCE(Force_mean,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-           Force_mean= X/dble(Isize_g)
-           CALL MPI_REDUCE(Force_max,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
+           CALL MPI_REDUCE(Force_mean,X,1,MPI_REAL8,MPI_SUM, 0, get_group_comm())
+           Force_mean= X/dble(get_isize_g())
+           CALL MPI_REDUCE(Force_max,X,1,MPI_REAL8,MPI_MAX, 0, get_group_comm())
            Force_max= X
         endif
         X = 0.d0
-        CALL MPI_REDUCE(ACC,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        ACC = X/dble(Isize_g)
+        CALL MPI_REDUCE(ACC,X,1,MPI_REAL8,MPI_SUM, 0, get_group_comm())
+        ACC = X/dble(get_isize_g())
         X = 0.d0
-        CALL MPI_REDUCE(ACC_eff,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        ACC_eff = X/dble(Isize_g)
+        CALL MPI_REDUCE(ACC_eff,X,1,MPI_REAL8,MPI_SUM, 0, get_group_comm())
+        ACC_eff = X/dble(get_isize_g())
         X = 0.d0
-        CALL MPI_REDUCE(ACC_Glob,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        ACC_Glob = X/dble(Isize_g)
+        CALL MPI_REDUCE(ACC_Glob,X,1,MPI_REAL8,MPI_SUM, 0, get_group_comm())
+        ACC_Glob = X/dble(get_isize_g())
         X = 0.d0
-        CALL MPI_REDUCE(ACC_HMC,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        ACC_HMC = X/dble(Isize_g)
+        CALL MPI_REDUCE(ACC_HMC,X,1,MPI_REAL8,MPI_SUM, 0, get_group_comm())
+        ACC_HMC = X/dble(get_isize_g())
         X = 0.d0
-        CALL MPI_REDUCE(ACC_Temp ,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        ACC_Temp  = X/dble(Isize_g)
+        CALL MPI_REDUCE(ACC_Temp ,X,1,MPI_REAL8,MPI_SUM, 0, get_group_comm())
+        ACC_Temp  = X/dble(get_isize_g())
 
         X = 0.d0
-        CALL MPI_REDUCE(size_clust_Glob,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        size_clust_Glob = X/dble(Isize_g)
+        CALL MPI_REDUCE(size_clust_Glob,X,1,MPI_REAL8,MPI_SUM, 0, get_group_comm())
+        size_clust_Glob = X/dble(get_isize_g())
         X = 0.d0
-        CALL MPI_REDUCE(size_clust_Glob_ACC,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        size_clust_Glob_ACC = X/dble(Isize_g)
+        CALL MPI_REDUCE(size_clust_Glob_ACC,X,1,MPI_REAL8,MPI_SUM, 0, get_group_comm())
+        size_clust_Glob_ACC = X/dble(get_isize_g())
 
         X = 0.d0
-        CALL MPI_REDUCE(XMEANG,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        XMEANG = X/dble(Isize_g)
+        CALL MPI_REDUCE(XMEANG,X,1,MPI_REAL8,MPI_SUM, 0, get_group_comm())
+        XMEANG = X/dble(get_isize_g())
         X = 0.d0
-        CALL MPI_REDUCE(XMEAN_tau,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        XMEAN_tau = X/dble(Isize_g)
-
-        X = 0.d0
-        CALL MPI_REDUCE(XMEANP_Glob,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        XMEANP_Glob = X/dble(Isize_g)
+        CALL MPI_REDUCE(XMEAN_tau,X,1,MPI_REAL8,MPI_SUM, 0, get_group_comm())
+        XMEAN_tau = X/dble(get_isize_g())
 
         X = 0.d0
-        CALL MPI_REDUCE(Time,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-        Time = X/dble(Isize_g)
+        CALL MPI_REDUCE(XMEANP_Glob,X,1,MPI_REAL8,MPI_SUM, 0, get_group_comm())
+        XMEANP_Glob = X/dble(get_isize_g())
+
+        X = 0.d0
+        CALL MPI_REDUCE(Time,X,1,MPI_REAL8,MPI_SUM, 0, get_group_comm())
+        Time = X/dble(get_isize_g())
 
 
-        CALL MPI_REDUCE(XMAXG,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
+        CALL MPI_REDUCE(XMAXG,X,1,MPI_REAL8,MPI_MAX, 0, get_group_comm())
         XMAXG = X
-        CALL MPI_REDUCE(XMAX_tau,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
+        CALL MPI_REDUCE(XMAX_tau,X,1,MPI_REAL8,MPI_MAX, 0, get_group_comm())
         XMAX_tau= X
 
-        CALL MPI_REDUCE(XMAXP,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
+        CALL MPI_REDUCE(XMAXP,X,1,MPI_REAL8,MPI_MAX, 0, get_group_comm())
         XMAXP = X
 
-        CALL MPI_REDUCE(XMAXP_GLOB,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
+        CALL MPI_REDUCE(XMAXP_GLOB,X,1,MPI_REAL8,MPI_MAX, 0, get_group_comm())
         XMAXP_GLOB = X
 
-        CALL MPI_REDUCE(XMAXP_HMC,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
+        CALL MPI_REDUCE(XMAXP_HMC,X,1,MPI_REAL8,MPI_MAX, 0, get_group_comm())
         XMAXP_HMC = X
 
 #endif
 
 #if defined(TEMPERING)
-        write(File1,'(A,I0,A)') "Temp_",igroup,"/info"
+        write(File1,'(A,I0,A)') "Temp_",get_igroup(),"/info"
 #else
         File1 = "info"
 #endif
 
-#if defined(MPI)
-        If (Irank_g == 0 ) then
-#endif
+        If (is_group_main_process()) then
 
            Open (Unit=50,file=file1, status="unknown", position="append")
            If (NCG > 0 ) then
@@ -501,42 +470,32 @@ module Control
            
            Write(50,*) ' CPU Time                   : ', Time
            Close(50)
-#if defined(MPI)
         endif
-#endif
 
       end Subroutine Control_Print
 
 
-      subroutine make_truncation(prog_truncation,cpu_max,count_bin_start,count_bin_end, group_comm)
+      subroutine make_truncation(prog_truncation,cpu_max,count_bin_start,count_bin_end)
       !!!!!!! Written by M. Bercx, edited by J. Schwab
       ! This subroutine checks if the conditions for a controlled termination of the program are met.
       ! The subroutine contains a hard-coded threshold (in unit of bins):
       ! if time_remain/time_bin_duration < threshold the program terminates.
 
 #ifdef MPI
-      Use mpi
+      Use mpi_f08
 #endif
 
       logical, intent(out)                 :: prog_truncation
       real(kind=kind(0.d0)), intent(in)    :: cpu_max
       integer(kind=kind(0.d0)), intent(in) :: count_bin_start, count_bin_end
-      integer, intent(in)                  :: group_comm
       real(kind=kind(0.d0))                :: count_alloc_end
       real(kind=kind(0.d0))                :: time_bin_duration,time_remain,bins_remain,threshold
 #ifdef MPI
       real(kind=kind(0.d0))                :: bins_remain_mpi
-      integer                              :: err_mpi, irank, isize, irank_g, isize_g
 #endif
       threshold = 1.5d0
       prog_truncation = .false.
 
-#ifdef MPI
-      call mpi_comm_size(mpi_comm_world, isize, err_mpi)
-      call mpi_comm_rank(mpi_comm_world, irank, err_mpi)
-      call mpi_comm_size(group_comm, isize_g, err_mpi)
-      call mpi_comm_rank(group_comm, irank_g, err_mpi)
-#endif
       count_alloc_end   = count_CPU_start + cpu_max*3600*count_rate
       time_bin_duration = (count_bin_end-count_bin_start)/dble(count_rate)
       time_remain       = (count_alloc_end - count_bin_end)/dble(count_rate)
@@ -548,13 +507,13 @@ module Control
 
 #ifdef MPI
 #ifdef PARALLEL_PARAMS
-      call mpi_reduce(bins_remain,bins_remain_mpi,1,mpi_double_precision,mpi_sum,0,group_comm,err_mpi)
-      if (irank_g .eq. 0) bins_remain_mpi = bins_remain_mpi/isize_g
-      call mpi_bcast(bins_remain_mpi,1, mpi_double_precision,0, group_comm,err_mpi)
+      call mpi_reduce(bins_remain,bins_remain_mpi,1,mpi_double_precision,mpi_sum,0, get_group_comm())
+      if (is_group_main_process()) bins_remain_mpi = bins_remain_mpi/get_get_isize_g()()
+      call mpi_bcast(bins_remain_mpi,1, mpi_double_precision,0, get_group_comm())
 #else
-      call mpi_reduce(bins_remain,bins_remain_mpi,1,mpi_double_precision,mpi_sum,0,mpi_comm_world,err_mpi)
-      if (irank .eq. 0) bins_remain_mpi = bins_remain_mpi/isize
-      call mpi_bcast(bins_remain_mpi,1, mpi_double_precision,0, mpi_comm_world,err_mpi)
+      call mpi_reduce(bins_remain,bins_remain_mpi,1,mpi_double_precision,mpi_sum,0,mpi_comm_world)
+      if (is_main_process()) bins_remain_mpi = bins_remain_mpi/get_isize()
+      call mpi_bcast(bins_remain_mpi,1, mpi_double_precision,0, mpi_comm_world)
 #endif
       bins_remain = bins_remain_mpi
 #endif

@@ -52,7 +52,6 @@ Module Global_mod
       Use Observables
       Use Fields_mod
       Use Random_Wrap
-      Use global_parameters_mod, only: Group_Comm
       use iso_fortran_env, only: output_unit, error_unit
 
       Implicit none
@@ -108,9 +107,10 @@ Module Global_mod
 !--------------------------------------------------------------------
       Subroutine Exchange_Step(Phase,GR, udvr, udvl, Stab_nt, udvst, N_exchange_steps, Tempering_calc_det)
         Use UDV_State_mod
-        Use mpi
+        Use mpi_f08
         use wrapul_mod
         use cgr1_mod
+        use alf_mpi_mod
         Implicit none
 
         !  Arguments
@@ -141,18 +141,7 @@ Module Global_mod
         !Integer, Dimension(:,:),  allocatable :: nsigma_orig, nsigma_test
         !Integer :: I1, I2
 
-        Integer        :: Isize, Irank, Ierr, irank_g, isize_g, igroup
-        Integer        :: STATUS(MPI_STATUS_SIZE)
-
         Character (Len=64)  :: storage
-
-
-        CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-        CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-        call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-        call MPI_Comm_size(Group_Comm, isize_g, ierr)
-        igroup           = irank/isize_g
-        nsigma_irank     = irank
 
         n1 = size(nsigma%f,1)
         n2 = size(nsigma%f,2)
@@ -216,7 +205,7 @@ Module Global_mod
               enddo
            endif
 
-           CALL MPI_BCAST(List_partner, Isize  ,MPI_INTEGER,   0,MPI_COMM_WORLD,ierr)
+           CALL MPI_BCAST(List_partner, Isize  ,MPI_INTEGER,   0,MPI_COMM_WORLD)
 
            If (L_test) then
               if (Irank == 0 ) then
@@ -234,9 +223,9 @@ Module Global_mod
            !  The types do not change --> no need to exchange them
            n = size(nsigma_old%f,1)*size(nsigma_old%f,2)
            CALL MPI_Sendrecv(nsigma_old%f    , n, MPI_COMPLEX16, List_partner(IRANK), 0, &
-                    &        nsigma%f        , n, MPI_COMPLEX16, List_partner(IRANK), 0, MPI_COMM_WORLD,STATUS,IERR)
+                    &        nsigma%f        , n, MPI_COMPLEX16, List_partner(IRANK), 0, MPI_COMM_WORLD,MPI_STATUS_IGNORE)
            CALL MPI_Sendrecv(nsigma_old_irank, 1, MPI_INTEGER, List_partner(IRANK), 0, &
-                    &        nsigma_irank    , 1, MPI_INTEGER, List_partner(IRANK), 0, MPI_COMM_WORLD,STATUS,IERR)
+                    &        nsigma_irank    , 1, MPI_INTEGER, List_partner(IRANK), 0, MPI_COMM_WORLD,MPI_STATUS_IGNORE)
 
            !  Each node now has a new configuration nsigma
 
@@ -273,9 +262,9 @@ Module Global_mod
            Do nc = 1,Isize/2 ! Loop over masters
               I = List_masters(nc)
               If (Irank == I ) Then
-                 CALL MPI_SEND(Ratio   ,2, MPI_COMPLEX16  , List_partner(I), I+1024, MPI_COMM_WORLD,IERR)
+                 CALL MPI_SEND(Ratio   ,2, MPI_COMPLEX16  , List_partner(I), I+1024, MPI_COMM_WORLD)
               else if (IRANK == List_Partner(I) ) Then
-                 CALL MPI_RECV(Ratio_p    , 2, MPI_COMPLEX16,  I, I+1024, MPI_COMM_WORLD,STATUS,IERR)
+                 CALL MPI_RECV(Ratio_p    , 2, MPI_COMPLEX16,  I, I+1024, MPI_COMM_WORLD,MPI_STATUS_IGNORE)
                  !Weight = abs(Ratiotot_p*Ratiotot)
                  Weight= abs(Ratio(1) * Ratio_p(1) * exp( Ratio_p(2) + Ratio(2)  ) )
                  TOGGLE = .false.
@@ -289,9 +278,9 @@ Module Global_mod
               I = List_masters(nc)
               If (Irank == List_Partner(I) ) Then
                  ! Write(6,*) 'Send from ', List_Partner(I), 'to, ', I, I + 512
-                 CALL MPI_SEND(Toggle, 1, MPI_LOGICAL, I, I+1024, MPI_COMM_WORLD,IERR)
+                 CALL MPI_SEND(Toggle, 1, MPI_LOGICAL, I, I+1024, MPI_COMM_WORLD)
               else if (IRANK == I ) Then
-                 CALL MPI_RECV(Toggle , 1, MPI_LOGICAL,   List_partner(I), I+1024 ,MPI_COMM_WORLD,STATUS,IERR)
+                 CALL MPI_RECV(Toggle , 1, MPI_LOGICAL,   List_partner(I), I+1024 ,MPI_COMM_WORLD,MPI_STATUS_IGNORE)
                  If (L_Test) Write(6,*) 'Slave : ', Irank,  Toggle
               endif
            enddo
@@ -360,38 +349,38 @@ Module Global_mod
            !  Finally, the variables get submitted
            If (Irank == 0) then
               Do I = 1,Isize-1
-                 CALL MPI_RECV(nsigma_irank_temp , 1, MPI_INTEGER, I, 0, MPI_COMM_WORLD,STATUS,IERR)
+                 CALL MPI_RECV(nsigma_irank_temp , 1, MPI_INTEGER, I, 0, MPI_COMM_WORLD,MPI_STATUS_IGNORE)
                  If ( nsigma_irank_temp == 0) then
                     nsigma_old_irank = I
                  else
-                    CALL MPI_SEND(I , 1, MPI_INTEGER, nsigma_irank_temp, 0, MPI_COMM_WORLD,IERR)
+                    CALL MPI_SEND(I , 1, MPI_INTEGER, nsigma_irank_temp, 0, MPI_COMM_WORLD)
                  endif
               enddo
               If ( nsigma_irank /= 0 ) then
-                 CALL MPI_SEND(0 , 1, MPI_INTEGER, nsigma_irank, 0, MPI_COMM_WORLD,IERR)
+                 CALL MPI_SEND(0 , 1, MPI_INTEGER, nsigma_irank, 0, MPI_COMM_WORLD)
               endif
            else
-              CALL MPI_SEND(nsigma_irank     , 1, MPI_INTEGER, 0, 0, MPI_COMM_WORLD,IERR)
-              CALL MPI_RECV(nsigma_old_irank , 1, MPI_INTEGER, 0, 0, MPI_COMM_WORLD,STATUS,IERR)
+              CALL MPI_SEND(nsigma_irank     , 1, MPI_INTEGER, 0, 0, MPI_COMM_WORLD)
+              CALL MPI_RECV(nsigma_old_irank , 1, MPI_INTEGER, 0, 0, MPI_COMM_WORLD,MPI_STATUS_IGNORE)
            endif
 
            if ( nsigma_irank /= irank ) then
               CALL MPI_Sendrecv_Replace(Phase, 1, MPI_COMPLEX16, nsigma_old_irank, 0, &
-                   &        nsigma_irank, 0, MPI_COMM_WORLD, STATUS, IERR)
+                   &        nsigma_irank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE)
 
               n_GR = size(GR,1)*size(GR,2)*size(GR,3)
               CALL MPI_Sendrecv_Replace(GR, n_GR, MPI_COMPLEX16, nsigma_old_irank, 0, &
-                   &        nsigma_irank, 0, MPI_COMM_WORLD, STATUS, IERR)
+                   &        nsigma_irank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE)
 
               do nf_eff = 1,N_Fl_eff
-                 CALL udvr(nf_eff)%MPI_Sendrecv(nsigma_old_irank, 0, nsigma_irank, 0, STATUS, IERR)
+                 CALL udvr(nf_eff)%MPI_Sendrecv(nsigma_old_irank, 0, nsigma_irank, 0, MPI_STATUS_IGNORE)
               enddo
               do nf_eff = 1,N_Fl_eff
-                 CALL udvl(nf_eff)%MPI_Sendrecv(nsigma_old_irank, 0, nsigma_irank, 0, STATUS, IERR)
+                 CALL udvl(nf_eff)%MPI_Sendrecv(nsigma_old_irank, 0, nsigma_irank, 0, MPI_STATUS_IGNORE)
               enddo
               do NST = 1, NSTM
                  do nf_eff = 1,N_Fl_eff
-                    CALL udvst(NST, nf_eff)%MPI_Sendrecv(nsigma_old_irank, 0, nsigma_irank, 0, STATUS, IERR)
+                    CALL udvst(NST, nf_eff)%MPI_Sendrecv(nsigma_old_irank, 0, nsigma_irank, 0, MPI_STATUS_IGNORE)
                  enddo
               enddo
            endif
@@ -1022,7 +1011,7 @@ Module Global_mod
 !--------------------------------------------------------------------
       Subroutine Global_Tempering_Pr
         Implicit none
-        Call  Print_bin_Vec(Tempering_acceptance,Group_Comm)
+        Call  Print_bin_Vec(Tempering_acceptance)
       end Subroutine Global_Tempering_Pr
 
 

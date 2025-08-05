@@ -32,60 +32,92 @@
 
 module alf_mpi_mod
     use iso_fortran_env, only: output_unit, error_unit
-    use mpi_shared_memory
+!     use mpi_shared_memory
 #ifdef MPI
-    Use mpi
+    Use mpi_f08
 #endif
         
     Implicit none
     private
-    public :: alf_mpi_type, alf_mpi, Group_comm
+    public :: is_main_process, is_group_main_process, get_mpi_per_parameter_set
+    public :: get_igroup, get_irank_g, get_irank, get_isize, get_isize_g
+    public :: alf_mpi_init1, alf_mpi_init2
+#ifdef MPI
+    public :: get_group_comm, get_MPI_COMM_QMC
+#endif
 
     integer, save :: mpi_per_parameter_set
     Integer, save :: isize, irank
-    Integer, save :: Group_Comm
 #ifdef MPI
-    Integer, save :: irank_g, color, key, igroup, MPI_COMM_i
+    TYPE(MPI_Comm), save :: Group_Comm, MPI_COMM_QMC
+#endif
+    Integer, save :: irank_g, color, key, igroup
+
+#ifdef TEMPERING
+    integer, save :: N_exchange_steps, N_Tempering_frequency
+    logical, save :: Tempering_calc_det
 #endif
 
-    type alf_mpi_type
-    contains
-        procedure, nopass :: init1
-        procedure, nopass :: init2
-        procedure, nopass :: is_main_process
-        procedure, nopass :: get_mpi_per_parameter_set
-    end type alf_mpi_type
-
-    type(alf_mpi_type) :: alf_mpi
   contains
 
     logical function is_main_process()
         is_main_process = (Irank == 0)
     end function is_main_process
 
+    logical function is_group_main_process()
+        is_group_main_process = (irank_g == 0)
+    end function is_group_main_process
+
     integer function get_mpi_per_parameter_set()
         get_mpi_per_parameter_set = mpi_per_parameter_set
     end function get_mpi_per_parameter_set
 
-
-
-    subroutine init1()
-        Integer :: ierr
 #ifdef MPI
-        CALL MPI_INIT(ierr)
-        CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-        CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+    TYPE(MPI_Comm) function get_group_comm()
+        get_group_comm = Group_Comm
+    end function get_group_comm
+
+    TYPE(MPI_Comm) function get_MPI_COMM_QMC()
+        get_MPI_COMM_QMC = MPI_COMM_QMC
+    end function get_MPI_COMM_QMC
+#endif
+
+    integer function get_igroup()
+        get_igroup = igroup
+    end function get_igroup
+
+    integer function get_irank_g()
+        get_irank_g = irank_g
+    end function get_irank_g
+
+    integer function get_irank()
+        get_irank = irank
+    end function get_irank
+
+    integer function get_isize()
+        get_isize = isize
+    end function get_isize
+
+    integer function get_isize_g()
+        get_isize_g = mpi_per_parameter_set
+    end function get_isize_g
+
+
+
+    subroutine alf_mpi_init1()
+#ifdef MPI
+        CALL MPI_INIT()
+        CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE)
+        CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK)
 #else
         isize = 1
         irank = 0
 #endif
-    end subroutine init1
+    end subroutine alf_mpi_init1
 
 
 
-    subroutine init2(N_exchange_steps, N_Tempering_frequency, Tempering_calc_det)
-        integer, intent(out) :: N_exchange_steps, N_Tempering_frequency
-        logical, intent(out) :: Tempering_calc_det
+    subroutine alf_mpi_init2()
 
         integer :: ierr
 
@@ -105,15 +137,15 @@ module alf_mpi_mod
         Tempering_calc_det = .true. ! Default value
         OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
         IF (ierr /= 0) THEN
-           WRITE(error_unit,*) 'main: unable to open <parameters>',ierr
+           WRITE(error_unit,*) 'Unable to open <parameters>',ierr
            CALL Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
         END IF
         READ(5,NML=VAR_TEMP)
         CLOSE(5)
-        CALL MPI_BCAST(N_exchange_steps        ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(N_Tempering_frequency   ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(mpi_per_parameter_set   ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(Tempering_calc_det      ,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
+        CALL MPI_BCAST(N_exchange_steps        ,1,MPI_INTEGER,0,MPI_COMM_WORLD)
+        CALL MPI_BCAST(N_Tempering_frequency   ,1,MPI_INTEGER,0,MPI_COMM_WORLD)
+        CALL MPI_BCAST(mpi_per_parameter_set   ,1,MPI_INTEGER,0,MPI_COMM_WORLD)
+        CALL MPI_BCAST(Tempering_calc_det      ,1,MPI_LOGICAL,0,MPI_COMM_WORLD)
         if ( mod(ISIZE,mpi_per_parameter_set) .ne. 0 ) then
            Write (error_unit,*) "mpi_per_parameter_set is not a multiple of total mpi processes"
            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
@@ -123,27 +155,24 @@ module alf_mpi_mod
         mpi_per_parameter_set = Isize
 #elif !defined(TEMPERING) && !defined(MPI)
         mpi_per_parameter_set = 1
-#elif defined(TEMPERING)  && !defined(MPI)
-        Write(error_unit,*) 'Mpi has to be defined for tempering runs'
-        CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
-#endif
-#if defined(PARALLEL_PARAMS) && !defined(TEMPERING)
-        Write(error_unit,*) 'TEMPERING has to be defined for PARALLEL_PARAMS'
-        CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
 #endif
 
 #if defined(MPI)
         color = irank/mpi_per_parameter_set
         key   =  0
-        call MPI_COMM_SPLIT(MPI_COMM_WORLD,color,key,Group_comm, ierr)
-        call MPI_Comm_rank(Group_Comm, Irank_g, ierr)
+        call MPI_COMM_SPLIT(MPI_COMM_WORLD,color,key,Group_comm)
+        call MPI_Comm_rank(Group_Comm, Irank_g)
         igroup           = irank/mpi_per_parameter_set
         MPI_COMM_QMC = MPI_COMM_WORLD
+#else
+        irank = 0
+        irank_g = 0
+        igroup = 0
 #endif
 
 #if defined(PARALLEL_PARAMS)
         MPI_COMM_QMC = Group_Comm
 #endif
-    end subroutine init2
+    end subroutine alf_mpi_init2
 
 end module alf_mpi_mod

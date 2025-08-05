@@ -159,45 +159,22 @@ def create_read_write_par(filename, parameters, ham_name):
       Subroutine read_parameters()
          use iso_fortran_env, only: error_unit
 #ifdef MPI
-         Use mpi
+         Use mpi_f08
 #endif
          Implicit none
 
          !Local variables
          integer            :: ierr, unit_para
-         Character (len=64) :: file_info, file_para
          Integer, parameter :: dp = kind(0.d0)
 
          ##NAMELIST##
 
-#ifdef MPI
-         Integer        :: Isize, Irank, igroup, irank_g, isize_g
-         Integer        :: STATUS(MPI_STATUS_SIZE)
-         CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-         CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-         call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-         call MPI_Comm_size(Group_Comm, isize_g, ierr)
-         IF (ierr /= 0) THEN
-            WRITE(error_unit,*) 'read_parameters: Error in MPI', ierr
-            Call Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
-         END IF
-         igroup           = irank/isize_g
-#endif
 
          ##PARAMETER_DEF##
-#ifdef MPI
-         If (Irank_g == 0 ) then
-#endif
-#ifdef TEMPERING
-            write(file_para,'(A,I0,A)') "Temp_", igroup, "/parameters"
-            write(file_info,'(A,I0,A)') "Temp_", igroup, "/info"
-#else
-            file_para = "parameters"
-            file_info = "info"
-#endif
+         If (is_group_main_process()) then
 
             !Read in parameters
-            OPEN(NEWUNIT=unit_para, FILE=file_para, STATUS='old', ACTION='read', IOSTAT=ierr)
+            OPEN(NEWUNIT=unit_para, FILE=get_file_parameters_hamilton(), STATUS='old', ACTION='read', IOSTAT=ierr)
             IF (ierr /= 0) THEN
                WRITE(error_unit,*) 'unable to open <parameters>', ierr
                Call Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
@@ -205,8 +182,8 @@ def create_read_write_par(filename, parameters, ham_name):
             ##READ_VAR##
             close(unit_para)
 
-#ifdef MPI
          Endif
+#ifdef MPI
          !Broadcast parameters to all MPI tasks
          ##MPI_BCAST##
 #endif
@@ -304,7 +281,7 @@ def create_read_write_par(filename, parameters, ham_name):
                 f.write(s)
 
         elif '##MPI_BCAST##' in line:
-            fstring = '{}CALL MPI_BCAST({},{:>3},{},0,Group_Comm,ierr)\n'
+            fstring = '{}CALL MPI_BCAST({},{:>3},{},0,get_group_comm())\n'
             for nlist_name, nlist in parameters.items():
                 names_len = _max_len(nlist)
                 for par_name, par in nlist.items():

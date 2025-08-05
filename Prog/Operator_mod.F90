@@ -52,7 +52,7 @@ Module Operator_mod
   
   Type Operator
      Integer          :: N, N_non_zero                      !> dimension of Operator (P and O), number of non-zero eigenvalues
-     Integer, private :: win_M_exp, win_U                   !> MPI_windows which can be used for fences (memory synch.) and dealloc.
+     TYPE(MPI_Win), private :: win_M_exp, win_U                   !> MPI_windows which can be used for fences (memory synch.) and dealloc.
      logical          :: diag                               !> encodes if Operator is diagonal
      logical, private :: U_alloc, M_exp_alloc, g_t_alloc    !> logical to track if memory is allocated
      complex (Kind=Kind(0.d0)), pointer :: O(:,:), U (:,:)  !> Storage for operator matrix O and its eigenvectors U
@@ -260,7 +260,7 @@ Contains
     Complex (Kind=Kind(0.d0)), allocatable :: U(:,:), TMP(:, :)
     Real    (Kind=Kind(0.d0)), allocatable :: E(:)
     Real    (Kind=Kind(0.d0)) :: Zero = 1.D-9 !, Phi(-2:2)
-    Integer :: N, I, J, np,nz, noderank, arrayshape2d(2), arrayshape(3), ierr
+    Integer :: N, I, J, np,nz, noderank, arrayshape2d(2), arrayshape(3)
     Complex (Kind=Kind(0.d0)) :: Z
     Type  (Fields)   :: nsigma_single
     
@@ -335,7 +335,7 @@ Contains
        Op%diag = .true.
     endif
 #ifdef MPI
-    if (use_mpi_shm) call MPI_WIN_FENCE(0, Op%win_U, ierr)
+    if (use_mpi_shm) call MPI_WIN_FENCE(0, Op%win_U)
 #endif
     select case(OP%type)
     case(1)
@@ -366,7 +366,7 @@ Contains
              call Op_exp(-Op%g*nsigma_single%Phi(1,1),Op,Op%M_exp(:,:,-I+2))
           endif
 #ifdef MPI
-          if (use_mpi_shm) call MPI_WIN_FENCE(0, Op%win_M_exp, ierr)
+          if (use_mpi_shm) call MPI_WIN_FENCE(0, Op%win_M_exp)
 #endif
        enddo
     case(2)
@@ -395,7 +395,7 @@ Contains
              call Op_exp(-Op%g*nsigma_single%Phi(1,1),Op,Op%M_exp(:,:,-I+3))
           endif
 #ifdef MPI
-          if (use_mpi_shm) call MPI_WIN_FENCE(0, Op%win_M_exp, ierr)
+          if (use_mpi_shm) call MPI_WIN_FENCE(0, Op%win_M_exp)
 #endif
           !call Op_exp(Op%g*Phi_st( I,2),Op,Op%M_exp(:,:,I))
           !call Op_exp(Op%g*Phi_st(-I,2),Op,Op%M_exp(:,:,-I))

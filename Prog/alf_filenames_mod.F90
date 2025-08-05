@@ -34,50 +34,48 @@ module alf_filenames_mod
     use alf_mpi_mod
     Implicit none
     private
-    public :: alf_filenames_type, alf_filenames
+    public :: get_file_seeds, get_file_dat, get_file_info
+    public :: get_file_parameters_main, get_file_parameters_qmc, get_file_parameters_hamilton
 
     Character (len=64), save :: file_seeds, file_dat, file_info
     Character (len=64), save :: file_parameters_main, file_parameters_qmc, file_parameters_hamilton
-
-    type alf_filenames_type
-    contains
-        procedure, nopass :: init
-        procedure, nopass :: get_file_info
-    end type alf_filenames_type
-
-    type(alf_filenames_type) :: alf_filenames
   contains
 
-
+    Character(len=64) function get_file_seeds()
+        get_file_seeds = file_seeds
+    end function get_file_seeds
+    Character(len=64) function get_file_dat()
+        get_file_dat = file_dat
+    end function get_file_dat
     Character(len=64) function get_file_info()
         get_file_info = file_info
     end function get_file_info
+    Character(len=64) function get_file_parameters_main()
+        get_file_parameters_main = file_parameters_main
+    end function get_file_parameters_main
+    Character(len=64) function get_file_parameters_qmc()
+        get_file_parameters_qmc = file_parameters_qmc
+    end function get_file_parameters_qmc
+    Character(len=64) function get_file_parameters_hamilton()
+        get_file_parameters_hamilton = file_parameters_hamilton
+    end function get_file_parameters_hamilton
 
-    Character(len=64) function get_file_info()
-        get_file_info = file_info
-    end function get_file_info
-
-    Character(len=64) function get_file_info()
-        get_file_info = file_info
-    end function get_file_info
-
-
-    subroutine init()
+    subroutine init_filenames()
         file_parameters_main = "parameters"
         file_parameters_qmc = "parameters"
         file_parameters_hamilton = "parameters"
         file_info = "info"
         file_seeds = "seeds"
+        file_dat = "data.h5"
 
 #if defined(TEMPERING)
-        write(file_parameters_hamilton,'(A,I0,A)') "Temp_", igroup, "/parameters", 
-        write(file_info,'(A,I0,A)') "Temp_", igroup, "/info"
+        write(file_parameters_hamilton,'(A,I0,A)') "Temp_", get_igroup(), "/parameters", 
+        write(file_info,'(A,I0,A)') "Temp_", get_igroup(), "/info"
+        write(file_info,'(A,I0,A)') "Temp_", get_igroup(), "/data.h5"
 #endif
 
 #if defined(PARALLEL_PARAMS)
-        write(file_parameters_qmc,'(A,I0,A)') "Temp_", igroup, "/parameters"
+        write(file_parameters_qmc,'(A,I0,A)') "Temp_", get_igroup(), "/parameters"
 #endif
-    end subroutine init
-
-
+    end subroutine init_filenames
 end module alf_filenames_mod

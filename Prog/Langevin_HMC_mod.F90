@@ -43,10 +43,9 @@
         use wrapur_mod
         use wrapul_mod
         use cgr1_mod
-        Use global_parameters_mod, only: Group_Comm
         Use iso_fortran_env, only: output_unit, error_unit
 #ifdef MPI
-        Use mpi
+        Use mpi_f08
 #endif
 
         
@@ -372,7 +371,7 @@
                 &  Call this%calc_Forces(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst,&
                 &  LOBS_ST, LOBS_EN, Calc_Obser_eq )
            
-           Call Control_Langevin   ( this%Forces,Group_Comm )
+           Call Control_Langevin   ( this%Forces )
            
            Call ham%Ham_Langevin_HMC_S0( this%Forces_0)
            ! check: should this be going over all the operators?
@@ -604,13 +603,9 @@
         Real    (Kind=Kind(0.d0)), Intent(in)   :: Delta_t_Langevin_HMC, Max_Force
 
         !Local
-        Integer ::  IERR
         Logical ::  lexist
 #ifdef MPI
         Real (Kind=Kind(0.d0)) :: X
-        INTEGER                :: STATUS(MPI_STATUS_SIZE), ISIZE, IRANK
-        CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-        CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
 #endif
         
 
@@ -634,20 +629,20 @@
            inquire (file="Langevin_time_steps",exist=lexist)
            if (lexist) then
 #if defined(MPI)       
-              IF (IRANK == 0) THEN
-                 OPEN(UNIT=10,FILE="Langevin_time_steps",STATUS='OLD',ACTION='READ',IOSTAT=IERR)
+              IF (get_irank() == 0) THEN
+                 OPEN(UNIT=10,FILE="Langevin_time_steps",STATUS='OLD',ACTION='READ')
                  Read(10,*) this%Delta_t_running
-                 DO I = 1,ISIZE-1
+                 DO I = 1,get_isize()-1
                     Read (10,*) X
-                    CALL MPI_SEND(X,1,MPI_REAL8, I, I+1024, MPI_COMM_WORLD,IERR)
+                    CALL MPI_SEND(X,1,MPI_REAL8, I, I+1024, MPI_COMM_WORLD)
                  ENDDO
                  Close(10)
               ELSE
-                 CALL MPI_RECV(X, 1, MPI_REAL8,0,  IRANK + 1024,  MPI_COMM_WORLD,STATUS,IERR)
+                 CALL MPI_RECV(X, 1, MPI_REAL8,0,  get_irank() + 1024,  MPI_COMM_WORLD,MPI_STATUS_IGNORE)
                  this%Delta_t_running = X
               ENDIF
 #else
-              OPEN(UNIT=10,FILE="Langevin_time_steps",STATUS='OLD',ACTION='READ',IOSTAT=IERR)
+              OPEN(UNIT=10,FILE="Langevin_time_steps",STATUS='OLD',ACTION='READ')
               Read(10,*) this%Delta_t_running
               Close(10)
 #endif
@@ -696,34 +691,28 @@
 
         class (Langevin_HMC_type) :: this
 
-        !Local
-        Integer :: IERR
-
 #ifdef MPI
         Real (Kind=Kind(0.d0)) :: X
         INTEGER                :: I
-        INTEGER                :: STATUS(MPI_STATUS_SIZE), ISIZE, IRANK
-        CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-        CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
 #endif
 
         select case (this%scheme) !(trim(this%Update_scheme))
         case(Scheme_Langevin) !("Langevin")
            
 #if defined(MPI)       
-           IF (IRANK .ne. 0) THEN
-              CALL MPI_SEND(this%Delta_t_running,1,MPI_REAL8, 0, Irank + 1024, MPI_COMM_WORLD,IERR)
+           IF (get_irank() .ne. 0) THEN
+              CALL MPI_SEND(this%Delta_t_running,1,MPI_REAL8, 0, get_irank() + 1024, MPI_COMM_WORLD)
            ELSE
-              OPEN(UNIT=10,FILE="Langevin_time_steps",STATUS='Unknown',IOSTAT=IERR)
+              OPEN(UNIT=10,FILE="Langevin_time_steps",STATUS='Unknown')
               Write(10,*) this%Delta_t_running
-              Do I = 1, Isize-1
-                 CALL MPI_RECV(X, 1, MPI_REAL8,I,  I + 1024,  MPI_COMM_WORLD,STATUS,IERR)
+              Do I = 1, get_isize()-1
+                 CALL MPI_RECV(X, 1, MPI_REAL8,I,  I + 1024,  MPI_COMM_WORLD,MPI_STATUS_IGNORE)
                  Write(10,*) X
               enddo
               Close(10)
            ENDIF
 #else
-           OPEN(UNIT=10,FILE="Langevin_time_steps",STATUS='Unknown',IOSTAT=IERR)
+           OPEN(UNIT=10,FILE="Langevin_time_steps",STATUS='Unknown')
            Write(10,*) this%Delta_t_running
            Close(10)
 #endif

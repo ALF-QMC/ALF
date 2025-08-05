@@ -46,7 +46,7 @@ module mpi_shared_memory
     USE, INTRINSIC :: ISO_C_BINDING, ONLY : C_PTR, C_F_POINTER, C_SIZEOF
     use runtime_error_mod
 #ifdef MPI
-    use mpi
+    use mpi_f08
 #endif
     use iso_fortran_env, only: output_unit, error_unit
     Implicit none
@@ -57,9 +57,10 @@ module mpi_shared_memory
     complex (Kind=Kind(0.d0)), POINTER, save :: shm_mem_chunk_cmplx(:)
     real    (Kind=Kind(0.d0)), POINTER, save :: shm_mem_chunk_real(:) 
     ! storing the MPI window ids that are use to release the memory at the end of the run / synchronization barriers
-    integer, save, allocatable, dimension(:) :: mpi_wins_real, mpi_wins_cmplx
+    TYPE(MPI_Win), save, allocatable, dimension(:) :: mpi_wins_real, mpi_wins_cmplx
     ! internal members to manage mpi communication / memory distribution
-    integer, save :: nodecomm, noderank, head_idx_cmplx, head_idx_real
+    TYPE(MPI_Comm), save :: nodecomm
+    integer, save :: noderank, head_idx_cmplx, head_idx_real
     Real    (Kind=Kind(0.d0)), save :: chunk_size_gb
     integer, save :: num_chunks_real, num_chunks_cmplx
     integer(kind=8), save :: chunk_size_real(1), chunk_size_cmplx(1)
@@ -97,18 +98,18 @@ module mpi_shared_memory
       !--------------------------------------------------------------------
       subroutine mpi_shared_memory_init(mpi_communicator, chunk_size)
         Implicit none
-        integer, intent(in) :: mpi_communicator
+        TYPE(MPI_Comm), intent(in) :: mpi_communicator
         real(Kind=Kind(0.d0)), intent(in) :: chunk_size
         
 #ifdef MPI
-        integer :: ierr, tmp_int, status
+        integer :: tmp_int, status
         real(Kind=Kind(0.d0)) :: dummy_real_dp
 
         chunk_size_gb=chunk_size
         if (chunk_size_gb > 0) then
                 use_mpi_shm=.true.
-                CALL MPI_Comm_split_type(mpi_communicator, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL, nodecomm,ierr)
-                CALL MPI_Comm_rank(nodecomm, noderank,ierr)
+                CALL MPI_Comm_split_type(mpi_communicator, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL, nodecomm)
+                CALL MPI_Comm_rank(nodecomm, noderank)
                 initialized=.true.
                 num_chunks_real=0
                 num_chunks_cmplx=0
@@ -133,8 +134,9 @@ module mpi_shared_memory
         
 #ifdef MPI
         INTEGER(KIND=MPI_ADDRESS_KIND) :: windowsize
-        INTEGER :: disp_unit, ierr, mpi_win_loc, tmp_int
-        integer, allocatable :: tmp_int_array(:)
+        INTEGER :: disp_unit, tmp_int
+        TYPE(MPI_Win) :: mpi_win_loc
+        TYPE(MPI_Win), allocatable :: tmp_int_array(:)
         real(Kind=Kind(0.d0)) :: dummy_real_dp
         TYPE(C_PTR) :: baseptr
 
@@ -151,7 +153,7 @@ module mpi_shared_memory
             windowsize = 0_MPI_ADDRESS_KIND
         end if
         disp_unit = 1
-        CALL MPI_Win_allocate_shared(windowsize, disp_unit, MPI_INFO_NULL, nodecomm, baseptr, mpi_win_loc, ierr)
+        CALL MPI_Win_allocate_shared(windowsize, disp_unit, MPI_INFO_NULL, nodecomm, baseptr, mpi_win_loc)
         !count the number of alloacted chunks
         num_chunks_real=num_chunks_real+1
         !store mpi_win_loc, this is enough to deallocate all of them 
@@ -168,7 +170,7 @@ module mpi_shared_memory
 
         ! Obtain the location of the memory segment
         if (noderank /= 0) then
-            CALL MPI_Win_shared_query(mpi_win_loc, 0, windowsize, disp_unit, baseptr, ierr)
+            CALL MPI_Win_shared_query(mpi_win_loc, 0, windowsize, disp_unit, baseptr)
         end if
 
         ! baseptr can now be associated with a Fortran pointer
@@ -192,7 +194,7 @@ module mpi_shared_memory
       subroutine allocate_shared_memory_1Dreal(fortran_array, mpi_win_loc, myrank, arrayshape)
         Implicit none
         real (Kind=Kind(0.d0)), POINTER, intent(inout) :: fortran_array(:)
-        integer, intent(out) :: mpi_win_loc
+        TYPE(MPI_Win), intent(out) :: mpi_win_loc
         integer, intent(out) :: myrank
         integer, intent(in)  :: arrayshape(1)
         
@@ -235,7 +237,7 @@ module mpi_shared_memory
       subroutine allocate_shared_memory_2Dreal(fortran_array, mpi_win_loc, myrank, arrayshape)
         Implicit none
         real (Kind=Kind(0.d0)), POINTER, intent(inout) :: fortran_array(:,:)
-        integer, intent(out) :: mpi_win_loc
+        TYPE(MPI_Win), intent(out) :: mpi_win_loc
         integer, intent(out) :: myrank
         integer, intent(in)  :: arrayshape(2)
         
@@ -278,7 +280,7 @@ module mpi_shared_memory
       subroutine allocate_shared_memory_3Dreal(fortran_array, mpi_win_loc, myrank, arrayshape)
         Implicit none
         real (Kind=Kind(0.d0)), POINTER, intent(inout) :: fortran_array(:,:,:)
-        integer, intent(out) :: mpi_win_loc
+        TYPE(MPI_Win), intent(out) :: mpi_win_loc
         integer, intent(out) :: myrank
         integer, intent(in)  :: arrayshape(3)
         
@@ -322,7 +324,7 @@ module mpi_shared_memory
       subroutine allocate_shared_memory_4Dreal(fortran_array, mpi_win_loc, myrank, arrayshape)
         Implicit none
         real (Kind=Kind(0.d0)), POINTER, intent(inout) :: fortran_array(:,:,:,:)
-        integer, intent(out) :: mpi_win_loc
+        TYPE(MPI_Win), intent(out) :: mpi_win_loc
         integer, intent(out) :: myrank
         integer, intent(in)  :: arrayshape(4)
      
@@ -366,8 +368,9 @@ module mpi_shared_memory
         
 #ifdef MPI
         INTEGER(KIND=MPI_ADDRESS_KIND) :: windowsize
-        INTEGER :: disp_unit, ierr, mpi_win_loc, tmp_int
-        integer, allocatable :: tmp_int_array(:)
+        INTEGER :: disp_unit, tmp_int
+        TYPE(MPI_Win) :: mpi_win_loc
+        TYPE(MPI_Win), allocatable :: tmp_int_array(:)
         complex(Kind=Kind(0.d0)) :: dummy_cmplx_dp
         TYPE(C_PTR) :: baseptr
 
@@ -384,7 +387,7 @@ module mpi_shared_memory
             windowsize = 0_MPI_ADDRESS_KIND
         end if
         disp_unit = 1
-        CALL MPI_Win_allocate_shared(windowsize, disp_unit, MPI_INFO_NULL, nodecomm, baseptr, mpi_win_loc, ierr)
+        CALL MPI_Win_allocate_shared(windowsize, disp_unit, MPI_INFO_NULL, nodecomm, baseptr, mpi_win_loc)
         !count the number of alloacted chunks
         num_chunks_cmplx=num_chunks_cmplx+1
         !store mpi_win_loc, this is enough to deallocate all of them 
@@ -401,7 +404,7 @@ module mpi_shared_memory
 
         ! Obtain the location of the memory segment
         if (noderank /= 0) then
-            CALL MPI_Win_shared_query(mpi_win_loc, 0, windowsize, disp_unit, baseptr, ierr)
+            CALL MPI_Win_shared_query(mpi_win_loc, 0, windowsize, disp_unit, baseptr)
         end if
 
         ! baseptr can now be associated with a Fortran pointer
@@ -426,7 +429,7 @@ module mpi_shared_memory
       subroutine allocate_shared_memory_1Dcmplx(fortran_array, mpi_win_loc, myrank, arrayshape)
         Implicit none
         complex (Kind=Kind(0.d0)), POINTER, intent(inout) :: fortran_array(:)
-        integer, intent(out) :: mpi_win_loc
+        TYPE(MPI_Win), intent(out) :: mpi_win_loc
         integer, intent(out) :: myrank
         integer, intent(in)  :: arrayshape(1)
         
@@ -469,7 +472,7 @@ module mpi_shared_memory
       subroutine allocate_shared_memory_2Dcmplx(fortran_array, mpi_win_loc, myrank, arrayshape)
         Implicit none
         complex (Kind=Kind(0.d0)), POINTER, intent(inout) :: fortran_array(:,:)
-        integer, intent(out) :: mpi_win_loc
+        TYPE(MPI_Win), intent(out) :: mpi_win_loc
         integer, intent(out) :: myrank
         integer, intent(in)  :: arrayshape(2)
                 
@@ -513,7 +516,7 @@ module mpi_shared_memory
       subroutine allocate_shared_memory_3Dcmplx(fortran_array, mpi_win_loc, myrank, arrayshape)
         Implicit none
         complex (Kind=Kind(0.d0)), POINTER, intent(inout) :: fortran_array(:,:,:)
-        integer, intent(out) :: mpi_win_loc
+        TYPE(MPI_Win), intent(out) :: mpi_win_loc
         integer, intent(out) :: myrank
         integer, intent(in)  :: arrayshape(3)
                 
@@ -557,7 +560,7 @@ module mpi_shared_memory
       subroutine allocate_shared_memory_4Dcmplx(fortran_array, mpi_win_loc, myrank, arrayshape)
         Implicit none
         complex (Kind=Kind(0.d0)), POINTER, intent(inout) :: fortran_array(:,:,:,:)
-        integer, intent(out) :: mpi_win_loc
+        TYPE(MPI_Win), intent(out) :: mpi_win_loc
         integer, intent(out) :: myrank
         integer, intent(in)  :: arrayshape(4)
        
@@ -592,22 +595,23 @@ module mpi_shared_memory
       
       subroutine deallocate_all_shared_memory()
         Implicit none
-        integer :: ierr, i, mpi_win_loc
+        integer :: i
+        TYPE(MPI_Win) :: mpi_win_loc
         
 #ifdef MPI
         external :: MPI_Win_free    ! This seems to be required by gfortran10 with OpenMPI on Fedora33 (should be part of MPI module)
 
         do i=1,num_chunks_real
             mpi_win_loc=mpi_wins_real(i)
-            call MPI_WIN_FENCE(0, mpi_win_loc, ierr)
-            call MPI_BARRIER(nodecomm,ierr)
-            call MPI_Win_free(mpi_win_loc,ierr)
+            call MPI_WIN_FENCE(0, mpi_win_loc)
+            call MPI_BARRIER(nodecomm)
+            call MPI_Win_free(mpi_win_loc)
         enddo
         do i=1,num_chunks_cmplx
             mpi_win_loc=mpi_wins_cmplx(i)
-            call MPI_WIN_FENCE(0, mpi_win_loc, ierr)
-            call MPI_BARRIER(nodecomm,ierr)
-            call MPI_Win_free(mpi_win_loc,ierr)
+            call MPI_WIN_FENCE(0, mpi_win_loc)
+            call MPI_BARRIER(nodecomm)
+            call MPI_Win_free(mpi_win_loc)
         enddo
 #else
         WRITE(error_unit,*) 'This module requires MPI and should not be called without it'

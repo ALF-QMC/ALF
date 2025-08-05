@@ -127,25 +127,9 @@
 !> Sets the Hamiltonian.  Called by main.
 !--------------------------------------------------------------------
       Subroutine Ham_Set
-
-#if defined (MPI) || defined(TEMPERING)
-          use mpi
-#endif
           Implicit none
 
-          integer :: ierr, nf, unit_info
-          Character (len=64) :: file_info
-          
-#ifdef MPI
-          Integer        :: Isize, Irank, igroup, irank_g, isize_g
-          Integer        :: STATUS(MPI_STATUS_SIZE)
-          CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-          CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-          call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-          call MPI_Comm_size(Group_Comm, isize_g, ierr)
-          igroup           = irank/isize_g
-          !if ( irank_g == 0 )   write(6,*) "Mpi Test", igroup, isize_g
-#endif
+          integer :: nf, unit_info
 
           ! From dynamically generated file "Hamiltonian_Z2_Matter_read_write_parameters.F90"
           call read_parameters()
@@ -185,14 +169,8 @@
            
           if (Projector) Call Ham_Trial()
 
-#if defined(MPI)
-           If (irank_g == 0 ) then
-#endif
-              File_info = "info"
-#if defined(TEMPERING)
-              write(File_info,'(A,I0,A)') "Temp_",igroup,"/info"
-#endif
-              Open(newunit=unit_info, file=file_info, status="unknown", position="append")
+           If (is_group_main_process()) then
+              Open(newunit=unit_info, file=get_file_info(), status="unknown", position="append")
               Write(unit_info,*) '====================================='
               Write(unit_info,*) 'Model is      : Z2_Matter'
               Write(unit_info,*) 'Lattice is    : ', Lattice_type
@@ -233,9 +211,7 @@
                  enddo
               endif
               close(unit_info)
-#if defined(MPI)
            endif
-#endif
          end Subroutine Ham_Set
 
 !--------------------------------------------------------------------

@@ -58,13 +58,14 @@
      Module Fields_mod
        
 #ifdef MPI
-       Use mpi
+       Use mpi_f08
 #endif
 #if defined HDF5
        Use hdf5
        use h5lt
 #endif
        Use runtime_error_mod
+       use alf_mpi_mod
        Use Random_Wrap
        use iso_fortran_env, only: output_unit, error_unit
 
@@ -334,12 +335,11 @@
 !> Type Complex
 !> Initial field \endverbatim
 !--------------------------------------------------------------------
-      Subroutine Fields_in(this,Group_Comm,Initial_field)
+      Subroutine Fields_in(this,Initial_field)
 
         Implicit none
 
         Class (Fields)        , INTENT(INOUT) :: this
-        Integer               , INTENT(IN   ) :: Group_Comm
         Complex (Kind=Kind(0.d0)), Dimension(:,:), Optional   :: Initial_field
 
         ! LOCAL
@@ -349,29 +349,14 @@
         Logical ::   LCONF, LCONF_H5
         Character (LEN=64) :: FILE_SR, FILE_TG, FILE_seeds, FILE_info, File1, FILE_TG_H5, File1_h5
 
-#ifdef MPI
-        INTEGER        :: STATUS(MPI_STATUS_SIZE), irank_g, isize_g, igroup, ISIZE, IRANK
-        CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-        CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-        call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-        call MPI_Comm_size(Group_Comm, isize_g, ierr)
-        igroup           = irank/isize_g
-#endif
 
-
-#if defined(MPI)
 #if defined(TEMPERING)
-            write(FILE1,'(A,I0,A)')      "Temp_",igroup,"/confin_0"
-            write(FILE_TG,'(A,I0,A,I0)') "Temp_",igroup,"/confin_",irank_g
-            write(FILE_info,'(A,I0,A)')  "Temp_",igroup,"/info"
+            write(FILE1,'(A,I0,A)')      "Temp_",get_igroup(),"/confin_0"
+            write(FILE_TG,'(A,I0,A,I0)') "Temp_",get_igroup(),"/confin_",get_irank_g()
+            write(FILE_info,'(A,I0,A)')  "Temp_",get_igroup(),"/info"
 #else
             File1 = "confin_0"
-            write(FILE_TG,'(A,I0)') "confin_",irank_g
-            FILE_info="info"
-#endif
-#else
-            File1   = "confin_0"
-            FILE_TG = "confin_0"
+            write(FILE_TG,'(A,I0)') "confin_",get_irank_g()
             FILE_info="info"
 #endif
             FILE_seeds="seeds"
@@ -401,7 +386,7 @@
             ELSE
 #endif
 #if defined MPI
-               IF (IRANK == 0) THEN
+               IF (is_main_process()) THEN
 #endif
                   WRITE(6,*) 'No initial configuration'
                   OPEN(UNIT=5,FILE=FILE_seeds,STATUS='OLD',ACTION='READ',IOSTAT=IERR)
@@ -410,14 +395,14 @@
                      CALL Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
                   END IF
 #if defined MPI
-                  DO I = ISIZE-1,1,-1
+                  DO I = get_isize()-1,1,-1
                      READ (5,*) SEED_IN
-                     CALL MPI_SEND(SEED_IN,1,MPI_INTEGER, I, I+1024, MPI_COMM_WORLD,IERR)
+                     CALL MPI_SEND(SEED_IN,1,MPI_INTEGER, I, I+1024, MPI_COMM_WORLD)
                   ENDDO
                   READ(5,*) SEED_IN
                   CLOSE(5)
                ELSE
-                  CALL MPI_RECV(SEED_IN, 1, MPI_INTEGER,0,  IRANK + 1024,  MPI_COMM_WORLD,STATUS,IERR)
+                  CALL MPI_RECV(SEED_IN, 1, MPI_INTEGER,0,  get_irank() + 1024,  MPI_COMM_WORLD, MPI_STATUS_IGNORE)
                ENDIF
 #else
                READ (5,*) SEED_IN
@@ -432,15 +417,11 @@
                else
                   Call  this%set()
                endif
-#if defined MPI
-               if (irank_g == 0) then
-#endif
+               if (is_group_main_process()) then
                   Open (Unit = 50,file=FILE_info,status="unknown",position="append")
                   WRITE(50,*) 'No initial configuration, Seed_in', SEED_IN
                   Close(50)
-#if defined MPI
                endif
-#endif
             ENDIF
             call Fields_test(this)
 
@@ -458,38 +439,21 @@
 !> \verbatim
 !> Type Fields
 !>
-!> @param [IN] Group_Comm
-!> \verbatim
-!> Type Integer
-!> Communicator for MPI \endverbatim
-!>
 !--------------------------------------------------------------------
 
-       SUBROUTINE Fields_out(this,Group_Comm)
+       SUBROUTINE Fields_out(this)
 
          IMPLICIT NONE
 
          Class (Fields), INTENT(INOUT) :: this
-         Integer,        INTENT(IN   ) :: Group_Comm
 
          ! LOCAL
          CHARACTER (LEN=64) :: FILE_TG
 
-#if defined(MPI)
-         INTEGER        :: irank_g, isize_g, igroup, ISIZE, IRANK, IERR
-         CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
-         CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
-         call MPI_Comm_rank(Group_Comm, irank_g, ierr)
-         call MPI_Comm_size(Group_Comm, isize_g, ierr)
-         igroup           = irank/isize_g
-         !Write(6,*) "Group, rank :", igroup, irank_g
 #if defined(TEMPERING)
-         write(FILE_TG,'(A,I0,A,I0)') "Temp_",igroup,"/confout_",irank_g
+         write(FILE_TG,'(A,I0,A,I0)') "Temp_",get_igroup(),"/confout_",get_irank_g()
 #else
-         write(FILE_TG,'(A,I0)') "confout_",irank_g
-#endif
-#else
-         FILE_TG = "confout_0"
+         write(FILE_TG,'(A,I0)') "confout_",get_irank_g()
 #endif
 
 #if defined HDF5

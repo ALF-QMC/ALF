@@ -30,7 +30,9 @@
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
  
 Module entanglement_mod
-
+#ifdef MPI
+    Use mpi_f08
+#endif
 #ifndef MPI
 #warning "You are compiling entanglement without MPI. No Renyi entropy results possible, all other observables still work!"
 #endif
@@ -44,7 +46,10 @@ Module entanglement_mod
 !
 !--------------------------------------------------------------------
       ! Used for MPI
-      INTEGER, save, private :: ENTCOMM, ENT_RANK, ENT_SIZE=0, Norm, group
+      INTEGER, save, private :: ENT_RANK, ENT_SIZE=0, Norm
+#ifdef MPI
+      TYPE(MPI_Comm), save, private :: ENTCOMM, group
+#endif
       Real (kind=kind(0.d0)), save, private :: weight
 
       INTERFACE Calc_Renyi_Ent
@@ -59,20 +64,17 @@ Module entanglement_mod
 !========================================================================
 
         Subroutine Init_Entanglement_replicas(Group_Comm)
-#ifdef MPI
-          Use mpi
-#endif
           Implicit none
-          Integer, INTENT(IN)               :: Group_Comm
+          TYPE(MPI_Comm), INTENT(IN)               :: Group_Comm
           
-          Integer                           :: ISIZE, IRANK, IERR
+          Integer                           :: ISIZE, IRANK
 #ifdef MPI
           ! Create subgroups of two replicas each
-          CALL MPI_COMM_SIZE(Group_Comm,ISIZE,IERR)
-          CALL MPI_COMM_RANK(Group_Comm,IRANK,IERR)
-          CALL MPI_COMM_SPLIT(Group_Comm, IRANK / 2, IRANK, ENTCOMM, IERR)
-          CALL MPI_COMM_RANK(ENTCOMM,ENT_RANK,IERR)
-          CALL MPI_COMM_SIZE(ENTCOMM,ENT_SIZE,IERR)
+          CALL MPI_COMM_SIZE(Group_Comm,ISIZE)
+          CALL MPI_COMM_RANK(Group_Comm,IRANK)
+          CALL MPI_COMM_SPLIT(Group_Comm, IRANK / 2, IRANK, ENTCOMM)
+          CALL MPI_COMM_RANK(ENTCOMM,ENT_RANK)
+          CALL MPI_COMM_SIZE(ENTCOMM,ENT_SIZE)
           Norm=ISIZE/2 ! number of pairs
           norm=2*norm ! but each task of pair contributes
           group=Group_Comm
@@ -96,7 +98,7 @@ Module entanglement_mod
           Complex (kind=kind(0.d0)), INTENT(OUT)   :: Renyi_A, Renyi_B, Renyi_AB
 
           Integer, Dimension(:), Allocatable :: List_AB
-          Integer          :: I, J, IERR, INFO, Nsites_AB
+          Integer          :: I, J, INFO, Nsites_AB
 
           Nsites_AB=Nsites_A+Nsites_B
           
@@ -132,7 +134,7 @@ Module entanglement_mod
           Complex (kind=kind(0.d0)), INTENT(OUT)   :: Renyi_A, Renyi_B, Renyi_AB
 
           Integer, Allocatable :: List_AB(:,:), Nsites_AB(:)
-          Integer          :: I, J, IERR, INFO, N_FL, Nsites_AB_max
+          Integer          :: I, J, INFO, N_FL, Nsites_AB_max
 
           N_FL=size(GRC,3)
           Allocate(Nsites_AB(N_FL))
@@ -176,7 +178,7 @@ Module entanglement_mod
           Complex (kind=kind(0.d0)), INTENT(OUT)   :: Renyi_A, Renyi_B, Renyi_AB
 
           Integer, Allocatable :: List_AB(:,:,:), Nsites_AB(:,:)
-          Integer          :: I, J, IERR, INFO, N_FL, Nsites_AB_max, nc, num_nc
+          Integer          :: I, J, INFO, N_FL, Nsites_AB_max, nc, num_nc
 
           N_FL=size(GRC,3)
           num_nc=size(List_B,3)
@@ -237,9 +239,6 @@ Module entanglement_mod
 !-------------------------------------------------------------------
 
           Complex (kind=kind(0.d0)) function Calc_Renyi_Ent_indep(GRC,List,Nsites,N_SUN)
-#ifdef MPI
-          Use mpi
-#endif
           use iso_fortran_env, only: error_unit
   
           Implicit none
@@ -251,7 +250,7 @@ Module entanglement_mod
           Complex (kind=kind(0.d0)), Dimension(:,:), Allocatable :: GreenA, GreenA_tmp, IDA
           ! Integer, Dimension(:), Allocatable :: PIVOT
           Complex (kind=kind(0.d0)) :: DET, PRODDET, alpha, beta
-          Integer          :: J, IERR, INFO, N_FL, nf, N_FL_half
+          Integer          :: J, INFO, N_FL, nf, N_FL_half
           Integer         , Dimension(:,:), Allocatable :: List_tmp
           Integer         , Dimension(2)              :: Nsites_tmp,nf_list,N_SUN_tmp
           Logical, save :: First_call = .True.
@@ -349,9 +348,6 @@ Module entanglement_mod
 !-------------------------------------------------------------------        
         
         Complex (kind=kind(0.d0)) function Calc_Renyi_Ent_gen_fl(GRC,List,Nsites,N_SUN)
-#ifdef MPI
-          Use mpi
-#endif
           use iso_fortran_env, only: error_unit
 
           Implicit none
@@ -364,7 +360,7 @@ Module entanglement_mod
           Complex (kind=kind(0.d0)), Dimension(:,:), Allocatable :: GreenA, GreenA_tmp, IDA
           ! Integer, Dimension(:), Allocatable :: PIVOT
           Complex (kind=kind(0.d0)) :: DET, PRODDET, alpha, beta
-          Integer          :: I, J, IERR, INFO, N_FL, nf, N_FL_half, x, dim, dim_eff, nf_eff, start_flav
+          Integer          :: I, J, INFO, N_FL, nf, N_FL_half, x, dim, dim_eff, nf_eff, start_flav
           Integer         , Dimension(:), Allocatable :: SortedFlavors ! new
           Integer         , Dimension(:,:), Allocatable :: List_tmp
           Integer         , Dimension(2)              :: Nsites_tmp,nf_list,N_SUN_tmp
@@ -482,9 +478,6 @@ Module entanglement_mod
 !-------------------------------------------------------------------   
 
         Complex (kind=kind(0.d0)) function Calc_Renyi_Ent_gen_all(GRC,List,Nsites)
-#ifdef MPI
-          Use mpi
-#endif
           use iso_fortran_env, only: error_unit
 
           Implicit none
@@ -496,7 +489,7 @@ Module entanglement_mod
           Complex (kind=kind(0.d0)), Dimension(:,:), Allocatable :: GreenA, GreenA_tmp, IDA
           ! Integer, Dimension(:), Allocatable :: PIVOT
           Complex (kind=kind(0.d0)) :: DET, PRODDET, alpha, beta
-          Integer          :: I, J, IERR, INFO, N_FL, nf, N_FL_half, x, dim, dim_eff, nf_eff, start_flav
+          Integer          :: I, J, INFO, N_FL, nf, N_FL_half, x, dim, dim_eff, nf_eff, start_flav
           Integer          :: nc, num_nc
           Integer         , Dimension(:), Allocatable :: SortedFlavors,N_SUN_fl,df_list
           Integer         , Dimension(:,:), Allocatable :: List_tmp, eff_ind, eff_ind_inv
@@ -662,7 +655,7 @@ Module entanglement_mod
 !> \endverbatim
 !-------------------------------------------------------------------   
         Complex (kind=kind(0.d0)) function Calc_Renyi_Ent_pair(GRC,List,Nsites,nf_list,N_SUN,GreenA, GreenA_tmp, IDA)
-          Use mpi
+          Use mpi_f08
 
           Implicit none
           
@@ -673,7 +666,7 @@ Module entanglement_mod
 
           Integer, Dimension(:), Allocatable :: PIVOT
           Complex (kind=kind(0.d0)) :: DET, PRODDET, alpha, beta
-          Integer          :: I, J, IERR, INFO, N_FL, nf, N_FL_half, x, dim, dim_eff, nf_eff, start_flav, dim_sq
+          Integer          :: I, J, INFO, N_FL, nf, N_FL_half, x, dim, dim_eff, nf_eff, start_flav, dim_sq
           Integer         , Dimension(:), Allocatable :: SortedFlavors ! new
 
 
@@ -704,7 +697,7 @@ Module entanglement_mod
           ! This exchange the last Nsites columns of GreenA_c_tmp between the two replicas
           ! such that GreenA contains the reduced Green's function for two replicas
           ! and a fixed spin sector.
-          CALL MPI_ALLTOALL(GreenA_tmp, dim_sq, MPI_COMPLEX16, GreenA, dim_sq, MPI_COMPLEX16, ENTCOMM, IERR)
+          CALL MPI_ALLTOALL(GreenA_tmp, dim_sq, MPI_COMPLEX16, GreenA, dim_sq, MPI_COMPLEX16, ENTCOMM)
 
           ! Compute Identity - GreenA(replica=1) - GreenA(replica=2) + 2 GreenA(replica=1) * GreenA(replica=2)
           dim_eff = Nsites(1+ENT_RANK)
@@ -735,7 +728,7 @@ Module entanglement_mod
           END SELECT
           DET=DET**N_SUN(1+ENT_RANK)
           ! Compute the product of determinants for up and down spin sectors.
-          CALL MPI_ALLREDUCE(DET, PRODDET, 1, MPI_COMPLEX16, MPI_PROD, ENTCOMM, IERR)
+          CALL MPI_ALLREDUCE(DET, PRODDET, 1, MPI_COMPLEX16, MPI_PROD, ENTCOMM)
           ! Now each thread contains in PRODDET the full determinant, as obtained by
           ! a pair of replicas.
           Calc_Renyi_Ent_pair = Calc_Renyi_Ent_pair * PRODDET
@@ -785,7 +778,7 @@ Module entanglement_mod
 !> \endverbatim
 !-------------------------------------------------------------------   
         Complex (Kind=8) function Calc_Renyi_Ent_single(GRC,List,Nsites,nf_eff,N_SUN,GreenA, GreenA_tmp, IDA)
-          Use mpi
+          Use mpi_f08
           
           Implicit none
           
@@ -796,7 +789,7 @@ Module entanglement_mod
 
           Integer, Dimension(:), Allocatable :: PIVOT
           Complex (kind=kind(0.d0)) :: DET, PRODDET, alpha, beta
-          Integer          :: I, J, IERR, INFO, N_FL, nf, N_FL_half, x, dim, dim_eff, start_flav, dim_sq
+          Integer          :: I, J, INFO, N_FL, nf, N_FL_half, x, dim, dim_eff, start_flav, dim_sq
           Integer         , Dimension(:), Allocatable :: SortedFlavors ! new
 
           Calc_Renyi_Ent_single=CMPLX(1.d0,0.d0,kind(0.d0))
@@ -818,7 +811,7 @@ Module entanglement_mod
           ! This exchange the last Nsites columns of GreenA_c_tmp between the two replicas
           ! such that GreenA contains the reduced Green's function for two replicas
           ! and a fixed spin sector.
-          CALL MPI_ALLTOALL(GreenA_tmp, dim_sq, MPI_COMPLEX16, GreenA, dim_sq, MPI_COMPLEX16, ENTCOMM, IERR)
+          CALL MPI_ALLTOALL(GreenA_tmp, dim_sq, MPI_COMPLEX16, GreenA, dim_sq, MPI_COMPLEX16, ENTCOMM)
           
           DET = cmplx(1.D0,0.D0,KIND(0.D0))
           if(ENT_RANK==0) then
@@ -852,7 +845,7 @@ Module entanglement_mod
           endif
           
           ! Compute the product of determinants for up and down spin sectors.
-          CALL MPI_ALLREDUCE(DET, PRODDET, 1, MPI_COMPLEX16, MPI_PROD, ENTCOMM, IERR)
+          CALL MPI_ALLREDUCE(DET, PRODDET, 1, MPI_COMPLEX16, MPI_PROD, ENTCOMM)
           ! Now each thread contains in PRODDET the full determinant, as obtained by
           ! a pair of replicas.
           Calc_Renyi_Ent_single = Calc_Renyi_Ent_single * PRODDET

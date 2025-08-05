@@ -137,9 +137,10 @@ Program Main
         use set_random
 
         use alf_mpi_mod
+        use alf_filenames_mod
 
 #ifdef MPI
-        Use mpi
+        Use mpi_f08
 #endif
 #ifdef HDF5
         use hdf5
@@ -217,9 +218,9 @@ Program Main
         character(64) :: chunk_size_str
         Real    (Kind=Kind(0.d0)) :: chunk_size_gb
 
-        call alf_mpi%init1()
+        call alf_mpi_init1()
         
-        If ( alf_mpi%is_main_process() ) then
+        If ( is_main_process() ) then
            write (*,*) "ALF Copyright (C) 2016 - 2022 The ALF project contributors"
            write (*,*) "This Program comes with ABSOLUTELY NO WARRANTY; for details see license.GPL"
            write (*,*) "This is free software, and you are welcome to redistribute it under certain conditions."
@@ -243,20 +244,15 @@ Program Main
              write (error_unit,*) "         (difficult or impossible; ensure data and configuration files synced)"
              write (error_unit,*) "    4) remove the file RUNNING manually before resubmition"
              write (error_unit,*) "Afterwards, you may rerun the simulation."
-#ifdef MPI
-             call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
-#else
-   CALL Terminate_on_error(ERROR_RUNNING_FILE_FOUND,__FILE__,__LINE__)
-#endif
+             CALL Terminate_on_error(ERROR_RUNNING_FILE_FOUND,__FILE__,__LINE__)
            else
              open (unit=5, file='RUNNING', status='replace', action='write')
              write (5,*) "ALF is running"
              close (5)
            end if
-#ifdef MPI
         endif
 
-        call alf_mpi%init2(N_exchange_steps, N_Tempering_frequency, Tempering_calc_det)
+        call alf_mpi_init2()
 
 #ifdef MPI
         !read environment variable called ALF_SHM_CHUNK_SIZE_GB
@@ -270,23 +266,23 @@ Program Main
         if (ierr/=0 .or. chunk_size_gb<0) then
               chunk_size_gb=0
         endif
-        CALL mpi_shared_memory_init(Group_Comm, chunk_size_gb)
+        CALL mpi_shared_memory_init(get_group_comm(), chunk_size_gb)
 #endif
         !Initialize entanglement pairs of MPI jobs
         !This routine can and should also be called if MPI is not activated
         !It will then deactivate the entanglement measurements, i.e., the user does not have to care about this
-        call Init_Entanglement_replicas(Group_Comm)
+        call Init_Entanglement_replicas(get_group_comm())
 
-        If ( alf_mpi%is_main_process() ) then
+        If ( is_main_process() ) then
            ! This is a set of variables that  identical for each simulation.
            Nwrap=0;  NSweep=0; NBin=0; Ltau=0; LOBS_EN = 0;  LOBS_ST = 0;  CPU_MAX = 0.d0
            Propose_S0 = .false. ;  Global_moves = .false. ; N_Global = 0
            Global_tau_moves = .false.; sequential = .true.; Langevin = .false. ; HMC =.false.
            Delta_t_Langevin_HMC = 0.d0;  Max_Force = 0.d0 ; Leapfrog_steps = 0; N_HMC_sweeps = 1
            Nt_sequential_start = 1 ;  Nt_sequential_end  = 0;  N_Global_tau  = 0;  Amplitude = 1.d0
-           OPEN(UNIT=5,FILE=file_para,STATUS='old',ACTION='read',IOSTAT=ierr)
+           OPEN(UNIT=5,FILE=get_file_parameters_qmc(),STATUS='old',ACTION='read',IOSTAT=ierr)
            IF (ierr /= 0) THEN
-              WRITE(error_unit,*) 'main: unable to open <parameters>', file_para, ierr
+              WRITE(error_unit,*) 'main: unable to open <parameters>', get_file_parameters_qmc(), ierr
               CALL Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
            END IF
            READ(5,NML=VAR_QMC)
@@ -296,30 +292,30 @@ Program Main
            NBin_eff = NBin
          endif
 #ifdef MPI
-        CALL MPI_BCAST(Nwrap                ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(NSweep               ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(NBin                 ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(Ltau                 ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(LOBS_EN              ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(LOBS_ST              ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(CPU_MAX              ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(Propose_S0           ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(Global_moves         ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(N_Global             ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(Global_tau_moves     ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(Nt_sequential_start  ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(Nt_sequential_end    ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(N_Global_tau         ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(sequential           ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(Langevin             ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(HMC                  ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(Leapfrog_steps       ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(N_HMC_sweeps         ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(Max_Force            ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(Delta_t_Langevin_HMC ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(Amplitude            ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(Nwrap                ,1 ,MPI_INTEGER  ,0,get_MPI_COMM_QMC())
+        CALL MPI_BCAST(NSweep               ,1 ,MPI_INTEGER  ,0,get_MPI_COMM_QMC())
+        CALL MPI_BCAST(NBin                 ,1 ,MPI_INTEGER  ,0,get_MPI_COMM_QMC())
+        CALL MPI_BCAST(Ltau                 ,1 ,MPI_INTEGER  ,0,get_MPI_COMM_QMC())
+        CALL MPI_BCAST(LOBS_EN              ,1 ,MPI_INTEGER  ,0,get_MPI_COMM_QMC())
+        CALL MPI_BCAST(LOBS_ST              ,1 ,MPI_INTEGER  ,0,get_MPI_COMM_QMC())
+        CALL MPI_BCAST(CPU_MAX              ,1 ,MPI_REAL8    ,0,get_MPI_COMM_QMC())
+        CALL MPI_BCAST(Propose_S0           ,1 ,MPI_LOGICAL  ,0,get_MPI_COMM_QMC())
+        CALL MPI_BCAST(Global_moves         ,1 ,MPI_LOGICAL  ,0,get_MPI_COMM_QMC())
+        CALL MPI_BCAST(N_Global             ,1 ,MPI_Integer  ,0,get_MPI_COMM_QMC())
+        CALL MPI_BCAST(Global_tau_moves     ,1 ,MPI_LOGICAL  ,0,get_MPI_COMM_QMC())
+        CALL MPI_BCAST(Nt_sequential_start  ,1 ,MPI_Integer  ,0,get_MPI_COMM_QMC())
+        CALL MPI_BCAST(Nt_sequential_end    ,1 ,MPI_Integer  ,0,get_MPI_COMM_QMC())
+        CALL MPI_BCAST(N_Global_tau         ,1 ,MPI_Integer  ,0,get_MPI_COMM_QMC())
+        CALL MPI_BCAST(sequential           ,1 ,MPI_LOGICAL  ,0,get_MPI_COMM_QMC())
+        CALL MPI_BCAST(Langevin             ,1 ,MPI_LOGICAL  ,0,get_MPI_COMM_QMC())
+        CALL MPI_BCAST(HMC                  ,1 ,MPI_LOGICAL  ,0,get_MPI_COMM_QMC())
+        CALL MPI_BCAST(Leapfrog_steps       ,1 ,MPI_Integer  ,0,get_MPI_COMM_QMC())
+        CALL MPI_BCAST(N_HMC_sweeps         ,1 ,MPI_Integer  ,0,get_MPI_COMM_QMC())
+        CALL MPI_BCAST(Max_Force            ,1 ,MPI_REAL8    ,0,get_MPI_COMM_QMC())
+        CALL MPI_BCAST(Delta_t_Langevin_HMC ,1 ,MPI_REAL8    ,0,get_MPI_COMM_QMC())
+        CALL MPI_BCAST(Amplitude            ,1 ,MPI_REAL8    ,0,get_MPI_COMM_QMC())
 
-        CALL MPI_BCAST(ham_name             ,64,MPI_CHARACTER,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(ham_name             ,64,MPI_CHARACTER,0,get_MPI_COMM_QMC())
 #endif
         Call Fields_init(Amplitude)
         Call Alloc_Ham(ham_name)
@@ -426,16 +422,15 @@ Program Main
            nsigma%flip_protocol(n)  = OP_V(n,1)%flip_protocol
         Enddo
            
-        File_seeds="seeds"
-        Call Set_Random_number_Generator(File_seeds,Seed_in)
+        Call Set_Random_number_Generator(get_file_seeds(),Seed_in)
         !Write(6,*) Seed_in
                
         Call ham%Hamiltonian_set_nsigma(Initial_field)
         if (allocated(Initial_field)) then
-           Call nsigma%in(Group_Comm,Initial_field)
+           Call nsigma%in(Initial_field)
            deallocate(Initial_field)
         else
-           Call nsigma%in(Group_Comm)
+           Call nsigma%in()
         endif
         Call Hop_mod_init
 
@@ -445,34 +440,21 @@ Program Main
         endif
         
 #if defined(HDF5)
-#if defined(TEMPERING)
-        write(file_dat,'(A,I0,A)') "Temp_",igroup,"/data.h5"
-#else
-        file_dat = "data.h5"
-#endif
-#if defined(MPI)
-        if ( alf_mpi%is_main_process() ) then
-#endif
+        if ( is_group_main_process() ) then
           CALL h5open_f(ierr)
-          inquire (file=file_dat, exist=file_exists)
+          inquire (file=get_file_dat(), exist=file_exists)
           IF (.not. file_exists) THEN
             ! Create HDF5 file
-            CALL h5fcreate_f(file_dat, H5F_ACC_TRUNC_F, file_id, ierr)
-<<<<<<< HEAD
+            CALL h5fcreate_f(get_file_dat(), H5F_ACC_TRUNC_F, file_id, ierr)
             call h5ltset_attribute_string_f(file_id, '/', 'program_name', 'ALF', ierr)
-=======
->>>>>>> d10fc7c9 (Read ham_name in main.F90, make filename variable clearer in main.F90)
             call h5fclose_f(file_id, ierr)
           endif
-          call ham%write_parameters_hdf5(file_dat)
-
-#if defined(MPI)
+          call ham%write_parameters_hdf5(get_file_dat())
         endif
 #endif
-#endif
 
 
-        Call control_init(Group_Comm)
+        Call control_init()
         Call ham%Alloc_obs(Ltau)
 
         If ( mod(Ltrot,nwrap) == 0  ) then
@@ -492,9 +474,7 @@ Program Main
         !TODO: check if sequential is done if some fields are discrete (Warning or error termination?)
         if ( Langevin .or.  HMC  ) then
            if (Langevin) then
-#if defined(MPI)
-               if ( Irank_g == 0 ) then
-#endif
+               if ( is_group_main_process() ) then
                   if (sequential) then 
                      write(output_unit,*) "Langevin mode does not allow sequential updates."
                      write(output_unit,*) "Overriding Sequential=.True. from parameter files."
@@ -517,9 +497,7 @@ Program Main
                      write(output_unit,*) "Overwriting N_exchange_steps to 0."
                   end if
 #endif
-#if defined(MPI)
                endif
-#endif
                Sequential = .False.
                HMC = .False.
                Global_moves = .False.
@@ -548,16 +526,8 @@ Program Main
          write(output_unit,*) "Warning: Nt_sequential_end is smaller than Nt_sequential_start"
         endif
 
-#if defined(TEMPERING)
-        write(file_info,'(A,I0,A)') "Temp_",igroup,"/info"
-#else
-        file_info = "info"
-#endif
-
-#if defined(MPI)
-        if ( alf_mpi%is_main_process() ) then
-#endif
-           Open (Unit = 50,file=file_info,status="unknown",position="append")
+        if ( is_group_main_process() ) then
+           Open (Unit = 50,file=get_file_info(),status="unknown",position="append")
            Write(50,*) 'Sweeps                              : ', Nsweep
            If ( abs(CPU_MAX) < ZERO ) then
               Write(50,*) 'Bins                                : ', NBin
@@ -620,7 +590,7 @@ Program Main
            endif
            
 #if defined(MPI)
-           Write(50,*) 'Number of mpi-processes : ', alf_mpi%get_mpi_per_parameter_set()
+           Write(50,*) 'Number of mpi-processes : ', get_mpi_per_parameter_set()
            if(use_mpi_shm) Write(50,*) 'Using mpi-shared memory in chunks of ', chunk_size_gb, 'GB.'
 #endif
 #if defined(GIT)
@@ -703,8 +673,7 @@ Program Main
 #endif
 
 
-
-        Call Control_init(Group_Comm)
+        Call Control_init()
 
         DO  NBC = 1, NBIN
            ! Here, you have the green functions on time slice 1.
@@ -949,12 +918,12 @@ Program Main
            Call Global_Tempering_Pr
 #endif
 
-           Call nsigma%out(Group_Comm)
+           Call nsigma%out()
 
            call system_clock(count_bin_end)
            prog_truncation = .false.
            if ( abs(CPU_MAX) > Zero ) then
-              Call make_truncation(prog_truncation,CPU_MAX,count_bin_start,count_bin_end,group_comm)
+              Call make_truncation(prog_truncation,CPU_MAX,count_bin_start,count_bin_end)
            endif
            If (prog_truncation) then
               Nbin_eff = nbc
@@ -997,40 +966,27 @@ Program Main
         call deallocate_all_shared_memory
 #endif
 
-        Call Control_Print(Group_Comm, Langevin_HMC%get_Update_scheme())
+        Call Control_Print(Langevin_HMC%get_Update_scheme())
 
-#if defined(MPI)
-        If ( alf_mpi%is_main_process() ) then
-#endif
+        If ( is_group_main_process() ) then
            if ( abs(CPU_MAX) > Zero ) then
-#if defined(TEMPERING)
-              write(file_info,'(A,I0,A)') "Temp_",igroup,"/info"
-#else
-              file_info = "info"
-#endif
-              Open (Unit=50,file=file_info, status="unknown", position="append")
+              Open (Unit=50,file=get_file_info(), status="unknown", position="append")
               Write(50,*)' Effective number of bins   : ', Nbin_eff
               Close(50)
            endif
-#if defined(MPI)
         endif
-#endif
         
         Call Langevin_HMC%clean()
         deallocate(Calc_Fl_map,Phase_array)
 
          ! Delete the file RUNNING since the simulation finished successfully
-#if defined(MPI)
-        If (  Irank == 0 ) then
-#endif
+        If ( is_main_process() ) then
            open(unit=5, file='RUNNING', status='old')
            close(5, status='delete')
-#if defined(MPI)
         endif
-#endif
 
 #ifdef MPI
-        CALL MPI_FINALIZE(ierr)
+        CALL MPI_FINALIZE()
 #endif
 
       end Program Main
