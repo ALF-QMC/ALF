@@ -254,6 +254,10 @@ Program Main
 
         call alf_mpi_init2()
 
+#if defined(TEMPERING)
+        Call Global_Tempering_setup
+#endif
+
 #ifdef MPI
         !read environment variable called ALF_SHM_CHUNK_SIZE_GB
         !it should be a positive integer setting the chunk size of shared memory blocks in GB

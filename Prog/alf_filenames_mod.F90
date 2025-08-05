@@ -69,7 +69,7 @@ module alf_filenames_mod
         file_dat = "data.h5"
 
 #if defined(TEMPERING)
-        write(file_parameters_hamilton,'(A,I0,A)') "Temp_", get_igroup(), "/parameters", 
+        write(file_parameters_hamilton,'(A,I0,A)') "Temp_", get_igroup(), "/parameters"
         write(file_info,'(A,I0,A)') "Temp_", get_igroup(), "/info"
         write(file_info,'(A,I0,A)') "Temp_", get_igroup(), "/data.h5"
 #endif

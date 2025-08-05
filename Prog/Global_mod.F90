@@ -151,7 +151,7 @@ Module Global_mod
            Allocate ( Det_vec_old(NDIM,N_FL), Det_vec_new(NDIM,N_FL) )
            Allocate ( Phase_Det_new(N_FL), Phase_Det_old(N_FL) )
         endif
-        Allocate ( List_partner(0:Isize-1), List_masters(Isize/2) )
+        Allocate ( List_partner(0:get_Isize()-1), List_masters(get_Isize()/2) )
 
         !         Allocate ( nsigma_orig(n1,n2) )
         !         nsigma_orig = nsigma
@@ -178,39 +178,39 @@ Module Global_mod
         nsigma_old_irank = nsigma_irank
         ! Setup the list of masters
         nc = 0
-        Do I  = 0,Isize-1,2*Isize_g
-           do n = 0,isize_g-1
+        Do I  = 0,get_Isize()-1,2*get_Isize_g()
+           do n = 0,get_isize_g()-1
               nc = nc + 1
               List_masters(nc)  = I + n
            enddo
         Enddo
         if (L_Test) then
-           if (Irank == 0)  then
+           if (get_irank() == 0)  then
               Write(6,*) 'List  of masters: '
-              Do nc = 1,Isize/2
+              Do nc = 1,get_Isize()/2
                  Write(6,*) nc, list_masters(nc)
               Enddo
            endif
         endif
         DO N_count = 1,N_exchange_steps
            !  Set the partner rank on each core
-           If (Irank == 0 ) then
-              n_step = isize_g
-              if (  ranf_wrap() > 0.5d0 ) n_step = -isize_g
-              Do I = 0,Isize-1,2*isize_g
-                 do n = 0,isize_g-1
-                    List_partner(npbc_tempering(I  + n             ,Isize)) =  npbc_tempering(I + n   + n_step ,Isize)
-                    List_partner(npbc_tempering(I  + n  + n_step  , Isize)) =  npbc_tempering(I + n            ,Isize)
+           If (get_irank() == 0 ) then
+              n_step = get_isize_g()
+              if (  ranf_wrap() > 0.5d0 ) n_step = -get_isize_g()
+              Do I = 0,get_Isize()-1,2*get_isize_g()
+                 do n = 0,get_isize_g()-1
+                    List_partner(npbc_tempering(I  + n             ,get_Isize())) =  npbc_tempering(I + n   + n_step ,get_Isize())
+                    List_partner(npbc_tempering(I  + n  + n_step  , get_Isize())) =  npbc_tempering(I + n            ,get_Isize())
                  enddo
               enddo
            endif
 
-           CALL MPI_BCAST(List_partner, Isize  ,MPI_INTEGER,   0,MPI_COMM_WORLD)
+           CALL MPI_BCAST(List_partner, get_Isize()  ,MPI_INTEGER,   0,MPI_COMM_WORLD)
 
            If (L_test) then
-              if (Irank == 0 ) then
+              if (get_irank() == 0 ) then
                  Write(6,*) 'Testing global : '
-                 do  I = 0,Isize -1
+                 do  I = 0,get_Isize() -1
                     Write(6,*)   I, List_partner(I) !, Phase_old, Phase
                     Write(11,*)  I, List_partner(I) !, Phase_old, Phase
                  enddo
@@ -222,10 +222,10 @@ Module Global_mod
            !  Exchange configurations
            !  The types do not change --> no need to exchange them
            n = size(nsigma_old%f,1)*size(nsigma_old%f,2)
-           CALL MPI_Sendrecv(nsigma_old%f    , n, MPI_COMPLEX16, List_partner(IRANK), 0, &
-                    &        nsigma%f        , n, MPI_COMPLEX16, List_partner(IRANK), 0, MPI_COMM_WORLD,MPI_STATUS_IGNORE)
-           CALL MPI_Sendrecv(nsigma_old_irank, 1, MPI_INTEGER, List_partner(IRANK), 0, &
-                    &        nsigma_irank    , 1, MPI_INTEGER, List_partner(IRANK), 0, MPI_COMM_WORLD,MPI_STATUS_IGNORE)
+           CALL MPI_Sendrecv(nsigma_old%f    , n, MPI_COMPLEX16, List_partner(get_IRANK()), 0, &
+                    &        nsigma%f        , n, MPI_COMPLEX16, List_partner(get_IRANK()), 0, MPI_COMM_WORLD,MPI_STATUS_IGNORE)
+           CALL MPI_Sendrecv(nsigma_old_irank, 1, MPI_INTEGER, List_partner(get_IRANK()), 0, &
+                    &        nsigma_irank    , 1, MPI_INTEGER, List_partner(get_IRANK()), 0, MPI_COMM_WORLD,MPI_STATUS_IGNORE)
 
            !  Each node now has a new configuration nsigma
 
@@ -250,7 +250,7 @@ Module Global_mod
               Ratiotot = Compute_Ratio_Global(Phase_Det_old, Phase_Det_new, &
                    &            Det_vec_old, Det_vec_new, nsigma_old, T0_Proposal_ratio,Ratio)
 
-              If (L_Test) Write(6,*) 'Ratio_global: Irank, Partner',Irank,List_partner(Irank), &
+              If (L_Test) Write(6,*) 'Ratio_global: Irank, Partner',get_Irank(),List_partner(get_Irank()), &
                    &                  Ratiotot, Ratio(1)*exp(Ratio(2))
            else
               Ratiotot = ham%Delta_S0_global(Nsigma_old)
@@ -259,11 +259,11 @@ Module Global_mod
            endif
 
            !  Acceptace/rejection decision taken on master node after receiving information from slave
-           Do nc = 1,Isize/2 ! Loop over masters
+           Do nc = 1,get_Isize()/2 ! Loop over masters
               I = List_masters(nc)
-              If (Irank == I ) Then
+              If (get_Irank() == I ) Then
                  CALL MPI_SEND(Ratio   ,2, MPI_COMPLEX16  , List_partner(I), I+1024, MPI_COMM_WORLD)
-              else if (IRANK == List_Partner(I) ) Then
+              else if (get_IRANK() == List_Partner(I) ) Then
                  CALL MPI_RECV(Ratio_p    , 2, MPI_COMPLEX16,  I, I+1024, MPI_COMM_WORLD,MPI_STATUS_IGNORE)
                  !Weight = abs(Ratiotot_p*Ratiotot)
                  Weight= abs(Ratio(1) * Ratio_p(1) * exp( Ratio_p(2) + Ratio(2)  ) )
@@ -274,18 +274,18 @@ Module Global_mod
            enddo
 
            !>  Send result of acceptance/rejection decision form master to slave
-           Do nc =  1,Isize/2 ! Loop over masters
+           Do nc =  1,get_Isize()/2 ! Loop over masters
               I = List_masters(nc)
-              If (Irank == List_Partner(I) ) Then
+              If (get_Irank() == List_Partner(I) ) Then
                  ! Write(6,*) 'Send from ', List_Partner(I), 'to, ', I, I + 512
                  CALL MPI_SEND(Toggle, 1, MPI_LOGICAL, I, I+1024, MPI_COMM_WORLD)
-              else if (IRANK == I ) Then
+              else if (get_IRANK() == I ) Then
                  CALL MPI_RECV(Toggle , 1, MPI_LOGICAL,   List_partner(I), I+1024 ,MPI_COMM_WORLD,MPI_STATUS_IGNORE)
-                 If (L_Test) Write(6,*) 'Slave : ', Irank,  Toggle
+                 If (L_Test) Write(6,*) 'Slave : ', get_Irank(),  Toggle
               endif
            enddo
 
-           If (L_Test) Write(6,*) 'Final: ',  Irank, List_partner(Irank), toggle
+           If (L_Test) Write(6,*) 'Final: ',  get_Irank(), List_partner(get_Irank()), toggle
            Call Global_Tempering_obser(Toggle)
            Call Control_upgrade_Temp  (Toggle)
            If (toggle)  then
@@ -347,8 +347,8 @@ Module Global_mod
            !  which is the node where its new Phase, GR, udvr, udvl, udvst is stored
            !  This node then tells each node where to send its now old Phase, GR, udvr, udvl, udvst
            !  Finally, the variables get submitted
-           If (Irank == 0) then
-              Do I = 1,Isize-1
+           If (get_Irank() == 0) then
+              Do I = 1,get_Isize()-1
                  CALL MPI_RECV(nsigma_irank_temp , 1, MPI_INTEGER, I, 0, MPI_COMM_WORLD,MPI_STATUS_IGNORE)
                  If ( nsigma_irank_temp == 0) then
                     nsigma_old_irank = I
@@ -364,7 +364,7 @@ Module Global_mod
               CALL MPI_RECV(nsigma_old_irank , 1, MPI_INTEGER, 0, 0, MPI_COMM_WORLD,MPI_STATUS_IGNORE)
            endif
 
-           if ( nsigma_irank /= irank ) then
+           if ( nsigma_irank /= get_irank() ) then
               CALL MPI_Sendrecv_Replace(Phase, 1, MPI_COMPLEX16, nsigma_old_irank, 0, &
                    &        nsigma_irank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE)
 
@@ -373,14 +373,14 @@ Module Global_mod
                    &        nsigma_irank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE)
 
               do nf_eff = 1,N_Fl_eff
-                 CALL udvr(nf_eff)%MPI_Sendrecv(nsigma_old_irank, 0, nsigma_irank, 0, MPI_STATUS_IGNORE)
+                 CALL udvr(nf_eff)%MPI_Sendrecv(nsigma_old_irank, 0, nsigma_irank, 0)
               enddo
               do nf_eff = 1,N_Fl_eff
-                 CALL udvl(nf_eff)%MPI_Sendrecv(nsigma_old_irank, 0, nsigma_irank, 0, MPI_STATUS_IGNORE)
+                 CALL udvl(nf_eff)%MPI_Sendrecv(nsigma_old_irank, 0, nsigma_irank, 0)
               enddo
               do NST = 1, NSTM
                  do nf_eff = 1,N_Fl_eff
-                    CALL udvst(NST, nf_eff)%MPI_Sendrecv(nsigma_old_irank, 0, nsigma_irank, 0, MPI_STATUS_IGNORE)
+                    CALL udvst(NST, nf_eff)%MPI_Sendrecv(nsigma_old_irank, 0, nsigma_irank, 0)
                  enddo
               enddo
            endif

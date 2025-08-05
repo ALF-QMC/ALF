@@ -508,7 +508,7 @@ module Control
 #ifdef MPI
 #ifdef PARALLEL_PARAMS
       call mpi_reduce(bins_remain,bins_remain_mpi,1,mpi_double_precision,mpi_sum,0, get_group_comm())
-      if (is_group_main_process()) bins_remain_mpi = bins_remain_mpi/get_get_isize_g()()
+      if (is_group_main_process()) bins_remain_mpi = bins_remain_mpi/get_isize_g()
       call mpi_bcast(bins_remain_mpi,1, mpi_double_precision,0, get_group_comm())
 #else
       call mpi_reduce(bins_remain,bins_remain_mpi,1,mpi_double_precision,mpi_sum,0,mpi_comm_world)

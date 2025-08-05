@@ -782,9 +782,9 @@
 #endif
 
 #if defined TEMPERING
-              write(File_pr,'(A,I0,A,A,A)') "Temp_",igroup,"/",trim(Obs%File_Vec), "_scal"
+              write(File_pr,'(A,I0,A,A,A)') "Temp_",get_igroup(),"/",trim(Obs%File_Vec), "_scal"
 #if defined HDF5
-              write(filename ,'(A,I0,A,A)') "Temp_",igroup,"/",trim(File_h5)
+              write(filename ,'(A,I0,A,A)') "Temp_",get_igroup(),"/",trim(File_h5)
 #endif
 #endif
 

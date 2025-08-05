@@ -33,6 +33,7 @@
 module alf_mpi_mod
     use iso_fortran_env, only: output_unit, error_unit
 !     use mpi_shared_memory
+    use runtime_error_mod
 #ifdef MPI
     Use mpi_f08
 #endif
@@ -150,7 +151,6 @@ module alf_mpi_mod
            Write (error_unit,*) "mpi_per_parameter_set is not a multiple of total mpi processes"
            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         endif
-        Call Global_Tempering_setup
 #elif !defined(TEMPERING) && defined(MPI)
         mpi_per_parameter_set = Isize
 #elif !defined(TEMPERING) && !defined(MPI)

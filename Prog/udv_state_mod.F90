@@ -601,26 +601,25 @@ CONTAINS
  !-------------------------------------------------------------------
 
 #if defined(MPI)
-     SUBROUTINE MPI_Sendrecv_UDV_state(this, dest, sendtag, source, recvtag, STATUS, IERR)
-       Use mpi
+     SUBROUTINE MPI_Sendrecv_UDV_state(this, dest, sendtag, source, recvtag)
+       Use mpi_f08
        Implicit None
 
        CLASS(UDV_State), INTENT(INOUT) :: this
        INTEGER, intent(in)  :: dest, sendtag, source, recvtag
-       Integer, intent(out) :: STATUS(MPI_STATUS_SIZE), IERR
        INTEGER :: n
 
        n = this%ndim * this%ndim
        CALL MPI_Sendrecv_replace(this%U, n, MPI_COMPLEX16, dest, sendtag, &
-            &                source, recvtag, MPI_COMM_WORLD, STATUS, IERR)
+            &                source, recvtag, MPI_COMM_WORLD, MPI_STATUS_IGNORE)
        CALL MPI_Sendrecv_replace(this%V, n, MPI_COMPLEX16, dest, sendtag, &
-            &                source, recvtag, MPI_COMM_WORLD, STATUS, IERR)
+            &                source, recvtag, MPI_COMM_WORLD, MPI_STATUS_IGNORE)
 #if !defined(STABLOG)
        CALL MPI_Sendrecv_replace(this%D, this%ndim, MPI_COMPLEX16, dest, sendtag, &
-            &                source, recvtag, MPI_COMM_WORLD, STATUS, IERR)
+            &                source, recvtag, MPI_COMM_WORLD, MPI_STATUS_IGNORE)
 #else
        CALL MPI_Sendrecv_replace(this%L, this%ndim, MPI_REAL8, dest, sendtag, &
-            &                source, recvtag, MPI_COMM_WORLD, STATUS, IERR)
+            &                source, recvtag, MPI_COMM_WORLD, MPI_STATUS_IGNORE)
 #endif
      END SUBROUTINE MPI_Sendrecv_UDV_state
 #endif
