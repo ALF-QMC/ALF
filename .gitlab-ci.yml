@@ -166,7 +166,7 @@ test:
   parallel:
     matrix:
       - MACHINE: GNU
-        IMAGE_MINOR: [bullseye, bookworm]
+        IMAGE_MINOR: [bullseye, bookworm, trixie]
         MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
         DEVEL: ["", Devel]
         CONFIG_ARGS: ["", "HDF5"]
