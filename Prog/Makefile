@@ -11,8 +11,8 @@ OBJS = Hamiltonians/LRC_mod.o control_mod.o Fields_mod.o Operator_mod.o WaveFunc
 	main.o
 
 MODS = control.mod fields_mod.mod global_mod.mod hop_mod.mod lrc_mod.mod observables.mod \
-	QMC_runtime_var_mod.mod operator_mod.mod predefined_int.mod predefined_lattices.mod predefined_obs.mod \
-	predefined_hoppings.mod  predefined_trial.mod qdrp_mod.mod tau_m_mod.mod tau_p_mod.mod \
+	operator_mod.mod predefined_int.mod predefined_lattices.mod predefined_obs.mod \
+	predefined_hoppings.mod  predefined_trial.mod qdrp_mod.mod QMC_runtime_var_mod.mod tau_m_mod.mod tau_p_mod.mod \
 	udv_state_mod.mod udv_wrap_mod.mod wavefunction_mod.mod wrapgr_mod.mod hamiltonian.mod \
 	opt_time_dependent.mod containerelementbase_mod.mod opttypes_mod.mod dynamicmatrixarray_mod.mod langevin_hmc_mod.mod \
 	wrapul_mod.mod cgr1_mod.mod wrapur_mod.mod cgr2_2_mod.mod upgrade_mod.mod set_random.mod
