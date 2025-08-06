@@ -31,8 +31,6 @@
 
 Module QMC_runtime_var
 
-        Use UDV_State_mod
-
         Implicit none
 
         Integer :: Nwrap, NSweep, NBin, NBin_eff,Ltau, NSTM, NT, NT1, NVAR, LOBS_EN, LOBS_ST, NBC, NSW
@@ -51,7 +49,8 @@ Module QMC_runtime_var
         Logical :: Sequential
         real (Kind=Kind(0.d0)) ::  Amplitude  !    Needed for  update of  type  3  and  4  fields.
 
-!  Space for reading in Langevin & HMC  parameters
+
+        !  Space for reading in Langevin & HMC  parameters
         Logical                      :: Langevin,  HMC
         Integer                      :: Leapfrog_Steps, N_HMC_sweeps
         Real  (Kind=Kind(0.d0))      :: Delta_t_Langevin_HMC, Max_Force
@@ -62,32 +61,66 @@ Module QMC_runtime_var
               &               Nt_sequential_start, Nt_sequential_end, N_Global_tau, &
               &               sequential, Langevin, HMC, Delta_t_Langevin_HMC, &
               &               Max_Force, Leapfrog_steps, N_HMC_sweeps, Amplitude
-
-        NAMELIST /VAR_HAM_NAME/ ham_name
-
-        !  General
-        Integer :: Ierr, I,nf, nf_eff, nst, n, n1, N_op
-        Logical :: Toggle,  Toggle1
-        Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Phase, Z, Z1
-        Real    (Kind=Kind(0.d0)) :: ZERO = 10D-8, X, X1
-        Real    (Kind=Kind(0.d0)) :: Mc_step_weight
-
-        ! Storage for  stabilization steps
-        Integer, dimension(:), allocatable :: Stab_nt 
-
-        ! Space for storage.
-        CLASS(UDV_State), Dimension(:,:), ALLOCATABLE :: udvst
-
-        ! For tests
-        Real (Kind=Kind(0.d0)) :: Weight, Weight_tot
-
-        ! For the truncation of the program:
-        logical                   :: prog_truncation, run_file_exists
-        integer (kind=kind(0.d0)) :: count_bin_start, count_bin_end
         
-        ! For MPI shared memory
-        character(64), parameter :: name="ALF_SHM_CHUNK_SIZE_GB"
-        character(64) :: chunk_size_str
-        Real    (Kind=Kind(0.d0)) :: chunk_size_gb
+        
 
+!--------------------------------------------------------------------
+!> @author
+!> ALF-project
+!>
+!> @brief
+!> Initialization of the QMC runtime variables
+!>
+!
+!--------------------------------------------------------------------
+        contains
+        subroutine set_QMC_runtime_default_var()
+
+          implicit none   
+          
+          ! This is a set of variables that  identical for each simulation.
+          Nwrap=0;  NSweep=0; NBin=0; Ltau=0; LOBS_EN = 0;  LOBS_ST = 0;  CPU_MAX = 0.d0
+          Propose_S0 = .false. ;  Global_moves = .false. ; N_Global = 0
+          Global_tau_moves = .false.; sequential = .true.; Langevin = .false. ; HMC =.false.
+          Delta_t_Langevin_HMC = 0.d0;  Max_Force = 0.d0 ; Leapfrog_steps = 0; N_HMC_sweeps = 1
+          Nt_sequential_start = 1 ;  Nt_sequential_end  = 0;  N_Global_tau  = 0;  Amplitude = 1.d0
+
+        end subroutine set_QMC_runtime_default_var
+
+
+#ifdef MPI
+!--------------------------------------------------------------------
+!> @author
+!> ALF-project
+!>
+!> @brief
+!> Bradcastinf of the QMC runtime variables
+!>
+!
+!--------------------------------------------------------------------
+        subroutine broadcast_QMC_runtime_var()
+
+          implicit none
+
+          CALL MPI_BCAST(Nwrap                ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
+          CALL MPI_BCAST(NSweep               ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
+          CALL MPI_BCAST(NBin                 ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
+          CALL MPI_BCAST(Ltau                 ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
+          CALL MPI_BCAST(LOBS_EN              ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
+          CALL MPI_BCAST(LOBS_ST              ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
+          CALL MPI_BCAST(CPU_MAX              ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
+          CALL MPI_BCAST(Propose_S0           ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
+          CALL MPI_BCAST(Global_moves         ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
+          CALL MPI_BCAST(N_Global             ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
+          CALL MPI_BCAST(Global_tau_moves     ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
+          CALL MPI_BCAST(Nt_sequential_start  ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
+          CALL MPI_BCAST(Nt_sequential_end    ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
+          CALL MPI_BCAST(N_Global_tau         ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
+          CALL MPI_BCAST(sequential           ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
+          CALL MPI_BCAST(Langevin             ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
+          CALL MPI_BCAST(HMC                  ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
+          CALL MPI_BCAST(Leapfrog_steps       ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
+        end subroutine broadcast_QMC_runtime_var
+#endif           
+           
 end Module QMC_runtime_var

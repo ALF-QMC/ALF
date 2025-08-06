@@ -113,10 +113,13 @@
 
 
 Program Main
-        
-        Use QMC_runtime_var
+
+#ifdef MPI
+        Use mpi
+#endif
         Use runtime_error_mod
         Use Operator_mod
+        Use QMC_runtime_var
         Use Lattices_v3
         Use MyMats
         Use Hamiltonian_main
@@ -125,6 +128,7 @@ Program Main
         Use Tau_p_mod
         Use Hop_mod
         Use Global_mod
+        Use UDV_State_mod
         Use Wrapgr_mod
         Use Fields_mod
         Use WaveFunction_mod
@@ -135,11 +139,7 @@ Program Main
         use wrapul_mod
         use cgr1_mod
         use set_random
-
-#ifdef MPI
-        Use mpi
-#endif
-
+         
 #ifdef HDF5
         use hdf5
         use h5lt
@@ -163,10 +163,36 @@ Program Main
         Integer :: N_exchange_steps, N_Tempering_frequency
         NAMELIST /VAR_TEMP/  N_exchange_steps, N_Tempering_frequency, mpi_per_parameter_set, Tempering_calc_det
 #endif
+         NAMELIST /VAR_HAM_NAME/ ham_name
+         
+        !General
+         Integer :: Ierr, I,nf, nf_eff, nst, n, n1, N_op 
+         Logical :: Toggle,  Toggle1
+         Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Phase, Z, Z1
+         Real    (Kind=Kind(0.d0)) :: ZERO = 10D-8, X, X1
+         Real    (Kind=Kind(0.d0)) :: Mc_step_weight
+
+        ! Storage for  stabilization steps
+        Integer, dimension(:), allocatable :: Stab_nt 
+
+        ! Space for storage.
+        CLASS(UDV_State), Dimension(:,:), ALLOCATABLE :: udvst
+
+        ! For tests
+        Real (Kind=Kind(0.d0)) :: Weight, Weight_tot
+
+        ! For the truncation of the program:
+        logical                   :: prog_truncation, run_file_exists
+        integer (kind=kind(0.d0)) :: count_bin_start, count_bin_end
+        
+        ! For MPI shared memory
+        character(64), parameter :: name="ALF_SHM_CHUNK_SIZE_GB"
+        character(64) :: chunk_size_str
+        Real    (Kind=Kind(0.d0)) :: chunk_size_gb
+
 
 #ifdef MPI
         Integer        :: Isize, Irank, Irank_g, Isize_g, color, key, igroup, MPI_COMM_i
-
         CALL MPI_INIT(ierr)
         CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
         CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
@@ -280,49 +306,24 @@ Program Main
 #else
            file_para = "parameters"
 #endif
-           ! This is a set of variables that  identical for each simulation.
-           Nwrap=0;  NSweep=0; NBin=0; Ltau=0; LOBS_EN = 0;  LOBS_ST = 0;  CPU_MAX = 0.d0
-           Propose_S0 = .false. ;  Global_moves = .false. ; N_Global = 0
-           Global_tau_moves = .false.; sequential = .true.; Langevin = .false. ; HMC =.false.
-           Delta_t_Langevin_HMC = 0.d0;  Max_Force = 0.d0 ; Leapfrog_steps = 0; N_HMC_sweeps = 1
-           Nt_sequential_start = 1 ;  Nt_sequential_end  = 0;  N_Global_tau  = 0;  Amplitude = 1.d0
-           OPEN(UNIT=5,FILE=file_para,STATUS='old',ACTION='read',IOSTAT=ierr)
-           IF (ierr /= 0) THEN
-              WRITE(error_unit,*) 'main: unable to open <parameters>', file_para, ierr
-              CALL Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
-           END IF
-           READ(5,NML=VAR_QMC)
-           REWIND(5)
-           READ(5,NML=VAR_HAM_NAME)
-           CLOSE(5)
-           NBin_eff = NBin
-#ifdef MPI
-        Endif
-        CALL MPI_BCAST(Nwrap                ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(NSweep               ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(NBin                 ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(Ltau                 ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(LOBS_EN              ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(LOBS_ST              ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(CPU_MAX              ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(Propose_S0           ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(Global_moves         ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(N_Global             ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(Global_tau_moves     ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(Nt_sequential_start  ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(Nt_sequential_end    ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(N_Global_tau         ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(sequential           ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(Langevin             ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(HMC                  ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(Leapfrog_steps       ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(N_HMC_sweeps         ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(Max_Force            ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(Delta_t_Langevin_HMC ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(Amplitude            ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
 
-        CALL MPI_BCAST(ham_name             ,64,MPI_CHARACTER,0,MPI_COMM_i,ierr)
+        Call set_QMC_runtime_default_var()
+        OPEN(UNIT=5,FILE=file_para,STATUS='old',ACTION='read',IOSTAT=ierr)
+        IF (ierr /= 0) THEN
+        WRITE(error_unit,*) 'main: unable to open <parameters>', file_para, ierr
+        CALL Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
+        END IF
+        READ(5,NML=VAR_QMC)
+        REWIND(5)
+        READ(5,NML=VAR_HAM_NAME)
+        CLOSE(5)
+        NBin_eff = NBin
+
+#ifdef MPI
+         Endif
+         call broadcast_QMC_runtime_var()
 #endif
+
         Call Fields_init(Amplitude)
         Call Alloc_Ham(ham_name)
         leap_frog_bulk = .false.
