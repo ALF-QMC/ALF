@@ -31,15 +31,14 @@
 
 Module QMC_runtime_var
 
+#ifdef MPI
+        Use mpi
+#endif
+
         Implicit none
 
         Integer :: Nwrap, NSweep, NBin, NBin_eff,Ltau, NSTM, NT, NT1, NVAR, LOBS_EN, LOBS_ST, NBC, NSW
-        Integer :: NTAU, NTAU1
         Real(Kind=Kind(0.d0)) :: CPU_MAX
-        Character (len=64) :: file_seeds, file_para, file_dat, file_info, ham_name
-        Integer :: Seed_in
-        Complex (Kind=Kind(0.d0)) , allocatable, dimension(:,:) :: Initial_field
-
         ! Space for choosing sampling scheme
         Logical :: Propose_S0, Tempering_calc_det
         Logical :: Global_moves, Global_tau_moves
@@ -87,8 +86,6 @@ Module QMC_runtime_var
 
         end subroutine set_QMC_runtime_default_var
 
-
-#ifdef MPI
 !--------------------------------------------------------------------
 !> @author
 !> ALF-project
@@ -98,9 +95,13 @@ Module QMC_runtime_var
 !>
 !
 !--------------------------------------------------------------------
-        subroutine broadcast_QMC_runtime_var()
+#ifdef MPI
+
+        subroutine broadcast_QMC_runtime_var(MPI_COMM_i)
 
           implicit none
+
+          Integer :: ierr, MPI_COMM_i
 
           CALL MPI_BCAST(Nwrap                ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
           CALL MPI_BCAST(NSweep               ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
@@ -120,6 +121,7 @@ Module QMC_runtime_var
           CALL MPI_BCAST(Langevin             ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
           CALL MPI_BCAST(HMC                  ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
           CALL MPI_BCAST(Leapfrog_steps       ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
+
         end subroutine broadcast_QMC_runtime_var
 #endif           
            

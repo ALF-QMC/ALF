@@ -152,6 +152,11 @@ Program Main
        CLASS(UDV_State), DIMENSION(:), ALLOCATABLE :: udvl, udvr
        COMPLEX (Kind=Kind(0.d0)), Dimension(:)  , Allocatable   :: Phase_array
 
+       Integer :: NTAU, NTAU1
+       Character (len=64) :: file_seeds, file_para, file_dat, file_info, ham_name
+       Integer :: Seed_in
+       Complex (Kind=Kind(0.d0)) , allocatable, dimension(:,:) :: Initial_field
+
 
 #ifdef HDF5
         INTEGER(HID_T) :: file_id
@@ -306,6 +311,7 @@ Program Main
 #else
            file_para = "parameters"
 #endif
+      
 
         Call set_QMC_runtime_default_var()
         OPEN(UNIT=5,FILE=file_para,STATUS='old',ACTION='read',IOSTAT=ierr)
@@ -321,7 +327,7 @@ Program Main
 
 #ifdef MPI
          Endif
-         call broadcast_QMC_runtime_var()
+         call broadcast_QMC_runtime_var(MPI_COMM_i)
 #endif
 
         Call Fields_init(Amplitude)
