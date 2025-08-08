@@ -328,6 +328,8 @@ Program Main
 #ifdef MPI
          Endif
          call broadcast_QMC_runtime_var(MPI_COMM_i)
+         
+         CALL MPI_BCAST(ham_name,64,MPI_CHARACTER,0,MPI_COMM_i,ierr)
 #endif
 
         Call Fields_init(Amplitude)

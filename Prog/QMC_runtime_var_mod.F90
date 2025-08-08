@@ -91,7 +91,7 @@ Module QMC_runtime_var
 !> ALF-project
 !>
 !> @brief
-!> Bradcastinf of the QMC runtime variables
+!> Bradcast of the QMC runtime variables
 !>
 !
 !--------------------------------------------------------------------
@@ -121,6 +121,10 @@ Module QMC_runtime_var
           CALL MPI_BCAST(Langevin             ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
           CALL MPI_BCAST(HMC                  ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
           CALL MPI_BCAST(Leapfrog_steps       ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
+          CALL MPI_BCAST(N_HMC_sweeps         ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
+          CALL MPI_BCAST(Max_Force            ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
+          CALL MPI_BCAST(Delta_t_Langevin_HMC ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
+          CALL MPI_BCAST(Amplitude            ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
 
         end subroutine broadcast_QMC_runtime_var
 #endif           
