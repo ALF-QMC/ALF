@@ -155,6 +155,7 @@
       Integer               :: N_Phi        = 0        ! Total number of flux quanta traversing the lattice
       real(Kind=Kind(0.d0)) :: Dtau         = 0.1d0    ! Thereby Ltrot=Beta/dtau
       real(Kind=Kind(0.d0)) :: Beta         = 5.d0     ! Inverse temperature
+      !logical              :: Symm         = .true.   ! Whether symmetrization takes place
       !#PARAMETERS END#
 
       Type (Lattice),       target :: Latt
@@ -207,6 +208,7 @@
            call read_parameters()
 
            Ltrot = nint(beta/dtau)
+           Projector = .false.
 !           Thtrot = 0
 !           if (Projector) Thtrot = nint(theta/dtau)
 !           Ltrot = Ltrot+2*Thtrot
@@ -235,8 +237,7 @@
               Write(unit_info,*) 'Model is      :  Portable'
               Write(unit_info,*) '# unit cells  : ', Latt%N
               Write(unit_info,*) '# of orbitals : ', Latt_unit%Norb
-!              Write(unit_info,*) 'Checkerboard  : ', Checkerboard
-!              Write(unit_info,*) 'Symm. decomp  : ', Symm
+              Write(unit_info,*) 'Symm. decomp  : ', Symm
 !              if (Projector) then
 !                 Write(unit_info,*) 'Projective version'
 !                 Write(unit_info,*) 'Theta         : ', Theta
@@ -394,7 +395,7 @@
 
           enddo
 
-          Call  Predefined_Hoppings_set_OPT(Hopping_Matrix,List,Invlist,Latt,  Latt_unit,  Dtau, .false.,  .false. , OP_T )
+          Call  Predefined_Hoppings_set_OPT(Hopping_Matrix,List,Invlist,Latt,  Latt_unit,  Dtau, .false.,  symm , OP_T )
 
         end Subroutine Ham_Hop
 
