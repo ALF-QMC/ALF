@@ -151,7 +151,8 @@ Program Main
        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable    :: GR, GR_Tilde
        CLASS(UDV_State), DIMENSION(:), ALLOCATABLE :: udvl, udvr
        COMPLEX (Kind=Kind(0.d0)), Dimension(:)  , Allocatable   :: Phase_array
-
+       
+       Integer :: NBC, NSW
        Integer :: NTAU, NTAU1
        Character (len=64) :: file_seeds, file_para, file_dat, file_info, ham_name
        Integer :: Seed_in
@@ -395,32 +396,9 @@ Program Main
               endif
            enddo
         endif
-        !  Default values of  measuring interval.
-        if (Projector)  then
-           if ( LOBS_ST == 0  ) then
-              LOBS_ST = Thtrot+1
-           else
-              If (LOBS_ST < Thtrot+1 ) then
-                 Write(error_unit,*) 'Measuring out of dedicating interval, LOBS_ST too small.'
-                 CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
-              endif
-           endif
-           if ( LOBS_EN == 0) then
-              LOBS_EN = Ltrot-Thtrot
-           else
-              If (LOBS_EN > Ltrot-Thtrot ) then
-                 Write(error_unit,*) 'Measuring out of dedicating interval, LOBS_EN too big.'
-                 CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
-              endif
-           endif
-        else
-           if ( LOBS_ST == 0  ) then
-              LOBS_ST = 1
-           endif
-           if ( LOBS_EN == 0) then
-              LOBS_EN =  Ltrot
-           endif
-        endif
+        
+        Call set_default_values_measuring_interval(LOBS_ST, LOBS_ST, Thtrot, Ltrot, Projector)
+
         If ( .not. Global_tau_moves )  then
            ! This  corresponds to the default updating scheme
            Nt_sequential_start = 1
@@ -499,62 +477,28 @@ Program Main
       !   Sequential = .true.
         !TODO: check if sequential is done if some fields are discrete (Warning or error termination?)
         if ( Langevin .or.  HMC  ) then
-           if (Langevin) then
+            if (Langevin) then
 #if defined(MPI)
-               if ( Irank_g == 0 ) then
+                if ( Irank_g == 0 ) then
 #endif
-                  if (sequential) then 
-                     write(output_unit,*) "Langevin mode does not allow sequential updates."
-                     write(output_unit,*) "Overriding Sequential=.True. from parameter files."
-                  endif
-                  if (HMC) then 
-                     write(output_unit,*) "Langevin mode does not allow HMC updates."
-                     write(output_unit,*) "Overriding HMC=.True. from parameter files."
-                  endif
-                  if (Global_moves) then 
-                     write(output_unit,*) "Langevin mode does not allow global updates."
-                     write(output_unit,*) "Overriding Global_moves=.True. from parameter files."
-                  endif
-                  if (Global_tau_moves) then 
-                     write(output_unit,*) "Langevin mode does not allow global tau updates."
-                     write(output_unit,*) "Overriding Global_tau_moves=.True. from parameter files."
-                  endif
-#if defined(TEMPERING)
-                  if ( N_exchange_steps > 0 ) then
-                     write(output_unit,*) "Langevin mode does not allow tempering updates."
-                     write(output_unit,*) "Overwriting N_exchange_steps to 0."
-                  end if
-#endif
+                    Call check_langevin_schemes_and_variables()
 #if defined(MPI)
-               endif
+                endif
 #endif
-               Sequential = .False.
-               HMC = .False.
-               Global_moves = .False.
-               Global_tau_moves = .False.
+                Sequential = .False.
+                HMC = .False.
+                Global_moves = .False.
+                Global_tau_moves = .False.
 #if defined(TEMPERING)
                N_exchange_steps = 0
 #endif
-           endif
-           Call Langevin_HMC%make(Langevin, HMC , Delta_t_Langevin_HMC, Max_Force, Leapfrog_steps)
+            endif
+            Call Langevin_HMC%make(Langevin, HMC , Delta_t_Langevin_HMC, Max_Force, Leapfrog_steps)
         else
-           Call Langevin_HMC%set_Update_scheme(Langevin, HMC )
+            Call Langevin_HMC%set_Update_scheme(Langevin, HMC )
         endif
 
-        if ( .not. Sequential .and. Global_tau_moves) then
-           write(output_unit,*) "Warning: Sequential = .False. and Global_tau_moves = .True."
-           write(output_unit,*) "in the parameter file. Global tau updates will not occur if"
-           write(output_unit,*) "Sequential is set to .False. ."
-        endif
-
-        if ( .not. Sequential .and. .not. HMC .and. .not. Langevin .and. .not. Global_moves) then
-         write(output_unit,*) "Warning: no updates will occur as Sequential, HMC, Langevin, and"
-         write(output_unit,*) "Global_moves are all .False. in the parameter file."
-        endif
-
-        if ( Sequential .and. Nt_sequential_end < Nt_sequential_start ) then
-         write(output_unit,*) "Warning: Nt_sequential_end is smaller than Nt_sequential_start"
-        endif
+        Call check_update_schemes_compatibility()
 
 #if defined(TEMPERING)
         write(file_info,'(A,I0,A)') "Temp_",igroup,"/info"
