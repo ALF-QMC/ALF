@@ -127,6 +127,9 @@ Module QMC_runtime_var
 
         
         subroutine check_langevin_schemes_and_variables()
+
+            implicit none 
+            
             if (sequential) then 
                 write(output_unit,*) "Langevin mode does not allow sequential updates."
                 write(output_unit,*) "Overriding Sequential=.True. from parameter files."
@@ -143,14 +146,8 @@ Module QMC_runtime_var
                 write(output_unit,*) "Langevin mode does not allow global tau updates."
                 write(output_unit,*) "Overriding Global_tau_moves=.True. from parameter files."
             endif
-#if defined(TEMPERING)
-                    if ( N_exchange_steps > 0 ) then
-                        write(output_unit,*) "Langevin mode does not allow tempering updates."
-                        write(output_unit,*) "Overwriting N_exchange_steps to 0."
-                    end if
-#endif
+
         end subroutine check_langevin_schemes_and_variables
-        
        
         ! Raise warnings for update schemes
         subroutine check_update_schemes_compatibility()

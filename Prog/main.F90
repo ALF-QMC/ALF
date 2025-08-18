@@ -482,6 +482,12 @@ Program Main
                 if ( Irank_g == 0 ) then
 #endif
                     Call check_langevin_schemes_and_variables()
+#if defined(TEMPERING)
+                    if ( N_exchange_steps > 0 ) then
+                        write(output_unit,*) "Langevin mode does not allow tempering updates."
+                        write(output_unit,*) "Overwriting N_exchange_steps to 0."
+                    end if
+#endif
 #if defined(MPI)
                 endif
 #endif
