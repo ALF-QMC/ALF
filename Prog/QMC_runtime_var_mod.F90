@@ -93,7 +93,7 @@ Module QMC_runtime_var
 
             implicit none
 
-            Integer :: LOBS_ST, LOBS_EN
+            Integer, intent(inout) :: LOBS_ST, LOBS_EN
             Integer, intent(in) :: Thtrot, Ltrot 
             Logical, intent(in) :: Projector
 

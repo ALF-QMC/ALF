@@ -172,11 +172,11 @@ Program Main
          NAMELIST /VAR_HAM_NAME/ ham_name
          
         !General
-         Integer :: Ierr, I,nf, nf_eff, nst, n, n1, N_op 
-         Logical :: Toggle,  Toggle1
-         Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Phase, Z, Z1
-         Real    (Kind=Kind(0.d0)) :: ZERO = 10D-8, X, X1
-         Real    (Kind=Kind(0.d0)) :: Mc_step_weight
+        Integer :: Ierr, I,nf, nf_eff, nst, n, n1, N_op 
+        Logical :: Toggle,  Toggle1
+        Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Phase, Z, Z1
+        Real    (Kind=Kind(0.d0)) :: ZERO = 10D-8, X, X1
+        Real    (Kind=Kind(0.d0)) :: Mc_step_weight
 
         ! Storage for  stabilization steps
         Integer, dimension(:), allocatable :: Stab_nt 
@@ -486,7 +486,7 @@ Program Main
                     if ( N_exchange_steps > 0 ) then
                         write(output_unit,*) "Langevin mode does not allow tempering updates."
                         write(output_unit,*) "Overwriting N_exchange_steps to 0."
-                    end if
+                    endif
 #endif
 #if defined(MPI)
                 endif
