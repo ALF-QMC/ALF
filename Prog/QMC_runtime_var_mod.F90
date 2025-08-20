@@ -39,7 +39,7 @@ Module QMC_runtime_var
 
         Implicit none
 
-        Integer :: Nwrap, NSweep, NBin, NBin_eff,Ltau, NSTM, NT, NT1, NVAR, LOBS_EN, LOBS_ST
+        Integer :: Nwrap, NSweep, NBin, NBin_eff,Ltau, LOBS_EN, LOBS_ST
         Real(Kind=Kind(0.d0)) :: CPU_MAX
         ! Space for choosing sampling scheme
         Logical :: Propose_S0, Tempering_calc_det
@@ -89,11 +89,10 @@ Module QMC_runtime_var
         end subroutine set_QMC_runtime_default_var
 
 
-        subroutine set_default_values_measuring_interval(LOBS_ST, LOBS_EN, Thtrot, Ltrot, Projector)
+        subroutine set_default_values_measuring_interval(Thtrot, Ltrot, Projector)
 
             implicit none
 
-            Integer, intent(inout) :: LOBS_ST, LOBS_EN
             Integer, intent(in) :: Thtrot, Ltrot 
             Logical, intent(in) :: Projector
 

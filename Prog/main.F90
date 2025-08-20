@@ -172,6 +172,7 @@ Program Main
          NAMELIST /VAR_HAM_NAME/ ham_name
          
         !General
+        Integer :: NSTM, NT, NT1, NVAR
         Integer :: Ierr, I,nf, nf_eff, nst, n, n1, N_op 
         Logical :: Toggle,  Toggle1
         Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Phase, Z, Z1
@@ -397,7 +398,7 @@ Program Main
            enddo
         endif
         
-        Call set_default_values_measuring_interval(LOBS_ST, LOBS_ST, Thtrot, Ltrot, Projector)
+        Call set_default_values_measuring_interval(Thtrot, Ltrot, Projector)
 
         If ( .not. Global_tau_moves )  then
            ! This  corresponds to the default updating scheme
