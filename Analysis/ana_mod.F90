@@ -1385,7 +1385,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       real(Kind=kind(0.d0)) :: ham_U = 4.d0     ! attractive Hubbard interaction
       integer               :: N_dope = 0
 
-      Integer :: N_skip, N_rebin, N_Cov, ierr, N_auto, ndim, n_part
+      Integer :: N_skip, N_rebin, N_Cov, ierr, N_auto, ndim, n_part_1, n_part_2
       Character (len=64) :: File_out, filename
       NAMELIST /VAR_errors/   N_skip, N_rebin, N_Cov, N_Back, N_auto
       Integer             :: L1, L2, N_FL
@@ -1428,7 +1428,8 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       Nbins = size(bins_raw, 2)
       !!!Ndim  = Latt%N*Latt_Unit%Norb
       Ndim  = L1*L2
-      N_part = Ndim/2-N_dope
+      N_part_1 = Ndim/2-N_dope
+      N_part_2 = Ndim/2+N_dope
       
       N_FL  = Nobs/Ndim/ndim
 
@@ -1479,7 +1480,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       ! Allocate  space
       Allocate( Grc (Ndim,Ndim,n_fl), Uvec(ndim,ndim,n_fl), Zmat(ndim,ndim), Zmat2(ndim,ndim))
       Allocate( Grc_H(Ndim,Ndim,n_fl))
-      Allocate( wf_p_up(Ndim,n_part), wf_p_dn(ndim,n_part) )
+      Allocate( wf_p_up(Ndim,n_part_1), wf_p_dn(ndim,n_part_2) )
       Allocate( Evec(Ndim,n_fl), Evec_tmp(ndim))
       allocate( z_evec_tmp(ndim)  )
       
@@ -1566,7 +1567,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
           dset_name= "phi_trial_up"
           rank = 3
           allocate( dims(3), dimsc(3) )
-          dims  = [2,ndim,n_part]
+          dims  = [2,ndim,n_part_1]
           dimsc = dims
           CALL h5screate_simple_f(rank, dims, space_id, hdferr)
           CALL h5pcreate_f(H5P_DATASET_CREATE_F, crp_list, hdferr)
@@ -1589,7 +1590,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
           dset_name= "phi_trial_dn"
           rank = 3
           allocate( dims(3), dimsc(3) )
-          dims  = [2,ndim,n_part]
+          dims  = [2,ndim,n_part_2]
           dimsc = dims
           CALL h5screate_simple_f(rank, dims, space_id, hdferr)
           CALL h5pcreate_f(H5P_DATASET_CREATE_F, crp_list, hdferr)
