@@ -1,12 +1,12 @@
-program Main
+program main
 
    use runtime_error_mod
    use Hamiltonian_main
-   use Control
-   use UDV_State_mod
+   use control
+   use udv_state_mod
    use stepwlk_mod
    use fields_mod
-   use BRW_init_mod
+   use brw_init_mod
    use iso_fortran_env, only: output_unit, error_unit
 
 #ifdef MPI
@@ -21,7 +21,7 @@ program Main
 #include "git.h"
 
    complex(Kind=kind(0.d0)), dimension(:, :, :, :), allocatable   :: gr
-   class(UDV_State), dimension(:, :), allocatable :: phi_trial, phi_0, phi_bp_l, phi_bp_r
+   class(udv_state), dimension(:, :), allocatable :: phi_trial, phi_0, phi_bp_l, phi_bp_r
 
    integer :: N_blk, N_blksteps, i_wlk, j_step, N_blk_eff, i_blk, NSTM
    integer :: Nwrap, itv_pc, ltau, ntau_bp, ltrot_bp
@@ -62,9 +62,9 @@ program Main
 #ifdef MPI
    integer        :: Isize, Irank, Irank_g, Isize_g, color, key, igroup, MPI_COMM_i
 
-   call MPI_INIT(ierr)
-   call MPI_COMM_SIZE(MPI_COMM_WORLD, ISIZE, IERR)
-   call MPI_COMM_RANK(MPI_COMM_WORLD, IRANK, IERR)
+   call mpi_init(ierr)
+   call mpi_comm_size(mpi_comm_world, isize, ierr)
+   call mpi_comm_rank(mpi_comm_world, irank, ierr)
 
    if (Irank == 0) then
 #endif
@@ -93,9 +93,9 @@ program Main
    mpi_per_parameter_set = Isize
    color = irank/mpi_per_parameter_set
    key = 0
-   call MPI_COMM_SPLIT(MPI_COMM_WORLD, color, key, Group_comm, ierr)
-   call MPI_Comm_rank(Group_Comm, Irank_g, ierr)
-   call MPI_Comm_size(Group_Comm, Isize_g, ierr)
+   call mpi_comm_split(mpi_comm_world, color, key, group_comm, ierr)
+   call mpi_comm_rank (group_comm, irank_g, ierr)
+   call mpi_comm_size (group_comm, isize_g, ierr)
    igroup = irank/isize_g
    !read environment variable called ALF_SHM_CHUNK_SIZE_GB
    !it should be a positive integer setting the chunk size of shared memory blocks in GB
@@ -108,7 +108,7 @@ program Main
    if (ierr /= 0 .or. chunk_size_gb < 0) then
       chunk_size_gb = 0
    end if
-   call mpi_shared_memory_init(Group_Comm, chunk_size_gb)
+   call mpi_shared_memory_init(group_comm, chunk_size_gb)
 #endif
 
 #ifdef MPI
@@ -132,17 +132,17 @@ program Main
       close (5)
 #ifdef MPI
    end if
-   call MPI_BCAST(Nwrap, 1, MPI_INTEGER, 0, MPI_COMM_i, ierr)
-   call MPI_BCAST(ltrot_bp, 1, MPI_INTEGER, 0, MPI_COMM_i, ierr)
-   call MPI_BCAST(itv_pc, 1, MPI_INTEGER, 0, MPI_COMM_i, ierr)
-   call MPI_BCAST(Ltau, 1, MPI_INTEGER, 0, MPI_COMM_i, ierr)
-   call MPI_BCAST(N_blk, 1, MPI_INTEGER, 0, MPI_COMM_i, ierr)
-   call MPI_BCAST(N_blksteps, 1, MPI_INTEGER, 0, MPI_COMM_i, ierr)
-   call MPI_BCAST(CPU_MAX, 1, MPI_REAL8, 0, MPI_COMM_i, ierr)
-   call MPI_BCAST(ham_name, 64, MPI_CHARACTER, 0, MPI_COMM_i, ierr)
+   call mpi_bcast(Nwrap, 1, MPI_INTEGER, 0, MPI_COMM_i, ierr)
+   call mpi_bcast(ltrot_bp, 1, MPI_INTEGER, 0, MPI_COMM_i, ierr)
+   call mpi_bcast(itv_pc, 1, MPI_INTEGER, 0, MPI_COMM_i, ierr)
+   call mpi_bcast(Ltau, 1, MPI_INTEGER, 0, MPI_COMM_i, ierr)
+   call mpi_bcast(N_blk, 1, MPI_INTEGER, 0, MPI_COMM_i, ierr)
+   call mpi_bcast(N_blksteps, 1, MPI_INTEGER, 0, MPI_COMM_i, ierr)
+   call mpi_bcast(CPU_MAX, 1, MPI_REAL8, 0, MPI_COMM_i, ierr)
+   call mpi_bcast(ham_name, 64, MPI_CHARACTER, 0, MPI_COMM_i, ierr)
 #endif
-   call Alloc_Ham(ham_name)
-   call Fields_init()
+   call alloc_Ham(ham_name)
+   call fields_init()
    call ham%Ham_set()
    call initial_setup(ltrot_bp, nwrap, ltau)
 
@@ -263,7 +263,7 @@ program Main
 
       end do
             !! output print
-      call ham%Pr_obs(ltau)
+      call ham%pr_obs(ltau)
 
       call seed_vec_out
 
@@ -286,11 +286,11 @@ program Main
    call deallocate_all_shared_memory
 #endif
 
-   call Control_Print(Group_Comm)
+   call control_print(group_comm)
 
 #ifdef MPI
-   call MPI_FINALIZE(ierr)
+   call mpi_finalize(ierr)
 #endif
    stop
 
-end program Main
+end program main

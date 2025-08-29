@@ -3,7 +3,7 @@ module upgrade_mod
    implicit none
 contains
 
-   subroutine Upgrade(GR, N_op, Hs_new, i_wlk)
+   subroutine upgrade(gr, N_op, Hs_new, i_wlk)
 
       use Hamiltonian_main
       use Random_wrap
@@ -13,7 +13,7 @@ contains
       use iso_fortran_env, only: output_unit, error_unit
       implicit none
 
-      complex(Kind=kind(0.d0)), intent(INOUT) :: GR(Ndim, Ndim, N_FL, N_grc)
+      complex(Kind=kind(0.d0)), intent(INOUT) :: gr(ndim, ndim, n_fl, n_grc)
       integer, intent(IN)    :: N_op, i_wlk
       real(Kind=kind(0.d0)), intent(OUT)   :: Hs_new
 
@@ -44,21 +44,21 @@ contains
       end do
 
       if (op_dim > 0) then
-         allocate (Mat(Op_dim, Op_Dim), Delta(Op_dim, N_FL), u(Ndim, Op_dim), v(Ndim, Op_dim))
-         allocate (y_v(Ndim, Op_dim), xp_v(Ndim, Op_dim), x_v(Ndim, Op_dim))
+         allocate (Mat(op_dim, op_dim), Delta(op_dim, N_FL), u(ndim, op_dim), v(ndim, op_dim))
+         allocate (y_v(ndim, op_dim), xp_v(ndim, op_dim), x_v(ndim, op_dim))
       end if
 
       ! Compute the ratio for each posibility
       nf = 1
-      nsigma_new%t(1) = Op_V(n_op, nf)%type
-      if (Op_V(n_op, nf)%type .eq. 1) then
+      nsigma_new%t(1) = op_v(n_op, nf)%type
+      if (op_v(n_op, nf)%type .eq. 1) then
          allocate (field_list(2))
          allocate (ratio_field(2))
          allocate (ratio_o(2, N_slat))
          field_list(1) = 1.d0; 
          field_list(2) = 2.d0; 
          nu_spin = 2
-      elseif (Op_V(n_op, nf)%type .eq. 2) then
+      elseif (op_v(n_op, nf)%type .eq. 2) then
          allocate (field_list(4))
          allocate (ratio_field(4))
          allocate (ratio_o(4, N_slat))
@@ -80,17 +80,17 @@ contains
             i_grc = ns + (i_wlk - 1)*N_slat
 
             do nf = 1, N_FL
-               g_loc = Op_V(n_op, nf)%g
-               Z1 = g_loc*(nsigma_new%Phi(1, 1))
-               op_dim_nf = Op_V(n_op, nf)%N_non_zero
+               g_loc = op_v(n_op, nf)%g
+               z1 = g_loc*(nsigma_new%Phi(1, 1))
+               op_dim_nf = op_v(n_op, nf)%N_non_zero
                do m = 1, op_dim_nf
-                  myexp = exp(Z1*Op_V(n_op, nf)%E(m))
+                  myexp = exp(z1*op_v(n_op, nf)%e(m))
                   Z = myexp - 1.d0
                   Delta(m, nf) = Z
                   do n = 1, op_dim_nf
-                     Mat(n, m) = -Z*GR(Op_V(n_op, nf)%P(n), Op_V(n_op, nf)%P(m), nf, i_grc)
+                     Mat(n, m) = -z*gr(op_v(n_op, nf)%p(n), op_v(n_op, nf)%p(m), nf, i_grc)
                   end do
-                  Mat(m, m) = myexp + Mat(m, m)
+                  mat(m, m) = myexp + mat(m, m)
                end do
                if (op_dim_nf == 0) then
                   D_mat = 1.0d0
@@ -107,10 +107,10 @@ contains
                else
                   D_mat = Det(Mat, op_dim_nf)
                end if
-               Ratio(nf) = D_Mat*exp(Z1*Op_V(n_op, nf)%alpha)
+               ratio(nf) = D_Mat*exp(Z1*Op_V(n_op, nf)%alpha)
             end do
 
-            ratiotot = product(Ratio)**dble(N_SUN)
+            ratiotot = product(ratio)**dble(n_sun)
             ratio_o(nu_c, ns) = ratiotot
 
             exp_o_new = exp_o_new + exp(overlap(i_grc))*ratio_o(nu_c, ns)
@@ -151,13 +151,13 @@ contains
             !! Update Green's function
          ! update delta
          do nf = 1, N_FL
-            g_loc = Op_V(n_op, nf)%g
-            Z1 = g_loc*(nsigma_new%Phi(1, 1))
-            op_dim_nf = Op_V(n_op, nf)%N_non_zero
+            g_loc = op_v(n_op, nf)%g
+            z1 = g_loc*(nsigma_new%phi(1, 1))
+            op_dim_nf = op_v(n_op, nf)%N_non_zero
             do m = 1, op_dim_nf
-               myexp = exp(Z1*Op_V(n_op, nf)%E(m))
-               Z = myexp - 1.d0
-               Delta(m, nf) = Z
+               myexp = exp(z1*op_v(n_op, nf)%e(m))
+               z = myexp - 1.d0
+               delta(m, nf) = z
             end do
          end do
 
@@ -169,17 +169,17 @@ contains
 
             do nf = 1, N_FL
                ! Setup u(i,n), v(n,i)
-               op_dim_nf = Op_V(n_op, nf)%N_non_zero
+               op_dim_nf = op_v(n_op, nf)%N_non_zero
                if (op_dim_nf > 0) then
                   beta = 0.d0
                   call zlaset('N', Ndim, op_dim_nf, beta, beta, u, size(u, 1))
                   call zlaset('N', Ndim, op_dim_nf, beta, beta, v, size(v, 1))
                   do n = 1, op_dim_nf
-                     u(Op_V(n_op, nf)%P(n), n) = Delta(n, nf)
+                     u(op_v(n_op, nf)%p(n), n) = Delta(n, nf)
                      do i = 1, Ndim
-                        v(i, n) = -GR(Op_V(n_op, nf)%P(n), i, nf, i_grc)
+                        v(i, n) = -gr(op_v(n_op, nf)%p(n), i, nf, i_grc)
                      end do
-                     v(Op_V(n_op, nf)%P(n), n) = 1.d0 - GR(Op_V(n_op, nf)%P(n), Op_V(n_op, nf)%P(n), nf, i_grc)
+                     v(op_v(n_op, nf)%p(n), n) = 1.d0 - gr(op_v(n_op, nf)%p(n), op_v(n_op, nf)%p(n), nf, i_grc)
                   end do
 
                   call zlaset('N', Ndim, op_dim_nf, beta, beta, x_v, size(x_v, 1))

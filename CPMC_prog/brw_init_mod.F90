@@ -1,4 +1,4 @@
-module BRW_init_mod
+module brw_init_mod
 
    use hamiltonian_main
    use udv_state_mod
@@ -81,23 +81,23 @@ contains
       tot_ene = cmplx(0.d0, 0.d0, kind(0.d0))
       tot_re_weight = 0.d0
 
-      allocate (Stab_nt(0:nstm))
-      Stab_nt(0) = 0
+      allocate (stab_nt(0:nstm))
+      stab_nt(0) = 0
       do n = 1, Nstm - 1
-         Stab_nt(n) = nwrap*n
+         stab_nt(n) = nwrap*n
       end do
-      Stab_nt(Nstm) = ltrot_bp
+      stab_nt(Nstm) = ltrot_bp
 
       do i_wlk = 1, N_wlk
          do nf = 1, N_FL
-            call phi_0   (nf, i_wlk)%init(ndim, 'r', WF_R(nf, 1)%P)
-            call phi_bp_r(nf, i_wlk)%init(ndim, 'r', WF_R(nf, 1)%P)
+            call phi_0   (nf, i_wlk)%init(ndim, 'r', wf_r(nf, 1)%p)
+            call phi_bp_r(nf, i_wlk)%init(ndim, 'r', wf_r(nf, 1)%p)
          end do
       end do
 
       do ns = 1, N_slat
          do nf = 1, N_FL
-            call phi_trial(nf, ns)%init(ndim, 'l', WF_L(nf, ns)%P)
+            call phi_trial(nf, ns)%init(ndim, 'l', wf_l(nf, ns)%p)
          end do
          do i_wlk = 1, N_wlk
             i_grc = ns + (i_wlk - 1)*N_slat
@@ -159,7 +159,7 @@ contains
 #endif
       implicit none
 
-      class(udv_state), dimension(:, :), allocatable, intent(IN) :: phi_0
+      class(udv_state), dimension(:, :), allocatable, intent(in) :: phi_0
 
       ! LOCAL
       character(LEN=64) :: FILE_TG, filename
@@ -824,4 +824,4 @@ contains
 
    end subroutine seed_vec_out
 
-end module BRW_init_mod
+end module brw_init_mod

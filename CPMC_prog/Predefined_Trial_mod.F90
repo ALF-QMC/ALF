@@ -77,11 +77,11 @@ contains
 !>
 !------------------------------------------------------------------
    subroutine Predefined_TrialWaveFunction(Lattice_type, Ndim, List, Invlist, Latt, Latt_unit, &
-        &                                  N_part, alpha, N_FL, N_slat, WF_L, WF_R)
+        &                                  N_half, N_dope, alpha, N_FL, N_slat, WF_L, WF_R)
 
       implicit none
       character(len=64), intent(IN)                :: Lattice_type
-      integer, intent(IN)                           :: Ndim, N_FL, N_slat, N_part
+      integer, intent(IN)                           :: Ndim, N_FL, N_slat, N_half, N_dope
       integer, intent(IN), dimension(:, :)           :: List, Invlist
       real(Kind=kind(0.d0)), intent(in)             :: alpha
       type(Lattice), intent(in)                   :: Latt
@@ -99,7 +99,7 @@ contains
       real(Kind=kind(0.d0))  :: delta = 0.01, Ham_T1, Ham_T2, Ham_Tperp, stag_sgn, stag_mass
 
       integer :: N, nf, I, I1, I2, nc, nc1, IK_u, I_u, J1, lp, J, N_Phi, ns, no, k1, N_part_tot, Np_arr(2), i0, j0
-      integer :: L1, L2, no_eff
+      integer :: L1, L2, no_eff, n_part_1, n_part_2
       logical :: Test = .false., Bulk = .true.
       complex(Kind=kind(0.d0)) :: Z_norm
 
@@ -136,41 +136,17 @@ contains
       Ham_Chem_vec = Ham_Chem
       Ham_lambda_vec = 0.d0
 
+      n_part_1 = n_half-n_dope
+      n_part_2 = n_half+n_dope
+
       select case (Lattice_type)
       
-      case ('square_ob')
-           L1 = int(sqrt(dble(ndim)))
-           L2 = L1
-
-           ham_tx_vec(1) = ham_t;
-           ham_tx_vec(2) = ham_t*alpha;
-           ham_ty_vec(1) = ham_t*alpha;
-           ham_ty_vec(2) = ham_t;
-           call set_hopping_parameters_square_ob(Hopping_Matrix_tmp, ham_tx_vec, ham_ty_vec, Ham_Chem_vec, &
-                  & Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, L1, L2, List, Invlist, Latt, Latt_unit)
-            
-           call Predefined_Hoppings_set_OPT(Hopping_Matrix_tmp, List, Invlist, Latt, Latt_unit, Dtau, Checkerboard, Symm, OP_tmp)
-
-           stag_mass = 0.005
-           do nf = 1, N_FL
-              do j = 1, L2
-              do i = 1, L1
-                  no_eff = (j-1)*L2+i
-                  I1 = invlist(1, no_eff)
-                  stag_sgn = 1.d0
-                  if (mod(i+j, 2) .eq. 0) stag_sgn = -1.d0
-                  !! onsite sublattice mass
-                  op_tmp(1, nf)%o(I1, I1) = stag_sgn*stag_mass
-              enddo
-              enddo
-           enddo
-
       case ('square_anisotropic')
            Allocate(op_tmp(1,n_fl))
            do n = 1,n_fl
               call op_make(op_tmp(1,n),ndim)
               do i = 1,ndim
-                 op_tmp(1,n)%P(i) = i
+                 op_tmp(1,n)%p(i) = i
               enddo
               op_tmp(1,n)%g    = cmplx(1.d0,0.d0,kind(0.d0))
               op_tmp(1,n)%alpha= cmplx(0.d0,0.d0,kind(0.D0))
@@ -198,78 +174,8 @@ contains
            enddo
 
            do n = 1, n_fl
-              Call op_set(op_tmp(1,n))
+              call op_set(op_tmp(1,n))
            enddo
-
-      case ('N_leg_ladder')
-         if ( l_cmplx_trial ) then
-            ham_tx_vec(1) = ham_t; 
-            ham_tx_vec(2) = ham_t*alpha; 
-            ham_ty_vec(1) = ham_t*alpha; 
-            ham_ty_vec(2) = ham_t; 
-            Phi_X_vec = 0.002
-            call set_hopping_parameters_n_ladder_anisotropic(Hopping_Matrix_tmp, ham_tx_vec, ham_ty_vec, Ham_Chem_vec, &
-                   & Phi_X_vec, Phi_Y_vec, Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit)
-            call Predefined_Hoppings_set_OPT(Hopping_Matrix_tmp, List, Invlist, Latt, Latt_unit, Dtau, Checkerboard, Symm, OP_tmp)
-         else
-
-            allocate (op_tmp(1, n_fl))
-            do n = 1, n_fl
-               call op_make(op_tmp(1, n), ndim)
-               do i = 1, ndim
-                  op_tmp(1, n)%P(i) = i
-               end do
-               op_tmp(1, n)%g = cmplx(1.d0, 0.d0, kind(0.d0))
-               op_tmp(1, n)%alpha = cmplx(0.d0, 0.d0, kind(0.d0))
-            end do
-
-            do i = 1, latt%n
-               do no = 1, Latt_unit%Norb - 1
-                  delta = 0.01d0*ranf_wrap()
-                  ham_t = 1.d0 + delta
-
-                  i1 = invlist(i, no)
-                  j1 = invlist(latt%nnlist(i, 1, 0), no)
-                  k1 = invlist(i, no + 1)
-
-                  ham_tx_vec(1) = ham_t; 
-                  ham_tx_vec(2) = ham_t*alpha; 
-                  ham_ty_vec(1) = ham_t*alpha; 
-                  ham_ty_vec(2) = ham_t; 
-                  do n = 1, n_fl
-                     op_tmp(1, n)%o(i1, j1) = cmplx(-ham_tx_vec(n), 0.d0, kind(0.d0))
-                     op_tmp(1, n)%o(j1, i1) = cmplx(-ham_tx_vec(n), 0.d0, kind(0.d0))
-                     op_tmp(1, n)%o(i1, k1) = cmplx(-ham_ty_vec(n), 0.d0, kind(0.d0))
-                     op_tmp(1, n)%o(k1, i1) = cmplx(-ham_ty_vec(n), 0.d0, kind(0.d0))
-                  end do
-               end do
-               delta = 0.01d0*ranf_wrap()
-               ham_t = 1.d0 + delta
-               no = Latt_unit%Norb
-               i1 = invlist(i, no)
-               j1 = invlist(latt%nnlist(i, 1, 0), no)
-               k1 = invlist(i,  1)
-               ham_tx_vec(1) = ham_t; 
-               ham_tx_vec(2) = ham_t*alpha; 
-               ham_ty_vec(1) = ham_t*alpha; 
-               ham_ty_vec(2) = ham_t; 
-               do n = 1, n_fl
-                  op_tmp(1, n)%o(i1, j1) = cmplx(-ham_tx_vec(n), 0.d0, kind(0.d0))
-                  op_tmp(1, n)%o(j1, i1) = cmplx(-ham_tx_vec(n), 0.d0, kind(0.d0))
-                  !!==================!!
-                  !! PBC
-                  !!==================!!
-                  op_tmp(1, n)%o(i1, k1) = cmplx(-ham_ty_vec(n), 0.d0, kind(0.d0))
-                  op_tmp(1, n)%o(k1, i1) = cmplx(-ham_ty_vec(n), 0.d0, kind(0.d0))
-                  !!==================!!
-               end do
-            end do
-
-            do n = 1, n_fl
-               call op_set(op_tmp(1, n))
-            end do
-
-        endif
 
       case default
          write (error_unit, *) 'No predefined trial wave function for this lattice.'
@@ -277,38 +183,12 @@ contains
       end select
 
       do nf = 1, N_FL
-         call Diag(op_tmp(1, nf)%o, op_tmp(1, nf)%u, op_tmp(1, nf)%e)
+         call diag(op_tmp(1, nf)%o, op_tmp(1, nf)%u, op_tmp(1, nf)%e)
       end do
 
-      !! sort eigen state
-      allocate(eig_sort_arr(3,n_fl*Ndim))
-      eig_sort_arr(:,:) = 0.d0
-      nc = 0
-      do nf = 1, N_fl
-          do i1 = 1, ndim
-              nc = nc + 1
-              eig_sort_arr(1,nc) = op_tmp(1, nf)%e(i1)
-              eig_sort_arr(1+nf,nc) = i1
-          enddo
-      enddo
-      call s_heapsort(n_fl*Ndim,3,eig_sort_arr)
-      
-      N_part_tot = 2*N_part
-      i0 = 0; j0 = 0
-      do nc = 1, N_part_tot
-          i1 = int(eig_sort_arr(2,nc))
-          if (i1 .ne. 0) then
-              i0 = i0 + 1
-          else
-              j0 = j0 + 1
-          endif
-      enddo
-      np_arr(1) = i0
-      np_arr(2) = j0
-
       !! set unpolarized doping
-      np_arr(1) = N_part
-      np_arr(2) = N_part
+      np_arr(1) = N_part_1
+      np_arr(2) = N_part_2
 
       !! allocate wf
       allocate (wf_l(n_fl, n_slat), wf_r(n_fl, n_slat))

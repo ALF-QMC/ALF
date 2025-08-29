@@ -5,6 +5,10 @@
 #   FC: Fortran compiler
 #   CXX: C++ compiler
 #   HDF5_DIR: Diretory, in which HDF5 gets installed
+H5_major="$1"
+H5_minor="$2"
+H5_patch="$3"
+H5_suff="$4"
 
 if [ -d "$HDF5_DIR" ]; then
   printf "\e[31mDirectory %s already exists, aborting HDF5 installation.\e[0m\n" "$HDF5_DIR" 1>&2
@@ -42,17 +46,19 @@ cd "$tmpdir" || exit 1
 
 printf "\033[0;32m========== Downloading HDF5 source ==========\e[0m\n" 1>&2
 
+H5_SRC="https://support.hdfgroup.org/releases/hdf5/v${H5_major}_${H5_minor}/v${H5_major}_${H5_minor}_${H5_patch}/downloads/hdf5-${H5_major}.${H5_minor}.${H5_patch}${H5_suff}.tar.gz"
+echo "From $H5_SRC"
+source_dir="hdf5-${H5_major}.${H5_minor}.${H5_patch}${H5_suff}"
 if [ $CURL_AVAIL -eq 0 ]; then
-  curl https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.10/hdf5-1.10.7/src/hdf5-1.10.7.tar.gz | tar xz || exit 1
+  curl "$H5_SRC" | tar xz || exit 1
 else
-  wget -O- https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.10/hdf5-1.10.7/src/hdf5-1.10.7.tar.gz | tar xz || exit 1
+  wget -O- "$H5_SRC" | tar xz || exit 1
 fi
-source_dir="hdf5-1.10.7"
 
 export CC FC CXX
 printf "\033[0;32m=== Build with the following compilers C: %s, Fortran: %s, C++: %s \e[0m\n" "$CC" "$FC" "$CXX" 1>&2
 
-"$source_dir/configure" --prefix="$HDF5_DIR" --enable-fortran --enable-shared=no --enable-tests=no
+"$source_dir/configure" --prefix="$HDF5_DIR" --libdir="$HDF5_DIR/lib" --enable-fortran --enable-shared=no --enable-tests=no
 if ! make; then
   printf "\e[31m=== Compilation with compilers %s %s in directory %s failed ===\e[0m\n" "$CC" "$FC" "$PWD" 1>&2
   rm -rf "$HDF5_DIR"
