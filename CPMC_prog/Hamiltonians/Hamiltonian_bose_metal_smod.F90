@@ -272,9 +272,9 @@
              enddo
           enddo
             
-          !! d wave 1, px wave 2, py wave 3
-          allocate(ff_s(4,1,3))
-          do ntype = 1, 3
+          !! d wave 1, px wave 2, py wave 3, px+ipy 4
+          allocate(ff_s(4,1,4))
+          do ntype = 1, 4
               select case(ntype)
               case (1)
                   ff_s(1,1,ntype) =  1.d0
@@ -291,6 +291,11 @@
                   ff_s(2,1,ntype) =  0.d0
                   ff_s(3,1,ntype) =  1.d0
                   ff_s(4,1,ntype) = -1.d0
+              case (4)
+                  ff_s(1,1,ntype) =  cmplx(0.d0, 1.d0,kind(0.d0))
+                  ff_s(2,1,ntype) =  cmplx(0.d0,-1.d0,kind(0.d0))
+                  ff_s(3,1,ntype) =  -1.d0
+                  ff_s(4,1,ntype) =  1.d0
               end select
           enddo
 
@@ -443,7 +448,7 @@
           end do
 
           ! Equal time correlators
-          allocate (Obs_eq(10))
+          allocate (Obs_eq(11))
           do I = 1, size(Obs_eq, 1)
              select case (I)
              case (1)
@@ -466,6 +471,8 @@
                 Filename = "ddwave"
              case (10)
                 Filename = "pwave"
+             case (11)
+                Filename = "pxipywave"
              case default
                 write (6, *) ' Error in Alloc_obs '
              end select
@@ -530,7 +537,7 @@
 
           !Local
           complex(Kind=kind(0.d0)) :: grc(Ndim, Ndim, N_FL), ZK, zone, ztmp, z_ol, zero, ztmp1, ztmp2, ztmp3, ztmp4
-          complex(Kind=kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP, ZS, ZZ, ZXY, zback, zw, z_fac, z1j, cpair(5)
+          complex(Kind=kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP, ZS, ZZ, ZXY, zback, zw, z_fac, z1j, cpair(6)
           integer :: I, J, k, l, m, n, imj, nf, dec, i1, ipx, ipy, imx, imy, j1, jpx, jpy, jmx, jmy, no_I, no_J, nc
           integer :: idl(4), jdl(4), irdl(4), iddl(4), jddl(4), jrdl(4), rsi, rsj, k1, k2
           real(Kind=kind(0.d0)) :: X
@@ -662,6 +669,10 @@
                      cpair(5) = cpair(5) + 0.25d0*ff_s(k1,no_i,1)*conjg(ff_s(k2,no_j,1))* &
                          & (   grc(i1,j1,1)*grc(iddl(k1),jddl(k2),2) + grc(i1,j1,2)*grc(iddl(k1),jddl(k2),1) &
                          &   + grc(i1,jddl(k2),1)*grc(iddl(k1),j1,2) + grc(i1,jddl(k2),2)*grc(iddl(k1),j1,1) )
+                     
+                     cpair(6) = cpair(6) + 0.25d0*ff_s(k1,no_i,4)*conjg(ff_s(k2,no_j,4))* &
+                         & (   grc(i1,j1,1)*grc(idl(k1),jdl(k2),1) + grc(i1,j1,2)*grc(idl(k1),jdl(k2),2) &
+                         &   - grc(i1,jdl(k2),1)*grc(idl(k1),j1,1) - grc(i1,jdl(k2),2)*grc(idl(k1),j1,2) )
 
                   enddo
                   obs_eq(5)%obs_Latt(imj,1,no_i,no_j) = obs_eq(5)%obs_latt(imj,1,no_i,no_j) + cpair(1)*z_fac
@@ -673,6 +684,8 @@
                   obs_eq(10)%obs_Latt(imj,1,no_i,no_j) = obs_eq(10)%obs_latt(imj,1,no_i,no_j) + &
                       & ( grc(i1,j1,1)*grc(idl(1),jdl(1),2) + grc(i1,j1,2)*grc(idl(1),jdl(1),1)  &
                       & - grc(i1,jdl(1),1)*grc(idl(1),j1,2) - grc(i1,jdl(1),2)*grc(idl(1),j1,1) )*z_fac
+                  
+                  obs_eq(11)%obs_Latt(imj,1,no_i,no_j) = obs_eq(11)%obs_latt(imj,1,no_i,no_j) + cpair(6)*z_fac
                   
               end do
               zback = grc(i1, i1, 2) - grc(i1, i1, 1)
