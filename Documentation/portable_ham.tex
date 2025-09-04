@@ -1,0 +1,124 @@
+% Copyright (c) 2016-2022 The ALF project.
+% This is a part of the ALF project documentation.
+% The ALF project documentation by the ALF contributors is licensed
+% under a Creative Commons Attribution-ShareAlike 4.0 International License.
+% For the licensing details of the documentation see license.CCBYSA.
+
+% !TEX root = doc.tex
+
+\subsection{The lattice: \texttt{geometry.txt}}
+
+\begin{lstlisting}[style=fortran,breaklines=true]
+4   4                   ! Length in direction a_1 and a_2 : L1 L2
+1.0   0.0   0.0         ! Unit cell vectors: a_1
+0.0   1.0   0.0         ! a_2
+0.0   0.0   1.0         ! a_3
+1                       ! Number of orbitals per unit cell : Norb 
+0   0.0   0.0   0.0     ! Label and coordinates of orbitals : 
+                        ! (no-1) Orb_pos_p(no,1:3) for no in [1,Norb]
+\end{lstlisting}
+
+\subsection{The hopping: \texttt{hoppings.txt}}
+\begin{equation}
+\hat{H}_t = - \sum_{\ve{i}} \sum_{s=1}^{N_{\mathrm{fl}}} \sum_{\sigma=1}^{N_{\mathrm{col}}} \left( 
+\sum_{n=1}^{N_T(s)} \hat{c}^{\dagger}_{\ve{i},\beta^{(s,n)}_{1},s,\sigma} T^{(s,n)} \hat{c}^{\phantom{\dagger}}_{\ve{i}+n^{(s,n)}_1 \bm{a}_1 + n^{(s,n)}_2 \bm{a}_2, \beta^{(s,n)}_2,s,\sigma } + \hc
+\right) .
+\end{equation}
+
+\begin{lstlisting}[style=fortran,breaklines=true]
+2
+0   0   1 0   0   1.0 0.0
+1   0   0 1   0   1.0 0.0
+2
+0   0   1 0   0   1.0 0.0
+1   0   0 1   0   1.0 0.0
+\end{lstlisting}
+
+\subsection{The interactions: \texttt{potentials.txt}}
+
+\begin{equation}
+\hat{H}_I =  \sum_{\ve{i}} \sum_{k=1}^N  U_k \left\{ \sum_{s=1}^{N_{\mathrm{fl}}} \sum_{\sigma=1}^{N_{\mathrm{col}}} \left[ \sum_{n=1}^{M_{k,s}} \left(
+ \hat{c}^{\dagger}_{x^{(n)},s,\sigma} V^{(k,s,n)} \hat{c}^{\phantom{\dagger}}_{y^{(n)},s,\sigma} + \hc
+\right) + \alpha_{k,s} \right] \right\}^2
+\end{equation}
+
+\begin{align}
+\begin{aligned}
+x^{(n)}&=(\ve{i}+n^{(k,s,n)}_1 \bm{a}_1 + n^{(k,s,n)}_2 \bm{a}_2,\beta^{(k,s,n)}_{1}) \\
+y^{(n)}&=(\ve{i}+n^{(k,s,n)}_3 \bm{a}_1 + n^{(k,s,n)}_4 \bm{a}_2,\beta^{(k,s,n)}_2) .
+\end{aligned}
+\end{align} 
+
+\begin{lstlisting}[style=fortran]
+1
+-2.0
+1   -0.5 0.0
+0   0 0 0   0 0 0    1.0 0.0
+1    0.5 0.0
+0   0 0 0   0 0 0   -1.0 0.0
+\end{lstlisting}
+
+\subsection{Observables}
+\subsubsection{Scalar observables in the particle-hole channel: \texttt{obs\_scal\_ph.txt}}
+
+\begin{equation}
+\hat{O}_{\ve{i}} = \sum_{n=1}^N \sum_{\sigma} \left(
+ \hat{c}^{\dagger}_{x^{(n)},s^{(n)},\sigma} O^{(n)} \hat{c}^{\phantom{\dagger}}_{y^{(n)},s^{(n)},\sigma}
+\right)
+\end{equation}
+
+\begin{align}
+\begin{aligned}
+x^{(n)}&=(\ve{i}+n^{(n)}_1 \bm{a}_1 + n^{(n)}_2 \bm{a}_2,\beta^{(n)}_{1}) \\
+y^{(n)}&=(\ve{i}+n^{(n)}_3 \bm{a}_1 + n^{(n)}_4 \bm{a}_2,\beta^{(n)}_2 ) .
+\end{aligned}
+\end{align} 
+
+\begin{lstlisting}[style=fortran]
+2
+Kin_ph 8
+0   0 0 0   1   1 0 0   -1.0 0.0 
+1   1 0 0   1   0 0 0   -1.0 0.0 
+2   0 0 0   1   0 1 0   -1.0 0.0 
+3   0 1 0   1   0 0 0   -1.0 0.0 
+4   0 0 0   2   1 0 0   -1.0 0.0 
+5   1 0 0   2   0 0 0   -1.0 0.0 
+6   0 0 0   2   0 1 0   -1.0 0.0 
+7   0 1 0   2   0 0 0   -1.0 0.0 
+Part_ph 2 
+0   0 0 0   1   0 0 0    1.0 0.0 
+1   0 0 0   2   0 0 0    1.0 0.0 
+\end{lstlisting}
+
+\subsubsection{Correlation functions in the particle-hole channel: \texttt{obs\_corr\_ph.txt}}
+
+\begin{equation}
+\hat{O}_{\ve{i}} = \sum_{n=1}^N \left(
+ \hat{c}^{\dagger}_{x^{(n)},s^{(n)}_1,\sigma^{(n)}_1} O^{(n)} \hat{c}^{\phantom{\dagger}}_{y^{(n)},s^{(n)}_2,\sigma^{(n)}_2 }
+\right)
+\end{equation}
+
+\begin{align}
+\begin{aligned}
+x^{(n)}&=(\ve{i}+n^{(n)}_1 \bm{a}_1 + n^{(n)}_2 \bm{a}_2,\beta^{(n)}_{1}) \\
+y^{(n)}&=(\ve{i}+n^{(n)}_3 \bm{a}_1 + n^{(n)}_4 \bm{a}_2,\beta^{(n)}_2) .
+\end{aligned}
+\end{align} 
+
+\begin{lstlisting}[style=fortran]
+4
+SpinZ   2
+0   0 0 0 1 1   0 0 0 1 1    1.0 0.0
+1   0 0 0 2 1   0 0 0 2 1   -1.0 0.0
+SpinXY 2
+0   0 0 0 1 1   0 0 0 2 1    1.0 0.0
+1   0 0 0 2 1   0 0 0 1 1    1.0 0.0
+SpinT 4
+0   0 0 0 1 1   0 0 0 1 1    0.57735 0.0
+1   0 0 0 2 1   0 0 0 2 1   -0.57735 0.0
+2   0 0 0 1 1   0 0 0 2 1    0.816497 0.0
+3   0 0 0 2 1   0 0 0 1 1    0.816497 0.0
+Den 2
+0   0 0 0 1 1   0 0 0 1 1    1.0 0.0
+1   0 0 0 2 1   0 0 0 2 1    1.0 0.0
+\end{lstlisting}

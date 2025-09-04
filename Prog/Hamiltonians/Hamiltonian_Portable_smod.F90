@@ -710,13 +710,13 @@
              do i = 1, Latt%N
                 do n = 1, size(obs_scal_ph(no)%list,1)
                    i1   = latt%nnlist(i,obs_scal_ph(no)%list(n,1),obs_scal_ph(no)%list(n,2))
-                   no_1 = obs_scal_ph(no)%list(n,3)
+                   no_1 = obs_scal_ph(no)%list(n,3)+1
                    x1   = invlist(i1,no_1)
 
                    nf   = obs_scal_ph(no)%list(n,4)
                
                    i2   = latt%nnlist(i,obs_scal_ph(no)%list(n,5),obs_scal_ph(no)%list(n,6))
-                   no_2 = obs_scal_ph(no)%list(n,7)
+                   no_2 = obs_scal_ph(no)%list(n,7)+1
                    x2   = invlist(i2,no_2)
 
                    Zlocal = Zlocal +   obs_scal_ph(no)%g(n) *GRC(x1,x2,nf)
@@ -903,13 +903,13 @@
            integer :: i1, no_i1, i2, no_i2
 
            i1      = latt%nnlist(i,obs_list(1),obs_list(2))
-           no_i1   = obs_list(3)
+           no_i1   = obs_list(3)+1
            site1   = invlist(i1,no_i1)
            flavor1 = obs_list(4)
            color1  = obs_list(5)
 
            i2      = latt%nnlist(i,obs_list(6),obs_list(7))
-           no_i2   = obs_list(8)
+           no_i2   = obs_list(8)+1
            site2   = invlist(i2,no_i2)
            flavor2 = obs_list(9)
            color2  = obs_list(10)
