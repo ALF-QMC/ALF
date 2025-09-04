@@ -411,7 +411,7 @@
 
            implicit none
 
-           type (operator_matrix), allocatable, intent(inout) :: this(:,:)
+           type (operator_matrix), intent(in) :: this(:,:)
            integer, intent(inout) :: orbitals(:,:)
 
            integer :: no, i, j1, j2, mk, n, no1, no2, nc, N_orbitals, x1, x2, nf
@@ -607,16 +607,12 @@
            N_obs_corr_ph = size(obs_corr_ph,1)
  
            ! Equal time correlators
-           Allocate ( Obs_eq(3+N_obs_corr_ph) )
+           Allocate ( Obs_eq(1+N_obs_corr_ph) )
            Do I = 1,Size(Obs_eq,1)
              if (i <= N_obs_corr_ph) then
                 Filename = file(i)
              elseif (i == N_obs_corr_ph+1) then
                 Filename = "Green"
-             elseif (i == N_obs_corr_ph+2) then
-                Filename = "SpinZ"
-             elseif (i == N_obs_corr_ph+3) then
-                Filename = "Den"
              endif
              Nt = 1
              Channel = '--'
@@ -625,16 +621,12 @@
  
            If (Ltau == 1) then
              ! Time-displaced correlators
-             Allocate ( Obs_tau(3+N_obs_corr_ph) )
+             Allocate ( Obs_tau(1+N_obs_corr_ph) )
              Do I = 1,Size(Obs_tau,1)
                 if (i <= N_obs_corr_ph) then
                    Channel = 'PH'; Filename = file(i)
                 elseif (i == N_obs_corr_ph+1) then
                    Channel = 'P' ; Filename = "Green"
-                elseif (i == N_obs_corr_ph+2) then
-                   Channel = 'PH'; Filename = "SpinZ"
-                elseif (i == N_obs_corr_ph+3) then
-                   Channel = 'PH'; Filename = "Den"
                 endif
                Nt = Ltrot+1-2*Thtrot
                If(Projector) Channel = 'T0'
@@ -794,40 +786,7 @@
              enddo
           enddo
 
-          !Additional observables like Kin, Pot, SpinZ, Green, ... for debugging
           Call Predefined_Obs_eq_Green_measure  ( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(N_obs_corr_ph+1) )
-
-          Obs_eq(N_obs_corr_ph+2)%N        = Obs_eq(N_obs_corr_ph+2)%N + 1
-          Obs_eq(N_obs_corr_ph+2)%Ave_sign = Obs_eq(N_obs_corr_ph+2)%Ave_sign + real(ZS,kind(0.d0))
-          Obs_eq(N_obs_corr_ph+3)%N        = Obs_eq(N_obs_corr_ph+3)%N + 1
-          Obs_eq(N_obs_corr_ph+3)%Ave_sign = Obs_eq(N_obs_corr_ph+3)%Ave_sign + real(ZS,kind(0.d0))
-
-          nf1 = 1
-          nf2 = 1
-          if (n_fl == 2) nf2 = 2
-          do I = 1, latt%N
-             do no_i = 1, Latt_unit%Norb
-                i1 = invlist(i,no_i)
-                do j = 1, Latt%N
-                   imj  = latt%imj(I,J)
-                   do no_j = 1, Latt_unit%Norb
-                      j1 = invlist(j,no_j)
-                      ZZ = (GRC(i1,i1,nf1)-GRC(i1,i1,nf2))*(GRC(j1,j1,nf1)-GRC(j1,j1,nf2)) + &
-                         &  GRC(I1,j1,nf1)*GR(i1,j1,nf1) + GRC(I1,j1,nf2)*GR(i1,j1,nf2)
-                      Obs_eq(N_obs_corr_ph+2)%Obs_Latt(imj,1,no_I,no_J) = Obs_eq(N_obs_corr_ph+2)%Obs_Latt(imj,1,no_I,no_J) + &
-                         & ZZ*ZP*ZS
-                      ZDen = (GRC(i1,i1,nf1)+GRC(I1,i1,nf2))*(GRC(j1,j1,nf1)+GRC(j1,j1,nf2)) + &
-                           &  GRC(I1,j1,nf1)*GR(i1,j1,nf1) + GRC(I1,j1,nf2)*GR(i1,j1,nf2)
-                      Obs_eq(N_obs_corr_ph+3)%Obs_Latt(imj,1,no_I,no_J) = Obs_eq(N_obs_corr_ph+3)%Obs_Latt(imj,1,no_I,no_J) + &
-                           & ZDen*ZP*ZS
-                   enddo
-                enddo
-                Obs_eq(N_obs_corr_ph+2)%Obs_Latt0(no_I) =  Obs_eq(N_obs_corr_ph+2)%Obs_Latt0(no_I) + &
-                                                        &   (GRC(i1,i1,nf1)-GRC(i1,i1,nf2))*ZP*ZS
-                Obs_eq(N_obs_corr_ph+3)%Obs_Latt0(no_I) =  Obs_eq(N_obs_corr_ph+3)%Obs_Latt0(no_I) + &
-                                                        &   (GRC(i1,i1,nf1)+GRC(i1,i1,nf2))*ZP*ZS
-             enddo
-          enddo
 
         end Subroutine Obser
 
@@ -922,44 +881,8 @@
              enddo
           enddo
 
-          !Additional observables like Kin, Pot, SpinZ, Green, ... for debugging
           call Predefined_Obs_tau_Green_measure( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, &
                   &   Obs_tau(N_obs_corr_ph+1) )
-
-          if (nt == 0) then
-             Obs_tau(N_obs_corr_ph+2)%N        = Obs_tau(N_obs_corr_ph+2)%N + 1
-             Obs_tau(N_obs_corr_ph+2)%Ave_sign = Obs_tau(N_obs_corr_ph+2)%Ave_sign + real(ZS,kind(0.d0))
-             Obs_tau(N_obs_corr_ph+3)%N        = Obs_tau(N_obs_corr_ph+3)%N + 1
-             Obs_tau(N_obs_corr_ph+3)%Ave_sign = Obs_tau(N_obs_corr_ph+3)%Ave_sign + real(ZS,kind(0.d0))
-          endif
-
-          nf1 = 1
-          nf2 = 1
-          if (N_Fl == 2) nf2 = 2
-          do I = 1, latt%N
-             do no_i = 1, Latt_unit%Norb
-                i1 = invlist(i,no_i)
-                do j = 1, Latt%N
-                   imj  = latt%imj(I,J)
-                   do no_j = 1, Latt_unit%Norb
-                      j1 = invlist(j,no_j)
-                      ZZ = (GTT(I1,I1,nf1)-GTT(I1,I1,nf2))*(G00(J1,J1,nf1)-G00(J1,J1,nf2)) - &
-                         &  G0T(J1,I1,nf1)*GT0(I1,j1,nf1) - G0T(J1,I1,nf2)*GT0(I1,j1,nf2)
-                      Obs_tau(N_obs_corr_ph+2)%Obs_Latt(imj,nt+1,no_I,no_J) =  &
-                         &    Obs_tau(N_obs_corr_ph+2)%Obs_Latt(imj,nt+1,no_I,no_J) + ZZ*ZP*ZS
-
-                      ZDen = (2.d0 - GTT(I1,I1,nf1) - GTT(I1,I1,nf2))*(2.d0 - G00(J1,J1,nf1) - G00(J1,J1,nf2)) - &
-                           &  G0T(J1,I1,nf1)*GT0(I1,j1,nf1) - G0T(J1,I1,nf2)*GT0(I1,j1,nf2)
-                      Obs_tau(N_obs_corr_ph+3)%Obs_Latt(imj,nt+1,no_I,no_J) =  &
-                           &  Obs_tau(N_obs_corr_ph+3)%Obs_Latt(imj,nt+1,no_I,no_J) + ZDen*ZP*ZS
-                   enddo
-                enddo
-                Obs_tau(N_obs_corr_ph+2)%Obs_Latt0(no_I) = Obs_tau(N_obs_corr_ph+2)%Obs_Latt0(no_I) - &
-                                                         & (GTT(i1,i1,nf1) - GTT(i1,i1,nf2))*ZP*ZS
-                Obs_tau(N_obs_corr_ph+3)%Obs_Latt0(no_I) = Obs_tau(N_obs_corr_ph+3)%Obs_Latt0(no_I) + &
-                                                         & (2.d0 - GTT(i1,i1,nf1) - GTT(i1,i1,nf2))*ZP*ZS
-             enddo
-          enddo
 
         end Subroutine OBSERT
 
@@ -971,25 +894,25 @@
 !> sets site, flavor and color of both c operators for a given term of an observable
 !--------------------------------------------------------------------
 
-        Subroutine  set_sites_observables(list,i,site1,flavor1,color1,site2,flavor2,color2)
+        Subroutine  set_sites_observables(obs_list,i,site1,flavor1,color1,site2,flavor2,color2)
 
            implicit none
-           integer, intent(in)  :: list(:), i
+           integer, intent(in)  :: obs_list(:), i
            integer, intent(out) :: site1, flavor1, color1, site2, flavor2, color2
 
            integer :: i1, no_i1, i2, no_i2
 
-           i1      = latt%nnlist(i,list(1),list(2))
-           no_i1   = list(3)
+           i1      = latt%nnlist(i,obs_list(1),obs_list(2))
+           no_i1   = obs_list(3)
            site1   = invlist(i1,no_i1)
-           flavor1 = list(4)
-           color1  = list(5)
+           flavor1 = obs_list(4)
+           color1  = obs_list(5)
 
-           i2      = latt%nnlist(i,list(6),list(7))
-           no_i2   = list(8)
+           i2      = latt%nnlist(i,obs_list(6),obs_list(7))
+           no_i2   = obs_list(8)
            site2   = invlist(i2,no_i2)
-           flavor2 = list(9)
-           color2  = list(10)
+           flavor2 = obs_list(9)
+           color2  = obs_list(10)
 
         end subroutine set_sites_observables
         

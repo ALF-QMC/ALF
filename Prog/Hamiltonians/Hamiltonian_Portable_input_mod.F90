@@ -42,6 +42,7 @@
 module Hamiltonian_Portable_input_mod
 
    Use runtime_error_mod
+   use iso_fortran_env, only: output_unit, error_unit
 
    implicit none
 
