@@ -37,7 +37,7 @@ Module QMC_runtime_var
 
         Implicit none
 
-        Integer :: Nwrap, NSweep, NBin, NBin_eff,Ltau, NSTM, NT, NT1, NVAR, LOBS_EN, LOBS_ST, NBC, NSW
+        Integer :: Nwrap, NSweep, NBin,Ltau, NSTM, NT, NT1, NVAR, LOBS_EN, LOBS_ST, NBC, NSW
         Real(Kind=Kind(0.d0)) :: CPU_MAX
         ! Space for choosing sampling scheme
         Logical :: Propose_S0, Tempering_calc_det
@@ -53,7 +53,12 @@ Module QMC_runtime_var
         Logical                      :: Langevin,  HMC
         Integer                      :: Leapfrog_Steps, N_HMC_sweeps
         Real  (Kind=Kind(0.d0))      :: Delta_t_Langevin_HMC, Max_Force
-
+ 
+          
+#if defined(TEMPERING)
+        Integer :: N_exchange_steps, N_Tempering_frequency
+        NAMELIST /VAR_TEMP/  N_exchange_steps, N_Tempering_frequency, mpi_per_parameter_set, Tempering_calc_det
+#endif
 
         NAMELIST /VAR_QMC/   Nwrap, NSweep, NBin, Ltau, LOBS_EN, LOBS_ST, CPU_MAX, &
               &               Propose_S0,Global_moves,  N_Global, Global_tau_moves, &
@@ -128,5 +133,32 @@ Module QMC_runtime_var
 
         end subroutine broadcast_QMC_runtime_var
 #endif           
+
+#ifdef TEMPERING
+        subroutine read_and_broadcast_TEMPERING_var()
+
+          use iso_fortran_env, only: error_unit
+          use runtime_error_mod, only: Terminate_on_error, ERROR_FILE_NOT_FOUND
+
+          implicit none
+
+          Integer :: ierr
+
+          mpi_per_parameter_set = 1   ! Default value
+          Tempering_calc_det = .true. ! Default value
+          OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
+          IF (ierr /= 0) THEN
+          WRITE(error_unit,*) 'main: unable to open <parameters>',ierr
+          CALL Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
+          END IF
+          READ(5,NML=VAR_TEMP)
+          CLOSE(5)
+          CALL MPI_BCAST(N_exchange_steps        ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+          CALL MPI_BCAST(N_Tempering_frequency   ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+          CALL MPI_BCAST(mpi_per_parameter_set   ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+          CALL MPI_BCAST(Tempering_calc_det      ,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
+
+        end subroutine read_and_broadcast_TEMPERING_var
+#endif
            
 end Module QMC_runtime_var

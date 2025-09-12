@@ -162,16 +162,11 @@ Program Main
         INTEGER(HID_T) :: file_id
         Logical :: file_exists
 #endif
-        
-          
-#if defined(TEMPERING)
-        Integer :: N_exchange_steps, N_Tempering_frequency
-        NAMELIST /VAR_TEMP/  N_exchange_steps, N_Tempering_frequency, mpi_per_parameter_set, Tempering_calc_det
-#endif
+       
          NAMELIST /VAR_HAM_NAME/ ham_name
          
         !General
-         Integer :: Ierr, I,nf, nf_eff, nst, n, n1, N_op 
+         Integer :: Ierr, I,nf, nf_eff, nst, n, n1, N_op, NBin_eff
          Logical :: Toggle,  Toggle1
          Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Phase, Z, Z1
          Real    (Kind=Kind(0.d0)) :: ZERO = 10D-8, X, X1
@@ -242,19 +237,7 @@ Program Main
 #endif
 
 #if defined(TEMPERING) && defined(MPI)
-        mpi_per_parameter_set = 1   ! Default value
-        Tempering_calc_det = .true. ! Default value
-        OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
-        IF (ierr /= 0) THEN
-           WRITE(error_unit,*) 'main: unable to open <parameters>',ierr
-           CALL Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
-        END IF
-        READ(5,NML=VAR_TEMP)
-        CLOSE(5)
-        CALL MPI_BCAST(N_exchange_steps        ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(N_Tempering_frequency   ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(mpi_per_parameter_set   ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-        CALL MPI_BCAST(Tempering_calc_det      ,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
+        call read_and_broadcast_TEMPERING_var()
         if ( mod(ISIZE,mpi_per_parameter_set) .ne. 0 ) then
            Write (error_unit,*) "mpi_per_parameter_set is not a multiple of total mpi processes"
            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
