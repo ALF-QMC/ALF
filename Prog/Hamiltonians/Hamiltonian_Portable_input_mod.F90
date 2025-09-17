@@ -65,44 +65,38 @@ module Hamiltonian_Portable_input_mod
       ! with \hat{O}_R =  \sum_n ( \hat{c}^{\dagger}_{x,s_{n,1},\sigma_{n,1}} O_{n} \hat{c}_{y,s_{n,2},\sigma_{n,2}} )
       ! with x and y as defined in c)
       !
-      ! list      : list that contains information for shift of unit cells, orbitals, and spin
+      ! lattice   : list that contains information for shift of unit cells and orbitals
       !             i)   hoppings.txt:
-      !                  list(n,1)  = orbital 1 \mu_1^{n,s}
-      !                  list(n,2)  = shift of unit cell with vector a_1 n_1^{n,s}
-      !                  list(n,3)  = shift of unit cell with vector a_2 n_2^{n,s}
-      !                  list(n,4)  = orbital 2 \mu_2^{n,s}
-      !             ii)  potentials.txt:
-      !                  list(n,1)  = shift 1 of unit cell with vector a_1 n_{1,1}^{k,n,s}
-      !                  list(n,2)  = shift 1 of unit cell with vector a_2 n_{1,2}^{k,n,s}
-      !                  list(n,3)  = orbital 1 \mu_1^{k,n,s}
-      !                  list(n,4)  = shift 2 of unit cell with vector a_1 n_{2,1}^{k,n,s}
-      !                  list(n,5)  = shift 2 of unit cell with vector a_2 n_{2,2}^{k,n,s}
-      !                  list(n,6)  = orbital 2 \mu_2^{k,n,s}
-      !             iii) obs_scal_ph.txt:
-      !                  list(n,1)  = shift 1 of unit cell with vector a_1 n_{1,1}^{n}
-      !                  list(n,2)  = shift 1 of unit cell with vector a_2 n_{1,2}^{n}
-      !                  list(n,3)  = orbital 1 \mu_1^{n}
-      !                  list(n,4)  = flavor 1 s_n
-      !                  list(n,5)  = shift 2 of unit cell with vector a_1 n_{2,1}^{n}
-      !                  list(n,6)  = shift 2 of unit cell with vector a_2 n_{2,2}^{n}
-      !                  list(n,7)  = orbital 2 \mu_2^{n}
-      !             iv)  obs_corr_ph.txt:
-      !                  list(n,1)  = shift 1 of unit cell with vector a_1 n_{1,1}^{n}
-      !                  list(n,2)  = shift 1 of unit cell with vector a_2 n_{1,2}^{n}
-      !                  list(n,3)  = orbital 1 \mu_1^{n}
-      !                  list(n,4)  = flavor 1 s_{n,1}
-      !                  list(n,5)  = color 1 \sigma_{n,1}
-      !                  list(n,6)  = shift 2 of unit cell with vector a_1 n_{2,1}^{n}
-      !                  list(n,7)  = shift 2 of unit cell with vector a_2 n_{2,2}^{n}
-      !                  list(n,8)  = orbital 2 \mu_2^{n}
-      !                  list(n,9)  = flavor 2 s_{n,2}
-      !                  list(n,10) = color 2 \sigma_{n,2}
+      !                  lattice(:,1)  = orbital 1 \mu_1
+      !                  lattice(:,2)  = shift of unit cell with vector a_1 n_1
+      !                  lattice(:,3)  = shift of unit cell with vector a_2 n_2
+      !                  lattice(:,4)  = orbital 2 \mu_2
+      !             ii)  potentials.txt, obs_scal_ph.txt, obs_corr_ph.txt:
+      !                  lattice(:,1)  = shift 1 of unit cell with vector a_1 n_{1,1}
+      !                  lattice(:,2)  = shift 1 of unit cell with vector a_2 n_{1,2}
+      !                  lattice(:,3)  = orbital 1 \mu_1
+      !                  lattice(:,4)  = shift 2 of unit cell with vector a_1 n_{2,1}
+      !                  lattice(:,5)  = shift 2 of unit cell with vector a_2 n_{2,2}
+      !                  lattice(:,6)  = orbital 2 \mu_2
+      ! flavor    : only for c) and d)
+      !             list that contains information of flavor
+      !             i)   obs_scal_ph.txt:
+      !                  flavor(n,1) = flavor s_n
+      !             ii)  obs_corr_ph.txt:
+      !                  flavor(n,1) = flavor 1 s_{n,1}
+      !                  flavor(n,2) = flavor 2 s_{n,2}
+      ! color     : only for d)
+      ! color     : only for d)
+      !             list that contains information of color
+      !             i)   obs_corr_ph.txt:
+      !                  color(n,1) = color 1 \sigma_{n,1}
+      !                  color(n,2) = color 2 \sigma_{n,2}
       ! g         : matrix elements for hopping (T_{n,s}), interaction (g_{k,n,s}), observables (O_{n})
       ! u         : only for interactions b)
       !             prefactor U_k of interaction terms
       ! alpha     : only for interactions b)
       !             complex shift \alpha_{k,s} in interaction term
-      integer, allocatable                   :: list(:,:)
+      integer, allocatable                   :: lattice(:,:), flavor(:,:), color(:,:)
       complex (kind=kind(0.d0)), allocatable :: g(:)
       real (kind=kind(0.d0))    :: u
       complex (kind=kind(0.d0)) :: alpha
@@ -245,14 +239,14 @@ module Hamiltonian_Portable_input_mod
 
                 read(unit_hop,*) n_hop
              
-                allocate( this(nf)%g(n_hop), this(nf)%list(n_hop,4) )
+                allocate( this(nf)%g(n_hop), this(nf)%lattice(n_hop,4) )
       
                 do nh = 1, n_hop
                    read(unit_hop,*) i, no1, n1, n2, no2, x, y
-                   this(nf)%list(nh,1) = no1
-                   this(nf)%list(nh,2) = n1
-                   this(nf)%list(nh,3) = n2
-                   this(nf)%list(nh,4) = no2
+                   this(nf)%lattice(nh,1) = no1
+                   this(nf)%lattice(nh,2) = n1
+                   this(nf)%lattice(nh,3) = n2
+                   this(nf)%lattice(nh,4) = no2
                    this(nf)%g(nh)      = cmplx( x, y, kind(0.d0))
                 enddo
 
@@ -263,12 +257,12 @@ module Hamiltonian_Portable_input_mod
           Endif
 
           do nf = 1, size(this,1)
-             if ( irank_g == 0 ) n_hop = size(this(nf)%list,1)
+             if ( irank_g == 0 ) n_hop = size(this(nf)%lattice,1)
              CALL MPI_BCAST(n_hop        ,  1                ,MPI_INTEGER  ,0,Group_Comm,ierr)
 
-             if ( irank_g /= 0 ) allocate( this(nf)%g(n_hop), this(nf)%list(n_hop,4) )
-             CALL MPI_BCAST(this(nf)%list,size(this(nf)%list),MPI_INTEGER  ,0,Group_Comm,ierr)
-             CALL MPI_BCAST(this(nf)%g   ,size(this(nf)%g)   ,MPI_COMPLEX16,0,Group_Comm,ierr)
+             if ( irank_g /= 0 ) allocate( this(nf)%g(n_hop), this(nf)%lattice(n_hop,4) )
+             CALL MPI_BCAST(this(nf)%lattice,size(this(nf)%lattice),MPI_INTEGER  ,0,Group_Comm,ierr)
+             CALL MPI_BCAST(this(nf)%g      ,size(this(nf)%g)      ,MPI_COMPLEX16,0,Group_Comm,ierr)
           enddo
  
 #endif
@@ -331,16 +325,16 @@ module Hamiltonian_Portable_input_mod
                    read(unit_int,*) mk, x, y
                    this(no,nf)%alpha = cmplx( x, y, kind(0.d0) )
 
-                   allocate( this(no,nf)%list(mk,6), this(no,nf)%g(mk) )
+                   allocate( this(no,nf)%lattice(mk,6), this(no,nf)%g(mk) )
 
                    do n = 1, mk
                       read(unit_int,*) i, i1, i2, no1, j1, j2, no2, x, y
-                      this(no,nf)%list(n,1) = i1
-                      this(no,nf)%list(n,2) = i2
-                      this(no,nf)%list(n,3) = no1
-                      this(no,nf)%list(n,4) = j1
-                      this(no,nf)%list(n,5) = j2
-                      this(no,nf)%list(n,6) = no2
+                      this(no,nf)%lattice(n,1) = i1
+                      this(no,nf)%lattice(n,2) = i2
+                      this(no,nf)%lattice(n,3) = no1
+                      this(no,nf)%lattice(n,4) = j1
+                      this(no,nf)%lattice(n,5) = j2
+                      this(no,nf)%lattice(n,6) = no2
                       this(no,nf)%g(n)      = cmplx( x, y, kind(0.d0) )
                    enddo
                 enddo
@@ -359,11 +353,11 @@ module Hamiltonian_Portable_input_mod
              do nf = 1, N_Fl
                 CALL MPI_BCAST(this(no,nf)%alpha,  1                   ,MPI_COMPLEX16,0,Group_Comm,ierr)
              
-                if (irank_g == 0) mk = size(this(no,nf)%list,1)
+                if (irank_g == 0) mk = size(this(no,nf)%lattice,1)
                 CALL MPI_BCAST(mk               ,  1                   ,MPI_INTEGER  ,0,Group_Comm,ierr)
-                if (irank_g /= 0) allocate( this(no,nf)%list(mk,6), this(no,nf)%g(mk) )
-                CALL MPI_BCAST(this(no,nf)%list ,size(this(no,nf)%list),MPI_INTEGER  ,0,Group_Comm,ierr)
-                CALL MPI_BCAST(this(no,nf)%g    ,size(this(no,nf)%g)   ,MPI_COMPLEX16,0,Group_Comm,ierr)
+                if (irank_g /= 0) allocate( this(no,nf)%lattice(mk,6), this(no,nf)%g(mk) )
+                CALL MPI_BCAST(this(no,nf)%lattice ,size(this(no,nf)%lattice),MPI_INTEGER  ,0,Group_Comm,ierr)
+                CALL MPI_BCAST(this(no,nf)%g       ,size(this(no,nf)%g)      ,MPI_COMPLEX16,0,Group_Comm,ierr)
              enddo
           enddo
 
@@ -423,19 +417,18 @@ module Hamiltonian_Portable_input_mod
              do no = 1, N_obs
                 read(unit_obs,*) file, mk
                 filenames(no) = file
-                allocate( this(no)%list(mk,7), this(no)%g(mk) )
+                allocate( this(no)%lattice(mk,6), this(no)%g(mk), this(no)%flavor(mk,1) )
                 
                 do n = 1, mk
                    read(unit_obs,*) i, i1, i2, no1, nf, j1, j2, no2, x, y
-                   this(no)%list(n,1) = i1
-                   this(no)%list(n,2) = i2
-                   this(no)%list(n,3) = no1
+                   this(no)%lattice(n,1) = i1
+                   this(no)%lattice(n,2) = i2
+                   this(no)%lattice(n,3) = no1
+                   this(no)%lattice(n,4) = j1
+                   this(no)%lattice(n,5) = j2
+                   this(no)%lattice(n,6) = no2
 
-                   this(no)%list(n,4) = nf
-
-                   this(no)%list(n,5) = j1
-                   this(no)%list(n,6) = j2
-                   this(no)%list(n,7) = no2
+                   this(no)%flavor(n,1) = nf
 
                    this(no)%g(n) = cmplx(x, y, kind(0.d0))
                 enddo
@@ -450,11 +443,12 @@ module Hamiltonian_Portable_input_mod
           if (irank_g /= 0) allocate(this(N_obs),filenames(N_obs))
           call MPI_BCAST(filenames             ,64*size(filenames), MPI_CHARACTER,0,Group_Comm,ierr)
           do no = 1, N_obs
-             if (irank_g == 0) mk = size(this(no)%list,1)
+             if (irank_g == 0) mk = size(this(no)%lattice,1)
              CALL MPI_BCAST(mk              ,  1                   ,MPI_INTEGER  ,0,Group_Comm,ierr)
-             if (irank_g /= 0) allocate( this(no)%list(mk,7), this(no)%g(mk) )
-             CALL MPI_BCAST(this(no)%list,size(this(no)%list),MPI_INTEGER  ,0,Group_Comm,ierr)
-             CALL MPI_BCAST(this(no)%g   ,size(this(no)%g)   ,MPI_COMPLEX16,0,Group_Comm,ierr)
+             if (irank_g /= 0) allocate( this(no)%lattice(mk,6), this(no)%g(mk), this(no)%flavor(mk,1) )
+             CALL MPI_BCAST(this(no)%lattice,size(this(no)%lattice),MPI_INTEGER  ,0,Group_Comm,ierr)
+             CALL MPI_BCAST(this(no)%g      ,size(this(no)%g)      ,MPI_COMPLEX16,0,Group_Comm,ierr)
+             CALL MPI_BCAST(this(no)%flavor ,size(this(no)%flavor) ,MPI_INTEGER  ,0,Group_Comm,ierr)
           enddo
 
 #endif
@@ -515,21 +509,21 @@ module Hamiltonian_Portable_input_mod
              do no = 1, N_obs
                 read(unit_obs,*) file, mk
                 filenames(no)  = file
-                allocate( this(no)%list(mk,10), this(no)%g(mk) )
+                allocate( this(no)%lattice(mk,6), this(no)%g(mk), this(no)%flavor(mk,2), this(no)%color(mk,2) )
 
                 do n = 1, mk
                    read(unit_obs,*) i, i1, i2, no1, nf1, ns1, j1, j2, no2, nf2, ns2, x, y
-                   this(no)%list(n,1)  = i1
-                   this(no)%list(n,2)  = i2
-                   this(no)%list(n,3)  = no1
-                   this(no)%list(n,4)  = nf1
-                   this(no)%list(n,5)  = ns1
+                   this(no)%lattice(n,1)  = i1
+                   this(no)%lattice(n,2)  = i2
+                   this(no)%lattice(n,3)  = no1
+                   this(no)%lattice(n,4)  = j1
+                   this(no)%lattice(n,5)  = j2
+                   this(no)%lattice(n,6)  = no2
 
-                   this(no)%list(n,6)  = j1
-                   this(no)%list(n,7)  = j2
-                   this(no)%list(n,8)  = no2
-                   this(no)%list(n,9)  = nf2
-                   this(no)%list(n,10) = ns2
+                   this(no)%flavor(n,1) = nf1
+                   this(no)%color (n,1) = ns1
+                   this(no)%flavor(n,2) = nf2
+                   this(no)%color (n,2) = ns2
 
                    this(no)%g(n) = cmplx(x, y, kind(0.d0))
                 enddo
@@ -544,11 +538,16 @@ module Hamiltonian_Portable_input_mod
           if (irank_g /= 0) allocate(this(N_obs), filenames(N_obs))
           CALL MPI_BCAST(filenames             ,64*size(filenames),MPI_CHARACTER,0,Group_Comm,ierr)
           do no = 1, N_obs
-             if (irank_g == 0) mk = size(this(no)%list,1)
+             if (irank_g == 0) mk = size(this(no)%lattice,1)
              CALL MPI_BCAST(mk              ,  1                     ,MPI_INTEGER  ,0,Group_Comm,ierr)
-             if (irank_g /= 0) allocate( this(no)%list(mk,10), this(no)%g(mk) )
-             CALL MPI_BCAST(this(no)%list,  size(this(no)%list),MPI_INTEGER  ,0,Group_Comm,ierr)
-             CALL MPI_BCAST(this(no)%g   ,  size(this(no)%g)   ,MPI_COMPLEX16,0,Group_Comm,ierr)
+             if (irank_g /= 0) then
+                allocate( this(no)%lattice(mk,6), this(no)%g(mk) )
+                allocate( this(no)%flavor(mk,2), this(no)%color(mk,2) )
+             endif
+             CALL MPI_BCAST(this(no)%lattice,  size(this(no)%lattice),MPI_INTEGER  ,0,Group_Comm,ierr)
+             CALL MPI_BCAST(this(no)%g      ,  size(this(no)%g)      ,MPI_COMPLEX16,0,Group_Comm,ierr)
+             CALL MPI_BCAST(this(no)%flavor ,  size(this(no)%flavor) ,MPI_INTEGER  ,0,Group_Comm,ierr)
+             CALL MPI_BCAST(this(no)%color  ,  size(this(no)%color)  ,MPI_INTEGER  ,0,Group_Comm,ierr)
           enddo
 
 #endif

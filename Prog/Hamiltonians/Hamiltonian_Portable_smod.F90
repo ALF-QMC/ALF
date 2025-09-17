@@ -344,8 +344,8 @@
              allocate( hop_diag(n_hop) )
              hop_diag = 0; N_diag = 0
              do nh = 1, n_hop
-                diag = hopping(nf)%list(nh,1) == hopping(nf)%list(nh,4) .and. &
-                     & hopping(nf)%list(nh,2) == 0 .and. hopping(nf)%list(nh,3) == 0
+                diag = hopping(nf)%lattice(nh,1) == hopping(nf)%lattice(nh,4) .and. &
+                     & hopping(nf)%lattice(nh,2) == 0 .and. hopping(nf)%lattice(nh,3) == 0
                 if (diag) then
                    hop_diag(nh) = 1
                    N_diag = N_diag + 1
@@ -369,10 +369,10 @@
 
                       nc = nc + 1
                       hopping_matrix(nf)%T(nc) = - hopping(nf)%g(nh)
-                      hopping_matrix(nf)%list(nc,1) = hopping(nf)%list(nh,1)+1
-                      hopping_matrix(nf)%list(nc,2) = hopping(nf)%list(nh,4)+1
-                      hopping_matrix(nf)%list(nc,3) = hopping(nf)%list(nh,2)
-                      hopping_matrix(nf)%list(nc,4) = hopping(nf)%list(nh,3)
+                      hopping_matrix(nf)%list(nc,1) = hopping(nf)%lattice(nh,1)+1
+                      hopping_matrix(nf)%list(nc,2) = hopping(nf)%lattice(nh,4)+1
+                      hopping_matrix(nf)%list(nc,3) = hopping(nf)%lattice(nh,2)
+                      hopping_matrix(nf)%list(nc,4) = hopping(nf)%lattice(nh,3)
                
                    endif
                 enddo
@@ -382,7 +382,7 @@
              hopping_matrix(nf)%T_loc = cmplx( 0.d0, 0.d0, kind(0.d0) )
              do nh = 1, n_hop
                 if (hop_diag(nh) == 1) then
-                   no = hopping(nf)%list(nh,1)+1
+                   no = hopping(nf)%lattice(nh,1)+1
                    hopping_matrix(nf)%t_loc(no) = - hopping(nf)%g(nh)
                 endif
              enddo
@@ -422,7 +422,7 @@
 
            do no = 1, size(this,1)
               do nf = 1, size(this,2)
-                 mk = size(this(no,nf)%list,1 )
+                 mk = size(this(no,nf)%lattice,1 )
                  allocate( orbitals_tmp(2*mk))
                  orbitals_tmp = 0
                  nc   = 0
@@ -430,15 +430,15 @@
 
                  do n = 1, mk
                     nc  = nc + 1
-                    j1  = latt%nnlist( i, this(no,nf)%list(n,1), this(no,nf)%list(n,2) )
-                    no1 = (this(no,nf)%list(n,3)+1)
+                    j1  = latt%nnlist( i, this(no,nf)%lattice(n,1), this(no,nf)%lattice(n,2) )
+                    no1 = (this(no,nf)%lattice(n,3)+1)
                     x1  = invlist(j1,no1)
                     if (.not. any(orbitals_tmp == x1)) N_orbitals = N_orbitals + 1
                     orbitals_tmp(nc) = x1
 
                     nc  = nc + 1
-                    j2  = latt%nnlist( i, this(no,nf)%list(n,4), this(no,nf)%list(n,5) )
-                    no2 = (this(no,nf)%list(n,6)+1)
+                    j2  = latt%nnlist( i, this(no,nf)%lattice(n,4), this(no,nf)%lattice(n,5) )
+                    no2 = (this(no,nf)%lattice(n,6)+1)
                     x2  = invlist(j2,no2)
                     if (.not. any(orbitals_tmp == x2)) N_orbitals = N_orbitals + 1
                     orbitals_tmp(nc) = x2
@@ -471,14 +471,14 @@
            integer :: i1, no1, j1, x, i2, no2, j2, nc, mk
            integer :: x1, x2, n
 
-           mk = size(this%list,1)
+           mk = size(this%lattice,1)
            allocate (p(orbital))
            p = 0
            nc = 0
            do n = 1, mk
 
-              i1  = latt%nnlist( i, this%list(n,1), this%list(n,2) )
-              no1 = (this%list(n,3)+1)
+              i1  = latt%nnlist( i, this%lattice(n,1), this%lattice(n,2) )
+              no1 = (this%lattice(n,3)+1)
               j1  = invlist(i1,no1)
               x1  = -1
               do x = 1, nc
@@ -493,8 +493,8 @@
                  x1 = nc
               endif
 
-              i2  = latt%nnlist( i, this%list(n,4), this%list(n,5) )
-              no2 = (this%list(n,6)+1)
+              i2  = latt%nnlist( i, this%lattice(n,4), this%lattice(n,5) )
+              no2 = (this%lattice(n,6)+1)
               j2  = invlist(i2,no2)
               x2  = -1
               do x = 1, nc
@@ -579,10 +579,12 @@
           Character (len=64) ::  Filename
           Character (len=:), allocatable ::  Channel
           Character (len=64), allocatable ::  File(:)
+          logical :: corr
 
            call read_obs_scal_ph(obs_scal_ph,file,Group_Comm)
            N_obs_scal_ph = size(obs_scal_ph,1)
-           call set_obs_orbitals(obs_scal_ph,orbitals_scal_ph)
+           corr = .false.
+           call set_obs_orbitals(obs_scal_ph,orbitals_scal_ph,corr)
 
            ! Scalar observables
            Allocate ( Obs_scal(N_obs_scal_ph+4) )
@@ -605,7 +607,8 @@
 
            call read_obs_corr(obs_corr_ph,file,Group_Comm)
            N_obs_corr_ph = size(obs_corr_ph,1)
-           call set_obs_orbitals(obs_corr_ph,orbitals_corr_ph)
+           corr = .true.
+           call set_obs_orbitals(obs_corr_ph,orbitals_corr_ph,corr)
  
            ! Equal time correlators
            Allocate ( Obs_eq(1+N_obs_corr_ph) )
@@ -648,48 +651,33 @@
 !> creates list of interacting orbitals for each observable and lattice site
 !--------------------------------------------------------------------
 
-        Subroutine  set_obs_orbitals(obs,orbitals)
+        Subroutine  set_obs_orbitals(obs,orbitals,corr)
 
            implicit none
 
            type (operator_matrix), intent(in)            :: obs(:)
            type (obs_orbitals), intent(out), allocatable :: orbitals(:)
+           logical, intent(in) :: corr
 
            integer :: i1, no_i1, i2, no_i2, i, no, n, x1, x2, mk, m
            integer :: ns1, ns2, ns3, ns4, nf1, nf2, nf3, nf4
-           integer :: index(6)
-           logical :: corr
-            
-           corr = .false.
-
-           if     (size(obs(1)%list,2) == 7  ) then  ! obs_scal_ph
-              index(1) = 1; index(2) = 2; index(3) = 3
-              index(4) = 5; index(5) = 6; index(6) = 7
-           elseif (size(obs(1)%list,2) == 10 ) then  ! obs_corr_ph
-              corr = .true.
-              index(1) = 1; index(2) = 2; index(3) = 3
-              index(4) = 6; index(5) = 7; index(6) = 8
-           else
-              Write(error_unit,*) 'Unknown format of observable'
-              CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
-           endif
 
            allocate(orbitals(size(obs,1)))
 
            do no = 1, size(obs,1)
 
-             mk = size(obs(no)%list,1)
+             mk = size(obs(no)%lattice,1)
              allocate(orbitals(no)%orb_list(latt%N,mk,2))
 
               do n = 1, mk
                  do i = 1, Latt%N
 
-                    i1    = latt%nnlist(i,obs(no)%list(n,index(1)),obs(no)%list(n,index(2)))
-                    no_i1 = obs(no)%list(n,index(3))+1
+                    i1    = latt%nnlist(i,obs(no)%lattice(n,1),obs(no)%lattice(n,2))
+                    no_i1 = obs(no)%lattice(n,3)+1
                     x1    = invlist(i1,no_i1)
 
-                    i2    = latt%nnlist(i,obs(no)%list(n,index(4)),obs(no)%list(n,index(5)))
-                    no_i2 = obs(no)%list(n,index(6))+1
+                    i2    = latt%nnlist(i,obs(no)%lattice(n,4),obs(no)%lattice(n,5))
+                    no_i2 = obs(no)%lattice(n,6)+1
                     x2    = invlist(i2,no_i2)
 
                     orbitals(no)%orb_list(i,n,1) = x1
@@ -703,17 +691,17 @@
                  orbitals(no)%nonzero_corr = 0
                  orbitals(no)%nonzero_back = 0
                  do n = 1, mk
-                    nf1 = obs_corr_ph(no)%list(n,4)
-                    ns1 = obs_corr_ph(no)%list(n,5)
-                    nf2 = obs_corr_ph(no)%list(n,9)
-                    ns2 = obs_corr_ph(no)%list(n,10)
+                    nf1 = obs_corr_ph(no)%flavor(n,1)
+                    ns1 = obs_corr_ph(no)%color (n,1)
+                    nf2 = obs_corr_ph(no)%flavor(n,2)
+                    ns2 = obs_corr_ph(no)%color (n,2)
 
                     if (nf1 == nf2 .and. ns1 == ns2) orbitals(no)%nonzero_back(n) = 1
                     do m = 1, mk
-                       nf3 = obs_corr_ph(no)%list(m,4)
-                       ns3 = obs_corr_ph(no)%list(m,5)
-                       nf4 = obs_corr_ph(no)%list(m,9)
-                       ns4 = obs_corr_ph(no)%list(m,10)
+                       nf3 = obs_corr_ph(no)%flavor(m,1)
+                       ns3 = obs_corr_ph(no)%color (m,1)
+                       nf4 = obs_corr_ph(no)%flavor(m,2)
+                       ns4 = obs_corr_ph(no)%color (m,2)
                          
                        if ( (nf1 == nf2 .and. ns1 == ns2) .and. (nf3 == nf4 .and. ns3 == ns4) ) orbitals(no)%nonzero_corr(n,m,1) = 1
                        if ( (nf1 == nf4 .and. ns1 == ns4) .and. (nf2 == nf3 .and. ns2 == ns3) ) orbitals(no)%nonzero_corr(n,m,2) = 1
@@ -793,9 +781,9 @@
           do no = 1, N_obs_scal_ph
              Zlocal = cmplx(0.d0, 0.d0, kind(0.d0))
       
-             mk = size(obs_scal_ph(no)%list,1)
+             mk = size(obs_scal_ph(no)%lattice,1)
              do n = 1, mk
-                nf   = obs_scal_ph(no)%list(n,4)
+                nf   = obs_scal_ph(no)%flavor(n,1)
                 do i = 1, Latt%N
                    x1 = orbitals_scal_ph(no)%orb_list(i,n,1)
                    x2 = orbitals_scal_ph(no)%orb_list(i,n,2)
@@ -837,10 +825,10 @@
              Obs_eq(no)%N        = Obs_eq(no)%N + 1
              Obs_eq(no)%Ave_sign = Obs_eq(no)%Ave_sign + real(ZS,kind(0.d0))
 
-             mk = size(obs_corr_ph(no)%list,1)
+             mk = size(obs_corr_ph(no)%lattice,1)
              do n = 1, mk
-                nf1 = obs_corr_ph(no)%list(n,4)
-                nf2 = obs_corr_ph(no)%list(n,9)
+                nf1 = obs_corr_ph(no)%flavor(n,1)
+                nf2 = obs_corr_ph(no)%flavor(n,2)
                 gn = obs_corr_ph(no)%g(n)
 
                 do I = 1, Latt%N
@@ -848,8 +836,8 @@
                    x2  = orbitals_corr_ph(no)%orb_list(i,n,2)
 
                    do m = 1, mk
-                      nf3 = obs_corr_ph(no)%list(m,4)
-                      nf4 = obs_corr_ph(no)%list(m,9)
+                      nf3 = obs_corr_ph(no)%flavor(m,1)
+                      nf4 = obs_corr_ph(no)%flavor(m,2)
                       gm = obs_corr_ph(no)%g(m)
 
                       do J = 1, Latt%N
@@ -936,10 +924,10 @@
                 Obs_tau(no)%Ave_sign = Obs_tau(no)%Ave_sign + real(ZS,kind(0.d0))
              endif
 
-             mk = size(obs_corr_ph(no)%list,1)
+             mk = size(obs_corr_ph(no)%lattice,1)
              do n = 1, mk
-                nf1 = obs_corr_ph(no)%list(n,4)
-                nf2 = obs_corr_ph(no)%list(n,9)
+                nf1 = obs_corr_ph(no)%flavor(n,1)
+                nf2 = obs_corr_ph(no)%flavor(n,2)
                 gn  = obs_corr_ph(no)%g(n)
                 do I = 1, Latt%N
                    x1 = orbitals_corr_ph(no)%orb_list(i,n,1)
@@ -952,8 +940,8 @@
 
 
                    do m = 1, mk
-                      nf3 = obs_corr_ph(no)%list(m,4)
-                      nf4 = obs_corr_ph(no)%list(m,9)
+                      nf3 = obs_corr_ph(no)%flavor(m,1)
+                      nf4 = obs_corr_ph(no)%flavor(m,2)
                       gm  = obs_corr_ph(no)%g(m)
                       do J = 1, Latt%N
                          imj = Latt%imj(I,J)
