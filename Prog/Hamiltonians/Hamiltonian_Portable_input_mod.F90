@@ -108,6 +108,11 @@ module Hamiltonian_Portable_input_mod
       complex (kind=kind(0.d0)) :: alpha
    end type operator_matrix
 
+   type obs_orbitals
+      integer, allocatable :: orb_list(:,:,:)
+      integer, allocatable :: nonzero_corr(:,:,:), nonzero_back(:)
+   end type obs_orbitals
+
    contains
 
 !--------------------------------------------------------------------
