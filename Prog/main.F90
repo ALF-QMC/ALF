@@ -154,7 +154,7 @@ Program Main
        
        Integer :: NBC, NSW
        Integer :: NTAU, NTAU1
-       Character (len=64) :: file_seeds, file_para, file_dat, file_info, ham_name
+       Character (len=64) :: file_seeds, file_dat, file_info
        Integer :: Seed_in
        Complex (Kind=Kind(0.d0)) , allocatable, dimension(:,:) :: Initial_field
 
@@ -163,8 +163,6 @@ Program Main
         INTEGER(HID_T) :: file_id
         Logical :: file_exists
 #endif
-       
-         NAMELIST /VAR_HAM_NAME/ ham_name
          
         !General
         Integer :: NSTM, NT, NT1, NVAR
@@ -194,7 +192,6 @@ Program Main
 
 
 #ifdef MPI
-        Integer        :: Isize, Irank, Irank_g, Isize_g, color, key, igroup, MPI_COMM_i
         CALL MPI_INIT(ierr)
         CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
         CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
@@ -282,40 +279,8 @@ Program Main
         !It will then deactivate the entanglement measurements, i.e., the user does not have to care about this
         call Init_Entanglement_replicas(Group_Comm)
 
-
-#ifdef MPI
-#ifdef PARALLEL_PARAMS
-        MPI_COMM_i = Group_Comm
-        If ( irank_g == 0 ) then
-           write(file_para,'(A,I0,A)') "Temp_", igroup, "/parameters"
-#else
-        MPI_COMM_i = MPI_COMM_WORLD
-        If ( Irank == 0 ) then
-           file_para = "parameters"
-#endif
-#else
-           file_para = "parameters"
-#endif
-      
-
-        Call set_QMC_runtime_default_var()
-        OPEN(UNIT=5,FILE=file_para,STATUS='old',ACTION='read',IOSTAT=ierr)
-        IF (ierr /= 0) THEN
-        WRITE(error_unit,*) 'main: unable to open <parameters>', file_para, ierr
-        CALL Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
-        END IF
-        READ(5,NML=VAR_QMC)
-        REWIND(5)
-        READ(5,NML=VAR_HAM_NAME)
-        CLOSE(5)
+        call read_and_broadcast_QMC_var_and_ham_name(Group_Comm)
         NBin_eff = NBin
-
-#ifdef MPI
-         Endif
-         call broadcast_QMC_runtime_var(MPI_COMM_i)
-         
-         CALL MPI_BCAST(ham_name,64,MPI_CHARACTER,0,MPI_COMM_i,ierr)
-#endif
 
         Call Fields_init(Amplitude)
         Call Alloc_Ham(ham_name)

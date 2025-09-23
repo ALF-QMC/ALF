@@ -50,11 +50,17 @@ Module QMC_runtime_var
         Logical :: Sequential
         real (Kind=Kind(0.d0)) ::  Amplitude  !    Needed for  update of  type  3  and  4  fields.
 
+        Character (len=64) :: ham_name
+
 
         !  Space for reading in Langevin & HMC  parameters
         Logical                      :: Langevin,  HMC
         Integer                      :: Leapfrog_Steps, N_HMC_sweeps
         Real  (Kind=Kind(0.d0))      :: Delta_t_Langevin_HMC, Max_Force
+
+#ifdef MPI
+        Integer :: Isize, Irank, Irank_g, Isize_g, color, key, igroup
+#endif
  
           
 #if defined(TEMPERING)
@@ -67,6 +73,8 @@ Module QMC_runtime_var
               &               Nt_sequential_start, Nt_sequential_end, N_Global_tau, &
               &               sequential, Langevin, HMC, Delta_t_Langevin_HMC, &
               &               Max_Force, Leapfrog_steps, N_HMC_sweeps, Amplitude
+       
+        NAMELIST /VAR_HAM_NAME/ ham_name
         
         
 
@@ -249,5 +257,50 @@ Module QMC_runtime_var
 #endif
            
 
+        subroutine read_and_broadcast_QMC_var_and_ham_name(Group_Comm)
+
+          use iso_fortran_env, only: error_unit
+          use runtime_error_mod, only: Terminate_on_error, ERROR_FILE_NOT_FOUND
+
+          implicit none
+
+          Integer, intent(in) :: Group_Comm
+
+          integer :: ierr
+          Character (len=64) :: file_para
+#ifdef MPI
+          Integer :: MPI_COMM_i
+
+
+#ifdef PARALLEL_PARAMS
+          MPI_COMM_i = Group_Comm
+          If ( irank_g == 0 ) then
+             write(file_para,'(A,I0,A)') "Temp_", igroup, "/parameters"
+#else
+          MPI_COMM_i = MPI_COMM_WORLD
+          If ( Irank == 0 ) then
+             file_para = "parameters"
+#endif
+#else
+             file_para = "parameters"
+#endif
+      
+             Call set_QMC_runtime_default_var()
+             OPEN(UNIT=5,FILE=file_para,STATUS='old',ACTION='read',IOSTAT=ierr)
+             IF (ierr /= 0) THEN
+             WRITE(error_unit,*) 'main: unable to open <parameters>', file_para, ierr
+             CALL Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
+             END IF
+             READ(5,NML=VAR_QMC)
+             REWIND(5)
+             READ(5,NML=VAR_HAM_NAME)
+             CLOSE(5)
+#ifdef MPI
+           Endif
+           call broadcast_QMC_runtime_var(MPI_COMM_i)
+           CALL MPI_BCAST(ham_name,64,MPI_CHARACTER,0,MPI_COMM_i,ierr)
+#endif
+
+        end subroutine read_and_broadcast_QMC_var_and_ham_name
         
 end Module QMC_runtime_var
