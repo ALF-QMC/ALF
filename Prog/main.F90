@@ -187,8 +187,9 @@ Program Main
         character(64) :: chunk_size_str
         Real    (Kind=Kind(0.d0)) :: chunk_size_gb
 
-
 #ifdef MPI
+        Integer        :: Isize, Irank, Irank_g, Isize_g, color, key, igroup
+
         CALL MPI_INIT(ierr)
         CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
         CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)

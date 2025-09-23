@@ -57,10 +57,6 @@ Module QMC_runtime_var
         Logical                      :: Langevin,  HMC
         Integer                      :: Leapfrog_Steps, N_HMC_sweeps
         Real  (Kind=Kind(0.d0))      :: Delta_t_Langevin_HMC, Max_Force
-
-#ifdef MPI
-        Integer :: Isize, Irank, Irank_g, Isize_g, color, key, igroup
-#endif
  
           
 #if defined(TEMPERING)
@@ -269,8 +265,12 @@ Module QMC_runtime_var
           integer :: ierr
           Character (len=64) :: file_para
 #ifdef MPI
-          Integer :: MPI_COMM_i
+          Integer :: MPI_COMM_i, irank, irank_g, Isize_g, igroup
 
+          CALL MPI_COMM_RANK(MPI_COMM_WORLD, irank, ierr)
+          call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+          call MPI_Comm_size(Group_Comm, Isize_g, ierr)
+          igroup           = irank/isize_g
 
 #ifdef PARALLEL_PARAMS
           MPI_COMM_i = Group_Comm
@@ -288,8 +288,8 @@ Module QMC_runtime_var
              Call set_QMC_runtime_default_var()
              OPEN(UNIT=5,FILE=file_para,STATUS='old',ACTION='read',IOSTAT=ierr)
              IF (ierr /= 0) THEN
-             WRITE(error_unit,*) 'main: unable to open <parameters>', file_para, ierr
-             CALL Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
+               WRITE(error_unit,*) 'main: unable to open <parameters>', file_para, ierr
+               CALL Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
              END IF
              READ(5,NML=VAR_QMC)
              REWIND(5)
