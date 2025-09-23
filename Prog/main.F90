@@ -168,8 +168,8 @@ Program Main
         Integer :: NSTM, NT, NT1, NVAR
         Integer :: Ierr, I,nf, nf_eff, nst, n, n1, N_op, NBin_eff
         Logical :: Toggle,  Toggle1
-        Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Phase, Z, Z1
-        Real    (Kind=Kind(0.d0)) :: ZERO = 10D-8, X, X1
+        Complex (Kind=Kind(0.d0)) :: Phase, Z, Z1
+        Real    (Kind=Kind(0.d0)) :: ZERO = 10D-8
         Real    (Kind=Kind(0.d0)) :: Mc_step_weight
 
         ! Storage for  stabilization steps
@@ -177,9 +177,6 @@ Program Main
 
         ! Space for storage.
         CLASS(UDV_State), Dimension(:,:), ALLOCATABLE :: udvst
-
-        ! For tests
-        Real (Kind=Kind(0.d0)) :: Weight, Weight_tot
 
         ! For the truncation of the program:
         logical                   :: prog_truncation, run_file_exists
