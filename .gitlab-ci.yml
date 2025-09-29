@@ -205,7 +205,7 @@ create_doc:
 
 create_doxygen:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-gfortran-blas-lapack
-  stage: build_doc
+  stage: build
   needs: []
   artifacts:
     expire_in: 120 days
