@@ -304,9 +304,8 @@ e^{-S_2} = \sum_{C_1,C_2} P(C_2) P(C_1) \det\left[G_A(\tau_0; C_1)G_A(\tau_0; C_
 \label{renyi_obs}
 \end{equation}
 where $G_A(\tau_0; C_i)$, $i=1, 2$ is the Green function matrix restricted to the desired subsystem $A$ at a given time-slice $\tau_0$, and for the configuration $C_i$ of the replica $i$. The degrees of freedom defining the subsystem $A$ are lattice site, flavor index, and color index.  
-{\color{red} We note that altough formally  correct, the  method of Ref.~\cite{Grover13} suffers from fat tails  in the strong coupling limit and for large subsystems A.  We have recently witnessed major improvements for the computation of R\'enyi entropies 
-\cite{Demidio24,Pan23}  based on an incremental approach. It is beyond the scope of this version of the ALF-library to provide 
-a generic implementation of these new approaches.}
+We note that although formally correct, the method of Ref.~\cite{Grover13} suffers from fat tails in the strong coupling limit and for large subsystems $A$. We have recently witnessed major improvements for the computation of R\'enyi entropies 
+\cite{Demidio24,Pan23} based on an incremental approach. It is beyond the scope of this version of the ALF library to provide a generic implementation of these new approaches.
 
 Notice that, due to its formulation, sampling $S_2$ requires an MPI simulation with at least $2$ processes. Also, only real-space partitions are currently supported.
 
