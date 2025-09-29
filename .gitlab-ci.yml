@@ -131,6 +131,15 @@ create_doc:
   script:
     - cd Documentation
     - latexmk -pdf doc.tex
+    - |
+      if [ -n "$(git status --porcelain doc.pdf)" ]; then
+        git config --global user.email "tp1-alf@uni-wuerzburg.de"
+        git config --global user.name "CI Bot"
+        git remote add gitlab_origin https://oauth2:$push_token@git.physik.uni-wuerzburg.de/$CI_PROJECT_PATH.git
+        git add "doc.pdf"
+        git commit -m "Update doc.pdf"
+        git push --push-option="ci.skip" gitlab_origin HEAD:$CI_COMMIT_BRANCH
+      fi
 
 create_doxygen:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bookworm-buildd
