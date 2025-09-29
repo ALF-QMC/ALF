@@ -22,7 +22,7 @@ stages:
   script:
     - . configure.sh $MACHINE $DEVEL $MODE $CONFIG_ARGS
     - echo $ALF_FC
-    - $ALF_FC -v
+    - $ALF_FC --version
     - make all
     - if echo "$MODE" | grep -iq -e "TEMPERING" -e "PARALLEL_PARAMS"; then
         cp -r Scripts_and_Parameters_files/Start_Tempering run;

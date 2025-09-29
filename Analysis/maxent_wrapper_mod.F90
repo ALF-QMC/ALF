@@ -1,4 +1,4 @@
-!  Copyright (C) 2016-2024 The ALF project
+!  Copyright (C) 2016-2025 The ALF project
 !
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -93,28 +93,32 @@ contains
 
      end function F_QFI_ph
 
-     Real (Kind=Kind(0.d0)) function Back_trans_ph(Aom, om, beta)
+     Real (Kind=Kind(0.d0)) function Back_trans_ph(Aom, beta, om)
 
        Implicit None
-       real (Kind=Kind(0.d0)) ::  Aom, om, beta
+       real (Kind=Kind(0.d0)), intent(in) ::  Aom, beta, om
 
        Back_trans_ph = Aom/(1.d0 + exp(-beta*om) )
        ! This gives S(q,om) = chi(q,om)/(1 - e^(-beta om))
 
      end function BACK_TRANS_PH
 
-     Real (Kind=Kind(0.d0)) function Back_trans_pp(Aom, om, beta)
+     Real (Kind=Kind(0.d0)) function Back_trans_pp(Aom, beta, om)
 
        Implicit None
-       real (Kind=Kind(0.d0)) ::  Aom, om, beta
+       real (Kind=Kind(0.d0)), intent(in) ::  Aom, beta, om
        real (Kind=Kind(0.d0)) :: Zero
 
        Zero = 1.D-8
-       if ( abs(om) < zero ) then
+       if ( abs(om) < Zero ) then
           Back_trans_pp = beta * Aom/2.d0
        else
           Back_trans_pp = Aom * (1.d0 - exp(-beta*om) ) / (om *( 1.d0 + exp(-beta*om) ) )
        endif
+       If (Back_trans_pp   < 0.d0)  then 
+         Write(6,*)  Aom,om,beta
+       endif
+       !Back_trans_pp = Aom  
        ! This gives  = chi(q,om)/omega
 
      end function BACK_TRANS_PP
@@ -125,7 +129,7 @@ contains
        real (Kind=Kind(0.d0)) :: tau, om, pi, beta
 
        pi = 3.1415927
-       XKER_p_ph  =  (exp(-tau*om)  + exp(-(beta-tau)*om)) / (pi*(1.d0 + exp( -beta * om ) ) )
+       XKER_p_ph  =  (exp(-tau*om)  + exp(-(beta-tau)*om)) / (pi*(1.d0 + exp( -beta * om )) )
 
      end function XKER_p_ph
 
@@ -223,7 +227,13 @@ contains
        enddo
     end Subroutine Set_Ker_classic
 
-
+!--------------------------------------------------------------------
+!> @author
+!> ALF-project
+!
+!> @brief
+!> Sets the default model.
+!--------------------------------------------------------------------
    Subroutine Set_default(Default,beta,Channel, OM_st, Om_en, xmom1,Default_model_exists,Stochastic)
 
        use runtime_error_mod
@@ -261,22 +271,27 @@ contains
          If (.not. Default_model_exists ) Default = Xmom1/(Om_en - Om_st)
          Default = Default*Dom
        case("PP")
-         If (.not. Default_model_exists ) Default = 1.d0/(Om_en - Om_st) ! Flat  default   
-         !Compute   sum rule  for  A(om)
-         X  = 0.d0
-         Do  nw = 1, Ndis
-             Om = Om_st + dble(nw)*dom
-             if ( abs(om) < zero ) then
-                Default(nw) = Default(nw)*2.d0/ beta 
-             else
-                Default(nw) = Default(nw) * (om *( 1.d0 + exp(-beta*om) ) )/ (1.d0 - exp(-beta*om) ) 
-            endif
-             Default(nw)  = (1.d0 + exp(-beta*om)) * Default(nw)
-             X = X + Default(nw) 
-         enddo
-         X = X*dom
-         Default =  Default*Xmom1/X
-         Default =  Default*dom
+         If (.not. Default_model_exists )  then 
+            Default = 1.d0/(Om_en - Om_st) ! Flat  default   
+            Default =  Default*Xmom1
+            Default =  Default*dom
+         else
+            !Compute   sum rule  for  A(om)
+            X  = 0.d0
+            Do nw = 1, Ndis
+               Om = Om_st + dble(nw)*dom
+               if ( abs(om) < zero ) then
+                  Default(nw) = Default(nw)*2.d0/ beta 
+               else
+                  Default(nw) = Default(nw) * (om *( 1.d0 + exp(-beta*om) ) )/ (1.d0 - exp(-beta*om) ) 
+               endif
+               !Default(nw)  = (1.d0 + exp(-beta*om)) * Default(nw)
+               X = X + Default(nw) 
+            enddo
+            X = X*dom
+            Default =  Default*Xmom1/X
+            Default =  Default*dom
+         endif
        case  default
          Write(error_unit,*) "Channel '" // Channel // "' for  default model not yet implemented"
          CALL Terminate_on_error(ERROR_MAXENT,__FILE__,__LINE__)
