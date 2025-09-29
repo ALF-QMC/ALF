@@ -56,10 +56,6 @@ GQMCT_Stretch:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:stretch-gfortran-blas-lapack
   <<: *build_definition
 
-GQMCT_Buster:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:buster-gfortran-blas-lapack
-  <<: *build_definition
-
 GQMCT_Bullseye:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-gfortran-blas-lapack
   <<: *build_definition
@@ -72,10 +68,6 @@ GQMCT_Bullseye_OpenBlas:
 GQMCT_PGI:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-pgi-21-03
   <<: *build_definition_pgi
-
-GQMCT_Ubuntu_Bionic:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/ubuntu:bionic-beaver-gfortran-lapack
-  <<: *build_definition
 
 GQMCT_Stretch_MPI:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:stretch-gfortran-blas-lapack-fftw-hdf5-scipy3
@@ -112,10 +104,6 @@ GQMCT_Intel-21:
 
 GQMCT_Stretch_conv:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:stretch-gfortran-blas-lapack
-  <<: *warnconv_definition
-
-GQMCT_Buster_conv:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:buster-gfortran-blas-lapack
   <<: *warnconv_definition
 
 GQMCT_Bullseye_conv:
@@ -156,20 +144,12 @@ GQMCT_Stretch_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:stretch-gfortran-blas-lapack
   <<: *test_definition
 
-GQMCT_Buster_tests:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:buster-gfortran-blas-lapack
-  <<: *test_definition
-
 GQMCT_Bullseye_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bullseye-gfortran-blas-lapack
   <<: *test_definition
 
 GQMCT_Stretch_OpenBlas_tests:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:stretch-gfortran-openblas-lapack
-  <<: *test_definition
-
-GQMCT_Ubuntu-bionic_tests:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/ubuntu:bionic-beaver-gfortran-lapack
   <<: *test_definition
 
 GQMCT_PGI_tests:
@@ -224,7 +204,7 @@ create_doc:
     - latexmk -pdf doc.tex
 
 create_doxygen:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:buster-clang
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bookworm-buildd
   stage: build
   needs: []
   artifacts:
