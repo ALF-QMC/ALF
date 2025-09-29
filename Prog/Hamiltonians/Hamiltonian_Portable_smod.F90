@@ -163,6 +163,8 @@
       Type (Hopping_Matrix_type), Allocatable :: Hopping_Matrix(:)
       Integer, allocatable :: List(:,:), Invlist(:,:)  ! For orbital structure of Unit cell
 
+      integer :: L1, L2
+
       !Variables for observables
       type (operator_matrix), allocatable :: obs_scal_ph(:), obs_corr_ph(:)
       type (obs_orbitals), allocatable :: orbitals_scal_ph(:), orbitals_corr_ph(:)
@@ -274,7 +276,7 @@
 
           Implicit none
           Real (Kind=Kind(0.d0))  :: a1_p(2), a2_p(2), L1_p(2), L2_p(2)
-          integer :: no, nc, i, L1, L2, norb
+          integer :: no, nc, i, norb
           Real (Kind=Kind(0.d0))  :: a_p(3,3)
           real (kind=kind(0.d0)), allocatable :: Orb_pos(:,:)
 
@@ -323,10 +325,14 @@
           Implicit none
 
           Integer                :: nf , I, Ix, Iy, nh, nc, no, n_hop
+          Integer                :: n, i1, no_i, nb, n_1, n_2, no_j, n1, n2
+          integer                :: nj1, nj2, j, j1
+          real (kind=kind(0.d0)) :: j_p(2), jp_p(2)
           real (kind=kind(0.d0)) :: ham_t_max, Zero = 1.0E-8
           integer                :: N_diag
           integer, allocatable   :: hop_diag(:)
           logical                :: diag
+          Complex(Kind=Kind(0.d0))              :: Z
           type (operator_matrix), allocatable   :: hopping(:)
 
           ! read in information for hopping from file hoppings.txt
@@ -396,7 +402,86 @@
 
           enddo
 
-          Call  Predefined_Hoppings_set_OPT(Hopping_Matrix,List,Invlist,Latt,  Latt_unit,  Dtau, .false.,  symm , OP_T )
+!          Call  Predefined_Hoppings_set_OPT(Hopping_Matrix,List,Invlist,Latt,  Latt_unit,  Dtau, .false.,  symm , OP_T )
+
+          select case (inquire_hop(Hopping_Matrix))
+          case(0)  !  Zero
+             allocate(Op_T(1,N_FL))
+             do nf = 1,N_FL
+                Call Op_make(Op_T(1,nf),1)
+                Op_T(1,nf)%P(1)   = 1
+                Op_T(1,nf)%O(1,1) = cmplx(0.d0,0.d0, kind(0.d0))
+                Op_T(1,nf)%g      = 0.d0
+                Op_T(1,nf)%alpha  = cmplx(0.d0,0.d0, kind(0.D0))
+                Call Op_set(Op_T(1,nf))
+             enddo
+          case(1)  ! Diagonal
+             allocate(Op_T(Ndim,N_FL))
+             do nf = 1,N_FL
+                do n = 1,ndim
+                   Call Op_make(Op_T(n,nf),1)
+                   Op_T(n,nf)%P(1)   = n
+                   Op_T(n,nf)%O(1,1) =  Hopping_Matrix(nf)%T_Loc(list(n,2))
+                   Op_T(n,nf)%g      = -Dtau
+                   Op_T(n,nf)%alpha  =  cmplx(0.d0,0.d0, kind(0.D0))
+                   Call Op_set(Op_T(n,nf))
+                enddo
+             enddo
+          case default
+             allocate(Op_T(1,N_FL))
+             do nf = 1,N_FL
+                !Write(6,*)
+                Call Op_make(Op_T(1,nf),Ndim)   ! This is too restrictive for the Kondo type models. The hopping only occurs on one subsystem.
+                N_Phi     = Hopping_Matrix(nf)%N_Phi
+                Phi_X     = Hopping_Matrix(nf)%Phi_X
+                Phi_Y     = Hopping_Matrix(nf)%Phi_Y
+                Bulk      = Hopping_Matrix(nf)%Bulk
+                !Write(6,*) N_Phi, Phi_X,Phi_Y, Bulk
+                !Write(6,*) This(nf)%list
+                DO I = 1, Latt%N
+                   do Nb = 1, Hopping_Matrix(nf)%N_bonds
+                      no_I = Hopping_Matrix(nf)%list(Nb,1)
+                      no_J = Hopping_Matrix(nf)%list(Nb,2)
+                      n_1  = Hopping_Matrix(nf)%list(Nb,3)
+                      n_2  = Hopping_Matrix(nf)%list(Nb,4)
+                      nj1  = latt%list(i,1) + n_1
+                      nj2  = latt%list(i,2) + n_2
+                      j_p  = dble(nj1)*latt%a1_p + dble(nj2)*latt%a2_p
+                      N1 = 0; N2 = 0
+                      Call npbc(jp_p, j_p, Latt%L1_p, Latt%L2_p,  N1, N2)
+                      nj1 = nj1 - N1*L1
+                      nj2 = nj2 - N2*L2
+                      J    = Latt%invlist(nj1,nj2)
+!                      print *, "1", n_1, latt%list(i,1), n1, nj1, j
+!                      print *, "2", n_2, latt%list(i,2), n2, nj2, j
+                      Z    = Generic_hopping(I,no_I, n_1, n_2, no_J, N_Phi, Phi_x,Phi_y, Bulk, Latt, Latt_Unit)
+                      I1   = Invlist(I,no_I)
+                      J1   = Invlist(J,no_J)
+                      Op_T(1,nf)%O(I1,J1) = Hopping_Matrix(nf)%T(Nb)*Z
+                      Op_T(1,nf)%O(J1,I1) = Conjg(Hopping_Matrix(nf)%T(Nb)*Z)
+                   enddo
+                   ! T(N_b=1..N_bonds)
+                   ! List(N_b,1) = no_1
+                   ! List(N_b,2) = no_2
+                   ! List(N_b,3) = n_1
+                   ! List(N_b,4) = n_2
+                   ! H_[(i,no_1),(i + n_1 a_1 + n_2 a_2,no_2)] = T(N_b)
+                   Do no_I = 1, Latt_Unit%Norb
+                      I1   = Invlist(I,no_I)
+                      Op_T(1,nf)%O(I1,I1) = Hopping_Matrix(nf)%T_Loc(no_I)
+                   Enddo
+                enddo
+                Do I = 1,Ndim
+                   Op_T(1,nf)%P(i) = i
+                Enddo
+                Op_T(1,nf)%g = -Dtau
+                Op_T(1,nf)%alpha=cmplx(0.d0,0.d0, kind(0.D0))
+                Call Op_set(Op_T(1,nf))
+                !Do I = 1,Size(Op_T(1,nf)%E,1)
+                !   Write(6,*) Op_T(1,nf)%E(I)
+                !Enddo
+             Enddo
+          end select
 
         end Subroutine Ham_Hop
 
@@ -796,10 +881,10 @@
           enddo
 
           !Additional observables like Kin, Pot, SpinZ, Green, ... for debugging
-          Zkin = cmplx(0.d0, 0.d0, kind(0.D0))
-          Call Predefined_Hoppings_Compute_Kin(Hopping_Matrix,List,Invlist, Latt, Latt_unit, GRC, ZKin)
-          Zkin = Zkin* dble(N_SUN)
-          Obs_scal(N_obs_scal_ph+1)%Obs_vec(1)  =    Obs_scal(N_obs_scal_ph+1)%Obs_vec(1) + Zkin *ZP* ZS
+!          Zkin = cmplx(0.d0, 0.d0, kind(0.D0))
+!          Call Predefined_Hoppings_Compute_Kin(Hopping_Matrix,List,Invlist, Latt, Latt_unit, GRC, ZKin)
+!          Zkin = Zkin* dble(N_SUN)
+!          Obs_scal(N_obs_scal_ph+1)%Obs_vec(1)  =    Obs_scal(N_obs_scal_ph+1)%Obs_vec(1) + Zkin *ZP* ZS
 
           ZPot = cmplx(0.d0, 0.d0, kind(0.D0))
           Do I = 1, size(op_v,1)
