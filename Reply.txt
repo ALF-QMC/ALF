@@ -1,10 +1,10 @@
-We  would like thank the referee for comment concerning the implementation entanglement entropy.    The method we use  is correct  and follows precisely the seminal work of  T. Grover. Although there are no conceptual errors,  it is know that the method proposed by T. Grover suffers from fat tails and spikes in the measurements in the strong coupling regime. In the revised version of the manuscript, we have commented on this aspect of the Grover approach for the calculation of the Renyi entropies.   It is however a very useful approach for small subsystems in the weak to intermediate coupling regime. 
-In the meantime, there  has  been major progress in the calculation of the Renyi entropy. In particular a  fermion generalization of the  incremental  approach  proposed.   In the revised version of the manuscript, we have clearly mentioned the limitations of the implemented  calculation of the Renyi entropies. It is beyond the scope  of this version to implement the incremental method.  
+We would like to thank the referee for their comment concerning the implementation of entanglement entropy.    The method we use is correct  and follows precisely the seminal work of T. Grover. Although there are no conceptual errors, it is known that the method proposed by T. Grover suffers from fat tails and spikes in the measurements in the strong coupling regime. In the revised version of the manuscript, we have commented on this aspect of the Grover approach for the calculation of the Renyi entropies. It is however a very useful approach for small subsystems in the weak to intermediate coupling regime. 
+In the meantime, there  has been major progress in the calculation of the Renyi entropy. In particular a fermion generalization of the incremental approach has been proposed.  In the revised version of the manuscript, we have clearly mentioned the limitations of the implemented calculation of the Renyi entropies. It is beyond the scope of this version to implement the incremental method.  
 
-We would also like to thank the referee for pointing out  typos in the manuscript. 
+We would also like to thank the referee for pointing out typos in the manuscript. 
 
 Changes include: 
 
-1.  Below Eq. 193. We have added  a word of caution for the use of the Grover method to compute Renyi entropies.  
-2.  Again Below Eq. 193.  We have  added  Refs. 146 and 147. Both references  document recent progress in the calculation of the Renyi entropy. 
-3.  We have attempted to catch all the typos. 
+1.  Below Eq. 193.  We have added a word of caution for the use of the Grover method to compute Renyi entropies.  
+2.  Again below Eq. 193.  We have added Refs. 146 and 147. Both references document recent progress in the calculation of the Renyi entropy.
+3.  We have attempted to catch all the typos.
