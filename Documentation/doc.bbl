@@ -1027,6 +1027,20 @@ M.~Maltseva, M.~Dzero and P.~Coleman,
 \newblock Phys. Rev. Lett. \textbf{103}, 206402 (2009),
 \newblock \doi{10.1103/PhysRevLett.103.206402}.
 
+\bibitem{Demidio24}
+J.~D'Emidio, R.~Or\'us, N.~Laflorencie and F.~de~Juan,
+\newblock \emph{Universal features of entanglement entropy in the honeycomb
+  hubbard model},
+\newblock Phys. Rev. Lett. \textbf{132}, 076502 (2024),
+\newblock \doi{10.1103/PhysRevLett.132.076502}.
+
+\bibitem{Pan23}
+G.~Pan, Y.~Da~Liao, W.~Jiang, J.~D'Emidio, Y.~Qi and Z.~Y. Meng,
+\newblock \emph{Stable computation of entanglement entropy for two-dimensional
+  interacting fermion systems},
+\newblock Phys. Rev. B \textbf{108}, L081123 (2023),
+\newblock \doi{10.1103/PhysRevB.108.L081123}.
+
 \bibitem{Vekic95}
 M.~Veki\ifmmode~\acute{c}\else \'{c}\fi{}, J.~W. Cannon, D.~J. Scalapino, R.~T.
   Scalettar and R.~L. Sugar,
