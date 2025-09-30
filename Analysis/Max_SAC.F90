@@ -163,7 +163,7 @@ Program MaxEnt_Wrapper
        Case ("PH")
           xmom1 = pi * xqmc(1)
        Case ("PP")
-          xmom1 = 2.d0* pi * xqmc(1)
+          xmom1 =  pi * (xqmc(1) + xqmc(ntau) )
        Case ("P")
           xmom1 =  pi * ( xqmc(1) + xqmc(ntau) )
           !  Remove the tau = beta point from the data since it is  correlated
@@ -238,7 +238,7 @@ Program MaxEnt_Wrapper
        Case ("PP")
           If  (Stochastic) then
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_pp, Back_Trans_pp, Beta, &
-                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, F, Default)
+                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, F , Default)
              ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
           else
              Call Set_Ker_classic(Xker_pp,Xker_classic,Om_st,Om_en,beta,xtau_st)

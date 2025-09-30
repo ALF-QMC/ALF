@@ -111,10 +111,10 @@ Module MaxEnt_stoch_mod
            Dom_table    = (OM_EN_1 - OM_ST_1)/dble(Ndis_table)
            Dom_spectral = (OM_EN_1 - OM_ST_1)/dble(Ndis)
            Dx_spectral  = 1.d0/dble(Ndis)
-           Allocate ( Xker_table(Ntau, Ndis_table) )
+           Allocate ( Xker_table(Ntau, Ndis_table + 1) )
            Allocate ( Default_table(Ndis_table))
            do nt = 1,Ntau
-              do nw = 1,Ndis_table
+              do nw = 1,Ndis_table +1
                  tau = xtau(nt)
                  Om = OM_st + dble(nw-1)*Dom_table
                  Xker_table(nt,nw) = Xker(tau,om,beta)
