@@ -530,9 +530,11 @@
                  E_kin_new=E_kin_new + 0.5*p_tilde(i,j)**2
               enddo
            enddo
-           T0_Proposal_ratio=exp(-E_kin_new + E_kin_old)
+           T0_Proposal_ratio=1.0 !exp(-E_kin_new + E_kin_old) ! this could be a exponentially large or small number
+           !Compute_Ratio_Global returns Ratio(1)*exp(Ratio(2)) where Ratio(2) contains log(T0_proposal_ratio)
            Ratiotot = Compute_Ratio_Global(Phase_Det_old, Phase_Det_new, &
                 &                          Det_vec_old, Det_vec_new, nsigma_old, T0_Proposal_ratio, Ratio)
+           Ratiotot = Ratio(1)*exp(Ratio(2) - E_kin_new + E_kin_old)
            Weight = abs(  real( Phase_old * Ratiotot, kind=Kind(0.d0))/real(Phase_old,kind=Kind(0.d0)) )
 
            Phase_array=1.0d0
