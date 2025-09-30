@@ -444,16 +444,7 @@
                       no_J = Hopping_Matrix(nf)%list(Nb,2)
                       n_1  = Hopping_Matrix(nf)%list(Nb,3)
                       n_2  = Hopping_Matrix(nf)%list(Nb,4)
-                      nj1  = latt%list(i,1) + n_1
-                      nj2  = latt%list(i,2) + n_2
-                      j_p  = dble(nj1)*latt%a1_p + dble(nj2)*latt%a2_p
-                      N1 = 0; N2 = 0
-                      Call npbc(jp_p, j_p, Latt%L1_p, Latt%L2_p,  N1, N2)
-                      nj1 = nj1 - N1*L1
-                      nj2 = nj2 - N2*L2
-                      J    = Latt%invlist(nj1,nj2)
-!                      print *, "1", n_1, latt%list(i,1), n1, nj1, j
-!                      print *, "2", n_2, latt%list(i,2), n2, nj2, j
+                      call get_shifted_unit_cell(i,n_1,n_2,j)
                       Z    = Generic_hopping(I,no_I, n_1, n_2, no_J, N_Phi, Phi_x,Phi_y, Bulk, Latt, Latt_Unit)
                       I1   = Invlist(I,no_I)
                       J1   = Invlist(J,no_J)
@@ -515,14 +506,14 @@
 
                  do n = 1, mk
                     nc  = nc + 1
-                    j1  = latt%nnlist( i, this(no,nf)%lattice(n,1), this(no,nf)%lattice(n,2) )
+                    call get_shifted_unit_cell(i, this(no,nf)%lattice(n,1), this(no,nf)%lattice(n,2), j1)
                     no1 = (this(no,nf)%lattice(n,3)+1)
                     x1  = invlist(j1,no1)
                     if (.not. any(orbitals_tmp == x1)) N_orbitals = N_orbitals + 1
                     orbitals_tmp(nc) = x1
 
                     nc  = nc + 1
-                    j2  = latt%nnlist( i, this(no,nf)%lattice(n,4), this(no,nf)%lattice(n,5) )
+                    call get_shifted_unit_cell(i, this(no,nf)%lattice(n,4), this(no,nf)%lattice(n,5), j2)
                     no2 = (this(no,nf)%lattice(n,6)+1)
                     x2  = invlist(j2,no2)
                     if (.not. any(orbitals_tmp == x2)) N_orbitals = N_orbitals + 1
@@ -562,7 +553,7 @@
            nc = 0
            do n = 1, mk
 
-              i1  = latt%nnlist( i, this%lattice(n,1), this%lattice(n,2) )
+              call get_shifted_unit_cell(i, this%lattice(n,1), this%lattice(n,2), i1)
               no1 = (this%lattice(n,3)+1)
               j1  = invlist(i1,no1)
               x1  = -1
@@ -578,7 +569,7 @@
                  x1 = nc
               endif
 
-              i2  = latt%nnlist( i, this%lattice(n,4), this%lattice(n,5) )
+              call get_shifted_unit_cell(i, this%lattice(n,4), this%lattice(n,5), i2)
               no2 = (this%lattice(n,6)+1)
               j2  = invlist(i2,no2)
               x2  = -1
@@ -757,11 +748,11 @@
               do n = 1, mk
                  do i = 1, Latt%N
 
-                    i1    = latt%nnlist(i,obs(no)%lattice(n,1),obs(no)%lattice(n,2))
+                    call get_shifted_unit_cell(i, obs(no)%lattice(n,1), obs(no)%lattice(n,2), i1)
                     no_i1 = obs(no)%lattice(n,3)+1
                     x1    = invlist(i1,no_i1)
 
-                    i2    = latt%nnlist(i,obs(no)%lattice(n,4),obs(no)%lattice(n,5))
+                    call get_shifted_unit_cell(i, obs(no)%lattice(n,4), obs(no)%lattice(n,5), i2)
                     no_i2 = obs(no)%lattice(n,6)+1
                     x2    = invlist(i2,no_i2)
 
@@ -1061,5 +1052,34 @@
 
         end Subroutine OBSERT
 
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Given unit cell i, returns unit cell j = i + ni1*a1_p + ni2*a2_p
+!--------------------------------------------------------------------
+
+       subroutine get_shifted_unit_cell(i,ni1,ni2,j)
+
+          implicit none
+
+          integer, intent(in)  :: i, ni1, ni2
+          integer, intent(out) :: j
+
+          integer :: nj1, nj2, n1, n2
+          real (kind=kind(0.d0)) :: j_p(2), jp_p(2)
+
+          nj1 = latt%list(i,1) + ni1
+          nj2 = latt%list(i,2) + ni2
+          j_p = dble(nj1) * latt%a1_p + dble(nj2) * latt%a2_p
+          N1 = 0; N2 = 0
+          call npbc(jp_p, j_p, Latt%L1_p, Latt%L2_p, N1, N2)
+          nj1 = nj1 - N1*L1
+          nj2 = nj2 - N2*L2
+
+          j = latt%invlist(nj1,nj2)
+
+       end subroutine
         
     end submodule ham_Portable_smod
