@@ -3,19 +3,19 @@
 ### Quickly put together script, no warranties -- double check results ###
 
 
-# check ALF_DIR is there
-if [ -n "$ALF_DIR" ]; then
-    echo "Using $ALF_DIR as source directory"
+# check directory Documentation is there
+if [ -n "$(pwd)/Documentation" ]; then
+    echo "Using $(pwd)/Documentation as source directory"
 else
-    echo "Please set ALF_DIR to the appropriate source directory."
+    echo "$(pwd)/Documentation directory not found."
     exit 1
 fi
 
 
 # folders
-original_folder=$(pwd)                # current directory
-doc_folder=$ALF_DIR/Documentation/    # documentation directory
-dest_folder=~/arxiv/                  # destination directory
+original_folder=$(pwd)                     # current directory
+doc_folder=$(pwd)/Documentation/           # documentation directory
+dest_folder=$(pwd)/Documentation/arxiv/    # destination directory
 
 # make destination directory if needed
 if [ ! -d "$dest_folder" ]; then
