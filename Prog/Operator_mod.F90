@@ -55,7 +55,7 @@ Module Operator_mod
      Integer, private :: win_M_exp, win_U !> MPI_windows which can be used for fences (memory synch.) and dealloc.
      logical          :: diag !> encodes if Operator is diagonal
      logical, private :: U_alloc, M_exp_alloc !> logical to track if memory is allocated
-     complex (Kind=Kind(0.d0)), pointer :: O(:,:), U (:,:)  !>Storage for operator matrix O and it's eigenvectors U
+     complex (Kind=Kind(0.d0)), pointer :: O(:,:), U (:,:)  !>Storage for operator matrix O and its eigenvectors U
      complex (Kind=Kind(0.d0)), pointer, private :: M_exp(:,:,:), E_exp(:,:)  !>internal storage for exp(O) and exp(E)
      Real    (Kind=Kind(0.d0)), pointer :: E(:) !>Eigenvalues of O
      Integer, pointer :: P(:) !> Projector P encoding DoFs that contribute in Operator
