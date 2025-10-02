@@ -138,13 +138,17 @@ create_doc:
       if diff-pdf doc.pdf doc_back.pdf; then
         echo "PDF already up to date."
       else
-        echo "Updating PDF."
-        git config --global user.email "tp1-alf@uni-wuerzburg.de"
-        git config --global user.name "CI Bot"
-        git remote add gitlab_origin https://oauth2:$push_token@git.physik.uni-wuerzburg.de/$CI_PROJECT_PATH.git
-        git add "doc.pdf"
-        git commit -m "Update doc.pdf"
-        git push --push-option="ci.skip" gitlab_origin HEAD:$CI_COMMIT_BRANCH
+        if [ "$CI_COMMIT_REF_PROTECTED" = "true" ]; then
+          echo "Protected branch, do not update PDF"
+        else
+          echo "Updating PDF."
+          git config --global user.email "tp1-alf@uni-wuerzburg.de"
+          git config --global user.name "CI Bot"
+          git remote add gitlab_origin https://oauth2:$push_token@git.physik.uni-wuerzburg.de/$CI_PROJECT_PATH.git
+          git add "doc.pdf"
+          git commit -m "Update doc.pdf"
+          git push --push-option="ci.skip" gitlab_origin HEAD:$CI_COMMIT_BRANCH
+        fi
       fi
 
 create_doxygen:
