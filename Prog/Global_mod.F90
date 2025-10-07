@@ -125,7 +125,7 @@ Module Global_mod
         !>  Local variables.
         Integer :: NST, NSTM, NF, nf_eff, NT, NT1, NVAR,N, N1,N2, I, NC, I_Partner, n_step,  N_count, N_part
         Type    (Fields)           :: nsigma_old
-        Real    (Kind=Kind(0.d0)) :: T0_Proposal_ratio, Weight, Weight1
+        Real    (Kind=Kind(0.d0)) :: T0_Proposal_ratio, Weight, Weight1, delta_S0_log, exp_delta_S0
         Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Z, Ratiotot, Ratiotot_p, Phase_old, Phase_new
         Real    (Kind=Kind(0.d0)), allocatable :: Det_vec_old(:,:), Det_vec_new(:,:)
         Complex (Kind=Kind(0.d0)), allocatable :: Phase_Det_new(:), Phase_Det_old(:)
@@ -263,9 +263,9 @@ Module Global_mod
               If (L_Test) Write(6,*) 'Ratio_global: Irank, Partner',Irank,List_partner(Irank), &
                    &                  Ratiotot, Ratio(1)*exp(Ratio(2))
            else
-              Ratiotot = ham%Delta_S0_global(Nsigma_old)
-              Ratio(1) = Ratiotot
-              Ratio(2) = 0
+              delta_S0_log = ham%Get_Delta_S0_global(Nsigma_old)
+              Ratio(1) = 1.0d0 !!! @FAKHER @JONAS double check please
+              Ratio(2) = delta_S0_log
            endif
 
            !  Acceptace/rejection decision taken on master node after receiving information from slave
@@ -682,7 +682,7 @@ Module Global_mod
         ! Local
         Integer  :: Nf, i, nt, nf_eff
         Complex (Kind=Kind(0.d0)) :: Z, Z1, Ratio_1_array(N_FL), Ratio_2_array(N_FL), g_loc
-        Real    (Kind=Kind(0.d0)) :: X, Ratio_2
+        Real    (Kind=Kind(0.d0)) :: X, Ratio_2, delta, log_delta
 
         Ratio = cmplx(0.d0,0.d0,kind(0.d0))
         Ratio_2_array = 0.d0
@@ -731,7 +731,8 @@ Module Global_mod
         !Z =  Z * cmplx( ham%Delta_S0_global(Nsigma_old),0.d0,kind(0.d0) )
         !Z =  Z * cmplx( T0_Proposal_ratio, 0.d0,kind(0.d0))
         Ratio(2) = sum(Ratio_2_array)
-        Ratio(2) = Ratio(2) + log(ham%Delta_S0_global(Nsigma_old)) + log(T0_Proposal_ratio)
+        log_delta = ham%Get_Delta_S0_global(Nsigma_old)
+        Ratio(2) = Ratio(2) + log_delta + log(T0_Proposal_ratio)
 
         Compute_Ratio_Global = Ratio(1)*exp(Ratio(2))
 

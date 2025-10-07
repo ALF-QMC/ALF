@@ -67,7 +67,7 @@
         procedure, nopass :: Global_move_tau
         procedure, nopass :: Hamiltonian_set_nsigma
         procedure, nopass :: Overide_global_tau_sampling_parameters
-        procedure, nopass :: Delta_S0_global
+        procedure, nopass :: Get_Delta_S0_global
         procedure, nopass :: S0
 #ifdef HDF5
         procedure, nopass :: write_parameters_hdf5
@@ -655,7 +655,7 @@
 !>  Old configuration. The new configuration is stored in nsigma.
 !> \endverbatim
 !-------------------------------------------------------------------
-        Real (Kind=kind(0.d0)) Function Delta_S0_global(Nsigma_old)
+        Real (Kind=kind(0.d0)) Function Get_Delta_S0_global(Nsigma_old)
 
           !>  This function computes the ratio:  e^{-S0(nsigma)}/e^{-S0(nsigma_old)}
           Implicit none
@@ -664,9 +664,10 @@
           type (Fields),  Intent(IN)  :: nsigma_old
           !> Local
           Integer :: I,n,n1,n2,n3,n4,nt,nt1, nc_F, nc_J, nc_h_p, nc_h_m, n1_m, n4_m
+          Real (Kind=kind(0.d0)) :: exp_delta_S0
 
 
-          Delta_S0_global = 1.d0
+          exp_delta_S0 = 1.d0
           If ( Model == "Z2_Matter" ) then
              nc_F = 0
              nc_J = 0
@@ -714,10 +715,11 @@
 
                 enddo
              enddo
-             Delta_S0_global = ( sinh(Dtau*Ham_h)**nc_h_m ) * (cosh(Dtau*Ham_h)**nc_h_p) * &
+             exp_delta_S0 = ( sinh(Dtau*Ham_h)**nc_h_m ) * (cosh(Dtau*Ham_h)**nc_h_p) * &
                   &            exp( -Dtau*(Ham_K*real(nc_F,kind(0.d0)) + Ham_J*real(nc_J,kind(0.d0))))
+             Get_Delta_S0_global = log(exp_delta_S0) ! This can be done better
           endif
-        end Function Delta_S0_global
+        end Function Get_Delta_S0_global
 
 !--------------------------------------------------------------------
 !> @author

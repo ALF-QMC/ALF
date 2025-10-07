@@ -353,7 +353,7 @@
         Integer, intent(in) :: LOBS_ST, LOBS_EN, LTAU
 
         !Local
-        Integer                   :: N_op, n, nt, n1, n2, i, j, t_leap, nf
+        Integer                   :: N_op, n, nt, n1, n2, i, j, t_leap, nf, nf_eff
         Real    (Kind=Kind(0.d0)) :: X, Xmax,E_kin_old, E_kin_new,T0_Proposal_ratio, weight, cluster_size
         Real    (kind=kind(0.d0)) :: Delta_t_running_old, Delta_t_running_new
         Logical                   :: Calc_Obser_eq, toggle
@@ -366,7 +366,7 @@
         Complex (Kind=Kind(0.d0)), allocatable  :: Forces_old  (:,:)
         Real    (Kind=Kind(0.d0)), allocatable  :: Forces_0_old(:,:)
         Integer,      allocatable :: Flip_list(:,:)
-        
+        Complex (Kind=Kind(0.d0))  :: Phase_array(N_FL)
 
         select case (this%scheme) !(trim(this%Update_scheme))
         case(Scheme_Langevin) !("Langevin")
@@ -535,18 +535,22 @@
                  E_kin_new=E_kin_new + 0.5*p_tilde(i,j)**2
               enddo
            enddo
-           T0_Proposal_ratio=exp(-E_kin_new + E_kin_old)
+           T0_Proposal_ratio=1.0 !exp(-E_kin_new + E_kin_old) ! this could be a exponentially large or small number
+           !Compute_Ratio_Global returns Ratio(1)*exp(Ratio(2)) where Ratio(2) contains log(T0_proposal_ratio)
            Ratiotot = Compute_Ratio_Global(Phase_Det_old, Phase_Det_new, &
                 &                          Det_vec_old, Det_vec_new, nsigma_old, T0_Proposal_ratio, Ratio)
+           Ratiotot = Ratio(1)*exp(Ratio(2) - E_kin_new + E_kin_old)
            Weight = abs(  real( Phase_old * Ratiotot, kind=Kind(0.d0))/real(Phase_old,kind=Kind(0.d0)) )
 
-           Phase_new = cmplx(1.d0,0.d0,kind=kind(0.d0))
-           Do nf = 1,N_Fl
-              call Op_phase(Phase_det_new(nf),Op_V,Nsigma,nf)
-              Phase_new = Phase_new*Phase_det_new(nf)
+           Phase_array=1.0d0
+           Do nf_eff = 1,N_Fl_eff
+              nf=Calc_Fl_map(nf_eff)
+              Phase_array(nf) = Phase_det_new(nf)
+              Call Op_phase(Phase_array(nf),OP_V,Nsigma,nf)
            Enddo
+           if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
+           Phase_new=product(Phase_array)
            Phase_new=Phase_new**N_SUN
-!           Call Op_phase(Phase_new,OP_V,Nsigma,N_SUN)
 
            TOGGLE = .false.
            if ( Weight > ranf_wrap() )  Then

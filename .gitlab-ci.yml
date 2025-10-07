@@ -22,7 +22,7 @@ stages:
   script:
     - . configure.sh $MACHINE $DEVEL $MODE $CONFIG_ARGS
     - echo $ALF_FC
-    - $ALF_FC -v
+    - $ALF_FC --version
     - make all
     - if echo "$MODE" | grep -iq -e "TEMPERING" -e "PARALLEL_PARAMS"; then
         cp -r Scripts_and_Parameters_files/Start_Tempering run;
@@ -129,8 +129,27 @@ create_doc:
     paths:
       - Documentation/doc.pdf
   script:
+    - apt-get update
+    - apt-get install -y diff-pdf-wx
     - cd Documentation
+    - cp doc.pdf doc_back.pdf
     - latexmk -pdf doc.tex
+    - |
+      if diff-pdf doc.pdf doc_back.pdf; then
+        echo "PDF already up to date."
+      else
+        if [ "$CI_COMMIT_REF_PROTECTED" = "true" ]; then
+          echo "Protected branch, do not update PDF"
+        else
+          echo "Updating PDF."
+          git config --global user.email "tp1-alf@uni-wuerzburg.de"
+          git config --global user.name "CI Bot"
+          git remote add gitlab_origin https://oauth2:$push_token@git.physik.uni-wuerzburg.de/$CI_PROJECT_PATH.git
+          git add "doc.pdf"
+          git commit -m "Update doc.pdf"
+          git push --push-option="ci.skip" gitlab_origin HEAD:$CI_COMMIT_BRANCH
+        fi
+      fi
 
 create_doxygen:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bookworm-buildd
@@ -166,7 +185,7 @@ test:
   parallel:
     matrix:
       - MACHINE: GNU
-        IMAGE_MINOR: [bullseye, bookworm]
+        IMAGE_MINOR: [bullseye, bookworm, trixie]
         MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
         DEVEL: ["", Devel]
         CONFIG_ARGS: ["", "HDF5"]
