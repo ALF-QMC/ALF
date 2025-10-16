@@ -46,7 +46,7 @@ contains
      end function XKER_ph
      
      Real (Kind=Kind(0.d0)) function XKER_ph_c(tau,om, beta)
-        ! Kernal for A(om)
+        ! Kernal for A_c(om), same as XKER_ph
        Implicit None
        real (Kind=Kind(0.d0)) :: tau, om, pi, beta
 
@@ -105,7 +105,7 @@ contains
      end function F_QFI_ph
      
      Real (Kind=Kind(0.d0)) function F_QFI_ph_c(om, beta)
-
+      ! will improve
       Implicit None
       real (Kind=Kind(0.d0)) ::  om, beta
       real (Kind=Kind(0.d0)) :: pi
@@ -126,15 +126,20 @@ contains
      
      Real (Kind=Kind(0.d0)) function Back_trans_ph_c(Aom, om, beta)
        Implicit None
-       real (Kind=Kind(0.d0)) ::  Aom, om, beta
+       real (Kind=Kind(0.d0)), intent(in) ::  Aom, beta, om
        real (Kind=Kind(0.d0)) :: Zero
-       
+       ! same as Back_trans_pp, since Back_trans_pp gives = chi(q,om)/omega
+       !                                                  = A(q,om)*tanh(beta om/2)/om
        Zero = 1.D-8
        if ( abs(om) < zero ) then
           Back_trans_ph_c = beta * Aom/2.d0
        else
           Back_trans_ph_c = Aom * (1.d0 - exp(-beta*om) ) / (om *( 1.d0 + exp(-beta*om) ) )
-          ! This gives sigma(q,om) = A(q,om)*(1 + e^(-beta om))/(1 - e^(-beta om))/om
+          ! This gives sigma'(q,om) = A_c(q,om)*(1 - e^(-beta om))/(1 + e^(-beta om))/om
+          !                         = A_c(q,om)*tanh(beta om/2)/om
+       endif
+       If (Back_trans_ph_c   < 0.d0)  then 
+         Write(6,*)  Aom,om,beta
        endif
 
      end function BACK_TRANS_PH_C
@@ -304,25 +309,31 @@ contains
          Default =  Default*Xmom1/X
          Default =  Default*dom
        case("PH_C")
-       ! The only difference with PH is: sum rule and Back_trans_ph_c(Back transformation).
-       ! XKER_ph_c(Kernal) is same since we already come back to same fumula K(om)A(om)
-         If (.not. Default_model_exists ) Default = 1.d0/(Om_en - Om_st) ! Flat  default   
-         !Compute   sum rule  for  A(om)
-         X  = 0.d0
-         Do  nw = 1, Ndis
-             Om = Om_st + dble(nw)*dom
-             !  Default(om) : sigma(om) -> A(om)
-             !  Default(om)*om = chi''(om) = (1 - exp(-beta*om))*S(om) = (1 - exp(-beta*om))/(1 + exp(-beta*om))*A(om)           
-             if ( abs(om) < zero ) then
-                Default(nw) = Default(nw)*2.d0/ beta 
-             else
-                Default(nw)  = Default(nw) * (om *( 1.d0 + exp(-beta*om) ) )/ (1.d0 - exp(-beta*om) ) 
-            endif           
-             X = X + Default(nw) 
-         enddo
-         X = X*dom
-         Default =  Default*Xmom1/X
-         Default =  Default*dom
+       ! the Back transformation is same as that in PP channel, 
+         If (.not. Default_model_exists )  then 
+            Default = 1.d0/(Om_en - Om_st) ! Flat  default   
+            Default =  Default*Xmom1
+            Default =  Default*dom
+         else
+            !Compute   sum rule  for  A_c(om)
+            X  = 0.d0
+            Do nw = 1, Ndis
+            ! Default(om) : sigma'(om) -> A_c(om)
+            ! See Back_trans_ph_c/Back_trans_pp
+            ! Default(om) = (1 - exp(-beta*om))/(1 + exp(-beta*om))*A(om)/om 
+               Om = Om_st + dble(nw)*dom
+               if ( abs(om) < zero ) then
+                  Default(nw) = Default(nw)*2.d0/ beta 
+               else
+                  Default(nw) = Default(nw) * (om *( 1.d0 + exp(-beta*om) ) )/ (1.d0 - exp(-beta*om) ) 
+               endif
+               !Default(nw)  = (1.d0 + exp(-beta*om)) * Default(nw)
+               X = X + Default(nw) 
+            enddo
+            X = X*dom
+            Default =  Default*Xmom1/X
+            Default =  Default*dom
+         endif
        case("T0")
          If (.not. Default_model_exists ) Default = Xmom1/(Om_en - Om_st)
          Default = Default*Dom
