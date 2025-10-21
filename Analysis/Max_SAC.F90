@@ -419,7 +419,7 @@ Program MaxEnt_Wrapper
           om = xom(nw)
           do nwp = 1,Ndis
              omp = xom(nwp)
-             If  (str_to_upper(Channel) == "P_PH" .and.  omp > 0.00001d0  )  then 
+             If  (((str_to_upper(Channel) == "P_PH") .or. (str_to_upper(Channel) == "PH_C")) .and.  omp > 0.00001d0  )  then 
                Z = Z + A(nwp)/cmplx(  om -  omp, delta, kind(0.d0)) &
                    & + A(nwp)/cmplx(  om +  omp, delta, kind(0.d0)) 
             else
