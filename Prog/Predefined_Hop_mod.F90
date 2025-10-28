@@ -1493,7 +1493,7 @@
 !> ALF-project
 !>
 !> @brief
-!> Given a bond  I,J or  a  site  I=J,  this routine searches if belongs to the group of bonds or sites for wchich 
+!> Given a bond  I,J or  a  site  I=J,  this routine searches if belongs to the group of bonds or sites for which 
 !> the hopping matrix will be modified.
 !> If the bond or site is found, the routine returns the index of the bond/site in the list of pinned_vertices. 
 !
