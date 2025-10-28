@@ -167,6 +167,7 @@ Program Main
         !General
         Integer :: NSTM, NT, NT1, NVAR
         Integer :: Ierr, I,nf, nf_eff, nst, n, n1, N_op, NBin_eff
+        Integer :: tmp_Nt_sequential_start, tmp_Nt_sequential_end, tmp_N_Global_tau
         Logical :: Toggle,  Toggle1
         Complex (Kind=Kind(0.d0)) :: Phase, Z, Z1
         Real    (Kind=Kind(0.d0)) :: ZERO = 10D-8
@@ -235,13 +236,13 @@ Program Main
 
 #if defined(TEMPERING) && defined(MPI)
         call read_and_broadcast_TEMPERING_var()
-        if ( mod(ISIZE,mpi_per_parameter_set) .ne. 0 ) then
+        if ( mod(ISIZE,get_mpi_per_parameter_set()) .ne. 0 ) then
            Write (error_unit,*) "mpi_per_parameter_set is not a multiple of total mpi processes"
            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         endif
         Call Global_Tempering_setup
 #elif !defined(TEMPERING)  && defined(MPI)
-        mpi_per_parameter_set = Isize
+        call set_mpi_per_parameter_set(Isize)
 #elif defined(TEMPERING)  && !defined(MPI)
         Write(error_unit,*) 'Mpi has to be defined for tempering runs'
         CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
@@ -252,7 +253,7 @@ Program Main
 #endif
 
 #ifdef MPI
-        color = irank/mpi_per_parameter_set
+        color = irank/get_mpi_per_parameter_set()
         key   =  0
         call MPI_COMM_SPLIT(MPI_COMM_WORLD,color,key,Group_comm, ierr)
         call MPI_Comm_rank(Group_Comm, Irank_g, ierr)
@@ -278,10 +279,10 @@ Program Main
         call Init_Entanglement_replicas(Group_Comm)
 
         call read_and_broadcast_QMC_var_and_ham_name(Group_Comm)
-        NBin_eff = NBin
+        NBin_eff = get_NBin()
 
-        Call Fields_init(Amplitude)
-        Call Alloc_Ham(ham_name)
+        Call Fields_init(get_Amplitude())
+        Call Alloc_Ham(get_ham_name())
         leap_frog_bulk = .false.
         Call ham%Ham_set()
         ! Test  if  user  has  specified  correct  array  size  for time dependent Hamiltonians
@@ -346,14 +347,20 @@ Program Main
         
         Call set_default_values_measuring_interval(Thtrot, Ltrot, Projector)
 
-        If ( .not. Global_tau_moves )  then
+        If ( .not. get_Global_tau_moves() )  then
            ! This  corresponds to the default updating scheme
-           Nt_sequential_start = 1
-           Nt_sequential_end   = Size(OP_V,1)
-           N_Global_tau        = 0
+           call set_Nt_sequential_start(1)
+           call set_Nt_sequential_end(Size(OP_V,1))
+           call set_N_Global_tau(0)
         else
            !  Gives the possibility to set parameters in the Hamiltonian file
-           Call ham%Overide_global_tau_sampling_parameters(Nt_sequential_start,Nt_sequential_end,N_Global_tau)
+           tmp_Nt_sequential_start = get_Nt_sequential_start()
+           tmp_Nt_sequential_end   = get_Nt_sequential_end()
+           tmp_N_Global_tau        = get_N_Global_tau()
+           Call ham%Overide_global_tau_sampling_parameters(tmp_Nt_sequential_start,tmp_Nt_sequential_end,tmp_N_Global_tau)
+           call set_Nt_sequential_start(tmp_Nt_sequential_start)
+           call set_Nt_sequential_end(tmp_Nt_sequential_end)
+           call set_N_Global_tau(tmp_N_Global_tau)
         endif
         
         call nsigma%make(N_op, Ltrot)
@@ -375,8 +382,8 @@ Program Main
         endif
         Call Hop_mod_init
 
-        IF (ABS(CPU_MAX) > Zero ) NBIN = 10000000
-        If (N_Global_tau > 0) then
+        IF (ABS(get_CPU_MAX()) > Zero ) call set_NBin(10000000)
+        If (get_N_Global_tau() > 0) then
            Call Wrapgr_alloc
         endif
         
@@ -406,31 +413,31 @@ Program Main
 
 
         Call control_init(Group_Comm)
-        Call ham%Alloc_obs(Ltau)
+        Call ham%Alloc_obs(get_Ltau())
 
-        If ( mod(Ltrot,nwrap) == 0  ) then
-           Nstm = Ltrot/nwrap
+        If ( mod(Ltrot,get_Nwrap()) == 0  ) then
+           Nstm = Ltrot/get_Nwrap()
         else
-           nstm = Ltrot/nwrap + 1
+           nstm = Ltrot/get_Nwrap() + 1
         endif
         allocate ( Stab_nt(0:Nstm) )
         Stab_nt(0) = 0
         do n = 1,Nstm -1
-           Stab_nt(n) = nwrap*n
+           Stab_nt(n) = get_Nwrap()*n
         enddo
 
         Stab_nt(Nstm) = Ltrot
 
       !   Sequential = .true.
         !TODO: check if sequential is done if some fields are discrete (Warning or error termination?)
-        if ( Langevin .or.  HMC  ) then
-            if (Langevin) then
+        if ( get_Langevin() .or.  get_HMC()  ) then
+           if ( get_Langevin() ) then
 #if defined(MPI)
                 if ( Irank_g == 0 ) then
 #endif
                     Call check_langevin_schemes_and_variables()
 #if defined(TEMPERING)
-                    if ( N_exchange_steps > 0 ) then
+                    if ( get_N_exchange_steps() > 0 ) then
                         write(output_unit,*) "Langevin mode does not allow tempering updates."
                         write(output_unit,*) "Overwriting N_exchange_steps to 0."
                     endif
@@ -438,17 +445,17 @@ Program Main
 #if defined(MPI)
                 endif
 #endif
-                Sequential = .False.
-                HMC = .False.
-                Global_moves = .False.
-                Global_tau_moves = .False.
+              call set_sequential(.False.)
+              call set_HMC(.False.)
+              call set_Global_moves(.False.)
+              call set_Global_tau_moves(.False.)
 #if defined(TEMPERING)
-               N_exchange_steps = 0
+              call set_N_exchange_steps(0)
 #endif
-            endif
-            Call Langevin_HMC%make(Langevin, HMC , Delta_t_Langevin_HMC, Max_Force, Leapfrog_steps)
+           endif
+           Call Langevin_HMC%make(get_Langevin(), get_HMC() , get_Delta_t_Langevin_HMC(), get_Max_Force(), get_Leapfrog_Steps())
         else
-            Call Langevin_HMC%set_Update_scheme(Langevin, HMC )
+           Call Langevin_HMC%set_Update_scheme(get_Langevin(), get_HMC() )
         endif
 
         Call check_update_schemes_compatibility()
@@ -463,41 +470,41 @@ Program Main
         if ( Irank_g == 0 ) then
 #endif
            Open (Unit = 50,file=file_info,status="unknown",position="append")
-           Write(50,*) 'Sweeps                              : ', Nsweep
-           If ( abs(CPU_MAX) < ZERO ) then
-              Write(50,*) 'Bins                                : ', NBin
+           Write(50,*) 'Sweeps                              : ', get_NSweep()
+           If ( abs(get_CPU_MAX()) < ZERO ) then
+              Write(50,*) 'Bins                                : ', get_NBin()
               Write(50,*) 'No CPU-time limitation '
            else
-              Write(50,'(" Prog will stop after hours:",2x,F8.4)') CPU_MAX
+              Write(50,'(" Prog will stop after hours:",2x,F8.4)') get_CPU_MAX()
            endif
-           Write(50,*) 'Measure Int.                        : ', LOBS_ST, LOBS_EN
-           Write(50,*) 'Stabilization,Wrap                  : ', Nwrap
+           Write(50,*) 'Measure Int.                        : ', get_LOBS_ST(), get_LOBS_EN()
+           Write(50,*) 'Stabilization,Wrap                  : ', get_Nwrap()
            Write(50,*) 'Nstm                                : ', NSTM
-           Write(50,*) 'Ltau                                : ', Ltau
+           Write(50,*) 'Ltau                                : ', get_Ltau()
            Write(50,*) '# of interacting Ops per time slice : ', Size(OP_V,1)
-           If ( Propose_S0 ) &
+           If ( get_Propose_S0() ) &
                 &  Write(50,*) 'Propose Ising moves according to  bare Ising action'
-           If ( Global_moves ) Then
+           If ( get_Global_moves() ) Then
               Write(50,*) 'Global moves are enabled   '
-              Write(50,*) '# of global moves / sweep :', N_Global
+              Write(50,*) '# of global moves / sweep :', get_N_Global()
            Endif
-           if ( sequential ) then
-               If ( Global_tau_moves ) Then
-                  Write(50,*) 'Nt_sequential_start: ', Nt_sequential_start
-                  Write(50,*) 'Nt_sequential_end  : ', Nt_sequential_end
-                  Write(50,*) 'N_Global_tau       : ', N_Global_tau
+           if ( get_sequential() ) then
+               If ( get_Global_tau_moves() ) Then
+                  Write(50,*) 'Nt_sequential_start: ', get_Nt_sequential_start()
+                  Write(50,*) 'Nt_sequential_end  : ', get_Nt_sequential_end()
+                  Write(50,*) 'N_Global_tau       : ', get_N_Global_tau()
                else
                   Write(50,*) 'Default sequential updating '
                endif
             endif
-           if ( Langevin ) then
-              Write(50,*) 'Langevin del_t: ', Delta_t_Langevin_HMC
-              Write(50,*) 'Max Force     : ', Max_Force
+           if ( get_Langevin() ) then
+              Write(50,*) 'Langevin del_t: ', get_Delta_t_Langevin_HMC()
+              Write(50,*) 'Max Force     : ', get_Max_Force()
            endif
-           if ( HMC ) then
-              Write(50,*) 'HMC del_t     : ', Delta_t_Langevin_HMC
-              Write(50,*) 'Leapfrog_Steps: ', Leapfrog_Steps
-              Write(50,*) 'HMC_Sweeps:     ', N_HMC_sweeps
+           if ( get_HMC() ) then
+              Write(50,*) 'HMC del_t     : ', get_Delta_t_Langevin_HMC()
+              Write(50,*) 'Leapfrog_Steps: ', get_Leapfrog_steps()
+              Write(50,*) 'HMC_Sweeps:     ', get_N_HMC_sweeps()
            endif
 
            !Write out info  for  amplitude and flip_protocol
@@ -506,7 +513,7 @@ Program Main
               if (nsigma%t(n) == 3 .or. nsigma%t(n) == 4)  Toggle = .true.
            Enddo
            if ( Toggle ) then
-              Write(50,*) 'Amplitude  for  t=3,4  vertices is  set to: ', Amplitude
+              Write(50,*) 'Amplitude  for  t=3,4  vertices is  set to: ', get_Amplitude()
            endif
            Toggle  = .false.
            Do n = 1,N_op
@@ -548,9 +555,9 @@ Program Main
            Write(50,*) 'QRREF is defined '
 #endif
 #if defined(TEMPERING) && !defined(PARALLEL_PARAMS)
-           Write(50,*) '# of exchange steps  ',N_exchange_steps
-           Write(50,*) 'Tempering frequency  ',N_Tempering_frequency
-           Write(50,*) 'Tempering Calc_det   ',Tempering_calc_det
+           Write(50,*) '# of exchange steps  ', get_N_exchange_steps()
+           Write(50,*) 'Tempering frequency  ', get_N_Tempering_frequency()
+           Write(50,*) 'Tempering Calc_det   ', get_Tempering_calc_det()
 #endif
            close(50)
 #if defined(MPI)
@@ -611,79 +618,79 @@ Program Main
 
         Call Control_init(Group_Comm)
 
-        DO  NBC = 1, NBIN
+        DO  NBC = 1, get_NBin()
            ! Here, you have the green functions on time slice 1.
            ! Set bin observables to zero.
 
            call system_clock(count_bin_start)
 
-           Call ham%Init_obs(Ltau)
+           Call ham%Init_obs(get_Ltau())
 #if defined(TEMPERING)
            Call Global_Tempering_init_obs
 #endif
 
-           DO NSW = 1, NSWEEP
+           DO NSW = 1, get_NSweep()
 
 #if defined(TEMPERING) && !defined(PARALLEL_PARAMS)
-              IF (MOD(NSW,N_Tempering_frequency) == 0) then
-                 !Write(6,*) "Irank, Call tempering", Irank, NSW, N_exchange_steps
-                 CALL Exchange_Step(Phase,GR,udvr, udvl,Stab_nt, udvst, N_exchange_steps, Tempering_calc_det)
+              IF (MOD(NSW,get_N_Tempering_frequency()) == 0) then
+                 !Write(6,*) "Irank, Call tempering", Irank, NSW, get_N_exchange_steps()
+                 CALL Exchange_Step(Phase,GR,udvr, udvl,Stab_nt, udvst, get_N_exchange_steps(), get_Tempering_calc_det())
               endif
 #endif
               ! Global updates
-              If (Global_moves) Call Global_Updates(Phase, GR, udvr, udvl, Stab_nt, udvst,N_Global)
+              If ( get_Global_moves() ) Call Global_Updates(Phase, GR, udvr, udvl, Stab_nt, udvst, get_N_Global() )
 
 
               If ( str_to_upper(Langevin_HMC%get_Update_scheme()) == "LANGEVIN" )  then
                  !  Carry out a Langevin update and calculate equal time observables.
                  Call Langevin_HMC%update(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst, &
-                      &                   LOBS_ST, LOBS_EN, LTAU)
+                      &                   get_LOBS_ST(), get_LOBS_EN(), get_Ltau())
                  
-                 IF ( LTAU == 1 ) then
+                 IF ( get_Ltau() == 1 ) then
                     If (Projector) then 
                        NST = 0 
-                       Call Tau_p ( udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, NST, LOBS_ST, LOBS_EN)
+                       Call Tau_p ( udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, NST, get_LOBS_ST(), get_LOBS_EN())
                        call Langevin_HMC%set_L_Forces(.true.)
                     else
-                       Call Tau_m( udvst, GR, PHASE, NSTM, NWRAP, STAB_NT, LOBS_ST, LOBS_EN )
+                       Call Tau_m( udvst, GR, PHASE, NSTM, get_Nwrap(), STAB_NT, get_LOBS_ST(), get_LOBS_EN() )
                        call Langevin_HMC%set_L_Forces(.true.)
                     endif
                  endif
               endif
 
               If (  str_to_upper(Langevin_HMC%get_Update_scheme()) == "HMC" )  then
-                 if (Sequential) call Langevin_HMC%set_L_Forces(.False.)
-                 Do n=1, N_HMC_sweeps
+                 if ( get_sequential() ) call Langevin_HMC%set_L_Forces(.False.)
+                 Do n=1, get_N_HMC_sweeps()
                      !  Carry out a Langevin update and calculate equal time observables.
                      Call Langevin_HMC%update(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst, &
-                          &                   LOBS_ST, LOBS_EN, LTAU)
-                     if (n /= N_HMC_sweeps) then
+                          &                   get_LOBS_ST(), get_LOBS_EN(), get_Ltau())
+                     if (n /= get_N_HMC_sweeps()) then
                         Call Langevin_HMC%calc_Forces(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst,&
-                             &  LOBS_ST, LOBS_EN, .True. )
+                             &  get_LOBS_ST(), get_LOBS_EN(), .True. )
                         Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
                         call Langevin_HMC%set_L_Forces(.true.)
                      endif
                  enddo
                  
                  !Do time-displaced measurements if needed, else set Calc_Obser_eq=.True. for the very first leapfrog ONLY
-                 If ( .not. sequential) then
-                    IF ( LTAU == 1 ) then
+                 If ( .not. get_sequential() ) then
+                    IF ( get_Ltau() == 1 ) then
                        If (Projector) then 
                           NST = 0 
-                          Call Tau_p ( udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, NST, LOBS_ST, LOBS_EN)
+                          Call Tau_p ( udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, NST, get_LOBS_ST(), get_LOBS_EN())
                        else
-                          Call Tau_m( udvst, GR, PHASE, NSTM, NWRAP, STAB_NT, LOBS_ST, LOBS_EN )
+                          Call Tau_m( udvst, GR, PHASE, NSTM, get_Nwrap(), STAB_NT, get_LOBS_ST(), get_LOBS_EN() )
                        endif
                     else
                        Call Langevin_HMC%calc_Forces(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst,&
-                       &  LOBS_ST, LOBS_EN, .True. )
+                       &  get_LOBS_ST(), get_LOBS_EN(), .True. )
                        Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
                     endif
                     call Langevin_HMC%set_L_Forces(.true.)
                  endif
               endif
 
-              If (Sequential)  then 
+              If ( get_sequential() )  then 
                  ! Propagation from 1 to Ltrot
                  ! Set the right storage to 1
                  do nf_eff = 1,N_FL_eff
@@ -698,7 +705,7 @@ Program Main
                  NST = 1
                  DO NTAU = 0, LTROT-1
                     NTAU1 = NTAU + 1
-                    CALL WRAPGRUP(GR,NTAU,PHASE,Propose_S0, Nt_sequential_start, Nt_sequential_end, N_Global_tau)
+                    CALL WRAPGRUP(GR,NTAU,PHASE,get_Propose_S0(), get_Nt_sequential_start(), get_Nt_sequential_end(), get_N_Global_tau())
                     
                     If (NTAU1 == Stab_nt(NST) ) then
                        NT1 = Stab_nt(NST-1)
@@ -726,7 +733,7 @@ Program Main
                        NST = NST + 1
                     ENDIF
                     
-                    IF (NTAU1.GE. LOBS_ST .AND. NTAU1.LE. LOBS_EN ) THEN
+                    IF (NTAU1.GE. get_LOBS_ST() .AND. NTAU1.LE. get_LOBS_EN() ) THEN
                        !Call  Global_tau_mod_Test(Gr,ntau1)
                        !Stop
                        !write(*,*) "GR before obser sum: ",sum(GR(:,:,1))
@@ -757,8 +764,8 @@ Program Main
                  NST = NSTM-1
                  DO NTAU = LTROT,1,-1
                     NTAU1 = NTAU - 1
-                    CALL WRAPGRDO(GR,NTAU, PHASE,Propose_S0,Nt_sequential_start, Nt_sequential_end, N_Global_tau)
-                    IF (NTAU1.GE. LOBS_ST .AND. NTAU1.LE. LOBS_EN ) THEN
+                    CALL WRAPGRDO(GR,NTAU, PHASE,get_Propose_S0(),get_Nt_sequential_start(), get_Nt_sequential_end(), get_N_Global_tau())
+                    IF (NTAU1.GE. get_LOBS_ST() .AND. NTAU1.LE. get_LOBS_EN() ) THEN
                        !write(*,*) "GR before obser sum: ",sum(GR(:,:,1))
                        !write(*,*) "Phase before obser : ",phase
                        Mc_step_weight = 1.d0
@@ -798,8 +805,8 @@ Program Main
                        Z=Z**N_SUN
                        Call Control_PrecisionP(Z,Phase)
                        Phase = Z
-                       IF( LTAU == 1 .and. Projector .and. Stab_nt(NST)<=THTROT+1 .and. THTROT+1<Stab_nt(NST+1) ) then
-                          Call tau_p ( udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, NST,  LOBS_ST, LOBS_EN )
+                       IF( get_Ltau() == 1 .and. Projector .and. Stab_nt(NST)<=THTROT+1 .and. THTROT+1<Stab_nt(NST+1) ) then
+                          Call tau_p ( udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, NST,  get_LOBS_ST(), get_LOBS_EN() )
                        endif
                        NST = NST -1
                     ENDIF
@@ -843,13 +850,13 @@ Program Main
                     endif
                  enddo
                  
-                 IF ( LTAU == 1 .and. .not. Projector ) then
-                    Call TAU_M( udvst, GR, PHASE, NSTM, NWRAP, STAB_NT, LOBS_ST, LOBS_EN )
+                 IF ( get_Ltau() == 1 .and. .not. Projector ) then
+                    Call TAU_M( udvst, GR, PHASE, NSTM, get_Nwrap(), STAB_NT, get_LOBS_ST(), get_LOBS_EN() )
                  endif
               endif
 
            ENDDO
-           Call ham%Pr_obs(Ltau)
+           Call ham%Pr_obs(get_Ltau())
 #if defined(TEMPERING) && !defined(PARALLEL_PARAMS)
            Call Global_Tempering_Pr
 #endif
@@ -858,8 +865,8 @@ Program Main
 
            call system_clock(count_bin_end)
            prog_truncation = .false.
-           if ( abs(CPU_MAX) > Zero ) then
-              Call make_truncation(prog_truncation,CPU_MAX,count_bin_start,count_bin_end,group_comm)
+           if ( abs(get_CPU_MAX()) > Zero ) then
+              Call make_truncation(prog_truncation,get_CPU_MAX(),count_bin_start,count_bin_end,group_comm)
            endif
            If (prog_truncation) then
               Nbin_eff = nbc
@@ -884,7 +891,7 @@ Program Main
         DEALLOCATE(udvl, udvr, udvst)
         DEALLOCATE(GR, TEST, Stab_nt,GR_Tilde)
         if (Projector) DEALLOCATE(WF_R, WF_L)
-        If (N_Global_tau > 0) then
+        If (get_N_Global_tau() > 0) then
            Call Wrapgr_dealloc
         endif
         do nf = 1, N_FL
@@ -907,7 +914,7 @@ Program Main
 #if defined(MPI)
         If (Irank_g == 0 ) then
 #endif
-           if ( abs(CPU_MAX) > Zero ) then
+           if ( abs(get_CPU_MAX()) > Zero ) then
 #if defined(TEMPERING)
               write(file_info,'(A,I0,A)') "Temp_",igroup,"/info"
 #else

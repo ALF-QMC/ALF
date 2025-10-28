@@ -39,6 +39,9 @@ Module QMC_runtime_var
 
         Implicit none
 
+    ! Make everything private by default; expose explicit APIs below
+    private
+
         Integer :: Nwrap, NSweep, NBin,Ltau, LOBS_EN, LOBS_ST
         Real(Kind=Kind(0.d0)) :: CPU_MAX
         ! Space for choosing sampling scheme
@@ -71,6 +74,52 @@ Module QMC_runtime_var
               &               Max_Force, Leapfrog_steps, N_HMC_sweeps, Amplitude
        
         NAMELIST /VAR_HAM_NAME/ ham_name
+
+    !=====================
+    ! Public API exports
+    !=====================
+    public :: set_QMC_runtime_default_var
+    public :: set_default_values_measuring_interval
+    public :: check_langevin_schemes_and_variables
+    public :: check_update_schemes_compatibility
+#ifdef MPI
+    public :: broadcast_QMC_runtime_var
+#endif
+#ifdef TEMPERING
+    public :: read_and_broadcast_TEMPERING_var
+#endif
+    public :: read_and_broadcast_QMC_var_and_ham_name
+
+    ! Accessors (getters/setters) for runtime variables
+    public :: get_Nwrap,             set_Nwrap
+    public :: get_NSweep,            set_NSweep
+    public :: get_NBin,              set_NBin
+    public :: get_Ltau,              set_Ltau
+    public :: get_LOBS_EN,           set_LOBS_EN
+    public :: get_LOBS_ST,           set_LOBS_ST
+    public :: get_CPU_MAX,           set_CPU_MAX
+    public :: get_Propose_S0,        set_Propose_S0
+    public :: get_Global_moves,      set_Global_moves
+    public :: get_N_Global,          set_N_Global
+    public :: get_Global_tau_moves,  set_Global_tau_moves
+    public :: get_Nt_sequential_start, set_Nt_sequential_start
+    public :: get_Nt_sequential_end,   set_Nt_sequential_end
+    public :: get_N_Global_tau,      set_N_Global_tau
+    public :: get_sequential,        set_sequential
+    public :: get_Langevin,          set_Langevin
+    public :: get_HMC,               set_HMC
+    public :: get_Leapfrog_steps,    set_Leapfrog_steps
+    public :: get_N_HMC_sweeps,      set_N_HMC_sweeps
+    public :: get_Max_Force,         set_Max_Force
+    public :: get_Delta_t_Langevin_HMC, set_Delta_t_Langevin_HMC
+    public :: get_Amplitude,         set_Amplitude
+    public :: get_ham_name,          set_ham_name
+    public :: get_mpi_per_parameter_set, set_mpi_per_parameter_set
+    public :: get_Tempering_calc_det, set_Tempering_calc_det
+#if defined(TEMPERING)
+    public :: get_N_exchange_steps,  set_N_exchange_steps
+    public :: get_N_Tempering_frequency, set_N_Tempering_frequency
+#endif
         
         
 
@@ -83,7 +132,7 @@ Module QMC_runtime_var
 !>
 !
 !--------------------------------------------------------------------
-        contains
+    contains
         subroutine set_QMC_runtime_default_var()
 
             implicit none   
@@ -178,6 +227,259 @@ Module QMC_runtime_var
             endif
             
         end subroutine 
+
+        !=========================
+        ! Accessors implementation
+        !=========================
+
+        ! Integer getters/setters
+        integer function get_Nwrap() result(val)
+            val = Nwrap
+        end function get_Nwrap
+
+        subroutine set_Nwrap(val)
+            integer, intent(in) :: val
+            Nwrap = val
+        end subroutine set_Nwrap
+
+        integer function get_NSweep() result(val)
+            val = NSweep
+        end function get_NSweep
+
+        subroutine set_NSweep(val)
+            integer, intent(in) :: val
+            NSweep = val
+        end subroutine set_NSweep
+
+        integer function get_NBin() result(val)
+            val = NBin
+        end function get_NBin
+
+        subroutine set_NBin(val)
+            integer, intent(in) :: val
+            NBin = val
+        end subroutine set_NBin
+
+        integer function get_Ltau() result(val)
+            val = Ltau
+        end function get_Ltau
+
+        subroutine set_Ltau(val)
+            integer, intent(in) :: val
+            Ltau = val
+        end subroutine set_Ltau
+
+        integer function get_LOBS_EN() result(val)
+            val = LOBS_EN
+        end function get_LOBS_EN
+
+        subroutine set_LOBS_EN(val)
+            integer, intent(in) :: val
+            LOBS_EN = val
+        end subroutine set_LOBS_EN
+
+        integer function get_LOBS_ST() result(val)
+            val = LOBS_ST
+        end function get_LOBS_ST
+
+        subroutine set_LOBS_ST(val)
+            integer, intent(in) :: val
+            LOBS_ST = val
+        end subroutine set_LOBS_ST
+
+        integer function get_N_Global() result(val)
+            val = N_Global
+        end function get_N_Global
+
+        subroutine set_N_Global(val)
+            integer, intent(in) :: val
+            N_Global = val
+        end subroutine set_N_Global
+
+        integer function get_Nt_sequential_start() result(val)
+            val = Nt_sequential_start
+        end function get_Nt_sequential_start
+
+        subroutine set_Nt_sequential_start(val)
+            integer, intent(in) :: val
+            Nt_sequential_start = val
+        end subroutine set_Nt_sequential_start
+
+        integer function get_Nt_sequential_end() result(val)
+            val = Nt_sequential_end
+        end function get_Nt_sequential_end
+
+        subroutine set_Nt_sequential_end(val)
+            integer, intent(in) :: val
+            Nt_sequential_end = val
+        end subroutine set_Nt_sequential_end
+
+        integer function get_N_Global_tau() result(val)
+            val = N_Global_tau
+        end function get_N_Global_tau
+
+        subroutine set_N_Global_tau(val)
+            integer, intent(in) :: val
+            N_Global_tau = val
+        end subroutine set_N_Global_tau
+
+        integer function get_Leapfrog_steps() result(val)
+            val = Leapfrog_Steps
+        end function get_Leapfrog_steps
+
+        subroutine set_Leapfrog_steps(val)
+            integer, intent(in) :: val
+            Leapfrog_Steps = val
+        end subroutine set_Leapfrog_steps
+
+        integer function get_N_HMC_sweeps() result(val)
+            val = N_HMC_sweeps
+        end function get_N_HMC_sweeps
+
+        subroutine set_N_HMC_sweeps(val)
+            integer, intent(in) :: val
+            N_HMC_sweeps = val
+        end subroutine set_N_HMC_sweeps
+
+        integer function get_mpi_per_parameter_set() result(val)
+            val = mpi_per_parameter_set
+        end function get_mpi_per_parameter_set
+
+        subroutine set_mpi_per_parameter_set(val)
+            integer, intent(in) :: val
+            mpi_per_parameter_set = val
+        end subroutine set_mpi_per_parameter_set
+
+#if defined(TEMPERING)
+        integer function get_N_exchange_steps() result(val)
+            val = N_exchange_steps
+        end function get_N_exchange_steps
+
+        subroutine set_N_exchange_steps(val)
+            integer, intent(in) :: val
+            N_exchange_steps = val
+        end subroutine set_N_exchange_steps
+
+        integer function get_N_Tempering_frequency() result(val)
+            val = N_Tempering_frequency
+        end function get_N_Tempering_frequency
+
+        subroutine set_N_Tempering_frequency(val)
+            integer, intent(in) :: val
+            N_Tempering_frequency = val
+        end subroutine set_N_Tempering_frequency
+#endif
+
+        ! Real getters/setters
+        real(kind=kind(0.d0)) function get_CPU_MAX() result(val)
+            val = CPU_MAX
+        end function get_CPU_MAX
+
+        subroutine set_CPU_MAX(val)
+            real(kind=kind(0.d0)), intent(in) :: val
+            CPU_MAX = val
+        end subroutine set_CPU_MAX
+
+        real(kind=kind(0.d0)) function get_Max_Force() result(val)
+            val = Max_Force
+        end function get_Max_Force
+
+        subroutine set_Max_Force(val)
+            real(kind=kind(0.d0)), intent(in) :: val
+            Max_Force = val
+        end subroutine set_Max_Force
+
+        real(kind=kind(0.d0)) function get_Delta_t_Langevin_HMC() result(val)
+            val = Delta_t_Langevin_HMC
+        end function get_Delta_t_Langevin_HMC
+
+        subroutine set_Delta_t_Langevin_HMC(val)
+            real(kind=kind(0.d0)), intent(in) :: val
+            Delta_t_Langevin_HMC = val
+        end subroutine set_Delta_t_Langevin_HMC
+
+        real(kind=kind(0.d0)) function get_Amplitude() result(val)
+            val = Amplitude
+        end function get_Amplitude
+
+        subroutine set_Amplitude(val)
+            real(kind=kind(0.d0)), intent(in) :: val
+            Amplitude = val
+        end subroutine set_Amplitude
+
+        ! Logical getters/setters
+        logical function get_Propose_S0() result(val)
+            val = Propose_S0
+        end function get_Propose_S0
+
+        subroutine set_Propose_S0(val)
+            logical, intent(in) :: val
+            Propose_S0 = val
+        end subroutine set_Propose_S0
+
+        logical function get_Global_moves() result(val)
+            val = Global_moves
+        end function get_Global_moves
+
+        subroutine set_Global_moves(val)
+            logical, intent(in) :: val
+            Global_moves = val
+        end subroutine set_Global_moves
+
+        logical function get_Global_tau_moves() result(val)
+            val = Global_tau_moves
+        end function get_Global_tau_moves
+
+        subroutine set_Global_tau_moves(val)
+            logical, intent(in) :: val
+            Global_tau_moves = val
+        end subroutine set_Global_tau_moves
+
+        logical function get_sequential() result(val)
+            val = Sequential
+        end function get_sequential
+
+        subroutine set_sequential(val)
+            logical, intent(in) :: val
+            Sequential = val
+        end subroutine set_sequential
+
+        logical function get_Langevin() result(val)
+            val = Langevin
+        end function get_Langevin
+
+        subroutine set_Langevin(val)
+            logical, intent(in) :: val
+            Langevin = val
+        end subroutine set_Langevin
+
+        logical function get_HMC() result(val)
+            val = HMC
+        end function get_HMC
+
+        subroutine set_HMC(val)
+            logical, intent(in) :: val
+            HMC = val
+        end subroutine set_HMC
+
+        logical function get_Tempering_calc_det() result(val)
+            val = Tempering_calc_det
+        end function get_Tempering_calc_det
+
+        subroutine set_Tempering_calc_det(val)
+            logical, intent(in) :: val
+            Tempering_calc_det = val
+        end subroutine set_Tempering_calc_det
+
+        ! Character getters/setters
+        character(len=64) function get_ham_name() result(val)
+            val = ham_name
+        end function get_ham_name
+
+        subroutine set_ham_name(val)
+            character(len=*), intent(in) :: val
+            ham_name = val
+        end subroutine set_ham_name
      
 
 !--------------------------------------------------------------------
