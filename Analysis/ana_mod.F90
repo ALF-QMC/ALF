@@ -1066,7 +1066,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
       NAMELIST /VAR_errors/ n_skip, N_rebin, N_Cov, N_Back, N_auto, N_BZ_Zones, Extended_Zone
 
       PartHole = .false.
-      if(str_to_upper(Channel) == 'PH' .or. str_to_upper(Channel) ==  'P_PH') PartHole = .true.
+      if(str_to_upper(Channel) == 'PH' .or. str_to_upper(Channel) ==  'P_PH' .or. str_to_upper(Channel) ==  'PH_C') PartHole = .true.
       
       N_skip  = 1
       N_rebin = 1

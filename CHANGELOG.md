@@ -3,6 +3,15 @@
 ## ALF 2.6
 ALF 2.6  (to be) released on 2025-??-??
 
+### 2025-09-29 Renaming Delta_S0_global to Get_Delta_S0 global
+Author: J. Hofmann
+Merge request !213
+
+The function `Delta_S0_global` has been renamed to `Get_Delta_S0_global` as the new function now returns $\Delta S_0$ instead of $\exp(\Delta S_0)$. In case your model is using global moves, we advice to adapt your code accordingly. A fallback to `Delta_S0_global` is used for the time being such that backward compatibility is maintained
+
+#### Optional changes
+1) Modify and rename your implementation of `Delta_S0_global`
+
 ### 2024-07-10 Fix: Lattice in data.h5: Mixup of Norb and N_coord
 Author: J. Schwab
 Merge request !204

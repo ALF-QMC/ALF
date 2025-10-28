@@ -111,10 +111,10 @@ Module MaxEnt_stoch_mod
            Dom_table    = (OM_EN_1 - OM_ST_1)/dble(Ndis_table)
            Dom_spectral = (OM_EN_1 - OM_ST_1)/dble(Ndis)
            Dx_spectral  = 1.d0/dble(Ndis)
-           Allocate ( Xker_table(Ntau, Ndis_table) )
+           Allocate ( Xker_table(Ntau, Ndis_table+1) )
            Allocate ( Default_table(Ndis_table))
            do nt = 1,Ntau
-              do nw = 1,Ndis_table
+              do nw = 1,Ndis_table+1
                  tau = xtau(nt)
                  Om = OM_st + dble(nw-1)*Dom_table
                  Xker_table(nt,nw) = Xker(tau,om,beta)
@@ -389,7 +389,7 @@ Module MaxEnt_stoch_mod
                  om =  Om_st_1 + dble(nd-1)*Dom_spectral ! PhiM1(dble(nd)/dble(NDis)) HERE
                  Aom = Xn_m_tot(nd,ns) ! * Xmom1
                  Err = Xn_e_tot(nd,ns) ! * Xmom1
-                 write(66,2001) om, Back_Trans_Aom(Aom,Beta,om), Back_Trans_Aom(Err,Beta,om)
+                 write(66,2001) om, Back_Trans_Aom(Aom,om,Beta), Back_Trans_Aom(Err,om,Beta)
                  ! PhiM1(dble(nd)/dble(NDis)), Xn_m_tot(nd,ns)
               enddo
               Close(66)
@@ -416,8 +416,8 @@ Module MaxEnt_stoch_mod
                  om =  Om_st_1 +  dble(nd-1)*Dom_spectral  !  PhiM1(dble(nd)/dble(NDis)) HERE
                  Aom = Xn_m(nd) ! * Xmom1
                  Err = Xn_e(nd) ! * Xmom1
-                 Xn_m(nd) = Back_Trans_Aom(Aom,Beta,om)
-                 Xn_e(nd) = Back_Trans_Aom(Err,Beta,om)
+                 Xn_m(nd) = Back_Trans_Aom(Aom,om,Beta)
+                 Xn_e(nd) = Back_Trans_Aom(Err,om,Beta)
                  IF (Xn_m(nd) .gt. XMAX ) XMAX = Xn_m(nd)
               enddo
               do nd = 1,Ndis
