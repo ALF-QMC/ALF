@@ -83,9 +83,9 @@ Contains
   end Subroutine Wrapgr_dealloc
 
 !--------------------------------------------------------------------
-  SUBROUTINE WRAPGRUP(GR,NTAU,PHASE,Propose_S0,Propose_MALA, Delta_t_MALA_sequential,Nt_sequential_start, &
-             &        Nt_sequential_end, N_Global_tau, N_Global_tau_MALA, Delta_t_MALA_global_tau,  &
-             &        Max_Force_MALA_sequential, Max_Force_MALA_global_tau)
+  SUBROUTINE WRAPGRUP(GR,NTAU,PHASE,Propose_S0,Nt_sequential_start, Nt_sequential_end, N_Global_tau, &
+             &        Propose_MALA, Delta_t_MALA_sequential, Max_Force_MALA_sequential, &
+             &        N_Global_tau_MALA, Delta_t_MALA_global_tau, Max_Force_MALA_global_tau)
 !--------------------------------------------------------------------
 !> @author 
 !> ALF-project
@@ -112,12 +112,12 @@ Contains
     Complex (Kind=Kind(0.d0)) :: Prev_Ratiotot, HS_Field, HS_New
     Complex (Kind=Kind(0.d0)) :: force_old, force_new, phase_st, nsigma_st
     Real    (Kind=Kind(0.d0)) :: T0_proposal,  T0_Proposal_ratio,  S0_ratio
-    real    (kind=kind(0.d0)) :: pi = acos(-1.d0), force_0_old, force_0_new, weight
+    real    (kind=kind(0.d0)) :: force_0_old, force_0_new, weight
     real    (kind=kind(0.d0)) :: delta_t_running_old, Xmax, Delta_t_running_new
     Character (Len=64)        :: Mode
     Logical                   :: Acc, toggle1
 
-    ! Wrap up, upgrade ntau1.  with B^{1}(tau1) 
+    ! Wrap up, upgrade ntau1.  with B^{1}(tau1)
     NTAU1 = NTAU + 1
     Do nf_eff = 1,N_FL_eff
        nf=Calc_Fl_map(nf_eff)
@@ -240,9 +240,9 @@ Contains
 
 
 !--------------------------------------------------------------------    
-  SUBROUTINE WRAPGRDO(GR,NTAU,PHASE,Propose_S0,Propose_MALA, Delta_t_MALA_sequential,Nt_sequential_start, &
-             &        Nt_sequential_end, N_Global_tau, N_Global_tau_MALA, Delta_t_MALA_global_tau,  &
-             &        Max_Force_MALA_sequential, Max_Force_MALA_global_tau)
+  SUBROUTINE WRAPGRDO(GR,NTAU,PHASE,Propose_S0,Nt_sequential_start, Nt_sequential_end, N_Global_tau, &
+             &        Propose_MALA, Delta_t_MALA_sequential, Max_Force_MALA_sequential, &
+             &        N_Global_tau_MALA, Delta_t_MALA_global_tau, Max_Force_MALA_global_tau)
 !--------------------------------------------------------------------
 !> @author 
 !> ALF-project
@@ -272,7 +272,7 @@ Contains
     Complex (Kind=Kind(0.d0)) :: force_old, force_new, phase_st, nsigma_st
     Real    (Kind=Kind(0.d0)) :: T0_proposal,  T0_Proposal_ratio,  S0_ratio
     complex (kind=kind(0.d0)), allocatable :: Gr_tmp(:,:,:)
-    real    (kind=kind(0.d0)) :: pi = acos(-1.d0), force_0_old, force_0_new, weight
+    real    (kind=kind(0.d0)) :: force_0_old, force_0_new, weight
     real    (kind=kind(0.d0)) :: delta_t_running_old, Xmax, Delta_t_running_new
     Character (Len=64)        :: Mode
     Logical                   :: Acc, toggle1
@@ -646,6 +646,8 @@ Contains
 
     Allocate ( Flip_list(Size(Op_V,1)), Flip_value(Size(Op_V,1)), Flip_value_st(Size(Op_V,1)) )
     Allocate ( Forces_old(Size(Op_V,1)), Forces_new(Size(Op_V,1)), Forces_0_old(Size(Op_V,1)), Forces_0_new(Size(Op_V,1)))
+
+!TODO: check if fields are continuous
 
     Do ng_c = 1,N_Global_tau_MALA
        Phase_st = Phase

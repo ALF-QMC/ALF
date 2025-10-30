@@ -72,12 +72,12 @@ module Control
 
     real    (Kind=Kind(0.d0)),  private, save :: Force_max, Force_mean
     Integer, private, save  :: Force_Count
-    real    (Kind=Kind(0.d0)),  private, save :: Force_max_MALA_sequential , Force_mean_MALA_sequential
-    real    (Kind=Kind(0.d0)),  private, save :: Force_0_max_MALA_sequential, Force_0_mean_MALA_sequential
-    Integer, private, save  :: Force_Count_MALA_sequential
-    real    (Kind=Kind(0.d0)),  private, save :: Force_max_MALA_global_tau, Force_mean_MALA_global_tau
-    real    (Kind=Kind(0.d0)),  private, save :: Force_0_max_MALA_global_tau, Force_0_mean_MALA_global_tau
-    Integer, private, save  :: Force_Count_MALA_global_tau
+    real    (Kind=Kind(0.d0)),  private, save :: Force_max_MALA_seq , Force_mean_MALA_seq
+    real    (Kind=Kind(0.d0)),  private, save :: Force_0_max_MALA_seq, Force_0_mean_MALA_seq
+    Integer, private, save  :: Force_Count_MALA_seq
+    real    (Kind=Kind(0.d0)),  private, save :: Force_max_MALA_gtau, Force_mean_MALA_gtau
+    real    (Kind=Kind(0.d0)),  private, save :: Force_0_max_MALA_gtau, Force_0_mean_MALA_gtau
+    Integer, private, save  :: Force_Count_MALA_gtau
     real    (Kind=Kind(0.d0)),  private, save :: Force_max_MALA_global, Force_mean_MALA_global
     real    (Kind=Kind(0.d0)),  private, save :: Force_0_max_MALA_global, Force_0_mean_MALA_global
     Integer, private, save  :: Force_Count_MALA_global
@@ -136,17 +136,17 @@ module Control
         Force_mean = 0.d0
         Force_count = 0
 
-        Force_max_MALA_sequential    = 0.d0
-        Force_mean_MALA_sequential   = 0.d0
-        Force_0_max_MALA_sequential  = 0.d0
-        Force_0_mean_MALA_sequential = 0.d0
-        Force_Count_MALA_sequential  = 0
+        Force_max_MALA_seq    = 0.d0
+        Force_mean_MALA_seq   = 0.d0
+        Force_0_max_MALA_seq  = 0.d0
+        Force_0_mean_MALA_seq = 0.d0
+        Force_Count_MALA_seq  = 0
 
-        Force_max_MALA_global_tau    = 0.d0
-        Force_mean_MALA_global_tau   = 0.d0
-        Force_0_max_MALA_global_tau  = 0.d0
-        Force_0_mean_MALA_global_tau = 0.d0
-        Force_Count_MALA_global_tau  = 0
+        Force_max_MALA_gtau    = 0.d0
+        Force_mean_MALA_gtau   = 0.d0
+        Force_0_max_MALA_gtau  = 0.d0
+        Force_0_mean_MALA_gtau = 0.d0
+        Force_Count_MALA_gtau  = 0
 
         Force_max_MALA_global    = 0.d0
         Force_mean_MALA_global   = 0.d0
@@ -195,6 +195,26 @@ module Control
         Force_mean = Force_mean  +  X/Real(n1*n2,Kind(0.d0)) 
         
       end Subroutine Control_Langevin
+
+!-------------------------------------------------------------
+
+      Subroutine Control_MALA_sequential(Force, force_0)
+
+        Implicit none
+        
+        Complex (Kind=Kind(0.d0)), Intent(In)  :: Force
+        Real (Kind=Kind(0.d0)), Intent(In)     :: Force_0
+        
+        Force_Count_MALA_seq = Force_Count_MALA_seq + 1
+
+        If ( abs( Real(Force,kind(0.d0))) >=  Force_max_MALA_seq  ) &
+           &  Force_max_MALA_seq = abs( Real(Force,kind(0.d0)))
+        If ( abs( Force_0) >=  Force_0_max_MALA_seq  ) &
+           &  Force_0_max_MALA_seq = abs( Force_0)
+        Force_mean_MALA_seq   = Force_mean_MALA_seq   + abs( Real(Force,kind(0.d0)))
+        Force_0_mean_MALA_seq = Force_0_mean_MALA_seq + abs( Force_0)
+        
+      end Subroutine Control_MALA_sequential
 
 !-------------------------------------------------------------
 
@@ -250,38 +270,20 @@ module Control
         X  = 0.d0
         Y  = 0.d0
         do  n = 1,flip_length
-           Force_Count_MALA_global_tau = Force_Count_MALA_global_tau + 1
-           If ( abs( Real(Forces(n),kind(0.d0))) >=  Force_max_MALA_global_tau  ) &
-             &  Force_max_MALA_global_tau = abs( Real(Forces(n),kind(0.d0)))
+           Force_Count_MALA_gtau = Force_Count_MALA_gtau + 1
+           If ( abs( Real(Forces(n),kind(0.d0))) >=  Force_max_MALA_gtau  ) &
+             &  Force_max_MALA_gtau = abs( Real(Forces(n),kind(0.d0)))
            X  = X + abs( Real(Forces(n),kind(0.d0)) )
-           If ( abs( Real(Forces_0(n),kind(0.d0))) >=  Force_0_max_MALA_global_tau  ) &
-             &  Force_0_max_MALA_global_tau = abs( Real(Forces_0(n),kind(0.d0)))
+           If ( abs( Real(Forces_0(n),kind(0.d0))) >=  Force_0_max_MALA_gtau  ) &
+             &  Force_0_max_MALA_gtau = abs( Real(Forces_0(n),kind(0.d0)))
            Y  = Y + abs( Real(Forces_0(n),kind(0.d0)) )
         enddo
-        Force_mean_MALA_global_tau   = Force_mean_MALA_global_tau    +  X
-        Force_0_mean_MALA_global_tau = Force_0_mean_MALA_global_tau  +  Y
+        Force_mean_MALA_gtau   = Force_mean_MALA_gtau    +  X
+        Force_0_mean_MALA_gtau = Force_0_mean_MALA_gtau  +  Y
         
       end Subroutine Control_MALA_Global_tau
 
 !-------------------------------------------------------------
-
-      Subroutine Control_MALA_sequential(Force, force_0)
-
-
-        Implicit none
-        
-        Complex (Kind=Kind(0.d0)), Intent(In)  :: Force
-        Real (Kind=Kind(0.d0)), Intent(In)     :: Force_0
-        
-        Force_Count_MALA_sequential = Force_Count_MALA_sequential + 1
-        If ( abs( Real(Force,kind(0.d0))) >=  Force_max_MALA_sequential  ) &
-           &  Force_max_MALA_sequential = abs( Real(Force,kind(0.d0)))
-        If ( abs( Real(Force_0,kind(0.d0))) >=  Force_0_max_MALA_sequential  ) &
-           &  Force_0_max_MALA_sequential = abs( Real(Force_0,kind(0.d0)))
-        Force_mean_MALA_sequential   = Force_mean_MALA_sequential    +  abs( Real(Force,kind(0.d0)) )
-        Force_0_mean_MALA_sequential = Force_0_mean_MALA_sequential  +  abs( Real(Force_0,kind(0.d0)) )
-        
-      end Subroutine Control_MALA_sequential
       
       Subroutine Control_upgrade(toggle)
         Implicit none
@@ -482,7 +484,7 @@ module Control
       End Subroutine Control_PrecisionP_MALA
 
 
-      Subroutine Control_Print(Group_Comm, Global_update_scheme, MALA, Global_tau_MALA_moves, Propose_MALA)
+      Subroutine Control_Print(Group_Comm, Global_update_scheme, MALA)
 #ifdef MPI
         Use mpi
 #endif
@@ -490,11 +492,12 @@ module Control
 
         Integer, Intent(IN) :: Group_Comm
         Character (Len = 64), Intent(IN) :: Global_update_scheme
-        Logical, intent(in) :: MALA, Global_tau_MALA_moves, Propose_MALA
+        Logical, intent(in) :: MALA
                 
 
         Character (len=64) :: file1
-        Real (Kind=Kind(0.d0)) :: Time, Acc, Acc_eff, Acc_Glob, Acc_Temp, size_clust_Glob, size_clust_Glob_ACC, Acc_HMC, Acc_MALA
+        Real (Kind=Kind(0.d0)) :: Time, Acc, Acc_eff, Acc_Glob, Acc_Temp, size_clust_Glob, size_clust_Glob_ACC, Acc_HMC
+        Real (Kind=Kind(0.d0)) :: Acc_MALA
 #ifdef MPI
         REAL (Kind=Kind(0.d0))  :: X
         Integer        :: Ierr, Isize, Irank, irank_g, isize_g, igroup
@@ -536,17 +539,17 @@ module Control
         time = (count_CPU_end-count_CPU_start)/dble(count_rate)
         if (count_CPU_end .lt. count_CPU_start) time = (count_max+count_CPU_end-count_CPU_start)/dble(count_rate)
         If (str_to_upper(Global_update_scheme) == "LANGEVIN") Force_mean =  Force_mean/real(Force_count,kind(0.d0))
-        If (Propose_MALA) then
-           Force_mean_MALA_sequential   =  Force_mean_MALA_sequential/real(Force_Count_MALA_sequential,kind(0.d0))
-           Force_0_mean_MALA_sequential =  Force_0_mean_MALA_sequential/real(Force_Count_MALA_sequential,kind(0.d0))
+        If (Force_Count_MALA_seq > 0) then
+           Force_mean_MALA_seq   = Force_mean_MALA_seq/real(Force_Count_MALA_seq,kind(0.d0))
+           Force_0_mean_MALA_seq = Force_0_mean_MALA_seq/real(Force_Count_MALA_seq,kind(0.d0))
         endif
-        If (Global_tau_MALA_moves) then
-           Force_mean_MALA_global_tau   =  Force_mean_MALA_global_tau/real(Force_Count_MALA_global_tau,kind(0.d0))
-           Force_0_mean_MALA_global_tau =  Force_0_mean_MALA_global_tau/real(Force_Count_MALA_global_tau,kind(0.d0))
+        If (Force_Count_MALA_gtau > 0) then
+           Force_mean_MALA_gtau   = Force_mean_MALA_gtau/real(Force_Count_MALA_gtau,kind(0.d0))
+           Force_0_mean_MALA_gtau = Force_0_mean_MALA_gtau/real(Force_Count_MALA_gtau,kind(0.d0))
         endif
         If (MALA) then
-           Force_mean_MALA_global   =  Force_mean_MALA_global/real(Force_Count_MALA_global,kind(0.d0))
-           Force_0_mean_MALA_global =  Force_0_mean_MALA_global/real(Force_Count_MALA_global,kind(0.d0))
+           Force_mean_MALA_global   = Force_mean_MALA_global/real(Force_Count_MALA_global,kind(0.d0))
+           Force_0_mean_MALA_global = Force_0_mean_MALA_global/real(Force_Count_MALA_global,kind(0.d0))
         endif
         
 #if defined(MPI)
@@ -557,29 +560,29 @@ module Control
            CALL MPI_REDUCE(Force_max,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
            Force_max= X
         endif
-        If (Propose_MALA)  then
+        If (Force_Count_MALA_seq > 0)  then
            X = 0.d0
-           CALL MPI_REDUCE(Force_mean_MALA_sequential,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-           Force_mean_MALA_sequential= X/dble(Isize_g)
-           CALL MPI_REDUCE(Force_max_MALA_sequential,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-           Force_max_MALA_sequential= X
+           CALL MPI_REDUCE(Force_mean_MALA_seq,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
+           Force_mean_MALA_seq= X/dble(Isize_g)
+           CALL MPI_REDUCE(Force_max_MALA_seq,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
+           Force_max_MALA_seq= X
            X = 0.d0
-           CALL MPI_REDUCE(Force_0_mean_MALA_sequential,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-           Force_0_mean_MALA_sequential= X/dble(Isize_g)
-           CALL MPI_REDUCE(Force_0_max_MALA_sequential,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-           Force_0_max_MALA_sequential= X
+           CALL MPI_REDUCE(Force_0_mean_MALA_seq,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
+           Force_0_mean_MALA_seq= X/dble(Isize_g)
+           CALL MPI_REDUCE(Force_0_max_MALA_seq,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
+           Force_0_max_MALA_seq= X
         endif
-        If (Global_tau_MALA_moves)  then
+        If (Force_Count_MALA_gtau > 0)  then
            X = 0.d0
-           CALL MPI_REDUCE(Force_mean_MALA_global_tau,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-           Force_mean_MALA_global_tau= X/dble(Isize_g)
-           CALL MPI_REDUCE(Force_max_MALA_global_tau,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-           Force_max_MALA_global_tau= X
+           CALL MPI_REDUCE(Force_mean_MALA_gtau,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
+           Force_mean_MALA_gtau= X/dble(Isize_g)
+           CALL MPI_REDUCE(Force_max_MALA_gtau,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
+           Force_max_MALA_gtau= X
            X = 0.d0
-           CALL MPI_REDUCE(Force_0_mean_MALA_global_tau,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
-           Force_0_mean_MALA_global_tau= X/dble(Isize_g)
-           CALL MPI_REDUCE(Force_0_max_MALA_global_tau,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
-           Force_0_max_MALA_global_tau= X
+           CALL MPI_REDUCE(Force_0_mean_MALA_gtau,X,1,MPI_REAL8,MPI_SUM, 0,Group_Comm,IERR)
+           Force_0_mean_MALA_gtau= X/dble(Isize_g)
+           CALL MPI_REDUCE(Force_0_max_MALA_gtau,X,1,MPI_REAL8,MPI_MAX, 0,Group_Comm,IERR)
+           Force_0_max_MALA_gtau= X
         endif
         If (MALA)  then
            X = 0.d0
@@ -699,14 +702,14 @@ module Control
               Write(50,*) ' Max  Phase diff HMC         : ', XMAXP_HMC
            Endif
 
-           if (Propose_MALA)   Then
-               Write(50,*) ' Sequential MALA Force        Mean, Max : ', Force_mean_MALA_sequential,    Force_max_MALA_sequential
-               Write(50,*) ' Sequential MALA Force_0      Mean, Max : ', Force_0_mean_MALA_sequential,  Force_0_max_MALA_sequential
+           if (Force_Count_MALA_seq > 0)   Then
+              Write(50,*) ' Sequential MALA Force    Mean, Max : ', Force_mean_MALA_seq,   Force_max_MALA_seq
+              Write(50,*) ' Sequential MALA Force_0  Mean, Max : ', Force_0_mean_MALA_seq, Force_0_max_MALA_seq
            Endif
 
-           if (Global_tau_MALA_moves)   Then
-               Write(50,*) ' Global tau MALA Force        Mean, Max : ', Force_mean_MALA_global_tau,    Force_max_MALA_global_tau
-               Write(50,*) ' Global tau MALA Force_0      Mean, Max : ', Force_0_mean_MALA_global_tau,  Force_0_max_MALA_global_tau
+           if (Force_Count_MALA_gtau > 0)   Then
+              Write(50,*) ' Global tau MALA Force   Mean, Max : ', Force_mean_MALA_gtau,   Force_max_MALA_gtau
+              Write(50,*) ' Global tau MALA Force_0 Mean, Max : ', Force_0_mean_MALA_gtau, Force_0_max_MALA_gtau
            Endif
 
            if (MALA)   Then

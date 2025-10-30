@@ -776,9 +776,9 @@
 
             if (first_call) then
                write(output_unit,*)
-               write(output_unit,*) "ATTENTION:     Base implementation of Ham_Langevin_HMC_S0 is getting calling!"
+               write(output_unit,*) "ATTENTION:     Base implementation of Ham_Langevin_HMC_S0 is being called!"
                write(output_unit,*) "This assumes trivial S0 action and is likely incorrect!"
-               write(output_unit,*) "Consider overwritting this routine according to the model in your Hamiltonian."
+               write(output_unit,*) "Consider overwriting this routine according to the model in your Hamiltonian."
                write(output_unit,*) "Suppressing further printouts of this message."
                write(output_unit,*)
                first_call=.False.
@@ -808,9 +808,9 @@
 
           if (first_call) then
              write(output_unit,*)
-             write(output_unit,*) "ATTENTION:     Base implementation of Ham_Langevin_HMC_S0_single is getting calling!"
+             write(output_unit,*) "ATTENTION:     Base implementation of Ham_Langevin_HMC_S0_single is being called!"
              write(output_unit,*) "This assumes trivial S0 action and is likely incorrect!"
-             write(output_unit,*) "Consider overwritting this routine according to the model in your Hamiltonian."
+             write(output_unit,*) "Consider overwriting this routine according to the model in your Hamiltonian."
              write(output_unit,*) "Suppressing further printouts of this message."
              write(output_unit,*)
              first_call=.False.

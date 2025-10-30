@@ -81,11 +81,6 @@
 !>  If true, spin flips are proposed with probability exp(-S_0(C')). See documentation.
 !>  Default:  Propose_S0=.false.
 !> \endverbatim
-!> @param Propose_MALA Logical
-!> \verbatim
-!>  If true, moves of continuous fields (type 3) are proposed according to Langevin equation.
-!>  Default:  Propose_MALA=.false.
-!> \endverbatim
 !> @param Global_moves Logical
 !> \verbatim
 !>  If true, global moves will be carried out.
@@ -106,22 +101,12 @@
 !>  Number of global_tau moves that will be carried out per time-slice.
 !>  Default: N_Global_tau=0
 !> \endverbatim
-!> @param Global_tau_MALA_moves Logical
-!> \verbatim
-!>  If true, global Langevin moves on a given time slice will be carried out
-!>  Default: Global_tau_MALA_moves=.false.
-!> \endverbatim
-!> @param N_Global_tau_MALA Integer
-!> \verbatim
-!>  Number of global_langevin_tau moves that will be carried out per time-slice.
-!>  Default: N_Global_tau_MALA=0
-!> \endverbatim
 !> @param Nt_sequential_start  Integer
 !> @param Nt_sequential_end  Integer
 !> \verbatim
 !> Interval over which one will carry out sequential updating on a single time slice.
 !> Default: Nt_sequential_start = 1  Nt_sequential_end=size(OP_V,1)). This default is
-!> automatically if Global_tau_moves=.false. and Global_tau_MALA_moves=.false.
+!> automatically if Global_tau_moves=.false.
 !> \endverbatim
 
 !--------------------------------------------------------------------
@@ -202,14 +187,14 @@ Program Main
 
         NAMELIST /VAR_QMC/   Nwrap, NSweep, NBin, Ltau, LOBS_EN, LOBS_ST, CPU_MAX, &
              &               Propose_S0,Global_moves,  N_Global, Global_tau_moves, &
-             &               Global_tau_MALA_moves, N_Global_tau_MALA, &
              &               Nt_sequential_start, Nt_sequential_end, N_Global_tau, &
-             &               sequential, Langevin, HMC, MALA, Delta_t_Langevin_HMC, &
+             &               sequential, Langevin, HMC, Delta_t_Langevin_HMC, &
              &               Max_Force, Leapfrog_steps, N_HMC_sweeps, Amplitude, &
-             &               Propose_MALA, delta_t_MALA_global, N_MALA_sweeps, &
-             &               Delta_t_MALA_sequential, Delta_t_MALA_global_tau, &
-             &               MAX_Force_MALA_global, Max_Force_MALA_global_tau, &
-             &               Max_Force_MALA_sequential
+             &               Propose_MALA, Delta_t_MALA_sequential, &
+             &               Max_Force_MALA_sequential, Global_tau_MALA_moves, &
+             &               N_Global_tau_MALA, Delta_t_MALA_global_tau, &
+             &               Max_Force_MALA_global_tau, MALA, N_MALA_sweeps, &
+             &               MAX_Force_MALA_global, delta_t_MALA_global
 
         NAMELIST /VAR_HAM_NAME/ ham_name
 
@@ -356,14 +341,14 @@ Program Main
 #endif
            ! This is a set of variables that  identical for each simulation.
            Nwrap=0;  NSweep=0; NBin=0; Ltau=0; LOBS_EN = 0;  LOBS_ST = 0;  CPU_MAX = 0.d0
-           Propose_S0 = .false. ;  Global_moves = .false. ; N_Global = 0; Propose_MALA = .false.
+           Propose_S0 = .false. ;  Global_moves = .false. ; N_Global = 0
            Global_tau_moves = .false.; sequential = .true.; Langevin = .false. ; HMC =.false.
-           MALA = .false.; delta_t_MALA_global = 0.d0; N_MALA_sweeps = 1
-           Delta_t_MALA_sequential = 0.d0; Delta_t_MALA_global_tau = 0.d0
-           Global_tau_MALA_moves = .false.; N_Global_tau_MALA = 0; MAX_Force_MALA_global = 0.d0
-           Max_Force_MALA_global_tau = 0.d0; Max_Force_MALA_sequential = 0.d0
            Delta_t_Langevin_HMC = 0.d0;  Max_Force = 0.d0 ; Leapfrog_steps = 0; N_HMC_sweeps = 1
            Nt_sequential_start = 1 ;  Nt_sequential_end  = 0;  N_Global_tau  = 0;  Amplitude = 1.d0
+           Propose_MALA = .false.; Delta_t_MALA_sequential = 0.d0; Max_Force_MALA_sequential = 0.d0
+           Global_tau_MALA_moves = .false.; N_Global_tau_MALA = 0; Delta_t_MALA_global_tau = 0.d0
+           Max_Force_MALA_global_tau = 0.d0; MALA = .false.; N_MALA_sweeps = 1
+           delta_t_MALA_global = 0.d0; MAX_Force_MALA_global = 0.d0
            OPEN(UNIT=5,FILE=file_para,STATUS='old',ACTION='read',IOSTAT=ierr)
            IF (ierr /= 0) THEN
               WRITE(error_unit,*) 'main: unable to open <parameters>', file_para, ierr
@@ -384,31 +369,31 @@ Program Main
         CALL MPI_BCAST(LOBS_ST              ,1 ,MPI_INTEGER  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(CPU_MAX              ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Propose_S0           ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(Propose_MALA         ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Global_moves         ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(N_Global             ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Global_tau_moves     ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(Global_tau_MALA_moves,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Nt_sequential_start  ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Nt_sequential_end    ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(N_Global_tau         ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(N_Global_tau_MALA    ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(sequential           ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Langevin             ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(HMC                  ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(MALA                 ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Leapfrog_steps       ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(N_HMC_sweeps         ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(N_MALA_sweeps        ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Max_Force            ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(MAX_Force_MALA_global,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(MAX_Force_MALA_global_tau,1 ,MPI_REAL8,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(Max_Force_MALA_sequential,1 ,MPI_REAL8,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Delta_t_Langevin_HMC ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(delta_t_MALA_global  ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(Delta_t_MALA_sequential,1 ,MPI_REAL8  ,0,MPI_COMM_i,ierr)
-        CALL MPI_BCAST(delta_t_MALA_global_tau,1 ,MPI_REAL8  ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Amplitude            ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(Propose_MALA         ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(Delta_t_MALA_sequential,1 ,MPI_REAL8  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(Max_Force_MALA_sequential,1 ,MPI_REAL8,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(Global_tau_MALA_moves,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(N_Global_tau_MALA    ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(delta_t_MALA_global_tau,1 ,MPI_REAL8  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(MAX_Force_MALA_global_tau,1 ,MPI_REAL8,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(MALA                 ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(N_MALA_sweeps        ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(MAX_Force_MALA_global,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(delta_t_MALA_global  ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
 
         CALL MPI_BCAST(ham_name             ,64,MPI_CHARACTER,0,MPI_COMM_i,ierr)
 #endif
@@ -633,7 +618,7 @@ Program Main
            Call Langevin_HMC%set_Update_scheme(Langevin, HMC, .False. )
         endif
         if (MALA) then
-           Call Metropolis_Langevin%make(.False., .False. , MALA, delta_t_MALA_global, MAX_Force_MALA_global, Leapfrog_steps)
+           Call Metropolis_Langevin%make(.False., .False., MALA, delta_t_MALA_global, MAX_Force_MALA_global, Leapfrog_steps)
         else
            Call Metropolis_Langevin%set_Update_scheme(.False., .False., MALA )
         endif
@@ -664,7 +649,7 @@ Program Main
           if ( nsigma%t(n) /= 3 ) then
              write(output_unit,*)
              WRITE(output_unit,*) 'Warning:    Not all fields are of type 3.'
-             WRITE(output_unit,*) 'Fields that are not of type 3 will not be updated in MALA updates.'
+             WRITE(output_unit,*) 'Fields that are not of type 3 will not be updated with MALA updates.'
              write(output_unit,*)
              exit
            exit
@@ -966,9 +951,9 @@ Program Main
                  NST = 1
                  DO NTAU = 0, LTROT-1
                     NTAU1 = NTAU + 1
-                    CALL WRAPGRUP(GR,NTAU,PHASE,Propose_S0,Propose_MALA, Delta_t_MALA_sequential, Nt_sequential_start, &
-                         &        Nt_sequential_end, N_Global_tau, N_Global_tau_MALA, delta_t_MALA_global_tau, &
-                         &        Max_Force_MALA_sequential, Max_Force_MALA_global_tau)
+                    CALL WRAPGRUP(GR,NTAU,PHASE,Propose_S0, Nt_sequential_start, Nt_sequential_end, N_Global_tau, &
+                         &        Propose_MALA, Delta_t_MALA_sequential, Max_Force_MALA_sequential, &
+                         &        N_Global_tau_MALA, delta_t_MALA_global_tau, Max_Force_MALA_global_tau)
                     
                     If (NTAU1 == Stab_nt(NST) ) then
                        NT1 = Stab_nt(NST-1)
@@ -1027,9 +1012,9 @@ Program Main
                  NST = NSTM-1
                  DO NTAU = LTROT,1,-1
                     NTAU1 = NTAU - 1
-                    CALL WRAPGRDO(GR,NTAU, PHASE,Propose_S0,Propose_MALA, Delta_t_MALA_sequential,Nt_sequential_start, &
-                         &        Nt_sequential_end, N_Global_tau, N_Global_tau_MALA, delta_t_MALA_global_tau, &
-                         &        Max_Force_MALA_sequential, Max_Force_MALA_global_tau)
+                    CALL WRAPGRDO(GR,NTAU, PHASE,Propose_S0,Nt_sequential_start, Nt_sequential_end, N_Global_tau, &
+                         &        Propose_MALA, Delta_t_MALA_sequential, Max_Force_MALA_sequential, &
+                         &        N_Global_tau_MALA, delta_t_MALA_global_tau, Max_Force_MALA_global_tau)
                     IF (NTAU1.GE. LOBS_ST .AND. NTAU1.LE. LOBS_EN ) THEN
                        !write(*,*) "GR before obser sum: ",sum(GR(:,:,1))
                        !write(*,*) "Phase before obser : ",phase
@@ -1174,7 +1159,7 @@ Program Main
         call deallocate_all_shared_memory
 #endif
 
-        Call Control_Print(Group_Comm, Langevin_HMC%get_Update_scheme(), MALA, Global_tau_MALA_moves, Propose_MALA)
+        Call Control_Print(Group_Comm, Langevin_HMC%get_Update_scheme(), MALA)
 
 #if defined(MPI)
         If (Irank_g == 0 ) then
