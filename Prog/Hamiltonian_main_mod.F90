@@ -800,22 +800,27 @@
           Implicit none
 
           Real (Kind=Kind(0.d0)), Intent(inout) :: Force_0
-          integer , intent(in) :: n, nt
+          integer , intent(in)                  :: n, nt
 
-          logical, save                                      :: first_call=.True.
+          logical, save                         :: first_call=.True.
+          real (kind=kind(0.d0)), allocatable   :: forces_0(:,:)
 
-          Force_0  = 0.d0
+          allocate(forces_0(size(nsigma%f,1),size(nsigma%f,2)))
+          call ham%Ham_Langevin_HMC_S0(Forces_0)
+          force_0 = forces_0(n,nt)
 
           if (first_call) then
              write(output_unit,*)
              write(output_unit,*) "ATTENTION:     Base implementation of Ham_Langevin_HMC_S0_single is being called!"
-             write(output_unit,*) "This assumes trivial S0 action and is likely incorrect!"
-             write(output_unit,*) "Consider overwriting this routine according to the model in your Hamiltonian."
+             write(output_unit,*) "This uses the subroutine Ham_Langevin_HMC_S0, which provides all bosonic forces."
+             write(output_unit,*) "Since Ham_Langevin_HMC_S0_single only requires one force, you might want to"
+             write(output_unit,*) "consider overwriting this routine according to the model in your Hamiltonian."
              write(output_unit,*) "Suppressing further printouts of this message."
              write(output_unit,*)
              first_call=.False.
           endif
-          ! Johannes: I would actually like to terminate the code. I cannot come up with a scenario where Forces_0=0 is correct!
+
+          deallocate(forces_0)
           
         end Subroutine Ham_Langevin_HMC_S0_single_base
 
