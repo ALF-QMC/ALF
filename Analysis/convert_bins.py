@@ -37,6 +37,7 @@ def copy_parameters(sim_dir, hamiltonian_file):
 def _get_arg_parser():
     parser = ArgumentParser(
         description='Convert plain text bins and paramerts to HDF5 file. '
+        'Moves plain text bins to "old_bins" subfolder or optionally removes them. '
         'One could run a bigger batch with '
         r'`find . -name "Ener_scal" -execdir ${ALF_DIR}/Analysis/copy_parameters.py \;` '
         'Where "Ener_scal" can be replaced by any file name for recognizing simulation folders.',
@@ -44,6 +45,9 @@ def _get_arg_parser():
     parser.add_argument(
         '--alfdir', default=os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
         help="Path to ALF directory. Otherwise, it is determined by location of this script.")
+    parser.add_argument(
+        '--remove-old-bins', action='store_true',
+        help='Remove old plain text bins instead of moving them to "old_bins" subfolder.')
     parser.add_argument(
         'directories', nargs='*',
         help='Directories')
@@ -74,8 +78,19 @@ if __name__ == "__main__":
         ham_file = os.path.join(args.alfdir, 'Prog', ham_file_dict[ham_name])
         copy_parameters(directory, ham_file)
         print(f'Convert bins in folder "{os.path.abspath(directory)}"')
+        os.mkdir(os.path.join(directory, 'old_bins'))
         for dir_content in os.listdir(path=directory):
             if dir_content.endswith('_scal'):
                 subprocess.run([convert_scal, dir_content, 'data.h5'], check=True, cwd=directory)
+                if args.remove_old_bins:
+                    os.remove(os.path.join(directory, dir_content))
+                else:
+                    os.rename(os.path.join(directory, dir_content),
+                        os.path.join(directory, 'old_bins', dir_content))
             elif dir_content.endswith('_eq') or dir_content.endswith('_tau'):
                 subprocess.run([convert_latt, dir_content, 'data.h5'], check=True, cwd=directory)
+                if args.remove_old_bins:
+                    os.remove(os.path.join(directory, dir_content))
+                else:
+                    os.rename(os.path.join(directory, dir_content),
+                        os.path.join(directory, 'old_bins', dir_content))

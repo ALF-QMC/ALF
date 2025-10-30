@@ -4,7 +4,7 @@
 # Name of a file to recognize which folders contain data to convert.
 ref="Ener_scal"
 
-find . -name "$ref" -execdir ${ALF_DIR}/Analysis/copy_parameters.py \;
+find . -name "$ref" -execdir ${ALF_DIR}/Analysis/convert_bins.py \;
 
 
 # The following lines does not use Python and will not copy parameters.
