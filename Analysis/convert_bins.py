@@ -36,9 +36,14 @@ def copy_parameters(sim_dir, hamiltonian_file):
 
 def _get_arg_parser():
     parser = ArgumentParser(
+<<<<<<< HEAD
         description='Convert plain text bins and parameters to HDF5 file. '
         'Moves plain text bin and associated _info files to "old_bins" '
         'subfolder or optionally removes them. '
+=======
+        description='Convert plain text bins and paramerts to HDF5 file. '
+        'Moves plain text bins to "old_bins" subfolder or optionally removes them. '
+>>>>>>> ea5c1ed5 (convert_bins.py: Moves plain text bins to old_bins subfolder or optionally removes them.)
         'One could run a bigger batch with '
         r'`find . -name "Ener_scal" -execdir ${ALF_DIR}/Analysis/copy_parameters.py \;` '
         'Where "Ener_scal" can be replaced by any file name for recognizing simulation folders.',
