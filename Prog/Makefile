@@ -1,4 +1,4 @@
-.PHONY : Compile tidy clean program parse_parameters echo_compile_mods
+.PHONY : Compile tidy clean program parse_parameters echo_compile_mods git.h
 
 OHAM = `./parse_ham.py --print_obj_list`
 
