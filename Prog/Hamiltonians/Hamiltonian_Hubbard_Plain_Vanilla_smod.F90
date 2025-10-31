@@ -199,6 +199,7 @@
 
           integer                :: ierr, nf, unit_info
           Character (len=64)     :: file_info
+          Logical                :: Half_filling
           
           
 
@@ -246,6 +247,17 @@
           ! Setup the trival wave function, in case of a projector approach
           if (Projector) Call Ham_Trial()
 
+          ! Particle-hole  symmetry   for repulsive  U  only if  chemical potential vanishes
+          ! Time  reversal  symmetry  for  attractive U
+          Half_filling = .false.
+          If ( (Projector .and. N_part == Latt%N/2) .or. (.not. Projector .and. Ham_chem == 0.d0) ) Half_filling=.true.
+          If ( Half_filling .or.  Ham_U < 0.d0  )    then
+             allocate(Calc_Fl(N_FL))
+             nf_calc=2
+             nf_reconst=1
+             Calc_Fl(nf_calc)=.True.
+             Calc_Fl(nf_reconst)=.False.
+          endif
 #ifdef MPI
           If (Irank_g == 0) then
 #endif
@@ -276,7 +288,7 @@
              Write(unit_info,*) 't             : ', Ham_T
              Write(unit_info,*) 'Ham_U         : ', Ham_U
              Write(unit_info,*) 'Ham_chem      : ', Ham_chem
-             If  (  Ham_U >=0.d0  .and.   Ham_chem   == 0.d0 )    then
+             If  (  Half_filling  ) then
                 Write(unit_info,*) 'Assuming particle hole symmetry' 
              endif
              If  (  Ham_U <  0.d0  )    then
@@ -293,15 +305,7 @@
           Endif
 #endif
 
-          ! Particle-hole  symmetry   for repulsive  U  only if  chemical potential vanishes
-          ! Time  reversal  symmetry  for  attractive U
-          If ( (Ham_U >= 0.d0 .and.   Ham_chem  == 0.d0)  .or.  Ham_U < 0.d0  )    then
-             allocate(Calc_Fl(N_FL))
-             nf_calc=2
-             nf_reconst=1
-             Calc_Fl(nf_calc)=.True.
-             Calc_Fl(nf_reconst)=.False.
-          endif
+
           
           
         End Subroutine Ham_Set

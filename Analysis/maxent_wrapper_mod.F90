@@ -44,6 +44,17 @@ contains
        XKER_ph = (exp(-tau*om) + exp(-( beta - tau )*om ) )/( pi*(1.d0 + exp( - beta * om ) ) )
 
      end function XKER_ph
+     
+     Real (Kind=Kind(0.d0)) function XKER_ph_c(tau,om, beta)
+        ! Kernal for A_c(om), same as XKER_ph
+       Implicit None
+       real (Kind=Kind(0.d0)) :: tau, om, pi, beta
+
+       pi = 3.1415927
+
+       XKER_ph_c = (exp(-tau*om) + exp(-( beta - tau )*om ) )/( pi*(1.d0 + exp( - beta * om ) ) )
+
+     end function XKER_ph_c
 
      Real (Kind=Kind(0.d0)) function XKER_pp(tau,om, beta)
 
@@ -92,8 +103,18 @@ contains
       F_QFI_ph = (4.d0/pi) * ( (exp(beta*om) - 1.d0)/( exp(beta*om) + 1.d0 ) )**2
 
      end function F_QFI_ph
+     
+     Real (Kind=Kind(0.d0)) function F_QFI_ph_c(om, beta)
+      ! will improve
+      Implicit None
+      real (Kind=Kind(0.d0)) ::  om, beta
+      real (Kind=Kind(0.d0)) :: pi
+      pi = 3.1415927
+      F_QFI_ph_c = (4.d0/pi) * ( (exp(beta*om) - 1.d0)/( exp(beta*om) + 1.d0 ) )**2
 
-     Real (Kind=Kind(0.d0)) function Back_trans_ph(Aom, beta, om)
+     end function F_QFI_ph_c
+
+     Real (Kind=Kind(0.d0)) function Back_trans_ph(Aom, om, beta )
 
        Implicit None
        real (Kind=Kind(0.d0)), intent(in) ::  Aom, beta, om
@@ -102,8 +123,28 @@ contains
        ! This gives S(q,om) = chi(q,om)/(1 - e^(-beta om))
 
      end function BACK_TRANS_PH
+     
+     Real (Kind=Kind(0.d0)) function Back_trans_ph_c(Aom, om, beta)
+       Implicit None
+       real (Kind=Kind(0.d0)), intent(in) ::  Aom, beta, om
+       real (Kind=Kind(0.d0)) :: Zero
+       ! same as Back_trans_pp, since Back_trans_pp gives = chi(q,om)/omega
+       !                                                  = A(q,om)*tanh(beta om/2)/om
+       Zero = 1.D-8
+       if ( abs(om) < zero ) then
+          Back_trans_ph_c = beta * Aom/2.d0
+       else
+          Back_trans_ph_c = Aom * (1.d0 - exp(-beta*om) ) / (om *( 1.d0 + exp(-beta*om) ) )
+          ! This gives sigma'(q,om) = A_c(q,om)*(1 - e^(-beta om))/(1 + e^(-beta om))/om
+          !                         = A_c(q,om)*tanh(beta om/2)/om
+       endif
+       If (Back_trans_ph_c   < 0.d0)  then 
+         Write(6,*)  Aom,om,beta
+       endif
 
-     Real (Kind=Kind(0.d0)) function Back_trans_pp(Aom, beta, om)
+     end function BACK_TRANS_PH_C
+
+     Real (Kind=Kind(0.d0)) function Back_trans_pp(Aom, om, beta)
 
        Implicit None
        real (Kind=Kind(0.d0)), intent(in) ::  Aom, beta, om
@@ -267,6 +308,32 @@ contains
          X = X*dom
          Default =  Default*Xmom1/X
          Default =  Default*dom
+       case("PH_C")
+       ! the Back transformation is same as that in PP channel, 
+         If (.not. Default_model_exists )  then 
+            Default = 1.d0/(Om_en - Om_st) ! Flat  default   
+            Default =  Default*Xmom1
+            Default =  Default*dom
+         else
+            !Compute   sum rule  for  A_c(om)
+            X  = 0.d0
+            Do nw = 1, Ndis
+            ! Default(om) : sigma'(om) -> A_c(om)
+            ! See Back_trans_ph_c/Back_trans_pp
+            ! Default(om) = (1 - exp(-beta*om))/(1 + exp(-beta*om))*A(om)/om 
+               Om = Om_st + dble(nw)*dom
+               if ( abs(om) < zero ) then
+                  Default(nw) = Default(nw)*2.d0/ beta 
+               else
+                  Default(nw) = Default(nw) * (om *( 1.d0 + exp(-beta*om) ) )/ (1.d0 - exp(-beta*om) ) 
+               endif
+               !Default(nw)  = (1.d0 + exp(-beta*om)) * Default(nw)
+               X = X + Default(nw) 
+            enddo
+            X = X*dom
+            Default =  Default*Xmom1/X
+            Default =  Default*dom
+         endif
        case("T0")
          If (.not. Default_model_exists ) Default = Xmom1/(Om_en - Om_st)
          Default = Default*Dom

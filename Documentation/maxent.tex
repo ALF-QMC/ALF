@@ -175,7 +175,7 @@ do tau1 = 1, # of tau-points
 enddo
 \end{alltt}
 
-The  specification of the  default model is optional.   If the file  \texttt{Default}  exists  then this  default  will be   used.   The  format 
+The  specification of the  default model is optional.   If the file  \texttt{Default}  exists  then this  default  will be   used.  We note that the default model  corresponds to the output of the MaxEnt code. That is $S(q,\omega)$ for particle-hole quantities,  $A(k,\omega)$ in the particle channel, etc. eThe  format 
 of  the input is identical  to that if  the output file   \texttt{Green} containing  the spectral function (see  below). Hence  
 the  result of  one  run  can  be  used  as  a default model   for  another  run.  This turns out  to be  very  useful
 when  carrying out  temperature  scans.  Alternatively,  the    default  model  can be  specified  as 
@@ -203,10 +203,11 @@ The file contains three columns: $\omega$, $\langle A_n(\omega) \rangle$, and $\
 
 \item The file \texttt{Green} contains the Green function, obtained from the spectral function through
 \begin{equation}
- G(\omega) =  -\frac{1}{\pi} \int \d \Omega   \frac{A(\Omega)}{\omega - \Omega + i \delta} \,,
+ G(\omega) =  -\frac{1}{\pi} \int_{-\infty}^{\infty} \d \Omega   \frac{A(\Omega)}{\omega - \Omega + i \delta} \,,
 \end{equation}
 where  $ \delta =  \Delta \omega = (\omega_\mathrm{end} -  \omega_\mathrm{start})/$\texttt{Ndis} and the image corresponds to that of the file \texttt{Aom\_ps\_n} with $ n = N_{\alpha} -10 $. 
-The first column of the  \texttt{Green}  file is a place holder for post-processing. The last three columns   correspond to $\omega, \Re G(\omega) ,   - \Im G(\omega)/\pi $. 
+The first column of the  \texttt{Green}  file is a placeholder for post-processing. The last three columns   correspond to $\omega, \Re G(\omega) ,   - \Im G(\omega)/\pi $. 
+
 
 \item  One of the most important output files is \texttt{energies}, which lists $ \alpha_n, \langle \chi^2 \rangle, \Delta \langle \chi^2 \rangle $.
 
@@ -289,6 +290,7 @@ The  above  defines  the  kernel  for this   channel.   If this channel  is  spe
 file,   then  the lower  bound  of the  frequency  range will  be  set  to  zero by the program. 
 
 \subsection{Particle-hole quantities:  \texttt{Channel=PH}}
+\label{sec:maxent_ph}
 
 \subsubsection*{Imaginary-time formulation}
  For particle-hole quantities such as spin-spin or charge-charge correlations, 
@@ -368,6 +370,36 @@ The above definitions produce an image that satisfies the sum rule:
    \frac{\chi''(q,\omega)}{\omega}   \equiv \chi(q,i\Omega_m=0) .
 \end{equation}
 
+\subsection{Optical conductivity: \texttt{Channel=PH\_C}}
+
+A  slight modification of the above is required to compute  the optical conductivity. In the Lehmann representation, this quantity reads:
+\begin{equation}
+  \sigma'(\omega) =  \frac{\pi}{Z} \frac{1}{\omega} \sum_{n,m} e^{-\beta E_n} |\langle n | \hat{J}_p | m \rangle |^2 
+  \delta ( \omega + E_n - E_m) \left( 1 - e^{-\beta  \omega} \right) 
+\end{equation}
+where  $\hat{J}_p$ is a model dependent paramagnetic current operator.  One can show that the sum rule, 
+\begin{equation}
+	\int \d \omega 	 \omega \coth(\beta \omega/2) \sigma'(\omega) = 
+  2 \pi \langle \hat{J}_p(\tau=0) \hat{J}_p(0) \rangle
+\end{equation}
+holds  such  that: 
+\begin{equation}
+  \label{eqn:A_ph_C_def}
+	\langle \hat{J}(\tau) \hat{J}(0) \rangle  =  
+       \int \d \omega  \underbrace{ \frac{1}{\pi} \frac{e^{- \tau \omega} }
+            { 1 - e^{-\beta  \omega} } \tanh(\beta \omega/2)  }_{K_{pp}(\tau,\omega)} 
+       \underbrace{ \omega \coth(\beta \omega/2) \sigma'(\omega) \vphantom{\frac{1}{2-1}} }_{A_C(\omega)} 
+\end{equation}
+and one computes $A_C(\omega)$. Since  $\hat{J}_p $  is hermitian, $\sigma'(\omega)$ is an even function of frequency, the above can be simplified to 
+\begin{equation} 
+    \langle \hat{J}_p(\tau) \hat{J}_p(0) \rangle  =  
+         \int_{0}^{\infty}  \d \omega \underbrace{\left( K_{pp}(\tau,\omega)  + K_{pp}(\tau,-\omega) \right)}_{K_{ph}(\tau,\omega)}  A_C(\omega).
+\end{equation}
+As apparent,  the only difference with the particle-hole channel of Sec.~\ref{sec:maxent_ph} is in the 
+back transformation routine \texttt{BACK\_TRANS\_ph\_C}  required to obtain the optical conductivity: 
+\begin{equation}
+	\sigma'(\omega) =  \frac{\tanh\left( \beta \omega/2\right)}{\omega}A_C(\omega)
+\end{equation} 
 
 \subsection{Particle-Particle quantities: \texttt{Channel=PP}}
 
