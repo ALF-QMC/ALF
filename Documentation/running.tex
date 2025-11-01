@@ -392,18 +392,21 @@ The Analysis folder also contains programs for converting plain text bins to HDF
 
 There are a number of scripts and program:
 \begin{itemize}
-	\item \verb|convert_scal.out| and \verb|convert_latt.out|: Writing the contents of a \verb|_scal| observable or a lattice type observables (that is \verb|_eq|, and \verb|_tau|) to an HDF5 file. E.g. writing bins from \verb|some_obs_scal|, \verb|some_obs_eq| and \verb|some_obs_tau| to data.h5 is done by executing.
+	\item \verb|convert_scal.out|, \verb|convert_latt.out|, \verb|convert_local.out|: Writing the contents of a \verb|_scal| observable, a lattice type observables (that is \verb|_eq|, and \verb|_tau|), or a local observable (that is \verb|_local|, and \verb|_localtau|) to an HDF5 file. E.g. writing bins from \verb|some_obs_scal|, \verb|some_obs_eq|, \verb|some_obs_tau|, \verb|some_obs_local| and \verb|some_obs_localtau| to data.h5 is done by executing.
 	\vspace{-\baselineskip}
 	\begin{lstlisting}[style=bash]
 
 $ALF_DIR/Analysis/convert_scal.out some_obs_scal data.h5
 $ALF_DIR/Analysis/convert_latt.out some_obs_eq data.h5
 $ALF_DIR/Analysis/convert_latt.out some_obs_tau data.h5
+$ALF_DIR/Analysis/convert_local.out some_obs_local data.h5
+$ALF_DIR/Analysis/convert_local.out some_obs_localtau data.h5
 	\end{lstlisting}
 	\item \verb|convert_bins.py|: 
 	\begin{itemize}
-		\item Automatically combines file \verb|parameters| and the Hamiltonian used in the simulation to determine simulation parameters and write them into HDF5 file.
-		\item Calls \verb|convert_scal.out| and \verb|convert_latt.out| for all observables.
+		\item Automatically combines file \verb|parameters| and the Hamiltonian used in the simulation to determine Hamiltonian-specific simulation parameters and write them into HDF5 file.
+		\item Calls \verb|convert_scal.out|, \verb|convert_latt.out|, and \verb|convert_local.out| for all observables.
+		\item Moves the original plain text bins to a subdirectory \verb|old_bins| or optionally removes them.
 	\end{itemize}
 	You can also get a help text by executing:
 	\begin{lstlisting}[style=bash]
@@ -414,6 +417,6 @@ $ALF_DIR/Analysis/convert_bins.py --help
 find . -name "$ref" -execdir ${ALF_DIR}/Analysis/copy_parameters.py \;
 	\end{lstlisting}
 	where \verb|$ref| has to be the name of an observable produced by the simulation, e.g. \verb|Ener_scal|.
-	\item \verb|convert_batch.sh|: Executes the command above. Can also be used to convert the bins without copying parameters.
+	\item \verb|convert_batch.sh|: Executes the command above.
 \end{itemize}
 
