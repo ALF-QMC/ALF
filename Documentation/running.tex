@@ -101,8 +101,8 @@ Related auxiliary directories, object files and executables can be removed by ex
 			
 			\textbf{Environment Variables} & These are not arguments, but rather environment variables that will be recognized by \texttt{configure.sh}  \\\midrule
 			\texttt{ALF\_FLAGS\_EXT}  & Hand these additional flags to the compiler\\
-			\texttt{ALF\_HDF5\_DIR}  & ALF usually self-compiles HDF5 and stores the library in subdirectories of \texttt{ALF/HDF5}.
-			                         This behavior can be changed by setting the environment variable \texttt{ALF\_HDF5\_DIR}.\\
+			\texttt{ALF\_HDF5\_DIR}  & ALF usually self-compiles HDF5 and stores the library in subdirectories of \texttt{ALF/HDF5},
+			                         this behavior can be changed by setting the environment variable \texttt{ALF\_HDF5\_DIR}\\
 			\bottomrule
 		\end{tabular}
 		\caption{Available arguments for the script \texttt{configure.sh}, called before compilation of the package: predefined machines, parallelization modes, and stabilization schemes (see also Sec.~\ref{sec:optimize}).} \label{table:configureHPC}
@@ -279,7 +279,7 @@ The analysis output files listed in Table \ref{table:analysis_files} and are for
 	\end{equation}   
 	The  positions  of  the orbitals, $\ve{r}_{\alpha}$  within the  unit  cell  are   read in from  the  file  \text{Y\_info},  $\ve{b}_1$, $\ve{b}_2$, are  the  
 	reciprocal lattice  vectors  and  the Fourier  transform is  defined in equation  Eq.~\ref{eq:fourier_transform}.
-	The naming of the output files equally depend upon the boolean variable \texttt{Extended\_Zone} (see table \ref{table:analysis_files}).
+	The naming of the output files equally depends upon the boolean variable \texttt{Extended\_Zone} (see table \ref{table:analysis_files}).
 	
 	\item The imaginary-time displaced correlation functions \texttt{Y} are written to the output files \texttt{g\_R0} inside folders \texttt{Y\_R0}, when measured locally in space; 
 	and to the output files \texttt{g\_kx\_ky} inside folders \texttt{Y\_kx\_ky} when they are measured $\vec{k}$-resolved (where $\vec{k}=(\texttt{kx}, \texttt{ky})$). 

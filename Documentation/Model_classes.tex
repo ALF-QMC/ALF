@@ -39,7 +39,7 @@ In the above listing, \texttt{ham\_T} and \texttt{ham\_T2} correspond to the hop
     &  + h_0 \left(\sum_{\sigma=1}^{N/2} \hat{c}^{\dagger}_{(\vec{0},\ve{1}),\sigma, 1}  \hat{c}^{}_{(\vec{0},\ve{1}),\sigma, 1}  -  \sum_{\sigma=N/2}^{N} \hat{c}^{\dagger}_{(\vec{0},\ve{1}),\sigma, 2}  \hat{c}^{}_{(\vec{0},\ve{1}),\sigma, 2} \right) .
 \end{align}
 The generic hopping is taken from Eq.~\eqref{generic_hopping.eq}   with appropriate boundary conditions given by Eq.~\eqref{generic_boundary.eq}.  The index $\ve{i}$ runs over the unit cells, $\ve{\delta}$ over the orbitals in each unit cell and $\sigma$  from $1$ to $N$  and encodes the SU(N) symmetry.    Note that  $N$ corresponds to \texttt{N\_SUN}  in the code.  The chemical potential $\mu$ is relevant only for the finite temperature code. Generically the flavor index is set to  unity.  However, if the pinning field, $h_0$, is  included, then the symmetry of the Hamiltonian is reduced from U(N) to U(N/2) $\times$ U(N/2). In this case, one 
-should set $N\_fl=2$. 
+should set $N\_{\mathrm{fl}}=2$. 
 The term \texttt{ham\_h0}  accounts for a  local magnetic field at site $\ve{i}=0$ and orbital $\ve{\delta}=1$.
 This is useful to probe for e.g. long-ranged magnetic order as discussed in Ref.~\cite{Assaad13}.  Note that $N$ is required to be even if the pinning field is included. 
 
