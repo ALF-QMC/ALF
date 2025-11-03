@@ -132,8 +132,8 @@ Program MaxEnt_Wrapper
           Open(unit=50,File='Info_MaxEnt_cl',Status="unknown")
        endif
        write(50,11) 'Channel', Channel
-       If (str_to_upper(Channel) == "PH" .or. str_to_upper(Channel) == "P_PH" )  then
-          Write(50,"(A72)")  'Om_start is set to zero. PH  and  P_PH channels corresponds to symmetric data'
+       If (str_to_upper(Channel) == "PH" .or. str_to_upper(Channel) == "P_PH" .or. str_to_upper(Channel) ==  'PH_C')  then
+          Write(50,"(A72)")  'Om_start is set to zero. PH  and  P_PH and PH_C channels corresponds to symmetric data'
           Om_st = 0.d0
        endif
        Write(50, 12) "Covariance", N_cov
@@ -160,7 +160,7 @@ Program MaxEnt_Wrapper
        Ntau_st = 1
        Ntau_en = Ntau
        Select Case (str_to_upper(Channel))
-       Case ("PH")
+       Case ("PH", "PH_C")
           xmom1 = pi * xqmc(1)
        Case ("PP")
           xmom1 =  pi * (xqmc(1) + xqmc(ntau) )
@@ -234,7 +234,19 @@ Program MaxEnt_Wrapper
           else
              Call Set_Ker_classic(Xker_ph,Xker_classic,Om_st,Om_en,beta,xtau_st)
              Call  MaxEnt( XQMC, XCOV, A_classic, XKER_classic, Alpha_classic_st, CHISQ ,DEFAULT)
-          endif 
+          endif
+       Case ("PH_C")
+          If  (Stochastic)  then
+             Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_ph, Back_trans_pp, Beta, &
+                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, F, Default)
+             ! Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_ph_c, Back_Trans_ph_c, Beta, &
+                  ! &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, F_QFI_ph_c, Default)
+             ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
+          else
+             ! Call Set_Ker_classic(Xker_ph_c,Xker_classic,Om_st,Om_en,beta,xtau_st)
+             Call Set_Ker_classic(XKER_ph,Xker_classic,Om_st,Om_en,beta,xtau_st)
+             Call  MaxEnt( XQMC, XCOV, A_classic, XKER_classic, Alpha_classic_st, CHISQ ,DEFAULT)
+          endif       
        Case ("PP")
           If  (Stochastic) then
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_pp, Back_Trans_pp, Beta, &
@@ -307,6 +319,11 @@ Program MaxEnt_Wrapper
                    do i = 1,Ngamma
                       X = X + alp_bf(i)*Xker_ph(tau,om_bf(i), beta)
                    enddo
+                Case ("PH_C")
+                   do i = 1,Ngamma
+                      ! X = X + alp_bf(i)*Xker_ph_c(tau,om_bf(i), beta)
+                      X = X + alp_bf(i)*Xker_ph(tau,om_bf(i), beta)
+                   enddo
                 Case ("PP")
                    do i = 1,Ngamma
                       X = X + alp_bf(i)*Xker_pp(tau,om_bf(i), beta)
@@ -363,6 +380,11 @@ Program MaxEnt_Wrapper
                 do  nw  = 1,Ndis
                    A(nw) =  Back_trans_ph(A(nw), xom(nw), beta)
                 enddo
+             Case ("PH_C")
+                do  nw  = 1,Ndis
+                   ! A(nw) =  Back_trans_ph_c(A(nw), xom(nw), beta)
+                   A(nw) =  Back_trans_pp(A(nw), xom(nw), beta)
+                enddo
              Case ("PP")
                 do  nw  = 1,Ndis
                    A(nw) =  Back_trans_pp(A(nw), xom(nw), beta)
@@ -397,23 +419,29 @@ Program MaxEnt_Wrapper
           om = xom(nw)
           do nwp = 1,Ndis
              omp = xom(nwp)
-             If  (str_to_upper(Channel) == "P_PH" .and.  omp > 0.00001d0  )  then 
+             If  (((str_to_upper(Channel) == "P_PH") .or. (str_to_upper(Channel) == "PH_C")) .and.  omp > 0.00001d0  )  then 
+               ! In this case A(om)  = A (-om) and om > 0
                Z = Z + A(nwp)/cmplx(  om -  omp, delta, kind(0.d0)) &
                    & + A(nwp)/cmplx(  om +  omp, delta, kind(0.d0)) 
+            elseif ( str_to_upper(Channel) == "PH" .and.  omp > 0.00001d0  ) then 
+               ! In this case S(q,-om)=  exp(-beta*om) S(q,om)   and om > 0 
+               Z = Z + A(nwp)/cmplx(  om -  omp, delta, kind(0.d0)) &
+                   & + A(nwp)*exp(-beta*om)/cmplx(  om +  omp, delta, kind(0.d0)) 
             else
+               ! No symmetry is used
                Z = Z + A(nwp)/cmplx( om -  omp, delta, kind(0.d0))
             endif
           enddo
           Z = Z * dom
-          x  = x  - Aimag(Z)/pi
-          x1 = x1 - om*Aimag(Z)/pi
-          x2 = x2 - om*om*Aimag(Z)/pi
           If (Test)   then 
+            x  = x  - Aimag(Z)/pi
+            x1 = x1 - om*Aimag(Z)/pi
+            x2 = x2 - om*om*Aimag(Z)/pi
             write(43,"('X',2x,F14.7,2x,F16.8,2x,F16.8,2x,F14.7,2x,F14.7,2x,F14.7)")  & 
-                & xom(nw), dble(Z), -Aimag(Z)/pi,  X*dom, x1*dom, x2*dom
+               & xom(nw), dble(Z), -Aimag(Z)/pi,  X*dom, x1*dom, x2*dom
           else
             write(43,"('X',2x,F14.7,2x,F16.8,2x,F16.8)")  & 
-                & xom(nw), dble(Z), -Aimag(Z)/pi
+               & xom(nw), dble(Z), -Aimag(Z)/pi
           endif   
        enddo
        close(43)

@@ -23,24 +23,29 @@ We start out by providing step-by-step instructions that allow a first-time user
 The aim of this section is to provide a fruitful and stress-free first contact with the package. Ideally, it should be possible to copy and paste the instructions below to a Debian/Ubuntu-based Linux shell without further thought\footnote{For other systems and distributions see the package's  \href{https://git.physik.uni-wuerzburg.de/ALF/ALF/-/blob/\ALFbranch/README.md}{README}.}. Explanations and further options and details are found in the remaining sections and in the \href{https://git.physik.uni-wuerzburg.de/ALF/ALF_Tutorial/-/blob/master/Tutorial-ALF-\tutALFver/}{Tutorial}.
 
 \textbf{Prerequisites}:
-You should have access to a shell and the permissions to install -- or have already installed -- the numerical packages Lapack and Blas, a Fortran compiler, Python, and the tools \texttt{make} and \texttt{git}. 
+You should have access to a shell and the permissions to install -- or have already installed -- the numerical packages Lapack and Blas, a Fortran compiler, Python, and the tools \texttt{make} and \texttt{git}.
+Alternatively, one could use \href{https://hub.docker.com/r/alfcollaboration/jupyter-pyalf-full}{this Docker image}, which has ALF, pyALF and a Jupyter server pre-installed.
 
 The following commands can be executed in a Debian-based shell\footnote{Avoid folder names containing spaces, which are not supported.} in order to install ALF~\ALFver{} and its dependencies, run a demonstration simulation and output one of the measurements performed:
-\begin{itemize}[itemsep=0pt]
-	\item \lstinline[style=bash,morekeywords={sudo}]{sudo apt-get update}
-	\item \lstinline[style=bash,morekeywords={sudo}]{sudo apt-get install gfortran liblapack-dev python3 make git}
-	\item \lstinline[style=bash]{git clone -b }\texttt{\ALFbranch}\lstinline[style=bash]{https://git.physik.uni-wuerzburg.de/ALF/ALF.git}
-	\item \lstinline[style=bash,morekeywords={cd}]{cd ALF}
-	\item \lstinline[style=bash,morekeywords={source}]{source configure.sh GNU noMPI}
-	\item \lstinline[style=bash,morekeywords={make}]{make Hubbard_Plain_Vanilla ana}
-	\item \lstinline[style=bash,morekeywords={cp}]{cp -r ./Scripts_and_Parameters_files/Start ./Run && cd ./Run/}
-	\item \lstinline[style=bash,morekeywords={}]{$ALF_DIR/Prog/ALF.out}
-	\item \lstinline[style=bash,morekeywords={}]{$ALF_DIR/Analysis/ana.out Ener_scal}
-	\item \lstinline[style=bash,morekeywords={}]{cat Ener_scalJ}
-\end{itemize}
+
+\vspace{-\baselineskip}
+\begin{lstlisting}[style=bash,escapechar=\#]
+
+sudo apt-get update
+sudo apt-get install gfortran liblapack-dev python3 make git
+git clone -b #\ALFbranch#https://git.physik.uni-wuerzburg.de/ALF/ALF.git
+cd ALF
+source configure.sh GNU noMPI
+make clean
+make
+cp -r ./Scripts_and_Parameters_files/Start ./Run && cd ./Run/
+$ALF_DIR/Prog/ALF.out
+$ALF_DIR/Analysis/ana.out Ener_scal
+cat Ener_scalJ
+\end{lstlisting}
 The last command will output a few lines, including one similar to:
 \begin{lstlisting}[style=bash]
-OBS :    1      -30.009191      0.110961
+          1 -0.29821914139694449E+002  0.13032001866398857E+000
 \end{lstlisting}
 which is listing the internal energy of the system and its error.
 
@@ -105,15 +110,16 @@ Related auxiliary directories, object files and executables can be removed by ex
 \end{table}
 
 A suite of tests for individual parts of the code (subroutines, functions, operations, etc.) is available at the directory \path{testsuite}. The tests can be run by executing the following sequence of commands (the script \path{configure.sh} sets environment variables as described above):
+
+\vspace{-\baselineskip}
 \begin{lstlisting}[style=bash,morekeywords={make,cmake,ctest}]
 
 source configure.sh GNU Devel noMPI
 make all
-cd testsuite
-cmake -E make_directory tests
-cd tests
+mkdir testsuite/tests
+cd testsuite/tests
 cmake ..
-cmake --build . --target all --config Release
+make
 ctest -VV -O log.txt
 \end{lstlisting}
 which will output test results and total success rate.

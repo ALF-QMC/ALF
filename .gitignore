@@ -4,6 +4,7 @@
 *.out
 *.a
 Prog/git.h
+Prog/git_status.h
 Prog/Hamiltonians_case.h
 Prog/Hamiltonians_interface.h
 Test_*

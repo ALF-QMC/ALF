@@ -135,6 +135,7 @@ Program Main
         use wrapul_mod
         use cgr1_mod
         use set_random
+        use iso8601_datetime_mod
 
 #ifdef MPI
         Use mpi
@@ -156,7 +157,7 @@ Program Main
         Integer :: Nwrap, NSweep, NBin, NBin_eff,Ltau, NSTM, NT, NT1, NVAR, LOBS_EN, LOBS_ST, NBC, NSW
         Integer :: NTAU, NTAU1
         Real(Kind=Kind(0.d0)) :: CPU_MAX
-        Character (len=64) :: file_seeds, file_para, file_dat, file_info, ham_name
+        Character (len=64) :: file_seeds, file_para, file_dat, file_info, file_git_info, ham_name
         Integer :: Seed_in
         Complex (Kind=Kind(0.d0)) , allocatable, dimension(:,:) :: Initial_field
 
@@ -325,6 +326,30 @@ Program Main
         !It will then deactivate the entanglement measurements, i.e., the user does not have to care about this
         call Init_Entanglement_replicas(Group_Comm)
 
+#if defined(TEMPERING)
+        write(file_info,'(A,I0,A)') "Temp_",igroup,"/info"
+        write(file_git_info,'(A,I0,A)') "Temp_",igroup,"/info_git"
+#else
+        file_info = "info"
+        file_git_info = "info_git"
+#endif
+
+#if defined(MPI)
+        if ( Irank_g == 0 ) then
+#endif
+           Open (Unit = 50,file=file_info,status="unknown",position="append")
+           write(50,*) "START TIME: " // iso8601_datetime()
+           close(50)
+#if defined(GIT)
+           Open (Unit=50, file=file_git_info, status="unknown", position="append")
+           write(50,*) "=================================="
+#include "git_status.h"
+           write(50,*) "=================================="
+           close(50)
+#endif
+#if defined(MPI)
+        endif
+#endif
 
 #ifdef MPI
 #ifdef PARALLEL_PARAMS
@@ -656,12 +681,6 @@ Program Main
           endif
          enddo
         endif
-
-#if defined(TEMPERING)
-        write(file_info,'(A,I0,A)') "Temp_",igroup,"/info"
-#else
-        file_info = "info"
-#endif
 
 #if defined(MPI)
         if ( Irank_g == 0 ) then
@@ -1164,16 +1183,12 @@ Program Main
 #if defined(MPI)
         If (Irank_g == 0 ) then
 #endif
+           Open (Unit=50,file=file_info, status="unknown", position="append")
            if ( abs(CPU_MAX) > Zero ) then
-#if defined(TEMPERING)
-              write(file_info,'(A,I0,A)') "Temp_",igroup,"/info"
-#else
-              file_info = "info"
-#endif
-              Open (Unit=50,file=file_info, status="unknown", position="append")
               Write(50,*)' Effective number of bins   : ', Nbin_eff
-              Close(50)
            endif
+           write(50,*)'FIN TIME: ' // iso8601_datetime()
+           Close(50)
 #if defined(MPI)
         endif
 #endif
