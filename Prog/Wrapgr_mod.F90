@@ -226,7 +226,7 @@ Contains
     Enddo
 
     m         = Nt_sequential_end
-    If ( N_Global_tau > 0 ) then 
+    If ( N_Global_tau > 0 ) then
        !if ( Nt_sequential_start >  Nt_sequential_end ) m = Nt_sequential_start
        Call Wrapgr_Random_update(GR,m,ntau1, PHASE, N_Global_tau )
     Endif
@@ -604,7 +604,7 @@ Contains
 !> direction=d --> You are visiting the time slices from tau = Ltrot   to tau = 1
 !>
 !> The routine calls
-!> Global_Langevin_move_tau(Flip_list, Flip_length,ntau)
+!> Global_MALA_move_tau(Flip_list, Flip_length,ntau)
 !> in the Hamiltonian module and then carries out the update
 !>
 !> On output
@@ -647,12 +647,10 @@ Contains
     Allocate ( Flip_list(Size(Op_V,1)), Flip_value(Size(Op_V,1)), Flip_value_st(Size(Op_V,1)) )
     Allocate ( Forces_old(Size(Op_V,1)), Forces_new(Size(Op_V,1)), Forces_0_old(Size(Op_V,1)), Forces_0_new(Size(Op_V,1)))
 
-!TODO: check if fields are continuous
-
     Do ng_c = 1,N_Global_tau_MALA
        Phase_st = Phase
        ! New configuration
-       Call ham%Global_Langevin_move_tau(Flip_list, Flip_length,ntau )
+       Call ham%Global_MALA_move_tau(Flip_list, Flip_length,ntau )
        !Write(6,*)  "Calling global move",  m, Flip_list(1), nsigma(Flip_list(1),ntau)
        ! Order the list
        Call wrapgr_sort(Flip_length,Flip_list)
@@ -822,14 +820,24 @@ Contains
   subroutine Wrapgr_sort_langevin(Flip_length,Flip_list)
 
     ! Arguments
-    Integer, INTENT(IN) :: Flip_length
+    Integer, INTENT(INOUT) :: Flip_length
     Integer, INTENT(INOUT), allocatable :: Flip_list(:)
     
     ! Local
     integer :: swaps            ! number of swaps made in one pass
     integer :: nc               ! loop variable
     integer :: temp, n          ! temporary holder for making swap
+    integer :: length
 
+    !Check if all fields are continuous and remove non-continuous fields from flip_list
+    length = 0
+    do nc = 1, Flip_length
+       if (Op_V(flip_list(nc),1)%type == 3) then
+          length = length + 1
+          flip_list(length) = flip_list(nc)
+       endif
+    enddo
+    flip_length = length
     
     if ( Flip_length == 1 ) return
     

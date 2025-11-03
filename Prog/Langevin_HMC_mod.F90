@@ -1011,24 +1011,26 @@
         Complex (Kind=Kind(0.d0)) :: Z(N_FL), Z1, g_loc, force
 
         force = cmplx(0.d0, 0.d0, kind(0.d0))
-        Z = cmplx(0.d0,0.d0,Kind(0.d0))
-        Do nf_eff = 1, N_Fl_eff
-           nf=Calc_FL_map(nf_eff)
-           do I = 1,size(OP_V(n,nf)%P,1)
-              do J = 1,size(OP_V(n,nf)%P,1)
-                 Z1 =  cmplx(0.d0,0.d0,Kind(0.d0))
-                 if ( I == J ) Z1 = cmplx(1.d0,0.d0,Kind(0.d0))
-                 Z(nf)  = Z(nf) +  Op_V(n,nf)%O(I,J) * ( Z1 - Gr(Op_V(n,nf)%P(J),Op_V(n,nf)%P(I), nf) )
+        If (Op_V(n,1)%type == 3) then
+           Z = cmplx(0.d0,0.d0,Kind(0.d0))
+           Do nf_eff = 1, N_Fl_eff
+              nf=Calc_FL_map(nf_eff)
+              do I = 1,size(OP_V(n,nf)%P,1)
+                 do J = 1,size(OP_V(n,nf)%P,1)
+                    Z1 =  cmplx(0.d0,0.d0,Kind(0.d0))
+                    if ( I == J ) Z1 = cmplx(1.d0,0.d0,Kind(0.d0))
+                    Z(nf)  = Z(nf) +  Op_V(n,nf)%O(I,J) * ( Z1 - Gr(Op_V(n,nf)%P(J),Op_V(n,nf)%P(I), nf) )
+                 Enddo
               Enddo
+              Z(nf)  = Z(nf) + Op_V(n,nf)%alpha
            Enddo
-           Z(nf)  = Z(nf) + Op_V(n,nf)%alpha
-        Enddo
-        if (reconstruction_needed) call ham%weight_reconstruction(Z)
-        Do nf = 1, N_Fl
-           g_loc = Op_V(n,nf)%g
-           if (Op_V(n,nf)%get_g_t_alloc() ) g_loc = Op_V(n,nf)%g_t(ntau)
-           force =  force - g_loc * Z(nf) * cmplx(real(N_SUN,Kind(0.d0)), 0.d0, Kind(0.d0))
-        Enddo
+           if (reconstruction_needed) call ham%weight_reconstruction(Z)
+           Do nf = 1, N_Fl
+              g_loc = Op_V(n,nf)%g
+              if (Op_V(n,nf)%get_g_t_alloc() ) g_loc = Op_V(n,nf)%g_t(ntau)
+              force =  force - g_loc * Z(nf) * cmplx(real(N_SUN,Kind(0.d0)), 0.d0, Kind(0.d0))
+           Enddo
+        endif
       
         calculate_Force = force
 

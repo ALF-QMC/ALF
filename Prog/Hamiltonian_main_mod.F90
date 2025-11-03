@@ -149,7 +149,7 @@
         procedure, nopass :: Pr_obs => Pr_obs_base
         procedure, nopass :: Init_obs => Init_obs_base
         procedure, nopass :: Global_move_tau => Global_move_tau_base
-        procedure, nopass :: Global_Langevin_move_tau => Global_Langevin_move_tau_base
+        procedure, nopass :: Global_MALA_move_tau => Global_MALA_move_tau_base
         procedure, nopass :: Hamiltonian_set_nsigma => Hamiltonian_set_nsigma_base
         procedure, nopass :: Overide_global_tau_sampling_parameters => Overide_global_tau_sampling_parameters_base
         procedure, nopass :: Global_move => Global_move_base
@@ -652,16 +652,31 @@
 !>  Note that Ndim = size(Op_V,1)
 !> \endverbatim
 !--------------------------------------------------------------------
-      Subroutine Global_Langevin_move_tau_base(Flip_list, Flip_length,ntau)
+      Subroutine Global_MALA_move_tau_base(Flip_list, Flip_length,ntau)
 
          Implicit none
          Integer                   , INTENT(OUT) :: Flip_list(:)
          Integer, INTENT(OUT) :: Flip_length
          Integer, INTENT(IN)  :: ntau
+
+         Logical, save              :: first_call=.True.
+         integer :: n
+      
+         Flip_length = size(flip_list,1)
+         do n = 1, Flip_length
+            flip_list(n) = n
+         enddo
+
+         If  (first_call)    then
+            write(output_unit,*)
+            write(output_unit,*) "ATTENTION:     Base implementation of Global_MALA_move_tau is being called!"
+            write(output_unit,*) "All fields of type 3 will be updated in the global tau MALA moves."
+            write(output_unit,*) "Suppressing further printouts of this message."
+            write(output_unit,*)
+            first_call=.false.
+         endif
          
-         write(error_unit, *) 'Global_Langevin_move_tau not implemented'
-         CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
-      end Subroutine Global_Langevin_move_tau_base
+      end Subroutine Global_MALA_move_tau_base
 
 !--------------------------------------------------------------------
 !> @author
@@ -689,10 +704,9 @@
 
          Logical, save              :: first_call=.True.
          
-         
          If  (first_call)    then
             write(output_unit,*)
-            write(output_unit,*) "ATTENTION:     Base implementation of Global_MALA_move is getting called!"
+            write(output_unit,*) "ATTENTION:     Base implementation of Global_MALA_move is being called!"
             write(output_unit,*) "All fields of type 3 will be updated in the global MALA moves."
             write(output_unit,*) "Suppressing further printouts of this message."
             write(output_unit,*)
@@ -813,8 +827,8 @@
              write(output_unit,*)
              write(output_unit,*) "ATTENTION:     Base implementation of Ham_Langevin_HMC_S0_single is being called!"
              write(output_unit,*) "This uses the subroutine Ham_Langevin_HMC_S0, which provides all bosonic forces."
-             write(output_unit,*) "Since Ham_Langevin_HMC_S0_single only requires one force, you might want to"
-             write(output_unit,*) "consider overwriting this routine according to the model in your Hamiltonian."
+             write(output_unit,*) "Since Ham_Langevin_HMC_S0_single only requires one force this might be inefficient."
+             write(output_unit,*) "Consider overwriting this routine according to the model in your Hamiltonian."
              write(output_unit,*) "Suppressing further printouts of this message."
              write(output_unit,*)
              first_call=.False.
