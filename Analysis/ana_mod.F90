@@ -1977,7 +1977,7 @@ Subroutine ana_local(name, sgn, bins_raw, Latt, Latt_unit)
       Type (Lattice)                        , intent(in) :: Latt
       Type (Unit_cell)                      , intent(in) :: Latt_unit
       Real    (Kind=Kind(0.d0))             , intent(in) :: dtau
-      Character (len=2)                     , intent(in) :: Channel
+      Character (len=*)                     , intent(in) :: Channel
 
       Integer :: Norb, Nunit, Ntau, Nbins
 

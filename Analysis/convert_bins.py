@@ -80,7 +80,7 @@ if __name__ == "__main__":
         ham_file = os.path.join(args.alfdir, 'Prog', ham_file_dict[ham_name])
         copy_parameters(directory, ham_file)
         print(f'Convert bins in folder "{os.path.abspath(directory)}"')
-        os.mkdir(os.path.join(directory, 'old_bins'))
+        os.makedirs(os.path.join(directory, 'old_bins'), exist_ok=True)
         for dir_content in os.listdir(path=directory):
             old_bins = []
             if dir_content.endswith('_scal'):
