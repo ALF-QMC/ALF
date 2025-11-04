@@ -749,7 +749,7 @@
              call read_attribute_double(loc_id, obj_name, attr_name, test_double, ierr)
              diff = abs(attr_value - test_double)
              if (diff > ZERO) then
-               write(error_unit,*) 'Error in test_attribute_double:', attr_name, ' = ', attr_value, '/=', test_double
+               write(error_unit,'(A, A, A, F0.6, A, F0.6)') 'Error in test_attribute_double:', attr_name, ' = ', attr_value, ' /= ', test_double
                Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
              endif
            endif
@@ -804,7 +804,7 @@
            else
              call read_attribute_int(loc_id, obj_name, attr_name, test_int, ierr)
              if (attr_value /= test_int) then
-               write(error_unit,*) 'Error in test_attribute_int:', attr_name, ' = ', attr_value, '/=', test_int
+               write(error_unit,'(A, A, A, I0, A, I0)') 'Error in test_attribute_int: ', attr_name, ' = ', attr_value, ' /= ', test_int
                Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
              endif
            endif
@@ -853,13 +853,15 @@
            CHARACTER(LEN=64) :: test_string
            
            call h5aexists_by_name_f(loc_id, obj_name, attr_name, attr_exists, ierr)
+           print*,'Testing attribute string:', attr_name
+           print*,'Supplied value:', trim(attr_value)
            
            if ( .not. attr_exists ) then
              call write_attribute_string(loc_id, obj_name, attr_name, attr_value, ierr)
            else
              call read_attribute_string(loc_id, obj_name, attr_name, test_string, ierr)
              if (trim(attr_value) /= trim(test_string)) then
-               write(error_unit,*) 'Error in test_attribute_string:', attr_name, ' = ', attr_value, '/=', test_string
+               write(error_unit,*) 'Error in test_attribute_string: ' // trim(attr_name) // ' = "' // trim(attr_value) // '" /= "' // trim(test_string)  // '"'
                Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
              endif
            endif

@@ -31,7 +31,13 @@ def copy_parameters(sim_dir, hamiltonian_file):
 
                 if isinstance(par['value'], bool):
                     val = int(par['value'])
-                f[groupname].attrs.create(par_name, val)
+                
+                if isinstance(val, str):
+                    f[groupname].attrs.create(
+                        par_name, val,
+                        dtype=h5py.string_dtype(encoding='ascii', length=len(val)))
+                else:
+                    f[groupname].attrs.create(par_name, val)
 
 
 def _get_arg_parser():
