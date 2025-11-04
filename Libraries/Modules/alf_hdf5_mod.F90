@@ -749,7 +749,11 @@
              call read_attribute_double(loc_id, obj_name, attr_name, test_double, ierr)
              diff = abs(attr_value - test_double)
              if (diff > ZERO) then
-               write(error_unit,*) 'Error in test_attribute_double:', attr_name, ' = ', attr_value, '/=', test_double
+               write(error_unit,'(A)') 'Error in test_attribute_double:'
+               write(error_unit,'(A)') '  Attribute name: "' // trim(attr_name) // '"'
+               write(error_unit,'(A, F0.6)') '  Supplied value: ' , attr_value
+                write(error_unit,'(A, F0.6)') '  Read value:     ' , test_double
+               write(error_unit,'(A, F0.6)') '  Difference = ', diff
                Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
              endif
            endif
@@ -804,7 +808,10 @@
            else
              call read_attribute_int(loc_id, obj_name, attr_name, test_int, ierr)
              if (attr_value /= test_int) then
-               write(error_unit,*) 'Error in test_attribute_int:', attr_name, ' = ', attr_value, '/=', test_int
+               write(error_unit,'(A)') 'Error in test_attribute_int:'
+               write(error_unit,'(A)') '  Attribute name: "' // trim(attr_name) // '"'
+               write(error_unit,'(A, I0)') '  Supplied value: ' , attr_value
+               write(error_unit,'(A, I0)') '  Read value:     ' , test_int
                Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
              endif
            endif
@@ -859,7 +866,10 @@
            else
              call read_attribute_string(loc_id, obj_name, attr_name, test_string, ierr)
              if (trim(attr_value) /= trim(test_string)) then
-               write(error_unit,*) 'Error in test_attribute_string:', attr_name, ' = ', attr_value, '/=', test_string
+               write(error_unit,*) 'Error in test_attribute_string:'
+               write(error_unit,*) '  Attribute name: "' // trim(attr_name) // '"'
+               write(error_unit,*) '  Supplied value: "' // trim(attr_value) // '"'
+               write(error_unit,*) '  Read value:     "' // trim(test_string) // '"'
                Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
              endif
            endif
@@ -914,7 +924,10 @@
            else
              call read_attribute_logical(loc_id, obj_name, attr_name, test_bool, ierr)
              if (attr_value .neqv. test_bool) then
-               write(error_unit,*) 'Error in test_attribute_logical:', attr_name, ' = ', attr_value, '/=', test_bool
+               write(error_unit,'(A)') 'Error in test_attribute_logical:'
+               write(error_unit,'(A, A, A)') '  Attribute name: "' // trim(attr_name) // '"'
+               write(error_unit,'(A,L1)') '  Supplied value: ', attr_value
+               write(error_unit,'(A,L1)') '  Read value:     ', test_bool
                Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
              endif
            endif

@@ -380,15 +380,19 @@
 
             INQUIRE (FILE=File1, EXIST=LCONF)
             INQUIRE (FILE=File1_h5, EXIST=LCONF_H5)
-#if defined HDF5
-            CALL h5open_f(ierr)
-            IF (LCONF) THEN
-               write(error_unit,*) "ERROR: Plain text configuration file confin_0 exists, even though program is compiled"
-               write(error_unit,*) "   with HDF5! You cannot mix up HDF5 runs with non-HDF5 runs, program aborted!"
+            IF (LCONF .and. LCONF_H5) THEN
+               write(error_unit,*) "ERROR: Both plain text configuration file confin_0 and HDF5 file confin_0.h5 exists."
+               write(error_unit,*) "   Delete one of them to remove ambiguity, program aborted!"
                CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
             ENDIF
+#if defined HDF5
+            CALL h5open_f(ierr)
             IF (LCONF_H5) THEN
                CALL this%read_conf_h5(FILE_TG_H5)
+            elseif (LCONF) THEN
+               write(error_unit,*) "WARNING: READING plain text configuration file confin_0 even though HDF5 support is compiled in."
+               write(error_unit,*) "   This feature is only for switching from plain text to HDF5, please do not mix up both formats!"
+               CALL this%read_conf(FILE_TG)
             ELSE
 #else
             IF (LCONF_H5) THEN
