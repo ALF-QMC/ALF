@@ -1,4 +1,4 @@
-# ALF #
+# ALF 2.6
 [![pipeline status](https://git.physik.uni-wuerzburg.de/fassaad/General_QMCT_code/badges/master/pipeline.svg)](https://git.physik.uni-wuerzburg.de/fassaad/General_QMCT_code/commits/master)
 [![coverage report](https://git.physik.uni-wuerzburg.de/fassaad/General_QMCT_code/badges/master/coverage.svg)](https://git.physik.uni-wuerzburg.de/fassaad/General_QMCT_code/commits/master)
 [![Documentation](https://img.shields.io/static/v1?label=Documentation&message=PDF)](Documentation/doc.pdf)
@@ -8,8 +8,9 @@
 **Project website: https://alf.physik.uni-wuerzburg.de/.**
 
 -> Interested contributors please check our [CONTRIBUTING.md](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/blob/master/CONTRIBUTING.md) guidelines.
+ 
+-> Check also the **development** version of ALF: [ALF dev](https://git.physik.uni-wuerzburg.de/ALF/ALF/).
 
--> This is the **development** version of ALF, the latest stable version is [ALF 2.5](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/tree/ALF-2.5/).
 
 ## Description
 

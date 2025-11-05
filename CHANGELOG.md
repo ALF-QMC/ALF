@@ -1,7 +1,7 @@
 # Log of backward compatibility changes and critical bugs
 
 ## ALF 2.6
-ALF 2.6  (to be) released on 2025-??-??
+ALF 2.6 released on 2025-11-05
 
 ### 2025-09-29 Renaming Delta_S0_global to Get_Delta_S0 global
 Author: J. Hofmann
