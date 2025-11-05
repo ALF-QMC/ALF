@@ -19,7 +19,7 @@ Merge request !204
 The lattice quantities `Norb` and `N_coord` were mistakenly mixed up in the HDF5 results file `data.h5`.
 This has been fixed and the script `Analysis/fix-latt.py` was added to repair existing result files.
 
-### 2024-02-01  Implement new  function  $ (F,A) = \int d \omega F(\omega) A(\omega)$ in the stochastic maxent.
+### 2024-02-01  Implement new  function  $(F,A) = \int d \omega F(\omega) A(\omega)$ in the stochastic maxent.
 Author:  F. Assaad
 Merge  request !196
 
