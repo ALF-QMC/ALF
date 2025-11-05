@@ -59,7 +59,6 @@ Module Wrapgr_mod
   INTERFACE wrapgr_sort
     MODULE PROCEDURE  wrapgr_sort_value, wrapgr_sort_langevin
   END INTERFACE
-
   
   !> Privat 
   Complex (Kind=Kind(0.d0)),  private, allocatable ::  GR_ST(:,:,:)
@@ -125,26 +124,24 @@ Contains
        CALL HOP_MOD_mmthl_m1(GR(:,:,nf), nf, ntau1 )
     Enddo
     Do n = Nt_sequential_start,Nt_sequential_end
-       if (Propose_MALA .and. Op_V(n,1)%type == 3) then
-          Gr_st = Gr
-          nsigma_st = nsigma%f(n,ntau1)
-          phase_st = Phase
-       endif
        Do nf_eff = 1, N_FL_eff
           nf=Calc_Fl_map(nf_eff)
-          HS_Field =  nsigma%f(n,ntau1) 
+          HS_Field =  nsigma%f(n,ntau1)
           N_type = 1
           Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),HS_Field,Ndim,N_Type,ntau1)
-          if (Propose_MALA .and. Op_V(n,1)%type == 3) then
-             Gr_st(:,:,nf) = Gr(:,:,nf)
-             N_type =  2
-             Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),HS_Field,Ndim,N_Type,ntau1)
-          endif
        enddo
        nf = 1
        T0_proposal       = 1.5D0
        T0_Proposal_ratio = 1.D0
        if (Propose_MALA .and. Op_V(n,nf)%type == 3) then
+          nsigma_st = nsigma%f(n,ntau1)
+          phase_st = Phase
+          Gr_st = Gr
+          N_type = 2
+          Do nf_eff = 1, N_FL_eff
+             nf=Calc_Fl_map(nf_eff)
+             Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),HS_Field,Ndim,N_Type,ntau1)
+          enddo
           force_old = calculate_force(n,ntau1,Gr)
           Call ham%Ham_Langevin_HMC_S0_single( force_0_old,n, ntau1)
           call Control_MALA_sequential(force_old, force_0_old)
@@ -173,9 +170,9 @@ Contains
              Call Upgrade2(GR,n,ntau1,PHASE,HS_new, Prev_Ratiotot, S0_ratio,T0_Proposal_ratio, Acc, mode )
              phase = Phase * Prev_Ratiotot/sqrt(Prev_Ratiotot*conjg(Prev_Ratiotot))
 
+             N_type =  2
              do nf_eff = 1,N_FL_eff
                 nf=Calc_Fl_map(nf_eff)
-                N_type =  2
                 Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),HS_Field,Ndim,N_Type,ntau1)
              enddo
 
@@ -271,7 +268,6 @@ Contains
     Complex (Kind=Kind(0.d0)) :: Prev_Ratiotot, HS_Field, HS_New
     Complex (Kind=Kind(0.d0)) :: force_old, force_new, phase_st, nsigma_st
     Real    (Kind=Kind(0.d0)) :: T0_proposal,  T0_Proposal_ratio,  S0_ratio
-    complex (kind=kind(0.d0)), allocatable :: Gr_tmp(:,:,:)
     real    (kind=kind(0.d0)) :: force_0_old, force_0_new, weight
     real    (kind=kind(0.d0)) :: delta_t_running_old, Xmax, Delta_t_running_new
     Character (Len=64)        :: Mode
@@ -292,9 +288,9 @@ Contains
     
     Do n =  Nt_sequential_end, Nt_sequential_start, -1
        if (Propose_MALA .and. Op_V(n,1)%type == 3) then
-          Gr_st = Gr
           nsigma_st = nsigma%f(n,ntau)
           phase_st = phase
+          force_old = calculate_force(n,ntau,Gr)
        endif
        N_type = 2
        nf = 1
@@ -308,7 +304,6 @@ Contains
        T0_proposal       = 1.5D0
        T0_Proposal_ratio = 1.D0
        if ( Propose_MALA .and. Op_V(n,nf)%type == 3)  then
-          force_old = calculate_force(n,ntau,Gr_st)
           Call ham%Ham_Langevin_HMC_S0_single( force_0_old, n,ntau)
           call Control_MALA_sequential(force_old, force_0_old)
           Xmax = abs(dble(force_old))
@@ -336,7 +331,6 @@ Contains
              Call Upgrade2(GR,n,ntau,PHASE,HS_new, Prev_Ratiotot, S0_ratio,T0_Proposal_ratio, Acc, mode )
              phase = Phase * Prev_Ratiotot/sqrt(Prev_Ratiotot*conjg(Prev_Ratiotot))
 
-             Gr_tmp = Gr
              N_type = 2
              do nf_eff = 1,N_FL_eff
                 nf=Calc_Fl_map(nf_eff)
@@ -360,7 +354,10 @@ Contains
              if (weight > ranf_wrap()) then
                 acc = .true.
                 N_type = 2
-                Gr = Gr_tmp
+                do nf_eff = 1,N_FL_eff
+                   nf=Calc_Fl_map(nf_eff)
+                   Call Op_Wrapdo( Gr(:,:,nf), Op_V(n,nf), HS_Field, Ndim, N_Type,ntau)
+                enddo
              else
                 acc = .false.
                 nsigma%f(n,ntau) = nsigma_st
