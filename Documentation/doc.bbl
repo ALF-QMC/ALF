@@ -706,6 +706,16 @@ K.~S.~D. {Beach},
 \newblock eprint arXiv:cond-mat/0403055  (2004),
 \newblock \eprint{https://arxiv.org/abs/cond-mat/0403055}.
 
+\bibitem{Jarrell96}
+M.~Jarrell and J.~Gubernatis,
+\newblock \emph{Bayesian inference and the analytic continuation of
+  imaginary-time quantum monte carlo data},
+\newblock Physics Reports \textbf{269}, 133 (1996).
+
+\bibitem{Linden95}
+W.~von~der Linden,
+\newblock Applied Physics A \textbf{60}, 155 (1995).
+
 \bibitem{Fye86}
 R.~M. Fye,
 \newblock \emph{New results on trotter-like approximations},
@@ -1096,16 +1106,6 @@ M.~Weber, F.~F. Assaad and M.~Hohenadler,
   interactions},
 \newblock Phys. Rev. Lett. \textbf{119}, 097401 (2017),
 \newblock \doi{10.1103/PhysRevLett.119.097401}.
-
-\bibitem{Jarrell96}
-M.~Jarrell and J.~Gubernatis,
-\newblock \emph{Bayesian inference and the analytic continuation of
-  imaginary-time quantum monte carlo data},
-\newblock Physics Reports \textbf{269}, 133 (1996).
-
-\bibitem{Linden95}
-W.~von~der Linden,
-\newblock Applied Physics A \textbf{60}, 155 (1995).
 
 \bibitem{Hauke16}
 P.~Hauke, M.~Heyl, L.~Tagliacozzo and P.~Zoller,

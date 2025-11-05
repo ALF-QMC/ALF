@@ -3,9 +3,9 @@
 OHAM = `./parse_ham.py --print_obj_list`
 
 OBJS = Hamiltonians/LRC_mod.o control_mod.o Fields_mod.o Operator_mod.o WaveFunction_mod.o observables_mod.o \
-	ContainerElementBase_mod.o DynamicMatrixArray_mod.o OpTTypes_mod.o OpT_time_dependent.o\
-	Predefined_Int_mod.o Predefined_Obs_mod.o Predefined_Latt_mod.o Predefined_Hop_mod.o  Predefined_Trial_mod.o \
+	ContainerElementBase_mod.o DynamicMatrixArray_mod.o OpTTypes_mod.o OpT_time_dependent.o \
 	Hamiltonian_main_mod.o QDRP_decompose_mod.o udv_state_mod.o Hop_mod.o UDV_WRAP_mod.o \
+	Predefined_Int_mod.o Predefined_Obs_mod.o Predefined_Latt_mod.o Predefined_Hop_mod.o  Predefined_Trial_mod.o \
 	wrapul_mod.o   cgr1_mod.o   wrapur_mod.o   cgr2_2_mod.o   upgrade_mod.o   Set_random_mod.o \
 	Global_mod.o Langevin_HMC_mod.o Wrapgr_mod.o tau_m_mod.o tau_p_mod.o \
 	main.o
