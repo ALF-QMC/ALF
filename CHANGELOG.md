@@ -38,7 +38,7 @@ Merge requests: !190 and !194
 3. There  is a  new  channel index  available P_PH for  single  particle  Green  functions  that are   particle-hole  symmetric. 
 
 
-### 2023-08-14    Hubbard  Stratonovich  fields  have be  updated  to  complex 
+### 2023-08-14 Hubbard Stratonovich fields have been updated to be complex
 
 Author:  F. Assaad
 Merge request !176 
