@@ -132,7 +132,7 @@ create_doc:
     - apt-get update
     - apt-get install -y diff-pdf-wx
     - cd Documentation
-    - if [ -f doc.pdf ]; then
+    - if [ -f "doc.pdf" ]; then
         cp doc.pdf doc_back.pdf
       fi
     - latexmk -pdf doc.tex
