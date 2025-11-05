@@ -140,9 +140,9 @@ Contains
           N_type = 2
           Do nf_eff = 1, N_FL_eff
              nf=Calc_Fl_map(nf_eff)
-             Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),HS_Field,Ndim,N_Type,ntau1)
+             Call Op_Wrapup(Gr_st(:,:,nf),Op_V(n,nf),HS_Field,Ndim,N_Type,ntau1)
           enddo
-          force_old = calculate_force(n,ntau1,Gr)
+          force_old = calculate_force(n,ntau1,Gr_st)
           Call ham%Ham_Langevin_HMC_S0_single( force_0_old,n, ntau1)
           call Control_MALA_sequential(force_old, force_0_old)
           Xmax = abs(dble(force_old))
@@ -163,62 +163,52 @@ Contains
           endif
        Endif
        If ( T0_proposal > ranf_wrap() ) Then
+          !Write(6,*) 'Hi', n, Op_V(n,nf)%type, T0_Proposal_ratio, S0_ratio
           if (Propose_MALA .and. Op_V(n,1)%type == 3) then
              mode = "Intermediate"
-             Prev_Ratiotot = cmplx(1.d0,0.d0,kind(0.d0))
-             Gr = Gr_st
-             Call Upgrade2(GR,n,ntau1,PHASE,HS_new, Prev_Ratiotot, S0_ratio,T0_Proposal_ratio, Acc, mode )
-             phase = Phase * Prev_Ratiotot/sqrt(Prev_Ratiotot*conjg(Prev_Ratiotot))
-
-             N_type =  2
-             do nf_eff = 1,N_FL_eff
-                nf=Calc_Fl_map(nf_eff)
-                Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),HS_Field,Ndim,N_Type,ntau1)
-             enddo
-
-             Call ham%Ham_Langevin_HMC_S0_single( force_0_new,n,ntau1)
-             force_new = calculate_force(n,ntau1,GR)
-             call Control_MALA_sequential(force_new, force_0_new)
-             Xmax = abs(dble(force_new))
-             if (abs(force_0_new) > Xmax) Xmax = abs(force_0_new)
-             Delta_t_running_new = Delta_t_MALA_sequential
-             if (Xmax > Max_Force_MALA_sequential) Delta_t_running_new = Max_Force_MALA_sequential*Delta_t_MALA_sequential/Xmax
-
-             t0_Proposal_ratio = sqrt(delta_t_running_old/Delta_t_running_new) * exp(-0.25d0/Delta_t_running_new * (Abs(nsigma_st - hs_new + &
-               & Delta_t_running_new*(force_0_new +  real( Phase*force_new,kind(0.d0)) / Real(Phase,kind(0.d0))) )**2) + 0.25d0/delta_t_running_old * ( &
-               & Abs(hs_new - nsigma_st + delta_t_running_old*(force_0_old + real( phase_st*force_old,kind(0.d0)) / Real(phase_st,kind(0.d0)))  )**2 ) )
-
-
-             weight = S0_ratio * T0_proposal_ratio * abs(  real(Phase_st * Prev_Ratiotot, kind=Kind(0.d0))/real(Phase_st,kind=Kind(0.d0)) )
-
-             if (weight > ranf_wrap()) then
-                acc = .true.
-             else
-                acc = .false.
-                nsigma%f(n,ntau1) = nsigma_st
-                Gr = Gr_st
-                phase = phase_st
-             endif
-
-             Call Control_upgrade(acc)
-             Call Control_upgrade_eff(acc)
-
           else
-             !Write(6,*) 'Hi', n, Op_V(n,nf)%type, T0_Proposal_ratio, S0_ratio
              mode = "Final"
-             Prev_Ratiotot = cmplx(1.d0,0.d0,kind(0.d0))
-             Call Upgrade2(GR,n,ntau1,PHASE,HS_new, Prev_Ratiotot, S0_ratio,T0_Proposal_ratio, Acc, mode )
           endif
+          Prev_Ratiotot = cmplx(1.d0,0.d0,kind(0.d0))
+          Call Upgrade2(GR,n,ntau1,PHASE,HS_new, Prev_Ratiotot, S0_ratio,T0_Proposal_ratio, Acc, mode )
        else
           toggle1 = .false.
           Call Control_upgrade_eff(toggle1)
        Endif
-       if (.not. (Propose_MALA .and. Op_V(n,1)%type == 3 .and. acc)) then
-          do nf_eff = 1,N_FL_eff
-             nf=Calc_Fl_map(nf_eff)
-             N_type =  2
-             Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),HS_Field,Ndim,N_Type,ntau1)
-          enddo
+       do nf_eff = 1,N_FL_eff
+          nf=Calc_Fl_map(nf_eff)
+          N_type =  2
+          Call Op_Wrapup(Gr(:,:,nf),Op_V(n,nf),HS_Field,Ndim,N_Type,ntau1)
+       enddo
+
+       if (Propose_MALA .and. Op_V(n,1)%type == 3) then
+          phase = Phase * Prev_Ratiotot/sqrt(Prev_Ratiotot*conjg(Prev_Ratiotot))
+          Call ham%Ham_Langevin_HMC_S0_single( force_0_new,n,ntau1)
+          force_new = calculate_force(n,ntau1,GR)
+          call Control_MALA_sequential(force_new, force_0_new)
+          Xmax = abs(dble(force_new))
+          if (abs(force_0_new) > Xmax) Xmax = abs(force_0_new)
+          Delta_t_running_new = Delta_t_MALA_sequential
+          if (Xmax > Max_Force_MALA_sequential) Delta_t_running_new = Max_Force_MALA_sequential*Delta_t_MALA_sequential/Xmax
+
+          t0_Proposal_ratio = sqrt(delta_t_running_old/Delta_t_running_new) * exp(-0.25d0/Delta_t_running_new * (Abs(nsigma_st - hs_new + &
+            & Delta_t_running_new*(force_0_new +  real( Phase*force_new,kind(0.d0)) / Real(Phase,kind(0.d0))) )**2) + 0.25d0/delta_t_running_old * ( &
+            & Abs(hs_new - nsigma_st + delta_t_running_old*(force_0_old + real( phase_st*force_old,kind(0.d0)) / Real(phase_st,kind(0.d0)))  )**2 ) )
+
+          weight = S0_ratio * T0_proposal_ratio * abs(  real(Phase_st * Prev_Ratiotot, kind=Kind(0.d0))/real(Phase_st,kind=Kind(0.d0)) )
+
+          if (weight > ranf_wrap()) then
+             acc = .true.
+          else
+             acc = .false.
+             nsigma%f(n,ntau1) = nsigma_st
+             Gr = Gr_st
+             phase = phase_st
+          endif
+
+          Call Control_upgrade(acc)
+          Call Control_upgrade_eff(acc)
+
        endif
     Enddo
 
