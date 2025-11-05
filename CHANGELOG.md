@@ -38,20 +38,20 @@ Merge requests: !190 and !194
 3. There  is a  new  channel index  available P_PH for  single  particle  Green  functions  that are   particle-hole  symmetric. 
 
 
-### 2023-08-14    Hubbard  Stratonovich  fields  have be  updated  to  complex 
+### 2023-08-14 Hubbard Stratonovich fields have been updated to be complex
 
 Author:  F. Assaad
 Merge request !176 
 #### Breaking changes 
 
-1. Fields\_mod.F90
-    1.  nsigma%f       is now complex    rather than real 
-    2.  nsigma%phi    is now complex    rather than real 
-2. Hamilton\_main\_mod.F90 
-      1. Hamiltonian\_set\_nsigma\_base(Initial\_field): Initial\_field  is  now complex  not  real 
-      2. Delta\_S0\_global\_base(Nsigma\_old): Nsigma\_old  is  complex  rather  than real 
-      3.  S0\_base(n,nt,Hs\_new) : Hs\_new is  now  complex rather  than real
-      4. Global\_move\_tau\_base :  The array Flip\_value is  now  a  complex one-dimensional array.     
+1. `Fields\_mod.F90`
+    1.  `sigma%f`       is now complex    rather than real 
+    2.  `nsigma%phi`    is now complex    rather than real 
+2. `Hamilton\_main\_mod.F90` 
+      1. `Hamiltonian\_set\_nsigma\_base(Initial\_field)`: `Initial\_field`  is  now complex, not  real 
+      2. `Delta\_S0\_global\_base(Nsigma\_old)`: `Nsigma\_old`  is  complex  rather  than real 
+      3. `S0\_base(n,nt,Hs\_new)` : `Hs\_new` is  now  complex rather  than real
+      4. `Global\_move\_tau\_base` : The array `Flip\_value` is  now  a  complex one-dimensional array
 
 
 
