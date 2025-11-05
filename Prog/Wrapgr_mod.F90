@@ -294,6 +294,7 @@ Contains
        T0_proposal       = 1.5D0
        T0_Proposal_ratio = 1.D0
        if ( Propose_MALA .and. Op_V(n,nf)%type == 3)  then
+          Gr_st = Gr
           Call ham%Ham_Langevin_HMC_S0_single( force_0_old, n,ntau)
           call Control_MALA_sequential(force_old, force_0_old)
           Xmax = abs(dble(force_old))
@@ -314,10 +315,9 @@ Contains
           endif
        Endif
        If ( T0_proposal > ranf_wrap() ) Then
+          Prev_Ratiotot = cmplx(1.d0,0.d0,kind(0.d0))
           if (Propose_MALA .and. Op_V(n,1)%type == 3) then
              mode = "Intermediate"
-             Prev_Ratiotot = cmplx(1.d0,0.d0,kind(0.d0))
-             Gr_st = Gr
              Call Upgrade2(GR,n,ntau,PHASE,HS_new, Prev_Ratiotot, S0_ratio,T0_Proposal_ratio, Acc, mode )
              phase = Phase * Prev_Ratiotot/sqrt(Prev_Ratiotot*conjg(Prev_Ratiotot))
 
@@ -360,7 +360,6 @@ Contains
 
           else
              mode = "Final"
-             Prev_Ratiotot = cmplx(1.d0,0.d0,kind(0.d0))
              Call Upgrade2(GR,n,ntau,PHASE,HS_new, Prev_Ratiotot, S0_ratio,T0_Proposal_ratio, Acc, mode )
           endif
        else
