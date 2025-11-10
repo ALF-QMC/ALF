@@ -111,7 +111,7 @@ contains
       pi = 3.1415927
       Zero = 1.D-8
       
-      A_F = sqrt(alpha_om_c/pi)* exp(-(om**2)*alpha_om_c)/2
+      A_F = 2.d0*sqrt(alpha_om_c/pi)* exp(-(om**2)*alpha_om_c)
       
       if ( abs(om) < zero ) then
           F_sigma_ph_c = A_F*beta/2.d0  
