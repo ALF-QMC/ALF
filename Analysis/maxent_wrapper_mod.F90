@@ -104,15 +104,29 @@ contains
 
      end function F_QFI_ph
      
-     Real (Kind=Kind(0.d0)) function F_QFI_ph_c(om, beta)
-      ! will improve
+     Real (Kind=Kind(0.d0)) function F_sigma_ph_c(om, beta, alpha_om_c)
       Implicit None
-      real (Kind=Kind(0.d0)) ::  om, beta
-      real (Kind=Kind(0.d0)) :: pi
+      real (Kind=Kind(0.d0)) ::  om, beta, alpha_om_c
+      real (Kind=Kind(0.d0)) :: pi, Zero, A_F
       pi = 3.1415927
-      F_QFI_ph_c = (4.d0/pi) * ( (exp(beta*om) - 1.d0)/( exp(beta*om) + 1.d0 ) )**2
+      Zero = 1.D-8
+      
+      if ( abs(alpha_om_c) < zero ) then
+          A_F =  1.d0
+       else
+          A_F = sqrt(pi/alpha_om_c)* exp(-(om**2)*alpha_om_c)
+       endif
+      
+      if ( abs(om) < zero ) then
+          F_sigma_ph_c = A_F*beta/2.d0  
+       else
+          F_sigma_ph_c = A_F * (1.d0 - exp(-beta*om) ) / (om *( 1.d0 + exp(-beta*om) ) )
+       endif
+          
+      
+      F_sigma_ph_c = (4.d0/pi) * ( (exp(beta*om) - 1.d0)/( exp(beta*om) + 1.d0 ) )**2
 
-     end function F_QFI_ph_c
+     end function F_sigma_ph_c
 
      Real (Kind=Kind(0.d0)) function Back_trans_ph(Aom, om, beta )
 
