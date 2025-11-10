@@ -111,20 +111,13 @@ contains
       pi = 3.1415927
       Zero = 1.D-8
       
-      if ( abs(alpha_om_c) < zero ) then
-          A_F =  1.d0
-       else
-          A_F = sqrt(alpha_om_c/pi)* exp(-(om**2)*alpha_om_c)
-       endif
+      A_F = 2.d0*sqrt(alpha_om_c/pi)* exp(-(om**2)*alpha_om_c)
       
       if ( abs(om) < zero ) then
           F_sigma_ph_c = A_F*beta/2.d0  
        else
           F_sigma_ph_c = A_F * (1.d0 - exp(-beta*om) ) / (om *( 1.d0 + exp(-beta*om) ) )
-       endif
-          
-      
-      F_sigma_ph_c = (4.d0/pi) * ( (exp(beta*om) - 1.d0)/( exp(beta*om) + 1.d0 ) )**2
+       endif      
 
      end function F_sigma_ph_c
 
