@@ -114,7 +114,7 @@ contains
       if ( abs(alpha_om_c) < zero ) then
           A_F =  1.d0
        else
-          A_F = sqrt(pi/alpha_om_c)* exp(-(om**2)*alpha_om_c)
+          A_F = sqrt(alpha_om_c/pi)* exp(-(om**2)*alpha_om_c)
        endif
       
       if ( abs(om) < zero ) then
