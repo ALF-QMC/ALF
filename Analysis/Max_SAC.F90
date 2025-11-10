@@ -146,7 +146,7 @@ Program MaxEnt_Wrapper
          Write(50, 14)  'Checkpoint' , Checkpoint
          Write(50, 12) "Bins",    NBins
          Write(50, 12) "Sweeps",  NSweeps
-         Write(50, 12) "alpha_om_c",  alpha_om_c
+         Write(50, 13) "alpha_om_c",  alpha_om_c
          Write(50, 12) "Warm",    Nwarm
          If (N_alpha <= 10 ) then
             Write(error_unit,*) 'Not enough temperatures: N_alpha has to be bigger than 10'
