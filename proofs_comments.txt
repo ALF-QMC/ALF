@@ -1,0 +1,109 @@
+
+We'd like to request the following changes:
+
+
+- <line> (when available):
+<change>
+
+
+- Update contact email (page 1) from
+ alf@physik.uni-wuerzburg.de
+to
+ tp1-alf@uni-wuerzburg.de
+
+- 267:
+update  pyALF  link from
+ https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/tree/ALF-2.3
+to
+ https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/tree/ALF-2.4
+
+- 275:
+update  Tutorial  link from
+ https://git.physik.uni-wuerzburg.de/ALF/ALF_Tutorial/-/tree/master/Tutorial-ALF-2.2
+to
+ https://git.physik.uni-wuerzburg.de/ALF/ALF_Tutorial/-/tree/master/Tutorial-ALF-2.4
+
+- page 21, Fig. 1, line 8:
+update   Langevin.py  link from
+ https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/blob/ALF-2.3/Scripts/Langevin.py
+to
+ https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/blob/ALF-2.4/Scripts/Langevin.py
+
+- 1454, 1455:
+update text and link from
+ https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/tree/ALF-2.3/
+to
+ https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/tree/ALF-2.4/
+
+- 1457:
+update  Tutorial  link from
+ https://git.physik.uni-wuerzburg.de/ALF/ALF_Tutorial/-/tree/master/Tutorial-ALF-2.2
+to
+ https://git.physik.uni-wuerzburg.de/ALF/ALF_Tutorial/-/tree/master/Tutorial-ALF-2.4
+
+- 1465:
+update  Tutorial  link from
+ https://git.physik.uni-wuerzburg.de/ALF/ALF_Tutorial/-/tree/master/Tutorial-ALF-2.2
+to
+ https://git.physik.uni-wuerzburg.de/ALF/ALF_Tutorial/-/tree/master/Tutorial-ALF-2.4
+
+- 1962:
+update  Hubbard_Plain_Vanilla.py  link from
+ https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/blob/ALF-2.3/Scripts/Hubbard_Plain_Vanilla.py
+to
+ https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/blob/ALF-2.4/Scripts/Hubbard_Plain_Vanilla.py
+
+- 2701:
+update  Hubbard_PAM.py  link from
+ https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/blob/ALF-2.3/Scripts/Hubbard_PAM.py 
+to
+ https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/blob/ALF-2.4/Scripts/Hubbard_PAM.py
+
+- page 85, Fig 8 caption, line 3:
+update  Hubbard_PAM.py  link from
+ https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/blob/ALF-2.3/Scripts/Hubbard_PAM.py 
+to
+ https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/blob/ALF-2.4/Scripts/Hubbard_PAM.py
+
+- 2729:
+update  tV_model.ipynb  link from
+ https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/blob/ALF-2.3/Notebooks/tV_model.ipynb
+to
+ https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/blob/ALF-2.4/Notebooks/tV_model.ipynb
+
+- page 88, Fig 9 caption, line 5:
+update  Kondo.py  link from
+  https://git.physik.uni-wuerzburg.de/ALF/ALF/-/blob/ALF-2.3/Documentation/Figures/Kondo/Kondo.py
+to
+ https://git.physik.uni-wuerzburg.de/ALF/ALF/-/blob/ALF-2.4/Documentation/Figures/Kondo/Kondo.py
+
+- 2839:
+update  LRC.py  link from
+ https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/blob/ALF-2.3/Scripts/LRC.py
+to
+ https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/blob/ALF-2.4/Scripts/LRC.py
+
+- 2949:
+update  Z2_Matter.py  link from
+ https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/blob/ALF-2.3/Scripts/Z2_Matter.py
+to
+ https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/blob/ALF-2.4/Scripts/Z2_Matter.py
+
+- 3097:
+update  pyALF  link from
+ https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/tree/ALF-2.3
+to
+ https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/tree/ALF-2.4
+
+- 3122:
+update the abbreviation
+ F.P.T
+to
+ FPT
+
+- 3219:
+update
+ Copyright © 2016-2022
+to
+ Copyright © 2016-2025
+
