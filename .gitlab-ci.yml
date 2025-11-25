@@ -3,39 +3,15 @@ variables:
 
 default:
   tags: [k8s]
-  cache:
-    key: HDF5-$MACHINE
-    untracked: true
-    paths:
-      - HDF5
-    policy: pull
 
 stages:
   - lint
-  - build_hdf5
   - build_doc
   - build
   - test
   - testbranch
   - test_vs_ed
   - memleaks
-
-.build_hdf5_template:
-  stage: build_hdf5
-  variables:
-    MACHINE: GNU
-  needs: []
-  script:
-    - ls HDF5
-    - du -sh HDF5
-    - . configure.sh $MACHINE noMPI HDF5
-    - du -sh HDF5
-  cache:
-    key: HDF5-$MACHINE
-    untracked: true
-    paths:
-      - HDF5
-    policy: pull-push
 
 .test_template:
   stage: test
@@ -44,10 +20,9 @@ stages:
     MODE: noMPI
   needs: []
   script:
-    - ls HDF5
     - . configure.sh $MACHINE $DEVEL $MODE $CONFIG_ARGS
     - echo $ALF_FC
-    - $ALF_FC -v
+    - $ALF_FC --version
     - make all
     - if echo "$MODE" | grep -iq -e "TEMPERING" -e "PARALLEL_PARAMS"; then
         cp -r Scripts_and_Parameters_files/Start_Tempering run;
@@ -154,11 +129,30 @@ create_doc:
     paths:
       - Documentation/doc.pdf
   script:
+    - apt-get update
+    - apt-get install -y diff-pdf-wx
     - cd Documentation
+    - cp doc.pdf doc_back.pdf
     - latexmk -pdf doc.tex
+    - |
+      if diff-pdf doc.pdf doc_back.pdf; then
+        echo "PDF already up to date."
+      else
+        if [ "$CI_COMMIT_REF_PROTECTED" = "true" ]; then
+          echo "Protected branch, do not update PDF"
+        else
+          echo "Updating PDF."
+          git config --global user.email "tp1-alf@uni-wuerzburg.de"
+          git config --global user.name "CI Bot"
+          git remote add gitlab_origin https://oauth2:$push_token@git.physik.uni-wuerzburg.de/$CI_PROJECT_PATH.git
+          git add "doc.pdf"
+          git commit -m "Update doc.pdf"
+          git push --push-option="ci.skip" gitlab_origin HEAD:$CI_COMMIT_BRANCH
+        fi
+      fi
 
 create_doxygen:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:buster-clang
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bookworm-buildd
   stage: build_doc
   needs: []
   artifacts:
@@ -171,7 +165,7 @@ create_doxygen:
       - doxygen doxygen/Doxyfile
 
 pages:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:buster-clang
+  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bookworm-buildd
   stage: build_doc
   script:
     - apt-get update && apt install -y doxygen graphviz
@@ -185,54 +179,13 @@ pages:
     - if: '$CI_COMMIT_BRANCH == "master"'
 
 
-build_hdf5_GNU-Buster:
-  extends: .build_hdf5_template
-  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/buster
-  needs: []
-build_hdf5_GNU-Bullseye:
-  extends: .build_hdf5_template
-  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bullseye
-  needs: [build_hdf5_GNU-Buster]
-build_hdf5_GNU-Bookworm:
-  extends: .build_hdf5_template
-  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bookworm
-  needs: [build_hdf5_GNU-Bullseye]
-
-build_hdf5_PGI-21-03:
-  extends: .build_hdf5_template
-  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bullseye-pgi-21-03
-  needs: []
-  variables:
-    MACHINE: PGI
-
-build_hdf5_Intel-21:
-  extends: .build_hdf5_template
-  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bullseye-intel
-  needs: []
-  variables:
-    MACHINE: INTEL
-build_hdf5_Intel-2024.2:
-  extends: .build_hdf5_template
-  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bookworm-intel-2024.2
-  needs: [build_hdf5_Intel-21]
-  variables:
-    MACHINE: INTEL
-
-build_hdf5_IntelLLVM:
-  extends: .build_hdf5_template
-  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bookworm-intel
-  needs: []
-  variables:
-    MACHINE: INTELLLVM
-
-
 test:
   extends: .test_template
   image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/$IMAGE_MINOR
   parallel:
     matrix:
       - MACHINE: GNU
-        IMAGE_MINOR: [buster, bullseye, bookworm]
+        IMAGE_MINOR: [bullseye, bookworm, trixie]
         MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
         DEVEL: ["", Devel]
         CONFIG_ARGS: ["", "HDF5"]

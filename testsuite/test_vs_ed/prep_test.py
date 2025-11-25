@@ -46,12 +46,6 @@ summarize:
   artifacts:
     paths:
       - $TEST_DIR
-  cache:
-    key: HDF5-$MACHINE
-    untracked: true
-    paths:
-      - HDF5
-    policy: pull
 
 .simulation_template:
   stage: simulation

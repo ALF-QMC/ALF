@@ -1,4 +1,4 @@
-% Copyright (c) 2020 The ALF project.
+% Copyright (c) 2020-2025 The ALF project.
 % This is a part of the ALF project documentation.
 % The ALF project documentation by the ALF contributors is licensed
 % under a Creative Commons Attribution-ShareAlike 4.0 International License.
@@ -103,7 +103,7 @@ Since we allow for a stochastic  generation of  the global move, it may very wel
 \label{sec:global_slice}
 %------------------------------------------------------------
 %  
-The code allows for global updates as well. The user must then provide two additional functions (see \texttt{Hamiltonian\_Hubbard\_include.h}): \texttt{Global\_move} and \texttt{Delta\_\-S0\_\-global( Nsigma\_old )}.   
+The code allows for global updates as well. The user must then provide two additional functions (see \texttt{Hamiltonian\_Hubbard\_include.h}): \texttt{Global\_move} and \texttt{Get\_\-Delta\_\-S0\_\-global( Nsigma\_old )}.   
 
 The subroutine  \texttt{Global\_move(T0\_Proposal\_ratio,nsigma\_old,size\_clust)}  proposes  a global move. 
 Its single input is the variable \texttt{nsigma\_old} of type \texttt{Field} (see Section~\ref{sec:fields}) that contains  the full  configuration $C$ stored in \texttt{nsigma\_old\%f(M\_V + M\_I, Ltrot)}.  On output, the new configuration $C'$, determined by the user,  is stored in the two-dimensional array \texttt{nsigma}, which is a global variable declared in the Hamiltonian module.
@@ -112,7 +112,7 @@ Since we allow for a stochastic  generation of  the global move, it may very wel
 The real-valued \texttt{size\_clust} gives the size of the proposed move $\left(\text{e.g.,} \tfrac{\text{Number of flipped spins}}{\text{Total number of spins}}\right)$. This is used to calculate the average sizes of proposed and accepted moves, which are printed in the \texttt{info} file. The variable \texttt{size\_clust} is not necessary for the simulation, but may help the user to estimate the effectiveness of the global update.
 
 In order to compute the acceptance-rejection ratio,  the user must also provide a function 
-\texttt{Delta\_\-S0}\texttt{\_\-global(nsigma\_old)} that computes the ratio $e^{-S_0(C')}/e^{-S_0(C)}$. Again, the configuration $C'$ is given by the field \texttt{nsigma}.
+\texttt{Get\_\-Delta\_\-S0}\texttt{\_\-global(nsigma\_old)} that computes the difference $\Delta S_0=S_0(C)-S_0(C')$. Again, the configuration $C'$ is given by the field \texttt{nsigma}.
 
 The variable \texttt{N\_Global} determines the number of global updates performed per sweep. Note that global updates are expensive, since they require a complete recalculation of the weight.
 % 

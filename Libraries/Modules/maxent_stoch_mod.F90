@@ -56,10 +56,14 @@ Module MaxEnt_stoch_mod
        Real (Kind=Kind(0.d0)), allocatable, private :: XQMC1(:)
        Integer, allocatable,  private ::  Phim1_func(:), Phi_func(:)
        
+       interface MaxEnt_stoch
+          module procedure MaxEnt_stoch_old, MaxEnt_stoch_ph_c
+       end interface
+       
        contains
 
 !--------------------------------------------------------------------
-         Subroutine MaxEnt_stoch(XQMC, Xtau, COV,Xmom1, XKER, Back_Trans_Aom, Beta_1, Alpha_tot,&
+         Subroutine MaxEnt_stoch_old(XQMC, Xtau, COV,Xmom1, XKER, Back_Trans_Aom, Beta_1, Alpha_tot,&
               & Ngamma_1, OM_ST, OM_EN, Ndis_1, Nsweeps, NBins, NWarm, F, Default_provided)
 
            Implicit None
@@ -389,7 +393,7 @@ Module MaxEnt_stoch_mod
                  om =  Om_st_1 + dble(nd-1)*Dom_spectral ! PhiM1(dble(nd)/dble(NDis)) HERE
                  Aom = Xn_m_tot(nd,ns) ! * Xmom1
                  Err = Xn_e_tot(nd,ns) ! * Xmom1
-                 write(66,2001) om, Back_Trans_Aom(Aom,Beta,om), Back_Trans_Aom(Err,Beta,om)
+                 write(66,2001) om, Back_Trans_Aom(Aom,om,Beta), Back_Trans_Aom(Err,om,Beta)
                  ! PhiM1(dble(nd)/dble(NDis)), Xn_m_tot(nd,ns)
               enddo
               Close(66)
@@ -416,8 +420,8 @@ Module MaxEnt_stoch_mod
                  om =  Om_st_1 +  dble(nd-1)*Dom_spectral  !  PhiM1(dble(nd)/dble(NDis)) HERE
                  Aom = Xn_m(nd) ! * Xmom1
                  Err = Xn_e(nd) ! * Xmom1
-                 Xn_m(nd) = Back_Trans_Aom(Aom,Beta,om)
-                 Xn_e(nd) = Back_Trans_Aom(Err,Beta,om)
+                 Xn_m(nd) = Back_Trans_Aom(Aom,om,Beta)
+                 Xn_e(nd) = Back_Trans_Aom(Err,om,Beta)
                  IF (Xn_m(nd) .gt. XMAX ) XMAX = Xn_m(nd)
               enddo
               do nd = 1,Ndis
@@ -447,7 +451,398 @@ Module MaxEnt_stoch_mod
 2005       format(F14.7,2x,F14.7,2x,F14.7,2x,F14.7,2x,F14.7)
 2003       format('Alpha, En_m, Acc ', F14.7,2x,F24.12,2x,F14.7,2x,F14.7,2x,F14.7)
            
-         end Subroutine MaxEnt_stoch
+         end Subroutine MaxEnt_stoch_old
+         
+!--------------------------------------------------------------------
+         Subroutine MaxEnt_stoch_ph_c(XQMC, Xtau, COV,Xmom1, XKER, Back_Trans_Aom, Beta_1, Alpha_tot,&
+              & Ngamma_1, OM_ST, OM_EN, Ndis_1, Nsweeps, NBins, NWarm, F, alpha_om_c, Default_provided)
+
+           Implicit None
+
+           Real (Kind=Kind(0.d0)), Dimension(:) :: XQMC, Xtau, Alpha_tot
+           Real (Kind=Kind(0.d0)), Dimension(:,:) :: COV
+           Real (Kind=Kind(0.d0)), Dimension(:),  Intent(In), allocatable,   optional :: Default_provided
+           Real (Kind=Kind(0.d0)), External :: XKER, Back_trans_Aom, F
+           Real (Kind=Kind(0.d0)) :: OM_ST, OM_EN, Beta_1, Xmom1, alpha_om_c, Err
+           Integer :: Nsweeps, NBins, Ngamma_1, Ndis_1, nw, nt1
+
+           ! Local
+           Integer NSims, ns, nb, nc, Nwarm, nalp1, nalp2, Nex, p_star, Ndis_table, &
+                & io_error, io_error1, i, n, nc1, nx
+           Real (Kind=Kind(0.d0)), Allocatable :: Xn_M_tot(:,:), En_M_tot(:), Xn_E_tot(:,:), En_E_tot(:), &
+                & Xn_tot(:,:,:), En_tot(:), Default(:)
+           Real (Kind=Kind(0.d0)), Allocatable :: G_Mean(:), Xn_m(:), Xn_e(:), Xn(:,:), Vhelp(:), Default_table(:), A(:)
+           Real (Kind=Kind(0.d0)) :: En_M, X, Alpha, Acc_1, Acc_2, En, DeltaE, Ratio
+           Real (Kind=Kind(0.d0)) :: Aom, om, XMAX, tau
+           Real (Kind=Kind(0.d0)) :: CPUT, F_A
+           Integer :: ICPU_1, ICPU_2, N_P_SEC
+           Character (64) :: File_root, File1, File_conf, File_Aom
+           Real (Kind=Kind(0.d0)), allocatable :: Xker_table(:,:), U(:,:), sigma(:)
+           ! Space for moments.
+           Real (Kind=Kind(0.d0)), allocatable:: Mom_M_tot(:,:), Mom_E_tot(:,:)
+           Real (Kind=Kind(0.d0)), allocatable ::  F_A_m(:), F_A_e(:)
+           
+
+           Pi        = acos(-1.d0)
+           NDis      = Ndis_1
+           DeltaXMAX = 0.01
+           delta     = 0.001
+           delta2    = delta*delta
+           Ngamma    = Ngamma_1
+           Beta      = Beta_1 ! Physical temperature for calculation of the kernel.
+           Ntau      = Size(xqmc,1)
+           NSims = Size(Alpha_tot,1)
+           Allocate (Xn_tot(Ngamma,2,NSims))
+           Allocate (En_m_tot(NSims), En_e_tot(NSims), En_tot(NSims) )
+           Allocate (F_A_m(NSims), F_A_e(NSims))
+           Allocate (Xn_m_tot(NDis,NSims), Xn_e_tot(NDis,NSims) )
+           Allocate (Mom_M_tot(4,Nsims), Mom_E_tot(4,Nsims) )
+           Allocate (Xn(Ngamma,2))
+           Allocate (Xn_m(NDis), Xn_e(NDis), A(Ndis) )
+           Om_st_1 = OM_st; Om_en_1 = OM_en
+           ! Setup table for the Kernel
+           Ndis_table   = 50000
+           Dx_table     =  1.d0 /dble(Ndis_table)
+           Dom_table    = (OM_EN_1 - OM_ST_1)/dble(Ndis_table)
+           Dom_spectral = (OM_EN_1 - OM_ST_1)/dble(Ndis)
+           Dx_spectral  = 1.d0/dble(Ndis)
+           Allocate ( Xker_table(Ntau, Ndis_table+1) )
+           Allocate ( Default_table(Ndis_table))
+           do nt = 1,Ntau
+              do nw = 1,Ndis_table+1
+                 tau = xtau(nt)
+                 Om = OM_st + dble(nw-1)*Dom_table
+                 Xker_table(nt,nw) = Xker(tau,om,beta)
+              enddo
+           enddo
+           ! Normalize  the  data
+           xqmc = xqmc / XMOM1
+           cov  = cov / ((XMOM1)**2)
+           ! Diagonalize the covariance
+           Allocate( U(ntau,ntau), Sigma(ntau), xqmc1(Ntau) )
+           Call Diag(cov,U,sigma)
+           do nt = 1,ntau
+              sigma(nt) = sqrt(sigma(nt))
+           enddo
+           xqmc1 = 0.d0
+           do nt1 = 1,ntau
+              do nt = 1,ntau
+                 xqmc1(nt1) = xqmc1(nt1) + xqmc(nt)*U(nt,nt1)
+              enddo
+              xqmc1(nt1) = xqmc1(nt1)/sigma(nt1)
+           enddo
+           ! Transform the Kernel
+           allocate ( Vhelp(Ntau) )
+           do nw = 1,Ndis_table
+              Vhelp = 0.d0
+              do nt1 = 1,Ntau
+                 Vhelp(nt1) = Vhelp(nt1) + dot_product(Xker_table(:, nw), U(:,nt1))
+              enddo
+              Xker_table(:, nw) = Vhelp/sigma
+           enddo
+           deallocate( U, Sigma )
+           Allocate ( G_Mean(Ntau) )
+           G_mean = 0.d0
+           ! write(6,*) ' There are ', Ngamma,' delta-functions for a spectrum'
+           
+           ! Setup  the  Default.
+           !D = Xmom1 / (Om_en_1 - Om_st_1)  !  Flat default with correct  sum-rule
+           allocate(Default(Ndis))
+           IF (.not.Present(Default_provided))  then 
+              Default  =  Xmom1 / (Om_en_1 - Om_st_1)  !  Flat default with correct  sum-rule
+           else
+              If (size(Default_provided,1) .ne. size(Default,1) )  then 
+                 write(error_unit,*) 'Default_provided in MaxEnt_stoch has wrong dimensions'
+                 CALL Terminate_on_error(ERROR_MAXENT,__FILE__,__LINE__)
+              endif
+              Default =  Default_provided
+           endif
+           Call Set_default_table(Default, Default_table, Xmom1)
+           Call Get_seed_Len(L_seed)
+           Allocate(Iseed_vec(L_seed))
+           Iseed_vec = 0
+           Call Ranset(Iseed_vec)
+           File_conf = "dump_conf"
+           File_Aom  = "dump_Aom"
+           Open(unit=41,file=File_conf,status='old',action='read', iostat=io_error)
+           Open(unit=42,file=File_Aom, status='old',action='read', iostat=io_error1)
+           If (io_error == 0 .and. io_error1 == 0 ) then
+              Nwarm = 0
+              read(41,*) (Iseed_vec(I), I = 1,size(Iseed_vec,1))
+              do ns = 1,Nsims
+                 do ng = 1,Ngamma
+                    read(41,*) Xn_tot(ng,1,ns), Xn_tot(ng,2,ns)
+                 enddo
+                 read(41,*) En_m_tot(ns), En_e_tot(ns), F_A_m(ns), F_A_e(ns)
+              enddo
+              read(42,*) nc
+              do ns = 1,Nsims
+                 do nd = 1,Ndis
+                    read(42,*) Xn_m_tot(nd,ns), Xn_e_tot(nd,ns)
+                 enddo
+              enddo
+              Open (Unit=44,File='Max_stoch_log', Status="unknown", position="append")
+              Write(44,*) 'Read from dump: nc = ', nc
+              close(44)
+           else
+              !Iseed is already set.
+              Do Ns = 1,NSims
+                 do ng = 1,NGamma 
+                    Xn_tot(ng,1,ns) = ranf_wrap()
+                    Xn_tot(ng,2,ns) = 1.d0/dble(Ngamma)
+                 enddo
+              enddo
+              Xn_m_tot = 0.d0
+              En_m_tot = 0.d0
+              Xn_e_tot = 0.d0
+              En_e_tot = 0.d0
+              F_A_m    = 0.d0
+              F_A_e    = 0.d0
+              nc = 0
+              Open (Unit=44,File='Max_stoch_log', Status="unknown", position="append")
+              Write(44,*) ' No dump data '
+              close(44)
+           endif
+           close(41)
+           close(42)
+           nc1 = 0
+           Mom_M_tot = 0.d0
+           Mom_E_tot = 0.d0
+           CALL SYSTEM_CLOCK(COUNT_RATE=N_P_SEC)
+           CALL SYSTEM_CLOCK(COUNT=ICPU_1)
+           ! Start Simulations.
+           do Nb = 1,Nbins
+              do ns = 1,NSims
+                 do ng = 1,Ngamma
+                    Xn(ng,1) = Xn_tot(ng,1,ns)
+                    Xn(ng,2) = Xn_tot(ng,2,ns)
+                 enddo
+                 Alpha = Alpha_tot(ns)
+                 Call MC(Xtau, Xker_table, Xn, Alpha, NSweeps, Xn_m, En, En_m, &
+                      & Acc_1, Acc_2 ) ! Just one bin
+                 do ng = 1,Ngamma
+                    Xn_tot(ng,1,ns) = Xn(ng,1)
+                    Xn_tot(ng,2,ns) = Xn(ng,2)
+                 enddo
+                 En_tot(ns) = En ! this is the energy of the configuration Xn_tot for simulation ns
+                 Open (Unit=44,File='Max_stoch_log', Status="unknown", position="append")
+                 Write(44,32003) 1.d0/Alpha, En_m, Acc_1, Acc_2
+                 close(44)
+                 if (nb.gt.nwarm) then
+                    if (ns.eq.1) nc = nc + 1
+                    
+                    !  Given   Xn_m  =  n(x) dx   with  x =  phi(om)  the  following  loop  sets:
+                    !  A(om)   =  n(phi(om)) * D (om )
+                    do nd = 1,NDis
+                       om = om_st_1 + dble(nd -1)*Dom_spectral
+                       nw = Int((om - OM_st_1)/dom_table) + 1    ! Index  for  default_table
+                       x  = Phi(om)
+                       nx = Int(x/Dx_spectral) +  1              ! Index  for box  n(x)
+                       A(nd)    = Xn_m(nx)*Default_table(nw)/Dx_spectral
+                    enddo
+                    Xn_m = A
+                    do  nd  =  1,Ndis
+                       Xn_m_tot(nd,ns) = Xn_m_tot(nd,ns) + Xn_m(nd)
+                       Xn_e_tot(nd,ns) = Xn_e_tot(nd,ns) + Xn_m(nd)*Xn_m(nd)
+                    enddo
+                    En_m_tot(ns) = En_m_tot(ns) + En_m
+                    En_e_tot(ns) = En_e_tot(ns) + En_m*En_m
+                    ! Compute  (F,A)
+                    F_A =  0.d0 
+                    do ng = 1,Ngamma
+                       F_A = F_A +   F(Phim1(Xn_tot(ng,1,ns)),beta,alpha_om_c) * Xn_tot(ng,2,Ns)
+                    enddo  
+                    F_A =  F_A *Xmom1
+                    F_A_m(ns) = F_A_m(ns) + F_A
+                    F_A_e(ns) = F_A_e(ns) + F_A*F_A
+                    ! End compute  (F,A)
+                    ! Compute moments
+                    if (ns.eq.1) nc1 = nc1 + 1
+                    do n = 1,Size(Mom_M_tot,1)
+                       x = 0.d0
+                       do ng = 1,Ngamma
+                          X = X + ( Phim1(Xn_tot(ng,1,ns))**(n-1) ) * Xn_tot(ng,2,Ns)
+                       enddo
+                       Mom_M_tot(n,ns) = Mom_M_tot(n,ns) + X
+                       Mom_E_tot(n,ns) = Mom_E_tot(n,ns) + X*X
+                    enddo
+                 endif
+              enddo
+              ! Exchange
+              Acc_1 = 0.d0
+              Do Nex = 1, 2*NSims
+                 nalp1= nint( ranf_wrap()*dble(NSims-1) + 0.5 ) ! 1..(NSims-1)
+                 nalp2 = nalp1 + 1
+                 DeltaE = (Alpha_tot(nalp1)*En_tot(nalp2) + Alpha_tot(nalp2)*En_tot(nalp1))&
+                      & -(Alpha_tot(nalp1)*En_tot(nalp1) + Alpha_tot(nalp2)*En_tot(nalp2))
+                 Ratio = exp(-DeltaE)
+                 if (Ratio.gt.ranf_wrap()) Then
+                    Acc_1 = Acc_1 + 1.0
+                    !Switch confs an Energies.
+                    do ng = 1,Ngamma
+                       Xn(ng,1) = Xn_tot(ng,1,nalp1)
+                       Xn(ng,2) = Xn_tot(ng,2,nalp1)
+                    enddo
+                    do ng = 1,Ngamma
+                       Xn_tot(ng,1,nalp1) = Xn_tot(ng,1,nalp2)
+                       Xn_tot(ng,2,nalp1) = Xn_tot(ng,2,nalp2)
+                       Xn_tot(ng,1,nalp2) = Xn(ng,1)
+                       Xn_tot(ng,2,nalp2) = Xn(ng,2)
+                    enddo
+                    En_m = En_tot(nalp1)
+                    En_tot(nalp1) = En_tot(nalp2)
+                    En_tot(nalp2) = En_m
+                 endif
+              enddo
+              Acc_1 = Acc_1/dble(Nex)
+              Open (Unit=44,File='Max_stoch_log', Status="unknown", position="append")
+              Write(44,*) 'Acc Exchange: ', Acc_1
+              close(44)
+           enddo
+           CALL SYSTEM_CLOCK(COUNT=ICPU_2)
+           CPUT = 0.D0
+           CPUT = DBLE(ICPU_2 - ICPU_1)/DBLE(N_P_SEC)
+           Open (Unit=44,File='Max_stoch_log', Status="unknown", position="append")
+           Write(44,*) 'Total time: ', CPUT
+           close(44)
+           ! dump so as to restart.
+           Open(unit=41,file=File_conf,status='unknown')
+           Open(unit=42,file=File_Aom, status='unknown')
+           Call Ranget(Iseed_vec)
+           write(41,*) (Iseed_vec(I), I = 1,size(Iseed_vec,1))
+           do ns = 1,Nsims
+              do ng = 1,Ngamma
+                 write(41,*) Xn_tot(ng,1,ns), Xn_tot(ng,2,ns)
+              enddo
+              write(41,*) En_m_tot(ns), En_e_tot(ns), F_A_m(ns), F_A_e(ns)
+           enddo
+           write(42,*) nc
+           do ns = 1,Nsims
+              do nd = 1,Ndis
+                 write(42,*) Xn_m_tot(nd,ns), Xn_e_tot(nd,ns)
+              enddo
+           enddo
+           close(41)
+           close(42)
+           ! Stop dump
+           Open(Unit=66,File="energies",status="unknown")
+           Open(Unit=67,File="(F,A).dat",status="unknown")
+           do ns = 1,Nsims
+              En_m_tot(ns) = En_m_tot(ns) / dble(nc)
+              En_e_tot(ns) = En_e_tot(ns) / dble(nc)
+              En_e_tot(ns) = ( En_e_tot(ns) - En_m_tot(ns)**2)/dble(nc)
+              if ( En_e_tot(ns) .gt. 0.d0) then
+                 En_e_tot(ns) = sqrt(En_e_tot(ns))
+              else
+                 En_e_tot(ns) = 0.d0
+              endif
+              write(66,*) Alpha_tot(ns), En_m_tot(ns), En_e_tot(ns)
+
+              F_A_m(ns) = F_A_m(ns) / dble(nc)
+              F_A_e(ns) = F_A_e(ns) / dble(nc)
+              F_A_e(ns) = ( F_A_e(ns) -F_A_m(ns)**2)/dble(nc)
+              if ( F_A_e(ns) .gt. 0.d0) then
+                 F_A_e(ns) = sqrt(F_A_e(ns))
+              else
+                 F_A_e(ns) = 0.d0
+              endif
+              write(67,*) Alpha_tot(ns), F_A_m(ns), F_A_e(ns)
+           enddo
+           close(66)
+           close(67)
+           Open(Unit=66,File="moments",status="unknown")
+           do ns = 1,Nsims
+              do n = 1,Size(Mom_m_tot,1)
+                 Mom_m_tot(n,ns) = Mom_m_tot(n,ns) / dble(nc1)
+                 Mom_e_tot(n,ns) = Mom_e_tot(n,ns) / dble(nc1)
+                 Mom_e_tot(n,ns) = ( Mom_e_tot(n,ns) - Mom_m_tot(n,ns)**2)/dble(nc1)
+                 if ( Mom_e_tot(n,ns) .gt. 0.d0) then
+                    Mom_e_tot(n,ns) = sqrt(Mom_e_tot(n,ns))
+                 else
+                    Mom_e_tot(n,ns) = 0.d0
+                 endif
+              enddo
+              write(66,"(F12.6,2x,F12.6,2x,F12.6,2x,F12.6,2x,F12.6,2x,F12.6,2x,F12.6,2x,F12.6,2x,F12.6)") &
+                   & Alpha_tot(ns), Mom_m_tot(1,ns), Mom_e_tot(1,ns), &
+                   & Mom_m_tot(2,ns), Mom_e_tot(2,ns),Mom_m_tot(3,ns), Mom_e_tot(3,ns),  &
+                   & Mom_m_tot(4,ns), Mom_e_tot(4,ns) 
+           enddo
+           close(66)
+           File_root = "Aom"
+           do ns = 1,Nsims
+              File1 = File_i(File_root,ns)
+              Open(Unit=66,File=File1,status="unknown")
+              do nd = 1,Ndis
+                 Xn_m_tot(nd,ns) = Xn_m_tot(nd,ns) / dble(nc) ! * delta /(dble(nc)*pi)
+                 Xn_e_tot(nd,ns) = Xn_e_tot(nd,ns) / dble(nc) ! * delta /(dble(nc)*pi)
+                 Xn_e_tot(nd,ns) = (Xn_e_tot(nd,ns) - Xn_m_tot(nd,ns)* Xn_m_tot(nd,ns))/dble(nc)
+                 if (Xn_e_tot(nd,ns).gt.0.d0) then
+                    Xn_e_tot(nd,ns) = sqrt(Xn_e_tot(nd,ns))
+                 else
+                    Xn_e_tot(nd,ns) = 0.d0
+                 endif
+                 om =  Om_st_1 + dble(nd-1)*Dom_spectral ! PhiM1(dble(nd)/dble(NDis)) HERE
+                 Aom = Xn_m_tot(nd,ns) ! * Xmom1
+                 Err = Xn_e_tot(nd,ns) ! * Xmom1
+                 write(66,32001) om, Back_Trans_Aom(Aom,om,Beta), Back_Trans_Aom(Err,om,Beta)
+                 ! PhiM1(dble(nd)/dble(NDis)), Xn_m_tot(nd,ns)
+              enddo
+              Close(66)
+           enddo
+           ! Now do the averaging.
+           File_root ="Aom_ps"
+           do p_star = 1,NSims - 10
+              Xn_m = 0.0
+              Xn_e = 0.0
+              do ns = p_star, NSims-1
+                 do nd = 1, NDis
+                    Xn_m(nd) = Xn_m(nd) + (En_m_tot(ns) - En_m_tot(ns+1))*Xn_m_tot(nd,ns)
+                    Xn_e(nd) = Xn_e(nd) + (En_m_tot(ns) - En_m_tot(ns+1))*Xn_e_tot(nd,ns)
+                 enddo
+              enddo
+              do nd = 1,NDis
+                 Xn_m(nd) = Xn_m(nd) / (En_m_tot(p_star) - En_m_tot(NSims))
+                 Xn_e(nd) = Xn_e(nd) / (En_m_tot(p_star) - En_m_tot(NSims))
+              enddo
+              File1 = File_i(File_root,p_star)
+              Open(Unit=66,File=File1,status="unknown")
+              XMAX = 0.d0
+              Do nd = 1,Ndis
+                 om =  Om_st_1 +  dble(nd-1)*Dom_spectral  !  PhiM1(dble(nd)/dble(NDis)) HERE
+                 Aom = Xn_m(nd) ! * Xmom1
+                 Err = Xn_e(nd) ! * Xmom1
+                 Xn_m(nd) = Back_Trans_Aom(Aom,om,Beta)
+                 Xn_e(nd) = Back_Trans_Aom(Err,om,Beta)
+                 IF (Xn_m(nd) .gt. XMAX ) XMAX = Xn_m(nd)
+              enddo
+              do nd = 1,Ndis
+                 om =  Om_st_1 +  dble(nd-1)*Dom_spectral  !  PhiM1(dble(nd)/dble(NDis)) HERE
+                 write(66,32005) om, Xn_m(nd), Xn_e(nd), Xn_m(nd)/XMAX, Xn_e(nd)/XMAX
+                 ! PhiM1(dble(nd)/dble(NDis)), Xn_m(nd)
+              enddo
+              close(66)
+           enddo
+           Open (Unit=41,File='Best_fit', Status="unknown")
+           do ng = 1,Ngamma
+              Write(41,*) Phim1(Xn_tot(ng,1,Nsims)) , Xn_tot(ng,2,Nsims)
+           enddo
+           close(41)
+           Deallocate (Iseed_vec)
+           DeAllocate (Xn_tot)
+           DeAllocate (En_m_tot, En_e_tot, En_tot )
+           DeAllocate (Xn_m_tot, Xn_e_tot )
+           DeAllocate (F_A_e, F_A_m)
+           DeAllocate (Xn)
+           DeAllocate (Xn_m, Xn_e)
+           DeAllocate( G_Mean )
+           DeAllocate( xqmc1 )
+           Deallocate( Xker_table )
+32001       format(F14.7,2x,F14.7,2x,F14.7)
+!32004       format(F14.7,2x,F14.7,2x,F14.7,2x,F14.7)
+32005       format(F14.7,2x,F14.7,2x,F14.7,2x,F14.7,2x,F14.7)
+32003       format('Alpha, En_m, Acc ', F14.7,2x,F24.12,2x,F14.7,2x,F14.7,2x,F14.7)
+           
+         end Subroutine MaxEnt_stoch_ph_c
 !------------------------------------------------------------------------------------------------
 !        Sets various  tables  for  the  Default  model 
 !------------------------------------------------------------------------------------------------

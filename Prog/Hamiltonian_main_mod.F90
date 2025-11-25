@@ -153,6 +153,7 @@
         procedure, nopass :: Overide_global_tau_sampling_parameters => Overide_global_tau_sampling_parameters_base
         procedure, nopass :: Global_move => Global_move_base
         procedure, nopass :: Delta_S0_global => Delta_S0_global_base
+        procedure, nopass :: Get_Delta_S0_global => Get_Delta_S0_global_base
         procedure, nopass :: S0 => S0_base
         procedure, nopass :: Ham_Langevin_HMC_S0 => Ham_Langevin_HMC_S0_base
         procedure, nopass :: weight_reconstruction => weight_reconstruction_base
@@ -368,6 +369,47 @@
              endif
 
           end Function Delta_S0_global_base
+
+
+    !--------------------------------------------------------------------
+    !> @author
+    !> ALF Collaboration
+    !>
+    !> @brief
+    !> Computes the difference - S0(new) + S0(old)
+    !>
+    !> @details
+    !> This function computes the difference \verbatim Delta_S0 = -S0(nsigma) + S0(nsigma_old) \endverbatim
+    !> @param [IN] nsigma_old,  Type(Fields)
+    !> \verbatim
+    !>  Old configuration. The new configuration is stored in nsigma.
+    !> \endverbatim
+    !-------------------------------------------------------------------
+          Real (Kind=kind(0.d0)) Function Get_Delta_S0_global_base(Nsigma_old)
+
+             !  This function computes the difference:  -S0(nsigma) + S0(nsigma_old)
+             Implicit none
+
+             ! Arguments
+             Type (Fields),  INTENT(IN) :: nsigma_old
+
+             Logical, save              :: first_call=.True.
+             integer                    :: field_id, tau, Nfields, Ntau
+             Complex (kind=kind(0.0d0)) :: Hs_old
+
+             Get_Delta_S0_global_base = log(ham%Delta_S0_global(nsigma_old)) ! to avoid overflows we return the log of the ratio
+
+             if (first_call) then
+                write(output_unit,*)
+                write(output_unit,*) "ATTENTION:     The base implementation of Get_Delta_S0_global is used!"
+                write(output_unit,*) "NOTE: We are replacing Delta_S0_global by Get_Delta_S0_global to avoid overflows!"
+                write(output_unit,*) "Consider overwriting this NEW function which returns log(Delta_S0_global)."
+                write(output_unit,*) "Suppressing further printouts of this message."
+                write(output_unit,*)
+                first_call=.False.
+             endif
+
+          end Function Get_Delta_S0_global_base
 
 
     !--------------------------------------------------------------------

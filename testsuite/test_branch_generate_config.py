@@ -56,12 +56,6 @@ stages:
   artifacts:
     paths:
       - ALF_data
-  cache:
-    key: HDF5-$MACHINE
-    untracked: true
-    paths:
-      - HDF5
-    policy: pull
 
 .simulation_template:
   stage: simulation

@@ -63,7 +63,7 @@ Program MaxEnt_Wrapper
 
        Integer                :: Ngamma, Ndis,  NBins, NSweeps, Nwarm, N_alpha, N_cov
        Integer                :: N_skip, N_rebin, N_Back, N_auto, Norb
-       Real (Kind=Kind(0.d0)) :: OM_st, OM_en,  alpha_st, R, Tolerance
+       Real (Kind=Kind(0.d0)) :: OM_st, OM_en,  alpha_st, R, Tolerance, alpha_om_c
        Logical                :: Checkpoint,  Stochastic, Default_model_exists, Particle_channel_PH
        Character (Len=:), allocatable :: Channel
        Character (Len=1)      :: Char, Char1
@@ -80,7 +80,7 @@ Program MaxEnt_Wrapper
 
        NAMELIST /VAR_Max_Stoch/ Ngamma, Ndis,  NBins, NSweeps, Nwarm, N_alpha, &
             &                   OM_st, OM_en,  alpha_st, R,  Checkpoint, Tolerance, &
-            &                   Stochastic
+            &                   Stochastic, alpha_om_c
 
        NAMELIST /VAR_errors/    N_skip, N_rebin, N_cov,  N_Back, N_auto,  N_BZ_Zones,  Extended_Zone
 
@@ -89,6 +89,7 @@ Program MaxEnt_Wrapper
 #endif
 
        Stochastic = .true. !  This is  the  default
+       alpha_om_c = 1 ;
        open(unit=30,file='parameters',status='old',action='read', iostat=io_error)
        if (io_error.eq.0) then
           READ(30,NML=VAR_errors)
@@ -145,6 +146,7 @@ Program MaxEnt_Wrapper
          Write(50, 14)  'Checkpoint' , Checkpoint
          Write(50, 12) "Bins",    NBins
          Write(50, 12) "Sweeps",  NSweeps
+         Write(50, 13) "alpha_om_c",  alpha_om_c
          Write(50, 12) "Warm",    Nwarm
          If (N_alpha <= 10 ) then
             Write(error_unit,*) 'Not enough temperatures: N_alpha has to be bigger than 10'
@@ -163,7 +165,7 @@ Program MaxEnt_Wrapper
        Case ("PH", "PH_C")
           xmom1 = pi * xqmc(1)
        Case ("PP")
-          xmom1 = 2.d0* pi * xqmc(1)
+          xmom1 =  pi * (xqmc(1) + xqmc(ntau) )
        Case ("P")
           xmom1 =  pi * ( xqmc(1) + xqmc(ntau) )
           !  Remove the tau = beta point from the data since it is  correlated
@@ -238,9 +240,9 @@ Program MaxEnt_Wrapper
        Case ("PH_C")
           If  (Stochastic)  then
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_ph, Back_trans_pp, Beta, &
-                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, F, Default)
+                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, F_sigma_ph_c, alpha_om_c, Default)
              ! Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_ph_c, Back_Trans_ph_c, Beta, &
-                  ! &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, F_QFI_ph_c, Default)
+                  ! &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, F_sigma_ph_c, Default)
              ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
           else
              ! Call Set_Ker_classic(Xker_ph_c,Xker_classic,Om_st,Om_en,beta,xtau_st)
@@ -250,7 +252,7 @@ Program MaxEnt_Wrapper
        Case ("PP")
           If  (Stochastic) then
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_pp, Back_Trans_pp, Beta, &
-                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, F, Default)
+                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, F , Default)
              ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
           else
              Call Set_Ker_classic(Xker_pp,Xker_classic,Om_st,Om_en,beta,xtau_st)
@@ -419,23 +421,29 @@ Program MaxEnt_Wrapper
           om = xom(nw)
           do nwp = 1,Ndis
              omp = xom(nwp)
-             If  (str_to_upper(Channel) == "P_PH" .and.  omp > 0.00001d0  )  then 
+             If  (((str_to_upper(Channel) == "P_PH") .or. (str_to_upper(Channel) == "PH_C")) .and.  omp > 0.00001d0  )  then 
+               ! In this case A(om)  = A (-om) and om > 0
                Z = Z + A(nwp)/cmplx(  om -  omp, delta, kind(0.d0)) &
                    & + A(nwp)/cmplx(  om +  omp, delta, kind(0.d0)) 
+            elseif ( str_to_upper(Channel) == "PH" .and.  omp > 0.00001d0  ) then 
+               ! In this case S(q,-om)=  exp(-beta*om) S(q,om)   and om > 0 
+               Z = Z + A(nwp)/cmplx(  om -  omp, delta, kind(0.d0)) &
+                   & + A(nwp)*exp(-beta*om)/cmplx(  om +  omp, delta, kind(0.d0)) 
             else
+               ! No symmetry is used
                Z = Z + A(nwp)/cmplx( om -  omp, delta, kind(0.d0))
             endif
           enddo
           Z = Z * dom
-          x  = x  - Aimag(Z)/pi
-          x1 = x1 - om*Aimag(Z)/pi
-          x2 = x2 - om*om*Aimag(Z)/pi
           If (Test)   then 
+            x  = x  - Aimag(Z)/pi
+            x1 = x1 - om*Aimag(Z)/pi
+            x2 = x2 - om*om*Aimag(Z)/pi
             write(43,"('X',2x,F14.7,2x,F16.8,2x,F16.8,2x,F14.7,2x,F14.7,2x,F14.7)")  & 
-                & xom(nw), dble(Z), -Aimag(Z)/pi,  X*dom, x1*dom, x2*dom
+               & xom(nw), dble(Z), -Aimag(Z)/pi,  X*dom, x1*dom, x2*dom
           else
             write(43,"('X',2x,F14.7,2x,F16.8,2x,F16.8)")  & 
-                & xom(nw), dble(Z), -Aimag(Z)/pi
+               & xom(nw), dble(Z), -Aimag(Z)/pi
           endif   
        enddo
        close(43)

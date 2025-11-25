@@ -1,8 +1,5 @@
 hubbard_finT_chain:
   environments: &environments
-    Buster:
-      image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/pyalf-requirements/buster
-      variables: {MACHINE: GNU}
     Bullseye:
       image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/pyalf-requirements/bullseye
       variables: {MACHINE: GNU}
