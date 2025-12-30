@@ -1,0 +1,249 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+permissions:
+  contents: read
+  packages: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+
+jobs:
+  lint_stopcommands:
+    name: Lint Fortran STOP statements
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for forbidden STOP/ERROR STOP
+        run: |
+          set -euo pipefail
+          ! grep -irn -e "^\s*error\s*stop" -e "^\s*stop" --include="*.F90" \
+            --exclude-dir=Analysis --exclude-dir=HDF5 --exclude-dir=testsuite \
+            --exclude-dir=Not_supported --exclude="runtime_error_mod.F90" || {
+            echo "STOP/ERROR STOP found."; exit 1;
+          }
+
+  create_doc:
+    name: Build LaTeX documentation (doc.pdf)
+    runs-on: ubuntu-latest
+    needs: [lint_stopcommands]
+    container:
+      image: aergus/latex
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install diff-pdf (optional)
+        run: |
+          apt-get update
+          apt-get install -y diff-pdf-wx || true
+      - name: Build PDF with latexmk
+        working-directory: Documentation
+        run: |
+          set -euo pipefail
+          test -f doc.pdf && cp doc.pdf doc_back.pdf || true
+          latexmk -pdf doc.tex
+          if command -v diff-pdf >/dev/null 2>&1 && [ -f doc_back.pdf ]; then
+            diff-pdf doc.pdf doc_back.pdf || true
+          fi
+      - name: Upload doc.pdf artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: doc-pdf
+          path: Documentation/doc.pdf
+          if-no-files-found: error
+
+  create_doxygen:
+    name: Generate Doxygen HTML
+    runs-on: ubuntu-latest
+    needs: [lint_stopcommands]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install doxygen and graphviz
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y doxygen graphviz
+      - name: Run Doxygen
+        run: |
+          doxygen doxygen/Doxyfile
+      - name: Upload Doxygen HTML artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: doxygen-html
+          path: doxygen/html
+          if-no-files-found: error
+
+  deploy_pages:
+    name: Deploy GitHub Pages (master only)
+    runs-on: ubuntu-latest
+    needs: [create_doc, create_doxygen]
+    if: github.ref == 'refs/heads/master'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download Doxygen HTML
+        uses: actions/download-artifact@v4
+        with:
+          name: doxygen-html
+          path: public
+      - name: Download doc.pdf
+        uses: actions/download-artifact@v4
+        with:
+          name: doc-pdf
+          path: public
+      - name: Prepare Pages content
+        run: |
+          ls -la public | cat
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+      - name: Deploy to Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  # ======================
+  # Linux tests
+  # ======================
+
+  test_linux_gnu:
+    name: ${{ matrix.image_minor }} · ${{ matrix.mode }} · ${{ matrix.devel }} · ${{ matrix.config }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image_minor: [bullseye, bookworm, trixie]
+        mode: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
+        devel: ["", "Devel"]
+        config: ["", "HDF5"]
+    container:
+      image: ghcr.io/alf-qmc/alf-container/alf-requirements/${{ matrix.image_minor }}
+      options: --user 0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/alf_test
+        with:
+          args: GNU ${{ matrix.mode }} ${{ matrix.devel }} ${{ matrix.config }}
+
+  test_linux_gnu_openblas:
+    name: bullseye-openblas · ${{ matrix.devel }} · ${{ matrix.config }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        devel: ["", "Devel"]
+        config: ["", "HDF5"]
+    container:
+      image: ghcr.io/alf-qmc/alf-container/alf-requirements/bullseye-openblas
+      options: --user 0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/alf_test
+        with:
+          args: GNU ${{ matrix.mode }} ${{ matrix.devel }} ${{ matrix.config }}
+
+  test_linux_pgi:
+    name: bullseye-pgi-21-03 · ${{ matrix.mode }} · ${{ matrix.devel }} · ${{ matrix.config }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
+        devel: ["", "Devel"]
+        config: ["", "HDF5"]
+    container:
+      image: ghcr.io/alf-qmc/alf-container/alf-requirements/bullseye-pgi-21-03
+      options: --user 0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/alf_test
+        with:
+          with:
+          args: PGI ${{ matrix.mode }} ${{ matrix.devel }} ${{ matrix.config }}
+
+  test_linux_intel:
+    name: ${{ matrix.image_minor }} · ${{ matrix.mode }} · ${{ matrix.devel }} · ${{ matrix.config }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image_minor: [bullseye-intel, bookworm-intel-2024.2]
+        mode: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
+        devel: ["", "Devel"]
+        config: ["", "HDF5"]
+    container:
+      image: ghcr.io/alf-qmc/alf-container/alf-requirements/${{ matrix.image_minor }}
+      options: --user 0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/alf_test
+        with:
+          args: INTEL ${{ matrix.mode }} ${{ matrix.devel }} ${{ matrix.config }}
+
+  test_linux_intelllvm:
+    name: bookworm-intel · ${{ matrix.mode }} · ${{ matrix.devel }} · ${{ matrix.config }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
+        devel: ["", "Devel"]
+        config: ["", "HDF5"]
+    container:
+      image: ghcr.io/alf-qmc/alf-container/alf-requirements/bookworm-intel
+      options: --user 0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/alf_test
+        with:
+          args: INTELLLVM ${{ matrix.mode }} ${{ matrix.devel }} ${{ matrix.config }}
+
+  test_macos:
+    name: macOS · ${{ matrix.mode }} · ${{ matrix.devel }}
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
+        devel: ["", "Devel"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/alf_test
+        with:
+          args: GNU ${{ matrix.mode }} ${{ matrix.devel }} ${{ matrix.config }}
+
+  # ======================
+  # Valgrind
+  # ======================
+  valgrind_gnu_bullseye:
+    name: Valgrind GNU (bullseye)
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/alf-qmc/alf-container/alf-requirements/bullseye
+      options: --user 0
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Valgrind
+        shell: bash
+        run: |
+          apt-get update && apt-get install -y valgrind
+          . ./configure.sh GNU devel serial
+          gfortran -v
+          make lib
+          make program
+          cp Prog/ALF.out Scripts_and_Parameters_files/Start
+          cd Scripts_and_Parameters_files/Start
+          cat parameters
+          valgrind --leak-check=full --log-file=vglog.txt ./ALF.out
+          cat vglog.txt
+          grep lost vglog.txt | cut -d":" -f 2 | cut -d " " -f 2 | f=$(cat); echo $(( ${f//$'\n'/+} ))

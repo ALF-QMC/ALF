@@ -1,0 +1,59 @@
+name: "ALF Test Template"
+description: "General Test Template to be used in github actions for easy matrix workflows"
+inputs:
+  args:
+    description: "Arguments for configure.sh: MACHINE MODE CONFIG_ARGS"
+    type: string
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: macOS Toolchain install
+
+      if: runner.os == 'macOS'
+      shell: bash
+      run: |
+        brew update
+        brew install gcc cmake open-mpi
+        gcc_version=$(brew list --versions gcc | grep -o '[0-9]\+' | head -1)
+        bindir=$(brew --prefix)/bin
+        ln -fs ${bindir}/gfortran-${gcc_version} /usr/local/bin/gfortran
+        ln -fs ${bindir}/gcc-${gcc_version} /usr/local/bin/gcc
+        ln -fs ${bindir}/g++-${gcc_version} /usr/local/bin/g++
+
+    - name: Build & Test
+
+      shell: bash
+      env:
+        ARGS: ${{ inputs.args }}
+        OMPI_ALLOW_RUN_AS_ROOT: 1 # needed for mpi runnig as root, needed by github runner
+        OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
+      run: |
+        . ./configure.sh $ARGS
+        echo $ALF_FC
+        $ALF_FC --version
+        make all
+        if echo "$MODE" | grep -iq -e "TEMPERING" -e "PARALLEL_PARAMS"; then
+          cp -r Scripts_and_Parameters_files/Start_Tempering run
+        else
+          cp -r Scripts_and_Parameters_files/Start run
+        fi
+        cd run
+        if echo "$MODE" | grep -iq -e "serial" -e "noMPI"; then
+          "$ALF_DIR/Prog/ALF.out"
+        else
+          mpiexec -n 2 "$ALF_DIR/Prog/ALF.out" # only 2 cores available in githubs runners
+        fi
+        if echo "$MODE" | grep -iq -e "TEMPERING" -e "PARALLEL_PARAMS"; then cd Temp_0; fi
+        if echo "$CONFIG_ARGS" | grep -iq "HDF5"; then
+          "$ALF_DIR/Analysis/ana_hdf5.out"
+        else
+          "$ALF_DIR/Analysis/ana.out" *
+        fi
+        mkdir -p "$ALF_DIR/testsuite/tests"
+        cd "$ALF_DIR/testsuite/tests"
+        if echo "$ALF_FC" | grep -q "mpiifort -fc=ifx"; then exit 0; fi
+        cmake ..
+        cmake --build . --target all --config Release
+        ctest -VV -O log.txt
+        grep "tests passed" log.txt | cut -d " " -f 1
