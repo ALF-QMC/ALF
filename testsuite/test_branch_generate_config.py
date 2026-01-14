@@ -56,12 +56,6 @@ stages:
   artifacts:
     paths:
       - ALF_data
-  cache:
-    key: HDF5-$MACHINE
-    untracked: true
-    paths:
-      - HDF5
-    policy: pull
 
 .simulation_template:
   stage: simulation
@@ -133,8 +127,8 @@ Bookworm:
 Intel-2024.2:
     image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/pyalf-requirements/bookworm-intel-2024.2
     variables: {MACHINE: INTEL}
-IntelLLVM-2024.2:
-    image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/pyalf-requirements/bookworm-intel-2024.2
+IntelLLVM-Latest:
+    image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/pyalf-requirements/bookworm-intel
     variables: {MACHINE: INTELLLVM}
 PGI-21-03:
     image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/pyalf-requirements/bullseye-pgi-21-03

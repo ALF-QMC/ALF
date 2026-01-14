@@ -4,6 +4,7 @@
 *.out
 *.a
 Prog/git.h
+Prog/git_status.h
 Prog/Hamiltonians_case.h
 Prog/Hamiltonians_interface.h
 Test_*
@@ -13,3 +14,4 @@ Analysis/cov_tau_ph.F90
 HDF5/
 environment
 __pycache__/
+testsuite/tests/

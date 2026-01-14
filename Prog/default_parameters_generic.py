@@ -75,7 +75,14 @@ _PARAMS_GENERIC = OrderedDict([
                                 'into one.',
                      'value': 1},
          'N_skip': {'comment': 'Number of bins to be skipped.',
-                    'value': 1}}),
+                    'value': 1},
+         'N_BZ_Zones': {'comment': 'Number of Brillouin zones that will '
+                        'be covered if extended zone scheme is activated.',
+                        'value': 1},
+         'Extended_Zone': {'comment': 'If true carries out the fourier '
+                           'transform in the extened zone scheme.',
+                           'value': False},
+        }),
     ('VAR_TEMP',
         {'N_Tempering_frequency': {'comment': 'The frequency, in units '
                                               'of sweeps, at which the '
@@ -106,7 +113,7 @@ _PARAMS_GENERIC = OrderedDict([
          'Ngamma': {'comment': 'Number of Dirac delta-functions for '
                                'parametrization.',
                     'value': 400},
-         'Nwarm': {'comment': 'The Nwarm first bins will be ommitted.',
+         'Nwarm': {'comment': 'The Nwarm first bins will be omitted.',
                    'value': 20},
          'Om_en': {'comment': 'Frequency range upper bound.',
                    'value': 10.0},

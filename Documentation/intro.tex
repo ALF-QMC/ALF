@@ -60,7 +60,7 @@ The class of solvable models includes  Hamiltonians $\hat{\mathcal{H}}$ that hav
 \begin{align}
 \hat{\mathcal{H}}
 &=
-\hat{\mathcal{H}}_{T}+\hat{\mathcal{H}}_{V} +  \hat{\mathcal{H}}_{I} +   \hat{\mathcal{H}}_{0,I}\,,\;\text{where}
+\hat{\mathcal{H}}_{T}+\hat{\mathcal{H}}_{V} +  \hat{\mathcal{H}}_{I} +   \hat{\mathcal{H}}_{Q}  + \hat{\mathcal{H}}_{0,I}\,,\;\text{where}
 \label{eqn:general_ham}\\
 \hat{\mathcal{H}}_{T}
 &=
@@ -112,8 +112,7 @@ The class of solvable models includes  Hamiltonians $\hat{\mathcal{H}}$ that hav
 \right\}^{2} 
 \,.\label{eqn:general_ham_Q}
 \end{align}
-\fa{In light  of  the type 4  moves,  our    Hamiltonian is now  more   general.  This  does  make  things  more  complicated,  such  that we  may  want to 
-postpone  this  discussion just to  the   discussion of  the spin-Peierls  Hamiltonian. Or  we  could  include  this in  a   generalization of    $H_V$.   We  should  certainly   discuss  this. }
+
 The indices and symbols used above have the following meaning: 
 \begin{itemize}
 \item The number of fermion \emph{flavors} is set by $N_{\mathrm{fl}}$.  After the HS transformation, the action will be block diagonal in the flavor index. 
@@ -131,7 +130,7 @@ The indices and symbols used above have the following meaning:
 
 \end{itemize}
 The bosonic  part of the general Hamiltonian (\ref{eqn:general_ham}) is 
-$ \hat{\mathcal{H}}_{0,I}+ \hat{\mathcal{H}}_{I} + + \hat{\mathcal{H}}_{Q}, $ and  has the following properties:
+$ \hat{\mathcal{H}}_{0,I} $ and  has the following properties:
 \begin{itemize}
 \item $\hat{Z}_k$  couples to a general one-body term  and     $\hat{Q}_k$   to  a    two-body   operator. 
 We will work in a basis where these operators are  diagonal:  $\hat{Z}_k | \phi \rangle  =  \phi_k | \phi \rangle $,  
@@ -142,9 +141,9 @@ The  same applies  for  $\varphi_k$
 \item  The dynamics of the bosonic fields   is given by $\hat{\mathcal{H}}_{0,I}$. This term is not specified here; 
 it has to be specified by the user and becomes relevant when the Monte Carlo update probability is computed in the code
 \end{itemize}
-Note that the matrices  $\bm{T}^{(ks)}$,  $\bm{V}^{(ks)}$ and  $\bm{I}^{(ks)}$ explicitly depend on the flavor index $s$ but not on the color index $\sigma$. 
+Note that the matrices  $\bm{T}^{(ks)}$,  $\bm{V}^{(ks)}$, $\bm{\tilde{V}}^{(ks)}$ and  $\bm{I}^{(ks)}$ explicitly depend on the flavor index $s$ but not on the color index $\sigma$. 
 The color index $\sigma$ only appears in  the  second quantized operators such that the Hamiltonian is manifestly SU($N_{\mathrm{col}}$)  symmetric.  We also require
-the matrices $\bm{T}^{(ks)}$,  $\bm{V}^{(ks)}$ and  $\bm{I}^{(ks)}$  to be  Hermitian. 
+the matrices $\bm{T}^{(ks)}$,  $\bm{V}^{(ks)}$, $\bm{\tilde{V}}^{(ks)}$ and  $\bm{I}^{(ks)}$  to be  Hermitian.   In the  description of the code will drop  the $\cal{H}_Q$ term since it merely obscures the notation without adding any new aspects. This feature of the code will be used in the spin-Peierls Hamiltonian example \ref{Spin_Peierls.Sec}.
 
 %------------------------------------------------------------
 \subsection{Outline and What is new}
@@ -156,7 +155,7 @@ Its code is written in Fortran, according to the 2008 standard, and natively use
 In this documentation we aim to present in enough detail both the algorithm and its implementation to allow the user to confidently use and modify the program.
 
 In Sec.~\ref{sec:def}, we summarize the steps required to formulate the many-body, imaginary-time propagation in terms of a sum over HS and bosonic fields of one-body, imaginary-time propagators.   
-To simulate a model not already included in ALF, the user has to provide this one-body, imaginary-time propagator for a given configuration of HS and bosonic fields.  In this section we also touch on how to compute observables and on  how we deal with the negative sign problem.  Since version 2.0, ALF has a number of new updating schemes.   The package comes with  the possibility to  implement global updates in space and time or only in space; we provide parallel-tempering  and Langevin dynamics options; and it is possible to implement symmetric Trotter decompositions. At the end of the section we comment on the issue of stabilization for the finite temperature code. 
+To simulate a model not already included in ALF, the user has to provide this one-body, imaginary-time propagator for a given configuration of HS and bosonic fields.  In this section we also touch on how to compute observables and on  how we deal with the negative sign problem.  Since version 2.0, ALF has a number of new updating schemes.   The package comes with  the possibility to  implement global updates in space and time or only in space; we provide parallel-tempering, Langevin dynamics, Hybrid Monte Carlo options, and it is possible to implement symmetric Trotter decompositions. At the end of the section we comment on the issue of stabilization for the finite temperature code. 
 
 In Sec.~\ref{sec:defT0}, we describe the projective version of the algorithm, constructed to produce ground state properties. One can very easily switch between projective and finite temperature codes, but a trial wave function must be provided for the projective algorithm. 
 
@@ -175,10 +174,10 @@ The package has a set of predefined structures that allow easy reuse of lattices
 render ALF harder to modify. To circumvent this we make available an implementation of a plain vanilla Hubbard model on the square lattice (see Sec.~\ref{sec:vanilla}) that shows explicitly how to implement this basic model without making use of predefined structures.  We believe that this is a good starting point to modify a Hamiltonian from scratch, as exemplified in the package's \href{https://git.physik.uni-wuerzburg.de/ALF/ALF_Tutorial/-/blob/master/Tutorial-ALF-\tutALFver/}{Tutorial}. Yet another possible starting point is provided by the template Hamiltonian \path{Hamiltonian_##NAME##_smod.F90}
 
 Sec.~\ref{sec:predefined}   introduces the sets of predefined lattices,  hopping matrices,  interactions, observables and trial wave functions available.  The goal here is to provide a 
-library  so as to facilitate  implementation of new  Hamiltonians. 
+library  to facilitate  implementation of new  Hamiltonians. 
 
-The package comes with a set of Hamiltonians, described in Sec.~\ref{sec:model_classes}, which includes: (i) SU(N) Hubbard models, (ii) SU(N) t-V models, (iii) SU(N) Kondo lattice models, (iv)    Models with long ranged coulomb interactions, and (v) Generic $\Ztwo$ lattice gauge theories coupled to $\Ztwo$ matter and fermions.  These model classes are built on the predefined structures. 
+The package comes with a set of Hamiltonians, described in Sec.~\ref{sec:model_classes}, which includes: (i) SU(N) Hubbard models allowing pinning fields \cite{Assaad13}, (ii) SU(N) t-V models, (iii) SU(N) Kondo lattice models, (iv)    Models with long ranged coulomb interactions,  (v) Generic $\Ztwo$ lattice gauge theories coupled to $\Ztwo$ matter and fermions and (vi)  models with spin-Peierls interactions.  These model classes are built on the predefined structures. 
 
-In Sec.~\ref{sec:maxent}  we  describe how to use our implementation of the stochastic analytical  continuation \cite{Sandvik98,Beach04a}.
+In Sec.~\ref{sec:maxent}  we  describe how to use our implementation of the stochastic analytical  continuation \cite{Sandvik98,Beach04a} as well as the maximum entropy method \cite{Jarrell96,Linden95}. These methods allow one to obtain spectral functions from imaginary-time correlation functions measured in the QMC simulations.  One can switch between both methods by merely changing a parameter in the input file. 
 
 Finally, in Sec.~\ref{sec:con} we list a number of features being considered for  future releases of the ALF package.

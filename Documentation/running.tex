@@ -23,24 +23,29 @@ We start out by providing step-by-step instructions that allow a first-time user
 The aim of this section is to provide a fruitful and stress-free first contact with the package. Ideally, it should be possible to copy and paste the instructions below to a Debian/Ubuntu-based Linux shell without further thought\footnote{For other systems and distributions see the package's  \href{https://git.physik.uni-wuerzburg.de/ALF/ALF/-/blob/\ALFbranch/README.md}{README}.}. Explanations and further options and details are found in the remaining sections and in the \href{https://git.physik.uni-wuerzburg.de/ALF/ALF_Tutorial/-/blob/master/Tutorial-ALF-\tutALFver/}{Tutorial}.
 
 \textbf{Prerequisites}:
-You should have access to a shell and the permissions to install -- or have already installed -- the numerical packages Lapack and Blas, a Fortran compiler, Python, and the tools \texttt{make} and \texttt{git}. 
+You should have access to a shell and the permissions to install -- or have already installed -- the numerical packages Lapack and Blas, a Fortran compiler, Python, and the tools \texttt{make} and \texttt{git}.
+Alternatively, one could use \href{https://hub.docker.com/r/alfcollaboration/jupyter-pyalf-full}{this Docker image}, which has ALF, pyALF and a Jupyter server pre-installed.
 
 The following commands can be executed in a Debian-based shell\footnote{Avoid folder names containing spaces, which are not supported.} in order to install ALF~\ALFver{} and its dependencies, run a demonstration simulation and output one of the measurements performed:
-\begin{itemize}[itemsep=0pt]
-	\item \lstinline[style=bash,morekeywords={sudo}]{sudo apt-get update}
-	\item \lstinline[style=bash,morekeywords={sudo}]{sudo apt-get install gfortran liblapack-dev python3 make git}
-	\item \lstinline[style=bash]{git clone -b }\texttt{\ALFbranch}\lstinline[style=bash]{https://git.physik.uni-wuerzburg.de/ALF/ALF.git}
-	\item \lstinline[style=bash,morekeywords={cd}]{cd ALF}
-	\item \lstinline[style=bash,morekeywords={source}]{source configure.sh GNU noMPI}
-	\item \lstinline[style=bash,morekeywords={make}]{make Hubbard_Plain_Vanilla ana}
-	\item \lstinline[style=bash,morekeywords={cp}]{cp -r ./Scripts_and_Parameters_files/Start ./Run && cd ./Run/}
-	\item \lstinline[style=bash,morekeywords={}]{$ALF_DIR/Prog/ALF.out}
-	\item \lstinline[style=bash,morekeywords={}]{$ALF_DIR/Analysis/ana.out Ener_scal}
-	\item \lstinline[style=bash,morekeywords={}]{cat Ener_scalJ}
-\end{itemize}
+
+\vspace{-\baselineskip}
+\begin{lstlisting}[style=bash,escapechar=\#]
+
+sudo apt-get update
+sudo apt-get install gfortran liblapack-dev python3 make git
+git clone -b #\ALFbranch#https://git.physik.uni-wuerzburg.de/ALF/ALF.git
+cd ALF
+source configure.sh GNU noMPI
+make clean
+make
+cp -r ./Scripts_and_Parameters_files/Start ./Run && cd ./Run/
+$ALF_DIR/Prog/ALF.out
+$ALF_DIR/Analysis/ana.out Ener_scal
+cat Ener_scalJ
+\end{lstlisting}
 The last command will output a few lines, including one similar to:
 \begin{lstlisting}[style=bash]
-OBS :    1      -30.009191      0.110961
+          1 -0.29821914139694449E+002  0.13032001866398857E+000
 \end{lstlisting}
 which is listing the internal energy of the system and its error.
 
@@ -92,6 +97,12 @@ Related auxiliary directories, object files and executables can be removed by ex
 			\texttt{Devel}  &  Compile with additional flags for development and debugging\\
 			\texttt{HDF5}  &  Compile with HDF5 -- automatically downloads and installs HDF5 if not present\\
 			\texttt{NO-INTERACTIVE} & Do not ask for user confirmation during execution of this script\\
+			\vspace{7pt}\\
+			
+			\textbf{Environment Variables} & These are not arguments, but rather environment variables that will be recognized by \texttt{configure.sh}  \\\midrule
+			\texttt{ALF\_FLAGS\_EXT}  & Hand these additional flags to the compiler\\
+			\texttt{ALF\_HDF5\_DIR}  & ALF usually self-compiles HDF5 and stores the library in subdirectories of \texttt{ALF/HDF5},
+			                         this behavior can be changed by setting the environment variable \texttt{ALF\_HDF5\_DIR}\\
 			\bottomrule
 		\end{tabular}
 		\caption{Available arguments for the script \texttt{configure.sh}, called before compilation of the package: predefined machines, parallelization modes, and stabilization schemes (see also Sec.~\ref{sec:optimize}).} \label{table:configureHPC}
@@ -99,15 +110,16 @@ Related auxiliary directories, object files and executables can be removed by ex
 \end{table}
 
 A suite of tests for individual parts of the code (subroutines, functions, operations, etc.) is available at the directory \path{testsuite}. The tests can be run by executing the following sequence of commands (the script \path{configure.sh} sets environment variables as described above):
+
+\vspace{-\baselineskip}
 \begin{lstlisting}[style=bash,morekeywords={make,cmake,ctest}]
 
 source configure.sh GNU Devel noMPI
 make all
-cd testsuite
-cmake -E make_directory tests
-cd tests
+mkdir testsuite/tests
+cd testsuite/tests
 cmake ..
-cmake --build . --target all --config Release
+make
 ctest -VV -O log.txt
 \end{lstlisting}
 which will output test results and total success rate.
@@ -158,7 +170,7 @@ $ALF_DIR/Analysis/ana_hdf5.out <list of observables>
 \end{lstlisting}
 or run
 \begin{lstlisting}[style=bash]
-$ALF_DIR/Analysis/ana_hdf5.out *
+$ALF_DIR/Analysis/ana_hdf5.out
 \end{lstlisting}
 for all observables.
 
@@ -199,8 +211,13 @@ If the autocorrelation time  is smaller than the effective bin size, the error s
 		Output               &  \\\midrule
 		\texttt{X\_scalJ}    & Jackknife mean and error of \texttt{X}, where  \texttt{X} stands for \texttt{Kin, Pot, Part}, or \texttt{Ener}\\
 		\texttt{Y\_eqJR} and \texttt{Y\_eqJK} & Jackknife mean and error of \texttt{Y}, which stands for \texttt{Green, SpinZ, SpinXY}, or \texttt{Den}. The suffixes \texttt{R} and \texttt{K} refer to real and reciprocal space, respectively\\
+		\texttt{Y\_eq\_eJK} & Jackknife mean and error of \texttt{Y}, which stands for \texttt{Green, SpinZ, SpinXY}, or \texttt{Den}. The file contains the analysis in the extended zone scheme 
+		(See Eq.~\ref{eq:extended_zone})\\	
 		\texttt{Y\_R0/g\_R0} & Time-resolved and spatially local Jackknife mean and error of \texttt{Y}, where \texttt{Y} stands for \texttt{Green, SpinZ, SpinXY}, and \texttt{Den}\\
 		\texttt{Y\_kx\_ky/g\_kx\_ky} & Time resolved and $\vec{k}$-dependent Jackknife mean and error of \texttt{Y}, where \texttt{Y} stands for \texttt{Green, SpinZ, SpinXY}, and \texttt{Den}\\
+		\texttt{Y\_e\_kx\_ky/g\_kx\_ky} & Time resolved and $\vec{k}$-dependent Jackknife mean and error of \texttt{Y}, where \texttt{Y} stands for \texttt{Green, SpinZ, SpinXY}, and \texttt{Den}.
+		The file contains the analysis in the extended zone scheme 
+		(See Eq.~\ref{eq:extended_zone})\\
 		\texttt{Part\_scal\_Auto} & Autocorrelation functions $S_{\hat{O}}(t_{\textrm{Auto}})$ in the range $t_{\text{Auto}}=[0,\textrm{\path{N_auto}}]$ for the observable $\hat{O}$ \\\bottomrule
 	\end{tabular}
 	\caption{Standard input and output files of the error analysis program \texttt{ana.out}. \label{table:analysis_files}}
@@ -216,8 +233,22 @@ The analysis output files listed in Table \ref{table:analysis_files} and are for
 		OBS :  2    <mean(sign)>   <error(sign)>
 	\end{alltt} }
 	
-	\item For the equal-time correlation functions \texttt{Y}, the formatting of the output files \texttt{Y\_eqJR} and \texttt{Y\_eqJK} follows the structure:
+	\item For the equal-time correlation functions  in   real  space,  \texttt{Y}, the formatting of the output files \texttt{Y\_eqJR}  follows the structure:
 	{\small \begin{alltt}
+		do i = 1, N_unit_cell
+		   <r_x(i)>   <r_y(i)>
+		   do alpha = 1, N_orbital
+		      do beta  = 1, N_orbital
+		         alpha  beta  Re<mean(Y)>  Re<error(Y)>  Im<mean(Y)>  Im<error(Y)>
+		      enddo
+		   enddo
+		enddo
+	\end{alltt} }
+	where \texttt{Re} and \texttt{Im} refer to the real and imaginary part, respectively.   
+		
+	\item  The  format  for   equal  time  correlations in  Fourier  space  depends  upon    the   boolean  variable   \texttt{Extended\_Zone}.  
+	 For  \texttt{Extended\_Zone=.F.},   the  format  reads: 
+	 {\small \begin{alltt}
 		do i = 1, N_unit_cell
 		   <k_x(i)>   <k_y(i)>
 		   do alpha = 1, N_orbital
@@ -227,7 +258,28 @@ The analysis output files listed in Table \ref{table:analysis_files} and are for
 		   enddo
 		enddo
 	\end{alltt} }
-	where \texttt{Re} and \texttt{Im} refer to the real and imaginary part, respectively.
+	where \texttt{Re} and \texttt{Im} refer to the real and imaginary part, respectively.  The  Fourier   transformation  is   
+	defined  in Eq.~\ref{eq:fourier_transform}.  
+
+	For  \texttt{Extended\_Zone=.T.},   the  format  reads: 
+	 {\small \begin{alltt}
+		do n = 0, N_BZ_Zones -1 
+		   do m = 0, N_BZ_Zones 	-1
+		        do  i  =  1,N_unit_cell 
+		              <k_x(i) +  n b_1 + m b_2 >   <k_y(i) + n b_1 +  m b_2 >   & 
+		                     &    Re<mean(Y)>  Re<error(Y)>  Im<mean(Y)>  Im<error(Y)>
+		        enddo
+		   enddo
+		enddo
+	\end{alltt} }
+	In  this  case,  the  Fourier  transformation is    defined  as: 
+	\begin{equation}
+		S( \ve{k} +  n \ve{b}_1  + m \ve{b}_2)   =    \sum_{\alpha,\beta} e^{- i \left( \ve{k} +  n \ve{b}_1  + m \ve{b}_2 \right) \cdot   \left( \ve{r}_{\alpha} -  \ve{r}_{\beta} \right)  } S_{\alpha,\beta}(\ve{k} ).  
+		\label{eq:extended_zone}
+	\end{equation}   
+	The  positions  of  the orbitals, $\ve{r}_{\alpha}$  within the  unit  cell  are   read in from  the  file  \text{Y\_info},  $\ve{b}_1$, $\ve{b}_2$, are  the  
+	reciprocal lattice  vectors  and  the Fourier  transform is  defined in equation  Eq.~\ref{eq:fourier_transform}.
+	The naming of the output files equally depends upon the boolean variable \texttt{Extended\_Zone} (see table \ref{table:analysis_files}).
 	
 	\item The imaginary-time displaced correlation functions \texttt{Y} are written to the output files \texttt{g\_R0} inside folders \texttt{Y\_R0}, when measured locally in space; 
 	and to the output files \texttt{g\_kx\_ky} inside folders \texttt{Y\_kx\_ky} when they are measured $\vec{k}$-resolved (where $\vec{k}=(\texttt{kx}, \texttt{ky})$). 
@@ -239,7 +291,7 @@ The analysis output files listed in Table \ref{table:analysis_files} and are for
 		enddo
 	\end{alltt} }
 	where \texttt{Tr} corresponds to the trace over the orbital degrees of freedom.   For particle-hole quantities at finite temperature,  $\tau$ runs from 
-	$0$ to $\beta/2$.   In all other cases it runs from $0$ to $\beta$. 
+	$0$ to $\beta/2$.   In all other cases it runs from $0$ to $\beta$.     The  above  is  valid   for  \texttt{Extended\_Zone=.F.}.   If \texttt{Extended\_Zone=.T.} then   \texttt{Tr[Y] }    is  replaced by the  Fourier   transform in the  extended  zone  scheme  as   defined  above,   but  for time-displaced  correlation   functions. 
 	
 	\item The file  \texttt{Y\_tauJK}    contains the susceptibilities defined as: 
 	\begin{equation}
@@ -315,7 +367,7 @@ depending on the specific implementation of the library used\footnote{The linked
 \subsection{Parallel parameters feature} \label{sec:parallel_params}
 %-------------------------------------------------------------------------------------
 %
-With the compile-time option \verb|PARALLEL\_PARAMS| (or equivalently \verb|PP|), ALF can run multiple independent simulations in parallel. This feature is meant for utilizing the high core counts of modern HPC systems in cases where a normal job size might be overkill for a single simulation. The basic folder structure is the same as in Parallel Tempering, as sketched in Fig.~\ref{fig:parallel_params}: The root directory contains the files \verb|parameters|, \verb|seeds| and directories \verb|Temp_0| to \verb|Temp_{N-1}|, where $N$ is the number of parameter sets, i.e. different simulations. Contrary to Parallel Tempering, in Parallel Parameters mode only \verb|mpi_per_parameter_set| from the namelist \verb|VAR_TEMP| is read from \verb|./parameters|. This variable is defined as the number of availbale MPI processes divided by $N$. All the rest of the parameters are read from \verb|Temp_*/parameters|, which allows to simulate completely different parameters and even different Hamiltonians.
+With the compile-time option \verb|PARALLEL_PARAMS| (or equivalently \verb|PP|), ALF can run multiple independent simulations in parallel. This feature is meant for utilizing the high core counts of modern HPC systems in cases where a normal job size might be overkill for a single simulation. The basic folder structure is the same as in Parallel Tempering, as sketched in Fig.~\ref{fig:parallel_params}: The root directory contains the files \verb|parameters|, \verb|seeds| and directories \verb|Temp_0| to \verb|Temp_{N-1}|, where $N$ is the number of parameter sets, i.e. different simulations. Contrary to Parallel Tempering, in Parallel Parameters mode only \verb|mpi_per_parameter_set| from the namelist \verb|VAR_TEMP| is read from \verb|./parameters|. This variable is defined as the number of availbale MPI processes divided by $N$. All the rest of the parameters are read from \verb|Temp_*/parameters|, which allows to simulate completely different parameters and even different Hamiltonians.
 
 \begin{figure}
 \dirtree{%
@@ -329,3 +381,42 @@ With the compile-time option \verb|PARALLEL\_PARAMS| (or equivalently \verb|PP|)
 }
 \caption{Folder structure for a parallel parameters (or Parallel Tempering) simulation with 2 parameter sets.}\label{fig:parallel_params}
 \end{figure}
+
+
+%
+%-------------------------------------------------------------------------------------
+\subsection{Convert plain text bins to HDF5} \label{sec:convert_to_hdf5}
+%-------------------------------------------------------------------------------------
+%
+The Analysis folder also contains programs for converting plain text bins to HDF5, writing the bins from files ending in \verb|_scal|, \verb|_eq|, or \verb|_tau| to \verb|data.h5|, thereby reducing file sizes and increasing compatibility with pyALF.
+
+There are a number of scripts and program:
+\begin{itemize}
+	\item \verb|convert_scal.out|, \verb|convert_latt.out|, \verb|convert_local.out|: Writing the contents of a \verb|_scal| observable, a lattice type observables (that is \verb|_eq|, and \verb|_tau|), or a local observable (that is \verb|_local|, and \verb|_localtau|) to an HDF5 file. E.g. writing bins from \verb|some_obs_scal|, \verb|some_obs_eq|, \verb|some_obs_tau|, \verb|some_obs_local| and \verb|some_obs_localtau| to data.h5 is done by executing.
+	\vspace{-\baselineskip}
+	\begin{lstlisting}[style=bash]
+
+$ALF_DIR/Analysis/convert_scal.out some_obs_scal data.h5
+$ALF_DIR/Analysis/convert_latt.out some_obs_eq data.h5
+$ALF_DIR/Analysis/convert_latt.out some_obs_tau data.h5
+$ALF_DIR/Analysis/convert_local.out some_obs_local data.h5
+$ALF_DIR/Analysis/convert_local.out some_obs_localtau data.h5
+	\end{lstlisting}
+	\item \verb|convert_bins.py|: 
+	\begin{itemize}
+		\item Automatically combines file \verb|parameters| and the Hamiltonian used in the simulation to determine Hamiltonian-specific simulation parameters and write them into HDF5 file.
+		\item Calls \verb|convert_scal.out|, \verb|convert_latt.out|, and \verb|convert_local.out| for all observables.
+		\item Moves the original plain text bins to a subdirectory \verb|old_bins| or optionally removes them.
+	\end{itemize}
+	You can also get a help text by executing:
+	\begin{lstlisting}[style=bash]
+$ALF_DIR/Analysis/convert_bins.py --help
+	\end{lstlisting}
+	One can automatically convert a big number of simulations by executing,
+	\begin{lstlisting}[style=bash]
+find . -name "$ref" -execdir ${ALF_DIR}/Analysis/copy_parameters.py \;
+	\end{lstlisting}
+	where \verb|$ref| has to be the name of an observable produced by the simulation, e.g. \verb|Ener_scal|.
+	\item \verb|convert_batch.sh|: Executes the command above.
+\end{itemize}
+

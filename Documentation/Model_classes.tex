@@ -25,29 +25,37 @@ ham_T2    = 1.d0            ! For bilayer systems
 ham_U2    = 4.d0            ! For bilayer systems
 ham_Tperp = 1.d0            ! For bilayer systems
 Continuous  = .F.           ! For continuous HS decomposition
+ham_h0    = 0.d0            ! Pinning. Local magnetic field on site i=0, orbital=1
 /
                
 \end{lstlisting}
 In the above listing, \texttt{ham\_T} and \texttt{ham\_T2} correspond to the hopping in the first and second layers respectively and  \texttt{ham\_Tperp} is to the interlayer hopping.   The Hubbard $U$ term has an orbital index, \texttt{ham\_U}  for the first and \texttt{ham\_U2} for the second layers.  Finally,  \texttt{ham\_chem}  corresponds to the chemical potential.    If the flag \texttt{Mz} is set to \texttt{.False.}, then the code simulates the following SU(N) symmetric Hubbard model:
-\begin{multline}
-\hat{H} = \sum_{(\ve{i},\ve{\delta}), (\ve{j},\ve{\delta}')}  \sum_{\sigma =1}^{N}  T_{(\ve{i},\ve{\delta}), (\ve{j},\ve{\delta}')}    \hat{c}^{\dagger}_{(\ve{i},\ve{\delta}), \sigma }   e^{\frac{2 \pi i}{\Phi_0} \int_{\ve{i} + \ve{\delta}}^{\ve{j} + \ve{\delta}'}  
-     \vec{A}(\ve{l})  d \ve{l}} \hat{c}^{}_{(\ve{j},\ve{\delta}'),\sigma} \\
- + \sum_{\vec{i}} \sum_{\delta}   \frac{U_{\ve{\delta}} }{N} \left(\sum_{\sigma=1}^{N}  \left[   \hat{c}^{\dagger}_{(\vec{i},\ve{\delta}),\sigma } 
+\begin{align}
+\hat{H} =& \sum_{(\ve{i},\ve{\delta}), (\ve{j},\ve{\delta}')}  \sum_{\sigma =1}^{N}  T_{(\ve{i},\ve{\delta}), (\ve{j},\ve{\delta}')}    \hat{c}^{\dagger}_{(\ve{i},\ve{\delta}), \sigma }   e^{\frac{2 \pi i}{\Phi_0} \int_{\ve{i} + \ve{\delta}}^{\ve{j} + \ve{\delta}'}  
+     \vec{A}(\ve{l})  d \ve{l}} \hat{c}^{}_{(\ve{j},\ve{\delta}'),\sigma} \nonumber \\
+  & + \sum_{\vec{i}} \sum_{\delta}   \frac{U_{\ve{\delta}} }{N} \left(\sum_{\sigma=1}^{N}  \left[   \hat{c}^{\dagger}_{(\vec{i},\ve{\delta}),\sigma } 
     \hat{c}^{\phantom\dagger}_{(\vec{i}, \ve{\delta}),\sigma }  - 1/2  \right] \right)^2
-    - \mu \sum_{(\ve{i},\ve{\delta})}  \sum_{\sigma =1}^{N} \hat{c}^{\dagger}_{(\vec{i},\ve{\delta}),\sigma } \hat{c}^{\phantom\dagger}_{(\vec{i},\ve{\delta}),\sigma } .
-\end{multline}
-The generic hopping is taken from Eq.~\eqref{generic_hopping.eq}   with appropriate boundary conditions given by Eq.~\eqref{generic_boundary.eq}.  The index $\ve{i}$ runs over the unit cells, $\ve{\delta}$ over the orbitals in each unit cell and $\sigma$  from $1$ to $N$  and encodes the SU(N) symmetry.    Note that  $N$ corresponds to \texttt{N\_SUN}  in the code.  The flavor index is set to  unity such that it does not appear in the  Hamiltonian. The chemical potential $\mu$ is relevant only for the finite temperature code. 
+    - \mu \sum_{(\ve{i},\ve{\delta})}  \sum_{\sigma =1}^{N} \hat{c}^{\dagger}_{(\vec{i},\ve{\delta}),\sigma } \hat{c}^{\phantom\dagger}_{(\vec{i},\ve{\delta}),\sigma } \nonumber \\
+    &  + h_0 \left(\sum_{\sigma=1}^{N/2} \hat{c}^{\dagger}_{(\vec{0},\ve{1}),\sigma, 1}  \hat{c}^{}_{(\vec{0},\ve{1}),\sigma, 1}  -  \sum_{\sigma=N/2}^{N} \hat{c}^{\dagger}_{(\vec{0},\ve{1}),\sigma, 2}  \hat{c}^{}_{(\vec{0},\ve{1}),\sigma, 2} \right) .
+\end{align}
+The generic hopping is taken from Eq.~\eqref{generic_hopping.eq}   with appropriate boundary conditions given by Eq.~\eqref{generic_boundary.eq}.  The index $\ve{i}$ runs over the unit cells, $\ve{\delta}$ over the orbitals in each unit cell and $\sigma$  from $1$ to $N$  and encodes the SU(N) symmetry.    Note that  $N$ corresponds to \texttt{N\_SUN}  in the code.  The chemical potential $\mu$ is relevant only for the finite temperature code. Generically the flavor index is set to  unity.  However, if the pinning field, $h_0$, is  included, then the symmetry of the Hamiltonian is reduced from U(N) to U(N/2) $\times$ U(N/2). In this case, one 
+should set $N\_{\mathrm{fl}}=2$. 
+The term \texttt{ham\_h0}  accounts for a  local magnetic field at site $\ve{i}=0$ and orbital $\ve{\delta}=1$.
+This is useful to probe for e.g. long-ranged magnetic order as discussed in Ref.~\cite{Assaad13}.  Note that $N$ is required to be even if the pinning field is included. 
 
-If the variable \texttt{Mz} is set to \texttt{.True.}, then the code requires  \texttt{N\_SUN}  to be even and simulates the following Hamiltonian: 
+
+If the variable \texttt{Mz} is set to \texttt{.True.}, then the code equally requires  \texttt{N\_SUN}  to be even and simulates the following Hamiltonian: 
 \begin{align}
 \hat{H} =& \sum_{(\ve{i},\ve{\delta}), (\ve{j},\ve{\delta}')}  \sum_{\sigma =1}^{N/2}  \sum_{s=1,2} T_{(\ve{i},\ve{\delta}), (\ve{j},\ve{\delta}')}    \hat{c}^{\dagger}_{(\ve{i},\ve{\delta}), \sigma,s }   e^{\frac{2 \pi i}{\Phi_0} \int_{\ve{i} + \ve{\delta}}^{\ve{j} + \ve{\delta}'}  
      \vec{A}(\ve{l})  d \ve{l}} \hat{c}^{}_{(\ve{j},\ve{\delta}'),\sigma,s}     \nonumber   \\
     &- \sum_{\vec{i}} \sum_{\delta}   \frac{U_\delta}{N} \left(\sum_{\sigma=1}^{N/2}  \left[   \hat{c}^{\dagger}_{(\vec{i},\ve{\delta}),\sigma, 2} 
     \hat{c}^{\phantom\dagger}_{(\vec{i}, \ve{\delta}),\sigma,2 }  -  \hat{c}^{\dagger}_{(\vec{i},\ve{\delta}),\sigma, 1} 
     \hat{c}^{\phantom\dagger}_{(\vec{i}, \ve{\delta}),\sigma,1} \right] \right)^2  \nonumber \\
-    & - \mu \sum_{(\ve{i},\ve{\delta})}  \sum_{\sigma =1}^{N/2}  \sum_{s=1,2}\hat{c}^{\dagger}_{(\vec{i},\ve{\delta}),\sigma, s} \hat{c}^{\phantom\dagger}_{(\vec{i},\ve{\delta}),\sigma, s}.
+    & - \mu \sum_{(\ve{i},\ve{\delta})}  \sum_{\sigma =1}^{N/2}  \sum_{s=1,2}\hat{c}^{\dagger}_{(\vec{i},\ve{\delta}),\sigma, s} \hat{c}^{\phantom\dagger}_{(\vec{i},\ve{\delta}),\sigma, s} \nonumber \\
+    &  + h_0 \left(\sum_{\sigma=1}^{N/2} \hat{c}^{\dagger}_{(\vec{0},\ve{1}),\sigma, 1}  \hat{c}^{}_{(\vec{0},\ve{1}),\sigma, 1}  -  \sum_{\sigma=N/2}^{N} \hat{c}^{\dagger}_{(\vec{0},\ve{1}),\sigma, 2}  \hat{c}^{}_{(\vec{0},\ve{1}),\sigma, 2} \right) .
 \end{align}
-In this case, the flavor index \texttt{N\_FL}   takes the value 2. Cleary at $N=2$, both modes  correspond  to the Hubbard model.  For $N$  even and $N > 2$  the models differ.  In particular  in the latter  Hamiltonian the U(N) symmetry is broken down to  U(N/2) $\otimes$ U(N/2).  
+Note that if \texttt{Mz=.T.} then the code automatically sets  \texttt{N\_fl=2}. Cleary at $N=2$, both modes  correspond  to the Hubbard model.  For $N$  even and $N > 2$  the models differ.  In particular  in the latter  Hamiltonian the U(N) symmetry is broken down to  U(N/2) $\times$ U(N/2).  When $h_0 \neq 0$  a local pinning field is applied at site $\ve{i}=0$ and orbital $\ve{\delta}=1$  to break the U(N) symmetry explicitly.   This is useful to probe for e.g. long-ranged magnetic order as discussed in Ref.~\cite{Assaad13}.
+
 
 It the variable \texttt{Continuous=.T.}   then the code will use  the   generic  HS transformation: 
 \begin{equation}

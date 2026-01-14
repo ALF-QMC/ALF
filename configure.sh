@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck disable=SC2059
 # This script sets necessary environment variables for compiling ALF.
 # You need to source it prior to executing make.
 USAGE="usage 'source configure.sh MACHINE MODE STAB'
@@ -30,6 +31,9 @@ Further optional arguments:
                but instead return with value 1
 To hand an additional flag to the compiler, export it in the varible ALF_FLAGS_EXT prior to sourcing this script.
 
+ALF usually self-compiles HDF5 and stores the library in subdirectories of ALF/HDF5.
+This behavior can be changed by setting the environment variable ALF_HDF5_DIR.
+
 For more details check the documentation.\n"
 
 STABCONFIGURATION=""
@@ -37,14 +41,31 @@ STABCONFIGURATION=""
 
 export ALF_DIR="$PWD"
 
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+
+# Create temporary directory for various checks with temporary files to be run in parallel
+tmpdir=$(mktemp -d 2>/dev/null || mktemp -d -t 'tmpdir')
+printf "\n${GREEN}Temporary directory %s created${NC}\n" "$tmpdir"
+
 set_hdf5_flags()
 {
   CC="$1" FC="$2" CXX="$3"
   
-  $FC -o get_compiler_version.out get_compiler_version.F90
-  compiler_vers=$(./get_compiler_version.out | sed 's/[ ,()]/_/g')
+  $FC -o "$tmpdir/get_compiler_version.out" get_compiler_version.F90
+  compiler_vers=$("$tmpdir/get_compiler_version.out" | sed 's/[ ,()]/_/g')
   
-  HDF5_DIR="$ALF_DIR/HDF5/$compiler_vers"
+  H5_major=1
+  H5_minor=14
+  H5_patch=5
+  H5_suff=""
+  if [ -n "${ALF_HDF5_DIR+x}" ]; then
+    printf "\nUsing custom HDF5 directory '%s'\n" "${ALF_HDF5_DIR}"
+    HDF5_DIR="${ALF_HDF5_DIR}/${compiler_vers}"
+  else
+    HDF5_DIR="$ALF_DIR/HDF5/${compiler_vers}"
+  fi
   if [ ! -d "$HDF5_DIR" ]; then
     printf "\nHDF5 is not yet installed for compiler '%s'.\n" "$compiler_vers"
     printf "ALF does never use global HDF5 libraries, but installs it locally in subfolders of '%s/HDF5'.\n" "$ALF_DIR"
@@ -57,10 +78,12 @@ set_hdf5_flags()
     case "$yn" in
       y|Y|"")
         printf "${GREEN}Downloading and installing HDF5 in %s.${NC}\n" "$HDF5_DIR"
-        CC="$CC" FC="$FC" CXX="$CXX" HDF5_DIR="$HDF5_DIR" "$ALF_DIR/HDF5/install_hdf5.sh" || return 1
+        CC="$CC" FC="$FC" CXX="$CXX" HDF5_DIR="$HDF5_DIR" "$ALF_DIR/HDF5/install_hdf5.sh" ${H5_major} ${H5_minor} ${H5_patch} "${H5_suff}" || return 1
       ;;
       *) 
         printf "Skipping installation of HDF5.\n"
+        rm -r "$tmpdir"
+        printf "\n${GREEN}Temporary directory %s deleted${NC}\n" "$tmpdir"
         return 1
       ;;
     esac
@@ -81,18 +104,27 @@ check_libs()
     FC="$1" LIBS="$2"
     FC0="$(echo "$FC" | cut -f1 -d' ')"
     if command -v "$FC0" > /dev/null; then       # Compiler binary found
-        if sh -c "$FC check_libs.f90 $LIBS -o check_libs.out"; then  # Compiling with $LIBS is successful
-            ./check_libs.out || (
+        if sh -c "$FC check_libs.f90 $LIBS -o $tmpdir/check_libs.out"; then  # Compiling with $LIBS is successful
+            "$tmpdir/check_libs.out" || (
               printf "${RED}\n==== Error: Execution of test program using compiler <%s> ====${NC}\n" "$FC" 1>&2
               printf "${RED}==== and linear algebra libraries <%s> not successful. ====${NC}\n\n" "$LIBS" 1>&2
+              # script gets terminated, so remove tmpdir
+              rm -r "$tmpdir"
+              printf "\n${GREEN}Temporary directory %s deleted${NC}\n" "$tmpdir"
               return 1
               )
         else
             printf "${RED}\n==== Error: Linear algebra libraries <%s> not found. ====${NC}\n\n" "$LIBS" 1>&2
+              # script gets terminated, so remove tmpdir
+              rm -r "$tmpdir"
+              printf "\n${GREEN}Temporary directory %s deleted${NC}\n" "$tmpdir"
             return 1
         fi
     else
         printf "${RED}\n==== Error: Compiler <%s> not found. ====${NC}\n\n" "$FC" 1>&2
+        # script gets terminated, so remove tmpdir
+        rm -r "$tmpdir"
+        printf "\n${GREEN}Temporary directory %s deleted${NC}\n" "$tmpdir"
         return 1
     fi
 }
@@ -100,8 +132,8 @@ check_libs()
 check_python()
 {
     if ! command -v python3 > /dev/null; then
-	printf "${RED}\n==== Error: Python 3 not found. =====${NC}\n\n" 1>&2
-	return 1
+        printf "${RED}\n==== Error: Python 3 not found. =====${NC}\n\n" 1>&2
+        return 1
     fi
 }
 
@@ -118,6 +150,8 @@ find_mkl_flag()
     else
       INTELMKL="-mkl"
     fi
+  elif command -v ifx > /dev/null; then
+    INTELMKL="-qmkl"
   else 
     printf "${RED}\n==== Error: MKL only supported for ifort compiler. ====${NC}\n\n" "$FC" 1>&2
   fi
@@ -191,10 +225,6 @@ stabv=0
 HDF5_ENABLED=""
 NO_INTERACTIVE=""
 NO_FALLBACK=""
-
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-NC='\033[0m' # No Color
 
 while [ "$#" -gt "0" ]; do
   ARG="$(echo "$1" | tr '[:lower:]' '[:upper:]')"
@@ -353,12 +383,12 @@ case $MACHINE in
     F90OPTFLAGS="$INTELLLVMOPTFLAGS"
     F90USEFULFLAGS="$INTELLLVMUSEFULFLAGS"
     ALF_FC="$INTELLLVMCOMPILER"
-    find_mkl_flag || return 1
+    INTELMKL="-qmkl"
     LIB_BLAS_LAPACK="${INTELMKL}"
     if [ "${HDF5_ENABLED}" = "1" ]; then
       set_intelcc
       set_intelcxx
-      set_hdf5_flags "$INTELCC" ifort "$INTELCXX" || return 1
+      set_hdf5_flags "$INTELCC" ifx "$INTELCXX" || return 1
     fi
   ;;
 
@@ -496,5 +526,8 @@ export ALF_FLAGS_QRREF
 export ALF_FLAGS_MODULES
 export ALF_FLAGS_ANA
 export ALF_FLAGS_PROG
+
+rm -r "$tmpdir"
+printf "\n${GREEN}Temporary directory %s deleted${NC}\n" "$tmpdir"
 
 printf "\nTo compile your program use:    'make'\n\n"

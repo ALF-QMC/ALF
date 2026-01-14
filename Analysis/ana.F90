@@ -53,10 +53,17 @@
       
       
       use ana_mod
+#ifdef _OPENMP
+      use check_omp_num_threads_mod
+#endif
       implicit none
       Integer                         :: i, n, nargs
       Character (len=64)              :: name
       Character (len=64), allocatable :: names(:)
+
+#ifdef _OPENMP
+      call check_omp_num_threads()
+#endif
       
       nargs = COMMAND_ARGUMENT_COUNT()
       allocate( names(nargs) )
@@ -83,8 +90,20 @@
          if ( i > 1 ) then
             if ( name(i:) == '_eq' ) then
                print *, ''
-               print '(A,A)', "analyzing equal time correlation ", name
+               print '(A,A)', "analyzing equal time correlations ", name
                call Cov_eq(name)
+            endif
+         endif
+      enddo
+
+      do n=1, size(names)
+         name = names(n)
+         i = len(trim(name)) -5
+         if ( i > 1 ) then
+            if ( name(i:) == '_local' ) then
+               print *, ''
+               print '(A,A)', "analyzing equal time local observables ", name
+               call Cov_local(name)
             endif
          endif
       enddo
