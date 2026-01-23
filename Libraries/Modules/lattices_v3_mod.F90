@@ -69,9 +69,6 @@
          Interface Iscalar
             module procedure Iscalar_II, Iscalar_IR, Iscalar_RR
          end Interface
-         Interface npbc
-            module procedure npbc_I, npbc_R, npbc_R_B
-         end Interface
          Interface Xnorm
             module procedure Xnorm_I, Xnorm_R
          end Interface
@@ -103,11 +100,12 @@
            Integer :: ndim, L, L1, nc, i, i1,i2, L_f, LQ, n,m, nd1,nd2,nr, nnr1, nnr2, nnr, nr1, imj_1, imj_2
            Integer :: imj
            Real    (Kind=Kind(0.d0)) :: Zero,pi, X
+           Logical :: L_test = .true.
 
            ndim = size(L1_p)
            allocate (Latt%L2_p(ndim), Latt%L1_p(ndim), Latt%a1_p(ndim) , Latt%a2_p(ndim), &
                 &    Latt%b1_p(ndim), Latt%b2_p(ndim), Latt%BZ1_p(ndim), Latt%BZ2_p(ndim) )
-           allocate (Latt%b1_perp_p(ndim), Latt%b2_perp_p(ndim) )
+           allocate (Latt%b1_perp_p(ndim), Latt%b2_perp_p(ndim))
            Zero = 1.D-5
            Latt%L1_p = L1_p
            Latt%L2_p = L2_p
@@ -182,32 +180,34 @@
            L1     =   abs(nint ( Iscalar(Latt%BZ2_p,L2_p) / (2.d0*pi) ))
            if (L1 .gt. L) L = L1
            nc = 0
+
+           x_p  = 0.d0
+           if  (L_test) then
+            Write(11,"(F14.7,2x,F14.7)") x_p(1), x_p(2)
+            Write(11,"(F14.7,2x,F14.7)") L1_p(1), L2_p(1)
+            Write(11,*)
+            Write(11,"(F14.7,2x,F14.7)") x_p(1), x_p(2)
+            Write(11,"(F14.7,2x,F14.7)") L2_p(1), L2_p(2)
+            Write(11,*)
+           endif
+
            do i1 = -L,L
               do i2 = -L,L
-                 x_p  = dble(i1)*a1_p + dble(i2)*a2_p
-                 L_f = 1
-                 do i = 1,4
-                    if (i.eq.1) a_p =  L2_p
-                    if (i.eq.2) a_p =  L1_p
-                    if (i.eq.3) a_p =  L2_p - L1_p
-                    if (i.eq.4) a_p =  L2_p + L1_p
-                    if  (  Iscalar(x_p, a_p)  .le.  xnorm(a_p)**2/2.d0 + Zero   .and.   &
-                         & Iscalar(x_p, a_p)  .ge. -xnorm(a_p)**2/2.d0 + Zero    ) then
-                       L_f = L_f * 1
-                    else
-                       L_f = 0
-                    endif
-                 enddo
-                 if (L_f .eq. 1) then
-                    nc = nc + 1
-                 endif
+                 x_p  = dble(i1)*a1_p + dble(i2)*a2_p 
+                 L_f = 0
+                 Call Decompose( x_p, L1_p, L2_p, a_p) 
+                 if ( (a_p(1) .le.  1.d0/2.d0 + Zero   .and.   a_p(1)  .ge. -1.d0/2.d0 + Zero) .and. &
+                  &   (a_p(2) .le.  1.d0/2.d0 + Zero   .and.   a_p(2)  .ge. -1.d0/2.d0 + Zero)         ) then 
+                     nc = nc + 1
+                     Write(10,"(F14.7,2x,F14.7)") x_p(1), x_p(2)
+                     Write(10,*)
+                 endif 
               enddo
            enddo
            LQ = nc
            Latt%Ns = LQ
            Latt%N  = LQ
-           !Write(6,*) L, LQ
-
+           Write(6,*) "Number of points after count", LQ
 
            Allocate ( Latt%List(LQ,ndim), Latt%Invlist(-L:L, -L:L ) )
            Latt%List = 0
@@ -217,25 +217,14 @@
            do i1 = -L,L
               do i2 = -L,L
                  x_p  = dble(i1)*a1_p + dble(i2)*a2_p
-                 L_f = 1
-                 do i = 1,4
-                    if (i.eq.1) a_p =  L2_p
-                    if (i.eq.2) a_p =  L1_p
-                    if (i.eq.3) a_p =  L2_p - L1_p
-                    if (i.eq.4) a_p =  L2_p + L1_p
-                    if  (  Iscalar( x_p, a_p )    .le.  xnorm(a_p)**2/2.d0 + Zero   .and.   &
-                         & Iscalar( x_p, a_p )    .ge. -xnorm(a_p)**2/2.d0 + Zero    ) then
-                       L_f = L_f * 1
-                    else
-                       L_f = 0
-                    endif
-                 enddo
-                 if (L_f .eq. 1) then
+                 Call Decompose( x_p, L1_p, L2_p, a_p) 
+                 if ( (a_p(1) .le.  1.d0/2.d0 + Zero   .and.   a_p(1)  .ge. -1.d0/2.d0 + Zero) .and. &
+                  &   (a_p(2) .le.  1.d0/2.d0 + Zero   .and.   a_p(2)  .ge. -1.d0/2.d0 + Zero)         ) then 
                     nc = nc + 1
                     Latt%list(nc,1) = i1
                     Latt%list(nc,2) = i2
                     Latt%invlist(i1, i2 ) = nc
-                 endif
+                 endif 
               enddo
            enddo
 
@@ -247,21 +236,9 @@
            do m = -L,L
               do n = -L,L
                  xk_p = dble(m) * b1_p + dble(n) *  b2_p
-                 L_f = 1
-                 do i = 1,4
-                    if (i.eq.1) b_p = BZ2_p
-                    if (i.eq.2) b_p = BZ1_p
-                    if (i.eq.3) b_p = BZ2_p - BZ1_p
-                    if (i.eq.4) b_p = BZ2_p + BZ1_p
-                    if  (  Iscalar( xk_p, b_p )    .le.  xnorm(b_p)**2/2.d0 + Zero   .and.   &
-                         & Iscalar( xk_p, b_p )    .ge. -xnorm(b_p)**2/2.d0 + Zero    ) then
-                       L_f = L_f * 1
-                    else
-                       L_f = 0
-                    endif
-                 enddo
-                 if (L_f .eq. 1) then
-                    !write(11,"(F14.7,2x,F14.7)")  xk_p(1), xk_p(2)
+                 Call Decompose( xk_p, BZ1_p, BZ2_p, a_p) 
+                 if ( (a_p(1) .le.  1.d0/2.d0 + Zero   .and.   a_p(1)  .ge.  -1.d0/2.d0 + Zero) .and. &
+                  &   (a_p(2) .le.  1.d0/2.d0 + Zero   .and.   a_p(2)  .ge. -1.d0/2.d0 + Zero)         ) then 
                     nc = nc + 1
                     Latt%listk(nc,1) = m
                     Latt%listk(nc,2) = n
@@ -333,6 +310,9 @@
            deallocate ( BZ1_p, BZ2_p )
            deallocate ( x_p,  x1_p, d_p,  a_p )
 
+           Call Print_latt(Latt)
+
+
          end subroutine MAKE_LATTICE
 
          subroutine Clear_Lattice(Latt)
@@ -347,117 +327,45 @@
 
          end subroutine Clear_Lattice
 
- !********
-         subroutine npbc_I(nr_p, n_p, L1_p, L2_p)
+         subroutine npbc(nr_p, n_p, L1_p, L2_p,N1,N2)
 
            Implicit none
-
-           integer, dimension(:) ::  n_p, L1_p, L2_p
-           integer, dimension(:), intent(out) :: nr_p
-
-           integer, dimension(:), allocatable :: x_p
-           Real (Kind=Kind(0.d0)) :: Zero, X
-           Integer :: Ndim, i
-
-           Zero = 1.D-8
-           nr_p = n_p
-           ndim = size(n_p)
-
-           allocate (x_p(ndim))
-
-           do  i = 1,4
-              if (i.eq.1) x_p = L2_p
-              if (i.eq.2) x_p = L1_p
-              if (i.eq.3) x_p = L2_p - L1_p
-              if (i.eq.4) x_p = L2_p + L1_p
-
-              X = real(Iscalar(nr_p,x_p),kind(0.d0))/(Xnorm(x_p)**2)
-              if (X .ge.   0.5D0 + Zero  ) nr_p = nr_p - x_p
-              if (X .le.  -0.5D0 + Zero  ) nr_p = nr_p + x_p
-           enddo
-
-           deallocate(x_p)
-
-         end subroutine npbc_I
-
-
-         subroutine npbc_R(nr_p, n_p, L1_p, L2_p)
-
-           Implicit none
-           Real (Kind=Kind(0.d0)), dimension(:) :: n_p, L1_p, L2_p
+           Real (Kind=Kind(0.d0)), dimension(:), intent(in)  :: n_p, L1_p, L2_p
            Real (Kind=Kind(0.d0)), dimension(:), intent(out) :: nr_p
-
+           Integer, intent(out), Optional :: N1, N2
+            
            Real (Kind=Kind(0.d0)), dimension(:), allocatable :: x_p
 
-           Real (Kind=Kind(0.d0)) :: Zero, X
-           Integer :: ndim, i
+           Real (Kind=Kind(0.d0)) :: Zero
+           Integer :: ndim
 
            Zero = 1.D-8
            nr_p = n_p
            ndim = size(n_p)
-           allocate(x_p(ndim))
-           do i = 1,4
-              if (i.eq.1) x_p = L2_p
-              if (i.eq.2) x_p = L1_p
-              if (i.eq.3) x_p = L2_p - L1_p
-              if (i.eq.4) x_p = L2_p + L1_p
-              X =  Iscalar(nr_p,x_p)/(Xnorm(x_p)**2)
-              if (X .ge.   0.5D0 + Zero  ) nr_p = nr_p - x_p
-              if (X .le.  -0.5D0 + Zero  ) nr_p = nr_p + x_p
-           enddo
+           if (Present(N1)) N1 = 0
+           if (Present(N2)) N2 = 0   
 
+           allocate(x_p(ndim))
+           Call Decompose( nr_p, L1_p, L2_p, x_p)
+           if (x_p(1) .lt. -0.5d0 + Zero )  then   
+               nr_p = nr_p + L1_p
+               if (present(N1)) N1 = N1 - 1
+           endif
+           if (x_p(1) .gt.  0.5d0 + Zero )  then
+               nr_p = nr_p - L1_p
+               if (present(N1)) N1 = N1 + 1
+           endif
+           if (x_p(2) .lt. -0.5d0 + Zero )  then
+               nr_p = nr_p + L2_p
+               if (present(N2)) N2 = N2 - 1
+           endif
+           if (x_p(2) .gt.  0.5d0 + Zero )  then
+               nr_p = nr_p - L2_p
+               if (present(N2)) N2 = N2 + 1
+           endif
            deallocate(x_p)
 
-         end subroutine npbc_R
-
-!********
-         subroutine npbc_R_B(nr_p, n_p, L1_p, L2_p, N1, N2 )
-
-           !n_p = nr_p + N1* L1_p  + N2 * L2_p
-
-           Implicit none
-           Real (Kind=Kind(0.d0)), dimension(:), intent(in) :: n_p, L1_p, L2_p
-           Real (Kind=Kind(0.d0)), dimension(:), intent(out) :: nr_p
-           Integer, intent(inout) :: N1, N2
-
-           Real (Kind=Kind(0.d0)), dimension(:), allocatable :: x_p
-
-           Real (Kind=Kind(0.d0)) :: Zero, X
-           Integer :: ndim, i,  Del_N1, Del_N2
-
-           Zero = 1.D-8
-           nr_p = n_p
-           ndim = size(n_p)
-           allocate(x_p(ndim))
-           do i = 1,4
-              Del_N2 = 0;  Del_N1 = 0
-              if (i.eq.1) Del_N2 =1
-              if (i.eq.2) Del_N1 =1
-              if (i.eq.3) then
-                 Del_N1 = -1
-                 Del_N2 =  1
-              endif
-              if (i.eq.4) then
-                 Del_N1 =  1
-                 Del_N2 =  1
-              endif
-              x_p = real(Del_N2,kind(0.d0)) * L2_p   + real(Del_N1,kind(0.d0))*L1_p
-              X =  Iscalar(nr_p,x_p)/(Xnorm(x_p)**2)
-              if (X .ge.   0.5D0 + Zero  ) then
-                 nr_p = nr_p - x_p
-                 N2 = N2 + Del_N2
-                 N1 = N1 + Del_N1
-              endif
-              if (X .le.  -0.5D0 + Zero  ) then
-                 nr_p = nr_p + x_p
-                 N2 = N2 - Del_N2
-                 N1 = N1 - Del_N1
-              endif
-           enddo
-
-           deallocate(x_p)
-
-         end subroutine npbc_R_B
+         end subroutine npbc
 
  !********
          integer Function Inv_K(XK_P,Latt)
@@ -876,5 +784,53 @@
           enddo
 
         end subroutine FT_R_to_K_C
+
+      Subroutine Decompose(X_p, e1_p,e2_p, a_p)
+
+         !Decompose X_p = a_p(1)*e1_p + a_p(2)*e2_p 
+
+         Implicit none
+
+         Real (Kind=Kind(0.d0)), dimension(:), intent(in)  :: X_p
+         Real (Kind=Kind(0.d0)), dimension(:), intent(in)  :: e1_p, e2_p
+         Real (Kind=Kind(0.d0)), dimension(:), intent(out) :: a_p
+
+         Real (Kind=Kind(0.d0)), dimension(2) ::  b1_p, b2_p
+         Real (Kind=Kind(0.d0)), dimension(2,2) :: Mat, Mat_inv
+         Real (Kind=Kind(0.d0)) :: X
+         Integer :: ndim
+         Logical :: L_test = .false.
+
+         ndim = size(X_p)
+         if (ndim .ne. 2) then
+           write(6,*) 'Error in Decompose: ndim /= 2'
+           Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+         endif 
+         Mat(1,1) = dble(e1_p(1))
+         Mat(1,2) = dble(e1_p(2))
+         Mat(2,1) = dble(e2_p(1))
+         Mat(2,2) = dble(e2_p(2))
+         X = Mat(1,1)*Mat(2,2) - Mat(2,1)*Mat(1,2)
+         Mat_inv(1,1) =  Mat(2,2)/X
+         Mat_inv(2,2) =  Mat(1,1)/X
+         Mat_inv(1,2) = -Mat(1,2)/X
+         Mat_inv(2,1) = -Mat(2,1)/X
+         b1_p(1) = Mat_inv(1,1)
+         b1_p(2) = Mat_inv(2,1)
+         b2_p(1) = Mat_inv(1,2)
+         b2_p(2) = Mat_inv(2,2)
+
+         if (L_test) then
+            Write(6,*) 'b1_p . e1_p', Iscalar(b1_p,e1_p)
+            Write(6,*) 'b1_p . e2_p', Iscalar(b1_p,e2_p)
+            Write(6,*) 'b2_p . e1_p', Iscalar(b2_p,e1_p)
+            Write(6,*) 'b2_p . e2_p', Iscalar(b2_p,e2_p)
+         endif
+
+         a_p(1) = Iscalar(X_p,b1_p)
+         a_p(2) = Iscalar(X_p,b2_p)
+
+       end Subroutine Decompose
+
 
       end Module Lattices_v3
