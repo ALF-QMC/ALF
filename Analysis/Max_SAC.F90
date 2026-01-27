@@ -434,11 +434,11 @@ Program MaxEnt_Wrapper
           enddo
           Z = -Z * dom/pi
           If (Test)   then 
-            x  = x  - Aimag(Z)/pi
-            x1 = x1 - om*Aimag(Z)/pi
-            x2 = x2 - om*om*Aimag(Z)/pi
+            x  = x  + Aimag(Z)
+            x1 = x1 + om*Aimag(Z)
+            x2 = x2 + om*om*Aimag(Z)
             write(43,"('X',2x,F14.7,2x,F16.8,2x,F16.8,2x,F14.7,2x,F14.7,2x,F14.7)")  & 
-               & xom(nw), dble(Z), -Aimag(Z)/pi,  X*dom, x1*dom, x2*dom
+               & xom(nw), dble(Z), Aimag(Z),  X*dom, x1*dom, x2*dom
           else
             write(43,"('X',2x,F14.7,2x,F16.8,2x,F16.8)")  & 
                & xom(nw), dble(Z), Aimag(Z)
