@@ -1,5 +1,11 @@
 # Log of backward compatibility changes and critical bugs
 
+### 2026-01-28 factors of pi in analytical continuation
+Author F. Assaad
+Merge request !257
+
+In the file Green, produced by the MaxEnt wrapper,  the real part of G is now multiplied by a factor -1/pi. 
+
 ### 2026-01-27 Intel ifx compiler without `-heap-arrays 1024`
 Author: J. Schwab
 Merge request !234
