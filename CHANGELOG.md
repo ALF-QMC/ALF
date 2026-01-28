@@ -1,5 +1,14 @@
 # Log of backward compatibility changes and critical bugs
 
+### 2026-01-27 Intel ifx compiler without `-heap-arrays 1024`
+Author: J. Schwab
+Merge request !234
+
+The Intel compiler ifx is no longer used with the option `-heap-arrays 1024`,
+since it produces some kind of memory leak.
+As a result, lager arrays have to be allocated to avoid a stack overflow. 
+This applies e.g. to the variable `GRC` in the subroutine `Obser`.
+
 ## ALF 2.6
 ALF 2.6 released on 2025-11-05
 

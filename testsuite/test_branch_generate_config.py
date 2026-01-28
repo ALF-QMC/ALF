@@ -39,7 +39,7 @@ stages:
     - git fetch --depth=1
     - git checkout $CI_COMMIT_BRANCH
     - git checkout .
-    - pip install --no-deps pyALF
+    - pip install --no-deps pyALF || true
     - export ALF_DIR="$PWD"
     - . ./configure.sh $MACHINE noMPI HDF5 NO-INTERACTIVE
     - alf_test_branch
@@ -63,7 +63,7 @@ stages:
     - if [ ! -O . ]; then sudo chown -R "$(id -u)" .; fi
     - START_DIR=$PWD
     - export PATH="$HOME/.local/bin:$PATH"
-    - pip install --no-deps pyALF
+    - pip install --no-deps pyALF || true
     - cd ${START_DIR}/ALF_data/${TEST_NAME}
     - mpiexec -n 4 ./ALF.out
     - cd ${START_DIR}/ALF_data/${TEST_NAME}_test
@@ -92,7 +92,7 @@ stages:
     - export PATH="$HOME/.local/bin:$PATH"
     - git remote set-branches origin master $CI_COMMIT_BRANCH
     - git fetch --depth=1
-    - pip install --no-deps pyALF
+    - pip install --no-deps pyALF || true
     - export ALF_DIR="$PWD"
     - alf_test_branch
       --sim_pars $ALF_DIR/testsuite/test_branch_parameters.json

@@ -69,7 +69,7 @@ module cgr1_mod
         !Local
         Logical, save :: Scale_warning_message = .true.
         TYPE(UDV_State) :: udvlocal
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable :: TPUP, TPUP1, TPUPM1
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable :: TPUP, TPUP1, TPUPM1, TPUP_temp
         INTEGER, Dimension(:), Allocatable :: IPVT
         COMPLEX (Kind=Kind(0.d0)) ::  ZDUP1, ZDDO1, ZDUP2, ZDDO2, Z1, ZUP, ZDO, alpha, beta
         Integer :: I,J, N_size, NCON, info
@@ -187,7 +187,7 @@ module cgr1_mod
  
         !Local
         Logical, save :: Scale_warning_message = .true.
-        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  TPUP, RHS
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:), Allocatable ::  TPUP, RHS, TPUP_temp
         COMPLEX (Kind=Kind(0.d0)), Dimension(:) , Allocatable ::  DUP
         INTEGER, Dimension(:), Allocatable :: IPVT, VISITED
         COMPLEX (Kind=Kind(0.d0)) ::  alpha, beta, Z, DLJ
@@ -301,7 +301,10 @@ module cgr1_mod
         PHASE = PHASE/ABS(PHASE)
         IPVT = 0
         IF (NVAR .NE. 1) THEN
-            TPUP = CONJG(TRANSPOSE(TPUP))
+            Allocate(TPUP_temp(N_size,N_size))
+            TPUP_temp = CONJG(TRANSPOSE(TPUP))
+            TPUP = TPUP_temp
+            Deallocate(TPUP_temp)
         ENDIF
         call QDRP_decompose(N_size, udvl%N_part, TPUP, DUP, IPVT, TAU, WORK, LWORK)
         ALLOCATE(VISITED(N_size))
@@ -345,7 +348,7 @@ module cgr1_mod
             ! This is supposed to solve the system 
             ! URUP U D V P^dagger ULUP G = 1
             ! initialize the rhs with CT(URUP)
-            RHS = CT(udvr%U)
+            RHS = conjg(transpose(udvr%U))
 #if (defined(STAB3) || defined(STABLOG))
             !scale RHS=R_+^-1*RHS
             do J=1,N_size
