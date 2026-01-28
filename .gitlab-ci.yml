@@ -128,34 +128,25 @@ create_doc:
   artifacts:
     paths:
       - Documentation/doc.pdf
-  script:
-    - apt-get update
-    - apt-get install -y diff-pdf-wx
-    - cd Documentation
-    - test -f doc.pdf && cp doc.pdf doc_back.pdf
-    - latexmk -pdf doc.tex
-
-create_doxygen:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bookworm-buildd
-  stage: build_doc
-  needs: []
-  artifacts:
-    expire_in: 120 days
-    paths:
       - doxygen/*
       - Images/*
   script:
-      - apt-get update && apt install -y doxygen graphviz
-      - doxygen doxygen/Doxyfile
+    - apt-get update
+    - apt-get install -y doxygen graphviz
+    - doxygen doxygen/Doxyfile
+    - cd Documentation
+    - latexmk -pdf doc.tex
 
 pages:
   image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bookworm-buildd
   stage: build_doc
+  needs:
+    - job: create_doc
+      artifacts: true
   script:
-    - apt-get update && apt install -y doxygen graphviz
-    - doxygen doxygen/Doxyfile
     - mkdir public
     - mv doxygen/html/* public
+    - mv Documentation/doc.pdf public
   artifacts:
     paths:
       - public
