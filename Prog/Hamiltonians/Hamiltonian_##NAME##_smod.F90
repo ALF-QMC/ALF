@@ -359,7 +359,7 @@
           !Local
           Complex (Kind=Kind(0.d0)), allocatable :: GRC(:,:,:)
           Complex (Kind=Kind(0.d0)) :: ZK
-          Complex (Kind=Kind(0.d0)) :: ZP, ZS, 
+          Complex (Kind=Kind(0.d0)) :: ZP, ZS
           Integer :: I, J, nf
           ! Add local variables as needed
 
