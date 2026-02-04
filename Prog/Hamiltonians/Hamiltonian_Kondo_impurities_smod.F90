@@ -259,7 +259,7 @@
 #ifdef MPI
           X_Shift =  Irank_g
           Y_Shift =  Irank_g/L1
-          Write(6,*)  Irank, X_Shift, Y_Shift
+          !Write(6,*)  Irank, X_Shift, Y_Shift
           If (Irank_g == 0 ) then
 #endif          
 #ifdef TEMPERING
@@ -420,6 +420,16 @@
           
           Latt_Unit_f%Norb   = Ham_N_Imp
           Allocate (Latt_unit_f%Orb_pos_p(Ham_N_Imp,2))
+          Do n = 1, Ham_N_Imp
+            Do i1 = 1, L1
+               Do i2 = 1, L2
+                  If  ( abs(Imp_V(n,i1,i2)) > 1.0D-10 )  then
+                     Latt_Unit_f%Orb_pos_p(n,1) =  i1
+                     Latt_Unit_f%Orb_pos_p(n,2) =  i2
+                  Endif
+               enddo
+            enddo
+          enddo
           ! The  explicit  position of the f-impurities is  not  required  at  this  point.
           a1_p(1) =  1.0  ; a1_p(2) =  0.d0
           a2_p(1) =  0.0  ; a2_p(2) =  1.d0
