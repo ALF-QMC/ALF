@@ -47,7 +47,9 @@
       Use Lattices_v3
       Use Operator_mod
       Use WaveFunction_mod
+      Use Files_mod
       Use MyMats
+
       use iso_fortran_env, only: output_unit, error_unit
       use Hamiltonian_main
       Implicit none
@@ -250,10 +252,12 @@
 !> @brief
 !> Default hopping for the square lattice.  Ham_T is the nearest
 !> neighbour hopping and Ham_Chem the chemical potential.
+!> Ham_T_vecam is the altermagnetic term for next-next nearest neighbour hopping
 !>
+!>  Add the t_alter-magnetic in this routine! 
 !
 !--------------------------------------------------------------------
-      Subroutine Set_Default_hopping_parameters_square(this, Ham_T_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL, &
+      Subroutine Set_Default_hopping_parameters_square(this, Ham_T_vec,  Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL, &
            &                                           List, Invlist, Latt, Latt_unit )
 
         Implicit none
@@ -298,9 +302,10 @@
            do nf = 1,N_FL
               this(nf)%N_bonds = 0
               if ( abs(Ham_T_max) > Zero)  then
-                 this(nf)%N_bonds = 2
+                 this(nf)%N_bonds = 2 !set two  bonds for the  nearest-neighbour hopping.
                  Allocate (this(nf)%List(this(nf)%N_bonds,4), &
                       &    this(nf)%T(this(nf)%N_bonds) )
+                 !set the hopping amplitude and the relative position for the nearest-neigbour hopping
                  nc = 0
                  nc = nc + 1
                  this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
@@ -315,7 +320,7 @@
                  this(nf)%List(nc,2) = 1
                  this(nf)%List(nc,3) = 1
                  this(nf)%List(nc,4) = 0
-              Endif
+               Endif
               Allocate ( this(nf)%T_Loc(Latt_Unit%Norb) )
               do nc = 1,Latt_Unit%Norb
                  this(nf)%T_Loc(nc)  = cmplx(-Ham_Chem_vec(nf),0.d0,kind(0.d0))
@@ -358,6 +363,216 @@
            endif
         endif
       end Subroutine Set_Default_hopping_parameters_square
+!--------------------------------------------------------------------
+!> @author
+!> ALF-project
+!>
+!> @brief
+!> Default hopping for the square lattice.  Ham_T is the nearest
+!> neighbour hopping and Ham_Chem the chemical potential.
+!> Ham_T_vecam is the altermagnetic hopping. 
+!>  Add the t_alter-magnetic  in this routine! 
+!
+!--------------------------------------------------------------------
+      Subroutine Set_Default_hopping_parameters_square_am(this, Ham_T_vec, Ham_T_vecam, Ham_Chem_vec, Phi_X_vec, & 
+           &                                              Phi_Y_vec, Bulk,  N_Phi_vec, N_FL, &
+           &                                              List, Invlist, Latt, Latt_unit, d_wave_rep )
+
+        Implicit none
+
+        Type  (Hopping_Matrix_type), allocatable     :: this(:)
+        Real (Kind=Kind(0.d0)), Intent(IN),Dimension(:)   :: Ham_T_vec, Ham_T_vecam, Ham_Chem_vec, Phi_x_vec, Phi_y_vec
+        Integer, Intent(IN),Dimension(:)                  :: N_Phi_vec
+        Integer, Intent(IN)                               :: N_FL
+        Logical, Intent(IN)                               :: Bulk
+        Integer, Intent(IN), Dimension(:,:)               :: List, Invlist
+        Type(Lattice),  Intent(in)            :: Latt
+        Type(Unit_cell),Intent(in)            :: Latt_unit
+        Character (Len=64), Intent(in)        :: d_wave_rep
+
+
+        ! Local
+        Integer :: nf,N_Bonds, nc, I, I1, I2
+        Real (Kind = Kind(0.d0) ) :: Zero = 1.0E-8,  Ham_T_max
+        Real (Kind = Kind(0.d0) ), allocatable :: Ham_T_perp_vec(:)
+
+        
+        If (.not.(str_to_upper(d_wave_rep) == "DXY" .or. str_to_upper(d_wave_rep) == "DX2Y2")) then 
+             Write(error_unit,*) 'Wrong d-wave representation for altermagnetic term: Use DXY or DX2Y2 : ', str_to_upper(d_wave_rep) 
+             CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+        endif
+        If ( Xnorm(Latt%L2_p - Latt%a2_p)  < Zero )  then
+           Allocate( Ham_T_perp_vec(N_FL) )
+           Ham_T_perp_vec = 0.d0
+           Call Set_Default_hopping_parameters_N_Leg_Ladder(this,Ham_T_vec, Ham_T_perp_vec, Ham_Chem_vec, Phi_X_vec, &
+                &                                           Phi_Y_vec, Bulk,  N_Phi_vec, N_FL, &
+                &                                           List, Invlist, Latt, Latt_unit )
+           Deallocate ( Ham_T_perp_vec )
+        else
+           If (  mod(nint(latt%L1_p(1)),2)  /=  0   .or.   mod(nint(latt%L2_p(2)),2)  /= 0 )  then
+              Write(error_unit,*) '*** For  the  square  lattice,  our  implementation of the checkerborad '
+              Write(error_unit,*) 'decomposition  requires even  values of L_1  and L_2  ***'
+              CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+           endif
+           Allocate( this(N_FL) )
+
+           Ham_T_max = 0.d0
+           Do nf = 1,N_FL
+              If ( Abs(Ham_T_vec(nf))   >  Ham_T_max )  Ham_T_max = Abs(Ham_T_vec(nf))
+           Enddo
+
+           do nf = 1,N_FL
+              this(nf)%N_bonds = 0
+              if ( abs(Ham_T_max) > Zero)  then
+                 this(nf)%N_bonds = 4
+                 Allocate (this(nf)%List(this(nf)%N_bonds,4), &
+                      &    this(nf)%T(this(nf)%N_bonds) )
+                 nc = 0
+                 nc = nc + 1
+                 this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
+                 this(nf)%List(nc,1) = 1
+                 this(nf)%List(nc,2) = 1
+                 this(nf)%List(nc,3) = 0
+                 this(nf)%List(nc,4) = 1
+
+                 nc = nc + 1
+                 this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
+                 this(nf)%List(nc,1) = 1
+                 this(nf)%List(nc,2) = 1
+                 this(nf)%List(nc,3) = 1
+                 this(nf)%List(nc,4) = 0
+
+                 nc = nc + 1
+                 this(nf)%T(nc)    = cmplx(Ham_T_vecam(nf),0.d0,kind(0.d0))
+                 this(nf)%List(nc,1) = 1
+                 this(nf)%List(nc,2) = 1
+                 if (str_to_upper(d_wave_rep)=="DX2Y2") then 
+                  this(nf)%List(nc,3) = 0
+                  this(nf)%List(nc,4) = 2
+                 else
+                  this(nf)%List(nc,3) = 1
+                  this(nf)%List(nc,4) = 1
+                 endif
+
+                 nc = nc + 1
+                 this(nf)%T(nc)    = cmplx(-Ham_T_vecam(nf),0.d0,kind(0.d0))
+                 this(nf)%List(nc,1) = 1
+                 this(nf)%List(nc,2) = 1
+                 if (str_to_upper(d_wave_rep)=="DX2Y2") then 
+                  this(nf)%List(nc,3) = 2
+                  this(nf)%List(nc,4) = 0
+                 else
+                  this(nf)%List(nc,3) = -1
+                  this(nf)%List(nc,4) =  1
+                 endif
+              Endif
+              Allocate ( this(nf)%T_Loc(Latt_Unit%Norb) )
+              do nc = 1,Latt_Unit%Norb
+                 this(nf)%T_Loc(nc)  = cmplx(-Ham_Chem_vec(nf),0.d0,kind(0.d0))
+              enddo
+              this(nf)%N_Phi =  N_Phi_vec(nf)
+              this(nf)%Phi_X =  Phi_X_vec(nf)
+              this(nf)%Phi_Y =  Phi_Y_vec(nf)
+              this(nf)%Bulk  =  Bulk
+            enddo
+
+           !Set Checkerboard
+            if ( Ham_T_max   > Zero ) then
+               this(1)%N_FAM  = 8
+               Allocate (this(1)%L_Fam(this(1)%N_FAM),  this(1)%Prop_Fam(this(1)%N_FAM))
+               this(1)%L_FAM  = Latt%N/2
+               this(1)%Prop_Fam= 1.d0
+               Allocate (this(1)%List_Fam(this(1)%N_FAM,this(1)%L_Fam(1),2))
+               this(1)%L_FAM  = 0
+               do I = 1,Latt%N
+                  if ( mod(Latt%List(I,1) + Latt%List(I,2),2) == 0 ) then
+                     Nf = 1
+                     this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                     this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I ! Unit cell
+                     this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 1 ! The bond (See above)
+                     Nf = 2
+                     this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                     this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                     this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 2
+                  else
+                     Nf = 3
+                     this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                     this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                     this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 1
+                     Nf = 4
+                     this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                     this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                     this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 2
+                  endif
+                  if (str_to_upper(d_wave_rep) == "DX2Y2" ) then
+                     if ( mod(Latt%List(I,1),4) == 0 ) then
+                        Nf = 5
+                        this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 4
+
+                        I1 = latt%nnlist(I,1,0)  
+                        this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I1
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 4
+
+                        Nf = 6
+                        I1 = latt%nnlist(I1,1,0)  
+                        this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I1
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 4
+
+                        I1 = latt%nnlist(I1,1,0)  
+                        this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I1
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 4
+                     endif
+                     if ( mod(Latt%List(I,2),4) == 0 ) then
+                        Nf = 7
+                        this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 3
+
+                        I2 =latt%nnlist(I,0,1)  
+                        this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I2
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 3
+
+                        Nf = 8
+                        I2 =latt%nnlist(I2,0,1)  
+                        this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I2
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 3
+
+                        I2 =latt%nnlist(I2,0,1)  
+                        this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I2
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 3
+                     endif
+                  else
+                     If (mod(Latt%list(I,2),2) == 0) then
+                        NF = 5
+                        this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 3
+                        NF = 6
+                        this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = Latt%nnlist(I,-1,-1)
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 3
+                        NF = 7
+                        this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 4
+                        NF = 8
+                        this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = Latt%nnlist(I, 1,-1)
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 4
+                     endif
+                  endif
+               enddo
+            endif
+         endif
+      end Subroutine Set_Default_hopping_parameters_square_am
 
 !--------------------------------------------------------------------
 !> @author
@@ -912,7 +1127,7 @@
 !--------------------------------------------------------------------
       Subroutine Set_Default_hopping_parameters_Bilayer_square(this,Ham_T1_vec,Ham_T2_vec,Ham_Tperp_vec, Ham_Chem_vec, &
            &                                                   Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL,&
-           &                                                   List, Invlist, Latt, Latt_unit )
+           &                                                   List, Invlist, Latt, Latt_unit, Ham_T1_am_vec, d_wave_rep)
 
         Implicit none
 
@@ -924,11 +1139,12 @@
         Integer, Intent(IN), Dimension(:,:)   :: List, Invlist
         Type(Lattice),  Intent(in)            :: Latt
         Type(Unit_cell),Intent(in)            :: Latt_unit
-
+        Real (Kind=Kind(0.d0)), Intent(IN),dimension(:), optional  :: Ham_T1_am_vec
+        Character (len=64), Intent(IN), optional                   :: d_wave_rep
         
 
         ! Local
-        Integer :: nf,N_Bonds, nc, I, I1, No_Shift, n, nb
+        Integer :: nf,N_Bonds, nc, I, I1,I2, No_Shift, n, nb, nf_st
         Real (Kind=Kind(0.d0)) :: Zero = 1.0E-8
         Logical :: Test=.false.
         Real (Kind=Kind(0.d0))                :: Ham_T1_max, Ham_T2_max, Ham_Tperp_max
@@ -944,7 +1160,8 @@
 
 
 
-        If ( nint( Latt%L2_p(2) )   == 1  )  then
+         If ( nint( Latt%L2_p(2) )   == 1  )  then
+           ! In this case, the altermagnetic coupling does not play a role. 
            If (  mod(nint(latt%L1_p(1)),2)  /=  0 )  then
               Write(error_unit,*) '*** For  the Bilayer square lattice,  our  implementation of the checkerborad '
               Write(error_unit,*) 'decomposition  requires L_1  to be  even ***'
@@ -1049,12 +1266,23 @@
                  this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 2
               Endif
            enddo
-        Else
+         Else
            If (  mod(nint(latt%L1_p(1)),2)  /=  0 .or.  mod(nint(latt%L2_p(2)),2)  /=  0  )  then
               Write(error_unit,*) '*** For  the Bilayer square lattice,  our  implementation of the checkerborad '
               Write(error_unit,*) 'decomposition  requires L_1 and  L_2 to be  even ***'
               CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
            endif
+            if (Present(Ham_T1_am_vec)) then 
+               If (.not.present(d_wave_rep)) then
+                  Write(error_unit,*) 'd-wave representation is needed for altermagnetic term'
+                  CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+               endif
+               if(.not.(str_to_upper(d_wave_rep) == "DXY" .or. str_to_upper(d_wave_rep) == "DX2Y2")) then 
+                  Write(error_unit,*) 'Wrong d-wave representation for altermagnetic term: Use DXY or  DX2Y2 : ', & 
+                      & str_to_upper(d_wave_rep) 
+                  CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+               endif
+            endif
            
            Allocate( this(N_FL) )
            do nf = 1,N_FL
@@ -1062,6 +1290,7 @@
               N_bonds = N_bonds + 2
               if (abs(Ham_Tperp_max) > Zero )  N_bonds = N_bonds + 1
               if (abs(Ham_T2_max)    > Zero )  N_bonds = N_bonds + 2
+              If (Present(Ham_T1_am_vec))      N_bonds = N_bonds + 2
               this(nf)%N_bonds = N_bonds
               Allocate (this(nf)%List(this(nf)%N_bonds,4), &
                    &    this(nf)%T(this(nf)%N_bonds) )
@@ -1104,7 +1333,33 @@
                  this(nf)%List(nc,3) = 1
                  this(nf)%List(nc,4) = 0
               endif
-              
+
+              If (Present(Ham_T1_am_vec)) then
+                 nc = nc + 1
+                 this(nf)%T(nc)    = cmplx(Ham_T1_am_vec(nf),0.d0,kind(0.d0))
+                 this(nf)%List(nc,1) = 1
+                 this(nf)%List(nc,2) = 1
+                 If (str_to_upper(d_wave_rep) == "DX2Y2") then
+                  this(nf)%List(nc,3) = 0
+                  this(nf)%List(nc,4) = 2
+                 else 
+                  this(nf)%List(nc,3) = 1
+                  this(nf)%List(nc,4) = 1
+                 endif
+                 
+                 nc = nc + 1
+                 this(nf)%T(nc)    = cmplx(-Ham_T1_am_vec(nf),0.d0,kind(0.d0))
+                 this(nf)%List(nc,1) = 1
+                 this(nf)%List(nc,2) = 1
+                 If (str_to_upper(d_wave_rep) == "DX2Y2") then
+                  this(nf)%List(nc,3) = 2
+                  this(nf)%List(nc,4) = 0
+                 else
+                  this(nf)%List(nc,3) = -1
+                  this(nf)%List(nc,4) =  1
+                 endif
+
+              endif
               
               Allocate ( this(nf)%T_Loc(Latt_Unit%Norb) )
               do nc = 1,Latt_Unit%Norb
@@ -1119,7 +1374,9 @@
            
            ! Set Checkerboard
            this(1)%N_FAM  = 4
-           if (abs(Ham_Tperp_max) > Zero )  this(1)%N_FAM=5
+           if (abs(Ham_Tperp_max) > Zero )  this(1)%N_FAM= this(1)%N_FAM  + 1
+           if (Present(Ham_T1_am_vec)    )  this(1)%N_FAM= this(1)%N_FAM  + 4
+
            
            Allocate (this(1)%L_Fam(this(1)%N_FAM),  this(1)%Prop_Fam(this(1)%N_FAM))
            this(1)%Prop_Fam= 1.d0
@@ -1190,23 +1447,97 @@
                  this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 3
               Endif
            enddo
-        endif
-        ! Test
-        If (Test) then
-           Write(6,*)  this(1)%N_FAM,  this(1)%L_FAM
-           Write(6,*)  Ham_T1_max,Ham_T2_max, Ham_Tperp_max
-           Do nf = 1,this(1)%N_FAM
-              Do n = 1,this(1)%L_Fam(nf)
-                 I =  this(1)%List_Fam(Nf,n,1)
-                 nb = this(1)%List_Fam(Nf,n,2)
-                 Write(6,"(I3,2x,I3,2x,I3,2x,I3,2x,I3,2x,I3,2x,F6.3)")   Latt%list(I,1), Latt%list(I,2), this(1)%List(nb,1),this(1)%List(nb,2), &
-                      &this(1)%List(nb,3), this(1)%List(nb,4), real(this(1)%T(nb))
-              enddo
-              Write(6,*)
-           enddo
-        endif
+           If (Present(Ham_T1_am_vec)) then 
+               nf_st = 5 
+               If (abs(Ham_Tperp_max) > Zero ) nf_st = 6
+               No_Shift = 0 
+               if (abs(Ham_Tperp_max) > Zero ) No_Shift=1
+               If (abs(Ham_T2_max)    > Zero ) No_Shift=3
+               If (str_to_upper(d_wave_rep) == "DX2Y2") then
+                  Do I = 1,Latt%N
+                     if ( mod(Latt%List(I,1),4) == 0 ) then
+                        Nf = nf_st 
+                        this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 4 + No_shift
 
+                        I1 = latt%nnlist(I,1,0)
+                        this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I1
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 4 + No_Shift
 
+                        Nf = nf_st + 1
+                        I1 = latt%nnlist(I1,1,0)
+                        this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I1
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 4 + No_Shift
+
+                        I1 = latt%nnlist(I1,1,0)
+                        this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I1
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 4 + No_Shift
+                     endif
+                     if ( mod(Latt%List(I,2),4) == 0 ) then
+                        Nf = nf_st + 2
+                        this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 3 + No_Shift
+
+                        I2 =latt%nnlist(I,0,1)
+                        this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I2
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 3 + No_Shift
+
+                        Nf = nf_st + 3
+                        I2 =latt%nnlist(I2,0,1)
+                        this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I2
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 3 + No_Shift
+
+                        I2 =latt%nnlist(I2,0,1)
+                        this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I2
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 3 + No_Shift
+                     endif
+                  enddo
+               else
+                  Do I = 1,Latt%N 
+                     If (mod(Latt%list(I,2),2) == 0) then
+                        NF = nf_st 
+                        this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 3 + No_Shift
+                        NF = nf_st + 1
+                        this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = Latt%nnlist(I,-1,-1)
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 3 + No_Shift
+                        NF = nf_st + 2
+                        this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 4 + No_Shift
+                        NF = nf_st + 3
+                        this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = Latt%nnlist(I, 1,-1)
+                        this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = 4 + No_Shift
+                     endif
+                  enddo
+               endif
+            endif 
+         endif
+         ! Test
+         If (Test) then
+            Write(6,*)  this(1)%N_FAM,  this(1)%L_FAM
+            Write(6,*)  Ham_T1_max,Ham_T2_max, Ham_Tperp_max
+             Do nf = 1,this(1)%N_FAM
+               Do n = 1,this(1)%L_Fam(nf)
+                  I =  this(1)%List_Fam(Nf,n,1)
+                  nb = this(1)%List_Fam(Nf,n,2)
+                  Write(6,"(I3,2x,I3,2x,I3,2x,I3,2x,I3,2x,I3,2x,F6.3)")   Latt%list(I,1), Latt%list(I,2), this(1)%List(nb,1),this(1)%List(nb,2), &
+                        &this(1)%List(nb,3), this(1)%List(nb,4), real(this(1)%T(nb))
+               enddo
+               Write(6,*)
+            enddo
+         endif
 
       end Subroutine Set_Default_hopping_parameters_Bilayer_square
 
