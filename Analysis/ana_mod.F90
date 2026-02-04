@@ -1182,7 +1182,7 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
                   endif
                   CALL EXECUTE_COMMAND_LINE(command)
                   Open (Unit=10, File=File_out, status="unknown")
-                  Write(10, '(2(I11), E26.17E3, I11," ", A3)') &
+                  Write(10, '(2(I11), E26.17E3, I11," ", A)') &
                        & Lt_eff, nbins/N_rebin, real(lt-1,kind(0.d0))*dtau, Latt_unit%Norb, trim(Channel)
                   do nt = 1, LT_eff
                      Write(10, '(3(E26.17E3))') &

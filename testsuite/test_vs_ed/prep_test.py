@@ -37,7 +37,7 @@ summarize:
   script:
     - if [ ! -O . ]; then sudo chown -R "$(id -u)" .; fi
     - export PATH="$HOME/.local/bin:$PATH"
-    - pip install --no-deps pyALF
+    - pip install --no-deps pyALF || true
     - cd $TEST_DIR
     - ../compile.py $MACHINE
   needs:
@@ -63,7 +63,7 @@ summarize:
   stage: analyze
   script:
     - export PATH="$HOME/.local/bin:$PATH"
-    - pip install --no-deps pyALF
+    - pip install --no-deps pyALF || true
     - cd $TEST_DIR
     - ../analysis.py
   artifacts:

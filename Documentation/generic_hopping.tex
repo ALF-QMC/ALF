@@ -131,23 +131,24 @@ There are \path{N_bonds} hopping matrix elements emanating from a given unit cel
 	\end{center}
 \end{table}
 
-The  data in the \texttt{Hopping\_matrix\_type} type suffices to uniquely define the  unit step propagation for the kinetic energy, and for  any combinations of the  \texttt{Checkerboard} and  \texttt{Symm}  options (see Sec.~\ref{sec:trotter}). The propagation is set through the call: 
+The  data in the \verb|Hopping_matrix_type| type suffices to uniquely define the  unit step propagation for the kinetic energy, and for  any combinations of the  \texttt{Checkerboard} and  \texttt{Symm}  options (see Sec.~\ref{sec:trotter}). The propagation is set through the call: 
 \begin{lstlisting}[style=fortran]
 Call Predefined_Hoppings_set_OPT(Hopping_Matrix, List, Invlist, Latt, Latt_unit, Dtau,
                                  Checkerboard, Symm, OP_T,
                                  pinned_vertices, pinning_factor, pinning_offset) 
 \end{lstlisting}
-in which the operator array \path{OP_T(*,N_FL)} is allocated and defined. In the simplest case, where no checkerboard is used, the array's first dimension is unity. This routine allows optional 
-arguments to allow  for pinning: that is, modifying existing  matrix elements in the hopping matrix. The syntax is the following: 
+in which the operator array \verb|OP_T(*,N_FL)| is allocated and defined. In the simplest case, where no checkerboard is used, the array's first dimension is unity.
+
+This routine allows optional arguments to allow for pinning: that is, modifying existing matrix elements in the hopping matrix. The syntax is the following: 
 \begin{itemize}
-\item \texttt{pinned\_vertices[1:N\_pin,1:2]}  contains the two legs $(i,\delta)$ and  $(j,\delta')$ of the bond or vertex to be pinned.  If $(i,\delta) = (j,\delta')$  then the pinning refers to a site and not to a bond.
-\item \texttt{pinning\_factor[1:N\_pin,1:N\_fl]} contains the multiplicative factor for each flavor. 
-\item \texttt{pinning\_offset[1:N\_pin,1:N\_fl]} contains the offset for each flavor. 
+\item \verb|pinned_vertices[1:N_pin, 1:2]| contains the index of the two legs \verb|pinned_vertices[i, 1]| and \verb|pinned_vertices[i, 2]| of the i-th vertex to be pinned, where \verb|N_pin| is the number of pinned vertices. If \verb|pinned_vertices[i, 1]| = \verb|pinned_vertices[i, 2]| then the pinning refers to a site and not to a bond.
+\item \verb|pinning_factor[1:N_pin, 1:N_fl]| contains the multiplicative factor for each flavor. Meaning that the matrix element gets multiplied by this factor.
+\item \verb|pinning_offset[1:N_pin, 1:N_fl]| contains the offset for each flavor. Meaning that this value gets added to the matrix element after multiplication by the pinning factor.
 \end{itemize}
 
 An explicit example of how to use the pinning option is describe in Sec.~\ref{sec:hubbard}.
 
-The   data in  the \texttt{Hopping\_matrix\_type} type   equally  suffices to compute  the kinetic energy.  This is carried out in the routine \texttt{Predefined\_Hoppings\_Compute\_Kin}.
+The   data in  the \verb|Hopping_matrix_type| type   equally  suffices to compute  the kinetic energy.  This is carried out in the routine \verb|Predefined_Hoppings_Compute_Kin|.
 
 \subsubsection{An example:   nearest neighbor hopping on the   honeycomb lattice }
 

@@ -1,7 +1,7 @@
 # ALF #
 [![pipeline status](https://git.physik.uni-wuerzburg.de/fassaad/General_QMCT_code/badges/master/pipeline.svg)](https://git.physik.uni-wuerzburg.de/fassaad/General_QMCT_code/commits/master)
 [![coverage report](https://git.physik.uni-wuerzburg.de/fassaad/General_QMCT_code/badges/master/coverage.svg)](https://git.physik.uni-wuerzburg.de/fassaad/General_QMCT_code/commits/master)
-[![Documentation](https://img.shields.io/static/v1?label=Documentation&message=PDF)](Documentation/doc.pdf)
+[![Documentation](https://img.shields.io/static/v1?label=Documentation&message=PDF)](https://gitpages.physik.uni-wuerzburg.de/ALF/ALF/doc.pdf)
 [![Doxygen](https://img.shields.io/static/v1?label=Doxygen&message=WIP))](https://gitpages.physik.uni-wuerzburg.de/ALF/ALF/)
 
 
@@ -13,7 +13,7 @@
 
 ## Description
 
-The **A**lgorithms for **L**attice **F**ermions package provides a general code for the finite temperature and projective auxiliary field Quantum Monte Carlo algorithm. The code is engineered to be able simulate any model that can be written in terms of sums of single body operators, of squares of single body operators and single body operators coupled to an Ising field with given dynamics. We provide predefined types that allow the user to specify the model, the Bravais lattice as well as equal time and time displaced observables. The code supports an MPI implementation. Examples such as the Hubbard model, the SU(N) Kondo lattice model, tV models, models with long ranged interactions as well as Z2 lattice gauge theories coupled to fermions adn Z2 matter are discussed in the [documentation](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/jobs/artifacts/master/raw/Documentation/doc.pdf?job=create_doc). Slides on the auxiliary field QMC can be found [here.](https://git.physik.uni-wuerzburg.de/ALF/ALF_Tutorial/-/blob/master/Presentations/ALF_2020_Assaad.pdf)
+The **A**lgorithms for **L**attice **F**ermions package provides a general code for the finite temperature and projective auxiliary field Quantum Monte Carlo algorithm. The code is engineered to be able simulate any model that can be written in terms of sums of single body operators, of squares of single body operators and single body operators coupled to an Ising field with given dynamics. We provide predefined types that allow the user to specify the model, the Bravais lattice as well as equal time and time displaced observables. The code supports an MPI implementation. Examples such as the Hubbard model, the SU(N) Kondo lattice model, tV models, models with long ranged interactions as well as Z2 lattice gauge theories coupled to fermions adn Z2 matter are discussed in the [documentation](https://gitpages.physik.uni-wuerzburg.de/ALF/ALF/doc.pdf). Slides on the auxiliary field QMC can be found [here.](https://git.physik.uni-wuerzburg.de/ALF/ALF_Tutorial/-/blob/master/Presentations/ALF_2020_Assaad.pdf)
 
 The Hamiltonians we can consider read:  
 ![The Hamiltonian0](Images/Hamiltonian0.png "The Hamiltonian")  
@@ -32,7 +32,7 @@ You can find [here](https://gitpages.physik.uni-wuerzburg.de/ALF/ALF/) Doxygen f
 
 ## Installation
 
-* Please check the latest [documentation](Documentation/doc.pdf) for more details and Sec. 6.1, "Quick Start", to try ALF out straight away.
+* Please check the latest [documentation](https://gitpages.physik.uni-wuerzburg.de/ALF/ALF/doc.pdf) for more details and Sec. 6.1, "Quick Start", to try ALF out straight away.
 
 ### PREREQUISITES
 
@@ -122,7 +122,7 @@ cat Ener_scalJ
 
 **Scripts_and_Parameters_files**  Helper scripts and the `Start/` directory, which contains the files required to start a run. 
  
-**Documentation**  We have included in the file  [doc.pdf](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/jobs/artifacts/master/raw/Documentation/doc.pdf?job=create_doc) an extensive documentation.
+**Documentation**  We have included in the file  [doc.pdf](https://gitpages.physik.uni-wuerzburg.de/ALF/ALF/doc.pdf) an extensive documentation.
 
 **testsuite** An automatic test suite for various parts of the code
 
