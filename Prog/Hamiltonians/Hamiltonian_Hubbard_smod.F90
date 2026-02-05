@@ -703,7 +703,8 @@
           Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
 
           !Local
-          Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK
+          Complex (Kind=Kind(0.d0)), allocatable :: GRC(:,:,:)
+          Complex (Kind=Kind(0.d0)) :: ZK
           Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP,ZS, ZZ, ZXY
           Integer :: I,J, imj, nf, dec, I1, J1, no_I, no_J,n
           Real    (Kind=Kind(0.d0)) :: X
@@ -712,6 +713,8 @@
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
 
           ZS = ZS*Mc_step_weight
+
+          allocate(GRC(Ndim,Ndim,N_FL))
           
           Do nf = 1,N_FL
              Do I = 1,Ndim
@@ -795,7 +798,7 @@
              Call Predefined_Obs_eq_Den_measure    ( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(3) )
           endif
 
-
+          deallocate(GRC)
         end Subroutine Obser
 !--------------------------------------------------------------------
 !> @author
