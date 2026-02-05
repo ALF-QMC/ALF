@@ -90,7 +90,7 @@ Contains
 !> ALF-project
 !
 !> @brief 
-!> Given the green function matrix GR at time NTAU  the routine   propagates 
+!> Given the green function matrix GR at time NTAU   at m = 0, the routine   propagates 
 !> it to time  NTAU + 1 and carries  out an update of the fields at time NTAU+1
 !> NTAU: [0:LTROT-1]
 !
@@ -212,7 +212,11 @@ Contains
        endif
     Enddo
 
-    m         = Nt_sequential_end
+    if (Nt_sequential_end >= Nt_sequential_start) then 
+      m         = Nt_sequential_end
+    else
+      m = 0 
+    endif
     If ( N_Global_tau > 0 ) then
        !if ( Nt_sequential_start >  Nt_sequential_end ) m = Nt_sequential_start
        Call Wrapgr_Random_update(GR,m,ntau1, PHASE, N_Global_tau )
@@ -235,7 +239,7 @@ Contains
 !> ALF-project
 !
 !> @brief 
-!> Given the green function matrix GR at time NTAU  the routine   carries out an 
+!> Given the green function matrix GR at time NTAU   at m = size(OP_V,1), the routine   carries out an 
 !> update of the fields at time NTAU and  propagates  it to time NTAU-1
 !> NTAU: [LTROT:1]
 !
@@ -254,7 +258,7 @@ Contains
     real    (kind=kind(0.d0)), intent(in) :: Max_Force_MALA_sequential, Max_Force_MALA_global_tau
     
     ! Local
-    Integer :: nf, nf_eff, N_Type, n, m
+    Integer :: nf, nf_eff, N_Type, n, m, m1
     Complex (Kind=Kind(0.d0)) :: Prev_Ratiotot, HS_Field, HS_New
     Complex (Kind=Kind(0.d0)) :: force_old, force_new, phase_st, nsigma_st
     Real    (Kind=Kind(0.d0)) :: T0_proposal,  T0_Proposal_ratio,  S0_ratio
@@ -273,7 +277,14 @@ Contains
        !Write(6,*) 'Call Ran_up ', m,ntau
        Call Wrapgr_Langevin_update(GR,m,ntau, PHASE, N_Global_tau_MALA, Delta_t_MALA_global_tau, Max_Force_MALA_global_tau )
     Endif
-    if ( N_Global_tau > 0 .or. N_Global_tau_MALA > 0 ) Call Wrapgr_PlaceGR(GR,m, Nt_sequential_end, ntau)
+
+    !HERE
+    If (Nt_sequential_end >=  Nt_sequential_start) then 
+       m1 = Nt_sequential_end
+    else
+       m1 = 0
+    endif
+    if ( N_Global_tau > 0 .or. N_Global_tau_MALA > 0 ) Call Wrapgr_PlaceGR(GR,m, m1, ntau)
 
     
     Do n =  Nt_sequential_end, Nt_sequential_start, -1
