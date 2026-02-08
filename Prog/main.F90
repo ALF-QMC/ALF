@@ -744,7 +744,7 @@ Program Main
            Do n = 1,N_op
               if (nsigma%t(n) == 3 .or. nsigma%t(n) == 4)  Toggle = .true.
            Enddo
-           if ( Toggle ) then
+           if ( Toggle .and. (.not.Propose_MALA) ) then
               Write(50,*) 'Amplitude  for  t=3,4  vertices is  set to: ', Amplitude
            endif
            Toggle  = .false.
