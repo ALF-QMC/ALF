@@ -241,7 +241,6 @@ subroutine Global_MALA_move_tau(Flip_list, Flip_length,ntau)
     Integer                   , INTENT(OUT) :: Flip_list(:)
     Integer, INTENT(OUT) :: Flip_length
     Integer, INTENT(IN)  :: ntau
-    integer :: n
       
 end Subroutine Global_MALA_move_tau
 \end{lstlisting}
@@ -268,6 +267,32 @@ In order to compute the acceptance-rejection ratio,  the user must also provide 
 \texttt{Get\_\-Delta\_\-S0}\texttt{\_\-global(nsigma\_old)} that computes the difference $\Delta S_0=S_0(C)-S_0(C')$. Again, the configuration $C'$ is given by the field \texttt{nsigma}.
 
 The variable \texttt{N\_Global} determines the number of global updates performed per sweep. Note that global updates are expensive, since they require a complete recalculation of the weight.
+
+Practically one will combine global update with local ones. In the implementation  of the Hubbard model,   the parameter file: 
+\begin{lstlisting}[style=fortran]
+&VAR_QMC
+......
+Sequential       = .T.       ! Flag for sequential moves
+Global_moves     = .T.       ! Flag for global moves in space and time
+N_Global         = 6         ! Number of global moves in space and time
+......
+/
+\end{lstlisting}
+will carry out 6 global moves in space and time at the end of each sweep. A  possible choice for the global move is to randomly choose a 
+lattice point and change the sign of the field at this point for all time slices.  The routine that will do this global update reads:
+\begin{lstlisting}[style=fortran]
+Subroutine Global_move(T0_Proposal_ratio, nsigma_old, size_clust)
+   Real (Kind = Kind(0.d0)),   INTENT(OUT) :: T0_Proposal_ratio, size_clust
+   Type(Field), INTENT(IN)  :: nsigma_old
+
+   size_clust = Ltrot
+   n  = nranf(Size(Op_V,1))
+   nsigma%f(n,:)   = - nsigma_old%f(n,:) 
+   T0_Proposal_ratio = 1
+end Subroutine Global_move
+\end{lstlisting}
+
+
 % 
 
 %------------------------------------------------------------

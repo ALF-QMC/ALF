@@ -1074,7 +1074,6 @@
       Type (Fields),  Intent(IN)  :: nsigma_old
       
       Integer :: nt, n
-      complex (Kind=Kind(0.d0)) :: Z
 
       If (.not.Continuous) then
          Write(6,*) "Error: Global_move_tau_base is implemented only continuous HS fields. Please implement it or set Continuous = False in the input file. "
@@ -1083,8 +1082,7 @@
       size_clust = Ltrot
       n  = nranf(Size(Op_V,1))
       do nt = 1,Ltrot
-         Z = -nsigma%f(n,nt)
-         nsigma%f(n,nt)   =  Z
+         nsigma%f(n,nt)   = -nsigma_old%f(n,nt)
       enddo
       T0_Proposal_ratio = 1
 
