@@ -20,45 +20,68 @@ Predicting how efficient a certain Monte Carlo update scheme will turn out to be
 
 
 
+% \begin{table}[h]
+% 	\begin{tabular}{@{} p{0.22\columnwidth} p{0.11\columnwidth} p{0.61\columnwidth} @{}}
+% 		\toprule
+% 		Updating schemes             & Type             & Description \\
+% 		\midrule
+% 		\texttt{Sequential}          & \texttt{logical} & (internal variable) If true, the configurations moves through sequential, single spin flips  \\
+% 		\texttt{Propose\_S0}         & \texttt{logical} & If true, proposes sequential local moves according to the probability $e^{-S_0}$, where $S_0$ is the free Ising action. This option only works for 
+% 		  \texttt{type=1}  operator where the field corresponds to an Ising variable  \\
+% 		\texttt{Global\_tau\_moves}  & \texttt{logical} & Whether to carry out  global moves on a single time slice.
+% 		For a given time slice the user can define which part of the operator string is to be computed sequentially. This is specified by the  variable  \texttt{N\_sequential\_start} and \texttt{N\_sequential\_end}. A number of   \texttt{N\_tau\_Global} user-defined global moves on the given time slice  will then be carried out   \\
+% 		\texttt{Global\_moves}       & \texttt{logical} & If true, allows for global moves in space and time.   A user-defined number \texttt{N\_Global} of global moves in space and time  will be carried out at the end of each sweep \\
+% 		\texttt{Langevin}            & \texttt{logical} & If true, Langevin dynamics is used exclusively (i.e., can only be used in association with tempering) \\
+% 		\texttt{Tempering}           & Compiling option & Requires MPI and runs the code in a parallel tempering mode, also see Sec.~\ref{Parallel_tempering.sec},~\ref{sec:compilation} \\
+% 		\bottomrule
+% 	\end{tabular}
+% 	\caption{Variables required to control the updating scheme. Per default the program carries out sequential, single spin-flip sweeps, and logical variables are set to \texttt{.false.}}
+% 	\label{table:Updating_schemes}
+% \end{table}
+
 \begin{table}[h]
-	\begin{tabular}{@{} p{0.22\columnwidth} p{0.11\columnwidth} p{0.61\columnwidth} @{}}
+	\begin{tabular}{@{} p{0.45\columnwidth}  p{0.35\columnwidth}  p{0.15\columnwidth}  @{}}
 		\toprule
-		Updating schemes             & Type             & Description \\
+		Updating schemes                          &  Method & Section \\
 		\midrule
-		\texttt{Sequential}          & \texttt{logical} & (internal variable) If true, the configurations moves through sequential, single spin flips  \\
-		\texttt{Propose\_S0}         & \texttt{logical} & If true, proposes sequential local moves according to the probability $e^{-S_0}$, where $S_0$ is the free Ising action. This option only works for 
-		  \texttt{type=1}  operator where the field corresponds to an Ising variable  \\
-		\texttt{Global\_tau\_moves}  & \texttt{logical} & Whether to carry out  global moves on a single time slice.
-		For a given time slice the user can define which part of the operator string is to be computed sequentially. This is specified by the  variable  \texttt{N\_sequential\_start} and \texttt{N\_sequential\_end}. A number of   \texttt{N\_tau\_Global} user-defined global moves on the given time slice  will then be carried out   \\
-		\texttt{Global\_moves}       & \texttt{logical} & If true, allows for global moves in space and time.   A user-defined number \texttt{N\_Global} of global moves in space and time  will be carried out at the end of each sweep \\
-		\texttt{Langevin}            & \texttt{logical} & If true, Langevin dynamics is used exclusively (i.e., can only be used in association with tempering) \\
-		\texttt{Tempering}           & Compiling option & Requires MPI and runs the code in a parallel tempering mode, also see Sec.~\ref{Parallel_tempering.sec},~\ref{sec:compilation} \\
+		Sequential space-time discrete fields   &      Metropolis, spin flip   & \ref{sec:sequential},\ref{sec:S0}  \\
+		Sequential space-time continuous fields &      Metropolis, box move   & \ref{sec:sequential_box} \\
+		Sequential space-time continuous fields &      Metropolis assisted Langevin   & \ref{sec:sequential_mala} \\
+		Sequential time, global space           &      Metropolis, User defined            & \ref{sec:global_space} \\
+		Sequential time, global space           &      Metropolis assisted Langevin   & \ref{sec:global_space_mala} \\
+		Sequential space-time, global space     &      Combinations of moves          & \ref{sec:sequential_combination} \\
+		Global space-time, discrete            &      User defined            & \ref{sec:global_space_time} \\
+		Global space-time, continuous          &      Parallel tempering         & \ref{Parallel_tempering.sec} \\
+		Global space-time, continuous          &      Langevin dynamics         & \ref{sec:langevin} \\
+		Global space-time, continuous          &      Hybrid Monte Carlo                & \ref{sec:hmc} \\
 		\bottomrule
 	\end{tabular}
-	\caption{Variables required to control the updating scheme. Per default the program carries out sequential, single spin-flip sweeps, and logical variables are set to \texttt{.false.}}
+	\caption{Summary of possible updating schemes. Aside form the parallel tempering schemes, the user can test and compare all these schemes using  our implementation of the Hubbard model. Here we 
+	recommend using a one-dimensional lattice with open boundary conditions and a Hubbard-Stratonovitch  decoupling that  couples to the magnetization. As mention in Sec.~\ref{sec:langevin}, this choice 
+	guarantees the absence of zero in the fermion determinant such that all  updating schemes will work out of the box and can be compared. }
 	\label{table:Updating_schemes}
 \end{table}
 
-\begin{table}[h]
-	\begin{tabular}{@{} p{0.22\columnwidth}  p{0.35\columnwidth}  p{0.35\columnwidth} @{}}
-		\toprule
-		Updating schemes                          & Variables & Subroutines \\
-		\midrule
-		\texttt{Sequential}     &     & S0   \\
-		\texttt{Propose\_S0}   &      &  S0 \\
-		\texttt{Propose\_MALA}   & Delta\_t\_MALA\_sequential, Max\_Force\_MALA\_sequential    &  S0, Ham\_Langevin\_HMC\_S0\_single \\
-		\texttt{Global\_tau\_moves}  & N\_Global\_tau, Nt\_sequential\_start, Nt\_sequential\_end     & Global\_move\_tau, Overide\_global\_tau\_sampling\_parameters \\
-		\texttt{Global\_tau\_MALA\_moves} & N\_Global\_tau\_MALA, Nt\_sequential\_start, Nt\_sequential\_end, Delta\_t\_MALA\_global\_tau,   MAX\_Force\_MALA\_global\_tau  & Global\_MALA\_move\_tau, Overide\_global\_tau\_sampling\_parameters, Ham\_Langevin\_HMC\_S0\_single \\
-		\texttt{Global\_moves}       & N\_Global  & Global\_move, Delta\_S0\_global \\
-		\texttt{Langevin}            & Delta\_t\_Langevin\_HMC, Max\_Force   & Ham\_Langevin\_HMC\_S0  \\
-		\texttt{HMC}                  & N\_HMC\_sweeps, Delta\_t\_Langevin\_HMC, Leapfrog\_steps     & Delta\_S0\_global, Ham\_Langevin\_HMC\_S0  \\
-		\texttt{MALA}                & N\_MALA\_sweeps, Delta\_t\_MALA\_global, Max\_Force\_MALA\_global    &  Global\_MALA\_move, Delta\_S0\_global, Ham\_Langevin\_HMC\_S0 \\
-		\texttt{Tempering}     &      & Delta\_S0\_global  \\
-		\bottomrule
-	\end{tabular}
-	\caption{Variables required to control the updating scheme. Per default the program carries out sequential, single spin-flip sweeps, and logical variables are set to \texttt{.false.}}
-	\label{table:Updating_schemes}
-\end{table}
+% \begin{table}[h]
+% 	\begin{tabular}{@{} p{0.22\columnwidth}  p{0.35\columnwidth}  p{0.35\columnwidth} @{}}
+% 		\toprule
+% 		Updating schemes                          & Variables & Subroutines \\
+% 		\midrule
+% 		\texttt{Sequential}     &     & S0   \\
+% 		\texttt{Propose\_S0}   &      &  S0 \\
+% 		\texttt{Propose\_MALA}   & Delta\_t\_MALA\_sequential, Max\_Force\_MALA\_sequential    &  S0, Ham\_Langevin\_HMC\_S0\_single \\
+% 		\texttt{Global\_tau\_moves}  & N\_Global\_tau, Nt\_sequential\_start, Nt\_sequential\_end     & Global\_move\_tau, Overide\_global\_tau\_sampling\_parameters \\
+% 		\texttt{Global\_tau\_MALA\_moves} & N\_Global\_tau\_MALA, Nt\_sequential\_start, Nt\_sequential\_end, Delta\_t\_MALA\_global\_tau,   MAX\_Force\_MALA\_global\_tau  & Global\_MALA\_move\_tau, Overide\_global\_tau\_sampling\_parameters, Ham\_Langevin\_HMC\_S0\_single \\
+% 		\texttt{Global\_moves}       & N\_Global  & Global\_move, Delta\_S0\_global \\
+% 		\texttt{Langevin}            & Delta\_t\_Langevin\_HMC, Max\_Force   & Ham\_Langevin\_HMC\_S0  \\
+% 		\texttt{HMC}                  & N\_HMC\_sweeps, Delta\_t\_Langevin\_HMC, Leapfrog\_steps     & Delta\_S0\_global, Ham\_Langevin\_HMC\_S0  \\
+% 		\texttt{MALA}                & N\_MALA\_sweeps, Delta\_t\_MALA\_global, Max\_Force\_MALA\_global    &  Global\_MALA\_move, Delta\_S0\_global, Ham\_Langevin\_HMC\_S0 \\
+% 		\texttt{Tempering}     &      & Delta\_S0\_global  \\
+% 		\bottomrule
+% 	\end{tabular}
+% 	\caption{Variables required to control the updating scheme. Per default the program carries out sequential, single spin-flip sweeps, and logical variables are set to \texttt{.false.}}
+% 	\label{table:Updating_schemes}
+% \end{table}
 % 
 
 %------------------------------------------------------------
@@ -119,9 +142,11 @@ Propose_S0           = .F.  ! Whether to propose moves according to e^{-S0}
 \label{sec:sequential_continuous}
 If the  field is a continuous real variable,  \texttt{type=3}, (See Sec.~\ref{sec:fields}) then  the program  provides two  types of  updating schemes.
 
-\paragraph{Box distribution} The first one is the default and consists in proposing a new value for the field according to a box distribution of width \texttt{Amplitude} centered around the origin.  This updating scheme is symmetric, and the move is accepted with probability $P(C \rightarrow C') =  \text{min}  \left( 1, \frac{ W(C')}{W(C)} \right)$. This is the default updating scheme for continuous fields. 
+\paragraph{Box distribution} 
+\label{sec:sequential_box}
+The first one is the default and consists in proposing a new value for the field according to a box distribution of width \texttt{Amplitude} centered around the origin.  This updating scheme is symmetric, and the move is accepted with probability $P(C \rightarrow C') =  \text{min}  \left( 1, \frac{ W(C')}{W(C)} \right)$. This is the default updating scheme for continuous fields. 
 
-\paragraph{Metropolis assisted Langevin algorithm (MALA)} \label{sec:mala_sequential} 
+\paragraph{Metropolis assisted Langevin algorithm (MALA)} \label{sec:sequential_mala}
 This updating scheme is based on the Langevin equation  that we will discuss in Sec.~\ref{sec:langevin}.  For  a given field $s_{n,\tau}$ (See. Eq.~\ref{Btau.eq}), we propose a new value of the field according to a single step of the discretized Langevin equation just for this field: 
 \begin{equation}
 	s_{n,\tau}' = s_{n,\tau} - \frac{\partial S}{\partial s_{n,\tau}} \delta t + \sqrt{ 2 \delta t} \eta
@@ -221,6 +246,7 @@ Here we randomly chose  a  vertex and update the field.
 
 %------------------------------------------------------------
 \paragraph{Metropolis assisted Langevin algorithm (MALA) on a single time slice}
+\label{sec:global_space_mala}
 This option will carry out a global move on a single time slice using the Metropolis assisted Langevin algorithm.  To use this option, the 
 
 \begin{lstlisting}[style=fortran]
@@ -247,7 +273,9 @@ end Subroutine Global_MALA_move_tau
 Allows to  specify the list of field to be updated in the MALA move. By default, all the  field on  the time slice are visited and 
 a warning is issued on the standard output. 
 
+%------------------------------------------------------------
 \subsubsection{Combining various sequential updating schemes.}
+\label{sec:sequential_combination}
 The user can combine the various sequential updating schemes described above.  For  example one can carry out a number of sequential single spin-flip sweeps,  followed 
 by a number of global ones.  The range of the sequential sweeps are specified by the variables \texttt{Nt\_sequential\_start} and \texttt{Nt\_sequential\_end}, while the number of global moves is set by \texttt{N\_Global\_tau}.
 For  example, the parameter file: 
@@ -265,7 +293,7 @@ Global_tau_moves = .true.    ! Global moves on a time slice
 N_Global_tau = 6             ! Number of global moves on a time slice
 ......
 \end{lstlisting}
-Will carry out sequential single spin-flip moves on the first three operators of the operator list using the MALA updating scheme \ref{sec:mala_sequential}, followed by \texttt{N\_Global\_tau=6} global moves on the time slice.
+Will carry out sequential single spin-flip moves on the first three operators of the operator list using the MALA updating scheme \ref{sec:sequential_mala}, followed by \texttt{N\_Global\_tau=6} global moves on the time slice.
 
 
 \subsection{Global updates in time and space}
@@ -276,6 +304,7 @@ Will carry out sequential single spin-flip moves on the first three operators of
 %  
 
 \subsubsection{User specified global moves in space and time}
+\label{sec:global_space_time}
 The code allows for global updates as well. The user must then provide two additional functions \texttt{Global\_move} and \texttt{Get\_\-Delta\_\-S0\_\-global( Nsigma\_old )}.   
 
 The subroutine  \texttt{Global\_move(T0\_Proposal\_ratio,nsigma\_old,size\_clust)}  proposes  a global move. 
