@@ -121,7 +121,7 @@ If the  field is a continuous real variable,  \texttt{type=3}, (See Sec.~\ref{se
 
 \paragraph{Box distribution} The first one is the default and consists in proposing a new value for the field according to a box distribution of width \texttt{Amplitude} centered around the origin.  This updating scheme is symmetric, and the move is accepted with probability $P(C \rightarrow C') =  \text{min}  \left( 1, \frac{ W(C')}{W(C)} \right)$. This is the default updating scheme for continuous fields. 
 
-\paragraph{Metropolis assisted Langevin algorithm (MALA)} 
+\paragraph{Metropolis assisted Langevin algorithm (MALA)} \label{sec:mala_sequential} 
 This updating scheme is based on the Langevin equation  that we will discuss in Sec.~\ref{sec:langevin}.  For  a given field $s_{n,\tau}$ (See. Eq.~\ref{Btau.eq}), we propose a new value of the field according to a single step of the discretized Langevin equation just for this field: 
 \begin{equation}
 	s_{n,\tau}' = s_{n,\tau} - \frac{\partial S}{\partial s_{n,\tau}} \delta t + \sqrt{ 2 \delta t} \eta
@@ -217,7 +217,7 @@ N_Global_tau = 1             ! Number of global moves will be set
                              ! to the length of OP_V by the override routine
 ......
 \end{lstlisting}
-In the present implementation, this will choose randomly a vertex and  update the field. 
+Here we randomly chose  a  vertex and update the field.
 
 %------------------------------------------------------------
 \paragraph{Metropolis assisted Langevin algorithm (MALA) on a single time slice}
@@ -246,6 +246,27 @@ end Subroutine Global_MALA_move_tau
 \end{lstlisting}
 Allows to  specify the list of field to be updated in the MALA move. By default, all the  field on  the time slice are visited and 
 a warning is issued on the standard output. 
+
+\subsubsection{Combining various sequential updating schemes.}
+The user can combine the various sequential updating schemes described above.  For  example one can carry out a number of sequential single spin-flip sweeps,  followed 
+by a number of global ones.  The range of the sequential sweeps are specified by the variables \texttt{Nt\_sequential\_start} and \texttt{Nt\_sequential\_end}, while the number of global moves is set by \texttt{N\_Global\_tau}.
+For  example, the parameter file: 
+\begin{lstlisting}[style=fortran]
+&VAR_QMC
+......
+Sequential           = .T.  ! Sequential moves
+Propose_S0           = .F.  ! Proposes single spin flip moves with probability exp(-S0) 
+Nt_sequential_start   = 1   ! Starting index of the sequential moves on a time slice
+Nt_sequential_end     = 3   ! Ending index of the sequential moves on a time slice
+Propose_MALA         = .T.  ! MALA sequential moves for continuous fields
+Max_Force_MALA_sequential  = 1.0 ! Max force for the MALA sequential moves
+Delta_t_MALA_sequential    = 0.1 ! Time step for the MALA sequential moves
+Global_tau_moves = .true.    ! Global moves on a time slice
+N_Global_tau = 6             ! Number of global moves on a time slice
+......
+\end{lstlisting}
+Will carry out sequential single spin-flip moves on the first three operators of the operator list using the MALA updating scheme \ref{sec:mala_sequential}, followed by \texttt{N\_Global\_tau=6} global moves on the time slice.
+
 
 \subsection{Global updates in time and space}
 
