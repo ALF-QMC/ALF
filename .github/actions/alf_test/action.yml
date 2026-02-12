@@ -34,6 +34,7 @@ runs:
       shell: bash
       env:
         ARGS: ${{ inputs.args }}
+        OMPI_MCA_mpi_cuda_support: '0'
       run: |
         . ./configure.sh $ARGS
         echo $ALF_FC
