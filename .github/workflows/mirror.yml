@@ -7,7 +7,7 @@ on:
 
 jobs:
   gitlab:
-    if: github.repository == 'AMF-QMC/ALF'
+    if: github.repository == 'ALF-QMC/ALF'
     uses: ALF-QMC/ALF/.github/workflows/mirror-template.yml@master
     with:
       git_url: "git.physik.uni-wuerzburg.de/ALF/ALF"
