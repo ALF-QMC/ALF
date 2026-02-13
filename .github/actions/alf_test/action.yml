@@ -10,6 +10,7 @@ runs:
   steps:
     - name: macOS Toolchain install
       if: runner.os == 'macOS'
+      id: mac_toolchain
       shell: bash
       run: |
         brew update
@@ -19,6 +20,7 @@ runs:
         ln -fs ${bindir}/gfortran-${gcc_version} /usr/local/bin/gfortran
         ln -fs ${bindir}/gcc-${gcc_version} /usr/local/bin/gcc
         ln -fs ${bindir}/g++-${gcc_version} /usr/local/bin/g++
+        echo "gcc_version=$gcc_version" >> $GITHUB_OUTPUT
 
     - name: Get number of processors
       shell: bash
@@ -29,6 +31,13 @@ runs:
           NPROC=$(nproc)
         fi
         echo "There are $NPROC processors available."
+
+    - name: Restore HDF5 cache
+      if: runner.os == 'macOS'
+      uses: actions/cache@v5
+      with:
+        key: macos-HDF5-${{ steps.mac_toolchain.outputs.gcc_version }}
+        path: HDF5/*/
 
     - name: Build & Test
       shell: bash

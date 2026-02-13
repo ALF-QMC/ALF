@@ -20,7 +20,7 @@ concurrency:
 jobs:
   lint_stopcommands:
     name: Lint Fortran STOP statements
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     steps:
       - uses: actions/checkout@v4
       - name: Check for forbidden STOP/ERROR STOP
@@ -40,19 +40,9 @@ jobs:
       image: aergus/latex
     steps:
       - uses: actions/checkout@v4
-      - name: Install diff-pdf (optional)
-        run: |
-          apt-get update
-          apt-get install -y diff-pdf-wx || true
       - name: Build PDF with latexmk
         working-directory: Documentation
-        run: |
-          set -euo pipefail
-          test -f doc.pdf && cp doc.pdf doc_back.pdf || true
-          latexmk -pdf doc.tex
-          if command -v diff-pdf >/dev/null 2>&1 && [ -f doc_back.pdf ]; then
-            diff-pdf doc.pdf doc_back.pdf || true
-          fi
+        run: latexmk -pdf doc.tex
       - name: Upload doc.pdf artifact
         uses: actions/upload-artifact@v4
         with:
@@ -62,17 +52,14 @@ jobs:
 
   create_doxygen:
     name: Generate Doxygen HTML
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     needs: [lint_stopcommands]
     steps:
       - uses: actions/checkout@v4
       - name: Install doxygen and graphviz
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y doxygen graphviz
+        run: sudo apt-get update && sudo apt-get install -y doxygen graphviz
       - name: Run Doxygen
-        run: |
-          doxygen doxygen/Doxyfile
+        run: doxygen doxygen/Doxyfile
       - name: Upload Doxygen HTML artifact
         uses: actions/upload-artifact@v4
         with:
@@ -82,7 +69,7 @@ jobs:
 
   deploy_pages:
     name: Deploy GitHub Pages (master only)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     needs: [create_doc, create_doxygen]
     if: github.ref == 'refs/heads/master'
     environment:
@@ -99,9 +86,6 @@ jobs:
         with:
           name: doc-pdf
           path: public
-      - name: Prepare Pages content
-        run: |
-          ls -la public | cat
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload Pages artifact
@@ -145,14 +129,14 @@ jobs:
           args: ${{ matrix.image_minor[1] }} ${{ matrix.mode }} ${{ matrix.devel }} ${{ matrix.config }}
 
   test_macos:
-    name: macOS · ${{ matrix.mode }} · ${{ matrix.devel }}
+    name: macOS · ${{ matrix.mode }} · ${{ matrix.devel }} · ${{ matrix.config }}
     runs-on: macos-latest
     strategy:
       fail-fast: false
       matrix:
         mode: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
         devel: ["", "Devel"]
-        config: [""]  # TODO: Enable fast access to HDF5 on macOS runners
+        config: ["", "HDF5"]
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/alf_test
