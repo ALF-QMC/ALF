@@ -2,7 +2,7 @@
 ---
 cff-version: "1.2.0"
 message: "If you use ALF, please cite both the article from preferred-citation and the software itself using these metadata and mention the following: The quantum Monte Carlo simulations were performed with the ALF package, available at https://alf.physik.uni-wuerzburg.de."
-repository-code: "https://git.physik.uni-wuerzburg.de/ALF/ALF"
+repository-code: "https://github.com/ALF-QMC/ALF"
 license: "GPL-3.0+"
 authors: 
   - family-names: "ALF Collaboration"
