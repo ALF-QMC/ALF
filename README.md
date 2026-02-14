@@ -1,19 +1,18 @@
 # ALF #
-[![pipeline status](https://git.physik.uni-wuerzburg.de/fassaad/General_QMCT_code/badges/master/pipeline.svg)](https://git.physik.uni-wuerzburg.de/fassaad/General_QMCT_code/commits/master)
-[![coverage report](https://git.physik.uni-wuerzburg.de/fassaad/General_QMCT_code/badges/master/coverage.svg)](https://git.physik.uni-wuerzburg.de/fassaad/General_QMCT_code/commits/master)
-[![Documentation](https://img.shields.io/static/v1?label=Documentation&message=PDF)](https://gitpages.physik.uni-wuerzburg.de/ALF/ALF/doc.pdf)
-[![Doxygen](https://img.shields.io/static/v1?label=Doxygen&message=WIP))](https://gitpages.physik.uni-wuerzburg.de/ALF/ALF/)
+[![pipeline status](https://github.com/ALF-QMC/ALF/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/ALF-QMC/ALF/actions/workflows/ci.yml?query=branch%3Amaster++)
+[![Documentation](https://img.shields.io/static/v1?label=Documentation&message=PDF)](https://alf.physik.uni-wuerzburg.de/doc.pdf)
+[![Doxygen](https://img.shields.io/static/v1?label=Doxygen&message=WIP)](https://alf.physik.uni-wuerzburg.de/doxygen/)
 
 
 **Project website: https://alf.physik.uni-wuerzburg.de/.**
 
--> Interested contributors please check our [CONTRIBUTING.md](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/blob/master/CONTRIBUTING.md) guidelines.
+-> Interested contributors please check our [CONTRIBUTING.md](CONTRIBUTING.md) guidelines.
 
--> This is the **development** version of ALF, the latest stable version is [ALF 2.6](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/tree/ALF-2.6/).
+-> This is the **development** version of ALF, the latest stable version is [ALF 2.6](https://github.com/ALF-QMC/ALF/tree/ALF-2.6).
 
 ## Description
 
-The **A**lgorithms for **L**attice **F**ermions package provides a general code for the finite temperature and projective auxiliary field Quantum Monte Carlo algorithm. The code is engineered to be able simulate any model that can be written in terms of sums of single body operators, of squares of single body operators and single body operators coupled to an Ising field with given dynamics. We provide predefined types that allow the user to specify the model, the Bravais lattice as well as equal time and time displaced observables. The code supports an MPI implementation. Examples such as the Hubbard model, the SU(N) Kondo lattice model, tV models, models with long ranged interactions as well as Z2 lattice gauge theories coupled to fermions adn Z2 matter are discussed in the [documentation](https://gitpages.physik.uni-wuerzburg.de/ALF/ALF/doc.pdf). Slides on the auxiliary field QMC can be found [here.](https://git.physik.uni-wuerzburg.de/ALF/ALF_Tutorial/-/blob/master/Presentations/ALF_2020_Assaad.pdf)
+The **A**lgorithms for **L**attice **F**ermions package provides a general code for the finite temperature and projective auxiliary field Quantum Monte Carlo algorithm. The code is engineered to be able simulate any model that can be written in terms of sums of single body operators, of squares of single body operators and single body operators coupled to an Ising field with given dynamics. We provide predefined types that allow the user to specify the model, the Bravais lattice as well as equal time and time displaced observables. The code supports an MPI implementation. Examples such as the Hubbard model, the SU(N) Kondo lattice model, tV models, models with long ranged interactions as well as Z2 lattice gauge theories coupled to fermions adn Z2 matter are discussed in the [documentation](https://alf.physik.uni-wuerzburg.de/doc.pdf). Slides on the auxiliary field QMC can be found [here.](https://github.com/ALF-QMC/ALF_Tutorial_and_Presentations/blob/master/Presentations/2020-Presentations/ALF_2.0-Fermion_Monte_Carlo.pdf)
 
 The Hamiltonians we can consider read:  
 ![The Hamiltonian0](Images/Hamiltonian0.png "The Hamiltonian")  
@@ -24,15 +23,15 @@ Here Z denotes a scalar field (Ising or real continuous field) with predefined d
 
 ## pyALF
 
-For ease of use, [pyALF](https://git.physik.uni-wuerzburg.de/ALF/pyALF) provides a Python interface to run the ALF code.
+For ease of use, [pyALF](https://github.com/ALF-QMC/pyALF) provides a Python interface to run the ALF code.
 
 ## Doxygen
 
-You can find [here](https://gitpages.physik.uni-wuerzburg.de/ALF/ALF/) Doxygen formatted documentation. (Work in progress)
+You can find [here](https://alf.physik.uni-wuerzburg.de/doxygen/) Doxygen formatted documentation. (Work in progress)
 
 ## Installation
 
-* Please check the latest [documentation](https://gitpages.physik.uni-wuerzburg.de/ALF/ALF/doc.pdf) for more details and Sec. 6.1, "Quick Start", to try ALF out straight away.
+* Please check the latest [documentation](https://alf.physik.uni-wuerzburg.de/doc.pdf) for more details and Sec. 6.1, "Quick Start", to try ALF out straight away.
 
 ### PREREQUISITES
 
@@ -101,7 +100,7 @@ The following lines cover the minimal steps of fulfilling the prerequisites (on 
 ```sh
 sudo apt-get update
 sudo apt-get install gfortran liblapack-dev python3 make git
-git clone -b master https://git.physik.uni-wuerzburg.de/ALF/ALF.git
+git clone -b master https://github.com/ALF-QMC/ALF.git
 cd ALF
 source configure.sh GNU noMPI
 make clean
@@ -122,7 +121,7 @@ cat Ener_scalJ
 
 **Scripts_and_Parameters_files**  Helper scripts and the `Start/` directory, which contains the files required to start a run. 
  
-**Documentation**  We have included in the file  [doc.pdf](https://gitpages.physik.uni-wuerzburg.de/ALF/ALF/doc.pdf) an extensive documentation.
+**Documentation**  We have included in the file  [doc.pdf](https://alf.physik.uni-wuerzburg.de/doc.pdf) an extensive documentation.
 
 **testsuite** An automatic test suite for various parts of the code
 

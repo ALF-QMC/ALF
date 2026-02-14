@@ -9,9 +9,9 @@
 
 In this section we describe the steps for compiling and running the code from the shell, and describe how to search for optimal parameter values as well as how to perform the error analysis of the data.
 
-The source code of ALF~\ALFver{} is available at \url{https://git.physik.uni-wuerzburg.de/ALF/ALF/-/tree/\ALFbranch/} and can be cloned with git or downloaded from the repository (make sure to choose the appropriate release).
+The source code of ALF~\ALFver{} is available at \url{https://github.com/ALF-QMC/ALF/tree/\ALFbranch/} and can be cloned with git or downloaded from the repository (make sure to choose the appropriate release).
 
-A Python interface, \textbf{pyALF}, is also available and can be found, together with a number of Jupyter notebooks exploring the interface's capabilities, at \url{https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/tree/\pyALFbranch/}. This interface facilitates setting up simple runs and is ideal for setting benchmarks and getting acquainted with ALF. Some of pyALF's notebooks form the core of the introductory part of the \href{https://git.physik.uni-wuerzburg.de/ALF/ALF_Tutorial/-/blob/master/Tutorial-ALF-\tutALFver/}{ALF Tutorial}, where pyALF's usage is described in more detail.
+A Python interface, \textbf{pyALF}, is also available and can be found, together with a number of Jupyter notebooks exploring the interface's capabilities, at \url{https://github.com/ALF-QMC/pyALF/tree/\pyALFbranch/}, with the documentation \url{https://alf.physik.uni-wuerzburg.de/pyalf-doc/}. This interface facilitates setting up simple runs and is ideal for setting benchmarks and getting acquainted with ALF. Some of pyALF's notebooks form the core of the introductory part of the \href{https://github.com/ALF-QMC/ALF_Tutorial_and_Presentations/blob/master/Tutorial-ALF-\tutALFver/}{ALF Tutorial}, where pyALF's usage is described in more detail.
 
 We start out by providing step-by-step instructions that allow a first-time user to go from zero to performing a simulation and reading out their first measurement using ALF.
 
@@ -20,7 +20,7 @@ We start out by providing step-by-step instructions that allow a first-time user
 \label{sec:quick_alf}
 %-------------------------------------------------------------------------------------
 
-The aim of this section is to provide a fruitful and stress-free first contact with the package. Ideally, it should be possible to copy and paste the instructions below to a Debian/Ubuntu-based Linux shell without further thought\footnote{For other systems and distributions see the package's  \href{https://git.physik.uni-wuerzburg.de/ALF/ALF/-/blob/\ALFbranch/README.md}{README}.}. Explanations and further options and details are found in the remaining sections and in the \href{https://git.physik.uni-wuerzburg.de/ALF/ALF_Tutorial/-/blob/master/Tutorial-ALF-\tutALFver/}{Tutorial}.
+The aim of this section is to provide a fruitful and stress-free first contact with the package. Ideally, it should be possible to copy and paste the instructions below to a Debian/Ubuntu-based Linux shell without further thought\footnote{For other systems and distributions see the package's  \href{https://github.com/ALF-QMC/ALF/blob/\ALFbranch/README.md}{README}.}. Explanations and further options and details are found in the remaining sections and in the \href{https://github.com/ALF-QMC/ALF_Tutorial_and_Presentations/blob/master/Tutorial-ALF-\tutALFver/}{Tutorial}.
 
 \textbf{Prerequisites}:
 You should have access to a shell and the permissions to install -- or have already installed -- the numerical packages Lapack and Blas, a Fortran compiler, Python, and the tools \texttt{make} and \texttt{git}.
@@ -33,7 +33,7 @@ The following commands can be executed in a Debian-based shell\footnote{Avoid fo
 
 sudo apt-get update
 sudo apt-get install gfortran liblapack-dev python3 make git
-git clone -b #\ALFbranch#https://git.physik.uni-wuerzburg.de/ALF/ALF.git
+git clone -b #\ALFbranch#https://github.com/ALF-QMC/ALF.git
 cd ALF
 source configure.sh GNU noMPI
 make clean
