@@ -1,8 +1,6 @@
 name: Test vs given ED reference results
 on: 
   workflow_dispatch:
-  push:
-    branches: ["adapt-test-branch", "adapt-test-eq", "test-ifx-memleak-fix"]
 
 jobs:
   prepare_matrix:
