@@ -32,6 +32,7 @@
 Module QMC_runtime_var
         
         Use runtime_error_mod
+        Use iso_fortran_env, only: output_unit, error_unit
 
 #ifdef MPI
         Use mpi
@@ -534,7 +535,7 @@ Module QMC_runtime_var
 !> ALF-project
 !>
 !> @brief
-!> Bradcast of the QMC runtime variables
+!> Broadcast of the QMC runtime variables
 !>
 !
 !--------------------------------------------------------------------
@@ -582,17 +583,21 @@ Module QMC_runtime_var
 
           implicit none
 
-          Integer :: ierr
+          Integer :: ierr, irank
 
           mpi_per_parameter_set = 1   ! Default value
           Tempering_calc_det = .true. ! Default value
-          OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
-          IF (ierr /= 0) THEN
-          WRITE(error_unit,*) 'main: unable to open <parameters>',ierr
-          CALL Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
+          
+          CALL MPI_COMM_RANK(MPI_COMM_WORLD, irank, ierr)
+          IF (irank == 0) THEN
+            OPEN(UNIT=5,FILE='parameters',STATUS='old',ACTION='read',IOSTAT=ierr)
+            IF (ierr /= 0) THEN
+              WRITE(error_unit,*) 'main: unable to open <parameters>',ierr
+              CALL Terminate_on_error(ERROR_FILE_NOT_FOUND,__FILE__,__LINE__)
+            END IF
+            READ(5,NML=VAR_TEMP)
+            CLOSE(5)
           END IF
-          READ(5,NML=VAR_TEMP)
-          CLOSE(5)
           CALL MPI_BCAST(N_exchange_steps        ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
           CALL MPI_BCAST(N_Tempering_frequency   ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
           CALL MPI_BCAST(mpi_per_parameter_set   ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
