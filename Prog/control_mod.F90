@@ -48,6 +48,7 @@ module Control
     use files_mod
     Use MyMats
     use iso_fortran_env, only: output_unit, error_unit
+    Use Observables
     Implicit none
 
     real    (Kind=Kind(0.d0)), private, save :: XMEANG, XMAXG, XMAXP,  Xmean_tau, Xmax_tau
@@ -63,6 +64,7 @@ module Control
 
     real    (Kind=Kind(0.d0)),  private, save :: XMAXP_HMC, XMEANP_HMC
     Integer (Kind=Kind(0.d0)),  private, save :: NC_Phase_HMC
+    Type    (Obser_Vec ), public :: Obs_acc_HMC
 
     
     real    (Kind=Kind(0.d0)),  private, save :: size_clust_Glob_up, size_clust_Glob_ACC_up
@@ -82,6 +84,8 @@ module Control
 #endif
         Implicit none
         Integer       , INTENT(IN)               :: Group_Comm
+        Integer    ::  N
+        Character (len=64) ::  Filename
 
         XMEANG     = 0.d0
         XMEAN_tau  = 0.d0
@@ -107,6 +111,9 @@ module Control
         NC_Phase_HMC = 0
         NC_HMC_up    = 0
         ACC_HMC_up   = 0
+        N=1
+        Filename="Acc_HMC"
+        Call Obser_Vec_make(Obs_acc_HMC,N,Filename)
         
         NC_Temp_up   = 0
         ACC_Temp_up  = 0
@@ -198,8 +205,11 @@ module Control
         Implicit none
         Logical :: toggle
         NC_HMC_up = NC_HMC_up + 1
+        Obs_acc_HMC%N         =  Obs_acc_HMC%N + 1
+        Obs_acc_HMC%Ave_sign  =  Obs_acc_HMC%Ave_sign + 1.d0
         if (toggle) then
            ACC_HMC_up = ACC_HMC_up + 1
+           Obs_acc_HMC%Obs_vec(1) = Obs_acc_HMC%Obs_vec(1) + 1.d0
         endif
       end Subroutine Control_upgrade_HMC
 

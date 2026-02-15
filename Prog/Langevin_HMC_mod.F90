@@ -36,6 +36,7 @@
       Module Langevin_HMC_mod
         
         Use runtime_error_mod 
+        use observables
         Use Hamiltonian_main
         Use UDV_State_mod
         Use Control
@@ -70,6 +71,7 @@
            Real    (Kind=Kind(0.d0)), allocatable  :: Det_vec_old(:,:)
            Complex (Kind=Kind(0.d0)), allocatable  :: Phase_Det_old(:)
            Complex (Kind=Kind(0.d0)), allocatable  :: Forces  (:,:)
+           Type    (Obser_Vec ), allocatable, public       :: Obs_ESJD_HMC(:)
            
            Real    (Kind=Kind(0.d0)), allocatable  :: Forces_0(:,:)
          CONTAINS
@@ -352,7 +354,7 @@
         Integer, intent(in) :: LOBS_ST, LOBS_EN, LTAU
 
         !Local
-        Integer                   :: N_op, n, nt, n1, n2, i, j, t_leap, nf, nf_eff
+        Integer                   :: N_op, n, nt, n1, n2, i, j, t_leap, nf, nf_eff, LF_steps
         Real    (Kind=Kind(0.d0)) :: X, Xmax,E_kin_old, E_kin_new,T0_Proposal_ratio, weight, cluster_size
         Logical                   :: Calc_Obser_eq, toggle
         Real    (Kind=Kind(0.d0)), allocatable :: Det_vec_old(:,:), Det_vec_new(:,:)
@@ -451,8 +453,9 @@
 #endif
 
            leap_frog_bulk=.true.
+           LF_steps=nranf(this%Leapfrog_Steps)
            !Start Leapfrog loop (Leapfrog_steps)
-           Do t_leap=1,this%Leapfrog_Steps
+           Do t_leap=1,LF_steps
                ! update phi by delta t
                this%Forces_0 = p_tilde
                call ham%Apply_B_HMC(this%Forces_0 ,.True.)
@@ -462,11 +465,11 @@
 #endif
 
                ! reset storage
-               if (t_leap == this%Leapfrog_Steps) leap_frog_bulk=.false.
+               if (t_leap == LF_steps) leap_frog_bulk=.false.
                Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
                ! if last step
                X=1.0d0
-               if (t_leap == this%Leapfrog_Steps) then
+               if (t_leap == LF_steps) then
                   ! calc det[phi']
                   Call Compute_Fermion_Det(Phase_det_new,Det_Vec_new, udvl, udvst, Stab_nt, storage)
                   ! LATER (optimization idea): save Phase, GR, udvr, udvl (move calc det out of the loop)
@@ -489,21 +492,21 @@
            p_tilde=-p_tilde
            !Do half step update of p
            p_tilde=p_tilde - 0.5*this%Delta_t_Langevin_HMC*this%Forces_0
-           write(2000+this%Leapfrog_Steps,*) nsigma%f
+           write(2000+LF_steps,*) nsigma%f
 
            !Start Leapfrog loop (Leapfrog_steps)
-           Do t_leap=1,this%Leapfrog_Steps
+           Do t_leap=1,LF_steps
                ! update phi by delta t
                this%Forces_0 = p_tilde
                call ham%Apply_B_HMC(this%Forces_0 ,.True.)
                nsigma%f=nsigma%f + this%Delta_t_Langevin_HMC*this%Forces_0
-               write(2000+this%Leapfrog_Steps-t_leap,*) nsigma%f
+               write(2000+LF_steps-t_leap,*) nsigma%f
 
                ! reset storage
                Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
                ! if last step
                X=1.0d0
-               if (t_leap == this%Leapfrog_Steps) then
+               if (t_leap == LF_steps) then
                   ! calc det[phi']
                   Call Compute_Fermion_Det(Phase_det_new,Det_Vec_new, udvl, udvst, Stab_nt, storage)
                   ! LATER (optimization idea): save Phase, GR, udvr, udvl (move calc det out of the loop)
@@ -546,6 +549,11 @@
            if (reconstruction_needed) call ham%weight_reconstruction(Phase_array)
            Phase_new=product(Phase_array)
            Phase_new=Phase_new**N_SUN
+           X=ham%Jump_dist_HMC(nsigma%f, nsigma_old%f)
+         !   write(*,*) LF_steps, x, x/size(nsigma%f), weight
+           this%Obs_ESJD_HMC(LF_steps)%N         =  this%Obs_ESJD_HMC(LF_steps)%N + 1
+           this%Obs_ESJD_HMC(LF_steps)%Ave_sign  =  this%Obs_ESJD_HMC(LF_steps)%Ave_sign + 1.d0
+           this%Obs_ESJD_HMC(LF_steps)%Obs_vec(1) = this%Obs_ESJD_HMC(LF_steps)%Obs_vec(1) + x*weight
 
            TOGGLE = .false.
            if ( Weight > ranf_wrap() )  Then
@@ -611,6 +619,8 @@
         !Local
         Integer ::  IERR
         Logical ::  lexist
+        Integer    ::  N
+        Character (len=64) ::  Filename
 #ifdef MPI
         Real (Kind=Kind(0.d0)) :: X
         INTEGER                :: STATUS(MPI_STATUS_SIZE), ISIZE, IRANK
@@ -679,6 +689,12 @@
            this%L_Forces             = .False.
            this%Leapfrog_Steps       =  Leapfrog_steps
            this%Delta_t_running      =  1.0d0
+           allocate(this%Obs_ESJD_HMC(0:Leapfrog_steps))
+           N=1
+           do i=0,Leapfrog_steps
+              write(Filename,'(A,I0)') "ESJD_HMC_",i
+              Call Obser_Vec_make(this%Obs_ESJD_HMC(i),N,Filename)
+           enddo
          !   WRITE(error_unit,*) 'HMC  step is not yet implemented'
          !   CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         else
