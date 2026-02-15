@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import sys
+import argparse
 import json
 import copy
 import yaml
@@ -155,12 +155,15 @@ def prep_runs(test_specs, env_name, env_spec):
     }
 
 if __name__ == "__main__":
-    try:
-        specs_file = sys.argv[1]
-    except IndexError:
-        specs_file = "testsuite/test_branch_parameters.json"
+    parser = argparse.ArgumentParser()
+    parser.add_argument('specs_file', nargs='?', default="testsuite/test_branch_parameters.json")
+    parser.add_argument('--github', action='store_true',
+                        help="Generate matrix for GitHub Actions workflow instead of GitLab CI config")
+    args = parser.parse_args()
+    if args.github:
+        raise NotImplementedError("GitHub Actions config generation not implemented yet.")
 
-    with open(specs_file, 'r', encoding='UTF-8') as f:
+    with open(args.specs_file, 'r', encoding='UTF-8') as f:
         test_specs = json.load(f)
 
     for env_name, env_spec in ENVIRONMENTS.items():

@@ -542,6 +542,7 @@ Subroutine read_local_hdf5(filename, name, sgn, bins, Latt, Latt_unit, dtau, Cha
 !> @param [OUT] bins Complex(:,:,:,:,:)
 !> \verbatim
 !>  Monte Carlo bins of correlation
+!> \endverbatim
 !> @param [OUT] bins0 Complex(:,:)
 !> \verbatim
 !>  Monte Carlo bins of background
@@ -1181,8 +1182,8 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
                   endif
                   CALL EXECUTE_COMMAND_LINE(command)
                   Open (Unit=10, File=File_out, status="unknown")
-                  Write(10, '(2(I11), E26.17E3, I11, A3)') &
-                       & Lt_eff, nbins/N_rebin, real(lt-1,kind(0.d0))*dtau, Latt_unit%Norb, Channel
+                  Write(10, '(2(I11), E26.17E3, I11," ", A)') &
+                       & Lt_eff, nbins/N_rebin, real(lt-1,kind(0.d0))*dtau, Latt_unit%Norb, trim(Channel)
                   do nt = 1, LT_eff
                      Write(10, '(3(E26.17E3))') &
                           & dble(nt-1)*dtau,  dble(Xmean(nt)), sqrt(abs(dble(Xcov(nt,nt))))
@@ -1823,6 +1824,351 @@ Subroutine ana_local(name, sgn, bins_raw, Latt, Latt_unit)
       Background_eq = X(1) - X(2)*X(3)
 
     end function Background_eq
+
+
+#ifdef HDF5
+   subroutine write_obs_vec_hdf5(filename, groupname, sgn, bins, analysis_mode)
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Writes bins of scalar observables to HDF5 file
+!>
+!> @param [IN] filename Character(len=64)
+!> \verbatim
+!>  Name of HDF5 file
+!> \endverbatim
+!> @param [IN] groupname Character(len=64)
+!> \verbatim
+!>  Name of observable
+!> \endverbatim
+!> @param [IN] sgn Real(:)
+!> \verbatimam
+!>  Sign of bins
+!> \endverbatim
+!> @param [IN] bins Complex(:,:)
+!> \verbatim
+!>  Monte Carlo bins
+!> \endverbatim
+!> @param [IN] analysis_mode Character(len=64)
+!> \verbatim
+!>  How to analyze the observable
+!> \endverbatim
+!-------------------------------------------------------------------
+      implicit none
+      Character (len=64)                    , intent(in) :: filename
+      Character (len=64)                    , intent(in) :: groupname
+      Real    (Kind=Kind(0.d0)), allocatable, intent(in) :: sgn(:)
+      Complex (Kind=Kind(0.d0)), pointer    , intent(in) :: bins(:,:)
+      Character (len=64)                    , intent(in) :: analysis_mode
+
+      Integer :: Nobs, Nbins
+
+      INTEGER :: i, ierr
+      Character (len=64) :: obs_dsetname, sgn_dsetname
+      INTEGER(HID_T)     :: file_id, group_id
+      logical            :: file_exists, link_exists
+      INTEGER(HSIZE_T), allocatable :: dims(:)
+      TYPE(C_PTR)                   :: dat_ptr
+      real(Kind=Kind(0.d0)), pointer :: sgn1(:)
+
+      Nobs  = size(bins, 1)
+      Nbins = size(bins, 2)
+
+      CALL h5open_f(ierr)
+
+      inquire (file=filename, exist=file_exists)
+      IF (.not. file_exists) THEN
+        CALL h5fcreate_f(filename, H5F_ACC_TRUNC_F, file_id, ierr)
+      else
+        CALL h5fopen_f  (filename,  H5F_ACC_RDWR_F, file_id, ierr)
+      endif
+
+      CALL h5lexists_f(file_id, groupname, link_exists, ierr)
+      if ( link_exists ) then
+        write(*,*) "Error: group ", groupname, "already exists, abort"
+        stop
+      endif
+
+      CALL h5gcreate_f (file_id, groupname, group_id, ierr)
+      call write_attribute(group_id, '.', "analysis_mode", analysis_mode, ierr)
+      CALL h5gclose_f (group_id, ierr)
+
+      !Create Dataset for data
+      write(obs_dsetname,'(2A)') trim(groupname), "/obser"
+      allocate( dims(3) )
+      dims = (/2, Nobs, 0/)
+      CALL init_dset(file_id, obs_dsetname, dims, .true.)
+      deallocate( dims )
+      dat_ptr = C_LOC(bins(1,1))
+      CALL append_dat(file_id, obs_dsetname, dat_ptr, Nbins)
+
+      !Create Dataset for sign
+      write(sgn_dsetname,'(2A)') trim(groupname), "/sign"
+      allocate( dims(1) )
+      dims = (/0/)
+      CALL init_dset(file_id, sgn_dsetname, dims, .false.)
+      deallocate( dims )
+      allocate( sgn1(Nbins) )
+      sgn1 = sgn
+      dat_ptr = C_LOC(sgn1(1))
+      CALL append_dat(file_id, sgn_dsetname, dat_ptr, Nbins)
+      deallocate( sgn1 )
+
+      CALL h5fclose_f(file_id, ierr)
+
+   end subroutine write_obs_vec_hdf5
+#endif
+
+
+#ifdef HDF5
+   subroutine write_obs_latt_hdf5(filename, groupname, sgn, bins, bins0, Latt, Latt_unit, dtau, Channel)
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Writes in bins of lattice-type observables (both equal time and timedisplaced) to HDF5 file
+!>
+!> @param [IN] filename Character(len=64)
+!> \verbatim
+!>  Name of HDF5 file
+!> \endverbatim
+!> @param [IN] groupname Character(len=64)
+!> \verbatim
+!>  Name of observable
+!> \endverbatim
+!> @param [IN] sgn Real(:)
+!> \verbatimamChannel
+!>  Sign of bins
+!> \endverbatim
+!> @param [IN] bins Complex(:,:,:,:,:)
+!> \verbatim
+!>  Monte Carlo bins of correlation
+!> \endverbatim
+!> @param [IN] bins0 Complex(:,:)
+!> \verbatim
+!>  Monte Carlo bins of background
+!> \endverbatim
+!> @param [IN] Latt Type(Lattice)
+!> \verbatim
+!>  Bravais lattice
+!> \endverbatim
+!> @param [IN] Latt_unit Type(Unit_cell)
+!> \verbatim
+!>  Unit cell
+!> \endverbatim
+!> @param [IN] dtau Real
+!> \verbatim
+!>  Size of imaginary time step
+!> \endverbatim
+!> @param [IN] file Character(len=2)
+!> \verbatim
+!>  MaxEnt Channel. Relevant for timedisplaced correlation.
+!> \endverbatim
+!-------------------------------------------------------------------
+      implicit none
+      Character (len=64)                    , intent(in) :: filename
+      Character (len=64)                    , intent(in) :: groupname
+      Real    (Kind=Kind(0.d0)), allocatable, intent(in) :: sgn(:)
+      Complex (Kind=Kind(0.d0)), pointer    , intent(in) :: bins(:,:,:,:,:)
+      Complex (Kind=Kind(0.d0)), pointer    , intent(in) :: bins0(:,:)
+      Type (Lattice)                        , intent(in) :: Latt
+      Type (Unit_cell)                      , intent(in) :: Latt_unit
+      Real    (Kind=Kind(0.d0))             , intent(in) :: dtau
+      Character (len=*)                     , intent(in) :: Channel
+
+      Integer :: Norb, Nunit, Ntau, Nbins
+
+      INTEGER :: i, ierr
+      Character (len=64) :: obs_dsetname, bak_dsetname, sgn_dsetname
+      INTEGER(HID_T)     :: file_id, group_id
+      logical            :: file_exists, link_exists
+      INTEGER(HSIZE_T), allocatable :: dims(:)
+      TYPE(C_PTR)                   :: dat_ptr
+      real(Kind=Kind(0.d0)), pointer :: sgn1(:)
+
+      Nunit  = size(bins, 1)
+      Ntau   = size(bins, 2)
+      Norb   = size(bins, 3)
+      Nbins  = size(bins, 5)
+
+      CALL h5open_f(ierr)
+
+      inquire (file=filename, exist=file_exists)
+      IF (.not. file_exists) THEN
+        CALL h5fcreate_f(filename, H5F_ACC_TRUNC_F, file_id, ierr)
+      else
+        CALL h5fopen_f  (filename,  H5F_ACC_RDWR_F, file_id, ierr)
+      endif
+
+      call write_latt(file_id, Latt, Latt_unit)
+
+      CALL h5lexists_f(file_id, groupname, link_exists, ierr)
+      if ( link_exists ) then
+        write(*,*) "Error: group ", groupname, "already exists, abort"
+        error stop
+      endif
+
+      CALL h5gcreate_f (file_id, groupname, group_id, ierr)
+      call write_attribute(group_id, '.', "dtau", dtau, ierr)
+      call write_attribute(group_id, '.', "Channel", Channel, ierr)
+      call write_latt(group_id, Latt, Latt_unit)
+      CALL h5gclose_f (group_id, ierr)
+
+      !Create Dataset for data
+      write(obs_dsetname,'(2A)') trim(groupname), "/obser"
+      allocate( dims(6) )
+      dims = [2, Nunit, Ntau, Norb, Norb, 0]
+      CALL init_dset(file_id, obs_dsetname, dims, .true.)
+      deallocate( dims )
+      dat_ptr = C_LOC(bins(1,1,1,1,1))
+      CALL append_dat(file_id, obs_dsetname, dat_ptr, Nbins)
+
+      !Create Dataset for background
+      write(bak_dsetname,'(2A)') trim(groupname), "/back"
+      allocate( dims(3) )
+      dims = [2, Norb, 0]
+      CALL init_dset(file_id, bak_dsetname, dims, .true.)
+      deallocate( dims )
+      dat_ptr = C_LOC(bins0(1,1))
+      CALL append_dat(file_id, bak_dsetname, dat_ptr, Nbins)
+
+      !Create Dataset for sign
+      write(sgn_dsetname,'(2A)') trim(groupname), "/sign"
+      allocate( dims(1) )
+      dims = [0]
+      CALL init_dset(file_id, sgn_dsetname, dims, .false.)
+      deallocate( dims )
+      allocate( sgn1(Nbins) )
+      sgn1 = sgn
+      dat_ptr = C_LOC(sgn1(1))
+      CALL append_dat(file_id, sgn_dsetname, dat_ptr, Nbins)
+      deallocate( sgn1 )
+
+      CALL h5fclose_f(file_id, ierr)
+
+   end subroutine write_obs_latt_hdf5
+#endif
+
+
+#ifdef HDF5
+   subroutine write_obs_local_hdf5(filename, groupname, sgn, bins, Latt, Latt_unit, dtau, Channel)
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Writes in bins of lattice-type observables (both equal time and timedisplaced) to HDF5 file
+!>
+!> @param [IN] filename Character(len=64)
+!> \verbatim
+!>  Name of HDF5 file
+!> \endverbatim
+!> @param [IN] groupname Character(len=64)
+!> \verbatim
+!>  Name of observable
+!> \endverbatim
+!> @param [IN] sgn Real(:)
+!> \verbatimamChannel
+!>  Sign of bins
+!> \endverbatim
+!> @param [IN] bins Complex(:,:,:,:)
+!> \verbatim
+!>  Monte Carlo bins of correlation
+!> \endverbatim
+!> @param [IN] Latt Type(Lattice)
+!> \verbatim
+!>  Bravais lattice
+!> \endverbatim
+!> @param [IN] Latt_unit Type(Unit_cell)
+!> \verbatim
+!>  Unit cell
+!> \endverbatim
+!> @param [IN] dtau Real
+!> \verbatim
+!>  Size of imaginary time step
+!> \endverbatim
+!> @param [IN] file Character(len=2)
+!> \verbatim
+!>  MaxEnt Channel. Relevant for timedisplaced correlation.
+!> \endverbatim
+!-------------------------------------------------------------------
+      implicit none
+      Character (len=64)                    , intent(in) :: filename
+      Character (len=64)                    , intent(in) :: groupname
+      Real    (Kind=Kind(0.d0)), allocatable, intent(in) :: sgn(:)
+      Complex (Kind=Kind(0.d0)), pointer    , intent(in) :: bins(:,:,:,:)
+      Type (Lattice)                        , intent(in) :: Latt
+      Type (Unit_cell)                      , intent(in) :: Latt_unit
+      Real    (Kind=Kind(0.d0))             , intent(in) :: dtau
+      Character (len=2)                     , intent(in) :: Channel
+
+      Integer :: Norb, Nunit, Ntau, Nbins
+
+      INTEGER :: i, ierr
+      Character (len=64) :: obs_dsetname, bak_dsetname, sgn_dsetname
+      INTEGER(HID_T)     :: file_id, group_id
+      logical            :: file_exists, link_exists
+      INTEGER(HSIZE_T), allocatable :: dims(:)
+      TYPE(C_PTR)                   :: dat_ptr
+      real(Kind=Kind(0.d0)), pointer :: sgn1(:)
+
+      Nunit  = size(bins, 1)
+      Ntau   = size(bins, 2)
+      Norb   = size(bins, 3)
+      Nbins  = size(bins, 4)
+
+      CALL h5open_f(ierr)
+
+      inquire (file=filename, exist=file_exists)
+      IF (.not. file_exists) THEN
+        CALL h5fcreate_f(filename, H5F_ACC_TRUNC_F, file_id, ierr)
+      else
+        CALL h5fopen_f  (filename,  H5F_ACC_RDWR_F, file_id, ierr)
+      endif
+
+      call write_latt(file_id, Latt, Latt_unit)
+
+      CALL h5lexists_f(file_id, groupname, link_exists, ierr)
+      if ( link_exists ) then
+        write(*,*) "Error: group ", groupname, "already exists, abort"
+        error stop
+      endif
+
+      CALL h5gcreate_f (file_id, groupname, group_id, ierr)
+      call write_attribute(group_id, '.', "dtau", dtau, ierr)
+      call write_attribute(group_id, '.', "Channel", Channel, ierr)
+      call write_latt(group_id, Latt, Latt_unit)
+      CALL h5gclose_f (group_id, ierr)
+
+      !Create Dataset for data
+      write(obs_dsetname,'(2A)') trim(groupname), "/obser"
+      allocate( dims(5) )
+      dims = [2, Nunit, Ntau, Norb, 0]
+      CALL init_dset(file_id, obs_dsetname, dims, .true.)
+      deallocate( dims )
+      dat_ptr = C_LOC(bins(1,1,1,1))
+      CALL append_dat(file_id, obs_dsetname, dat_ptr, Nbins)
+
+      !Create Dataset for sign
+      write(sgn_dsetname,'(2A)') trim(groupname), "/sign"
+      allocate( dims(1) )
+      dims = [0]
+      CALL init_dset(file_id, sgn_dsetname, dims, .false.)
+      deallocate( dims )
+      allocate( sgn1(Nbins) )
+      sgn1 = sgn
+      dat_ptr = C_LOC(sgn1(1))
+      CALL append_dat(file_id, sgn_dsetname, dat_ptr, Nbins)
+      deallocate( sgn1 )
+
+      CALL h5fclose_f(file_id, ierr)
+
+   end subroutine write_obs_local_hdf5
+#endif
+
    
     complex (Kind=Kind(0.d0)) function Background_sus(X)
      

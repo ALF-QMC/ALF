@@ -49,7 +49,11 @@
       Use WaveFunction_mod
       Use MyMats
       use iso_fortran_env, only: output_unit, error_unit
+      use Hamiltonian_main
       Implicit none
+
+      Logical, private, save :: pinning_notice_issued = .false.
+      Logical, private, save :: first_pinning_notice_issued = .true.
 
       Type Hopping_Matrix_type
          Integer                   :: N_bonds
@@ -1490,11 +1494,130 @@
 !> ALF-project
 !>
 !> @brief
+!> Given a bond  I,J or  a  site  I=J,  this routine searches if belongs to the group of bonds or sites for which 
+!> the hopping matrix will be modified.
+!> If the bond or site is found, the routine returns the index of the bond/site in the list of pinned_vertices. 
+!--------------------------------------------------------------------
+      integer pure function get_i_pinned_vertex(I, J, N_pinned_vertices, pinned_vertices)
+         integer, intent(in) :: I, J, N_pinned_vertices, pinned_vertices(N_pinned_vertices, 2)
+         integer :: n
+
+         get_i_pinned_vertex = 0
+         do n = 1, N_pinned_vertices
+            if ((I == pinned_vertices(n,1) .and. J == pinned_vertices(n,2)) .or. &
+                (J == pinned_vertices(n,1) .and. I == pinned_vertices(n,2))) then
+               get_i_pinned_vertex = n
+               exit
+            endif
+         enddo
+      end function get_i_pinned_vertex
+
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF-project
+!>
+!> @brief
+!> Given a bond  I,J or  a  site  I=J,  this routine returns the pinning factor of the bond/site. If there is no pinning 
+!> for this bond/site, the routine returns 1.0 
+!--------------------------------------------------------------------
+      complex(Kind=Kind(0.d0)) function get_pinning_factor(I, J, N_pinned_vertices, pinned_vertices, pinning_factor, nf)
+         integer, intent(in) :: I, J, N_pinned_vertices, pinned_vertices(N_pinned_vertices, 2), nf
+         complex(Kind=Kind(0.d0)), Intent(IN) :: pinning_factor(:,:)
+
+         integer :: i_pinned_vertex
+
+         i_pinned_vertex = get_i_pinned_vertex(I, J, N_pinned_vertices, pinned_vertices)
+         if(i_pinned_vertex .ne. 0) then
+            get_pinning_factor = pinning_factor(i_pinned_vertex, nf)
+         else
+            get_pinning_factor = cmplx(1.d0,0.d0, kind(0.d0))
+         endif
+         if( abs(get_pinning_factor  - cmplx(1.d0,0.d0, kind(0.d0))) >= 1.d-10 ) pinning_notice_issued = .true.
+      end function get_pinning_factor
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF-project
+!>
+!> @brief
+!> Given a bond  I,J or  a  site  I=J,  this routine returns the pinning offset of the bond/site. If there is no pinning 
+!> for this bond/site, the routine returns 1.0 
+!--------------------------------------------------------------------
+      complex(Kind=Kind(0.d0)) function get_pinning_offset(I, J, N_pinned_vertices, pinned_vertices, pinning_offset, nf)
+         integer, intent(in) :: I, J, N_pinned_vertices, pinned_vertices(N_pinned_vertices, 2), nf
+         complex(Kind=Kind(0.d0)), Intent(IN) :: pinning_offset(:,:)
+
+         integer :: i_pinned_vertex
+
+         i_pinned_vertex = get_i_pinned_vertex(I, J, N_pinned_vertices, pinned_vertices)
+         if(i_pinned_vertex .ne. 0) then
+            get_pinning_offset = pinning_offset(i_pinned_vertex, nf)
+         else
+            get_pinning_offset = cmplx(0.d0,0.d0, kind(0.d0))
+         endif
+         if( abs(get_pinning_offset) >= 1.d-10 ) pinning_notice_issued = .true.
+      end function get_pinning_offset
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF-project
+!>
+!> @brief
+!> This routine issues a warning if  pinning is used in the simulation. In particular it notifies the user that translation
+!> symmetry is broken. 
+!--------------------------------------------------------------------
+      subroutine issue_pinning_notice()
+         Character (len=64) :: file_info
+         integer :: unit_info
+#ifdef MPI
+         integer :: Ierr, Isize, Irank, irank_g, isize_g, igroup
+         CALL MPI_COMM_SIZE(MPI_COMM_WORLD,ISIZE,IERR)
+         CALL MPI_COMM_RANK(MPI_COMM_WORLD,IRANK,IERR)
+         call MPI_Comm_rank(Group_Comm, irank_g, ierr)
+         call MPI_Comm_size(Group_Comm, isize_g, ierr)
+         igroup           = irank/isize_g
+#endif
+
+         If (first_pinning_notice_issued) then 
+#if defined(TEMPERING)
+            write(file_info,'(A,I0,A)') "Temp_",igroup,"/info"
+            If (Irank_g == 0 ) write(error_unit, '(A,I0,A)') &
+               'Warning: you are using pinning on parameter set ', igroup, &
+               '. Results will not have translation symmetry.'
+#else
+            file_info = "info"
+#endif
+
+#ifdef MPI
+            If (Irank_g == 0) &
+#endif
+               write(error_unit, *) 'Warning: you are using pinning, results will not have translation symmetry.'
+
+#if defined(MPI)
+            If (Irank_g == 0 ) then
+#endif
+               Open (newunit=unit_info, file=file_info, status="unknown", position="append")
+               Write(unit_info,*) ' Pinning is used. Results will not have translation symmetry.'
+               close(unit_info)
+#if defined(MPI)
+            endif
+#endif
+            first_pinning_notice_issued = .false.
+         endif
+      end subroutine issue_pinning_notice
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF-project
+!>
+!> @brief
 !> Given the Hopping-matrix, and if required the checkerboard decomposion (i.e. private data of this module)
 !> the routine allocates and sets OP_T.
 !
 !--------------------------------------------------------------------
-      Subroutine Predefined_Hoppings_set_OPT(this,List,Invlist,Latt,  Latt_unit,  Dtau,Checkerboard, Symm,  OP_T )
+      Subroutine Predefined_Hoppings_set_OPT(this,List,Invlist,Latt,  Latt_unit,  Dtau,Checkerboard, Symm, OP_T,  & 
+                                             & pinned_vertices, pinning_factor, pinning_offset)
 
         Implicit none
 
@@ -1504,21 +1627,55 @@
         Type(Unit_cell),Intent(in)                          :: Latt_unit
         Real (Kind=Kind(0.d0)), Intent(In)                  :: Dtau
         Logical, Intent(IN)                                 :: Checkerboard, Symm
-
+        
         Type(Operator), Intent(Out),  dimension(:,:), allocatable  :: Op_T
-
-
-
+        
+        ! Indices of pinned vertices. Shape [N_pinned_vertices, 2]
+        Integer, Intent(IN), optional                       :: pinned_vertices(:,:)
+        ! Factor, by which the vertex matrix elements will get multiplied. Shape [N_pinned_vertices, N_FL]
+        complex(Kind=Kind(0.d0)), Intent(IN), optional      :: pinning_factor(:,:)
+        ! Offset of which the vertex matrix element Shape [N_pinned_vertices, N_FL]
+        complex(Kind=Kind(0.d0)), Intent(IN), optional      :: pinning_offset(:,:)
+        
+        
         ! Local
         Integer                           :: Ndim, N_FL, N_Phi, I, J, I1, J1, no_I, no_J, nf
         Integer                           :: n_1, n_2, Nb, n_f,l_f, n_l, N, nc, orb
         Real   (Kind=Kind(0.d0))          :: Ham_T, Ham_Chem,  Phi_X, Phi_Y
         Logical                           :: Bulk
-        Complex(Kind=Kind(0.d0))          :: Z
+        Complex(Kind=Kind(0.d0))          :: Z,  Z1, Z2
 
+        Integer                           :: N_pinned_vertices, i_pinned_vertex
+
+        
         N_FL =  size(this,1)
         !Write(6,*)  'N_FL ', N_FL
         Ndim =  Latt%N * Latt_Unit%Norb
+
+        if( (present(pinned_vertices) .and. .not.(present(pinning_factor ).and. present(pinning_offset))) .or. &
+          & (present(pinning_factor)  .and. .not.(present(pinned_vertices).and. present(pinning_offset))) .or. &
+          & (present(pinning_offset)  .and. .not.(present(pinned_vertices).and. present(pinning_factor))) ) then
+           write(error_unit, *) 'All pinned_vertices, pinning_factor and pinning_offset need to be supplied for pinning.'
+           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+        endif
+
+        if(present(pinned_vertices)) N_pinned_vertices = size(pinned_vertices, 1)
+        if(present(pinned_vertices)) then
+           if(size(pinned_vertices, 2) .ne. 2) then
+             write(error_unit, *) 'Second dimension of pinned_vertices has to be 2.'
+             CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+           endif
+
+           if(size(pinning_factor, 1) .ne. N_pinned_vertices) then
+            write(error_unit, *) 'First dimension of pinning_factor has to be equal to the number of pinned vertices.'
+            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+          endif
+
+          if(size(pinning_factor, 2) .ne. N_FL) then
+            write(error_unit, *) 'Second dimension of pinning_factor has to be equal to the number of flavors N_FL.'
+            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+          endif
+        endif
 
         ! Test of correctness of checkerboard decomposition
         If (checkerboard) then
@@ -1540,12 +1697,17 @@
            allocate(Op_T(Ndim,N_FL))
            do nf = 1,N_FL
               do n = 1,ndim
-                 Call Op_make(Op_T(n,nf),1)
-                 Op_T(n,nf)%P(1)   = n
-                 Op_T(n,nf)%O(1,1) =  this(nf)%T_Loc(list(n,2))
-                 Op_T(n,nf)%g      = -Dtau
-                 Op_T(n,nf)%alpha  =  cmplx(0.d0,0.d0, kind(0.D0))
-                 Call Op_set(Op_T(n,nf))
+                  Call Op_make(Op_T(n,nf),1)
+                  Op_T(n,nf)%P(1)   = n
+                  Z = this(nf)%T_Loc(list(n,2))
+                  if(present(pinned_vertices)) then
+                     Z = Z*get_pinning_factor(n, n, N_pinned_vertices, pinned_vertices, pinning_factor, nf) + &
+                        &  get_pinning_offset(n, n, N_pinned_vertices, pinned_vertices, pinning_offset, nf)
+                  endif
+                  Op_T(n,nf)%O(1,1) =  Z
+                  Op_T(n,nf)%g      = -Dtau
+                  Op_T(n,nf)%alpha  =  cmplx(0.d0,0.d0, kind(0.D0))
+                  Call Op_set(Op_T(n,nf))
               enddo
            enddo
         case default
@@ -1570,6 +1732,10 @@
                        Z    = Generic_hopping(I,no_I, n_1, n_2, no_J, N_Phi, Phi_x,Phi_y, Bulk, Latt, Latt_Unit)
                        I1   = Invlist(I,no_I)
                        J1   = Invlist(J,no_J)
+                       if(present(pinned_vertices)) then
+                          Z = Z*get_pinning_factor(I1, J1, N_pinned_vertices, pinned_vertices, pinning_factor, nf) + & 
+                              & get_pinning_offset(I1, J1, N_pinned_vertices, pinned_vertices, pinning_offset, nf)
+                       endif
                        Op_T(1,nf)%O(I1,J1) = this(nf)%T(Nb)*Z
                        Op_T(1,nf)%O(J1,I1) = Conjg(this(nf)%T(Nb)*Z)
                     enddo
@@ -1580,8 +1746,13 @@
                     ! List(N_b,4) = n_2
                     ! H_[(i,no_1),(i + n_1 a_1 + n_2 a_2,no_2)] = T(N_b)
                     Do no_I = 1, Latt_Unit%Norb
-                       I1   = Invlist(I,no_I)
-                       Op_T(1,nf)%O(I1,I1) = this(nf)%T_Loc(no_I)
+                        I1   = Invlist(I,no_I)
+                        Z = this(nf)%T_Loc(no_I) 
+                        if(present(pinned_vertices)) then
+                           Z = Z*get_pinning_factor(I1, I1, N_pinned_vertices, pinned_vertices, pinning_factor, nf) + &
+                              &  get_pinning_offset(I1, I1, N_pinned_vertices, pinned_vertices, pinning_offset, nf)
+                        endif
+                        Op_T(1,nf)%O(I1,I1) = Z
                     Enddo
                  enddo
                  Do I = 1,Ndim
@@ -1629,16 +1800,26 @@
                        n_1  = this(nf)%list(Nb,3)
                        n_2  = this(nf)%list(Nb,4)
                        J    = Latt%nnlist(I,n_1,n_2)
-                       Z    = Generic_hopping(I,no_I, n_1, n_2, no_J, N_Phi, Phi_x,Phi_y, Bulk, Latt, Latt_Unit)
                        I1   = Invlist(I,no_I)
                        J1   = Invlist(J,no_J)
+                       Z    = Generic_hopping(I,no_I, n_1, n_2, no_J, N_Phi, Phi_x,Phi_y, Bulk, Latt, Latt_Unit)
+                       Z1   = this(nf)%T_loc(no_I)/this(1)%Multiplicity(no_I)
+                       Z2   = this(nf)%T_loc(no_J)/this(1)%Multiplicity(no_J)
+                       if(present(pinned_vertices)) then
+                          Z = Z*get_pinning_factor(I1, J1, N_pinned_vertices, pinned_vertices, pinning_factor, nf) + & 
+                              & get_pinning_offset(I1, J1, N_pinned_vertices, pinned_vertices, pinning_offset, nf)
+                          Z1 = Z1*get_pinning_factor(I1, I1, N_pinned_vertices, pinned_vertices, pinning_factor, nf) + &
+                              &   get_pinning_offset(I1, I1, N_pinned_vertices, pinned_vertices, pinning_offset, nf)/this(1)%Multiplicity(no_I)
+                          Z2 = Z2*get_pinning_factor(J1, J1, N_pinned_vertices, pinned_vertices, pinning_factor, nf) + &
+                              &   get_pinning_offset(J1, J1, N_pinned_vertices, pinned_vertices, pinning_offset, nf)/this(1)%Multiplicity(no_J)
+                       endif
                        nc = nc + 1
                        Op_T(nc,nf)%P(1) = I1
                        Op_T(nc,nf)%P(2) = J1
                        Op_T(nc,nf)%O(1,2) = this(nf)%T(Nb)*Z
                        Op_T(nc,nf)%O(2,1) = Conjg(this(nf)%T(Nb)*Z)
-                       Op_T(nc,nf)%O(1,1) = this(nf)%T_loc(no_I)/this(1)%Multiplicity(no_I)
-                       Op_T(nc,nf)%O(2,2) = this(nf)%T_loc(no_J)/this(1)%Multiplicity(no_J)
+                       Op_T(nc,nf)%O(1,1) = Z1
+                       Op_T(nc,nf)%O(2,2) = Z2
                        Op_T(nc,nf)%g = -Dtau*this(1)%Prop_Fam(n_f)
                        Op_T(nc,nf)%alpha=cmplx(0.d0,0.d0, kind(0.D0))
                        Call Op_set(Op_T(nc,nf))
@@ -1647,6 +1828,8 @@
               enddo
            endif
         end select
+
+        If (pinning_notice_issued) call issue_pinning_notice()
 
       end Subroutine Predefined_Hoppings_set_OPT
 
@@ -1659,16 +1842,24 @@
 !> the hopping matrix.
 !>
 !--------------------------------------------------------------------
-      Subroutine  Predefined_Hoppings_Compute_Kin(this,List,Invlist, Latt, Latt_unit, GRC, Z_Kin)
+      Subroutine  Predefined_Hoppings_Compute_Kin(this,List,Invlist, Latt, Latt_unit, GRC, Z_Kin, & 
+                                             &    pinned_vertices, pinning_factor, pinning_offset)
 
         Implicit none
 
         type (Hopping_Matrix_type), allocatable  :: this(:)
         Integer, Intent(IN), Dimension(:,:)                 :: List, Invlist
         Type(Lattice),  Intent(in)                          :: Latt
-        Type(Unit_cell),Intent(in)                          :: Latt_unit
+        Type(Unit_cell),Intent(in)                          :: Latt_unit   
         Complex (Kind=Kind(0.d0)), intent(in), Dimension(:,:,:) :: GRC(:,:,:)
         Complex (Kind=Kind(0.d0)),  intent(out) :: Z_kin
+        ! Indices of pinned vertices. Shape [N_pinned_vertices, 2]
+        Integer, Intent(IN), optional                       :: pinned_vertices(:,:)
+        ! Factor, by which the vertex matrix elements will get multiplied. Shape [N_pinned_vertices, N_FL]
+        complex(Kind=Kind(0.d0)), Intent(IN), optional      :: pinning_factor(:,:)
+        ! Offset of which the vertex matrix element Shape [N_pinned_vertices, N_FL]
+        complex(Kind=Kind(0.d0)), Intent(IN), optional      :: pinning_offset(:,:)
+        
 
         !Local
         Integer                           :: Ndim, N_FL, N_Phi, I, J, I1, J1, no_I, no_J, nf
@@ -1676,7 +1867,38 @@
         Real   (Kind=Kind(0.d0))          :: Ham_T, Ham_Chem,  Phi_X, Phi_Y
         Logical                           :: Bulk
         Complex(Kind=Kind(0.d0))          :: Z
+        Integer                           :: N_pinned_vertices, i_pinned_vertex
 
+        if( (present(pinned_vertices) .and. .not.(present(pinning_factor ).and. present(pinning_offset))) .or. &
+          & (present(pinning_factor)  .and. .not.(present(pinned_vertices).and. present(pinning_offset))) .or. &
+          & (present(pinning_offset)  .and. .not.(present(pinned_vertices).and. present(pinning_factor))) ) then
+           write(error_unit, *) 'All pinned_vertices, pinning_factor and pinning_offset need to be supplied for pinning.'
+           CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+        endif
+
+
+        if(present(pinned_vertices)) N_pinned_vertices = size(pinned_vertices, 1)
+        if(present(pinned_vertices)) then
+            if(size(pinned_vertices, 2) .ne. 2) then
+               write(error_unit, *) 'Second dimension of pinned_vertices has to be 2.'
+               call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+            endif
+
+           if(size(pinning_factor, 1) .ne. N_pinned_vertices) then
+               write(error_unit, *) 'First dimension of pinning_factor has to be equal to the number of pinned vertices.'
+               call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+           endif
+
+           if(size(pinning_offset, 1) .ne. N_pinned_vertices) then
+               write(error_unit, *) 'First dimension of pinning_offset has to be equal to the number of pinned vertices.'
+               call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+           endif
+
+           if(size(pinning_factor, 2) .ne. N_FL) then
+               write(error_unit, *) 'Second dimension of pinning_factor has to be equal to the number of flavors N_FL.'
+               call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+           endif
+        endif
 
         select case (inquire_hop(this))
         case(0)  !  Zero
@@ -1707,14 +1929,23 @@
                     n_1  = this(nf)%list(Nb,3)
                     n_2  = this(nf)%list(Nb,4)
                     J    = Latt%nnlist(I,n_1,n_2)
-                    Z    = Generic_hopping(I,no_I, n_1, n_2, no_J, N_Phi, Phi_x,Phi_y, Bulk, Latt, Latt_Unit)
+                    Z    = this(nf)%T(Nb)*Generic_hopping(I,no_I, n_1, n_2, no_J, N_Phi, Phi_x,Phi_y, Bulk, Latt, Latt_Unit)
                     I1   = Invlist(I,no_I)
                     J1   = Invlist(J,no_J)
-                    Z_Kin = Z_Kin + this(nf)%T(Nb)*Z * GRC(I1,J1,nf) + conjg(this(nf)%T(Nb)*Z)*GRC(J1,I1,nf)
+                    if(present(pinned_vertices)) then
+                          Z = Z*get_pinning_factor(I1, J1, N_pinned_vertices, pinned_vertices, pinning_factor, nf) + & 
+                              & get_pinning_offset(I1, J1, N_pinned_vertices, pinned_vertices, pinning_offset, nf)
+                    endif
+                    Z_Kin = Z_Kin + Z * GRC(I1,J1,nf) + conjg(Z)*GRC(J1,I1,nf)
                  enddo
                  Do no_I = 1, Latt_Unit%Norb
                     I1   = Invlist(I,no_I)
-                    Z_Kin = Z_Kin   +  this(nf)%T_Loc(no_I)*GRC(I1,I1,nf)
+                    Z = this(nf)%T_Loc(no_I)
+                    if(present(pinned_vertices)) then
+                          Z = Z*get_pinning_factor(I1, I1, N_pinned_vertices, pinned_vertices, pinning_factor, nf) + & 
+                              & get_pinning_offset(I1, I1, N_pinned_vertices, pinned_vertices, pinning_offset, nf)
+                    endif
+                    Z_Kin = Z_Kin   +  Z*GRC(I1,I1,nf)
                  Enddo
               enddo
            enddo

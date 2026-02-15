@@ -1,38 +1,39 @@
 # ALF #
-[![pipeline status](https://git.physik.uni-wuerzburg.de/fassaad/General_QMCT_code/badges/master/pipeline.svg)](https://git.physik.uni-wuerzburg.de/fassaad/General_QMCT_code/commits/master)
-[![coverage report](https://git.physik.uni-wuerzburg.de/fassaad/General_QMCT_code/badges/master/coverage.svg)](https://git.physik.uni-wuerzburg.de/fassaad/General_QMCT_code/commits/master)
+[![pipeline status](https://github.com/ALF-QMC/ALF/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/ALF-QMC/ALF/actions/workflows/ci.yml?query=branch%3Amaster++)
+[![Documentation](https://img.shields.io/static/v1?label=Documentation&message=PDF)](https://alf.physik.uni-wuerzburg.de/doc.pdf)
+[![Doxygen](https://img.shields.io/static/v1?label=Doxygen&message=WIP)](https://alf.physik.uni-wuerzburg.de/doxygen/)
 
 
 **Project website: https://alf.physik.uni-wuerzburg.de/.**
 
--> Interested contributors please check our [CONTRIBUTING.md](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/blob/master/CONTRIBUTING.md) guidelines.
+-> Interested contributors please check our [CONTRIBUTING.md](CONTRIBUTING.md) guidelines.
 
--> This is the **development** version of ALF, the latest stable version is [ALF 2.5](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/tree/ALF-2.5/).
+-> This is the **development** version of ALF, the latest stable version is [ALF 2.6](https://github.com/ALF-QMC/ALF/tree/ALF-2.6).
 
-## Description ##
+## Description
 
-The **A**lgorithms for **L**attice **F**ermions package provides a general code for the finite temperature  and projective auxiliary field Quantum Monte Carlo algorithm.       The code  is engineered to  be able simulate any model that can be written in terms of  sums of single body operators, of squares of single body operators and single body operators coupled to an Ising field with  given dynamics. We  provide predefined types that allow  the user to specify the model, the  Bravais lattice  as well as equal time and time displaced observables.     The code supports an MPI implementation.   Examples such as the Hubbard model, the SU(N) Kondo lattice model, tV models,  models with long ranged interactions as well as Z2 lattice gauge theories coupled to fermions adn Z2 matter are discussed in the [documentation](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/jobs/artifacts/master/raw/Documentation/doc.pdf?job=create_doc). Slides on the auxiliary field QMC can be found [here.](https://git.physik.uni-wuerzburg.de/ALF/ALF_Tutorial/-/blob/master/Presentations/ALF_2020_Assaad.pdf)
+The **A**lgorithms for **L**attice **F**ermions package provides a general code for the finite temperature and projective auxiliary field Quantum Monte Carlo algorithm. The code is engineered to be able simulate any model that can be written in terms of sums of single body operators, of squares of single body operators and single body operators coupled to an Ising field with given dynamics. We provide predefined types that allow the user to specify the model, the Bravais lattice as well as equal time and time displaced observables. The code supports an MPI implementation. Examples such as the Hubbard model, the SU(N) Kondo lattice model, tV models, models with long ranged interactions as well as Z2 lattice gauge theories coupled to fermions adn Z2 matter are discussed in the [documentation](https://alf.physik.uni-wuerzburg.de/doc.pdf). Slides on the auxiliary field QMC can be found [here.](https://github.com/ALF-QMC/ALF_Tutorial_and_Presentations/blob/master/Presentations/2020-Presentations/ALF_2.0-Fermion_Monte_Carlo.pdf)
 
-The Hamiltonians we can consider read:
-![The Hamiltonian0](Images/Hamiltonian0.png "The Hamiltonian")
-where
+The Hamiltonians we can consider read:  
+![The Hamiltonian0](Images/Hamiltonian0.png "The Hamiltonian")  
+where  
 ![The Hamiltonian1](Images/Hamiltonian1.png "Parts explanation")
 
 Here Z denotes a scalar field (Ising or real continuous field) with predefined dynamics. If your model can be written in this form then it will be amenable to the ALF. 
 
-## pyALF ##
+## pyALF
 
-For ease of use, the  [pyALF](https://git.physik.uni-wuerzburg.de/ALF/pyALF) repository  provides a python interface to run the ALF-code
+For ease of use, [pyALF](https://github.com/ALF-QMC/pyALF) provides a Python interface to run the ALF code.
 
-## Doxygen ##
+## Doxygen
 
-You can find here [Doxygen](https://gitpages.physik.uni-wuerzburg.de/ALF/ALF/) formatted documentation. (Work in progress)
+You can find [here](https://alf.physik.uni-wuerzburg.de/doxygen/) Doxygen formatted documentation. (Work in progress)
 
-## Installation ##
+## Installation
 
-* Please check the latest documentation (Documentation/doc.pdf) for more details and Sec. 6.1, "Quick Start", to try ALF out straight away.
+* Please check the latest [documentation](https://alf.physik.uni-wuerzburg.de/doc.pdf) for more details and Sec. 6.1, "Quick Start", to try ALF out straight away.
 
-### PREREQUISITES ###
+### PREREQUISITES
 
 * Make
 * A Fortran compiler, such as `gfortran` or `ifort`
@@ -44,6 +45,7 @@ You can find here [Doxygen](https://gitpages.physik.uni-wuerzburg.de/ALF/ALF/) f
 	* Curl
 	* gzip development libraries
 
+Alternatively, one could use [this Docker image](https://hub.docker.com/r/alfcollaboration/jupyter-pyalf-full), which has ALF, pyALF and a Jupyter server pre-installed.
 
 * **Linux**   
   To install the relevant packages.
@@ -81,14 +83,35 @@ You can find here [Doxygen](https://gitpages.physik.uni-wuerzburg.de/ALF/ALF/) f
   The easiest way to compile ALF in Windows is trough the [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/about) (WSL). It allows to run Linux within Windows. You can install the WSL and follow the instructions for Linux.
 
 
-## CONFIGURATION FOR COMPILATION ##
-<!--**setenv.sh**   sets the default set of envorinment variables.  Do not change  this since this default set of  environment variables is required for the tests to run adequaltely.-->
+### Compiling and running
 
-**configure.sh**  It is recommended to use this script to set the environment variables. Type ./configure.sh to  browse through a list of options. Notice that directory names containing **spaces are not supported**.
+1. **Source configure.sh** to set the necessary environment variables. Type `./configure.sh` to  browse through a list of options. Notice that directory names containing **spaces are not supported**.
+2. **Compile with make**: The command `make all` compiles both the analysis and Monte Carlo binaries. To remove previously created and possibly conflicting binaries, it might make sense to first run `make clean`.
+3. **Prepare Simulation directory**: A simulation directory must contain the two following files:
+  * `seeds` containing seeds for the random number generator
+  * `parameters` containing the simulation parameters
+  See the example directory [Scripts_and_Parameters_files/Start/](Scripts_and_Parameters_files/Start/).
+4. **Run ALF.out** created during the compilation in folder [Prog/](Prog/). Be sure that you current working directory is the one that contains `seeds` and `parameters`.
 
-Once you have run the configuration script, change directory to Libraries, and to Analysis  and run the Makefiles there. In the Prog directory then type make examples.   The other programs are being updated to comply with the new version of the code.  
+## Quick start
 
-## FILES AND DIRECTORIES ##
+The following lines cover the minimal steps of fulfilling the prerequisites (on a Debian-based system), obtaining the source code, compiling the program, running a simulation and analyzing the results.
+
+```sh
+sudo apt-get update
+sudo apt-get install gfortran liblapack-dev python3 make git
+git clone -b master https://github.com/ALF-QMC/ALF.git
+cd ALF
+source configure.sh GNU noMPI
+make clean
+make all
+cp -r ./Scripts_and_Parameters_files/Start ./Run && cd ./Run/
+$ALF_DIR/Prog/ALF.out
+$ALF_DIR/Analysis/ana.out Ener_scal
+cat Ener_scalJ
+```
+
+## FILES AND DIRECTORIES
 
 **Libraries**    Libraries. Once that the environment is set in the file configure.sh  the Libraries can be compiled with the **make** command. 
 
@@ -96,26 +119,30 @@ Once you have run the configuration script, change directory to Libraries, and t
 
 **Analysis** Analysis programs. 
 
-**Scripts\_and\_Parameters\_files**  Helper scripts and the Start/ directory, which contains the files required to start a run. 
-
+**Scripts_and_Parameters_files**  Helper scripts and the `Start/` directory, which contains the files required to start a run. 
  
-**Documentation**  We have included in the file  [doc.pdf](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/jobs/artifacts/master/raw/Documentation/doc.pdf?job=create_doc) an extensive documentation.
+**Documentation**  We have included in the file  [doc.pdf](https://alf.physik.uni-wuerzburg.de/doc.pdf) an extensive documentation.
 
 **testsuite** An automatic test suite for various parts of the code
 
 
-## TESTING ##
+## TESTING
 
-We have about 30 tests that test various parts of the program in the folder testsuite.
+We have about 30 tests that test various parts of the program in the folder `testsuite`.
 As testing framework we employ CTest.
-To run the tests, the ALF package must first be compiled, which can be done with a minimal setup by executing
-- source configure.sh gnu nompi
-From the subfolder testsuite the tests can be run as follows
-- mkdir tests
-- cd tests
-- cmake ..
-- make
-- make test
+To run the tests, the ALF package must first be compiled.
+The following commands compile ALF in a minimal setup and run the tests.
+
+```sh
+source configure.sh gnu nompi
+make clean
+make program
+mkdir testsuite/tests
+cd testsuite/tests
+cmake ..
+make
+make test
+```
 
 
 ## LICENSE ##

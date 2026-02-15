@@ -357,8 +357,9 @@
           Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
 
           !Local
-          Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL)
-          Complex (Kind=Kind(0.d0)) :: ZP, ZS, 
+          Complex (Kind=Kind(0.d0)), allocatable :: GRC(:,:,:)
+          Complex (Kind=Kind(0.d0)) :: ZK
+          Complex (Kind=Kind(0.d0)) :: ZP, ZS
           Integer :: I, J, nf
           ! Add local variables as needed
 
@@ -366,6 +367,8 @@
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
 
           ZS = ZS*Mc_step_weight
+
+          allocate(GRC(Ndim,Ndim,N_FL))
           
           Do nf = 1,N_FL
              Do I = 1,Ndim
@@ -382,6 +385,7 @@
 
           ! Compute equal-time correlations
 
+          deallocate(GRC)
         end Subroutine Obser
 
 

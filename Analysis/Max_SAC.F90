@@ -432,16 +432,16 @@ Program MaxEnt_Wrapper
                Z = Z + A(nwp)/cmplx( om -  omp, delta, kind(0.d0))
             endif
           enddo
-          Z = Z * dom
+          Z = -Z * dom/pi
           If (Test)   then 
-            x  = x  - Aimag(Z)/pi
-            x1 = x1 - om*Aimag(Z)/pi
-            x2 = x2 - om*om*Aimag(Z)/pi
+            x  = x  + Aimag(Z)
+            x1 = x1 + om*Aimag(Z)
+            x2 = x2 + om*om*Aimag(Z)
             write(43,"('X',2x,F14.7,2x,F16.8,2x,F16.8,2x,F14.7,2x,F14.7,2x,F14.7)")  & 
-               & xom(nw), dble(Z), -Aimag(Z)/pi,  X*dom, x1*dom, x2*dom
+               & xom(nw), dble(Z), Aimag(Z),  X*dom, x1*dom, x2*dom
           else
             write(43,"('X',2x,F14.7,2x,F16.8,2x,F16.8)")  & 
-               & xom(nw), dble(Z), -Aimag(Z)/pi
+               & xom(nw), dble(Z), Aimag(Z)
           endif   
        enddo
        close(43)

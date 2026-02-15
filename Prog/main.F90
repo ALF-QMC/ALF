@@ -139,6 +139,7 @@ Program Main
         use wrapul_mod
         use cgr1_mod
         use set_random
+        use iso8601_datetime_mod
          
 #ifdef HDF5
         use hdf5
@@ -147,16 +148,16 @@ Program Main
         Implicit none
 
 #include "git.h"
-       COMPLEX (Kind=Kind(0.d0)), Dimension(:,:)  , Allocatable   ::  TEST
-       COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable    :: GR, GR_Tilde
-       CLASS(UDV_State), DIMENSION(:), ALLOCATABLE :: udvl, udvr
-       COMPLEX (Kind=Kind(0.d0)), Dimension(:)  , Allocatable   :: Phase_array
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:)  , Allocatable   ::  TEST
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:,:,:), Allocatable    :: GR, GR_Tilde
+        CLASS(UDV_State), DIMENSION(:), ALLOCATABLE :: udvl, udvr
+        COMPLEX (Kind=Kind(0.d0)), Dimension(:)  , Allocatable   :: Phase_array
        
-       Integer :: NBC, NSW
-       Integer :: NTAU, NTAU1
-       Character (len=64) :: file_seeds, file_dat, file_info
-       Integer :: Seed_in
-       Complex (Kind=Kind(0.d0)) , allocatable, dimension(:,:) :: Initial_field
+        Integer :: NBC, NSW
+        Integer :: NTAU, NTAU1
+        Character (len=64) :: file_seeds, file_dat, file_info, file_git_info
+        Integer :: Seed_in
+        Complex (Kind=Kind(0.d0)) , allocatable, dimension(:,:) :: Initial_field
 
 
 #ifdef HDF5
@@ -278,6 +279,30 @@ Program Main
         !It will then deactivate the entanglement measurements, i.e., the user does not have to care about this
         call Init_Entanglement_replicas(Group_Comm)
 
+#if defined(TEMPERING)
+        write(file_info,'(A,I0,A)') "Temp_",igroup,"/info"
+        write(file_git_info,'(A,I0,A)') "Temp_",igroup,"/info_git"
+#else
+        file_info = "info"
+        file_git_info = "info_git"
+#endif
+
+#if defined(MPI)
+        if ( Irank_g == 0 ) then
+#endif
+           Open (Unit = 50,file=file_info,status="unknown",position="append")
+           write(50,*) "START TIME: " // iso8601_datetime()
+           close(50)
+#if defined(GIT)
+           Open (Unit=50, file=file_git_info, status="unknown", position="append")
+           write(50,*) "=================================="
+#include "git_status.h"
+           write(50,*) "=================================="
+           close(50)
+#endif
+#if defined(MPI)
+        endif
+#endif
         call read_and_broadcast_QMC_var_and_ham_name(Group_Comm)
         NBin_eff = get_NBin()
 
@@ -459,12 +484,6 @@ Program Main
         endif
         call lock_QMC_runtime_settings()
         Call check_update_schemes_compatibility()
-
-#if defined(TEMPERING)
-        write(file_info,'(A,I0,A)') "Temp_",igroup,"/info"
-#else
-        file_info = "info"
-#endif
 
 #if defined(MPI)
         if ( Irank_g == 0 ) then
@@ -914,16 +933,12 @@ Program Main
 #if defined(MPI)
         If (Irank_g == 0 ) then
 #endif
-           if ( abs(get_CPU_MAX()) > Zero ) then
-#if defined(TEMPERING)
-              write(file_info,'(A,I0,A)') "Temp_",igroup,"/info"
-#else
-              file_info = "info"
-#endif
-              Open (Unit=50,file=file_info, status="unknown", position="append")
+           Open (Unit=50,file=file_info, status="unknown", position="append")
+           if ( abs(CPU_MAX) > Zero ) then
               Write(50,*)' Effective number of bins   : ', Nbin_eff
-              Close(50)
            endif
+           write(50,*)'FIN TIME: ' // iso8601_datetime()
+           Close(50)
 #if defined(MPI)
         endif
 #endif

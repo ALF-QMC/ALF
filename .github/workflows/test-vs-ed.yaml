@@ -1,0 +1,144 @@
+name: Test vs given ED reference results
+on: 
+  workflow_dispatch:
+
+jobs:
+  prepare_matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      simulation_matrix: ${{ steps.set-matrix.outputs.simulation_matrix }}
+      simulation_matrix_mac: ${{ steps.set-matrix.outputs.simulation_matrix_mac }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - id: set-matrix
+        run: ./testsuite/test_vs_ed/prep_test.py
+          --specs_file testsuite/test_vs_ed/test_specs.yaml
+          --output_dir prepared-test-directories
+
+      - name: Upload prepared test directories
+        uses: actions/upload-artifact@v6
+        with:
+          name: prepared-test-directories
+          path: prepared-test-directories/*/
+
+  simulate:
+    needs: [prepare_matrix]
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ matrix.image }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.prepare_matrix.outputs.simulation_matrix) }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install pyALF and PyYAML
+        if: runner.os != 'macOS'
+        run: pip3 install pyALF PyYAML
+      - name: Download prepared test directories
+        uses: actions/download-artifact@v7
+        with:
+          name: prepared-test-directories
+          path: prepared-test-directories
+      - run: ls -la $PWD
+      - run: ls -la prepared-test-directories/
+      - run: ls -la prepared-test-directories/${{ matrix.test_name }}_${{ matrix.env_name }}
+      - name: Run ALF test vs main branch
+        run: |
+          export ALF_DIR="$PWD"
+          cd prepared-test-directories/${{ matrix.test_name }}_${{ matrix.env_name }}/${{ matrix.CI_NODE_INDEX }} && 
+          python3 $ALF_DIR/testsuite/test_vs_ed/simulate.py
+
+      - name: Upload simulation results
+        uses: actions/upload-artifact@v6
+        with:
+          name: simulation-results-${{ matrix.test_name }}_${{ matrix.env_name }}-${{ matrix.machine }}-${{ matrix.CI_NODE_INDEX }}
+          path: prepared-test-directories/${{ matrix.test_name }}_${{ matrix.env_name }}/${{ matrix.CI_NODE_INDEX }}
+  
+  simulate_mac:
+    needs: [prepare_matrix]
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix: 
+        include: ${{ fromJson(needs.prepare_matrix.outputs.simulation_matrix_mac) }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: macOS Toolchain install
+        if: runner.os == 'macOS'
+        id: mac_toolchain
+        shell: bash
+        run: |
+          brew update
+          brew install mpich
+          gcc_version=$(brew list --versions gcc | grep -o '[0-9]\+' | head -1)
+          bindir=$(brew --prefix)/bin
+          ln -fs ${bindir}/gfortran-${gcc_version} /usr/local/bin/gfortran
+          ln -fs ${bindir}/gcc-${gcc_version} /usr/local/bin/gcc
+          ln -fs ${bindir}/g++-${gcc_version} /usr/local/bin/g++
+          echo "gcc_version=$gcc_version" >> $GITHUB_OUTPUT
+          python3 -m venv venv
+          . venv/bin/activate
+          python3 -m pip install pyALF PyYAML
+      - name: Restore HDF5 cache
+        if: runner.os == 'macOS'
+        uses: actions/cache@v5
+        with:
+          key: macos-HDF5-${{ steps.mac_toolchain.outputs.gcc_version }}
+          path: HDF5/*/
+      - name: Install pyALF and PyYAML
+        if: runner.os != 'macOS'
+        run: pip3 install pyALF PyYAML
+      - name: Download prepared test directories
+        uses: actions/download-artifact@v7
+        with:
+          name: prepared-test-directories
+          path: prepared-test-directories
+      - run: ls -la $PWD
+      - run: ls -la prepared-test-directories/
+      - run: ls -la prepared-test-directories/${{ matrix.test_name }}_${{ matrix.env_name }}
+      - name: Run ALF test vs main branch
+        run: |
+          export ALF_DIR="$PWD"
+          . venv/bin/activate
+          cd prepared-test-directories/${{ matrix.test_name }}_${{ matrix.env_name }}/${{ matrix.CI_NODE_INDEX }} && 
+          python3 $ALF_DIR/testsuite/test_vs_ed/simulate.py
+
+      - name: Upload simulation results
+        uses: actions/upload-artifact@v6
+        with:
+          name: simulation-results-${{ matrix.test_name }}_${{ matrix.env_name }}-${{ matrix.machine }}-${{ matrix.CI_NODE_INDEX }}
+          path: prepared-test-directories/${{ matrix.test_name }}_${{ matrix.env_name }}/${{ matrix.CI_NODE_INDEX }}
+
+  analyze:
+    needs: [simulate, simulate_mac]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install pyALF and PyYAML
+        run: pip3 install pyALF PyYAML
+      - name: Download simulation results
+        uses: actions/download-artifact@v7
+      - run: ls -la $PWD
+      - run: ls -la $PWD/*
+      - name: Analyze simulation results
+        run: |
+          export ALF_DIR="$PWD"
+          for i in $(ls prepared-test-directories); do
+            mv $ALF_DIR/simulation-results-${i}* $ALF_DIR/prepared-test-directories/${i}
+            cd "$ALF_DIR/prepared-test-directories/${i}" && $ALF_DIR/testsuite/test_vs_ed/analysis.py
+          done
+      - name: Install ImageMagick
+        run: sudo apt-get install -y imagemagick
+      - name: Merge test result images
+        run: convert prepared-test-directories/*/test.png -append results.png
+      - name: Upload results
+        uses: actions/upload-artifact@v6
+        with:
+          name: results
+          path: |
+            results.png
+            prepared-test-directories/*/results.json
+            prepared-test-directories/*/test.png
+            prepared-test-directories/*/spec.yaml

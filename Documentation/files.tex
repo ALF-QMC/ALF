@@ -192,6 +192,8 @@ In particular, note that if \texttt{Nt\_sequential\_start}  and \texttt{Nt\_sequ
 %
 The standard output files are listed in Table~\ref{table:output} and Table~\ref{table:output_hdf5} for plain-text and HDF5 output, respectively. Notice that, besides these files, which contain direct QMC outputs, ALF can also produce a number of analysis output files, discussed in Sec.~\ref{sec:analysis}.
 
+For converting plain-text output to HDF5, see Sec.~\ref{sec:convert_to_hdf5}.
+
 The output of the measured data is organized in bins. One bin corresponds to the arithmetic average over a fixed number of individual measurements which depends on the chosen measurement interval \path{[LOBS_ST,LOBS_EN]} on the imaginary-time axis and on the number \path{NSweep} of Monte Carlo sweeps. If the user runs an MPI parallelized version of the code, the average also extends over the number of MPI threads.
 %
 \begin{table}[h]
