@@ -934,7 +934,7 @@ Program Main
         If (Irank_g == 0 ) then
 #endif
            Open (Unit=50,file=file_info, status="unknown", position="append")
-           if ( abs(CPU_MAX) > Zero ) then
+           if ( abs(get_CPU_MAX()) > Zero ) then
               Write(50,*)' Effective number of bins   : ', Nbin_eff
            endif
            write(50,*)'FIN TIME: ' // iso8601_datetime()
