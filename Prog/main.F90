@@ -457,7 +457,7 @@ Program Main
         else
            Call Langevin_HMC%set_Update_scheme(get_Langevin(), get_HMC() )
         endif
-
+        call lock_QMC_runtime_settings()
         Call check_update_schemes_compatibility()
 
 #if defined(TEMPERING)

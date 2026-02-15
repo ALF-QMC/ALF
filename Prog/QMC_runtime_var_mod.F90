@@ -55,6 +55,8 @@ Module QMC_runtime_var
 
         Character (len=64) :: ham_name
 
+        Logical :: settings_locked = .false.
+
 
         !  Space for reading in Langevin & HMC  parameters
         Logical                      :: Langevin,  HMC
@@ -89,6 +91,8 @@ Module QMC_runtime_var
     public :: read_and_broadcast_TEMPERING_var
 #endif
     public :: read_and_broadcast_QMC_var_and_ham_name
+
+    public :: lock_QMC_runtime_settings
 
     ! Accessors (getters/setters) for runtime variables
     public :: get_Nwrap,             set_Nwrap
@@ -143,6 +147,7 @@ Module QMC_runtime_var
             Global_tau_moves = .false.; sequential = .true.; Langevin = .false. ; HMC =.false.
             Delta_t_Langevin_HMC = 0.d0;  Max_Force = 0.d0 ; Leapfrog_steps = 0; N_HMC_sweeps = 1
             Nt_sequential_start = 1 ;  Nt_sequential_end  = 0;  N_Global_tau  = 0;  Amplitude = 1.d0
+            settings_locked = .false.
 
         end subroutine set_QMC_runtime_default_var
 
@@ -225,8 +230,23 @@ Module QMC_runtime_var
             if ( Sequential .and. Nt_sequential_end < Nt_sequential_start ) then
                 write(output_unit,*) "Warning: Nt_sequential_end is smaller than Nt_sequential_start"
             endif
+
+            call lock_QMC_runtime_settings()
             
         end subroutine 
+
+        subroutine lock_QMC_runtime_settings()
+            settings_locked = .true.
+        end subroutine lock_QMC_runtime_settings
+
+        subroutine ensure_settings_unlocked(caller)
+            character(len=*), intent(in) :: caller
+
+            if (settings_locked) then
+                write(error_unit,*) trim(caller), ": settings are locked and cannot be modified."
+                call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+            endif
+        end subroutine ensure_settings_unlocked
 
         !=========================
         ! Accessors implementation
@@ -239,6 +259,7 @@ Module QMC_runtime_var
 
         subroutine set_Nwrap(val)
             integer, intent(in) :: val
+            call ensure_settings_unlocked("set_Nwrap")
             Nwrap = val
         end subroutine set_Nwrap
 
@@ -248,6 +269,7 @@ Module QMC_runtime_var
 
         subroutine set_NSweep(val)
             integer, intent(in) :: val
+            call ensure_settings_unlocked("set_NSweep")
             NSweep = val
         end subroutine set_NSweep
 
@@ -257,6 +279,7 @@ Module QMC_runtime_var
 
         subroutine set_NBin(val)
             integer, intent(in) :: val
+            call ensure_settings_unlocked("set_NBin")
             NBin = val
         end subroutine set_NBin
 
@@ -266,6 +289,7 @@ Module QMC_runtime_var
 
         subroutine set_Ltau(val)
             integer, intent(in) :: val
+            call ensure_settings_unlocked("set_Ltau")
             Ltau = val
         end subroutine set_Ltau
 
@@ -275,6 +299,7 @@ Module QMC_runtime_var
 
         subroutine set_LOBS_EN(val)
             integer, intent(in) :: val
+            call ensure_settings_unlocked("set_LOBS_EN")
             LOBS_EN = val
         end subroutine set_LOBS_EN
 
@@ -284,6 +309,7 @@ Module QMC_runtime_var
 
         subroutine set_LOBS_ST(val)
             integer, intent(in) :: val
+            call ensure_settings_unlocked("set_LOBS_ST")
             LOBS_ST = val
         end subroutine set_LOBS_ST
 
@@ -293,6 +319,7 @@ Module QMC_runtime_var
 
         subroutine set_N_Global(val)
             integer, intent(in) :: val
+            call ensure_settings_unlocked("set_N_Global")
             N_Global = val
         end subroutine set_N_Global
 
@@ -302,6 +329,7 @@ Module QMC_runtime_var
 
         subroutine set_Nt_sequential_start(val)
             integer, intent(in) :: val
+            call ensure_settings_unlocked("set_Nt_sequential_start")
             Nt_sequential_start = val
         end subroutine set_Nt_sequential_start
 
@@ -311,6 +339,7 @@ Module QMC_runtime_var
 
         subroutine set_Nt_sequential_end(val)
             integer, intent(in) :: val
+            call ensure_settings_unlocked("set_Nt_sequential_end")
             Nt_sequential_end = val
         end subroutine set_Nt_sequential_end
 
@@ -320,6 +349,7 @@ Module QMC_runtime_var
 
         subroutine set_N_Global_tau(val)
             integer, intent(in) :: val
+            call ensure_settings_unlocked("set_N_Global_tau")
             N_Global_tau = val
         end subroutine set_N_Global_tau
 
@@ -329,6 +359,7 @@ Module QMC_runtime_var
 
         subroutine set_Leapfrog_steps(val)
             integer, intent(in) :: val
+            call ensure_settings_unlocked("set_Leapfrog_steps")
             Leapfrog_Steps = val
         end subroutine set_Leapfrog_steps
 
@@ -338,6 +369,7 @@ Module QMC_runtime_var
 
         subroutine set_N_HMC_sweeps(val)
             integer, intent(in) :: val
+            call ensure_settings_unlocked("set_N_HMC_sweeps")
             N_HMC_sweeps = val
         end subroutine set_N_HMC_sweeps
 
@@ -347,6 +379,7 @@ Module QMC_runtime_var
 
         subroutine set_mpi_per_parameter_set(val)
             integer, intent(in) :: val
+            call ensure_settings_unlocked("set_mpi_per_parameter_set")
             mpi_per_parameter_set = val
         end subroutine set_mpi_per_parameter_set
 
@@ -357,6 +390,7 @@ Module QMC_runtime_var
 
         subroutine set_N_exchange_steps(val)
             integer, intent(in) :: val
+            call ensure_settings_unlocked("set_N_exchange_steps")
             N_exchange_steps = val
         end subroutine set_N_exchange_steps
 
@@ -366,6 +400,7 @@ Module QMC_runtime_var
 
         subroutine set_N_Tempering_frequency(val)
             integer, intent(in) :: val
+            call ensure_settings_unlocked("set_N_Tempering_frequency")
             N_Tempering_frequency = val
         end subroutine set_N_Tempering_frequency
 #endif
@@ -377,6 +412,7 @@ Module QMC_runtime_var
 
         subroutine set_CPU_MAX(val)
             real(kind=kind(0.d0)), intent(in) :: val
+            call ensure_settings_unlocked("set_CPU_MAX")
             CPU_MAX = val
         end subroutine set_CPU_MAX
 
@@ -386,6 +422,7 @@ Module QMC_runtime_var
 
         subroutine set_Max_Force(val)
             real(kind=kind(0.d0)), intent(in) :: val
+            call ensure_settings_unlocked("set_Max_Force")
             Max_Force = val
         end subroutine set_Max_Force
 
@@ -395,6 +432,7 @@ Module QMC_runtime_var
 
         subroutine set_Delta_t_Langevin_HMC(val)
             real(kind=kind(0.d0)), intent(in) :: val
+            call ensure_settings_unlocked("set_Delta_t_Langevin_HMC")
             Delta_t_Langevin_HMC = val
         end subroutine set_Delta_t_Langevin_HMC
 
@@ -404,6 +442,7 @@ Module QMC_runtime_var
 
         subroutine set_Amplitude(val)
             real(kind=kind(0.d0)), intent(in) :: val
+            call ensure_settings_unlocked("set_Amplitude")
             Amplitude = val
         end subroutine set_Amplitude
 
@@ -414,6 +453,7 @@ Module QMC_runtime_var
 
         subroutine set_Propose_S0(val)
             logical, intent(in) :: val
+            call ensure_settings_unlocked("set_Propose_S0")
             Propose_S0 = val
         end subroutine set_Propose_S0
 
@@ -423,6 +463,7 @@ Module QMC_runtime_var
 
         subroutine set_Global_moves(val)
             logical, intent(in) :: val
+            call ensure_settings_unlocked("set_Global_moves")
             Global_moves = val
         end subroutine set_Global_moves
 
@@ -432,6 +473,7 @@ Module QMC_runtime_var
 
         subroutine set_Global_tau_moves(val)
             logical, intent(in) :: val
+            call ensure_settings_unlocked("set_Global_tau_moves")
             Global_tau_moves = val
         end subroutine set_Global_tau_moves
 
@@ -441,6 +483,7 @@ Module QMC_runtime_var
 
         subroutine set_sequential(val)
             logical, intent(in) :: val
+            call ensure_settings_unlocked("set_sequential")
             Sequential = val
         end subroutine set_sequential
 
@@ -450,6 +493,7 @@ Module QMC_runtime_var
 
         subroutine set_Langevin(val)
             logical, intent(in) :: val
+            call ensure_settings_unlocked("set_Langevin")
             Langevin = val
         end subroutine set_Langevin
 
@@ -459,6 +503,7 @@ Module QMC_runtime_var
 
         subroutine set_HMC(val)
             logical, intent(in) :: val
+            call ensure_settings_unlocked("set_HMC")
             HMC = val
         end subroutine set_HMC
 
@@ -468,6 +513,7 @@ Module QMC_runtime_var
 
         subroutine set_Tempering_calc_det(val)
             logical, intent(in) :: val
+            call ensure_settings_unlocked("set_Tempering_calc_det")
             Tempering_calc_det = val
         end subroutine set_Tempering_calc_det
 
@@ -478,6 +524,7 @@ Module QMC_runtime_var
 
         subroutine set_ham_name(val)
             character(len=*), intent(in) :: val
+            call ensure_settings_unlocked("set_ham_name")
             ham_name = val
         end subroutine set_ham_name
      
