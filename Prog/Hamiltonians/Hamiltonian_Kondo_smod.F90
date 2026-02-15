@@ -421,7 +421,6 @@
              Call  Set_Default_hopping_parameters_Bilayer_honeycomb(Hopping_Matrix,Ham_T_vec,Ham_T2_vec,Ham_Tperp_vec, Ham_Chem_vec, &
                   &                                                 Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL,&
                   &                                                 List, Invlist, Latt, Latt_unit )
-
           end Select
 
           Call  Predefined_Hoppings_set_OPT(Hopping_Matrix,List,Invlist,Latt,  Latt_unit,  Dtau, Checkerboard, Symm, OP_T )
@@ -656,7 +655,8 @@
 
 
           !Local
-          Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK
+          Complex (Kind=Kind(0.d0)), allocatable :: GRC(:,:,:)
+          Complex (Kind=Kind(0.d0)) :: ZK
           Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, Zhubc, ZCon, ZJ, Z, ZP,ZS, ZZ, ZXY
           Integer :: I,J, no, n, I_c,I_f, nf, J_c, J_f, no_I, no_J, imj
           Real    (Kind=Kind(0.d0)) :: X
@@ -665,6 +665,7 @@
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
           ZS = ZS*Mc_step_weight
 
+          allocate(GRC(Ndim,Ndim,N_FL))
 
           Do nf = 1,N_FL
              Do I = 1,Ndim
@@ -762,7 +763,7 @@
              enddo
           enddo
 
-          
+          deallocate(GRC)
         end Subroutine Obser
 !--------------------------------------------------------------------
 !> @author

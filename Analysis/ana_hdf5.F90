@@ -1,4 +1,4 @@
-!  Copyright (C) 2020-2021 The ALF project
+!  Copyright (C) 2020-2025 The ALF project
 !
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -43,12 +43,19 @@
 !--------------------------------------------------------------------
       use hdf5
       use ana_mod
+#ifdef _OPENMP
+      use check_omp_num_threads_mod
+#endif
       implicit none
       Integer                         :: i, hdferr, nargs, storage_type, nlinks, max_corder
       Character (len=64)              :: File_out, File_in, name
       Character (len=64), allocatable :: names(:)
       INTEGER(HID_T)                  :: file_id, group_id
       INTEGER(HSIZE_T)                :: n
+
+#ifdef _OPENMP
+      call check_omp_num_threads()
+#endif
 
       File_in = 'data.h5'
       
@@ -96,6 +103,18 @@
          endif
       enddo
       
+      do n=1, size(names)
+         name = names(n)
+         i = len(trim(name)) -5
+         if ( i > 1 ) then
+            if ( name(i:) == '_local' ) then
+               print *, ''
+               print '(A,A)', "analyzing equal time local observables ", name
+               call Cov_local(name,File_in)
+            endif
+         endif
+      enddo
+
       do n=1, size(names)
          name = names(n)
          i = len(trim(name)) -3

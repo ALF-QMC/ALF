@@ -1,178 +1,27 @@
-variables:
-  CONFIG_ARGS: ""  # Variable for additional arguments for configure.sh
-
 default:
   tags: [k8s]
-  cache:
-    key: HDF5-$MACHINE
-    untracked: true
-    paths:
-      - HDF5
-    policy: pull
 
 stages:
   - lint
-  - build_hdf5
-  - build_doc
-  - build
+  - pages
   - test
-  - testbranch
-  - test_vs_ed
-  - memleaks
-
-.build_hdf5_template:
-  stage: build_hdf5
-  variables:
-    MACHINE: GNU
-  needs: []
-  script:
-    - ls HDF5
-    - du -sh HDF5
-    - . configure.sh $MACHINE noMPI HDF5
-    - du -sh HDF5
-  cache:
-    key: HDF5-$MACHINE
-    untracked: true
-    paths:
-      - HDF5
-    policy: pull-push
-
-.build_template:
-  stage: build
-  variables:
-    MACHINE: GNU
-    MODE: noMPI
-  needs: []
-  script:
-    - ls HDF5
-    - . configure.sh $MACHINE $MODE $CONFIG_ARGS
-    - echo $ALF_FC
-    - $ALF_FC -v
-    - make all
-
-.test_template:
-  stage: test
-  variables:
-    MACHINE: GNU
-    MODE: noMPI
-  needs: []
-  script:
-    - ls HDF5
-    - . configure.sh $MACHINE Devel $MODE $CONFIG_ARGS
-    - echo $ALF_FC
-    - $ALF_FC -v
-    - make all
-    - mkdir testsuite/tests
-    - cd testsuite/tests
-    - cmake ..
-    - cmake --build . --target all --config Release
-    - ctest -VV -O log.txt
-    - cat log.txt | grep "tests passed" | cut -d " " -f 1
-
-#################################################################################
 
 Check_Stopcommands:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bookworm-buildd
+  image: debian:stable-slim
   stage: lint
   needs: []
-  except:
-    changes:
-      - .gitignore
-      - CITATION
-      - README.md
-      - license.*
   script:
     - '! grep -irn -e "^\s*error\s*stop" -e "^\s*stop" --include="*.F90" 
       --exclude-dir=Analysis --exclude-dir=HDF5 --exclude-dir=testsuite 
       --exclude-dir=Not\_supported --exclude="runtime\_error\_mod.F90"'
 
-prep_test_branch:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bookworm-buildd
-  stage: testbranch
-  when: manual
-  needs: []
-  tags:
-    - k8s
-  script:
-    - apt-get update && apt-get install -y python3-yaml
-    - ./testsuite/test_branch_generate_config.py
-    - cat generated-config.yml
-  artifacts:
-    paths:
-      - generated-config.yml
-    expire_in: 1 day
-
-trigger_test_branch:
-  stage: testbranch
-  needs: [prep_test_branch]
-  trigger:
-    include:
-      - artifact: generated-config.yml
-        job: prep_test_branch
-    strategy: depend
-  variables:
-    PARENT_PIPELINE_ID: $CI_PIPELINE_ID
-
-prep_ED_test:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:bookworm-buildd
-  stage: test_vs_ed
-  when: manual
-  needs: []
-  tags:
-    - k8s
-  script:
-    - apt-get update && apt-get install -y python3-yaml
-    - ./testsuite/test_vs_ed/prep_test.py
-    - cat generated-config.yml
-  artifacts:
-    paths:
-      - generated-config.yml
-      - testsuite/test_vs_ed
-    expire_in: 1 day
-
-trigger_ED_test:
-  stage: test_vs_ed
-  needs: [prep_ED_test]
-  trigger:
-    include:
-      - artifact: generated-config.yml
-        job: prep_ED_test
-    strategy: depend
-  variables:
-    PARENT_PIPELINE_ID: $CI_PIPELINE_ID
-
-create_doc:
-  image: aergus/latex
-  stage: build_doc
-  needs: []
-  artifacts:
-    paths:
-      - Documentation/doc.pdf
-  script:
-    - cd Documentation
-    - latexmk -pdf doc.tex
-
-create_doxygen:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:buster-clang
-  stage: build_doc
-  needs: []
-  artifacts:
-    expire_in: 120 days
-    paths:
-      - doxygen/*
-      - Images/*
-  script:
-      - apt-get update && apt install -y doxygen graphviz
-      - doxygen doxygen/Doxyfile
-
 pages:
-  image: git.physik.uni-wuerzburg.de:25812/z03/pdi/debian:buster-clang
-  stage: build_doc
+  image: debian:stable-slim
+  stage: pages
+  needs: []
   script:
-    - apt-get update && apt install -y doxygen graphviz
-    - doxygen doxygen/Doxyfile
     - mkdir public
-    - mv doxygen/html/* public
+    - echo '<meta http-equiv="refresh" content="0; URL=https://alf.physik.uni-wuerzburg.de/doxygen/" />' > public/index.html
   artifacts:
     paths:
       - public
@@ -180,120 +29,58 @@ pages:
     - if: '$CI_COMMIT_BRANCH == "master"'
 
 
-build_hdf5_GNU-Buster:
-  extends: .build_hdf5_template
-  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/buster
-  needs: []
-build_hdf5_GNU-Bullseye:
-  extends: .build_hdf5_template
-  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bullseye
-  needs: [build_hdf5_GNU-Buster]
-build_hdf5_GNU-Bookworm:
-  extends: .build_hdf5_template
-  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bookworm
-  needs: [build_hdf5_GNU-Bullseye]
-
-build_hdf5_PGI-21-03:
-  extends: .build_hdf5_template
-  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bullseye-pgi-21-03
-  needs: []
-  variables:
-    MACHINE: PGI
-
-build_hdf5_Intel-21:
-  extends: .build_hdf5_template
-  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bullseye-intel
-  needs: []
-  variables:
-    MACHINE: INTEL
-build_hdf5_Intel-Latest:
-  extends: .build_hdf5_template
-  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bookworm-intel
-  needs: [build_hdf5_Intel-21]
-  variables:
-    MACHINE: INTEL
-
-build_hdf5_IntelLLVM:
-  extends: .build_hdf5_template
-  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bookworm-intel
-  needs: []
-  variables:
-    MACHINE: INTELLLVM
-
-
-build:
-  extends: .build_template
-  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/$IMAGE_MINOR
-  parallel:
-    matrix:
-      - MACHINE: GNU
-        IMAGE_MINOR: [buster, bullseye, bookworm]
-        MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
-      - MACHINE: GNU
-        IMAGE_MINOR: [bullseye-openblas]
-        MODE: [noMPI]
-      - MACHINE: PGI
-        IMAGE_MINOR: bullseye-pgi-21-03
-        MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
-      - MACHINE: INTEL
-        IMAGE_MINOR: [bullseye-intel, bookworm-intel]
-        MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
-      - MACHINE: INTELLLVM
-        IMAGE_MINOR: bookworm-intel
-        MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
-
-build_mac:
-  extends: .build_template
-  tags: [macos]
-  parallel:
-    matrix:
-      - MACHINE: GNU
-        MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
-
 test:
-  extends: .test_template
-  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/$IMAGE_MINOR
+  stage: test
+  needs: []
+  image: ghcr.io/alf-qmc/alf-container/alf-requirements/$IMAGE_MINOR
   parallel:
     matrix:
       - MACHINE: GNU
-        IMAGE_MINOR: [buster, bullseye, bookworm]
+        IMAGE_MINOR: [bullseye, bookworm, trixie]
         MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
-      - MACHINE: GNU
-        IMAGE_MINOR: [bullseye-openblas]
-        MODE: [noMPI]
+        DEVEL: ["", Devel]
+        CONFIG_ARGS: ["", "HDF5"]
       - MACHINE: PGI
         IMAGE_MINOR: bullseye-pgi-21-03
         MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
+        DEVEL: ["", Devel]
+        CONFIG_ARGS: ["", "HDF5"]
       - MACHINE: INTEL
-        IMAGE_MINOR: [bullseye-intel, bookworm-intel]
+        IMAGE_MINOR: [bullseye-intel, bookworm-intel-2024.2]
         MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
+        DEVEL: ["", Devel]
+        CONFIG_ARGS: ["", "HDF5"]
       - MACHINE: INTELLLVM
         IMAGE_MINOR: bookworm-intel
-        MODE: [noMPI]
-
-test_mac:
-  extends: .test_template
-  tags: [macos]
-  parallel:
-    matrix:
-      - MACHINE: GNU
         MODE: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
-
-valgrind_GNU-Bullseye:
-  image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/alf-requirements/bullseye
-  stage: memleaks
-  needs: []
-  variables:
-    MACHINE: GNU
+        DEVEL: ["", Devel]
+        CONFIG_ARGS: ["", "HDF5"]
   script:
-      - sudo apt-get update && sudo apt-get install -y valgrind
-      - . configure.sh $MACHINE devel serial $CONFIG_ARGS
-      - gfortran -v
-      - make lib
-      - make program
-      - cp Prog/ALF.out Scripts_and_Parameters_files/Start
-      - cd Scripts_and_Parameters_files/Start
-      - cat parameters
-      - valgrind --leak-check=full --log-file=vglog.txt ./ALF.out
-      - cat vglog.txt
-      - grep lost vglog.txt | cut -d":" -f 2 | cut -d " " -f 2 | f=$(cat); echo $(( ${f//$'\n'/+} ))
+    - . configure.sh $MACHINE $DEVEL $MODE $CONFIG_ARGS
+    - echo $ALF_FC
+    - $ALF_FC --version
+    - make all
+    - if echo "$MODE" | grep -iq -e "TEMPERING" -e "PARALLEL_PARAMS"; then
+        cp -r Scripts_and_Parameters_files/Start_Tempering run;
+      else
+        cp -r Scripts_and_Parameters_files/Start run;
+      fi
+    - cd run
+    - if echo "$MODE" | grep -iq -e "serial" -e "noMPI"; then
+        "$ALF_DIR/Prog/ALF.out";
+      else
+        mpiexec -n 4 "$ALF_DIR/Prog/ALF.out";
+      fi
+    - if echo "$MODE" | grep -iq -e "TEMPERING" -e "PARALLEL_PARAMS"; then cd Temp_0; fi
+    - if echo "$CONFIG_ARGS" | grep -iq "HDF5"; then
+        "$ALF_DIR/Analysis/ana_hdf5.out";
+      else 
+        "$ALF_DIR/Analysis/ana.out" *;
+      fi
+    - mkdir "$ALF_DIR/testsuite/tests"
+    - cd "$ALF_DIR/testsuite/tests"
+    - if echo $ALF_FC | grep -q "mpiifort -fc=ifx"; then exit 0; fi
+    - cmake ..
+    - cmake --build . --target all --config Release
+    - ctest -VV -O log.txt
+    - cat log.txt | grep "tests passed" | cut -d " " -f 1

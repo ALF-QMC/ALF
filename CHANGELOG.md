@@ -1,7 +1,31 @@
 # Log of backward compatibility changes and critical bugs
 
+### 2026-01-28 factors of pi in analytical continuation
+Author F. Assaad
+Merge request !257
+
+In the file Green, produced by the MaxEnt wrapper,  the real part of G is now multiplied by a factor -1/pi. 
+
+### 2026-01-27 Intel ifx compiler without `-heap-arrays 1024`
+Author: J. Schwab
+Merge request !234
+
+The Intel compiler ifx is no longer used with the option `-heap-arrays 1024`,
+since it produces some kind of memory leak.
+As a result, lager arrays have to be allocated to avoid a stack overflow. 
+This applies e.g. to the variable `GRC` in the subroutine `Obser`.
+
 ## ALF 2.6
-ALF 2.6  released  on 2023-??-??
+ALF 2.6 released on 2025-11-05
+
+### 2025-09-29 Renaming Delta_S0_global to Get_Delta_S0 global
+Author: J. Hofmann
+Merge request !213
+
+The function `Delta_S0_global` has been renamed to `Get_Delta_S0_global` as the new function now returns $\Delta S_0$ instead of $\exp(\Delta S_0)$. In case your model is using global moves, we advice to adapt your code accordingly. A fallback to `Delta_S0_global` is used for the time being such that backward compatibility is maintained
+
+#### Optional changes
+1) Modify and rename your implementation of `Delta_S0_global`
 
 ### 2024-07-10 Fix: Lattice in data.h5: Mixup of Norb and N_coord
 Author: J. Schwab
@@ -10,7 +34,7 @@ Merge request !204
 The lattice quantities `Norb` and `N_coord` were mistakenly mixed up in the HDF5 results file `data.h5`.
 This has been fixed and the script `Analysis/fix-latt.py` was added to repair existing result files.
 
-### 2024-02-01  Implement new  function  $ (F,A) = \int d \omega F(\omega) A(\omega)$ in the stochastic maxent.
+### 2024-02-01  Implement new  function  $(F,A) = \int d \omega F(\omega) A(\omega)$ in the stochastic maxent.
 Author:  F. Assaad
 Merge  request !196
 
@@ -29,20 +53,20 @@ Merge requests: !190 and !194
 3. There  is a  new  channel index  available P_PH for  single  particle  Green  functions  that are   particle-hole  symmetric. 
 
 
-### 2023-08-14    Hubbard  Stratonovich  fields  have be  updated  to  complex 
+### 2023-08-14 Hubbard Stratonovich fields have been updated to be complex
 
 Author:  F. Assaad
 Merge request !176 
 #### Breaking changes 
 
-1. Fields\_mod.F90
-    1.  nsigma%f       is now complex    rather than real 
-    2.  nsigma%phi    is now complex    rather than real 
-2. Hamilton\_main\_mod.F90 
-      1. Hamiltonian\_set\_nsigma\_base(Initial\_field): Initial\_field  is  now complex  not  real 
-      2. Delta\_S0\_global\_base(Nsigma\_old): Nsigma\_old  is  complex  rather  than real 
-      3.  S0\_base(n,nt,Hs\_new) : Hs\_new is  now  complex rather  than real
-      4. Global\_move\_tau\_base :  The array Flip\_value is  now  a  complex one-dimensional array.     
+1. `Fields\_mod.F90`
+    1.  `sigma%f`       is now complex    rather than real 
+    2.  `nsigma%phi`    is now complex    rather than real 
+2. `Hamilton\_main\_mod.F90` 
+      1. `Hamiltonian\_set\_nsigma\_base(Initial\_field)`: `Initial\_field`  is  now complex, not  real 
+      2. `Delta\_S0\_global\_base(Nsigma\_old)`: `Nsigma\_old`  is  complex  rather  than real 
+      3. `S0\_base(n,nt,Hs\_new)` : `Hs\_new` is  now  complex rather  than real
+      4. `Global\_move\_tau\_base` : The array `Flip\_value` is  now  a  complex one-dimensional array    
 
 
 

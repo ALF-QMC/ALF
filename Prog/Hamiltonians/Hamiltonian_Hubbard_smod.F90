@@ -141,7 +141,7 @@
         procedure, nopass :: ObserT
         procedure, nopass :: S0
         procedure, nopass :: Ham_Langevin_HMC_S0
-        procedure, nopass :: Delta_S0_global
+        procedure, nopass :: Get_Delta_S0_global
 #ifdef HDF5
         procedure, nopass :: write_parameters_hdf5
 #endif
@@ -176,6 +176,7 @@
       real(Kind=Kind(0.d0)) :: ham_T2     = 1.d0     ! For bilayer systems
       real(Kind=Kind(0.d0)) :: Ham_U2     = 4.d0    ! For bilayer systems
       real(Kind=Kind(0.d0)) :: ham_Tperp  = 1.d0     ! For bilayer systems
+      real(Kind=Kind(0.d0)) :: ham_h0     = 0.d0     ! Pinning field strength. Local magnetic field on site i=0, orbital=1
       logical               :: Mz         = .true.   ! When true, sets the M_z-Hubbard model: Nf=2, demands that N_sun is even, HS field couples to the z-component of magnetization; otherwise, HS field couples to the density
       logical               :: Continuous = .false.  ! Uses (T: continuous; F: discrete) HS transformation
       !#PARAMETERS END#
@@ -211,6 +212,7 @@
 
           integer                :: ierr, nf, unit_info
           Character (len=64)     :: file_info
+          Logical                :: toggle 
 
 
           ! L1, L2, Lattice_type, List(:,:), Invlist(:,:) -->  Lattice information
@@ -234,16 +236,33 @@
           Ltrot = nint(beta/dtau)
           if (Projector) Thtrot = nint(theta/dtau)
           Ltrot = Ltrot+2*Thtrot
-          If ( Mz ) then
-             N_FL  = 2
-             if (mod(N_SUN,2) .ne. 0 ) then
-                Write(error_unit,*) 'Ham_Set: N_SUN has to be even if Mz = True'
-                CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
-             endif
-             N_SUN = N_SUN / 2
-          else
-             N_FL  = 1
+          toggle = any(N_FL == [1, 2])
+          if (.not.toggle) then 
+            Write(error_unit,*) 'Ham_Set: N_FL has to take the value 1 or 2'
+            CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
           endif
+          If (Mz .and. N_FL == 1) then
+#ifdef MPI
+            If (Irank_g == 0) then
+#endif  
+               Write(error_unit,*) 'Setting N_FL = 2 since this is mandatory for Mz-Hubbard model'
+#ifdef MPI
+            endif 
+#endif
+            N_FL = 2
+          endif
+          If (N_FL == 2 .and. mod(N_SUN,2) /= 0) then
+            Write(error_unit,*) 'Ham_Set: If N_FL = 2, N_SUN has to be even'
+            CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+          endif
+          If (abs(ham_h0) >= 1.D-10 .and. N_FL /= 2 ) then
+            Write(error_unit,*) 'Ham_Set: Set N_fl=2 if you want to use the pinning field'
+            CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+          endif
+
+          If (N_FL == 2 )  then 
+            N_SUN = N_SUN/2
+          endif     
 
           ! Setup the Bravais lattice
           Call  Ham_Latt
@@ -293,17 +312,16 @@
                 Write(unit_info,*) 'Beta          : ', Beta
              endif
              Write(unit_info,*) 'dtau,Ltrot_eff: ', dtau,Ltrot
-             if ( Mz )  then
-                Write(unit_info,*) 'N_SUN         : ', 2*N_SUN
-             else
-                Write(unit_info,*) 'N_SUN         : ',   N_SUN
-             endif
+             Write(unit_info,*) 'N_SUN         : ', N_FL*N_SUN
              Write(unit_info,*) 'N_FL          : ', N_FL
              Write(unit_info,*) 't             : ', Ham_T
              Write(unit_info,*) 'Ham_U         : ', Ham_U
-             Write(unit_info,*) 't2            : ', Ham_T2
-             Write(unit_info,*) 'Ham_U2        : ', Ham_U2
-             Write(unit_info,*) 'Ham_tperp     : ', Ham_tperp
+             if (abs(ham_h0) >= 1.D-10 ) Write(unit_info,*) 'Pinning field : ', ham_h0
+             if (Index(str_to_upper(Lattice_type),'BILAYER') > 0 )  then
+               Write(unit_info,*) 't2            : ', Ham_T2
+               Write(unit_info,*) 'Ham_U2        : ', Ham_U2
+               Write(unit_info,*) 'Ham_tperp     : ', Ham_tperp
+             endif
              Write(unit_info,*) 'Ham_chem      : ', Ham_chem
              if (Projector) then
                 Do nf = 1,N_FL
@@ -344,14 +362,19 @@
 
           Implicit none
 
-          Real (Kind=Kind(0.d0) ) ::  Ham_Lambda = 0.d0
+          Real (Kind=Kind(0.d0) ) ::  Ham_Lambda = 0.d0,  x_p(2)
 
           Real (Kind=Kind(0.d0) ), allocatable :: Ham_T_vec(:), Ham_Tperp_vec(:), Ham_Chem_vec(:), Phi_X_vec(:), Phi_Y_vec(:),&
                &                                  Ham_T2_vec(:),  Ham_Lambda_vec(:)
           Integer, allocatable ::   N_Phi_vec(:)
 
           ! Use predefined stuctures or set your own hopping
-          Integer :: n,nth
+          Integer :: n,nth, i 
+          ! Indices of pinned vertices. Shape [N_pinned_vertices, 2]
+          Integer,  allocatable                    :: pinned_vertices(:,:)
+          ! Factor, by which the vertex matrix elements will get multiplied. Shape [N_pinned_vertices, N_FL]
+          complex(Kind=Kind(0.d0)), allocatable    :: pinning_factor(:,:), pinning_offset(:,:)
+
 
           Allocate (Ham_T_vec(N_FL), Ham_T2_vec(N_FL), Ham_Tperp_vec(N_FL), Ham_Chem_vec(N_FL), Phi_X_vec(N_FL), Phi_Y_vec(N_FL),&
                &                                   N_Phi_vec(N_FL), Ham_Lambda_vec(N_FL) )
@@ -370,6 +393,12 @@
           Case ("SQUARE")
              Call  Set_Default_hopping_parameters_square(Hopping_Matrix,Ham_T_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
                   &                                      Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
+          Case ("TRIANGULAR")
+             Call  Set_Default_hopping_parameters_triangular(Hopping_Matrix,Ham_T_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
+                  &                                      Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
+          Case ("KAGOME")
+             Call  Set_Default_hopping_parameters_kagome(Hopping_Matrix,Ham_T_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
+                  &                                      Bulk, N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
           Case ("N_LEG_LADDER")
              Call  Set_Default_hopping_parameters_n_leg_ladder(Hopping_Matrix, Ham_T_vec, Ham_Tperp_vec, Ham_Chem_vec, Phi_X_vec, &
                   &                                            Phi_Y_vec, Bulk,  N_Phi_vec, N_FL, List, Invlist, Latt, Latt_unit )
@@ -386,13 +415,34 @@
              Call  Set_Default_hopping_parameters_Bilayer_honeycomb(Hopping_Matrix,Ham_T_vec,Ham_T2_vec,Ham_Tperp_vec, Ham_Chem_vec, &
                   &                                                 Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL,&
                   &                                                 List, Invlist, Latt, Latt_unit )
-
+          Case Default 
+             Write(error_unit,*) 'Your lattice is not supported for the Hubbard model. '
+             CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
           end Select
 
-          Call  Predefined_Hoppings_set_OPT(Hopping_Matrix,List,Invlist,Latt,  Latt_unit,  Dtau, Checkerboard, Symm, OP_T )
+          If (N_FL == 2) then
+            ! Set pinning field
+            x_p = 0.d0 
+            i = invlist(Inv_R(x_p,Latt),1) 
+            allocate(pinning_factor(1,2), pinned_vertices(1,2), pinning_offset(1,2) ) 
+            pinned_vertices(1,1) = i 
+            pinned_vertices(1,2) = i 
+            pinning_factor(1,1) =   1.d0 
+            pinning_factor(1,2) =   1.d0 
+            pinning_offset(1,1) =   ham_h0
+            pinning_offset(1,2) =  -ham_h0 
+          
+
+            Call  Predefined_Hoppings_set_OPT(Hopping_Matrix,List,Invlist,Latt,  Latt_unit,  Dtau, Checkerboard, Symm, OP_T,  & 
+                                          & pinned_vertices, pinning_factor, pinning_offset) 
+            Deallocate (pinned_vertices, pinning_factor, pinning_offset)
+          else
+            Call  Predefined_Hoppings_set_OPT(Hopping_Matrix,List,Invlist,Latt,  Latt_unit,  Dtau, Checkerboard, Symm, OP_T )
+          endif
 
           Deallocate (Ham_T_vec, Ham_T2_vec, Ham_Tperp_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, &
                &                                   N_Phi_vec,  Ham_Lambda_vec )
+
 
         end Subroutine Ham_Hop
 !--------------------------------------------------------------------
@@ -457,9 +507,9 @@
                    if (abs(Ham_U_vec(no)) > Zero ) then
                       nc = nc + 1
                       if (Continuous) then
-                         Call Predefined_Int_U_MZ_continuous_HS( OP_V(nc,1), OP_V(nc,2), I,  DTAU, Ham_U_vec(no) )
+                        Call Predefined_Int_U_MZ_continuous_HS( OP_V(nc,1), OP_V(nc,2), I,  DTAU, Ham_U_vec(no) )
                       else
-                         Call Predefined_Int_U_MZ              ( OP_V(nc,1), OP_V(nc,2), I,  DTAU, Ham_U_vec(no) )
+                        Call Predefined_Int_U_MZ              ( OP_V(nc,1), OP_V(nc,2), I,  DTAU, Ham_U_vec(no) )
                       endif
                    endif
                 enddo
@@ -473,9 +523,13 @@
                    if (abs(Ham_U_vec(no)) > Zero ) then
                       nc = nc + 1
                       if (Continuous) then
-                         Call Predefined_Int_U_SUN_continuous_HS(  OP_V(nc,1), I, N_SUN, DTAU, Ham_U_vec(no)  )
+                        Do nf = 1,N_FL
+                           Call Predefined_Int_U_SUN_continuous_HS(  OP_V(nc,nf), I, N_FL*N_SUN, DTAU, Ham_U_vec(no)  )
+                        Enddo
                       else
-                         Call Predefined_Int_U_SUN              (  OP_V(nc,1), I, N_SUN, DTAU, Ham_U_vec(no)  )
+                        Do nf = 1,N_FL
+                           Call Predefined_Int_U_SUN              (  OP_V(nc,nf), I, N_FL*N_SUN, DTAU, Ham_U_vec(no)  )
+                        Enddo
                       endif
                    endif
                 Enddo
@@ -522,9 +576,15 @@
              end select
              Call Obser_Vec_make(Obs_scal(I),N,Filename)
           enddo
-
+          ! Local quantities 
+          If (abs(ham_h0) >= 1.D-10 ) then
+            Allocate ( Obs_local(1) )
+            Filename = "SpinZ"
+            Channel = "--"
+            Call Obser_Latt_Local_make(Obs_local(1), 1, Filename, Latt, Latt_unit, Channel, dtau)
+          endif
           ! Equal time correlators
-          If ( Mz ) Then
+          If ( N_FL == 2 ) Then
              Allocate ( Obs_eq(5) )
              Do I = 1,Size(Obs_eq,1)
                 select case (I)
@@ -643,7 +703,8 @@
           Real    (Kind=Kind(0.d0)), INTENT(IN) :: Mc_step_weight
 
           !Local
-          Complex (Kind=Kind(0.d0)) :: GRC(Ndim,Ndim,N_FL), ZK
+          Complex (Kind=Kind(0.d0)), allocatable :: GRC(:,:,:)
+          Complex (Kind=Kind(0.d0)) :: ZK
           Complex (Kind=Kind(0.d0)) :: Zrho, Zkin, ZPot, Z, ZP,ZS, ZZ, ZXY
           Integer :: I,J, imj, nf, dec, I1, J1, no_I, no_J,n
           Real    (Kind=Kind(0.d0)) :: X
@@ -652,6 +713,8 @@
           ZS = Real(Phase, kind(0.D0))/Abs(Real(Phase, kind(0.D0)))
 
           ZS = ZS*Mc_step_weight
+
+          allocate(GRC(Ndim,Ndim,N_FL))
           
           Do nf = 1,N_FL
              Do I = 1,Ndim
@@ -678,7 +741,7 @@
 
           ZPot = cmplx(0.d0, 0.d0, kind(0.D0))
           dec = 1
-          If ( Mz  ) dec = 2
+          If ( N_FL == 2 ) dec = 2
           if ( str_to_upper(Lattice_type) == "BILAYER_SQUARE" .or. str_to_upper(Lattice_type) =="BILAYER_HONEYCOMB" ) then
              Do I = 1,Latt%N
                 do no_I = 1,Latt_unit%Norb
@@ -709,8 +772,23 @@
 
           Obs_scal(4)%Obs_vec(1)  =    Obs_scal(4)%Obs_vec(1) + (Zkin + Zpot)*ZP*ZS
 
+          If (abs(ham_h0) >= 1.D-10 ) then
+            ! Compute local observables.
+            Do I = 1,Size(Obs_local,1)
+               Obs_local(I)%N         =  Obs_local(I)%N + 1
+               Obs_local(I)%Ave_sign  =  Obs_local(I)%Ave_sign + Real(ZS,kind(0.d0))
+            Enddo
+            Do I = 1,Latt%N
+               do no_I = 1,Latt_unit%Norb
+                  I1 = Invlist(I,no_I)
+                  Obs_Local(1)%Obs_Latt(I,1,no_I) = Obs_Local(1)%Obs_Latt(I,1,no_I)  + & 
+                  &       (Grc(i1,i1,1)  -  Grc(i1,i1, dec))*ZP*ZS 
+               enddo
+            Enddo
+          endif
+
           ! Standard two-point correlations
-          If ( Mz ) then
+          If ( N_FL == 2  ) then
              Call Predefined_Obs_eq_Green_measure  ( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(1) )
              Call Predefined_Obs_eq_SpinMz_measure ( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(2),Obs_eq(3),Obs_eq(4) )
              Call Predefined_Obs_eq_Den_measure    ( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(5) )
@@ -720,7 +798,7 @@
              Call Predefined_Obs_eq_Den_measure    ( Latt, Latt_unit, List,  GR, GRC, N_SUN, ZS, ZP, Obs_eq(3) )
           endif
 
-
+          deallocate(GRC)
         end Subroutine Obser
 !--------------------------------------------------------------------
 !> @author
@@ -768,7 +846,7 @@
 
           ! Standard two-point correlations
 
-          If ( Mz ) then
+          If ( N_FL == 2 ) then
              Call Predefined_Obs_tau_Green_measure  ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(1) )
              Call Predefined_Obs_tau_SpinMz_measure ( Latt, Latt_unit, List, NT, GT0,G0T,G00,GTT,  N_SUN, ZS, ZP, Obs_tau(2),&
                   &                                   Obs_tau(3), Obs_tau(4) )
@@ -855,7 +933,7 @@
 !>  Old configuration. The new configuration is stored in nsigma.
 !> \endverbatim
 !-------------------------------------------------------------------
-        Real (Kind=kind(0.d0)) Function Delta_S0_global(Nsigma_old)
+        Real (Kind=kind(0.d0)) Function Get_Delta_S0_global(Nsigma_old)
 
         !  This function computes the ratio:  e^{-S0(nsigma)}/e^{-S0(nsigma_old)}
         Implicit none
@@ -865,7 +943,6 @@
         real(kind=kind(0.0d0))     :: S0_old, S0_new
         integer                    :: f, t, nfield, ntau
 
-        Delta_S0_global = 1.d0
         nfield=size(nsigma%f,1)
         ntau=size(nsigma%f,2)
         S0_old=0.0d0
@@ -878,10 +955,10 @@
         enddo
         S0_old = 0.5d0*S0_old
         S0_new = 0.5d0*S0_new
-        Delta_S0_global = exp(-S0_new+S0_old)
+        Get_Delta_S0_global = -S0_new+S0_old
       !   write(*,*) "S0 old:", S0_old, "S0 new:", S0_new
             ! S0 = exp( (-Hs_new**2  + nsigma%f(n,nt)**2 ) /2.d0 ) 
 
-     end Function Delta_S0_global
+     end Function Get_Delta_S0_global
         
     end submodule ham_Hubbard_smod

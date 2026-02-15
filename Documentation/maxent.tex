@@ -175,7 +175,7 @@ do tau1 = 1, # of tau-points
 enddo
 \end{alltt}
 
-The  specification of the  default model is optional.   If the file  \texttt{Default}  exists  then this  default  will be   used.   The  format 
+The  specification of the  default model is optional.   If the file  \texttt{Default}  exists  then this  default  will be   used.  We note that the default model  corresponds to the output of the MaxEnt code. That is $S(q,\omega)$ for particle-hole quantities,  $A(k,\omega)$ in the particle channel, etc. eThe  format 
 of  the input is identical  to that if  the output file   \texttt{Green} containing  the spectral function (see  below). Hence  
 the  result of  one  run  can  be  used  as  a default model   for  another  run.  This turns out  to be  very  useful
 when  carrying out  temperature  scans.  Alternatively,  the    default  model  can be  specified  as 
@@ -203,10 +203,11 @@ The file contains three columns: $\omega$, $\langle A_n(\omega) \rangle$, and $\
 
 \item The file \texttt{Green} contains the Green function, obtained from the spectral function through
 \begin{equation}
- G(\omega) =  -\frac{1}{\pi} \int \d \Omega   \frac{A(\Omega)}{\omega - \Omega + i \delta} \,,
+ G(\omega) =  -\frac{1}{\pi} \int_{-\infty}^{\infty} \d \Omega   \frac{A(\Omega)}{\omega - \Omega + i \delta} \,,
 \end{equation}
 where  $ \delta =  \Delta \omega = (\omega_\mathrm{end} -  \omega_\mathrm{start})/$\texttt{Ndis} and the image corresponds to that of the file \texttt{Aom\_ps\_n} with $ n = N_{\alpha} -10 $. 
-The first column of the  \texttt{Green}  file is a place holder for post-processing. The last three columns   correspond to $\omega, \Re G(\omega) ,   - \Im G(\omega)/\pi $. 
+The first column of the  \texttt{Green}  file is a placeholder for post-processing. The last three columns   correspond to $\omega, \Re G(\omega) ,   \Im G(\omega) $. The above serves as a smoothing procedure of the spectral function. In particular  if $\delta = 0^+$  then  $\Im G(\omega) = A(\omega) $.
+
 
 \item  One of the most important output files is \texttt{energies}, which lists $ \alpha_n, \langle \chi^2 \rangle, \Delta \langle \chi^2 \rangle $.
 
@@ -249,14 +250,15 @@ K_{p}(\tau,\omega) =    \frac{1}{\pi} \frac{e^{-\tau \omega} }  {  1 + e^{-\beta
 \end{equation}
 and, in the Lehmann representation, 
  \begin{equation}
-   A_p(k, \omega) = \frac{ \pi}{Z} \sum_{n,m} e^{-\beta E_n } \left( 1 + e^{-\beta \omega}\right) | \langle n | c_n | m  \rangle |^{2} \delta \left( E_m - E_n - \omega \right)  .
+   A_p(k, \omega) = \frac{ \pi}{Z} \sum_{n,m} e^{-\beta E_m } \left( 1 + e^{-\beta \omega}\right) | \langle n | c_n | m  \rangle |^{2} \delta \left( E_m - E_n - \omega \right)  .
 \end{equation}  
 Here $ \big( \hat{H} - \mu \hat{N} \big) | n \rangle = E_n | n \rangle  $.
 Note that  $ A_p(k, \omega)  = - \Im G^{\mathrm{ret}} (k, \omega) $,  with 
 \begin{equation}
 	G^{\mathrm{ret}} (k, \omega)  = -i \int \d t \Theta(t)  e^{i \omega t} \langle \big\{ \hat{c}^{\phantom\dagger}_{k} (t), \hat{c}^{\dagger}_{k} (0) \big\} \rangle .
 \end{equation}
-Finally the sum rule reads
+The above follows from  the identity $\Theta(t) =  \frac{i}{2\pi} \int d \omega'  \frac{e^{-i \omega' t}}{\omega' + i 0^{+}} $.
+Finally, the sum rule reads
 \begin{equation}
 	\int \d \omega  A_p(k, \omega)  = \pi \langle  \big\{ \hat{c}^{\phantom\dagger}_{k} , \hat{c}^{\dagger}_{k}  \big\}   \rangle = \pi \left( 
 	\langle \hat{c}^{\phantom\dagger}_{k} (\tau=0)  \hat{c}^{\dagger}_{k} (0)   \rangle  +  \langle \hat{c}^{\phantom\dagger}_{k} (\tau=\beta)  \hat{c}^{\dagger}_{k} (0)   \rangle  \right).
@@ -289,6 +291,7 @@ The  above  defines  the  kernel  for this   channel.   If this channel  is  spe
 file,   then  the lower  bound  of the  frequency  range will  be  set  to  zero by the program. 
 
 \subsection{Particle-hole quantities:  \texttt{Channel=PH}}
+\label{sec:maxent_ph}
 
 \subsubsection*{Imaginary-time formulation}
  For particle-hole quantities such as spin-spin or charge-charge correlations, 
@@ -300,8 +303,12 @@ the kernel reads
 This follows directly from the  Lehmann representation
 \begin{equation}
  \chi''(q,\omega)  = \frac{\pi}{Z} \sum_{n,m} e^{-\beta E_n} |\langle n | \hat{S}(q) | m \rangle |^2 
-\delta ( \omega + E_n - E_m) \left( 1 - e^{-\beta  \omega} \right) .
+\delta ( \omega + E_n - E_m) \left( 1 - e^{-\beta  \omega} \right) 
 \end{equation}
+with 
+\begin{equation*}
+   \chi(q,\omega)  = i \int \d t \Theta(t)  e^{i \omega t} \langle \big[ \hat{S}(q,t), \hat{S}(-q,0) \big] \rangle .
+\end{equation*}
 Since the linear response to a hermitian perturbation  is real, $\chi''(q,\omega)  = - \chi''(-q,-\omega)$ and hence 
 $\langle \hat{S}(q,\tau) \hat{S}(-q,0) \rangle $ is a symmetric function around $\beta= \tau/2$ for systems with 
 inversion symmetry -- the ones we consider here.  When  \texttt{Channel=PH}  the analysis program \texttt{ana.out} uses this symmetry to provide an improved estimator. 
@@ -318,14 +325,14 @@ which is just the first point in the data. Therefore,
 	\langle \hat{S}(q,\tau) \hat{S}(-q,0) \rangle  =  
        \int \d \omega  \underbrace{ \frac{1}{\pi} \frac{e^{- \tau \omega} }
             { 1 - e^{-\beta  \omega} } \tanh(\beta \omega/2)  }_{K_{pp}(\tau,\omega)} 
-       \underbrace{ \coth(\beta \omega/2) \chi''(q,\omega) \vphantom{\frac{1}{2-1}} }_{A(\omega)} 
+       \underbrace{ \coth(\beta \omega/2) \chi''(q,\omega) \vphantom{\frac{1}{2-1}} }_{A_{ph}(\omega)} 
 \end{equation}
 and one computes $A(\omega)$.
 Note that since $\chi'' $ is an odd function of $\omega$ one restricts the integration range to positive values of $\omega$. 
 Hence: 
 \begin{equation}
 	\langle \hat{S}(q,\tau) \hat{S}(-q,0) \rangle  =  
-       \int_{0}^{\infty}  \d \omega \underbrace{\left( K_{pp}(\tau,\omega)  + K_{pp}(\tau,-\omega) \right)}_{K_{ph}(\tau,\omega)}  A(\omega).
+       \int_{0}^{\infty}  \d \omega \underbrace{\left( K_{pp}(\tau,\omega)  + K_{pp}(\tau,-\omega) \right)}_{K_{ph}(\tau,\omega)}  A_{ph}(\omega).
 \end{equation}
 In the code, $\omega_\mathrm{start}$ is set to zero by default and the kernel $K_{ph}$ is defined in the  routine \texttt{XKER\_ph}.
 
@@ -335,7 +342,7 @@ In general,  one would like to produce the  dynamical structure factor that give
 \end{equation}
 In the code, the routine \texttt{BACK\_TRANS\_ph} transforms the image $A$ to the desired quantity:
 \begin{equation}
-	S(q,\omega) = \frac{A(\omega)}{1 + e^{-\beta \omega} } .
+	S(q,\omega) = \frac{A_{ph}(\omega)}{1 + e^{-\beta \omega} } .
 \end{equation}
 \subsubsection*{Matsubara-frequency formulation}
 The ALF  library uses  imaginary time. It is, however, possible to formulate the MaxEnt in  Matsubara frequencies.
@@ -368,6 +375,36 @@ The above definitions produce an image that satisfies the sum rule:
    \frac{\chi''(q,\omega)}{\omega}   \equiv \chi(q,i\Omega_m=0) .
 \end{equation}
 
+\subsection{Optical conductivity: \texttt{Channel=PH\_C}}
+
+A  slight modification of the above is required to compute  the optical conductivity. In the Lehmann representation, this quantity reads:
+\begin{equation}
+  \sigma'(\omega) =  \frac{\pi}{Z} \frac{1}{\omega} \sum_{n,m} e^{-\beta E_n} |\langle n | \hat{J}_p | m \rangle |^2 
+  \delta ( \omega + E_n - E_m) \left( 1 - e^{-\beta  \omega} \right) 
+\end{equation}
+where  $\hat{J}_p$ is a model dependent paramagnetic current operator.  One can show that the sum rule, 
+\begin{equation}
+	\int \d \omega 	 \omega \coth(\beta \omega/2) \sigma'(\omega) = 
+  2 \pi \langle \hat{J}_p(\tau=0) \hat{J}_p(0) \rangle
+\end{equation}
+holds  such  that: 
+\begin{equation}
+  \label{eqn:A_ph_C_def}
+	\langle \hat{J}(\tau) \hat{J}(0) \rangle  =  
+       \int \d \omega  \underbrace{ \frac{1}{\pi} \frac{e^{- \tau \omega} }
+            { 1 - e^{-\beta  \omega} } \tanh(\beta \omega/2)  }_{K_{pp}(\tau,\omega)} 
+       \underbrace{ \omega \coth(\beta \omega/2) \sigma'(\omega) \vphantom{\frac{1}{2-1}} }_{A_C(\omega)} 
+\end{equation}
+and one computes $A_C(\omega)$. Since  $\hat{J}_p $  is hermitian, $\sigma'(\omega)$ is an even function of frequency, the above can be simplified to 
+\begin{equation} 
+    \langle \hat{J}_p(\tau) \hat{J}_p(0) \rangle  =  
+         \int_{0}^{\infty}  \d \omega \underbrace{\left( K_{pp}(\tau,\omega)  + K_{pp}(\tau,-\omega) \right)}_{K_{ph}(\tau,\omega)}  A_C(\omega).
+\end{equation}
+As apparent,  the only difference with the particle-hole channel of Sec.~\ref{sec:maxent_ph} is in the 
+back transformation routine \texttt{BACK\_TRANS\_ph\_C}  required to obtain the optical conductivity: 
+\begin{equation}
+	\sigma'(\omega) =  \frac{\tanh\left( \beta \omega/2\right)}{\omega}A_C(\omega)
+\end{equation} 
 
 \subsection{Particle-Particle quantities: \texttt{Channel=PP}}
 
@@ -377,6 +414,8 @@ The back transformation  yields
 \begin{equation}
  \frac{\chi''(\omega)} {\omega}   = \frac{\tanh \left( \beta \omega/2 \right) }{ \omega }   A(\omega) .
 \end{equation}
+If no default is provided, then we use a flat default for the $A(\omega)$ that satisfies the sum rule: $ \int d \omega A(\omega) =  \pi  \left(\langle \hat{S}(q,\beta) \hat{S}(-q,0) \rangle  +
+\langle \hat{S}(q,0) \hat{S}(-q,0) \rangle \right) $. Here, we use the same notation as in Eq.~\eqref{eqn:A_ph_def}.
 
 
 \subsection{Zero-temperature, projective code:  \texttt{Channel=T0}}
@@ -440,7 +479,7 @@ MaxEnt wrapper  \texttt{Max\_SAC.F90}  in the   \texttt{Analysis}   directory.
 
 To conclude this section, we show the example of the one-dimensional Hubbard model, which is known to show spin-charge separation (see Ref.~\cite{Abendschein06}  
 and references therein).    The data of Fig.~\ref{Fig:Spectral1D}    was produced with the pyALF python script  
-\href{https://git.physik.uni-wuerzburg.de/ALF/ALF/-/blob/\ALFbranch/Documentation/Figures/MaxEnt/Hubbard_1D.py}{\texttt{Hubbard\_1D.py}}, and   the spectral function plots with the bash script \href{https://git.physik.uni-wuerzburg.de/ALF/ALF/-/blob/\ALFbranch/Documentation/Figures/MaxEnt/Spectral.sh}{\texttt{Spectral.sh}}. 
+\href{https://github.com/ALF-QMC/pyALF/blob/\pyALFbranch/Scripts/Hubbard_1D.py}{\texttt{Hubbard\_1D.py}}, and   the spectral function plots with the bash script \href{https://github.com/ALF-QMC/pyALF/blob/\pyALFbranch/Scripts/Spectral.sh}{\texttt{Spectral.sh}}. 
 
 \begin{figure}
 \center
@@ -450,7 +489,7 @@ and references therein).    The data of Fig.~\ref{Fig:Spectral1D}    was produce
 The  top  (bottom) panels   correspond  to  stochastic (Classic) Maxent runs.  
 (a,d) Dynamical charge structure factor, (b,e) single particle spectral function and (c,f) dynamical spin structure factor. 
  Data obtained using the pyALF python script 
- \href{https://git.physik.uni-wuerzburg.de/ALF/ALF/-/blob/\ALFbranch/Documentation/Figures/MaxEnt/Hubbard_1D.py}
+ \href{https://github.com/ALF-QMC/pyALF/blob/\pyALFbranch/Scripts/Hubbard_1D.py}
  {\texttt{Hubbard\_1D.py}}, considering 400 bins of 200 sweeps each and taking into account the covariance matrix for
   the MaxEnt.  The parameters for the MaxEnt  that differ from the default values are also listed in the python script.}
         \label{Fig:Spectral1D}

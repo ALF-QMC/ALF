@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import sys
+import argparse
 import json
 import copy
 import yaml
@@ -37,6 +37,8 @@ stages:
     - export PATH="$HOME/.local/bin:$PATH"
     - git remote set-branches origin master $CI_COMMIT_BRANCH
     - git fetch --depth=1
+    - git checkout $CI_COMMIT_BRANCH
+    - git checkout .
     - pip install --no-deps pyALF
     - export ALF_DIR="$PWD"
     - . ./configure.sh $MACHINE noMPI HDF5 NO-INTERACTIVE
@@ -54,12 +56,6 @@ stages:
   artifacts:
     paths:
       - ALF_data
-  cache:
-    key: HDF5-$MACHINE
-    untracked: true
-    paths:
-      - HDF5
-    policy: pull
 
 .simulation_template:
   stage: simulation
@@ -128,10 +124,10 @@ Bookworm:
 #Intel21:
 #    image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/pyalf-requirements/bullseye-intel
 #    variables: {MACHINE: INTEL}
-IntelLatest:
-    image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/pyalf-requirements/bookworm-intel
+Intel-2024.2:
+    image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/pyalf-requirements/bookworm-intel-2024.2
     variables: {MACHINE: INTEL}
-IntelLLVMLatest:
+IntelLLVM-Latest:
     image: git.physik.uni-wuerzburg.de:25812/alf/alf_docker/pyalf-requirements/bookworm-intel
     variables: {MACHINE: INTELLLVM}
 PGI-21-03:
@@ -159,12 +155,15 @@ def prep_runs(test_specs, env_name, env_spec):
     }
 
 if __name__ == "__main__":
-    try:
-        specs_file = sys.argv[1]
-    except IndexError:
-        specs_file = "testsuite/test_branch_parameters.json"
+    parser = argparse.ArgumentParser()
+    parser.add_argument('specs_file', nargs='?', default="testsuite/test_branch_parameters.json")
+    parser.add_argument('--github', action='store_true',
+                        help="Generate matrix for GitHub Actions workflow instead of GitLab CI config")
+    args = parser.parse_args()
+    if args.github:
+        raise NotImplementedError("GitHub Actions config generation not implemented yet.")
 
-    with open(specs_file, 'r', encoding='UTF-8') as f:
+    with open(args.specs_file, 'r', encoding='UTF-8') as f:
         test_specs = json.load(f)
 
     for env_name, env_spec in ENVIRONMENTS.items():

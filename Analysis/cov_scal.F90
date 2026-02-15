@@ -43,6 +43,9 @@
 
         Use ERRORS
         use iso_fortran_env, only: output_unit, error_unit
+#ifdef _OPENMP
+        use check_omp_num_threads_mod
+#endif
         Implicit none
 
         REAL    (Kind=Kind(0.d0)), DIMENSION(:,:), ALLOCATABLE :: OBS
@@ -59,6 +62,10 @@
         Integer :: n_skip, N_rebin, N_Cov, ierr, N_auto
         Character (len=64) :: File_out
         NAMELIST /VAR_errors/   n_skip, N_rebin, N_Cov, N_Back, N_auto
+
+#ifdef _OPENMP
+        call check_omp_num_threads()
+#endif
 
 
         N_skip = 1

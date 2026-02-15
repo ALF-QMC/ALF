@@ -43,6 +43,9 @@
          Use MyMats
          Use Matrix
          use iso_fortran_env, only: output_unit, error_unit
+#ifdef _OPENMP
+         use check_omp_num_threads_mod
+#endif
 
          Implicit none
 
@@ -64,6 +67,10 @@
          Character (len=64) :: File_out
 
          NAMELIST /VAR_errors/   N_skip, N_rebin, N_Cov, N_Back, N_auto
+
+#ifdef _OPENMP
+         call check_omp_num_threads()
+#endif
 
 
          N_skip = 1
