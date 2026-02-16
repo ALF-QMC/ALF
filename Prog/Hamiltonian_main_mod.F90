@@ -136,10 +136,14 @@
     Implicit none
     
     private
-    public :: Alloc_Ham, ham_base, ham
+    public :: Alloc_Ham, ham_base, ham, LOG_T0_REJECTED
 #ifdef __PGI
     public :: Obs_scal, Obs_eq, Obs_tau
 #endif
+      
+      ! Sentinel value for rejected global moves in log scale
+      Real (Kind=Kind(0.d0)), parameter :: LOG_T0_REJECTED = -huge(1.d0)
+      
       type ham_base
       contains
         procedure, nopass :: ham_set => ham_set_base
