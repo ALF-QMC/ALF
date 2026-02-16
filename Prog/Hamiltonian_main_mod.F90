@@ -136,10 +136,14 @@
     Implicit none
     
     private
-    public :: Alloc_Ham, ham_base, ham
+    public :: Alloc_Ham, ham_base, ham, LOG_T0_REJECTED
 #ifdef __PGI
     public :: Obs_scal, Obs_eq, Obs_tau
 #endif
+      
+      ! Sentinel value for rejected global moves in log scale
+      Real (Kind=Kind(0.d0)), parameter :: LOG_T0_REJECTED = -huge(1.d0)
+      
       type ham_base
       contains
         procedure, nopass :: ham_set => ham_set_base
@@ -338,7 +342,7 @@
     !> @param [OUT]  log_T0_Proposal_ratio Real
     !> \verbatim
     !>  log_T0_Proposal_ratio = log(T0( sigma_new -> sigma_old ) / T0( sigma_old -> sigma_new))
-    !>  Set to a large negative value (e.g., -huge(1.d0)) if the move is rejected a priori.
+    !>  Set to LOG_T0_REJECTED if the move is rejected a priori.
     !> \endverbatim
     !> @param [OUT]  Size_clust Real
     !> \verbatim
@@ -359,8 +363,8 @@
              if (T0_Proposal_ratio > 0.d0) then
                 log_T0_Proposal_ratio = log(T0_Proposal_ratio)
              else
-                ! Rejected move: set to large negative value
-                log_T0_Proposal_ratio = -huge(1.d0)
+                ! Rejected move: set to sentinel value
+                log_T0_Proposal_ratio = LOG_T0_REJECTED
              endif
 
           End Subroutine Global_move_log_T0_base

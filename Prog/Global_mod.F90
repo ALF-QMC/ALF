@@ -45,7 +45,7 @@
 Module Global_mod
 
       Use runtime_error_mod
-      Use Hamiltonian_main
+      Use Hamiltonian_main, only: ham, LOG_T0_REJECTED
       Use MyMats
       Use Operator_mod
       Use Control
@@ -547,7 +547,7 @@ Module Global_mod
            ! Draw a new spin configuration. This is provided by the user in the Hamiltonian module
            ! Note that nsigma is a variable in the module Hamiltonian
            Call ham%Global_move_log_T0(log_T0_Proposal_ratio,nsigma_old,size_clust)
-           If (log_T0_Proposal_ratio > -huge(1.d0)) then
+           If (log_T0_Proposal_ratio > LOG_T0_REJECTED) then
               NC = NC + 1
               ! Compute the new Green function
               storage = "Empty"
