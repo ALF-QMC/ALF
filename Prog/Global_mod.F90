@@ -465,7 +465,7 @@ Module Global_mod
 
         !  Local variables.
         Integer :: NST, NSTM, NF, NT, NT1, NVAR,N, N1,N2, I, NC, N_part,j, nf_eff
-        Real    (Kind=Kind(0.d0)) :: T0_Proposal_ratio, Weight
+        Real    (Kind=Kind(0.d0)) :: T0_Proposal_ratio, Weight, Log_T0_Proposal_ratio
         Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Z, Ratiotot, Phase_old, Phase_new
         Complex (Kind=Kind(0.d0)), allocatable :: Det_vec_test(:,:), Phase_Det_new(:), Phase_Det_old(:)
         Real    (Kind=Kind(0.d0)), allocatable :: Det_vec_old(:,:), Det_vec_new(:,:)
@@ -546,8 +546,8 @@ Module Global_mod
         Do n = 1,N_Global
            ! Draw a new spin configuration. This is provided by the user in the Hamiltonian module
            ! Note that nsigma is a variable in the module Hamiltonian
-           Call ham%Global_move(T0_Proposal_ratio,nsigma_old,size_clust)
-           If (T0_Proposal_ratio > 0.d0) then
+           Call ham%Global_move_log_T0(Log_T0_Proposal_ratio,nsigma_old,size_clust)
+           If (Log_T0_Proposal_ratio > -300.d0) then
               NC = NC + 1
               ! Compute the new Green function
               storage = "Empty"
@@ -563,9 +563,11 @@ Module Global_mod
               Phase_new=product(Phase_array)
               Phase_new=Phase_new**N_SUN
 
+              T0_Proposal_ratio = 1.d0 !!! We will bring in the proposal ratio in the log form, so this is just a placeholder
               Ratiotot = Compute_Ratio_Global(Phase_Det_old, Phase_Det_new, &
                    &                          Det_vec_old, Det_vec_new, nsigma_old, T0_Proposal_ratio, Ratio)
-
+              Ratio(2) = Ratio(2) + Log_T0_Proposal_ratio
+              Ratiotot = Ratio(1)*exp(Ratio(2))
               !Write(6,*) 'Ratio_global: ', Ratiotot
 
               Weight = abs(  real( Phase_old * Ratiotot, kind=Kind(0.d0))/real(Phase_old,kind=Kind(0.d0)) )
