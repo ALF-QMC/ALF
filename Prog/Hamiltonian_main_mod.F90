@@ -328,43 +328,65 @@
     !> ALF Collaboration
     !>
     !> @brief
-    !> Global moves with proposal probability on log scale
+    !> Proposes a global move in space and time, returning the proposal ratio on logarithmic scale
     !>
     !> @details
-    !>  This routine generates a global update and returns the logarithm of the proposal probability
-    !>  log_T0_Proposal_ratio = log(T0( sigma_new -> sigma_old ) / T0( sigma_old -> sigma_new))
-    !>  This avoids numerical issues when the proposal probability is extremely small or large.
-    !>  The base implementation is a wrapper around Global_move for backwards compatibility.
+    !> This subroutine wraps around Global_move to keep T0_Proposal_ratio on a logarithmic scale,
+    !> avoiding numerical over/underflow issues for very small or very large proposal ratios.
+    !> Following the same pattern as Get_Delta_S0_global, which wraps Delta_S0_global.
+    !>
+    !> @param [OUT] Log_T0_Proposal_ratio Real
+    !> \verbatim
+    !>  Log_T0_Proposal_ratio = log(T0_Proposal_ratio)
+    !>                        = log( T0( sigma_new -> sigma_old ) / T0( sigma_old -> sigma_new) )
+    !>  If T0_Proposal_ratio is zero or negative, returns -huge(1.d0)
+    !> \endverbatim
     !> @param [IN] nsigma_old,  Type(Fields)
     !> \verbatim
     !>  Old configuration. The new configuration is stored in nsigma.
     !> \endverbatim
-    !> @param [OUT]  log_T0_Proposal_ratio Real
-    !> \verbatim
-    !>  log_T0_Proposal_ratio = log(T0( sigma_new -> sigma_old ) / T0( sigma_old -> sigma_new))
-    !>  Set to LOG_T0_REJECTED if the move is rejected a priori.
-    !> \endverbatim
-    !> @param [OUT]  Size_clust Real
+    !> @param [OUT] Size_clust Real
     !> \verbatim
     !>  Size of cluster that will be flipped.
     !> \endverbatim
     !-------------------------------------------------------------------
-          Subroutine Global_move_log_T0_base(log_T0_Proposal_ratio, nsigma_old, size_clust)
+          Subroutine Global_move_log_T0_base(Log_T0_Proposal_ratio, nsigma_old, size_clust)
 
              Implicit none
-             Real (Kind=Kind(0.d0)), intent(out) :: log_T0_Proposal_ratio, size_clust
+             Real (Kind=Kind(0.d0)), intent(out) :: Log_T0_Proposal_ratio, size_clust
              Type (Fields),  Intent(IN)  :: nsigma_old
-             Real (Kind=Kind(0.d0)) :: T0_Proposal_ratio
 
-             ! Base implementation: wrapper around Global_move for backwards compatibility
+             Logical, save              :: warning_printed = .False.
+             Real (Kind=Kind(0.d0))     :: T0_Proposal_ratio
+             Real (Kind=Kind(0.d0))     :: min_safe_T0, max_safe_T0
+
+             ! Call the Hamiltonian's (possibly overridden) Global_move implementation
              Call ham%Global_move(T0_Proposal_ratio, nsigma_old, size_clust)
-             
-             ! Convert to log scale
+
+             ! Define safe range for T0_Proposal_ratio to avoid extreme log values
+             ! Using sqrt of machine limits ensures log(T0) stays well within [-709, 709]
+             min_safe_T0 = sqrt(tiny(1.d0))
+             max_safe_T0 = sqrt(huge(1.d0))
+
+             ! Convert to logarithmic scale
              if (T0_Proposal_ratio > 0.d0) then
-                log_T0_Proposal_ratio = log(T0_Proposal_ratio)
+                Log_T0_Proposal_ratio = log(T0_Proposal_ratio)
+
+                ! Warn if T0_Proposal_ratio approaches the limits of double precision
+                if (.not. warning_printed .and. (T0_Proposal_ratio < min_safe_T0 .or. T0_Proposal_ratio > max_safe_T0)) then
+                   write(output_unit,*)
+                   write(output_unit,*) "WARNING:       Global_move produces T0_Proposal_ratio outside safe range!"
+                   write(output_unit,*) "T0_Proposal_ratio = ", T0_Proposal_ratio
+                   write(output_unit,*) "Safe range: [", min_safe_T0, ",", max_safe_T0, "]"
+                   write(output_unit,*) "This may cause numerical issues. Consider switching to the Global_move_log_T0"
+                   write(output_unit,*) "implementation to compute log(T0_Proposal_ratio) directly."
+                   write(output_unit,*) "Suppressing further warnings."
+                   write(output_unit,*)
+                   warning_printed = .True.
+                endif
              else
-                ! Rejected move: set to sentinel value
-                log_T0_Proposal_ratio = LOG_T0_REJECTED
+                ! For T0_Proposal_ratio <= 0, return a very negative number
+                Log_T0_Proposal_ratio = -huge(1.d0)
              endif
 
           End Subroutine Global_move_log_T0_base
