@@ -125,7 +125,7 @@ Module Global_mod
         !>  Local variables.
         Integer :: NST, NSTM, NF, nf_eff, NT, NT1, NVAR,N, N1,N2, I, NC, I_Partner, n_step,  N_count, N_part
         Type    (Fields)           :: nsigma_old
-        Real    (Kind=Kind(0.d0)) :: T0_Proposal_ratio, Weight, Weight1, delta_S0_log, exp_delta_S0
+        Real    (Kind=Kind(0.d0)) :: log_T0_Proposal_ratio, Weight, Weight1, delta_S0_log, exp_delta_S0
         Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Z, Ratiotot, Ratiotot_p, Phase_old, Phase_new
         Real    (Kind=Kind(0.d0)), allocatable :: Det_vec_old(:,:), Det_vec_new(:,:)
         Complex (Kind=Kind(0.d0)), allocatable :: Phase_Det_new(:), Phase_Det_old(:)
@@ -256,9 +256,9 @@ Module Global_mod
               Phase_new=product(Phase_array)
               Phase_new=Phase_new**N_SUN
 
-              T0_Proposal_ratio = 1.d0
+              log_T0_Proposal_ratio = 0.d0
               Ratiotot = Compute_Ratio_Global(Phase_Det_old, Phase_Det_new, &
-                   &            Det_vec_old, Det_vec_new, nsigma_old, T0_Proposal_ratio,Ratio)
+                   &            Det_vec_old, Det_vec_new, nsigma_old, log_T0_Proposal_ratio,Ratio)
 
               If (L_Test) Write(6,*) 'Ratio_global: Irank, Partner',Irank,List_partner(Irank), &
                    &                  Ratiotot, Ratio(1)*exp(Ratio(2))
