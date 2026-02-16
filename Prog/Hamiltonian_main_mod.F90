@@ -152,6 +152,7 @@
         procedure, nopass :: Hamiltonian_set_nsigma => Hamiltonian_set_nsigma_base
         procedure, nopass :: Overide_global_tau_sampling_parameters => Overide_global_tau_sampling_parameters_base
         procedure, nopass :: Global_move => Global_move_base
+        procedure, nopass :: Global_move_log_T0 => Global_move_log_T0_base
         procedure, nopass :: Delta_S0_global => Delta_S0_global_base
         procedure, nopass :: Get_Delta_S0_global => Get_Delta_S0_global_base
         procedure, nopass :: S0 => S0_base
@@ -316,6 +317,53 @@
              CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
 
           End Subroutine Global_move_base
+
+
+    !--------------------------------------------------------------------
+    !> @author
+    !> ALF Collaboration
+    !>
+    !> @brief
+    !> Global moves with proposal probability on log scale
+    !>
+    !> @details
+    !>  This routine generates a global update and returns the logarithm of the proposal probability
+    !>  log_T0_Proposal_ratio = log(T0( sigma_new -> sigma_old ) / T0( sigma_old -> sigma_new))
+    !>  This avoids numerical issues when the proposal probability is extremely small or large.
+    !>  The base implementation is a wrapper around Global_move for backwards compatibility.
+    !> @param [IN] nsigma_old,  Type(Fields)
+    !> \verbatim
+    !>  Old configuration. The new configuration is stored in nsigma.
+    !> \endverbatim
+    !> @param [OUT]  log_T0_Proposal_ratio Real
+    !> \verbatim
+    !>  log_T0_Proposal_ratio = log(T0( sigma_new -> sigma_old ) / T0( sigma_old -> sigma_new))
+    !>  Set to a large negative value (e.g., -huge(1.d0)) if the move is rejected a priori.
+    !> \endverbatim
+    !> @param [OUT]  Size_clust Real
+    !> \verbatim
+    !>  Size of cluster that will be flipped.
+    !> \endverbatim
+    !-------------------------------------------------------------------
+          Subroutine Global_move_log_T0_base(log_T0_Proposal_ratio, nsigma_old, size_clust)
+
+             Implicit none
+             Real (Kind=Kind(0.d0)), intent(out) :: log_T0_Proposal_ratio, size_clust
+             Type (Fields),  Intent(IN)  :: nsigma_old
+             Real (Kind=Kind(0.d0)) :: T0_Proposal_ratio
+
+             ! Base implementation: wrapper around Global_move for backwards compatibility
+             Call ham%Global_move(T0_Proposal_ratio, nsigma_old, size_clust)
+             
+             ! Convert to log scale
+             if (T0_Proposal_ratio > 0.d0) then
+                log_T0_Proposal_ratio = log(T0_Proposal_ratio)
+             else
+                ! Rejected move: set to large negative value
+                log_T0_Proposal_ratio = -huge(1.d0)
+             endif
+
+          End Subroutine Global_move_log_T0_base
 
 
     !--------------------------------------------------------------------
