@@ -566,7 +566,6 @@ Module Global_mod
               Phase_new=product(Phase_array)
               Phase_new=Phase_new**N_SUN
 
-              T0_Proposal_ratio = 1.d0 !!! We will bring in the proposal ratio in the log form, so this is just a placeholder
               Ratiotot = Compute_Ratio_Global(Phase_Det_old, Phase_Det_new, &
                    &                          Det_vec_old, Det_vec_new, nsigma_old, log_T0_Proposal_ratio, Ratio)
 
