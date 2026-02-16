@@ -45,7 +45,7 @@
 Module Global_mod
 
       Use runtime_error_mod
-      Use Hamiltonian_main, only: ham, LOG_T0_REJECTED
+      Use Hamiltonian_main
       Use MyMats
       Use Operator_mod
       Use Control
