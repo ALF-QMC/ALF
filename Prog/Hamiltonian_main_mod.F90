@@ -364,7 +364,7 @@
              Call ham%Global_move(T0_Proposal_ratio, nsigma_old, size_clust)
 
              ! Define safe range for T0_Proposal_ratio to avoid extreme log values
-             ! Using sqrt of machine limits ensures log(T0) stays well within [-709, 709]
+             ! Using sqrt of machine limits keeps log(T0) within roughly [-354, 354] in double precision
              min_safe_T0 = sqrt(tiny(1.d0))
              max_safe_T0 = sqrt(huge(1.d0))
 
