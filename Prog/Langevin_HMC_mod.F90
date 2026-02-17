@@ -353,7 +353,7 @@
 
         !Local
         Integer                   :: N_op, n, nt, n1, n2, i, j, t_leap, nf, nf_eff
-        Real    (Kind=Kind(0.d0)) :: X, Xmax,E_kin_old, E_kin_new,T0_Proposal_ratio, weight, cluster_size
+        Real    (Kind=Kind(0.d0)) :: X, Xmax,E_kin_old, E_kin_new,log_T0_Proposal_ratio, weight, cluster_size
         Logical                   :: Calc_Obser_eq, toggle
         Real    (Kind=Kind(0.d0)), allocatable :: Det_vec_old(:,:), Det_vec_new(:,:)
         Complex (Kind=Kind(0.d0)), allocatable :: Phase_Det_new(:), Phase_Det_old(:)
@@ -530,11 +530,9 @@
                  E_kin_new=E_kin_new + 0.5*p_tilde(i,j)**2
               enddo
            enddo
-           T0_Proposal_ratio=1.0 !exp(-E_kin_new + E_kin_old) ! this could be a exponentially large or small number
-           !Compute_Ratio_Global returns Ratio(1)*exp(Ratio(2)) where Ratio(2) contains log(T0_proposal_ratio)
+           log_T0_Proposal_ratio= - E_kin_new + E_kin_old 
            Ratiotot = Compute_Ratio_Global(Phase_Det_old, Phase_Det_new, &
-                &                          Det_vec_old, Det_vec_new, nsigma_old, T0_Proposal_ratio, Ratio)
-           Ratiotot = Ratio(1)*exp(Ratio(2) - E_kin_new + E_kin_old)
+                &                          Det_vec_old, Det_vec_new, nsigma_old, log_T0_Proposal_ratio, Ratio)
            Weight = abs(  real( Phase_old * Ratiotot, kind=Kind(0.d0))/real(Phase_old,kind=Kind(0.d0)) )
 
            Phase_array=1.0d0
