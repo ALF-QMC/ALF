@@ -550,7 +550,7 @@ Module Global_mod
            ! OPTIMIZATION NOTE:
            ! We are now calculating Delta_S0 twice (here and within the Compute_Ratio_Global routine). 
            ! We could save some time by only calculating it once and passing it to the Compute_Ratio_Global routine. 
-           If (log_T0_Proposal_ratio + ham%Get_Delta_S0_global(Nsigma_old) > LOG_T0_REJECTED) then
+           if (log_T0_Proposal_ratio > LOG_T0_REJECTED) then  
               NC = NC + 1
               ! Compute the new Green function
               storage = "Empty"
