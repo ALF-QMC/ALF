@@ -148,6 +148,18 @@ contains
      end function F_DIDV
 !--------------------------------------------------------------------------------------------------------
 
+!--------------------------------------------------------------------------------------------------------
+! This function computes  DI/DV  from the single particle spectral function.  It is based on the work of 
+! Karrasch of  Phys. Rev. B 82 (2010), 125114.
+     function F_DIDV_PH(om, beta) result(F)
+   
+      Implicit None
+      real (Kind=Kind(0.d0)), Intent(In) ::  om, beta
+      real (Kind=Kind(0.d0)) :: F
+
+      F = 2.d0 * F_DIDV(om, beta) 
+     end function F_DIDV_PH
+!--------------------------------------------------------------------------------------------------------
 
      Real (Kind=Kind(0.d0)) function Back_trans_ph(Aom, om, beta )
 
