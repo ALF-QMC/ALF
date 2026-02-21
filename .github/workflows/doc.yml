@@ -1,0 +1,78 @@
+name: Build (and deploy) documentations
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: docs-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  create_doc:
+    name: Build LaTeX documentation (doc.pdf)
+    runs-on: ubuntu-latest
+    container:
+      image: aergus/latex
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build PDF with latexmk
+        working-directory: Documentation
+        run: latexmk -pdf doc.tex
+      - name: Upload doc.pdf artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: doc-pdf
+          path: Documentation/doc.pdf
+          if-no-files-found: error
+
+  create_doxygen:
+    name: Generate Doxygen HTML
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install doxygen and graphviz
+        run: sudo apt-get update && sudo apt-get install -y doxygen graphviz
+      - name: Run Doxygen
+        run: doxygen doxygen/Doxyfile
+      - name: Upload Doxygen HTML artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: doxygen-html
+          path: doxygen/html
+          if-no-files-found: error
+
+  deploy_pages:
+    name: Deploy GitHub Pages (master only)
+    runs-on: ubuntu-slim
+    needs: [create_doc, create_doxygen]
+    if: github.ref == 'refs/heads/master'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download Doxygen HTML
+        uses: actions/download-artifact@v4
+        with:
+          name: doxygen-html
+          path: public
+      - name: Download doc.pdf
+        uses: actions/download-artifact@v4
+        with:
+          name: doc-pdf
+          path: public
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+      - name: Deploy to Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

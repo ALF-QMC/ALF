@@ -1,0 +1,152 @@
+name: "Tests"
+
+on:
+  push:
+  workflow_dispatch:
+
+concurrency:
+  group: tests-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+
+jobs:
+  lint_stopcommands:
+    name: Lint Fortran STOP statements
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for forbidden STOP/ERROR STOP
+        run: |
+          set -euo pipefail
+          ! grep -irn -e "^\s*error\s*stop" -e "^\s*stop" --include="*.F90" \
+            --exclude-dir=Analysis --exclude-dir=HDF5 --exclude-dir=testsuite \
+            --exclude-dir=Not_supported --exclude="runtime_error_mod.F90" || {
+            echo "STOP/ERROR STOP found."; exit 1;
+          }
+
+  # ======================
+  # Linux tests
+  # ======================
+
+  test_linux:
+    name: ${{ matrix.image_minor[0] }} · ${{ matrix.mode }} · ${{ matrix.devel }} · ${{ matrix.config }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image_minor:
+          - [trixie, GNU]
+          - [bookworm-pgi-24-09, PGI]
+          - [bookworm-intel-2024.2, INTEL]
+          - [bookworm-intel, INTELLLVM]
+        mode: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
+        devel: ["Devel"]
+        config: ["HDF5"]
+    container:
+      image: ghcr.io/alf-qmc/alf-container/alf-requirements/${{ matrix.image_minor[0] }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/alf_test
+        with:
+          args: ${{ matrix.image_minor[1] }} ${{ matrix.mode }} ${{ matrix.devel }} ${{ matrix.config }}
+
+  test_macos:
+    name: macOS · ${{ matrix.mode }} · ${{ matrix.devel }} · ${{ matrix.config }}
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
+        devel: ["Devel"]
+        config: ["HDF5"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/alf_test
+        with:
+          args: GNU ${{ matrix.mode }} ${{ matrix.devel }} ${{ matrix.config }}
+
+  # ======================
+  # Valgrind
+  # ======================
+  valgrind_gnu_trixie:
+    name: Valgrind GNU (trixie)
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/alf-qmc/alf-container/alf-requirements/trixie
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Valgrind
+        shell: bash
+        run: |
+          . ./configure.sh GNU devel serial
+          gfortran -v
+          make program
+          mkdir -p run
+          cd run
+          cat <<EOF > parameters
+          &VAR_ham_name
+          ham_name = "Hubbard"
+          /
+
+          &VAR_lattice
+          L1           = 4
+          L2           = 4
+          Lattice_type = "Square"
+          Model        = "Hubbard"
+          /
+
+          &VAR_Model_Generic
+          Checkerboard = .T.          ! Whether checkerboard decomposition is used                                                                          
+          Symm         = .T.          ! Whether symmetrization takes place                                                                                  
+          N_SUN        = 2            ! Number of colors 
+          N_FL         = 1            ! Number of flavors 
+          Phi_X        = 0.d0         ! Twist along the L_1 direction, in units of the flux quanta                                                          
+          Phi_Y        = 0.d0         ! Twist along the L_2 direction, in units of the flux quanta                                                          
+          Bulk         = .T.          ! Twist as a vector potential (.T.), or at the boundary (.F.)
+          N_Phi        = 0            ! Total number of flux quanta traversing the lattice                                                                  
+          Dtau         = 0.1d0        ! Thereby Ltrot=Beta/dtau                    
+          Beta         = 2.d0         ! Inverse temperature 
+          Projector    = .F.          ! Whether the projective algorithm is used
+          Theta        = 10.d0        ! Projection parameter
+          /
+
+          &VAR_Hubbard
+          /
+
+          &VAR_QMC
+          Nwrap                = 10   ! Stabilization. Green functions will be computed from 
+                            ! scratch after each time interval Nwrap*Dtau 
+          NSweep               = 2    ! Number of sweeps                        
+          NBin                 = 1    ! Number of bins      
+          Ltau                 = 1    ! 1 to calculate time-displaced Green functions; 0 otherwise
+          LOBS_ST              = 0    ! Start measurements at time slice LOBS_ST                                                                            
+          LOBS_EN              = 0    ! End measurements at time slice LOBS_EN
+          CPU_MAX              = 0.0  ! Code stops after CPU_MAX hours, if 0 or not 
+                                      ! specified, the code stops after Nbin bins
+          Propose_S0           = .F.  ! Proposes single spin flip moves with probability exp(-S0) 
+          Global_moves         = .F.  ! Allows for global moves in space and time 
+          N_Global             = 1    ! Number of global moves per sweep 
+          Global_tau_moves     = .F.  ! Allows for global moves on a single time slice.  
+          N_Global_tau         = 1    ! Number of global moves that will be carried out on a 
+                                      ! single time slice  
+          Sequential           = .T.  ! Sequential moves   
+          Nt_sequential_start  = 0    ! One can combine sequential and global moves on a time slice
+          Nt_sequential_end    = -1   ! The program then carries out sequential local moves in the
+                                      ! range [Nt_sequential_start, Nt_sequential_end] followed by
+                                      ! N_Global_tau global moves
+          Langevin            = .F.   ! Langevin update   
+          Delta_t_Langevin_HMC=0.1    ! Default time step for Langevin and HMC updates
+          Max_Force           = 5.0   ! Max Force for  Langevin               
+                                                                                  
+          HMC                 = .F.   ! HMC update
+          N_HMC_sweeps        = 1     ! # of HMC updates between  sequential ones
+          Leapfrog_steps      = 0     ! Number of leapfrog iterations                                                                                       
+                                                                                                                                                            
+          Amplitude           = 1.d0  ! For update of  type=3,4  fields
+          /
+          EOF
+          cat parameters
+          cp ../Scripts_and_Parameters_files/Start/seeds .
+          valgrind --leak-check=full --log-file=vglog.txt ../Prog/ALF.out
+          cat vglog.txt
+          grep lost vglog.txt | cut -d":" -f 2 | cut -d " " -f 2 | f=$(cat); echo $(( ${f//$'\n'/+} ))

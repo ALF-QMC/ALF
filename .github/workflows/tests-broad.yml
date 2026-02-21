@@ -1,0 +1,52 @@
+name: "Broad Tests"
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test_linux:
+    name: ${{ matrix.image_minor[0] }} · ${{ matrix.mode }} · ${{ matrix.devel }} · ${{ matrix.config }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image_minor:
+          - [bullseye, GNU]
+          - [bookworm, GNU]
+          - [trixie, GNU]
+          - [bullseye-openblas, GNU]
+          # - [tumbleweed, GNU]
+          - [bullseye-pgi-21-03, PGI]
+          - [bookworm-pgi-24-09, PGI]
+          - [bullseye-intel, INTEL]
+          - [bookworm-intel-2024.2, INTEL]
+          - [bookworm-intel, INTELLLVM]
+        mode: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
+        devel: ["Devel", ""]
+        config: ["HDF5", ""]
+    container:
+      image: ghcr.io/alf-qmc/alf-container/alf-requirements/${{ matrix.image_minor[0] }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/alf_test
+        with:
+          args: ${{ matrix.image_minor[1] }} ${{ matrix.mode }} ${{ matrix.devel }} ${{ matrix.config }}
+
+  test_macos:
+    name: macOS · ${{ matrix.mode }} · ${{ matrix.devel }} · ${{ matrix.config }}
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
+        devel: ["Devel", ""]
+        config: ["HDF5", ""]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/alf_test
+        with:
+          args: GNU ${{ matrix.mode }} ${{ matrix.devel }} ${{ matrix.config }}
