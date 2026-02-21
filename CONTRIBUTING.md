@@ -1,8 +1,8 @@
 # Community guidelines
-This document serves to describe the processes that outline our interaction with the community in general and contributors in particular. All participants must comply with our [CODE_OF_CONDUCT](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/blob/master/CODE_OF_CONDUCT.md).
+This document serves to describe the processes that outline our interaction with the community in general and contributors in particular. All participants must comply with our [CODE_OF_CONDUCT](CODE_OF_CONDUCT.md).
 
 ## Contributing
-We gladly accept patches for bugfixes, portability enhancements or new features! Remember to check our [README](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/blob/master/README.md) and [ROADMAP](https://git.physik.uni-wuerzburg.de/ALF/ALF/-/blob/master/ROADMAP.md).
+We gladly accept patches for bugfixes, portability enhancements or new features! Remember to check our [README](README.md) and [ROADMAP](ROADMAP.md).
 
 ## Becoming a Core Developer
 Someone who is already a core developer needs to create a public issue on our gitlab

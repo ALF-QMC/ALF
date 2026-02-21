@@ -10,7 +10,7 @@ from py_alf import Simulation, ALF_source
 if __name__ == "__main__":
     machine = sys.argv[1]
     with open("spec.yaml", 'r', encoding='UTF-8') as f:
-        spec = yaml.load(f, yaml.Loader)
+        spec = yaml.safe_load(f)
 
     alf_src = ALF_source(alf_dir='../../..')
     sims = []
@@ -22,6 +22,7 @@ if __name__ == "__main__":
             sim_root='.',
             sim_dir=f'{i+1}',
             machine=machine,
+            mpi=True,
         )
         sims.append(sim)
 
