@@ -10,3 +10,6 @@ doc.log
 doc.synctex.gz
 doc.toc
 doc.pdf
+
+# MyST build outputs
+_build
