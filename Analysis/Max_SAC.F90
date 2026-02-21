@@ -273,7 +273,7 @@ Program MaxEnt_Wrapper
           If  (Stochastic)  then
              FA_Name = "DIDV.dat"
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_p_ph, Back_Trans_p, Beta, &
-                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm ,F_DIDV, & 
+                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm ,F_DIDV_PH, & 
                   &            Filename=FA_Name, Default_provided=Default)
           else  ! Classic
              Call Set_Ker_classic(Xker_p_ph,Xker_classic,Om_st,Om_en,beta,xtau_st)
