@@ -60,13 +60,14 @@ Module MaxEnt_stoch_mod
 
 !--------------------------------------------------------------------
          Subroutine MaxEnt_stoch(XQMC, Xtau, COV,Xmom1, XKER, Back_Trans_Aom, Beta_1, Alpha_tot,&
-              & Ngamma_1, OM_ST, OM_EN, Ndis_1, Nsweeps, NBins, NWarm, F, Default_provided)
+              & Ngamma_1, OM_ST, OM_EN, Ndis_1, Nsweeps, NBins, NWarm, F, Filename, Default_provided)
 
            Implicit None
 
            Real (Kind=Kind(0.d0)), Dimension(:) :: XQMC, Xtau, Alpha_tot
            Real (Kind=Kind(0.d0)), Dimension(:,:) :: COV
            Real (Kind=Kind(0.d0)), Dimension(:),  Intent(In), allocatable,   optional :: Default_provided
+           Character (Len=64), Intent(In), optional  :: Filename
            Real (Kind=Kind(0.d0)), External :: XKER, Back_trans_Aom, F
            Real (Kind=Kind(0.d0)) :: OM_ST, OM_EN, Beta_1, Xmom1, Err
            Integer :: Nsweeps, NBins, Ngamma_1, Ndis_1, nw, nt1
@@ -331,7 +332,11 @@ Module MaxEnt_stoch_mod
            close(42)
            ! Stop dump
            Open(Unit=66,File="energies",status="unknown")
-           Open(Unit=67,File="(F,A).dat",status="unknown")
+           If (Present(Filename)) then
+              Open(Unit=67,File=Filename,status="unknown")
+           else
+              Open(Unit=67,File="(F,A).dat",status="unknown")
+           endif
            do ns = 1,Nsims
               En_m_tot(ns) = En_m_tot(ns) / dble(nc)
               En_e_tot(ns) = En_e_tot(ns) / dble(nc)
