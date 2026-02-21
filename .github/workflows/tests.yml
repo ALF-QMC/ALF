@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: tests-ci-${{ github.ref }}
   cancel-in-progress: true
 
 
@@ -129,7 +129,7 @@ jobs:
           Global_tau_moves     = .F.  ! Allows for global moves on a single time slice.  
           N_Global_tau         = 1    ! Number of global moves that will be carried out on a 
                                       ! single time slice  
-          Sequential           = .T.  ! Sequantial moves   
+          Sequential           = .T.  ! Sequential moves   
           Nt_sequential_start  = 0    ! One can combine sequential and global moves on a time slice
           Nt_sequential_end    = -1   ! The program then carries out sequential local moves in the
                                       ! range [Nt_sequential_start, Nt_sequential_end] followed by
