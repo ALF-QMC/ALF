@@ -1,4 +1,4 @@
-!  Copyright (C) 2016-2025 The ALF project
+!  Copyright (C) 2016-2026 The ALF project
 !
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -113,6 +113,41 @@ contains
       F_QFI_ph_c = (4.d0/pi) * ( (exp(beta*om) - 1.d0)/( exp(beta*om) + 1.d0 ) )**2
 
      end function F_QFI_ph_c
+
+!--------------------------------------------------------------------------------------------------------
+! This function computes  DI/DV  from the single particle spectral function.  It is based on the work of 
+! Karrasch of  Phys. Rev. B 82 (2010), 125114.
+     function F_DIDV(om, beta) result(F)
+   
+      Implicit None
+      real (Kind=Kind(0.d0)), Intent(In) ::  om, beta
+      real (Kind=Kind(0.d0)) :: F
+
+      real (Kind=Kind(0.d0)) :: pi
+      complex (Kind=Kind(0.d0)) :: Z
+      Real (Kind=Kind(0.d0)), allocatable :: Ra(:), ba(:), om_m(:)
+      Integer :: n 
+      allocate (Ra(5), ba(5), om_m(5) )
+      pi = 3.1415927
+      Ra(1) = 22.129804508383483; ba(1) = 1.4179025260473812D-002
+      Ra(2) = 2.3217822549038893; ba(2) = 4.0198568145304113E-002
+      Ra(3) = 1.0483930312954872; ba(3) = 6.3443000780927114E-002
+      Ra(4) = 1.0000202054172209; ba(4) = 0.10610318092725968     
+      Ra(5) = 1.0000000000000184; ba(5) = 0.31830988618379052 
+      Do n = 1,size(Ra,1)
+         om_m(n) = 1.d0/(beta*ba(n))
+      enddo
+      Z =  cmplx(0.d0,0.d0,kind(0.d0))
+      Do n = 1,size(Ra,1)
+         Z =  Z - Ra(n)/(cmplx(-om,om_m(n),kind=kind(0.d0))**2)
+      enddo
+      F = 2.d0*real(Z,kind(0.d0))/beta 
+
+      deallocate (Ra, ba, om_m)
+
+     end function F_DIDV
+!--------------------------------------------------------------------------------------------------------
+
 
      Real (Kind=Kind(0.d0)) function Back_trans_ph(Aom, om, beta )
 

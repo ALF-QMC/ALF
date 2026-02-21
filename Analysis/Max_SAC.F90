@@ -1,4 +1,4 @@
-!  Copyright (C) 2016-2024 The ALF project
+!  Copyright (C) 2016-2026 The ALF project
 !
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -259,7 +259,7 @@ Program MaxEnt_Wrapper
        Case ("P")
           If  (Stochastic)  then
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_p, Back_Trans_p, Beta, &
-                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm , F, Default)
+                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm , F_DIDV, Default)
              ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
           else  ! Classic
              Call Set_Ker_classic(Xker_p,Xker_classic,Om_st,Om_en,beta,xtau_st)
@@ -268,7 +268,7 @@ Program MaxEnt_Wrapper
        Case ("P_PH")
           If  (Stochastic)  then
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_p_ph, Back_Trans_p, Beta, &
-                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm ,F, Default)
+                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm ,F_DIDV, Default)
           else  ! Classic
              Call Set_Ker_classic(Xker_p_ph,Xker_classic,Om_st,Om_en,beta,xtau_st)
              Call  MaxEnt( XQMC, XCOV, A_classic, XKER_classic, Alpha_classic_st, CHISQ ,DEFAULT)
