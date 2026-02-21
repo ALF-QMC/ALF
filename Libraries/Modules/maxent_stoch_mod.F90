@@ -67,7 +67,7 @@ Module MaxEnt_stoch_mod
            Real (Kind=Kind(0.d0)), Dimension(:) :: XQMC, Xtau, Alpha_tot
            Real (Kind=Kind(0.d0)), Dimension(:,:) :: COV
            Real (Kind=Kind(0.d0)), Dimension(:),  Intent(In), allocatable,   optional :: Default_provided
-           Character (Len=64), Intent(In), optional  :: Filename
+           Character (Len=*), Intent(In), optional  :: Filename
            Real (Kind=Kind(0.d0)), External :: XKER, Back_trans_Aom, F
            Real (Kind=Kind(0.d0)) :: OM_ST, OM_EN, Beta_1, Xmom1, Err
            Integer :: Nsweeps, NBins, Ngamma_1, Ndis_1, nw, nt1
