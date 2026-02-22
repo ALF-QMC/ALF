@@ -60,14 +60,14 @@ Module MaxEnt_stoch_mod
 
 !--------------------------------------------------------------------
          Subroutine MaxEnt_stoch(XQMC, Xtau, COV,Xmom1, XKER, Back_Trans_Aom, Beta_1, Alpha_tot,&
-              & Ngamma_1, OM_ST, OM_EN, Ndis_1, Nsweeps, NBins, NWarm, F, Filename, Default_provided)
+              & Ngamma_1, OM_ST, OM_EN, Ndis_1, Nsweeps, NBins, NWarm, F, Filename_F, Default_provided)
 
            Implicit None
 
            Real (Kind=Kind(0.d0)), Dimension(:) :: XQMC, Xtau, Alpha_tot
            Real (Kind=Kind(0.d0)), Dimension(:,:) :: COV
            Real (Kind=Kind(0.d0)), Dimension(:),  Intent(In), allocatable,   optional :: Default_provided
-           Character (Len=*), Intent(In), optional  :: Filename
+           Character (Len=*), Intent(In), optional  :: Filename_F
            Real (Kind=Kind(0.d0)), External :: XKER, Back_trans_Aom, F
            Real (Kind=Kind(0.d0)) :: OM_ST, OM_EN, Beta_1, Xmom1, Err
            Integer :: Nsweeps, NBins, Ngamma_1, Ndis_1, nw, nt1
@@ -332,11 +332,6 @@ Module MaxEnt_stoch_mod
            close(42)
            ! Stop dump
            Open(Unit=66,File="energies",status="unknown")
-           If (Present(Filename)) then
-              Open(Unit=67,File=Filename,status="unknown")
-           else
-              Open(Unit=67,File="(F,A).dat",status="unknown")
-           endif
            do ns = 1,Nsims
               En_m_tot(ns) = En_m_tot(ns) / dble(nc)
               En_e_tot(ns) = En_e_tot(ns) / dble(nc)
@@ -347,19 +342,24 @@ Module MaxEnt_stoch_mod
                  En_e_tot(ns) = 0.d0
               endif
               write(66,*) Alpha_tot(ns), En_m_tot(ns), En_e_tot(ns)
-
-              F_A_m(ns) = F_A_m(ns) / dble(nc)
-              F_A_e(ns) = F_A_e(ns) / dble(nc)
-              F_A_e(ns) = ( F_A_e(ns) -F_A_m(ns)**2)/dble(nc)
-              if ( F_A_e(ns) .gt. 0.d0) then
-                 F_A_e(ns) = sqrt(F_A_e(ns))
-              else
-                 F_A_e(ns) = 0.d0
-              endif
-              write(67,*) Alpha_tot(ns), F_A_m(ns), F_A_e(ns)
            enddo
            close(66)
-           close(67)
+
+           If (Present(Filename_F)) then
+              Open(Unit=67,File=Filename_F,status="unknown")
+              do ns = 1,Nsims
+               F_A_m(ns) = F_A_m(ns) / dble(nc)
+               F_A_e(ns) = F_A_e(ns) / dble(nc)
+               F_A_e(ns) = ( F_A_e(ns) -F_A_m(ns)**2)/dble(nc)
+               if ( F_A_e(ns) .gt. 0.d0) then
+                  F_A_e(ns) = sqrt(F_A_e(ns))
+               else
+                  F_A_e(ns) = 0.d0
+               endif
+               write(67,*) Alpha_tot(ns), F_A_m(ns), F_A_e(ns)
+              enddo
+              close(67)
+           endif
            Open(Unit=66,File="moments",status="unknown")
            do ns = 1,Nsims
               do n = 1,Size(Mom_m_tot,1)

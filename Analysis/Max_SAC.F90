@@ -99,6 +99,9 @@ Program MaxEnt_Wrapper
        endif
        close(30)
        
+       N = 10
+       Call Set_Ra_ba(N)
+       
        INQUIRE(FILE="Default", EXIST=Default_model_exists)
 
        open (unit=10,File="g_dat", status="unknown")
@@ -231,7 +234,7 @@ Program MaxEnt_Wrapper
              FA_Name = "QFI_ph.dat"
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_ph, Back_Trans_ph, Beta, &
                   &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, F_QFI_ph, &
-                  &            Filename=FA_Name, Default_provided=Default)
+                  &            Filename_F=FA_Name, Default_provided=Default)
              ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
           else
              Call Set_Ker_classic(Xker_ph,Xker_classic,Om_st,Om_en,beta,xtau_st)
@@ -263,7 +266,7 @@ Program MaxEnt_Wrapper
              FA_Name = "DIDV.dat"
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_p, Back_Trans_p, Beta, &
                   &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm , F_DIDV, & 
-                  &            Filename=FA_Name, Default_provided=Default)
+                  &            Filename_F=FA_Name, Default_provided=Default)
              ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
           else  ! Classic
              Call Set_Ker_classic(Xker_p,Xker_classic,Om_st,Om_en,beta,xtau_st)
@@ -274,7 +277,7 @@ Program MaxEnt_Wrapper
              FA_Name = "DIDV.dat"
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_p_ph, Back_Trans_p, Beta, &
                   &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm ,F_DIDV_PH, & 
-                  &            Filename=FA_Name, Default_provided=Default)
+                  &            Filename_F=FA_Name, Default_provided=Default)
           else  ! Classic
              Call Set_Ker_classic(Xker_p_ph,Xker_classic,Om_st,Om_en,beta,xtau_st)
              Call  MaxEnt( XQMC, XCOV, A_classic, XKER_classic, Alpha_classic_st, CHISQ ,DEFAULT)
@@ -452,4 +455,5 @@ Program MaxEnt_Wrapper
        enddo
        close(43)
 
+       call clean_Set_Ra_ba()
      end Program MaxEnt_Wrapper
