@@ -135,7 +135,7 @@ contains
       Real (Kind=Kind(0.d0)), allocatable :: Mat(:,:), U(:,:), W(:)
       Real (Kind=Kind(0.d0)) :: X, Y
       Integer ::   I, J , m ,  nc
-      Logical :: Test=.true.
+      Logical :: Test=.false.
 
       allocate(Mat(N,N), U(N,N), W(N))
       allocate(Ra(N/2),ba(N/2))
