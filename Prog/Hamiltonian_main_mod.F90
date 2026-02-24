@@ -160,6 +160,7 @@
         procedure, nopass :: GR_reconstruction => GR_reconstruction_base
         procedure, nopass :: GRT_reconstruction => GRT_reconstruction_base
         procedure, nopass :: Apply_B_HMC => Apply_B_HMC_base
+        procedure, nopass :: Jump_dist_HMC => Jump_dist_HMC_base
 #ifdef HDF5
         procedure, nopass :: write_parameters_hdf5 => write_parameters_hdf5_base
 #endif
@@ -748,6 +749,24 @@
             Logical               , Intent(in)                 :: ltrans
 
           end Subroutine Apply_B_HMC_base
+
+  !-------------------------------------------------------------------
+          real(kind=kind(0.d0)) function Jump_dist_HMC_base(fields_new, fields_old )
+
+            Implicit none
+
+            complex (Kind=Kind(0.d0)), Intent(in), allocatable :: fields_new(:,:), fields_old(:,:)
+            
+            Integer :: I, J
+
+            Jump_dist_HMC_base=0.0d0
+            do I=1, size(fields_new,2)
+              do J=1, size(fields_new,1)
+                Jump_dist_HMC_base = Jump_dist_HMC_base + dble(fields_new(I,J) - fields_old(I,J))**2
+              enddo
+            enddo
+
+        end function Jump_dist_HMC_base
     
 !--------------------------------------------------------------------
 !> @brief
