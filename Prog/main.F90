@@ -162,11 +162,11 @@ Program Main
         Complex (Kind=Kind(0.d0)) , allocatable, dimension(:,:) :: Initial_field
 
         ! Space for choosing sampling scheme
-        Logical :: Propose_S0, Tempering_calc_det
-        Logical :: Global_moves, Global_tau_moves
+        Logical :: Propose_S0, Tempering_calc_det, Propose_MALA
+        Logical :: Global_moves, Global_tau_moves, Global_tau_MALA_moves
         Integer :: N_Global
         Integer :: Nt_sequential_start, Nt_sequential_end, mpi_per_parameter_set
-        Integer :: N_Global_tau
+        Integer :: N_Global_tau, N_Global_tau_MALA
         Logical :: Sequential
         real (Kind=Kind(0.d0)) ::  Amplitude  !    Needed for  update of  type  3  and  4  fields.
 
@@ -175,9 +175,11 @@ Program Main
         Logical :: file_exists
 #endif
         !  Space for reading in Langevin & HMC  parameters
-        Logical                      :: Langevin,  HMC
-        Integer                      :: Leapfrog_Steps, N_HMC_sweeps
+        Logical                      :: Langevin,  HMC, MALA
+        Integer                      :: Leapfrog_Steps, N_HMC_sweeps, N_MALA_sweeps
         Real  (Kind=Kind(0.d0))      :: Delta_t_Langevin_HMC, Max_Force
+        real  (kind=kind(0.d0))      :: MAX_Force_MALA_global, Max_Force_MALA_global_tau, Max_Force_MALA_sequential
+        real  (kind=kind(0.d0))      :: Delta_t_MALA_sequential, Delta_t_MALA_global_tau, Delta_t_MALA_global
           
 #if defined(TEMPERING)
         Integer :: N_exchange_steps, N_Tempering_frequency
@@ -188,7 +190,12 @@ Program Main
              &               Propose_S0,Global_moves,  N_Global, Global_tau_moves, &
              &               Nt_sequential_start, Nt_sequential_end, N_Global_tau, &
              &               sequential, Langevin, HMC, Delta_t_Langevin_HMC, &
-             &               Max_Force, Leapfrog_steps, N_HMC_sweeps, Amplitude
+             &               Max_Force, Leapfrog_steps, N_HMC_sweeps, Amplitude, &
+             &               Propose_MALA, Delta_t_MALA_sequential, &
+             &               Max_Force_MALA_sequential, Global_tau_MALA_moves, &
+             &               N_Global_tau_MALA, Delta_t_MALA_global_tau, &
+             &               Max_Force_MALA_global_tau, MALA, N_MALA_sweeps, &
+             &               MAX_Force_MALA_global, delta_t_MALA_global
 
         NAMELIST /VAR_HAM_NAME/ ham_name
 
@@ -363,6 +370,10 @@ Program Main
            Global_tau_moves = .false.; sequential = .true.; Langevin = .false. ; HMC =.false.
            Delta_t_Langevin_HMC = 0.d0;  Max_Force = 0.d0 ; Leapfrog_steps = 0; N_HMC_sweeps = 1
            Nt_sequential_start = 1 ;  Nt_sequential_end  = 0;  N_Global_tau  = 0;  Amplitude = 1.d0
+           Propose_MALA = .false.; Delta_t_MALA_sequential = 0.d0; Max_Force_MALA_sequential = 0.d0
+           Global_tau_MALA_moves = .false.; N_Global_tau_MALA = 0; Delta_t_MALA_global_tau = 0.d0
+           Max_Force_MALA_global_tau = 0.d0; MALA = .false.; N_MALA_sweeps = 1
+           delta_t_MALA_global = 0.d0; MAX_Force_MALA_global = 0.d0
            OPEN(UNIT=5,FILE=file_para,STATUS='old',ACTION='read',IOSTAT=ierr)
            IF (ierr /= 0) THEN
               WRITE(error_unit,*) 'main: unable to open <parameters>', file_para, ierr
@@ -397,6 +408,17 @@ Program Main
         CALL MPI_BCAST(Max_Force            ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Delta_t_Langevin_HMC ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
         CALL MPI_BCAST(Amplitude            ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(Propose_MALA         ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(Delta_t_MALA_sequential,1 ,MPI_REAL8  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(Max_Force_MALA_sequential,1 ,MPI_REAL8,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(Global_tau_MALA_moves,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(N_Global_tau_MALA    ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(delta_t_MALA_global_tau,1 ,MPI_REAL8  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(MAX_Force_MALA_global_tau,1 ,MPI_REAL8,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(MALA                 ,1 ,MPI_LOGICAL  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(N_MALA_sweeps        ,1 ,MPI_Integer  ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(MAX_Force_MALA_global,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
+        CALL MPI_BCAST(delta_t_MALA_global  ,1 ,MPI_REAL8    ,0,MPI_COMM_i,ierr)
 
         CALL MPI_BCAST(ham_name             ,64,MPI_CHARACTER,0,MPI_COMM_i,ierr)
 #endif
@@ -489,14 +511,16 @@ Program Main
               LOBS_EN =  Ltrot
            endif
         endif
-        If ( .not. Global_tau_moves )  then
+        if ( .not. Global_tau_moves      ) N_Global_tau      = 0
+        if ( .not. Global_tau_MALA_moves ) N_Global_tau_MALA = 0
+        if ( Global_tau_moves .or. Global_tau_MALA_moves ) then
+           !  Gives the possibility to set parameters in the Hamiltonian file
+           Call ham%Overide_global_tau_sampling_parameters(Nt_sequential_start,Nt_sequential_end, &
+                           &     N_Global_tau,N_Global_tau_MALA)
+        else
            ! This  corresponds to the default updating scheme
            Nt_sequential_start = 1
            Nt_sequential_end   = Size(OP_V,1)
-           N_Global_tau        = 0
-        else
-           !  Gives the possibility to set parameters in the Hamiltonian file
-           Call ham%Overide_global_tau_sampling_parameters(Nt_sequential_start,Nt_sequential_end,N_Global_tau)
         endif
         
         call nsigma%make(N_op, Ltrot)
@@ -519,7 +543,7 @@ Program Main
         Call Hop_mod_init
 
         IF (ABS(CPU_MAX) > Zero ) NBIN = 10000000
-        If (N_Global_tau > 0) then
+        If (N_Global_tau > 0 .or. N_Global_tau_MALA > 0 .or. Propose_MALA) then
            Call Wrapgr_alloc
         endif
         
@@ -579,6 +603,10 @@ Program Main
                      write(output_unit,*) "Langevin mode does not allow HMC updates."
                      write(output_unit,*) "Overriding HMC=.True. from parameter files."
                   endif
+                  if (MALA) then
+                     write(output_unit,*) "Langevin mode does not allow MALA updates."
+                     write(output_unit,*) "Overriding MALA=.True. from parameter files."
+                  endif
                   if (Global_moves) then 
                      write(output_unit,*) "Langevin mode does not allow global updates."
                      write(output_unit,*) "Overriding Global_moves=.True. from parameter files."
@@ -586,6 +614,10 @@ Program Main
                   if (Global_tau_moves) then 
                      write(output_unit,*) "Langevin mode does not allow global tau updates."
                      write(output_unit,*) "Overriding Global_tau_moves=.True. from parameter files."
+                  endif
+                  if (Global_tau_MALA_moves) then
+                     write(output_unit,*) "Langevin mode does not allow global tau MALA updates."
+                     write(output_unit,*) "Overriding Global_tau_MALA_moves=.True. from parameter files."
                   endif
 #if defined(TEMPERING)
                   if ( N_exchange_steps > 0 ) then
@@ -598,15 +630,22 @@ Program Main
 #endif
                Sequential = .False.
                HMC = .False.
+               MALA = .False.
                Global_moves = .False.
                Global_tau_moves = .False.
+               Global_tau_MALA_moves = .False.
 #if defined(TEMPERING)
                N_exchange_steps = 0
 #endif
            endif
-           Call Langevin_HMC%make(Langevin, HMC , Delta_t_Langevin_HMC, Max_Force, Leapfrog_steps)
+           Call Langevin_HMC%make(Langevin, HMC , .False., Delta_t_Langevin_HMC, Max_Force, Leapfrog_steps)
         else
-           Call Langevin_HMC%set_Update_scheme(Langevin, HMC )
+           Call Langevin_HMC%set_Update_scheme(Langevin, HMC, .False. )
+        endif
+        if (MALA) then
+           Call Metropolis_Langevin%make(.False., .False., MALA, delta_t_MALA_global, MAX_Force_MALA_global, Leapfrog_steps)
+        else
+           Call Metropolis_Langevin%set_Update_scheme(.False., .False., MALA )
         endif
 
         if ( .not. Sequential .and. Global_tau_moves) then
@@ -615,13 +654,32 @@ Program Main
            write(output_unit,*) "Sequential is set to .False. ."
         endif
 
-        if ( .not. Sequential .and. .not. HMC .and. .not. Langevin .and. .not. Global_moves) then
-         write(output_unit,*) "Warning: no updates will occur as Sequential, HMC, Langevin, and"
+        if ( .not. Sequential .and. Global_tau_MALA_moves) then
+           write(output_unit,*) "Warning: Sequential = .False. and Global_tau_MALA_moves = .True."
+           write(output_unit,*) "in the parameter file. Global Langevin tau updates will not occur if"
+           write(output_unit,*) "Sequential is set to .False. ."
+        endif
+
+        if ( .not. Sequential .and. .not. HMC .and. .not. Langevin .and. .not. Global_moves .and. .not. MALA) then
+         write(output_unit,*) "Warning: no updates will occur as Sequential, HMC, Langevin, MALA, and"
          write(output_unit,*) "Global_moves are all .False. in the parameter file."
         endif
 
         if ( Sequential .and. Nt_sequential_end < Nt_sequential_start ) then
          write(output_unit,*) "Warning: Nt_sequential_end is smaller than Nt_sequential_start"
+        endif
+
+        if ( Propose_MALA .or. Global_tau_MALA_moves) then
+         Do n = 1,N_op
+          if ( nsigma%t(n) /= 3 ) then
+             write(output_unit,*)
+             WRITE(output_unit,*) 'Warning:    Not all fields are of type 3.'
+             WRITE(output_unit,*) 'Fields that are not of type 3 will not be updated with MALA updates.'
+             write(output_unit,*)
+             exit
+           exit
+          endif
+         enddo
         endif
 
 #if defined(MPI)
@@ -642,12 +700,23 @@ Program Main
            Write(50,*) '# of interacting Ops per time slice : ', Size(OP_V,1)
            If ( Propose_S0 ) &
                 &  Write(50,*) 'Propose Ising moves according to  bare Ising action'
+           If ( Propose_MALA ) then
+              Write(50,*) 'Propose continuous moves according to  Langevin equation'
+              Write(50,*) 'Langevin del_t: ', Delta_t_MALA_sequential
+              Write(50,*) 'Max Force MALA sequential : ', Max_Force_MALA_sequential
+           Endif
            If ( Global_moves ) Then
               Write(50,*) 'Global moves are enabled   '
               Write(50,*) '# of global moves / sweep :', N_Global
            Endif
            if ( sequential ) then
-               If ( Global_tau_moves ) Then
+               If ( Global_tau_MALA_moves ) Then
+                  Write(50,*) 'Nt_sequential_start       : ', Nt_sequential_start
+                  Write(50,*) 'Nt_sequential_end         : ', Nt_sequential_end
+                  Write(50,*) 'N_Global_tau_MALA         : ', N_Global_tau_MALA
+                  Write(50,*) 'Langevin del_t            : ', Delta_t_MALA_global_tau
+                  Write(50,*) 'Max Force MALA global tau : ', MAX_Force_MALA_global_tau
+               elseif ( Global_tau_moves ) Then
                   Write(50,*) 'Nt_sequential_start: ', Nt_sequential_start
                   Write(50,*) 'Nt_sequential_end  : ', Nt_sequential_end
                   Write(50,*) 'N_Global_tau       : ', N_Global_tau
@@ -664,13 +733,18 @@ Program Main
               Write(50,*) 'Leapfrog_Steps: ', Leapfrog_Steps
               Write(50,*) 'HMC_Sweeps:     ', N_HMC_sweeps
            endif
+           if ( MALA ) then
+              Write(50,*) 'MALA global del_t  : ', delta_t_MALA_global
+              Write(50,*) 'MALA_Sweeps        : ', N_MALA_sweeps
+              Write(50,*) 'Max Force MALA global     : ', MAX_Force_MALA_global
+           endif
 
            !Write out info  for  amplitude and flip_protocol
            Toggle  = .false.
            Do n = 1,N_op
               if (nsigma%t(n) == 3 .or. nsigma%t(n) == 4)  Toggle = .true.
            Enddo
-           if ( Toggle ) then
+           if ( Toggle .and. (.not.Propose_MALA) ) then
               Write(50,*) 'Amplitude  for  t=3,4  vertices is  set to: ', Amplitude
            endif
            Toggle  = .false.
@@ -848,6 +922,39 @@ Program Main
                  endif
               endif
 
+              If (  str_to_upper(Metropolis_Langevin%get_Update_scheme()) == "MALA" )  then
+                 if (Sequential .and. str_to_upper(Langevin_HMC%get_Update_scheme()) /= "HMC" ) then
+                    call Metropolis_Langevin%set_L_Forces(.False.)
+                 endif
+                 Do n=1, N_MALA_sweeps
+                     Call Metropolis_Langevin%update(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst, &
+                          &                   LOBS_ST, LOBS_EN, LTAU)
+                     if (n /= N_MALA_sweeps) then
+                        Call Metropolis_Langevin%calc_Forces(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst,&
+                             &  LOBS_ST, LOBS_EN, .True. )
+                        Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
+                        call Metropolis_Langevin%set_L_Forces(.true.)
+                     endif
+                 enddo
+
+                 !Do time-displaced measurements if needed, else set Calc_Obser_eq=.True. for the very first leapfrog ONLY
+                 If ( .not. sequential) then
+                    IF ( LTAU == 1 ) then
+                       If (Projector) then
+                          NST = 0
+                          Call Tau_p ( udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, NST, LOBS_ST, LOBS_EN)
+                       else
+                          Call Tau_m( udvst, GR, PHASE, NSTM, NWRAP, STAB_NT, LOBS_ST, LOBS_EN )
+                       endif
+                    else
+                       Call Metropolis_Langevin%calc_Forces(Phase, GR, GR_Tilde, Test, udvr, udvl, Stab_nt, udvst,&
+                       &  LOBS_ST, LOBS_EN, .True. )
+                       Call Langevin_HMC_Reset_storage(Phase, GR, udvr, udvl, Stab_nt, udvst)
+                    endif
+                    call Metropolis_Langevin%set_L_Forces(.true.)
+                 endif
+              endif
+
               If (Sequential)  then 
                  ! Propagation from 1 to Ltrot
                  ! Set the right storage to 1
@@ -863,7 +970,9 @@ Program Main
                  NST = 1
                  DO NTAU = 0, LTROT-1
                     NTAU1 = NTAU + 1
-                    CALL WRAPGRUP(GR,NTAU,PHASE,Propose_S0, Nt_sequential_start, Nt_sequential_end, N_Global_tau)
+                    CALL WRAPGRUP(GR,NTAU,PHASE,Propose_S0, Nt_sequential_start, Nt_sequential_end, N_Global_tau, &
+                         &        Propose_MALA, Delta_t_MALA_sequential, Max_Force_MALA_sequential, &
+                         &        N_Global_tau_MALA, delta_t_MALA_global_tau, Max_Force_MALA_global_tau)
                     
                     If (NTAU1 == Stab_nt(NST) ) then
                        NT1 = Stab_nt(NST-1)
@@ -922,7 +1031,9 @@ Program Main
                  NST = NSTM-1
                  DO NTAU = LTROT,1,-1
                     NTAU1 = NTAU - 1
-                    CALL WRAPGRDO(GR,NTAU, PHASE,Propose_S0,Nt_sequential_start, Nt_sequential_end, N_Global_tau)
+                    CALL WRAPGRDO(GR,NTAU, PHASE,Propose_S0,Nt_sequential_start, Nt_sequential_end, N_Global_tau, &
+                         &        Propose_MALA, Delta_t_MALA_sequential, Max_Force_MALA_sequential, &
+                         &        N_Global_tau_MALA, delta_t_MALA_global_tau, Max_Force_MALA_global_tau)
                     IF (NTAU1.GE. LOBS_ST .AND. NTAU1.LE. LOBS_EN ) THEN
                        !write(*,*) "GR before obser sum: ",sum(GR(:,:,1))
                        !write(*,*) "Phase before obser : ",phase
@@ -1049,7 +1160,7 @@ Program Main
         DEALLOCATE(udvl, udvr, udvst)
         DEALLOCATE(GR, TEST, Stab_nt,GR_Tilde)
         if (Projector) DEALLOCATE(WF_R, WF_L)
-        If (N_Global_tau > 0) then
+        If (N_Global_tau > 0 .or. N_Global_tau_MALA > 0 .or. Propose_MALA) then
            Call Wrapgr_dealloc
         endif
         do nf = 1, N_FL
@@ -1067,7 +1178,7 @@ Program Main
         call deallocate_all_shared_memory
 #endif
 
-        Call Control_Print(Group_Comm, Langevin_HMC%get_Update_scheme())
+        Call Control_Print(Group_Comm, Langevin_HMC%get_Update_scheme(), MALA)
 
 #if defined(MPI)
         If (Irank_g == 0 ) then
@@ -1083,6 +1194,7 @@ Program Main
 #endif
         
         Call Langevin_HMC%clean()
+        Call Metropolis_Langevin%clean()
         deallocate(Calc_Fl_map,Phase_array)
 
          ! Delete the file RUNNING since the simulation finished successfully
