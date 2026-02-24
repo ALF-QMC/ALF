@@ -7,12 +7,12 @@ OBJS = Hamiltonians/LRC_mod.o control_mod.o Fields_mod.o Operator_mod.o WaveFunc
 	Hamiltonian_main_mod.o QDRP_decompose_mod.o udv_state_mod.o Hop_mod.o UDV_WRAP_mod.o \
 	Predefined_Int_mod.o Predefined_Obs_mod.o Predefined_Latt_mod.o Predefined_Hop_mod.o  Predefined_Trial_mod.o \
 	wrapul_mod.o   cgr1_mod.o   wrapur_mod.o   cgr2_2_mod.o   upgrade_mod.o   Set_random_mod.o \
-	Global_mod.o Langevin_HMC_mod.o Wrapgr_mod.o tau_m_mod.o tau_p_mod.o \
+	Global_mod.o Langevin_HMC_mod.o Wrapgr_mod.o tau_m_mod.o tau_p_mod.o QMC_runtime_var_mod.o \
 	main.o
 
 MODS = control.mod fields_mod.mod global_mod.mod hop_mod.mod lrc_mod.mod observables.mod \
 	operator_mod.mod predefined_int.mod predefined_lattices.mod predefined_obs.mod \
-	predefined_hoppings.mod  predefined_trial.mod qdrp_mod.mod tau_m_mod.mod tau_p_mod.mod \
+	predefined_hoppings.mod  predefined_trial.mod qdrp_mod.mod QMC_runtime_var_mod.mod tau_m_mod.mod tau_p_mod.mod \
 	udv_state_mod.mod udv_wrap_mod.mod wavefunction_mod.mod wrapgr_mod.mod hamiltonian.mod \
 	opt_time_dependent.mod containerelementbase_mod.mod opttypes_mod.mod dynamicmatrixarray_mod.mod langevin_hmc_mod.mod \
 	wrapul_mod.mod cgr1_mod.mod wrapur_mod.mod cgr2_2_mod.mod upgrade_mod.mod set_random.mod
