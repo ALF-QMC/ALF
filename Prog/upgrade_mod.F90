@@ -33,7 +33,11 @@
 module upgrade_mod
    use runtime_error_mod
    implicit none
+   real(Kind=Kind(0.d0)), private, save :: upgrade_time = 0
    contains
+   real(Kind=Kind(0.d0)) function upgrade_get_time()
+      upgrade_get_time = upgrade_time
+   end function upgrade_get_time
 
 !--------------------------------------------------------------------
 !> @author
@@ -137,6 +141,9 @@ module upgrade_mod
         Complex (Kind=Kind(0.d0)), Dimension(:, :), Allocatable :: x_v
         Complex (Kind=Kind(0.D0)), Dimension(:, :), Allocatable :: Zarr, grarr
         Complex (Kind=Kind(0.D0)), Dimension(:), Allocatable :: sxv, syu
+
+        integer(Kind=Kind(0.d0)) :: count_CPU_start, count_CPU_end, count_rate
+        CALL SYSTEM_CLOCK(count_CPU_start, count_rate)
 
         toggle = .false.
         ! if ( abs(OP_V(n_op,1)%g) < 1.D-12 )   return
@@ -299,6 +306,8 @@ module upgrade_mod
 
         Call nsigma_new%clear()
 
+        CALL SYSTEM_CLOCK(count_CPU_end, count_rate)
+        upgrade_time = upgrade_time + real(count_CPU_end-count_CPU_start)/real(count_rate)
       End Subroutine Upgrade2
 
 end module upgrade_mod

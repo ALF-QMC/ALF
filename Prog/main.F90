@@ -136,6 +136,8 @@ Program Main
         use cgr1_mod
         use set_random
         use iso8601_datetime_mod
+        use QDRP_mod, only: qr_get_time
+        use upgrade_mod, only: upgrade_get_time
 
 #ifdef MPI
         Use mpi
@@ -1076,8 +1078,12 @@ Program Main
            if ( abs(CPU_MAX) > Zero ) then
               Write(50,*)' Effective number of bins   : ', Nbin_eff
            endif
+           Write(50,*) ' QR  Time                   : ', qr_get_time()
+           Write(50,*) ' UPG Time                   : ', upgrade_get_time()
            write(50,*)'FIN TIME: ' // iso8601_datetime()
            Close(50)
+           print*, 'QR  time', qr_get_time()
+           print*, 'UPG time', upgrade_get_time()
 #if defined(MPI)
         endif
 #endif

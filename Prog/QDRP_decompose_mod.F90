@@ -38,8 +38,13 @@
 !> This constructs a decompostion Mat = Q D R P^* using a pivoted QR decomposition
 !--------------------------------------------------------------------
 Module QDRP_mod
+   implicit none
+   real(Kind=Kind(0.d0)), private, save :: qr_time = 0
 
 Contains
+   real(Kind=Kind(0.d0)) function qr_get_time()
+      qr_get_time = qr_time
+   end function qr_get_time
 
 !--------------------------------------------------------------------
 !> @author 
@@ -72,6 +77,9 @@ Contains
       COMPLEX(Kind=Kind(0.d0)) :: Z
       Integer :: info, i, j
       Real(Kind=Kind(0.d0)) :: X
+
+      integer(Kind=Kind(0.d0)) :: count_CPU_start, count_CPU_end, count_rate
+      CALL SYSTEM_CLOCK(count_CPU_start, count_rate)
       
       ALLOCATE(RWORK(2*Ndim))
       ! Query optimal amount of memory
@@ -98,6 +106,9 @@ Contains
             Mat(i, j) = Mat(i, j) / X
          enddo
       enddo
+
+      CALL SYSTEM_CLOCK(count_CPU_end, count_rate)
+      qr_time = qr_time + real(count_CPU_end-count_CPU_start)/real(count_rate)
     END SUBROUTINE QDRP_decompose
     
     SUBROUTINE Pivot_phase(Phase, IPVT, N_size)
