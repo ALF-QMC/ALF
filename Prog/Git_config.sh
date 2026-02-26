@@ -2,7 +2,7 @@
 if git status  > /dev/null 2>&1
 then 
   echo "#define GIT" > git.h
-  if [ -n "$(git status --porcelain > /dev/null 2>&1)" ]; then
+  if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
     echo "#define GIT_COMMIT_HASH \"$(git log -1 --format=%h)-dirty\"" >> git.h
   else
     echo "#define GIT_COMMIT_HASH \"$(git log -1 --format=%h)\"" >> git.h

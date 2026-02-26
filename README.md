@@ -8,8 +8,6 @@
 
 -> Interested contributors please check our [CONTRIBUTING.md](CONTRIBUTING.md) guidelines.
 
--> This is the **development** version of ALF, the latest stable version is [ALF 2.6](https://github.com/ALF-QMC/ALF/tree/ALF-2.6).
-
 ## Description
 
 The **A**lgorithms for **L**attice **F**ermions package provides a general code for the finite temperature and projective auxiliary field Quantum Monte Carlo algorithm. The code is engineered to be able simulate any model that can be written in terms of sums of single body operators, of squares of single body operators and single body operators coupled to an Ising field with given dynamics. We provide predefined types that allow the user to specify the model, the Bravais lattice as well as equal time and time displaced observables. The code supports an MPI implementation. Examples such as the Hubbard model, the SU(N) Kondo lattice model, tV models, models with long ranged interactions as well as Z2 lattice gauge theories coupled to fermions adn Z2 matter are discussed in the [documentation](https://alf.physik.uni-wuerzburg.de/doc.pdf). Slides on the auxiliary field QMC can be found [here.](https://github.com/ALF-QMC/ALF_Tutorial_and_Presentations/blob/master/Presentations/2020-Presentations/ALF_2.0-Fermion_Monte_Carlo.pdf)

@@ -1,0 +1,85 @@
+name: "Tests"
+
+on:
+  push:
+  workflow_dispatch:
+
+concurrency:
+  group: tests-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+
+jobs:
+  lint_stopcommands:
+    name: Lint Fortran STOP statements
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for forbidden STOP/ERROR STOP
+        run: |
+          set -euo pipefail
+          ! grep -irn -e "^\s*error\s*stop" -e "^\s*stop" --include="*.F90" \
+            --exclude-dir=Analysis --exclude-dir=HDF5 --exclude-dir=testsuite \
+            --exclude-dir=Not_supported --exclude="runtime_error_mod.F90" || {
+            echo "STOP/ERROR STOP found."; exit 1;
+          }
+
+  # ======================
+  # Linux tests
+  # ======================
+
+  test_linux:
+    name: ${{ matrix.image_minor[0] }} · ${{ matrix.mode }} · ${{ matrix.devel }} · ${{ matrix.config }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image_minor:
+          - [trixie, GNU]
+          - [bookworm-pgi-24-09, PGI]
+          - [bookworm-intel-2024.2, INTEL]
+          - [bookworm-intel, INTELLLVM]
+        mode: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
+        devel: ["Devel"]
+        config: ["HDF5"]
+    container:
+      image: ghcr.io/alf-qmc/alf-container/alf-requirements/${{ matrix.image_minor[0] }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/alf_test
+        with:
+          args: ${{ matrix.image_minor[1] }} ${{ matrix.mode }} ${{ matrix.devel }} ${{ matrix.config }}
+
+  test_macos:
+    name: macOS · ${{ matrix.mode }} · ${{ matrix.devel }} · ${{ matrix.config }}
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [noMPI, MPI, TEMPERING, PARALLEL_PARAMS]
+        devel: ["Devel"]
+        config: ["HDF5"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/alf_test
+        with:
+          args: GNU ${{ matrix.mode }} ${{ matrix.devel }} ${{ matrix.config }}
+
+  # ======================
+  # Valgrind
+  # ======================
+  valgrind_gnu_trixie:
+    name: Valgrind GNU (trixie)
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/alf-qmc/alf-container/alf-requirements/trixie
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Valgrind
+        shell: bash
+        run: |
+          . ./configure.sh GNU devel noMPI
+          gfortran -v
+          make program
+          cd Scripts_and_Parameters_files/test_valgrind
+          valgrind --leak-check=full --errors-for-leak-kinds=definite,indirect,possible --error-exitcode=1 ../../Prog/ALF.out
