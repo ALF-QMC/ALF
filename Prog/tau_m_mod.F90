@@ -176,7 +176,7 @@
                       & .and. NT1.ge.LOBS_ST .and. NT1.le.LOBS_EN ) CALL ham%Obser( GTT, PHASE, NT1, Mc_step_weight )
               Endif
               
-              IF ( Stab_nt(NST) == NT1 .AND.  NT1 .NE. LTROT ) THEN
+              IF ( Stab_nt(NST) == NT1 ) THEN
                  !NTST = NT1 - NWRAP
                  !NST  = NT1/(NWRAP)
                  NTST = Stab_nt(NST-1)
