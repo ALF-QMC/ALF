@@ -21,14 +21,14 @@ where
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="Images/Hamiltonian0_for_dark.png">
   <source media="(prefers-color-scheme: light)" srcset="Images/Hamiltonian0.png">
-  </picture>   
-
-where   
+  <img alt="The Hamiltonian">
+</picture>
+where</br>
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="Images/Hamiltonian1_for_dark.png">
   <source media="(prefers-color-scheme: light)" srcset="Images/Hamiltonian1.png">
+  <img alt="Parts explanation">
 </picture>
-
 
 Here Z denotes a scalar field (Ising or real continuous field) with predefined dynamics. If your model can be written in this form then it will be amenable to the ALF. 
 
