@@ -547,9 +547,6 @@ Module Global_mod
            ! Draw a new spin configuration. This is provided by the user in the Hamiltonian module
            ! Note that nsigma is a variable in the module Hamiltonian
            Call ham%Global_move_log_T0(log_T0_Proposal_ratio,nsigma_old,size_clust)
-           ! OPTIMIZATION NOTE:
-           ! We are now calculating Delta_S0 twice (here and within the Compute_Ratio_Global routine). 
-           ! We could save some time by only calculating it once and passing it to the Compute_Ratio_Global routine. 
            if (log_T0_Proposal_ratio > LOG_T0_REJECTED) then  
               NC = NC + 1
               ! Compute the new Green function
