@@ -13,9 +13,18 @@
 The **A**lgorithms for **L**attice **F**ermions package provides a general code for the finite temperature and projective auxiliary field Quantum Monte Carlo algorithm. The code is engineered to be able simulate any model that can be written in terms of sums of single body operators, of squares of single body operators and single body operators coupled to an Ising field with given dynamics. We provide predefined types that allow the user to specify the model, the Bravais lattice as well as equal time and time displaced observables. The code supports an MPI implementation. Examples such as the Hubbard model, the SU(N) Kondo lattice model, tV models, models with long ranged interactions as well as Z2 lattice gauge theories coupled to fermions adn Z2 matter are discussed in the [documentation](https://alf.physik.uni-wuerzburg.de/doc.pdf). Slides on the auxiliary field QMC can be found [here.](https://github.com/ALF-QMC/ALF_Tutorial_and_Presentations/blob/master/Presentations/2020-Presentations/ALF_2.0-Fermion_Monte_Carlo.pdf)
 
 The Hamiltonians we can consider read:  
-![The Hamiltonian0](Images/Hamiltonian0.png "The Hamiltonian")  
-where  
-![The Hamiltonian1](Images/Hamiltonian1.png "Parts explanation")
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="Images/Hamiltonian0_for_dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="Images/Hamiltonian0.png">
+  <img alt="The Hamiltonian" src="Images/Hamiltonian0.png">
+</picture>
+<br>where<br>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="Images/Hamiltonian1_for_dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="Images/Hamiltonian1.png">
+  <img alt="Parts explanation" src="Images/Hamiltonian1.png">
+</picture>
 
 Here Z denotes a scalar field (Ising or real continuous field) with predefined dynamics. If your model can be written in this form then it will be amenable to the ALF. 
 
