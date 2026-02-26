@@ -21,14 +21,12 @@ where
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="Images/Hamiltonian0_for_dark.png">
   <source media="(prefers-color-scheme: light)" srcset="Images/Hamiltonian0.png">
-  <img alt="The Hamiltonian">
-</picture>
+  </picture>   
 
 where   
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="Images/Hamiltonian1_for_dark.png">
   <source media="(prefers-color-scheme: light)" srcset="Images/Hamiltonian1.png">
-  <img alt="Parts explanation">
 </picture>
 
 
