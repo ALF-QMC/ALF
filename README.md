@@ -14,10 +14,6 @@ The **A**lgorithms for **L**attice **F**ermions package provides a general code 
 
 The Hamiltonians we can consider read:  
 
-![The Hamiltonian0](Images/Hamiltonian0.png "The Hamiltonian")  
-where  
-![The Hamiltonian1](Images/Hamiltonian1.png "Parts explanation")
-
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="Images/Hamiltonian0_for_dark.png">
   <source media="(prefers-color-scheme: light)" srcset="Images/Hamiltonian0.png">
