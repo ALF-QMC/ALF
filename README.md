@@ -15,65 +15,59 @@ The **A**lgorithms for **L**attice **F**ermions package provides a general code 
 The Hamiltonians we can consider read:  
 
 $$
-\hat{\mathcal{H}}
-=
-\hat{\mathcal{H}}_{T}+\hat{\mathcal{H}}_{V} +  \hat{\mathcal{H}}_{I} +   \hat{\mathcal{H}}_{Q}  + \hat{\mathcal{H}}_{0,I}
+\hat{\mathcal{H}} = \hat{\mathcal{H}}_{T}+\hat{\mathcal{H}}_{V} + \hat{\mathcal{H}}_{I} + \hat{\mathcal{H}}_{Q} + \hat{\mathcal{H}}_{0,I}
 $$
 
 where
 
 $$
 \begin{aligned}
-\hat{\mathcal{H}}_{T}
-&=
+\hat{\mathcal{H}}_{T} &=
 \sum\limits_{k=1}^{M_T}
 \sum\limits_{\sigma=1}^{N_{\mathrm{col}}}
 \sum\limits_{s=1}^{N_{\mathrm{fl}}}
 \sum\limits_{x,y}^{N_{\mathrm{dim}}}
-\hat{c}^{\dagger}_{x \sigma   s}T_{xy}^{(k s)} \hat{c}^{\phantom\dagger}_{y \sigma s}
-% \equiv \sum\limits_{k=1}^{M_T} \hat{T}^{(k)}
+\hat{c}^{\dagger}_{x \sigma   s}T_{xy}^{(k s)} \hat{c}_{y \sigma s}
 \\
-\hat{\mathcal{H}}_{V}
-&=
+\hat{\mathcal{H}}_{V} &=
 \sum\limits_{k=1}^{M_V}U_{k}
-\left\{
+\left\lbrace
 \sum\limits_{\sigma=1}^{N_{\mathrm{col}}}
 \sum\limits_{s=1}^{N_{\mathrm{fl}}}
 \left[
 \left(
 \sum\limits_{x,y}^{N_{\mathrm{dim}}}
-\hat{c}^{\dagger}_{x \sigma s}V_{xy}^{(k s)}\hat{c}^{\phantom\dagger}_{y \sigma s}
+\hat{c}^{\dagger}_{x \sigma s}V_{xy}^{(k s)}\hat{c}_{y \sigma s}
 \right)
 +\alpha_{k s} 
 \right]
-\right\}^{2}
-% \equiv \sum\limits_{k=1}^{M_V}U_{k} \left(\hat{V}^{(k)} \right)^2
+\right\rbrace^{2}
 \\
-\hat{\mathcal{H}}_{I}
-&= 
+\hat{\mathcal{H}}_{I} &=
 \sum\limits_{k=1}^{M_I} \hat{Z}_{k} 
 \left(
 \sum\limits_{\sigma=1}^{N_{\mathrm{col}}}
 \sum\limits_{s=1}^{N_{\mathrm{fl}}}
 \sum\limits_{x,y}^{N_{\mathrm{dim}}}
-\hat{c}^{\dagger}_{x \sigma s} I_{xy}^{(k s)}\hat{c}^{\phantom\dagger}_{y \sigma s}
+\hat{c}^{\dagger}_{x \sigma s} I_{xy}^{(k s)}\hat{c}_{y \sigma s}
 \right)
-% \equiv \sum\limits_{k=1}^{M_I} \hat{Z}_{k} \hat{I}^{(k)} 
-\\
-\hat{\mathcal{H}}_{Q}
-&= 
+\end{aligned}
+$$
+$$
+\begin{aligned}
+\hat{\mathcal{H}}_{Q} &= 
 \sum\limits_{k=1}^{M_Q} \tilde{U}_{k} \left( 1 +  \hat{Q}_k \right) 
- \left\{
+\left\lbrace
 \sum\limits_{\sigma=1}^{N_{\mathrm{col}}}
 \sum\limits_{s=1}^{N_{\mathrm{fl}}}
 \left[
 \left(
 \sum\limits_{x,y}^{N_{\mathrm{dim}}}
-\hat{c}^{\dagger}_{x \sigma s}\tilde{V}_{xy}^{(k s)}\hat{c}^{\phantom\dagger}_{y \sigma s}
+\hat{c}^{\dagger}_{x \sigma s}\tilde{V}_{xy}^{(k s)}\hat{c}_{y \sigma s}
 \right)
 +\tilde{\alpha}_{k s} 
 \right]
-\right\}^{2}
+\right\rbrace^{2}
 \end{aligned}
 $$
 
