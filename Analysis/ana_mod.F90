@@ -934,56 +934,55 @@ Subroutine read_latt_hdf5(filename, name, sgn, bins, bins0, Latt, Latt_unit, dta
 
 !==============================================================================
 
-   subroutine auto(func, data, N_skip, res)
-!--------------------------------------------------------------------
-!> @author
-!> ALF Collaboration
-!>
-!> @brief
-!> Calculates autocorrelation
-!-------------------------------------------------------------------
-      implicit none
+!    subroutine auto(func, data, N_skip, res)
+! !--------------------------------------------------------------------
+! !> @author
+! !> ALF Collaboration
+! !>
+! !> @brief
+! !> Calculates autocorrelation
+! !> False behaviour
+! !-------------------------------------------------------------------
+!       implicit none
 
-      complex (Kind=Kind(0.d0)), External   :: func
-      complex (Kind=Kind(0.d0)), intent(in) :: data(:,:)
-      Integer, intent(in)                   :: N_skip
+!       complex (Kind=Kind(0.d0)), External   :: func
+!       complex (Kind=Kind(0.d0)), intent(in) :: data(:,:)
+!       Integer, intent(in)                   :: N_skip
 
-      Real (Kind=Kind(0.d0)), intent(inout) :: res(:)
+!       Real (Kind=Kind(0.d0)), intent(inout) :: res(:)
 
-      Integer                :: N_obs, N_bins, N_auto, ntau, nt
-      complex (Kind=Kind(0.d0)), allocatable :: data1(:), data2(:)
-      complex (Kind=Kind(0.d0)) :: mean, X1, X2
+!       Integer                :: N_obs, N_bins, N_auto, ntau, nt
+!       complex (Kind=Kind(0.d0)), allocatable :: data1(:), data2(:)
+!       complex (Kind=Kind(0.d0)) :: mean, X1, X2
 
-      N_obs  = size(data,1)
-      N_bins = size(data,2) - N_skip
-      N_auto = size(res)
-      allocate( data1(N_obs), data2(N_obs) )
+!       N_obs  = size(data,1)
+!       N_bins = size(data,2) - N_skip
+!       N_auto = size(res)
+!       allocate( data1(N_obs), data2(N_obs) )
 
-      do ntau = 1, N_auto
-         X1 = 0.0
-         X2 = 0.0
-         mean = 0.0
-         do nt = 1, N_bins - ntau
-            data1(:) = data(:,nt+N_skip)
-            mean = mean + func(data1)
-         enddo
-         mean = mean / dble(N_bins - ntau)
-         mean = func(mean)
+!       do ntau = 1, N_auto
+!          X1 = 0.0
+!          X2 = 0.0
+!          mean = 0.0
+!          do nt = 1, N_bins - ntau
+!             data1(:) = data(:,nt+N_skip)
+!             mean = mean + func(data1)
+!          enddo
+!          mean = mean / dble(N_bins - ntau)
+!          mean = func(mean)
 
-         do nt = 1, N_bins - ntau
-            data1(:) = data(:,nt+N_skip)
-            data2(:) = data(:,nt+N_skip+ntau)
-            X1 = X1 + (func(data1)-mean)*(func(data2)-mean)
-            X2 = X2 + (func(data1)-mean)*(func(data1)-mean)
-         enddo
-      !     X1 = X1 / dble(N_bins - ntau)
-      !     X2 = X2 / dble(N_bins - ntau)
+!          do nt = 1, N_bins - ntau
+!             data1(:) = data(:,nt+N_skip)
+!             data2(:) = data(:,nt+N_skip+ntau)
+!             X1 = X1 + (func(data1)-mean)*(func(data2)-mean)
+!             X2 = X2 + (func(data1)-mean)*(func(data1)-mean)
+!          enddo
+!       !     X1 = X1 / dble(N_bins - ntau)
+!       !     X2 = X2 / dble(N_bins - ntau)
 
-         Res(ntau) = dble( X1/X2 )
-      enddo
-
-
-   end subroutine auto
+!          Res(ntau) = dble( X1/X2 )
+!       enddo
+!    end subroutine auto
 
 !==============================================================================
 
