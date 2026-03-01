@@ -205,8 +205,8 @@ GNUOPTFLAGS="-cpp -O3 -ffree-line-length-none -ffast-math"
 #GNUOPTFLAGS="-cpp -O0 -ffree-line-length-none"
 # uncomment the next line if you want to use additional openmp parallelization
 GNUOPTFLAGS="${GNUOPTFLAGS} -fopenmp"
-# GNUDEVFLAGS="-Wconversion -Werror -fcheck=all -ffpe-trap=invalid,zero,overflow,underflow,denormal"
-GNUDEVFLAGS="-Wconversion -Werror -Wno-error=cpp -fcheck=all -g -fbacktrace -fmax-errors=10"
+GNUDEVFLAGS="-Wconversion -Werror -Wall -fcheck=all -g -fbacktrace -fmax-errors=10 -ffpe-trap=invalid,zero,overflow,underflow,denormal"
+GNUDEVFLAGS="${GNUDEVFLAGS} -Wno-error=unused-value -Wno-error=unused-label -Wno-error=unused-function -Wno-error=maybe-uninitialized -Wno-error=unused-variable -Wno-error=unused-dummy-argument -Wno-error=cpp"
 GNUUSEFULFLAGS="-std=f2008"
 
 # default optimization flags for PGI compiler
