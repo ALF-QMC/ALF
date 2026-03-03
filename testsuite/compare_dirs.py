@@ -17,8 +17,8 @@ from py_alf.utils import find_sim_dirs
 def analyze_and_load(root_dir):
     """Run analysis for all simulations under root_dir and load results."""
     dirs = find_sim_dirs(root_dir)
-    for dir in dirs:
-        analysis(dir)
+    for sim_dir in dirs:
+        analysis(sim_dir)
     return load_res(dirs)
 
 

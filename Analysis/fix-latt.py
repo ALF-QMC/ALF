@@ -49,13 +49,13 @@ def _fix_latt(latt_grp):
 
 def _fix_loc(hdf5_loc):
     """Recursively traverse an HDF5 hierarchy and fix lattice groups."""
-    for i in hdf5_loc:
-        if isinstance(i, str):
-            print(i)
-            if i == 'lattice':
-                _fix_latt(hdf5_loc[i])
+    for item in hdf5_loc:
+        if isinstance(item, str):
+            print(item)
+            if item == 'lattice':
+                _fix_latt(hdf5_loc[item])
             else:
-                _fix_loc(hdf5_loc[i])
+                _fix_loc(hdf5_loc[item])
 
 
 if __name__ == '__main__':
