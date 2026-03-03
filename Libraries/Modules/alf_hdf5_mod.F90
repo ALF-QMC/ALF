@@ -1,4 +1,4 @@
-!  Copyright (C) 2020-2021 The ALF project
+!  Copyright (C) 2020-2026 The ALF project
 ! 
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -33,12 +33,28 @@
 #if defined(HDF5)
      Module alf_hdf5
 !--------------------------------------------------------------------
-!> @author 
-!> ALF-project
+!> @author ALF-project
+!> @brief Helper subroutines for using ALF with HDF5.
 !
-!> @brief 
-!> Helper subroutines for using ALF with HDF5.
+!> @details
+!> This module provides a Fortran interface for HDF5 operations within the
+!> ALF (Algorithms for Lattice Fermions) project. It includes functionality for:
+!> - Creating and managing HDF5 datasets for Monte Carlo bin data
+!> - Writing and reading attributes of various types (double, integer, string, logical)
+!> - Storing lattice structure information in HDF5 format
+!> - Validating consistency between supplied values and stored HDF5 attributes
+!>
+!> The module defines three generic interfaces:
+!> - write_attribute: Write attributes to HDF5 objects (supports double, integer, string, logical)
+!> - read_attribute: Read attributes from HDF5 objects (supports double, integer, string, logical)
+!> - test_attribute: Verify attribute values or write them if they don't exist
 !
+!> @note
+!> This module is only available when ALF is compiled with HDF5 support (HDF5 preprocessor flag).
+!> Logical values are stored as integers (0 = false, 1 = true) in HDF5.
+!
+!> @see
+!> For HDF5 library documentation, visit: https://portal.hdfgroup.org/
 !--------------------------------------------------------------------
        use runtime_error_mod
        use iso_fortran_env, only: output_unit, error_unit
@@ -54,12 +70,17 @@
        public :: write_attribute, read_attribute, test_attribute, &
          init_dset, append_dat, write_latt, write_comment
      
+       !> Generic interface for writing attributes of various types to HDF5 objects
        interface write_attribute
          MODULE PROCEDURE write_attribute_double, write_attribute_int, write_attribute_string, write_attribute_logical
        end interface write_attribute
+       
+       !> Generic interface for reading attributes of various types from HDF5 objects
        interface read_attribute
          MODULE PROCEDURE read_attribute_double, read_attribute_int, read_attribute_string, read_attribute_logical
        end interface read_attribute
+       
+       !> Generic interface for testing/validating attributes or creating them if they don't exist
        interface test_attribute
          MODULE PROCEDURE test_attribute_double, test_attribute_int, test_attribute_string, test_attribute_logical
        end interface test_attribute
@@ -72,29 +93,33 @@
 !> ALF-project
 !
 !> @brief
-!> This subroutine creates a new dataset in an opened HDF5 file for the
-!> purpsose of filling it with Monte-Carlo bins.
+!> Creates a new extensible dataset in an opened HDF5 file for storing Monte Carlo bins.
 !
-!> @param [IN] file_id INTEGER(HID_T)
-!> \verbatim
-!>  Idendifier of the opened HDF5 file
-!> \endverbatim
-!> @param [IN] dsetname Character(len=64)
-!> \verbatim
-!>  Name of the new dataset
-!> \endverbatim
-!> @param [IN] dims(:) INTEGER(HSIZE_T)
-!> \verbatim
-!>  Shape of one bin. Whith size(dims) = size(bin)+1 and dims(size(dims)) = 0
-!> \endverbatim
-!> @param [IN] is_complex logical
-!> \verbatim
-!>  True if values to be stored can be complex.
-!> \endverbatim
-!> @param [IN] chunklen INTEGER(HSIZE_T), optional
-!> \verbatim
-!>  Size of data chunks in number of bins, default = 1
-!> \endverbatim
+!> @details
+!> This subroutine creates an HDF5 dataset with unlimited size in the last dimension,
+!> allowing bins to be appended incrementally via append_dat(). The dataset uses
+!> chunking to enable efficient extensibility. All data is stored as double precision.
+!>
+!> The dims array defines the shape of a single bin, where:
+!> - rank = size(dims)
+!> - dims(1:rank-1) define the bin shape
+!> - dims(rank) must be 0 (will be extended as bins are added)
+!
+!> @param[in] file_id HDF5 file identifier
+!> @param[in] dsetname Name of the new dataset (max 64 characters)
+!> @param[in] dims Shape of one bin with rank+1 dimensions where dims(rank) = 0
+!> @param[in] is_complex If .true., indicates values can be complex (stored as metadata)
+!> @param[in] chunklen Size of data chunks in number of bins (default = 1)
+!
+!> @note
+!> The last dimension (dims(rank)) must be initialized to 0. It will be extended
+!> automatically when data is appended via append_dat().
+!
+!> @warning
+!> If HDF5_ZLIB is defined at compile time, DEFLATE compression will be applied
+!> to the dataset using the specified compression level.
+!
+!> @see append_dat
 !-------------------------------------------------------------------
            Implicit none
            
@@ -110,39 +135,42 @@
            
            !CALL h5open_f(hdferr)
            
-           !Define size of dataset and of chunks
+           ! Define size of dataset and of chunks
+           ! The last dimension is unlimited (for extensibility) and chunked
            rank = size(dims)
            allocate( dimsc(rank), maxdims(rank) )
            dimsc         = dims
-           dimsc(rank)   = 1
+           dimsc(rank)   = 1                      ! Chunk size: 1 bin by default
            if ( present(chunklen) ) dimsc(rank) = chunklen
            maxdims       = dims
-           maxdims(rank) = H5S_UNLIMITED_F
+           maxdims(rank) = H5S_UNLIMITED_F        ! Allow unlimited growth in last dimension
            
-           !Check for dims(rank) = 0
+           ! Validate that dims(rank) = 0 (required for extensible datasets)
            if (dims(rank) /= 0) then
              write(error_unit,*) 'Error in init_dset: dims(rank) /= 0'
              Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
            endif
            
-           !Create Dataspace
+           ! Create dataspace with extensible last dimension
            CALL h5screate_simple_f(rank, dims, dataspace, hdferr, maxdims)
            
-           !Modify dataset creation properties, i.e. enable chunking
+           ! Enable chunking (required for extensible datasets)
            CALL h5pcreate_f(H5P_DATASET_CREATE_F, crp_list, hdferr)
            CALL h5pset_chunk_f(crp_list, rank, dimsc, hdferr)
 #ifdef HDF5_ZLIB
-           ! Set ZLIB / DEFLATE Compression using compression level HDF5_ZLIB
+           ! Apply ZLIB/DEFLATE compression if enabled at compile time
+           ! HDF5_ZLIB macro defines the compression level (0-9)
            CALL h5pset_deflate_f(crp_list, HDF5_ZLIB, hdferr)
 #endif
            
-           !Create a dataset using cparms creation properties.
+           ! Create the dataset with the specified properties
            CALL h5dcreate_f(file_id, dsetname, H5T_NATIVE_DOUBLE, dataspace, &
                            dset_id, hdferr, crp_list )
            
+           ! Store whether data is complex as metadata attribute
            CALL write_attribute_logical(dset_id, '.', 'is_complex', is_complex, hdferr)
            
-           !Close objects
+           ! Close objects
            CALL h5sclose_f(dataspace, hdferr)
            CALL h5pclose_f(crp_list,  hdferr)
            CALL h5dclose_f(dset_id,   hdferr)
@@ -158,26 +186,30 @@
 !> ALF-project
 !
 !> @brief
-!> This subroutine appends one bin to an existing dataset of an opened HDF5 file.
+!> Appends Monte Carlo bin data to an existing extensible HDF5 dataset.
 !
-!> @param [IN] file_id INTEGER(HID_T)
-!> \verbatim
-!>  Idendifier of the opened HDF5 file
-!> \endverbatim
-!> @param [IN] dsetname Character(len=64)
-!> \verbatim
-!>  Name of the dataset
-!> \endverbatim
-!> @param [IN] data_ptr TYPE(C_PTR)
-!> \verbatim
-!>  C-pointer to the first element of the data to write.
-!>  data should be all double precision.
-!>  The length of the data is assumed from the existing dataset.
-!> \endverbatim
-!> @param [IN] Nbins_in Integer, optional
-!> \verbatim
-!>  Number of bins to be written, default = 1
-!> \endverbatim
+!> @details
+!> This subroutine extends an HDF5 dataset created with init_dset() and writes
+!> new bin data to it. It uses HDF5 hyperslab selection to append data to the
+!> end of the dataset in the last dimension. The data layout is determined from
+!> the existing dataset dimensions.
+!>
+!> Workflow:
+!> 1. Open the dataset and get its current dimensions
+!> 2. Extend the dataset size in the last dimension by Nbins
+!> 3. Select a hyperslab at the end of the extended dataset
+!> 4. Write the flattened data array to the selected region
+!
+!> @param[in] file_id HDF5 file identifier
+!> @param[in] dsetname Name of the dataset (max 64 characters)
+!> @param[in] dat_ptr C pointer to the first element of data (double precision array)
+!> @param[in] Nbins_in Number of bins to append (default = 1)
+!
+!> @note
+!> The data length is inferred from the dataset dimensions. The memory layout
+!> is flattened into a 1D array = Nbins * product(dims(1:rank-1)).
+!
+!> @see init_dset
 !-------------------------------------------------------------------
            Implicit none
            
@@ -211,18 +243,19 @@
            !Get dataspace's dimensions.
            CALL h5sget_simple_extent_dims_f(dataspace, dims, maxdims, hdferr)
            
-           !Extent dataset and define hyperslab to write on
+           ! Extend dataset in last dimension and select hyperslab for writing
            offset(:)    = 0
-           offset(rank) = dims(rank)
+           offset(rank) = dims(rank)              ! Start writing after existing data
            count(:)     = dims(:)
-           count(rank)  = Nbins
-           dims(rank)   = dims(rank)+Nbins
+           count(rank)  = Nbins                   ! Write Nbins slices
+           dims(rank)   = dims(rank)+Nbins        ! New total size after extension
            CALL h5dset_extent_f(dset_id, dims, hdferr)
            CALL h5sclose_f(dataspace, hdferr)
            CALL h5dget_space_f(dset_id, dataspace, hdferr)
            CALL h5sselect_hyperslab_f(dataspace, H5S_SELECT_SET_F, offset, count, hdferr)
            
-           !Define memory space of data
+           ! Define memory space: flatten multi-dimensional bin data to 1D array
+           ! Total elements = Nbins * product of bin dimensions
            mem_dims = Nbins
            do i=1, rank-1
              mem_dims = mem_dims*dims(i)
@@ -250,20 +283,26 @@
 !> ALF-project
 !
 !> @brief
-!> This subroutine writes the lattice in an opened HDF5 object.
+!> Writes lattice structure information to an HDF5 object.
 !
-!> @param [IN] obj_id INTEGER(HID_T)
-!> \verbatim
-!>  Idendifier of the opened HDF5 object
-!> \endverbatim
-!> @param [IN] Latt Type(Lattice)
-!> \verbatim
-!>  The Bravais lattice
-!> \endverbatim
-!> @param [IN] Latt_unit Type(Unit_cell)
-!> \verbatim
-!>  The unit cell
-!> \endverbatim
+!> @details
+!> This subroutine creates a "lattice" group within the specified HDF5 object
+!> and stores comprehensive lattice information as attributes:
+!> - Bravais lattice vectors: a1, a2, L1, L2
+!> - Unit cell properties: N_coord, Norb, Ndim
+!> - Orbital positions: Orbital1, Orbital2, ... OrbitalN
+!>
+!> The group structure created is:
+!> /[parent_object]/lattice/
+!>   - Attributes: a1, a2, L1, L2, N_coord, Norb, Ndim, Orbital1, ...
+!
+!> @param[in] obj_id HDF5 object identifier (file or group)
+!> @param[in] Latt Bravais lattice structure
+!> @param[in] Latt_unit Unit cell structure
+!
+!> @note
+!> If the "lattice" group already exists, the subroutine returns immediately
+!> without modifying the file (idempotent behavior).
 !-------------------------------------------------------------------
             Implicit none
             INTEGER(HID_T),   intent(in) :: obj_id
@@ -278,6 +317,7 @@
             Real (Kind=Kind(0.d0)), allocatable :: temp(:)
             
             group_name = "lattice"
+            ! Check if lattice group already exists (avoid duplicate writes)
             CALL h5lexists_f(obj_id, group_name, link_exists, ierr)
             if ( link_exists ) return
             call h5gcreate_f(obj_id, group_name, group_id, ierr)
@@ -323,28 +363,15 @@
 !> ALF-project
 !
 !> @brief
-!> Write a double as attribute to an HDF5 object.
+!> Writes a double precision scalar attribute to an HDF5 object.
 !
-!> @param [IN] loc_id INTEGER(HID_T)
-!> \verbatim
-!>  Idendifier of opened HDF5 object
-!> \endverbatim
-!> @param [IN] obj_name CHARACTER(LEN=*)
-!> \verbatim
-!>  Name of object to be written to in relation to loc_id
-!> \endverbatim
-!> @param [IN] attr_name CHARACTER(LEN=*)
-!> \verbatim
-!>  Name of attribute
-!> \endverbatim
-!> @param [IN] attr_value double
-!> \verbatim
-!>  Value of attribute
-!> \endverbatim
-!> @param [OUT] ierr integer
-!> \verbatim
-!>  Error code
-!> \endverbatim
+!> @param[in] loc_id HDF5 object identifier (file, group, or dataset)
+!> @param[in] obj_name Name of target object relative to loc_id (use "." for loc_id itself)
+!> @param[in] attr_name Name of the attribute to create
+!> @param[in] attr_value Double precision value to write
+!> @param[out] ierr HDF5 error code (0 on success)
+!
+!> @see read_attribute_double, test_attribute_double
 !-------------------------------------------------------------------
            Implicit none
            INTEGER(HID_T),   INTENT(IN) :: loc_id
@@ -372,28 +399,15 @@
 !> ALF-project
 !
 !> @brief
-!> Write an integer as attribute to an HDF5 object.
+!> Writes an integer scalar attribute to an HDF5 object.
 !
-!> @param [IN] loc_id INTEGER(HID_T)
-!> \verbatim
-!>  Idendifier of opened HDF5 object
-!> \endverbatim
-!> @param [IN] obj_name CHARACTER(LEN=*)
-!> \verbatim
-!>  Name of object to be written to in relation to loc_id
-!> \endverbatim
-!> @param [IN] attr_name CHARACTER(LEN=*)
-!> \verbatim
-!>  Name of attribute
-!> \endverbatim
-!> @param [IN] attr_value integer
-!> \verbatim
-!>  Value of attribute
-!> \endverbatim
-!> @param [OUT] ierr integer
-!> \verbatim
-!>  Error code
-!> \endverbatim
+!> @param[in] loc_id HDF5 object identifier (file, group, or dataset)
+!> @param[in] obj_name Name of target object relative to loc_id (use "." for loc_id itself)
+!> @param[in] attr_name Name of the attribute to create
+!> @param[in] attr_value Integer value to write
+!> @param[out] ierr HDF5 error code (0 on success)
+!
+!> @see read_attribute_int, test_attribute_int
 !-------------------------------------------------------------------
            Implicit none
            INTEGER(HID_T),   INTENT(IN) :: loc_id
@@ -421,28 +435,15 @@
 !> ALF-project
 !
 !> @brief
-!> Write a string as attribute to an HDF5 object.
+!> Writes a string attribute to an HDF5 object.
 !
-!> @param [IN] loc_id INTEGER(HID_T)
-!> \verbatim
-!>  Idendifier of opened HDF5 object
-!> \endverbatim
-!> @param [IN] obj_name CHARACTER(LEN=*)
-!> \verbatim
-!>  Name of object to be written to in relation to loc_id
-!> \endverbatim
-!> @param [IN] attr_name CHARACTER(LEN=*)
-!> \verbatim
-!>  Name of attribute
-!> \endverbatim
-!> @param [IN] attr_value CHARACTER(LEN=*)
-!> \verbatim
-!>  Value of attribute
-!> \endverbatim
-!> @param [OUT] ierr integer
-!> \verbatim
-!>  Error code
-!> \endverbatim
+!> @param[in] loc_id HDF5 object identifier (file, group, or dataset)
+!> @param[in] obj_name Name of target object relative to loc_id (use "." for loc_id itself)
+!> @param[in] attr_name Name of the attribute to create
+!> @param[in] attr_value String value to write
+!> @param[out] ierr HDF5 error code (0 on success)
+!
+!> @see read_attribute_string, test_attribute_string
 !-------------------------------------------------------------------
            Implicit none
            INTEGER(HID_T),   INTENT(IN) :: loc_id
@@ -463,28 +464,22 @@
 !> ALF-project
 !
 !> @brief
-!> Write a boolean as attribute to an HDF5 object (stored as integer).
+!> Writes a logical (boolean) attribute to an HDF5 object.
 !
-!> @param [IN] loc_id INTEGER(HID_T)
-!> \verbatim
-!>  Idendifier of opened HDF5 object
-!> \endverbatim
-!> @param [IN] obj_name CHARACTER(LEN=*)
-!> \verbatim
-!>  Name of object to be written to in relation to loc_id
-!> \endverbatim
-!> @param [IN] attr_name CHARACTER(LEN=*)
-!> \verbatim
-!>  Name of attribute
-!> \endverbatim
-!> @param [IN] attr_value logical
-!> \verbatim
-!>  Value of attribute
-!> \endverbatim
-!> @param [OUT] ierr integer
-!> \verbatim
-!>  Error code
-!> \endverbatim
+!> @details
+!> HDF5 does not have a native boolean type, so logical values are stored
+!> as integers: .false. = 0, .true. = 1
+!
+!> @param[in] loc_id HDF5 object identifier (file, group, or dataset)
+!> @param[in] obj_name Name of target object relative to loc_id (use "." for loc_id itself)
+!> @param[in] attr_name Name of the attribute to create
+!> @param[in] attr_value Logical value to write
+!> @param[out] ierr HDF5 error code (0 on success)
+!
+!> @note
+!> Uses integer representation: 0 for .false., 1 for .true.
+!
+!> @see read_attribute_logical, test_attribute_logical
 !-------------------------------------------------------------------
            Implicit none
            INTEGER(HID_T),   INTENT(IN) :: loc_id
@@ -497,6 +492,7 @@
            INTEGER(HID_T) :: space_id, attr_id
            INTEGER(HSIZE_T), parameter :: dims(1) = 1
            
+           ! Convert logical to integer (HDF5 has no native boolean type)
            attr_value2 = 0
            if ( attr_value ) attr_value2 = 1
            
@@ -516,28 +512,15 @@
 !> ALF-project
 !
 !> @brief
-!> Read a double from attribute of HDF5 object.
+!> Reads a double precision scalar attribute from an HDF5 object.
 !
-!> @param [IN] loc_id INTEGER(HID_T)
-!> \verbatim
-!>  Idendifier of opened HDF5 object
-!> \endverbatim
-!> @param [IN] obj_name CHARACTER(LEN=*)
-!> \verbatim
-!>  Name of object to be read from in relation to loc_id
-!> \endverbatim
-!> @param [IN] attr_name CHARACTER(LEN=*)
-!> \verbatim
-!>  Name of attribute
-!> \endverbatim
-!> @param [OUT] attr_value double
-!> \verbatim
-!>  Value of attribute
-!> \endverbatim
-!> @param [OUT] ierr integer
-!> \verbatim
-!>  Error code
-!> \endverbatim
+!> @param[in] loc_id HDF5 object identifier (file, group, or dataset)
+!> @param[in] obj_name Name of object to read from relative to loc_id (use "." for loc_id itself)
+!> @param[in] attr_name Name of the attribute to read
+!> @param[out] attr_value Double precision value read from attribute
+!> @param[out] ierr HDF5 error code (0 on success)
+!
+!> @see write_attribute_double, test_attribute_double
 !-------------------------------------------------------------------
            Implicit none
            INTEGER(HID_T),        INTENT(IN)  :: loc_id
@@ -562,28 +545,15 @@
 !> ALF-project
 !
 !> @brief
-!> Read an integer from attribute of HDF5 object.
+!> Reads an integer scalar attribute from an HDF5 object.
 !
-!> @param [IN] loc_id INTEGER(HID_T)
-!> \verbatim
-!>  Idendifier of opened HDF5 object
-!> \endverbatim
-!> @param [IN] obj_name CHARACTER(LEN=*)
-!> \verbatim
-!>  Name of object to be read from in relation to loc_id
-!> \endverbatim
-!> @param [IN] attr_name CHARACTER(LEN=*)
-!> \verbatim
-!>  Name of attribute
-!> \endverbatim
-!> @param [OUT] attr_value integer
-!> \verbatim
-!>  Value of attribute
-!> \endverbatim
-!> @param [OUT] ierr integer
-!> \verbatim
-!>  Error code
-!> \endverbatim
+!> @param[in] loc_id HDF5 object identifier (file, group, or dataset)
+!> @param[in] obj_name Name of object to read from relative to loc_id (use "." for loc_id itself)
+!> @param[in] attr_name Name of the attribute to read
+!> @param[out] attr_value Integer value read from attribute
+!> @param[out] ierr HDF5 error code (0 on success)
+!
+!> @see write_attribute_int, test_attribute_int
 !-------------------------------------------------------------------
            Implicit none
            INTEGER(HID_T),   INTENT(IN)  :: loc_id
@@ -608,28 +578,15 @@
 !> ALF-project
 !
 !> @brief
-!> Read a string from attribute of HDF5 object.
+!> Reads a string attribute from an HDF5 object.
 !
-!> @param [IN] loc_id INTEGER(HID_T)
-!> \verbatim
-!>  Idendifier of opened HDF5 object
-!> \endverbatim
-!> @param [IN] obj_name CHARACTER(LEN=*)
-!> \verbatim
-!>  Name of object to be read from in relation to loc_id
-!> \endverbatim
-!> @param [IN] attr_name CHARACTER(LEN=*)
-!> \verbatim
-!>  Name of attribute
-!> \endverbatim
-!> @param [OUT] attr_value CHARACTER(LEN=*)
-!> \verbatim
-!>  Value of attribute
-!> \endverbatim
-!> @param [OUT] ierr integer
-!> \verbatim
-!>  Error code
-!> \endverbatim
+!> @param[in] loc_id HDF5 object identifier (file, group, or dataset)
+!> @param[in] obj_name Name of object to read from relative to loc_id (use "." for loc_id itself)
+!> @param[in] attr_name Name of the attribute to read
+!> @param[out] attr_value String value read from attribute
+!> @param[out] ierr HDF5 error code (0 on success)
+!
+!> @see write_attribute_string, test_attribute_string
 !-------------------------------------------------------------------
            Implicit none
            INTEGER(HID_T),   INTENT(IN)  :: loc_id
@@ -650,28 +607,23 @@
 !> ALF-project
 !
 !> @brief
-!> Read a boolean from attribute of HDF5 object (stored as integer).
+!> Reads a logical (boolean) attribute from an HDF5 object.
 !
-!> @param [IN] loc_id INTEGER(HID_T)
-!> \verbatim
-!>  Idendifier of opened HDF5 object
-!> \endverbatim
-!> @param [IN] obj_name CHARACTER(LEN=*)
-!> \verbatim
-!>  Name of object to be read from in relation to loc_id
-!> \endverbatim
-!> @param [IN] attr_name CHARACTER(LEN=*)
-!> \verbatim
-!>  Name of attribute
-!> \endverbatim
-!> @param [OUT] attr_value logical
-!> \verbatim
-!>  Value of attribute
-!> \endverbatim
-!> @param [OUT] ierr integer
-!> \verbatim
-!>  Error code
-!> \endverbatim
+!> @details
+!> Reads the integer representation stored by write_attribute_logical and
+!> converts it back to a logical value: 0 = .false., 1 = .true.
+!> Any other value triggers an error.
+!
+!> @param[in] loc_id HDF5 object identifier (file, group, or dataset)
+!> @param[in] obj_name Name of object to read from relative to loc_id (use "." for loc_id itself)
+!> @param[in] attr_name Name of the attribute to read
+!> @param[out] attr_value Logical value read from attribute
+!> @param[out] ierr HDF5 error code (0 on success)
+!
+!> @warning
+!> The stored integer value must be 0 or 1. Other values will cause program termination.
+!
+!> @see write_attribute_logical, test_attribute_logical
 !-------------------------------------------------------------------
            Implicit none
            INTEGER(HID_T),   INTENT(IN)  :: loc_id
@@ -688,6 +640,7 @@
            call h5aread_f  (attr_id, H5T_NATIVE_INTEGER, attr_value2, dims, ierr)
            call h5aclose_f (attr_id, ierr)
            
+           ! Convert integer back to logical (validate range)
            if ( attr_value2 == 0 ) then
              attr_value = .false.
            elseif ( attr_value2 == 1 ) then
@@ -706,29 +659,30 @@
 !> ALF-project
 !
 !> @brief
-!> Test whether supplied double is identical to attribute stored in HDF5 file.
-!> If not, triggers error stop.
+!> Validates that a double attribute matches the supplied value, or creates it if absent.
 !
-!> @param [IN] loc_id INTEGER(HID_T)
-!> \verbatim
-!>  Idendifier of opened HDF5 object
-!> \endverbatim
-!> @param [IN] obj_name CHARACTER(LEN=*)
-!> \verbatim
-!>  Name of object attribute is attached to in relation to loc_id
-!> \endverbatim
-!> @param [IN] attr_name CHARACTER(LEN=*)
-!> \verbatim
-!>  Name of attribute
-!> \endverbatim
-!> @param [IN] attr_value double
-!> \verbatim
-!>  Value of supplied attribute
-!> \endverbatim
-!> @param [OUT] ierr integer
-!> \verbatim
-!>  Error code
-!> \endverbatim
+!> @details
+!> This subroutine checks if an attribute exists in the HDF5 file:
+!> - If absent: writes the supplied value as a new attribute
+!> - If present: reads the stored value and compares with supplied value
+!>   - If values differ by more than tolerance (1e-8), terminates with error
+!>   - If values match within tolerance, no action taken
+!>
+!> This is useful for ensuring consistency across multiple runs or restart files.
+!
+!> @param[in] loc_id HDF5 object identifier (file, group, or dataset)
+!> @param[in] obj_name Name of object relative to loc_id (use "." for loc_id itself)
+!> @param[in] attr_name Name of the attribute to test
+!> @param[in] attr_value Double precision value to test against
+!> @param[out] ierr HDF5 error code (0 on success)
+!
+!> @note
+!> Comparison tolerance is 1e-8 (relative to absolute difference).
+!
+!> @warning
+!> Terminates program if attribute exists but does not match supplied value.
+!
+!> @see write_attribute_double, read_attribute_double
 !-------------------------------------------------------------------
            Implicit none
            INTEGER(HID_T),   INTENT(IN) :: loc_id
@@ -738,7 +692,7 @@
            INTEGER,   INTENT(OUT) :: ierr
            
            LOGICAL :: attr_exists
-           real(Kind=Kind(0.d0)), parameter :: ZERO = 10D-8
+           real(Kind=Kind(0.d0)), parameter :: ZERO = 10D-8  ! Comparison tolerance
            real(Kind=Kind(0.d0)) :: test_double, diff
            
            call h5aexists_by_name_f(loc_id, obj_name, attr_name, attr_exists, ierr)
@@ -767,29 +721,25 @@
 !> ALF-project
 !
 !> @brief
-!> Test whether supplied integer is identical to attribute stored in HDF5 file.
-!> If not, triggers error stop.
+!> Validates that an integer attribute matches the supplied value, or creates it if absent.
 !
-!> @param [IN] loc_id INTEGER(HID_T)
-!> \verbatim
-!>  Idendifier of opened HDF5 object
-!> \endverbatim
-!> @param [IN] obj_name CHARACTER(LEN=*)
-!> \verbatim
-!>  Name of object attribute is attached to in relation to loc_id
-!> \endverbatim
-!> @param [IN] attr_name CHARACTER(LEN=*)
-!> \verbatim
-!>  Name of attribute
-!> \endverbatim
-!> @param [IN] attr_value integer
-!> \verbatim
-!>  Value of supplied attribute
-!> \endverbatim
-!> @param [OUT] ierr integer
-!> \verbatim
-!>  Error code
-!> \endverbatim
+!> @details
+!> This subroutine checks if an attribute exists in the HDF5 file:
+!> - If absent: writes the supplied value as a new attribute
+!> - If present: reads the stored value and compares with supplied value
+!>   - If values differ, terminates with error
+!>   - If values match, no action taken
+!
+!> @param[in] loc_id HDF5 object identifier (file, group, or dataset)
+!> @param[in] obj_name Name of object relative to loc_id (use "." for loc_id itself)
+!> @param[in] attr_name Name of the attribute to test
+!> @param[in] attr_value Integer value to test against
+!> @param[out] ierr HDF5 error code (0 on success)
+!
+!> @warning
+!> Terminates program if attribute exists but does not match supplied value.
+!
+!> @see write_attribute_int, read_attribute_int
 !-------------------------------------------------------------------
            Implicit none
            INTEGER(HID_T),   INTENT(IN) :: loc_id
@@ -825,29 +775,28 @@
 !> ALF-project
 !
 !> @brief
-!> Test whether supplied string is identical to attribute stored in HDF5 file.
-!> If not, triggers error stop.
+!> Validates that a string attribute matches the supplied value, or creates it if absent.
 !
-!> @param [IN] loc_id INTEGER(HID_T)
-!> \verbatim
-!>  Idendifier of opened HDF5 object
-!> \endverbatim
-!> @param [IN] obj_name CHARACTER(LEN=*)
-!> \verbatim
-!>  Name of object attribute is attached to in relation to loc_id
-!> \endverbatim
-!> @param [IN] attr_name CHARACTER(LEN=*)
-!> \verbatim
-!>  Name of attribute
-!> \endverbatim
-!> @param [IN] attr_value CHARACTER(LEN=*)
-!> \verbatim
-!>  Value of supplied attribute
-!> \endverbatim
-!> @param [OUT] ierr integer
-!> \verbatim
-!>  Error code
-!> \endverbatim
+!> @details
+!> This subroutine checks if an attribute exists in the HDF5 file:
+!> - If absent: writes the supplied value as a new attribute
+!> - If present: reads the stored value and compares with supplied value (trimmed)
+!>   - If values differ, terminates with error
+!>   - If values match, no action taken
+!
+!> @param[in] loc_id HDF5 object identifier (file, group, or dataset)
+!> @param[in] obj_name Name of object relative to loc_id (use "." for loc_id itself)
+!> @param[in] attr_name Name of the attribute to test
+!> @param[in] attr_value String value to test against
+!> @param[out] ierr HDF5 error code (0 on success)
+!
+!> @note
+!> String comparison uses trim() to ignore trailing spaces.
+!
+!> @warning
+!> Terminates program if attribute exists but does not match supplied value.
+!
+!> @see write_attribute_string, read_attribute_string
 !-------------------------------------------------------------------
            Implicit none
            INTEGER(HID_T),   INTENT(IN) :: loc_id
@@ -883,29 +832,25 @@
 !> ALF-project
 !
 !> @brief
-!> Test whether supplied boolean is identical to attribute stored in HDF5 file.
-!> If not, triggers error stop.
+!> Validates that a logical attribute matches the supplied value, or creates it if absent.
 !
-!> @param [IN] loc_id INTEGER(HID_T)
-!> \verbatim
-!>  Idendifier of opened HDF5 object
-!> \endverbatim
-!> @param [IN] obj_name CHARACTER(LEN=*)
-!> \verbatim
-!>  Name of object attribute is attached to in relation to loc_id
-!> \endverbatim
-!> @param [IN] attr_name CHARACTER(LEN=*)
-!> \verbatim
-!>  Name of attribute
-!> \endverbatim
-!> @param [IN] attr_value logical
-!> \verbatim
-!>  Value of supplied attribute
-!> \endverbatim
-!> @param [OUT] ierr integer
-!> \verbatim
-!>  Error code
-!> \endverbatim
+!> @details
+!> This subroutine checks if an attribute exists in the HDF5 file:
+!> - If absent: writes the supplied value as a new attribute
+!> - If present: reads the stored value and compares with supplied value
+!>   - If values differ, terminates with error
+!>   - If values match, no action taken
+!
+!> @param[in] loc_id HDF5 object identifier (file, group, or dataset)
+!> @param[in] obj_name Name of object relative to loc_id (use "." for loc_id itself)
+!> @param[in] attr_name Name of the attribute to test
+!> @param[in] attr_value Logical value to test against
+!> @param[out] ierr HDF5 error code (0 on success)
+!
+!> @warning
+!> Terminates program if attribute exists but does not match supplied value.
+!
+!> @see write_attribute_logical, read_attribute_logical
 !-------------------------------------------------------------------
            Implicit none
            INTEGER(HID_T),   INTENT(IN) :: loc_id
@@ -941,29 +886,32 @@
 !> ALF-project
 !
 !> @brief
-!> Write a comment (array of strings, each 64 characters in length) 
-!> as attribute to an HDF5 object.
+!> Writes multi-line comment as an array of fixed-length strings to an HDF5 object.
 !
-!> @param [IN] loc_id INTEGER(HID_T)
-!> \verbatim
-!>  Idendifier of opened HDF5 object
-!> \endverbatim
-!> @param [IN] obj_name CHARACTER(LEN=*)
-!> \verbatim
-!>  Name of object to be written to in relation to loc_id
-!> \endverbatim
-!> @param [IN] attr_name CHARACTER(LEN=*)
-!> \verbatim
-!>  Name of attribute
-!> \endverbatim
-!> @param [IN] comment(:) CHARACTER(LEN=64)
-!> \verbatim
-!>  Value of attribute
-!> \endverbatim
-!> @param [OUT] ierr integer
-!> \verbatim
-!>  Error code
-!> \endverbatim
+!> @details
+!> This subroutine stores documentation or metadata as an HDF5 attribute.
+!> Each string in the array is stored with fixed length (64 characters).
+!> This is useful for embedding parameter descriptions, citations, or
+!> analysis notes directly in HDF5 output files.
+!
+!> @param[in] loc_id HDF5 object identifier (file, group, or dataset)
+!> @param[in] obj_name Name of target object relative to loc_id (use "." for loc_id itself)
+!> @param[in] attr_name Name of the attribute to create
+!> @param[in] comment Array of strings, each exactly 64 characters long
+!> @param[out] ierr HDF5 error code (0 on success)
+!
+!> @note
+!> String length is fixed at 64 characters. Shorter strings are padded,
+!> longer strings must be split across multiple array elements.
+!
+!> Example:
+!> @code
+!> character(len=64) :: comments(3)
+!> comments(1) = "Simulation started at 2026-03-03"
+!> comments(2) = "Parameters: U=4.0, beta=10.0"
+!> comments(3) = "Lattice: 8x8 square"
+!> call write_comment(file_id, ".", "simulation_info", comments, ierr)
+!> @endcode
 !-------------------------------------------------------------------
            
            IMPLICIT NONE
@@ -976,9 +924,9 @@
            INTEGER(HID_T)   :: attr_id       ! Attribute identifier
            INTEGER(HID_T)   :: space_id      ! Attribute Dataspace identifier
            INTEGER(HID_T)   :: type_id       ! Attribute datatype identifier
-           INTEGER          :: rank = 1      ! Attribure rank
+           INTEGER          :: rank = 1      ! Attribute rank
            INTEGER(HSIZE_T) :: dims(1)       ! Attribute dimensions
-           INTEGER(SIZE_T)  :: attrlen = 64  ! Length of the attribute string
+           INTEGER(SIZE_T)  :: attrlen = 64  ! Fixed string length (all strings 64 chars)
            
            ! Create scalar data space for the attribute.
            dims(1) = size(comment)

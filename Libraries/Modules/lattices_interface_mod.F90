@@ -1,4 +1,4 @@
-!  Copyright (C) 2023 The ALF project
+!  Copyright (C) 2023-2026 The ALF project
 !
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -30,11 +30,13 @@
 !       to the ALF project or to mark your material in a reasonable way as different from the original version.
 
 !--------------------------------------------------------------------
-!> @author
-!> ALF-project
-!
-!> @brief
-!> C Interface for creating lattice. For use in pyALF
+!> @author ALF-project
+!> @brief C interface for creating lattices (for use in pyALF).
+!> @details
+!> Exposes a C-bindable wrapper around `lattices_v3` so Python/C frontends
+!> can construct a lattice, query dimensions, and fetch all lookup tables.
+!> Index arrays exported here are shifted to zero-based convention where needed
+!> (Fortran-internal 1-based tables are mapped to 0-based consumer indices).
 !>
 !
 !--------------------------------------------------------------------
@@ -44,10 +46,20 @@
         use lattices_v3, only: lattice, make_lattice, clear_lattice
         
         implicit none
+        !> Module-level lattice instance managed by the C API wrappers.
         Type (Lattice) :: Latt
         
         contains
 
+        !--------------------------------------------------------------------
+        !> @brief Create and initialize lattice geometry from primitive vectors.
+        !> @param[in] ndim Spatial dimension of vectors (typically 2).
+        !> @param[in] L1_p First super-cell vector.
+        !> @param[in] L2_p Second super-cell vector.
+        !> @param[in] a1_p First primitive lattice vector.
+        !> @param[in] a2_p Second primitive lattice vector.
+        !> @note Stores the result in module variable `Latt`.
+        !--------------------------------------------------------------------
         subroutine make_lattice_c(ndim, L1_p, L2_p, a1_p, a2_p) bind(c)
             integer(c_int), intent(in), value :: ndim
             real(c_double), intent(in) :: L1_p(ndim), L2_p(ndim), a1_p(ndim), a2_p(ndim)
@@ -55,16 +67,41 @@
             call make_lattice(L1_p, L2_p, a1_p, a2_p, Latt)
         end subroutine make_lattice_c
 
+        !--------------------------------------------------------------------
+        !> @brief Return lattice half-box extent `L` used in inverse tables.
+        !> @details Computes `L` from `size(Latt%Invlist,1) = 2*L+1`.
+        !> @param[out] L Half-extent of inverse index arrays.
+        !--------------------------------------------------------------------
         subroutine get_l(L) bind(c)
             integer(c_int), intent(out) :: L
             L = (size(Latt%Invlist,1) - 1)/2
         end subroutine get_l
 
+        !--------------------------------------------------------------------
+        !> @brief Return total number of lattice sites/momenta.
+        !> @param[out] N Number of lattice points (`Latt%N`).
+        !--------------------------------------------------------------------
         subroutine get_n(N) bind(c)
             integer(c_int), intent(out) :: N
             N = Latt%N
         end subroutine get_n
 
+        !--------------------------------------------------------------------
+        !> @brief Export lattice vectors and indexing tables to C/Python arrays.
+        !> @details Copies reciprocal/quantization vectors and real/k-space lookup
+        !> tables from `Latt` into caller-provided arrays. Internal Fortran tables
+        !> that are 1-based are shifted by `-1` where exported as index maps.
+        !> @param[in] ndim Spatial dimension.
+        !> @param[in] L Half-extent such that inverse tables are `(2*L+1,2*L+1)`.
+        !> @param[in] N Number of sites/momenta.
+        !> @param[out] BZ1,BZ2 Reciprocal basis vectors.
+        !> @param[out] b1,b2 Quantization vectors in k-space.
+        !> @param[out] b1_perp,b2_perp Dual vectors for inverse mapping.
+        !> @param[out] listr,listk Real/k integer coordinate lists.
+        !> @param[out] invlistr,invlistk Inverse maps (exported as 0-based).
+        !> @param[out] nnlistr,nnlistk Neighbor lookup tables (exported as 0-based).
+        !> @param[out] imj Difference-index table (exported as 0-based).
+        !--------------------------------------------------------------------
         subroutine get_arrays( &
                 ndim, L, N, &
                 BZ1, BZ2, b1, b2, b1_perp, b2_perp, &
@@ -110,6 +147,10 @@
             imj      = Latt%imj - 1
         end subroutine get_arrays
         
+        !--------------------------------------------------------------------
+        !> @brief Deallocate/clear module-level lattice state.
+        !> @details Calls `clear_lattice` on the internal lattice object.
+        !--------------------------------------------------------------------
         subroutine clear_lattice_c() bind(c)
             Implicit none
             

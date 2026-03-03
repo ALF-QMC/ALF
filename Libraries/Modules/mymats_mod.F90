@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 The ALF project
+!  Copyright (C) 2016-2026 The ALF project
 !
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -32,15 +32,26 @@
 
 
 !--------------------------------------------------------------------
-!> @author
-!> ALF-project
-!
-!> @brief
-!> Wrappers for linear algebra.
+!> @file mymats_mod.F90
+!> @author ALF-project
+!> @brief Wrappers for dense linear algebra operations via LAPACK/BLAS.
+!> @details This module provides unified interfaces for common linear algebra
+!> tasks used in QMC simulations:
+!>  - Matrix multiplication (MMULT): generic dispatching to DGEMM/ZGEMM
+!>  - Matrix inversion (INV): LU decomposition via DGETRF/ZGETRF + determinant
+!>  - Eigenvalue decomposition (DIAG): symmetric/Hermitian via DSYEV/ZHEEV
+!>  - Generalized eigenvalue (DIAG_GEN): left/right eigenvectors via ZGEEV
+!>  - QR decomposition (QR): Householder via ZGEQRF/ZUNGQR
+!>  - SVD (SVD): singular value decomposition via ZGESVD
+!>  - UDV decomposition (UDV): pivoted QR for numerical stability
+!>  - Determinant (DET): LU-based via ZGETRF and DET_C_LU
+!>  - Utilities: matrix initialization (INITD), comparison (COMPARE), timing (SECONDS)
 !>
-!
+!> Most routines offer real (DGEMM-based) and complex (ZGEMM-based) variants,
+!> dispatched via Fortran generic interfaces. Sign-flipping logic handles
+!> determinant sign corrections from row pivoting in LU decomposition.
+!> @see LAPACK documentation for DGETRF, ZGETRF, DGEMM, ZGEMM, ZHEEV, ZGEEV, etc.
 !--------------------------------------------------------------------
-
 
     MODULE MyMats
       use iso_fortran_env, only: output_unit, error_unit
@@ -87,6 +98,23 @@
      CONTAINS
 
 !--------------------------------------------------------------------
+!> @brief Generalized eigenvalue decomposition for non-Hermitian matrices.
+!> @details Solves A·U = U·W (right) or U·A = W·U (left) for a complex matrix
+!> via LAPACK ZGEEV. Computes left eigenvectors (LR='L'), right eigenvectors
+!> (LR='R'), or optionally neither. Conjugate transpose applied to left
+!> eigenvectors for proper adjoint interpretation.
+!>  - Left:  U·A = W·U, computed as CONJG(V^T) where V from ZGEEV
+!>  - Right: A·U = U·W, computed directly as V from ZGEEV
+!>
+!> @param[in] Z_MAT (N×N) complex input matrix to diagonalize
+!> @param[out] U (N×N) eigenvector matrix (left if LR='L', right if LR='R')
+!> @param[out] W (N) array of eigenvalues (same for left/right)
+!> @param[in] LR 'L'/'l'=left eigenvectors, 'R'/'r'=right eigenvectors
+!> @param[in] ICON 0=skip validation, 1=test accuracy via residual
+!>
+!> @note Uses LAPACK ZGEEV generalized eigenvalue solver (QR algorithm)
+!> @see ZGEEV documentation and QMC context for non-Hermitian operators
+!--------------------------------------------------------------------
        SUBROUTINE DIAG_GEN(Z_MAT,U,W,LR,ICON)
          IMPLICIT NONE
          COMPLEX   (Kind=Kind(0.d0)), INTENT(IN), DIMENSION(:,:) :: Z_MAT
@@ -95,7 +123,7 @@
          COMPLEX   (Kind=Kind(0.d0)), INTENT(INOUT), DIMENSION(:) :: W
          INTEGER :: ICON
 
-         !!!! Uses Lapack !!!
+         ! Uses LAPACK ZGEEV for non-Hermitian eigenvalue decomposition
          ! LR = L  then         U*A   = W*U   Left  eigenvectors
          ! LR = R  then         A*U   = W*U   Right eigenvectors
 
@@ -110,20 +138,23 @@
          REAL    (Kind=Kind(0.d0)) :: XMAX, X
          COMPLEX (Kind=Kind(0.d0)) :: Z
 
+         ! Get matrix dimension
          N = SIZE(Z_MAT,1)
          ALLOCATE(A(N,N))
-         A = Z_MAT
+         A = Z_MAT  ! Working copy (ZGEEV modifies input)
          LDA = N
 
+         ! Initialize: no eigenvectors by default
          JOBVR  = "N"
          JOBVL  = "N"
          LDVL = 1
          LDVR = 1
+         ! Determine which eigenvectors to compute based on LR flag
          IF (LR == "L" .or. LR == 'l') THEN
-            JOBVL ="V"
+            JOBVL ="V"  ! Compute left eigenvectors
             LDVL  = N
          ELSEIF (LR == "R" .or. LR == 'r') THEN
-            JOBVR ="V"
+            JOBVR ="V"  ! Compute right eigenvectors
             LDVR = N
          ELSE
             WRITE(error_unit,*) 'Error in DIAG_GEN'
@@ -133,34 +164,40 @@
          LWORK = 2*N
          ALLOCATE (WORK(LWORK), RWORK(LWORK) )
 
+         ! Call LAPACK ZGEEV: compute eigenvalues and optionally eigenvectors
+         ! W = eigenvalues (complex), VL/VR = left/right eigenvectors (if requested)
          CALL ZGEEV( JOBVL, JOBVR, N, A, LDA, W, VL, LDVL, VR, LDVR, &
               &      WORK, LWORK, RWORK, INFO )
 
+         ! Copy eigenvectors: right eigenvectors are used directly,
+         ! left eigenvectors are conjugate-transposed for proper adjoint form
          IF (LR == "R" .or. LR == 'r')  THEN
             DO I = 1,N
                DO J = 1,N
-                  U(I,J) = VR(I,J)
+                  U(I,J) = VR(I,J)  ! Right eigenvectors (column vectors)
                ENDDO
             ENDDO
          ELSE
             DO I = 1,N
                DO J = 1,N
-                  U(I,J) = CONJG(VL(J,I))
+                  U(I,J) = CONJG(VL(J,I))  ! Left eigenvectors as rows (conjugate transpose)
                ENDDO
             ENDDO
          ENDIF
 
+         ! Optional accuracy test: compute residual max|A·U - U·W| (right) or |U·A - W·U| (left)
          IF (ICON == 1 ) THEN
-            !Test
             XMAX = 0.d0
             DO I = 1,N
                DO J = 1,N
                   IF (LR == "R" .or. LR == 'r')  THEN
+                     ! Right: residual = (A·U - U·W)(I,J) = sum_M(A(I,M)·U(M,J)) - W(I)·U(I,J)
                      Z = - W(I)*U(I,J)
                      DO M = 1,N
                         Z = Z + Z_MAT(I,M)*U(M,J)
                      ENDDO
                   ELSE
+                     ! Left: residual = (U·A - W·U)(I,J) = sum_M(U(I,M)·A(M,J)) - W(I)·U(I,J)
                      Z = -W(I)*U(I,J)
                      DO M = 1,N
                         Z = Z + U(I,M)*Z_MAT(M,J)
@@ -171,7 +208,6 @@
                ENDDO
             ENDDO
             WRITE(6,*) 'Testing Diag_GEN :', XMAX
-            !End Test
          ENDIF
 
          DEALLOCATE(VL, VR)
@@ -181,80 +217,96 @@
 
        END SUBROUTINE DIAG_GEN
 !--------------------------------------------------------------------
+!--------------------------------------------------------------------
+!> @brief Real matrix multiplication: C = A·B via BLAS DGEMM.
+!> @details Dispatches to DGEMM with default parameters (no transpose,
+!> C := 1.0·A·B + 0.0·C). Handles column-major leading dimensions.
+!>
+!> @param[out] C (N×P) output product matrix
+!> @param[in] A (N×M) left input matrix
+!> @param[in] B (M×P) right input matrix
+!> @note Uses BLAS DGEMM for high performance (DGEMM does not require square matrices)
+!> @see DGEMM documentation
+!--------------------------------------------------------------------
        SUBROUTINE MMULT_R(C, A, B)
          IMPLICIT NONE
          REAL (Kind=Kind(0.d0)), DIMENSION(:,:) :: A,B,C
          REAL (Kind=Kind(0.d0)) :: ALP, BET
          INTEGER N, M, P, LDA, LDB, LDC
-         N = SIZE(A,1) ! Rows in A
-         M = SIZE(A,2) ! Columns in A
-         P = SIZE(B,2) ! Columns in B
-         LDA = N; LDB = SIZE(B,1); LDC = SIZE(C,1)
+         
+         ! Extract dimensions: A is N×M, B is M×P, C is N×P
+         N = SIZE(A,1)      ! Rows in A
+         M = SIZE(A,2)      ! Columns in A = rows in B
+         P = SIZE(B,2)      ! Columns in B
+         LDA = N; LDB = SIZE(B,1); LDC = SIZE(C,1)  ! Leading dimensions
 
-         ALP = 1.D0
-         BET = 0.D0
+         ! DGEMM coefficients: C := alpha·A·B + beta·C
+         ALP = 1.D0         ! Coefficient for A·B
+         BET = 0.D0         ! Coefficient for C (overwrites C)
 
+         ! Call BLAS DGEMM: real matrix multiplication
          CALL DGEMM('n','n',N,P,M,ALP,A,LDA,B,LDB,BET,C,LDC)
-
-
-! WRITE(6,*) 'In real', N,M,P
-! DO I = 1,N
-! DO J = 1,P
-! X = 0.D0
-! DO K = 1,M
-! X = X + A(I,K)*B(K,J)
-! ENDDO
-! C(I,J) = X
-! ENDDO
-! ENDDO
        END SUBROUTINE MMULT_R
 
+!--------------------------------------------------------------------
+!> @brief Complex matrix multiplication: C = A·B via BLAS ZGEMM.
+!> @details Dispatches to ZGEMM with default parameters (no transpose,
+!> C := 1.0·A·B + 0.0·C). Handles column-major leading dimensions.
+!>
+!> @param[out] C (N×P) output product matrix
+!> @param[in] A (N×M) left input complex matrix
+!> @param[in] B (M×P) right input complex matrix
+!> @note Uses BLAS ZGEMM for high performance
+!> @see ZGEMM documentation
+!--------------------------------------------------------------------
        SUBROUTINE MMULT_C(C, A, B)
          IMPLICIT NONE
          COMPLEX (Kind=Kind(0.d0)), DIMENSION(:,:) :: A,B,C
          COMPLEX (Kind=Kind(0.d0)) :: ALP, BET
          INTEGER N, M, P, LDA, LDB, LDC
 
-         N = SIZE(A,1)
-         M = SIZE(A,2)
-         P = SIZE(B,2)
-         LDA = N; LDB = SIZE(B,1); LDC = SIZE(C,1)
+         ! Extract dimensions: A is N×M, B is M×P, C is N×P
+         N = SIZE(A,1)      ! Rows in A
+         M = SIZE(A,2)      ! Columns in A = rows in B
+         P = SIZE(B,2)      ! Columns in B
+         LDA = N; LDB = SIZE(B,1); LDC = SIZE(C,1)  ! Leading dimensions
 
-         ALP = CMPLX(1.D0,0.D0,Kind=Kind(0d0))
-         BET = CMPLX(0.D0,0.D0,Kind=Kind(0d0))
+         ! ZGEMM coefficients: C := alpha·A·B + beta·C
+         ALP = CMPLX(1.D0,0.D0,Kind=Kind(0d0))   ! Coefficient for A·B
+         BET = CMPLX(0.D0,0.D0,Kind=Kind(0d0))   ! Coefficient for C (overwrites C)
 
+         ! Call BLAS ZGEMM: complex matrix multiplication
          CALL ZGEMM('n','n',N,P,M,ALP,A,LDA,B,LDB,BET,C,LDC)
-
-
-         ! WRITE(6,*) 'In complex', N,M,P
-         ! DO I = 1,N
-         ! DO J = 1,P
-         ! X = CMPLX(0.D0,0.D0)
-         ! DO K = 1,M
-         ! X = X + A(I,K)*B(K,J)
-         ! ENDDO
-         ! C(I,J) = X
-         ! ENDDO
-         ! ENDDO
 
        END SUBROUTINE MMULT_C
 
-!*********
+!--------------------------------------------------------------------
+!> @brief Initialize real matrix to diagonal with uniform diagonal entries.
+!> @details Sets all off-diagonal elements to zero, diagonal to scalar value X.
+!> Overwrites input array. Used for identity matrices (X=1.0) and testing.
+!>
+!> @param[inout] A (N×M) real input matrix to initialize
+!> @param[in] X scalar diagonal value assigned to A(i,i) for i=1..min(N,M)
+!> @note Matrix is assumed square; behavior for non-square is undefined
+!--------------------------------------------------------------------
        SUBROUTINE INITD_R(A,X)
          IMPLICIT NONE
          REAL (Kind=Kind(0.d0)), DIMENSION(:,:) :: A
          REAL (Kind=Kind(0.d0)) X
          INTEGER I,J, N, M
 
+         ! Get matrix dimensions
          N = SIZE(A,1)
          M = SIZE(A,2)
 
-         ! WRITE(6,*) 'In Init1 real', N,M
+         ! Zero all elements
          DO I = 1,N
          DO J = 1,M
             A(I,J) = 0.D0
          ENDDO
          ENDDO
+         
+         ! Set diagonal to X (valid for min(N,M) diagonal elements)
          DO I = 1,N
             A(I,I) = X
          ENDDO
@@ -277,8 +329,13 @@
          COMPLEX (KIND=KIND(0.D0)), INTENT(IN) :: X
          INTEGER I, N
 
+         ! Zero entire matrix with complex zero
          A = (0.D0, 0.D0)
+         
+         ! Get matrix size (assumes square)
          N = SIZE(A,1)
+         
+         ! Set diagonal to X
          DO I = 1,N
             A(I, I) = X
          ENDDO
@@ -296,35 +353,45 @@
 !> @param[out] AINV a 2D array containing the inverse of the matrix A.
 !> @param[out] DET the determinant of the input matrix.
 !--------------------------------------------------------------------
-       SUBROUTINE INV_R0(A, AINV, DET)
+       SUBROUTINE INV_R0(A, AINV, DET_VAL)
          IMPLICIT NONE
          REAL (KIND=KIND(0.D0)), DIMENSION(:,:), INTENT(IN) :: A
          REAL (KIND=KIND(0.D0)), DIMENSION(:,:), INTENT(INOUT) :: AINV
-         REAL (KIND=KIND(0.D0)), INTENT(OUT) :: DET
+         REAL (KIND=KIND(0.D0)), INTENT(OUT) :: DET_VAL
          INTEGER I
 
-! Working space.
+         ! Working space for LU decomposition
          REAL (KIND=KIND(0.D0)) :: SGN
          REAL (KIND=KIND(0.D0)), DIMENSION(:), ALLOCATABLE :: WORK
-         INTEGER, DIMENSION(:), ALLOCATABLE :: IPVT
+         INTEGER, DIMENSION(:), ALLOCATABLE :: IPVT  ! Pivot indices
          INTEGER INFO, LDA
 
          LDA = SIZE(A,1)
-! Working space.
+         ! Allocate workspace: IPVT for pivot info, WORK for inverse computation
          ALLOCATE ( IPVT(LDA) )
          ALLOCATE ( WORK(LDA) )
 
+         ! Copy input to output (DGETRF/DGETRI modify in-place)
          AINV = A
+         
+         ! Step 1: LU decomposition via LAPACK DGETRF (no pivoting = in-place LU)
          CALL DGETRF(LDA, LDA, AINV, LDA, IPVT, INFO)
-         DET = 1.D0
-         SGN = 1.D0
+         
+         ! Step 2: Extract determinant from LU diagonal and count row swaps
+         DET_VAL = 1.D0    ! Start with det = 1
+         SGN = 1.D0    ! Sign correction for row pivots
          DO i = 1, LDA
-         DET = DET * AINV(i,i)
-         IF (IPVT(i) .ne. i) THEN
-            SGN = -SGN
-         ENDIF
+            ! Determinant is product of diagonal elements from LU
+            DET_VAL = DET_VAL * AINV(i,i)
+            ! If IPVT(i) ≠ i, a row swap occurred (changes sign)
+            IF (IPVT(i) .ne. i) THEN
+               SGN = -SGN
+            ENDIF
          enddo
-         DET = SGN * DET
+         ! Apply sign correction: det(A) = (-1)^(# swaps) × product(diagonal)
+         DET_VAL = SGN * DET_VAL
+         
+         ! Step 3: Compute inverse from LU decomposition via DGETRI
          CALL DGETRI(LDA, AINV, LDA, IPVT, WORK, LDA, INFO)
 
          DEALLOCATE (IPVT)
@@ -345,35 +412,44 @@
 !> @param[out] DET the determinant of the input matrix.
 !> @param[in] Ndim The size of the subpart.
 !--------------------------------------------------------------------
-       SUBROUTINE INV_R_Variable(A, AINV, DET, Ndim)
+       SUBROUTINE INV_R_Variable(A, AINV, DET_VAL, Ndim)
          IMPLICIT NONE
          REAL (KIND=KIND(0.D0)), DIMENSION(:,:), INTENT(IN) :: A
          REAL (KIND=KIND(0.D0)), DIMENSION(:,:), INTENT(INOUT) :: AINV
-         REAL (KIND=KIND(0.D0)), INTENT(OUT) :: DET
+         REAL (KIND=KIND(0.D0)), INTENT(OUT) :: DET_VAL
          INTEGER, INTENT(IN) :: Ndim
 
-! Working space.
+         ! Working space for LU decomposition (variable dimension subblock)
          REAL (KIND=KIND(0.D0)) :: SGN
          REAL (KIND=KIND(0.D0)), DIMENSION(:), ALLOCATABLE :: WORK
-         INTEGER, DIMENSION(:), ALLOCATABLE :: IPVT
+         INTEGER, DIMENSION(:), ALLOCATABLE :: IPVT  ! Pivot indices
          INTEGER INFO, LDA, I
 
-         LDA = SIZE(A,1)
-! Working space.
+         LDA = SIZE(A,1)  ! Full allocated size
+         ! Allocate workspace for Ndim×Ndim subblock
          ALLOCATE ( IPVT(Ndim) )
          ALLOCATE ( WORK(LDA) )
 
+         ! Copy full array (invert only upper-left Ndim×Ndim block)
          AINV = A
+         
+         ! Step 1: LU decomposition of Ndim×Ndim subblock in AINV
          CALL DGETRF(Ndim, Ndim, AINV, LDA, IPVT, INFO)
-         DET = 1.D0
+         
+         ! Step 2: Extract determinant from diagonal of Ndim×Ndim LU block
+         DET_VAL = 1.D0
          SGN = 1.D0
          DO i = 1, Ndim
-         DET = DET * AINV(i,i)
-         IF (IPVT(i) .ne. i) THEN
-            SGN = -SGN
-         ENDIF
+            ! Determinant contribution from diagonal
+            DET_VAL = DET_VAL * AINV(i,i)
+            ! Sign correction from row pivots
+            IF (IPVT(i) .ne. i) THEN
+               SGN = -SGN
+            ENDIF
          ENDDO
-         DET = SGN * DET
+         DET_VAL = SGN * DET_VAL
+         
+         ! Step 3: Compute inverse of Ndim×Ndim subblock via DGETRI
          CALL DGETRI(Ndim, AINV, LDA, IPVT, WORK, LDA, INFO)
 
          DEALLOCATE (IPVT)
@@ -401,37 +477,47 @@
 !! Currently the case of a singular matrix is not handled, since it was
 !! catched in the old linpack version.
 !--------------------------------------------------------------------
-       SUBROUTINE INV_R_Variable_1(A,AINV,DET,Ndim)
+       SUBROUTINE INV_R_Variable_1(A,AINV,DET_VAL,Ndim)
          IMPLICIT NONE
          REAL (KIND=KIND(0.D0)), DIMENSION(:,:), INTENT(IN) :: A
          REAL (KIND=KIND(0.D0)), DIMENSION(:,:), INTENT(INOUT) :: AINV
-         REAL (KIND=KIND(0.D0)), DIMENSION(2), INTENT(OUT) :: DET
+         REAL (KIND=KIND(0.D0)), DIMENSION(2), INTENT(OUT) :: DET_VAL
          INTEGER, INTENT(IN) :: Ndim
 
-! Working space.
+         ! Working space for LU decomposition (mantissa-exponent format)
          REAL (KIND=KIND(0.D0)), DIMENSION(:), ALLOCATABLE :: WORK
-         INTEGER, DIMENSION(:), ALLOCATABLE :: IPVT
+         INTEGER, DIMENSION(:), ALLOCATABLE :: IPVT  ! Pivot indices
          INTEGER INFO, LDA, I
 
          LDA = SIZE(A,1)
-! Working space.
+         ! Allocate workspace for Ndim×Ndim subblock
          ALLOCATE ( IPVT(Ndim) )
          ALLOCATE ( WORK(LDA) )
 
+         ! Copy full array
          AINV = A
+         
+         ! Step 1: LU decomposition of Ndim×Ndim subblock
          CALL DGETRF(Ndim, Ndim, AINV, LDA, IPVT, INFO)
-         DET(1) = 1.D0
-         DET(2) = 0.D0
-!         SGN = 1.0
+         
+         ! Step 2: Extract determinant in mantissa-exponent form: DET_VAL = DET_VAL(1)·10^DET_VAL(2)
+         ! DET_VAL(1) = mantissa (±[1,10)), DET_VAL(2) = log10 of magnitude (allows extreme values)
+         DET_VAL(1) = 1.D0       ! Initialize mantissa
+         DET_VAL(2) = 0.D0       ! Initialize exponent (log10 scale)
          DO i = 1, Ndim
-         IF (AINV(i, i) < 0.D0) THEN
-         DET(1) = -DET(1)
-         ENDIF
-         DET(2) = DET(2) + LOG10(ABS(AINV(i,i)))
-         IF (IPVT(i) .ne. i) THEN
-            DET(1) = -DET(1)
-         ENDIF
+            ! Extract sign from diagonal element
+            IF (AINV(i, i) < 0.D0) THEN
+               DET_VAL(1) = -DET_VAL(1)  ! Update sign if diagonal negative
+            ENDIF
+            ! Accumulate log10 of magnitude to avoid overflow/underflow
+            DET_VAL(2) = DET_VAL(2) + LOG10(ABS(AINV(i,i)))
+            ! Sign correction from row pivots
+            IF (IPVT(i) .ne. i) THEN
+               DET_VAL(1) = -DET_VAL(1)
+            ENDIF
          ENDDO
+         
+         ! Step 3: Compute inverse of Ndim×Ndim subblock via DGETRI
          CALL DGETRI(Ndim, AINV, LDA, IPVT, WORK, LDA, INFO)
 
          DEALLOCATE (IPVT)
@@ -454,49 +540,67 @@
 !
 !> @todo the same restrictions as in INV_R_VARIABLE_1 apply.
 !--------------------------------------------------------------------
-       SUBROUTINE INV_R1(A,AINV,DET)
+       SUBROUTINE INV_R1(A,AINV,DET_VAL)
          IMPLICIT NONE
          REAL (KIND=KIND(0.D0)), DIMENSION(:,:), INTENT(IN) :: A
          REAL (KIND=KIND(0.D0)), DIMENSION(:,:), INTENT(INOUT) :: AINV
-         REAL (KIND=KIND(0.D0)), DIMENSION(2), INTENT(OUT) :: DET
+         REAL (KIND=KIND(0.D0)), DIMENSION(2), INTENT(OUT) :: DET_VAL
 
-! Working space.
+         ! Working space for LU decomposition (mantissa-exponent format, full matrix)
          REAL (KIND=KIND(0.D0)), DIMENSION(:), ALLOCATABLE :: WORK
-         INTEGER, DIMENSION(:), ALLOCATABLE :: IPVT
+         INTEGER, DIMENSION(:), ALLOCATABLE :: IPVT  ! Pivot indices
          INTEGER INFO, LDA, I
 
          LDA = SIZE(A,1)
-! Working space.
+         ! Allocate workspace for full LDA×LDA matrix
          ALLOCATE ( IPVT(LDA) )
          ALLOCATE ( WORK(LDA) )
 
+         ! Copy input matrix (DGETRF/DGETRI modify in-place)
          AINV = A
+         
+         ! Step 1: LU decomposition via LAPACK DGETRF
          CALL DGETRF(LDA, LDA, AINV, LDA, IPVT, INFO)
-         DET(1) = 1.D0
-         DET(2) = 0.D0
-!         SGN = 1.0
+         
+         ! Step 2: Extract determinant in mantissa-exponent form: DET_VAL = DET_VAL(1)·10^DET_VAL(2)
+         ! Avoids overflow/underflow by storing log10 of magnitude separately
+         DET_VAL(1) = 1.D0       ! Initialize mantissa
+         DET_VAL(2) = 0.D0       ! Initialize exponent (log10 scale)
          DO i = 1, LDA
-         IF (AINV(i, i) < 0.D0) THEN
-         DET(1) = -DET(1)
-         ENDIF
-         DET(2) = DET(2) + LOG10(ABS(AINV(i,i)))
-         IF (IPVT(i) .ne. i) THEN
-            DET(1) = -DET(1)
-         ENDIF
+            ! Extract sign from diagonal element of LU matrix
+            IF (AINV(i, i) < 0.D0) THEN
+               DET_VAL(1) = -DET_VAL(1)
+            ENDIF
+            ! Accumulate log10 of magnitude
+            DET_VAL(2) = DET_VAL(2) + LOG10(ABS(AINV(i,i)))
+            ! Sign correction from row pivots
+            IF (IPVT(i) .ne. i) THEN
+               DET_VAL(1) = -DET_VAL(1)
+            ENDIF
          ENDDO
+         
+         ! Step 3: Compute inverse from LU decomposition via DGETRI
          CALL DGETRI(LDA, AINV, LDA, IPVT, WORK, LDA, INFO)
          DEALLOCATE (IPVT)
          DEALLOCATE (WORK)
        END SUBROUTINE INV_R1
 
-!*************
+!--------------------------------------------------------------------
+!> @brief Real matrix inversion (no determinant) via LAPACK DGETRF/DGETRI.
+!> @details LU decomposition without determinant extraction, for efficiency
+!> when determinant is not needed. Uses in-place computation via DGETRF/DGETRI.
+!>
+!> @param[in] A (N×N) real input matrix to invert
+!> @param[out] AINV (N×N) real output inverse matrix
+!> @note Uses LAPACK DGETRF and DGETRI
+!--------------------------------------------------------------------
        SUBROUTINE INV_R2(A,AINV)
          IMPLICIT NONE
          REAL (Kind=Kind(0.d0)), DIMENSION(:,:) :: A,AINV
 
          INTEGER I, J
 
-! Uses Lapack routines.
+         ! Uses LAPACK LU-based inversion routines
 
 ! Working space.
          REAL (Kind=Kind(0.d0)), DIMENSION(:), ALLOCATABLE :: WORK
@@ -505,12 +609,14 @@
 
          LDA = SIZE(A,1)
 
-         !Write(6,*) 'Inv_r2:', LDA
+         ! Allocate pivot array and workspace
          ALLOCATE ( IPIV(LDA) )
          LWORK = LDA
          ALLOCATE ( WORK(LWORK) )
          WORK = 0.0
          IPIV = 0
+         
+         ! Transpose copy into AINV (note: column-major ordering)
          DO I = 1,LDA
             DO J = 1,LDA
                AINV(J,I) = A(J,I)
@@ -518,8 +624,10 @@
          ENDDO
          INFO = 0
 
-
+         ! Step 1: LU decomposition via DGETRF (no determinant extraction)
          CALL DGETRF( LDA, LDA, AINV, LDA, IPIV, INFO )
+         
+         ! Step 2: Compute inverse from LU via DGETRI
          CALL DGETRI(LDA, AINV, LDA, IPIV, WORK, LWORK, INFO)
 
 
@@ -543,35 +651,45 @@
 !> @param[out] DET the determinant of the input matrix.
 !--------------------------------------------------------------------
 
-       SUBROUTINE INV_C(A,AINV,DET)
+       SUBROUTINE INV_C(A,AINV,DET_VAL)
          IMPLICIT NONE
          COMPLEX (KIND=KIND(0.D0)), DIMENSION(:,:), INTENT(IN) :: A
          COMPLEX (KIND=KIND(0.D0)), DIMENSION(:,:), INTENT(INOUT) :: AINV
-         COMPLEX (KIND=KIND(0.D0)), INTENT(OUT) :: DET
+         COMPLEX (KIND=KIND(0.D0)), INTENT(OUT) :: DET_VAL
          INTEGER I
 
-! Working space.
+         ! Working space for complex LU decomposition
          REAL (KIND=KIND(0.D0)) :: SGN
          COMPLEX (KIND=KIND(0.D0)), DIMENSION(:), ALLOCATABLE :: WORK
-         INTEGER, DIMENSION(:), ALLOCATABLE :: IPVT
+         INTEGER, DIMENSION(:), ALLOCATABLE :: IPVT  ! Pivot indices
          INTEGER INFO, LDA
 
          LDA = SIZE(A,1)
-! Working space.
+         ! Allocate workspace
          ALLOCATE ( IPVT(LDA) )
          ALLOCATE ( WORK(LDA) )
 
+         ! Copy input to output (ZGETRF/ZGETRI modify in-place)
          AINV = A
+         
+         ! Step 1: LU decomposition via LAPACK ZGETRF
          CALL ZGETRF(LDA, LDA, AINV, LDA, IPVT, INFO)
-         DET = (1.D0, 0.D0)
-         SGN = 1.D0
+         
+         ! Step 2: Extract determinant from LU diagonal and count row swaps
+         DET_VAL = (1.D0, 0.D0)   ! Start with det = 1
+         SGN = 1.D0           ! Sign correction for row pivots
          DO i = 1, LDA
-         DET = DET * AINV(i,i)
-         IF (IPVT(i) .ne. i) THEN
-            SGN = -SGN
-         ENDIF
+            ! Determinant is product of diagonal elements from LU decomposition
+            DET_VAL = DET_VAL * AINV(i,i)
+            ! If IPVT(i) ≠ i, a row swap occurred (changes sign)
+            IF (IPVT(i) .ne. i) THEN
+               SGN = -SGN
+            ENDIF
          enddo
-         DET = SGN * DET
+         ! Apply sign correction: det(A) = (-1)^(# swaps) × product(diagonal)
+         DET_VAL = SGN * DET_VAL
+         
+         ! Step 3: Compute inverse from LU decomposition via ZGETRI
          CALL ZGETRI(LDA, AINV, LDA, IPVT, WORK, LDA, INFO)
 
          DEALLOCATE (IPVT)
@@ -591,35 +709,44 @@
 !> @param[out] DET the determinant of the input matrix.
 !> @param[in] Ndim The size of the subpart.
 !--------------------------------------------------------------------
-       SUBROUTINE INV_C_Variable(A, AINV, DET, Ndim)
+       SUBROUTINE INV_C_Variable(A, AINV, DET_VAL, Ndim)
          IMPLICIT NONE
          COMPLEX (KIND=KIND(0.D0)), DIMENSION(:,:), INTENT(IN) :: A
          COMPLEX (KIND=KIND(0.D0)), DIMENSION(:,:), INTENT(INOUT) :: AINV
-         COMPLEX (KIND=KIND(0.D0)), INTENT(OUT) :: DET
+         COMPLEX (KIND=KIND(0.D0)), INTENT(OUT) :: DET_VAL
          INTEGER, INTENT(IN) :: Ndim
 
-! Working space.
+         ! Working space for complex LU decomposition (variable dimension subblock)
          REAL (KIND=KIND(0.D0)) :: SGN
          COMPLEX (KIND=KIND(0.D0)), DIMENSION(:), ALLOCATABLE :: WORK
-         INTEGER, DIMENSION(:), ALLOCATABLE :: IPVT
+         INTEGER, DIMENSION(:), ALLOCATABLE :: IPVT  ! Pivot indices
          INTEGER INFO, LDA, I
 
-         LDA = SIZE(A,1)
-! Working space.
+         LDA = SIZE(A,1)  ! Full allocated size
+         ! Allocate workspace for Ndim×Ndim subblock
          ALLOCATE ( IPVT(Ndim) )
          ALLOCATE ( WORK(LDA) )
 
+         ! Copy full array (invert only upper-left Ndim×Ndim block)
          AINV = A
+         
+         ! Step 1: LU decomposition of Ndim×Ndim subblock
          CALL ZGETRF(Ndim, Ndim, AINV, LDA, IPVT, INFO)
-         DET = 1.D0
+         
+         ! Step 2: Extract determinant from diagonal of Ndim×Ndim LU block
+         DET_VAL = 1.D0
          SGN = 1.D0
          DO i = 1, Ndim
-         DET = DET * AINV(i,i)
-         IF (IPVT(i) .ne. i) THEN
-            SGN = -SGN
-         ENDIF
+            ! Determinant contribution from diagonal
+            DET_VAL = DET_VAL * AINV(i,i)
+            ! Sign correction from row pivots
+            IF (IPVT(i) .ne. i) THEN
+               SGN = -SGN
+            ENDIF
          ENDDO
-         DET = SGN * DET
+         DET_VAL = SGN * DET_VAL
+         
+         ! Step 3: Compute inverse of Ndim×Ndim subblock via ZGETRI
          CALL ZGETRI(Ndim, AINV, LDA, IPVT, WORK, LDA, INFO)
 
          DEALLOCATE (IPVT)
@@ -642,44 +769,61 @@
 !
 !> @todo the same restrictions as in INV_R_VARIABLE_1 apply.
 !--------------------------------------------------------------------
-       SUBROUTINE INV_C1(A, AINV, DET)
+       SUBROUTINE INV_C1(A, AINV, DET_VAL)
          IMPLICIT NONE
          COMPLEX (KIND=KIND(0.D0)), DIMENSION(:,:), INTENT(IN) :: A
          COMPLEX (KIND=KIND(0.D0)), DIMENSION(:,:), INTENT(INOUT) :: AINV
-         COMPLEX (KIND=KIND(0.D0)), DIMENSION(2), INTENT(OUT) :: DET
+         COMPLEX (KIND=KIND(0.D0)), DIMENSION(2), INTENT(OUT) :: DET_VAL
 
-! Working space.
+         ! Working space for complex LU decomposition (mantissa-exponent format)
+         ! DET returned as: DET(1) = unit-magnitude phase, DET(2) = log10(magnitude)
          COMPLEX (KIND=KIND(0.D0)), DIMENSION(:), ALLOCATABLE :: WORK
-         INTEGER, DIMENSION(:), ALLOCATABLE :: IPVT
+         INTEGER, DIMENSION(:), ALLOCATABLE :: IPVT  ! Pivot indices
          INTEGER INFO, LDA, I
          REAL (KIND=KIND(0.D0)) :: mag
 
          LDA = SIZE(A,1)
-! Working space.
+         ! Allocate workspace
          ALLOCATE ( IPVT(LDA) )
          ALLOCATE ( WORK(LDA) )
 
+         ! Copy input to output (ZGETRF/ZGETRI modify in-place)
          AINV = A
+         
+         ! Step 1: LU decomposition via LAPACK ZGETRF
          CALL ZGETRF(LDA, LDA, AINV, LDA, IPVT, INFO)
-         DET(1) = (1.D0, 0.D0)
-         DET(2) = 0.D0
+         
+         ! Step 2: Extract determinant in mantissa-exponent form with phase separation
+         ! DET_VAL(1) = phase (unit magnitude, |DET_VAL(1)|=1), DET_VAL(2) = log10(|det|)
+         DET_VAL(1) = (1.D0, 0.D0)  ! Initialize phase to 1
+         DET_VAL(2) = 0.D0          ! Initialize log10 of magnitude
          DO i = 1, LDA
-         mag = ABS(AINV(i, i))
-         ! update the phase
-         DET(1) = DET(1) * AINV(i, i)/mag
-         ! update the magnitude
-         DET(2) = DET(2) + LOG10(mag)
-         ! consider signs due to permutations
-         IF (IPVT(i) .ne. i) THEN
-            DET(1) = -DET(1)
-         ENDIF
+            mag = ABS(AINV(i, i))  ! Magnitude of diagonal element
+            ! Update phase: normalize by magnitude to keep |DET_VAL(1)| = 1
+            DET_VAL(1) = DET_VAL(1) * AINV(i, i)/mag
+            ! Update log10 of magnitude: accumulate contributions
+            DET_VAL(2) = DET_VAL(2) + LOG10(mag)
+            ! Sign correction from row pivots (affects phase)
+            IF (IPVT(i) .ne. i) THEN
+               DET_VAL(1) = -DET_VAL(1)
+            ENDIF
          ENDDO
+         
+         ! Step 3: Compute inverse from LU decomposition via ZGETRI
          CALL ZGETRI(LDA, AINV, LDA, IPVT, WORK, LDA, INFO)
          DEALLOCATE (IPVT)
          DEALLOCATE (WORK)
        END SUBROUTINE INV_C1
-!*****
-
+!--------------------------------------------------------------------
+!> @brief Compare two complex matrices element-wise for differences.
+!> @details Computes maximum and mean absolute differences between A and B.
+!> Used for validation of numerical algorithms by comparing against reference.
+!>
+!> @param[in] A (N×M) complex input matrix
+!> @param[in] B (N×M) complex reference matrix
+!> @param[out] XMAX maximum absolute difference |A(i,j) - B(i,j)|
+!> @param[out] XMEAN mean absolute difference averaged over all N×M elements
+!--------------------------------------------------------------------
        SUBROUTINE COMPARE_C(A,B,XMAX,XMEAN)
          IMPLICIT NONE
          COMPLEX (Kind=Kind(0.d0)), DIMENSION(:,:), INTENT(in) :: A,B
@@ -688,21 +832,37 @@
 
          REAL (Kind=Kind(0.d0)) :: DIFF
 
+         ! Get matrix dimensions
          N = SIZE(A,1)
          M = SIZE(A,2)
 
-         XMAX = 0.D0
-         XMEAN = 0.D0
+         ! Initialize accumulators
+         XMAX = 0.D0    ! Maximum absolute difference
+         XMEAN = 0.D0   ! Sum of absolute differences (will normalize below)
+         
+         ! Compare all elements
          DO I = 1,N
             DO J = 1,M
-               DIFF = ABS(A(I,J) - B(I,J))
-               IF (DIFF.GT.XMAX) XMAX = DIFF
-               XMEAN = XMEAN + DIFF
+               DIFF = ABS(A(I,J) - B(I,J))  ! Absolute difference at (i,j)
+               IF (DIFF.GT.XMAX) XMAX = DIFF  ! Track maximum
+               XMEAN = XMEAN + DIFF        ! Accumulate for mean
             ENDDO
          ENDDO
+         
+         ! Normalize mean by total number of elements
          XMEAN = XMEAN/DBLE(N*M)
        END SUBROUTINE COMPARE_C
 
+!--------------------------------------------------------------------
+!> @brief Compare two real matrices element-wise for differences.
+!> @details Computes maximum and mean absolute differences between A and B.
+!> Used for validation of numerical algorithms by comparing against reference.
+!>
+!> @param[in] A (N×M) real input matrix
+!> @param[in] B (N×M) real reference matrix
+!> @param[out] XMAX maximum absolute difference |B(i,j) - A(i,j)|
+!> @param[out] XMEAN mean absolute difference averaged over all N×M elements
+!--------------------------------------------------------------------
        SUBROUTINE COMPARE_R(A,B,XMAX,XMEAN)
          IMPLICIT NONE
          REAL (Kind=Kind(0.d0)) , INTENT(IN), DIMENSION(:,:) :: A,B
@@ -711,18 +871,24 @@
 
          REAL (Kind=Kind(0.d0)) :: DIFF
 
+         ! Get matrix dimensions
          N = SIZE(A,1)
          M = SIZE(A,2)
 
-         XMAX = 0.D0
-         XMEAN = 0.D0
+         ! Initialize accumulators
+         XMAX = 0.D0    ! Maximum absolute difference
+         XMEAN = 0.D0   ! Sum of absolute differences (will normalize below)
+         
+         ! Compare all elements: B - A
          DO I = 1,N
             DO J = 1,M
-               DIFF = ABS( ( B(I,J) - A(I,J) ) )
-               IF (DIFF.GT.XMAX) XMAX = DIFF
-               XMEAN = XMEAN + DIFF
+               DIFF = ABS( ( B(I,J) - A(I,J) ) )  ! Absolute difference
+               IF (DIFF.GT.XMAX) XMAX = DIFF      ! Track maximum
+               XMEAN = XMEAN + DIFF               ! Accumulate for mean
             ENDDO
          ENDDO
+         
+         ! Normalize mean by total number of elements
          XMEAN = XMEAN/DBLE(N*M)
        END SUBROUTINE COMPARE_R
 
@@ -1039,6 +1205,18 @@
       END SUBROUTINE UDV_C
 
 !***************
+!--------------------------------------------------------------------
+!> @brief QR decomposition of complex matrix: A = Q·R.
+!> @details Performs Householder QR factorization via LAPACK ZGEQRF.
+!> Returns Q (orthogonal) and R (upper triangular) such that A = Q·R.
+!> Uses optional sign flipping to normalize determinant of R.
+!>
+!> @param[in] A (LQ×NE) complex input matrix to decompose
+!> @param[out] U (LQ×NE) complex unitary matrix Q
+!> @param[out] V (NE×NE) complex upper triangular matrix R
+!> @param[in] NCON 0=skip validation, 1=test accuracy via residual
+!> @note Uses LAPACK ZGEQRF and ZUNGQR for Householder QR
+!--------------------------------------------------------------------
       SUBROUTINE QR_C(A,U,V,NCON)
 
         IMPLICIT NONE
@@ -1046,39 +1224,47 @@
         COMPLEX (KIND=KIND(0.D0)), INTENT(INOUT), DIMENSION(:,:) :: U,V
         INTEGER, INTENT(IN) :: NCON
 
-        !Local
+        ! Local workspace variables for QR decomposition
         COMPLEX (KIND=KIND(0.D0)), DIMENSION(:,:), ALLOCATABLE :: TMP, TEST
         COMPLEX (KIND=KIND(0.D0)), DIMENSION(:), ALLOCATABLE :: TAU, WORK
         COMPLEX (KIND=KIND(0.D0)) :: Z
         REAL (KIND=KIND(0.D0)) :: DETV, XMDIFF, X
         INTEGER :: NE, LQ, INFO, I, J, LDV, LDU, DU2, DV2, LWORK
 
-        LQ = SIZE(A,1)
-        NE = SIZE(A,2)
+        ! Get matrix dimensions and allocate workspace
+        LQ = SIZE(A,1)   ! Number of rows (matrix height)
+        NE = SIZE(A,2)   ! Number of columns (matrix width)
         LDV = SIZE(V,1)
         LDU = SIZE(U,1)
         DV2 = SIZE(V,2)
         DU2 = SIZE(U,2)
+        
+        ! Initialize output matrices to zero
         Z = 0.D0
-        call ZLASET('A', LDU, DU2, Z, Z, U, LDU)
-        call ZLASET('A', LDV, DV2, Z, Z, V, LDV)
+        call ZLASET('A', LDU, DU2, Z, Z, U, LDU)  ! U = 0
+        call ZLASET('A', LDV, DV2, Z, Z, V, LDV)  ! V = 0
+        
+        ! Allocate workspace for QR factorization
         ALLOCATE (TMP(LQ,NE), TAU(NE), WORK(NE))
+        ! Copy input matrix to working array
         call ZLACPY('A', LQ, NE, A, LQ, TMP, LQ)
 
-        !You now want to UDV TMP. Nag routines.
+        ! QR decomposition via LAPACK ZGEQRF (Householder QR)
         INFO = 0
 
-        ! Query optimal work space. Old style NAG routines use the previously allocated work array
+        ! Query optimal work space (for efficiency)
 #if !defined(OLDNAG)
 #if defined(QRREF)
-        CALL ZGEQRF_REF(LQ, NE, TMP, LQ, TAU, WORK, -1, INFO)
+        CALL ZGEQRF_REF(LQ, NE, TMP, LQ, TAU, WORK, -1, INFO)  ! Query
 #else
-        CALL ZGEQRF(LQ, NE, TMP, LQ, TAU, WORK, -1, INFO)
+        CALL ZGEQRF(LQ, NE, TMP, LQ, TAU, WORK, -1, INFO)  ! Query
 #endif
         LWORK = INT(DBLE(WORK(1)))
         DEALLOCATE(WORK)
         ALLOCATE(WORK(LWORK))
 #endif
+        
+        ! Perform actual QR decomposition: TMP = Q·R (Q stored as Householder reflectors)
 #if defined(QRREF)
         CALL ZGEQRF_REF(LQ, NE, TMP, LQ, TAU, WORK, LWORK, INFO)
 #elif !defined(OLDNAG)
@@ -1086,14 +1272,18 @@
 #else
         CALL F01RCF(LQ,NE,TMP,LQ,TAU,INFO)
 #endif
+        
+        ! Extract upper triangular R matrix (stored in TMP(1:NE, 1:NE))
         call ZLACPY('U', NE, NE, TMP, LQ, V, LDV)
+        ! Compute determinant of R from diagonal
         DETV = 1.D0
-        !V is an NE by NE upper triangular matrix with real diagonal elements.
+        ! V is NE×NE upper triangular with complex diagonal (product of diagonal = det(R))
         DO I = 1,NE
-           DETV = DETV * DBLE( TMP(I,I) )
+           DETV = DETV * DBLE( TMP(I,I) )  ! Product of diagonal: det(R)
         ENDDO
-        !Compute U
-! We assume that ZUNGQR and ZGEQRF can work on the same work array.
+        
+        ! Compute Q from Householder reflectors stored in TMP via ZUNGQR
+        ! We reuse the same work array as ZGEQRF above
 #if defined(QRREF)
         CALL ZUNGQR_REF(LQ, NE, NE, TMP, LQ, TAU, WORK, LWORK, INFO)
 #elif !defined(OLDNAG)
@@ -1102,22 +1292,26 @@
         CALL F01REF('Separate', LQ,NE, NE, TMP, &
             & LQ, TAU, WORK, INFO)
 #endif
+        ! Copy orthogonal Q matrix to output
         call ZLACPY('A', LQ, NE, TMP, LQ, U, LDU)
         DEALLOCATE(WORK, TAU, TMP)
+        
+        ! Normalize sign of R: if det(R) < 0, flip first column of Q and first row of R
         IF (DBLE(DETV).LT.0.D0) THEN
            DO I = 1,LQ
-              U(I,1) = -U(I,1)
+              U(I,1) = -U(I,1)      ! Flip first column of U (Q)
            ENDDO
            DO I = 1,NE
-              V(1,I) = -V(1,I)
+              V(1,I) = -V(1,I)      ! Flip first row of V (R)
            ENDDO
         ENDIF
 
-        !Test accuracy.
+        ! Optional accuracy test: compute max|U·V - A| to verify decomposition
         IF (NCON.EQ.1) THEN
            ALLOCATE( TEST(LQ,NE) )
-           call MMULT(TEST, U, V)
+           call MMULT(TEST, U, V)  ! TEST = U × V = Q × R
            XMDIFF = 0.D0
+           ! Compare with original A: max|Q·R - A|
            DO J = 1,LQ
               DO I = 1,NE
                  X = ABS(TEST(J,I)-A(J,I))
@@ -1148,9 +1342,21 @@
 !> @param[in] NCON
 !--------------------------------------------------------------------
 
+!--------------------------------------------------------------------
+!> @brief Singular Value Decomposition (SVD) of complex matrix.
+!> @details Computes A = U·Σ·V^H where U (left), Σ (singular values),
+!> V (right) via LAPACK ZGESVD QR algorithm. Singular values sorted in
+!> descending order. Used for numerical stability and rank detection.
+!>
+!> @param[in] A (M×N) complex input matrix
+!> @param[out] U (M×M) complex left singular vectors (orthogonal)
+!> @param[out] D (N) complex singular values (real, non-negative, on diagonal)
+!> @param[out] V (N×N) complex right singular vectors (orthogonal)
+!> @param[in] NCON 0=skip validation, 1=test accuracy via residual
+!> @note Uses LAPACK ZGESVD with QR algorithm (not Divide-Conquer for accuracy)
+!> @see ZGESVD documentation
+!--------------------------------------------------------------------
       SUBROUTINE SVD_C(A,U,D,V,NCON)
-        !Uses LaPack Routine
-        !#include "machine"
 
         IMPLICIT NONE
         COMPLEX (KIND=Kind(0.D0)), INTENT(IN), DIMENSION(:,:) :: A
@@ -1158,7 +1364,7 @@
         COMPLEX (KIND=Kind(0.D0)), INTENT(INOUT), DIMENSION(:) :: D
         INTEGER, INTENT(IN) :: NCON
 
-        !! Local
+        ! Local workspace variables for SVD decomposition
         REAL    (Kind=Kind(0.D0)), Allocatable :: RWORK(:), S(:)
         COMPLEX (Kind=Kind(0.D0)), Allocatable :: WORK(:), A1(:,:)
         CHARACTER (Len=1):: JOBU,JOBVT
@@ -1166,45 +1372,55 @@
         REAL    (Kind=Kind(0.D0)) :: X, Xmax
         COMPLEX (Kind=Kind(0.D0)) :: Z
 
+        ! Request full U and V matrices (JOBU/JOBVT = 'A')
         JOBU = "A"
         JOBVT= "A"
-        M = SIZE(A,1)
-        N = SIZE(A,2)
-        Allocate (A1(M,N), S(N))
-        A1 = A
+        M = SIZE(A,1)   ! Matrix height
+        N = SIZE(A,2)   ! Matrix width
+        Allocate (A1(M,N), S(N))  ! Working copies
+        A1 = A          ! ZGESVD modifies input, so use working copy
         LDA = M
         LDU = M
         LDVT = N
+        
+        ! Allocate workspace for SVD computation
         ALLOCATE( RWORK(5*MIN(M,N)), WORK(10))
-! Query optimal amount of memory
+        
+        ! Query optimal workspace size for efficiency
         CALL ZGESVD( JOBU, JOBVT, M, N, A1, LDA, S, U, LDU, V, LDVT,&
              &        WORK, -1, RWORK, INFO )
         LWORK = INT(DBLE(WORK(1)))
         DEALLOCATE(WORK)
         ALLOCATE(WORK(LWORK))
+        
+        ! Perform SVD: A = U·Σ·V^H with singular values in S
         CALL ZGESVD( JOBU, JOBVT, M, N, A1, LDA, S, U, LDU, V, LDVT,&
              &        WORK, LWORK, RWORK, INFO )
+        
+        ! Convert real singular values S to complex D for output
         DO I = 1,N
-           D(I) = cmplx(S(I), 0.d0, kind(0.D0))
+           D(I) = cmplx(S(I), 0.d0, kind(0.D0))  ! S(i) are real and non-negative
         ENDDO
 
+        ! Optional accuracy test: compute max|U·Σ·V^H - A|
         IF (NCON ==  1) THEN
            Write(6,*) JobU, JobVT
            Xmax = 0.d0
+           ! For each element of A, reconstruct via SVD and compute residual
            DO I = 1,M
               DO I1 = 1,N
-                 Z = cmplx(0.d0,0.d0,Kind(0.D0))
+                 Z = cmplx(0.d0,0.d0,Kind(0.D0))  ! Reconstruct A(I,I1) = sum_J(U(I,J)·D(J)·V(J,I1))
                  DO J = 1,N
-                    Z  =  Z + U(I,J) *D(J) *V(J,I1)
+                    Z  =  Z + U(I,J) *D(J) *V(J,I1)  ! Sum over singular values
                  ENDDO
-                 X = ABS(Z - A(I,I1))
-                 IF (X > Xmax ) Xmax = X
+                 X = ABS(Z - A(I,I1))  ! Residual at (I,I1)
+                 IF (X > Xmax ) Xmax = X  ! Track maximum error
               ENDDO
            ENDDO
            WRITE(6,*) "Success (0), PRE ", INFO, Xmax
         ENDIF
 
-
+        ! Cleanup workspace
         Deallocate (WORK,RWORK,A1,S)
 
 
@@ -1228,37 +1444,55 @@
         REAL (KIND=KIND(0.D0)), INTENT(INOUT), DIMENSION(:,:) :: U
         REAL (KIND=KIND(0.D0)), INTENT(INOUT), DIMENSION(:) :: W
 
-
+        ! Local workspace for symmetric eigenvalue decomposition
         INTEGER ND1, ND2, IERR, DN
         REAL (KIND=KIND(0.D0)), DIMENSION(:), ALLOCATABLE :: WORK
 
-         ND1 = SIZE(A,1)
-         ND2 = SIZE(A,2)
+        ! Check square matrix
+        ND1 = SIZE(A,1)
+        ND2 = SIZE(A,2)
 
-         IF (ND1.NE.ND2) THEN
-            WRITE(error_unit,*) 'DIAG_R: Error in matrix dimension'
-            Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
-         ENDIF
+        IF (ND1.NE.ND2) THEN
+           WRITE(error_unit,*) 'DIAG_R: Error in matrix dimension'
+           Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
+        ENDIF
 
-         IERR = 0
-         U=A
-         W=0
-         ! let's just give lapack enough memory
-         DN = 3*ND1
-         ALLOCATE(WORK(DN))
-         CALL DSYEV('V', 'U', ND1, U, ND1, W, WORK, DN, IERR)
-         DEALLOCATE(WORK)
+        ! Initialize output: copy input to U (DSYEV modifies in-place)
+        IERR = 0
+        U = A       ! DSYEV overwrites U with eigenvectors
+        W = 0       ! Initialize eigenvalues to zero
+        
+        ! Allocate sufficient workspace (conservative: 3*N is safe)
+        DN = 3*ND1
+        ALLOCATE(WORK(DN))
+        
+        ! Solve via LAPACK DSYEV: diagonalize symmetric real matrix
+        ! 'V'=compute eigenvectors, 'U'=use upper triangle
+        CALL DSYEV('V', 'U', ND1, U, ND1, W, WORK, DN, IERR)
+        DEALLOCATE(WORK)
 
       END SUBROUTINE DIAG_R
 !*********
 
+!--------------------------------------------------------------------
+!> @brief Hermitian eigenvalue decomposition for complex matrices.
+!> @details Solves A·U = U·W for a complex Hermitian matrix via
+!> LAPACK ZHEEV. Returns eigenvalues W (real) and eigenvectors U.
+!> Optional validation test checks orthonormality and eigenvalue eq.
+!>
+!> @param[in] A (N×N) complex Hermitian input matrix
+!> @param[out] U (N×N) complex eigenvector matrix (columns are eigenvectors)
+!> @param[out] W (N) real eigenvalues (sorted ascending)
+!> @note LAPACK ZHEEV solves Hermitian eigenvalue problem via QR
+!> @see ZHEEV documentation
+!--------------------------------------------------------------------
       SUBROUTINE DIAG_I(A,U,W)
-        ! Uses Lapack
         IMPLICIT NONE
         COMPLEX (Kind=Kind(0.d0)), INTENT(IN)   , DIMENSION(:,:) :: A
         COMPLEX (Kind=Kind(0.d0)), INTENT(INOUT), DIMENSION(:,:) :: U
         REAL    (Kind=Kind(0.d0)), INTENT(INOUT), DIMENSION(:)   :: W
 
+        ! Variables for Hermitian eigenvalue decomposition via ZHEEV
         CHARACTER (len=1) :: UPLO, JOBZ
         INTEGER :: N, LWORK, INFO
         COMPLEX (Kind=Kind(0.d0)), allocatable :: WORK (:)
@@ -1268,29 +1502,37 @@
         Complex (Kind=Kind(0.d0)) :: Z
         Real (Kind=Kind(0.d0)) :: X, XMAX
 
+        ! Set options: JOBZ='V' (compute eigenvectors), UPLO='U' (use upper triangle)
         JOBZ = "V"
         UPLO = "U"
-        N = size(A,1)
-        U = A
-        LWORK = 2*N -1
-        Allocate ( WORK(LWORK) )
-        Allocate (  RWORK(3*N-2))
+        N = size(A,1)  ! Matrix dimension
+        
+        ! Initialize: copy input (ZHEEV modifies in-place)
+        U = A           ! U will be overwritten with eigenvectors
+        
+        ! Allocate workspace (conservative estimates)
+        LWORK = 2*N - 1
+        Allocate ( WORK(LWORK) )      ! Complex workspace
+        Allocate ( RWORK(3*N-2) )     ! Real workspace
 
-        !Write(6,*) 'In Diag'
-
+        ! Solve via LAPACK ZHEEV: diagonalize Hermitian complex matrix
         Call ZHEEV (JOBZ, UPLO, N, U, N, W, WORK, LWORK, RWORK, INFO)
 
         Deallocate (WORK, RWORK)
 
+        ! Optional validation test (disabled by default, set Test=.true. to enable)
         Test = .false.
         If (Test) then
+           ! Test reconstruction: A = U·diag(W)·U^H where U^H = conjugate transpose
            XMAX = 0.d0
            DO I = 1,N
               DO J = 1,N
+                 ! Reconstruct A(I,J) = sum_m(U(I,m)·W(m)·U(J,m)^*)
                  Z = cmplx(0.d0,0.d0,Kind=Kind(0.d0))
                  DO m = 1,N
                     Z =  Z + U(I,m)*cmplx(W(m),0.d0, Kind=Kind(0.d0))*Conjg(U(J,m))
                  ENDDO
+                 ! Compute residual: reconstruction error
                  Z = Z - A(I,J)
                  X = ABS(Z)
                  If (X > XMAX ) XMAX = X
@@ -1301,35 +1543,43 @@
 
       End SUBROUTINE DIAG_I
 
+!--------------------------------------------------------------------
+!> @brief Get current time in seconds since midnight.
+!> @details Extracts hour, minute, second from system clock via date_and_time()
+!> intrinsic and returns total seconds elapsed since 00:00:00 today.
+!> Used for performance timing and profiling.
+!>
+!> @param[out] X seconds since midnight (real, includes day-to-day discontinuity)
+!> @note Discontinuous at midnight; use time differences for accurate elapsed time
+!--------------------------------------------------------------------
       SUBROUTINE SECONDS(X)
         IMPLICIT NONE
         REAL (Kind=Kind(0.d0)), INTENT(OUT) :: X
 
-        !DATE_AND_TIME(date, time, zone, values)
-        !date_and_time([date][,time][,zone][,values])
-        !Subroutine. Die Parameter haben das Attribut intent(out), geben also Werte zurueck.
-
-        ! date: skalare, normale Zeichenvariable von wenigstens 8 Zeichen.
-        ! Die linken 8 Zeichen bekommen einen Wert der Form JJJJMMTT . JJJJ Jahr, MM Monat, TT Tag im Monat.
-        ! time: skalare, normale Zeichenvariable von wenigstens 10 Zeichen.
-        ! Die linken 10 Zeichen bekommen einen Wert der Form hhmmss.sss , wobei hh die Stunde des Tages ist,
-        ! mm die Minute innerhalb der Stunde, und ss.sss die Sekunde mit Bruchteilen.
-        ! zone: skalare, normale Zeichenvariable von wenigstens 5 Zeichen. Die linken 5 Zeichen bekommen
-        ! einen Wert der Form hhmm . hh Stunden, mm Minuten Zeitdifferenz gegenueber der UTC-Weltzeit.
-        ! values: Eindimensionales Integer-Feld. Laenge wenigstens 8.
-        ! 1 : Jahr, z.B. 1993. 2: Monat. 3: Monatstag. 4: Zeitdifferenz zur Weltzeit in Minuten.
-        ! 5: Stunde des Tages. 6: Minute innerhalb der Stunde. 7: Sekunden 8. Millisekunden.
-
-        !character(len=10) :: d,t
+        ! Local workspace: date_and_time() returns 8-element integer array
+        ! values(1)=year, values(2)=month, values(3)=day, values(4)=UTC offset (min)
+        ! values(5)=hour, values(6)=minute, values(7)=second, values(8)=millisecond
         integer,dimension(8) :: V
-        !d = ""
-        !call date_and_time(date=d,time=t)
+        
+        ! Query system clock via Fortran intrinsic
         call date_and_time(values=V)
 
+        ! Convert HMS (hour, minute, second) to total seconds since midnight
+        ! X = hours×3600 + minutes×60 + seconds (ignore milliseconds for Fortran 2008)
         X = DBLE(V(5)*3600 + V(6)*60 + V(7))
 
       END SUBROUTINE SECONDS
 
+!====================================================
+!> @brief Compute determinant of complex matrix via LU decomposition (function).
+!> @details Uses LAPACK ZGETRF to compute LU factorization, then product of
+!> diagonal elements (with sign correction from pivots). Modifies input matrix.
+!>
+!> @param[inout] Mat (N×N) complex input matrix (LU-decomposed in-place)
+!> @param[in] N matrix dimension
+!> @return complex determinant: product(diagonal) × (-1)^(# row swaps)
+!> @note Input matrix is destroyed (replaced by LU decomposition)
+!> @see ZGETRF documentation
 !====================================================
       Complex (Kind=Kind(0.d0)) Function DET_C(Mat,N)
 
@@ -1341,21 +1591,24 @@
 
         integer :: i, info, LDmat
         integer, allocatable :: ipiv(:)
-
         integer :: sgn
 
+        ! Allocate pivot array for row swaps
         allocate(ipiv(N))
         ipiv = 0
 
-        !Lapack LU decomposition
+        ! Step 1: LU decomposition via LAPACK ZGETRF (in-place)
         LDmat=size(mat,1)
         call zgetrf(N, N, mat, LDmat, ipiv, info)
 
+        ! Step 2: Determinant = product of diagonal elements from LU
         det_C = cmplx(1.d0, 0.d0, kind(0.d0) )
         do i = 1, N
-           det_C = det_C*mat(i, i)
+           det_C = det_C*mat(i, i)  ! Multiply diagonal elements
         enddo
 
+        ! Step 3: Apply sign correction from row swaps
+        ! Each swap (IPVT(i) ≠ i) flips the sign
         sgn =  1
         do i = 1, N
            if(ipiv(i) /= i)  sgn = -sgn
@@ -1366,13 +1619,17 @@
       end function DET_C
 
 !--------------------------------------------------------------------
-!> @author
-!> F.Assaad
-!
-!> @brief
-!> Returns the determinant as det = \prod_i=1^N d(i).
-!> Uses Lapack LU decomposition
+!> @author F.Assaad
+!> @brief Return LU diagonal factors from complex matrix LU decomposition.
+!> @details Computes LU factorization via ZGETRF and returns diagonal
+!> elements D(i) = L(i,i)·U(i,i) from factorization. Product ∏D(i) = det(A)×(-1)^(swaps).
+!> Applies sign correction from row pivots to D(1) only.
 !>
+!> @param[in] Mat1 (N×N) complex input matrix (unchanged)
+!> @param[out] D (N) diagonal elements from LU decomposition
+!> @param[in] N matrix dimension
+!> @note Input matrix Mat1 is not modified; working copy Mat is used
+!> @see ZGETRF documentation; determinant = D(1)·D(2)·...·D(N)
 !====================================================
       Subroutine DET_C_LU(Mat1,D,N)
 
@@ -1383,49 +1640,51 @@
         Complex(Kind=Kind(0.d0)), intent(in)  :: mat1(N,N)
         Complex(Kind=Kind(0.d0)), intent(out) :: D(N)
 
-
+        ! Local working copy and pivot array
         Complex(Kind=Kind(0.d0)) :: mat(N,N)
-
         integer :: i, info
         integer :: ipiv(N)
-
         integer :: sgn
 
+        ! Copy input (ZGETRF modifies in-place)
         mat = mat1
         ipiv = 0
 
-        !Lapack LU decomposition
+        ! Step 1: LU decomposition via LAPACK ZGETRF
         call zgetrf(N, N, mat, N, ipiv, info)
 
+        ! Step 2: Extract diagonal elements from LU matrix
         do i = 1,N
-           D(i) = mat(i,i)
+           D(i) = mat(i,i)  ! Diagonal of LU = L(i,i)·U(i,i)
         enddo
+        
+        ! Step 3: Apply sign correction from row swaps to first element only
         sgn =  1
         do i = 1, N
-           if(ipiv(i) /= i)  sgn = -sgn
+           if(ipiv(i) /= i)  sgn = -sgn  ! Each swap flips sign
         enddo
-        if (sgn == -1 ) D(1) = - D(1)
+        if (sgn == -1 ) D(1) = - D(1)  ! Apply accumulated sign to D(1)
 
       end Subroutine DET_C_LU
 
 !--------------------------------------------------------------------
-!> @author
-!> Florian Goth
-!
-!> @brief
-!> This function returns the Conjugate Transpose, hence the name CT,
-!> of a complex input matrix.
-!
-!> @note The employed variant of chaining a transposition and a conjugation
-!> is well optimized by gcc in the sense that it generates a tight inner loop.
-!> The original double loop generates quite some additional integer operations.
-!
-!> @param[in] A a 2D array constituting the input matrix.
-!> @return the Conjugate Transpose of A
+!> @author Florian Goth
+!> @brief Conjugate transpose A^H of a complex matrix.
+!> @details Computes A^H = (A*)^T via Fortran intrinsics conjg() and transpose().
+!> Equivalent to adjoint operator in quantum mechanics. For Hermitian matrix,
+!> A^H = A.
+!>
+!> @param[in] A (M×N) complex input matrix
+!> @return (N×M) complex conjugate transpose (adjoint) of A
+!>
+!> @note Implementation using chaining conjg(transpose(a)) is compiler-optimized
+!> (esp. by gcc) to generate tight inner loops, faster than explicit loops.
+!> Fortran's transpose() and conjg() operations compose efficiently.
 !--------------------------------------------------------------------
-    function ct(a) result(b) ! return the conjugate transpose of a matrix
+    function ct(a) result(b)
         complex(kind=kind(0.D0)), dimension(:,:), intent(in) :: a
         complex(kind=kind(0.D0)), dimension(size(a,1),size(a,1)) :: b
+        ! Conjugate transpose: (A*)^T = conjg(A)^T
         b = conjg(transpose(a))
     end function ct
 

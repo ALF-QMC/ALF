@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 - 2022 The ALF project
+!  Copyright (C) 2016 - 2026 The ALF project
 !
 !  This file is part of the ALF project.
 !
@@ -34,12 +34,23 @@
 
 module mat_subroutines
 !--------------------------------------------------------------------
-!> @author
-!> ALF-project
+!> @author ALF-project
+!> @brief Small-large matrix multiplication kernels with index selection support.
 !
-!> @brief
-!> Matrix operations for operator type.
-!> type.
+!> @details
+!> This module contains specialized kernels used to apply a small dense
+!> matrix A (possibly Hermitian/symmetric) to selected rows or columns of
+!> a large complex matrix Mat.
+!>
+!> The index list P defines the active rows/columns in Mat. Operations apply
+!> A on the subspace selected by P:
+!> - Left : selected rows are updated as op(A) * selected rows
+!> - Right: selected columns are updated as selected columns * op(A)
+!>
+!> Implementations combine:
+!> - explicit unrolled kernels for N <= 8
+!> - BLAS/LAPACK fallback paths for larger N
+!> - optional block-compaction logic when P forms contiguous blocks
 !
 !--------------------------------------------------------------------
 use runtime_error_mod
@@ -48,23 +59,37 @@ implicit none
 contains
 
 subroutine ZSLGEMM(side, op, N, M1, M2, A, P, Mat)
-! Small Large general matrix multiplication
-
 !--------------------------------------------------------------------
 !> @author
 !> ALF-project
 !
 !> @brief
-!> !!!!!  Side = L
-!>   M = op( P^T A P) * M
-!>   Side = R
-!>   M =  M * op( P^T A P)
-!>   On input: P =  Op%P and A = Op%O
-!> !!!!!   type
-!>   op = N  -->  None
-!>   op = T  -->  Transposed
-!>   op = C  -->  Transposed + Complex conjugation
-!> !!!!! Mat has dimensions M1,M2, N is dimension of A
+!> General complex small-large matrix multiplication with index selection.
+!
+!> @details
+!> Applies a dense complex N x N matrix A to selected rows/columns of Mat,
+!> where selected indices are provided by the selection list P.
+!>
+!> - side = 'L': selected rows of Mat are left-multiplied by op(A)
+!> - side = 'R': selected columns of Mat are right-multiplied by op(A)
+!>
+!> op selects the transform of A:
+!> - 'N': A
+!> - 'T': transpose(A)
+!> - 'C': conjugate-transpose(A)
+!>
+!> For N <= 8 this routine uses explicit unrolled in-place kernels.
+!> For larger N it switches to BLAS (ZGEMM) with optional compact block
+!> handling when P contains contiguous index blocks.
+!
+!> @param[in] side 'L' or 'R' (left/right application)
+!> @param[in] op 'N', 'T', or 'C' transform for A
+!> @param[in] N Dimension of small matrix A
+!> @param[in] M1 Number of rows of Mat
+!> @param[in] M2 Number of columns of Mat
+!> @param[in] A Complex dense matrix (N x N)
+!> @param[in] P Selection index list into Mat (active rows/columns)
+!> @param[in,out] Mat Large matrix updated in place
 !>
 !--------------------------------------------------------------------
         use iso_fortran_env, only: output_unit, error_unit
@@ -105,8 +130,7 @@ subroutine ZSLGEMM(side, op, N, M1, M2, A, P, Mat)
         alpha = 1.D0
         beta = 0.D0
 
-        !identify possible block structure
-        !only used in default case for n>4
+        ! Identify contiguous blocks in P (used only in large-N fallback path)
         IF(N > 8) THEN
           COMPACT = .TRUE.
           L = 1
@@ -132,6 +156,7 @@ subroutine ZSLGEMM(side, op, N, M1, M2, A, P, Mat)
               DIMLIST(NUMBLOCKS)=L
           ENDIF
         ELSEIF(N>1) THEN
+          ! Build WORK = op(A) once for the small unrolled kernels
           ALLOCATE(WORK(N,N))
           IF( op_id==0) THEN
             CALL ZLACPY('A', N, N, A(1,1), N, WORK(1,1), N)
@@ -151,7 +176,7 @@ subroutine ZSLGEMM(side, op, N, M1, M2, A, P, Mat)
         ENDIF
 
         IF ( LEFT ) THEN
-          ! multiply op(A) from the left  [ Mat = op(A)*Mat ]
+          ! Left application: Mat <- op(A_active) * Mat
 
           SELECT CASE(N)
           CASE (1)
@@ -163,25 +188,6 @@ subroutine ZSLGEMM(side, op, N, M1, M2, A, P, Mat)
             endif
           CASE (2)
             ! perform inplace matmult
-!             L=M2/4
-!             DO I=1,4*L-1,4
-!               Z(1)=Mat(P(1),I)
-!               Z(2)=Mat(P(2),I)
-!               Z(3)=Mat(P(1),I+1)
-!               Z(4)=Mat(P(2),I+1)
-!               Z(5)=Mat(P(1),I+2)
-!               Z(6)=Mat(P(2),I+2)
-!               Z(7)=Mat(P(1),I+3)
-!               Z(8)=Mat(P(2),I+3)
-!               Mat(P(1),I)=WORK(1,1)*Z(1)+WORK(1,2)*Z(2)
-!               Mat(P(2),I)=WORK(2,1)*Z(1)+WORK(2,2)*Z(2)
-!               Mat(P(1),I+1)=WORK(1,1)*Z(3)+WORK(1,2)*Z(4)
-!               Mat(P(2),I+1)=WORK(2,1)*Z(3)+WORK(2,2)*Z(4)
-!               Mat(P(1),I+2)=WORK(1,1)*Z(5)+WORK(1,2)*Z(6)
-!               Mat(P(2),I+2)=WORK(2,1)*Z(5)+WORK(2,2)*Z(6)
-!               Mat(P(1),I+3)=WORK(1,1)*Z(7)+WORK(1,2)*Z(8)
-!               Mat(P(2),I+3)=WORK(2,1)*Z(7)+WORK(2,2)*Z(8)
-!             ENDDO
             DO I=1,M2!4*L,M2
               Z(1)=Mat(P(1),I)
               Z(2)=Mat(P(2),I)
@@ -191,21 +197,6 @@ subroutine ZSLGEMM(side, op, N, M1, M2, A, P, Mat)
             DEALLOCATE(WORK)
           CASE (3)
             ! perform inplace matmult
-!             L=M2/2
-!             DO I=1,2*L-1,2
-!               Z(1)=Mat(P(1),I)
-!               Z(2)=Mat(P(2),I)
-!               Z(3)=Mat(P(3),I)
-!               Z(4)=Mat(P(1),I+1)
-!               Z(5)=Mat(P(2),I+1)
-!               Z(6)=Mat(P(3),I+1)
-!               Mat(P(1),I)=WORK(1,1)*Z(1)+WORK(1,2)*Z(2)+WORK(1,3)*Z(3)
-!               Mat(P(2),I)=WORK(2,1)*Z(1)+WORK(2,2)*Z(2)+WORK(2,3)*Z(3)
-!               Mat(P(3),I)=WORK(3,1)*Z(1)+WORK(3,2)*Z(2)+WORK(3,3)*Z(3)
-!               Mat(P(1),I+1)=WORK(1,1)*Z(4)+WORK(1,2)*Z(5)+WORK(1,3)*Z(6)
-!               Mat(P(2),I+1)=WORK(2,1)*Z(4)+WORK(2,2)*Z(5)+WORK(2,3)*Z(6)
-!               Mat(P(3),I+1)=WORK(3,1)*Z(4)+WORK(3,2)*Z(5)+WORK(3,3)*Z(6)
-!             ENDDO
             DO I=1,M2!2*L,M2
               Z(1)=Mat(P(1),I)
               Z(2)=Mat(P(2),I)
@@ -322,33 +313,33 @@ subroutine ZSLGEMM(side, op, N, M1, M2, A, P, Mat)
             ENDDO
             DEALLOCATE(WORK)
           CASE DEFAULT
-            ! allocate memory and copy blocks of Mat to work
+            ! Generic path: gather active rows into contiguous workspace
             ALLOCATE(WORK(N,M2))
             DO I=1,NUMBLOCKS
               CALL ZLACPY('A', DIMLIST(I), M2, Mat(P(IDXLIST(I)),1), M1, WORK(IDXLIST(I),1), N)
             ENDDO
 
-            ! Perform Mat multiplication
+            ! Multiply gathered block and scatter back if needed
             IF(COMPACT) THEN
-              !write result directly into mat
+              ! Compact case: P forms one contiguous block, write directly
               CALL ZGEMM(op,'N', N, M2, N, alpha, A(1, 1), N, WORK(1, 1), N, beta, Mat(P(1), 1), M1)
             ELSE
-              !additional space for result
+              ! Non-compact case: use temporary result then scatter by blocks
               ALLOCATE(WORK2(N,M2))
               CALL ZGEMM(op,'N', N, M2, N, alpha, A(1, 1), N, WORK(1, 1), N, beta, WORK2(1, 1), N)
-              !distribute result back into mat using blocks
+              ! Scatter result block-by-block back into Mat
               DO I=1,NUMBLOCKS
                 CALL ZLACPY('A', DIMLIST(I), M2, WORK2(IDXLIST(I),1), N, Mat(P(IDXLIST(I)),1), M1)
               ENDDO
-              !free result memory
+              ! Free temporary result storage
               DEALLOCATE(WORK2)
             ENDIF
-            !free memory of first mat copy
+            ! Free gather buffers and block metadata
             DEALLOCATE(WORK,IDXLIST,DIMLIST)
           END SELECT
 
        ELSE
-          ! multiply op(A) from the right [ Mat = Mat*op(A) ]
+         ! Right application: Mat <- Mat * op(A_active)
 
           SELECT CASE(N)
           CASE (1)
@@ -485,28 +476,28 @@ subroutine ZSLGEMM(side, op, N, M1, M2, A, P, Mat)
             ENDDO
             DEALLOCATE(WORK)
           CASE DEFAULT
-            ! allocate memory and copy blocks of Mat to work
+            ! Generic path: gather active columns into contiguous workspace
             ALLOCATE(WORK(M1,N))
             DO I=1,NUMBLOCKS
               CALL ZLACPY('A', M1, DIMLIST(I), Mat(1,P(IDXLIST(I))), M1, WORK(1,IDXLIST(I)), M1)
             ENDDO
 
-            ! Perform Mat multiplication
+            ! Multiply gathered block and scatter back if needed
             IF(COMPACT) THEN
-              !write result directly into mat
+              ! Compact case: P forms one contiguous block, write directly
               CALL ZGEMM('N',op, M1, N, N, alpha, WORK(1, 1), M1, A(1, 1), N, beta, Mat(1, P(1)), M1)
             ELSE
-              !additional space for result
+              ! Non-compact case: use temporary result then scatter by blocks
               ALLOCATE(WORK2(M1,N))
               CALL ZGEMM('N',op, M1, N, N, alpha, WORK(1, 1), M1, A(1, 1), N, beta, WORK2(1, 1), M1)
-              !distribute result back into mat using blocks
+              ! Scatter result block-by-block back into Mat
               DO I=1,NUMBLOCKS
                 CALL ZLACPY('A', M1, DIMLIST(I), WORK2(1,IDXLIST(I)), M1, Mat(1,P(IDXLIST(I))), M1)
               ENDDO
-              !free result memory
+              ! Free temporary result storage
               DEALLOCATE(WORK2)
             ENDIF
-            !free memory of first mat copy
+            ! Free gather buffers and block metadata
             DEALLOCATE(WORK,IDXLIST,DIMLIST)
           END SELECT
 
@@ -516,24 +507,31 @@ end subroutine ZSLGEMM
 
 
 subroutine ZSLHEMM(side, uplo, N, M1, M2, A, P, Mat)
-! Small Large  hermitian matrix multiplication
-
 !--------------------------------------------------------------------
 !> @author
 !> ALF-project
 !
 !> @brief
-!> P^T A P is hermitian
-!> !!!!!  Side = L
-!>   M = op( P^T A P) * M
-!>   Side = R
-!>   M =  M * op( P^T A P)
-!>   On input: P =  Op%P and A = Op%O
-!> !!!!!   type
-!>   op = N  -->  None
-!>   op = T  -->  Transposed
-!>   op = C  -->  Transposed + Complex conjugation. Same as N.
-!> !!!!! Mat has dimensions M1,M2
+!> Hermitian small-large multiplication with index selection.
+!
+!> @details
+!> Same structure as ZSLGEMM but specialized for Hermitian A.
+!> Only one triangular part is provided via uplo and mirrored internally.
+!>
+!> - side = 'L': selected rows of Mat are left-multiplied by A
+!> - side = 'R': selected columns of Mat are right-multiplied by A
+!>
+!> For N <= 8, explicit unrolled kernels are used.
+!> For larger N, BLAS ZHEMM is used with gather/scatter logic.
+!
+!> @param[in] side 'L' or 'R' (left/right application)
+!> @param[in] uplo 'U' or 'L' triangular part of A provided
+!> @param[in] N Dimension of small matrix A
+!> @param[in] M1 Number of rows of Mat
+!> @param[in] M2 Number of columns of Mat
+!> @param[in] A Hermitian matrix storage (N x N)
+!> @param[in] P Selection index list into Mat (active rows/columns)
+!> @param[in,out] Mat Large matrix updated in place
 !>
 !--------------------------------------------------------------------
         use iso_fortran_env, only: output_unit, error_unit
@@ -556,8 +554,7 @@ subroutine ZSLHEMM(side, uplo, N, M1, M2, A, P, Mat)
         alpha = 1.D0
         beta = 0.D0
 
-        !identify possible block structure
-        !only used in default case for n>4
+        ! Identify contiguous blocks in P (used only in large-N fallback path)
         IF(N > 8) THEN
           COMPACT = .TRUE.
           L = 1
@@ -584,6 +581,7 @@ subroutine ZSLHEMM(side, uplo, N, M1, M2, A, P, Mat)
               DIMLIST(NUMBLOCKS)=L
           ENDIF
         ELSEIF(N>1) THEN
+          ! Build full Hermitian WORK from one triangular part (uplo)
           ALLOCATE(WORK(N,N))
           CALL ZLACPY(uplo, N, N, A(1,1), N, WORK(1,1), N)
           ! Fill the rest of WORK (thereby ignoring uplo)
@@ -612,25 +610,6 @@ subroutine ZSLHEMM(side, uplo, N, M1, M2, A, P, Mat)
             CALL ZSCAL(M2,A(1,1),Mat(P(1),1),M1)
           CASE (2)
             ! perform inplace matmult
-!             L=M2/4
-!             DO I=1,4*L-1,4
-!               Z(1)=Mat(P(1),I)
-!               Z(2)=Mat(P(2),I)
-!               Z(3)=Mat(P(1),I+1)
-!               Z(4)=Mat(P(2),I+1)
-!               Z(5)=Mat(P(1),I+2)
-!               Z(6)=Mat(P(2),I+2)
-!               Z(7)=Mat(P(1),I+3)
-!               Z(8)=Mat(P(2),I+3)
-!               Mat(P(1),I)=WORK(1,1)*Z(1)+WORK(1,2)*Z(2)
-!               Mat(P(2),I)=WORK(2,1)*Z(1)+WORK(2,2)*Z(2)
-!               Mat(P(1),I+1)=WORK(1,1)*Z(3)+WORK(1,2)*Z(4)
-!               Mat(P(2),I+1)=WORK(2,1)*Z(3)+WORK(2,2)*Z(4)
-!               Mat(P(1),I+2)=WORK(1,1)*Z(5)+WORK(1,2)*Z(6)
-!               Mat(P(2),I+2)=WORK(2,1)*Z(5)+WORK(2,2)*Z(6)
-!               Mat(P(1),I+3)=WORK(1,1)*Z(7)+WORK(1,2)*Z(8)
-!               Mat(P(2),I+3)=WORK(2,1)*Z(7)+WORK(2,2)*Z(8)
-!             ENDDO
             DO I=1,M2!4*L,M2
               Z(1)=Mat(P(1),I)
               Z(2)=Mat(P(2),I)
@@ -640,21 +619,6 @@ subroutine ZSLHEMM(side, uplo, N, M1, M2, A, P, Mat)
             DEALLOCATE(WORK)
           CASE (3)
             ! perform inplace matmult
-!             L=M2/2
-!             DO I=1,2*L-1,2
-!               Z(1)=Mat(P(1),I)
-!               Z(2)=Mat(P(2),I)
-!               Z(3)=Mat(P(3),I)
-!               Z(4)=Mat(P(1),I+1)
-!               Z(5)=Mat(P(2),I+1)
-!               Z(6)=Mat(P(3),I+1)
-!               Mat(P(1),I)=WORK(1,1)*Z(1)+WORK(1,2)*Z(2)+WORK(1,3)*Z(3)
-!               Mat(P(2),I)=WORK(2,1)*Z(1)+WORK(2,2)*Z(2)+WORK(2,3)*Z(3)
-!               Mat(P(3),I)=WORK(3,1)*Z(1)+WORK(3,2)*Z(2)+WORK(3,3)*Z(3)
-!               Mat(P(1),I+1)=WORK(1,1)*Z(4)+WORK(1,2)*Z(5)+WORK(1,3)*Z(6)
-!               Mat(P(2),I+1)=WORK(2,1)*Z(4)+WORK(2,2)*Z(5)+WORK(2,3)*Z(6)
-!               Mat(P(3),I+1)=WORK(3,1)*Z(4)+WORK(3,2)*Z(5)+WORK(3,3)*Z(6)
-!             ENDDO
             DO I=1,M2!2*L,M2
               Z(1)=Mat(P(1),I)
               Z(2)=Mat(P(2),I)
@@ -965,24 +929,32 @@ end subroutine ZSLHEMM
 
 
 subroutine ZDSLSYMM(side, uplo, N, M1, M2, A, P, Mat)
-! Mixed Complex-Real Small Large symmetric matrix multiplication
-
 !--------------------------------------------------------------------
 !> @author
 !> ALF-project
 !
 !> @brief
-!> P^T A P is symmetric
-!> !!!!!  Side = L
-!>   M = op( P^T A P) * M
-!>   Side = R
-!>   M =  M * op( P^T A P)
-!>   On input: P =  Op%P and A = Op%O
-!> !!!!!   type
-!>   op = N  -->  None
-!>   op = T  -->  Transposed
-!>   op = C  -->  Transposed + Complex conjugation. Same as N.
-!> !!!!! Mat has dimensions M1,M2
+!> Mixed real/complex symmetric small-large multiplication.
+!
+!> @details
+!> Applies a real symmetric matrix A to a complex matrix Mat over a selected
+!> subspace described by the index list P.
+!>
+!> - side = 'L': selected rows of Mat are left-multiplied by A
+!> - side = 'R': selected columns of Mat are right-multiplied by A
+!>
+!> For N <= 8, explicit unrolled kernels are used.
+!> For larger N, this routine uses ZLARCM / ZLACRM (real-complex matrix
+!> products) with gather/scatter logic because A is real and Mat is complex.
+!
+!> @param[in] side 'L' or 'R' (left/right application)
+!> @param[in] uplo 'U' or 'L' triangular part of A provided
+!> @param[in] N Dimension of small matrix A
+!> @param[in] M1 Number of rows of Mat
+!> @param[in] M2 Number of columns of Mat
+!> @param[in] A Real symmetric matrix storage (N x N)
+!> @param[in] P Selection index list into Mat (active rows/columns)
+!> @param[in,out] Mat Complex large matrix updated in place
 !>
 !--------------------------------------------------------------------
         use iso_fortran_env, only: output_unit, error_unit
@@ -995,7 +967,7 @@ subroutine ZDSLSYMM(side, uplo, N, M1, M2, A, P, Mat)
         INTEGER                  , INTENT(IN)   , DIMENSION(N)   :: P
 
         REAL (KIND=KIND(0.D0)), DIMENSION(:,:), ALLOCATABLE :: WORK
-        REAL (KIND=KIND(0.D0)), DIMENSION(:), ALLOCATABLE :: RWORK ! required for the ZLACRM calls
+        REAL (KIND=KIND(0.D0)), DIMENSION(:), ALLOCATABLE :: RWORK ! workspace for ZLARCM/ZLACRM
         COMPLEX (KIND=KIND(0.D0)), DIMENSION(:,:), ALLOCATABLE :: WORK2, WORKCMPLX
         Complex (Kind = Kind(0.D0)) :: alpha, beta, Z(8)
         INTEGER :: I,L,IDX, NUMBLOCKS
@@ -1005,10 +977,9 @@ subroutine ZDSLSYMM(side, uplo, N, M1, M2, A, P, Mat)
         alpha = 1.D0
         beta = 0.D0
 
-        !identify possible block structure
-        !only used in default case for n>4
+        ! Identify contiguous blocks in P (used only in large-N fallback path)
         IF(N > 8) THEN
-          IF(uplo=='L' .or. uplo=='l') THEN ! uplo == l unimplemented and never used in this case
+          IF(uplo=='L' .or. uplo=='l') THEN ! lower-triangular large-N path currently unsupported
             Call Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
           ENDIF
           COMPACT = .TRUE.
@@ -1036,6 +1007,7 @@ subroutine ZDSLSYMM(side, uplo, N, M1, M2, A, P, Mat)
               DIMLIST(NUMBLOCKS)=L
           ENDIF
         ELSEIF(N>1) THEN
+          ! Build full symmetric WORK from one triangular part (uplo)
           ALLOCATE(WORK(N,N))
           CALL DLACPY(uplo, N, N, A(1,1), N, WORK(1,1), N)
           ! Fill the rest of WORK (thereby ignoring uplo)
@@ -1064,25 +1036,6 @@ subroutine ZDSLSYMM(side, uplo, N, M1, M2, A, P, Mat)
             CALL ZDSCAL(M2,A(1,1),Mat(P(1),1),M1)
           CASE (2)
             ! perform inplace matmult
-!             L=M2/4
-!             DO I=1,4*L-1,4
-!               Z(1)=Mat(P(1),I)
-!               Z(2)=Mat(P(2),I)
-!               Z(3)=Mat(P(1),I+1)
-!               Z(4)=Mat(P(2),I+1)
-!               Z(5)=Mat(P(1),I+2)
-!               Z(6)=Mat(P(2),I+2)
-!               Z(7)=Mat(P(1),I+3)
-!               Z(8)=Mat(P(2),I+3)
-!               Mat(P(1),I)=WORK(1,1)*Z(1)+WORK(1,2)*Z(2)
-!               Mat(P(2),I)=WORK(2,1)*Z(1)+WORK(2,2)*Z(2)
-!               Mat(P(1),I+1)=WORK(1,1)*Z(3)+WORK(1,2)*Z(4)
-!               Mat(P(2),I+1)=WORK(2,1)*Z(3)+WORK(2,2)*Z(4)
-!               Mat(P(1),I+2)=WORK(1,1)*Z(5)+WORK(1,2)*Z(6)
-!               Mat(P(2),I+2)=WORK(2,1)*Z(5)+WORK(2,2)*Z(6)
-!               Mat(P(1),I+3)=WORK(1,1)*Z(7)+WORK(1,2)*Z(8)
-!               Mat(P(2),I+3)=WORK(2,1)*Z(7)+WORK(2,2)*Z(8)
-!             ENDDO
             DO I=1,M2!4*L,M2
               Z(1)=Mat(P(1),I)
               Z(2)=Mat(P(2),I)
@@ -1092,21 +1045,6 @@ subroutine ZDSLSYMM(side, uplo, N, M1, M2, A, P, Mat)
             DEALLOCATE(WORK)
           CASE (3)
             ! perform inplace matmult
-!             L=M2/2
-!             DO I=1,2*L-1,2
-!               Z(1)=Mat(P(1),I)
-!               Z(2)=Mat(P(2),I)
-!               Z(3)=Mat(P(3),I)
-!               Z(4)=Mat(P(1),I+1)
-!               Z(5)=Mat(P(2),I+1)
-!               Z(6)=Mat(P(3),I+1)
-!               Mat(P(1),I)=WORK(1,1)*Z(1)+WORK(1,2)*Z(2)+WORK(1,3)*Z(3)
-!               Mat(P(2),I)=WORK(2,1)*Z(1)+WORK(2,2)*Z(2)+WORK(2,3)*Z(3)
-!               Mat(P(3),I)=WORK(3,1)*Z(1)+WORK(3,2)*Z(2)+WORK(3,3)*Z(3)
-!               Mat(P(1),I+1)=WORK(1,1)*Z(4)+WORK(1,2)*Z(5)+WORK(1,3)*Z(6)
-!               Mat(P(2),I+1)=WORK(2,1)*Z(4)+WORK(2,2)*Z(5)+WORK(2,3)*Z(6)
-!               Mat(P(3),I+1)=WORK(3,1)*Z(4)+WORK(3,2)*Z(5)+WORK(3,3)*Z(6)
-!             ENDDO
             DO I=1,M2!2*L,M2
               Z(1)=Mat(P(1),I)
               Z(2)=Mat(P(2),I)
@@ -1229,7 +1167,7 @@ subroutine ZDSLSYMM(side, uplo, N, M1, M2, A, P, Mat)
               CALL ZLACPY('A', DIMLIST(I), M2, Mat(P(IDXLIST(I)),1), M1, WORKCMPLX(IDXLIST(I),1), N)
             ENDDO
 
-            ! Perform Mat multiplication
+            ! Perform real(A) x complex(Mat) multiplication
             IF(COMPACT) THEN
               !write result directly into mat
               allocate (RWORK(2*N*M2))
@@ -1394,7 +1332,7 @@ subroutine ZDSLSYMM(side, uplo, N, M1, M2, A, P, Mat)
               CALL ZLACPY('A', M1, DIMLIST(I), Mat(1,P(IDXLIST(I))), M1, WORKCMPLX(1,IDXLIST(I)), M1)
             ENDDO
 
-            ! Perform Mat multiplication
+            ! Perform complex(Mat) x real(A) multiplication
             IF(COMPACT) THEN ! B*A + C
               ALLOCATE(RWORK(2*M1*N))
               !write result directly into mat

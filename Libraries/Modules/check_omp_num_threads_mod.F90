@@ -1,4 +1,4 @@
-!  Copyright (C) 2025 The ALF project
+!  Copyright (C) 2025-2026 The ALF project
 !
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -31,20 +31,73 @@
 
 #ifdef _OPENMP
 module check_omp_num_threads_mod
+!--------------------------------------------------------------------
+!> @author ALF-project
+!> @brief OpenMP thread configuration validation and safety module.
+!
+!> @details
+!> This module provides functionality to check and configure OpenMP thread
+!> settings at runtime. It ensures that parallel sections have explicit thread
+!> counts, preventing unexpected behavior from unset environment variables.
+!>
+!> The main purpose is to provide a safety mechanism: if OMP_NUM_THREADS is not
+!> explicitly set by the user, the module defaults to single-threaded execution
+!> rather than using all available cores (which may not be desired for all
+!> simulation scenarios).
+!
+!> @note
+!> This module is only available when ALF is compiled with OpenMP support
+!> (_OPENMP preprocessor flag). It should be called early in program initialization
+!> before any parallel regions are executed.
+!
+!> @see
+!> OpenMP specification: https://www.openmp.org/specifications/
+!--------------------------------------------------------------------
     use omp_lib
     implicit none
     private
     public :: check_omp_num_threads
 
     contains
+    
     subroutine check_omp_num_threads()
-        character(len=64) :: value
-        integer :: length
+!--------------------------------------------------------------------
+!> @author
+!> ALF-project
+!
+!> @brief
+!> Validates OMP_NUM_THREADS environment variable and sets safe defaults.
+!
+!> @details
+!> This subroutine checks whether the OMP_NUM_THREADS environment variable
+!> has been set by the user:
+!> - If set: Reports the value to stdout (no modification)
+!> - If unset: Sets the number of OpenMP threads to 1 (single-threaded mode)
+!>   and reports this action to stdout
+!>
+!> This ensures predictable behavior and prevents accidental use of all
+!> available CPU cores, which could interfere with other running jobs on
+!> shared systems or exceed requested resources in HPC environments.
+!
+!> @note
+!> Should be called before any parallel regions are encountered in the code.
+!> The environment variable OMP_NUM_THREADS takes precedence if set.
+!
+!> @warning
+!> This subroutine modifies the global OpenMP thread count via
+!> omp_set_num_threads() if OMP_NUM_THREADS is not set.
+!--------------------------------------------------------------------
+        character(len=64) :: value   ! Buffer to store environment variable value
+        integer :: length            ! Length of retrieved environment variable
             
+        ! Query the OMP_NUM_THREADS environment variable
         call get_environment_variable("OMP_NUM_THREADS", value, length)
+        
         if (length > 0) then
+            ! Environment variable is set - respect user's choice
             print*, "OMP_NUM_THREADS set to ", trim(value)
         else
+            ! Environment variable not set - use safe default of 1 thread
             print*, "OMP_NUM_THREADS unset, setting num_threads to 1"
             call omp_set_num_threads(1)
         endif

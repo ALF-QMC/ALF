@@ -1,4 +1,4 @@
-!  Copyright (C) 2018-2023 The ALF project
+!  Copyright (C) 2018-2026 The ALF project
 !
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -33,11 +33,12 @@
      Module Lattices_v3
 
 !--------------------------------------------------------------------
-!> @author
-!> ALF-project
-!
-!> @brief
-!> This module generates one and two dimensional Bravais lattices and the unit cell
+!> @author ALF-project
+!> @brief Generate 1D/2D Bravais lattice geometry, indexing maps, and Fourier helpers.
+!> @details
+!> Provides construction of periodic super-cell lattices, reciprocal-space
+!> quantization vectors, nearest-neighbor lookup tables, inverse index maps,
+!> and real/k-space Fourier transforms for scalar and matrix observables.
 !
 !--------------------------------------------------------------------
          Use Matrix
@@ -49,6 +50,7 @@
                    Fourier_R_to_K, Inv_K, Inv_R, Iscalar, npbc, Xnorm, Print_latt, &
                    clear_lattice
 
+         !> @brief Unit-cell definition (orbital content and coordinates).
          Type Unit_cell
             !> Number of orbitals
             Integer :: Norb
@@ -58,6 +60,21 @@
             Real (Kind=Kind(0.d0)), pointer :: Orb_pos_p(:,:)
          end type Unit_cell
 
+         !> @brief Lattice geometry container and precomputed lookup tables.
+         !> @details Holds primitive/reciprocal vectors and real-/k-space maps
+         !> used for PBC wrapping, neighbor lookup, inverse indexing, and
+         !> Fourier transforms.
+         !> N   : Number of sites / k-points in the Bravais cluster.
+         !> Ns  : Number of real-space sites (equals N for Bravais lattices).
+         !> list/invlist    : Real-space integer coordinates <-> linear index.
+         !> listk/invlistk  : Reciprocal-space integer coordinates <-> linear index.
+         !> nnlist/nnlistk  : Nearest-neighbor lookup tables in R/K space.
+         !> imj             : Difference table imj(i,j)=index(i-j) with PBC.
+         !> a1_p,a2_p       : Primitive vectors (real space).
+         !> b1_p,b2_p       : Primitive vectors (k-space quantization).
+         !> BZ1_p,BZ2_p     : Reciprocal lattice basis vectors.
+         !> L1_p,L2_p       : Cluster super-cell vectors defining PBC tile.
+         !> b1_perp_p,b2_perp_p : Dual vectors used for inverse k-index mapping.
          Type Lattice
             Integer          :: N, Ns
             Integer, pointer :: list(:,:), invlist(:,:), nnlist(:,:,:), nnlistk(:,:,:), listk(:,:), &
@@ -66,29 +83,42 @@
                  &                    L1_p(:), L2_p(:), b1_perp_p(:), b2_perp_p(:)
          end Type Lattice
 
+         !> Generic scalar product interface for integer/real vectors.
          Interface Iscalar
             module procedure Iscalar_II, Iscalar_IR, Iscalar_RR
          end Interface
+         !> Periodic-boundary wrapping interface (integer and real variants).
          Interface npbc
             module procedure npbc_I, npbc_R, npbc_R_B
          end Interface
+         !> Euclidean norm interface for integer and real vectors.
          Interface Xnorm
             module procedure Xnorm_I, Xnorm_R
          end Interface
+         !> Fourier transforms from reciprocal space to real space.
          Interface Fourier_K_to_R
             module procedure FT_K_to_R, FT_K_to_R_Mat, FT_K_to_R_C,  FT_K_to_R_Mat_C
          end Interface
+         !> Fourier transforms from real space to reciprocal space.
          Interface Fourier_R_to_K
             module procedure FT_R_to_K, FT_R_to_K_mat, FT_R_to_K_C
          end Interface
 
        Contains
 
+         !--------------------------------------------------------------------
+         !> @brief Construct Bravais lattice geometry and indexing tables.
+         !> @details Builds a 2D lattice from primitive vectors and super-cell
+         !> vectors. Computes reciprocal vectors, k-space quantization vectors,
+         !> real/k lookup tables, nearest-neighbor maps, and site-difference map.
+         !> @param[in] L1_p First super-cell vector defining periodicity.
+         !> @param[in] L2_p Second super-cell vector defining periodicity.
+         !> @param[in] a1_p First primitive lattice vector.
+         !> @param[in] a2_p Second primitive lattice vector.
+         !> @param[out] Latt Fully initialized lattice descriptor.
+         !> @note Assumes a two-dimensional Bravais construction.
+         !--------------------------------------------------------------------
          subroutine Make_lattice(L1_p, L2_p, a1_p, a2_p, Latt)
-
-           ! This is for a general tilted square lattice defined by the vector a1, a2
-           ! L1_p,  L2_p define cluster topology. ( Tilted etc.)
-           ! L1_p = n*a1_p + m *a2_p
 
 
            Implicit none
@@ -335,6 +365,10 @@
 
          end subroutine MAKE_LATTICE
 
+         !--------------------------------------------------------------------
+         !> @brief Deallocate all dynamically allocated members of lattice type.
+         !> @param[in,out] Latt Lattice object to clear.
+         !--------------------------------------------------------------------
          subroutine Clear_Lattice(Latt)
            Implicit none
            Type (Lattice) :: Latt
@@ -347,7 +381,15 @@
 
          end subroutine Clear_Lattice
 
- !********
+         !--------------------------------------------------------------------
+         !> @brief Apply periodic boundary conditions to integer lattice vector.
+         !> @details Wraps integer coordinates into the principal super-cell
+         !> defined by L1_p and L2_p.
+         !> @param[out] nr_p Wrapped integer coordinate.
+         !> @param[in] n_p Input integer coordinate.
+         !> @param[in] L1_p First super-cell vector.
+         !> @param[in] L2_p Second super-cell vector.
+         !--------------------------------------------------------------------
          subroutine npbc_I(nr_p, n_p, L1_p, L2_p)
 
            Implicit none
@@ -381,6 +423,13 @@
          end subroutine npbc_I
 
 
+         !--------------------------------------------------------------------
+         !> @brief Apply periodic boundary conditions to real-space vector.
+         !> @param[out] nr_p Wrapped real-space coordinate.
+         !> @param[in] n_p Input real-space coordinate.
+         !> @param[in] L1_p First super-cell vector.
+         !> @param[in] L2_p Second super-cell vector.
+         !--------------------------------------------------------------------
          subroutine npbc_R(nr_p, n_p, L1_p, L2_p)
 
            Implicit none
@@ -411,6 +460,17 @@
          end subroutine npbc_R
 
 !********
+         !--------------------------------------------------------------------
+         !> @brief Apply PBC to real-space vector and track winding numbers.
+         !> @details Returns wrapped vector nr_p and updates integer winding
+         !> counters N1,N2 such that n_p = nr_p + N1*L1_p + N2*L2_p.
+         !> @param[out] nr_p Wrapped real-space coordinate.
+         !> @param[in] n_p Input real-space coordinate.
+         !> @param[in] L1_p First super-cell vector.
+         !> @param[in] L2_p Second super-cell vector.
+         !> @param[in,out] N1 Winding number along L1_p.
+         !> @param[in,out] N2 Winding number along L2_p.
+         !--------------------------------------------------------------------
          subroutine npbc_R_B(nr_p, n_p, L1_p, L2_p, N1, N2 )
 
            !n_p = nr_p + N1* L1_p  + N2 * L2_p
@@ -460,6 +520,12 @@
          end subroutine npbc_R_B
 
  !********
+         !--------------------------------------------------------------------
+         !> @brief Map k-space coordinate to internal linear momentum index.
+         !> @param[in] XK_P Momentum vector in Cartesian components.
+         !> @param[in] Latt Lattice descriptor.
+         !> @return Linear index in listk/invlistk tables.
+         !--------------------------------------------------------------------
          integer Function Inv_K(XK_P,Latt)
 
            Implicit None
@@ -506,6 +572,12 @@
 
 
  !********
+         !--------------------------------------------------------------------
+         !> @brief Map real-space coordinate to internal linear site index.
+         !> @param[in] XR_P Real-space vector in Cartesian components.
+         !> @param[in] Latt Lattice descriptor.
+         !> @return Linear index in list/invlist tables.
+         !--------------------------------------------------------------------
          integer Function Inv_R(XR_P,Latt)
 
            Implicit None
@@ -528,6 +600,12 @@
          end Function Inv_R
  !********
 
+         !--------------------------------------------------------------------
+         !> @brief Integer-integer scalar product.
+         !> @param[in] i_p Integer vector.
+         !> @param[in] j_p Integer vector.
+         !> @return Dot product sum_i i_p(i)*j_p(i).
+         !--------------------------------------------------------------------
          integer function Iscalar_II(i_p, j_p)
            Implicit none
            integer, dimension(:), intent(in) :: i_p, j_p
@@ -542,6 +620,12 @@
          end function Iscalar_II
 
  !********
+         !--------------------------------------------------------------------
+         !> @brief Real-integer scalar product.
+         !> @param[in] x_p Real vector.
+         !> @param[in] j_p Integer vector.
+         !> @return Dot product sum_i x_p(i)*j_p(i).
+         !--------------------------------------------------------------------
          Real (Kind=Kind(0.d0))  function Iscalar_IR(x_p, j_p)
            Implicit none
            Real (Kind=Kind(0.d0)), dimension(:), intent(in) ::  x_p
@@ -557,6 +641,12 @@
          end function Iscalar_IR
  !********
 
+         !--------------------------------------------------------------------
+         !> @brief Real-real scalar product.
+         !> @param[in] x_p Real vector.
+         !> @param[in] y_p Real vector.
+         !> @return Dot product sum_i x_p(i)*y_p(i).
+         !--------------------------------------------------------------------
          Real (Kind=Kind(0.d0))  function Iscalar_RR(x_p, y_p)
            Implicit none
            Real (Kind = Kind(0.D0)), dimension(:), intent(in) ::  x_p, y_p
@@ -568,6 +658,11 @@
          end function Iscalar_RR
 
  !********
+         !--------------------------------------------------------------------
+         !> @brief Euclidean norm of integer vector.
+         !> @param[in] i_p Integer vector.
+         !> @return sqrt(sum_i i_p(i)^2).
+         !--------------------------------------------------------------------
          Real (Kind=Kind(0.d0)) function Xnorm_I(i_p)
            Implicit none
            integer, dimension(:), intent(in) :: i_p
@@ -581,6 +676,11 @@
          end function Xnorm_I
 
  !********
+         !--------------------------------------------------------------------
+         !> @brief Euclidean norm of real vector.
+         !> @param[in] x_p Real vector.
+         !> @return sqrt(sum_i x_p(i)^2).
+         !--------------------------------------------------------------------
          Real (Kind=Kind(0.d0)) function Xnorm_R(x_p)
            Implicit none
            Real (Kind=Kind(0.d0)), dimension(:), intent(in) :: x_p
@@ -594,6 +694,12 @@
          end function Xnorm_R
 
  !********
+         !--------------------------------------------------------------------
+         !> @brief Write lattice geometry diagnostics to output files.
+         !> @details Writes reciprocal vectors, real-space sites, k-space sites,
+         !> and nearest-neighbor mapping data for debugging/inspection.
+         !> @param[in] Latt Lattice descriptor.
+         !--------------------------------------------------------------------
          subroutine Print_latt(Latt)
 
            Implicit Real (Kind=Kind(0.d0)) (A-G,O-Z)
@@ -635,6 +741,13 @@
          end subroutine Print_latt
 
  !*******
+         !--------------------------------------------------------------------
+         !> @brief Fourier transform Mat_R field from k-space to real-space.
+         !> @param[in] Xin_K Input data indexed by (k,bin).
+         !> @param[out] Xout_R Output data indexed by (r,bin).
+         !> @param[in] Latt Lattice descriptor.
+         !> @note Uses cosine kernel and 1/N normalization.
+         !--------------------------------------------------------------------
          subroutine FT_K_to_R_Mat( Xin_K, Xout_R, Latt)
 
            Implicit none
@@ -672,6 +785,13 @@
          end subroutine FT_K_to_R_Mat
 
  !********
+         !--------------------------------------------------------------------
+         !> @brief Fourier transform Mat_C field from k-space to real-space.
+         !> @param[in] Xin_K Input complex matrix field in k-space.
+         !> @param[out] Xout_R Output complex matrix field in real-space.
+         !> @param[in] Latt Lattice descriptor.
+         !> @note Uses complex phase exp(i k.r) and 1/N normalization.
+         !--------------------------------------------------------------------
          subroutine FT_K_to_R_Mat_C( Xin_K, Xout_R, Latt)
 
            Implicit none
@@ -713,6 +833,12 @@
 
  !********
 
+         !--------------------------------------------------------------------
+         !> @brief Fourier transform real scalar field from k-space to real-space.
+         !> @param[in] Xin_K Input scalar field indexed by (k,bin).
+         !> @param[out] Xout_R Output scalar field indexed by (r,bin).
+         !> @param[in] Latt Lattice descriptor.
+         !--------------------------------------------------------------------
          subroutine FT_K_to_R( Xin_K, Xout_R, Latt)
 
            Implicit none
@@ -745,6 +871,12 @@
          end subroutine FT_K_to_R
 
 
+         !--------------------------------------------------------------------
+         !> @brief Fourier transform complex scalar field from k-space to real-space.
+         !> @param[in] Xin_K Input complex scalar field indexed by (k,bin).
+         !> @param[out] Xout_R Output complex scalar field indexed by (r,bin).
+         !> @param[in] Latt Lattice descriptor.
+         !--------------------------------------------------------------------
          subroutine FT_K_to_R_C( Xin_K, Xout_R, Latt)
 
            Implicit none
@@ -780,6 +912,13 @@
          end subroutine FT_K_to_R_C
 
 
+         !--------------------------------------------------------------------
+         !> @brief Fourier transform Mat_R field from real-space to k-space.
+         !> @param[in] Xin_R Input data indexed by (r,bin).
+         !> @param[out] Xout_K Output data indexed by (k,bin).
+         !> @param[in] Latt Lattice descriptor.
+         !> @note Uses cosine kernel and 1/N normalization.
+         !--------------------------------------------------------------------
          subroutine FT_R_to_K_mat( Xin_R, Xout_K, Latt)
 
            Implicit none
@@ -817,6 +956,12 @@
            deallocate(X_Mat)
          end subroutine FT_R_to_K_mat
 
+         !--------------------------------------------------------------------
+         !> @brief Fourier transform real scalar field from real-space to k-space.
+         !> @param[in] Xin_R Input real-space scalar field.
+         !> @param[out] Xout_K Output k-space scalar field.
+         !> @param[in] Latt Lattice descriptor.
+         !--------------------------------------------------------------------
          subroutine FT_R_to_K( Xin_R, Xout_K, Latt)
 
            Implicit none
@@ -847,6 +992,12 @@
          end subroutine FT_R_to_K
 
  !********
+         !--------------------------------------------------------------------
+         !> @brief Fourier transform complex scalar field from real-space to k-space.
+         !> @param[in] Xin_R Input complex real-space scalar field.
+         !> @param[out] Xout_K Output complex k-space scalar field.
+         !> @param[in] Latt Lattice descriptor.
+         !--------------------------------------------------------------------
          subroutine FT_R_to_K_C( Xin_R, Xout_K, Latt)
 
            Implicit none

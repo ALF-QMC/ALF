@@ -1,4 +1,4 @@
-!  Copyright (C) 2020 The ALF project
+!  Copyright (C) 2020-2026 The ALF project
 ! 
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -36,29 +36,89 @@ Module entanglement_mod
 #endif
 
 !--------------------------------------------------------------------
-!> @author 
-!> ALF-project
+!> @author ALF-project
+!> @brief Calculation of Renyi entanglement entropy and mutual information for quantum many-body systems.
 !
-!> @brief 
-!> This module generates one and two dimensional Bravais lattices.
+!> @details
+!> This module provides functionality for computing quantum entanglement measures
+!> using the replica trick in Monte Carlo simulations. The key observables are:
+!> - Renyi entanglement entropy: Measures quantum entanglement of subsystems
+!> - Mutual information: Quantifies correlations between separated regions
+!>
+!> The module implements the second Renyi entropy calculation via the replica trick,
+!> which requires pairing MPI replicas. The algorithm works by:
+!> 1. Partitioning MPI tasks into pairs of replicas
+!> 2. Computing reduced Green's functions on specified site patches
+!> 3. Exchanging and combining Green's functions between replica pairs
+!> 4. Calculating determinants to obtain the entanglement entropy
+!>
+!> The module supports three increasingly general patch specifications:
+!> - Independent: Same patch for all flavors and colors
+!> - Flavor-dependent: Different patches per flavor, same across colors
+!> - Fully general: Independent patches for each flavor-color combination
 !
+!> @note
+!> MPI is required for Renyi entropy calculations. Without MPI, only other
+!> observables from the Green's function are computed. An even number of MPI
+!> tasks is optimal; odd numbers result in one unpaired task.
+!
+!> @warning
+!> The replica trick algorithm modifies the global MPI communicator structure
+!> via Init_Entanglement_replicas(), which must be called before computing
+!> any entanglement observables.
+!
+!> @see
+!> For theoretical background: Phys. Rev. Lett. 104, 157201 (2010)
 !--------------------------------------------------------------------
-      ! Used for MPI
-      INTEGER, save, private :: ENTCOMM, ENT_RANK, ENT_SIZE=0, Norm, group
-      Real (kind=kind(0.d0)), save, private :: weight
+      ! Module-level MPI state variables for replica pairing
+      INTEGER, save, private :: ENTCOMM      !< MPI communicator for replica pairs
+      INTEGER, save, private :: ENT_RANK     !< Rank within ENTCOMM (0 or 1)
+      INTEGER, save, private :: ENT_SIZE=0   !< Size of ENTCOMM (should be 2)
+      INTEGER, save, private :: Norm         !< Normalization factor for averaging
+      INTEGER, save, private :: group        !< Global MPI group communicator
+      Real (kind=kind(0.d0)), save, private :: weight  !< Weight factor for replica averaging
 
+      !> Generic interface for computing Renyi entanglement entropy
+      !> Supports independent, flavor-dependent, and fully general patch specifications
       INTERFACE Calc_Renyi_Ent
-        !> Interface to Calc_Renyi_Ent function.
         MODULE PROCEDURE Calc_Renyi_Ent_gen_all, Calc_Renyi_Ent_indep, Calc_Renyi_Ent_gen_fl
       END INTERFACE
+      
+      !> Generic interface for computing mutual information between regions
+      !> Returns I(A:B) = S_A + S_B - S_AB where S denotes Renyi entropy
       INTERFACE Calc_Mutual_Inf
-        !> Interface to Calc_Mutual_Inf Subroutine.
         MODULE PROCEDURE Calc_Mutual_Inf_indep, Calc_Mutual_Inf_gen_fl, Calc_Mutual_Inf_gen_all
       END INTERFACE
       Contains
 !========================================================================
 
         Subroutine Init_Entanglement_replicas(Group_Comm)
+!--------------------------------------------------------------------
+!> @author
+!> ALF-project
+!
+!> @brief
+!> Initializes MPI communicator structure for replica-based entanglement calculations.
+!
+!> @details
+!> This subroutine partitions the MPI tasks into pairs of replicas for the
+!> replica trick algorithm. Each pair forms a sub-communicator ENTCOMM with
+!> 2 members (ranks 0 and 1). The pairing scheme is:
+!> - Tasks (0,1), (2,3), (4,5), ..., (2n, 2n+1)
+!>
+!> The subroutine also computes normalization factors needed for averaging
+!> entanglement observables across all replica pairs.
+!
+!> @param[in] Group_Comm MPI communicator containing all replicas (typically MPI_COMM_WORLD)
+!
+!> @note
+!> Must be called before any Calc_Renyi_Ent or Calc_Mutual_Inf functions.
+!> If the number of tasks is odd, one task remains unpaired and contributes
+!> zero to the entanglement observable.
+!
+!> @warning
+!> Only available when compiled with MPI support. Without MPI, this is a no-op.
+!--------------------------------------------------------------------
 #ifdef MPI
           Use mpi
 #endif
@@ -67,27 +127,54 @@ Module entanglement_mod
           
           Integer                           :: ISIZE, IRANK, IERR
 #ifdef MPI
-          ! Create subgroups of two replicas each
+          ! Query global communicator properties
           CALL MPI_COMM_SIZE(Group_Comm,ISIZE,IERR)
           CALL MPI_COMM_RANK(Group_Comm,IRANK,IERR)
+          
+          ! Create subgroups of two replicas each using integer division
+          ! Tasks 2n and 2n+1 get the same color (n) and thus share ENTCOMM
           CALL MPI_COMM_SPLIT(Group_Comm, IRANK / 2, IRANK, ENTCOMM, IERR)
           CALL MPI_COMM_RANK(ENTCOMM,ENT_RANK,IERR)
           CALL MPI_COMM_SIZE(ENTCOMM,ENT_SIZE,IERR)
-          Norm=ISIZE/2 ! number of pairs
-          norm=2*norm ! but each task of pair contributes
-          group=Group_Comm
-          weight=dble(ISIZE)/dble(Norm)
+          
+          ! Compute normalization factors for averaging over replica pairs
+          Norm=ISIZE/2        ! Number of replica pairs
+          norm=2*norm         ! Each task in a pair contributes independently
+          group=Group_Comm    ! Store global communicator
+          weight=dble(ISIZE)/dble(Norm)  ! Weight for proper averaging
 #endif
           
         end Subroutine Init_Entanglement_replicas
           
 !========================================================================
-        ! Calculation of the Renyi entanglement entropy
-        ! The algorithm works only for an MPI program
-        ! We partition the nodes into groups of 2 replicas:
-        ! ! (n, n+1), with n=0,2,...
         Subroutine Calc_Mutual_Inf_indep(GRC,List_A,Nsites_A,List_B,Nsites_B,N_SUN,Renyi_A,Renyi_B,Renyi_AB)
-
+!--------------------------------------------------------------------
+!> @author
+!> ALF-project
+!
+!> @brief
+!> Computes mutual information I(A:B) for two regions using independent patches.
+!
+!> @details
+!> The mutual information is computed as I(A:B) = S_A + S_B - S_AB where
+!> S denotes the exponentiated Renyi entropy. This measures the quantum
+!> correlations between regions A and B.
+!>
+!> This version uses the same patch specification (List, Nsites, N_SUN) for
+!> all flavor and color degrees of freedom.
+!
+!> @param[in] GRC Green's function array
+!> @param[in] List_A Site indices for region A
+!> @param[in] Nsites_A Number of sites in region A
+!> @param[in] List_B Site indices for region B
+!> @param[in] Nsites_B Number of sites in region B
+!> @param[in] N_SUN Number of color degrees of freedom
+!> @param[out] Renyi_A Exponentiated Renyi entropy of region A
+!> @param[out] Renyi_B Exponentiated Renyi entropy of region B
+!> @param[out] Renyi_AB Exponentiated Renyi entropy of combined region A∪B
+!
+!> @see Calc_Renyi_Ent_indep
+!--------------------------------------------------------------------
           Implicit none
           
           Complex (kind=kind(0.d0)), INTENT(IN)      :: GRC(:,:,:)
@@ -98,13 +185,16 @@ Module entanglement_mod
           Integer, Dimension(:), Allocatable :: List_AB
           Integer          :: I, J, IERR, INFO, Nsites_AB
 
+          ! Combine regions A and B into a single list
           Nsites_AB=Nsites_A+Nsites_B
-          
           allocate(List_AB(Nsites_AB))
           
+          ! Copy region A sites
           DO I = 1, Nsites_A
              List_AB(I) = List_A(I)
           END DO
+          
+          ! Append region B sites
           DO I = 1, Nsites_B
              List_AB(I+Nsites_A) = List_B(I)
           END DO
@@ -118,12 +208,31 @@ Module entanglement_mod
         End Subroutine Calc_Mutual_Inf_indep
           
 !========================================================================
-        ! Calculation of the Renyi entanglement entropy
-        ! The algorithm works only for an MPI program
-        ! We partition the nodes into groups of 2 replicas:
-        ! ! (n, n+1), with n=0,2,...
         Subroutine Calc_Mutual_Inf_gen_fl(GRC,List_A,Nsites_A,List_B,Nsites_B,N_SUN,Renyi_A,Renyi_B,Renyi_AB)
-
+!--------------------------------------------------------------------
+!> @author
+!> ALF-project
+!
+!> @brief
+!> Computes mutual information with flavor-dependent patches.
+!
+!> @details
+!> Similar to Calc_Mutual_Inf_indep, but allows different patch specifications
+!> for each flavor. Within each flavor, all color degrees of freedom use the
+!> same patch.
+!
+!> @param[in] GRC Green's function array
+!> @param[in] List_A Site lists for region A, List_A(:,f) for flavor f
+!> @param[in] Nsites_A Number of sites per flavor for region A
+!> @param[in] List_B Site lists for region B, List_B(:,f) for flavor f
+!> @param[in] Nsites_B Number of sites per flavor for region B
+!> @param[in] N_SUN Number of colors per flavor
+!> @param[out] Renyi_A Exponentiated Renyi entropy of region A
+!> @param[out] Renyi_B Exponentiated Renyi entropy of region B
+!> @param[out] Renyi_AB Exponentiated Renyi entropy of combined region A∪B
+!
+!> @see Calc_Renyi_Ent_gen_fl
+!--------------------------------------------------------------------
           Implicit none
           
           Complex (kind=kind(0.d0)), INTENT(IN)    :: GRC(:,:,:)
@@ -162,12 +271,30 @@ Module entanglement_mod
         End Subroutine Calc_Mutual_Inf_gen_fl
           
 !========================================================================
-        ! Calculation of the Renyi entanglement entropy
-        ! The algorithm works only for an MPI program
-        ! We partition the nodes into groups of 2 replicas:
-        ! ! (n, n+1), with n=0,2,...
         Subroutine Calc_Mutual_Inf_gen_all(GRC,List_A,Nsites_A,List_B,Nsites_B,Renyi_A,Renyi_B,Renyi_AB)
-
+!--------------------------------------------------------------------
+!> @author
+!> ALF-project
+!
+!> @brief
+!> Computes mutual information with fully general patch specifications.
+!
+!> @details
+!> Most general version allowing independent patch specifications for every
+!> combination of flavor and color degrees of freedom. List_A(:,f,c) specifies
+!> the patch for flavor f and color c.
+!
+!> @param[in] GRC Green's function array
+!> @param[in] List_A Site lists for region A, List_A(:,f,c) for flavor f, color c
+!> @param[in] Nsites_A Number of sites, Nsites_A(f,c) for flavor f, color c
+!> @param[in] List_B Site lists for region B, List_B(:,f,c) for flavor f, color c
+!> @param[in] Nsites_B Number of sites, Nsites_B(f,c) for flavor f, color c
+!> @param[out] Renyi_A Exponentiated Renyi entropy of region A
+!> @param[out] Renyi_B Exponentiated Renyi entropy of region B
+!> @param[out] Renyi_AB Exponentiated Renyi entropy of combined region A∪B
+!
+!> @see Calc_Renyi_Ent_gen_all
+!--------------------------------------------------------------------
           Implicit none
           
           Complex (kind=kind(0.d0)), INTENT(IN)    :: GRC(:,:,:)
@@ -215,25 +342,34 @@ Module entanglement_mod
 !> ALF Collaboration
 !>
 !> @brief
-!> Compute the Renyi entropy for patches of the same N sites for each 
-!> flavor and color degree of freedom. Returns expontiated Renyi entropy.
+!> Computes second Renyi entropy for a single patch specification across all flavors.
+!>
 !> @details
-!> @param [IN] GRC Complex(:,:,:)
-!> \verbatim
-!>  Greens function
-!> \endverbatim
-!> @param [IN] List  Integer(:)
-!> \verbatim
-!>  List of sites that each patch will use.
-!> \endverbatim
-!> @param [IN] Nsites   Integer
-!> \verbatim
-!>  Number of sites in each patch.
-!> \endverbatim
-!> @param [IN] N_SUN   Integer
-!> \verbatim
-!>  Number of color degrees of freedom.
-!> \endverbatim
+!> Returns exp(-S_2) where S_2 is the second Renyi entropy. The same patch
+!> (List, Nsites) is used for all flavor and color degrees of freedom.
+!>
+!> The algorithm:
+!> 1. Pairs replicas via MPI communicators (set up by Init_Entanglement_replicas)
+!> 2. Extracts reduced Green's functions for the specified sites
+!> 3. Exchanges Green's functions between replica pairs
+!> 4. Computes determinants of (1-G₁-G₂+2G₁G₂) matrices
+!> 5. Multiplies determinants across flavors and averages over replica pairs
+!>
+!> @param[in] GRC Green's function, GRC(i,j,f) for sites i,j and flavor f
+!> @param[in] List Site indices defining the entanglement patch
+!> @param[in] Nsites Number of sites in the patch
+!> @param[in] N_SUN Number of color degrees of freedom
+!
+!> @return Complex value of exp(-S_2), or 0 if MPI not available or odd number of replicas
+!
+!> @note
+!> Requires ENT_SIZE=2 (replica pairs). Returns 0 for unpaired replicas.
+!> Without MPI compilation, always returns 0 and prints a warning on first call.
+!
+!> @warning
+!> Init_Entanglement_replicas() must be called before using this function.
+!
+!> @see Init_Entanglement_replicas, Calc_Renyi_Ent_pair, Calc_Renyi_Ent_single
 !-------------------------------------------------------------------
 
           Complex (kind=kind(0.d0)) function Calc_Renyi_Ent_indep(GRC,List,Nsites,N_SUN)
@@ -326,26 +462,28 @@ Module entanglement_mod
 !> ALF Collaboration
 !>
 !> @brief
-!> Compute the Renyi entropy for a list of site patches that may differ for
-!> each flavor, but each given flavor patch f will be the same across
-!> NSUN(f) color degrees of freedom. Returns expontiated Renyi entropy.
+!> Computes Renyi entropy with flavor-dependent patches.
+!>
 !> @details
-!> @param [IN] GRC Complex(:,:,:)
-!> \verbatim
-!>  Greens function
-!> \endverbatim
-!> @param [IN] List  Integer(:,:)
-!> \verbatim
-!>  List(:,f) gives the list of sites that the flavor patch i contains.
-!> \endverbatim
-!> @param [IN] Nsites(:)   Integer
-!> \verbatim
-!>  Number of sites in each flavor patch.
-!> \endverbatim
-!> @param [IN] N_SUN(:)   Integer
-!> \verbatim
-!>  Number of color degrees of freedom for each flavor patch.
-!> \endverbatim
+!> Extension of Calc_Renyi_Ent_indep allowing different patches for each flavor.
+!> Within a given flavor f, all N_SUN(f) color degrees of freedom use the same
+!> patch List(:,f) with Nsites(f) sites.
+!>
+!> The algorithm sorts flavors by patch size for computational efficiency,
+!> processing larger patches first to optimize memory allocation.
+!>
+!> @param[in] GRC Green's function array
+!> @param[in] List Site lists, List(:,f) for flavor f
+!> @param[in] Nsites Number of sites per flavor, Nsites(f) for flavor f
+!> @param[in] N_SUN Number of color degrees of freedom per flavor
+!
+!> @return Complex value of exp(-S_2), averaged over replica pairs
+!
+!> @note
+!> Flavors with Nsites(f)=0 are skipped. The function uses insertion sort
+!> to order patches by size (efficient for small numbers of flavors).
+!
+!> @see Calc_Renyi_Ent_indep, Calc_Renyi_Ent_gen_all
 !-------------------------------------------------------------------        
         
         Complex (kind=kind(0.d0)) function Calc_Renyi_Ent_gen_fl(GRC,List,Nsites,N_SUN)
@@ -462,23 +600,27 @@ Module entanglement_mod
 !> ALF Collaboration
 !>
 !> @brief
-!> Compute the Renyi entropy for a generic set of site patches that may differ
-!> for each flavor and color degree of freedom combination.
-!> Returns expontiated Renyi entropy.
+!> Computes Renyi entropy with fully general patch specifications.
+!>
 !> @details
-!> @param [IN] GRC Complex(:,:,:)
-!> \verbatim
-!>  Greens function
-!> \endverbatim
-!> @param [IN] List  Integer(:,:,:)
-!> \verbatim
-!>  List(:,f,c) gives the list of sites that the patch with flavor index f and
-!>  color index c contains.
-!> \endverbatim
-!> @param [IN] Nsites(:,:)   Integer
-!> \verbatim
-!>  Nsites(f,c) gives the number of sites in the patch for flavor f and color c.
-!> \endverbatim
+!> Most general version allowing independent patch List(:,f,c) and size Nsites(f,c)
+!> for every combination of flavor f and color c.
+!>
+!> The algorithm treats each (flavor, color) combination as an independent degree
+!> of freedom and sorts all N_FL×num_nc patches by size. This ensures optimal
+!> memory usage during the calculation.
+!>
+!> @param[in] GRC Green's function array
+!> @param[in] List Site lists, List(:,f,c) for flavor f and color c
+!> @param[in] Nsites Number of sites, Nsites(f,c) for flavor f and color c
+!
+!> @return Complex value of exp(-S_2), averaged over replica pairs
+!
+!> @note
+!> This is the most flexible but also most memory-intensive version.
+!> Use flavor-dependent or independent versions when possible for efficiency.
+!
+!> @see Calc_Renyi_Ent_indep, Calc_Renyi_Ent_gen_fl
 !-------------------------------------------------------------------   
 
         Complex (kind=kind(0.d0)) function Calc_Renyi_Ent_gen_all(GRC,List,Nsites)
@@ -623,43 +765,34 @@ Module entanglement_mod
 !> ALF Collaboration
 !>
 !> @brief
-!> Compute the Renyi entropy for a generic pair of patches.
-!> Returns expontiated Renyi entropy.
+!> Helper function computing Renyi entropy contribution from a pair of patches.
+!>
 !> @details
-!> @param [IN] GRC Complex(:,:,:)
-!> \verbatim
-!>  Greens function
-!> \endverbatim
-!> @param [IN] List  Integer(:,:)
-!> \verbatim
-!>  List(:,1:2) gives the list of sites of the first/second patch of the pair.
-!> \endverbatim
-!> @param [IN] Nsites(2)   Integer
-!> \verbatim
-!>  Nsites(1:2) gives the number of sites in the patches of the pair.
-!> \endverbatim
-!> @param [IN] nf_list(2)   Integer
-!> \verbatim
-!>  nf_list(1:2) gives the flavor of the patches in the pair.
-!> \endverbatim
-!> @param [IN] N_SUN(2)   Integer
-!> \verbatim
-!>  N_SUN(1:2) gives the number of colors of the patches in the pair.
-!> \endverbatim
-!> @param [IN] GreenA Complex(:,:)
-!> \verbatim
-!>  temporary Greens function storage of dimension (dim,2*dim).
-!>  Dim has to be larger or equal to the larger patch size.
-!> \endverbatim
-!> @param [IN] GreenA_tmp Complex(:,:)
-!> \verbatim
-!>  same as GreenA.
-!> \endverbatim
-!> @param [IN] IDA Complex(:,:)
-!> \verbatim
-!>  temporary Greens function storage of dimension (dim,dim).
-!>  Dim has to be the same as in GreenA and GreenA_tmp.
-!> \endverbatim
+!> This internal helper function processes a pair of patches (one per replica)
+!> that may differ in size, flavor, and color count. It:
+!> 1. Extracts reduced Green's functions for both patches
+!> 2. Exchanges Green's functions between replica pairs via MPI_ALLTOALL
+!> 3. Computes matrix M = 1 - G₁ - G₂ + 2G₁G₂
+!> 4. Calculates det(M)^N_SUN for appropriate N_SUN
+!> 5. Multiplies determinants from both replicas
+!>
+!> @param[in] GRC Green's function array
+!> @param[in] List Site lists, List(:,1:2) for replica 1 and 2
+!> @param[in] Nsites Number of sites, Nsites(1:2) for each patch
+!> @param[in] nf_list Flavor indices, nf_list(1:2) for each patch
+!> @param[in] N_SUN Number of colors, N_SUN(1:2) for each patch
+!> @param[out] GreenA Work array (dim,2*dim) for Green's function storage
+!> @param[out] GreenA_tmp Work array (dim,2*dim) for MPI exchange buffer
+!> @param[out] IDA Work array (dim,dim) for matrix operations
+!
+!> @return Product of determinants from both replicas: det₁^N_SUN(1) × det₂^N_SUN(2)
+!
+!> @note
+!> This is an internal helper function. Use the public Calc_Renyi_Ent_* interfaces.
+!> Requires dim ≥ max(Nsites(1), Nsites(2)).
+!
+!> @warning
+!> Only available with MPI. Work arrays must be pre-allocated by caller.
 !-------------------------------------------------------------------   
         Complex (kind=kind(0.d0)) function Calc_Renyi_Ent_pair(GRC,List,Nsites,nf_list,N_SUN,GreenA, GreenA_tmp, IDA)
           Use mpi
@@ -683,10 +816,9 @@ Module entanglement_mod
           
           dim=size(IDA,1)
           dim_sq=dim*dim
-          ! We store the reduced Green's function in GreenA_c_tmp (c electrons)
-          ! and GreenA_f_tmp (f electrons)
-          ! The first Nsites columns contains the spin up sector,
-          ! the last Nsites column the spin down sector
+          
+          ! Extract reduced Green's function for patch 1 (first replica)
+          ! Store in first Nsites(1) columns of GreenA_tmp
           nf_eff = nf_list(1)
 
           DO J = 1, Nsites(1)
@@ -695,49 +827,64 @@ Module entanglement_mod
             END DO
           END Do
 
+          ! Extract reduced Green's function for patch 2 (second replica)
+          ! Store in columns dim+1 to dim+Nsites(2) of GreenA_tmp
           nf_eff = nf_list(2)
           DO J = 1, Nsites(2)
             DO I = 1, Nsites(2)
                 GreenA_tmp(I,J+dim) = GRC(List(I,2), List(J,2), nf_eff)
             END DO
           END DO
-          ! This exchange the last Nsites columns of GreenA_c_tmp between the two replicas
-          ! such that GreenA contains the reduced Green's function for two replicas
-          ! and a fixed spin sector.
+          
+          ! Exchange Green's functions between replica pairs via MPI
+          ! After this, GreenA contains cross-replica Green's functions:
+          ! Columns 1:dim from partner, columns dim+1:2*dim from own replica
           CALL MPI_ALLTOALL(GreenA_tmp, dim_sq, MPI_COMPLEX16, GreenA, dim_sq, MPI_COMPLEX16, ENTCOMM, IERR)
 
-          ! Compute Identity - GreenA(replica=1) - GreenA(replica=2) + 2 GreenA(replica=1) * GreenA(replica=2)
+          ! Compute the matrix: M = I - G₁ - G₂ + 2G₁G₂
+          ! This is the core of the replica trick calculation
           dim_eff = Nsites(1+ENT_RANK)
+          ! Start with -G₁ - G₂
           IDA(1:dim_eff,1:dim_eff) = - GreenA(1:dim_eff, 1:dim_eff) - GreenA(1:dim_eff, dim+1:dim+dim_eff)
+          ! Add identity matrix
           DO I = 1, dim_eff
               IDA(I,I) = IDA(I,I) + CMPLX(1.d0,0.d0,kind(0.d0))
           END DO
+          ! Add 2G₁G₂ term using matrix multiplication
           CALL ZGEMM('n', 'n', dim_eff, dim_eff, dim_eff, alpha, GreenA(1, 1), &
               & dim, GreenA(1, dim+1), dim, beta, IDA, dim)
-          ! Compute determinant
+              
+          ! Compute determinant of M using different algorithms based on size
           SELECT CASE(dim_eff)
           CASE (1)
+            ! Trivial case: det = M₁₁
             DET = IDA(1,1)
           CASE (2)
+            ! Analytical formula for 2×2 matrix
             DET = IDA(1,1) * IDA(2,2) - IDA(1,2) * IDA(2,1)
           CASE DEFAULT
+            ! Use LU decomposition for larger matrices
             Allocate(PIVOT(dim_eff))
             CALL ZGETRF(dim_eff, dim_eff, IDA, dim, PIVOT, INFO)
             DET = cmplx(1.D0,0.D0,KIND(0.D0))
+            ! Compute determinant from LU factors, accounting for pivoting
             DO I = 1, dim_eff
                 IF (PIVOT(I).NE.I) THEN
-                  DET = -DET * IDA(I,I)
+                  DET = -DET * IDA(I,I)  ! Pivoting changes sign
                 ELSE
                   DET = DET * IDA(I,I)
                 END IF
             ENDDO
             Deallocate(PIVOT)
           END SELECT
+          
+          ! Raise to power N_SUN to account for color degrees of freedom
           DET=DET**N_SUN(1+ENT_RANK)
-          ! Compute the product of determinants for up and down spin sectors.
+          
+          ! Multiply determinants from both replicas in the pair
           CALL MPI_ALLREDUCE(DET, PRODDET, 1, MPI_COMPLEX16, MPI_PROD, ENTCOMM, IERR)
-          ! Now each thread contains in PRODDET the full determinant, as obtained by
-          ! a pair of replicas.
+          
+          ! Each replica now has the complete product det₁ × det₂
           Calc_Renyi_Ent_pair = Calc_Renyi_Ent_pair * PRODDET
         end function Calc_Renyi_Ent_pair
 
@@ -746,43 +893,34 @@ Module entanglement_mod
 !> ALF Collaboration
 !>
 !> @brief
-!> Compute the Renyi entropy for a single unpaired patches.
-!> Returns expontiated Renyi entropy.
+!> Helper function for handling unpaired replica when total number of replicas is odd.
+!>
 !> @details
-!> @param [IN] GRC Complex(:,:,:)
-!> \verbatim
-!>  Greens function
-!> \endverbatim
-!> @param [IN] List  Integer(:)
-!> \verbatim
-!>  List(:,1:2) gives the list of sites of the patch.
-!> \endverbatim
-!> @param [IN] Nsites   Integer
-!> \verbatim
-!>  Nsites gives the number of sites in the patch.
-!> \endverbatim
-!> @param [IN] nf_list   Integer
-!> \verbatim
-!>  nf_list gives the flavor of the patch.
-!> \endverbatim
-!> @param [IN] N_SUN   Integer
-!> \verbatim
-!>  N_SUN gives the number of colors of the patch.
-!> \endverbatim
-!> @param [IN] GreenA Complex(:,:)
-!> \verbatim
-!>  temporary Greens function storage of dimension (dim,2*dim).
-!>  Dim has to be larger or equal to the larger patch size.
-!> \endverbatim
-!> @param [IN] GreenA_tmp Complex(:,:)
-!> \verbatim
-!>  same as GreenA.
-!> \endverbatim
-!> @param [IN] IDA Complex(:,:)
-!> \verbatim
-!>  temporary Greens function storage of dimension (dim,dim).
-!>  Dim has to be the same as in GreenA and GreenA_tmp.
-!> \endverbatim
+!> When the number of MPI tasks is odd, one replica remains unpaired. This function
+!> handles the Renyi entropy calculation for the unpaired patch. Only the replica
+!> with ENT_RANK=0 performs the actual calculation; the other replica contributes
+!> det=1.
+!>
+!> The algorithm follows the same steps as Calc_Renyi_Ent_pair but with only one
+!> active patch.
+!>
+!> @param[in] GRC Green's function array
+!> @param[in] List Site list for the patch
+!> @param[in] Nsites Number of sites in the patch
+!> @param[in] nf_eff Flavor index of the patch
+!> @param[in] N_SUN Number of color degrees of freedom
+!> @param[out] GreenA Work array (dim,2*dim) for Green's function storage
+!> @param[out] GreenA_tmp Work array (dim,2*dim) for MPI exchange buffer
+!> @param[out] IDA Work array (dim,dim) for matrix operations
+!
+!> @return det^N_SUN from the unpaired patch (or 1 from the paired partner)
+!
+!> @note
+!> This is an internal helper function called automatically when N_FL is odd.
+!> The contribution is averaged with weight accounting for the unpaired status.
+!
+!> @warning
+!> Only available with MPI. Only rank 0 in ENTCOMM performs the calculation.
 !-------------------------------------------------------------------   
         Complex (Kind=8) function Calc_Renyi_Ent_single(GRC,List,Nsites,nf_eff,N_SUN,GreenA, GreenA_tmp, IDA)
           Use mpi
@@ -805,32 +943,34 @@ Module entanglement_mod
           
           dim=size(IDA,1)
           dim_sq=dim*dim
-          ! We store the reduced Green's function in GreenA_c_tmp (c electrons)
-          ! and GreenA_f_tmp (f electrons)
-          ! The first Nsites columns contains the last flavour sector,
-          ! the last Nsites column are old (Nf>2) or random, but they won't be used
+          
+          ! Extract reduced Green's function for the unpaired patch
+          ! Store in first Nsites columns
           DO J = 1, Nsites
             DO I = 1, Nsites
                 GreenA_tmp(I,J) = GRC(List(I), List(J), nf_eff)
             END DO
           END DO
           
-          ! This exchange the last Nsites columns of GreenA_c_tmp between the two replicas
-          ! such that GreenA contains the reduced Green's function for two replicas
-          ! and a fixed spin sector.
+          ! Exchange with partner (even though partner won't use it)
+          ! This maintains MPI communication symmetry
           CALL MPI_ALLTOALL(GreenA_tmp, dim_sq, MPI_COMPLEX16, GreenA, dim_sq, MPI_COMPLEX16, ENTCOMM, IERR)
           
           DET = cmplx(1.D0,0.D0,KIND(0.D0))
+          
+          ! Only rank 0 in ENTCOMM performs the actual calculation
+          ! The partner (rank 1) contributes DET=1
           if(ENT_RANK==0) then
             dim_eff = NSites
-            ! Compute Identity - GreenA(replica=1) - GreenA(replica=2) + 2 GreenA(replica=1) * GreenA(replica=2)
+            ! Compute M = I - G₁ - G₂ + 2G₁G₂ (same as paired case)
             IDA = - GreenA(1:dim_eff, 1:dim_eff) - GreenA(1:dim_eff, dim+1:dim+dim_eff)
             DO I = 1, dim_eff
                 IDA(I,I) = IDA(I,I) + CMPLX(1.d0,0.d0,kind(0.d0))
             END DO
             CALL ZGEMM('n', 'n', dim_eff, dim_eff, dim_eff, alpha, GreenA(1, 1), &
                 & dim, GreenA(1, dim+1), dim, beta, IDA, dim)
-            ! Compute determinant
+                
+            ! Compute determinant using appropriate method
             SELECT CASE(dim_eff)
             CASE (1)
               DET = IDA(1,1)
@@ -848,13 +988,15 @@ Module entanglement_mod
               ENDDO
               Deallocate(PIVOT)
             END SELECT
+            
+            ! Raise to power N_SUN for color degrees of freedom
             Det=Det**N_SUN
           endif
           
-          ! Compute the product of determinants for up and down spin sectors.
+          ! Broadcast result from rank 0 to rank 1 (rank 1 contributes DET=1)
           CALL MPI_ALLREDUCE(DET, PRODDET, 1, MPI_COMPLEX16, MPI_PROD, ENTCOMM, IERR)
-          ! Now each thread contains in PRODDET the full determinant, as obtained by
-          ! a pair of replicas.
+          
+          ! Both replicas now have the result
           Calc_Renyi_Ent_single = Calc_Renyi_Ent_single * PRODDET
         end function Calc_Renyi_Ent_single
 #endif

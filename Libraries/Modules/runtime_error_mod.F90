@@ -1,4 +1,4 @@
-!  Copyright (C) 2023 The ALF project
+!  Copyright (C) 2023-2026 The ALF project
 ! 
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -32,11 +32,8 @@
 Module runtime_error_mod
     
   !--------------------------------------------------------------------
-  !> @author 
-  !> ALF-project
-  !
-  !> @brief 
-  !> This module handles runtime error codes and terminates MPI-save.
+  !> @author ALF-project
+  !> @brief This module handles runtime error codes and terminates MPI-save.
   !
   !--------------------------------------------------------------------
 

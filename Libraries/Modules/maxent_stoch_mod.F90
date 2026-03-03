@@ -1,4 +1,4 @@
-!  Copyright (C) 2018-2024 The ALF project
+!  Copyright (C) 2018-2026 The ALF project
 !
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -33,15 +33,10 @@
 Module MaxEnt_stoch_mod
 
 !--------------------------------------------------------------------
-!> @author
-!> ALF-project
-!
-!> @brief
-!> This module provides  an implementation of  the  stochastic  stochastic  analytical 
-!> continuation.  It  allows to  specify  a  default  model,  and  follows  rather precicely the 
-!> article  of  Kevin Beach https://arxiv.org/abs/cond-mat/0403055 
-!> 
-!
+!> @author ALF-project
+!> @brief Stochastic analytical continuation module.
+!> @details Allows specifying a default model and follows
+!> the work of Kevin Beach: https://arxiv.org/abs/cond-mat/0403055
 !--------------------------------------------------------------------
        Use runtime_error_mod
        Use MyMats
@@ -58,7 +53,37 @@ Module MaxEnt_stoch_mod
        
        contains
 
-!--------------------------------------------------------------------
+          !-------------------------------------------------------------------
+          !> @author ALF-project
+          !> @brief Stochastic analytical continuation via Beach's Monte Carlo method.
+          !> @details Implements stochastic maximum entropy (Beach algorithm) for
+          !> spectral recovery. Uses Bayesian approach: P(A|data) ∝ P(data|A)×P(A).
+          !> Instead of seeking single optimal spectrum, samples from posterior
+          !> distribution via Metropolis algorithm. Each sample updates spectral
+          !> weights via MC moves (insert/remove delta-functions at random omega).
+          !> Generates histogram of visited configurations for averaged spectrum.
+          !> References: Beach (arxiv.org/cond-mat/0403055); uses default model
+          !> and entropy regularization. Output: probability distribution over spectra.
+          !> @param[in] XQMC      QMC measurements G(tau) (Ntau values)
+          !> @param[in] Xtau      Imaginary times tau (Ntau values)
+          !> @param[in] COV       Covariance matrix (Ntau x Ntau, symmetric)
+          !> @param[in] Xmom1     First moment / normalization (typically 1.0)
+          !> @param[in] XKER      External kernel function K(tau,omega)
+          !> @param[in] Back_Trans_Aom Back-transform for analytical continuation
+          !> @param[in] Beta_1    Inverse temperature (1/T)
+          !> @param[in,out] Alpha_tot  Entropy weight grid (output: samples)
+          !> @param[in,out] Ngamma_1   Max number of delta-functions per sample
+          !> @param[in] OM_ST, OM_EN   Frequency grid boundaries
+          !> @param[in] Ndis_1    Discretization level (omega grid points)
+          !> @param[in] Nsweeps   MC sweeps (MCS) to perform
+          !> @param[in] NBins     Histogram bins for alpha accumulation
+          !> @param[in] NWarm     Thermalization sweeps (discarded)
+          !> @param[in] F         Default model function f(omega) on (0,1)
+          !> @param[in] Default_provided  Optional user default (else use F)
+          !> @note Outputs full posterior distribution, not single best spectrum;
+          !> Ngamma_1 ~ 10s typical; Nsweeps ~ 10K-100K for convergence.
+          !> @pre size(XQMC)=size(Xtau)=Ntau; size(COV)=(Ntau,Ntau); OM_ST < OM_EN
+          !-------------------------------------------------------------------
          Subroutine MaxEnt_stoch(XQMC, Xtau, COV,Xmom1, XKER, Back_Trans_Aom, Beta_1, Alpha_tot,&
               & Ngamma_1, OM_ST, OM_EN, Ndis_1, Nsweeps, NBins, NWarm, F, Default_provided)
 
@@ -448,9 +473,23 @@ Module MaxEnt_stoch_mod
 2003       format('Alpha, En_m, Acc ', F14.7,2x,F24.12,2x,F14.7,2x,F14.7,2x,F14.7)
            
          end Subroutine MaxEnt_stoch
-!------------------------------------------------------------------------------------------------
-!        Sets various  tables  for  the  Default  model 
-!------------------------------------------------------------------------------------------------
+
+          !-------------------------------------------------------------------
+          !> @author ALF-project
+          !> @brief Initialize default model lookup table for stochastic MaxEnt.
+          !> @details Constructs discrete table of default model values Phi(omega_i)
+          !> spanning frequency range. Used as baseline prior distribution P(A)
+          !> in Bayesian sampling. Normalizes via Xmom1 (typically =1 for unit weight).
+          !> Table allows fast evaluation during MC sweeps without repeated function calls.
+          !> Format: Default_table(i) = Phi(omega_i) / Phi_integral, normalized.
+          !> @param[in] Default   External function defining prior model f(omega)
+          !> @param[out] Default_table  Discretized/normalized table (Ndis values)
+          !> @param[in] Xmom1     Normalization factor (first moment weighting)
+          !> @note Table indexed by discrete omega points; size matches Ndis_table
+          !> from parent MaxEnt_stoch context. Called once per run.
+          !> @pre Default is continuous function on [OM_ST, OM_EN]
+          !> @see MaxEnt_stoch (uses output Default_table)
+          !-------------------------------------------------------------------
          Subroutine Set_default_table(Default, Default_table, Xmom1)
 
             Implicit none 
@@ -552,10 +591,21 @@ Module MaxEnt_stoch_mod
             If (nw > size(Phi_func,1) ) nw = size(Phi_func,1) 
             Phi =  dble(Phi_func(nw)-1)*Dx_table
          end Function Phi
-!--------------------------------------------------------------------------------------
-!        Uses   the  Phmi_func  table  to   generate   
-!        Phim1(x) = om  for    Phi(x) =  om
-!--------------------------------------------------------------------------------------
+
+         !-------------------------------------------------------------------
+         !> @author ALF-project
+         !> @brief Inverse transform: omega = Phi^{-1}(x) for uniform sampling.
+         !> @details Inverts the default model CDF using precomputed lookup table.
+         !> Maps uniform variate x ∈ [0,1] to frequency omega ∈ [OM_ST, OM_EN].
+         !> Used in MC moves to generate new delta-function positions according
+         !> to default model prior. Fast table lookup replaces repeated inversion.
+         !> Phim1_func(i) precomputed such that Phi(Phim1(x)) ≈ x (approximately).
+         !> @param[in] x  Uniform random value in [0,1]
+         !> @return omega  Frequency from default model (in [OM_ST, OM_EN])
+         !> @note Critical for importance sampling in Beach algorithm; must be
+         !> precomputed via Set_default_table before use. Clamped at table bounds.
+         !> @see Phi (forward transform); NPhim1 (integer variant)
+         !-------------------------------------------------------------------
 
          Real (Kind=Kind(0.d0)) Function Phim1(x)
 
@@ -597,10 +647,22 @@ Module MaxEnt_stoch_mod
            enddo
          end Subroutine Sum_Xn
 
-!--------------------------------------------------------------------------------------
-!        Given        n(x)   =  sum_{ng=1}^{\gamma} xn(ng,2) \delta[x - xn(ng,2)] 
-!        Cummulates   Xn_m(n) =  n(x) dx      with  box  distributions
-!--------------------------------------------------------------------------------------
+         !-------------------------------------------------------------------
+         !> @author ALF-project
+         !> @brief Accumulate spectral moments from weighted delta-functions.
+         !> @details Computes convolution of discrete delta-function spectrum
+         !> with box-shaped kernels (broadening). Each delta at omega_ng with
+         !> weight w_ng is smeared into adjacent grid bins via triangular/box
+         !> weighting, giving smoothed spectral density on discrete grid.
+         !> Xn_m(nd) = sum_ng w_ng * Box_kernel(omega_ng - grid_nd).
+         !> Used for histogramming MC samples with finite resolution.
+         !> @param[out] Xn_m   Accumulated spectrum (Ndis values, broadened)
+         !> @param[in] Xn      Delta-function weights/positions (Ngamma x 2)
+         !> @note Xn(ng,1)=omega position, Xn(ng,2)=weight of ng-th delta;
+         !> Box broadening models finite frequency resolution; smooths sharp peaks.
+         !> @pre Xn sorted by position; grid spacing Dom_table uniform
+         !> @see Sum_Xn (point delta version); MC (generates Xn samples)
+         !-------------------------------------------------------------------
          Subroutine Sum_Xn_Boxes(Xn_m,Xn)
            Implicit none
            Real (Kind=Kind(0.d0)), Dimension(:,:) :: Xn
@@ -616,10 +678,31 @@ Module MaxEnt_stoch_mod
 
          end Subroutine Sum_Xn_Boxes
 
-!--------------------------------------------------------------------------------------
-!        Carries out  local  updates.
-!--------------------------------------------------------------------------------------
-
+         !-------------------------------------------------------------------
+         !> @author ALF-project
+         !> @brief Metropolis MC sweeps for stochastic MaxEnt sampling.
+         !> @details Performs local updates to spectral configuration via
+         !> Metropolis-Hastings algorithm. Each sweep attempts NSweeps updates:
+         !> (1) Insert new delta-function at random omega (add move);
+         !> (2) Remove existing delta (remove move);
+         !> (3) Shift delta omega within small range (shift move).
+         !> Acceptance probability: min(1, exp(-\beta*\Delta E)), where \Delta E
+         !> = \Delta chi^2 + \alpha \Delta S (energy change including entropy).
+         !> Tracks acceptance rates (Acc_1, Acc_2) for diagnostic tuning.
+         !> @param[in] Xtau          Imaginary times (dimension check)
+         !> @param[in] Xker_table    Precomputed kernel table K(tau_i, omega_j)
+         !> @param[in,out] Xn        Current delta-function config (Ngamma x 2)
+         !> @param[in] Alpha         Entropy weight (determines energy weighting)
+         !> @param[in] NSweeps       Number of MCS to perform
+         !> @param[out] Xn_m         Accumulated spectrum histogram
+         !> @param[in,out] En        Current system energy
+         !> @param[in,out] En_m      Running energy average
+         !> @param[out] Acc_1, Acc_2 Acceptance rates for diagnostics
+         !> @note Xn(ng,:)=[omega, weight]; typical Ngamma growth ~ 5-20 per run.
+         !> Acceptance rate tuning: aim for 30-70% for good mixing.
+         !> @pre Xker_table precomputed; Alpha > 0; Xn initialized
+         !> @see MaxEnt_stoch (calls MC loop); Sum_Xn_Boxes (accumulates histogram)
+         !-------------------------------------------------------------------
          Subroutine MC(Xtau, Xker_table, Xn, Alpha, NSweeps, Xn_m, En, En_m, Acc_1,Acc_2)
            Implicit None
            Real (Kind=Kind(0.d0)), Dimension(:,:) :: Xn, Xker_table

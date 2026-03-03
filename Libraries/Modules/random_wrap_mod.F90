@@ -1,4 +1,4 @@
-!  Copyright (C) 2016 - 2018 The ALF project
+!  Copyright (C) 2016-2026 The ALF project
 ! 
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -32,15 +32,19 @@
 
 Module Random_Wrap
 !--------------------------------------------------------------------
-!> @author 
-!> ALF-project
-!
-!> @brief 
-!> Wrappers for random number generator
+!> @author ALF-project
+!> @brief Wrappers for random number generator.
 !
 !--------------------------------------------------------------------
    contains
 
+!--------------------------------------------------------------------
+!> @author ALF-project
+!> @brief Query the length of the RNG seed vector.
+!> @details Returns the number of integers required to completely specify
+!> the state of the Fortran intrinsic random number generator.
+!> @param[out] K Integer seed vector length (typically 33 for gfortran)
+!--------------------------------------------------------------------
      
      Subroutine Get_seed_Len(K)
        Implicit none
@@ -48,6 +52,14 @@ Module Random_Wrap
        CALL RANDOM_SEED (SIZE=K) 
      end Subroutine Get_seed_Len
 
+!--------------------------------------------------------------------
+!> @author ALF-project
+!> @brief Initialize RNG state from seed vector.
+!> @details Sets up the Fortran intrinsic RNG using provided seed values.
+!> If Iseed_vec(1)==0, initializes with default seed 8752143 and uses LCG
+!> for remaining seed components. Otherwise distributes provided seeds.
+!> @param[in] Iseed_vec Integer array of seed values (dimension K)
+!--------------------------------------------------------------------
      
      Subroutine Ranset(Iseed_vec)
        Implicit none
@@ -79,6 +91,14 @@ Module Random_Wrap
 
      end Subroutine Ranset
        
+!--------------------------------------------------------------------
+!> @author ALF-project
+!> @brief Retrieve current RNG state into seed vector.
+!> @details Queries the Fortran intrinsic RNG and extracts current state
+!> into the provided seed array for later restoration via Ranset.
+!> @param[out] Iseed_vec Integer array to hold current RNG state
+!--------------------------------------------------------------------
+
      Subroutine Ranget(Iseed_vec)
        Implicit none
        Integer, Dimension(:) :: Iseed_vec
@@ -130,7 +150,14 @@ Module Random_Wrap
        seed = Int(res,kind(0)) ! convert back
      end function lcg
 
-
+!--------------------------------------------------------------------
+!> @author ALF-project
+!> @brief Return uniform random variate in [0.0, 1.0).
+!> @details Wrapper around Fortran intrinsic RANDOM_NUMBER. Returns
+!> uniformly distributed random number in half-open interval [0, 1).
+!> @param[in] iq Optional index (not used, for interface consistency)
+!> @return Real(8) uniform random number
+!--------------------------------------------------------------------
 
      real (Kind=Kind(0.D0))  function  ranf_wrap(iq)
        implicit none
@@ -140,6 +167,15 @@ Module Random_Wrap
        ranf_wrap = X
      end function ranf_wrap
      
+!--------------------------------------------------------------------
+!> @author ALF-project
+!> @brief Return standard normal (Gaussian) random variate.
+!> @details Generates standard normal N(0,1) variate using Box-Muller
+!> transformation: R = sqrt(-2*ln(u1)), θ = 2π*u2, x = R*cos(θ)
+!> where u1, u2 are independent uniform [0,1) variates.
+!> @param[in] iq Optional index (not used, for interface consistency)
+!> @return Real(8) standard normal random variable
+!--------------------------------------------------------------------
 
      real (kind=kind(0.D0))  function  rang_wrap(iq)
         
@@ -156,6 +192,16 @@ Module Random_Wrap
        
      end function rang_wrap
      
+!--------------------------------------------------------------------
+!> @author ALF-project
+!> @brief Return uniform random integer in [1, N].
+!> @details Generates uniformly distributed random integer in inclusive
+!> range [1, N] by scaling and rounding a uniform [0,1) variate.
+!> Values are clamped to [1, N] to handle rounding edge cases.
+!> @param[in] N Upper bound (inclusive) for integer range
+!> @return Integer in [1, N]
+!--------------------------------------------------------------------
+
      integer function nranf(N)
        implicit none
        integer :: N
