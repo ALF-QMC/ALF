@@ -103,10 +103,12 @@ def parse_line(line):
 
 
 def _max_len(dictionary):
+    """Return length of the longest key in a mapping."""
     return max(len(i) for i in dictionary)
 
 
 def _dtype_name(parameter):
+    """Return Fortran dtype name corresponding to a Python value."""
     if isinstance(parameter, list):
         return _dtype_name(parameter[0])
     if isinstance(parameter, bool):
@@ -334,6 +336,7 @@ def create_read_write_par(filename, parameters, ham_name):
 
 
 def _to_value(dtype, value):
+    """Convert a string representation to the corresponding Python value."""
     if 'real' in dtype:
         return float(value.replace('d', 'e').replace('D', 'e'))
     # if 'complex' in dtype:
@@ -359,6 +362,7 @@ def _to_value(dtype, value):
 
 
 def _get_mpi_dtype(parameter):
+    """Return the MPI datatype constant matching the parameter type."""
     if isinstance(parameter, list):
         return _get_mpi_dtype(parameter[0])
     if isinstance(parameter, bool):
@@ -375,6 +379,7 @@ def _get_mpi_dtype(parameter):
 
 
 def _get_mpi_len(parameter):
+    """Return the number of MPI elements that need to be broadcast."""
     if isinstance(parameter, list):
         return _get_mpi_len(parameter[0]) * len(parameter)
     if isinstance(parameter, (bool, float, complex, int)):
