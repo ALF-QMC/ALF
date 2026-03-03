@@ -104,7 +104,7 @@ def parse_line(line):
 
 def _max_len(dictionary):
     """Return length of the longest key in a mapping."""
-    return max(len(i) for i in dictionary)
+    return max(len(key) for key in dictionary)
 
 
 def _dtype_name(parameter):
