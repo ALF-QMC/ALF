@@ -13,6 +13,7 @@ import h5py
 
 
 def _get_arg_parser():
+    """Create the CLI argument parser for lattice fix utility."""
     parser = ArgumentParser(
         description='Fix a mix-up between `Norb` and `N_coord` in lattice.',
         )
@@ -23,6 +24,7 @@ def _get_arg_parser():
     return parser
 
 def _fix_latt(latt_grp):
+    """Correct swapped Norb/N_coord attributes inside a lattice group."""
     orbital_positions = []
     i = 0
     while True:
@@ -46,13 +48,14 @@ def _fix_latt(latt_grp):
 
 
 def _fix_loc(hdf5_loc):
-    for i in hdf5_loc:
-        if isinstance(i, str):
-            print(i)
-            if i == 'lattice':
-                _fix_latt(hdf5_loc[i])
+    """Recursively traverse an HDF5 hierarchy and fix lattice groups."""
+    for item in hdf5_loc:
+        if isinstance(item, str):
+            print(item)
+            if item == 'lattice':
+                _fix_latt(hdf5_loc[item])
             else:
-                _fix_loc(hdf5_loc[i])
+                _fix_loc(hdf5_loc[item])
 
 
 if __name__ == '__main__':
