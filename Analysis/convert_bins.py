@@ -62,6 +62,7 @@ def copy_parameters(sim_dir, hamiltonian_file):
 
 
 def _get_arg_parser():
+    """Build and return the argument parser for the CLI."""
     parser = ArgumentParser(
         description='Convert plain text bins and parameters to HDF5 file. '
         'Moves plain text bin and associated _info files to "old_bins" '
