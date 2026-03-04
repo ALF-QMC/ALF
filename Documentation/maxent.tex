@@ -442,7 +442,7 @@ If no default is provided, then we use a flat default for the $A(\omega)$ that s
  Using the \texttt{Max\_Sac.F90}  with \texttt{Channel="T0"} loads the above kernel in the MaxEnt library. In this case the back  transformation is set to unity. 
  The code will also cut-off the tail of the  imaginary time correlation function  if the relative error is greater that the variable \texttt{Tolerance}. 
  
-\subsection{ Integration  over  the  spectral  function   } 
+\subsection{ Integration  over  the  spectral  function: QFI and  $\frac{\partial I}{\partial V}$ } 
 
 In many cases,  one  would like  to  compute  the   integral
 \begin{equation}
@@ -466,14 +466,34 @@ One  can use  the above  to   efficiently  compute susceptibilities---   typical
 Here,  the   analytic  continuation is  used  as   an  optimal fit  function  to  the  imaginary time  data,  allowing the  minimization of   finite  
 discretization  time  errors. 
 
-Another  example is  the  quantum Fisher  information \cite{Hauke16}.  In the particle-hole channel,  this  quantity  reads: 
+Another  example is  the  quantum Fisher  information \cite{Hauke16} (QFI).  In the particle-hole channel,  this  quantity  reads: 
 \begin{equation}
    F_Q(T) =  \int_{0}^{\infty}   d \omega   \frac{4}{\pi} \tanh\left( \frac{\beta \omega}{2} \right) \chi^{''}(\omega)  = 
              \int_{0}^{\infty}   d \omega  \underbrace{ \frac{4}{\pi} \tanh^2\left( \frac{\beta \omega}{2} \right) }_{\equiv F(\omega) } \, A(\omega).
 \end{equation}
-The  last  step follows  for  Eq.~\ref{eqn:A_ph_def}.    Results  are   written  in the file  \texttt{(F,A).dat}.  The file  has 
-three  rows corresponding to inverse  temperature $\alpha$, $(F,A)$   and  $\Delta (F,A)$.  The  function  $F$  is  specified  in the 
-MaxEnt wrapper  \texttt{Max\_SAC.F90}  in the   \texttt{Analysis}   directory.
+The  last  step follows  for  Eq.~\ref{eqn:A_ph_def}.    
+In the default implementation  the  QFI is computed for  the particle-hole channel, and  the results are written in the file \texttt{QFI.dat}.  The first column of this file corresponds to the inverse temperature, $1/\alpha$, the second column to the QFI, and the third column to the error bar.  The function $F$ is specified in the module \texttt{maxent\_wrapper\_mod.F90} in the  \texttt{Analysis}   directory.
+This function is  passed to the stochastic MaxEnt routine in the called from the wrapper \texttt{Max\_SAC.F90}.  The user can modify the function $F$ to compute other quantities and specify the output of the file name. 
+
+For the particle channel the  default corresponds  to the calculation of  $\left. \frac{\partial I}{\partial V}\right|_{V=0}$, given by  the 
+Meier-Wingreen formula \cite{Meir92}:
+\begin{equation}
+ \left. \frac{\partial I}{\partial V}\right|_{V=0} = - \int d \omega A(\omega) \frac{\partial f(\beta \omega)}{\partial \omega} 
+\end{equation}
+with $f(x) = 1/(1+e^x)$ the Fermi function.  The  evaluation of this quantity is based on the work of Ref.~\cite{Karrasch10} where the 
+Fermi function is approximated by: 
+\begin{equation}
+  f(x) - \frac{1}{2} = - \sum_{\alpha =1 }^{N/2} \left( \frac{R_\alpha}{x - i/ b_\alpha} + \frac{R_\alpha}{x + i /b_\alpha} \right).
+\end{equation} 
+For this parametrization, it turns out  that truncating the sum to ten terms provides a perfect approximation  for $|x|<40$.  
+In  the MaxEnt wrapper \texttt{Max\_SAC.F90}  the call to the routine \texttt{Set\_Ra\_ba(N)} sets the parameters $R_\alpha$ and $b_\alpha$ for the approximation of the Fermi function (see Ref.~\cite{Karrasch10}).  The default value of $N$ is set to ten  resulting in the aforementioned truncation, but the user can change it to improve the approximation for larger values of $|x|$.   With the above,  one  can estimate:
+\begin{equation}
+   \left. \frac{\partial I}{\partial V}\right|_{V=0}  = \int d \omega A(\omega) \left[ -\frac{2}{\beta} 
+   \sum_{\alpha>0}  R_\alpha \Re \frac{1}{(i/(\beta b_\alpha) - \omega)^2} \right] 
+\end{equation}
+The results are written in the file \texttt{dIdV.dat} with the first column corresponding to the temperature, the second column to $\left. \frac{\partial I}{\partial V}\right|_{V=0}$, and the third column to the error bar.
+
+
 
  \subsection{Dynamics of the one-dimensional half-filled Hubbard model}
 

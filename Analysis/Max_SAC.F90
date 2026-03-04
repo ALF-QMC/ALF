@@ -1,4 +1,4 @@
-!  Copyright (C) 2016-2024 The ALF project
+!  Copyright (C) 2016-2026 The ALF project
 !
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -67,7 +67,7 @@ Program MaxEnt_Wrapper
        Logical                :: Checkpoint,  Stochastic, Default_model_exists, Particle_channel_PH
        Character (Len=:), allocatable :: Channel
        Character (Len=1)      :: Char, Char1
-       Character (len=64)     :: str_temp
+       Character (len=64)     :: str_temp, FA_Name
        ! Space  for classic MaxEnt
        Real (Kind=Kind(0.d0)), allocatable ::  Xker_classic(:,:),  A_classic(:),  Default(:)
 
@@ -98,6 +98,9 @@ Program MaxEnt_Wrapper
           CALL Terminate_on_error(ERROR_MAXENT,__FILE__,__LINE__)
        endif
        close(30)
+       
+       N = 20
+       Call Set_Ra_ba(N)
        
        INQUIRE(FILE="Default", EXIST=Default_model_exists)
 
@@ -228,8 +231,10 @@ Program MaxEnt_Wrapper
        Select Case (str_to_upper(Channel))
        Case ("PH")
           If  (Stochastic)  then
+             FA_Name = "QFI_ph.dat"
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_ph, Back_Trans_ph, Beta, &
-                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, F_QFI_ph, Default)
+                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, F_QFI_ph, &
+                  &            Filename_F=FA_Name, Default_provided=Default)
              ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
           else
              Call Set_Ker_classic(Xker_ph,Xker_classic,Om_st,Om_en,beta,xtau_st)
@@ -238,7 +243,7 @@ Program MaxEnt_Wrapper
        Case ("PH_C")
           If  (Stochastic)  then
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_ph, Back_trans_pp, Beta, &
-                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, F, Default)
+                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, F, Default_provided=Default)
              ! Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_ph_c, Back_Trans_ph_c, Beta, &
                   ! &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, F_QFI_ph_c, Default)
              ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
@@ -250,7 +255,7 @@ Program MaxEnt_Wrapper
        Case ("PP")
           If  (Stochastic) then
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_pp, Back_Trans_pp, Beta, &
-                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, F , Default)
+                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, F , Default_provided=Default)
              ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
           else
              Call Set_Ker_classic(Xker_pp,Xker_classic,Om_st,Om_en,beta,xtau_st)
@@ -258,8 +263,10 @@ Program MaxEnt_Wrapper
           endif
        Case ("P")
           If  (Stochastic)  then
+             FA_Name = "DIDV.dat"
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_p, Back_Trans_p, Beta, &
-                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm , F, Default)
+                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm , F_DIDV, & 
+                  &            Filename_F=FA_Name, Default_provided=Default)
              ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
           else  ! Classic
              Call Set_Ker_classic(Xker_p,Xker_classic,Om_st,Om_en,beta,xtau_st)
@@ -267,8 +274,10 @@ Program MaxEnt_Wrapper
           endif  
        Case ("P_PH")
           If  (Stochastic)  then
+             FA_Name = "DIDV.dat"
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_p_ph, Back_Trans_p, Beta, &
-                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm ,F, Default)
+                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm ,F_DIDV_PH, & 
+                  &            Filename_F=FA_Name, Default_provided=Default)
           else  ! Classic
              Call Set_Ker_classic(Xker_p_ph,Xker_classic,Om_st,Om_en,beta,xtau_st)
              Call  MaxEnt( XQMC, XCOV, A_classic, XKER_classic, Alpha_classic_st, CHISQ ,DEFAULT)
@@ -276,7 +285,7 @@ Program MaxEnt_Wrapper
        Case ("T0")
           If (Stochastic)  then
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_T0, Back_Trans_T0, Beta, &
-                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm,F,Default)
+                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm,F,Default_provided=Default)
              ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
           else
              Call Set_Ker_classic(Xker_T0,Xker_classic,Om_st,Om_en,beta,xtau_st)
@@ -446,4 +455,5 @@ Program MaxEnt_Wrapper
        enddo
        close(43)
 
+       call clean_Set_Ra_ba()
      end Program MaxEnt_Wrapper
