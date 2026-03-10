@@ -108,11 +108,23 @@
         Integer, Intent(OUT), Dimension(:,:), allocatable  :: List, Invlist
         Type(Unit_cell), Intent(Out)                       :: Latt_Unit
         Type(Lattice), Intent(Out)                         :: Latt
+        ! Local variables: primitive lattice vectors (a1_p, a2_p) and simulation-cell
+        ! boundary vectors (L1_p, L2_p) are all in Cartesian coordinates (Angstrom-like units).
         Real (Kind=Kind(0.d0))  :: A1_p(2), a2_p(2), L1_p(2), L2_p(2)
-        Integer :: I, nc, no,n
+        Integer :: I, nc, no, n  ! nc = running site/orbital index; no = orbital index within unit cell
 
+        ! Dispatch to the appropriate lattice geometry.  Each branch sets:
+        !   Latt_Unit%Norb    = number of orbitals per unit cell
+        !   Latt_Unit%N_coord = coordination number (relevant for checkerboard)
+        !   Latt_Unit%Orb_pos_p(no, 1:2 or 1:3) = orbital positions in Cartesian coords
+        !     (third coordinate, if present, encodes a layer index for bilayer geometries)
+        !   a1_p, a2_p = primitive lattice vectors
+        !   L1_p, L2_p = simulation-cell boundary vectors
         select case (str_to_upper(Lattice_type))
         case("SQUARE")
+           ! Single-orbital 2D square lattice with orthogonal primitive vectors.
+           ! N_coord = 2 (two distinct bond directions: along a1 and a2) for 2D,
+           ! reduced to N_coord = 1 for a chain (L2 = 1).
            If ( L2==1 .and. L1 > 1 ) then
               Latt_Unit%N_coord   = 1
            elseif (L2 >1 .and. L1 > 1) then
@@ -131,20 +143,26 @@
            L2_p    =  dble(L2)*a2_p
            Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
         case("N_LEG_LADDER")
+           ! N-leg ladder: L2 legs of length L1 rungs.  The L2 orbitals per unit cell
+           ! are stacked along the a2 direction (rung direction); lattice spans only
+           ! one unit cell in a2 (L2_p = a2_p), so the full ladder is encoded via
+           ! the multi-orbital structure rather than replicated unit cells.
            a1_p(1) =  1.0  ; a1_p(2) =  0.d0
            a2_p(1) =  0.0  ; a2_p(2) =  1.d0
            L1_p    =  dble(L1)*a1_p
-           L2_p    =           a2_p
+           L2_p    =           a2_p   ! single unit cell in rung direction
            Call Make_Lattice( L1_p, L2_p, a1_p, a2_p, Latt )
 
-           Latt_Unit%Norb     = L2
+           Latt_Unit%Norb     = L2   ! one orbital per leg
            Latt_Unit%N_coord  = 1
            Allocate (Latt_unit%Orb_pos_p(L2,2))
            do no = 1,L2
               Latt_Unit%Orb_pos_p(no,1) = 0.d0
-              Latt_Unit%Orb_pos_p(no,2) = real(no-1,kind(0.d0))
+              Latt_Unit%Orb_pos_p(no,2) = real(no-1,kind(0.d0))  ! offset each leg by one unit
            enddo
         case("BILAYER_SQUARE")
+           ! Two-layer square lattice.  Orbitals 1 and 2 sit at the same (x,y) position
+           ! but at z = 0 and z = -1 respectively (encoded in Orb_pos_p(:,3)).
            a1_p(1) =  1.0  ; a1_p(2) =  0.d0
            a2_p(1) =  0.0  ; a2_p(2) =  1.d0
            L1_p    =  dble(L1)*a1_p
@@ -153,13 +171,16 @@
 
            Latt_Unit%Norb     = 2
            Latt_Unit%N_coord  = 2
-           Allocate (Latt_unit%Orb_pos_p(2,3))
+           Allocate (Latt_unit%Orb_pos_p(2,3))  ! third coord encodes layer
            do no = 1,2
               Latt_Unit%Orb_pos_p(no,1) = 0.d0
               Latt_Unit%Orb_pos_p(no,2) = 0.d0
-              Latt_Unit%Orb_pos_p(no,3) = real(1-no,kind(0.d0))
+              Latt_Unit%Orb_pos_p(no,3) = real(1-no,kind(0.d0))  ! layer 1: z=0, layer 2: z=-1
            enddo
         case("TRIANGULAR")
+           ! Single-orbital 2D triangular lattice with primitive vectors
+           ! a1 = (1, 0) and a2 = (1/2, sqrt(3)/2).  The non-orthogonal a2
+           ! gives the 60-degree bond and 3 distinct NN directions (N_coord=3).
            If (L1==1 .or. L2==1 ) then
               Write(error_unit,*) 'The triangular lattice cannot be one-dimensional.'
               CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
@@ -167,29 +188,36 @@
            Latt_Unit%Norb    = 1
            Latt_Unit%N_coord = 3
            a1_p(1) =  1.D0   ; a1_p(2) =  0.d0
-           a2_p(1) =  0.5D0  ; a2_p(2) =  sqrt(3.D0)/2.D0
+           a2_p(1) =  0.5D0  ; a2_p(2) =  sqrt(3.D0)/2.D0  ! 60-degree angle
            Allocate (Latt_Unit%Orb_pos_p(1,2))
            Latt_Unit%Orb_pos_p = 0.d0
            L1_p    =  dble(L1) * a1_p
            L2_p    =  dble(L2) * a2_p
            Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
          case("KAGOME")
+            ! Kagome lattice: 3 orbitals per unit cell placed at the midpoints of the
+            ! triangular-lattice bonds (a1/2 and a2/2 from the origin).  N_coord=4
+            ! because the unit cell has 4 distinct NN bond types.
             If (L1==1 .or. L2==1 ) then
                Write(error_unit,*) 'The kagome lattice cannot be one-dimensional.'
                CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
             endif
             Latt_Unit%Norb    = 3
-            Latt_Unit%N_coord = 4 
+            Latt_Unit%N_coord = 4
             a1_p(1) =  1.D0   ; a1_p(2) =  0.d0
-            a2_p(1) =  0.5D0  ; a2_p(2) =  sqrt(3.D0)/2.D0
+            a2_p(1) =  0.5D0  ; a2_p(2) =  sqrt(3.D0)/2.D0  ! shared with triangular
             Allocate (Latt_Unit%Orb_pos_p(3,2))
             Latt_Unit%Orb_pos_p = 0.d0
-            Latt_Unit%Orb_pos_p(2,:) = a1_p(:)/2.d0
-            Latt_Unit%Orb_pos_p(3,:) = a2_p(:)/2.d0
+            Latt_Unit%Orb_pos_p(2,:) = a1_p(:)/2.d0  ! midpoint of a1 bond
+            Latt_Unit%Orb_pos_p(3,:) = a2_p(:)/2.d0  ! midpoint of a2 bond
             L1_p    =  dble(L1) * a1_p
             L2_p    =  dble(L2) * a2_p
             Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
         case("HONEYCOMB")
+           ! Honeycomb lattice: 2-orbital unit cell with A (orbital 1) at origin and
+           ! B (orbital 2) displaced by (2/3)(a2 - a1/2).  This places B at the
+           ! nearest-neighbour position within the cell.  Same primitive vectors as
+           ! triangular; sqrt(3)/2 gives the correct in-plane geometry.
            If (L1==1 .or. L2==1 ) then
               Write(error_unit,*) 'The Honeycomb lattice cannot be one-dimensional.'
               CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
@@ -200,11 +228,16 @@
            a2_p(1) =  0.5D0  ; a2_p(2) =  sqrt(3.D0)/2.D0
            Allocate (Latt_Unit%Orb_pos_p(2,2))
            Latt_Unit%Orb_pos_p(1,:) = 0.d0
-           Latt_Unit%Orb_pos_p(2,:) = (a2_p(:) - 0.5D0*a1_p(:) ) * 2.D0/3.D0
+           Latt_Unit%Orb_pos_p(2,:) = (a2_p(:) - 0.5D0*a1_p(:) ) * 2.D0/3.D0  ! B-sublattice position
            L1_p    =  dble(L1) * a1_p
            L2_p    =  dble(L2) * a2_p
            Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
         case("BILAYER_HONEYCOMB")
+           ! Bilayer honeycomb: 4 orbitals per unit cell, two per layer.
+           !   Orbitals 1,2 = layer 1 (A/B sublattice, z = 0)
+           !   Orbitals 3,4 = layer 2 (A/B sublattice, z = -1)
+           ! The in-plane positions of orbitals 3,4 mirror those of 1,2;
+           ! the third column of Orb_pos_p encodes the layer separation.
            a1_p(1) =  1.D0   ; a1_p(2) =  0.d0
            a2_p(1) =  0.5D0  ; a2_p(2) =  sqrt(3.D0)/2.D0
            L1_p    =  dble(L1)*a1_p
@@ -213,39 +246,49 @@
 
            Latt_Unit%Norb     = 4
            Latt_Unit%N_coord  = 3
-           Allocate (Latt_unit%Orb_pos_p(4,3))
+           Allocate (Latt_unit%Orb_pos_p(4,3))  ! third coord = layer offset
            Latt_unit%Orb_pos_p = 0.d0
            do n = 1,2
               Latt_Unit%Orb_pos_p(1,n) = 0.d0
-              Latt_Unit%Orb_pos_p(2,n) = (a2_p(n) - 0.5D0*a1_p(n) ) * 2.D0/3.D0
+              Latt_Unit%Orb_pos_p(2,n) = (a2_p(n) - 0.5D0*a1_p(n) ) * 2.D0/3.D0  ! B position, layer 1
               Latt_Unit%Orb_pos_p(3,n) = 0.d0
-              Latt_Unit%Orb_pos_p(4,n) = (a2_p(n) - 0.5D0*a1_p(n) ) * 2.D0/3.D0
+              Latt_Unit%Orb_pos_p(4,n) = (a2_p(n) - 0.5D0*a1_p(n) ) * 2.D0/3.D0  ! B position, layer 2
            Enddo
-           Latt_Unit%Orb_pos_p(3,3) = -1.d0
+           Latt_Unit%Orb_pos_p(3,3) = -1.d0  ! layer 2 at z = -1
            Latt_Unit%Orb_pos_p(4,3) = -1.d0
         case("PI_FLUX")
+           ! Pi-flux square lattice: a pi flux is threaded per plaquette by choosing
+           ! non-orthogonal primitive vectors a1=(1,1) and a2=(1,-1) and then defining
+           ! the simulation-cell vectors as L1_p = L1*(a1-a2)/2 = L1*(0,1) and
+           ! L2_p = L2*(a1+a2)/2 = L2*(1,0).  The 2-orbital unit cell has A at the
+           ! origin and B displaced by (a1-a2)/2.
            If (L1==1 .or. L2==1 ) then
               Write(error_unit, *) 'The Pi Flux lattice cannot be one-dimensional.'
               CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
            endif
            Latt_Unit%Norb    = 2
-           Latt_Unit%N_coord = 4
+           Latt_Unit%N_coord = 4  ! 4 NN bonds (all equivalent by symmetry), no checkerboard phase
            a1_p(1) =  1.D0   ; a1_p(2) =   1.d0
            a2_p(1) =  1.D0   ; a2_p(2) =  -1.d0
            Allocate (Latt_Unit%Orb_pos_p(2,2))
            Latt_Unit%Orb_pos_p(1,:) = 0.d0
-           Latt_Unit%Orb_pos_p(2,:) = (a1_p(:) - a2_p(:))/2.d0
-           L1_p    =  dble(L1) * (a1_p - a2_p)/2.d0
-           L2_p    =  dble(L2) * (a1_p + a2_p)/2.d0
+           Latt_Unit%Orb_pos_p(2,:) = (a1_p(:) - a2_p(:))/2.d0  ! B sublattice: (0,1)
+           L1_p    =  dble(L1) * (a1_p - a2_p)/2.d0  ! = L1*(0,1)
+           L2_p    =  dble(L2) * (a1_p + a2_p)/2.d0  ! = L2*(1,0)
            Call Make_Lattice( L1_p, L2_p, a1_p,  a2_p, Latt )
         case default
            Write(error_unit,*) "Predefined_Latt: Lattice not yet implemented!"
            CALL Terminate_on_error(ERROR_GENERIC,__FILE__,__LINE__)
         end select
         ! Call Print_latt(Latt)
-        ! This is for the orbital structure.
 
-
+        ! Build the site-to-(unit-cell, orbital) mapping tables.
+        ! After this loop:
+        !   List(nc, 1) = unit-cell index I    for composite site nc
+        !   List(nc, 2) = orbital index    no   for composite site nc
+        !   Invlist(I, no) = nc   (the inverse mapping)
+        ! nc runs from 1 to Ndim = Latt%N * Latt_Unit%Norb.
+        ! For Honeycomb and Pi_Flux: orbital 1 = A sublattice, orbital 2 = B sublattice.
         Ndim = Latt%N*Latt_Unit%Norb
         Allocate (List(Ndim,2), Invlist(Latt%N,Latt_Unit%Norb))
         nc = 0

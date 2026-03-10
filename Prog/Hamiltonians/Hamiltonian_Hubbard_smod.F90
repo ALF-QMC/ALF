@@ -684,11 +684,27 @@
 !> \endverbatim
 !> @param [IN] Phase   Complex
 !> \verbatim
-!>  Phase
+!>  Complex phase of the QMC configuration.
+!>  From Phase two reweighting quantities are derived:
+!>    ZP = Phase / Re(Phase)  -- pure phase factor (unit modulus);
+!>         used to reweight observables assuming the partition function is real.
+!>    ZS = sign( Re(Phase) )  -- sign of the real part of the weight;
+!>         accumulated into the average sign.
+!>  The physical expectation value of any observable O is then
+!>    <O> = <O * ZP * ZS>_{|w|} / <ZS>_{|w|}
+!>  where the brackets denote averages over the reweighted ensemble.
 !> \endverbatim
 !> @param [IN] Ntau Integer
 !> \verbatim
 !>  Time slice
+!> \endverbatim
+!> @param [IN] Mc_step_weight   Real
+!> \verbatim
+!>  Additional importance-sampling weight of the current MC step.
+!>  In standard Metropolis sampling this is 1; for Langevin-type updates it
+!>  encodes a step-size-dependent correction factor so that the estimator
+!>  remains unbiased despite a variable step length.
+!>  ZS is multiplied by Mc_step_weight before accumulation.
 !> \endverbatim
 !-------------------------------------------------------------------
         subroutine Obser(GR,Phase,Ntau, Mc_step_weight)
@@ -821,7 +837,20 @@
 !> \endverbatim
 !> @param [IN] Phase   Complex
 !> \verbatim
-!>  Phase
+!>  Complex phase of the QMC configuration.
+!>  From Phase two reweighting quantities are derived:
+!>    ZP = Phase / Re(Phase)  -- pure phase factor (unit modulus);
+!>         used to reweight observables assuming the partition function is real.
+!>    ZS = sign( Re(Phase) )  -- sign of the real part of the weight;
+!>         accumulated into the average sign.
+!> \endverbatim
+!> @param [IN] Mc_step_weight   Real
+!> \verbatim
+!>  Additional importance-sampling weight of the current MC step.
+!>  In standard Metropolis sampling this is 1; for Langevin-type updates it
+!>  encodes a step-size-dependent correction factor so that the estimator
+!>  remains unbiased despite a variable step length.
+!>  ZS is multiplied by Mc_step_weight before accumulation.
 !> \endverbatim
 !-------------------------------------------------------------------
         Subroutine ObserT(NT,  GT0,G0T,G00,GTT, PHASE,  Mc_step_weight)

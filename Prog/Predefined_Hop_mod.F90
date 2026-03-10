@@ -34,10 +34,23 @@
 !> ALF-project
 !>
 !> @brief
-!> This module provides a set of predefined hoppings as well as a
-!> general framework to specify the hopping matrix for translation invariant
-!> multi-orbital systems.
+!> This module provides a set of predefined hopping matrices for the lattice types
+!> supported by ALF (square, triangular, kagome, honeycomb, bilayer variants, N-leg ladder)
+!> as well as a general framework for specifying the hopping Hamiltonian of a
+!> translation-invariant multi-orbital system.
 !>
+!> The central data structure is Hopping_Matrix_type, which stores the bond list, hopping
+!> amplitudes, flux parameters, and (optionally) the checkerboard decomposition families
+!> needed for an efficient Suzuki-Trotter factorisation.
+!>
+!> Typical usage:
+!> 1. Call one of the \c Set_Default_hopping_parameters_* routines to populate
+!>    an allocatable array of type(Hopping_Matrix_type).
+!> 2. Call Predefined_Hoppings_set_OPT to convert the hopping matrix into the
+!>    array of Operator objects consumed by the QMC engine.
+!>
+!> @see Operator_mod
+!> @see Lattices_v3
 !--------------------------------------------------------------------
 
 
@@ -56,30 +69,23 @@
       Logical, private, save :: first_pinning_notice_issued = .true.
 
       Type Hopping_Matrix_type
-         Integer                   :: N_bonds
-         Complex (Kind=Kind(0.d0)), pointer :: T    (:)    !  This does not include  local terms.
-         Complex (Kind=Kind(0.d0)), pointer :: T_loc(:)    !  This is just for the local matrix elements such as chemical potential.
-         Integer                  , pointer :: list(:,:)
-         ! T(N_b=1..N_bonds)
-         ! List(N_b,1) = no_1
-         ! List(N_b,2) = no_2
-         ! List(N_b,3) = n_1
-         ! List(N_b,4) = n_2
+         Integer                   :: N_bonds  !< Number of inequivalent bond types in the unit cell.
+         Complex (Kind=Kind(0.d0)), pointer :: T    (:)  !< Hopping amplitude T(N_b) for each bond type; does not include on-site terms.
+         Complex (Kind=Kind(0.d0)), pointer :: T_loc(:)  !< On-site (diagonal) term for each orbital, e.g. chemical potential.
+         Integer                  , pointer :: list(:,:) !< Bond definition table: List(N_b,1)=orbital_from, List(N_b,2)=orbital_to, List(N_b,3)=n_1, List(N_b,4)=n_2.
          ! H_[(i,no_1),(i + n_1 a_1 + n_2 a_2,no_2)] = T(N_b)
-         Integer                   :: N_Phi
-         Real    (Kind=Kind(0.d0)) :: Phi_X, Phi_Y
-         Logical                   :: Bulk
-         ! N_Phi         = #  of flux quanta  piercieng the lattice
-         ! Phi_X, Phi_Y  =  Twist
-         ! Bulk          =  Twist as boundary condtion (Bulk=.F.)
-         !               =  Twist as vector potential  (Bulk=.T.)
+         Integer                   :: N_Phi    !< Number of magnetic flux quanta \f$N_\Phi\f$ threading the lattice (Landau gauge).
+         Real    (Kind=Kind(0.d0)) :: Phi_X    !< Twist / Aharonov-Bohm flux along the a1 direction.
+         Real    (Kind=Kind(0.d0)) :: Phi_Y    !< Twist / Aharonov-Bohm flux along the a2 direction.
+         Logical                   :: Bulk     !< If .true., twist is inserted as a vector potential in the bulk; if .false., only at the boundary.
 
          ! For Checkerboard decomposition
-         Integer                            :: N_Fam
-         Integer                  , pointer :: L_Fam(:),  List_Fam(:,:,:)
-         Real    (Kind=Kind(0.d0)), pointer :: Prop_Fam(:)
+         Integer                            :: N_Fam      !< Number of commuting families in the checkerboard decomposition.
+         Integer                  , pointer :: L_Fam(:)   !< L_Fam(n): number of bonds in family n.
+         Integer                  , pointer :: List_Fam(:,:,:) !< List_Fam(n,l,1:2): unit cell and bond index of the l-th bond in family n.
+         Real    (Kind=Kind(0.d0)), pointer :: Prop_Fam(:) !< Trotter weight for family n; 1 for standard, 0.5 for symmetric satellite families.
 
-         Integer, private         , allocatable :: Multiplicity(:) !> Numer of times a given orbital occurs in the list of bonds, automatically computed
+         Integer, private         , allocatable :: Multiplicity(:) !< Number of times each orbital appears in the bond list; used when distributing on-site terms across checkerboard operators.
       End type Hopping_Matrix_Type
 
 
@@ -159,12 +165,26 @@
 !>
 !> @brief
 !> Check the consistency of the checkerboard decomposition.
-!> Following tests are done:
-!>   -it checks that the allocated size of second index of List_Fam is
-!>    at least maximum size of families. If the allocated size exceeds
-!>    the required size, it issues a warning.
-!>   -it checks that all bonds enter once and only once in the decomposition
-!>   -it checks that every pair of bonds in each family commute
+!> The following tests are performed:
+!>   - The allocated second dimension of \c List_Fam must be at least as large as the
+!>     maximum family size (a smaller allocation is a fatal error; a larger one issues a warning).
+!>   - Every bond \c (unit_cell, bond_index) must appear exactly once across all families.
+!>   - Within each family, no two bonds may share a site (commutativity check).
+!>
+!> @param [in]  this
+!> \verbatim
+!>   Type(Hopping_Matrix_type). The hopping object whose checkerboard decomposition
+!>   (N_FAM, L_Fam, List_Fam, List) is to be verified.
+!> \endverbatim
+!> @param [in]  Latt
+!> \verbatim
+!>   Type(Lattice). Lattice geometry; provides N (number of unit cells) and nnlist.
+!> \endverbatim
+!> @param [in]  inv_list
+!> \verbatim
+!>   Integer(:,:). Inverse site map: inv_list(unit_cell, orbital) = global site index.
+!> \endverbatim
+!> @return  .true. if all tests pass; .false. (with messages to error_unit) otherwise.
 !
 !--------------------------------------------------------------------
       Logical Function test_checkerboard_decomposition(this, Latt, inv_list)
@@ -248,9 +268,56 @@
 !> ALF-project
 !>
 !> @brief
-!> Default hopping for the square lattice.  Ham_T is the nearest
-!> neighbour hopping and Ham_Chem the chemical potential.
+!> Set the default hopping matrix for the square lattice.
+!> \c Ham_T is the nearest-neighbour hopping amplitude and \c Ham_Chem the on-site
+!> chemical potential.  The checkerboard decomposition uses 4 families:
+!> sites with \c mod(List(I,1)+List(I,2),2)==0 (sublattice A) contribute bonds 1 and 2
+!> to families 1 and 2; the remaining sites (sublattice B) contribute to families 3 and 4.
+!> If \c L_2==1 the routine delegates to Set_Default_hopping_parameters_N_Leg_Ladder.
 !>
+!> @param [out]  this
+!> \verbatim
+!>   Allocatable array of Hopping_Matrix_type, dimension(N_FL).
+!>   Allocated and filled by this routine.
+!> \endverbatim
+!> @param [in]  Ham_T_vec
+!> \verbatim
+!>   Real(:). Nearest-neighbour hopping amplitude for each flavor.
+!> \endverbatim
+!> @param [in]  Ham_Chem_vec
+!> \verbatim
+!>   Real(:). Chemical potential for each flavor.
+!> \endverbatim
+!> @param [in]  Phi_X_vec, Phi_Y_vec
+!> \verbatim
+!>   Real(:). Twist boundary conditions / Aharonov-Bohm flux along a1 and a2 for each flavor.
+!> \endverbatim
+!> @param [in]  Bulk
+!> \verbatim
+!>   Logical. If .true. the twist is applied as a gauge field in the bulk;
+!>   if .false. it is applied only at the boundary.
+!> \endverbatim
+!> @param [in]  N_Phi_vec
+!> \verbatim
+!>   Integer(:). Number of magnetic flux quanta threading the lattice for each flavor.
+!> \endverbatim
+!> @param [in]  N_FL
+!> \verbatim
+!>   Integer. Number of fermion flavors.
+!> \endverbatim
+!> @param [in]  List, Invlist
+!> \verbatim
+!>   Integer(:,:). Site-to-(unit-cell, orbital) map and its inverse.
+!>   List(I,1) = unit cell, List(I,2) = orbital; Invlist(uc,orb) = site index.
+!> \endverbatim
+!> @param [in]  Latt
+!> \verbatim
+!>   Type(Lattice). Lattice geometry.
+!> \endverbatim
+!> @param [in]  Latt_unit
+!> \verbatim
+!>   Type(Unit_cell). Unit-cell information (Norb, orbital positions).
+!> \endverbatim
 !
 !--------------------------------------------------------------------
       Subroutine Set_Default_hopping_parameters_square(this, Ham_T_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL, &
@@ -295,6 +362,13 @@
               If ( Abs(Ham_T_vec(nf))   >  Ham_T_max )  Ham_T_max = Abs(Ham_T_vec(nf))
            Enddo
 
+           ! Bond-list convention (applies to all lattices):
+           !   List(nc, 1) = no_from  : orbital index of the source site in the unit cell
+           !   List(nc, 2) = no_to    : orbital index of the target site in the unit cell
+           !   List(nc, 3) = n1       : unit-cell offset along lattice vector a1
+           !   List(nc, 4) = n2       : unit-cell offset along lattice vector a2
+           ! The encoded hopping matrix element is:
+           !   H[ (i, no_from), (i + n1*a1 + n2*a2, no_to) ] = T(nc)  where T(nc) = -Ham_T
            do nf = 1,N_FL
               this(nf)%N_bonds = 0
               if ( abs(Ham_T_max) > Zero)  then
@@ -302,6 +376,7 @@
                  Allocate (this(nf)%List(this(nf)%N_bonds,4), &
                       &    this(nf)%T(this(nf)%N_bonds) )
                  nc = 0
+                 ! Bond 1: orb1 -> orb1, offset (n1,n2) = (0,+1)  =>  NN hop along a2 (y-direction)
                  nc = nc + 1
                  this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
                  this(nf)%List(nc,1) = 1
@@ -309,6 +384,7 @@
                  this(nf)%List(nc,3) = 0
                  this(nf)%List(nc,4) = 1
 
+                 ! Bond 2: orb1 -> orb1, offset (n1,n2) = (+1,0)  =>  NN hop along a1 (x-direction)
                  nc = nc + 1
                  this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
                  this(nf)%List(nc,1) = 1
@@ -327,6 +403,13 @@
            enddo
 
            !Set Checkerboard
+           ! The two bond types are split across 4 families using the checkerboard sublattice
+           ! parity mod(n1+n2, 2) of each unit cell, so that all bonds within a family connect
+           ! disjoint site pairs and their single-bond propagators exp(-dtau*h_bond) commute.
+           !   Sublattice A  (mod(n1+n2,2)==0):  Family 1 -> bond 1 (a2-hop)
+           !                                     Family 2 -> bond 2 (a1-hop)
+           !   Sublattice B  (mod(n1+n2,2)==1):  Family 3 -> bond 1 (a2-hop)
+           !                                     Family 4 -> bond 2 (a1-hop)
            if ( Ham_T_max   > Zero ) then
               this(1)%N_FAM  = 4
               Allocate (this(1)%L_Fam(this(1)%N_FAM),  this(1)%Prop_Fam(this(1)%N_FAM))
@@ -364,9 +447,55 @@
 !> ALF-project
 !>
 !> @brief
-!> Default hopping for the triangular lattice.  Ham_T is the nearest
-!> neighbour hopping and Ham_Chem the chemical potential.
+!> Set the default hopping matrix for the triangular lattice.
+!> \c Ham_T is the nearest-neighbour hopping amplitude (three bond directions) and
+!> \c Ham_Chem the on-site chemical potential.
+!> The checkerboard decomposition uses 6 families:
+!> bonds 1 and 2 (along a1 and a2) are split by the parity of
+!> \c mod(List(I,1)+List(I,2),2): even sites -> families 1 and 2; odd sites -> families 4 and 5.
+!> Bond 3 (diagonal, along a2-a1) is split by \c mod(List(I,1),2):
+!> even -> family 3; odd -> family 6.
 !>
+!> @param [out]  this
+!> \verbatim
+!>   Allocatable array of Hopping_Matrix_type, dimension(N_FL).
+!> \endverbatim
+!> @param [in]  Ham_T_vec
+!> \verbatim
+!>   Real(:). Nearest-neighbour hopping amplitude for each flavor.
+!> \endverbatim
+!> @param [in]  Ham_Chem_vec
+!> \verbatim
+!>   Real(:). Chemical potential for each flavor.
+!> \endverbatim
+!> @param [in]  Phi_X_vec, Phi_Y_vec
+!> \verbatim
+!>   Real(:). Twist boundary conditions / flux along a1 and a2 for each flavor.
+!> \endverbatim
+!> @param [in]  Bulk
+!> \verbatim
+!>   Logical. Twist applied in bulk (.true.) or at boundary (.false.).
+!> \endverbatim
+!> @param [in]  N_Phi_vec
+!> \verbatim
+!>   Integer(:). Number of magnetic flux quanta for each flavor.
+!> \endverbatim
+!> @param [in]  N_FL
+!> \verbatim
+!>   Integer. Number of fermion flavors.
+!> \endverbatim
+!> @param [in]  List, Invlist
+!> \verbatim
+!>   Integer(:,:). Site-to-(unit-cell, orbital) map and its inverse.
+!> \endverbatim
+!> @param [in]  Latt
+!> \verbatim
+!>   Type(Lattice). Lattice geometry.
+!> \endverbatim
+!> @param [in]  Latt_unit
+!> \verbatim
+!>   Type(Unit_cell). Unit-cell information.
+!> \endverbatim
 !
 !--------------------------------------------------------------------
       Subroutine Set_Default_hopping_parameters_triangular(this, Ham_T_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL, &
@@ -410,6 +539,7 @@
                Allocate (this(nf)%List(this(nf)%N_bonds,4), &
                     &    this(nf)%T(this(nf)%N_bonds) )
                nc = 0
+               ! Bond 1: orb1 -> orb1, offset (n1,n2) = (+1, 0)  =>  NN along a1
                nc = nc + 1
                this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
                this(nf)%List(nc,1) = 1
@@ -417,6 +547,7 @@
                this(nf)%List(nc,3) = 1
                this(nf)%List(nc,4) = 0
 
+               ! Bond 2: orb1 -> orb1, offset (n1,n2) = ( 0,+1)  =>  NN along a2
                nc = nc + 1
                this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
                this(nf)%List(nc,1) = 1
@@ -424,6 +555,7 @@
                this(nf)%List(nc,3) = 0
                this(nf)%List(nc,4) = 1
 
+               ! Bond 3: orb1 -> orb1, offset (n1,n2) = (-1,+1)  =>  NN along a2-a1 (third triangular direction)
                nc = nc + 1
                this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
                this(nf)%List(nc,1) = 1
@@ -452,6 +584,26 @@
          ! enddo
 
          !Set Checkerboard
+         ! The triangular lattice has 3 bond directions requiring 6 families total.
+         !
+         ! Bonds 1 (a1-hop, List(nc,3)=+1,4=0) and 2 (a2-hop, List(nc,3)=0,4=+1) connect
+         ! sites of OPPOSITE checkerboard parity mod(n1+n2,2): the source is at (n1,n2)
+         ! and the target at (n1+1,n2) or (n1,n2+1), both with opposite parity.  Splitting
+         ! by mod(n1+n2,2) therefore guarantees disjoint site pairs within each family:
+         !   Sublattice A (mod(n1+n2,2)==0):  Family 1 -> bond 1 (a1-hop)
+         !                                    Family 2 -> bond 2 (a2-hop)
+         !   Sublattice B (mod(n1+n2,2)==1):  Family 4 -> bond 1 (a1-hop)
+         !                                    Family 5 -> bond 2 (a2-hop)
+         !
+         ! Bond 3 (diagonal, List(nc,3)=-1,4=+1) connects (n1,n2) -> (n1-1,n2+1).
+         ! Its target has parity mod((n1-1)+(n2+1),2) = mod(n1+n2,2): the SAME as the
+         ! source.  Splitting by mod(n1+n2,2) would therefore put both endpoints of
+         ! different bond-3 instances in the same sublattice, causing site sharing
+         ! (e.g., bond-3 at (1,1) targets (0,2), which is the source of bond-3 at (0,2)).
+         ! Instead, bond 3 is split by mod(n1,2): the source has n1 and the target n1-1,
+         ! so sources and targets always have opposite n1-parity, ensuring disjoint pairs:
+         !   Even n1 (mod(n1,2)==0):          Family 3 -> bond 3
+         !   Odd  n1 (mod(n1,2)==1):          Family 6 -> bond 3
          if ( Ham_T_max   > Zero ) then
             this(1)%N_FAM  = 6
             Allocate (this(1)%L_Fam(this(1)%N_FAM),  this(1)%Prop_Fam(this(1)%N_FAM))
@@ -499,9 +651,53 @@
 !> ALF-project
 !>
 !> @brief
-!> Default hopping for the kagome lattice.  Ham_T is the nearest
-!> neighbour hopping and Ham_Chem the chemical potential.
+!> Set the default hopping matrix for the kagome lattice.
+!> \c Ham_T is the nearest-neighbour hopping amplitude (six bond types,
+!> three orbitals per unit cell) and \c Ham_Chem the on-site chemical potential.
+!> The checkerboard decomposition uses 6 families that map one-to-one onto the
+!> 6 bond types: every unit cell contributes its bond \c Nf to family \c Nf,
+!> so all bonds within a family connect disjoint site pairs and hence commute.
 !>
+!> @param [out]  this
+!> \verbatim
+!>   Allocatable array of Hopping_Matrix_type, dimension(N_FL).
+!> \endverbatim
+!> @param [in]  Ham_T_vec
+!> \verbatim
+!>   Real(:). Nearest-neighbour hopping amplitude for each flavor.
+!> \endverbatim
+!> @param [in]  Ham_Chem_vec
+!> \verbatim
+!>   Real(:). Chemical potential for each flavor.
+!> \endverbatim
+!> @param [in]  Phi_X_vec, Phi_Y_vec
+!> \verbatim
+!>   Real(:). Twist boundary conditions / flux along a1 and a2 for each flavor.
+!> \endverbatim
+!> @param [in]  Bulk
+!> \verbatim
+!>   Logical. Twist applied in bulk (.true.) or at boundary (.false.).
+!> \endverbatim
+!> @param [in]  N_Phi_vec
+!> \verbatim
+!>   Integer(:). Number of magnetic flux quanta for each flavor.
+!> \endverbatim
+!> @param [in]  N_FL
+!> \verbatim
+!>   Integer. Number of fermion flavors.
+!> \endverbatim
+!> @param [in]  List, Invlist
+!> \verbatim
+!>   Integer(:,:). Site-to-(unit-cell, orbital) map and its inverse.
+!> \endverbatim
+!> @param [in]  Latt
+!> \verbatim
+!>   Type(Lattice). Lattice geometry.
+!> \endverbatim
+!> @param [in]  Latt_unit
+!> \verbatim
+!>   Type(Unit_cell). Unit-cell information.
+!> \endverbatim
 !
 !--------------------------------------------------------------------
     Subroutine Set_Default_hopping_parameters_kagome(this, Ham_T_vec, Ham_Chem_vec, Phi_X_vec, Phi_Y_vec, Bulk,  N_Phi_vec, N_FL, &
@@ -537,6 +733,10 @@
       ! List(N_b,3) = n_1
       ! List(N_b,4) = n_2
       ! H_[(i,no_1),(i + n_1 a_1 + n_2 a_2,no_2)] = T(N_b)   
+      !
+      ! Kagome unit cell: 3 orbitals per cell (orb1, orb2, orb3 forming a corner-sharing triangle).
+      ! The 6 bond types cover all nearest-neighbour pairs; 3 are intra-cell (n1=n2=0)
+      ! and 3 connect to neighbouring cells.
       do nf = 1,N_FL
          this(nf)%N_bonds = 0
          if ( abs(Ham_T_max) > Zero)  then
@@ -544,6 +744,7 @@
             Allocate (this(nf)%List(this(nf)%N_bonds,4), &
                  &    this(nf)%T(this(nf)%N_bonds) )
             nc = 0
+            ! Bond 1: orb1 -> orb2, (0, 0)  intra-cell (short bond along the a1-base)
             nc = nc + 1
             this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
             this(nf)%List(nc,1) = 1
@@ -551,6 +752,7 @@
             this(nf)%List(nc,3) = 0
             this(nf)%List(nc,4) = 0
 
+            ! Bond 2: orb1 -> orb3, (0, 0)  intra-cell
             nc = nc + 1
             this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
             this(nf)%List(nc,1) = 1
@@ -558,6 +760,7 @@
             this(nf)%List(nc,3) = 0
             this(nf)%List(nc,4) = 0
 
+            ! Bond 3: orb2 -> orb3, (0, 0)  intra-cell
             nc = nc + 1
             this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
             this(nf)%List(nc,1) = 2
@@ -565,6 +768,7 @@
             this(nf)%List(nc,3) = 0
             this(nf)%List(nc,4) = 0
 
+            ! Bond 4: orb3 -> orb1, ( 0,+1)  inter-cell, +a2
             nc = nc + 1
             this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
             this(nf)%List(nc,1) = 3
@@ -572,6 +776,7 @@
             this(nf)%List(nc,3) = 0
             this(nf)%List(nc,4) = 1
 
+            ! Bond 5: orb3 -> orb2, (-1,+1)  inter-cell, along a2-a1
             nc = nc + 1
             this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
             this(nf)%List(nc,1) = 3
@@ -579,6 +784,7 @@
             this(nf)%List(nc,3) = -1
             this(nf)%List(nc,4) = 1
 
+            ! Bond 6: orb1 -> orb2, (-1, 0)  inter-cell, along -a1
             nc = nc + 1
             this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
             this(nf)%List(nc,1) = 1
@@ -597,6 +803,20 @@
       enddo
 
       !Set Checkerboard
+      ! The kagome lattice uses one family per bond type (6 families total).
+      ! Every unit cell contributes exactly one bond of each type; because the two orbital
+      ! endpoints of any given bond type are distinct for every unit cell and are not shared
+      ! with the same bond type from any other unit cell, all bonds in a family connect
+      ! disjoint site pairs and their propagators commute trivially.
+      ! Note: bonds 1 and 6 both connect orb1->orb2 but with different cell offsets
+      ! ((0,0) vs (-1,0)); they must be in separate families because they share the orb1
+      ! site at the source unit cell.
+      !   Family 1 (bond 1): orb1 -> orb2, ( 0, 0)  intra-cell, midpoint of a1-edge
+      !   Family 2 (bond 2): orb1 -> orb3, ( 0, 0)  intra-cell, midpoint of a2-edge
+      !   Family 3 (bond 3): orb2 -> orb3, ( 0, 0)  intra-cell, closes the triangle
+      !   Family 4 (bond 4): orb3 -> orb1, ( 0,+1)  inter-cell, bridge along +a2
+      !   Family 5 (bond 5): orb3 -> orb2, (-1,+1)  inter-cell, bridge along a2-a1
+      !   Family 6 (bond 6): orb1 -> orb2, (-1, 0)  inter-cell, bridge along -a1
       if ( Ham_T_max   > Zero ) then
          this(1)%N_FAM  = 6
          Allocate (this(1)%L_Fam(this(1)%N_FAM),  this(1)%Prop_Fam(this(1)%N_FAM))
@@ -619,9 +839,59 @@
 !> ALF-project
 !>
 !> @brief
-!> Default hopping for n-leg-ladder.  Ham_T is the nearest neighbour hopping along the chain,  Ham_T_perp  the
-!> interrung hopping and H_chem the chemical potential.
+!> Set the default hopping matrix for an N-leg ladder.
+!> \c Ham_T is the hopping along each chain (nearest neighbours along a1),
+!> \c Ham_T_perp is the inter-rung hopping (nearest neighbours connecting orbital
+!> \c n to \c n+1 within the same unit cell), and \c Ham_Chem is the on-site
+!> chemical potential.  When \c Latt%N==1 the routine builds an open-boundary
+!> one-dimensional chain; otherwise periodic boundary conditions along a1 are used.
+!> The checkerboard decomposition is based on the parity of the unit-cell index
+!> along a1 (families 1/2) and the parity of the rung bond index (families 3/4).
 !>
+!> @param [out]  this
+!> \verbatim
+!>   Allocatable array of Hopping_Matrix_type, dimension(N_FL).
+!> \endverbatim
+!> @param [in]  Ham_T_vec
+!> \verbatim
+!>   Real(:). Hopping amplitude along each chain for each flavor.
+!> \endverbatim
+!> @param [in]  Ham_T_perp_vec
+!> \verbatim
+!>   Real(:). Inter-rung hopping amplitude for each flavor.
+!> \endverbatim
+!> @param [in]  Ham_Chem_vec
+!> \verbatim
+!>   Real(:). Chemical potential for each flavor.
+!> \endverbatim
+!> @param [in]  Phi_X_vec, Phi_Y_vec
+!> \verbatim
+!>   Real(:). Twist boundary conditions / flux along a1 and a2 for each flavor.
+!> \endverbatim
+!> @param [in]  Bulk
+!> \verbatim
+!>   Logical. Twist applied in bulk (.true.) or at boundary (.false.).
+!> \endverbatim
+!> @param [in]  N_Phi_vec
+!> \verbatim
+!>   Integer(:). Number of magnetic flux quanta for each flavor.
+!> \endverbatim
+!> @param [in]  N_FL
+!> \verbatim
+!>   Integer. Number of fermion flavors.
+!> \endverbatim
+!> @param [in]  List, Invlist
+!> \verbatim
+!>   Integer(:,:). Site-to-(unit-cell, orbital) map and its inverse.
+!> \endverbatim
+!> @param [in]  Latt
+!> \verbatim
+!>   Type(Lattice). Lattice geometry.
+!> \endverbatim
+!> @param [in]  Latt_unit
+!> \verbatim
+!>   Type(Unit_cell). Unit-cell information (Norb = number of legs).
+!> \endverbatim
 !
 !--------------------------------------------------------------------
       Subroutine Set_Default_hopping_parameters_N_Leg_Ladder  &
@@ -649,6 +919,8 @@
         select case (Latt%N)
         case(1)   !  Here the length of the  N_leg_ladder is unity such  that it
                   !  effectivley maps onto a one-dimensional chain with open boundary conditions.
+           ! With only one unit cell along a1 there are no leg hops; only the
+           ! N_legs-1 intra-cell rung bonds between adjacent legs are included.
            
            
            Allocate( this(N_FL) )
@@ -657,6 +929,7 @@
               Allocate (this(nf)%List( this(nf)%N_bonds,4 ), this(nf)%T( this(nf)%N_bonds ) )
               nc = 0
               do n = 1,Latt_unit%Norb  -1
+                 ! Bond n: orb_n -> orb_{n+1}, (0,0)  rung hop between legs n and n+1
                  nc = nc + 1
                  this(nf)%T(nc)    = cmplx(-Ham_T_perp_vec(nf),0.d0,kind(0.d0))
                  this(nf)%List(nc,1) = n
@@ -675,7 +948,11 @@
               this(nf)%Bulk =   Bulk
            enddo
            
-           ! Set Checkerboard
+           ! Set Checkerboard (single unit cell / open chain)
+           ! Rung bonds are split into two families by the parity of the bond index n,
+           ! so bonds within a family share no sites and their propagators commute:
+           !   Family 1: odd-indexed rung bonds  (n = 1, 3, 5, ...)
+           !   Family 2: even-indexed rung bonds (n = 2, 4, 6, ...)
            If  ( Latt_Unit%Norb  <=  2 ) then
               this(1)%N_FAM        = 1
            else
@@ -719,11 +996,16 @@
            !Write(6,*) Ham_T_vec,  Ham_T_perp_vec, Ham_chem_vec
            Allocate( this(N_FL) )
            do nf = 1,N_FL
+              ! Bonds 1..N_legs: leg hops along a1 for each orbital (leg)
+              !   Bond n: orb_n -> orb_n, (1,0)
+              ! Bonds N_legs+1..2*N_legs-1: rung hops within the unit cell
+              !   Bond N_legs+n: orb_n -> orb_{n+1}, (0,0)
               this(nf)%N_bonds = Latt_unit%Norb +  (Latt_unit%Norb - 1 )
               Allocate (this(nf)%List( this(nf)%N_bonds,4 ), &
                    &    this(nf)%T( this(nf)%N_bonds ) )
               nc = 0
               do n = 1,Latt_unit%Norb
+                 ! Leg hop for orbital (leg) n along a1
                  nc = nc + 1
                  this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
                  this(nf)%List(nc,1) = n
@@ -733,6 +1015,7 @@
               enddo
               
               do n = 1,Latt_unit%Norb -1
+                 ! Rung hop between legs n and n+1 within the same unit cell
                  nc = nc + 1
                  this(nf)%T(nc)    = cmplx(-Ham_T_perp_vec(nf),0.d0,kind(0.d0))
                  this(nf)%List(nc,1) = n
@@ -752,11 +1035,15 @@
            enddo
            
            ! Write(6,*) Latt_unit%Norb
-           ! Set Checkerboard
+           ! Set Checkerboard (full N-leg ladder)
+           ! Leg bonds (1..N_legs) are split into families 1 and 2 by the parity of
+           ! the unit-cell index along a1: mod(n1,2)==0 -> family 1, else -> family 2.
+           ! Rung bonds (N_legs+1..2*N_legs-1) are split into families 3 and 4 by the
+           ! parity of the rung bond index n: odd n -> family 3, even n -> family 4.
            If     ( Latt_Unit%Norb  == 1 ) then
-              this(1)%N_FAM        = 2
+              this(1)%N_FAM        = 2    ! Only leg bonds; no rung bonds
            elseif ( Latt_Unit%Norb  == 2 ) then
-              this(1)%N_FAM        = 3
+              this(1)%N_FAM        = 3    ! One rung bond -> needs only one extra family
            else
               this(1)%N_FAM        = 4
            endif
@@ -769,14 +1056,14 @@
            this(1)%L_FAM  = 0
            do I = 1,Latt%N
               if ( mod(Latt%List(I,1),2) == 0 ) then
-                 Nf = 1
+                 Nf = 1   ! Even unit-cell index along a1: leg bonds go to family 1
                  do no = 1,Latt_unit%Norb
                     this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
                     this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I ! Unit cell
                     this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = no ! The bond (See above)
                  enddo
               else
-                 Nf = 2
+                 Nf = 2   ! Odd unit-cell index along a1: leg bonds go to family 2
                  do no = 1,Latt_unit%Norb
                     this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
                     this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),1) = I
@@ -786,7 +1073,7 @@
            enddo
            do no = 1,Latt_unit%Norb - 1
               if (mod(no,2) == 1 ) then
-                 Nf = 3
+                 Nf = 3   ! Odd rung index: rung bond no+N_legs goes to family 3
                  !Write(6,*)  NF, no + Latt_unit%Norb
                  do I = 1,Latt%N
                     this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
@@ -794,7 +1081,7 @@
                     this(1)%List_Fam(Nf,this(1)%L_Fam(Nf),2) = no + Latt_unit%Norb
                  enddo
               else
-                 Nf = 4
+                 Nf = 4   ! Even rung index: rung bond no+N_legs goes to family 4
                  !Write(6,*)  NF, no + Latt_unit%Norb
                  do I = 1,Latt%N
                     this(1)%L_Fam(Nf) = this(1)%L_Fam(Nf) + 1
@@ -815,9 +1102,59 @@
 !> ALF-project
 !>
 !> @brief
-!> Default hopping for Honeycomb lattice.  Ham_T is the nearest neighbour hopping along the chain, Lambda is  the
-!> Kane-Mele term and H_chem the chemical potential.  **Note**  The Kane-Mele term is not yet implemented.
+!> Set the default hopping matrix for the honeycomb lattice.
+!> \c Ham_T is the nearest-neighbour hopping amplitude (three bond types connecting
+!> the two sublattice orbitals), \c Lambda is the Kane-Mele spin-orbit coupling
+!> (**not yet implemented** — a non-zero value triggers a runtime error), and
+!> \c Ham_Chem is the on-site chemical potential.
+!> The checkerboard decomposition uses 3 families that map one-to-one onto the 3
+!> nearest-neighbour bond types; each family contains all \c Latt%N bonds of that type.
 !>
+!> @param [out]  this
+!> \verbatim
+!>   Allocatable array of Hopping_Matrix_type, dimension(N_FL).
+!> \endverbatim
+!> @param [in]  Ham_T_vec
+!> \verbatim
+!>   Real(:). Nearest-neighbour hopping amplitude for each flavor.
+!> \endverbatim
+!> @param [in]  Ham_Lambda_vec
+!> \verbatim
+!>   Real(:). Kane-Mele spin-orbit coupling for each flavor.
+!>   Currently not implemented; must be zero.
+!> \endverbatim
+!> @param [in]  Ham_Chem_vec
+!> \verbatim
+!>   Real(:). Chemical potential for each flavor.
+!> \endverbatim
+!> @param [in]  Phi_X_vec, Phi_Y_vec
+!> \verbatim
+!>   Real(:). Twist boundary conditions / flux along a1 and a2 for each flavor.
+!> \endverbatim
+!> @param [in]  Bulk
+!> \verbatim
+!>   Logical. Twist applied in bulk (.true.) or at boundary (.false.).
+!> \endverbatim
+!> @param [in]  N_Phi_vec
+!> \verbatim
+!>   Integer(:). Number of magnetic flux quanta for each flavor.
+!> \endverbatim
+!> @param [in]  N_FL
+!> \verbatim
+!>   Integer. Number of fermion flavors.
+!> \endverbatim
+!> @param [in]  List, Invlist
+!> \verbatim
+!>   Integer(:,:). Site-to-(unit-cell, orbital) map and its inverse.
+!> \endverbatim
+!> @param [in]  Latt
+!> \verbatim
+!>   Type(Lattice). Lattice geometry.
+!> \endverbatim
+!> @param [in]  Latt_unit
+!> \verbatim
+!>   Type(Unit_cell). Unit-cell information.
+!> \endverbatim
 !
 !--------------------------------------------------------------------
       Subroutine Set_Default_hopping_parameters_honeycomb(this,Ham_T_vec, Ham_Lambda_vec, Ham_Chem_vec, Phi_X_vec, &
@@ -850,10 +1187,13 @@
         endif
         Allocate( this(N_FL) )
         do nf = 1,N_FL
+           ! Honeycomb unit cell: 2 orbitals per cell (A-sublattice = orb1, B-sublattice = orb2).
+           ! The 3 nearest-neighbour bond types cover all A-B connections.
            this(nf)%N_bonds =  3
            Allocate (this(nf)%List(this(nf)%N_bonds,4), &
                 &    this(nf)%T(this(nf)%N_bonds) )
            nc = 0
+           ! Bond 1: A(orb1) -> B(orb2), ( 0,  0)  delta1 bond (same unit cell)
            nc = nc + 1
            this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
            this(nf)%List(nc,1) =  1
@@ -861,6 +1201,7 @@
            this(nf)%List(nc,3) =  0
            this(nf)%List(nc,4) =  0
 
+           ! Bond 2: B(orb2) -> A(orb1), ( 0, +1)  delta2 bond (+a2)
            nc = nc + 1
            this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
            this(nf)%List(nc,1) =  2
@@ -868,6 +1209,7 @@
            this(nf)%List(nc,3) =  0
            this(nf)%List(nc,4) =  1
 
+           ! Bond 3: A(orb1) -> B(orb2), (+1, -1)  delta3 bond (a1-a2)
            nc = nc + 1
            this(nf)%T(nc)    = cmplx(-Ham_T_vec(nf),0.d0,kind(0.d0))
            this(nf)%List(nc,1) =  1
@@ -886,6 +1228,14 @@
         enddo
 
         ! Set Checkerboard
+        ! The honeycomb lattice uses one family per bond type (3 families total).
+        ! Each family consists of all Latt%N bonds of that type, one per unit cell.
+        ! Since each bond type connects A and B sites that are not shared between
+        ! different unit cells for the same bond type, the bonds within a family
+        ! connect disjoint site pairs and their propagators commute trivially.
+        !   Family 1: all bond-1 (delta1, same-cell A->B) bonds
+        !   Family 2: all bond-2 (delta2, +a2 B->A) bonds
+        !   Family 3: all bond-3 (delta3, a1-a2 A->B) bonds
         this(1)%N_FAM  = 3
         Allocate (this(1)%L_Fam(this(1)%N_FAM),  this(1)%Prop_Fam(this(1)%N_FAM))
         this(1)%L_FAM  = Latt%N
@@ -905,9 +1255,61 @@
 !> ALF-project
 !>
 !> @brief
-!> Default hopping for a bilayer square. Ham_T1, Ham_T2, are the nearest neighbour hopping on the first and second layer and
-!> Ham_T_perp   is the interlayer  hopping.
+!> Set the default hopping matrix for the bilayer square lattice.
+!> \c Ham_T1 and \c Ham_T2 are the nearest-neighbour hopping amplitudes on layer 1 and
+!> layer 2, respectively (orbitals 1 and 2 per unit cell), and \c Ham_Tperp is the
+!> interlayer hopping amplitude (vertical rung between orbital 1 and orbital 2).
+!> The checkerboard decomposition is based on the parity of \c mod(List(I,1)+List(I,2),2)
+!> for the in-plane bonds and adds a separate family for the interlayer bonds.
 !>
+!> @param [out]  this
+!> \verbatim
+!>   Allocatable array of Hopping_Matrix_type, dimension(N_FL).
+!> \endverbatim
+!> @param [in]  Ham_T1_vec
+!> \verbatim
+!>   Real(:). In-plane hopping on layer 1 (orbital 1) for each flavor.
+!> \endverbatim
+!> @param [in]  Ham_T2_vec
+!> \verbatim
+!>   Real(:). In-plane hopping on layer 2 (orbital 2) for each flavor.
+!> \endverbatim
+!> @param [in]  Ham_Tperp_vec
+!> \verbatim
+!>   Real(:). Interlayer hopping for each flavor.
+!> \endverbatim
+!> @param [in]  Ham_Chem_vec
+!> \verbatim
+!>   Real(:). Chemical potential for each flavor.
+!> \endverbatim
+!> @param [in]  Phi_X_vec, Phi_Y_vec
+!> \verbatim
+!>   Real(:). Twist boundary conditions / flux along a1 and a2 for each flavor.
+!> \endverbatim
+!> @param [in]  Bulk
+!> \verbatim
+!>   Logical. Twist applied in bulk (.true.) or at boundary (.false.).
+!> \endverbatim
+!> @param [in]  N_Phi_vec
+!> \verbatim
+!>   Integer(:). Number of magnetic flux quanta for each flavor.
+!> \endverbatim
+!> @param [in]  N_FL
+!> \verbatim
+!>   Integer. Number of fermion flavors.
+!> \endverbatim
+!> @param [in]  List, Invlist
+!> \verbatim
+!>   Integer(:,:). Site-to-(unit-cell, orbital) map and its inverse.
+!> \endverbatim
+!> @param [in]  Latt
+!> \verbatim
+!>   Type(Lattice). Lattice geometry.
+!> \endverbatim
+!> @param [in]  Latt_unit
+!> \verbatim
+!>   Type(Unit_cell). Unit-cell information (Norb=2 for the two layers).
+!> \endverbatim
 !
 !--------------------------------------------------------------------
       Subroutine Set_Default_hopping_parameters_Bilayer_square(this,Ham_T1_vec,Ham_T2_vec,Ham_Tperp_vec, Ham_Chem_vec, &
@@ -952,6 +1354,13 @@
            endif
            Allocate( this(N_FL) )
            do nf = 1,N_FL
+              ! Bilayer square, L2==1 (quasi-1D ladder geometry).
+              ! orb1 = layer 1, orb2 = layer 2.  Bond counting:
+              !   Bond 1 (always):        layer-1 leg hop along a1, orb1->orb1, (1,0)
+              !   Bond 2 (if Tperp /= 0): interlayer rung,           orb1->orb2, (0,0)
+              !   Bond 3 (if T2    /= 0): layer-2 leg hop along a1,  orb2->orb2, (1,0)
+              ! No_Shift=1 when Tperp /= 0: the interlayer bond occupies index 2,
+              !   so the layer-2 leg bond is shifted to index 3 (2+No_Shift).
               N_bonds = 0
               N_bonds = N_bonds + 1
               if (abs(Ham_Tperp_max) > Zero )  N_bonds = N_bonds + 1
@@ -960,6 +1369,7 @@
               Allocate (this(nf)%List(this(nf)%N_bonds,4), &
                    &    this(nf)%T(this(nf)%N_bonds) )
               nc = 0
+              ! Bond 1: orb1 -> orb1, (+1, 0)  layer-1 leg hop along a1
               nc = nc + 1
               this(nf)%T(nc)    = cmplx(-Ham_T1_vec(nf),0.d0,kind(0.d0))
               this(nf)%List(nc,1) = 1
@@ -968,6 +1378,7 @@
               this(nf)%List(nc,4) = 0
               
               If (abs(Ham_Tperp_max) > Zero ) Then
+                 ! Bond 2: orb1 -> orb2, (0, 0)  interlayer rung hop
                  nc = nc + 1
                  this(nf)%T(nc)    = cmplx(-Ham_Tperp_vec(nf),0.d0,kind(0.d0))
                  this(nf)%List(nc,1) = 1
@@ -977,6 +1388,7 @@
               endif
               
               If (abs(Ham_T2_max) > Zero ) Then
+                 ! Bond 2+No_Shift: orb2 -> orb2, (+1, 0)  layer-2 leg hop along a1
                  nc = nc + 1
                  this(nf)%T(nc)    = cmplx(-Ham_T2_vec(nf),0.d0,kind(0.d0))
                  this(nf)%List(nc,1) = 2
@@ -996,7 +1408,14 @@
               this(nf)%Bulk =   Bulk
            enddo
 
-           ! Set Checkerboard
+           ! Set Checkerboard (L2==1 quasi-1D branch)
+           ! Leg bonds are split by the checkerboard sublattice parity mod(n1+n2,2)
+           ! of the unit cell, keeping layer-1 and layer-2 leg bonds in the same family
+           ! so each family has only disjoint site pairs.
+           !   Sublattice A (mod(n1+n2,2)==0):  Family 1 -> bond 1 [+ bond 2+No_Shift if T2 active]
+           !   Sublattice B (mod(n1+n2,2)==1):  Family 2 -> bond 1 [+ bond 2+No_Shift if T2 active]
+           !   Family 3 (if Tperp /= 0):        all interlayer rung bonds (bond 2), one per unit cell
+           ! No_Shift=1 when Tperp /= 0: the layer-2 bond index is 2+No_Shift to skip the rung bond.
            this(1)%N_FAM  = 2
            if (abs(Ham_Tperp_max) > Zero )  this(1)%N_FAM=3
 
@@ -1058,6 +1477,15 @@
            
            Allocate( this(N_FL) )
            do nf = 1,N_FL
+              ! Bilayer square, 2D geometry (L2 > 1).  orb1 = layer 1, orb2 = layer 2.
+              ! Bond counting:
+              !   Bond 1 (always):        layer-1 hop along a2, orb1->orb1, (0,+1)
+              !   Bond 2 (always):        layer-1 hop along a1, orb1->orb1, (+1,0)
+              !   Bond 3 (if Tperp /= 0): interlayer rung,       orb1->orb2, (0,0)
+              !   Bond 4 (if T2    /= 0): layer-2 hop along a2,  orb2->orb2, (0,+1)
+              !   Bond 5 (if T2    /= 0): layer-2 hop along a1,  orb2->orb2, (+1,0)
+              ! No_Shift=1 when Tperp /= 0: layer-2 bond indices are shifted by 1
+              !   (4+No_Shift and 5+No_Shift would be wrong; here the pattern is 3+No_Shift, 4+No_Shift).
               N_bonds = 0
               N_bonds = N_bonds + 2
               if (abs(Ham_Tperp_max) > Zero )  N_bonds = N_bonds + 1
@@ -1066,6 +1494,7 @@
               Allocate (this(nf)%List(this(nf)%N_bonds,4), &
                    &    this(nf)%T(this(nf)%N_bonds) )
               nc = 0
+              ! Bond 1: orb1 -> orb1, ( 0,+1)  layer-1 hop along a2
               nc = nc + 1
               this(nf)%T(nc)    = cmplx(-Ham_T1_vec(nf),0.d0,kind(0.d0))
               this(nf)%List(nc,1) = 1
@@ -1073,6 +1502,7 @@
               this(nf)%List(nc,3) = 0
               this(nf)%List(nc,4) = 1
               
+              ! Bond 2: orb1 -> orb1, (+1, 0)  layer-1 hop along a1
               nc = nc + 1
               this(nf)%T(nc)    = cmplx(-Ham_T1_vec(nf),0.d0,kind(0.d0))
               this(nf)%List(nc,1) = 1
@@ -1081,6 +1511,7 @@
               this(nf)%List(nc,4) = 0
               
               If (abs(Ham_Tperp_max) > Zero ) Then
+                 ! Bond 3: orb1 -> orb2, (0, 0)  interlayer rung hop
                  nc = nc + 1
                  this(nf)%T(nc)    = cmplx(-Ham_Tperp_vec(nf),0.d0,kind(0.d0))
                  this(nf)%List(nc,1) = 1
@@ -1090,6 +1521,7 @@
               endif
               
               If (abs(Ham_T2_max) > Zero ) Then
+                 ! Bond 3+No_Shift: orb2 -> orb2, ( 0,+1)  layer-2 hop along a2
                  nc = nc + 1
                  this(nf)%T(nc)    = cmplx(-Ham_T2_vec(nf),0.d0,kind(0.d0))
                  this(nf)%List(nc,1) = 2
@@ -1097,6 +1529,7 @@
                  this(nf)%List(nc,3) = 0
                  this(nf)%List(nc,4) = 1
                  
+                 ! Bond 4+No_Shift: orb2 -> orb2, (+1, 0)  layer-2 hop along a1
                  nc = nc + 1
                  this(nf)%T(nc)    = cmplx(-Ham_T2_vec(nf),0.d0,kind(0.d0))
                  this(nf)%List(nc,1) = 2
@@ -1117,7 +1550,17 @@
               this(nf)%Bulk =   Bulk
            enddo
            
-           ! Set Checkerboard
+           ! Set Checkerboard (2D bilayer square branch)
+           ! Both layer-1 and layer-2 in-plane bonds are split by the checkerboard
+           ! sublattice parity mod(n1+n2,2), and layer-1 and layer-2 bonds of the
+           ! same bond direction are placed in the same family.  This works because
+           ! the two layers are independent in real space and share no lattice sites.
+           !   Sublattice A (mod(n1+n2,2)==0):  Family 1 -> bond 1 (a2) [+ T2 a2]
+           !                                    Family 2 -> bond 2 (a1) [+ T2 a1]
+           !   Sublattice B (mod(n1+n2,2)==1):  Family 3 -> bond 1 (a2) [+ T2 a2]
+           !                                    Family 4 -> bond 2 (a1) [+ T2 a1]
+           !   Family 5 (if Tperp /= 0):        all interlayer rung bonds, one per unit cell
+           ! No_Shift=1 when Tperp /= 0: layer-2 bond indices are 3+No_Shift and 4+No_Shift.
            this(1)%N_FAM  = 4
            if (abs(Ham_Tperp_max) > Zero )  this(1)%N_FAM=5
            
@@ -1215,9 +1658,62 @@
 !> ALF-project
 !>
 !> @brief
-!> Default hopping for a bilayer square. Ham_T1, Ham_T2, are the nearest neighbour hopping on the first and second layer and
-!> Ham_T_perp   is the interlayer  hopping.
+!> Default hopping for the bilayer honeycomb lattice. \c Ham_T1 and \c Ham_T2 are the nearest-neighbour
+!> hopping amplitudes on the first and second honeycomb layer, respectively, and
+!> \c Ham_T_perp is the interlayer hopping amplitude.
+!> Each honeycomb layer uses the same three-bond checkerboard decomposition as
+!> Set_Default_hopping_parameters_honeycomb.
 !>
+!> @see Set_Default_hopping_parameters_honeycomb
+!>
+!> @param [out]  this
+!> \verbatim
+!>   Allocatable array of Hopping_Matrix_type, dimension(N_FL).
+!> \endverbatim
+!> @param [in]  Ham_T1_vec
+!> \verbatim
+!>   Real(:). In-plane nearest-neighbour hopping on layer 1 (orbitals 1-2) for each flavor.
+!> \endverbatim
+!> @param [in]  Ham_T2_vec
+!> \verbatim
+!>   Real(:). In-plane nearest-neighbour hopping on layer 2 (orbitals 3-4) for each flavor.
+!> \endverbatim
+!> @param [in]  Ham_Tperp_vec
+!> \verbatim
+!>   Real(:). Interlayer hopping amplitude for each flavor.
+!> \endverbatim
+!> @param [in]  Ham_Chem_vec
+!> \verbatim
+!>   Real(:). Chemical potential for each flavor.
+!> \endverbatim
+!> @param [in]  Phi_X_vec, Phi_Y_vec
+!> \verbatim
+!>   Real(:). Twist boundary conditions / flux along a1 and a2 for each flavor.
+!> \endverbatim
+!> @param [in]  Bulk
+!> \verbatim
+!>   Logical. Twist applied in bulk (.true.) or at boundary (.false.).
+!> \endverbatim
+!> @param [in]  N_Phi_vec
+!> \verbatim
+!>   Integer(:). Number of magnetic flux quanta for each flavor.
+!> \endverbatim
+!> @param [in]  N_FL
+!> \verbatim
+!>   Integer. Number of fermion flavors.
+!> \endverbatim
+!> @param [in]  List, Invlist
+!> \verbatim
+!>   Integer(:,:). Site-to-(unit-cell, orbital) map and its inverse.
+!> \endverbatim
+!> @param [in]  Latt
+!> \verbatim
+!>   Type(Lattice). Lattice geometry.
+!> \endverbatim
+!> @param [in]  Latt_unit
+!> \verbatim
+!>   Type(Unit_cell). Unit-cell information (Norb=4 for two honeycomb layers).
+!> \endverbatim
 !
 !--------------------------------------------------------------------
       Subroutine Set_Default_hopping_parameters_Bilayer_honeycomb(this,Ham_T1_vec,Ham_T2_vec,Ham_Tperp_vec, Ham_Chem_vec, &
@@ -1267,6 +1763,12 @@
            Allocate (this(nf)%List(this(nf)%N_bonds,4), &
                 &    this(nf)%T(this(nf)%N_bonds) )
            nc = 0
+           ! Bilayer honeycomb unit cell: 4 orbitals (orb1=A-layer1, orb2=B-layer1,
+           !   orb3=A-layer2, orb4=B-layer2).  The 1+2 = 3 and 2+2 = 4 notation
+           !   below simply means orb3 and orb4 (layer-2 counterparts of orb1 and orb2).
+           !
+           ! Bonds 1-3: layer-1 honeycomb bonds (same geometry as standalone honeycomb)
+           ! Bond 1: A1(orb1) -> B1(orb2), ( 0,  0)  delta1 bond (same unit cell)
            nc = nc + 1
            this(nf)%T(nc)    = cmplx(-Ham_T1_vec(nf),0.d0,kind(0.d0))
            this(nf)%List(nc,1) =  1
@@ -1274,6 +1776,7 @@
            this(nf)%List(nc,3) =  0
            this(nf)%List(nc,4) =  0
 
+           ! Bond 2: B1(orb2) -> A1(orb1), ( 0, +1)  delta2 bond (+a2)
            nc = nc + 1
            this(nf)%T(nc)    = cmplx(-Ham_T1_vec(nf),0.d0,kind(0.d0))
            this(nf)%List(nc,1) =  2
@@ -1281,6 +1784,7 @@
            this(nf)%List(nc,3) =  0
            this(nf)%List(nc,4) =  1
 
+           ! Bond 3: A1(orb1) -> B1(orb2), (+1, -1)  delta3 bond (a1-a2)
            nc = nc + 1
            this(nf)%T(nc)    = cmplx(-Ham_T1_vec(nf),0.d0,kind(0.d0))
            this(nf)%List(nc,1) =  1
@@ -1289,6 +1793,8 @@
            this(nf)%List(nc,4) = -1
 
            If (abs(Ham_Tperp_Max) > Zero )  then
+              ! Bonds 4-5: interlayer (vertical) rung bonds connecting the two layers
+              ! Bond 4: A1(orb1) -> A2(orb3), (0, 0)  A-sublattice interlayer rung
               nc = nc + 1
               this(nf)%T(nc)    = cmplx(-Ham_Tperp_vec(nf),0.d0,kind(0.d0))
               this(nf)%List(nc,1) =  1
@@ -1296,6 +1802,7 @@
               this(nf)%List(nc,3) =  0
               this(nf)%List(nc,4) =  0
 
+              ! Bond 5: B1(orb2) -> B2(orb4), (0, 0)  B-sublattice interlayer rung
               nc = nc + 1
               this(nf)%T(nc)    = cmplx(-Ham_Tperp_vec(nf),0.d0,kind(0.d0))
               this(nf)%List(nc,1) =  2
@@ -1304,6 +1811,9 @@
               this(nf)%List(nc,4) =  0
            endif
            If (abs(Ham_T2_Max) > Zero )  then
+              ! Bonds 3+No_Shift+1 to 3+No_Shift+3: layer-2 honeycomb bonds
+              ! (orb3 = 1+2, orb4 = 2+2; No_Shift=2 when Tperp /= 0 to skip bonds 4-5)
+              ! Bond 3+No_Shift+1: A2(orb3) -> B2(orb4), ( 0,  0)  delta1 bond
               nc = nc + 1
               this(nf)%T(nc)    = cmplx(-Ham_T2_vec(nf),0.d0,kind(0.d0))
               this(nf)%List(nc,1) =  1 + 2
@@ -1311,6 +1821,7 @@
               this(nf)%List(nc,3) =  0
               this(nf)%List(nc,4) =  0
 
+              ! Bond 3+No_Shift+2: B2(orb4) -> A2(orb3), ( 0, +1)  delta2 bond (+a2)
               nc = nc + 1
               this(nf)%T(nc)    = cmplx(-Ham_T2_vec(nf),0.d0,kind(0.d0))
               this(nf)%List(nc,1) =  2 + 2
@@ -1318,6 +1829,7 @@
               this(nf)%List(nc,3) =  0
               this(nf)%List(nc,4) =  1
 
+              ! Bond 3+No_Shift+3: A2(orb3) -> B2(orb4), (+1, -1)  delta3 bond (a1-a2)
               nc = nc + 1
               this(nf)%T(nc)    = cmplx(-Ham_T2_vec(nf),0.d0,kind(0.d0))
               this(nf)%List(nc,1) =  1 + 2
@@ -1340,7 +1852,16 @@
 
         enddo
 
-        ! Set Checkerboard
+        ! Set Checkerboard (bilayer honeycomb)
+        ! Each layer uses its own set of 3 honeycomb families (one per bond type).
+        ! Since each bond type in one layer involves sites from only that layer,
+        ! layer-1 and layer-2 bonds of the same type are placed in the same family.
+        ! The interlayer rung bonds (if present) form a separate 4th family.
+        !   Family 1: bond type 1 (delta1) from both layers -> all Latt%N [or 2*Latt%N] bonds
+        !   Family 2: bond type 2 (delta2) from both layers
+        !   Family 3: bond type 3 (delta3) from both layers
+        !   Family 4 (if Tperp /= 0): both interlayer rung bond types (bonds 4 and 5)
+        ! No_Shift=2 when Tperp /= 0: layer-2 bonds start at index 3+No_Shift=6.
         this(1)%N_FAM  = 3
         If ( abs(Ham_Tperp_Max) > Zero ) this(1)%N_FAM = 4
         Allocate (this(1)%L_Fam(this(1)%N_FAM),  this(1)%Prop_Fam(this(1)%N_FAM))
@@ -1409,9 +1930,19 @@
 !> ALF-project
 !>
 !> @brief
-!> Given the checkerbord decompostion
-!> the routine allocates and sets OP_T Set_Default_hopping_parameters_"Lattice" routine,
-!> this routine generates the data for the symmetric decomposition.
+!> Given the checkerboard decomposition set by a \c Set_Default_hopping_parameters_* routine,
+!> this routine generates the data for a symmetric Trotter decomposition.
+!> The number of families is expanded from \c N_FAM to \c 2*N_FAM-1 by appending the original
+!> sequence in reverse order.  The largest family is always placed in the centre slot so that
+!> it receives the full time-step weight (\c Prop_Fam=1), while all satellite families receive
+!> half the time-step weight (\c Prop_Fam=0.5).  This preserves the hermitian properties of the
+!> hopping propagator when \c Symm=.true. is passed to Predefined_Hoppings_set_OPT.
+!>
+!> @param [inout] this
+!> \verbatim
+!>   Allocatable array of Hopping_Matrix_type (N_FL flavors).  On entry the standard
+!>   N_FAM-family decomposition is set; on exit the symmetric 2*N_FAM-1 form is stored.
+!> \endverbatim
 !
 !--------------------------------------------------------------------
       Subroutine Symmetrize_Families(this)
@@ -1494,9 +2025,23 @@
 !> ALF-project
 !>
 !> @brief
-!> Given a bond  I,J or  a  site  I=J,  this routine searches if belongs to the group of bonds or sites for which 
-!> the hopping matrix will be modified.
-!> If the bond or site is found, the routine returns the index of the bond/site in the list of pinned_vertices. 
+!> Given a bond (I, J) or a site I=J, search whether it belongs to the set of
+!> pinned vertices.  Returns the 1-based index into \c pinned_vertices if found,
+!> or 0 if not found.  The search is symmetric: the pair (I,J) and (J,I) both match.
+!>
+!> @param [in]  I, J
+!> \verbatim
+!>   Integer. Global site indices of the bond endpoint (I=J for on-site terms).
+!> \endverbatim
+!> @param [in]  N_pinned_vertices
+!> \verbatim
+!>   Integer. Number of pinned vertices (first dimension of pinned_vertices).
+!> \endverbatim
+!> @param [in]  pinned_vertices
+!> \verbatim
+!>   Integer(N_pinned_vertices, 2). Each row stores the two site indices of a pinned bond/site.
+!> \endverbatim
+!> @return  1-based index into pinned_vertices if the bond is pinned, 0 otherwise.
 !--------------------------------------------------------------------
       integer pure function get_i_pinned_vertex(I, J, N_pinned_vertices, pinned_vertices)
          integer, intent(in) :: I, J, N_pinned_vertices, pinned_vertices(N_pinned_vertices, 2)
@@ -1518,8 +2063,31 @@
 !> ALF-project
 !>
 !> @brief
-!> Given a bond  I,J or  a  site  I=J,  this routine returns the pinning factor of the bond/site. If there is no pinning 
-!> for this bond/site, the routine returns 1.0 
+!> Given a bond (I, J) or a site I=J, return the multiplicative pinning factor for that bond
+!> in flavor \c nf.  If the bond is not in the pinning list the routine returns 1.0 (no modification).
+!> Sets the module-level flag \c pinning_notice_issued if the returned factor differs from 1.
+!>
+!> @param [in]  I, J
+!> \verbatim
+!>   Integer. Global site indices of the bond endpoints.
+!> \endverbatim
+!> @param [in]  N_pinned_vertices
+!> \verbatim
+!>   Integer. Number of pinned bonds/sites.
+!> \endverbatim
+!> @param [in]  pinned_vertices
+!> \verbatim
+!>   Integer(N_pinned_vertices, 2). Site-index pairs of pinned bonds/sites.
+!> \endverbatim
+!> @param [in]  pinning_factor
+!> \verbatim
+!>   Complex(:,:). Shape (N_pinned_vertices, N_FL). Multiplicative factor for each pinned bond and flavor.
+!> \endverbatim
+!> @param [in]  nf
+!> \verbatim
+!>   Integer. Flavor index (1..N_FL).
+!> \endverbatim
+!> @return  The pinning factor for bond (I,J) in flavor nf, or cmplx(1,0) if not pinned.
 !--------------------------------------------------------------------
       complex(Kind=Kind(0.d0)) function get_pinning_factor(I, J, N_pinned_vertices, pinned_vertices, pinning_factor, nf)
          integer, intent(in) :: I, J, N_pinned_vertices, pinned_vertices(N_pinned_vertices, 2), nf
@@ -1541,8 +2109,31 @@
 !> ALF-project
 !>
 !> @brief
-!> Given a bond  I,J or  a  site  I=J,  this routine returns the pinning offset of the bond/site. If there is no pinning 
-!> for this bond/site, the routine returns 1.0 
+!> Given a bond (I, J) or a site I=J, return the additive pinning offset for that bond
+!> in flavor \c nf.  If the bond is not in the pinning list the routine returns 0.0 (no modification).
+!> Sets the module-level flag \c pinning_notice_issued if the returned offset is non-zero.
+!>
+!> @param [in]  I, J
+!> \verbatim
+!>   Integer. Global site indices of the bond endpoints.
+!> \endverbatim
+!> @param [in]  N_pinned_vertices
+!> \verbatim
+!>   Integer. Number of pinned bonds/sites.
+!> \endverbatim
+!> @param [in]  pinned_vertices
+!> \verbatim
+!>   Integer(N_pinned_vertices, 2). Site-index pairs of pinned bonds/sites.
+!> \endverbatim
+!> @param [in]  pinning_offset
+!> \verbatim
+!>   Complex(:,:). Shape (N_pinned_vertices, N_FL). Additive offset for each pinned bond and flavor.
+!> \endverbatim
+!> @param [in]  nf
+!> \verbatim
+!>   Integer. Flavor index (1..N_FL).
+!> \endverbatim
+!> @return  The pinning offset for bond (I,J) in flavor nf, or cmplx(0,0) if not pinned.
 !--------------------------------------------------------------------
       complex(Kind=Kind(0.d0)) function get_pinning_offset(I, J, N_pinned_vertices, pinned_vertices, pinning_offset, nf)
          integer, intent(in) :: I, J, N_pinned_vertices, pinned_vertices(N_pinned_vertices, 2), nf
@@ -1612,8 +2203,64 @@
 !> ALF-project
 !>
 !> @brief
-!> Given the Hopping-matrix, and if required the checkerboard decomposion (i.e. private data of this module)
-!> the routine allocates and sets OP_T.
+!> Allocate and set the hopping propagator array \c Op_T from the pre-built hopping matrix \c this.
+!> Three propagation modes are supported depending on \c Checkerboard and \c Symm:
+!>   - **Zero / Diagonal** hopping: one operator per site or a single diagonal block.
+!>   - **Full matrix without checkerboard**: one dense operator block per flavor.
+!>   - **Checkerboard decomposition**: one operator per checkerboard family per flavor;
+!>     if \c Symm=.true., Symmetrize_Families is called first to produce a symmetric
+!>     Trotter decomposition \f$ e^{-\Delta\tau H_t} \approx \prod_{n=1}^{2N-1} e^{-\Delta\tau_n H_t(n)} \f$.
+!>
+!> @param [inout]  this
+!> \verbatim
+!>   Allocatable array of Hopping_Matrix_type, dimension(N_FL).
+!>   If Symm=.true. and Checkerboard=.true. its N_FAM is expanded by Symmetrize_Families.
+!> \endverbatim
+!> @param [in]  List, Invlist
+!> \verbatim
+!>   Integer(:,:). Site-to-(unit-cell, orbital) map and its inverse.
+!> \endverbatim
+!> @param [in]  Latt
+!> \verbatim
+!>   Type(Lattice). Lattice geometry.
+!> \endverbatim
+!> @param [in]  Latt_unit
+!> \verbatim
+!>   Type(Unit_cell). Unit-cell information.
+!> \endverbatim
+!> @param [in]  Dtau
+!> \verbatim
+!>   Real. Imaginary-time step.
+!> \endverbatim
+!> @param [in]  Checkerboard
+!> \verbatim
+!>   Logical. If .true., use the checkerboard decomposition stored in this.
+!> \endverbatim
+!> @param [in]  Symm
+!> \verbatim
+!>   Logical. If .true. and Checkerboard=.true., apply a symmetric Trotter decomposition.
+!> \endverbatim
+!> @param [out]  Op_T
+!> \verbatim
+!>   Type(Operator)(:,:), allocatable. Shape (N_ops, N_FL).
+!>   N_ops = 1 for full-matrix mode, Ndim for diagonal, or sum of L_Fam for checkerboard.
+!> \endverbatim
+!> @param [in]  pinned_vertices  (optional)
+!> \verbatim
+!>   Integer(:,:). Shape (N_pinned_vertices, 2). Site-index pairs of bonds/sites whose
+!>   hopping matrix elements are to be selectively modified.
+!>   Must be supplied together with pinning_factor and pinning_offset.
+!> \endverbatim
+!> @param [in]  pinning_factor  (optional)
+!> \verbatim
+!>   Complex(:,:). Shape (N_pinned_vertices, N_FL). Multiplicative factor applied to
+!>   each pinned bond matrix element per flavor.
+!> \endverbatim
+!> @param [in]  pinning_offset  (optional)
+!> \verbatim
+!>   Complex(:,:). Shape (N_pinned_vertices, N_FL). Additive offset applied to
+!>   each pinned bond matrix element per flavor.
+!> \endverbatim
 !
 !--------------------------------------------------------------------
       Subroutine Predefined_Hoppings_set_OPT(this,List,Invlist,Latt,  Latt_unit,  Dtau,Checkerboard, Symm, OP_T,  & 
@@ -1773,7 +2420,11 @@
               enddo
               allocate(Op_T(N,N_FL))
               do nf = 1,N_FL
-                 ! Compute Multiplicity
+                 ! Compute Multiplicity: count how many checkerboard bond types contain each orbital.
+                 ! An orbital can appear as source (List(i,1)) or target (List(i,2)) of multiple bond
+                 ! types, so Multiplicity(orb) >= 1.  The on-site term T_Loc(orb) is later divided by
+                 ! Multiplicity(orb) so that, when all checkerboard operators that touch orb are summed,
+                 ! the full T_Loc(orb) is recovered without double-counting.
                  allocate(this(nf)%Multiplicity(Latt_Unit%Norb))
                  this(nf)%Multiplicity = 0
                  do i = 1, size(this(nf)%List, 1)
@@ -1802,7 +2453,12 @@
                        J    = Latt%nnlist(I,n_1,n_2)
                        I1   = Invlist(I,no_I)
                        J1   = Invlist(J,no_J)
+                       ! Z: Peierls gauge factor for the hop (i,no_I) -> (j,no_J); see Generic_hopping.
                        Z    = Generic_hopping(I,no_I, n_1, n_2, no_J, N_Phi, Phi_x,Phi_y, Bulk, Latt, Latt_Unit)
+                       ! Z1, Z2: the fraction of the on-site (chemical-potential) energy assigned to
+                       ! this 2x2 block for sites I1 and J1 respectively.  Dividing by Multiplicity
+                       ! ensures T_Loc is not over-counted when multiple checkerboard families share
+                       ! the same orbital.
                        Z1   = this(nf)%T_loc(no_I)/this(1)%Multiplicity(no_I)
                        Z2   = this(nf)%T_loc(no_J)/this(1)%Multiplicity(no_J)
                        if(present(pinned_vertices)) then
@@ -1814,12 +2470,13 @@
                               &   get_pinning_offset(J1, J1, N_pinned_vertices, pinned_vertices, pinning_offset, nf)/this(1)%Multiplicity(no_J)
                        endif
                        nc = nc + 1
-                       Op_T(nc,nf)%P(1) = I1
-                       Op_T(nc,nf)%P(2) = J1
-                       Op_T(nc,nf)%O(1,2) = this(nf)%T(Nb)*Z
-                       Op_T(nc,nf)%O(2,1) = Conjg(this(nf)%T(Nb)*Z)
-                       Op_T(nc,nf)%O(1,1) = Z1
-                       Op_T(nc,nf)%O(2,2) = Z2
+                       Op_T(nc,nf)%P(1) = I1           ! global index of source site
+                       Op_T(nc,nf)%P(2) = J1           ! global index of target site
+                       ! The 2x2 operator block in the basis (I1, J1):
+                       Op_T(nc,nf)%O(1,2) = this(nf)%T(Nb)*Z      ! off-diagonal: hopping I1->J1 (with Peierls phase)
+                       Op_T(nc,nf)%O(2,1) = Conjg(this(nf)%T(Nb)*Z) ! conjugate: hopping J1->I1 (hermiticity)
+                       Op_T(nc,nf)%O(1,1) = Z1  ! on-site energy at I1, weighted by 1/Multiplicity(no_I)
+                       Op_T(nc,nf)%O(2,2) = Z2  ! on-site energy at J1, weighted by 1/Multiplicity(no_J)
                        Op_T(nc,nf)%g = -Dtau*this(1)%Prop_Fam(n_f)
                        Op_T(nc,nf)%alpha=cmplx(0.d0,0.d0, kind(0.D0))
                        Call Op_set(Op_T(nc,nf))
@@ -1838,9 +2495,48 @@
 !> ALF-project
 !>
 !> @brief
-!> The subroutine computes the kinetic energy based on the generic form of the
-!> the hopping matrix.
+!> Compute the kinetic energy \f$ \langle H_t \rangle \f$ from the equal-time
+!> Green's function \c GRC using the generic hopping stored in \c this.
+!> Handles zero, diagonal, and full (non-checkerboard) hopping; the checkerboard
+!> storage is not used here since kinetic energy only requires the bond list.
 !>
+!> @param [in]  this
+!> \verbatim
+!>   Allocatable array of Hopping_Matrix_type, dimension(N_FL).
+!> \endverbatim
+!> @param [in]  List, Invlist
+!> \verbatim
+!>   Integer(:,:). Site-to-(unit-cell, orbital) map and its inverse.
+!> \endverbatim
+!> @param [in]  Latt
+!> \verbatim
+!>   Type(Lattice). Lattice geometry.
+!> \endverbatim
+!> @param [in]  Latt_unit
+!> \verbatim
+!>   Type(Unit_cell). Unit-cell information.
+!> \endverbatim
+!> @param [in]  GRC
+!> \verbatim
+!>   Complex(:,:,:). Equal-time Green's function GRC(I,J,nf) = <c_I c_J^dag>_nf.
+!> \endverbatim
+!> @param [out]  Z_Kin
+!> \verbatim
+!>   Complex. Kinetic energy summed over all sites and flavors.
+!> \endverbatim
+!> @param [in]  pinned_vertices  (optional)
+!> \verbatim
+!>   Integer(:,:). Shape (N_pinned_vertices, 2). Pinned bond site-index pairs.
+!> \endverbatim
+!> @param [in]  pinning_factor  (optional)
+!> \verbatim
+!>   Complex(:,:). Multiplicative pinning factors, shape (N_pinned_vertices, N_FL).
+!> \endverbatim
+!> @param [in]  pinning_offset  (optional)
+!> \verbatim
+!>   Complex(:,:). Additive pinning offsets, shape (N_pinned_vertices, N_FL).
+!> \endverbatim
+!
 !--------------------------------------------------------------------
       Subroutine  Predefined_Hoppings_Compute_Kin(this,List,Invlist, Latt, Latt_unit, GRC, Z_Kin, & 
                                              &    pinned_vertices, pinning_factor, pinning_offset)
@@ -2073,20 +2769,28 @@
         Complex (Kind=Kind(0.d0)) :: Z_hop
 
 
+        ! Initialize the gauge factor to 1; three independent contributions are multiplied below.
+        ! The final result is Z_hop = exp(i * total_phase), where the phase accumulates from:
+        !   1. Aharonov-Bohm / twist boundary conditions  (Flux_1, Flux_2)
+        !   2. Orbital magnetic field in Landau gauge      (N_Phi flux quanta through the system)
+        !   3. Boundary-crossing correction for the Landau gauge when the hop wraps around the
+        !      periodic boundary (N1 /= 0 and/or N2 /= 0 winding numbers)
         Z_hop = cmplx(1.d0,0.d0,kind(0.d0))
 
+        ! Compute the real-space position of the target site j = i + del_1*a1 + del_2*a2 (before PBC).
         xj_p =  real(latt%list(i,1) + del_1 ,kind(0.d0)) * latt%a1_p  +  real(latt%list(i,2) + del_2 ,kind(0.d0)) * latt%a2_p
-        ! Check if you have crossed the boundary:  xj_p  = xjp_p + N1*L1_p  + N2*L2_p  with  xjp_p  in the set of lattice sites.
+        ! Fold xj_p back into the simulation cell: xj_p = xjp_p + N1*L1_p + N2*L2_p,
+        ! where xjp_p is the image of j inside the simulation cell and (N1,N2) are the winding numbers.
         N1 = 0; N2 = 0
         Call npbc(xjp_p, xj_p, Latt%L1_p, Latt%L2_p,  N1, N2)
         XB_p = real(N1,kind(0.d0))*Latt%L1_p  +  real(N2,kind(0.d0))*Latt%L2_p
         Do n = 1,2
-           xj_p (n) = xj_p (n) + Latt_unit%Orb_pos_p(no_j,n)
+           xj_p (n) = xj_p (n) + Latt_unit%Orb_pos_p(no_j,n)    ! add orbital offset at target
            xjp_p(n) = xjp_p(n) + Latt_unit%Orb_pos_p(no_j,n)
         enddo
         xi_p    = real(latt%list(i,1), kind(0.d0)) * latt%a1_p  +  real(latt%list(i,2),kind(0.d0)) * latt%a2_p
         Do n = 1,2
-           xi_p(n) = xi_p(n) +  Latt_unit%Orb_pos_p(no_i,n)
+           xi_p(n) = xi_p(n) +  Latt_unit%Orb_pos_p(no_i,n)     ! add orbital offset at source
         Enddo
         !!Check that  xjp_p(:) + XB_p(:) =  xj_p(:)
         !!x1_p(:) = xjp_p(:) + XB_p
@@ -2094,29 +2798,37 @@
         !! -->  i + del_1*a_1 + del_2* a_2  =  i' + N1*L1_p + N2*L2_p  with i' in the set of lattice points.
 
 
-        ! The hopping increment.
+        ! del_p: the real-space displacement vector of the hop (including orbital offsets).
         del_p  =  xj_p - xi_p
 
-        !Twist
+        ! ---------- Contribution 1: Aharonov-Bohm / twist boundary condition ----------
+        ! A_p is the vector potential that implements twist phases Flux_1 and Flux_2 along
+        ! the two lattice directions.  bZ1_p, bZ2_p are the reciprocal-lattice vectors dual
+        ! to L1_p, L2_p, so A_p · L_{1,2} = 2*pi*Flux_{1,2}.
         pi = acos(-1.d0)
         A_p(:)  =   Flux_1 * Xnorm(Latt%a1_p) * latt%bZ1_p(:)  /  Xnorm(Latt%L1_p) + &
              &      Flux_2 * Xnorm(Latt%a2_p) * latt%bZ2_p(:)  /  Xnorm(Latt%L2_p)
 
         if (Bulk) then
-           !Twist in bulk
+           ! Bulk (distributed) twist: phase = A_p · del_p (line integral along the bond).
            Z_hop = Z_hop * exp(cmplx(0.d0,Iscalar(A_p,del_p),Kind(0.d0)))
         else
-           !Twist as boundary
+           ! Boundary twist: phase = A_p · XB_p (only non-zero when the hop crosses the boundary).
            Z_hop = Z_hop * exp(cmplx(0.d0,Iscalar(A_p,XB_p ),Kind(0.d0)))
         endif
 
-        !Orbital magnetic field (Landau gauge)
+        ! ---------- Contribution 2: orbital magnetic field in the Landau gauge ----------
+        ! B = N_Phi / V is the uniform magnetic field (N_Phi flux quanta, V = cell area).
+        ! The Landau-gauge phase for a hop (xi_p -> xj_p) is -2*pi*B * del_p(1) * (xj_p(2)+xi_p(2))/2,
+        ! i.e. a symmetric midpoint convention along the y-coordinate (Peierls substitution).
         Zero =  1.0E-8
         V  =  abs(Latt%L1_p(1) * Latt%L2_p(2)  -  Latt%L1_p(2) * Latt%L2_p(1) )
         If ( V > Zero )  then
            B = real(N_Phi,kind(0.d0))/V
            Z_hop = Z_hop*exp(cmplx(0.d0, -2.d0*pi* B * del_p(1) *  ( xj_p(2) + xi_p(2) )/2.d0,kind(0.d0) ) )
-           ! Boundary
+           ! ---------- Contribution 3: boundary-crossing correction for the Landau gauge ----------
+           ! When the hop wraps around the periodic boundary (N1 or N2 /= 0), the Landau-gauge
+           ! vector potential is not single-valued; Chi() computes the resulting correction phase.
            x_p   =  Real(N2,Kind(0.d0))*Latt%L2_p
            x1_p  =  Xjp_p + Real(N1,Kind(0.d0))*Latt%L1_p
            Z_hop =  Z_hop  *  exp(cmplx( 0.d0, -Chi(x_p, x1_p,B,pi),kind(0.d0)))

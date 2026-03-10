@@ -50,40 +50,62 @@ Module Operator_mod
   
   
   
+!--------------------------------------------------------------------
+!> @author
+!> ALF-project
+!>
+!> @brief
+!> Operator type used in the auxiliary-field QMC.  Represents a single-particle
+!> bilinear coupled to an auxiliary field: \f$ g\,\phi(s)\,(c^\dagger A c + \alpha) \f$,
+!> where \f$A\f$ is encoded in \c O and the sites it acts on are encoded in \c P.
+!> After construction via Op_Make / Op_set, the precomputed exponentials are stored
+!> internally and used throughout the QMC sweep.
+!>
+!> @see Predefined_Int_mod for helper routines that build Operator instances for
+!>      standard interactions (Hubbard U, Jz, LRC, ...).
+!--------------------------------------------------------------------
   Type Operator
-     Integer          :: N, N_non_zero                      !> dimension of Operator (P and O), number of non-zero eigenvalues
-     Integer, private :: win_M_exp, win_U                   !> MPI_windows which can be used for fences (memory synch.) and dealloc.
-     logical          :: diag                               !> encodes if Operator is diagonal
-     logical, private :: U_alloc, M_exp_alloc, g_t_alloc    !> logical to track if memory is allocated
-     complex (Kind=Kind(0.d0)), pointer :: O(:,:), U (:,:)  !> Storage for operator matrix O and its eigenvectors U
-     complex (Kind=Kind(0.d0)), pointer, private :: M_exp(:,:,:), E_exp(:,:)  !> Internal storage for exp(O) and exp(E)
-     Real    (Kind=Kind(0.d0)), pointer :: E(:)             !> Eigenvalues of O
-     Integer, pointer :: P(:)                               !> Projector P encoding DoFs that contribute in Operator
-     complex (Kind=Kind(0.d0)) :: g                         !> coupling constant
-     complex (Kind=Kind(0.d0)), allocatable :: g_t(:)       !> time dependent  coupling constant
-     complex (Kind=Kind(0.d0)) :: alpha                     !> operator shift
-     Integer          :: Type                               !> Type of the operator: 1=Ising; 2=discrete HS; 3=continuous scalar HS, 4=  Complex for  three  bondy term.
-     Integer          :: Flip_protocol=1                    !> Flip protocol  for  local  updates.  Only  relevant  for  type =3  fields. 
-     ! P is an N X Ndim matrix such that  P.T*O*P*  =  A  
-     ! P has only one non-zero entry per column which is specified by P
-     ! All in all.   g * Phi(s,type) * ( c^{dagger} A c  + alpha )
-     ! The variable Type allows you to define the type of HS. 
-     ! The first N_non_zero elements of diagonal matrix E are non-zero. The rest vanish.
-
-     ! !!!!! M_exp and E_exp  are for storage   !!!!!
-     ! If Type =1   then the Ising field  takes the values  s = +/- 1 
-     !              and M_exp   has dimensions  M_exp(N,N,3)   last index=1 rep field -1 and index=3 rep field 1 
-     ! If Type =2   then the Ising field  takes the values  s = +/- 1,  +/- 2
-     !              and M_exp   has dimensions  M_exp(N,N,5)
-     ! M_exp(:,:,s) =  e^{g * Phi(s,type) *  O(:,:) }
+     !> Size of the bilinear (number of active sites, i.e. length of P).
+     Integer          :: N
+     !> Number of non-zero eigenvalues of O (only the first N_non_zero carry weight).
+     Integer          :: N_non_zero
+     Integer, private :: win_M_exp, win_U                   !> MPI windows for memory fencing / deallocation
+     !> .TRUE. if O is diagonal; enables fast path in Op_set.
+     logical          :: diag
+     logical, private :: U_alloc, M_exp_alloc, g_t_alloc    !> bookkeeping flags for allocated arrays
+     !> O(:,:) — the operator matrix A; U(:,:) — eigenvectors of O (set by Op_set).
+     complex (Kind=Kind(0.d0)), pointer :: O(:,:), U (:,:)
+     complex (Kind=Kind(0.d0)), pointer, private :: M_exp(:,:,:), E_exp(:,:)  !> precomputed \f$e^{g\phi O}\f$ (see below)
+     !> Eigenvalues of O, ordered as returned by LAPACK.
+     Real    (Kind=Kind(0.d0)), pointer :: E(:)
+     !> Projector array: P(k) = global site index of the k-th active degree of freedom.
+     !> Encodes the mapping from the N-dimensional bilinear subspace to the full Hilbert space.
+     Integer, pointer :: P(:)
+     !> Coupling constant \f$g\f$ (complex; absorbs \f$\Delta\tau\f$ and physical coupling).
+     complex (Kind=Kind(0.d0)) :: g
+     !> Time-dependent coupling \f$g(\tau_n)\f$; replaces \c g when non-zero.
+     complex (Kind=Kind(0.d0)), allocatable :: g_t(:)
+     !> Constant shift \f$\alpha\f$ added inside the bilinear: \f$c^\dagger A c + \alpha\f$.
+     complex (Kind=Kind(0.d0)) :: alpha
+     !> Hubbard-Stratonovich type:
+     !>   - 1 = Ising field, \f$s = \pm 1\f$ (M_exp has size N×N×3)
+     !>   - 2 = discrete 4-value HS, \f$s = \pm 1, \pm 2\f$ (M_exp has size N×N×5)
+     !>   - 3 = continuous scalar HS (M_exp / E_exp not allocated)
+     !>   - 4 = complex three-body term
+     Integer          :: Type
+     !> Flip protocol for local updates; only used for Type=3 fields.
+     Integer          :: Flip_protocol=1
+     ! ---------- internal storage layout ----------
+     ! P is a length-N index array such that P.T * O * P gives the bilinear A.
+     ! Each entry P(k) has exactly one non-zero value (the global site index).
+     ! Together: g * Phi(s,Type) * ( c^{dagger} A c + alpha )
      !
-     ! 
-     ! E_exp(:,s) = e^{g * Phi(s,type) *E(:) } and has dimensions E_exp(N,-1:1)  for Type = 1
-     !              and dimensions E_exp(N,-2:2)   for Type = 2
-     !
-     ! !!! If Type .neq. 1,2  then  E_exp  and  M_exp  are  not allocated !!!
+     ! M_exp(:,:,s) = exp( g * Phi(s,Type) * O(:,:) )
+     ! E_exp(:,  s) = exp( g * Phi(s,Type) * E(:)   )  [diagonal form]
+     ! E_exp has index range (-1:1) for Type=1, (-2:2) for Type=2.
+     ! If Type .ne. 1 or 2, E_exp and M_exp are NOT allocated.
    contains
-     procedure  :: get_g_t_alloc => operator_get_g_t_alloc     !>    External access to   private  logical  variable g_t_alloc 
+     procedure  :: get_g_t_alloc => operator_get_g_t_alloc  !> External read-access to private flag g_t_alloc
   end type Operator
 
   

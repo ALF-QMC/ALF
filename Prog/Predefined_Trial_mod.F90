@@ -126,6 +126,7 @@
         Type(Operator),  dimension(:,:), allocatable  :: OP_tmp
         Type (Hopping_Matrix_type), allocatable       :: Hopping_Matrix_tmp(:)
         Real (Kind=Kind(0.d0))                        :: Dtau, Ham_T, Ham_Chem, XB_X, XB_Y, Phi_X, Phi_Y, Dimer
+        ! XB_X, XB_Y, Dimer: declared for future use / not yet referenced in any active branch.
         Logical                                       :: Checkerboard, Symm, Kekule_Trial
 
         Type (Lattice)                                :: Latt_Kekule
@@ -182,7 +183,26 @@
 
         case ("HONEYCOMB")
            If (Kekule_Trial) then
-              !  Kekule Mass term to avoid  degeneracy at half-filling.
+              ! --- Kekulé-mass trial wave function --------------------------------------
+              ! Lifts the Dirac-point degeneracy at half-filling by introducing
+              ! a bond-order-wave (Kekulé) distortion of the honeycomb hopping.
+              !
+              ! Supercell basis vectors:
+              !   A1_p = 2*a1 - a2,  A2_p = a1 + a2
+              ! (3x1 enlargement of the primitive cell; captures all 3 NN bonds
+              ! in one unit cell of the Kekulé pattern)
+              !
+              ! Three-bond loop (nc = 1,2,3) cyclically assigns hopping weights:
+              !   nc=1: bond weights (1+delta, 1-delta, 1)
+              !   nc=2:             (1,       1+delta, 1-delta)
+              !   nc=3:             (1-delta, 1,       1+delta)
+              ! so that one bond is strengthened, one weakened, and one unchanged.
+              ! Inv_R(x_p, Latt) maps Cartesian position x_p back to the unit-cell
+              ! index in the original (unextended) lattice.
+              !
+              ! Debug output is written to units 31–33 (weak / equal / strong bonds)
+              ! only when Test = .true.
+              ! -----------------------------------------------------------------------
               Allocate(Op_Tmp(1,N_FL))
               do n = 1,N_FL
                  Call Op_make(Op_Tmp(1,n),Ndim)
@@ -266,6 +286,12 @@
                  Close(33)
               endif
            else
+              ! --- Standard non-interacting honeycomb Hamiltonian ----------------------
+              ! Ham_T  = nearest-neighbour (NN) hopping amplitude.
+              ! Ham_T1 = next-nearest-neighbour (NNN) perturbation, magnitude delta*Ham_T
+              !          with a small negative sign to gently break the pi-flux symmetry
+              !          and lift residual Dirac-point degeneracy without strongly
+              !          distorting the band structure (delta = 0.01 by default).
               Ham_T = 1.d0
               Ham_T1 = -delta*Ham_T
               Allocate(Op_Tmp(1,N_FL))
@@ -351,13 +377,18 @@
 
 
         Do nf = 1,N_FL
+           ! Diagonalise the single-particle Hamiltonian for each flavour.
+           ! U(:, k) = k-th eigenvector (ordered by ascending eigenvalue E(k)).
            Call Diag(Op_tmp(1,nf)%O,Op_tmp(1,nf)%U,Op_tmp(1,nf)%E)
+           ! Copy the N_part lowest eigenvectors into the left/right trial wave functions.
            do I2=1,N_part
               do I1=1,Ndim
                  WF_L(nf)%P(I1,I2)=Op_tmp(1,nf)%U(I1,I2)
                  WF_R(nf)%P(I1,I2)=Op_tmp(1,nf)%U(I1,I2)
               enddo
            enddo
+           ! Degen = gap between the last occupied and first unoccupied level;
+           ! used to detect near-degeneracy of the Slater-determinant subspace.
            WF_L(nf)%Degen = Op_tmp(1,nf)%E(N_part+1) - Op_tmp(1,nf)%E(N_part)
            WF_R(nf)%Degen = Op_tmp(1,nf)%E(N_part+1) - Op_tmp(1,nf)%E(N_part)
         enddo
@@ -368,6 +399,10 @@
         enddo
 
         If (test) then
+           ! --- Diagnostic: print eigenvalues and write density of states (test only) ---
+           ! Computes Im G(omega) with Lorentzian broadening delta = 2*pi / |L1|,
+           ! sampled at Nom = 200 evenly spaced frequencies spanning the bandwidth.
+           ! Output written to file "Den_H0"; only active when Test = .true.
            DO  I = 1,NDim
               Write(6,*) Op_tmp(1,1)%E(I)
            enddo
