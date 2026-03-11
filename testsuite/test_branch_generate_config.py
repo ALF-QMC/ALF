@@ -140,6 +140,7 @@ macGNU:
 
 
 def prep_runs(test_specs, env_name, env_spec):
+    """Populate pipeline_config with compile/run jobs for one environment."""
     jobname_compile = f'{env_name}_compile'
     pipeline_config[jobname_compile] = {
         **{'extends': '.compile_template'},

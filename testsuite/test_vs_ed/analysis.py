@@ -20,6 +20,7 @@ res = load_res(dirs)
 res.to_json("results.json")
 
 def func(x, y0, a):
+    """Quadratic function used to fit energy extrapolation."""
     return y0 + a*x**2
 x = res.dtau
 y = res.Ener_scal0
