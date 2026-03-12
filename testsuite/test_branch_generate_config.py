@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import sys
+import argparse
 import json
 import copy
 import yaml
@@ -39,7 +39,7 @@ stages:
     - git fetch --depth=1
     - git checkout $CI_COMMIT_BRANCH
     - git checkout .
-    - pip install --no-deps pyALF || true
+    - pip install --no-deps pyALF
     - export ALF_DIR="$PWD"
     - . ./configure.sh $MACHINE noMPI HDF5 NO-INTERACTIVE
     - alf_test_branch
@@ -63,7 +63,7 @@ stages:
     - if [ ! -O . ]; then sudo chown -R "$(id -u)" .; fi
     - START_DIR=$PWD
     - export PATH="$HOME/.local/bin:$PATH"
-    - pip install --no-deps pyALF || true
+    - pip install --no-deps pyALF
     - cd ${START_DIR}/ALF_data/${TEST_NAME}
     - mpiexec -n 4 ./ALF.out
     - cd ${START_DIR}/ALF_data/${TEST_NAME}_test
@@ -92,7 +92,7 @@ stages:
     - export PATH="$HOME/.local/bin:$PATH"
     - git remote set-branches origin master $CI_COMMIT_BRANCH
     - git fetch --depth=1
-    - pip install --no-deps pyALF || true
+    - pip install --no-deps pyALF
     - export ALF_DIR="$PWD"
     - alf_test_branch
       --sim_pars $ALF_DIR/testsuite/test_branch_parameters.json
@@ -155,12 +155,15 @@ def prep_runs(test_specs, env_name, env_spec):
     }
 
 if __name__ == "__main__":
-    try:
-        specs_file = sys.argv[1]
-    except IndexError:
-        specs_file = "testsuite/test_branch_parameters.json"
+    parser = argparse.ArgumentParser()
+    parser.add_argument('specs_file', nargs='?', default="testsuite/test_branch_parameters.json")
+    parser.add_argument('--github', action='store_true',
+                        help="Generate matrix for GitHub Actions workflow instead of GitLab CI config")
+    args = parser.parse_args()
+    if args.github:
+        raise NotImplementedError("GitHub Actions config generation not implemented yet.")
 
-    with open(specs_file, 'r', encoding='UTF-8') as f:
+    with open(args.specs_file, 'r', encoding='UTF-8') as f:
         test_specs = json.load(f)
 
     for env_name, env_spec in ENVIRONMENTS.items():

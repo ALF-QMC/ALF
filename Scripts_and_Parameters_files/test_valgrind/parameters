@@ -1,0 +1,25 @@
+&VAR_ham_name
+ham_name = "Hubbard"
+/
+
+&VAR_lattice
+L1           = 4
+L2           = 4
+/
+
+&VAR_Model_Generic
+Dtau         = 0.1d0
+Beta         = 2.d0
+Projector    = .F.
+/
+
+&VAR_Hubbard
+/
+
+&VAR_QMC
+Nwrap                = 10
+NSweep               = 2
+NBin                 = 1
+Ltau                 = 1
+CPU_MAX              = 0.0
+/

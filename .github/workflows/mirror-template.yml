@@ -1,0 +1,37 @@
+name: Mirror to other git via https
+
+on:
+  workflow_call:
+    inputs:
+      git_url:
+        required: true
+        type: string
+    secrets:
+      GIT_MIRROR_TOKEN:
+        required: true
+
+jobs:
+  mirror:
+    runs-on: ubuntu-slim
+    steps:
+      - name: Checkout
+
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Add GitLab remote
+
+        env:
+          GIT_URL: ${{ inputs.git_url }}
+          GIT_MIRROR_TOKEN: ${{ secrets.GIT_MIRROR_TOKEN }}
+        run: git remote add mirrorgit "https://undefined:${GIT_MIRROR_TOKEN}@${GIT_URL}.git"
+
+      - name: Push branch
+
+        run: git push mirrorgit HEAD:${GITHUB_REF_NAME} --force
+
+      - name: Push tags
+
+        run: git push mirrorgit --tags --force
+

@@ -71,13 +71,13 @@ Since this model class  works for all predefined lattices  (see Fig.~\ref{fig_pr
 it includes the SU(N) periodic Anderson model on the square and Honeycomb lattices.
 Finally, we note that the executable for this class is given by \texttt{Hubbard.out}.
 
-As an example,  we can consider the periodic Anderson model.   Here we choose  the \texttt{Bilayer\_square}  lattice \texttt{Ham\_U} =  \texttt{Ham\_T2} $= 0$,  \texttt{Ham\_U2}$=U_f$,  \texttt{Ham\_tperp}$=V$  and \texttt{Ham\_T}$=1$.   The  pyALF  based python script    \href{https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/blob/\pyALFbranch/Scripts/Hubbard_PAM.py}{\texttt{Hubbard\_PAM.py}}  produces the data  shown in  Fig.~\ref{Fig:PAM}  for the L=8 lattice.  
+As an example,  we can consider the periodic Anderson model.   Here we choose  the \texttt{Bilayer\_square}  lattice \texttt{Ham\_U} =  \texttt{Ham\_T2} $= 0$,  \texttt{Ham\_U2}$=U_f$,  \texttt{Ham\_tperp}$=V$  and \texttt{Ham\_T}$=1$.   The  pyALF  based python script \href{https://github.com/ALF-QMC/pyALF/blob/\pyALFbranch/Scripts/Hubbard_PAM.py}{\texttt{Hubbard\_PAM.py}}  produces the data  shown in  Fig.~\ref{Fig:PAM}  for the L=8 lattice.  
 
 \begin{figure}
 \center
 \includegraphics[width=0.6\textwidth]{PAM.pdf}
 
-\caption{The periodic Anderson model.  Here we  plot the  equal-time spin structure factor  of the f-electrons  at $\ve{q} = (\pi,\pi)$.   This quantity is found in the file \texttt{SpinZ\_eqJK}.  The  pyALF  based python script    \href{https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/blob/\pyALFbranch/Scripts/Hubbard_PAM.py}{\texttt{Hubbard\_PAM.py}}  produces the data  shown for the $L=8$ lattice.    One sees  that for the chosen value of $U_f/t$  the competition between the RKKY interaction and  Kondo screening drives the system through a magnetic order-disorder transition at $V_c/t \simeq 1$  \cite{Vekic95}.}
+\caption{The periodic Anderson model.  Here we  plot the  equal-time spin structure factor  of the f-electrons  at $\ve{q} = (\pi,\pi)$.   This quantity is found in the file \texttt{SpinZ\_eqJK}.  The  pyALF  based python script \href{https://github.com/ALF-QMC/pyALF/blob/\pyALFbranch/Scripts/Hubbard_PAM.py}{\texttt{Hubbard\_PAM.py}}  produces the data  shown for the $L=8$ lattice.    One sees  that for the chosen value of $U_f/t$  the competition between the RKKY interaction and  Kondo screening drives the system through a magnetic order-disorder transition at $V_c/t \simeq 1$  \cite{Vekic95}.}
         \label{Fig:PAM}
 \end{figure}
 
@@ -131,7 +131,7 @@ Note that $N$ corresponds to \texttt{N\_SUN}  in the code.
 The flavor index is set to unity such that it does not appear in the  Hamiltonian.
 The chemical potential $\mu$ is relevant only for the finite temperature code.
 An example showing how to run this model class can be found in the pyALF based Jupyter notebook   
-\href{https://git.physik.uni-wuerzburg.de/ALF/pyALF/-/blob/\pyALFbranch/Notebooks/tV_model.ipynb}{\texttt{tV\_model.ipynb}}.
+\href{https://github.com/ALF-QMC/pyALF/blob/\pyALFbranch/Notebooks/tV_model.ipynb}{\texttt{tV\_model.ipynb}}.
 
 As a concrete example, we can consider the Hamiltonian of the t-V model of SU(N) fermions on the square lattice,
 \begin{align}
