@@ -1011,6 +1011,16 @@ Program Main
                  IF ( LTAU == 1 .and. .not. Projector ) then
                     Call TAU_M( udvst, GR, PHASE, NSTM, NWRAP, STAB_NT, LOBS_ST, LOBS_EN )
                  endif
+                 ! When Nwrap > Thtrot+1, the smallest Stab_nt(1)=Nwrap already exceeds
+                 ! THTROT+1, so the backward-loop condition Stab_nt(NST)<=THTROT+1 was
+                 ! never met and tau_p was not called above.  At this point GR has just
+                 ! been recomputed at time 0 = Stab_nt(0) via CGR (line ~991), and
+                 ! udvl/udvr are set up such that CGRP reproduces GR.  The storage
+                 ! udvst(1..Nstm) contains fresh left propagations from the backward
+                 ! sweep, so calling tau_p with NST_IN=0 is correct here.
+                 IF ( LTAU == 1 .and. Projector .and. Stab_nt(1) > THTROT+1 ) then
+                    Call tau_p ( udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, 0, LOBS_ST, LOBS_EN )
+                 endif
               endif
 
            ENDDO
