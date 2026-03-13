@@ -142,6 +142,9 @@
         procedure, nopass :: S0
         procedure, nopass :: Ham_Langevin_HMC_S0
         procedure, nopass :: Get_Delta_S0_global
+        procedure, nopass :: Global_move_tau 
+        procedure, nopass :: Overide_global_tau_sampling_parameters
+        procedure, nopass :: Global_move
 #ifdef HDF5
         procedure, nopass :: write_parameters_hdf5
 #endif
@@ -960,5 +963,130 @@
             ! S0 = exp( (-Hs_new**2  + nsigma%f(n,nt)**2 ) /2.d0 ) 
 
      end Function Get_Delta_S0_global
-        
-    end submodule ham_Hubbard_smod
+
+   !--------------------------------------------------------------------
+   !> @author
+   !> ALF Collaboration
+   !>
+   !> @brief
+   !> Specify a global move on a given time slice tau.
+   !>
+   !> @details
+   !> @param[in] ntau Integer
+   !> \verbatim
+   !>  Time slice
+   !> \endverbatim
+   !> @param[out] T0_Proposal_ratio, Real
+   !> \verbatim
+   !>  T0_Proposal_ratio = T0( sigma_new -> sigma ) /  T0( sigma -> sigma_new)
+   !> \endverbatim
+   !> @param[out] S0_ratio, Real
+   !> \verbatim
+   !>  S0_ratio = e^( S_0(sigma_new) ) / e^( S_0(sigma) )
+   !> \endverbatim
+   !> @param[out] Flip_length  Integer
+   !> \verbatim
+   !>  Number of flips stored in the first  Flip_length entries of the array Flip_values.
+   !>  Has to be smaller than NDIM
+   !> \endverbatim
+   !> @param[out] Flip_list  Integer(Ndim)
+   !> \verbatim
+   !>  List of spins to be flipped: nsigma%f(Flip_list(1),ntau) ... nsigma%f(Flip_list(Flip_Length),ntau)
+   !>  Note that Ndim = size(Op_V,1)
+   !> \endverbatim
+   !> @param[out] Flip_value  Real(Ndim)
+   !> \verbatim
+   !>  Flip_value(:)= nsigma%flip(Flip_list(:),ntau)
+   !>  Note that Ndim = size(Op_V,1)
+   !> \endverbatim
+   !--------------------------------------------------------------------
+   Subroutine Global_move_tau(T0_Proposal_ratio, S0_ratio, &
+         &                     Flip_list, Flip_length,Flip_value,ntau)
+
+      Implicit none
+      Real (Kind = Kind(0.d0)),   INTENT(OUT) :: T0_Proposal_ratio,  S0_ratio
+      Integer                   , INTENT(OUT) :: Flip_list(:)
+      Complex (Kind = Kind(0.d0)),INTENT(OUT) :: Flip_value(:)
+      Integer, INTENT(OUT) :: Flip_length
+      Integer, INTENT(IN)  :: ntau
+      
+      If (.not.Continuous) then
+         Write(6,*) "Error: Global_move_tau_base is implemented only continuous HS fields. Please implement it or set Continuous = False in the input file. "
+         CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+      endif
+      Flip_length = 1
+      Flip_list(1) = nranf(Size(Op_V,1))
+      Flip_value(1) = nsigma%flip(Flip_list(1),ntau)
+      T0_Proposal_ratio = 1.d0
+      S0_ratio = S0(Flip_list(1),ntau,Flip_value(1))
+      
+      
+   end Subroutine Global_move_tau
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> This routine allows to user to  determine the global_tau sampling parameters at run time
+!> It is especially usefull if these parameters are dependent on other parameters.
+!>
+!> @details
+!> \endverbatim
+!--------------------------------------------------------------------
+   Subroutine Overide_global_tau_sampling_parameters(Nt_sequential_start,Nt_sequential_end, &
+                    &        N_Global_tau, N_Global_tau_MALA)
+
+      Implicit none
+      Integer, Intent(INOUT) :: Nt_sequential_start,Nt_sequential_end, N_Global_tau, N_Global_tau_MALA
+
+      N_Global_tau = Size(Op_V,1)
+
+   end Subroutine Overide_global_tau_sampling_parameters
+       
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Global moves
+!>
+!> @details
+!>  This routine generates a
+!>  global update  and returns the propability T0_Proposal_ratio  =  T0( sigma_out-> sigma_in ) /  T0( sigma_in -> sigma_out)
+!> @param [IN] nsigma_old,  Type(Fields)
+!> \verbatim
+!>  Old configuration. The new configuration is stored in nsigma.
+!> \endverbatim
+!> @param [OUT]  T0_Proposal_ratio Real
+!> \verbatimam
+!>  T0_Proposal_ratio  =  T0( sigma_new -> sigma_old ) /  T0( sigma_old -> sigma_new)
+!> \endverbatim
+!> @param [OUT]  Size_clust Real
+!> \verbatim
+!>  Size of cluster that will be flipped.
+!> \endverbatim
+!-------------------------------------------------------------------
+   Subroutine Global_move(T0_Proposal_ratio, nsigma_old, size_clust)
+
+      Implicit none
+      Real (Kind=Kind(0.d0)), intent(out) :: T0_Proposal_ratio, size_clust
+      Type (Fields),  Intent(IN)  :: nsigma_old
+      
+      Integer :: nt, n
+
+      If (.not.Continuous) then
+         Write(6,*) "Error: Global_move_tau_base is implemented only continuous HS fields. Please implement it or set Continuous = False in the input file. "
+         CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+      endif
+      size_clust = Ltrot
+      n  = nranf(Size(Op_V,1))
+      do nt = 1,Ltrot
+         nsigma%f(n,nt)   = -nsigma_old%f(n,nt)
+      enddo
+      T0_Proposal_ratio = 1
+
+
+   End Subroutine Global_move
+       
+   end submodule ham_Hubbard_smod

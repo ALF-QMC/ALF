@@ -1331,10 +1331,10 @@
 !> @details
 !> \endverbatim
 !--------------------------------------------------------------------
-      Subroutine Overide_global_tau_sampling_parameters(Nt_sequential_start,Nt_sequential_end,N_Global_tau)
+      Subroutine Overide_global_tau_sampling_parameters(Nt_sequential_start,Nt_sequential_end,N_Global_tau, N_Global_tau_MALA)
 
         Implicit none
-        Integer, Intent(INOUT) :: Nt_sequential_start,Nt_sequential_end, N_Global_tau
+        Integer, Intent(INOUT) :: Nt_sequential_start,Nt_sequential_end, N_Global_tau, N_Global_tau_MALA
 
 
         Nt_sequential_start = 1
