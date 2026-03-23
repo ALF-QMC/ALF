@@ -30,16 +30,19 @@ lattices_armv8.4-a.so: runtime_error_mod.F90 lattices_interface_mod.F90 matrix_m
 %.o: %.F90
 	$(ALF_FC) -c $(ALF_FLAGS_MODULES) $<
 
-alf_hdf5_mod.o: runtime_error_mod.o
-errors_mod.o: runtime_error_mod.o mymats_mod.o random_wrap_mod.o
-fourier_mod.o: runtime_error_mod.o maxent_mod.o maxent_stoch_mod.o matrix_mod.o
-lattices_v3_mod.o: runtime_error_mod.o mymats_mod.o 
-maxent_mod.o: mymats_mod.o errors_mod.o runtime_error_mod.o
-histograms_v2_mod.o: log_mesh_mod.o
-log_mesh_mod.o: runtime_error_mod.o
-mat_subroutines.o: runtime_error_mod.o
-mpi_shared_mem_mod_v2.o: runtime_error_mod.o
-mymats.o: runtime_error_mod.o
+# Explicit module (.o) dependencies derived from Fortran 'use' statements
+# (case-insensitive scan; external modules mpi, hdf5, omp_lib, iso_fortran_env etc. omitted)
+mymats_mod.o:              runtime_error_mod.o
+Mat_subroutines_mod.o:     runtime_error_mod.o
+lattices_v3_mod.o:         runtime_error_mod.o mymats_mod.o matrix_mod.o
+alf_hdf5_mod.o:            runtime_error_mod.o lattices_v3_mod.o
+errors_mod.o:              runtime_error_mod.o mymats_mod.o random_wrap_mod.o
+log_mesh_mod.o:            runtime_error_mod.o files_mod.o
+histograms_v2_mod.o:       log_mesh_mod.o
+maxent_mod.o:              runtime_error_mod.o mymats_mod.o errors_mod.o
+maxent_stoch_mod.o:        runtime_error_mod.o mymats_mod.o random_wrap_mod.o files_mod.o
+fourier_mod.o:             runtime_error_mod.o maxent_mod.o maxent_stoch_mod.o matrix_mod.o
+mpi_shared_mem_mod_v2.o:   runtime_error_mod.o
 
 clean:
 	rm -f $(OBJS) $(MODS) $(LIB)

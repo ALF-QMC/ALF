@@ -22,7 +22,38 @@ program: git.h parse_parameters echo_compile_mods $(OBJS)
 	@echo "Link program"
 	$(ALF_FC) -o "ALF.out" $(OBJS) $(OHAM) $(ALF_LIB)
 
-Hamiltonian_main_mod.o: Hamiltonians_interface.h Hamiltonians_case.h
+Hamiltonian_main_mod.o: Hamiltonians_interface.h Hamiltonians_case.h \
+                        Operator_mod.o WaveFunction_mod.o observables_mod.o Fields_mod.o
+
+# Explicit module (.o) dependencies derived from Fortran 'use' statements
+# (case-insensitive scan of all USE/Use/use statements in *.F90 files;
+#  external library modules such as MyMats, Lattices_v3, mpi, hdf5, etc. are omitted)
+UDV_WRAP_mod.o:         QDRP_decompose_mod.o
+udv_state_mod.o:        QDRP_decompose_mod.o
+cgr1_mod.o:             QDRP_decompose_mod.o udv_state_mod.o UDV_WRAP_mod.o
+cgr2_2_mod.o:           QDRP_decompose_mod.o udv_state_mod.o UDV_WRAP_mod.o
+Operator_mod.o:         Fields_mod.o
+Predefined_Int_mod.o:   Operator_mod.o
+Hop_mod.o:              Operator_mod.o Hamiltonian_main_mod.o
+wrapul_mod.o:           udv_state_mod.o Hamiltonian_main_mod.o Hop_mod.o UDV_WRAP_mod.o
+wrapur_mod.o:           udv_state_mod.o Hamiltonian_main_mod.o Hop_mod.o UDV_WRAP_mod.o
+upgrade_mod.o:          Hamiltonian_main_mod.o control_mod.o Fields_mod.o
+Wrapgr_mod.o:           upgrade_mod.o
+Global_mod.o:           wrapul_mod.o cgr1_mod.o
+Langevin_HMC_mod.o:     wrapur_mod.o wrapul_mod.o cgr1_mod.o Global_mod.o
+OpTTypes_mod.o:         ContainerElementBase_mod.o Operator_mod.o
+OpT_time_dependent.o:   ContainerElementBase_mod.o Operator_mod.o
+Predefined_Obs_mod.o:   Operator_mod.o
+Predefined_Hop_mod.o:   Hamiltonian_main_mod.o
+Predefined_Trial_mod.o: Predefined_Hop_mod.o Operator_mod.o WaveFunction_mod.o
+tau_m_mod.o:            Hamiltonian_main_mod.o Operator_mod.o control_mod.o Hop_mod.o \
+                        udv_state_mod.o Langevin_HMC_mod.o wrapur_mod.o cgr2_2_mod.o
+tau_p_mod.o:            Hamiltonian_main_mod.o Operator_mod.o control_mod.o Hop_mod.o \
+                        udv_state_mod.o Langevin_HMC_mod.o tau_m_mod.o cgr1_mod.o wrapur_mod.o
+main.o:                 Operator_mod.o Hamiltonian_main_mod.o control_mod.o \
+                        tau_m_mod.o tau_p_mod.o Hop_mod.o Global_mod.o udv_state_mod.o \
+                        Wrapgr_mod.o Fields_mod.o WaveFunction_mod.o Langevin_HMC_mod.o \
+                        wrapur_mod.o wrapul_mod.o cgr1_mod.o Set_random_mod.o
 
 git.h:
 	./Git_config.sh

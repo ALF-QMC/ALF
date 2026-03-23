@@ -17,7 +17,16 @@ Predefined_Latt_mod.o: ../Prog/Predefined_Latt_mod.F90
 cov_tau_ph.o: cov_tau.F90
 	$(ALF_FC) -c -o $@ $(ALF_FLAGS_ANA) -DPartHole $<
 
-Max_SAC.o: maxent_wrapper_mod.o
+# Explicit module (.o) dependencies derived from Fortran 'use' statements
+# (case-insensitive scan; external library modules omitted)
+ana_mod.o:          Predefined_Latt_mod.o
+ana.o:              ana_mod.o
+ana_hdf5.o:         ana_mod.o
+convert_latt.o:     ana_mod.o
+convert_local.o:    ana_mod.o
+convert_scal.o:     ana_mod.o
+cov_eq.o:           Predefined_Latt_mod.o
+Max_SAC.o:          maxent_wrapper_mod.o
 
 %.o: %.F90
 	$(ALF_FC) -c -o $@ $(ALF_FLAGS_ANA) $<
