@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.5...4.2)
 Project(matmod.tests C Fortran)
 
 # add_executable(1-copy-sel-rows 1-copy-sel-rows.F90)
