@@ -38,13 +38,16 @@ Hop_mod.o:              Operator_mod.o Hamiltonian_main_mod.o DynamicMatrixArray
 wrapul_mod.o:           udv_state_mod.o Hamiltonian_main_mod.o Hop_mod.o UDV_WRAP_mod.o
 wrapur_mod.o:           udv_state_mod.o Hamiltonian_main_mod.o Hop_mod.o UDV_WRAP_mod.o
 upgrade_mod.o:          Hamiltonian_main_mod.o control_mod.o Fields_mod.o
-Wrapgr_mod.o:           upgrade_mod.o
-Global_mod.o:           wrapul_mod.o cgr1_mod.o Hamiltonian_main_mod.o Operator_mod.o control_mod.o observables_mod.o Fields_mod.o
-Langevin_HMC_mod.o:     wrapur_mod.o wrapul_mod.o cgr1_mod.o Global_mod.o
+Wrapgr_mod.o:           upgrade_mod.o Hamiltonian_main_mod.o Operator_mod.o control_mod.o Fields_mod.o Hop_mod.o
+Global_mod.o:           wrapul_mod.o cgr1_mod.o Hamiltonian_main_mod.o Operator_mod.o control_mod.o observables_mod.o Fields_mod.o \
+                        udv_state_mod.o UDV_WRAP_mod.o
+Langevin_HMC_mod.o:     wrapur_mod.o wrapul_mod.o cgr1_mod.o Global_mod.o \
+                        Hamiltonian_main_mod.o udv_state_mod.o control_mod.o Hop_mod.o
+DynamicMatrixArray_mod.o: ContainerElementBase_mod.o
 OpTTypes_mod.o:         ContainerElementBase_mod.o Operator_mod.o
 OpT_time_dependent.o:   ContainerElementBase_mod.o Operator_mod.o
-Predefined_Obs_mod.o:   Operator_mod.o
-Predefined_Hop_mod.o:   Hamiltonian_main_mod.o
+Predefined_Obs_mod.o:   Operator_mod.o observables_mod.o
+Predefined_Hop_mod.o:   Hamiltonian_main_mod.o Operator_mod.o WaveFunction_mod.o
 Predefined_Trial_mod.o: Predefined_Hop_mod.o Operator_mod.o WaveFunction_mod.o
 tau_m_mod.o:            Hamiltonian_main_mod.o Operator_mod.o control_mod.o Hop_mod.o \
                         udv_state_mod.o Langevin_HMC_mod.o wrapur_mod.o cgr2_2_mod.o
