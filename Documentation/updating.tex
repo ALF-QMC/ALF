@@ -6,41 +6,88 @@
 
 % !TEX root = doc.tex
 %------------------------------------------------------------
-\subsection{Updating schemes}\label{sec:updating}
+\subsection{Sequential updating schemes}\label{sec:updating}
 %------------------------------------------------------------
 %
-The program allows for different types of updating schemes, which are described below and summarized in Tab.~\ref{table:Updating_schemes}.  With  the exception of Langevin dynamics, for a given configuration $C$, we propose a new one, $C'$, with a given probability $T_0(C \rightarrow C')$  and accept it according to   the  Metropolis-Hastings   acceptance-rejection probability, 
+
+The program allows for different types of updating schemes, which are described below and summarized in Tab.~\ref{table:Updating_schemes}.  Except for Langevin dynamics, for a given configuration $C$, we propose a new one, $C'$, with a given probability $T_0(C \rightarrow C')$  and accept it according to   the  Metropolis-Hastings   acceptance-rejection probability, 
 \begin{equation}
 	P(C \rightarrow C') =  \text{min}  \left( 1, \frac{T_0(C' \rightarrow C) W(C')}{T_0(C \rightarrow C') W(C)} \right),
 \end{equation}
-so as to guarantee the stationarity condition.  Here, $ W(C) = \left| \Re \left[ e^{-S(C)} \right] \right| $.
+to guarantee the stationarity condition.  Here, $ W(C) = \left| \Re \left[ e^{-S(C)} \right] \right| $.
 
 Predicting how efficient a certain Monte Carlo update scheme will turn out to be for a given simulation is very hard, so one must typically resort to testing to find out which option produces best results.   Methods to optimize the acceptance of  global moves include Hybrid Monte Carlo  \cite{Duane85} as well as self-learning techniques  \cite{LiuJ17,Xu17a}.      Langevin dynamics stands apart, and as we will see does not depend on the Metropolis-Hastings   acceptance-rejection scheme.
 
+
+
+% \begin{table}[h]
+% 	\begin{tabular}{@{} p{0.22\columnwidth} p{0.11\columnwidth} p{0.61\columnwidth} @{}}
+% 		\toprule
+% 		Updating schemes             & Type             & Description \\
+% 		\midrule
+% 		\texttt{Sequential}          & \texttt{logical} & (internal variable) If true, the configurations moves through sequential, single spin flips  \\
+% 		\texttt{Propose\_S0}         & \texttt{logical} & If true, proposes sequential local moves according to the probability $e^{-S_0}$, where $S_0$ is the free Ising action. This option only works for 
+% 		  \texttt{type=1}  operator where the field corresponds to an Ising variable  \\
+% 		\texttt{Global\_tau\_moves}  & \texttt{logical} & Whether to carry out  global moves on a single time slice.
+% 		For a given time slice the user can define which part of the operator string is to be computed sequentially. This is specified by the  variable  \texttt{N\_sequential\_start} and \texttt{N\_sequential\_end}. A number of   \texttt{N\_tau\_Global} user-defined global moves on the given time slice  will then be carried out   \\
+% 		\texttt{Global\_moves}       & \texttt{logical} & If true, allows for global moves in space and time.   A user-defined number \texttt{N\_Global} of global moves in space and time  will be carried out at the end of each sweep \\
+% 		\texttt{Langevin}            & \texttt{logical} & If true, Langevin dynamics is used exclusively (i.e., can only be used in association with tempering) \\
+% 		\texttt{Tempering}           & Compiling option & Requires MPI and runs the code in a parallel tempering mode, also see Sec.~\ref{Parallel_tempering.sec},~\ref{sec:compilation} \\
+% 		\bottomrule
+% 	\end{tabular}
+% 	\caption{Variables required to control the updating scheme. Per default the program carries out sequential, single spin-flip sweeps, and logical variables are set to \texttt{.false.}}
+% 	\label{table:Updating_schemes}
+% \end{table}
+
 \begin{table}[h]
-	\begin{tabular}{@{} p{0.22\columnwidth} p{0.11\columnwidth} p{0.61\columnwidth} @{}}
+	\begin{tabular}{@{} p{0.45\columnwidth}  p{0.35\columnwidth}  p{0.15\columnwidth}  @{}}
 		\toprule
-		Updating schemes             & Type             & Description \\
+		Updating schemes                          &  Method & Section \\
 		\midrule
-		\texttt{Sequential}          & \texttt{logical} & (internal variable) If true, the configurations moves through sequential, single spin flips  \\
-		\texttt{Propose\_S0}         & \texttt{logical} & If true, proposes sequential local moves according to the probability $e^{-S_0}$, where $S_0$ is the free Ising action. This option only works for 
-		  \texttt{type=1}  operator where the field corresponds to an Ising variable  \\
-		\texttt{Global\_tau\_moves}  & \texttt{logical} & Whether to carry out  global moves on a single time slice.
-		For a given time slice the user can define which part of the operator string is to be computed sequentially. This is specified by the  variable  \texttt{N\_sequential\_start} and \texttt{N\_sequential\_end}. A number of   \texttt{N\_tau\_Global} user-defined global moves on the given time slice  will then be carried out   \\
-		\texttt{Global\_moves}       & \texttt{logical} & If true, allows for global moves in space and time.   A user-defined number \texttt{N\_Global} of global moves in space and time  will be carried out at the end of each sweep \\
-		\texttt{Langevin}            & \texttt{logical} & If true, Langevin dynamics is used exclusively (i.e., can only be used in association with tempering) \\
-		\texttt{Tempering}           & Compiling option & Requires MPI and runs the code in a parallel tempering mode, also see Sec.~\ref{Parallel_tempering.sec},~\ref{sec:compilation} \\
+		Sequential space-time discrete fields   &      Metropolis, spin flip   & \ref{sec:sequential},\ref{sec:S0}  \\
+		Sequential space-time continuous fields &      Metropolis, box move   & \ref{sec:sequential_box} \\
+		Sequential space-time continuous fields &      Metropolis assisted Langevin   & \ref{sec:sequential_mala} \\
+		Sequential time, global space           &      Metropolis, User defined            & \ref{sec:global_space} \\
+		Sequential time, global space           &      Metropolis assisted Langevin   & \ref{sec:global_space_mala} \\
+		Sequential space-time, global space     &      Combinations of moves          & \ref{sec:sequential_combination} \\
+		Global space-time, discrete            &      User defined            & \ref{sec:global_space_time} \\
+		Global space-time, continuous          &      Parallel tempering         & \ref{Parallel_tempering.sec} \\
+		Global space-time, continuous          &      Langevin dynamics         & \ref{sec:langevin} \\
+		Global space-time, continuous          &      Hybrid Monte Carlo                & \ref{sec:hmc} \\
 		\bottomrule
 	\end{tabular}
-	\caption{Variables required to control the updating scheme. Per default the program carries out sequential, single spin-flip sweeps, and logical variables are set to \texttt{.false.}}
+	\caption{Summary of possible updating schemes. Aside form the parallel tempering schemes, the user can test and compare all these schemes using  our implementation of the Hubbard model. Here we 
+	recommend using a one-dimensional lattice with open boundary conditions and a Hubbard-Stratonovitch  decoupling that  couples to the magnetization. As mention in Sec.~\ref{sec:langevin}, this choice 
+	guarantees the absence of zero in the fermion determinant such that all  updating schemes will work out of the box and can be compared. }
 	\label{table:Updating_schemes}
 \end{table}
+
+% \begin{table}[h]
+% 	\begin{tabular}{@{} p{0.22\columnwidth}  p{0.35\columnwidth}  p{0.35\columnwidth} @{}}
+% 		\toprule
+% 		Updating schemes                          & Variables & Subroutines \\
+% 		\midrule
+% 		\texttt{Sequential}     &     & S0   \\
+% 		\texttt{Propose\_S0}   &      &  S0 \\
+% 		\texttt{Propose\_MALA}   & Delta\_t\_MALA\_sequential, Max\_Force\_MALA\_sequential    &  S0, Ham\_Langevin\_HMC\_S0\_single \\
+% 		\texttt{Global\_tau\_moves}  & N\_Global\_tau, Nt\_sequential\_start, Nt\_sequential\_end     & Global\_move\_tau, Overide\_global\_tau\_sampling\_parameters \\
+% 		\texttt{Global\_tau\_MALA\_moves} & N\_Global\_tau\_MALA, Nt\_sequential\_start, Nt\_sequential\_end, Delta\_t\_MALA\_global\_tau,   MAX\_Force\_MALA\_global\_tau  & Global\_MALA\_move\_tau, Overide\_global\_tau\_sampling\_parameters, Ham\_Langevin\_HMC\_S0\_single \\
+% 		\texttt{Global\_moves}       & N\_Global  & Global\_move, Delta\_S0\_global \\
+% 		\texttt{Langevin}            & Delta\_t\_Langevin\_HMC, Max\_Force   & Ham\_Langevin\_HMC\_S0  \\
+% 		\texttt{HMC}                  & N\_HMC\_sweeps, Delta\_t\_Langevin\_HMC, Leapfrog\_steps     & Delta\_S0\_global, Ham\_Langevin\_HMC\_S0  \\
+% 		\texttt{MALA}                & N\_MALA\_sweeps, Delta\_t\_MALA\_global, Max\_Force\_MALA\_global    &  Global\_MALA\_move, Delta\_S0\_global, Ham\_Langevin\_HMC\_S0 \\
+% 		\texttt{Tempering}     &      & Delta\_S0\_global  \\
+% 		\bottomrule
+% 	\end{tabular}
+% 	\caption{Variables required to control the updating scheme. Per default the program carries out sequential, single spin-flip sweeps, and logical variables are set to \texttt{.false.}}
+% 	\label{table:Updating_schemes}
+% \end{table}
 % 
 
 %------------------------------------------------------------
-\subsubsection{Sequential single spin flips}
+\subsubsection{Space-time sequential single spin flips: discrete fields}
 %------------------------------------------------------------
-%
+%d
 \label{sec:sequential}
 %If the boolean variable \texttt{Sequential\_Sweeps}  is set to true, then  the 
 The program adopts per default a sequential, single spin-flip strategy. It will visit sequentially each HS field in the space-time operator list and  propose a spin flip. Consider  the Ising spin $s_{i,\tau}$. By default (\texttt{Propose\_S0=.false.}), we will flip it with probability $1$, such that for  this local move  the  proposal matrix is symmetric.  If we are considering the HS field $l_{i,\tau}$  we will propose with probability $1/3$ one  of the other three  possible fields.    For a continuous field, we  modify it with a box distribution of width \texttt{Amplitude}  centered around the origin.   The default value of  \texttt{Amplitude} is set to unity. These updating rules are defined in the   \texttt{Fields\_mod.F90} module  (see Sec.~\ref{sec:fields}). Again, for these local moves, the proposal matrix is symmetric.  Hence in all cases we will accept or reject the move according to 
@@ -54,11 +101,13 @@ It is also worth noting that this type of sequential spin-flip updating does not
 
 % 
 %------------------------------------------------------------
-\subsubsection{Sampling of $e^{-S_0}$}
+\paragraph{Sampling of $e^{-S_0}$}
 \label{sec:S0}
 %------------------------------------------------------------
 % 
-The package can also propose single spin-flip updates according to a non-vanishing free bosonic action $S_0(C)$. This sampling scheme is used if the logical variable \texttt{Propose\_S0} is set to \texttt{.true.}.   As mentioned previously, this option only holds for Ising variables. 
+The package can also propose single spin-flip updates according to a non-vanishing free bosonic 
+action $S_0(C)$. This sampling scheme is used if the logical variable \texttt{Propose\_S0} is set to \texttt{.true.}.   
+As mentioned previously, this option only holds for Ising variables. 
 
 Consider an Ising spin at space-time $i,\tau$ in the configuration $C$. Flipping this spin generates the configuration $C'$ and we propose this move according to 
 \begin{equation}
@@ -74,8 +123,72 @@ Note that, as can be seen from Eq.~\eqref{eqn:partition_2}, the bare action $S_0
 % 
 % 
 
+As mentioned above,  this sequential updating scheme is space-time is the default and  requires the following settings in the 
+
+\begin{lstlisting}[style=fortran,escapechar=\#,breaklines=true]
+&VAR_QMC 
+......
+Sequential           = .T.  ! Flag for sequential moves
+Propose_S0           = .F.  ! Whether to propose moves according to e^{-S0}
+......
+/
+\end{lstlisting}
 %------------------------------------------------------------
-\subsubsection{Global updates in space} 
+
+%------------------------------------------------------------
+\subsubsection{Space-time sequential single spin flips: Continuous fields }
+%------------------------------------------------------------
+%
+\label{sec:sequential_continuous}
+If the  field is a continuous real variable,  \texttt{type=3}, (See Sec.~\ref{sec:fields}) then  the program  provides two  types of  updating schemes.
+
+\paragraph{Box distribution} 
+\label{sec:sequential_box}
+The first one is the default and consists in proposing a new value for the field according to a box distribution of width \texttt{Amplitude} centered around the origin.  This updating scheme is symmetric, and the move is accepted with probability $P(C \rightarrow C') =  \text{min}  \left( 1, \frac{ W(C')}{W(C)} \right)$. This is the default updating scheme for continuous fields. 
+
+\paragraph{Metropolis assisted Langevin algorithm (MALA)} \label{sec:sequential_mala}
+This updating scheme is based on the Langevin equation  that we will discuss in Sec.~\ref{sec:langevin}.  For  a given field $s_{n,\tau}$ (See. Eq.~\ref{Btau.eq}), we propose a new value of the field according to a single step of the discretized Langevin equation just for this field: 
+\begin{equation}
+	s_{n,\tau}' = s_{n,\tau} - \frac{\partial S}{\partial s_{n,\tau}} \delta t + \sqrt{ 2 \delta t} \eta
+\end{equation}
+where $\eta$ is a Gaussian random variable with zero mean and unit variance, and $\delta t$ is the time step of the Langevin dynamics.  This updating scheme is not symmetric, and the move is accepted with probability  the Metropolis-Hastings acceptance-rejection probability,
+\begin{equation}P(C \rightarrow C') =  \text{min}  \left( 1, \frac{T_0(C' \rightarrow C) W(C')}{T_0(C \rightarrow C') W(C)} \right),\end{equation}
+where $T_0(C \rightarrow C')$ is the probability to propose the move $C \rightarrow C'$ and reads:
+\begin{equation}
+	T_0(C \rightarrow C') = \frac{1}{\sqrt{2 \pi \delta t}} e^{-\frac{(s_{n,\tau}' - s_{n,\tau} + \frac{\partial S}{\partial s_{n,\tau}} \delta t)^2}{2 \delta t}}.
+\end{equation}
+The user can control the time step $\delta t$ by setting the variable \texttt{Delta\_t\_MALA\_sequential} in the input file.  The maximum value of the force $\frac{\partial S}{\partial s_{n,\tau}}$ is controlled by the variable \texttt{Max\_Force\_MALA\_sequential}, which is used to avoid proposing moves with very low acceptance.  The force is then defined as $\text{sign}(\frac{\partial S}{\partial s_{n,\tau}}) \text{min}(\left|\frac{\partial S}{\partial s_{n,\tau}}\right|, \texttt{Max\_Force\_MALA\_sequential})$.
+
+
+\begin{lstlisting}[style=fortran]
+&VAR_QMC
+......
+Sequential           = .T.       ! Flag for sequential moves
+Propose_S0           = .F.       ! Whether to propose moves according to e^{-S0}
+Amplitude            = 0.5D0     ! Amplitude of the box distribution
+Propose_MALA         = .true.    ! MALA sequential moves for continuous fields
+Max_Force_MALA_sequential  = 1.0 ! Maximum value of the force 
+Delta_t_MALA_sequential    = 0.1 ! Time step for the MALA 
+......
+/
+\end{lstlisting}
+
+We note that we have two routines to compute the force of the bosonic part of the action, \texttt{S0}.  For the  Langevin dynamics  described in Sec.~\ref{sec:langevin} the force for  each  field  has to be computed. This is done in the routine \texttt{Ham\_Langevin\_HMC\_S0}  that returns the two-dimension array 
+of forces. For the MALA sequential moves, we only need the force for a single field, which is computed in the routine \texttt{Ham\_Langevin\_HMC\_S0\_single}.   If this routine is not provided by the user, the code will call \texttt{Ham\_Langevin\_HMC\_S0} and extract the force for the given field.  This is computationally expensive,  such that a warning is printed on the standard output at execution. The following routine must be provided by the user before this option can be used: 
+\begin{lstlisting}[style=fortran]
+Subroutine Ham_Langevin_HMC_S0(Forces_0)
+  Real (Kind=Kind(0.d0)), Intent(inout), allocatable :: Forces_0(:,:)
+  ! Forces_0(n,nt) = \frac{\partial S_0}{\partial s_{n,\tau}}.  
+  ! Here n is the index of the field in the operator list and nt is the time slice.	
+End Subroutine Ham_Langevin_HMC_S0
+\end{lstlisting}
+
+%------------------------------------------------------------
+
+%------------------------------------------------------------
+
+\subsubsection{Time sequential, global in space updates.}
+\paragraph{User-defined global moves on a single time slice}
 \label{sec:global_space}
 This option allows one to carry out  user-defined global moves on a single time slice.  This option is enabled by setting the logical variable  \texttt{Global\_tau\_moves} to \texttt{.true.}.  Recall that the propagation over a time step $\Delta \tau$   (see Eq. \ref{Btau.eq}) can be  written as: 
 \begin{equation}
@@ -84,7 +197,7 @@ This option allows one to carry out  user-defined global moves on a single time 
 where $e^{-V_{n}(s_{n})}$ denotes one element of the  operator list  containing the HS fields.  One can provide  an interval of indices, 
 \texttt{[Nt\_sequential\_start, Nt\_sequential\_end]},  in which the operators will be updated  sequentially. Setting \texttt{Nt\_sequential\_start}$\; = 1$ and \texttt{Nt\_sequential\_end}$\; = M_I+M_V$  reproduces the  sequential single spin flip strategy of the above section.
 
-The variable \texttt{N\_tau\_Global}  sets the number of global moves carried out on each time slice \texttt{ntau}. Each global move is generated in the routine  \texttt{Global\_move\_tau}, which is provided by the user in the Hamiltonian file. In order to  define this move, one specifies the following variables: 
+The variable \texttt{N\_Global\_tau}  sets the number of global moves carried out on each time slice \texttt{ntau}. Each global move is generated in the routine  \texttt{Global\_move\_tau}, which is provided by the user in the Hamiltonian file. In order to  define this move, one specifies the following variables: 
 \begin{itemize}
 \item \texttt{Flip\_length}:  An integer stipulating the  number of spins to be flipped.
 \item \texttt{Flip\_list(1:Flip\_length)}:   Integer array containing the  indices of the operators to be flipped.
@@ -97,13 +210,102 @@ where $ C'$  denotes the new configuration  obtained by flipping the spins speci
 Since we allow for a stochastic  generation of  the global move, it may very well be that no change is proposed. In this case, \texttt{T0\_Proposal\_ratio}   takes the value 0 upon exit of the routine \texttt{Global\_move\_tau} and  no update is carried out. 
 \item \texttt{S0\_ratio}:   Real number containing  the ratio  $e^{-S_0(C')}/e^{-S_0(C)}$. 
 \end{itemize}
+Specifically, the routine \texttt{Global\_move\_tau} must be provided by the user and has the following structure:
+\begin{lstlisting}[style=fortran]
+Subroutine Global_move_tau(T0_Proposal_ratio, S0_ratio, &
+        &                       Flip_list, Flip_length,Flip_value,ntau)
+
+    Real (Kind = Kind(0.d0)),   INTENT(OUT) :: T0_Proposal_ratio,  S0_ratio
+    Integer                   , INTENT(OUT) :: Flip_list(:)
+    Complex (Kind = Kind(0.d0)),INTENT(OUT) :: Flip_value(:)
+    Integer, INTENT(OUT) :: Flip_length
+    Integer, INTENT(IN)  :: ntau
+             
+end Subroutine Global_move_tau
+\end{lstlisting}
+The subroutine \texttt{Overide\_global\_tau\_sampling\_parameters} can be used to overrule the default values of the parameters controlling 
+the global moves on a single time slice, which are set in the input file.  
+\begin{lstlisting}[style=fortran]
+Subroutine Overide_global_tau_sampling_parameters(Nt_sequential_start,Nt_sequential_end,&
+                                        &         N_Global_tau, N_Global_tau_MALA)
+	Integer, Intent(OUT) :: N_Global_tau, Nt_sequential_start, Nt_sequential_end
+end Subroutine Overide_global_tau_sampling_parameters
+\end{lstlisting}
 %------------------------------------------------------------
+As an example, one can run the Hubbard Hamiltonian with the parameters: 
+\begin{lstlisting}[style=fortran]
+&VAR_QMC
+......
+Sequential       = .T.       ! Flag for sequential moves
+Global_tau_moves = .T.       ! Global moves on a time slice
+N_Global_tau = 1             ! Number of global moves will be set 
+                             ! to the length of OP_V by the override routine
+......
+\end{lstlisting}
+Here we randomly chose  a  vertex and update the field.
+
 %------------------------------------------------------------
-\subsubsection{Global updates in time and space}
+\paragraph{Metropolis assisted Langevin algorithm (MALA) on a single time slice}
+\label{sec:global_space_mala}
+This option will carry out a global move on a single time slice using the Metropolis assisted Langevin algorithm.  To use this option, the 
+
+\begin{lstlisting}[style=fortran]
+&VAR_QMC
+......
+Sequential              = .T.       ! Flag for sequential moves
+Global_tau_MALA_moves   = .T.       ! Global MALA moves on a single time slice
+N_Global_tau_MALA       = 1         ! Number of global MALA moves will be set 
+Delta_t_MALA_global_tau =  0.1      ! Time step for the MALA global-tau move 
+Max_Force_MALA_global_tau = 1.0     ! Maximum force for the MALA global-tau move 
+......
+\end{lstlisting}
+The user can override the number of \texttt{N\_Global\_tau\_MALA}  by using the  aforementioned 
+\texttt{Overide\_global\_tau\_sampling\_parameters} routine. The  routine:
+
+\begin{lstlisting}[style=fortran]
+subroutine Global_MALA_move_tau(Flip_list, Flip_length,ntau)
+    Integer                   , INTENT(OUT) :: Flip_list(:)
+    Integer, INTENT(OUT) :: Flip_length
+    Integer, INTENT(IN)  :: ntau
+      
+end Subroutine Global_MALA_move_tau
+\end{lstlisting}
+Allows to  specify the list of field to be updated in the MALA move. By default, all the  field on  the time slice are visited and 
+a warning is issued on the standard output. 
+
+%------------------------------------------------------------
+\subsubsection{Combining various sequential updating schemes.}
+\label{sec:sequential_combination}
+The user can combine the various sequential updating schemes described above.  For  example one can carry out a number of sequential single spin-flip sweeps,  followed 
+by a number of global ones.  The range of the sequential sweeps are specified by the variables \texttt{Nt\_sequential\_start} and \texttt{Nt\_sequential\_end}, while the number of global moves is set by \texttt{N\_Global\_tau}.
+For  example, the parameter file: 
+\begin{lstlisting}[style=fortran]
+&VAR_QMC
+......
+Sequential           = .T.  ! Sequential moves
+Propose_S0           = .F.  ! Proposes single spin flip moves with probability exp(-S0) 
+Nt_sequential_start   = 1   ! Starting index of the sequential moves on a time slice
+Nt_sequential_end     = 3   ! Ending index of the sequential moves on a time slice
+Propose_MALA         = .T.  ! MALA sequential moves for continuous fields
+Max_Force_MALA_sequential  = 1.0 ! Max force for the MALA sequential moves
+Delta_t_MALA_sequential    = 0.1 ! Time step for the MALA sequential moves
+Global_tau_moves = .true.    ! Global moves on a time slice
+N_Global_tau = 6             ! Number of global moves on a time slice
+......
+\end{lstlisting}
+Will carry out sequential single spin-flip moves on the first three operators of the operator list using the MALA updating scheme \ref{sec:sequential_mala}, followed by \texttt{N\_Global\_tau=6} global moves on the time slice.
+
+
+\subsection{Global updates in time and space}
+
+
 \label{sec:global_slice}
 %------------------------------------------------------------
 %  
-The code allows for global updates as well. The user must then provide two additional functions (see \texttt{Hamiltonian\_Hubbard\_include.h}): \texttt{Global\_move} and \texttt{Get\_\-Delta\_\-S0\_\-global( Nsigma\_old )}.   
+
+\subsubsection{User specified global moves in space and time}
+\label{sec:global_space_time}
+The code allows for global updates as well. The user must then provide two additional functions \texttt{Global\_move} and \texttt{Get\_\-Delta\_\-S0\_\-global( Nsigma\_old )}.   
 
 The subroutine  \texttt{Global\_move(T0\_Proposal\_ratio,nsigma\_old,size\_clust)}  proposes  a global move. 
 Its single input is the variable \texttt{nsigma\_old} of type \texttt{Field} (see Section~\ref{sec:fields}) that contains  the full  configuration $C$ stored in \texttt{nsigma\_old\%f(M\_V + M\_I, Ltrot)}.  On output, the new configuration $C'$, determined by the user,  is stored in the two-dimensional array \texttt{nsigma}, which is a global variable declared in the Hamiltonian module.
@@ -115,6 +317,32 @@ In order to compute the acceptance-rejection ratio,  the user must also provide 
 \texttt{Get\_\-Delta\_\-S0}\texttt{\_\-global(nsigma\_old)} that computes the difference $\Delta S_0=S_0(C)-S_0(C')$. Again, the configuration $C'$ is given by the field \texttt{nsigma}.
 
 The variable \texttt{N\_Global} determines the number of global updates performed per sweep. Note that global updates are expensive, since they require a complete recalculation of the weight.
+
+Practically one will combine global update with local ones. In the implementation  of the Hubbard model,   the parameter file: 
+\begin{lstlisting}[style=fortran]
+&VAR_QMC
+......
+Sequential       = .T.       ! Flag for sequential moves
+Global_moves     = .T.       ! Flag for global moves in space and time
+N_Global         = 6         ! Number of global moves in space and time
+......
+/
+\end{lstlisting}
+will carry out 6 global moves in space and time at the end of each sweep. A  possible choice for the global move is to randomly choose a 
+lattice point and change the sign of the field at this point for all time slices.  The routine that will do this global update reads:
+\begin{lstlisting}[style=fortran]
+Subroutine Global_move(T0_Proposal_ratio, nsigma_old, size_clust)
+   Real (Kind = Kind(0.d0)),   INTENT(OUT) :: T0_Proposal_ratio, size_clust
+   Type(Field), INTENT(IN)  :: nsigma_old
+
+   size_clust = Ltrot
+   n  = nranf(Size(Op_V,1))
+   nsigma%f(n,:)   = - nsigma_old%f(n,:) 
+   T0_Proposal_ratio = 1
+end Subroutine Global_move
+\end{lstlisting}
+
+
 % 
 
 %------------------------------------------------------------

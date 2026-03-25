@@ -149,13 +149,16 @@
         procedure, nopass :: Pr_obs => Pr_obs_base
         procedure, nopass :: Init_obs => Init_obs_base
         procedure, nopass :: Global_move_tau => Global_move_tau_base
+        procedure, nopass :: Global_MALA_move_tau => Global_MALA_move_tau_base
         procedure, nopass :: Hamiltonian_set_nsigma => Hamiltonian_set_nsigma_base
         procedure, nopass :: Overide_global_tau_sampling_parameters => Overide_global_tau_sampling_parameters_base
         procedure, nopass :: Global_move => Global_move_base
+        procedure, nopass :: Global_MALA_move => Global_MALA_move_base
         procedure, nopass :: Delta_S0_global => Delta_S0_global_base
         procedure, nopass :: Get_Delta_S0_global => Get_Delta_S0_global_base
         procedure, nopass :: S0 => S0_base
         procedure, nopass :: Ham_Langevin_HMC_S0 => Ham_Langevin_HMC_S0_base
+        procedure, nopass :: Ham_Langevin_HMC_S0_single => Ham_Langevin_HMC_S0_single_base
         procedure, nopass :: weight_reconstruction => weight_reconstruction_base
         procedure, nopass :: GR_reconstruction => GR_reconstruction_base
         procedure, nopass :: GRT_reconstruction => GRT_reconstruction_base
@@ -631,6 +634,94 @@
 !> ALF Collaboration
 !>
 !> @brief
+!> Specify a global langevin move on a given time slice tau.
+!>
+!> @details
+!> @param[in] ntau Integer
+!> \verbatim
+!>  Time slice
+!> \endverbatim
+!> @param[out] Flip_length  Integer
+!> \verbatim
+!>  Number of flips stored in the first  Flip_length entries of the array Flip_values.
+!>  Has to be smaller than NDIM
+!> \endverbatim
+!> @param[out] Flip_list  Integer(Ndim)
+!> \verbatim
+!>  List of spins to be flipped: nsigma%f(Flip_list(1),ntau) ... nsigma%f(Flip_list(Flip_Length),ntau)
+!>  Note that Ndim = size(Op_V,1)
+!> \endverbatim
+!--------------------------------------------------------------------
+      Subroutine Global_MALA_move_tau_base(Flip_list, Flip_length,ntau)
+
+         Implicit none
+         Integer                   , INTENT(OUT) :: Flip_list(:)
+         Integer, INTENT(OUT) :: Flip_length
+         Integer, INTENT(IN)  :: ntau
+
+         Logical, save              :: first_call=.True.
+         integer :: n
+      
+         Flip_length = size(flip_list,1)
+         do n = 1, Flip_length
+            flip_list(n) = n
+         enddo
+
+         If  (first_call)    then
+            write(output_unit,*)
+            write(output_unit,*) "ATTENTION:     Base implementation of Global_MALA_move_tau is being called!"
+            write(output_unit,*) "All fields of type 3 will be updated in the global tau MALA moves."
+            write(output_unit,*) "Suppressing further printouts of this message."
+            write(output_unit,*)
+            first_call=.false.
+         endif
+         
+      end Subroutine Global_MALA_move_tau_base
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!> Specify a global Metropolis-adjusted langevin move.
+!>
+!> @details
+!> @param[out] Flip_length  Integer
+!> \verbatim
+!>  Number of flips stored in the first  Flip_length entries of the array Flip_values.
+!>  Has to be smaller than NDIM*Ltrot
+!> \endverbatim
+!> @param[out] Flip_list  Integer(Ndim,Ltrot)
+!> \verbatim
+!>  List of spins to be flipped: nsigma%f(Flip_list(1,1),Flip_list(1,2)) ... nsigma%f(Flip_list(Flip_Length,1),Flip_list(Flip_Length,2))
+!>  Note that Ndim = size(Op_V,1)
+!> \endverbatim
+!--------------------------------------------------------------------
+      Subroutine Global_MALA_move_base(Flip_list)
+
+         Implicit none
+         Integer                   , INTENT(OUT) :: Flip_list(:,:)
+
+         Logical, save              :: first_call=.True.
+         
+         If  (first_call)    then
+            write(output_unit,*)
+            write(output_unit,*) "ATTENTION:     Base implementation of Global_MALA_move is being called!"
+            write(output_unit,*) "All fields of type 3 will be updated in the global MALA moves."
+            write(output_unit,*) "Suppressing further printouts of this message."
+            write(output_unit,*)
+            first_call=.false.
+         endif
+
+         Flip_list = 1
+
+      end Subroutine Global_MALA_move_base
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
 !> The user can set the initial field.
 !>
 !> @details
@@ -665,10 +756,11 @@
 !> @details
 !> \endverbatim
 !--------------------------------------------------------------------
-          Subroutine Overide_global_tau_sampling_parameters_base(Nt_sequential_start,Nt_sequential_end,N_Global_tau)
+          Subroutine Overide_global_tau_sampling_parameters_base(Nt_sequential_start,Nt_sequential_end, &
+                           &        N_Global_tau, N_Global_tau_MALA)
 
              Implicit none
-             Integer, Intent(INOUT) :: Nt_sequential_start,Nt_sequential_end, N_Global_tau
+             Integer, Intent(INOUT) :: Nt_sequential_start,Nt_sequential_end, N_Global_tau, N_Global_tau_MALA
 
 !!$             write(output_unit,*)
 !!$             write(output_unit,*) "ATTENTION:     Base implementation of Overide_global_tau_sampling_parameters is getting calling!"
@@ -698,9 +790,9 @@
 
             if (first_call) then
                write(output_unit,*)
-               write(output_unit,*) "ATTENTION:     Base implementation of Ham_Langevin_HMC_S0 is getting calling!"
+               write(output_unit,*) "ATTENTION:     Base implementation of Ham_Langevin_HMC_S0 is being called!"
                write(output_unit,*) "This assumes trivial S0 action and is likely incorrect!"
-               write(output_unit,*) "Consider overwritting this routine according to the model in your Hamiltonian."
+               write(output_unit,*) "Consider overwriting this routine according to the model in your Hamiltonian."
                write(output_unit,*) "Suppressing further printouts of this message."
                write(output_unit,*)
                first_call=.False.
@@ -708,6 +800,43 @@
             ! Johannes: I would actually like to terminate the code. I cannot come up with a scenario where Forces_0=0 is correct!
             
           end Subroutine Ham_Langevin_HMC_S0_base
+
+!--------------------------------------------------------------------
+!> @author
+!> ALF Collaboration
+!>
+!> @brief
+!>   Forces_0(n,nt)  = \partial S_0 / \partial s(n,nt)  are calculated and returned to  main program.
+!>
+!-------------------------------------------------------------------
+        Subroutine Ham_Langevin_HMC_S0_single_base(Force_0,n,nt)
+
+          Implicit none
+
+          Real (Kind=Kind(0.d0)), Intent(inout) :: Force_0
+          integer , intent(in)                  :: n, nt
+
+          logical, save                         :: first_call=.True.
+          real (kind=kind(0.d0)), allocatable   :: forces_0(:,:)
+
+          allocate(forces_0(size(nsigma%f,1),size(nsigma%f,2)))
+          call ham%Ham_Langevin_HMC_S0(Forces_0)
+          force_0 = forces_0(n,nt)
+
+          if (first_call) then
+             write(output_unit,*)
+             write(output_unit,*) "ATTENTION:     Base implementation of Ham_Langevin_HMC_S0_single is being called!"
+             write(output_unit,*) "This uses the subroutine Ham_Langevin_HMC_S0, which provides all bosonic forces."
+             write(output_unit,*) "Since Ham_Langevin_HMC_S0_single only requires one force this might be inefficient."
+             write(output_unit,*) "Consider overwriting this routine according to the model in your Hamiltonian."
+             write(output_unit,*) "Suppressing further printouts of this message."
+             write(output_unit,*)
+             first_call=.False.
+          endif
+
+          deallocate(forces_0)
+          
+        end Subroutine Ham_Langevin_HMC_S0_single_base
 
 
   !--------------------------------------------------------------------

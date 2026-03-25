@@ -95,3 +95,18 @@ In order to address potential ergodicity issues \cite{Beyl17} it is crucial to i
  
  To  test  the  code,  we  have  carried  out  high precision calculations  of  the  6-sites   Hubbard  chain  with  open boundary  conditions  (see  Sec.~\ref{sec:langevin})  at  $\beta t  = 4$.     Using \textit{only}   hybrid   molecular  dynamics  updates  we  obtain:  $ \langle  \hat{H} \rangle = -2.81715     \pm 0.00023 $.  This  compares  very  well  with  the  discrete  field    sequential  updating run: $ \langle  \hat{H} \rangle = -2.81706   \pm 0.00013 $. 
 
+Specifically  to  start the  above HMC run, the  user again has to define the subroutine \texttt{Ham\_Langevin\_HMC\_S0}  in the  base Hamiltonian  module  that  computes the derivative of the bosonic part action with respect to the fields  
+and  in the parameter file chose the option: 
+\begin{lstlisting}[style=fortran]
+&VAR_QMC
+
+......
+Sequential           = .F.    ! Sequential moves
+......
+Delta_t_Langevin_HMC = 0.5    ! Default time step for Langevin and HMC updates. 
+N_HMC_sweeps         = 1      ! # of HMC updates between  sequential ones
+Leapfrog_steps       = 100    ! Number of leapfrog iterations
+......
+/
+\end{lstlisting}
+For this parameter  choice,   since  \texttt{Sequential           = .F.},  the  code  will carry out  only hybrid molecular dynamics updates.   The  user can  of course  choose to carry out  both sequential and hybrid molecular dynamics updates by setting \texttt{Sequential           = .T.} and choosing a finite value for \texttt{N\_HMC\_sweeps}. It is also interesting  to note that  HMC  time step  can be chosen much  larger than for the  Langevin dynamics.  The Langevin integrator   suffers from systematic errors in  the  time step whereas the  HMC integrator does not.
