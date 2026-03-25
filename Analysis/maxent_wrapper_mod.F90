@@ -1,4 +1,4 @@
-!  Copyright (C) 2016-2025 The ALF project
+!  Copyright (C) 2016-2026 The ALF project
 !
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -31,7 +31,9 @@
 
 
 module MaxEnt_Wrapper_mod
+   Use MyMats
    implicit none
+   Real (Kind=Kind(0.d0)), allocatable, private :: Ra(:), ba(:)
    
 contains
      Real (Kind=Kind(0.d0)) function XKER_ph(tau,om, beta)
@@ -113,6 +115,147 @@ contains
       F_QFI_ph_c = (4.d0/pi) * ( (exp(beta*om) - 1.d0)/( exp(beta*om) + 1.d0 ) )**2
 
      end function F_QFI_ph_c
+
+      Real (Kind=Kind(0.d0)) function F_QFI_pp(om, beta)
+      Implicit None
+      real (Kind=Kind(0.d0)) ::  om, beta
+      real (Kind=Kind(0.d0)) :: pi
+      pi = 3.1415927
+      F_QFI_pp = (4.d0/pi) * ( (exp(beta*om) - 1.d0)/( exp(beta*om) + 1.d0 ) )**2
+
+     end function F_QFI_pp
+
+!--------------------------------------------------------------------------------------------------------
+! This function sets Ra, ba as defined in Karrasch's paper  Phys. Rev. B 82 (2010), 125114. 
+!--------------------------------------------------------------------------------------------------------
+     Subroutine Set_Ra_ba(N)
+      Implicit None
+      Integer, Intent(In) :: N
+
+      Real (Kind=Kind(0.d0)), allocatable :: Mat(:,:), U(:,:), W(:)
+      Real (Kind=Kind(0.d0)) :: X, Y
+      Integer ::   I, J , m ,  nc
+      Logical :: Test=.false.
+
+      allocate(Mat(N,N), U(N,N), W(N))
+      allocate(Ra(N/2),ba(N/2))
+
+      If (Test) Write(6,*) "Setting Ra and ba using the method of Karrasch of  Phys. Rev. B 82 (2010), 125114"
+
+      Mat = 0.d0 
+      do  i = 1,N-1 
+         Mat(i,i+1) = 1.d0/( 2.d0 * sqrt((2.d0*dble(i) - 1.d0) * (2.d0*dble(i) + 1.d0) ))
+         Mat(i+1,i) = Mat(i,i+1)
+      enddo
+      Call Diag(Mat, U, W)
+      nc = 0 
+      do i = 1, N
+         if (W(i) > 0.d0) then
+            nc = nc + 1 
+            Ba(nc) = W(i)
+            Ra(nc) = U(1,i)**2/(4.d0*Ba(nc)*Ba(nc))
+         endif
+      enddo 
+
+      do i = 1, N
+         do m = 1, N
+            X = 0.d0 
+            do j =1, N
+               X = X +  Mat(m,j)*U(j,i) 
+            enddo
+            X = X -W(i)*U(m,i) 
+            if (Abs(X) >= 1.d-10) then 
+               Write(6,*) ABS(X)
+               write(error_unit,*) "Issue with eigenvalue in subroutine Set_Ra_ba of mod maxent_wrapper_mod"
+               CALL Terminate_on_error(ERROR_MAXENT,__FILE__,__LINE__)  
+            endif
+         enddo
+      enddo
+
+      If (Test) then 
+         Open(Unit=10,File="Ra_ba.dat", status="Unknown")
+         Do i = 1,size(ba,1)
+            write(10,*) Ra(i),ba(i)
+         enddo
+         Close(10)
+         Open(Unit=10,File="Fermi.dat", status="Unknown")
+         x = -20.d0
+         do i = 1,400
+            y = 1.d0/(exp(x) + 1.d0 ) 
+            Write(10,"(4F16.8)") x, y, fermi_para(x), y - fermi_para(x)
+            x = x + 0.1
+         enddo
+         Close(10)
+      endif
+
+      deallocate(Mat, U, W)
+
+   end Subroutine Set_Ra_ba   
+!--------------------------------------------------------------------------------------------------------
+! Deallocate Ra and ba.
+!--------------------------------------------------------------------------------------------------------
+   Subroutine clean_Set_Ra_ba   
+      Implicit None
+      if (allocated(Ra)) deallocate(Ra)
+      if (allocated(ba)) deallocate(ba)
+   end Subroutine clean_Set_Ra_ba
+!--------------------------------------------------------------------------------------------------------
+! Computes Fermi function using the parameters Ra and ba. It is based on the work of Karrasch:  Phys. Rev. B 82 (2010), 125114.
+!--------------------------------------------------------------------------------------------------------
+   function fermi_para(x) result (f) 
+      Implicit none 
+      Real (Kind=Kind(0.d0)), Intent(IN) :: x
+      Real (Kind=Kind(0.d0)) :: f
+      !Local 
+      Integer :: i
+      complex (Kind=Kind(0.d0)) :: Z
+      Z  = cmplx(0.d0,0.d0,Kind=kind(0.d0))
+      !Write(6,*) Size(Ra,1)
+      do i  = 1,  size(Ra,1)
+         Z  = Z - Ra(i)/cmplx(x,-1.d0/Ba(i),Kind=Kind(0.d0)) - Ra(i)/cmplx(x,1.d0/Ba(i),Kind=Kind(0.d0))  
+      enddo   
+      f = real(Z,kind(0.d0)) + 0.5d0
+   end function fermi_para
+!--------------------------------------------------------------------------------------------------------
+! This function computes  DI/DV  from the single particle spectral function.  It is based on the work of 
+! Karrasch:  Phys. Rev. B 82 (2010), 125114.
+     function F_DIDV(om, beta) result(F)
+   
+      Implicit None
+      real (Kind=Kind(0.d0)), Intent(In) ::  om, beta
+      real (Kind=Kind(0.d0)) :: F
+
+      complex (Kind=Kind(0.d0)) :: Z
+      Real (Kind=Kind(0.d0)), allocatable ::  om_m(:)
+      Integer :: n 
+
+      allocate (om_m(size(Ra,1)))
+      Do n = 1,size(Ra,1)
+         om_m(n) = 1.d0/(beta*ba(n))
+      enddo
+      Z =  cmplx(0.d0,0.d0,kind(0.d0))
+      Do n = 1,size(Ra,1)
+         Z =  Z - Ra(n)/(cmplx(-om,om_m(n),kind=kind(0.d0))**2)
+      enddo
+      F = 2.d0*real(Z,kind(0.d0))/beta 
+
+      deallocate (om_m)
+
+     end function F_DIDV
+!--------------------------------------------------------------------------------------------------------
+
+!--------------------------------------------------------------------------------------------------------
+! This function computes  DI/DV  from the single particle spectral function.  It is based on the work of 
+! Karrasch:  Phys. Rev. B 82 (2010), 125114.
+     function F_DIDV_PH(om, beta) result(F)
+   
+      Implicit None
+      real (Kind=Kind(0.d0)), Intent(In) ::  om, beta
+      real (Kind=Kind(0.d0)) :: F
+
+      F = 2.d0 * F_DIDV(om, beta) 
+     end function F_DIDV_PH
+!--------------------------------------------------------------------------------------------------------
 
      Real (Kind=Kind(0.d0)) function Back_trans_ph(Aom, om, beta )
 
