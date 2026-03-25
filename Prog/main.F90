@@ -878,8 +878,8 @@ Program Main
                  ! udvl/udvr are set up such that CGRP reproduces GR.  The storage
                  ! udvst(1..Nstm) contains fresh left propagations from the backward
                  ! sweep, so calling tau_p with NST_IN=0 is correct here.
-                 IF ( LTAU == 1 .and. Projector .and. Stab_nt(1) > THTROT+1 ) then
-                    Call tau_p ( udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, 0, LOBS_ST, LOBS_EN )
+                 IF ( get_LTAU() == 1 .and. Projector .and. Stab_nt(1) > THTROT+1 ) then
+                    Call tau_p ( udvl, udvr, udvst, GR, PHASE, NSTM, STAB_NT, 0, get_LOBS_ST(), get_LOBS_EN() )
                  endif
               endif
 
