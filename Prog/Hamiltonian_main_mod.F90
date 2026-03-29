@@ -136,10 +136,14 @@
     Implicit none
     
     private
-    public :: Alloc_Ham, ham_base, ham
+    public :: Alloc_Ham, ham_base, ham, LOG_T0_REJECTED
 #ifdef __PGI
     public :: Obs_scal, Obs_eq, Obs_tau
 #endif
+      
+      ! Sentinel value for rejected global moves in log scale
+      Real (Kind=Kind(0.d0)), parameter :: LOG_T0_REJECTED = -huge(1.d0)
+      
       type ham_base
       contains
         procedure, nopass :: ham_set => ham_set_base
@@ -152,7 +156,9 @@
         procedure, nopass :: Hamiltonian_set_nsigma => Hamiltonian_set_nsigma_base
         procedure, nopass :: Overide_global_tau_sampling_parameters => Overide_global_tau_sampling_parameters_base
         procedure, nopass :: Global_move => Global_move_base
+        procedure, nopass :: Global_move_log_T0 => Global_move_log_T0_base
         procedure, nopass :: Delta_S0_global => Delta_S0_global_base
+        procedure, nopass :: Get_Delta_S0_global => Get_Delta_S0_global_base
         procedure, nopass :: S0 => S0_base
         procedure, nopass :: Ham_Langevin_HMC_S0 => Ham_Langevin_HMC_S0_base
         procedure, nopass :: weight_reconstruction => weight_reconstruction_base
@@ -322,6 +328,75 @@
     !> ALF Collaboration
     !>
     !> @brief
+    !> Proposes a global move in space and time, returning the proposal ratio on logarithmic scale
+    !>
+    !> @details
+    !> This subroutine wraps around Global_move to keep T0_Proposal_ratio on a logarithmic scale,
+    !> avoiding numerical over/underflow issues for very small or very large proposal ratios.
+    !> Following the same pattern as Get_Delta_S0_global, which wraps Delta_S0_global.
+    !>
+    !> @param [OUT] Log_T0_Proposal_ratio Real
+    !> \verbatim
+    !>  Log_T0_Proposal_ratio = log(T0_Proposal_ratio)
+    !>                        = log( T0( sigma_new -> sigma_old ) / T0( sigma_old -> sigma_new) )
+    !>  If T0_Proposal_ratio is zero or negative, returns -huge(1.d0)
+    !> \endverbatim
+    !> @param [IN] nsigma_old,  Type(Fields)
+    !> \verbatim
+    !>  Old configuration. The new configuration is stored in nsigma.
+    !> \endverbatim
+    !> @param [OUT] Size_clust Real
+    !> \verbatim
+    !>  Size of cluster that will be flipped.
+    !> \endverbatim
+    !-------------------------------------------------------------------
+          Subroutine Global_move_log_T0_base(Log_T0_Proposal_ratio, nsigma_old, size_clust)
+
+             Implicit none
+             Real (Kind=Kind(0.d0)), intent(out) :: Log_T0_Proposal_ratio, size_clust
+             Type (Fields),  Intent(IN)  :: nsigma_old
+
+             Logical, save              :: warning_printed = .False.
+             Real (Kind=Kind(0.d0))     :: T0_Proposal_ratio
+             Real (Kind=Kind(0.d0))     :: min_safe_T0, max_safe_T0
+
+             ! Call the Hamiltonian's (possibly overridden) Global_move implementation
+             Call ham%Global_move(T0_Proposal_ratio, nsigma_old, size_clust)
+
+             ! Define safe range for T0_Proposal_ratio to avoid extreme log values
+             ! Using sqrt of machine limits keeps log(T0) within roughly [-354, 354] in double precision
+             min_safe_T0 = sqrt(tiny(1.d0))
+             max_safe_T0 = sqrt(huge(1.d0))
+
+             ! Convert to logarithmic scale
+             if (T0_Proposal_ratio > 0.d0) then
+                Log_T0_Proposal_ratio = log(T0_Proposal_ratio)
+
+                ! Warn if T0_Proposal_ratio approaches the limits of double precision
+                if (.not. warning_printed .and. (T0_Proposal_ratio < min_safe_T0 .or. T0_Proposal_ratio > max_safe_T0)) then
+                   write(error_unit,*)
+                   write(error_unit,*) "WARNING:       Global_move produces T0_Proposal_ratio outside safe range!"
+                   write(error_unit,*) "T0_Proposal_ratio = ", T0_Proposal_ratio
+                   write(error_unit,*) "Safe range: [", min_safe_T0, ",", max_safe_T0, "]"
+                   write(error_unit,*) "This may cause numerical issues. Hamiltonian implementations should override"
+                   write(error_unit,*) "Global_move_log_T0 to compute log(T0_Proposal_ratio) directly in a numerically safe way."
+                   write(error_unit,*) "Suppressing further warnings."
+                   write(error_unit,*)
+                   warning_printed = .True.
+                endif
+             else
+                ! For T0_Proposal_ratio <= 0, return a very negative number
+                Log_T0_Proposal_ratio = LOG_T0_REJECTED
+             endif
+
+          End Subroutine Global_move_log_T0_base
+
+
+    !--------------------------------------------------------------------
+    !> @author
+    !> ALF Collaboration
+    !>
+    !> @brief
     !> Computes the ratio exp(S0(new))/exp(S0(old))
     !>
     !> @details
@@ -368,6 +443,47 @@
              endif
 
           end Function Delta_S0_global_base
+
+
+    !--------------------------------------------------------------------
+    !> @author
+    !> ALF Collaboration
+    !>
+    !> @brief
+    !> Computes the difference - S0(new) + S0(old)
+    !>
+    !> @details
+    !> This function computes the difference \verbatim Delta_S0 = -S0(nsigma) + S0(nsigma_old) \endverbatim
+    !> @param [IN] nsigma_old,  Type(Fields)
+    !> \verbatim
+    !>  Old configuration. The new configuration is stored in nsigma.
+    !> \endverbatim
+    !-------------------------------------------------------------------
+          Real (Kind=kind(0.d0)) Function Get_Delta_S0_global_base(Nsigma_old)
+
+             !  This function computes the difference:  -S0(nsigma) + S0(nsigma_old)
+             Implicit none
+
+             ! Arguments
+             Type (Fields),  INTENT(IN) :: nsigma_old
+
+             Logical, save              :: first_call=.True.
+             integer                    :: field_id, tau, Nfields, Ntau
+             Complex (kind=kind(0.0d0)) :: Hs_old
+
+             Get_Delta_S0_global_base = log(ham%Delta_S0_global(nsigma_old)) ! to avoid overflows we return the log of the ratio
+
+             if (first_call) then
+                write(output_unit,*)
+                write(output_unit,*) "ATTENTION:     The base implementation of Get_Delta_S0_global is used!"
+                write(output_unit,*) "NOTE: We are replacing Delta_S0_global by Get_Delta_S0_global to avoid overflows!"
+                write(output_unit,*) "Consider overwriting this NEW function which returns log(Delta_S0_global)."
+                write(output_unit,*) "Suppressing further printouts of this message."
+                write(output_unit,*)
+                first_call=.False.
+             endif
+
+          end Function Get_Delta_S0_global_base
 
 
     !--------------------------------------------------------------------

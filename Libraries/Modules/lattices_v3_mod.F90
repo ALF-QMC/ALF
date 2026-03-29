@@ -752,7 +752,7 @@
            Type (Lattice), intent(in)                 :: Latt
            Complex (Kind=Kind(0.d0)), Dimension(:,:)           :: Xin_K, Xout_R
            Complex (Kind=Kind(0.d0))                           :: Z
-           Real    (Kind=Kind(0.d0))                           :: XK_p(2), IR_p(2)
+           Real    (Kind=Kind(0.d0))                           :: XK_p(2), IR_p(2), ang
 
            Integer :: nb, LQ, nt, nr, nk
 
@@ -770,7 +770,8 @@
                  Z = cmplx(0.d0, 0.d0, kind(0.D0))
                  do nk = 1,LQ
                     XK_p =  dble(Latt%listk(nk,1))*Latt%b1_p + dble(Latt%listk(nk,2))*Latt%b2_p
-                    Z = Z + cos(Iscalar(XK_p,IR_p))*Xin_K(nk,nt)
+                    ang = Iscalar(XK_p, IR_p)
+                    Z = Z + cmplx(cos(ang), sin(ang), kind(0.D0)) * Xin_K(nk,nt)
                  enddo
                  Xout_R(nr,nt) = Z/dble(LQ)
               enddo

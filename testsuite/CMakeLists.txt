@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.5...4.2)
 if(DEFINED ENV{ALF_FC})
   set(CMAKE_Fortran_COMPILER $ENV{ALF_FC})
 endif()

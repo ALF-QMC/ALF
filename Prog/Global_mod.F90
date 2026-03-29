@@ -125,7 +125,7 @@ Module Global_mod
         !>  Local variables.
         Integer :: NST, NSTM, NF, nf_eff, NT, NT1, NVAR,N, N1,N2, I, NC, I_Partner, n_step,  N_count, N_part
         Type    (Fields)           :: nsigma_old
-        Real    (Kind=Kind(0.d0)) :: T0_Proposal_ratio, Weight, Weight1
+        Real    (Kind=Kind(0.d0)) :: log_T0_Proposal_ratio, Weight, Weight1, delta_S0_log, exp_delta_S0
         Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Z, Ratiotot, Ratiotot_p, Phase_old, Phase_new
         Real    (Kind=Kind(0.d0)), allocatable :: Det_vec_old(:,:), Det_vec_new(:,:)
         Complex (Kind=Kind(0.d0)), allocatable :: Phase_Det_new(:), Phase_Det_old(:)
@@ -256,16 +256,16 @@ Module Global_mod
               Phase_new=product(Phase_array)
               Phase_new=Phase_new**N_SUN
 
-              T0_Proposal_ratio = 1.d0
+              log_T0_Proposal_ratio = 0.d0
               Ratiotot = Compute_Ratio_Global(Phase_Det_old, Phase_Det_new, &
-                   &            Det_vec_old, Det_vec_new, nsigma_old, T0_Proposal_ratio,Ratio)
+                   &            Det_vec_old, Det_vec_new, nsigma_old, log_T0_Proposal_ratio,Ratio)
 
               If (L_Test) Write(6,*) 'Ratio_global: Irank, Partner',Irank,List_partner(Irank), &
                    &                  Ratiotot, Ratio(1)*exp(Ratio(2))
            else
-              Ratiotot = ham%Delta_S0_global(Nsigma_old)
-              Ratio(1) = Ratiotot
-              Ratio(2) = 0
+              delta_S0_log = ham%Get_Delta_S0_global(Nsigma_old)
+              Ratio(1) = 1.0d0 !!! @FAKHER @JONAS double check please
+              Ratio(2) = delta_S0_log
            endif
 
            !  Acceptace/rejection decision taken on master node after receiving information from slave
@@ -465,7 +465,7 @@ Module Global_mod
 
         !  Local variables.
         Integer :: NST, NSTM, NF, NT, NT1, NVAR,N, N1,N2, I, NC, N_part,j, nf_eff
-        Real    (Kind=Kind(0.d0)) :: T0_Proposal_ratio, Weight
+        Real    (Kind=Kind(0.d0)) :: log_T0_Proposal_ratio, Weight
         Complex (Kind=Kind(0.d0)) :: Z_ONE = cmplx(1.d0, 0.d0, kind(0.D0)), Z, Ratiotot, Phase_old, Phase_new
         Complex (Kind=Kind(0.d0)), allocatable :: Det_vec_test(:,:), Phase_Det_new(:), Phase_Det_old(:)
         Real    (Kind=Kind(0.d0)), allocatable :: Det_vec_old(:,:), Det_vec_new(:,:)
@@ -546,8 +546,8 @@ Module Global_mod
         Do n = 1,N_Global
            ! Draw a new spin configuration. This is provided by the user in the Hamiltonian module
            ! Note that nsigma is a variable in the module Hamiltonian
-           Call ham%Global_move(T0_Proposal_ratio,nsigma_old,size_clust)
-           If (T0_Proposal_ratio > 0.d0) then
+           Call ham%Global_move_log_T0(log_T0_Proposal_ratio,nsigma_old,size_clust)
+           if (log_T0_Proposal_ratio > LOG_T0_REJECTED) then  
               NC = NC + 1
               ! Compute the new Green function
               storage = "Empty"
@@ -564,7 +564,7 @@ Module Global_mod
               Phase_new=Phase_new**N_SUN
 
               Ratiotot = Compute_Ratio_Global(Phase_Det_old, Phase_Det_new, &
-                   &                          Det_vec_old, Det_vec_new, nsigma_old, T0_Proposal_ratio, Ratio)
+                   &                          Det_vec_old, Det_vec_new, nsigma_old, log_T0_Proposal_ratio, Ratio)
 
               !Write(6,*) 'Ratio_global: ', Ratiotot
 
@@ -659,7 +659,10 @@ Module Global_mod
 !> @param[in]  Phase_det_old  Complex, Dimension(N_FL)
 !> @param[in]  Det_vec_new  Real, Dimension(:,N_FL)
 !> @param[in]  Det_vec_old  Real, Dimension(:,N_FL)
-!> @param[in]  T0_proposal_ratio   Real
+!> @param[in]  log_T0_proposal_ratio   Real
+!> \verbatim
+!>  log_T0_proposal_ratio = log(T0_Proposal_ratio) for numerical stability
+!> \endverbatim
 !> @param[in]  nsigma_old Type(Fields)
 !> \verbatim
 !>  Old configuration. The new configuration is stored in nsigma. nsigma is a globale variable
@@ -667,7 +670,7 @@ Module Global_mod
 !> \endverbatim
 !--------------------------------------------------------------------
       Complex (Kind=Kind(0.d0)) Function Compute_Ratio_Global(Phase_Det_old, Phase_Det_new, &
-           &                    Det_vec_old, Det_vec_new, nsigma_old, T0_Proposal_ratio,Ratio)
+           &                    Det_vec_old, Det_vec_new, nsigma_old, log_T0_Proposal_ratio,Ratio)
 
 
         Implicit none
@@ -675,14 +678,14 @@ Module Global_mod
         ! Arguments
         Complex (Kind=Kind(0.d0)), allocatable, INTENT(IN) :: Phase_Det_old(:), Phase_Det_new(:)
         REAL    (Kind=Kind(0.d0)), allocatable, INTENT(IN) :: Det_vec_old(:,:), Det_vec_new(:,:)
-        Real    (Kind=Kind(0.d0)),    INTENT(IN)  :: T0_proposal_ratio
+        Real    (Kind=Kind(0.d0)),    INTENT(IN)  :: log_T0_proposal_ratio
         Type    (Fields),             INTENT(IN)  :: nsigma_old
         Complex (Kind=Kind(0.d0)),    INTENT(out) :: Ratio(2)
 
         ! Local
         Integer  :: Nf, i, nt, nf_eff
         Complex (Kind=Kind(0.d0)) :: Z, Z1, Ratio_1_array(N_FL), Ratio_2_array(N_FL), g_loc
-        Real    (Kind=Kind(0.d0)) :: X, Ratio_2
+        Real    (Kind=Kind(0.d0)) :: X, Ratio_2, delta, log_delta
 
         Ratio = cmplx(0.d0,0.d0,kind(0.d0))
         Ratio_2_array = 0.d0
@@ -731,7 +734,17 @@ Module Global_mod
         !Z =  Z * cmplx( ham%Delta_S0_global(Nsigma_old),0.d0,kind(0.d0) )
         !Z =  Z * cmplx( T0_Proposal_ratio, 0.d0,kind(0.d0))
         Ratio(2) = sum(Ratio_2_array)
-        Ratio(2) = Ratio(2) + log(ham%Delta_S0_global(Nsigma_old)) + log(T0_Proposal_ratio)
+        log_delta = ham%Get_Delta_S0_global(Nsigma_old)
+        if (log_T0_Proposal_ratio == LOG_T0_REJECTED) then
+           ! This if-statement catches 'old' global moves with T0_Proposal_ratio <= 0 like due to double overflow.
+           ! In practice, this should never happen once the new Global_move_log_T0 subroutine is overwriten
+           ! within the model specific Hamiltonian module by the use, following earlier warnings.
+           Ratio(1) = 0.d0
+           Ratio(2) = 0.d0
+           Compute_Ratio_Global = cmplx(0.d0,0.d0,kind(0.d0))
+           return
+        end if
+        Ratio(2) = Ratio(2) + log_delta + log_T0_Proposal_ratio
 
         Compute_Ratio_Global = Ratio(1)*exp(Ratio(2))
 

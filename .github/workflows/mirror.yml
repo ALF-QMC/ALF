@@ -1,0 +1,15 @@
+name: Mirror
+
+on:
+  push:
+    branches: [main, master, 'ALF-**']
+    tags: ['*']
+
+jobs:
+  gitlab:
+    if: github.repository == 'ALF-QMC/ALF'
+    uses: ALF-QMC/ALF/.github/workflows/mirror-template.yml@master
+    with:
+      git_url: "git.physik.uni-wuerzburg.de/ALF/ALF"
+    secrets:
+      GIT_MIRROR_TOKEN: ${{ secrets.GITLAB_MIRROR_TOKEN }}

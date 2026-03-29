@@ -1,4 +1,4 @@
-!  Copyright (C) 2016-2024 The ALF project
+!  Copyright (C) 2016-2026 The ALF project
 !
 !     The ALF project is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published by
@@ -67,7 +67,7 @@ Program MaxEnt_Wrapper
        Logical                :: Checkpoint,  Stochastic, Default_model_exists, Particle_channel_PH
        Character (Len=:), allocatable :: Channel
        Character (Len=1)      :: Char, Char1
-       Character (len=64)     :: str_temp
+       Character (len=64)     :: str_temp, FA_Name
        ! Space  for classic MaxEnt
        Real (Kind=Kind(0.d0)), allocatable ::  Xker_classic(:,:),  A_classic(:),  Default(:)
 
@@ -98,6 +98,9 @@ Program MaxEnt_Wrapper
           CALL Terminate_on_error(ERROR_MAXENT,__FILE__,__LINE__)
        endif
        close(30)
+       
+       N = 20
+       Call Set_Ra_ba(N)
        
        INQUIRE(FILE="Default", EXIST=Default_model_exists)
 
@@ -132,8 +135,8 @@ Program MaxEnt_Wrapper
           Open(unit=50,File='Info_MaxEnt_cl',Status="unknown")
        endif
        write(50,11) 'Channel', Channel
-       If (str_to_upper(Channel) == "PH" .or. str_to_upper(Channel) == "P_PH" )  then
-          Write(50,"(A72)")  'Om_start is set to zero. PH  and  P_PH channels corresponds to symmetric data'
+       If (str_to_upper(Channel) == "PH" .or. str_to_upper(Channel) == "P_PH" .or. str_to_upper(Channel) ==  'PH_C')  then
+          Write(50,"(A72)")  'Om_start is set to zero. PH  and  P_PH and PH_C channels corresponds to symmetric data'
           Om_st = 0.d0
        endif
        Write(50, 12) "Covariance", N_cov
@@ -160,10 +163,10 @@ Program MaxEnt_Wrapper
        Ntau_st = 1
        Ntau_en = Ntau
        Select Case (str_to_upper(Channel))
-       Case ("PH")
+       Case ("PH", "PH_C")
           xmom1 = pi * xqmc(1)
        Case ("PP")
-          xmom1 = 2.d0* pi * xqmc(1)
+          xmom1 =  pi * (xqmc(1) + xqmc(ntau) )
        Case ("P")
           xmom1 =  pi * ( xqmc(1) + xqmc(ntau) )
           !  Remove the tau = beta point from the data since it is  correlated
@@ -228,17 +231,31 @@ Program MaxEnt_Wrapper
        Select Case (str_to_upper(Channel))
        Case ("PH")
           If  (Stochastic)  then
+             FA_Name = "QFI_ph.dat"
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_ph, Back_Trans_ph, Beta, &
-                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, F_QFI_ph, Default)
+                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, F_QFI_ph, &
+                  &            Filename_F=FA_Name, Default_provided=Default)
              ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
           else
              Call Set_Ker_classic(Xker_ph,Xker_classic,Om_st,Om_en,beta,xtau_st)
              Call  MaxEnt( XQMC, XCOV, A_classic, XKER_classic, Alpha_classic_st, CHISQ ,DEFAULT)
-          endif 
+          endif
+       Case ("PH_C")
+          If  (Stochastic)  then
+             Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_ph, Back_trans_pp, Beta, &
+                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, F, Default_provided=Default)
+             ! Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_ph_c, Back_Trans_ph_c, Beta, &
+                  ! &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, F_QFI_ph_c, Default)
+             ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
+          else
+             ! Call Set_Ker_classic(Xker_ph_c,Xker_classic,Om_st,Om_en,beta,xtau_st)
+             Call Set_Ker_classic(XKER_ph,Xker_classic,Om_st,Om_en,beta,xtau_st)
+             Call  MaxEnt( XQMC, XCOV, A_classic, XKER_classic, Alpha_classic_st, CHISQ ,DEFAULT)
+          endif       
        Case ("PP")
           If  (Stochastic) then
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_pp, Back_Trans_pp, Beta, &
-                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, F, Default)
+                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm, F , Default_provided=Default)
              ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
           else
              Call Set_Ker_classic(Xker_pp,Xker_classic,Om_st,Om_en,beta,xtau_st)
@@ -246,8 +263,10 @@ Program MaxEnt_Wrapper
           endif
        Case ("P")
           If  (Stochastic)  then
+             FA_Name = "DIDV.dat"
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_p, Back_Trans_p, Beta, &
-                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm , F, Default)
+                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm , F_DIDV, & 
+                  &            Filename_F=FA_Name, Default_provided=Default)
              ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
           else  ! Classic
              Call Set_Ker_classic(Xker_p,Xker_classic,Om_st,Om_en,beta,xtau_st)
@@ -255,8 +274,10 @@ Program MaxEnt_Wrapper
           endif  
        Case ("P_PH")
           If  (Stochastic)  then
+             FA_Name = "DIDV.dat"
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_p_ph, Back_Trans_p, Beta, &
-                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm ,F, Default)
+                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm ,F_DIDV_PH, & 
+                  &            Filename_F=FA_Name, Default_provided=Default)
           else  ! Classic
              Call Set_Ker_classic(Xker_p_ph,Xker_classic,Om_st,Om_en,beta,xtau_st)
              Call  MaxEnt( XQMC, XCOV, A_classic, XKER_classic, Alpha_classic_st, CHISQ ,DEFAULT)
@@ -264,7 +285,7 @@ Program MaxEnt_Wrapper
        Case ("T0")
           If (Stochastic)  then
              Call MaxEnt_stoch(XQMC, Xtau, Xcov, Xmom1, XKER_T0, Back_Trans_T0, Beta, &
-                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm,F,Default)
+                  &            Alpha_tot, Ngamma, OM_ST, OM_EN, Ndis, Nsweeps, NBins, NWarm,F,Default_provided=Default)
              ! Beware: Xqmc and cov are modified in the MaxEnt_stoch call.
           else
              Call Set_Ker_classic(Xker_T0,Xker_classic,Om_st,Om_en,beta,xtau_st)
@@ -305,6 +326,11 @@ Program MaxEnt_Wrapper
              Select Case (str_to_upper(Channel))
                 Case ("PH")
                    do i = 1,Ngamma
+                      X = X + alp_bf(i)*Xker_ph(tau,om_bf(i), beta)
+                   enddo
+                Case ("PH_C")
+                   do i = 1,Ngamma
+                      ! X = X + alp_bf(i)*Xker_ph_c(tau,om_bf(i), beta)
                       X = X + alp_bf(i)*Xker_ph(tau,om_bf(i), beta)
                    enddo
                 Case ("PP")
@@ -363,6 +389,11 @@ Program MaxEnt_Wrapper
                 do  nw  = 1,Ndis
                    A(nw) =  Back_trans_ph(A(nw), xom(nw), beta)
                 enddo
+             Case ("PH_C")
+                do  nw  = 1,Ndis
+                   ! A(nw) =  Back_trans_ph_c(A(nw), xom(nw), beta)
+                   A(nw) =  Back_trans_pp(A(nw), xom(nw), beta)
+                enddo
              Case ("PP")
                 do  nw  = 1,Ndis
                    A(nw) =  Back_trans_pp(A(nw), xom(nw), beta)
@@ -397,25 +428,32 @@ Program MaxEnt_Wrapper
           om = xom(nw)
           do nwp = 1,Ndis
              omp = xom(nwp)
-             If  (str_to_upper(Channel) == "P_PH" .and.  omp > 0.00001d0  )  then 
+             If  (((str_to_upper(Channel) == "P_PH") .or. (str_to_upper(Channel) == "PH_C")) .and.  omp > 0.00001d0  )  then 
+               ! In this case A(om)  = A (-om) and om > 0
                Z = Z + A(nwp)/cmplx(  om -  omp, delta, kind(0.d0)) &
                    & + A(nwp)/cmplx(  om +  omp, delta, kind(0.d0)) 
+            elseif ( str_to_upper(Channel) == "PH" .and.  omp > 0.00001d0  ) then 
+               ! In this case S(q,-om)=  exp(-beta*om) S(q,om)   and om > 0 
+               Z = Z + A(nwp)/cmplx(  om -  omp, delta, kind(0.d0)) &
+                   & + A(nwp)*exp(-beta*om)/cmplx(  om +  omp, delta, kind(0.d0)) 
             else
+               ! No symmetry is used
                Z = Z + A(nwp)/cmplx( om -  omp, delta, kind(0.d0))
             endif
           enddo
-          Z = Z * dom
-          x  = x  - Aimag(Z)/pi
-          x1 = x1 - om*Aimag(Z)/pi
-          x2 = x2 - om*om*Aimag(Z)/pi
+          Z = -Z * dom/pi
           If (Test)   then 
+            x  = x  + Aimag(Z)
+            x1 = x1 + om*Aimag(Z)
+            x2 = x2 + om*om*Aimag(Z)
             write(43,"('X',2x,F14.7,2x,F16.8,2x,F16.8,2x,F14.7,2x,F14.7,2x,F14.7)")  & 
-                & xom(nw), dble(Z), -Aimag(Z)/pi,  X*dom, x1*dom, x2*dom
+               & xom(nw), dble(Z), Aimag(Z),  X*dom, x1*dom, x2*dom
           else
             write(43,"('X',2x,F14.7,2x,F16.8,2x,F16.8)")  & 
-                & xom(nw), dble(Z), -Aimag(Z)/pi
+               & xom(nw), dble(Z), Aimag(Z)
           endif   
        enddo
        close(43)
 
+       call clean_Set_Ra_ba()
      end Program MaxEnt_Wrapper

@@ -1,14 +1,40 @@
-LIB=modules_90.a
-OBJS=runtime_error_mod.o errors_mod.o files_mod.o   fourier_mod.o histograms_mod.o histograms_v2_mod.o lattices_v3_mod.o \
-	log_mesh_mod.o mymats_mod.o matrix_mod.o maxent_mod.o   maxent_stoch_mod.o   mpi_shared_mem_mod_v2.o \
-	natural_constants_mod.o precdef_mod.o random_wrap_mod.o Mat_subroutines_mod.o entanglement_mod.o   alf_hdf5_mod.o \
-	check_omp_num_threads_mod.o
-MODS=runtime_error_mod.mod errors.mod   files_mod.mod fourier.mod   histograms.mod   histograms_v2.mod   lattices_v3.mod   \
-	log_mesh.mod   mymats.mod   matrix.mod   maxent_mod.mod maxent_stoch_mod.mod mpi_shared_memory.mod \
-	natural_constants.mod   precdef.mod   random_wrap.mod   mat_subroutines.mod   entanglement_mod.mod alf_hdf5.mod \
-	check_omp_num_threads_mod.mod
+.PHONY : lib clean
 
-$(LIB): $(OBJS)
+LIB=modules_90.a
+
+SRCS = Mat_subroutines_mod.F90 \
+	alf_hdf5_mod.F90 \
+	check_omp_num_threads_mod.F90 \
+	entanglement_mod.F90 \
+	errors_mod.F90 \
+	files_mod.F90 \
+	fourier_mod.F90 \
+	histograms_mod.F90 \
+	histograms_v2_mod.F90 \
+	iso8601_datetime_mod.F90 \
+	lattices_interface_mod.F90 \
+	lattices_v3_mod.F90 \
+	log_mesh_mod.F90 \
+	matrix_mod.F90 \
+	maxent_mod.F90 \
+	maxent_stoch_mod.F90 \
+	mpi_shared_mem_mod_v2.F90 \
+	mymats_mod.F90 \
+	natural_constants_mod.F90 \
+	precdef_mod.F90 \
+	random_wrap_mod.F90 \
+	runtime_error_mod.F90
+
+# Dependency helper variables
+DEPSFILE := .deps.mk
+DEPSGEN := ../../Prog/gen_deps.py
+
+lib: $(LIB)
+
+# OBJS and MODS are auto-generated into $(DEPSFILE) by gen_deps.py
+-include $(DEPSFILE)
+
+$(LIB): $(DEPSFILE) $(OBJS)
 	ar -r $(LIB) $(OBJS)
 
 lattices_x86-64.so: runtime_error_mod.F90 lattices_interface_mod.F90 matrix_mod.F90 lattices_v3_mod.F90
@@ -30,19 +56,11 @@ lattices_armv8.4-a.so: runtime_error_mod.F90 lattices_interface_mod.F90 matrix_m
 %.o: %.F90
 	$(ALF_FC) -c $(ALF_FLAGS_MODULES) $<
 
-alf_hdf5_mod.o: runtime_error_mod.o
-errors_mod.o: runtime_error_mod.o mymats_mod.o random_wrap_mod.o
-fourier_mod.o: runtime_error_mod.o maxent_mod.o maxent_stoch_mod.o matrix_mod.o
-lattices_v3_mod.o: runtime_error_mod.o mymats_mod.o 
-maxent_mod.o: mymats_mod.o errors_mod.o runtime_error_mod.o
-histograms_v2_mod.o: log_mesh_mod.o
-log_mesh_mod.o: runtime_error_mod.o
-mat_subroutines.o: runtime_error_mod.o
-mpi_shared_mem_mod_v2.o: runtime_error_mod.o
-mymats.o: runtime_error_mod.o
+$(DEPSFILE): $(SRCS) $(DEPSGEN)
+	python3 $(DEPSGEN) $(SRCS) > $(DEPSFILE)
 
-clean:
-	rm -f $(OBJS) $(MODS) $(LIB)
+clean: $(DEPSFILE)
+	rm -f $(OBJS) $(MODS) $(LIB) $(DEPSFILE)
 
 #unused modules: histograms histograms_v2 log_mesh natural_constants
 #unused, except for in Prog/FFA_Orginals/: precdef

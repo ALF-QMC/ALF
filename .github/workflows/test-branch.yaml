@@ -1,0 +1,110 @@
+name: Test vs main branch
+
+on: workflow_dispatch
+
+jobs:
+  test_branch:
+    # needs: prepare
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/alf-qmc/alf-container/pyalf-requirements/${{ matrix.image[0] }}
+    strategy:
+      fail-fast: false
+      matrix:
+        image: 
+          - [bullseye, GNU]
+          - [bookworm, GNU]
+          - [trixie, GNU]
+          # - [bullseye-openblas, GNU]
+          # - [tumbleweed, GNU]
+          - [bullseye-pgi-21-03, PGI]
+          - [bookworm-pgi-24-09, PGI]
+          - [bullseye-intel, INTEL]
+          - [bookworm-intel-2024.2, INTEL]
+          - [bookworm-intel, INTELLLVM]
+    steps:
+      - name: Install pyALF
+        run: pip install --no-deps pyALF
+      - uses: actions/checkout@v6
+        with:
+          ref: master
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.inputs.test_branch || github.ref_name }}
+      - name: Check if mpiexec supports --use-hwthread-cpus
+        id: mpi_flag_check
+        run: mpiexec --version | grep -iq -e 'Open MPI' -e 'OpenRTE' &&
+             echo "value='--mpiexec_args=--use-hwthread-cpus'" >> $GITHUB_OUTPUT ||
+             echo "No Open MPI, so --use-hwthread-cpus not needed"
+      - name: Run ALF test vs main branch
+        run: alf_test_branch
+            --alfdir $PWD
+            --sim_pars $PWD/testsuite/test_branch_parameters.json
+            --machine ${{ matrix.image[1] }}
+            --mpi
+            --n_mpi 4
+            --branch_T ${{ github.event.inputs.test_branch || github.ref_name }}
+            --branch_R master
+            --devel
+            ${{ steps.mpi_flag_check.outputs.value }}
+      - name: Upload test branch results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: test-branch-results-${{ matrix.image[0] }}-${{ matrix.image[1] }}
+          path: 
+            test.txt
+  
+  test_branch_macos:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [GNU]
+    steps:
+      - name: Install pyALF
+        run: pipx install pyALF
+
+      - name: macOS Toolchain install
+        id: mac_toolchain
+        run: |
+          brew update
+          brew install mpich
+          gcc_version=$(brew list --versions gcc | grep -o '[0-9]\+' | head -1)
+          bindir=$(brew --prefix)/bin
+          ln -fs ${bindir}/gfortran-${gcc_version} /usr/local/bin/gfortran
+          ln -fs ${bindir}/gcc-${gcc_version} /usr/local/bin/gcc
+          ln -fs ${bindir}/g++-${gcc_version} /usr/local/bin/g++
+          echo "gcc_version=$gcc_version" >> $GITHUB_OUTPUT
+
+      - uses: actions/checkout@v6
+        with:
+          ref: master
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.inputs.test_branch || github.ref_name }}
+
+      - name: Restore HDF5 cache
+        uses: actions/cache@v5
+        with:
+          key: macos-HDF5-${{ steps.mac_toolchain.outputs.gcc_version }}
+          path: HDF5/*/
+
+      - name: Run ALF test vs main branch on macOS
+        run: alf_test_branch
+            --alfdir $PWD
+            --sim_pars $PWD/testsuite/test_branch_parameters.json
+            --machine ${{ matrix.compiler }}
+            --mpi
+            --n_mpi 4
+            --branch_T ${{ github.event.inputs.test_branch || github.ref_name }}
+            --branch_R master
+            --devel
+
+      - name: Upload test branch results macOS
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: test-branch-results-macos-${{ matrix.compiler }}
+          path: 
+            test.txt

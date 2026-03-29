@@ -15,7 +15,8 @@ Release cycle
 * Half-yearly releases: **April and October**
 * Main release (new documentation paper): ~**every three to four years**
 
-Last main release: ALF 2.0, published on 2022 (2020 on ArXiV).
+Latest main release documentation: ALF 2.4
+Former: ALF 2.0, published on 2022 (2020 on ArXiV).
 
 
  To-do list for new releases:
@@ -31,11 +32,13 @@ Last main release: ALF 2.0, published on 2022 (2020 on ArXiV).
   - update **master**'s README warning: "-> This is the development version of ALF, the latest stable version is ALF #.#"
   - create corresponding pyALF branch (or add remark to its README it's compatible with the new version)
   - create corresponding Tutorial branch (or add remark to its README it's compatible with the new version)
-  - update ALF website (links, and also 'news')
+  - update ALF website (links, and also 'news') and advertise in other channels (e.g., Discord announcements)
 
 
 Next Goals
 ---
+
+(To be updated)
 
 - Expand test pipelines to include simulations
 - Improved overall usability:

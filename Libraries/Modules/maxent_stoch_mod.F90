@@ -60,13 +60,14 @@ Module MaxEnt_stoch_mod
 
 !--------------------------------------------------------------------
          Subroutine MaxEnt_stoch(XQMC, Xtau, COV,Xmom1, XKER, Back_Trans_Aom, Beta_1, Alpha_tot,&
-              & Ngamma_1, OM_ST, OM_EN, Ndis_1, Nsweeps, NBins, NWarm, F, Default_provided)
+              & Ngamma_1, OM_ST, OM_EN, Ndis_1, Nsweeps, NBins, NWarm, F, Filename_F, Default_provided)
 
            Implicit None
 
            Real (Kind=Kind(0.d0)), Dimension(:) :: XQMC, Xtau, Alpha_tot
            Real (Kind=Kind(0.d0)), Dimension(:,:) :: COV
            Real (Kind=Kind(0.d0)), Dimension(:),  Intent(In), allocatable,   optional :: Default_provided
+           Character (Len=*), Intent(In), optional  :: Filename_F
            Real (Kind=Kind(0.d0)), External :: XKER, Back_trans_Aom, F
            Real (Kind=Kind(0.d0)) :: OM_ST, OM_EN, Beta_1, Xmom1, Err
            Integer :: Nsweeps, NBins, Ngamma_1, Ndis_1, nw, nt1
@@ -111,10 +112,10 @@ Module MaxEnt_stoch_mod
            Dom_table    = (OM_EN_1 - OM_ST_1)/dble(Ndis_table)
            Dom_spectral = (OM_EN_1 - OM_ST_1)/dble(Ndis)
            Dx_spectral  = 1.d0/dble(Ndis)
-           Allocate ( Xker_table(Ntau, Ndis_table) )
+           Allocate ( Xker_table(Ntau, Ndis_table+1) )
            Allocate ( Default_table(Ndis_table))
            do nt = 1,Ntau
-              do nw = 1,Ndis_table
+              do nw = 1,Ndis_table+1
                  tau = xtau(nt)
                  Om = OM_st + dble(nw-1)*Dom_table
                  Xker_table(nt,nw) = Xker(tau,om,beta)
@@ -331,7 +332,6 @@ Module MaxEnt_stoch_mod
            close(42)
            ! Stop dump
            Open(Unit=66,File="energies",status="unknown")
-           Open(Unit=67,File="(F,A).dat",status="unknown")
            do ns = 1,Nsims
               En_m_tot(ns) = En_m_tot(ns) / dble(nc)
               En_e_tot(ns) = En_e_tot(ns) / dble(nc)
@@ -342,19 +342,24 @@ Module MaxEnt_stoch_mod
                  En_e_tot(ns) = 0.d0
               endif
               write(66,*) Alpha_tot(ns), En_m_tot(ns), En_e_tot(ns)
-
-              F_A_m(ns) = F_A_m(ns) / dble(nc)
-              F_A_e(ns) = F_A_e(ns) / dble(nc)
-              F_A_e(ns) = ( F_A_e(ns) -F_A_m(ns)**2)/dble(nc)
-              if ( F_A_e(ns) .gt. 0.d0) then
-                 F_A_e(ns) = sqrt(F_A_e(ns))
-              else
-                 F_A_e(ns) = 0.d0
-              endif
-              write(67,*) Alpha_tot(ns), F_A_m(ns), F_A_e(ns)
            enddo
            close(66)
-           close(67)
+
+           If (Present(Filename_F)) then
+              Open(Unit=67,File=Filename_F,status="unknown")
+              do ns = 1,Nsims
+               F_A_m(ns) = F_A_m(ns) / dble(nc)
+               F_A_e(ns) = F_A_e(ns) / dble(nc)
+               F_A_e(ns) = ( F_A_e(ns) -F_A_m(ns)**2)/dble(nc)
+               if ( F_A_e(ns) .gt. 0.d0) then
+                  F_A_e(ns) = sqrt(F_A_e(ns))
+               else
+                  F_A_e(ns) = 0.d0
+               endif
+               write(67,*) Alpha_tot(ns), F_A_m(ns), F_A_e(ns)
+              enddo
+              close(67)
+           endif
            Open(Unit=66,File="moments",status="unknown")
            do ns = 1,Nsims
               do n = 1,Size(Mom_m_tot,1)
@@ -389,7 +394,7 @@ Module MaxEnt_stoch_mod
                  om =  Om_st_1 + dble(nd-1)*Dom_spectral ! PhiM1(dble(nd)/dble(NDis)) HERE
                  Aom = Xn_m_tot(nd,ns) ! * Xmom1
                  Err = Xn_e_tot(nd,ns) ! * Xmom1
-                 write(66,2001) om, Back_Trans_Aom(Aom,Beta,om), Back_Trans_Aom(Err,Beta,om)
+                 write(66,2001) om, Back_Trans_Aom(Aom,om,Beta), Back_Trans_Aom(Err,om,Beta)
                  ! PhiM1(dble(nd)/dble(NDis)), Xn_m_tot(nd,ns)
               enddo
               Close(66)
@@ -416,8 +421,8 @@ Module MaxEnt_stoch_mod
                  om =  Om_st_1 +  dble(nd-1)*Dom_spectral  !  PhiM1(dble(nd)/dble(NDis)) HERE
                  Aom = Xn_m(nd) ! * Xmom1
                  Err = Xn_e(nd) ! * Xmom1
-                 Xn_m(nd) = Back_Trans_Aom(Aom,Beta,om)
-                 Xn_e(nd) = Back_Trans_Aom(Err,Beta,om)
+                 Xn_m(nd) = Back_Trans_Aom(Aom,om,Beta)
+                 Xn_e(nd) = Back_Trans_Aom(Err,om,Beta)
                  IF (Xn_m(nd) .gt. XMAX ) XMAX = Xn_m(nd)
               enddo
               do nd = 1,Ndis

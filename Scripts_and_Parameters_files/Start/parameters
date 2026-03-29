@@ -107,6 +107,7 @@ Continuous = .F.            ! Uses (T: continuous; F: discrete) HS transformatio
 ham_T      = 1.d0           ! Hopping parameter
 ham_chem   = 0.d0           ! Chemical potential
 ham_U      = 4.d0           ! Hubbard interaction
+ham_h0     = 0.d0           ! Pinning field
 ham_T2     = 1.d0           ! For bilayer systems
 ham_U2     = 4.d0           ! For bilayer systems
 ham_Tperp  = 1.d0           ! For bilayer systems
