@@ -136,13 +136,16 @@
     Implicit none
     
     private
-    public :: Alloc_Ham, ham_base, ham, LOG_T0_REJECTED
+    public :: Alloc_Ham, ham_base, ham, LOG_T0_REJECTED, Validate_Ham_Variables
 #ifdef __PGI
     public :: Obs_scal, Obs_eq, Obs_tau
 #endif
       
       ! Sentinel value for rejected global moves in log scale
       Real (Kind=Kind(0.d0)), parameter :: LOG_T0_REJECTED = -huge(1.d0)
+      
+      ! Sentinel value for uninitialized integer Hamiltonian variables
+      Integer, parameter, private :: HAM_VAR_UNSET_INT = -huge(0)
       
       type ham_base
       contains
@@ -228,6 +231,9 @@
           write(error_unit, '("A","A","A")') 'Hamiltonian ', ham_name, ' not yet implemented!'
           CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
        end Select
+       
+       ! Initialize Hamiltonian variables to sentinel/safe default values
+       Call Init_Ham_Variables()
     end subroutine Alloc_Ham
     
     !--------------------------------------------------------------------
@@ -903,6 +909,79 @@
            
          end subroutine write_parameters_hdf5_base
 #endif
-         
+
+
+    !--------------------------------------------------------------------
+    !> @brief
+    !> Initializes Hamiltonian variables to sentinel/safe default values.
+    !> @details
+    !> Called from Alloc_Ham before ham_set. Integer variables are set to
+    !> sentinel values that will be caught by Validate_Ham_Variables if
+    !> ham_set fails to initialize them. Logical variables are set to
+    !> safe defaults (.false.).
+    !> Variables managed by main.F90 (Group_Comm, N_FL_eff,
+    !> reconstruction_needed, leap_frog_bulk) are not touched here.
+    !--------------------------------------------------------------------
+    subroutine Init_Ham_Variables()
+      implicit none
+      Ndim      = HAM_VAR_UNSET_INT
+      N_FL      = HAM_VAR_UNSET_INT
+      N_SUN     = HAM_VAR_UNSET_INT
+      Ltrot     = HAM_VAR_UNSET_INT
+      Thtrot    = HAM_VAR_UNSET_INT
+      Projector = .false.
+      Symm      = .false.
+    end subroutine Init_Ham_Variables
+
+
+    !--------------------------------------------------------------------
+    !> @brief
+    !> Validates that all required Hamiltonian variables have been properly
+    !> set by ham_set.
+    !> @details
+    !> Called from main.F90 after ham_set returns. Checks that integer
+    !> variables have been set to valid values (not the sentinel) and that
+    !> they satisfy basic physical constraints.
+    !--------------------------------------------------------------------
+    subroutine Validate_Ham_Variables()
+      implicit none
+
+      if (Ndim == HAM_VAR_UNSET_INT .or. Ndim <= 0) then
+         write(error_unit, *) 'Ham_set error: Ndim was not set or has invalid value: ', Ndim
+         write(error_unit, *) 'Ndim must be a positive integer (total number of orbitals).'
+         CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+      endif
+
+      if (N_FL == HAM_VAR_UNSET_INT .or. N_FL <= 0) then
+         write(error_unit, *) 'Ham_set error: N_FL was not set or has invalid value: ', N_FL
+         write(error_unit, *) 'N_FL must be a positive integer (number of flavors).'
+         CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+      endif
+
+      if (N_SUN == HAM_VAR_UNSET_INT .or. N_SUN <= 0) then
+         write(error_unit, *) 'Ham_set error: N_SUN was not set or has invalid value: ', N_SUN
+         write(error_unit, *) 'N_SUN must be a positive integer (number of colors).'
+         CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+      endif
+
+      if (Ltrot == HAM_VAR_UNSET_INT .or. Ltrot <= 0) then
+         write(error_unit, *) 'Ham_set error: Ltrot was not set or has invalid value: ', Ltrot
+         write(error_unit, *) 'Ltrot must be a positive integer (number of time slices).'
+         CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+      endif
+
+      if (Thtrot == HAM_VAR_UNSET_INT .or. Thtrot < 0) then
+         write(error_unit, *) 'Ham_set error: Thtrot was not set or has invalid value: ', Thtrot
+         write(error_unit, *) 'Thtrot must be a non-negative integer (projection parameter).'
+         CALL Terminate_on_error(ERROR_HAMILTONIAN,__FILE__,__LINE__)
+      endif
+
+      if (Projector .and. Thtrot == 0) then
+         write(error_unit, *) 'Ham_set warning: Projector is .true. but Thtrot = 0.'
+         write(error_unit, *) 'This means no projection is actually applied. Check Theta and Dtau.'
+      endif
+
+    end subroutine Validate_Ham_Variables
+
 
     end Module Hamiltonian_main
