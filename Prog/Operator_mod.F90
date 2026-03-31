@@ -45,6 +45,7 @@ Module Operator_mod
   Use mat_subroutines
   Use MyMats
   Use Fields_mod
+  Use runtime_error_mod
   
   Implicit none
   
@@ -260,10 +261,64 @@ Contains
     Complex (Kind=Kind(0.d0)), allocatable :: U(:,:), TMP(:, :)
     Real    (Kind=Kind(0.d0)), allocatable :: E(:)
     Real    (Kind=Kind(0.d0)) :: Zero = 1.D-9 !, Phi(-2:2)
+    Real    (Kind=Kind(0.d0)) :: herm_tol = 1.D-12
+    Real    (Kind=Kind(0.d0)) :: herm_dev
     Integer :: N, I, J, np,nz, noderank, arrayshape2d(2), arrayshape(3), ierr
     Complex (Kind=Kind(0.d0)) :: Z
     Type  (Fields)   :: nsigma_single
     
+    ! --- Validate Op%type ---
+    ! Valid types: 0 (hopping/no HS field), 1 (Ising), 2 (discrete HS), 3 (continuous scalar HS), 4 (complex three-body)
+    if (Op%type < 0 .or. Op%type > 4) then
+       Write(error_unit, '(A,I0)') ' Op_set: Invalid operator type: ', Op%type
+       Write(error_unit, '(A)')    '   Valid types are 0 (hopping), 1 (Ising), 2 (discrete HS), 3 (continuous scalar HS), 4 (complex three-body).'
+       Call Terminate_on_error(ERROR_HAMILTONIAN, __FILE__, __LINE__)
+    endif
+
+    ! --- Validate projector Op%P ---
+    do I = 1, Op%N
+       if (Op%P(I) < 1) then
+          Write(error_unit, '(A,I0,A,I0)') ' Op_set: Projector index P(', I, ') out of bounds: ', Op%P(I)
+          Write(error_unit, '(A)')          '   All projector entries must be >= 1.'
+          Call Terminate_on_error(ERROR_HAMILTONIAN, __FILE__, __LINE__)
+       endif
+    enddo
+
+    ! --- Validate Hermiticity of Op%O ---
+    N = Op%N
+    if (N > 1) then
+       do I = 1, N
+          do J = I+1, N
+             herm_dev = abs(Op%O(I,J) - conjg(Op%O(J,I)))
+             if (herm_dev > herm_tol * max(abs(Op%O(I,J)), abs(Op%O(J,I)), 1.D-30)) then
+                Write(error_unit, '(A)')        ' Op_set: Operator matrix Op%O is not Hermitian.'
+                Write(error_unit, '(A,I0,A,I0,A,2ES15.7,A)') &
+                     '   O(', I, ',', J, ') = (', real(Op%O(I,J)), aimag(Op%O(I,J)), ')'
+                Write(error_unit, '(A,I0,A,I0,A,2ES15.7,A)') &
+                     '   O(', J, ',', I, ') = (', real(Op%O(J,I)), aimag(Op%O(J,I)), ')'
+                Write(error_unit, '(A,ES15.7)') '   |O(i,j) - conjg(O(j,i))| = ', herm_dev
+                Call Terminate_on_error(ERROR_HAMILTONIAN, __FILE__, __LINE__)
+             endif
+          enddo
+       enddo
+       ! Check that diagonal elements are real
+       do I = 1, N
+          if (abs(aimag(Op%O(I,I))) > herm_tol * max(abs(Op%O(I,I)), 1.D-30)) then
+             Write(error_unit, '(A)')        ' Op_set: Operator matrix Op%O has complex diagonal elements (not Hermitian).'
+             Write(error_unit, '(A,I0,A,I0,A,2ES15.7,A)') &
+                  '   O(', I, ',', I, ') = (', real(Op%O(I,I)), aimag(Op%O(I,I)), ')'
+             Call Terminate_on_error(ERROR_HAMILTONIAN, __FILE__, __LINE__)
+          endif
+       enddo
+    else
+       ! N = 1: diagonal element must be real for Hermiticity
+       if (abs(aimag(Op%O(1,1))) > herm_tol * max(abs(Op%O(1,1)), 1.D-30)) then
+          Write(error_unit, '(A)')        ' Op_set: 1x1 operator matrix has non-zero imaginary part (not Hermitian).'
+          Write(error_unit, '(A,2ES15.7,A)') '   O(1,1) = (', real(Op%O(1,1)), aimag(Op%O(1,1)), ')'
+          Call Terminate_on_error(ERROR_HAMILTONIAN, __FILE__, __LINE__)
+       endif
+    endif
+
     if (allocated(OP%g_t)) Op%g_t_alloc = .true.
     
     Call nsigma_single%make(1,1)
@@ -319,6 +374,11 @@ Contains
           if (noderank == 0) then
              TMP = Op%U ! that way we have the changes to the determinant due to the permutation
              Z = Det_C(TMP, N)
+             if (abs(Z) < 1.D-30) then
+                Write(error_unit, '(A,ES15.7)') ' Op_set: Eigenvector matrix has near-zero determinant: |det| = ', abs(Z)
+                Write(error_unit, '(A)')        '   Cannot normalize to SU(N). Check operator matrix.'
+                Call Terminate_on_error(ERROR_HAMILTONIAN, __FILE__, __LINE__)
+             endif
              ! Scale Op%U to be in SU(N) 
              DO I = 1, N
                 Op%U(I,1) = Op%U(I, 1)/Z 
